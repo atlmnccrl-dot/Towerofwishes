@@ -52,6 +52,8 @@
     evaluator: { name: 'Evaluator', tone: 'plain' },
     miller: { name: 'The miller', tone: 'plain' },
     climber: { name: '???', tone: 'foe' },
+    companion: { name: 'Contract reader', tone: 'plain' },
+    knifeman: { name: 'The man with the knife', tone: 'foe' },
   };
 
   // The three starting characters (all Proposals; see docs/STORY.md).
@@ -105,6 +107,10 @@
 
   // ------------------------------------------------------------ chapters
   // For the campaign map. `from` is the first node of the chapter.
+  // The first node of each chapter after the prologue: reaching one returns
+  // the player to the campaign map, where the next chapter waits.
+  const CHAPTER_START = { 'c1.tavern': 'c1', 'c2.gate': 'c2', 'c4.guild': 'c4', 'c5.mill': 'c5', end: 'c6' };
+
   const CHAPTERS = [
     { id: 'prologue', label: 'Prologue', title: 'The Last Ascent', from: 'p.open' },
     { id: 'c1', label: 'Chapter One', title: 'The Clearing', from: 'c1.tavern' },
@@ -485,17 +491,174 @@
     end: { type: 'end', chapter: 'c6', bg: 'tower' },
   };
 
+
+  // ------------------------------------------------------------ side episodes
+  // Optional missions on the campaign map (all Proposals except quoted lines).
+  // They never cost hearts. Each runs from `from` until a node with next 'map'.
+  const party3 = (st) => roster(st).slice(0, 3);
+  const EPISODES = {
+    yard: { title: 'The Evaluation Yard', kind: 'training', from: 'yard.intro', repeat: true },
+    gauntlet: { title: 'Yard Gauntlet', kind: 'arcade', from: 'gauntlet.fight', repeat: true },
+    cart: { title: 'The Missing Supply Cart', kind: 'contract', from: 'cart.board' },
+    stray: { title: 'Enough Teeth for Three', kind: 'contract', from: 'stray.board' },
+    crossing: { title: 'The Old Crossing', kind: 'side', from: 'cross.ask' },
+    deep: { title: 'The Deep Passage', kind: 'dungeon', from: 'deep.mouth', repeat: true },
+  };
+  Object.assign(NODES, {
+    // ---- the Guild's evaluation yard: practice against glyph-driven blocks
+    'yard.intro': {
+      type: 'scene', chapter: 'side', bg: 'guild', next: 'yard.fight',
+      lines: [
+        N('Behind the Guild office: a low stone wall, marked lines, three stone blocks and a wooden target.'),
+        B('evaluator', 'Now show me something you can sustain while moving.'),
+        S('evaluator', 'The blocks will push back. Glyph-driven. They hit about as hard as a shove — don’t make me fill in an injury form.'),
+      ],
+    },
+    'yard.fight': {
+      type: 'battle', chapter: 'side', scenario: 'training', hearts: false, xp: 30, loot: 'yard',
+      party: (st) => party3(st), win: 'yard.after',
+      tips: [
+        'Your fighters choose their own moves. Watch the glowing ground: that’s a wind-up.',
+        'When ALL OUT is lit, tap it: everyone attacks flat out, then is drained for a few seconds.',
+        'Tap one of your fighters to follow them. Hold the flag to withdraw.',
+      ],
+      outro: 'The blocks settle back onto their marks.',
+    },
+    'yard.after': {
+      type: 'scene', chapter: 'side', bg: 'guild', next: 'map',
+      lines: [S('evaluator', 'Adequate. Come back when you want to be better than adequate.')],
+    },
+    // ---- arcade: endless waves; the score is how many you clear
+    'gauntlet.fight': {
+      type: 'battle', chapter: 'side', scenario: 'arcade', hearts: false, xp: 0, arcade: true, loot: 'gauntlet',
+      party: (st) => party3(st), win: 'map', lose: 'map',
+      outro: 'The yard falls quiet.',
+    },
+
+    // ---- Guild contract: the missing supply cart (set up by the book's contract board)
+    'cart.board': {
+      type: 'scene', chapter: 'side', bg: 'guild', next: 'cart.road',
+      lines: [
+        B('companion', 'Missing supply cart north of town.'),
+        B('kael', 'Carts end up in ditches.'),
+        B('companion', 'Then find the ditch.'),
+        N('The north road. A cart on its side in the ditch, its cargo gone. Fresh boot prints — and a short knife’s sheath, dropped in the mud.'),
+        S('knifeman', 'You again. You don’t learn, do you?'),
+        S('@', { ren: 'You’re the one with the knife. From the clearing.', mara: 'You were in the clearing. You ran.', brannoc: 'Ah. The one who ran first.' }),
+      ],
+    },
+    'cart.road': {
+      type: 'battle', chapter: 'side', scenario: 'cart', hearts: false, xp: 80, loot: 'contract',
+      party: (st) => party3(st), win: 'cart.after',
+      outro: 'The thugs scatter. The miller’s neighbour will get his flour after all.',
+    },
+    'cart.after': {
+      type: 'scene', chapter: 'side', bg: 'road', next: 'map',
+      lines: [
+        S('knifeman', 'She’s trouble. All of you are trouble.'),
+        B('kael', 'Then you should have left the cart alone.'),
+        N('You right the cart. The Guild pays on delivery.'),
+      ],
+    },
+
+    // ---- Guild contract: the stray (the book's "enough teeth for three animals")
+    'stray.board': {
+      type: 'scene', chapter: 'side', bg: 'guild', next: 'stray.fight',
+      lines: [
+        B('kael', 'The last “easy” contract someone recommended involved a stray animal with enough teeth for three animals.'),
+        B('companion', 'You got paid.'),
+        B('kael', 'I also got bitten.'),
+        B('companion', 'Only once.'),
+        N('The new notice describes something worse. It has been taking sheep from the farms past the clearing.'),
+      ],
+    },
+    'stray.fight': {
+      type: 'battle', chapter: 'side', scenario: 'stray', hearts: false, xp: 100, loot: 'beast',
+      party: (st) => party3(st), win: 'stray.after',
+      outro: 'The stray limps into the trees and does not come back.',
+    },
+    'stray.after': {
+      type: 'scene', chapter: 'side', bg: 'forest', next: 'map',
+      lines: [
+        B('kael', 'I wasn’t aware there was an acceptable number of bites.'),
+        S('@', { ren: 'Zero. The number is zero.', mara: 'Statistically, you’re doing well.', brannoc: 'Shield. Get a shield.' }),
+      ],
+    },
+
+    // ---- side story: the old crossing (Eiryn's bridge). Needs her trust.
+    'cross.ask': {
+      type: 'scene', chapter: 'side', bg: 'market', next: 'cross.bridge',
+      lines: [
+        B('eiryn', 'There was a town east of here. On the other side of the hills. A stone bridge crossed the river before the houses.'),
+        N('The mapmaker said the bridge is still standing. Eiryn asks you, not Kael, whether you would walk there with her.'),
+        N('The river changed course long ago. The bridge stands over a stretch of dry stones.'),
+        S('eiryn', 'There was a cart here once. On a rainy morning. I thought the wheel would come off before he made it across.'),
+        N('Something moves between the broken walls. Shapes of people that are not people, and a sound like a bell under water.'),
+      ],
+    },
+    'cross.bridge': {
+      type: 'battle', chapter: 'side', scenario: 'crossing', hearts: false, xp: 140, loot: 'relic',
+      party: (st) => party3(st), win: 'cross.after',
+      outro: 'The echoes come apart like smoke. The bell stops ringing.',
+    },
+    'cross.after': {
+      type: 'scene', chapter: 'side', bg: 'road', next: 'map',
+      lines: [
+        S('eiryn', 'Those were people. Once. Or what was left of where people stood.'),
+        N('She touches the green ornament at her collar and does not explain. You do not ask. That seems to matter to her.'),
+      ],
+    },
+
+    // ---- dungeon: the deep passage behind the quarry (after Chapter Five)
+    'deep.mouth': {
+      type: 'scene', chapter: 'side', bg: 'cave', next: 'deep.1',
+      lines: [
+        N('The two goblins that fled went deeper. The passage behind the ogre’s chamber goes down into the hill.'),
+        B('kael', 'We go far enough to see what they’ve taken. Then we decide.'),
+        N('Three chambers. No way to rest between them, unless you make one.'),
+      ],
+    },
+    'deep.1': {
+      type: 'battle', chapter: 'side', scenario: 'deep1', hearts: false, xp: 60, carry: true, loot: 'deep',
+      party: (st) => party3(st), win: 'deep.rest',
+    },
+    'deep.rest': {
+      type: 'choice', chapter: 'side', bg: 'cave', prompt: 'A trickle of clean water runs down the wall.',
+      options: [
+        { label: 'Rest and drink', hint: 'Everyone recovers a quarter of their health.', set: { deepRest: 1 }, next: 'deep.2' },
+        { label: 'Press on and search the side tunnel', hint: 'No rest — but an extra roll on the loot at the end.', set: { deepGreed: 1 }, next: 'deep.2' },
+      ],
+    },
+    'deep.2': {
+      type: 'battle', chapter: 'side', scenario: 'deep2', hearts: false, xp: 70, carry: true, loot: 'deep',
+      party: (st) => party3(st), win: 'deep.3',
+    },
+    'deep.3': {
+      type: 'battle', chapter: 'side', scenario: 'deep3', hearts: false, xp: 120, carry: true, loot: 'chief',
+      party: (st) => party3(st), win: 'deep.end',
+      outro: 'The chief drops the miller’s cleaver and flees into the dark.',
+    },
+    'deep.end': {
+      type: 'scene', chapter: 'side', bg: 'cave', next: 'map',
+      lines: [N('The goblins’ hoard: stolen tools, a sack of coins, and things they took from people who never reported them.')],
+    },
+  });
+
   // ------------------------------------------------------------ state
   function fresh() {
-    return { v: 1, node: 'p.open', starter: null, xp: 0, flags: {}, seen: {}, wins: {} };
+    return { v: 1, node: 'p.open', starter: null, xp: 0, flags: {}, seen: {}, wins: {}, opened: {}, done: {}, side: null, best: {} };
   }
   function normalise(st) {
     if (!st || st.v !== 1 || !NODES[st.node]) return fresh();
     st.flags = st.flags || {}; st.seen = st.seen || {}; st.wins = st.wins || {};
+    st.opened = st.opened || {}; st.done = st.done || {}; st.best = st.best || {};
+    if (st.side && !NODES[st.side.node]) st.side = null;
     return st;
   }
 
-  function node(st) { return NODES[st.node]; }
+  // The node being played: inside a side episode if one is running.
+  function cur(st) { return st.side ? st.side.node : st.node; }
+  function node(st) { return NODES[cur(st)]; }
 
   // A scene's lines for this playthrough: conditions applied, text and speaker resolved.
   function lines(st, n) {
@@ -512,11 +675,38 @@
   }
 
   function goTo(st, id) {
+    if (st.side) {
+      if (id === 'map') { endSide(st); return null; }
+      if (!NODES[id]) throw new Error('story: no node ' + id);
+      st.side.node = id;
+      return NODES[id];
+    }
     if (!NODES[id]) throw new Error('story: no node ' + id);
     st.node = id;
     st.seen[NODES[id].chapter] = true;
     return NODES[id];
   }
+
+  // ---- the campaign map between chapters
+  // True when the main story waits at the start of a chapter not yet opened
+  // from the map.
+  function atGate(st) { return !st.side && CHAPTER_START[st.node] && !st.opened[CHAPTER_START[st.node]]; }
+  function openChapter(st) { if (CHAPTER_START[st.node]) st.opened[CHAPTER_START[st.node]] = true; }
+
+  // ---- side episodes
+  function startSide(st, ep) {
+    const e = EPISODES[ep];
+    if (!e) throw new Error('story: no episode ' + ep);
+    st.side = { ep, node: e.from, hp: {} };
+    if (ep === 'deep') { delete st.flags.deepRest; delete st.flags.deepGreed; }
+    return NODES[e.from];
+  }
+  function endSide(st) {
+    if (!st.side) return;
+    st.done[st.side.ep] = (st.done[st.side.ep] || 0) + 1;
+    st.side = null;
+  }
+  function leaveSide(st) { st.side = null; }
 
   // Text for the current starter.
   function text(st, t) { return typeof t === 'string' ? t : t[st.starter] || t.ren; }
@@ -530,6 +720,7 @@
   function advance(st) {
     const n = node(st);
     if (n.type === 'choice' || n.type === 'battle' || n.type === 'select' || n.type === 'end') throw new Error('story: advance on ' + n.type);
+    // A side scene going back to the map ends the episode.
     return goTo(st, n.next);
   }
 
@@ -553,9 +744,17 @@
   function battle(st) {
     const n = node(st);
     if (n.type !== 'battle') return null;
+    let party = n.party(st);
+    // Dungeon rooms carry health over from the last room.
+    if (n.carry && st.side) {
+      const heal = st.flags.deepRest && cur(st) === 'deep.2' ? 0.25 : 0;
+      party = party.map((m) => Object.assign(m, { hpFrac: Math.max(0.15, Math.min(1, (st.side.hp[m.key] == null ? 1 : st.side.hp[m.key]) + heal)) }));
+    }
     return {
       scenario: n.scenario,
-      party: n.party(st),
+      party,
+      side: !!st.side, carry: !!n.carry, arcade: !!n.arcade, loot: n.loot || null,
+      greed: !!st.flags.deepGreed,
       mods: n.mods ? n.mods(st) : undefined,
       hearts: !!n.hearts,
       tutorial: !!n.tutorial,
@@ -566,15 +765,26 @@
 
   // After a battle. Win: experience and move on. Loss: the prologue moves on
   // anyway (it is the past); story fights stay put to be tried again.
-  function finishBattle(st, outcome) {
+  // hpFracs (optional): each fighter's health at the end, for dungeon rooms.
+  // score (optional): arcade waves cleared.
+  function finishBattle(st, outcome, hpFracs, score) {
     const n = node(st);
     if (n.type !== 'battle') throw new Error('story: finishBattle on ' + n.type);
     const before = teamLevel(st);
+    const id = cur(st);
+    if (n.arcade) {
+      st.best[id] = Math.max(st.best[id] || 0, score || 0);
+      st.xp += 15 * (score || 0);
+      goTo(st, n.win);
+      return { xp: 15 * (score || 0), levelUp: teamLevel(st) > before, level: teamLevel(st), score: score || 0 };
+    }
     if (outcome === 'win') {
       st.xp += n.xp || 0;
-      st.wins[st.node] = (st.wins[st.node] || 0) + 1;
+      st.wins[id] = (st.wins[id] || 0) + 1;
+      if (n.carry && st.side && hpFracs) st.side.hp = Object.assign({}, hpFracs);
       goTo(st, n.win);
     } else if (outcome === 'loss' && n.lose) goTo(st, n.lose);
+    else if (outcome !== 'win' && st.side && n.carry) leaveSide(st); // a dungeon run ends on a wipe or withdrawal
     return { xp: outcome === 'win' ? n.xp || 0 : 0, levelUp: teamLevel(st) > before, level: teamLevel(st) };
   }
 
@@ -588,14 +798,15 @@
   }
 
   function chapters(st) {
-    const cur = node(st).chapter;
+    const cur = NODES[st.node].chapter;
     const idx = CHAPTERS.findIndex((c) => c.id === cur);
     return CHAPTERS.map((c, i) => ({ id: c.id, label: c.label, title: c.title, status: i < idx ? 'done' : i === idx ? 'current' : 'locked' }));
   }
 
   return {
-    NODES, STARTERS, SPEAKERS, CHAPTERS, LEVEL_XP,
-    fresh, normalise, node, lines, advance, choose, optionOpen, pickStarter, battle, finishBattle,
-    text, speaker, teamLevel, levelFor, roster, chapters,
+    NODES, STARTERS, SPEAKERS, CHAPTERS, CHAPTER_START, EPISODES, LEVEL_XP,
+    fresh, normalise, cur, node, lines, advance, choose, optionOpen, pickStarter, battle, finishBattle,
+    atGate, openChapter, startSide, endSide, leaveSide,
+    text, speaker, teamLevel, levelFor, roster, chapters, member,
   };
 });

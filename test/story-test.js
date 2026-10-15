@@ -11,13 +11,13 @@ const DT = 1 / 60;
 // 1. Every node is well formed and every link resolves.
 for (const [id, n] of Object.entries(Story.NODES)) {
   const links = [];
-  if (n.next) links.push(n.next);
-  if (n.win) links.push(n.win);
-  if (n.lose) links.push(n.lose);
-  for (const o of n.options || []) links.push(o.next);
+  if (n.next && n.next !== 'map') links.push(n.next);
+  if (n.win && n.win !== 'map') links.push(n.win);
+  if (n.lose && n.lose !== 'map') links.push(n.lose);
+  for (const o of n.options || []) if (o.next !== 'map') links.push(o.next);
   for (const l of links) assert(Story.NODES[l], `${id} links to missing node ${l}`);
   if (n.type === 'battle') assert(Sim.SCENARIOS[n.scenario], `${id}: unknown scenario ${n.scenario}`);
-  assert(Story.CHAPTERS.some((c) => c.id === n.chapter), `${id}: unknown chapter ${n.chapter}`);
+  assert(n.chapter === 'side' || Story.CHAPTERS.some((c) => c.id === n.chapter), `${id}: unknown chapter ${n.chapter}`);
 }
 for (const c of Story.CHAPTERS) assert(Story.NODES[c.from], `chapter ${c.id} starts at missing node`);
 

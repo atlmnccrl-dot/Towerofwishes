@@ -39,6 +39,10 @@
   let view = 'menu';
   const backdrop = Render.backdrop.create($('arena'));
   let sceneBg = 'tower', sceneT = 0;
+  // Staged scenes: story nodes listed in window.TowStages play out with the
+  // fighters on a real arena (js/render/stage.js), beat by beat with the lines.
+  let stage = null, stageKey = null;
+  function stageFor(id) { return Render.stage && window.TowStages && window.TowStages[id] ? id : null; }
   let storyBattle = null; // the story battle being fought, if any
   let lines = [], lineIdx = 0, lineFull = '', typeT = 0, cardShownAt = 0;
 
@@ -94,10 +98,15 @@
     writeSave();
     match = null; storyBattle = null;
     if (n.type !== 'select') setShowcase(null);
+    if (n.type !== 'scene' && n.type !== 'choice') { stage = null; stageKey = null; renderer.setCameraOverride(null); }
     if (n.type === 'battle') return startStoryBattle();
     if (n.type === 'select') return showSelect();
     if (n.type === 'end') { renderMap(); show('map'); return; }
     sceneBg = n.bg || 'tower'; sceneT = 0;
+    // A node can stage itself, or keep the stage of the scene before it (stage: 'same').
+    const sid = stageFor(Story.cur(story));
+    if (sid && sid !== stageKey) { stage = Render.stage.start(window.TowStages[sid], Sim); stageKey = sid; }
+    else if (!sid && !(window.TowStages && window.TowStages[Story.cur(story)] === 'same')) { stage = null; stageKey = null; renderer.setCameraOverride(null); }
     $('story-chapter').textContent = chapterLabel(n);
     $('story-card').hidden = n.type !== 'card';
     $('dialogue').hidden = n.type !== 'scene';
@@ -126,6 +135,7 @@
     $('who').textContent = l.speaker ? l.speaker.name : '';
     $('who').hidden = !l.speaker;
     lineFull = l.speaker ? `“${l.text}”` : l.text;
+    if (stage) stage.beat(lineIdx, lines.length);
     typeT = 0; $('line').textContent = '';
   }
   function typing() { return $('line').textContent.length < lineFull.length; }
@@ -483,7 +493,11 @@
     if (!match && view === 'story') {
       // Story scenes: a painted backdrop and the typewriter.
       sceneT += real;
-      backdrop.draw(sceneBg, sceneT);
+      if (stage) {
+        stage.update(real);
+        renderer.setCameraOverride(stage.camera());
+        renderer.draw(stage.match, real, true, null);
+      } else backdrop.draw(sceneBg, sceneT);
       if (!$('dialogue').hidden && typing()) {
         typeT += real;
         $('line').textContent = lineFull.slice(0, Math.floor(typeT * 60));
