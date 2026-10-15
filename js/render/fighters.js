@@ -141,6 +141,69 @@
       skirt: ['#4d3a2a', '#271d15'], wraps: ['#5e4a38', '#2f251c'], bareArms: true, accent: '#8e1621', eye: '#e3263a',
       belt: '#3a2a1e', bareChest: true,
     },
+
+    // ---- side missions, the Guild yard and the deep passage (all Proposals).
+    // introPose(k, t): face-off pose (k = 1 in the spotlight, 0.55 otherwise).
+    thug: {
+      h: 1.07, w: 1.32, build: 1.3, weapon: 'cudgel', hair: 'messy',
+      skin: ['#c99c7c', '#86604f'], hairC: ['#3b2a20', '#1c130e'],
+      body: ['#4a4238', '#25211b'], legs: ['#33302b', '#191815'], boots: ['#2b221b', '#15100c'],
+      coat: ['#5a4a36', '#2e251a'], coatLen: 0.26, coatW: 0.25, sleeve: ['#5a4a36', '#2e251a'],
+      scarf: ['#7a2a24', '#3e1310'], beard: ['#3b2a20', '#1c130e'], patches: ['#7b6a4c', '#3f3526'],
+      accent: '#8e1621', eye: '#c9b6a6', belt: '#2a1e16',
+      introPose: (k) => ({ rel: 2.0, pitch: 1.25, stance: 1.5, crouch: 0.06 * k, twist: -0.2 * k, lean: 0.04, off: 'fistup' }),
+    },
+    // A big feral animal on all fours: drawn by its own rig (form 'beast').
+    beast: {
+      h: 0.78, w: 1.6, build: 1.7, form: 'beast',
+      fur: ['#3d3431', '#1d1716'], mane: ['#1e1817', '#0c0909'], belly: ['#5e5049', '#302825'],
+      skin: ['#6e5753', '#3a2b29'], gum: '#6b1a22', tooth: '#efe2cf', eye: '#ff3a4c', claw: '#e8dccb',
+      body: ['#3d3431', '#1d1716'], legs: ['#3d3431', '#1d1716'], boots: ['#3d3431', '#1d1716'], hairC: ['#1e1817', '#0c0909'],
+      accent: '#e3263a',
+    },
+    // A townsperson from before the Reset: pale, blue-grey, faceless,
+    // dripping, flickering. (Not one of the Tower's fragments.)
+    echo: {
+      h: 0.95, w: 0.88, build: 0.84, weapon: 'none', hair: 'bob', ghost: 0.58, blank: true, wisp: true, drip: true,
+      skin: ['#c3d1da', '#7d8f9c'], hairC: ['#9fb1be', '#5d6f7d'],
+      body: ['#8696a3', '#4f5e6b'], legs: ['#7a8a97', '#465462'], boots: ['#6b7b88', '#3d4a57'],
+      skirt: ['#7f909e', '#475766'],
+      accent: '#c8e4f2', eye: '#d8f2ff', shawl: ['#a7b8c4', '#64788a'],
+      introPose: (k, t) => ({ off: 'reach', rel: 0.1, pitch: -0.5, lean: -0.04 + Math.sin(t * 1.3) * 0.05, crouch: 0.02, stance: 0.8, twist: Math.sin(t * 0.9) * 0.15 * k }),
+    },
+    // The bell that rang for the drowned town, and the thing that carries it.
+    warden: {
+      h: 1.55, w: 1.75, build: 1.85, headK: 0.82, weapon: 'bell', hair: 'hood', cowl: true, stoop: 0.14,
+      faceless: true, glowEyes: 2, eye: '#9fe8ff', weed: ['#3f5a47', '#1d2d24'], drip: true, coldGlow: '#7fd4ff',
+      skin: ['#5c6e72', '#2c383c'], hairC: ['#2c3a3e', '#141c1f'], hood: ['#2f3d42', '#151d21'],
+      body: ['#33434a', '#172126'], legs: ['#2a383e', '#121a1e'], boots: ['#24302f', '#101716'],
+      cape: ['#2b3a40', '#121a1e'], tatter: 9, capeLen: 0.04, sleeve: ['#2f3f45', '#152024'],
+      accent: '#9fe8ff', belt: '#4a3a24', wraps: ['#56685f', '#2a3630'],
+      introPose: (k) => ({ rel: 2.3, pitch: 1.35, crouch: 0.08 * k, stance: 1.5, twist: -0.25 * k, lean: 0.02 }),
+    },
+    // A stone block driven by a violet glyph (form 'golem').
+    golem: {
+      h: 0.72, w: 1.3, build: 1.4, form: 'golem', glyph: GLYPH,
+      stone: { lit: '#8a8178', shade: '#4f4842', top: '#a39a8e', dark: '#2f2a27' },
+      skin: ['#8a8178', '#4f4842'], body: ['#8a8178', '#4f4842'], legs: ['#8a8178', '#4f4842'], boots: ['#8a8178', '#4f4842'], hairC: ['#8a8178', '#4f4842'],
+      accent: GLYPH, eye: GLYPH,
+    },
+    goblinHexer: {
+      h: 0.7, w: 0.82, build: 0.78, headK: 1.42, weapon: 'hexstick', caster: true, hair: 'hood', ears: true, hunch: 0.12,
+      skin: ['#7f8d6d', '#4a5440'], hairC: ['#5a5140', '#2c271e'], hood: ['#5a5140', '#2c271e'],
+      body: ['#6b6250', '#363024'], legs: ['#3a3026', '#1e1813'], boots: ['#2e2419', '#17110c'],
+      cape: ['#635a48', '#302a20'], tatter: 7, capeLen: 0.12,
+      accent: '#8e1621', eye: '#f0c43a', belt: '#6b4c33', scrawl: '#e070ff', hexGlow: '#e070ff',
+      introPose: (k, t) => ({ off: 'cast', rel: 0.5, pitch: 1.15 + Math.sin(t * 6) * 0.08, crouch: 0.12 * k, stance: 1.4, lean: 0.06, twist: -0.2 * k }),
+    },
+    goblinChief: {
+      h: 0.92, w: 1.28, build: 1.32, headK: 1.32, weapon: 'cleaver', hair: 'bald', ears: true, hunch: 0.12, crown: true,
+      skin: ['#83916b', '#4b5640'], hairC: ['#2a2a1e', '#15150f'],
+      body: ['#584631', '#2c2218'], legs: ['#3a3026', '#1e1813'], boots: ['#2e2419', '#17110c'],
+      cape: ['#9a865f', '#574a33'], tatter: 6, capeLen: 0.14, sack: true,
+      armor: ['#6e6a62', '#3a3732'], pauldron: 'L', accent: '#8e1621', eye: '#f0c43a', belt: '#6b4c33', sash: '#8e1621', scraps: true,
+      introPose: (k) => ({ rel: 2.0, pitch: 1.2, stance: 1.7, crouch: 0.14 * k, twist: -0.3 * k, lean: 0.12, off: 'reach' }),
+    },
   };
   const FALLBACK = LOOK.kael; // unknown keys draw as a plain swordsman
   const lookOf = (key) => LOOK[key] || FALLBACK;
@@ -151,6 +214,7 @@
     sword: { len: 1.1 }, branch: { len: 1.05 }, knife: { len: 0.36 }, twin: { len: 0.5 },
     hammer: { len: 0.78 }, greatsword: { len: 1.35, grip: 'two' }, beam: { len: 2.3, grip: 'two' },
     spear: { len: 1.5, grip: 'shaft', thrust: true }, claws: { len: 0.3 },
+    cudgel: { len: 0.82 }, cleaver: { len: 0.78 }, hexstick: { len: 0.8 }, bell: { len: 1.25, grip: 'two' },
   };
 
   // ------------------------------------------------------------------ pose
@@ -162,7 +226,7 @@
     let rel = 0.75, pitch = 0.5, lean = 0, crouch = 0.03, off = 'guard', stance = 1, twist = 0;
     const a = u.act;
     const intro = V.introPhase;
-    const caster = L.weapon === 'glyph' || L.weapon === 'bow';
+    const caster = L.weapon === 'glyph' || L.weapon === 'bow' || L.caster;
     switch (u.state) {
       case 'attack':
         if (a.phase === 'windup' || a.phase === 'feint') {
@@ -218,6 +282,8 @@
         case 'goblinArcher': off = 'cast'; crouch = 0.06; stance = 1.35; lean = -0.02; break;
         case 'ogre': rel = 2.2; pitch = 1.35; crouch = 0.08 * k; stance = 1.5; twist = -0.25 * k; lean = 0.02; break;
       }
+      // Newer figures carry their face-off pose in their LOOK entry.
+      if (L.introPose) ({ rel, pitch, lean, crouch, off, stance, twist } = Object.assign({ rel, pitch, lean, crouch, off, stance, twist }, L.introPose(k, V.time)));
       // A hero's signature beat (intro.js) overrides the stance while it plays.
       const o = V.introPose && V.introPose(u);
       if (o) ({ rel = rel, pitch = pitch, lean = lean, crouch = crouch, off = off, stance = stance, twist = twist } = o);
@@ -381,6 +447,9 @@
       V.introPhase = s.phase === 'intro';
       const lying = u.state === 'down' || u.state === 'out';
       if (L.form === 'veil') { drawVeil(u, L, sc); return; }
+      if (L.form === 'beast') { drawBeast(u, L, sc); return; }
+      if (L.form === 'golem') { drawGolem(u, L, sc); return; }
+      if (L.coldGlow && u.state !== 'out') coldPool(u, L, sc);
       V.shadow(u.x, u.y, u.r * 1.3 * (lying ? 1.7 : 1) * L.build ** 0.5 / (L.build > 1.6 ? 1.2 : 1), L.ghost ? 0.25 : 0.42);
       let alpha = u.state === 'out' ? 0.6 : 1;
       if (L.ghost) {
@@ -640,6 +709,8 @@
       if (far === 'R') drawOffHand(G);
       if (L.shield && shieldFront) drawShield(G);
       if (L.glyph) drawGlyphHands(G);
+      if (L.weed) drawWeed(G);
+      if (L.drip) drawDrips(G);
     }
 
     function hairTailPoints(u, L, S, F, headC, sp, H, cz) {
@@ -788,6 +859,44 @@
         const n = S.neck, tail = P(chest.x - F[0] * 0.25 + sp.hx * 2, chest.y - F[1] * 0.25 + sp.hy * 2, H * 0.62 * cz);
         layer([{ ...seg(n, tail, px * 1.1, px * 0.4), c: L.scarf }, { kind: 'ell', x: n.x, y: n.y + px * 0.5, rx: px * 1.5, ry: px * 0.9, c: L.scarf, rim: false }], flash);
       }
+      if (L.patches && !flash) {
+        // patched coat: squares of different cloth with stitch ticks
+        const c = S.chest, pv = S.pelvis;
+        const sq = [[c.x - px * 0.9, c.y + px * 0.1, px * 0.9, -0.15], [pv.x + px * 0.5, (c.y + pv.y) / 2 + px * 0.4, px * 0.75, 0.2]];
+        for (const [x, y, s2, rot] of sq) {
+          const pts = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b]) => ({ x: x + (a * Math.cos(rot) - b * Math.sin(rot)) * s2 * 0.6, y: y + (a * Math.sin(rot) + b * Math.cos(rot)) * s2 * 0.6 }));
+          ctx.fillStyle = L.patches[0]; ctx.strokeStyle = INK; ctx.lineWidth = Math.max(0.8, inkW * 0.6);
+          ctx.beginPath(); pathPoly(pts); ctx.fill(); ctx.stroke();
+          ctx.strokeStyle = 'rgba(230,210,180,0.6)'; ctx.setLineDash([Math.max(1, px * 0.15), Math.max(1, px * 0.15)]);
+          ctx.beginPath(); pathPoly(pts.map((q) => ({ x: x + (q.x - x) * 0.75, y: y + (q.y - y) * 0.75 }))); ctx.stroke(); ctx.setLineDash([]);
+        }
+      }
+      if (L.shawl) {
+        // a shawl over the shoulders, knotted at the breast
+        const n = S.neck, c = S.chest;
+        const knot = { x: c.x, y: c.y + px * 0.4 };
+        layer([{ kind: 'poly', pts: [{ x: S.shL.x - px * 0.4, y: S.shL.y - px * 0.2 }, { x: n.x, y: n.y - px * 0.2 }, { x: S.shR.x + px * 0.4, y: S.shR.y - px * 0.2 }, { x: S.shR.x * 0.6 + knot.x * 0.4, y: S.shR.y * 0.4 + knot.y * 0.6 + px * 0.5 }, knot, { x: S.shL.x * 0.6 + knot.x * 0.4, y: S.shL.y * 0.4 + knot.y * 0.6 + px * 0.5 }], c: L.shawl, shadeFrom: lightRight ? [0, 1, 4, 5] : [1, 2, 3, 4] }], flash);
+      }
+      if (L.sack && !flash) {
+        // the grain sack worn as a cloak: a rope tied across the chest
+        ctx.strokeStyle = INK; ctx.lineWidth = Math.max(2, px * 0.5);
+        ctx.beginPath(); ctx.moveTo(S.shL.x, S.shL.y + px * 0.2); ctx.quadraticCurveTo(S.neck.x, S.neck.y + px * 1.4, S.shR.x, S.shR.y + px * 0.2); ctx.stroke();
+        ctx.strokeStyle = '#a88f5e'; ctx.lineWidth = Math.max(1, px * 0.28); ctx.stroke();
+        ctx.fillStyle = '#a88f5e'; ctx.strokeStyle = INK; ctx.lineWidth = Math.max(0.8, inkW * 0.6);
+        ctx.beginPath(); ctx.arc(S.neck.x, S.neck.y + px * 0.85, Math.max(1.5, px * 0.35), 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      }
+      if (L.scrawl && !flash) {
+        // copied glyph marks scratched onto the cloth, glowing faintly
+        const t = V.time * 3 + hashId(u.id);
+        ctx.strokeStyle = rgba(L.scrawl, (0.55 + 0.25 * Math.sin(t)).toFixed(2)); ctx.lineWidth = Math.max(0.8, px * 0.16); ctx.lineCap = 'round';
+        const c = S.chest, pv = S.pelvis;
+        ctx.beginPath();
+        ctx.arc(c.x - px * 0.3, c.y + px * 0.3, px * 0.45, 0.4, 5.6);
+        ctx.moveTo(c.x - px * 0.6, c.y + px * 0.6); ctx.lineTo(c.x, c.y - px * 0.1); ctx.lineTo(c.x + px * 0.2, c.y + px * 0.65);
+        ctx.moveTo(pv.x + px * 0.2, pv.y - px * 0.6); ctx.lineTo(pv.x + px * 0.9, pv.y - px * 0.3); ctx.lineTo(pv.x + px * 0.3, pv.y);
+        ctx.moveTo(c.x + px * 0.7, c.y - px * 0.2); ctx.lineTo(c.x + px * 0.9, c.y + px * 0.5);
+        ctx.stroke();
+      }
       const band = L.sash || L.belt;
       if (band) {
         ctx.strokeStyle = band; ctx.lineWidth = Math.max(1.2, px * (L.sash ? 0.7 : 0.45));
@@ -849,7 +958,7 @@
       }
       const glowEyes = L.glowEyes;
       // Eyes at close zoom when the face is toward us.
-      if (!glowEyes && towardCam && sc > 55 && !flash) {
+      if (!glowEyes && !L.blank && towardCam && sc > 55 && !flash) {
         const ex = h.x + fx * r * 0.42, ey = h.y + r * 0.12;
         const gap = r * 0.36, ew = Math.max(1.5, r * 0.2), eh = Math.max(1, r * 0.1);
         ctx.fillStyle = INK;
@@ -879,6 +988,94 @@
       if (L.beard) drawBeard(L, h, r, chin, fx, flash);
       drawHair(u, L, h, r, fx, fy, towardCam, flash, hairTail);
       if (glowEyes && !flash && (towardCam || L.faceless)) drawGlowEyes(L, h, r, fx, fy, glowEyes, u);
+      if (L.blank && !flash && towardCam) {
+        // no face at all: a smooth pale blank, a faint hollow where eyes were
+        ctx.fillStyle = rgba(L.skin[1], 0.55);
+        const ex = h.x + fx * r * 0.42, ey = h.y + r * 0.12, gap = r * 0.34 * Math.max(0.35, Math.abs(fy));
+        ctx.beginPath(); ctx.ellipse(ex - gap, ey, r * 0.16, r * 0.07, 0, 0, Math.PI * 2); ctx.ellipse(ex + gap, ey, r * 0.16, r * 0.07, 0, 0, Math.PI * 2); ctx.fill();
+      }
+      if (L.crown) drawToolCrown(u, h, r, fx, flash);
+    }
+
+    // A crude crown of stolen tools: a strap round the skull with nails,
+    // a sickle blade, a bent spoon and a chisel standing up from it.
+    function drawToolCrown(u, h, r, fx, flash) {
+      const by = h.y - r * 0.55, bx = h.x - fx * r * 0.1;
+      const spikes = [[-0.75, 0.55, -0.35, '#9a9690'], [-0.38, 0.95, -0.12, '#b0aaa0'], [0.0, 0.7, 0.05, '#c0a060'], [0.38, 1.05, 0.15, '#9a9690'], [0.74, 0.6, 0.38, '#b0aaa0']];
+      const shapes = [];
+      for (const [o, hgt, tilt, col] of spikes) {
+        const x = bx + o * r, y = by - Math.abs(o) * r * 0.08;
+        shapes.push({ kind: 'poly', pts: [{ x: x - r * 0.09, y }, { x: x + tilt * r * hgt, y: y - r * hgt }, { x: x + r * 0.11, y }], c: [col, '#4a4640'], shadeFrom: [1, 2, 0] });
+      }
+      layer(shapes, flash);
+      if (!flash) {
+        // the sickle: a curved blade hooked over one side
+        ctx.strokeStyle = INK; ctx.lineWidth = Math.max(2.5, r * 0.2); ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.arc(bx - r * 0.95, by - r * 0.5, r * 0.45, -0.4, 1.9); ctx.stroke();
+        ctx.strokeStyle = '#c9c4bc'; ctx.lineWidth = Math.max(1, r * 0.09);
+        ctx.beginPath(); ctx.arc(bx - r * 0.95, by - r * 0.5, r * 0.45, -0.4, 1.9); ctx.stroke();
+        // the spoon bowl on the middle spike
+        ctx.fillStyle = '#d6b86a'; ctx.strokeStyle = INK; ctx.lineWidth = Math.max(1, inkW * 0.7);
+        ctx.beginPath(); ctx.ellipse(bx, by - r * 0.78, r * 0.14, r * 0.2, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      }
+      // the strap
+      layer([{ ...seg({ x: bx - r * 0.92, y: by + r * 0.06 }, { x: bx + r * 0.92, y: by + r * 0.06 }, r * 0.14, r * 0.14), c: ['#5a4030', '#2e2016'] }], flash);
+      void u;
+    }
+
+    // Seaweed hanging off shoulders and arms, swaying.
+    function drawWeed(G) {
+      const { u, L, S, px, flash } = G;
+      if (flash) return;
+      const t = V.time * 1.6 + hashId(u.id);
+      const roots = [[S.shL, 3.2, 0], [S.shR, 2.6, 1], [S.neck, 2.0, 2], [S.elL, 2.2, 3], [S.elR, 1.8, 4], [S.pelvis, 2.8, 5]];
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      for (const [w, col] of [[0.5, INK], [0.28, L.weed[0]]]) {
+        ctx.strokeStyle = col; ctx.lineWidth = Math.max(1, px * w);
+        ctx.beginPath();
+        for (const [q, len, i] of roots) {
+          let x = q.x + (i - 2.5) * px * 0.3, y = q.y;
+          ctx.moveTo(x, y);
+          const n = 4;
+          for (let k = 1; k <= n; k++) {
+            x += Math.sin(t + i * 1.7 + k * 1.1) * px * 0.45;
+            y += (len * px) / n;
+            ctx.lineTo(x, y);
+          }
+        }
+        ctx.stroke();
+      }
+    }
+
+    // Water dripping from the hem and the hands; drops land and ring.
+    function drawDrips(G) {
+      const { u, S, sc, flash } = G;
+      if (flash) return;
+      const base = P(u.x, u.y, 0);
+      const src = [S.handL, S.handR, S.kneeL, S.kneeR, S.pelvis];
+      const h0 = hashId(u.id) * 0.013;
+      ctx.fillStyle = 'rgba(190,232,250,0.85)';
+      ctx.strokeStyle = 'rgba(190,232,250,0.5)'; ctx.lineWidth = Math.max(0.8, sc * 0.01);
+      for (let i = 0; i < src.length; i++) {
+        const q = src[i], ph = (V.time * 0.9 + i * 0.29 + h0) % 1;
+        const gy = base.y + (i - 2) * sc * 0.04;
+        const y = q.y + (gy - q.y) * ph * ph;
+        const r = Math.max(1, sc * 0.018);
+        if (ph < 0.92) { ctx.beginPath(); ctx.ellipse(q.x, y, r * 0.7, r * 1.3, 0, 0, Math.PI * 2); ctx.fill(); }
+        else {
+          const k = (ph - 0.92) / 0.08;
+          ctx.beginPath(); ctx.ellipse(q.x, gy, sc * 0.12 * k, sc * 0.04 * k, 0, 0, Math.PI * 2); ctx.stroke();
+        }
+      }
+    }
+
+    // A cold light pooled on the ground under a drowned thing.
+    function coldPool(u, L, sc) {
+      const p = P(u.x, u.y, 0), r = sc * u.r * 2.4 * (0.92 + 0.08 * Math.sin(V.time * 2.4 + hashId(u.id)));
+      ctx.fillStyle = rgba(L.coldGlow, 0.13);
+      ctx.beginPath(); ctx.ellipse(p.x, p.y, r, r * V.cam.pitch, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = rgba(L.coldGlow, 0.1);
+      ctx.beginPath(); ctx.ellipse(p.x, p.y, r * 0.6, r * 0.6 * V.cam.pitch, 0, 0, Math.PI * 2); ctx.fill();
     }
 
     function drawEars(L, h, r, fx, flash, towardCam) {
@@ -1101,6 +1298,69 @@
           }
           return;
         }
+        case 'cudgel': {
+          // A knotted club, thick at the end, studded with nails.
+          const g0 = { x: h.x - ux * px * 0.7, y: h.y - uy * px * 0.7 };
+          const m = { x: h.x + dx * 0.55, y: h.y + dy * 0.55 };
+          layer([{ ...seg(g0, m, px * 0.32, px * 0.45), c: ['#6b4c33', '#3a281a'] }, { ...seg(m, t, px * 0.5, px * 0.72), c: ['#6b4c33', '#3a281a'] }], flash);
+          if (!flash) {
+            ctx.fillStyle = '#c9c4bc'; ctx.strokeStyle = INK; ctx.lineWidth = Math.max(0.8, inkW * 0.5);
+            for (const [k, o] of [[0.7, 0.6], [0.82, -0.7], [0.93, 0.4], [0.78, 0.05]]) {
+              const q = { x: h.x + dx * k + nx * px * o, y: h.y + dy * k + ny * px * o };
+              ctx.beginPath(); ctx.arc(q.x, q.y, Math.max(1, px * 0.15), 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            }
+            // a strip of cloth bound round the grip
+            ctx.strokeStyle = '#7a2a24'; ctx.lineWidth = Math.max(1.2, px * 0.3);
+            ctx.beginPath(); ctx.moveTo(h.x + nx * px * 0.4 + dx * 0.12, h.y + ny * px * 0.4 + dy * 0.12); ctx.lineTo(h.x - nx * px * 0.4 + dx * 0.2, h.y - ny * px * 0.4 + dy * 0.2); ctx.stroke();
+          }
+          return;
+        }
+        case 'cleaver': {
+          // The miller's cleaver: short haft, a broad square blade, a hole in its corner.
+          const neck = { x: h.x + dx * 0.32, y: h.y + dy * 0.32 };
+          layer([{ ...seg({ x: h.x - ux * px * 0.6, y: h.y - uy * px * 0.6 }, neck, px * 0.3, px * 0.3), c: ['#5a3f2a', '#2e2015'] }], flash);
+          const bw = px * 1.5;
+          const blade = [
+            { x: neck.x + nx * px * 0.3, y: neck.y + ny * px * 0.3 }, { x: t.x + nx * px * 0.3, y: t.y + ny * px * 0.3 },
+            { x: t.x - nx * bw * 1.15 + ux * px * 0.2, y: t.y - ny * bw * 1.15 + uy * px * 0.2 }, { x: neck.x - nx * bw, y: neck.y - ny * bw },
+          ];
+          layer([{ kind: 'poly', pts: blade, c: ['#a9aaa6', '#5d5f60'], shadeFrom: [2, 3, 0] }], flash);
+          if (!flash) {
+            // rust along the spine, a bright cutting edge, the hanging hole
+            ctx.strokeStyle = '#7a4a2a'; ctx.lineWidth = Math.max(1, px * 0.3);
+            ctx.beginPath(); ctx.moveTo(blade[0].x, blade[0].y); ctx.lineTo(blade[1].x, blade[1].y); ctx.stroke();
+            ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(0.8, px * 0.16);
+            ctx.beginPath(); ctx.moveTo(blade[3].x + nx * px * 0.15, blade[3].y + ny * px * 0.15); ctx.lineTo(blade[2].x + nx * px * 0.15, blade[2].y + ny * px * 0.15); ctx.stroke();
+            const hole = { x: t.x - nx * px * 0.45 - ux * px * 0.4, y: t.y - ny * px * 0.45 - uy * px * 0.4 };
+            ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(hole.x, hole.y, Math.max(1, px * 0.2), 0, Math.PI * 2); ctx.fill();
+          }
+          return;
+        }
+        case 'hexstick': {
+          // A crooked stick with a copied glyph scratched into a disc at its end.
+          const m = { x: h.x + dx * 0.5 + nx * px * 0.25, y: h.y + dy * 0.5 + ny * px * 0.25 };
+          const butt = { x: h.x - ux * px * 1.2, y: h.y - uy * px * 1.2 };
+          layer([{ ...seg(butt, m, px * 0.24, px * 0.22), c: ['#6e5638', '#3a2c1c'] }, { ...seg(m, t, px * 0.22, px * 0.18), c: ['#6e5638', '#3a2c1c'] }], flash);
+          const AK = attackK(u);
+          const k = AK ? (AK.ph === 'wind' ? AK.e : AK.ph === 'strike' ? 1.3 : 1 - AK.e) : V.introPhase ? 0.8 : 0.3;
+          hexGlyph(t, sc * (0.1 + 0.05 * k), k, L.hexGlow, flash, u);
+          return;
+        }
+        case 'bell': {
+          // A chain from the hands to a cracked bronze bell, mouth outward.
+          const len = Math.max(4, l * 0.42);
+          const top = { x: h.x + ux * len, y: h.y + uy * len };
+          if (!flash) {
+            ctx.strokeStyle = INK; ctx.lineWidth = Math.max(2, px * 0.4); ctx.lineCap = 'round';
+            ctx.beginPath(); ctx.moveTo(h.x, h.y); ctx.lineTo(top.x, top.y); ctx.stroke();
+            ctx.strokeStyle = '#6f7a78'; ctx.lineWidth = Math.max(1, px * 0.2);
+            ctx.setLineDash([Math.max(2, px * 0.35), Math.max(1.5, px * 0.2)]);
+            ctx.beginPath(); ctx.moveTo(h.x, h.y); ctx.lineTo(top.x, top.y); ctx.stroke();
+            ctx.setLineDash([]);
+          }
+          bellShape(top, t, nx, ny, sc * 0.5, flash, u, L);
+          return;
+        }
         case 'claws': {
           // Shadow talons from both hands.
           for (const hand of [S.handR, S.handL]) {
@@ -1180,6 +1440,83 @@
         ctx.beginPath();
         for (const o of [-0.45, 0, 0.45]) { const bx = hand.x + nx * o * len * 0.35, by = hand.y + ny * o * len * 0.35; ctx.moveTo(bx, by); ctx.lineTo(bx + ux * len * 0.85 + nx * o * len * 0.26, by + uy * len * 0.85 + ny * o * len * 0.26); }
         ctx.stroke();
+      }
+    }
+
+    // A goblin's copy of a glyph: a crooked ring and scratched strokes that
+    // glow a wrong, hot violet. k: charge (0 idle .. 1+ firing).
+    function hexGlyph(c, r, k, col, flash, u) {
+      const t = V.time * 2.2 + hashId(u.id);
+      const a = Math.min(1, 0.4 + 0.5 * k) * (flash ? 0.5 : 1);
+      const flick = 0.85 + 0.15 * Math.sin(t * 7.3);
+      ctx.fillStyle = rgba(col, (0.18 * a * flick).toFixed(2));
+      ctx.beginPath(); ctx.arc(c.x, c.y, r * (1.6 + 0.4 * k), 0, Math.PI * 2); ctx.fill();
+      // the disc it is scratched into
+      ctx.fillStyle = INK; ctx.beginPath(); ctx.ellipse(c.x, c.y, r * 0.95, r * 0.85, 0.3, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = rgba(col, Math.min(1, a + 0.15).toFixed(2)); ctx.lineWidth = Math.max(1, r * 0.14); ctx.lineCap = 'round'; ctx.lineJoin = 'miter';
+      ctx.beginPath();
+      // lopsided ring (copied by eye)
+      for (let i = 0; i <= 9; i++) {
+        const q = (i / 9) * Math.PI * 2 + t * 0.3, rr = r * (0.72 + ((i * 7) % 3) * 0.06);
+        const x = c.x + Math.cos(q) * rr, y = c.y + Math.sin(q) * rr * 0.9;
+        i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      }
+      // a triangle and a stroke through it, slightly off
+      ctx.moveTo(c.x, c.y - r * 0.5); ctx.lineTo(c.x + r * 0.45, c.y + r * 0.3); ctx.lineTo(c.x - r * 0.42, c.y + r * 0.34); ctx.lineTo(c.x + r * 0.05, c.y - r * 0.42);
+      ctx.moveTo(c.x - r * 0.55, c.y - r * 0.05); ctx.lineTo(c.x + r * 0.6, c.y + r * 0.02);
+      ctx.stroke();
+      ctx.fillStyle = rgba('#fff0ff', a.toFixed(2));
+      ctx.beginPath(); ctx.arc(c.x, c.y, Math.max(1, r * 0.14), 0, Math.PI * 2); ctx.fill();
+    }
+
+    // A cracked bronze bell: crown at `top`, mouth around `mouth`; n: the
+    // screen normal of the axis; R: mouth radius in px.
+    function bellShape(top, mouth, nx, ny, R, flash, u, L) {
+      const ax = mouth.x - top.x, ay = mouth.y - top.y;
+      const at = (k, w) => ({ x: top.x + ax * k + nx * R * w, y: top.y + ay * k + ny * R * w });
+      const right = [at(0, 0.38), at(0.25, 0.5), at(0.6, 0.56), at(0.88, 0.8), at(1, 1.0)];
+      const left = [at(0, -0.38), at(0.25, -0.5), at(0.6, -0.56), at(0.88, -0.8), at(1, -1.0)];
+      const pts = right.concat(left.reverse());
+      const litRight = nx * lx + ny * ly > 0;
+      const shade = litRight ? [5, 6, 7, 8, 9] : [0, 1, 2, 3, 4];
+      layer([{ kind: 'poly', pts, c: ['#8c6c3c', '#4a3820'], shadeFrom: shade }], flash);
+      // crown loop
+      const cr = at(-0.12, 0);
+      ctx.strokeStyle = INK; ctx.lineWidth = Math.max(2, R * 0.16);
+      ctx.beginPath(); ctx.ellipse(cr.x, cr.y, R * 0.18, R * 0.14, Math.atan2(ay, ax), 0, Math.PI * 2); ctx.stroke();
+      if (flash) return;
+      ctx.save(); ctx.beginPath(); pathPoly(pts); ctx.clip();
+      // verdigris streaks running down from the crown
+      ctx.strokeStyle = 'rgba(96,150,128,0.75)'; ctx.lineWidth = Math.max(1, R * 0.1); ctx.lineCap = 'round';
+      ctx.beginPath();
+      for (const w of [-0.3, 0.05, 0.32]) { const a0 = at(0.05, w * 0.8), a1 = at(0.55 + Math.abs(w) * 0.4, w); ctx.moveTo(a0.x, a0.y); ctx.lineTo(a1.x, a1.y); }
+      ctx.stroke();
+      // the sound bow: a raised band near the lip
+      ctx.strokeStyle = 'rgba(12,8,8,0.6)'; ctx.lineWidth = Math.max(1, R * 0.06);
+      ctx.beginPath(); const b0 = at(0.8, -0.8), b1 = at(0.8, 0.8); ctx.moveTo(b0.x, b0.y); ctx.lineTo(b1.x, b1.y); ctx.stroke();
+      ctx.strokeStyle = 'rgba(240,210,150,0.55)'; ctx.lineWidth = Math.max(0.8, R * 0.04);
+      ctx.beginPath(); const c0 = at(0.76, -0.75), c1 = at(0.76, 0.75); ctx.moveTo(c0.x, c0.y); ctx.lineTo(c1.x, c1.y); ctx.stroke();
+      ctx.restore();
+      // the crack, open to a cold light inside
+      const k0 = at(0.12, 0.1), k1 = at(0.35, -0.12), k2 = at(0.55, 0.12), k3 = at(0.78, -0.08), k4 = at(1.0, 0.1);
+      const glow = L.coldGlow || '#9fe8ff';
+      const pulse = 0.65 + 0.35 * Math.sin(V.time * 2.4 + hashId(u.id));
+      ctx.strokeStyle = INK; ctx.lineWidth = Math.max(2, R * 0.12); ctx.lineJoin = 'miter';
+      ctx.beginPath(); ctx.moveTo(k0.x, k0.y); ctx.lineTo(k1.x, k1.y); ctx.lineTo(k2.x, k2.y); ctx.lineTo(k3.x, k3.y); ctx.lineTo(k4.x, k4.y); ctx.stroke();
+      ctx.strokeStyle = rgba(glow, (0.9 * pulse).toFixed(2)); ctx.lineWidth = Math.max(1, R * 0.045);
+      ctx.stroke();
+      // mouth: a dark ellipse with the clapper and cold light welling up
+      const m = at(1, 0), mr = R * 1.0;
+      const ang = Math.atan2(ny, nx);
+      ctx.fillStyle = INK; ctx.beginPath(); ctx.ellipse(m.x, m.y, mr, mr * 0.32, ang, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = rgba(glow, (0.55 * pulse).toFixed(2)); ctx.beginPath(); ctx.ellipse(m.x, m.y, mr * 0.78, mr * 0.2, ang, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#3a2c18'; ctx.beginPath(); ctx.arc(m.x - ax * 0.04, m.y - ay * 0.04, Math.max(1.5, R * 0.16), 0, Math.PI * 2); ctx.fill();
+      // water running off the lip
+      ctx.fillStyle = 'rgba(170,225,245,0.8)';
+      for (let i = 0; i < 3; i++) {
+        const ph = (V.time * 1.4 + i * 0.37 + hashId(u.id) * 0.01) % 1;
+        const w = (i - 1) * 0.7, s0 = at(1, w);
+        ctx.beginPath(); ctx.ellipse(s0.x, s0.y + ph * R * 1.4, Math.max(0.8, R * 0.05), Math.max(1.2, R * 0.1), 0, 0, Math.PI * 2); ctx.fill();
       }
     }
 
@@ -1351,6 +1688,377 @@
         ctx.lineTo(S.pelvis.x + px * 0.2, S.pelvis.y);
         ctx.stroke();
       }
+    }
+
+    // ---------------------------------------------------------------- the Stray
+    // A big feral animal on all fours: hunched shoulders under a black mane,
+    // long forelegs, a low head with a snout full of teeth (three rows), a
+    // thin tail. Trots when it moves; coils back on the wind-up and lunges
+    // with its jaws wide on the strike.
+    function drawBeast(u, L, sc) {
+      const flash = u.flash > 0;
+      const sp = spring(u);
+      const tt = V.time + hashId(u.id) * 0.1;
+      const lying = u.state === 'down' || u.state === 'out';
+      const f = u.facing, F = [Math.cos(f), Math.sin(f)], Rt = [-F[1], F[0]];
+      const W = (x, y, z) => P(u.x + F[0] * x + Rt[0] * y, u.y + F[1] * x + Rt[1] * y, z);
+      V.shadow(u.x, u.y, u.r * (lying ? 2.0 : 1.75), 0.45);
+      ctx.globalAlpha = u.state === 'out' ? 0.6 : 1;
+      const AK = attackK(u);
+      let coil = 0, lunge = 0, jaw = 0.22 + 0.06 * Math.sin(tt * 3), headUp = 0, low = 0;
+      if (AK) {
+        if (AK.ph === 'wind') { coil = AK.e; jaw = 0.25 + 0.55 * AK.e; }
+        else if (AK.ph === 'strike') { lunge = 1; jaw = 1; }
+        else { lunge = 1 - AK.e; jaw = 1 - 0.75 * AK.e; }
+      }
+      const hurt = u.state === 'hurt' || u.state === 'stagger';
+      if (hurt) { headUp = 0.18; jaw = 0.7; coil = 0.3; }
+      if (u.state === 'dodge') low = 0.16;
+      if (u.state === 'circle') low = 0.06;
+      if (V.introPhase) {
+        // the face-off: head up, a long snarl
+        const k = V.spotlight === u.id ? 1 : 0.5;
+        headUp = 0.22 * k; jaw = 0.55 + 0.4 * k + Math.sin(tt * 9) * 0.05 * k; coil = 0.25 * k;
+      }
+      const moving = u.state === 'move' || u.state === 'opener' || u.fleeing;
+      const g = u.walk * 3.2;
+      const amp = moving ? 0.3 : u.state === 'circle' ? 0.14 : 0;
+      const bob = moving ? Math.abs(Math.sin(g)) * 0.05 : Math.sin(tt * 2.1) * 0.012;
+      const jit = hurt ? Math.sin(u.st * 70) * 0.04 : 0;
+      const shift = 0.38 * lunge - 0.26 * coil + jit;
+      const dz = -0.2 * coil - low + bob - (lying ? 0.62 : 0);
+      const side = lying ? 0.0 : 0;
+      void side;
+      // Body joints (metres, along the facing).
+      const hip = { x: -0.78 + shift, z: Math.max(0.32, 0.84 + dz * 0.6) };
+      const sh = { x: 0.46 + shift * 1.2, z: Math.max(0.38, 1.1 + dz) };
+      const hump = { x: 0.16 + shift, z: Math.max(0.5, 1.38 + dz) };
+      const head = { x: 1.0 + shift * 1.5 - 0.08 * coil, z: Math.max(0.3, 0.9 + dz + headUp - 0.08 * lunge) };
+      const pt = (q, y, dzz) => W(q.x, y || 0, q.z + (dzz || 0));
+      const Hip = pt(hip), Sh = pt(sh), Hump = pt(hump), Head = pt(head);
+      // Legs: diagonal pairs trot together. Forelegs are long, elbows out.
+      const legs = [];
+      for (const s of [-1, 1]) {
+        const phF = g + (s > 0 ? 0 : Math.PI), phH = g + (s > 0 ? Math.PI : 0);
+        const lift = (ph) => (amp ? Math.max(0, Math.sin(ph)) * 0.2 : 0);
+        let fp, fe, ft, hp2, hk, hh, hpaw;
+        if (lying) {
+          ft = W(sh.x, s * 0.25, sh.z * 0.9); fe = W(sh.x + 0.45, 0.55 + s * 0.15, 0.3); fp = W(sh.x + 0.85, 0.9 + s * 0.2, 0.08);
+          hp2 = W(hip.x, s * 0.2, hip.z); hk = W(hip.x + 0.3, 0.5 + s * 0.15, 0.28); hh = W(hip.x - 0.1, 0.75 + s * 0.15, 0.15); hpaw = W(hip.x + 0.05, 0.95 + s * 0.15, 0.06);
+        } else {
+          const sf = Math.cos(phF) * amp, sh2 = Math.cos(phH) * amp;
+          ft = W(sh.x - 0.02, s * 0.3, sh.z - 0.2);
+          fp = W(0.78 + shift * 1.7 + sf, s * 0.34, lift(phF));
+          fe = W((sh.x + 0.78 + shift * 1.7 + sf) / 2 - 0.12 - coil * 0.1, s * 0.42, (sh.z - 0.1) * 0.5 + lift(phF) * 0.5);
+          hp2 = W(hip.x + 0.05, s * 0.24, hip.z - 0.12);
+          hk = W(hip.x + 0.22, s * 0.3, hip.z * 0.55 + lift(phH) * 0.3);
+          hh = W(hip.x - 0.28 + sh2 * 0.8, s * 0.3, 0.24 + lift(phH));
+          hpaw = W(hip.x - 0.12 + sh2, s * 0.3, lift(phH));
+        }
+        legs.push({ s, fore: [ft, fe, fp], hind: [hp2, hk, hh, hpaw] });
+      }
+      const px = sc * 0.1;
+      const fur = L.fur, mane = L.mane;
+      const legShapes = (lg) => [
+        { ...seg(lg.hind[0], lg.hind[1], px * 2.6, px * 1.5), c: fur, rim: false },
+        { ...seg(lg.hind[1], lg.hind[2], px * 1.4, px * 0.9), c: fur, rim: false },
+        { ...seg(lg.hind[2], lg.hind[3], px * 0.9, px * 0.85), c: fur, rim: false },
+        { ...seg(lg.fore[0], lg.fore[1], px * 2.3, px * 1.5), c: fur },
+        { ...seg(lg.fore[1], lg.fore[2], px * 1.5, px * 1.05), c: fur },
+        { kind: 'ell', x: lg.fore[2].x, y: lg.fore[2].y, rx: px * 1.3, ry: px * 0.8, c: fur, rim: false },
+      ];
+      const claws = (lg) => {
+        if (flash) return;
+        const p0 = lg.fore[2], ahead = W(2, lg.s * 0.34, 0), base = W(0, lg.s * 0.34, 0);
+        let ux = ahead.x - base.x, uy = ahead.y - base.y; const l = Math.hypot(ux, uy) || 1; ux /= l; uy /= l;
+        ctx.fillStyle = L.claw; ctx.strokeStyle = INK; ctx.lineWidth = Math.max(0.8, inkW * 0.6);
+        for (const o of [-0.6, 0, 0.6]) {
+          const bx = p0.x + ux * px * 0.6 - uy * o * px * 0.6, by = p0.y + uy * px * 0.6 + ux * o * px * 0.6 + px * 0.2;
+          ctx.beginPath(); ctx.moveTo(bx - uy * px * 0.18, by + ux * px * 0.18); ctx.lineTo(bx + ux * px * 0.75, by + uy * px * 0.75 + px * 0.25); ctx.lineTo(bx + uy * px * 0.18, by - ux * px * 0.18); ctx.closePath(); ctx.fill(); ctx.stroke();
+        }
+      };
+      // Tail: thin, drooping, lagging behind motion, a tuft at the end.
+      const tailB = W(hip.x - 0.15, 0, hip.z + 0.05);
+      const tailM = P(u.x + F[0] * (hip.x - 0.65) + sp.cx * 1.2, u.y + F[1] * (hip.x - 0.65) + sp.cy * 1.2, hip.z - 0.05 + Math.sin(tt * 2.6) * 0.06);
+      const tailT = P(u.x + F[0] * (hip.x - 1.05) + Rt[0] * Math.sin(tt * 1.9) * 0.2 + sp.cx * 2, u.y + F[1] * (hip.x - 1.05) + Rt[1] * Math.sin(tt * 1.9) * 0.2 + sp.cy * 2, Math.max(0.1, hip.z - 0.35));
+      const tail = [{ ...seg(tailB, tailM, px * 0.55, px * 0.4), c: fur, rim: false }, { ...seg(tailM, tailT, px * 0.4, px * 0.7), c: mane, rim: false }];
+      // Body: a heavy chest tapering to lean hips, the hump of the shoulders.
+      const body = [
+        { ...seg(Hip, Sh, px * 3.8, px * 5.0), c: fur },
+        { ...seg(Sh, Hump, px * 4.4, px * 3.2), c: fur },
+      ];
+      const rightNear = W(0, 1, 0).d > W(0, -1, 0).d;
+      const frontNear = W(1, 0, 0).d > W(-1, 0, 0).d;
+      const farLeg = legs.find((l2) => (l2.s > 0) !== rightNear), nearLeg = legs.find((l2) => (l2.s > 0) === rightNear);
+      layer(legShapes(farLeg), flash); claws(farLeg);
+      if (frontNear) layer(tail, flash);
+      else beastHead();
+      layer(body, flash);
+      beastMane();
+      if (!flash && sc > 50) {
+        // fur hatching on the shadow flank and the ribs under the hide
+        ctx.strokeStyle = 'rgba(12,8,8,0.55)'; ctx.lineWidth = Math.max(0.8, inkW * 0.55); ctx.lineCap = 'round';
+        ctx.beginPath();
+        for (let i = 0; i < 4; i++) {
+          const q = W(hip.x + 0.35 + i * 0.22, (rightNear ? 1 : -1) * 0.3, (hip.z + sh.z) / 2 - 0.15);
+          ctx.moveTo(q.x, q.y - px * 1.6); ctx.quadraticCurveTo(q.x + px * 0.5, q.y, q.x - px * 0.2, q.y + px * 1.4);
+        }
+        ctx.stroke();
+      }
+      layer(legShapes(nearLeg), flash); claws(nearLeg);
+      if (frontNear) beastHead();
+      else layer(tail, flash);
+      ctx.globalAlpha = 1;
+
+      function beastMane() {
+        // spiky black mane from the back of the skull over the hump to mid-back
+        const pts = [];
+        const n = 9, tw = Math.sin(tt * 4) * 0.02;
+        const top = [];
+        for (let i = 0; i <= n; i++) {
+          const k = i / n;
+          const x = head.x - 0.25 + (hip.x + 0.35 - (head.x - 0.25)) * k;
+          const zb = k < 0.45 ? head.z + 0.1 + (hump.z + 0.12 - head.z - 0.1) * (k / 0.45) : hump.z + 0.12 + (hip.z + 0.2 - hump.z - 0.12) * ((k - 0.45) / 0.55);
+          const spike = i % 2 ? 0.0 : 0.26 * (1 - Math.abs(k - 0.4)) + tw;
+          top.push(P(u.x + F[0] * (x - spike * 0.6) + sp.cx * k * 0.6, u.y + F[1] * (x - spike * 0.6) + sp.cy * k * 0.6, zb + spike));
+        }
+        for (const q of top) pts.push(q);
+        for (let i = n; i >= 0; i -= 3) {
+          const k = i / n, x = head.x - 0.25 + (hip.x + 0.35 - (head.x - 0.25)) * k;
+          const zb = k < 0.45 ? head.z - 0.05 + (sh.z - 0.15 - head.z + 0.05) * (k / 0.45) : sh.z - 0.15 + (hip.z - sh.z + 0.15) * ((k - 0.45) / 0.55);
+          pts.push(W(x, 0, zb));
+        }
+        layer([{ kind: 'poly', pts, c: mane, shadeFrom: null }], flash);
+        if (!flash) {
+          ctx.strokeStyle = 'rgba(246,236,232,0.45)'; ctx.lineWidth = Math.max(0.8, inkW * 0.6);
+          ctx.beginPath(); for (let i = 0; i < top.length; i += 2) { ctx.moveTo(top[i].x, top[i].y + px * 0.2); ctx.lineTo(top[i].x + px * 0.4, top[i].y + px * 1.0); } ctx.stroke();
+        }
+      }
+
+      function beastHead() {
+        // Skull, snout (upper jaw), hinged lower jaw; mouth with three rows of teeth.
+        const ja = jaw * 0.75;
+        const hinge = { x: head.x + 0.08, z: head.z - 0.08 };
+        const up = { x: hinge.x + 0.48 * Math.cos(ja * 0.25), z: hinge.z + 0.06 + 0.48 * Math.sin(ja * 0.25) };
+        const lo = { x: hinge.x + 0.42 * Math.cos(ja), z: hinge.z - 0.06 - 0.42 * Math.sin(ja) };
+        const Hh = W(hinge.x, 0, hinge.z), U = W(up.x, 0, up.z), Lo = W(lo.x, 0, lo.z);
+        const Sk = W(head.x - 0.08, 0, head.z + 0.06);
+        // neck from the hump to the skull
+        layer([{ ...seg(Hump, Sk, px * 2.6, px * 1.9), c: fur }], flash);
+        // mouth interior
+        if (!flash && jaw > 0.15) {
+          ctx.fillStyle = L.gum; ctx.strokeStyle = INK; ctx.lineWidth = inkW * 1.5;
+          ctx.beginPath(); ctx.moveTo(Hh.x, Hh.y); ctx.lineTo(U.x, U.y + px * 0.4); ctx.lineTo(Lo.x, Lo.y - px * 0.3); ctx.closePath(); ctx.stroke(); ctx.fill();
+          ctx.fillStyle = '#2a0a0e'; ctx.beginPath(); ctx.moveTo(Hh.x, Hh.y); ctx.lineTo((Hh.x + U.x) / 2, (Hh.y + U.y) / 2 + px * 0.5); ctx.lineTo((Hh.x + Lo.x) / 2, (Hh.y + Lo.y) / 2 - px * 0.2); ctx.closePath(); ctx.fill();
+        }
+        layer([{ ...seg(Hh, Lo, px * 0.75, px * 0.5), c: L.skin, rim: false }], flash);
+        teeth(Hh, Lo, U, 1);
+        layer([
+          { kind: 'ell', x: Sk.x, y: Sk.y, rx: px * 2.2, ry: px * 1.9, c: fur },
+          { ...seg(Sk, U, px * 1.5, px * 0.85), c: fur },
+        ], flash);
+        teeth(Hh, U, Lo, -1);
+        // nose
+        ctx.fillStyle = INK; ctx.beginPath(); ctx.ellipse(U.x, U.y - px * 0.15, px * 0.5, px * 0.38, 0, 0, Math.PI * 2); ctx.fill();
+        // ears laid back
+        const earB = W(head.x - 0.22, 0, head.z + 0.18);
+        for (const s of [-1, 1]) {
+          const b0 = W(head.x - 0.12, s * 0.12, head.z + 0.16), tip = W(head.x - 0.42, s * 0.2, head.z + 0.38 + headUp * 0.3);
+          layer([{ kind: 'poly', pts: [b0, tip, earB], c: L.mane, shadeFrom: null }], flash);
+        }
+        // eyes: hot slits; the far one hidden behind the snout
+        if (!flash && u.state !== 'out') {
+          for (const s of [-1, 1]) {
+            const e = W(head.x + 0.18, s * 0.13, head.z + 0.1);
+            if ((s > 0) !== rightNear && Math.abs(e.x - Sk.x) < px * 0.3) continue;
+            ctx.fillStyle = rgba(L.eye, 0.28); ctx.beginPath(); ctx.ellipse(e.x, e.y, px * 0.9, px * 0.55, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = L.eye; ctx.beginPath(); ctx.moveTo(e.x - px * 0.5, e.y - px * 0.1); ctx.lineTo(e.x + px * 0.5, e.y - px * 0.3); ctx.lineTo(e.x + px * 0.15, e.y + px * 0.15); ctx.closePath(); ctx.fill();
+          }
+        }
+        // the snarl: wrinkles over the muzzle
+        if (!flash && sc > 45) {
+          ctx.strokeStyle = 'rgba(12,8,8,0.7)'; ctx.lineWidth = Math.max(0.8, inkW * 0.6);
+          ctx.beginPath();
+          for (const k of [0.35, 0.5, 0.65]) { const q = { x: Sk.x + (U.x - Sk.x) * k, y: Sk.y + (U.y - Sk.y) * k - px * 0.6 }; ctx.moveTo(q.x - px * 0.3, q.y - px * 0.3); ctx.lineTo(q.x + px * 0.1, q.y + px * 0.25); }
+          ctx.stroke();
+        }
+      }
+      // Three rows of teeth along a jaw from the hinge toward its tip,
+      // pointing at the other jaw; each row set further in and shorter.
+      function teeth(Hh, tip, other, dir) {
+        if (jaw < 0.12 && dir > 0) return;
+        const tl = Math.hypot(tip.x - Hh.x, tip.y - Hh.y) || 1;
+        ctx.lineJoin = 'miter';
+        for (let r = 2; r >= 0; r--) {
+          const k0 = 0.28 + r * 0.06, k1 = 0.98 - r * 0.1, n = 6 - r;
+          const len = px * (1.0 - r * 0.2) * (0.6 + jaw * 0.6);
+          ctx.beginPath();
+          for (let i = 0; i < n; i++) {
+            const k = k0 + ((k1 - k0) * (i + 0.5)) / n, w = ((k1 - k0) / n) * tl * 0.42;
+            const bx = Hh.x + (tip.x - Hh.x) * k, by = Hh.y + (tip.y - Hh.y) * k;
+            const ox = Hh.x + (other.x - Hh.x) * k, oy = Hh.y + (other.y - Hh.y) * k;
+            let vx = ox - bx, vy = oy - by; const vl = Math.hypot(vx, vy) || 1; vx /= vl; vy /= vl;
+            const ix = bx + vx * r * px * 0.22, iy = by + vy * r * px * 0.22; // rows step inward
+            const ax2 = (tip.x - Hh.x) / tl, ay2 = (tip.y - Hh.y) / tl;
+            ctx.moveTo(ix - ax2 * w, iy - ay2 * w); ctx.lineTo(ix + vx * len, iy + vy * len); ctx.lineTo(ix + ax2 * w, iy + ay2 * w); ctx.closePath();
+          }
+          ctx.fillStyle = flash ? '#fff' : r === 0 ? L.tooth : r === 1 ? '#d8c8b0' : '#b8a68c';
+          ctx.strokeStyle = INK; ctx.lineWidth = Math.max(0.8, inkW * 0.55);
+          ctx.stroke(); ctx.fill();
+        }
+      }
+    }
+
+    // ---------------------------------------------------------------- practice block
+    // A squat block of cut stone moved by a violet glyph: two stubby legs
+    // that shuffle, two stone fists, the glyph burning on its face and
+    // veins of violet light in the cracks.
+    function drawGolem(u, L, sc) {
+      const flash = u.flash > 0;
+      const tt = V.time + hashId(u.id) * 0.1;
+      const lying = u.state === 'down' || u.state === 'out';
+      const dead = u.state === 'out';
+      const f = u.facing, F = [Math.cos(f), Math.sin(f)], Rt = [-F[1], F[0]];
+      const W = (x, y, z) => P(u.x + F[0] * x + Rt[0] * y, u.y + F[1] * x + Rt[1] * y, z);
+      V.shadow(u.x, u.y, u.r * 1.45, 0.5);
+      ctx.globalAlpha = dead ? 0.6 : 1;
+      const AK = attackK(u);
+      let pitch = 0, punch = 0, raise = 0, glow = 0.5;
+      if (AK) {
+        if (AK.ph === 'wind') { pitch = -0.16 * AK.e; punch = -0.2 * AK.e; raise = 0.15 * AK.e; glow = 0.5 + 0.5 * AK.e; }
+        else if (AK.ph === 'strike') { pitch = 0.18; punch = 0.6; glow = 1.2; }
+        else { pitch = 0.18 * (1 - AK.e); punch = 0.6 * (1 - AK.e); glow = 1 - 0.5 * AK.e; }
+      }
+      const hurt = u.state === 'hurt' || u.state === 'stagger';
+      if (hurt) { pitch = -0.12 + Math.sin(u.st * 60) * 0.04; glow = 0.25 + 0.5 * Math.abs(Math.sin(u.st * 30)); }
+      if (V.introPhase) { const k = V.spotlight === u.id ? 1 : 0.5; raise = 0.35 * k; glow = 0.6 + 0.5 * k; }
+      if (dead) glow = 0;
+      const moving = u.state === 'move' || u.state === 'opener' || u.state === 'circle' || u.fleeing;
+      const g = u.walk * 3.0;
+      let roll = moving ? Math.sin(g) * 0.07 : 0;
+      const lift = moving ? Math.abs(Math.sin(g)) * 0.05 : 0;
+      if (lying) { roll = dead ? 0.3 : 0.2; pitch = 0.1; }
+      const pulse = 0.8 + 0.2 * Math.sin(tt * 3.1);
+      const gk = glow * pulse;
+      const st = L.stone;
+      const tone = (c) => (flash ? lighten(c) : c);
+      const pal = { lit: tone(st.lit), shade: tone(st.shade), top: tone(st.top) };
+      const sink = lying ? 0.22 : 0;
+      // Rigid transform for the upper body: roll about the facing axis and
+      // pitch about the side axis, pivoting at the hips.
+      const piv = 0.3 - sink;
+      const xf = (x, y, z) => {
+        let zz = z - piv;
+        const y1 = y * Math.cos(roll) - zz * Math.sin(roll); zz = y * Math.sin(roll) + zz * Math.cos(roll);
+        const x1 = x * Math.cos(pitch) + zz * Math.sin(pitch); zz = -x * Math.sin(pitch) + zz * Math.cos(pitch);
+        return [x1, y1, zz + piv + lift];
+      };
+      // A box in the local frame; deco(face, pts) draws on its visible faces.
+      const FACES = [
+        [[-1, -1, 1], [1, -1, 1], [1, 1, 1], [-1, 1, 1]], // top
+        [[1, -1, -1], [1, 1, -1], [1, 1, 1], [1, -1, 1]], // front
+        [[-1, -1, -1], [-1, -1, 1], [-1, 1, 1], [-1, 1, -1]], // back
+        [[-1, 1, -1], [-1, 1, 1], [1, 1, 1], [1, 1, -1]], // right
+        [[-1, -1, -1], [1, -1, -1], [1, -1, 1], [-1, -1, 1]], // left
+      ];
+      const area = (pts) => { let a = 0; for (let i = 0; i < pts.length; i++) { const p = pts[i], q = pts[(i + 1) % pts.length]; a += p.x * q.y - q.x * p.y; } return a; };
+      function box(cx, cy, cz, a, b, c, rigid, deco) {
+        const proj = (v) => {
+          const x = cx + v[0] * a, y = cy + v[1] * b, z = cz + v[2] * c;
+          if (!rigid) return W(x, y, z);
+          const [X, Y, Z] = xf(x, y, z); return W(X, Y, Z);
+        };
+        const faces = FACES.map((fc) => fc.map(proj));
+        const ref = Math.sign(area(faces[0])) || 1;
+        const ctr = proj([0, 0, 0]);
+        const vis = [];
+        for (let i = 1; i < 5; i++) if (Math.sign(area(faces[i])) === ref) vis.push(i);
+        ctx.lineJoin = 'round';
+        // heavy ink silhouette first
+        ctx.fillStyle = INK; ctx.strokeStyle = INK; ctx.lineWidth = inkW * 2.2;
+        for (const i of [0, ...vis]) { ctx.beginPath(); pathPoly(faces[i]); ctx.stroke(); ctx.fill(); }
+        for (const i of vis) {
+          const pts = faces[i];
+          const mx = (pts[0].x + pts[2].x) / 2 - ctr.x, my = (pts[0].y + pts[2].y) / 2 - ctr.y;
+          const lit = mx * lx + my * ly > 0;
+          ctx.fillStyle = lit ? pal.lit : pal.shade; ctx.beginPath(); pathPoly(pts); ctx.fill();
+          if (deco && !flash) { ctx.save(); ctx.beginPath(); pathPoly(pts); ctx.clip(); deco(i, pts, lit); ctx.restore(); }
+          ctx.strokeStyle = INK; ctx.lineWidth = Math.max(1, inkW * 0.8); ctx.beginPath(); pathPoly(pts); ctx.stroke();
+        }
+        ctx.fillStyle = pal.top; ctx.beginPath(); pathPoly(faces[0]); ctx.fill();
+        if (deco && !flash) { ctx.save(); ctx.beginPath(); pathPoly(faces[0]); ctx.clip(); deco(0, faces[0], true); ctx.restore(); }
+        ctx.strokeStyle = INK; ctx.lineWidth = Math.max(1, inkW * 0.8); ctx.beginPath(); pathPoly(faces[0]); ctx.stroke();
+        if (!flash) {
+          // bone rim along the top's lit edges
+          ctx.strokeStyle = 'rgba(246,236,232,0.6)'; ctx.lineWidth = Math.max(0.8, inkW * 0.6);
+          ctx.beginPath();
+          const tp = faces[0], tc = { x: (tp[0].x + tp[2].x) / 2, y: (tp[0].y + tp[2].y) / 2 };
+          for (let i = 0; i < 4; i++) { const p = tp[i], q = tp[(i + 1) % 4]; if (((p.x + q.x) / 2 - tc.x) * lx + ((p.y + q.y) / 2 - tc.y) * ly > 0) { ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); } }
+          ctx.stroke();
+        }
+      }
+      const at = (pts, uu, vv) => ({ // bilinear point on a face quad (u across, v up)
+        x: pts[0].x + (pts[1].x - pts[0].x) * uu + (pts[3].x - pts[0].x) * vv + (pts[2].x - pts[1].x - pts[3].x + pts[0].x) * uu * vv,
+        y: pts[0].y + (pts[1].y - pts[0].y) * uu + (pts[3].y - pts[0].y) * vv + (pts[2].y - pts[1].y - pts[3].y + pts[0].y) * uu * vv,
+      });
+      const glyphCol = L.glyph;
+      const stoneDeco = (seed) => (face, pts) => {
+        // chisel marks and cracks, the cracks lit violet from inside
+        ctx.strokeStyle = 'rgba(20,14,12,0.5)'; ctx.lineWidth = Math.max(0.8, inkW * 0.5); ctx.lineCap = 'round';
+        ctx.beginPath();
+        for (const k of [0.3, 0.62]) { const a0 = at(pts, 0.08, k + (seed % 3) * 0.04), a1 = at(pts, 0.92, k - 0.05); ctx.moveTo(a0.x, a0.y); ctx.lineTo(a1.x, a1.y); }
+        ctx.stroke();
+        const crack = [[0.15 + (seed % 2) * 0.5, 1], [0.3 + (seed % 2) * 0.4, 0.7], [0.22 + (seed % 2) * 0.45, 0.45], [0.38, 0.2]].map(([a, b]) => at(pts, a, b));
+        if (gk > 0.05) {
+          ctx.strokeStyle = rgba(glyphCol, Math.min(1, 0.35 + 0.5 * gk).toFixed(2)); ctx.lineWidth = Math.max(1, inkW * 0.9);
+          ctx.beginPath(); crack.forEach((q, i) => (i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y))); ctx.stroke();
+        }
+        ctx.strokeStyle = INK; ctx.lineWidth = Math.max(0.8, inkW * 0.4);
+        ctx.beginPath(); crack.forEach((q, i) => (i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y))); ctx.stroke();
+        if (face === 1 || face === 0) glyphOn(pts, face === 0 ? 0.55 : 1);
+      };
+      function glyphOn(pts, k) {
+        if (gk <= 0.02) return;
+        const a = Math.min(1, gk) * k;
+        const c = at(pts, 0.5, 0.52);
+        const ring = (r) => { ctx.beginPath(); for (let i = 0; i <= 20; i++) { const q = (i / 20) * Math.PI * 2, p = at(pts, 0.5 + Math.cos(q) * r, 0.52 + Math.sin(q) * r); i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y); } };
+        ctx.fillStyle = rgba(glyphCol, (0.22 * a).toFixed(2)); ring(0.42); ctx.fill();
+        ctx.strokeStyle = rgba(glyphCol, a.toFixed(2)); ctx.lineWidth = Math.max(1, inkW * 1.1);
+        ring(0.34); ctx.stroke();
+        ring(0.2); ctx.stroke();
+        // rune strokes, turning slowly
+        ctx.beginPath();
+        for (let j = 0; j < 6; j++) {
+          const q = tt * 0.6 + (j / 6) * Math.PI * 2;
+          const p0 = at(pts, 0.5 + Math.cos(q) * 0.2, 0.52 + Math.sin(q) * 0.2), p1 = at(pts, 0.5 + Math.cos(q + 0.4) * 0.34, 0.52 + Math.sin(q + 0.4) * 0.34);
+          ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y);
+        }
+        ctx.stroke();
+        ctx.fillStyle = rgba('#f4eeff', Math.min(1, a + 0.1).toFixed(2));
+        ctx.beginPath(); ctx.arc(c.x, c.y, Math.max(1.2, sc * 0.03), 0, Math.PI * 2); ctx.fill();
+      }
+      // Parts: legs (not rigid), arms and the block (rigid).
+      const legs = [-1, 1].map((s) => {
+        const step = moving ? Math.sin(g + (s > 0 ? 0 : Math.PI)) * 0.14 : 0;
+        const up = moving ? Math.max(0, Math.sin(g + (s > 0 ? 0 : Math.PI))) * 0.08 : 0;
+        return { s, d: W(step, s * 0.26, 0).d, draw: () => box(step, s * 0.26, 0.16 + up - sink, 0.17, 0.15, 0.16, false, null) };
+      });
+      const arms = [-1, 1].map((s) => {
+        const fw = 0.08 + punch * (s > 0 ? 1 : 0.7), z = 0.72 + raise + (punch > 0 ? 0.08 : 0);
+        return { s, d: W(fw, s * 0.66, z).d, draw: () => box(fw, s * 0.66, z - sink, 0.17, 0.13, 0.2, true, stoneDeco(3 + s)) };
+      });
+      const nearSide = W(0, 1, 0).d > W(0, -1, 0).d ? 1 : -1;
+      for (const l2 of legs.sort((a, b) => a.d - b.d)) l2.draw();
+      for (const a of arms) if (a.s !== nearSide) a.draw();
+      box(0, 0, 0.72 - sink, 0.42, 0.5, 0.42, true, stoneDeco(1));
+      for (const a of arms) if (a.s === nearSide) a.draw();
+      // a soft violet light on the ground under it while the glyph burns
+      if (!flash && gk > 0.05) {
+        const p = P(u.x + F[0] * 0.5, u.y + F[1] * 0.5, 0), r = sc * 0.6;
+        ctx.fillStyle = rgba(glyphCol, (0.1 * Math.min(1, gk)).toFixed(2));
+        ctx.beginPath(); ctx.ellipse(p.x, p.y, r, r * V.cam.pitch, 0, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
     }
 
     // ---------------------------------------------------------------- the Unseen
