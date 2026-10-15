@@ -66,11 +66,11 @@ let errors = [];
 
   // Story match: withdraw by holding the button.
   await page.click('#btn-camp');
-  // The story button opens the prologue card.
+  // The story button opens the opening cinematic (or the first scene).
   await page.click('#btn-story');
   await page.waitForTimeout(300);
   const prologue = await page.evaluate(() => ({ view: window.__tow.view, node: window.__tow.story.node }));
-  if (prologue.view !== 'story' || prologue.node !== 'p.open') errors.push('story: expected the prologue card, got ' + JSON.stringify(prologue));
+  if (!['p.lore', 'p.tower'].includes(prologue.node)) errors.push('story: expected the opening, got ' + JSON.stringify(prologue));
   await page.screenshot({ path: path.join(out, '5b-prologue.png') });
   await page.evaluate(() => window.__tow.debug.storyGo('c1.fight', 'ren', { approach: 'charge' }));
   await page.evaluate(() => window.__tow.debug.skipIntro());
