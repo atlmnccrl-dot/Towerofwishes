@@ -1,6 +1,7 @@
 # Tower of Wishes — rules for development agents
 
-Read first: [docs/DESIGN.md](docs/DESIGN.md).
+Read first: [docs/DESIGN.md](docs/DESIGN.md), [docs/STORY.md](docs/STORY.md),
+[docs/ART_DIRECTION.md](docs/ART_DIRECTION.md).
 
 ## Project boundaries
 
@@ -10,6 +11,8 @@ Read first: [docs/DESIGN.md](docs/DESIGN.md).
 - The manuscript is the canon. Do not invent lore, character facts, power names or plot
   and present them as canon. New ideas go in DESIGN.md marked **Proposal** until the
   author approves them.
+- **The campaign follows the manuscript's plot in order** (docs/STORY.md). Fights use the
+  book's cast, weapons, targets and outcomes; fight dialogue is quoted from the book.
 - The repository is private. Never commit secrets, purchase keys or copyrighted
   reference assets.
 
@@ -33,6 +36,7 @@ Read first: [docs/DESIGN.md](docs/DESIGN.md).
 | `js/render/fighters.js` | Character bodies, hair, cloth, poses |
 | `js/render/fx.js` | Telegraphs, slashes, particles, banners, heavy-art cutscenes |
 | `js/render/callouts.js` | Over-head bars, reaction icons, speech balloons |
+| `js/render/intro.js` | Face-off cards, VS, countdown |
 | `js/progress.js` | Hearts and injuries: pure functions |
 | `js/main.js` | Loop, input, HUD, save |
 | `test/` | Node tests and a headless-browser check |

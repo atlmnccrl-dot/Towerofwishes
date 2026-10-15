@@ -24,6 +24,8 @@
   const renderer = Render.createRenderer($('arena'));
   let match = null, mode = 'practice', speed = 1, paused = false;
   let frozen = false; // test hook: draw without advancing the fight
+  let faceoff = null; // face-off presentation state while it plays
+  const INTRO = window.TowRender.intro.T;
   let acc = 0, hitstop = 0, last = performance.now(), resultShownAt = 0, lastLog = 0;
   // An idle background fight plays behind the menu.
   let attract = Sim.createMatch({ seed: 11 });
@@ -62,7 +64,8 @@
     mode = m;
     const now = Date.now();
     const heroHp = mode === 'story' ? { kael: Pg.hpFrac(save, 'kael', now), eiryn: Pg.hpFrac(save, 'eiryn', now) } : {};
-    match = Sim.createMatch({ heroHp, seed });
+    match = Sim.createMatch({ heroHp, seed, intro: true });
+    faceoff = { t: 0 }; // face-off and countdown before the fight
     acc = 0; hitstop = 0; resultShownAt = 0; lastLog = 0; paused = false;
     $('feed').innerHTML = '';
     buildHud();
@@ -89,7 +92,7 @@
     $('result-text').textContent = text;
     const stats = [
       [fmt(r.time * 1000), 'Time'], [st.parries, 'Parries'], [st.dodges, 'Dodges'],
-      [st.feintsRead, 'Feints read'], [st.fled, 'Bandits fled'], [st.supers, 'Rising Cuts'],
+      [st.feintsRead, 'Feints read'], [st.beaten, 'Bandits beaten'], [st.supers, 'Rising Cuts'],
     ];
     $('result-stats').innerHTML = stats.map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('');
     let heartLine = 'Practice match: hearts and injuries are unchanged.';
@@ -150,15 +153,16 @@
         h.sup.classList.toggle('full', u.superMeter >= 100);
       }
       if (u.state === 'out') setChip(h.chip, 'Down', 'down');
-      else if (u.fled) setChip(h.chip, 'Fled', '');
+      else if (u.fled) setChip(h.chip, u.beaten ? 'Beaten' : 'Fled', '');
+      else if (u.beaten) setChip(h.chip, 'Beaten', 'down');
       else if (u.fleeing) setChip(h.chip, 'Running', 'run');
       else if (u.allOut > 0) setChip(h.chip, 'All out', 'allout');
       else if (u.drained > 0) setChip(h.chip, 'Drained', 'drained');
       else setChip(h.chip, null);
-      h.el.classList.toggle('gone', u.state === 'out' || !!u.fled);
+      h.el.classList.toggle('gone', u.state === 'out' || !!u.fled || !!u.beaten);
     }
     // Heavy arts get the whole screen.
-    $('hud').classList.toggle('cine', !!match.cutscene);
+    $('hud').classList.toggle('cine', !!match.cutscene || !!(faceoff && faceoff.t < INTRO.fight));
     const A = match.allOut, b = $('btn-allout');
     b.style.setProperty('--fill', A.used ? (A.active > 0 ? (A.active / Sim.ALL_OUT.dur).toFixed(3) : 0) : A.meter.toFixed(3));
     const ready = !A.used && A.meter >= 1 && !match.result;
@@ -213,7 +217,7 @@
   function holdTick() {
     const k = Math.min(1, (performance.now() - holdStart) / HOLD_MS);
     wd.style.setProperty('--hold', k.toFixed(3));
-    if (k >= 1) { endHold(); if (match && !match.result) Sim.surrender(match); return; }
+    if (k >= 1) { endHold(); if (match && !match.result) { Sim.surrender(match); faceoff = null; } return; }
     holdTimer = requestAnimationFrame(holdTick);
   }
   function endHold() { cancelAnimationFrame(holdTimer); holdStart = 0; wd.style.setProperty('--hold', 0); }
@@ -222,6 +226,8 @@
 
   // Tap the arena during a heavy art to skip to its impact.
   $('arena').addEventListener('pointerdown', () => {
+    // Tap during the face-off to jump to the countdown.
+    if (faceoff && faceoff.t < INTRO.vsEnd) { faceoff.t = INTRO.vsEnd; return; }
     const c = match && match.cutscene;
     if (c && c.t > 0.4 && c.t < c.impactAt) c.t = c.impactAt;
     else if (c && c.t > c.impactAt + 0.3) c.t = c.dur;
@@ -244,6 +250,15 @@
       while (acc >= DT) { Sim.step(attract, DT); acc -= DT; }
       if (attract.result) attract = Sim.createMatch({ seed: (Math.random() * 1e9) | 0 });
       attract.log.length = 0;
+    } else if (faceoff && !paused && !frozen) {
+      // Face-off, then 3-2-1; the fight starts on FIGHT.
+      faceoff.t += real;
+      if (faceoff.t >= INTRO.fight && match.phase !== 'fight') Sim.begin(match);
+      if (match.phase === 'fight') {
+        acc += real;
+        while (acc >= DT) { Sim.step(match, DT); acc -= DT; }
+      }
+      if (faceoff.t >= INTRO.end) faceoff = null;
     } else if (!paused && !frozen) {
       if (hitstop > 0) hitstop -= real;
       else {
@@ -254,7 +269,7 @@
       if (match.result && !resultShownAt) resultShownAt = now;
       if (resultShownAt && now - resultShownAt > 1800 && $('result').hidden) finishMatch();
     }
-    renderer.draw(s, paused ? 0 : real, !match);
+    renderer.draw(s, paused ? 0 : real, !match, match ? faceoff : null);
     const hs = renderer.takeHitstop();
     if (match) hitstop += hs;
     updateHud();
@@ -268,7 +283,10 @@
     get drawMs() { return renderer.stats.drawMs; },
     debug: {
       start(m, seed) { startMatch(m || 'practice', seed == null ? 1 : seed); },
+      introAt(t) { if (faceoff) faceoff.t = t; },
+      skipIntro() { if (faceoff) { faceoff = null; Sim.begin(match); } },
       freeze(on) { frozen = !!on; },
+      get faceoff() { return faceoff; },
       advance(seconds) { for (let i = 0; i < Math.round(seconds / DT) && match && !match.result; i++) Sim.step(match, DT); },
       advanceUntil(fnSrc, maxSeconds) {
         const fn = new Function('s', 'return (' + fnSrc + ')(s)');

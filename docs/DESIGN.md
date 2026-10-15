@@ -1,6 +1,9 @@
 # Tower of Wishes — Game Design
 
-Status: living document · started 2026-10-15 · prototype 0.1
+Status: living document · started 2026-10-15 · prototype 0.2
+
+Companion documents: [STORY.md](STORY.md) (the plot the campaign follows) and
+[ART_DIRECTION.md](ART_DIRECTION.md) (the visual style).
 
 This file is the single source of truth for game design. Story canon lives in the
 author's manuscript (*Tower of Wishes — Through the First Guild Contract*), not here.
@@ -112,6 +115,19 @@ a title card names the move, the impact lands, then the camera returns.
 - Skippable (prototype: tap to jump to the impact). Final rule: skippable after first viewing.
 - Prototype art: Kael's **Rising Cut** (placeholder name, Proposal).
 
+## 7b. Face-off and countdown (decided)
+
+Every match opens like a versus screen before the fight:
+1. Establishing shot of the arena.
+2. **Face-off cards:** each fighter in turn, close-up, name, a short description and, where
+   the book gives one, their line, while they strike a pose.
+3. **VS**, then **3 · 2 · 1 · FIGHT**.
+4. On FIGHT everyone makes a distinct **opening move** at once: Kael rushes in, the Knife
+   Bandit dips sideways off the line, the Lookout edges back toward the path, the Flanking
+   Bandit heads round the trunk, Eiryn braces against it. Future fighters can teleport,
+   back off to range, and so on.
+Tap during the face-off to jump to the countdown. Withdraw is available once the fight starts.
+
 ## 8. Camera
 
 Elevated 3/4 "helicopter over the coliseum" view, not top-down. Slowly drifts its angle,
@@ -180,8 +196,9 @@ spearwoman, the cook, the evaluator) become recruits or allies.
 
 ## 13. Prototype 0.1 (this repository)
 
-Chapter One, the forest clearing: Kael (+ Eiryn as guest) vs Broad Bandit, Knife Bandit,
-Hatchet Bandit and Lookout.
+Chapter One, the forest clearing, staged as the book stages it (see docs/STORY.md): Kael
+(+ Eiryn as guest) vs the Broad Bandit (fists), the Knife Bandit, the Flanking Bandit
+(goes for Eiryn) and the Lookout (doesn't fight; runs). Nobody dies: beaten bandits retreat.
 
 Built:
 - AI brains with reaction, reading, parry, dodge, feint, riposte, protect-the-guest,
@@ -199,8 +216,10 @@ Balance at time of writing (`node test/sim-test.js 200`):
 
 | Policy | Win | Avg length (sim time) |
 |---|---|---|
-| Never press All Out | ~73 % | ~33 s |
-| Press when 2+ bandits are on Kael | ~82 % | ~26 s |
+| Never press All Out | ~72 % | ~32 s |
+| Press when 2+ bandits are on Kael | ~89 % | ~24 s |
+
+All Out tuning: 5.5 s, damage ×1.6, then 3.0 s drained.
 
 Not built yet: recruitment, contract map, gear, training, other arenas, bosses with All
 Out counters beyond the punisher, sound, real art, purchases, free modes beyond Practice.
@@ -217,6 +236,9 @@ Out counters beyond the punisher, sound, real art, purchases, free modes beyond 
 | 2026-10-14 | Arcade, survival, exploration, bosses, dungeons, loot without hearts | Author |
 | 2026-10-14 | Hearts purchasable for real money at release | Author |
 | 2026-10-15 | Prototype 0.1 built as a browser page for quick phone testing | Claude (agreed with author) |
+| 2026-10-15 | Art style: anime/manhwa webtoon (see docs/ART_DIRECTION.md) | Author |
+| 2026-10-15 | Versus-style face-off, 3-2-1 countdown, distinct opening moves | Author |
+| 2026-10-15 | The campaign follows the manuscript's plot (see docs/STORY.md) | Author |
 
 ## 15. Roadmap (proposed)
 

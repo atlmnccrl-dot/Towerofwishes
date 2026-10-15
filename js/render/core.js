@@ -8,6 +8,7 @@
  *   fighters.js  character bodies, hair, cloth, poses
  *   fx.js        telegraphs, slashes, particles, impact frames, heavy-art cutscenes, banners
  *   callouts.js  in-world UI: health ticks, reaction icons, speech balloons
+ *   intro.js     pre-match face-off, countdown
  *
  * Every module is `create(V)` where V is the shared view below. Modules read
  * sim state only; they never change it.
@@ -69,6 +70,7 @@
     const fighters = NS.fighters.create(V);
     const fx = NS.fx.create(V);
     const callouts = NS.callouts.create(V);
+    const intro = NS.intro.create(V);
 
     function resize() {
       V.dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -98,7 +100,7 @@
         sc = Math.min(W, H) / 4.2;
         ang = u.facing - Math.PI / 2 + 0.9 - (c.t / c.dur) * 0.7;
       }
-      const o = V.camOverride;
+      const o = V.camOverride || intro.cameraFor(s, V.show);
       if (o) {
         const fu = o.focus && s.byId[o.focus];
         if (fu) { tx = fu.x; ty = fu.y; }
@@ -107,10 +109,10 @@
         if (o.sc != null) sc = o.sc; else if (o.zoom) sc *= o.zoom;
         if (o.ang != null) ang = o.ang;
       }
-      const k = c || V.camOverride ? 0.12 : Math.min(1, dt * 2.2);
+      const k = c || o ? 0.12 : Math.min(1, dt * 2.2);
       cam.x += (tx - cam.x) * k; cam.y += (ty - cam.y) * k;
       cam.sc += (sc - cam.sc) * k;
-      cam.ang += (ang - cam.ang) * (c || V.camOverride ? 0.08 : Math.min(1, dt * 0.8));
+      cam.ang += (ang - cam.ang) * (c || o ? 0.08 : Math.min(1, dt * 0.8));
       cam.shake *= Math.pow(0.002, dt);
     }
 
@@ -136,8 +138,11 @@
     };
 
     // ------------------------------------------------------------ frame
-    function draw(s, dt, quiet) {
+    // show: presentation state from main.js ({t} while the face-off plays), or null.
+    function draw(s, dt, quiet, show) {
       const t0 = performance.now();
+      V.show = show || null;
+      V.spotlight = intro.spotlight(s, V.show);
       if (!V.W) resize();
       V.time += dt;
       fx.consume(s);
@@ -148,9 +153,10 @@
       ctx.save();
       ctx.translate(shx, shy);
       V.renderScene(s, { dt });
-      if (!quiet) callouts.draw(s, dt);
+      if (!quiet && !V.show) callouts.draw(s, dt);
       ctx.restore();
       fx.drawScreen(s, dt);
+      if (V.show) intro.draw(s, V.show, dt);
       const ms = performance.now() - t0;
       V.stats.drawMs = V.stats.drawMs ? V.stats.drawMs * 0.95 + ms * 0.05 : ms;
     }

@@ -17,10 +17,10 @@
   const LOOK = {
     kael:    { coat: '#2f5f8a', trim: '#d8b45a', skin: '#e9c3a0', hair: '#3a2a20', h: 1.0,  w: 1.0,  weapon: 'sword',   hairStyle: 'short' },
     eiryn:   { coat: '#2b2a36', trim: '#4fae7a', skin: '#f1d3bd', hair: '#e9e7f2', h: 0.93, w: 0.88, weapon: 'branch',  hairStyle: 'long' },
-    brute:   { coat: '#6b4a33', trim: '#3d2a1d', skin: '#c99a76', hair: '#4a3324', h: 1.12, w: 1.45, weapon: 'club',    hairStyle: 'bald' },
+    brute:   { coat: '#6b4a33', trim: '#3d2a1d', skin: '#c99a76', hair: '#4a3324', h: 1.12, w: 1.45, weapon: 'fists',   hairStyle: 'bald' },
     knife:   { coat: '#4a3a36', trim: '#b8423a', skin: '#d9ad8a', hair: '#1f1a18', h: 0.97, w: 0.85, weapon: 'knife',   hairStyle: 'short' },
-    hatchet: { coat: '#4d5b34', trim: '#2f3820', skin: '#d4a684', hair: '#2a2a1e', h: 1.0,  w: 1.05, weapon: 'hatchet', hairStyle: 'hood' },
-    lookout: { coat: '#5b5f66', trim: '#3a3d42', skin: '#dcb490', hair: '#6a5038', h: 0.95, w: 0.9,  weapon: 'sling',   hairStyle: 'short' },
+    grabber: { coat: '#4d5b34', trim: '#2f3820', skin: '#d4a684', hair: '#2a2a1e', h: 1.0,  w: 1.05, weapon: 'fists',   hairStyle: 'hood' },
+    lookout: { coat: '#5b5f66', trim: '#3a3d42', skin: '#dcb490', hair: '#6a5038', h: 0.95, w: 0.9,  weapon: 'fists',   hairStyle: 'short' },
   };
 
   // Pose: rel = weapon angle relative to facing; pitch = weapon elevation.
@@ -124,6 +124,10 @@
         ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
       };
       const drawWeapon = () => {
+        if (L.weapon === 'fists' || !u.armed) {
+          ctx.fillStyle = L.skin; ctx.beginPath(); ctx.arc(pHand.x, pHand.y, 0.07 * sc, 0, Math.PI * 2); ctx.fill();
+          return;
+        }
         const wc = { sword: '#dfe7ee', branch: '#7a5a3a', club: '#6a4a2c', knife: '#cfd6dc', hatchet: '#b9bfc4', sling: '#8a6a48' }[L.weapon];
         const ww = { sword: 0.07, branch: 0.09, club: 0.16, knife: 0.06, hatchet: 0.07, sling: 0.04 }[L.weapon];
         strokeLimb(pHand, pTip, ww, wc);

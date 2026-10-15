@@ -27,7 +27,7 @@ function check(cond, msg) {
 
 for (const [name, policy] of Object.entries(POLICIES)) {
   const out = { win: 0, loss: 0, timeout: 0 };
-  let time = 0, kaelHp = 0, fled = 0, parries = 0, dodges = 0, read = 0, supers = 0, eirynDown = 0;
+  let time = 0, kaelHp = 0, fled = 0, beaten = 0, parries = 0, dodges = 0, read = 0, supers = 0, eirynDown = 0;
   for (let seed = 1; seed <= N; seed++) {
     const s = Sim.createMatch({ seed });
     while (!s.result && s.t < LIMIT) {
@@ -35,7 +35,7 @@ for (const [name, policy] of Object.entries(POLICIES)) {
       Sim.step(s, DT);
       for (const u of s.units) {
         check(Number.isFinite(u.x) && Number.isFinite(u.y), `NaN position seed ${seed} ${u.id}`);
-        if (!u.fleeing && !u.fled && u.state !== 'out') {
+        if (!u.fleeing && !u.fled && u.state !== 'out' && !u.beaten) {
           const e = (u.x / Sim.ARENA.rx) ** 2 + (u.y / Sim.ARENA.ry) ** 2;
           check(e < 1.05, `${u.id} left arena seed ${seed} (${u.x.toFixed(2)},${u.y.toFixed(2)})`);
         }
@@ -50,14 +50,14 @@ for (const [name, policy] of Object.entries(POLICIES)) {
     if (!s.result) out.timeout++; else out[s.result.outcome]++;
     time += s.t;
     kaelHp += s.byId.kael.hp / s.byId.kael.maxHp;
-    fled += s.stats.fled; parries += s.stats.parries; dodges += s.stats.dodges;
+    fled += s.stats.fled; beaten += s.stats.beaten; parries += s.stats.parries; dodges += s.stats.dodges;
     read += s.stats.feintsRead; supers += s.stats.supers;
     eirynDown += s.byId.eiryn.state === 'out' ? 1 : 0;
   }
   const pct = (n) => ((100 * n) / N).toFixed(0) + '%';
   console.log(`[${name.padEnd(5)}] win ${pct(out.win)}  loss ${pct(out.loss)}  timeout ${out.timeout}  ` +
     `avg ${(time / N).toFixed(0)}s  kaelHP ${(100 * kaelHp / N).toFixed(0)}%  eirynDown ${pct(eirynDown)}  ` +
-    `fled ${(fled / N).toFixed(2)}  parries ${(parries / N).toFixed(1)}  dodges ${(dodges / N).toFixed(1)}  ` +
+    `beaten ${(beaten / N).toFixed(2)}  fled ${(fled / N).toFixed(2)}  parries ${(parries / N).toFixed(1)}  dodges ${(dodges / N).toFixed(1)}  ` +
     `feintsRead ${(read / N).toFixed(1)}  supers ${(supers / N).toFixed(2)}`);
 }
 if (failures) { console.error(`${failures} invariant failures`); process.exit(1); }

@@ -1,6 +1,6 @@
 // Loads the game in headless Chromium at iPhone landscape size, plays a
 // practice match and a story withdraw, and saves screenshots.
-// Usage: node test/browser-check.js <outDir>   (serves the repo on :8765)
+// Usage: [PORT=8765] node test/browser-check.js <outDir>   (serves the repo on PORT)
 'use strict';
 const path = require('path');
 const http = require('http');
@@ -11,6 +11,7 @@ const root = path.join(__dirname, '..');
 const out = process.argv[2] || path.join(root, 'shots');
 fs.mkdirSync(out, { recursive: true });
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };
+const PORT = Number(process.env.PORT) || 8765;
 const server = http.createServer((req, res) => {
   const f = path.join(root, decodeURIComponent(req.url.split('?')[0]) === '/' ? 'index.html' : decodeURIComponent(req.url.split('?')[0]));
   fs.readFile(f, (err, data) => {
@@ -18,7 +19,7 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'content-type': types[path.extname(f)] || 'application/octet-stream' });
     res.end(data);
   });
-}).listen(8765);
+}).listen(PORT);
 
 (async () => {
   const browser = await chromium.launch();
@@ -26,12 +27,22 @@ const server = http.createServer((req, res) => {
   const errors = [];
   page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
   page.on('console', (m) => { if (m.type() === 'error' && !/fonts\.(googleapis|gstatic)/.test(m.text())) errors.push('console: ' + m.text()); });
-  await page.goto('http://localhost:8765/');
+  await page.goto(`http://localhost:${PORT}/`);
   await page.waitForTimeout(1500);
   await page.screenshot({ path: path.join(out, '1-menu.png') });
 
   await page.click('#btn-practice');
-  await page.waitForTimeout(3500);
+  // Face-off: one card, the VS, and the countdown.
+  await page.evaluate(() => window.__tow.debug.introAt(5.0));
+  await page.waitForTimeout(700);
+  await page.screenshot({ path: path.join(out, '2a-faceoff.png') });
+  await page.evaluate(() => window.__tow.debug.introAt(7.7));
+  await page.waitForTimeout(150);
+  await page.screenshot({ path: path.join(out, '2b-countdown.png') });
+  await page.waitForFunction(() => window.__tow.match.phase === 'fight', null, { timeout: 10000 });
+  await page.waitForTimeout(600);
+  await page.screenshot({ path: path.join(out, '2c-openers.png') });
+  await page.waitForTimeout(3000);
   await page.screenshot({ path: path.join(out, '2-fight.png') });
 
   // Force a heavy art early, while Kael is in the thick of it.
@@ -55,7 +66,8 @@ const server = http.createServer((req, res) => {
   // Story match: withdraw by holding the button.
   await page.click('#btn-camp');
   await page.click('#btn-story');
-  await page.waitForTimeout(2500);
+  await page.evaluate(() => window.__tow.debug.skipIntro());
+  await page.waitForTimeout(1500);
   const box = await page.locator('#btn-withdraw').boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();

@@ -77,48 +77,63 @@
   // ---------------------------------------------------------------- units
   // Each fighter has a "brain": reaction time, how well it reads feints,
   // how often it chooses to parry or dodge, and a personality flag or two.
+  // Lines in `barks` and `intro` are quoted from the manuscript (Chapter One).
+  // `intro.epithet` is a short description for the face-off card, taken from
+  // how the chapter describes each person.
   const DEFS = {
     kael: {
       name: 'Kael', team: 'hero', r: 0.38, hp: 180, sta: 100, speed: 4.3,
       react: 0.17, read: 0.6, parry: 0.55, dodge: 0.5, feint: 0.1,
-      protector: true, riposte: true, cleave: true, superMeter: true,
+      protector: true, riposte: true, cleave: true, superMeter: true, opener: 'rush',
       attack: { name: 'Slash', range: 1.6, arc: 1.7, windup: 0.34, active: 0.1, recover: 0.38, dmg: [12, 16], knock: 1.0, lunge: 0.45, sta: 12 },
-      barks: { start: 'That’s enough.', super: 'Get back!', win: 'They’re gone.', protect: 'Over here!' },
+      barks: {
+        super: 'Back away.', win: 'They\u2019re gone.', protect: 'Let go.',
+        distracted: 'Where do you think you\u2019re going?', reply: 'Then you should have left her alone.',
+      },
+      intro: { epithet: 'Guild adventurer', line: 'Somebody who asked nicely.' },
     },
     eiryn: {
-      name: 'Eiryn', team: 'hero', guest: true, r: 0.33, hp: 46, sta: 40, speed: 3.4,
-      react: 0.3, read: 0.5, parry: 0, dodge: 0.4, feint: 0,
+      name: 'Eiryn', team: 'hero', guest: true, r: 0.33, hp: 70, sta: 40, speed: 3.4,
+      react: 0.3, read: 0.5, parry: 0, dodge: 0.4, feint: 0, opener: 'brace', startsUnarmed: true,
       attack: { name: 'Branch', range: 1.5, arc: 1.5, windup: 0.46, active: 0.1, recover: 0.6, dmg: [3, 5], knock: 0.8, stagger: 0.55, lunge: 0.25, sta: 15 },
-      barks: { start: 'Keep your hands off me.', warn: 'Behind you!', swing: 'Back!' },
+      barks: { warn: 'Behind you!' },
+      intro: { epithet: 'Mage \u00b7 mana spent', line: 'I said no.' },
     },
     brute: {
-      name: 'Broad Bandit', team: 'bandit', r: 0.48, hp: 150, sta: 100, speed: 3.3,
+      name: 'Broad Bandit', team: 'bandit', r: 0.48, hp: 172, sta: 100, speed: 3.3,
       react: 0.36, read: 0.2, parry: 0, dodge: 0.12, feint: 0.05, morale: 1.25,
-      punisher: true, opener: 'eiryn',
-      attack: { name: 'Haymaker', range: 1.85, arc: 1.7, windup: 0.82, active: 0.14, recover: 0.75, dmg: [28, 36], knock: 2.6, down: true, lunge: 0.5, sta: 20 },
-      barks: { start: 'Do another trick.', punish: 'Out of breath?', flee: 'Not worth it!' },
+      punisher: true, firstTarget: 'eiryn', opener: 'advance',
+      attack: { name: 'Fist', range: 1.7, arc: 1.7, windup: 0.8, active: 0.14, recover: 0.75, dmg: [39, 50], knock: 2.6, down: true, lunge: 0.6, sta: 20 },
+      barks: { punish: 'That\u2019s what I thought.' },
+      intro: { epithet: 'Broad-shouldered', line: 'Then do another trick. The big one.' },
     },
     knife: {
-      name: 'Knife Bandit', team: 'bandit', r: 0.34, hp: 90, sta: 100, speed: 4.5,
-      react: 0.22, read: 0.4, parry: 0, dodge: 0.55, feint: 0.45, morale: 1.0,
-      attack: { name: 'Stab', range: 1.3, arc: 1.2, windup: 0.3, active: 0.08, recover: 0.34, dmg: [12, 16], knock: 0.4, lunge: 0.7, sta: 10 },
-      barks: { start: 'Who are you supposed to be?', feint: 'Too slow!', flee: 'Forget this!' },
+      name: 'Knife Bandit', team: 'bandit', r: 0.34, hp: 104, sta: 100, speed: 4.5,
+      react: 0.22, read: 0.4, parry: 0, dodge: 0.55, feint: 0.45, morale: 1.0, opener: 'dip',
+      attack: { name: 'Stab', range: 1.3, arc: 1.2, windup: 0.3, active: 0.08, recover: 0.34, dmg: [18, 24], knock: 0.4, lunge: 0.7, sta: 10 },
+      barks: {},
+      intro: { epithet: 'Short knife', line: 'Who are you supposed to be?' },
     },
-    hatchet: {
-      name: 'Hatchet Bandit', team: 'bandit', r: 0.38, hp: 100, sta: 100, speed: 4.1,
+    grabber: {
+      name: 'Flanking Bandit', team: 'bandit', r: 0.38, hp: 115, sta: 100, speed: 4.1,
       react: 0.26, read: 0.3, parry: 0, dodge: 0.3, feint: 0.15, morale: 1.0,
-      flanker: true, opener: 'eiryn',
-      attack: { name: 'Chop', range: 1.4, arc: 1.4, windup: 0.44, active: 0.1, recover: 0.42, dmg: [15, 19], knock: 0.8, lunge: 0.5, sta: 12 },
-      barks: { start: 'Round the back.', flee: 'She’s trouble.' },
+      flanker: true, firstTarget: 'eiryn', opener: 'flank',
+      attack: { name: 'Grab', range: 1.3, arc: 1.4, windup: 0.44, active: 0.1, recover: 0.42, dmg: [15, 21], knock: 0.6, lunge: 0.55, sta: 12 },
+      barks: { flee: 'She\u2019s trouble.' },
+      intro: { epithet: 'Circling the trunk', line: null },
     },
     lookout: {
       name: 'Lookout', team: 'bandit', r: 0.33, hp: 60, sta: 100, speed: 4.7,
       react: 0.25, read: 0.35, parry: 0, dodge: 0.45, feint: 0, morale: 0.55,
-      ranged: true, keepAway: 6,
-      attack: { name: 'Sling', range: 8.5, arc: 0.6, windup: 0.62, active: 0.05, recover: 0.5, dmg: [7, 10], knock: 0.3, sta: 0, projectile: 12 },
-      barks: { start: 'I’ll watch the road.', flee: 'I’m out!' },
+      noncombat: true, post: { x: 7.4, y: -4.4 }, opener: 'hangback',
+      attack: null,
+      barks: {},
+      intro: { epithet: 'Hanging back by the path', line: null },
     },
   };
+
+  // Face-off order: the scene as the chapter stages it.
+  const INTRO_ORDER = ['eiryn', 'brute', 'knife', 'grabber', 'lookout', 'kael'];
 
   const FREE = { idle: 1, move: 1, circle: 1 };
 
@@ -136,6 +151,7 @@
       morale: d.morale == null ? 1 : d.morale, hurtOnce: false, fled: false,
       allOut: 0, drained: 0, superMeter: 0,
       walk: 0, icon: null, iconT: 0, bark: null, barkT: 0, flash: 0,
+      armed: !d.startsUnarmed, fizzles: 0, beaten: false,
     };
   }
 
@@ -149,28 +165,60 @@
       makeUnit('eiryn', 'eiryn', -0.8, 2.2, -1.6, hp.eiryn),
       makeUnit('brute', 'brute', 0.5, 0.7, 2.3, 1),
       makeUnit('knife', 'knife', -2.4, 0.7, 0.8, 1),
-      makeUnit('hatchet', 'hatchet', 2.8, 2.6, 3.0, 1),
+      makeUnit('grabber', 'grabber', 2.8, 2.6, 3.0, 1),
       makeUnit('lookout', 'lookout', 6.2, -3.8, 2.6, 1),
     ];
     const s = {
       t: 0, rng, arena: ARENA, units, projectiles: [],
       byId: Object.fromEntries(units.map((u) => [u.id, u])),
-      tokens: {}, nextGrant: {},
+      tokens: {}, nextGrant: {}, phase: 'intro',
       allOut: { meter: 0, active: 0, used: false, drainedLeft: 0 },
       cutscene: null, result: null,
       fx: [], log: [],
-      stats: { parries: 0, dodges: 0, feintsRead: 0, feintsLanded: 0, hitsTaken: 0, fled: 0, downed: 0, supers: 0 },
+      stats: { parries: 0, dodges: 0, feintsRead: 0, feintsLanded: 0, hitsTaken: 0, fled: 0, beaten: 0, supers: 0 },
     };
     for (const u of units) {
-      if (u.def.opener) u.target = s.byId[u.def.opener];
+      if (u.def.firstTarget) u.target = s.byId[u.def.firstTarget];
       else if (u.team === 'bandit') u.target = s.byId.eiryn;
     }
     s.byId.kael.target = s.byId.brute;
-    bark(s, s.byId.eiryn, 'start', 0.2);
-    bark(s, s.byId.brute, 'start', 1.0);
-    bark(s, s.byId.kael, 'start', 2.2);
-    say(s, 'Four bandits have Eiryn cornered against the fallen trunk.');
+    // With opts.intro the match waits for begin() so the face-off can play.
+    if (!opts.intro) begin(s);
     return s;
+  }
+
+  // ---------------------------------------------------------------- openers
+  // When the countdown ends, everyone makes their first move at once.
+  function begin(s) {
+    if (s.phase === 'fight') return;
+    s.phase = 'fight';
+    say(s, 'Four bandits have Eiryn cornered against the fallen trunk.');
+    const kael = s.byId.kael, eiryn = s.byId.eiryn;
+    for (const u of s.units) {
+      const t = u.target || kael;
+      const a = angTo(u, t);
+      let goal = null, mul = 1, dur = 0.6, dash = false;
+      switch (u.def.opener) {
+        case 'rush': // straight at the biggest threat
+          goal = { x: t.x - Math.cos(a) * 1.4, y: t.y - Math.sin(a) * 1.4 }; mul = 1.8; dur = 0.95; dash = true; break;
+        case 'dip': { // slip sideways off the line before engaging
+          const side = s.rng() < 0.5 ? 1 : -1, b = angTo(u, kael) + side * 1.9;
+          goal = { x: u.x + Math.cos(b) * 2.2, y: u.y + Math.sin(b) * 2.2 }; mul = 1.6; dur = 0.5; dash = true; break;
+        }
+        case 'advance': // turn from Eiryn to face the newcomer
+          goal = { x: u.x + Math.cos(angTo(u, kael)) * 0.9, y: u.y + Math.sin(angTo(u, kael)) * 0.9 }; mul = 0.8; dur = 0.7; break;
+        case 'flank': // head round the trunk toward Eiryn
+          goal = { x: eiryn.x + 1.2, y: eiryn.y + 0.4 }; mul = 1.2; dur = 0.8; break;
+        case 'hangback': // edge back toward the path
+          goal = u.def.post; mul = 0.6; dur = 1.2; break;
+        case 'brace': // back against the trunk
+          goal = { x: u.x - 0.3, y: u.y + 0.5 }; mul = 0.6; dur = 0.5; break;
+      }
+      if (!goal) continue;
+      u.openGoal = goal; u.openMul = mul;
+      setState(u, 'opener', dur);
+      if (dash) s.fx.push({ type: 'dash', unit: u.id, x: u.x, y: u.y, a: angTo(u, goal) });
+    }
   }
 
   // ---------------------------------------------------------------- talk
@@ -190,6 +238,8 @@
 
   // ---------------------------------------------------------------- queries
   const alive = (u) => u && u.state !== 'out' && !u.fled;
+  // Fighting bandits: not running, not beaten, not a bystander.
+  const inFight = (u) => alive(u) && !u.fleeing && !u.beaten && !u.def.noncombat;
   const opponents = (s, u) => s.units.filter((o) => o.team !== u.team && alive(o));
   const isDrained = (u) => u.drained > 0;
   const inAllOut = (u) => u.allOut > 0;
@@ -261,7 +311,7 @@
           s.stats.feintsRead += u.team === 'hero' ? 1 : 0;
           say(s, `${u.name} reads ${a.name}'s feint.`);
           // Punish the fake: step in while the feinter is still posing.
-          if (FREE[u.state] && dist(u, a) <= u.def.attack.range + a.r + 0.2 && u.sta >= (u.def.attack.sta || 0) && !u.def.ranged) {
+          if (FREE[u.state] && u.def.attack && dist(u, a) <= u.def.attack.range + a.r + 0.2 && u.sta >= (u.def.attack.sta || 0) && !u.def.ranged) {
             startAttack(s, u, a, { riposte: true });
           }
           return;
@@ -300,7 +350,7 @@
   function resolveStrike(s, u) {
     const A = u.act.A;
     const victims = u.def.cleave
-      ? opponents(s, u).filter((v) => v.state !== 'down')
+      ? opponents(s, u).filter((v) => v.state !== 'down' && !v.beaten && !v.fleeing)
       : [u.act.target].filter(alive);
     let landed = false;
     for (const v of victims) {
@@ -336,7 +386,7 @@
       return false;
     }
     let dmg = A.dmg[0] + s.rng() * (A.dmg[1] - A.dmg[0]);
-    if (inAllOut(u)) dmg *= 1.35;
+    if (inAllOut(u)) dmg *= ALL_OUT.dmg;
     if (u.act && u.act.wasFeint) {
       dmg *= 1.15;
       if (u.team === 'bandit') s.stats.feintsLanded++;
@@ -353,14 +403,20 @@
     v.ky += Math.sin(a) * kn * 2.6;
     s.fx.push({ type: 'hit', x: v.x, y: v.y, dmg, big: dmg >= 18, from: u.team });
     // Being hit by Kael makes a bandit turn on him ("Make it look at me").
-    if (u.id === 'kael' && v.team === 'bandit') { v.target = u; v.aggroUntil = s.t + 5; }
+    if (u.id === 'kael' && v.team === 'bandit') {
+      v.target = u; v.aggroUntil = s.t + 5;
+      if (!s.firstBlood) {
+        s.firstBlood = true;
+        for (const o of s.units) if (o.def.noncombat) o.morale -= 0.4; // the lookout loses his nerve
+      }
+    }
     if (v.team === 'bandit' && !v.hurtOnce && v.hp < v.maxHp * 0.4) {
       v.hurtOnce = true;
       v.morale -= 0.15;
     }
     if (v.hp <= 0) {
       v.hp = 0;
-      knockOut(s, v, u);
+      knockOut(s, v);
       return true;
     }
     const wasWinding = v.state === 'attack' && v.act && v.act.phase !== 'strike';
@@ -378,16 +434,26 @@
     return true;
   }
 
-  function knockOut(s, v, by) {
+  function knockOut(s, v) {
     releaseTokens(s, v);
     v.act = null; v.pending = null; v.plan = null;
-    setState(v, 'out');
-    s.stats.downed += v.team === 'bandit' ? 1 : 0;
-    say(s, `${v.name} is down.`);
     s.fx.push({ type: 'ko', x: v.x, y: v.y });
-    if (v.team === 'bandit') {
-      for (const o of s.units) if (o.team === 'bandit' && alive(o)) o.morale -= 0.2;
+    if (v.team !== 'bandit') {
+      setState(v, 'out');
+      say(s, `${v.name} is down.`);
+      return;
     }
+    // In the chapter nobody is killed: a beaten bandit goes down, then scrambles off.
+    v.beaten = true;
+    v.fleeing = true;
+    setState(v, 'down', 1.3);
+    s.stats.beaten++;
+    say(s, `${v.name} has had enough.`);
+    if (v.def.barks.flee) {
+      bark(s, v, 'flee', 1.0);
+      if (v.id === 'grabber') bark(s, s.byId.kael, 'reply', 2.4);
+    }
+    for (const o of s.units) if (o.team === 'bandit' && alive(o) && o !== v) o.morale -= 0.2;
   }
 
   function gainSuper(u, n) {
@@ -401,7 +467,7 @@
 
   function trySuper(s, u) {
     if (!u.def.superMeter || u.superMeter < 100 || !FREE[u.state] || inAllOut(u) || isDrained(u)) return false;
-    const near = opponents(s, u).filter((o) => dist(u, o) < SUPER.radius - 0.4);
+    const near = opponents(s, u).filter((o) => inFight(o) && dist(u, o) < SUPER.radius - 0.4);
     const t = u.target;
     const wantIt = near.length >= 2 || (t && alive(t) && dist(u, t) < 2.4 && (t.state === 'stagger' || t.state === 'down')) || (u.hp < u.maxHp * 0.35 && near.length >= 1);
     if (!wantIt) return false;
@@ -424,7 +490,7 @@
     u.y += Math.sin(u.facing) * 1.6;
     collideWorld(u);
     for (const v of opponents(s, u)) {
-      if (dist(u, v) > SUPER.radius) continue;
+      if (v.beaten || v.fleeing || dist(u, v) > SUPER.radius) continue;
       if (Math.abs(angDiff(u.facing, angTo(u, v))) > SUPER.arc / 2) continue;
       const dmg = Math.round(SUPER.dmg[0] + s.rng() * (SUPER.dmg[1] - SUPER.dmg[0]));
       v.hp -= dmg;
@@ -435,7 +501,7 @@
       v.pending = null; v.plan = null;
       v.morale -= 0.15;
       s.fx.push({ type: 'hit', x: v.x, y: v.y, dmg, big: true, from: u.team });
-      if (v.hp <= 0) { v.hp = 0; knockOut(s, v, u); }
+      if (v.hp <= 0) { v.hp = 0; knockOut(s, v); }
       else setState(v, 'down', 1.4);
     }
     for (const o of s.units) if (o.team !== u.team && alive(o)) o.morale -= 0.1;
@@ -443,7 +509,7 @@
   }
 
   // ---------------------------------------------------------------- all out
-  const ALL_OUT = { dur: 4.5, drained: 3.4, chargeTime: 18 };
+  const ALL_OUT = { dur: 5.5, drained: 3.0, chargeTime: 18, dmg: 1.6 };
 
   function triggerAllOut(s) {
     const A = s.allOut;
@@ -468,11 +534,26 @@
     icon(u, '…');
   }
 
+  // "Where do you think you're going?" It was a mistake to look away: the
+  // broad man charges while Kael is watching the lookout run.
+  function distractKael(s) {
+    const k = s.byId.kael;
+    if (!alive(k) || !FREE[k.state] || inAllOut(k)) return;
+    bark(s, k, 'distracted');
+    k.pending = null; k.plan = null;
+    setState(k, 'distracted', 0.6);
+    const b = s.byId.brute;
+    if (inFight(b)) {
+      b.target = k; b.aggroUntil = s.t + 3; b.distractPunish = s.t + 1.5; b.cd = 0;
+      say(s, 'Kael looks away. The broad man charges.');
+    }
+  }
+
   // ---------------------------------------------------------------- brains
   function chooseTargetKael(s, u) {
     const eiryn = s.byId.eiryn;
     // Kael lets a running bandit go.
-    const foes = opponents(s, u).filter((f) => !f.fleeing);
+    const foes = opponents(s, u).filter(inFight);
     if (!foes.length) return null;
     if (alive(eiryn) && !inAllOut(u)) {
       let threat = null, best = 3.4;
@@ -483,14 +564,14 @@
       }
       if (threat) {
         if (u.target !== threat) {
-          bark(s, u, 'protect');
-          if (eiryn.def.barks.warn && s.rng() < 0.5) bark(s, eiryn, 'warn');
+          if (threat.def.flanker && dist(threat, eiryn) < 2) bark(s, u, 'protect');
+          if (eiryn.def.barks.warn && dist(threat, eiryn) > 1.2 && s.rng() < 0.5) bark(s, eiryn, 'warn');
           say(s, `Kael moves to cut off ${threat.name}.`);
         }
         return threat;
       }
     }
-    if (alive(u.target) && !u.target.fleeing && dist(u, u.target) < 5) return u.target;
+    if (inFight(u.target) && dist(u, u.target) < 5) return u.target;
     let best = null, score = Infinity;
     for (const f of foes) {
       let sc = dist(u, f) + f.hp * 0.025;
@@ -529,13 +610,30 @@
   }
 
   function brainEiryn(s, u, dt) {
-    const foes = opponents(s, u);
+    const foes = opponents(s, u).filter(inFight);
     if (!foes.length) return idle(u, dt);
     let near = null, nd = Infinity;
     for (const f of foes) { const d = dist(u, f); if (d < nd) { nd = d; near = f; } }
     const A = u.def.attack;
-    if (nd < A.range + near.r - 0.1 && (u.sta >= A.sta || inAllOut(u)) && (u.cd <= 0 || inAllOut(u)) && !near.def.ranged) {
-      if (s.rng() < 0.35) bark(s, u, 'swing');
+    const close = nd < A.range + near.r + 0.3;
+    // Chapter One: she tries to cast, her fingers shake, no glyph appears.
+    if (close && !inAllOut(u) && (u.cd <= 0 || u.fizzles === 0) && u.fizzles < 3 && (u.fizzles === 0 || s.rng() < 0.12)) {
+      u.fizzles++;
+      u.facing = angTo(u, near);
+      u.cd = 0.9;
+      setState(u, 'cast', 0.75);
+      s.fx.push({ type: 'fizzle', unit: u.id, x: u.x, y: u.y });
+      say(s, u.fizzles === 1 ? 'Eiryn tries to cast. A violet line curls into half a circle and winks out.' : 'Eiryn tries again. Her fingers shake. No glyph appears.');
+      return;
+    }
+    if (close && !u.armed && (u.fizzles > 0 || inAllOut(u))) {
+      u.armed = true;
+      u.facing = angTo(u, near);
+      setState(u, 'pickup', 0.4);
+      say(s, 'Eiryn snatches a broken branch from the ground.');
+      return;
+    }
+    if (u.armed && nd < A.range + near.r - 0.1 && (u.sta >= A.sta || inAllOut(u)) && (u.cd <= 0 || inAllOut(u))) {
       u.cd = 1.4 + s.rng();
       return startAttack(s, u, near);
     }
@@ -568,18 +666,28 @@
     }
     if (alive(u.target) && s.t < u.aggroUntil) return u.target;
     if (u.def.flanker && alive(eiryn) && alive(kael) && dist(kael, eiryn) > 2.4) return eiryn;
+    if (u.distractPunish && s.t < u.distractPunish && alive(kael)) return kael;
     if (alive(u.target) && u.target === eiryn && s.t < 6) return eiryn;
     return alive(kael) ? kael : alive(eiryn) ? eiryn : null;
   }
 
   function brainBandit(s, u, dt) {
-    if (u.morale < 0.2 && !u.fleeing) {
+    const fighting = s.units.filter((o) => o.team === 'bandit' && inFight(o)).length;
+    if (!u.fleeing && (u.morale < 0.2 || (u.def.noncombat && fighting <= 1))) {
       u.fleeing = true;
       releaseTokens(s, u);
       bark(s, u, 'flee');
-      say(s, `${u.name} breaks and runs for the road.`);
+      say(s, u.def.noncombat ? `${u.name} edges toward the path, then runs.` : `${u.name} breaks and runs for the road.`);
+      if (u.def.noncombat) distractKael(s);
     }
-    if (u.fleeing) return moveTo(s, u, ARENA.exit.x, ARENA.exit.y, 1.15, null, true);
+    if (u.fleeing) return moveTo(s, u, ARENA.exit.x, ARENA.exit.y, u.beaten ? 1.0 : 1.15, null, true);
+    if (u.def.noncombat) {
+      // Hangs back by the path and watches.
+      const kael = s.byId.kael;
+      if (Math.hypot(u.x - u.def.post.x, u.y - u.def.post.y) > 0.6) return moveTo(s, u, u.def.post.x, u.def.post.y, 0.5, kael);
+      if (alive(kael)) u.facing = angTo(u, kael);
+      return idle(u, dt);
+    }
     const t = chooseTargetBandit(s, u);
     if (t !== u.target) releaseTokens(s, u);
     u.target = t;
@@ -600,7 +708,7 @@
       return circle(s, u, t, want, 0.6, dt);
     }
 
-    const punishing = u.def.punisher && isDrained(t);
+    const punishing = (u.def.punisher && isDrained(t)) || (u.distractPunish && s.t < u.distractPunish && t.id === 'kael');
     const token = holdsToken(s, u, t) || (u.cd <= 0 && requestToken(s, u, t, punishing));
     const reach = A.range + t.r - 0.1;
     if (token) {
@@ -712,6 +820,10 @@
 
   function moveTo(s, u, gx, gy, mul, faceT, noBounds) {
     if (u.state !== 'move') setState(u, 'move');
+    steer(s, u, gx, gy, mul, faceT, noBounds);
+  }
+
+  function steer(s, u, gx, gy, mul, faceT, noBounds) {
     let speed = u.def.speed * (mul || 1);
     if (isDrained(u)) speed *= 0.65;
     const wp = detour(u, gx, gy, s.t);
@@ -806,11 +918,18 @@
 
     switch (u.state) {
       case 'attack': stepAttack(s, u, dt); break;
+      case 'opener':
+        steer(s, u, u.openGoal.x, u.openGoal.y, u.openMul, u.target);
+        if (u.st >= u.dur) setState(u, 'idle');
+        break;
       case 'parry':
       case 'recover':
       case 'hurt':
       case 'stagger':
       case 'down':
+      case 'distracted':
+      case 'cast':
+      case 'pickup':
         u.vx *= 0.82; u.vy *= 0.82;
         if (u.st >= u.dur) { setState(u, 'idle'); if (u.id === 'kael') u.combo = 0; }
         break;
@@ -928,7 +1047,7 @@
   }
 
   function step(s, dt) {
-    if (s.result) return;
+    if (s.result || s.phase !== 'fight') return;
     if (s.cutscene) {
       const c = s.cutscene;
       c.t += dt;
@@ -957,11 +1076,12 @@
       say(s, `${kael.name} falls. The match is lost.`);
       return;
     }
-    const banditsLeft = s.units.some((u) => u.team === 'bandit' && alive(u));
+    const banditsLeft = s.units.some((u) => u.team === 'bandit' && inFight(u));
     if (!banditsLeft) {
+      for (const u of s.units) if (u.team === 'bandit' && alive(u)) u.fleeing = true;
       s.result = { outcome: 'win', time: s.t };
       bark(s, kael, 'win');
-      say(s, 'The clearing is quiet. Victory.');
+      say(s, 'The last of them retreat into the trees. Victory.');
     }
   }
 
@@ -972,7 +1092,7 @@
   }
 
   return {
-    createMatch, step, triggerAllOut, surrender, makeRng,
-    ARENA, DEFS, SUPER, ALL_OUT, NAV, obstacleCenter, hasLOS, alive,
+    createMatch, begin, step, triggerAllOut, surrender, makeRng,
+    ARENA, DEFS, INTRO_ORDER, SUPER, ALL_OUT, NAV, obstacleCenter, hasLOS, alive, inFight,
   };
 });
