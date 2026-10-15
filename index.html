@@ -354,7 +354,7 @@ h2 { font-style: italic; }
 .world-top .links { display: flex; gap: 6px; align-items: center; }
 .mini-hearts { display: flex; gap: 2px; margin-right: 6px; }
 .mini-hearts .heart { width: 16px; height: 15px; }
-.node-card { position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); width: min(330px, 46vw);
+.node-card { position: absolute; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); width: min(330px, 46vw);
   background: rgba(12, 8, 8, 0.93); border-left: 3px solid var(--blood); padding: 10px 12px; display: grid; gap: 6px; clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%); }
 .node-card small { font: 800 10px/1 var(--ui); letter-spacing: 0.14em; text-transform: uppercase; color: var(--parchment-dim); }
 .node-card b.t { font: 800 18px/1.1 var(--display); font-style: italic; }
@@ -589,6 +589,7 @@ h2 { font-style: italic; }
 <script src="js/render/director.js"></script>
 <script src="js/render/core.js"></script>
 <script src="js/render/backdrop.js"></script>
+<script src="js/render/map.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>
