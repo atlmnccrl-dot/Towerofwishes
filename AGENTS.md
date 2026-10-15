@@ -28,7 +28,11 @@ Read first: [docs/DESIGN.md](docs/DESIGN.md).
 |---|---|
 | `index.html` | Page, styles, menus and HUD markup |
 | `js/sim.js` | Fight simulation: pure logic, no DOM. Runs in Node for tests |
-| `js/render.js` | Canvas renderer; reads sim state only |
+| `js/render/core.js` | Canvas, camera, projection, frame order; shared view `V` |
+| `js/render/world.js` | Ground, trees, rocks, trunk, atmosphere |
+| `js/render/fighters.js` | Character bodies, hair, cloth, poses |
+| `js/render/fx.js` | Telegraphs, slashes, particles, banners, heavy-art cutscenes |
+| `js/render/callouts.js` | Over-head bars, reaction icons, speech balloons |
 | `js/progress.js` | Hearts and injuries: pure functions |
 | `js/main.js` | Loop, input, HUD, save |
 | `test/` | Node tests and a headless-browser check |

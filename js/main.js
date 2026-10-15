@@ -23,6 +23,7 @@
   // ------------------------------------------------------------ state
   const renderer = Render.createRenderer($('arena'));
   let match = null, mode = 'practice', speed = 1, paused = false;
+  let frozen = false; // test hook: draw without advancing the fight
   let acc = 0, hitstop = 0, last = performance.now(), resultShownAt = 0, lastLog = 0;
   // An idle background fight plays behind the menu.
   let attract = Sim.createMatch({ seed: 11 });
@@ -57,11 +58,11 @@
   }
 
   // ------------------------------------------------------------ match
-  function startMatch(m) {
+  function startMatch(m, seed) {
     mode = m;
     const now = Date.now();
     const heroHp = mode === 'story' ? { kael: Pg.hpFrac(save, 'kael', now), eiryn: Pg.hpFrac(save, 'eiryn', now) } : {};
-    match = Sim.createMatch({ heroHp });
+    match = Sim.createMatch({ heroHp, seed });
     acc = 0; hitstop = 0; resultShownAt = 0; lastLog = 0; paused = false;
     $('feed').innerHTML = '';
     buildHud();
@@ -243,7 +244,7 @@
       while (acc >= DT) { Sim.step(attract, DT); acc -= DT; }
       if (attract.result) attract = Sim.createMatch({ seed: (Math.random() * 1e9) | 0 });
       attract.log.length = 0;
-    } else if (!paused) {
+    } else if (!paused && !frozen) {
       if (hitstop > 0) hitstop -= real;
       else {
         acc += real * (match.cutscene ? 1 : speed);
@@ -260,8 +261,25 @@
     requestAnimationFrame(frame);
   }
 
-  // Read-only handle for automated browser checks (test/browser-check.js).
-  window.__tow = { get match() { return match; }, get save() { return save; } };
+  // Handle for automated browser checks (test/browser-check.js, test/art-shots.js).
+  window.__tow = {
+    get match() { return match; },
+    get save() { return save; },
+    get drawMs() { return renderer.stats.drawMs; },
+    debug: {
+      start(m, seed) { startMatch(m || 'practice', seed == null ? 1 : seed); },
+      freeze(on) { frozen = !!on; },
+      advance(seconds) { for (let i = 0; i < Math.round(seconds / DT) && match && !match.result; i++) Sim.step(match, DT); },
+      advanceUntil(fnSrc, maxSeconds) {
+        const fn = new Function('s', 'return (' + fnSrc + ')(s)');
+        for (let i = 0; i < Math.round((maxSeconds || 30) / DT); i++) { if (!match || match.result) return false; if (fn(match)) return true; Sim.step(match, DT); }
+        return false;
+      },
+      camera(o) { renderer.setCameraOverride(o); },
+      superNow() { if (match) match.byId.kael.superMeter = 100; },
+      allOutNow() { if (match) { match.allOut.meter = 1; Sim.triggerAllOut(match); } },
+    },
+  };
 
   renderMenu();
   setInterval(() => { if (!$('menu').hidden) renderMenu(); }, 1000);
