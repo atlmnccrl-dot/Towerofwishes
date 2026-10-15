@@ -61,8 +61,7 @@
         } else if (e.type === 'fizzle') {
           setShot({ focus: e.unit, zoom: 2.1, dur: 1.0 }, 1);
         } else if (e.type === 'allout') {
-          const k = s.byId.kael;
-          setShot({ focus: 'kael', zoom: 1.6, angOff: 0.3, dur: 1.2 }, 4);
+          setShot({ focus: s.lead.id, zoom: 1.6, angOff: 0.3, dur: 1.2 }, 4);
         }
       }
 
@@ -79,7 +78,7 @@
         if (now.distracted && !prev.distracted) {
           // Kael glances at the runner; the broad man charges.
           const look = s.units.find((o) => o.def.noncombat);
-          const brute = s.byId.brute;
+          const brute = s.units.find((o) => o.def.punisher && V.Sim.alive(o)) || null;
           setShot({ focus: look ? look.id : u.id, zoom: 1.5, dur: 0.55, then: brute ? [{ focus: brute.id, zoom: 1.8, angOff: -0.3, dur: 0.9 }] : [] }, 3);
           if (brute) cut(brute, null, true);
         }
@@ -93,7 +92,7 @@
       // The finishing blow: hold on the winner in slow motion.
       if (s.result && s.result.outcome === 'win' && !observe.won) {
         observe.won = s;
-        setShot({ focus: 'kael', zoom: 1.9, angOff: 0.35, dur: 3 }, 5);
+        setShot({ focus: s.lead.id, zoom: 1.9, angOff: 0.35, dur: 3 }, 5);
         slowmo(0.35, 1.2);
       }
       if (observe.won && observe.won !== s) observe.won = null;

@@ -94,7 +94,7 @@
       cam.time += dt;
       const live = s.units.filter((u) => Sim.alive(u) && !u.fled);
       let tx = 0, ty = 0, wsum = 0;
-      for (const u of live) { const w = u.id === 'kael' ? 2.2 : 1; tx += u.x * w; ty += u.y * w; wsum += w; }
+      for (const u of live) { const w = u === s.lead ? 2.2 : 1; tx += u.x * w; ty += u.y * w; wsum += w; }
       if (wsum) { tx /= wsum; ty /= wsum; }
       let spread = 3;
       for (const u of live) spread = Math.max(spread, Math.hypot(u.x - tx, u.y - ty));

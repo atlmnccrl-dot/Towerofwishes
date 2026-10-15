@@ -275,7 +275,7 @@
   // party ({slot: n}). Positions are metres; f is the starting facing.
   const SCENARIOS = {
     clearing: {
-      title: 'The Clearing', arena: 'clearing', allOutUses: 1, vs: 'brute', scale: { hp: 1.0, dmg: 1.3 },
+      chapter: 'Chapter One', title: 'The Clearing', arena: 'clearing', allOutUses: 1, vs: 'brute', scale: { hp: 1.0, dmg: 1.3 },
       units: [
         { slot: 0, x: -8.8, y: 0.7, f: 0.1 },
         { key: 'kael', x: -7.5, y: -1.2, f: 0.2 },
@@ -293,7 +293,7 @@
       },
     },
     tutorial: {
-      title: 'The Last Ascent', arena: 'summit', allOutUses: 2, allOutStart: 1, vs: 'veil', scale: { hp: 2.2, dmg: 1.0 },
+      chapter: 'Prologue', title: 'The Last Ascent', arena: 'summit', allOutUses: 2, allOutStart: 1, vs: 'veil', scale: { hp: 2.2, dmg: 1.0 },
       units: [
         { key: 'climber', x: -4.6, y: 1.0, f: 0 },
         { key: 'shade', x: 1.2, y: -1.8, f: 3.1 },
@@ -303,7 +303,7 @@
       ],
     },
     path: {
-      title: 'The Quarry Path', arena: 'hillpath', allOutUses: 1, vs: 'goblinSpear', scale: { hp: 2.4, dmg: 2.0 },
+      chapter: 'Chapter Five', title: 'The Quarry Path', arena: 'hillpath', allOutUses: 1, vs: 'goblinSpear', scale: { hp: 2.4, dmg: 2.0 },
       units: [
         { slot: 0, x: -7.2, y: 0.2, f: 0 }, { slot: 1, x: -8.0, y: -1.4, f: 0 }, { slot: 2, x: -8.2, y: 1.6, f: 0 },
         { key: 'goblinSpear', x: 1.5, y: -0.4, f: 3.1 },
@@ -312,7 +312,7 @@
       ],
     },
     cave: {
-      title: 'The Cave Chamber', arena: 'cave', allOutUses: 2, vs: 'goblinArcher', scale: { hp: 3.0, dmg: 2.4 },
+      chapter: 'Chapter Five', title: 'The Cave Chamber', arena: 'cave', allOutUses: 2, vs: 'goblinArcher', scale: { hp: 3.0, dmg: 2.4 },
       units: [
         { slot: 0, x: 6.6, y: 0.6, f: 3.1 }, { slot: 1, x: 7.2, y: 2.0, f: 3.1 }, { slot: 2, x: 7.4, y: -0.8, f: 3.1 },
         { key: 'goblinArcher', x: -4.2, y: 0.4, f: 0 },
@@ -321,7 +321,7 @@
       ],
     },
     ogre: {
-      title: 'Not in the Contract', arena: 'cave', allOutUses: 2, vs: 'ogre', scale: { hp: 1.0, dmg: 2.4 },
+      chapter: 'Chapter Five', title: 'Not in the Contract', arena: 'cave', allOutUses: 2, vs: 'ogre', scale: { hp: 1.0, dmg: 2.4 },
       units: [
         { slot: 0, x: 4.8, y: 0.4, f: 3.1 }, { slot: 1, x: 5.6, y: 1.8, f: 3.1 }, { slot: 2, x: 5.8, y: -1.0, f: 3.1 },
         { key: 'ogre', x: -5.4, y: -0.3, f: 0 },
@@ -405,7 +405,7 @@
     const lead = units.find((u) => u.slot === 0) || heroes.find((u) => !u.guest) || heroes[0];
     const foes = units.filter((u) => u.team !== 'hero');
     const s = {
-      t: 0, rng, arena: ARENA, units, projectiles: [], scenario: opts.scenario || 'clearing', title: sc.title,
+      t: 0, rng, arena: ARENA, units, projectiles: [], scenario: opts.scenario || 'clearing', title: opts.title || sc.title, chapter: opts.chapter || sc.chapter,
       byId: Object.fromEntries(units.map((u) => [u.id, u])),
       lead, mods: mod,
       tokens: {}, nextGrant: {}, phase: 'intro',

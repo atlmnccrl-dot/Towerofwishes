@@ -68,11 +68,15 @@ const server = http.createServer((req, res) => {
   await page.click('#btn-story');
   await page.evaluate(() => window.__tow.debug.skipIntro());
   await page.waitForTimeout(1500);
-  const box = await page.locator('#btn-withdraw').boundingBox();
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await page.mouse.down();
-  await page.waitForFunction(() => window.__tow.match.result, null, { timeout: 5000 }).catch(() => {});
-  await page.mouse.up();
+  // The HUD hides during cinematic beats, so keep trying the hold until it lands.
+  for (let i = 0; i < 6 && !(await page.evaluate(() => window.__tow.match.result)); i++) {
+    await page.waitForFunction(() => !document.getElementById('hud').classList.contains('cine'), null, { timeout: 8000 }).catch(() => {});
+    const box = await page.locator('#btn-withdraw').boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.waitForFunction(() => window.__tow.match.result, null, { timeout: 2000 }).catch(() => {});
+    await page.mouse.up();
+  }
   await page.waitForFunction(() => !document.getElementById('result').hidden, null, { timeout: 10000 });
   const story = await page.evaluate(() => ({ outcome: window.__tow.match.result.outcome, hearts: window.__tow.save.hearts, kael: window.__tow.save.injury.kael }));
   await page.click('#btn-camp');

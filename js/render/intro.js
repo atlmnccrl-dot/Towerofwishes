@@ -29,13 +29,16 @@
 
   function create(V) {
     const { ctx, FONT, PAL, Sim } = V;
-    const cards = cardTimes(Sim.INTRO_ORDER);
+    // Card timings depend on who is in the match; cache them per match.
+    let cardsFor = null, cards = [];
+    function sync(s) { if (cardsFor !== s) { cardsFor = s; cards = cardTimes(s.introOrder || Sim.INTRO_ORDER); } }
     let fx = null; // resolved lazily (core creates fx before intro)
 
     function current(t) { return cards.find((c) => t >= c.t0 && t < c.t1) || null; }
 
     function spotlight(s, show) {
       if (!show || show.t >= T.cardsEnd) return null;
+      sync(s);
       const c = current(show.t);
       return c ? c.id : null;
     }
@@ -93,9 +96,10 @@
       // Letterbox throughout the face-off.
       const lb = H * 0.07 * Math.min(1, t / 0.3) * (t < T.vsEnd ? 1 : Math.max(0, 1 - (t - T.vsEnd) / 0.3));
       if (t < T.establish) {
-        lettering('CHAPTER ONE', W * 0.06, H * 0.8, Math.round(Math.min(W, H) * 0.06), PAL.bone, 'left');
-        lettering('The Clearing', W * 0.06, H * 0.8 + Math.min(W, H) * 0.11, Math.round(Math.min(W, H) * 0.1), PAL.white, 'left');
+        lettering((s.chapter || '').toUpperCase(), W * 0.06, H * 0.8, Math.round(Math.min(W, H) * 0.06), PAL.bone, 'left');
+        lettering(s.title || '', W * 0.06, H * 0.8 + Math.min(W, H) * 0.11, Math.round(Math.min(W, H) * 0.1), PAL.white, 'left');
       }
+      sync(s);
       const c = current(t);
       if (c && t < T.cardsEnd) {
         const u = s.byId[c.id], d = u.def, hero = u.team === 'hero';
@@ -129,16 +133,17 @@
         // VS: split screen, the newcomer against the man reaching for Eiryn.
         const k = Math.min(1, (t - T.cardsEnd) / 0.15);
         ctx.fillStyle = 'rgba(8,5,6,0.9)'; ctx.fillRect(0, 0, W, H);
+        const [lu, bu] = (s.vs || ['kael', 'brute']).map((id) => s.byId[id]);
         if (fx) {
           const off = (1 - k) * W * 0.8, sl = H * 0.05;
-          fx.portrait(s.byId.kael, [[W * 0.02 - off, H * 0.1 + sl], [W * 0.9 - off, H * 0.08], [W * 0.88 - off, H * 0.42 - sl], [-off, H * 0.44]], t - T.cardsEnd + 0.3);
-          fx.portrait(s.byId.brute, [[W * 0.1 + off, H * 0.58], [W + off, H * 0.56 + sl], [W * 0.98 + off, H * 0.9], [W * 0.12 + off, H * 0.92 - sl]], t - T.cardsEnd + 0.3);
+          fx.portrait(lu, [[W * 0.02 - off, H * 0.1 + sl], [W * 0.9 - off, H * 0.08], [W * 0.88 - off, H * 0.42 - sl], [-off, H * 0.44]], t - T.cardsEnd + 0.3);
+          fx.portrait(bu, [[W * 0.1 + off, H * 0.58], [W + off, H * 0.56 + sl], [W * 0.98 + off, H * 0.9], [W * 0.12 + off, H * 0.92 - sl]], t - T.cardsEnd + 0.3);
         }
         const fs = Math.round(Math.min(W, H) * 0.28 * (1.4 - 0.4 * k));
         lettering('VS', W / 2, H / 2 + fs * 0.35, fs, PAL.glow, 'center', -0.15);
         const ns = Math.round(Math.min(W, H) * 0.08);
-        lettering('KAEL', W * 0.88, H * 0.42 - ns * 0.1, ns, PAL.white, 'right');
-        lettering('BROAD BANDIT', W * 0.14, H * 0.58 + ns * 0.95, ns, PAL.white, 'left');
+        lettering(lu.name.toUpperCase(), W * 0.88, H * 0.42 - ns * 0.1, ns, PAL.white, 'right');
+        lettering(bu.name.toUpperCase(), W * 0.14, H * 0.58 + ns * 0.95, ns, PAL.white, 'left');
       } else if (t >= T.vsEnd) {
         const i = Math.floor((t - T.vsEnd) / T.count);
         const label = ['3', '2', '1', 'FIGHT!'][Math.min(3, i)];

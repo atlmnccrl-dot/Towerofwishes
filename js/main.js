@@ -60,11 +60,11 @@
   }
 
   // ------------------------------------------------------------ match
-  function startMatch(m, seed) {
+  function startMatch(m, seed, opts) {
     mode = m;
     const now = Date.now();
     const heroHp = mode === 'story' ? { kael: Pg.hpFrac(save, 'kael', now), eiryn: Pg.hpFrac(save, 'eiryn', now) } : {};
-    match = Sim.createMatch({ heroHp, seed, intro: true });
+    match = Sim.createMatch(Object.assign({ heroHp, seed, intro: true }, opts));
     faceoff = { t: 0 }; // face-off and countdown before the fight
     acc = 0; hitstop = 0; resultShownAt = 0; lastLog = 0; paused = false;
     $('feed').innerHTML = '';
@@ -321,7 +321,7 @@
     get save() { return save; },
     get drawMs() { return renderer.stats.drawMs; },
     debug: {
-      start(m, seed) { startMatch(m || 'practice', seed == null ? 1 : seed); },
+      start(m, seed, opts) { startMatch(m || 'practice', seed == null ? 1 : seed, opts); },
       introAt(t) { if (faceoff) faceoff.t = t; },
       skipIntro() { if (faceoff) { faceoff = null; Sim.begin(match); } },
       freeze(on) { frozen = !!on; },
@@ -335,7 +335,7 @@
       camera(o) { renderer.setCameraOverride(o); },
       follow(id) { renderer.setFollow(id); },
       cutIn(id, caption) { if (match) renderer.cutIn(match.byId[id], caption); },
-      superNow() { if (match) match.byId.kael.superMeter = 100; },
+      superNow() { if (match) match.lead.superMeter = 100; },
       allOutNow() { if (match) { match.allOut.meter = 1; Sim.triggerAllOut(match); } },
     },
   };
