@@ -274,6 +274,24 @@ Out counters beyond the punisher, sound, real art, purchases, free modes beyond 
 | 2026-10-15 | Tutorial = the climber's last battle in the Tower, then the Reset, then 22 years later (book says 150) | Author |
 | 2026-10-15 | All-new starters; the Tower's guardian is an unseen mystery; the climber stays a mystery | Author |
 
+## 16. Growth, loot and the world map (built in 0.5, all Proposals)
+
+- **Gear:** weapon (class-locked: Ren blades, Mara and Eiryn glyph foci, Brannoc shields,
+  Kael swords), armour and charm; four rarities (common, fine, rare, relic). Bonuses:
+  health, power, speed, parry, dodge, reflexes, armour, heavy-art charge, stamina,
+  lifesteal, second wind (once a fight, rise at 30 %).
+- **Skill trees:** three branches of three steps per fighter; one point at level 1 and one
+  per team level after. Respec is free.
+- **Loot:** each mission has a table; first clears add a set piece (the Stray's Tooth,
+  the Bell Shard, the Miller's Cleaver). Story wins drop gear too. Arcade: one roll per
+  three waves.
+- **World map:** lands reveal as their missions open; locked lands stay in fog. From the
+  Guild the road branches north (contracts), east (the quarry, then the dungeon) and
+  south-east (the Old Crossing, which needs Eiryn's trust). Side missions never cost
+  hearts.
+- **Tutorial:** the prologue fight pauses to teach All Out (tap it), following a fighter,
+  heavy arts and withdrawing.
+
 ## 15. Roadmap (proposed)
 
 1. ~~**0.2** — second arena (quarry cave) with goblins and the ogre.~~ Done in 0.4.
@@ -282,5 +300,9 @@ Out counters beyond the punisher, sound, real art, purchases, free modes beyond 
    choices, character select, chapter map, team experience. See docs/STORY.md.
 4. **0.5** — Author review of the starters and new lines; real character portraits for
    scenes; sound; Arcade and Survival from the same arena code.
-5. **Chapter Six onward** — needs the author's next chapters.
+5. **0.5 (this build)** — world map with fog and a three-way branch from the Guild; side
+   missions (Guild contracts, the Old Crossing, the Deep Passage dungeon, the Evaluation
+   Yard, the Yard Gauntlet arcade), gear and skill trees, staged story scenes, a guided
+   tutorial in the prologue fight, and a new face-off. See §16.
+6. **Chapter Six onward** — needs the author's next chapters.
 6. **Engine decision** — choose the production engine before any store release (purchases, performance, real art pipeline).

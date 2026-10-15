@@ -42,12 +42,16 @@ Read first: [docs/DESIGN.md](docs/DESIGN.md), [docs/STORY.md](docs/STORY.md),
 | `js/render/intro.js` | Face-off cards, VS, countdown |
 | `js/render/director.js` | Camera cuts, slow motion, cut-in panels during fights |
 | `js/progress.js` | Hearts and injuries: pure functions |
-| `js/story.js` | Story campaign: chapter graph, choices, team experience. Pure data + functions |
+| `js/story.js` | Story campaign: chapter graph, side episodes, choices, team experience. Pure data + functions |
+| `js/campaign.js` | World map: lands, routes, unlock rules. Pure |
+| `js/progression.js` | Gear, inventory, loot tables, skill trees → per-fighter fight modifiers. Pure |
+| `js/stages.js`, `js/render/stage.js` | Staged story scenes: fighters acting out dialogue on real arenas |
+| `js/render/map.js` | Painted world map with fog over unrevealed lands |
 | `js/render/backdrop.js` | Painted full-screen backgrounds for story scenes |
 | `js/main.js` | Loop, input, HUD, save, story screens (scenes, choices, select, chapters) |
 | `test/` | Node tests and a headless-browser check |
 
-Keep `sim.js`, `progress.js` and `story.js` free of DOM access so they stay testable.
+Keep `sim.js`, `progress.js`, `story.js`, `campaign.js` and `progression.js` free of DOM access so they stay testable.
 
 ## Before every commit
 
@@ -56,6 +60,8 @@ node test/progress-test.js        # heart and injury rules
 node test/sim-test.js 200         # balance + invariants (no NaN, no wall clipping, no timeouts)
 node test/scenario-test.js 30     # every campaign battle with each starter
 node test/story-test.js 6         # walks every branch of the campaign and plays its battles
+node test/side-test.js 12         # side missions, dungeon rooms, yard, arcade waves
+node test/progression-test.js     # gear, loot and skill rules
 NODE_PATH=$(npm root -g) node test/browser-check.js /tmp/shots   # needs Playwright; screenshots + console errors
 NODE_PATH=$(npm root -g) node test/story-browser.js /tmp/story-shots   # plays the whole story in the browser
 ```

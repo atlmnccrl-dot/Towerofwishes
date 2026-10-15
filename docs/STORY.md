@@ -76,6 +76,17 @@ Lines quoted from the manuscript are marked `B()` in `js/story.js` (adjusted onl
 22-year timeline); everything the starters say and all `S()` lines are new and need the
 author's approval.
 
+## Side missions (built in 0.5; all Proposals except quoted lines)
+
+| Mission | Where | Source in the book | Unlocks |
+|---|---|---|---|
+| The Evaluation Yard (training) | The Guild's yard | The evaluation yard, stone blocks, the evaluator | Chapter Four |
+| Yard Gauntlet (arcade) | The yard | — | Chapter Four |
+| The Missing Supply Cart | The north road | Contract board talk: "Missing supply cart north of town." The knife bandit returns. | Chapter Four |
+| Enough Teeth for Three | Past the clearing | Kael's "stray animal with enough teeth for three animals" | After the cart |
+| The Old Crossing | The dry riverbed and bridge | Eiryn's stone bridge, still standing over dry stones; the echoes and the Drowned Bell are new | Chapter Four + Eiryn's trust |
+| The Deep Passage (dungeon) | Behind the quarry cave | The goblins that fled deeper | After Chapter Five |
+
 ## Canon notes kept from the manuscript
 
 - Eiryn: long silver-white hair, dark travel-worn outfit with green ornamentation at the
