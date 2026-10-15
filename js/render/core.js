@@ -147,7 +147,8 @@
         if (o.angOff) ang += o.angOff;
       }
       let k = c || o ? 0.12 : Math.min(1, dt * 2.2);
-      if (V.cutSnap) { k = 1; V.cutSnap = false; } // a hard cut
+      const snap = !!V.cutSnap;
+      if (snap) { k = 1; V.cutSnap = false; } // a hard cut
       cam.x += (tx - cam.x) * k; cam.y += (ty - cam.y) * k;
       cam.sc += (sc - cam.sc) * k;
       let dAng = ang - cam.ang;
@@ -155,8 +156,8 @@
       while (dAng < -Math.PI) dAng += Math.PI * 2;
       cam.ang += dAng * (k === 1 ? 1 : c || o ? 0.08 : Math.min(1, dt * 0.8));
       // Cutscenes and director shots drop the camera lower for drama.
-      const pitchT = c ? (V.cutPhase === 'charge' || V.cutPhase === 'gleam' ? 0.36 : 0.48) : o && o.zoom > 1.3 ? 0.5 : 0.56;
-      cam.pitch += (pitchT - cam.pitch) * Math.min(1, dt * 4);
+      const pitchT = o && o.pitch != null ? o.pitch : c ? (V.cutPhase === 'charge' || V.cutPhase === 'gleam' ? 0.36 : 0.48) : o && o.zoom > 1.3 ? 0.5 : 0.56;
+      cam.pitch += (pitchT - cam.pitch) * (snap ? 1 : Math.min(1, dt * 4));
       cam.shake *= Math.pow(0.002, dt);
     }
 
@@ -201,7 +202,8 @@
       if (!quiet && !V.show) callouts.draw(s, dt);
       ctx.restore();
       fx.drawScreen(s, dt);
-      if (!quiet) director.drawScreen(s, dt);
+      // (no fight cut-ins over the face-off: a stale one could belong to the menu bout)
+      if (!quiet && !(V.show && V.show.t < NS.intro.T.fight)) director.drawScreen(s, dt);
       if (V.show) intro.draw(s, V.show, dt);
       const ms = performance.now() - t0;
       V.stats.drawMs = V.stats.drawMs ? V.stats.drawMs * 0.95 + ms * 0.05 : ms;

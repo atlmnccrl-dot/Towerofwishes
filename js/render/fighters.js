@@ -198,7 +198,7 @@
     if (u.drained > 0) { pitch -= 0.6; lean = 0.24; crouch = 0.14; off = 'knee'; }
     if (intro) {
       // Face-off: a signature pose, stronger in the spotlight.
-      const k = V.spotlight === u.id ? 1 : 0.55;
+      const k = V.spotlight === u.id || V.spotlight === u.team ? 1 : 0.55;
       switch (u.key) {
         case 'kael': rel = 0.25; pitch = 1.25 * k + 0.2; crouch = 0.12 * k; stance = 1.5; lean = 0.05; break;
         case 'eiryn': off = 'cast'; lean = -0.12; crouch = 0.04; break;
@@ -218,6 +218,9 @@
         case 'goblinArcher': off = 'cast'; crouch = 0.06; stance = 1.35; lean = -0.02; break;
         case 'ogre': rel = 2.2; pitch = 1.35; crouch = 0.08 * k; stance = 1.5; twist = -0.25 * k; lean = 0.02; break;
       }
+      // A hero's signature beat (intro.js) overrides the stance while it plays.
+      const o = V.introPose && V.introPose(u);
+      if (o) ({ rel = rel, pitch = pitch, lean = lean, crouch = crouch, off = off, stance = stance, twist = twist } = o);
     }
     if (L.weapon === 'fists' && off === 'guard') off = 'fistup';
     if (Wd && Wd.thrust && !(u.fleeing || u.beaten) && u.state !== 'hurt' && u.state !== 'stagger') { rel = 0.12; pitch = 0.1; }
