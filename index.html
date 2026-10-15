@@ -12,17 +12,19 @@
 /* Layout: full-bleed arena canvas, HUD pinned to the four corners, menus as
    centred cards over a dimmed arena. One deliberate dusk-forest look. */
 :root {
-  --night: #0c1114;
-  --moss: #16241a;
-  --parchment: #f3ead6;
-  --parchment-dim: #b9b2a2;
-  --steel: #8fd3ff;
-  --ember: #ff9a3d;
-  --blood: #e4644f;
+  --night: #0c0808;
+  --moss: #161212;
+  --parchment: #f6f0ec;
+  --parchment-dim: #b3a19c;
+  --steel: #9cc3dd;
+  --ember: #e3263a;
+  --blood: #e3263a;
+  --crimson: #8e1621;
   --glyph: #a98bff;
-  --heal: #7fd0a0;
-  --panel: rgba(12, 17, 20, 0.78);
-  --line: rgba(243, 234, 214, 0.16);
+  --heal: #d9e8f0;
+  --bone: #edcac0;
+  --panel: rgba(14, 9, 10, 0.86);
+  --line: rgba(246, 240, 236, 0.14);
   --display: "Shippori Mincho", "Hiragino Mincho ProN", Georgia, serif;
   --ui: "M PLUS 1p", "Hiragino Sans", "Segoe UI", system-ui, sans-serif;
   color-scheme: dark;
@@ -190,6 +192,42 @@ h2 { font: 800 clamp(26px, 5vw, 40px)/1 var(--display); margin: 0; text-wrap: ba
   .menu-grid { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); }
   h1 { font-size: 36px; }
 }
+/* ---------------- manhwa skin: sharp slanted panels, ink edges, one hot accent */
+.card {
+  border-radius: 0; border: 0; border-left: 3px solid var(--steel);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+  box-shadow: inset 0 0 0 1px rgba(246, 240, 236, 0.06);
+  padding: 6px 16px 7px 10px;
+}
+.foe { border-left: 0; border-right: 3px solid var(--blood); clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%); padding: 6px 10px 7px 16px; }
+.card-name { font: 800 14px/1.15 var(--display); letter-spacing: 0.03em; font-style: italic; }
+.bar { border-radius: 0; background: rgba(246, 240, 236, 0.1); transform: skewX(-18deg); }
+.bar > i { background: var(--heal); }
+.foe .bar > i { background: var(--blood); }
+.bar.super > i { background: var(--steel); }
+.pill { border-radius: 0; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); border: 0; padding: 6px 16px; background: var(--panel); }
+#btn-withdraw { border-radius: 0; border: 0; border-left: 3px solid var(--parchment-dim); clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 0 100%); padding-right: 22px; }
+#btn-withdraw::before { background: rgba(227, 38, 58, 0.55); }
+#btn-allout { background: conic-gradient(var(--ember) calc(var(--fill) * 1turn), rgba(246, 240, 236, 0.12) 0); }
+#btn-allout::before { background: #120808; inset: 5px; }
+#btn-allout b { font-style: italic; font-size: 19px; }
+#btn-allout.ready { box-shadow: 0 0 0 0 rgba(227, 38, 58, 0.6); }
+#btn-allout.ready::after { content: ""; position: absolute; inset: -6px; border-radius: 50%; border: 2px solid var(--ember); animation: ring 1s ease-out infinite; }
+.feed p { font-style: italic; }
+.chip { border-radius: 0; transform: skewX(-12deg); }
+.chip.allout { background: rgba(227, 38, 58, 0.25); color: #ff6b78; }
+.panel { border-radius: 0; border: 0; border-top: 3px solid var(--blood); clip-path: polygon(0 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%); }
+.btn { border-radius: 0; clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 0 100%); }
+.btn.primary { background: var(--parchment); }
+h1 { font-style: italic; text-shadow: 3px 3px 0 var(--crimson); }
+h2 { font-style: italic; }
+.eyebrow { color: var(--blood); }
+.stat { border-radius: 0; border-left: 2px solid var(--blood); }
+.screen { background: radial-gradient(ellipse at 50% 40%, rgba(20, 8, 10, 0.55), rgba(8, 4, 5, 0.94)); }
+.heart path { fill: var(--blood); }
+@keyframes ring { from { transform: scale(0.9); opacity: 0.9; } to { transform: scale(1.25); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { #btn-allout.ready::after { animation: none; } }
+
 @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 154, 61, 0.55); } 50% { box-shadow: 0 0 0 12px rgba(255, 154, 61, 0); } }
 @keyframes shimmer { to { background-position: -200% 0; } }
 @media (prefers-reduced-motion: reduce) { #btn-allout.ready, .bar.super.full > i { animation: none; } }
@@ -220,7 +258,7 @@ h2 { font: 800 clamp(26px, 5vw, 40px)/1 var(--display); margin: 0; text-wrap: ba
     <div class="sheet">
       <div class="menu-grid">
         <div>
-          <p class="eyebrow">Arena prototype 0.1</p>
+          <p class="eyebrow">Arena prototype 0.3</p>
           <h1><span class="tower">Tower of Wishes</span></h1>
           <p class="chapter">Chapter One &middot; The Clearing</p>
           <p class="lede">Four bandits have Eiryn cornered against a fallen trunk, her mana spent. Kael saw her spell break over the trees and came running. You watch. They fight.</p>

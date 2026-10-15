@@ -19,42 +19,65 @@
       return 1.72 * (L ? L.h : 1);
     }
 
+    const INK = '#0c0808';
+
     function drawOne(u) {
       if (u.fled || u.state === 'out') return;
       const top = P(u.x, u.y, heightOf(u) + 0.45);
       const sc = V.cam.sc;
-      // Small health bar
-      const w = 0.9 * sc, h = Math.max(3, sc * 0.07);
-      ctx.fillStyle = 'rgba(10,12,14,0.65)'; ctx.fillRect(top.x - w / 2, top.y, w, h);
-      ctx.fillStyle = u.team === 'hero' ? (u.guest ? '#b9a6ff' : '#7fd0a0') : '#e4644f';
-      ctx.fillRect(top.x - w / 2, top.y, w * Math.max(0, u.hp / u.maxHp), h);
-      // Reaction icon
+      // Health tick: a short skewed bar with an ink edge.
+      if (!u.beaten) {
+        const w = 0.9 * sc, h = Math.max(3, sc * 0.075), x = top.x - w / 2, y = top.y;
+        ctx.save(); ctx.translate(x, y); ctx.transform(1, 0, -0.35, 1, 0, 0);
+        ctx.fillStyle = INK; ctx.fillRect(-1.5, -1.5, w + 3, h + 3);
+        ctx.fillStyle = 'rgba(246,240,236,0.12)'; ctx.fillRect(0, 0, w, h);
+        ctx.fillStyle = u.team === 'hero' ? (u.guest ? V.PAL.guest : '#d9e8f0') : V.PAL.glow;
+        ctx.fillRect(0, 0, w * Math.max(0, u.hp / u.maxHp), h);
+        ctx.restore();
+      }
+      // Reaction mark: bold lettering that pops and rises.
       if (u.iconT > 0 && u.icon) {
-        const col = { '!': '#ffd166', '?': '#7fe0ff', '✦': '#ff6a52', '…': '#b8c0c8' }[u.icon] || '#fff';
-        const y = top.y - sc * 0.32 - (0.8 - u.iconT) * sc * 0.25;
-        ctx.font = `800 ${Math.round(sc * 0.42)}px ${FONT.ui}`;
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(12,10,14,0.85)';
-        ctx.strokeText(u.icon, top.x, y); ctx.fillStyle = col; ctx.fillText(u.icon, top.x, y);
+        const col = { '!': '#ffd166', '?': V.PAL.heroGlow, '✦': V.PAL.glow, '…': '#b8c0c8' }[u.icon] || '#fff';
+        const k = 0.8 - u.iconT;
+        const pop = k < 0.1 ? 1.4 - k * 4 : 1;
+        const y = top.y - sc * 0.35 - k * sc * 0.25;
+        ctx.save(); ctx.translate(top.x, y); ctx.scale(pop, pop); ctx.transform(1, 0, -0.18, 1, 0, 0);
+        ctx.font = `800 ${Math.round(sc * 0.5)}px ${FONT.display}`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+        ctx.lineWidth = Math.max(4, sc * 0.09); ctx.strokeStyle = INK;
+        ctx.strokeText(u.icon, 0, 0); ctx.fillStyle = col; ctx.fillText(u.icon, 0, 0);
+        ctx.restore();
       }
-      if (u.drained > 0 && (!u.iconT || u.iconT <= 0)) {
-        ctx.font = `700 ${Math.round(sc * 0.3)}px ${FONT.ui}`; ctx.textAlign = 'center';
-        ctx.fillStyle = '#b8c0c8'; ctx.fillText('…', top.x, top.y - sc * 0.25);
-      }
-      // Speech
+      // Speech: a manhwa balloon; shouts get a spiky edge.
       if (u.bark && u.barkT > 0 && !(u.barkDelay > 0)) {
-        const fs = Math.max(11, Math.round(sc * 0.26));
-        ctx.font = `600 ${fs}px ${FONT.ui}`;
+        const fs = Math.max(11, Math.round(sc * 0.27));
+        ctx.font = `700 ${fs}px ${FONT.ui}`;
         const tw = ctx.measureText(u.bark).width;
-        const bx = top.x, by = top.y - sc * 0.75;
-        const pw = tw + fs * 1.1, ph = fs * 1.7;
-        ctx.globalAlpha = Math.min(1, u.barkT * 2);
-        ctx.fillStyle = 'rgba(243,234,214,0.96)';
-        V.roundRect(bx - pw / 2, by - ph / 2, pw, ph, ph / 2); ctx.fill();
-        ctx.beginPath(); ctx.moveTo(bx - 5, by + ph / 2 - 1); ctx.lineTo(bx + 3, by + ph / 2 + 8); ctx.lineTo(bx + 6, by + ph / 2 - 1); ctx.fill();
-        ctx.fillStyle = '#1a1612'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        const bx = Math.max(tw / 2 + fs * 1.4, Math.min(V.W - tw / 2 - fs * 1.4, top.x + sc * 0.4)), by = top.y - sc * 0.95;
+        const rw = tw / 2 + fs * 1.0, rh = fs * 1.15;
+        const shout = /!$/.test(u.bark);
+        const shape = () => {
+          ctx.beginPath();
+          if (shout) {
+            const n = 18;
+            for (let i = 0; i <= n; i++) {
+              const a = (i / n) * Math.PI * 2, r = i % 2 ? 1.18 : 0.94;
+              const x = bx + Math.cos(a) * rw * r, y = by + Math.sin(a) * rh * r;
+              i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+            }
+            ctx.closePath();
+          } else ctx.ellipse(bx, by, rw, rh, 0, 0, Math.PI * 2);
+          // tail toward the speaker
+          ctx.moveTo(bx - rw * 0.15, by + rh * 0.7); ctx.lineTo(top.x, top.y - sc * 0.15); ctx.lineTo(bx + rw * 0.05, by + rh * 0.8);
+        };
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, u.barkT * 2.5);
+        ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(3, sc * 0.06); ctx.strokeStyle = INK;
+        shape(); ctx.stroke();
+        ctx.fillStyle = '#f6f0ec'; shape(); ctx.fill();
+        ctx.fillStyle = INK; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText(u.bark, bx, by + 1);
-        ctx.globalAlpha = 1;
+        ctx.restore();
       }
     }
 
