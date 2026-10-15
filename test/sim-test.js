@@ -10,12 +10,13 @@ const LIMIT = 240; // seconds
 // policy: when (if ever) the "player" presses All Out
 const POLICIES = {
   never: () => false,
-  asap: (s) => s.allOut.meter >= 1,
+  asap: (s) => Sim.allOutReady(s),
   // a smarter viewer: press when Kael is in melee with 2+ bandits
   smart: (s) => {
-    if (s.allOut.meter < 1) return false;
+    if (!Sim.allOutReady(s)) return false;
     const k = s.byId.kael;
-    const near = s.units.filter((u) => u.team === 'bandit' && Sim.alive(u) && Math.hypot(u.x - k.x, u.y - k.y) < 3);
+    if (k.sta < 80) return false;
+    const near = s.units.filter((u) => u.team === 'bandit' && Sim.inFight(u) && Math.hypot(u.x - k.x, u.y - k.y) < 3);
     return near.length >= 2;
   },
 };

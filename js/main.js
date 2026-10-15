@@ -69,6 +69,7 @@
     acc = 0; hitstop = 0; resultShownAt = 0; lastLog = 0; paused = false;
     $('feed').innerHTML = '';
     buildHud();
+    renderer.setFollow(null);
     show(null);
     $('btn-withdraw').querySelector('small').textContent = mode === 'story' ? 'No heart lost · team leaves injured' : 'Practice · nothing is saved';
   }
@@ -115,7 +116,7 @@
     const team = match.units.filter((u) => u.team === 'hero');
     const foes = match.units.filter((u) => u.team === 'bandit');
     $('team').innerHTML = team.map((u) => `
-      <div class="card" data-id="${u.id}">
+      <div class="card hero" data-id="${u.id}" role="button" tabindex="0" aria-label="Follow ${u.name}">
         <div class="card-head"><span class="card-name">${u.name}</span>${u.guest ? '<span class="card-tag">Guest</span>' : ''}<span class="chip" hidden></span><span class="card-num"></span></div>
         ${bar('hp')}${bar('sta')}${u.def.superMeter ? bar('super') : ''}
       </div>`).join('');
@@ -164,13 +165,14 @@
     // Heavy arts get the whole screen.
     $('hud').classList.toggle('cine', !!match.cutscene || !!(faceoff && faceoff.t < INTRO.fight) || renderer.cinematic());
     const A = match.allOut, b = $('btn-allout');
-    b.style.setProperty('--fill', A.used ? (A.active > 0 ? (A.active / Sim.ALL_OUT.dur).toFixed(3) : 0) : A.meter.toFixed(3));
-    const ready = !A.used && A.meter >= 1 && !match.result;
+    const spent = A.uses >= A.maxUses;
+    b.style.setProperty('--fill', A.active ? 1 : spent ? 0 : A.meter.toFixed(3));
+    const ready = Sim.allOutReady(match);
     b.disabled = !ready;
     b.classList.toggle('ready', ready);
     b.classList.toggle('active', A.active > 0);
-    b.classList.toggle('used', A.used && A.active <= 0);
-    $('allout-state').textContent = A.active > 0 ? 'Go!' : A.used ? 'Used' : ready ? 'Ready' : 'Charging';
+    b.classList.toggle('used', spent && !A.active);
+    $('allout-state').textContent = A.active ? 'Go!' : `${A.maxUses - A.uses} left`;
     // commentary
     if (match.log.length) {
       const feed = $('feed');
@@ -180,11 +182,16 @@
         feed.appendChild(p);
       }
       match.log.length = 0;
-      while (feed.children.length > 3) feed.removeChild(feed.firstChild);
+      while (feed.children.length > 2) feed.removeChild(feed.firstChild);
       [...feed.children].forEach((p, i, a) => p.classList.toggle('old', i < a.length - 1));
       lastLog = performance.now();
     }
-    if (performance.now() - lastLog > 5000) $('feed').innerHTML = '';
+    if (performance.now() - lastLog > 2600) $('feed').innerHTML = '';
+    // Follow indicator
+    const fid = renderer.follow;
+    $('follow-chip').hidden = !fid || !!match.result;
+    if (fid) $('follow-name').textContent = match.byId[fid].name;
+    for (const el of document.querySelectorAll('#team .card')) el.classList.toggle('followed', el.dataset.id === fid);
   }
 
   // ------------------------------------------------------------ input
@@ -220,14 +227,45 @@
     if (k >= 1) { endHold(); if (match && !match.result) { Sim.surrender(match); faceoff = null; } return; }
     holdTimer = requestAnimationFrame(holdTick);
   }
-  function endHold() { cancelAnimationFrame(holdTimer); holdStart = 0; wd.style.setProperty('--hold', 0); }
-  wd.addEventListener('pointerdown', (e) => { if (!match || match.result) return; e.preventDefault(); holdStart = performance.now(); holdTick(); });
+  function endHold() { cancelAnimationFrame(holdTimer); holdStart = 0; wd.style.setProperty('--hold', 0); wd.classList.remove('holding'); }
+
+  // Landscape only: try to lock the orientation where the browser allows it,
+  // and pause while the phone is upright.
+  let triedLock = false;
+  function tryLandscape() {
+    if (triedLock) return;
+    triedLock = true;
+    try {
+      const el = document.documentElement;
+      const lock = () => screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => {});
+      if (el.requestFullscreen && matchMedia('(pointer: coarse)').matches) el.requestFullscreen().then(lock, () => {});
+      else lock();
+    } catch (e) { /* not supported: the rotate overlay covers it */ }
+  }
+  const portrait = matchMedia('(orientation: portrait)');
+  const onOrient = () => { if (portrait.matches && match && !match.result) setPaused(true); };
+  if (portrait.addEventListener) portrait.addEventListener('change', onOrient);
+  wd.addEventListener('pointerdown', (e) => { if (!match || match.result) return; e.preventDefault(); holdStart = performance.now(); wd.classList.add('holding'); holdTick(); });
   for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) wd.addEventListener(ev, endHold);
 
   // Tap the arena during a heavy art to skip to its impact.
-  $('arena').addEventListener('pointerdown', () => {
+  // Tap one of your fighters to follow them; tap elsewhere to let go.
+  function toggleFollow(id) { renderer.setFollow(renderer.follow === id ? null : id); }
+  $('team').addEventListener('click', (e) => {
+    const card = e.target.closest('.card');
+    if (card && match && !match.result) toggleFollow(card.dataset.id);
+  });
+  $('follow-chip').addEventListener('click', () => renderer.setFollow(null));
+  $('arena').addEventListener('pointerdown', (e) => {
+    tryLandscape();
     // Tap during the face-off to jump to the countdown.
     if (faceoff && faceoff.t < INTRO.vsEnd) { faceoff.t = INTRO.vsEnd; return; }
+    if (match && !match.cutscene && !match.result && match.phase === 'fight') {
+      const r = $('arena').getBoundingClientRect();
+      const hit = renderer.pick(match, e.clientX - r.left, e.clientY - r.top);
+      if (hit) { toggleFollow(hit.id); return; }
+      if (renderer.follow) { renderer.setFollow(null); return; }
+    }
     const c = match && match.cutscene;
     if (c && c.t > 0.4 && c.t < c.impactAt) c.t = c.impactAt;
     else if (c && c.t > c.impactAt + 0.3) c.t = c.dur;
@@ -295,6 +333,7 @@
         return false;
       },
       camera(o) { renderer.setCameraOverride(o); },
+      follow(id) { renderer.setFollow(id); },
       cutIn(id, caption) { if (match) renderer.cutIn(match.byId[id], caption); },
       superNow() { if (match) match.byId.kael.superMeter = 100; },
       allOutNow() { if (match) { match.allOut.meter = 1; Sim.triggerAllOut(match); } },

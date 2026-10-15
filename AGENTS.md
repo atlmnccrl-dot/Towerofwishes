@@ -18,8 +18,11 @@ Read first: [docs/DESIGN.md](docs/DESIGN.md), [docs/STORY.md](docs/STORY.md),
 
 ## Decided rules (change only with the author's say-so)
 
-- Pure watching; the only in-fight input is **All Out** (once per match, team then
-  drained) and **Withdraw**.
+- Pure watching; the in-fight inputs are **All Out** (a few uses per match, set per
+  chapter: it burns every hero's stamina and ability power into attacks, and a hero who
+  runs dry can't dodge, block or parry until stamina recovers), **Withdraw**, and
+  tap-to-follow (camera locks onto one of your fighters).
+- Landscape only.
 - Heavy arts are cutscenes.
 - Hearts: max 5, one per 8 minutes, lose one only when the whole team falls in a story
   match; wins fully heal; withdrawing costs no heart and leaves the team injured, healing

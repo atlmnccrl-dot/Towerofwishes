@@ -57,6 +57,10 @@ async function snap(page, name, settle = 900) {
   // Mid-fight wide shot.
   await D(() => { window.__tow.debug.advance(5); });
   await snap(page, '09-fight-wide');
+  // Tap-to-follow (camera locked on Kael), unpaused for a moment.
+  await D(() => { window.__tow.debug.follow('kael'); window.__tow.debug.freeze(false); });
+  await snap(page, '09b-follow-kael', 1500);
+  await D(() => { window.__tow.debug.freeze(true); window.__tow.debug.follow(null); });
   // Close-ups (fighter detail at zoom).
   for (const id of ['kael', 'eiryn', 'brute', 'knife']) {
     await D((u) => window.__tow.debug.camera({ focus: u, zoom: 2.6 }), id);
@@ -91,7 +95,7 @@ async function snap(page, name, settle = 900) {
   await D(() => { window.__tow.debug.start('practice', 3); window.__tow.debug.skipIntro(); window.__tow.debug.advance(2.5); window.__tow.debug.superNow(); });
   const cut = await D(() => window.__tow.debug.advanceUntil('(s) => !!s.cutscene', 30));
   if (cut) {
-    for (const [t, name] of [[0.4, '15-cut-a'], [1.0, '16-cut-b'], [1.44, '17-cut-impact'], [1.9, '18-cut-after']]) {
+    for (const [t, name] of [[0.6, '15-cut-charge'], [1.25, '16-cut-gleam'], [1.75, '16b-cut-dash'], [2.03, '17-cut-impact'], [2.5, '18-cut-after']]) {
       await D((x) => { const c = window.__tow.match.cutscene; if (c) { c.t = x; if (x >= c.impactAt) window.__tow.debug.advance(0.02); } }, t);
       await snap(page, name, 500);
     }

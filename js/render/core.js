@@ -103,13 +103,30 @@
       let ang = -0.32 + Math.sin(cam.time * 0.05) * 0.16;
       const c = s.cutscene;
       if (c) {
-        const u = c.unit;
-        tx = u.x + Math.cos(u.facing) * 0.9; ty = u.y + Math.sin(u.facing) * 0.9;
-        sc = Math.min(W, H) / 3.6;
-        // A low three-quarter view of the fighter, slowly orbiting.
-        ang = Math.PI / 2 - u.facing + 0.75 - (c.t / c.dur) * 0.6;
-      }
-      const o = V.camOverride || intro.cameraFor(s, V.show) || (!c && director.camera(s));
+        // Heavy art: hard cuts between three shots.
+        const u = c.unit, ph = fx.cutPhase(c), F = [Math.cos(u.facing), Math.sin(u.facing)];
+        if (ph === 'charge' || ph === 'gleam') {
+          // low, close, slowly orbiting the fighter as they charge
+          tx = u.x + F[0] * 0.4; ty = u.y + F[1] * 0.4;
+          sc = Math.min(W, H) / 3.5;
+          ang = Math.PI / 2 - u.facing + 1.0 - (c.t / 1.35) * 0.6;
+        } else if (ph === 'dash') {
+          // wide and side-on, so the dash crosses the screen
+          tx = c.x0 + F[0] * 1.4; ty = c.y0 + F[1] * 1.4;
+          sc = Math.min(W, H) / 6.5;
+          ang = -u.facing - 0.15;
+        } else {
+          tx = u.x + F[0] * 0.8; ty = u.y + F[1] * 0.8;
+          sc = Math.min(W, H) / 4.6;
+          ang = Math.PI / 2 - u.facing - 0.6;
+        }
+        if (ph !== V.cutPhase) { V.cutPhase = ph; V.cutSnap = true; }
+      } else V.cutPhase = null;
+      // Tap-to-follow: lock onto one of the player's fighters.
+      const fu = V.follow && s.byId[V.follow];
+      if (V.follow && (!fu || !Sim.alive(fu))) V.follow = null;
+      const follow = !c && !V.show && V.follow ? { focus: V.follow, zoom: 1.9 } : null;
+      const o = V.camOverride || intro.cameraFor(s, V.show) || follow || (!c && director.camera(s));
       if (o) {
         const fu = o.focus && s.byId[o.focus];
         if (fu) { tx = fu.x; ty = fu.y; }
@@ -119,12 +136,16 @@
         if (o.ang != null) ang = o.ang;
         if (o.angOff) ang += o.angOff;
       }
-      const k = c || o ? 0.12 : Math.min(1, dt * 2.2);
+      let k = c || o ? 0.12 : Math.min(1, dt * 2.2);
+      if (V.cutSnap) { k = 1; V.cutSnap = false; } // a hard cut
       cam.x += (tx - cam.x) * k; cam.y += (ty - cam.y) * k;
       cam.sc += (sc - cam.sc) * k;
-      cam.ang += (ang - cam.ang) * (c || o ? 0.08 : Math.min(1, dt * 0.8));
+      let dAng = ang - cam.ang;
+      while (dAng > Math.PI) dAng -= Math.PI * 2;
+      while (dAng < -Math.PI) dAng += Math.PI * 2;
+      cam.ang += dAng * (k === 1 ? 1 : c || o ? 0.08 : Math.min(1, dt * 0.8));
       // Cutscenes and director shots drop the camera lower for drama.
-      const pitchT = c ? 0.42 : o && o.zoom > 1.3 ? 0.5 : 0.56;
+      const pitchT = c ? (V.cutPhase === 'charge' || V.cutPhase === 'gleam' ? 0.36 : 0.48) : o && o.zoom > 1.3 ? 0.5 : 0.56;
       cam.pitch += (pitchT - cam.pitch) * Math.min(1, dt * 4);
       cam.shake *= Math.pow(0.002, dt);
     }
@@ -184,6 +205,18 @@
       timeScale: () => director.timeScale(),
       cinematic: () => director.cinematic(),
       cutIn: (u, caption) => director.forceCut(u, caption),
+      // Which of the player's fighters is at this screen point (CSS px)?
+      pick(s, x, y) {
+        let best = null, bd = Math.max(44, V.cam.sc * 0.9);
+        for (const u of s.units) {
+          if (u.team !== 'hero' || !Sim.alive(u)) continue;
+          const p = V.P(u.x, u.y, 0.9), d = Math.hypot(p.x - x, p.y - y);
+          if (d < bd) { bd = d; best = u; }
+        }
+        return best;
+      },
+      setFollow: (id) => { V.follow = id || null; },
+      get follow() { return V.follow || null; },
       setCameraOverride: (o) => { V.camOverride = o || null; },
       get stats() { return V.stats; },
     };

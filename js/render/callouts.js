@@ -26,8 +26,9 @@
       const top = P(u.x, u.y, heightOf(u) + 0.45);
       const sc = V.cam.sc;
       // Health tick: a short skewed bar with an ink edge.
-      if (!u.beaten) {
-        const w = 0.9 * sc, h = Math.max(3, sc * 0.075), x = top.x - w / 2, y = top.y;
+      // Only show it once someone is hurt, or for the fighter being followed.
+      if (!u.beaten && (u.hp < u.maxHp || V.follow === u.id)) {
+        const w = 0.75 * sc, h = Math.max(2.5, sc * 0.05), x = top.x - w / 2, y = top.y;
         ctx.save(); ctx.translate(x, y); ctx.transform(1, 0, -0.35, 1, 0, 0);
         ctx.fillStyle = INK; ctx.fillRect(-1.5, -1.5, w + 3, h + 3);
         ctx.fillStyle = 'rgba(246,240,236,0.12)'; ctx.fillRect(0, 0, w, h);

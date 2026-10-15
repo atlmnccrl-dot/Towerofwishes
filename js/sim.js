@@ -172,7 +172,8 @@
       t: 0, rng, arena: ARENA, units, projectiles: [],
       byId: Object.fromEntries(units.map((u) => [u.id, u])),
       tokens: {}, nextGrant: {}, phase: 'intro',
-      allOut: { meter: 0, active: 0, used: false, drainedLeft: 0 },
+      // All Out: charges during the fight; usable a few times per match.
+      allOut: { meter: 0, uses: 0, maxUses: opts.allOutUses == null ? 2 : opts.allOutUses, active: 0 },
       cutscene: null, result: null,
       fx: [], log: [],
       stats: { parries: 0, dodges: 0, feintsRead: 0, feintsLanded: 0, hitsTaken: 0, fled: 0, beaten: 0, supers: 0 },
@@ -374,7 +375,7 @@
     }
     // Parry window
     if (v.state === 'parry' && v.st < 0.34 && Math.abs(angDiff(v.facing, angTo(v, u))) < 1.3) {
-      if (v.team === 'hero') s.stats.parries++;
+      if (v.team === 'hero') { s.stats.parries++; chargeAllOut(s, 0.06); }
       gainSuper(v, 25);
       s.fx.push({ type: 'parry', x: (u.x + v.x) / 2, y: (u.y + v.y) / 2 });
       if (projectile) { say(s, `${v.name} bats the stone aside.`); return false; }
@@ -386,7 +387,7 @@
       return false;
     }
     let dmg = A.dmg[0] + s.rng() * (A.dmg[1] - A.dmg[0]);
-    if (inAllOut(u)) dmg *= ALL_OUT.dmg;
+    if (inAllOut(u)) dmg *= ALL_OUT.dmg * (u.aoPower || 1);
     if (u.act && u.act.wasFeint) {
       dmg *= 1.15;
       if (u.team === 'bandit') s.stats.feintsLanded++;
@@ -397,6 +398,7 @@
     if (v.team === 'hero') s.stats.hitsTaken++;
     gainSuper(u, 8);
     gainSuper(v, 5);
+    if (u.team === 'hero') chargeAllOut(s, 0.03);
     const a = angTo(u, v);
     const kn = A.knock * (inAllOut(u) ? 1.3 : 1);
     v.kx += Math.cos(a) * kn * 2.6;
@@ -463,7 +465,7 @@
   // ---------------------------------------------------------------- super
   // Kael's heavy move plays as a cutscene: the world freezes, the camera
   // closes in, and the effect lands part-way through.
-  const SUPER = { name: 'Rising Cut', dur: 2.5, impactAt: 1.35, radius: 3.6, arc: 3.8, dmg: [26, 32] };
+  const SUPER = { name: 'Rising Cut', dur: 3.4, impactAt: 2.0, radius: 3.6, arc: 3.8, dmg: [26, 32] };
 
   function trySuper(s, u) {
     if (!u.def.superMeter || u.superMeter < 100 || !FREE[u.state] || inAllOut(u) || isDrained(u)) return false;
@@ -509,29 +511,53 @@
   }
 
   // ---------------------------------------------------------------- all out
-  const ALL_OUT = { dur: 5.5, drained: 3.0, chargeTime: 18, dmg: 1.6 };
+  // Every hero pours all their stamina and ability power into attacking.
+  // Stamina burns fast; when it runs out the fighter is exhausted and can't
+  // dodge, block or parry until enough stamina has come back.
+  const ALL_OUT = {
+    chargeTime: 11,   // seconds of fighting to charge from empty (hits and parries speed it up)
+    drain: 30,        // stamina burned per second while all out (~3.3 s from full)
+    dmg: 1.6,         // base damage multiplier
+    power: 0.7,       // extra multiplier from a full ability meter, spent on trigger
+    regen: 16,        // stamina per second while exhausted
+    recoverAt: 30,    // stamina needed to defend again
+  };
+
+  function allOutReady(s) {
+    const A = s.allOut;
+    return A.meter >= 1 && A.uses < A.maxUses && !s.result && !s.cutscene && s.phase === 'fight' && !A.active;
+  }
 
   function triggerAllOut(s) {
+    if (!allOutReady(s)) return false;
     const A = s.allOut;
-    if (A.used || A.meter < 1 || s.result || s.cutscene) return false;
-    A.used = true;
-    A.active = ALL_OUT.dur;
+    A.uses++;
+    A.meter = 0;
     for (const u of s.units) {
-      if (u.team !== 'hero' || !alive(u)) continue;
-      u.allOut = ALL_OUT.dur;
+      if (u.team !== 'hero' || !alive(u) || u.sta < 5) continue;
+      u.allOut = 1;
+      u.aoPower = 1 + ALL_OUT.power * (u.superMeter / 100);
+      u.superMeter = 0;
       u.pending = null; u.plan = null;
       if (u.state === 'parry' || u.state === 'dodge' || u.state === 'hurt') setState(u, 'idle');
     }
+    A.active = s.units.filter((u) => u.allOut > 0).length;
     say(s, 'ALL OUT! The team throws everything they have.');
     s.fx.push({ type: 'allout' });
     return true;
   }
 
+  function chargeAllOut(s, n) {
+    const A = s.allOut;
+    if (A.uses < A.maxUses && !A.active) A.meter = Math.min(1, A.meter + n);
+  }
+
   function endAllOut(s, u) {
     u.allOut = 0;
     u.sta = 0;
-    u.drained = ALL_OUT.drained;
-    icon(u, '…');
+    u.drained = 1; // exhausted until stamina recovers
+    icon(u, '\u2026');
+    say(s, `${u.name} is spent.`);
   }
 
   // "Where do you think you're going?" It was a mistake to look away: the
@@ -907,12 +933,14 @@
     if (u.state === 'out') { u.vx = u.vy = 0; decayKnock(u, dt); return; }
     if (u.fled) return;
 
-    if (u.allOut > 0) { u.allOut -= dt; if (u.allOut <= 0) endAllOut(s, u); }
-    if (u.drained > 0) u.drained -= dt;
+    if (u.allOut > 0) { u.sta -= ALL_OUT.drain * dt; if (u.sta <= 0) endAllOut(s, u); }
 
     // Stamina recovers while not committing to anything.
     if (!isDrained(u) && !inAllOut(u) && u.state !== 'attack') u.sta = Math.min(u.maxSta, u.sta + 16 * dt);
-    if (isDrained(u)) u.sta = Math.min(u.maxSta, u.sta + 4 * dt);
+    if (isDrained(u)) {
+      u.sta = Math.min(u.maxSta, u.sta + ALL_OUT.regen * dt);
+      if (u.sta >= ALL_OUT.recoverAt) u.drained = 0;
+    }
 
     if (u.state !== 'down' && u.state !== 'stagger' && u.state !== 'hurt') thinkDefense(s, u);
 
@@ -1058,9 +1086,8 @@
       return;
     }
     s.t += dt;
-    const A = s.allOut;
-    if (!A.used) A.meter = Math.min(1, A.meter + dt / ALL_OUT.chargeTime);
-    if (A.active > 0) A.active -= dt;
+    chargeAllOut(s, dt / ALL_OUT.chargeTime);
+    s.allOut.active = s.units.filter((u) => u.allOut > 0).length;
     for (const u of s.units) stepUnit(s, u, dt);
     separate(s);
     for (const u of s.units) if (alive(u)) collideWorld(u);
@@ -1092,7 +1119,7 @@
   }
 
   return {
-    createMatch, begin, step, triggerAllOut, surrender, makeRng,
+    createMatch, begin, step, triggerAllOut, allOutReady, surrender, makeRng,
     ARENA, DEFS, INTRO_ORDER, SUPER, ALL_OUT, NAV, obstacleCenter, hasLOS, alive, inFight,
   };
 });

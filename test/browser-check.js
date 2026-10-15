@@ -56,7 +56,7 @@ const server = http.createServer((req, res) => {
   if (await page.evaluate(() => !window.__tow.match.result)) await page.click('#btn-allout');
   await page.waitForTimeout(500);
   await page.screenshot({ path: path.join(out, '3-allout.png') });
-  const ao = await page.evaluate(() => window.__tow.match.allOut.used);
+  const ao = await page.evaluate(() => window.__tow.match.allOut.uses > 0);
 
 
   await page.waitForFunction(() => !document.getElementById('result').hidden, null, { timeout: 120000 });
@@ -86,9 +86,10 @@ const server = http.createServer((req, res) => {
 
   // Portrait phone
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.click('#btn-practice');
-  await page.waitForTimeout(2500);
+  await page.waitForTimeout(400);
   await page.screenshot({ path: path.join(out, '7-portrait.png') });
+  const rotateShown = await page.evaluate(() => getComputedStyle(document.getElementById('rotate-lock')).display !== 'none');
+  if (!rotateShown) errors.push('portrait: rotate-lock overlay not shown');
 
   console.log(JSON.stringify({ allOutUsed: ao, sawCutscene: sawCut, practice, story, afterReload: after, errors }, null, 1));
   await browser.close();

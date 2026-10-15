@@ -225,6 +225,49 @@ h2 { font-style: italic; }
 .stat { border-radius: 0; border-left: 2px solid var(--blood); }
 .screen { background: radial-gradient(ellipse at 50% 40%, rgba(20, 8, 10, 0.55), rgba(8, 4, 5, 0.94)); }
 .heart path { fill: var(--blood); }
+/* ---------------- quieter HUD: small, out of the fight's way */
+.hud-top { padding-top: calc(env(safe-area-inset-top, 0px) + 6px); }
+.cards { max-width: 178px; gap: 4px; }
+.foes { max-width: 140px; }
+.card { padding: 4px 14px 5px 8px; }
+.foe { padding: 3px 8px 4px 14px; }
+.card-name { font-size: 12.5px; }
+.foe .card-name { font-size: 11px; }
+.card-num, .card-tag { display: none; }
+.bar { height: 4px; margin-top: 3px; }
+.bar.sta { height: 2px; }
+.foe .bar { height: 3px; }
+.foe.gone { display: none; }
+.card.hero { cursor: pointer; }
+.card.followed { border-left-color: #ffffff; box-shadow: inset 0 0 0 1px rgba(246, 240, 236, 0.35); }
+.pill { min-height: 30px; padding: 4px 13px; font-size: 11px; opacity: 0.8; }
+.feed { bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); width: min(40vw, 380px); }
+.feed p { font-size: 11.5px; opacity: 0.85; }
+.feed p.old { display: none; }
+#btn-withdraw {
+  width: 48px; height: 48px; min-height: 0; padding: 0; border: 0; border-radius: 50%; clip-path: none;
+  background: var(--panel); display: grid; place-items: center; overflow: visible;
+}
+#btn-withdraw::before { border-radius: 50%; transform: scale(var(--hold)); transform-origin: center; }
+#btn-withdraw .flag { position: relative; width: 16px; height: 18px; border-left: 2px solid var(--parchment-dim); }
+#btn-withdraw .flag::after { content: ""; position: absolute; left: 0; top: 0; width: 12px; height: 9px; background: var(--parchment-dim); clip-path: polygon(0 0, 100% 50%, 0 100%); }
+#btn-withdraw small { position: absolute; left: 56px; bottom: 14px; white-space: nowrap; opacity: 0; transition: opacity 0.15s; margin: 0; }
+#btn-withdraw.holding small { opacity: 1; }
+#btn-allout { width: 78px; height: 78px; }
+#btn-allout b { font-size: 16px; }
+.follow-chip {
+  position: absolute; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 44px); transform: translateX(-50%);
+  background: var(--panel); border: 0; border-bottom: 2px solid #ffffff; padding: 5px 12px; font: 700 11px/1.2 var(--ui); color: var(--parchment); min-height: 28px;
+}
+.rotate-lock { display: none; position: fixed; inset: 0; z-index: 50; background: var(--night); place-items: center; text-align: center; padding: 24px; }
+.rotate-lock div { display: grid; gap: 10px; justify-items: center; }
+.rotate-lock b { font: 800 22px/1.2 var(--display); font-style: italic; }
+.rotate-lock small { color: var(--parchment-dim); font-size: 13px; }
+.rotate-lock .phone { width: 34px; height: 58px; border: 3px solid var(--parchment); border-radius: 6px; animation: turn 1.6s ease-in-out infinite; }
+@media (orientation: portrait) { .rotate-lock { display: grid; } }
+@keyframes turn { 0%, 30% { transform: rotate(0); } 60%, 100% { transform: rotate(-90deg); } }
+@media (prefers-reduced-motion: reduce) { .rotate-lock .phone { animation: none; transform: rotate(-90deg); } }
+
 @keyframes ring { from { transform: scale(0.9); opacity: 0.9; } to { transform: scale(1.25); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { #btn-allout.ready::after { animation: none; } }
 
@@ -236,20 +279,21 @@ h2 { font-style: italic; }
 <body>
 <div id="app">
   <canvas id="arena" aria-label="Arena"></canvas>
+  <div class="rotate-lock" id="rotate-lock"><div><span class="phone" aria-hidden="true"></span><b>Turn your phone sideways</b><small>Tower of Wishes plays in landscape.</small></div></div>
 
   <div class="hud" id="hud" hidden>
     <div class="hud-top">
       <div class="cards" id="team"></div>
       <div class="mid">
         <button class="pill" id="btn-speed" type="button" aria-label="Match speed">1&times;</button>
-        <button class="pill" id="btn-pause" type="button">Pause</button>
+        <button class="pill" id="btn-pause" type="button" aria-label="Pause">II</button>
       </div>
       <div class="cards foes" id="foes"></div>
     </div>
-    <div class="rotate">Turn your phone sideways for the full arena</div>
+    <button class="follow-chip" id="follow-chip" type="button" hidden>Following <b id="follow-name"></b> &middot; tap to release</button>
     <div class="feed" id="feed" aria-live="polite"></div>
     <div class="hud-bottom">
-      <button id="btn-withdraw" type="button"><span>Hold to withdraw</span><small>No heart lost &middot; team leaves injured</small></button>
+      <button id="btn-withdraw" type="button" aria-label="Hold to withdraw"><span class="flag" aria-hidden="true"></span><small>Hold to withdraw</small></button>
       <button id="btn-allout" type="button" disabled aria-label="All Out"><span class="lbl"><b>ALL<br>OUT</b><small id="allout-state">Charging</small></span></button>
     </div>
   </div>

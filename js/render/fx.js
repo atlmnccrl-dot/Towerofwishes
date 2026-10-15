@@ -81,6 +81,13 @@
     function underUnit(u) {
       if (u.fled) return;
       const sc = V.cam.sc;
+      if (V.follow === u.id && u.state !== 'out') {
+        // Followed fighter: a bright ring on the ground.
+        const p = P(u.x, u.y, 0.01), r = sc * 0.62;
+        ctx.strokeStyle = INK; ctx.lineWidth = 5;
+        ctx.beginPath(); ctx.ellipse(p.x, p.y, r, r * V.cam.pitch, 0, 0, Math.PI * 2); ctx.stroke();
+        ctx.strokeStyle = '#f6f0ec'; ctx.lineWidth = 2; ctx.stroke();
+      }
       if (u.allOut > 0) aura(u, sc, true);
       // Telegraph: a brushed zone that charges up; the edge sharpens as the blow nears.
       if (u.state === 'attack' && u.act && (u.act.phase === 'windup' || u.act.phase === 'feint') && !u.act.A.projectile) {
@@ -415,82 +422,176 @@
       void slide;
     }
 
-    // Heavy art: (a) slanted panels — eyes, then the fighter low and close;
-    // (b) charge in the main view; (c) impact frame, crescent, title.
+    // Heavy art: a full cinematic, no close-ups of faces.
+    //   charge  0 .. 1.1   aura pillar, ground cracks, rising debris, energy streams
+    //   gleam   1.1 .. 1.35 the screen goes dark, one line of light across it
+    //   dash    1.35 .. impact  afterimage streak, speed lines, slashes across the enemies
+    //   impact  white frame, black frame
+    //   after   crescent, shockwaves, dust, the move's name
+    const CUT = { charge: 1.1, gleam: 1.35 };
+    function cutPhase(c) {
+      if (c.t < CUT.charge) return 'charge';
+      if (c.t < CUT.gleam) return 'gleam';
+      if (c.t < c.impactAt) return 'dash';
+      return c.t < c.impactAt + 0.12 ? 'impact' : 'after';
+    }
     function drawCutscene(s) {
       const c = s.cutscene;
       if (!c) return;
-      const W = V.W, H = V.H, t = c.t, u = c.unit, cam = V.cam;
-      const bars = Math.min(1, t / 0.2) * Math.min(1, (c.dur - t) / 0.3) * H * 0.1;
-      const up = P(u.x, u.y, 1.0);
-      const headZ = 1.6;
+      const W = V.W, H = V.H, t = c.t, u = c.unit, cam = V.cam, sc = cam.sc;
       const hero = u.team === 'hero';
-      const glow = hero ? PAL.heroGlow : PAL.glow;
-      if (t < 0.85) {
-        // Panel 1: the eyes, a full-width slanted strip.
-        const k = Math.min(1, t / 0.12);
-        ctx.fillStyle = 'rgba(8,5,6,0.88)'; ctx.fillRect(0, 0, W, H);
-        speedLines(W / 2, H / 2, 70, W * 0.18, W, 'rgba(246,240,236,0.07)', 1);
-        const y0 = H * 0.08, y1 = H * 0.42, sl = W * 0.04;
-        const slide = (1 - k) * W * 0.5;
-        portrait(u, [[-slide, y0 + sl], [W - slide, y0], [W - slide, y1 - sl], [-slide, y1]], t);
-        // Panel 2: low angle on the fighter, slams in from below.
-        if (t > 0.3) {
-          const k2 = Math.min(1, (t - 0.3) / 0.12);
-          const yy0 = H * 0.46, yy1 = H * 0.94;
-          const off = (1 - k2) * H * 0.6;
-          const poly2 = [[W * 0.06, yy0 + sl + off], [W * 0.94, yy0 + off], [W * 0.94, yy1 + off], [W * 0.06, yy1 - sl * 0.5 + off]];
-          panel(s, poly2, { x: u.x, y: u.y, sc: Math.min(W, H) * 0.95, cx: W / 2, cy: yy1 + off - H * 0.06, ang: Math.PI / 2 - u.facing + 0.6, pitch: 0.35 });
-        }
-      } else if (t < c.impactAt) {
-        // Charge: the main view, darkened, energy rushing in.
-        const k = (t - 0.85) / (c.impactAt - 0.85);
-        const vg = ctx.createRadialGradient(up.x, up.y, Math.min(W, H) * 0.12, up.x, up.y, Math.max(W, H) * 0.7);
-        vg.addColorStop(0, 'rgba(6,4,6,0)'); vg.addColorStop(1, `rgba(6,4,6,${0.75})`);
+      const glow = hero ? PAL.heroGlow : PAL.glow, edge = hero ? PAL.hero : PAL.glow;
+      const glowRGB = hero ? '217,240,255' : '227,38,58';
+      const phase = cutPhase(c);
+      const F = [Math.cos(u.facing), Math.sin(u.facing)];
+      const bars = Math.min(1, t / 0.2) * Math.min(1, (c.dur - t) / 0.3) * H * 0.11;
+      const base = P(u.x, u.y, 0), chest = P(u.x, u.y, 1.2);
+      if (phase === 'charge') {
+        const k = t / CUT.charge, e = k * k;
+        // Darken everything but the fighter.
+        const vg = ctx.createRadialGradient(chest.x, chest.y, Math.min(W, H) * 0.12, chest.x, chest.y, Math.max(W, H) * 0.7);
+        vg.addColorStop(0, 'rgba(6,4,6,0)'); vg.addColorStop(1, `rgba(6,4,6,${0.35 + 0.45 * k})`);
         ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
-        speedLines(up.x, up.y, 90, Math.min(W, H) * (0.45 - 0.25 * k), Math.max(W, H), `rgba(220,240,255,${0.18 + 0.2 * k})`, Math.floor(t * 30));
-      } else {
-        const k = (t - c.impactAt) / 0.6;
-        // Impact frame: two flipped monochrome frames.
+        // Ground cracks radiating out, glowing.
+        ctx.lineCap = 'round';
+        for (let i = 0; i < 9; i++) {
+          const a = i * 0.698 + 0.3, len = (0.6 + ((i * 37) % 10) / 10) * 2.6 * Math.min(1, k * 1.6);
+          const pts = [];
+          for (let j = 0; j <= 4; j++) {
+            const r = 0.35 + (len * j) / 4, wob = Math.sin(i * 7 + j * 3) * 0.18 * (j / 4);
+            pts.push(P(u.x + Math.cos(a + wob) * r, u.y + Math.sin(a + wob) * r, 0.02));
+          }
+          for (const [w, col] of [[Math.max(4, sc * 0.06), INK], [Math.max(2, sc * 0.025), `rgba(${glowRGB},${0.5 + 0.5 * k})`]]) {
+            ctx.strokeStyle = col; ctx.lineWidth = w;
+            ctx.beginPath(); pts.forEach((q, j) => (j ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y))); ctx.stroke();
+          }
+        }
+        // A pillar of light from the ground.
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        const pw = sc * (0.5 + 0.9 * e);
+        const pg = ctx.createLinearGradient(0, base.y, 0, 0);
+        pg.addColorStop(0, `rgba(${glowRGB},${0.55 * k})`); pg.addColorStop(1, `rgba(${glowRGB},0)`);
+        ctx.fillStyle = pg;
+        ctx.beginPath(); ctx.moveTo(base.x - pw, base.y); ctx.lineTo(base.x - pw * 0.4, 0); ctx.lineTo(base.x + pw * 0.4, 0); ctx.lineTo(base.x + pw, base.y); ctx.closePath(); ctx.fill();
+        // Energy streams spiralling in to the fighter.
+        for (let i = 0; i < 10; i++) {
+          const a0 = i * 0.628 + t * 3.2, r0 = Math.max(W, H) * (0.6 - 0.45 * ((t * 1.3 + i * 0.1) % 1));
+          const sx = chest.x + Math.cos(a0) * r0, sy = chest.y + Math.sin(a0) * r0 * 0.6;
+          const mx = chest.x + Math.cos(a0 + 0.9) * r0 * 0.5, my = chest.y + Math.sin(a0 + 0.9) * r0 * 0.3;
+          ctx.strokeStyle = `rgba(${glowRGB},${0.25 + 0.4 * k})`; ctx.lineWidth = 2 + 3 * k;
+          ctx.beginPath(); ctx.moveTo(sx, sy); ctx.quadraticCurveTo(mx, my, chest.x, chest.y); ctx.stroke();
+        }
+        ctx.restore();
+        // Debris lifting off the ground.
+        for (let i = 0; i < 16; i++) {
+          const a = i * 2.39, r = 0.6 + ((i * 53) % 17) / 10;
+          const z = Math.max(0, (k - ((i * 7) % 5) / 12)) * (0.8 + (i % 4) * 0.5);
+          if (z <= 0) continue;
+          const q = P(u.x + Math.cos(a) * r, u.y + Math.sin(a) * r, z);
+          const sz = sc * (0.05 + (i % 3) * 0.03);
+          ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(t * (2 + i % 3) + i);
+          ctx.fillStyle = INK; ctx.fillRect(-sz - 1.5, -sz - 1.5, sz * 2 + 3, sz * 1.4 + 3);
+          ctx.fillStyle = '#5a5254'; ctx.fillRect(-sz, -sz, sz * 2, sz * 1.4);
+          ctx.fillStyle = `rgba(${glowRGB},0.6)`; ctx.fillRect(-sz, -sz, sz * 2, sz * 0.3);
+          ctx.restore();
+        }
+        speedLines(chest.x, chest.y, 70, Math.min(W, H) * (0.55 - 0.3 * k), Math.max(W, H), `rgba(246,240,236,${0.06 + 0.12 * k})`, Math.floor(t * 24));
+        V.cam.shake = Math.max(V.cam.shake, 2 + 4 * k);
+      } else if (phase === 'gleam') {
+        // Darkness, then a single line of light across the screen.
+        const k = (t - CUT.charge) / (CUT.gleam - CUT.charge);
+        ctx.fillStyle = `rgba(6,4,6,${Math.min(0.92, 0.6 + k)})`; ctx.fillRect(0, 0, W, H);
+        const gy = chest.y, gw = W * Math.min(1, k * 2.2);
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        const lg = ctx.createLinearGradient(chest.x - gw, 0, chest.x + gw, 0);
+        lg.addColorStop(0, `rgba(${glowRGB},0)`); lg.addColorStop(0.5, `rgba(${glowRGB},1)`); lg.addColorStop(1, `rgba(${glowRGB},0)`);
+        ctx.fillStyle = lg; ctx.fillRect(chest.x - gw, gy - 3, gw * 2, 6);
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(chest.x - gw * 0.6, gy - 1, gw * 1.2, 2);
+        ctx.restore();
+        star(chest.x, gy, H * 0.12 * Math.min(1, k * 3), glow, 3, 0.2);
+      } else if (phase === 'dash') {
+        const k = (t - CUT.gleam) / (c.impactAt - CUT.gleam);
+        // Screen-wide speed lines along the dash.
+        const a0 = P(c.x0, c.y0, 1), a1 = P(c.x0 + F[0] * 2, c.y0 + F[1] * 2, 1);
+        const ang = Math.atan2(a1.y - a0.y, a1.x - a0.x);
+        ctx.save(); ctx.translate(W / 2, H / 2); ctx.rotate(ang);
+        ctx.fillStyle = 'rgba(246,240,236,0.18)';
+        for (let i = 0; i < 26; i++) {
+          const y = ((i * 97) % 100 / 100 - 0.5) * Math.max(W, H) * 1.2, x = (((i * 61 + t * 900) % 100) / 100 - 0.5) * W * 1.6;
+          ctx.fillRect(x, y, W * (0.15 + (i % 4) * 0.06), 1 + (i % 3));
+        }
+        ctx.restore();
+        // Afterimage streak from where the fighter stood.
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        const tip = { x: c.x0 + F[0] * 1.6 * Math.min(1, k * 1.5), y: c.y0 + F[1] * 1.6 * Math.min(1, k * 1.5) };
+        for (let z = 0.15; z < 1.9; z += 0.18) {
+          const p0 = P(c.x0, c.y0, z), p1 = P(tip.x, tip.y, z);
+          ctx.strokeStyle = `rgba(${glowRGB},${0.15 + 0.2 * Math.sin(z * 2)})`; ctx.lineWidth = Math.max(2, sc * 0.08); ctx.lineCap = 'butt';
+          ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
+        }
+        ctx.restore();
+        // Slashes across each enemy in front, one after another.
+        const targets = s.units.filter((o) => o.team !== u.team && !o.fled && o.state !== 'out' && Math.hypot(o.x - u.x, o.y - u.y) < 4.2);
+        targets.forEach((o, i) => {
+          const tk = k * 1.6 - i * 0.22;
+          if (tk <= 0 || tk > 1.2) return;
+          const q = P(o.x, o.y, 1.1), L = Math.min(W, H) * 0.55, a = -0.6 + (i % 2) * 1.1;
+          const grow = Math.min(1, tk * 3), fade = tk > 0.8 ? 1 - (tk - 0.8) / 0.4 : 1;
+          const dx = Math.cos(a) * L * grow, dy = Math.sin(a) * L * grow;
+          ctx.globalAlpha = fade;
+          ctx.lineCap = 'round';
+          ctx.strokeStyle = INK; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(q.x - dx, q.y - dy); ctx.lineTo(q.x + dx, q.y + dy); ctx.stroke();
+          ctx.strokeStyle = edge; ctx.lineWidth = 6; ctx.stroke();
+          ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
+          ctx.globalAlpha = 1;
+        });
+        V.cam.shake = Math.max(V.cam.shake, 6);
+      } else if (phase === 'impact') {
         const ft = t - c.impactAt;
-        if (ft < 0.05) { ctx.fillStyle = '#f6f0ec'; ctx.fillRect(0, 0, W, H); }
-        else if (ft < 0.1) {
-          ctx.fillStyle = INK; ctx.fillRect(0, 0, W, H);
-          speedLines(up.x, up.y, 60, Math.min(W, H) * 0.1, Math.max(W, H), '#f6f0ec', 3);
-        } else if (k < 1) {
-          // Huge brush crescent and shockwave.
+        if (ft < 0.06) { ctx.fillStyle = '#f6f0ec'; ctx.fillRect(0, 0, W, H); }
+        else { ctx.fillStyle = INK; ctx.fillRect(0, 0, W, H); speedLines(chest.x, chest.y, 70, Math.min(W, H) * 0.08, Math.max(W, H), '#f6f0ec', 3); }
+        V.cam.shake = 16;
+      } else {
+        const k = (t - c.impactAt - 0.12) / 0.8;
+        if (k < 1) {
           ctx.save();
           ctx.globalAlpha = 1 - k;
-          const N = 26, outer = [], inner = [];
+          // Huge brush crescent.
+          const N = 28, outer = [], inner = [];
           for (let i = 0; i <= N; i++) {
-            const q = i / N, a = u.facing - 1.7 + 3.4 * q;
-            const th = Math.sin(q * Math.PI) * 0.5;
-            const zz = 1.1 + Math.sin(q * Math.PI) * 0.9;
-            outer.push(P(u.x + Math.cos(a) * 2.6, u.y + Math.sin(a) * 2.6, zz));
-            inner.push(P(u.x + Math.cos(a) * 2.6 * (1 - th), u.y + Math.sin(a) * 2.6 * (1 - th), zz * 0.9));
+            const q = i / N, a = u.facing - 1.8 + 3.6 * q;
+            const th = Math.sin(q * Math.PI) * 0.5, zz = 1.1 + Math.sin(q * Math.PI) * 1.1;
+            outer.push(P(u.x + Math.cos(a) * 3, u.y + Math.sin(a) * 3, zz));
+            inner.push(P(u.x + Math.cos(a) * 3 * (1 - th), u.y + Math.sin(a) * 3 * (1 - th), zz * 0.9));
           }
           ctx.beginPath(); ctx.moveTo(outer[0].x, outer[0].y);
           for (const q of outer) ctx.lineTo(q.x, q.y);
           for (let i = inner.length - 1; i >= 0; i--) ctx.lineTo(inner[i].x, inner[i].y);
           ctx.closePath();
-          ctx.lineWidth = 8; ctx.strokeStyle = INK; ctx.stroke();
-          ctx.fillStyle = hero ? PAL.hero : PAL.glow; ctx.fill();
-          ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(3, cam.sc * 0.08);
+          ctx.lineWidth = 10; ctx.strokeStyle = INK; ctx.stroke();
+          ctx.fillStyle = edge; ctx.fill();
+          ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(3, sc * 0.08);
           ctx.beginPath(); outer.forEach((q, i) => (i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y))); ctx.stroke();
-          const g = P(u.x, u.y, 0), rr = (0.6 + k * 4.5) * cam.sc;
-          ctx.strokeStyle = glow; ctx.lineWidth = 8 * (1 - k) + 1;
-          ctx.beginPath(); ctx.ellipse(g.x, g.y, rr, rr * cam.pitch, 0, 0, Math.PI * 2); ctx.stroke();
+          // Two shockwaves on the ground.
+          for (const [delay, col] of [[0, glow], [0.15, PAL.bone]]) {
+            const kk = Math.max(0, k - delay);
+            const rr = (0.5 + kk * 5.5) * sc;
+            ctx.strokeStyle = col; ctx.lineWidth = 9 * (1 - kk) + 1;
+            ctx.beginPath(); ctx.ellipse(base.x, base.y, rr, rr * cam.pitch, 0, 0, Math.PI * 2); ctx.stroke();
+          }
           ctx.restore();
         }
+        if (!c.dusted) { c.dusted = true; dust(u.x, u.y, 22); shards(u.x, u.y, 0.6, 18, glow, 7); }
       }
       // Letterbox
       ctx.fillStyle = INK;
       ctx.fillRect(0, 0, W, bars); ctx.fillRect(0, H - bars, W, bars);
-      // Title lettering (after the panels).
-      if (t > 0.85) {
-        const tk = Math.min(1, (t - 0.85) / 0.2), ease = 1 - Math.pow(1 - tk, 3);
-        ctx.globalAlpha = Math.min(1, (c.dur - t) / 0.35);
-        const fs = Math.round(Math.min(W, H) * 0.13);
+      // The move's name after the impact.
+      if (phase === 'after') {
+        const tk = Math.min(1, (t - c.impactAt - 0.12) / 0.25), ease = 1 - Math.pow(1 - tk, 3);
+        ctx.globalAlpha = Math.min(1, (c.dur - t) / 0.4);
+        const fs = Math.round(Math.min(W, H) * 0.14);
         ctx.save();
         ctx.translate(W - 24 - (1 - ease) * W * 0.4, H - bars - fs * 0.3);
         ctx.transform(1, 0, -0.2, 1, 0, 0);
@@ -501,11 +602,11 @@
         ctx.fillStyle = PAL.white; ctx.fillText(c.name.toUpperCase(), 0, 0);
         ctx.font = `800 ${Math.round(fs * 0.26)}px ${FONT.ui}`;
         ctx.lineWidth = 5; ctx.strokeText(u.name.toUpperCase() + '  ·  HEAVY ART', 0, -fs * 0.95);
-        ctx.fillStyle = hero ? PAL.hero : PAL.glow; ctx.fillText(u.name.toUpperCase() + '  ·  HEAVY ART', 0, -fs * 0.95);
+        ctx.fillStyle = edge; ctx.fillText(u.name.toUpperCase() + '  ·  HEAVY ART', 0, -fs * 0.95);
         ctx.restore();
         ctx.globalAlpha = 1;
       }
-      if (t > 0.4) {
+      if (t > 0.4 && phase !== 'impact') {
         ctx.font = `700 12px ${FONT.ui}`; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
         ctx.fillStyle = 'rgba(246,240,236,0.6)';
         ctx.fillText('Tap to skip', 16, Math.max(bars, 8) + 18);
@@ -556,7 +657,7 @@
 
     function takeHitstop() { const h = hitstop; hitstop = 0; return h; }
 
-    return { consume, underUnit, overUnit, drawWorld, drawScreen, takeHitstop, panel, speedLines, star, portrait };
+    return { consume, underUnit, overUnit, drawWorld, drawScreen, takeHitstop, panel, speedLines, star, portrait, cutPhase };
   }
 
   NS.fx = { create };

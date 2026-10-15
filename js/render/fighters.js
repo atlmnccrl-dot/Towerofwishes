@@ -263,7 +263,7 @@
         { ...seg(chest, hand1, px * 0.7, px * 0.6), c: L.skin }, { ...seg(chest, hand2, px * 0.7, px * 0.6), c: L.skin },
         { ...seg(hip, chest, px * 1.5, px * 1.8), c: L.body },
         { kind: 'ell', x: head.x, y: head.y, rx: sc * 0.12, ry: sc * 0.12, c: L.hair === 'bald' ? L.skin : L.hairC },
-      ], u.flash > 0);
+      ], false);
     }
 
     function drawStanding(u, L, sc) {

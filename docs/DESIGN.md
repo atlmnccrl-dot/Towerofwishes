@@ -96,21 +96,25 @@ The game opens with **one** controllable fighter. Companions join through the st
 up to **five**. Fights scale from 1-vs-many early to 5-vs-5 and 5-vs-1 boss fights.
 Guests (like Eiryn in Chapter One) fight beside the team but don't count toward a wipe.
 
-## 6. All Out (decided)
+## 6. All Out (decided, revised 2026-10-15)
 
-- One press per match, after a charge meter fills (prototype: 18 s).
-- For 4.5 s every unit on the team attacks flat out: much faster wind-ups and recovery,
-  more damage and knockback, no stamina cost.
-- Afterwards the team is **drained** for 3.4 s: stamina empty, **no dodging or parrying**,
-  slower movement.
-- **Bosses account for it.** Some punish the drained window, some bait it with a fake
-  opening, some have a stagger window that rewards it. Prototype: the Broad Bandit is a
-  *punisher* and goes straight for a drained hero.
+- Usable **2–3 times per match** (1–2 in early chapters; set per chapter). The meter
+  charges over about 11 s of fighting, faster when the team lands hits or parries.
+- On press, every hero burns **all their stamina and ability power** into rapid,
+  heavy attacks. Stamina drains fast (about 3 s from full), and a full ability meter
+  makes the burst stronger.
+- When a hero's stamina hits zero they are **exhausted**: no dodging, blocking or
+  parrying until stamina recovers to 30. Pressing with low stamina gives a short burst.
+- Bosses account for it. Prototype: the Broad Bandit goes straight for an exhausted hero.
+- Balance (Chapter One, 200 sims): never 72 %, pressing the moment it's ready 70 %,
+  pressing with full stamina when two bandits are close 78 %.
 
 ## 7. Heavy arts (decided)
 
-Large special moves play as short cutscenes: the world freezes, the camera closes in,
-a title card names the move, the impact lands, then the camera returns.
+Large special moves play as full cinematic cutscenes, with no face close-ups: the
+fighter charges (a pillar of light, ground cracking, debris lifting, energy pouring in),
+a single gleam of light, a dash with afterimages and slashes across the enemies, impact
+frames, a shockwave, then the move's name. About 3.4 s; tap to skip.
 - Length 2–3 s. The AI decides when to use one; the player never triggers it.
 - Skippable (prototype: tap to jump to the impact). Final rule: skippable after first viewing.
 - Prototype art: Kael's **Rising Cut** (placeholder name, Proposal).
@@ -139,6 +143,14 @@ One system directs every fight like an episode; nothing is scripted per match
   feint, when the broad man charges a distracted or drained Kael, and in heavy arts,
   the face-off and VS.
 Real character art can later replace the drawn close-ups without changing the system.
+
+## 7d. Watching controls (decided)
+
+- Tap one of your fighters (or their HUD card) to lock the camera onto them; tap again
+  or tap empty ground to release.
+- The HUD stays small and to the edges: compact team and enemy bars, one commentary
+  line, a small withdraw button, the All Out seal with uses left.
+- Landscape only; portrait shows a "turn your phone" screen and pauses.
 
 ## 8. Camera
 
