@@ -1,55 +1,64 @@
 # Tower of Wishes — Story Map
 
-Source of canon: the author's manuscript *Tower of Wishes — Through the First Guild
-Contract* (Prologue and Chapters One to Five). This file summarises it so the game can
-follow it; the manuscript wins wherever the two differ.
+Source: the author's manuscript *Tower of Wishes — Through the First Guild Contract*
+(Prologue and Chapters One to Five), adapted for the game by the author's decisions of
+2026-10-15. Where this file and the manuscript differ, this file records the author's
+newer decision for the game.
+
+## Author decisions (2026-10-15)
+
+| Decision | Detail |
+|---|---|
+| Timeline | The game begins **22 years after the Reset** (the manuscript says 150; the game uses 22). Eiryn wakes from the preservation spell 22 years on. |
+| Starters | **All-new starting characters.** The player picks one. Kael and Eiryn are story characters the player meets and can recruit. |
+| Opening | The tutorial is the **climber's final battle at the top of the Tower**, at full power, then the Reset, then "22 years later" and character select. |
+| The Tower's guardian | An **unseen mystery**: shadows, light and fragments, never fully shown. |
+| The climber | **A mystery for now**; who they were is a later reveal. |
+| Branching | Choices change paths, who joins, and how fights start and play. |
 
 ## Rules
 
-1. **The main campaign follows the manuscript's plot, in order.** Every story match and
-   scene on the main path is an event from the book.
-2. **No invented plot on the main path.** Branching choices, extra encounters and side
-   content are allowed only off the main path and stay marked **Proposal** until the
-   author approves them.
-3. **Fights play out the way the book stages them:** who is there, who they target, what
-   they carry, what they say, and how it ends. Gameplay can add tension (the fight can be
-   lost), but the cast and choreography come from the text.
-4. **Dialogue in fights is quoted from the manuscript.** New lines need approval.
-5. Names of special moves, character designs and anything the book doesn't say are
-   Proposals.
+1. The campaign follows the manuscript's events in order (the quarry contract, the
+   bandits in the clearing, Eiryn's arrival, the Guild); the player's starter is
+   present for them, and choices change *how* they go and who stands with you.
+2. Dialogue for Kael, Eiryn and the book's other characters is quoted from the
+   manuscript where a line exists. New lines and everything about the new starters are
+   **Proposals** until the author approves them.
+3. Fights keep the book's cast, weapons and outcomes (nobody dies in the clearing; the
+   ogre is driven through the wall), but the player's party joins in.
 
-## Chapter by chapter
+## Starting characters (Proposals: names, looks, powers, backgrounds)
 
-| # | What happens in the book | In the game | Status |
+All three are 22 or younger: they grew up in the world after the Reset, and each has a
+reason to climb the Tower.
+
+| Starter | Who | Fighting style | Heavy art |
 |---|---|---|---|
-| Prologue | Eiryn and Alric race across the rooftops; the Tower sounds; a lone climber reaches the top; fire and flood fall on the city (the Reset). Eiryn saves who she can with pressure glyphs and Negation. The preservation spell can hold only its caster; Alric shields her and is lost. | Story scene. *Proposal:* a short, unwinnable playable sequence. | Not built |
-| One | 150 years later. Kael, between Guild jobs, sees a huge purple formation fail above the forest. In a clearing four bandits have the exhausted Eiryn cornered against a fallen trunk. Kael steps in. | **Story match 1: The Clearing.** Kael with Eiryn as a guest. | **Built** (prototype) |
-| Two | The walk into town. Eiryn learns about the Reset and the story that someone's wish destroyed the world. Kael gives her his room. | Story scene | Not built |
-| Three | Mending a strap, the mapmaker, the market. Eiryn warms tea with a spell and is fined for casting without a permit; she has no purse; Kael pays. The Guild is their way to earn money. | Story scene | Not built |
-| Four | Registration and Eiryn's evaluation (moving a block, keeping a counter aloft). She is ranked F. They take the mill contract and file as partners. | Story scene. **Eiryn becomes a full team member here.** *Proposal:* the evaluation as a short training sequence. | Not built |
-| Five | The quarry. A goblin in the scrub; a spearman and an archer on the path (Eiryn shoves the arrow wide); three goblins in the cave chamber, two flee deeper; then the ogre with a beam from the loading frame. Kael makes it look at him, is thrown into the basin and pinned by the throat; Eiryn drives it through the wall with a narrow lance of force. Back in town: the healer, the hazard supplement, the fine repaid. | **Story matches 2–5**, ending with the ogre as the first boss. | Not built |
+| **Ren Ashgrove** | Vampire-blooded Guild runner, born the winter after the Reset. Strength and speed come from his body, like the vampires of the old cities. Wants the wish to undo what the Reset took from his family. | Fast and aggressive: dashes, chains strikes, dodges on instinct; weak to heavy blows. | *Hundredfold Step* |
+| **Mara Quill** | A licensed glyph-caster from the Guild's mage registry. Her teacher climbed the Tower and never came back. | Keeps her distance: force bolts at range, a shove to break rushes, a glyph barrier to block. | *Lattice Lance* |
+| **Brannoc Vell** | A dwarven shield-bearer who guards caravans on the western roads and owes a debt the Tower's bounties could clear. | Holds the line: huge health, parries and blocks, shield-bash counters; slow. | *Anvilfall* |
 
-The party through Chapter Five is Kael and Eiryn. The book's later chapters will add the
-next companions; until then, recruits beyond these two are Proposals.
+## Campaign map
 
-## Chapter One fight: canon checklist (implemented)
+| # | Chapter | What happens | Play | Branches |
+|---|---|---|---|---|
+| 0 | **The Last Ascent** (tutorial) | A lone, bloodied climber fights the Tower's unseen guardian on the final floor, then reaches into the light. | Battle: the Climber vs the Unseen (full power, All Out and heavy art taught) | — |
+| — | **The Reset** | The Tower sounds; fire and flood fall on the cities. Somewhere a silver-haired mage casts a spell that holds only its caster. | Scene | — |
+| — | **Twenty-two years later** | Character select. | Choice | Which starter |
+| 1 | **The Clearing** | In a western town, a huge purple formation fails over the forest. Four bandits corner an exhausted silver-haired woman (Eiryn). A Guild swordsman (Kael) arrives. | Battle: starter + Kael (+ Eiryn as a guest) vs four bandits | How you go in (charge, circle round, let Kael lead) changes how the fight opens. Whether you stay by Eiryn sets her trust. |
+| 2–3 | **A Town Grown Strange** | Eiryn learns it has been 22 years; the story of the wish that destroyed the world; the fine for warming tea without a permit. | Scenes | Pay her fine yourself, let Kael pay, or argue with the guard. |
+| 4 | **The First Contract** | Guild registration, Eiryn ranked F, the contract board. | Scene | Who you take: Kael, Eiryn, or both. |
+| 5 | **The Quarry** | Goblins at the mill; a spearman and an archer on the path; three goblins in the cave; the ogre "not in the contract". | Battles: goblins, then the ogre boss | Your party from Chapter 4. |
+| 6+ | Beyond the manuscript | — | Roadmap | Needs the author's next chapters. |
 
-| From the book | In the prototype |
-|---|---|
-| Four men: broad-shouldered man reaching for her wrist; one with a short knife; a third moving round the right; a fourth hanging back by the path | Broad Bandit (fists), Knife Bandit, Flanking Bandit (unarmed, goes for Eiryn), Lookout (doesn't fight) |
-| Eiryn tries to cast: a tiny violet line curls into half a circle and winks out | She tries to cast; it fizzles (up to three times) |
-| She snatches a broken branch and swings it into the third man's face | She picks up a branch and fights with it |
-| "Behind you!" | Eiryn's warning bark |
-| The fourth edges toward the path; Kael: "Where do you think you're going?" — a mistake; the broad man charges | When the Lookout runs, Kael is briefly distracted and the Broad Bandit gets a free charge |
-| Kael: "That's enough." / "Who are you supposed to be?" / "Somebody who asked nicely." | Face-off lines |
-| "Let go." / "Back away." / "She's trouble." / "Then you should have left her alone." | In-fight barks |
-| Nobody is killed; the bandits retreat | Beaten bandits go down, get up and run; the match ends when the rest retreat |
+## Canon notes kept from the manuscript
 
-Game additions here (Proposals): Kael's heavy art *Rising Cut*; All Out; the fight can be lost.
-
-## Open questions for the author
-
-- What is Kael's heavy art called, and what does it look like?
-- Should the Prologue be playable?
-- Do the spearwoman, the cook or the evaluator ever fight beside the party?
-- Kael's hair colour and outfit details beyond his armour and shoulder plate.
+- Eiryn: long silver-white hair, dark travel-worn outfit with green ornamentation at the
+  collar; force glyphs (violet), Negation, the preservation spell; drained of mana on
+  waking; fails to cast, swings a branch.
+- Kael: Guild swordsman, armour with a shoulder plate; "Make it look at me".
+- The clearing: four men (broad-shouldered man with fists, a short knife, one circling
+  the trunk, a lookout who runs); nobody dies.
+- The quarry: goblin archer and spearman, three in the chamber with two fleeing deeper,
+  the ogre with a beam from the loading frame, Eiryn's narrow lance of force through
+  the wall.

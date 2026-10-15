@@ -33,24 +33,62 @@
     return d;
   }
 
-  // ---------------------------------------------------------------- arena
-  // Forest clearing from Chapter One: a fallen trunk at Eiryn's back, a few
-  // trees and stones, and the path back toward the road in the north-east.
-  const ARENA = {
-    name: 'Forest Clearing',
-    rx: 11,
-    ry: 7.5,
-    exit: { x: 12.5, y: -6.5 },
-    obstacles: [
-      { kind: 'trunk', ax: -3.6, ay: 2.9, bx: 1.6, by: 3.9, r: 0.45 },
-      { kind: 'tree', x: -6.8, y: -3.2, r: 0.5 },
-      { kind: 'tree', x: 5.8, y: 4.0, r: 0.55 },
-      { kind: 'tree', x: 7.4, y: -1.2, r: 0.45 },
-      { kind: 'rock', x: -2.2, y: -3.6, r: 0.7 },
-      { kind: 'rock', x: 3.6, y: -0.6, r: 0.45 },
-      { kind: 'rock', x: -8.2, y: 2.6, r: 0.55 },
-    ],
+  // ---------------------------------------------------------------- arenas
+  // Each arena is an ellipse of open ground with obstacles and an exit
+  // (where fleeing fighters run). `theme` tells the renderer how to dress it.
+  const ARENAS = {
+    // Chapter One: the forest clearing, a fallen trunk at Eiryn's back, the
+    // path back toward the road in the north-east.
+    clearing: {
+      name: 'The Clearing', theme: 'forest', rx: 11, ry: 7.5, exit: { x: 12.5, y: -6.5 },
+      obstacles: [
+        { kind: 'trunk', ax: -3.6, ay: 2.9, bx: 1.6, by: 3.9, r: 0.45 },
+        { kind: 'tree', x: -6.8, y: -3.2, r: 0.5 },
+        { kind: 'tree', x: 5.8, y: 4.0, r: 0.55 },
+        { kind: 'tree', x: 7.4, y: -1.2, r: 0.45 },
+        { kind: 'rock', x: -2.2, y: -3.6, r: 0.7 },
+        { kind: 'rock', x: 3.6, y: -0.6, r: 0.45 },
+        { kind: 'rock', x: -8.2, y: 2.6, r: 0.55 },
+      ],
+    },
+    // The tutorial: the last floor of the Tower, open to the sky, broken
+    // pillars, and the light the climber reaches for in the north.
+    summit: {
+      name: 'The Last Floor', theme: 'summit', rx: 9, ry: 6.4, exit: { x: 0, y: -8.6 },
+      obstacles: [
+        { kind: 'pillar', x: -6.0, y: -3.0, r: 0.6 },
+        { kind: 'pillar', x: 6.2, y: -2.7, r: 0.6 },
+        { kind: 'pillar', x: -5.7, y: 3.3, r: 0.55 },
+        { kind: 'pillar', x: 5.9, y: 3.5, r: 0.6 },
+        { kind: 'rock', x: 0.6, y: 4.4, r: 0.5 },
+      ],
+    },
+    // Chapter Five: the overgrown path up to the quarry.
+    hillpath: {
+      name: 'The Quarry Path', theme: 'hill', rx: 10, ry: 5.6, exit: { x: 11.5, y: -3 },
+      obstacles: [
+        { kind: 'rock', x: -3.5, y: -2.6, r: 0.8 },
+        { kind: 'rock', x: 2.8, y: 2.4, r: 0.7 },
+        { kind: 'rock', x: 6.2, y: -1.4, r: 0.55 },
+        { kind: 'tree', x: -7.0, y: 2.2, r: 0.5 },
+        { kind: 'rock', x: -0.4, y: 3.8, r: 0.5 },
+      ],
+    },
+    // Chapter Five: the cave chamber behind the quarry face; the passage on
+    // the west goes deeper into the hill.
+    cave: {
+      name: 'The Quarry Cave', theme: 'cave', rx: 8.6, ry: 5.8, exit: { x: -9.8, y: -0.5 },
+      obstacles: [
+        { kind: 'crate', x: 4.6, y: -2.6, r: 0.55 },
+        { kind: 'crate', x: 5.6, y: -1.6, r: 0.5 },
+        { kind: 'basin', x: -2.6, y: 2.6, r: 0.85 },
+        { kind: 'rock', x: 2.2, y: 3.4, r: 0.6 },
+        { kind: 'crate', x: -4.8, y: -3.0, r: 0.5 },
+      ],
+    },
   };
+  let ARENA = ARENAS.clearing;
+  let NAV = null;
 
   function obstacleCenter(o, px, py) {
     if (o.kind !== 'trunk') return { x: o.x, y: o.y };
@@ -132,57 +170,263 @@
     },
   };
 
-  // Face-off order: the scene as the chapter stages it.
+  // ---- Starting characters (Proposals: names, looks, powers and lines
+  // need the author's approval; see docs/STORY.md).
+  Object.assign(DEFS, {
+    ren: {
+      name: 'Ren Ashgrove', team: 'hero', r: 0.36, hp: 150, sta: 110, speed: 5.0,
+      react: 0.15, read: 0.5, parry: 0.25, dodge: 0.7, feint: 0.25,
+      brain: 'duelist', protector: true, superMeter: true, opener: 'rush', combo: 3,
+      blink: { range: 6, cd: 4.5 },
+      attack: { name: 'Twin Fang', range: 1.35, arc: 1.5, windup: 0.24, active: 0.08, recover: 0.26, dmg: [9, 12], knock: 0.6, lunge: 0.75, sta: 9 },
+      heavy: { name: 'Hundredfold Step', radius: 4.2, arc: 6.3, dmg: [30, 38] },
+      barks: { super: 'Keep up.', protect: 'Behind me.', win: 'That all of you?' },
+      intro: { epithet: 'Vampire-blooded runner', line: 'I\u2019ll be quick.' },
+    },
+    mara: {
+      name: 'Mara Quill', team: 'hero', r: 0.34, hp: 125, sta: 100, speed: 4.1,
+      react: 0.19, read: 0.6, parry: 0.45, dodge: 0.35, feint: 0,
+      brain: 'caster', superMeter: true, opener: 'retreat', keepAway: 4.6,
+      attack: { name: 'Force Bolt', range: 7.5, arc: 0.6, windup: 0.5, active: 0.05, recover: 0.42, dmg: [12, 15], knock: 1.5, sta: 10, projectile: 14 },
+      melee: { name: 'Shove', range: 1.7, arc: 1.9, windup: 0.24, active: 0.08, recover: 0.4, dmg: [5, 7], knock: 3.4, stagger: 0.7, lunge: 0.1, sta: 12 },
+      heavy: { name: 'Lattice Lance', radius: 8, arc: 0.7, dmg: [55, 68], line: true },
+      barks: { super: 'Hold still.', win: 'Registered and done.' },
+      intro: { epithet: 'Licensed glyph-caster', line: 'I have a permit for this.' },
+    },
+    brannoc: {
+      name: 'Brannoc Vell', team: 'hero', r: 0.44, hp: 240, sta: 120, speed: 3.5,
+      react: 0.2, read: 0.5, parry: 0.78, dodge: 0.1, feint: 0.05,
+      brain: 'duelist', protector: true, riposte: true, superMeter: true, opener: 'advance', taunt: true,
+      attack: { name: 'Shield Bash', range: 1.5, arc: 1.9, windup: 0.4, active: 0.12, recover: 0.48, dmg: [17, 22], knock: 1.8, stagger: 0.4, lunge: 0.4, sta: 12 },
+      heavy: { name: 'Anvilfall', radius: 4.0, arc: 6.3, dmg: [34, 42] },
+      barks: { super: 'Down you go.', protect: 'On me!', win: 'Road\u2019s clear.' },
+      intro: { epithet: 'Dwarven shield-bearer', line: 'You\u2019ll go through me first.' },
+    },
+    // Eiryn once her mana has partly returned (Chapter Four on): force glyphs.
+    eirynMage: {
+      name: 'Eiryn', team: 'hero', r: 0.33, hp: 95, sta: 80, speed: 3.8,
+      react: 0.22, read: 0.6, parry: 0.4, dodge: 0.4, feint: 0,
+      brain: 'caster', superMeter: true, opener: 'retreat', keepAway: 4.2,
+      attack: { name: 'Pressure Glyph', range: 6.5, arc: 0.6, windup: 0.45, active: 0.05, recover: 0.5, dmg: [9, 12], knock: 2.2, stagger: 0.5, sta: 10, projectile: 16 },
+      melee: { name: 'Shove', range: 1.6, arc: 1.8, windup: 0.22, active: 0.08, recover: 0.4, dmg: [4, 6], knock: 3.6, stagger: 0.7, lunge: 0.1, sta: 12 },
+      // The book's narrow path of force that put the ogre through the wall.
+      heavy: { name: 'Force Lance', radius: 8, arc: 0.6, dmg: [70, 85], line: true },
+      barks: {},
+      intro: { epithet: 'Mage \u00b7 force glyphs', line: null },
+    },
+    // ---- The tutorial: the climber at the top of the Tower (a mystery).
+    climber: {
+      name: 'The Climber', team: 'hero', r: 0.38, hp: 420, sta: 140, speed: 5.2,
+      react: 0.12, read: 0.85, parry: 0.7, dodge: 0.6, feint: 0.2,
+      brain: 'duelist', riposte: true, cleave: true, superMeter: true, startSuper: 100, opener: 'rush', combo: 3,
+      blink: { range: 7, cd: 3.5 },
+      attack: { name: 'Broken Blade', range: 1.7, arc: 1.9, windup: 0.26, active: 0.1, recover: 0.3, dmg: [26, 32], knock: 1.4, lunge: 0.6, sta: 10 },
+      heavy: { name: 'Final Ascent', radius: 5.0, arc: 6.3, dmg: [80, 95] },
+      barks: {},
+      intro: { epithet: 'The last floor', line: null },
+    },
+    // ---- The Tower's unseen guardian: never shown whole.
+    shade: {
+      name: 'Fragment', team: 'bandit', r: 0.34, hp: 80, sta: 100, speed: 5.0,
+      react: 0.2, read: 0.4, parry: 0, dodge: 0.45, feint: 0.35, morale: 99, noFlee: true, dissolve: true,
+      blink: { range: 7, cd: 3 }, opener: 'blink',
+      attack: { name: 'Rend', range: 1.4, arc: 1.4, windup: 0.38, active: 0.08, recover: 0.4, dmg: [18, 24], knock: 0.8, lunge: 0.6, sta: 10 },
+      barks: {}, intro: { epithet: 'A piece of something', line: null },
+    },
+    veil: {
+      name: 'The Unseen', team: 'bandit', r: 0.85, hp: 620, sta: 200, speed: 2.8,
+      react: 0.3, read: 0.5, parry: 0, dodge: 0, feint: 0.1, morale: 99, noFlee: true, dissolve: true, boss: true, punisher: true,
+      blink: { range: 8, cd: 5 }, opener: 'none',
+      attack: { name: 'Collapse', range: 2.7, arc: 2.6, windup: 1.0, active: 0.16, recover: 0.8, dmg: [42, 56], knock: 3, down: true, lunge: 0.3, sta: 20 },
+      barks: {}, intro: { epithet: 'What guards the top', line: null },
+    },
+    // ---- Chapter Five: goblins and the ogre.
+    goblin: {
+      name: 'Goblin', team: 'bandit', r: 0.3, hp: 58, sta: 100, speed: 4.7,
+      react: 0.24, read: 0.3, parry: 0, dodge: 0.4, feint: 0.2, morale: 0.75, opener: 'dip',
+      attack: { name: 'Stab', range: 1.2, arc: 1.3, windup: 0.3, active: 0.08, recover: 0.35, dmg: [10, 13], knock: 0.4, lunge: 0.6, sta: 10 },
+      barks: {}, intro: { epithet: 'Grain thief', line: null },
+    },
+    goblinSpear: {
+      name: 'Goblin Spearman', team: 'bandit', r: 0.32, hp: 70, sta: 100, speed: 4.3,
+      react: 0.26, read: 0.3, parry: 0, dodge: 0.3, feint: 0.15, morale: 0.85, opener: 'advance',
+      attack: { name: 'Spear Thrust', range: 1.95, arc: 1.0, windup: 0.46, active: 0.1, recover: 0.45, dmg: [13, 16], knock: 0.8, lunge: 0.8, sta: 12 },
+      barks: {}, intro: { epithet: 'Holds the narrow path', line: null },
+    },
+    goblinArcher: {
+      name: 'Goblin Archer', team: 'bandit', r: 0.3, hp: 48, sta: 100, speed: 4.5,
+      react: 0.25, read: 0.35, parry: 0, dodge: 0.45, feint: 0, morale: 0.6, ranged: true, keepAway: 6, opener: 'hangback',
+      attack: { name: 'Arrow', range: 9, arc: 0.6, windup: 0.7, active: 0.05, recover: 0.5, dmg: [11, 14], knock: 0.4, sta: 0, projectile: 15 },
+      barks: {}, intro: { epithet: 'A rough wooden bow', line: null },
+    },
+    ogre: {
+      name: 'Ogre', team: 'bandit', r: 0.78, hp: 560, sta: 200, speed: 3.0,
+      react: 0.45, read: 0.1, parry: 0, dodge: 0, feint: 0, morale: 99, noFlee: true, boss: true, punisher: true, cleave: true, opener: 'advance',
+      attack: { name: 'Beam Sweep', range: 2.7, arc: 2.6, windup: 1.05, active: 0.16, recover: 0.9, dmg: [42, 55], knock: 3.2, down: true, lunge: 0.4, sta: 20 },
+      barks: {}, intro: { epithet: 'Not in the contract', line: null },
+    },
+  });
+
+  // Face-off order for the default Chapter One match.
   const INTRO_ORDER = ['eiryn', 'brute', 'knife', 'grabber', 'lookout', 'kael'];
+
+  // ---------------------------------------------------------------- scenarios
+  // Each match is a scenario: an arena, a cast, and slots for the player's
+  // party ({slot: n}). Positions are metres; f is the starting facing.
+  const SCENARIOS = {
+    clearing: {
+      title: 'The Clearing', arena: 'clearing', allOutUses: 1, vs: 'brute', scale: { hp: 1.0, dmg: 1.3 },
+      units: [
+        { slot: 0, x: -8.8, y: 0.7, f: 0.1 },
+        { key: 'kael', x: -7.5, y: -1.2, f: 0.2 },
+        { key: 'eiryn', x: -0.8, y: 2.2, f: -1.6 },
+        { key: 'brute', x: 0.5, y: 0.7, f: 2.3 },
+        { key: 'knife', x: -2.4, y: 0.7, f: 0.8 },
+        { key: 'grabber', x: 2.8, y: 2.6, f: 3.0 },
+        { key: 'lookout', x: 6.2, y: -3.8, f: 2.6 },
+      ],
+      // How the player chose to go in (Chapter One choice).
+      mods: {
+        charge: { slot0: { x: -4.4, y: 0.2 }, kael: { x: -11, y: -2.6 }, surprise: true },
+        circle: { slot0: { x: 3.6, y: 5.6, f: -2.4 }, noDistract: true },
+        follow: { slot0: { x: -9.6, y: 0.2 }, kaelSuper: 40 },
+      },
+    },
+    tutorial: {
+      title: 'The Last Ascent', arena: 'summit', allOutUses: 2, allOutStart: 1, vs: 'veil', scale: { hp: 2.2, dmg: 1.0 },
+      units: [
+        { key: 'climber', x: -4.6, y: 1.0, f: 0 },
+        { key: 'shade', x: 1.2, y: -1.8, f: 3.1 },
+        { key: 'shade', x: 1.8, y: 2.0, f: 3.1 },
+        { key: 'shade', x: 3.6, y: 0.2, f: 3.1 },
+        { key: 'veil', x: 6.0, y: -0.4, f: 3.1 },
+      ],
+    },
+    path: {
+      title: 'The Quarry Path', arena: 'hillpath', allOutUses: 1, vs: 'goblinSpear', scale: { hp: 2.4, dmg: 2.0 },
+      units: [
+        { slot: 0, x: -7.2, y: 0.2, f: 0 }, { slot: 1, x: -8.0, y: -1.4, f: 0 }, { slot: 2, x: -8.2, y: 1.6, f: 0 },
+        { key: 'goblinSpear', x: 1.5, y: -0.4, f: 3.1 },
+        { key: 'goblinArcher', x: 6.5, y: 1.4, f: 3.1 },
+        { key: 'goblin', x: 2.6, y: 1.8, f: 3.1 },
+      ],
+    },
+    cave: {
+      title: 'The Cave Chamber', arena: 'cave', allOutUses: 2, vs: 'goblinArcher', scale: { hp: 3.0, dmg: 2.4 },
+      units: [
+        { slot: 0, x: 6.6, y: 0.6, f: 3.1 }, { slot: 1, x: 7.2, y: 2.0, f: 3.1 }, { slot: 2, x: 7.4, y: -0.8, f: 3.1 },
+        { key: 'goblinArcher', x: -4.2, y: 0.4, f: 0 },
+        { key: 'goblin', x: -1.2, y: -1.2, f: 0, morale: 0.45 },
+        { key: 'goblin', x: -1.6, y: 1.4, f: 0, morale: 0.45 },
+      ],
+    },
+    ogre: {
+      title: 'Not in the Contract', arena: 'cave', allOutUses: 2, vs: 'ogre', scale: { hp: 1.0, dmg: 2.4 },
+      units: [
+        { slot: 0, x: 4.8, y: 0.4, f: 3.1 }, { slot: 1, x: 5.6, y: 1.8, f: 3.1 }, { slot: 2, x: 5.8, y: -1.0, f: 3.1 },
+        { key: 'ogre', x: -5.4, y: -0.3, f: 0 },
+      ],
+    },
+  };
 
   const FREE = { idle: 1, move: 1, circle: 1 };
 
-  function makeUnit(id, key, x, y, facing, hpFrac) {
+  // Level scaling: +10% health and +7% damage per level above 1.
+  const levelHp = (lv) => 1 + 0.1 * ((lv || 1) - 1);
+  const levelPower = (lv) => 1 + 0.07 * ((lv || 1) - 1);
+
+  function makeUnit(id, key, x, y, facing, hpFrac, level) {
     const d = DEFS[key];
+    const maxHp = Math.round(d.hp * levelHp(level));
     return {
       id, key, def: d, name: d.name, team: d.team, guest: !!d.guest, r: d.r,
+      level: level || 1, power: levelPower(level),
       x, y, vx: 0, vy: 0, kx: 0, ky: 0, facing,
-      hp: Math.max(1, Math.round(d.hp * (hpFrac == null ? 1 : hpFrac))), maxHp: d.hp,
+      hp: Math.max(1, Math.round(maxHp * (hpFrac == null ? 1 : hpFrac))), maxHp,
       sta: d.sta, maxSta: d.sta,
       state: 'idle', st: 0, dur: 0,
       act: null, pending: null, plan: null,
       target: null, aggroUntil: 0, cd: 0.6, combo: 0,
       strafe: 1, strafeT: 0,
       morale: d.morale == null ? 1 : d.morale, hurtOnce: false, fled: false,
-      allOut: 0, drained: 0, superMeter: 0,
+      allOut: 0, drained: 0, superMeter: d.startSuper || 0, blinkCd: 1.5,
       walk: 0, icon: null, iconT: 0, bark: null, barkT: 0, flash: 0,
       armed: !d.startsUnarmed, fizzles: 0, beaten: false,
     };
   }
 
   // ---------------------------------------------------------------- setup
+  // opts: { scenario, party: [{key, level, hpFrac}], mods: {approach}, enemyLevel,
+  //         seed, intro, allOutUses, heroHp (legacy: {kael, eiryn} health fractions) }
   function createMatch(opts) {
     opts = opts || {};
     const rng = makeRng(opts.seed == null ? (Date.now() & 0xffffffff) : opts.seed);
+    const sc = SCENARIOS[opts.scenario || 'clearing'];
+    const party = opts.party || [];
+    const mod = (sc.mods && opts.mods && sc.mods[opts.mods.approach]) || {};
     const hp = opts.heroHp || {};
-    const units = [
-      makeUnit('kael', 'kael', -7.5, -1.2, 0.2, hp.kael),
-      makeUnit('eiryn', 'eiryn', -0.8, 2.2, -1.6, hp.eiryn),
-      makeUnit('brute', 'brute', 0.5, 0.7, 2.3, 1),
-      makeUnit('knife', 'knife', -2.4, 0.7, 0.8, 1),
-      makeUnit('grabber', 'grabber', 2.8, 2.6, 3.0, 1),
-      makeUnit('lookout', 'lookout', 6.2, -3.8, 2.6, 1),
-    ];
+    const units = [], count = {};
+    for (const spec of sc.units) {
+      let key = spec.key, level = spec.team === 'hero' ? 1 : opts.enemyLevel || 1, hpFrac = 1, x = spec.x, y = spec.y, f = spec.f;
+      let slot = null;
+      if (spec.slot != null) {
+        const m = party[spec.slot];
+        if (!m) continue;
+        key = m.key; level = m.level || 1; hpFrac = m.hpFrac == null ? 1 : m.hpFrac; slot = spec.slot;
+        const o = mod['slot' + spec.slot];
+        if (o) { x = o.x; y = o.y; if (o.f != null) f = o.f; }
+      } else {
+        if (DEFS[key].team === 'hero') level = (opts.allyLevel || 1);
+        if (hp[key] != null) hpFrac = hp[key];
+        if (mod[key]) { x = mod[key].x; y = mod[key].y; }
+      }
+      count[key] = (count[key] || 0) + 1;
+      const id = count[key] > 1 ? key + count[key] : key;
+      const u = makeUnit(id, key, x, y, f, hpFrac, level);
+      u.slot = slot;
+      if (spec.morale != null) u.morale = spec.morale;
+      units.push(u);
+    }
+    useArena({ arena: ARENAS[sc.arena] });
+    const heroes = units.filter((u) => u.team === 'hero');
+    // Enemies scale with the scenario's difficulty and the size of the party:
+    // each fighter beyond the first adds health and a little damage.
+    const fighters = heroes.filter((u) => !u.guest).length;
+    // (Scenario difficulty applies when the player brings a party; the bare
+    // Chapter One match keeps its original tuning.)
+    const base = Object.assign({ hp: 1, dmg: 1 }, party.length ? sc.scale : null, opts.scale);
+    const hpMul = base.hp * (1 + 0.85 * (fighters - 1)), dmgMul = base.dmg * (1 + 0.35 * (fighters - 1));
+    for (const u of units) {
+      if (u.team === 'hero') continue;
+      u.maxHp = Math.round(u.maxHp * hpMul); u.hp = u.maxHp;
+      u.power *= dmgMul;
+    }
+    // The lead is the player's own fighter (slot 0), else the first non-guest hero.
+    const lead = units.find((u) => u.slot === 0) || heroes.find((u) => !u.guest) || heroes[0];
+    const foes = units.filter((u) => u.team !== 'hero');
     const s = {
-      t: 0, rng, arena: ARENA, units, projectiles: [],
+      t: 0, rng, arena: ARENA, units, projectiles: [], scenario: opts.scenario || 'clearing', title: sc.title,
       byId: Object.fromEntries(units.map((u) => [u.id, u])),
+      lead, mods: mod,
       tokens: {}, nextGrant: {}, phase: 'intro',
       // All Out: charges during the fight; usable a few times per match.
-      allOut: { meter: 0, uses: 0, maxUses: opts.allOutUses == null ? 2 : opts.allOutUses, active: 0 },
+      allOut: { meter: sc.allOutStart || 0, uses: 0, maxUses: opts.allOutUses == null ? (sc.allOutUses == null ? 2 : sc.allOutUses) : opts.allOutUses, active: 0 },
       cutscene: null, result: null,
       fx: [], log: [],
       stats: { parries: 0, dodges: 0, feintsRead: 0, feintsLanded: 0, hitsTaken: 0, fled: 0, beaten: 0, supers: 0 },
     };
+    // Face-off order: guests, then the opposition, then allies, the lead last.
+    const allies = heroes.filter((u) => !u.guest && u !== lead);
+    s.introOrder = [...heroes.filter((u) => u.guest), ...foes, ...allies, lead].map((u) => u.id);
+    const boss = s.byId[sc.vs] || foes.find((u) => u.def.boss) || foes[0];
+    s.vs = [lead.id, boss.id];
+    const guest = heroes.find((u) => u.guest);
     for (const u of units) {
-      if (u.def.firstTarget) u.target = s.byId[u.def.firstTarget];
-      else if (u.team === 'bandit') u.target = s.byId.eiryn;
+      if (u.def.firstTarget) u.target = s.byId[u.def.firstTarget] || guest || lead;
+      else if (u.team === 'bandit') u.target = guest || lead;
     }
-    s.byId.kael.target = s.byId.brute;
+    for (const u of heroes) if (!u.guest) u.target = boss;
+    if (mod.kaelSuper && s.byId.kael) s.byId.kael.superMeter = mod.kaelSuper;
     // With opts.intro the match waits for begin() so the face-off can play.
     if (!opts.intro) begin(s);
     return s;
@@ -193,33 +437,61 @@
   function begin(s) {
     if (s.phase === 'fight') return;
     s.phase = 'fight';
-    say(s, 'Four bandits have Eiryn cornered against the fallen trunk.');
-    const kael = s.byId.kael, eiryn = s.byId.eiryn;
+    useArena(s);
+    if (s.scenario === 'clearing') say(s, 'Four bandits have Eiryn cornered against the fallen trunk.');
+    const lead = s.lead, guest = s.units.find((u) => u.guest) || lead;
     for (const u of s.units) {
-      const t = u.target || kael;
+      const t = u.target || lead;
       const a = angTo(u, t);
       let goal = null, mul = 1, dur = 0.6, dash = false;
       switch (u.def.opener) {
         case 'rush': // straight at the biggest threat
           goal = { x: t.x - Math.cos(a) * 1.4, y: t.y - Math.sin(a) * 1.4 }; mul = 1.8; dur = 0.95; dash = true; break;
         case 'dip': { // slip sideways off the line before engaging
-          const side = s.rng() < 0.5 ? 1 : -1, b = angTo(u, kael) + side * 1.9;
+          const side = s.rng() < 0.5 ? 1 : -1, b = angTo(u, lead) + side * 1.9;
           goal = { x: u.x + Math.cos(b) * 2.2, y: u.y + Math.sin(b) * 2.2 }; mul = 1.6; dur = 0.5; dash = true; break;
         }
         case 'advance': // turn from Eiryn to face the newcomer
-          goal = { x: u.x + Math.cos(angTo(u, kael)) * 0.9, y: u.y + Math.sin(angTo(u, kael)) * 0.9 }; mul = 0.8; dur = 0.7; break;
+          goal = { x: u.x + Math.cos(angTo(u, t)) * 0.9, y: u.y + Math.sin(angTo(u, t)) * 0.9 }; mul = 0.8; dur = 0.7; break;
         case 'flank': // head round the trunk toward Eiryn
-          goal = { x: eiryn.x + 1.2, y: eiryn.y + 0.4 }; mul = 1.2; dur = 0.8; break;
+          goal = { x: guest.x + 1.2, y: guest.y + 0.4 }; mul = 1.2; dur = 0.8; break;
+        case 'retreat': { // back off to casting range
+          const b = angTo(t, u);
+          goal = { x: u.x + Math.cos(b) * 1.6, y: u.y + Math.sin(b) * 1.6 }; mul = 1.2; dur = 0.5; break;
+        }
+        case 'blink': // appear right in front of the target
+          blink(s, u, t, true); break;
         case 'hangback': // edge back toward the path
           goal = u.def.post; mul = 0.6; dur = 1.2; break;
         case 'brace': // back against the trunk
           goal = { x: u.x - 0.3, y: u.y + 0.5 }; mul = 0.6; dur = 0.5; break;
       }
       if (!goal) continue;
+      if (u.def.noncombat && s.mods.noDistract) { u.fleeing = true; continue; }
       u.openGoal = goal; u.openMul = mul;
       setState(u, 'opener', dur);
       if (dash) s.fx.push({ type: 'dash', unit: u.id, x: u.x, y: u.y, a: angTo(u, goal) });
     }
+    // Charging straight in catches the bandits off guard.
+    if (s.mods.surprise) for (const u of s.units) if (u.team === 'bandit' && !u.def.noncombat) setState(u, 'stagger', 0.9);
+  }
+
+  // ---------------------------------------------------------------- blink
+  // Teleport-step: vanish and reappear beside the target.
+  function blink(s, u, t, free) {
+    if (!u.def.blink || (!free && u.blinkCd > 0) || !alive(t)) return false;
+    const side = s.rng() < 0.5 ? 1 : -1;
+    const a = angTo(t, u) + side * 0.9;
+    const reach = (u.def.attack ? u.def.attack.range : 1.2) + t.r * 0.5;
+    const nx = t.x + Math.cos(a) * reach, ny = t.y + Math.sin(a) * reach;
+    if ((nx / ARENA.rx) ** 2 + (ny / ARENA.ry) ** 2 > 0.92) return false;
+    for (const o of ARENA.obstacles) { const c = obstacleCenter(o, nx, ny); if (Math.hypot(nx - c.x, ny - c.y) < o.r + u.r) return false; }
+    s.fx.push({ type: 'blink', unit: u.id, x0: u.x, y0: u.y, x1: nx, y1: ny });
+    u.x = nx; u.y = ny; u.vx = 0; u.vy = 0;
+    u.facing = angTo(u, t);
+    u.blinkCd = u.def.blink.cd * (0.8 + s.rng() * 0.4);
+    if (!free) setState(u, 'recover', 0.12);
+    return true;
   }
 
   // ---------------------------------------------------------------- talk
@@ -275,7 +547,7 @@
 
   function startAttack(s, u, target, opts) {
     opts = opts || {};
-    const A = u.def.attack;
+    const A = opts.A || u.def.attack;
     const fast = inAllOut(u) ? 0.45 : 1;
     let wind = opts.riposte ? 0.14 : A.windup * fast * (0.9 + s.rng() * 0.2);
     if (opts.combo) wind *= 0.7;
@@ -386,7 +658,7 @@
       if (v.def.riposte) startAttack(s, v, u, { riposte: true });
       return false;
     }
-    let dmg = A.dmg[0] + s.rng() * (A.dmg[1] - A.dmg[0]);
+    let dmg = (A.dmg[0] + s.rng() * (A.dmg[1] - A.dmg[0])) * (u.power || 1);
     if (inAllOut(u)) dmg *= ALL_OUT.dmg * (u.aoPower || 1);
     if (u.act && u.act.wasFeint) {
       dmg *= 1.15;
@@ -405,7 +677,7 @@
     v.ky += Math.sin(a) * kn * 2.6;
     s.fx.push({ type: 'hit', x: v.x, y: v.y, dmg, big: dmg >= 18, from: u.team });
     // Being hit by Kael makes a bandit turn on him ("Make it look at me").
-    if (u.id === 'kael' && v.team === 'bandit') {
+    if (u.team === 'hero' && !u.guest && v.team === 'bandit') {
       v.target = u; v.aggroUntil = s.t + 5;
       if (!s.firstBlood) {
         s.firstBlood = true;
@@ -445,6 +717,13 @@
       say(s, `${v.name} is down.`);
       return;
     }
+    if (v.def.dissolve) {
+      // The Tower's fragments simply come apart.
+      v.beaten = true; v.fled = true; s.stats.beaten++;
+      s.fx.push({ type: 'dissolve', x: v.x, y: v.y, big: !!v.def.boss });
+      say(s, v.def.boss ? 'The Unseen comes apart into light.' : 'A fragment comes apart.');
+      return;
+    }
     // In the chapter nobody is killed: a beaten bandit goes down, then scrambles off.
     v.beaten = true;
     v.fleeing = true;
@@ -453,7 +732,7 @@
     say(s, `${v.name} has had enough.`);
     if (v.def.barks.flee) {
       bark(s, v, 'flee', 1.0);
-      if (v.id === 'grabber') bark(s, s.byId.kael, 'reply', 2.4);
+      if (v.id === 'grabber' && s.byId.kael) bark(s, s.byId.kael, 'reply', 2.4);
     }
     for (const o of s.units) if (o.team === 'bandit' && alive(o) && o !== v) o.morale -= 0.2;
   }
@@ -465,36 +744,43 @@
   // ---------------------------------------------------------------- super
   // Kael's heavy move plays as a cutscene: the world freezes, the camera
   // closes in, and the effect lands part-way through.
+  // Kael's heavy art; other fighters define def.heavy (merged over this).
   const SUPER = { name: 'Rising Cut', dur: 3.4, impactAt: 2.0, radius: 3.6, arc: 3.8, dmg: [26, 32] };
+  const heavyOf = (u) => Object.assign({}, SUPER, u.def.heavy || {});
 
   function trySuper(s, u) {
     if (!u.def.superMeter || u.superMeter < 100 || !FREE[u.state] || inAllOut(u) || isDrained(u)) return false;
-    const near = opponents(s, u).filter((o) => inFight(o) && dist(u, o) < SUPER.radius - 0.4);
+    const H = heavyOf(u);
+    const near = opponents(s, u).filter((o) => inFight(o) && dist(u, o) < (H.line ? H.radius : H.radius - 0.4));
     const t = u.target;
-    const wantIt = near.length >= 2 || (t && alive(t) && dist(u, t) < 2.4 && (t.state === 'stagger' || t.state === 'down')) || (u.hp < u.maxHp * 0.35 && near.length >= 1);
+    let wantIt;
+    if (H.line) wantIt = near.length >= 1 && t && inFight(t) && hasLOS(u, t);
+    else wantIt = near.length >= 2 || (t && alive(t) && dist(u, t) < 2.4 && (t.state === 'stagger' || t.state === 'down')) || (u.hp < u.maxHp * 0.35 && near.length >= 1) || (near.some((o) => o.def.boss) && near.length >= 1);
     if (!wantIt) return false;
-    const focus = near.length ? near : [t];
+    const focus = H.line ? [t] : near.length ? near : [t];
     let cx = 0, cy = 0;
     for (const o of focus) { cx += o.x; cy += o.y; }
     u.facing = Math.atan2(cy / focus.length - u.y, cx / focus.length - u.x);
     u.superMeter = 0;
     s.stats.supers++;
-    s.cutscene = { unit: u, name: SUPER.name, t: 0, dur: SUPER.dur, impactAt: SUPER.impactAt, applied: false, x0: u.x, y0: u.y };
+    s.cutscene = { unit: u, name: H.name, t: 0, dur: H.dur, impactAt: H.impactAt, applied: false, x0: u.x, y0: u.y, line: !!H.line };
     bark(s, u, 'super');
-    say(s, `${u.name} — ${SUPER.name}!`);
+    say(s, `${u.name} \u2014 ${H.name}!`);
     s.fx.push({ type: 'cutscene', unit: u.id });
     return true;
   }
 
   function applySuper(s) {
-    const c = s.cutscene, u = c.unit;
-    u.x += Math.cos(u.facing) * 1.6;
-    u.y += Math.sin(u.facing) * 1.6;
-    collideWorld(u);
+    const c = s.cutscene, u = c.unit, H = heavyOf(u);
+    if (!H.line) {
+      u.x += Math.cos(u.facing) * 1.6;
+      u.y += Math.sin(u.facing) * 1.6;
+      collideWorld(u);
+    }
     for (const v of opponents(s, u)) {
-      if (v.beaten || v.fleeing || dist(u, v) > SUPER.radius) continue;
-      if (Math.abs(angDiff(u.facing, angTo(u, v))) > SUPER.arc / 2) continue;
-      const dmg = Math.round(SUPER.dmg[0] + s.rng() * (SUPER.dmg[1] - SUPER.dmg[0]));
+      if (v.beaten || v.fleeing || dist(u, v) > H.radius) continue;
+      if (Math.abs(angDiff(u.facing, angTo(u, v))) > H.arc / 2) continue;
+      const dmg = Math.round((H.dmg[0] + s.rng() * (H.dmg[1] - H.dmg[0])) * (u.power || 1));
       v.hp -= dmg;
       v.flash = 0.2;
       const a = angTo(u, v);
@@ -563,36 +849,39 @@
   // "Where do you think you're going?" It was a mistake to look away: the
   // broad man charges while Kael is watching the lookout run.
   function distractKael(s) {
-    const k = s.byId.kael;
-    if (!alive(k) || !FREE[k.state] || inAllOut(k)) return;
+    const k = s.lead;
+    if (s.mods.noDistract || !alive(k) || !FREE[k.state] || inAllOut(k)) return;
     bark(s, k, 'distracted');
     k.pending = null; k.plan = null;
     setState(k, 'distracted', 0.6);
-    const b = s.byId.brute;
-    if (inFight(b)) {
+    const b = s.units.find((o) => o.def.punisher && inFight(o));
+    if (b) {
       b.target = k; b.aggroUntil = s.t + 3; b.distractPunish = s.t + 1.5; b.cd = 0;
-      say(s, 'Kael looks away. The broad man charges.');
+      say(s, `${k.name} looks away. ${b.name === 'Broad Bandit' ? 'The broad man' : b.name} charges.`);
     }
   }
 
   // ---------------------------------------------------------------- brains
   function chooseTargetKael(s, u) {
-    const eiryn = s.byId.eiryn;
-    // Kael lets a running bandit go.
+    // A running bandit is let go.
     const foes = opponents(s, u).filter(inFight);
     if (!foes.length) return null;
-    if (alive(eiryn) && !inAllOut(u)) {
-      let threat = null, best = 3.4;
-      for (const f of foes) {
-        if (f.target !== eiryn) continue;
-        const d = dist(f, eiryn);
-        if (d < best) { best = d; threat = f; }
+    // Protectors cut off anyone going for a guest ("Make it look at me").
+    const guests = u.def.protector ? s.units.filter((h) => h.team === u.team && h.guest && alive(h)) : [];
+    if (guests.length && !inAllOut(u)) {
+      let threat = null, best = 3.4, ward = null;
+      for (const g of guests) for (const f of foes) {
+        if (f.target !== g) continue;
+        const d = dist(f, g);
+        if (d < best) { best = d; threat = f; ward = g; }
       }
-      if (threat) {
+      // Only the protector nearest the guest answers it.
+      const nearer = threat && s.units.some((h) => h !== u && h.team === u.team && !h.guest && h.def.protector && alive(h) && dist(h, ward) < dist(u, ward) - 0.5);
+      if (threat && !nearer) {
         if (u.target !== threat) {
-          if (threat.def.flanker && dist(threat, eiryn) < 2) bark(s, u, 'protect');
-          if (eiryn.def.barks.warn && dist(threat, eiryn) > 1.2 && s.rng() < 0.5) bark(s, eiryn, 'warn');
-          say(s, `Kael moves to cut off ${threat.name}.`);
+          if (threat.def.flanker && dist(threat, ward) < 2) bark(s, u, 'protect');
+          if (ward.def.barks.warn && dist(threat, ward) > 1.2 && s.rng() < 0.5) bark(s, ward, 'warn');
+          say(s, `${u.name} moves to cut off ${threat.name}.`);
         }
         return threat;
       }
@@ -615,6 +904,8 @@
     const A = u.def.attack;
     const d = dist(u, t);
     const reach = A.range + t.r - 0.15;
+    // Blinkers close the gap in a single step.
+    if (d > 3.5 && d < u.def.blink?.range && blink(s, u, t)) return;
     // Anticipate: if the foe is still winding up and our blade is faster, cut in.
     if (t.state === 'attack' && t.act && t.act.phase === 'windup' && !t.def.ranged) {
       const left = t.act.wind - t.act.t;
@@ -664,9 +955,11 @@
       return startAttack(s, u, near);
     }
     if (inAllOut(u)) return moveTo(s, u, near.x, near.y, 1.2, near);
-    const kael = s.byId.kael;
+    // Stay behind the nearest of the party's fighters.
+    let kael = null, kd = Infinity;
+    for (const h of s.units) if (h.team === u.team && !h.guest && alive(h) && dist(h, u) < kd) { kd = dist(h, u); kael = h; }
     let gx, gy;
-    if (alive(kael)) {
+    if (kael) {
       const a = angTo(near, kael);
       gx = kael.x + Math.cos(a) * 1.8;
       gy = kael.y + Math.sin(a) * 1.8;
@@ -679,11 +972,54 @@
     moveTo(s, u, gx, gy, 0.95, near);
   }
 
+  // Casters keep their distance, shoot force bolts, and shove anyone who
+  // gets on top of them.
+  function brainCaster(s, u, dt) {
+    if (trySuper(s, u)) return;
+    const foes = opponents(s, u).filter(inFight);
+    if (!foes.length) return idle(u, dt);
+    let near = null, nd = Infinity;
+    for (const f of foes) { const d = dist(u, f); if (d < nd) { nd = d; near = f; } }
+    const M = u.def.melee, A = u.def.attack;
+    if (M && nd < M.range + near.r && (u.sta >= M.sta || inAllOut(u)) && (u.cd <= 0 || inAllOut(u))) {
+      u.cd = inAllOut(u) ? 0 : 0.9;
+      return startAttack(s, u, near, { A: M });
+    }
+    // Pick a target: whoever is pressing an ally hardest, else the weakest in sight.
+    let t = inFight(u.target) && hasLOS(u, u.target) && s.t < (u.keepUntil || 0) ? u.target : null;
+    if (!t) {
+      let best = Infinity;
+      for (const f of foes) {
+        if (!hasLOS(u, f)) continue;
+        let sc = f.hp / f.maxHp * 4 + dist(u, f) * 0.3;
+        if (f.target && f.target.team === u.team && f.target !== u) sc -= 1.5;
+        if (f.def.boss) sc -= 1;
+        if (sc < best) { best = sc; t = f; }
+      }
+      u.keepUntil = s.t + 2.5;
+    }
+    t = u.target = t || near;
+    const want = u.def.keepAway;
+    if (nd < want - 1.4 && !inAllOut(u)) {
+      const a = angTo(near, u);
+      return moveTo(s, u, u.x + Math.cos(a) * 2.2, u.y + Math.sin(a) * 2.2, 1.0, near);
+    }
+    const d = dist(u, t);
+    if ((u.cd <= 0 || inAllOut(u)) && (u.sta >= A.sta || inAllOut(u)) && d < A.range && hasLOS(u, t)) {
+      u.cd = inAllOut(u) ? 0.15 : 1.0 + s.rng() * 0.6;
+      return startAttack(s, u, t);
+    }
+    if (d > A.range * 0.9 || !hasLOS(u, t)) return moveTo(s, u, t.x, t.y, 0.9, t);
+    circle(s, u, t, Math.min(d, want), 0.45, dt);
+  }
+
   function chooseTargetBandit(s, u) {
-    const kael = s.byId.kael, eiryn = s.byId.eiryn;
-    // The Broad Bandit punishes a drained team: All Out has a price.
+    const heroes = s.units.filter((h) => h.team === 'hero' && alive(h));
+    const lead = alive(s.lead) ? s.lead : heroes.find((h) => !h.guest) || heroes[0];
+    const guest = heroes.find((h) => h.guest);
+    // Punishers go for anyone drained: All Out has a price.
     if (u.def.punisher) {
-      for (const h of [kael, eiryn]) {
+      for (const h of heroes) {
         if (alive(h) && isDrained(h) && dist(u, h) < 7) {
           if (u.target !== h) { bark(s, u, 'punish'); say(s, `${u.name} sees ${h.name} gasping for breath.`); }
           return h;
@@ -691,15 +1027,22 @@
       }
     }
     if (alive(u.target) && s.t < u.aggroUntil) return u.target;
-    if (u.def.flanker && alive(eiryn) && alive(kael) && dist(kael, eiryn) > 2.4) return eiryn;
-    if (u.distractPunish && s.t < u.distractPunish && alive(kael)) return kael;
-    if (alive(u.target) && u.target === eiryn && s.t < 6) return eiryn;
-    return alive(kael) ? kael : alive(eiryn) ? eiryn : null;
+    if (u.def.flanker && guest && lead && !heroes.some((h) => !h.guest && dist(h, guest) < 2.4)) return guest;
+    if (u.distractPunish && s.t < u.distractPunish && lead) return lead;
+    if (alive(u.target) && u.target === guest && s.t < 6) return guest;
+    // Otherwise the nearest of the party's fighters, keeping to the current one.
+    let best = null, bd = Infinity;
+    for (const h of heroes) {
+      if (h.guest && heroes.some((o) => !o.guest)) continue;
+      const d = dist(u, h) - (h === u.target ? 1.5 : 0) - (h.def.taunt ? 1.2 : 0);
+      if (d < bd) { bd = d; best = h; }
+    }
+    return best || null;
   }
 
   function brainBandit(s, u, dt) {
     const fighting = s.units.filter((o) => o.team === 'bandit' && inFight(o)).length;
-    if (!u.fleeing && (u.morale < 0.2 || (u.def.noncombat && fighting <= 1))) {
+    if (!u.fleeing && !u.def.noFlee && (u.morale < 0.2 || (u.def.noncombat && fighting <= 1))) {
       u.fleeing = true;
       releaseTokens(s, u);
       bark(s, u, 'flee');
@@ -709,7 +1052,7 @@
     if (u.fleeing) return moveTo(s, u, ARENA.exit.x, ARENA.exit.y, u.beaten ? 1.0 : 1.15, null, true);
     if (u.def.noncombat) {
       // Hangs back by the path and watches.
-      const kael = s.byId.kael;
+      const kael = s.lead;
       if (Math.hypot(u.x - u.def.post.x, u.y - u.def.post.y) > 0.6) return moveTo(s, u, u.def.post.x, u.def.post.y, 0.5, kael);
       if (alive(kael)) u.facing = angTo(u, kael);
       return idle(u, dt);
@@ -721,6 +1064,8 @@
     const A = u.def.attack;
     const d = dist(u, t);
 
+    // Blinkers step in from anywhere, and sometimes away again after striking.
+    if (d > 3 && blink(s, u, t)) return;
     if (u.def.ranged) {
       const want = u.def.keepAway;
       if (d < want - 1.2) {
@@ -734,7 +1079,7 @@
       return circle(s, u, t, want, 0.6, dt);
     }
 
-    const punishing = (u.def.punisher && isDrained(t)) || (u.distractPunish && s.t < u.distractPunish && t.id === 'kael');
+    const punishing = (u.def.punisher && isDrained(t)) || (u.distractPunish && s.t < u.distractPunish && t === s.lead) || u.def.boss;
     const token = holdsToken(s, u, t) || (u.cd <= 0 && requestToken(s, u, t, punishing));
     const reach = A.range + t.r - 0.1;
     if (token) {
@@ -781,7 +1126,7 @@
     return true;
   }
   const NAV_PAD = 0.75;
-  const NAV = (function buildNav() {
+  function buildNav() {
     const nodes = [];
     for (const o of ARENA.obstacles) {
       const R = o.r + NAV_PAD;
@@ -812,7 +1157,13 @@
       }
     }
     return { nodes: ok, edges };
-  })();
+  }
+
+  // Point the module at a match's arena (and its cached path graph).
+  function useArena(s) {
+    ARENA = s.arena;
+    NAV = ARENA.nav || (ARENA.nav = buildNav());
+  }
 
   function findWaypoint(u, gx, gy) {
     const goal = { x: gx, y: gy };
@@ -927,6 +1278,7 @@
   function stepUnit(s, u, dt) {
     u.st += dt;
     if (u.cd > 0) u.cd -= dt;
+    if (u.blinkCd > 0) u.blinkCd -= dt;
     if (u.iconT > 0) u.iconT -= dt;
     if (u.barkDelay > 0) u.barkDelay -= dt; else if (u.barkT > 0) u.barkT -= dt;
     if (u.flash > 0) u.flash -= dt;
@@ -959,7 +1311,7 @@
       case 'cast':
       case 'pickup':
         u.vx *= 0.82; u.vy *= 0.82;
-        if (u.st >= u.dur) { setState(u, 'idle'); if (u.id === 'kael') u.combo = 0; }
+        if (u.st >= u.dur) { setState(u, 'idle'); if (u.team === 'hero') u.combo = 0; }
         break;
       case 'dodge': {
         const sp = u.st < 0.3 ? 5.8 : 1.5;
@@ -968,7 +1320,7 @@
         break;
       }
       default:
-        if (u.team === 'hero') (u.id === 'kael' ? brainKael : brainEiryn)(s, u, dt);
+        if (u.team === 'hero') (u.def.brain === 'caster' ? brainCaster : u.guest ? brainEiryn : brainKael)(s, u, dt);
         else brainBandit(s, u, dt);
     }
 
@@ -1041,10 +1393,11 @@
         releaseTokens(s, u);
         u.act = null;
         setState(u, 'idle');
-        if (u.id === 'kael') {
-          u.combo = Math.min(u.combo + 1, 2);
-          u.cd = u.combo >= 2 ? 1.5 + s.rng() * 0.9 : 0.2 + s.rng() * 0.2;
-          if (u.combo >= 2) u.combo = 0;
+        if (u.team === 'hero' && !u.guest && u.def.brain !== 'caster') {
+          const cmax = u.def.combo || 2;
+          u.combo = Math.min(u.combo + 1, cmax);
+          u.cd = u.combo >= cmax ? 1.5 + s.rng() * 0.9 : 0.2 + s.rng() * 0.2;
+          if (u.combo >= cmax) u.combo = 0;
         } else if (u.team === 'bandit' && !u.def.ranged) {
           u.cd = 1.6 + s.rng() * 1.0;
         }
@@ -1076,6 +1429,7 @@
 
   function step(s, dt) {
     if (s.result || s.phase !== 'fight') return;
+    useArena(s);
     if (s.cutscene) {
       const c = s.cutscene;
       c.t += dt;
@@ -1096,7 +1450,7 @@
   }
 
   function checkEnd(s) {
-    const kael = s.byId.kael;
+    const kael = s.lead;
     const heroesUp = s.units.some((u) => u.team === 'hero' && !u.guest && alive(u));
     if (!heroesUp) {
       s.result = { outcome: 'loss', time: s.t };
@@ -1115,11 +1469,11 @@
   function surrender(s) {
     if (s.result) return;
     s.result = { outcome: 'surrender', time: s.t };
-    say(s, 'Kael pulls Eiryn back toward the road. Match abandoned.');
+    say(s, `${s.lead.name} pulls back. Match abandoned.`);
   }
 
   return {
-    createMatch, begin, step, triggerAllOut, allOutReady, surrender, makeRng,
-    ARENA, DEFS, INTRO_ORDER, SUPER, ALL_OUT, NAV, obstacleCenter, hasLOS, alive, inFight,
+    createMatch, begin, step, triggerAllOut, allOutReady, surrender, makeRng, SCENARIOS, heavyOf,
+    get ARENA() { return ARENA; }, ARENAS, DEFS, INTRO_ORDER, SUPER, ALL_OUT, get NAV() { return NAV; }, obstacleCenter, hasLOS, alive, inFight,
   };
 });
