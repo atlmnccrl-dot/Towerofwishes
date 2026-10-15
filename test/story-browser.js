@@ -33,13 +33,24 @@ const errors = [];
   const view = () => page.evaluate(() => window.__tow.view);
   const shot = (name) => page.screenshot({ path: path.join(out, name + '.png') });
   const visited = [];
+  const visitedMap = new Set();
 
   // Tap through scenes and cards until something other than a scene or card is up.
-  async function tapThrough(maxTaps, shotEvery) {
+  async function tapThrough(maxTaps, shotEvery, stopAtWorld) {
     for (let i = 0; i < maxTaps; i++) {
       const v = await view();
       const n = await node();
       if (!visited.includes(n)) { visited.push(n); if (shotEvery) await shot('n-' + n.replace(/\./g, '_')); }
+      if (v === 'world' && stopAtWorld) return;
+      if (v === 'world') {
+        // The map between chapters: open the current story node.
+        const cur = await page.evaluate(() => { const v = window.TowCampaign.view(window.TowStory, window.__tow.story); return v.current; });
+        if (!cur || !visitedMap.has(cur)) { if (cur) visitedMap.add(cur); await shot('w-' + (cur || 'end')); }
+        if (!cur) return;
+        await page.evaluate((id) => { window.__tow.debug.pickNode(id); window.__tow.debug.goNode(id); }, cur);
+        await page.waitForTimeout(300);
+        continue;
+      }
       if (v !== 'story') return;
       const kind = await page.evaluate(() => window.__tow.story && document.getElementById('choices').hidden ? 'tap' : 'choice');
       if (kind === 'choice') return;
@@ -81,6 +92,17 @@ const errors = [];
   await shot('0-menu');
   await page.click('#btn-story');
   await tapThrough(20, true);                 // title card, the Tower
+  // The prologue fight is the guided tutorial: the coach pauses the fight.
+  await page.waitForFunction(() => window.__tow.match, null, { timeout: 5000 });
+  await page.evaluate(() => window.__tow.debug.skipIntro());
+  await page.waitForFunction(() => !document.getElementById('coach').hidden, null, { timeout: 8000 }).catch(() => errors.push('coach never appeared'));
+  await shot('t-coach-1');
+  await page.click('#coach-ok');
+  await page.waitForFunction(() => !document.getElementById('coach').hidden, null, { timeout: 12000 }).catch(() => errors.push('All Out coach never appeared'));
+  await shot('t-coach-allout');
+  await page.click('#btn-allout', { force: true });
+  await page.waitForTimeout(500);
+  if (!(await page.evaluate(() => window.__tow.match.allOut.uses > 0))) errors.push('coach: All Out tap did not fire');
   await winBattle('prologue');                // the Last Ascent
   await tapThrough(20, true);                 // the light, the Reset, 22 years later
   if ((await view()) !== 'select') errors.push('expected character select, got ' + (await view()));
@@ -102,6 +124,36 @@ const errors = [];
   await choose(1, 'fine');                    // let Kael pay
   await tapThrough(40, true);
   await choose(0, 'party');                   // Kael and Eiryn
+  // Side missions from the Guild: the yard, a contract, the arcade.
+  await page.evaluate(() => window.__tow.debug.world());
+  await page.waitForTimeout(400);
+  await shot('w-branch');
+  for (const id of ['yard', 'cart', 'gauntlet']) {
+    await page.evaluate((x) => { window.__tow.debug.pickNode(x); }, id);
+    await page.waitForTimeout(200);
+    await shot('w-card-' + id);
+    await page.evaluate((x) => window.__tow.debug.goNode(x), id);
+    await page.waitForTimeout(300);
+    await tapThrough(20, false, true);
+    await winBattle('side-' + id);
+    await tapThrough(20, false, true);
+    const v = await view();
+    if (v !== 'world') errors.push(`after ${id}: expected the map, got ${v}`);
+  }
+  const inv = await page.evaluate(() => window.__tow.save.prog.inv.length);
+  if (inv < 1) errors.push('no loot after side missions');
+  // Team screen: equip something and learn a skill.
+  await page.evaluate(() => window.__tow.debug.team());
+  await page.waitForTimeout(300);
+  await shot('team-1');
+  await page.evaluate(() => { const b = document.querySelector('#tm-inv button'); if (b) b.click(); const s = document.querySelector('.skill.can'); if (s) s.click(); });
+  await page.waitForTimeout(200);
+  await shot('team-2');
+  const kit = await page.evaluate(() => ({ skills: Object.values(window.__tow.save.prog.skills).flat().length, equipped: Object.values(window.__tow.save.prog.equip).length }));
+  if (!kit.skills) errors.push('could not learn a skill');
+  await page.click('#btn-team-back');
+  await page.evaluate(() => window.__tow.debug.world());
+  await page.waitForTimeout(200);
   await tapThrough(30, true);
   await choose(0, 'fork');                    // longer path
   await tapThrough(20, true);
@@ -113,16 +165,25 @@ const errors = [];
   await tapThrough(20, true);
   await winBattle('ogre');
   await tapThrough(40, true);
+  // The dungeon after Chapter Five: three rooms with a choice between.
+  await page.evaluate(() => { window.__tow.debug.pickNode('deep'); window.__tow.debug.goNode('deep'); });
+  await page.waitForTimeout(300);
+  await tapThrough(10, false);
+  await winBattle('deep1');
+  await choose(0, 'deep-rest');
+  await winBattle('deep2');
+  await winBattle('deep3');
+  await tapThrough(10, false);
   await page.waitForTimeout(300);
   await shot('z-end');
   const end = await page.evaluate(() => ({ node: window.__tow.story.node, view: window.__tow.view, xp: window.__tow.story.xp, flags: window.__tow.story.flags, hearts: window.__tow.save.hearts }));
-  if (end.node !== 'end' || end.view !== 'map') errors.push('did not reach the end: ' + JSON.stringify(end));
+  if (end.node !== 'end' || end.view !== 'world') errors.push('did not reach the end: ' + JSON.stringify(end));
   // Progress survives a reload.
   await page.reload();
   await page.waitForTimeout(800);
   const after = await page.evaluate(() => ({ node: window.__tow.story.node, label: document.getElementById('story-btn-label').textContent }));
   await shot('z-menu-after');
-  console.log(JSON.stringify({ end, after, visited: visited.length, errors }, null, 1));
+  console.log(JSON.stringify({ end, after, visited: visited.length, inv, kit, errors }, null, 1));
   await browser.close();
   server.close();
   if (errors.length) process.exit(1);

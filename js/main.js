@@ -6,6 +6,7 @@
 (function () {
   'use strict';
   const Sim = window.TowSim, Pg = window.TowProgress, Render = window.TowRender, Story = window.TowStory;
+  const Camp = window.TowCampaign, Prog = window.TowProgression;
   const $ = (id) => document.getElementById(id);
   const DT = 1 / 60;
   const SAVE_KEY = 'tow.save.v1';
@@ -20,7 +21,8 @@
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) { /* storage unavailable: progress lasts this visit */ }
   }
   let save = loadSave(), story = null;
-  function bindStory() { story = Story.normalise(save.story); save.story = story; }
+  let prog = null;
+  function bindStory() { story = Story.normalise(save.story); save.story = story; prog = Prog.normalise(save.prog); save.prog = prog; }
   bindStory();
 
   // ------------------------------------------------------------ state
@@ -77,7 +79,7 @@
   }
 
   function show(id) {
-    for (const s of ['menu', 'result', 'paused', 'story', 'select', 'map']) $(s).hidden = s !== id;
+    for (const s of ['menu', 'result', 'paused', 'story', 'select', 'map', 'world', 'team-screen']) $(s).hidden = s !== id;
     $('hud').hidden = !(id === null || id === 'paused');
     view = id || 'fight';
   }
@@ -99,9 +101,10 @@
     match = null; storyBattle = null;
     if (n.type !== 'select') setShowcase(null);
     if (n.type !== 'scene' && n.type !== 'choice') { stage = null; stageKey = null; renderer.setCameraOverride(null); }
+    // Between chapters the story waits on the world map.
+    if (!story.side && (Story.atGate(story) || n.type === 'end')) return showWorld();
     if (n.type === 'battle') return startStoryBattle();
     if (n.type === 'select') return showSelect();
-    if (n.type === 'end') { renderMap(); show('map'); return; }
     sceneBg = n.bg || 'tower'; sceneT = 0;
     // A node can stage itself, or keep the stage of the scene before it (stage: 'same').
     const sid = stageFor(Story.cur(story));
@@ -143,12 +146,18 @@
     const n = Story.node(story);
     if (n.type === 'card') {
       if (performance.now() - cardShownAt < 900) return;
-      Story.advance(story); runStory();
+      storyStep(() => Story.advance(story));
     } else if (n.type === 'scene') {
       if (typing()) { $('line').textContent = lineFull; return; }
       if (++lineIdx < lines.length) showLine();
-      else { Story.advance(story); runStory(); }
+      else storyStep(() => Story.advance(story));
     }
+  }
+  // Move the story on; a side episode that just ended returns to the map.
+  function storyStep(fn) {
+    const wasSide = !!story.side;
+    fn();
+    if (wasSide && !story.side) showWorld(); else runStory();
   }
   $('story').addEventListener('click', (e) => {
     tryLandscape();
@@ -158,11 +167,13 @@
   $('options').addEventListener('click', (e) => {
     const b = e.target.closest('button[data-i]');
     if (!b || b.disabled) return;
-    if (Story.choose(story, Number(b.dataset.i))) runStory();
+    storyStep(() => Story.choose(story, Number(b.dataset.i)));
   });
   $('btn-skip').addEventListener('click', () => {
-    while (Story.node(story).type === 'scene') Story.advance(story);
-    runStory();
+    storyStep(() => {
+      const side = !!story.side;
+      while (Story.node(story).type === 'scene' && !!story.side === side) { Story.advance(story); if (!story.side && Story.atGate(story)) break; }
+    });
   });
   $('btn-story-menu').addEventListener('click', () => { writeSave(); renderMenu(); show('menu'); });
 
@@ -209,9 +220,171 @@
     $('btn-map-continue').disabled = end;
     $('map-note').textContent = end ? 'Waiting on the next chapter' : chapterLabel(Story.node(story));
   }
-  $('btn-chapters').addEventListener('click', () => { renderMap(); show('map'); });
+  $('btn-chapters').addEventListener('click', () => { save = loadSave(); bindStory(); showWorld(); });
+  $('btn-team').addEventListener('click', () => { save = loadSave(); bindStory(); showTeam('menu'); });
   $('btn-map-continue').addEventListener('click', () => runStory());
   $('btn-map-back').addEventListener('click', () => { renderMenu(); show('menu'); });
+
+  // ------------------------------------------------------------ world map
+  const mapR = Render.map ? Render.map.create($('arena')) : null;
+  let worldSel = null, worldT = 0, worldView = null;
+  const KIND_TEXT = {
+    story: 'The main story. Uses a heart only if the whole team falls.',
+    contract: 'A Guild contract. No hearts. Pays in gear.',
+    side: 'A side story. No hearts. Something rare waits at the end.',
+    dungeon: 'Three chambers in a row; health carries between them. No hearts. Repeatable for loot.',
+    training: 'Practice in the Guild yard. No hearts. Repeatable.',
+    arcade: 'Endless waves for a high score. No hearts. More waves, better loot.',
+    locked: 'Beyond the written story.',
+  };
+  const LOOT_TEXT = { yard: 'Common gear', contract: 'Gear, sometimes fine', beast: 'The Stray’s Tooth (first clear) · fine gear', relic: 'A relic (first clear) · rare gear', deep: 'Gear from each chamber', chief: 'The Miller’s Cleaver (first clear) · rare and relic gear', gauntlet: 'One piece of gear per 3 waves', story: 'Experience and gear' };
+  function showWorld(sel) {
+    match = null; storyBattle = null; setShowcase(null);
+    stage = null; stageKey = null; renderer.setCameraOverride(null); renderer.setFollow(null);
+    writeSave();
+    worldView = Camp.view(Story, story);
+    worldSel = sel || worldView.current || worldSel;
+    const ch = Story.CHAPTERS.find((c) => c.id === Story.NODES[story.node].chapter);
+    $('world-title').textContent = ch ? `${ch.label} · ${ch.title}` : '';
+    $('world-hearts').innerHTML = Array.from({ length: Pg.HEART_MAX }, (_, i) => HEART_SVG.replace('class="heart"', `class="heart${i < save.hearts ? '' : ' empty'}"`)).join('');
+    $('world-fallback').hidden = !!mapR;
+    if (!mapR) $('world-fallback').innerHTML = worldView.nodes.map((n) => `<button type="button" data-id="${n.id}">${n.title} <small>· ${n.status}</small></button>`).join('');
+    renderNodeCard();
+    show('world');
+  }
+  function renderNodeCard() {
+    const n = worldView && worldView.nodes.find((x) => x.id === worldSel);
+    $('node-card').hidden = !n;
+    if (!n) return;
+    const ep = n.episode && Story.EPISODES[n.episode];
+    $('nc-sub').textContent = n.sub;
+    $('nc-title').textContent = n.title;
+    $('nc-text').textContent = n.status === 'locked' ? (n.lock || 'Locked') : KIND_TEXT[n.kind] || '';
+    const lootKey = { yard: 'yard', gauntlet: 'gauntlet', cart: 'contract', stray: 'beast', crossing: 'relic', deep: 'chief' }[n.episode] || (n.kind === 'story' ? 'story' : null);
+    $('nc-reward').textContent = (lootKey ? 'Rewards: ' + LOOT_TEXT[lootKey] : '') + (n.kind === 'arcade' && n.best ? ` · Best: ${n.best} waves` : '') + (n.cleared && ep && ep.repeat ? ` · Cleared ${n.cleared}×` : '');
+    const go = $('btn-node-go');
+    let label = 'Go', note = '', ok = true;
+    if (n.status === 'locked') { label = 'Locked'; ok = false; }
+    else if (n.kind === 'story') {
+      if (n.status === 'done') { label = 'Cleared'; ok = false; }
+      else if (n.id === 'prologue') { label = 'Played'; ok = false; }
+      else { label = Story.atGate(story) ? 'Begin chapter' : 'Continue'; note = 'Story'; }
+    } else if (n.status === 'done') { label = 'Cleared'; ok = false; }
+    else { label = n.cleared ? 'Run again' : 'Start'; note = 'No hearts'; }
+    $('nc-go').textContent = label; $('nc-note').textContent = note; go.disabled = !ok;
+  }
+  function goNode(id) {
+    const n = Camp.NODES.find((x) => x.id === id);
+    if (!n) return;
+    const st = Camp.status(Story, story, n);
+    if (st === 'locked') return;
+    if (n.kind === 'story') {
+      if (st !== 'current') return;
+      Story.openChapter(story);
+      runStory();
+    } else if (n.episode && st !== 'done') {
+      Story.startSide(story, n.episode);
+      runStory();
+    }
+  }
+  function pickWorld(id) { if (!id) return; worldSel = id; renderNodeCard(); }
+  $('btn-node-go').addEventListener('click', () => goNode(worldSel));
+  $('btn-world-menu').addEventListener('click', () => { renderMenu(); show('menu'); });
+  $('btn-world-team').addEventListener('click', () => showTeam('world'));
+  $('world-fallback').addEventListener('click', (e) => { const b = e.target.closest('button[data-id]'); if (b) pickWorld(b.dataset.id); });
+
+  // ------------------------------------------------------------ team: gear and skills
+  let teamKey = null, teamSlot = 'weapon', teamBack = 'menu';
+  function showTeam(back) {
+    teamBack = back || 'menu';
+    const r = Story.roster(story);
+    if (!r.length) { renderMenu(); show('menu'); return; }
+    if (!teamKey || !r.some((m) => m.key === teamKey)) teamKey = r[0].key;
+    renderTeam();
+    show('team-screen');
+  }
+  function renderTeam() {
+    const r = Story.roster(story);
+    $('team-tabs').innerHTML = r.map((m) => `<button class="tab${m.key === teamKey ? ' on' : ''}" type="button" data-k="${m.key}">${Sim.DEFS[m.key].name.split(' ')[0]}<small>Lv ${m.level}</small></button>`).join('');
+    const d = Sim.DEFS[teamKey], mods = Prog.modsFor(prog, teamKey);
+    const m = r.find((x) => x.key === teamKey);
+    $('tm-name').textContent = d.name;
+    const hp = Math.round(d.hp * (1 + 0.1 * (m.level - 1)) * (1 + (mods.hp || 0)));
+    $('tm-stats').textContent = `Level ${m.level} · ${hp} health · heavy art: ${(d.heavy && d.heavy.name) || 'Rising Cut'}` + (Object.keys(mods).length ? ' · ' + Prog.describe(mods) : ' · no bonuses yet');
+    const eq = prog.equip[teamKey] || {};
+    $('tm-slots').innerHTML = Prog.SLOTS.map((sl) => {
+      const it = eq[sl] && Prog.item(prog, eq[sl]);
+      const I = it && Prog.ITEMS[it.id];
+      return `<button class="slot${sl === teamSlot ? ' on' : ''}" type="button" data-slot="${sl}"><span>${sl}</span><b style="color:${I ? Prog.RARITY[I.rarity].color : 'inherit'}">${I ? I.name : '— empty —'}<i>${I ? Prog.describe(I.mods) : ''}</i></b></button>`;
+    }).join('');
+    const fits = prog.inv.filter((it) => Prog.ITEMS[it.id].slot === teamSlot && Prog.canEquip(teamKey, it.id));
+    $('tm-inv').innerHTML = fits.length ? fits.map((it) => {
+      const I = Prog.ITEMS[it.id], who = Prog.wearer(prog, it.uid);
+      const on = who === teamKey;
+      return `<button type="button" data-uid="${it.uid}" style="color:${Prog.RARITY[I.rarity].color}">${on ? '✓ ' : ''}${I.name}${who && !on ? ` (on ${Sim.DEFS[who].name.split(' ')[0]})` : ''}<i>${Prog.RARITY[I.rarity].label} · ${Prog.describe(I.mods)}</i></button>`;
+    }).join('') : `<p class="statline">No ${teamSlot === 'weapon' ? 'weapons this fighter can use' : teamSlot} yet. Missions and contracts drop gear.</p>`;
+    const pts = Prog.points(prog, teamKey, m.level) - Prog.spent(prog, teamKey);
+    $('tm-points').textContent = `${pts} point${pts === 1 ? '' : 's'} to spend · one per level`;
+    const have = prog.skills[teamKey] || [];
+    $('tm-tree').innerHTML = (Prog.TREES[teamKey] || []).map((b) => `<div class="branch"><span>${b.name}</span>${b.nodes.map((n) => {
+      const id = Prog.skillId(b.name, n.i), own = have.includes(id), can = Prog.canLearn(prog, teamKey, m.level, b.name, n.i);
+      return `<button class="skill${own ? ' have' : can ? ' can' : ''}" type="button" data-b="${b.name}" data-i="${n.i}" ${own || can ? '' : 'disabled'}>${n.name}<i>${Prog.describe(n.mods)}</i></button>`;
+    }).join('')}</div>`).join('');
+  }
+  $('team-tabs').addEventListener('click', (e) => { const b = e.target.closest('.tab'); if (b) { teamKey = b.dataset.k; renderTeam(); } });
+  $('tm-slots').addEventListener('click', (e) => { const b = e.target.closest('.slot'); if (b) { teamSlot = b.dataset.slot; renderTeam(); } });
+  $('tm-inv').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-uid]');
+    if (!b) return;
+    const uid = Number(b.dataset.uid);
+    if (Prog.wearer(prog, uid) === teamKey) Prog.unequip(prog, teamKey, teamSlot); else Prog.equip(prog, teamKey, uid);
+    writeSave(); renderTeam();
+  });
+  $('tm-tree').addEventListener('click', (e) => {
+    const b = e.target.closest('.skill');
+    if (!b || b.disabled) return;
+    const m = Story.roster(story).find((x) => x.key === teamKey);
+    if (Prog.learn(prog, teamKey, m.level, b.dataset.b, Number(b.dataset.i))) { writeSave(); renderTeam(); }
+  });
+  $('btn-respec').addEventListener('click', () => { Prog.respec(prog, teamKey); writeSave(); renderTeam(); });
+  $('btn-team-back').addEventListener('click', () => { if (teamBack === 'world') showWorld(); else { renderMenu(); show('menu'); } });
+
+  // ------------------------------------------------------------ guided tutorial (the prologue fight)
+  let coach = { i: 0, on: false, enabled: false };
+  const COACH = [
+    { when: (m) => m.t > 0.8, title: 'You watch. They fight.', text: 'Every fighter reads wind-ups, parries, dodges and feints on their own. Your job is timing.' },
+    { when: (m) => m.t > 3 && Sim.allOutReady(m), title: 'ALL OUT', text: 'Tap ALL OUT now. Everyone burns their stamina and power into a flurry — then they’re drained and can’t dodge or block until they recover.', target: '#btn-allout', wait: 'allout' },
+    { when: (m) => m.t > 9, title: 'Follow a fighter', text: 'Tap the climber, or their card at the top left, to follow them with the camera. Tap again to let go.', target: '#team .card', wait: 'follow' },
+    { when: (m) => m.t > 14, title: 'Heavy arts', text: 'When the bar under a name fills, that fighter unleashes a heavy art as a cutscene. Tap the screen to jump to the impact.' },
+    { when: (m) => m.t > 19, title: 'Withdraw', text: 'Hold the flag to leave a story fight. No heart lost, but your team leaves injured.', target: '#btn-withdraw' },
+  ];
+  function coachTick() {
+    if (!coach.enabled || !match || match.result || faceoff || match.phase !== 'fight') return;
+    if (coach.on) {
+      const c = COACH[coach.i];
+      if ((c.wait === 'allout' && match.allOut.uses > 0) || (c.wait === 'follow' && renderer.follow)) coachDone();
+      else placeRing(c);
+      return;
+    }
+    if (match.cutscene || coach.i >= COACH.length) return;
+    const c = COACH[coach.i];
+    if (!c.when(match)) return;
+    coach.on = true;
+    $('coach-title').textContent = c.title; $('coach-text').textContent = c.text;
+    $('coach-ok').hidden = c.wait === 'allout';
+    $('coach').hidden = false;
+    placeRing(c);
+  }
+  function placeRing(c) {
+    const el = c.target && document.querySelector(c.target);
+    const ring = $('coach-ring');
+    if (!el || !el.getClientRects().length) { ring.hidden = true; return; }
+    const b = el.getBoundingClientRect(), pad = 8, d = Math.max(b.width, b.height) + pad * 2;
+    ring.hidden = false;
+    Object.assign(ring.style, { left: `${b.left + b.width / 2 - d / 2}px`, top: `${b.top + b.height / 2 - d / 2}px`, width: `${d}px`, height: `${d}px` });
+  }
+  function coachDone() { coach.on = false; coach.i++; $('coach').hidden = true; }
+  $('coach-ok').addEventListener('click', coachDone);
 
   function startStoryBattle() {
     const spec = Story.battle(story);
@@ -219,12 +392,13 @@
     if (spec.hearts && !Pg.canStartStory(save)) { renderMenu(); show('menu'); return; }
     const now = Date.now();
     const hp = (k, f) => Math.min(f == null ? 1 : f, spec.hearts ? Pg.hpFrac(save, k, now) : 1);
-    const party = spec.party.map((m) => Object.assign({}, m, { hpFrac: hp(m.key, m.hpFrac) }));
-    startMatch(spec.hearts ? 'story' : 'tutorial', undefined, {
+    const party = spec.party.map((m) => Object.assign({}, m, { hpFrac: hp(m.key, m.hpFrac), mods: Prog.modsFor(prog, m.key) }));
+    startMatch(spec.hearts ? 'story' : spec.side ? 'side' : 'tutorial', undefined, {
       scenario: spec.scenario, party, mods: spec.mods,
       heroHp: spec.hearts ? { kael: hp('kael'), eiryn: 1 } : {},
     });
-    storyBattle = spec;
+    storyBattle = Object.assign(spec, { node: Story.cur(story) });
+    coach = { i: 0, on: false, enabled: !!spec.tutorial };
   }
 
   // ------------------------------------------------------------ match
@@ -234,6 +408,7 @@
     const heroHp = mode === 'story' ? { kael: Pg.hpFrac(save, 'kael', now), eiryn: Pg.hpFrac(save, 'eiryn', now) } : {};
     match = Sim.createMatch(Object.assign({ heroHp, seed, intro: true }, opts));
     storyBattle = null;
+    coach = { i: 0, on: false, enabled: false }; $('coach').hidden = true;
     $('tip').hidden = true;
     faceoff = { t: 0 }; // face-off and countdown before the fight
     acc = 0; hitstop = 0; resultShownAt = 0; lastLog = 0; paused = false;
@@ -252,12 +427,26 @@
     for (const u of match.units) if (u.team === 'hero') fracs[u.key] = frac(u);
     const before = save.hearts;
     Pg.applyResult(save, mode, r.outcome, fracs, now);
-    let growth = null;
-    if (storyBattle) growth = Story.finishBattle(story, r.outcome);
+    let growth = null, loot = [];
+    if (storyBattle) {
+      const sb = storyBattle;
+      growth = Story.finishBattle(story, r.outcome, fracs, r.waves);
+      // Loot on a win (arcade: by waves cleared). First clears add their set piece.
+      const table = sb.loot || (mode === 'story' ? 'story' : null);
+      if (table && (r.outcome === 'win' || sb.arcade)) {
+        const first = !prog.firsts[sb.node];
+        prog.firsts[sb.node] = 1;
+        loot = Prog.addItems(prog, Prog.rollLoot(table, Math.random, { first, score: r.waves, extra: sb.greed && sb.node === 'deep.3' ? 1 : 0 }));
+      }
+    }
     writeSave();
     const st = match.stats, lead = match.lead.name.split(' ')[0];
     let text;
-    if (mode === 'tutorial') {
+    if (storyBattle && storyBattle.arcade) {
+      text = `Cleared ${r.waves || 0} waves. Best: ${story.best[storyBattle.node] || 0}.`;
+    } else if (mode === 'side') {
+      text = r.outcome === 'win' ? storyBattle.outro || `${match.title}: won.` : r.outcome === 'loss' ? 'The team falls back to regroup. Side missions never cost hearts.' : 'You pull back. The job will wait.';
+    } else if (mode === 'tutorial') {
       text = r.outcome === 'win' ? 'The guardian breaks apart into ash and light. Above the final steps, a brightness waits.'
         : r.outcome === 'loss' ? 'Even broken, the climber rises, and keeps climbing toward the light.'
         : 'The climber steps back from the edge — for now.';
@@ -276,7 +465,11 @@
     }
     $('result-head').className = 'result-head ' + r.outcome;
     $('result-mode').textContent = mode === 'practice' ? 'Practice match' : `${match.chapter} · ${match.title}`;
-    $('result-title').textContent = { win: 'Victory', loss: mode === 'tutorial' ? 'Fallen' : 'Defeat', surrender: 'Withdrew' }[r.outcome];
+    $('result-title').textContent = storyBattle && storyBattle.arcade ? 'Gauntlet over' : { win: 'Victory', loss: mode === 'tutorial' ? 'Fallen' : 'Defeat', surrender: 'Withdrew' }[r.outcome];
+    $('result-loot').innerHTML = loot.length ? '<span class="label" style="align-self:center">Found</span>' + loot.map((it) => {
+      const I = Prog.ITEMS[it.id];
+      return `<span style="color:${Prog.RARITY[I.rarity].color}">${I.name}</span>`;
+    }).join('') : '';
     $('result-text').textContent = text;
     const stats = [
       [fmt(r.time * 1000), 'Time'], [st.parries, 'Parries'], [st.dodges, 'Dodges'],
@@ -285,6 +478,7 @@
     $('result-stats').innerHTML = stats.map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('');
     let heartLine = 'Practice match: hearts and injuries are unchanged.';
     if (mode === 'tutorial') heartLine = 'The prologue never costs hearts.';
+    if (mode === 'side') heartLine = 'Side missions never cost hearts.';
     if (mode === 'story') {
       if (r.outcome === 'loss') heartLine = `Lost 1 heart (${before} → ${save.hearts}). The team is back on its feet.`;
       else if (r.outcome === 'win') heartLine = 'No heart lost. Winning restores the whole team to full health.';
@@ -293,11 +487,13 @@
     $('result-hearts').innerHTML = heartLine + (growth && growth.xp ? ` <span class="levelup">+${growth.xp} XP${growth.levelUp ? ` · Team level ${growth.level}!` : ''}</span>` : '');
     // Next step.
     const again = $('btn-again');
-    if (storyBattle && (r.outcome === 'win' || mode === 'tutorial')) {
+    if (storyBattle && (r.outcome === 'win' || mode === 'tutorial' || storyBattle.arcade || (storyBattle.carry && !story.side))) {
       again.dataset.action = 'continue'; again.disabled = false;
-      again.querySelector('b').textContent = 'Continue the story'; $('again-note').textContent = chapterLabel(Story.node(story));
+      const toMap = storyBattle.side && !story.side;
+      again.querySelector('b').textContent = toMap ? 'Back to the map' : 'Continue';
+      $('again-note').textContent = toMap ? 'Choose where to go next' : chapterLabel(Story.node(story));
     } else if (storyBattle) {
-      const ok = Pg.canStartStory(save);
+      const ok = mode !== 'story' || Pg.canStartStory(save);
       again.dataset.action = 'retry'; again.disabled = !ok;
       again.querySelector('b').textContent = 'Try again'; $('again-note').textContent = ok ? 'Same fight' : 'No hearts — wait or practice';
     } else {
@@ -338,6 +534,7 @@
   }
   function updateHud() {
     if (!match) return;
+    if (Object.keys(hudEls).length !== match.units.length) buildHud();
     for (const u of match.units) {
       const h = hudEls[u.id];
       if (!h) continue;
@@ -406,11 +603,15 @@
   $('btn-practice').addEventListener('click', () => startMatch('practice'));
   $('btn-again').addEventListener('click', (e) => {
     const a = e.currentTarget.dataset.action;
-    if (a === 'continue') runStory();
+    if (a === 'continue') { if (storyBattle && storyBattle.side && !story.side) showWorld(); else runStory(); }
     else if (a === 'retry') startStoryBattle();
     else startMatch('practice');
   });
-  $('btn-camp').addEventListener('click', () => { match = null; storyBattle = null; renderer.setFollow(null); renderMenu(); show('menu'); });
+  $('btn-camp').addEventListener('click', () => {
+    // Leaving a side mission part-way drops it; the map keeps it open.
+    if (story.side && storyBattle && storyBattle.side) { Story.leaveSide(story); writeSave(); }
+    match = null; storyBattle = null; renderer.setFollow(null); renderMenu(); show('menu');
+  });
   $('btn-speed').addEventListener('click', () => { speed = speed === 1 ? 2 : 1; $('btn-speed').innerHTML = `${speed}&times;`; });
   $('btn-pause').addEventListener('click', () => setPaused(true));
   $('btn-resume').addEventListener('click', () => setPaused(false));
@@ -466,6 +667,11 @@
   $('follow-chip').addEventListener('click', () => renderer.setFollow(null));
   $('arena').addEventListener('pointerdown', (e) => {
     tryLandscape();
+    if (view === 'world' && mapR) {
+      const r = $('arena').getBoundingClientRect();
+      pickWorld(mapR.pick(e.clientX - r.left, e.clientY - r.top));
+      return;
+    }
     // Tap during the face-off to jump to the countdown.
     if (faceoff && faceoff.t < INTRO.vsEnd) { faceoff.t = INTRO.vsEnd; return; }
     if (match && !match.cutscene && !match.result && match.phase === 'fight') {
@@ -490,6 +696,12 @@
     const real = Math.min(0.05, (now - last) / 1000);
     last = now;
     const s = match || attract;
+    if (!match && view === 'world' && mapR) {
+      worldT += real;
+      mapR.draw(worldView, worldT, worldSel);
+      requestAnimationFrame(frame);
+      return;
+    }
     if (!match && view === 'story') {
       // Story scenes: a painted backdrop and the typewriter.
       sceneT += real;
@@ -520,7 +732,7 @@
         while (acc >= DT) { Sim.step(match, DT); acc -= DT; }
       }
       if (faceoff.t >= INTRO.end) faceoff = null;
-    } else if (!paused && !frozen) {
+    } else if (!paused && !frozen && !coach.on) {
       if (hitstop > 0) hitstop -= real;
       else {
         // The director can slow time for a beat on big moments.
@@ -535,6 +747,7 @@
     const hs = renderer.takeHitstop();
     if (match) hitstop += hs;
     updateHud();
+    coachTick();
     requestAnimationFrame(frame);
   }
 
@@ -561,6 +774,11 @@
       follow(id) { renderer.setFollow(id); },
       cutIn(id, caption) { if (match) renderer.cutIn(match.byId[id], caption); },
       superNow() { if (match) match.lead.superMeter = 100; },
+      world() { showWorld(); },
+      team() { showTeam('menu'); },
+      pickNode(id) { pickWorld(id); },
+      goNode(id) { goNode(id); },
+      give(ids) { Prog.addItems(prog, ids); writeSave(); },
       storyGo(node, starter, flags) {
         story.node = node; if (starter) story.starter = starter; else if (!story.starter) story.starter = 'ren';
         Object.assign(story.flags, flags || {}); runStory();

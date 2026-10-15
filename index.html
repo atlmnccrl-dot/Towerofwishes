@@ -343,6 +343,68 @@ h2 { font-style: italic; }
   .chap { padding: 5px 8px; }
   .chap b { font-size: 13px; }
 }
+/* ---------------- world map, team, coach */
+.screen.world { background: none; display: block; padding: 0; overflow: hidden; pointer-events: none; }
+.screen.world .node-card, .screen.world .world-fallback { pointer-events: auto; }
+.world-top { position: absolute; left: 0; right: 0; top: 0; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+  padding: calc(env(safe-area-inset-top, 0px) + 8px) max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); pointer-events: none; }
+.world-top > * { pointer-events: auto; }
+.world-top .eyebrow { margin: 0 0 2px; text-shadow: 0 1px 3px #000; }
+.world-title { font: 800 20px/1.1 var(--display); font-style: italic; text-shadow: 0 2px 4px #000; }
+.world-top .links { display: flex; gap: 6px; align-items: center; }
+.mini-hearts { display: flex; gap: 2px; margin-right: 6px; }
+.mini-hearts .heart { width: 16px; height: 15px; }
+.node-card { position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); width: min(330px, 46vw);
+  background: rgba(12, 8, 8, 0.93); border-left: 3px solid var(--blood); padding: 10px 12px; display: grid; gap: 6px; clip-path: polygon(0 0, 100% 0, calc(100% - 14px) 100%, 0 100%); }
+.node-card small { font: 800 10px/1 var(--ui); letter-spacing: 0.14em; text-transform: uppercase; color: var(--parchment-dim); }
+.node-card b.t { font: 800 18px/1.1 var(--display); font-style: italic; }
+.node-card p { margin: 0; font-size: 12px; color: var(--parchment-dim); }
+.node-card .reward { color: var(--bone); }
+.node-card .btn { min-height: 40px; padding: 8px 14px; }
+.world-fallback { position: absolute; right: 16px; top: 60px; display: grid; gap: 4px; max-height: 70%; overflow-y: auto; }
+.world-fallback button { text-align: left; background: rgba(12, 8, 8, 0.85); border: 0; border-left: 2px solid var(--line); padding: 4px 8px; font-size: 12px; }
+.team-wrap { width: min(100%, 860px); display: grid; gap: 10px; }
+.team-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.tabs { display: flex; gap: 4px; }
+.tab { background: rgba(246, 240, 236, 0.06); border: 0; border-bottom: 2px solid transparent; padding: 6px 12px; font: 800 13px/1.1 var(--display); font-style: italic; }
+.tab small { display: block; font: 700 10px/1 var(--ui); font-style: normal; color: var(--parchment-dim); margin-top: 2px; }
+.tab.on { border-bottom-color: var(--blood); background: rgba(227, 38, 58, 0.12); }
+.team-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 12px; }
+.slots { display: grid; gap: 5px; }
+.slot { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 8px; align-items: center; text-align: left; background: rgba(246, 240, 236, 0.05); border: 0; border-left: 2px solid var(--line); padding: 6px 8px; }
+.slot.on { border-left-color: var(--blood); background: rgba(227, 38, 58, 0.1); }
+.slot span { font: 800 10px/1 var(--ui); letter-spacing: 0.12em; text-transform: uppercase; color: var(--parchment-dim); }
+.slot b { font: 700 13px/1.2 var(--ui); }
+.slot i { display: block; font: 600 10.5px/1.3 var(--ui); font-style: normal; color: var(--parchment-dim); }
+.inv { display: grid; gap: 4px; max-height: 120px; overflow-y: auto; }
+.inv button { text-align: left; background: rgba(246, 240, 236, 0.04); border: 0; padding: 5px 8px; font-size: 12px; }
+.inv button i { font-style: normal; color: var(--parchment-dim); font-size: 10.5px; display: block; }
+.tree { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.branch { display: grid; gap: 5px; align-content: start; }
+.branch > span { font: 800 11px/1 var(--ui); letter-spacing: 0.12em; text-transform: uppercase; color: var(--bone); text-align: center; }
+.skill { background: rgba(246, 240, 236, 0.05); border: 1px solid var(--line); padding: 6px; text-align: center; font: 700 11.5px/1.2 var(--ui); min-height: 52px; }
+.skill i { display: block; font-style: normal; font-size: 10px; color: var(--parchment-dim); margin-top: 2px; }
+.skill.have { border-color: var(--steel); background: rgba(156, 195, 221, 0.14); }
+.skill.can { border-color: var(--blood); animation: glowp 1.4s ease-in-out infinite; }
+.skill:disabled { opacity: 0.45; cursor: default; }
+.statline { font-size: 11.5px; color: var(--parchment-dim); margin: 0; }
+.loot { display: flex; flex-wrap: wrap; gap: 6px; }
+.loot span { font: 700 12px/1 var(--ui); padding: 5px 8px; background: rgba(246, 240, 236, 0.06); border-left: 2px solid currentColor; }
+.coach { position: fixed; inset: 0; z-index: 40; pointer-events: none; }
+.coach-ring { position: absolute; border: 3px solid var(--glyph); border-radius: 50%; box-shadow: 0 0 0 9999px rgba(8, 4, 5, 0.55), 0 0 24px var(--glyph); transition: all 0.25s; }
+.coach-box { position: absolute; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 50px); transform: translateX(-50%); width: min(80vw, 480px);
+  background: rgba(12, 8, 8, 0.96); border-left: 3px solid var(--glyph); padding: 10px 14px; display: grid; gap: 6px; pointer-events: auto; }
+.coach-box b { font: 800 16px/1.1 var(--display); font-style: italic; color: var(--glyph); }
+.coach-box p { margin: 0; font-size: 13px; }
+.coach-box .btn { min-height: 36px; padding: 6px 12px; justify-self: start; }
+@keyframes glowp { 0%, 100% { box-shadow: 0 0 0 0 rgba(227, 38, 58, 0.5); } 50% { box-shadow: 0 0 10px 2px rgba(227, 38, 58, 0.5); } }
+@media (max-height: 460px) {
+  .team-body { gap: 8px; }
+  .skill { min-height: 44px; padding: 4px; font-size: 11px; }
+  .inv { max-height: 92px; }
+}
+@media (prefers-reduced-motion: reduce) { .skill.can { animation: none; } }
+
 @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
 @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .dialogue .tap, .card-title b, .card-title small { animation: none; } }
@@ -403,7 +465,8 @@ h2 { font-style: italic; }
           <div class="cond" id="cond"></div>
           <div class="actions">
             <button class="btn primary" id="btn-story" type="button"><b id="story-btn-label">Begin the story</b><small id="story-note">Uses a heart only on a wipe</small></button>
-            <button class="btn" id="btn-chapters" type="button"><b>Chapters</b><small>Your road so far</small></button>
+            <button class="btn" id="btn-chapters" type="button"><b>World map</b><small>Story, contracts, dungeons</small></button>
+            <button class="btn" id="btn-team" type="button"><b>Team</b><small>Gear and skills</small></button>
             <button class="btn" id="btn-practice" type="button"><b>Practice match</b><small>No hearts &middot; full health</small></button>
           </div>
           <div class="heart-row">
@@ -451,6 +514,42 @@ h2 { font-style: italic; }
     </div>
   </section>
 
+  <section class="screen world" id="world" hidden>
+    <div class="world-top">
+      <div><p class="eyebrow">The road to the Tower</p><b class="world-title" id="world-title"></b></div>
+      <div class="links"><span class="mini-hearts" id="world-hearts"></span><button class="pill" id="btn-world-team" type="button">Team</button><button class="pill" id="btn-world-menu" type="button">Menu</button></div>
+    </div>
+    <div class="world-fallback" id="world-fallback" hidden></div>
+    <div class="node-card" id="node-card" hidden>
+      <small id="nc-sub"></small><b class="t" id="nc-title"></b><p id="nc-text"></p><p class="reward" id="nc-reward"></p>
+      <button class="btn primary" id="btn-node-go" type="button"><b id="nc-go">Go</b><small id="nc-note"></small></button>
+    </div>
+  </section>
+
+  <section class="screen" id="team-screen" hidden>
+    <div class="team-wrap">
+      <div class="team-head">
+        <div class="tabs" id="team-tabs"></div>
+        <button class="pill" id="btn-team-back" type="button">Back</button>
+      </div>
+      <div class="panel team-body">
+        <div style="display:grid;gap:8px;align-content:start">
+          <div><b class="world-title" id="tm-name"></b><p class="statline" id="tm-stats"></p></div>
+          <span class="label">Gear</span>
+          <div class="slots" id="tm-slots"></div>
+          <div class="inv" id="tm-inv"></div>
+        </div>
+        <div style="display:grid;gap:8px;align-content:start">
+          <div class="heart-row"><span class="label">Skills</span><span class="timer" id="tm-points"></span></div>
+          <div class="tree" id="tm-tree"></div>
+          <button class="link" id="btn-respec" type="button">Reset skill points</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="coach" id="coach" hidden><div class="coach-ring" id="coach-ring" hidden></div><div class="coach-box"><b id="coach-title"></b><p id="coach-text"></p><button class="btn primary" id="coach-ok" type="button"><b>Got it</b></button></div></div>
+
   <section class="screen" id="result" hidden>
     <div class="sheet" style="max-width:560px">
       <div class="result-head" id="result-head">
@@ -460,6 +559,7 @@ h2 { font-style: italic; }
       </div>
       <div class="stats" id="result-stats"></div>
       <p class="fine" id="result-hearts"></p>
+      <div class="loot" id="result-loot"></div>
       <div class="actions">
         <button class="btn primary" id="btn-again" type="button"><b>Watch another match</b><small id="again-note"></small></button>
         <button class="btn" id="btn-camp" type="button"><b>Back to camp</b><small>Hearts and team condition</small></button>
@@ -480,6 +580,7 @@ h2 { font-style: italic; }
 <script src="js/progress.js"></script>
 <script src="js/story.js"></script>
 <script src="js/campaign.js"></script>
+<script src="js/progression.js"></script>
 <script src="js/render/world.js"></script>
 <script src="js/render/fighters.js"></script>
 <script src="js/render/fx.js"></script>
