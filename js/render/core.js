@@ -37,7 +37,7 @@
     const V = {
       Sim, PAL, FONT, ctx, canvas,
       W: 0, H: 0, dpr: 1, time: 0,
-      cam: { x: 0, y: 0, sc: 40, ang: -0.32, pitch: 0.56, shake: 0, time: 0, horizon: 0.56 },
+      cam: { x: 0, y: 0, sc: 40, ang: -0.32, pitch: 0.56, shake: 0, time: 0, horizon: 0.56, ax: 0.5, ay: 0, lift: 0, kx: 0, ky: 0 },
       rng: Sim.makeRng(7),
       // Light comes from the upper left of the screen. sx/sy: unit vector toward
       // the light in screen space, used for cel shading and rim light.
@@ -54,7 +54,11 @@
       const c = Math.cos(cam.ang), s = Math.sin(cam.ang);
       const rx = dx * c - dy * s, ry = dx * s + dy * c;
       // cam.cx / cam.cy let a cutscene panel centre the view on its own box.
-      const ox = cam.cx != null ? cam.cx : V.W / 2, oy = cam.cy != null ? cam.cy : V.H * cam.horizon;
+      // Otherwise the camera point sits at (ax, horizon + ay) of the screen,
+      // lifted by `lift` metres: heavy-art shots use it to put the caster's
+      // chest on a third of the frame instead of their feet at the centre.
+      const ox = cam.cx != null ? cam.cx : V.W * cam.ax;
+      const oy = cam.cy != null ? cam.cy : V.H * (cam.horizon + cam.ay) + cam.lift * cam.sc * 0.9;
       return { x: ox + rx * cam.sc, y: oy + ry * cam.sc * cam.pitch - (z || 0) * cam.sc * 0.9, d: ry };
     };
 
@@ -88,6 +92,134 @@
       if (fx.resize) fx.resize();
     }
 
+    // ------------------------------------------------------------ heavy-art camera
+    // An anime ability shot: close on the caster while they charge (face and
+    // upper body on a third of the frame, seen from the side nothing stands
+    // in front of), a glint on the face, the release followed side-on (or
+    // over the shoulder down a lance), the blow landing on the targets, and a
+    // last look at the caster under the move's name.
+    //
+    // A view is `th`, the world angle from the subject toward the camera
+    // (camera angle = PI/2 - th). A fighter facing f is seen from
+    // delta = th - f; sin(delta) > 0 means they face screen-right.
+    const OCC_H = { tree: 6, pillar: 3.2, wall: 2.2, cart: 1.4, crate: 1.0, basin: 0.7, rock: 0.9, trunk: 0.9 };
+    function heightOf(u) { const L = NS.fighters.LOOK[u.key]; return 1.72 * (L ? L.h : 1); }
+    // How much of a fighter's upper body at (x, y) is hidden, seen from th,
+    // by other fighters and the arena's obstacles (0 = clear).
+    function occlusion(s, u, x, y, th, pitch) {
+      const vx = Math.cos(th), vy = Math.sin(th), h = heightOf(u);
+      let bad = 0;
+      const test = (ox, oy, r, oh) => {
+        const dx = ox - x, dy = oy - y;
+        const dv = dx * vx + dy * vy; // toward the camera
+        if (dv < 0.15) return;
+        const lat = Math.abs(dy * vx - dx * vy), reach = r + u.r + 0.5;
+        if (lat > reach) return;
+        // On screen the occluder stands lower by its depth: how far up the
+        // caster's body does its top reach?
+        const top = oh - (dv * pitch) / 0.9;
+        const cover = Math.min(1, (top - h * 0.3) / (h * 0.5));
+        if (cover > 0) bad += cover * (1 - (lat / reach) * 0.6);
+      };
+      for (const o of s.units) if (o !== u && !o.fled) test(o.x, o.y, o.r, o.state === 'out' ? 0.4 : heightOf(o));
+      const obs = (s.arena && s.arena.obstacles) || [];
+      for (const o of obs) {
+        const oh = OCC_H[o.kind] || 1.2;
+        if (o.kind === 'trunk') for (let i = 0; i <= 8; i++) test(o.ax + ((o.bx - o.ax) * i) / 8, o.ay + ((o.by - o.ay) * i) / 8, o.r, oh);
+        else test(o.x, o.y, o.r, oh);
+      }
+      return bad;
+    }
+    // The clearest of a list of view offsets from the facing; earlier
+    // entries win ties.
+    function bestView(s, u, x, y, f, deltas, pitch) {
+      let best = null;
+      deltas.forEach((d, i) => {
+        const score = occlusion(s, u, x, y, f + d, pitch) + i * 0.04;
+        if (!best || score < best.score) best = { d, score };
+      });
+      return best.d;
+    }
+    // Opponents the heavy art lands on (the sim's own test, a little wider).
+    function victims(s, c) {
+      const u = c.unit, H = Sim.heavyOf(u), out = [];
+      const ox = c.line ? c.x0 : u.x, oy = c.line ? c.y0 : u.y;
+      for (const o of s.units) {
+        if (o.team === u.team || o.fled || (o.state === 'out' && !c.applied)) continue;
+        const d = Math.hypot(o.x - ox, o.y - oy);
+        let da = Math.atan2(o.y - oy, o.x - ox) - u.facing;
+        while (da > Math.PI) da -= Math.PI * 2;
+        while (da < -Math.PI) da += Math.PI * 2;
+        if (d <= H.radius + (c.applied ? 2.5 : 0.3) && Math.abs(da) <= H.arc / 2 + 0.15) out.push(o);
+      }
+      return out;
+    }
+    const cutPlans = new WeakMap();
+    const LAND = 0.45; // seconds on the targets after the impact frame
+    const CHARGE_D = [0.75, -0.75, 1.0, -1.0, 0.5, -0.5, 1.3, -1.3, 1.6, -1.6];
+    // Line heavies build a lattice in front of the caster: see them nearer
+    // profile so it reaches into the open side of the frame, not over them.
+    const CHARGE_LINE = [1.15, -1.15, 1.35, -1.35, 0.95, -0.95, 1.55, -1.55];
+    function cutShot(s, c) {
+      const u = c.unit, f = u.facing, F = [Math.cos(f), Math.sin(f)];
+      const W = V.W, H = V.H, h = heightOf(u), t = c.t, m = Math.min(W, H);
+      let plan = cutPlans.get(c);
+      if (!plan) {
+        // Pick the side once, from the clearest front three-quarter view;
+        // later shots stay on that side so the action keeps its direction.
+        const d = bestView(s, u, c.x0, c.y0, f, c.line ? CHARGE_LINE : CHARGE_D, 0.34);
+        const side = Math.sin(d) >= 0 ? 1 : -1;
+        let far = 2.4;
+        for (const o of victims(s, c)) far = Math.max(far, Math.hypot(o.x - c.x0, o.y - c.y0));
+        plan = { d, side, far };
+        plan.dash = bestView(s, u, c.x0 + F[0] * 1.2, c.y0 + F[1] * 1.2, f, [side * 1.3, side * 1.05, side * 1.5, side * 0.85], 0.44);
+        cutPlans.set(c, plan);
+      }
+      const ph = fx.cutPhase(c), side = plan.side;
+      const third = (d) => (Math.sin(d) >= 0 ? 0.36 : 0.64);
+      const shot = (key, x, y, th, scale, pitch, ax, ay, lift, focus, dim) => ({ key, x, y, ang: Math.PI / 2 - th, sc: scale, pitch, ax, ay, lift, focus, dim });
+      if (ph === 'charge') {
+        // Low and close, pushing in on a slow orbit; chest on a third, the
+        // space they face left open; the world dims around them.
+        const k = Math.min(1, t / 1.1);
+        const d = plan.d - side * 0.22 * (k - 0.5);
+        return shot('charge', u.x, u.y, f + d, m / (2.75 - 0.75 * k), 0.34, third(d), 0.56, h * 0.62, true, 0.12 + 0.3 * k);
+      }
+      if (ph === 'gleam') {
+        // The glint: in tight on the face.
+        const d = plan.d * (c.line ? 1 : 0.85);
+        return shot('gleam', u.x, u.y, f + d, m / 1.6, 0.3, third(d) < 0.5 ? 0.4 : 0.6, 0.46, h * 0.9, true, 0.45);
+      }
+      const sgn = Math.sin(plan.dash) >= 0 ? 1 : -1;
+      if (ph === 'dash' || ph === 'impact') {
+        if (c.line) {
+          // Side-on: the lance leaves the caster across the frame, and the
+          // camera runs with it toward the targets.
+          const k = ph === 'dash' ? Math.min(1, ((t - 1.35) / Math.max(0.1, c.impactAt - 1.35)) * 1.5) : 1;
+          const run = Math.max(0, plan.far - 1.5) * k * k;
+          return shot('release', c.x0 + F[0] * run, c.y0 + F[1] * run, f + plan.dash, m / 3.4, 0.4, 0.5 - sgn * 0.26 * (1 - k * 0.6), 0.58, h * 0.55, k < 0.5, 0);
+        }
+        // Side-on: the dash crosses the screen from the caster's third.
+        const span = Math.min(plan.far, 4.4) + 0.4;
+        const scale = Math.max(m / 7, Math.min(m / 3.4, (W * 0.6) / (span + 1.0)));
+        return shot('release', c.x0, c.y0, f + plan.dash, scale, 0.44, 0.5 - sgn * Math.min(0.3, (span * scale) / W / 2), 0.6, h * 0.5, false, 0);
+      }
+      // After: first the blow landing on the targets, then the caster under
+      // the move's name.
+      const at = t - c.impactAt - 0.12;
+      if (at < LAND) {
+        const vic = victims(s, c);
+        let cx = 0, cy = 0;
+        for (const o of vic) { cx += o.x; cy += o.y; }
+        if (vic.length) { cx /= vic.length; cy /= vic.length; } else { cx = c.x0 + F[0] * 3; cy = c.y0 + F[1] * 3; }
+        if (!c.line) { cx = (cx + u.x) / 2; cy = (cy + u.y) / 2; }
+        return shot('land', cx, cy, f + plan.dash, m / 4.0, 0.44, 0.5, 0.5, 0.8, false, 0);
+      }
+      if (plan.pose == null) plan.pose = bestView(s, u, u.x, u.y, f, [0.8, 0.55, 1.1, -0.8, -0.55, -1.1], 0.38);
+      const d = plan.pose + 0.15 * Math.sign(plan.pose) * Math.min(1, (at - LAND) / 0.8);
+      return shot('pose', u.x, u.y, f + d, m / 2.6, 0.36, Math.sin(d) >= 0 ? 0.3 : 0.7, 0.52, h * 0.62, true, 0.15);
+    }
+
     // ------------------------------------------------------------ camera
     function updateCamera(s, dt) {
       const cam = V.cam, W = V.W, H = V.H;
@@ -102,36 +234,18 @@
       sc = Math.max(Math.min(sc, Math.min(W, H) / 7), Math.min(W, H) / 26);
       let ang = -0.32 + Math.sin(cam.time * 0.05) * 0.16;
       const c = s.cutscene;
+      let frame = null; // heavy-art framing: {ax, ay, lift, pitch}
       if (c) {
-        // Heavy art: hard cuts between three shots.
-        const u = c.unit, ph = fx.cutPhase(c), F = [Math.cos(u.facing), Math.sin(u.facing)];
-        if (ph === 'charge' || ph === 'gleam') {
-          // low, close, slowly orbiting the fighter as they charge
-          tx = u.x + F[0] * 0.4; ty = u.y + F[1] * 0.4;
-          sc = Math.min(W, H) / 3.5;
-          ang = c.line
-            // line heavies: three-quarter side view so the lattice reads as a tunnel
-            ? -u.facing + 0.9 - (c.t / 1.35) * 0.4
-            : Math.PI / 2 - u.facing + 1.0 - (c.t / 1.35) * 0.6;
-          if (c.line) { tx = u.x + F[0] * 1.0; ty = u.y + F[1] * 1.0; }
-        } else if (ph === 'dash') {
-          // wide and side-on, so the dash (or a line heavy's beam) crosses the screen
-          const off = c.line ? 3.4 : 1.4;
-          tx = c.x0 + F[0] * off; ty = c.y0 + F[1] * off;
-          sc = Math.min(W, H) / (c.line ? 7.6 : 6.5);
-          ang = -u.facing - 0.15;
-        } else if (c.line) {
-          // a line heavy lands far away: look down the beam from behind the caster
-          tx = c.x0 + F[0] * 2.8; ty = c.y0 + F[1] * 2.8;
-          sc = Math.min(W, H) / 6.2;
-          ang = -Math.PI / 2 - u.facing + 0.75;
-        } else {
-          tx = u.x + F[0] * 0.8; ty = u.y + F[1] * 0.8;
-          sc = Math.min(W, H) / 4.6;
-          ang = Math.PI / 2 - u.facing - 0.6;
-        }
-        if (ph !== V.cutPhase) { V.cutPhase = ph; V.cutSnap = true; }
-      } else V.cutPhase = null;
+        // Heavy art: hard cuts between anime shots, all built around the caster.
+        const shot = cutShot(s, c);
+        tx = shot.x; ty = shot.y; sc = shot.sc; ang = shot.ang;
+        frame = shot;
+        if (shot.key !== V.cutPhase) { V.cutPhase = shot.key; V.cutSnap = true; }
+        // In the caster's own shots nothing may stand over them: they are
+        // drawn last, over a dimmed world (the anime spotlight cheat).
+        V.cutFocus = shot.focus ? c.unit.id : null;
+        V.cutDim = shot.dim || 0;
+      } else { V.cutPhase = null; V.cutFocus = null; }
       // Tap-to-follow: lock onto one of the player's fighters.
       const fu = V.follow && s.byId[V.follow];
       if (V.follow && (!fu || !Sim.alive(fu))) V.follow = null;
@@ -156,8 +270,16 @@
       while (dAng < -Math.PI) dAng += Math.PI * 2;
       cam.ang += dAng * (k === 1 ? 1 : c || o ? 0.08 : Math.min(1, dt * 0.8));
       // Cutscenes and director shots drop the camera lower for drama.
-      const pitchT = o && o.pitch != null ? o.pitch : c ? (V.cutPhase === 'charge' || V.cutPhase === 'gleam' ? 0.36 : 0.48) : o && o.zoom > 1.3 ? 0.5 : 0.56;
-      cam.pitch += (pitchT - cam.pitch) * (snap ? 1 : Math.min(1, dt * 4));
+      const pitchT = o && o.pitch != null ? o.pitch : frame ? frame.pitch : o && o.zoom > 1.3 ? 0.5 : 0.56;
+      cam.pitch += (pitchT - cam.pitch) * (snap ? 1 : frame ? 0.2 : Math.min(1, dt * 4));
+      // Where on screen the camera point sits (heavy-art shots frame the
+      // caster on a third); the face-off's own camera needs the defaults.
+      const axT = frame ? frame.ax : 0.5, ayT = frame ? frame.ay - cam.horizon : 0, liftT = frame ? frame.lift : 0;
+      const fk = snap || V.show ? 1 : frame ? 0.15 : Math.min(1, dt * 2.2);
+      cam.ax += (axT - cam.ax) * fk; cam.ay += (ayT - cam.ay) * fk; cam.lift += (liftT - cam.lift) * fk;
+      // Directional nudge from a hit, springing back.
+      const kd = Math.pow(0.0004, dt);
+      cam.kx *= kd; cam.ky *= kd;
       cam.shake *= Math.pow(0.002, dt);
     }
 
@@ -168,8 +290,9 @@
       opts = opts || {};
       world.drawBackdrop(s);
       const items = world.items(s);
+      const focus = s.cutscene && V.cutFocus && s.byId ? s.byId[V.cutFocus] : null;
       for (const u of s.units) {
-        if (u.fled) continue;
+        if (u.fled || u === focus) continue;
         const p = V.P(u.x, u.y, 0);
         items.push({
           d: p.d + (u.state === 'out' ? -0.3 : 0),
@@ -178,6 +301,10 @@
       }
       items.sort((a, b) => a.d - b.d);
       for (const it of items) it.f();
+      if (focus) {
+        if (V.cutDim > 0) { ctx.fillStyle = `rgba(6,4,6,${V.cutDim})`; ctx.fillRect(-60, -60, V.W + 120, V.H + 120); }
+        fx.underUnit(focus, s); fighters.drawUnit(focus, s); fx.overUnit(focus, s);
+      }
       fx.drawWorld(s, opts.dt || 0);
       if (!opts.noAtmosphere) world.drawAtmosphere(s, opts.dt || 0);
     };
@@ -197,7 +324,7 @@
       ctx.setTransform(V.dpr, 0, 0, V.dpr, 0, 0);
       const shx = (V.rng() - 0.5) * V.cam.shake, shy = (V.rng() - 0.5) * V.cam.shake;
       ctx.save();
-      ctx.translate(shx, shy);
+      ctx.translate(shx + V.cam.kx, shy + V.cam.ky);
       V.renderScene(s, { dt });
       if (!quiet && !V.show) callouts.draw(s, dt);
       ctx.restore();
