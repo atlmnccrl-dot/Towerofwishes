@@ -37,10 +37,11 @@
   const BK = 110; // undergrowth sprite: px per unit
   const GK = 48; // grass tuft sprite: px per blade height
 
-  function create(V) {
+  // ================================================================ forest
+  // Chapter One: the dusk forest clearing.
+  function forest(V, A) {
     const { ctx, Sim } = V;
     const P = V.P;
-    const A = Sim.ARENA;
     const R = Sim.makeRng(11);
     const TAU = Math.PI * 2;
 
@@ -729,6 +730,1773 @@
     function resize() { overKey = ''; }
 
     return { drawBackdrop, items, drawAtmosphere, resize };
+  }
+
+  // ================================================================ shared kit
+  // Helpers for the newer arenas: projection-aware primitives (cylinders,
+  // boxes, faceted rocks, cast shadows) and a baked screen overlay.
+  const TAU = Math.PI * 2;
+  const INK = '#0c0808';
+  const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+
+  function kit(V, A) {
+    const { ctx, Sim } = V;
+    const P = V.P;
+    const K = {};
+    K.canvas = (w, h) => { const c = document.createElement('canvas'); c.width = Math.ceil(w); c.height = Math.ceil(h); return c; };
+    K.poly = (pts) => { pts.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y))); ctx.closePath(); };
+    K.path = (pts) => { ctx.beginPath(); K.poly(pts); };
+    K.lw = (k, min) => Math.max(min || 1, V.cam.sc * k);
+    K.off = (p, m) => p.x < -m || p.x > V.W + m || p.y < -m || p.y > V.H + m;
+    // Depth of a world point along the view direction relative to the arena
+    // centre (stable while the camera pans; only rotation changes it).
+    // Negative = far side of the arena.
+    K.depth = (x, y) => x * Math.sin(V.cam.ang) + y * Math.cos(V.cam.ang);
+    // Tall scenery on the near side of the arena is cut down so it never
+    // hides the fight (1 = full height on the far side).
+    K.tall = (x, y) => clamp(0.62 - 0.85 * K.depth(x, y) / A.ry, 0.1, 1);
+    K.shadowOff = (h) => {
+      const L = V.light, len = (h * 0.55) / Math.tan(L.elev) * V.cam.sc;
+      return { x: -Math.cos(L.ang) * len, y: -Math.sin(L.ang) * len * V.cam.pitch };
+    };
+    K.inObstacle = (x, y, m) => A.obstacles.some((o) => { const c = Sim.obstacleCenter(o, x, y); return Math.hypot(x - c.x, y - c.y) < o.r + m; });
+    K.inArena = (x, y, k) => (x / A.rx) ** 2 + (y / A.ry) ** 2 < k * k;
+    // A world ellipse around the arena, k times its size, with optional wobble.
+    K.ring = (k, n, wob, amp, ox, oy, z) => {
+      const out = [];
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * TAU, kk = k + (wob ? (wob[i % wob.length] - 0.5) * amp : 0);
+        out.push(P((ox || 0) + Math.cos(a) * A.rx * kk, (oy || 0) + Math.sin(a) * A.ry * kk, z || 0));
+      }
+      return out;
+    };
+    // Shadow of an upright object: an ellipse at the base swept along the
+    // shadow direction. Adds to the current path (screen space).
+    K.sweep = (b, rx, ry, o) => {
+      ctx.moveTo(b.x + rx, b.y); ctx.ellipse(b.x, b.y, rx, ry, 0, 0, TAU);
+      ctx.moveTo(b.x + o.x + rx, b.y + o.y); ctx.ellipse(b.x + o.x, b.y + o.y, rx, ry, 0, 0, TAU);
+      const l = Math.hypot(o.x, o.y) || 1, nx = (-o.y / l), ny = (o.x / l);
+      const w = Math.hypot(nx * rx, ny * ry);
+      const pts = [[b.x + nx * w, b.y + ny * w], [b.x + o.x + nx * w, b.y + o.y + ny * w], [b.x + o.x - nx * w, b.y + o.y - ny * w], [b.x - nx * w, b.y - ny * w]];
+      let area = 0;
+      for (let i = 0; i < 4; i++) { const [ax, ay] = pts[i], [bx, by] = pts[(i + 1) % 4]; area += ax * by - bx * ay; }
+      if (area < 0) pts.reverse();
+      pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+      ctx.closePath();
+    };
+
+    // Faceted rock silhouette in units of its radius (flat base).
+    K.rockShape = (r, n) => {
+      const pts = [], rot = r() * 0.6;
+      n = n || 8;
+      for (let i = 0; i < n; i++) {
+        const a = rot + (i / n) * TAU, k = 0.84 + r() * 0.26;
+        let y = Math.sin(a) * k;
+        if (y > 0) y *= 0.6;
+        pts.push([Math.cos(a) * k * 1.08, y * 0.92]);
+      }
+      return { pts, cx: 0.1 + r() * 0.14, cy: -0.3 - r() * 0.14, cracks: [r(), r(), r()] };
+    };
+    // A rock drawn in facets toned by which way they face the light.
+    // pal: {base, mid, lit, rim}; hz: centre height in radii; sy: vertical squash.
+    K.drawRock = (x, y, rad, sh, pal, hz, sy) => {
+      const sc = V.cam.sc;
+      const p = P(x, y, rad * (hz == null ? 0.42 : hz)), rx = rad * sc, ry = rad * sc * (sy || 0.82);
+      if (K.off(p, rx * 1.5)) return;
+      const pts = sh.pts.map(([px, py]) => ({ x: p.x + px * rx, y: p.y + py * ry }));
+      const cpt = { x: p.x + sh.cx * rx, y: p.y + sh.cy * ry };
+      K.path(pts); ctx.fillStyle = pal.base; ctx.fill();
+      const lx = Math.cos(V.light.ang), ly = Math.sin(V.light.ang);
+      const rimP = new Path2D();
+      for (let i = 0; i < pts.length; i++) {
+        const a = pts[i], b = pts[(i + 1) % pts.length];
+        const mx = (a.x + b.x) / 2 - cpt.x, my = (a.y + b.y) / 2 - cpt.y, m = Math.hypot(mx, my) || 1;
+        const dot = (mx * lx + my * ly) / m;
+        if (dot < -0.25) continue;
+        ctx.beginPath(); ctx.moveTo(cpt.x, cpt.y); ctx.lineTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.closePath();
+        ctx.fillStyle = dot > 0.45 ? pal.lit : pal.mid; ctx.fill();
+        if (dot > 0.45) { rimP.moveTo(a.x, a.y); rimP.lineTo(b.x, b.y); }
+      }
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = pal.rim; ctx.globalAlpha *= 0.7; ctx.lineWidth = K.lw(0.02); ctx.stroke(rimP); ctx.globalAlpha /= 0.7;
+      ctx.strokeStyle = INK; ctx.lineWidth = K.lw(0.016, 0.8);
+      ctx.beginPath();
+      for (let i = 0; i < pts.length; i += 3) { ctx.moveTo(cpt.x, cpt.y); ctx.lineTo(pts[i].x, pts[i].y); }
+      // a crack on the shadow side
+      const c0 = sh.cracks;
+      ctx.moveTo(p.x + rx * (0.2 + c0[0] * 0.3), p.y + ry * (-0.1 + c0[1] * 0.2));
+      ctx.lineTo(p.x + rx * (0.35 + c0[1] * 0.2), p.y + ry * (0.15 + c0[2] * 0.15));
+      ctx.lineTo(p.x + rx * (0.3 + c0[2] * 0.3), p.y + ry * 0.4);
+      ctx.stroke();
+      ctx.lineWidth = K.lw(0.045, 1.5);
+      K.path(pts); ctx.stroke();
+    };
+
+    // An upright cylinder (pillar, basin rim, post) in screen space: body,
+    // two-tone cel shading, rim light, top face. jag(worldAngle) lowers the
+    // top edge in metres for a broken top. Returns the screen geometry.
+    K.cyl = (x, y, r, z0, z1, pal, jag, opts) => {
+      opts = opts || {};
+      const sc = V.cam.sc, pitch = V.cam.pitch, ang = V.cam.ang;
+      const b = P(x, y, z0), t = P(x, y, z1);
+      const rx = r * sc, ry = r * sc * pitch, N = opts.n || 22;
+      const top = [], bot = [];
+      for (let i = 0; i <= N; i++) {
+        const f = (i / N) * TAU, c = Math.cos(f), s = Math.sin(f);
+        const j = jag ? jag(f - ang) * sc * 0.9 : 0;
+        top.push({ x: t.x + rx * c, y: t.y + ry * s + j });
+        bot.push({ x: b.x + rx * c, y: b.y + ry * s });
+      }
+      const body = () => {
+        ctx.beginPath();
+        for (let i = 0; i <= N / 2; i++) { const q = bot[i]; i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y); }
+        for (let i = N / 2; i <= N; i++) ctx.lineTo(top[i].x, top[i].y);
+        ctx.closePath();
+      };
+      // Flat-sided silhouette: bottom half arc, up the left, back arc, down the right.
+      body(); ctx.fillStyle = pal.base; ctx.fill();
+      ctx.save(); body(); ctx.clip();
+      // Shadow side (away from the upper-left light), hard edged.
+      ctx.fillStyle = pal.shade;
+      ctx.fillRect(b.x + rx * 0.28, Math.min(t.y - rx * 2, b.y - rx), rx, Math.abs(b.y - t.y) + rx * 4);
+      // Lit strip and flutes.
+      if (pal.lit) { ctx.fillStyle = pal.lit; ctx.fillRect(b.x - rx * 0.86, Math.min(t.y - rx * 2, b.y - rx), rx * 0.38, Math.abs(b.y - t.y) + rx * 4); }
+      if (opts.flutes) {
+        ctx.strokeStyle = 'rgba(8,6,7,0.55)'; ctx.lineWidth = K.lw(0.014, 0.8);
+        ctx.beginPath();
+        for (const f of [0.45, 0.95, 1.55, 2.15, 2.65]) {
+          const i = Math.round((f / TAU) * N);
+          ctx.moveTo(bot[i].x, bot[i].y); ctx.lineTo(top[i].x, top[i].y + ry * 0.2);
+        }
+        ctx.stroke();
+      }
+      if (opts.inside) opts.inside(b, t, rx, ry, bot, top);
+      ctx.restore();
+      // Rim light up the lit edge.
+      if (pal.rim) {
+        ctx.strokeStyle = pal.rim; ctx.globalAlpha *= 0.75; ctx.lineWidth = K.lw(0.02);
+        ctx.beginPath(); ctx.moveTo(b.x - rx * 0.93, b.y - ry * 0.2); ctx.lineTo(top[N / 2].x + rx * 0.07, top[N / 2].y); ctx.stroke();
+        ctx.globalAlpha /= 0.75;
+      }
+      // Top face.
+      if (pal.top) {
+        ctx.beginPath(); top.forEach((q, i) => (i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y))); ctx.closePath();
+        ctx.fillStyle = pal.top; ctx.fill();
+        if (opts.topInside) { ctx.save(); ctx.clip(); opts.topInside(t, rx, ry, top); ctx.restore(); }
+        ctx.strokeStyle = INK; ctx.lineWidth = K.lw(0.018, 1); ctx.beginPath(); top.forEach((q, i) => (i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y))); ctx.stroke();
+      }
+      ctx.strokeStyle = INK; ctx.lineWidth = K.lw(opts.ink || 0.045, 1.5); ctx.lineJoin = 'round';
+      body(); ctx.stroke();
+      return { b, t, rx, ry, top, bot };
+    };
+
+    // A box (crate, cut block) rotated by rot, half-sizes hw/hd, from z0 to z1.
+    // deco(face, pts, lit) draws on each visible side; face -1 is the top.
+    K.box = (x, y, hw, hd, rot, z0, z1, pal, deco) => {
+      const c = Math.cos(rot), s = Math.sin(rot);
+      const cw = [[-hw, -hd], [hw, -hd], [hw, hd], [-hw, hd]].map(([u, v]) => [x + u * c - v * s, y + u * s + v * c]);
+      const lo = cw.map(([X, Y]) => P(X, Y, z0)), hi = cw.map(([X, Y]) => P(X, Y, z1));
+      const ca = Math.cos(V.cam.ang), sa = Math.sin(V.cam.ang);
+      const faces = [];
+      for (let i = 0; i < 4; i++) {
+        const j = (i + 1) % 4;
+        const mx = (cw[i][0] + cw[j][0]) / 2 - x, my = (cw[i][1] + cw[j][1]) / 2 - y, l = Math.hypot(mx, my);
+        const nx = mx / l, ny = my / l;
+        const depth = nx * sa + ny * ca, sx = nx * ca - ny * sa;
+        if (depth <= 0.001) continue;
+        faces.push({ i, j, lit: sx < -0.15, sx });
+      }
+      ctx.lineJoin = 'round';
+      for (const f of faces) {
+        const pts = [lo[f.i], lo[f.j], hi[f.j], hi[f.i]];
+        K.path(pts); ctx.fillStyle = f.lit ? pal.lit : pal.shade; ctx.fill();
+        if (deco) { ctx.save(); K.path(pts); ctx.clip(); deco(f.i, pts, f.lit); ctx.restore(); }
+        ctx.strokeStyle = INK; ctx.lineWidth = K.lw(0.02, 1); K.path(pts); ctx.stroke();
+      }
+      K.path(hi); ctx.fillStyle = pal.top; ctx.fill();
+      if (deco) { ctx.save(); K.path(hi); ctx.clip(); deco(-1, hi, true); ctx.restore(); }
+      ctx.strokeStyle = INK; ctx.lineWidth = K.lw(0.02, 1); K.path(hi); ctx.stroke();
+      // Heavy silhouette: the hull of the visible faces and the top.
+      const all = lo.concat(hi);
+      const hull = convexHull(all);
+      ctx.lineWidth = K.lw(0.045, 1.5); K.path(hull); ctx.stroke();
+      if (pal.rim) {
+        // rim along the top's lit (upper-left) edges
+        ctx.strokeStyle = pal.rim; ctx.globalAlpha *= 0.65; ctx.lineWidth = K.lw(0.018);
+        ctx.beginPath();
+        for (let i = 0; i < 4; i++) {
+          const a = hi[i], b = hi[(i + 1) % 4];
+          const mx = (a.x + b.x) / 2 - (hi[0].x + hi[2].x) / 2, my = (a.y + b.y) / 2 - (hi[0].y + hi[2].y) / 2;
+          if (mx * V.light.sx + my * V.light.sy > 0) { ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); }
+        }
+        ctx.stroke(); ctx.globalAlpha /= 0.65;
+      }
+      return { lo, hi };
+    };
+
+    // Is a living fighter behind this screen point (so it should fade)?
+    K.behind = (s, p, reach, height) => {
+      for (const u of s.units) {
+        if (!Sim.alive(u) || u.fled) continue;
+        const q = P(u.x, u.y, 0);
+        if (q.d < p.d && Math.abs(q.x - p.x) < reach && q.y > p.y - height && q.y < p.y + 4) return true;
+      }
+      return false;
+    };
+
+    // Baked screen overlay: theme paint, vignette, screentone, paper grain.
+    // o: {paint(c, W, H, r), vig: [mid, outer], tone, toneCol, vigCol}
+    K.overlay = (o) => {
+      let over = null, key = '';
+      function build() {
+        const W = V.W, H = V.H, dpr = V.dpr;
+        if (!W || !H) return;
+        const cv = over && over.width === Math.round(W * dpr) && over.height === Math.round(H * dpr) ? over : K.canvas(W * dpr, H * dpr);
+        const c = cv.getContext('2d');
+        c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, cv.width, cv.height);
+        c.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const r = Sim.makeRng(5);
+        if (o.paint) o.paint(c, W, H, r);
+        const cx = W / 2, cy = H * 0.52, rIn = Math.min(W, H) * 0.42, rOut = Math.hypot(W, H) * 0.62;
+        const vc = o.vigCol || '8,6,7';
+        const g = c.createRadialGradient(cx, cy, rIn, cx, cy, rOut);
+        g.addColorStop(0, `rgba(${vc},0)`); g.addColorStop(0.6, `rgba(${vc},${o.vig[0]})`); g.addColorStop(1, `rgba(${vc},${o.vig[1]})`);
+        c.fillStyle = g; c.fillRect(0, 0, W, H);
+        c.fillStyle = o.toneCol || 'rgba(10,8,9,0.38)';
+        c.beginPath();
+        const step = 5;
+        for (let y = step / 2; y < H; y += step) {
+          for (let x = ((y / step) & 1 ? step / 2 : 0) + step / 2; x < W; x += step) {
+            const k = (Math.hypot(x - cx, (y - cy) * (W / H) * 0.6) - rIn * (o.tone || 1.4)) / (rOut - rIn);
+            if (k <= 0) continue;
+            const rad = Math.min(step * 0.5, k * step * 0.55);
+            if (rad < 0.35) continue;
+            c.moveTo(x + rad, y); c.arc(x, y, rad, 0, TAU);
+          }
+        }
+        c.fill();
+        c.setTransform(1, 0, 0, 1, 0, 0);
+        const n = Math.round(cv.width * cv.height / 70);
+        c.fillStyle = 'rgba(237,220,210,0.05)';
+        for (let i = 0; i < n / 2; i++) c.fillRect(r() * cv.width, r() * cv.height, 1, 1);
+        c.fillStyle = 'rgba(0,0,0,0.08)';
+        for (let i = 0; i < n / 2; i++) c.fillRect(r() * cv.width, r() * cv.height, 1.5, 1.5);
+        over = cv; key = W + 'x' + H + '@' + dpr;
+      }
+      return {
+        draw() { if (key !== V.W + 'x' + V.H + '@' + V.dpr) build(); if (over) ctx.drawImage(over, 0, 0, V.W, V.H); },
+        reset() { key = ''; },
+      };
+    };
+
+    // Grass / scrub tuft sprites (three sharp blades), anchored at the base.
+    K.tuft = (seed, cols, lit, tip) => {
+      const r = Sim.makeRng(seed), G = 48;
+      const cv = K.canvas(G * 1.8, G * 1.4), c = cv.getContext('2d');
+      const ax = cv.width / 2, ay = cv.height - 4, lean = (r() - 0.5) * 0.5, wd = G * 0.1;
+      const blade = (x, h, l, col) => {
+        c.beginPath(); c.moveTo(x - wd, ay); c.quadraticCurveTo(x + l * h * 0.3, ay - h * 0.6, x + l * h, ay - h); c.quadraticCurveTo(x + l * h * 0.3 + wd * 0.6, ay - h * 0.5, x + wd, ay); c.closePath();
+        c.fillStyle = col; c.fill();
+        if (col !== cols.ink) { c.strokeStyle = cols.ink; c.lineWidth = G * 0.025; c.stroke(); }
+      };
+      blade(ax - G * 0.22, G * (0.7 + r() * 0.2), -0.6 + lean, cols.ink);
+      blade(ax + G * 0.24, G * (0.55 + r() * 0.2), 0.65 + lean, cols.ink);
+      blade(ax + G * 0.05 * (r() - 0.5), G * 1.05, 0.1 + lean, lit ? cols.lit : cols.ink);
+      if (tip) {
+        c.strokeStyle = cols.tip; c.lineWidth = G * 0.035; c.lineCap = 'round';
+        c.beginPath(); c.moveTo(ax + (0.1 + lean) * G * 0.6, ay - G * 0.64); c.lineTo(ax + (0.1 + lean) * G * 1.02, ay - G * 1.02); c.stroke();
+      }
+      return { cv, ax, ay, G };
+    };
+    K.drawSprites = (list, sprites, size) => {
+      const sc = V.cam.sc;
+      for (const t of list) {
+        const p = P(t.x, t.y, 0);
+        if (K.off(p, 30)) continue;
+        const sp = sprites[t.v], k = (t.s * sc * size) / sp.G;
+        ctx.drawImage(sp.cv, p.x - sp.ax * k, p.y - sp.ay * k, sp.cv.width * k, sp.cv.height * k);
+      }
+    };
+    // Drifting screen motes.
+    K.motes = (n, seed, f) => {
+      const r = Sim.makeRng(seed), list = [];
+      for (let i = 0; i < n; i++) list.push({ x: r(), y: r(), vx: (r() - 0.5) * 0.012, vy: -0.004 - r() * 0.014, s: 0.8 + r() * 1.8, ph: r() * TAU, c: f ? f(r) : 0 });
+      return list;
+    };
+    K.drawMotes = (list, cols) => {
+      const W = V.W, H = V.H, t = V.time;
+      const paths = cols.map(() => new Path2D());
+      for (const m of list) {
+        const x = (((m.x + t * m.vx + Math.sin(t * 0.4 + m.ph) * 0.01) % 1) + 1) % 1 * W;
+        const y = (((m.y + t * m.vy) % 1) + 1) % 1 * H;
+        const tw = 0.5 + 0.5 * Math.sin(t * 1.3 + m.ph * 3);
+        const sz = m.s * (0.6 + tw * 0.6);
+        paths[m.c].rect(x - sz / 2, y - sz / 2, sz, sz);
+      }
+      cols.forEach((col, i) => { ctx.fillStyle = col; ctx.fill(paths[i]); });
+    };
+    return K;
+  }
+
+  function convexHull(pts) {
+    const p = pts.slice().sort((a, b) => a.x - b.x || a.y - b.y);
+    const cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+    const lo = [], up = [];
+    for (const q of p) { while (lo.length >= 2 && cross(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); }
+    for (let i = p.length - 1; i >= 0; i--) { const q = p[i]; while (up.length >= 2 && cross(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop(); up.push(q); }
+    up.pop(); lo.pop();
+    return lo.concat(up);
+  }
+
+  // A jagged polyline (crack) from a start point: [[x, y], ...] in metres.
+  function crackLine(r, x, y, len, a) {
+    const pts = [[x, y]];
+    const n = 3 + Math.floor(r() * 3);
+    for (let i = 0; i < n; i++) {
+      a += (r() - 0.5) * 1.1;
+      const l = (len / n) * (0.6 + r() * 0.8);
+      x += Math.cos(a) * l; y += Math.sin(a) * l;
+      pts.push([x, y]);
+    }
+    return pts;
+  }
+
+  // ================================================================ summit
+  // The tutorial: the last floor at the top of the Tower. A broken obsidian
+  // platform above a sea of cloud, a crimson sky, pillars, cracked floor with
+  // rune light seeping through, and a blinding light pouring down in the
+  // north where the stair leads (the climber's exit).
+  function summit(V, A) {
+    const { ctx, Sim } = V;
+    const P = V.P;
+    const K = kit(V, A);
+    const R = Sim.makeRng(71);
+    const C = {
+      sky0: '#3a0d14', sky1: '#1c080b', sky2: '#0c0607',
+      cliff: '#191416', cliffLit: '#2f272a', cliffShade: '#0e0b0c', lip: '#3d3438', lipLit: '#5a4f53',
+      floor: '#353033', floorLit: '#433b3f', pool: '#544a4e', seam: 'rgba(8,6,7,0.6)', chip: '#1c1719',
+      rune: '227,38,58', runeCore: '255,205,200',
+      stone: { base: '#3b3337', lit: '#5f5559', shade: '#1f1a1d', rim: '#f0d8cc', top: '#6d6266' },
+      shard: { base: '#221c1f', mid: '#3a3236', lit: '#6a5e63', rim: '#f0d8cc' },
+      shadowA: 'rgba(8,4,6,0.5)',
+    };
+    // ---- layout (all world-anchored, built once per arena)
+    const wobA = [], wobB = [];
+    for (let i = 0; i < 64; i++) { wobA.push(R() < 0.12 ? R() * 0.4 : 0.5 + (R() - 0.5) * 0.3); wobB.push(R()); }
+    const EDGE = 1.07; // platform edge, times the arena ellipse
+    const STAIR = { x: 0, y0: -A.ry * EDGE + 0.4, y1: A.exit.y - 0.7, w: 1.7, n: 5, h: 0.22 };
+    // Clouds: a ring of cel-shaded cloud banks far below.
+    const clouds = [];
+    for (let i = 0; i < 54; i++) {
+      const a = R() * TAU, d = 11 + Math.pow(R(), 0.7) * 30;
+      clouds.push({ x: Math.cos(a) * d * 1.15, y: Math.sin(a) * d, z: -6 - R() * 5, w: 7 + R() * 9, v: i % 3 });
+    }
+    // Floating debris around the platform edge.
+    const debris = [];
+    for (let i = 0; i < 26; i++) {
+      const a = R() * TAU, k = 1.2 + R() * 0.75;
+      const x = Math.cos(a) * A.rx * k, y = Math.sin(a) * A.ry * k;
+      if (Math.abs(x) < 2.6 && y < 0) continue; // keep the stair clear
+      const pts = [];
+      const n = 5 + Math.floor(R() * 3);
+      for (let j = 0; j < n; j++) { const b = (j / n) * TAU + R() * 0.4; const kk = 0.7 + R() * 0.45; pts.push([Math.cos(b) * kk, Math.sin(b) * kk * 0.8]); }
+      debris.push({ x, y, z: -1.8 + R() * 3.4, r: 0.12 + Math.pow(R(), 2) * 0.55, ph: R() * TAU, rot: R() * TAU, pts, rune: R() < 0.3 });
+    }
+    // Far debris in the sky.
+    const farDebris = [];
+    for (let i = 0; i < 18; i++) {
+      const a = R() * TAU, d = 16 + R() * 18;
+      farDebris.push({ x: Math.cos(a) * d, y: Math.sin(a) * d, z: 2 + R() * 9, r: 0.2 + R() * 0.7, ph: R() * TAU });
+    }
+    // Floor: flagstone rings and radial seams, cracks, rune sigil.
+    const seams = [];
+    for (const [k0, k1, n, o] of [[0.62, 0.8, 22, 0], [0.8, 0.96, 30, 0.5], [0.96, EDGE, 38, 0.2]]) {
+      for (let i = 0; i < n; i++) {
+        const a = ((i + o) / n) * TAU + (R() - 0.5) * 0.04;
+        seams.push([Math.cos(a) * A.rx * k0, Math.sin(a) * A.ry * k0, Math.cos(a) * A.rx * k1, Math.sin(a) * A.ry * k1]);
+      }
+    }
+    const cracks = [];
+    for (let i = 0; i < 26; i++) {
+      const a = R() * TAU, k = 0.25 + R() * 0.8;
+      const x = Math.cos(a) * A.rx * k, y = Math.sin(a) * A.ry * k;
+      cracks.push({ pts: crackLine(R, x, y, 1.2 + R() * 2.8, R() * TAU), glow: R() < 0.55, w: 0.6 + R() * 0.8 });
+    }
+    // Chips knocked out of the floor.
+    const chips = [];
+    for (let i = 0; i < 40; i++) {
+      const a = R() * TAU, k = Math.sqrt(R()) * 1.02;
+      const x = Math.cos(a) * A.rx * k, y = Math.sin(a) * A.ry * k;
+      if (K.inObstacle(x, y, 0.1)) continue;
+      chips.push({ x, y, r: 0.05 + R() * 0.12, a: R() * TAU });
+    }
+    // The rune sigil: rings with gaps (the floor is broken through them).
+    const SIG = { r0: 1.5, r1: 3.3, r2: 3.6, spokes: 8 };
+    const sigGaps = [];
+    for (let i = 0; i < 5; i++) sigGaps.push([R() * TAU, 0.15 + R() * 0.3]);
+    const glyphs = [];
+    for (let i = 0; i < 36; i++) {
+      const a = (i / 36) * TAU, kind = Math.floor(R() * 4);
+      glyphs.push({ a, kind });
+    }
+    // Pillars: broken tops (height + jag in metres), cracks.
+    const pillar = new Map(), rockSh = new Map();
+    for (const o of A.obstacles) {
+      if (o.kind === 'pillar') {
+        const h = 2.0 + R() * 1.9, ph = R() * TAU, amp = 0.35 + R() * 0.5, f = 1 + Math.floor(R() * 2);
+        pillar.set(o, { h, jag: (a) => Math.max(0, Math.sin(a * f + ph) * amp + Math.sin(a * 5 + ph * 2) * 0.12), cr: [R(), R(), R()], band: 0.9 + R() * 0.5 });
+      } else if (o.kind === 'rock') rockSh.set(o, K.rockShape(R, 7));
+    }
+    // Fallen drums outside the ring.
+    const drums = [];
+    for (let i = 0; i < 4; i++) {
+      const a = -0.4 + i * 1.7 + R() * 0.5, k = 0.98 + R() * 0.05;
+      drums.push({ x: Math.cos(a) * A.rx * k, y: Math.sin(a) * A.ry * k, r: 0.45 + R() * 0.15 });
+    }
+
+    // ---- sprites: cloud banks
+    const CK = 140;
+    function makeCloud(seed) {
+      const r = Sim.makeRng(seed);
+      const w = CK * 4.4, h = CK * 1.7, cv = K.canvas(w, h), c = cv.getContext('2d');
+      const base = h * 0.82, bumps = [];
+      const n = 6 + Math.floor(r() * 3);
+      for (let i = 0; i < n; i++) {
+        const t = (i + 0.5) / n, rr = CK * (0.42 + Math.sin(t * Math.PI) * 0.45 + r() * 0.18);
+        bumps.push({ x: w * (0.1 + t * 0.8) + (r() - 0.5) * CK * 0.2, y: base - rr * (0.45 + r() * 0.25), r: rr });
+      }
+      const shape = (c2, dx, dy, grow) => {
+        c2.beginPath();
+        for (const b of bumps) { c2.moveTo(b.x + dx + b.r + grow, b.y + dy); c2.arc(b.x + dx, b.y + dy, b.r + grow, 0, TAU); }
+      };
+      c.save(); c.beginPath(); c.rect(0, 0, w, base + 2); c.clip();
+      c.fillStyle = INK; shape(c, 0, 0, CK * 0.05); c.fill();
+      c.fillStyle = '#1b0d11'; shape(c, 0, 0, 0); c.fill();
+      c.save(); shape(c, 0, 0, 0); c.clip();
+      c.fillStyle = '#331a20'; shape(c, -CK * 0.08, -CK * 0.16, -CK * 0.04); c.fill();
+      c.fillStyle = '#4c262c'; shape(c, -CK * 0.16, -CK * 0.3, -CK * 0.12); c.fill();
+      // screentone hatching on the underside
+      c.strokeStyle = 'rgba(8,4,6,0.45)'; c.lineWidth = CK * 0.025;
+      c.beginPath();
+      for (let x = -h; x < w; x += CK * 0.12) { c.moveTo(x, base); c.lineTo(x + CK * 0.5, base - CK * 0.5); }
+      c.stroke();
+      c.restore();
+      // rim on top from the light above
+      const rim = K.canvas(w, h), rc = rim.getContext('2d');
+      rc.fillStyle = '#f2b8a8'; shape(rc, 0, 0, 0); rc.fill();
+      rc.globalCompositeOperation = 'destination-out'; shape(rc, CK * 0.02, CK * 0.06, 0); rc.fill();
+      c.globalAlpha = 0.5; c.drawImage(rim, 0, 0); c.globalAlpha = 1;
+      c.restore();
+      c.strokeStyle = INK; c.lineWidth = CK * 0.05; c.beginPath(); c.moveTo(w * 0.04, base); c.lineTo(w * 0.96, base); c.stroke();
+      return { cv, w, h, base };
+    }
+    const cloudSp = [makeCloud(901), makeCloud(917), makeCloud(933)];
+
+    // ---- drawing
+    function sky() {
+      const W = V.W, H = V.H;
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, C.sky0); g.addColorStop(0.55, C.sky1); g.addColorStop(1, C.sky2);
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      // The rift's glow over the sky (world-anchored high in the north).
+      const rp = P(RIFT.x, RIFT.y, RIFT.z), rad = Math.max(W, H) * 0.75;
+      const rg = ctx.createRadialGradient(rp.x, rp.y, 0, rp.x, rp.y, rad);
+      rg.addColorStop(0, 'rgba(255,236,226,0.55)'); rg.addColorStop(0.18, 'rgba(240,120,110,0.28)'); rg.addColorStop(0.5, 'rgba(142,22,33,0.18)'); rg.addColorStop(1, 'rgba(142,22,33,0)');
+      ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
+      // far debris silhouettes
+      ctx.fillStyle = '#120a0c';
+      ctx.beginPath();
+      for (const d of farDebris) {
+        const p = P(d.x, d.y, d.z + Math.sin(V.time * 0.4 + d.ph) * 0.2), r = d.r * V.cam.sc * 0.6;
+        if (K.off(p, r + 4)) continue;
+        ctx.moveTo(p.x - r, p.y); ctx.lineTo(p.x - r * 0.2, p.y - r * 0.7); ctx.lineTo(p.x + r, p.y - r * 0.2); ctx.lineTo(p.x + r * 0.3, p.y + r * 0.6); ctx.closePath();
+      }
+      ctx.fill();
+    }
+    const RIFT = { x: 0, y: A.exit.y - 1.2, z: 16 };
+    function drawClouds(near) {
+      const sc = V.cam.sc, list = [];
+      for (const c of clouds) {
+        const p = P(c.x, c.y, c.z);
+        const isNear = K.depth(c.x, c.y) > 0;
+        if (isNear !== near) continue;
+        list.push([p, c]);
+      }
+      list.sort((a, b) => a[0].d - b[0].d);
+      for (const [p, c] of list) {
+        const sp = cloudSp[c.v], k = (c.w * sc) / sp.w;
+        const w = sp.w * k, h = sp.h * k;
+        if (p.x + w / 2 < 0 || p.x - w / 2 > V.W || p.y - sp.base * k > V.H || p.y + h < 0) continue;
+        ctx.drawImage(sp.cv, p.x - w / 2, p.y - sp.base * k, w, h);
+      }
+    }
+    // The platform's side: masonry falling away into the cloud.
+    function cliff() {
+      const sc = V.cam.sc, N = 64;
+      const top = [], bot = [], lip = [], nrm = [];
+      const ca = Math.cos(V.cam.ang), sa = Math.sin(V.cam.ang);
+      for (let i = 0; i < N; i++) {
+        const a = (i / N) * TAU, k = EDGE + (wobA[i] - 0.5) * 0.05;
+        const x = Math.cos(a) * A.rx * k, y = Math.sin(a) * A.ry * k;
+        top.push(P(x, y, 0)); lip.push(P(x, y, -0.4)); bot.push(P(x * 0.92, y * 0.92, -16));
+        const nx = Math.cos(a) / A.rx, ny = Math.sin(a) / A.ry, l = Math.hypot(nx, ny);
+        nrm.push([nx / l, ny / l]);
+      }
+      const faces = [];
+      for (let i = 0; i < N; i++) {
+        const j = (i + 1) % N;
+        const nx = (nrm[i][0] + nrm[j][0]) / 2, ny = (nrm[i][1] + nrm[j][1]) / 2;
+        if (nx * sa + ny * ca <= -0.05) continue;
+        faces.push({ i, j, sx: nx * ca - ny * sa });
+      }
+      // Tower wall below the lip.
+      for (const f of faces) {
+        ctx.beginPath(); ctx.moveTo(lip[f.i].x, lip[f.i].y); ctx.lineTo(lip[f.j].x, lip[f.j].y); ctx.lineTo(bot[f.j].x, bot[f.j].y); ctx.lineTo(bot[f.i].x, bot[f.i].y); ctx.closePath();
+        ctx.fillStyle = f.sx < -0.35 ? C.cliffLit : f.sx > 0.35 ? C.cliffShade : C.cliff;
+        ctx.fill(); ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 1; ctx.stroke();
+      }
+      // Masonry courses and seams on the wall.
+      ctx.strokeStyle = 'rgba(6,4,5,0.7)'; ctx.lineWidth = K.lw(0.025);
+      ctx.beginPath();
+      for (const z of [-1.2, -2.3, -3.6, -5.2]) {
+        const zz = z / -16;
+        for (const f of faces) {
+          const a = lip[f.i], b = lip[f.j], a2 = bot[f.i], b2 = bot[f.j];
+          ctx.moveTo(a.x + (a2.x - a.x) * zz, a.y + (a2.y - a.y) * zz); ctx.lineTo(b.x + (b2.x - b.x) * zz, b.y + (b2.y - b.y) * zz);
+        }
+      }
+      for (const f of faces) {
+        if (f.i % 2) continue;
+        const a = lip[f.i], a2 = bot[f.i], z0 = (f.i % 4 ? 0.075 : 0), z1 = z0 + 0.07;
+        ctx.moveTo(a.x + (a2.x - a.x) * z0, a.y + (a2.y - a.y) * z0); ctx.lineTo(a.x + (a2.x - a.x) * z1, a.y + (a2.y - a.y) * z1);
+      }
+      ctx.stroke();
+      // Fade the wall into the abyss: crimson haze downward.
+      ctx.save();
+      ctx.beginPath();
+      for (const f of faces) { ctx.moveTo(lip[f.i].x, lip[f.i].y); ctx.lineTo(lip[f.j].x, lip[f.j].y); ctx.lineTo(bot[f.j].x, bot[f.j].y); ctx.lineTo(bot[f.i].x, bot[f.i].y); ctx.closePath(); }
+      ctx.clip();
+      const c0 = P(0, 0, -0.5), c1 = P(0, 0, -7);
+      const g = ctx.createLinearGradient(0, c0.y, 0, c1.y);
+      g.addColorStop(0, 'rgba(40,10,14,0)'); g.addColorStop(1, 'rgba(40,10,14,0.85)');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, V.W, V.H);
+      ctx.restore();
+      // The lip: a slab edge, lit on top.
+      for (const f of faces) {
+        ctx.beginPath(); ctx.moveTo(top[f.i].x, top[f.i].y); ctx.lineTo(top[f.j].x, top[f.j].y); ctx.lineTo(lip[f.j].x, lip[f.j].y); ctx.lineTo(lip[f.i].x, lip[f.i].y); ctx.closePath();
+        ctx.fillStyle = f.sx < -0.2 ? C.lipLit : C.lip; ctx.fill();
+        ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 1; ctx.stroke();
+      }
+      ctx.strokeStyle = INK; ctx.lineWidth = K.lw(0.04, 1.5); ctx.lineJoin = 'round';
+      ctx.beginPath();
+      for (const f of faces) { ctx.moveTo(lip[f.i].x, lip[f.i].y); ctx.lineTo(lip[f.j].x, lip[f.j].y); }
+      ctx.stroke();
+      return top;
+    }
+    function floor(top) {
+      const sc = V.cam.sc;
+      K.path(top); ctx.fillStyle = C.floor; ctx.fill();
+      ctx.save(); K.path(top); ctx.clip();
+      // Light from the rift: a hard-edged pool on the north half, brighter near the stair.
+      ctx.beginPath(); K.poly(K.ring(0.78, 40, wobB, 0.12, 0, -A.ry * 0.32)); ctx.fillStyle = C.floorLit; ctx.fill();
+      ctx.beginPath(); K.poly(K.ring(0.36, 32, wobB, 0.18, 0, -A.ry * 0.62)); ctx.fillStyle = C.pool; ctx.fill();
+      // Flagstone rings and seams.
+      ctx.strokeStyle = C.seam; ctx.lineWidth = K.lw(0.028, 1);
+      ctx.beginPath();
+      for (const k of [0.62, 0.8, 0.96]) K.poly(K.ring(k, 56));
+      for (const [x0, y0, x1, y1] of seams) { const a = P(x0, y0, 0), b = P(x1, y1, 0); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); }
+      ctx.stroke();
+      // Inner flagstones: a loose grid inside the rings.
+      ctx.strokeStyle = 'rgba(8,6,7,0.32)'; ctx.lineWidth = K.lw(0.02, 0.8);
+      ctx.beginPath();
+      for (let gx = -6; gx <= 6; gx += 1.5) { const a = P(gx, -A.ry * 0.62, 0), b = P(gx, A.ry * 0.62, 0); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); }
+      for (let gy = -4.5; gy <= 4.5; gy += 1.5) { const a = P(-A.rx * 0.62, gy, 0), b = P(A.rx * 0.62, gy, 0); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); }
+      ctx.stroke();
+      ctx.restore();
+      // Cast shadows.
+      ctx.beginPath();
+      for (const o of A.obstacles) {
+        if (o.kind === 'pillar') {
+          const pl = pillar.get(o);
+          K.sweep(P(o.x, o.y, 0), o.r * sc * 0.9, o.r * sc * V.cam.pitch * 0.9, K.shadowOff(pl.h));
+        } else {
+          const off = K.shadowOff(o.r * 0.9), b = P(o.x, o.y, 0);
+          ctx.moveTo(b.x + off.x * 0.5 + o.r * sc, b.y + off.y * 0.5); ctx.ellipse(b.x + off.x * 0.5, b.y + off.y * 0.5, o.r * sc * 1.05, o.r * sc * V.cam.pitch * 0.9, 0, 0, TAU);
+        }
+      }
+      for (const d of drums) { const b = P(d.x, d.y, 0); ctx.moveTo(b.x + d.r * sc * 1.3, b.y); ctx.ellipse(b.x + sc * 0.2, b.y + sc * 0.1, d.r * sc * 1.3, d.r * sc * V.cam.pitch, 0, 0, TAU); }
+      ctx.fillStyle = C.shadowA; ctx.fill();
+      // Cracks: ink, some with rune light seeping out.
+      const t = V.time, pulse = 0.7 + 0.3 * Math.sin(t * 1.4);
+      const glowP = new Path2D(), inkP = new Path2D();
+      for (const c of cracks) {
+        const pts = c.pts.map(([x, y]) => P(x, y, 0));
+        if (pts.every((p) => K.off(p, 10))) continue;
+        pts.forEach((p, i) => (i ? inkP.lineTo(p.x, p.y) : inkP.moveTo(p.x, p.y)));
+        if (c.glow) pts.forEach((p, i) => (i ? glowP.lineTo(p.x, p.y) : glowP.moveTo(p.x, p.y)));
+      }
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.strokeStyle = INK; ctx.lineWidth = K.lw(0.05, 1.5); ctx.stroke(inkP);
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = `rgba(${C.rune},${0.12 * pulse})`; ctx.lineWidth = K.lw(0.14, 3); ctx.stroke(glowP);
+      ctx.strokeStyle = `rgba(${C.runeCore},${0.3 * pulse})`; ctx.lineWidth = K.lw(0.016, 1); ctx.stroke(glowP);
+      ctx.restore();
+      // Chips.
+      ctx.fillStyle = C.chip;
+      ctx.beginPath();
+      for (const c of chips) {
+        const p = P(c.x, c.y, 0), r = c.r * sc;
+        if (K.off(p, 6)) continue;
+        ctx.moveTo(p.x + r, p.y); ctx.lineTo(p.x, p.y - r * 0.5); ctx.lineTo(p.x - r, p.y + r * 0.1); ctx.lineTo(p.x + r * 0.2, p.y + r * 0.45); ctx.closePath();
+      }
+      ctx.fill();
+      sigil(pulse);
+    }
+    function sigil(pulse) {
+      const sc = V.cam.sc;
+      const P2 = (r, a) => P(Math.cos(a) * r, Math.sin(a) * r, 0);
+      const inGap = (a) => sigGaps.some(([g, w]) => { let d = Math.abs(((a - g) % TAU + TAU) % TAU); d = Math.min(d, TAU - d); return d < w / 2; });
+      const p = new Path2D();
+      for (const r of [SIG.r0, SIG.r1, SIG.r2]) {
+        let open = false;
+        for (let i = 0; i <= 96; i++) {
+          const a = (i / 96) * TAU;
+          if (inGap(a + r)) { open = false; continue; }
+          const q = P2(r, a);
+          open ? p.lineTo(q.x, q.y) : p.moveTo(q.x, q.y); open = true;
+        }
+      }
+      for (let i = 0; i < SIG.spokes; i++) {
+        const a = (i / SIG.spokes) * TAU + 0.2;
+        if (inGap(a + SIG.r1)) continue;
+        const q0 = P2(SIG.r0, a), q1 = P2(SIG.r1, a);
+        p.moveTo(q0.x, q0.y); p.lineTo(q1.x, q1.y);
+        // a diamond where the spoke meets the ring
+        const m = P2(SIG.r1 - 0.45, a), l = P2(SIG.r1 - 0.25, a - 0.1), rr = P2(SIG.r1 - 0.25, a + 0.1), o = P2(SIG.r1 - 0.05, a);
+        p.moveTo(m.x, m.y); p.lineTo(l.x, l.y); p.lineTo(o.x, o.y); p.lineTo(rr.x, rr.y); p.closePath();
+      }
+      // glyph marks between the outer rings
+      const rm = (SIG.r1 + SIG.r2) / 2, gh = (SIG.r2 - SIG.r1) * 0.32;
+      for (const g of glyphs) {
+        if (inGap(g.a + SIG.r1)) continue;
+        const a = g.a, da = 0.05;
+        const A0 = P2(rm - gh, a - da), A1 = P2(rm + gh, a - da), B0 = P2(rm - gh, a + da), B1 = P2(rm + gh, a + da), M = P2(rm, a);
+        if (g.kind === 0) { p.moveTo(A0.x, A0.y); p.lineTo(A1.x, A1.y); p.lineTo(B0.x, B0.y); }
+        else if (g.kind === 1) { p.moveTo(A1.x, A1.y); p.lineTo(M.x, M.y); p.lineTo(B1.x, B1.y); p.moveTo(M.x, M.y); p.lineTo(P2(rm - gh, a).x, P2(rm - gh, a).y); }
+        else if (g.kind === 2) { p.moveTo(A0.x, A0.y); p.lineTo(B1.x, B1.y); p.moveTo(A1.x, A1.y); p.lineTo(B0.x, B0.y); }
+        else { p.moveTo(A0.x, A0.y); p.lineTo(A1.x, A1.y); p.moveTo(B0.x, B0.y); p.lineTo(B1.x, B1.y); }
+      }
+      // Engraved first (dark groove), then the light inside it.
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.strokeStyle = 'rgba(8,4,6,0.85)'; ctx.lineWidth = K.lw(0.075, 2); ctx.stroke(p);
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = `rgba(${C.rune},${0.1 * pulse})`; ctx.lineWidth = K.lw(0.2, 4); ctx.stroke(p);
+      ctx.strokeStyle = `rgba(${C.rune},${0.3 * pulse})`; ctx.lineWidth = K.lw(0.045, 1.5); ctx.stroke(p);
+      ctx.strokeStyle = `rgba(${C.runeCore},${0.32 * pulse})`; ctx.lineWidth = K.lw(0.014, 0.8); ctx.stroke(p);
+      ctx.restore();
+      void sc;
+    }
+    // The stair up to the light, and the light itself.
+    function stair() {
+      const S = STAIR, n = S.n, sc = V.cam.sc;
+      const stepL = (S.y0 - S.y1) / n;
+      // Each step is a block from its front edge to the back, stacked.
+      for (let i = 0; i < n; i++) {
+        const yf = S.y0 - i * stepL;
+        K.box(S.x, (yf + S.y1) / 2, S.w * (1 - i * 0.05), (yf - S.y1) / 2, 0, i * S.h, (i + 1) * S.h,
+          { lit: '#4a4044', shade: '#211b1e', top: i === n - 1 ? '#8a7c7c' : '#5a4f53', rim: '#f6e6dc' });
+      }
+      void sc;
+    }
+    function lightColumn() {
+      const W = V.W, H = V.H, sc = V.cam.sc;
+      const S = STAIR, top = S.n * S.h;
+      const b = P(S.x, S.y1 + 0.3, top), hi = P(RIFT.x, RIFT.y, RIFT.z);
+      const t = V.time, flick = 0.9 + 0.1 * Math.sin(t * 7) * Math.sin(t * 2.3);
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      // Ground splash.
+      for (const [r, a] of [[2.6, 0.12], [1.5, 0.2], [0.8, 0.35]]) {
+        ctx.fillStyle = `rgba(255,224,214,${a * flick})`;
+        ctx.beginPath(); ctx.ellipse(b.x, b.y, r * sc, r * sc * V.cam.pitch, 0, 0, TAU); ctx.fill();
+      }
+      // Column: three nested tapers.
+      const dx = hi.x - b.x, dy = hi.y - b.y, l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l;
+      const ext = Math.max(W, H) * 2 / l;
+      const ex = b.x + dx * ext, ey = b.y + dy * ext;
+      for (const [w0, w1, col] of [[1.5, 4.5, `rgba(255,150,140,${0.14 * flick})`], [0.75, 2.2, `rgba(255,226,214,${0.28 * flick})`], [0.28, 0.8, `rgba(255,252,248,${0.85 * flick})`]]) {
+        const a = w0 * sc, c = w1 * sc;
+        ctx.fillStyle = col;
+        ctx.beginPath(); ctx.moveTo(b.x + nx * a, b.y + ny * a * 0.5); ctx.lineTo(ex + nx * c, ey + ny * c); ctx.lineTo(ex - nx * c, ey - ny * c); ctx.lineTo(b.x - nx * a, b.y - ny * a * 0.5); ctx.closePath(); ctx.fill();
+      }
+      ctx.restore();
+      // A starburst where it touches the stair.
+      const r = sc * (0.9 + 0.1 * Math.sin(t * 3));
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      for (let i = 0; i < 8; i++) { const a = (i / 8) * TAU, rr = i % 2 ? r * 0.12 : i % 4 === 0 ? r * 1.4 : r * 0.7; i ? ctx.lineTo(b.x + Math.cos(a) * rr, b.y + Math.sin(a) * rr * 0.7) : ctx.moveTo(b.x + Math.cos(a) * rr, b.y + Math.sin(a) * rr * 0.7); }
+      ctx.closePath(); ctx.fill();
+    }
+
+    // Debris below the platform's level is part of the backdrop: behind
+    // the platform on the far side, in front of the tower wall on the near.
+    function lowDebris(near) {
+      for (const db of debris) if (db.z < 0 && (K.depth(db.x, db.y) > 0) === near) drawDebris(db);
+    }
+    function pier() {
+      // The stair runs out past the edge on a pier of masonry.
+      const S = STAIR, yb = -A.ry * EDGE;
+      K.box(S.x, (yb + S.y1 - 0.2) / 2, S.w + 0.15, (yb - S.y1 + 0.2) / 2, 0, -16, 0, { lit: C.cliffLit, shade: C.cliffShade, top: C.lip });
+    }
+    const drumPal = { base: C.stone.base, mid: C.stone.base, lit: C.stone.lit, rim: C.stone.rim };
+    function drawBackdrop() {
+      sky();
+      drawClouds(false);
+      lowDebris(false);
+      pier();
+      const top = cliff();
+      drawClouds(true);
+      lowDebris(true);
+      floor(top);
+      // drums lying outside the ring
+      for (const d of drums) K.drawRock(d.x, d.y, d.r * 1.1, drumShape, drumPal, 0.55, 0.7);
+      stair();
+      lightColumn();
+    }
+    const drumShape = K.rockShape(Sim.makeRng(77), 10);
+
+    function drawPillar(o, s) {
+      const pl = pillar.get(o), sc = V.cam.sc;
+      const p = P(o.x, o.y, 0);
+      if (K.off(p, sc * 5)) return;
+      const fade = K.behind(s, p, o.r * sc * 1.6, pl.h * sc * 0.95) ? 0.4 : 1;
+      ctx.globalAlpha = fade;
+      // Plinth (the full collision footprint), then the shaft.
+      K.cyl(o.x, o.y, o.r, 0, 0.32, { base: '#3a3236', shade: '#1d181b', lit: '#544a4e', rim: C.stone.rim, top: '#4e4448' });
+      const r = o.r * 0.78;
+      const g = K.cyl(o.x, o.y, r, 0.32, pl.h, C.stone, pl.jag, {
+        flutes: true,
+        inside: (b, t, rx) => {
+          // a long crack down the shaft
+          ctx.strokeStyle = INK; ctx.lineWidth = K.lw(0.02, 1);
+          ctx.beginPath();
+          let x = b.x + rx * (pl.cr[0] - 0.3), y = t.y + (b.y - t.y) * 0.15;
+          ctx.moveTo(x, y);
+          for (let i = 0; i < 4; i++) { x += rx * (pl.cr[(i + 1) % 3] - 0.5) * 0.6; y += (b.y - t.y) * 0.16; ctx.lineTo(x, y); }
+          ctx.stroke();
+        },
+        topInside: (t, rx, ry) => {
+          // fracture: rough inner shading
+          ctx.fillStyle = 'rgba(30,24,27,0.55)';
+          ctx.beginPath(); ctx.ellipse(t.x + rx * 0.25, t.y + ry * 0.35, rx * 0.8, ry * 0.7, 0, 0, TAU); ctx.fill();
+        },
+      });
+      // A band of glyphs cut into the shaft, glowing faintly.
+      const bz = P(o.x, o.y, pl.band), pulse = 0.65 + 0.35 * Math.sin(V.time * 1.4 + o.x);
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = `rgba(${C.rune},${0.6 * pulse * fade})`; ctx.lineWidth = K.lw(0.035, 1.2);
+      ctx.beginPath(); ctx.ellipse(bz.x, bz.y, g.rx * 0.99, g.ry * 0.99, 0, 0.15, Math.PI - 0.15); ctx.stroke();
+      ctx.strokeStyle = `rgba(${C.runeCore},${0.5 * pulse * fade})`; ctx.lineWidth = K.lw(0.012, 0.8);
+      ctx.beginPath();
+      for (let i = 1; i < 7; i++) {
+        const f = (i / 7) * Math.PI, x = bz.x + Math.cos(f) * g.rx, y = bz.y + Math.sin(f) * g.ry;
+        ctx.moveTo(x, y - sc * 0.08); ctx.lineTo(x + sc * 0.03, y + sc * 0.06);
+      }
+      ctx.stroke();
+      ctx.restore();
+      ctx.globalAlpha = 1;
+    }
+    function drawDebris(d) {
+      const sc = V.cam.sc, t = V.time;
+      const z = d.z + Math.sin(t * 0.7 + d.ph) * 0.18, rot = d.rot + Math.sin(t * 0.3 + d.ph) * 0.15;
+      const p = P(d.x, d.y, z), r = d.r * sc;
+      if (K.off(p, r * 2)) return;
+      const c = Math.cos(rot), s = Math.sin(rot);
+      const pts = d.pts.map(([x, y]) => ({ x: p.x + (x * c - y * s) * r, y: p.y + (x * s + y * c) * r }));
+      // shadow-side fill, lit upper half, ink.
+      K.path(pts); ctx.fillStyle = C.shard.base; ctx.fill();
+      ctx.save(); K.path(pts); ctx.clip();
+      ctx.fillStyle = C.shard.lit; ctx.beginPath(); ctx.ellipse(p.x - r * 0.35, p.y - r * 0.45, r * 0.9, r * 0.55, -0.4, 0, TAU); ctx.fill();
+      ctx.restore();
+      ctx.strokeStyle = INK; ctx.lineWidth = K.lw(0.03, 1.2); K.path(pts); ctx.stroke();
+      if (d.rune) {
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = `rgba(${C.rune},0.7)`; ctx.lineWidth = Math.max(1, r * 0.12);
+        ctx.beginPath(); ctx.moveTo(p.x - r * 0.4, p.y); ctx.lineTo(p.x + r * 0.1, p.y - r * 0.2); ctx.lineTo(p.x + r * 0.35, p.y + r * 0.15); ctx.stroke();
+        ctx.restore();
+      }
+      // a thin dust trail falling off it
+      ctx.strokeStyle = 'rgba(30,14,18,0.5)'; ctx.lineWidth = Math.max(1, r * 0.1);
+      ctx.beginPath(); ctx.moveTo(p.x, p.y + r * 0.6); ctx.lineTo(p.x + r * 0.2, p.y + r * 2.4); ctx.stroke();
+    }
+
+    function items(s) {
+      const out = [];
+      for (const o of A.obstacles) {
+        const d = P(o.x, o.y, 0).d;
+        if (o.kind === 'pillar') out.push({ d, f: () => drawPillar(o, s) });
+        else out.push({ d, f: () => K.drawRock(o.x, o.y, o.r, rockSh.get(o), C.shard, 0.5, 0.95) });
+      }
+      for (const db of debris) if (db.z >= 0) out.push({ d: P(db.x, db.y, 0).d, f: () => drawDebris(db) });
+      return out;
+    }
+
+    // ---- atmosphere: god rays from the rift, ash and light motes.
+    const overlay = K.overlay({ vig: [0.34, 0.78], vigCol: '14,4,6', toneCol: 'rgba(14,6,8,0.4)' });
+    const motes = K.motes(46, 77, (r) => (r() < 0.45 ? 0 : r() < 0.6 ? 1 : 2));
+    function drawAtmosphere() {
+      const W = V.W, H = V.H, t = V.time, sc = V.cam.sc;
+      const hi = P(RIFT.x, RIFT.y, RIFT.z);
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < 9; i++) {
+        const a = Math.PI / 2 + (i - 4) * 0.13 + Math.sin(t * 0.15 + i) * 0.02;
+        const len = Math.hypot(W, H) * 1.3, wd = 0.02 + (i % 3) * 0.012;
+        const al = 0.035 + 0.02 * Math.sin(t * 0.5 + i * 1.7);
+        const g = ctx.createLinearGradient(hi.x, hi.y, hi.x + Math.cos(a) * len, hi.y + Math.sin(a) * len);
+        g.addColorStop(0, `rgba(255,210,200,${al * 2})`); g.addColorStop(1, 'rgba(255,210,200,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.moveTo(hi.x, hi.y); ctx.lineTo(hi.x + Math.cos(a - wd) * len, hi.y + Math.sin(a - wd) * len); ctx.lineTo(hi.x + Math.cos(a + wd) * len, hi.y + Math.sin(a + wd) * len); ctx.closePath(); ctx.fill();
+      }
+      ctx.restore();
+      overlay.draw();
+      K.drawMotes(motes, ['rgba(20,8,12,0.7)', 'rgba(255,120,120,0.55)', 'rgba(255,236,226,0.6)']);
+      void sc;
+    }
+    return { drawBackdrop, items, drawAtmosphere, resize: overlay.reset };
+  }
+
+  // ================================================================ hill
+  // Chapter Five: the overgrown path up to the quarry in the late-day sun.
+  // Rocky dirt path, dry scrub, boulders, dead trees; the quarry's cut face
+  // and a timber hoist on the uphill (north) side.
+  function hill(V, A) {
+    const { ctx, Sim } = V;
+    const P = V.P;
+    const K = kit(V, A);
+    const R = Sim.makeRng(53);
+    const C = {
+      bg: '#221e1b', ground: '#332e2a', lit: '#4c4439', pool: '#62574a', patch: '#2d2926',
+      dirt: '#6a5b4a', dirtLit: '#85735d', rut: '#463c32', pebble: '#2a2520', pebbleLit: '#a19583',
+      grass: { ink: '#1d1b15', lit: '#7a7352', tip: '#d2bf92' },
+      grass2: { ink: '#22201a', lit: '#5d5a40', tip: '#b8a67c' },
+      rock: { base: '#463f3a', mid: '#655b53', lit: '#958878', rim: '#efd6bf' },
+      wood: '#2a221e', woodLit: '#5a4a3f', rim: '#e8cdb6',
+      face: '#3f3832', faceLit: '#4d453d', faceShade: '#2c2723', ledge: '#8c7f6b', topGround: '#4a4136', topEdge: '#a39478',
+      block: { lit: '#8a7f70', shade: '#4d453d', top: '#9a8e7c', rim: '#f2dcc4' },
+      shadowA: 'rgba(12,10,16,0.45)',
+    };
+    // The path from the west up to the quarry in the north-east.
+    const PATH = [[-15, 1.8, 2.8], [-10, 1.1, 2.5], [-6, 0.6, 2.4], [-2, 0.0, 2.3], [2, -0.8, 2.2], [6, -1.7, 2.1], [9.5, -2.5, 2.0], [12.5, -3.4, 1.9], [16, -5.0, 1.8], [20, -7.6, 1.7]];
+    const pathL = [], pathR = [], pathC = [], flecks = [], stones = [];
+    {
+      const pts = [];
+      for (let i = 0; i < PATH.length - 1; i++) for (let k = 0; k < 4; k++) {
+        const f = k / 4, a = PATH[i], b = PATH[i + 1];
+        pts.push([a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f]);
+      }
+      pts.push(PATH[PATH.length - 1]);
+      for (let i = 0; i < pts.length; i++) {
+        const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
+        const tx = b[0] - a[0], ty = b[1] - a[1], l = Math.hypot(tx, ty), nx = -ty / l, ny = tx / l, w = pts[i][2] / 2;
+        const jl = 1 + (R() - 0.5) * 0.35, jr = 1 + (R() - 0.5) * 0.35;
+        pathL.push([pts[i][0] + nx * w * jl, pts[i][1] + ny * w * jl]);
+        pathR.push([pts[i][0] - nx * w * jr, pts[i][1] - ny * w * jr]);
+        pathC.push([pts[i][0], pts[i][1], nx, ny, w]);
+      }
+      for (let i = 0; i < 60; i++) {
+        const c = pathC[Math.floor(R() * pathC.length)], o = (R() - 0.5) * 1.7;
+        flecks.push({ x: c[0] + c[2] * c[4] * o + (R() - 0.5) * 0.8, y: c[1] + c[3] * c[4] * o + (R() - 0.5) * 0.8, r: 0.06 + R() * 0.16, lit: R() < 0.55 });
+      }
+      for (let i = 0; i < 26; i++) {
+        const c = pathC[Math.floor(R() * pathC.length)], o = (R() - 0.5) * 1.6;
+        const x = c[0] + c[2] * c[4] * o, y = c[1] + c[3] * c[4] * o;
+        if (K.inObstacle(x, y, 0.2)) continue;
+        stones.push({ x, y, r: 0.1 + R() * 0.14, sh: K.rockShape(R, 6) });
+      }
+    }
+    function nearPath(x, y, m) {
+      for (let i = 0; i < PATH.length - 1; i++) {
+        const [ax, ay] = PATH[i], [bx, by] = PATH[i + 1], dx = bx - ax, dy = by - ay;
+        const t = clamp(((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy), 0, 1);
+        if (Math.hypot(x - ax - dx * t, y - ay - dy * t) < m) return true;
+      }
+      return false;
+    }
+    // The quarry face: two benches cut into the hill along the north.
+    const QN = 40, QX0 = -22, QX1 = 22;
+    const quarry = [];
+    for (let i = 0; i <= QN; i++) {
+      const x = QX0 + ((QX1 - QX0) * i) / QN;
+      const y = -A.ry * 1.22 - 0.014 * x * x + (R() - 0.5) * 0.25;
+      quarry.push({ x, y, h1: 1.6 + R() * 0.35, h2: 3.4 + R() * 0.6, set: 0.9 + R() * 0.25, crack: R(), tone: R() });
+    }
+    // Rubble heaps at the foot of the face.
+    const rubble = [];
+    for (let i = 0; i < 30; i++) {
+      const q = quarry[2 + Math.floor(R() * (QN - 4))];
+      rubble.push({ x: q.x + (R() - 0.5) * 1.2, y: q.y + 0.3 + R() * 0.9, r: 0.12 + R() * 0.32, sh: K.rockShape(R, 6) });
+    }
+    // Cut blocks stacked by the path near the top.
+    const blocks = [
+      { x: 13.4, y: -5.8, hw: 0.7, hd: 0.45, rot: 0.25, z0: 0, z1: 0.75 },
+      { x: 14.6, y: -5.2, hw: 0.6, hd: 0.45, rot: 0.1, z0: 0, z1: 0.75 },
+      { x: 13.9, y: -5.5, hw: 0.55, hd: 0.4, rot: 0.4, z0: 0.75, z1: 1.4 },
+      { x: 9.2, y: -6.6, hw: 0.55, hd: 0.5, rot: -0.3, z0: 0, z1: 0.7 },
+    ];
+    // Timber hoist on the quarry top.
+    const HOIST = { x: 6.5, y: -11.6, z: 3.8 };
+    // Dead trees: branching skeletons in metres relative to the base.
+    function makeDeadTree(r, h) {
+      const segs = [];
+      function grow(x, y, z, a, el, len, w, depth) {
+        const x1 = x + Math.cos(a) * Math.cos(el) * len, y1 = y + Math.sin(a) * Math.cos(el) * len, z1 = z + Math.sin(el) * len;
+        segs.push([x, y, z, x1, y1, z1, w, w * 0.62]);
+        if (depth <= 0) return;
+        const n = depth > 2 ? 2 : 2 + (r() < 0.4 ? 1 : 0);
+        for (let i = 0; i < n; i++) {
+          const da = (i - (n - 1) / 2) * (0.9 + r() * 0.6) + (r() - 0.5) * 0.5;
+          grow(x1, y1, z1, a + da, Math.max(0.15, el - 0.25 - r() * 0.35), len * (0.62 + r() * 0.15), w * 0.62, depth - 1);
+        }
+      }
+      // trunk with a lean, then branches
+      const lean = r() * TAU;
+      grow(0, 0, 0, lean, 1.42, h * 0.5, 0.26, 0);
+      const t = segs[0];
+      grow(t[3], t[4], t[5], lean + 2.4, 1.0, h * 0.32, 0.17, 3);
+      grow(t[3], t[4], t[5], lean - 0.8, 1.1, h * 0.36, 0.18, 3);
+      grow(t[3], t[4], t[5], lean + 0.6, 1.35, h * 0.3, 0.15, 2);
+      return segs;
+    }
+    const trees = [];
+    for (const o of A.obstacles) if (o.kind === 'tree') trees.push({ x: o.x, y: o.y, w: o.r / 0.26 * 0.9, segs: makeDeadTree(R, 4.2), obstacle: true });
+    for (const [x, y] of [[-12.5, -3.4], [-11.8, 4.4], [9.4, 4.9], [12.8, 1.8], [-4.5, -8.6], [2.5, -8.2]]) trees.push({ x, y, w: 0.8 + R() * 0.3, segs: makeDeadTree(R, 3.4 + R() * 1.4) });
+    // Ground: sunlit and shaded patches, contour hatching, tufts, shrubs.
+    const wob = [], wob2 = [];
+    for (let i = 0; i < 48; i++) { wob.push(R()); wob2.push(R()); }
+    const patches = [];
+    for (let i = 0; i < 12; i++) {
+      const a = R() * TAU, k = 0.2 + R() * 0.9, r = 0.8 + R() * 1.6, pts = [];
+      for (let j = 0; j < 9; j++) pts.push([Math.cos((j / 9) * TAU) * r * (0.7 + R() * 0.45), Math.sin((j / 9) * TAU) * r * (0.45 + R() * 0.3)]);
+      patches.push({ x: Math.cos(a) * A.rx * k, y: Math.sin(a) * A.ry * k, pts });
+    }
+    const contours = [];
+    for (let i = 0; i < 16; i++) {
+      const y0 = -A.ry * 1.05 + (i % 4) * 0.5 + (R() - 0.5), x0 = -16 + R() * 26, len = 2 + R() * 4;
+      contours.push([x0, y0 + (i > 7 ? A.ry * 2.1 : 0), len, R()]);
+    }
+    const tuftSp = [];
+    for (let i = 0; i < 8; i++) tuftSp.push(K.tuft(601 + i * 7, i % 2 ? C.grass : C.grass2, i < 5, i < 3));
+    const tufts = [];
+    for (let i = 0; i < 700 && tufts.length < 190; i++) {
+      const x = (R() - 0.5) * 34, y = (R() - 0.5) * 22;
+      const e = (x / A.rx) ** 2 + (y / A.ry) ** 2;
+      if (e < 0.35 && R() < 0.8) continue;
+      if (nearPath(x, y, 1.0) || K.inObstacle(x, y, 0.15)) continue;
+      if (y < -A.ry * 1.18 - 0.014 * x * x) continue;
+      tufts.push({ x, y, s: 0.5 + R() * 0.8, v: tufts.length % 8 });
+    }
+    // Shrubs: twiggy dry bushes, sprite per variant.
+    function makeShrub(seed) {
+      const r = Sim.makeRng(seed), S = 90;
+      const cv = K.canvas(S * 2.4, S * 1.5), c = cv.getContext('2d');
+      const bx = cv.width / 2, by = cv.height - 4;
+      c.lineCap = 'round';
+      const tw = [];
+      for (let i = 0; i < 14; i++) {
+        const a = -Math.PI * (0.1 + 0.8 * (i / 13)) + (r() - 0.5) * 0.3, l = S * (0.6 + r() * 0.6);
+        tw.push([bx + (r() - 0.5) * S * 0.3, by, bx + Math.cos(a) * l, by + Math.sin(a) * l * 0.95]);
+      }
+      for (const [w, col] of [[S * 0.07, INK], [S * 0.035, '#4b3f35']]) {
+        c.strokeStyle = col; c.lineWidth = w;
+        c.beginPath();
+        for (const [x0, y0, x1, y1] of tw) { c.moveTo(x0, y0); c.quadraticCurveTo((x0 + x1) / 2 + (x1 - x0) * 0.1, (y0 + y1) / 2 + S * 0.1, x1, y1); }
+        c.stroke();
+      }
+      // a few dry leaf clusters
+      for (const [, , x1, y1] of tw) {
+        if (r() < 0.5) continue;
+        c.fillStyle = INK; c.beginPath(); c.ellipse(x1, y1, S * 0.12, S * 0.07, r(), 0, TAU); c.fill();
+        c.fillStyle = r() < 0.5 ? '#6d6446' : '#4d4733'; c.beginPath(); c.ellipse(x1, y1, S * 0.09, S * 0.045, r(), 0, TAU); c.fill();
+      }
+      return { cv, ax: bx, ay: by, G: S };
+    }
+    const shrubSp = [makeShrub(701), makeShrub(719), makeShrub(733)];
+    const shrubs = [];
+    for (let i = 0; i < 80 && shrubs.length < 22; i++) {
+      const a = R() * TAU, k = 0.95 + R() * 0.5;
+      const x = Math.cos(a) * A.rx * k, y = Math.sin(a) * A.ry * k;
+      if (nearPath(x, y, 1.4) || K.inObstacle(x, y, 0.4)) continue;
+      shrubs.push({ x, y, s: 0.7 + R() * 0.6, v: shrubs.length % 3 });
+    }
+    const rockSh = new Map();
+    for (const o of A.obstacles) if (o.kind === 'rock') rockSh.set(o, K.rockShape(R, 9));
+
+    // ---- drawing
+    function ground() {
+      const W = V.W, H = V.H, sc = V.cam.sc;
+      ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, H);
+      ctx.beginPath(); K.poly(K.ring(1.7, 48, wob, 0.12, 0, 0)); ctx.fillStyle = C.ground; ctx.fill();
+      ctx.beginPath(); K.poly(K.ring(1.02, 48, wob2, 0.12, -0.6, -0.4)); ctx.fillStyle = C.lit; ctx.fill();
+      ctx.beginPath(); K.poly(K.ring(0.55, 48, wob, 0.2, -2.4, -1.2)); ctx.fillStyle = C.pool; ctx.fill();
+      ctx.fillStyle = C.patch; ctx.beginPath();
+      for (const pt of patches) K.poly(pt.pts.map(([x, y]) => P(pt.x + x, pt.y + y, 0)));
+      ctx.fill();
+      // Downhill contour hatching.
+      ctx.strokeStyle = 'rgba(16,13,10,0.45)'; ctx.lineWidth = K.lw(0.025, 0.8); ctx.lineCap = 'round';
+      ctx.beginPath();
+      for (const [x0, y0, len, b] of contours) {
+        for (let k = 0; k < 3; k++) {
+          const a = P(x0, y0 + k * 0.22, 0), m = P(x0 + len * 0.5, y0 + k * 0.22 + 0.25 * (b - 0.5), 0), e = P(x0 + len * (0.8 + 0.2 * b) - k * 0.4, y0 + k * 0.22, 0);
+          ctx.moveTo(a.x, a.y); ctx.quadraticCurveTo(m.x, m.y, e.x, e.y);
+        }
+      }
+      ctx.stroke();
+      void sc;
+    }
+    function path() {
+      const sc = V.cam.sc;
+      const L = pathL.map(([x, y]) => P(x, y, 0)), Rr = pathR.map(([x, y]) => P(x, y, 0));
+      ctx.beginPath(); K.poly(L.concat(Rr.slice().reverse())); ctx.fillStyle = C.dirt; ctx.fill();
+      // A lit band down the middle.
+      const M = pathC.map(([x, y, nx, ny, w]) => P(x + nx * w * 0.35, y + ny * w * 0.35, 0)), M2 = pathC.map(([x, y, nx, ny, w]) => P(x - nx * w * 0.15, y - ny * w * 0.15, 0));
+      ctx.beginPath(); K.poly(M.concat(M2.slice().reverse())); ctx.fillStyle = C.dirtLit; ctx.fill();
+      const lit = new Path2D(), dark = new Path2D();
+      for (const f of flecks) {
+        const p = P(f.x, f.y, 0), r = f.r * sc;
+        if (K.off(p, 8)) continue;
+        const pa = f.lit ? lit : dark;
+        pa.moveTo(p.x + r, p.y); pa.ellipse(p.x, p.y, r, r * 0.45, 0, 0, TAU);
+      }
+      ctx.fillStyle = C.dirtLit; ctx.fill(lit);
+      ctx.fillStyle = C.rut; ctx.fill(dark);
+      // Worn ruts.
+      ctx.strokeStyle = C.rut; ctx.lineWidth = K.lw(0.05); ctx.lineCap = 'round';
+      ctx.setLineDash([sc * 0.7, sc * 0.35]);
+      for (const side of [-0.4, 0.38]) {
+        ctx.beginPath();
+        pathC.forEach(([x, y, nx, ny, w], i) => { const p = P(x + nx * w * side, y + ny * w * side, 0); i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y); });
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+      ctx.strokeStyle = INK; ctx.lineWidth = K.lw(0.035, 1); ctx.lineJoin = 'round';
+      ctx.beginPath();
+      for (const side of [L, Rr]) for (let i = 0; i < side.length - 1; i++) {
+        const p = side[i], q = side[i + 1];
+        ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + (q.x - p.x) * 0.55, p.y + (q.y - p.y) * 0.55);
+      }
+      ctx.stroke();
+      for (const st of stones) K.drawRock(st.x, st.y, st.r, st.sh, C.rock, 0.3, 0.7);
+    }
+    // The quarry face, drawn as a strip of quads from the back.
+    function quarryFace() {
+      const sc = V.cam.sc;
+      const fk = quarry.map((q) => K.tall(q.x, q.y));
+      const low = quarry.map((q, i) => P(q.x, q.y, 0)), mid = quarry.map((q, i) => P(q.x, q.y, q.h1 * fk[i]));
+      const ledge = quarry.map((q, i) => P(q.x, q.y - q.set, q.h1 * fk[i])), top = quarry.map((q, i) => P(q.x, q.y - q.set, q.h2 * fk[i]));
+      const back = quarry.map((q, i) => P(q.x, q.y - q.set - 30, q.h2 * fk[i]));
+      // ground above the quarry
+      ctx.beginPath(); K.poly(top.concat(back.slice().reverse())); ctx.fillStyle = C.topGround; ctx.fill();
+      ctx.beginPath(); K.poly(top.concat(quarry.map((q, i) => P(q.x, q.y - q.set - 1.4, q.h2 * fk[i])).reverse())); ctx.fillStyle = C.topEdge; ctx.fill();
+      const strip = (a, b, col) => {
+        for (let i = 0; i < QN; i++) {
+          ctx.beginPath(); ctx.moveTo(a[i].x, a[i].y); ctx.lineTo(a[i + 1].x, a[i + 1].y); ctx.lineTo(b[i + 1].x, b[i + 1].y); ctx.lineTo(b[i].x, b[i].y); ctx.closePath();
+          ctx.fillStyle = typeof col === 'function' ? col(i) : col; ctx.fill();
+          ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = 1; ctx.stroke();
+        }
+      };
+      // upper face, ledge, lower face (back to front)
+      // The faces look away from the sun (backlit); the benches face up and catch it.
+      const tone = (i, o) => { const t = quarry[(i + o) % QN].tone; return t < 0.2 ? C.faceShade : t > 0.72 ? C.faceLit : C.face; };
+      strip(ledge, top, (i) => tone(i, 3));
+      strip(mid, ledge, C.ledge);
+      strip(low, mid, (i) => tone(i, 0));
+      // Chisel marks, strata, block seams.
+      ctx.strokeStyle = 'rgba(14,10,8,0.6)'; ctx.lineWidth = K.lw(0.02, 0.8); ctx.lineCap = 'round';
+      ctx.beginPath();
+      for (let i = 0; i < QN; i++) {
+        for (const [A0, B0] of [[low, mid], [ledge, top]]) {
+          for (const f of [0.33, 0.66]) {
+            ctx.moveTo(A0[i].x + (B0[i].x - A0[i].x) * f, A0[i].y + (B0[i].y - A0[i].y) * f);
+            ctx.lineTo(A0[i + 1].x + (B0[i + 1].x - A0[i + 1].x) * f, A0[i + 1].y + (B0[i + 1].y - A0[i + 1].y) * f);
+          }
+          if (i % 2 === 0) {
+            const f0 = quarry[i].crack * 0.3;
+            ctx.moveTo(A0[i].x + (B0[i].x - A0[i].x) * f0, A0[i].y + (B0[i].y - A0[i].y) * f0); ctx.lineTo(B0[i].x, B0[i].y);
+          }
+        }
+      }
+      ctx.stroke();
+      // Ink: top edges heavy, bench edges.
+      ctx.strokeStyle = INK; ctx.lineJoin = 'round';
+      for (const [row, w] of [[top, 0.05], [mid, 0.04], [ledge, 0.025], [low, 0.03]]) {
+        ctx.lineWidth = K.lw(w, 1.2);
+        ctx.beginPath(); row.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y))); ctx.stroke();
+      }
+      // Bone rim along the sunlit edges of both benches.
+      ctx.strokeStyle = C.rim; ctx.globalAlpha = 0.75; ctx.lineWidth = K.lw(0.03, 1.2);
+      for (const row of [mid, top]) { ctx.beginPath(); row.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y + 1.5) : ctx.moveTo(p.x, p.y + 1.5))); ctx.stroke(); }
+      ctx.globalAlpha = 1;
+      // Grass hanging over the top edge.
+      ctx.fillStyle = '#25221b';
+      ctx.beginPath();
+      for (let i = 0; i < QN; i++) {
+        const a = top[i], b = top[i + 1], n = 3;
+        for (let k = 0; k < n; k++) {
+          const f = (k + 0.5) / n, x = a.x + (b.x - a.x) * f, y = a.y + (b.y - a.y) * f, l = V.cam.sc * (0.15 + ((i * 7 + k * 3) % 5) * 0.05);
+          ctx.moveTo(x - l * 0.3, y - 1); ctx.lineTo(x + l * 0.1, y + l); ctx.lineTo(x + l * 0.35, y - 1);
+        }
+      }
+      ctx.fill();
+      // Rubble at the foot.
+      for (const r of rubble) K.drawRock(r.x, r.y, r.r, r.sh, C.rock, 0.35, 0.75);
+      hoist();
+      void sc;
+    }
+    function hoist() {
+      const H0 = HOIST, sc = V.cam.sc;
+      const q = quarry.reduce((a, b) => (Math.abs(b.x - H0.x) < Math.abs(a.x - H0.x) ? b : a));
+      const z0 = q.h2 * K.tall(q.x, q.y);
+      if (z0 < 1.5) return;
+      const feet = [[H0.x - 1.2, H0.y + 0.4], [H0.x + 1.1, H0.y + 0.5], [H0.x, H0.y - 1.2]].map(([x, y]) => P(x, y, z0));
+      const apex = P(H0.x, H0.y + 1.2, z0 + 3.4);
+      const hook = P(H0.x, H0.y + 1.2, z0 + 1.2);
+      ctx.lineCap = 'round';
+      for (const [w, col] of [[0.16, INK], [0.09, C.woodLit]]) {
+        ctx.strokeStyle = col; ctx.lineWidth = K.lw(w, 1.5);
+        ctx.beginPath(); for (const f of feet) { ctx.moveTo(f.x, f.y); ctx.lineTo(apex.x, apex.y); } ctx.stroke();
+      }
+      ctx.strokeStyle = '#1a1512'; ctx.lineWidth = K.lw(0.02, 1);
+      ctx.beginPath(); ctx.moveTo(apex.x, apex.y); ctx.lineTo(hook.x, hook.y); ctx.stroke();
+      // hanging block
+      const bw = sc * 0.35;
+      ctx.fillStyle = INK; ctx.fillRect(hook.x - bw - 2, hook.y - 2, bw * 2 + 4, bw * 1.2 + 4);
+      ctx.fillStyle = C.block.lit; ctx.fillRect(hook.x - bw, hook.y, bw * 2, bw * 1.2);
+      ctx.fillStyle = C.block.shade; ctx.fillRect(hook.x + bw * 0.2, hook.y, bw * 0.8, bw * 1.2);
+    }
+    function shadows() {
+      const sc = V.cam.sc;
+      ctx.beginPath();
+      for (const o of A.obstacles) {
+        if (o.kind !== 'rock') continue;
+        const b = P(o.x, o.y, 0), off = K.shadowOff(o.r * 1.1);
+        ctx.moveTo(b.x + off.x * 0.5 + o.r * sc * 1.1, b.y + off.y * 0.5);
+        ctx.ellipse(b.x + off.x * 0.5, b.y + off.y * 0.5, o.r * sc * 1.1, o.r * sc * V.cam.pitch * 0.95, 0, 0, TAU);
+      }
+      for (const t of trees) {
+        const b = P(t.x, t.y, 0), off = K.shadowOff(3.6);
+        ctx.moveTo(b.x, b.y);
+        // branch shadows as thin strokes are costly; one tapered streak instead
+        const l = Math.hypot(off.x, off.y) || 1, nx = -off.y / l, ny = off.x / l, w = sc * 0.12 * t.w;
+        ctx.moveTo(b.x + nx * w, b.y + ny * w); ctx.lineTo(b.x + off.x, b.y + off.y); ctx.lineTo(b.x - nx * w, b.y - ny * w); ctx.closePath();
+      }
+      for (const bl of blocks) if (bl.z0 === 0) {
+        const b = P(bl.x, bl.y, 0), off = K.shadowOff(0.9);
+        ctx.moveTo(b.x + off.x * 0.4 + sc * bl.hw * 1.2, b.y + off.y * 0.4);
+        ctx.ellipse(b.x + off.x * 0.4, b.y + off.y * 0.4, sc * bl.hw * 1.2, sc * bl.hw * V.cam.pitch, 0, 0, TAU);
+      }
+      ctx.fillStyle = C.shadowA; ctx.fill();
+    }
+    function drawBackdrop() {
+      ground();
+      path();
+      quarryFace();
+      shadows();
+      K.drawSprites(tufts, tuftSp, 0.3);
+    }
+
+    function drawDeadTree(t, s) {
+      const sc = V.cam.sc, b = P(t.x, t.y, 0);
+      if (K.off(b, sc * 5)) return;
+      const near = !t.obstacle && K.depth(t.x, t.y) > 0;
+      if (near) { // trees on the camera side become low scrub
+        const sp = shrubSp[(Math.round(t.x) & 1) + 1], k = (1.3 * sc * 0.6) / sp.G;
+        ctx.drawImage(sp.cv, b.x - sp.ax * k, b.y - sp.ay * k, sp.cv.width * k, sp.cv.height * k);
+        return;
+      }
+      const fade = K.behind(s, b, sc * 1.6, sc * 3.6) ? 0.4 : 1;
+      ctx.globalAlpha = fade;
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      const segs = t.segs.map(([x0, y0, z0, x1, y1, z1, w0, w1]) => [P(t.x + x0, t.y + y0, z0), P(t.x + x1, t.y + y1, z1), w0 * t.w * sc, w1 * t.w * sc]);
+      const quad = (a, c, w0, w1, grow) => {
+        const dx = c.x - a.x, dy = c.y - a.y, l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l;
+        ctx.moveTo(a.x + nx * (w0 + grow), a.y + ny * (w0 + grow)); ctx.lineTo(c.x + nx * (w1 + grow), c.y + ny * (w1 + grow));
+        ctx.lineTo(c.x - nx * (w1 + grow), c.y - ny * (w1 + grow)); ctx.lineTo(a.x - nx * (w0 + grow), a.y - ny * (w0 + grow)); ctx.closePath();
+      };
+      ctx.beginPath(); for (const [a, c, w0, w1] of segs) quad(a, c, w0 / 2, w1 / 2, 1.6); ctx.fillStyle = INK; ctx.fill();
+      ctx.beginPath(); for (const [a, c, w0, w1] of segs) quad(a, c, w0 / 2, w1 / 2, 0); ctx.fillStyle = C.wood; ctx.fill();
+      // lit edge on each limb (toward the upper left)
+      ctx.strokeStyle = C.woodLit; ctx.beginPath();
+      for (const [a, c, w0] of segs) { const o = w0 * 0.22; ctx.moveTo(a.x - o, a.y - o * 0.3); ctx.lineTo(c.x - o * 0.6, c.y - o * 0.2); }
+      ctx.lineWidth = Math.max(1, sc * 0.03 * t.w); ctx.stroke();
+      ctx.strokeStyle = C.rim; ctx.globalAlpha = fade * 0.55; ctx.lineWidth = Math.max(0.8, sc * 0.012);
+      ctx.beginPath(); { const [a, c, w0] = segs[0]; ctx.moveTo(a.x - w0 * 0.45, a.y); ctx.lineTo(c.x - w0 * 0.3, c.y); } ctx.stroke();
+      // root flare
+      ctx.globalAlpha = fade;
+      const w = segs[0][2];
+      ctx.fillStyle = C.wood; ctx.strokeStyle = INK; ctx.lineWidth = K.lw(0.03, 1.2);
+      ctx.beginPath(); ctx.moveTo(b.x - w * 1.3, b.y + w * 0.15); ctx.quadraticCurveTo(b.x - w * 0.4, b.y - w * 0.3, b.x - w * 0.45, b.y - w * 1.2);
+      ctx.lineTo(b.x + w * 0.45, b.y - w * 1.2); ctx.quadraticCurveTo(b.x + w * 0.4, b.y - w * 0.3, b.x + w * 1.35, b.y + w * 0.2); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    const blockPal = C.block;
+    function drawBlock(bl) {
+      if (K.off(P(bl.x, bl.y, 0), V.cam.sc * 3)) return;
+      K.box(bl.x, bl.y, bl.hw, bl.hd, bl.rot, bl.z0, bl.z1, blockPal, (face, pts) => {
+        ctx.strokeStyle = 'rgba(20,14,10,0.5)'; ctx.lineWidth = K.lw(0.015, 0.8);
+        ctx.beginPath();
+        const [a, b, c, d] = pts;
+        for (const f of [0.3, 0.55, 0.8]) { ctx.moveTo(a.x + (b.x - a.x) * f, a.y + (b.y - a.y) * f); ctx.lineTo(d.x + (c.x - d.x) * (f - 0.08), d.y + (c.y - d.y) * (f - 0.08)); }
+        ctx.stroke();
+      });
+    }
+    function items(s) {
+      const out = [];
+      for (const o of A.obstacles) if (o.kind === 'rock') out.push({ d: P(o.x, o.y, 0).d, f: () => K.drawRock(o.x, o.y, o.r, rockSh.get(o), C.rock, 0.5, 0.95) });
+      for (const t of trees) out.push({ d: P(t.x, t.y, 0).d, f: () => drawDeadTree(t, s) });
+      for (const sh of shrubs) out.push({ d: P(sh.x, sh.y, 0).d, f: () => K.drawSprites([sh], shrubSp, 0.55) });
+      for (const bl of blocks) out.push({ d: P(bl.x, bl.y, 0).d + bl.z0 * 0.01, f: () => drawBlock(bl) });
+      return out;
+    }
+    // ---- atmosphere: warm late sun, dust.
+    const overlay = K.overlay({
+      vig: [0.26, 0.66], vigCol: '12,8,6',
+      paint(c, W, H) {
+        const lx = -Math.cos(V.light.ang), ly = -Math.sin(V.light.ang);
+        for (const [o, wd, a] of [[-0.15, 0.16, 0.05], [-0.1, 0.1, 0.035], [0.1, 0.07, 0.035], [0.26, 0.12, 0.03], [0.3, 0.07, 0.025]]) {
+          const sx = W * (0.05 + o), sy = -H * 0.1, len = Math.hypot(W, H) * 1.1;
+          const ex = sx + lx * len, ey = sy + ly * len, px = -ly * W * wd, py = lx * W * wd;
+          const g = c.createLinearGradient(sx, sy, sx + lx * len * 0.8, sy + ly * len * 0.8);
+          g.addColorStop(0, `rgba(255,214,170,${a})`); g.addColorStop(1, 'rgba(255,214,170,0)');
+          c.fillStyle = g;
+          c.beginPath(); c.moveTo(sx, sy); c.lineTo(sx + px * 0.4, sy + py * 0.4); c.lineTo(ex + px, ey + py); c.lineTo(ex - px * 0.3, ey - py * 0.3); c.closePath(); c.fill();
+        }
+        // warm haze at the top (uphill, into the sun)
+        const g = c.createLinearGradient(0, 0, 0, H * 0.5);
+        g.addColorStop(0, 'rgba(230,170,120,0.12)'); g.addColorStop(1, 'rgba(230,170,120,0)');
+        c.fillStyle = g; c.fillRect(0, 0, W, H * 0.5);
+      },
+    });
+    const motes = K.motes(30, 61, (r) => (r() < 0.5 ? 0 : 1));
+    function drawAtmosphere() {
+      overlay.draw();
+      K.drawMotes(motes, ['rgba(240,214,180,0.4)', 'rgba(230,170,120,0.35)']);
+    }
+    return { drawBackdrop, items, drawAtmosphere, resize: overlay.reset };
+  }
+
+  // ================================================================ cave
+  // Chapter Five: the chamber behind the quarry face. Rock walls ring it;
+  // daylight spills in from the entrance in the east, torches line the walls,
+  // the passage in the west goes deeper, a loading frame of beams stands
+  // against the north wall (the ogre tears a beam from it), crates, a basin.
+  function cave(V, A) {
+    const { ctx, Sim } = V;
+    const P = V.P;
+    const K = kit(V, A);
+    const R = Sim.makeRng(37);
+    const C = {
+      bg: '#141110', bgLit: '#1d1816', floor: '#272220', floorLit: '#342d29', warm: '#45382e', warm2: '#56463a', day: '#4f4b48', day2: '#625d58',
+      wall: '#221d1b', wallLit: '#3d332d', wallWarm: '#55443a', wallShade: '#141110', wallTop: '#0e0c0b', rim: '#f0b47a',
+      rock: { base: '#2c2624', mid: '#433a35', lit: '#6b5c50', rim: '#f0c08e' },
+      crate: { lit: '#7a5c40', shade: '#3e2d20', top: '#8f6d4c', rim: '#f6c995' },
+      timber: '#4a3525', timberLit: '#7a5939', iron: '#2b2a2e', ironLit: '#8a8a92',
+      stone: { base: '#3f3833', shade: '#221d1a', lit: '#5e544b', rim: '#f0c08e', top: '#6a5f55' },
+      water: '#121a20', rail: '#55545a', sleeper: '#3b2b1f',
+      shadowA: 'rgba(6,4,4,0.5)',
+    };
+    const WALL_K = 1.07, WALL_N = 72;
+    const exitA = Math.atan2(A.exit.y / A.ry, A.exit.x / A.rx);
+    const mouthA = 0; // daylight entrance, east
+    const angDist = (a, b) => { let d = Math.abs(((a - b) % TAU + TAU) % TAU); return Math.min(d, TAU - d); };
+    const wall = [];
+    for (let i = 0; i < WALL_N; i++) {
+      const a = (i / WALL_N) * TAU;
+      const tunnel = angDist(a, exitA) < 0.2, mouth = angDist(a, mouthA) < 0.16;
+      wall.push({ a, k: WALL_K + (R() - 0.5) * 0.03, kt: WALL_K + 0.1 + R() * 0.14, h: 3.4 + R() * 1.6, j: R(), tunnel, mouth });
+    }
+    const wpos = (w, k) => [Math.cos(w.a) * A.rx * k, Math.sin(w.a) * A.ry * k];
+    // Torches on the wall (angles), lighting pools on the floor.
+    const TORCH = [exitA - 0.32, exitA + 0.34, -2.05, -1.3, -0.55, 0.62].map((a) => ({ a, ph: R() * TAU }));
+    // The loading frame against the north wall.
+    const FRAME = { x0: -3.2, x1: 0.4, y: -A.ry * 0.985, h: 3.0 };
+    // Rails from the entrance to the passage.
+    const RAIL = [[A.rx * 1.2, 0.0], [4, -0.15], [0, -0.3], [-4, -0.45], [-A.rx * 1.15, A.exit.y]];
+    // Floor dressing.
+    const cracks = [];
+    for (let i = 0; i < 18; i++) {
+      const a = R() * TAU, k = 0.2 + R() * 0.8;
+      cracks.push(crackLine(R, Math.cos(a) * A.rx * k, Math.sin(a) * A.ry * k, 0.8 + R() * 2, R() * TAU));
+    }
+    const gravel = [];
+    for (let i = 0; i < 90; i++) {
+      const a = R() * TAU, k = Math.sqrt(R()) * 1.05;
+      gravel.push({ x: Math.cos(a) * A.rx * k, y: Math.sin(a) * A.ry * k, r: 0.03 + R() * 0.07 });
+    }
+    const puddles = [];
+    for (let i = 0; i < 5; i++) {
+      const a = R() * TAU, k = 0.3 + R() * 0.6;
+      const x = Math.cos(a) * A.rx * k, y = Math.sin(a) * A.ry * k;
+      if (K.inObstacle(x, y, 0.5) || Math.abs(y + 0.3) < 0.8) continue;
+      puddles.push({ x, y, r: 0.4 + R() * 0.5 });
+    }
+    // Stalagmites and rubble along the wall foot.
+    const stal = [];
+    for (let i = 0; i < 26; i++) {
+      const a = R() * TAU;
+      if (angDist(a, exitA) < 0.3 || angDist(a, mouthA) < 0.3) continue;
+      const k = 0.97 + R() * 0.06, x = Math.cos(a) * A.rx * k, y = Math.sin(a) * A.ry * k;
+      if (x > FRAME.x0 - 0.5 && x < FRAME.x1 + 0.5 && y < 0) continue;
+      stal.push({ x, y, r: 0.12 + R() * 0.25, h: 0.4 + R() * 1.1, sh: K.rockShape(R, 6) });
+    }
+    const crate = new Map(), rockSh = new Map();
+    for (const o of A.obstacles) {
+      if (o.kind === 'crate') crate.set(o, { rot: R() * 1.5, stack: o.r > 0.52 });
+      if (o.kind === 'rock') rockSh.set(o, K.rockShape(R, 9));
+    }
+
+    // ---- drawing
+    function torchPos(t, z) {
+      // on the wall face at height z (the wall leans out as it rises)
+      const i = Math.round(((t.a % TAU + TAU) % TAU) / TAU * WALL_N) % WALL_N, w = wall[i];
+      const h = w.h * K.tall(...wpos(w, w.k));
+      const k = w.k + (w.kt - w.k) * Math.min(1, z / h) - 0.02;
+      const [x, y] = [Math.cos(t.a) * A.rx * k, Math.sin(t.a) * A.ry * k];
+      return { x, y, z: Math.min(z, h * 0.75), h };
+    }
+    function flick(t) { return 0.85 + 0.15 * Math.sin(V.time * 9 + t.ph) * Math.sin(V.time * 3.7 + t.ph * 2); }
+    // Rock mass round the chamber: big flat facets with hatching.
+    const facets = [];
+    for (let i = 0; i < 34; i++) {
+      const a = (i / 34) * TAU + R() * 0.1, k = 1.25 + R() * 0.9, r = 1.4 + R() * 2.2, pts = [];
+      for (let j = 0; j < 6; j++) { const b = (j / 6) * TAU + R() * 0.5; pts.push([Math.cos(b) * r, Math.sin(b) * r * 0.7]); }
+      facets.push({ x: Math.cos(a) * A.rx * k, y: Math.sin(a) * A.ry * k, pts, lit: R() < 0.45 });
+    }
+    function floor() {
+      const W = V.W, H = V.H, sc = V.cam.sc;
+      ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = C.bgLit; ctx.beginPath();
+      for (const f of facets) if (f.lit) K.poly(f.pts.map(([x, y]) => P(f.x + x, f.y + y, 0)));
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(4,3,3,0.6)'; ctx.lineWidth = K.lw(0.03, 1); ctx.beginPath();
+      for (const f of facets) { const p = P(f.x, f.y, 0); if (K.off(p, sc * 3)) continue; for (let k = 0; k < 4; k++) { ctx.moveTo(p.x + k * sc * 0.16, p.y); ctx.lineTo(p.x + k * sc * 0.16 + sc * 0.3, p.y - sc * 0.26); } }
+      ctx.stroke();
+      ctx.beginPath(); K.poly(K.ring(WALL_K + 0.02, 56)); ctx.fillStyle = C.floor; ctx.fill();
+      ctx.save(); ctx.beginPath(); K.poly(K.ring(WALL_K + 0.02, 56)); ctx.clip();
+      // Daylight from the entrance: a wedge across the floor (cool, pale).
+      // A fan from the mouth that widens and ends in a rounded edge.
+      const fan = (len, spread, x0) => {
+        const pts = [P(x0, -0.75, 0)];
+        for (let i = 0; i <= 12; i++) { const a = Math.PI - spread + (2 * spread * i) / 12; pts.push(P(x0 + Math.cos(a) * len, Math.sin(a) * len * 0.75 - 0.1, 0)); }
+        pts.push(P(x0, 0.75, 0));
+        return pts;
+      };
+      K.path(fan(A.rx * 1.25, 0.42, A.rx * 1.15)); ctx.fillStyle = C.day; ctx.fill();
+      K.path(fan(A.rx * 0.75, 0.3, A.rx * 1.15)); ctx.fillStyle = C.day2; ctx.fill();
+      // Torch pools: stepped, hard-edged.
+      const steps = [[2.3, C.warm], [1.1, C.warm2]];
+      for (const [r, col] of steps) {
+        ctx.beginPath();
+        for (const t of TORCH) {
+          const tp = torchPos(t, 2.1), cx = tp.x * 0.86, cy = tp.y * 0.86, q = P(cx, cy, 0), rr = r * sc * (0.96 + 0.04 * flick(t));
+          ctx.moveTo(q.x + rr, q.y); ctx.ellipse(q.x, q.y, rr, rr * V.cam.pitch, 0, 0, TAU);
+        }
+        ctx.fillStyle = col; ctx.fill();
+      }
+      // Cracks and gravel.
+      ctx.strokeStyle = 'rgba(6,4,4,0.75)'; ctx.lineWidth = K.lw(0.03, 1); ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      ctx.beginPath();
+      for (const c of cracks) c.forEach(([x, y], i) => { const p = P(x, y, 0); i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y); });
+      ctx.stroke();
+      const gk = new Path2D(), gl = new Path2D();
+      for (const g of gravel) {
+        const p = P(g.x, g.y, 0), r = g.r * sc;
+        if (K.off(p, 6)) continue;
+        gk.moveTo(p.x + r, p.y); gk.ellipse(p.x, p.y, r, r * 0.6, 0, 0, TAU);
+        if (r > 2) { gl.moveTo(p.x, p.y - r * 0.3); gl.ellipse(p.x - r * 0.3, p.y - r * 0.3, r * 0.45, r * 0.22, 0, 0, TAU); }
+      }
+      ctx.fillStyle = '#141110'; ctx.fill(gk);
+      ctx.fillStyle = '#8a7a6a'; ctx.fill(gl);
+      // Puddles with a light glint.
+      for (const pd of puddles) {
+        const p = P(pd.x, pd.y, 0), r = pd.r * sc;
+        ctx.fillStyle = C.water; ctx.beginPath(); ctx.ellipse(p.x, p.y, r, r * V.cam.pitch * 0.8, 0, 0, TAU); ctx.fill();
+        ctx.strokeStyle = 'rgba(240,190,140,0.5)'; ctx.lineWidth = K.lw(0.02);
+        ctx.beginPath(); ctx.moveTo(p.x - r * 0.4, p.y - r * 0.1); ctx.lineTo(p.x + r * 0.2, p.y - r * 0.1); ctx.stroke();
+      }
+      rails();
+      ctx.restore();
+      // Hatching toward the wall foot.
+      ctx.strokeStyle = 'rgba(6,4,4,0.6)'; ctx.lineWidth = K.lw(0.025, 0.8);
+      ctx.beginPath();
+      for (let i = 0; i < 70; i++) {
+        const a = (i / 70) * TAU + 0.05, p = P(Math.cos(a) * A.rx * 1.0, Math.sin(a) * A.ry * 1.0, 0), hl = sc * 0.3;
+        for (let k = 0; k < 3; k++) { ctx.moveTo(p.x + k * sc * 0.12, p.y); ctx.lineTo(p.x + k * sc * 0.12 + hl * 0.6, p.y - hl * 0.5); }
+      }
+      ctx.stroke();
+    }
+    function rails() {
+      const sc = V.cam.sc;
+      const pts = [];
+      for (let i = 0; i < RAIL.length - 1; i++) for (let k = 0; k < 6; k++) {
+        const f = k / 6, a = RAIL[i], b = RAIL[i + 1];
+        pts.push([a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f]);
+      }
+      pts.push(RAIL[RAIL.length - 1]);
+      const side = (o) => pts.map((q, i) => {
+        const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
+        const tx = b[0] - a[0], ty = b[1] - a[1], l = Math.hypot(tx, ty);
+        return P(q[0] - ty / l * o, q[1] + tx / l * o, 0);
+      });
+      // sleepers
+      const L = side(0.55), Rr = side(-0.55);
+      ctx.lineCap = 'butt';
+      for (const [w, col] of [[0.16, INK], [0.11, C.sleeper]]) {
+        ctx.strokeStyle = col; ctx.lineWidth = K.lw(w, 2);
+        ctx.beginPath();
+        for (let i = 0; i < L.length; i += 1) { ctx.moveTo(L[i].x, L[i].y); ctx.lineTo(Rr[i].x, Rr[i].y); }
+        ctx.stroke();
+      }
+      const l1 = side(0.38), r1 = side(-0.38);
+      for (const [w, col] of [[0.07, INK], [0.03, C.rail]]) {
+        ctx.strokeStyle = col; ctx.lineWidth = K.lw(w, 1);
+        for (const s of [l1, r1]) { ctx.beginPath(); s.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y))); ctx.stroke(); }
+      }
+      void sc;
+    }
+    function walls(s) {
+      const sc = V.cam.sc, ca = Math.cos(V.cam.ang), sa = Math.sin(V.cam.ang);
+      const segs = [];
+      for (let i = 0; i < WALL_N; i++) {
+        const w = wall[i], w2 = wall[(i + 1) % WALL_N];
+        const [x0, y0] = wpos(w, w.k), [x1, y1] = wpos(w2, w2.k);
+        const f0 = K.tall(x0, y0), f1 = K.tall(x1, y1);
+        const [tx0, ty0] = wpos(w, w.k + (w.kt - w.k) * f0), [tx1, ty1] = wpos(w2, w2.k + (w2.kt - w2.k) * f1);
+        const nx = -(Math.cos(w.a) / A.rx), ny = -(Math.sin(w.a) / A.ry), l = Math.hypot(nx, ny); // inward normal
+        const facing = (nx / l) * sa + (ny / l) * ca; // > 0: the face looks toward the camera
+        const sx = (nx / l) * ca - (ny / l) * sa;
+        segs.push({ i, w, w2, b0: P(x0, y0, 0), b1: P(x1, y1, 0), t0: P(tx0, ty0, w.h * f0), t1: P(tx1, ty1, w2.h * f1), d: K.depth(x0 + x1, y0 + y1) / 2, facing, sx, f0, f1 });
+      }
+      segs.sort((a, b) => a.d - b.d);
+      // Light on each segment: torchlit near torches, daylight near the mouth.
+      const torchNear = (a) => TORCH.reduce((m, t) => Math.min(m, angDist(a, t.a)), 9);
+      for (const g of segs) {
+        if (g.w.mouth) continue;
+        ctx.beginPath(); ctx.moveTo(g.b0.x, g.b0.y); ctx.lineTo(g.b1.x, g.b1.y); ctx.lineTo(g.t1.x, g.t1.y); ctx.lineTo(g.t0.x, g.t0.y); ctx.closePath();
+        let col;
+        if (g.facing <= 0) col = C.wallTop;
+        else {
+          const tn = torchNear(g.w.a);
+          col = tn < 0.18 ? C.wallWarm : g.sx > 0.35 ? C.wallLit : g.sx < -0.45 ? C.wallShade : (g.i % 3 === 0 ? C.wallLit : C.wall);
+          if (tn > 0.18 && tn < 0.4 && g.i % 2) col = C.wallLit;
+        }
+        ctx.fillStyle = col; ctx.fill(); ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.stroke();
+      }
+      // Strata and cracks on the faces.
+      ctx.strokeStyle = 'rgba(4,3,3,0.7)'; ctx.lineWidth = K.lw(0.022, 0.8); ctx.lineCap = 'round';
+      ctx.beginPath();
+      for (const g of segs) {
+        if (g.facing <= 0 || g.w.mouth) continue;
+        for (const f of [0.22, 0.47, 0.7]) {
+          const jj = (g.w.j - 0.5) * 0.08;
+          ctx.moveTo(g.b0.x + (g.t0.x - g.b0.x) * (f + jj), g.b0.y + (g.t0.y - g.b0.y) * (f + jj));
+          ctx.lineTo(g.b1.x + (g.t1.x - g.b1.x) * f, g.b1.y + (g.t1.y - g.b1.y) * f);
+        }
+        if (g.i % 3 === 0) { ctx.moveTo(g.b0.x, g.b0.y); ctx.lineTo(g.t0.x + (g.t1.x - g.t0.x) * g.w.j, g.t0.y + (g.t1.y - g.t0.y) * g.w.j); }
+      }
+      ctx.stroke();
+      // The passage west: a black void in the wall with timber supports.
+      tunnel();
+      // Daylight entrance east.
+      mouth();
+      // Ink: wall top silhouette and the foot line.
+      ctx.strokeStyle = INK; ctx.lineJoin = 'round';
+      ctx.lineWidth = K.lw(0.05, 1.5);
+      ctx.beginPath();
+      for (const g of segs) { if (g.w.mouth || g.w2.mouth) continue; ctx.moveTo(g.t0.x, g.t0.y); ctx.lineTo(g.t1.x, g.t1.y); }
+      ctx.stroke();
+      ctx.lineWidth = K.lw(0.03, 1);
+      ctx.beginPath();
+      for (const g of segs) { if (g.facing <= 0 || g.w.mouth || g.w.tunnel) continue; ctx.moveTo(g.b0.x, g.b0.y); ctx.lineTo(g.b1.x, g.b1.y); }
+      ctx.stroke();
+      // Warm rim on wall tops near torches.
+      ctx.strokeStyle = C.rim; ctx.globalAlpha = 0.45; ctx.lineWidth = K.lw(0.02);
+      ctx.beginPath();
+      for (const g of segs) { if (g.facing <= 0 || torchNear(g.w.a) > 0.3) continue; ctx.moveTo(g.t0.x, g.t0.y + 2); ctx.lineTo(g.t1.x, g.t1.y + 2); }
+      ctx.stroke(); ctx.globalAlpha = 1;
+      for (const t of TORCH) torch(t);
+      void s; void sc;
+    }
+    function tunnel() {
+      const sc = V.cam.sc;
+      const a0 = exitA - 0.17, a1 = exitA + 0.17;
+      const at = (a, k, z) => P(Math.cos(a) * A.rx * k, Math.sin(a) * A.ry * k, z);
+      if (K.depth(A.exit.x, A.exit.y) > A.ry * 0.35) return; // seen from behind
+      const f = K.tall(A.exit.x, A.exit.y), hh = 2.5 * Math.max(0.35, f);
+      const pts = [];
+      for (let i = 0; i <= 10; i++) { const a = a0 + (a1 - a0) * (i / 10), arch = Math.sin((i / 10) * Math.PI); pts.push(at(a, WALL_K + 0.02, hh * (0.75 + 0.25 * arch))); }
+      const foot = [at(a1, WALL_K + 0.02, 0), at(a0, WALL_K + 0.02, 0)];
+      ctx.beginPath(); K.poly(pts.concat(foot)); ctx.fillStyle = '#050404'; ctx.fill();
+      // depth: a smaller, darker inner opening
+      const c0 = at(exitA, WALL_K + 0.2, 0), c1 = at(exitA, WALL_K + 0.2, hh * 0.7);
+      ctx.fillStyle = '#000';
+      ctx.beginPath(); ctx.ellipse((c0.x + c1.x) / 2, (c0.y + c1.y) / 2, Math.abs(foot[0].x - foot[1].x) * 0.25 + sc * 0.3, Math.abs(c0.y - c1.y) * 0.45, 0, 0, TAU); ctx.fill();
+      // timber supports: two posts and a lintel
+      const p0b = at(a0 + 0.02, WALL_K, 0), p0t = at(a0 + 0.02, WALL_K, hh * 0.78), p1b = at(a1 - 0.02, WALL_K, 0), p1t = at(a1 - 0.02, WALL_K, hh * 0.78);
+      ctx.lineCap = 'butt';
+      for (const [w, col] of [[0.24, INK], [0.16, C.timber]]) {
+        ctx.strokeStyle = col; ctx.lineWidth = K.lw(w, 2);
+        ctx.beginPath(); ctx.moveTo(p0b.x, p0b.y); ctx.lineTo(p0t.x, p0t.y); ctx.moveTo(p1b.x, p1b.y); ctx.lineTo(p1t.x, p1t.y);
+        ctx.moveTo(p0t.x - (p1t.x - p0t.x) * 0.12, p0t.y - (p1t.y - p0t.y) * 0.12); ctx.lineTo(p1t.x + (p1t.x - p0t.x) * 0.12, p1t.y + (p1t.y - p0t.y) * 0.12);
+        ctx.stroke();
+      }
+      ctx.strokeStyle = C.timberLit; ctx.lineWidth = K.lw(0.04, 1);
+      ctx.beginPath(); ctx.moveTo(p0b.x - sc * 0.04, p0b.y); ctx.lineTo(p0t.x - sc * 0.04, p0t.y); ctx.moveTo(p0t.x, p0t.y - sc * 0.05); ctx.lineTo(p1t.x, p1t.y - sc * 0.05); ctx.stroke();
+    }
+    function mouth() {
+      const sc = V.cam.sc;
+      const a0 = mouthA - 0.17, a1 = mouthA + 0.17;
+      const at = (a, k, z) => P(Math.cos(a) * A.rx * k, Math.sin(a) * A.ry * k, z);
+      if (K.depth(A.rx, 0) > A.ry * 0.35) return; // seen from behind
+      const f = K.tall(A.rx, 0), hh = 3.2 * Math.max(0.3, f);
+      const pts = [];
+      for (let i = 0; i <= 10; i++) { const a = a0 + (a1 - a0) * (i / 10), arch = Math.sin((i / 10) * Math.PI); pts.push(at(a, WALL_K + 0.04, hh * (0.65 + 0.35 * arch))); }
+      ctx.beginPath(); K.poly(pts.concat([at(a1, WALL_K + 0.04, 0), at(a0, WALL_K + 0.04, 0)]));
+      ctx.fillStyle = '#d9cdbf'; ctx.fill();
+      ctx.save(); ctx.clip();
+      // bright outside: a hint of the quarry floor and sky band
+      const g0 = at(mouthA, WALL_K + 0.3, 0);
+      ctx.fillStyle = '#f6efe6'; ctx.fillRect(g0.x - sc * 3, g0.y - hh * sc * 1.2, sc * 6, hh * sc * 0.55);
+      ctx.fillStyle = '#9b8f82'; ctx.fillRect(g0.x - sc * 3, g0.y - sc * 0.1, sc * 6, sc * 2);
+      ctx.restore();
+      ctx.strokeStyle = INK; ctx.lineWidth = K.lw(0.05, 1.5);
+      ctx.beginPath(); pts.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y))); ctx.stroke();
+    }
+    function torch(t) {
+      const sc = V.cam.sc;
+      const tp = torchPos(t, 2.1);
+      if (tp.h < 1.2) return;
+      const p = P(tp.x, tp.y, tp.z), base = P(tp.x, tp.y, tp.z - 0.45);
+      if (K.off(p, sc * 2)) return;
+      // bracket and stick
+      ctx.strokeStyle = INK; ctx.lineWidth = K.lw(0.09, 2); ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(base.x, base.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+      ctx.strokeStyle = C.timberLit; ctx.lineWidth = K.lw(0.045, 1);
+      ctx.beginPath(); ctx.moveTo(base.x, base.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+      ctx.fillStyle = C.iron; ctx.fillRect(base.x - sc * 0.08, base.y - sc * 0.04, sc * 0.16, sc * 0.08);
+      // flame: two-tone flat licks
+      const fk = flick(t), hgt = sc * 0.42 * fk, wd = sc * 0.13, sway = Math.sin(V.time * 6 + t.ph) * sc * 0.04;
+      const flame = (w, h, col) => {
+        ctx.fillStyle = col;
+        ctx.beginPath(); ctx.moveTo(p.x - w, p.y); ctx.quadraticCurveTo(p.x - w * 0.9, p.y - h * 0.55, p.x + sway, p.y - h);
+        ctx.quadraticCurveTo(p.x + w * 0.9, p.y - h * 0.5, p.x + w, p.y); ctx.quadraticCurveTo(p.x, p.y + w * 0.6, p.x - w, p.y); ctx.fill();
+      };
+      flame(wd * 1.25, hgt * 1.1, INK);
+      flame(wd, hgt, '#ff8a3a');
+      flame(wd * 0.55, hgt * 0.6, '#ffe2a0');
+    }
+    function torchGlow() {
+      const sc = V.cam.sc;
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      for (const t of TORCH) {
+        const tp = torchPos(t, 2.1);
+        if (tp.h < 1.2) continue;
+        const p = P(tp.x, tp.y, tp.z + 0.15), r = sc * 2.4 * flick(t);
+        if (K.off(p, r)) continue;
+        const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
+        g.addColorStop(0, 'rgba(255,150,70,0.32)'); g.addColorStop(0.35, 'rgba(255,120,50,0.1)'); g.addColorStop(1, 'rgba(255,120,50,0)');
+        ctx.fillStyle = g; ctx.fillRect(p.x - r, p.y - r, r * 2, r * 2);
+      }
+      ctx.restore();
+    }
+    function shadows() {
+      const sc = V.cam.sc;
+      ctx.beginPath();
+      for (const o of A.obstacles) {
+        const b = P(o.x, o.y, 0), off = K.shadowOff(o.kind === 'crate' ? 1.1 : o.r * 0.8);
+        ctx.moveTo(b.x + off.x * 0.5 + o.r * sc * 1.1, b.y + off.y * 0.5);
+        ctx.ellipse(b.x + off.x * 0.5, b.y + off.y * 0.5, o.r * sc * 1.1, o.r * sc * V.cam.pitch, 0, 0, TAU);
+      }
+      ctx.fillStyle = C.shadowA; ctx.fill();
+    }
+    function drawBackdrop(s) {
+      floor();
+      shadows();
+      walls(s);
+    }
+
+    function drawCrate(o) {
+      const cr = crate.get(o), hs = o.r * 0.74;
+      if (K.off(P(o.x, o.y, 0), V.cam.sc * 3)) return;
+      const deco = (face, pts) => {
+        const [a, b, c, d] = pts;
+        ctx.lineCap = 'butt';
+        // planks
+        ctx.strokeStyle = 'rgba(20,12,8,0.75)'; ctx.lineWidth = K.lw(0.015, 0.8);
+        ctx.beginPath();
+        if (face >= 0) for (const f of [0.34, 0.67]) { ctx.moveTo(a.x + (d.x - a.x) * f, a.y + (d.y - a.y) * f); ctx.lineTo(b.x + (c.x - b.x) * f, b.y + (c.y - b.y) * f); }
+        else for (const f of [0.25, 0.5, 0.75]) { ctx.moveTo(a.x + (b.x - a.x) * f, a.y + (b.y - a.y) * f); ctx.lineTo(d.x + (c.x - d.x) * f, d.y + (c.y - d.y) * f); }
+        ctx.stroke();
+        // frame battens and a diagonal brace
+        ctx.strokeStyle = INK; ctx.lineWidth = K.lw(0.075, 2);
+        ctx.beginPath(); K.poly(pts); ctx.stroke();
+        ctx.strokeStyle = face >= 0 ? '#8d6b49' : '#a07c57'; ctx.lineWidth = K.lw(0.04, 1);
+        ctx.beginPath(); K.poly(pts); ctx.stroke();
+        if (face >= 0) {
+          ctx.strokeStyle = INK; ctx.lineWidth = K.lw(0.06, 1.5);
+          ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(c.x, c.y); ctx.stroke();
+          ctx.strokeStyle = '#8d6b49'; ctx.lineWidth = K.lw(0.03, 1); ctx.stroke();
+          // iron corner plates
+          ctx.fillStyle = C.iron;
+          for (const q of [a, b, c, d]) ctx.fillRect(q.x - K.lw(0.05), q.y - K.lw(0.05), K.lw(0.1), K.lw(0.1));
+        }
+      };
+      const h = hs * 1.8;
+      K.box(o.x, o.y, hs, hs, cr.rot, 0, h, C.crate, deco);
+      if (cr.stack) K.box(o.x - 0.05, o.y + 0.04, hs * 0.66, hs * 0.66, cr.rot + 0.5, h, h + hs * 1.15, C.crate, deco);
+    }
+    function drawBasin(o) {
+      const sc = V.cam.sc;
+      if (K.off(P(o.x, o.y, 0), sc * 3)) return;
+      K.cyl(o.x, o.y, o.r, 0, 0.42, C.stone, null, {
+        n: 28,
+        inside: (b, t, rx) => {
+          // block seams on the rim
+          ctx.strokeStyle = 'rgba(8,6,5,0.7)'; ctx.lineWidth = K.lw(0.018, 0.8);
+          ctx.beginPath();
+          for (const f of [0.35, 0.9, 1.5, 2.1, 2.7]) { const x = b.x + Math.cos(f) * rx; ctx.moveTo(x, b.y + Math.sin(f) * rx * V.cam.pitch); ctx.lineTo(x, t.y + Math.sin(f) * rx * V.cam.pitch); }
+          ctx.stroke();
+        },
+        topInside: (t, rx, ry) => {
+          // water inside the rim, catching torch and daylight
+          ctx.fillStyle = INK; ctx.beginPath(); ctx.ellipse(t.x, t.y, rx * 0.78, ry * 0.78, 0, 0, TAU); ctx.fill();
+          ctx.fillStyle = C.water; ctx.beginPath(); ctx.ellipse(t.x, t.y + ry * 0.1, rx * 0.74, ry * 0.68, 0, 0, TAU); ctx.fill();
+          ctx.fillStyle = '#2a3a44'; ctx.beginPath(); ctx.ellipse(t.x - rx * 0.12, t.y + ry * 0.2, rx * 0.5, ry * 0.36, 0, 0, TAU); ctx.fill();
+          const w = Math.sin(V.time * 1.7 + o.x) * rx * 0.06;
+          ctx.strokeStyle = 'rgba(255,200,150,0.75)'; ctx.lineWidth = K.lw(0.022, 1); ctx.lineCap = 'round';
+          ctx.beginPath(); ctx.moveTo(t.x - rx * 0.4 + w, t.y + ry * 0.05); ctx.lineTo(t.x + rx * 0.05 + w, t.y + ry * 0.05);
+          ctx.moveTo(t.x - rx * 0.15 - w, t.y + ry * 0.3); ctx.lineTo(t.x + rx * 0.3 - w, t.y + ry * 0.3); ctx.stroke();
+          // ore glints in the water
+          ctx.fillStyle = '#d7c49a';
+          for (const [dx, dy] of [[0.3, 0.35], [-0.35, 0.4], [0.15, 0.55]]) ctx.fillRect(t.x + rx * dx, t.y + ry * dy, K.lw(0.035), K.lw(0.035));
+          // inner rim shadow (top-left inside wall is in shade)
+          ctx.strokeStyle = 'rgba(8,6,5,0.6)'; ctx.lineWidth = ry * 0.22;
+          ctx.beginPath(); ctx.ellipse(t.x, t.y, rx * 0.8, ry * 0.8, 0, Math.PI * 1.0, Math.PI * 1.75); ctx.stroke();
+        },
+      });
+    }
+    // The loading frame: posts, beams, iron brackets. In the ogre's fight
+    // the middle beam is gone (he has it).
+    function drawFrame(s) {
+      const F = FRAME, sc = V.cam.sc, f = K.tall((F.x0 + F.x1) / 2, F.y);
+      const h = F.h * Math.max(0.3, f);
+      const mid = P((F.x0 + F.x1) / 2, F.y, 0);
+      if (K.off(mid, sc * 6)) return;
+      const fade = K.depth((F.x0 + F.x1) / 2, F.y) > A.ry * 0.2 ? 0.35 : 1;
+      ctx.globalAlpha = fade;
+      const posts = [F.x0, (F.x0 + F.x1) / 2, F.x1];
+      const missing = s.scenario === 'ogre';
+      const beam = (x0, z0, x1, z1, w, gone) => {
+        const a = P(x0, F.y, z0), b = P(x1, F.y, z1);
+        if (gone) return;
+        ctx.lineCap = 'butt';
+        ctx.strokeStyle = INK; ctx.lineWidth = K.lw(w + 0.06, 2); ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+        ctx.strokeStyle = C.timber; ctx.lineWidth = K.lw(w, 1.5); ctx.stroke();
+        ctx.strokeStyle = C.timberLit; ctx.lineWidth = K.lw(w * 0.3, 1);
+        ctx.beginPath(); ctx.moveTo(a.x, a.y - K.lw(w * 0.3)); ctx.lineTo(b.x, b.y - K.lw(w * 0.3)); ctx.stroke();
+      };
+      const bracket = (x, z) => {
+        const p = P(x, F.y + 0.12, z), w = K.lw(0.1, 2);
+        ctx.fillStyle = INK; ctx.fillRect(p.x - w * 0.8, p.y - w * 0.9, w * 1.6, w * 1.8);
+        ctx.fillStyle = C.iron; ctx.fillRect(p.x - w * 0.6, p.y - w * 0.7, w * 1.2, w * 1.4);
+        ctx.fillStyle = C.ironLit; ctx.fillRect(p.x - w * 0.35, p.y - w * 0.35, w * 0.25, w * 0.25);
+      };
+      // posts
+      for (const x of posts) beam(x, 0, x, h, 0.2);
+      // beams: top, middle (missing for the ogre fight), a diagonal brace
+      beam(F.x0 - 0.2, h * 0.92, F.x1 + 0.2, h * 0.92, 0.2);
+      beam(F.x0, h * 0.5, F.x1, h * 0.5, 0.18, missing);
+      beam(posts[1], h * 0.1, F.x1, h * 0.45, 0.12);
+      for (const x of posts) { bracket(x, h * 0.92); bracket(x, h * 0.5); }
+      // splinters where the beam was torn out
+      if (missing) {
+        ctx.strokeStyle = C.timberLit; ctx.lineWidth = K.lw(0.03, 1);
+        ctx.beginPath();
+        for (const x of posts) { const p = P(x, F.y + 0.1, h * 0.5); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x + sc * 0.18, p.y - sc * 0.06); ctx.moveTo(p.x, p.y + 2); ctx.lineTo(p.x - sc * 0.15, p.y + sc * 0.05); }
+        ctx.stroke();
+      }
+      // pulley rope hanging from the top beam with a hook
+      const r0 = P(F.x1 - 0.6, F.y + 0.1, h * 0.92), r1 = P(F.x1 - 0.6, F.y + 0.1, h * 0.92 - 1.3);
+      ctx.strokeStyle = '#8a7356'; ctx.lineWidth = K.lw(0.025, 1);
+      ctx.beginPath(); ctx.moveTo(r0.x, r0.y); ctx.lineTo(r1.x, r1.y); ctx.stroke();
+      ctx.strokeStyle = INK; ctx.lineWidth = K.lw(0.04, 1.5);
+      ctx.beginPath(); ctx.arc(r1.x, r1.y + sc * 0.08, sc * 0.08, -Math.PI * 0.5, Math.PI * 0.9); ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    function drawStal(st) {
+      const sc = V.cam.sc, b = P(st.x, st.y, 0);
+      if (K.off(b, sc * 2)) return;
+      const t = P(st.x, st.y, st.h * K.tall(st.x, st.y)), w = st.r * sc;
+      ctx.beginPath(); ctx.moveTo(b.x - w, b.y); ctx.quadraticCurveTo(b.x - w * 0.4, (b.y + t.y) / 2, t.x, t.y); ctx.quadraticCurveTo(b.x + w * 0.3, (b.y + t.y) / 2, b.x + w, b.y); ctx.closePath();
+      ctx.fillStyle = C.wall; ctx.fill();
+      ctx.save(); ctx.clip(); ctx.fillStyle = C.wallLit; ctx.fillRect(b.x - w, t.y, w * 0.6, b.y - t.y + 2); ctx.restore();
+      ctx.strokeStyle = INK; ctx.lineWidth = K.lw(0.03, 1.2); ctx.stroke();
+    }
+    function items(s) {
+      const out = [];
+      for (const o of A.obstacles) {
+        const d = P(o.x, o.y, 0).d;
+        if (o.kind === 'crate') out.push({ d, f: () => drawCrate(o) });
+        else if (o.kind === 'basin') out.push({ d, f: () => drawBasin(o) });
+        else out.push({ d, f: () => K.drawRock(o.x, o.y, o.r, rockSh.get(o), C.rock, 0.5, 0.95) });
+      }
+      for (const st of stal) out.push({ d: P(st.x, st.y, 0).d, f: () => drawStal(st) });
+      out.push({ d: P((FRAME.x0 + FRAME.x1) / 2, FRAME.y, 0).d, f: () => drawFrame(s) });
+      return out;
+    }
+    // ---- atmosphere: torch glow, a daylight shaft, dust and embers.
+    const overlay = K.overlay({ vig: [0.4, 0.85], vigCol: '6,4,4', tone: 1.25, toneCol: 'rgba(6,4,4,0.45)' });
+    const motes = K.motes(18, 43, (r) => (r() < 0.6 ? 0 : 1));
+    function drawAtmosphere() {
+      const sc = V.cam.sc;
+      torchGlow();
+      // Dusty daylight shaft from the entrance.
+      const a = P(A.rx * 1.15, 0, 2.6), b = P(-1.5, -0.6, 0);
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      const g = ctx.createLinearGradient(a.x, a.y, b.x, b.y);
+      g.addColorStop(0, 'rgba(235,228,215,0.16)'); g.addColorStop(1, 'rgba(235,228,215,0)');
+      ctx.fillStyle = g;
+      const dx = b.x - a.x, dy = b.y - a.y, l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l;
+      ctx.beginPath(); ctx.moveTo(a.x + nx * sc * 1.1, a.y + ny * sc * 1.1); ctx.lineTo(b.x + nx * sc * 3, b.y + ny * sc * 3); ctx.lineTo(b.x - nx * sc * 3, b.y - ny * sc * 3); ctx.lineTo(a.x - nx * sc * 1.1, a.y - ny * sc * 1.1); ctx.closePath(); ctx.fill();
+      ctx.restore();
+      overlay.draw();
+      K.drawMotes(motes, ['rgba(225,215,200,0.35)', 'rgba(255,160,80,0.6)']);
+    }
+    return { drawBackdrop, items, drawAtmosphere, resize: overlay.reset };
+  }
+
+  // ================================================================ dispatch
+  // One dressing per arena, built on first use and cached; the arena of the
+  // match being drawn picks which one is live, so switching arenas in one
+  // page session just swaps (and size-dependent caches are reset).
+  const THEMES = { forest, summit, hill, cave };
+  function create(V) {
+    const built = new Map();
+    let cur = null, curArena = null;
+    function pick(s) {
+      const A = (s && s.arena) || V.Sim.ARENA;
+      if (A !== curArena) {
+        curArena = A;
+        cur = built.get(A);
+        if (!cur) { cur = (THEMES[A.theme] || forest)(V, A); built.set(A, cur); }
+        if (cur.resize) cur.resize();
+      }
+      return cur;
+    }
+    return {
+      drawBackdrop: (s) => pick(s).drawBackdrop(s),
+      items: (s) => pick(s).items(s),
+      drawAtmosphere: (s, dt) => pick(s).drawAtmosphere(s, dt),
+      resize() { for (const t of built.values()) if (t.resize) t.resize(); },
+    };
   }
 
   NS.world = { create };

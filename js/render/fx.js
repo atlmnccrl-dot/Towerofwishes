@@ -22,6 +22,9 @@
     const R = V.Sim.makeRng(23);
     let parts = [], texts = [], streaks = [], flash = 0, flashCol = '255,255,255', hitstop = 0, banner = null, impact = 0;
     const fizzles = []; // {unit, t}
+    let blinks = [], dissolves = [];
+    const lanceState = new WeakMap(); // cutscene -> {hit: Set of unit ids}
+    const GLYPH = '169,139,255', GLYPH_CORE = '#efe8ff';
 
     // ------------------------------------------------------------ events
     function consume(s) {
@@ -60,6 +63,31 @@
         } else if (e.type === 'fizzle') {
           const u = s.byId[e.unit];
           if (u) fizzles.push({ u, t: 0 });
+        } else if (e.type === 'blink') {
+          // Teleport: ink burst where they stood, a streak, a flash where they land.
+          const u = s.byId[e.unit], hero = !!u && u.team === 'hero';
+          const h = u ? 1.75 * Math.sqrt(u.r / 0.36) : 1.8;
+          blinks.push({ x0: e.x0, y0: e.y0, x1: e.x1, y1: e.y1, t: 0, life: 0.55, hero, h, w: u ? u.r : 0.35 });
+          inkBurst(e.x0, e.y0, h * 0.55, 12, hero);
+          shards(e.x1, e.y1, h * 0.55, 8, hero ? PAL.heroGlow : '#ffb3bd', 5);
+          parts.push({ star: true, x: e.x1, y: e.y1, z: h * 0.55, t: 0, life: 0.2, r: 0.8, col: hero ? '#ffffff' : '#ffd0d4', rays: true });
+          parts.push({ ring: true, x: e.x1, y: e.y1, z: 0.03, t: 0, life: 0.35, col: hero ? PAL.hero : PAL.glow, ground: true });
+          cam.shake = Math.max(cam.shake, 3);
+        } else if (e.type === 'dissolve') {
+          // A Tower fragment comes apart into black-violet ash and rising light.
+          const big = !!e.big, h = big ? 3.0 : 1.8, w = big ? 0.85 : 0.36;
+          dissolves.push({ x: e.x, y: e.y, t: 0, life: big ? 1.7 : 1.1, big, h, w });
+          for (let i = 0; i < (big ? 70 : 34); i++) {
+            const a = R() * Math.PI * 2, rr = R() * w, z = R() * h;
+            parts.push({ ash: true, float: true, x: e.x + Math.cos(a) * rr, y: e.y + Math.sin(a) * rr, z, vx: Math.cos(a) * (0.2 + R() * 0.6), vy: Math.sin(a) * (0.2 + R() * 0.6), vz: 0.4 + R() * 1.4, t: -R() * 0.35, life: 0.9 + R() * (big ? 1.2 : 0.7), w: 0.06 + R() * (big ? 0.16 : 0.1), rot: R() * 6, spin: (R() - 0.5) * 8, col: R() < 0.55 ? '#1a0f22' : '#3b2350' });
+          }
+          for (let i = 0; i < (big ? 40 : 18); i++) {
+            const a = R() * Math.PI * 2, rr = R() * w * 0.8;
+            parts.push({ mote: true, float: true, x: e.x + Math.cos(a) * rr, y: e.y + Math.sin(a) * rr, z: R() * h * 0.8, vx: (R() - 0.5) * 0.3, vy: (R() - 0.5) * 0.3, vz: 0.8 + R() * 1.6, t: -R() * 0.5, life: 0.8 + R() * 1.0, r: 0.025 + R() * 0.04, col: R() < 0.5 ? GLYPH : '255,236,226' });
+          }
+          parts.push({ ring: true, x: e.x, y: e.y, z: 0.03, t: 0, life: big ? 0.9 : 0.6, col: '#7a5cc8', ground: true });
+          cam.shake = Math.max(cam.shake, big ? 12 : 4);
+          if (big) { impact = Math.max(impact, 0.08); flash = Math.max(flash, 0.35); flashCol = '220,205,255'; }
         }
       }
       s.fx.length = 0;
@@ -68,6 +96,13 @@
       for (let i = 0; i < n; i++) {
         const a = R() * Math.PI * 2, v = sp * (0.5 + R());
         parts.push({ shard: true, x, y, z, vx: Math.cos(a) * v, vy: Math.sin(a) * v, vz: (R() - 0.1) * v, t: 0, life: 0.22 + R() * 0.22, col, w: 0.5 + R() });
+      }
+    }
+    // Ink drops thrown off a vanishing body.
+    function inkBurst(x, y, z, n, hero) {
+      for (let i = 0; i < n; i++) {
+        const a = R() * Math.PI * 2, v = 1.2 + R() * 2.8;
+        parts.push({ shard: true, x, y, z: z * (0.4 + R() * 1.2), vx: Math.cos(a) * v, vy: Math.sin(a) * v, vz: (R() - 0.2) * v, t: 0, life: 0.25 + R() * 0.25, col: hero ? '#2a3440' : '#2a0f18', w: 0.8 + R() * 0.8 });
       }
     }
     function dust(x, y, n) {
@@ -228,13 +263,9 @@
     // ------------------------------------------------------------ world fx
     function drawWorld(s, dt) {
       const cam = V.cam, sc = cam.sc;
-      for (const p of s.projectiles) {
-        V.shadow(p.x, p.y, 0.1, 0.4);
-        const q = P(p.x, p.y, p.z), tl = P(p.x - p.vx * 0.05, p.y - p.vy * 0.05, p.z);
-        ctx.strokeStyle = 'rgba(230,220,200,0.6)'; ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.moveTo(tl.x, tl.y); ctx.lineTo(q.x, q.y); ctx.stroke();
-        ctx.fillStyle = '#d6d0c2'; ctx.beginPath(); ctx.arc(q.x, q.y, Math.max(2.5, sc * 0.08), 0, Math.PI * 2); ctx.fill();
-      }
+      for (const p of s.projectiles) drawProjectile(p, sc);
+      drawBlinks(dt, sc);
+      drawDissolves(dt, sc);
       // Eiryn's failed glyph: a violet line curls into half a circle, then winks out.
       for (const fz of fizzles) {
         fz.t += dt;
@@ -255,10 +286,27 @@
 
       for (const p of parts) {
         p.t += dt;
-        if (p.vx != null) { p.x += p.vx * dt; p.y += p.vy * dt; p.z = Math.max(0, p.z + p.vz * dt); p.vz -= 7 * dt; }
+        if (p.t < 0) continue; // not started yet
+        if (p.float) { p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt; p.vx *= 1 - dt * 0.8; p.vy *= 1 - dt * 0.8; }
+        else if (p.vx != null) { p.x += p.vx * dt; p.y += p.vy * dt; p.z = Math.max(0, p.z + p.vz * dt); p.vz -= 7 * dt; }
         const k = p.t / p.life, q = P(p.x, p.y, p.z);
         ctx.globalAlpha = Math.max(0, 1 - k);
-        if (p.ring) {
+        if (p.ash) {
+          // A flake of black-violet ash, tumbling as it rises.
+          const r = Math.max(1.5, p.w * sc * (1 - k * 0.5)), a = p.rot + p.spin * p.t;
+          ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(a);
+          ctx.fillStyle = p.col;
+          ctx.beginPath(); ctx.moveTo(-r, -r * 0.3); ctx.lineTo(r * 0.2, -r * 0.6); ctx.lineTo(r, r * 0.2); ctx.lineTo(-r * 0.3, r * 0.5); ctx.closePath(); ctx.fill();
+          if (k < 0.5) { ctx.strokeStyle = `rgba(${GLYPH},${0.6 * (1 - k * 2)})`; ctx.lineWidth = 1; ctx.stroke(); }
+          ctx.restore();
+        } else if (p.mote) {
+          // A rising mote of light: a bright point with a faint halo.
+          const r = Math.max(1, p.r * sc * 0.6) * (1 + 0.3 * Math.sin(p.t * 20));
+          ctx.fillStyle = `rgba(${p.col},0.25)`;
+          ctx.fillRect(q.x - r * 2.2, q.y - r * 2.2, r * 4.4, r * 4.4);
+          ctx.fillStyle = `rgba(${p.col},1)`;
+          ctx.beginPath(); ctx.moveTo(q.x, q.y - r * 1.6); ctx.lineTo(q.x + r * 0.7, q.y); ctx.lineTo(q.x, q.y + r * 1.6); ctx.lineTo(q.x - r * 0.7, q.y); ctx.closePath(); ctx.fill();
+        } else if (p.ring) {
           const r = (0.3 + k * 1.6) * sc;
           ctx.strokeStyle = p.col; ctx.lineWidth = 3 * (1 - k) + 1;
           ctx.beginPath(); ctx.ellipse(q.x, q.y, r, p.ground ? r * cam.pitch : r, 0, 0, Math.PI * 2); ctx.stroke();
@@ -279,6 +327,7 @@
       }
       ctx.globalAlpha = 1;
       parts = parts.filter((p) => p.t < p.life);
+      if (parts.length > 600) parts.splice(0, parts.length - 600);
       for (const t of texts) {
         t.t += dt;
         const k = t.t / t.life, q = P(t.x + (t.vx || 0) * k, t.y, t.z + k * 0.8);
@@ -294,6 +343,178 @@
       }
       ctx.globalAlpha = 1;
       texts = texts.filter((t) => t.t < t.life);
+    }
+
+    // ------------------------------------------------------------ projectiles
+    // Arrows, force bolts, pressure glyphs and thrown stones each read differently.
+    function drawProjectile(p, sc) {
+      const name = p.A && p.A.name;
+      const sp = Math.hypot(p.vx, p.vy) || 1, dx = p.vx / sp, dy = p.vy / sp;
+      const q = P(p.x, p.y, p.z);
+      V.shadow(p.x, p.y, name === 'Arrow' ? 0.06 : 0.12, 0.35);
+      if (name === 'Arrow') {
+        // A thin shaft with a dark head and pale fletching, a faint red streak behind.
+        const tail = P(p.x - dx * 0.75, p.y - dy * 0.75, p.z), head = P(p.x + dx * 0.12, p.y + dy * 0.12, p.z);
+        const streak = P(p.x - dx * 2.2, p.y - dy * 2.2, p.z);
+        ctx.strokeStyle = 'rgba(227,38,58,0.3)'; ctx.lineWidth = Math.max(1, sc * 0.04);
+        ctx.beginPath(); ctx.moveTo(streak.x, streak.y); ctx.lineTo(tail.x, tail.y); ctx.stroke();
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = INK; ctx.lineWidth = Math.max(2.5, sc * 0.06);
+        ctx.beginPath(); ctx.moveTo(tail.x, tail.y); ctx.lineTo(head.x, head.y); ctx.stroke();
+        ctx.strokeStyle = '#a58a66'; ctx.lineWidth = Math.max(1.2, sc * 0.025); ctx.stroke();
+        const a = Math.atan2(head.y - tail.y, head.x - tail.x), hl = Math.max(4, sc * 0.16);
+        ctx.save(); ctx.translate(head.x, head.y); ctx.rotate(a);
+        ctx.fillStyle = INK; ctx.beginPath(); ctx.moveTo(hl * 0.7, 0); ctx.lineTo(-hl * 0.4, hl * 0.35); ctx.lineTo(-hl * 0.4, -hl * 0.35); ctx.closePath(); ctx.fill();
+        ctx.restore();
+        ctx.save(); ctx.translate(tail.x, tail.y); ctx.rotate(a);
+        ctx.fillStyle = '#d9cbb6'; ctx.strokeStyle = INK; ctx.lineWidth = 1;
+        for (const sgn of [-1, 1]) { ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(hl * 0.9, 0); ctx.lineTo(hl * 0.2, sgn * hl * 0.45); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+        ctx.restore();
+        return;
+      }
+      if (name === 'Force Bolt' || name === 'Pressure Glyph') {
+        const glyph = name === 'Pressure Glyph';
+        const rgb = glyph ? GLYPH : '156,195,221', core = glyph ? GLYPH_CORE : PAL.heroGlow;
+        // Trail: a tapering ribbon of light.
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        for (let i = 0; i < 6; i++) {
+          const f = i / 6, a = P(p.x - dx * (0.15 + f * 1.4), p.y - dy * (0.15 + f * 1.4), p.z);
+          ctx.fillStyle = `rgba(${rgb},${0.35 * (1 - f)})`;
+          ctx.beginPath(); ctx.arc(a.x, a.y, Math.max(1.5, sc * (0.13 - f * 0.1)), 0, Math.PI * 2); ctx.fill();
+        }
+        const g = ctx.createRadialGradient(q.x, q.y, 0, q.x, q.y, sc * 0.5);
+        g.addColorStop(0, `rgba(${rgb},0.55)`); g.addColorStop(1, `rgba(${rgb},0)`);
+        ctx.fillStyle = g; ctx.fillRect(q.x - sc * 0.5, q.y - sc * 0.5, sc, sc);
+        ctx.restore();
+        const r = Math.max(4, sc * 0.17);
+        if (glyph) {
+          // A spinning violet glyph: ring, inner triangle, tick marks.
+          const t = V.time * 9;
+          ctx.save(); ctx.translate(q.x, q.y); ctx.scale(1, 0.75);
+          ctx.strokeStyle = INK; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
+          ctx.strokeStyle = PAL.glyph; ctx.lineWidth = 2; ctx.stroke();
+          ctx.strokeStyle = core; ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          for (let i = 0; i < 3; i++) { const a = t + (i / 3) * Math.PI * 2; i ? ctx.lineTo(Math.cos(a) * r * 0.7, Math.sin(a) * r * 0.7) : ctx.moveTo(Math.cos(a) * r * 0.7, Math.sin(a) * r * 0.7); }
+          ctx.closePath();
+          for (let i = 0; i < 6; i++) { const a = -t * 0.6 + (i / 6) * Math.PI * 2; ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r); ctx.lineTo(Math.cos(a) * r * 1.35, Math.sin(a) * r * 1.35); }
+          ctx.stroke();
+          ctx.restore();
+        } else {
+          // A compressed orb of force with a pulsing shell.
+          const pulse = 1 + 0.15 * Math.sin(V.time * 30);
+          ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(q.x, q.y, r * 0.9 + 2, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = PAL.hero; ctx.beginPath(); ctx.arc(q.x, q.y, r * 0.9, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(q.x - r * 0.15, q.y - r * 0.15, r * 0.45, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = core; ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.ellipse(q.x, q.y, r * 1.4 * pulse, r * 0.7 * pulse, Math.atan2(dy, dx), 0, Math.PI * 2); ctx.stroke();
+        }
+        return;
+      }
+      // A thrown stone.
+      const tl = P(p.x - p.vx * 0.05, p.y - p.vy * 0.05, p.z);
+      ctx.strokeStyle = 'rgba(230,220,200,0.6)'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(tl.x, tl.y); ctx.lineTo(q.x, q.y); ctx.stroke();
+      ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(q.x, q.y, Math.max(2.5, sc * 0.08) + 1.5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#d6d0c2'; ctx.beginPath(); ctx.arc(q.x, q.y, Math.max(2.5, sc * 0.08), 0, Math.PI * 2); ctx.fill();
+    }
+
+    // ------------------------------------------------------------ blink
+    function drawBlinks(dt, sc) {
+      for (const b of blinks) {
+        b.t += dt;
+        const k = b.t / b.life;
+        if (k >= 1) continue;
+        const ang = Math.atan2(b.y1 - b.y0, b.x1 - b.x0), ca = Math.cos(ang), sa = Math.sin(ang);
+        const edge = b.hero ? '156,195,221' : '227,38,58', body = b.hero ? '18,22,30' : '26,10,22';
+        // Afterimage at the origin: the silhouette tears into horizontal
+        // slices that slide toward the destination and thin out.
+        const n = 7;
+        for (let i = 0; i < n; i++) {
+          const z0 = (i / n) * b.h, z1 = ((i + 1) / n) * b.h;
+          const shift = k * k * (1.2 + ((i * 37) % 7) * 0.25);
+          const thin = Math.max(0, 1 - k * (1.4 + (i % 3) * 0.4));
+          if (thin <= 0) continue;
+          const w = b.w * (0.75 + Math.sin(((i + 0.5) / n) * Math.PI) * 0.45) * thin;
+          const cx = b.x0 + ca * shift, cy = b.y0 + sa * shift;
+          const a0 = P(cx, cy, z0), c0 = P(cx, cy, z1), hw = w * sc;
+          ctx.fillStyle = `rgba(${body},${0.9 * thin})`;
+          ctx.fillRect(a0.x - hw, c0.y, hw * 2, a0.y - c0.y + 1);
+          ctx.fillStyle = `rgba(${edge},${0.8 * thin})`;
+          ctx.fillRect(a0.x + hw, c0.y, Math.max(1.5, sc * 0.03), a0.y - c0.y + 1);
+        }
+        // The streak: a wedge of light from origin to landing, gone in a blink.
+        if (k < 0.4) {
+          const f = 1 - k / 0.4, zm = b.h * 0.55;
+          const p0 = P(b.x0, b.y0, zm), p1 = P(b.x1, b.y1, zm);
+          const l = Math.hypot(p1.x - p0.x, p1.y - p0.y) || 1, nx = -(p1.y - p0.y) / l, ny = (p1.x - p0.x) / l;
+          const w1 = sc * 0.24 * f, w0 = sc * 0.03;
+          const wedge = (g) => { ctx.beginPath(); ctx.moveTo(p0.x + nx * (w0 + g), p0.y + ny * (w0 + g)); ctx.lineTo(p1.x + nx * (w1 + g), p1.y + ny * (w1 + g)); ctx.lineTo(p1.x - nx * (w1 + g), p1.y - ny * (w1 + g)); ctx.lineTo(p0.x - nx * (w0 + g), p0.y - ny * (w0 + g)); ctx.closePath(); };
+          wedge(2.5); ctx.fillStyle = `rgba(12,8,8,${0.85 * f})`; ctx.fill();
+          wedge(0); ctx.fillStyle = `rgba(${edge},${0.9 * f})`; ctx.fill();
+          wedge(-w1 * 0.55); ctx.fillStyle = `rgba(255,255,255,${f})`; ctx.fill();
+          // parallel speed lines above and below
+          ctx.strokeStyle = `rgba(246,240,236,${0.6 * f})`; ctx.lineWidth = Math.max(1, sc * 0.02);
+          ctx.beginPath();
+          for (const [o, zz] of [[-0.25, 0.25], [0.3, 0.85], [0.1, 1.25]]) {
+            const q0 = P(b.x0 + ca * 0.6 - sa * o, b.y0 + sa * 0.6 + ca * o, b.h * zz), q1 = P(b.x1 - ca * 0.4 - sa * o, b.y1 - sa * 0.4 + ca * o, b.h * zz);
+            ctx.moveTo(q0.x, q0.y); ctx.lineTo(q1.x, q1.y);
+          }
+          ctx.stroke();
+        }
+        // Landing: a vertical slit of light that snaps shut.
+        if (k < 0.3) {
+          const f = 1 - k / 0.3, a = P(b.x1, b.y1, 0), c = P(b.x1, b.y1, b.h * 1.25);
+          ctx.fillStyle = `rgba(255,255,255,${f})`;
+          const w = sc * 0.1 * f;
+          ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(a.x + w, (a.y + c.y) / 2); ctx.lineTo(c.x, c.y); ctx.lineTo(a.x - w, (a.y + c.y) / 2); ctx.closePath(); ctx.fill();
+        }
+      }
+      blinks = blinks.filter((b) => b.t < b.life);
+    }
+
+    // ------------------------------------------------------------ dissolve
+    function drawDissolves(dt, sc) {
+      for (const d of dissolves) {
+        d.t += dt;
+        const k = d.t / d.life;
+        if (k >= 1) continue;
+        // The body that is no longer there: a black-violet column whose
+        // slices drift apart and burn away from the top down.
+        const n = d.big ? 12 : 9;
+        for (let i = 0; i < n; i++) {
+          const f = (i + 0.5) / n;
+          const local = Math.min(1, Math.max(0, k * 1.6 - (1 - f) * 0.6));
+          if (local >= 1) continue;
+          const z0 = (i / n) * d.h, z1 = ((i + 1) / n) * d.h * 0.98;
+          const w = d.w * (0.7 + Math.sin(f * Math.PI) * 0.5) * (1 - local);
+          const drift = local * local * (i % 2 ? 1 : -1) * 0.6, rise = local * 0.5;
+          const a = P(d.x + drift, d.y, z0 + rise), c = P(d.x + drift, d.y, z1 + rise);
+          const hw = w * sc;
+          ctx.fillStyle = `rgba(22,10,30,${0.95 * (1 - local)})`;
+          ctx.fillRect(a.x - hw, c.y, hw * 2, a.y - c.y + 1);
+          // a glowing burn edge on each slice
+          ctx.fillStyle = `rgba(${GLYPH},${0.85 * (1 - local)})`;
+          ctx.fillRect(a.x - hw, c.y, hw * 2, Math.max(1, sc * 0.025));
+          ctx.fillStyle = `rgba(255,236,226,${0.7 * (1 - local)})`;
+          ctx.fillRect(a.x - hw - sc * 0.02, c.y, Math.max(1, sc * 0.03), a.y - c.y);
+        }
+        // A seam of light splitting it at the start.
+        if (k < 0.25) {
+          const f = 1 - k / 0.25, a = P(d.x, d.y, 0), c = P(d.x, d.y, d.h * 1.3);
+          ctx.save(); ctx.globalCompositeOperation = 'lighter';
+          ctx.fillStyle = `rgba(${GLYPH},${0.6 * f})`; ctx.fillRect(a.x - sc * 0.18 * f, c.y, sc * 0.36 * f, a.y - c.y);
+          ctx.fillStyle = `rgba(255,255,255,${f})`; ctx.fillRect(a.x - sc * 0.03, c.y, sc * 0.06, a.y - c.y);
+          ctx.restore();
+        }
+        // A broken glyph ring on the ground, fading.
+        const g = P(d.x, d.y, 0.02), r = sc * (d.big ? 1.6 : 0.9) * (0.8 + k * 0.4);
+        ctx.strokeStyle = `rgba(${GLYPH},${0.7 * (1 - k)})`; ctx.lineWidth = Math.max(1.5, sc * 0.03);
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) { const a0 = (i / 6) * Math.PI * 2 + k * 1.5; ctx.moveTo(g.x + Math.cos(a0) * r, g.y + Math.sin(a0) * r * V.cam.pitch); ctx.ellipse(g.x, g.y, r, r * V.cam.pitch, 0, a0, a0 + 0.7); }
+        ctx.stroke();
+      }
+      dissolves = dissolves.filter((d) => d.t < d.life);
     }
 
     function star(x, y, r, col, rays, thin) {
@@ -435,18 +656,282 @@
       if (c.t < c.impactAt) return 'dash';
       return c.t < c.impactAt + 0.12 ? 'impact' : 'after';
     }
+    // ------------------------------------------------------------ lance
+    // Line heavy arts (Lattice Lance, Force Lance): a narrow lance of force.
+    //   charge  the glyph lattice builds in front of the caster, a circle on the ground
+    //   gleam   darkness; the lattice burns, one line of light along the aim
+    //   dash    the beam fires along the facing, flashes as it passes through targets
+    //   impact  white frame, then the beam as a white line on black
+    //   after   the beam thins out, lattice shards drift, shockwaves on the hit
+    function lanceOf(s, c) {
+      const u = c.unit, H = V.Sim.heavyOf(u), f = u.facing;
+      const F = [Math.cos(f), Math.sin(f)];
+      let st = lanceState.get(c);
+      if (!st) {
+        // Who the lance passes through (the sim's test), nearest first.
+        const hits = [];
+        for (const o of s.units) {
+          if (o.team === u.team || o.fled || o.beaten || o.state === 'out') continue;
+          const d = Math.hypot(o.x - c.x0, o.y - c.y0);
+          let da = Math.atan2(o.y - c.y0, o.x - c.x0) - f;
+          while (da > Math.PI) da -= Math.PI * 2;
+          while (da < -Math.PI) da += Math.PI * 2;
+          if (d <= H.radius && Math.abs(da) <= H.arc / 2) hits.push({ x: o.x, y: o.y, d, r: o.r });
+        }
+        hits.sort((a, b) => a.d - b.d);
+        st = { hits, done: 0 };
+        lanceState.set(c, st);
+      }
+      // The beam runs past the last target to the end of the reach.
+      return { u, F, len: H.radius + 1.5, mz: 1.3, mx: c.x0 + F[0] * 0.7, my: c.y0 + F[1] * 0.7, st };
+    }
+    // A glyph ring standing across the aim: in the plane perpendicular to F.
+    function aimRing(x, y, z, F, r, rot, n) {
+      const pts = [], rx = -F[1], ry = F[0];
+      n = n || 28;
+      for (let i = 0; i <= n; i++) {
+        const a = rot + (i / n) * Math.PI * 2, c = Math.cos(a) * r;
+        pts.push(P(x + rx * c, y + ry * c, z + Math.sin(a) * r));
+      }
+      return pts;
+    }
+    function glowStroke(paths, w, a) {
+      // ink under, violet glow, pale core
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.strokeStyle = `rgba(12,8,8,${0.8 * a})`; ctx.lineWidth = w * 2.2;
+      for (const p of paths) ctx.stroke(p);
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = `rgba(${GLYPH},${0.35 * a})`; ctx.lineWidth = w * 4;
+      for (const p of paths) ctx.stroke(p);
+      ctx.strokeStyle = `rgba(${GLYPH},${0.95 * a})`; ctx.lineWidth = w * 1.4;
+      for (const p of paths) ctx.stroke(p);
+      ctx.strokeStyle = `rgba(239,232,255,${a})`; ctx.lineWidth = Math.max(1, w * 0.5);
+      for (const p of paths) ctx.stroke(p);
+      ctx.restore();
+    }
+    const toPath = (pts, close) => { const p = new Path2D(); pts.forEach((q, i) => (i ? p.lineTo(q.x, q.y) : p.moveTo(q.x, q.y))); if (close) p.closePath(); return p; };
+    // The lattice: tapering rings along the aim, joined by struts, a
+    // triangle turning in the first ring. grow: 0..1 (rings appear in turn).
+    function lattice(L, t, grow, a) {
+      const { F, mx, my, mz } = L, sc = V.cam.sc;
+      const rings = [[0.0, 0.62], [0.42, 0.5], [0.8, 0.4], [1.12, 0.3]];
+      const paths = [], pts = [];
+      rings.forEach(([d, r], i) => {
+        const g = Math.min(1, Math.max(0, grow * 4 - i));
+        if (g <= 0) return;
+        const rot = (i % 2 ? -1 : 1) * t * (1.1 + i * 0.3);
+        const ring = aimRing(mx + F[0] * d, my + F[1] * d, mz, F, r * (0.4 + 0.6 * g), rot, 30);
+        paths.push(toPath(ring));
+        pts.push({ ring, rot, d, r, g });
+        // tick glyphs on the ring
+        const tp = new Path2D();
+        for (let k = 0; k < 6; k++) {
+          const q = ring[Math.round((k / 6) * 30)], q2 = aimRing(mx + F[0] * d, my + F[1] * d, mz, F, r * (0.4 + 0.6 * g) * 1.22, rot + (k / 6) * Math.PI * 2, 1)[0];
+          tp.moveTo(q.x, q.y); tp.lineTo(q2.x, q2.y);
+        }
+        paths.push(tp);
+      });
+      // struts between consecutive rings (a hex lattice)
+      const sp = new Path2D();
+      for (let i = 0; i + 1 < pts.length; i++) {
+        const A = pts[i], B = pts[i + 1];
+        for (let k = 0; k < 3; k++) {
+          const ia = Math.round(((k / 3) * 30 + 2.5) % 30), ib = Math.round(((k / 3) * 30 + 5 * (i % 2 ? -1 : 1) + 30) % 30);
+          sp.moveTo(A.ring[ia].x, A.ring[ia].y); sp.lineTo(B.ring[ib].x, B.ring[ib].y);
+        }
+      }
+      paths.push(sp);
+      if (pts.length) {
+        const A = pts[0], tri = [];
+        for (let k = 0; k < 3; k++) tri.push(aimRing(mx, my, mz, F, A.r * 0.75 * A.g, -t * 3 + (k / 3) * Math.PI * 2, 1)[0]);
+        paths.push(toPath(tri, true));
+      }
+      glowStroke(paths, Math.max(1.2, sc * 0.022), a);
+      // the charge gathering at the muzzle
+      const tip = P(mx + F[0] * 1.3, my + F[1] * 1.3, mz), rr = sc * (0.08 + 0.22 * grow) * (1 + 0.15 * Math.sin(t * 40));
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      const g = ctx.createRadialGradient(tip.x, tip.y, 0, tip.x, tip.y, rr * 3);
+      g.addColorStop(0, `rgba(239,232,255,${a})`); g.addColorStop(0.3, `rgba(${GLYPH},${0.6 * a})`); g.addColorStop(1, `rgba(${GLYPH},0)`);
+      ctx.fillStyle = g; ctx.fillRect(tip.x - rr * 3, tip.y - rr * 3, rr * 6, rr * 6);
+      ctx.restore();
+      return tip;
+    }
+    function groundCircle(L, t, k) {
+      const u = L.u, sc = V.cam.sc;
+      const paths = [];
+      for (const [r, dir] of [[1.15, 1], [1.45, -1]]) {
+        const pts = [];
+        for (let i = 0; i <= 48; i++) { const a = (i / 48) * Math.PI * 2 * Math.min(1, k * 1.6) + dir * t * 0.8; pts.push(P(u.x + Math.cos(a) * r, u.y + Math.sin(a) * r, 0.02)); }
+        paths.push(toPath(pts));
+      }
+      const tk = new Path2D();
+      for (let i = 0; i < 16 * Math.min(1, k * 1.6); i++) {
+        const a = (i / 16) * Math.PI * 2 + t * 0.8, q0 = P(u.x + Math.cos(a) * 1.18, u.y + Math.sin(a) * 1.18, 0.02), q1 = P(u.x + Math.cos(a + 0.12) * 1.42, u.y + Math.sin(a + 0.12) * 1.42, 0.02);
+        tk.moveTo(q0.x, q0.y); tk.lineTo(q1.x, q1.y);
+      }
+      paths.push(tk);
+      glowStroke(paths, Math.max(1, sc * 0.018), Math.min(1, k * 2));
+    }
+    // The beam from the muzzle to `reach` metres along the aim.
+    function beam(L, reach, w, a, white) {
+      const { F, mx, my, mz } = L, sc = V.cam.sc;
+      const p0 = P(mx + F[0] * 0.95, my + F[1] * 0.95, mz), p1 = P(mx + F[0] * reach, my + F[1] * reach, mz);
+      const dx = p1.x - p0.x, dy = p1.y - p0.y, l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l;
+      const band = (hw, col) => {
+        ctx.fillStyle = col;
+        ctx.beginPath();
+        ctx.moveTo(p0.x + nx * hw * 0.6, p0.y + ny * hw * 0.6); ctx.lineTo(p1.x + nx * hw, p1.y + ny * hw);
+        ctx.arc(p1.x, p1.y, hw, Math.atan2(ny, nx), Math.atan2(-ny, -nx));
+        ctx.lineTo(p0.x - nx * hw * 0.6, p0.y - ny * hw * 0.6); ctx.closePath(); ctx.fill();
+      };
+      const W = sc * w;
+      if (white) { band(W * 1.2, '#f6f0ec'); return { p0, p1 }; }
+      band(W + 3, `rgba(12,8,8,${a})`);
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      band(W * 2.6, `rgba(${GLYPH},${0.25 * a})`);
+      ctx.restore();
+      band(W, `rgba(${GLYPH},${a})`);
+      band(W * 0.45, `rgba(255,255,255,${a})`);
+      return { p0, p1 };
+    }
+    function drawLance(s, c, phase) {
+      const W = V.W, H = V.H, t = c.t, cam = V.cam, sc = cam.sc;
+      const L = lanceOf(s, c), u = L.u;
+      const chest = P(u.x, u.y, 1.2);
+      if (phase === 'charge') {
+        const k = t / CUT.charge;
+        const vg = ctx.createRadialGradient(chest.x, chest.y, Math.min(W, H) * 0.12, chest.x, chest.y, Math.max(W, H) * 0.7);
+        vg.addColorStop(0, 'rgba(6,4,8,0)'); vg.addColorStop(1, `rgba(6,4,8,${0.4 + 0.45 * k})`);
+        ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+        groundCircle(L, t, k);
+        const tip = lattice(L, t, Math.min(1, k * 1.25), 1);
+        // Motes of force streaming into the muzzle.
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        for (let i = 0; i < 14; i++) {
+          const ph = (t * 1.4 + i * 0.137) % 1, a0 = i * 2.39;
+          const r0 = Math.max(W, H) * 0.5 * (1 - ph);
+          const sx = tip.x + Math.cos(a0) * r0, sy = tip.y + Math.sin(a0) * r0 * 0.7;
+          ctx.strokeStyle = `rgba(${GLYPH},${0.5 * ph})`; ctx.lineWidth = 1 + 2 * ph;
+          ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx + (tip.x - sx) * 0.25, sy + (tip.y - sy) * 0.25); ctx.stroke();
+        }
+        ctx.restore();
+        speedLines(chest.x, chest.y, 60, Math.min(W, H) * (0.6 - 0.3 * k), Math.max(W, H), `rgba(220,210,255,${0.05 + 0.1 * k})`, Math.floor(t * 24));
+        V.cam.shake = Math.max(V.cam.shake, 1 + 3 * k);
+      } else if (phase === 'gleam') {
+        const k = (t - CUT.charge) / (CUT.gleam - CUT.charge);
+        ctx.fillStyle = `rgba(6,4,8,${Math.min(0.9, 0.55 + k)})`; ctx.fillRect(0, 0, W, H);
+        const tip = lattice(L, t, 1, 1);
+        // One line of light along the aim, across the whole screen.
+        const far = P(L.mx + L.F[0] * 30, L.my + L.F[1] * 30, L.mz);
+        const dx = far.x - tip.x, dy = far.y - tip.y, l = Math.hypot(dx, dy) || 1;
+        const reach = Math.hypot(W, H) * Math.min(1, k * 2.4);
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = `rgba(${GLYPH},0.9)`; ctx.lineWidth = 5;
+        ctx.beginPath(); ctx.moveTo(tip.x - (dx / l) * reach * 0.3, tip.y - (dy / l) * reach * 0.3); ctx.lineTo(tip.x + (dx / l) * reach, tip.y + (dy / l) * reach); ctx.stroke();
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.restore();
+        star(tip.x, tip.y, H * 0.13 * Math.min(1, k * 3), PAL.glyph, 3, 0.2);
+      } else if (phase === 'dash') {
+        const k = (t - CUT.gleam) / (c.impactAt - CUT.gleam);
+        const reach = 1.2 + (L.len - 1.2) * Math.min(1, k * 3.2);
+        // Speed lines along the beam.
+        const a0 = P(L.mx, L.my, L.mz), a1 = P(L.mx + L.F[0] * 3, L.my + L.F[1] * 3, L.mz);
+        const ang = Math.atan2(a1.y - a0.y, a1.x - a0.x);
+        ctx.fillStyle = `rgba(${GLYPH},0.09)`; ctx.fillRect(0, 0, W, H);
+        ctx.save(); ctx.translate(a0.x, a0.y); ctx.rotate(ang);
+        ctx.fillStyle = 'rgba(239,232,255,0.22)';
+        for (let i = 0; i < 30; i++) {
+          const y = (((i * 97) % 100) / 100 - 0.5) * Math.max(W, H) * 1.2, x = (((i * 61 + t * 1400) % 100) / 100 - 0.2) * W * 1.6;
+          ctx.fillRect(x, y, W * (0.12 + (i % 4) * 0.06), 1 + (i % 3));
+        }
+        ctx.restore();
+        // Scorch along the ground under the beam.
+        const g0 = P(L.mx + L.F[0] * 1.2, L.my + L.F[1] * 1.2, 0.02), g1 = P(L.mx + L.F[0] * reach, L.my + L.F[1] * reach, 0.02);
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = 'rgba(12,8,8,0.35)'; ctx.lineWidth = sc * 0.12; ctx.beginPath(); ctx.moveTo(g0.x, g0.y); ctx.lineTo(g1.x, g1.y); ctx.stroke();
+        ctx.setLineDash([sc * 0.25, sc * 0.18]);
+        ctx.strokeStyle = `rgba(${GLYPH},0.35)`; ctx.lineWidth = sc * 0.025; ctx.stroke();
+        ctx.setLineDash([]);
+        lattice(L, t, 1, Math.max(0.45, 1 - k * 1.5));
+        const bm = beam(L, reach, 0.13 * (1 + 0.12 * Math.sin(t * 60)), 1);
+        // Rings of force sliding down the beam.
+        const rp = [];
+        for (let i = 0; i < 4; i++) {
+          const d = 1.4 + (((k * 2.4 + i * 0.25) % 1) * (reach - 1.4));
+          rp.push(toPath(aimRing(L.mx + L.F[0] * d, L.my + L.F[1] * d, L.mz, L.F, 0.32 + 0.1 * Math.sin(i + t * 9), t * 5 + i, 20)));
+        }
+        glowStroke(rp, Math.max(1, sc * 0.016), 0.9);
+        // Flashes where it passes through a target.
+        const st = L.st;
+        while (st.done < st.hits.length && st.hits[st.done].d <= reach + 0.2) {
+          const h = st.hits[st.done++];
+          parts.push({ star: true, x: h.x, y: h.y, z: L.mz, t: 0, life: 0.35, r: 1.5, col: '#ffffff', rays: true });
+          parts.push({ ring: true, x: h.x, y: h.y, z: L.mz, t: 0, life: 0.4, col: PAL.glyph });
+          shards(h.x, h.y, L.mz, 14, PAL.glyph, 8);
+          impact = Math.max(impact, 0.05);
+          V.cam.shake = Math.max(V.cam.shake, 14);
+        }
+        // the beam head
+        star(bm.p1.x, bm.p1.y, sc * 0.5 * (1 + 0.2 * Math.sin(t * 50)), '#efe8ff', 2.2, 0.3);
+        V.cam.shake = Math.max(V.cam.shake, 5);
+      } else if (phase === 'impact') {
+        const ft = t - c.impactAt;
+        if (ft < 0.06) { ctx.fillStyle = '#f6f0ec'; ctx.fillRect(0, 0, W, H); }
+        else {
+          ctx.fillStyle = INK; ctx.fillRect(0, 0, W, H);
+          const m = P(L.mx, L.my, L.mz);
+          speedLines(m.x, m.y, 70, Math.min(W, H) * 0.08, Math.max(W, H), '#f6f0ec', 3);
+          beam(L, L.len, 0.16, 1, true);
+        }
+        V.cam.shake = 16;
+      } else {
+        const k = (t - c.impactAt - 0.12) / 0.9;
+        if (k < 1) {
+          const e = 1 - k;
+          beam(L, L.len, 0.13 * e * e, e);
+          // Lattice shards drifting apart.
+          const sp = [];
+          for (let i = 0; i < 10; i++) {
+            const d = 0.2 + (i % 5) * 0.3, a = i * 1.7 + k * 2, r = 0.4 + k * 1.2 * (0.5 + (i % 3) * 0.3);
+            const rx = -L.F[1], ry = L.F[0];
+            const x = L.mx + L.F[0] * d + rx * Math.cos(a) * r, y = L.my + L.F[1] * d + ry * Math.cos(a) * r, z = L.mz + Math.sin(a) * r;
+            const q0 = P(x, y, z), q1 = P(x + rx * 0.15, y + ry * 0.15, z + 0.1);
+            const p = new Path2D(); p.moveTo(q0.x, q0.y); p.lineTo(q1.x, q1.y); sp.push(p);
+          }
+          glowStroke(sp, Math.max(1, sc * 0.02), e);
+          // Shockwaves where it hit.
+          for (const h of L.st.hits) {
+            const b = P(h.x, h.y, 0.02);
+            for (const [delay, col] of [[0, PAL.glyph], [0.15, PAL.bone]]) {
+              const kk = Math.max(0, k - delay), rr = (0.4 + kk * 3.5) * sc;
+              ctx.globalAlpha = Math.max(0, 1 - kk);
+              ctx.strokeStyle = col; ctx.lineWidth = 7 * (1 - kk) + 1;
+              ctx.beginPath(); ctx.ellipse(b.x, b.y, rr, rr * cam.pitch, 0, 0, Math.PI * 2); ctx.stroke();
+            }
+          }
+          ctx.globalAlpha = 1;
+        }
+        if (!c.dusted) {
+          c.dusted = true;
+          for (const h of L.st.hits) { dust(h.x, h.y, 10); shards(h.x, h.y, 1, 10, PAL.glyph, 6); }
+        }
+      }
+    }
+
     function drawCutscene(s) {
       const c = s.cutscene;
       if (!c) return;
       const W = V.W, H = V.H, t = c.t, u = c.unit, cam = V.cam, sc = cam.sc;
       const hero = u.team === 'hero';
-      const glow = hero ? PAL.heroGlow : PAL.glow, edge = hero ? PAL.hero : PAL.glow;
+      // Line heavies are force glyph-work: they read violet.
+      const glow = c.line ? PAL.glyph : hero ? PAL.heroGlow : PAL.glow, edge = c.line ? PAL.glyph : hero ? PAL.hero : PAL.glow;
       const glowRGB = hero ? '217,240,255' : '227,38,58';
       const phase = cutPhase(c);
       const F = [Math.cos(u.facing), Math.sin(u.facing)];
       const bars = Math.min(1, t / 0.2) * Math.min(1, (c.dur - t) / 0.3) * H * 0.11;
       const base = P(u.x, u.y, 0), chest = P(u.x, u.y, 1.2);
-      if (phase === 'charge') {
+      if (c.line) drawLance(s, c, phase);
+      else if (phase === 'charge') {
         const k = t / CUT.charge, e = k * k;
         // Darken everything but the fighter.
         const vg = ctx.createRadialGradient(chest.x, chest.y, Math.min(W, H) * 0.12, chest.x, chest.y, Math.max(W, H) * 0.7);

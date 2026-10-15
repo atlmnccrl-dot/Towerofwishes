@@ -109,12 +109,22 @@
           // low, close, slowly orbiting the fighter as they charge
           tx = u.x + F[0] * 0.4; ty = u.y + F[1] * 0.4;
           sc = Math.min(W, H) / 3.5;
-          ang = Math.PI / 2 - u.facing + 1.0 - (c.t / 1.35) * 0.6;
+          ang = c.line
+            // line heavies: three-quarter side view so the lattice reads as a tunnel
+            ? -u.facing + 0.9 - (c.t / 1.35) * 0.4
+            : Math.PI / 2 - u.facing + 1.0 - (c.t / 1.35) * 0.6;
+          if (c.line) { tx = u.x + F[0] * 1.0; ty = u.y + F[1] * 1.0; }
         } else if (ph === 'dash') {
-          // wide and side-on, so the dash crosses the screen
-          tx = c.x0 + F[0] * 1.4; ty = c.y0 + F[1] * 1.4;
-          sc = Math.min(W, H) / 6.5;
+          // wide and side-on, so the dash (or a line heavy's beam) crosses the screen
+          const off = c.line ? 3.4 : 1.4;
+          tx = c.x0 + F[0] * off; ty = c.y0 + F[1] * off;
+          sc = Math.min(W, H) / (c.line ? 7.6 : 6.5);
           ang = -u.facing - 0.15;
+        } else if (c.line) {
+          // a line heavy lands far away: look down the beam from behind the caster
+          tx = c.x0 + F[0] * 2.8; ty = c.y0 + F[1] * 2.8;
+          sc = Math.min(W, H) / 6.2;
+          ang = -Math.PI / 2 - u.facing + 0.75;
         } else {
           tx = u.x + F[0] * 0.8; ty = u.y + F[1] * 0.8;
           sc = Math.min(W, H) / 4.6;
