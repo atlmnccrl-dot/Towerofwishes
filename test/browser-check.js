@@ -71,7 +71,7 @@ const server = http.createServer((req, res) => {
   const box = await page.locator('#btn-withdraw').boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();
-  await page.waitForTimeout(1100);
+  await page.waitForFunction(() => window.__tow.match.result, null, { timeout: 5000 }).catch(() => {});
   await page.mouse.up();
   await page.waitForFunction(() => !document.getElementById('result').hidden, null, { timeout: 10000 });
   const story = await page.evaluate(() => ({ outcome: window.__tow.match.result.outcome, hearts: window.__tow.save.hearts, kael: window.__tow.save.injury.kael }));
