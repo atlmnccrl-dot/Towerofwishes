@@ -98,6 +98,16 @@
     return c;
   }
   function blob(ctx, spr, x, y, rx, ry) { ctx.drawImage(spr, x - rx, y - (ry || rx), rx * 2, (ry || rx) * 2); }
+  // A copy of a static layer with big light added. Large scaled glows are the
+  // costliest thing to draw per frame, so flickering light is a crossfade
+  // between the plain layer and this lit copy (one unscaled blit).
+  function litCopy(A, paint) {
+    const c = mk(A.width, A.height), x = c.getContext('2d');
+    x.drawImage(A, 0, 0);
+    x.globalCompositeOperation = 'lighter';
+    paint(x);
+    return c;
+  }
 
   // Screentone: a hex grid of dots whose radius follows density f(x, y) in 0..1.
   function tone(ctx, x0, y0, x1, y1, cell, color, f) {
@@ -209,6 +219,12 @@
       });
     }
     return rows;
+  }
+  // Height a canvas needs to hold rows i0.. (drifting bands are cropped to it).
+  function bandH(rows, i0, h) {
+    let m = 0;
+    for (let i = i0; i < rows.length; i++) for (const p of rows[i].pts) m = Math.max(m, rows[i].y + p[3] + p[2] + 4);
+    return Math.min(h, Math.ceil(m));
   }
   function paintRow(ctx, r, cols) {
     const offs = r.tile ? [-r.W, 0, r.W] : [0];
@@ -539,7 +555,7 @@
     S.A = A;
 
     // Near ceiling rows: tileable band that drifts.
-    const N = mk(w, h), n = N.getContext('2d');
+    const N = mk(w, bandH(rows, nStatic, h)), n = N.getContext('2d');
     for (let i = nStatic; i < rows.length; i++) paintRow(n, rows[i]);
     n.globalCompositeOperation = 'source-atop';
     tone(n, 0, 0, w, h * 0.4, u * 0.009, 'rgba(10,5,6,0.6)', (x, y) => 0.75 - y / (h * 0.3));
@@ -619,12 +635,6 @@
   function drawTower(ctx, S, t) {
     const { w, u } = S;
     ctx.drawImage(S.A, 0, 0);
-    // a slow breathing of the sunlight under the ceiling
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = 0.1 + 0.05 * Math.sin(t * 0.7);
-    blob(ctx, glow('#ffb070'), S.sunX, S.hy - S.h * 0.05, w * 0.4, S.h * 0.14);
-    ctx.globalAlpha = 1;
-    ctx.globalCompositeOperation = 'source-over';
     const off = (t * u * 0.012) % w;
     ctx.drawImage(S.N, -off, 0);
     ctx.drawImage(S.N, w - off, 0);
@@ -663,7 +673,7 @@
     ab.globalCompositeOperation = 'source-atop';
     tone(ab, 0, 0, w, S.hy, u * 0.009, 'rgba(60,8,10,0.6)', (x, y) => 0.8 - y / (S.hy * 0.9));
     S.AB = AB;
-    const NB = mk(w, h), nb = NB.getContext('2d');
+    const NB = mk(w, S.N.height), nb = NB.getContext('2d');
     for (let i = nStatic; i < rows.length; i++) paintRow(nb, rows[i], fireCols);
     nb.globalCompositeOperation = 'source-atop';
     tone(nb, 0, 0, w, h * 0.4, u * 0.009, 'rgba(40,4,8,0.7)', (x, y) => 0.8 - y / (h * 0.3));
@@ -723,7 +733,7 @@
     abd.globalAlpha = 0.92;
     abd.drawImage(AB, 0, 0);
     S.ABD = ABD;
-    const NBD = mk(w, h), nbd = NBD.getContext('2d');
+    const NBD = mk(w, S.N.height), nbd = NBD.getContext('2d');
     nbd.drawImage(S.N, 0, 0);
     nbd.globalAlpha = 0.92;
     nbd.drawImage(NB, 0, 0);
@@ -802,7 +812,7 @@
       const ext = lineK * w * 0.56;
       ctx.globalCompositeOperation = 'lighter';
       ctx.globalAlpha = 0.5 + 0.5 * open;
-      blob(ctx, glow('#ff5a30'), w * 0.5, ty, ext * 1.1, hh * 3 + u * 0.08);
+      blob(ctx, glow('#ff5a30'), w * 0.5, ty, ext * 1.1, hh * 2.2 + u * 0.06);
       ctx.globalAlpha = 0.7;
       blob(ctx, glow('#ffd9a0'), w * 0.5, ty, ext, hh * 1.6 + u * 0.03);
       ctx.globalAlpha = 1;
@@ -1104,26 +1114,25 @@
   }
   function drawSummit(ctx, S, t) {
     const { w, h, u, L } = S;
+    // rays and the brightness itself, too pale to see through; it breathes
+    S.AL = S.AL || litCopy(S.A, (x) => {
+      x.globalAlpha = 0.7;
+      x.drawImage(S.RC, 0, 0);
+      x.globalAlpha = 0.8;
+      blob(x, glow('#fff8ee'), L[0], L[1] + h * 0.08, w * 0.22, h * 0.32);
+    });
     ctx.drawImage(S.A, 0, 0);
-    ctx.save();
+    ctx.globalAlpha = 0.75 + 0.25 * Math.sin(t * 0.9);
+    ctx.drawImage(S.AL, 0, 0);
     ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = 0.55 + 0.15 * Math.sin(t * 0.8);
-    ctx.translate(L[0], L[1]);
-    ctx.rotate(Math.sin(t * 0.12) * 0.04);
-    ctx.translate(-L[0], -L[1]);
-    ctx.drawImage(S.RC, 0, 0);
-    ctx.restore();
-    // the brightness itself, too pale to see through
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = 0.7 + 0.1 * Math.sin(t * 1.3);
-    blob(ctx, glow('#fff8ee'), L[0], L[1] + h * 0.08, w * 0.22, h * 0.32);
-    ctx.globalAlpha = 1;
+    ctx.globalAlpha = 0.85 + 0.15 * Math.sin(t * 1.3);
     blob(ctx, glow('#ffffff'), L[0], L[1] + h * 0.12, w * 0.07, h * 0.16);
+    ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
     // fragments hanging in the air
     for (const s of S.shards) {
       const x = s.x * w + Math.sin(t * 0.3 + s.ph) * u * 0.01, y = s.y * h + Math.sin(t * s.v + s.ph) * u * 0.02;
-      const sz = s.s * u * 2, rot = s.r + t * 0.15 * (s.v - 0.4);
+      const sz = s.s * u * 1.3, rot = s.r + t * 0.15 * (s.v - 0.4);
       ctx.save();
       ctx.translate(x, y);
       ctx.rotate(rot);
@@ -1177,7 +1186,7 @@
     a.fill();
     for (let i = split; i < rows.length - 3; i++) paintRow(a, rows[i]);
     S.A = A;
-    const N = mk(w, h), n = N.getContext('2d');
+    const N = mk(w, bandH(rows, rows.length - 3, h)), n = N.getContext('2d');
     for (let i = rows.length - 3; i < rows.length; i++) paintRow(n, rows[i]);
     n.globalCompositeOperation = 'source-atop';
     tone(n, 0, 0, w, h * 0.3, u * 0.009, 'rgba(20,18,24,0.4)', (x, y) => 0.6 - y / (h * 0.3));
@@ -1325,7 +1334,10 @@
     S.sq = 0.4;
     const lw = Math.max(1, u * 0.0022);
     const ring = (rr, fn) => {
-      const pad = u * 0.03, D = Math.ceil(2 * (rr + pad)), c = mk(D, D), x = c.getContext('2d');
+      // Rings are baked at 0.75x and drawn scaled up: they are soft light, and
+      // the smaller canvases keep the per-frame rotate + blend cheap.
+      const RES = 0.75, pad = u * 0.03, D = Math.ceil(2 * (rr + pad)), c = mk(D * RES, D * RES), x = c.getContext('2d');
+      x.scale(RES, RES);
       x.translate(D / 2, D / 2);
       x.lineCap = 'round';
       const pass = (path, k = 1, core = '#e6dcff') => {
@@ -1441,13 +1453,18 @@
     const shud = t > 4.5 && t < BREAK + 0.3 ? u * 0.006 * sstep(4.5, 5.2, t) : 0;
     const ox = Math.sin(t * 61) * shud, oy = Math.cos(t * 53) * shud;
     // light on the sky around it
-    ctx.globalCompositeOperation = 'lighter';
+    S.AL = S.AL || litCopy(S.A, (x) => {
+      x.globalAlpha = 0.6;
+      blob(x, glow('#7a5ad0'), cx, cy, R * 1.25, R * 0.75);
+      x.globalAlpha = 0.7;
+      blob(x, glow('#c8b4ff'), cx, cy, R * 0.4, R * 0.22);
+    });
     if (I + flash > 0.01) {
-      ctx.globalAlpha = 0.5 * I + flash * 0.8;
-      blob(ctx, glow('#7a5ad0'), cx, cy, R * 1.25, R * 0.75);
-      ctx.globalAlpha = 0.6 * I + flash;
-      blob(ctx, glow('#c8b4ff'), cx, cy, R * 0.4, R * 0.22);
+      ctx.globalAlpha = Math.min(1, I * 0.85 + flash * 1.5);
+      ctx.drawImage(S.AL, 0, 0);
+      ctx.globalAlpha = 1;
     }
+    ctx.globalCompositeOperation = 'lighter';
     const ang = ringAngles(t);
     const spread = t > BREAK ? sstep(BREAK, BREAK + 2.2, t) * 0.7 + easeIn(sstep(BREAK, BREAK + 2.6, t)) * 0.5 : 0;
     S.rings.forEach((rg, i) => {
@@ -1459,7 +1476,7 @@
       ctx.rotate(ang[i]);
       ctx.globalAlpha = a;
       if (spread <= 0) {
-        ctx.drawImage(rg.c, -rg.D / 2, -rg.D / 2);
+        ctx.drawImage(rg.c, -rg.D / 2, -rg.D / 2, rg.D, rg.D);
       } else {
         // break apart into wedges flying outward
         const n = 7 + i * 2;
@@ -1474,7 +1491,7 @@
           ctx.arc(0, 0, rg.D, a0, a1);
           ctx.closePath();
           ctx.clip();
-          ctx.drawImage(rg.c, -rg.D / 2, -rg.D / 2);
+          ctx.drawImage(rg.c, -rg.D / 2, -rg.D / 2, rg.D, rg.D);
           ctx.restore();
         }
       }
@@ -1760,7 +1777,7 @@
     ctx.globalCompositeOperation = 'lighter';
     for (const [x, y, r, k] of S.windows) {
       ctx.globalAlpha = 0.35 + 0.12 * Math.sin(t * (1.5 + k * 3) + k * 30);
-      blob(ctx, S.glowW, x, y, Math.min(r, u * 0.2));
+      blob(ctx, S.glowW, x, y, Math.min(r, u * 0.09));
     }
     ctx.globalAlpha = 1;
     // strings of lanterns across the street, swaying
@@ -1927,13 +1944,16 @@
   }
   function drawTavern(ctx, S, t) {
     const { w, h, u, Pj } = S;
-    ctx.drawImage(S.A, 0, 0);
     const fl = 0.8 + 0.12 * Math.sin(t * 7.1) + 0.08 * Math.sin(t * 17.3);
-    // hearth light over the room
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = 0.55 * fl;
-    blob(ctx, S.gF, S.fire[0], S.fire[1], w * 0.45, h * 0.6);
+    // hearth light over the room (flickers as a crossfade)
+    S.AL = S.AL || litCopy(S.A, (x) => {
+      x.globalAlpha = 0.75;
+      blob(x, S.gF, S.fire[0], S.fire[1], w * 0.5, h * 0.65);
+    });
+    ctx.drawImage(S.A, 0, 0);
     ctx.globalAlpha = fl;
+    ctx.drawImage(S.AL, 0, 0);
+    ctx.globalCompositeOperation = 'lighter';
     blob(ctx, S.gW, S.fire[0], S.fire[1], S.fireS * 1.4, S.fireS);
     ctx.globalCompositeOperation = 'source-over';
     // flames (cel tongues)
@@ -2246,7 +2266,7 @@
     a.globalCompositeOperation = 'source-over';
     grain(a, w, h, 0.06);
     S.A = A;
-    const N = mk(w, h), n = N.getContext('2d');
+    const N = mk(w, bandH(rows, rows.length - 3, h)), n = N.getContext('2d');
     for (let i = rows.length - 3; i < rows.length; i++) paintRow(n, rows[i]);
     S.N = N;
     // the forest edge, over the drifting clouds
@@ -2332,7 +2352,7 @@
     for (let x = -8; x <= 8; x += 1) { const p = Pj(x, 0, 1.5), q = Pj(x, 0, 60); a.moveTo(p[0], p[1]); a.lineTo(q[0], q[1]); }
     a.stroke();
     S.A = A;
-    const N = mk(w, h), n = N.getContext('2d');
+    const N = mk(w, bandH(rows, rows.length - 3, h)), n = N.getContext('2d');
     for (let i = rows.length - 3; i < rows.length; i++) paintRow(n, rows[i]);
     S.N = N;
     // Stalls (foreground layer, over the drifting clouds).
@@ -2768,7 +2788,7 @@
       far: { lit: '#f4e6dc', mid: '#c4b0aa', dark: '#9a8686' }, near: { lit: '#a8949a', mid: '#625a62', dark: '#3a3440' },
     });
     for (let i = 0; i < rows.length - 2; i++) paintRow(a, rows[i]);
-    const N = mk(w, h), n = N.getContext('2d');
+    const N = mk(w, bandH(rows, rows.length - 2, h)), n = N.getContext('2d');
     for (let i = rows.length - 2; i < rows.length; i++) paintRow(n, rows[i]);
     S.N = N;
     // far ridges
@@ -3145,13 +3165,15 @@
   }
   function drawCave(ctx, S, t) {
     const { w, h, u, fire } = S;
-    ctx.drawImage(S.A, 0, 0);
     const fl = 0.8 + 0.13 * Math.sin(t * 6.3) + 0.07 * Math.sin(t * 15.7);
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = 0.45 * fl;
-    blob(ctx, S.gF, fire[0], fire[1] - h * 0.05, w * 0.4, h * 0.5);
+    S.AL = S.AL || litCopy(S.A, (x) => {
+      x.globalAlpha = 0.6;
+      blob(x, S.gF, fire[0], fire[1] - h * 0.05, w * 0.4, h * 0.5);
+    });
+    ctx.drawImage(S.A, 0, 0);
+    ctx.globalAlpha = fl;
+    ctx.drawImage(S.AL, 0, 0);
     ctx.globalAlpha = 1;
-    ctx.globalCompositeOperation = 'source-over';
     // the pot
     ctx.fillStyle = '#0c0808';
     ctx.beginPath();
