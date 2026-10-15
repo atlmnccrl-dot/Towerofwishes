@@ -1,10 +1,11 @@
 /*
- * Tower of Wishes — game shell (prototype 0.1)
- * Menus, HUD, input, the fixed-step loop, and saving hearts/injuries.
+ * Tower of Wishes — game shell
+ * Menus, the story campaign (scenes, choices, character select, chapters),
+ * HUD, input, the fixed-step loop, and saving hearts/injuries/story.
  */
 (function () {
   'use strict';
-  const Sim = window.TowSim, Pg = window.TowProgress, Render = window.TowRender;
+  const Sim = window.TowSim, Pg = window.TowProgress, Render = window.TowRender, Story = window.TowStory;
   const $ = (id) => document.getElementById(id);
   const DT = 1 / 60;
   const SAVE_KEY = 'tow.save.v1';
@@ -18,7 +19,9 @@
   function writeSave() {
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) { /* storage unavailable: progress lasts this visit */ }
   }
-  let save = loadSave();
+  let save = loadSave(), story = null;
+  function bindStory() { story = Story.normalise(save.story); save.story = story; }
+  bindStory();
 
   // ------------------------------------------------------------ state
   const renderer = Render.createRenderer($('arena'));
@@ -28,7 +31,16 @@
   const INTRO = window.TowRender.intro.T;
   let acc = 0, hitstop = 0, last = performance.now(), resultShownAt = 0, lastLog = 0;
   // An idle background fight plays behind the menu.
-  let attract = Sim.createMatch({ seed: 11 });
+  let showcase = null; // character select: the menu fight stars this starter
+  function makeAttract(seed) {
+    return showcase ? Sim.createMatch({ seed, scenario: 'clearing', party: [{ key: showcase, level: 3 }] }) : Sim.createMatch({ seed });
+  }
+  let attract = makeAttract(11);
+  let view = 'menu';
+  const backdrop = Render.backdrop.create($('arena'));
+  let sceneBg = 'tower', sceneT = 0;
+  let storyBattle = null; // the story battle being fought, if any
+  let lines = [], lineIdx = 0, lineFull = '', typeT = 0, cardShownAt = 0;
 
   // ------------------------------------------------------------ menu
   const HEART_SVG = '<svg class="heart" viewBox="0 0 26 24" aria-hidden="true"><path d="M13 22 3.2 12.6A6 6 0 0 1 13 4.6a6 6 0 0 1 9.8 8L13 22Z"/></svg>';
@@ -43,20 +55,166 @@
       HEART_SVG.replace('class="heart"', `class="heart${i < save.hearts ? '' : ' empty'}"`)).join('');
     $('hearts').setAttribute('aria-label', `${save.hearts} of ${Pg.HEART_MAX} hearts`);
     $('heart-timer').textContent = save.hearts >= Pg.HEART_MAX ? 'Full' : `Next heart in ${fmt(Pg.nextHeartIn(save, now))}`;
-    $('cond').innerHTML = Pg.TEAM.map((id) => {
-      const f = Pg.hpFrac(save, id, now);
-      const name = Sim.DEFS[id].name;
-      const note = f >= 1 ? 'Ready' : `${Math.round(f * 100)}% · full in ${fmt(Pg.fullHealIn(save, id, now))}`;
+    const team = Story.roster(story);
+    $('cond-label').textContent = team.length ? `Team · level ${Story.teamLevel(story)}` : 'Team';
+    $('cond').innerHTML = team.length ? team.map((m) => {
+      const f = Pg.hpFrac(save, m.key, now);
+      const name = Sim.DEFS[m.key].name.split(' ')[0];
+      const note = f >= 1 ? `Lv ${m.level} · ready` : `${Math.round(f * 100)}% · ${fmt(Pg.fullHealIn(save, m.key, now))}`;
       return `<div class="cond-row"><span>${name}</span><div class="bar"><i style="transform:scaleX(${f.toFixed(3)})"></i></div><span class="card-num">${note}</span></div>`;
-    }).join('');
-    const ok = Pg.canStartStory(save);
+    }).join('') : '<p class="fine">Your team forms twenty-two years after the Reset.</p>';
+    const n = Story.node(story), ch = Story.CHAPTERS.find((c) => c.id === n.chapter);
+    $('menu-chapter').textContent = `${ch.label} · ${ch.title}`;
+    $('story-btn-label').textContent = story.node === 'p.open' ? 'Begin the story' : n.type === 'end' ? 'The story so far' : 'Continue the story';
+    const needsHeart = n.type === 'battle' && Story.battle(story).hearts;
+    const ok = !needsHeart || Pg.canStartStory(save);
     $('btn-story').disabled = !ok;
-    $('story-note').textContent = ok ? 'Uses a heart only on a wipe' : 'No hearts left — try Practice';
+    $('story-note').textContent = !ok ? 'No hearts left — try Practice' : needsHeart ? 'Next: a battle · a heart only on a wipe' : `${ch.label}`;
   }
 
   function show(id) {
-    for (const s of ['menu', 'result', 'paused']) $(s).hidden = s !== id;
+    for (const s of ['menu', 'result', 'paused', 'story', 'select', 'map']) $(s).hidden = s !== id;
     $('hud').hidden = !(id === null || id === 'paused');
+    view = id || 'fight';
+  }
+
+  // ------------------------------------------------------------ story
+  function chapterLabel(n) {
+    const ch = Story.CHAPTERS.find((c) => c.id === n.chapter);
+    return ch ? `${ch.label} · ${ch.title}` : '';
+  }
+  function setShowcase(key) {
+    if (showcase === key) return;
+    showcase = key; attract = makeAttract((Math.random() * 1e9) | 0); acc = 0;
+    renderer.setFollow(key);
+  }
+  // Show whatever the story is at now.
+  function runStory() {
+    const n = Story.node(story);
+    writeSave();
+    match = null; storyBattle = null;
+    if (n.type !== 'select') setShowcase(null);
+    if (n.type === 'battle') return startStoryBattle();
+    if (n.type === 'select') return showSelect();
+    if (n.type === 'end') { renderMap(); show('map'); return; }
+    sceneBg = n.bg || 'tower'; sceneT = 0;
+    $('story-chapter').textContent = chapterLabel(n);
+    $('story-card').hidden = n.type !== 'card';
+    $('dialogue').hidden = n.type !== 'scene';
+    $('choices').hidden = n.type !== 'choice';
+    $('btn-skip').hidden = n.type !== 'scene';
+    if (n.type === 'card') {
+      $('card-title').textContent = n.title; $('card-sub').textContent = n.sub || '';
+      // Restart the entrance animation.
+      for (const el of [$('card-title'), $('card-sub')]) { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; }
+      cardShownAt = performance.now();
+    } else if (n.type === 'scene') {
+      lines = Story.lines(story); lineIdx = 0; showLine();
+    } else if (n.type === 'choice') {
+      $('prompt').textContent = n.prompt;
+      $('options').innerHTML = n.options.map((o, i) => {
+        const open = Story.optionOpen(story, o);
+        return `<button class="btn" type="button" data-i="${i}" ${open ? '' : 'disabled'}><b>${o.label}</b><small>${open ? o.hint : o.needText}</small></button>`;
+      }).join('');
+    }
+    show('story');
+  }
+  function showLine() {
+    const l = lines[lineIdx];
+    const d = $('dialogue');
+    d.className = 'dialogue ' + (l.speaker ? l.speaker.tone : 'narr');
+    $('who').textContent = l.speaker ? l.speaker.name : '';
+    $('who').hidden = !l.speaker;
+    lineFull = l.speaker ? `“${l.text}”` : l.text;
+    typeT = 0; $('line').textContent = '';
+  }
+  function typing() { return $('line').textContent.length < lineFull.length; }
+  function storyTap() {
+    const n = Story.node(story);
+    if (n.type === 'card') {
+      if (performance.now() - cardShownAt < 900) return;
+      Story.advance(story); runStory();
+    } else if (n.type === 'scene') {
+      if (typing()) { $('line').textContent = lineFull; return; }
+      if (++lineIdx < lines.length) showLine();
+      else { Story.advance(story); runStory(); }
+    }
+  }
+  $('story').addEventListener('click', (e) => {
+    tryLandscape();
+    if (e.target.closest('button')) return;
+    storyTap();
+  });
+  $('options').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-i]');
+    if (!b || b.disabled) return;
+    if (Story.choose(story, Number(b.dataset.i))) runStory();
+  });
+  $('btn-skip').addEventListener('click', () => {
+    while (Story.node(story).type === 'scene') Story.advance(story);
+    runStory();
+  });
+  $('btn-story-menu').addEventListener('click', () => { writeSave(); renderMenu(); show('menu'); });
+
+  // Character select: the fight behind the cards stars whoever you look at.
+  function showSelect() {
+    const keys = Object.keys(Story.STARTERS);
+    $('starters').innerHTML = keys.map((k) => {
+      const c = Story.STARTERS[k];
+      return `<button class="starter" type="button" data-k="${k}"><b>${c.name}</b><small>${c.role}</small></button>`;
+    }).join('');
+    pickShowcase(showcase && Story.STARTERS[showcase] ? showcase : keys[0]);
+    show('select');
+  }
+  function pickShowcase(k) {
+    const c = Story.STARTERS[k];
+    for (const b of document.querySelectorAll('.starter')) b.classList.toggle('on', b.dataset.k === k);
+    const pips = (n) => Array.from({ length: 5 }, (_, i) => `<span class="p${i < n ? ' on' : ''}"></span>`).join('');
+    $('starter-info').innerHTML = `
+      <span class="role">${c.role}</span>
+      <h2 style="font-size:24px">${c.name}</h2>
+      <p>${c.blurb}</p>
+      <p>${c.style}</p>
+      <div class="pips">${Object.entries(c.stats).map(([n, v]) => `<span>${n[0].toUpperCase() + n.slice(1)}</span><i>${pips(v)}</i>`).join('')}</div>
+      <span class="label">Heavy art</span><span class="heavy">${c.heavy}</span>
+      <button class="btn primary" id="btn-choose" type="button" data-k="${k}"><b>Climb as ${c.name.split(' ')[0]}</b><small>Begin</small></button>`;
+    setShowcase(k);
+  }
+  $('starters').addEventListener('click', (e) => { const b = e.target.closest('.starter'); if (b) pickShowcase(b.dataset.k); });
+  $('starter-info').addEventListener('click', (e) => {
+    const b = e.target.closest('#btn-choose');
+    if (!b) return;
+    Story.pickStarter(story, b.dataset.k);
+    setShowcase(null);
+    runStory();
+  });
+
+  function renderMap() {
+    const list = Story.chapters(story);
+    $('chapter-list').innerHTML = list.map((c) => `
+      <div class="chap ${c.status}"><span class="mark">${c.status === 'done' ? '✓' : c.status === 'current' ? '▶' : '·'}</span>
+        <div><small>${c.label}</small><b>${c.title}</b></div>
+        <span class="state">${c.status === 'done' ? 'Cleared' : c.status === 'current' ? 'Now' : ''}</span></div>`).join('');
+    const end = Story.node(story).type === 'end';
+    $('btn-map-continue').disabled = end;
+    $('map-note').textContent = end ? 'Waiting on the next chapter' : chapterLabel(Story.node(story));
+  }
+  $('btn-chapters').addEventListener('click', () => { renderMap(); show('map'); });
+  $('btn-map-continue').addEventListener('click', () => runStory());
+  $('btn-map-back').addEventListener('click', () => { renderMenu(); show('menu'); });
+
+  function startStoryBattle() {
+    const spec = Story.battle(story);
+    save = loadSave(); bindStory();
+    if (spec.hearts && !Pg.canStartStory(save)) { renderMenu(); show('menu'); return; }
+    const now = Date.now();
+    const hp = (k, f) => Math.min(f == null ? 1 : f, spec.hearts ? Pg.hpFrac(save, k, now) : 1);
+    const party = spec.party.map((m) => Object.assign({}, m, { hpFrac: hp(m.key, m.hpFrac) }));
+    startMatch(spec.hearts ? 'story' : 'tutorial', undefined, {
+      scenario: spec.scenario, party, mods: spec.mods,
+      heroHp: spec.hearts ? { kael: hp('kael'), eiryn: 1 } : {},
+    });
+    storyBattle = spec;
   }
 
   // ------------------------------------------------------------ match
@@ -65,47 +223,77 @@
     const now = Date.now();
     const heroHp = mode === 'story' ? { kael: Pg.hpFrac(save, 'kael', now), eiryn: Pg.hpFrac(save, 'eiryn', now) } : {};
     match = Sim.createMatch(Object.assign({ heroHp, seed, intro: true }, opts));
+    storyBattle = null;
+    $('tip').hidden = true;
     faceoff = { t: 0 }; // face-off and countdown before the fight
     acc = 0; hitstop = 0; resultShownAt = 0; lastLog = 0; paused = false;
     $('feed').innerHTML = '';
     buildHud();
     renderer.setFollow(null);
     show(null);
-    $('btn-withdraw').querySelector('small').textContent = mode === 'story' ? 'No heart lost · team leaves injured' : 'Practice · nothing is saved';
+    $('btn-withdraw').querySelector('small').textContent = mode === 'story' ? 'No heart lost · team leaves injured' : mode === 'tutorial' ? 'Leave the prologue' : 'Practice · nothing is saved';
   }
 
   function finishMatch() {
     const r = match.result;
     const now = Date.now();
-    const frac = (id) => { const u = match.byId[id]; return u.state === 'out' ? 0 : u.hp / u.maxHp; };
+    const frac = (u) => (u.state === 'out' ? 0 : u.hp / u.maxHp);
+    const fracs = {};
+    for (const u of match.units) if (u.team === 'hero') fracs[u.key] = frac(u);
     const before = save.hearts;
-    Pg.applyResult(save, mode, r.outcome, { kael: frac('kael'), eiryn: frac('eiryn') }, now);
+    Pg.applyResult(save, mode, r.outcome, fracs, now);
+    let growth = null;
+    if (storyBattle) growth = Story.finishBattle(story, r.outcome);
     writeSave();
-    const st = match.stats;
-    const text = {
-      win: 'The bandits are beaten or gone. Kael sheathes his sword and offers Eiryn his waterskin.',
-      loss: 'Kael goes down in the clearing. The whole team has fallen.',
-      surrender: 'Kael pulls Eiryn clear and heads for the road. They’ll be back.',
-    }[r.outcome];
+    const st = match.stats, lead = match.lead.name.split(' ')[0];
+    let text;
+    if (mode === 'tutorial') {
+      text = r.outcome === 'win' ? 'The guardian breaks apart into ash and light. Above the final steps, a brightness waits.'
+        : r.outcome === 'loss' ? 'Even broken, the climber rises, and keeps climbing toward the light.'
+        : 'The climber steps back from the edge — for now.';
+    } else if (mode === 'story') {
+      text = {
+        win: (storyBattle && storyBattle.outro) || `${match.title}: won.`,
+        loss: 'The whole team has fallen. They regroup and can try again.',
+        surrender: `${lead} pulls the team back to regroup. The fight will be waiting.`,
+      }[r.outcome];
+    } else {
+      text = {
+        win: 'The bandits are beaten or gone. Kael sheathes his sword and offers Eiryn his waterskin.',
+        loss: 'Kael goes down in the clearing. The whole team has fallen.',
+        surrender: 'Kael pulls Eiryn clear and heads for the road. They’ll be back.',
+      }[r.outcome];
+    }
     $('result-head').className = 'result-head ' + r.outcome;
-    $('result-mode').textContent = mode === 'story' ? 'Story match · The Clearing' : 'Practice match';
-    $('result-title').textContent = { win: 'Victory', loss: 'Defeat', surrender: 'Withdrew' }[r.outcome];
+    $('result-mode').textContent = mode === 'practice' ? 'Practice match' : `${match.chapter} · ${match.title}`;
+    $('result-title').textContent = { win: 'Victory', loss: mode === 'tutorial' ? 'Fallen' : 'Defeat', surrender: 'Withdrew' }[r.outcome];
     $('result-text').textContent = text;
     const stats = [
       [fmt(r.time * 1000), 'Time'], [st.parries, 'Parries'], [st.dodges, 'Dodges'],
-      [st.feintsRead, 'Feints read'], [st.beaten, 'Bandits beaten'], [st.supers, 'Rising Cuts'],
+      [st.feintsRead, 'Feints read'], [st.beaten + st.fled, 'Foes beaten'], [st.supers, 'Heavy arts'],
     ];
     $('result-stats').innerHTML = stats.map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('');
     let heartLine = 'Practice match: hearts and injuries are unchanged.';
+    if (mode === 'tutorial') heartLine = 'The prologue never costs hearts.';
     if (mode === 'story') {
       if (r.outcome === 'loss') heartLine = `Lost 1 heart (${before} → ${save.hearts}). The team is back on its feet.`;
       else if (r.outcome === 'win') heartLine = 'No heart lost. Winning restores the whole team to full health.';
       else heartLine = 'No heart lost. The team is injured and will heal over the next few minutes.';
     }
-    $('result-hearts').textContent = heartLine;
-    const canStory = mode !== 'story' || Pg.canStartStory(save);
-    $('again-note').textContent = mode === 'story' ? (canStory ? 'Story match again' : 'No hearts — practice instead') : 'Practice match again';
-    $('btn-again').dataset.mode = canStory ? mode : 'practice';
+    $('result-hearts').innerHTML = heartLine + (growth && growth.xp ? ` <span class="levelup">+${growth.xp} XP${growth.levelUp ? ` · Team level ${growth.level}!` : ''}</span>` : '');
+    // Next step.
+    const again = $('btn-again');
+    if (storyBattle && (r.outcome === 'win' || mode === 'tutorial')) {
+      again.dataset.action = 'continue'; again.disabled = false;
+      again.querySelector('b').textContent = 'Continue the story'; $('again-note').textContent = chapterLabel(Story.node(story));
+    } else if (storyBattle) {
+      const ok = Pg.canStartStory(save);
+      again.dataset.action = 'retry'; again.disabled = !ok;
+      again.querySelector('b').textContent = 'Try again'; $('again-note').textContent = ok ? 'Same fight' : 'No hearts — wait or practice';
+    } else {
+      again.dataset.action = 'practice'; again.disabled = false;
+      again.querySelector('b').textContent = 'Watch another match'; $('again-note').textContent = 'Practice match again';
+    }
     show('result');
   }
 
@@ -162,6 +350,11 @@
       else setChip(h.chip, null);
       h.el.classList.toggle('gone', u.state === 'out' || !!u.fled || !!u.beaten);
     }
+    // Prologue tips, one at a time once the fight is on.
+    const tips = storyBattle && storyBattle.tips;
+    const ti = tips && match.phase === 'fight' && !match.result ? Math.floor(match.t / 6) : -1;
+    $('tip').hidden = !(ti >= 0 && ti < tips.length);
+    if (!$('tip').hidden) $('tip-text').textContent = tips[ti];
     // Heavy arts get the whole screen.
     $('hud').classList.toggle('cine', !!match.cutscene || !!(faceoff && faceoff.t < INTRO.fight) || renderer.cinematic());
     const A = match.allOut, b = $('btn-allout');
@@ -199,16 +392,21 @@
     if (match && !paused && !match.result) Sim.triggerAllOut(match);
   }
   $('btn-allout').addEventListener('click', tryAllOut);
-  $('btn-story').addEventListener('click', () => { save = loadSave(); if (Pg.canStartStory(save)) startMatch('story'); });
+  $('btn-story').addEventListener('click', () => { tryLandscape(); save = loadSave(); bindStory(); runStory(); });
   $('btn-practice').addEventListener('click', () => startMatch('practice'));
-  $('btn-again').addEventListener('click', (e) => startMatch(e.currentTarget.dataset.mode || 'practice'));
-  $('btn-camp').addEventListener('click', () => { match = null; renderMenu(); show('menu'); });
+  $('btn-again').addEventListener('click', (e) => {
+    const a = e.currentTarget.dataset.action;
+    if (a === 'continue') runStory();
+    else if (a === 'retry') startStoryBattle();
+    else startMatch('practice');
+  });
+  $('btn-camp').addEventListener('click', () => { match = null; storyBattle = null; renderer.setFollow(null); renderMenu(); show('menu'); });
   $('btn-speed').addEventListener('click', () => { speed = speed === 1 ? 2 : 1; $('btn-speed').innerHTML = `${speed}&times;`; });
   $('btn-pause').addEventListener('click', () => setPaused(true));
   $('btn-resume').addEventListener('click', () => setPaused(false));
   $('btn-reset').addEventListener('click', () => { $('reset-confirm').hidden = false; });
   $('btn-reset-yes').addEventListener('click', () => {
-    save = Pg.fresh(Date.now()); writeSave(); $('reset-confirm').hidden = true; renderMenu();
+    save = Pg.fresh(Date.now()); bindStory(); writeSave(); $('reset-confirm').hidden = true; renderMenu();
   });
   function setPaused(p) {
     if (!match || match.result) return;
@@ -282,11 +480,22 @@
     const real = Math.min(0.05, (now - last) / 1000);
     last = now;
     const s = match || attract;
+    if (!match && view === 'story') {
+      // Story scenes: a painted backdrop and the typewriter.
+      sceneT += real;
+      backdrop.draw(sceneBg, sceneT);
+      if (!$('dialogue').hidden && typing()) {
+        typeT += real;
+        $('line').textContent = lineFull.slice(0, Math.floor(typeT * 60));
+      }
+      requestAnimationFrame(frame);
+      return;
+    }
     if (!match) {
       // Menu backdrop: an endless practice bout, restarted when it ends.
       acc += real;
       while (acc >= DT) { Sim.step(attract, DT); acc -= DT; }
-      if (attract.result) attract = Sim.createMatch({ seed: (Math.random() * 1e9) | 0 });
+      if (attract.result) { attract = makeAttract((Math.random() * 1e9) | 0); if (showcase) renderer.setFollow(showcase); }
       attract.log.length = 0;
     } else if (faceoff && !paused && !frozen) {
       // Face-off, then 3-2-1; the fight starts on FIGHT.
@@ -319,6 +528,8 @@
   window.__tow = {
     get match() { return match; },
     get save() { return save; },
+    get story() { return story; },
+    get view() { return view; },
     get drawMs() { return renderer.stats.drawMs; },
     debug: {
       start(m, seed, opts) { startMatch(m || 'practice', seed == null ? 1 : seed, opts); },
@@ -336,6 +547,10 @@
       follow(id) { renderer.setFollow(id); },
       cutIn(id, caption) { if (match) renderer.cutIn(match.byId[id], caption); },
       superNow() { if (match) match.lead.superMeter = 100; },
+      storyGo(node, starter, flags) {
+        story.node = node; if (starter) story.starter = starter; else if (!story.starter) story.starter = 'ren';
+        Object.assign(story.flags, flags || {}); runStory();
+      },
       allOutNow() { if (match) { match.allOut.meter = 1; Sim.triggerAllOut(match); } },
     },
   };

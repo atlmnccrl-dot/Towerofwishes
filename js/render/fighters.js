@@ -65,7 +65,7 @@
   // rel: weapon angle from facing; pitch: weapon elevation; lean; crouch;
   // off: off-hand mode; stance: foot spread multiplier.
   function pose(u, V) {
-    const L = LOOK[u.key];
+    const L = LOOK[u.key] || LOOK.kael; // unknown keys draw with a default look
     let rel = 0.75, pitch = 0.5, lean = 0, crouch = 0.03, off = 'guard', stance = 1, twist = 0;
     const a = u.act;
     const intro = V.introPhase;
@@ -236,7 +236,7 @@
     // ---------------------------------------------------------------- figure
     function drawUnit(u, s) {
       if (u.fled) return;
-      const L = LOOK[u.key];
+      const L = LOOK[u.key] || LOOK.kael; // unknown keys draw with a default look
       const sc = V.cam.sc;
       lx = V.light.sx; ly = V.light.sy;
       inkW = Math.max(1, sc * 0.022);

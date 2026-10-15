@@ -21,10 +21,11 @@ const server = http.createServer((req, res) => {
   });
 }).listen(PORT);
 
+let errors = [];
 (async () => {
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 844, height: 390 }, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
-  const errors = [];
+  errors = [];
   page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
   page.on('console', (m) => { if (m.type() === 'error' && !/fonts\.(googleapis|gstatic)/.test(m.text())) errors.push('console: ' + m.text()); });
   await page.goto(`http://localhost:${PORT}/`);
@@ -65,7 +66,13 @@ const server = http.createServer((req, res) => {
 
   // Story match: withdraw by holding the button.
   await page.click('#btn-camp');
+  // The story button opens the prologue card.
   await page.click('#btn-story');
+  await page.waitForTimeout(300);
+  const prologue = await page.evaluate(() => ({ view: window.__tow.view, node: window.__tow.story.node }));
+  if (prologue.view !== 'story' || prologue.node !== 'p.open') errors.push('story: expected the prologue card, got ' + JSON.stringify(prologue));
+  await page.screenshot({ path: path.join(out, '5b-prologue.png') });
+  await page.evaluate(() => window.__tow.debug.storyGo('c1.fight', 'ren', { approach: 'charge' }));
   await page.evaluate(() => window.__tow.debug.skipIntro());
   await page.waitForTimeout(1500);
   // The HUD hides during cinematic beats, so keep trying the hold until it lands.
@@ -78,7 +85,7 @@ const server = http.createServer((req, res) => {
     await page.mouse.up();
   }
   await page.waitForFunction(() => !document.getElementById('result').hidden, null, { timeout: 10000 });
-  const story = await page.evaluate(() => ({ outcome: window.__tow.match.result.outcome, hearts: window.__tow.save.hearts, kael: window.__tow.save.injury.kael }));
+  const story = await page.evaluate(() => ({ outcome: window.__tow.match.result.outcome, hearts: window.__tow.save.hearts, ren: window.__tow.save.injury.ren, node: window.__tow.story.node }));
   await page.click('#btn-camp');
   await page.waitForTimeout(300);
   await page.screenshot({ path: path.join(out, '6-camp.png') });
@@ -86,7 +93,7 @@ const server = http.createServer((req, res) => {
   // Reload: progress must survive.
   await page.reload();
   await page.waitForTimeout(800);
-  const after = await page.evaluate(() => ({ hearts: window.__tow.save.hearts, kael: window.__tow.save.injury.kael.frac }));
+  const after = await page.evaluate(() => ({ hearts: window.__tow.save.hearts, ren: window.__tow.save.injury.ren && window.__tow.save.injury.ren.frac, node: window.__tow.story.node }));
 
   // Portrait phone
   await page.setViewportSize({ width: 390, height: 844 });
@@ -98,4 +105,4 @@ const server = http.createServer((req, res) => {
   console.log(JSON.stringify({ allOutUsed: ao, sawCutscene: sawCut, practice, story, afterReload: after, errors }, null, 1));
   await browser.close();
   server.close();
-})().catch((e) => { console.error(e); server.close(); process.exit(1); });
+})().catch((e) => { console.error(e, errors); server.close(); process.exit(1); });

@@ -51,6 +51,31 @@ reason to climb the Tower.
 | 5 | **The Quarry** | Goblins at the mill; a spearman and an archer on the path; three goblins in the cave; the ogre "not in the contract". | Battles: goblins, then the ogre boss | Your party from Chapter 4. |
 | 6+ | Beyond the manuscript | — | Roadmap | Needs the author's next chapters. |
 
+## Choices and what they change (built in 0.4; all Proposals)
+
+The graph lives in `js/story.js`; `node test/story-test.js` walks every path.
+
+| Where | Choice | Effect on play |
+|---|---|---|
+| Chapter One | **Charge in first** | Bandits start staggered; Kael arrives a beat behind. |
+| | **Circle round the fallen tree** | You start beside Eiryn; the lookout bolts without distracting Kael. |
+| | **Let Kael go first** | Kael opens with his heavy art part-charged; Kael's bond +1. |
+| After the clearing | **Stay with Eiryn** | Trust +1: in Chapter Five she starts with her heavy art part-charged. Unlocks "Just Eiryn". |
+| | **Search what the bandits dropped** | A few coins: lets you pay the fine yourself. |
+| The tea fine | **Pay it yourself** (needs the coins) | Trust +1. |
+| | **Let Kael cover it** (as in the book) | Kael's bond +1: he fights one level higher. |
+| | **Argue with the guard** | Trust +1; the fine goes up. |
+| Chapter Four | **Kael and Eiryn** (as in the book) / **Just Kael** / **Just Eiryn** (needs trust) | Who fights the quarry battles; two-person parties are harder. |
+| The flooded fork | **The longer path** (as in the book) / **Wade the shortcut** | Wading: the party arrives at 85 % health but catches the goblins staggered. |
+| The ogre's tracks | **Back to the entrance** (as in the book) / **Grab the tools** | Backing off: everyone starts with heavy-art power banked. Grabbing: the party starts staggered. |
+
+Losing a story battle costs a heart only on a wipe and leaves you at the same battle.
+The prologue battle never costs hearts, and the story moves on even if the climber falls.
+
+Lines quoted from the manuscript are marked `B()` in `js/story.js` (adjusted only for the
+22-year timeline); everything the starters say and all `S()` lines are new and need the
+author's approval.
+
 ## Canon notes kept from the manuscript
 
 - Eiryn: long silver-white hair, dark travel-worn outfit with green ornamentation at the

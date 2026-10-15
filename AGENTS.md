@@ -42,17 +42,22 @@ Read first: [docs/DESIGN.md](docs/DESIGN.md), [docs/STORY.md](docs/STORY.md),
 | `js/render/intro.js` | Face-off cards, VS, countdown |
 | `js/render/director.js` | Camera cuts, slow motion, cut-in panels during fights |
 | `js/progress.js` | Hearts and injuries: pure functions |
-| `js/main.js` | Loop, input, HUD, save |
+| `js/story.js` | Story campaign: chapter graph, choices, team experience. Pure data + functions |
+| `js/render/backdrop.js` | Painted full-screen backgrounds for story scenes |
+| `js/main.js` | Loop, input, HUD, save, story screens (scenes, choices, select, chapters) |
 | `test/` | Node tests and a headless-browser check |
 
-Keep `sim.js` and `progress.js` free of DOM access so they stay testable.
+Keep `sim.js`, `progress.js` and `story.js` free of DOM access so they stay testable.
 
 ## Before every commit
 
 ```sh
 node test/progress-test.js        # heart and injury rules
 node test/sim-test.js 200         # balance + invariants (no NaN, no wall clipping, no timeouts)
+node test/scenario-test.js 30     # every campaign battle with each starter
+node test/story-test.js 6         # walks every branch of the campaign and plays its battles
 NODE_PATH=$(npm root -g) node test/browser-check.js /tmp/shots   # needs Playwright; screenshots + console errors
+NODE_PATH=$(npm root -g) node test/story-browser.js /tmp/story-shots   # plays the whole story in the browser
 ```
 
 - Report win rates and fight length when you change balance. Current targets: 65–80 %

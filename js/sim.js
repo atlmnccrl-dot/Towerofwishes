@@ -303,13 +303,18 @@
       ],
     },
     path: {
-      chapter: 'Chapter Five', title: 'The Quarry Path', arena: 'hillpath', allOutUses: 1, vs: 'goblinSpear', scale: { hp: 2.4, dmg: 2.0 },
+      chapter: 'Chapter Five', title: 'The Quarry Path', arena: 'hillpath', allOutUses: 1, vs: 'goblinSpear', scale: { hp: 2.1, dmg: 1.9 },
       units: [
         { slot: 0, x: -7.2, y: 0.2, f: 0 }, { slot: 1, x: -8.0, y: -1.4, f: 0 }, { slot: 2, x: -8.2, y: 1.6, f: 0 },
         { key: 'goblinSpear', x: 1.5, y: -0.4, f: 3.1 },
         { key: 'goblinArcher', x: 6.5, y: 1.4, f: 3.1 },
         { key: 'goblin', x: 2.6, y: 1.8, f: 3.1 },
       ],
+      // Chapter Five: which way up the hill.
+      mods: {
+        long: {},
+        wade: { surprise: true },
+      },
     },
     cave: {
       chapter: 'Chapter Five', title: 'The Cave Chamber', arena: 'cave', allOutUses: 2, vs: 'goblinArcher', scale: { hp: 3.0, dmg: 2.4 },
@@ -326,6 +331,11 @@
         { slot: 0, x: 4.8, y: 0.4, f: 3.1 }, { slot: 1, x: 5.6, y: 1.8, f: 3.1 }, { slot: 2, x: 5.8, y: -1.0, f: 3.1 },
         { key: 'ogre', x: -5.4, y: -0.3, f: 0 },
       ],
+      // Chapter Five: backing toward the entrance, or caught at the crates.
+      mods: {
+        ready: { heroSuper: 35 },
+        caught: { ambush: true },
+      },
     },
   };
 
@@ -356,7 +366,7 @@
   }
 
   // ---------------------------------------------------------------- setup
-  // opts: { scenario, party: [{key, level, hpFrac}], mods: {approach}, enemyLevel,
+  // opts: { scenario, party: [{key, level, hpFrac, super}], mods: {approach}, enemyLevel,
   //         seed, intro, allOutUses, heroHp (legacy: {kael, eiryn} health fractions) }
   function createMatch(opts) {
     opts = opts || {};
@@ -384,6 +394,7 @@
       const id = count[key] > 1 ? key + count[key] : key;
       const u = makeUnit(id, key, x, y, f, hpFrac, level);
       u.slot = slot;
+      if (slot != null && party[slot].super) u.superMeter = Math.min(100, party[slot].super);
       if (spec.morale != null) u.morale = spec.morale;
       units.push(u);
     }
@@ -427,6 +438,7 @@
     }
     for (const u of heroes) if (!u.guest) u.target = boss;
     if (mod.kaelSuper && s.byId.kael) s.byId.kael.superMeter = mod.kaelSuper;
+    if (mod.heroSuper) for (const u of heroes) u.superMeter = Math.max(u.superMeter, mod.heroSuper);
     // With opts.intro the match waits for begin() so the face-off can play.
     if (!opts.intro) begin(s);
     return s;
@@ -474,6 +486,8 @@
     }
     // Charging straight in catches the bandits off guard.
     if (s.mods.surprise) for (const u of s.units) if (u.team === 'bandit' && !u.def.noncombat) setState(u, 'stagger', 0.9);
+    // Caught off guard: the party loses its first beat.
+    if (s.mods.ambush) for (const u of s.units) if (u.team === 'hero') setState(u, 'stagger', 0.8);
   }
 
   // ---------------------------------------------------------------- blink
@@ -1068,10 +1082,14 @@
     if (d > 3 && blink(s, u, t)) return;
     if (u.def.ranged) {
       const want = u.def.keepAway;
-      if (d < want - 1.2) {
+      // It backs off for a few seconds at most, then stands and shoots,
+      // so a slow fighter can always run it down.
+      if (d < want - 1.2 && (u.kiteT || 0) < 2.5) {
+        u.kiteT = (u.kiteT || 0) + dt;
         const a = angTo(t, u);
         return moveTo(s, u, u.x + Math.cos(a) * 2, u.y + Math.sin(a) * 2, 0.9, t);
       }
+      u.kiteT = Math.max(0, (u.kiteT || 0) - dt * 0.5);
       if (u.cd <= 0 && d < A.range && hasLOS(u, t)) {
         u.cd = 2.4 + s.rng() * 1.4;
         return startAttack(s, u, t);

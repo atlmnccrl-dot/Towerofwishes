@@ -52,8 +52,10 @@
     return Math.max(0, HEART_MS - (now - save.heartAt));
   }
 
+  // Anyone without an injury record is at full health.
   function hpFrac(save, id, now) {
     const inj = save.injury[id];
+    if (!inj) return 1;
     return Math.min(1, inj.frac + Math.max(0, now - inj.at) / HEAL_MS);
   }
 
@@ -63,18 +65,19 @@
 
   function canStartStory(save) { return save.hearts > 0; }
 
-  // fracs: { kael: 0..1, eiryn: 0..1 } at the moment the match ended.
+  // fracs: { [fighter key]: 0..1 } for everyone who fought, when the match ended.
   function applyResult(save, mode, outcome, fracs, now) {
     if (mode !== 'story') return save;
     tick(save, now);
+    const ids = [...new Set([...TEAM, ...Object.keys(save.injury), ...Object.keys(fracs || {})])];
     if (outcome === 'win') {
-      for (const id of TEAM) save.injury[id] = { frac: 1, at: now };
+      for (const id of ids) save.injury[id] = { frac: 1, at: now };
     } else if (outcome === 'loss') {
       if (save.hearts >= HEART_MAX) save.heartAt = now;
       save.hearts = Math.max(0, save.hearts - 1);
-      for (const id of TEAM) save.injury[id] = { frac: 1, at: now };
+      for (const id of ids) save.injury[id] = { frac: 1, at: now };
     } else if (outcome === 'surrender') {
-      for (const id of TEAM) {
+      for (const id of Object.keys(fracs || {}).length ? Object.keys(fracs) : TEAM) {
         const f = fracs && fracs[id] != null ? fracs[id] : 1;
         save.injury[id] = { frac: Math.max(SURRENDER_FLOOR, Math.min(1, f)), at: now };
       }

@@ -96,6 +96,10 @@ The game opens with **one** controllable fighter. Companions join through the st
 up to **five**. Fights scale from 1-vs-many early to 5-vs-5 and 5-vs-1 boss fights.
 Guests (like Eiryn in Chapter One) fight beside the team but don't count toward a wipe.
 
+Built in 0.4 (**Proposal**, numbers open to tuning): the team shares experience from story
+wins (Clearing 100, Quarry Path 120, Cave 100, Ogre 150; levels at 100 / 220 / 380 / 600 /
+900 XP). Each level adds 10 % health and 7 % damage. Recruits join at the team's level.
+
 ## 6. All Out (decided, revised 2026-10-15)
 
 - Usable **2–3 times per match** (1–2 in early chapters; set per chapter). The meter
@@ -263,10 +267,20 @@ Out counters beyond the punisher, sound, real art, purchases, free modes beyond 
 | 2026-10-15 | Art style: anime/manhwa webtoon (see docs/ART_DIRECTION.md) | Author |
 | 2026-10-15 | Versus-style face-off, 3-2-1 countdown, distinct opening moves | Author |
 | 2026-10-15 | The campaign follows the manuscript's plot (see docs/STORY.md) | Author |
+| 2026-10-15 | Tap a fighter to follow them with the camera; landscape only | Author |
+| 2026-10-15 | All Out: 2–3 uses per match (1–2 early), burns all stamina and heavy-art power, drained fighters can't defend | Author |
+| 2026-10-15 | Heavy arts as full cinematic cutscenes, not face cut-ins | Author |
+| 2026-10-15 | Real story campaign with branching choices; pick one of several new starters; low level start | Author |
+| 2026-10-15 | Tutorial = the climber's last battle in the Tower, then the Reset, then 22 years later (book says 150) | Author |
+| 2026-10-15 | All-new starters; the Tower's guardian is an unseen mystery; the climber stays a mystery | Author |
 
 ## 15. Roadmap (proposed)
 
-1. **0.2** — Author feedback on fight feel; second arena (quarry cave) with goblins and the ogre as first boss with an All Out counter.
-2. **0.3** — Contract board with branching choices; recruit flow; party of up to 3.
-3. **0.4** — Arcade and Survival from the same arena code.
-4. **Engine decision** — choose the production engine before any store release (purchases, performance, real art pipeline).
+1. ~~**0.2** — second arena (quarry cave) with goblins and the ogre.~~ Done in 0.4.
+2. ~~**0.3** — branching choices; recruit flow; party of up to 3.~~ Done in 0.4.
+3. **0.4 (this build)** — the story campaign from the Prologue to Chapter Five: scenes,
+   choices, character select, chapter map, team experience. See docs/STORY.md.
+4. **0.5** — Author review of the starters and new lines; real character portraits for
+   scenes; sound; Arcade and Survival from the same arena code.
+5. **Chapter Six onward** — needs the author's next chapters.
+6. **Engine decision** — choose the production engine before any store release (purchases, performance, real art pipeline).
