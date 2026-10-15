@@ -446,7 +446,7 @@
       ],
     },
     stray: {
-      chapter: 'Guild contract', title: 'Enough Teeth for Three', arena: 'clearing', allOutUses: 2, vs: 'beast', scale: { hp: 1.3, dmg: 1.5 },
+      chapter: 'Guild contract', title: 'Enough Teeth for Three', arena: 'clearing', allOutUses: 2, vs: 'beast', scale: { hp: 1.75, dmg: 1.8 },
       units: [
         { slot: 0, x: -7.6, y: 0.4, f: 0 }, { slot: 1, x: -8.2, y: -1.4, f: 0 }, { slot: 2, x: -8.4, y: 1.6, f: 0 },
         { key: 'beast', x: 4.0, y: -1.0, f: 3.1 },
