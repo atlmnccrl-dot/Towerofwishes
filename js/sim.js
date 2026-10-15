@@ -86,6 +86,50 @@
         { kind: 'crate', x: -4.8, y: -3.0, r: 0.5 },
       ],
     },
+    // Side missions (Proposals). The road north of town where the supply cart
+    // went missing; a cart lies on its side in the ditch.
+    road: {
+      name: 'The North Road', theme: 'road', rx: 10.5, ry: 6, exit: { x: 12, y: 3 },
+      obstacles: [
+        { kind: 'cart', x: -1.2, y: -1.4, r: 0.9 },
+        { kind: 'rock', x: 4.2, y: 2.6, r: 0.6 },
+        { kind: 'tree', x: -6.4, y: 3.2, r: 0.5 },
+        { kind: 'tree', x: 7.0, y: -3.0, r: 0.5 },
+        { kind: 'rock', x: -5.0, y: -3.6, r: 0.5 },
+      ],
+    },
+    // The old crossing: the stone bridge Eiryn remembers, standing over a
+    // dry riverbed; broken walls of the town that was.
+    ruins: {
+      name: 'The Old Crossing', theme: 'ruins', rx: 10, ry: 6.2, exit: { x: -11.5, y: 0 },
+      obstacles: [
+        { kind: 'wall', x: -4.6, y: -2.8, r: 0.75 },
+        { kind: 'wall', x: 3.8, y: 3.0, r: 0.7 },
+        { kind: 'pillar', x: 0.2, y: -3.9, r: 0.55 },
+        { kind: 'pillar', x: 0.4, y: 3.9, r: 0.55 },
+        { kind: 'rock', x: 6.6, y: -1.6, r: 0.55 },
+      ],
+    },
+    // The Guild's evaluation yard behind the office: a low stone wall, marked
+    // lines, stone blocks and a wooden target.
+    yard: {
+      name: 'The Evaluation Yard', theme: 'yard', rx: 9, ry: 5.6, exit: { x: 0, y: -7.5 },
+      obstacles: [
+        { kind: 'block', x: -4.2, y: -2.2, r: 0.55 },
+        { kind: 'block', x: 4.4, y: 2.2, r: 0.55 },
+        { kind: 'target', x: 4.8, y: -2.8, r: 0.4 },
+        { kind: 'block', x: -3.8, y: 2.8, r: 0.5 },
+      ],
+    },
+    // Behind the quarry cave: the natural passage the goblins fled into.
+    deep: {
+      name: 'The Deep Passage', theme: 'deep', rx: 9, ry: 5.2, exit: { x: -10.5, y: 0.5 },
+      obstacles: [
+        { kind: 'rock', x: -3.0, y: -2.4, r: 0.75 },
+        { kind: 'rock', x: 2.6, y: 2.6, r: 0.7 },
+        { kind: 'crate', x: 5.2, y: -2.2, r: 0.5 },
+      ],
+    },
   };
   let ARENA = ARENAS.clearing;
   let NAV = null;
@@ -265,6 +309,51 @@
       attack: { name: 'Beam Sweep', range: 2.7, arc: 2.6, windup: 1.05, active: 0.16, recover: 0.9, dmg: [42, 55], knock: 3.2, down: true, lunge: 0.4, sta: 20 },
       barks: {}, intro: { epithet: 'Not in the contract', line: null },
     },
+
+    // ---- side missions and the Guild yard (all Proposals)
+    thug: {
+      name: 'Road Thug', team: 'bandit', r: 0.4, hp: 120, sta: 100, speed: 4.0,
+      react: 0.28, read: 0.25, parry: 0.15, dodge: 0.15, feint: 0.15, morale: 0.7, opener: 'advance',
+      attack: { name: 'Cudgel', range: 1.45, arc: 1.6, windup: 0.45, active: 0.1, recover: 0.45, dmg: [12, 16], knock: 1.2, lunge: 0.4, sta: 12 },
+      barks: {}, intro: { epithet: 'Hired for the road', line: null },
+    },
+    beast: {
+      name: 'The Stray', team: 'bandit', r: 0.62, hp: 380, sta: 160, speed: 5.4,
+      react: 0.22, read: 0.3, parry: 0, dodge: 0.35, feint: 0.25, morale: 99, noFlee: true, boss: true, opener: 'rush',
+      attack: { name: 'Three Rows of Teeth', range: 1.7, arc: 1.5, windup: 0.5, active: 0.1, recover: 0.55, dmg: [22, 30], knock: 1.6, lunge: 1.1, sta: 14 },
+      barks: {}, intro: { epithet: 'Enough teeth for three animals', line: null },
+    },
+    echo: {
+      name: 'Echo', team: 'bandit', r: 0.34, hp: 70, sta: 100, speed: 4.6,
+      react: 0.24, read: 0.35, parry: 0, dodge: 0.4, feint: 0.3, morale: 99, noFlee: true, dissolve: true,
+      blink: { range: 6, cd: 4 }, opener: 'blink',
+      attack: { name: 'Cold Hand', range: 1.35, arc: 1.4, windup: 0.4, active: 0.08, recover: 0.42, dmg: [11, 15], knock: 0.7, lunge: 0.6, sta: 10 },
+      barks: {}, intro: { epithet: 'What the Reset left behind', line: null },
+    },
+    warden: {
+      name: 'The Drowned Bell', team: 'bandit', r: 0.7, hp: 460, sta: 200, speed: 2.9,
+      react: 0.4, read: 0.25, parry: 0.2, dodge: 0, feint: 0.1, morale: 99, noFlee: true, boss: true, punisher: true, cleave: true, dissolve: true, opener: 'advance',
+      attack: { name: 'Tolling Flood', range: 2.4, arc: 2.4, windup: 0.95, active: 0.16, recover: 0.8, dmg: [30, 40], knock: 2.8, down: true, lunge: 0.3, sta: 18 },
+      barks: {}, intro: { epithet: 'It still rings for the town', line: null },
+    },
+    golem: {
+      name: 'Practice Block', team: 'bandit', r: 0.48, hp: 90, sta: 100, speed: 3.0,
+      react: 0.5, read: 0.1, parry: 0, dodge: 0, feint: 0, morale: 99, noFlee: true, dissolve: true, opener: 'advance',
+      attack: { name: 'Shove', range: 1.4, arc: 1.6, windup: 0.8, active: 0.1, recover: 0.7, dmg: [6, 9], knock: 1.4, lunge: 0.3, sta: 12 },
+      barks: {}, intro: { epithet: 'A stone block, glyph-driven', line: null },
+    },
+    goblinHexer: {
+      name: 'Goblin Hexer', team: 'bandit', r: 0.3, hp: 60, sta: 100, speed: 4.2,
+      react: 0.25, read: 0.35, parry: 0, dodge: 0.45, feint: 0, morale: 0.7, ranged: true, keepAway: 5.5, opener: 'hangback',
+      attack: { name: 'Stolen Glyph', range: 8, arc: 0.6, windup: 0.75, active: 0.05, recover: 0.5, dmg: [13, 16], knock: 1.2, sta: 0, projectile: 13 },
+      barks: {}, intro: { epithet: 'Scratches glyphs it copied', line: null },
+    },
+    goblinChief: {
+      name: 'Goblin Chief', team: 'bandit', r: 0.46, hp: 340, sta: 160, speed: 4.4,
+      react: 0.24, read: 0.4, parry: 0.3, dodge: 0.25, feint: 0.3, morale: 99, noFlee: true, boss: true, punisher: true, opener: 'advance',
+      attack: { name: 'Miller’s Cleaver', range: 1.6, arc: 1.7, windup: 0.5, active: 0.1, recover: 0.5, dmg: [20, 27], knock: 1.4, lunge: 0.6, sta: 14 },
+      barks: {}, intro: { epithet: 'Wears a grain sack as a cloak', line: null },
+    },
   });
 
   // Face-off order for the default Chapter One match.
@@ -337,7 +426,75 @@
         caught: { ambush: true },
       },
     },
+
+    // ---- side missions, dungeon rooms, the yard (all Proposals)
+    training: {
+      chapter: 'The Guild', title: 'The Evaluation Yard', arena: 'yard', allOutUses: 1, allOutStart: 1, vs: 'golem', scale: { hp: 1.0, dmg: 1.0 },
+      units: [
+        { slot: 0, x: -5.5, y: 0.2, f: 0 }, { slot: 1, x: -6.2, y: -1.4, f: 0 }, { slot: 2, x: -6.2, y: 1.6, f: 0 },
+        { key: 'golem', x: 2.2, y: -1.2, f: 3.1 },
+        { key: 'golem', x: 2.6, y: 1.4, f: 3.1 },
+      ],
+    },
+    cart: {
+      chapter: 'Guild contract', title: 'The Missing Supply Cart', arena: 'road', allOutUses: 2, vs: 'knife', scale: { hp: 1.5, dmg: 1.6 },
+      units: [
+        { slot: 0, x: -7.4, y: 0.4, f: 0 }, { slot: 1, x: -8.0, y: -1.2, f: 0 }, { slot: 2, x: -8.2, y: 1.8, f: 0 },
+        { key: 'knife', x: 1.4, y: 0.6, f: 3.1 },
+        { key: 'thug', x: 3.0, y: -2.0, f: 3.1 },
+        { key: 'thug', x: 3.6, y: 2.4, f: 3.1 },
+      ],
+    },
+    stray: {
+      chapter: 'Guild contract', title: 'Enough Teeth for Three', arena: 'clearing', allOutUses: 2, vs: 'beast', scale: { hp: 1.3, dmg: 1.5 },
+      units: [
+        { slot: 0, x: -7.6, y: 0.4, f: 0 }, { slot: 1, x: -8.2, y: -1.4, f: 0 }, { slot: 2, x: -8.4, y: 1.6, f: 0 },
+        { key: 'beast', x: 4.0, y: -1.0, f: 3.1 },
+      ],
+    },
+    crossing: {
+      chapter: 'Side story', title: 'The Old Crossing', arena: 'ruins', allOutUses: 2, vs: 'warden', scale: { hp: 0.95, dmg: 1.25 },
+      units: [
+        { slot: 0, x: -7.0, y: 0.2, f: 0 }, { slot: 1, x: -7.6, y: -1.4, f: 0 }, { slot: 2, x: -7.8, y: 1.6, f: 0 },
+        { key: 'echo', x: 0.6, y: -1.8, f: 3.1 },
+        { key: 'echo', x: 1.2, y: 2.0, f: 3.1 },
+        { key: 'warden', x: 5.4, y: 0.0, f: 3.1 },
+      ],
+    },
+    deep1: {
+      chapter: 'Dungeon', title: 'The Deep Passage I', arena: 'deep', allOutUses: 1, vs: 'goblinSpear', scale: { hp: 2.2, dmg: 2.0 },
+      units: [
+        { slot: 0, x: 6.4, y: 0.4, f: 3.1 }, { slot: 1, x: 7.0, y: 1.8, f: 3.1 }, { slot: 2, x: 7.2, y: -1.0, f: 3.1 },
+        { key: 'goblinSpear', x: -1.0, y: -1.0, f: 0 }, { key: 'goblin', x: -1.6, y: 1.6, f: 0 }, { key: 'goblin', x: -4.0, y: 0.2, f: 0 },
+      ],
+    },
+    deep2: {
+      chapter: 'Dungeon', title: 'The Deep Passage II', arena: 'deep', allOutUses: 1, vs: 'goblinHexer', scale: { hp: 2.4, dmg: 2.1 },
+      units: [
+        { slot: 0, x: 6.4, y: 0.4, f: 3.1 }, { slot: 1, x: 7.0, y: 1.8, f: 3.1 }, { slot: 2, x: 7.2, y: -1.0, f: 3.1 },
+        { key: 'goblinHexer', x: -5.0, y: -1.4, f: 0 }, { key: 'goblinArcher', x: -5.4, y: 2.0, f: 0 }, { key: 'goblinSpear', x: -0.8, y: 0.4, f: 0 },
+      ],
+    },
+    deep3: {
+      chapter: 'Dungeon', title: 'The Chief’s Hall', arena: 'deep', allOutUses: 2, vs: 'goblinChief', scale: { hp: 1.05, dmg: 1.8 },
+      units: [
+        { slot: 0, x: 6.4, y: 0.4, f: 3.1 }, { slot: 1, x: 7.0, y: 1.8, f: 3.1 }, { slot: 2, x: 7.2, y: -1.0, f: 3.1 },
+        { key: 'goblinChief', x: -4.6, y: 0.2, f: 0 }, { key: 'goblin', x: -2.0, y: -2.0, f: 0 }, { key: 'goblin', x: -2.4, y: 2.2, f: 0 },
+      ],
+    },
+    // Arcade: endless waves in the yard; the score is how many you clear.
+    arcade: {
+      chapter: 'Arcade', title: 'Yard Gauntlet', arena: 'yard', allOutUses: 3, vs: 'thug', scale: { hp: 1.0, dmg: 1.2 }, endless: true,
+      units: [
+        { slot: 0, x: -5.5, y: 0.2, f: 0 }, { slot: 1, x: -6.2, y: -1.4, f: 0 }, { slot: 2, x: -6.2, y: 1.6, f: 0 },
+        { key: 'thug', x: 2.4, y: 0.2, f: 3.1 }, { key: 'golem', x: 3.4, y: -2.0, f: 3.1 },
+      ],
+    },
   };
+
+  // Arcade waves: more foes and tougher each wave.
+  const WAVE_POOL = ['goblin', 'goblinSpear', 'goblinArcher', 'thug', 'knife', 'echo', 'goblinHexer', 'golem'];
+  const WAVE_BOSSES = ['beast', 'goblinChief', 'ogre', 'warden'];
 
   const FREE = { idle: 1, move: 1, circle: 1 };
 
@@ -345,12 +502,22 @@
   const levelHp = (lv) => 1 + 0.1 * ((lv || 1) - 1);
   const levelPower = (lv) => 1 + 0.07 * ((lv || 1) - 1);
 
-  function makeUnit(id, key, x, y, facing, hpFrac, level) {
-    const d = DEFS[key];
-    const maxHp = Math.round(d.hp * levelHp(level));
+  // mods (gear and skills, js/progression.js): fractions added to the base,
+  //   { hp, power, speed, parry, dodge, react, armor, superRate, sta, lifesteal, secondWind }
+  function makeUnit(id, key, x, y, facing, hpFrac, level, mods) {
+    const base = DEFS[key], m = mods || {};
+    const d = mods ? Object.assign({}, base, {
+      speed: base.speed * (1 + (m.speed || 0)),
+      parry: Math.min(0.92, (base.parry || 0) + (m.parry || 0)),
+      dodge: Math.min(0.9, (base.dodge || 0) + (m.dodge || 0)),
+      react: Math.max(0.08, base.react * (1 - (m.react || 0))),
+      sta: Math.round(base.sta * (1 + (m.sta || 0))),
+    }) : base;
+    const maxHp = Math.round(d.hp * levelHp(level) * (1 + (m.hp || 0)));
     return {
       id, key, def: d, name: d.name, team: d.team, guest: !!d.guest, r: d.r,
-      level: level || 1, power: levelPower(level),
+      level: level || 1, power: levelPower(level) * (1 + (m.power || 0)),
+      armor: Math.min(0.5, m.armor || 0), superRate: 1 + (m.superRate || 0), lifesteal: m.lifesteal || 0, secondWind: m.secondWind ? 1 : 0,
       x, y, vx: 0, vy: 0, kx: 0, ky: 0, facing,
       hp: Math.max(1, Math.round(maxHp * (hpFrac == null ? 1 : hpFrac))), maxHp,
       sta: d.sta, maxSta: d.sta,
@@ -371,7 +538,8 @@
   function createMatch(opts) {
     opts = opts || {};
     const rng = makeRng(opts.seed == null ? (Date.now() & 0xffffffff) : opts.seed);
-    const sc = SCENARIOS[opts.scenario || 'clearing'];
+    // A staged scene passes its own cast and arena instead of a scenario.
+    const sc = opts.cast ? { arena: opts.arena || 'clearing', units: opts.cast, title: opts.title || '', allOutUses: 0 } : SCENARIOS[opts.scenario || 'clearing'];
     const party = opts.party || [];
     const mod = (sc.mods && opts.mods && sc.mods[opts.mods.approach]) || {};
     const hp = opts.heroHp || {};
@@ -391,8 +559,8 @@
         if (mod[key]) { x = mod[key].x; y = mod[key].y; }
       }
       count[key] = (count[key] || 0) + 1;
-      const id = count[key] > 1 ? key + count[key] : key;
-      const u = makeUnit(id, key, x, y, f, hpFrac, level);
+      const id = spec.id || (count[key] > 1 ? key + count[key] : key);
+      const u = makeUnit(id, key, x, y, f, hpFrac, level, slot != null ? party[slot].mods : null);
       u.slot = slot;
       if (slot != null && party[slot].super) u.superMeter = Math.min(100, party[slot].super);
       if (spec.morale != null) u.morale = spec.morale;
@@ -407,13 +575,9 @@
     // Chapter One match keeps its original tuning.)
     const base = Object.assign({ hp: 1, dmg: 1 }, party.length ? sc.scale : null, opts.scale);
     const hpMul = base.hp * (1 + 0.85 * (fighters - 1)), dmgMul = base.dmg * (1 + 0.35 * (fighters - 1));
-    for (const u of units) {
-      if (u.team === 'hero') continue;
-      u.maxHp = Math.round(u.maxHp * hpMul); u.hp = u.maxHp;
-      u.power *= dmgMul;
-    }
+    for (const u of units) if (u.team !== 'hero') scaleFoe(u, hpMul, dmgMul);
     // The lead is the player's own fighter (slot 0), else the first non-guest hero.
-    const lead = units.find((u) => u.slot === 0) || heroes.find((u) => !u.guest) || heroes[0];
+    const lead = units.find((u) => u.slot === 0) || heroes.find((u) => !u.guest) || heroes[0] || units[0];
     const foes = units.filter((u) => u.team !== 'hero');
     const s = {
       t: 0, rng, arena: ARENA, units, projectiles: [], scenario: opts.scenario || 'clearing', title: opts.title || sc.title, chapter: opts.chapter || sc.chapter,
@@ -424,13 +588,15 @@
       allOut: { meter: sc.allOutStart || 0, uses: 0, maxUses: opts.allOutUses == null ? (sc.allOutUses == null ? 2 : sc.allOutUses) : opts.allOutUses, active: 0 },
       cutscene: null, result: null,
       fx: [], log: [],
-      stats: { parries: 0, dodges: 0, feintsRead: 0, feintsLanded: 0, hitsTaken: 0, fled: 0, beaten: 0, supers: 0 },
+      stats: { parries: 0, dodges: 0, feintsRead: 0, feintsLanded: 0, hitsTaken: 0, fled: 0, beaten: 0, supers: 0, waves: 0 },
     };
     // Face-off order: guests, then the opposition, then allies, the lead last.
     const allies = heroes.filter((u) => !u.guest && u !== lead);
     s.introOrder = [...heroes.filter((u) => u.guest), ...foes, ...allies, lead].map((u) => u.id);
-    const boss = s.byId[sc.vs] || foes.find((u) => u.def.boss) || foes[0];
+    const boss = s.byId[sc.vs] || foes.find((u) => u.def.boss) || foes[0] || lead;
     s.vs = [lead.id, boss.id];
+    s.foeScale = { hp: hpMul, dmg: dmgMul };
+    s.endless = !!sc.endless; s.wave = 1;
     const guest = heroes.find((u) => u.guest);
     for (const u of units) {
       if (u.def.firstTarget) u.target = s.byId[u.def.firstTarget] || guest || lead;
@@ -442,6 +608,34 @@
     // With opts.intro the match waits for begin() so the face-off can play.
     if (!opts.intro) begin(s);
     return s;
+  }
+
+  function scaleFoe(u, hpMul, dmgMul) {
+    u.maxHp = Math.round(u.maxHp * hpMul); u.hp = u.maxHp;
+    u.power *= dmgMul;
+  }
+
+  // Arcade: the next wave walks (or blinks) in from the far side.
+  function spawnWave(s) {
+    s.wave++;
+    s.stats.waves = s.wave - 1;
+    const n = Math.min(6, 1 + Math.ceil(s.wave * 0.7));
+    const keys = [];
+    if (s.wave % 5 === 0) keys.push(WAVE_BOSSES[(s.wave / 5 - 1) % WAVE_BOSSES.length]);
+    while (keys.length < n) keys.push(WAVE_POOL[Math.floor(s.rng() * Math.min(WAVE_POOL.length, 3 + s.wave))]);
+    const grow = 1 + 0.12 * (s.wave - 1);
+    keys.forEach((key, i) => {
+      const a = (i / keys.length) * Math.PI - Math.PI / 2;
+      const u = makeUnit(key + 'w' + s.wave + '_' + i, key, s.arena.rx * 0.6 + Math.cos(a) * 1.5, Math.sin(a) * s.arena.ry * 0.6, Math.PI, 1, 1);
+      scaleFoe(u, s.foeScale.hp * grow, s.foeScale.dmg * (1 + 0.06 * (s.wave - 1)));
+      u.target = s.lead;
+      s.units.push(u); s.byId[u.id] = u;
+      s.fx.push({ type: 'blink', unit: u.id, x0: u.x + 3, y0: u.y, x1: u.x, y1: u.y });
+    });
+    // Survivors catch their breath between waves.
+    for (const u of s.units) if (u.team === 'hero' && alive(u)) { u.hp = Math.min(u.maxHp, u.hp + u.maxHp * 0.15); u.sta = u.maxSta; }
+    s.allOut.meter = Math.min(1, s.allOut.meter + 0.25);
+    say(s, `Wave ${s.wave}.`);
   }
 
   // ---------------------------------------------------------------- openers
@@ -653,6 +847,8 @@
   }
 
   function applyHit(s, u, v, A, projectile) {
+    // A projectile passes a stand-in for its shooter; credit the real one.
+    const src = s.byId[u.id] || u;
     // Dodge i-frames
     if (v.state === 'dodge' && v.st < 0.3) {
       if (v.team === 'hero') { s.stats.dodges++; if (v.superMeter != null) gainSuper(v, 10); }
@@ -678,11 +874,14 @@
       dmg *= 1.15;
       if (u.team === 'bandit') s.stats.feintsLanded++;
     }
-    dmg = Math.round(dmg);
+    dmg = Math.round(dmg * (1 - (v.armor || 0)));
     v.hp -= dmg;
     v.flash = 0.12;
+    if (src.lifesteal && alive(src)) src.hp = Math.min(src.maxHp, src.hp + dmg * src.lifesteal);
+    // Second wind: once a match, a fighter about to fall steadies at a third.
+    if (v.secondWind && v.hp <= 0) { v.secondWind = 0; v.hp = Math.round(v.maxHp * 0.3); s.fx.push({ type: 'blink', unit: v.id, x0: v.x, y0: v.y, x1: v.x, y1: v.y }); say(s, `${v.name} refuses to fall.`); }
     if (v.team === 'hero') s.stats.hitsTaken++;
-    gainSuper(u, 8);
+    gainSuper(src, 8);
     gainSuper(v, 5);
     if (u.team === 'hero') chargeAllOut(s, 0.03);
     const a = angTo(u, v);
@@ -692,7 +891,7 @@
     s.fx.push({ type: 'hit', x: v.x, y: v.y, dmg, big: dmg >= 18, from: u.team });
     // Being hit by Kael makes a bandit turn on him ("Make it look at me").
     if (u.team === 'hero' && !u.guest && v.team === 'bandit') {
-      v.target = u; v.aggroUntil = s.t + 5;
+      v.target = src; v.aggroUntil = s.t + 5;
       if (!s.firstBlood) {
         s.firstBlood = true;
         for (const o of s.units) if (o.def.noncombat) o.morale -= 0.4; // the lookout loses his nerve
@@ -752,7 +951,7 @@
   }
 
   function gainSuper(u, n) {
-    if (u.def.superMeter && !inAllOut(u)) u.superMeter = Math.min(100, u.superMeter + n);
+    if (u.def.superMeter && !inAllOut(u)) u.superMeter = Math.min(100, u.superMeter + n * (u.superRate || 1));
   }
 
   // ---------------------------------------------------------------- super
@@ -1471,11 +1670,12 @@
     const kael = s.lead;
     const heroesUp = s.units.some((u) => u.team === 'hero' && !u.guest && alive(u));
     if (!heroesUp) {
-      s.result = { outcome: 'loss', time: s.t };
-      say(s, `${kael.name} falls. The match is lost.`);
+      s.result = { outcome: 'loss', time: s.t, waves: s.endless ? s.wave - 1 : undefined };
+      say(s, s.endless ? `Fallen on wave ${s.wave}.` : `${kael.name} falls. The match is lost.`);
       return;
     }
     const banditsLeft = s.units.some((u) => u.team === 'bandit' && inFight(u));
+    if (!banditsLeft && s.endless) { spawnWave(s); return; }
     if (!banditsLeft) {
       for (const u of s.units) if (u.team === 'bandit' && alive(u)) u.fleeing = true;
       s.result = { outcome: 'win', time: s.t };
