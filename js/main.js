@@ -558,12 +558,12 @@
       h.el.classList.toggle('gone', u.state === 'out' || !!u.fled || !!u.beaten);
     }
     // Prologue tips, one at a time once the fight is on.
-    const tips = storyBattle && storyBattle.tips;
+    const tips = storyBattle && !coach.enabled && storyBattle.tips;
     const ti = tips && match.phase === 'fight' && !match.result ? Math.floor(match.t / 6) : -1;
     $('tip').hidden = !(ti >= 0 && ti < tips.length);
     if (!$('tip').hidden) $('tip-text').textContent = tips[ti];
     // Heavy arts get the whole screen.
-    $('hud').classList.toggle('cine', !!match.cutscene || !!(faceoff && faceoff.t < INTRO.fight) || renderer.cinematic());
+    $('hud').classList.toggle('cine', !coach.on && (!!match.cutscene || !!(faceoff && faceoff.t < INTRO.fight) || renderer.cinematic()));
     const A = match.allOut, b = $('btn-allout');
     const spent = A.uses >= A.maxUses;
     b.style.setProperty('--fill', A.active ? 1 : spent ? 0 : A.meter.toFixed(3));
