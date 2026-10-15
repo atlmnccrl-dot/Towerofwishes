@@ -7,7 +7,9 @@
  * moves, cuts and impact frames.
  *
  * API (used by main.js):
- *   TowRender.stage.start(def, Sim) -> { match, beat(i, count), update(dt), camera() }
+ *   TowRender.stage.start(def, Sim) -> { match, beat(i, count), update(dt), camera(), focus(key) }
+ *   focus(key) plays def.focus[key] (character select: the camera visits one
+ *   starter, who comes forward); the previous key's `back` actions run.
  *
  * The units never fight: this module moves them itself (position, facing,
  * velocity for the walk cycle, state for the pose) and pushes fx events
@@ -16,11 +18,16 @@
  * Stage definition (all optional except cast):
  *   arena      arena key ('clearing', 'summit', 'cave', ...)
  *   scenario   match.scenario for the world painter (e.g. 'ogre')
- *   cast       [{ id, key, x, y, f, hidden, need }]  key '@' = the player's starter;
- *              need: 'kael' | 'eiryn' (Chapter Five party), unit left out otherwise
+ *   cast       [{ id, key, x, y, f, hidden, need, notStarter }]  key '@' = the player's starter;
+ *              need: 'kael' | 'eiryn' (Chapter Five party), unit left out otherwise;
+ *              notStarter: left out when it is the player's starter. Actions may
+ *              name '@' even when the starter is cast under its own key.
+ *   ambient    { every: s, do: [actions] }  background life, repeated forever
+ *   focus      { key: { cam, do: [actions], back: [actions] } }  see focus()
  *   setup      actions applied instantly at the start
  *   cam        the opening shot
- *   beats      [{ line, cam, do: [actions] }]  one per dialogue line. `line` (a
+ *   beats      [{ line, cam, loop, do: [actions] }]  one per dialogue line (loop: replay
+ *              the actions every `loop` seconds while the line stays up). `line` (a
  *              case-insensitive substring of the line's text) keys a beat to a
  *              line; beats without it go by position. Skipped beats are
  *              applied instantly so the blocking stays consistent.
@@ -31,7 +38,14 @@
  *     attack: { wind, active, recover, range, arc, tele, hold }, release: true,
  *     show, hide, blink:[x,y], knock:[dx,dy], drained, beaten, armed, flash,
  *     fx: type | {type, ...}, cam: shot, cutin: caption|true, shake, slow:[k,t],
- *     freeze, fade: [alpha, seconds, color], arrow: { from, to } }
+ *     freeze, fade: [alpha, seconds, color], arrow: { from, to },
+ *     set: {gest, prop, stow, noStool} (unit fields read by fighters.js), put:[x,y] (teleport),
+ *     glow: [k, s] (match.glow: the formation's light), door: [k, s] (tavern door),
+ *     light: [rgb, alpha, s] (additive screen wash), speed: [k, s, 'h'|'r'] (speed lines),
+ *     whip: [k, s, dir] (blurred trunks sweeping past the lens), sky: [k, s] (the
+ *     formation's light over the treeline), burst: 'dust'|'leaf' (at the unit's feet),
+ *     trail: 'dust'|'leaf'|null (kicked up while the unit moves), rumble: [amp, s] }
+ * Gaits: walk, run, creep, back, dash, stride, sprint (fast, stride rate capped).
  * Shot: { focus: id | [ids], x, y, dx, dy, view (metres on the short side),
  *         ang | face:id | behind:id, side, drift (rad/s), push (view per s),
  *         pitch, ease (s), cut (hard cut) }
@@ -102,6 +116,7 @@
     const cast = [];
     for (const c of def.cast || []) {
       if (c.need && !partyHas(c.need)) continue;
+      if (c.notStarter && c.key === starter) continue;
       const key = c.key === '@' ? starter : c.key;
       if (!DEFS[key]) continue;
       cast.push({ id: c.id || (c.key === '@' ? '@' : key), key, x: c.x || 0, y: c.y || 0, f: c.f || 0 });
@@ -113,6 +128,8 @@
     match.scenario = def.scenario || 'stage';
     match.cutscene = null;
     const units = match.byId;
+    // '@' always names the player's starter, also when it is cast under its own key.
+    if (!units['@']) Object.defineProperty(units, '@', { get: () => units[starterKey()], enumerable: false, configurable: true });
     const info = new Map(); // unit -> runtime staging
     for (const u of match.units) {
       info.set(u, { mv: null, base: 'idle', ts: 0, face: null, knock: null, hold: false });
@@ -129,6 +146,24 @@
     const fade = { a: 0, to: 0, t: 0, dur: 0, from: 0, col: '0,0,0' };
     let bars = 0;
     const arrows = [];
+    // Screen effects: eased values {v, to, from, t, dur}.
+    const ease = () => ({ v: 0, to: 0, from: 0, t: 0, dur: 0 });
+    const FX = { glow: ease(), door: ease(), light: ease(), speed: ease(), whip: ease(), sky: ease() };
+    let lightCol = '169,139,255', speedMode = 'h', whipDir = -1, rumble = { a: 0, t: 0 };
+    function easeTo(e, to, dur) { e.from = e.v; e.to = to; e.t = 0; e.dur = dur || 0; if (!e.dur) e.v = to; }
+    function stepEase(e, dt) { if (e.dur > 0) { e.t += dt; e.v = e.from + (e.to - e.from) * smooth(e.t / e.dur); if (e.t >= e.dur) { e.v = e.to; e.dur = 0; } } else e.v = e.to; }
+    const parts = [];
+    let seed = 1;
+    const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+    function puff(x, y, kind, n, sp) {
+      for (let i = 0; i < n; i++) {
+        const a = rnd() * TAU, v = (kind === 'leaf' ? 1.5 : 0.6) + rnd() * (sp ? sp * 0.12 : 1.2);
+        parts.push({ kind, x: x + (rnd() - 0.5) * 0.3, y: y + (rnd() - 0.5) * 0.3, z: kind === 'leaf' ? 0.3 + rnd() * 1.4 : 0.05, vx: Math.cos(a) * v, vy: Math.sin(a) * v, vz: kind === 'leaf' ? 1 + rnd() * 2 : 0.5 + rnd() * 0.8, t: 0, life: kind === 'leaf' ? 1.2 + rnd() * 0.8 : 0.5 + rnd() * 0.5, r: kind === 'leaf' ? 0.06 + rnd() * 0.05 : 0.15 + rnd() * 0.2, rot: rnd() * 6, spin: (rnd() - 0.5) * 12, c: (rnd() * 3) | 0 });
+      }
+      if (parts.length > 260) parts.splice(0, parts.length - 260);
+    }
+    let ambT = 0, ambQ = [];
+    let focusKey = null, loopT = 0, loopBeat = null;
 
     // ---- camera
     function unitsOf(f) {
@@ -189,7 +224,7 @@
       if (Array.isArray(f)) return Math.atan2(f[1] - u.y, f[0] - u.x);
       return u.facing;
     }
-    const GAIT = { walk: [1.5, 'move'], run: [4.2, 'opener'], creep: [1.1, 'circle'], back: [1.0, 'move'], dash: [9, 'opener'], stride: [2.2, 'move'] };
+    const GAIT = { walk: [1.5, 'move'], run: [4.2, 'opener'], creep: [1.1, 'circle'], back: [1.0, 'move'], dash: [9, 'opener'], stride: [2.2, 'move'], sprint: [9, 'opener'] };
     function updateUnit(u, I, dt) {
       u.st += dt;
       if (u.flash > 0) u.flash -= dt;
@@ -211,7 +246,11 @@
         } else {
           u.x += (dx / d) * step; u.y += (dy / d) * step;
           u.vx = (dx / d) * m.speed; u.vy = (dy / d) * m.speed;
-          u.walk += m.speed * dt * 2.4;
+          u.walk += (m.gait === 'sprint' ? Math.min(m.speed, 4.6) : m.speed) * dt * 2.4;
+          if (I.trail) {
+            I.trailT = (I.trailT || 0) - dt;
+            if (I.trailT <= 0) { I.trailT = 0.05; puff(u.x, u.y, I.trail, 2, m.speed); }
+          }
           if (!I.ts) u.state = m.state;
           if (m.gait !== 'back' && I.face == null) u.facing = lerpAng(u.facing, Math.atan2(dy, dx), Math.min(1, dt * 10));
         }
@@ -252,6 +291,15 @@
         if (!instant) match.fx.push({ type: 'blink', unit: u.id, x0: u.x, y0: u.y, x1: a.blink[0], y1: a.blink[1] });
         u.x = a.blink[0]; u.y = a.blink[1]; I.mv = null;
       }
+      if (u && a.set) Object.assign(u, a.set);
+      if (u && a.put) { u.x = a.put[0]; u.y = a.put[1]; I.mv = null; if (!I.ts && u.state !== 'attack') u.state = I.base; }
+      if (u && a.trail !== undefined) I.trail = a.trail;
+      if (a.glow) easeTo(FX.glow, a.glow[0], instant ? 0 : a.glow[1]);
+      if (a.door) easeTo(FX.door, a.door[0], instant ? 0 : a.door[1]);
+      if (a.sky) easeTo(FX.sky, a.sky[0], instant ? 0 : a.sky[1]);
+      if (a.light) { if (a.light[0]) lightCol = a.light[0]; easeTo(FX.light, instant ? 0 : a.light[1], instant ? 0 : a.light[2]); }
+      if (a.speed) { easeTo(FX.speed, a.speed[0], instant ? 0 : a.speed[1]); if (a.speed[2]) speedMode = a.speed[2]; }
+      if (a.whip) { easeTo(FX.whip, a.whip[0], instant ? 0 : a.whip[1]); if (a.whip[2]) whipDir = a.whip[2]; }
       if (u && (a.to || a.path)) {
         const pts = (a.path || [a.to]).map((p) => [p[0], p[1]]);
         const g = GAIT[a.gait || 'walk'] || GAIT.walk;
@@ -283,6 +331,8 @@
       if (u && a.say) { u.bark = a.say === '$' ? lineText() : a.say; u.barkT = a.sayT || clamp(1.4 + u.bark.length * 0.07, 1.6, 4.2); u.barkDelay = 0; }
       if (u && a.icon) { u.icon = a.icon; u.iconT = 0.8; }
       if (u && a.flash) u.flash = 0.12;
+      if (u && a.burst) puff(u.x, u.y, a.burst, a.burstN || 12, 6);
+      if (a.rumble) rumble = { a: a.rumble[0], t: a.rumble[1] };
       if (a.fx) {
         const e = typeof a.fx === 'string' ? { type: a.fx } : Object.assign({}, a.fx);
         if (u) { e.unit = u.id; if (e.x == null) { e.x = u.x + Math.cos(u.facing) * (e.reach || 0); e.y = u.y + Math.sin(u.facing) * (e.reach || 0); } }
@@ -331,6 +381,7 @@
         return;
       }
       clock = 0;
+      loopBeat = b.loop ? b : null; loopT = 0;
       if (b.cam) setShot(b.cam);
       for (const a of b.do || []) {
         if (!(a.at > 0)) act(a, false);
@@ -365,6 +416,22 @@
       } catch (e) { if (window.console) console.warn('stage beat failed', e); }
     }
 
+    // Character select: visit one starter (def.focus[key]).
+    function focus(key) {
+      try {
+        const F = def.focus || {};
+        if (key === focusKey) return;
+        const prev = focusKey && F[focusKey];
+        focusKey = key;
+        queue = queue.filter((a) => !a._focus);
+        if (prev && prev.back) for (const a of prev.back) { if (!(a.at > 0)) act(a, false); else queue.push(Object.assign({ _focus: true }, a, { at: clock + a.at })); }
+        const f = F[key];
+        if (!f) return;
+        if (f.cam) setShot(f.cam);
+        for (const a of f.do || []) { if (!(a.at > 0)) act(a, false); else queue.push(Object.assign({ _focus: true }, a, { at: clock + a.at })); }
+      } catch (e) { if (window.console) console.warn('stage focus failed', e); }
+    }
+
     function update(dt) {
       try {
         dt = Math.min(0.05, dt || 0);
@@ -375,6 +442,28 @@
         if (freeze > 0) { freeze -= dt; updateCamera(dt * 0.25); return; }
         if (slow.t > 0) { slow.t -= dt; dt *= slow.k; }
         clock += dt;
+        if (loopBeat) {
+          loopT += dt;
+          if (loopT >= loopBeat.loop) { loopT = 0; for (const a of loopBeat.do || []) { if (!(a.at > 0)) act(a, false); else queue.push(Object.assign({}, a, { at: clock + a.at })); } }
+        }
+        if (def.ambient) {
+          if (ambT === 0) ambQ = def.ambient.do.slice().sort((a, b) => (a.at || 0) - (b.at || 0));
+          ambT += dt;
+          const inStory = window.__tow && window.__tow.view === 'story';
+          while (ambQ.length && (ambQ[0].at || 0) <= ambT) { const x = ambQ.shift(); if (!(inStory && x.say)) act(x, false); }
+          if (ambT >= (def.ambient.every || 10)) ambT = 0;
+        }
+        for (const k in FX) stepEase(FX[k], dt);
+        match.glow = FX.glow.v; match.door = FX.door.v;
+        if (rumble.t > 0) { rumble.t -= dt; shake = Math.max(shake, rumble.a); }
+        for (let i = parts.length - 1; i >= 0; i--) {
+          const q = parts[i];
+          q.t += dt;
+          if (q.t >= q.life) { parts.splice(i, 1); continue; }
+          q.x += q.vx * dt; q.y += q.vy * dt; q.z = Math.max(0, q.z + q.vz * dt); q.rot += q.spin * dt;
+          if (q.kind === 'leaf') { q.vz -= 3 * dt; q.vx *= Math.pow(0.4, dt); q.vy *= Math.pow(0.4, dt); }
+          else { q.vx *= Math.pow(0.1, dt); q.vy *= Math.pow(0.1, dt); q.vz *= Math.pow(0.2, dt); }
+        }
         if (queue.length) {
           queue.sort((a, b) => a.at - b.at);
           while (queue.length && queue[0].at <= clock) act(queue.shift(), false);
@@ -409,6 +498,71 @@
       cam.pitch = (camOut.pitch - 0.56 * k) / (1 - k);
       if (shake > 0) { cam.shake = Math.max(cam.shake, shake); shake = 0; }
       if (pendingCut && R) { try { R.cutIn(pendingCut.u, pendingCut.caption); } catch (e) { /* ignore */ } pendingCut = null; }
+      // Balloons and reaction marks are drawn here (post), placed on the real
+      // head (seated figures too) and kept on screen in close-ups; hide the
+      // callouts layer's copies for this frame.
+      for (const u of match.units) {
+        u.barkDelay = u.bark && u.barkT > 0 ? 1 : 0;
+        u._iconT = u.iconT; if (u.iconT > 0) u.iconT = 0;
+      }
+    }
+    function headTop(u) {
+      const L = (NS.fighters && NS.fighters.LOOK[u.key]) || { h: 1 };
+      const H = 1.78 * (L.h || 1);
+      let z = H * 0.99;
+      if (u.state === 'sit') z -= H * 0.5 - 0.47 * Math.sqrt(L.h || 1);
+      return z;
+    }
+    function callouts(ctx, W, H) {
+      const FONT = V.FONT || { ui: 'sans-serif', display: 'sans-serif' };
+      const sc = V.cam.sc, INK = '#0c0808', top0 = Math.max(56, H * 0.16);
+      // While a stage runs behind a menu (character select), def.safe keeps
+      // balloons inside the uncovered middle of the screen.
+      const safe = def.safe && !(window.__tow && window.__tow.view === 'story') ? def.safe : null;
+      for (const u of match.units) {
+        if (u._iconT != null) { u.iconT = u._iconT; u._iconT = null; }
+        if (u.fled) continue;
+        const head = V.P(u.x, u.y, headTop(u));
+        if (u.iconT > 0 && u.icon) {
+          const col = { '!': '#ffd166', '?': '#9cc3dd', '✦': '#e3263a', '…': '#b8c0c8' }[u.icon] || '#fff';
+          const k = 0.8 - u.iconT, pop = k < 0.1 ? 1.4 - k * 4 : 1;
+          const fs = Math.round(Math.min(46, Math.max(16, sc * 0.4)));
+          const x = clamp(head.x + sc * 0.28, fs, W - fs), y = Math.max(top0 + fs * 0.5, head.y - fs * 0.6 - k * fs * 0.6);
+          ctx.save(); ctx.translate(x, y); ctx.scale(pop, pop); ctx.transform(1, 0, -0.18, 1, 0, 0);
+          ctx.font = `800 ${fs}px ${FONT.display}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+          ctx.lineWidth = Math.max(4, fs * 0.18); ctx.strokeStyle = INK; ctx.strokeText(u.icon, 0, 0); ctx.fillStyle = col; ctx.fillText(u.icon, 0, 0);
+          ctx.restore();
+        }
+        if (u.bark && u.barkT > 0 && !(safe && (head.x < W * safe[0] || head.x > W * safe[1]))) {
+          const fs = Math.round(clamp(sc * 0.17, 12, 19));
+          ctx.font = `700 ${fs}px ${FONT.ui}`;
+          const tw = ctx.measureText(u.bark).width, rw = tw / 2 + fs * 1.0, rh = fs * 1.15;
+          let bx = head.x + sc * 0.35, by = head.y - rh - fs * 0.9;
+          // off the top: slide to the side of the head instead
+          if (by - rh < top0) { by = top0 + rh; bx = head.x + (head.x < W * 0.55 ? 1 : -1) * (rw + sc * 0.35); }
+          bx = safe ? clamp(bx, W * safe[0] + rw, W * safe[1] - rw) : clamp(bx, rw + 8, W - rw - 8); by = clamp(by, top0 + rh, H * 0.7);
+          const tipX = head.x + (bx > head.x ? 1 : -1) * sc * 0.12, tipY = Math.max(head.y + sc * 0.05, by + rh * 0.6);
+          const shout = /!$/.test(u.bark);
+          const shape = () => {
+            ctx.beginPath();
+            if (shout) {
+              const n = 18;
+              for (let i = 0; i <= n; i++) { const a = (i / n) * TAU, r = i % 2 ? 1.18 : 0.94; const x = bx + Math.cos(a) * rw * r, y = by + Math.sin(a) * rh * r; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+              ctx.closePath();
+            } else ctx.ellipse(bx, by, rw, rh, 0, 0, TAU);
+            const ax = clamp(tipX, bx - rw * 0.6, bx + rw * 0.6);
+            ctx.moveTo(ax - fs * 0.45, by + rh * 0.6); ctx.lineTo(tipX, tipY); ctx.lineTo(ax + fs * 0.45, by + rh * 0.7);
+          };
+          ctx.save();
+          ctx.globalAlpha = Math.min(1, u.barkT * 2.5);
+          ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(3, fs * 0.22); ctx.strokeStyle = INK;
+          shape(); ctx.stroke();
+          ctx.fillStyle = '#f6f0ec'; shape(); ctx.fill();
+          ctx.fillStyle = INK; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(u.bark, bx, by + 1);
+          ctx.restore();
+        }
+      }
     }
     function post() {
       if (!V) return;
@@ -416,6 +570,8 @@
       const ctx = V.ctx, W = V.W, H = V.H;
       ctx.save();
       ctx.setTransform(V.dpr, 0, 0, V.dpr, 0, 0);
+      try { drawExtras(ctx, W, H); } catch (e) { /* never break the frame */ }
+      try { callouts(ctx, W, H); } catch (e) { /* never break the frame */ }
       if (fade.a > 0.001) { ctx.fillStyle = `rgba(${fade.col},${clamp(fade.a, 0, 1)})`; ctx.fillRect(0, 0, W, H); }
       // Letterbox: the scene reads as an episode, not a menu.
       const bh = Math.round(H * 0.075 * smooth(bars));
@@ -427,7 +583,104 @@
       ctx.restore();
     }
 
-    const handle = { match, beat, update, camera, _pre: pre, _post: post, def };
+    // ---- screen extras: kicked-up dust and leaves, trunks whipping past the
+    // lens, speed lines, the formation's dying light, additive light washes.
+    const LEAF = ['#3a4a36', '#5a6a44', '#6e5a36'];
+    function drawExtras(ctx, W, H) {
+      const t = V.time || 0, sc = V.cam ? V.cam.sc : 40;
+      // particles (world space)
+      for (const q of parts) {
+        const p = V.P(q.x, q.y, q.z), k = q.t / q.life;
+        if (q.kind === 'leaf') {
+          const r = q.r * sc;
+          ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(q.rot); ctx.scale(1, 0.45 + 0.45 * Math.abs(Math.sin(q.rot * 0.7)));
+          ctx.globalAlpha = Math.min(1, (1 - k) * 2);
+          ctx.fillStyle = '#0c0808'; ctx.beginPath(); ctx.ellipse(0, 0, r + 1.2, r * 0.5 + 1.2, 0, 0, TAU); ctx.fill();
+          ctx.fillStyle = LEAF[q.c]; ctx.beginPath(); ctx.ellipse(0, 0, r, r * 0.5, 0, 0, TAU); ctx.fill();
+          ctx.restore();
+        } else {
+          const r = q.r * sc * (0.6 + k);
+          ctx.fillStyle = `rgba(150,136,116,${(0.45 * (1 - k)).toFixed(3)})`;
+          ctx.beginPath(); ctx.ellipse(p.x, p.y - r * 0.3, r, r * 0.6, 0, 0, TAU); ctx.fill();
+        }
+      }
+      ctx.globalAlpha = 1;
+      // the formation's light over the treeline
+      const sk = FX.sky.v;
+      if (sk > 0.01) {
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        const g = ctx.createLinearGradient(0, 0, 0, H * 0.55);
+        g.addColorStop(0, `rgba(150,110,255,${(0.42 * sk).toFixed(3)})`); g.addColorStop(1, 'rgba(150,110,255,0)');
+        ctx.fillStyle = g; ctx.fillRect(0, 0, W, H * 0.55);
+        const cx = W * 0.62, cy = H * 0.06, R0 = Math.min(W, H) * 0.5;
+        ctx.lineWidth = 2;
+        for (let k = 1; k <= 4; k++) {
+          const r = R0 * (0.25 + k * 0.17), sp = (k % 2 ? 0.4 : -0.3) * (1 + k * 0.2);
+          const broken = sk < 0.9 ? (0.9 - sk) * 5 : 0;
+          ctx.strokeStyle = `rgba(200,175,255,${(0.6 * sk * (1 - k * 0.12)).toFixed(3)})`;
+          ctx.beginPath();
+          for (let s2 = 0; s2 < 6; s2++) {
+            const a0 = t * sp + (s2 / 6) * TAU, a1 = a0 + TAU / 6 - 0.15 - Math.min(0.8, broken * ((s2 * 7 + k) % 5) / 5);
+            if (a1 > a0) { ctx.moveTo(cx + Math.cos(a0) * r, cy + Math.sin(a0) * r * 0.35); ctx.ellipse(cx, cy, r, r * 0.35, 0, a0, a1); }
+          }
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+      // trunks whipping past the lens
+      const wk = FX.whip.v;
+      if (wk > 0.01) {
+        const n = 3, period = 0.55;
+        for (let i = 0; i < n; i++) {
+          const ph = ((t / period + i / n + (i * 0.37) % 0.2) % 1);
+          const x = whipDir < 0 ? W * (1.2 - ph * 1.6) : W * (-0.2 + ph * 1.6);
+          const w = W * (0.07 + ((i * 5) % 3) * 0.03);
+          for (let j = 0; j < 4; j++) {
+            ctx.fillStyle = `rgba(8,8,7,${(wk * (j ? 0.18 : 0.9)).toFixed(3)})`;
+            const o = j * w * 0.5 * -whipDir;
+            ctx.fillRect(x + o - w / 2, -10, w, H + 20);
+          }
+          ctx.fillStyle = `rgba(60,70,58,${(wk * 0.35).toFixed(3)})`;
+          ctx.fillRect(x - w * 0.42, -10, w * 0.12, H + 20);
+        }
+      }
+      // speed lines
+      const spd = FX.speed.v;
+      if (spd > 0.01) {
+        ctx.save();
+        if (speedMode === 'r') {
+          const cx = W / 2, cy = H * 0.45, n = 64;
+          for (let i = 0; i < n; i++) {
+            const a = (i / n) * TAU + Math.sin(i * 12.9898 + Math.floor(t * 12)) * 0.05;
+            const r0 = Math.min(W, H) * (0.42 + 0.2 * Math.abs(Math.sin(i * 7.1 + Math.floor(t * 15)))), r1 = Math.hypot(W, H);
+            const w = 0.006 + (i % 4) * 0.003;
+            ctx.fillStyle = i % 3 ? `rgba(246,240,236,${(0.32 * spd).toFixed(3)})` : `rgba(12,8,8,${(0.5 * spd).toFixed(3)})`;
+            ctx.beginPath(); ctx.moveTo(cx + Math.cos(a - w) * r1, cy + Math.sin(a - w) * r1); ctx.lineTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0); ctx.lineTo(cx + Math.cos(a + w) * r1, cy + Math.sin(a + w) * r1); ctx.closePath(); ctx.fill();
+          }
+        } else {
+          const n = 34;
+          for (let i = 0; i < n; i++) {
+            const y = ((i * 0.6180339 + 0.13) % 1) * H;
+            if (Math.abs(y - H * 0.5) < H * 0.16 && i % 3) continue; // keep the runners clear
+            const len = W * (0.12 + ((i * 7) % 5) * 0.06);
+            const x = ((i * 0.37 + t * (2.2 + (i % 3))) % 1.4 - 0.2) * W;
+            const xx = whipDir < 0 ? W - x : x;
+            const th = 1 + (i % 3);
+            ctx.fillStyle = i % 4 ? `rgba(246,240,236,${(0.4 * spd).toFixed(3)})` : `rgba(12,8,8,${(0.45 * spd).toFixed(3)})`;
+            ctx.beginPath(); ctx.moveTo(xx, y); ctx.lineTo(xx + len * -whipDir, y - th); ctx.lineTo(xx + len * -whipDir, y + th); ctx.closePath(); ctx.fill();
+          }
+        }
+        ctx.restore();
+      }
+      // additive light wash (the formation flaring through the window)
+      if (FX.light.v > 0.004) {
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = `rgba(${lightCol},${Math.min(1, FX.light.v).toFixed(3)})`; ctx.fillRect(0, 0, W, H);
+        ctx.restore();
+      }
+    }
+
+    const handle = { match, beat, update, camera, focus, _pre: pre, _post: post, def };
     match.stageHandle = handle;
 
     // ---- opening: setup actions, then the first shot (a hard cut)

@@ -27,6 +27,8 @@
 
   const INK = '#0c0808';
   const GLYPH = '#a98bff';
+  const TAU = Math.PI * 2;
+  const smooth = (k) => { k = Math.max(0, Math.min(1, k)); return k * k * (3 - 2 * k); };
   // tone = [base, shadow]
   const LOOK = {
     kael: {
@@ -204,9 +206,56 @@
       armor: ['#6e6a62', '#3a3732'], pauldron: 'L', accent: '#8e1621', eye: '#f0c43a', belt: '#6b4c33', sash: '#8e1621', scraps: true,
       introPose: (k) => ({ rel: 2.0, pitch: 1.2, stance: 1.7, crouch: 0.14 * k, twist: -0.3 * k, lean: 0.12, off: 'reach' }),
     },
+
+    // ---- town folk for staged scenes (the tavern, Chapter One). Proposals.
+    // A Guild adventurer who has taken contracts with Kael: practical
+    // leathers, hair tied back, a spear she leans against the table.
+    spearwoman: {
+      h: 0.97, w: 0.9, build: 0.88, weapon: 'spear', hair: 'short', ponytail: true,
+      skin: ['#e6c0a4', '#a07a68'], hairC: ['#7a3e22', '#3a1a0c'],
+      body: ['#5e4432', '#2e2018'], legs: ['#2e2a26', '#161412'], boots: ['#3e2c1e', '#1c130c'],
+      armor: ['#74563c', '#3a2a1c'], sleeve: ['#4a3a30', '#241c16'], pauldron: 'L', belt: '#2a1c12', strap: '#2a1c12',
+      accent: '#9cc3dd', eye: '#6f8f62',
+    },
+    // The cook: apron, sleeves rolled to the elbow, a kerchief over the hair.
+    cook: {
+      h: 0.95, w: 1.16, build: 1.14, weapon: 'none', hair: 'hood', prop: 'bread',
+      skin: ['#e8b898', '#a07460'], hairC: ['#a8452e', '#5a2014'], hood: ['#a8452e', '#5a2014'],
+      body: ['#6e6252', '#3a3228'], sleeve: ['#d8ccb4', '#8a7e6a'], wraps: ['#e8b898', '#a07460'],
+      legs: ['#3a302a', '#1c1814'], boots: ['#3a2a1e', '#1c130c'], skirt: ['#4a3a30', '#241c16'],
+      apron: ['#e8e0cc', '#9a907c'], accent: '#a8452e', eye: '#6a4a30', belt: '#7a6a50',
+    },
+    // Tavern regulars and caravan guards; each unit id picks a variant
+    // (hats, coats, colours) so a room of them never looks cloned.
+    patron: {
+      h: 0.97, w: 1.0, build: 1.0, weapon: 'none', hair: 'short', vary: true,
+      skin: ['#dcae8e', '#966a58'], hairC: ['#4a3426', '#22170f'],
+      body: ['#5a4a3a', '#2c241c'], legs: ['#33302b', '#191815'], boots: ['#2d241d', '#15110d'],
+      accent: '#9cc3dd', eye: '#5a4a3a', belt: '#2a1e16',
+      variants: [
+        { hair: 'short', beard: ['#4a3426', '#22170f'], body: ['#5a4632', '#2c2218'], armor: ['#6e5a44', '#3a2f22'], pauldron: 'L', coat: ['#4a3a2a', '#241c14'], coatLen: 0.2, weapon: 'sword', strap: '#2a1e16' },
+        { hair: 'short', hairC: ['#6a5a4a', '#352c22'], hat: { c: ['#6a5a3a', '#3a301e'], brim: 1.55 }, body: ['#4a5a44', '#262e22'], scarf: ['#8a6a3a', '#4a3618'], skin: ['#d4a07e', '#8e6450'] },
+        { hair: 'bob', hairC: ['#2a1c18', '#120c0a'], body: ['#6e2a2a', '#381414'], shawl: ['#b09a70', '#6a5a40'], skirt: ['#3a2a2a', '#1c1414'], skin: ['#efcdb6', '#a88070'], h: 0.92, w: 0.86, build: 0.84 },
+        { hair: 'messy', hairC: ['#c8a060', '#7a5a30'], hat: { c: ['#3a3430', '#1c1816'], brim: 0.7, cap: true }, body: ['#3a4a5a', '#1c242e'], scarf: ['#5a6a3a', '#2c3420'], h: 1.0 },
+        { hair: 'bald', beard: ['#d8d0c4', '#8a8278'], body: ['#5a4a3a', '#2c241c'], coat: ['#3a3028', '#1c1814'], coatLen: 0.08, coatW: 0.26, skin: ['#d8a888', '#8e6452'], w: 1.12, build: 1.1 },
+        { hair: 'long', hairC: ['#8a4a2a', '#4a2410'], body: ['#3a5a5a', '#1c2e2e'], skirt: ['#2e3a3a', '#161c1c'], belt: '#6a4a30', skin: ['#f0d0bc', '#a8847a'], h: 0.93, w: 0.86, build: 0.84 },
+        { hair: 'short', hairC: ['#1e1612', '#0c0806'], hat: { c: ['#2a2420', '#141010'], brim: 1.25 }, coat: ['#5a3a28', '#2c1c12'], coatLen: 0.24, body: ['#3a3230', '#1c1818'], beard: ['#1e1612', '#0c0806'], w: 1.2, build: 1.2, h: 1.04, weapon: 'sword', strap: '#2a1e16' },
+      ],
+    },
   };
+  // One look per patron: the unit id's number (or a hash) picks the variant.
+  const variantCache = new Map();
+  function variantOf(L, id) {
+    const m = /(\d+)$/.exec(id || '');
+    let n = m ? Number(m[1]) : 0;
+    if (!m) for (let i = 0; i < (id || '').length; i++) n = (n * 31 + id.charCodeAt(i)) % 997;
+    const k = n % L.variants.length;
+    let v = variantCache.get(k);
+    if (!v) { v = Object.assign({}, L, L.variants[k]); variantCache.set(k, v); }
+    return v;
+  }
   const FALLBACK = LOOK.kael; // unknown keys draw as a plain swordsman
-  const lookOf = (key) => LOOK[key] || FALLBACK;
+  const lookOf = (key, id) => { const L = LOOK[key] || FALLBACK; return L.vary && id != null ? variantOf(L, id) : L; };
 
   // Weapon geometry: len in metres; grip: 'one' | 'two' (off hand on the grip)
   // | 'shaft' (off hand forward on a spear shaft).
@@ -221,7 +270,7 @@
   // rel: weapon angle from facing; pitch: weapon elevation; lean; crouch;
   // off: off-hand mode; stance: foot spread multiplier.
   function pose(u, V) {
-    const L = lookOf(u.key);
+    const L = lookOf(u.key, u.id);
     const Wd = WEAPON[L.weapon];
     let rel = 0.75, pitch = 0.5, lean = 0, crouch = 0.03, off = 'guard', stance = 1, twist = 0;
     const a = u.act;
@@ -257,6 +306,17 @@
       case 'distracted': twist = 1.1; rel = 0.4; pitch = 0.3; break;
       case 'cast': off = 'cast'; lean = 0.1; crouch = 0.05; stance = 1.2; break;
       case 'pickup': crouch = 0.32; lean = 0.25; off = 'down'; break;
+      // Staged scenes: seated at a table (the hands follow u.gest).
+      case 'sit': lean = 0.06; crouch = 0; stance = 1; break;
+    }
+    // Staged gestures lean the body a little.
+    switch (u.gest) {
+      case 'choke': lean = 0.3; break;
+      case 'tip': lean = -0.2; break;
+      case 'laugh': lean = -0.12 + Math.abs(Math.sin(V.time * 9)) * 0.06; break;
+      case 'eat': lean = 0.12; break;
+      case 'lean': lean = -0.1; break;
+      case 'bow': lean = 0.22; break;
     }
     if (u.fleeing || u.beaten) { rel = 2.9; pitch = 1.2; lean = 0.32; crouch = 0.08; off = 'flail'; }
     if (u.drained > 0) { pitch -= 0.6; lean = 0.24; crouch = 0.14; off = 'knee'; }
@@ -440,7 +500,7 @@
     // ---------------------------------------------------------------- figure
     function drawUnit(u, s) {
       if (u.fled) return;
-      const L = lookOf(u.key);
+      const L = lookOf(u.key, u.id);
       const sc = V.cam.sc;
       lx = V.light.sx; ly = V.light.sy;
       inkW = Math.max(1, sc * 0.022);
@@ -495,13 +555,19 @@
       const f = u.facing + ps.twist * 0.35;
       const F = [Math.cos(f), Math.sin(f)], Rt = [-F[1], F[0]];
       const W = (x, y, z) => ({ x: u.x + F[0] * x + Rt[0] * y, y: u.y + F[1] * x + Rt[1] * y, z });
-      const bob = u.state === 'move' || u.fleeing ? Math.abs(Math.sin(u.walk * 3.2)) * 0.05 : Math.sin((u.walk + u.x) * 0.5 + V.time * 2.2) * 0.008;
-      const jitter = u.state === 'hurt' || u.state === 'stagger' ? Math.sin(u.st * 70) * 0.03 : 0;
+      // Seated (staged scenes): the whole upper body drops onto a stool.
+      const sit = u.state === 'sit';
+      const seat = 0.47 * Math.sqrt(L.h);
+      const sitDrop = sit ? H * 0.5 - seat : 0;
+      const bob = (u.state === 'move' || u.fleeing ? Math.abs(Math.sin(u.walk * 3.2)) * 0.05 : Math.sin((u.walk + u.x) * 0.5 + V.time * 2.2) * 0.008) - sitDrop;
+      const jitter = u.state === 'hurt' || u.state === 'stagger' ? Math.sin(u.st * 70) * 0.03 : u.gest === 'choke' ? Math.sin(V.time * 45) * 0.025 : u.gest === 'laugh' ? Math.sin(V.time * 18) * 0.012 : 0;
+      // Weapons are put away while sitting or gesturing (or when told to).
+      const stowed = !!(u.stow || sit || (u.gest && u.state !== 'attack'));
       const cz = 1 - ps.crouch;
       const bw = 0.215 * L.w;
       const stoop = L.stoop || 0, hunch = L.hunch || 0;
       const AK = attackK(u);
-      const Wd = WEAPON[L.weapon];
+      const Wd = stowed ? null : WEAPON[L.weapon];
 
       // Skeleton (world metres, relative to facing)
       const lean = ps.lean + stoop * 0.6 + hunch;
@@ -524,6 +590,12 @@
         z: (hip.z + foot.z) / 2 + 0.02,
       });
       const kneeR = knee(hipR, footR, 1), kneeL = knee(hipL, footL, -1);
+      if (sit) {
+        // thighs level on the seat, shins down to the floor
+        const fw = 0.44 * L.h + (u.gest === 'tip' ? 0.2 : 0);
+        Object.assign(footR, W(fw, spread + 0.03, 0)); Object.assign(footL, W(fw - 0.05, -spread - 0.03, 0));
+        Object.assign(kneeR, W(fw - 0.03, spread + 0.05, seat + 0.07 + (u.gest === 'tip' ? 0.06 : 0))); Object.assign(kneeL, W(fw - 0.08, -spread - 0.05, seat + 0.07));
+      }
 
       // Weapon hand from the attack arc.
       let wa = f + ps.rel, cp = Math.cos(ps.pitch), wpitch = ps.pitch;
@@ -548,6 +620,34 @@
         default: handL = W(0.26 * L.h, -0.16 * L.w, H * 0.6 * cz);
       }
       if (u.state === 'pickup') Object.assign(handR, W(0.45, 0.1, 0.18));
+      // Staged gestures (eating, drinking, pointing...) place the hands.
+      const gest = u.state === 'attack' || u.state === 'pickup' ? null : u.gest;
+      if (gest) {
+        const hz = headC.z, chz = chest.z, tz = 0.82;
+        const cyc = (sp) => { const t = (V.time * sp + hashId(u.id) * 0.37) % 1; return t < 0.3 ? smooth(t / 0.3) : t < 0.5 ? 1 : t < 0.8 ? 1 - smooth((t - 0.5) / 0.3) : 0; };
+        const at = (a, b, k) => ({ x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, z: a.z + (b.z - a.z) * k });
+        const rest = sit ? W(0.36, -0.16, tz) : null;
+        switch (gest) {
+          case 'table': Object.assign(handR, W(0.36, 0.16, tz)); if (sit) handL = rest; break;
+          case 'eat': Object.assign(handR, at(W(0.42, 0.08, tz + 0.04), W(0.16, 0.03, hz - 0.13 * L.h), cyc(0.45))); handL = W(0.38, -0.12, tz + 0.02); break;
+          case 'spoon': Object.assign(handR, W(0.3, 0.2, hz + 0.04 + Math.sin(V.time * 5) * 0.015)); handL = W(0.36, -0.14, tz + 0.02); break;
+          case 'cup': Object.assign(handR, sit ? W(0.36, 0.12, tz + 0.05) : W(0.3, 0.12, chz - 0.14)); if (sit) handL = rest; break;
+          case 'drink': Object.assign(handR, W(0.15, 0.03, hz - 0.1 * L.h)); if (sit) handL = rest; break;
+          case 'sip': Object.assign(handR, at(sit ? W(0.36, 0.12, tz + 0.05) : W(0.3, 0.12, chz - 0.14), W(0.15, 0.03, hz - 0.1 * L.h), cyc(0.2))); if (sit) handL = rest; break;
+          case 'choke': Object.assign(handR, W(0.42, 0.16, tz + 0.02)); handL = W(0.18, -0.02, chz + 0.04); break;
+          case 'cross': case 'lean': Object.assign(handR, W(0.17, -0.1, chz - 0.08)); handL = W(0.18, 0.1, chz - 0.05); break;
+          case 'point': Object.assign(handR, W(0.62 * L.h, 0.12, hz + 0.1)); break;
+          case 'hips': Object.assign(handR, W(-0.02, 0.28 * L.w, pelvis.z + 0.08)); handL = W(-0.02, -0.28 * L.w, pelvis.z + 0.08); break;
+          case 'raise': Object.assign(handR, W(0.22, 0.24, hz + 0.32)); break;
+          case 'tip': case 'headback': Object.assign(handR, W(-0.12, 0.15, hz + 0.05)); handL = W(-0.12, -0.15, hz + 0.05); break;
+          case 'notes': Object.assign(handR, W(0.4, 0.1 + Math.sin(V.time * 3) * 0.05, tz + 0.04)); handL = W(0.36, -0.15, tz + 0.02); break;
+          case 'present': Object.assign(handR, W(0.4, 0.12, chz - 0.02)); break;
+          case 'laugh': Object.assign(handR, sit ? W(0.36, 0.16, tz + 0.04) : W(0.12, 0.2, pelvis.z + 0.12)); handL = W(0.16, -0.06, chz - 0.1); break;
+          case 'chin': Object.assign(handR, W(0.16, 0.03, hz - 0.17 * L.h)); handL = sit ? rest : W(0.12, -0.12, chz - 0.14); break;
+          case 'wave': Object.assign(handR, W(0.2, 0.34, hz + 0.25 + Math.sin(V.time * 10) * 0.06)); break;
+          case 'gesture': Object.assign(handR, W(0.42, 0.22, chz - 0.05 + Math.sin(V.time * 4 + hashId(u.id)) * 0.08)); if (sit) handL = rest; break;
+        }
+      }
       if (L.weapon === 'fists' && AK && AK.ph !== 'wind') {
         // a punch: the fist drives straight along the facing
         const k = AK.ph === 'strike' ? 1 : Math.max(0, 1 - u.act.t / 0.3);
@@ -555,7 +655,7 @@
       }
       const free = !(u.fleeing || u.beaten) && !(u.drained > 0) && u.state !== 'hurt' && u.state !== 'stagger';
       // Shield: held in front; a bash drives it forward.
-      if (L.shield && free && (ps.off === 'guard' || ps.off === 'fistup')) {
+      if (L.shield && free && !stowed && (ps.off === 'guard' || ps.off === 'fistup')) {
         let fwd = 0.34, side = -0.14, z = 0.62;
         if (AK) {
           if (AK.ph === 'wind') { fwd = 0.34 - 0.2 * AK.e; side = -0.14 - 0.1 * AK.e; }
@@ -566,7 +666,7 @@
         handL = W(fwd * L.h + lean * 0.5, side * L.w, H * z * cz);
       }
       // Glyph casters: the casting hand comes up and pushes the glyph out.
-      if (L.weapon === 'glyph' && free && u.state !== 'pickup') {
+      if (L.weapon === 'glyph' && free && u.state !== 'pickup' && !gest) {
         if (AK) {
           const fw = AK.ph === 'wind' ? 0.25 + 0.2 * AK.e : AK.ph === 'strike' ? 0.66 : 0.66 - 0.36 * AK.e;
           const zz = AK.ph === 'wind' ? 0.66 + 0.1 * AK.e : AK.ph === 'strike' ? 0.78 : 0.78 - 0.14 * AK.e;
@@ -631,7 +731,7 @@
       const px = sc * 0.082 * L.build * Math.min(1, 0.55 + 0.45 * L.h); // limb half-width unit
       const headR = sc * H * 0.068 * (L.headK || 1);
       const flash = u.flash > 0;
-      const G = { u, L, S, F, Rt, sc, px, H, cz, sp, ps, handR, handL, elL, tipW, bowDraw, flash, f };
+      const G = { u, L, S, F, Rt, sc, px, H, cz, sp, ps, handR, handL, elL, tipW, bowDraw, flash, f, stowed };
 
       // Which side is nearer the camera decides the drawing order.
       const rightNear = S.shR.d > S.shL.d;
@@ -663,6 +763,12 @@
       const shieldFront = L.shield ? S.handL.d >= S.chest.d - 0.02 : false;
 
       // Back layer: far leg, far arm, hair behind, cloth behind.
+      if (sit && !u.noStool) drawStool(u, W, seat, flash);
+      // A put-away weapon: on the back when standing, leant beside a seat.
+      const sw = stowed ? stowGeom(u, L, W, sit, pelvis, shR, H) : null;
+      if (sw && sw.d < S.chest.d) drawStowed(G, sw);
+      if (stowed && L.shield) G.backShield = W(-0.26, 0.02, H * 0.66 * cz);
+      if (G.backShield && P(G.backShield.x, G.backShield.y, G.backShield.z).d < S.chest.d) drawShield(Object.assign({}, G, { handL: G.backShield }));
       const back = [];
       const hairTail = hairTailPoints(u, L, S, F, headC, sp, H, cz);
       if (L.hair === 'long') back.push(hairTail.shape);
@@ -677,7 +783,7 @@
       if (L.trim && !flash) { hemTrim(capeSh, L.trim); hemTrim(coatSh, L.trim); }
       if (far === 'R') drawWeapon(G);
       if (far === 'L') drawOffHand(G);
-      if (L.shield && !shieldFront) drawShield(G);
+      if (L.shield && !shieldFront && !stowed) drawShield(G);
 
       // Body layer: near leg, torso, head.
       const body = [];
@@ -705,12 +811,93 @@
 
       // Front layer: near arm and the weapon.
       if (far === 'L') drawWeapon(G);
+      if (sw && sw.d >= S.chest.d) drawStowed(G, sw);
+      if (G.backShield && P(G.backShield.x, G.backShield.y, G.backShield.z).d >= S.chest.d) drawShield(Object.assign({}, G, { handL: G.backShield }));
       layer(arm(near), flash);
+      const prop = u.prop !== undefined ? u.prop : L.prop;
+      if (prop && u.state !== 'attack') drawProp(G, prop);
       if (far === 'R') drawOffHand(G);
-      if (L.shield && shieldFront) drawShield(G);
+      if (L.shield && shieldFront && !stowed) drawShield(G);
       if (L.glyph) drawGlyphHands(G);
       if (L.weed) drawWeed(G);
       if (L.drip) drawDrips(G);
+    }
+
+    // ---------------------------------------------------------------- staging
+    // A plain stool under a seated figure.
+    function drawStool(u, W, seat, flash) {
+      const c = W(-0.06, 0, seat - 0.03);
+      const legs = [W(-0.2, 0.14, 0), W(-0.2, -0.14, 0), W(0.08, 0, 0)].map((q) => P(q.x, q.y, 0));
+      const top = P(c.x, c.y, c.z), r = V.cam.sc * 0.21;
+      const shapes = legs.map((q) => ({ ...seg(q, { x: top.x + (q.x - top.x) * 0.3, y: top.y }, r * 0.12, r * 0.14), c: ['#5a3e28', '#2e1e12'], rim: false }));
+      shapes.push({ kind: 'ell', x: top.x, y: top.y, rx: r, ry: Math.max(r * 0.3, r * V.cam.pitch), c: ['#7a5636', '#45301f'], rim: false });
+      layer(shapes, flash);
+    }
+    function stowGeom(u, L, W, sit, pelvis, shR, H) {
+      const kind = L.weapon;
+      if (kind !== 'sword' && kind !== 'greatsword' && kind !== 'spear') return null;
+      const len = WEAPON[kind].len;
+      let a, b;
+      if (u.leanAt) { a = { x: u.leanAt[0], y: u.leanAt[1], z: 0.02 }; b = { x: u.leanAt[0] + 0.14, y: u.leanAt[1] - 0.1, z: len * 0.96 }; }
+      else if (sit) { a = W(0.12, -0.44, 0.02); b = W(0.3, -0.52, len * 0.96); }
+      else if (kind === 'spear') { a = W(-0.2, 0.3, H * 0.18); b = W(-0.18, -0.3, H * 0.18 + len * 0.95); }
+      else { a = W(-0.16, 0.24, pelvis.z - 0.12); b = W(-0.18, -0.2, shR.z + 0.4); }
+      const m = P((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2);
+      return { kind, a: P(a.x, a.y, a.z), b: P(b.x, b.y, b.z), d: m.d };
+    }
+    function drawStowed(G, sw) {
+      const { px, flash } = G;
+      const { a, b } = sw;
+      const dx = b.x - a.x, dy = b.y - a.y, l = Math.hypot(dx, dy) || 1, ux = dx / l, uy = dy / l;
+      if (sw.kind === 'spear') {
+        const tip = { x: b.x + ux * px * 2.6, y: b.y + uy * px * 2.6 };
+        layer([{ ...seg(a, b, px * 0.22, px * 0.22), c: ['#6b4c33', '#3a281a'] }], flash);
+        layer([{ kind: 'poly', pts: [{ x: b.x - uy * px * 0.5, y: b.y + ux * px * 0.5 }, tip, { x: b.x + uy * px * 0.5, y: b.y - ux * px * 0.5 }], c: ['#c9d2da', '#6b7680'], shadeFrom: [1, 2, 0] }], flash);
+        return;
+      }
+      // a scabbard, the grip and guard showing at the top
+      const hilt = { x: b.x + ux * px * 2.4, y: b.y + uy * px * 2.4 };
+      layer([{ ...seg(a, b, px * 0.38, px * 0.46), c: ['#3a2d26', '#1d1613'] }], flash);
+      layer([{ ...seg(b, hilt, px * 0.22, px * 0.22), c: ['#2b2327', '#141012'] }, { ...seg({ x: b.x - uy * px * 0.9, y: b.y + ux * px * 0.9 }, { x: b.x + uy * px * 0.9, y: b.y - ux * px * 0.9 }, px * 0.22, px * 0.22), c: ['#8792a0', '#3f4750'] }], flash);
+    }
+    // Small things held in the right hand.
+    function drawProp(G, prop) {
+      const { S, sc, flash, F } = G;
+      const h = S.handR, k = sc / 100;
+      const lit = (c) => (flash ? lighten(c[0]) : c[0]);
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      const ahead = P(G.u.x + F[0], G.u.y + F[1], 0), base = P(G.u.x, G.u.y, 0);
+      const side = ahead.x >= base.x ? 1 : -1;
+      if (prop === 'spoon' || prop === 'ladle') {
+        const big = prop === 'ladle' ? 2.4 : 1;
+        const top = { x: h.x + side * 3 * k * big, y: h.y - 16 * k * big };
+        ctx.strokeStyle = INK; ctx.lineWidth = Math.max(2.5, 4 * k * Math.sqrt(big)); ctx.beginPath(); ctx.moveTo(h.x, h.y + 3 * k); ctx.lineTo(top.x, top.y); ctx.stroke();
+        ctx.strokeStyle = flash ? '#fff' : '#cfc6b8'; ctx.lineWidth = Math.max(1, 2 * k * Math.sqrt(big)); ctx.stroke();
+        ctx.fillStyle = INK; ctx.beginPath(); ctx.ellipse(top.x, top.y - 4 * k * big, 4.6 * k * big + 1.2, 5.6 * k * big + 1.2, side * 0.2, 0, TAU); ctx.fill();
+        ctx.fillStyle = flash ? '#fff' : '#d8d0c2'; ctx.beginPath(); ctx.ellipse(top.x, top.y - 4 * k * big, 4.6 * k * big, 5.6 * k * big, side * 0.2, 0, TAU); ctx.fill();
+        ctx.fillStyle = '#8a8274'; ctx.beginPath(); ctx.ellipse(top.x + side * 1.2 * k * big, top.y - 3 * k * big, 2.6 * k * big, 3.6 * k * big, side * 0.2, 0, TAU); ctx.fill();
+      } else if (prop === 'bread') {
+        const rx = 13 * k, ry = 7 * k, c = { x: h.x + side * 2 * k, y: h.y - 3 * k };
+        ctx.fillStyle = INK; ctx.beginPath(); ctx.ellipse(c.x, c.y, rx + 1.5, ry + 1.5, side * -0.3, 0, TAU); ctx.fill();
+        ctx.fillStyle = lit(['#b07a3a']); ctx.beginPath(); ctx.ellipse(c.x, c.y, rx, ry, side * -0.3, 0, TAU); ctx.fill();
+        if (!flash) {
+          ctx.fillStyle = '#6e4620'; ctx.beginPath(); ctx.ellipse(c.x + 2 * k, c.y + 2.5 * k, rx * 0.8, ry * 0.55, side * -0.3, 0, TAU); ctx.fill();
+          ctx.strokeStyle = 'rgba(40,20,8,0.75)'; ctx.lineWidth = Math.max(1, 1.4 * k); ctx.beginPath();
+          for (const o of [-0.45, 0, 0.45]) { ctx.moveTo(c.x + o * rx - 2 * k, c.y - ry * 0.6); ctx.lineTo(c.x + o * rx + 2 * k, c.y + ry * 0.1); }
+          ctx.stroke();
+        }
+      } else if (prop === 'cup' || prop === 'tankard') {
+        const big = prop === 'tankard' ? 1.45 : 1, w = 6 * k * big, hh = 13 * k * big;
+        const x = h.x - w + side * 1 * k, y = h.y - hh * 0.75;
+        ctx.fillStyle = INK; ctx.fillRect(x - 1.5, y - 1.5, w * 2 + 3, hh + 3);
+        ctx.fillStyle = flash ? '#fff' : prop === 'tankard' ? '#8a8a84' : '#8a6a48'; ctx.fillRect(x, y, w * 2, hh);
+        ctx.fillStyle = prop === 'tankard' ? '#4a4a46' : '#4a3626'; ctx.fillRect(x + w * 1.1, y, w * 0.9, hh);
+        ctx.fillStyle = '#efe4c8'; ctx.fillRect(x - 1, y - 2.5 * k * big, w * 2 + 2, 3 * k * big);
+        ctx.strokeStyle = INK; ctx.lineWidth = Math.max(2, 2.6 * k * big); ctx.beginPath(); ctx.arc(x + (side > 0 ? -1 : w * 2 + 1), y + hh * 0.45, hh * 0.28, side > 0 ? Math.PI * 0.55 : -Math.PI * 0.45, side > 0 ? Math.PI * 1.45 : Math.PI * 0.45); ctx.stroke();
+      } else if (prop === 'notes') {
+        ctx.fillStyle = INK; ctx.fillRect(h.x - 8 * k, h.y - 12 * k, 16 * k, 12 * k);
+        ctx.fillStyle = '#d8ccb4'; ctx.fillRect(h.x - 7 * k, h.y - 11 * k, 14 * k, 10 * k);
+      }
     }
 
     function hairTailPoints(u, L, S, F, headC, sp, H, cz) {
@@ -902,6 +1089,25 @@
         ctx.strokeStyle = band; ctx.lineWidth = Math.max(1.2, px * (L.sash ? 0.7 : 0.45));
         ctx.beginPath(); ctx.moveTo(bl.x, bl.y); ctx.lineTo(br.x, br.y); ctx.stroke();
       }
+      if (L.apron) {
+        // a long apron tied at the waist, over the front
+        const fr = P(pelvis.x + F[0] * 0.3, pelvis.y + F[1] * 0.3, pelvis.z), pv = P(pelvis.x, pelvis.y, pelvis.z);
+        if (fr.d > pv.d - 0.02) {
+          const at = (fw, side, z) => P(pelvis.x + F[0] * fw + Rt[0] * side * L.w, pelvis.y + F[1] * fw + Rt[1] * side * L.w, z);
+          const top = chest.z - 0.04, hem = H * 0.2 * cz;
+          const sitting = u.state === 'sit';
+          const pts = sitting
+            ? [at(0.16, -0.15, top), at(0.16, 0.15, top), at(0.18, 0.2, pelvis.z + 0.06), at(0.5, 0.2, pelvis.z + 0.02), at(0.5, -0.2, pelvis.z + 0.02), at(0.18, -0.2, pelvis.z + 0.06)]
+            : [at(0.16, -0.15, top), at(0.16, 0.15, top), at(0.18, 0.2, pelvis.z), at(0.2, 0.24, hem), at(0.2, -0.24, hem), at(0.18, -0.2, pelvis.z)];
+          layer([{ kind: 'poly', pts, c: L.apron, shadeFrom: lightRight ? [0, 4, 5] : [1, 2, 3] }], flash);
+          if (!flash) {
+            ctx.strokeStyle = 'rgba(120,100,80,0.6)'; ctx.lineWidth = Math.max(1, inkW * 0.6);
+            ctx.beginPath(); ctx.moveTo(bl.x, bl.y); ctx.lineTo(br.x, br.y); ctx.stroke();
+            ctx.fillStyle = 'rgba(122,58,28,0.45)'; const st = at(0.19, 0.06, pelvis.z - 0.12);
+            ctx.beginPath(); ctx.ellipse(st.x, st.y, px * 0.5, px * 0.35, 0, 0, TAU); ctx.fill();
+          }
+        }
+      }
       if (L.scraps && !flash) {
         // Scrappy leathers: a few stitched patches.
         ctx.strokeStyle = 'rgba(200,170,130,0.55)'; ctx.lineWidth = Math.max(0.8, inkW * 0.5);
@@ -929,6 +1135,16 @@
       const towardCam = ahead.d > base.d; // face visible
       const flash = u.flash > 0;
       if (L.ears) drawEars(L, h, r, fx, flash, towardCam);
+      if (L.ponytail) {
+        // hair tied back: a tail from the crown that swings behind
+        const sp = spring(u), sc2 = V.cam.sc;
+        const b0 = { x: h.x - fx * r * 0.8, y: h.y - r * 0.35 };
+        const sw = Math.sin(V.time * 2.3 + u.x) * r * 0.12;
+        const tip = { x: b0.x - fx * r * 0.9 + sp.hx * sc2 * 0.9 + sw, y: b0.y + r * 1.9 + sp.hy * sc2 * 0.3 };
+        const mid = { x: (b0.x + tip.x) / 2 - fx * r * 0.25, y: (b0.y + tip.y) / 2 };
+        layer([{ ...seg(b0, mid, r * 0.34, r * 0.28), c: L.hairC, rim: false }, { ...seg(mid, tip, r * 0.28, r * 0.06), c: L.hairC, rim: false }], flash);
+        if (!flash) { ctx.fillStyle = L.accent; ctx.beginPath(); ctx.arc(b0.x - fx * r * 0.1, b0.y + r * 0.15, Math.max(1.2, r * 0.14), 0, TAU); ctx.fill(); }
+      }
       // Neck
       layer([{ ...seg(S.neck, { x: h.x, y: h.y + r * 0.4 }, r * 0.32 * (L.stoop ? 1.6 : 1), r * 0.3 * (L.stoop ? 1.6 : 1)), c: L.skin, rim: false }], flash);
       // Head: slightly tall, chin toward the facing side.
@@ -987,6 +1203,7 @@
       }
       if (L.beard) drawBeard(L, h, r, chin, fx, flash);
       drawHair(u, L, h, r, fx, fy, towardCam, flash, hairTail);
+      if (L.hat) drawHat(L, h, r, fx, flash);
       if (glowEyes && !flash && (towardCam || L.faceless)) drawGlowEyes(L, h, r, fx, fy, glowEyes, u);
       if (L.blank && !flash && towardCam) {
         // no face at all: a smooth pale blank, a faint hollow where eyes were
@@ -995,6 +1212,22 @@
         ctx.beginPath(); ctx.ellipse(ex - gap, ey, r * 0.16, r * 0.07, 0, 0, Math.PI * 2); ctx.ellipse(ex + gap, ey, r * 0.16, r * 0.07, 0, 0, Math.PI * 2); ctx.fill();
       }
       if (L.crown) drawToolCrown(u, h, r, fx, flash);
+    }
+
+    // A brimmed hat, or a flat cap with a short peak toward the face.
+    function drawHat(L, h, r, fx, flash) {
+      const c = L.hat.c, bw = L.hat.brim;
+      const cy = h.y - r * 0.5;
+      const shapes = [];
+      if (L.hat.cap) {
+        shapes.push({ kind: 'ell', x: h.x + fx * r * 0.55, y: cy + r * 0.12, rx: r * 0.6, ry: r * 0.18, rot: fx * 0.2, c, rim: false });
+        shapes.push({ kind: 'ell', x: h.x - fx * r * 0.05, y: cy - r * 0.12, rx: r * 1.02, ry: r * 0.5, c, rim: false });
+      } else {
+        shapes.push({ kind: 'ell', x: h.x - fx * r * 0.05, y: cy + r * 0.05, rx: r * bw, ry: r * 0.3, c, rim: false });
+        shapes.push({ kind: 'poly', pts: [{ x: h.x - r * 0.72, y: cy + r * 0.05 }, { x: h.x - r * 0.62, y: cy - r * 0.85 }, { x: h.x + r * 0.62, y: cy - r * 0.85 }, { x: h.x + r * 0.72, y: cy + r * 0.05 }], c, shadeFrom: lx < 0 ? [2, 3, 0] : [0, 1, 3] });
+      }
+      layer(shapes, flash);
+      if (!flash && !L.hat.cap) { ctx.fillStyle = '#2a1c12'; ctx.fillRect(h.x - r * 0.7, cy - r * 0.2, r * 1.4, r * 0.2); }
     }
 
     // A crude crown of stolen tools: a strap round the skull with nails,
@@ -1524,6 +1757,7 @@
     function drawOffHand(G) {
       const { u, L, S, F, px, handL, elL, flash, bowDraw, H, cz } = G;
       if (L.weapon === 'twin') {
+        if (G.stowed) return;
         // reverse grip: the blade runs back along the forearm
         const dx = handL.x - elL.x, dy = handL.y - elL.y, dz = handL.z - elL.z, l = Math.hypot(dx, dy, dz) || 1;
         const k = 0.42;
