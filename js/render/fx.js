@@ -23,6 +23,8 @@
     let parts = [], texts = [], streaks = [], flash = 0, flashCol = '255,255,255', hitstop = 0, banner = null, impact = 0;
     const fizzles = []; // {unit, t}
     let blinks = [], dissolves = [];
+    const combo = { n: 0, last: -9, pop: 0 }; // the heroes' run of hits
+    const slashTilt = new WeakMap(); let slashFlip = 1; // per swing: which way the arc leans
     const lanceState = new WeakMap(); // cutscene -> {hit: Set of unit ids}
     const GLYPH = '169,139,255', GLYPH_CORE = '#efe8ff';
 
@@ -31,24 +33,55 @@
       const cam = V.cam;
       for (const e of s.fx) {
         if (e.type === 'hit') {
-          shards(e.x, e.y, 1.15, e.big ? 11 : 7, e.from === 'hero' ? PAL.white : PAL.glow, e.big ? 6 : 4);
-          parts.push({ star: true, x: e.x, y: e.y, z: 1.15, t: 0, life: e.big ? 0.28 : 0.18, r: e.big ? 0.9 : 0.55, col: e.from === 'hero' ? '#ffffff' : '#ffd0d4' });
-          texts.push({ x: e.x, y: e.y, z: 2.2, t: 0, life: 0.95, text: String(e.dmg), col: e.from === 'hero' ? PAL.bone : PAL.glow, big: e.big, vx: (R() - 0.5) * 0.8 });
-          cam.shake = Math.max(cam.shake, e.big ? 11 : 5);
-          hitstop = Math.max(hitstop, e.big ? 0.09 : 0.05);
-          if (e.big) impact = Math.max(impact, 0.07);
+          // Everything scales with the damage: sparks thrown along the blow,
+          // the flash, the number, the shake. Big blows get a cut-flash and
+          // an impact frame; the biggest read as crits (gold lettering).
+          const hero = e.from === 'hero', dmg = e.dmg || 0;
+          const q = Math.max(0.6, Math.min(2.2, dmg / 16));
+          const crit = !s.cutscene && dmg >= 24;
+          const a = blowDir(s, e);
+          shards(e.x, e.y, 1.15, Math.round(4 + 4 * q), hero ? PAL.white : PAL.glow, 3 + 2.2 * q, a);
+          parts.push({ star: true, x: e.x, y: e.y, z: 1.15, t: 0, life: 0.12 + 0.08 * q, r: 0.35 + 0.3 * q, col: hero ? '#ffffff' : '#ffd0d4', rays: crit });
+          if (e.big || crit) parts.push({ cut: true, x: e.x, y: e.y, z: 1.15, t: 0, life: 0.16, a, len: 0.55 + 0.35 * q, col: crit ? '#ffe7a8' : '#ffffff', seed: R() });
+          texts.push({ x: e.x, y: e.y, z: 2.1, t: 0, life: crit ? 1.15 : 0.9, text: String(dmg), col: crit ? (hero ? '#ffd166' : '#ff6b78') : hero ? PAL.bone : PAL.glow, size: q, crit, vx: (R() - 0.5) * 0.8 });
+          cam.shake = Math.max(cam.shake, 2.5 + 3.5 * q);
+          hitstop = Math.max(hitstop, crit ? 0.12 : e.big ? 0.08 : 0.04);
+          if (e.big || crit) impact = Math.max(impact, crit ? 0.06 : 0.04);
+          if (!s.cutscene) nudge(e.x, e.y, a, 2 + 3 * q);
+          if (hero && !s.cutscene) {
+            combo.n = V.time - combo.last < 1.3 ? combo.n + 1 : 1;
+            combo.last = V.time; combo.pop = 0;
+          }
         } else if (e.type === 'parry') {
-          parts.push({ star: true, x: e.x, y: e.y, z: 1.25, t: 0, life: 0.38, r: 1.4, col: PAL.heroGlow, rays: true });
-          shards(e.x, e.y, 1.25, 12, PAL.heroGlow, 7);
+          // Steel on steel: a clash star, a ring, sparks raining off.
+          parts.push({ star: true, x: e.x, y: e.y, z: 1.25, t: 0, life: 0.3, r: 1.3, col: PAL.heroGlow, rays: true });
+          parts.push({ ring: true, x: e.x, y: e.y, z: 1.25, t: 0, life: 0.28, col: '#ffffff' });
+          for (let i = 0; i < 14; i++) {
+            const a = R() * Math.PI * 2, v = 2.5 + R() * 4;
+            parts.push({ spark: true, x: e.x, y: e.y, z: 1.25, vx: Math.cos(a) * v, vy: Math.sin(a) * v, vz: 1 + R() * 3, t: 0, life: 0.3 + R() * 0.25 });
+          }
           texts.push({ x: e.x, y: e.y, z: 2.4, t: 0, life: 0.85, text: 'PARRY', col: PAL.heroGlow, word: true });
           cam.shake = Math.max(cam.shake, 6); hitstop = Math.max(hitstop, 0.12);
+          impact = Math.max(impact, 0.03);
         } else if (e.type === 'dodge') {
           dust(e.x, e.y, 5);
           texts.push({ x: e.x, y: e.y, z: 2.0, t: 0, life: 0.7, text: 'DODGE', col: '#dfe8e4', word: true });
         } else if (e.type === 'ko') {
+          // The finishing blow on a fighter: a freeze, an impact frame, a
+          // burst of lines and lettering over where they fell.
           dust(e.x, e.y, 12);
           parts.push({ ring: true, x: e.x, y: e.y, z: 0.05, t: 0, life: 0.5, col: PAL.bone, ground: true });
-          impact = Math.max(impact, 0.06);
+          let v = null, bd = 1.5;
+          for (const o of s.units) { const d = Math.hypot(o.x - e.x, o.y - e.y); if (d < bd && (o.state === 'out' || o.hp <= 0)) { bd = d; v = o; } }
+          const foe = !v || v.team !== 'hero';
+          impact = Math.max(impact, 0.08);
+          if (!s.cutscene) {
+            hitstop = Math.max(hitstop, 0.16);
+            cam.shake = Math.max(cam.shake, 10);
+            parts.push({ burst: true, x: e.x, y: e.y, z: 1.0, t: 0, life: 0.3, col: foe ? '#ffffff' : PAL.glow });
+            texts.push({ x: e.x, y: e.y, z: 2.5, t: 0, life: 1.4, text: foe ? 'K.O.' : 'DOWN', col: foe ? PAL.white : PAL.glow, ko: true });
+          }
+          if (foe && s.result && s.result.outcome === 'win') banner = { text: 'FINISH', sub: 'The last one falls', t: 0, life: 1.5, col: PAL.white };
         } else if (e.type === 'thunk') {
           shards(e.x, e.y, 0.9, 5, '#bdb6a6', 2.5);
         } else if (e.type === 'whiff') {
@@ -92,9 +125,32 @@
       }
       s.fx.length = 0;
     }
-    function shards(x, y, z, n, col, sp) {
+    // Which way a blow travelled (world angle): from the nearest fighter of
+    // the striking team to the point of impact.
+    function blowDir(s, e) {
+      let best = null, bd = Infinity;
+      for (const u of s.units) {
+        if (u.team !== e.from || u.fled || u.state === 'out') continue;
+        const d = Math.hypot(u.x - e.x, u.y - e.y) - (u.state === 'attack' ? 1 : 0);
+        if (d < bd) { bd = d; best = u; }
+      }
+      if (!best) return null;
+      const a = Math.atan2(e.y - best.y, e.x - best.x);
+      return isFinite(a) && (best.x !== e.x || best.y !== e.y) ? a : best.facing;
+    }
+    // A short kick of the whole frame along the blow, springing back (core.js).
+    function nudge(x, y, a, mag) {
+      if (a == null) return;
+      const p0 = P(x, y, 0), p1 = P(x + Math.cos(a), y + Math.sin(a), 0);
+      const dx = p1.x - p0.x, dy = p1.y - p0.y, l = Math.hypot(dx, dy) || 1;
+      const cam = V.cam;
+      cam.kx = Math.max(-12, Math.min(12, cam.kx + (dx / l) * mag));
+      cam.ky = Math.max(-12, Math.min(12, cam.ky + (dy / l) * mag));
+    }
+    // dir: optional world angle; most shards fly along it.
+    function shards(x, y, z, n, col, sp, dir) {
       for (let i = 0; i < n; i++) {
-        const a = R() * Math.PI * 2, v = sp * (0.5 + R());
+        const a = dir != null && i % 4 ? dir + (R() - 0.5) * 1.5 : R() * Math.PI * 2, v = sp * (0.5 + R());
         parts.push({ shard: true, x, y, z, vx: Math.cos(a) * v, vy: Math.sin(a) * v, vz: (R() - 0.1) * v, t: 0, life: 0.22 + R() * 0.22, col, w: 0.5 + R() });
       }
     }
@@ -229,19 +285,26 @@
       }
       // Slash: a tapered ink-brush crescent with a white core.
       if (u.state === 'attack' && u.act && (u.act.phase === 'strike' || (u.act.phase === 'recover' && u.act.t < 0.12)) && !u.act.A.projectile) {
-        const A = u.act.A, f = u.facing;
-        const from = 2.5, to = u.act.phase === 'strike' ? 2.5 - Math.min(1, u.act.t / A.active) * 4.1 : -1.6;
-        const fade = u.act.phase === 'strike' ? 1 : 1 - u.act.t / 0.12;
+        // A sharp crescent: a needle point at the blade's leading edge, the
+        // body swelling behind it and the tail fading out. Each swing is
+        // tilted a little (alternating), so combos read as separate cuts.
+        const A = u.act.A, f = u.facing, act = u.act;
+        const strike = act.phase === 'strike';
+        const prog = strike ? Math.min(1, act.t / A.active) : 1;
+        const fade = strike ? 1 : 1 - act.t / 0.12;
+        let tilt = slashTilt.get(act);
+        if (tilt == null) { tilt = (slashFlip = -slashFlip) * (0.15 + R() * 0.2); slashTilt.set(act, tilt); }
+        const sweep = 4.0, head = 2.3 - sweep * prog, tail = Math.min(2.3, head + Math.min(sweep * prog, 2.8) + 0.2);
         const hero = u.team === 'hero';
-        const edge = u.allOut > 0 ? PAL.glow : hero ? PAL.hero : '#ff8d8d';
-        const r = A.range * 0.9, z = 1.0;
-        const N = 18, outer = [], inner = [];
+        const rgb = u.allOut > 0 ? '227,38,58' : hero ? '156,195,221' : '255,141,141';
+        const r = A.range * 0.92, z = 1.0;
+        const N = 16, outer = [], inner = [];
         for (let i = 0; i <= N; i++) {
-          const k = i / N, aa = f + from + (to - from) * k;
-          const thick = Math.sin(k * Math.PI) * 0.32 + 0.02; // thickest mid-swing
-          const po = P(u.x + Math.cos(aa) * r, u.y + Math.sin(aa) * r, z + 0.05);
-          const pi = P(u.x + Math.cos(aa) * r * (1 - thick), u.y + Math.sin(aa) * r * (1 - thick), z);
-          outer.push(po); inner.push(pi);
+          const k = i / N, aa = f + tail + (head - tail) * k; // k = 1 at the head
+          const thick = 0.3 * Math.pow(k, 1.3) * (k > 0.88 ? (1 - k) / 0.12 : 1) + 0.01;
+          const zz = z + tilt * (k - 0.5) * 2;
+          outer.push(P(u.x + Math.cos(aa) * r, u.y + Math.sin(aa) * r, zz + 0.04));
+          inner.push(P(u.x + Math.cos(aa) * r * (1 - thick), u.y + Math.sin(aa) * r * (1 - thick), zz));
         }
         const crescent = () => {
           ctx.beginPath(); ctx.moveTo(outer[0].x, outer[0].y);
@@ -249,13 +312,18 @@
           for (let i = inner.length - 1; i >= 0; i--) ctx.lineTo(inner[i].x, inner[i].y);
           ctx.closePath();
         };
+        const t0 = outer[0], t1 = outer[N];
+        const g = ctx.createLinearGradient(t0.x, t0.y, t1.x, t1.y);
+        g.addColorStop(0, `rgba(${rgb},0)`); g.addColorStop(0.55, `rgba(${rgb},0.55)`); g.addColorStop(1, `rgba(${rgb},1)`);
         ctx.globalAlpha = fade;
         ctx.lineJoin = 'round';
-        ctx.fillStyle = INK; ctx.strokeStyle = INK; ctx.lineWidth = Math.max(2, sc * 0.05); crescent(); ctx.stroke();
-        ctx.fillStyle = edge; crescent(); ctx.fill();
-        // white core along the outer edge
-        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(1.5, sc * 0.045);
-        ctx.beginPath(); outer.forEach((q, i) => (i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y))); ctx.stroke();
+        // ink only under the leading half, so the tail stays clean
+        ctx.strokeStyle = INK; ctx.lineWidth = Math.max(2, sc * 0.05);
+        ctx.beginPath(); for (let i = N >> 1; i <= N; i++) i > N >> 1 ? ctx.lineTo(outer[i].x, outer[i].y) : ctx.moveTo(outer[i].x, outer[i].y); ctx.stroke();
+        ctx.fillStyle = g; crescent(); ctx.fill();
+        // white core on the leading edge
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(1.2, sc * 0.035); ctx.lineCap = 'round';
+        ctx.beginPath(); for (let i = Math.round(N * 0.45); i <= N; i++) i > Math.round(N * 0.45) ? ctx.lineTo(outer[i].x, outer[i].y) : ctx.moveTo(outer[i].x, outer[i].y); ctx.stroke();
         ctx.globalAlpha = 1;
       }
     }
@@ -312,6 +380,31 @@
           ctx.beginPath(); ctx.ellipse(q.x, q.y, r, p.ground ? r * cam.pitch : r, 0, 0, Math.PI * 2); ctx.stroke();
         } else if (p.puff) {
           ctx.fillStyle = p.col; ctx.beginPath(); ctx.arc(q.x, q.y, (0.1 + k * 0.25) * sc, 0, Math.PI * 2); ctx.fill();
+        } else if (p.spark) {
+          // A hot streak of metal: a short line along its flight, white head.
+          const b = P(p.x - p.vx * 0.035, p.y - p.vy * 0.035, Math.max(0, p.z - p.vz * 0.035));
+          ctx.lineCap = 'round';
+          ctx.strokeStyle = '#ffc06a'; ctx.lineWidth = Math.max(1.5, sc * 0.03);
+          ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(q.x, q.y); ctx.stroke();
+          ctx.fillStyle = '#ffffff'; ctx.fillRect(q.x - 1, q.y - 1, 2, 2);
+        } else if (p.cut) {
+          // Cut-flash: a thin lens of light across the body, opening then gone.
+          const ang = p.a == null ? -0.6 : screenAng(p.x, p.y, p.a) + Math.PI / 2 + (p.seed - 0.5) * 0.8;
+          const L = p.len * sc * (0.6 + 0.6 * Math.min(1, k * 3)), w = sc * 0.07 * Math.sin(Math.min(1, k * 1.4) * Math.PI);
+          ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(ang);
+          ctx.fillStyle = INK; ctx.beginPath(); ctx.moveTo(-L - 2, 0); ctx.quadraticCurveTo(0, -w - 3, L + 2, 0); ctx.quadraticCurveTo(0, w + 3, -L - 2, 0); ctx.fill();
+          ctx.fillStyle = p.col; ctx.beginPath(); ctx.moveTo(-L, 0); ctx.quadraticCurveTo(0, -w, L, 0); ctx.quadraticCurveTo(0, w, -L, 0); ctx.fill();
+          ctx.restore();
+        } else if (p.burst) {
+          // Radial speed lines bursting out of a knockout.
+          const r0 = sc * (0.4 + k * 0.9), r1 = sc * (1.2 + k * 1.8);
+          ctx.strokeStyle = p.col; ctx.lineWidth = Math.max(1.5, sc * 0.03);
+          ctx.beginPath();
+          for (let i = 0; i < 16; i++) {
+            const a = (i / 16) * Math.PI * 2 + (i % 2) * 0.1, rr = i % 3 ? r1 : r1 * 1.3;
+            ctx.moveTo(q.x + Math.cos(a) * r0, q.y + Math.sin(a) * r0 * 0.8); ctx.lineTo(q.x + Math.cos(a) * rr, q.y + Math.sin(a) * rr * 0.8);
+          }
+          ctx.stroke();
         } else if (p.star) {
           // Four-point starburst with long rays (manhwa glint).
           const r = p.r * sc * (0.6 + 0.6 * (1 - k));
@@ -330,14 +423,23 @@
       if (parts.length > 600) parts.splice(0, parts.length - 600);
       for (const t of texts) {
         t.t += dt;
-        const k = t.t / t.life, q = P(t.x + (t.vx || 0) * k, t.y, t.z + k * 0.8);
-        const pop = k < 0.12 ? 1.35 - k * 2.9 : 1;
-        const fs = Math.round(sc * (t.word ? 0.32 : t.big ? 0.58 : 0.42) * pop);
-        ctx.font = `${t.word ? 800 : 800} ${fs}px ${t.word ? FONT.ui : FONT.display}`;
+        // Lettering: slams in oversized, settles, drifts up and fades.
+        const k = t.t / t.life, q = P(t.x + (t.vx || 0) * k, t.y, t.z + k * (t.ko ? 0.3 : 0.8));
+        const slam = t.ko ? 2.2 : t.crit ? 1.8 : 1.35;
+        const pop = k < 0.1 ? slam - (slam - 1) * (k / 0.1) : 1;
+        const base = t.word ? 0.3 : t.ko ? 0.62 : 0.3 + 0.1 * (t.size || 1) + (t.crit ? 0.08 : 0);
+        const fs = Math.max(11, Math.round(sc * base * pop));
+        ctx.font = `800 ${fs}px ${t.word ? FONT.ui : FONT.display}`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.globalAlpha = Math.max(0, 1 - k * k);
-        ctx.save(); ctx.translate(q.x, q.y); ctx.transform(1, 0, -0.15, 1, 0, 0);
-        ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(4, fs * 0.22); ctx.strokeStyle = INK; ctx.strokeText(t.text, 0, 0);
+        ctx.globalAlpha = Math.max(0, 1 - Math.pow(k, t.ko ? 4 : 2));
+        ctx.save(); ctx.translate(q.x, q.y); ctx.transform(1, 0, t.ko ? -0.3 : -0.15, 1, 0, 0);
+        ctx.lineJoin = 'round';
+        if (t.crit || t.ko) {
+          // a crimson drop shadow under the ink, manhwa lettering
+          ctx.fillStyle = PAL.crimson; ctx.fillText(t.text, fs * 0.08, fs * 0.08);
+          ctx.lineWidth = Math.max(4, fs * 0.2); ctx.strokeStyle = PAL.crimson; ctx.strokeText(t.text, fs * 0.08, fs * 0.08);
+        }
+        ctx.lineWidth = Math.max(3.5, fs * 0.2); ctx.strokeStyle = INK; ctx.strokeText(t.text, 0, 0);
         ctx.fillStyle = t.col; ctx.fillText(t.text, 0, 0);
         ctx.restore();
       }
@@ -515,6 +617,24 @@
         ctx.stroke();
       }
       dissolves = dissolves.filter((d) => d.t < d.life);
+    }
+
+    // Screen angle of a world direction a at (x, y).
+    function screenAng(x, y, a) {
+      const p0 = P(x, y, 0), p1 = P(x + Math.cos(a), y + Math.sin(a), 0);
+      return Math.atan2(p1.y - p0.y, p1.x - p0.x);
+    }
+    // Where a fighter's eyes are on screen (roughly: the head's front).
+    function eyeOf(u) {
+      const L = NS.fighters.LOOK[u.key], h = 1.72 * (L ? L.h : 1);
+      return P(u.x + Math.cos(u.facing) * 0.07, u.y + Math.sin(u.facing) * 0.07, h * 0.9);
+    }
+    // Darken the screen except a soft hole around p.
+    function darkAround(p, r, a) {
+      const W = V.W, H = V.H;
+      const g = ctx.createRadialGradient(p.x, p.y, r * 0.35, p.x, p.y, r * 2.2);
+      g.addColorStop(0, 'rgba(6,4,6,0)'); g.addColorStop(0.45, `rgba(6,4,6,${a * 0.75})`); g.addColorStop(1, `rgba(6,4,6,${a})`);
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
     }
 
     function star(x, y, r, col, rays, thin) {
@@ -819,7 +939,9 @@
         V.cam.shake = Math.max(V.cam.shake, 1 + 3 * k);
       } else if (phase === 'gleam') {
         const k = (t - CUT.charge) / (CUT.gleam - CUT.charge);
-        ctx.fillStyle = `rgba(6,4,8,${Math.min(0.9, 0.55 + k)})`; ctx.fillRect(0, 0, W, H);
+        const eye = eyeOf(u);
+        darkAround(eye, Math.min(W, H) * 0.3, Math.min(0.88, 0.55 + k));
+        star(eye.x, eye.y, H * 0.07 * Math.min(1, k * 3), PAL.glyph, 3, 0.2);
         const tip = lattice(L, t, 1, 1);
         // One line of light along the aim, across the whole screen.
         const far = P(L.mx + L.F[0] * 30, L.my + L.F[1] * 30, L.mz);
@@ -946,7 +1068,7 @@
             const r = 0.35 + (len * j) / 4, wob = Math.sin(i * 7 + j * 3) * 0.18 * (j / 4);
             pts.push(P(u.x + Math.cos(a + wob) * r, u.y + Math.sin(a + wob) * r, 0.02));
           }
-          for (const [w, col] of [[Math.max(4, sc * 0.06), INK], [Math.max(2, sc * 0.025), `rgba(${glowRGB},${0.5 + 0.5 * k})`]]) {
+          for (const [w, col] of [[Math.max(3, sc * 0.04), INK], [Math.max(1.5, sc * 0.016), `rgba(${glowRGB},${0.35 + 0.45 * k})`]]) {
             ctx.strokeStyle = col; ctx.lineWidth = w;
             ctx.beginPath(); pts.forEach((q, j) => (j ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y))); ctx.stroke();
           }
@@ -954,23 +1076,30 @@
         // A pillar of light from the ground.
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
-        const pw = sc * (0.5 + 0.9 * e);
+        // (thin and faint: it must not wash out the fighter in the close-up)
+        const pw = sc * (0.45 + 0.6 * e);
         const pg = ctx.createLinearGradient(0, base.y, 0, 0);
-        pg.addColorStop(0, `rgba(${glowRGB},${0.55 * k})`); pg.addColorStop(1, `rgba(${glowRGB},0)`);
+        pg.addColorStop(0, `rgba(${glowRGB},${0.28 * k})`); pg.addColorStop(1, `rgba(${glowRGB},0)`);
         ctx.fillStyle = pg;
         ctx.beginPath(); ctx.moveTo(base.x - pw, base.y); ctx.lineTo(base.x - pw * 0.4, 0); ctx.lineTo(base.x + pw * 0.4, 0); ctx.lineTo(base.x + pw, base.y); ctx.closePath(); ctx.fill();
-        // Energy streams spiralling in to the fighter.
-        for (let i = 0; i < 10; i++) {
-          const a0 = i * 0.628 + t * 3.2, r0 = Math.max(W, H) * (0.6 - 0.45 * ((t * 1.3 + i * 0.1) % 1));
+        // Energy streams spiralling in toward the fighter; they stop at an
+        // aura's edge so the face and body stay clean.
+        const halo = sc * 0.75;
+        for (let i = 0; i < 7; i++) {
+          const a0 = i * 0.628 + t * 3.2, r0 = Math.max(W, H) * (0.6 - 0.4 * ((t * 1.3 + i * 0.1) % 1));
           const sx = chest.x + Math.cos(a0) * r0, sy = chest.y + Math.sin(a0) * r0 * 0.6;
           const mx = chest.x + Math.cos(a0 + 0.9) * r0 * 0.5, my = chest.y + Math.sin(a0 + 0.9) * r0 * 0.3;
-          ctx.strokeStyle = `rgba(${glowRGB},${0.25 + 0.4 * k})`; ctx.lineWidth = 2 + 3 * k;
-          ctx.beginPath(); ctx.moveTo(sx, sy); ctx.quadraticCurveTo(mx, my, chest.x, chest.y); ctx.stroke();
+          const ea = Math.atan2(my - chest.y, mx - chest.x), ex = chest.x + Math.cos(ea) * halo, ey = chest.y + Math.sin(ea) * halo;
+          ctx.strokeStyle = `rgba(${glowRGB},${0.2 + 0.35 * k})`; ctx.lineWidth = 1.5 + 2 * k;
+          ctx.beginPath(); ctx.moveTo(sx, sy); ctx.quadraticCurveTo(mx, my, ex, ey); ctx.stroke();
         }
+        // The aura's edge: a thin ring of light around the fighter.
+        ctx.strokeStyle = `rgba(${glowRGB},${0.35 * k})`; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.ellipse(chest.x, chest.y - sc * 0.1, halo * 0.8, halo * 1.25, 0, 0, Math.PI * 2); ctx.stroke();
         ctx.restore();
-        // Debris lifting off the ground.
-        for (let i = 0; i < 16; i++) {
-          const a = i * 2.39, r = 0.6 + ((i * 53) % 17) / 10;
+        // Debris lifting off the ground (behind and beside, not over the body).
+        for (let i = 0; i < 10; i++) {
+          const a = i * 2.39, r = 0.9 + ((i * 53) % 17) / 10;
           const z = Math.max(0, (k - ((i * 7) % 5) / 12)) * (0.8 + (i % 4) * 0.5);
           if (z <= 0) continue;
           const q = P(u.x + Math.cos(a) * r, u.y + Math.sin(a) * r, z);
@@ -984,17 +1113,18 @@
         speedLines(chest.x, chest.y, 70, Math.min(W, H) * (0.55 - 0.3 * k), Math.max(W, H), `rgba(246,240,236,${0.06 + 0.12 * k})`, Math.floor(t * 24));
         V.cam.shake = Math.max(V.cam.shake, 2 + 4 * k);
       } else if (phase === 'gleam') {
-        // Darkness, then a single line of light across the screen.
+        // The world goes dark around the face; a line of light across the
+        // eyes and a glint in them.
         const k = (t - CUT.charge) / (CUT.gleam - CUT.charge);
-        ctx.fillStyle = `rgba(6,4,6,${Math.min(0.92, 0.6 + k)})`; ctx.fillRect(0, 0, W, H);
-        const gy = chest.y, gw = W * Math.min(1, k * 2.2);
+        const eye = eyeOf(u);
+        darkAround(eye, Math.min(W, H) * 0.32, Math.min(0.9, 0.55 + k));
+        const gy = eye.y, gw = W * Math.min(1, k * 2.2);
         ctx.save(); ctx.globalCompositeOperation = 'lighter';
-        const lg = ctx.createLinearGradient(chest.x - gw, 0, chest.x + gw, 0);
-        lg.addColorStop(0, `rgba(${glowRGB},0)`); lg.addColorStop(0.5, `rgba(${glowRGB},1)`); lg.addColorStop(1, `rgba(${glowRGB},0)`);
-        ctx.fillStyle = lg; ctx.fillRect(chest.x - gw, gy - 3, gw * 2, 6);
-        ctx.fillStyle = '#ffffff'; ctx.fillRect(chest.x - gw * 0.6, gy - 1, gw * 1.2, 2);
+        const lg = ctx.createLinearGradient(eye.x - gw, 0, eye.x + gw, 0);
+        lg.addColorStop(0, `rgba(${glowRGB},0)`); lg.addColorStop(0.5, `rgba(${glowRGB},0.8)`); lg.addColorStop(1, `rgba(${glowRGB},0)`);
+        ctx.fillStyle = lg; ctx.fillRect(eye.x - gw, gy - 2, gw * 2, 4);
         ctx.restore();
-        star(chest.x, gy, H * 0.12 * Math.min(1, k * 3), glow, 3, 0.2);
+        star(eye.x, gy, H * 0.1 * Math.min(1, k * 3), glow, 3, 0.2);
       } else if (phase === 'dash') {
         const k = (t - CUT.gleam) / (c.impactAt - CUT.gleam);
         // Screen-wide speed lines along the dash.
@@ -1073,14 +1203,16 @@
       ctx.fillStyle = INK;
       ctx.fillRect(0, 0, W, bars); ctx.fillRect(0, H - bars, W, bars);
       // The move's name after the impact.
-      if (phase === 'after') {
-        const tk = Math.min(1, (t - c.impactAt - 0.12) / 0.25), ease = 1 - Math.pow(1 - tk, 3);
+      if (phase === 'after' && t > c.impactAt + 0.47) {
+        const tk = Math.min(1, (t - c.impactAt - 0.47) / 0.22), ease = 1 - Math.pow(1 - tk, 3);
         ctx.globalAlpha = Math.min(1, (c.dur - t) / 0.4);
         const fs = Math.round(Math.min(W, H) * 0.14);
+        // Lettering on the side of the frame the caster leaves open.
+        const left = cam.ax > 0.52;
         ctx.save();
-        ctx.translate(W - 24 - (1 - ease) * W * 0.4, H - bars - fs * 0.3);
+        ctx.translate(left ? 30 + (1 - ease) * W * 0.4 : W - 24 - (1 - ease) * W * 0.4, H - bars - fs * 0.3);
         ctx.transform(1, 0, -0.2, 1, 0, 0);
-        ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic';
+        ctx.textAlign = left ? 'left' : 'right'; ctx.textBaseline = 'alphabetic';
         ctx.font = `800 ${fs}px ${FONT.display}`;
         ctx.lineJoin = 'round'; ctx.lineWidth = fs * 0.14; ctx.strokeStyle = INK;
         ctx.strokeText(c.name.toUpperCase(), 0, 0);
@@ -1122,9 +1254,34 @@
       ctx.transform(1, 0, -0.22, 1, 0, 0);
       ctx.font = `800 ${fs}px ${FONT.display}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.lineJoin = 'round'; ctx.lineWidth = fs * 0.12; ctx.strokeStyle = '#000'; ctx.strokeText(banner.text, 0, 0);
-      ctx.fillStyle = PAL.glow; ctx.fillText(banner.text, 0, 0);
+      ctx.fillStyle = banner.col || PAL.glow; ctx.fillText(banner.text, 0, 0);
       ctx.font = `800 ${Math.round(fs * 0.18)}px ${FONT.ui}`;
       ctx.fillStyle = PAL.bone; ctx.fillText(banner.sub.toUpperCase(), 0, fs * 0.6);
+      ctx.restore();
+    }
+
+    // The heroes' combo: from the third hit in a row, slanted lettering at
+    // the right edge, punched on every hit, gone a beat after the run ends.
+    function drawCombo(dt) {
+      const since = V.time - combo.last;
+      if (combo.n < 3 || since > 1.6) return;
+      combo.pop += dt;
+      const W = V.W, H = V.H, fs = Math.round(Math.min(W, H) * 0.12);
+      const punch = combo.pop < 0.08 ? 1.35 - combo.pop * 4.4 : 1;
+      ctx.save();
+      ctx.globalAlpha = since > 1.2 ? Math.max(0, 1 - (since - 1.2) / 0.4) : 1;
+      ctx.translate(W - Math.max(22, W * 0.03), H * 0.56);
+      ctx.transform(1, 0, -0.25, 1, 0, 0);
+      ctx.scale(punch, punch);
+      ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic'; ctx.lineJoin = 'round';
+      ctx.font = `800 ${fs}px ${FONT.display}`;
+      const n = String(combo.n);
+      ctx.fillStyle = PAL.crimson; ctx.fillText(n, fs * 0.06, fs * 0.06);
+      ctx.lineWidth = fs * 0.16; ctx.strokeStyle = INK; ctx.strokeText(n, 0, 0);
+      ctx.fillStyle = PAL.white; ctx.fillText(n, 0, 0);
+      ctx.font = `800 ${Math.round(fs * 0.24)}px ${FONT.ui}`;
+      ctx.lineWidth = 4; ctx.strokeText('HIT COMBO', 0, fs * 0.3);
+      ctx.fillStyle = PAL.heroGlow; ctx.fillText('HIT COMBO', 0, fs * 0.3);
       ctx.restore();
     }
 
@@ -1138,6 +1295,7 @@
       }
       if (flash > 0) { ctx.fillStyle = `rgba(${flashCol},${flash * 0.6})`; ctx.fillRect(0, 0, W, H); flash = Math.max(0, flash - (dt || 0) * 1.6); }
       drawBanner(dt || 0);
+      if (!s.cutscene && !V.show) drawCombo(dt || 0);
     }
 
     function takeHitstop() { const h = hitstop; hitstop = 0; return h; }

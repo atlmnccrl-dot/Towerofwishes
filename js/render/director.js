@@ -55,7 +55,10 @@
         if (e.type === 'parry') {
           if (setShot({ x: e.x, y: e.y, zoom: 1.9, angOff: 0.25, dur: 0.95 }, 2)) slowmo(0.3, 0.35);
         } else if (e.type === 'hit' && e.big) {
+          // Big blows: a quick push-in and a breath of slow motion; the
+          // heaviest (crit-like, see fx.js) always get the slow beat.
           if (setShot({ x: e.x, y: e.y, zoom: 1.45, dur: 0.55 }, 1)) slowmo(0.4, 0.12);
+          if (e.dmg >= 24) slowmo(0.35, 0.18);
         } else if (e.type === 'ko') {
           if (setShot({ x: e.x, y: e.y, zoom: 1.7, angOff: -0.2, dur: 1.0 }, 3)) slowmo(0.3, 0.55);
         } else if (e.type === 'fizzle') {

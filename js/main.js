@@ -528,58 +528,104 @@
   }
 
   // ------------------------------------------------------------ HUD
-  let hudEls = {};
-  function bar(cls) { return `<div class="bar ${cls || ''}"><i></i></div>`; }
+  // Slim slanted strips: heroes top-left (tab with the initial, name, HP with
+  // a damage trail, stamina, heavy-art meter), enemies mirrored top-right,
+  // the boss as a lettered bar at the top centre.
+  let hudEls = {}, hudBoss = null, hudClock = 0;
+  function meter(cls) { return `<div class="meter ${cls}"><i class="trail"></i><i class="fill"></i></div>`; }
+  function esc(t) { return String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]); }
+  function bossOf(m) {
+    const foes = m.units.filter((u) => u.team === 'bandit' && u.def.boss);
+    return foes.find((u) => m.vs && m.vs[1] === u.id) || foes[0] || null;
+  }
   function buildHud() {
+    const LOOK = (Render.fighters && Render.fighters.LOOK) || {};
     const team = match.units.filter((u) => u.team === 'hero');
-    const foes = match.units.filter((u) => u.team === 'bandit');
-    $('team').innerHTML = team.map((u) => `
-      <div class="card hero" data-id="${u.id}" role="button" tabindex="0" aria-label="Follow ${u.name}">
-        <div class="card-head"><span class="card-name">${u.name}</span>${u.guest ? '<span class="card-tag">Guest</span>' : ''}<span class="chip" hidden></span><span class="card-num"></span></div>
-        ${bar('hp')}${bar('sta')}${u.def.superMeter ? bar('super') : ''}
-      </div>`).join('');
+    const boss = bossOf(match);
+    const foes = match.units.filter((u) => u.team === 'bandit' && u !== boss);
+    $('team').innerHTML = team.map((u) => {
+      const L = LOOK[u.key] || {};
+      const acc = u.guest ? '#b9a6ff' : L.eye || L.accent || '#9cc3dd';
+      return `
+      <div class="card hero" data-id="${u.id}" role="button" tabindex="0" aria-label="Follow ${esc(u.name)}" style="--acc:${acc}">
+        <span class="tab" aria-hidden="true"><b>${esc(u.name.charAt(0))}</b></span>
+        <div class="info">
+          <div class="card-head"><span class="card-name">${esc(u.name)}</span>${u.guest ? '<span class="card-tag">Guest</span>' : ''}<span class="art-tag">ART</span><span class="chip" hidden></span></div>
+          ${meter('hp')}${meter('sta')}${u.def.superMeter ? meter('art') : ''}
+        </div>
+      </div>`;
+    }).join('');
     $('foes').innerHTML = foes.map((u) => `
       <div class="card foe" data-id="${u.id}">
-        <div class="card-head"><span class="card-name">${u.name}</span><span class="chip" hidden></span></div>
-        ${bar('hp')}
+        <div class="info"><div class="card-head"><span class="chip" hidden></span><span class="card-name">${esc(u.name)}</span></div>${meter('hp')}</div>
       </div>`).join('');
-    hudEls = {};
-    for (const el of document.querySelectorAll('#team .card, #foes .card')) {
-      hudEls[el.dataset.id] = {
-        el, hp: el.querySelector('.bar.hp > i'), sta: el.querySelector('.bar.sta'), staI: el.querySelector('.bar.sta > i'),
-        sup: el.querySelector('.bar.super'), supI: el.querySelector('.bar.super > i'),
-        chip: el.querySelector('.chip'), num: el.querySelector('.card-num'),
-      };
+    $('boss').hidden = !boss;
+    $('hud').classList.toggle('has-boss', !!boss);
+    if (boss) {
+      $('boss-name').textContent = boss.name;
+      $('boss-epithet').textContent = (boss.def.intro && boss.def.intro.epithet) || '';
     }
+    hudEls = {};
+    const grab = (el, id) => {
+      const q = (s) => el.querySelector(s);
+      hudEls[id] = {
+        el, hp: q('.hp > .fill, .boss-bar > .fill'), trail: q('.hp > .trail, .boss-bar > .trail'),
+        sta: q('.meter.sta'), staI: q('.meter.sta > .fill'), sup: q('.meter.art'), supI: q('.meter.art > .fill'),
+        chip: q('.chip'), lastHp: null, trailV: 1, trailHold: 0, chipText: null, flags: '',
+      };
+    };
+    for (const el of document.querySelectorAll('#team .card, #foes .card')) grab(el, el.dataset.id);
+    if (boss) grab($('boss'), boss.id);
+    hudBoss = boss;
   }
   function setChip(chip, text, cls) {
     if (!text) { chip.hidden = true; return; }
     chip.hidden = false; chip.textContent = text; chip.className = 'chip ' + (cls || '');
   }
+  function setScale(el, v, cache, key) {
+    if (!el || cache[key] === v) return;
+    cache[key] = v;
+    el.style.transform = `scaleX(${v})`;
+  }
   function updateHud() {
     if (!match) return;
     if (Object.keys(hudEls).length !== match.units.length) buildHud();
+    const now = performance.now(), dt = Math.min(0.1, (now - (hudClock || now)) / 1000);
+    hudClock = now;
     for (const u of match.units) {
       const h = hudEls[u.id];
       if (!h) continue;
-      h.hp.style.transform = `scaleX(${Math.max(0, u.hp / u.maxHp).toFixed(3)})`;
-      if (h.num) h.num.textContent = `${Math.max(0, Math.ceil(u.hp))}`;
+      const f = Math.max(0, u.hp / u.maxHp);
+      setScale(h.hp, f.toFixed(3), h, '_hp');
+      // Damage trail: a pale bar that holds for a beat, then drains down.
+      if (h.lastHp != null && u.hp < h.lastHp - 0.01) {
+        h.trailHold = now + 420;
+        h.el.classList.remove('hit'); void h.el.offsetWidth; h.el.classList.add('hit');
+      }
+      if (f > h.trailV) h.trailV = f;
+      else if (now > h.trailHold) h.trailV = Math.max(f, h.trailV - dt * 0.9);
+      h.lastHp = u.hp;
+      setScale(h.trail, h.trailV.toFixed(3), h, '_tr');
       if (h.staI) {
-        h.staI.style.transform = `scaleX(${(u.sta / u.maxSta).toFixed(3)})`;
+        setScale(h.staI, (u.sta / u.maxSta).toFixed(3), h, '_sta');
         h.sta.classList.toggle('drained', u.drained > 0);
       }
       if (h.supI) {
-        h.supI.style.transform = `scaleX(${(u.superMeter / 100).toFixed(3)})`;
-        h.sup.classList.toggle('full', u.superMeter >= 100);
+        setScale(h.supI, (u.superMeter / 100).toFixed(3), h, '_sup');
+        const full = u.superMeter >= 100;
+        h.sup.classList.toggle('full', full);
+        h.el.classList.toggle('art-ready', full && Sim.alive(u));
       }
-      if (u.state === 'out') setChip(h.chip, 'Down', 'down');
-      else if (u.fled) setChip(h.chip, u.beaten ? 'Beaten' : 'Fled', '');
-      else if (u.beaten) setChip(h.chip, 'Beaten', 'down');
-      else if (u.fleeing) setChip(h.chip, 'Running', 'run');
-      else if (u.allOut > 0) setChip(h.chip, 'All out', 'allout');
-      else if (u.drained > 0) setChip(h.chip, 'Drained', 'drained');
-      else setChip(h.chip, null);
+      let chip = null, cls = '';
+      if (u.state === 'out') { chip = 'Down'; cls = 'down'; }
+      else if (u.fled) chip = u.beaten ? 'Beaten' : 'Fled';
+      else if (u.beaten) { chip = 'Beaten'; cls = 'down'; }
+      else if (u.fleeing) { chip = 'Running'; cls = 'run'; }
+      else if (u.allOut > 0) { chip = 'All out'; cls = 'allout'; }
+      else if (u.drained > 0) { chip = 'Drained'; cls = 'drained'; }
+      if (chip !== h.chipText) { h.chipText = chip; setChip(h.chip, chip, cls); }
       h.el.classList.toggle('gone', u.state === 'out' || !!u.fled || !!u.beaten);
+      h.el.classList.toggle('low', f > 0 && f < 0.3);
     }
     // Prologue tips, one at a time once the fight is on.
     const tips = storyBattle && !coach.enabled && storyBattle.tips;
@@ -596,7 +642,9 @@
     b.classList.toggle('ready', ready);
     b.classList.toggle('active', A.active > 0);
     b.classList.toggle('used', spent && !A.active);
-    $('allout-state').textContent = A.active ? 'Go!' : `${A.maxUses - A.uses} left`;
+    const left = A.maxUses - A.uses;
+    const st = A.active ? 'Go!' : '◆'.repeat(left) + '◇'.repeat(Math.max(0, A.uses));
+    if ($('allout-state').textContent !== st) $('allout-state').textContent = st;
     // commentary
     if (match.log.length) {
       const feed = $('feed');
@@ -610,7 +658,7 @@
       [...feed.children].forEach((p, i, a) => p.classList.toggle('old', i < a.length - 1));
       lastLog = performance.now();
     }
-    if (performance.now() - lastLog > 2600) $('feed').innerHTML = '';
+    if (performance.now() - lastLog > 2600 && $('feed').firstChild) $('feed').innerHTML = '';
     // Follow indicator
     const fid = renderer.follow;
     $('follow-chip').hidden = !fid || !!match.result;

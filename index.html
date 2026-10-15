@@ -47,78 +47,134 @@ button:focus-visible { outline: 2px solid var(--steel); outline-offset: 2px; }
 .hud { transition: opacity 0.25s; }
 .hud.cine { opacity: 0; }
 .hud.cine * { pointer-events: none; }
-.hud-top {
-  position: absolute; left: 0; right: 0; top: 0;
-  padding: calc(env(safe-area-inset-top, 0px) + 10px) max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px));
-  display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 12px; align-items: start;
-  pointer-events: none;
-}
+/* Cinematic manhwa HUD: slim slanted portrait strips at the top corners, a
+   lettered boss bar at the top centre, one crimson ALL OUT badge. Nothing in
+   the middle of the screen; everything fades out for heavy arts. */
+.hud { --hud-x: max(14px, env(safe-area-inset-left, 0px)); --hud-xr: max(14px, env(safe-area-inset-right, 0px)); --hud-y: calc(env(safe-area-inset-top, 0px) + 8px); }
+.hud-top { position: absolute; inset: 0 0 auto 0; pointer-events: none; }
 .hud-top > * { pointer-events: auto; }
-.cards { display: flex; flex-direction: column; gap: 6px; max-width: 250px; }
-.foes { justify-self: end; align-items: stretch; max-width: 200px; width: 100%; }
-.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 9px 7px; backdrop-filter: blur(4px); }
-.card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-.card-name { font: 800 13px/1.2 var(--ui); letter-spacing: 0.02em; }
-.card-tag { font: 700 10px/1 var(--ui); letter-spacing: 0.1em; text-transform: uppercase; color: var(--parchment-dim); }
+.cards { display: flex; flex-direction: column; gap: 5px; }
+#team { position: absolute; left: var(--hud-x); top: var(--hud-y); width: 196px; }
+.hud-right { position: absolute; right: var(--hud-xr); top: var(--hud-y); display: flex; flex-direction: column; align-items: flex-end; gap: 6px; pointer-events: none; }
+.hud-right > * { pointer-events: auto; }
+.foes { width: 150px; }
+.mid { display: flex; gap: 4px; }
+.hud .pill { min-height: 28px; min-width: 34px; padding: 4px 11px; font: 800 11px/1 var(--ui); opacity: 0.75; background: rgba(12, 8, 8, 0.7); }
+
+/* hero strip: a slanted ink tab with the initial, then name and meters */
+.card { position: relative; display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 7px; align-items: center; padding: 3px 14px 4px 0;
+  background: linear-gradient(90deg, rgba(12, 8, 8, 0.86), rgba(12, 8, 8, 0.55) 65%, rgba(12, 8, 8, 0));
+  clip-path: polygon(0 0, 100% 0, calc(100% - 9px) 100%, 0 100%); }
+.card.hero { cursor: pointer; }
+.card .tab { align-self: stretch; display: grid; place-items: center; min-height: 32px;
+  background: linear-gradient(160deg, var(--acc, var(--steel)) 0%, #1a2128 70%); clip-path: polygon(0 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+  box-shadow: inset -2px 0 0 rgba(0, 0, 0, 0.5); }
+.card .tab b { font: 800 19px/1 var(--display); font-style: italic; color: #fff; text-shadow: 1px 1px 0 var(--night), -1px 0 0 var(--night); transform: translateX(-1px); }
+.card .info { min-width: 0; }
+.card-head { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.card-name { font: 800 12.5px/1.15 var(--display); font-style: italic; letter-spacing: 0.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 2px #000; }
+.card-tag { display: none; }
+.meter { position: relative; height: 6px; margin-top: 3px; background: rgba(246, 240, 236, 0.1); transform: skewX(-28deg); overflow: hidden; box-shadow: 0 0 0 1px rgba(12, 8, 8, 0.9); }
+.meter > i { position: absolute; inset: 0; transform-origin: left; transition: transform 0.12s linear; }
+.meter > i.trail { background: rgba(246, 240, 236, 0.75); transition: none; }
+.meter > i.fill { background: linear-gradient(180deg, #ffffff 0 18%, #d9e8f0 18% 60%, #9cc3dd 60%); }
+.card.low .meter.hp > i.fill { background: linear-gradient(180deg, #ffd0d4 0 18%, #ff6b78 18% 60%, var(--blood) 60%); }
+.meter.sta { height: 2px; margin-top: 2px; box-shadow: none; }
+.meter.sta > i.fill { background: var(--bone); opacity: 0.7; }
+.meter.sta.drained > i.fill { background: var(--blood); opacity: 1; }
+.meter.art { height: 3px; margin-top: 2px; width: 72%; box-shadow: none; background: rgba(156, 195, 221, 0.12); }
+.meter.art > i.fill { background: var(--steel); }
+.meter.art.full > i.fill { background: linear-gradient(90deg, var(--steel), #ffffff, var(--steel)); background-size: 200% 100%; animation: shimmer 0.9s linear infinite; }
+.card .art-tag { font: 800 8.5px/1 var(--ui); letter-spacing: 0.14em; color: var(--night); background: #fff; padding: 2px 4px 1px; transform: skewX(-14deg); display: none; }
+.card.art-ready .art-tag { display: inline-block; }
+.card.followed { box-shadow: inset 3px 0 0 #fff; }
+.card.followed .tab { background: linear-gradient(160deg, #ffffff 0%, var(--acc, var(--steel)) 55%, #1a2128 100%); }
+.card.followed .tab b { color: var(--night); text-shadow: none; }
+.card.hit { animation: hit 0.28s ease-out; }
+.card.gone { opacity: 0.4; }
+.card.gone .tab { filter: grayscale(1); }
+
+/* enemy strip: mirrored, thinner, crimson */
+.foe { grid-template-columns: minmax(0, 1fr); padding: 2px 0 3px 14px; text-align: right;
+  background: linear-gradient(270deg, rgba(12, 8, 8, 0.82), rgba(12, 8, 8, 0.5) 65%, rgba(12, 8, 8, 0));
+  clip-path: polygon(9px 0, 100% 0, 100% 100%, 0 100%); box-shadow: inset -3px 0 0 var(--blood); padding-right: 8px; }
+.foe .card-head { justify-content: flex-end; }
+.foe .card-name { font-size: 11px; color: var(--bone); }
+.foe .meter { height: 4px; transform: skewX(28deg); margin-top: 2px; }
+.foe .meter > i { transform-origin: right; }
+.foe .meter > i.fill { background: linear-gradient(180deg, #ff9aa5 0 22%, var(--blood) 22% 65%, var(--crimson) 65%); }
+.foe.gone { display: none; }
+
+/* status chips */
+.chip { font: 800 8.5px/1 var(--ui); letter-spacing: 0.12em; text-transform: uppercase; padding: 2px 4px 1px; background: rgba(246, 240, 236, 0.14); color: var(--parchment-dim); transform: skewX(-14deg); white-space: nowrap; }
+.chip.run { background: rgba(255, 209, 102, 0.2); color: #ffd166; }
+.chip.down, .chip.drained { background: rgba(227, 38, 58, 0.22); color: #ff6b78; }
+.chip.allout { background: var(--blood); color: #fff; }
+
+/* boss: lettered name over a long slanted bar, top centre */
+.boss { position: absolute; left: 50%; top: var(--hud-y); transform: translateX(-50%); width: min(40vw, 380px); pointer-events: none; }
+.boss-name { display: flex; align-items: baseline; gap: 8px; margin: 0 0 3px 10px; }
+.boss-name b { font: 800 21px/1 var(--display); font-style: italic; letter-spacing: 0.06em; text-transform: uppercase; color: var(--parchment); text-shadow: 2px 2px 0 var(--crimson), 0 0 8px rgba(0, 0, 0, 0.9); white-space: nowrap; }
+.boss-name small { font: 800 9px/1 var(--ui); letter-spacing: 0.16em; text-transform: uppercase; color: #ff6b78; text-shadow: 0 1px 2px #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.boss-bar { position: relative; height: 10px; background: rgba(12, 8, 8, 0.8); clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
+.boss-bar > i { position: absolute; top: 2px; bottom: 2px; left: 9px; right: 9px; transform-origin: left; }
+.boss-bar > i.trail { background: rgba(246, 240, 236, 0.8); }
+.boss-bar > i.fill { background: linear-gradient(180deg, #ffb3bb 0 20%, var(--blood) 20% 62%, var(--crimson) 62%); transition: transform 0.12s linear; }
+.boss-bar::after { content: ""; position: absolute; inset: 2px 9px; background: repeating-linear-gradient(90deg, transparent 0 calc(10% - 1px), rgba(12, 8, 8, 0.7) calc(10% - 1px) 10%); }
+.boss.hit .boss-bar { animation: hit 0.28s ease-out; }
+.boss .chip { position: absolute; right: 6px; top: 4px; }
+.hud.has-boss .tip { top: calc(env(safe-area-inset-top, 0px) + 58px); }
+
+/* commentary: one slanted caption at the bottom centre */
+.feed { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); width: min(42vw, 380px);
+  display: flex; flex-direction: column; align-items: center; pointer-events: none; text-align: center; }
+.feed p { margin: 0; padding: 3px 14px; font: 600 11.5px/1.35 var(--ui); font-style: italic; color: var(--parchment); text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  background: linear-gradient(90deg, rgba(12, 8, 8, 0), rgba(12, 8, 8, 0.6) 20% 80%, rgba(12, 8, 8, 0)); }
+.feed p.old { display: none; }
+.follow-chip { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 40px);
+  background: rgba(12, 8, 8, 0.8); border: 0; border-left: 3px solid #fff; clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+  padding: 5px 16px 5px 10px; font: 700 11px/1.2 var(--ui); color: var(--parchment); min-height: 28px; }
+
+/* bottom corners: withdraw (hold) and the ALL OUT badge */
+.hud-bottom { position: absolute; left: 0; right: 0; bottom: 0; pointer-events: none; display: flex; justify-content: space-between; align-items: flex-end;
+  padding: 0 var(--hud-xr) calc(env(safe-area-inset-bottom, 0px) + 10px) var(--hud-x); }
+.hud-bottom > * { pointer-events: auto; }
+#btn-withdraw { --hold: 0; position: relative; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: rgba(12, 8, 8, 0.7);
+  display: grid; place-items: center; overflow: visible; opacity: 0.85; }
+#btn-withdraw::before { content: ""; position: absolute; inset: 0; border-radius: 50%; background: rgba(227, 38, 58, 0.6); transform: scale(var(--hold)); }
+#btn-withdraw .flag { position: relative; width: 15px; height: 17px; border-left: 2px solid var(--parchment-dim); }
+#btn-withdraw .flag::after { content: ""; position: absolute; left: 0; top: 0; width: 11px; height: 8px; background: var(--parchment-dim); clip-path: polygon(0 0, 100% 50%, 0 100%); }
+#btn-withdraw small { position: absolute; left: 52px; bottom: 13px; white-space: nowrap; opacity: 0; transition: opacity 0.15s; font: 600 10.5px/1.2 var(--ui); color: var(--parchment); text-shadow: 0 1px 3px #000; }
+#btn-withdraw.holding small { opacity: 1; }
+#btn-allout { --fill: 0; position: relative; width: 116px; height: 58px; padding: 0; border: 0; background: none; display: grid; place-items: center; }
+#btn-allout::before { content: ""; position: absolute; inset: 0; clip-path: polygon(14px 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
+  background: linear-gradient(90deg, rgba(142, 22, 33, 0.95) 0 calc(var(--fill) * 100%), rgba(12, 8, 8, 0.82) calc(var(--fill) * 100%));
+  box-shadow: inset 0 0 0 2px rgba(227, 38, 58, 0.5); }
+#btn-allout::after { content: ""; position: absolute; inset: 0; clip-path: polygon(14px 0, 100% 0, calc(100% - 14px) 100%, 0 100%); border: 0;
+  background: linear-gradient(105deg, transparent 0 40%, rgba(255, 255, 255, 0.55) 48%, transparent 56%); background-size: 260% 100%; background-position: 130% 0; opacity: 0; }
+#btn-allout .lbl { position: relative; display: flex; flex-direction: column; align-items: center; gap: 5px; transform: skewX(-10deg); margin-top: 2px; }
+#btn-allout b { font: 800 19px/0.9 var(--display); font-style: italic; letter-spacing: 0.05em; color: var(--parchment-dim); white-space: nowrap; }
+#btn-allout small { font: 800 8.5px/1 var(--ui); letter-spacing: 0.18em; text-transform: uppercase; color: var(--parchment-dim); }
+#btn-allout.ready::before { background: linear-gradient(120deg, #c01b2c, var(--blood) 55%, #ff5263); box-shadow: inset 0 0 0 2px #ffd0d4; }
+#btn-allout.ready { filter: drop-shadow(0 0 10px rgba(227, 38, 58, 0.7)); animation: badge 1.1s ease-in-out infinite; }
+#btn-allout.ready::after { opacity: 1; animation: sheen 1.6s ease-in-out infinite; }
+#btn-allout.ready b, #btn-allout.ready small { color: #fff; text-shadow: 1px 1px 0 var(--crimson); }
+#btn-allout.active::before { background: #f6f0ec; box-shadow: inset 0 0 0 2px var(--blood); }
+#btn-allout.active b, #btn-allout.active small { color: var(--blood); }
+#btn-allout.used { opacity: 0.45; }
+#btn-allout:disabled { cursor: default; }
+@keyframes hit { 0% { transform: translateX(-4px); filter: brightness(2.2); } 40% { transform: translateX(3px); } 100% { transform: none; filter: none; } }
+@keyframes sheen { 0% { background-position: 130% 0; } 60%, 100% { background-position: -30% 0; } }
+@keyframes badge { 0%, 100% { filter: drop-shadow(0 0 6px rgba(227, 38, 58, 0.55)); } 50% { filter: drop-shadow(0 0 14px rgba(255, 82, 99, 0.95)); } }
+@media (prefers-reduced-motion: reduce) { #btn-allout.ready, #btn-allout.ready::after, .card.hit, .boss.hit .boss-bar, .meter.art.full > i.fill { animation: none; } }
+@media (max-height: 360px) { #team { width: 176px; } .card .tab { min-height: 28px; } .boss-name b { font-size: 17px; } #btn-allout { width: 104px; height: 50px; } }
 .card-num { font: 700 11px/1 var(--ui); color: var(--parchment-dim); font-variant-numeric: tabular-nums; }
 .bar { height: 6px; border-radius: 3px; background: rgba(243, 234, 214, 0.12); overflow: hidden; margin-top: 4px; }
 .bar > i { display: block; height: 100%; width: 100%; transform-origin: left; background: var(--heal); transition: transform 0.15s linear; }
-.bar.sta { height: 3px; }
-.bar.sta > i { background: var(--parchment-dim); }
-.bar.sta.drained > i { background: var(--blood); }
-.bar.super > i { background: var(--steel); }
-.bar.super.full > i { background: linear-gradient(90deg, var(--steel), #ffffff, var(--steel)); background-size: 200% 100%; animation: shimmer 1s linear infinite; }
-.foe .bar > i { background: var(--blood); }
-.foe .card-name { font-size: 12px; }
-.foe.gone { opacity: 0.45; }
-.chip { font: 800 9px/1 var(--ui); letter-spacing: 0.12em; text-transform: uppercase; padding: 3px 5px; border-radius: 4px; background: rgba(243, 234, 214, 0.12); color: var(--parchment-dim); }
-.chip.run { background: rgba(255, 209, 102, 0.18); color: #ffd166; }
-.chip.down { background: rgba(228, 100, 79, 0.2); color: var(--blood); }
-.chip.allout { background: rgba(255, 154, 61, 0.22); color: var(--ember); }
-.chip.drained { background: rgba(228, 100, 79, 0.2); color: var(--blood); }
-.mid { display: flex; gap: 6px; }
 .pill {
   background: var(--panel); border: 1px solid var(--line); border-radius: 999px;
   padding: 6px 12px; font: 800 12px/1 var(--ui); letter-spacing: 0.06em; min-height: 32px;
 }
-.feed {
-  position: absolute; left: 50%; transform: translateX(-50%);
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
-  width: min(46vw, 460px); display: flex; flex-direction: column; gap: 2px; align-items: center;
-  pointer-events: none; text-align: center;
-}
-.feed p { margin: 0; font: 600 12.5px/1.35 var(--ui); color: var(--parchment); text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9); transition: opacity 0.6s; }
-.feed p.old { opacity: 0.5; }
-.hud-bottom {
-  position: absolute; left: 0; right: 0; bottom: 0; pointer-events: none;
-  padding: 0 max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 12px) max(16px, env(safe-area-inset-left, 0px));
-  display: flex; justify-content: space-between; align-items: flex-end;
-}
-.hud-bottom > * { pointer-events: auto; }
-#btn-withdraw {
-  position: relative; overflow: hidden; background: var(--panel); border: 1px solid var(--line);
-  border-radius: 10px; padding: 10px 14px; font: 800 12px/1.1 var(--ui); letter-spacing: 0.06em; min-height: 44px;
-  --hold: 0;
-}
-#btn-withdraw::before { content: ""; position: absolute; inset: 0; background: rgba(228, 100, 79, 0.45); transform: scaleX(var(--hold)); transform-origin: left; }
-#btn-withdraw span { position: relative; }
-#btn-withdraw small { display: block; position: relative; font: 600 10px/1.2 var(--ui); color: var(--parchment-dim); letter-spacing: 0.02em; margin-top: 2px; }
-#btn-allout {
-  --fill: 0;
-  width: 96px; height: 96px; border-radius: 50%; border: 0; padding: 0; position: relative;
-  background: conic-gradient(var(--ember) calc(var(--fill) * 1turn), rgba(243, 234, 214, 0.14) 0);
-  display: grid; place-items: center;
-}
-#btn-allout::before { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: #1b1410; }
-#btn-allout .lbl { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; }
-#btn-allout b { font: 800 17px/0.95 var(--display); letter-spacing: 0.04em; color: var(--parchment-dim); text-align: center; }
-#btn-allout small { font: 700 9.5px/1 var(--ui); letter-spacing: 0.12em; text-transform: uppercase; color: var(--parchment-dim); }
-#btn-allout.ready b { color: var(--ember); }
-#btn-allout.ready { animation: pulse 1.1s ease-in-out infinite; box-shadow: 0 0 0 0 rgba(255, 154, 61, 0.6); }
-#btn-allout.active::before { background: #3a1d08; }
-#btn-allout.active b { color: #fff3e0; }
-#btn-allout.used { opacity: 0.5; }
-#btn-allout:disabled { cursor: default; }
 
 /* ---------------- screens */
 .screen {
@@ -174,18 +230,11 @@ h2 { font: 800 clamp(26px, 5vw, 40px)/1 var(--display); margin: 0; text-wrap: ba
 .rotate { display: none; }
 @media (orientation: portrait) and (max-width: 600px) {
   .rotate { display: block; position: absolute; bottom: calc(env(safe-area-inset-bottom, 0px) + 220px); left: 50%; transform: translateX(-50%); font: 700 11px/1.3 var(--ui); color: var(--parchment-dim); background: var(--panel); padding: 6px 10px; border-radius: 999px; white-space: nowrap; pointer-events: none; }
-  .foes { max-width: 150px; }
-  .cards { max-width: 165px; }
-  .feed { width: 60vw; bottom: calc(env(safe-area-inset-bottom, 0px) + 112px); }
 }
 @media (max-width: 640px) {
   .menu-grid { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-height: 460px) {
-  .card { padding: 4px 7px 5px; }
-  .foe .bar { margin-top: 3px; }
-  .cards { gap: 4px; }
-  #btn-allout { width: 82px; height: 82px; }
   .stats { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .stat b { font-size: 17px; }
   .sheet { gap: 12px; }
@@ -193,29 +242,9 @@ h2 { font: 800 clamp(26px, 5vw, 40px)/1 var(--display); margin: 0; text-wrap: ba
   h1 { font-size: 36px; }
 }
 /* ---------------- manhwa skin: sharp slanted panels, ink edges, one hot accent */
-.card {
-  border-radius: 0; border: 0; border-left: 3px solid var(--steel);
-  clip-path: polygon(0 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
-  box-shadow: inset 0 0 0 1px rgba(246, 240, 236, 0.06);
-  padding: 6px 16px 7px 10px;
-}
-.foe { border-left: 0; border-right: 3px solid var(--blood); clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%); padding: 6px 10px 7px 16px; }
-.card-name { font: 800 14px/1.15 var(--display); letter-spacing: 0.03em; font-style: italic; }
 .bar { border-radius: 0; background: rgba(246, 240, 236, 0.1); transform: skewX(-18deg); }
 .bar > i { background: var(--heal); }
-.foe .bar > i { background: var(--blood); }
-.bar.super > i { background: var(--steel); }
 .pill { border-radius: 0; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); border: 0; padding: 6px 16px; background: var(--panel); }
-#btn-withdraw { border-radius: 0; border: 0; border-left: 3px solid var(--parchment-dim); clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 0 100%); padding-right: 22px; }
-#btn-withdraw::before { background: rgba(227, 38, 58, 0.55); }
-#btn-allout { background: conic-gradient(var(--ember) calc(var(--fill) * 1turn), rgba(246, 240, 236, 0.12) 0); }
-#btn-allout::before { background: #120808; inset: 5px; }
-#btn-allout b { font-style: italic; font-size: 19px; }
-#btn-allout.ready { box-shadow: 0 0 0 0 rgba(227, 38, 58, 0.6); }
-#btn-allout.ready::after { content: ""; position: absolute; inset: -6px; border-radius: 50%; border: 2px solid var(--ember); animation: ring 1s ease-out infinite; }
-.feed p { font-style: italic; }
-.chip { border-radius: 0; transform: skewX(-12deg); }
-.chip.allout { background: rgba(227, 38, 58, 0.25); color: #ff6b78; }
 .panel { border-radius: 0; border: 0; border-top: 3px solid var(--blood); clip-path: polygon(0 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%); }
 .btn { border-radius: 0; clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 0 100%); }
 .btn.primary { background: var(--parchment); }
@@ -226,39 +255,7 @@ h2 { font-style: italic; }
 .screen { background: radial-gradient(ellipse at 50% 40%, rgba(20, 8, 10, 0.55), rgba(8, 4, 5, 0.94)); }
 .heart path { fill: var(--blood); }
 /* ---------------- quieter HUD: small, out of the fight's way */
-.hud-top { padding-top: calc(env(safe-area-inset-top, 0px) + 6px); }
-.cards { max-width: 178px; gap: 4px; }
-.foes { max-width: 140px; }
-.card { padding: 4px 14px 5px 8px; }
-.foe { padding: 3px 8px 4px 14px; }
-.card-name { font-size: 12.5px; }
-.foe .card-name { font-size: 11px; }
-.card-num, .card-tag { display: none; }
-.bar { height: 4px; margin-top: 3px; }
-.bar.sta { height: 2px; }
-.foe .bar { height: 3px; }
-.foe.gone { display: none; }
-.card.hero { cursor: pointer; }
-.card.followed { border-left-color: #ffffff; box-shadow: inset 0 0 0 1px rgba(246, 240, 236, 0.35); }
 .pill { min-height: 30px; padding: 4px 13px; font-size: 11px; opacity: 0.8; }
-.feed { bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); width: min(40vw, 380px); }
-.feed p { font-size: 11.5px; opacity: 0.85; }
-.feed p.old { display: none; }
-#btn-withdraw {
-  width: 48px; height: 48px; min-height: 0; padding: 0; border: 0; border-radius: 50%; clip-path: none;
-  background: var(--panel); display: grid; place-items: center; overflow: visible;
-}
-#btn-withdraw::before { border-radius: 50%; transform: scale(var(--hold)); transform-origin: center; }
-#btn-withdraw .flag { position: relative; width: 16px; height: 18px; border-left: 2px solid var(--parchment-dim); }
-#btn-withdraw .flag::after { content: ""; position: absolute; left: 0; top: 0; width: 12px; height: 9px; background: var(--parchment-dim); clip-path: polygon(0 0, 100% 50%, 0 100%); }
-#btn-withdraw small { position: absolute; left: 56px; bottom: 14px; white-space: nowrap; opacity: 0; transition: opacity 0.15s; margin: 0; }
-#btn-withdraw.holding small { opacity: 1; }
-#btn-allout { width: 78px; height: 78px; }
-#btn-allout b { font-size: 16px; }
-.follow-chip {
-  position: absolute; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 44px); transform: translateX(-50%);
-  background: var(--panel); border: 0; border-bottom: 2px solid #ffffff; padding: 5px 12px; font: 700 11px/1.2 var(--ui); color: var(--parchment); min-height: 28px;
-}
 .rotate-lock { display: none; position: fixed; inset: 0; z-index: 50; background: var(--night); place-items: center; text-align: center; padding: 24px; }
 .rotate-lock div { display: grid; gap: 10px; justify-items: center; }
 .rotate-lock b { font: 800 22px/1.2 var(--display); font-style: italic; }
@@ -429,18 +426,25 @@ h2 { font-style: italic; }
   <div class="hud" id="hud" hidden>
     <div class="hud-top">
       <div class="cards" id="team"></div>
-      <div class="mid">
-        <button class="pill" id="btn-speed" type="button" aria-label="Match speed">1&times;</button>
-        <button class="pill" id="btn-pause" type="button" aria-label="Pause">II</button>
+      <div class="boss" id="boss" hidden>
+        <div class="boss-name"><b id="boss-name"></b><small id="boss-epithet"></small></div>
+        <div class="boss-bar"><i class="trail"></i><i class="fill"></i></div>
+        <span class="chip" hidden></span>
       </div>
-      <div class="cards foes" id="foes"></div>
+      <div class="hud-right">
+        <div class="mid">
+          <button class="pill" id="btn-speed" type="button" aria-label="Match speed">1&times;</button>
+          <button class="pill" id="btn-pause" type="button" aria-label="Pause">II</button>
+        </div>
+        <div class="cards foes" id="foes"></div>
+      </div>
     </div>
     <button class="follow-chip" id="follow-chip" type="button" hidden>Following <b id="follow-name"></b> &middot; tap to release</button>
     <div class="tip" id="tip" hidden><b>How it works</b><span id="tip-text"></span></div>
     <div class="feed" id="feed" aria-live="polite"></div>
     <div class="hud-bottom">
       <button id="btn-withdraw" type="button" aria-label="Hold to withdraw"><span class="flag" aria-hidden="true"></span><small>Hold to withdraw</small></button>
-      <button id="btn-allout" type="button" disabled aria-label="All Out"><span class="lbl"><b>ALL<br>OUT</b><small id="allout-state">Charging</small></span></button>
+      <button id="btn-allout" type="button" disabled aria-label="All Out"><span class="lbl"><b>ALL OUT</b><small id="allout-state">Charging</small></span></button>
     </div>
   </div>
 
