@@ -109,7 +109,9 @@
   // For the campaign map. `from` is the first node of the chapter.
   // The first node of each chapter after the prologue: reaching one returns
   // the player to the campaign map, where the next chapter waits.
-  const CHAPTER_START = { 'c1.tavern': 'c1', 'c2.gate': 'c2', 'c4.guild': 'c4', 'c5.mill': 'c5', end: 'c6' };
+  // (No gate before Chapter One: character select happens in the tavern and
+  // the story runs straight on into it.)
+  const CHAPTER_START = { 'c2.gate': 'c2', 'c4.guild': 'c4', 'c5.mill': 'c5', end: 'c6' };
 
   const CHAPTERS = [
     { id: 'prologue', label: 'Prologue', title: 'The Last Ascent', from: 'p.lore' },
@@ -163,16 +165,17 @@
       ],
     },
     'p.later': { type: 'card', chapter: 'prologue', bg: 'dawn', title: 'TWENTY-TWO YEARS LATER', sub: 'The Tower still stands. Someone is always climbing.', next: 'p.select' },
-    'p.select': { type: 'select', chapter: 'prologue', bg: 'dawn', next: 'p.who' },
+    // Character select happens in the tavern (staged: js/stages.js 'p.select').
+    'p.select': { type: 'select', chapter: 'prologue', bg: 'tavern', next: 'p.who' },
     'p.who': {
-      type: 'scene', chapter: 'prologue', bg: 'town', next: 'c1.tavern',
+      type: 'scene', chapter: 'prologue', bg: 'tavern', next: 'c1.tavern',
       lines: [
         S('@', {
           ren: 'Twenty-two years since the sky burned. Everyone in this town has a story about it. Mine ends at the Tower.',
           mara: 'My teacher said the summit was a matter of geometry. Then she climbed it and never came back. I intend to check her working.',
           brannoc: 'A caravan contract, a debt, and a Tower full of bounties. One of those I can pay off this year.',
         }),
-        N('You need Guild work, a team, and a road east. For tonight you have a seat in a tavern by the Guild office in a western town.'),
+        N('You need Guild work, a team, and a road east. For tonight you have a seat in the tavern by the Guild office, and a bowl of stew going cold.'),
       ],
     },
 
@@ -201,7 +204,9 @@
         B('kael', 'I’m going outside.'),
         B('spear', 'You’re doing that thing with your face. The one you do before you run at a problem.'),
         B('kael', 'That’s why I’m going to see.'),
-        N('He sets off before she can offer an opinion. You go after him.'),
+        N('He sets off before she can offer an opinion.'),
+        S('@', { ren: 'Wait. I\u2019m coming with you.', mara: 'Hold on \u2014 I want to see that construction up close.', brannoc: 'Not without me, you\u2019re not.' }),
+        N('You leave your stew and go after him.'),
       ],
     },
     'c1.run': {

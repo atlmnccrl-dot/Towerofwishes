@@ -202,9 +202,14 @@
       const c = Story.STARTERS[k];
       return `<button class="starter" type="button" data-k="${k}"><b>${c.name}</b><small>${c.role}</small></button>`;
     }).join('');
+    // In the tavern: the three starters are staged there and the camera
+    // visits whoever you look at (falls back to a showcase fight).
+    const sid = stageFor('p.select');
+    if (sid) { stage = Render.stage.start(window.TowStages[sid], Sim); stageKey = sid; selectStaged = true; }
     pickShowcase(showcase && Story.STARTERS[showcase] ? showcase : keys[0]);
     show('select');
   }
+  let selectStaged = false;
   function pickShowcase(k) {
     const c = Story.STARTERS[k];
     for (const b of document.querySelectorAll('.starter')) b.classList.toggle('on', b.dataset.k === k);
@@ -217,7 +222,7 @@
       <div class="pips">${Object.entries(c.stats).map(([n, v]) => `<span>${n[0].toUpperCase() + n.slice(1)}</span><i>${pips(v)}</i>`).join('')}</div>
       <span class="label">Heavy art</span><span class="heavy">${c.heavy}</span>
       <button class="btn primary" id="btn-choose" type="button" data-k="${k}"><b>Climb as ${c.name.split(' ')[0]}</b><small>Begin</small></button>`;
-    setShowcase(k);
+    if (selectStaged && stage) { if (stage.focus) stage.focus(k); } else setShowcase(k);
   }
   $('starters').addEventListener('click', (e) => { const b = e.target.closest('.starter'); if (b) pickShowcase(b.dataset.k); });
   $('starter-info').addEventListener('click', (e) => {
@@ -225,6 +230,7 @@
     if (!b) return;
     Story.pickStarter(story, b.dataset.k);
     setShowcase(null);
+    selectStaged = false;
     runStory();
   });
 
@@ -714,6 +720,13 @@
     const real = Math.min(0.05, (now - last) / 1000);
     last = now;
     const s = match || attract;
+    if (!match && view === 'select' && selectStaged && stage) {
+      stage.update(real);
+      renderer.setCameraOverride(stage.camera());
+      renderer.draw(stage.match, real, true, null);
+      requestAnimationFrame(frame);
+      return;
+    }
     if (!match && view === 'cine' && cine) {
       if (cine.update(real)) endCinematic(); else cine.draw();
       requestAnimationFrame(frame);
