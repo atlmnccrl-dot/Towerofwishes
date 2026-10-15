@@ -71,7 +71,7 @@
     }).join('') : '<p class="fine">Your team forms twenty-two years after the Reset.</p>';
     const n = Story.node(story), ch = Story.CHAPTERS.find((c) => c.id === n.chapter);
     $('menu-chapter').textContent = `${ch.label} · ${ch.title}`;
-    $('story-btn-label').textContent = story.node === 'p.open' ? 'Begin the story' : n.type === 'end' ? 'The story so far' : 'Continue the story';
+    $('story-btn-label').textContent = (story.node === 'p.lore' || story.node === 'p.open') ? 'Begin the story' : n.type === 'end' ? 'The story so far' : 'Continue the story';
     const needsHeart = n.type === 'battle' && Story.battle(story).hearts;
     const ok = !needsHeart || Pg.canStartStory(save);
     $('btn-story').disabled = !ok;
@@ -79,7 +79,7 @@
   }
 
   function show(id) {
-    for (const s of ['menu', 'result', 'paused', 'story', 'select', 'map', 'world', 'team-screen']) $(s).hidden = s !== id;
+    for (const s of ['menu', 'result', 'paused', 'story', 'select', 'map', 'world', 'team-screen', 'cine']) $(s).hidden = s !== id;
     $('hud').hidden = !(id === null || id === 'paused');
     view = id || 'fight';
   }
@@ -105,6 +105,7 @@
     if (!story.side && (Story.atGate(story) || n.type === 'end')) return showWorld();
     if (n.type === 'battle') return startStoryBattle();
     if (n.type === 'select') return showSelect();
+    if (n.type === 'cinematic') return startCinematic(n);
     sceneBg = n.bg || 'tower'; sceneT = 0;
     // A node can stage itself, or keep the stage of the scene before it (stage: 'same').
     const sid = stageFor(Story.cur(story));
@@ -142,6 +143,23 @@
     typeT = 0; $('line').textContent = '';
   }
   function typing() { return $('line').textContent.length < lineFull.length; }
+  // Full-screen cinematics (TowRender.cinematics[name], e.g. js/render/opening.js):
+  //   create(canvas) -> { update(dt) -> true when finished, draw(), skip() }
+  let cine = null;
+  function startCinematic(n) {
+    const C = Render.cinematics && Render.cinematics[n.name];
+    if (!C) { storyStep(() => Story.advance(story)); return; }
+    cine = C.create($('arena'));
+    show('cine');
+  }
+  function endCinematic() {
+    if (!cine) return;
+    cine = null;
+    storyStep(() => Story.advance(story));
+  }
+  $('btn-cine-skip').addEventListener('click', (e) => { e.stopPropagation(); if (cine && cine.skip) cine.skip(); endCinematic(); });
+  $('cine').addEventListener('click', () => { tryLandscape(); $('btn-cine-skip').classList.add('shown'); });
+
   function storyTap() {
     const n = Story.node(story);
     if (n.type === 'card') {
@@ -696,6 +714,11 @@
     const real = Math.min(0.05, (now - last) / 1000);
     last = now;
     const s = match || attract;
+    if (!match && view === 'cine' && cine) {
+      if (cine.update(real)) endCinematic(); else cine.draw();
+      requestAnimationFrame(frame);
+      return;
+    }
     if (!match && view === 'world' && mapR) {
       worldT += real;
       mapR.draw(worldView, worldT, worldSel);

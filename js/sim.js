@@ -130,6 +130,16 @@
         { kind: 'crate', x: 5.2, y: -2.2, r: 0.5 },
       ],
     },
+    // Staged scenes only: the tavern by the Guild office (Chapter One).
+    tavern: {
+      name: 'The Tavern', theme: 'tavern', rx: 8, ry: 5, exit: { x: 9.5, y: -2 },
+      obstacles: [
+        { kind: 'table', x: -3.0, y: -1.2, r: 0.8 },
+        { kind: 'table', x: 2.4, y: 1.6, r: 0.75 },
+        { kind: 'bar', x: 4.6, y: -3.2, r: 0.9 },
+        { kind: 'hearth', x: -6.2, y: 2.6, r: 0.8 },
+      ],
+    },
   };
   let ARENA = ARENAS.clearing;
   let NAV = null;
@@ -211,6 +221,22 @@
       attack: null,
       barks: {},
       intro: { epithet: 'Hanging back by the path', line: null },
+    },
+    // Town folk for staged scenes (never fight).
+    spearwoman: {
+      name: 'Spearwoman', team: 'hero', r: 0.36, hp: 100, sta: 100, speed: 4.2, guest: true,
+      react: 0.3, read: 0.3, parry: 0, dodge: 0, feint: 0, noncombat: true, attack: null, weapon: 'spear',
+      barks: {}, intro: { epithet: 'Two contracts with Kael', line: null },
+    },
+    cook: {
+      name: 'The Cook', team: 'hero', r: 0.38, hp: 100, sta: 100, speed: 3.5, guest: true,
+      react: 0.3, read: 0.3, parry: 0, dodge: 0, feint: 0, noncombat: true, attack: null,
+      barks: {}, intro: { epithet: 'Can hear you', line: null },
+    },
+    patron: {
+      name: 'Patron', team: 'hero', r: 0.36, hp: 100, sta: 100, speed: 3.8, guest: true,
+      react: 0.3, read: 0.3, parry: 0, dodge: 0, feint: 0, noncombat: true, attack: null,
+      barks: {}, intro: { epithet: 'Regular', line: null },
     },
   };
 

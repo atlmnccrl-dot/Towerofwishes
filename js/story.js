@@ -112,7 +112,7 @@
   const CHAPTER_START = { 'c1.tavern': 'c1', 'c2.gate': 'c2', 'c4.guild': 'c4', 'c5.mill': 'c5', end: 'c6' };
 
   const CHAPTERS = [
-    { id: 'prologue', label: 'Prologue', title: 'The Last Ascent', from: 'p.open' },
+    { id: 'prologue', label: 'Prologue', title: 'The Last Ascent', from: 'p.lore' },
     { id: 'c1', label: 'Chapter One', title: 'The Clearing', from: 'c1.tavern' },
     { id: 'c2', label: 'Chapters Two & Three', title: 'A Town Grown Strange', from: 'c2.gate' },
     { id: 'c4', label: 'Chapter Four', title: 'The First Contract', from: 'c4.guild' },
@@ -123,6 +123,8 @@
   // ------------------------------------------------------------ the graph
   const NODES = {
     // ---------------------------------------------------------- prologue
+    // The opening cinematic: the world before the Reset (js/render/opening.js).
+    'p.lore': { type: 'cinematic', chapter: 'prologue', name: 'opening', next: 'p.tower' },
     'p.open': { type: 'card', chapter: 'prologue', bg: 'tower', title: 'TOWER OF WISHES', sub: 'Reach the summit, and you could make a wish.', next: 'p.tower' },
     'p.tower': {
       type: 'scene', chapter: 'prologue', bg: 'tower', next: 'p.ascent',
@@ -187,7 +189,7 @@
       ],
     },
     'c1.formation': {
-      type: 'scene', chapter: 'c1', bg: 'formation', next: 'c1.voice',
+      type: 'scene', chapter: 'c1', bg: 'formation', next: 'c1.run',
       lines: [
         N('Above the distant treeline, purple light gathers in the air. Fine lines curve around a bright center, ring inside ring, turning against one another.'),
         S('@', {
@@ -200,6 +202,14 @@
         B('spear', 'You’re doing that thing with your face. The one you do before you run at a problem.'),
         B('kael', 'That’s why I’m going to see.'),
         N('He sets off before she can offer an opinion. You go after him.'),
+      ],
+    },
+    'c1.run': {
+      type: 'scene', chapter: 'c1', bg: 'forest', next: 'c1.voice',
+      lines: [
+        N('The road curves north past the market square. Kael follows it until the houses thin, then cuts across hard ground toward the woods.'),
+        S('@', { ren: 'Keep up.', mara: 'You run like someone who\u2019s been hit before.', brannoc: 'Go. I\u2019ll be right behind you. Eventually.' }),
+        N('Behind them, the ordinary noise of the town fades, replaced by wind moving through the first trees.'),
       ],
     },
     'c1.voice': {
@@ -646,7 +656,7 @@
 
   // ------------------------------------------------------------ state
   function fresh() {
-    return { v: 1, node: 'p.open', starter: null, xp: 0, flags: {}, seen: {}, wins: {}, opened: {}, done: {}, side: null, best: {} };
+    return { v: 1, node: 'p.lore', starter: null, xp: 0, flags: {}, seen: {}, wins: {}, opened: {}, done: {}, side: null, best: {} };
   }
   function normalise(st) {
     if (!st || st.v !== 1 || !NODES[st.node]) return fresh();
@@ -720,6 +730,7 @@
   function advance(st) {
     const n = node(st);
     if (n.type === 'choice' || n.type === 'battle' || n.type === 'select' || n.type === 'end') throw new Error('story: advance on ' + n.type);
+    // (cinematic nodes advance like scenes once they finish or are skipped)
     // A side scene going back to the map ends the episode.
     return goTo(st, n.next);
   }

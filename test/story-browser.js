@@ -51,6 +51,7 @@ const errors = [];
         await page.waitForTimeout(300);
         continue;
       }
+      if (v === 'cine') { await shot('cine-' + n); await page.click('#btn-cine-skip'); await page.waitForTimeout(300); continue; }
       if (v !== 'story') return;
       const kind = await page.evaluate(() => window.__tow.story && document.getElementById('choices').hidden ? 'tap' : 'choice');
       if (kind === 'choice') return;
