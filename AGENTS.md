@@ -37,6 +37,7 @@ Read first: [docs/DESIGN.md](docs/DESIGN.md), [docs/STORY.md](docs/STORY.md),
 | `js/render/fx.js` | Telegraphs, slashes, particles, banners, heavy-art cutscenes |
 | `js/render/callouts.js` | Over-head bars, reaction icons, speech balloons |
 | `js/render/intro.js` | Face-off cards, VS, countdown |
+| `js/render/director.js` | Camera cuts, slow motion, cut-in panels during fights |
 | `js/progress.js` | Hearts and injuries: pure functions |
 | `js/main.js` | Loop, input, HUD, save |
 | `test/` | Node tests and a headless-browser check |

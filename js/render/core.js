@@ -9,6 +9,7 @@
  *   fx.js        telegraphs, slashes, particles, impact frames, heavy-art cutscenes, banners
  *   callouts.js  in-world UI: health ticks, reaction icons, speech balloons
  *   intro.js     pre-match face-off, countdown
+ *   director.js  camera cuts, slow motion and cut-in panels during the fight
  *
  * Every module is `create(V)` where V is the shared view below. Modules read
  * sim state only; they never change it.
@@ -38,8 +39,11 @@
       W: 0, H: 0, dpr: 1, time: 0,
       cam: { x: 0, y: 0, sc: 40, ang: -0.32, pitch: 0.56, shake: 0, time: 0, horizon: 0.56 },
       rng: Sim.makeRng(7),
-      // Light comes from the upper left of the screen, slightly behind the camera.
-      light: { ang: -2.3, elev: 0.9 },
+      // Light comes from the upper left of the screen. sx/sy: unit vector toward
+      // the light in screen space, used for cel shading and rim light.
+      light: { ang: -2.3, elev: 0.9, sx: -0.55, sy: -0.835 },
+      // Requested slow motion (director): factor and seconds remaining.
+      slowmo: { k: 1, t: 0 },
       stats: { drawMs: 0 },
     };
 
@@ -49,7 +53,9 @@
       const dx = x - cam.x, dy = y - cam.y;
       const c = Math.cos(cam.ang), s = Math.sin(cam.ang);
       const rx = dx * c - dy * s, ry = dx * s + dy * c;
-      return { x: V.W / 2 + rx * cam.sc, y: V.H * cam.horizon + ry * cam.sc * cam.pitch - (z || 0) * cam.sc * 0.9, d: ry };
+      // cam.cx / cam.cy let a cutscene panel centre the view on its own box.
+      const ox = cam.cx != null ? cam.cx : V.W / 2, oy = cam.cy != null ? cam.cy : V.H * cam.horizon;
+      return { x: ox + rx * cam.sc, y: oy + ry * cam.sc * cam.pitch - (z || 0) * cam.sc * 0.9, d: ry };
     };
 
     V.shadow = function shadow(x, y, r, a) {
@@ -69,8 +75,10 @@
     const world = NS.world.create(V);
     const fighters = NS.fighters.create(V);
     const fx = NS.fx.create(V);
+    V.fxApi = fx; // shared drawing helpers (panels, portraits) for intro and director
     const callouts = NS.callouts.create(V);
     const intro = NS.intro.create(V);
+    const director = NS.director.create(V, fx);
 
     function resize() {
       V.dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -97,10 +105,11 @@
       if (c) {
         const u = c.unit;
         tx = u.x + Math.cos(u.facing) * 0.9; ty = u.y + Math.sin(u.facing) * 0.9;
-        sc = Math.min(W, H) / 4.2;
-        ang = u.facing - Math.PI / 2 + 0.9 - (c.t / c.dur) * 0.7;
+        sc = Math.min(W, H) / 3.6;
+        // A low three-quarter view of the fighter, slowly orbiting.
+        ang = Math.PI / 2 - u.facing + 0.75 - (c.t / c.dur) * 0.6;
       }
-      const o = V.camOverride || intro.cameraFor(s, V.show);
+      const o = V.camOverride || intro.cameraFor(s, V.show) || (!c && director.camera(s));
       if (o) {
         const fu = o.focus && s.byId[o.focus];
         if (fu) { tx = fu.x; ty = fu.y; }
@@ -108,11 +117,15 @@
         if (o.y != null) ty = o.y;
         if (o.sc != null) sc = o.sc; else if (o.zoom) sc *= o.zoom;
         if (o.ang != null) ang = o.ang;
+        if (o.angOff) ang += o.angOff;
       }
       const k = c || o ? 0.12 : Math.min(1, dt * 2.2);
       cam.x += (tx - cam.x) * k; cam.y += (ty - cam.y) * k;
       cam.sc += (sc - cam.sc) * k;
       cam.ang += (ang - cam.ang) * (c || o ? 0.08 : Math.min(1, dt * 0.8));
+      // Cutscenes and director shots drop the camera lower for drama.
+      const pitchT = c ? 0.42 : o && o.zoom > 1.3 ? 0.5 : 0.56;
+      cam.pitch += (pitchT - cam.pitch) * Math.min(1, dt * 4);
       cam.shake *= Math.pow(0.002, dt);
     }
 
@@ -145,6 +158,7 @@
       V.spotlight = intro.spotlight(s, V.show);
       if (!V.W) resize();
       V.time += dt;
+      director.observe(s, dt);
       fx.consume(s);
       fighters.update(s, dt);
       updateCamera(s, dt);
@@ -156,6 +170,7 @@
       if (!quiet && !V.show) callouts.draw(s, dt);
       ctx.restore();
       fx.drawScreen(s, dt);
+      if (!quiet) director.drawScreen(s, dt);
       if (V.show) intro.draw(s, V.show, dt);
       const ms = performance.now() - t0;
       V.stats.drawMs = V.stats.drawMs ? V.stats.drawMs * 0.95 + ms * 0.05 : ms;
@@ -166,6 +181,9 @@
     return {
       draw, resize,
       takeHitstop: () => fx.takeHitstop(),
+      timeScale: () => director.timeScale(),
+      cinematic: () => director.cinematic(),
+      cutIn: (u, caption) => director.forceCut(u, caption),
       setCameraOverride: (o) => { V.camOverride = o || null; },
       get stats() { return V.stats; },
     };

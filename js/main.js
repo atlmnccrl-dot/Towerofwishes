@@ -162,7 +162,7 @@
       h.el.classList.toggle('gone', u.state === 'out' || !!u.fled || !!u.beaten);
     }
     // Heavy arts get the whole screen.
-    $('hud').classList.toggle('cine', !!match.cutscene || !!(faceoff && faceoff.t < INTRO.fight));
+    $('hud').classList.toggle('cine', !!match.cutscene || !!(faceoff && faceoff.t < INTRO.fight) || renderer.cinematic());
     const A = match.allOut, b = $('btn-allout');
     b.style.setProperty('--fill', A.used ? (A.active > 0 ? (A.active / Sim.ALL_OUT.dur).toFixed(3) : 0) : A.meter.toFixed(3));
     const ready = !A.used && A.meter >= 1 && !match.result;
@@ -262,7 +262,8 @@
     } else if (!paused && !frozen) {
       if (hitstop > 0) hitstop -= real;
       else {
-        acc += real * (match.cutscene ? 1 : speed);
+        // The director can slow time for a beat on big moments.
+        acc += real * (match.cutscene ? 1 : speed * renderer.timeScale());
         let n = 0;
         while (acc >= DT && n < 8) { Sim.step(match, DT); acc -= DT; n++; }
       }
@@ -294,6 +295,7 @@
         return false;
       },
       camera(o) { renderer.setCameraOverride(o); },
+      cutIn(id, caption) { if (match) renderer.cutIn(match.byId[id], caption); },
       superNow() { if (match) match.byId.kael.superMeter = 100; },
       allOutNow() { if (match) { match.allOut.meter = 1; Sim.triggerAllOut(match); } },
     },

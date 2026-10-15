@@ -128,6 +128,18 @@ Every match opens like a versus screen before the fight:
    back off to range, and so on.
 Tap during the face-off to jump to the countdown. Withdraw is available once the fight starts.
 
+## 7c. The anime director (decided)
+
+One system directs every fight like an episode; nothing is scripted per match
+(`js/render/director.js`):
+- Camera cuts and zooms on parries, big hits, knockdowns, Eiryn's failed spell, All Out
+  and the final blow, with a lower, more dramatic angle while zoomed.
+- A beat of slow motion on parries, knockdowns, feint reads and the finish.
+- Manhwa cut-in strips (a shadowed close-up with glowing eyes) when a fighter reads a
+  feint, when the broad man charges a distracted or drained Kael, and in heavy arts,
+  the face-off and VS.
+Real character art can later replace the drawn close-ups without changing the system.
+
 ## 8. Camera
 
 Elevated 3/4 "helicopter over the coliseum" view, not top-down. Slowly drifts its angle,

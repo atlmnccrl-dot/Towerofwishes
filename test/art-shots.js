@@ -52,6 +52,7 @@ async function snap(page, name, settle = 900) {
   await page.waitForTimeout(350);
   await D(() => window.__tow.debug.freeze(true));
   await snap(page, '08-openers', 250);
+  await D(() => window.__tow.debug.introAt(20)); // let FIGHT finish
 
   // Mid-fight wide shot.
   await D(() => { window.__tow.debug.advance(5); });
@@ -79,6 +80,12 @@ async function snap(page, name, settle = 900) {
   await snap(page, '13-allout', 250);
   await D(() => window.__tow.debug.advance(5.3));
   await snap(page, '14-drained', 600);
+  // Director cut-ins (eyes panels).
+  for (const [id, cap] of [['kael', 'READ'], ['brute', null], ['eiryn', null]]) {
+    await D((a) => window.__tow.debug.cutIn(a[0], a[1]), [id, cap]);
+    await snap(page, '14b-cutin-' + id, 450);
+    await page.waitForTimeout(900);
+  }
 
   // Heavy art cutscene frames (fresh match so Kael is in the thick of it).
   await D(() => { window.__tow.debug.start('practice', 3); window.__tow.debug.skipIntro(); window.__tow.debug.advance(2.5); window.__tow.debug.superNow(); });
