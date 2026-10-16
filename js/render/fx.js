@@ -23,14 +23,19 @@
     let parts = [], texts = [], streaks = [], flash = 0, flashCol = '255,255,255', hitstop = 0, banner = null, impact = 0;
     const fizzles = []; // {unit, t}
     let blinks = [], dissolves = [];
+    let heals = [], hazards = [], hazHits = []; // healing threads; boss area marks and their impacts
+    let groundDone = false; // hazard marks are painted once per scene pass, under the fighters
     const combo = { n: 0, last: -9, pop: 0 }; // the heroes' run of hits
     const slashTilt = new WeakMap(); let slashFlip = 1; // per swing: which way the arc leans
     const lanceState = new WeakMap(); // cutscene -> {hit: Set of unit ids}
-    const GLYPH = '169,139,255', GLYPH_CORE = '#efe8ff';
+    let GLYPH = '169,139,255', lanceHex = '#a98bff'; const GLYPH_CORE = '#efe8ff';
 
     // ------------------------------------------------------------ events
+    let lastMatch = null;
     function consume(s) {
       const cam = V.cam;
+      // A new match: drop marks and threads left over from the last one.
+      if (s.units && s !== lastMatch) { lastMatch = s; heals = []; hazards = []; hazHits = []; }
       for (const e of s.fx) {
         if (e.type === 'hit') {
           // Everything scales with the damage: sparks thrown along the blow,
@@ -106,6 +111,35 @@
           parts.push({ star: true, x: e.x1, y: e.y1, z: h * 0.55, t: 0, life: 0.2, r: 0.8, col: hero ? '#ffffff' : '#ffd0d4', rays: true });
           parts.push({ ring: true, x: e.x1, y: e.y1, z: 0.03, t: 0, life: 0.35, col: hero ? PAL.hero : PAL.glow, ground: true });
           cam.shake = Math.max(cam.shake, 3);
+        } else if (e.type === 'heal') {
+          // A thread of green-white light from the healer's hands to the
+          // wound, a soft bloom there and the amount in green.
+          const from = s.byId[e.unit], to = s.byId[e.target] || null;
+          heals.push({ from, to, x: e.x, y: e.y, t: 0, life: 0.95, seed: R() });
+          texts.push({ x: e.x, y: e.y, z: 2.2, t: 0, life: 1.0, text: '+' + e.amt, col: '#9ff5bf', size: 0.85, vx: (R() - 0.5) * 0.5 });
+          for (let i = 0; i < 10; i++) {
+            const a = R() * Math.PI * 2, rr = 0.15 + R() * 0.35;
+            parts.push({ mote: true, float: true, x: e.x + Math.cos(a) * rr, y: e.y + Math.sin(a) * rr, z: 0.3 + R() * 1.2, vx: 0, vy: 0, vz: 0.6 + R() * 0.9, t: -0.12 - R() * 0.3, life: 0.6 + R() * 0.5, r: 0.03 + R() * 0.03, col: R() < 0.6 ? '168,240,192' : '240,255,246' });
+          }
+        } else if (e.type === 'hazard') {
+          // A boss's area attack: a mark on the ground that fills over the wind-up.
+          const fire = e.kind === 'fire';
+          hazards.push({ x: e.x, y: e.y, r: e.r, windup: e.windup || 1, kind: e.kind, t: 0, seed: R() });
+          if (e.name) texts.push({ x: e.x, y: e.y, z: 0.6, t: 0, life: Math.min(1.1, (e.windup || 1) * 0.9), text: String(e.name).toUpperCase(), col: fire ? '#ffb27a' : '#bfe6ff', word: true });
+        } else if (e.type === 'hazardHit') {
+          const fire = e.kind === 'fire';
+          for (let i = hazards.length - 1; i >= 0; i--) if (Math.hypot(hazards[i].x - e.x, hazards[i].y - e.y) < 0.05) hazards.splice(i, 1);
+          hazHits.push({ x: e.x, y: e.y, r: e.r, kind: e.kind, t: 0, life: fire ? 2.4 : 1.4, seed: R() });
+          const n = fire ? 26 : 30;
+          for (let i = 0; i < n; i++) {
+            const a = R() * Math.PI * 2, rr = R() * e.r * 0.8, v = 2 + R() * 4;
+            if (fire) parts.push({ shard: true, x: e.x + Math.cos(a) * rr, y: e.y + Math.sin(a) * rr, z: 0.2, vx: Math.cos(a) * v * 0.6, vy: Math.sin(a) * v * 0.6, vz: 3 + R() * 5, t: 0, life: 0.5 + R() * 0.5, col: R() < 0.5 ? '#ff8a2a' : '#ffd27a', w: 0.6 + R() });
+            else parts.push({ drop: true, x: e.x + Math.cos(a) * rr, y: e.y + Math.sin(a) * rr, z: 0.3, vx: Math.cos(a) * v, vy: Math.sin(a) * v, vz: 2 + R() * 6, t: 0, life: 0.6 + R() * 0.5, r: 0.04 + R() * 0.05 });
+          }
+          parts.push({ ring: true, x: e.x, y: e.y, z: 0.03, t: 0, life: 0.6, col: fire ? '#ff9a3a' : '#e6f6ff', ground: true });
+          cam.shake = Math.max(cam.shake, fire ? 11 : 13);
+          hitstop = Math.max(hitstop, 0.05);
+          flash = Math.max(flash, 0.22); flashCol = fire ? '255,140,60' : '190,230,255';
         } else if (e.type === 'dissolve') {
           // A Tower fragment comes apart into black-violet ash and rising light.
           const big = !!e.big, h = big ? 3.0 : 1.8, w = big ? 0.85 : 0.36;
@@ -169,9 +203,10 @@
     }
 
     // ------------------------------------------------------------ per unit
-    function underUnit(u) {
+    function underUnit(u, s) {
       if (u.fled) return;
       const sc = V.cam.sc;
+      if (!groundDone) { groundDone = true; drawHazardMarks(s); }
       if (V.follow === u.id && u.state !== 'out') {
         // Followed fighter: a bright ring on the ground.
         const p = P(u.x, u.y, 0.01), r = sc * 0.62;
@@ -331,7 +366,11 @@
     // ------------------------------------------------------------ world fx
     function drawWorld(s, dt) {
       const cam = V.cam, sc = cam.sc;
+      if (!groundDone) drawHazardMarks(s);
+      groundDone = false;
       for (const p of s.projectiles) drawProjectile(p, sc);
+      drawHeals(dt, sc);
+      drawHazardsAbove(s, dt, sc);
       drawBlinks(dt, sc);
       drawDissolves(dt, sc);
       // Eiryn's failed glyph: a violet line curls into half a circle, then winks out.
@@ -378,6 +417,12 @@
           const r = (0.3 + k * 1.6) * sc;
           ctx.strokeStyle = p.col; ctx.lineWidth = 3 * (1 - k) + 1;
           ctx.beginPath(); ctx.ellipse(q.x, q.y, r, p.ground ? r * cam.pitch : r, 0, 0, Math.PI * 2); ctx.stroke();
+        } else if (p.drop) {
+          // A drop of thrown water: a bright bead with a short streak.
+          const b = P(p.x - p.vx * 0.03, p.y - p.vy * 0.03, Math.max(0, p.z - p.vz * 0.03)), r = Math.max(1.2, p.r * sc);
+          ctx.strokeStyle = 'rgba(200,236,255,0.7)'; ctx.lineWidth = r; ctx.lineCap = 'round';
+          ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(q.x, q.y); ctx.stroke();
+          ctx.fillStyle = '#f2fbff'; ctx.beginPath(); ctx.arc(q.x, q.y, r * 0.6, 0, Math.PI * 2); ctx.fill();
         } else if (p.puff) {
           ctx.fillStyle = p.col; ctx.beginPath(); ctx.arc(q.x, q.y, (0.1 + k * 0.25) * sc, 0, Math.PI * 2); ctx.fill();
         } else if (p.spark) {
@@ -513,12 +558,281 @@
         }
         return;
       }
+      if (name === 'Pressure') {
+        // Invisible force: nothing glows. The air folds into rings standing
+        // across the flight, each a bright hairline over a dark one, like a
+        // lens; the rings behind it spread and thin out.
+        const ang = Math.atan2(P(p.x + dx, p.y + dy, p.z).y - q.y, P(p.x + dx, p.y + dy, p.z).x - q.x);
+        for (let i = 0; i < 3; i++) {
+          const back = i * 0.45, c = P(p.x - dx * back, p.y - dy * back, p.z);
+          const rr = sc * (0.22 + back * 0.4), a = 0.8 * (1 - back / 1.4);
+          if (a <= 0) continue;
+          ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(ang);
+          ctx.lineWidth = Math.max(1, sc * 0.03);
+          ctx.strokeStyle = `rgba(12,10,16,${(a * 0.7).toFixed(3)})`;
+          ctx.beginPath(); ctx.ellipse(1.5, 1.5, rr * 0.32, rr, 0, 0, Math.PI * 2); ctx.stroke();
+          ctx.strokeStyle = `rgba(236,242,252,${a.toFixed(3)})`;
+          ctx.beginPath(); ctx.ellipse(0, 0, rr * 0.32, rr, 0, 0, Math.PI * 2); ctx.stroke();
+          ctx.restore();
+        }
+        // the squeezed core
+        ctx.fillStyle = 'rgba(236,242,252,0.35)'; ctx.beginPath(); ctx.arc(q.x, q.y, sc * 0.08, 0, Math.PI * 2); ctx.fill();
+        return;
+      }
+      if (name === 'Light' || name === 'Push of Light' || name === 'Water Bullet') {
+        const rgb = name === 'Light' ? '255,232,170' : name === 'Push of Light' ? '168,240,192' : '150,210,255';
+        const len = name === 'Light' ? 1.6 : name === 'Water Bullet' ? 0.9 : 0.7;
+        const w = sc * (name === 'Light' ? 0.09 : name === 'Water Bullet' ? 0.13 : 0.12);
+        const tail = P(p.x - dx * len, p.y - dy * len, p.z), head = P(p.x + dx * 0.1, p.y + dy * 0.1, p.z);
+        ctx.save(); ctx.lineCap = 'round';
+        if (name !== 'Water Bullet') ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = `rgba(${rgb},0.25)`; ctx.lineWidth = w * 3.2;
+        ctx.beginPath(); ctx.moveTo(tail.x, tail.y); ctx.lineTo(head.x, head.y); ctx.stroke();
+        ctx.restore();
+        if (name === 'Water Bullet') {
+          // a dense bead of water, inked, with spray peeling off behind
+          ctx.lineCap = 'round';
+          ctx.strokeStyle = INK; ctx.lineWidth = w * 2 + 4; ctx.beginPath(); ctx.moveTo((tail.x + q.x) / 2, (tail.y + q.y) / 2); ctx.lineTo(head.x, head.y); ctx.stroke();
+          ctx.strokeStyle = '#3f86c0'; ctx.lineWidth = w * 2; ctx.stroke();
+          ctx.strokeStyle = '#eef8ff'; ctx.lineWidth = w * 0.6; ctx.beginPath(); ctx.moveTo((tail.x + q.x * 3) / 4, (tail.y + q.y * 3) / 4 - w * 0.3); ctx.lineTo(head.x, head.y - w * 0.3); ctx.stroke();
+          ctx.fillStyle = 'rgba(200,236,255,0.8)';
+          for (let i = 0; i < 4; i++) { const b = P(p.x - dx * (0.4 + i * 0.25), p.y - dy * (0.4 + i * 0.25), p.z + Math.sin(V.time * 30 + i) * 0.12); ctx.beginPath(); ctx.arc(b.x, b.y, Math.max(1, w * 0.3), 0, Math.PI * 2); ctx.fill(); }
+        } else {
+          ctx.strokeStyle = `rgba(${rgb},0.9)`; ctx.lineWidth = w; ctx.lineCap = 'round';
+          ctx.beginPath(); ctx.moveTo(tail.x, tail.y); ctx.lineTo(head.x, head.y); ctx.stroke();
+          ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(1.2, w * 0.4); ctx.stroke();
+          star(head.x, head.y, sc * 0.18, '#ffffff', 1.8, 0.35);
+        }
+        return;
+      }
       // A thrown stone.
       const tl = P(p.x - p.vx * 0.05, p.y - p.vy * 0.05, p.z);
       ctx.strokeStyle = 'rgba(230,220,200,0.6)'; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.moveTo(tl.x, tl.y); ctx.lineTo(q.x, q.y); ctx.stroke();
       ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(q.x, q.y, Math.max(2.5, sc * 0.08) + 1.5, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = '#d6d0c2'; ctx.beginPath(); ctx.arc(q.x, q.y, Math.max(2.5, sc * 0.08), 0, Math.PI * 2); ctx.fill();
+    }
+
+    // ------------------------------------------------------------ healing
+    function drawHeals(dt, sc) {
+      for (const h of heals) {
+        h.t += dt;
+        const k = h.t / h.life;
+        if (k >= 1) continue;
+        const to = h.to, fr = h.from;
+        const tx = to ? to.x : h.x, ty = to ? to.y : h.y;
+        const b = P(tx, ty, 1.05);
+        ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
+        if (fr && fr !== to) {
+          // the thread: out from the hands, arcing over, fading from the root
+          const a = P(fr.x + Math.cos(fr.facing) * 0.45, fr.y + Math.sin(fr.facing) * 0.45, 1.25);
+          const cx = (a.x + b.x) / 2, cy = Math.min(a.y, b.y) - sc * (0.5 + 0.2 * h.seed);
+          const head = Math.min(1, h.t / 0.22), tail = Math.max(0, (h.t - 0.35) / 0.5);
+          const N = 18;
+          const pt = (u) => ({ x: (1 - u) * (1 - u) * a.x + 2 * (1 - u) * u * cx + u * u * b.x, y: (1 - u) * (1 - u) * a.y + 2 * (1 - u) * u * cy + u * u * b.y });
+          for (const [w, col] of [[sc * 0.16, 'rgba(120,230,160,0.22)'], [sc * 0.06, 'rgba(168,240,192,0.75)'], [Math.max(1.2, sc * 0.02), 'rgba(250,255,250,0.95)']]) {
+            ctx.strokeStyle = col; ctx.lineWidth = Math.max(1, w * (1 - tail * 0.7));
+            ctx.beginPath();
+            for (let i = 0; i <= N; i++) { const u = tail + (head - tail) * (i / N); const q = pt(u); i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y); }
+            ctx.stroke();
+          }
+          // motes spiralling along the thread
+          ctx.fillStyle = 'rgba(230,255,236,0.9)';
+          for (let i = 0; i < 5; i++) {
+            const u = tail + (head - tail) * ((i / 5 + h.t * 2.2) % 1), q = pt(u), w = Math.sin(u * 20 + i) * sc * 0.06;
+            ctx.fillRect(q.x - 1.5, q.y + w - 1.5, 3, 3);
+          }
+        }
+        // the bloom on the wound
+        if (h.t > 0.15) {
+          const kb = Math.min(1, (h.t - 0.15) / 0.25), fade = 1 - Math.max(0, (k - 0.5) / 0.5);
+          const r = sc * (0.35 + 0.45 * kb);
+          const g = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, r);
+          g.addColorStop(0, `rgba(240,255,244,${0.7 * fade})`); g.addColorStop(0.4, `rgba(168,240,192,${0.4 * fade})`); g.addColorStop(1, 'rgba(120,230,160,0)');
+          ctx.fillStyle = g; ctx.fillRect(b.x - r, b.y - r, r * 2, r * 2);
+          const gp = P(tx, ty, 0.02), rr = sc * (0.3 + 0.9 * kb);
+          ctx.strokeStyle = `rgba(168,240,192,${0.7 * fade})`; ctx.lineWidth = Math.max(1, 3 * (1 - kb) + 1);
+          ctx.beginPath(); ctx.ellipse(gp.x, gp.y, rr, rr * V.cam.pitch, 0, 0, Math.PI * 2); ctx.stroke();
+          ctx.restore();
+          if (kb < 1) star(b.x, b.y - sc * 0.2, sc * 0.35 * (1 - kb) * fade, '#e8fff0', 2.2, 0.3);
+        } else ctx.restore();
+      }
+      heals = heals.filter((h) => h.t < h.life);
+    }
+
+    // ------------------------------------------------------------ boss area attacks
+    // Progress of a mark through its wind-up: the sim's own timer when it is
+    // still counting, else ours.
+    function hazardK(s, h) {
+      const z = s.hazards && s.hazards.find((q) => Math.abs(q.x - h.x) < 0.05 && Math.abs(q.y - h.y) < 0.05);
+      if (z) return Math.max(0, Math.min(1, 1 - z.t / (z.h.windup || h.windup)));
+      return Math.min(1, h.t / h.windup);
+    }
+    function ringPath(c, r, pitch) { ctx.beginPath(); ctx.ellipse(c.x, c.y, r, r * pitch, 0, 0, Math.PI * 2); }
+    // On the ground, under the fighters: the marked circle filling up, and
+    // what an impact leaves behind (scorch, a wet stain).
+    function drawHazardMarks(s) {
+      const sc = V.cam.sc, pitch = V.cam.pitch, t = V.time;
+      for (const d of hazHits) {
+        const k = d.t / d.life, c = P(d.x, d.y, 0.02), r = d.r * sc;
+        if (d.kind === 'fire') {
+          ctx.fillStyle = `rgba(20,8,6,${0.55 * (1 - k)})`; ringPath(c, r * 0.95, pitch); ctx.fill();
+          // glowing cracks cooling
+          ctx.strokeStyle = `rgba(255,${Math.round(150 - 90 * k)},40,${0.9 * (1 - k)})`; ctx.lineWidth = Math.max(1, sc * 0.03);
+          ctx.beginPath();
+          for (let i = 0; i < 8; i++) {
+            let a = i * 0.785 + d.seed * 3, x = c.x, y = c.y; ctx.moveTo(x, y);
+            for (let j = 0; j < 3; j++) { a += Math.sin(i * 3 + j * 5) * 0.5; x += Math.cos(a) * r * 0.28; y += Math.sin(a) * r * 0.28 * pitch; ctx.lineTo(x, y); }
+          }
+          ctx.stroke();
+        } else {
+          ctx.fillStyle = `rgba(20,40,60,${0.4 * (1 - k)})`; ringPath(c, r * (1 + 0.2 * k), pitch); ctx.fill();
+          ctx.strokeStyle = `rgba(230,246,255,${0.8 * (1 - k)})`; ctx.lineWidth = Math.max(1, sc * 0.04 * (1 - k));
+          ringPath(c, r * (1 + 0.7 * k), pitch); ctx.stroke();
+          ringPath(c, r * (0.6 + 0.9 * k), pitch); ctx.stroke();
+        }
+      }
+      for (const h of hazards) {
+        const k = hazardK(s, h), fire = h.kind === 'fire';
+        const c = P(h.x, h.y, 0.02), r = h.r * sc;
+        const rgb = fire ? '255,96,40' : '130,200,255', hot = fire ? '255,210,120' : '235,248,255';
+        ctx.fillStyle = `rgba(${rgb},${0.12 + 0.1 * k})`; ringPath(c, r, pitch); ctx.fill();
+        // the fill grows from the centre to the rim as the blow nears
+        ctx.fillStyle = `rgba(${rgb},${0.18 + 0.3 * k})`; ringPath(c, r * (0.12 + 0.88 * k), pitch); ctx.fill();
+        ctx.save(); ringPath(c, r, pitch); ctx.clip();
+        ctx.strokeStyle = `rgba(${rgb},${0.3 + 0.3 * k})`; ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let i = -10; i <= 10; i++) { const o = i * sc * 0.25; ctx.moveTo(c.x + o - r, c.y - r); ctx.lineTo(c.x + o + r, c.y + r); }
+        ctx.stroke(); ctx.restore();
+        // inked rim, brighter and heavier at the end; a turning dashed ring inside
+        ringPath(c, r, pitch);
+        ctx.strokeStyle = INK; ctx.lineWidth = 3 + 4 * k; ctx.stroke();
+        ctx.strokeStyle = `rgba(${hot},${0.55 + 0.45 * k})`; ctx.lineWidth = 1.5 + 2.5 * k; ctx.stroke();
+        ctx.setLineDash([sc * 0.18, sc * 0.14]); ctx.lineDashOffset = -t * sc * (fire ? 0.8 : -0.6);
+        ctx.strokeStyle = `rgba(${hot},${0.5 + 0.3 * k})`; ctx.lineWidth = 1.5;
+        ringPath(c, r * 0.72, pitch); ctx.stroke();
+        ctx.setLineDash([]); ctx.lineDashOffset = 0;
+        if (k > 0.75 && Math.sin(t * 40) > 0) { ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ringPath(c, r, pitch); ctx.stroke(); }
+      }
+    }
+    // Above the fighters: the skyfire gathering overhead or the slab of ocean
+    // lifting, then the impact.
+    function drawHazardsAbove(s, dt, sc) {
+      for (const h of hazards) h.t += dt;
+      hazards = hazards.filter((h) => h.t < h.windup + 0.4 || (s.hazards && s.hazards.some((q) => Math.abs(q.x - h.x) < 0.05 && Math.abs(q.y - h.y) < 0.05)));
+      const t = V.time;
+      for (const h of hazards) {
+        const k = hazardK(s, h), r = h.r * sc;
+        if (h.kind === 'fire') {
+          // Skyfire: a churning knot of flame high over the mark, growing,
+          // then tongues of fire reaching down.
+          const c = P(h.x, h.y, 5.2 - 0.6 * k), R0 = r * (0.25 + 0.55 * k);
+          ctx.save(); ctx.globalCompositeOperation = 'lighter';
+          const g = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, R0 * 1.6);
+          g.addColorStop(0, `rgba(255,236,170,${0.75 * k + 0.15})`); g.addColorStop(0.35, `rgba(255,120,40,${0.55 * k + 0.1})`); g.addColorStop(1, 'rgba(160,20,20,0)');
+          ctx.fillStyle = g; ctx.fillRect(c.x - R0 * 1.6, c.y - R0 * 1.6, R0 * 3.2, R0 * 3.2);
+          ctx.restore();
+          ctx.lineCap = 'round';
+          for (let i = 0; i < 6; i++) {
+            const a0 = t * (2.5 + i * 0.3) + i * 1.05, rr = R0 * (0.5 + (i % 3) * 0.2);
+            ctx.strokeStyle = i % 2 ? `rgba(255,190,90,${0.5 + 0.4 * k})` : `rgba(227,38,58,${0.5 + 0.4 * k})`; ctx.lineWidth = Math.max(1.5, sc * 0.05);
+            ctx.beginPath(); ctx.ellipse(c.x, c.y, rr, rr * 0.55, 0, a0, a0 + 1.6); ctx.stroke();
+          }
+          if (k > 0.55) {
+            const kk = (k - 0.55) / 0.45, g0 = P(h.x, h.y, 0);
+            ctx.save(); ctx.globalCompositeOperation = 'lighter';
+            for (let i = 0; i < 7; i++) {
+              const ox = (((i * 37 + Math.floor(t * 12) * 13) % 100) / 100 - 0.5) * r * 1.4;
+              const y1 = c.y + (g0.y - c.y) * Math.min(1, kk * (0.6 + (i % 3) * 0.2));
+              ctx.strokeStyle = `rgba(255,${150 + (i % 3) * 30},70,${0.35 + 0.4 * kk})`; ctx.lineWidth = Math.max(1.5, sc * (0.03 + (i % 2) * 0.03));
+              ctx.beginPath(); ctx.moveTo(c.x + ox * 0.3, c.y); ctx.lineTo(c.x + ox, y1); ctx.stroke();
+            }
+            ctx.restore();
+          }
+        } else {
+          // Moving ocean: a slab of dark water heaving up over the mark,
+          // foam on its lip, water pouring off its underside.
+          const c = P(h.x, h.y, 2.4 + 1.6 * k), g0 = P(h.x, h.y, 0);
+          const hw = r * (0.9 + 0.15 * k), th = sc * (0.5 + 1.1 * k);
+          const top = c.y - th / 2, bot = c.y + th / 2;
+          const wave = (y, amp, ph) => { const pts = []; for (let i = 0; i <= 16; i++) { const u = i / 16; pts.push([c.x - hw + u * hw * 2, y + Math.sin(u * 9 + t * 4 + ph) * amp * (0.6 + 0.4 * Math.sin(u * Math.PI))]); } return pts; };
+          const tp = wave(top, sc * 0.12, 0), bp = wave(bot, sc * 0.08, 2);
+          const slab = () => { ctx.beginPath(); tp.forEach((q, i) => (i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]))); for (let i = bp.length - 1; i >= 0; i--) ctx.lineTo(bp[i][0], bp[i][1]); ctx.closePath(); };
+          ctx.globalAlpha = Math.min(1, 0.35 + k);
+          ctx.lineJoin = 'round';
+          slab(); ctx.strokeStyle = INK; ctx.lineWidth = 4; ctx.stroke();
+          const lg = ctx.createLinearGradient(0, top, 0, bot);
+          lg.addColorStop(0, '#4c8fc0'); lg.addColorStop(0.5, '#1f4f78'); lg.addColorStop(1, '#0e2a44');
+          ctx.fillStyle = lg; slab(); ctx.fill();
+          // light bands running through the water
+          ctx.save(); slab(); ctx.clip();
+          ctx.strokeStyle = 'rgba(190,230,255,0.35)'; ctx.lineWidth = Math.max(1, sc * 0.03);
+          for (let j = 1; j < 4; j++) { const w = wave(top + th * j / 4, sc * 0.06, j * 1.3); ctx.beginPath(); w.forEach((q, i) => (i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]))); ctx.stroke(); }
+          ctx.restore();
+          // foam lip
+          ctx.strokeStyle = '#eef8ff'; ctx.lineWidth = Math.max(2, sc * 0.07); ctx.lineCap = 'round';
+          ctx.beginPath(); tp.forEach((q, i) => (i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]))); ctx.stroke();
+          // streams falling from the underside onto the mark
+          ctx.strokeStyle = 'rgba(190,230,255,0.55)'; ctx.lineWidth = Math.max(1, sc * 0.025);
+          ctx.beginPath();
+          for (let i = 0; i < 6; i++) {
+            const x = c.x - hw * 0.8 + (i / 5) * hw * 1.6, ph = (t * 1.8 + i * 0.37) % 1;
+            const y0 = bot + ph * (g0.y - bot) * 0.6;
+            ctx.moveTo(x, y0); ctx.lineTo(x, y0 + sc * 0.3);
+          }
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+      }
+      // Impacts.
+      for (const d of hazHits) {
+        d.t += dt;
+        const k = d.t / d.life, c = P(d.x, d.y, 0), r = d.r * sc;
+        if (d.kind === 'fire') {
+          const kk = Math.min(1, d.t / 0.5);
+          if (kk < 1) {
+            // the fall: a column of fire, then the burst
+            ctx.save(); ctx.globalCompositeOperation = 'lighter';
+            const R1 = r * (0.6 + 0.9 * kk);
+            const g = ctx.createRadialGradient(c.x, c.y - r * 0.3, 0, c.x, c.y - r * 0.3, R1);
+            g.addColorStop(0, `rgba(255,244,200,${1 - kk})`); g.addColorStop(0.4, `rgba(255,130,40,${0.8 * (1 - kk)})`); g.addColorStop(1, 'rgba(180,20,20,0)');
+            ctx.fillStyle = g; ctx.fillRect(c.x - R1, c.y - r * 0.3 - R1, R1 * 2, R1 * 2);
+            if (d.t < 0.15) { const top = P(d.x, d.y, 6); ctx.fillStyle = `rgba(255,200,120,${1 - d.t / 0.15})`; ctx.fillRect(c.x - r * 0.25, top.y, r * 0.5, c.y - top.y); }
+            ctx.restore();
+          }
+          // flame tongues licking up off the scorch, dying down
+          if (k < 0.7) {
+            const a = 1 - k / 0.7;
+            for (let i = 0; i < 7; i++) {
+              const ox = (i / 6 - 0.5) * r * 1.4, hgt = sc * (0.5 + ((i * 7) % 5) * 0.18) * a * (0.8 + 0.2 * Math.sin(V.time * 14 + i));
+              const b = { x: c.x + ox, y: c.y + Math.sin(i * 1.7) * r * 0.25 * V.cam.pitch };
+              const w = sc * 0.14;
+              ctx.fillStyle = INK; ctx.beginPath(); ctx.moveTo(b.x - w - 2, b.y); ctx.quadraticCurveTo(b.x - w * 0.3, b.y - hgt * 0.6, b.x + Math.sin(V.time * 9 + i) * w * 0.5, b.y - hgt - 3); ctx.quadraticCurveTo(b.x + w * 0.5, b.y - hgt * 0.5, b.x + w + 2, b.y); ctx.closePath(); ctx.fill();
+              ctx.fillStyle = i % 2 ? '#ff8a2a' : '#e3263a'; ctx.beginPath(); ctx.moveTo(b.x - w, b.y); ctx.quadraticCurveTo(b.x - w * 0.3, b.y - hgt * 0.6, b.x + Math.sin(V.time * 9 + i) * w * 0.5, b.y - hgt); ctx.quadraticCurveTo(b.x + w * 0.5, b.y - hgt * 0.5, b.x + w, b.y); ctx.closePath(); ctx.fill();
+              ctx.fillStyle = '#ffe2a0'; ctx.beginPath(); ctx.moveTo(b.x - w * 0.4, b.y); ctx.quadraticCurveTo(b.x, b.y - hgt * 0.5, b.x + w * 0.4, b.y); ctx.closePath(); ctx.fill();
+            }
+          }
+        } else if (d.t < 0.45) {
+          // the slab comes down: a curtain of water slamming into the mark,
+          // a crown of spray thrown up round the rim
+          const kk = d.t / 0.45;
+          if (kk < 0.35) {
+            const f = 1 - kk / 0.35, top = P(d.x, d.y, 3 * f + 0.3);
+            ctx.fillStyle = INK; ctx.fillRect(c.x - r - 2, top.y - 2, r * 2 + 4, c.y - top.y + 4);
+            ctx.fillStyle = '#2a6696'; ctx.fillRect(c.x - r, top.y, r * 2, c.y - top.y);
+            ctx.fillStyle = '#eef8ff'; ctx.fillRect(c.x - r, top.y, r * 2, Math.max(2, sc * 0.08));
+          }
+          ctx.fillStyle = `rgba(238,248,255,${1 - kk})`; ctx.strokeStyle = INK; ctx.lineWidth = 2;
+          ctx.beginPath();
+          for (let i = 0; i < 14; i++) {
+            const a = (i / 14) * Math.PI * 2 + d.seed, rr = r * (0.9 + 0.4 * kk), hgt = sc * (0.6 + (i % 3) * 0.35) * Math.sin(Math.min(1, kk * 1.6) * Math.PI);
+            const bx = c.x + Math.cos(a) * rr, by = c.y + Math.sin(a) * rr * V.cam.pitch, w = sc * 0.1;
+            ctx.moveTo(bx - w, by); ctx.lineTo(bx + Math.cos(a) * w, by - hgt); ctx.lineTo(bx + w, by); ctx.closePath();
+          }
+          ctx.stroke(); ctx.fill();
+        }
+      }
+      hazHits = hazHits.filter((d) => d.t < d.life);
     }
 
     // ------------------------------------------------------------ blink
@@ -941,7 +1255,7 @@
         const k = (t - CUT.charge) / (CUT.gleam - CUT.charge);
         const eye = eyeOf(u);
         darkAround(eye, Math.min(W, H) * 0.3, Math.min(0.88, 0.55 + k));
-        star(eye.x, eye.y, H * 0.07 * Math.min(1, k * 3), PAL.glyph, 3, 0.2);
+        star(eye.x, eye.y, H * 0.07 * Math.min(1, k * 3), lanceHex, 3, 0.2);
         const tip = lattice(L, t, 1, 1);
         // One line of light along the aim, across the whole screen.
         const far = P(L.mx + L.F[0] * 30, L.my + L.F[1] * 30, L.mz);
@@ -952,7 +1266,7 @@
         ctx.beginPath(); ctx.moveTo(tip.x - (dx / l) * reach * 0.3, tip.y - (dy / l) * reach * 0.3); ctx.lineTo(tip.x + (dx / l) * reach, tip.y + (dy / l) * reach); ctx.stroke();
         ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.stroke();
         ctx.restore();
-        star(tip.x, tip.y, H * 0.13 * Math.min(1, k * 3), PAL.glyph, 3, 0.2);
+        star(tip.x, tip.y, H * 0.13 * Math.min(1, k * 3), lanceHex, 3, 0.2);
       } else if (phase === 'dash') {
         const k = (t - CUT.gleam) / (c.impactAt - CUT.gleam);
         const reach = 1.2 + (L.len - 1.2) * Math.min(1, k * 3.2);
@@ -988,8 +1302,8 @@
         while (st.done < st.hits.length && st.hits[st.done].d <= reach + 0.2) {
           const h = st.hits[st.done++];
           parts.push({ star: true, x: h.x, y: h.y, z: L.mz, t: 0, life: 0.35, r: 1.5, col: '#ffffff', rays: true });
-          parts.push({ ring: true, x: h.x, y: h.y, z: L.mz, t: 0, life: 0.4, col: PAL.glyph });
-          shards(h.x, h.y, L.mz, 14, PAL.glyph, 8);
+          parts.push({ ring: true, x: h.x, y: h.y, z: L.mz, t: 0, life: 0.4, col: lanceHex });
+          shards(h.x, h.y, L.mz, 14, lanceHex, 8);
           impact = Math.max(impact, 0.05);
           V.cam.shake = Math.max(V.cam.shake, 14);
         }
@@ -1024,7 +1338,7 @@
           // Shockwaves where it hit.
           for (const h of L.st.hits) {
             const b = P(h.x, h.y, 0.02);
-            for (const [delay, col] of [[0, PAL.glyph], [0.15, PAL.bone]]) {
+            for (const [delay, col] of [[0, lanceHex], [0.15, PAL.bone]]) {
               const kk = Math.max(0, k - delay), rr = (0.4 + kk * 3.5) * sc;
               ctx.globalAlpha = Math.max(0, 1 - kk);
               ctx.strokeStyle = col; ctx.lineWidth = 7 * (1 - kk) + 1;
@@ -1035,7 +1349,7 @@
         }
         if (!c.dusted) {
           c.dusted = true;
-          for (const h of L.st.hits) { dust(h.x, h.y, 10); shards(h.x, h.y, 1, 10, PAL.glyph, 6); }
+          for (const h of L.st.hits) { dust(h.x, h.y, 10); shards(h.x, h.y, 1, 10, lanceHex, 6); }
         }
       }
     }
@@ -1046,13 +1360,20 @@
       const W = V.W, H = V.H, t = c.t, u = c.unit, cam = V.cam, sc = cam.sc;
       const hero = u.team === 'hero';
       // Line heavies are force glyph-work: they read violet.
-      const glow = c.line ? PAL.glyph : hero ? PAL.heroGlow : PAL.glow, edge = c.line ? PAL.glyph : hero ? PAL.hero : PAL.glow;
+      const lineCol = u.key === 'aerys' ? '#ffe7a8' : PAL.glyph;
+      const glow = c.line ? lineCol : hero ? PAL.heroGlow : PAL.glow, edge = c.line ? lineCol : hero ? PAL.hero : PAL.glow;
       const glowRGB = hero ? '217,240,255' : '227,38,58';
       const phase = cutPhase(c);
       const F = [Math.cos(u.facing), Math.sin(u.facing)];
       const bars = Math.min(1, t / 0.2) * Math.min(1, (c.dur - t) / 0.3) * H * 0.11;
       const base = P(u.x, u.y, 0), chest = P(u.x, u.y, 1.2);
-      if (c.line) drawLance(s, c, phase);
+      if (c.line) {
+        // Aerys's Spear of Light is light, not glyph-work: white-gold.
+        const lit = u.key === 'aerys';
+        if (lit) { GLYPH = '255,226,150'; lanceHex = '#ffe7a8'; }
+        drawLance(s, c, phase);
+        GLYPH = '169,139,255'; lanceHex = '#a98bff';
+      }
       else if (phase === 'charge') {
         const k = t / CUT.charge, e = k * k;
         // Darken everything but the fighter.

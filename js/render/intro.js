@@ -140,6 +140,22 @@
         case 'climber':
           if (k < h) return { rel: -0.4, pitch: -0.25, crouch: 0.22 * pre, lean: 0.2 * pre, stance: 1.5, twist: 0.3 * pre };
           return { rel: 0.15, pitch: 1.35, crouch: 0.12, lean: 0.08, stance: 1.6, twist: -0.3 };
+        // The new manuscript's heroes.
+        case 'eirynAsh':
+          // one hand drawn in, then pushed out flat: the air goes with it
+          if (k < h) return { off: 'cast', rel: 0.2, pitch: 0.3 + 0.4 * pre, lean: -0.1 * pre, crouch: 0.04, stance: 1.15, twist: 0.25 * pre };
+          return { off: 'cast', rel: 0.2, pitch: 0.9, lean: 0.12 - 0.08 * post, crouch: 0.08, stance: 1.35, twist: -0.2 };
+        case 'aerys':
+          // Stillwing: palms open, a crescent stance; the spear forms over her hand
+          return { off: 'cast', rel: -0.4, pitch: 0.4 + 0.9 * pre, lean: -0.08 * pre + 0.1 * post, crouch: 0.1 * pre, stance: 1.3 + 0.4 * pre, twist: -0.35 * pre };
+        case 'nox':
+          return { rel: -0.9, pitch: -0.1, crouch: 0.06 + 0.24 * pre, lean: 0.1 + 0.26 * pre, stance: 1.2 + 0.5 * pre, off: 'back', twist: 0.2 };
+        case 'eloryn':
+          return { off: 'cast', rel: 0.3, pitch: 0.2 + 0.6 * pre, lean: -0.04 * pre, crouch: 0.04 + 0.06 * post, stance: 1.1 };
+        case 'braxen':
+          // the altered fist raised, then driven into the ground
+          if (k < h) return { off: 'fistup', rel: 0.9, pitch: 0.6 + 1.0 * pre, lean: -0.12 * pre, crouch: 0.04, stance: 1.5, twist: -0.4 * pre };
+          return { off: 'fistup', rel: 0.25, pitch: -1.4, lean: 0.45 - 0.2 * post, crouch: 0.32 - 0.12 * post, stance: 1.8, twist: 0.2 };
       }
       if (L.weapon === 'glyph' || L.weapon === 'bow') return { off: 'cast', pitch: 0.4 + 0.6 * pre, lean: -0.1 * pre };
       // Swords and the rest: a flourish that ends in guard.
@@ -403,6 +419,97 @@
       ctx.restore();
     }
 
+    // Pressure: a ring of bent air, a bright hairline over a dark one (a
+    // lens, not a light). Lying on the ground, or standing across F if `up`.
+    function pressureRing(x, y, z, r, a, up, F) {
+      if (a <= 0) return;
+      const P = V.P, n = 40, pts = (rr) => {
+        const out = [];
+        for (let i = 0; i <= n; i++) {
+          const q = (i / n) * Math.PI * 2, w = 1 + 0.04 * Math.sin(q * 5 + V.time * 6);
+          if (up) out.push(P(x - F[1] * Math.cos(q) * rr * w, y + F[0] * Math.cos(q) * rr * w, z + Math.sin(q) * rr * w));
+          else out.push(P(x + Math.cos(q) * rr * w, y + Math.sin(q) * rr * w, z));
+        }
+        return out;
+      };
+      const line = (ps, ox, oy) => { ctx.beginPath(); ps.forEach((q, i) => (i ? ctx.lineTo(q.x + ox, q.y + oy) : ctx.moveTo(q.x + ox, q.y + oy))); };
+      ctx.save(); ctx.lineJoin = 'round';
+      const w = Math.max(1.2, V.cam.sc * 0.03);
+      const ps = pts(r);
+      ctx.strokeStyle = `rgba(10,8,14,${(0.55 * a).toFixed(3)})`; ctx.lineWidth = w * 1.6; line(ps, 2, 3); ctx.stroke();
+      ctx.strokeStyle = `rgba(238,244,252,${(0.85 * a).toFixed(3)})`; ctx.lineWidth = w; line(ps, 0, 0); ctx.stroke();
+      ctx.strokeStyle = `rgba(238,244,252,${(0.3 * a).toFixed(3)})`; ctx.lineWidth = w * 3; line(pts(r * 0.9), 0, 0); ctx.stroke();
+      ctx.restore();
+    }
+
+    // A spear of light along F at height z: length grows; sparks gather to it.
+    function lightSpear(x, y, z, F, len, a, lt) {
+      const P = V.P, sc = V.cam.sc;
+      const p0 = P(x - F[0] * len * 0.45, y - F[1] * len * 0.45, z), p1 = P(x + F[0] * len * 0.55, y + F[1] * len * 0.55, z);
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round';
+      for (const [wd, col] of [[sc * 0.3, `rgba(255,220,150,${0.18 * a})`], [sc * 0.12, `rgba(255,232,170,${0.6 * a})`], [Math.max(1.5, sc * 0.04), `rgba(255,255,255,${a})`]]) {
+        ctx.strokeStyle = col; ctx.lineWidth = wd; ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
+      }
+      // the point: a long diamond
+      const dx = p1.x - p0.x, dy = p1.y - p0.y, l = Math.hypot(dx, dy) || 1, ux = dx / l, uy = dy / l;
+      ctx.fillStyle = `rgba(255,250,235,${a})`;
+      ctx.beginPath(); ctx.moveTo(p1.x + ux * sc * 0.35, p1.y + uy * sc * 0.35); ctx.lineTo(p1.x - uy * sc * 0.09, p1.y + ux * sc * 0.09); ctx.lineTo(p1.x - ux * sc * 0.15, p1.y - uy * sc * 0.15); ctx.lineTo(p1.x + uy * sc * 0.09, p1.y - ux * sc * 0.09); ctx.closePath(); ctx.fill();
+      // motes drawn in toward the shaft
+      ctx.fillStyle = `rgba(255,236,190,${0.9 * a})`;
+      for (let i = 0; i < 10; i++) {
+        const ph = (lt * 1.6 + i * 0.1) % 1, k = (i * 0.37) % 1;
+        const bx = p0.x + dx * k, by = p0.y + dy * k, off = (1 - ph) * sc * (0.6 + (i % 3) * 0.3), ang = i * 2.4;
+        ctx.fillRect(bx + Math.cos(ang) * off - 1.5, by + Math.sin(ang) * off - 1.5, 3, 3);
+      }
+      ctx.restore();
+    }
+
+    // Blue-violet pressure flickering round a fighter in a held instant.
+    function flickerRing(u, a) {
+      if (a <= 0) return;
+      const P = V.P, sc = Math.min(V.cam.sc, 80), h = heightOf(u), step = Math.floor(V.time * 30);
+      ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'miter';
+      for (let i = 0; i < 12; i++) {
+        const sd = (step * 7 + i * 11) % 23, ang = (i / 12) * Math.PI * 2 + sd * 0.05, r = 0.55 + (sd % 4) * 0.1;
+        const q = P(u.x + Math.cos(ang) * r, u.y + Math.sin(ang) * r * 0.8, h * (0.2 + (sd % 7) / 8));
+        const l = sc * (0.15 + (sd % 3) * 0.08);
+        ctx.beginPath(); ctx.moveTo(q.x, q.y); ctx.lineTo(q.x + l * 0.4, q.y - l * 0.5); ctx.lineTo(q.x + l * 0.1, q.y - l * 0.6); ctx.lineTo(q.x + l * 0.6, q.y - l * 1.1);
+        ctx.strokeStyle = `rgba(143,123,255,${0.45 * a})`; ctx.lineWidth = Math.max(2.5, sc * 0.06); ctx.stroke();
+        ctx.strokeStyle = `rgba(240,236,255,${0.9 * a})`; ctx.lineWidth = Math.max(1, sc * 0.018); ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // Eloryn's healing: light pooling in the hands (pre), then a bloom of
+    // green-white petals on the ground and motes rising (e).
+    function healBloom(u, F, pre, e) {
+      const P = V.P, sc = V.cam.sc;
+      const hand = P(u.x + F[0] * 0.6, u.y + F[1] * 0.6, 1.45);
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      const r = sc * (0.15 + 0.35 * pre) * (1 - e * 0.6);
+      const g = ctx.createRadialGradient(hand.x, hand.y, 0, hand.x, hand.y, r * 2);
+      g.addColorStop(0, `rgba(240,255,244,${0.9 * (1 - e)})`); g.addColorStop(0.4, `rgba(168,240,192,${0.5 * (1 - e)})`); g.addColorStop(1, 'rgba(120,230,160,0)');
+      ctx.fillStyle = g; ctx.fillRect(hand.x - r * 2, hand.y - r * 2, r * 4, r * 4);
+      if (e > 0) {
+        const c = P(u.x, u.y, 0.02), R = sc * (0.6 + 2.2 * easeOut(e)), a = 1 - e;
+        ctx.strokeStyle = `rgba(168,240,192,${0.8 * a})`; ctx.lineWidth = Math.max(1.5, sc * 0.05 * a);
+        ctx.beginPath(); ctx.ellipse(c.x, c.y, R, R * V.cam.pitch, 0, 0, Math.PI * 2); ctx.stroke();
+        // petals
+        ctx.fillStyle = `rgba(200,250,215,${0.35 * a})`;
+        for (let i = 0; i < 8; i++) {
+          const ang = (i / 8) * Math.PI * 2 + e * 0.6, tip = { x: c.x + Math.cos(ang) * R * 0.85, y: c.y + Math.sin(ang) * R * 0.85 * V.cam.pitch };
+          const sx = -Math.sin(ang) * R * 0.14, sy = Math.cos(ang) * R * 0.14 * V.cam.pitch;
+          ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.quadraticCurveTo((c.x + tip.x) / 2 + sx, (c.y + tip.y) / 2 + sy, tip.x, tip.y); ctx.quadraticCurveTo((c.x + tip.x) / 2 - sx, (c.y + tip.y) / 2 - sy, c.x, c.y); ctx.fill();
+        }
+        ctx.fillStyle = `rgba(230,255,236,${0.9 * a})`;
+        for (let i = 0; i < 14; i++) {
+          const ang = i * 2.4, d = 0.3 + (i % 5) * 0.25, q = P(u.x + Math.cos(ang) * d, u.y + Math.sin(ang) * d, 0.2 + e * (1 + (i % 4) * 0.5));
+          ctx.fillRect(q.x - 1.5, q.y - 1.5, 3, 3);
+        }
+      }
+      ctx.restore();
+    }
+
     // One-shot world events (blinks, dust) fed to fx.js without touching the sim.
     function fire(p, key, t, at, events) {
       if (p.fired.has(key) || t < at) return;
@@ -447,6 +554,52 @@
           ctx.fillStyle = gg; ctx.fillRect(a0.x - hw, a1.y, hw * 2, a0.y - a1.y);
           ctx.restore();
         }
+      } else if (key === 'eirynAsh') {
+        // Pressure: the air folds into her palm, then goes out as a ring
+        // that bends everything it passes (no light, just the bend).
+        const hand = [u.x + F[0] * 0.7, u.y + F[1] * 0.7];
+        if (since < 0) {
+          const pre = clamp01(lt / (b.hit - b.t0));
+          for (let i = 0; i < 3; i++) { const ph = (lt * 2.4 + i / 3) % 1; pressureRing(hand[0], hand[1], 1.35, (1 - ph) * 0.9 * (0.4 + 0.6 * pre), ph * 0.8 * pre + 0.15, true, F); }
+        } else if (since < 0.9) {
+          const e = since / 0.9;
+          pressureRing(hand[0] + F[0] * e * 4, hand[1] + F[1] * e * 4, 1.3, 0.4 + e * 1.6, 1 - e, true, F);
+          pressureRing(u.x, u.y, 0.03, 0.5 + e * 4.5, (1 - e) * 0.9, false, F);
+          pressureRing(u.x, u.y, 0.03, 0.3 + e * 3.0, (1 - e) * 0.6, false, F);
+        }
+      } else if (key === 'aerys') {
+        // A spear of light gathers over her raised palm, then flares.
+        const pre = clamp01(lt / (b.hit - b.t0)), fl = since > 0 ? Math.max(0, 1 - since / 0.6) : 0;
+        const len = 2.3 * easeOut(pre), ahead = since > 0 ? easeOut(since / 0.25) * 0.6 : 0;
+        const c = [u.x + F[0] * (0.15 + ahead) - Rt[0] * 0.15, u.y + F[1] * (0.15 + ahead) - Rt[1] * 0.15], z = 2.05;
+        lightSpear(c[0], c[1], z, F, len, since > 0 ? 0.3 + fl * 0.7 : 0.35 + 0.65 * pre, lt);
+      } else if (key === 'nox') {
+        const pts = [[-2.8, 2.2], [2.4, -2.4], [-1.2, -2.8], [1.6, 2.6]];
+        pts.forEach((o, i) => {
+          const at = b.t0 + dur * (0.04 + i * 0.09);
+          fire(p, 'nblink' + b.i + '-' + i, t, at, [{ type: 'blink', unit: u.id, x0: u.x + F[0] * o[0] + Rt[0] * o[1], y0: u.y + F[1] * o[0] + Rt[1] * o[1], x1: u.x, y1: u.y }]);
+        });
+        // a held instant: blue-violet pressure flickering round him
+        if (since > -0.15 && since < 0.5) flickerRing(u, 1 - Math.abs(since - 0.15) / 0.4);
+      } else if (key === 'eloryn') {
+        // Healing light pooling in her hands, then opening like a flower.
+        const pre = clamp01(lt / (b.hit - b.t0)), e = since > 0 ? clamp01(since / 0.8) : 0;
+        healBloom(u, F, pre, e, lt);
+      } else if (key === 'braxen') {
+        const sx = u.x + F[0] * 0.75, sy = u.y + F[1] * 0.75;
+        if (since > 0) {
+          cracks(sx, sy, Math.max(0, 1 - since / 1.2) * 0.9, u.facing + 0.4);
+          const e = clamp01(since / 0.5);
+          if (e < 1) {
+            const g0 = V.P(sx, sy, 0.02), rr = V.cam.sc * (0.4 + e * 3.2);
+            ctx.save(); ctx.strokeStyle = `rgba(246,240,236,${0.85 * (1 - e)})`; ctx.lineWidth = Math.max(2, V.cam.sc * 0.08 * (1 - e));
+            ctx.beginPath(); ctx.ellipse(g0.x, g0.y, rr, rr * V.cam.pitch, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+            // grit thrown up off the slam
+            ctx.save(); ctx.fillStyle = `rgba(150,140,124,${0.8 * (1 - e)})`;
+            for (let i = 0; i < 10; i++) { const a = i * 0.63 + 0.2, d = e * (0.6 + (i % 3) * 0.3), q = V.P(sx + Math.cos(a) * d, sy + Math.sin(a) * d, Math.sin(e * Math.PI) * (0.4 + (i % 4) * 0.2)); ctx.fillRect(q.x - 2, q.y - 2, 4 + (i % 2) * 2, 4); }
+            ctx.restore();
+          }
+        }
       } else if (key === 'eirynMage' || L.weapon === 'glyph') {
         const grow = easeOut(lt / (b.hit - b.t0 + 0.05));
         const flare = since > 0 ? Math.max(0, 1 - since / 0.45) : 0;
@@ -474,11 +627,12 @@
       if (since >= 0 && since < 0.4 && b.kind !== 'guest') {
         const a = 1 - since / 0.4;
         if (fx) fx.speedLines(chest.x, chest.y, 56, m * 0.28, W * 1.2, key === 'climber' ? `rgba(227,38,58,${0.35 * a})` : `rgba(246,240,236,${0.3 * a})`, b.i);
-        if (fx) fx.star(chest.x + F[0], chest.y - m * 0.05, m * 0.16 * a, key === 'climber' ? '#ff9aa6' : key === 'mara' || key === 'eirynMage' ? '#d6c8ff' : PAL.heroGlow, 3.2, 0.2);
+        const sig = { climber: '#ff9aa6', mara: '#d6c8ff', eirynMage: '#d6c8ff', eirynAsh: '#eef2f8', aerys: '#ffe7a8', nox: '#c4b8ff', eloryn: '#c8f8d6' }[key] || PAL.heroGlow;
+        if (fx) fx.star(chest.x + F[0], chest.y - m * 0.05, m * 0.16 * a, sig, 3.2, 0.2);
         if (since < 0.06) {
           ctx.save(); ctx.globalCompositeOperation = 'difference'; ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fillRect(0, 0, W, H); ctx.restore();
         }
-        if (!p.fired.has('shake' + b.i)) { p.fired.add('shake' + b.i); V.cam.shake = Math.max(V.cam.shake, key === 'brannoc' ? 16 : 9); }
+        if (!p.fired.has('shake' + b.i)) { p.fired.add('shake' + b.i); V.cam.shake = Math.max(V.cam.shake, key === 'brannoc' || key === 'braxen' ? 16 : 9); }
       }
 
       // Lettering: epithet, name, a slash under it.
