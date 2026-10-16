@@ -142,6 +142,8 @@
     },
   };
   let ARENA = ARENAS.clearing;
+  // Heavy arts are once per match, so they land hard.
+  const HEAVY_MUL = 1.7;
   let NAV = null;
 
   function obstacleCenter(o, px, py) {
@@ -390,7 +392,7 @@
   // party ({slot: n}). Positions are metres; f is the starting facing.
   const SCENARIOS = {
     clearing: {
-      chapter: 'Chapter One', title: 'The Clearing', arena: 'clearing', allOutUses: 1, vs: 'brute', scale: { hp: 1.0, dmg: 1.3 },
+      chapter: 'Chapter One', title: 'The Clearing', arena: 'clearing', allOutUses: 1, vs: 'brute', scale: { hp: 1.1, dmg: 1.35 },
       units: [
         { slot: 0, x: -8.8, y: 0.7, f: 0.1 },
         { key: 'kael', x: -7.5, y: -1.2, f: 0.2 },
@@ -988,7 +990,8 @@
   const heavyOf = (u) => Object.assign({}, SUPER, u.def.heavy || {});
 
   function trySuper(s, u) {
-    if (!u.def.superMeter || u.superMeter < 100 || !FREE[u.state] || inAllOut(u) || isDrained(u)) return false;
+    // Once per fighter per match: a heavy art is a finisher, not a routine.
+    if (!u.def.superMeter || u.superUsed || u.superMeter < 100 || !FREE[u.state] || inAllOut(u) || isDrained(u)) return false;
     const H = heavyOf(u);
     const near = opponents(s, u).filter((o) => inFight(o) && dist(u, o) < (H.line ? H.radius : H.radius - 0.4));
     const t = u.target;
@@ -1001,6 +1004,7 @@
     for (const o of focus) { cx += o.x; cy += o.y; }
     u.facing = Math.atan2(cy / focus.length - u.y, cx / focus.length - u.x);
     u.superMeter = 0;
+    u.superUsed = true;
     s.stats.supers++;
     s.cutscene = { unit: u, name: H.name, t: 0, dur: H.dur, impactAt: H.impactAt, applied: false, x0: u.x, y0: u.y, line: !!H.line };
     bark(s, u, 'super');
@@ -1019,7 +1023,7 @@
     for (const v of opponents(s, u)) {
       if (v.beaten || v.fleeing || dist(u, v) > H.radius) continue;
       if (Math.abs(angDiff(u.facing, angTo(u, v))) > H.arc / 2) continue;
-      const dmg = Math.round((H.dmg[0] + s.rng() * (H.dmg[1] - H.dmg[0])) * (u.power || 1));
+      const dmg = Math.round((H.dmg[0] + s.rng() * (H.dmg[1] - H.dmg[0])) * (u.power || 1) * HEAVY_MUL);
       v.hp -= dmg;
       v.flash = 0.2;
       const a = angTo(u, v);

@@ -497,7 +497,7 @@
       const k = Math.min(0.9, (dt || 0) * 4);
       cam.pitch = (camOut.pitch - 0.56 * k) / (1 - k);
       if (shake > 0) { cam.shake = Math.max(cam.shake, shake); shake = 0; }
-      if (pendingCut && R) { try { R.cutIn(pendingCut.u, pendingCut.caption); } catch (e) { /* ignore */ } pendingCut = null; }
+      pendingCut = null; // eye cut-ins are switched off
       // Balloons and reaction marks are drawn here (post), placed on the real
       // head (seated figures too) and kept on screen in close-ups; hide the
       // callouts layer's copies for this frame.

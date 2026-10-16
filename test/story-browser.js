@@ -117,7 +117,6 @@ const errors = [];
   await shot('s-select-mara');
   await page.click('#btn-choose');
   await tapThrough(40, true);                 // Chapter One scenes
-  await choose(0, 'approach');                // charge in
   await winBattle('clearing');
   await tapThrough(20, true);
   await choose(0, 'trust');                   // stay with her
@@ -156,13 +155,11 @@ const errors = [];
   await page.evaluate(() => window.__tow.debug.world());
   await page.waitForTimeout(200);
   await tapThrough(30, true);
-  await choose(0, 'fork');                    // longer path
   await tapThrough(20, true);
   await winBattle('path');
   await tapThrough(20, true);
   await winBattle('cave');
   await tapThrough(20, true);
-  await choose(0, 'leave');
   await tapThrough(20, true);
   await winBattle('ogre');
   await tapThrough(40, true);

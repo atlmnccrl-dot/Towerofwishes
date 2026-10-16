@@ -340,6 +340,7 @@ h2 { font-style: italic; }
   .chap { padding: 5px 8px; }
   .chap b { font-size: 13px; }
 }
+.auto-btn[aria-pressed="true"] { color: #ffffff; text-decoration: none; border-bottom: 2px solid var(--blood); }
 /* ---------------- full-screen cinematics */
 .screen.cine { background: none; display: block; padding: 0; cursor: pointer; }
 .cine-skip { position: absolute; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); color: var(--bone); opacity: 0.35; font-size: 13px; min-height: 36px; padding: 6px 10px; text-shadow: 0 1px 3px #000; transition: opacity 0.3s; }
@@ -489,7 +490,7 @@ h2 { font-style: italic; }
   <section class="screen story" id="story" hidden>
     <div class="story-top">
       <span class="story-chapter" id="story-chapter"></span>
-      <span class="links"><button class="link" id="btn-skip" type="button">Skip scene</button><button class="link" id="btn-story-menu" type="button">Menu</button></span>
+      <span class="links"><button class="link auto-btn" id="btn-auto" type="button" aria-pressed="false">Auto ▶</button><button class="link" id="btn-skip" type="button">Skip scene</button><button class="link" id="btn-story-menu" type="button">Menu</button></span>
     </div>
     <div class="card-title" id="story-card" hidden><b id="card-title"></b><small id="card-sub"></small></div>
     <div class="dialogue" id="dialogue" hidden><span class="who" id="who"></span><p id="line"></p><span class="tap" aria-hidden="true"></span></div>

@@ -35,7 +35,10 @@
       return true;
     }
     function slowmo(k, t) { if (k < slow.k || slow.t <= 0) slow = { k, t }; }
+    // Eye cut-in panels are switched off (author's call); kept for later use.
+    const CUTINS = false;
     function cut(unit, caption, force) {
+      if (!CUTINS) return;
       if (!force && clock - lastCutin < 5) return;
       lastCutin = clock;
       cutin = { unit, t: 0, dur: 1.1, caption };

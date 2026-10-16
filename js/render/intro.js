@@ -33,7 +33,7 @@
   const GLYPH = '169,139,255';
 
   // Beat lengths (seconds).
-  const D = { establish: 1.1, guest: 0.9, ally: 1.35, lead: 1.6, foes: 1.9, vs: 0.65, count: 0.45, fightHold: 0.55, hit: 0.4 };
+  const D = { establish: 1.1, guest: 0.9, ally: 1.35, lead: 1.6, foes: 1.9, vs: 0, count: 0.45, fightHold: 0.55, hit: 0.4 };
 
   // Shared, mutated per match (see header). Defaults: three heroes.
   const T = { establish: D.establish, heroesEnd: 5.4, foesEnd: 7.3, vsEnd: 7.95, count: D.count, fight: 9.3, end: 9.85 };

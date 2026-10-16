@@ -142,6 +142,26 @@
     if (stage) stage.beat(lineIdx, lines.length);
     typeT = 0; $('line').textContent = '';
   }
+  // Auto: lines play on their own, holding long enough to read each one.
+  let autoT = 0;
+  function autoOn() { return !!(save.settings && save.settings.auto); }
+  function setAuto(on) {
+    save.settings = Object.assign({}, save.settings, { auto: on }); writeSave();
+    $('btn-auto').setAttribute('aria-pressed', on ? 'true' : 'false');
+    $('btn-auto').textContent = on ? 'Auto ■' : 'Auto ▶';
+    autoT = 0;
+  }
+  $('btn-auto').addEventListener('click', (e) => { e.stopPropagation(); setAuto(!autoOn()); });
+  setAuto(autoOn());
+  function autoTick(real) {
+    if (!autoOn()) return;
+    const n = Story.node(story);
+    if (!n || (n.type !== 'scene' && n.type !== 'card')) return;
+    if (n.type === 'scene' && typing()) { autoT = 0; return; }
+    autoT += real;
+    const hold = n.type === 'card' ? 2.8 : 1.3 + lineFull.length * 0.045;
+    if (autoT >= hold) { autoT = 0; storyTap(); }
+  }
   function typing() { return $('line').textContent.length < lineFull.length; }
   // Full-screen cinematics (TowRender.cinematics[name], e.g. js/render/opening.js):
   //   create(canvas) -> { update(dt) -> true when finished, draw(), skip() }
@@ -794,6 +814,7 @@
         renderer.setCameraOverride(stage.camera());
         renderer.draw(stage.match, real, true, null);
       } else backdrop.draw(sceneBg, sceneT);
+      autoTick(real);
       if (!$('dialogue').hidden && typing()) {
         typeT += real;
         $('line').textContent = lineFull.slice(0, Math.floor(typeT * 60));

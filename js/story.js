@@ -218,7 +218,7 @@
       ],
     },
     'c1.voice': {
-      type: 'scene', chapter: 'c1', bg: 'forest', next: 'c1.approach',
+      type: 'scene', chapter: 'c1', bg: 'forest', next: 'c1.fight',
       lines: [
         N('At the forest’s edge, a man laughs. Another answers. Then a woman, clearly enough to carry through the trees:'),
         B('eiryn', 'Keep your hands off me.'),
@@ -228,17 +228,9 @@
         B('knife', 'She can’t. Look at her.'),
       ],
     },
-    'c1.approach': {
-      type: 'choice', chapter: 'c1', bg: 'forest', prompt: 'How do you go in?',
-      options: [
-        { label: 'Charge in first', hint: 'You hit them before they turn: the bandits start staggered. Kael arrives a beat behind you.', set: { approach: 'charge' }, next: 'c1.fight' },
-        { label: 'Circle round the fallen tree', hint: 'You come in beside her. The lookout bolts and can’t distract anyone.', set: { approach: 'circle' }, next: 'c1.fight' },
-        { label: 'Let Kael go first', hint: 'Kael steps out — “That’s enough.” — and starts with his heavy art part-charged.', set: { approach: 'follow', kaelBond: 1 }, next: 'c1.fight' },
-      ],
-    },
     'c1.fight': {
       type: 'battle', chapter: 'c1', scenario: 'clearing', hearts: true, xp: 100,
-      party: (st) => [member(st, st.starter)], mods: (st) => ({ approach: st.flags.approach }), win: 'c1.after',
+      party: (st) => [member(st, st.starter)], mods: () => ({ approach: 'follow' }), win: 'c1.after',
       outro: 'The bandits are beaten or gone. Nobody dies in the clearing.',
     },
     'c1.after': {
@@ -394,7 +386,7 @@
 
     // ---------------------------------------------------------- chapter five
     'c5.mill': {
-      type: 'scene', chapter: 'c5', bg: 'hill', next: 'c5.fork',
+      type: 'scene', chapter: 'c5', bg: 'hill', next: 'c5.path',
       lines: [
         B('miller', 'They’ve been coming after dark. First the grain. Then a box of tools. My youngest tried to chase them and came back with a cut on his arm.'),
         KB('How many?'),
@@ -402,13 +394,6 @@
         EB('You said goblins are usually manageable.'),
         KB('They are. One at a time. They get more confident in groups, which is why we don’t let them decide where the fight happens.'),
         N('Halfway up the second hill the road divides round marshy ground. The shorter path is flooded.'),
-      ],
-    },
-    'c5.fork': {
-      type: 'choice', chapter: 'c5', bg: 'hill', prompt: 'Which way up to the quarry?',
-      options: [
-        { label: 'The longer path', hint: 'Dry and slow. You arrive fresh and the goblins see you coming.', set: { route: 'long' }, next: 'c5.path' },
-        { label: 'Wade the flooded shortcut', hint: 'You arrive soaked and tired (less health), but you catch the goblins off guard.', set: { route: 'wade' }, next: 'c5.path' },
       ],
     },
     'c5.path': {
@@ -424,8 +409,8 @@
     },
     'c5.pathfight': {
       type: 'battle', chapter: 'c5', scenario: 'path', hearts: true, xp: 120,
-      party: (st) => quarryParty(st).map((m) => (st.flags.route === 'wade' ? Object.assign(m, { hpFrac: 0.85 }) : m)),
-      mods: (st) => ({ approach: st.flags.route || 'long' }), win: 'c5.cave',
+      party: (st) => quarryParty(st),
+      mods: () => ({ approach: 'long' }), win: 'c5.cave',
       outro: 'The path is clear. The archer drops its bow and runs for the quarry.',
     },
     'c5.cave': {
@@ -443,7 +428,7 @@
       outro: 'The archer falls against the stone. The miller’s grain is here — most of it.',
     },
     'c5.tracks': {
-      type: 'scene', chapter: 'c5', bg: 'cave', next: 'c5.leave',
+      type: 'scene', chapter: 'c5', bg: 'cave', next: 'c5.ogre',
       lines: [
         N('Two goblins bolt into the deeper passage. The chamber goes quiet apart from the crackle of damp wood.'),
         EB('At least we found what they came for.'),
@@ -451,13 +436,6 @@
         KB('Eiryn, I think we’re leaving.'),
         only((st) => !hasKael(st), S('@', 'Those tracks. Eiryn, I think we’re leaving.')),
         only((st) => !hasEiryn(st), S('@', 'Kael. Those tracks.')),
-      ],
-    },
-    'c5.leave': {
-      type: 'choice', chapter: 'c5', bg: 'cave', prompt: 'Something is moving in the passage.',
-      options: [
-        { label: 'Back to the entrance, slowly', hint: 'As in the book. You see it coming: everyone starts with heavy-art power banked.', set: { ogre: 'ready' }, next: 'c5.ogre' },
-        { label: 'Grab the miller’s tools first', hint: 'You save the tools (more pay) — but the ogre catches the party flat-footed.', set: { ogre: 'caught', gold: 1 }, next: 'c5.ogre' },
       ],
     },
     'c5.ogre': {
@@ -472,7 +450,7 @@
     },
     'c5.ogrefight': {
       type: 'battle', chapter: 'c5', scenario: 'ogre', hearts: true, xp: 150,
-      party: (st) => quarryParty(st), mods: (st) => ({ approach: st.flags.ogre || 'ready' }), win: 'c5.after',
+      party: (st) => quarryParty(st), mods: () => ({ approach: 'ready' }), win: 'c5.after',
       outro: 'The ogre is down. Dust drifts from the cave roof.',
     },
     'c5.after': {
