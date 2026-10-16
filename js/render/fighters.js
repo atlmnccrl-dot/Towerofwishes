@@ -242,6 +242,145 @@
         { hair: 'short', hairC: ['#1e1612', '#0c0806'], hat: { c: ['#2a2420', '#141010'], brim: 1.25 }, coat: ['#5a3a28', '#2c1c12'], coatLen: 0.24, body: ['#3a3230', '#1c1818'], beard: ['#1e1612', '#0c0806'], w: 1.2, build: 1.2, h: 1.04, weapon: 'sword', strap: '#2a1e16' },
       ],
     },
+
+    // ---- The new manuscript's heroes. Canon: Eiryn's long silver-white hair,
+    // patched travel cloak, worn boots and invisible Pressure; Aerys's pale
+    // loose hair, light from her palms, no wings, moving too lightly; Nox's
+    // dark clothes and twin blades; Eloryn's satchel and bandages, the green
+    // light of healing; Braxen's broad shoulders, bare hands and one altered
+    // arm with bone shifting under the skin. Faces and colours are Proposals.
+    // palms: 'pressure' | 'light' | 'heal' — power from the open hands.
+    eirynAsh: {
+      h: 0.95, w: 0.86, build: 0.85, weapon: 'none', palms: 'pressure', hair: 'long',
+      skin: ['#f2dcd2', '#bb9c98'], hairC: ['#f4f0f2', '#a8a2b4'],
+      body: ['#2c2a2e', '#151417'], legs: ['#232126', '#100f12'], boots: ['#4a3a2e', '#211912'],
+      cape: ['#5a5046', '#2c2721'], tatter: 7, capeLen: 0.1, patches: ['#6e6252', '#3a3328'],
+      accent: '#cfd8e6', eye: '#b9c4d6', belt: '#3a2e26', strap: '#3a2e26',
+      introPose: (k) => ({ off: 'cast', rel: 0.2, pitch: 0.4 + 0.4 * k, lean: -0.04, crouch: 0.03, stance: 1.1, twist: -0.15 * k }),
+    },
+    aerys: {
+      h: 0.9, w: 0.82, build: 0.78, weapon: 'none', palms: 'light', hair: 'long', float: 0.14,
+      skin: ['#f8e8e0', '#c7a8a4'], hairC: ['#fbf3df', '#c9b88f'],
+      body: ['#e6e0d4', '#9c958a'], legs: ['#3a3640', '#1c1a20'], boots: ['#5a4e44', '#2a241f'],
+      skirt: ['#d8d0c2', '#8e877c'], sleeve: ['#e6e0d4', '#9c958a'], belt: '#b89a5a',
+      accent: '#ffe7a8', eye: '#e8c46a',
+      // Stillwing: open palms, a crescent stance.
+      introPose: (k) => ({ off: 'out', rel: -0.6, pitch: 0.9, lean: -0.08, crouch: 0.14 * k, stance: 1.7, twist: -0.35 * k }),
+    },
+    nox: {
+      h: 1.0, w: 0.88, build: 0.84, weapon: 'twin', hair: 'messy', afterimage: '#8f7bff',
+      skin: ['#e8d0c4', '#a08480'], hairC: ['#1c1a24', '#09080d'],
+      body: ['#1a1a22', '#0b0b10'], legs: ['#16161c', '#09090c'], boots: ['#1c1a1e', '#0c0b0d'],
+      coat: ['#20202a', '#0e0e14'], coatLen: 0.3, scarf: ['#2a2838', '#12111a'], accent: '#8f7bff', eye: '#8f7bff',
+      belt: '#2e2a36', blade: ['#c8ccd8', '#5e6274'], edge: '#b3a6ff',
+      introPose: (k) => ({ rel: -0.9, pitch: -0.1, crouch: 0.26 * k, lean: 0.32, stance: 1.7, off: 'back', twist: 0.2 }),
+    },
+    eloryn: {
+      h: 0.93, w: 0.86, build: 0.82, weapon: 'none', palms: 'heal', hair: 'messy', ponytail: true,
+      skin: ['#efd2c2', '#ad8b82'], hairC: ['#6a4a34', '#33231a'],
+      body: ['#7a7468', '#403c35'], legs: ['#3e3a34', '#1e1c19'], boots: ['#4a3a2c', '#211912'],
+      skirt: ['#6a6458', '#36332c'], wraps: ['#e8e2d6', '#a39c90'], sleeve: ['#8a8476', '#46423a'],
+      accent: '#a8f0c0', eye: '#7a9a6a', belt: '#5a4430', strap: '#5a4430', satchel: ['#7a5a3a', '#3e2c1c'],
+      introPose: (k) => ({ off: 'cast', rel: 0.3, pitch: 0.2 + 0.3 * k, lean: 0.02, crouch: 0.06, stance: 1.1 }),
+    },
+    braxen: {
+      h: 1.1, w: 1.55, build: 1.5, weapon: 'fists', hair: 'short', altered: 'R',
+      skin: ['#d6a888', '#8e6452'], hairC: ['#2a2420', '#120f0d'],
+      body: ['#4a4a44', '#262622'], legs: ['#33302c', '#191815'], boots: ['#3a2e24', '#1c1611'],
+      bareArms: true, alteredC: ['#b39a8c', '#6e5a52'], bone: ['#efe6d6', '#9a8e7c'],
+      accent: '#9cc3dd', eye: '#e8c547', belt: '#2a2018',
+      introPose: (k) => ({ off: 'fistup', rel: 0.6, pitch: 1.0, stance: 1.7, crouch: 0.1 * k, twist: -0.25 * k, lean: 0.06 }),
+    },
+
+    // ---- The road's foes and the Tower (Proposals within the book's lines).
+    // The Skyreaver: a winged sky-beast, the mother (form 'flyer').
+    skyreaver: {
+      h: 1.6, w: 2.2, build: 2.2, form: 'flyer',
+      hide: ['#4a3a36', '#241a19'], belly: ['#6e5a50', '#3a2c27'], membrane: ['#3a2426', '#1a0f11'], bone: ['#cbbca8', '#7a6e60'],
+      scar: '#b8a090', eye: '#ffc94a',
+      skin: ['#4a3a36', '#241a19'], body: ['#4a3a36', '#241a19'], legs: ['#4a3a36', '#241a19'], boots: ['#4a3a36', '#241a19'], hairC: ['#2a1e1c', '#120c0b'],
+      accent: '#e3263a',
+    },
+    // Pack predators of the ruined lowlands: the beast rig, smaller, ash-grey,
+    // ribs showing through a mangy hide.
+    ruinBeast: {
+      h: 0.6, w: 1.2, build: 1.2, form: 'beast', size: 0.74, ribs: true,
+      fur: ['#5a534c', '#2c2824'], mane: ['#2a2622', '#100e0c'], belly: ['#6e665c', '#3a3530'],
+      skin: ['#7a6458', '#3e302a'], gum: '#5a1a1e', tooth: '#e8e0cc', eye: '#ff4a3a', claw: '#d8cfbe',
+      body: ['#5a534c', '#2c2824'], legs: ['#5a534c', '#2c2824'], boots: ['#5a534c', '#2c2824'], hairC: ['#2a2622', '#100e0c'],
+      accent: '#e3263a',
+    },
+    // It clings upside down; its limbs curve wherever the body needs them
+    // instead of bending at joints; long fingers, two faint eyes (form 'crawler').
+    nightCreature: {
+      h: 1.2, w: 1.4, build: 1.4, form: 'crawler',
+      hide: ['#1e1b1f', '#09080a'], pale: '#8a8590', eye: '#e8f6ec', claw: '#cfc8c0',
+      skin: ['#1e1b1f', '#09080a'], body: ['#1e1b1f', '#09080a'], legs: ['#1e1b1f', '#09080a'], boots: ['#1e1b1f', '#09080a'], hairC: ['#1e1b1f', '#09080a'],
+      accent: '#e3263a',
+    },
+    // Tower Floor One: frost knights wrapped in mist. Enclosed helms, a cold
+    // light through the visor. blade: [base, shadow]; edge: the bright edge.
+    knightSword: {
+      h: 1.04, w: 1.02, build: 1.0, weapon: 'sword', hair: 'helm', faceless: true, glowEyes: 2, mist: true,
+      skin: ['#c8d6e2', '#6e8294'], hairC: ['#c8d6e2', '#6e8294'],
+      body: ['#b8c8d6', '#5e7284'], legs: ['#8ea2b4', '#46586a'], boots: ['#a8bacb', '#526476'],
+      armor: ['#d6e2ec', '#7088a0'], sleeve: ['#a8bacb', '#526476'], wraps: ['#c0d0de', '#647a8e'],
+      pauldron: 'both', plate: true, belt: '#46586a', accent: '#bfe8ff', eye: '#bfe8ff',
+      blade: ['#e4f4ff', '#8ab4d0'], edge: '#ffffff', bladeLen: 1.2,
+      introPose: (k) => ({ rel: 0.1, pitch: 1.3, crouch: 0.06 * k, stance: 1.45, lean: 0.02, twist: -0.1 * k }),
+    },
+    knightFist: {
+      h: 1.16, w: 1.6, build: 1.6, weapon: 'fists', hair: 'helm', faceless: true, glowEyes: 2, mist: true, headK: 0.9,
+      skin: ['#c8d6e2', '#6e8294'], hairC: ['#c8d6e2', '#6e8294'],
+      body: ['#a8bacb', '#526476'], legs: ['#8ea2b4', '#46586a'], boots: ['#a8bacb', '#526476'],
+      armor: ['#c8d6e2', '#6e8294'], sleeve: ['#9cb0c2', '#4c6072'], wraps: ['#b8c8d6', '#5e7284'],
+      pauldron: 'both', plate: true, belt: '#46586a', accent: '#bfe8ff', eye: '#bfe8ff', knuckles: '#d6b25a',
+      introPose: (k) => ({ off: 'fistup', rel: 0.6, pitch: 1.0, stance: 1.7, crouch: 0.12 * k, twist: -0.2 * k, lean: 0.08 }),
+    },
+    knightSpear: {
+      h: 1.02, w: 0.8, build: 0.78, weapon: 'longspear', hair: 'helm', faceless: true, glowEyes: 2, mist: true, ponytail: true,
+      skin: ['#c8d6e2', '#6e8294'], hairC: ['#e8f0f6', '#8aa0b4'],
+      body: ['#b8c8d6', '#5e7284'], legs: ['#8ea2b4', '#46586a'], boots: ['#a8bacb', '#526476'],
+      armor: ['#d6e2ec', '#7088a0'], sleeve: ['#a8bacb', '#526476'], skirt: ['#9cb0c2', '#4c6072'],
+      pauldron: 'L', plate: true, belt: '#46586a', accent: '#bfe8ff', eye: '#bfe8ff',
+      blade: ['#e4f4ff', '#8ab4d0'], edge: '#ffffff',
+    },
+    knightTwin: {
+      h: 0.98, w: 0.92, build: 0.9, weapon: 'twin', hair: 'helm', faceless: true, glowEyes: 2, mist: true,
+      skin: ['#c8d6e2', '#6e8294'], hairC: ['#c8d6e2', '#6e8294'],
+      body: ['#a2b4c4', '#52667a'], legs: ['#8ea2b4', '#46586a'], boots: ['#a2b4c4', '#52667a'],
+      armor: ['#b8c8d6', '#5e7284'], sleeve: ['#9cb0c2', '#4c6072'], wraps: ['#b8c8d6', '#5e7284'],
+      belt: '#46586a', accent: '#bfe8ff', eye: '#bfe8ff',
+      blade: ['#e4f4ff', '#8ab4d0'], edge: '#bfe8ff',
+      introPose: (k) => ({ rel: -0.6, pitch: 0.1, crouch: 0.18 * k, lean: 0.2, stance: 1.5, off: 'back' }),
+    },
+    knightAxe: {
+      h: 1.08, w: 0.78, build: 0.74, weapon: 'greataxe', hair: 'helm', faceless: true, glowEyes: 2, mist: true,
+      skin: ['#c8d6e2', '#6e8294'], hairC: ['#c8d6e2', '#6e8294'],
+      body: ['#a8bacb', '#526476'], legs: ['#8ea2b4', '#46586a'], boots: ['#a8bacb', '#526476'],
+      armor: ['#c8d6e2', '#6e8294'], sleeve: ['#9cb0c2', '#4c6072'], wraps: ['#b8c8d6', '#5e7284'],
+      pauldron: 'R', belt: '#46586a', accent: '#bfe8ff', eye: '#bfe8ff',
+      blade: ['#e4f4ff', '#8ab4d0'], edge: '#ffffff',
+      introPose: (k) => ({ rel: 2.2, pitch: 1.3, crouch: 0.06 * k, stance: 1.5, twist: -0.25 * k, lean: 0.02 }),
+    },
+    knightMaster: {
+      h: 1.12, w: 1.12, build: 1.08, weapon: 'sword', hair: 'helm', faceless: true, glowEyes: 2, mist: true, horns: ['#2a3440', '#10161c'],
+      skin: ['#8ea2b4', '#3e5062'], hairC: ['#8ea2b4', '#3e5062'],
+      body: ['#7a90a4', '#344658'], legs: ['#5e7286', '#2a3a4a'], boots: ['#7a90a4', '#344658'],
+      armor: ['#a8bacb', '#46586a'], sleeve: ['#6e8498', '#304254'], wraps: ['#8ea2b4', '#3e5062'],
+      cape: ['#1c2630', '#0a0f14'], tatter: 9, capeLen: 0.03, spikes: true,
+      pauldron: 'both', plate: true, belt: '#2a3a4a', accent: '#9fe8ff', eye: '#9fe8ff',
+      blade: ['#e4f4ff', '#7aa6c4'], edge: '#ffffff', bladeLen: 1.3,
+      introPose: (k) => ({ rel: 0.0, pitch: 1.42, crouch: 0.02, stance: 1.25, lean: -0.02, twist: -0.05 * k }),
+    },
+    // Floor Two: angelic in shape but wrong (form 'seraph').
+    calamity: {
+      h: 1.7, w: 1.4, build: 1.5, form: 'seraph',
+      robe: ['#ddd3c0', '#8c826f'], skinS: ['#f0e6d8', '#b0a290'], hairS: ['#efe0b8', '#a8946a'], halo: '#e8c96a',
+      water: '170,220,255', lava: '255,120,40',
+      skin: ['#f0e6d8', '#b0a290'], body: ['#ddd3c0', '#8c826f'], legs: ['#ddd3c0', '#8c826f'], boots: ['#ddd3c0', '#8c826f'], hairC: ['#efe0b8', '#a8946a'],
+      accent: '#e3263a', eye: '#ffffff',
+    },
   };
   // One look per patron: the unit id's number (or a hash) picks the variant.
   const variantCache = new Map();
@@ -263,6 +402,7 @@
     sword: { len: 1.1 }, branch: { len: 1.05 }, knife: { len: 0.36 }, twin: { len: 0.5 },
     hammer: { len: 0.78 }, greatsword: { len: 1.35, grip: 'two' }, beam: { len: 2.3, grip: 'two' },
     spear: { len: 1.5, grip: 'shaft', thrust: true }, claws: { len: 0.3 },
+    longspear: { len: 2.7, grip: 'shaft', thrust: true }, greataxe: { len: 1.85, grip: 'two' },
     cudgel: { len: 0.82 }, cleaver: { len: 0.78 }, hexstick: { len: 0.8 }, bell: { len: 1.25, grip: 'two' },
   };
 
@@ -275,7 +415,7 @@
     let rel = 0.75, pitch = 0.5, lean = 0, crouch = 0.03, off = 'guard', stance = 1, twist = 0;
     const a = u.act;
     const intro = V.introPhase;
-    const caster = L.weapon === 'glyph' || L.weapon === 'bow' || L.caster;
+    const caster = L.weapon === 'glyph' || L.weapon === 'bow' || L.caster || !!L.palms;
     switch (u.state) {
       case 'attack':
         if (a.phase === 'windup' || a.phase === 'feint') {
@@ -498,8 +638,10 @@
     function hashId(id) { let h = 7; for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 997; return h; }
 
     // ---------------------------------------------------------------- figure
+    let curS = null;
     function drawUnit(u, s) {
       if (u.fled) return;
+      curS = s;
       const L = lookOf(u.key, u.id);
       const sc = V.cam.sc;
       lx = V.light.sx; ly = V.light.sy;
@@ -509,8 +651,27 @@
       if (L.form === 'veil') { drawVeil(u, L, sc); return; }
       if (L.form === 'beast') { drawBeast(u, L, sc); return; }
       if (L.form === 'golem') { drawGolem(u, L, sc); return; }
+      if (L.form === 'flyer') { drawFlyer(u, L, sc, s); return; }
+      if (L.form === 'crawler') { drawCrawler(u, L, sc); return; }
+      if (L.form === 'seraph') { drawSeraph(u, L, sc, s); return; }
       if (L.coldGlow && u.state !== 'out') coldPool(u, L, sc);
-      V.shadow(u.x, u.y, u.r * 1.3 * (lying ? 1.7 : 1) * L.build ** 0.5 / (L.build > 1.6 ? 1.2 : 1), L.ghost ? 0.25 : 0.42);
+      V.shadow(u.x, u.y, u.r * 1.3 * (lying ? 1.7 : 1) * L.build ** 0.5 / (L.build > 1.6 ? 1.2 : 1), L.ghost ? 0.25 : L.float && !lying ? 0.28 : 0.42);
+      if (L.mist && u.state !== 'out') drawMist(u, L, sc, false);
+      // Shadow-step: fading afterimages trail a fast mover.
+      if (L.afterimage && !lying && !V.introPhase) {
+        const spd = Math.hypot(u.vx || 0, u.vy || 0);
+        if (spd > 3 || u.state === 'dodge' || u.state === 'opener') {
+          const k = Math.min(1, spd / 7) || 0.6;
+          const dx = spd > 0.1 ? u.vx / spd : -Math.cos(u.facing), dy = spd > 0.1 ? u.vy / spd : -Math.sin(u.facing);
+          for (const [d, a] of [[0.75, 0.16], [0.4, 0.28]]) {
+            const g = Object.create(u);
+            g.x = u.x - dx * d * k; g.y = u.y - dy * d * k; g.flash = 0;
+            ctx.globalAlpha = a;
+            drawStanding(g, L, sc);
+          }
+          ctx.globalAlpha = 1;
+        }
+      }
       let alpha = u.state === 'out' ? 0.6 : 1;
       if (L.ghost) {
         // Fragments flicker: mostly solid, with brief drop-outs. (Drawn
@@ -522,6 +683,53 @@
       if (lying) drawLying(u, L, sc);
       else drawStanding(u, L, sc);
       ctx.globalAlpha = 1;
+      if (L.mist && u.state !== 'out') drawMist(u, L, sc, true);
+      if (L.afterimage && !lying) shadowFlicker(u, L, sc, s);
+    }
+
+    // Frost mist wrapped round a knight's legs, trailing behind as it moves.
+    function drawMist(u, L, sc, front) {
+      const sp = spring(u), t = V.time * 0.7 + hashId(u.id) * 0.13;
+      const lg = clampLag(sp, 0.4);
+      ctx.save(); ctx.lineCap = 'round';
+      for (let i = 0; i < 7; i++) {
+        const ph = (t * 0.45 + i / 7) % 1;
+        const a = i * 1.9 + t * 0.5;
+        const rr = 0.22 + ph * 0.35;
+        const x = u.x + Math.cos(a) * rr + lg.x * (1 + ph * 3), y = u.y + Math.sin(a) * rr * 0.7 + lg.y * (1 + ph * 3);
+        const near = Math.sin(a) > 0;
+        if (near !== front) continue;
+        // a curl of mist: a short soft arc drifting up and thinning
+        const q = P(x, y, 0.1 + ph * 0.7), w = sc * (0.22 + ph * 0.25);
+        const al = 0.3 * Math.sin(ph * Math.PI) * (front ? 0.75 : 1);
+        ctx.strokeStyle = `rgba(214,236,250,${(al * 0.5).toFixed(3)})`; ctx.lineWidth = Math.max(3, sc * 0.12);
+        ctx.beginPath(); ctx.moveTo(q.x - w, q.y); ctx.quadraticCurveTo(q.x, q.y - w * 0.35, q.x + w, q.y + w * 0.1); ctx.stroke();
+        ctx.strokeStyle = `rgba(236,248,255,${al.toFixed(3)})`; ctx.lineWidth = Math.max(1.5, sc * 0.04);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // Blue-violet pressure flickering round Nox while he moves or strikes,
+    // and hard during his heavy art (the world held still around him).
+    function shadowFlicker(u, L, sc, s) {
+      const art = s.cutscene && s.cutscene.unit === u;
+      const busy = u.state === 'dodge' || u.state === 'opener' || (u.state === 'attack' && u.act && u.act.phase !== 'recover') || (V.introPhase && V.spotlight === u.id);
+      if (!art && !busy) return;
+      const n = art ? 9 : 4, h = 1.75 * L.h, step = Math.floor(V.time * 24);
+      sc = Math.min(sc, 70); // the sparks stay small in close-ups
+      ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'miter';
+      for (let i = 0; i < n; i++) {
+        const sd = (step * 7 + i * 13) % 17;
+        const a = sd * 0.37 + i, z = h * (0.15 + ((sd * 5) % 9) / 10), r = 0.35 + (sd % 4) * 0.12;
+        const p0 = P(u.x + Math.cos(a) * r, u.y + Math.sin(a) * r * 0.8, z);
+        const l = sc * (0.12 + (sd % 3) * 0.06);
+        ctx.beginPath(); ctx.moveTo(p0.x, p0.y);
+        ctx.lineTo(p0.x + l * 0.5, p0.y - l * 0.4); ctx.lineTo(p0.x + l * 0.15, p0.y - l * 0.6); ctx.lineTo(p0.x + l * 0.8, p0.y - l * 1.1);
+        ctx.strokeStyle = rgba(L.afterimage, 0.35); ctx.lineWidth = Math.max(2, sc * 0.05); ctx.stroke();
+        ctx.strokeStyle = 'rgba(236,232,255,0.9)'; ctx.lineWidth = Math.max(1, sc * 0.015); ctx.stroke();
+      }
+      ctx.restore();
     }
 
     function drawLying(u, L, sc) {
@@ -554,7 +762,9 @@
       const H = 1.78 * L.h;
       const f = u.facing + ps.twist * 0.35;
       const F = [Math.cos(f), Math.sin(f)], Rt = [-F[1], F[0]];
-      const W = (x, y, z) => ({ x: u.x + F[0] * x + Rt[0] * y, y: u.y + F[1] * x + Rt[1] * y, z });
+      // Floaters (Aerys) hang a hand's breadth above the ground, drifting.
+      const lift = L.float && !V.introPhase ? L.float * (1 + 0.35 * Math.sin(V.time * 1.7 + hashId(u.id))) : L.float ? L.float * 0.6 : 0;
+      const W = (x, y, z) => ({ x: u.x + F[0] * x + Rt[0] * y, y: u.y + F[1] * x + Rt[1] * y, z: z + lift });
       // Seated (staged scenes): the whole upper body drops onto a stool.
       const sit = u.state === 'sit';
       const seat = 0.47 * Math.sqrt(L.h);
@@ -666,7 +876,7 @@
         handL = W(fwd * L.h + lean * 0.5, side * L.w, H * z * cz);
       }
       // Glyph casters: the casting hand comes up and pushes the glyph out.
-      if (L.weapon === 'glyph' && free && u.state !== 'pickup' && !gest) {
+      if ((L.weapon === 'glyph' || L.palms) && free && u.state !== 'pickup' && !gest) {
         if (AK) {
           const fw = AK.ph === 'wind' ? 0.25 + 0.2 * AK.e : AK.ph === 'strike' ? 0.66 : 0.66 - 0.36 * AK.e;
           const zz = AK.ph === 'wind' ? 0.66 + 0.1 * AK.e : AK.ph === 'strike' ? 0.78 : 0.78 - 0.14 * AK.e;
@@ -700,7 +910,7 @@
       // Weapon tip (world) and two-handed grips.
       let tipW = null;
       if (Wd) {
-        const len = Wd.len * (L.weapon === 'spear' || L.weapon === 'beam' ? 1 : Math.min(1.15, Math.max(0.85, L.h)));
+        const len = Wd.len * (L.bladeLen || 1) * (L.weapon === 'spear' || L.weapon === 'longspear' || L.weapon === 'beam' ? 1 : Math.min(1.15, Math.max(0.85, L.h)));
         tipW = { x: handR.x + Math.cos(wa) * len * cp, y: handR.y + Math.sin(wa) * len * cp, z: handR.z + Math.sin(wpitch) * len };
         if (u.state === 'parry') tipW = { x: handR.x - Rt[0] * len * 0.9, y: handR.y - Rt[1] * len * 0.9, z: handR.z + 0.38 };
         if (tipW.z < 0.02) {
@@ -747,12 +957,21 @@
       ];
       function footTip(side) {
         const ft = side === 'R' ? footR : footL;
-        return [ft.x + F[0] * 0.14 * Math.sqrt(L.w), ft.y + F[1] * 0.14 * Math.sqrt(L.w), 0.02];
+        return [ft.x + F[0] * 0.14 * Math.sqrt(L.w), ft.y + F[1] * 0.14 * Math.sqrt(L.w), 0.02 + (L.float ? ft.z - 0.04 : 0)];
       }
       const armColor = L.bareArms ? L.skin : L.sleeve || L.coat || L.body;
       const fistK = L.weapon === 'fists' ? 1 : L.weapon === 'beam' ? 1.1 : 0;
       const arm = (side) => {
         const hand = S['hand' + side];
+        if (L.altered === side) {
+          // the altered arm: heavier, a greyer skin stretched over shifting bone
+          const ac = L.alteredC;
+          return [
+            { ...seg(S['sh' + side], S['el' + side], px * 1.0, px * 0.85), c: ac, rim: false },
+            { ...seg(S['el' + side], hand, px * 0.9, px * 0.7), c: ac, rim: false },
+            { kind: 'ell', x: hand.x, y: hand.y, rx: px * 1.15, ry: px * 1.05, c: ac, rim: false },
+          ];
+        }
         return [
           { ...seg(S['sh' + side], S['el' + side], px * 0.8, px * 0.65), c: armColor, rim: false },
           { ...seg(S['el' + side], hand, px * 0.65, px * 0.5), c: L.wraps || armColor, rim: false },
@@ -780,6 +999,7 @@
       back.push(...leg(far));
       back.push(...arm(far));
       layer(back, flash);
+      if (L.altered === far) boneRidges(G, far);
       if (L.trim && !flash) { hemTrim(capeSh, L.trim); hemTrim(coatSh, L.trim); }
       if (far === 'R') drawWeapon(G);
       if (far === 'L') drawOffHand(G);
@@ -814,11 +1034,14 @@
       if (sw && sw.d >= S.chest.d) drawStowed(G, sw);
       if (G.backShield && P(G.backShield.x, G.backShield.y, G.backShield.z).d >= S.chest.d) drawShield(Object.assign({}, G, { handL: G.backShield }));
       layer(arm(near), flash);
+      if (L.altered === near) boneRidges(G, near);
+      if (L.knuckles) drawKnuckles(G);
       const prop = u.prop !== undefined ? u.prop : L.prop;
       if (prop && u.state !== 'attack') drawProp(G, prop);
       if (far === 'R') drawOffHand(G);
       if (L.shield && shieldFront && !stowed) drawShield(G);
       if (L.glyph) drawGlyphHands(G);
+      if (L.palms) drawPalms(G);
       if (L.weed) drawWeed(G);
       if (L.drip) drawDrips(G);
     }
@@ -1008,6 +1231,10 @@
         const sides = L.pauldron === 'both' ? [shL, shR] : [shL];
         const sh = sides.map((q) => { const o = P(q.x, q.y, q.z + 0.05); const k = L.pauldron === 'both' ? 0.72 : 1; return { kind: 'ell', x: o.x, y: o.y, rx: px * 2.0 * k, ry: px * 1.5 * k, rot: -0.3, c: L.armor }; });
         layer(sh, flash);
+        if (L.spikes) {
+          // the Master Knight's pauldrons rise into spikes
+          layer(sh.map((e) => ({ kind: 'poly', pts: [{ x: e.x - e.rx * 0.55, y: e.y - e.ry * 0.5 }, { x: e.x + (e.x < S.chest.x ? -e.rx * 0.5 : e.rx * 0.5), y: e.y - e.ry * 2.4 }, { x: e.x + e.rx * 0.45, y: e.y - e.ry * 0.6 }], c: L.armor, shadeFrom: [1, 2, 0] })), flash);
+        }
       }
       if (L.chestV) {
         const c1 = P(chest.x + F[0] * 0.1, chest.y + F[1] * 0.1, chest.z + 0.02);
@@ -1018,6 +1245,16 @@
         // Sword strap across the chest.
         ctx.strokeStyle = L.strap; ctx.lineWidth = Math.max(1.5, px * 0.5);
         ctx.beginPath(); ctx.moveTo(S.shL.x, S.shL.y); ctx.lineTo(br.x, br.y); ctx.stroke();
+      }
+      if (L.satchel) {
+        // a healer's satchel on the hip, its strap across the chest
+        const c = P(pelvis.x + Rt[0] * 0.2 * L.w + F[0] * 0.04, pelvis.y + Rt[1] * 0.2 * L.w + F[1] * 0.04, pelvis.z - 0.04);
+        layer([{ kind: 'ell', x: c.x, y: c.y, rx: px * 1.25, ry: px * 1.0, c: L.satchel }], flash);
+        if (!flash) {
+          ctx.strokeStyle = INK; ctx.lineWidth = Math.max(0.8, inkW * 0.6);
+          ctx.beginPath(); ctx.moveTo(c.x - px * 1.1, c.y - px * 0.2); ctx.quadraticCurveTo(c.x, c.y + px * 0.35, c.x + px * 1.1, c.y - px * 0.2); ctx.stroke();
+          ctx.fillStyle = '#d8c8a0'; ctx.beginPath(); ctx.arc(c.x, c.y + px * 0.15, Math.max(1, px * 0.18), 0, TAU); ctx.fill();
+        }
       }
       if (L.quiver) {
         ctx.strokeStyle = '#3a281a'; ctx.lineWidth = Math.max(1.2, px * 0.4);
@@ -1204,6 +1441,7 @@
       if (L.beard) drawBeard(L, h, r, chin, fx, flash);
       drawHair(u, L, h, r, fx, fy, towardCam, flash, hairTail);
       if (L.hat) drawHat(L, h, r, fx, flash);
+      if (L.horns) drawHorns(L, h, r, fx, flash);
       if (glowEyes && !flash && (towardCam || L.faceless)) drawGlowEyes(L, h, r, fx, fy, glowEyes, u);
       if (L.blank && !flash && towardCam) {
         // no face at all: a smooth pale blank, a faint hollow where eyes were
@@ -1228,6 +1466,28 @@
       }
       layer(shapes, flash);
       if (!flash && !L.hat.cap) { ctx.fillStyle = '#2a1c12'; ctx.fillRect(h.x - r * 0.7, cy - r * 0.2, r * 1.4, r * 0.2); }
+    }
+
+    // Curved horns rising from a helm: out, up and hooking forward.
+    function drawHorns(L, h, r, fx, flash) {
+      const shapes = [];
+      for (const sg of [-1, 1]) {
+        const b = { x: h.x + sg * r * 0.72 - fx * r * 0.1, y: h.y - r * 0.45 };
+        const m = { x: h.x + sg * r * 1.55 - fx * r * 0.2, y: h.y - r * 1.15 };
+        const tip = { x: h.x + sg * r * 1.25 + fx * r * 0.35, y: h.y - r * 2.15 };
+        const w = r * 0.26;
+        shapes.push({ kind: 'poly', pts: [
+          { x: b.x - sg * w * 0.2, y: b.y - w }, { x: m.x - sg * w * 0.6, y: m.y - w * 0.6 }, tip,
+          { x: m.x + sg * w * 0.7, y: m.y + w * 0.4 }, { x: b.x + sg * w * 0.6, y: b.y + w * 0.8 },
+        ], c: L.horns, shadeFrom: [2, 3, 4] });
+      }
+      layer(shapes, flash);
+      if (!flash) {
+        ctx.strokeStyle = 'rgba(159,232,255,0.5)'; ctx.lineWidth = Math.max(0.8, r * 0.06);
+        ctx.beginPath();
+        for (const sh of shapes) { const q = sh.pts; ctx.moveTo(q[0].x, q[0].y); ctx.quadraticCurveTo(q[1].x, q[1].y, q[2].x, q[2].y); }
+        ctx.stroke();
+      }
     }
 
     // A crude crown of stolen tools: a strap round the skull with nails,
@@ -1493,17 +1753,22 @@
           layer([{ kind: 'poly', pts: head, c: ['#8f99a4', '#454c55'], shadeFrom: [1, 2, 3] }], flash);
           return;
         }
-        case 'spear': {
+        case 'spear': case 'longspear': {
           // shaft runs back past the hand; leaf blade at the tip
           const butt = { x: h.x - dx * 0.35, y: h.y - dy * 0.35 };
           const neck = { x: t.x - ux * px * 1.8, y: t.y - uy * px * 1.8 };
-          layer([{ ...seg(butt, neck, px * 0.24, px * 0.22), c: ['#7a5a3c', '#3e2c1d'] }], flash);
+          layer([{ ...seg(butt, neck, px * 0.24, px * 0.22), c: L.blade ? ['#6e8498', '#304254'] : ['#7a5a3c', '#3e2c1d'] }], flash);
           const bw = Math.max(2, px * 0.5);
           const blade = () => { ctx.beginPath(); ctx.moveTo(neck.x - ux * px * 0.3, neck.y - uy * px * 0.3); ctx.lineTo(neck.x + nx * bw + ux * px * 0.6, neck.y + ny * bw + uy * px * 0.6); ctx.lineTo(t.x + ux * px * 0.9, t.y + uy * px * 0.9); ctx.lineTo(neck.x - nx * bw + ux * px * 0.6, neck.y - ny * bw + uy * px * 0.6); ctx.closePath(); };
           ctx.lineJoin = 'miter';
           ctx.fillStyle = INK; ctx.strokeStyle = INK; ctx.lineWidth = inkW * 1.6; blade(); ctx.stroke(); ctx.fill();
-          ctx.fillStyle = flash ? '#fff' : '#a6a49a'; blade(); ctx.fill();
-          if (!flash) {
+          ctx.fillStyle = flash ? '#fff' : L.blade ? L.blade[0] : '#a6a49a'; blade(); ctx.fill();
+          if (!flash && L.blade) {
+            // a frost edge down one side of the blade
+            ctx.strokeStyle = L.edge; ctx.lineWidth = Math.max(0.8, px * 0.14);
+            ctx.beginPath(); ctx.moveTo(neck.x + nx * bw * 0.5, neck.y + ny * bw * 0.5); ctx.lineTo(t.x + ux * px * 0.6, t.y + uy * px * 0.6); ctx.stroke();
+          }
+          if (!flash && !L.blade) {
             // binding and a rag tied below the head
             ctx.strokeStyle = '#8e1621'; ctx.lineWidth = Math.max(1.2, px * 0.35);
             ctx.beginPath(); ctx.moveTo(neck.x - ux * px * 0.5, neck.y - uy * px * 0.5); ctx.lineTo(neck.x - ux * px * 0.5 - ny * px * 0.2 + nx * px * 1.4, neck.y - uy * px * 0.5 + px * 1.2); ctx.stroke();
@@ -1594,6 +1859,28 @@
           bellShape(top, t, nx, ny, sc * 0.5, flash, u, L);
           return;
         }
+        case 'greataxe': {
+          // A long haft and a huge crescent head that reaches past the guard.
+          const butt = { x: h.x - ux * px * 1.6, y: h.y - uy * px * 1.6 };
+          layer([{ ...seg(butt, t, px * 0.26, px * 0.24), c: ['#46586a', '#202a34'] }], flash);
+          const hw = Math.max(8, sc * 0.3), hb = { x: t.x - ux * px * 0.6, y: t.y - uy * px * 0.6 };
+          const c0 = { x: hb.x - ux * px * 1.4, y: hb.y - uy * px * 1.4 };
+          const head = [
+            { x: c0.x, y: c0.y }, { x: c0.x - nx * hw * 0.55 - ux * hw * 0.55, y: c0.y - ny * hw * 0.55 - uy * hw * 0.55 },
+            { x: hb.x - nx * hw * 1.05 - ux * hw * 0.2, y: hb.y - ny * hw * 1.05 - uy * hw * 0.2 },
+            { x: hb.x - nx * hw * 1.0 + ux * hw * 0.55, y: hb.y - ny * hw * 1.0 + uy * hw * 0.55 },
+            { x: hb.x - nx * hw * 0.5 + ux * hw * 0.75, y: hb.y - ny * hw * 0.5 + uy * hw * 0.75 },
+            { x: t.x + ux * px * 0.2, y: t.y + uy * px * 0.2 },
+            // the back spike
+            { x: hb.x + nx * hw * 0.55, y: hb.y + ny * hw * 0.55 }, { x: c0.x + nx * px * 0.3, y: c0.y + ny * px * 0.3 },
+          ];
+          layer([{ kind: 'poly', pts: head, c: L.blade || ['#c9d2da', '#6d7782'], shadeFrom: [0, 5, 6, 7] }], flash);
+          if (!flash) {
+            ctx.strokeStyle = L.edge || '#ffffff'; ctx.lineWidth = Math.max(1, px * 0.22); ctx.lineJoin = 'round';
+            ctx.beginPath(); ctx.moveTo(head[1].x, head[1].y); ctx.quadraticCurveTo(head[2].x, head[2].y, head[3].x, head[3].y); ctx.lineTo(head[4].x, head[4].y); ctx.stroke();
+          }
+          return;
+        }
         case 'claws': {
           // Shadow talons from both hands.
           for (const hand of [S.handR, S.handL]) {
@@ -1625,14 +1912,14 @@
         blade = () => { ctx.beginPath(); ctx.moveTo(g.x + nx * bw, g.y + ny * bw); ctx.lineTo(t.x, t.y); ctx.lineTo(g.x - nx * bw, g.y - ny * bw); ctx.closePath(); };
       }
       ctx.fillStyle = INK; ctx.strokeStyle = INK; ctx.lineWidth = inkW * 1.6; blade(); ctx.stroke(); ctx.fill();
-      ctx.fillStyle = flash ? '#ffffff' : kind === 'greatsword' ? '#dcd8da' : '#c9d2da'; blade(); ctx.fill();
+      ctx.fillStyle = flash ? '#ffffff' : L.blade ? L.blade[0] : kind === 'greatsword' ? '#dcd8da' : '#c9d2da'; blade(); ctx.fill();
       if (!flash) {
         ctx.save(); blade(); ctx.clip();
-        ctx.fillStyle = kind === 'greatsword' ? '#7a7176' : '#6d7782';
+        ctx.fillStyle = L.blade ? L.blade[1] : kind === 'greatsword' ? '#7a7176' : '#6d7782';
         ctx.beginPath(); ctx.moveTo(g.x, g.y); ctx.lineTo(t.x, t.y); ctx.lineTo(t.x - nx * bw * 2, t.y - ny * bw * 2); ctx.lineTo(g.x - nx * bw * 2, g.y - ny * bw * 2); ctx.closePath(); ctx.fill();
         ctx.restore();
         const edge = kind === 'greatsword' ? 0.86 : 1;
-        ctx.strokeStyle = kind === 'greatsword' || kind === 'twin' ? '#ff5a68' : '#ffffff'; ctx.lineWidth = Math.max(0.8, bw * (kind === 'greatsword' ? 0.18 : 0.3));
+        ctx.strokeStyle = L.edge || (kind === 'greatsword' || kind === 'twin' ? '#ff5a68' : '#ffffff'); ctx.lineWidth = Math.max(0.8, bw * (kind === 'greatsword' ? 0.18 : 0.3));
         ctx.beginPath(); ctx.moveTo(g.x + nx * bw * 0.6, g.y + ny * bw * 0.6); ctx.lineTo(g.x + dx * edge * 0.88 + nx * bw * 0.4, g.y + dy * edge * 0.88 + ny * bw * 0.4); ctx.stroke();
       }
       if (kind === 'sword' || kind === 'greatsword') {
@@ -1768,9 +2055,9 @@
         const blade = () => { ctx.beginPath(); ctx.moveTo(h.x + nx * bw, h.y + ny * bw); ctx.lineTo(tip.x, tip.y); ctx.lineTo(h.x - nx * bw, h.y - ny * bw); ctx.closePath(); };
         ctx.lineJoin = 'miter';
         ctx.fillStyle = INK; ctx.strokeStyle = INK; ctx.lineWidth = inkW * 1.6; blade(); ctx.stroke(); ctx.fill();
-        ctx.fillStyle = flash ? '#fff' : '#c9d2da'; blade(); ctx.fill();
+        ctx.fillStyle = flash ? '#fff' : L.blade ? L.blade[0] : '#c9d2da'; blade(); ctx.fill();
         if (!flash) {
-          ctx.strokeStyle = '#ff5a68'; ctx.lineWidth = Math.max(0.8, bw * 0.3);
+          ctx.strokeStyle = L.edge || '#ff5a68'; ctx.lineWidth = Math.max(0.8, bw * 0.3);
           ctx.beginPath(); ctx.moveTo(h.x + nx * bw * 0.5, h.y + ny * bw * 0.5); ctx.lineTo(tip.x, tip.y); ctx.stroke();
         }
       } else if (L.weapon === 'bow') {
@@ -1924,6 +2211,136 @@
       }
     }
 
+    // Braxen's altered arm: bone ridges pushing up under the skin along the
+    // forearm and upper arm, creeping a little as if they were still moving.
+    function boneRidges(G, side) {
+      const { u, L, S, px, flash } = G;
+      const sh = S['sh' + side], el = S['el' + side], hd = S['hand' + side];
+      const t = V.time * 1.3 + hashId(u.id) * 0.1;
+      // outward: away from the chest
+      const out = (a, b) => {
+        const dx = b.x - a.x, dy = b.y - a.y, l = Math.hypot(dx, dy) || 1;
+        let nx = -dy / l, ny = dx / l;
+        const mx = (a.x + b.x) / 2 - S.chest.x, my = (a.y + b.y) / 2 - S.chest.y;
+        if (nx * mx + ny * my < 0) { nx = -nx; ny = -ny; }
+        return { dx: dx / l, dy: dy / l, nx, ny, l };
+      };
+      const shapes = [];
+      const ridge = (a, b, n, w0, h0, ph) => {
+        const o = out(a, b);
+        for (let i = 0; i < n; i++) {
+          const k = (i + 0.6 + 0.25 * Math.sin(t + i * 1.7 + ph)) / (n + 0.4);
+          const bx = a.x + (b.x - a.x) * k, by = a.y + (b.y - a.y) * k;
+          const wd = w0 * (0.8 + 0.3 * Math.sin(t * 1.4 + i)), hh = h0 * (0.75 + 0.4 * Math.sin(t * 0.9 + i * 2.3 + ph));
+          const base = px * 0.62;
+          shapes.push({ kind: 'poly', pts: [
+            { x: bx + o.nx * base - o.dx * wd, y: by + o.ny * base - o.dy * wd },
+            { x: bx + o.nx * (base + hh) - o.dx * wd * 0.6, y: by + o.ny * (base + hh) - o.dy * wd * 0.6 },
+            { x: bx + o.nx * base + o.dx * wd, y: by + o.ny * base + o.dy * wd },
+          ], c: L.bone, shadeFrom: [1, 2, 0], rim: false });
+        }
+      };
+      ridge(el, hd, 4, px * 0.32, px * 0.75, 0);
+      ridge(sh, el, 3, px * 0.3, px * 0.55, 2);
+      // knuckle spurs on the fist
+      const o = out(el, hd);
+      for (const j of [-0.5, 0.5]) {
+        const b = { x: hd.x + o.dx * px * 0.7 + o.nx * j * px * 0.6, y: hd.y + o.dy * px * 0.7 + o.ny * j * px * 0.6 };
+        shapes.push({ kind: 'poly', pts: [{ x: b.x - o.nx * px * 0.2, y: b.y - o.ny * px * 0.2 }, { x: b.x + o.dx * px * 0.6, y: b.y + o.dy * px * 0.6 }, { x: b.x + o.nx * px * 0.2, y: b.y + o.ny * px * 0.2 }], c: L.bone, rim: false });
+      }
+      layer(shapes, flash);
+      if (flash) return;
+      // the skin pulled tight between ridges: dark seams down the arm
+      ctx.strokeStyle = 'rgba(40,20,22,0.6)'; ctx.lineWidth = Math.max(0.8, px * 0.14); ctx.lineCap = 'round';
+      ctx.beginPath();
+      for (const [a, b] of [[sh, el], [el, hd]]) {
+        const oo = out(a, b);
+        ctx.moveTo(a.x + oo.nx * px * 0.2, a.y + oo.ny * px * 0.2);
+        ctx.quadraticCurveTo((a.x + b.x) / 2 - oo.nx * px * 0.25, (a.y + b.y) / 2 - oo.ny * px * 0.25, b.x + oo.nx * px * 0.1, b.y + oo.ny * px * 0.1);
+      }
+      ctx.stroke();
+    }
+
+    // Brass knuckles over both fists.
+    function drawKnuckles(G) {
+      const { L, S, px, flash } = G;
+      if (flash) return;
+      for (const h of [S.handL, S.handR]) {
+        ctx.fillStyle = INK; ctx.beginPath(); ctx.ellipse(h.x, h.y - px * 0.35, px * 1.05, px * 0.42, 0, 0, TAU); ctx.fill();
+        ctx.fillStyle = L.knuckles; ctx.beginPath(); ctx.ellipse(h.x, h.y - px * 0.35, px * 0.9, px * 0.3, 0, 0, TAU); ctx.fill();
+        ctx.fillStyle = '#fff3c8';
+        for (const o of [-0.5, 0, 0.5]) { ctx.beginPath(); ctx.arc(h.x + o * px, h.y - px * 0.42, Math.max(0.8, px * 0.1), 0, TAU); ctx.fill(); }
+      }
+    }
+
+    // Power from the open hands. pressure: air folding into rings that bend
+    // what is behind them (no glow, no glyphs); light: a white-gold bloom
+    // held in the palm; heal: a green-white light.
+    function drawPalms(G) {
+      const { u, L, S, sc, flash } = G;
+      if (flash) return;
+      const AK = attackK(u);
+      const casting = u.state === 'cast' || (V.introPhase && G.ps.off === 'cast' && V.spotlight === u.id);
+      const k = AK ? (AK.ph === 'wind' ? AK.e : AK.ph === 'strike' ? 1.2 : 1 - AK.e) : casting ? 0.9 : 0;
+      const t = V.time + hashId(u.id) * 0.1;
+      const main = S.handR, off = S.handL;
+      if (L.palms === 'pressure') {
+        // a faint ripple even at rest; rings fold in toward the palm as it charges
+        const rings = k > 0 ? 3 : 1, base = sc * (0.12 + 0.22 * Math.min(1, k));
+        for (let i = 0; i < rings; i++) {
+          const ph = (t * (k > 0 ? 2.2 : 0.8) + i / rings) % 1;
+          const r = base * (1.6 - ph * 1.1);
+          const a = (k > 0 ? 0.65 : 0.3) * Math.sin(ph * Math.PI);
+          // light arc on the lit side, a dark arc just inside it: reads as a lens
+          ctx.lineWidth = Math.max(1, sc * 0.022);
+          ctx.strokeStyle = `rgba(232,240,252,${a.toFixed(3)})`;
+          ctx.beginPath(); ctx.ellipse(main.x, main.y, r, r * 0.9, 0, 0, TAU); ctx.stroke();
+          ctx.strokeStyle = `rgba(12,10,16,${(a * 0.7).toFixed(3)})`;
+          ctx.beginPath(); ctx.ellipse(main.x + lx * 2, main.y + ly * 2, r * 0.86, r * 0.78, 0, 0, TAU); ctx.stroke();
+        }
+        if (k > 0.6) {
+          // the air squeezed white at the centre
+          ctx.fillStyle = `rgba(240,246,255,${(0.35 * Math.min(1, k)).toFixed(3)})`;
+          ctx.beginPath(); ctx.arc(main.x, main.y, Math.max(1.5, sc * 0.05), 0, TAU); ctx.fill();
+        }
+      } else {
+        const rgb = L.palms === 'heal' ? '168,240,192' : '255,236,190';
+        const hands = k > 0 ? [main, off] : [main];
+        const glow = Math.max(0.22, k);
+        for (const h of hands) {
+          const r = sc * (0.1 + 0.16 * Math.min(1.2, glow)) * (h === main ? 1 : 0.7) * (1 + 0.1 * Math.sin(t * 9));
+          ctx.fillStyle = `rgba(${rgb},${(0.22 * glow).toFixed(3)})`;
+          ctx.beginPath(); ctx.arc(h.x, h.y, r * 1.8, 0, TAU); ctx.fill();
+          ctx.fillStyle = `rgba(${rgb},${(0.55 * glow).toFixed(3)})`;
+          ctx.beginPath(); ctx.arc(h.x, h.y, r, 0, TAU); ctx.fill();
+          ctx.fillStyle = `rgba(255,255,255,${Math.min(1, 0.4 + glow * 0.6).toFixed(3)})`;
+          ctx.beginPath(); ctx.arc(h.x, h.y, Math.max(1.2, r * 0.35), 0, TAU); ctx.fill();
+          if (L.palms === 'heal' && k > 0) {
+            // motes rising off the healing hand
+            for (let i = 0; i < 4; i++) {
+              const ph = (t * 0.9 + i * 0.25) % 1;
+              ctx.fillStyle = `rgba(${rgb},${(0.8 * (1 - ph)).toFixed(3)})`;
+              ctx.fillRect(h.x + Math.sin(i * 2.1 + t * 2) * r * 1.2 - 1.5, h.y - ph * sc * 0.6, 3, 3);
+            }
+          }
+        }
+      }
+      // Big power ages the hands: dark veins up the fingers during her heavy art.
+      if (L.palms === 'pressure' && curS && curS.cutscene && curS.cutscene.unit === u) {
+        const kk = Math.min(1, curS.cutscene.t / 0.8);
+        ctx.strokeStyle = `rgba(30,14,30,${(0.85 * kk).toFixed(3)})`; ctx.lineWidth = Math.max(1, sc * 0.014); ctx.lineCap = 'round';
+        ctx.beginPath();
+        for (const [h, e] of [[S.handR, S.elR], [S.handL, S.elL]]) {
+          const dx = e.x - h.x, dy = e.y - h.y;
+          for (const o of [-0.25, 0.05, 0.3]) {
+            ctx.moveTo(h.x - dy * o * 0.3, h.y + dx * o * 0.3);
+            ctx.quadraticCurveTo(h.x + dx * 0.3 + dy * o * 0.4, h.y + dy * 0.3 - dx * o * 0.4, h.x + dx * 0.6 * kk - dy * o * 0.2, h.y + dy * 0.6 * kk + dx * o * 0.2);
+          }
+        }
+        ctx.stroke();
+      }
+    }
+
     // ---------------------------------------------------------------- the Stray
     // A big feral animal on all fours: hunched shoulders under a black mane,
     // long forelegs, a low head with a snout full of teeth (three rows), a
@@ -1935,7 +2352,10 @@
       const tt = V.time + hashId(u.id) * 0.1;
       const lying = u.state === 'down' || u.state === 'out';
       const f = u.facing, F = [Math.cos(f), Math.sin(f)], Rt = [-F[1], F[0]];
-      const W = (x, y, z) => P(u.x + F[0] * x + Rt[0] * y, u.y + F[1] * x + Rt[1] * y, z);
+      // size: a smaller (or bigger) animal on the same rig
+      const SZ = L.size || 1;
+      const Pl = (wx, wy, z) => P(u.x + (wx - u.x) * SZ, u.y + (wy - u.y) * SZ, z * SZ);
+      const W = (x, y, z) => Pl(u.x + F[0] * x + Rt[0] * y, u.y + F[1] * x + Rt[1] * y, z);
       V.shadow(u.x, u.y, u.r * (lying ? 2.0 : 1.75), 0.45);
       ctx.globalAlpha = u.state === 'out' ? 0.6 : 1;
       const AK = attackK(u);
@@ -1991,7 +2411,7 @@
         }
         legs.push({ s, fore: [ft, fe, fp], hind: [hp2, hk, hh, hpaw] });
       }
-      const px = sc * 0.1;
+      const px = sc * 0.1 * SZ;
       const fur = L.fur, mane = L.mane;
       const legShapes = (lg) => [
         { ...seg(lg.hind[0], lg.hind[1], px * 2.6, px * 1.5), c: fur, rim: false },
@@ -2013,8 +2433,9 @@
       };
       // Tail: thin, drooping, lagging behind motion, a tuft at the end.
       const tailB = W(hip.x - 0.15, 0, hip.z + 0.05);
-      const tailM = P(u.x + F[0] * (hip.x - 0.65) + sp.cx * 1.2, u.y + F[1] * (hip.x - 0.65) + sp.cy * 1.2, hip.z - 0.05 + Math.sin(tt * 2.6) * 0.06);
-      const tailT = P(u.x + F[0] * (hip.x - 1.05) + Rt[0] * Math.sin(tt * 1.9) * 0.2 + sp.cx * 2, u.y + F[1] * (hip.x - 1.05) + Rt[1] * Math.sin(tt * 1.9) * 0.2 + sp.cy * 2, Math.max(0.1, hip.z - 0.35));
+      const lagT = clampLag(sp, 0.18);
+      const tailM = Pl(u.x + F[0] * (hip.x - 0.65) + lagT.x * 1.2, u.y + F[1] * (hip.x - 0.65) + lagT.y * 1.2, hip.z - 0.05 + Math.sin(tt * 2.6) * 0.06);
+      const tailT = Pl(u.x + F[0] * (hip.x - 1.05) + Rt[0] * Math.sin(tt * 1.9) * 0.2 + lagT.x * 2, u.y + F[1] * (hip.x - 1.05) + Rt[1] * Math.sin(tt * 1.9) * 0.2 + lagT.y * 2, Math.max(0.1, hip.z - 0.35));
       const tail = [{ ...seg(tailB, tailM, px * 0.55, px * 0.4), c: fur, rim: false }, { ...seg(tailM, tailT, px * 0.4, px * 0.7), c: mane, rim: false }];
       // Body: a heavy chest tapering to lean hips, the hump of the shoulders.
       const body = [
@@ -2038,6 +2459,16 @@
           ctx.moveTo(q.x, q.y - px * 1.6); ctx.quadraticCurveTo(q.x + px * 0.5, q.y, q.x - px * 0.2, q.y + px * 1.4);
         }
         ctx.stroke();
+        if (L.ribs) {
+          // ribs showing through the hide, pale and hard
+          ctx.strokeStyle = rgba(L.claw, 0.55); ctx.lineWidth = Math.max(0.8, px * 0.22);
+          ctx.beginPath();
+          for (let i = 0; i < 4; i++) {
+            const q = W(sh.x - 0.12 - i * 0.16, (rightNear ? 1 : -1) * 0.34, (hip.z + sh.z) / 2 + 0.05);
+            ctx.moveTo(q.x - px * 0.3, q.y - px * 1.5); ctx.quadraticCurveTo(q.x + px * 0.6, q.y - px * 0.2, q.x + px * 0.1, q.y + px * 1.2);
+          }
+          ctx.stroke();
+        }
       }
       layer(legShapes(nearLeg), flash); claws(nearLeg);
       if (frontNear) beastHead();
@@ -2054,7 +2485,7 @@
           const x = head.x - 0.25 + (hip.x + 0.35 - (head.x - 0.25)) * k;
           const zb = k < 0.45 ? head.z + 0.1 + (hump.z + 0.12 - head.z - 0.1) * (k / 0.45) : hump.z + 0.12 + (hip.z + 0.2 - hump.z - 0.12) * ((k - 0.45) / 0.55);
           const spike = i % 2 ? 0.0 : 0.26 * (1 - Math.abs(k - 0.4)) + tw;
-          top.push(P(u.x + F[0] * (x - spike * 0.6) + sp.cx * k * 0.6, u.y + F[1] * (x - spike * 0.6) + sp.cy * k * 0.6, zb + spike));
+          top.push(Pl(u.x + F[0] * (x - spike * 0.6) + sp.cx * k * 0.6, u.y + F[1] * (x - spike * 0.6) + sp.cy * k * 0.6, zb + spike));
         }
         for (const q of top) pts.push(q);
         for (let i = n; i >= 0; i -= 3) {
@@ -2466,6 +2897,532 @@
         ctx.lineTo(a.hand.x + (ux + nx * o) * sc * 0.28, a.hand.y + (uy + ny * o) * sc * 0.28);
       }
       ctx.stroke();
+    }
+
+    // ---------------------------------------------------------------- the Skyreaver
+    // A winged sky-beast hovering over the field: scarred hide, enormous
+    // membrane wings on the arms (wyvern-like), a long neck and a narrow,
+    // watchful head; hind legs hang with talons. The wind-up climbs with the
+    // wings raised; the strike is a dive, wings swept back, talons first.
+    function drawFlyer(u, L, sc, s) {
+      const flash = u.flash > 0, tt = V.time + hashId(u.id) * 0.1;
+      const lying = u.state === 'down' || u.state === 'out';
+      const f = u.facing, F = [Math.cos(f), Math.sin(f)], Rt = [-F[1], F[0]];
+      const sp = spring(u);
+      const AK = attackK(u);
+      const beat = tt * 3.1;
+      let flap = Math.sin(beat), rise = 0, dive = 0, jaw = 0.12 + 0.05 * Math.sin(tt * 2), headUp = 0;
+      if (AK) {
+        if (AK.ph === 'wind') { rise = AK.e; flap = 0.3 + 0.65 * AK.e + 0.05 * Math.sin(beat * 2); jaw = 0.2 + 0.5 * AK.e; headUp = 0.25 * AK.e; }
+        else if (AK.ph === 'strike') { dive = 1; flap = -0.85; jaw = 1; }
+        else { dive = 1 - AK.e; flap = -0.85 + 0.85 * AK.e + Math.sin(beat) * AK.e; jaw = 1 - 0.85 * AK.e; }
+      }
+      const spd = Math.hypot(u.vx || 0, u.vy || 0);
+      if (!AK && spd > 5) flap = -0.25 + 0.15 * Math.sin(beat * 1.5); // gliding
+      const hurt = u.state === 'hurt' || u.state === 'stagger';
+      if (hurt) { flap = 0.6 + 0.4 * Math.sin(u.st * 40); headUp = 0.3; jaw = 0.8; }
+      if (V.introPhase) {
+        const k = V.spotlight === u.id || V.spotlight === u.team ? 1 : 0.5;
+        rise = 0.35 * k; flap = 0.85 + 0.12 * Math.sin(beat); headUp = 0.4 * k; jaw = 0.25 + 0.65 * k;
+      }
+      let hz = 2.3 + 0.9 * rise - 1.5 * dive - 0.12 * flap;
+      if (lying) { hz = 0.5; flap = -0.75; dive = 0; rise = 0; headUp = -0.3; jaw = u.state === 'out' ? 0.3 : 0.5; }
+      const lunge = 0.9 * dive, nose = 0.3 * dive - 0.12 * rise;
+      const jit = hurt ? Math.sin(u.st * 70) * 0.06 : 0;
+      // local (forward x, right y, height z) -> screen; tilt the body nose-down on the dive
+      const Lp = (x, y, z, lag) => {
+        const xx = x + lunge + jit, zz = z - (x * nose * 0.45);
+        return P(u.x + F[0] * xx + Rt[0] * y + (lag ? sp.cx * lag : 0), u.y + F[1] * xx + Rt[1] * y + (lag ? sp.cy * lag : 0), Math.max(0.05, zz));
+      };
+      const lightK = 1 - Math.min(1, hz / 4);
+      V.shadow(u.x + F[0] * lunge, u.y + F[1] * lunge, u.r * (3.4 - 0.35 * hz), 0.16 + 0.22 * lightK);
+      V.shadow(u.x + F[0] * lunge, u.y + F[1] * lunge, u.r * (1.4 - 0.1 * hz), 0.2 + 0.25 * lightK);
+      ctx.globalAlpha = u.state === 'out' ? 0.6 : 1;
+      const hide = L.hide, mem = L.membrane, bone = L.bone;
+      const rightNear = Lp(0, 1, hz).d > Lp(0, -1, hz).d;
+      const frontNear = Lp(1, 0, hz).d > Lp(-1, 0, hz).d;
+      const m = sc; // metres to px
+
+      // Body joints.
+      const C = Lp(0.75, 0, hz + 0.15), Hp = Lp(-0.9, 0, hz), Mid = Lp(-0.05, 0, hz + 0.2);
+      const N1 = Lp(1.3, 0, hz + 0.5 + headUp * 0.4);
+      const Hd = Lp(1.85 - 0.1 * headUp + 0.25 * dive, 0, hz + 0.75 + headUp * 0.7 - dive * 0.6);
+      const hdz = hz + 0.75 + headUp * 0.7 - dive * 0.6, hdx = 1.85 - 0.1 * headUp + 0.25 * dive;
+      const ja = jaw * 0.7;
+      const Sn = Lp(hdx + 0.7, 0, hdz - 0.05 + headUp * 0.25);
+      const Lj = Lp(hdx + 0.6 * Math.cos(ja), 0, hdz - 0.12 - 0.6 * Math.sin(ja) + headUp * 0.15);
+      const tail = [Hp, Lp(-1.9, Math.sin(tt * 1.6) * 0.25, hz - 0.05, 0.6), Lp(-2.9, Math.sin(tt * 1.6 - 0.8) * 0.45, hz + 0.1, 1.4), Lp(-3.8, Math.sin(tt * 1.6 - 1.6) * 0.6, hz + 0.3 + 0.2 * Math.sin(tt * 1.6 - 2.2), 2.2)];
+
+      // Wing geometry for side sd (+1 right, -1 left).
+      const wing = (sd) => {
+        const a = Math.abs(flap), sweep = 0.8 * dive, fold = (1 - 0.35 * dive) * 0.82;
+        const fl = flap;
+        const Sh = Lp(0.45, sd * 0.36, hz + 0.32);
+        const E = Lp(0.6 - sweep * 0.5, sd * 1.5 * fold, hz + 0.55 + fl * 0.9);
+        const Wr = Lp(0.25 - sweep, sd * (2.85 - a * 0.35) * fold, hz + 0.45 + fl * 1.9);
+        const D1 = Lp(-0.45 - sweep * 1.4, sd * (4.0 - a * 0.6) * fold, hz + 0.15 + fl * 2.3);
+        const D2 = Lp(-1.45 - sweep * 1.2, sd * 3.0 * fold, hz - 0.1 + fl * 1.55);
+        const D3 = Lp(-1.85 - sweep, sd * 1.7 * fold, hz - 0.15 + fl * 0.75);
+        const R0 = Lp(-1.0, sd * 0.3, hz + 0.05);
+        const pull = (p, q, k) => ({ x: (p.x + q.x) / 2 + (Wr.x - (p.x + q.x) / 2) * k, y: (p.y + q.y) / 2 + (Wr.y - (p.y + q.y) / 2) * k });
+        // the trailing edge scallops between the finger bones; a tear in one
+        const tear = sd > 0 ? [pull(D2, D3, 0.12), { x: (D2.x * 0.4 + D3.x * 0.6 + Wr.x * 0.6) / 1.6, y: (D2.y * 0.4 + D3.y * 0.6 + Wr.y * 0.6) / 1.6 }, pull(D2, D3, 0.3)] : [pull(D2, D3, 0.28)];
+        const pts = [Sh, E, Wr, D1, pull(D1, D2, 0.3), D2, ...tear, D3, pull(D3, R0, 0.25), R0];
+        return { Sh, E, Wr, D1, D2, D3, R0, pts };
+      };
+      const drawWing = (w, near) => {
+        const n = w.pts.length;
+        const shade = []; for (let i = 3; i < n; i++) shade.push(i); shade.push(2);
+        layer([{ kind: 'poly', pts: w.pts, c: near ? mem : [mem[1], mem[1]], shadeFrom: near ? shade : null }], flash);
+        if (flash) return;
+        // finger bones fanning through the membrane, and the wing-arm
+        ctx.lineCap = 'round';
+        for (const [wd, col] of [[Math.max(2.5, m * 0.08), INK], [Math.max(1.2, m * 0.035), near ? bone[1] : '#3e3530']]) {
+          ctx.strokeStyle = col; ctx.lineWidth = wd;
+          ctx.beginPath();
+          for (const d of [w.D1, w.D2, w.D3]) { ctx.moveTo(w.Wr.x, w.Wr.y); ctx.quadraticCurveTo((w.Wr.x + d.x) / 2, (w.Wr.y + d.y) / 2 - m * 0.08, d.x, d.y); }
+          ctx.stroke();
+        }
+        layer([{ ...seg(w.Sh, w.E, m * 0.2, m * 0.15), c: hide }, { ...seg(w.E, w.Wr, m * 0.15, m * 0.1), c: hide }], flash);
+        // thumb claw at the wrist
+        const cl = { x: w.Wr.x + (w.Wr.x - w.E.x) * 0.15, y: w.Wr.y - m * 0.25 };
+        ctx.fillStyle = bone[0]; ctx.strokeStyle = INK; ctx.lineWidth = Math.max(1, inkW * 0.7);
+        ctx.beginPath(); ctx.moveTo(w.Wr.x - m * 0.06, w.Wr.y); ctx.lineTo(cl.x, cl.y); ctx.lineTo(w.Wr.x + m * 0.06, w.Wr.y); ctx.closePath(); ctx.fill(); ctx.stroke();
+        if (near && m > 30) {
+          // old scars across the membrane
+          ctx.strokeStyle = rgba(L.scar, 0.55); ctx.lineWidth = Math.max(1, m * 0.02);
+          ctx.beginPath();
+          const a = w.pts[1], b = w.D2;
+          ctx.moveTo(a.x * 0.6 + b.x * 0.4, a.y * 0.6 + b.y * 0.4); ctx.lineTo(a.x * 0.45 + b.x * 0.55 + m * 0.1, a.y * 0.45 + b.y * 0.55 + m * 0.05); ctx.lineTo(a.x * 0.3 + b.x * 0.7, a.y * 0.3 + b.y * 0.7 + m * 0.12);
+          ctx.stroke();
+        }
+      };
+      const legs = (sd) => {
+        const hip = Lp(-0.65, sd * 0.32, hz - 0.12);
+        const knee = Lp(-0.3 + dive * 0.3, sd * 0.42, hz - 0.72 + dive * 0.25);
+        const foot = Lp(-0.7 + dive * 1.1, sd * 0.38, hz - 1.18 + dive * 0.55 + (lying ? 0.7 : 0));
+        return { hip, knee, foot };
+      };
+      const drawLeg = (lg) => {
+        layer([{ ...seg(lg.hip, lg.knee, m * 0.24, m * 0.14), c: hide, rim: false }, { ...seg(lg.knee, lg.foot, m * 0.13, m * 0.09), c: hide, rim: false }], flash);
+        if (flash) return;
+        // talons, splayed wider on the dive
+        const spread = 0.5 + 0.5 * dive;
+        ctx.fillStyle = bone[0]; ctx.strokeStyle = INK; ctx.lineWidth = Math.max(1, inkW * 0.7);
+        for (const o of [-1, 0, 1]) {
+          const tx = lg.foot.x + o * m * 0.13 * spread + (frontNear ? 1 : -1) * m * 0.05, ty = lg.foot.y + m * (0.22 + 0.06 * Math.abs(o));
+          ctx.beginPath(); ctx.moveTo(lg.foot.x + o * m * 0.05 - m * 0.04, lg.foot.y); ctx.quadraticCurveTo(tx + m * 0.06, (lg.foot.y + ty) / 2, tx, ty); ctx.lineTo(lg.foot.x + o * m * 0.05 + m * 0.04, lg.foot.y); ctx.closePath(); ctx.fill(); ctx.stroke();
+        }
+      };
+      const head = () => {
+        layer([{ ...seg(Mid, N1, m * 0.42, m * 0.3), c: hide }, { ...seg(N1, Hd, m * 0.3, m * 0.24), c: hide }], flash);
+        // mouth and lower jaw
+        if (!flash && jaw > 0.15) {
+          ctx.fillStyle = '#5a1820'; ctx.strokeStyle = INK; ctx.lineWidth = inkW * 1.5;
+          ctx.beginPath(); ctx.moveTo(Hd.x, Hd.y); ctx.lineTo(Sn.x, Sn.y); ctx.lineTo(Lj.x, Lj.y); ctx.closePath(); ctx.stroke(); ctx.fill();
+        }
+        layer([{ ...seg(Hd, Lj, m * 0.13, m * 0.07), c: L.belly, rim: false }], flash);
+        if (!flash && jaw > 0.15) {
+          // a row of teeth along each jaw
+          ctx.fillStyle = '#efe2cf'; ctx.strokeStyle = INK; ctx.lineWidth = Math.max(0.8, inkW * 0.5);
+          for (const [a, b, dir] of [[Hd, Sn, 1], [Hd, Lj, -1]]) {
+            ctx.beginPath();
+            for (let i = 1; i < 6; i++) {
+              const k = 0.3 + i * 0.12, x = a.x + (b.x - a.x) * k, y = a.y + (b.y - a.y) * k;
+              ctx.moveTo(x - m * 0.03, y); ctx.lineTo(x, y + dir * m * 0.09); ctx.lineTo(x + m * 0.03, y); ctx.closePath();
+            }
+            ctx.fill(); ctx.stroke();
+          }
+        }
+        // skull and long upper jaw, a crest of horns sweeping back
+        const back = Lp(hdx - 0.3, 0, hdz + 0.12);
+        const hornT = (sd) => Lp(hdx - 0.95, sd * 0.25, hdz + 0.45 + headUp * 0.2);
+        layer([
+          { kind: 'poly', pts: [Lp(hdx - 0.15, -0.12, hdz + 0.1), hornT(-1), back], c: bone, shadeFrom: [1, 2, 0] },
+          { kind: 'poly', pts: [Lp(hdx - 0.15, 0.12, hdz + 0.1), hornT(1), back], c: bone, shadeFrom: [1, 2, 0] },
+          { kind: 'ell', x: Hd.x, y: Hd.y, rx: m * 0.26, ry: m * 0.22, c: hide },
+          { ...seg(Hd, Sn, m * 0.22, m * 0.09), c: hide },
+        ], flash);
+        if (flash) return;
+        // a scar over the eye; the eye itself small, gold and steady (it thinks)
+        const e = Lp(hdx + 0.18, (rightNear ? 1 : -1) * 0.12, hdz + 0.1);
+        ctx.fillStyle = rgba(L.eye, 0.3); ctx.beginPath(); ctx.ellipse(e.x, e.y, m * 0.12, m * 0.07, 0, 0, TAU); ctx.fill();
+        ctx.fillStyle = L.eye; ctx.beginPath(); ctx.ellipse(e.x, e.y, m * 0.06, m * 0.035, 0, 0, TAU); ctx.fill();
+        ctx.fillStyle = INK; ctx.fillRect(e.x - m * 0.008, e.y - m * 0.03, m * 0.016, m * 0.06);
+        ctx.strokeStyle = rgba(L.scar, 0.8); ctx.lineWidth = Math.max(1, m * 0.02);
+        ctx.beginPath(); ctx.moveTo(e.x - m * 0.12, e.y - m * 0.14); ctx.lineTo(e.x + m * 0.02, e.y + m * 0.02); ctx.lineTo(e.x + m * 0.1, e.y + m * 0.12); ctx.stroke();
+        // nostril
+        ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(Sn.x, Sn.y - m * 0.03, Math.max(1, m * 0.025), 0, TAU); ctx.fill();
+      };
+      const drawTail = () => {
+        const sh = [];
+        for (let i = 0; i < tail.length - 1; i++) sh.push({ ...seg(tail[i], tail[i + 1], m * (0.36 - i * 0.1), m * (0.26 - i * 0.08)), c: hide, rim: i === 0 });
+        layer(sh, flash);
+        // a spade of hide at the tip
+        const a = tail[2], b = tail[3], dx = b.x - a.x, dy = b.y - a.y, l = Math.hypot(dx, dy) || 1;
+        const nx = -dy / l * m * 0.22, ny = dx / l * m * 0.22;
+        layer([{ kind: 'poly', pts: [{ x: b.x + nx, y: b.y + ny }, { x: b.x + dx / l * m * 0.45, y: b.y + dy / l * m * 0.45 }, { x: b.x - nx, y: b.y - ny }, { x: b.x - dx / l * m * 0.1, y: b.y - dy / l * m * 0.1 }], c: mem, shadeFrom: [1, 2, 3] }], flash);
+      };
+      const wings = [wing(-1), wing(1)], lg = [legs(-1), legs(1)];
+      const nearW = rightNear ? wings[1] : wings[0], farW = rightNear ? wings[0] : wings[1];
+      const nearL = rightNear ? lg[1] : lg[0], farL = rightNear ? lg[0] : lg[1];
+      drawWing(farW, false);
+      drawLeg(farL);
+      if (frontNear) drawTail(); else head();
+      // Body: a deep chest tapering to the hips, a paler belly beneath.
+      layer([{ ...seg(Hp, C, m * 0.42, m * 0.58), c: hide }], flash);
+      layer([{ ...seg(Lp(-0.7, 0, hz - 0.22), Lp(0.6, 0, hz - 0.12), m * 0.2, m * 0.3), c: L.belly, rim: false }], flash);
+      if (!flash) {
+        // ridge plates down the spine, and scars raked across the flank
+        ctx.fillStyle = bone[1]; ctx.strokeStyle = INK; ctx.lineWidth = Math.max(1, inkW * 0.7);
+        for (let i = 0; i < 6; i++) {
+          const x = 0.7 - i * 0.32, q = Lp(x, 0, hz + 0.55 - Math.abs(x) * 0.1), b0 = Lp(x - 0.12, 0, hz + 0.35), b1 = Lp(x + 0.12, 0, hz + 0.38);
+          ctx.beginPath(); ctx.moveTo(b0.x, b0.y); ctx.lineTo(q.x, q.y); ctx.lineTo(b1.x, b1.y); ctx.closePath(); ctx.fill(); ctx.stroke();
+        }
+        ctx.strokeStyle = rgba(L.scar, 0.75); ctx.lineWidth = Math.max(1, m * 0.025); ctx.lineCap = 'round';
+        ctx.beginPath();
+        for (const [x0, z0] of [[0.3, 0.25], [-0.1, 0.2], [-0.45, 0.12]]) {
+          const a = Lp(x0, (rightNear ? 1 : -1) * 0.4, hz + z0), b = Lp(x0 - 0.35, (rightNear ? 1 : -1) * 0.42, hz + z0 - 0.3);
+          ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+        }
+        ctx.stroke();
+      }
+      drawLeg(nearL);
+      if (frontNear) head(); else drawTail();
+      drawWing(nearW, true);
+      // wind off the downstroke: a few pale streaks under the wings
+      if (!flash && !lying && flap < -0.4) {
+        ctx.strokeStyle = 'rgba(230,236,240,0.25)'; ctx.lineWidth = Math.max(1, m * 0.025);
+        ctx.beginPath();
+        for (let i = 0; i < 5; i++) { const a = Lp(-0.6 + i * 0.3, (i - 2) * 0.9, hz - 0.6), b = Lp(-0.8 + i * 0.3, (i - 2) * 1.2, hz - 1.4); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); }
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      void s;
+    }
+
+    // ---------------------------------------------------------------- the Night Creature
+    // A low dark body hung between four limbs that arc over it like bent
+    // reeds: no elbows or knees, just curves, ending in long splayed fingers.
+    // A narrow head hangs forward with two faint eyes. The wind-up lifts the
+    // front limbs high; the strike whips them down.
+    function drawCrawler(u, L, sc) {
+      const flash = u.flash > 0, tt = V.time + hashId(u.id) * 0.1;
+      const lying = u.state === 'down' || u.state === 'out';
+      const f = u.facing, F = [Math.cos(f), Math.sin(f)], Rt = [-F[1], F[0]];
+      const AK = attackK(u);
+      let raise = 0, whip = 0, low = 0;
+      if (AK) { if (AK.ph === 'wind') raise = AK.e; else if (AK.ph === 'strike') whip = 1; else whip = 1 - AK.e; }
+      const hurt = u.state === 'hurt' || u.state === 'stagger';
+      if (u.state === 'dodge') low = 0.25;
+      let rear = 0;
+      if (V.introPhase) { const k = V.spotlight === u.id || V.spotlight === u.team ? 1 : 0.5; rear = 0.7 * k; }
+      const moving = u.state === 'move' || u.state === 'opener' || u.state === 'circle' || u.fleeing;
+      const g = u.walk * 2.6;
+      const jit = hurt ? Math.sin(u.st * 60) * 0.05 : 0;
+      const Lp = (x, y, z) => P(u.x + F[0] * (x + jit) + Rt[0] * y, u.y + F[1] * (x + jit) + Rt[1] * y, Math.max(0.02, z));
+      V.shadow(u.x, u.y, u.r * 2.0, 0.5);
+      ctx.globalAlpha = u.state === 'out' ? 0.6 : 1;
+      const m = sc;
+      const bz = lying ? 0.18 : 0.85 - low + 0.06 * Math.sin(tt * 1.4) + rear * 0.6 - 0.25 * whip + 0.1 * raise;
+      const pel = { x: -0.55, z: bz - 0.05 - rear * 0.35 }, ch = { x: 0.35 + 0.3 * whip - 0.15 * raise, z: bz + 0.12 + rear * 0.3 };
+      const hd = { x: ch.x + 0.5 + 0.25 * whip, z: ch.z - 0.25 + rear * 0.35 + 0.15 * raise };
+      const rightNear = Lp(0, 1, 0).d > Lp(0, -1, 0).d;
+      const frontNear = Lp(1, 0, 0).d > Lp(-1, 0, 0).d;
+      // Limbs: a quadratic curve from root to tip whose control point floats
+      // high and out, wandering a little so the bend never sits in one place.
+      const limb = (front, sd) => {
+        const root = front ? { x: ch.x - 0.05, y: sd * 0.2, z: ch.z } : { x: pel.x + 0.05, y: sd * 0.18, z: pel.z };
+        const ph = g + (front ? 0 : Math.PI) + (sd > 0 ? 0 : Math.PI);
+        const step = moving ? Math.sin(ph) * 0.35 : 0, up = moving ? Math.max(0, Math.cos(ph)) * 0.18 : 0;
+        let tip = front ? { x: root.x + 0.95 + step, y: sd * 0.75, z: up } : { x: root.x - 0.7 + step, y: sd * 0.8, z: up };
+        let ctl = { x: (root.x + tip.x) / 2 + (front ? 0.1 : -0.15), y: sd * (0.75 + 0.12 * Math.sin(tt * 1.1 + sd + (front ? 0 : 2))), z: root.z + 0.75 + 0.15 * Math.sin(tt * 0.9 + (front ? 1 : 3) * sd) };
+        if (front) {
+          if (raise > 0) { tip = { x: root.x + 0.3 - 0.4 * raise, y: sd * 0.6, z: root.z + 1.3 * raise + tip.z * (1 - raise) }; ctl = { x: root.x + 0.5, y: sd * 0.9, z: root.z + 0.6 + 1.4 * raise }; }
+          if (whip > 0) { tip = { x: root.x + 1.9 * whip + 0.9 * (1 - whip), y: sd * 0.3, z: 0.15 }; ctl = { x: root.x + 0.9, y: sd * 0.6, z: root.z + 1.0 - 0.4 * whip }; }
+          if (rear > 0) { tip = { x: root.x + 0.6, y: sd * 1.4 * rear + tip.y * (1 - rear), z: root.z + 1.0 * rear }; ctl = { x: root.x + 0.2, y: sd * 1.1, z: root.z + 1.5 * rear + 0.5 }; }
+        }
+        if (lying) { tip = { x: root.x + (front ? 0.9 : -0.9), y: sd * 1.1, z: 0.04 }; ctl = { x: (root.x + tip.x) / 2, y: sd * 0.9, z: 0.35 }; }
+        const N = 7, pts = [];
+        for (let i = 0; i <= N; i++) {
+          const k = i / N, a = (1 - k) * (1 - k), b = 2 * (1 - k) * k, c = k * k;
+          pts.push(Lp(root.x * a + ctl.x * b + tip.x * c, root.y * a + ctl.y * b + tip.y * c, root.z * a + ctl.z * b + tip.z * c));
+        }
+        return { pts, sd, front, tipW: tip, ctl };
+      };
+      // A limb is one smooth tapering stroke: ink under, flat colour over.
+      const drawLimb = (lb, near) => {
+        const q = lb.pts;
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        for (const pass of [0, 1]) {
+          ctx.strokeStyle = pass ? (flash ? '#ffffff' : near ? L.hide[0] : L.hide[1]) : INK;
+          for (let i = 0; i < q.length - 1; i++) {
+            ctx.lineWidth = m * 2 * (0.08 - i * 0.0085) + (pass ? 0 : inkW * 2);
+            ctx.beginPath(); ctx.moveTo(q[i].x, q[i].y); ctx.lineTo(q[i + 1].x, q[i + 1].y); ctx.stroke();
+          }
+        }
+      };
+      const fingers = (lb, near) => {
+        if (flash) return;
+        const p = lb.pts[lb.pts.length - 1], q = lb.pts[lb.pts.length - 2];
+        let dx = p.x - q.x, dy = p.y - q.y; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l;
+        const nx = -dy, ny = dx, len = m * (lb.front ? 0.42 : 0.3) * (1 + 0.25 * whip * (lb.front ? 1 : 0));
+        ctx.lineCap = 'round';
+        for (const [w, col] of [[Math.max(2.2, m * 0.05), INK], [Math.max(1, m * 0.02), near ? L.claw : '#5a5458']]) {
+          ctx.strokeStyle = col; ctx.lineWidth = w;
+          ctx.beginPath();
+          for (const o of [-0.7, -0.25, 0.2, 0.65]) {
+            const ex = p.x + (dx + nx * o) * len, ey = p.y + (dy + ny * o) * len;
+            ctx.moveTo(p.x, p.y); ctx.quadraticCurveTo(p.x + (dx + nx * o * 0.4) * len * 0.6, p.y + (dy + ny * o * 0.4) * len * 0.6 - m * 0.06, ex, ey + m * 0.04);
+          }
+          ctx.stroke();
+        }
+      };
+      const limbs = [limb(true, -1), limb(true, 1), limb(false, -1), limb(false, 1)];
+      const farSide = rightNear ? -1 : 1;
+      const far = limbs.filter((l) => l.sd === farSide), near = limbs.filter((l) => l.sd !== farSide);
+      for (const lb of far) { drawLimb(lb, false); fingers(lb, false); }
+      const P0 = Lp(pel.x, 0, pel.z), C0 = Lp(ch.x, 0, ch.z), Hh = Lp(hd.x, 0, hd.z);
+      const headF = () => {
+        layer([{ ...seg(C0, Hh, m * 0.13, m * 0.09), c: L.hide }, { kind: 'ell', x: Hh.x, y: Hh.y + m * 0.04, rx: m * 0.17, ry: m * 0.22, rot: 0, c: L.hide }], flash);
+        if (flash || u.state === 'out') return;
+        // two faint eyes, far apart, without lids
+        const fl = 0.75 + 0.25 * Math.sin(tt * 3.3);
+        for (const sd of [-1, 1]) {
+          const e = Lp(hd.x + 0.12, sd * 0.07, hd.z - 0.02);
+          if (!frontNear) continue;
+          ctx.fillStyle = rgba(L.eye, (0.2 * fl).toFixed(3)); ctx.beginPath(); ctx.arc(e.x, e.y, m * 0.08, 0, TAU); ctx.fill();
+          ctx.fillStyle = rgba(L.eye, (0.85 * fl).toFixed(3)); ctx.beginPath(); ctx.ellipse(e.x, e.y, m * 0.03, m * 0.024, 0, 0, TAU); ctx.fill();
+        }
+      };
+      if (!frontNear) headF();
+      // the body: a thin, ribbed trunk, darker than the night around it
+      layer([{ ...seg(P0, C0, m * 0.2, m * 0.24), c: L.hide }], flash);
+      if (!flash) {
+        ctx.strokeStyle = rgba(L.pale, 0.35); ctx.lineWidth = Math.max(0.8, m * 0.015);
+        ctx.beginPath();
+        for (let i = 1; i < 5; i++) { const k = i / 5, x = P0.x + (C0.x - P0.x) * k, y = P0.y + (C0.y - P0.y) * k; ctx.moveTo(x - m * 0.08, y - m * 0.1); ctx.quadraticCurveTo(x + m * 0.04, y, x - m * 0.04, y + m * 0.14); }
+        ctx.stroke();
+      }
+      if (frontNear) headF();
+      for (const lb of near) { drawLimb(lb, true); fingers(lb, true); }
+      if (!flash) {
+        // a pale sheen along the tops of the near limbs
+        ctx.strokeStyle = rgba(L.pale, 0.5); ctx.lineWidth = Math.max(0.8, m * 0.018); ctx.lineCap = 'round';
+        ctx.beginPath();
+        for (const lb of near) { const q = lb.pts; ctx.moveTo(q[1].x, q[1].y - m * 0.06); for (let i = 2; i < 5; i++) ctx.lineTo(q[i].x, q[i].y - m * 0.07); }
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // ---------------------------------------------------------------- Calamity
+    // Angelic in shape but wrong: a robed figure hovering over the floor,
+    // wing-shapes made of heat shimmer and pressure (no feathers), a face like
+    // a holy painting split by a cruel smile; water coils round one side,
+    // lava drips from the other.
+    function drawSeraph(u, L, sc, s) {
+      const flash = u.flash > 0, tt = V.time + hashId(u.id) * 0.1;
+      const lying = u.state === 'down' || u.state === 'out';
+      const f = u.facing, F = [Math.cos(f), Math.sin(f)], Rt = [-F[1], F[0]];
+      const AK = attackK(u);
+      let cast = 0, spread = 0.6 + 0.08 * Math.sin(tt * 1.3);
+      if (AK) { cast = AK.ph === 'wind' ? AK.e : AK.ph === 'strike' ? 1 : 1 - AK.e; }
+      if (s.hazards && s.hazards.some((z) => z.from === u)) { spread = 1; cast = Math.max(cast, 0.5); }
+      if (V.introPhase) { const k = V.spotlight === u.id || V.spotlight === u.team ? 1 : 0.5; spread = 0.7 + 0.3 * k; cast = 0.3 * k; }
+      const hurt = u.state === 'hurt' || u.state === 'stagger';
+      const jit = hurt ? Math.sin(u.st * 60) * 0.05 : 0;
+      const hz = lying ? 0.05 : 0.75 + 0.1 * Math.sin(tt * 1.1);
+      const Lp = (x, y, z) => P(u.x + F[0] * (x + jit) + Rt[0] * y, u.y + F[1] * (x + jit) + Rt[1] * y, z);
+      const m = sc;
+      // two pools of light on the floor: cold on the water side, molten on the other
+      if (!flash) {
+        for (const [sd, rgb] of [[-1, L.water], [1, L.lava]]) {
+          const p = Lp(0, sd * 0.7, 0), r = m * (1.1 + 0.08 * Math.sin(tt * 2 + sd));
+          ctx.fillStyle = `rgba(${rgb},0.12)`; ctx.beginPath(); ctx.ellipse(p.x, p.y, r, r * V.cam.pitch, 0, 0, TAU); ctx.fill();
+        }
+      }
+      V.shadow(u.x, u.y, u.r * 1.4, 0.3);
+      ctx.globalAlpha = u.state === 'out' ? 0.55 : 1;
+      if (lying) {
+        // fallen: the robe spread on the floor, the shimmer gone out
+        layer([{ kind: 'ell', ...(() => { const c = Lp(0, 0, 0.15); return { x: c.x, y: c.y }; })(), rx: m * 0.9, ry: m * 0.35, c: L.robe }], flash);
+        const hp = Lp(-0.8, 0, 0.2);
+        layer([{ kind: 'ell', x: hp.x, y: hp.y, rx: m * 0.2, ry: m * 0.24, c: L.skinS }], flash);
+        ctx.globalAlpha = 1;
+        return;
+      }
+      const H = 2.6; // figure height above its hover point
+      const waist = hz + H * 0.45, chestZ = hz + H * 0.68, neckZ = hz + H * 0.8, headZ = hz + H * 0.9;
+      const lean = 0.08 * cast;
+      const rightNear = Lp(0, 1, 0).d > Lp(0, -1, 0).d;
+      const frontNear = Lp(1, 0, 0).d > Lp(-1, 0, 0).d;
+
+      // Wings of distortion: long blades of bent air fanning up and out from
+      // the shoulder blades. Light and dark hairlines side by side read as
+      // refraction; the water side tints cold, the lava side hot.
+      const wings = () => {
+        if (flash) return;
+        ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        for (const sd of [-1, 1]) {
+          const rgb = sd < 0 ? L.water : L.lava;
+          const root = { x: -0.25, y: sd * 0.18, z: chestZ };
+          for (let i = 0; i < 4; i++) {
+            const ang = (0.25 + i * 0.32) * spread + 0.1 * Math.sin(tt * 1.4 + i);
+            const len = (2.3 - i * 0.3) * (0.75 + 0.25 * spread);
+            const tip = { x: root.x - 0.35 - i * 0.25, y: sd * (0.3 + Math.cos(ang) * len), z: root.z + Math.sin(ang) * len * 0.95 - i * 0.18 };
+            const N = 9, pa = [], pb = [];
+            for (let j = 0; j <= N; j++) {
+              const k = j / N, wob = Math.sin(tt * 5 + j * 1.3 + i * 2) * 0.05 * k;
+              const x = root.x + (tip.x - root.x) * k, y = root.y + (tip.y - root.y) * k, z = root.z + (tip.z - root.z) * k + Math.sin(k * Math.PI) * 0.25;
+              const w = 0.2 * Math.sin(Math.min(1, k * 1.15) * Math.PI) * (1 - i * 0.12);
+              pa.push(Lp(x, y + wob, z + w)); pb.push(Lp(x, y - wob, z - w * 0.6));
+            }
+            const band = () => { ctx.beginPath(); pa.forEach((q, j) => (j ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y))); for (let j = pb.length - 1; j >= 0; j--) ctx.lineTo(pb[j].x, pb[j].y); ctx.closePath(); };
+            band(); ctx.fillStyle = `rgba(${rgb},${(0.12 + 0.08 * spread).toFixed(3)})`; ctx.fill();
+            // ripples across the band, sliding outward like heat haze
+            ctx.save(); band(); ctx.clip();
+            ctx.strokeStyle = 'rgba(255,250,240,0.28)'; ctx.lineWidth = Math.max(1, m * 0.018);
+            ctx.beginPath();
+            for (let j = 1; j < N; j += 2) { const ph = (j + tt * 3) % N; const jj = Math.min(N, Math.floor(ph)); const a = pa[jj], b = pb[jj]; ctx.moveTo(a.x, a.y); ctx.quadraticCurveTo((a.x + b.x) / 2 + m * 0.06, (a.y + b.y) / 2, b.x, b.y); }
+            ctx.stroke(); ctx.restore();
+            // refraction hairlines: bright on the top edge, dark just under it
+            ctx.lineWidth = Math.max(1.5, m * 0.03);
+            ctx.strokeStyle = 'rgba(250,246,236,0.75)';
+            ctx.beginPath(); pa.forEach((q, j) => (j ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y))); ctx.stroke();
+            ctx.strokeStyle = 'rgba(12,8,8,0.45)';
+            ctx.beginPath(); pa.forEach((q, j) => (j ? ctx.lineTo(q.x + 1.5, q.y + 2.5) : ctx.moveTo(q.x + 1.5, q.y + 2.5))); ctx.stroke();
+            ctx.strokeStyle = `rgba(${rgb},0.6)`; ctx.lineWidth = Math.max(0.8, m * 0.012);
+            ctx.beginPath(); pb.forEach((q, j) => (j ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y))); ctx.stroke();
+          }
+        }
+        ctx.restore();
+      };
+      // Body parts.
+      const hemPts = [];
+      const n = 10;
+      for (let i = 0; i <= n; i++) {
+        const k = i / n, sd = 1 - 2 * k;
+        const flow = Math.sin(tt * 2.2 + i * 1.1) * 0.06;
+        hemPts.push(Lp(-0.12 + flow - 0.15 * Math.abs(sd), sd * 0.55, hz + (i % 2 ? 0.1 : -0.12) + 0.04 * Math.sin(tt * 3 + i)));
+      }
+      const robe = { kind: 'poly', pts: [Lp(lean * 0.4, -0.2, waist), Lp(lean * 0.4, 0.2, waist), ...hemPts], c: L.robe, shadeFrom: null };
+      const lightRight = (Lp(0, 1, waist).x - Lp(0, -1, waist).x) * lx > 0;
+      robe.shadeFrom = lightRight ? [0, ...Array.from({ length: 6 }, (_, i) => 2 + n - i)] : [1, ...Array.from({ length: 6 }, (_, i) => 2 + i)];
+      const shL = Lp(lean, -0.32, chestZ + 0.12), shR = Lp(lean, 0.32, chestZ + 0.12);
+      const torso = { kind: 'poly', pts: [shL, shR, Lp(lean * 0.4, 0.18, waist), Lp(lean * 0.4, -0.18, waist)], c: L.robe, shadeFrom: lightRight ? [0, 3, 2] : [1, 2, 3] };
+      const head = Lp(lean * 1.2 + 0.03, 0, headZ), neck = Lp(lean, 0, neckZ);
+      // Arms: open and low, palms out, like a painted saint; the casting arm
+      // rises toward its target.
+      const arm = (sd) => {
+        const sh = sd > 0 ? shR : shL;
+        const castSide = sd < 0; // the water arm throws
+        const k = castSide ? cast : 0;
+        const hand = Lp(0.25 + 0.6 * k + lean, sd * (0.75 - 0.35 * k), chestZ - 0.55 + 0.75 * k + 0.05 * Math.sin(tt * 1.5 + sd));
+        const el = Lp(0.05 + 0.3 * k + lean, sd * (0.6 - 0.15 * k), chestZ - 0.3 + 0.35 * k);
+        return { sh, el, hand, sd };
+      };
+      const armSh = (a) => [{ ...seg(a.sh, a.el, m * 0.09, m * 0.075), c: L.robe, rim: false }, { ...seg(a.el, a.hand, m * 0.075, m * 0.05), c: L.skinS, rim: false }, { kind: 'ell', x: a.hand.x, y: a.hand.y, rx: m * 0.065, ry: m * 0.075, c: L.skinS, rim: false }];
+      const arms = [arm(-1), arm(1)];
+      const nearArm = rightNear ? arms[1] : arms[0], farArm = rightNear ? arms[0] : arms[1];
+      // hair falling behind the shoulders
+      const hairBack = { kind: 'poly', pts: [Lp(-0.05, -0.2, headZ + 0.1), Lp(-0.05, 0.2, headZ + 0.1), Lp(-0.18, 0.3, chestZ - 0.25), Lp(-0.2, 0, chestZ - 0.4), Lp(-0.18, -0.3, chestZ - 0.25)], c: L.hairS, shadeFrom: [1, 2, 3] };
+
+      wings();
+      // a broken halo, like gold leaf flaking off a painting
+      if (!flash) {
+        const hc = Lp(lean * 1.2 - 0.12, 0, headZ + 0.08), r = m * 0.34;
+        ctx.lineCap = 'butt';
+        for (const [w, col] of [[Math.max(3, m * 0.05), INK], [Math.max(1.5, m * 0.024), L.halo]]) {
+          ctx.strokeStyle = col; ctx.lineWidth = w;
+          ctx.beginPath(); ctx.ellipse(hc.x, hc.y, r, r * 1.05, 0, -2.6, 0.2); ctx.stroke();
+          ctx.beginPath(); ctx.ellipse(hc.x, hc.y, r, r * 1.05, 0, 0.6, 2.2); ctx.stroke();
+        }
+      }
+      layer([hairBack], flash);
+      layer(armSh(farArm), flash);
+      layer([robe, torso], flash);
+      if (!flash) {
+        // gold trim down the robe's front, and a bloodless sash
+        ctx.strokeStyle = L.halo; ctx.lineWidth = Math.max(1, m * 0.02);
+        const a = Lp(lean + 0.12, 0, chestZ + 0.05), b = Lp(lean * 0.4 + 0.1, 0, waist), c = Lp(0.05, 0, hz);
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.lineTo(c.x, c.y); ctx.stroke();
+        // the robe's hem: wet and dark on the water side, smouldering on the other
+        const wet = hemPts.slice(n - 3), hot = hemPts.slice(0, 4);
+        ctx.lineWidth = Math.max(2, m * 0.05); ctx.lineCap = 'round';
+        ctx.strokeStyle = `rgba(${L.water},0.65)`; ctx.beginPath(); wet.forEach((q, i) => (i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y))); ctx.stroke();
+        ctx.strokeStyle = `rgba(${L.lava},0.85)`; ctx.beginPath(); hot.forEach((q, i) => (i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y))); ctx.stroke();
+      }
+      layer([{ ...seg(neck, { x: head.x, y: head.y + m * 0.12 }, m * 0.06, m * 0.06), c: L.skinS, rim: false }], flash);
+      // the face: a calm oval with closed, painted eyes, and the smile
+      const hr = m * 0.17;
+      layer([{ kind: 'ell', x: head.x, y: head.y, rx: hr * 0.9, ry: hr * 1.08, c: L.skinS }], flash);
+      if (!flash) {
+        const ahead = Lp(1, 0, 0), base = Lp(0, 0, 0);
+        const fx = Math.sign(ahead.x - base.x) * Math.min(1, Math.abs(ahead.x - base.x) / m);
+        // hair parted in the middle, falling in smooth gold bands
+        ctx.fillStyle = INK;
+        const hairPath = () => { ctx.beginPath(); ctx.ellipse(head.x - fx * hr * 0.15, head.y - hr * 0.35, hr * 1.02, hr * 0.78, 0, Math.PI, TAU); ctx.lineTo(head.x + hr * 1.0, head.y + hr * 0.5); ctx.lineTo(head.x + hr * 0.7, head.y - hr * 0.1); ctx.quadraticCurveTo(head.x, head.y - hr * 0.75, head.x - hr * 0.7, head.y - hr * 0.1); ctx.lineTo(head.x - hr * 1.0, head.y + hr * 0.5); ctx.closePath(); };
+        ctx.lineWidth = inkW * 2; ctx.strokeStyle = INK; hairPath(); ctx.stroke();
+        ctx.fillStyle = L.hairS[0]; hairPath(); ctx.fill();
+        if (frontNear) {
+          const ex = head.x + fx * hr * 0.3, ey = head.y + hr * 0.1, gap = hr * 0.38;
+          // closed eyes: serene downward arcs
+          ctx.strokeStyle = INK; ctx.lineWidth = Math.max(1, hr * 0.09); ctx.lineCap = 'round';
+          ctx.beginPath();
+          for (const sg of [-1, 1]) { ctx.moveTo(ex + sg * gap - hr * 0.16, ey); ctx.quadraticCurveTo(ex + sg * gap, ey + hr * 0.1, ex + sg * gap + hr * 0.16, ey); }
+          ctx.stroke();
+          // the smile: too wide, corners hooked up, a line of teeth in it
+          const my = head.y + hr * 0.55, mw = hr * 0.55;
+          const smile = () => { ctx.beginPath(); ctx.moveTo(ex - mw, my - hr * 0.18); ctx.quadraticCurveTo(ex, my + hr * 0.32, ex + mw, my - hr * 0.18); ctx.quadraticCurveTo(ex, my + hr * 0.12, ex - mw, my - hr * 0.18); ctx.closePath(); };
+          ctx.fillStyle = '#2a0a0e'; smile(); ctx.fill();
+          ctx.strokeStyle = '#efe6d6'; ctx.lineWidth = Math.max(0.8, hr * 0.05);
+          ctx.beginPath(); ctx.moveTo(ex - mw * 0.75, my - hr * 0.08); ctx.quadraticCurveTo(ex, my + hr * 0.16, ex + mw * 0.75, my - hr * 0.08); ctx.stroke();
+          ctx.strokeStyle = INK; ctx.lineWidth = Math.max(1, hr * 0.07); smile(); ctx.stroke();
+          // painted tear-tracks: one of water, one of fire
+          ctx.lineWidth = Math.max(1, hr * 0.06);
+          const waterLeft = Lp(0, -1, headZ).x < Lp(0, 1, headZ).x;
+          ctx.strokeStyle = `rgba(${waterLeft ? L.water : L.lava},0.8)`;
+          ctx.beginPath(); ctx.moveTo(ex - gap, ey + hr * 0.12); ctx.lineTo(ex - gap - hr * 0.04, ey + hr * 0.5); ctx.stroke();
+          ctx.strokeStyle = `rgba(${waterLeft ? L.lava : L.water},0.8)`;
+          ctx.beginPath(); ctx.moveTo(ex + gap, ey + hr * 0.12); ctx.lineTo(ex + gap + hr * 0.04, ey + hr * 0.5); ctx.stroke();
+        }
+      }
+      layer(armSh(nearArm), flash);
+      if (!flash) {
+        // Water coiling round the water arm; lava welling from the other hand.
+        const wa = arms[0], la = arms[1];
+        ctx.lineCap = 'round';
+        for (let i = 0; i < 3; i++) {
+          const ph = tt * 2.4 + i * 2.1, r = m * (0.28 + i * 0.07);
+          ctx.strokeStyle = `rgba(${L.water},${(0.75 - i * 0.18).toFixed(2)})`; ctx.lineWidth = Math.max(1.5, m * (0.04 - i * 0.008));
+          ctx.beginPath(); ctx.ellipse(wa.hand.x, wa.hand.y - m * 0.05, r, r * 0.45, -0.3, ph, ph + 2.4); ctx.stroke();
+        }
+        ctx.fillStyle = `rgba(${L.water},0.9)`;
+        for (let i = 0; i < 5; i++) {
+          const a = tt * 3 + i * 1.256, q = { x: wa.hand.x + Math.cos(a) * m * 0.42, y: wa.hand.y + Math.sin(a) * m * 0.18 - m * 0.05 };
+          ctx.beginPath(); ctx.arc(q.x, q.y, Math.max(1.2, m * 0.025), 0, TAU); ctx.fill();
+        }
+        // lava: a glowing hand, molten drops falling and cooling dark
+        ctx.fillStyle = `rgba(${L.lava},0.3)`; ctx.beginPath(); ctx.arc(la.hand.x, la.hand.y, m * 0.2, 0, TAU); ctx.fill();
+        ctx.fillStyle = '#ffd27a'; ctx.beginPath(); ctx.arc(la.hand.x, la.hand.y, m * 0.06, 0, TAU); ctx.fill();
+        const ground = Lp(0.25, 0.75, 0);
+        for (let i = 0; i < 4; i++) {
+          const ph = (tt * 0.8 + i * 0.25) % 1;
+          const y = la.hand.y + (ground.y - la.hand.y) * ph * ph, x = la.hand.x + (i - 1.5) * m * 0.05;
+          ctx.fillStyle = ph < 0.7 ? '#ff9a3a' : '#5a1a10';
+          ctx.beginPath(); ctx.ellipse(x, y, Math.max(1.2, m * 0.025), Math.max(2, m * 0.05), 0, 0, TAU); ctx.fill();
+        }
+        // heat shimmer rising off the lava side
+        ctx.strokeStyle = 'rgba(255,200,150,0.25)'; ctx.lineWidth = Math.max(1, m * 0.015);
+        ctx.beginPath();
+        for (let i = 0; i < 3; i++) {
+          const b = Lp(0, 0.5 + i * 0.2, hz + 0.4 + i * 0.5);
+          for (let j = 0; j < 5; j++) { const x = b.x + Math.sin(tt * 6 + j + i) * m * 0.04, y = b.y - j * m * 0.12; j ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+        }
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
     }
 
     return { update, drawUnit, LOOK };
