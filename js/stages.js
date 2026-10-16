@@ -1090,7 +1090,15 @@
     ],
   };
 
-  return {
+  // Staged scenes of the book's chapters (js/book/*.js).
+  const bookStages = {};
+  (function () {
+    const g = typeof self !== 'undefined' ? self : this;
+    const ids = (g.TowStory && g.TowStory.BOOK_FILES) || [];
+    for (const id of ids) { const m = g.TowBook && g.TowBook[id]; if (m && m.stages) Object.assign(bookStages, m.stages); }
+  })();
+
+  return Object.assign(bookStages, {
     'p.tower': pTower,
     'p.light': pLight,
     'p.select': pSelect,
@@ -1108,5 +1116,5 @@
     'c5.tracks': c5Tracks,
     'c5.leave': 'same',
     'c5.ogre': c5Ogre,
-  };
+  });
 });

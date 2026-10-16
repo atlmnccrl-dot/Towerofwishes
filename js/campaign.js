@@ -27,7 +27,8 @@
     { id: 'shadow', name: 'The Shadow City', biome: 'ruins', x: 690, y: 120, r: 75 },
     { id: 'bleed', name: 'The Road That Bleeds', biome: 'forest', x: 765, y: 265, r: 62 },
     { id: 'farms', name: 'The Outer Farms', biome: 'fields', x: 690, y: 425, r: 65 },
-    { id: 'camp', name: 'The Night Camp', biome: 'wilds', x: 820, y: 410, r: 62 },
+    { id: 'camp', name: 'The Night Camp', biome: 'wilds', x: 800, y: 420, r: 58 },
+    { id: 'frost', name: 'The Frost Road', biome: 'fields', x: 880, y: 350, r: 50 },
     { id: 'tower', name: 'The Tower', biome: 'tower', x: 925, y: 230, r: 75 },
   ];
 
@@ -50,11 +51,12 @@
     { id: 'c7', kind: 'story', chapter: 'c7', region: 'shadow', x: 690, y: 125, title: 'The Shadow City', sub: 'Chapter Seven' },
     { id: 'c8', kind: 'story', chapter: 'c8', region: 'bleed', x: 765, y: 265, title: 'The Road That Bleeds', sub: 'Chapter Eight' },
     { id: 'c9', kind: 'story', chapter: 'c9', region: 'farms', x: 690, y: 425, title: 'A Name on a Page', sub: 'Chapter Nine' },
-    { id: 'c10', kind: 'story', chapter: 'c10', region: 'camp', x: 820, y: 410, title: 'The Night Creature', sub: 'Chapter Ten' },
-    { id: 'c11', kind: 'story', chapter: 'c11', region: 'tower', x: 900, y: 305, title: 'The Hall of Frost and Mist', sub: 'Floor One' },
-    { id: 'c12', kind: 'story', chapter: 'c12', region: 'tower', x: 950, y: 265, title: 'Calamity', sub: 'Floor Two' },
-    { id: 'c13', kind: 'story', chapter: 'c13', region: 'tower', x: 905, y: 228, title: 'The Offering', sub: 'Floor Three' },
-    { id: 'c14', kind: 'locked', chapter: 'c14', region: 'tower', x: 960, y: 175, title: 'Floor Four', sub: 'Beyond the manuscript · awaiting the author' },
+    { id: 'c10', kind: 'story', chapter: 'c10', region: 'camp', x: 800, y: 420, title: 'The Night Creature', sub: 'Chapter Ten' },
+    { id: 'c11', kind: 'story', chapter: 'c11', region: 'frost', x: 880, y: 350, title: 'The Tower Draws Near', sub: 'Chapter Eleven' },
+    { id: 'c12', kind: 'story', chapter: 'c12', region: 'tower', x: 900, y: 305, title: 'The Hall of Frost and Mist', sub: 'Floor One' },
+    { id: 'c13', kind: 'story', chapter: 'c13', region: 'tower', x: 950, y: 265, title: 'Calamity', sub: 'Floor Two' },
+    { id: 'c14', kind: 'story', chapter: 'c14', region: 'tower', x: 905, y: 228, title: 'The Hall of Offering', sub: 'Floor Three' },
+    { id: 'c15', kind: 'locked', chapter: 'c15', region: 'tower', x: 960, y: 175, title: 'Floor Four', sub: 'Beyond the manuscript · awaiting the author' },
   ];
 
   // Roads between nodes; the three from the Guild are the branch.
@@ -65,10 +67,10 @@
     ['c4', 'crossing'],
     ['c4', 'hire'],
     ['c5', 'c6'], ['c6', 'c7'], ['c7', 'c8'], ['c8', 'c9'], ['c9', 'c10'], ['c10', 'c11'],
-    ['c11', 'c12'], ['c12', 'c13'], ['c13', 'c14'], ['c14', 'prologue'],
+    ['c11', 'c12'], ['c12', 'c13'], ['c13', 'c14'], ['c14', 'c15'], ['c15', 'prologue'],
   ];
 
-  const ORDER = ['prologue', 'c1', 'c2', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9', 'c10', 'c11', 'c12', 'c13', 'c14'];
+  const ORDER = ['prologue', 'c1', 'c2', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9', 'c10', 'c11', 'c12', 'c13', 'c14', 'c15'];
   // Where the main story is: the chapter of its current node.
   function storyChapter(Story, st) { return Story.NODES[st.node].chapter; }
   function chapterIndex(ch) { return ORDER.indexOf(ch); }
@@ -95,7 +97,7 @@
         if (!(reached(Story, st, 'c4') && st.seen.c4)) return 'Eiryn hasn’t asked yet';
         return (st.flags.trust || 0) > 0 ? null : 'Eiryn doesn’t trust you enough to ask';
       case 'deep': return past(Story, st, 'c5') ? null : 'Clear the quarry first (Chapter Five)';
-      case 'c14': return 'Arrives with the next chapters of the book';
+      case 'c15': return 'Arrives with the next chapters of the book';
       default:
         if (n.kind === 'story') return reached(Story, st, n.chapter) ? null : 'Not reached yet';
         return null;

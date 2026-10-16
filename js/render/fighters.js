@@ -394,7 +394,13 @@
     return v;
   }
   const FALLBACK = LOOK.kael; // unknown keys draw as a plain swordsman
-  const lookOf = (key, id) => { const L = LOOK[key] || FALLBACK; return L.vary && id != null ? variantOf(L, id) : L; };
+  // Looks the book's chapters add (js/book/*.js `looks`).
+  function bookLook(key) {
+    const B = window.TowBook || {};
+    for (const id in B) if (B[id].looks && B[id].looks[key]) return B[id].looks[key];
+    return null;
+  }
+  const lookOf = (key, id) => { const L = LOOK[key] || bookLook(key) || FALLBACK; return L.vary && id != null ? variantOf(L, id) : L; };
 
   // Weapon geometry: len in metres; grip: 'one' | 'two' (off hand on the grip)
   // | 'shaft' (off hand forward on a spear shaft).

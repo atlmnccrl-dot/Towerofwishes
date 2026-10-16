@@ -108,7 +108,7 @@
 
   // The book's party after the quarry: whoever has joined by this chapter.
   // Eiryn fights with her book kit (Pressure) but wears her glyph gear.
-  const BOOK_ORDER = ['c6', 'c7', 'c8', 'c9', 'c10', 'c11', 'c12', 'c13', 'c14'];
+  const BOOK_ORDER = ['c6', 'c7', 'c8', 'c9', 'c10', 'c11', 'c12', 'c13', 'c14', 'c15'];
   function bookAt(st, ch) { const i = BOOK_ORDER.indexOf(NODES[st.node].chapter); return i >= BOOK_ORDER.indexOf(ch); }
   function bookParty(st) {
     const eiryn = Object.assign(member(st, 'eirynMage'), { key: 'eirynAsh', gear: 'eirynMage' });
@@ -131,7 +131,7 @@
   // the story runs straight on into it.)
   const CHAPTER_START = {
     'c2.gate': 'c2', 'c4.guild': 'c4', 'c5.mill': 'c5', 'c6.road': 'c6', 'c7.city': 'c7', 'c8.road': 'c8',
-    'c9.farms': 'c9', 'c10.shadow': 'c10', 'c11.doors': 'c11', 'c12.enter': 'c12', 'c13.hall': 'c13', end: 'c14',
+    'c9.farms': 'c9', 'c10.shadow': 'c10', 'c11.frost': 'c11', 'c12.doors': 'c12', 'c13.enter': 'c13', 'c14.hall': 'c14', end: 'c15',
   };
 
   const CHAPTERS = [
@@ -145,10 +145,11 @@
     { id: 'c8', label: 'Chapter Eight', title: 'The Road That Bleeds', from: 'c8.road' },
     { id: 'c9', label: 'Chapter Nine', title: 'A Name on a Page', from: 'c9.farms' },
     { id: 'c10', label: 'Chapter Ten', title: 'The Night Creature', from: 'c10.shadow' },
-    { id: 'c11', label: 'Floor One', title: 'The Knights of the Hall', from: 'c11.doors' },
-    { id: 'c12', label: 'Floor Two', title: 'Calamity', from: 'c12.enter' },
-    { id: 'c13', label: 'Floor Three', title: 'The Offering', from: 'c13.hall' },
-    { id: 'c14', label: 'To be continued', title: 'Beyond the manuscript', from: 'end' },
+    { id: 'c11', label: 'Chapter Eleven', title: 'The Tower Draws Near', from: 'c11.frost' },
+    { id: 'c12', label: 'Floor One', title: 'The Hall of Frost and Mist', from: 'c12.doors' },
+    { id: 'c13', label: 'Floor Two', title: 'Calamity', from: 'c13.enter' },
+    { id: 'c14', label: 'Floor Three', title: 'The Hall of Offering', from: 'c14.hall' },
+    { id: 'c15', label: 'To be continued', title: 'Beyond the manuscript', from: 'end' },
   ];
 
   // ------------------------------------------------------------ the graph
@@ -512,488 +513,35 @@
         N('Far to the east, the Tower still stands. The road there starts at the Guild’s contract board.'),
       ],
     },
-    end: { type: 'end', chapter: 'c14', bg: 'tower' },
+    end: { type: 'end', chapter: 'c15', bg: 'tower' },
   };
 
-  // ------------------------------------------------------------ the road to the Tower
-  // The new manuscript (Chapters Two to Sixteen) after the quarry. Lines are
-  // quoted from it; narration is condensed from it.
+
+
+
+  // ------------------------------------------------------------ the book's road
+  // Chapters after the quarry live one per file in js/book/ (see its README).
+  // Each gives nodes, speakers, staged scenes, and sim extras. In the browser
+  // they load before this file as root.TowBook[id]; in Node we require them.
+  const BOOK_FILES = ['c6', 'c7', 'c8', 'c9', 'c10', 'c11', 'c12', 'c13', 'c14'];
   const BOOK = (st) => bookParty(st);
-  Object.assign(NODES, {
-    // ---- The Sky That Hunts
-    'c6.road': {
-      type: 'scene', chapter: 'c6', bg: 'road', next: 'c6.youngling',
-      lines: [
-        N('The road beyond the town opens into grassland and broken stone. Old markers stand half buried along the path, their faces eaten smooth by weather.'),
-        B('kael', 'You ever travel before?'),
-        B('eiryn', 'Enough.'),
-        B('kael', 'You don’t look like you’ve slept outside much.'),
-        B('eiryn', 'You’d be surprised.'),
-        B('kael', 'You headed that way?'),
-        B('eiryn', 'Eventually.'),
-        B('kael', 'People who go ‘eventually’ toward that thing usually end up dead.'),
-      ],
-    },
-    'c6.youngling': {
-      type: 'scene', chapter: 'c6', bg: 'road', next: 'c6.fight',
-      lines: [
-        N('Something enormous lies broken in the grass. Its wings are shredded against the ground, the membrane torn between long black bones.'),
-        B('kael', 'This would’ve wiped a caravan.'),
-        B('eiryn', 'They weren’t always this low.'),
-        B('kael', 'What does that mean?'),
-        B('eiryn', 'Some things fell when the world did.'),
-        B('eiryn', 'This was only a youngling.'),
-        B('kael', 'Yeah? Then I’d hate to see the mother.'),
-        B('eiryn', '…You will.'),
-        N('The grass ahead explodes. A girl bursts onto the road — running, stumbling, bleeding. There are no wings on her back, yet she moves too lightly.'),
-        B('aerys', 'MOVE!'),
-        N('The mother comes through the clouds. It has not found them. It has been hunting her.'),
-        B('kael', 'Get behind me.'),
-        B('kael', 'Can you fight?'),
-      ],
-    },
-    'c6.fight': {
-      type: 'battle', chapter: 'c6', scenario: 'skyreaver', hearts: true, xp: 160, allyLevel: true,
-      party: (st) => BOOK(st), win: 'c6.after',
-      outro: 'A spear of light punches through the Skyreaver’s throat. It crashes, and stops moving.',
-    },
-    'c6.after': {
-      type: 'scene', chapter: 'c6', bg: 'road', next: 'c6.join',
-      lines: [
-        B('kael', 'You being chased for fun?'),
-        B('aerys', 'I wasn’t supposed to be here.'),
-        B('kael', 'Then why are you?'),
-        B('aerys', 'I was flying.'),
-        B('aerys', 'I took the wrong path.'),
-        B('aerys', 'That thing saw me. And once they see you… they don’t stop.'),
-        B('aerys', 'They hunt me for my blood.'),
-        B('kael', 'Who’s ‘they’?'),
-        B('aerys', 'People who smile while they talk about cutting you open.'),
-        B('aerys', 'You stepped in anyway.'),
-      ],
-    },
-    'c6.join': {
-      type: 'scene', chapter: 'c6', bg: 'road', next: 'c6.camp',
-      lines: [
-        B('eiryn', 'We’re heading to the Tower.'),
-        B('kael', 'I didn’t say that.'),
-        B('eiryn', 'You didn’t need to.'),
-        B('aerys', 'People say it grants a wish.'),
-        B('kael', 'What would you wish for?'),
-        B('aerys', 'To be… left alone. Or to be normal. Just… not worth hunting.'),
-        B('aerys', 'Let me travel with you. Please.'),
-        B('kael', 'No.'),
-        B('aerys', 'You don’t get to decide what I belong on.'),
-        B('aerys', 'I helped kill it. Not because I’m strong. Because I can try.'),
-        B('eiryn', 'If you want to come, then come.'),
-        B('aerys', 'I just want to walk beside someone who still steps in.'),
-        B('aerys', 'I’m Aerys.'),
-        B('eiryn', 'Eiryn.'),
-        B('kael', 'Kael.'),
-      ],
-    },
-    'c6.camp': {
-      type: 'scene', chapter: 'c6', bg: 'forest', next: 'c7.city',
-      lines: [
-        N('By dusk the broken hills have swallowed the sun. Kael tries to start a fire. Nothing happens. He tries again. The whole little pile collapses.'),
-        B('kael', 'Don’t start.'),
-        B('aerys', 'I didn’t say anything.'),
-        B('kael', '…Sky people.'),
-        B('aerys', 'Would this… offend your pride?'),
-        B('kael', '…Fine.'),
-        B('kael', 'Before all this… knights mattered. Now it’s beasts and ruins and people pretending they’re fine.'),
-        B('aerys', 'You still act like you matter.'),
-        B('kael', 'I do.'),
-        B('aerys', 'That’s what’s funny.'),
-        N('He laughs once, before he can stop it. For a few seconds the ruined road does not feel ruined.'),
-        B('aerys', 'Do you think it really grants wishes?'),
-        B('kael', 'No.'),
-        B('aerys', 'I hope it does. So I can stop running.'),
-        B('eiryn', 'Sleep.'),
-      ],
-    },
-
-    // ---- The Shadow City
-    'c7.city': {
-      type: 'scene', chapter: 'c7', bg: 'town', next: 'c7.nox',
-      lines: [
-        N('The Shadow City is not one city so much as several versions of one stacked on the same bones. Below the lit upper districts, the lower streets sink into permanent shade.'),
-        B('eiryn', 'Don’t wander.'),
-        N('There are people everywhere, and almost no one speaks. A woman on a balcony follows Aerys with her eyes. It is not curiosity. It is assessment.'),
-        B('aerys', '…I don’t like this.'),
-        N('A man stumbles from an alley, sleeves soaked in blood. A blur crosses the alley. Steel flashes once.'),
-      ],
-    },
-    'c7.nox': {
-      type: 'scene', chapter: 'c7', bg: 'town', next: 'c7.alley',
-      lines: [
-        B('nox', 'Don’t.'),
-        B('kael', 'You murdered him.'),
-        B('nox', 'He murdered first.'),
-        N('Kael lunges. Nox steps inside the swing. One blade touches Kael’s throat — enough to explain exactly how easily it could have cut.'),
-        B('nox', 'Again.'),
-        B('kael', 'He begged.'),
-        B('nox', 'So did the children.'),
-        N('A relic shard spins on the stones. Kael touches it: a child’s hands tied, a house burning, metal tools laid in neat rows. Blood.'),
-        B('kael', '…I was wrong.'),
-        B('kael', 'I spent years cutting down monsters. Then I learned some of them wear faces.'),
-        B('kael', 'We’re walking toward the one place that scares everyone. You’d fit.'),
-        B('nox', 'I don’t do causes. I do contracts.'),
-        B('kael', 'Then think of it as the biggest contract left.'),
-        B('nox', 'If I start wishing… I stop being useful.'),
-        B('nox', 'Someone like me will come for you again. Next time with a name on a page.'),
-        B('aerys', '…He’s terrifying.'),
-        B('kael', 'Yeah. That’s why I asked.'),
-      ],
-    },
-    'c7.alley': {
-      type: 'scene', chapter: 'c7', bg: 'town', next: 'c7.fight',
-      lines: [
-        N('The lower district has already decided what Aerys is worth. Three men step out of the seams between buildings, and one of them is already smiling.'),
-      ],
-    },
-    'c7.fight': {
-      type: 'battle', chapter: 'c7', scenario: 'alley', hearts: true, xp: 120, allyLevel: true,
-      party: (st) => BOOK(st), win: 'c8.road',
-      outro: 'The men scatter into the dark. The city has already begun pretending not to see them.',
-    },
-
-    // ---- The Road That Bleeds
-    'c8.road': {
-      type: 'scene', chapter: 'c8', bg: 'market', next: 'c8.infirmary',
-      lines: [
-        N('The trade roads beyond feel almost offensively normal. A merchant passing with a cart smiles at Aerys: “Safe travels.”'),
-        B('kael', 'Stay close.'),
-        B('aerys', 'Am I doing something wrong?'),
-        B('kael', 'No. That’s the problem.'),
-        N('The next city is smaller and far more alive. Aerys stops at a stall hung with pieces of glowing glass. Across the market, a scarred man watches her too long.'),
-        N('A hand closes around her wrist. A short blade goes into her side. No warning. No demand.'),
-        B('kael', 'No. No — stay with me.'),
-        B('kael', 'I need a healer!'),
-      ],
-    },
-    'c8.infirmary': {
-      type: 'scene', chapter: 'c8', bg: 'tavern', next: 'c8.join',
-      lines: [
-        N('The infirmary is an old chapel packed with cots. A child cries behind a curtain. A tired woman looks up from another patient, sees Aerys, and moves.'),
-        B('healer', 'Put her down. Now.'),
-        B('healer', 'Breathe.'),
-        B('healer', 'Hold her shoulders.'),
-        B('healer', '…An angel in a city of devils.'),
-        B('healer', 'You’re doing good. Let me do my part.'),
-        B('kael', 'I was right there and I still — I didn’t stop it.'),
-        B('healer', 'You brought her here. That matters.'),
-        B('healer', 'She’ll live.'),
-      ],
-    },
-    'c8.join': {
-      type: 'scene', chapter: 'c8', bg: 'tavern', next: 'c9.farms',
-      lines: [
-        B('healer', 'This world only knows how to take.'),
-        B('kael', 'If it’s real… you could wish to end this.'),
-        B('healer', 'End evil? I can’t even end today. But I can end her dying.'),
-        B('kael', 'We’re not making it without one.'),
-        B('healer', 'A healer.'),
-        B('healer', 'If I walk with you… I don’t walk back.'),
-        B('kael', 'I’ll protect you.'),
-        B('healer', 'That’s not how this works. We protect each other.'),
-        N('Her name is Eloryn. Before leaving, she writes a note and leaves it where it will be found: I’m sorry. I couldn’t stay. Please forgive me.'),
-        B('eloryn', 'If there’s even a chance… then I should be there when it matters.'),
-      ],
-    },
-
-    // ---- The Thing That Still Chooses / A Name on a Page
-    'c9.farms': {
-      type: 'scene', chapter: 'c9', bg: 'hill', next: 'c9.fight',
-      lines: [
-        B('aerys', 'Here.'),
-        B('eloryn', 'Thank you.'),
-        B('kael', 'Don’t spoil her.'),
-        B('aerys', 'You’re just upset you didn’t think to bring fruit.'),
-        B('kael', 'I brought a sword.'),
-        B('eloryn', 'I don’t think you can eat that.'),
-        N('The farms below are black. Fences snapped, wells collapsed, a scarecrow hanging from a broken post. Then — a thud, and another. Beasts lie dismantled in a field. One figure stands among them, one arm wrong, bone ridges shifting beneath the skin.'),
-        B('kael', 'Don’t move.'),
-        B('braxen', '…Great. I’m not in the mood.'),
-        B('kael', 'What are you?'),
-        B('braxen', 'Tired.'),
-        N('The grass behind him parts. Another pack, larger, drawn by blood.'),
-        B('kael', '…Behind you.'),
-        B('braxen', 'Fine.'),
-      ],
-    },
-    'c9.fight': {
-      type: 'battle', chapter: 'c9', scenario: 'beasts', hearts: true, xp: 180, allyLevel: true,
-      party: (st) => BOOK(st), win: 'c9.after',
-      outro: 'The last beast stops moving. The stranger’s altered hands are trembling now that there is nothing left to kill.',
-    },
-    'c9.after': {
-      type: 'scene', chapter: 'c9', bg: 'hill', next: 'c9.page',
-      lines: [
-        B('kael', 'You could’ve run.'),
-        B('braxen', 'I run enough.'),
-        B('eiryn', 'You’re still choosing.'),
-        B('braxen', 'If you’re here to kill me… do it now.'),
-        B('kael', 'We’re heading toward the Tower. It’s not a road for someone alone.'),
-        B('braxen', 'I don’t want your Tower. I just… can’t stay.'),
-        B('eloryn', 'Then don’t.'),
-        B('braxen', '…If I walk with you… don’t put a chain on me.'),
-        B('kael', 'No chains.'),
-        B('braxen', 'Braxen.'),
-      ],
-    },
-    'c9.page': {
-      type: 'scene', chapter: 'c9', bg: 'hill', next: 'c10.shadow',
-      lines: [
-        N('A figure drops from the sky like a falling blade. Steel at Braxen’s throat.'),
-        B('nox', 'Don’t care.'),
-        N('Kael drives the blunt of his sword into Nox’s ribs. Nox slides back through the dirt — smiling.'),
-        B('nox', 'Heh… thought we already had this conversation, big guy.'),
-        B('kael', 'Back off.'),
-        B('nox', 'Name on a page. They called him a monster.'),
-        B('braxen', 'Then do it. Stop talking.'),
-        B('aerys', 'Please. He saved us.'),
-        B('nox', 'Not my problem.'),
-        B('eloryn', 'If you cut him, you cut through us.'),
-        B('nox', '…Healers always talk like saints.'),
-        B('kael', 'You want him? Then you go through me again.'),
-        N('Nox looks at Eiryn. She has not moved at all. The air around her feels heavier than it did a moment before.'),
-        B('nox', '…So that’s how it is.'),
-        B('nox', '…Tch.'),
-      ],
-    },
-
-    // ---- The Shadow That Stays / The Night Creature
-    'c10.shadow': {
-      type: 'scene', chapter: 'c10', bg: 'forest', next: 'c10.night',
-      lines: [
-        N('Nox never approaches. Never far enough to lose them. Bandit camps empty overnight. Beasts turn up beside the trail with cuts too clean to be accidental.'),
-        B('aerys', 'You can come out, you know.'),
-        B('aerys', '…Thank you.'),
-        N('That night he unfolds the contract and reads Braxen’s name once. Then folds it again. Gold fades.'),
-        N('And one evening, night seems to deepen faster than it should. Even Nox stops moving.'),
-      ],
-    },
-    'c10.night': {
-      type: 'scene', chapter: 'c10', bg: 'forest', next: 'c10.fight',
-      lines: [
-        N('Something clings to a tree trunk upside down above the camp. Its limbs curve wherever the body requires. Two faintly glowing eyes move across the sleepers — past Kael, past Braxen, past Aerys — and stop on Eloryn.'),
-        N('It drops. No growl. No warning.'),
-        B('eloryn', '—AHH!'),
-      ],
-    },
-    'c10.fight': {
-      type: 'battle', chapter: 'c10', scenario: 'nightcreature', hearts: true, xp: 220, allyLevel: true,
-      party: (st) => BOOK(st), win: 'c10.after',
-      outro: 'Both blades come down through the skull. The forest goes silent. No insects. No wind.',
-    },
-    'c10.after': {
-      type: 'scene', chapter: 'c10', bg: 'forest', next: 'c10.clearing',
-      lines: [
-        B('aerys', '…You.'),
-        B('nox', '…Didn’t want it to end like that.'),
-        B('kael', '…He saved us.'),
-        B('eiryn', 'He’s still close.'),
-        B('kael', 'Seen worse.'),
-        B('braxen', 'She’s probably just takin’ a leak.'),
-      ],
-    },
-    'c10.clearing': {
-      type: 'scene', chapter: 'c10', bg: 'forest', next: 'c10.learns',
-      lines: [
-        B('aerys', 'I don’t know if you can hear me… or if you’re still watching. But thank you. They would’ve died. I would have.'),
-        B('nox', 'Didn’t mean to be seen.'),
-        B('nox', 'You shouldn’t thank people like me.'),
-        B('aerys', 'You saved us.'),
-        B('nox', 'I removed a problem.'),
-        B('aerys', 'That’s not the same thing.'),
-        B('aerys', 'Cruel people enjoy it. You didn’t stay to enjoy anything.'),
-        B('nox', 'This road eats people like you.'),
-        B('aerys', 'Then don’t let it.'),
-        B('nox', 'You too, angel.'),
-      ],
-    },
-    'c10.learns': {
-      type: 'scene', chapter: 'c10', bg: 'road', next: 'c11.doors',
-      lines: [
-        B('nox', 'Morning.'),
-        B('braxen', 'Thought you didn’t do groups.'),
-        B('nox', 'I don’t. I do… roads.'),
-        B('eiryn', 'Then walk.'),
-        B('nox', 'If you keep staring, I’ll cut your eyes clean out.'),
-        B('kael', 'See? This is why people don’t invite you places.'),
-        N('Kael begins training at dawn.'),
-        B('nox', 'You swing like you’re angry at tomorrow.'),
-        B('kael', 'And you fight like you don’t care.'),
-        B('nox', 'That’s why I’m alive. Try again. Slower.'),
-        B('nox', 'You lead with your heart. Good. Just don’t let it swing first.'),
-        B('eloryn', 'You don’t heal with power. You heal by staying.'),
-        N('One evening no one notices when Nox sits with them rather than beyond them. Five silhouettes, then six, lean toward the same warmth.'),
-      ],
-    },
-
-    // ---- The Tower Draws Near / Floor One
-    'c11.doors': {
-      type: 'scene', chapter: 'c11', bg: 'summit', next: 'c11.hall',
-      lines: [
-        N('The first frost appears beneath a gray afternoon sky. It does not melt. Frozen climbers lie half buried beside the road, in armour none of them recognise.'),
-        N('The doors are enormous, carved stone scarred by weapons and weather. Around them, more climbers have frozen where they died.'),
-        B('eloryn', '…They waited.'),
-        N('Kael places one palm against the stone. Something moves far inside it. The doors open.'),
-      ],
-    },
-    'c11.hall': {
-      type: 'scene', chapter: 'c11', bg: 'summit', next: 'c11.kael',
-      lines: [
-        N('The doors slam shut. There is no handle on the inside. Frozen climbers have been built into the walls like warnings.'),
-        B('aerys', '…They didn’t even get to run.'),
-        B('eiryn', 'It’s watching.'),
-        N('Knights take shape in the mist: a swordsman, a juggernaut with brass knuckles, a spear absurdly long for the corridor, a plain one with two short blades, a thin one with a huge axe — and a horned Master Knight that turns its helmet toward Eiryn.'),
-        B('eloryn', 'It lowers the temperature where it touches.'),
-        B('kael', 'TOGETHER—!'),
-        N('White floods the corridor. When it thins, each of them stands alone. The Tower has separated them to find the places each one breaks.'),
-      ],
-    },
-    'c11.kael': {
-      type: 'scene', chapter: 'c11', bg: 'summit', next: 'c11.d1',
-      lines: [
-        N('The Swordsman Knight steps through the mist toward Kael. Its stance is perfect. Every cut it lands slows him — it is not freezing him. It is lowering him, piece by piece.'),
-      ],
-    },
-    'c11.d1': { type: 'battle', chapter: 'c11', scenario: 'duelKael', hearts: false, xp: 60, allyLevel: true, party: (st) => [member(st, 'kael')], win: 'c11.braxen',
-      outro: 'His fist drives into the centre of the knight’s chest. The Swordsman Knight explodes into ice.' },
-    'c11.braxen': {
-      type: 'scene', chapter: 'c11', bg: 'summit', next: 'c11.d2',
-      lines: [N('A Juggernaut Knight waits for Braxen, nearly as broad as he is, brass knuckles the size of stones. It does not draw a weapon. It raises its hands.'), B('braxen', 'Yeah. Figures.')],
-    },
-    'c11.d2': { type: 'battle', chapter: 'c11', scenario: 'duelBraxen', hearts: false, xp: 60, allyLevel: true, party: (st) => [member(st, 'braxen')], win: 'c11.aerys',
-      outro: 'The helmeted head breaks free. The body takes one blind step, then shatters. …Worth it.' },
-    'c11.aerys': {
-      type: 'scene', chapter: 'c11', bg: 'summit', next: 'c11.d3',
-      lines: [
-        N('The Spear Knight punishes flight. Aerys drops — not falling. Choosing ground. And beneath the fear, a memory opens: a bright courtyard, an older hand correcting her stance.'),
-        S('teacher', 'You keep reaching for light. But your body is a weapon too.'),
-        S('teacher', 'Stillwing. Like you have wings — without needing them.'),
-      ],
-    },
-    'c11.d3': { type: 'battle', chapter: 'c11', scenario: 'duelAerys', hearts: false, xp: 60, allyLevel: true, party: (st) => [member(st, 'aerys')], win: 'c11.eloryn',
-      outro: 'No light. No flight. She won without leaving the ground.' },
-    'c11.eloryn': {
-      type: 'scene', chapter: 'c11', bg: 'summit', next: 'c11.d4',
-      lines: [N('The plainest knight comes for Eloryn. Two short blades. Its first cut goes for her fingers. It wants to stop her from healing.'), B('eloryn', '…not yet…')],
-    },
-    'c11.d4': { type: 'battle', chapter: 'c11', scenario: 'duelEloryn', hearts: false, xp: 60, allyLevel: true, party: (st) => [member(st, 'eloryn')], win: 'c11.nox',
-      outro: 'She releases everything outward. Not force. Life. The knight fails to hold its shape. Her hands have changed — older, scarred.' },
-    'c11.nox': {
-      type: 'scene', chapter: 'c11', bg: 'summit', next: 'c11.d5',
-      lines: [N('The Axe Knight is thin enough to look fragile. That is a lie. It was made to catch speed.'), B('nox', '…Okay.'), B('nox', 'I wasn’t planning on using this yet…')],
-    },
-    'c11.d5': { type: 'battle', chapter: 'c11', scenario: 'duelNox', hearts: false, xp: 60, allyLevel: true, party: (st) => [member(st, 'nox')], win: 'c11.eiryn',
-      outro: 'A thousand cuts appear at once. The Axe Knight simply fails to remain whole. …Can’t use that again for a little while.' },
-    'c11.eiryn': {
-      type: 'scene', chapter: 'c11', bg: 'summit', next: 'c11.d6',
-      lines: [N('The mist clears around Eiryn. The Master Knight circles her, slow, unblinking. Two predators inside a silence the Tower has manufactured for them.'), N('At last it strikes. One clean attack. The blade stops inches from her skin.')],
-    },
-    'c11.d6': { type: 'battle', chapter: 'c11', scenario: 'duelEiryn', hearts: false, xp: 40, allyLevel: true, party: (st) => [Object.assign(member(st, 'eirynMage'), { key: 'eirynAsh', gear: 'eirynMage', super: 100 })], win: 'c11.between',
-      outro: 'In the final fraction of its existence, it seems to understand something. It had chosen wrong.' },
-    'c11.between': {
-      type: 'scene', chapter: 'c11', bg: 'summit', next: 'c12.enter',
-      lines: [
-        B('kael', 'Eiryn.'),
-        B('kael', 'You hit?'),
-        B('eiryn', 'No.'),
-        B('braxen', '…Tower doesn’t pull punches.'),
-        B('eloryn', 'Sit. Don’t argue.'),
-        B('kael', 'It learned.'),
-        B('kael', 'We turn back now — this place still wins.'),
-        B('braxen', 'Didn’t crawl in here to lose.'),
-        N('A staircase descends. It does not end. One hour. Then another.'),
-        B('braxen', 'If the wish is real, mine’s a chair.'),
-        B('aerys', '…A chair?'),
-        B('braxen', 'A good one.'),
-        B('braxen', 'Don’t tell me it’s fire next.'),
-      ],
-    },
-
-    // ---- Floor Two: Calamity
-    'c12.enter': {
-      type: 'scene', chapter: 'c12', bg: 'summit', next: 'c12.fight',
-      lines: [
-        N('A corridor so long its end disappears. On the left, an endless waterfall. On the right, lava descending in heavy curtains.'),
-        B('braxen', '…This place is built.'),
-        B('calamity', 'Look at you… You crawled all this way… just to stand here.'),
-        N('Water compresses into a bullet; a molten spear tears across the corridor. Eiryn takes one step.'),
-        B('eiryn', 'Pressure.'),
-        B('calamity', 'Oh…? That’s not supposed to happen.'),
-        B('kael', 'Stay sharp. She’s stronger than every knight we just faced — combined.'),
-      ],
-    },
-    'c12.fight': {
-      type: 'battle', chapter: 'c12', scenario: 'calamity', hearts: true, xp: 300, allyLevel: true,
-      party: (st) => BOOK(st), win: 'c12.after', grant: ['calamitySword'],
-      outro: 'Calamity’s head tears free. No explosion follows. No victory sound. The water and the lava keep flowing.',
-    },
-    'c12.after': {
-      type: 'scene', chapter: 'c12', bg: 'summit', next: 'c12.ramp',
-      lines: [
-        N('Water and lava spiral inward around the body and compress into something new. A sword. Hissing. Unstable.'),
-        B('kael', '…Is anyone else gonna take it?'),
-        B('braxen', 'Grab it, Kael. We know you want to.'),
-        N('Kael closes his hand around the grip. The skin of his palm burns. He does not let go. The blade shudders, then stabilises. Not obeying him. Accepting him.'),
-        B('eiryn', '…That was too close.'),
-        B('nox', '…It wants us to walk.'),
-        B('kael', 'So we don’t think we’re climbing.'),
-        B('eiryn', 'It wants us calm.'),
-      ],
-    },
-    'c12.ramp': {
-      type: 'scene', chapter: 'c12', bg: 'summit', next: 'c13.hall',
-      lines: [
-        B('eloryn', 'Nox, sit. Kael, don’t move. Braxen — lean. Now.'),
-        B('nox', '…That one’s deep.'),
-        B('eloryn', 'I know.'),
-        B('nox', 'Thank you.'),
-        B('braxen', '…You’re gonna break yourself.'),
-        B('eloryn', 'Then don’t make it pointless.'),
-        B('aerys', 'You didn’t have to push like that.'),
-        B('eloryn', 'Yes. I did.'),
-        N('Words have been carved deep into the stone at the top of the ramp. FLOOR 3. THE HALL OF OFFERING.'),
-        B('eloryn', '…Okay.'),
-      ],
-    },
-
-    // ---- Floor Three: The Hall of Offering
-    'c13.hall': {
-      type: 'scene', chapter: 'c13', bg: 'summit', next: 'c13.offering',
-      lines: [
-        B('aerys', '…I don’t like this one.'),
-        N('Five enormous stone wheels stand upright in the floor. Four hold bodies. One stands empty. A man is already there — travel-worn armour, no weapon in his hands.'),
-        B('altheryx', '…I was wondering when someone else would arrive.'),
-        B('altheryx', 'Altheryx. Though… the Tower’s taken to calling me something else. ‘The Crownless King.’'),
-        B('braxen', 'Subtle.'),
-        B('altheryx', '…Because I refused to kneel.'),
-        B('aerys', '…Alone?'),
-        B('altheryx', 'Yes. At least… now.'),
-        B('nox', 'What was your wish?'),
-        B('altheryx', 'To rule the world. And end war permanently.'),
-        B('altheryx', 'My guess? It won’t move again until it’s… satisfied.'),
-      ],
-    },
-    'c13.offering': {
-      type: 'scene', chapter: 'c13', bg: 'summit', next: 'end',
-      lines: [
-        B('eloryn', 'They weren’t Tower constructs…'),
-        B('eloryn', 'Hey guys—'),
-        N('Something punches through her chest. No warning. One moment Eloryn is speaking; the next, a fist protrudes through the front of her body.'),
-        B('altheryx', 'I’m sorry.'),
-        B('eloryn', '…I didn’t—'),
-        N('Her body lifts from the floor. The empty wheel turns. Blood enters the carved channels. All of the wheels begin to turn. Behind them, a hidden passage opens.'),
-        B('altheryx', 'Now… we can continue.'),
-      ],
-    },
-  });
-
-
+  const bookMods = BOOK_FILES.map((id) => {
+    if (typeof module === 'object' && module.exports) return require('./book/' + id + '.js');
+    const g = typeof self !== 'undefined' ? self : this;
+    return g.TowBook && g.TowBook[id];
+  }).filter(Boolean);
+  const H = { B, S, N, only, member, bookParty, BOOK };
+  for (const m of bookMods) {
+    Object.assign(SPEAKERS, m.speakers || {});
+    Object.assign(NODES, m.nodes ? m.nodes(H) : {});
+  }
+  // Sim extras (fighter definitions, scenarios) from the chapters.
+  (function registerSim() {
+    let Sim = null;
+    try { Sim = typeof module === 'object' && module.exports ? require('./sim.js') : (typeof self !== 'undefined' ? self : this).TowSim; } catch (e) { Sim = null; }
+    if (!Sim) return;
+    for (const m of bookMods) { Object.assign(Sim.DEFS, m.defs || {}); Object.assign(Sim.SCENARIOS, m.scenarios || {}); }
+  })();
 
   // ------------------------------------------------------------ side episodes
   // Optional missions on the campaign map (all Proposals except quoted lines).
@@ -1347,7 +895,7 @@
   }
 
   return {
-    NODES, STARTERS, SPEAKERS, CHAPTERS, CHAPTER_START, EPISODES, LEVEL_XP,
+    NODES, STARTERS, SPEAKERS, CHAPTERS, CHAPTER_START, EPISODES, LEVEL_XP, BOOK_FILES,
     fresh, normalise, cur, node, lines, advance, choose, optionOpen, pickStarter, battle, finishBattle,
     atGate, openChapter, startSide, endSide, leaveSide,
     text, speaker, teamLevel, levelFor, roster, team, chapters, member, bookParty,
