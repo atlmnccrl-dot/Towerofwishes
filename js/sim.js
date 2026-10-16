@@ -140,6 +140,72 @@
         { kind: 'hearth', x: -6.2, y: 2.6, r: 0.8 },
       ],
     },
+
+    // ---- The road to the Tower (new manuscript, Chapters Two to Sixteen).
+    // Open grassland under the cloud layer, old markers, a fallen youngling.
+    grassland: {
+      name: 'The Open Road', theme: 'grassland', rx: 11, ry: 6.5, exit: { x: 12.5, y: 0 },
+      obstacles: [
+        { kind: 'carcass', x: 3.4, y: -2.6, r: 1.1 },
+        { kind: 'marker', x: -4.2, y: 2.8, r: 0.4 },
+        { kind: 'wall', x: -6.4, y: -2.4, r: 0.7 },
+        { kind: 'rock', x: 6.8, y: 2.6, r: 0.6 },
+      ],
+    },
+    // The Shadow City's lower district: leaning buildings, narrow seams.
+    shadowcity: {
+      name: 'The Shadow City', theme: 'shadowcity', rx: 10, ry: 5, exit: { x: 11.5, y: 0 },
+      obstacles: [
+        { kind: 'wall', x: -4.0, y: -2.6, r: 0.8 },
+        { kind: 'wall', x: 3.6, y: 2.8, r: 0.8 },
+        { kind: 'crate', x: 0.4, y: -3.4, r: 0.5 },
+        { kind: 'crate', x: 6.0, y: -1.8, r: 0.5 },
+      ],
+    },
+    // Burned lowland farms: snapped fences, a collapsed well, dead beasts.
+    farmland: {
+      name: 'The Dead Farms', theme: 'farmland', rx: 11, ry: 7, exit: { x: 12.5, y: -3 },
+      obstacles: [
+        { kind: 'well', x: -3.2, y: 2.4, r: 0.7 },
+        { kind: 'fence', x: 4.0, y: -3.4, r: 0.6 },
+        { kind: 'scarecrow', x: 6.6, y: 2.2, r: 0.4 },
+        { kind: 'carcass', x: -1.0, y: -2.8, r: 0.9 },
+      ],
+    },
+    // A night camp by a shallow ravine, under a stone overhang.
+    nightcamp: {
+      name: 'The Camp in the Trees', theme: 'nightcamp', rx: 9, ry: 6, exit: { x: 10.5, y: 3 },
+      obstacles: [
+        { kind: 'tree', x: -5.6, y: -2.8, r: 0.55 },
+        { kind: 'tree', x: 5.2, y: -3.2, r: 0.55 },
+        { kind: 'tree', x: 6.0, y: 3.0, r: 0.5 },
+        { kind: 'overhang', x: -5.8, y: 2.6, r: 1.0 },
+        { kind: 'fire', x: 0, y: 0.4, r: 0.35 },
+      ],
+    },
+    // Floor One: the Hall of Frost and Mist.
+    frosthall: {
+      name: 'The Hall of Frost and Mist', theme: 'frosthall', rx: 9, ry: 5, exit: { x: 0, y: -7 },
+      obstacles: [
+        { kind: 'pillar', x: -4.6, y: -2.4, r: 0.6 },
+        { kind: 'pillar', x: 4.6, y: 2.4, r: 0.6 },
+        { kind: 'frozen', x: -5.8, y: 2.8, r: 0.45 },
+        { kind: 'frozen', x: 6.0, y: -2.8, r: 0.45 },
+      ],
+    },
+    // Floor Two: a long corridor between a waterfall and a wall of lava.
+    calamity: {
+      name: 'Calamity’s Corridor', theme: 'calamity', rx: 12, ry: 4.4, exit: { x: 13.5, y: 0 },
+      obstacles: [],
+    },
+    // Floor Three: the Hall of Offering and its five wheels.
+    offering: {
+      name: 'The Hall of Offering', theme: 'offering', rx: 9, ry: 6, exit: { x: -10.5, y: 0 },
+      obstacles: [
+        { kind: 'wheel', x: -4.0, y: -3.4, r: 0.7 }, { kind: 'wheel', x: -2.0, y: -3.8, r: 0.7 },
+        { kind: 'wheel', x: 0, y: -4.0, r: 0.7 }, { kind: 'wheel', x: 2.0, y: -3.8, r: 0.7 }, { kind: 'wheel', x: 4.0, y: -3.4, r: 0.7 },
+      ],
+    },
   };
   let ARENA = ARENAS.clearing;
   // Heavy arts are once per match, so they land hard.
@@ -382,6 +448,123 @@
       attack: { name: 'Miller’s Cleaver', range: 1.6, arc: 1.7, windup: 0.5, active: 0.1, recover: 0.5, dmg: [20, 27], knock: 1.4, lunge: 0.6, sta: 14 },
       barks: {}, intro: { epithet: 'Wears a grain sack as a cloak', line: null },
     },
+
+    // ---- The new manuscript's heroes. Names, powers and the named arts are
+    // the book's; numbers, Braxen's art name and Eloryn's art name are Proposals.
+    eirynAsh: {
+      name: 'Eiryn', team: 'hero', r: 0.33, hp: 150, sta: 120, speed: 4.0,
+      react: 0.12, read: 0.8, parry: 0.5, dodge: 0.6, feint: 0,
+      brain: 'caster', superMeter: true, opener: 'advance', keepAway: 3.6,
+      attack: { name: 'Pressure', range: 6.5, arc: 0.7, windup: 0.4, active: 0.05, recover: 0.5, dmg: [14, 18], knock: 3, stagger: 0.6, sta: 10, projectile: 20 },
+      melee: { name: 'Pressure', range: 1.8, arc: 2.2, windup: 0.2, active: 0.08, recover: 0.4, dmg: [8, 10], knock: 4.2, stagger: 0.8, lunge: 0.1, sta: 12 },
+      heavy: { name: 'Pressure', radius: 5, arc: 6.3, dmg: [70, 85] },
+      barks: { super: 'Pressure.' }, intro: { epithet: 'One hundred and fifty years', line: 'And why should I be?' },
+    },
+    aerys: {
+      name: 'Aerys', team: 'hero', r: 0.33, hp: 125, sta: 110, speed: 4.6,
+      react: 0.16, read: 0.55, parry: 0.15, dodge: 0.55, feint: 0.1,
+      brain: 'caster', superMeter: true, opener: 'retreat', keepAway: 4.4,
+      attack: { name: 'Light', range: 7.5, arc: 0.6, windup: 0.42, active: 0.05, recover: 0.42, dmg: [11, 14], knock: 1.2, sta: 9, projectile: 18 },
+      melee: { name: 'Stillwing', range: 1.5, arc: 1.8, windup: 0.18, active: 0.08, recover: 0.32, dmg: [10, 13], knock: 2.6, stagger: 0.6, lunge: 0.4, sta: 10 },
+      heavy: { name: 'Spear of Light', radius: 9, arc: 0.6, dmg: [60, 72], line: true },
+      barks: {}, intro: { epithet: 'Hunted for her blood', line: 'Because I can try.' },
+    },
+    nox: {
+      name: 'Nox', team: 'hero', r: 0.34, hp: 140, sta: 120, speed: 5.6,
+      react: 0.11, read: 0.75, parry: 0.3, dodge: 0.7, feint: 0.4,
+      brain: 'duelist', superMeter: true, opener: 'blink', combo: 3, blink: { range: 8, cd: 2.5 },
+      attack: { name: 'Twin Blades', range: 1.3, arc: 1.5, windup: 0.2, active: 0.08, recover: 0.22, dmg: [10, 13], knock: 0.5, lunge: 0.8, sta: 8 },
+      heavy: { name: 'One Step — A Thousand Wounds', radius: 4.5, arc: 6.3, dmg: [55, 65] },
+      barks: { super: 'One Step.' }, intro: { epithet: 'Contracts, not causes', line: 'Again.' },
+    },
+    eloryn: {
+      name: 'Eloryn', team: 'hero', r: 0.33, hp: 115, sta: 110, speed: 4.0,
+      react: 0.2, read: 0.5, parry: 0, dodge: 0.45, feint: 0,
+      brain: 'healer', superMeter: true, opener: 'retreat', keepAway: 4.8,
+      attack: { name: 'Push of Light', range: 5, arc: 0.7, windup: 0.4, active: 0.05, recover: 0.45, dmg: [6, 8], knock: 2.6, stagger: 0.4, sta: 8, projectile: 12 },
+      melee: { name: 'Shove', range: 1.5, arc: 1.8, windup: 0.22, active: 0.08, recover: 0.4, dmg: [4, 6], knock: 3.4, stagger: 0.6, lunge: 0.1, sta: 10 },
+      heavy: { name: 'Life Surge', radius: 4.5, arc: 6.3, dmg: [40, 50], heal: 0.35 },
+      heal: { amount: 22, cd: 2.4, sta: 10, below: 0.72, range: 6.5 },
+      barks: {}, intro: { epithet: 'Healer · the infirmary', line: 'We protect each other.' },
+    },
+    braxen: {
+      name: 'Braxen', team: 'hero', r: 0.44, hp: 270, sta: 120, speed: 4.0,
+      react: 0.2, read: 0.4, parry: 0.15, dodge: 0.25, feint: 0.05,
+      brain: 'duelist', protector: true, superMeter: true, opener: 'rush', combo: 2,
+      attack: { name: 'Altered Fist', range: 1.4, arc: 1.7, windup: 0.32, active: 0.1, recover: 0.4, dmg: [16, 21], knock: 2.0, stagger: 0.35, lunge: 0.5, sta: 11 },
+      heavy: { name: 'Bone Breaker', radius: 3.6, arc: 6.3, dmg: [45, 55] },
+      barks: {}, intro: { epithet: 'Still choosing', line: 'Tired.' },
+    },
+
+    // ---- The road's foes and the Tower's first three floors.
+    skyreaver: {
+      name: 'Skyreaver', team: 'bandit', r: 0.95, hp: 520, sta: 200, speed: 4.8,
+      react: 0.3, read: 0.4, parry: 0, dodge: 0.2, feint: 0.15, morale: 99, noFlee: true, boss: true, punisher: true, firstTarget: 'aerys',
+      blink: { range: 9, cd: 3.5 }, opener: 'blink',
+      attack: { name: 'Dive', range: 2.4, arc: 2.0, windup: 0.7, active: 0.14, recover: 0.7, dmg: [26, 34], knock: 2.6, down: true, lunge: 1.4, sta: 16 },
+      barks: {}, intro: { epithet: 'The mother', line: null },
+    },
+    ruinBeast: {
+      name: 'Ruin Beast', team: 'bandit', r: 0.42, hp: 90, sta: 100, speed: 5.2,
+      react: 0.26, read: 0.25, parry: 0, dodge: 0.3, feint: 0.1, morale: 0.95, opener: 'rush',
+      attack: { name: 'Maul', range: 1.3, arc: 1.4, windup: 0.32, active: 0.08, recover: 0.38, dmg: [11, 14], knock: 0.9, lunge: 0.9, sta: 10 },
+      barks: {}, intro: { epithet: 'Drawn by blood', line: null },
+    },
+    nightCreature: {
+      name: 'Night Creature', team: 'bandit', r: 0.6, hp: 640, sta: 200, speed: 5.0,
+      react: 0.18, read: 0.5, parry: 0, dodge: 0.35, feint: 0.3, morale: 99, noFlee: true, boss: true, punisher: true, firstTarget: 'eloryn',
+      blink: { range: 7, cd: 4 }, opener: 'blink',
+      attack: { name: 'Rake', range: 1.9, arc: 2.0, windup: 0.38, active: 0.1, recover: 0.45, dmg: [24, 32], knock: 2.4, down: true, lunge: 0.9, sta: 12 },
+      barks: {}, intro: { epithet: 'It chose the healer', line: null },
+    },
+    knightSword: {
+      name: 'Swordsman Knight', team: 'bandit', r: 0.38, hp: 260, sta: 160, speed: 4.4,
+      react: 0.15, read: 0.7, parry: 0.5, dodge: 0.3, feint: 0.3, morale: 99, noFlee: true, dissolve: true, blink: { range: 6, cd: 4 },
+      attack: { name: 'Frost Blade', range: 1.6, arc: 1.6, windup: 0.3, active: 0.1, recover: 0.36, dmg: [14, 18], knock: 0.9, lunge: 0.6, sta: 10, chill: true },
+      barks: {}, intro: { epithet: 'It learns you', line: null },
+    },
+    knightFist: {
+      name: 'Juggernaut Knight', team: 'bandit', r: 0.46, hp: 340, sta: 180, speed: 3.8,
+      react: 0.22, read: 0.45, parry: 0.2, dodge: 0.1, feint: 0.1, morale: 99, noFlee: true, dissolve: true,
+      attack: { name: 'Brass Knuckles', range: 1.4, arc: 1.6, windup: 0.36, active: 0.1, recover: 0.42, dmg: [17, 22], knock: 2.2, stagger: 0.3, lunge: 0.5, sta: 11, chill: true },
+      barks: {}, intro: { epithet: 'A moving wall', line: null },
+    },
+    knightSpear: {
+      name: 'Spear Knight', team: 'bandit', r: 0.36, hp: 230, sta: 160, speed: 4.6,
+      react: 0.16, read: 0.6, parry: 0.3, dodge: 0.4, feint: 0.25, morale: 99, noFlee: true, dissolve: true, blink: { range: 7, cd: 3 },
+      attack: { name: 'Long Spear', range: 2.5, arc: 1.0, windup: 0.4, active: 0.1, recover: 0.4, dmg: [15, 19], knock: 1.0, lunge: 0.8, sta: 11, chill: true },
+      barks: {}, intro: { epithet: 'It punishes flight', line: null },
+    },
+    knightTwin: {
+      name: 'Twin-Blade Knight', team: 'bandit', r: 0.34, hp: 200, sta: 160, speed: 5.0,
+      react: 0.16, read: 0.55, parry: 0.2, dodge: 0.45, feint: 0.35, morale: 99, noFlee: true, dissolve: true, firstTarget: 'eloryn',
+      attack: { name: 'Two Short Blades', range: 1.3, arc: 1.4, windup: 0.22, active: 0.08, recover: 0.28, dmg: [11, 14], knock: 0.5, lunge: 0.8, sta: 8, chill: true },
+      barks: {}, intro: { epithet: 'Plain. Efficient.', line: null },
+    },
+    knightAxe: {
+      name: 'Axe Knight', team: 'bandit', r: 0.36, hp: 240, sta: 160, speed: 4.6,
+      react: 0.12, read: 0.75, parry: 0.4, dodge: 0.6, feint: 0.2, morale: 99, noFlee: true, dissolve: true, blink: { range: 6, cd: 2.5 },
+      attack: { name: 'Reaching Axe', range: 2.2, arc: 1.8, windup: 0.42, active: 0.12, recover: 0.45, dmg: [17, 22], knock: 1.6, lunge: 0.6, sta: 12, chill: true },
+      barks: {}, intro: { epithet: 'Made to catch speed', line: null },
+    },
+    knightMaster: {
+      name: 'Master Knight', team: 'bandit', r: 0.42, hp: 900, sta: 220, speed: 4.4,
+      react: 0.12, read: 0.8, parry: 0.6, dodge: 0.4, feint: 0.3, morale: 99, noFlee: true, boss: true, dissolve: true, blink: { range: 6, cd: 3 },
+      attack: { name: 'One Clean Attack', range: 1.8, arc: 1.6, windup: 0.5, active: 0.1, recover: 0.5, dmg: [30, 38], knock: 1.8, lunge: 0.8, sta: 14, chill: true },
+      barks: {}, intro: { epithet: 'It chose wrong', line: null },
+    },
+    calamity: {
+      name: 'Calamity', team: 'bandit', r: 0.6, hp: 1100, sta: 240, speed: 3.6,
+      react: 0.15, read: 0.6, parry: 0, dodge: 0.3, feint: 0.2, morale: 99, noFlee: true, boss: true, punisher: true, ranged: true, keepAway: 6.5,
+      blink: { range: 8, cd: 4 }, opener: 'hangback', post: { x: 6, y: 0 },
+      attack: { name: 'Water Bullet', range: 11, arc: 0.6, windup: 0.42, active: 0.05, recover: 0.4, dmg: [22, 28], knock: 2.0, sta: 0, projectile: 24 },
+      // The book's skyfire and slabs of moving ocean: a marked circle, then impact.
+      hazards: [
+        { name: 'Skyfire', every: 5.5, windup: 1.3, radius: 2.4, dmg: [26, 34], kind: 'fire' },
+        { name: 'Moving Ocean', every: 8, windup: 1.1, radius: 3.2, dmg: [18, 24], kind: 'water', knock: 5 },
+      ],
+      barks: {}, intro: { epithet: 'Floor Two', line: 'You crawled all this way… just to stand here.' },
+    },
   });
 
   // Face-off order for the default Chapter One match.
@@ -518,6 +701,58 @@
         { key: 'thug', x: 2.4, y: 0.2, f: 3.1 }, { key: 'golem', x: 3.4, y: -2.0, f: 3.1 },
       ],
     },
+
+    // ---- The new manuscript's road and the Tower (book heroes; slots are
+    // filled by the story's party, fixed units are the book's).
+    skyreaver: {
+      chapter: 'The Sky That Hunts', title: 'The Skyreaver', arena: 'grassland', allOutUses: 2, vs: 'skyreaver', scale: { hp: 1.2, dmg: 2.1 },
+      units: [
+        { slot: 0, x: -6.8, y: 0.4, f: 0 }, { slot: 1, x: -8.0, y: -1.2, f: 0 },
+        { key: 'aerys', x: -3.2, y: 1.8, f: 0, hpFrac: 0.6 },
+        { key: 'skyreaver', x: 4.6, y: 0.6, f: 3.1 },
+      ],
+    },
+    beasts: {
+      chapter: 'The Thing That Still Chooses', title: 'The Field of Beasts', arena: 'farmland', allOutUses: 2, vs: 'ruinBeast', scale: { hp: 1.5, dmg: 2.3 },
+      units: [
+        { slot: 0, x: -7.0, y: 0.4, f: 0 }, { slot: 1, x: -7.8, y: -1.4, f: 0 }, { slot: 2, x: -8.0, y: 1.8, f: 0 }, { slot: 3, x: -8.8, y: 0.2, f: 0 },
+        { key: 'braxen', x: -1.6, y: 0.2, f: 0, hpFrac: 0.7 },
+        { key: 'ruinBeast', x: 2.4, y: -1.8, f: 3.1 }, { key: 'ruinBeast', x: 3.0, y: 1.6, f: 3.1 },
+        { key: 'ruinBeast', x: 4.6, y: 0, f: 3.1 }, { key: 'ruinBeast', x: 5.4, y: -2.8, f: 3.1 },
+        { key: 'ruinBeast', x: 5.8, y: 2.8, f: 3.1 },
+      ],
+    },
+    nightcreature: {
+      chapter: 'The Night Creature', title: 'The Night Creature', arena: 'nightcamp', allOutUses: 2, vs: 'nightCreature', scale: { hp: 1.3, dmg: 2.7 },
+      units: [
+        { slot: 0, x: -2.4, y: 1.2, f: 0 }, { slot: 1, x: -3.4, y: -1.0, f: 0 }, { slot: 2, x: -1.0, y: 2.6, f: 0 },
+        { slot: 3, x: -3.8, y: 2.2, f: 0 }, { slot: 4, x: -4.6, y: 0.4, f: 0 },
+        { key: 'nightCreature', x: 2.6, y: -0.4, f: 3.1 },
+      ],
+      // Nox comes out of the dark once the camp is losing.
+      arrive: { key: 'nox', bossBelow: 0.65, orHeroesDown: 2 },
+    },
+    // Floor One: the Tower separates them; each fights alone.
+    duelKael: { chapter: 'Floor One', title: 'Kael · the Swordsman Knight', arena: 'frosthall', allOutUses: 1, vs: 'knightSword', scale: { hp: 1.3, dmg: 1.35 },
+      units: [{ slot: 0, x: -5, y: 0, f: 0 }, { key: 'knightSword', x: 3, y: 0, f: 3.1 }] },
+    duelBraxen: { chapter: 'Floor One', title: 'Braxen · the Juggernaut Knight', arena: 'frosthall', allOutUses: 1, vs: 'knightFist', scale: { hp: 1.8, dmg: 1.85 },
+      units: [{ slot: 0, x: -5, y: 0, f: 0 }, { key: 'knightFist', x: 3, y: 0, f: 3.1 }] },
+    duelAerys: { chapter: 'Floor One', title: 'Aerys · the Spear Knight', arena: 'frosthall', allOutUses: 1, vs: 'knightSpear', scale: { hp: 1.45, dmg: 1.5 },
+      units: [{ slot: 0, x: -5, y: 0, f: 0 }, { key: 'knightSpear', x: 3, y: 0, f: 3.1 }] },
+    duelEloryn: { chapter: 'Floor One', title: 'Eloryn · the Twin-Blade Knight', arena: 'frosthall', allOutUses: 1, vs: 'knightTwin', scale: { hp: 1.3, dmg: 3.4 },
+      units: [{ slot: 0, x: -5, y: 0, f: 0 }, { key: 'knightTwin', x: 3, y: 0, f: 3.1 }] },
+    duelNox: { chapter: 'Floor One', title: 'Nox · the Axe Knight', arena: 'frosthall', allOutUses: 1, vs: 'knightAxe', scale: { hp: 1.2, dmg: 1.3 },
+      units: [{ slot: 0, x: -5, y: 0, f: 0 }, { key: 'knightAxe', x: 3, y: 0, f: 3.1 }] },
+    duelEiryn: { chapter: 'Floor One', title: 'Eiryn · the Master Knight', arena: 'frosthall', allOutUses: 0, vs: 'knightMaster', scale: { hp: 0.16, dmg: 1 },
+      units: [{ slot: 0, x: -5, y: 0, f: 0 }, { key: 'knightMaster', x: 3, y: 0, f: 3.1 }] },
+    calamity: {
+      chapter: 'Floor Two', title: 'Calamity', arena: 'calamity', allOutUses: 2, vs: 'calamity', scale: { hp: 0.62, dmg: 0.6 },
+      units: [
+        { slot: 0, x: -8, y: 0, f: 0 }, { slot: 1, x: -9, y: -1.6, f: 0 }, { slot: 2, x: -9, y: 1.6, f: 0 },
+        { slot: 3, x: -10, y: -0.8, f: 0 }, { slot: 4, x: -10, y: 0.8, f: 0 }, { slot: 5, x: -10.8, y: 0, f: 0 },
+        { key: 'calamity', x: 6, y: 0, f: 3.1 },
+      ],
+    },
   };
 
   // Arcade waves: more foes and tougher each wave.
@@ -592,6 +827,7 @@
       u.slot = slot;
       if (slot != null && party[slot].super) u.superMeter = Math.min(100, party[slot].super);
       if (spec.morale != null) u.morale = spec.morale;
+      if (spec.hpFrac != null && slot == null) u.hp = Math.max(1, Math.round(u.maxHp * spec.hpFrac));
       units.push(u);
     }
     useArena({ arena: ARENAS[sc.arena] });
@@ -625,6 +861,7 @@
     s.vs = [lead.id, boss.id];
     s.foeScale = { hp: hpMul, dmg: dmgMul };
     s.endless = !!sc.endless; s.wave = 1;
+    s.arrive = sc.arrive || null; s.arriveLevel = opts.allyLevel || 1;
     const guest = heroes.find((u) => u.guest);
     for (const u of units) {
       if (u.def.firstTarget) u.target = s.byId[u.def.firstTarget] || guest || lead;
@@ -903,6 +1140,7 @@
       if (u.team === 'bandit') s.stats.feintsLanded++;
     }
     dmg = Math.round(dmg * (1 - (v.armor || 0)));
+    if (A.chill) v.chillT = 2.5; // the Tower's frost: the wounded limb slows
     v.hp -= dmg;
     v.flash = 0.12;
     if (src.lifesteal && alive(src)) src.hp = Math.min(src.maxHp, src.hp + dmg * src.lifesteal);
@@ -1020,6 +1258,7 @@
       u.y += Math.sin(u.facing) * 1.6;
       collideWorld(u);
     }
+    if (H.heal) for (const o of s.units) if (o.team === u.team && alive(o) && dist(u, o) <= H.radius) o.hp = Math.min(o.maxHp, o.hp + o.maxHp * H.heal);
     for (const v of opponents(s, u)) {
       if (v.beaten || v.fleeing || dist(u, v) > H.radius) continue;
       if (Math.abs(angDiff(u.facing, angTo(u, v))) > H.arc / 2) continue;
@@ -1213,6 +1452,88 @@
     }
     if (Math.hypot(gx - u.x, gy - u.y) < 0.6 && nd > 3) { u.facing = angTo(u, near); return idle(u, dt); }
     moveTo(s, u, gx, gy, 0.95, near);
+  }
+
+  // Healers (Eloryn) mend the most hurt ally in reach, and otherwise fight
+  // like casters.
+  function brainHealer(s, u, dt) {
+    if (trySuper(s, u)) return;
+    const H = u.def.heal;
+    if (H && u.cd <= 0 && u.sta >= H.sta && !inAllOut(u)) {
+      let best = null, low = H.below;
+      for (const o of s.units) {
+        if (o.team !== u.team || !alive(o) || o.fled) continue;
+        const f = o.hp / o.maxHp;
+        if (f < low && dist(u, o) < H.range) { low = f; best = o; }
+      }
+      if (best) {
+        u.cd = H.cd; u.sta -= H.sta;
+        u.facing = angTo(u, best);
+        setState(u, 'cast', 0.5);
+        const amt = Math.round(H.amount * (u.power || 1));
+        best.hp = Math.min(best.maxHp, best.hp + amt);
+        s.fx.push({ type: 'heal', unit: u.id, target: best.id, x: best.x, y: best.y, amt });
+        return;
+      }
+    }
+    return brainCaster(s, u, dt);
+  }
+
+  // Boss area attacks: a telegraphed circle on a hero's spot, then impact.
+  // Fighters see the mark and may dodge out of it.
+  function stepHazards(s, dt) {
+    s.hazards = s.hazards || [];
+    for (const u of s.units) {
+      if (!u.def.hazards || !inFight(u) || u.state === 'down' || u.state === 'stagger') continue;
+      u.hzT = u.hzT || u.def.hazards.map((h, i) => h.every * (0.5 + 0.3 * i));
+      u.def.hazards.forEach((h, i) => {
+        u.hzT[i] -= dt;
+        if (u.hzT[i] > 0) return;
+        u.hzT[i] = h.every * (0.85 + s.rng() * 0.3);
+        const foes = opponents(s, u).filter(inFight);
+        if (!foes.length) return;
+        const t = foes[Math.floor(s.rng() * foes.length)];
+        const z = { x: t.x, y: t.y, r: h.radius, t: h.windup, h, from: u };
+        s.hazards.push(z);
+        s.fx.push({ type: 'hazard', x: z.x, y: z.y, r: z.r, windup: h.windup, kind: h.kind, name: h.name, unit: u.id });
+        // Quick fighters read the mark and try to get out of it.
+        for (const v of foes) if (dist(v, z) < z.r + v.r && FREE[v.state] && !isDrained(v) && s.rng() < v.def.dodge * 0.9) {
+          v.dodgeDir = angTo(z, v); setState(v, 'dodge', 0.45);
+        }
+      });
+    }
+    for (let i = s.hazards.length - 1; i >= 0; i--) {
+      const z = s.hazards[i];
+      z.t -= dt;
+      if (z.t > 0) continue;
+      s.hazards.splice(i, 1);
+      s.fx.push({ type: 'hazardHit', x: z.x, y: z.y, r: z.r, kind: z.h.kind });
+      for (const v of opponents(s, z.from)) {
+        if (!alive(v) || v.fled || dist(v, z) > z.r + v.r * 0.5) continue;
+        if (v.state === 'dodge' && v.st < 0.35) continue;
+        const dmg = Math.round((z.h.dmg[0] + s.rng() * (z.h.dmg[1] - z.h.dmg[0])) * (z.from.power || 1) * (1 - (v.armor || 0)));
+        v.hp -= dmg; v.flash = 0.15;
+        const a = angTo(z, v), kn = z.h.knock || 2;
+        v.kx += Math.cos(a) * kn * 2.2; v.ky += Math.sin(a) * kn * 2.2;
+        s.fx.push({ type: 'hit', x: v.x, y: v.y, dmg, big: dmg >= 18, from: z.from.team });
+        if (v.hp <= 0) { v.hp = 0; knockOut(s, v); } else setState(v, 'hurt', 0.35);
+      }
+    }
+  }
+
+  // A book ally arrives mid-fight (Nox at the Night Creature).
+  function checkArrival(s) {
+    const A = s.arrive;
+    const boss = s.byId[s.vs[1]];
+    const down = s.units.filter((u) => u.team === 'hero' && !u.guest && !alive(u)).length;
+    if (!((boss && boss.hp / boss.maxHp < A.bossBelow) || (A.orHeroesDown && down >= A.orHeroesDown))) return;
+    s.arrived = true;
+    const t = boss || s.lead;
+    const u = makeUnit(A.key, A.key, t.x - 1.6, t.y + 0.4, 0, 1, s.arriveLevel);
+    u.target = boss;
+    s.units.push(u); s.byId[u.id] = u;
+    s.fx.push({ type: 'blink', unit: u.id, x0: t.x - 5, y0: t.y, x1: u.x, y1: u.y });
+    say(s, `${u.name} steps out of the shadows.`);
   }
 
   // Casters keep their distance, shoot force bolts, and shove anyone who
@@ -1448,7 +1769,7 @@
   }
 
   function steer(s, u, gx, gy, mul, faceT, noBounds) {
-    let speed = u.def.speed * (mul || 1);
+    let speed = u.def.speed * (u.chillT > 0 ? 0.72 : 1) * (mul || 1);
     if (isDrained(u)) speed *= 0.65;
     const wp = detour(u, gx, gy, s.t);
     let dx = wp.x - u.x, dy = wp.y - u.y;
@@ -1567,7 +1888,7 @@
         break;
       }
       default:
-        if (u.team === 'hero') (u.def.brain === 'caster' ? brainCaster : u.guest ? brainEiryn : brainKael)(s, u, dt);
+        if (u.team === 'hero') (u.def.brain === 'caster' ? brainCaster : u.def.brain === 'healer' ? brainHealer : u.guest ? brainEiryn : brainKael)(s, u, dt);
         else brainBandit(s, u, dt);
     }
 
@@ -1640,7 +1961,7 @@
         releaseTokens(s, u);
         u.act = null;
         setState(u, 'idle');
-        if (u.team === 'hero' && !u.guest && u.def.brain !== 'caster') {
+        if (u.team === 'hero' && !u.guest && u.def.brain !== 'caster' && u.def.brain !== 'healer') {
           const cmax = u.def.combo || 2;
           u.combo = Math.min(u.combo + 1, cmax);
           u.cd = u.combo >= cmax ? 1.5 + s.rng() * 0.9 : 0.2 + s.rng() * 0.2;
@@ -1689,6 +2010,9 @@
     s.t += dt;
     chargeAllOut(s, dt / ALL_OUT.chargeTime);
     s.allOut.active = s.units.filter((u) => u.allOut > 0).length;
+    for (const u of s.units) if (u.chillT > 0) u.chillT -= dt;
+    stepHazards(s, dt);
+    if (s.arrive && !s.arrived) checkArrival(s);
     for (const u of s.units) stepUnit(s, u, dt);
     separate(s);
     for (const u of s.units) if (alive(u)) collideWorld(u);
