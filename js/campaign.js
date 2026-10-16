@@ -22,14 +22,19 @@
     { id: 'north', name: 'The North Road', biome: 'fields', x: 260, y: 105, r: 95 },
     { id: 'hills', name: 'The Mill and the Quarry', biome: 'hills', x: 470, y: 205, r: 105 },
     { id: 'ruins', name: 'The Old Crossing', biome: 'ruins', x: 470, y: 405, r: 90 },
-    { id: 'east', name: 'The Eastern Lands', biome: 'wilds', x: 700, y: 260, r: 150 },
+    // The book's road east, after the quarry.
+    { id: 'grass', name: 'The Open Grassland', biome: 'fields', x: 615, y: 315, r: 70 },
+    { id: 'shadow', name: 'The Shadow City', biome: 'ruins', x: 690, y: 120, r: 75 },
+    { id: 'bleed', name: 'The Road That Bleeds', biome: 'forest', x: 765, y: 265, r: 62 },
+    { id: 'farms', name: 'The Outer Farms', biome: 'fields', x: 690, y: 425, r: 65 },
+    { id: 'camp', name: 'The Night Camp', biome: 'wilds', x: 820, y: 410, r: 62 },
     { id: 'tower', name: 'The Tower', biome: 'tower', x: 925, y: 230, r: 75 },
   ];
 
   // kind: story | contract | side | dungeon | training | arcade | locked
   // story nodes point at a story chapter (main pointer); others start an episode.
   const NODES = [
-    { id: 'prologue', kind: 'story', chapter: 'prologue', region: 'tower', x: 925, y: 200, title: 'The Last Ascent', sub: 'Prologue' },
+    { id: 'prologue', kind: 'story', chapter: 'prologue', region: 'tower', x: 920, y: 110, title: 'The Last Ascent', sub: 'Prologue' },
     { id: 'c1', kind: 'story', chapter: 'c1', region: 'forest', x: 305, y: 300, title: 'The Clearing', sub: 'Chapter One' },
     { id: 'c2', kind: 'story', chapter: 'c2', region: 'town', x: 175, y: 300, title: 'A Town Grown Strange', sub: 'Chapters Two & Three' },
     { id: 'c4', kind: 'story', chapter: 'c4', region: 'town', x: 120, y: 235, title: 'The First Contract', sub: 'Chapter Four' },
@@ -40,7 +45,16 @@
     { id: 'c5', kind: 'story', chapter: 'c5', region: 'hills', x: 480, y: 200, title: 'The Quarry', sub: 'Chapter Five' },
     { id: 'deep', kind: 'dungeon', episode: 'deep', region: 'hills', x: 560, y: 150, title: 'The Deep Passage', sub: 'Dungeon · repeatable' },
     { id: 'crossing', kind: 'side', episode: 'crossing', region: 'ruins', x: 470, y: 400, title: 'The Old Crossing', sub: 'Side story · Eiryn' },
-    { id: 'c6', kind: 'locked', chapter: 'c6', region: 'east', x: 700, y: 255, title: 'Beyond the manuscript', sub: 'Chapter Six · awaiting the author' },
+    { id: 'hire', kind: 'side', episode: 'hire', region: 'town', x: 215, y: 215, title: 'Three for Hire', sub: 'Tavern · pick a companion' },
+    { id: 'c6', kind: 'story', chapter: 'c6', region: 'grass', x: 615, y: 315, title: 'The Sky That Hunts', sub: 'Chapter Six' },
+    { id: 'c7', kind: 'story', chapter: 'c7', region: 'shadow', x: 690, y: 125, title: 'The Shadow City', sub: 'Chapter Seven' },
+    { id: 'c8', kind: 'story', chapter: 'c8', region: 'bleed', x: 765, y: 265, title: 'The Road That Bleeds', sub: 'Chapter Eight' },
+    { id: 'c9', kind: 'story', chapter: 'c9', region: 'farms', x: 690, y: 425, title: 'A Name on a Page', sub: 'Chapter Nine' },
+    { id: 'c10', kind: 'story', chapter: 'c10', region: 'camp', x: 820, y: 410, title: 'The Night Creature', sub: 'Chapter Ten' },
+    { id: 'c11', kind: 'story', chapter: 'c11', region: 'tower', x: 900, y: 305, title: 'The Hall of Frost and Mist', sub: 'Floor One' },
+    { id: 'c12', kind: 'story', chapter: 'c12', region: 'tower', x: 950, y: 265, title: 'Calamity', sub: 'Floor Two' },
+    { id: 'c13', kind: 'story', chapter: 'c13', region: 'tower', x: 905, y: 228, title: 'The Offering', sub: 'Floor Three' },
+    { id: 'c14', kind: 'locked', chapter: 'c14', region: 'tower', x: 960, y: 175, title: 'Floor Four', sub: 'Beyond the manuscript · awaiting the author' },
   ];
 
   // Roads between nodes; the three from the Guild are the branch.
@@ -49,10 +63,12 @@
     ['c4', 'cart'], ['cart', 'stray'],
     ['c4', 'c5'], ['c5', 'deep'],
     ['c4', 'crossing'],
-    ['c5', 'c6'], ['c6', 'prologue'],
+    ['c4', 'hire'],
+    ['c5', 'c6'], ['c6', 'c7'], ['c7', 'c8'], ['c8', 'c9'], ['c9', 'c10'], ['c10', 'c11'],
+    ['c11', 'c12'], ['c12', 'c13'], ['c13', 'c14'], ['c14', 'prologue'],
   ];
 
-  const ORDER = ['prologue', 'c1', 'c2', 'c4', 'c5', 'c6'];
+  const ORDER = ['prologue', 'c1', 'c2', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9', 'c10', 'c11', 'c12', 'c13', 'c14'];
   // Where the main story is: the chapter of its current node.
   function storyChapter(Story, st) { return Story.NODES[st.node].chapter; }
   function chapterIndex(ch) { return ORDER.indexOf(ch); }
@@ -61,14 +77,25 @@
 
   // Why a node is locked (null if open).
   function lockReason(Story, st, n) {
+    // Contracts are tuned for three: Kael, Eiryn and a companion (or a book hero).
+    const three = Story.roster(st).length >= 3;
     switch (n.id) {
-      case 'yard': case 'gauntlet': case 'cart': return reached(Story, st, 'c4') && (st.seen.c4) ? null : 'Register with the Guild first (Chapter Four)';
+      case 'cart': case 'stray': case 'crossing': case 'deep': {
+        const r = baseLock(Story, st, n);
+        return r || (three ? null : 'Hire a companion at the tavern first (Three for Hire)');
+      }
+      default: return baseLock(Story, st, n);
+    }
+  }
+  function baseLock(Story, st, n) {
+    switch (n.id) {
+      case 'yard': case 'gauntlet': case 'cart': case 'hire': return reached(Story, st, 'c4') && (st.seen.c4) ? null : 'Register with the Guild first (Chapter Four)';
       case 'stray': return st.done.cart ? null : 'Finish the missing cart contract';
       case 'crossing':
         if (!(reached(Story, st, 'c4') && st.seen.c4)) return 'Eiryn hasn’t asked yet';
         return (st.flags.trust || 0) > 0 ? null : 'Eiryn doesn’t trust you enough to ask';
       case 'deep': return past(Story, st, 'c5') ? null : 'Clear the quarry first (Chapter Five)';
-      case 'c6': return 'Arrives with the next chapters of the book';
+      case 'c14': return 'Arrives with the next chapters of the book';
       default:
         if (n.kind === 'story') return reached(Story, st, n.chapter) ? null : 'Not reached yet';
         return null;

@@ -5,53 +5,57 @@ Source: the author's manuscript *Tower of Wishes — Through the First Guild Con
 2026-10-15. Where this file and the manuscript differ, this file records the author's
 newer decision for the game.
 
-## Author decisions (2026-10-15)
+## Author decisions (2026-10-16, replacing those of 2026-10-15 where they differ)
+
+The author supplied the full manuscript (*Tower of Wishes*, Parts 1 and 2: Prologue to
+Floor Three) and decided:
 
 | Decision | Detail |
 |---|---|
-| Timeline | The game begins **22 years after the Reset** (the manuscript says 150; the game uses 22). Eiryn wakes from the preservation spell 22 years on. |
-| Starters | **All-new starting characters.** The player picks one. Kael and Eiryn are story characters the player meets and can recruit. |
-| Opening | The tutorial is the **climber's final battle at the top of the Tower**, at full power, then the Reset, then "22 years later" and character select. |
-| The Tower's guardian | An **unseen mystery**: shadows, light and fragments, never fully shown. |
-| The climber | **A mystery for now**; who they were is a later reveal. |
-| Branching | Choices change paths, who joins, and how fights start and play. |
+| Story | The game follows the new manuscript, **keeping every scene, cutscene and mission already built**. The first-draft chapters (clearing, town, Guild, quarry) are the opening arc; the new book's road follows after the quarry. |
+| Party | **The book's six heroes**: Kael, Eiryn, Aerys, Eloryn, Braxen and Nox, joining when the book has them join. |
+| Timeline | **150 years** after the Reset, as the book says. |
+| The climber | Still **a mystery**. |
+| Ren, Mara, Brannoc | No longer starters. They are companions you hire at the tavern ("Three for Hire") for side contracts. |
+| Choices | The before-fight choices are removed; Chapter Four's party choice is retired (Kael and Eiryn go together, as in the book). Story choices after fights stay. |
 
 ## Rules
 
-1. The campaign follows the manuscript's events in order (the quarry contract, the
-   bandits in the clearing, Eiryn's arrival, the Guild); the player's starter is
-   present for them, and choices change *how* they go and who stands with you.
-2. Dialogue for Kael, Eiryn and the book's other characters is quoted from the
-   manuscript where a line exists. New lines and everything about the new starters are
-   **Proposals** until the author approves them.
-3. Fights keep the book's cast, weapons and outcomes (nobody dies in the clearing; the
-   ogre is driven through the wall), but the player's party joins in.
+1. The campaign follows the manuscript's events in order. Fights use the book's cast,
+   weapons, targets and outcomes.
+2. Dialogue is quoted from the manuscript where a line exists (`B()` in `js/story.js`).
+   New lines (`S()`), the companions and all side missions are **Proposals** until the
+   author approves them.
 
-## Starting characters (Proposals: names, looks, powers, backgrounds)
+## Companions for hire (Proposals: names, looks, powers, backgrounds)
 
-All three are 22 or younger: they grew up in the world after the Reset, and each has a
-reason to climb the Tower.
-
-| Starter | Who | Fighting style | Heavy art |
+| Companion | Who | Fighting style | Heavy art |
 |---|---|---|---|
-| **Ren Ashgrove** | Vampire-blooded Guild runner, born the winter after the Reset. Strength and speed come from his body, like the vampires of the old cities. Wants the wish to undo what the Reset took from his family. | Fast and aggressive: dashes, chains strikes, dodges on instinct; weak to heavy blows. | *Hundredfold Step* |
-| **Mara Quill** | A licensed glyph-caster from the Guild's mage registry. Her teacher climbed the Tower and never came back. | Keeps her distance: force bolts at range, a shove to break rushes, a glyph barrier to block. | *Lattice Lance* |
-| **Brannoc Vell** | A dwarven shield-bearer who guards caravans on the western roads and owes a debt the Tower's bounties could clear. | Holds the line: huge health, parries and blocks, shield-bash counters; slow. | *Anvilfall* |
+| **Ren Ashgrove** | Vampire-blooded Guild runner. | Fast and aggressive; weak to heavy blows. | *Hundredfold Step* |
+| **Mara Quill** | A licensed glyph-caster; her teacher climbed the Tower and never came back. | Force bolts at range. | *Lattice Lance* |
+| **Brannoc Vell** | A dwarven shield-bearer with a debt. | Holds the line. | *Anvilfall* |
 
 ## Campaign map
 
-| # | Chapter | What happens | Play | Branches |
-|---|---|---|---|---|
-| 0 | **The Last Ascent** (tutorial) | A lone, bloodied climber fights the Tower's unseen guardian on the final floor, then reaches into the light. | Battle: the Climber vs the Unseen (full power, All Out and heavy art taught) | — |
-| — | **The Reset** | The Tower sounds; fire and flood fall on the cities. Somewhere a silver-haired mage casts a spell that holds only its caster. | Scene | — |
-| — | **Twenty-two years later** | Character select. | Choice | Which starter |
-| 1 | **The Clearing** | In a western town, a huge purple formation fails over the forest. Four bandits corner an exhausted silver-haired woman (Eiryn). A Guild swordsman (Kael) arrives. | Battle: starter + Kael (+ Eiryn as a guest) vs four bandits | How you go in (charge, circle round, let Kael lead) changes how the fight opens. Whether you stay by Eiryn sets her trust. |
-| 2–3 | **A Town Grown Strange** | Eiryn learns it has been 22 years; the story of the wish that destroyed the world; the fine for warming tea without a permit. | Scenes | Pay her fine yourself, let Kael pay, or argue with the guard. |
-| 4 | **The First Contract** | Guild registration, Eiryn ranked F, the contract board. | Scene | Who you take: Kael, Eiryn, or both. |
-| 5 | **The Quarry** | Goblins at the mill; a spearman and an archer on the path; three goblins in the cave; the ogre "not in the contract". | Battles: goblins, then the ogre boss | Your party from Chapter 4. |
-| 6+ | Beyond the manuscript | — | Roadmap | Needs the author's next chapters. |
+| # | Chapter | What happens | Play |
+|---|---|---|---|
+| 0 | **The Last Ascent** (tutorial) | A lone climber fights the Tower's unseen guardian, then reaches into the light. | Battle (guided) |
+| — | **The Reset**, then **one hundred and fifty years later** | Fire and flood; the preservation spell. | Scenes |
+| 1 | **The Clearing** | The tavern; the formation fails over the forest; Kael runs to it alone and faces four bandits around an exhausted Eiryn. | Battle: Kael (+ Eiryn as a guest) |
+| 2–3 | **A Town Grown Strange** | It has been 150 years; the tea fine. | Scenes, a choice |
+| 4 | **The First Contract** | Guild registration; the contract board. Side missions open. | Scenes |
+| 5 | **The Quarry** | Goblins, the cave, the ogre. | Three battles: Kael + Eiryn |
+| 6 | **The Sky That Hunts** | A Skyreaver hunts a young winged girl, Aerys; she joins. | Battle: Kael + Eiryn, Aerys fixed |
+| 7 | **The Shadow City** | Nox and the relic shard; men in the lower streets come for Aerys. | Battle (Proposal: the alley fight stages the city's threat) |
+| 8 | **The Road That Bleeds** | The infirmary; the healer Eloryn joins. | Scenes |
+| 9 | **A Name on a Page** | The field of beasts; Braxen; Nox's blade at his throat. | Battle: party + Braxen fixed |
+| 10 | **The Night Creature** | The creature goes for Eloryn; Nox steps out of the shadows; Altheryx. | Battle; Nox arrives mid-fight |
+| 11 | **Floor One** | The Hall of Frost and Mist separates them; six knights, six duels. | Six duels |
+| 12 | **Floor Two: Calamity** | Skyfire and the moving ocean; the Sword of Calamity. | Battle: all six (Kael gets the Sword of Calamity) |
+| 13 | **Floor Three: The Offering** | The wheels, and Eloryn. | Scenes |
+| 14 | Beyond the manuscript | — | Awaits the author's next chapters |
 
-## Choices and what they change (built in 0.4; all Proposals)
+## Choices and what they change (built in 0.4; all Proposals; before-fight and party choices retired 2026-10-16)
 
 The graph lives in `js/story.js`; `node test/story-test.js` walks every path.
 
@@ -72,8 +76,7 @@ The graph lives in `js/story.js`; `node test/story-test.js` walks every path.
 Losing a story battle costs a heart only on a wipe and leaves you at the same battle.
 The prologue battle never costs hearts, and the story moves on even if the climber falls.
 
-Lines quoted from the manuscript are marked `B()` in `js/story.js` (adjusted only for the
-22-year timeline); everything the starters say and all `S()` lines are new and need the
+Lines quoted from the manuscript are marked `B()` in `js/story.js`; everything the companions say and all `S()` lines are new and need the
 author's approval.
 
 ## Side missions (built in 0.5; all Proposals except quoted lines)
@@ -86,6 +89,10 @@ author's approval.
 | Enough Teeth for Three | Past the clearing | Kael's "stray animal with enough teeth for three animals" | After the cart |
 | The Old Crossing | The dry riverbed and bridge | Eiryn's stone bridge, still standing over dry stones; the echoes and the Drowned Bell are new | Chapter Four + Eiryn's trust |
 | The Deep Passage (dungeon) | Behind the quarry cave | The goblins that fled deeper | After Chapter Five |
+| Three for Hire | The tavern | — (the old character select, staged) | Chapter Four |
+
+Contracts, the crossing and the dungeon are tuned for three fighters, so they open once a
+companion is hired (or a third book hero has joined).
 
 ## Canon notes kept from the manuscript
 

@@ -89,7 +89,8 @@
     return { W: window.innerWidth || 844, H: window.innerHeight || 390 };
   }
   function storyState() { const t = window.__tow; return t && t.story; }
-  function starterKey() { const st = storyState(); return (st && st.starter) || 'ren'; }
+  // The '@' cast member: an old save's starter, or the hired companion in side episodes.
+  function starterKey() { const st = storyState(); return (st && (st.starter || (st.side && st.companion))) || null; }
   function currentLines() {
     try { const st = storyState(); return st && window.TowStory ? window.TowStory.lines(st) : []; } catch (e) { return []; }
   }
@@ -118,7 +119,7 @@
       if (c.need && !partyHas(c.need)) continue;
       if (c.notStarter && c.key === starter) continue;
       const key = c.key === '@' ? starter : c.key;
-      if (!DEFS[key]) continue;
+      if (!key || !DEFS[key]) continue;
       cast.push({ id: c.id || (c.key === '@' ? '@' : key), key, x: c.x || 0, y: c.y || 0, f: c.f || 0 });
     }
     const hiddenSpare = !cast.length;
@@ -129,7 +130,7 @@
     match.cutscene = null;
     const units = match.byId;
     // '@' always names the player's starter, also when it is cast under its own key.
-    if (!units['@']) Object.defineProperty(units, '@', { get: () => units[starterKey()], enumerable: false, configurable: true });
+    if (!units['@']) Object.defineProperty(units, '@', { get: () => (starterKey() ? units[starterKey()] : undefined), enumerable: false, configurable: true });
     const info = new Map(); // unit -> runtime staging
     for (const u of match.units) {
       info.set(u, { mv: null, base: 'idle', ts: 0, face: null, knock: null, hold: false });
@@ -407,7 +408,9 @@
           const key = beats[j] && beats[j].line;
           if (key && text && text.indexOf(String(key).toLowerCase()) >= 0) { k = j; break; }
         }
-        if (k < 0 && beats[i] && !beats[i].line && i > played) k = i;
+        // Lines skipped for this playthrough keep their beats' places.
+        const at = ls[i] && ls[i].src != null ? ls[i].src : i;
+        if (k < 0 && beats[at] && !beats[at].line && at > played) k = at;
         if (k < 0) return;
         flush();
         for (let j = played + 1; j < k; j++) runBeat(beats[j], true);

@@ -105,8 +105,24 @@ const errors = [];
   await page.waitForTimeout(500);
   if (!(await page.evaluate(() => window.__tow.match.allOut.uses > 0))) errors.push('coach: All Out tap did not fire');
   await winBattle('prologue');                // the Last Ascent
-  await tapThrough(20, true);                 // the light, the Reset, 22 years later
-  if ((await view()) !== 'select') errors.push('expected character select, got ' + (await view()));
+  await tapThrough(80, true);                 // the light, the Reset, 150 years later, the tavern, the run
+  await winBattle('clearing');
+  await tapThrough(20, true);
+  await choose(0, 'trust');                   // stay with her
+  await tapThrough(60, true);                 // walk, town, tavern, tea
+  await choose(1, 'fine');                    // let Kael pay
+  await tapThrough(40, true, true);           // to the map before Chapter Four
+  await page.evaluate(() => { window.__tow.debug.pickNode('c4'); window.__tow.debug.goNode('c4'); });
+  await page.waitForTimeout(300);
+  await tapThrough(40, true, true);           // the Guild, the board: the map before the quarry
+  // Side missions from the Guild: hire a companion, then the yard, a contract, the arcade.
+  await page.evaluate(() => window.__tow.debug.world());
+  await page.waitForTimeout(400);
+  await shot('w-branch');
+  await page.evaluate(() => { window.__tow.debug.pickNode('hire'); window.__tow.debug.goNode('hire'); });
+  await page.waitForTimeout(300);
+  await tapThrough(10, false, true);
+  if ((await view()) !== 'select') errors.push('expected the companion pick, got ' + (await view()));
   await page.waitForTimeout(1200);
   await shot('s-select-ren');
   await page.click('.starter[data-k="brannoc"]');
@@ -116,18 +132,9 @@ const errors = [];
   await page.waitForTimeout(1500);
   await shot('s-select-mara');
   await page.click('#btn-choose');
-  await tapThrough(40, true);                 // Chapter One scenes
-  await winBattle('clearing');
-  await tapThrough(20, true);
-  await choose(0, 'trust');                   // stay with her
-  await tapThrough(60, true);                 // walk, town, tavern, tea
-  await choose(1, 'fine');                    // let Kael pay
-  await tapThrough(40, true);
-  await choose(0, 'party');                   // Kael and Eiryn
-  // Side missions from the Guild: the yard, a contract, the arcade.
-  await page.evaluate(() => window.__tow.debug.world());
-  await page.waitForTimeout(400);
-  await shot('w-branch');
+  await tapThrough(10, true, true);
+  if ((await view()) !== 'world') errors.push('after hiring: expected the map, got ' + (await view()));
+  if ((await page.evaluate(() => window.__tow.story.companion)) !== 'mara') errors.push('companion not hired');
   for (const id of ['yard', 'cart', 'gauntlet']) {
     await page.evaluate((x) => { window.__tow.debug.pickNode(x); }, id);
     await page.waitForTimeout(200);
@@ -162,7 +169,7 @@ const errors = [];
   await tapThrough(20, true);
   await tapThrough(20, true);
   await winBattle('ogre');
-  await tapThrough(40, true);
+  await tapThrough(40, true, true);           // home, then the map before Chapter Six
   // The dungeon after Chapter Five: three rooms with a choice between.
   await page.evaluate(() => { window.__tow.debug.pickNode('deep'); window.__tow.debug.goNode('deep'); });
   await page.waitForTimeout(300);
@@ -171,7 +178,14 @@ const errors = [];
   await choose(0, 'deep-rest');
   await winBattle('deep2');
   await winBattle('deep3');
-  await tapThrough(10, false);
+  await tapThrough(10, false, true);
+  // The book's road: Chapter Six to Floor Three, every battle won.
+  for (let guard = 0; guard < 40; guard++) {
+    const st = await page.evaluate(() => ({ node: window.__tow.story.node, view: window.__tow.view, match: !!window.__tow.match && !window.__tow.match.result }));
+    if (st.node === 'end' && st.view === 'world') break;
+    if (st.match) { await winBattle(st.node.replace(/\./g, '_')); continue; }
+    await tapThrough(80, true);
+  }
   await page.waitForTimeout(300);
   await shot('z-end');
   const end = await page.evaluate(() => ({ node: window.__tow.story.node, view: window.__tow.view, xp: window.__tow.story.xp, flags: window.__tow.story.flags, hearts: window.__tow.save.hearts }));

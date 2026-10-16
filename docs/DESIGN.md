@@ -272,6 +272,7 @@ Out counters beyond the punisher, sound, real art, purchases, free modes beyond 
 | 2026-10-15 | Heavy arts as full cinematic cutscenes, not face cut-ins | Author |
 | 2026-10-15 | Real story campaign with branching choices; pick one of several new starters; low level start | Author |
 | 2026-10-15 | Tutorial = the climber's last battle in the Tower, then the Reset, then 22 years later (book says 150) | Author |
+| 2026-10-16 | Follow the full manuscript, keep everything built; the book's six heroes are the party; 150 years; the climber stays a mystery; Ren, Mara and Brannoc become companions for hire | Author |
 | 2026-10-15 | All-new starters; the Tower's guardian is an unseen mystery; the climber stays a mystery | Author |
 
 ## 16. Growth, loot and the world map (built in 0.5, all Proposals)

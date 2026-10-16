@@ -62,12 +62,13 @@ node test/scenario-test.js 30     # every campaign battle with each starter
 node test/story-test.js 6         # walks every branch of the campaign and plays its battles
 node test/side-test.js 12         # side missions, dungeon rooms, yard, arcade waves
 node test/progression-test.js     # gear, loot and skill rules
+node test/book-test.js 20         # the book's road and Tower fights
 NODE_PATH=$(npm root -g) node test/browser-check.js /tmp/shots   # needs Playwright; screenshots + console errors
 NODE_PATH=$(npm root -g) node test/story-browser.js /tmp/story-shots   # plays the whole story in the browser
 ```
 
 - Report win rates and fight length when you change balance. Current targets: 65–80 %
-  win without All Out for the Chapter One fight, a clear gain from well-timed All Out,
+  win without All Out for the Chapter One fight (Kael alone, `clearingKael`), a clear gain from well-timed All Out,
   zero timeouts.
 - Look at the screenshots. Report exactly what was and wasn't tested (e.g. not tested on
   a real phone).

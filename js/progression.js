@@ -23,7 +23,10 @@
     relic: { label: 'Relic', color: '#e3263a' },
   };
   // Which weapons each fighter can use.
-  const CLASS = { ren: 'blade', mara: 'glyph', brannoc: 'shield', kael: 'sword', eirynMage: 'glyph' };
+  const CLASS = {
+    ren: 'blade', mara: 'glyph', brannoc: 'shield', kael: 'sword', eirynMage: 'glyph',
+    aerys: 'spear', nox: 'blade', eloryn: 'glyph', braxen: 'fist',
+  };
   const STAT_LABEL = {
     hp: 'Health', power: 'Power', speed: 'Speed', parry: 'Parry', dodge: 'Dodge', react: 'Reflexes',
     armor: 'Armour', superRate: 'Heavy-art charge', sta: 'Stamina', lifesteal: 'Lifesteal', secondWind: 'Second wind',
@@ -51,6 +54,17 @@
     guildBlade: { name: 'Guild-Issue Blade', slot: 'weapon', cls: 'sword', rarity: 'fine', mods: { power: 0.07, parry: 0.03 } },
     millersCleaver: { name: 'Miller’s Cleaver', slot: 'weapon', cls: 'sword', rarity: 'rare', mods: { power: 0.11, superRate: 0.05 } },
     riverbedSteel: { name: 'Riverbed Steel', slot: 'weapon', cls: 'sword', rarity: 'relic', mods: { power: 0.12, react: 0.1, parry: 0.04 } },
+    // the book's relic: Kael's after Floor Two (granted by the story, never dropped)
+    calamitySword: { name: 'Sword of Calamity', slot: 'weapon', cls: 'sword', rarity: 'relic', mods: { power: 0.16, superRate: 0.15, armor: 0.04 }, story: true },
+    // spears (Aerys) and fist wraps (Braxen) — Proposals
+    ashShaft: { name: 'Ash-Wood Shaft', slot: 'weapon', cls: 'spear', rarity: 'common', mods: { power: 0.05 } },
+    pilgrimSpear: { name: 'Pilgrim’s Spear', slot: 'weapon', cls: 'spear', rarity: 'fine', mods: { power: 0.07, dodge: 0.04 } },
+    featherLance: { name: 'Feather-Bound Lance', slot: 'weapon', cls: 'spear', rarity: 'rare', mods: { power: 0.1, superRate: 0.08 } },
+    lanceOfFirstLight: { name: 'Lance of First Light', slot: 'weapon', cls: 'spear', rarity: 'relic', mods: { power: 0.12, superRate: 0.15, dodge: 0.05 } },
+    roadWraps: { name: 'Road Wraps', slot: 'weapon', cls: 'fist', rarity: 'common', mods: { power: 0.05 } },
+    farmhandIrons: { name: 'Farmhand’s Irons', slot: 'weapon', cls: 'fist', rarity: 'fine', mods: { power: 0.07, armor: 0.04 } },
+    boneBands: { name: 'Bone-Set Bands', slot: 'weapon', cls: 'fist', rarity: 'rare', mods: { power: 0.11, hp: 0.05 } },
+    hollowBoneKnuckles: { name: 'Hollow-Bone Knuckles', slot: 'weapon', cls: 'fist', rarity: 'relic', mods: { power: 0.13, armor: 0.06, hp: 0.06 } },
     // armour (anyone)
     patchedLeathers: { name: 'Patched Leathers', slot: 'armor', rarity: 'common', mods: { hp: 0.05 } },
     roadCoat: { name: 'Road Coat', slot: 'armor', rarity: 'fine', mods: { hp: 0.07, speed: 0.03 } },
@@ -96,7 +110,7 @@
     if (table === 'gauntlet') rolls = Math.min(4, Math.floor((opts.score || 0) / 3));
     for (let i = 0; i < rolls; i++) {
       const rar = pickWeighted(T.w, rng);
-      const pool = Object.keys(ITEMS).filter((id) => ITEMS[id].rarity === rar);
+      const pool = Object.keys(ITEMS).filter((id) => ITEMS[id].rarity === rar && !ITEMS[id].story);
       if (pool.length) out.push(pool[Math.floor(rng() * pool.length)]);
     }
     return out;
@@ -131,6 +145,27 @@
       { name: 'Force', nodes: T3('Force', { name: 'Compact Glyph', mods: { power: 0.08 } }, { name: 'Old Method', mods: { superRate: 0.15 } }, { name: 'Narrow Path', mods: { power: 0.1 } }) },
       { name: 'Negation', nodes: T3('Negation', { name: 'Thin Air', mods: { armor: 0.1 } }, { name: 'Held Close', mods: { hp: 0.1 } }, { name: 'Preservation', mods: { secondWind: 1 } }) },
       { name: 'Recall', nodes: T3('Recall', { name: 'Rooftops', mods: { dodge: 0.08 } }, { name: 'Quick Study', mods: { react: 0.12 } }, { name: 'Mana Returning', mods: { superRate: 0.12 } }) },
+    ],
+    // The book's heroes (branch and skill names are Proposals).
+    aerys: [
+      { name: 'Light', nodes: T3('Light', { name: 'Gathered Light', mods: { power: 0.07 } }, { name: 'Spear of Light', mods: { superRate: 0.15 } }, { name: 'Brighter', mods: { power: 0.1 } }) },
+      { name: 'Wing', nodes: T3('Wing', { name: 'Stillwing', mods: { dodge: 0.08 } }, { name: 'Lift', mods: { speed: 0.06 } }, { name: 'Not Worth Hunting', mods: { react: 0.12 } }) },
+      { name: 'Hope', nodes: T3('Hope', { name: 'I Can Try', mods: { hp: 0.1 } }, { name: 'Steps In', mods: { sta: 0.15 } }, { name: 'Still Here', mods: { secondWind: 1 } }) },
+    ],
+    nox: [
+      { name: 'Edge', nodes: T3('Edge', { name: 'Again', mods: { power: 0.07 } }, { name: 'Contract', mods: { power: 0.08 } }, { name: 'A Thousand Wounds', mods: { superRate: 0.18 } }) },
+      { name: 'Shadow', nodes: T3('Shadow', { name: 'One Step', mods: { speed: 0.06 } }, { name: 'Inside the Swing', mods: { dodge: 0.08 } }, { name: 'Don’t Care', mods: { react: 0.15 } }) },
+      { name: 'Debt', nodes: T3('Debt', { name: 'He Murdered First', mods: { lifesteal: 0.06 } }, { name: 'Scars', mods: { hp: 0.08 } }, { name: 'Still Useful', mods: { secondWind: 1 } }) },
+    ],
+    eloryn: [
+      { name: 'Mend', nodes: T3('Mend', { name: 'Steady Hands', mods: { superRate: 0.12 } }, { name: 'Life Surge', mods: { power: 0.08 } }, { name: 'End Her Dying', mods: { superRate: 0.15 } }) },
+      { name: 'Ward', nodes: T3('Ward', { name: 'Stay Back', mods: { armor: 0.08 } }, { name: 'We Protect Each Other', mods: { hp: 0.1 } }, { name: 'Not Today', mods: { secondWind: 1 } }) },
+      { name: 'Road', nodes: T3('Road', { name: 'Long Shifts', mods: { sta: 0.15 } }, { name: 'Quick to Kneel', mods: { speed: 0.05 } }, { name: 'Sees It Coming', mods: { react: 0.12 } }) },
+    ],
+    braxen: [
+      { name: 'Bone', nodes: T3('Bone', { name: 'Altered Arms', mods: { power: 0.07 } }, { name: 'Bone Breaker', mods: { superRate: 0.15 } }, { name: 'How Far You Want to Go', mods: { power: 0.1 } }) },
+      { name: 'Hide', nodes: T3('Hide', { name: 'Thick Skin', mods: { armor: 0.08 } }, { name: 'Still Chooses', mods: { hp: 0.12 } }, { name: 'Won’t Stay Down', mods: { secondWind: 1 } }) },
+      { name: 'Field', nodes: T3('Field', { name: 'Farm Work', mods: { sta: 0.2 } }, { name: 'Brace', mods: { parry: 0.06 } }, { name: 'Read the Herd', mods: { react: 0.1 } }) },
     ],
   };
   const skillId = (b, i) => b + '.' + i;

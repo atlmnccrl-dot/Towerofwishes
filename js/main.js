@@ -68,7 +68,7 @@
       const name = Sim.DEFS[m.key].name.split(' ')[0];
       const note = f >= 1 ? `Lv ${m.level} · ready` : `${Math.round(f * 100)}% · ${fmt(Pg.fullHealIn(save, m.key, now))}`;
       return `<div class="cond-row"><span>${name}</span><div class="bar"><i style="transform:scaleX(${f.toFixed(3)})"></i></div><span class="card-num">${note}</span></div>`;
-    }).join('') : '<p class="fine">Your team forms twenty-two years after the Reset.</p>';
+    }).join('') : '<p class="fine">Your team forms a hundred and fifty years after the Reset.</p>';
     const n = Story.node(story), ch = Story.CHAPTERS.find((c) => c.id === n.chapter);
     $('menu-chapter').textContent = `${ch.label} · ${ch.title}`;
     $('story-btn-label').textContent = (story.node === 'p.lore' || story.node === 'p.open') ? 'Begin the story' : n.type === 'end' ? 'The story so far' : 'Continue the story';
@@ -241,7 +241,7 @@
       <p>${c.style}</p>
       <div class="pips">${Object.entries(c.stats).map(([n, v]) => `<span>${n[0].toUpperCase() + n.slice(1)}</span><i>${pips(v)}</i>`).join('')}</div>
       <span class="label">Heavy art</span><span class="heavy">${c.heavy}</span>
-      <button class="btn primary" id="btn-choose" type="button" data-k="${k}"><b>Climb as ${c.name.split(' ')[0]}</b><small>Begin</small></button>`;
+      <button class="btn primary" id="btn-choose" type="button" data-k="${k}"><b>${Story.node(story).field === 'companion' ? 'Hire' : 'Climb as'} ${c.name.split(' ')[0]}</b><small>${Story.node(story).field === 'companion' ? 'Joins side contracts' : 'Begin'}</small></button>`;
     if (selectStaged && stage) { if (stage.focus) stage.focus(k); } else setShowcase(k);
   }
   $('starters').addEventListener('click', (e) => { const b = e.target.closest('.starter'); if (b) pickShowcase(b.dataset.k); });
@@ -436,9 +436,9 @@
     if (spec.hearts && !Pg.canStartStory(save)) { renderMenu(); show('menu'); return; }
     const now = Date.now();
     const hp = (k, f) => Math.min(f == null ? 1 : f, spec.hearts ? Pg.hpFrac(save, k, now) : 1);
-    const party = spec.party.map((m) => Object.assign({}, m, { hpFrac: hp(m.key, m.hpFrac), mods: Prog.modsFor(prog, m.key) }));
+    const party = spec.party.map((m) => Object.assign({}, m, { hpFrac: hp(m.key, m.hpFrac), mods: Prog.modsFor(prog, m.gear || m.key) }));
     startMatch(spec.hearts ? 'story' : spec.side ? 'side' : 'tutorial', undefined, {
-      scenario: spec.scenario, party, mods: spec.mods,
+      scenario: spec.scenario, party, mods: spec.mods, allyLevel: spec.allyLevel,
       heroHp: spec.hearts ? { kael: hp('kael'), eiryn: 1 } : {},
     });
     storyBattle = Object.assign(spec, { node: Story.cur(story) });
@@ -481,6 +481,11 @@
         const first = !prog.firsts[sb.node];
         prog.firsts[sb.node] = 1;
         loot = Prog.addItems(prog, Prog.rollLoot(table, Math.random, { first, score: r.waves, extra: sb.greed && sb.node === 'deep.3' ? 1 : 0 }));
+      }
+      // The book's gear (the Sword of Calamity): once, on the first win.
+      if (sb.grant && r.outcome === 'win' && !prog.firsts['grant:' + sb.node]) {
+        prog.firsts['grant:' + sb.node] = 1;
+        loot = loot.concat(Prog.addItems(prog, sb.grant));
       }
     }
     writeSave();
@@ -885,7 +890,7 @@
       goNode(id) { goNode(id); },
       give(ids) { Prog.addItems(prog, ids); writeSave(); },
       storyGo(node, starter, flags) {
-        story.node = node; if (starter) story.starter = starter; else if (!story.starter) story.starter = 'ren';
+        story.node = node; if (starter) story.companion = starter;
         Object.assign(story.flags, flags || {}); runStory();
       },
       allOutNow() { if (match) { match.allOut.meter = 1; Sim.triggerAllOut(match); } },

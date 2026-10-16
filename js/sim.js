@@ -702,6 +702,18 @@
       ],
     },
 
+    // Chapter One as the book tells it: Kael goes alone; Eiryn is spent.
+    clearingKael: {
+      chapter: 'Chapter One', title: 'The Clearing', arena: 'clearing', allOutUses: 1, vs: 'brute', scale: { hp: 0.95, dmg: 1.1 },
+      units: [
+        { slot: 0, x: -7.8, y: -0.2, f: 0.15 },
+        { key: 'eiryn', x: -0.8, y: 2.2, f: -1.6 },
+        { key: 'brute', x: 0.5, y: 0.7, f: 2.3 },
+        { key: 'knife', x: -2.4, y: 0.7, f: 0.8 },
+        { key: 'grabber', x: 2.8, y: 2.6, f: 3.0 },
+        { key: 'lookout', x: 6.2, y: -3.8, f: 2.6 },
+      ],
+    },
     // ---- The new manuscript's road and the Tower (book heroes; slots are
     // filled by the story's party, fixed units are the book's).
     skyreaver: {
@@ -731,6 +743,15 @@
       ],
       // Nox comes out of the dark once the camp is losing.
       arrive: { key: 'nox', bossBelow: 0.65, orHeroesDown: 2 },
+    },
+    // The Shadow City's lower streets: men who think Aerys is worth selling.
+    alley: {
+      chapter: 'The Shadow City', title: 'The Lower Streets', arena: 'shadowcity', allOutUses: 2, vs: 'thug', scale: { hp: 1.6, dmg: 2.1 },
+      units: [
+        { slot: 0, x: -6.0, y: 0.2, f: 0 }, { slot: 1, x: -7.0, y: -1.4, f: 0 }, { slot: 2, x: -7.0, y: 1.6, f: 0 },
+        { key: 'thug', x: 3.0, y: -1.6, f: 3.1 }, { key: 'knife', x: 2.2, y: 0.6, f: 3.1 },
+        { key: 'thug', x: 3.6, y: 2.0, f: 3.1 }, { key: 'knife', x: 5.2, y: -0.2, f: 3.1 },
+      ],
     },
     // Floor One: the Tower separates them; each fights alone.
     duelKael: { chapter: 'Floor One', title: 'Kael · the Swordsman Knight', arena: 'frosthall', allOutUses: 1, vs: 'knightSword', scale: { hp: 1.3, dmg: 1.35 },

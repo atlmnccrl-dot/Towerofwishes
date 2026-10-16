@@ -23,7 +23,7 @@ for (const c of Story.CHAPTERS) assert(Story.NODES[c.from], `chapter ${c.id} sta
 
 // 2. Play one battle; returns the outcome.
 function fight(spec, seed) {
-  const s = Sim.createMatch({ seed, scenario: spec.scenario, party: spec.party, mods: spec.mods });
+  const s = Sim.createMatch({ seed, scenario: spec.scenario, party: spec.party, mods: spec.mods, allyLevel: spec.allyLevel });
   while (!s.result && s.t < 240) {
     Sim.step(s, DT);
     for (const u of s.units) assert(Number.isFinite(u.x) && Number.isFinite(u.y), 'NaN position');
@@ -88,7 +88,7 @@ walk(Story.fresh(), 0);
   while (Story.node(st).type !== 'battle') Story.advance(st);
   Story.finishBattle(st, 'loss');
   assert.notStrictEqual(Story.node(st).type, 'battle', 'prologue loss should move on');
-  const s2 = Story.fresh(); s2.node = 'c1.fight'; s2.starter = 'ren';
+  const s2 = Story.fresh(); s2.node = 'c1.fight';
   Story.finishBattle(s2, 'loss');
   assert.strictEqual(s2.node, 'c1.fight');
   Story.finishBattle(s2, 'win');

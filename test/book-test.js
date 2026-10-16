@@ -5,7 +5,9 @@ const Sim = require('../js/sim.js');
 const N = Number(process.argv[2]) || 16;
 const P = (lv, ...keys) => keys.map((key) => ({ key, level: lv }));
 const CASES = [
+  ['clearing (kael)', 'clearingKael', P(1, 'kael'), 1],
   ['skyreaver', 'skyreaver', P(4, 'kael', 'eirynAsh'), 4],
+  ['alley', 'alley', P(5, 'kael', 'eirynAsh', 'aerys'), 5],
   ['beasts', 'beasts', P(5, 'kael', 'eirynAsh', 'aerys', 'eloryn'), 5],
   ['night creature', 'nightcreature', P(5, 'kael', 'aerys', 'eloryn', 'braxen', 'eirynAsh'), 5],
   ['duel kael', 'duelKael', P(6, 'kael'), 6],
