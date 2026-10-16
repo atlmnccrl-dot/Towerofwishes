@@ -38,6 +38,13 @@
       armor: ['#5b6772', '#2d343c'], accent: '#9cc3dd', coat: ['#2a2f3d', '#151820'], eye: '#9cc3dd',
       pauldron: 'L', chestV: true, strap: '#3a2d26',
     },
+    // Alric Noct: crimson eyes, dark hair, a long dark coat (book prologue).
+    alric: {
+      h: 1.02, w: 1.0, build: 1.0, weapon: 'none', hair: 'short',
+      skin: ['#e6c2aa', '#a67e74'], hairC: ['#1c1418', '#0c080a'],
+      body: ['#2a2230', '#15111a'], legs: ['#1f1b24', '#100e13'], boots: ['#2a1e1c', '#140e0d'],
+      coat: ['#3a1e2a', '#1c0e14'], coatLen: 0.45, accent: '#c8323c', eye: '#c8323c', belt: '#2a1a16', strap: '#2a1a16',
+    },
     eiryn: {
       h: 0.94, w: 0.86, build: 0.85, weapon: 'branch', hair: 'long',
       skin: ['#f4dccf', '#c29e98'], hairC: ['#f3eef2', '#a99abb'],

@@ -63,6 +63,8 @@
     healer: { name: 'The healer', tone: 'plain' },
     teacher: { name: 'Aerys’s teacher', tone: 'plain' },
     keeper: { name: 'The innkeeper', tone: 'plain' },
+    alric: { name: 'Alric', tone: 'hero' },
+    grabber: { name: 'Man by the trunk', tone: 'foe' },
   };
 
   // Ren, Mara and Brannoc: once the starting characters, now companions for
@@ -156,7 +158,39 @@
   const NODES = {
     // ---------------------------------------------------------- prologue
     // The opening cinematic: the world before the Reset (js/render/opening.js).
-    'p.lore': { type: 'cinematic', chapter: 'prologue', name: 'opening', next: 'p.tower' },
+    'p.lore': { type: 'cinematic', chapter: 'prologue', name: 'opening', next: 'p.evening' },
+    // The book's prologue: Erdra before the Reset; Eiryn and Alric.
+    'p.evening': {
+      type: 'scene', chapter: 'prologue', bg: 'town', next: 'p.overlook',
+      lines: [
+        N('The world used to breathe. Eiryn Ashvale remembered that most of all.'),
+        N('Lanterns burning against the evening. Children cutting through crowded streets. Merchants arguing prices they had already decided upon. A musician beside a fountain, playing for no audience in particular.'),
+        N('And farther still, so familiar that most people no longer thought to stare at it, stood the Tower of Wishes. It simply existed. Like the mountains. Like the rivers. Like the sky.'),
+        N('Eiryn moved through the evening crowd unnoticed. She crossed the square toward the man waiting at its edge. Alric Noct saw her coming, and something in him changed.'),
+        N('He took her hand and raised her knuckles to his lips.'),
+        B('alric', 'Late.'),
+        B('eiryn', 'You’ll survive.'),
+        N('He lowered her hand but did not release it. They walked. The city slowly fell behind them.'),
+        B('alric', 'They say someone climbed another floor today.'),
+        B('eiryn', 'They always say that.'),
+      ],
+    },
+    'p.overlook': {
+      type: 'scene', chapter: 'prologue', bg: 'tower', next: 'p.tower',
+      lines: [
+        N('The road opened onto a high overlook. From there, Erdra seemed endless: fields breaking against dark forests, rivers between distant settlements, lantern light appearing one by one. And above all of it stood the Tower.'),
+        B('alric', 'Do you think anyone’s ever made it to the top?'),
+        N('Eiryn finally looked. The Tower gave her nothing back.'),
+        B('eiryn', 'You’d have to be powerful.'),
+        B('alric', 'And if someone did?'),
+        B('eiryn', 'What would they wish for?'),
+        B('alric', 'I don’t know.'),
+        N('He stepped closer. His arm slid around her waist until the Tower disappeared from the center of her world. Their foreheads touched.'),
+        B('alric', 'I already have everything I could ever wish for.'),
+        N('There was no playfulness in his voice now. Only certainty. Eiryn closed her eyes. For a moment, the world was enough.'),
+        N('Far above them, something was dying.'),
+      ],
+    },
     'p.open': { type: 'card', chapter: 'prologue', bg: 'tower', title: 'TOWER OF WISHES', sub: 'Reach the summit, and you could make a wish.', next: 'p.tower' },
     'p.tower': {
       type: 'scene', chapter: 'prologue', bg: 'tower', next: 'p.ascent',
@@ -185,16 +219,28 @@
       ],
     },
     'p.reset': {
-      type: 'scene', chapter: 'prologue', bg: 'reset', next: 'p.later',
+      type: 'scene', chapter: 'prologue', bg: 'reset', next: 'p.story',
       lines: [
         N('Then the clouds began to burn.'),
         N('A straight white line opened overhead, from horizon to horizon. Red gathered at its edges.'),
-        N('Fire descended in sheets. Then the water came — a dark wall rising beyond the rooftops, carrying doors and whole houses.'),
-        N('On a burning roof, a silver-haired mage cast the preservation spell. It could hold only its caster.'),
+        N('Fire rained down. Oceans surged inland. Cities drowned beneath walls of black water. The world that had breathed so easily only moments before began to choke.'),
+        N('Eiryn ran. Alric’s hand was locked around hers. There was nowhere to go. They ran anyway.'),
+        N('Then the light changed. A wall of flame was descending from the sky. Not somewhere beyond the city. Not across another street. Here.'),
+        N('Alric turned and shoved Eiryn backward. He stepped between her and the sky. He covered her with his body. And the fire came down.'),
+        N('Eiryn screamed. No sound came out. Ash fell. The fire passed. Alric was gone.'),
         N('The world remembered it as the Reset.'),
       ],
     },
-    'p.later': { type: 'card', chapter: 'prologue', bg: 'dawn', title: 'ONE HUNDRED AND FIFTY YEARS LATER', sub: 'The Tower still stands. Someone is always climbing.', next: 'c1.tavern' },
+    'p.story': {
+      type: 'scene', chapter: 'prologue', bg: 'dawn', next: 'p.later',
+      lines: [
+        N('Years later, people began telling a story. They gathered around fires in settlements built from the remains of settlements that had come before.'),
+        N('A man had climbed to the top of the Tower of Wishes. No one knew his name. No one knew why. They knew only what came afterward: fire, water, storm. The end of a world.'),
+        N('Civilizations rebuilt and failed. Stone broke. Stone was rebuilt. Stone broke again. The Tower never changed.'),
+        N('Neither did Eiryn. Same face. Same posture. Different world.'),
+      ],
+    },
+    'p.later': { type: 'card', chapter: 'prologue', bg: 'dawn', title: 'ONE HUNDRED AND FIFTY YEARS LATER', sub: 'She was still waiting.', next: 'c1.tavern' },
     // Retired from the main road (the book's heroes are the party now); the
     // tavern pick lives on as the 'hire' episode. Kept for old saves.
     'p.select': { type: 'select', chapter: 'prologue', bg: 'tavern', next: 'p.who' },
@@ -257,6 +303,9 @@
         N('The woman they have cornered has long silver-white hair. She is exhausted.'),
         B('broad', 'Then do another trick. The big one. We all saw it.'),
         B('knife', 'She can’t. Look at her.'),
+        B('knife', 'Pretty thing, walking alone?'),
+        B('grabber', 'Bet you scream nice.'),
+        B('broad', 'Or maybe she don’t scream at all.'),
       ],
     },
     'c1.fight': {
@@ -276,6 +325,11 @@
         N('Kael offers his waterskin.'),
         B('eiryn', 'That’s what somebody trying to poison me would say.'),
         B('kael', 'Then I’m apparently very committed to the plan.'),
+        N('He studies her. He is waiting for something: shaking, perhaps. The delayed panic of someone whose mind has only just caught up with what nearly happened. Eiryn stands exactly as she did before.'),
+        B('kael', '…You’re not scared?'),
+        B('eiryn', 'And why should I be?'),
+        B('kael', 'That road kills people. Especially women who think walking alone means something.'),
+        B('kael', 'Look. I don’t know what you’re trying to prove. But you’re not doing it alone.'),
       ],
     },
     'c1.trust': {
@@ -296,6 +350,9 @@
         B('eiryn', 'There was.'),
         N('Beyond the last branches lie the road and the first roofs of the town. Eiryn stops and looks at them as if they are in the wrong place.'),
         B('eiryn', 'I thought I knew this place.'),
+        N('He walks on through Ashgate as though the matter had been settled, half a step ahead of her, scanning the road with the vigilance of a man who has already decided she needs protecting.'),
+        B('kael', 'Stay close.'),
+        N('Her expression does not change. Beyond the city walls, the Tower looms beneath the clouds.'),
       ],
     },
 
@@ -303,7 +360,7 @@
     'c2.gate': {
       type: 'scene', chapter: 'c2', bg: 'town', next: 'c2.tavern',
       lines: [
-        N('The town is busy in the ordinary, irritating way towns get near supper. Eiryn stares at the water wheel, the lamps, the pipes in the wall.'),
+        N('Ashgate is busy in the ordinary, irritating way towns get near supper. Eiryn stares at the water wheel, the lamps, the pipes in the wall.'),
         B('eiryn', 'There was a town east of here. On the other side of the hills. A stone bridge crossed the river before the houses.'),
         B('kael', 'There isn’t much there anymore. A few foundations. One wall, maybe.'),
         B('eiryn', 'How long?'),

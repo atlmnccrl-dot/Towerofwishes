@@ -17,7 +17,7 @@
 
   // biome tells the painter what to draw; x, y, r place the land.
   const REGIONS = [
-    { id: 'town', name: 'The Western Town', biome: 'town', x: 150, y: 265, r: 95 },
+    { id: 'town', name: 'Ashgate', biome: 'town', x: 150, y: 265, r: 95 },
     { id: 'forest', name: 'The Forest Road', biome: 'forest', x: 300, y: 300, r: 85 },
     { id: 'north', name: 'The North Road', biome: 'fields', x: 260, y: 105, r: 95 },
     { id: 'hills', name: 'The Mill and the Quarry', biome: 'hills', x: 470, y: 205, r: 105 },

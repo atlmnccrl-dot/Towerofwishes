@@ -301,6 +301,12 @@
       react: 0.3, read: 0.3, parry: 0, dodge: 0, feint: 0, noncombat: true, attack: null,
       barks: {}, intro: { epithet: 'Can hear you', line: null },
     },
+    // Alric Noct, before the Reset (book prologue): never fights on stage.
+    alric: {
+      name: 'Alric Noct', team: 'hero', r: 0.36, hp: 100, sta: 100, speed: 3.8, guest: true,
+      react: 0.3, read: 0.3, parry: 0, dodge: 0, feint: 0, noncombat: true, attack: null,
+      barks: {}, intro: { epithet: 'Before the Reset', line: null },
+    },
     patron: {
       name: 'Patron', team: 'hero', r: 0.36, hp: 100, sta: 100, speed: 3.8, guest: true,
       react: 0.3, read: 0.3, parry: 0, dodge: 0, feint: 0, noncombat: true, attack: null,
@@ -372,11 +378,11 @@
       barks: {}, intro: { epithet: 'A piece of something', line: null },
     },
     veil: {
-      name: 'The Unseen', team: 'bandit', r: 0.85, hp: 620, sta: 200, speed: 2.8,
+      name: 'Kharuun', team: 'bandit', r: 0.85, hp: 620, sta: 200, speed: 2.8,
       react: 0.3, read: 0.5, parry: 0, dodge: 0, feint: 0.1, morale: 99, noFlee: true, dissolve: true, boss: true, punisher: true,
       blink: { range: 8, cd: 5 }, opener: 'none',
       attack: { name: 'Collapse', range: 2.7, arc: 2.6, windup: 1.0, active: 0.16, recover: 0.8, dmg: [42, 56], knock: 3, down: true, lunge: 0.3, sta: 20 },
-      barks: {}, intro: { epithet: 'What guards the top', line: null },
+      barks: {}, intro: { epithet: 'The Threshold Devourer', line: null },
     },
     // ---- Chapter Five: goblins and the ogre.
     goblin: {
