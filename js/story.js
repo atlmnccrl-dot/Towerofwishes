@@ -133,7 +133,7 @@
   // the story runs straight on into it.)
   const CHAPTER_START = {
     'c2.gate': 'c2', 'c4.guild': 'c4', 'c5.mill': 'c5', 'c6.road': 'c6', 'c7.city': 'c7', 'c8.road': 'c8',
-    'c9.farms': 'c9', 'c10.shadow': 'c10', 'c11.frost': 'c11', 'c12.doors': 'c12', 'c13.enter': 'c13', 'c14.hall': 'c14', end: 'c15',
+    'c9.farms': 'c9', 'c10.shadow': 'c10', 'c11.learn': 'c11', 'c12.doors': 'c12', 'c13.enter': 'c13', 'c14.hall': 'c14', end: 'c15',
   };
 
   const CHAPTERS = [
@@ -147,7 +147,7 @@
     { id: 'c8', label: 'Chapter Eight', title: 'The Road That Bleeds', from: 'c8.road' },
     { id: 'c9', label: 'Chapter Nine', title: 'A Name on a Page', from: 'c9.farms' },
     { id: 'c10', label: 'Chapter Ten', title: 'The Night Creature', from: 'c10.shadow' },
-    { id: 'c11', label: 'Chapter Eleven', title: 'The Tower Draws Near', from: 'c11.frost' },
+    { id: 'c11', label: 'Chapters Ten & Eleven', title: 'The Road That Learns You', from: 'c11.learn' },
     { id: 'c12', label: 'Floor One', title: 'The Hall of Frost and Mist', from: 'c12.doors' },
     { id: 'c13', label: 'Floor Two', title: 'Calamity', from: 'c13.enter' },
     { id: 'c14', label: 'Floor Three', title: 'The Hall of Offering', from: 'c14.hall' },

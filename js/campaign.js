@@ -52,7 +52,7 @@
     { id: 'c8', kind: 'story', chapter: 'c8', region: 'bleed', x: 765, y: 265, title: 'The Road That Bleeds', sub: 'Chapter Eight' },
     { id: 'c9', kind: 'story', chapter: 'c9', region: 'farms', x: 690, y: 425, title: 'A Name on a Page', sub: 'Chapter Nine' },
     { id: 'c10', kind: 'story', chapter: 'c10', region: 'camp', x: 800, y: 420, title: 'The Night Creature', sub: 'Chapter Ten' },
-    { id: 'c11', kind: 'story', chapter: 'c11', region: 'frost', x: 880, y: 350, title: 'The Tower Draws Near', sub: 'Chapter Eleven' },
+    { id: 'c11', kind: 'story', chapter: 'c11', region: 'frost', x: 880, y: 350, title: 'The Road That Learns You', sub: 'Chapters Ten & Eleven' },
     { id: 'c12', kind: 'story', chapter: 'c12', region: 'tower', x: 900, y: 305, title: 'The Hall of Frost and Mist', sub: 'Floor One' },
     { id: 'c13', kind: 'story', chapter: 'c13', region: 'tower', x: 950, y: 265, title: 'Calamity', sub: 'Floor Two' },
     { id: 'c14', kind: 'story', chapter: 'c14', region: 'tower', x: 905, y: 228, title: 'The Hall of Offering', sub: 'Floor Three' },

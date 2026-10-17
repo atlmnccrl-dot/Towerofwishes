@@ -137,6 +137,19 @@
       u.hp = u.maxHp; u.armed = u.key === 'eiryn' ? false : u.armed;
     }
     if (hiddenSpare) match.units[0].fled = true;
+    // Auto-staged scenes (def.auto): everyone stands easy, weapons put away, arms
+    // folded or on hips while someone else talks; the speaker talks with their hands.
+    const AUTO = def.auto || null;
+    if (AUTO) {
+      const listen = AUTO.listen || ['cross', 'hips'];
+      let n = 0;
+      for (const c of def.cast || []) {
+        const u = units[c.id || c.key]; if (!u) continue;
+        if (!c.armed && !AUTO.armed) u.stow = true;
+        u.gest = c.gest !== undefined ? c.gest : listen[n++ % listen.length];
+        u.noStool = true;
+      }
+    }
     for (const c of def.cast || []) if (c.hidden) { const u = units[c.id || (c.key === '@' ? '@' : c.key)]; if (u) u.fled = true; }
 
     // ---- stage state
@@ -398,10 +411,54 @@
       return t;
     }
     const beats = def.beats || [];
+    const autoState = { side: 0.4, last: null };
+    // Blocking made from the dialogue itself: a close-up cut on whoever speaks (the
+    // listeners turn to them and settle), a wide shot over narration. A node can add
+    // its own actions or shots per line: def.auto.nodes[nodeId][lineIndex] = { cam, do }.
+    function autoBeat(A, ls, i) {
+      const l = ls[i] || {};
+      const who0 = l.who && l.who !== '@' ? l.who : null;
+      const who = who0 && A.alias && A.alias[who0] ? A.alias[who0] : who0;
+      const ids = (def.cast || []).map((c) => c.id || c.key).filter((id) => units[id] && !units[id].fled);
+      const spk = who && ids.includes(who) ? who : null;
+      const nid = (() => { const st = storyState(); return st ? (st.side ? st.side.node : st.node) : null; })();
+      const ov = A.nodes && A.nodes[nid] && A.nodes[nid][i];
+      let b;
+      if (spk) {
+        autoState.side = -autoState.side;
+        const sp = units[spk];
+        const others = ids.filter((o) => o !== spk);
+        others.sort((p, q) => Math.hypot(units[p].x - sp.x, units[p].y - sp.y) - Math.hypot(units[q].x - sp.x, units[q].y - sp.y));
+        const listener = others[0] || null;
+        const same = autoState.last === spk;
+        b = {
+          cam: { face: spk, side: autoState.side, view: A.close || 3.7, up: 1.05, pitch: 0.42, push: -0.05, ease: same ? 0.4 : 0.7, cut: !same },
+          do: [
+            ...(listener && !A.noFace ? [{ who: spk, face: listener }] : []),
+            ...(A.noFace ? [] : others.map((o) => ({ who: o, face: spk }))),
+            { at: 0.25, who: spk, say: '$' },
+            { at: 0.2, who: spk, set: { gest: A.talk || 'gesture' } },
+            { at: 2.4, who: spk, set: { gest: (A.listen || ['cross', 'hips'])[(i + 1) % 2] } },
+          ],
+        };
+        autoState.last = spk;
+      } else {
+        const cx = ids.length ? ids : null;
+        b = { cam: Object.assign({ focus: cx, view: A.view || 8.5, ang: (A.ang != null ? A.ang : -0.45) + 0.06 * (i % 3), pitch: 0.5, drift: 0.015, ease: 1.2 }, A.wide || {}), do: [] };
+        autoState.last = null;
+      }
+      if (ov) { if (ov.cam) b.cam = ov.cam; b.do = ov.replace ? (ov.do || []) : b.do.concat(ov.do || []); }
+      return b;
+    }
     function beat(i) {
       try {
         const ls = currentLines();
         curText = String((ls[i] && ls[i].text) || '');
+        if (def.auto) {
+          const b = autoBeat(def.auto, ls, i);
+          flush(); played = i; for (const id of Object.keys(units)) if (units[id] && units[id].barkT) units[id].barkT = 0; runBeat(b, false);
+          return;
+        }
         const text = curText.toLowerCase();
         let k = -1;
         for (let j = played + 1; j < beats.length; j++) {

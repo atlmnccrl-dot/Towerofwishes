@@ -45,15 +45,16 @@ Floor Three) and decided:
 | 2–3 | **A Town Grown Strange** | It has been 150 years; the tea fine. | Scenes, a choice |
 | 4 | **The First Contract** | Guild registration; the contract board. Side missions open. | Scenes |
 | 5 | **The Quarry** | Goblins, the cave, the ogre. | Three battles: Kael + Eiryn |
-| 6 | **The Sky That Hunts** | A Skyreaver hunts a young winged girl, Aerys; she joins. | Battle: Kael + Eiryn, Aerys fixed |
-| 7 | **The Shadow City** | Nox and the relic shard; men in the lower streets come for Aerys. | Battle (Proposal: the alley fight stages the city's threat) |
-| 8 | **The Road That Bleeds** | The infirmary; the healer Eloryn joins. | Scenes |
-| 9 | **A Name on a Page** | The field of beasts; Braxen; Nox's blade at his throat. | Battle: party + Braxen fixed |
-| 10 | **The Night Creature** | The creature goes for Eloryn; Nox steps out of the shadows; Altheryx. | Battle; Nox arrives mid-fight |
-| 11 | **Floor One** | The Hall of Frost and Mist separates them; six knights, six duels. | Six duels |
-| 12 | **Floor Two: Calamity** | Skyfire and the moving ocean; the Sword of Calamity. | Battle: all six (Kael gets the Sword of Calamity) |
-| 13 | **Floor Three: The Offering** | The wheels, and Eloryn. | Scenes |
-| 14 | Beyond the manuscript | — | Awaits the author's next chapters |
+| 6 | **The Sky That Hunts** (book 2–3) | The road beyond Ashgate; the youngling's corpse; Aerys bursts from the grass hunted by the Skyreaver; Kael steps in; she joins; the campfire and "the last easy laugh". | Scenes; battle: Kael + Eiryn, Aerys fixed |
+| 7 | **The Shadow City** (book 4) | The silent lower streets; the dead man; Nox kills before their eyes; Kael lunges and is stopped ("Again."); the relic shard; Kael's offer; "Next time with a name on a page." | Scenes (the duel is staged) |
+| 8 | **The Road That Bleeds** (book 5) | The trade road; the market; Aerys stabbed in the alley; the run; the chapel infirmary; the healer, Eloryn, joins. | Scenes (the alley is staged) |
+| 9 | **A Name on a Page** (book 6–7) | Dead farms; Braxen among the beasts; Nox's blade at his throat; "Then you go through me again." | Battle: party + Braxen fixed vs the pack |
+| 10 | **The Night Creature** (book 8–9) | Nox shadows them; the dead bandits; the hot spring; the creature goes for Eloryn; Nox steps out of the shadows; "You too, angel." | Battle; Nox arrives mid-fight |
+| 11 | **The Road That Learns You** (book 10–11) | Nox joins "for roads"; Kael's sparring; Aerys and Nox; Eloryn's lessons; the first frost; the doors. | Scenes (sparring staged) |
+| 12 | **Floor One: The Hall of Frost and Mist** (book 12) | The six knights separate the party; six duels (Kael, Braxen, Aerys with Stillwing, Eloryn, Nox, Eiryn). | Six duels |
+| 13 | **Floor Two: Calamity** (book 13–15) | The stairs; the two-walled corridor; Calamity; Negation; "How far can you throw me?"; the Sword of Calamity; the ramp. | Battle: all six; then the book's climax plays |
+| 14 | **Floor Three: The Hall of Offering** (book 16) | The wheels; Altheryx, the Crownless King; Eloryn. | Scenes |
+| 15 | Beyond the manuscript | — | Awaits the author's next chapters |
 
 ## Choices and what they change (built in 0.4; all Proposals; before-fight and party choices retired 2026-10-16)
 
