@@ -440,6 +440,42 @@ h2 { font-style: italic; }
 @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 154, 61, 0.55); } 50% { box-shadow: 0 0 0 12px rgba(255, 154, 61, 0); } }
 @keyframes shimmer { to { background-position: -200% 0; } }
 @media (prefers-reduced-motion: reduce) { #btn-allout.ready, .bar.super.full > i { animation: none; } }
+
+/* ---------------- title screen: the picture is the menu. Logo up top, one big way in, quiet links under it. */
+#menu { display: block; padding: 0; background: linear-gradient(180deg, rgba(8, 4, 5, 0.72) 0%, rgba(8, 4, 5, 0) 34%, rgba(8, 4, 5, 0) 52%, rgba(8, 4, 5, 0.9) 100%); }
+.tm-top { position: absolute; left: 0; right: 0; top: 0; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: calc(env(safe-area-inset-top, 0px) + 10px) max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); }
+.tm-hearts { display: flex; align-items: center; gap: 10px; }
+.tm-hearts .heart { width: 18px; height: 17px; }
+.tm-hearts .timer, .tm-team .label { font: 700 10.5px/1 var(--ui); letter-spacing: 0.12em; text-transform: uppercase; color: var(--parchment-dim); text-shadow: 0 1px 3px #000; }
+.tm-team { display: grid; gap: 4px; justify-items: end; max-width: 46vw; }
+.tm-team .cond { gap: 3px; }
+.tm-team:not(:has(.cond-row)) { display: none; }
+.tm-team .cond-row { grid-template-columns: 44px 54px auto; font-size: 10.5px; gap: 6px; text-shadow: 0 1px 3px #000; }
+.tm-team .cond-row .card-num { min-width: 0; }
+.tm-title { position: absolute; left: 0; right: 0; top: clamp(40px, 13vh, 80px); text-align: center; pointer-events: none; animation: tmRise 1.6s 0.2s ease-out both; }
+.tm-title .eyebrow { letter-spacing: 0.5em; margin: 0 0 10px; text-shadow: 0 1px 4px #000; }
+.logo { display: flex; justify-content: center; align-items: baseline; gap: clamp(8px, 2vw, 22px); font: 800 clamp(28px, 6.6vw, 60px)/0.95 var(--display); font-style: italic; text-transform: uppercase; letter-spacing: 0.08em; text-shadow: 0 2px 0 #000, 4px 4px 0 var(--crimson), 0 0 30px rgba(0, 0, 0, 0.8); }
+.logo i { font-size: 0.42em; letter-spacing: 0.1em; color: var(--blood); text-shadow: 0 1px 4px #000; text-transform: lowercase; }
+.tm-title .lede { margin: 14px auto 0; text-align: center; font-size: clamp(11px, 1.9vw, 14px); max-width: 54ch; color: var(--parchment); text-shadow: 0 1px 4px #000, 0 0 12px #000; opacity: 0.85; }
+.tm-menu { position: absolute; left: 0; right: 0; bottom: 0; display: grid; justify-items: center; gap: 10px; padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 14px); animation: tmRise 1.2s 0.9s ease-out both; }
+.begin { position: relative; appearance: none; border: 0; cursor: pointer; display: grid; justify-items: center; gap: 3px; min-width: min(78vw, 380px); padding: 13px 40px 12px; color: var(--parchment); background: linear-gradient(90deg, transparent, rgba(227, 38, 58, 0.22) 20%, rgba(227, 38, 58, 0.22) 80%, transparent); border-top: 1px solid rgba(246, 240, 236, 0.5); border-bottom: 1px solid rgba(246, 240, 236, 0.5); }
+.begin b { font: 800 clamp(18px, 3.6vw, 26px)/1 var(--display); font-style: italic; letter-spacing: 0.26em; text-transform: uppercase; text-shadow: 0 2px 8px #000; }
+.begin small { font: 600 10.5px/1.2 var(--ui); letter-spacing: 0.14em; text-transform: uppercase; color: var(--parchment-dim); }
+.begin .slash { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: var(--blood); transform: translateX(-50%) skewX(-20deg) scaleY(0); opacity: 0.0; }
+.begin:hover .slash, .begin:focus-visible .slash { opacity: 0.9; transform: translateX(-50%) skewX(-20deg) scaleY(1); transition: transform 0.25s, opacity 0.25s; }
+.begin:hover, .begin:focus-visible { background: linear-gradient(90deg, transparent, rgba(227, 38, 58, 0.4) 20%, rgba(227, 38, 58, 0.4) 80%, transparent); outline: none; }
+.begin:disabled { opacity: 0.45; cursor: not-allowed; }
+.tm-menu .chapter { margin: 0; font: 700 11px/1 var(--ui); letter-spacing: 0.18em; text-transform: uppercase; color: var(--parchment-dim); text-shadow: 0 1px 3px #000; }
+.tm-links { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 22px; position: relative; }
+.tl, .tm-links .howto summary { appearance: none; background: none; border: 0; cursor: pointer; padding: 8px 2px; font: 800 11.5px/1 var(--ui); letter-spacing: 0.2em; text-transform: uppercase; color: var(--parchment); text-shadow: 0 1px 4px #000; opacity: 0.85; }
+.tl:hover, .tl:focus-visible, .tm-links .howto summary:hover { opacity: 1; color: #fff; outline: none; box-shadow: 0 2px 0 var(--blood); }
+.tl.faint { opacity: 0.45; font-size: 10px; }
+.tm-links .howto { margin: 0; max-width: none; }
+.tm-links .howto summary::after { content: ''; }
+.tm-links .howto .how { position: absolute; left: 50%; bottom: 100%; transform: translateX(-50%); width: min(92vw, 460px); background: rgba(12, 8, 8, 0.94); border-top: 3px solid var(--blood); padding: 12px 14px; margin-bottom: 6px; z-index: 5; }
+@keyframes tmRise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@media (max-height: 460px) { .tm-title { top: 30px; } .tm-title .lede { display: none; } .tm-title .eyebrow { margin-bottom: 6px; } .begin { padding: 9px 36px 8px; } }
+@media (prefers-reduced-motion: reduce) { .tm-title, .tm-menu { animation: none; } }
 </style>
 </head>
 <body>
@@ -475,44 +511,35 @@ h2 { font-style: italic; }
   <div id="boot" aria-hidden="true"><div class="boot-in"><p class="boot-eyebrow">A tale of the Tower</p><h1>Tower of Wishes</h1><div class="boot-bar"><i></i></div></div></div>
 
   <section class="screen" id="menu">
-    <div class="sheet">
-      <div class="menu-grid">
-        <div>
-          <p class="eyebrow">A tale of the Tower</p>
-          <h1><span class="tower">Tower of Wishes</span></h1>
-          <p class="chapter" id="menu-chapter">Prologue &middot; The Last Ascent</p>
-          <p class="lede" id="menu-lede">A hundred and fifty years after someone reached the top and the world burned, six strangers walk toward the Tower. You watch. They fight.</p>
-          <details class="howto">
-            <summary>How to play</summary>
-            <ul class="how" style="margin-top:10px">
-              <li><b>Watch</b><span>Every fighter thinks for itself: they read wind-ups, parry, dodge, or fall for a feint.</span></li>
-              <li><b>All Out</b><span>A few times a match. The whole team attacks flat out, then is drained and can&rsquo;t dodge or parry until they recover.</span></li>
-              <li><b>Follow</b><span>Tap a fighter to put the camera on them. Withdraw leaves the team injured but costs no heart.</span></li>
-            </ul>
-          </details>
-        </div>
-        <div class="panel">
-          <div class="heart-row">
-            <span class="label">Hearts</span>
-            <span class="timer" id="heart-timer"></span>
-          </div>
-          <div class="hearts" id="hearts" aria-label="Hearts"></div>
-          <p class="fine">A story match costs one heart only if your whole team falls. One heart refills every 8 minutes.</p>
-          <span class="label" id="cond-label">Team</span>
-          <div class="cond" id="cond"></div>
-          <div class="actions">
-            <button class="btn primary" id="btn-story" type="button"><b id="story-btn-label">Begin the story</b><small id="story-note">Uses a heart only on a wipe</small></button>
-            <button class="btn" id="btn-chapters" type="button"><b>World map</b><small>Story, contracts, dungeons</small></button>
-            <button class="btn" id="btn-team" type="button"><b>Team</b><small>Gear and skills</small></button>
-            <button class="btn" id="btn-practice" type="button"><b>Practice match</b><small>No hearts &middot; full health</small></button>
-          </div>
-          <div class="heart-row">
-            <button class="link" id="btn-reset" type="button">Reset progress</button>
-            <span class="fine" id="reset-confirm" hidden><button class="link" id="btn-reset-yes" type="button">Yes, erase the story, hearts and injuries</button></span>
-          </div>
-        </div>
-      </div>
+    <div class="tm-top">
+      <div class="tm-hearts"><div class="hearts" id="hearts" aria-label="Hearts"></div><span class="timer" id="heart-timer"></span></div>
+      <div class="tm-team"><span class="label" id="cond-label">Team</span><div class="cond" id="cond"></div></div>
     </div>
+    <div class="tm-title">
+      <p class="eyebrow">A tale of the Tower</p>
+      <h1 class="logo"><span class="l1">Tower</span><i>of</i><span class="l2">Wishes</span></h1>
+      <p class="lede" id="menu-lede">A hundred and fifty years after someone reached the top and the world burned, six strangers walk toward the Tower.</p>
+    </div>
+    <nav class="tm-menu">
+      <button class="begin" id="btn-story" type="button"><b id="story-btn-label">Begin the story</b><small id="story-note">Uses a heart only on a wipe</small><span class="slash" aria-hidden="true"></span></button>
+      <p class="chapter" id="menu-chapter">Prologue &middot; The Last Ascent</p>
+      <div class="tm-links">
+        <button class="tl" id="btn-chapters" type="button">World map</button>
+        <button class="tl" id="btn-team" type="button">Team</button>
+        <button class="tl" id="btn-practice" type="button">Practice</button>
+        <details class="howto">
+          <summary>How to play</summary>
+          <ul class="how">
+            <li><b>Watch</b><span>Every fighter thinks for itself: they read wind-ups, parry, dodge, or fall for a feint.</span></li>
+            <li><b>All Out</b><span>A few times a match. The whole team attacks flat out, then is drained and can&rsquo;t dodge or parry until they recover.</span></li>
+            <li><b>Follow</b><span>Tap a fighter to put the camera on them. Withdraw leaves the team injured but costs no heart.</span></li>
+            <li><b>Hearts</b><span>A story match costs one heart only if your whole team falls. One heart refills every 8 minutes.</span></li>
+          </ul>
+        </details>
+        <button class="tl faint" id="btn-reset" type="button">Reset progress</button>
+      </div>
+      <span class="fine" id="reset-confirm" hidden><button class="link" id="btn-reset-yes" type="button">Yes, erase the story, hearts and injuries</button></span>
+    </nav>
   </section>
 
   <section class="screen story" id="story" hidden>

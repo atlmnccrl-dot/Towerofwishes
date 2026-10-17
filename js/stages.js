@@ -1145,7 +1145,7 @@
     ],
     auto: { noFace: true },
     setup: [{ who: 'kael', set: { stow: true, gest: null } }, { who: 'nox', set: { stow: true, gest: null } }],
-    cam: { focus: ['kael', 'eiryn', 'aerys', 'braxen', 'eloryn', 'nox'], view: 7.5, ang: -1.45, pitch: 0.3, up: 0.6, dx: 2.0, drift: 0.004 },
+    cam: { focus: ['kael', 'eiryn', 'aerys', 'braxen', 'eloryn', 'nox'], view: 8.5, ang: -1.45, pitch: 0.3, up: 1.1, dx: 0, drift: 0.004 },
     beats: [],
     ambient: {
       every: 22,

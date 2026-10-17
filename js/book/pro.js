@@ -144,6 +144,7 @@
           6: { cam: { focus: 'eiryn', view: 3.6, ang: -0.3, pitch: 0.4, up: 0.8, ease: 1.0 }, do: [{ who: 'eiryn', set: { gest: 'hips' } }] },
         } },
       }),
+      'c3.fine': 'same',
       'c3.paid': 'same', 'c3.kael': 'same', 'c3.argue': 'same', 'c3.guild': 'same',
       // ---- the Guild office and yard
       'c4.guild': auto('guildhall', [
@@ -166,6 +167,7 @@
         } },
       }),
       // ---- Chapter Five
+      'c4.party': 'same',
       'c5.mill': auto('hillpath', [K(-5.6, 1.0, 0), EA(-7.0, 0.4, 0), NP('miller', 'miller', -1.0, 0.4, W)], {
         nodes: { 'c5.mill': {
           0: { cam: { focus: ['miller', 'kael'], view: 6, ang: 0.3, pitch: 0.44, ease: 1.2 }, do: [{ who: 'kael', to: [-2.4, 1.0], speed: 1.0 }, { who: 'eiryn', to: [-3.4, 0.2], speed: 1.0 }] },
@@ -237,6 +239,9 @@
       }),
       'deep.mouth': auto('deep', [K(-6.2, 0.4, 0), EA(-7.4, 1.0, 0), CP(-7.6, -0.4, 0)], {
         nodes: { 'deep.mouth': { 0: { cam: { x: -1.0, y: 0.2, view: 9, ang: -0.3, pitch: 0.44, ease: 2.0 }, do: [{ who: 'kael', to: [-2.8, 0.4], speed: 0.8 }, { who: 'eiryn', to: [-4.0, 1.0], speed: 0.8 }, { who: '@', to: [-4.2, -0.4], speed: 0.8 }] } } },
+      }),
+      'deep.rest': auto('deep', [K(-2.0, 0.6, 0.4), EA(-3.2, 1.4, 0.3), CP(-3.0, -0.4, 0.4)], {
+        nodes: { 'deep.rest': { 0: { cam: { x: -2.4, y: 0.4, view: 6, ang: -0.3, pitch: 0.42, ease: 1.4 } } } },
       }),
       'deep.end': auto('deep', [K(-1.0, 0.6, 0.4), EA(-2.4, 1.2, 0.3), CP(-2.2, -0.4, 0.4)], {
         nodes: { 'deep.end': { 0: { cam: { x: -1.6, y: 0.4, view: 6, ang: -0.3, pitch: 0.42, ease: 1.4 } } } },
