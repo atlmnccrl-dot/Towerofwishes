@@ -273,6 +273,7 @@
       name: 'Kael', team: 'hero', r: 0.38, hp: 180, sta: 100, speed: 4.3,
       react: 0.17, read: 0.6, parry: 0.55, dodge: 0.5, feint: 0.1,
       protector: true, riposte: true, cleave: true, superMeter: true, opener: 'rush',
+      heavy: { blade: true, dur: 3.9, impactAt: 2.5 },
       attack: { name: 'Slash', range: 1.6, arc: 1.7, windup: 0.34, active: 0.1, recover: 0.38, dmg: [12, 16], knock: 1.0, lunge: 0.45, sta: 12 },
       barks: {
         super: 'Back away.', win: 'They\u2019re gone.', protect: 'Let go.',
@@ -388,12 +389,11 @@
     },
     // ---- The tutorial: the climber at the top of the Tower (a mystery).
     climber: {
-      name: 'The Climber', team: 'hero', r: 0.38, hp: 420, sta: 140, speed: 5.2,
-      react: 0.12, read: 0.85, parry: 0.7, dodge: 0.6, feint: 0.2,
-      brain: 'duelist', riposte: true, cleave: true, superMeter: true, startSuper: 100, opener: 'rush', combo: 3,
-      blink: { range: 7, cd: 3.5 },
-      attack: { name: 'Broken Blade', range: 1.7, arc: 1.9, windup: 0.26, active: 0.1, recover: 0.3, dmg: [26, 32], knock: 1.4, lunge: 0.6, sta: 10 },
-      heavy: { name: 'Final Ascent', radius: 5.0, arc: 6.3, dmg: [80, 95] },
+      name: 'The Climber', team: 'hero', r: 0.38, hp: 300, sta: 110, speed: 4.4,
+      react: 0.2, read: 0.7, parry: 0.45, dodge: 0.4, feint: 0.15,
+      brain: 'duelist', riposte: true, cleave: true, superMeter: true, startSuper: 35, opener: 'rush', combo: 2,
+      attack: { name: 'Broken Blade', range: 1.5, arc: 1.7, windup: 0.34, active: 0.1, recover: 0.38, dmg: [18, 23], knock: 1.0, lunge: 0.5, sta: 12 },
+      heavy: { name: 'Final Ascent', radius: 5.0, arc: 6.3, dmg: [80, 95], blade: true, dur: 3.9, impactAt: 2.5 },
       barks: {},
       intro: { epithet: 'The last floor', line: null },
     },
@@ -627,9 +627,9 @@
       },
     },
     tutorial: {
-      chapter: 'Prologue', title: 'The Last Ascent', arena: 'summit', allOutUses: 2, allOutStart: 1, vs: 'veil', scale: { hp: 2.2, dmg: 1.0 },
+      chapter: 'Prologue', title: 'The Last Ascent', arena: 'summit', allOutUses: 2, allOutStart: 1, vs: 'veil', scale: { hp: 1.6, dmg: 0.9 },
       units: [
-        { key: 'climber', x: -4.6, y: 1.0, f: 0 },
+        { key: 'climber', x: -4.6, y: 1.0, f: 0, hpFrac: 0.75 },
         { key: 'shade', x: 1.2, y: -1.8, f: 3.1 },
         { key: 'shade', x: 1.8, y: 2.0, f: 3.1 },
         { key: 'shade', x: 3.6, y: 0.2, f: 3.1 },
@@ -1323,7 +1323,7 @@
     u.superMeter = 0;
     u.superUsed = true;
     s.stats.supers++;
-    s.cutscene = { unit: u, name: H.name, t: 0, dur: H.dur, impactAt: H.impactAt, applied: false, x0: u.x, y0: u.y, line: !!H.line };
+    s.cutscene = { unit: u, name: H.name, t: 0, dur: H.dur, impactAt: H.impactAt, applied: false, x0: u.x, y0: u.y, line: !!H.line, blade: !!H.blade };
     bark(s, u, 'super');
     say(s, `${u.name} \u2014 ${H.name}!`);
     s.fx.push({ type: 'cutscene', unit: u.id });

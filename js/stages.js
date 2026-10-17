@@ -35,7 +35,7 @@
       { id: 'shade3', key: 'shade', x: 3.6, y: 0.2, f: W, hidden: true },
       { id: 'veil', key: 'veil', x: 6.0, y: -0.4, f: W, hidden: true },
     ],
-    setup: [{ fade: [1] }],
+    setup: [{ fade: [1] }, { who: 'climber', drained: true }],
     cam: { x: 0, y: -1, view: 15, ang: 0.15, pitch: 0.62 },
     beats: [
       // The Tower had been there longer than any history...
@@ -46,13 +46,16 @@
       {
         cam: { focus: 'climber', dx: 1.2, view: 5.5, ang: -0.6, pitch: 0.46, up: 0.4, ease: 1.2 },
         do: [
-          { who: 'climber', show: true, to: [-5.0, 1.1], speed: 0.9, gait: 'stride' },
+          { who: 'climber', show: true, to: [-5.6, 1.1], speed: 0.8, gait: 'creep' },
+          { at: 1.6, who: 'climber', state: 'hurt', dur: 0.5 },
+          { at: 2.4, who: 'climber', to: [-5.0, 1.1], speed: 0.7, gait: 'creep' },
+          { at: 2.6, shake: 2 },
         ],
       },
       // Blood had dried along one side of the stranger's face...
       {
         cam: { face: 'climber', side: 0.45, view: 2.8, up: 1.25, pitch: 0.4, drift: 0.04, ease: 0.9 },
-        do: [{ who: 'climber', to: [-4.6, 1.0], speed: 0.5, face: E }],
+        do: [{ who: 'climber', to: [-4.6, 1.0], speed: 0.4, face: E, gait: 'creep' }, { at: 1.2, who: 'climber', icon: '…' }, { at: 2.2, who: 'climber', set: { gest: 'cross' } }],
       },
       // Something was waiting on the final floor...
       {
@@ -64,7 +67,7 @@
           { at: 0.8, who: 'shade3', show: true, blink: [3.6, 0.2] },
           { at: 1.3, who: 'veil', show: true, shake: 10 },
           { at: 1.35, who: 'climber', icon: '!' },
-          { at: 1.9, who: 'climber', attack: { wind: 0.5, hold: true, tele: false } },
+          { at: 1.9, who: 'climber', drained: false, attack: { wind: 0.5, hold: true, tele: false } },
         ],
       },
     ],

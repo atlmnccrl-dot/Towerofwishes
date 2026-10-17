@@ -1382,6 +1382,159 @@
       }
     }
 
+    // ------------------------------------------------------------ blade
+    // Sword heavy arts (Rising Cut, Final Ascent): one blade of light, built and dropped.
+    //   charge  a ring turns under the fighter; a blade of light climbs out of the sword, far past the top of the frame
+    //   gleam   darkness; the blade stands at full height, one line of light across the screen
+    //   dash    the blade falls forward in an arc, afterimages behind it; where it strikes the ground
+    //           a crescent wave of light runs out through the enemies, flashing at each one it passes
+    //   impact  white frame, then a black frame cut by one slash line
+    //   after   the wave thins and spreads, shards of light, the cut line fades
+    const bladeState = new WeakMap();
+    function bladeOf(s, c) {
+      let st = bladeState.get(c);
+      if (!st) {
+        const u = c.unit, H = V.Sim.heavyOf(u), f = u.facing, hits = [];
+        for (const o of s.units) {
+          if (o.team === u.team || o.fled || o.beaten || o.state === 'out') continue;
+          const d = Math.hypot(o.x - c.x0, o.y - c.y0);
+          let da = Math.atan2(o.y - c.y0, o.x - c.x0) - f;
+          while (da > Math.PI) da -= Math.PI * 2;
+          while (da < -Math.PI) da += Math.PI * 2;
+          if (d <= H.radius && Math.abs(da) <= H.arc / 2) hits.push({ x: o.x, y: o.y, d });
+        }
+        hits.sort((a, b) => a.d - b.d);
+        st = { hits, done: 0, R: H.radius + 1.2, half: Math.min(Math.PI, H.arc / 2) };
+        bladeState.set(c, st);
+      }
+      return st;
+    }
+    function drawBlade(s, c, phase) {
+      const W = V.W, H = V.H, t = c.t, u = c.unit, sc = V.cam.sc, cam = V.cam;
+      const F = [Math.cos(u.facing), Math.sin(u.facing)];
+      const climber = u.key === 'climber';
+      const rgb = climber ? '255,214,150' : u.team === 'hero' ? '156,195,221' : '227,38,58';
+      const hex = climber ? '#ffd696' : u.team === 'hero' ? '#9cc3dd' : '#e3263a';
+      const saveG = GLYPH, saveH = lanceHex; GLYPH = rgb; lanceHex = hex;
+      const st = bladeOf(s, c);
+      const hand = { x: c.x0 + F[0] * 0.35, y: c.y0 + F[1] * 0.35, z: 1.25 };
+      const chest = P(u.x, u.y, 1.2);
+      const tipAt = (th, Ln) => ({ x: hand.x + F[0] * Math.sin(th) * Ln, y: hand.y + F[1] * Math.sin(th) * Ln, z: hand.z + Math.cos(th) * Ln });
+      const bladePath = (th, Ln) => { const a = P(hand.x, hand.y, hand.z), b = tipAt(th, Ln), q = P(b.x, b.y, b.z), p = new Path2D(); p.moveTo(a.x, a.y); p.lineTo(q.x, q.y); return p; };
+      const BL = 7.5;
+      try {
+        if (phase === 'charge') {
+          const k = t / CUT.charge, e = Math.pow(k, 1.4);
+          const vg = ctx.createRadialGradient(chest.x, chest.y, Math.min(W, H) * 0.12, chest.x, chest.y, Math.max(W, H) * 0.7);
+          vg.addColorStop(0, 'rgba(6,4,6,0)'); vg.addColorStop(1, `rgba(6,4,6,${0.35 + 0.45 * k})`);
+          ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+          groundCircle({ u }, t, k);
+          // the blade climbing out of the sword
+          const Ln = 0.9 + (BL - 0.9) * e;
+          glowStroke([bladePath(Math.sin(t * 9) * 0.01, Ln)], Math.max(2, sc * (0.05 + 0.04 * e)), Math.min(1, 0.4 + k));
+          const tp = tipAt(0, Ln), tq = P(tp.x, tp.y, tp.z);
+          star(tq.x, tq.y, sc * (0.2 + 0.4 * e), hex, 2.6, 0.24);
+          // motes of light streaming up the blade and off the ground
+          ctx.save(); ctx.globalCompositeOperation = 'lighter';
+          for (let i = 0; i < 16; i++) {
+            const ph = (t * 1.3 + i * 0.113) % 1, a0 = i * 2.39, r0 = 1.8 * (1 - ph);
+            const q = P(hand.x + Math.cos(a0) * r0, hand.y + Math.sin(a0) * r0, 0.05 + ph * (hand.z + Ln * 0.3));
+            ctx.fillStyle = `rgba(${rgb},${0.8 * (1 - ph)})`; ctx.beginPath(); ctx.arc(q.x, q.y, 1.5 + 2.5 * (1 - ph), 0, Math.PI * 2); ctx.fill();
+          }
+          ctx.restore();
+          speedLines(chest.x, chest.y, 60, Math.min(W, H) * (0.6 - 0.3 * k), Math.max(W, H), `rgba(${rgb},${0.05 + 0.1 * k})`, Math.floor(t * 24));
+          cam.shake = Math.max(cam.shake, 1.5 + 3 * k);
+        } else if (phase === 'gleam') {
+          const k = (t - CUT.charge) / (CUT.gleam - CUT.charge), eye = eyeOf(u);
+          darkAround(eye, Math.min(W, H) * 0.3, Math.min(0.9, 0.55 + k));
+          glowStroke([bladePath(0, BL)], Math.max(2, sc * 0.09), 1);
+          star(eye.x, eye.y, H * 0.07 * Math.min(1, k * 3), hex, 3, 0.2);
+          // the line the cut will follow
+          const gw = Math.hypot(W, H) * Math.min(1, k * 2.4);
+          ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.translate(eye.x, eye.y); ctx.rotate(-0.5);
+          ctx.strokeStyle = `rgba(${rgb},0.9)`; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(-gw, 0); ctx.lineTo(gw, 0); ctx.stroke();
+          ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.stroke();
+          ctx.restore();
+        } else if (phase === 'dash') {
+          const kk = (t - CUT.gleam) / (c.impactAt - CUT.gleam), fall = 0.38;
+          ctx.fillStyle = `rgba(${rgb},0.07)`; ctx.fillRect(0, 0, W, H);
+          if (kk < fall) {
+            const th = (Math.PI / 2) * Math.pow(kk / fall, 2.2);
+            for (let i = 6; i >= 0; i--) {
+              const tt = Math.max(0, th - i * 0.11);
+              glowStroke([bladePath(tt, BL)], Math.max(2, sc * 0.09 * (1 - i * 0.1)), 1 - i * 0.14);
+            }
+            const tp = tipAt(th, BL), tq = P(tp.x, tp.y, Math.max(0, tp.z));
+            star(tq.x, tq.y, sc * 0.5, '#ffffff', 2.4, 0.26);
+            cam.shake = Math.max(cam.shake, 5);
+          } else {
+            const w = (kk - fall) / (1 - fall), r = 1.0 + (st.R - 1.0) * (1 - Math.pow(1 - Math.min(1, w * 1.15), 2.2));
+            if (!c.struck) { c.struck = true; const g = tipAt(Math.PI / 2, BL); dust(g.x, g.y, 14); parts.push({ ring: true, x: g.x, y: g.y, z: 0.05, t: 0, life: 0.5, col: hex }); }
+            // the wave: a crescent curtain of light, ground edge to head height, running outward
+            const N = 36, lo = [], hi = [], hi2 = [];
+            for (let i = 0; i <= N; i++) {
+              const a = u.facing - st.half + (i / N) * st.half * 2, bulge = Math.sin((i / N) * Math.PI), rr = r * (0.9 + 0.1 * bulge);
+              lo.push(P(c.x0 + Math.cos(a) * rr, c.y0 + Math.sin(a) * rr, 0.02));
+              hi.push(P(c.x0 + Math.cos(a) * rr, c.y0 + Math.sin(a) * rr, 0.35 + 1.5 * bulge * (1 - w * 0.5)));
+              hi2.push(P(c.x0 + Math.cos(a) * rr * 0.9, c.y0 + Math.sin(a) * rr * 0.9, 0.05));
+            }
+            const al = 1 - w * 0.55;
+            ctx.save(); ctx.globalCompositeOperation = 'lighter';
+            ctx.beginPath(); lo.forEach((q, i) => (i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y))); for (let i = hi.length - 1; i >= 0; i--) ctx.lineTo(hi[i].x, hi[i].y); ctx.closePath();
+            ctx.fillStyle = `rgba(${rgb},${0.38 * al})`; ctx.fill();
+            ctx.beginPath(); lo.forEach((q, i) => (i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y))); for (let i = hi2.length - 1; i >= 0; i--) ctx.lineTo(hi2[i].x, hi2[i].y); ctx.closePath();
+            ctx.fillStyle = `rgba(${rgb},${0.22 * al})`; ctx.fill();
+            ctx.restore();
+            glowStroke([toPath(hi)], Math.max(2, sc * 0.08), al);
+            ctx.strokeStyle = `rgba(255,255,255,${al})`; ctx.lineWidth = Math.max(2, sc * 0.03); ctx.lineCap = 'round';
+            ctx.beginPath(); lo.forEach((q, i) => (i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y))); ctx.stroke();
+            // speed lines, scorch on the ground behind the wave
+            speedLines(chest.x, chest.y, 50, Math.min(W, H) * 0.3, Math.max(W, H), `rgba(${rgb},0.14)`, Math.floor(t * 30));
+            while (st.done < st.hits.length && st.hits[st.done].d <= r + 0.2) {
+              const h = st.hits[st.done++];
+              parts.push({ star: true, x: h.x, y: h.y, z: 1.1, t: 0, life: 0.35, r: 1.5, col: '#ffffff', rays: true });
+              parts.push({ ring: true, x: h.x, y: h.y, z: 0.6, t: 0, life: 0.4, col: hex });
+              shards(h.x, h.y, 1, 14, hex, 8, u.facing);
+              impact = Math.max(impact, 0.05);
+              cam.shake = Math.max(cam.shake, 14);
+            }
+            cam.shake = Math.max(cam.shake, 6);
+          }
+        } else if (phase === 'impact') {
+          const ft = t - c.impactAt;
+          if (ft < 0.06) { ctx.fillStyle = '#f6f0ec'; ctx.fillRect(0, 0, W, H); }
+          else {
+            ctx.fillStyle = INK; ctx.fillRect(0, 0, W, H);
+            const hm = Math.hypot(W, H);
+            ctx.save(); ctx.translate(chest.x, chest.y); ctx.rotate(-0.5); ctx.lineCap = 'butt';
+            for (const [w, col, off] of [[26, `rgba(${rgb},0.55)`, 0], [9, '#f6f0ec', 0], [3, '#ffffff', 0]]) { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(-hm, off); ctx.lineTo(hm, off); ctx.stroke(); }
+            ctx.restore();
+            speedLines(chest.x, chest.y, 70, Math.min(W, H) * 0.08, Math.max(W, H), '#f6f0ec', 3);
+          }
+          cam.shake = 16;
+        } else {
+          const k = (t - c.impactAt - 0.12) / 0.9;
+          if (k < 1) {
+            const e = 1 - k, hm = Math.hypot(W, H);
+            // the cut line, fading
+            ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.translate(chest.x, chest.y); ctx.rotate(-0.5);
+            ctx.strokeStyle = `rgba(${rgb},${0.7 * e * e})`; ctx.lineWidth = 2 + 14 * e * e; ctx.beginPath(); ctx.moveTo(-hm, 0); ctx.lineTo(hm, 0); ctx.stroke();
+            ctx.strokeStyle = `rgba(255,255,255,${e})`; ctx.lineWidth = 1 + 2 * e; ctx.stroke();
+            ctx.restore();
+            // the wave thinning out over the ground, and rings where it struck
+            const base = P(c.x0, c.y0, 0.02);
+            for (const [delay, col] of [[0, hex], [0.15, PAL.bone]]) {
+              const kk = Math.max(0, k - delay), rr = (st.R * 0.8 + kk * 2.4) * sc;
+              ctx.globalAlpha = Math.max(0, 1 - kk); ctx.strokeStyle = col; ctx.lineWidth = 7 * (1 - kk) + 1;
+              ctx.beginPath(); ctx.ellipse(base.x, base.y, rr, rr * cam.pitch, 0, u.facing * 0 - st.half * 0, Math.PI * 2); ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
+          }
+          if (!c.dusted) { c.dusted = true; for (const h of st.hits) { dust(h.x, h.y, 10); shards(h.x, h.y, 1, 10, hex, 6); } dust(u.x, u.y, 16); }
+        }
+      } finally { GLYPH = saveG; lanceHex = saveH; }
+    }
+
     function drawCutscene(s) {
       const c = s.cutscene;
       if (!c) return;
@@ -1402,6 +1555,7 @@
         drawLance(s, c, phase);
         GLYPH = '169,139,255'; lanceHex = '#a98bff';
       }
+      else if (c.blade) drawBlade(s, c, phase);
       else if (phase === 'charge') {
         const k = t / CUT.charge, e = k * k;
         // Darken everything but the fighter.
