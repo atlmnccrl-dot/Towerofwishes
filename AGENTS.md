@@ -42,6 +42,8 @@ Read first: [docs/DESIGN.md](docs/DESIGN.md), [docs/STORY.md](docs/STORY.md),
 | `js/render/intro.js` | Face-off cards, VS, countdown |
 | `js/book/*.js` | The book's chapters (nodes, staged scenes, foes); `pro.js` stages the prologue and the early side scenes |
 | `js/render/director.js` | Camera cuts, slow motion, cut-in panels during fights |
+| `js/grade.js` | Fight ranks S–D from a finished match. Pure |
+| `js/render/spirit.js`, `js/render/itemart.js` | The spirit-tree skill screen; drawn icons for every item |
 | `js/progress.js` | Hearts and injuries: pure functions |
 | `js/story.js` | Story campaign: chapter graph, side episodes, choices, team experience. Pure data + functions |
 | `js/campaign.js` | World map: lands, routes, unlock rules. Pure |
@@ -65,6 +67,8 @@ node test/side-test.js 12         # side missions, dungeon rooms, yard, arcade w
 node test/progression-test.js     # gear, loot and skill rules
 node test/book-test.js 20         # the book's road and Tower fights
 node test/stage-test.js           # every scene is a staged cutscene (no painted stills)
+node test/grade-test.js           # fight ranks (wins only)
+node test/replay-test.js          # a replayed fight (same seed, same All Out moments) is identical
 NODE_PATH=$(npm root -g) node test/browser-check.js /tmp/shots   # needs Playwright; screenshots + console errors
 NODE_PATH=$(npm root -g) node test/story-browser.js /tmp/story-shots   # plays the whole story in the browser
 ```

@@ -330,3 +330,17 @@ Out counters beyond the punisher, sound, real art, purchases, free modes beyond 
 - **Last stand.** A unit with `def.lastStand` cannot fall until its heavy art has played: held
   above 13% for the first 16 s, then at 20% health (or on a killing blow) the cutscene fires.
   Used by the prologue climber (Dark Legion).
+
+## 18. Watching, grading, replay and the trailer (built 2026-10-18, Proposals)
+
+- **Readability.** A blue ring marks your team and a red ring marks the foe on the ground; the
+  fighter you follow has a brighter ring. The default camera is tighter and the canvas is lifted
+  (brightness and contrast) so the dark arenas read on a phone.
+- **Grades.** A won fight gets a rank S to D (js/grade.js): team health left, nobody down, speed,
+  parries/dodges/feints read, a heavy art, a well-timed All Out. The best rank per fight is saved
+  in `story.grades`; the map's node card shows it.
+- **Replay.** The result screen of a win has *Watch replay*: the same fight again from its seed, All
+  Out at the same moments (the sim is deterministic, test/replay-test.js), no HUD, letterboxed.
+- **Trailer.** *Trailer* on the title screen (or `?trailer`) plays a ~75 s reel: the painted opening,
+  the Reset, the rooftop run, the dawn, four fights with heavy arts. Cards are manuscript quotes or
+  plain taglines. A tap leaves it; nothing is saved. Meant for screen capture.
