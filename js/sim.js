@@ -389,11 +389,11 @@
     },
     // ---- The tutorial: the climber at the top of the Tower (a mystery).
     climber: {
-      name: 'The Climber', team: 'hero', r: 0.38, hp: 300, sta: 110, speed: 4.4,
+      name: 'The Climber', team: 'hero', r: 0.38, hp: 420, sta: 110, speed: 4.4,
       react: 0.2, read: 0.7, parry: 0.45, dodge: 0.4, feint: 0.15,
-      brain: 'duelist', riposte: true, cleave: true, superMeter: true, startSuper: 35, opener: 'rush', combo: 2,
+      brain: 'duelist', riposte: true, cleave: true, superMeter: true, startSuper: 0, opener: 'rush', combo: 2,
       attack: { name: 'Broken Blade', range: 1.5, arc: 1.7, windup: 0.34, active: 0.1, recover: 0.38, dmg: [18, 23], knock: 1.0, lunge: 0.5, sta: 12 },
-      heavy: { name: 'Dark Legion', radius: 5.0, arc: 6.3, dmg: [80, 95], legion: true, dur: 3.9, impactAt: 2.5 },
+      heavy: { name: 'Dark Legion', radius: 16, arc: 6.3, dmg: [900, 900], legion: true, dur: 4.4, impactAt: 2.6 }, lastStand: true,
       barks: {},
       intro: { epithet: 'The last floor', line: null },
     },
@@ -627,9 +627,9 @@
       },
     },
     tutorial: {
-      chapter: 'Prologue', title: 'The Last Ascent', arena: 'summit', allOutUses: 2, allOutStart: 1, vs: 'veil', scale: { hp: 1.6, dmg: 0.9 },
+      chapter: 'Prologue', title: 'The Last Ascent', arena: 'summit', allOutUses: 2, allOutStart: 1, vs: 'veil', scale: { hp: 2.2, dmg: 0.9 },
       units: [
-        { key: 'climber', x: -4.6, y: 1.0, f: 0, hpFrac: 0.75 },
+        { key: 'climber', x: -4.6, y: 1.0, f: 0, hpFrac: 0.6 },
         { key: 'shade', x: 1.2, y: -1.8, f: 3.1 },
         { key: 'shade', x: 1.8, y: 2.0, f: 3.1 },
         { key: 'shade', x: 3.6, y: 0.2, f: 3.1 },
@@ -1246,6 +1246,7 @@
       v.hurtOnce = true;
       v.morale -= 0.15;
     }
+    if (lastStandReady(v) && s.t < LAST_STAND_AT && v.hp < v.maxHp * 0.13) v.hp = Math.ceil(v.maxHp * 0.13); // held on his feet for the buildup
     if (v.hp <= 0) {
       v.hp = 0;
       knockOut(s, v);
@@ -1267,6 +1268,7 @@
   }
 
   function knockOut(s, v) {
+    if (lastStandReady(v) && v.team === 'hero') { v.hp = 2; v.flash = 0.2; if (startLastStand(s, v)) return; }
     releaseTokens(s, v);
     v.act = null; v.pending = null; v.plan = null;
     s.fx.push({ type: 'ko', x: v.x, y: v.y });
@@ -1306,7 +1308,30 @@
   const SUPER = { name: 'Rising Cut', dur: 3.4, impactAt: 2.0, radius: 3.6, arc: 3.8, dmg: [26, 32] };
   const heavyOf = (u) => Object.assign({}, SUPER, u.def.heavy || {});
 
+  // A last stand (the climber in the prologue): beaten to the edge, he cannot fall until his heavy art has played.
+  const LAST_STAND_AT = 16; // seconds of struggle before the heavy art may break out
+  function lastStandReady(u) { return u.def.lastStand && !u.superUsed; }
+  function startLastStand(s, u) {
+    if (s.cutscene || !lastStandReady(u)) return false;
+    u.hp = Math.max(u.hp, 2);
+    if (u.act) { releaseTokens(s, u); u.act = null; }
+    u.pending = null; u.plan = null;
+    u.superMeter = 100; u.superUsed = true; u.drained = 0;
+    const H = heavyOf(u), foes = opponents(s, u).filter((o) => alive(o));
+    let cx = 0, cy = 0;
+    for (const o of foes) { cx += o.x; cy += o.y; }
+    if (foes.length) u.facing = Math.atan2(cy / foes.length - u.y, cx / foes.length - u.x);
+    setState(u, 'idle');
+    s.stats.supers++;
+    s.cutscene = { unit: u, name: H.name, t: 0, dur: H.dur, impactAt: H.impactAt, applied: false, x0: u.x, y0: u.y, line: !!H.line, blade: !!H.blade, legion: !!H.legion };
+    bark(s, u, 'super');
+    say(s, `${u.name} \u2014 ${H.name}!`);
+    s.fx.push({ type: 'cutscene', unit: u.id });
+    return true;
+  }
+
   function trySuper(s, u) {
+    if (u.def.lastStand) return !u.superUsed && s.t >= LAST_STAND_AT && u.hp <= u.maxHp * 0.2 && FREE[u.state] && startLastStand(s, u);
     // Once per fighter per match: a heavy art is a finisher, not a routine.
     if (!u.def.superMeter || u.superUsed || u.superMeter < 100 || !FREE[u.state] || inAllOut(u) || isDrained(u)) return false;
     const H = heavyOf(u);
