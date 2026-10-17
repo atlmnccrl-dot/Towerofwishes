@@ -140,6 +140,7 @@
     const l = lines[lineIdx];
     const d = $('dialogue');
     d.className = 'dialogue ' + (l.speaker ? l.speaker.tone : 'narr');
+    d.style.animation = 'none'; void d.offsetWidth; d.style.animation = '';
     $('who').textContent = l.speaker ? l.speaker.name : '';
     $('who').hidden = !l.speaker;
     lineFull = l.speaker ? `“${l.text}”` : l.text;

@@ -593,33 +593,18 @@
           ctx.lineWidth = Math.max(4, fs * 0.18); ctx.strokeStyle = INK; ctx.strokeText(u.icon, 0, 0); ctx.fillStyle = col; ctx.fillText(u.icon, 0, 0);
           ctx.restore();
         }
-        if (u.bark && u.barkT > 0 && !(safe && (head.x < W * safe[0] || head.x > W * safe[1]))) {
-          const fs = Math.round(clamp(sc * 0.17, 12, 19));
-          ctx.font = `700 ${fs}px ${FONT.ui}`;
-          const tw = ctx.measureText(u.bark).width, rw = tw / 2 + fs * 1.0, rh = fs * 1.15;
-          let bx = head.x + sc * 0.35, by = head.y - rh - fs * 0.9;
-          // off the top: slide to the side of the head instead
-          if (by - rh < top0) { by = top0 + rh; bx = head.x + (head.x < W * 0.55 ? 1 : -1) * (rw + sc * 0.35); }
-          bx = safe ? clamp(bx, W * safe[0] + rw, W * safe[1] - rw) : clamp(bx, rw + 8, W - rw - 8); by = clamp(by, top0 + rh, H * 0.7);
-          const tipX = head.x + (bx > head.x ? 1 : -1) * sc * 0.12, tipY = Math.max(head.y + sc * 0.05, by + rh * 0.6);
-          const shout = /!$/.test(u.bark);
-          const shape = () => {
-            ctx.beginPath();
-            if (shout) {
-              const n = 18;
-              for (let i = 0; i <= n; i++) { const a = (i / n) * TAU, r = i % 2 ? 1.18 : 0.94; const x = bx + Math.cos(a) * rw * r, y = by + Math.sin(a) * rh * r; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
-              ctx.closePath();
-            } else ctx.ellipse(bx, by, rw, rh, 0, 0, TAU);
-            const ax = clamp(tipX, bx - rw * 0.6, bx + rw * 0.6);
-            ctx.moveTo(ax - fs * 0.45, by + rh * 0.6); ctx.lineTo(tipX, tipY); ctx.lineTo(ax + fs * 0.45, by + rh * 0.7);
-          };
-          ctx.save();
-          ctx.globalAlpha = Math.min(1, u.barkT * 2.5);
-          ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(3, fs * 0.22); ctx.strokeStyle = INK;
-          shape(); ctx.stroke();
-          ctx.fillStyle = '#f6f0ec'; shape(); ctx.fill();
-          ctx.fillStyle = INK; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-          ctx.fillText(u.bark, bx, by + 1);
+        // Speech is the subtitle under the picture during story scenes; elsewhere (menu
+        // tableaux) a line shows as a caption by the speaker's head: no balloon.
+        if (u.bark && u.barkT > 0 && !(window.__tow && window.__tow.view === 'story') && !(safe && (head.x < W * safe[0] || head.x > W * safe[1]))) {
+          const fs = Math.round(clamp(sc * 0.2, 13, 22));
+          ctx.font = `italic 800 ${fs}px ${FONT.display}`;
+          const tw = ctx.measureText(u.bark).width;
+          const bx = safe ? clamp(head.x, W * safe[0] + tw / 2, W * safe[1] - tw / 2) : clamp(head.x, tw / 2 + 10, W - tw / 2 - 10);
+          const by = clamp(head.y - fs * 1.6, top0 + fs, H * 0.7), a = Math.min(1, u.barkT * 2.5);
+          ctx.save(); ctx.globalAlpha = a; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+          ctx.lineWidth = Math.max(4, fs * 0.28); ctx.strokeStyle = INK; ctx.strokeText(u.bark, bx, by);
+          ctx.fillStyle = '#f6f0ec'; ctx.fillText(u.bark, bx, by);
+          ctx.strokeStyle = '#e3263a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(bx - tw * 0.3, by + fs * 0.85); ctx.lineTo(bx + tw * 0.3, by + fs * 0.85); ctx.stroke();
           ctx.restore();
         }
       }

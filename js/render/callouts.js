@@ -49,35 +49,21 @@
         ctx.strokeText(u.icon, 0, 0); ctx.fillStyle = col; ctx.fillText(u.icon, 0, 0);
         ctx.restore();
       }
-      // Speech: a manhwa balloon; shouts get a spiky edge.
+      // Speech: a caption by the speaker, no balloon; shouts hit harder.
       if (u.bark && u.barkT > 0 && !(u.barkDelay > 0)) {
-        const fs = Math.max(11, Math.round(sc * 0.27));
-        ctx.font = `700 ${fs}px ${FONT.ui}`;
-        const tw = ctx.measureText(u.bark).width;
-        const bx = Math.max(tw / 2 + fs * 1.4, Math.min(V.W - tw / 2 - fs * 1.4, top.x + sc * 0.4)), by = top.y - sc * 0.95;
-        const rw = tw / 2 + fs * 1.0, rh = fs * 1.15;
         const shout = /!$/.test(u.bark);
-        const shape = () => {
-          ctx.beginPath();
-          if (shout) {
-            const n = 18;
-            for (let i = 0; i <= n; i++) {
-              const a = (i / n) * Math.PI * 2, r = i % 2 ? 1.18 : 0.94;
-              const x = bx + Math.cos(a) * rw * r, y = by + Math.sin(a) * rh * r;
-              i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
-            }
-            ctx.closePath();
-          } else ctx.ellipse(bx, by, rw, rh, 0, 0, Math.PI * 2);
-          // tail toward the speaker
-          ctx.moveTo(bx - rw * 0.15, by + rh * 0.7); ctx.lineTo(top.x, top.y - sc * 0.15); ctx.lineTo(bx + rw * 0.05, by + rh * 0.8);
-        };
+        const fs = Math.max(12, Math.round(sc * (shout ? 0.34 : 0.28)));
+        ctx.font = `italic 800 ${fs}px ${FONT.display}`;
+        const tw = ctx.measureText(u.bark).width;
+        const bx = Math.max(tw / 2 + 10, Math.min(V.W - tw / 2 - 10, top.x + sc * 0.2));
+        const by = top.y - sc * 0.8;
         ctx.save();
         ctx.globalAlpha = Math.min(1, u.barkT * 2.5);
-        ctx.lineJoin = 'round'; ctx.lineWidth = Math.max(3, sc * 0.06); ctx.strokeStyle = INK;
-        shape(); ctx.stroke();
-        ctx.fillStyle = '#f6f0ec'; shape(); ctx.fill();
-        ctx.fillStyle = INK; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(u.bark, bx, by + 1);
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+        ctx.lineWidth = Math.max(4, fs * 0.28); ctx.strokeStyle = INK; ctx.strokeText(u.bark, bx, by);
+        ctx.fillStyle = shout ? '#ffd9d2' : '#f6f0ec'; ctx.fillText(u.bark, bx, by);
+        ctx.strokeStyle = '#e3263a'; ctx.lineWidth = 2; ctx.beginPath();
+        ctx.moveTo(bx - tw * 0.3, by + fs * 0.85); ctx.lineTo(bx + tw * 0.3, by + fs * 0.85); ctx.stroke();
         ctx.restore();
       }
     }
