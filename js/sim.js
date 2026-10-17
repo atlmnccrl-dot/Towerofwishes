@@ -393,7 +393,7 @@
       react: 0.2, read: 0.7, parry: 0.45, dodge: 0.4, feint: 0.15,
       brain: 'duelist', riposte: true, cleave: true, superMeter: true, startSuper: 35, opener: 'rush', combo: 2,
       attack: { name: 'Broken Blade', range: 1.5, arc: 1.7, windup: 0.34, active: 0.1, recover: 0.38, dmg: [18, 23], knock: 1.0, lunge: 0.5, sta: 12 },
-      heavy: { name: 'Final Ascent', radius: 5.0, arc: 6.3, dmg: [80, 95], blade: true, dur: 3.9, impactAt: 2.5 },
+      heavy: { name: 'Dark Legion', radius: 5.0, arc: 6.3, dmg: [80, 95], legion: true, dur: 3.9, impactAt: 2.5 },
       barks: {},
       intro: { epithet: 'The last floor', line: null },
     },
@@ -1323,7 +1323,7 @@
     u.superMeter = 0;
     u.superUsed = true;
     s.stats.supers++;
-    s.cutscene = { unit: u, name: H.name, t: 0, dur: H.dur, impactAt: H.impactAt, applied: false, x0: u.x, y0: u.y, line: !!H.line, blade: !!H.blade };
+    s.cutscene = { unit: u, name: H.name, t: 0, dur: H.dur, impactAt: H.impactAt, applied: false, x0: u.x, y0: u.y, line: !!H.line, blade: !!H.blade, legion: !!H.legion };
     bark(s, u, 'super');
     say(s, `${u.name} \u2014 ${H.name}!`);
     s.fx.push({ type: 'cutscene', unit: u.id });

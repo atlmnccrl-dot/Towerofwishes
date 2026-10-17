@@ -178,6 +178,14 @@
       const ph = fx.cutPhase(c), side = plan.side;
       const third = (d) => (Math.sin(d) >= 0 ? 0.36 : 0.64);
       const shot = (key, x, y, th, scale, pitch, ax, ay, lift, focus, dim) => ({ key, x, y, ang: Math.PI / 2 - th, sc: scale, pitch, ax, ay, lift, focus, dim });
+      if (c.legion && ph !== 'after') {
+        // The Legion needs room: the rift behind the caster, the giants striding out over the targets.
+        const k = Math.min(1, t / 1.1), bx = u.x - F[0] * 0.8, by = u.y - F[1] * 0.8;
+        if (ph === 'charge') return shot('charge', bx, by, f + plan.d, m / (4.6 - 0.5 * k), 0.4, 0.5, 0.6, h * 1.3, false, 0.1 + 0.25 * k);
+        if (ph === 'gleam') return shot('gleam', bx, by, f + plan.d * 0.9, m / 3.6, 0.38, 0.5, 0.6, h * 1.4, false, 0.3);
+        const span = Math.min(plan.far, 5.5) + 3.4, scale = Math.min(m / 3.6, (W * 0.62) / span);
+        return shot('release', c.x0 + F[0] * (span * 0.2), c.y0 + F[1] * (span * 0.2), f + plan.dash, scale, 0.38, 0.5, 0.66, h * 1.5, false, 0);
+      }
       if (ph === 'charge') {
         // Low and close, pushing in on a slow orbit; chest on a third, the
         // space they face left open; the world dims around them.

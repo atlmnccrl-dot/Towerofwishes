@@ -1535,6 +1535,128 @@
       } finally { GLYPH = saveG; lanceHex = saveH; }
     }
 
+    // ------------------------------------------------------------ legion
+    // The Dark Legion Caller's heavy art (book prologue): a rift tears open behind him and colossal
+    // shapes of darkness surge out of it and crush what stands ahead.
+    //   charge  a ring under the caster, the rift opening behind him, motes of dark pulled in
+    //   gleam   darkness; pairs of red eyes open in the rift
+    //   dash    three giants stride out of it, raise their fists, and bring them down on the enemies
+    //   impact  white frame, then black with a red burst
+    //   after   the giants come apart into ash, the rift closes
+    function legionRift(c, u, F, grow, t, a) {
+      const perp = [-F[1], F[0]], rx = c.x0 - F[0] * 1.5, ry = c.y0 - F[1] * 1.5, Hh = 4.6 * grow, sc = V.cam.sc;
+      if (grow <= 0.02) return;
+      const left = [], right = [];
+      for (let i = 0; i <= 16; i++) {
+        const q = i / 16, z = q * Hh, w = Math.sin(q * Math.PI) * 1.15 * grow, j = Math.sin(i * 5.1 + t * 18) * 0.06;
+        left.push(P(rx - perp[0] * (w + j), ry - perp[1] * (w + j), z)); right.push(P(rx + perp[0] * (w - j), ry + perp[1] * (w - j), z));
+      }
+      const path = new Path2D(); left.forEach((q, i) => (i ? path.lineTo(q.x, q.y) : path.moveTo(q.x, q.y))); for (let i = right.length - 1; i >= 0; i--) path.lineTo(right[i].x, right[i].y); path.closePath();
+      ctx.save(); ctx.globalAlpha = a;
+      ctx.fillStyle = '#05030a'; ctx.fill(path);
+      const mid = P(rx, ry, Hh * 0.5), g = ctx.createRadialGradient(mid.x, mid.y, 0, mid.x, mid.y, sc * 2.4 * grow);
+      g.addColorStop(0, 'rgba(120,20,60,0.55)'); g.addColorStop(1, 'rgba(10,4,16,0)');
+      ctx.save(); ctx.clip(path); ctx.fillStyle = g; ctx.fillRect(mid.x - sc * 3, mid.y - sc * 3, sc * 6, sc * 6); ctx.restore();
+      ctx.restore();
+      glowStroke([path], Math.max(1.5, sc * 0.03), a);
+    }
+    function giantAt(gx, gy, F, raise, a, t) {
+      const sc = V.cam.sc, perp = [-F[1], F[0]], H = 4.4;
+      const at = (dx, dz, dp) => P(gx + F[0] * dx + perp[0] * (dp || 0), gy + F[1] * dx + perp[1] * (dp || 0), dz);
+      const feet = [at(0, 0, -0.55), at(0, 0, 0.55)], hips = [at(0, 1.5, -0.7), at(0, 1.5, 0.7)], sho = [at(0.05, 3.3, -1.0), at(0.05, 3.3, 1.0)];
+      ctx.save(); ctx.globalAlpha = a; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      const body = [feet[0], hips[0], sho[0], at(0.1, 3.6, -0.4), at(0.1, 3.6, 0.4), sho[1], hips[1], feet[1]];
+      ctx.beginPath(); body.forEach((q, i) => (i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y))); ctx.closePath();
+      ctx.fillStyle = '#07040c'; ctx.fill(); ctx.strokeStyle = 'rgba(190,50,110,0.8)'; ctx.lineWidth = Math.max(1.5, sc * 0.03); ctx.stroke();
+      // head and eyes
+      const hd = at(0.15, 4.0, 0), hr = sc * 0.42;
+      ctx.fillStyle = '#07040c'; ctx.beginPath(); ctx.arc(hd.x, hd.y, hr, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = '#ff3a50';
+      for (const dpp of [-0.16, 0.16]) { const e = at(0.55, 4.05, dpp); ctx.beginPath(); ctx.ellipse(e.x, e.y, hr * 0.2, hr * 0.1, 0, 0, Math.PI * 2); ctx.fill(); }
+      ctx.restore();
+      // arms: the far one hangs, the near one is raised and then brought down along the aim
+      const sA = at(0, 3.3, -1.0), sB = at(0, 3.3, 1.0);
+      const fistFar = at(-0.1, 1.4, -1.5), fistNear = at(0.2 + raise * 2.6, 4.2 - raise * 4.0, 1.4);
+      for (const [s0, f0] of [[sA, fistFar], [sB, fistNear]]) {
+        ctx.strokeStyle = '#07040c'; ctx.lineWidth = sc * 0.62; ctx.beginPath(); ctx.moveTo(s0.x, s0.y); ctx.lineTo(f0.x, f0.y); ctx.stroke();
+        ctx.strokeStyle = 'rgba(190,50,110,0.55)'; ctx.lineWidth = sc * 0.05; ctx.beginPath(); ctx.moveTo(s0.x - sc * 0.28, s0.y); ctx.lineTo(f0.x - sc * 0.28, f0.y); ctx.stroke();
+        ctx.fillStyle = '#07040c'; ctx.beginPath(); ctx.arc(f0.x, f0.y, sc * 0.46, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.restore();
+      void H; void t;
+    }
+    function drawLegion(s, c, phase) {
+      const W = V.W, H = V.H, t = c.t, u = c.unit, sc = V.cam.sc, cam = V.cam;
+      const F = [Math.cos(u.facing), Math.sin(u.facing)], perp = [-F[1], F[0]];
+      const rgb = '190,50,110', hex = '#be326e';
+      const saveG = GLYPH, saveH = lanceHex; GLYPH = rgb; lanceHex = hex;
+      const st = bladeOf(s, c), chest = P(u.x, u.y, 1.2);
+      const reach = Math.max(2.6, Math.min(st.R - 0.8, st.hits.length ? st.hits[Math.min(1, st.hits.length - 1)].d : 3.2));
+      const giants = [-1.9, 0, 1.9];
+      try {
+        if (phase === 'charge') {
+          const k = t / CUT.charge;
+          const vg = ctx.createRadialGradient(chest.x, chest.y, Math.min(W, H) * 0.1, chest.x, chest.y, Math.max(W, H) * 0.7);
+          vg.addColorStop(0, 'rgba(6,2,8,0)'); vg.addColorStop(1, `rgba(6,2,8,${0.45 + 0.45 * k})`);
+          ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+          groundCircle({ u }, t, k);
+          legionRift(c, u, F, Math.min(1, k * 1.2), t, 1);
+          const rc = P(c.x0 - F[0] * 1.5, c.y0 - F[1] * 1.5, 2.2);
+          ctx.save(); ctx.globalCompositeOperation = 'lighter';
+          for (let i = 0; i < 14; i++) {
+            const ph = (t * 1.2 + i * 0.131) % 1, a0 = i * 2.39, r0 = Math.max(W, H) * 0.5 * (1 - ph);
+            const sx = rc.x + Math.cos(a0) * r0, sy = rc.y + Math.sin(a0) * r0 * 0.7;
+            ctx.strokeStyle = `rgba(${rgb},${0.55 * ph})`; ctx.lineWidth = 1 + 2 * ph; ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx + (rc.x - sx) * 0.25, sy + (rc.y - sy) * 0.25); ctx.stroke();
+          }
+          ctx.restore();
+          cam.shake = Math.max(cam.shake, 1.5 + 4 * k);
+        } else if (phase === 'gleam') {
+          const k = (t - CUT.charge) / (CUT.gleam - CUT.charge), eye = eyeOf(u);
+          darkAround(eye, Math.min(W, H) * 0.3, Math.min(0.9, 0.55 + k));
+          legionRift(c, u, F, 1, t, 1);
+          ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = '#ff3a50';
+          giants.forEach((g, i) => { for (const dpp of [-0.2, 0.2]) { const q = P(c.x0 - F[0] * 1.5 + perp[0] * (g * 0.35 + dpp), c.y0 - F[1] * 1.5 + perp[1] * (g * 0.35 + dpp), 2.4 + i * 0.5); ctx.globalAlpha = Math.min(1, k * 3); ctx.beginPath(); ctx.ellipse(q.x, q.y, sc * 0.07, sc * 0.035, 0, 0, Math.PI * 2); ctx.fill(); } });
+          ctx.restore();
+          star(eye.x, eye.y, H * 0.06 * Math.min(1, k * 3), hex, 3, 0.2);
+        } else if (phase === 'dash') {
+          const kk = (t - CUT.gleam) / (c.impactAt - CUT.gleam), stride = 0.5, slam = 0.72;
+          ctx.fillStyle = 'rgba(40,6,24,0.22)'; ctx.fillRect(0, 0, W, H);
+          legionRift(c, u, F, 1, t, 1);
+          const p = Math.min(1, kk / stride), e = 1 - Math.pow(1 - p, 2);
+          const raise = kk < stride ? 0 : Math.min(1, (kk - stride) / (slam - stride));
+          const order = giants.map((g, i) => ({ g, i, d: -1.5 + (reach + 1.5) * e - Math.abs(g) * 0.35 })).sort((a, b) => a.d - b.d);
+          // far giants first
+          order.sort((a, b) => P(c.x0 + F[0] * a.d + perp[0] * a.g, c.y0 + F[1] * a.d + perp[1] * a.g, 0).d - P(c.x0 + F[0] * b.d + perp[0] * b.g, c.y0 + F[1] * b.d + perp[1] * b.g, 0).d);
+          for (const o of order) giantAt(c.x0 + F[0] * o.d + perp[0] * o.g, c.y0 + F[1] * o.d + perp[1] * o.g, F, raise * raise, 1, t);
+          if (kk >= slam && !c.slammed) {
+            c.slammed = true;
+            for (const o of order) { const gx = c.x0 + F[0] * (o.d + 2.6) + perp[0] * o.g, gy = c.y0 + F[1] * (o.d + 2.6) + perp[1] * o.g; dust(gx, gy, 12); shards(gx, gy, 0.3, 10, hex, 7); parts.push({ ring: true, x: gx, y: gy, z: 0.05, t: 0, life: 0.5, col: hex }); }
+            for (const h of st.hits) { parts.push({ star: true, x: h.x, y: h.y, z: 1.0, t: 0, life: 0.35, r: 1.4, col: '#ffffff', rays: true }); shards(h.x, h.y, 1, 14, hex, 8); }
+            impact = Math.max(impact, 0.06);
+          }
+          cam.shake = Math.max(cam.shake, kk >= slam ? 14 : 6);
+          speedLines(chest.x, chest.y, 40, Math.min(W, H) * 0.35, Math.max(W, H), `rgba(${rgb},0.1)`, Math.floor(t * 30));
+        } else if (phase === 'impact') {
+          const ft = t - c.impactAt;
+          if (ft < 0.06) { ctx.fillStyle = '#f6f0ec'; ctx.fillRect(0, 0, W, H); }
+          else { ctx.fillStyle = INK; ctx.fillRect(0, 0, W, H); const m = P(c.x0 + F[0] * reach, c.y0 + F[1] * reach, 0.5); speedLines(m.x, m.y, 70, Math.min(W, H) * 0.07, Math.max(W, H), '#c6285a', 3); star(m.x, m.y, H * 0.3, hex, 3, 0.2); }
+          cam.shake = 16;
+        } else {
+          const k = (t - c.impactAt - 0.12) / 0.9;
+          if (k < 1) {
+            const e = 1 - k;
+            legionRift(c, u, F, e, t, e);
+            for (const g of giants) giantAt(c.x0 + F[0] * (reach + 1.1) + perp[0] * g, c.y0 + F[1] * (reach + 1.1) + perp[1] * g, F, 1, e * e, t);
+            // ash lifting off them
+            ctx.save(); ctx.globalCompositeOperation = 'lighter';
+            for (let i = 0; i < 26; i++) { const g = giants[i % 3], ph = (k * 1.4 + i * 0.07) % 1, q = P(c.x0 + F[0] * (reach + 1.1) + perp[0] * (g + Math.sin(i * 3.1) * 0.8), c.y0 + F[1] * (reach + 1.1) + perp[1] * (g + Math.sin(i * 3.1) * 0.8), ph * 5); ctx.fillStyle = `rgba(${rgb},${0.7 * (1 - ph) * e})`; ctx.beginPath(); ctx.arc(q.x, q.y, 1.5 + 2 * (1 - ph), 0, Math.PI * 2); ctx.fill(); }
+            ctx.restore();
+          }
+          if (!c.dusted) { c.dusted = true; for (const h of st.hits) dust(h.x, h.y, 10); }
+        }
+      } finally { GLYPH = saveG; lanceHex = saveH; }
+    }
+
     function drawCutscene(s) {
       const c = s.cutscene;
       if (!c) return;
@@ -1555,6 +1677,7 @@
         drawLance(s, c, phase);
         GLYPH = '169,139,255'; lanceHex = '#a98bff';
       }
+      else if (c.legion) drawLegion(s, c, phase);
       else if (c.blade) drawBlade(s, c, phase);
       else if (phase === 'charge') {
         const k = t / CUT.charge, e = k * k;
