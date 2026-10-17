@@ -831,12 +831,12 @@
 
   // ------------------------------------------------------------ state
   function fresh() {
-    return { v: 1, node: 'p.lore', starter: null, companion: null, xp: 0, flags: {}, seen: {}, wins: {}, opened: {}, done: {}, side: null, best: {} };
+    return { v: 1, node: 'p.lore', starter: null, companion: null, xp: 0, flags: {}, seen: {}, wins: {}, opened: {}, done: {}, side: null, best: {}, grades: {} };
   }
   function normalise(st) {
     if (!st || st.v !== 1 || !NODES[st.node]) return fresh();
     st.flags = st.flags || {}; st.seen = st.seen || {}; st.wins = st.wins || {};
-    st.opened = st.opened || {}; st.done = st.done || {}; st.best = st.best || {};
+    st.opened = st.opened || {}; st.done = st.done || {}; st.best = st.best || {}; st.grades = st.grades || {};
     if (st.side && !NODES[st.side.node]) st.side = null;
     // Saves from before the book's party: the old starter becomes a companion,
     // and a save parked at the retired select or party choice moves on.

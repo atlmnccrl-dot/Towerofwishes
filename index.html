@@ -522,6 +522,32 @@ h2 { font-style: italic; }
 .tm-itemtip { min-height: 2.6em; margin: 0; }
 .lootitem { display: inline-flex; align-items: center; gap: 6px; margin-right: 12px; }
 .lootitem .iart { flex: none; }
+
+/* fight grade */
+.grade { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
+.grade .rank { font: 800 44px/1 var(--display); font-style: italic; min-width: 52px; text-align: center; text-shadow: 2px 2px 0 #000; animation: rankIn 0.6s cubic-bezier(.2, 1.4, .4, 1) both; }
+.grade .rS { color: #ffd166; text-shadow: 0 0 14px rgba(255, 209, 102, 0.7), 2px 2px 0 #000; } .grade .rA { color: #9cc3dd; } .grade .rB { color: #b8e0c0; } .grade .rC { color: #c8b8b0; } .grade .rD { color: #8a7a76; }
+.grade .why { font: 700 12px/1.3 var(--ui); color: var(--parchment-dim); letter-spacing: 0.04em; }
+.grade .why em { color: var(--blood); font-style: normal; font-weight: 800; }
+@keyframes rankIn { from { transform: scale(2.2); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* replay: letterbox, a label, nothing else */
+.replay-bar { position: fixed; inset: 0; pointer-events: none; z-index: 9; background: linear-gradient(#000 0, #000 6vh, transparent 6vh, transparent calc(100% - 6vh), #000 calc(100% - 6vh)); }
+.replay-bar span { position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); top: 1.6vh; font: 800 11px/1 var(--ui); letter-spacing: 0.4em; text-transform: uppercase; color: var(--blood); }
+.replay-bar .link { position: absolute; right: max(16px, env(safe-area-inset-right, 0px)); top: 0.8vh; pointer-events: auto; color: var(--parchment); }
+#result { background: rgba(8, 4, 5, 0.82); }
+
+/* trailer reel: everything but the picture and one line of type goes away */
+body.trailer .story-top, body.trailer #dialogue, body.trailer #choices, body.trailer #hud, body.trailer #coach, body.trailer #tip, body.trailer .feed { display: none !important; }
+.replay-bar.clean span, .replay-bar.clean .link { display: none; }
+.trailer-card { position: fixed; left: 0; right: 0; bottom: 12vh; z-index: 10; display: none; text-align: center; pointer-events: none; }
+body.trailer .trailer-card:not([hidden]) { display: grid; gap: 8px; animation: tcIn 1.1s ease-out both; }
+.trailer-card b { font: 800 clamp(20px, 4.4vw, 38px)/1.15 var(--display); font-style: italic; letter-spacing: 0.04em; text-shadow: 0 2px 10px #000, 0 0 30px #000; }
+.trailer-card small { font: 700 clamp(11px, 2vw, 15px)/1.3 var(--ui); letter-spacing: 0.3em; text-transform: uppercase; color: var(--bone); text-shadow: 0 1px 6px #000; }
+body.trailer.fighting .trailer-card:not(.logo) { bottom: auto; top: 10vh; }
+.trailer-card.logo { bottom: 0; top: 0; align-content: center; }
+.trailer-card.logo b { font-size: clamp(34px, 9vw, 84px); letter-spacing: 0.1em; text-transform: uppercase; text-shadow: 0 2px 0 #000, 5px 5px 0 var(--crimson), 0 0 40px #000; }
+@keyframes tcIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 </style>
 </head>
 <body>
@@ -573,6 +599,7 @@ h2 { font-style: italic; }
         <button class="tl" id="btn-chapters" type="button">World map</button>
         <button class="tl" id="btn-team" type="button">Team</button>
         <button class="tl" id="btn-practice" type="button">Practice</button>
+        <button class="tl" id="btn-trailer" type="button">Trailer</button>
         <details class="howto">
           <summary>How to play</summary>
           <div class="how-pop"><ul class="how">
@@ -661,6 +688,9 @@ h2 { font-style: italic; }
     </div>
   </section>
 
+  <div class="trailer-card" id="trailer-card" hidden><b id="tc-a"></b><small id="tc-b"></small></div>
+  <div class="replay-bar" id="replay-bar" hidden><span>Replay</span><button class="link" id="btn-replay-skip" type="button">Skip</button></div>
+
   <div class="coach" id="coach" hidden><div class="coach-ring" id="coach-ring" hidden></div><div class="coach-box"><b id="coach-title"></b><p id="coach-text"></p><button class="btn primary" id="coach-ok" type="button"><b>Got it</b></button></div></div>
 
   <section class="screen" id="result" hidden>
@@ -669,12 +699,14 @@ h2 { font-style: italic; }
         <p class="eyebrow" id="result-mode"></p>
         <h2 id="result-title"></h2>
         <p class="lede" id="result-text"></p>
+        <div class="grade" id="result-grade" hidden></div>
       </div>
       <div class="stats" id="result-stats"></div>
       <p class="fine" id="result-hearts"></p>
       <div class="loot" id="result-loot"></div>
       <div class="actions">
         <button class="btn primary" id="btn-again" type="button"><b>Watch another match</b><small id="again-note"></small></button>
+        <button class="btn" id="btn-replay" type="button" hidden><b>Watch replay</b><small>The fight again, cinematic</small></button>
         <button class="btn" id="btn-camp" type="button"><b>Back to camp</b><small>Hearts and team condition</small></button>
       </div>
     </div>
@@ -711,6 +743,7 @@ h2 { font-style: italic; }
 <script src="js/render/fx.js"></script>
 <script src="js/render/callouts.js"></script>
 <script src="js/render/intro.js"></script>
+<script src="js/grade.js"></script>
 <script src="js/render/spirit.js"></script>
 <script src="js/render/itemart.js"></script>
 <script src="js/render/director.js"></script>

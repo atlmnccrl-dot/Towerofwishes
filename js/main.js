@@ -46,6 +46,7 @@
   let stage = null, stageKey = null;
   function stageFor(id) { return Render.stage && window.TowStages && window.TowStages[id] ? id : null; }
   let storyBattle = null; // the story battle being fought, if any
+  let lastRun = null, replay = null; // the fight just played (options and All Out times), and a replay in progress
   let lines = [], lineIdx = 0, lineFull = '', typeT = 0, cardShownAt = 0;
 
   // ------------------------------------------------------------ menu
@@ -315,6 +316,9 @@
     $('nc-text').textContent = n.status === 'locked' ? (n.lock || 'Locked') : KIND_TEXT[n.kind] || '';
     const lootKey = { yard: 'yard', gauntlet: 'gauntlet', cart: 'contract', stray: 'beast', crossing: 'relic', deep: 'chief' }[n.episode] || (n.kind === 'story' ? 'story' : null);
     $('nc-reward').textContent = (lootKey ? 'Rewards: ' + LOOT_TEXT[lootKey] : '') + (n.kind === 'arcade' && n.best ? ` · Best: ${n.best} waves` : '') + (n.cleared && ep && ep.repeat ? ` · Cleared ${n.cleared}×` : '');
+    const pre = (n.episode ? Story.EPISODES[n.episode].from : n.id).split('.')[0] + '.';
+    const gs = Object.keys(story.grades || {}).filter((k) => k.startsWith(pre)).map((k) => story.grades[k]);
+    if (gs.length && window.TowGrade) { const top = gs.reduce((a, b) => (window.TowGrade.better(b, a) ? b : a)); $('nc-reward').textContent += (($('nc-reward').textContent) ? ' · ' : '') + 'Best rank: ' + top; }
     const go = $('btn-node-go');
     let label = 'Go', note = '', ok = true;
     if (n.status === 'locked') { label = 'Locked'; ok = false; }
@@ -468,7 +472,9 @@
     mode = m;
     const now = Date.now();
     const heroHp = mode === 'story' ? { kael: Pg.hpFrac(save, 'kael', now), eiryn: Pg.hpFrac(save, 'eiryn', now) } : {};
-    match = Sim.createMatch(Object.assign({ heroHp, seed, intro: true }, opts));
+    const cm = Object.assign({ heroHp, seed: seed == null ? (Date.now() & 0xffffffff) : seed, intro: true }, opts);
+    match = Sim.createMatch(cm);
+    lastRun = { opts: cm, inputs: [] }; // enough to play the same fight again
     storyBattle = null;
     coach = { i: 0, on: false, enabled: false }; $('coach').hidden = true;
     $('tip').hidden = true;
@@ -507,6 +513,13 @@
         loot = loot.concat(Prog.addItems(prog, sb.grant));
       }
     }
+    // A won fight gets a rank; the best one is kept for the map.
+    const gr = window.TowGrade ? window.TowGrade.grade(match) : null;
+    let newBest = false;
+    if (gr && storyBattle && !storyBattle.arcade && storyBattle.node) {
+      const prev = story.grades[storyBattle.node];
+      if (window.TowGrade.better(gr.rank, prev)) { story.grades[storyBattle.node] = gr.rank; newBest = true; }
+    }
     writeSave();
     const st = match.stats, lead = match.lead.name.split(' ')[0];
     let text;
@@ -539,6 +552,10 @@
       return `<span class="lootitem" style="color:${Prog.RARITY[I.rarity].color}">${Render.itemart ? Render.itemart.svg(it.id, 34) : ''}<b>${I.name}</b>${I.elem ? `<em class="elem ${I.elem}">${Prog.ELEM_LABEL[I.elem]}</em>` : ''}</span>`;
     }).join('') : '';
     $('result-text').textContent = text;
+    $('btn-replay').hidden = !(r.outcome === 'win' && lastRun);
+    const gEl = $('result-grade');
+    gEl.hidden = !gr;
+    if (gr) gEl.innerHTML = `<b class="rank r${gr.rank}">${gr.rank}</b><span class="why">${gr.notes.join(' · ')}${newBest && storyBattle ? ' · <em>New best</em>' : ''}</span>`;
     const stats = [
       [fmt(r.time * 1000), 'Time'], [st.parries, 'Parries'], [st.dodges, 'Dodges'],
       [st.feintsRead, 'Feints read'], [st.beaten + st.fled, 'Foes beaten'], [st.supers, 'Heavy arts'],
@@ -712,8 +729,28 @@
 
   // ------------------------------------------------------------ input
   function tryAllOut() {
-    if (match && !paused && !match.result) Sim.triggerAllOut(match);
+    if (match && !paused && !match.result && !replay && Sim.triggerAllOut(match) && lastRun) lastRun.inputs.push(match.t);
   }
+  // Replay: the same fight again from its seed, All Out at the same moments, no HUD, the director's camera.
+  function startReplay() {
+    if (!lastRun || replay) return;
+    replay = { back: match, inputs: lastRun.inputs.slice(), i: 0 };
+    match = Sim.createMatch(lastRun.opts);
+    Sim.begin(match);
+    faceoff = null; acc = 0; hitstop = 0; resultShownAt = 0; paused = false;
+    coach = { i: 0, on: false, enabled: false }; $('coach').hidden = true; $('tip').hidden = true;
+    buildHud(); renderer.setFollow(null); renderer.setCameraOverride(null);
+    show(null);
+    $('hud').hidden = true; $('replay-bar').hidden = false;
+  }
+  function endReplay() {
+    if (!replay) return;
+    match = replay.back; replay = null; resultShownAt = 0;
+    $('replay-bar').hidden = true; renderer.setFollow(null); buildHud();
+    show('result');
+  }
+  $('btn-replay').addEventListener('click', startReplay);
+  $('btn-replay-skip').addEventListener('click', endReplay);
   $('btn-allout').addEventListener('click', tryAllOut);
   $('btn-story').addEventListener('click', () => { tryLandscape(); save = loadSave(); bindStory(); runStory(); });
   $('btn-practice').addEventListener('click', () => startMatch('practice'));
@@ -726,7 +763,7 @@
   $('btn-camp').addEventListener('click', () => {
     // Leaving a side mission part-way drops it; the map keeps it open.
     if (story.side && storyBattle && storyBattle.side) { Story.leaveSide(story); writeSave(); }
-    match = null; storyBattle = null; renderer.setFollow(null); renderMenu(); show('menu');
+    match = null; storyBattle = null; lastRun = null; renderer.setFollow(null); renderMenu(); show('menu');
   });
   $('btn-speed').addEventListener('click', () => { speed = speed === 1 ? 2 : 1; $('btn-speed').innerHTML = `${speed}&times;`; });
   $('btn-pause').addEventListener('click', () => setPaused(true));
@@ -808,6 +845,72 @@
   });
 
   // ------------------------------------------------------------ loop
+
+  // ------------------------------------------------------------ trailer reel
+  // A scripted montage for capture: painted openings, a rooftop run, a fork in the road and fights
+  // with their heavy arts, under cards that are quotes from the manuscript or plain taglines.
+  // Nothing is saved; a tap or Esc leaves it.
+  let trailerTok = 0;
+  const wait = (ms, tok) => new Promise((res, rej) => setTimeout(() => (tok === trailerTok ? res() : rej(new Error('trailer: stopped'))), ms));
+  function card(a, b, tok) {
+    const el = $('trailer-card');
+    $('tc-a').textContent = a || ''; $('tc-b').textContent = b || '';
+    el.hidden = !a; el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
+    void tok;
+  }
+  async function playTrailer() {
+    if (document.body.classList.contains('trailer')) return;
+    const tok = ++trailerTok, kept = { node: story.node, side: story.side };
+    document.body.classList.add('trailer'); $('replay-bar').hidden = false; $('replay-bar').classList.add('clean');
+    tryLandscape();
+    const stop = () => { trailerTok++; };
+    document.addEventListener('pointerdown', stop, { once: true }); document.addEventListener('keydown', stop, { once: true });
+    const back = (nodeId, defId, beats) => {
+      story.node = nodeId; story.side = null;
+      match = null; stage = Render.stage.start(window.TowStages[defId], Sim); stageKey = defId; show('story'); $('story-card').hidden = true;
+      return (async () => { for (const [t, i] of beats) { await wait(t, tok); if (stage) stage.beat(i, 12); } })();
+    };
+    const paint = (bg) => { match = null; stage = null; stageKey = null; renderer.setCameraOverride(null); sceneBg = bg; sceneT = 0; show('story'); $('story-card').hidden = true; };
+    const fight = async (scenario, party, seed, secs, opt) => {
+      document.body.classList.add('fighting');
+      startMatch('practice', seed, { scenario, party, allyLevel: 6 });
+      Sim.begin(match); faceoff = null; $('hud').hidden = true; storyBattle = null;
+      if (opt && opt.super) for (const t of opt.super) setTimeout(() => { if (tok === trailerTok && match) for (const u of match.units) if (u.team === 'hero' && u.def.superMeter) u.superMeter = 100; }, t * 1000);
+      if (opt && opt.allOut) setTimeout(() => { if (tok === trailerTok && match && !match.result) { match.allOut.meter = 1; Sim.triggerAllOut(match); } }, opt.allOut * 1000);
+      await wait(secs * 1000, tok);
+    };
+    const P = (key, level, mods) => ({ key, level: level || 6, mods });
+    try {
+      card('', '', tok);
+      story.node = 'p.lore'; paint('tower');
+      await wait(900, tok); card('Reach the summit,', 'and you could make a wish.', tok); await wait(5200, tok);
+      card('', '', tok); paint('reset'); await wait(3300, tok); card('The world remembered it as the Reset.', '', tok); await wait(3600, tok);
+      card('', '', tok);
+      await back('p.overlook', 'p.overlook', [[0, 0]]); await wait(5600, tok);
+      card('One hundred and fifty years later', 'she was still waiting.', tok); paint('dawn'); await wait(3600, tok); card('', '', tok);
+      const fightCard = (a, b) => setTimeout(() => { if (tok === trailerTok) card(a, b, tok); }, 600);
+      fightCard('You watch.', ''); await fight('clearingKael', [P('kael', 4)], 11, 7.5, { super: [2.2] });
+      fightCard('They fight.', ''); await fight('skyreaver', [P('kael', 7), P('eirynAsh', 6), P('aerys', 6)], 5, 9, { super: [1.5, 3.5] });
+      fightCard('Choose the moment.', ''); await fight('ogre', [P('kael', 7, { elem: 'fire', power: 0.1 }), P('eirynMage', 6)], 3, 8, { allOut: 1.6, super: [3.5] });
+      fightCard('Reach the summit.', ''); await fight('calamity', [P('kael', 8), P('eirynAsh', 8), P('aerys', 8), P('nox', 8), P('eloryn', 8), P('braxen', 8)], 2, 9, { allOut: 1.2, super: [2.5, 5] });
+      card('', '', tok); document.body.classList.remove('fighting');
+      paint('summit'); $('trailer-card').classList.add('logo'); card('TOWER OF WISHES', 'You watch. They fight.', tok); await wait(5200, tok);
+    } catch (e) { if (!/stopped/.test(e.message)) console.error(e); }
+    trailerTok++;
+    $('trailer-card').classList.remove('logo'); card('', '', 0);
+    document.body.classList.remove('trailer', 'fighting'); $('replay-bar').hidden = true; $('replay-bar').classList.remove('clean');
+    document.removeEventListener('pointerdown', stop); document.removeEventListener('keydown', stop);
+    story.node = kept.node; story.side = kept.side;
+    match = null; stage = null; stageKey = null; lastRun = null; renderer.setFollow(null); renderer.setCameraOverride(null);
+    save = loadSave(); bindStory(); renderMenu(); show('menu');
+  }
+  $('btn-trailer').addEventListener('click', playTrailer);
+
+  function feedReplay() {
+    if (!replay) return;
+    while (replay.i < replay.inputs.length && match.t >= replay.inputs[replay.i] - 1e-9) { Sim.triggerAllOut(match); replay.i++; }
+  }
+
   function frame(now) {
     const real = Math.min(0.05, (now - last) / 1000);
     last = now;
@@ -875,10 +978,12 @@
         // The director can slow time for a beat on big moments.
         acc += real * (match.cutscene ? 1 : speed * renderer.timeScale());
         let n = 0;
-        while (acc >= DT && n < 8) { Sim.step(match, DT); acc -= DT; n++; }
+        while (acc >= DT && n < 8) { feedReplay(); Sim.step(match, DT); acc -= DT; n++; }
       }
       if (match.result && !resultShownAt) resultShownAt = now;
-      if (resultShownAt && now - resultShownAt > 1800 && $('result').hidden) finishMatch();
+      if (replay) { if (resultShownAt && now - resultShownAt > 2200) endReplay(); }
+      else if (document.body.classList.contains('trailer')) { /* the reel moves on by itself */ }
+      else if (resultShownAt && now - resultShownAt > 1800 && $('result').hidden) finishMatch();
     }
     renderer.draw(s, paused ? 0 : real, !match, match ? faceoff : null);
     const hs = renderer.takeHitstop();
@@ -937,5 +1042,6 @@
     const min = window.location.search.indexOf('noboot') >= 0 ? 0 : 1700;
     ready.then(() => setTimeout(lift, Math.max(0, min - (performance.now() - t0))));
     setTimeout(lift, 3500);
+    if (window.location.search.indexOf('trailer') >= 0) setTimeout(playTrailer, 2600);
   }
 })();

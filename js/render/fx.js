@@ -1916,7 +1916,7 @@
       if (t > 0.4 && phase !== 'impact') {
         ctx.font = `700 12px ${FONT.ui}`; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
         ctx.fillStyle = 'rgba(246,240,236,0.6)';
-        ctx.fillText('Tap to skip', 16, Math.max(bars, 8) + 18);
+        if (!document.body.classList.contains('trailer')) ctx.fillText('Tap to skip', 16, Math.max(bars, 8) + 18);
       }
     }
 
