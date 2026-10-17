@@ -6,9 +6,13 @@ const S = require('../js/story.js');
 global.TowStory = S; global.TowBook = {};
 for (const id of S.BOOK_FILES || []) global.TowBook[id] = require('../js/book/' + id + '.js');
 const ST = require('../js/stages.js');
+// The prologue's animated painted cinematics (js/render/backdrop.js: the town, the Tower, the Reset's fire and
+// water, the dawn) are the author's favourite opening and stay as they were.
+const PAINTED = new Set(['p.evening', 'p.overlook', 'p.reset', 'p.story', 'p.later', 'p.open']);
 let bad = 0;
 for (const [id, n] of Object.entries(S.NODES)) {
   if (!['scene', 'card', 'choice'].includes(n.type)) continue;
+  if (!ST[id] && PAINTED.has(id)) continue;
   if (!ST[id]) { console.error('still image (no stage):', id); bad++; }
   else if (ST[id] === 'same') {
     // the node before must be staged, or 'same' keeps nothing

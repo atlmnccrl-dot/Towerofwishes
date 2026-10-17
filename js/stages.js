@@ -33,49 +33,38 @@
       { id: 'shade1', key: 'shade', x: 1.2, y: -1.8, f: W, hidden: true },
       { id: 'shade2', key: 'shade', x: 1.8, y: 2.0, f: W, hidden: true },
       { id: 'shade3', key: 'shade', x: 3.6, y: 0.2, f: W, hidden: true },
-      { id: 'veil', key: 'veil', x: 9.0, y: -0.4, f: W, hidden: true },
+      { id: 'veil', key: 'veil', x: 6.0, y: -0.4, f: W, hidden: true },
     ],
-    setup: [{ fade: [1] }, { who: 'climber', drained: true }],
+    setup: [{ fade: [1] }],
     cam: { x: 0, y: -1, view: 15, ang: 0.15, pitch: 0.62 },
     beats: [
-      // There was no lantern light here. No evening wind... Only darkness.
-      { cam: { x: 0, y: -2, view: 13, ang: -0.05, pitch: 0.5, up: 3.0, drift: -0.02, push: -0.1, ease: 5 }, do: [{ fade: [0, 3.0] }, { rumble: [1.2, 6] }] },
-      // Vast walls of stone surrounded a floor broken almost beyond recognition...
-      { cam: { x: 3, y: -4.5, view: 9, ang: 0.3, pitch: 0.34, up: 1.2, drift: -0.05, ease: 4 } },
-      // A lone figure stood among the ruins. Blood ran from his armor. His breathing came hard now.
+      // The Tower had been there longer than any history...
+      { cam: { x: 0, y: -2, view: 12, ang: -0.05, pitch: 0.56, drift: -0.02, ease: 5 }, do: [{ fade: [0, 2.2] }] },
+      // Stories disagreed about nearly everything else...
+      { cam: { x: 0, y: -4.5, view: 8, ang: 0, pitch: 0.42, drift: 0.02, ease: 3.5 } },
+      // ...a climber reached the last ascent.
       {
         cam: { focus: 'climber', dx: 1.2, view: 5.5, ang: -0.6, pitch: 0.46, up: 0.4, ease: 1.2 },
         do: [
-          { who: 'climber', show: true, to: [-5.6, 1.1], speed: 0.8, gait: 'creep' },
-          { at: 1.6, who: 'climber', state: 'hurt', dur: 0.5 },
-          { at: 2.4, who: 'climber', to: [-5.0, 1.1], speed: 0.7, gait: 'creep' },
-          { at: 2.6, shake: 2 },
+          { who: 'climber', show: true, to: [-5.0, 1.1], speed: 0.9, gait: 'stride' },
         ],
       },
-      // Behind him, darkness gathered...
+      // Blood had dried along one side of the stranger's face...
       {
-        cam: { behind: 'climber', side: -0.25, view: 4.2, up: 1.3, pitch: 0.34, push: 0.1, ease: 2.0 },
-        do: [
-          { who: 'climber', to: [-4.6, 1.0], speed: 0.4, face: E, gait: 'creep' }, { at: 1.2, who: 'climber', icon: '…' },
-          { at: 1.6, light: ['120,20,60', 0.25, 2.0] }, { at: 1.6, rumble: [2.5, 4] },
-          { at: 0.8, who: 'shade1', show: true, blink: [-7.2, -1.6] }, { at: 1.1, who: 'shade2', show: true, blink: [-7.6, 2.4] }, { at: 1.4, who: 'shade3', show: true, blink: [-8.2, 0.4] },
-        ],
+        cam: { face: 'climber', side: 0.45, view: 2.8, up: 1.25, pitch: 0.4, drift: 0.04, ease: 0.9 },
+        do: [{ who: 'climber', to: [-4.6, 1.0], speed: 0.5, face: E }],
       },
-      // Across the ruined floor, Kharuun, the Threshold Devourer, moved...
+      // Something was waiting on the final floor...
       {
-        cam: { behind: 'climber', side: -0.25, focus: ['climber', 'veil'], view: 8, pitch: 0.36, up: 0.8, ease: 1.2 },
+        cam: { behind: 'climber', side: -0.25, focus: ['climber', 'veil'], view: 7, pitch: 0.38, up: 0.6, ease: 1.0 },
         do: [
-          { who: 'climber', face: E }, { light: [null, 0, 1.5] },
-          { who: 'veil', show: true, shake: 12, blink: [6.4, -0.4] },
-          { at: 0.5, who: 'climber', icon: '!' },
-        ],
-      },
-      // Then Kharuun charged.
-      {
-        cam: { x: 0, y: -0.4, view: 10, ang: 0.0, pitch: 0.4, up: 0.8, ease: 0.8 },
-        do: [
-          { who: 'veil', to: [-1.0, 0.6], gait: 'run', speed: 3.2 }, { shake: 6 }, { rumble: [3, 3] },
-          { at: 0.5, who: 'climber', drained: false, attack: { wind: 0.5, hold: true, tele: false } },
+          { who: 'climber', face: E },
+          { at: 0.3, who: 'shade1', show: true, blink: [1.2, -1.8] },
+          { at: 0.55, who: 'shade2', show: true, blink: [1.8, 2.0] },
+          { at: 0.8, who: 'shade3', show: true, blink: [3.6, 0.2] },
+          { at: 1.3, who: 'veil', show: true, shake: 10 },
+          { at: 1.35, who: 'climber', icon: '!' },
+          { at: 1.9, who: 'climber', attack: { wind: 0.5, hold: true, tele: false } },
         ],
       },
     ],
@@ -83,31 +72,24 @@
 
   const pLight = {
     arena: 'summit',
-    cast: [{ id: 'climber', key: 'climber', x: 0.6, y: 0.6, f: N }, { id: 'veil', key: 'veil', x: 3.4, y: -0.6, f: W }],
-    setup: [{ who: 'climber', drained: true }, { who: 'veil', beaten: true }],
+    cast: [{ id: 'climber', key: 'climber', x: 0.6, y: 0.6, f: N }],
+    setup: [{ who: 'climber', drained: true }],
     cam: { behind: 'climber', view: 6.5, pitch: 0.36, up: 0.2 },
     beats: [
-      // Kharuun stopped. For one suspended instant it remained upright. Then it collapsed...
-      {
-        cam: { x: 2, y: -0.4, view: 8, ang: -0.2, pitch: 0.38, up: 0.8, ease: 1.6 },
-        do: [{ who: 'veil', state: 'idle' }, { at: 1.4, who: 'veil', state: 'down' }, { at: 1.5, shake: 9 }, { at: 1.6, who: 'veil', hide: true }],
-      },
-      // The Caller stood alone among the remains, breathing hard. Victorious.
-      {
-        cam: { focus: 'climber', face: 'climber', side: 0.3, view: 3.4, up: 1.1, pitch: 0.34, drift: 0.03, ease: 1.4 },
-        do: [{ who: 'climber', state: 'idle', set: { gest: 'cross' } }],
-      },
-      // Ahead of him, the Tower changed. A path opened upward...
+      // Above the final steps was a brightness too pale to see through.
       {
         cam: { behind: 'climber', x: 0, y: -4.2, view: 9, pitch: 0.34, push: -0.35, ease: 2.5 },
-        do: [{ who: 'climber', set: { gest: null }, face: N }, { light: ['246,240,236', 0.2, 2.5] }],
+        do: [
+          { at: 0.6, who: 'climber', drained: false, path: [[0.2, -2.5], [0, -4.6]], speed: 0.7, gait: 'stride' },
+        ],
       },
-      // The Caller stared into it. Then, without hesitation, he stepped forward and ascended.
+      // The climber reached toward it.
       {
         cam: { behind: 'climber', side: 0.3, view: 4.2, up: 0.2, pitch: 0.34, push: 0.4, ease: 1.0 },
         do: [
-          { who: 'climber', face: N, drained: false, path: [[0.2, -2.5], [0, -4.6]], speed: 0.9, gait: 'stride' },
-          { at: 1.4, fade: [1, 2.4, '246,240,236'] },
+          { who: 'climber', face: N },
+          { at: 0.5, who: 'climber', state: 'cast', hold: true },
+          { at: 1.6, fade: [1, 2.4, '246,240,236'] },
         ],
       },
     ],

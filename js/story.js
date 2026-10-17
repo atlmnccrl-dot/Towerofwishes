@@ -191,15 +191,15 @@
         N('Far above them, something was dying.'),
       ],
     },
+    'p.open': { type: 'card', chapter: 'prologue', bg: 'tower', title: 'TOWER OF WISHES', sub: 'Reach the summit, and you could make a wish.', next: 'p.tower' },
     'p.tower': {
       type: 'scene', chapter: 'prologue', bg: 'tower', next: 'p.ascent',
       lines: [
-        N('There was no lantern light here. No evening wind. No sound of merchants or children or distant music. Only darkness.'),
-        N('Vast walls of stone surrounded a floor broken almost beyond recognition. Great sections had collapsed entirely, leaving wounds in the structure through which there was nothing to see but abyss.'),
-        N('A lone figure stood among the ruins. Blood ran from his armor. His breathing came hard now.'),
-        N('Behind him, darkness gathered — not shadow cast by anything physical, but something deeper. Something summoned. Colossal shapes formed within it.'),
-        N('Across the ruined floor, Kharuun, the Threshold Devourer, moved. Its presence bent the space around it, and the stone beneath its feet seemed to bow under the burden of holding it.'),
-        N('Then Kharuun charged.'),
+        N('The Tower had been there longer than any history anyone had read. Its upper reaches disappeared into the permanent cloud ceiling.'),
+        N('Stories disagreed about nearly everything else — the floors, the dangers, the people who’d vanished inside — but they all arrived at the same promise.'),
+        N('Far away, high inside the Tower, a climber reached the last ascent.'),
+        N('Blood had dried along one side of the stranger’s face. The weapon in their hand was broken. No companion followed.'),
+        N('Something was waiting on the final floor. Something no one had ever seen clearly.'),
       ],
     },
     'p.ascent': {
@@ -214,16 +214,14 @@
     'p.light': {
       type: 'scene', chapter: 'prologue', bg: 'summit', next: 'p.reset',
       lines: [
-        N('Kharuun stopped. For one suspended instant, the monstrous figure remained upright. Then it collapsed. Silence took the floor.'),
-        N('The Caller stood alone among the remains, breathing hard. Victorious.'),
-        N('Ahead of him, the Tower changed. A path opened upward. Not stairs. Not light. Something beyond.'),
-        N('The Caller stared into it. Then, without hesitation, he stepped forward and ascended.'),
+        N('Above the final steps was a brightness too pale to see through.'),
+        N('The climber reached toward it.'),
       ],
     },
     'p.reset': {
       type: 'scene', chapter: 'prologue', bg: 'reset', next: 'p.story',
       lines: [
-        N('The sky ignited. There was no warning.'),
+        N('Then the clouds began to burn.'),
         N('A straight white line opened overhead, from horizon to horizon. Red gathered at its edges.'),
         N('Fire rained down. Oceans surged inland. Cities drowned beneath walls of black water. The world that had breathed so easily only moments before began to choke.'),
         N('Eiryn ran. Alric’s hand was locked around hers. There was nowhere to go. They ran anyway.'),
