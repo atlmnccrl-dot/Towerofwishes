@@ -16,12 +16,12 @@ hairline, text with a soft shadow); there are no speech balloons.
 | Opening: the world before the Reset | `js/render/opening.js` (cinematic) | the painted flyover of Erdra and the Tower |
 | Evening in the square | `p.evening` | the crowd, Eiryn crossing to Alric, the hand kiss, the walk out |
 | The overlook | `p.overlook` | the Tower at dusk, the two of them, forehead to forehead |
-| The last ascent | `p.tower`, `p.light` | the wounded climber creeping up the final steps, the Fragments blinking in |
+| The last ascent | `p.tower`, `p.light` | the book's Dark Legion Caller, bloodied, in the broken top floor; darkness gathering behind him, Kharuun charging; afterwards the path opening upward. His heavy art (Dark Legion) tears a rift and sends giants of darkness through the enemy |
 | The Reset | `p.reset` (rooftops arena) | the line opens across the sky, red at its edges, fire and embers, the run across the roofs, Alric's shove, the white-out |
 | The tale at the fire | `p.story` | survivors telling it, Eiryn standing apart |
 | 150 years later | `p.later` | Eiryn at dawn; title card over the moving scene |
 | The formation breaks | `c1.clip` | the Guild's charge, the purple rings over the treeline, the shudder |
-| Heavy arts | `js/render/fx.js` | Kael and the climber: the blade of light climbs, falls, runs out as a wave of light and a cut line across the screen; Eiryn, Aerys: the lance |
+| Heavy arts | `js/render/fx.js` | Kael: a blade of light climbs, falls, runs out as a wave of light, and a cut line crosses the screen. The climber: Dark Legion. Eiryn, Aerys: the lance |
 
 ## Proposals in this pass (flagged for the author)
 
