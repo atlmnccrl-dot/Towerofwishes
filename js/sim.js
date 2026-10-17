@@ -161,6 +161,16 @@
         { kind: 'chimney', x: 8.2, y: -1.8, r: 0.5 },
       ],
     },
+    // The Guild office (staged scenes only): same room plan as the tavern, desks and a counter.
+    guildhall: {
+      name: 'The Guild Office', theme: 'guildhall', rx: 8, ry: 5, exit: { x: 9.5, y: -2 },
+      obstacles: [
+        { kind: 'table', x: -3.0, y: -1.2, r: 0.8 },
+        { kind: 'table', x: 2.4, y: 1.6, r: 0.75 },
+        { kind: 'bar', x: 4.6, y: -3.2, r: 0.9 },
+        { kind: 'hearth', x: -6.2, y: 2.6, r: 0.8 },
+      ],
+    },
     // The city square at evening, before the Reset (staged scenes only).
     square: {
       name: 'The Square', theme: 'square', rx: 11, ry: 5.5, exit: { x: 12, y: 0 },

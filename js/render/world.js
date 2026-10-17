@@ -3367,8 +3367,9 @@
   // pools, a hearth, the bar, and a window onto the street and the Guild's
   // notice board. Staged scenes can set s.glow (0..1+, the formation's purple
   // light through the window) and s.door (0..1, the street door open).
-  function tavern(V, A) {
+  function tavern(V, A, variant) {
     const { ctx, Sim } = V;
+    const GD = variant === 'guild';
     const P = V.P;
     const K = kit(V, A);
     const R = Sim.makeRng(131);
@@ -3382,6 +3383,13 @@
       stool: ['#6b4a30', '#3a2818'], iron: '#2a2422',
       stew: '#7a3a1c', bowl: ['#b8a084', '#6e5a48'], mug: ['#8a6a48', '#4a3626'], bread: ['#b07a3a', '#6e4620'],
     };
+    // The Guild office: cooler stone and whitewash, desks, the registration counter, the contract board.
+    if (GD) Object.assign(C, {
+      floor: '#3a3a40', floorLit: '#4a4a52', rug: ['#2a3a4a', '#1a2430', '#c8a860'],
+      plaster: ['#6a665c', '#524e46'], wains: ['#3a3834', '#2a2824'], timber: '#1c1814', timberLit: '#4a4036',
+      wood: { lit: '#8a6a48', shade: '#4a3826', top: '#9a7a54', rim: '#f6dcb0' },
+      bar: { lit: '#5a4a3a', shade: '#2c241c', top: '#8a7458', rim: '#f6dcb0' },
+    });
     const XW = 8.6, YN = -5.2, YS = 5.2, WH = 3.0;
     const WALLS = [
       { n: 'N', x0: -XW, y0: YN, x1: XW, y1: YN, nx: 0, ny: 1, lit: 1 },
@@ -3409,8 +3417,9 @@
     put('notes', -6.2, -3.32); put('candle', -6.6, -3.55); put('mug', -5.8, -3.6);
     put('mug', 6.0, 2.4); put('mug', 6.5, 2.65); put('candle', 6.2, 2.5);
     put('mug', 3.4, -3.15); put('mug', 4.7, -3.05); put('mug', 5.6, -3.2); put('jug', 6.1, -3.25);
+    if (GD) CLUTTER.splice(0, CLUTTER.length, ...CLUTTER.filter((c) => c.kind === 'notes' || c.kind === 'candle'));
     const STOOLS = [[-2.6, -0.45], [1.2, 1.6], [3.0, 2.35], [-3.6, 3.35], [-2.0, 3.35], [5.5, 1.85], [6.9, 3.15], [7.05, 2.0], [6.2, -2.4], [-6.9, -3.0]];
-    const KEGS = [{ x: 7.75, y: -4.45 }, { x: 7.85, y: -3.6 }, { x: 7.7, y: 4.4 }, { x: 6.9, y: 4.6 }];
+    const KEGS = GD ? [] : [{ x: 7.75, y: -4.45 }, { x: 7.85, y: -3.6 }, { x: 7.7, y: 4.4 }, { x: 6.9, y: 4.6 }];
     const LANTERNS = [{ x: -3.0, y: -1.2, z: 2.25 }, { x: 2.4, y: 1.6, z: 2.3 }, { x: 4.6, y: -3.0, z: 2.45 }, { x: -3.0, y: 2.7, z: 2.3 }, { x: 6.2, y: 2.5, z: 2.35 }];
     for (const l of LANTERNS) l.ph = R() * 6;
     const cracks = Array.from({ length: 14 }, () => ({ u: R(), v: 1.2 + R() * 1.5, a: R() * 6, l: 0.1 + R() * 0.25 }));
@@ -3709,6 +3718,37 @@
       });
     }
 
+    // The contract board: cork between timbers, notices pinned at angles, a few wax seals.
+    function noticeBoard(w, ua, ub) {
+      const u0 = Math.min(ua, ub), u1 = Math.max(ua, ub);
+      onWall(w, () => {
+        ctx.fillStyle = INK; ctx.fillRect(u0 - 0.1, 0.8, u1 - u0 + 0.2, 1.8);
+        ctx.fillStyle = C.timberLit; ctx.fillRect(u0 - 0.06, 0.84, u1 - u0 + 0.12, 1.72);
+        ctx.fillStyle = '#8a6a44'; ctx.fillRect(u0, 0.9, u1 - u0, 1.6);
+        const r = Sim.makeRng(401);
+        for (let i = 0; i < 16; i++) {
+          const x = u0 + 0.1 + r() * (u1 - u0 - 0.5), y = 1.0 + r() * 1.1, a = (r() - 0.5) * 0.18, wd = 0.26 + r() * 0.12, ht = 0.34 + r() * 0.12;
+          ctx.save(); ctx.translate(x + wd / 2, y + ht / 2); ctx.rotate(a);
+          ctx.fillStyle = INK; ctx.fillRect(-wd / 2 - 0.015, -ht / 2 - 0.015, wd + 0.03, ht + 0.03);
+          ctx.fillStyle = i % 5 === 0 ? '#e8d8a8' : '#efe6cc'; ctx.fillRect(-wd / 2, -ht / 2, wd, ht);
+          ctx.fillStyle = 'rgba(40,28,20,0.5)';
+          for (let k = 0; k < 4; k++) ctx.fillRect(-wd / 2 + 0.03, -ht / 2 + 0.06 + k * ht * 0.2, wd * (0.5 + r() * 0.4), 0.014);
+          if (i % 4 === 1) { ctx.fillStyle = '#a82a2a'; ctx.beginPath(); ctx.arc(0, ht / 2 - 0.05, 0.03, 0, TAU); ctx.fill(); }
+          ctx.fillStyle = '#c8b070'; ctx.beginPath(); ctx.arc(0, -ht / 2 + 0.03, 0.016, 0, TAU); ctx.fill();
+          ctx.restore();
+        }
+      });
+    }
+    function banner(w, ua, ub) {
+      const u0 = Math.min(ua, ub), u1 = Math.max(ua, ub);
+      onWall(w, () => {
+        ctx.fillStyle = INK; ctx.fillRect(u0 - 0.04, 0.9, u1 - u0 + 0.08, 1.7);
+        ctx.fillStyle = '#2a3a52'; ctx.beginPath(); ctx.moveTo(u0, 2.55); ctx.lineTo(u1, 2.55); ctx.lineTo(u1, 1.2); ctx.lineTo((u0 + u1) / 2, 0.95); ctx.lineTo(u0, 1.2); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#c8a860'; ctx.beginPath(); ctx.moveTo((u0 + u1) / 2, 1.5); ctx.lineTo(u1 - 0.12, 1.9); ctx.lineTo((u0 + u1) / 2, 2.3); ctx.lineTo(u0 + 0.12, 1.9); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#2a3a52'; ctx.beginPath(); ctx.arc((u0 + u1) / 2, 1.9, 0.1, 0, TAU); ctx.fill();
+      });
+    }
+
     function walls(s) {
       for (const w of WALLS) {
         if (!visible(w)) continue;
@@ -3716,14 +3756,16 @@
         if (w.n === 'N') {
           windowOn(w, uOn(w, -4.1, 0), uOn(w, -1.9, 0), 1.05, 2.5, s, true);
           kitchenDoor(w, uOn(w, 0.8, 0), uOn(w, 2.0, 0));
-          shelves(w, uOn(w, 2.9, 0), uOn(w, 7.2, 0));
-          pegs(w, uOn(w, -7.6, 0), 4);
+          if (GD) { noticeBoard(w, uOn(w, 2.9, 0), uOn(w, 7.2, 0)); banner(w, uOn(w, -7.6, 0), uOn(w, -6.6, 0)); } else {
+            shelves(w, uOn(w, 2.9, 0), uOn(w, 7.2, 0));
+            pegs(w, uOn(w, -7.6, 0), 4);
+          }
         } else if (w.n === 'E') {
           streetDoor(w, uOn(w, XW, -2.55), uOn(w, XW, -1.45), s);
-          pegs(w, uOn(w, XW, 0.4), 5);
+          if (GD) banner(w, uOn(w, XW, 1.2), uOn(w, XW, 2.2)); else pegs(w, uOn(w, XW, 0.4), 5);
         } else if (w.n === 'S') {
           windowOn(w, uOn(w, 3.6, YS), uOn(w, 1.6, YS), 1.05, 2.4, s, false);
-          pegs(w, uOn(w, -0.2, YS), 4);
+          if (!GD) pegs(w, uOn(w, -0.2, YS), 4);
         } else if (w.n === 'W') {
           chimney(w, uOn(w, -XW, hearth.y + 1.0), uOn(w, -XW, hearth.y - 1.0));
           windowOn(w, uOn(w, -XW, -1.6), uOn(w, -XW, -3.2), 1.05, 2.4, s, false);
@@ -5959,7 +6001,7 @@
   // One dressing per arena, built on first use and cached; the arena of the
   // match being drawn picks which one is live, so switching arenas in one
   // page session just swaps (and size-dependent caches are reset).
-  const THEMES = { forest, summit, hill, cave, road, ruins, yard, deep, tavern, grassland, shadowcity, farmland, nightcamp, frosthall, calamity, offering, rooftops, square: (V, A) => shadowcity(V, A, 'square') };
+  const THEMES = { forest, summit, hill, cave, road, ruins, yard, deep, tavern, grassland, shadowcity, farmland, nightcamp, frosthall, calamity, offering, rooftops, square: (V, A) => shadowcity(V, A, 'square'), guildhall: (V, A) => tavern(V, A, 'guild') };
   function create(V) {
     const built = new Map();
     let cur = null, curArena = null;

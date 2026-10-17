@@ -267,6 +267,31 @@
     { who: 'brannoc', set: { gest: 'cup', prop: 'tankard' } },
   ]);
 
+  // ---- more tavern scenes (Chapters Two and Five, the hiring), staged from their dialogue
+  const folkAt = (extra) => tavernFolk().filter((c) => c.id !== 'spear').concat(extra);
+  const meSeat = (id, key, o) => Object.assign({ id, key }, at('me'), o);
+  const tavernAuto = (cast, setup, A) => ({ arena: 'tavern', cast, setup, ambient: chatter(false), cam: { x: -1.6, y: 0.6, view: 7.6, ang: -0.28, pitch: 0.5 }, auto: A });
+  const c2Tavern = tavernAuto(folkAt([meSeat('eiryn', 'eirynAsh')]), folkSetup().filter((a) => a.who !== 'spear').concat([seated('eiryn', 'eat', 'spoon')]), {
+    nodes: { 'c2.tavern': {
+      0: { cam: { x: -1.0, y: -1.2, view: 7.4, ang: -0.28, pitch: 0.44, push: -0.2, ease: 1.6 }, do: [{ who: 'cook', to: [-1.6, -0.2], speed: 1.3, face: 'kael' }] },
+      5: { cam: { focus: 'eiryn', view: 3.0, ang: 0.3, pitch: 0.4, up: 1.0, ease: 1.2 }, do: [{ who: 'eiryn', icon: '…' }] },
+    } },
+  });
+  const c5Home = tavernAuto(folkAt([meSeat('eiryn', 'eirynAsh'), { id: 'miller', key: 'miller', x: -1.0, y: 0.4, f: W }]), folkSetup().filter((a) => a.who !== 'spear').concat([seated('eiryn', 'sip', 'cup'), { who: 'kael', set: { gest: 'lean' } }]), {
+    nodes: { 'c5.home': {
+      0: { cam: { focus: ['miller', 'kael'], view: 5.4, ang: -0.3, pitch: 0.44, ease: 1.4 } },
+      3: { do: [{ who: 'cook', to: [-1.6, -0.4], speed: 1.2, face: 'kael' }] },
+      6: { cam: { x: 5, y: -2, view: 7, ang: 0.3, pitch: 0.2, up: 2.4, ease: 3 }, do: [{ light: ['255,200,150', 0.12, 3] }] },
+    } },
+  });
+  const hireIntro = tavernAuto(folkAt([meSeat('eiryn', 'eirynAsh'), Object.assign({ id: 'ren', key: 'ren', notStarter: true }, at('ren')), Object.assign({ id: 'mara', key: 'mara', notStarter: true }, at('mara')), Object.assign({ id: 'brannoc', key: 'brannoc', notStarter: true }, at('brannoc'))]),
+    folkSetup().filter((a) => a.who !== 'spear').concat([seated('eiryn', 'sip', 'cup'), { who: 'ren', set: { gest: 'lean' } }, { who: 'mara', base: 'sit', set: { gest: 'notes' } }, { who: 'brannoc', set: { gest: 'cup', prop: 'tankard' } }]), {
+      nodes: { 'hire.intro': {
+        0: { cam: { x: 1.0, y: -1.8, view: 9, ang: 0.1, pitch: 0.44, ease: 2 }, do: [{ at: 1.5, who: 'ren', face: 'kael' }, { at: 1.8, who: 'mara', face: 'kael' }, { at: 2.0, who: 'brannoc', face: 'kael' }] },
+        1: { do: [{ who: 'cook', to: [-1.2, -0.6], speed: 1.2, face: 'kael' }] },
+      } },
+    });
+
   const c1Tavern = {
     arena: 'tavern',
     cast: tavernCast(),
@@ -1140,6 +1165,10 @@
 
   return Object.assign(bookStages, {
     title: titleStage,
+    'c2.tavern': c2Tavern,
+    'c5.home': c5Home,
+    'hire.intro': hireIntro,
+    'hire.done': 'same',
     'p.tower': pTower,
     'p.light': pLight,
     'p.select': pSelect,

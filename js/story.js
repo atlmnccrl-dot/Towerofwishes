@@ -449,12 +449,17 @@
 
     // ---------------------------------------------------------- chapter four
     'c4.guild': {
-      type: 'scene', chapter: 'c4', bg: 'guild', next: 'c4.board',
+      type: 'scene', chapter: 'c4', bg: 'guild', next: 'c4.eval',
       lines: [
         N('The Guild office smells of damp wool, sealing wax, and the lunch somebody abandoned on a windowsill.'),
         B('registrar', 'Name, place of origin, trade or training, and any previous contract registration.'),
         B('registrar', 'How long have you been practicing?'),
         B('eiryn', 'Quite a while.'),
+      ],
+    },
+    'c4.eval': {
+      type: 'scene', chapter: 'c4', bg: 'guild', next: 'c4.board',
+      lines: [
         N('In the evaluation yard, Eiryn slides the middle block onto its mark and back. Keeping a counter floating as she walks is harder. It dips twice.'),
         B('evaluator', 'You’re accurate, and you understand how to keep an effect contained.'),
         B('evaluator', 'Your initial credential will be at F rank. It records what this office has verified, not everything you might be capable of.'),
@@ -650,11 +655,16 @@
     // ---- more Guild contracts (Proposals: the book's contract board lists "road repairs,
     // missing cargo, an escort to the coast"; these are in that spirit)
     'toll.board': {
-      type: 'scene', chapter: 'side', bg: 'guild', next: 'toll.fight',
+      type: 'scene', chapter: 'side', bg: 'guild', next: 'toll.bridge',
       lines: [
         N('The contract board: road repairs, missing cargo, an escort to the coast. A new notice has been pinned over the old ones. Someone has taken the old stone bridge east of town and started charging a toll.'),
         B('companion', 'Four of them, the notice says. Armed. Polite about it, apparently.'),
         B('kael', 'Polite is worse.'),
+      ],
+    },
+    'toll.bridge': {
+      type: 'scene', chapter: 'side', bg: 'ruins', next: 'toll.fight',
+      lines: [
         N('At the bridge, a broad man is sitting on the parapet with a ledger, as though he has always been there.'),
         S('toll', 'Toll’s two coppers a head. Three coppers if you’re carrying a sword. You’re carrying a sword.'),
         B('kael', 'The Guild would like a word about the bridge.'),
@@ -674,11 +684,16 @@
       ],
     },
     'orchard.board': {
-      type: 'scene', chapter: 'side', bg: 'guild', next: 'orchard.fight',
+      type: 'scene', chapter: 'side', bg: 'guild', next: 'orchard.rows',
       lines: [
         N('A grower from the farms past the clearing has pinned a notice of her own, in careful handwriting: something is in the orchard at night, and it is not deer.'),
         B('companion', 'Two of them. They come at dusk and leave the fruit alone.'),
         B('kael', 'Then it’s not the fruit they want.'),
+      ],
+    },
+    'orchard.rows': {
+      type: 'scene', chapter: 'side', bg: 'forest', next: 'orchard.fight',
+      lines: [
         N('The orchard is quiet in the failing light. Windfalls lie untouched between the rows. Something moves in the next row over — and then something else, from the other side.'),
       ],
     },
@@ -749,11 +764,16 @@
 
     // ---- Guild contract: the missing supply cart (set up by the book's contract board)
     'cart.board': {
-      type: 'scene', chapter: 'side', bg: 'guild', next: 'cart.road',
+      type: 'scene', chapter: 'side', bg: 'guild', next: 'cart.ditch',
       lines: [
         B('companion', 'Missing supply cart north of town.'),
         B('kael', 'Carts end up in ditches.'),
         B('companion', 'Then find the ditch.'),
+      ],
+    },
+    'cart.ditch': {
+      type: 'scene', chapter: 'side', bg: 'road', next: 'cart.road',
+      lines: [
         N('The north road. A cart on its side in the ditch, its cargo gone. Fresh boot prints — and a short knife’s sheath, dropped in the mud.'),
         S('knifeman', 'You again. You don’t learn, do you?'),
         S('@', { ren: 'You’re the one with the knife. From the clearing.', mara: 'You were in the clearing. You ran.', brannoc: 'Ah. The one who ran first.' }),
