@@ -49,7 +49,8 @@
           parts.push({ star: true, x: e.x, y: e.y, z: 1.15, t: 0, life: 0.12 + 0.08 * q, r: 0.35 + 0.3 * q, col: hero ? '#ffffff' : '#ffd0d4', rays: crit });
           if (e.big || crit) parts.push({ cut: true, x: e.x, y: e.y, z: 1.15, t: 0, life: 0.16, a, len: 0.55 + 0.35 * q, col: crit ? '#ffe7a8' : '#ffffff', seed: R() });
           texts.push({ x: e.x, y: e.y, z: 2.1, t: 0, life: crit ? 1.15 : 0.9, text: String(dmg), col: crit ? (hero ? '#ffd166' : '#ff6b78') : hero ? PAL.bone : PAL.glow, size: q, crit, vx: (R() - 0.5) * 0.8 });
-          cam.shake = Math.max(cam.shake, 2.5 + 3.5 * q);
+          cam.shake = Math.max(cam.shake, 1.8 + 3.2 * q); // restrained: the pose carries the blow
+          if (e.big && !s.cutscene) dust(e.x, e.y, 3);
           hitstop = Math.max(hitstop, crit ? 0.12 : e.big ? 0.08 : 0.04);
           if (e.big || crit) impact = Math.max(impact, crit ? 0.06 : 0.04);
           if (!s.cutscene) nudge(e.x, e.y, a, 2 + 3 * q);
@@ -307,6 +308,27 @@
       }
     }
 
+    // The swing ribbon: oldest end thin and faint, the leading end bright.
+    function drawTrail(u, pts, sc) {
+      const hero = u.team === 'hero', ao = u.allOut > 0;
+      const rgb = ao ? '227,38,58' : hero ? '170,205,228' : '255,150,150';
+      const now = V.time, n = pts.length;
+      const P2 = pts.map((p) => P(p.x, p.y, p.z));
+      ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      for (let i = 1; i < n; i++) {
+        const age = (now - pts[i].t) / 0.2;
+        if (age >= 1) continue;
+        const k = i / (n - 1);
+        const a = (1 - age) * Math.pow(k, 0.8);
+        const w = Math.max(1.5, sc * 0.11 * Math.pow(k, 1.2) * (1 - age * 0.5));
+        ctx.strokeStyle = `rgba(${rgb},${(0.5 * a).toFixed(3)})`; ctx.lineWidth = w;
+        ctx.beginPath(); ctx.moveTo(P2[i - 1].x, P2[i - 1].y); ctx.lineTo(P2[i].x, P2[i].y); ctx.stroke();
+        ctx.strokeStyle = `rgba(255,255,255,${(0.85 * a).toFixed(3)})`; ctx.lineWidth = Math.max(1, w * 0.3);
+        ctx.beginPath(); ctx.moveTo(P2[i - 1].x, P2[i - 1].y); ctx.lineTo(P2[i].x, P2[i].y); ctx.stroke();
+      }
+      ctx.restore();
+    }
+
     function overUnit(u) {
       if (u.fled) return;
       const sc = V.cam.sc;
@@ -318,8 +340,14 @@
         ctx.fillStyle = `rgba(220,220,225,${0.5 * (1 - k)})`;
         ctx.beginPath(); ctx.arc(h.x + Math.cos(u.facing) * sc * (0.2 + k * 0.4), h.y - k * sc * 0.3, sc * (0.06 + k * 0.08), 0, Math.PI * 2); ctx.fill();
       }
+      // Weapon trail: the real path of the blade tip (or fist, or foot) over the last
+      // moments of the swing, a tapered ribbon with a bright core.
+      const CBm = window.TowRender && window.TowRender.combat;
+      const trail = CBm && CBm.trailOf(u);
+      const trailing = trail && u.state === 'attack' && u.act && !u.act.A.projectile;
+      if (trailing) drawTrail(u, trail, sc);
       // Slash: a tapered ink-brush crescent with a white core.
-      if (u.state === 'attack' && u.act && (u.act.phase === 'strike' || (u.act.phase === 'recover' && u.act.t < 0.12)) && !u.act.A.projectile) {
+      if (!trailing && u.state === 'attack' && u.act && (u.act.phase === 'strike' || (u.act.phase === 'recover' && u.act.t < 0.12)) && !u.act.A.projectile) {
         // A sharp crescent: a needle point at the blade's leading edge, the
         // body swelling behind it and the tail fading out. Each swing is
         // tilted a little (alternating), so combos read as separate cuts.

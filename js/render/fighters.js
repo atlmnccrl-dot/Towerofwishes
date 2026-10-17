@@ -429,8 +429,23 @@
     const a = u.act;
     const intro = V.introPhase;
     const caster = L.weapon === 'glyph' || L.weapon === 'bow' || L.caster || !!L.palms;
+    const CB = window.TowRender && window.TowRender.combat;
+    const AT = CB && !intro && u.state === 'attack' ? CB.attack(u, L, V) : null;
+    let x = null;
     switch (u.state) {
       case 'attack':
+        if (AT) {
+          // The data-driven styles (js/render/combat.js): keyframed hand, weapon and body.
+          const o = AT.o;
+          lean = o.lean || 0; crouch = o.crouch == null ? 0.03 : o.crouch; stance = o.stance || 1; off = AT.off || 'guard';
+          x = AT.bash ? Object.assign({ ph: AT.ph, e: AT.e, bash: true }, o) : Object.assign({ styled: true, ph: AT.ph, e: AT.e, lead: AT.lead, usesOff: AT.style.usesOff, foot: AT.style.foot, kickLeg: AT.kick }, o);
+          if (AT.bash) {
+            // legacy hands for the shield, new footwork and weight
+            if (a.phase === 'windup' || a.phase === 'feint') { rel = 1.4; pitch = 1.3; } else if (a.phase === 'strike') { rel = 1.2; pitch = 1.2; } else { rel = 1.2; pitch = 1.2; }
+            if (!L.bash) x = null;
+          }
+          break;
+        }
         if (a.phase === 'windup' || a.phase === 'feint') {
           const k = a.phase === 'feint' ? 1 : Math.min(1, a.t / a.wind);
           const e = k * k * (3 - 2 * k);
@@ -503,7 +518,17 @@
     }
     if (L.weapon === 'fists' && off === 'guard') off = 'fistup';
     if (Wd && Wd.thrust && !(u.fleeing || u.beaten) && u.state !== 'hurt' && u.state !== 'stagger') { rel = 0.12; pitch = 0.1; }
-    return { rel, pitch, lean, crouch, off, stance, twist };
+    // Reactions: the body folds with the blow, stumbles, falls, rolls away or braces.
+    if (CB && !intro && !x) {
+      const R = CB.react(u, L, V);
+      if (R) {
+        x = R.o;
+        if (R.patch) { if (R.patch.off) off = R.patch.off; if (R.patch.stance) stance = R.patch.stance; }
+        lean = x.lean != null ? x.lean : lean;
+        if (x.crouch != null) { crouch = x.crouch; }
+      }
+    }
+    return { rel, pitch, lean, crouch, off, stance, twist, x };
   }
 
   // Attack progress for hand placement: phase and eased 0..1.
@@ -531,6 +556,8 @@
     }
 
     function update(s, dt) {
+      const CB = window.TowRender && window.TowRender.combat;
+      if (CB) { CB.noteEvents(s); if (dt) CB.tick(s, dt); }
       if (!dt) return;
       for (const u of s.units) {
         const sp = spring(u);
@@ -652,7 +679,18 @@
 
     // ---------------------------------------------------------------- figure
     let curS = null;
+    // The sim moves a lunging fighter in one jump on the contact frame; the picture
+    // glides there through the last of the wind-up so the blow arrives with the body.
     function drawUnit(u, s) {
+      const CB = window.TowRender && window.TowRender.combat;
+      const k = CB && u.act ? CB.lunge(u) : 0, A = u.act && u.act.A;
+      if (k > 0 && A && A.lunge && !A.projectile) {
+        const ox = u.x, oy = u.y, d = A.lunge * k;
+        u.x += Math.cos(u.facing) * d; u.y += Math.sin(u.facing) * d;
+        try { drawUnitInner(u, s); } finally { u.x = ox; u.y = oy; }
+      } else drawUnitInner(u, s);
+    }
+    function drawUnitInner(u, s) {
       if (u.fled) return;
       curS = s;
       const L = lookOf(u.key, u.id);
@@ -660,7 +698,9 @@
       lx = V.light.sx; ly = V.light.sy;
       inkW = Math.max(1, sc * 0.022);
       V.introPhase = s.phase === 'intro';
-      const lying = u.state === 'down' || u.state === 'out';
+      // a fighter who has just been floored is still falling for the first moments
+      const falling = u.state === 'down' && u.st < 0.22 && !V.introPhase && (L.form == null) && !L.ghost;
+      const lying = (u.state === 'down' || u.state === 'out') && !falling;
       if (L.form === 'veil') { drawVeil(u, L, sc); return; }
       if (L.form === 'beast') { drawBeast(u, L, sc); return; }
       if (L.form === 'golem') { drawGolem(u, L, sc); return; }
@@ -773,11 +813,23 @@
       const ps = pose(u, V);
       const sp = spring(u);
       const H = 1.78 * L.h;
-      const f = u.facing + ps.twist * 0.35;
+      const X = ps.x || null; // combat pose extras (combat.js): upper/lower body yaw, weight, footwork
+      // Upper body, hips and the facing frame: with extras the shoulders and the
+      // hips turn separately (hips lead a swing, the shoulders follow).
+      const f = X ? u.facing + (X.tw || 0) : u.facing + ps.twist * 0.35;
+      const fl = X ? u.facing + (X.hp != null ? X.hp : (X.tw || 0) * 0.3) : f;
       const F = [Math.cos(f), Math.sin(f)], Rt = [-F[1], F[0]];
+      const FL = [Math.cos(fl), Math.sin(fl)], RL = [-FL[1], FL[0]];
+      const F0 = [Math.cos(u.facing), Math.sin(u.facing)], R0 = [-F0[1], F0[0]];
+      const xs = X ? (X.shift || 0) : 0, xr = X ? (X.roll || 0) : 0;
       // Floaters (Aerys) hang a hand's breadth above the ground, drifting.
       const lift = L.float && !V.introPhase ? L.float * (1 + 0.35 * Math.sin(V.time * 1.7 + hashId(u.id))) : L.float ? L.float * 0.6 : 0;
       const W = (x, y, z) => ({ x: u.x + F[0] * x + Rt[0] * y, y: u.y + F[1] * x + Rt[1] * y, z: z + lift });
+      // lower body frame, and the facing frame (hands are placed against the facing, not the twist)
+      const WL = (x, y, z) => ({ x: u.x + FL[0] * x + RL[0] * y, y: u.y + FL[1] * x + RL[1] * y, z: z + lift });
+      const W0 = (x, y, z) => ({ x: u.x + F0[0] * x + R0[0] * y, y: u.y + F0[1] * x + R0[1] * y, z: z + lift });
+      // weight transfer and side tilt: k is how much of it this body part takes
+      const wt = (q, k, kr) => { if (xs || xr) { q.x += F0[0] * xs * k + R0[0] * xr * (kr == null ? k : kr); q.y += F0[1] * xs * k + R0[1] * xr * (kr == null ? k : kr); } return q; };
       // Seated (staged scenes): the whole upper body drops onto a stool.
       const sit = u.state === 'sit';
       const seat = 0.47 * Math.sqrt(L.h);
@@ -794,22 +846,38 @@
 
       // Skeleton (world metres, relative to facing)
       const lean = ps.lean + stoop * 0.6 + hunch;
-      const pelvis = W(0, 0, H * 0.5 * cz + bob);
-      const chest = W(lean * 0.55, jitter, H * 0.71 * cz + bob);
-      const neck = W(lean * 0.8 + stoop * 0.25, jitter, H * (0.82 - stoop * 0.06) * cz + bob);
-      const headC = W(lean * 0.9 + 0.02 + stoop * 0.45, jitter, H * (0.905 - stoop * 0.14) * cz + bob);
-      const twist = ps.twist * 0.25;
-      const shR = W(lean * 0.75 - twist * bw, bw, H * 0.79 * cz + bob);
-      const shL = W(lean * 0.75 + twist * bw, -bw, H * 0.79 * cz + bob);
-      const hipR = W(0, bw * 0.55, H * 0.5 * cz + bob), hipL = W(0, -bw * 0.55, H * 0.5 * cz + bob);
+      const pelvis = wt(WL(0, 0, H * 0.5 * cz + bob), 0.55, 0.12);
+      const chest = wt(W(lean * 0.55, jitter, H * 0.71 * cz + bob), 0.95, 0.5);
+      const neck = wt(W(lean * 0.8 + stoop * 0.25, jitter, H * (0.82 - stoop * 0.06) * cz + bob), 1, 0.75);
+      const headC = wt(W(lean * 0.9 + 0.02 + stoop * 0.45 + (X && X.hd ? X.hd : 0), jitter, H * (0.905 - stoop * 0.14) * cz + bob), 1.05, 1);
+      const twist = X ? 0 : ps.twist * 0.25;
+      const shR = wt(W(lean * 0.75 - twist * bw, bw, H * 0.79 * cz + bob), 0.95, 0.5);
+      const shL = wt(W(lean * 0.75 + twist * bw, -bw, H * 0.79 * cz + bob), 0.95, 0.5);
+      const hipR = wt(WL(0, bw * 0.55, H * 0.5 * cz + bob), 0.55, 0.12), hipL = wt(WL(0, -bw * 0.55, H * 0.5 * cz + bob), 0.55, 0.12);
       // Feet: stride when moving, wide stance when fighting.
       const stride = (u.state === 'move' || u.fleeing || u.state === 'opener' ? Math.sin(u.walk * 3.2) * 0.34 : u.state === 'circle' ? Math.sin(u.walk * 3.2) * 0.16 : 0) * Math.sqrt(L.h);
       const spread = 0.13 * L.w * ps.stance;
-      const footR = W(stride + (ps.stance > 1.2 ? 0.18 : 0), spread, 0);
-      const footL = W(-stride - (ps.stance > 1.2 ? 0.16 : 0), -spread, 0);
+      const footR = WL(stride + (ps.stance > 1.2 ? 0.18 : 0), spread, 0);
+      const footL = WL(-stride - (ps.stance > 1.2 ? 0.16 : 0), -spread, 0);
+      if (X && (X.step || X.kick)) {
+        // footwork: the lead foot steps into a strike (the other trails), or a leg kicks
+        const st = X.step || 0, lf = X.foot === 'R' ? footR : footL, tf = lf === footR ? footL : footR;
+        lf.x += F0[0] * st; lf.y += F0[1] * st;
+        tf.x -= F0[0] * Math.max(0, st) * 0.4; tf.y -= F0[1] * Math.max(0, st) * 0.4;
+        if (X.kick > 0) {
+          const kk = X.kick, kp = W0(0.2 + kk * 0.95 * L.h, spread, kk * 0.7 * L.h);
+          Object.assign(footR, kp);
+        }
+      }
+      if (X && X.fx != null && u.state === 'dodge') {
+        // dodging: the foot on the side of travel reaches, the other drags
+        const lf = X.fy >= 0 ? footR : footL, tf = lf === footR ? footL : footR;
+        lf.x += R0[0] * X.fy * 0.22 + F0[0] * X.fx * 0.22; lf.y += R0[1] * X.fy * 0.22 + F0[1] * X.fx * 0.22;
+        tf.x -= R0[0] * X.fy * 0.12; tf.y -= R0[1] * X.fy * 0.12;
+      }
       const knee = (hip, foot, side) => ({
-        x: (hip.x + foot.x) / 2 + F[0] * (0.1 + ps.crouch * 0.5) * L.h + Rt[0] * side * 0.03,
-        y: (hip.y + foot.y) / 2 + F[1] * (0.1 + ps.crouch * 0.5) * L.h + Rt[1] * side * 0.03,
+        x: (hip.x + foot.x) / 2 + FL[0] * (0.1 + ps.crouch * 0.5) * L.h + RL[0] * side * 0.03,
+        y: (hip.y + foot.y) / 2 + FL[1] * (0.1 + ps.crouch * 0.5) * L.h + RL[1] * side * 0.03,
         z: (hip.z + foot.z) / 2 + 0.02,
       });
       const kneeR = knee(hipR, footR, 1), kneeL = knee(hipL, footL, -1);
@@ -830,6 +898,7 @@
       };
       if (u.state === 'parry') Object.assign(handR, W(0.38, 0.08, H * 0.74 * cz));
       const Hc = H * cz;
+      const styled = !!(X && X.styled);
       let handL;
       switch (ps.off) {
         case 'fistup': handL = W(0.32, -0.12, H * 0.76 * cz); break;
@@ -843,6 +912,13 @@
         default: handL = W(0.26 * L.h, -0.16 * L.w, H * 0.6 * cz);
       }
       if (u.state === 'pickup') Object.assign(handR, W(0.45, 0.1, 0.18));
+      if (styled) {
+        // A styled attack: the striking hand follows the keyframes (against the facing,
+        // not the twist); the other hand guards, counterbalances, or strikes too.
+        const sk = W0(X.hx * L.h, X.hy * L.h, X.hz * L.h), og = W0((X.ox == null ? 0.3 : X.ox) * L.h, (X.oy == null ? -0.15 : X.oy) * L.h, (X.oz == null ? 1.1 : X.oz) * L.h);
+        if (X.lead === 'L') { handL = sk; Object.assign(handR, og); } else { Object.assign(handR, sk); if (X.usesOff) handL = og; }
+        wa = u.facing + (X.wy || 0); wpitch = X.wp || 0; cp = Math.cos(wpitch);
+      }
       // Staged gestures (eating, drinking, pointing...) place the hands.
       const gest = u.state === 'attack' || u.state === 'pickup' ? null : u.gest;
       if (gest) {
@@ -871,7 +947,7 @@
           case 'gesture': Object.assign(handR, W(0.42, 0.22, chz - 0.05 + Math.sin(V.time * 4 + hashId(u.id)) * 0.08)); if (sit) handL = rest; break;
         }
       }
-      if (L.weapon === 'fists' && AK && AK.ph !== 'wind') {
+      if (L.weapon === 'fists' && AK && AK.ph !== 'wind' && !styled) {
         // a punch: the fist drives straight along the facing
         const k = AK.ph === 'strike' ? 1 : Math.max(0, 1 - u.act.t / 0.3);
         Object.assign(handR, W(0.25 + 0.55 * k, 0.05, H * 0.74 * cz));
@@ -912,7 +988,7 @@
         }
       }
       // Thrust weapons point along the facing; the hand drives forward.
-      if (Wd && Wd.thrust && free) {
+      if (Wd && Wd.thrust && free && !styled) {
         let fw = 0.08, z = 0.6;
         if (AK) fw = AK.ph === 'wind' ? 0.08 - 0.3 * AK.e : AK.ph === 'strike' ? 0.6 : 0.6 - 0.52 * AK.e;
         if (V.introPhase) { fw = 0.0; z = 0.62; }
@@ -943,6 +1019,21 @@
         z: (sh.z + hand.z) / 2 - 0.08 * L.h,
       });
       const elR = elbow(shR, handR, 1), elL = elbow(shL, handL, -1);
+      {
+        // The weapon's path for the swing ribbon (fx.js): the blade tip, the striking fist or foot.
+        const CB = window.TowRender && window.TowRender.combat;
+        if (CB) {
+          let pt = null, on = false;
+          if (styled) {
+            on = X.ph === 'launch' || X.ph === 'strike' || (X.ph === 'rec' && X.e < 0.3);
+            if (X.kickLeg) pt = footR;
+            else if (X.lead === 'L') {
+              if (L.weapon === 'twin') { const dx = handL.x - elL.x, dy = handL.y - elL.y, dz = handL.z - elL.z, l = Math.hypot(dx, dy, dz) || 1; pt = { x: handL.x - dx / l * 0.42, y: handL.y - dy / l * 0.42, z: handL.z - dz / l * 0.42 }; } else pt = handL;
+            } else pt = tipW || handR;
+          }
+          CB.trailPush(u, pt, V.time, on);
+        }
+      }
 
       const p = (q) => P(q.x, q.y, q.z);
       const S = {

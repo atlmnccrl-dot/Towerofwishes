@@ -1144,14 +1144,14 @@
     // Dodge i-frames
     if (v.state === 'dodge' && v.st < 0.3) {
       if (v.team === 'hero') { s.stats.dodges++; if (v.superMeter != null) gainSuper(v, 10); }
-      s.fx.push({ type: 'dodge', x: v.x, y: v.y });
+      s.fx.push({ type: 'dodge', x: v.x, y: v.y, v: v.id, u: u.id });
       return false;
     }
     // Parry window
     if (v.state === 'parry' && v.st < 0.34 && Math.abs(angDiff(v.facing, angTo(v, u))) < 1.3) {
       if (v.team === 'hero') { s.stats.parries++; chargeAllOut(s, 0.06); }
       gainSuper(v, 25);
-      s.fx.push({ type: 'parry', x: (u.x + v.x) / 2, y: (u.y + v.y) / 2 });
+      s.fx.push({ type: 'parry', x: (u.x + v.x) / 2, y: (u.y + v.y) / 2, v: v.id, u: u.id });
       if (projectile) { say(s, `${v.name} bats the stone aside.`); return false; }
       say(s, `${v.name} parries ${u.name}.`);
       releaseTokens(s, u);
@@ -1181,7 +1181,7 @@
     const kn = A.knock * (inAllOut(u) ? 1.3 : 1);
     v.kx += Math.cos(a) * kn * 2.6;
     v.ky += Math.sin(a) * kn * 2.6;
-    s.fx.push({ type: 'hit', x: v.x, y: v.y, dmg, big: dmg >= 18, from: u.team });
+    s.fx.push({ type: 'hit', x: v.x, y: v.y, dmg, big: dmg >= 18, from: u.team, v: v.id, u: u.id });
     // Being hit by Kael makes a bandit turn on him ("Make it look at me").
     if (u.team === 'hero' && !u.guest && v.team === 'bandit') {
       v.target = src; v.aggroUntil = s.t + 5;
@@ -1297,7 +1297,7 @@
       if (v.act) { releaseTokens(s, v); v.act = null; }
       v.pending = null; v.plan = null;
       v.morale -= 0.15;
-      s.fx.push({ type: 'hit', x: v.x, y: v.y, dmg, big: true, from: u.team });
+      s.fx.push({ type: 'hit', x: v.x, y: v.y, dmg, big: true, from: u.team, v: v.id, u: u.id });
       if (v.hp <= 0) { v.hp = 0; knockOut(s, v); }
       else setState(v, 'down', 1.4);
     }
@@ -1542,7 +1542,7 @@
         v.hp -= dmg; v.flash = 0.15;
         const a = angTo(z, v), kn = z.h.knock || 2;
         v.kx += Math.cos(a) * kn * 2.2; v.ky += Math.sin(a) * kn * 2.2;
-        s.fx.push({ type: 'hit', x: v.x, y: v.y, dmg, big: dmg >= 18, from: z.from.team });
+        s.fx.push({ type: 'hit', x: v.x, y: v.y, dmg, big: dmg >= 18, from: z.from.team, v: v.id, u: z.from.id });
         if (v.hp <= 0) { v.hp = 0; knockOut(s, v); } else setState(v, 'hurt', 0.35);
       }
     }
