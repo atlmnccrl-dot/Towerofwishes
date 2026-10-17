@@ -319,9 +319,9 @@ h2 { font-style: italic; }
 /* a fork in the road: no menu, just a way on at each side of the picture */
 .choices { position: absolute; inset: 0; pointer-events: none; cursor: default; }
 .fork { position: absolute; inset: 0; }
-.fork-btn { pointer-events: auto; position: absolute; top: 50%; transform: translateY(-50%); appearance: none; border: 0; cursor: pointer; display: grid; justify-items: center; gap: 6px; padding: 22px 26px; color: var(--parchment); background: none; font: 800 12px/1.2 var(--ui); letter-spacing: 0.22em; text-transform: uppercase; text-shadow: 0 1px 6px #000, 0 0 14px #000; animation: forkIn 0.8s ease-out both; max-width: 38vw; text-align: center; }
-.fork-btn.left { left: max(10px, env(safe-area-inset-left, 0px)); background: linear-gradient(90deg, rgba(8, 4, 5, 0.7), transparent); }
-.fork-btn.right { right: max(10px, env(safe-area-inset-right, 0px)); background: linear-gradient(270deg, rgba(8, 4, 5, 0.7), transparent); animation-delay: 0.15s; }
+.fork-btn { pointer-events: auto; position: absolute; top: 0; bottom: 0; width: 30vw; appearance: none; border: 0; cursor: pointer; display: grid; align-content: center; justify-items: center; gap: 6px; padding: 22px 16px; color: var(--parchment); background: none; font: 800 12px/1.2 var(--ui); letter-spacing: 0.22em; text-transform: uppercase; text-shadow: 0 1px 6px #000, 0 0 14px #000; animation: forkIn 0.8s ease-out both; text-align: center; }
+.fork-btn.left { left: 0; padding-left: max(16px, env(safe-area-inset-left, 0px)); background: linear-gradient(90deg, rgba(8, 4, 5, 0.78), transparent); }
+.fork-btn.right { right: 0; padding-right: max(16px, env(safe-area-inset-right, 0px)); background: linear-gradient(270deg, rgba(8, 4, 5, 0.78), transparent); animation-delay: 0.15s; }
 .fork-btn .arrow { font-size: 34px; color: var(--blood); letter-spacing: 0; animation: forkPulse 1.2s ease-in-out infinite; }
 .fork-btn:hover b, .fork-btn:focus-visible b { box-shadow: 0 2px 0 var(--blood); }
 .fork-btn:focus-visible { outline: none; }

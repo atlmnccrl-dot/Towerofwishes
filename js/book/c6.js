@@ -152,7 +152,7 @@
           ],
         },
         'c6.walk': {
-          type: 'scene', chapter: 'c6', bg: 'road', next: 'c6.camp',
+          type: 'scene', chapter: 'c6', bg: 'road', next: 'c6.fork',
           lines: [
             N('They begin walking again. Kael returns to the front, still positioning himself like a wall between danger and everyone behind him. The girl follows a step back, quieter now, watching him when she thinks he will not notice. Eiryn walks last.'),
             B('aerys', 'I’m Aerys.'),

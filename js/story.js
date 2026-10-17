@@ -444,14 +444,13 @@
     },
     // ---------------------------------------------------------- chapter five
     'c5.mill': {
-      type: 'scene', chapter: 'c5', bg: 'hill', next: 'c5.path',
+      type: 'scene', chapter: 'c5', bg: 'hill', next: 'c5.fork',
       lines: [
         B('miller', 'They’ve been coming after dark. First the grain. Then a box of tools. My youngest tried to chase them and came back with a cut on his arm.'),
         KB('How many?'),
         B('miller', 'Four, maybe five. Hard to count when they’re running through the sheds.'),
         EB('You said goblins are usually manageable.'),
         KB('They are. One at a time. They get more confident in groups, which is why we don’t let them decide where the fight happens.'),
-        N('Halfway up the second hill the road divides round marshy ground. The shorter path is flooded.'),
       ],
     },
     'c5.path': {

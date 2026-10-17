@@ -18,6 +18,7 @@
 
   const K = (x, y, f, o) => Object.assign({ id: 'kael', key: 'kael', x, y, f }, o);
   const EA = (x, y, f, o) => Object.assign({ id: 'eiryn', key: 'eirynAsh', x, y, f }, o);
+  const AE = (x, y, f, o) => Object.assign({ id: 'aerys', key: 'aerys', x, y, f }, o);
   const CP = (x, y, f, o) => Object.assign({ id: '@', key: '@', x, y, f }, o);
   const NP = (id, key, x, y, f, o) => Object.assign({ id, key, x, y, f }, o);
   const guest = (name, epithet) => ({ name, team: 'hero', r: 0.36, hp: 100, sta: 100, speed: 3.8, guest: true, react: 0.3, read: 0.3, parry: 0, dodge: 0, feint: 0, noncombat: true, attack: null, barks: {}, intro: { epithet, line: null } });
@@ -33,7 +34,168 @@
       evaluator: { h: 1.0, w: 0.96, build: 0.98, weapon: 'none', hair: 'bob', skin: ['#d8b08e', '#946e58'], hairC: ['#2a2430', '#100c14'], body: ['#4a3a54', '#241c2a'], legs: ['#2a262e', '#141216'], boots: ['#2a2420', '#14100e'], accent: '#a98bff', eye: '#3a3040', belt: '#2a1e16', coat: ['#3a2c4a', '#1c1426'], coatLen: 0.35 },
       miller: { h: 0.98, w: 1.2, build: 1.2, weapon: 'none', hair: 'bald', beard: ['#c8c0b0', '#7a7468'], skin: ['#e0b896', '#9a6e58'], hat: { c: ['#8a7a5a', '#4a4030'], brim: 1.2 }, body: ['#a89c84', '#5a5242'], apron: ['#e0d8c4', '#8a8270'], legs: ['#4a4036', '#241e18'], boots: ['#3a2a1e', '#1c130c'], accent: '#c8c0b0', eye: '#4a3a2a', belt: '#5a4a36' },
     },
+    scenarios: {
+      // Fork encounters (Proposals): what waits on the way you did not scout.
+      forkMarsh: {
+        chapter: 'Chapter Five', title: 'The Flooded Track', arena: 'hillpath', allOutUses: 1, vs: 'goblin', scale: { hp: 2.0, dmg: 1.8 },
+        units: [
+          { slot: 0, x: -7.2, y: 0.2, f: 0 }, { slot: 1, x: -8.0, y: -1.4, f: 0 }, { slot: 2, x: -8.2, y: 1.6, f: 0 },
+          { key: 'goblin', x: 1.8, y: -1.0, f: 3.1 }, { key: 'goblin', x: 2.6, y: 1.4, f: 3.1 }, { key: 'goblin', x: 3.4, y: 0.2, f: 3.1 }, { key: 'goblinArcher', x: 6.5, y: 1.4, f: 3.1 },
+        ],
+      },
+      forkRuins: {
+        chapter: 'Chapter Two', title: 'Under the Arches', arena: 'ruins', allOutUses: 1, vs: 'beast', scale: { hp: 0.8, dmg: 0.9 },
+        units: [
+          { slot: 0, x: -7.4, y: 0.4, f: 0 }, { slot: 1, x: -8.0, y: -1.4, f: 0 }, { slot: 2, x: -8.2, y: 1.8, f: 0 },
+          { key: 'beast', x: 3.6, y: -1.6, f: 3.1 }, { key: 'beast', x: 4.6, y: 1.8, f: 3.1 },
+        ],
+      },
+    },
+    nodes(h) {
+      const { B, N, S, BOOK, member } = h;
+      const pair = (st) => [member(st, 'kael'), member(st, 'eirynMage')];
+      return {
+        // ---- a fork in the road: Chapter Five, up the quarry hill. Both ways reach the quarry path.
+        'c5.fork': {
+          type: 'fork', chapter: 'c5', bg: 'hill',
+          lines: [
+            N('Halfway up the second hill the road divides round marshy ground.'),
+            N('To the left, the shorter track runs straight into standing water. A lantern hangs from a post at the edge of it, unlit.'),
+            N('To the right, the dry way climbs the ridge and loses itself in thorn. Somewhere up there, a crow stops calling.'),
+            N('Kael looks at Eiryn. Eiryn looks at the Tower.'),
+          ],
+          options: [{ label: 'The flooded track', next: 'c5.fork.a' }, { label: 'The ridge', next: 'c5.fork.b' }],
+        },
+        'c5.fork.a': {
+          type: 'scene', chapter: 'c5', bg: 'hill', next: 'c5.fork.afight',
+          lines: [
+            N('The water is shin-deep and warmer than it should be. Halfway across, Kael stops. The reeds ahead are the wrong kind of still.'),
+            S('kael', 'Eiryn. Behind me.'),
+            N('Three goblins rise out of the reeds with sacks of stolen grain still tied to their belts. A fourth, with a bow, is already on the far bank.'),
+          ],
+        },
+        'c5.fork.afight': {
+          type: 'battle', chapter: 'c5', scenario: 'forkMarsh', hearts: false, xp: 90, loot: 'contract',
+          party: pair, win: 'c5.fork.aafter',
+          outro: 'The last goblin drops its sack and wades away into the reeds.',
+        },
+        'c5.fork.aafter': {
+          type: 'scene', chapter: 'c5', bg: 'hill', next: 'c5.path',
+          lines: [
+            N('They wring out their boots on the far bank. The track was shorter. Nobody says it was better.'),
+            N('Up ahead, a goblin squats by a stolen sack. It has not heard them coming. It will.'),
+          ],
+        },
+        'c5.fork.b': {
+          type: 'scene', chapter: 'c5', bg: 'hill', next: 'c5.fork.bafter',
+          lines: [
+            N('The ridge path is dry, steep and thick with thorn. Kael goes first, cutting through, and Eiryn follows without complaint.'),
+            N('At the top there is a hunter\u2019s lean-to, long abandoned, and in it a stack of stolen tools wrapped in sacking. Someone has been sorting them. Carefully.'),
+            S('kael', 'That isn\u2019t goblin work.'),
+            S('eiryn', 'No.'),
+          ],
+        },
+        'c5.fork.bafter': {
+          type: 'scene', chapter: 'c5', bg: 'hill', next: 'c5.path', xp: 70, set: { gold: 1 },
+          lines: [
+            N('Below them the quarry path lies empty. Whatever is waiting there has not noticed the ridge. They take the tools, and the high ground.'),
+          ],
+        },
+        // ---- a fork in the road: Chapter Two, the viaduct. Both ways reach the camp.
+        'c6.fork': {
+          type: 'fork', chapter: 'c6', bg: 'road',
+          lines: [
+            N('The road splits where an old viaduct once crossed it. One arm goes under the broken arches; the other climbs onto an open ridge.'),
+            N('Under the arches the air is cool and smells of wet stone. Somewhere in the dark, something drips, steadily.'),
+            N('On the ridge the wind is clean and the grass lies flat as a hand. Nothing has crossed it today. Aerys looks up anyway.'),
+            N('Nobody says which way. They all look at Kael, who does not like being looked at.'),
+          ],
+          options: [{ label: 'Under the arches', next: 'c6.fork.a' }, { label: 'Along the ridge', next: 'c6.fork.b' }],
+        },
+        'c6.fork.a': {
+          type: 'scene', chapter: 'c6', bg: 'ruins', next: 'c6.fork.afight',
+          lines: [
+            N('The dark under the arches is complete. Aerys lifts one palm. A small light blooms in it, and the stone fills with eyes.'),
+            S('aerys', 'I thought they were stones.'),
+            S('kael', 'So did they.'),
+          ],
+        },
+        'c6.fork.afight': {
+          type: 'battle', chapter: 'c6', scenario: 'forkRuins', hearts: false, xp: 110, allyLevel: true, loot: 'beast',
+          party: (st) => BOOK(st), win: 'c6.fork.aafter',
+          outro: 'The last of them backs into the dark and keeps going.',
+        },
+        'c6.fork.aafter': {
+          type: 'scene', chapter: 'c6', bg: 'road', next: 'c6.camp',
+          lines: [N('They climb out the far side into the evening with torn sleeves and a new respect for Aerys\u2019s palm. The camp is not far.')],
+        },
+        'c6.fork.b': {
+          type: 'scene', chapter: 'c6', bg: 'road', next: 'c6.fork.bafter',
+          lines: [
+            N('On the ridge there is nowhere to hide, so they walk fast and keep low. Nothing comes. That is somehow worse.'),
+            N('At the highest point stands a cairn of flat stones, each one scratched with a name. Eiryn stops. She puts two fingers on the topmost stone. It is warm.'),
+            S('aerys', 'Who are they?'),
+            S('eiryn', 'People who were on this road.'),
+          ],
+        },
+        'c6.fork.bafter': {
+          type: 'scene', chapter: 'c6', bg: 'road', next: 'c6.camp', xp: 90, set: { gold: 1 },
+          lines: [N('Kael does not ask what she is not saying. They leave the stones as they found them, and go down toward the camp.')],
+        },
+      };
+    },
     stages: {
+      // ---- forks: the party stops, the camera shows each way, then the picker
+      'c5.fork': {
+        arena: 'hillpath',
+        cast: [K(-0.4, 3.2, N, { armed: true }), EA(0.8, 3.6, N), NP('peek', 'goblinArcher', -9, -5, S, { hidden: true })],
+        cam: { x: 0, y: 1, view: 10, ang: 0, pitch: 0.42 },
+        beats: [
+          { cam: { x: 0, y: 1.6, view: 9, ang: 0, pitch: 0.42, push: -0.15, ease: 2 }, do: [{ who: 'kael', to: [-0.4, 1.8], speed: 0.8, face: N }, { who: 'eiryn', to: [0.8, 2.3], speed: 0.8, face: N }] },
+          { cam: { x: -6.4, y: -3.4, view: 6.5, ang: -0.35, pitch: 0.34, up: 0.6, drift: -0.02, ease: 2.2 }, do: [{ light: ['70,140,190', 0.18, 1.0] }, { at: 1.4, who: 'peek', show: true, put: [-8.6, -4.6] }, { at: 1.9, who: 'peek', hide: true }] },
+          { cam: { x: 6.4, y: -3.4, view: 6.5, ang: 0.35, pitch: 0.34, up: 0.6, drift: 0.02, ease: 2.2 }, do: [{ light: ['255,170,100', 0.16, 1.0] }] },
+          { cam: { focus: ['kael', 'eiryn'], view: 4.2, ang: 0, pitch: 0.4, up: 0.8, ease: 1.8 }, do: [{ light: [null, 0, 1.5] }, { who: 'kael', face: 'eiryn' }, { who: 'eiryn', face: N }] },
+        ],
+      },
+      'c5.fork.a': auto('hillpath', [K(-5.6, 1.0, 0), EA(-6.8, 0.4, 0), NP('g1', 'goblin', 4.0, -2.4, W, { hidden: true }), NP('g2', 'goblin', 5.0, 2.0, W, { hidden: true }), NP('g3', 'goblin', 6.4, -0.4, W, { hidden: true })], {
+        nodes: { 'c5.fork.a': {
+          0: { cam: { x: -1, y: 0.6, view: 8.5, ang: -0.3, pitch: 0.42, ease: 1.6 }, do: [{ who: 'kael', to: [-1.4, 1.0], speed: 0.6 }, { who: 'eiryn', to: [-2.6, 0.4], speed: 0.6 }] },
+          2: { cam: { x: 2.5, y: 0, view: 9, ang: -0.2, pitch: 0.38, ease: 0.8 }, do: [{ who: 'g1', show: true, blink: [3.0, -1.8] }, { at: 0.2, who: 'g2', show: true, blink: [3.6, 1.8] }, { at: 0.4, who: 'g3', show: true, blink: [4.4, 0] }, { at: 0.5, who: 'kael', icon: '!' }, { shake: 4 }] },
+        } },
+      }),
+      'c5.fork.aafter': auto('hillpath', [K(-1.0, 0.8, 0.3), EA(-2.4, 1.4, 0.2)], { nodes: { 'c5.fork.aafter': { 0: { cam: { x: -1.6, y: 0.6, view: 6, ang: -0.3, pitch: 0.42, ease: 1.4 } } } } }),
+      'c5.fork.b': auto('hillpath', [K(-6.0, 1.6, 0), EA(-7.2, 1.0, 0)], {
+        nodes: { 'c5.fork.b': {
+          0: { cam: { focus: ['kael', 'eiryn'], view: 8, ang: -0.5, pitch: 0.42, ease: 1.4 }, do: [{ who: 'kael', to: [-1.0, -0.6], speed: 0.8 }, { who: 'eiryn', to: [-2.2, 0.0], speed: 0.8 }] },
+          1: { cam: { x: 1.6, y: -1.6, view: 5.2, ang: 0.3, pitch: 0.4, up: 0.4, ease: 1.4 } },
+        } },
+      }),
+      'c5.fork.bafter': 'same',
+      'c6.fork': {
+        arena: 'ruins',
+        cast: [K(-0.4, 3.0, N, { armed: true }), EA(0.8, 3.4, N), AE(-1.6, 3.4, N), NP('peek', 'beast', -9, -5, S, { hidden: true })],
+        cam: { x: 0, y: 1, view: 10, ang: 0, pitch: 0.42 },
+        beats: [
+          { cam: { x: 0, y: 1.6, view: 9, ang: 0, pitch: 0.42, push: -0.15, ease: 2 }, do: [{ who: 'kael', to: [-0.4, 1.8], speed: 0.8, face: N }, { who: 'eiryn', to: [0.8, 2.3], speed: 0.8, face: N }, { who: 'aerys', to: [-1.6, 2.3], speed: 0.8, face: N }] },
+          { cam: { x: -6, y: -3, view: 6.5, ang: -0.35, pitch: 0.32, up: 0.5, drift: -0.02, ease: 2.2 }, do: [{ light: ['60,70,110', 0.22, 1.0] }, { at: 1.5, who: 'peek', show: true, put: [-8.8, -4.4] }, { at: 1.9, who: 'peek', hide: true }] },
+          { cam: { x: 6.4, y: -3.4, view: 7, ang: 0.35, pitch: 0.3, up: 1.4, drift: 0.02, ease: 2.2 }, do: [{ light: ['255,230,170', 0.14, 1.0] }, { at: 1.2, who: 'aerys', face: [0, -9], icon: '…' }] },
+          { cam: { focus: ['kael', 'eiryn', 'aerys'], view: 4.6, ang: 0, pitch: 0.4, up: 0.8, ease: 1.8 }, do: [{ light: [null, 0, 1.5] }, { who: 'kael', face: 'eiryn' }] },
+        ],
+      },
+      'c6.fork.a': auto('ruins', [K(-5.6, 1.0, 0), EA(-6.8, 0.4, 0), AE(-6.8, 1.8, 0), NP('b1', 'beast', 4.0, -2.4, W, { hidden: true }), NP('b2', 'beast', 5.0, 2.0, W, { hidden: true })], {
+        nodes: { 'c6.fork.a': {
+          0: { cam: { x: -1, y: 0.6, view: 8.5, ang: -0.3, pitch: 0.42, ease: 1.6 }, do: [{ who: 'kael', to: [-1.4, 1.0], speed: 0.6 }, { who: 'eiryn', to: [-2.6, 0.4], speed: 0.6 }, { who: 'aerys', to: [-2.6, 1.8], speed: 0.6 }] },
+          1: { cam: { focus: 'aerys', view: 3.6, ang: 0.3, pitch: 0.38, up: 0.9, ease: 1.0 }, do: [{ who: 'aerys', set: { gest: 'cast' } }, { light: ['255,236,170', 0.12, 1.5] }, { at: 1.0, who: 'b1', show: true, blink: [3.0, -1.0] }, { at: 1.2, who: 'b2', show: true, blink: [3.4, 1.6] }] },
+        } },
+      }),
+      'c6.fork.aafter': auto('road', [K(-1.0, 0.8, 0.3), EA(-2.4, 1.4, 0.2), AE(-2.4, 0.2, 0.3)], { nodes: { 'c6.fork.aafter': { 0: { cam: { x: -1.6, y: 0.6, view: 6, ang: -0.3, pitch: 0.42, ease: 1.4 } } } } }),
+      'c6.fork.b': auto('grassland', [K(-6.0, 1.6, 0), EA(-7.2, 1.0, 0), AE(-7.2, 2.2, 0)], {
+        nodes: { 'c6.fork.b': {
+          0: { cam: { focus: ['kael', 'eiryn', 'aerys'], view: 9, ang: -0.5, pitch: 0.4, ease: 1.4 }, do: [{ who: 'kael', to: [1.0, -0.4], speed: 1.2 }, { who: 'eiryn', to: [-0.4, 0.2], speed: 1.2 }, { who: 'aerys', to: [-0.4, 1.0], speed: 1.2 }] },
+          1: { cam: { x: 1.8, y: -0.6, view: 4.8, ang: 0.3, pitch: 0.4, up: 0.5, ease: 1.4 }, do: [{ who: 'eiryn', to: [0.8, -0.2], face: [1.8, -0.6], speed: 0.5 }] },
+        } },
+      }),
+      'c6.fork.bafter': 'same',
       // ---- Chapter Two and Three: Ashgate
       'c2.gate': auto('square', [
         K(-9.5, 0.6, 0, { armed: true }), EA(-10.8, 1.4, 0),
