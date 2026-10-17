@@ -1,5 +1,5 @@
 'use strict';
-// Every scene, card and choice of the story plays on a staged scene (no painted stills),
+// Every scene, card and fork of the story plays on a staged scene (no painted stills),
 // and every staged beat names units that exist in its cast.
 global.self = global;
 const S = require('../js/story.js');
@@ -11,7 +11,7 @@ const ST = require('../js/stages.js');
 const PAINTED = new Set(['p.evening', 'p.overlook', 'p.reset', 'p.story', 'p.later', 'p.open']);
 let bad = 0;
 for (const [id, n] of Object.entries(S.NODES)) {
-  if (!['scene', 'card', 'choice'].includes(n.type)) continue;
+  if (!['scene', 'card', 'fork'].includes(n.type)) continue;
   if (!ST[id] && PAINTED.has(id)) continue;
   if (!ST[id]) { console.error('still image (no stage):', id); bad++; }
   else if (ST[id] === 'same') {
@@ -28,7 +28,7 @@ for (const [id, st] of Object.entries(ST)) {
   if (st !== 'same') continue;
   for (const y of preds[id] || []) {
     const yn = S.NODES[y];
-    if (!['scene', 'choice', 'card', 'select'].includes(yn.type) || (yn.type !== 'select' && !ST[y])) { console.error("'same' after a non-scene:", id, 'from', y, '(' + yn.type + ')'); bad++; }
+    if (!['scene', 'fork', 'card', 'select'].includes(yn.type) || (yn.type !== 'select' && !ST[y])) { console.error("'same' after a non-scene:", id, 'from', y, '(' + yn.type + ')'); bad++; }
   }
 }
 const Sim = require('../js/sim.js');

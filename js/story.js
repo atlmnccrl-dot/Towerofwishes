@@ -12,11 +12,11 @@
  * Node types:
  *   card    { title, sub }                         a full-screen title card
  *   scene   { bg, lines: [{who, text}] }           dialogue and narration
- *   choice  { bg, prompt, options: [{label, hint, set, next, need}] }
+ *   fork    { bg, lines, options: [{label, next}] }  a fork in the road: lines preview each path, then the player picks one
  *   select  { }                                    pick the starting character
  *   battle  { scenario, party(st), mods(st), hearts, xp, win, intro }
  *   end     { }                                    the end of the written story
- * Every node but choice and battle has `next`.
+ * Every node but fork and battle has `next`.
  */
 (function (root, factory) {
   const api = factory();
@@ -321,7 +321,7 @@
       outro: 'The bandits are beaten or gone. Nobody dies in the clearing.',
     },
     'c1.after': {
-      type: 'scene', chapter: 'c1', bg: 'forest', next: 'c1.trust',
+      type: 'scene', chapter: 'c1', bg: 'forest', next: 'c1.walk',
       lines: [
         B('kael', 'They’re gone.'),
         B('eiryn', 'Good.'),
@@ -339,15 +339,8 @@
         B('kael', 'Look. I don’t know what you’re trying to prove. But you’re not doing it alone.'),
       ],
     },
-    'c1.trust': {
-      type: 'choice', chapter: 'c1', bg: 'forest', prompt: 'She sits on the fallen trunk, shaking. What do you do?',
-      options: [
-        { label: 'Stay with her while she rests', hint: 'Eiryn will trust you more. In later fights she starts with her glyphs part-charged.', set: { trust: 1 }, next: 'c1.walk' },
-        { label: 'Search what the bandits dropped', hint: 'You find a few coins. Eiryn notices you weren’t there.', set: { gold: 1 }, next: 'c1.walk' },
-      ],
-    },
     'c1.walk': {
-      type: 'scene', chapter: 'c1', bg: 'road', next: 'c2.gate',
+      type: 'scene', chapter: 'c1', bg: 'road', next: 'c2.gate', set: { trust: 1 },
       lines: [
         B('kael', 'I’m Kael.'),
         B('eiryn', 'Eiryn.'),
@@ -390,7 +383,7 @@
       ],
     },
     'c3.tea': {
-      type: 'scene', chapter: 'c2', bg: 'market', next: 'c3.fine',
+      type: 'scene', chapter: 'c2', bg: 'market', next: 'c3.kael',
       lines: [
         N('Morning. A tea stall under a canvas canopy. Eiryn’s tea has gone cold; she draws a small circle with her thumb and it steams again.'),
         B('kael', 'I think we’re about to have a problem.'),
@@ -401,40 +394,14 @@
         N('Eiryn reaches into her cloak. There is no purse. She had left home expecting to be back before supper.'),
       ],
     },
-    'c3.fine': {
-      type: 'choice', chapter: 'c2', bg: 'market', prompt: 'Eiryn can’t pay the fine.',
-      options: [
-        { label: 'Pay it yourself', hint: 'You spend what you found in the clearing. Eiryn won’t forget it.', need: 'gold', needText: 'You have no money to spare', set: { trust: 1, gold: -1 }, next: 'c3.paid' },
-        { label: 'Let Kael cover it', hint: 'As in the book. Kael is broke, and starts to rely on you: he fights a level higher.', set: { kaelBond: 1 }, next: 'c3.kael' },
-        { label: 'Argue with the guard', hint: 'The fine goes up and Kael pays anyway — but Eiryn liked that you stood up for her.', set: { trust: 1, argued: 1 }, next: 'c3.argue' },
-      ],
-    },
-    'c3.paid': {
-      type: 'scene', chapter: 'c2', bg: 'market', next: 'c3.guild',
-      lines: [
-        N('You count the coins from the clearing onto the counter before Kael can reach for his purse.'),
-        B('eiryn', 'I’ll pay you back.'),
-        S('@', { ren: 'I was hoping you’d say that.', mara: 'I’ll hold you to it. With interest.', brannoc: 'Buy me a drink when the Guild pays us. We’re square.' }),
-      ],
-    },
     'c3.kael': {
-      type: 'scene', chapter: 'c2', bg: 'market', next: 'c3.guild',
+      type: 'scene', chapter: 'c2', bg: 'market', next: 'c3.guild', set: { kaelBond: 1 },
       lines: [
         B('kael', 'No need.'),
         N('By the time the guard hands him the written warning, the greater part of his money is gone.'),
         B('kael', 'Great. Now I’m broke too.'),
         B('eiryn', 'You’re enjoying this.'),
         B('kael', 'Not financially.'),
-      ],
-    },
-    'c3.argue': {
-      type: 'scene', chapter: 'c2', bg: 'market', next: 'c3.guild',
-      lines: [
-        S('@', { ren: 'It was a cup of tea.', mara: 'That was a four-line warming glyph. I’ve seen apprentices do worse in their sleep.', brannoc: 'You’re fining her for being cold?' }),
-        B('officer', 'Miss, we’ve had three injuries this season from unlicensed heating spells near food stalls.'),
-        N('There is an additional processing charge. Kael pays it, looking pained.'),
-        B('eiryn', 'I wasn’t trying to cause trouble.'),
-        B('kael', 'I know that, too.'),
       ],
     },
     'c3.guild': {
@@ -475,16 +442,6 @@
         S('@', { ren: 'Goblins. I can be up that hill before they know we’re there.', mara: 'Goblins scatter from force bolts. This is my kind of contract.', brannoc: 'Goblins in a quarry. Narrow paths. I’ll take the front.' }),
       ],
     },
-    // Retired: Kael and Eiryn take the contract together, as in the book.
-    'c4.party': {
-      type: 'choice', chapter: 'c4', bg: 'guild', prompt: 'Who goes to the quarry with you?',
-      options: [
-        { label: 'Kael and Eiryn', hint: 'All three of you. The safest party — and how the book tells it.', set: { party: 'both' }, next: 'c5.mill' },
-        { label: 'Just Kael', hint: 'Eiryn rests her mana. A sword beside you, but no one to break a big foe from range.', set: { party: 'kael' }, next: 'c5.mill' },
-        { label: 'Just Eiryn', hint: 'Kael rests his shoulder. No sword beside you, just her glyphs and your fighting. The riskiest party.', need: 'trust', needText: 'Eiryn doesn’t trust you enough yet', set: { party: 'eiryn' }, next: 'c5.mill' },
-      ],
-    },
-
     // ---------------------------------------------------------- chapter five
     'c5.mill': {
       type: 'scene', chapter: 'c5', bg: 'hill', next: 'c5.path',
@@ -855,11 +812,8 @@
       party: (st) => party3(st), win: 'deep.rest',
     },
     'deep.rest': {
-      type: 'choice', chapter: 'side', bg: 'cave', prompt: 'A trickle of clean water runs down the wall.',
-      options: [
-        { label: 'Rest and drink', hint: 'Everyone recovers a quarter of their health.', set: { deepRest: 1 }, next: 'deep.2' },
-        { label: 'Press on and search the side tunnel', hint: 'No rest — but an extra roll on the loot at the end.', set: { deepGreed: 1 }, next: 'deep.2' },
-      ],
+      type: 'scene', chapter: 'side', bg: 'cave', next: 'deep.2', set: { deepRest: 1 },
+      lines: [N('A trickle of clean water runs down the wall. There is no better place to stop. You rest and drink, and everyone recovers a little.')],
     },
     'deep.2': {
       type: 'battle', chapter: 'side', scenario: 'deep2', hearts: false, xp: 70, carry: true, loot: 'deep',
@@ -890,6 +844,9 @@
     if (st.starter) { if (!st.companion) st.companion = st.starter; st.starter = null; }
     if (st.node === 'p.select' || st.node === 'p.who') st.node = 'c1.tavern';
     if (st.node === 'c4.party') st.node = 'c5.mill';
+    // choice screens are gone: a save parked on one moves to where it led
+    const gone = { 'c1.trust': 'c1.walk', 'c3.fine': 'c3.kael', 'c3.paid': 'c3.guild', 'c3.argue': 'c3.guild' };
+    if (gone[st.node]) st.node = gone[st.node];
     return st;
   }
 
@@ -912,16 +869,24 @@
     }
   }
 
+  // What a node gives on arrival: flags and experience (a scene on a path can pay out).
+  function entered(st, n) {
+    if (n.set) setFlags(st, n.set);
+    if (n.xp && n.type !== 'battle') st.xp += n.xp;
+  }
+
   function goTo(st, id) {
     if (st.side) {
       if (id === 'map') { endSide(st); return null; }
       if (!NODES[id]) throw new Error('story: no node ' + id);
       st.side.node = id;
+      entered(st, NODES[id]);
       return NODES[id];
     }
     if (!NODES[id]) throw new Error('story: no node ' + id);
     st.node = id;
     st.seen[NODES[id].chapter] = true;
+    entered(st, NODES[id]);
     return NODES[id];
   }
 
@@ -959,7 +924,7 @@
   // Scenes and cards: move on.
   function advance(st) {
     const n = node(st);
-    if (n.type === 'choice' || n.type === 'battle' || n.type === 'select' || n.type === 'end') throw new Error('story: advance on ' + n.type);
+    if (n.type === 'fork' || n.type === 'battle' || n.type === 'select' || n.type === 'end') throw new Error('story: advance on ' + n.type);
     // (cinematic nodes advance like scenes once they finish or are skipped)
     // A side scene going back to the map ends the episode.
     return goTo(st, n.next);
@@ -968,7 +933,7 @@
   function optionOpen(st, o) { return !o.need || (st.flags[o.need] || 0) > 0; }
   function choose(st, i) {
     const n = node(st);
-    if (n.type !== 'choice') throw new Error('story: choose on ' + n.type);
+    if (n.type !== 'fork') throw new Error('story: choose on ' + n.type);
     const o = n.options[i];
     if (!o || !optionOpen(st, o)) return null;
     setFlags(st, o.set);

@@ -34,6 +34,7 @@ const errors = [];
   const shot = (name) => page.screenshot({ path: path.join(out, name + '.png') });
   const visited = [];
   const visitedMap = new Set();
+  let forkN = 0; // forks alternate between their two ways
 
   // Tap through scenes and cards until something other than a scene or card is up.
   async function tapThrough(maxTaps, shotEvery, stopAtWorld) {
@@ -52,9 +53,10 @@ const errors = [];
         continue;
       }
       if (v === 'cine') { await shot('cine-' + n); await page.click('#btn-cine-skip'); await page.waitForTimeout(300); continue; }
+      if (v === 'fight' && /\.fork\./.test(n)) { await winBattle(n.replace(/\./g, '_')); continue; }
       if (v !== 'story') return;
       const kind = await page.evaluate(() => window.__tow.story && document.getElementById('choices').hidden ? 'tap' : 'choice');
-      if (kind === 'choice') return;
+      if (kind === 'choice') { await page.click(`#options button[data-i="${forkN++ % 2}"]`); await page.waitForTimeout(300); continue; }
       await page.waitForTimeout(950);
       await page.mouse.click(420, 120); // finish the typewriter or advance
       await page.mouse.click(420, 120);
@@ -108,9 +110,7 @@ const errors = [];
   await tapThrough(80, true);                 // the light, the Reset, 150 years later, the tavern, the run
   await winBattle('clearing');
   await tapThrough(20, true);
-  await choose(0, 'trust');                   // stay with her
   await tapThrough(60, true);                 // walk, town, tavern, tea
-  await choose(1, 'fine');                    // let Kael pay
   await tapThrough(40, true, true);           // to the map before Chapter Four
   await page.evaluate(() => { window.__tow.debug.pickNode('c4'); window.__tow.debug.goNode('c4'); });
   await page.waitForTimeout(300);
@@ -175,7 +175,7 @@ const errors = [];
   await page.waitForTimeout(300);
   await tapThrough(10, false);
   await winBattle('deep1');
-  await choose(0, 'deep-rest');
+  await tapThrough(4, false);                 // the rest
   await winBattle('deep2');
   await winBattle('deep3');
   await tapThrough(10, false, true);

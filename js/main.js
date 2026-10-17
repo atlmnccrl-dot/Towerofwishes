@@ -104,7 +104,7 @@
     writeSave();
     match = null; storyBattle = null;
     if (n.type !== 'select') setShowcase(null);
-    if (n.type !== 'scene' && n.type !== 'choice') { stage = null; stageKey = null; renderer.setCameraOverride(null); }
+    if (n.type !== 'scene' && n.type !== 'fork') { stage = null; stageKey = null; renderer.setCameraOverride(null); }
     // Between chapters the story waits on the world map.
     if (!story.side && (Story.atGate(story) || n.type === 'end')) return showWorld();
     if (n.type === 'battle') return startStoryBattle();
@@ -117,22 +117,16 @@
     else if (!sid && !(window.TowStages && window.TowStages[Story.cur(story)] === 'same')) { stage = null; stageKey = null; renderer.setCameraOverride(null); }
     $('story-chapter').textContent = chapterLabel(n);
     $('story-card').hidden = n.type !== 'card';
-    $('dialogue').hidden = n.type !== 'scene';
-    $('choices').hidden = n.type !== 'choice';
+    $('dialogue').hidden = n.type !== 'scene' && n.type !== 'fork';
+    $('choices').hidden = true;
     $('btn-skip').hidden = n.type !== 'scene';
     if (n.type === 'card') {
       $('card-title').textContent = n.title; $('card-sub').textContent = n.sub || '';
       // Restart the entrance animation.
       for (const el of [$('card-title'), $('card-sub')]) { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; }
       cardShownAt = performance.now();
-    } else if (n.type === 'scene') {
+    } else if (n.type === 'scene' || n.type === 'fork') {
       lines = Story.lines(story); lineIdx = 0; showLine();
-    } else if (n.type === 'choice') {
-      $('prompt').textContent = n.prompt;
-      $('options').innerHTML = n.options.map((o, i) => {
-        const open = Story.optionOpen(story, o);
-        return `<button class="btn" type="button" data-i="${i}" ${open ? '' : 'disabled'}><b>${o.label}</b><small>${open ? o.hint : o.needText}</small></button>`;
-      }).join('');
     }
     show('story');
   }
@@ -161,8 +155,9 @@
   function autoTick(real) {
     if (!autoOn()) return;
     const n = Story.node(story);
-    if (!n || (n.type !== 'scene' && n.type !== 'card')) return;
-    if (n.type === 'scene' && typing()) { autoT = 0; return; }
+    if (!n || (n.type !== 'scene' && n.type !== 'card' && n.type !== 'fork')) return;
+    if ($('choices').hidden === false) return;
+    if (n.type !== 'card' && typing()) { autoT = 0; return; }
     autoT += real;
     const hold = n.type === 'card' ? 2.8 : 1.3 + lineFull.length * 0.045;
     if (autoT >= hold) { autoT = 0; storyTap(); }
@@ -194,7 +189,16 @@
       if (typing()) { $('line').textContent = lineFull; return; }
       if (++lineIdx < lines.length) showLine();
       else storyStep(() => Story.advance(story));
+    } else if (n.type === 'fork') {
+      if (typing()) { $('line').textContent = lineFull; return; }
+      if (++lineIdx < lines.length) showLine(); else showFork(n);
     }
+  }
+  // The fork in the road: the camera has shown each way; now two ways on, one on each side of the screen.
+  function showFork(n) {
+    $('dialogue').hidden = true;
+    $('options').innerHTML = n.options.map((o, i) => `<button class="fork-btn ${i ? 'right' : 'left'}" type="button" data-i="${i}"><span class="arrow" aria-hidden="true">${i ? '\u25B6' : '\u25C0'}</span><b>${o.label}</b></button>`).join('');
+    $('choices').hidden = false;
   }
   // Move the story on; a side episode that just ended returns to the map.
   function storyStep(fn) {

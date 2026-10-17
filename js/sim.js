@@ -1692,7 +1692,11 @@
       say(s, u.def.noncombat ? `${u.name} edges toward the path, then runs.` : `${u.name} breaks and runs for the road.`);
       if (u.def.noncombat) distractKael(s);
     }
-    if (u.fleeing) return moveTo(s, u, ARENA.exit.x, ARENA.exit.y, u.beaten ? 1.0 : 1.15, null, true);
+    if (u.fleeing) {
+      // Past the arena's exit they keep running until they are well out of view.
+      const g = u.exiting ? fleeGoal() : ARENA.exit;
+      return moveTo(s, u, g.x, g.y, u.beaten ? 1.0 : 1.15, null, true);
+    }
     if (u.def.noncombat) {
       // Hangs back by the path and watches.
       const kael = s.lead;
@@ -1922,6 +1926,13 @@
   }
 
   // ---------------------------------------------------------------- tick
+  // Where a fleeing fighter ends up: the arena's exit pushed well beyond the edge of the screen.
+  const FLEE_OUT = 11;
+  function fleeGoal() {
+    const ex = ARENA.exit.x, ey = ARENA.exit.y, l = Math.hypot(ex, ey) || 1;
+    return { x: ex + (ex / l) * FLEE_OUT, y: ey + (ey / l) * FLEE_OUT };
+  }
+
   function stepUnit(s, u, dt) {
     u.st += dt;
     if (u.cd > 0) u.cd -= dt;
@@ -1976,7 +1987,8 @@
     decayKnock(u, dt);
     u.walk += Math.hypot(u.vx, u.vy) * dt * 2.4;
     collideWorld(u);
-    if (u.fleeing && Math.hypot(u.x - ARENA.exit.x, u.y - ARENA.exit.y) < 1.2) {
+    if (u.fleeing && !u.exiting && Math.hypot(u.x - ARENA.exit.x, u.y - ARENA.exit.y) < 1.2) u.exiting = true;
+    if (u.fleeing && u.exiting && Math.hypot(u.x - fleeGoal().x, u.y - fleeGoal().y) < 1.5) {
       u.fled = true;
       s.stats.fled++;
       releaseTokens(s, u);
@@ -2099,6 +2111,7 @@
     checkEnd(s);
   }
 
+  const DT_END = 1 / 60;
   function checkEnd(s) {
     const kael = s.lead;
     const heroesUp = s.units.some((u) => u.team === 'hero' && !u.guest && alive(u));
@@ -2110,7 +2123,10 @@
     const banditsLeft = s.units.some((u) => u.team === 'bandit' && inFight(u));
     if (!banditsLeft && s.endless) { spawnWave(s); return; }
     if (!banditsLeft) {
-      for (const u of s.units) if (u.team === 'bandit' && alive(u)) u.fleeing = true;
+      // The match ends when the last of them has run out of view, not when they turn to run.
+      let running = false;
+      for (const u of s.units) if (u.team === 'bandit' && alive(u)) { u.fleeing = true; running = true; }
+      if (running) { s.fleeWait = (s.fleeWait || 0) + DT_END; if (s.fleeWait < 16) return; }
       s.result = { outcome: 'win', time: s.t };
       bark(s, kael, 'win');
       say(s, 'The last of them retreat into the trees. Victory.');

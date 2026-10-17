@@ -40,7 +40,7 @@ function walk(st, depth) {
   assert(depth < 200, 'story loops');
   const n = Story.node(st);
   if (n.type === 'end') { endings++; return; }
-  if (n.type === 'scene') {
+  if (n.type === 'scene' || n.type === 'fork') {
     const ls = Story.lines(st);
     assert(ls.length, `${st.node}: no lines for this branch`);
     for (const l of ls) assert(typeof l.text === 'string' && l.text.length, `${st.node}: empty line`);
@@ -49,7 +49,7 @@ function walk(st, depth) {
     for (const k of Object.keys(Story.STARTERS)) { const c = clone(st); Story.pickStarter(c, k); walk(c, depth + 1); }
     return;
   }
-  if (n.type === 'choice') {
+  if (n.type === 'fork') {
     let open = 0;
     n.options.forEach((o, i) => {
       if (!Story.optionOpen(st, o)) return;
