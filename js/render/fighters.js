@@ -688,6 +688,10 @@
         const ox = u.x, oy = u.y, d = A.lunge * k;
         u.x += Math.cos(u.facing) * d; u.y += Math.sin(u.facing) * d;
         try { drawUnitInner(u, s); } finally { u.x = ox; u.y = oy; }
+      } else if (u.lift > 0) {
+        const c = V.ctx, up = u.lift * V.cam.sc;
+        c.save(); c.translate(0, -up);
+        try { drawUnitInner(u, s); } finally { c.restore(); }
       } else drawUnitInner(u, s);
     }
     function drawUnitInner(u, s) {

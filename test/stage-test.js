@@ -8,7 +8,7 @@ for (const id of S.BOOK_FILES || []) global.TowBook[id] = require('../js/book/' 
 const ST = require('../js/stages.js');
 // The prologue's animated painted cinematics (js/render/backdrop.js: the town, the Tower, the Reset's fire and
 // water, the dawn) are the author's favourite opening and stay as they were.
-const PAINTED = new Set(['p.evening', 'p.overlook', 'p.reset', 'p.story', 'p.later', 'p.open']);
+const PAINTED = new Set(['p.reset', 'p.story', 'p.later', 'p.open']);
 let bad = 0;
 for (const [id, n] of Object.entries(S.NODES)) {
   if (!['scene', 'card', 'fork'].includes(n.type)) continue;

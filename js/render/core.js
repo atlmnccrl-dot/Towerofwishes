@@ -191,12 +191,12 @@
         // space they face left open; the world dims around them.
         const k = Math.min(1, t / 1.1);
         const d = plan.d - side * 0.22 * (k - 0.5);
-        return shot('charge', u.x, u.y, f + d, m / (2.75 - 0.75 * k), 0.34, third(d), 0.56, h * 0.62, true, 0.12 + 0.3 * k);
+        return shot('charge', u.x, u.y, f + d, m / (4.8 - 0.6 * k), 0.36, third(d), 0.56, h * 0.62, true, 0.12 + 0.3 * k);
       }
       if (ph === 'gleam') {
         // The glint: in tight on the face.
         const d = plan.d * (c.line ? 1 : 0.85);
-        return shot('gleam', u.x, u.y, f + d, m / 1.6, 0.3, third(d) < 0.5 ? 0.4 : 0.6, 0.46, h * 0.9, true, 0.45);
+        return shot('gleam', u.x, u.y, f + d, m / 3.8, 0.34, third(d) < 0.5 ? 0.4 : 0.6, 0.46, h * 0.9, true, 0.45);
       }
       const sgn = Math.sin(plan.dash) >= 0 ? 1 : -1;
       if (ph === 'dash' || ph === 'impact') {
@@ -205,11 +205,11 @@
           // camera runs with it toward the targets.
           const k = ph === 'dash' ? Math.min(1, ((t - 1.35) / Math.max(0.1, c.impactAt - 1.35)) * 1.5) : 1;
           const run = Math.max(0, plan.far - 1.5) * k * k;
-          return shot('release', c.x0 + F[0] * run, c.y0 + F[1] * run, f + plan.dash, m / 3.4, 0.4, 0.5 - sgn * 0.26 * (1 - k * 0.6), 0.58, h * 0.55, k < 0.5, 0);
+          return shot('release', c.x0 + F[0] * run, c.y0 + F[1] * run, f + plan.dash, m / 5.4, 0.42, 0.5 - sgn * 0.26 * (1 - k * 0.6), 0.58, h * 0.55, k < 0.5, 0);
         }
         // Side-on: the dash crosses the screen from the caster's third.
         const span = Math.min(plan.far, 4.4) + 0.4;
-        const scale = Math.max(m / 7, Math.min(m / 3.4, (W * 0.6) / (span + 1.0)));
+        const scale = Math.max(m / 7, Math.min(m / 5.2, (W * 0.6) / (span + 1.0)));
         return shot('release', c.x0, c.y0, f + plan.dash, scale, 0.44, 0.5 - sgn * Math.min(0.3, (span * scale) / W / 2), 0.6, h * 0.5, false, 0);
       }
       // After: first the blow landing on the targets, then the caster under
@@ -221,11 +221,11 @@
         for (const o of vic) { cx += o.x; cy += o.y; }
         if (vic.length) { cx /= vic.length; cy /= vic.length; } else { cx = c.x0 + F[0] * 3; cy = c.y0 + F[1] * 3; }
         if (!c.line) { cx = (cx + u.x) / 2; cy = (cy + u.y) / 2; }
-        return shot('land', cx, cy, f + plan.dash, m / 4.0, 0.44, 0.5, 0.5, 0.8, false, 0);
+        return shot('land', cx, cy, f + plan.dash, m / 6.0, 0.44, 0.5, 0.5, 0.8, false, 0);
       }
       if (plan.pose == null) plan.pose = bestView(s, u, u.x, u.y, f, [0.8, 0.55, 1.1, -0.8, -0.55, -1.1], 0.38);
       const d = plan.pose + 0.15 * Math.sign(plan.pose) * Math.min(1, (at - LAND) / 0.8);
-      return shot('pose', u.x, u.y, f + d, m / 2.6, 0.36, Math.sin(d) >= 0 ? 0.3 : 0.7, 0.52, h * 0.62, true, 0.15);
+      return shot('pose', u.x, u.y, f + d, m / 4.4, 0.38, Math.sin(d) >= 0 ? 0.3 : 0.7, 0.52, h * 0.62, true, 0.15);
     }
 
     // ------------------------------------------------------------ camera

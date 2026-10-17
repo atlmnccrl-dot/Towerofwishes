@@ -196,6 +196,44 @@
         } },
       }),
       'c6.fork.bafter': 'same',
+      // ---- the square before the Reset
+      'p.evening': auto('square', [
+        EI(-9.5, 1.6, 0), AL(5.2, 0.4, W),
+        PT('p1', -3, -1.4, 0.4), PT('p2', -1, 2.4, 3.3), PT('p3', 2.2, 1.6, 2.2), PT('p4', -5, 0.2, 0.2), PT('p5', 0.4, -2.2, 3.6),
+      ], {
+        noFace: true,
+        ambient: { every: 8, do: [
+          { at: 0, who: 'p1', to: [-1.2, -1.2], speed: 0.5 }, { at: 0, who: 'p2', to: [-3, 2.2], speed: 0.5 },
+          { at: 0, who: 'p3', to: [3.6, 1.0], speed: 0.45 }, { at: 0, who: 'p4', to: [-2.8, 0.6], speed: 0.5 }, { at: 0, who: 'p5', to: [2.4, -2.0], speed: 0.45 },
+          { at: 4, who: 'p1', to: [-3, -1.6], speed: 0.5 }, { at: 4, who: 'p2', to: [-1, 2.6], speed: 0.5 },
+          { at: 4, who: 'p3', to: [2.2, 1.8], speed: 0.45 }, { at: 4, who: 'p4', to: [-5, 0.4], speed: 0.5 }, { at: 4, who: 'p5', to: [0.4, -2.4], speed: 0.45 },
+        ] },
+        nodes: { 'p.evening': {
+          0: { cam: { x: -1, y: 0, view: 12, ang: -0.3, pitch: 0.5, drift: 0.02, ease: 2 }, do: [{ fade: [0, 2.0] }] },
+          1: { cam: { x: 1.5, y: 0.5, view: 8, ang: 0.35, pitch: 0.4, drift: -0.03, ease: 2 } },
+          2: { cam: { x: 3, y: -1, view: 14, ang: 0, pitch: 0.2, up: 2.2, drift: 0.0, push: -0.2, ease: 3 } },
+          3: { cam: { focus: 'eiryn', view: 6, ang: -0.5, pitch: 0.46, ease: 1.2 }, do: [{ who: 'eiryn', to: [3.6, 0.6], speed: 1.0 }, { at: 1.6, who: 'alric', icon: '!' }] },
+          4: { cam: { focus: ['eiryn', 'alric'], view: 3.4, ang: 0.2, pitch: 0.4, up: 0.8, push: 0.05, ease: 1.2 }, do: [{ who: 'eiryn', to: [4.2, 0.6], face: 'alric', speed: 0.6 }, { who: 'alric', face: 'eiryn' }] },
+          7: { cam: { focus: ['eiryn', 'alric'], view: 8, ang: -0.9, pitch: 0.46, drift: 0.02, ease: 1.4 }, do: [{ who: 'alric', to: [9.5, -0.6], speed: 0.8 }, { who: 'eiryn', to: [8.5, 0.0], speed: 0.8 }] },
+        } },
+      }),
+      // ---- the overlook: Alric and Eiryn race over the rooftops, leaping the gaps, to the high edge of the city
+      'p.overlook': auto('rooftops', [AL(-10.0, 0.0, E), EI(-11.2, 0.7, E)], {
+        nodes: { 'p.overlook': {
+          0: { cam: { focus: ['alric', 'eiryn'], view: 6.2, ang: -0.55, pitch: 0.3, up: 0.9, ease: 0.35 },
+            do: [{ speed: [0.6, 0.8, 'h'] },
+              { who: 'alric', path: [[-6, 0.0], [-1, 0.0], [4, 0.0], [8.2, 0.0]], gait: 'sprint', speed: 4.8 },
+              { who: 'eiryn', path: [[-7, 0.7], [-2, 0.7], [3, 0.7], [7.0, 0.7]], gait: 'sprint', speed: 4.8 },
+              { at: 0.9, who: 'alric', hop: [1.4, 0.75] }, { at: 1.0, who: 'eiryn', hop: [1.3, 0.75] },
+              { at: 2.0, who: 'alric', hop: [1.4, 0.75] }, { at: 2.1, who: 'eiryn', hop: [1.3, 0.75] },
+              { at: 3.1, who: 'alric', hop: [1.4, 0.75] }, { at: 3.2, who: 'eiryn', hop: [1.3, 0.75] },
+              { at: 4.4, speed: [0, 0.6] }, { at: 4.4, shake: 3 }, { at: 4.5, who: 'alric', face: [8.2, -6] }, { at: 4.5, who: 'eiryn', face: [8.2, -6] }] },
+          1: { cam: { across: ['alric', 'eiryn'], side: 0.3, focus: ['alric', 'eiryn'], view: 4.6, pitch: 0.4, up: 0.5, ease: 1.2 }, do: [{ who: 'alric', put: [8.0, 0.0] }, { who: 'eiryn', put: [7.0, 0.7] }, { who: 'alric', face: [8, -6] }, { who: 'eiryn', face: [8, -6] }] },
+          7: { cam: { focus: ['alric', 'eiryn'], view: 3.2, ang: 0.1, pitch: 0.38, up: 0.9, push: 0.05, ease: 1.8 }, do: [{ who: 'alric', to: [7.6, 0.2], speed: 0.4, face: 'eiryn' }, { who: 'eiryn', face: 'alric' }] },
+          9: { cam: { x: 7.4, y: 0.4, view: 3.6, ang: 0.0, pitch: 0.3, up: 1.4, ease: 2.0 } },
+          10: { cam: { x: 6, y: -4, view: 16, ang: 0.15, pitch: 0.16, up: 3.4, push: -0.3, ease: 3 }, do: [{ light: ['255,200,160', 0.16, 2.5] }] },
+        } },
+      }),
       // ---- Chapter Two and Three: Ashgate
       'c2.gate': auto('square', [
         K(-9.5, 0.6, 0, { armed: true }), EA(-10.8, 1.4, 0),
