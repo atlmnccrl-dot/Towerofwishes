@@ -191,7 +191,6 @@
         N('Far above them, something was dying.'),
       ],
     },
-    'p.open': { type: 'card', chapter: 'prologue', bg: 'tower', title: 'TOWER OF WISHES', sub: 'Reach the summit, and you could make a wish.', next: 'p.tower' },
     'p.tower': {
       type: 'scene', chapter: 'prologue', bg: 'tower', next: 'p.ascent',
       lines: [

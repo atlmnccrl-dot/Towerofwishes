@@ -212,7 +212,9 @@
       'yard.intro': auto('yard', [EA(-2.0, 1.6, E), K(-6.4, 2.4, E), NP('evaluator', 'evaluator', 1.8, -1.2, W)], {
         nodes: { 'yard.intro': { 0: { cam: { focus: 'eiryn', view: 6.4, ang: -0.5, pitch: 0.42, ease: 1.2 } } } },
       }),
-      'yard.after': 'same',
+      'yard.after': auto('yard', [EA(-1.0, 1.0, E), K(-6.4, 2.4, E), NP('evaluator', 'evaluator', 1.8, -1.2, W)], {
+        nodes: { 'yard.after': { 0: { cam: { focus: ['evaluator', 'eiryn'], view: 6, ang: -0.4, pitch: 0.42, ease: 1.2 } } } },
+      }),
       'cart.board': auto('guildhall', [K(3.4, 0.4, N), EA(5.2, 0.8, N), CP(1.4, 0.8, N)], {
         alias: { companion: '@' },
         nodes: { 'cart.board': { 0: { cam: { x: 5.0, y: -2.0, view: 6.6, ang: -0.1, pitch: 0.4, up: 1.0, ease: 2.0 } } } },

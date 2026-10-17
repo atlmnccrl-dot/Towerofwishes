@@ -71,7 +71,7 @@
     }).join('') : '<p class="fine">Your team forms a hundred and fifty years after the Reset.</p>';
     const n = Story.node(story), ch = Story.CHAPTERS.find((c) => c.id === n.chapter);
     $('menu-chapter').textContent = `${ch.label} · ${ch.title}`;
-    $('story-btn-label').textContent = (story.node === 'p.lore' || story.node === 'p.open') ? 'Begin the story' : n.type === 'end' ? 'The story so far' : 'Continue the story';
+    $('story-btn-label').textContent = story.node === 'p.lore' ? 'Begin the story' : n.type === 'end' ? 'The story so far' : 'Continue the story';
     const needsHeart = n.type === 'battle' && Story.battle(story).hearts;
     const ok = !needsHeart || Pg.canStartStory(save);
     $('btn-story').disabled = !ok;
