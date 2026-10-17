@@ -52,4 +52,22 @@ const bare = rate(null);
 const kit = rate({ power: 0.22, hp: 0.1, armor: 0.08, dodge: 0.08 });
 console.log(`cart ren+kael: bare ${Math.round(bare * 100)}%, kitted ${Math.round(kit * 100)}%`);
 assert(kit >= bare, 'gear should not make things worse');
+// Elemental weapons do what they say: fire burns and throws flame, ice freezes, storm arcs, quake staggers.
+for (const [el, key, ev, flag] of [['fire', 'kael', 'flame', 'burnT'], ['ice', 'ren', 'freeze', 'frozenT'], ['storm', 'aerys', 'bolt', null], ['quake', 'braxen', 'quake', null]]) {
+  let seen = 0, state = 0;
+  for (let seed = 1; seed <= 30; seed++) {
+    const s = Sim.createMatch({ seed, scenario: 'clearing', party: [{ key, level: 6, mods: { elem: el, power: 0.1 } }, { key: 'kael', level: 6 }] });
+    let hit = false;
+    while (!s.result && s.t < 120) {
+      Sim.step(s, 1 / 60);
+      if (s.fx.some((e) => e.type === ev)) hit = true;
+      if (flag && s.units.some((u) => u.team === 'bandit' && u[flag] > 0)) state++;
+      s.fx.length = 0; s.log.length = 0;
+    }
+    if (hit) seen++;
+  }
+  console.log(`${el}: ${seen}/30 fights showed ${ev}${flag ? ', ' + flag + ' set ' + state + ' steps' : ''}`);
+  assert(seen > 5, `${el} weapon never produced its effect`);
+  if (flag) assert(state > 0, `${el}: no ${flag} on foes`);
+}
 console.log('progression ok');

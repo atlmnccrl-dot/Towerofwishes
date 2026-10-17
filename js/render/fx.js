@@ -23,6 +23,7 @@
     let parts = [], texts = [], streaks = [], flash = 0, flashCol = '255,255,255', hitstop = 0, banner = null, impact = 0;
     const fizzles = []; // {unit, t}
     let blinks = [], dissolves = [];
+    let bolts = []; // storm arcs between foes
     let heals = [], hazards = [], hazHits = []; // healing threads; boss area marks and their impacts
     let groundDone = false; // hazard marks are painted once per scene pass, under the fighters
     const combo = { n: 0, last: -9, pop: 0 }; // the heroes' run of hits
@@ -35,7 +36,7 @@
     function consume(s) {
       const cam = V.cam;
       // A new match: drop marks and threads left over from the last one.
-      if (s.units && s !== lastMatch) { lastMatch = s; heals = []; hazards = []; hazHits = []; }
+      if (s.units && s !== lastMatch) { lastMatch = s; heals = []; hazards = []; hazHits = []; bolts = []; }
       for (const e of s.fx) {
         if (e.type === 'hit') {
           // Everything scales with the damage: sparks thrown along the blow,
@@ -141,6 +142,38 @@
           cam.shake = Math.max(cam.shake, fire ? 11 : 13);
           hitstop = Math.max(hitstop, 0.05);
           flash = Math.max(flash, 0.22); flashCol = fire ? '255,140,60' : '190,230,255';
+        } else if (e.type === 'flame') {
+          // Fire wave: a fan of flame thrown along the swing, past the target.
+          for (let i = 0; i < 34; i++) {
+            const k = R(), r = 0.6 + k * e.len, off = (R() - 0.5) * 0.9 * (0.4 + k), a = e.a + off * 0.5;
+            parts.push({ mote: true, float: true, x: e.x + Math.cos(e.a) * 0.5, y: e.y + Math.sin(e.a) * 0.5, z: 0.5 + R() * 1.1, vx: Math.cos(a) * (4 + k * 6), vy: Math.sin(a) * (4 + k * 6), vz: 0.4 + R() * 1.2, t: -R() * 0.1, life: 0.35 + R() * 0.35, r: 0.06 + R() * 0.1, col: R() < 0.5 ? '255,138,42' : R() < 0.5 ? '255,208,110' : '255,244,200' });
+            if (i % 3 === 0) parts.push({ shard: true, x: e.x + Math.cos(e.a) * r * 0.3, y: e.y + Math.sin(e.a) * r * 0.3, z: 0.8, vx: Math.cos(a) * 7, vy: Math.sin(a) * 7, vz: R() * 2, t: 0, life: 0.3 + R() * 0.25, col: R() < 0.5 ? '#ff8a2a' : '#ffd27a', w: 0.8 + R() });
+          }
+          parts.push({ ring: true, x: e.x + Math.cos(e.a) * 1.6, y: e.y + Math.sin(e.a) * 1.6, z: 0.05, t: 0, life: 0.4, col: '#ff9a3a', ground: true });
+          cam.shake = Math.max(cam.shake, 3); flash = Math.max(flash, 0.08); flashCol = '255,150,70';
+        } else if (e.type === 'freeze') {
+          // Flash-frozen: a burst of ice, a ring of cold.
+          for (let i = 0; i < 18; i++) {
+            const a = R() * Math.PI * 2, v = 2 + R() * 4;
+            parts.push({ shard: true, x: e.x, y: e.y, z: 0.4 + R() * 1.2, vx: Math.cos(a) * v, vy: Math.sin(a) * v, vz: 1 + R() * 3, t: 0, life: 0.35 + R() * 0.3, col: R() < 0.6 ? '#bfe8ff' : '#ffffff', w: 0.8 + R() * 1.2 });
+          }
+          parts.push({ ring: true, x: e.x, y: e.y, z: 0.05, t: 0, life: 0.5, col: '#bfe8ff', ground: true });
+          parts.push({ star: true, x: e.x, y: e.y, z: 1.1, t: 0, life: 0.18, r: 0.9, col: '#eaf8ff', rays: true });
+          hitstop = Math.max(hitstop, 0.06); cam.shake = Math.max(cam.shake, 3);
+        } else if (e.type === 'thaw') {
+          for (let i = 0; i < 12; i++) {
+            const a = R() * Math.PI * 2, v = 1 + R() * 3;
+            parts.push({ shard: true, x: e.x, y: e.y, z: 0.3 + R() * 1.4, vx: Math.cos(a) * v, vy: Math.sin(a) * v, vz: R() * 2, t: 0, life: 0.3 + R() * 0.3, col: '#d9f1ff', w: 0.6 + R() });
+          }
+        } else if (e.type === 'bolt') {
+          bolts.push({ x0: e.x0, y0: e.y0, x1: e.x1, y1: e.y1, t: 0, life: 0.22, seed: R() });
+          shards(e.x1, e.y1, 1.1, 8, '#ffe066', 5);
+          parts.push({ star: true, x: e.x1, y: e.y1, z: 1.1, t: 0, life: 0.14, r: 0.7, col: '#fffbe0', rays: true });
+          cam.shake = Math.max(cam.shake, 2);
+        } else if (e.type === 'quake') {
+          parts.push({ ring: true, x: e.x, y: e.y, z: 0.05, t: 0, life: 0.5, col: '#c8a070', ground: true });
+          parts.push({ ring: true, x: e.x, y: e.y, z: 0.05, t: -0.08, life: 0.5, col: '#f0dcb8', ground: true });
+          dust(e.x, e.y, 10); cam.shake = Math.max(cam.shake, 6);
         } else if (e.type === 'dissolve') {
           // A Tower fragment comes apart into black-violet ash and rising light.
           const big = !!e.big, h = big ? 3.0 : 1.8, w = big ? 0.85 : 0.36;
@@ -311,7 +344,8 @@
     // The swing ribbon: oldest end thin and faint, the leading end bright.
     function drawTrail(u, pts, sc) {
       const hero = u.team === 'hero', ao = u.allOut > 0;
-      const rgb = ao ? '227,38,58' : hero ? '170,205,228' : '255,150,150';
+      const EL = { fire: '255,150,60', ice: '170,225,255', storm: '255,230,110', quake: '210,170,120' };
+      const rgb = ao ? '227,38,58' : u.elem && EL[u.elem] ? EL[u.elem] : hero ? '170,205,228' : '255,150,150';
       const now = V.time, n = pts.length;
       const P2 = pts.map((p) => P(p.x, p.y, p.z));
       ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
@@ -333,6 +367,26 @@
       if (u.fled) return;
       const sc = V.cam.sc;
       if (u.allOut > 0) aura(u, sc, false);
+      if (u.frozenT > 0) {
+        // Frozen solid: a pale block of ice round the fighter, cracked.
+        const b = P(u.x, u.y, 0), t = P(u.x, u.y, 1.85), w = sc * 0.55, k = Math.min(1, u.frozenT / 0.25);
+        ctx.save(); ctx.globalAlpha = 0.55 * k;
+        ctx.fillStyle = '#bfe8ff'; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(1.5, sc * 0.03); ctx.lineJoin = 'round';
+        ctx.beginPath(); ctx.moveTo(b.x - w, b.y); ctx.lineTo(b.x - w * 0.8, t.y + sc * 0.15); ctx.lineTo(b.x - w * 0.2, t.y - sc * 0.05); ctx.lineTo(b.x + w * 0.4, t.y + sc * 0.1); ctx.lineTo(b.x + w, t.y + sc * 0.3); ctx.lineTo(b.x + w, b.y); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.beginPath(); ctx.moveTo(b.x - w * 0.3, t.y + sc * 0.1); ctx.lineTo(b.x + w * 0.1, (b.y + t.y) / 2); ctx.lineTo(b.x - w * 0.4, b.y - sc * 0.2); ctx.stroke();
+        ctx.restore();
+      }
+      if (u.burnT > 0) {
+        // Burning: tongues of flame licking up the body.
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        for (let i = 0; i < 5; i++) {
+          const ph = (V.time * 2.4 + i * 0.21) % 1, b = P(u.x + Math.sin(i * 2.1) * 0.25, u.y + Math.cos(i * 1.7) * 0.15, 0.2 + ph * 1.5), r = sc * (0.13 - 0.08 * ph);
+          const g = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, r * 2);
+          g.addColorStop(0, `rgba(255,236,170,${0.8 * (1 - ph)})`); g.addColorStop(0.5, `rgba(255,138,42,${0.55 * (1 - ph)})`); g.addColorStop(1, 'rgba(255,80,20,0)');
+          ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(b.x, b.y, r * 1.2, r * 2.2, 0, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.restore();
+      }
       if (u.drained > 0) {
         // Drained: breath clouds and a sweat drop.
         const h = P(u.x, u.y, 1.75);
@@ -418,6 +472,16 @@
       for (let i = fizzles.length - 1; i >= 0; i--) if (fizzles[i].t > 0.8) fizzles.splice(i, 1);
       for (const st of streaks) st.t += dt;
       streaks = streaks.filter((st) => st.t < st.life);
+      for (const bt of bolts) {
+        bt.t += dt;
+        const k = bt.t / bt.life; if (k >= 1) continue;
+        const a = P(bt.x0, bt.y0, 1.2), b = P(bt.x1, bt.y1, 1.2), dx = b.x - a.x, dy = b.y - a.y, l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l;
+        const pts = [a]; for (let i = 1; i < 7; i++) { const j = (Math.sin(bt.seed * 91 + i * 5.3 + Math.floor(bt.t * 60)) * 0.5) * sc * 0.35; pts.push({ x: a.x + dx * i / 7 + nx * j, y: a.y + dy * i / 7 + ny * j }); } pts.push(b);
+        ctx.save(); ctx.globalAlpha = 1 - k; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+        for (const [w, col] of [[Math.max(5, sc * 0.1), 'rgba(255,224,102,0.35)'], [Math.max(2.5, sc * 0.05), '#ffe066'], [Math.max(1, sc * 0.018), '#ffffff']]) { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath(); pts.forEach((q, i) => (i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y))); ctx.stroke(); }
+        ctx.restore();
+      }
+      bolts = bolts.filter((bt) => bt.t < bt.life);
 
       for (const p of parts) {
         p.t += dt;

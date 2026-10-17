@@ -845,7 +845,8 @@
   const levelPower = (lv) => 1 + 0.07 * ((lv || 1) - 1);
 
   // mods (gear and skills, js/progression.js): fractions added to the base,
-  //   { hp, power, speed, parry, dodge, react, armor, superRate, sta, lifesteal, secondWind }
+  //   { hp, power, speed, parry, dodge, react, armor, superRate, sta, lifesteal, secondWind, elem }
+  // elem ('fire' | 'ice' | 'storm' | 'quake') is the element of the wielded weapon; see elemHit.
   function makeUnit(id, key, x, y, facing, hpFrac, level, mods) {
     const base = DEFS[key], m = mods || {};
     const d = mods ? Object.assign({}, base, {
@@ -859,7 +860,7 @@
     return {
       id, key, def: d, name: d.name, team: d.team, guest: !!d.guest, r: d.r,
       level: level || 1, power: levelPower(level) * (1 + (m.power || 0)),
-      armor: Math.min(0.5, m.armor || 0), superRate: 1 + (m.superRate || 0), lifesteal: m.lifesteal || 0, secondWind: m.secondWind ? 1 : 0,
+      elem: m.elem || null, burnT: 0, frozenT: 0, armor: Math.min(0.5, m.armor || 0), superRate: 1 + (m.superRate || 0), lifesteal: m.lifesteal || 0, secondWind: m.secondWind ? 1 : 0,
       x, y, vx: 0, vy: 0, kx: 0, ky: 0, facing,
       hp: Math.max(1, Math.round(maxHp * (hpFrac == null ? 1 : hpFrac))), maxHp,
       sta: d.sta, maxSta: d.sta,
@@ -1190,6 +1191,72 @@
     }
   }
 
+  // Elemental weapons (gear: js/progression.js). Fire burns and throws a wave of flame past the target;
+  // ice chills, and sometimes freezes the foe solid (it cannot act, and takes more damage); storm
+  // arcs to the nearest others; quake rattles everything beside the target.
+  function hurtSpill(s, src, o, dmg, kn) {
+    if (!alive(o) || o.fled || o.beaten || o.state === 'out') return;
+    const d = Math.max(1, Math.round(dmg * (1 - (o.armor || 0))));
+    o.hp -= d; o.flash = 0.12;
+    const a = angTo(src, o); o.kx += Math.cos(a) * (kn || 1); o.ky += Math.sin(a) * (kn || 1);
+    s.fx.push({ type: 'hit', x: o.x, y: o.y, dmg: d, big: false, from: src.team, v: o.id, u: src.id });
+    if (o.hp <= 0) { o.hp = 0; knockOut(s, o); }
+  }
+  function elemHit(s, src, v, dmg, projectile) {
+    const el = src.elem, foes = opponents(s, src).filter((o) => o !== v && alive(o) && !o.fled && !o.beaten && o.state !== 'out');
+    if (el === 'fire') {
+      v.burnT = 3.2; v.burnBy = src.id;
+      if (projectile) return;
+      const f = angTo(src, v);
+      s.fx.push({ type: 'flame', x: src.x, y: src.y, a: f, len: 4.2, u: src.id });
+      for (const o of foes) {
+        const d = dist(src, o), da = Math.abs(angDiff(f, angTo(src, o)));
+        if (d > 4.4 || da > 0.5) continue;
+        o.burnT = 3.2; o.burnBy = src.id;
+        hurtSpill(s, src, o, dmg * 0.4, 1.2);
+      }
+    } else if (el === 'ice') {
+      v.chillT = 3;
+      if (!v.frozenT && !v.def.boss && !v.def.dissolve && s.rng() < 0.3) {
+        v.frozenT = 1.3;
+        if (v.act) { releaseTokens(s, v); v.act = null; }
+        v.pending = null; v.plan = null;
+        setState(v, 'stagger', 1.3);
+        s.fx.push({ type: 'freeze', x: v.x, y: v.y, v: v.id });
+        say(s, `${src.name}'s frost locks ${v.name} in place.`);
+      }
+    } else if (el === 'storm') {
+      foes.sort((a, b) => dist(v, a) - dist(v, b));
+      for (const o of foes.slice(0, 2)) {
+        if (dist(v, o) > 3.6) break;
+        s.fx.push({ type: 'bolt', x0: v.x, y0: v.y, x1: o.x, y1: o.y });
+        hurtSpill(s, src, o, dmg * 0.45, 0.6);
+      }
+    } else if (el === 'quake') {
+      s.fx.push({ type: 'quake', x: v.x, y: v.y, r: 2.0 });
+      for (const o of foes) {
+        if (dist(v, o) > 2.0) continue;
+        if (!o.def.boss && o.state !== 'down') { if (o.act) { releaseTokens(s, o); o.act = null; } o.pending = null; setState(o, 'stagger', 0.55); }
+        hurtSpill(s, src, o, dmg * 0.25, 1.6);
+      }
+    }
+  }
+  function stepElements(s, dt) {
+    for (const u of s.units) {
+      if (u.frozenT > 0) { u.frozenT -= dt; if (u.frozenT <= 0) { u.frozenT = 0; s.fx.push({ type: 'thaw', x: u.x, y: u.y, v: u.id }); } }
+      if (u.burnT > 0 && alive(u) && !u.beaten) {
+        u.burnT -= dt; u.burnAcc = (u.burnAcc || 0) + dt;
+        if (u.burnAcc >= 0.5) {
+          u.burnAcc -= 0.5;
+          const src = s.byId[u.burnBy] || null, d = Math.max(2, Math.round(u.maxHp * 0.014));
+          u.hp -= d; u.flash = 0.08;
+          if (u.hp <= 0) { u.hp = 0; u.burnT = 0; knockOut(s, u); }
+          void src;
+        }
+      } else if (u.burnT > 0) u.burnT = 0;
+    }
+  }
+
   function applyHit(s, u, v, A, projectile) {
     // A projectile passes a stand-in for its shooter; credit the real one.
     const src = s.byId[u.id] || u;
@@ -1218,6 +1285,7 @@
       dmg *= 1.15;
       if (u.team === 'bandit') s.stats.feintsLanded++;
     }
+    if (v.frozenT > 0) dmg *= 1.3; // frozen foes are brittle
     dmg = Math.round(dmg * (1 - (v.armor || 0)));
     if (A.chill) v.chillT = 2.5; // the Tower's frost: the wounded limb slows
     v.hp -= dmg;
@@ -1234,6 +1302,7 @@
     v.kx += Math.cos(a) * kn * 2.6;
     v.ky += Math.sin(a) * kn * 2.6;
     s.fx.push({ type: 'hit', x: v.x, y: v.y, dmg, big: dmg >= 18, from: u.team, v: v.id, u: u.id });
+    if (src.elem && v.hp > 0) elemHit(s, src, v, dmg, projectile);
     // Being hit by Kael makes a bandit turn on him ("Make it look at me").
     if (u.team === 'hero' && !u.guest && v.team === 'bandit') {
       v.target = src; v.aggroUntil = s.t + 5;
@@ -2127,6 +2196,7 @@
     chargeAllOut(s, dt / ALL_OUT.chargeTime);
     s.allOut.active = s.units.filter((u) => u.allOut > 0).length;
     for (const u of s.units) if (u.chillT > 0) u.chillT -= dt;
+    stepElements(s, dt);
     stepHazards(s, dt);
     if (s.arrive && !s.arrived) checkArrival(s);
     for (const u of s.units) stepUnit(s, u, dt);

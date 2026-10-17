@@ -290,7 +290,7 @@
     arcade: 'Endless waves for a high score. No hearts. More waves, better loot.',
     locked: 'Beyond the written story.',
   };
-  const LOOT_TEXT = { yard: 'Common gear', contract: 'Gear, sometimes fine', beast: 'The Stray’s Tooth (first clear) · fine gear', relic: 'A relic (first clear) · rare gear', deep: 'Gear from each chamber', chief: 'The Miller’s Cleaver (first clear) · rare and relic gear', gauntlet: 'One piece of gear per 3 waves', story: 'Experience and gear' };
+  const LOOT_TEXT = { yard: 'Common gear', contract: 'Gear, sometimes fine', ember: 'Emberbrand, a fire sword (first clear) · gear', frost: 'Frost Fangs, ice daggers (first clear) · gear', storm: 'Stormwake Lance (first clear) · gear', tremor: 'Quake Bands (first clear) · gear', beast: 'The Stray’s Tooth (first clear) · fine gear', relic: 'A relic (first clear) · rare gear', deep: 'Gear from each chamber', chief: 'The Miller’s Cleaver (first clear) · rare and relic gear', gauntlet: 'One piece of gear per 3 waves', story: 'Experience and gear' };
   function showWorld(sel) {
     match = null; storyBattle = null; setShowcase(null);
     stage = null; stageKey = null; renderer.setCameraOverride(null); renderer.setFollow(null);
@@ -365,40 +365,49 @@
     const hp = Math.round(d.hp * (1 + 0.1 * (m.level - 1)) * (1 + (mods.hp || 0)));
     $('tm-stats').textContent = `Level ${m.level} · ${hp} health · heavy art: ${(d.heavy && d.heavy.name) || 'Rising Cut'}` + (Object.keys(mods).length ? ' · ' + Prog.describe(mods) : ' · no bonuses yet');
     const eq = prog.equip[teamKey] || {};
+    const art = (id) => (Render.itemart ? Render.itemart.svg(id, 44) : '');
+    const efx = (I) => (I.elem ? `<em class="elem ${I.elem}">${Prog.ELEM_LABEL[I.elem]}</em>` : '');
     $('tm-slots').innerHTML = Prog.SLOTS.map((sl) => {
       const it = eq[sl] && Prog.item(prog, eq[sl]);
       const I = it && Prog.ITEMS[it.id];
-      return `<button class="slot${sl === teamSlot ? ' on' : ''}" type="button" data-slot="${sl}"><span>${sl}</span><b style="color:${I ? Prog.RARITY[I.rarity].color : 'inherit'}">${I ? I.name : '— empty —'}<i>${I ? Prog.describe(I.mods) : ''}</i></b></button>`;
+      return `<button class="slot${sl === teamSlot ? ' on' : ''}" type="button" data-slot="${sl}"><span class="sl-art">${it ? art(it.id) : '<i class="sl-empty"></i>'}</span><span class="sl-txt"><small>${sl}</small><b style="color:${I ? Prog.RARITY[I.rarity].color : 'inherit'}">${I ? I.name : '— empty —'}${I ? efx(I) : ''}</b><i>${I ? Prog.describe(I.mods) : ''}</i></span></button>`;
     }).join('');
     const fits = prog.inv.filter((it) => Prog.ITEMS[it.id].slot === teamSlot && Prog.canEquip(teamKey, it.id));
     $('tm-inv').innerHTML = fits.length ? fits.map((it) => {
       const I = Prog.ITEMS[it.id], who = Prog.wearer(prog, it.uid);
       const on = who === teamKey;
-      return `<button type="button" data-uid="${it.uid}" style="color:${Prog.RARITY[I.rarity].color}">${on ? '✓ ' : ''}${I.name}${who && !on ? ` (on ${Sim.DEFS[who].name.split(' ')[0]})` : ''}<i>${Prog.RARITY[I.rarity].label} · ${Prog.describe(I.mods)}</i></button>`;
+      const tip = `${I.name} · ${Prog.RARITY[I.rarity].label} · ${Prog.describe(I.mods)}${I.blurb ? ' — ' + I.blurb : ''}${who && !on ? ` (on ${Sim.DEFS[who].name.split(' ')[0]})` : ''}`;
+      return `<button type="button" class="tile${on ? ' on' : ''}" data-uid="${it.uid}" data-tip="${tip.replace(/"/g, '&quot;')}" aria-label="${tip.replace(/"/g, '&quot;')}">${art(it.id)}${on ? '<b class="eq">E</b>' : ''}${who && !on ? '<b class="eq other">·</b>' : ''}</button>`;
     }).join('') : `<p class="statline">No ${teamSlot === 'weapon' ? 'weapons this fighter can use' : teamSlot} yet. Missions and contracts drop gear.</p>`;
+    $('tm-itemtip').textContent = fits.length ? 'Tap a piece of gear to wear it; tap it again to take it off.' : '';
     const pts = Prog.points(prog, teamKey, m.level) - Prog.spent(prog, teamKey);
     $('tm-points').textContent = `${pts} point${pts === 1 ? '' : 's'} to spend · one per level`;
     const have = prog.skills[teamKey] || [];
-    $('tm-tree').innerHTML = (Prog.TREES[teamKey] || []).map((b) => `<div class="branch"><span>${b.name}</span>${b.nodes.map((n) => {
-      const id = Prog.skillId(b.name, n.i), own = have.includes(id), can = Prog.canLearn(prog, teamKey, m.level, b.name, n.i);
-      return `<button class="skill${own ? ' have' : can ? ' can' : ''}" type="button" data-b="${b.name}" data-i="${n.i}" ${own || can ? '' : 'disabled'}>${n.name}<i>${Prog.describe(n.mods)}</i></button>`;
-    }).join('')}</div>`).join('');
+    const branches = Prog.TREES[teamKey] || [];
+    $('tm-tree').innerHTML = Render.spirit.html({ branches, have, skillId: Prog.skillId, can: (b, i) => Prog.canLearn(prog, teamKey, m.level, b, i), describe: Prog.describe });
+    $('tm-detail').textContent = pts > 0 ? 'Tap a glowing bud to grow it.' : 'No points to spend. Levels give more.';
   }
   $('team-tabs').addEventListener('click', (e) => { const b = e.target.closest('.tab'); if (b) { teamKey = b.dataset.k; renderTeam(); } });
   $('tm-slots').addEventListener('click', (e) => { const b = e.target.closest('.slot'); if (b) { teamSlot = b.dataset.slot; renderTeam(); } });
+  $('tm-inv').addEventListener('pointerover', (e) => { const b = e.target.closest('button[data-tip]'); if (b) $('tm-itemtip').textContent = b.dataset.tip; });
   $('tm-inv').addEventListener('click', (e) => {
     const b = e.target.closest('button[data-uid]');
     if (!b) return;
+    $('tm-itemtip').textContent = b.dataset.tip;
     const uid = Number(b.dataset.uid);
     if (Prog.wearer(prog, uid) === teamKey) Prog.unequip(prog, teamKey, teamSlot); else Prog.equip(prog, teamKey, uid);
     writeSave(); renderTeam();
   });
+  const tipOf = (e) => { const g = e.target.closest && e.target.closest('.snode'); if (g) $('tm-detail').textContent = g.dataset.tip + (g.classList.contains('lock') ? ' (locked: learn the one before it)' : ''); return g; };
+  $('tm-tree').addEventListener('pointerover', tipOf);
+  $('tm-tree').addEventListener('focusin', tipOf);
   $('tm-tree').addEventListener('click', (e) => {
-    const b = e.target.closest('.skill');
-    if (!b || b.disabled) return;
+    const b = tipOf(e);
+    if (!b || !b.classList.contains('can')) return;
     const m = Story.roster(story).find((x) => x.key === teamKey);
     if (Prog.learn(prog, teamKey, m.level, b.dataset.b, Number(b.dataset.i))) { writeSave(); renderTeam(); }
   });
+  $('tm-tree').addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('.snode')) { e.preventDefault(); e.target.closest('.snode').dispatchEvent(new MouseEvent('click', { bubbles: true })); } });
   $('btn-respec').addEventListener('click', () => { Prog.respec(prog, teamKey); writeSave(); renderTeam(); });
   $('btn-team-back').addEventListener('click', () => { if (teamBack === 'world') showWorld(); else { renderMenu(); show('menu'); } });
 
@@ -527,7 +536,7 @@
     $('result-title').textContent = storyBattle && storyBattle.arcade ? 'Gauntlet over' : { win: 'Victory', loss: mode === 'tutorial' ? 'Fallen' : 'Defeat', surrender: 'Withdrew' }[r.outcome];
     $('result-loot').innerHTML = loot.length ? '<span class="label" style="align-self:center">Found</span>' + loot.map((it) => {
       const I = Prog.ITEMS[it.id];
-      return `<span style="color:${Prog.RARITY[I.rarity].color}">${I.name}</span>`;
+      return `<span class="lootitem" style="color:${Prog.RARITY[I.rarity].color}">${Render.itemart ? Render.itemart.svg(it.id, 34) : ''}<b>${I.name}</b>${I.elem ? `<em class="elem ${I.elem}">${Prog.ELEM_LABEL[I.elem]}</em>` : ''}</span>`;
     }).join('') : '';
     $('result-text').textContent = text;
     const stats = [

@@ -75,7 +75,7 @@
           ],
         },
         'c5.fork.afight': {
-          type: 'battle', chapter: 'c5', scenario: 'forkMarsh', hearts: false, xp: 90, loot: 'contract',
+          type: 'battle', chapter: 'c5', scenario: 'forkMarsh', hearts: false, xp: 90, loot: 'ember',
           party: pair, win: 'c5.fork.aafter',
           outro: 'The last goblin drops its sack and wades away into the reeds.',
         },
@@ -121,7 +121,7 @@
           ],
         },
         'c6.fork.afight': {
-          type: 'battle', chapter: 'c6', scenario: 'forkRuins', hearts: false, xp: 110, allyLevel: true, loot: 'beast',
+          type: 'battle', chapter: 'c6', scenario: 'forkRuins', hearts: false, xp: 110, allyLevel: true, loot: 'frost',
           party: (st) => BOOK(st), win: 'c6.fork.aafter',
           outro: 'The last of them backs into the dark and keeps going.',
         },

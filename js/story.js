@@ -627,7 +627,7 @@
       ],
     },
     'toll.fight': {
-      type: 'battle', chapter: 'side', scenario: 'toll', hearts: false, xp: 90, loot: 'contract',
+      type: 'battle', chapter: 'side', scenario: 'toll', hearts: false, xp: 90, loot: 'storm',
       party: (st) => party3(st), win: 'toll.after',
       outro: 'The bandits break and run. The ledger is left on the parapet, open to a very short page.',
     },
@@ -736,7 +736,7 @@
       ],
     },
     'cart.road': {
-      type: 'battle', chapter: 'side', scenario: 'cart', hearts: false, xp: 80, loot: 'contract',
+      type: 'battle', chapter: 'side', scenario: 'cart', hearts: false, xp: 80, loot: 'tremor',
       party: (st) => party3(st), win: 'cart.after',
       outro: 'The thugs scatter. The miller’s neighbour will get his flour after all.',
     },

@@ -27,6 +27,7 @@
     ren: 'blade', mara: 'glyph', brannoc: 'shield', kael: 'sword', eirynMage: 'glyph',
     aerys: 'spear', nox: 'blade', eloryn: 'glyph', braxen: 'fist',
   };
+  const ELEM_LABEL = { fire: 'Fire', ice: 'Frost', storm: 'Storm', quake: 'Quake' };
   const STAT_LABEL = {
     hp: 'Health', power: 'Power', speed: 'Speed', parry: 'Parry', dodge: 'Dodge', react: 'Reflexes',
     armor: 'Armour', superRate: 'Heavy-art charge', sta: 'Stamina', lifesteal: 'Lifesteal', secondWind: 'Second wind',
@@ -65,6 +66,12 @@
     farmhandIrons: { name: 'Farmhand’s Irons', slot: 'weapon', cls: 'fist', rarity: 'fine', mods: { power: 0.07, armor: 0.04 } },
     boneBands: { name: 'Bone-Set Bands', slot: 'weapon', cls: 'fist', rarity: 'rare', mods: { power: 0.11, hp: 0.05 } },
     hollowBoneKnuckles: { name: 'Hollow-Bone Knuckles', slot: 'weapon', cls: 'fist', rarity: 'relic', mods: { power: 0.13, armor: 0.06, hp: 0.06 } },
+    // elemental weapons: what they do in a fight is in `blurb` (sim.js elemHit)
+    emberbrand: { name: 'Emberbrand', slot: 'weapon', cls: 'sword', rarity: 'rare', elem: 'fire', mods: { power: 0.09 }, blurb: 'Every cut throws a wave of flame past the target and leaves foes burning.' },
+    cinderglassFocus: { name: 'Cinderglass Focus', slot: 'weapon', cls: 'glyph', rarity: 'rare', elem: 'fire', mods: { power: 0.07, superRate: 0.06 }, blurb: 'Glyph-bolts set what they hit alight.' },
+    frostFangs: { name: 'Frost Fangs', slot: 'weapon', cls: 'blade', rarity: 'rare', elem: 'ice', mods: { power: 0.08, speed: 0.03 }, blurb: 'Cuts chill and slow; now and then a foe freezes solid, and frozen foes take more damage.' },
+    stormwakeLance: { name: 'Stormwake Lance', slot: 'weapon', cls: 'spear', rarity: 'rare', elem: 'storm', mods: { power: 0.09 }, blurb: 'Each hit arcs lightning to the nearest other foes.' },
+    quakeBands: { name: 'Quake Bands', slot: 'weapon', cls: 'fist', rarity: 'rare', elem: 'quake', mods: { power: 0.1, armor: 0.03 }, blurb: 'Blows rattle the ground: everything beside the target is staggered.' },
     // armour (anyone)
     patchedLeathers: { name: 'Patched Leathers', slot: 'armor', rarity: 'common', mods: { hp: 0.05 } },
     roadCoat: { name: 'Road Coat', slot: 'armor', rarity: 'fine', mods: { hp: 0.07, speed: 0.03 } },
@@ -88,6 +95,10 @@
     relic: { w: { fine: 3, rare: 4, relic: 1 }, rolls: 1, first: ['bellShard'] },
     deep: { w: { common: 3, fine: 5, rare: 2 }, rolls: 1 },
     chief: { w: { fine: 3, rare: 5, relic: 1 }, rolls: 2, first: ['millersCleaver'] },
+    ember: { w: { common: 4, fine: 4, rare: 1 }, rolls: 1, first: ['emberbrand'] },
+    frost: { w: { fine: 5, rare: 2 }, rolls: 1, first: ['frostFangs'] },
+    storm: { w: { common: 4, fine: 4, rare: 1 }, rolls: 1, first: ['stormwakeLance'] },
+    tremor: { w: { common: 4, fine: 4, rare: 1 }, rolls: 1, first: ['quakeBands'] },
     gauntlet: { w: { common: 4, fine: 4, rare: 2, relic: 0.3 }, rolls: 0 }, // rolls = waves / 3
   };
 
@@ -222,7 +233,7 @@
     const m = {};
     const add = (mods) => { for (const k in mods) m[k] = (m[k] || 0) + mods[k]; };
     const eq = p.equip[key] || {};
-    for (const sl of SLOTS) { const it = eq[sl] && item(p, eq[sl]); if (it) add(ITEMS[it.id].mods); }
+    for (const sl of SLOTS) { const it = eq[sl] && item(p, eq[sl]); if (it) { add(ITEMS[it.id].mods); if (ITEMS[it.id].elem) m.elem = ITEMS[it.id].elem; } }
     const tree = TREES[key] || [];
     for (const sid of p.skills[key] || []) {
       const [b, i] = sid.split('.');
@@ -233,11 +244,11 @@
   }
   // A short readable list, e.g. "+8% Power · +4% Speed".
   function describe(mods) {
-    return Object.keys(mods).map((k) => (k === 'secondWind' ? 'Second wind (once a fight, rise at 30%)' : `+${Math.round(mods[k] * 100)}% ${STAT_LABEL[k] || k}`)).join(' · ');
+    return Object.keys(mods).filter((k) => k !== 'elem').map((k) => (k === 'secondWind' ? 'Second wind (once a fight, rise at 30%)' : `+${Math.round(mods[k] * 100)}% ${STAT_LABEL[k] || k}`)).join(' · ');
   }
 
   return {
-    SLOTS, RARITY, CLASS, ITEMS, TABLES, TREES, STAT_LABEL,
+    SLOTS, RARITY, CLASS, ITEMS, TABLES, TREES, STAT_LABEL, ELEM_LABEL,
     fresh, normalise, rollLoot, addItems, item, canEquip, wearer, equip, unequip,
     points, spent, canLearn, learn, respec, modsFor, describe, skillId,
   };

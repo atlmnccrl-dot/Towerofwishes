@@ -479,6 +479,48 @@ h2 { font-style: italic; }
 @keyframes tmRise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 @media (max-height: 460px) { .tm-title { top: 30px; } .tm-title .lede { display: none; } .tm-title .eyebrow { margin-bottom: 6px; } .begin { padding: 9px 36px 8px; } }
 @media (prefers-reduced-motion: reduce) { .tm-title, .tm-menu { animation: none; } }
+
+/* the spirit tree */
+.tree { display: block; position: relative; }
+.spirit { width: 100%; height: auto; max-height: 56vh; display: block; }
+.spirit .bark path, .spirit .limb { stroke: #3a2c26; }
+.spirit .bark path { stroke: #4a382e; }
+.spirit .limb-lit { stroke: #bfe8ff; filter: drop-shadow(0 0 3px #7fbfe8); }
+.spirit .blabel { font: 800 9px var(--ui); letter-spacing: 0.2em; text-transform: uppercase; fill: var(--parchment-dim); }
+.snode { cursor: pointer; outline: none; }
+.snode .halo { opacity: 0; transition: opacity 0.3s; }
+.snode .orb { fill: #17121a; stroke: #3a3340; stroke-width: 2; transition: fill 0.3s, stroke 0.3s; }
+.snode .pict { stroke: #5a5060; }
+.snode.lock { cursor: default; }
+.snode.can .orb { stroke: var(--blood); fill: #2a1218; animation: sporb 1.4s ease-in-out infinite; }
+.snode.can .pict { stroke: #ff8a96; }
+.snode.can .halo { opacity: 0.35; }
+.snode.have .orb { fill: #d9f0ff; stroke: #9cc3dd; }
+.snode.have .pict { stroke: #1c3446; }
+.snode.have .halo { opacity: 1; animation: sphalo 2.6s ease-in-out infinite; }
+.snode .leaf { fill: #7fd1a0; stroke: #2a6a48; stroke-width: 1; }
+.snode:hover .orb, .snode:focus-visible .orb { stroke: #fff; }
+.tm-detail { min-height: 2.4em; text-align: center; margin: 0; }
+@keyframes sporb { 0%, 100% { stroke-opacity: 0.6; } 50% { stroke-opacity: 1; } }
+@keyframes sphalo { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+@media (prefers-reduced-motion: reduce) { .snode.can .orb, .snode.have .halo { animation: none; } .spirit .mote { display: none; } }
+
+/* gear art */
+.slot { grid-template-columns: 50px minmax(0, 1fr); }
+.sl-art .iart, .tile .iart { display: block; }
+.sl-empty { display: block; width: 44px; height: 44px; border: 1px dashed var(--line); border-radius: 8px; }
+.sl-txt small { display: block; font: 800 9.5px/1 var(--ui); letter-spacing: 0.14em; text-transform: uppercase; color: var(--parchment-dim); margin-bottom: 3px; }
+.elem { font: 800 9px/1 var(--ui); font-style: normal; letter-spacing: 0.12em; text-transform: uppercase; padding: 2px 5px; margin-left: 6px; border-radius: 3px; color: #0c0808; vertical-align: middle; }
+.elem.fire { background: #ff8a2a; } .elem.ice { background: #9fd8ff; } .elem.storm { background: #ffe066; } .elem.quake { background: #c8a070; }
+.inv { display: flex; flex-wrap: wrap; gap: 6px; max-height: none; overflow: visible; }
+.inv .tile { position: relative; padding: 0; background: none; border: 0; line-height: 0; cursor: pointer; }
+.inv .tile.on .iart { filter: drop-shadow(0 0 4px var(--steel)); }
+.inv .tile:hover .iart, .inv .tile:focus-visible .iart { filter: brightness(1.25); }
+.tile .eq { position: absolute; right: -3px; top: -3px; font: 800 9px/1 var(--ui); background: var(--steel); color: #0c0808; padding: 2px 4px; border-radius: 3px; }
+.tile .eq.other { background: var(--parchment-dim); }
+.tm-itemtip { min-height: 2.6em; margin: 0; }
+.lootitem { display: inline-flex; align-items: center; gap: 6px; margin-right: 12px; }
+.lootitem .iart { flex: none; }
 </style>
 </head>
 <body>
@@ -607,10 +649,12 @@ h2 { font-style: italic; }
           <span class="label">Gear</span>
           <div class="slots" id="tm-slots"></div>
           <div class="inv" id="tm-inv"></div>
+          <p class="statline tm-itemtip" id="tm-itemtip"></p>
         </div>
         <div style="display:grid;gap:8px;align-content:start">
           <div class="heart-row"><span class="label">Skills</span><span class="timer" id="tm-points"></span></div>
           <div class="tree" id="tm-tree"></div>
+          <p class="statline tm-detail" id="tm-detail"></p>
           <button class="link" id="btn-respec" type="button">Reset skill points</button>
         </div>
       </div>
@@ -667,6 +711,8 @@ h2 { font-style: italic; }
 <script src="js/render/fx.js"></script>
 <script src="js/render/callouts.js"></script>
 <script src="js/render/intro.js"></script>
+<script src="js/render/spirit.js"></script>
+<script src="js/render/itemart.js"></script>
 <script src="js/render/director.js"></script>
 <script src="js/render/core.js"></script>
 <script src="js/render/backdrop.js"></script>
