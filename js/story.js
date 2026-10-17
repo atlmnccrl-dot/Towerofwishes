@@ -587,7 +587,7 @@
   // Chapters after the quarry live one per file in js/book/ (see its README).
   // Each gives nodes, speakers, staged scenes, and sim extras. In the browser
   // they load before this file as root.TowBook[id]; in Node we require them.
-  const BOOK_FILES = ['c6', 'c7', 'c8', 'c9', 'c10', 'c11', 'c12', 'c13', 'c14'];
+  const BOOK_FILES = ['pro', 'c6', 'c7', 'c8', 'c9', 'c10', 'c11', 'c12', 'c13', 'c14'];
   const BOOK = (st) => bookParty(st);
   const bookMods = BOOK_FILES.map((id) => {
     if (typeof module === 'object' && module.exports) return require('./book/' + id + '.js');

@@ -4407,8 +4407,9 @@
   // one below; alleys narrow into black seams; bridges cross overhead in the
   // distance; smoke rises from vents; lamps burn in a few upper windows.
   // Permanent shade. Oppressive and watchful.
-  function shadowcity(V, A) {
+  function shadowcity(V, A, variant) {
     const { ctx, Sim } = V;
+    const SQ = variant === 'square';
     const P = V.P;
     const K = kit(V, A), T = road2(V, K);
     const R = Sim.makeRng(161);
@@ -4421,6 +4422,13 @@
       crate: { lit: '#5a4838', shade: '#2c231b', top: '#6a5644', rim: '#e0c4a0' },
       shadowA: 'rgba(4,4,8,0.55)',
     };
+    // The square: the same bones, an evening before the Reset: warm stone, upright houses, many lamps.
+    if (SQ) Object.assign(C, {
+      bg: '#2a1e22', cob: '#6a5648', cobLit: '#8a7260', cobDark: '#4c3c34', joint: '#2c2024', wet: '#4a3a3c', gleam: 'rgba(255,214,160,0.4)',
+      bands: [['#6a5048', '#8a6a5a', '#4a3430'], ['#5c4c52', '#7c6a70', '#3e3238'], ['#6a5a44', '#8a7658', '#4a3e2e'], ['#584a5c', '#76647a', '#3a2e40']],
+      far: ['#3c2c38', '#4c3a48', '#281c26'], farthest: '#2a1e2e', back: '#241a24', roof: '#2a1c22',
+      lamp: '#ffc070', lampCore: '#fff0c8', shadowA: 'rgba(20,8,12,0.4)',
+    });
     const exitA = Math.atan2(A.exit.y / A.ry, A.exit.x / A.rx);
     const angDist = (a, b) => { const d = Math.abs(((a - b) % TAU + TAU) % TAU); return Math.min(d, TAU - d); };
     // Buildings round the street in three depths. Each storey is its own
@@ -4450,9 +4458,10 @@
       }
       return { list: out, seams, segs: out.flatMap((b) => b.bands) };
     }
-    const R1 = ring(1.12, 5.5, 8.5, 3, 0.35, 4, 163);
-    const R2 = ring(1.55, 9, 13, 3, 0.5, 5, 167);
-    const R3 = ring(2.1, 13, 19, 2, 0.6, 0, 173);
+    const LK = SQ ? 0.1 : 1;
+    const R1 = ring(1.12, 5.5, 8.5, 3, 0.35 * LK, 4, 163);
+    const R2 = ring(1.55, 9, 13, 3, 0.5 * LK, 5, 167);
+    const R3 = ring(2.1, 13, 19, 2, 0.6 * LK, 0, 173);
     // Bridges overhead between the far buildings.
     const bridges = [];
     for (const [a0, a1, z, k] of [[-2.55, -1.95, 6.2, 1.75], [-1.65, -1.05, 7.4, 1.9], [-0.95, -0.4, 5.6, 1.7], [-2.2, -1.3, 9.5, 2.0]]) bridges.push({ a0, a1, z, k });
@@ -4627,10 +4636,10 @@
       return out;
     }
     const overlay = K.overlay({
-      vig: [0.45, 0.9], vigCol: '4,4,8', tone: 1.15, toneCol: 'rgba(6,6,10,0.5)',
+      vig: SQ ? [0.22, 0.65] : [0.45, 0.9], vigCol: SQ ? '24,8,14' : '4,4,8', tone: 1.15, toneCol: SQ ? 'rgba(24,8,14,0.3)' : 'rgba(6,6,10,0.5)',
       paint(c, W, H) {
         const g = c.createLinearGradient(0, 0, 0, H);
-        g.addColorStop(0, 'rgba(4,4,8,0.55)'); g.addColorStop(0.45, 'rgba(60,64,90,0.06)'); g.addColorStop(1, 'rgba(4,4,8,0.3)');
+        g.addColorStop(0, SQ ? 'rgba(40,14,30,0.3)' : 'rgba(4,4,8,0.55)'); g.addColorStop(0.45, SQ ? 'rgba(255,170,100,0.06)' : 'rgba(60,64,90,0.06)'); g.addColorStop(1, SQ ? 'rgba(20,6,12,0.25)' : 'rgba(4,4,8,0.3)');
         c.fillStyle = g; c.fillRect(0, 0, W, H);
       },
     });
@@ -5762,6 +5771,185 @@
     return { drawBackdrop, items, drawAtmosphere, resize: overlay.reset, free: floor.free };
   }
 
+  // ================================================================ rooftops
+  // The prologue's city at dusk, seen from its roofs: slate courses, chimneys,
+  // a skyline of lit windows, the Tower on the horizon. s.reset (0..1) is the
+  // Reset: a white line opens across the sky, the red gathers at its edges, a
+  // wall of fire comes down and embers fall.
+  function rooftops(V, A) {
+    const { ctx, Sim } = V;
+    const P = V.P;
+    const K = kit(V, A), T = road2(V, K);
+    const C = {
+      slate: ['#2c2226', '#3a2d30', '#1a1316'], joint: '#120d10',
+      stone: { lit: '#5a4a4a', shade: '#2a2022', top: '#6c5a58', rim: '#e8c4a4' },
+      brick: { lit: '#6a4a3e', shade: '#2c1c1a', top: '#7a5848', rim: '#f0b890' },
+      shadowA: 'rgba(8,4,8,0.5)',
+    };
+    const RX = A.rx * 1.2, RY = A.ry * 1.18;
+    const R = Sim.makeRng(311);
+    const floor = T.bake(-RX - 1, -RY - 1, RX + 1, RY + 1, 40, (c) => {
+      const r = Sim.makeRng(313);
+      c.fillStyle = C.joint; c.fillRect(-RX - 1, -RY - 1, 2 * RX + 2, 2 * RY + 2);
+      for (let y = -RY; y < RY; y += 0.34) {
+        const off = (Math.round(y / 0.34) & 1) * 0.3;
+        for (let x = -RX - 0.3 + off; x < RX; x += 0.6) {
+          const t = r();
+          c.fillStyle = t < 0.2 ? C.slate[1] : t < 0.35 ? C.slate[2] : C.slate[0];
+          c.beginPath(); c.moveTo(x, y); c.lineTo(x + 0.57, y); c.lineTo(x + 0.57, y + 0.2); c.quadraticCurveTo(x + 0.3, y + 0.3, x, y + 0.2); c.closePath(); c.fill();
+          if (r() < 0.12) { c.fillStyle = 'rgba(232,150,100,0.12)'; c.fillRect(x + 0.05, y + 0.02, 0.4, 0.04); }
+        }
+      }
+      for (let i = 0; i < 26; i++) { c.fillStyle = 'rgba(10,6,10,0.3)'; T.fillPoly(c, T.blob(r, (r() - 0.5) * 2 * RX, (r() - 0.5) * 2 * RY, 0.4 + r() * 0.9, 0.3 + r() * 0.5, 8, 0.5)); c.fill(); }
+    });
+    const lanterns = [];
+    // skyline: two layers of buildings, deterministic
+    function layer(seed, n, hMin, hMax, wMin, wMax) {
+      const r = Sim.makeRng(seed), out = [];
+      let x = -0.3;
+      for (let i = 0; i < n && x < 2.2; i++) {
+        const w = wMin + r() * (wMax - wMin);
+        out.push({ x, w, h: hMin + r() * (hMax - hMin), roof: r() < 0.4 ? 1 : 0, lit: Array.from({ length: 10 }, () => r() < 0.3), ph: r() * 9 });
+        x += w * (0.85 + r() * 0.3);
+      }
+      return out;
+    }
+    const far = layer(317, 60, 1.5, 5.5, 0.04, 0.09), near = layer(331, 40, 1.2, 4.2, 0.06, 0.13);
+    const glowOf = (s) => Math.max(0, Math.min(1, (s && s.reset) || 0));
+    function sky(s, yE) {
+      const W = V.W, H = V.H, k = glowOf(s), sc = V.cam.sc, y0 = Math.max(H * 0.1, yE);
+      const mix = (a, b) => a.map((v, i) => Math.round(v + (b[i] - v) * k));
+      const top = mix([22, 20, 44], [60, 10, 14]), mid = mix([92, 52, 70], [190, 52, 36]), low = mix([238, 152, 96], [255, 214, 150]);
+      const g = ctx.createLinearGradient(0, 0, 0, y0);
+      g.addColorStop(0, `rgb(${top})`); g.addColorStop(0.55, `rgb(${mid})`); g.addColorStop(1, `rgb(${low})`);
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, y0 + 2);
+      // the permanent cloud ceiling
+      const cg = ctx.createLinearGradient(0, 0, 0, y0 * 0.5);
+      cg.addColorStop(0, 'rgba(14,10,24,0.85)'); cg.addColorStop(1, 'rgba(14,10,24,0)');
+      ctx.fillStyle = cg; ctx.fillRect(0, 0, W, y0 * 0.5);
+      // low sun smear on the horizon
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      T.glow('255,170,100', W * 0.3, y0, W * 0.5, y0 * 0.35, 0.28 * (1 - k * 0.5));
+      ctx.restore();
+      // the line: white core, red edges, from horizon to horizon
+      if (k > 0.02) {
+        const ly = y0 * 0.38, th = Math.max(3, sc * 0.1) * (0.5 + k * 2.6);
+        const rg = ctx.createLinearGradient(0, ly - th * 9, 0, ly + th * 9);
+        rg.addColorStop(0, 'rgba(255,40,30,0)'); rg.addColorStop(0.45, `rgba(255,60,40,${(0.85 * k).toFixed(3)})`); rg.addColorStop(0.5, `rgba(255,236,220,${Math.min(1, k * 1.6).toFixed(3)})`); rg.addColorStop(0.55, `rgba(255,60,40,${(0.6 * k).toFixed(3)})`); rg.addColorStop(1, 'rgba(255,40,30,0)');
+        ctx.fillStyle = rg; ctx.fillRect(0, ly - th * 9, W, th * 18);
+        ctx.fillStyle = `rgba(255,255,255,${Math.min(1, k * 2).toFixed(3)})`; ctx.fillRect(0, ly - th * 0.5, W, th);
+      }
+    }
+    function skyline(s, yE) {
+      const W = V.W, sc = V.cam.sc, k = glowOf(s), P0 = P(0, 0, 0);
+      const tower = () => {
+        const tx = W * 0.74 + P0.x * 0.05, tw = Math.max(10, sc * 0.9);
+        const g = ctx.createLinearGradient(0, 0, 0, yE);
+        g.addColorStop(0, `rgba(20,14,28,${0.2})`); g.addColorStop(0.5, 'rgba(28,18,34,0.92)'); g.addColorStop(1, 'rgba(22,14,26,1)');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(tx - tw * 1.2, yE); ctx.lineTo(tx - tw * 0.55, 0); ctx.lineTo(tx + tw * 0.55, 0); ctx.lineTo(tx + tw * 1.2, yE); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = 'rgba(255,200,140,0.5)';
+        for (let i = 0; i < 14; i++) ctx.fillRect(tx - tw * 0.3 + ((i * 7) % 3) * tw * 0.3, yE * (0.15 + i * 0.058), Math.max(1.5, tw * 0.1), Math.max(2, tw * 0.18));
+        ctx.strokeStyle = 'rgba(255,214,170,0.35)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(tx - tw * 1.2, yE); ctx.lineTo(tx - tw * 0.55, 0); ctx.stroke();
+      };
+      tower();
+      for (const [list, par, col, litA, hk] of [[far, 0.12, '#2a1c2c', 0.5, 0.55], [near, 0.28, '#1c121e', 0.8, 0.8]]) {
+        const ox = P0.x * par - W * 0.2;
+        ctx.fillStyle = col;
+        for (const b of list) {
+          const bx = ox + b.x * W * 1.4, bw = b.w * W * 1.4, bh = b.h * sc * hk;
+          if (bx > W + 10 || bx + bw < -10) continue;
+          ctx.fillRect(bx, yE - bh, bw, bh + 3);
+          if (b.roof) { ctx.beginPath(); ctx.moveTo(bx - bw * 0.05, yE - bh); ctx.lineTo(bx + bw / 2, yE - bh - bw * 0.35); ctx.lineTo(bx + bw * 1.05, yE - bh); ctx.closePath(); ctx.fill(); }
+          ctx.fillStyle = `rgba(255,190,110,${litA * (1 - k * 0.4)})`;
+          for (let i = 0; i < b.lit.length; i++) if (b.lit[i]) ctx.fillRect(bx + bw * (0.18 + (i % 3) * 0.28), yE - bh * (0.15 + Math.floor(i / 3) * 0.2), Math.max(1.5, bw * 0.12), Math.max(2, bw * 0.16));
+          ctx.fillStyle = col;
+        }
+      }
+      // the city's lamps glowing below the roofline
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      const lg = ctx.createLinearGradient(0, yE - sc, 0, yE + sc * 2);
+      lg.addColorStop(0, 'rgba(255,170,90,0)'); lg.addColorStop(1, `rgba(255,150,80,${0.2 + k * 0.3})`);
+      ctx.fillStyle = lg; ctx.fillRect(0, yE - sc, V.W, sc * 3);
+      ctx.restore();
+    }
+    function drawBackdrop(s) {
+      const W = V.W, H = V.H;
+      const yF = P(-Math.sin(V.cam.ang) * RY, -Math.cos(V.cam.ang) * RY, 0).y;
+      const yE = Math.min(H * 0.75, Math.max(H * 0.22, yF - V.cam.sc * 0.3));
+      ctx.fillStyle = '#0a060c'; ctx.fillRect(0, 0, W, H);
+      sky(s, yE); skyline(s, yE);
+      // the drop: dark below the roof edge, a few lanterns far down
+      const dg = ctx.createLinearGradient(0, yE, 0, H);
+      dg.addColorStop(0, '#120a14'); dg.addColorStop(1, '#07040a');
+      ctx.fillStyle = dg; ctx.fillRect(0, yE, W, H - yE);
+      floor.draw();
+      // parapet: the far edge's inner face and the cap round the roof
+      const ca = Math.cos(V.cam.ang), sa = Math.sin(V.cam.ang);
+      const edges = [[-RX, -RY, RX, -RY], [RX, -RY, RX, RY], [RX, RY, -RX, RY], [-RX, RY, -RX, -RY]];
+      ctx.lineJoin = 'round';
+      for (const [x0, y0, x1, y1] of edges) {
+        const mx = (x0 + x1) / 2, my = (y0 + y1) / 2, d = mx * sa + my * ca;
+        const h = 0.9 * (d < 0 ? 1 : 0.14), tx = x1 - x0, ty = y1 - y0, l = Math.hypot(tx, ty);
+        const a = P(x0, y0, 0), b = P(x1, y1, 0), c = P(x1, y1, h), e = P(x0, y0, h);
+        ctx.fillStyle = d < 0 ? '#3a2a2c' : '#4a3a3a'; K.path([a, b, c, e]); ctx.fill();
+        ctx.strokeStyle = INK; ctx.lineWidth = K.lw(0.03, 1.2); ctx.stroke();
+        if (d < 0) {
+          ctx.strokeStyle = 'rgba(10,6,8,0.55)'; ctx.lineWidth = K.lw(0.012, 0.8); ctx.beginPath();
+          for (let u = 0; u < l; u += 1.4) { const f = u / l, p0 = P(x0 + tx * f, y0 + ty * f, 0), p1 = P(x0 + tx * f, y0 + ty * f, h); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); }
+          ctx.stroke();
+        }
+        ctx.fillStyle = '#8a6a60'; ctx.beginPath(); const t0 = P(x0, y0, h), t1 = P(x1, y1, h), t2 = P(x1 + (d < 0 ? 0 : 0), y1, h + 0.0); void t2; ctx.moveTo(t0.x, t0.y); ctx.lineTo(t1.x, t1.y); ctx.lineWidth = K.lw(0.08, 2); ctx.strokeStyle = '#9a7a6c'; ctx.stroke();
+      }
+      const sc = V.cam.sc;
+      ctx.beginPath();
+      for (const o of A.obstacles) { const b = P(o.x, o.y, 0), off = K.shadowOff(1.2); ctx.moveTo(b.x + off.x * 0.5 + o.r * sc * 1.2, b.y + off.y * 0.5); ctx.ellipse(b.x + off.x * 0.5, b.y + off.y * 0.5, o.r * sc * 1.2, o.r * sc * V.cam.pitch, 0, 0, TAU); }
+      ctx.fillStyle = C.shadowA; ctx.fill();
+    }
+    const chim = new Map();
+    for (const o of A.obstacles) chim.set(o, { rot: (R() - 0.5) * 0.4 });
+    const brickDeco = (face, pts) => {
+      const [a, b, c, d] = pts; ctx.strokeStyle = 'rgba(14,6,6,0.5)'; ctx.lineWidth = K.lw(0.012, 0.7); ctx.beginPath();
+      for (const f of [0.25, 0.5, 0.75]) { ctx.moveTo(a.x + (d.x - a.x) * f, a.y + (d.y - a.y) * f); ctx.lineTo(b.x + (c.x - b.x) * f, b.y + (c.y - b.y) * f); }
+      ctx.stroke();
+    };
+    function items() {
+      const out = [];
+      for (const o of A.obstacles) out.push({ d: P(o.x, o.y, 0).d, f: () => {
+        if (K.off(P(o.x, o.y, 0), V.cam.sc * 3)) return;
+        const k = Math.max(0.45, K.tall(o.x, o.y));
+        K.box(o.x, o.y, o.r * 0.8, o.r * 0.8, chim.get(o).rot, 0, 1.9 * k, C.brick, brickDeco);
+        K.box(o.x, o.y, o.r * 0.95, o.r * 0.95, chim.get(o).rot, 1.9 * k, 2.05 * k, C.stone, brickDeco);
+      } });
+      return out;
+    }
+    const overlay = K.overlay({
+      vig: [0.4, 0.85], vigCol: '8,3,8', tone: 1.2, toneCol: 'rgba(10,4,10,0.4)',
+      paint(c, W, H) { const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, 'rgba(20,8,24,0.3)'); g.addColorStop(0.5, 'rgba(255,150,90,0.04)'); g.addColorStop(1, 'rgba(6,2,8,0.3)'); c.fillStyle = g; c.fillRect(0, 0, W, H); },
+    });
+    const embers = Array.from({ length: 70 }, (_, i) => ({ x: Sim.makeRng(i + 7)(), s: 0.4 + Sim.makeRng(i + 99)() * 1.2, ph: Sim.makeRng(i + 31)() }));
+    function drawAtmosphere(s) {
+      const W = V.W, H = V.H, t = V.time, k = glowOf(s);
+      overlay.draw();
+      if (k > 0.04) {
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        // the wall of fire coming down the sky
+        const fy = H * (0.1 + 0.9 * Math.max(0, k - 0.45) / 0.55);
+        const fg = ctx.createLinearGradient(0, 0, 0, fy);
+        fg.addColorStop(0, `rgba(255,90,30,${(0.55 * k).toFixed(3)})`); fg.addColorStop(0.8, `rgba(255,150,60,${(0.45 * k).toFixed(3)})`); fg.addColorStop(1, `rgba(255,240,200,${(0.65 * Math.max(0, k - 0.45) * 1.8).toFixed(3)})`);
+        if (k > 0.45) { ctx.fillStyle = fg; ctx.fillRect(0, 0, W, fy); }
+        ctx.fillStyle = `rgba(255,70,40,${(0.12 * k).toFixed(3)})`; ctx.fillRect(0, 0, W, H);
+        // embers and streaking fire
+        for (const e of embers) {
+          const u = (t * 0.25 * e.s + e.ph) % 1, x = (e.x * W + Math.sin(t + e.ph * 9) * 20 - u * 60) % W, y = u * H * 1.1 - 10, r = (0.5 + e.s * 0.6) * (V.cam.sc * 0.012 + 0.5);
+          ctx.fillStyle = `rgba(255,${120 + Math.round(e.s * 60)},60,${(0.7 * Math.min(1, k * 1.5)).toFixed(3)})`;
+          ctx.beginPath(); ctx.ellipse(x, y, r, r * (3 + k * 5), 0.25, 0, TAU); ctx.fill();
+        }
+        ctx.restore();
+      }
+    }
+    return { drawBackdrop, items, drawAtmosphere, resize: overlay.reset, free: floor.free };
+  }
+
   function rgbaHex(hex, a) {
     const n = parseInt(hex.slice(1), 16);
     return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${Math.max(0, Math.min(1, a)).toFixed(2)})`;
@@ -5771,7 +5959,7 @@
   // One dressing per arena, built on first use and cached; the arena of the
   // match being drawn picks which one is live, so switching arenas in one
   // page session just swaps (and size-dependent caches are reset).
-  const THEMES = { forest, summit, hill, cave, road, ruins, yard, deep, tavern, grassland, shadowcity, farmland, nightcamp, frosthall, calamity, offering };
+  const THEMES = { forest, summit, hill, cave, road, ruins, yard, deep, tavern, grassland, shadowcity, farmland, nightcamp, frosthall, calamity, offering, rooftops, square: (V, A) => shadowcity(V, A, 'square') };
   function create(V) {
     const built = new Map();
     let cur = null, curArena = null;

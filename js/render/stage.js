@@ -42,6 +42,7 @@
  *     set: {gest, prop, stow, noStool} (unit fields read by fighters.js), put:[x,y] (teleport),
  *     glow: [k, s] (match.glow: the formation's light), door: [k, s] (tavern door),
  *     light: [rgb, alpha, s] (additive screen wash), speed: [k, s, 'h'|'r'] (speed lines),
+ *     reset: [k, s] (rooftops: the Reset opens in the sky),
  *     whip: [k, s, dir] (blurred trunks sweeping past the lens), sky: [k, s] (the
  *     formation's light over the treeline), burst: 'dust'|'leaf' (at the unit's feet),
  *     trail: 'dust'|'leaf'|null (kicked up while the unit moves), rumble: [amp, s] }
@@ -162,7 +163,7 @@
     const arrows = [];
     // Screen effects: eased values {v, to, from, t, dur}.
     const ease = () => ({ v: 0, to: 0, from: 0, t: 0, dur: 0 });
-    const FX = { glow: ease(), door: ease(), light: ease(), speed: ease(), whip: ease(), sky: ease() };
+    const FX = { glow: ease(), door: ease(), light: ease(), speed: ease(), whip: ease(), sky: ease(), reset: ease() };
     let lightCol = '169,139,255', speedMode = 'h', whipDir = -1, rumble = { a: 0, t: 0 };
     function easeTo(e, to, dur) { e.from = e.v; e.to = to; e.t = 0; e.dur = dur || 0; if (!e.dur) e.v = to; }
     function stepEase(e, dt) { if (e.dur > 0) { e.t += dt; e.v = e.from + (e.to - e.from) * smooth(e.t / e.dur); if (e.t >= e.dur) { e.v = e.to; e.dur = 0; } } else e.v = e.to; }
@@ -311,6 +312,7 @@
       if (a.glow) easeTo(FX.glow, a.glow[0], instant ? 0 : a.glow[1]);
       if (a.door) easeTo(FX.door, a.door[0], instant ? 0 : a.door[1]);
       if (a.sky) easeTo(FX.sky, a.sky[0], instant ? 0 : a.sky[1]);
+      if (a.reset) easeTo(FX.reset, a.reset[0], instant ? 0 : a.reset[1]);
       if (a.light) { if (a.light[0]) lightCol = a.light[0]; easeTo(FX.light, instant ? 0 : a.light[1], instant ? 0 : a.light[2]); }
       if (a.speed) { easeTo(FX.speed, a.speed[0], instant ? 0 : a.speed[1]); if (a.speed[2]) speedMode = a.speed[2]; }
       if (a.whip) { easeTo(FX.whip, a.whip[0], instant ? 0 : a.whip[1]); if (a.whip[2]) whipDir = a.whip[2]; }
@@ -514,7 +516,7 @@
           if (ambT >= (def.ambient.every || 10)) ambT = 0;
         }
         for (const k in FX) stepEase(FX[k], dt);
-        match.glow = FX.glow.v; match.door = FX.door.v;
+        match.glow = FX.glow.v; match.door = FX.door.v; match.reset = FX.reset.v;
         if (rumble.t > 0) { rumble.t -= dt; shake = Math.max(shake, rumble.a); }
         for (let i = parts.length - 1; i >= 0; i--) {
           const q = parts[i];

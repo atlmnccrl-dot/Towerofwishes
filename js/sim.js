@@ -152,6 +152,24 @@
         { kind: 'rock', x: 6.8, y: 2.6, r: 0.6 },
       ],
     },
+    // The prologue's city roofs (staged scenes only): the run, the Reset.
+    rooftops: {
+      name: 'The Rooftops', theme: 'rooftops', rx: 11, ry: 4, exit: { x: 12, y: 0 },
+      obstacles: [
+        { kind: 'chimney', x: -4.4, y: -2.2, r: 0.5 },
+        { kind: 'chimney', x: 3.0, y: 2.2, r: 0.5 },
+        { kind: 'chimney', x: 8.2, y: -1.8, r: 0.5 },
+      ],
+    },
+    // The city square at evening, before the Reset (staged scenes only).
+    square: {
+      name: 'The Square', theme: 'square', rx: 11, ry: 5.5, exit: { x: 12, y: 0 },
+      obstacles: [
+        { kind: 'crate', x: -5.4, y: -3.0, r: 0.5 },
+        { kind: 'crate', x: 5.8, y: -2.6, r: 0.5 },
+        { kind: 'wall', x: 0.4, y: -3.8, r: 0.8 },
+      ],
+    },
     // The Shadow City's lower district: leaning buildings, narrow seams.
     shadowcity: {
       name: 'The Shadow City', theme: 'shadowcity', rx: 10, ry: 5, exit: { x: 11.5, y: 0 },
