@@ -153,7 +153,7 @@ const errors = [];
   await page.evaluate(() => window.__tow.debug.team());
   await page.waitForTimeout(300);
   await shot('team-1');
-  await page.evaluate(() => { const b = document.querySelector('#tm-inv button'); if (b) b.click(); const s = document.querySelector('.skill.can'); if (s) s.click(); });
+  await page.evaluate(() => { const b = document.querySelector('#tm-inv button'); if (b) b.click(); const s = document.querySelector('.snode.can'); if (s) s.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
   await page.waitForTimeout(200);
   await shot('team-2');
   const kit = await page.evaluate(() => ({ skills: Object.values(window.__tow.save.prog.skills).flat().length, equipped: Object.values(window.__tow.save.prog.equip).length }));
