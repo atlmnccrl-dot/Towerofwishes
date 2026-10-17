@@ -238,8 +238,8 @@
       if (wsum) { tx /= wsum; ty /= wsum; }
       let spread = 3;
       for (const u of live) spread = Math.max(spread, Math.hypot(u.x - tx, u.y - ty));
-      let sc = Math.min(W / (spread * 2 + 7), H / ((spread * 2 + 6) * cam.pitch + 2.6));
-      sc = Math.max(Math.min(sc, Math.min(W, H) / 7), Math.min(W, H) / 26);
+      let sc = Math.min(W / (spread * 2 + 5.6), H / ((spread * 2 + 4.8) * cam.pitch + 2.2));
+      sc = Math.max(Math.min(sc, Math.min(W, H) / 5.6), Math.min(W, H) / 24);
       let ang = -0.32 + Math.sin(cam.time * 0.05) * 0.16;
       const c = s.cutscene;
       let frame = null; // heavy-art framing: {ax, ay, lift, pitch}

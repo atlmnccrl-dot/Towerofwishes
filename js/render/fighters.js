@@ -713,6 +713,14 @@
       if (L.form === 'seraph') { drawSeraph(u, L, sc, s); return; }
       if (L.coldGlow && u.state !== 'out') coldPool(u, L, sc);
       V.shadow(u.x, u.y, u.r * 1.3 * (lying ? 1.7 : 1) * L.build ** 0.5 / (L.build > 1.6 ? 1.2 : 1), L.ghost ? 0.25 : L.float && !lying ? 0.28 : 0.42);
+      // Whose side: a ring on the ground, blue for the team, red for the foe; the one you follow is brighter.
+      if (!s.stageHandle && s.phase === 'fight' && !s.cutscene && !lying && !L.ghost) {
+        const p = V.P(u.x, u.y, 0), hero = u.team === 'hero', lead = s.lead === u || V.follow === u.id;
+        ctx.save(); ctx.lineWidth = Math.max(1.5, sc * (lead ? 0.06 : 0.04));
+        ctx.strokeStyle = hero ? `rgba(143,196,255,${lead ? 0.95 : 0.6})` : 'rgba(255,74,92,0.55)';
+        ctx.beginPath(); ctx.ellipse(p.x, p.y, u.r * 1.6 * sc, u.r * 1.6 * sc * V.cam.pitch, 0, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+      }
       if (L.mist && u.state !== 'out') drawMist(u, L, sc, false);
       // Shadow-step: fading afterimages trail a fast mover.
       if (L.afterimage && !lying && !V.introPhase) {
