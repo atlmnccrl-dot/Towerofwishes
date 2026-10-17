@@ -274,6 +274,11 @@ Out counters beyond the punisher, sound, real art, purchases, free modes beyond 
 | 2026-10-15 | Tutorial = the climber's last battle in the Tower, then the Reset, then 22 years later (book says 150) | Author |
 | 2026-10-16 | Follow the full manuscript, keep everything built; the book's six heroes are the party; 150 years; the climber stays a mystery; Ren, Mara and Brannoc become companions for hire | Author |
 | 2026-10-15 | All-new starters; the Tower's guardian is an unseen mystery; the climber stays a mystery | Author |
+| 2026-10-17 | Dialogue reads as film subtitles, no speech balloons; every non-fight scene is a moving cutscene; the original prologue (opening cinematic, animated painted Reset) stays as it was | Author |
+| 2026-10-17 | A fleeing enemy must run out of view before the match ends | Author |
+| 2026-10-17 | Choice screens are removed; paths are forks in the road: the camera shows each way, the player picks one, both reach the same place (Proposal: the two forks, the encounters and rewards on them) | Author |
+| 2026-10-17 | Prologue fight: the climber is beaten nearly to death, then a last stand (Dark Legion) wins it | Author |
+| 2026-10-17 | Spirit-tree skill screen; gear has art; elemental weapons change fights (fire sword throws flame, ice daggers freeze) (Proposal: item names, numbers, the element set) | Author |
 
 ## 16. Growth, loot and the world map (built in 0.5, all Proposals)
 
@@ -307,3 +312,21 @@ Out counters beyond the punisher, sound, real art, purchases, free modes beyond 
    tutorial in the prologue fight, and a new face-off. See §16.
 6. **Chapter Six onward** — needs the author's next chapters.
 6. **Engine decision** — choose the production engine before any store release (purchases, performance, real art pipeline).
+
+
+## 17. Forks, elements and last stands (built 2026-10-17, Proposals except where decided above)
+
+- **Forks.** A `fork` node (js/story.js) has `lines` that preview each way (the staged camera
+  shows them, with a subtle hint) and two `options`; the picker is one way on at each side of
+  the screen. Both ways rejoin the same node. Built: the quarry hill (Chapter Five: flooded
+  track = goblin ambush, ridge = a quiet find) and the viaduct (Chapter Two: arches = a fight,
+  ridge = the cairn). Node fields `set` and `xp` pay out on arrival for no-fight ways.
+- **Elements.** A weapon's `elem` (js/progression.js) reaches the sim as `mods.elem` and acts in
+  `elemHit` (js/sim.js): *fire* burns and throws a cone of flame past the target; *ice* chills
+  and sometimes freezes (frozen foes cannot act and take 30% more; bosses resist); *storm* arcs
+  to the two nearest others; *quake* staggers everything beside the target. Items: Emberbrand,
+  Cinderglass Focus, Frost Fangs, Stormwake Lance, Quake Bands. Icons are drawn by
+  js/render/itemart.js; first-clear drops are set by the `loot` table on the node.
+- **Last stand.** A unit with `def.lastStand` cannot fall until its heavy art has played: held
+  above 13% for the first 16 s, then at 20% health (or on a killing blow) the cutscene fires.
+  Used by the prologue climber (Dark Legion).

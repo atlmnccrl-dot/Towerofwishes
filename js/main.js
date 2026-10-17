@@ -75,7 +75,7 @@
     const needsHeart = n.type === 'battle' && Story.battle(story).hearts;
     const ok = !needsHeart || Pg.canStartStory(save);
     $('btn-story').disabled = !ok;
-    $('story-note').textContent = !ok ? 'No hearts left — try Practice' : needsHeart ? 'Next: a battle · a heart only on a wipe' : `${ch.label}`;
+    $('story-note').textContent = !ok ? 'No hearts left — try Practice' : `${ch.label} · ${ch.title}`;
   }
 
   let menuStage = null;
