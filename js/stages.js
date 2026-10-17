@@ -491,6 +491,22 @@
   // the runners come in from the west and head for the trees in the east.
   const sprint = (x0, y0, x1, y1, sp) => [{ who: 'kael', put: [x0, y0], to: [x1, y1], gait: 'sprint', speed: sp, trail: 'dust' }, { who: '@', put: [x0 - 0.7, y0 + 1.0], to: [x1 - 0.5, y1 + 1.0], gait: 'sprint', speed: sp * 0.98, trail: 'dust' }];
   const later = (t, list) => list.map((a) => Object.assign({ at: t }, a));
+  // After the clip: the room at the window again, Kael deciding. The first three beats
+  // of c1Formation (the gathering, the rings failing) are the clip's now.
+  const atWindow = [
+    { who: 'p4', put: [-2.4, -4.45], face: [-3, -6] }, { who: 'p5', put: [-3.7, -4.5], face: [-3, -6] },
+    { who: 'p3', put: [-1.6, -4.3], face: [-3, -6] }, { who: 'p6', put: [-4.4, -4.3], face: [-3, -6] },
+    { who: 'p2', set: { gest: 'point' }, face: [-3, -5.2] },
+  ];
+  const c1Go = {
+    arena: c1Formation.arena,
+    cast: c1Formation.cast,
+    setup: c1Formation.setup.concat(atWindow),
+    cam: { x: -3.0, y: -2.2, view: 4.6, ang: 0, pitch: 0.38, up: 1.3 },
+    // (the starter's own 'Wait, I'm coming' beat is dropped: nobody follows Kael out as a player character now)
+    beats: c1Formation.beats.slice(3).filter((b, i) => i !== 4).map((b, i) => (i === 0 ? Object.assign({}, b, { do: [{ glow: [0.25, 0.1] }].concat(b.do || []) }) : b)),
+  };
+
   const c1Run = {
     arena: 'road',
     cast: [
@@ -1105,6 +1121,7 @@
     'p.who': 'same',
     'c1.tavern': c1Tavern,
     'c1.formation': c1Formation,
+    'c1.go': c1Go,
     'c1.run': c1Run,
     'c1.voice': c1Voice,
     'c1.approach': 'same',

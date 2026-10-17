@@ -268,21 +268,28 @@
         B('cook', 'Then you’ll have no trouble finishing it.'),
       ],
     },
+    // The tavern goes to the window; then the painted clip of the formation charging and
+    // failing; then back in the room as Kael decides.
     'c1.formation': {
-      type: 'scene', chapter: 'c1', bg: 'formation', next: 'c1.run',
+      type: 'scene', chapter: 'c1', bg: 'tavern', next: 'c1.clip',
+      lines: [
+        N('A murmur runs through the tavern. One by one, the regulars drift to the window, and the stew is forgotten. Far to the north, the light over the trees has turned purple.'),
+      ],
+    },
+    'c1.clip': {
+      type: 'scene', chapter: 'c1', bg: 'formation', next: 'c1.go',
       lines: [
         N('Above the distant treeline, purple light gathers in the air. Fine lines curve around a bright center, ring inside ring, turning against one another.'),
-        S('@', {
-          ren: 'That’s not a Guild exercise.',
-          mara: 'That construction is… old. Nobody draws rings like that any more.',
-          brannoc: 'Whoever built that is either very good or about to be very sorry.',
-        }),
         N('One of the inner rings stops. The whole formation shudders, holds — and comes apart over the trees.'),
+      ],
+    },
+    'c1.go': {
+      type: 'scene', chapter: 'c1', bg: 'tavern', next: 'c1.run',
+      lines: [
         B('kael', 'I’m going outside.'),
         B('spear', 'You’re doing that thing with your face. The one you do before you run at a problem.'),
         B('kael', 'That’s why I’m going to see.'),
         N('He sets off before she can offer an opinion.'),
-        S('@', { ren: 'Wait. I\u2019m coming with you.', mara: 'Hold on \u2014 I want to see that construction up close.', brannoc: 'Not without me, you\u2019re not.' }),
         N('You leave your stew and go after him.'),
       ],
     },

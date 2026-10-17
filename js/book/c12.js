@@ -256,38 +256,38 @@
     // Each fighter alone with their knight (the Tower separated them): one stage per
     // fight, shared by the scenes before and after it.
     const solo = (hero, knightKey, knightId, ids, o) => {
-      const cast = [Object.assign({}, hero, { armed: true }), KN('knight', knightKey, 2.6, hero.y, 3.14)];
-      const def = auto('frosthall', cast, { armed: true, noFace: true, close: 3.6, wide: { view: 7 } });
+      const cast = [Object.assign({}, hero, { armed: true }), KN('knight', knightKey, 1.8, hero.y, 3.14)];
+      const def = auto('frosthall', cast, { armed: true, noFace: true, close: 3.4, wide: { view: 5.4 } });
       return def;
     };
-    const dissolve = [{ who: 'knight', hide: true }, { fx: { type: 'dissolve', x: 2.6, y: 0.4, big: true } }, { shake: 6 }];
+    const dissolve = [{ who: 'knight', hide: true }, { fx: { type: 'dissolve', x: 1.8, y: 0.4, big: true } }, { shake: 6 }];
     const pairs = [
-      ['kael', K(-2.6, 0.4, 0), 'knightSword', ['c12.kael', 'c12.kael2']],
-      ['braxen', BR(-2.6, 0.4, 0), 'knightFist', ['c12.braxen', 'c12.braxen2']],
-      ['aerys', AE(-2.6, 0.4, 0), 'knightSpear', ['c12.aerys', 'c12.aerys2', 'c12.aerys3']],
-      ['eloryn', EL(-2.6, 0.4, 0), 'knightTwin', ['c12.eloryn', 'c12.eloryn2']],
-      ['nox', NX(-2.6, 0.4, 0), 'knightAxe', ['c12.nox', 'c12.nox2']],
-      ['eiryn', E(-2.6, 0.4, 0), 'knightMaster', ['c12.eiryn']],
+      ['kael', K(-1.8, 0.4, 0), 'knightSword', ['c12.kael', 'c12.kael2']],
+      ['braxen', BR(-1.8, 0.4, 0), 'knightFist', ['c12.braxen', 'c12.braxen2']],
+      ['aerys', AE(-1.8, 0.4, 0), 'knightSpear', ['c12.aerys', 'c12.aerys2', 'c12.aerys3']],
+      ['eloryn', EL(-1.8, 0.4, 0), 'knightTwin', ['c12.eloryn', 'c12.eloryn2']],
+      ['nox', NX(-1.8, 0.4, 0), 'knightAxe', ['c12.nox', 'c12.nox2']],
+      ['eiryn', E(-1.8, 0.4, 0), 'knightMaster', ['c12.eiryn']],
     ];
     for (const [, hero, kk, ids] of pairs) {
       ids.forEach((id, i) => {
         const def = solo(hero, kk);
         const last = i === ids.length - 1;
-        def.auto.nodes = { [id]: { 0: { cam: { focus: ['knight', hero.id], view: 7.5, ang: -0.3, pitch: 0.46, ease: 1.0 }, do: [mist(0), { who: hero.id, set: { stow: false, gest: null } }].concat(i > 0 && last && ids.length > 1 ? dissolve : []) } } };
+        def.auto.nodes = { [id]: { 0: { cam: { focus: ['knight', hero.id], view: 5.2, ang: -0.3, pitch: 0.46, ease: 1.0 }, do: [mist(0), { who: hero.id, set: { stow: false, gest: null } }].concat(i > 0 && last && ids.length > 1 ? dissolve : []) } } };
         S[id] = i === 0 ? def : (ids.length > 2 && i === 1 ? def : def);
       });
     }
     // the closing blast: the hall opens up
-    S['c12.end'] = auto('frosthall', [E(-2.6, 0.4, 0, { armed: true }), KN('knight', 'knightMaster', 2.6, 0.4, 3.14)], {
+    S['c12.end'] = auto('frosthall', [E(-1.8, 0.4, 0, { armed: true }), KN('knight', 'knightMaster', 1.8, 0.4, 3.14)], {
       noFace: true,
       nodes: { 'c12.end': {
         0: { cam: { face: 'knight', side: 0.35, view: 3.2, up: 1.3, pitch: 0.4, ease: 0.8 }, do: [{ who: 'knight', icon: '?' }] },
-        1: { cam: { focus: ['eiryn'], view: 14, ang: -0.1, pitch: 0.4, up: 0.8, ease: 0.4 }, do: [{ who: 'knight', hide: true }, { fx: { type: 'dissolve', x: 2.6, y: 0.4, big: true } }, { shake: 14 }, { fade: [1.0, 0.15, WHITE] }, { at: 0.2, fade: [0.0, 1.4] }] },
+        1: { cam: { focus: ['eiryn'], view: 14, ang: -0.1, pitch: 0.4, up: 0.8, ease: 0.4 }, do: [{ who: 'knight', hide: true }, { fx: { type: 'dissolve', x: 1.8, y: 0.4, big: true } }, { shake: 14 }, { fade: [1.0, 0.15, WHITE] }, { at: 0.2, fade: [0.0, 1.4] }] },
       } },
     });
     // The post-fight scenes: the knight is gone.
     for (const id of ['c12.kael2', 'c12.braxen2', 'c12.aerys3', 'c12.eloryn2', 'c12.nox2']) {
-      const d = S[id]; d.auto.nodes[id][0].do = [{ who: 'knight', hide: true }, { fx: { type: 'dissolve', x: 2.6, y: 0.4, big: false } }].concat(d.auto.nodes[id][0].do.slice(0, 2));
+      const d = S[id]; d.auto.nodes[id][0].do = [{ who: 'knight', hide: true }, { fx: { type: 'dissolve', x: 1.8, y: 0.4, big: false } }].concat(d.auto.nodes[id][0].do.slice(0, 2));
     }
     return S; })(),
     defs: {},
