@@ -619,6 +619,9 @@
     crossing: { title: 'The Old Crossing', kind: 'side', from: 'cross.ask' },
     deep: { title: 'The Deep Passage', kind: 'dungeon', from: 'deep.mouth', repeat: true },
     hire: { title: 'Three for Hire', kind: 'side', from: 'hire.intro', repeat: true },
+    toll: { title: 'The Toll Bridge', kind: 'contract', from: 'toll.board' },
+    orchard: { title: 'Wolves in the Orchard', kind: 'contract', from: 'orchard.board' },
+    warren: { title: 'The Goblin Warren', kind: 'contract', from: 'warren.board' },
   };
   Object.assign(NODES, {
     // ---- the tavern by the Guild: Ren, Mara and Brannoc take contracts with you
@@ -641,6 +644,76 @@
           brannoc: 'A caravan contract, a debt, and a Tower full of bounties. One of those I can pay off this year.',
         }),
         N('Your new companion takes the Guild’s side contracts with Kael and Eiryn. Come back to the tavern any time to change who rides with you.'),
+      ],
+    },
+
+    // ---- more Guild contracts (Proposals: the book's contract board lists "road repairs,
+    // missing cargo, an escort to the coast"; these are in that spirit)
+    'toll.board': {
+      type: 'scene', chapter: 'side', bg: 'guild', next: 'toll.fight',
+      lines: [
+        N('The contract board: road repairs, missing cargo, an escort to the coast. A new notice has been pinned over the old ones. Someone has taken the old stone bridge east of town and started charging a toll.'),
+        B('companion', 'Four of them, the notice says. Armed. Polite about it, apparently.'),
+        B('kael', 'Polite is worse.'),
+        N('At the bridge, a broad man is sitting on the parapet with a ledger, as though he has always been there.'),
+        S('toll', 'Toll’s two coppers a head. Three coppers if you’re carrying a sword. You’re carrying a sword.'),
+        B('kael', 'The Guild would like a word about the bridge.'),
+      ],
+    },
+    'toll.fight': {
+      type: 'battle', chapter: 'side', scenario: 'toll', hearts: false, xp: 90, loot: 'contract',
+      party: (st) => party3(st), win: 'toll.after',
+      outro: 'The bandits break and run. The ledger is left on the parapet, open to a very short page.',
+    },
+    'toll.after': {
+      type: 'scene', chapter: 'side', bg: 'ruins', next: 'map',
+      lines: [
+        N('The toll-taker’s ledger records eleven payments. Eiryn reads it twice.'),
+        B('eiryn', 'He was honest about the numbers, at least.'),
+        N('The Guild pays for the bridge, and promises to send someone to count what was taken.'),
+      ],
+    },
+    'orchard.board': {
+      type: 'scene', chapter: 'side', bg: 'guild', next: 'orchard.fight',
+      lines: [
+        N('A grower from the farms past the clearing has pinned a notice of her own, in careful handwriting: something is in the orchard at night, and it is not deer.'),
+        B('companion', 'Two of them. They come at dusk and leave the fruit alone.'),
+        B('kael', 'Then it’s not the fruit they want.'),
+        N('The orchard is quiet in the failing light. Windfalls lie untouched between the rows. Something moves in the next row over — and then something else, from the other side.'),
+      ],
+    },
+    'orchard.fight': {
+      type: 'battle', chapter: 'side', scenario: 'orchard', hearts: false, xp: 100, loot: 'beast',
+      party: (st) => party3(st), win: 'orchard.after',
+      outro: 'The second beast follows the first into the dark. The orchard is quiet again.',
+    },
+    'orchard.after': {
+      type: 'scene', chapter: 'side', bg: 'forest', next: 'map',
+      lines: [
+        N('The grower brings out a basket of fruit as payment, and apologises that it is only fruit.'),
+        B('kael', 'Fruit is fine.'),
+        B('eiryn', 'It smells like something I used to know.'),
+      ],
+    },
+    'warren.board': {
+      type: 'scene', chapter: 'side', bg: 'guild', next: 'warren.fight',
+      lines: [
+        B('kael', 'We said something genuinely small this time.'),
+        B('companion', 'It was small. Then it was a warren.'),
+        N('The goblins from the quarry did not all die in the cave. The Guild has found where the rest went: a hollow under the old quarry road, dug deeper than any goblin should dig. A chief has been seen, wearing a grain sack as a cloak.'),
+        B('eiryn', 'I shall ask every goblin whether it has one hidden in a cupboard.'),
+      ],
+    },
+    'warren.fight': {
+      type: 'battle', chapter: 'side', scenario: 'warren', hearts: false, xp: 130, loot: 'chief',
+      party: (st) => party3(st), win: 'warren.after',
+      outro: 'The chief goes down in a heap of grain sacks. The warren empties out into the dark.',
+    },
+    'warren.after': {
+      type: 'scene', chapter: 'side', bg: 'cave', next: 'map',
+      lines: [
+        N('The warren is cleared. The miller’s tools are found, stacked neatly beside a very small bed.'),
+        B('kael', 'We are not telling the miller about the bed.'),
       ],
     },
 

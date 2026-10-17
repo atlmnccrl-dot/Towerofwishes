@@ -42,6 +42,9 @@
     { id: 'yard', kind: 'training', episode: 'yard', region: 'town', x: 70, y: 300, title: 'The Evaluation Yard', sub: 'Training · repeatable' },
     { id: 'gauntlet', kind: 'arcade', episode: 'gauntlet', region: 'town', x: 75, y: 190, title: 'Yard Gauntlet', sub: 'Arcade · endless waves' },
     { id: 'cart', kind: 'contract', episode: 'cart', region: 'north', x: 220, y: 120, title: 'The Missing Supply Cart', sub: 'Guild contract' },
+    { id: 'toll', kind: 'contract', episode: 'toll', region: 'hills', x: 415, y: 150, title: 'The Toll Bridge', sub: 'Guild contract' },
+    { id: 'orchard', kind: 'contract', episode: 'orchard', region: 'north', x: 255, y: 40, title: 'Wolves in the Orchard', sub: 'Guild contract' },
+    { id: 'warren', kind: 'contract', episode: 'warren', region: 'hills', x: 540, y: 255, title: 'The Goblin Warren', sub: 'Guild contract · after the quarry' },
     { id: 'stray', kind: 'contract', episode: 'stray', region: 'north', x: 330, y: 70, title: 'Enough Teeth for Three', sub: 'Guild contract' },
     { id: 'c5', kind: 'story', chapter: 'c5', region: 'hills', x: 480, y: 200, title: 'The Quarry', sub: 'Chapter Five' },
     { id: 'deep', kind: 'dungeon', episode: 'deep', region: 'hills', x: 560, y: 150, title: 'The Deep Passage', sub: 'Dungeon · repeatable' },
@@ -62,7 +65,7 @@
   // Roads between nodes; the three from the Guild are the branch.
   const EDGES = [
     ['c1', 'c2'], ['c2', 'c4'], ['c4', 'yard'], ['c4', 'gauntlet'],
-    ['c4', 'cart'], ['cart', 'stray'],
+    ['c4', 'cart'], ['cart', 'stray'], ['c4', 'toll'], ['stray', 'orchard'], ['c5', 'warren'],
     ['c4', 'c5'], ['c5', 'deep'],
     ['c4', 'crossing'],
     ['c4', 'hire'],
@@ -82,7 +85,7 @@
     // Contracts are tuned for three: Kael, Eiryn and a companion (or a book hero).
     const three = Story.roster(st).length >= 3;
     switch (n.id) {
-      case 'cart': case 'stray': case 'crossing': case 'deep': {
+      case 'cart': case 'stray': case 'crossing': case 'deep': case 'toll': case 'orchard': case 'warren': {
         const r = baseLock(Story, st, n);
         return r || (three ? null : 'Hire a companion at the tavern first (Three for Hire)');
       }
@@ -91,8 +94,10 @@
   }
   function baseLock(Story, st, n) {
     switch (n.id) {
-      case 'yard': case 'gauntlet': case 'cart': case 'hire': return reached(Story, st, 'c4') && (st.seen.c4) ? null : 'Register with the Guild first (Chapter Four)';
+      case 'yard': case 'gauntlet': case 'cart': case 'hire': case 'toll': return reached(Story, st, 'c4') && (st.seen.c4) ? null : 'Register with the Guild first (Chapter Four)';
       case 'stray': return st.done.cart ? null : 'Finish the missing cart contract';
+      case 'orchard': return st.done.stray ? null : 'Finish “Enough Teeth for Three” first';
+      case 'warren': return past(Story, st, 'c5') ? null : 'Clear the quarry first (Chapter Five)';
       case 'crossing':
         if (!(reached(Story, st, 'c4') && st.seen.c4)) return 'Eiryn hasn’t asked yet';
         return (st.flags.trust || 0) > 0 ? null : 'Eiryn doesn’t trust you enough to ask';

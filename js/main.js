@@ -78,7 +78,11 @@
     $('story-note').textContent = !ok ? 'No hearts left — try Practice' : needsHeart ? 'Next: a battle · a heart only on a wipe' : `${ch.label}`;
   }
 
+  let menuStage = null;
   function show(id) {
+    if (id === 'menu') {
+      if (!menuStage && Render.stage && window.TowStages && window.TowStages.title) { try { menuStage = Render.stage.start(window.TowStages.title, Sim); } catch (e) { menuStage = null; } }
+    } else if (menuStage) { menuStage = null; if (!stage) renderer.setCameraOverride(null); }
     for (const s of ['menu', 'result', 'paused', 'story', 'select', 'map', 'world', 'team-screen', 'cine']) $(s).hidden = s !== id;
     $('hud').hidden = !(id === null || id === 'paused');
     view = id || 'fight';
@@ -459,6 +463,7 @@
     $('feed').innerHTML = '';
     buildHud();
     renderer.setFollow(null);
+    renderer.setCameraOverride(null);
     show(null);
     $('btn-withdraw').querySelector('small').textContent = mode === 'story' ? 'No heart lost · team leaves injured' : mode === 'tutorial' ? 'Leave the prologue' : 'Practice · nothing is saved';
   }
@@ -827,6 +832,14 @@
       requestAnimationFrame(frame);
       return;
     }
+    if (!match && view === 'menu' && menuStage) {
+      // The title tableau: the six walk toward the Tower, a slow camera behind them.
+      menuStage.update(real);
+      renderer.setCameraOverride(menuStage.camera());
+      renderer.draw(menuStage.match, real, true, null);
+      requestAnimationFrame(frame);
+      return;
+    }
     if (!match) {
       // Menu backdrop: an endless practice bout, restarted when it ends.
       acc += real;
@@ -901,4 +914,14 @@
   setInterval(() => { if (!$('menu').hidden) renderMenu(); }, 1000);
   show('menu');
   requestAnimationFrame(frame);
+  // The boot splash: stays up for the title to land and the fonts to arrive, then lifts.
+  {
+    const boot = document.getElementById('boot');
+    const t0 = performance.now();
+    const lift = () => { if (boot) { boot.classList.add('gone'); setTimeout(() => boot.remove(), 900); } };
+    const ready = (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).catch(() => {});
+    const min = window.location.search.indexOf('noboot') >= 0 ? 0 : 1700;
+    ready.then(() => setTimeout(lift, Math.max(0, min - (performance.now() - t0))));
+    setTimeout(lift, 3500);
+  }
 })();

@@ -669,6 +669,30 @@
         { key: 'beast', x: 4.0, y: -1.0, f: 3.1 },
       ],
     },
+    // More Guild contracts (Proposals): bandits at a bridge, beasts in an orchard, a goblin warren.
+    toll: {
+      chapter: 'Guild contract', title: 'The Toll Bridge', arena: 'ruins', allOutUses: 2, vs: 'brute', scale: { hp: 1.35, dmg: 1.5 },
+      units: [
+        { slot: 0, x: -7.0, y: 0.2, f: 0 }, { slot: 1, x: -7.6, y: -1.4, f: 0 }, { slot: 2, x: -7.8, y: 1.6, f: 0 },
+        { key: 'brute', x: 2.4, y: 0.2, f: 3.1 }, { key: 'knife', x: 1.2, y: -2.2, f: 3.1 },
+        { key: 'thug', x: 3.4, y: 2.4, f: 3.1 }, { key: 'thug', x: 4.6, y: -1.0, f: 3.1 },
+      ],
+    },
+    orchard: {
+      chapter: 'Guild contract', title: 'Wolves in the Orchard', arena: 'clearing', allOutUses: 2, vs: 'beast', scale: { hp: 0.7, dmg: 0.8 },
+      units: [
+        { slot: 0, x: -7.6, y: 0.4, f: 0 }, { slot: 1, x: -8.2, y: -1.4, f: 0 }, { slot: 2, x: -8.4, y: 1.6, f: 0 },
+        { key: 'beast', x: 3.6, y: -1.6, f: 3.1 }, { key: 'beast', x: 4.6, y: 1.8, f: 3.1 },
+      ],
+    },
+    warren: {
+      chapter: 'Guild contract', title: 'The Goblin Warren', arena: 'cave', allOutUses: 2, vs: 'goblinChief', scale: { hp: 1.1, dmg: 1.2 },
+      units: [
+        { slot: 0, x: 6.6, y: 0.6, f: 3.1 }, { slot: 1, x: 7.2, y: 2.0, f: 3.1 }, { slot: 2, x: 7.4, y: -0.8, f: 3.1 },
+        { key: 'goblin', x: -1.0, y: -1.6, f: 0 }, { key: 'goblin', x: -1.4, y: 1.8, f: 0 }, { key: 'goblinSpear', x: -2.6, y: 0.2, f: 0 },
+        { key: 'goblinArcher', x: -4.4, y: 1.6, f: 0 }, { key: 'goblinHexer', x: -5.0, y: -1.8, f: 0 }, { key: 'goblinChief', x: -4.0, y: 0.0, f: 0 },
+      ],
+    },
     crossing: {
       chapter: 'Side story', title: 'The Old Crossing', arena: 'ruins', allOutUses: 2, vs: 'warden', scale: { hp: 0.95, dmg: 1.25 },
       units: [

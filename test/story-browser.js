@@ -92,7 +92,7 @@ const errors = [];
 
   await shot('0-menu');
   await page.click('#btn-story');
-  await tapThrough(20, true);                 // title card, the Tower
+  await tapThrough(80, true);                 // the opening, the prologue, the Tower
   // The prologue fight is the guided tutorial: the coach pauses the fight.
   await page.waitForFunction(() => window.__tow.match, null, { timeout: 5000 });
   await page.evaluate(() => window.__tow.debug.skipIntro());

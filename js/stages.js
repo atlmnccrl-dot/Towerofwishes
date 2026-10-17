@@ -1106,6 +1106,30 @@
     ],
   };
 
+  // ------------------------------------------------------------ title
+  // The menu's tableau: the six on the road, walking slowly toward the Tower.
+  const titleStage = {
+    arena: 'grassland',
+    cast: [
+      { id: 'kael', key: 'kael', x: -6.0, y: 0.6, f: 0 }, { id: 'eiryn', key: 'eirynAsh', x: -7.4, y: -0.6, f: 0 },
+      { id: 'aerys', key: 'aerys', x: -7.2, y: 1.8, f: 0 }, { id: 'braxen', key: 'braxen', x: -8.8, y: 0.8, f: 0 },
+      { id: 'eloryn', key: 'eloryn', x: -9.0, y: -1.2, f: 0 }, { id: 'nox', key: 'nox', x: -4.2, y: -1.8, f: 0 },
+    ],
+    auto: { noFace: true },
+    setup: [{ who: 'kael', set: { stow: true, gest: null } }, { who: 'nox', set: { stow: true, gest: null } }],
+    cam: { focus: ['kael', 'eiryn', 'aerys', 'braxen', 'eloryn', 'nox'], view: 7.5, ang: -1.45, pitch: 0.3, up: 0.6, dx: 2.0, drift: 0.004 },
+    beats: [],
+    ambient: {
+      every: 22,
+      do: [
+        { at: 0.0, who: 'kael', put: [-6.0, 0.6] }, { at: 0.0, who: 'eiryn', put: [-7.4, -0.6] }, { at: 0.0, who: 'aerys', put: [-7.2, 1.8] },
+        { at: 0.0, who: 'braxen', put: [-8.8, 0.8] }, { at: 0.0, who: 'eloryn', put: [-9.0, -1.2] }, { at: 0.0, who: 'nox', put: [-4.2, -1.8] },
+        { at: 0.1, who: 'kael', to: [7, 0.6], speed: 0.7 }, { at: 0.1, who: 'eiryn', to: [5.6, -0.6], speed: 0.7 }, { at: 0.1, who: 'aerys', to: [5.8, 1.8], speed: 0.7 },
+        { at: 0.1, who: 'braxen', to: [4.2, 0.8], speed: 0.7 }, { at: 0.1, who: 'eloryn', to: [4.0, -1.2], speed: 0.7 }, { at: 0.1, who: 'nox', to: [8.8, -1.8], speed: 0.7 },
+      ],
+    },
+  };
+
   // Staged scenes of the book's chapters (js/book/*.js).
   const bookStages = {};
   (function () {
@@ -1115,6 +1139,7 @@
   })();
 
   return Object.assign(bookStages, {
+    title: titleStage,
     'p.tower': pTower,
     'p.light': pLight,
     'p.select': pSelect,
