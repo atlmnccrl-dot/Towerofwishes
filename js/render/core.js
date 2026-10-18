@@ -364,6 +364,7 @@
       },
       setFollow: (id) => { V.follow = id || null; },
       get follow() { return V.follow || null; },
+      get camAng() { return V.cam.ang; },
       setCameraOverride: (o) => { V.camOverride = o || null; },
       get stats() { return V.stats; },
     };

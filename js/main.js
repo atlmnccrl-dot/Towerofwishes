@@ -408,18 +408,24 @@
 
   // ------------------------------------------------------------ guided tutorial (the prologue fight)
   let coach = { i: 0, on: false, enabled: false };
-  const COACH = [
+  const COACH_FIGHT = [
     { when: (m) => m.t > 0.8, title: 'You watch. They fight.', text: 'Every fighter reads wind-ups, parries, dodges and feints on their own. Your job is timing.' },
     { when: (m) => m.t > 3 && Sim.allOutReady(m), title: 'ALL OUT', text: 'Tap ALL OUT now. Everyone burns their stamina and power into a flurry — then they’re drained and can’t dodge or block until they recover.', target: '#btn-allout', wait: 'allout' },
     { when: (m) => m.t > 9, title: 'Follow a fighter', text: 'Tap the climber, or their card at the top left, to follow them with the camera. Tap again to let go.', target: '#team .card', wait: 'follow' },
     { when: (m) => m.t > 14, title: 'Heavy arts', text: 'When the bar under a name fills, that fighter unleashes a heavy art as a cutscene. Tap the screen to jump to the impact.' },
     { when: (m) => m.t > 19, title: 'Withdraw', text: 'Hold the flag to leave a story fight. Your team leaves injured; the fight waits.', target: '#btn-withdraw' },
   ];
+  // The crown, introduced at the second Kael and Eiryn fight (Director's Bible S11).
+  const HOST_COACH = [
+    { when: (m) => m.t > 0.6, title: 'Take control', text: 'Tap the crown on a fighter’s card to control them. Tap it again and they fight on their own.', target: '#team .crown', wait: 'host' },
+    { when: () => !!hostId, title: 'Move and strike', text: 'Drag on the left side to move. ATTACK strikes the nearest enemy. SPECIAL fires a heavy art when its bar is full. Dodging and parrying stay automatic.', target: '#btn-attack' },
+  ];
   function coachTick() {
     if (!coach.enabled || !match || match.result || faceoff || match.phase !== 'fight') return;
+    const COACH = coach.steps || COACH_FIGHT;
     if (coach.on) {
       const c = COACH[coach.i];
-      if ((c.wait === 'allout' && match.allOut.uses > 0) || (c.wait === 'follow' && renderer.follow)) coachDone();
+      if ((c.wait === 'allout' && match.allOut.uses > 0) || (c.wait === 'follow' && renderer.follow) || (c.wait === 'host' && hostId)) coachDone();
       else placeRing(c);
       return;
     }
@@ -428,7 +434,7 @@
     if (!c.when(match)) return;
     coach.on = true;
     $('coach-title').textContent = c.title; $('coach-text').textContent = c.text;
-    $('coach-ok').hidden = c.wait === 'allout';
+    $('coach-ok').hidden = c.wait === 'allout' || c.wait === 'host';
     $('coach').hidden = false;
     placeRing(c);
   }
@@ -454,7 +460,7 @@
       heroHp: spec.wounds ? { kael: hp('kael'), eiryn: 1 } : {},
     });
     storyBattle = Object.assign(spec, { node: Story.cur(story) });
-    coach = { i: 0, on: false, enabled: !!spec.tutorial };
+    coach = { i: 0, on: false, enabled: !!(spec.tutorial || (spec.hostIntro && hostAllowed())), steps: spec.hostIntro ? HOST_COACH : COACH_FIGHT };
   }
 
   // ------------------------------------------------------------ match
@@ -474,6 +480,7 @@
     buildHud();
     renderer.setFollow(null);
     renderer.setCameraOverride(null);
+    resetHost();
     show(null);
     $('btn-withdraw').querySelector('small').textContent = mode === 'story' ? 'Team leaves injured · the fight waits' : mode === 'tutorial' ? 'Leave the prologue' : 'Practice · nothing is saved';
   }
@@ -587,6 +594,7 @@
     const foes = m.units.filter((u) => u.team === 'bandit' && u.def.boss);
     return foes.find((u) => m.vs && m.vs[1] === u.id) || foes[0] || null;
   }
+  const CROWN_SVG = '<svg viewBox="0 0 24 20" aria-hidden="true"><path d="M2 17h20M3 14 2 4l6 5 4-7 4 7 6-5-1 10z"/></svg>';
   function buildHud() {
     const LOOK = (Render.fighters && Render.fighters.LOOK) || {};
     const team = match.units.filter((u) => u.team === 'hero');
@@ -602,6 +610,7 @@
           <div class="card-head"><span class="card-name">${esc(u.name)}</span>${u.guest ? '<span class="card-tag">Guest</span>' : ''}<span class="art-tag">ART</span><span class="chip" hidden></span></div>
           ${meter('hp')}${meter('sta')}${u.def.superMeter ? meter('art') : ''}
         </div>
+        <button class="crown" type="button" data-crown="${u.id}" aria-label="Control ${esc(u.name)}">${CROWN_SVG}</button>
       </div>`;
     }).join('');
     $('foes').innerHTML = foes.map((u) => `
@@ -713,6 +722,81 @@
     $('follow-chip').hidden = !fid || !!match.result;
     if (fid) $('follow-name').textContent = match.byId[fid].name;
     for (const el of document.querySelectorAll('#team .card')) el.classList.toggle('followed', el.dataset.id === fid);
+    // Host controls: shown while the player holds a crown and the fight is live.
+    const hu = hostId && match.byId[hostId];
+    if (hostId && (!hu || !Sim.alive(hu))) setHostTo(null);
+    const live = !!(hostId && !match.result && !match.cutscene && !match.bossBeat && match.phase === 'fight' && !replay);
+    $('pad').hidden = !live; $('host-btns').hidden = !live;
+    if (!live && pad.id != null) { pad.id = null; pad.jx = pad.jy = 0; $('stick').hidden = true; }
+    for (const el of document.querySelectorAll('#team .card')) el.classList.toggle('hosted', el.dataset.id === hostId);
+    if (live) {
+      const ok = hu.def.superMeter && !hu.superUsed && !hu.charging;
+      const sp = $('btn-special');
+      sp.style.setProperty('--fill', ok ? (hu.superMeter / 100).toFixed(3) : 0);
+      sp.disabled = !ok || hu.superMeter < 100;
+      sp.classList.toggle('ready', !!ok && hu.superMeter >= 100);
+    }
+  }
+
+  // ------------------------------------------------------------ host control
+  // The crown: the player takes one hero (joystick, Attack, Special); dodge and parry stay
+  // automatic and the rest of the party fights on its own. Unlocked by the story (flag
+  // 'host', the second Kael and Eiryn fight). Inputs are recorded by sim frame for replays.
+  let hostId = null, atkHeld = false, spPress = false, lastIn = null;
+  const pad = { id: null, ox: 0, oy: 0, jx: 0, jy: 0 }, keys = {};
+  function hostAllowed() { return !!(match && !replay && story.flags && (story.flags.host || (story.grades && story.grades['c5.pathfight'])) && mode !== 'tutorial'); }
+  function record(o) { if (lastRun && !replay) lastRun.inputs.push(Object.assign({ f: (match.frame || 0) + 1 }, o)); }
+  function setHostTo(id) {
+    if (!match) return;
+    hostId = id && match.byId[id] && Sim.alive(match.byId[id]) ? id : null;
+    Sim.setHost(match, hostId);
+    record({ host: hostId });
+    lastIn = null;
+    renderer.setFollow(hostId);
+  }
+  function toggleHost(id) { if (hostAllowed() && match && !match.result) setHostTo(hostId === id ? null : id); }
+  function resetHost() {
+    hostId = null; atkHeld = false; spPress = false; lastIn = null; pad.id = null; $('stick').hidden = true;
+    document.body.classList.toggle('host-ok', hostAllowed());
+  }
+  // Screen direction -> world direction (the camera turns; the stick doesn't).
+  function applyHost() {
+    if (!hostId || !match || !match.host || replay) return;
+    let jx = pad.jx, jy = pad.jy;
+    const kx = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
+    const ky = (keys.KeyS || keys.ArrowDown ? 1 : 0) - (keys.KeyW || keys.ArrowUp ? 1 : 0);
+    if (kx || ky) { const n = Math.hypot(kx, ky); jx = kx / n; jy = ky / n; }
+    const a = renderer.camAng, c = Math.cos(a), sn = Math.sin(a);
+    const q = (v) => Math.round(v * 20) / 20;
+    const inp = { mx: q(jx * c + jy * sn), my: q(-jx * sn + jy * c), attack: atkHeld || !!keys.KeyJ };
+    if (!lastIn || inp.mx !== lastIn.mx || inp.my !== lastIn.my || inp.attack !== lastIn.attack) { Sim.input(match, inp); record({ in: inp }); lastIn = inp; }
+    if (spPress) { spPress = false; Sim.input(match, { special: true }); record({ in: { special: true } }); }
+  }
+  {
+    const P = $('pad'), st = $('stick'), kn = $('knob'), R = 46;
+    const move = (e) => {
+      let dx = e.clientX - pad.ox, dy = e.clientY - pad.oy;
+      const d = Math.hypot(dx, dy);
+      if (d > R) { dx *= R / d; dy *= R / d; }
+      pad.jx = dx / R; pad.jy = dy / R;
+      kn.style.transform = `translate(${dx.toFixed(1)}px,${dy.toFixed(1)}px)`;
+    };
+    P.addEventListener('pointerdown', (e) => {
+      if (pad.id != null) return;
+      e.preventDefault(); P.setPointerCapture(e.pointerId);
+      pad.id = e.pointerId; pad.ox = e.clientX; pad.oy = e.clientY; pad.jx = pad.jy = 0;
+      const r = $('app').getBoundingClientRect();
+      st.style.left = `${e.clientX - r.left}px`; st.style.top = `${e.clientY - r.top}px`; kn.style.transform = ''; st.hidden = false;
+    });
+    P.addEventListener('pointermove', (e) => { if (e.pointerId === pad.id) move(e); });
+    const up = (e) => { if (e.pointerId !== pad.id) return; pad.id = null; pad.jx = pad.jy = 0; st.hidden = true; };
+    for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) P.addEventListener(ev, up);
+    const A = $('btn-attack');
+    A.addEventListener('pointerdown', (e) => { e.preventDefault(); atkHeld = true; A.classList.add('down'); });
+    for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) A.addEventListener(ev, () => { atkHeld = false; A.classList.remove('down'); });
+    $('btn-special').addEventListener('pointerdown', (e) => { e.preventDefault(); spPress = true; });
+    window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+    window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; atkHeld = false; });
   }
 
   // ------------------------------------------------------------ input
@@ -727,7 +811,7 @@
     Sim.begin(match);
     faceoff = null; acc = 0; hitstop = 0; resultShownAt = 0; paused = false;
     coach = { i: 0, on: false, enabled: false }; $('coach').hidden = true; $('tip').hidden = true;
-    buildHud(); renderer.setFollow(null); renderer.setCameraOverride(null);
+    buildHud(); renderer.setFollow(null); renderer.setCameraOverride(null); resetHost();
     show(null);
     $('hud').hidden = true; $('replay-bar').hidden = false;
   }
@@ -802,6 +886,8 @@
   // Tap one of your fighters to follow them; tap elsewhere to let go.
   function toggleFollow(id) { renderer.setFollow(renderer.follow === id ? null : id); }
   $('team').addEventListener('click', (e) => {
+    const crown = e.target.closest('.crown');
+    if (crown) { e.stopPropagation(); toggleHost(crown.dataset.crown); return; }
     const card = e.target.closest('.card');
     if (card && match && !match.result) toggleFollow(card.dataset.id);
   });
@@ -827,6 +913,9 @@
   });
 
   window.addEventListener('keydown', (e) => {
+    if (hostId && /^(Key[WASDJ]|Arrow)/.test(e.code)) { keys[e.code] = true; e.preventDefault(); return; }
+    if (e.code === 'KeyK' && hostId) { spPress = true; return; }
+    if (e.code === 'KeyC' && match && hostAllowed()) { toggleHost(hostId ? hostId : match.lead.id); return; }
     if (e.code === 'Space' && match && !$('hud').hidden && !paused) { e.preventDefault(); tryAllOut(); }
     else if (e.code === 'KeyP' || (e.code === 'Space' && paused)) { e.preventDefault(); setPaused(!paused); }
     else if (e.code === 'KeyF' && match) $('btn-speed').click();
@@ -896,7 +985,13 @@
 
   function feedReplay() {
     if (!replay) return;
-    while (replay.i < replay.inputs.length && match.t >= replay.inputs[replay.i] - 1e-9) { Sim.triggerAllOut(match); replay.i++; }
+    for (;;) {
+      const x = replay.inputs[replay.i];
+      if (x == null) break;
+      if (typeof x === 'number') { if (match.t < x - 1e-9) break; Sim.triggerAllOut(match); }
+      else { if ((match.frame || 0) + 1 < x.f) break; if ('host' in x) Sim.setHost(match, x.host); else Sim.input(match, x.in); }
+      replay.i++;
+    }
   }
 
   function frame(now) {
@@ -957,7 +1052,7 @@
       if (faceoff.t >= INTRO.fight && match.phase !== 'fight') Sim.begin(match);
       if (match.phase === 'fight') {
         acc += real;
-        while (acc >= DT) { Sim.step(match, DT); acc -= DT; }
+        while (acc >= DT) { applyHost(); Sim.step(match, DT); acc -= DT; }
       }
       if (faceoff.t >= INTRO.end) faceoff = null;
     } else if (!paused && !frozen && !coach.on) {
@@ -966,7 +1061,7 @@
         // The director can slow time for a beat on big moments.
         acc += real * (match.cutscene ? 1 : speed * renderer.timeScale());
         let n = 0;
-        while (acc >= DT && n < 8) { feedReplay(); Sim.step(match, DT); acc -= DT; n++; }
+        while (acc >= DT && n < 8) { feedReplay(); applyHost(); Sim.step(match, DT); acc -= DT; n++; }
       }
       if (match.result && !resultShownAt) resultShownAt = now;
       if (replay) { if (resultShownAt && now - resultShownAt > 2200) endReplay(); }

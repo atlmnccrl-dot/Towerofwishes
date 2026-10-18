@@ -936,6 +936,15 @@
     ],
   };
 
+  // Split for the scout fight (TW-069): the cry is its own scene; after the scout is beaten
+  // the answering cry and the skirmish play on the same set, the third goblin out of the scrub.
+  const c5Scout = Object.assign({}, c5Path, { beats: c5Path.beats.slice(0, 1) });
+  const c5PathAfter = Object.assign({}, c5Path, {
+    cast: c5Path.cast.map((c) => (c.id === 'goblin' ? Object.assign({}, c, { hidden: true, x: 3.0, y: 2.4 }) : c.id === 'kael' ? Object.assign({}, c, { x: -7.4, y: -1.2 }) : c.id === 'eiryn' ? Object.assign({}, c, { x: -7.6, y: 1.5 }) : c.id === '@' ? Object.assign({}, c, { x: -6.6, y: 0.3 }) : c)),
+    setup: [],
+    beats: c5Path.beats.slice(1).map((b) => (b.line === 'two goblins appear' ? Object.assign({}, b, { do: [{ at: 0.1, who: 'goblin', show: true, drop: [2.2, 0.45] }, { at: 0.55, who: 'goblin', burst: 'leaf' }].concat(b.do.filter((a) => a.who !== 'goblin')) }) : b)),
+  });
+
   // The quarry cave: the mouth is in the east, the deeper passage in the west.
   const c5Cave = {
     arena: 'cave',
@@ -1181,7 +1190,8 @@
     'c1.after': c1After,
     'c1.trust': 'same',
     'c1.walk': c1Walk,
-    'c5.path': c5Path,
+    'c5.scout': c5Scout,
+    'c5.path': c5PathAfter,
     'c5.cave': c5Cave,
     'c5.tracks': c5Tracks,
     'c5.leave': 'same',

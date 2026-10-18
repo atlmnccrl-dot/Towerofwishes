@@ -460,7 +460,7 @@
     },
     // ---------------------------------------------------------- chapter five
     'c5.mill': {
-      type: 'scene', chapter: 'c5', bg: 'hill', next: 'c5.path',
+      type: 'scene', chapter: 'c5', bg: 'hill', next: 'c5.scout',
       lines: [
         B('miller', 'They’ve been coming after dark. First the grain. Then a box of tools. My youngest tried to chase them and came back with a cut on his arm.'),
         KB('How many?'),
@@ -469,10 +469,22 @@
         KB('They are. One at a time. They get more confident in groups, which is why we don’t let them decide where the fight happens.'),
       ],
     },
-    'c5.path': {
-      type: 'scene', chapter: 'c5', bg: 'hill', next: 'c5.pathfight',
+    // TW-068/069: tracking, then the outer scout (the first Kael and Eiryn fight).
+    'c5.scout': {
+      type: 'scene', chapter: 'c5', bg: 'hill', next: 'c5.scoutfight',
       lines: [
         N('A goblin squats by a stolen sack, tearing at the stitching with its teeth. It looks up and lets out a sharp cry.'),
+      ],
+    },
+    'c5.scoutfight': {
+      type: 'battle', chapter: 'c5', scenario: 'scout', wounds: true, xp: 40,
+      party: (st) => quarryParty(st), win: 'c5.path',
+      outro: 'The scout goes down beside its sack of stolen grain.',
+    },
+    // TW-070: the approach skirmish. The crown is introduced here (Director's Bible S11).
+    'c5.path': {
+      type: 'scene', chapter: 'c5', bg: 'hill', next: 'c5.pathfight', set: { host: 1 },
+      lines: [
         N('From higher on the hill comes an answering cry.'),
         EB('And now the rest know we’re here.'),
         N('Two goblins appear above the path, one with a short spear and the other with a rough wooden bow. A third drops out of the scrub.'),
@@ -481,7 +493,7 @@
       ],
     },
     'c5.pathfight': {
-      type: 'battle', chapter: 'c5', scenario: 'path', wounds: true, xp: 120,
+      type: 'battle', chapter: 'c5', scenario: 'path', wounds: true, xp: 120, hostIntro: true,
       party: (st) => quarryParty(st),
       mods: () => ({ approach: 'long' }), win: 'c5.cave',
       outro: 'The path is clear. The archer drops its bow and runs for the quarry.',
@@ -976,6 +988,7 @@
       greed: !!st.flags.deepGreed,
       mods: n.mods ? n.mods(st) : undefined,
       wounds: !!n.wounds,
+      hostIntro: !!n.hostIntro,
       allyLevel: n.allyLevel ? teamLevel(st) : undefined, // the book's heroes fixed in a scenario
       tutorial: !!n.tutorial,
       tips: n.tips || null,

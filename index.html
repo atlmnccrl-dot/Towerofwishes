@@ -168,6 +168,27 @@ button:focus-visible { outline: 2px solid var(--steel); outline-offset: 2px; }
 @keyframes badge { 0%, 100% { filter: drop-shadow(0 0 6px rgba(227, 38, 58, 0.55)); } 50% { filter: drop-shadow(0 0 14px rgba(255, 82, 99, 0.95)); } }
 @media (prefers-reduced-motion: reduce) { #btn-allout.ready, #btn-allout.ready::after, .card.hit, .boss.hit .boss-bar, .meter.art.full > i.fill { animation: none; } }
 @media (max-height: 360px) { #team { width: 176px; } .card .tab { min-height: 28px; } .boss-name b { font-size: 17px; } #btn-allout { width: 104px; height: 50px; } }
+
+/* host control: the crown on a hero card, the movement pad, Attack and Special */
+.crown { display: none; position: absolute; right: 2px; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; padding: 0; border: 0; background: none; opacity: 0.55; }
+.crown svg { width: 22px; height: 18px; fill: none; stroke: var(--parchment); stroke-width: 1.8; stroke-linejoin: round; filter: drop-shadow(0 1px 2px #000); }
+body.host-ok .crown { display: grid; place-items: center; }
+body.host-ok .card.hero { padding-right: 34px; }
+.card.hosted .crown { opacity: 1; }
+.card.hosted .crown svg { fill: #f2c14e; stroke: #3a2606; }
+.card.hosted { box-shadow: inset 3px 0 0 #f2c14e; }
+.pad { position: absolute; left: 0; bottom: 0; width: 44vw; height: 64vh; pointer-events: auto; touch-action: none; }
+.stick { position: absolute; width: 112px; height: 112px; margin: -56px 0 0 -56px; border-radius: 50%; border: 2px solid rgba(243, 234, 214, 0.35); background: rgba(12, 8, 8, 0.28); pointer-events: none; }
+.stick i { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; background: rgba(243, 234, 214, 0.75); box-shadow: 0 0 0 3px rgba(12, 8, 8, 0.6); }
+.host-btns { position: absolute; right: calc(var(--hud-xr) + 4px); bottom: calc(env(safe-area-inset-bottom, 0px) + 76px); display: flex; align-items: flex-end; gap: 10px; pointer-events: none; }
+.host-btns > button { pointer-events: auto; touch-action: none; border: 0; border-radius: 50%; display: grid; place-items: center; color: #fff; font: 800 10px/1 var(--ui); letter-spacing: 0.12em; }
+#btn-attack { width: 74px; height: 74px; background: radial-gradient(circle at 40% 35%, #3a4a58, #141a20 70%); box-shadow: inset 0 0 0 2px rgba(156, 195, 221, 0.7), 0 3px 10px rgba(0, 0, 0, 0.5); }
+#btn-attack.down { transform: scale(0.94); box-shadow: inset 0 0 0 3px #9cc3dd; }
+#btn-special { --fill: 0; width: 56px; height: 56px; margin-bottom: 30px; background: conic-gradient(#b9a6ff calc(var(--fill) * 360deg), rgba(12, 8, 8, 0.8) 0); box-shadow: inset 0 0 0 2px rgba(185, 166, 255, 0.6); }
+#btn-special span { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; background: #17121f; font-size: 8px; }
+#btn-special.ready { filter: drop-shadow(0 0 10px rgba(185, 166, 255, 0.9)); }
+#btn-special:disabled { opacity: 0.55; }
+@media (max-height: 360px) { #btn-attack { width: 64px; height: 64px; } .host-btns { bottom: calc(env(safe-area-inset-bottom, 0px) + 64px); } }
 .card-num { font: 700 11px/1 var(--ui); color: var(--parchment-dim); font-variant-numeric: tabular-nums; }
 .bar { height: 6px; border-radius: 3px; background: rgba(243, 234, 214, 0.12); overflow: hidden; margin-top: 4px; }
 .bar > i { display: block; height: 100%; width: 100%; transform-origin: left; background: var(--heal); transition: transform 0.15s linear; }
@@ -577,6 +598,12 @@ body.trailer.fighting .trailer-card:not(.logo) { bottom: auto; top: 10vh; }
     <button class="follow-chip" id="follow-chip" type="button" hidden>Following <b id="follow-name"></b> &middot; tap to release</button>
     <div class="tip" id="tip" hidden><b>How it works</b><span id="tip-text"></span></div>
     <div class="feed" id="feed" aria-live="polite"></div>
+    <!-- Host control: drag anywhere in the pad to move; Attack and Special on the right. -->
+    <div class="pad" id="pad" hidden><div class="stick" id="stick" hidden><i id="knob"></i></div></div>
+    <div class="host-btns" id="host-btns" hidden>
+      <button id="btn-special" type="button" aria-label="Special"><span>SPECIAL</span></button>
+      <button id="btn-attack" type="button" aria-label="Attack"><span>ATTACK</span></button>
+    </div>
     <div class="hud-bottom">
       <button id="btn-withdraw" type="button" aria-label="Hold to withdraw"><span class="flag" aria-hidden="true"></span><small>Hold to withdraw</small></button>
       <button id="btn-allout" type="button" disabled aria-label="All Out"><span class="lbl"><b>ALL OUT</b><small id="allout-state">Charging</small></span></button>

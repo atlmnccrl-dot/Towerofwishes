@@ -642,6 +642,15 @@
         { key: 'veil', x: 6.0, y: -0.4, f: 3.1 },
       ],
     },
+    // TW-069: the outer scout, alone by a stolen sack. Kael and Eiryn's first fight together;
+    // her mana is still low, so she keeps clear and calls warnings.
+    scout: {
+      chapter: 'Chapter Five', title: 'The Scout', arena: 'hillpath', allOutUses: 1, vs: 'goblin', scale: { hp: 0.8, dmg: 1.2 }, charging: 'eirynMage',
+      units: [
+        { slot: 0, x: -5.6, y: 0.2, f: 0 }, { slot: 1, x: -6.6, y: -1.2, f: 0 }, { slot: 2, x: -6.6, y: 1.4, f: 0 },
+        { key: 'goblin', x: 1.2, y: 0.4, f: 3.1 },
+      ],
+    },
     path: {
       chapter: 'Chapter Five', title: 'The Quarry Path', arena: 'hillpath', allOutUses: 1, vs: 'goblinSpear', scale: { hp: 2.1, dmg: 1.9 },
       units: [
@@ -957,6 +966,7 @@
       else if (u.team === 'bandit') u.target = guest || lead;
     }
     for (const u of heroes) if (!u.guest) u.target = boss;
+    if (sc.charging) for (const u of units) if (u.key === sc.charging && u.team === 'hero') { u.charging = true; u.superMeter = 0; }
     if (sc.bossBeats) {
       const B = sc.bossBeats, b = units.find((u) => u.key === B.boss), ch = units.find((u) => u.key === B.charging && u.team === 'hero');
       s.bossBeats = { spec: B, boss: b ? b.id : null, done: {} };
@@ -1501,7 +1511,7 @@
     return true;
   }
 
-  function trySuper(s, u) {
+  function trySuper(s, u, force) {
     if (u.def.lastStand) return !u.superUsed && s.t >= LAST_STAND_AT && u.hp <= u.maxHp * 0.2 && FREE[u.state] && startLastStand(s, u);
     // Once per fighter per match: a heavy art is a finisher, not a routine.
     if (!u.def.superMeter || u.superUsed || u.superMeter < 100 || !FREE[u.state] || inAllOut(u) || isDrained(u)) return false;
@@ -1511,7 +1521,7 @@
     let wantIt;
     if (H.line) wantIt = near.length >= 1 && t && inFight(t) && hasLOS(u, t);
     else wantIt = near.length >= 2 || (t && alive(t) && dist(u, t) < 2.4 && (t.state === 'stagger' || t.state === 'down')) || (u.hp < u.maxHp * 0.35 && near.length >= 1) || (near.some((o) => o.def.boss) && near.length >= 1);
-    if (!wantIt) return false;
+    if (!wantIt && !(force && t && inFight(t))) return false;
     const focus = H.line ? [t] : near.length ? near : [t];
     let cx = 0, cy = 0;
     for (const o of focus) { cx += o.x; cy += o.y; }
@@ -1690,6 +1700,57 @@
     }
     // Hold guard: shuffle sideways, facing the opponent.
     circle(s, u, t, Math.max(1.2, d), 0.35, dt);
+  }
+
+  // ---------------------------------------------------------------- the host
+  // The player's own fighter (the crown): moves on the joystick, attacks the nearest foe on
+  // Attack, fires the heavy art on Special. Dodge and parry stay automatic (thinkDefense).
+  // Input is set with input(s, {mx, my, attack, special}); mx/my is a world-space direction.
+  function setHost(s, id) {
+    const u = id && s.byId[id];
+    s.host = u && u.team === 'hero' && alive(u) ? { id, mx: 0, my: 0, attack: false, special: false } : null;
+    if (s.host && u.state === 'opener') setState(u, 'idle'); // the opening rush is the AI's, not the player's
+    return s.host;
+  }
+  function input(s, o) { if (s.host) Object.assign(s.host, o); }
+
+  function brainHost(s, u, dt) {
+    const H = s.host, A = u.def.attack;
+    const foes = opponents(s, u).filter(inFight);
+    let near = null, nd = Infinity;
+    for (const f of foes) { const d = dist(u, f); if (d < nd) { nd = d; near = f; } }
+    if (H.special) {
+      H.special = false;
+      if (near && !u.charging && (!heavyOf(u).line || hasLOS(u, u.target && inFight(u.target) ? u.target : near))) {
+        if (!(u.target && inFight(u.target) && dist(u, u.target) < 9)) u.target = near;
+        if (trySuper(s, u, true)) return;
+      }
+    }
+    if (H.attack && near && !u.charging && (u.cd <= 0 || inAllOut(u)) && (u.sta >= (A.sta || 0) || inAllOut(u))) {
+      if (A.projectile) {
+        // Casters: the nearest foe in sight, else the nearest.
+        let t = null, td = Infinity;
+        for (const f of foes) { const d = dist(u, f); if (d < td && d < A.range && hasLOS(u, f)) { td = d; t = f; } }
+        t = t || near;
+        u.target = t;
+        u.cd = inAllOut(u) ? 0.15 : 0.55;
+        return startAttack(s, u, t);
+      }
+      if (nd <= A.range + near.r + 1.0) {
+        u.target = near;
+        // A short step in closes the last metre.
+        if (nd > A.range + near.r - 0.1) { const a = angTo(u, near); u.x += Math.cos(a) * Math.min(0.6, nd - A.range - near.r + 0.1); u.y += Math.sin(a) * Math.min(0.6, nd - A.range - near.r + 0.1); collideWorld(u); }
+        u.combo = (u.combo || 0) + (inAllOut(u) ? 1 : 0);
+        return startAttack(s, u, near, { combo: u.combo > 0 });
+      }
+    }
+    const m = Math.hypot(H.mx, H.my);
+    if (m > 0.15) {
+      const k = Math.min(1, m);
+      return moveTo(s, u, u.x + (H.mx / m) * 2, u.y + (H.my / m) * 2, (inAllOut(u) ? 1.3 : 1.05) * k, null);
+    }
+    idle(u);
+    if (near) turnToward(u, angTo(u, near), 0.12);
   }
 
   function brainEiryn(s, u, dt) {
@@ -2200,7 +2261,8 @@
         break;
       }
       default:
-        if (u.team === 'hero') (u.def.brain === 'caster' ? brainCaster : u.def.brain === 'healer' ? brainHealer : u.guest ? brainEiryn : brainKael)(s, u, dt);
+        if (s.host && s.host.id === u.id) brainHost(s, u, dt);
+        else if (u.team === 'hero') (u.def.brain === 'caster' ? brainCaster : u.def.brain === 'healer' ? brainHealer : u.guest ? brainEiryn : brainKael)(s, u, dt);
         else brainBandit(s, u, dt);
     }
 
@@ -2310,6 +2372,7 @@
 
   function step(s, dt) {
     if (s.result || s.phase !== 'fight') return;
+    s.frame = (s.frame || 0) + 1;
     useArena(s);
     if (s.cutscene) {
       const c = s.cutscene;
@@ -2365,7 +2428,7 @@
   }
 
   return {
-    createMatch, begin, step, triggerAllOut, allOutReady, surrender, makeRng, SCENARIOS, heavyOf,
+    createMatch, begin, step, triggerAllOut, allOutReady, surrender, makeRng, SCENARIOS, heavyOf, setHost, input,
     get ARENA() { return ARENA; }, ARENAS, DEFS, INTRO_ORDER, SUPER, ALL_OUT, get NAV() { return NAV; }, obstacleCenter, hasLOS, alive, inFight,
   };
 });
