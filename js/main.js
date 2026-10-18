@@ -1,7 +1,7 @@
 /*
  * Tower of Wishes — game shell
  * Menus, the story campaign (scenes, choices, character select, chapters),
- * HUD, input, the fixed-step loop, and saving hearts/injuries/story.
+ * HUD, input, the fixed-step loop, and saving injuries/story.
  */
 (function () {
   'use strict';
@@ -15,7 +15,7 @@
   function loadSave() {
     let raw = null;
     try { raw = JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { raw = null; }
-    return Pg.tick(Pg.normalise(raw, Date.now()), Date.now());
+    return Pg.normalise(raw, Date.now());
   }
   function writeSave() {
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) { /* storage unavailable: progress lasts this visit */ }
@@ -50,18 +50,12 @@
   let lines = [], lineIdx = 0, lineFull = '', typeT = 0, cardShownAt = 0;
 
   // ------------------------------------------------------------ menu
-  const HEART_SVG = '<svg class="heart" viewBox="0 0 26 24" aria-hidden="true"><path d="M13 22 3.2 12.6A6 6 0 0 1 13 4.6a6 6 0 0 1 9.8 8L13 22Z"/></svg>';
   function fmt(ms) {
     const s = Math.ceil(ms / 1000), m = Math.floor(s / 60);
     return `${m}:${String(s % 60).padStart(2, '0')}`;
   }
   function renderMenu() {
     const now = Date.now();
-    Pg.tick(save, now);
-    $('hearts').innerHTML = Array.from({ length: Pg.HEART_MAX }, (_, i) =>
-      HEART_SVG.replace('class="heart"', `class="heart${i < save.hearts ? '' : ' empty'}"`)).join('');
-    $('hearts').setAttribute('aria-label', `${save.hearts} of ${Pg.HEART_MAX} hearts`);
-    $('heart-timer').textContent = save.hearts >= Pg.HEART_MAX ? 'Full' : `Next heart in ${fmt(Pg.nextHeartIn(save, now))}`;
     const team = Story.roster(story);
     $('cond-label').textContent = team.length ? `Team · level ${Story.teamLevel(story)}` : 'Team';
     $('cond').innerHTML = team.length ? team.map((m) => {
@@ -73,10 +67,8 @@
     const n = Story.node(story), ch = Story.CHAPTERS.find((c) => c.id === n.chapter);
     $('menu-chapter').textContent = `${ch.label} · ${ch.title}`;
     $('story-btn-label').textContent = story.node === 'p.lore' ? 'Begin the story' : n.type === 'end' ? 'The story so far' : 'Continue the story';
-    const needsHeart = n.type === 'battle' && Story.battle(story).hearts;
-    const ok = !needsHeart || Pg.canStartStory(save);
-    $('btn-story').disabled = !ok;
-    $('story-note').textContent = !ok ? 'No hearts left — try Practice' : `${ch.label} · ${ch.title}`;
+    $('btn-story').disabled = false;
+    $('story-note').textContent = `${ch.label} · ${ch.title}`;
   }
 
   let menuStage = null;
@@ -283,12 +275,12 @@
   const mapR = Render.map ? Render.map.create($('arena')) : null;
   let worldSel = null, worldT = 0, worldView = null;
   const KIND_TEXT = {
-    story: 'The main story. Uses a heart only if the whole team falls.',
-    contract: 'A Guild contract. No hearts. Pays in gear.',
-    side: 'A side story. No hearts. Something rare waits at the end.',
-    dungeon: 'Three chambers in a row; health carries between them. No hearts. Repeatable for loot.',
-    training: 'Practice in the Guild yard. No hearts. Repeatable.',
-    arcade: 'Endless waves for a high score. No hearts. More waves, better loot.',
+    story: 'The main story. Losing costs nothing: try again or come back stronger.',
+    contract: 'A Guild contract. Pays in gear.',
+    side: 'A side story. Something rare waits at the end.',
+    dungeon: 'Three chambers in a row; health carries between them. Repeatable for loot.',
+    training: 'Practice in the Guild yard. Repeatable.',
+    arcade: 'Endless waves for a high score. More waves, better loot.',
     locked: 'Beyond the written story.',
   };
   const LOOT_TEXT = { yard: 'Common gear', contract: 'Gear, sometimes fine', ember: 'Emberbrand, a fire sword (first clear) · gear', frost: 'Frost Fangs, ice daggers (first clear) · gear', storm: 'Stormwake Lance (first clear) · gear', tremor: 'Quake Bands (first clear) · gear', beast: 'The Stray’s Tooth (first clear) · fine gear', relic: 'A relic (first clear) · rare gear', deep: 'Gear from each chamber', chief: 'The Miller’s Cleaver (first clear) · rare and relic gear', gauntlet: 'One piece of gear per 3 waves', story: 'Experience and gear' };
@@ -300,7 +292,6 @@
     worldSel = sel || worldView.current || worldSel;
     const ch = Story.CHAPTERS.find((c) => c.id === Story.NODES[story.node].chapter);
     $('world-title').textContent = ch ? `${ch.label} · ${ch.title}` : '';
-    $('world-hearts').innerHTML = Array.from({ length: Pg.HEART_MAX }, (_, i) => HEART_SVG.replace('class="heart"', `class="heart${i < save.hearts ? '' : ' empty'}"`)).join('');
     $('world-fallback').hidden = !!mapR;
     if (!mapR) $('world-fallback').innerHTML = worldView.nodes.map((n) => `<button type="button" data-id="${n.id}">${n.title} <small>· ${n.status}</small></button>`).join('');
     renderNodeCard();
@@ -327,7 +318,7 @@
       else if (n.id === 'prologue') { label = 'Played'; ok = false; }
       else { label = Story.atGate(story) ? 'Begin chapter' : 'Continue'; note = 'Story'; }
     } else if (n.status === 'done') { label = 'Cleared'; ok = false; }
-    else { label = n.cleared ? 'Run again' : 'Start'; note = 'No hearts'; }
+    else { label = n.cleared ? 'Run again' : 'Start'; note = 'Repeatable'; }
     $('nc-go').textContent = label; $('nc-note').textContent = note; go.disabled = !ok;
   }
   function goNode(id) {
@@ -422,7 +413,7 @@
     { when: (m) => m.t > 3 && Sim.allOutReady(m), title: 'ALL OUT', text: 'Tap ALL OUT now. Everyone burns their stamina and power into a flurry — then they’re drained and can’t dodge or block until they recover.', target: '#btn-allout', wait: 'allout' },
     { when: (m) => m.t > 9, title: 'Follow a fighter', text: 'Tap the climber, or their card at the top left, to follow them with the camera. Tap again to let go.', target: '#team .card', wait: 'follow' },
     { when: (m) => m.t > 14, title: 'Heavy arts', text: 'When the bar under a name fills, that fighter unleashes a heavy art as a cutscene. Tap the screen to jump to the impact.' },
-    { when: (m) => m.t > 19, title: 'Withdraw', text: 'Hold the flag to leave a story fight. No heart lost, but your team leaves injured.', target: '#btn-withdraw' },
+    { when: (m) => m.t > 19, title: 'Withdraw', text: 'Hold the flag to leave a story fight. Your team leaves injured; the fight waits.', target: '#btn-withdraw' },
   ];
   function coachTick() {
     if (!coach.enabled || !match || match.result || faceoff || match.phase !== 'fight') return;
@@ -455,13 +446,12 @@
   function startStoryBattle() {
     const spec = Story.battle(story);
     save = loadSave(); bindStory();
-    if (spec.hearts && !Pg.canStartStory(save)) { renderMenu(); show('menu'); return; }
     const now = Date.now();
-    const hp = (k, f) => Math.min(f == null ? 1 : f, spec.hearts ? Pg.hpFrac(save, k, now) : 1);
+    const hp = (k, f) => Math.min(f == null ? 1 : f, spec.wounds ? Pg.hpFrac(save, k, now) : 1);
     const party = spec.party.map((m) => Object.assign({}, m, { hpFrac: hp(m.key, m.hpFrac), mods: Prog.modsFor(prog, m.gear || m.key) }));
-    startMatch(spec.hearts ? 'story' : spec.side ? 'side' : 'tutorial', undefined, {
+    startMatch(spec.wounds ? 'story' : spec.side ? 'side' : 'tutorial', undefined, {
       scenario: spec.scenario, party, mods: spec.mods, allyLevel: spec.allyLevel,
-      heroHp: spec.hearts ? { kael: hp('kael'), eiryn: 1 } : {},
+      heroHp: spec.wounds ? { kael: hp('kael'), eiryn: 1 } : {},
     });
     storyBattle = Object.assign(spec, { node: Story.cur(story) });
     coach = { i: 0, on: false, enabled: !!spec.tutorial };
@@ -485,7 +475,7 @@
     renderer.setFollow(null);
     renderer.setCameraOverride(null);
     show(null);
-    $('btn-withdraw').querySelector('small').textContent = mode === 'story' ? 'No heart lost · team leaves injured' : mode === 'tutorial' ? 'Leave the prologue' : 'Practice · nothing is saved';
+    $('btn-withdraw').querySelector('small').textContent = mode === 'story' ? 'Team leaves injured · the fight waits' : mode === 'tutorial' ? 'Leave the prologue' : 'Practice · nothing is saved';
   }
 
   function finishMatch() {
@@ -494,7 +484,6 @@
     const frac = (u) => (u.state === 'out' ? 0 : u.hp / u.maxHp);
     const fracs = {};
     for (const u of match.units) if (u.team === 'hero') fracs[u.key] = frac(u);
-    const before = save.hearts;
     Pg.applyResult(save, mode, r.outcome, fracs, now);
     let growth = null, loot = [];
     if (storyBattle) {
@@ -526,7 +515,7 @@
     if (storyBattle && storyBattle.arcade) {
       text = `Cleared ${r.waves || 0} waves. Best: ${story.best[storyBattle.node] || 0}.`;
     } else if (mode === 'side') {
-      text = r.outcome === 'win' ? storyBattle.outro || `${match.title}: won.` : r.outcome === 'loss' ? 'The team falls back to regroup. Side missions never cost hearts.' : 'You pull back. The job will wait.';
+      text = r.outcome === 'win' ? storyBattle.outro || `${match.title}: won.` : r.outcome === 'loss' ? 'The team falls back to regroup. Try again, or leave and come back stronger.' : 'You pull back. The job will wait.';
     } else if (mode === 'tutorial') {
       text = r.outcome === 'win' ? 'The guardian breaks apart into ash and light. Above the final steps, a brightness waits.'
         : r.outcome === 'loss' ? 'Even broken, the climber rises, and keeps climbing toward the light.'
@@ -561,14 +550,10 @@
       [st.feintsRead, 'Feints read'], [st.beaten + st.fled, 'Foes beaten'], [st.supers, 'Heavy arts'],
     ];
     $('result-stats').innerHTML = stats.map(([v, l]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('');
-    let heartLine = 'Practice match: hearts and injuries are unchanged.';
-    if (mode === 'tutorial') heartLine = 'The prologue never costs hearts.';
-    if (mode === 'side') heartLine = 'Side missions never cost hearts.';
-    if (mode === 'story') {
-      if (r.outcome === 'loss') heartLine = `Lost 1 heart (${before} → ${save.hearts}). The team is back on its feet.`;
-      else if (r.outcome === 'win') heartLine = 'No heart lost. Winning restores the whole team to full health.';
-      else heartLine = 'No heart lost. The team is injured and will heal over the next few minutes.';
-    }
+    let heartLine = mode === 'practice' ? 'Practice match: nothing is saved.' : '';
+    if (r.outcome === 'loss' && storyBattle) heartLine = 'Nothing is lost. Try again and fight it differently, or leave to change gear, find loot or train, and come back.';
+    else if (mode === 'story' && r.outcome === 'win') heartLine = 'Winning restores the whole team to full health.';
+    else if (mode === 'story' && r.outcome === 'surrender') heartLine = 'The team is injured and will heal over the next few minutes.';
     $('result-hearts').innerHTML = heartLine + (growth && growth.xp ? ` <span class="levelup">+${growth.xp} XP${growth.levelUp ? ` · Team level ${growth.level}!` : ''}</span>` : '');
     // Next step.
     const again = $('btn-again');
@@ -578,13 +563,16 @@
       again.querySelector('b').textContent = toMap ? 'Back to the map' : 'Continue';
       $('again-note').textContent = toMap ? 'Choose where to go next' : chapterLabel(Story.node(story));
     } else if (storyBattle) {
-      const ok = mode !== 'story' || Pg.canStartStory(save);
-      again.dataset.action = 'retry'; again.disabled = !ok;
-      again.querySelector('b').textContent = 'Try again'; $('again-note').textContent = ok ? 'Same fight' : 'No hearts — wait or practice';
+      again.dataset.action = 'retry'; again.disabled = false;
+      again.querySelector('b').textContent = 'Try again'; $('again-note').textContent = 'Same fight';
     } else {
       again.dataset.action = 'practice'; again.disabled = false;
       again.querySelector('b').textContent = 'Watch another match'; $('again-note').textContent = 'Practice match again';
     }
+    // Defeat: leave freely to change gear, find loot or train, then come back.
+    const lost = storyBattle && r.outcome === 'loss';
+    $('btn-camp').querySelector('b').textContent = lost ? 'Leave for now' : 'Back to camp';
+    $('camp-note').textContent = lost ? 'Gear, loot, missions · the fight waits' : 'Team condition';
     show('result');
   }
 

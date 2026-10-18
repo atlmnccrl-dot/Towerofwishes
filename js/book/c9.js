@@ -78,7 +78,7 @@
           ],
         },
         'c9.fight': {
-          type: 'battle', chapter: 'c9', scenario: 'beasts', hearts: true, xp: 180, allyLevel: true,
+          type: 'battle', chapter: 'c9', scenario: 'beasts', wounds: true, xp: 180, allyLevel: true,
           party: (st) => h.BOOK(st), win: 'c9.after',
           outro: 'The last beast stops moving. The stranger’s altered hands are trembling now that there is nothing left to kill.',
         },

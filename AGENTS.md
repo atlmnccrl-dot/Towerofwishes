@@ -56,7 +56,7 @@ Read first: [docs/DESIGN.md](docs/DESIGN.md), [docs/STORY.md](docs/STORY.md),
 | `js/render/director.js` | Camera cuts, slow motion, cut-in panels during fights |
 | `js/grade.js` | Fight ranks S–D from a finished match. Pure |
 | `js/render/spirit.js`, `js/render/itemart.js` | The spirit-tree skill screen; drawn icons for every item |
-| `js/progress.js` | Hearts and injuries: pure functions |
+| `js/progress.js` | Injuries after story fights (no hearts): pure functions |
 | `js/story.js` | Story campaign: chapter graph, side episodes, choices, team experience. Pure data + functions |
 | `js/campaign.js` | World map: lands, routes, unlock rules. Pure |
 | `js/progression.js` | Gear, inventory, loot tables, skill trees → per-fighter fight modifiers. Pure |
@@ -71,7 +71,7 @@ Keep `sim.js`, `progress.js`, `story.js`, `campaign.js` and `progression.js` fre
 ## Before every commit
 
 ```sh
-node test/progress-test.js        # heart and injury rules
+node test/progress-test.js        # injury rules (no hearts)
 node test/sim-test.js 200         # balance + invariants (no NaN, no wall clipping, no timeouts)
 node test/scenario-test.js 30     # every campaign battle with each starter
 node test/story-test.js 6         # walks every branch of the campaign and plays its battles

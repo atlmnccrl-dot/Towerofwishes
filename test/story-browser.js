@@ -188,7 +188,7 @@ const errors = [];
   }
   await page.waitForTimeout(300);
   await shot('z-end');
-  const end = await page.evaluate(() => ({ node: window.__tow.story.node, view: window.__tow.view, xp: window.__tow.story.xp, flags: window.__tow.story.flags, hearts: window.__tow.save.hearts }));
+  const end = await page.evaluate(() => ({ node: window.__tow.story.node, view: window.__tow.view, xp: window.__tow.story.xp, flags: window.__tow.story.flags }));
   if (end.node !== 'end' || end.view !== 'world') errors.push('did not reach the end: ' + JSON.stringify(end));
   // Progress survives a reload.
   await page.reload();

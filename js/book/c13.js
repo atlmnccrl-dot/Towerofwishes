@@ -138,7 +138,7 @@
           ],
         },
         'c13.fight': {
-          type: 'battle', chapter: 'c13', scenario: 'calamity', hearts: true, xp: 300, allyLevel: true,
+          type: 'battle', chapter: 'c13', scenario: 'calamity', wounds: true, xp: 300, allyLevel: true,
           party: (st) => h.BOOK(st), win: 'c13.climax1', grant: ['calamitySword'],
           outro: 'Calamity falls. Water and lava pull inward over what is left of her.',
         },

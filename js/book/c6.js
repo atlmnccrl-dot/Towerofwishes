@@ -81,7 +81,7 @@
           ],
         },
         'c6.fight': {
-          type: 'battle', chapter: 'c6', scenario: 'skyreaver', hearts: true, xp: 160, allyLevel: true,
+          type: 'battle', chapter: 'c6', scenario: 'skyreaver', wounds: true, xp: 160, allyLevel: true,
           party: (st) => h.BOOK(st), win: 'c6.after',
           outro: 'A spear of light punches through the Skyreaver’s throat. It crashes, and stops moving.',
         },

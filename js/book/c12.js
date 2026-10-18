@@ -28,7 +28,7 @@
     nodes(h) {
       const { B, N, member } = h;
       const duel = (id, scenario, key, next, xp) => ({
-        type: 'battle', chapter: 'c12', scenario, hearts: false, xp, allyLevel: true,
+        type: 'battle', chapter: 'c12', scenario, wounds: false, xp, allyLevel: true,
         party: (st) => [key === 'eirynAsh' ? Object.assign(member(st, 'eirynMage'), { key: 'eirynAsh', gear: 'eirynMage', super: 100 }) : member(st, key)], win: next,
       });
       return {

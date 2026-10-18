@@ -91,7 +91,7 @@
           ],
         },
         'c10.fight': {
-          type: 'battle', chapter: 'c10', scenario: 'nightcreature', hearts: true, xp: 220, allyLevel: true,
+          type: 'battle', chapter: 'c10', scenario: 'nightcreature', wounds: true, xp: 220, allyLevel: true,
           party: (st) => h.BOOK(st), win: 'c10.after',
           outro: 'The Night Creature comes apart under a storm of steel. The forest goes silent.',
         },

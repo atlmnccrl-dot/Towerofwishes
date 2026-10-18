@@ -62,7 +62,7 @@ let errors = [];
 
   await page.waitForFunction(() => !document.getElementById('result').hidden, null, { timeout: 120000 });
   await page.screenshot({ path: path.join(out, '5-result.png') });
-  const practice = await page.evaluate(() => ({ outcome: window.__tow.match.result.outcome, hearts: window.__tow.save.hearts }));
+  const practice = await page.evaluate(() => ({ outcome: window.__tow.match.result.outcome }));
 
   // Story match: withdraw by holding the button.
   await page.click('#btn-camp');
@@ -85,7 +85,7 @@ let errors = [];
     await page.mouse.up();
   }
   await page.waitForFunction(() => !document.getElementById('result').hidden, null, { timeout: 10000 });
-  const story = await page.evaluate(() => ({ outcome: window.__tow.match.result.outcome, hearts: window.__tow.save.hearts, ren: window.__tow.save.injury.ren, node: window.__tow.story.node }));
+  const story = await page.evaluate(() => ({ outcome: window.__tow.match.result.outcome, ren: window.__tow.save.injury.ren, node: window.__tow.story.node }));
   await page.click('#btn-camp');
   await page.waitForTimeout(300);
   await page.screenshot({ path: path.join(out, '6-camp.png') });
@@ -93,7 +93,7 @@ let errors = [];
   // Reload: progress must survive.
   await page.reload();
   await page.waitForTimeout(800);
-  const after = await page.evaluate(() => ({ hearts: window.__tow.save.hearts, ren: window.__tow.save.injury.ren && window.__tow.save.injury.ren.frac, node: window.__tow.story.node }));
+  const after = await page.evaluate(() => ({ ren: window.__tow.save.injury.ren && window.__tow.save.injury.ren.frac, node: window.__tow.story.node }));
 
   // Portrait phone
   await page.setViewportSize({ width: 390, height: 844 });

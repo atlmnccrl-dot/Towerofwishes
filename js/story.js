@@ -14,7 +14,7 @@
  *   scene   { bg, lines: [{who, text}] }           dialogue and narration
  *   fork    { bg, lines, options: [{label, next}] }  a fork in the road: lines preview each path, then the player picks one
  *   select  { }                                    pick the starting character
- *   battle  { scenario, party(st), mods(st), hearts, xp, win, intro }
+ *   battle  { scenario, party(st), mods(st), wounds, xp, win, intro }
  *   end     { }                                    the end of the written story
  * Every node but fork and battle has `next`.
  */
@@ -203,7 +203,7 @@
       ],
     },
     'p.ascent': {
-      type: 'battle', chapter: 'prologue', scenario: 'tutorial', hearts: false, xp: 0, tutorial: true,
+      type: 'battle', chapter: 'prologue', scenario: 'tutorial', wounds: false, xp: 0, tutorial: true,
       party: () => [], win: 'p.light', lose: 'p.light',
       tips: [
         'Watch: every fighter thinks for themselves.',
@@ -316,7 +316,7 @@
       ],
     },
     'c1.fight': {
-      type: 'battle', chapter: 'c1', hearts: true, xp: 100,
+      type: 'battle', chapter: 'c1', wounds: true, xp: 100,
       scenario: 'clearingKael', party: (st) => [member(st, 'kael')], win: 'c1.after',
       outro: 'The bandits are beaten or gone. Nobody dies in the clearing.',
     },
@@ -465,7 +465,7 @@
       ],
     },
     'c5.pathfight': {
-      type: 'battle', chapter: 'c5', scenario: 'path', hearts: true, xp: 120,
+      type: 'battle', chapter: 'c5', scenario: 'path', wounds: true, xp: 120,
       party: (st) => quarryParty(st),
       mods: () => ({ approach: 'long' }), win: 'c5.cave',
       outro: 'The path is clear. The archer drops its bow and runs for the quarry.',
@@ -480,7 +480,7 @@
       ],
     },
     'c5.cavefight': {
-      type: 'battle', chapter: 'c5', scenario: 'cave', hearts: true, xp: 100,
+      type: 'battle', chapter: 'c5', scenario: 'cave', wounds: true, xp: 100,
       party: (st) => quarryParty(st), win: 'c5.tracks',
       outro: 'The archer falls against the stone. The miller’s grain is here — most of it.',
     },
@@ -506,7 +506,7 @@
       ],
     },
     'c5.ogrefight': {
-      type: 'battle', chapter: 'c5', scenario: 'ogre', hearts: true, xp: 150,
+      type: 'battle', chapter: 'c5', scenario: 'ogre', wounds: true, xp: 150,
       party: (st) => quarryParty(st), mods: () => ({ approach: 'ready' }), win: 'c5.after',
       outro: 'The ogre is down. Dust drifts from the cave roof.',
     },
@@ -570,7 +570,7 @@
 
   // ------------------------------------------------------------ side episodes
   // Optional missions on the campaign map (all Proposals except quoted lines).
-  // They never cost hearts. Each runs from `from` until a node with next 'map'.
+  // They never leave injuries. Each runs from `from` until a node with next 'map'.
   const party3 = (st) => roster(st).slice(0, 3);
   const EPISODES = {
     yard: { title: 'The Evaluation Yard', kind: 'training', from: 'yard.intro', repeat: true },
@@ -627,7 +627,7 @@
       ],
     },
     'toll.fight': {
-      type: 'battle', chapter: 'side', scenario: 'toll', hearts: false, xp: 90, loot: 'storm',
+      type: 'battle', chapter: 'side', scenario: 'toll', wounds: false, xp: 90, loot: 'storm',
       party: (st) => party3(st), win: 'toll.after',
       outro: 'The bandits break and run. The ledger is left on the parapet, open to a very short page.',
     },
@@ -654,7 +654,7 @@
       ],
     },
     'orchard.fight': {
-      type: 'battle', chapter: 'side', scenario: 'orchard', hearts: false, xp: 100, loot: 'beast',
+      type: 'battle', chapter: 'side', scenario: 'orchard', wounds: false, xp: 100, loot: 'beast',
       party: (st) => party3(st), win: 'orchard.after',
       outro: 'The second beast follows the first into the dark. The orchard is quiet again.',
     },
@@ -676,7 +676,7 @@
       ],
     },
     'warren.fight': {
-      type: 'battle', chapter: 'side', scenario: 'warren', hearts: false, xp: 130, loot: 'chief',
+      type: 'battle', chapter: 'side', scenario: 'warren', wounds: false, xp: 130, loot: 'chief',
       party: (st) => party3(st), win: 'warren.after',
       outro: 'The chief goes down in a heap of grain sacks. The warren empties out into the dark.',
     },
@@ -698,7 +698,7 @@
       ],
     },
     'yard.fight': {
-      type: 'battle', chapter: 'side', scenario: 'training', hearts: false, xp: 30, loot: 'yard',
+      type: 'battle', chapter: 'side', scenario: 'training', wounds: false, xp: 30, loot: 'yard',
       party: (st) => party3(st), win: 'yard.after',
       tips: [
         'Your fighters choose their own moves. Watch the glowing ground: that’s a wind-up.',
@@ -713,7 +713,7 @@
     },
     // ---- arcade: endless waves; the score is how many you clear
     'gauntlet.fight': {
-      type: 'battle', chapter: 'side', scenario: 'arcade', hearts: false, xp: 0, arcade: true, loot: 'gauntlet',
+      type: 'battle', chapter: 'side', scenario: 'arcade', wounds: false, xp: 0, arcade: true, loot: 'gauntlet',
       party: (st) => party3(st), win: 'map', lose: 'map',
       outro: 'The yard falls quiet.',
     },
@@ -736,7 +736,7 @@
       ],
     },
     'cart.road': {
-      type: 'battle', chapter: 'side', scenario: 'cart', hearts: false, xp: 80, loot: 'tremor',
+      type: 'battle', chapter: 'side', scenario: 'cart', wounds: false, xp: 80, loot: 'tremor',
       party: (st) => party3(st), win: 'cart.after',
       outro: 'The thugs scatter. The miller’s neighbour will get his flour after all.',
     },
@@ -761,7 +761,7 @@
       ],
     },
     'stray.fight': {
-      type: 'battle', chapter: 'side', scenario: 'stray', hearts: false, xp: 100, loot: 'beast',
+      type: 'battle', chapter: 'side', scenario: 'stray', wounds: false, xp: 100, loot: 'beast',
       party: (st) => party3(st), win: 'stray.after',
       outro: 'The stray limps into the trees and does not come back.',
     },
@@ -785,7 +785,7 @@
       ],
     },
     'cross.bridge': {
-      type: 'battle', chapter: 'side', scenario: 'crossing', hearts: false, xp: 140, loot: 'relic',
+      type: 'battle', chapter: 'side', scenario: 'crossing', wounds: false, xp: 140, loot: 'relic',
       party: (st) => party3(st), win: 'cross.after',
       outro: 'The echoes come apart like smoke. The bell stops ringing.',
     },
@@ -807,7 +807,7 @@
       ],
     },
     'deep.1': {
-      type: 'battle', chapter: 'side', scenario: 'deep1', hearts: false, xp: 60, carry: true, loot: 'deep',
+      type: 'battle', chapter: 'side', scenario: 'deep1', wounds: false, xp: 60, carry: true, loot: 'deep',
       party: (st) => party3(st), win: 'deep.rest',
     },
     'deep.rest': {
@@ -815,11 +815,11 @@
       lines: [N('A trickle of clean water runs down the wall. There is no better place to stop. You rest and drink, and everyone recovers a little.')],
     },
     'deep.2': {
-      type: 'battle', chapter: 'side', scenario: 'deep2', hearts: false, xp: 70, carry: true, loot: 'deep',
+      type: 'battle', chapter: 'side', scenario: 'deep2', wounds: false, xp: 70, carry: true, loot: 'deep',
       party: (st) => party3(st), win: 'deep.3',
     },
     'deep.3': {
-      type: 'battle', chapter: 'side', scenario: 'deep3', hearts: false, xp: 120, carry: true, loot: 'chief',
+      type: 'battle', chapter: 'side', scenario: 'deep3', wounds: false, xp: 120, carry: true, loot: 'chief',
       party: (st) => party3(st), win: 'deep.end',
       outro: 'The chief drops the miller’s cleaver and flees into the dark.',
     },
@@ -961,7 +961,7 @@
       side: !!st.side, carry: !!n.carry, arcade: !!n.arcade, loot: n.loot || null,
       greed: !!st.flags.deepGreed,
       mods: n.mods ? n.mods(st) : undefined,
-      hearts: !!n.hearts,
+      wounds: !!n.wounds,
       allyLevel: n.allyLevel ? teamLevel(st) : undefined, // the book's heroes fixed in a scenario
       tutorial: !!n.tutorial,
       tips: n.tips || null,
