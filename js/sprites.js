@@ -51,31 +51,44 @@
   }
 
   // Frame rectangles from a TexturePacker JSON hash (or array), grouped by direction.
-  // Returns { S: [frame, ...], ... } where frame = { x, y, w, h, ox, oy, sw, sh }.
-  function parseFrames(data, animName) {
+  // Returns { S: [frame, ...], ... } where frame = { x, y, w, h, ox, oy, sw, sh, dur }.
+  // Frames are named <anim>_<DIR>_<NNN>; a sheet drawn in one direction only may use any
+  // name ending in _<NNN> (e.g. frame_007) when `dir` says which direction it is.
+  // `duration` (ms) per frame is kept as dur (seconds).
+  function parseFrames(data, animName, dir) {
     const out = {};
     const list = Array.isArray(data.frames) ? data.frames.map((f) => [f.filename, f]) : Object.entries(data.frames || {});
     const re = new RegExp('^' + animName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '_([NSEW]{1,2})_(\\d+)');
     for (const [name, f] of list) {
-      const m = re.exec(String(name).replace(/\.png$/i, ''));
+      const nm = String(name).replace(/\.png$/i, '');
+      let m = re.exec(nm);
+      if (!m && dir) { const k = /(\d+)$/.exec(nm); if (k) m = [nm, dir, k[1]]; }
       if (!m) continue;
       const r = f.frame, src = f.spriteSourceSize || { x: 0, y: 0 }, size = f.sourceSize || { w: r.w, h: r.h };
-      (out[m[1]] = out[m[1]] || []).push({ n: +m[2], x: r.x, y: r.y, w: r.w, h: r.h, ox: src.x, oy: src.y, sw: size.w, sh: size.h, rotated: !!f.rotated });
+      (out[m[1]] = out[m[1]] || []).push({ n: +m[2], x: r.x, y: r.y, w: r.w, h: r.h, ox: src.x, oy: src.y, sw: size.w, sh: size.h, rotated: !!f.rotated, dur: f.duration > 0 ? f.duration / 1000 : null });
     }
     for (const d of Object.keys(out)) out[d].sort((a, b) => a.n - b.n);
     return out;
   }
 
-  // Frame index at time t (seconds) for an animation: loops, or holds the last frame.
-  function frameIndex(anim, n, t) {
-    const i = Math.floor(Math.max(0, t) * (anim.fps || 12));
+  // Frame index at time t (seconds): loops, or holds the last frame. Uses each frame's own
+  // duration from the JSON when it has one, else the animation's fps.
+  function frameIndex(anim, n, t, frames) {
+    t = Math.max(0, t);
+    if (frames && frames.length === n && frames[0].dur) {
+      const total = frames.reduce((a, f) => a + (f.dur || 0), 0);
+      if (anim.loop !== false) t %= total; else if (t >= total) return n - 1;
+      for (let i = 0; i < n; i++) { t -= frames[i].dur; if (t < 0) return i; }
+      return n - 1;
+    }
+    const i = Math.floor(t * (anim.fps || 12));
     return anim.loop === false ? Math.min(n - 1, i) : i % n;
   }
-  function duration(anim, n) { return n / (anim.fps || 12); }
+  function duration(anim, n, frames) { return frames && frames[0] && frames[0].dur ? frames.reduce((a, f) => a + (f.dur || 0), 0) : n / (anim.fps || 12); }
 
   // The sim state a unit is in -> the animation to play, falling back toward 'base'.
   const STATE_ANIM = {
-    idle: ['idle'], circle: ['walk', 'idle'], move: ['run', 'walk', 'idle'], opener: ['run', 'walk', 'idle'],
+    idle: ['idle', 'base'], circle: ['walk', 'idle', 'base'], move: ['run', 'walk', 'idle', 'base'], opener: ['run', 'walk', 'idle', 'base'],
     attack: ['attack', 'idle'], parry: ['block', 'idle'], dodge: ['dodge', 'run', 'idle'],
     hurt: ['hit', 'idle'], stagger: ['hit', 'idle'], down: ['down', 'hit', 'idle'], out: ['ko', 'down', 'idle'],
     cast: ['cast', 'idle'], recover: ['idle'], distracted: ['idle'], pickup: ['idle'],
@@ -107,8 +120,8 @@
     A.t += dt; A.prevT += dt; A.fade += dt;
     if (A.then) {
       const anim = A.man.animations[A.cur];
-      const n = anim && anim.frames ? Math.max(...Object.values(anim.frames).map((f) => f.length), 1) : 1;
-      if (!anim || A.t >= duration(anim, n)) { const to = A.then; A.then = null; A.prev = A.cur; A.prevT = A.t; A.cur = to; A.t = 0; A.fade = 0; A.fadeDur = 0.06; }
+      const fl = anim && anim.frames ? Object.values(anim.frames)[0] : null;
+      if (!anim || !fl || A.t >= duration(anim, fl.length, fl)) { const to = A.then; A.then = null; A.prev = A.cur; A.prevT = A.t; A.cur = to; A.t = 0; A.fade = 0; A.fadeDur = 0.06; }
     }
   }
   // [{ anim, dir, flip, frame, alpha }] — the outgoing pose under the incoming one.
@@ -120,7 +133,7 @@
       const r = resolveDir(A.man, anim, dir);
       if (!r) return;
       const fr = anim.frames[r.dir];
-      out.push({ anim: name, dir: r.dir, flip: r.flip, frame: fr[frameIndex(anim, fr.length, t)], alpha });
+      out.push({ anim: name, dir: r.dir, flip: r.flip, frame: fr[frameIndex(anim, fr.length, t, fr)], alpha });
     };
     const k = A.fadeDur > 0 ? Math.min(1, A.fade / A.fadeDur) : 1;
     if (k < 1) pick(A.prev, A.prevT, 1 - k);
@@ -152,11 +165,19 @@
         if (!a.sheet || !a.data) continue;
         const [img, data] = await Promise.all([loadImage(dir + a.sheet), fetch(dir + a.data).then((r) => r.json())]);
         a.image = img;
-        a.frames = parseFrames(data, a.prefix || name);
+        a.frames = parseFrames(data, a.prefix || name, a.dir);
       }
+      addBase(man);
     }
     man.ready = true;
     return man;
+  }
+  // The official base sprite as a one-frame pose ('base'): standing still, front view.
+  function addBase(man) {
+    if (!man.baseImage || man.animations.base) return;
+    const b = man.base;
+    man.animations.base = { image: man.baseImage, anchor: b.anchor, figureHeightPx: b.figureHeightPx, fps: 1,
+      frames: { [b.facing || 'S']: [{ n: 0, x: 0, y: 0, w: b.size[0], h: b.size[1], ox: 0, oy: 0, sw: b.size[0], sh: b.size[1] }] } };
   }
   function loadAll(urls) {
     return Promise.all(urls.map((u) => load(u).catch((e) => { console.warn(e.message || e); return null; })));
@@ -173,7 +194,8 @@
     ctx.globalAlpha *= s.alpha;
     ctx.translate(x, y);
     if (s.flip) ctx.scale(-1, 1);
-    ctx.drawImage(anim.image, f.x, f.y, f.w, f.h, (f.ox - ax) * k, (f.oy - ay) * k, f.w * k, f.h * k);
+    const ss = anim.sheetScale || 1; // the shipped sheet may be smaller than the JSON's pixels
+    ctx.drawImage(anim.image, f.x * ss, f.y * ss, f.w * ss, f.h * ss, (f.ox - ax) * k, (f.oy - ay) * k, f.w * k, f.h * k);
     ctx.restore();
   }
   // The base sprite (front view), feet on (x, y).
@@ -191,6 +213,6 @@
 
   return {
     DIRS, MANIFESTS, STATE_ANIM, dirFor, resolveDir, parseFrames, frameIndex, animFor,
-    animator, play, advance, sample, register, load, loadAll, get, drawFrame, drawBase,
+    animator, play, advance, sample, register, load, loadAll, get, drawFrame, drawBase, addBase,
   };
 });

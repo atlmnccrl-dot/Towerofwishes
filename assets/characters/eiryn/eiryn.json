@@ -2,17 +2,55 @@
   "id": "eiryn",
   "name": "Eiryn",
   "note": "Official appearance (author's reference, 2026-10-18). Every animation must match this sprite: hairstyle, face, green eyes, black-and-green outfit, proportions.",
-  "simKeys": ["eiryn", "eirynAsh", "eirynMage"],
+  "simKeys": [
+    "eiryn",
+    "eirynAsh",
+    "eirynMage"
+  ],
   "base": {
     "image": "eiryn_base.png",
-    "size": [448, 816],
-    "anchor": [223, 778],
+    "size": [
+      448,
+      816
+    ],
+    "anchor": [
+      223,
+      778
+    ],
     "figureHeightPx": 741,
     "facing": "S"
   },
-  "directions": ["S", "SW", "W", "NW", "N", "NE", "E", "SE"],
-  "mirror": { "W": "E", "SW": "SE", "NW": "NE" },
+  "directions": [
+    "S",
+    "SW",
+    "W",
+    "NW",
+    "N",
+    "NE",
+    "E",
+    "SE"
+  ],
+  "mirror": {
+    "W": "E",
+    "SW": "SE",
+    "NW": "NE"
+  },
   "blend": 0.12,
-  "animations": {},
+  "animations": {
+    "walk": {
+      "sheet": "walk_S.png",
+      "data": "walk_S.json",
+      "dir": "S",
+      "sheetScale": 0.5,
+      "anchor": [
+        208,
+        850
+      ],
+      "figureHeightPx": 824,
+      "loop": true,
+      "speedMps": 1.3,
+      "note": "Front-facing walk (S), 36 frames at 59 ms from the JSON. Sheet shipped at half size; the JSON keeps the full-size coordinates. Original in source/walk_S_full.png."
+    }
+  },
   "transitions": {}
 }

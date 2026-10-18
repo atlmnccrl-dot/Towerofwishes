@@ -26,8 +26,13 @@ for (const rel of Sp.MANIFESTS) {
   for (const [name, a] of Object.entries(man.animations)) {
     assert.ok(fs.existsSync(path.join(dir, a.sheet)), `${man.id}/${name}: sheet exists`);
     const data = JSON.parse(fs.readFileSync(path.join(dir, a.data), 'utf8'));
-    const frames = Sp.parseFrames(data, a.prefix || name);
-    assert.ok(Object.keys(frames).length, `${man.id}/${name}: frames named ${a.prefix || name}_<DIR>_<NNN>`);
+    const frames = Sp.parseFrames(data, a.prefix || name, a.dir);
+    assert.ok(Object.keys(frames).length, `${man.id}/${name}: frames named ${a.prefix || name}_<DIR>_<NNN> (or _<NNN> with "dir")`);
+    // The shipped sheet is the JSON's sheet scaled by sheetScale.
+    const sheet = pngSize(path.join(dir, a.sheet)), meta = data.meta && data.meta.size;
+    if (meta) assert.deepStrictEqual([sheet.w, sheet.h], [Math.round(meta.w * (a.sheetScale || 1)), Math.round(meta.h * (a.sheetScale || 1))], `${man.id}/${name}: sheet size`);
+    assert.ok(sheet.alpha, `${man.id}/${name}: transparent sheet`);
+    for (const fr of Object.values(frames)) for (const f of fr) assert.ok((f.x + f.w) * (a.sheetScale || 1) <= sheet.w + 0.5 && (f.y + f.h) * (a.sheetScale || 1) <= sheet.h + 0.5, `${man.id}/${name}: frame inside the sheet`);
   }
 }
 // Eiryn is registered with her official base sprite and no animations until they are delivered.
@@ -35,6 +40,20 @@ const eiryn = JSON.parse(fs.readFileSync(path.join(root, 'assets/characters/eiry
 assert.strictEqual(eiryn.base.image, 'eiryn_base.png');
 Sp.register(eiryn, 'assets/characters/eiryn/');
 for (const k of ['eiryn', 'eirynAsh', 'eirynMage']) assert.strictEqual(Sp.get(k).id, 'eiryn', `look key ${k} maps to Eiryn`);
+
+// Her front-facing walk (delivered 2026-10-18): 36 frames, 59 ms each, looping.
+{
+  const w = eiryn.animations.walk;
+  assert.ok(w && w.dir === 'S' && w.loop !== false, 'walk registered, front view, loops');
+  const fr = Sp.parseFrames(JSON.parse(fs.readFileSync(path.join(root, 'assets/characters/eiryn', w.data), 'utf8')), 'walk', 'S').S;
+  assert.strictEqual(fr.length, 36);
+  assert.ok(fr.every((f) => Math.abs(f.dur - 0.059) < 1e-9), 'timings from the JSON');
+  assert.deepStrictEqual(fr.map((f) => f.n), [...Array(36).keys()], 'frames in order');
+  assert.strictEqual(Sp.frameIndex(w, 36, 0.06, fr), 1);
+  assert.strictEqual(Sp.frameIndex(w, 36, 36 * 0.059 + 0.01, fr), 0, 'wraps round smoothly');
+  assert.strictEqual(Sp.animFor(eiryn, 'move'), 'walk');
+  assert.strictEqual(Sp.animFor(eiryn, 'attack'), null, 'no attack art yet: the drawn body stays');
+}
 
 // Directions: facing the camera is S; the camera's turn is taken into account.
 const H = Math.PI / 2;

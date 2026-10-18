@@ -11,7 +11,14 @@ Code: `js/sprites.js`. Assets: `assets/characters/<id>/`. Test: `node test/sprit
   - Feet anchor at pixel (223, 778).
   - Figure height 741 px (top of head to soles).
   - Used for the sim looks `eiryn`, `eirynAsh` and `eirynMage`.
-  - No animations are registered yet. In-game she keeps her current drawn body until her animations arrive and are switched on.
+  - **walk** (delivered 2026-10-18): front view (S), 36 frames, 59 ms each (timings read from the JSON), looping.
+    - Files: `walk_S.png` + `walk_S.json`. The JSON is kept as delivered.
+    - The sheet ships at half size (`sheetScale: 0.5`); the original is in `source/`.
+    - Feet anchor (208, 850) and figure height 824 px, both in the JSON's full-size pixels.
+    - The cycle speeds up or slows down with her movement so her feet don't slide.
+  - **Where she shows:** in story scenes and the title screen, while standing (her base pose) or walking.
+    - Everything else keeps her drawn body until that art arrives: fights, gestures, sitting, holding props, exhausted.
+  - With only the front view drawn, she faces the camera whichever way she walks.
 
 ## What each animation ZIP should contain
 
@@ -22,6 +29,7 @@ eiryn_idle.zip
 ```
 
 - **Frame names:** `<anim>_<DIR>_<NNN>`, for example `idle_S_000`, `idle_SE_007`, `run_N_011`.
+  - A one-direction sheet can keep generic names like `frame_000`; I record its direction in the manifest.
   - `DIR` is one of `S SW W NW N NE E SE`.
   - `S` faces the viewer; `N` is the back.
 - **Directions:** draw at least `S, SE, E, NE, N`. The game mirrors `SE→SW`, `E→W` and `NE→NW`.

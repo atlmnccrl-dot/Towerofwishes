@@ -746,10 +746,37 @@
       }
       ctx.globalAlpha = Math.max(0.15, alpha);
       if (lying) drawLying(u, L, sc);
-      else drawStanding(u, L, sc);
+      else if (!spriteBody(u, L, s)) drawStanding(u, L, sc);
       ctx.globalAlpha = 1;
       if (L.mist && u.state !== 'out') drawMist(u, L, sc, true);
       if (L.afterimage && !lying) shadowFlicker(u, L, sc, s);
+    }
+
+    // Sprite characters (js/sprites.js, assets/characters/): in staged scenes, a character
+    // with sprite art for what they are doing (standing, walking) is drawn from it; anything
+    // else (fights, gestures, props, sitting) keeps the drawn body until that art exists.
+    const SPR = new WeakMap();
+    const SPRITE_STATES = { idle: 1, move: 1, circle: 1, opener: 1 };
+    function spriteBody(u, L, s) {
+      const Sp = window.TowSprites;
+      if (!Sp || !s.stageHandle || !SPRITE_STATES[u.state] || u.gest || u.prop || u.drained > 0) return false;
+      const man = Sp.get(u.key);
+      if (!man || !man.ready) return false;
+      const speed = Math.hypot(u.vx || 0, u.vy || 0);
+      const name = Sp.animFor(man, speed > 0.25 ? 'move' : 'idle');
+      if (!name) return false;
+      let A = SPR.get(u);
+      if (!A || A.man !== man) { A = Sp.animator(man); A.last = V.time; SPR.set(u, A); }
+      const dt = Math.max(0, Math.min(0.1, V.time - A.last));
+      A.last = V.time;
+      Sp.play(A, name);
+      // The walk cycle keeps pace with the ground so the feet don't slide.
+      const anim = man.animations[name];
+      const rate = anim.speedMps ? Math.max(0.6, Math.min(1.8, speed / anim.speedMps)) : 1;
+      Sp.advance(A, dt * rate);
+      const p = P(u.x, u.y, 0), hpx = 1.78 * L.h * V.cam.sc * 0.9;
+      for (const smp of Sp.sample(A, Sp.dirFor(u.facing, V.cam.ang))) Sp.drawFrame(ctx, man, smp, p.x, p.y, hpx);
+      return true;
     }
 
     // Frost mist wrapped round a knight's legs, trailing behind as it moves.
