@@ -11,21 +11,37 @@ Code: `js/sprites.js`. Assets: `assets/characters/<id>/`. Test: `node test/sprit
   - Feet anchor at pixel (223, 778).
   - Figure height 741 px (top of head to soles).
   - Used for the sim looks `eiryn`, `eirynAsh` and `eirynMage`.
-  - **Delivered so far** (36 frames at 59 ms each, timings read from each JSON, looping):
+  - **Delivered so far** (timings read from each JSON):
 
     | Animation | Drawn | Not drawn yet |
     |---|---|---|
-    | walk | S, SE, SW, E (W = E mirrored) | NE, N (and NW by mirror) |
-    | run | S | SE, E, NE, N |
+    | walk (36 × 59 ms) | S, SE, SW, E (W = E mirrored) | NE, N |
+    | run (36 × 59 ms) | S | SE, E, NE, N |
+    | idle_combat (36 × 88 ms) | S: fight stance, glyph at her hand | other directions |
+    | attack (36 × 100 ms) | S: Pressure cast; wind-up 0–12, hit on 12, release and recover 28–35 | other directions |
     | idle | none (her base sprite stands in, front only) | all |
 
-    - Where an animation isn't drawn for a facing, the nearest drawn view is used. Running uses the walk, sped up, in views where the run isn't drawn.
-    - Each delivered JSON is kept as is. Runtime sheets are half-size WebP (`sheetScale: 0.5`, about 0.5–0.7 MB each); the full PNGs are in `source/`.
-    - The files labelled SE and SW arrived with each other's directions, so they are filed by how they face on screen. SE = facing down-right.
-    - walk_E arrived with a checkerboard painted into the image (not transparent). It was keyed out; `source/walk_E_full.png` is the keyed sheet.
-    - walk_E also shows a green cape with gold trim that isn't on her base sprite. It is kept as delivered; it needs a call from the author.
-  - **Where she shows:** in story scenes and the title screen, while standing (her base pose) or walking and running.
-    - Everything else keeps her drawn body until that art arrives: fights, gestures, sitting, holding props, exhausted.
+  - **Fights** use her sprite in every state. Where a clip doesn't exist yet, existing art is reused:
+
+    | State | Uses | Until this arrives |
+    |---|---|---|
+    | standing | idle_combat | |
+    | casting / charging | idle_combat | `cast` |
+    | parry | idle_combat, with a small lean back | `block` |
+    | hit, stagger | idle_combat, with a recoil and a flash | `hit` |
+    | dodge | run or walk, played fast | `dodge` |
+    | knocked down, out | the current pose, sinking onto her side | `down`, `ko` |
+
+    The attack clip is timed to the fight: the wind-up stretches to the attack's real wind-up, the hit lands on frame 12, and the long hold is skipped into the release.
+  - **Scenes** keep her calm poses (the base sprite standing, the walk moving). Life layer:
+    - while walking she turns toward whoever is talking;
+    - a pair walking the same way keeps abreast, the speaker half a step ahead;
+    - the pace has a little natural give and eases in and out;
+    - still poses breathe.
+  - **Gestures, props and sitting in scenes** have no sprite art yet and keep the drawn body there.
+  - Each delivered JSON is kept as is. Runtime sheets are half-size WebP; the full PNGs are in `source/`.
+  - The files labelled SE and SW arrived with each other's directions; they're filed by how they face on screen.
+  - walk_E arrived with a checkerboard painted in. It was keyed out. Its cape isn't on her base sprite; that needs a call from the author.
 
 ## What each animation ZIP should contain
 
@@ -48,6 +64,7 @@ eiryn_idle.zip
   - If the sheet is trimmed, keep `spriteSourceSize` / `sourceSize` in the JSON so the anchor holds.
   - If a clip needs a different canvas, give its anchor in the note below.
 - **Frame rate:** 12 fps by default. Say if a clip uses another rate, and whether it loops.
+- **Attacks:** say which frames are the wind-up, the hit and the recovery (e.g. "wind-up 0–12, hit 12, recover 28–35"). The fight stretches each part to its own timing.
 - **Background:** transparent. No shadow baked in; the game draws the ground shadow.
 
 ## Animations the game will map to fight states

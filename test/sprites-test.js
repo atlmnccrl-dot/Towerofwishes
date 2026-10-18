@@ -47,6 +47,14 @@ for (const rel of Sp.MANIFESTS) {
       if (meta) assert.deepStrictEqual([sheet.w, sheet.h], [Math.floor(meta.w * ss), Math.floor(meta.h * ss)], `${tag}: sheet size`);
       assert.ok(sheet.alpha, `${tag}: transparent sheet`);
       for (const fr of Object.values(frames)) for (const f of fr) assert.ok((f.x + f.w) * ss <= sheet.w + 0.5 && (f.y + f.h) * ss <= sheet.h + 0.5, `${tag}: frame inside the sheet`);
+      // Phased clips (attacks): wind-up, hit and recover ranges lie inside the frames, in order.
+      if (a.phases) {
+        const n = Math.max(...Object.values(frames).map((f) => f.length));
+        const { windup, strike, recover } = a.phases;
+        for (const r of [windup, strike, recover]) assert.ok(r[0] <= r[1] && r[1] < n, `${tag}: phase range ${r} inside ${n} frames`);
+        assert.ok(windup[1] <= strike[0] + 1 && strike[1] <= recover[0], `${tag}: phases in order`);
+        if (a.hitFrame != null) assert.ok(a.hitFrame >= strike[0] && a.hitFrame <= strike[1], `${tag}: hit frame within the strike`);
+      }
       const an = sh.anchor || a.anchor;
       if (an) assert.ok(an[0] > 0 && an[1] > 0 && (sh.figureHeightPx || a.figureHeightPx) > 0, `${tag}: anchor and figure height`);
     }
@@ -71,7 +79,7 @@ for (const k of ['eiryn', 'eirynAsh', 'eirynMage']) assert.strictEqual(Sp.get(k)
   assert.strictEqual(Sp.frameIndex(w, 36, 0.06, fr), 1);
   assert.strictEqual(Sp.frameIndex(w, 36, 36 * 0.059 + 0.01, fr), 0, 'wraps round smoothly');
   assert.strictEqual(Sp.animFor(eiryn, 'move'), 'run');
-  assert.strictEqual(Sp.animFor(eiryn, 'attack'), null, 'no attack art yet: the drawn body stays');
+  assert.strictEqual(Sp.animFor(eiryn, 'attack'), 'attack', 'her Pressure attack is registered');
 }
 
 // Running sideways uses the side walk when the run isn't drawn that way; the front run when it is.

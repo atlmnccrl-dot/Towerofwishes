@@ -105,6 +105,55 @@
         }
       ],
       "note": "Front run (S), 36 frames at 59 ms. Other directions not drawn yet: she runs with her walk in those views, sped up."
+    },
+    "idle_combat": {
+      "loop": true,
+      "sheets": [
+        {
+          "dir": "S",
+          "sheet": "idle_combat_S.webp",
+          "data": "idle_combat_S.json",
+          "sheetScale": 0.5,
+          "anchor": [
+            250,
+            835
+          ],
+          "figureHeightPx": 833
+        }
+      ],
+      "note": "Fight stance with a glyph hovering at her hand, front view; 36 frames at 88 ms. Also used while she charges or casts until a cast clip exists."
+    },
+    "attack": {
+      "loop": false,
+      "hitFrame": 12,
+      "phases": {
+        "windup": [
+          0,
+          12
+        ],
+        "strike": [
+          12,
+          14
+        ],
+        "recover": [
+          28,
+          35
+        ]
+      },
+      "sheets": [
+        {
+          "dir": "S",
+          "sheet": "attack_S.webp",
+          "data": "attack_S.json",
+          "sheetScale": 0.5,
+          "anchor": [
+            227,
+            837
+          ],
+          "figureHeightPx": 833
+        }
+      ],
+      "note": "Pressure cast, front view; 36 frames at 100 ms. In fights the wind-up (0-12) stretches to the attack's wind-up, the hit lands on frame 12, and the long hold (15-27) is skipped into the release and recovery (28-35)."
     }
   },
   "transitions": {}

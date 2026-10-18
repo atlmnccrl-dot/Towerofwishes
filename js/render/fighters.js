@@ -745,41 +745,117 @@
         alpha *= L.ghost + 0.06 * Math.sin(t * 2.3) + (Math.sin(t * 0.7) > 0.93 ? -0.4 : 0);
       }
       ctx.globalAlpha = Math.max(0.15, alpha);
-      if (lying) drawLying(u, L, sc);
-      else if (!spriteBody(u, L, s)) drawStanding(u, L, sc);
+      if (!spriteBody(u, L, s, lying)) {
+        if (lying) drawLying(u, L, sc);
+        else drawStanding(u, L, sc);
+      }
       ctx.globalAlpha = 1;
       if (L.mist && u.state !== 'out') drawMist(u, L, sc, true);
       if (L.afterimage && !lying) shadowFlicker(u, L, sc, s);
     }
 
-    // Sprite characters (js/sprites.js, assets/characters/): in staged scenes, a character
-    // with sprite art for what they are doing (standing, walking) is drawn from it; anything
-    // else (fights, gestures, props, sitting) keeps the drawn body until that art exists.
+    // Sprite characters (js/sprites.js, assets/characters/): a character with sprite art is
+    // drawn from it everywhere: scenes, the title, face-offs and fights. Each state plays the
+    // clip made for it, else the nearest clip that exists (no artwork is invented):
+    //   attack -> attack (timed to the fight's wind-up, hit and recovery) or the combat idle;
+    //   parry, hit, stagger -> block / hit, else the combat idle with a small recoil;
+    //   dodge -> dodge, else the run or walk; down, out -> down / ko, else she sinks onto her side.
+    // Scenes add a life layer: the walk turns toward whoever is talking, the pace eases in and
+    // out, still poses breathe. Gestures, props and sitting have no sprite art yet and keep the
+    // drawn body.
     const SPR = new WeakMap();
-    const SPRITE_STATES = { idle: 1, move: 1, circle: 1, opener: 1 };
-    // Resting poses a scene gives listeners (arms folded, hands on hips) count as standing.
     const REST_GEST = { cross: 1, hips: 1, lean: 1 };
-    function spriteBody(u, L, s) {
+    const angD = (a, b) => { let d = b - a; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return d; };
+    const clamp1 = (v, a, b) => Math.max(a, Math.min(b, v));
+    // Who this unit is in conversation with: the speaker, or (if it is speaking) the nearest listener.
+    function talkPartner(u, s) {
+      const spk = s.stageSpeaker;
+      if (!spk) return null;
+      let best = null, bd = 6;
+      for (const o of s.units) {
+        if (o === u || o.fled) continue;
+        if (spk !== u.id && o.id !== spk) continue;
+        const d = Math.hypot(o.x - u.x, o.y - u.y);
+        if (d < bd) { bd = d; best = o; }
+      }
+      return best;
+    }
+    // The frame of a phased clip (wind-up, hit, recover) for where the unit is in its attack.
+    function phaseIndex(anim, u) {
+      const ph = anim.phases, a = u.act;
+      if (!ph || !a) return null;
+      const at = (r, k) => Math.round(r[0] + (r[1] - r[0]) * clamp1(k, 0, 1));
+      if (a.phase === 'windup') return at(ph.windup, a.t / Math.max(0.01, a.wind));
+      if (a.phase === 'feint') return ph.windup[1];
+      if (a.phase === 'strike') return at(ph.strike, a.t / Math.max(0.01, a.A.active));
+      return at(ph.recover, a.t / Math.max(0.01, a.A.recover));
+    }
+    function spriteBody(u, L, s, lying) {
       const Sp = window.TowSprites;
-      if (!Sp || !s.stageHandle || !SPRITE_STATES[u.state] || (u.gest && !REST_GEST[u.gest]) || u.prop || u.drained > 0) return false;
+      if (!Sp) return false;
       const man = Sp.get(u.key);
       if (!man || !man.ready) return false;
+      const scene = !!s.stageHandle;
+      if (scene && ((u.gest && !REST_GEST[u.gest]) || u.prop || u.state === 'sit' || u.state === 'pickup')) return false;
+      const has = (n) => !!(man.animations[n] && man.animations[n].frames);
       const speed = Math.hypot(u.vx || 0, u.vy || 0);
-      const dir = Sp.dirFor(u.facing, V.cam.ang);
-      // Running uses the run where it is drawn for this direction, else the walk (sped up).
-      const name = Sp.pickAnim(man, speed > 2.4 ? ['run', 'walk', 'idle', 'base'] : speed > 0.25 ? ['walk', 'run', 'idle', 'base'] : ['idle', 'base'], dir);
+      const st = u.state;
+      const moving = speed > 0.25 && st !== 'attack' && st !== 'parry' && st !== 'hurt' && st !== 'stagger' && !lying;
+      const still = scene ? ['idle', 'base'] : ['idle_combat', 'idle', 'base'];
+      let names, react = null;
+      if (lying) { names = ['down', 'ko'].filter(has).concat(still); react = has('down') || has('ko') ? null : 'lie'; }
+      else if (st === 'attack') names = ['attack'].concat(still);
+      else if (st === 'cast') names = ['cast', 'idle_combat', 'idle', 'base'];
+      else if (st === 'parry') { names = ['block'].concat(still); react = has('block') ? null : 'parry'; }
+      else if (st === 'hurt' || st === 'stagger') { names = ['hit'].concat(still); react = has('hit') ? null : 'hit'; }
+      else if (st === 'dodge') names = ['dodge', 'run', 'walk'].concat(still);
+      else if (moving) names = (speed > 2.4 ? ['run', 'walk'] : ['walk', 'run']).concat(still);
+      else names = still;
+      // Which way the body is seen: where it's going when it moves (unless strafing slowly in a
+      // fight), where it faces otherwise; in scenes a walker turns toward the conversation.
+      let face = u.facing;
+      if (moving && (scene || speed > 1.6 || st === 'dodge')) face = Math.atan2(u.vy, u.vx);
+      if (scene) {
+        const p = talkPartner(u, s);
+        if (p) { const d = angD(face, Math.atan2(p.y - u.y, p.x - u.x)); face += clamp1(d, -0.8, 0.8); }
+      }
+      const dir = Sp.dirFor(face, V.cam.ang);
+      const name = Sp.pickAnim(man, names, dir);
       if (!name) return false;
       let A = SPR.get(u);
-      if (!A || A.man !== man) { A = Sp.animator(man); A.last = V.time; SPR.set(u, A); }
+      if (!A || A.man !== man) { A = Sp.animator(man); A.last = V.time; A.rate = 1; A.lie = lying ? 1 : 0; SPR.set(u, A); }
       const dt = Math.max(0, Math.min(0.1, V.time - A.last));
       A.last = V.time;
-      Sp.play(A, name);
-      // The walk cycle keeps pace with the ground so the feet don't slide.
+      Sp.play(A, name, st === 'attack' || st === 'hurt' || st === 'parry' ? { blend: 0.05 } : null);
+      // The walk cycle keeps pace with the ground, easing in and out instead of snapping.
       const anim = man.animations[name];
-      const rate = anim.speedMps ? Math.max(0.6, Math.min(1.8, speed / anim.speedMps)) : 1;
-      Sp.advance(A, dt * rate);
+      const want = anim.speedMps ? clamp1(speed / anim.speedMps, 0.6, 1.8) : st === 'dodge' ? 1.8 : 1;
+      A.rate += (want - A.rate) * Math.min(1, dt * 6);
+      Sp.advance(A, dt * A.rate);
+      A.lie += ((react === 'lie' ? 1 : 0) - A.lie) * Math.min(1, dt * 7);
+      let smps = Sp.sample(A, dir);
+      // Attacks follow the fight's own timing: the hit lands on the clip's hit frame.
+      const pi = st === 'attack' && name === 'attack' ? phaseIndex(anim, u) : null;
+      if (pi != null) { const r = Sp.resolveDir(man, anim, dir); const fr = r && anim.frames[r.dir]; if (fr) smps = [{ anim: name, dir: r.dir, flip: r.flip, frame: fr[Math.min(fr.length - 1, pi)], alpha: 1 }]; }
       const p = P(u.x, u.y, 0), hpx = 1.78 * L.h * V.cam.sc * 0.9;
-      for (const smp of Sp.sample(A, dir)) Sp.drawFrame(ctx, man, smp, p.x, p.y, hpx);
+      const t = V.time + hashId(u.id) * 0.13;
+      // Small motion on borrowed or held poses: breathing, recoil, a parry lean, sinking down.
+      const screenFace = Math.cos(face + V.cam.ang) >= 0 ? 1 : -1;
+      let rot = 0, sx = 1, sy = 1, ox = 0;
+      if (!moving && !lying) sy = 1 + (u.drained > 0 ? 0.012 : 0.006) * Math.sin(t * (u.drained > 0 ? 1.4 : 2.1));
+      if (u.drained > 0 && !lying) rot = 0.035 * screenFace;
+      if (react === 'hit') { const k = Math.max(0, 1 - u.st / Math.max(0.2, u.dur || 0.4)); rot = -0.12 * k * screenFace; ox = -hpx * 0.05 * k * screenFace; }
+      if (react === 'parry') { const k = Math.sin(Math.min(1, u.st / 0.3) * Math.PI); rot = -0.06 * k * screenFace; }
+      if (A.lie > 0.01) { rot = (Math.PI / 2 - 0.1) * A.lie * -screenFace; sy *= 1 - 0.35 * A.lie; }
+      ctx.save();
+      ctx.translate(p.x + ox, p.y);
+      if (rot) ctx.rotate(rot);
+      if (sx !== 1 || sy !== 1) ctx.scale(sx, sy);
+      const flash = u.flash > 0 && 'filter' in ctx;
+      if (flash) ctx.filter = 'brightness(2.2)';
+      for (const smp of smps) Sp.drawFrame(ctx, man, smp, 0, 0, hpx);
+      if (flash) ctx.filter = 'none';
+      ctx.restore();
       return true;
     }
 

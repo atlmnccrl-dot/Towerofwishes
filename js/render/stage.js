@@ -257,13 +257,28 @@
       if (I.mv) {
         const m = I.mv, p = m.pts[0];
         const dx = p[0] - u.x, dy = p[1] - u.y, d = Math.hypot(dx, dy);
-        const step = m.speed * dt;
+        // Walk-and-talk: a walker beside a companion going the same way keeps abreast of
+        // them (the speaker half a step ahead), with a little natural give in the pace.
+        let pace = 1 + 0.035 * Math.sin(clock * 0.9 + (u.walk || 0) * 0.02 + u.id.length);
+        for (const o of match.units) {
+          const J = o !== u && !o.fled && info.get(o);
+          if (!J || !J.mv || Math.hypot(o.x - u.x, o.y - u.y) > 3.2) continue;
+          const ux = dx / (d || 1), uy = dy / (d || 1), q = J.mv.pts[0], od = Math.hypot(q[0] - o.x, q[1] - o.y) || 1;
+          if (((q[0] - o.x) / od) * ux + ((q[1] - o.y) / od) * uy < 0.7) continue;
+          const ahead = (o.x - u.x) * ux + (o.y - u.y) * uy;
+          const goal = match.stageSpeaker === o.id ? 0.4 : match.stageSpeaker === u.id ? -0.4 : 0;
+          pace += clamp((ahead - goal) * 0.25, -0.2, 0.2);
+          break;
+        }
+        if (match.stageSpeaker === u.id) pace *= 0.95;
+        m.pace = m.pace == null ? pace : m.pace + (pace - m.pace) * Math.min(1, dt * 3);
+        const step = m.speed * m.pace * dt;
         if (d <= step || d < 1e-4) {
           u.x = p[0]; u.y = p[1]; m.pts.shift();
           if (!m.pts.length) { I.mv = null; if (!I.ts) u.state = I.base; }
         } else {
           u.x += (dx / d) * step; u.y += (dy / d) * step;
-          u.vx = (dx / d) * m.speed; u.vy = (dy / d) * m.speed;
+          u.vx = (dx / d) * m.speed * m.pace; u.vy = (dy / d) * m.speed * m.pace;
           u.walk += (m.gait === 'sprint' ? Math.min(m.speed, 4.6) : m.speed) * dt * 2.4;
           if (I.trail) {
             I.trailT = (I.trailT || 0) - dt;
@@ -461,6 +476,8 @@
       try {
         const ls = currentLines();
         curText = String((ls[i] && ls[i].text) || '');
+        // Who is speaking this line (sprite characters turn toward the conversation).
+        { const w = ls[i] && ls[i].who; const al = def.auto && def.auto.alias; const id = w && al && al[w] ? al[w] : w; match.stageSpeaker = id && units[id] && !units[id].fled ? id : null; }
         if (def.auto) {
           const b = autoBeat(def.auto, ls, i);
           flush(); played = i; for (const id of Object.keys(units)) if (units[id] && units[id].barkT) units[id].barkT = 0; runBeat(b, false);
