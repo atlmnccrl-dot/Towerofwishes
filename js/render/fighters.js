@@ -757,9 +757,11 @@
     // else (fights, gestures, props, sitting) keeps the drawn body until that art exists.
     const SPR = new WeakMap();
     const SPRITE_STATES = { idle: 1, move: 1, circle: 1, opener: 1 };
+    // Resting poses a scene gives listeners (arms folded, hands on hips) count as standing.
+    const REST_GEST = { cross: 1, hips: 1, lean: 1 };
     function spriteBody(u, L, s) {
       const Sp = window.TowSprites;
-      if (!Sp || !s.stageHandle || !SPRITE_STATES[u.state] || u.gest || u.prop || u.drained > 0) return false;
+      if (!Sp || !s.stageHandle || !SPRITE_STATES[u.state] || (u.gest && !REST_GEST[u.gest]) || u.prop || u.drained > 0) return false;
       const man = Sp.get(u.key);
       if (!man || !man.ready) return false;
       const speed = Math.hypot(u.vx || 0, u.vy || 0);
