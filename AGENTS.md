@@ -5,28 +5,40 @@ Read first: [docs/DESIGN.md](docs/DESIGN.md), [docs/STORY.md](docs/STORY.md),
 
 ## Project boundaries
 
-- This is **Tower of Wishes**, a spectator-tactics RPG based on the author's own light
+- This is **Tower of Wishes**, a story-first cinematic RPG based on the author's own light
   novel manuscript. It is **completely separate from RIFTWORN**: never copy content,
   mechanics, code, names or assets between the two projects or repositories.
 - The manuscript is the canon. Do not invent lore, character facts, power names or plot
   and present them as canon. New ideas go in DESIGN.md marked **Proposal** until the
   author approves them.
-- **The campaign follows the manuscript's plot in order** (docs/STORY.md). Fights use the
+- **The campaign follows the 430-event inventory in order** (see Decided rules). Fights use the
   book's cast, weapons, targets and outcomes; fight dialogue is quoted from the book.
 - The repository is private. Never commit secrets, purchase keys or copyrighted
   reference assets.
 
 ## Decided rules (change only with the author's say-so)
 
-- Pure watching; the in-fight inputs are **All Out** (a few uses per match, set per
-  chapter: it burns every hero's stamina and ability power into attacks, and a hero who
-  runs dry can't dodge, block or parry until stamina recovers), **Withdraw**, and
-  tap-to-follow (camera locks onto one of your fighters).
+- **Talk before work.** Discuss findings and the plan with the author and wait for an explicit
+  go before changing code. Audit the repository before claiming anything is implemented.
+- **Story order and canon:** the 430-event inventory (`docs/source/MASTER_HANDOFF_2026-10-17.txt`,
+  ids TW-001–TW-430) governs story sequence and canon status, ahead of the older manuscript.
+  CANON = story fact (not "implemented"); GAME = game-approved; OPTION = needs approval;
+  OPEN = undecided, never invent it. Progress per id is tracked in `docs/EVENTS.md`.
+- The healer's name is **Eloryn** (the inventory's "Eleanor" is her).
+- **Host control** (replaces pure watching): after the second Kael+Eiryn fight the player
+  picks one hero to control (crown icon). The host gets a movement joystick, an auto-targeted
+  basic attack and a special; dodge and parry stay automatic. The rest of the party is AI.
+  **All Out** stays as a party command. Full auto is an option. Tap-to-follow stays.
+- **Exploration:** story locations are walkable maps with a marked main objective and
+  optional discoveries; the world map is an overview and fast-travel tool.
+- **No hearts.** Losing a fight costs nothing: retry, or leave to change gear, loot or earn XP
+  and come back. No story progress is ever lost.
+- Cutscenes can be skipped (setting); skipping never skips rewards, flags or injuries.
+- No speech bubbles anywhere: subtitles, or ambient "…" for murmurs.
 - Landscape only.
-- Heavy arts are cutscenes.
-- Hearts: max 5, one per 8 minutes, lose one only when the whole team falls in a story
-  match; wins fully heal; withdrawing costs no heart and leaves the team injured, healing
-  faster than a heart refills. Free modes never use hearts. Implemented in `js/progress.js`.
+- Heavy arts are cutscenes. Normal specials keep the standard battle camera.
+- Protected: the prologue's painted skyfire-and-flood Reset shot and other approved cinematics.
+- Restore point before the handoff work: branch `restore/pre-master-handoff`.
 
 ## Code layout
 

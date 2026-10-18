@@ -1,0 +1,1890 @@
+TOWER OF WISHES — COMPLETE CONSOLIDATED MASTER HANDOFF
+ONE FILE: ALL PRIOR GAME DESIGN REQUIREMENTS + LATEST PLAYTEST + ENTIRE 430-EVENT STORY INVENTORY
+Prepared 17 October 2026
+
+READ FIRST — MESSAGE TO CLAUDE AND CHATGPT
+I just played your newest version, and alongside EVERY requirement we already established, these are my latest observations and corrections from testing. The playtest notes are ADDITIVE. Do not discard, silently override, or minimize previous requirements. I want a story-heavy, cinematic mobile RPG that feels like WATCHING AND PLAYING MY COMIC. The new 430-event inventory appended IN FULL to this document supersedes conflicting old manuscript event structure. Preserve the high-quality cinematics you have already made except for specifically requested revisions. TALK WITH ME BEFORE YOU CODE. Audit the actual repository before declaring anything implemented.
+
+DOCUMENT HIERARCHY AND CONFLICT RULES
+1. This user's latest explicit decisions, including the latest playtest, govern presentation and mechanics.
+2. The complete 430-event chronological inventory reproduced below governs story sequence and canon status, ahead of an older unrevised script.
+3. The older full manuscript remains a reference for detailed scene prose and choreography where compatible.
+4. Existing successful code and cutscenes are protected unless user explicitly requests a correction.
+5. OPTION is not approved canon; OPEN is undecided; GAME is game-approved but not necessarily comic canon.
+6. A requested gameplay interpretation is not permission to invent a contradictory canonical event.
+7. When sources conflict, present the exact discrepancy and proposed reconciliation for user approval.
+
+PROJECT VISION — NON-NEGOTIABLE
+- Story-first, cinematic-first mobile RPG/auto-battler with optional manually controlled host character.
+- NOT a text-heavy click-through map, NOT a comic speech-bubble slideshow, NOT a generic arena battler.
+- Rich and frequent directed cinematic scenes: entrances, character acting, choreographed action, emotional beats, and meaningful finishing blows. Standard battles still need player agency; not every tiny fight needs a long cinematic.
+- Existing prologue shot of fire falling and water rising is the quality reference for ambition, composition and impact.
+- Cutscenes are skippable with a permanent skip setting, without skipping flags, rewards, injuries, recruitment or other story state.
+- Preserve and adapt existing cinematic concepts; add scenes and adjust transitions as necessary. Never indiscriminately remove a successful scene.
+- Cinematic transitions should preserve combat health, cooldowns, positioning, phase state and save flags.
+
+REQUIRED FULL GAME DIRECTOR'S BIBLE — NOT JUST A SUMMARY
+Create a chronological, production-ready scene-by-scene guide from the point immediately AFTER Kael and Eiryn join, through all currently documented arcs (including the Tower floors, Guardian and epilogue), using the 430-event inventory and the compatible full manuscript. The already programmed opening should not be rebuilt except for the SPECIFIC latest-playtest changes. Every canon event must be accounted for; do not leap over the first guild job, Ogre, Aerys chase, early Nox scenes, the Labyrinth, Beast Folk country, the split campaigns, tournament or Tower. Use event IDs TW-001 through TW-430 as traceability identifiers.
+
+For EACH location and sequence, specify:
+• event IDs, canonical status, source, and prior implementation status VERIFIED / UNKNOWN / MISSING;
+• environment and geography, map entry/exit, player spawn and camera, walkable paths, vertical/horizontal scroll and boundaries;
+• visible main quest indicator, optional interactions, discoverable secrets, shop NPCs, side contracts and environmental storytelling;
+• exactly where a cinematic begins and ends, shot list, staging, choreography, character positions, key dialogue, sound/VFX and camera transitions;
+• where control returns, whether host/manual/auto is available, combat lineup, enemies, enemy attacks/AI, telegraphs, equipment pools, phases and victory/defeat conditions;
+• rewards, currency, equipment drops, acquisition presentation, character relationships, injuries, recruitment and story-state changes;
+• travel cutscene/animation, checkpoint, save-state and next unlocked area;
+• required character, environment, weapon, VFX, animation, sound and cinematic assets;
+• QA acceptance criteria and implementation dependencies.
+Mark user-authored canonical beats separately from game additions and unapproved options. Avoid padding the story with invented mandatory arcs. A brief outline is NOT the deliverable.
+
+THE SPECIFIC GAMEPLAY FLOW
+World map = enormous scrollable world-scale overview and return-travel tool, NOT a sequence of dialogue-only buttons. The Tower should feel geographically distant: long journeys across distinct regions, mountains, underground city, forests, deserts, coastal areas, Tower City and ruins. For actual play, choose a location, enter a walkable map from existing top-down/isometric auto-battler angle, use mobile joystick to move host, discover optional content, encounter enemies, walk to marked story trigger, then cinematic → fight or next explorable region. For long distances, use high-quality travel cinematics/montages. At taverns, guild halls, clinics, forest trails and camps, permit interactive navigation, triggered conversations and contextual scenes. Optional secrets may be hidden by location rather than listed on a mission menu. A location may have multiple accessible quests and discoverable triggers; main plot remains clearly indicated.
+
+HOST AND COMBAT CONTROLS
+- Introduce host selection AFTER Eiryn joins Kael, specifically during the second battle following her recruitment, NOT their very first joint fight. Tutorial crown icons beside party names; tap to choose or disable host; indicate host visually.
+- Movement joystick, basic attack, special/major ability, separate party 'All Out' command. Avoid extra dedicated dodge/parry buttons; automate those based on timing/build/AI and clearly telegraph behavior.
+- Basic attack auto-targets closest valid enemy, no drag-to-aim requirement.
+- Controlled character has distinct class behavior (Kael sword, Eiryn spellcasting, Aerys Light, Nox teleport, Braxen strength, Eleanor healing).
+- Other party members use competent AI. Allow full auto mode for most fights, but difficult bosses demand manual play OR an appropriately optimized gear/skill build.
+- All Out triggers leader-specific charge/war cry cinematic; allow skip setting to prevent repetitive interruptions.
+- Preserve the normal battle camera during standard specials; reserve cinematic camera changes for genuine directed cutscenes or host-control needs.
+- Enemy combat should not collapse into stagger-lock or no-response loops; bosses need immunity windows, response attacks, phase logic, area denial, summons, positioning and readable telegraphs.
+- Defeat screen: retry, inspect discovered enemy mechanics, change loadout/skills, revisit earlier areas, earn resources. No mandatory extremely rare RNG item; no irreversible story-progress loss.
+
+SKILL TREE, ECONOMY, LOOT
+- Skill tree VISUALLY grows from a small plant to a large tree as character upgrades unlock and story advances.
+- Missions and side quests earn money; shops and meaningful encounters sell or award gear; strong enemies MAY drop rare gear, not automatic drops every fight.
+- Rarity tiers include gray/common and green/uncommon early, then increasingly powerful rarities later. Enemy units can EQUIP items from tier-appropriate pools, including legendary late-game effects. Seeing an enemy use gear should create anticipation, but the enemy does not necessarily drop it.
+- Equipment slots: sword/weapon, staff, armor, helmet, boots, pants/legwear and appropriate class-specific items. Each item should affect stats AND potentially behavior, abilities or visuals. Equipped sword, staff, armor and effects MUST visibly appear on character.
+- Examples of gameplay effects: teleport boots escape one heavy attack, reflective armor returns one heavy hit, speed pants, double-hit sword, dark-energy blade, fire-trail dodge boots, dragon-head/hand gear transforming Braxen's fist into flame punches.
+- Unique items should have their OWN cinematic acquisition/showcase (can use reusable templates and modular animation to control scope). Showcase is not a fake external trailer link.
+- Equipment must be lore-consistent and canon-timed; Sword of Calamity only after Floor 2.
+- SCRAP the existing placeholder weapon LIST as the planned design reference; do not destructively delete production data before migration review. ChatGPT will supply a fresh comprehensive lore-checked roster for Claude, with mechanics, rarities, equip constraints, drop/shop availability, and cinematic concepts. Earlier brainstorming names are NOT all canon.
+
+ITEM CINEMATIC DESIGN EXAMPLES — USER IDEAS
+• Flaming sword: blade embedded in stone, bursts into flame, unknown wielder pulls it free and raises it against the firelight; gameplay shows fire slash and matching model.
+• Teleport shoes: anonymous shadowed runner sprints, blinks repeatedly across distance, camera tracks rapid repositioning; gameplay reflects teleport dodge.
+• Fire-trail boots: shadowed runner evades a pursuer, blazing tracks ignite the pursuer's path; clearly communicate cooldown and counterplay.
+• Dragon hand: a wearable dragon-head/hand piece morphs Braxen's arm into a dragon claw; fist ignites and lands a flame punch.
+• Dark blade: slashes project dark beams, visually distinct from regular sword.
+Build a long item list sufficient for the whole campaign; include actual canon items plus new plausible optional ones, clearly tagged and subject to approval. Do not invent canon ownership or timing.
+
+CINEMATIC VERSUS GAMEPLAY DECISION RULE
+1. Canonically important revelation, recruitment, injury, death, dramatic attack or emotional conversation: authored cinematic, often full-screen with camera blocking and expressive acting.
+2. Important story fight: cinematic entrance → meaningful playable combat → canon-correct cinematic finish; rare mid-fight transitions ONLY when warranted by established plot/major phase.
+3. Ordinary mobs: playable encounter, strong readable VFX and hit reactions, no repetitive full movie.
+4. Quiet exploration and party interactions: interactive navigation and optional dialogue, sometimes short directed shots; do not force every moment into battle.
+5. Never replace a canon kill with generic fleeing animation. Retreat only when narratively appropriate (e.g., last surviving bandit/goblin terrified after seeing ally destroyed).
+6. If cinematic skipping is enabled, apply all story, loot, injury and progression outcomes deterministically.
+
+CRITICAL SEQUENCE — KAEL + EIRYN THROUGH AERYS
+After they become a duo, DO NOT jump to Shadow City. The new inventory's TW-051 onward covers traveling, culture shock, public magic fine, guild registration, first goblin contract, goblin scouts and cave, dangerous Ogre, guild payout, then second-contract road. The Skyreaver chase introduces Aerys AFTER this buildup. Story beats: Aerys actively fights while flying; Kael asks whether Eiryn can kill it, Eiryn needs time, Kael buys it; Kael throws sword into creature, it crashes; he grapples/fights without sword and gets thrown; Aerys returns with Light and is countered; Eiryn's massive spell kills it. Aftermath includes lost sword, meeting Aerys, her gradually following, replacement sword and early party relationship beats. No early rival kid before Aerys.
+
+CRITICAL SEQUENCE — NOX
+First introduction: party inside Guild Hall, scream outside, Kael intervenes, apparent older victim, Nox reveals the victim's crimes and completes assassin contract; do NOT recruit Nox immediately. This is a fully directed dramatic cinematic. Separate GAME-APPROVED night-camp Nightcrawler sequence: Nox watches from tree, creature races underneath, camp is assaulted, Kael knocked away, Aerys Light disrupted, Nox Shadow Steps into defense. Control switches to solo Nox versus already partly injured Nightcrawler. Two cinematic threshold beats if they genuinely improve pacing, otherwise prioritize coherent combat. Nightcrawler has fast heavy attacks that punish unprepared auto Nox; manual dodging or correctly built teleport/evasion gear permits success. On final depletion, cinematic teleport aerial eye-stab kill, then aftermath and handback. This GAME event is distinct from later CANON night creature drawn by Eleanor's healing and the expensive 'One Step — A Thousand Wounds' lifespan-cost rescue. Do not silently merge them.
+
+CRITICAL LATE STORY GUARANTEES
+Labyrinth is a populated seven-depth city, not seven arena nodes; stabbed Aerys receives clinic treatment from Eleanor; Cassius and Lyra/golems have their own mechanics. Braxen's hybrid origin is natural. Beast Folk region, grieving Elder Dragon, Aerys kidnapping, frost assassin and Nox's costly rescue all retain chronology. Black Knight phase two TELEPORTS all six individually; no fake boss kill. Three duo separation stories and 2v2v2 tournament reunion must be playable. Tower Floor 1 splits into individualized trials with persistent wounds. Endless Staircase should feel huge, dangerous and tiring. Floor 2 Calamity vertical arena: water from sky down left, liquid-like fire right; boss can summon weak elementals, Nox shields Aerys, Kael decisive strike, Sword of Calamity reward. Floor 3 Hall of Offering and Eleanor's irreversible death remain canon. The new inventory CONTINUES through Floor 4, Guardian, Heaven and epilogue; do not arbitrarily stop at Floor 3. The 430-event source has final authority for all later events and OPEN decisions.
+
+VISUAL AND ART ASSET STRATEGY
+Request exhaustive current-code asset audit before commissioning or rebuilding scenes. Include ALL maps, backgrounds, tiles, environment props, NPCs, protagonists, enemies, bosses, rigs, portraits, equipment, loot icons, UI, effects, cutscene-specific frames, attack and special animation clips, idle/walk/run/hit/death, dodge/parry, victory and finisher. For each item identify current code/file location, whether placeholder/procedural/custom, canon scene IDs, perspective, dimensions/formats, frames/variants, reusable parts, priority, complexity, budget range clearly labeled estimate, and whether custom assets should precede cinematic revisions. Provide complete minimum budget and premium budget options, with no invented artist quotations. Existing cutscenes can stay as-is until an asset-first plan is agreed.
+
+TRAILERS AND STORE RELEASE
+Record a complete real mobile playthrough (compare iPhone screen capture with OBS/PC capture for quality and ease). Make TWO genuine trailers: gameplay trailer featuring combat, upgrades, attack variety and progression; cinematic trailer using polished cutscenes and story spectacle. Remove placeholder trailer link; user will upload finished video to Claude. Include mobile UI safe areas, performance optimization, save/reload, playtesting, accessibility, store-ready build/signing, app icons/screenshots/privacy disclosures and release QA as separate later milestones. Do not claim submission or store approval has occurred.
+
+MANDATORY CONVERSATION BEFORE CODE
+Claude must first:
+A. Acknowledge that latest playtest feedback is ADDITIVE to ALL earlier approved requirements.
+B. Audit the current codebase/build and list what actually exists vs what's only planned.
+C. Review the appended 430-event inventory and flag any contradictions with existing implemented scenes or old script.
+D. Provide a complete asset/animation inventory and recommendation on art-first vs code-first sequencing.
+E. Propose a milestone plan: protect working build, verify event coverage, polish opening corrections, complete one end-to-end location/boss vertical slice, then expand.
+F. Discuss priorities, technical feasibility, performance tradeoffs and open creative decisions with user.
+G. WAIT for explicit approval before modifying any code.
+H. Deliver the actual fully detailed scene-by-scene Game Director's Bible, not merely promise it.
+
+END OF CONSOLIDATED DESIGN BRIEF
+
+
+=====================================================================================
+LATEST BUILD PLAYTEST HANDOFF — PRESERVED IN FULL
+=====================================================================================
+
+TOWER OF WISHES — CLAUDE HANDOFF
+LATEST BUILD PLAYTEST + PRE-CODING DISCUSSION REQUIREMENTS
+17 October 2026
+
+MESSAGE TO CLAUDE
+
+I just played your newest version. Along with ALL the requirements I previously gave you, here are my thoughts and corrections caused by playing this build. These are ADDITIVE: do not ignore, erase, weaken, or silently supersede the earlier approved game systems, story direction, cinematic standards, equipment system, exploration redesign, or asset requests. Before coding, please discuss the findings and your implementation approach with me, show me the proposed plan, flag any conflicts, and wait for approval.
+
+AUTHORITATIVE STORY SOURCE
+Attached: Tower_of_Wishes_Complete_Game_Events_430.pdf. It is a 430-event chronological production inventory. Its latest canon/event structure supersedes conflicting details in the older detailed script where I have not yet rewritten the prose. Read all 430 items, their CANON/GAME/OPTION/OPEN labels, and the production handoff notes. CANON does not mean implemented. GAME is game-approved, not automatically comic canon. OPTION requires approval. OPEN must not be invented as fact. When a detailed old script conflicts with this newer inventory, preserve the new inventory and ask about ambiguous dialogue/choreography. Verify actual current code/build before assuming a feature or cutscene exists. Preserve already successful cinematics unless I specifically request changes.
+
+CURRENT BUILD — DIRECT PLAYTEST FIXES
+
+1. Opening gameplay is bland: too few real battles and too much map-clicking/dialogue without actual activity. Replace passive map navigation with exploration and playable encounters. Erdra is enormous; the long world journey to the Tower must FEEL vast. The travel/world map can be scrollable over great distances; distinguish a navigation overview from actual playable environments.
+2. Remove Kael's 'the one who asked nicely' dialogue and similarly corny/out-of-character lines. Rewrite only the offending dialogue, consistent with his comic personality. Avoid speech bubbles ENTIRELY in all scenes, including prologue, Kael's battle lines and Tower-bell spectators. Use cinematic subtitle/quotation presentation, or nonverbal ambient ellipses where appropriate.
+3. Character special-attack visuals are acceptable for now, but zoomed-in top-down battle camera makes them look worse. Keep the existing standard combat angle during normal specials. Switch camera deliberately only for host-focused control or genuine directed cinematics.
+4. Remove current placeholder trailer link. I will make a real gameplay/cinematic trailer and upload a video file for integration later.
+5. Replace existing weapon list with a new lore-consistent equipment roster to be supplied by ChatGPT. Do not delete live data without migration/approval. The equipment system needs rarities, unique effects, equip slots, equipment visible on characters, changed combat VFX/movesets, and individually storyboarded cinematic acquisition/showcase moments. Examples: flaming sword pulled from stone; teleport boots demonstrated by an anonymous silhouetted runner; fire-trail boots; dragon-head/hand equipment transforming Braxen's hand for flame punches; dark-energy sword slashes. Story-specific gear unlocks must respect canon timing (e.g., Sword of Calamity ONLY after Floor 2).
+6. Prologue Tower ringing: no comic speech bubbles; display reactions in game-appropriate dialogue/subtitles. After Tower of Wishes title scene, use a cinematic introduction for Eiryn and Alric instead of simply displaying them in top-down combat view.
+7. Rooftop opening: close-up Eiryn's running feet; visibly leap ROOF TO ROOF, not stationary hopping on one roof. Optional brief interactive rooftop control for Eiryn. Camera switches to her POV seeing a huge drop; she casts a force/Pressure spell below to propel herself and teases Alric in midair. Show Alric crouch and leap with vampiric strength, catch her, land, and share a warm playful moment. Then the rooftop view toward the distant Tower and its same bell motif. Follow the authoritative 430-event ordering and original relationship beats: the inventory also specifies ordinary pre-Reset street life and intimacy before the catastrophe, which must not be erased by shortening this sequence. Discuss how to reconcile my requested rooftop camera/edit with that event order.
+8. Unknown climber at Tower summit: cinematic entrance; show climber defeating one or two underlings with an impressive attack, boss retaliation, then playable auto/manual-capable battle, with a cinematic final desperate power move and established ascent/light/reset transition. Keep climber anonymous; don't fabricate wish or reveal Guardian.
+9. Reset: hold the magnificent falling skyfire and rising flood shot. Then cut to Eiryn and Alric on rooftop, pillars falling around them and flood rising below. Alric orders the self-only preservation spell; slow-motion descending pillar; Alric transforms into vampiric beast to shield her, tragic viewpoint as she completes preservation and he is left to die. Follow the inventory's constraints: she cannot preserve him; preservation expires naturally ~150 years later, not due to a later Tower horn. Do not accidentally remove the other canon catastrophe beats or turn it into a prolonged evacuation.
+10. Kael tavern: remove the cook subplot and unwanted chatter boxes. Patrons move and murmur with ambient '...' rather than intrusive text. Show magic through window; crowd looks; Kael WALKS OUT and looks toward the massive glyph. Retain the excellent existing Eiryn glyph-closeup/failure and Kael running sequences, adjusting the transitions. Give Kael an original, character-appropriate reaction, not the placeholder 'finally some action.'
+11. Bandit rescue: cutscene of weakened Eiryn surrounded, attempted spell fails, Kael drops from above, plants sword into ground, pulls it out and confronts bandits. Then transition to playable rescue. Preserve story consequences, Eiryn's depleted mana, and follow-up dialogue.
+12. First guild contract and Ogre: make the early game actually PLAYABLE with goblin scouting, skirmishes, cave investigation, surprise Ogre and a dangerous boss fight. Current Ogre is stun-locked and never swings: fix stagger resistance, attack scheduling and enemy response. Stage Kael baiting/drawing attacks while Eiryn charges a recovered major spell, but preserve the canonical danger and teamwork. Cinematic Ogre defeat, not a generic enemy escape.
+13. Skyreaver/sky beast: full cinematic chase with Aerys actively fighting; Kael throws his sword into beast, beast crash-lands; Kael fights without sword, is thrown; Aerys returns and uses Light, is countered; Eiryn's powerful ancient spell kills the creature against terrain. Playable boss portions between cinematic beats. DO NOT have a defeated Skyreaver simply fly away. This is a kill with canonical aftermath, including Kael losing the sword and Aerys's earned recruitment.
+14. Aerys Light basic attack looks good. Redesign her special so it is not Eiryn's spell recolored yellow: extend both arms, light swirls/concentrates around her hands into a condensed cluster, she strikes/punches the energy forward as a distinctive outward slash of light. Clarify final animation and targeting with me.
+15. Scenes where the player is not actually controlling anyone—campfire, first Nox assassin introduction/execution, Aerys stabbing, medical rush, significant emotional beats—must use directed cinematic camera language, NOT idle top-down battle camera. The medical location for stabbed Aerys must LOOK LIKE A CLINIC/HOSPITAL, not a tavern. First Nox meeting remains separate from later recruitment. Nightcrawler is game-approved and separate from the later canon healing-attracted night creature.
+16. Redesign roadmap: world/location selection can remain as overview/fast return travel, but actual progression uses a manually controlled host walking through playable environments, discovering side content and main objective markers. At area exit, trigger story scene and travel transition to next location. Do not simply click through dialogue nodes. Long-distance travel can use cinematic montages; maintain meaningful geographic scale.
+17. Floor 1 separate Frost Knight/mist trials must end in the canonical outcome cinematic; do not auto-merge everyone into one generic arena. Eleanor's unique healing-overload/aging technique and dangerous personal costs must be visually and mechanically distinguished; verify which precise encounter the user refers to before locking a new finisher. Floor 3 Eleanor dies permanently; no resurrection. Other late canon must follow the inventory.
+18. Floor 2 Calamity arena: prefer VERTICAL staging, sky water streaming DOWN the LEFT, fire flowing like liquid on the RIGHT. Preserve current good elements. Boss can spawn weaker fire/water creatures so a single enemy is not overwhelmed by a full party. Other solo bosses may summon adds or use positioning, counters, phase behavior and threat mechanics rather than only inflated health/damage.
+19. Enemy defeat: only occasional believable retreats (e.g., lone surviving goblin seeing ally obliterated). Named bosses killed in canon must actually die and have cinematic finishers. Don't use fleeing as universal death animation.
+20. Character AI, fighting styles, moves and animations must reflect the comic. Kael uses swordcraft and physical improvisation; Eiryn has distinct ancient glyph/Pressure/Negation capabilities and costs; Aerys uses Light uniquely; Nox has short-range Shadow Step and rare 'One Step — A Thousand Wounds' with lifespan cost; Braxen fights with hybrid physicality; Eleanor's healing is powerful but dangerous. Don't homogenize abilities or silently grant lore-breaking power.
+21. Host control: crown toggle unlocked after the appropriate early duo battle; manually control one character with movement, auto-targeted basic attack and special, with dodge/parry integrated rather than excessive buttons; others AI. Optional auto for suitable encounters. Some bosses should demand either manual skill or well-prepared build/equipment, not be mindlessly beatable with starter gear. Show clear telegraphs, fair defeat/retry, loadouts and upgrade options.
+22. Skill tree visually grows from seedling to large tree; mission currency/shop/rare-drop economy; equipment changes visible model, animations and mechanics. Enemy equipment pool scales with stage/rarity, but seeing enemy equipment does not guarantee it drops. Mystery encounters show silhouette/question marks in enemy preview; bestiary logs discovered foes. Cinematics are skippable in settings while preserving progression and outcomes.
+
+CINEMATIC QUALITY BAR
+Use the already excellent prologue skyfire/flood cinematic as quality reference: authored composition, clean staging, readable action geography, animation timing, impactful cuts, appropriate zoom/POV, strong character acting, distinct VFX, polished transition back to playable combat. The game should feel like watching AND playing the user's comic. Most significant story fights should have cinematic introductions and endings; selective important mid-boss beats, NOT the same repetitive cutscene at every ordinary health threshold. No generic speech-bubble comic presentation. Do not remove good existing cutscenes. The 430-event inventory and user's new camera directions must be reconciled scene by scene.
+
+REQUIRED ASSET AND ANIMATION AUDIT — DELIVER BEFORE CODING
+Inspect actual repository and current rendered/drawn assets. Export an exhaustive inventory of every existing placeholder/procedural drawing and proposed custom asset: playable cast, alternate outfits and equipment layers, goblins/ogres/sky beast/Nightcrawler/bosses, NPCs, wildlife, all maps/biomes/rooms/buildings, tiles and props, VFX, UI, weapons, armor, loot pickups, cinematic backgrounds, rigging, portraits, sounds if relevant. For EACH item list: ID/name, canon event IDs and locations, existing file/code path, current appearance/status, whether replacement is needed, asset type, view angle, recommended file format/resolution/atlas/animation frames, variants, dependency on rigging/camera, priority, estimated art complexity, and potential outsourcing price band explicitly labeled ESTIMATE. Provide separate attack/special/dodge/parry/idle/walk/run/hit/death/finisher animations by character/enemy, plus cutscene-specific animation requirements. Distinguish reusable assets from one-offs. Give minimum viable polish vs complete custom-art budgets; do not invent exact costs as quotes.
+
+IMPLEMENTATION CONVERSATION FIRST
+Before editing any code, show: (A) your summary of every requirement; (B) exact current build audit, what works and what is missing; (C) conflicts with canon or technical feasibility and questions; (D) recommended priority order and milestone plan; (E) asset-first vs code-first recommendation, identifying what needs stable custom art/rigging before remaking cinematics; (F) concrete QA acceptance tests for each milestone. Wait for my approval. Do not silently rewrite working scenes. Make backup/version control checkpoints. Implement one end-to-end vertical slice before bulk migration, with performance testing on actual mobile devices. Preserve the new canonical story order across all 430 IDs, through Guardian/epilogue, rather than stopping at Floor 3.
+
+END OF HANDOFF
+
+
+=====================================================================================
+COMPLETE ORIGINAL 430-EVENT CHRONOLOGICAL INVENTORY — ALL 29 PAGES
+=====================================================================================
+
+===== ORIGINAL INVENTORY PAGE 1 OF 29 =====
+TOWER OF WISHES   / GAME PRODUCTION INVENTORY
+
+TOWER OF WISHES
+
+CHRONOLOGICAL GAME EVENT MASTER LIST
+
+430 story and game-production moments • October 17, 2026
+
+From Eiryn and Alric’s rooftop opening through the Guardian finale, with every recorded cutscene, fight,
+relationship beat, exploration opportunity, gameplay-only sequence, and optional encounter in the existing
+master inventory.
+
+Read this first
+
+CANON — currently established story event or strongly established scene function. Exact presentation may still be
+drafted.
+
+GAME — approved or intended game-specific sequence/mechanic; does not automatically rewrite comic/light-
+novel canon.
+
+OPTION — optional encounter or game application for creator approval; do not treat it as a locked occurrence.
+
+OPEN — concept exists but its exact resolution or staging is deliberately undecided; do not silently invent it.
+
+CIN = cinematic/cutscene; DIA = dialogue/relationship; EXP = exploration/travel; PLAY = playable sequence;
+FIGHT = combat; BOSS = major encounter; SIDE = optional quest; SYSTEM = infrastructure.
+
+The active party is Eiryn, Kael, Aerys, Nox, Eleanor, Braxen. In Floor 3 Eleanor dies and stays dead. In the
+Guardian fight Braxen dies and stays dead. Eiryn, Kael, Nox and Aerys are the four surviving core
+protagonists. Aerys has never known the concealed upper-Heaven civilization; the Guardian did not create
+the Tower; wishes are a myth. Nox Shadow Step high-power use has a lifespan cost. The story world
+includes Beast Folk and other distinct peoples. The recurring Kael rival kid survives; the separate four-
+member rival party arc is scrapped. The Black Knight transports the heroes in phase two; no boss-kill
+cutscene.
+Do not introduce the rival kid before Aerys, resurrect Eleanor/Braxen, replace the original sky beast with
+optional wildlife, force a creature mission, have Nox formally join upon first meeting, have Eiryn awaken
+due to a later Tower horn, or treat the Nightcrawler game sequence as having automatically replaced the
+separate night encounter drawn to Eleanor's healing.
+
+Campaign index
+
+00 — BEFORE THE RESET: EIRYN & ALRIC
+01 — KAEL, THE BANDITS & A NEW WORLD
+02 — FIRST GUILD CONTRACT: GOBLINS & OGRE
+03 — AERYS / SKY-BEAST RESCUE & FIRST PARTY GROWTH
+04 — EARLY NOX ENCOUNTER & NIGHTCRAWLER GAME SEQUENCE
+05 — MOUNTAIN PASS & LABYRINTH CITY: SEVEN DEPTHS
+06 — RUINED HAMLET / BRAXEN / NOX RETURNS
+07 — BEAST FOLK COUNTRY / DRAGON / AERYS ABDUCTION
+08 — TORNADO COUNTRY & BLACK KNIGHT
+09A — SEPARATION: KAEL & NOX / GOTHIC KINGDOM
+
+
+                                                                   TOWER OF WISHES  • 1
+
+===== ORIGINAL INVENTORY PAGE 2 OF 29 =====
+TOWER OF WISHES   / GAME PRODUCTION INVENTORY
+
+09B — SEPARATION: EIRYN & ELEANOR / CANALS
+09C — SEPARATION: AERYS & BRAXEN / GUILD DAMAGE
+10 — COASTAL TOURNAMENT & SIX-PERSON REUNION
+11 — RECURRING RIVAL KID / TOWER CITY / FINAL CAMP
+12 — TOWER FLOOR 1: FROST & MIST
+13 — IN-BETWEEN 1: ENDLESS STAIRCASE
+14 — TOWER FLOOR 2: CALAMITY & SWORD
+15 — TOWER FLOOR 3: HALL OF OFFERING
+16 — IN-BETWEEN 2: THE FALSE FEAST
+17 — TOWER FLOOR 4: FIVE PERSONAL FIGHTS
+18 — FLOOR 5: GUARDIAN / HEAVEN
+19 — EPILOGUE & SEQUEL HOOK
+20 — REUSABLE GAME SYSTEMS / OPTIONAL CONTENT (NOT CANON EVENTS)
+
+Chronological event inventory
+
+00 — BEFORE THE RESET: EIRYN & ALRIC
+
+Play as Eiryn for the intimate original-world prologue; the catastrophe must occur within minutes, without a
+drawn-out evacuation or a fabricated wish.
+
+TW-001 [CANON] Rooftop feet first   · CIN/PLAY
+   Open close on Eiryn running across roof tiles; Alric enters from behind, visibly faster; establish motion and
+    physicality before explanation.
+
+TW-002 [CANON] Roofline pursuit   · PLAY
+    Optional brief controlled rooftop movement as Eiryn; do not turn the intimate scene into a punishing
+    platforming level.
+
+TW-003 [CANON] Flirting while running   · DIA
+    Their teasing, competition, and affection feel like a lived relationship.
+
+TW-004 [CANON] Misjudged leap   · CIN
+    Eiryn leaps across a gap; the distance is wrong; reader/player first perceives danger.
+
+TW-005 [CANON] First magic demonstration   · PLAY/CIN
+    Eiryn casts a Pressure/force glyph beneath herself and propels forward/upward, overshooting; introduces
+   magic by action.
+
+TW-006 [CANON] Alric's physical leap   · CIN
+    Alric launches after her with vampiric strength, without casting a spell.
+
+TW-007 [CANON] Midair rescue   · CIN
+    Alric catches Eiryn, rotates to control momentum, lands hard and damages tiles.
+
+TW-008 [CANON] I wanted the hug   · DIA
+    Playful exchange: too slow / let you catch me / wanted the hug, tender beat rather than exposition.
+
+TW-009 [CANON] Almost home   · DIA
+    Eiryn remarks that she almost reached home; compare the familiar neighborhood ahead.
+
+
+                                                                   TOWER OF WISHES  • 2
+
+===== ORIGINAL INVENTORY PAGE 3 OF 29 =====
+TOWER OF WISHES   / GAME PRODUCTION INVENTORY
+
+TW-010 [CANON] The neighbors' roofs   · DIA
+   They joke and choose to walk before neighbors learn they keep damaging rooftops; mundane consequence.
+
+TW-011 [CANON] Living pre-Reset street   · EXP
+    Short interactive stroll: shops, vendors, children, bakeries, ordinary people of Erdra.
+
+TW-012 [CANON] Pastries and errands   · DIA
+   Domestic jokes and little errands/household plans, showing what Eiryn will lose.
+
+TW-013 [CANON] Tomorrow at home   · DIA
+    Plans involving a meal, home repairs or an ordinary next day; don't make it a foreboding speech.
+
+TW-014 [CANON] The Tower's floor-clear sound   · CIN
+    Alien, world-sized horn-like sound interrupts ordinary life; citizens react.
+
+TW-015 [CANON] Someone's climbing   · DIA
+    Discuss climbers, the persistent wish legend, and no verified summit success.
+
+TW-016 [CANON] Could Alric climb it?   · DIA
+    Alric is strong but doesn't believe he's capable of reaching the top; he teases Eiryn.
+
+TW-017 [CANON] Already have my wish   · DIA
+    Eiryn tells Alric she already has what she would wish for; preserve genuine ordinary intimacy.
+
+TW-018 [CANON] Breathing space   · CIN
+   A quiet pause in the inhabited city, no immediate cut from romance to apocalypse.
+
+TW-019 [CANON] Unknown summit climber   · CIN
+    Brief anonymous, wounded climber near the last ascent; do not identify, show a wish, or reveal Guardian.
+
+TW-020 [CANON] Alric senses something wrong   · CIN
+   Sudden wrong stillness and atmospheric change; he reacts before Eiryn understands.
+
+TW-021 [CANON] Firmament splits   · CIN
+   Unnatural fracture/light across the permanent cloud ceiling.
+
+TW-022 [CANON] Skyfire begins   · CIN
+   Huge simultaneous supernatural columns of fire destroy distant blocks.
+
+TW-023 [CANON] First escape   · CIN/PLAY
+    Alric grabs/protects Eiryn, buildings fail around them, brief dramatic movement.
+
+TW-024 [CANON] Protect townspeople with Pressure   · PLAY/CIN
+    Eiryn saves people from debris; spell mechanics and limits are visible.
+
+TW-025 [CANON] Negation defense   · PLAY/CIN
+    Eiryn cancels approaching supernatural harm over a limited area at physical cost; cannot save whole city.
+
+TW-026 [CANON] Impossible flood   · CIN
+   Water inundates city at same time as skyfire; no normal geographic source.
+
+TW-027 [CANON] Home destroyed   · CIN
+   Her recognizable street and ordinary plans are lost, without melodramatic narration.
+
+
+                                                                   TOWER OF WISHES  • 3
+
+===== ORIGINAL INVENTORY PAGE 4 OF 29 =====
+TOWER OF WISHES   / GAME PRODUCTION INVENTORY
+
+TW-028 [CANON] No way out   · CIN
+    Alric searches escape routes; all fail quickly as the Reset overtakes them.
+
+TW-029 [CANON] The self-only preservation spell   · DIA
+    Alric demands Eiryn use a preservation spell that protects ONLY its caster outside normal time.
+
+TW-030 [CANON] She refuses to leave him   · DIA
+    Eiryn resists; Alric admits fear and refuses to let her die, including 'I'm not asking you' emotional direction.
+
+TW-031 [CANON] Alric shields her   · CIN
+    Visual callback to the earlier roof catch, now protecting Eiryn from fire/debris.
+
+TW-032 [CANON] Failed attempt to include Alric   · CIN
+    Eiryn tries but cannot broaden the self-only spell; do not invent a safe workaround.
+
+TW-033 [CANON] Preservation completes   · CIN
+    Eiryn exits ordinary time; Alric is left outside the boundary and dies.
+
+TW-034 [CANON] The original Reset ends   · CIN
+   A civilization devastated; Eiryn's individual experience cuts away, no immediate waking.
+
+TW-035 [CANON] 150 YEARS LATER   · CIN
+   Hard cut to Kael's tavern. Preservation expires NATURALLY; do not explain via a later horn.
+
+01 — KAEL, THE BANDITS & A NEW WORLD
+
+The playable present begins with Kael as a person; the ancient glyph fails only after he goes outside and watches.
+
+TW-036 [CANON] Kael in an ordinary tavern   · EXP/DIA
+    Introduce Kael's day, personality, companions, food, money, job complaints and habitual life.
+
+TW-037 [CANON] Tavern banter   · DIA
+   Overheard conversations about guild work, roads, politics, beasts and other people with their own concerns.
+
+TW-038 [OPTION] Small tavern interactions   · EXP
+    Talk to regulars, examine posted rumors, food and travel notices without padding the main story.
+
+TW-039 [CANON] Patron notices light   · CIN
+   Someone sees a huge unfamiliar purple/ancient glyph above distant treeline.
+
+TW-040 [CANON] Crowd gathers at windows   · CIN
+    Patrons debate the huge rotating geometry and power implied by its size.
+
+TW-041 [CANON] Kael steps into street   · PLAY/CIN
+   He deliberately goes outside; sees glyph still active rather than witnessing collapse from indoors.
+
+TW-042 [CANON] Ancient spell falters   · CIN
+   Glyph collapses because Eiryn's preservation has exhausted her mana; no explosion or successful attack.
+
+TW-043 [CANON] Decision to investigate   · DIA
+   Kael has no idea who cast it; concern and curiosity inform his choice.
+
+
+
+
+                                                                   TOWER OF WISHES  • 4
+
+===== ORIGINAL INVENTORY PAGE 5 OF 29 =====
+TOWER OF WISHES   / GAME PRODUCTION INVENTORY
+
+TW-044 [CANON] Kael's sprint to the treeline   · PLAY
+    First physical-speed showcase; movement and route readable, no teleportation magic.
+
+TW-045 [CANON] Bandits corner Eiryn   · CIN
+   They realize she's out of mana, intend to exploit her; she is disoriented, not weak by nature.
+
+TW-046 [CANON] Eiryn refuses to submit   · DIA
+   Keep her warm/human personality while under real threat; she is not suddenly all-powerful.
+
+TW-047 [CANON] Bandit rescue   · FIGHT
+    Playable Kael combat using sword fundamentals, defense and movement; protect Eiryn.
+
+TW-048 [CANON] After the rescue   · CIN/DIA
+    Eiryn and Kael speak as strangers; Kael doesn't know her historical importance.
+
+TW-049 [CANON] The vanished town   · DIA
+    Eiryn names an old destination; Kael explains it has been gone roughly 150 years.
+
+TW-050 [CANON] A practical offer   · DIA
+   Kael offers to accompany her to the nearest actual town; trust develops rather than instantly joining quest.
+
+TW-051 [CANON] Road to civilization   · EXP
+   Walk together; Eiryn sees reconstructed roads, people and changed landmarks.
+
+TW-052 [CANON] Different coins and customs   · DIA
+    First amusing discrepancies with modern prices, guilds, public behavior and infrastructure.
+
+TW-053 [CANON] The painful meaning of 150 years   · DIA
+    Culture shock develops funny → inconvenient → painful, without prematurely staging her lone awakening.
+
+TW-054 [CANON] Town introduction   · EXP
+    Inn, guards, market, guild office, architecture; enough lived-in daily life to feel real.
+
+TW-055 [CANON] Casual public spell   · CIN/DIA
+    Eiryn uses a minor spell in public without knowing current legal restrictions.
+
+TW-056 [CANON] Public magic fine   · DIA
+   Guards respond lawfully, Kael vouches, Eiryn has no usable current money.
+
+TW-057 [CANON] Kael pays the fine   · DIA
+    Consequential comedy: 'Great, now I'm broke too' direction.
+
+TW-058 [CANON] Why they need jobs   · DIA
+    Food, lodging, permit rules and money push them naturally toward guild contracts.
+
+TW-059 [CANON] First Guild Hall visit   · EXP
+    Registration desk, F–S ranks, contract types and practical guild operations.
+
+TW-060 [CANON] Eiryn's registration/evaluation   · PLAY
+    Role-sensitive test of her current ability while mana remains limited; no invented SS rank.
+
+TW-061 [CANON] Rank and limitations   · CIN/DIA
+    Eiryn's evaluated rank does not measure all her past knowledge; Kael reacts to bureaucracy.
+
+
+                                                                   TOWER OF WISHES  • 5
+
+===== ORIGINAL INVENTORY PAGE 6 OF 29 =====
+TOWER OF WISHES   / GAME PRODUCTION INVENTORY
+
+TW-062 [CANON] Contract-board inspection   · EXP
+   Read low-rank work, road repairs, escorts and possible beast contracts; world has jobs beyond killing.
+
+TW-063 [OPTION] Town NPC subplots   · EXP
+   Small conversations for inns, blacksmith, doctors and known local economy, no new mandatory arc.
+
+TW-064 [OPTION] Creature contract teaser   · DIA
+    Optional notice for Knucklehen/Claspcrab capture/protection; species needs creator approval, not forced.
+
+02 — FIRST GUILD CONTRACT: GOBLINS & OGRE
+
+Modest approved first mission escalates unexpectedly; keep Kael's fight dangerous and Eiryn's recovery gradual.
+
+TW-065 [CANON] Take modest goblin job   · DIA
+    Raids at mill/quarry/grain route; contract seems appropriate to beginning guild members.
+
+TW-066 [CANON] Supplies and departure   · EXP
+    Rations, first-aid, torches, gear inspection and travel time.
+
+TW-067 [CANON] Miller/contract giver   · DIA
+   Ordinary working person explains stolen supplies and damage from goblins.
+
+TW-068 [CANON] Track the goblins   · EXP
+   Follow signs to a cave; explore surrounding terrain without monster-spawning spectacle.
+
+TW-069 [CANON] Outer goblin scout   · FIGHT
+    Introductory enemy combat for Kael and limited support from Eiryn.
+
+TW-070 [CANON] Approach skirmish   · FIGHT
+    Multiple goblins with different weapons; demonstrate positioning and teamwork.
+
+TW-071 [CANON] Quarry/cave investigation   · EXP
+    Stolen sacks, tools, tracks and clues that the contract is bigger than reported.
+
+TW-072 [CANON] Something's wrong   · DIA
+    Their reactions to a larger footprint/rumbling/discrepancies.
+
+TW-073 [CANON] Interior goblin clash   · FIGHT
+    Escalate layout, resource use, and stakes before boss.
+
+TW-074 [CANON] Ogre reveal   · CIN
+   Ogre leads goblins; threat is far beyond modest contract expectations.
+
+TW-075 [CANON] Kael versus Ogre   · BOSS
+   A serious fight; Kael's swordcraft and improvisation matter, he cannot simply win without cost.
+
+TW-076 [CANON] Kael pressed to the limit   · CIN
+    Physically overpowered at least once; danger credible.
+
+TW-077 [CANON] Eiryn's recovered magic   · CIN/PLAY
+   She has regained enough mana to unleash real ancient power; dramatic contrast to failed glyph.
+
+
+
+
+                                                                   TOWER OF WISHES  • 6
+
+===== ORIGINAL INVENTORY PAGE 7 OF 29 =====
+TOWER OF WISHES   / GAME PRODUCTION INVENTORY
+
+TW-078 [CANON] Ogre defeated   · CIN
+    Payoff to two-character teamwork; no injury magically disappears.
+
+TW-079 [CANON] Proof and return   · EXP
+   Recover contract evidence/cargo, head back along known route.
+
+TW-080 [CANON] Guild payout   · DIA
+    Receive earned pay; respond to underreported ogre threat and ongoing expenses.
+
+TW-081 [CANON] Rest and choose second job   · EXP
+   Downtime for the duo before Aerys enters; world keeps operating.
+
+TW-082 [OPTION] Post-mission town errands   · EXP
+   Repair damaged gear, new food, rumors, small friendship moments; no inserted mandatory boss.
+
+03 — AERYS / SKY-BEAST RESCUE & FIRST PARTY GROWTH
+
+Aerys is surviving while actively fighting; the party helps, but she remains capable and independent.
+
+TW-083 [CANON] Road toward second contract   · EXP
+   Kael and Eiryn travel as a functioning duo.
+
+TW-084 [CANON] Girl flying overhead   · CIN
+   Kael is astonished; he hasn't seen anyone fly in this way.
+
+TW-085 [CANON] Sky beast chases Aerys   · CIN
+    Creature (game label Skyreaver if already adopted) pursues; Aerys is NOT protecting a village on purpose.
+
+TW-086 [CANON] Aerys fires Light   · CIN
+   She dodges/fires back, struggling to survive against stronger airborne foe.
+
+TW-087 [CANON]  I'll buy you time   · DIA
+    Kael: 'Can you kill that thing?' Eiryn: 'I'll need a second.' Kael: 'I'll buy you more than a second.'
+
+TW-088 [CANON] Charge ancient spell   · CIN/PLAY
+    Eiryn begins power buildup; she has limits, cannot simply instant-kill everything.
+
+TW-089 [CANON] Kael throws his sword   · CIN
+    Strong spinning throw; the blade lodges in beast's neck/side.
+
+TW-090 [CANON] Beast crash-lands   · CIN
+    Clear positions: it is on ground, Aerys airborne, Eiryn charging, Kael approaching.
+
+TW-091 [CANON] Kael close-range brawl   · BOSS
+    Punch/grapple/survive creature despite the lost sword; physically clear choreography.
+
+TW-092 [CANON] Kael is thrown   · CIN
+    Beast claws/hurls him into nearby terrain.
+
+TW-093 [CANON] Aerys returns with Light   · PLAY/CIN
+   She doubles back to fight, rather than functioning solely as a passive victim.
+
+
+
+
+                                                                   TOWER OF WISHES  • 7
+
+===== ORIGINAL INVENTORY PAGE 8 OF 29 =====
+TOWER OF WISHES   / GAME PRODUCTION INVENTORY
+
+TW-094 [CANON] Beast counters Aerys   · CIN
+   Aerys is knocked aside, creates immediate urgency.
+
+TW-095 [CANON] Eiryn's devastating finish   · CIN
+   Ancient spell destroys the creature against terrain; protects allies with clear targeting.
+
+TW-096 [CANON] Where's my sword?   · DIA
+   Kael realizes the embedded blade was vaporized; humor only after everyone is safe.
+
+TW-097 [CANON] First conversation with Aerys   · DIA
+    Identity, gratitude, boundaries and early attraction to Kael develop through behavior.
+
+TW-098 [CANON] Tower aspirations   · DIA
+    Kael/Eiryn share that Tower is long-term goal; Aerys sees personal relevance without instantly announcing
+    cure-all.
+
+TW-099 [CANON] Aerys starts following   · DIA
+   Her decision to travel with them becomes apparent; Kael objects while Eiryn supports her.
+
+TW-100 [CANON] First three-person road segment   · EXP
+    Their new movement, banter, camping and team combat dynamics.
+
+TW-101 [CANON] Replacement sword shop   · EXP
+   Kael gets excited around blades; buying replacement has real financial implications.
+
+TW-102 [CANON] Eiryn remembers Alric and blades   · CIN/DIA
+  Warm brief association triggered by Kael's excitement; grief without monologue.
+
+TW-103 [CANON] Aerys's early Kael crush   · DIA
+   Her attraction is real; do not erase it retroactively when Nox relationship develops.
+
+TW-104 [CANON] Recurring rival kid appears   · DIA
+   One brief introduction AFTER Aerys joins and BEFORE Labyrinth; possibly interrupts Kael flirting.
+
+TW-105 [CANON] Kael explains rival kid   · DIA
+   Recap their history lightly; no tavern-before-Eiryn cameo or pre-reveal in Labyrinth upper levels.
+
+TW-106 [OPTION] Three-member practice session   · EXP
+   Learn tactical roles, light targeting and physical defense; no separate big mission forced.
+
+TW-107 [OPTION] Wildlife sighting   · EXP
+    Optional Vesperant distance observation without confusing it with sky-beast encounter.
+
+04 — EARLY NOX ENCOUNTER & NIGHTCRAWLER GAME SEQUENCE
+
+Keep first assassin encounter distinct from later recruitment; the Nightcrawler set piece is a NEW GAME-
+APPROVED encounter, not retroactive comic canon.
+
+TW-108 [CANON] Scream outside Guild Hall   · CIN
+    Party is INSIDE when cries come from OUTSIDE; Kael runs first.
+
+TW-109 [CANON] Kael intercepts execution   · CIN
+    Frightened older apparent victim behind Kael; Nox stands opposite.
+
+
+                                                                   TOWER OF WISHES  • 8
+
+===== ORIGINAL INVENTORY PAGE 9 OF 29 =====
+TOWER OF WISHES   / GAME PRODUCTION INVENTORY
+
+TW-110 [CANON] Fresh blade challenge   · DIA
+   Kael confronts Nox; preserve swagger and recognition of Nox's skill.
+
+TW-111 [CANON] Nox questions the rescue   · DIA
+   Nox asks why Kael defends the man; Kael doesn't need a reason to help.
+
+TW-112 [CANON] Three children's names   · DIA
+   Nox names three murdered children; Kael must ask who they are.
+
+TW-113 [CANON] Truth about the target   · CIN/DIA
+   Nox explains victim's rape/murder of children; Kael's 'What?' and moral reversal land.
+
+TW-114 [CANON] Assassin's contract completed   · CIN/PLAY
+   Nox kills target; do not replace with friendly immediate recruitment.
+
+TW-115 [CANON] Kael offers work   · DIA
+   He respects Nox's skill and purpose; Nox refuses and leaves.
+
+TW-116 [CANON] Nox departs   · CIN
+   He remains an independent killer; do not have him join at first meeting.
+
+TW-117 [GAME] Night camp after Aerys joins   · EXP
+    Game-specific set piece placement in the early road stretch; exact location is production-dependent.
+
+TW-118 [GAME] Nox watching from a tree   · CIN
+    Nighttime: Nox keeps distance, observes the sleeping travelers; no early formal joining.
+
+TW-119 [GAME] Nightcrawler rushes beneath him   · CIN
+    Creature streaks toward camp with alarming speed, Nox notices and pursues.
+
+TW-120 [GAME] Nightcrawler attacks camp   · CIN
+   Nightcrawler slashes/thrashes companions; characters are thrown and injured, not scripted as effortless
+    winners.
+
+TW-121 [GAME] Kael attempts defense   · CIN
+   Kael attacks and is knocked away from the central fight.
+
+TW-122 [GAME] Aerys's Light disrupted   · CIN
+   Nightcrawler uses both hands to interfere with her magic; no casting until disruption ends.
+
+TW-123 [GAME] Nox teleports into defense   · CIN
+   Nox arrives with Shadow Step and briefly strikes/interrupts attacker.
+
+TW-124 [GAME] Solo playable Nox encounter   · BOSS
+   Camera/control transfers from party to Nox; enemy is already partly injured from cinematic clash.
+
+TW-125 [GAME] Health-threshold transition A   · BOSS
+   A defined damage threshold triggers a choreography scene, then returns to same fight state.
+
+TW-126 [GAME] Health-threshold transition B   · BOSS
+   Second escalation/cinematic state; preserve enemy health, resource and positioning.
+
+TW-127 [GAME] Nightcrawler eye-stab finisher   · CIN
+   Nox teleporting finishing strike to the creature's eye; game-only approved finishing scene.
+
+                                                                   TOWER OF WISHES  • 9
+
+===== ORIGINAL INVENTORY PAGE 10 OF 29 =====
+TOWER OF WISHES   / GAME PRODUCTION INVENTORY
+
+TW-128 [GAME] Aftermath and injuries   · DIA
+    Party responds to Nox saving them without abruptly making him a permanent member.
+
+TW-129 [GAME] Solo battle handback   · SYSTEM
+   Return regular playable roster; save/checkpoint and no lost items/health-state resets except designed story
+    healing.
+
+TW-130 [OPTION] Night-camp small talk   · DIA
+    Optional party jokes, watch assignments and tension before the attack, never interrupt threat with excess
+     filler.
+
+05 — MOUNTAIN PASS & LABYRINTH CITY: SEVEN DEPTHS
+
+Social descent across a real city, not seven disconnected boss rooms. Optional creature sale is especially natural in
+lower trafficking depths.
+
+TW-131 [CANON] Approach mountain crossing   · EXP
+   Trade road, mountain weather and route information; distance feels considerable.
+
+TW-132 [CANON] Blizzard closes pass   · CIN
+   Dangerous storm halts the ordinary crossing for roughly four days plus clearance/melt delays.
+
+TW-133 [CANON] Underground alternative   · DIA
+   Choose Labyrinth City route based on practical timing, weather and travel economics.
+
+TW-134 [CANON] Labyrinth City entrance   · EXP
+   Large historic infrastructure descended from Reset survivors, permits and moving population.
+
+TW-135 [CANON] Depth 1 commercial streets   · EXP
+   Ordinary merchants, inns, food stalls, craftspeople, guards, trade routes.
+
+TW-136 [OPTION] Recurring merchant encounter   · DIA
+    Friendly world-building/trade figure only if naturally placed; identity not canonically finalized.
+
+TW-137 [CANON] Depth 2 poorer district   · EXP
+    Notice changing conditions, class divisions and different policing without lazy 'everyone below is evil'.
+
+TW-138 [CANON] Depth 3 caged-creature quarter   · EXP
+   Caged animals and illegal/gray-market trafficking atmosphere.
+
+TW-139 [CANON] Creature escapes cage   · CIN
+   Danger forces Aerys to use Light publicly.
+
+TW-140 [CANON] Depth 3 creature confrontation   · FIGHT
+   Defend innocent bystanders; don't substitute another plot that avoids Aerys using Light.
+
+TW-141 [CANON] Aerys exposed   · CIN
+   Observers realize her unusual Light/biology may be trafficked for its value.
+
+TW-142 [CANON] Unsettling interest   · DIA
+   Kidnapping threat grows, with credible signs rather than omniscient warnings.
+
+
+
+
+                                                                  TOWER OF WISHES  • 10
+
+===== ORIGINAL INVENTORY PAGE 11 OF 29 =====
+TOWER OF WISHES   / GAME PRODUCTION INVENTORY
+
+TW-143 [CANON] Depth 4 apparent reprieve   · EXP
+   Temporary sense of relative safety, deeper interior city rhythm.
+
+TW-144 [CANON] Aerys stabbed   · CIN
+   Sudden serious wound; distinct from sky-beast attack and later abduction.
+
+TW-145 [CANON] Race for medical help   · PLAY
+   Kael carries/escorts her to someone who can save her; time/resource stakes.
+
+TW-146 [CANON] Meet Eleanor   · DIA
+   Healer has a clinic practice, skill, priorities and independent personality.
+
+TW-147 [CANON] Eleanor stabilizes Aerys   · PLAY/CIN
+    Practical healing, bandages, wound care; cannot be repeated consequence-free.
+
+TW-148 [CANON] Intolerable killing   · CIN
+   Eleanor witnesses a killing that convinces her she must leave current situation; staging should preserve moral
+    motive.
+
+TW-149 [CANON] Kael versus Cassius   · BOSS
+    Night Dweller's fluid air motion foils sword timing; Kael abandons heavy sword to grab, punch, tackle,
+    grapple.
+
+TW-150 [CANON] Cassius resolution   · CIN
+   No obsolete 20–25-hit sword barrage; cause and physical leverage matter.
+
+TW-151 [CANON] Eiryn/Aerys/Eleanor vs Lyra and two golems   · BOSS
+   Adaptive stone golems change tactics; roles must remain clear.
+
+TW-152 [CANON] Eleanor dangerous overhealing   · CIN/PLAY
+    Intercepts Lyra with physically alarming over-healing technique, with cost and limitations.
+
+TW-153 [CANON] Eiryn finishes golems   · CIN
+    Coordinates available magic with team resources.
+
+TW-154 [CANON] Eleanor decides to leave   · DIA
+   She joins after earned moral conflict and care, not a casual pickup.
+
+TW-155 [CANON] Depth 5 trafficking markets   · EXP
+   Chained animals and Beast Folk, visible brutality; party responses and possibility of meaningful observation.
+
+TW-156 [OPTION] Caged rare creature on sale   · EXP
+    Claspcrab, Veilmaw, Land Mantis or another submitted species may appear in cage; creator chooses, NO
+    forced rescue quest.
+
+TW-157 [CANON] Depth 6 angel-eye trade   · EXP
+   More dangerous illicit economy; trade in Aerys-type eyes and fear of capture.
+
+TW-158 [CANON] Forbidden demon-contract offer   · DIA
+   Kael is offered contract and explicitly refuses; foreshadows Nox without auto-explaining him.
+
+TW-159 [CANON] Hooded follower noticed   · CIN
+   Someone tracks the party; avoid revealing his identity in earlier depths.
+
+
+                                                                  TOWER OF WISHES  • 11
+
+===== ORIGINAL INVENTORY PAGE 12 OF 29 =====
+TOWER OF WISHES   / GAME PRODUCTION INVENTORY
+
+TW-160 [CANON] Trap the follower   · PLAY
+    Tactical small sequence to cut off escape.
+
+TW-161 [CANON] Rival kid revealed   · CIN
+   The follower is Kael's previously introduced rival kid; reunion includes recognizable interpersonal stakes.
+
+TW-162 [CANON] Depth 7 final ascent/exit   · EXP
+   Movement back toward open air after long underground travel.
+
+TW-163 [CANON] Eleanor sees outdoor sky   · CIN
+    First encounter with true open lower-world sky under the upper firmament; quiet major emotional beat.
+
+TW-164 [CANON] Post-Labyrinth recovery   · EXP/DIA
+    Camp/travel/food, Aerys wound and Eleanor's condition stay consistent.
+
+06 — RUINED HAMLET / BRAXEN / NOX RETURNS
+
+Braxen's trust accrues; Nox is not instantly a full member. Distinguish the existing healing-attracted night creature
+from the game-specific Nightcrawler.
+
+TW-165 [CANON] Ruined pre-Reset road   · EXP
+    Signs of forgotten civilization and broken infrastructure trigger Eiryn's perspective.
+
+TW-166 [CANON] Camp after Labyrinth   · DIA
+   Group talks, eats and gives Eleanor breathing room as a real individual.
+
+TW-167 [CANON] Cloaked figure by a fire   · CIN
+   Find Braxen alone in ruined hamlet, physically guarded and suspicious.
+
+TW-168 [CANON] What are you?   · DIA
+   Aerys asks; Braxen responds defensively and with little trust.
+
+TW-169 [CANON] Wishes are for those with hope   · DIA
+    Braxen's guarded worldview; do not turn into exposition lecture.
+
+TW-170 [CANON] Predators approach travelers   · CIN
+    Existing threat targets party; Braxen notices/acts first.
+
+TW-171 [CANON] Hamlet predator defense   · FIGHT
+   Combat or cinematic cooperation; Braxen reveals hybrid strength/nature while protecting strangers.
+
+TW-172 [CANON] Hybrid revealed   · CIN
+    Party processes his human/Beast Folk biology without instant acceptance from the world.
+
+TW-173 [CANON] Kael invites Braxen   · DIA
+    Invitation is real, but Braxen's willingness to stay develops across time.
+
+TW-174 [CANON] Braxen's natural origin   · DIA
+    His hybrid parentage and persecution are real; no synthetic beast-core or Master Oren.
+
+TW-175 [CANON] Travel with guarded Braxen   · EXP
+   Small practical usefulness: senses, wilderness habits, food/water, awkward conversation.
+
+
+
+                                                                  TOWER OF WISHES  • 12
+
+===== ORIGINAL INVENTORY PAGE 13 OF 29 =====
+TOWER OF WISHES   / GAME PRODUCTION INVENTORY
+
+TW-176 [CANON] Nox returns under kill contract   · CIN
+   Nox intends to kill Braxen because of a bounty/contract; no forced grand conspiracy.
+
+TW-177 [CANON] Defend Braxen against Nox   · FIGHT
+    Party interrupts/blocks Nox; no permanent defeat or instant friendship assumed.
+
+TW-178 [CANON] Nox withdraws and observes   · CIN
+    Begins distant shadowing and selective intervention.
+
+TW-179 [CANON] Party debates trusting Nox   · DIA
+    Different stances reveal Kael's protectiveness, Aerys's curiosity, Braxen's danger.
+
+TW-180 [CANON] Nighttime travel and watch shifts   · EXP
+    Eleanor's care/residue creates approaching threat; quiet camp mechanics.
+
+TW-181 [CANON] Creature drawn by healing   · CIN
+    Distinct established encounter, not silently collapsed into game Nightcrawler.
+
+TW-182 [CANON] Night creature group crisis   · FIGHT
+    Eiryn must be occupied or bounded for a concrete reason; healer and team in immediate danger.
+
+TW-183 [CANON] One Step — A Thousand Wounds   · CIN
+    Nox's rare overwhelming technique saves them; major demon-powered push COSTS lifespan.
+
+TW-184 [CANON] Exhaustion and price   · CIN
+   Nox pays physical/lifespan consequences; he cannot spam the attack.
+
+TW-185 [CANON] Nox remains near but separate   · DIA
+    Selective closeness, especially to Aerys, not formal commitment yet.
+
+TW-186 [OPTION] Predator species candidate   · EXP
+   Twinsnare or Veilmaw possible only if creator approves as the existing predator, not a new mandatory boss.
+
+07 — BEAST FOLK COUNTRY / DRAGON / AERYS ABDUCTION
+
+Give forests, village life, relationship work and moral complexity as much room as combat. The egg is already
+eaten by dragon arrival.
+
+TW-187 [CANON] Immense Beast Folk forest basin   · EXP
+   Enormous trees, ground-level villages and varied species/lineages; real travel scale.
+
+TW-188 [CANON] First Beast Folk village   · CIN
+   Independent society, not a platform village or generic animal-town stereotype.
+
+TW-189 [CANON] Braxen's social fear   · DIA
+   He anticipates rejection due to hybrid status and upbringing.
+
+TW-190 [CANON] Braxen vouches for party   · DIA
+    Villagers learn party protected him, contributing to acceptance.
+
+TW-191 [CANON] Food, markets and crafts   · EXP
+   Hunting tools, local food, family life, children's games and politics.
+
+
+
+                                                                  TOWER OF WISHES  • 13
+
+===== ORIGINAL INVENTORY PAGE 14 OF 29 =====
+TOWER OF WISHES   / GAME PRODUCTION INVENTORY
+
+TW-192 [CANON] Arm-wrestling challenge   · PLAY
+    Friendly minigame showcasing Braxen's strength and village social life.
+
+TW-193 [CANON] Sparring/training ground   · PLAY
+    Kael's sword mechanics, Nox's footwork, Beast Folk martial habits.
+
+TW-194 [CANON] Kael vs Nox technical lessons   · DIA
+   Recurring uncomfortable but valuable exchanges over stance, leverage, movement and tactics.
+
+TW-195 [CANON] Aerys and Nox small trust beats   · DIA
+   Water, bread, watch shifts, quiet thanks; growing affection shown in actions.
+
+TW-196 [CANON] Nox guards the hot spring   · CIN
+     If girls bathe, he keeps his BACK to them and guards; never voyeuristic.
+
+TW-197 [CANON] Eleanor as friend and medic   · DIA
+   Group medical lessons, wound wrapping, remedies, ordinary humor, future clinic dream.
+
+TW-198 [CANON] Braxen and Aerys sibling bond   · DIA
+    Teasing, protection in both directions, practical support and growing trust.
+
+TW-199 [CANON] Rival kid hiding in foliage   · CIN/DIA
+   Nox discovers the kid in bush/tree, asks who he is in his blunt manner.
+
+TW-200 [CANON] Beast Folk hunting culture   · EXP
+   Tracking and exploration naturally grounded in wildlife; Braxen's experience matters.
+
+TW-201 [OPTION] Ambient creature habitat   · EXP
+   Knucklehen, Land Mantis and Vesperant sightings if their designs are approved; don't force fights.
+
+TW-202 [OPTION] Wildlife protection contract   · SIDE
+    Optional protect nests/escort animals or investigate poaching; no mandatory creature plot.
+
+TW-203 [CANON] Elder Dragon egg incident begins   · CIN
+   Poachers involved in older direction; precise theft/transfer chain remains open.
+
+TW-204 [OPEN] Egg custody/culpability   · DIA
+   Determine how egg reached village/kitchen, who knew what, without claiming all party members ate it.
+
+TW-205 [CANON] Egg already cooked/eaten   · CIN
+   By dragon arrival egg is destroyed, so returning it is impossible.
+
+TW-206 [CANON] Elder Dragon arrives grieving   · CIN
+   Ancient intelligent dragon rages at loss and attacks village.
+
+TW-207 [CANON] Elder Dragon defense   · BOSS
+    Party and village protect residents; dragon's grief is understandable, but it will not stop.
+
+TW-208 [CANON] Elder Dragon dies   · CIN
+    Killing is tragic and necessary in this locked direction; don't make it painless trophy-hunt.
+
+TW-209 [CANON] Dragon is prepared as feast   · CIN/EXP
+    Village eats dragon afterward; ambivalent social celebration and moral consequence.
+
+
+                                                                  TOWER OF WISHES  • 14
+
+===== ORIGINAL INVENTORY PAGE 15 OF 29 =====
+TOWER OF WISHES   / GAME PRODUCTION INVENTORY
+
+TW-210 [CANON] Celebration with six party members   · DIA
+    Food, personal connections, village acceptance and Nox/Aerys progression.
+
+TW-211 [CANON] Crying Beast Folk child interrupts   · CIN
+    Child says a man took/hurt Aerys DURING the feast.
+
+TW-212 [CANON] Aerys's disturbed room   · EXP
+   Evidence of struggle; she resisted and suffered; party recognizes immediate urgency.
+
+TW-213 [CANON] Scent tracking pursuit   · PLAY
+   A Beast Folk tracker detects unfamiliar scent; Nox does NOT read magic residue.
+
+TW-214 [CANON] Chase splits by speed   · CIN
+   Nox, high-ranked tracker and early Kael pull ahead; tracker can only supply bearing/distance.
+
+TW-215 [CANON] Nox chains Shadow Step   · PLAY/CIN
+   Extremely fast repeated movement with palpable exhaustion/cost.
+
+TW-216 [CANON] Aerys found restrained   · CIN
+   Hands encased so Light cannot fire; wounded, distressed but resisting.
+
+TW-217 [CANON] Frost assassin revealed   · CIN
+   Kidnapper is Nox's old Markers Covenant peer, specializing in frost/ice.
+
+TW-218 [CANON] Kid in the Shadows taunts   · DIA
+    Old-peer verbal references; devil/angel taunt directions without three rejected one-liners.
+
+TW-219 [CANON] Nox admits his love in confrontation   · CIN
+   Emotional admission to peer differs from later direct confession to Aerys.
+
+TW-220 [CANON] Nox vs frost assassin   · BOSS
+    High-intensity assassin duel with staged fake surrender/ambush and severe physical cost.
+
+TW-221 [CANON] Staggered rescue arrivals   · CIN
+   Kael and tracker arrive, then Braxen/Eiryn/Eleanor later; don't teleport everyone together.
+
+TW-222 [CANON] Assassin defeated / Aerys rescued   · CIN
+   Nox wins at huge cost; Aerys's actual injuries need healing/time.
+
+TW-223 [CANON] Nox confesses directly afterward   · DIA
+   Awkward honest conversation; no instant reciprocal 'I love you too'.
+
+TW-224 [CANON] Nox chooses to stay close   · DIA
+   Now he ends purely shadowing and stays beside party/Aerys.
+
+TW-225 [CANON] Recovery, medical costs, return route   · EXP
+   Group processes injuries, trauma, village social changes and resources.
+
+08 — TORNADO COUNTRY & BLACK KNIGHT
+
+The Black Knight is not separately killed or purified; the SECOND PHASE scatters all six individually.
+
+
+
+
+                                                                  TOWER OF WISHES  • 15
+
+===== ORIGINAL INVENTORY PAGE 16 OF 29 =====
+TOWER OF WISHES   / GAME PRODUCTION INVENTORY
+
+TW-226 [CANON] Long journey beyond forest   · EXP
+   Road ruins, merchants, travel cost and geography remain meaningful.
+
+TW-227 [CANON] Coastal tournament destination named   · DIA
+   Group had reason to aim for eventual northeastern coastal hub before scattering.
+
+TW-228 [CANON] Desert route choice   · DIA
+   Ordinary safe crossing takes days; night shortcut through old Tornado Country saves time under specific
+    circumstances.
+
+TW-229 [CANON] Eiryn recognizes ruined kingdom   · DIA
+   She remembers the territory before the Reset.
+
+TW-230 [CANON] Enter nighttime dunes   · EXP
+   Wide storm country, spaced tornadoes, lightning with little rain and dangerous exposure.
+
+TW-231 [CANON] Survive storm travel   · PLAY
+   Read tornado paths, protect weaker companions, move between safer corridors.
+
+TW-232 [CANON] The wind vanishes   · CIN
+   Sudden unnatural stillness announces Black Knight's presence.
+
+TW-233 [CANON] Armored Black Knight emerges   · CIN
+    Failed preservation attempt by a court witch imprisoned souls; no hell-summoned guardian.
+
+TW-234 [CANON] Black Knight phase one   · BOSS
+    Six-character tactical coordination and environmental hazard survival.
+
+TW-235 [CANON] Nox's tornado slingshot   · PLAY
+    Situational kinetic Shadow Step trick using existing tornado, NOT permanent speed upgrade.
+
+TW-236 [CANON] Black Knight second phase   · CIN
+    Instead of dying, purifying or fleeing, it deploys mass displacement.
+
+TW-237 [CANON] Six individual teleports   · CIN
+   ALL six scattered far across Erdra, including Aerys/Braxen who appear near one another seconds apart.
+
+TW-238 [CANON] Separation begins   · CIN
+   Game transitions to three paired campaigns; no extra Black Knight rematch later.
+
+09A — SEPARATION: KAEL & NOX / GOTHIC KINGDOM
+
+Pair travels, argues, practices and learns; Gothic knights are formidable and not automatically villains.
+
+TW-239 [CANON] Kael appears in Gothic territory   · CIN
+     Still wearing foreign High Order heraldry, immediately looks suspicious to local authorities.
+
+TW-240 [CANON] Order to disarm   · DIA
+    Gothic knights have legitimate security reasons, Kael refuses.
+
+TW-241 [CANON] Three Gothic knights   · BOSS
+   Show professional discipline and actual threat; Kael cannot steamroll them.
+
+
+
+                                                                  TOWER OF WISHES  • 16
+
+===== ORIGINAL INVENTORY PAGE 17 OF 29 =====
+TOWER OF WISHES   / GAME PRODUCTION INVENTORY
+
+TW-242 [CANON] Green vine/root binding   · CIN
+   Kael is restrained with magic and taken under control.
+
+TW-243 [CANON] Gothic society and custody   · EXP/DIA
+    Distinct governance and aesthetics, avoid black-armor-equals-evil shortcut.
+
+TW-244 [CANON] Nox arrives roughly ten days later   · CIN
+   Annoying assistance to Kael after time apart; logistics matter.
+
+TW-245 [CANON] Forced duo partnership   · DIA
+   Mutual irritation and reluctant practical cooperation.
+
+TW-246 [CANON] Road through Gothic territory   · EXP
+    Challenges, supplies, geography, side figures and local customs.
+
+TW-247 [CANON] Kael/Nox practice   · PLAY
+   Nox learns leverage and body mechanics; Kael learns movement, timing and feints.
+
+TW-248 [CANON] Disagreements accumulate   · DIA
+    Different approaches to protection, duty and killing surface across multiple scenes.
+
+TW-249 [CANON] Powerful shared enemy   · BOSS
+   Major confrontation where Kael/Nox argument erupts DURING the battle.
+
+TW-250 [CANON] Mid-battle rupture   · CIN
+    Character conflict visibly sabotages tactical teamwork with consequences.
+
+TW-251 [CANON] Earned tactical reconciliation   · PLAY/CIN
+   Use each other's teachings to win/survive; not an instant speech-based friendship reset.
+
+TW-252 [CANON] Journey toward coastal hub   · EXP
+   They deduce the original destination is best place to regroup.
+
+09B — SEPARATION: EIRYN & ELEANOR / CANALS
+
+Two women become people to each other. Lonely awakening after 150 years appears as a FLASHBACK here, not in
+early prologue.
+
+TW-253 [CANON] Eiryn lands alone   · CIN
+   Fear of losing family again after sudden separation.
+
+TW-254 [CANON] Flashback to original awakening   · CIN
+   ONLY HERE show preservation expiring naturally after ~150 years and Eiryn waking utterly alone.
+
+TW-255 [CANON] Eleanor and Eiryn connect   · DIA
+   They find each other, emotionally relieved, mutually vulnerable.
+
+TW-256 [CANON] Unfamiliar canal/lock system   · EXP
+    Eiryn doesn't understand newer waterworks; practical worldbuilding.
+
+TW-257 [CANON] First canal accident   · CIN
+    Incorrect use of modern lock/infrastructure gets them in trouble.
+
+
+
+                                                                  TOWER OF WISHES  • 17
+
+===== ORIGINAL INVENTORY PAGE 18 OF 29 =====
+TOWER OF WISHES   / GAME PRODUCTION INVENTORY
+
+TW-258 [CANON] Authorities intervene reasonably   · DIA
+    Local laws, damages and misunderstanding rather than arbitrary evil guards.
+
+TW-259 [CANON] Shared holding cell   · CIN
+   Two characters laugh, confess, argue and bond under pressure.
+
+TW-260 [CANON] Eleanor's clinic dream   · DIA
+   Genuine future hope with a practical plan; not every mention foreshadows death.
+
+TW-261 [CANON] Clean first escape   · PLAY
+   They get out without immediate second accident.
+
+TW-262 [CANON] Second waterworks disaster   · CIN/PLAY
+   Another accidental lock/canal incident AFTER clean escape.
+
+TW-263 [CANON] Travel by road/canal   · EXP
+    Medicine, food, logistics and female friendship.
+
+TW-264 [CANON] Heading to old coastal destination   · DIA
+    Their reason to seek missing party at planned hub arises naturally.
+
+09C — SEPARATION: AERYS & BRAXEN / GUILD DAMAGE
+
+The two land individually but almost together. They are blamed for real accidental damage, not villains for
+avoiding civilian injuries.
+
+TW-265 [CANON] Aerys materializes mid-Light attack   · CIN
+    Part of pre-teleport action continues into new setting; blast accidentally damages Guild hall.
+
+TW-266 [CANON] Braxen appears mid-charge   · CIN
+   He stops before hitting civilians; damage incident appears coordinated.
+
+TW-267 [CANON] Authorities infer a joint attack   · DIA
+   Reasonable mistaken interpretation of two strangers suddenly attacking building.
+
+TW-268 [CANON] Avoid injuring guards/civilians   · PLAY
+    Escape/self-defense prioritizing restraint over indiscriminate kills.
+
+TW-269 [CANON] Guild restitution demand   · DIA
+   Damages remain legally owed; cannot be erased by a casual apology.
+
+TW-270 [CANON] Sibling-style bickering   · DIA
+   Aerys is independent; Braxen is more than bodyguard.
+
+TW-271 [CANON] Duo survival logistics   · EXP
+   Earn food, lodging, explore unfamiliar town and adapt to local laws.
+
+TW-272 [CANON] Two-person combat synergy   · PLAY
+   Aerys Light redirection and Braxen physical strength complement each other.
+
+TW-273 [CANON] Decision to travel to tournament city   · DIA
+    Original route remains most credible reunion destination.
+
+
+
+                                                                  TOWER OF WISHES  • 18
+
+===== ORIGINAL INVENTORY PAGE 19 OF 29 =====
+TOWER OF WISHES   / GAME PRODUCTION INVENTORY
+
+10 — COASTAL TOURNAMENT & SIX-PERSON REUNION
+
+Reunion is consequence of each duo following original plan; tournament final 2v2v2. Do not revive the scrapped
+four-person rival party.
+
+TW-274 [CANON] Arrive at northeastern coastal hub   · EXP
+   Large inhabited travel center, ports, Guilds, tournament buzz.
+
+TW-275 [OPTION] Coastal fauna / contract notices   · EXP
+   Shorebreaker and Claspcrab possible wildlife/notice only if approved; do not force new boss.
+
+TW-276 [CANON] Hear tournament details   · DIA
+   Reward, entry rules and teams; prize can cover guild-hall restitution.
+
+TW-277 [CANON] Three duos arrive separately   · EXP
+   Each tracks clues/rumors on others with their own route history.
+
+TW-278 [CANON] Tournament registration   · PLAY
+    2-person teams register; no guaranteed instant party reunion in cutscene.
+
+TW-279 [CANON] Tournament preliminary encounters   · FIGHT
+    Contests of strength and tactics grounded in participating duos, not invented mandatory rival-party arc.
+
+TW-280 [CANON] Rivals/competitors briefly characterize world   · DIA
+    Real professionals, varied races, some stronger than protagonists.
+
+TW-281 [CANON] Finalists recognized   · CIN
+   The climactic 2v2v2 pairing reveals all three duos opposing one another.
+
+TW-282 [CANON] 2v2v2 tournament final   · BOSS
+   Kael+Nox vs Eiryn+Eleanor vs Aerys+Braxen; mechanics cannot force canon-hostile permanent outcomes.
+
+TW-283 [CANON] Six reunite   · CIN
+   Comic relief, surprise, genuine emotional payoff; no teleportation shortcut.
+
+TW-284 [CANON] Catch-up on three road arcs   · DIA
+    Treat material as meaningful, including legal debt and healing costs.
+
+TW-285 [CANON] Tournament awards   · CIN
+    Prize covers Aerys/Braxen guild restitution, not every possible legal consequence.
+
+TW-286 [CANON] Shared celebratory downtime   · EXP/DIA
+    Food, resting, money, camaraderie, private conversations.
+
+TW-287 [CANON] Travel toward Tower City   · EXP
+   The campaign resumes with all six; route still long and resource-constrained.
+
+11 — RECURRING RIVAL KID / TOWER CITY / FINAL CAMP
+
+Kael recognizes and protects rival kid even after being injured. The party must have ordinary time before
+entering the Tower.
+
+TW-288 [CANON] Rival kid takes forbidden enhancement   · CIN
+   Black-market clinic/body-engraving power-up escalates desperation; no throwaway gag.
+
+                                                                  TOWER OF WISHES  • 19
+
+===== ORIGINAL INVENTORY PAGE 20 OF 29 =====
+TOWER OF WISHES   / GAME PRODUCTION INVENTORY
+
+TW-289 [CANON] Unnatural new abilities revealed   · CIN
+   Kid challenges Kael with visible consequence of enhancement.
+
+TW-290 [CANON] Kael versus enhanced rival kid   · BOSS
+    Serious duel; kid actually injures Kael badly.
+
+TW-291 [CANON] Kael recognizes him   · CIN
+   Kael finally sees the person under obsession rather than only a nuisance.
+
+TW-292 [CANON] Kael embraces/saves kid   · CIN/DIA
+   Rescue instead of executing him, despite being hurt.
+
+TW-293 [CANON] Reach Tower City   · EXP
+    Inns, markets, Guild offices, repair, physicians, gear, rumors, famous climbers.
+
+TW-294 [CANON] Rival kid receives treatment   · PLAY/CIN
+   Medical cost and rehabilitation; survives and can envision life beyond chasing Kael.
+
+TW-295 [CANON] Goodbye to rival kid   · DIA
+   Earned farewell; maybe he considers his own party; no arbitrary death.
+
+TW-296 [CANON] Friendly climbers ahead   · DIA
+   Other climbers become identifiable people and depart a day before core party.
+
+TW-297 [CANON] Restock and regroup   · EXP
+    Rations, bandages, weapon maintenance, services, money and journey preparations.
+
+TW-298 [CANON] Ordinary pre-Tower evening   · DIA
+   Everyone has time to speak as themselves, including Eleanor and Braxen.
+
+TW-299 [CANON] Final journey through Reset ruins   · EXP
+   Ancient destroyed roads and fragments of Eiryn's era.
+
+TW-300 [CANON] Eiryn's memories of old world   · DIA
+    Selectively meaningful recognition, not endless lore monologue.
+
+TW-301 [CANON] Remote final approach   · EXP
+   Huge distance from Tower City and hard terrain emphasized.
+
+TW-302 [CANON] Last campfire — six wishes   · CIN/DIA
+   Each party member has room for hopes, humor, dread and ordinary friendship.
+
+TW-303 [CANON] Tower entrance   · CIN
+   Moment of crossing into ancient autonomous structure; player understands stakes.
+
+12 — TOWER FLOOR 1: FROST & MIST
+
+Party separates into tailored combat tests; the earlier friendly climbers are found dead. Wounds persist.
+
+TW-304 [CANON] First floor entry   · EXP
+    Frost/mist environment, cold travel costs and immense architecture.
+
+
+
+
+                                                                  TOWER OF WISHES  • 20
+
+===== ORIGINAL INVENTORY PAGE 21 OF 29 =====
+TOWER OF WISHES   / GAME PRODUCTION INVENTORY
+
+TW-305 [CANON] Find friendly climbers dead   · CIN
+   The people who entered earlier did not survive; no reset-to-happy scene.
+
+TW-306 [CANON] Party separated by Tower   · CIN
+   Each character receives a specific physical/trial confrontation.
+
+TW-307 [CANON] Kael's tailored Frost Knight test   · FIGHT
+    Physical swordsman tactical encounter; exact matchup choreography still requires scene work.
+
+TW-308 [CANON] Aerys's Light-versus-mist test   · FIGHT
+   Movement, range and visibility; keep her distinct fighting style.
+
+TW-309 [CANON] Braxen's frost trial   · FIGHT
+   Hybrid strength challenged by lingering cold damage.
+
+TW-310 [CANON] Braxen permanent frost injury   · CIN
+    Scars and limitation survive past the floor.
+
+TW-311 [CANON] Nox's speed trial   · FIGHT
+    Speed, precision and technique, bounded by costs; do not grant permanent speed buff.
+
+TW-312 [CANON] Eleanor healer-cost trial   · FIGHT
+   Healing puts her body at risk in ways different from Eiryn Negation cost.
+
+TW-313 [CANON] Eiryn versus horned Master Knight   · BOSS
+    Flagship Floor 1 cinematic/boss encounter; her actual spell kit matters.
+
+TW-314 [CANON] Knight/trial victories   · CIN
+    Party must win separate fights through demonstrated abilities; no fake dream reset.
+
+TW-315 [CANON] Reunion and medical inventory   · EXP
+   Count wounds, manage frost injury, food and depleted reserves.
+
+TW-316 [CANON] Exit to Endless Staircase   · CIN
+    Floor transition, rest not magically automatic.
+
+13 — IN-BETWEEN 1: ENDLESS STAIRCASE
+
+One enormous railingless spiral where fatigue, infection, time, accidents and relationships matter.
+
+TW-317 [CANON] The staircase reveal   · EXP
+    Physically immense, no railing, steep drop.
+
+TW-318 [CANON] Long climb with fatigue   · PLAY
+    Pacing, supplies, injury statuses; avoid becoming repetitive stair button-mashing.
+
+TW-319 [CANON] Small conversations on the climb   · DIA
+    Travel jokes, shifting group pace and future hopes; no row of trauma speeches.
+
+TW-320 [CANON] Injuries turn dangerous   · CIN
+    Frost damage and infections have continuing consequences.
+
+
+
+
+                                                                  TOWER OF WISHES  • 21
+
+===== ORIGINAL INVENTORY PAGE 22 OF 29 =====
+TOWER OF WISHES   / GAME PRODUCTION INVENTORY
+
+TW-321 [CANON] Kael slows for Eleanor   · DIA
+   He chooses to adjust his pace for the healer instead of rushing.
+
+TW-322 [CANON] Eleanor treats others first   · DIA
+   She prioritizes others at expense of own condition.
+
+TW-323 [CANON] Nox physically slips   · CIN
+    Limits of extreme speed and fatigue revealed in ordinary movement.
+
+TW-324 [CANON] Aerys notices Nox's instability   · DIA
+   Small intimate concern, no immediate romance confession.
+
+TW-325 [CANON] Eleanor nearly falls   · CIN
+   She loses footing near edge, sudden danger.
+
+TW-326 [CANON] Nox Shadow Steps to catch Eleanor   · PLAY/CIN
+   Rescue comes at genuine exertion cost.
+
+TW-327 [CANON] Party reaches next threshold   · CIN
+    Successful but exhausted, no complete resource refresh.
+
+14 — TOWER FLOOR 2: CALAMITY & SWORD
+
+Fire/water recalls the Reset but is its own trial. Kael gets decisive finish and new weapon after the boss.
+
+TW-328 [CANON] Calamity arena opens   · CIN
+    Devastating fire/water environment, Eiryn visual trauma callback.
+
+TW-329 [CANON] Recognize the pattern   · DIA
+    Eiryn reacts with believable restraint; other party members assess attacks.
+
+TW-330 [CANON] Calamity boss opening phase   · BOSS
+   Environmental flames/flooding plus martial coordination across all six.
+
+TW-331 [CANON] Switch roles under pressure   · PLAY
+    Control characters based on positions, mana and cooldowns, not invulnerability.
+
+TW-332 [CANON] Skyfire threatens Aerys   · CIN
+   Aerys cannot dodge/escape strike in time.
+
+TW-333 [CANON] Nox shields Aerys bodily   · CIN
+   Conscious choice to take falling skyfire, mirrored visually with Alric/Eiryn; no rejected boss one-liner.
+
+TW-334 [CANON] Calamity final phase   · BOSS
+   Combined group wear-down and a specifically Kael-led decisive finish.
+
+TW-335 [CANON] Kael lands decisive strike   · CIN
+   The swordsman earns boss resolution through training and teamwork.
+
+TW-336 [CANON] Sword of Calamity obtained   · CIN
+   New weapon acquired ONLY after Floor 2, not earlier.
+
+
+
+
+                                                                  TOWER OF WISHES  • 22
+
+===== ORIGINAL INVENTORY PAGE 23 OF 29 =====
+TOWER OF WISHES   / GAME PRODUCTION INVENTORY
+
+TW-337 [CANON] Sword abilities first use   · PLAY
+   Burning edge, water bullet, fire slash introduced in controlled safe demonstration.
+
+TW-338 [CANON] Immediate hurt and relief   · DIA
+    Characters respond in unique voices; injuries and exhaustion remain.
+
+TW-339 [CANON] Recovery ramp   · EXP
+   Eleanor heals others and herself last; Nox/Aerys moment and resource state carry forward.
+
+TW-340 [CANON] Approach Hall of Offering   · CIN
+    Quiet disquiet; no obligatory extra invented floor.
+
+15 — TOWER FLOOR 3: HALL OF OFFERING
+
+Altheryx is real climber, not replica. Eleanor is fifth sacrifice and dies permanently.
+
+TW-341 [CANON] Hall of Offering entered   · CIN
+   Massive chamber with five impalement wheels: four occupied, one empty.
+
+TW-342 [CANON] Examine four victims   · EXP
+    Clues that other climbers were sacrificed; no easy safe solution fabricated.
+
+TW-343 [CANON] Meet Altheryx   · CIN
+   The Crownless King, real climber who lost earlier companions.
+
+TW-344 [CANON] Altheryx's apparent cooperation   · DIA
+    His reasonable tone, personal history and misleading guidance encourage trust.
+
+TW-345 [CANON] Wish expectations confronted   · DIA
+   He discusses Tower climb and stakes without revealing all motives.
+
+TW-346 [CANON] Investigate the empty wheel   · EXP
+   Environmental dread builds, not a mandatory battle with a random boss.
+
+TW-347 [CANON] Authority shown   · CIN
+    Altheryx must consciously regard target as beneath him for Authority to work.
+
+TW-348 [CANON] Commandment demonstrated   · CIN
+    Restrictions must be physically possible, with cost scaling by scope/duration/severity.
+
+TW-349 [CANON] False security broken   · CIN
+   The party is distracted at key instant; Altheryx moves against Eleanor.
+
+TW-350 [CANON] Eleanor mortally attacked   · CIN
+    Altheryx takes her as the fifth sacrifice; do not rewrite as fakeout.
+
+TW-351 [CANON] Kael tries to rescue Eleanor   · PLAY/CIN
+   Desperate intervention creates escape opening for Altheryx (exact staging OPEN).
+
+TW-352 [CANON] Tower takes Eleanor   · CIN
+   Impaled at fifth wheel; permanent death.
+
+
+
+
+                                                                  TOWER OF WISHES  • 23
+
+===== ORIGINAL INVENTORY PAGE 24 OF 29 =====
+TOWER OF WISHES   / GAME PRODUCTION INVENTORY
+
+TW-353 [CANON] Hall mechanism activates   · CIN
+   Blood/wheels open the passage; party cannot undo sacrifice.
+
+TW-354 [CANON] Kael's rage and party grief   · DIA
+    Different reactions; all subsequent missions reflect permanent loss.
+
+TW-355 [CANON] Altheryx escapes to next zone   · CIN
+    Later appears as Feast distorted resident; exact transition remains to be written.
+
+16 — IN-BETWEEN 2: THE FALSE FEAST
+
+Rest stop looks welcoming; memory danger escalates with eating and time. Escape mechanism OPEN.
+
+TW-356 [CANON] Abundant banquet appears   · CIN
+    Natural-looking refuge, food, warmth, smiling people; relief tempts the wounded party.
+
+TW-357 [CANON] Guests from wrong eras   · EXP
+    Subtle clothing, language, dates, stories and social behavior contradict each other.
+
+TW-358 [CANON] Kael's grief follows him   · DIA
+   He is still angry and hurting, not instantly reset to comic relief.
+
+TW-359 [CANON] Kael reaches for food   · CIN
+    Eating accelerates memory loss; tension around choice.
+
+TW-360 [CANON] Nox stops Kael   · CIN
+   Observes contradictions before anyone can consume food casually.
+
+TW-361 [CANON] Investigate missing time   · PLAY
+   Gather clues and identify memory inconsistencies without inventing fixed solution.
+
+TW-362 [CANON] Recognize Altheryx as resident   · CIN
+   He is distorted among Feast residents, not necessarily proven to have eaten.
+
+TW-363 [CANON] Memory/time pressure   · PLAY
+    Staying too long traps guests even without eating; time hazard mechanics.
+
+TW-364 [OPEN] Escape the False Feast   · PLAY/CIN
+    Exact exit method intentionally undecided in canon; design only when writing scene.
+
+TW-365 [CANON] Aftermath of the Feast   · DIA
+    Grief, distrust and fatigue remain, with Eleanor's absence palpable.
+
+17 — TOWER FLOOR 4: FIVE PERSONAL FIGHTS
+
+Physical memory/fear combatants are Tower-made manifestations, never revived original people. Each has
+DIFFERENT combat victory condition still OPEN.
+
+TW-366 [CANON] Floor 4 separates survivors   · CIN
+    Five participants remain: Eiryn, Kael, Aerys, Nox, Braxen.
+
+TW-367 [CANON] Manifestations are physically real opponents   · CIN
+   Tower builds combat forms out of memories/fears, not actual resurrection.
+
+
+                                                                  TOWER OF WISHES  • 24
+
+===== ORIGINAL INVENTORY PAGE 25 OF 29 =====
+TOWER OF WISHES   / GAME PRODUCTION INVENTORY
+
+TW-368 [CANON] Eiryn vs Alric manifestation   · BOSS
+    Fight fake physical Alric; emotionally authentic recognition but it is not original Alric.
+
+TW-369 [OPEN] Eiryn lane special condition   · BOSS
+   Combat-based victory condition unique to her; not yet fully canonized.
+
+TW-370 [CANON] Kael vs Eleanor manifestation   · BOSS
+   Kael faces physically fighting representation of recently dead healer; not her return.
+
+TW-371 [OPEN] Kael lane special condition   · BOSS
+    Distinct combat victory condition chosen later.
+
+TW-372 [CANON] Aerys vs older brother manifestation   · BOSS
+   Her brother taught her to fight and died in an invasion.
+
+TW-373 [OPEN] Aerys lane special condition   · BOSS
+    Distinct combat victory condition chosen later.
+
+TW-374 [CANON] Nox vs younger brother manifestation   · BOSS
+   Brother killed by a beast Nox failed to save; old guilt weaponized.
+
+TW-375 [OPEN] Nox lane special condition   · BOSS
+    Distinct combat victory condition chosen later.
+
+TW-376 [CANON] Braxen vs fully human self   · BOSS
+    Manifestation tests his hybrid identity and physical fighting.
+
+TW-377 [OPEN] Braxen lane special condition   · BOSS
+    Distinct combat victory condition chosen later.
+
+TW-378 [CANON] Five exits/reunion   · CIN
+    Survivors regroup physically/emotionally changed; no resurrection of Eleanor.
+
+TW-379 [OPTION] Quiet pre-final confrontation   · DIA
+    Optional natural recovery conversation, not mandatory new corridor/floor.
+
+18 — FLOOR 5: GUARDIAN / HEAVEN
+
+Martial + upper-realm magic boss is finite. Braxen restrains and dies; Eiryn's final combined blast/Reset
+connection remains an OPEN continuity gate.
+
+TW-380 [CANON] Reach summit/true upper realm   · CIN
+    First actual view beyond permanent firmament; visually unprecedented.
+
+TW-381 [CANON] Heaven is inhabited   · EXP
+   Homes, ordinary civilians, children; not empty arena of cartoon villains.
+
+TW-382 [CANON] Meet the Guardian   · CIN
+   Guardian predates climbers' present assumptions but did not CREATE Tower.
+
+TW-383 [CANON] False wish truth revealed   · DIA
+   Tower never granted wishes; Guardian blocked passage and imposed Reset policy.
+
+
+
+                                                                  TOWER OF WISHES  • 25
+
+===== ORIGINAL INVENTORY PAGE 26 OF 29 =====
+TOWER OF WISHES   / GAME PRODUCTION INVENTORY
+
+TW-384 [CANON] Eiryn faces Alric's finality   · DIA
+   Her belief about bringing him back collapses; emotional rupture builds.
+
+TW-385 [CANON] Guardian martial opening   · BOSS
+   Overwhelming skill and upper-realm magic; all five play distinct tactical roles.
+
+TW-386 [CANON] Group attacks wear him down   · BOSS
+   Guardian finite; damage carries between stages, team cooperation meaningful.
+
+TW-387 [CANON] Nox high exertion   · PLAY
+   Demon-powered bursts incur lifespan cost; no cost-free One Step spam.
+
+TW-388 [CANON] Kael muscular overdrive and Sword   · PLAY
+    Physical sword technique and all Calamity abilities pay off.
+
+TW-389 [CANON] Eiryn tactical glyph kit   · PLAY
+    Pressure, Negation and other established magic combined intelligently, with real costs.
+
+TW-390 [CANON] Aerys evolved Light and movement   · PLAY
+    Flight, ranged Light, redirects/grappling as developed across road.
+
+TW-391 [CANON] Braxen physical strategy   · PLAY
+   Hybrid strength and agency vital to defeating enemy, not a disposable shield.
+
+TW-392 [CANON] Braxen restrains the Guardian   · CIN
+   Braxen deliberately holds Guardian so others can strike; action is decisive and costly.
+
+TW-393 [CANON] Allies strike while held   · CIN
+    Finish choreography not yet locked, but exploit his restraint.
+
+TW-394 [CANON] Braxen dies   · CIN
+   Permanent death from restraint; final party drops to four survivors.
+
+TW-395 [CANON] Eiryn's emotional overload   · CIN
+    Realization she cannot ever see Alric again provokes catastrophic break.
+
+TW-396 [CANON] Single synergized all-magic blast   · CIN
+   Combines ALL remaining mana/spells/abilities in one overwhelming release.
+
+TW-397 [OPEN] Link to redirected Reset system   · CIN
+    Exactly how the blast activates/redirects pre-existing Guardian Reset remains UNSOLVED, as does culpability
+    staging.
+
+TW-398 [CANON] Aerys confronts Eiryn   · CIN
+   Morally charged response to what Eiryn has done, not simple celebration.
+
+TW-399 [CANON] Most of Heaven devastated   · CIN
+   Upper cities/families/children genuinely suffer; a minority survives.
+
+TW-400 [CANON] Four survivors and grief   · CIN
+    Eiryn, scarred Kael, Nox and Aerys face losses of Eleanor and Braxen.
+
+TW-401 [CANON] Emotional final aftermath   · DIA
+   Do not leap straight from blast to sequel hook; resolve relationships with weight.
+
+                                                                  TOWER OF WISHES  • 26
+
+===== ORIGINAL INVENTORY PAGE 27 OF 29 =====
+TOWER OF WISHES   / GAME PRODUCTION INVENTORY
+
+19 — EPILOGUE & SEQUEL HOOK
+
+Tease reversed historical perspective without completing Heaven child journey inside the first game's story.
+
+TW-402 [CANON] 15–25 year time jump   · CIN
+    Exact interval still open within agreed band.
+
+TW-403 [CANON] Heaven survivors' ruins   · CIN
+    Child/young person grows up among people harmed by Eiryn's catastrophe.
+
+TW-404 [CANON] Reversed historical interpretation   · DIA
+   To upper survivors, people from below climbed out of Hell and destroyed their world.
+
+TW-405 [CANON] Heaven-born child protagonist glimpse   · CIN
+   Seed later sequel; don't narrate full life or invented finished mission.
+
+TW-406 [CANON] Tower reversed descent hook   · CIN
+   The old Tower endures; ascent/descent direction reverses for next story.
+
+TW-407 [OPEN] Exact final image and timing   · CIN
+    Creator will decide endgame reveal and final shot when full story arrives there.
+
+20 — REUSABLE GAME SYSTEMS / OPTIONAL CONTENT (NOT CANON EVENTS)
+
+These are campaign infrastructure and possibilities, not mandatory comic scenes. Do not let procedural content
+override locked story.
+
+TW-408 [GAME] Mission format   · SYSTEM
+   Every main mission can specify intro cinematic, playable section, exploration, combat, transition and end-
+    state.
+
+TW-409 [GAME] Host chooses manual or auto combat   · SYSTEM
+    Preserve manual controls, with optional full-auto as player choice; no forced mindless whole-story auto-battle.
+
+TW-410 [GAME] Selectable character control   · SYSTEM
+    Permitted story moments can switch player host; compulsory solo Nox segment stays temporary.
+
+TW-411 [GAME] Health-threshold cinematics   · SYSTEM
+   Boss phases trigger cutscenes and return to same saved battle HP/resources/status.
+
+TW-412 [GAME] Defeat and retool   · SYSTEM
+   On losing, let player upgrade/change equipment and retry from checkpoint without erasing story progress.
+
+TW-413 [GAME] Skill growth   · SYSTEM
+   Earned skills, practice and tactical growth; don't unlock Calamity sword before Floor 2 or erase demon
+    lifespan cost.
+
+TW-414 [GAME] Loot/equipment pools   · SYSTEM
+   Enemies can drop gear with sensible game economy and no contradictory canon rewards.
+
+TW-415 [GAME] Enemy bestiary   · SYSTEM
+   Unknown foes initially display silhouettes/question marks; reveal details through discovery.
+
+
+
+                                                                  TOWER OF WISHES  • 27
+
+===== ORIGINAL INVENTORY PAGE 28 OF 29 =====
+TOWER OF WISHES   / GAME PRODUCTION INVENTORY
+
+TW-416 [GAME] Injury/resource persistence   · SYSTEM
+    Narrative injuries, mana exhaustion and temporary restrictions survive scene transitions.
+
+TW-417 [GAME] Saves/checkpoints   · SYSTEM
+   Checkpoint before long cutscenes/bosses; replay without breaking flags.
+
+TW-418 [GAME] Party joins/depatures   · SYSTEM
+   Aerys joins early, Eleanor inside Labyrinth, Braxen during road, Nox stays fully after abduction; permanent
+    deaths remove characters.
+
+TW-419 [GAME] Locked-cutscene audit   · SYSTEM
+    Before modifying a working cinematics sequence or asset, inspect existing implementations; don't replace
+    functional material blindly.
+
+TW-420 [GAME] No missing noncombat material   · SYSTEM
+   Implement friend banter, meals, repairs, camp scenes, aftermath, legal debts, training, travel as first-class
+    content.
+
+TW-421 [OPTION] Regional guild notices   · SIDE
+    Missing cargo, beast capture, escort, investigation, repair and protection jobs at organically plausible spots.
+
+TW-422 [OPTION] Optional creature appearances   · SIDE
+   Approved species can be ambient wildlife, caged on sale in Depth 5, or naturally relevant missions, never
+    forced.
+
+TW-423 [OPTION] Creature design shortlist   · SIDE
+    Vesperant, Claspcrab, Knucklehen, Land Mantis, Shorebreaker, Veilmaw, Twinsnare: no finalized
+    biology/abilities until creator approves.
+
+TW-424 [OPTION] Collectibles with story value   · SIDE
+   Old coins, journals, damaged road signs, ordinary artifacts as world clues rather than arbitrary treasure
+    counts.
+
+TW-425 [OPTION] Camp relationship interactions   · SIDE
+   Small repeatable but context-sensitive banter, healing, training, meals and chores.
+
+TW-426 [OPTION] Travel discoveries   · SIDE
+   Trade routes, temples, towns, races, famous fighters, landmarks only where geography and timeline make
+    sense.
+
+TW-427 [OPTION] Training mini-events   · SIDE
+    Sparring that reinforces actual combat mechanics, especially Kael/Nox technical exchange.
+
+TW-428 [OPTION] Medical crafting/inventory   · SIDE
+    Eleanor's bandages and poultices, treatment supply limitations, not infinite revives.
+
+TW-429 [OPTION] Guild rank progression   · SIDE
+    F, E, D, C, B, A, S only; role-sensitive evaluation, permits and costs.
+
+TW-430 [OPTION] Coastal and Beast Folk activities   · SIDE
+    Fishing, trade, arm wrestling, sparring, markets and social mini-games, no mandatory filler.
+
+Game-only placement note for Nox/Nightcrawler: The existing story introduces Nox during the contract-
+killing confrontation outside a Guild Hall. Recent game direction also calls for a Nightcrawler attack at a
+
+                                                                  TOWER OF WISHES  • 28
+
+===== ORIGINAL INVENTORY PAGE 29 OF 29 =====
+TOWER OF WISHES   / GAME PRODUCTION INVENTORY
+
+camp after Aerys joins, with Nox watching and saving them. The relative order of those two scenes in the
+game is not firmly verified. Both are included; keep them as separate events and decide placement with the
+creator rather than claiming the Nightcrawler sequence already exists in the comic or silently overwriting
+the contract-killing introduction.
+
+Game production handoff notes
+
+1. Separate implementation state from lore status. CANON means story established, not that Claude has
+built/tested it. Mark implementation independently as Not started / In progress / Playable / Cinematic
+complete / QA passed.
+2. Do not rework working opening scenes blindly. Game discussion indicates initial playable progression
+through Aerys joining exists or is being established. Audit what already works first, then fill missing scenes.
+3. Mandatory cutscenes are not all battles. Keep quiet camps, traveling, jokes, injuries, friendships, moral
+disagreements, recovery and bureaucracy. They are how the later losses earn meaning.
+4. Boss standards. Usually introduction cinematic → real manual-capable battle → selective health
+thresholds or interrupts → coherent finishing scene → saved aftermath. Nox/Nightcrawler is the most
+specifically approved template.
+5. Creature checkpoints. First Guild jobs; Depth 3/5/6 animal trade; ruined hamlet predators; Beast Folk
+hunting/forest; coast; Tower City market. Ask creator before using a named submitted creature. Caged
+animals may simply be observed being sold.
+6. Current major open gates. Dragon egg custody; some duo fight details; tournament action specifics;
+False Feast escape; five distinct Floor 4 combat victory conditions; exact Guardian choreography; how
+Eiryn's all-magic blast connects mechanically/ethically to the redirected Reset; final sequel image. These
+remain open rather than silently locked.
+7. Location and timing. Labyrinth seven depths; three post-teleport duo adventures; northeastern coastal
+tournament as pre-agreed destination; geographically vast Erdra. Do not invent travel-time shortcuts or
+make Aerys/Braxen find each other days after teleportation.
+
+Event count
+
+- Total line items: 430
+- CANON: 371
+- GAME: 26
+- OPTION: 24
+- OPEN: 9
+
+Source footing and coverage
+
+Compiled from the uploaded Tower of Wishes Complete Verbatim Master Archive (2026-09-29), prioritizing its
+Latest-Canon Reconciliation, original creator statements, current work-status/handoff and story materials;
+additional October 17, 2026 playable-game decisions about the Nightcrawler/Nox cinematic and manual
+fight. The archive itself documents incomplete historic transcript captures and superseded proposals. This
+inventory is comprehensive at the level of known/recorded events and gameplay opportunities, but
+cannot truthfully guarantee every unseen line from missing chat captures. Optional game content and open
+design specifics are labeled accordingly.
+
+
+
+                                                                  TOWER OF WISHES  • 29
