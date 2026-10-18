@@ -434,7 +434,13 @@
     ogre: {
       name: 'Ogre', team: 'bandit', r: 0.78, hp: 560, sta: 200, speed: 3.0,
       react: 0.45, read: 0.1, parry: 0, dodge: 0, feint: 0, morale: 99, noFlee: true, boss: true, punisher: true, cleave: true, opener: 'advance',
+      // Poise (Director's Bible S13): ordinary hits don't interrupt it; only All Out and heavy arts
+      // stagger it, at most once every `poise` seconds. It swings again soon after recovering
+      // (`cd`), and answers a flurry (3 hits in 2 s) with a ground slam. It dies on screen.
+      poise: 6, cd: [0.25, 0.6], dies: true,
       attack: { name: 'Beam Sweep', range: 2.7, arc: 2.6, windup: 1.05, active: 0.16, recover: 0.9, dmg: [42, 55], knock: 3.2, down: true, lunge: 0.4, sta: 20 },
+      smash: { name: 'Overhead Smash', range: 3.3, arc: 0.55, windup: 1.15, active: 0.14, recover: 0.8, dmg: [50, 62], knock: 2.6, down: true, lunge: 0.6, sta: 20, smash: true },
+      slam: { name: 'Ground Slam', range: 2.8, arc: 6.3, windup: 0.75, active: 0.14, recover: 0.95, dmg: [26, 32], knock: 4.4, down: true, lunge: 0, sta: 0, slam: true },
       barks: {}, intro: { epithet: 'Not in the contract', line: null },
     },
 
@@ -660,7 +666,10 @@
       ],
     },
     ogre: {
-      chapter: 'Chapter Five', title: 'Not in the Contract', arena: 'cave', allOutUses: 2, vs: 'ogre', scale: { hp: 1.0, dmg: 2.4 },
+      chapter: 'Chapter Five', title: 'Not in the Contract', arena: 'cave', allOutUses: 2, vs: 'ogre', scale: { hp: 0.38, dmg: 0.42 },
+      // TW-075..078: Eiryn's magic is still coming back; at 60% the ogre throws Kael into the wall,
+      // at 35% her charge completes, and her Force Lance puts it through the quarry wall.
+      bossBeats: { boss: 'ogre', charging: 'eirynMage', finisher: 'eirynMage', at: [{ hp: 0.6, kind: 'throw' }, { hp: 0.35, kind: 'charge' }] },
       units: [
         { slot: 0, x: 4.8, y: 0.4, f: 3.1 }, { slot: 1, x: 5.6, y: 1.8, f: 3.1 }, { slot: 2, x: 5.8, y: -1.0, f: 3.1 },
         { key: 'ogre', x: -5.4, y: -0.3, f: 0 },
@@ -948,6 +957,12 @@
       else if (u.team === 'bandit') u.target = guest || lead;
     }
     for (const u of heroes) if (!u.guest) u.target = boss;
+    if (sc.bossBeats) {
+      const B = sc.bossBeats, b = units.find((u) => u.key === B.boss), ch = units.find((u) => u.key === B.charging && u.team === 'hero');
+      s.bossBeats = { spec: B, boss: b ? b.id : null, done: {} };
+      if (ch) { ch.charging = true; ch.superMeter = 0; }
+      if (b && units.some((u) => u.key === B.finisher && u.team === 'hero')) b.finisherKey = B.finisher;
+    }
     if (mod.kaelSuper && s.byId.kael) s.byId.kael.superMeter = mod.kaelSuper;
     if (mod.heroSuper) for (const u of heroes) u.superMeter = Math.max(u.superMeter, mod.heroSuper);
     // With opts.intro the match waits for begin() so the face-off can play.
@@ -1275,7 +1290,7 @@
       say(s, `${v.name} parries ${u.name}.`);
       releaseTokens(s, u);
       u.act = null;
-      setState(u, 'stagger', 0.8);
+      setState(u, u.def.poise ? 'recover' : 'stagger', u.def.poise ? 0.35 : 0.8);
       if (v.def.riposte) startAttack(s, v, u, { riposte: true });
       return false;
     }
@@ -1298,7 +1313,7 @@
     gainSuper(v, 5);
     if (u.team === 'hero') chargeAllOut(s, 0.03);
     const a = angTo(u, v);
-    const kn = A.knock * (inAllOut(u) ? 1.3 : 1);
+    const kn = A.knock * (inAllOut(u) ? 1.3 : 1) * (v.def.poise ? 0.3 : 1);
     v.kx += Math.cos(a) * kn * 2.6;
     v.ky += Math.sin(a) * kn * 2.6;
     s.fx.push({ type: 'hit', x: v.x, y: v.y, dmg, big: dmg >= 18, from: u.team, v: v.id, u: u.id });
@@ -1316,9 +1331,24 @@
       v.morale -= 0.15;
     }
     if (lastStandReady(v) && s.t < LAST_STAND_AT && v.hp < v.maxHp * 0.13) v.hp = Math.ceil(v.maxHp * 0.13); // held on his feet for the buildup
+    holdForFinisher(s, v);
     if (v.hp <= 0) {
       v.hp = 0;
       knockOut(s, v);
+      return true;
+    }
+    checkBossBeats(s, v);
+    if (v.def.poise) {
+      // Ordinary hits land but don't interrupt it. A flurry earns a ground slam.
+      v.hitLog = (v.hitLog || []).filter((t) => s.t - t < 2);
+      v.hitLog.push(s.t);
+      if ((inAllOut(u) || A.heavy) && s.t >= (v.poiseAt || 0)) {
+        v.poiseAt = s.t + v.def.poise;
+        if (v.act) { releaseTokens(s, v); v.act = null; }
+        v.pending = null; v.plan = null;
+        setState(v, 'stagger', 0.9);
+        say(s, `${u.name} staggers ${v.name}.`);
+      } else if (v.hitLog.length >= 3 && !(v.act && v.act.A.slam)) v.slamNext = true;
       return true;
     }
     const wasWinding = v.state === 'attack' && v.act && v.act.phase !== 'strike';
@@ -1336,6 +1366,70 @@
     return true;
   }
 
+  // A boss with a finisher (the Ogre: Eiryn's lance) holds at 10% until that blow lands,
+  // unless the one who should finish it can no longer fight.
+  function holdForFinisher(s, v) {
+    if (!v.finisherKey || v.hp > v.maxHp * 0.1) return;
+    const f = s.units.find((o) => o.key === v.finisherKey && o.team !== v.team);
+    if (f && inFight(f) && !(s.cutscene && s.cutscene.unit === f && v.bossCharged)) v.hp = Math.ceil(v.maxHp * 0.1);
+  }
+
+  // Story beats at health thresholds (Director's Bible S13). Each plays once, then the
+  // fight resumes in the same state.
+  function checkBossBeats(s, v) {
+    const B = s.bossBeats;
+    if (!B || B.boss !== v.id || s.bossBeat) return;
+    for (const b of B.spec.at) {
+      if (B.done[b.kind] || v.hp > v.maxHp * b.hp) continue;
+      B.done[b.kind] = true;
+      if (b.kind === 'throw') {
+        const k = s.lead;
+        if (!inFight(k)) continue;
+        s.bossBeat = { kind: 'throw', t: 0, dur: 2.2, boss: v, hero: k, applied: false };
+        if (v.act) { releaseTokens(s, v); v.act = null; }
+        setState(v, 'attack'); v.act = { A: v.def.attack, target: k, phase: 'windup', t: 0, wind: 9, feint: false, fake: false };
+        say(s, `${v.name} catches ${k.name}.`);
+      } else if (b.kind === 'charge') {
+        const e = s.units.find((o) => o.key === B.spec.charging && o.team === 'hero');
+        v.bossCharged = true;
+        if (e && alive(e)) {
+          e.charging = false; e.superMeter = 100; e.superUsed = false;
+          s.bossBeat = { kind: 'charge', t: 0, dur: 1.6, boss: v, hero: e, applied: true };
+          say(s, `${e.name}'s glyphs come back.`);
+        }
+      }
+      s.fx.push({ type: 'bossBeat', kind: b.kind, boss: v.id });
+      return;
+    }
+  }
+
+  // The beat itself: everything else holds while it plays.
+  function stepBossBeat(s, dt) {
+    const b = s.bossBeat;
+    b.t += dt;
+    for (const u of s.units) if (u.flash > 0) u.flash -= dt;
+    if (b.kind === 'throw') {
+      const o = b.boss, k = b.hero;
+      if (b.t < 0.55) { o.facing = angTo(o, k); const d = dist(o, k); if (d > 1.4) { const a = angTo(o, k); o.x += Math.cos(a) * Math.min(d - 1.4, 7 * dt); o.y += Math.sin(a) * Math.min(d - 1.4, 7 * dt); collideWorld(o); } }
+      if (!b.applied && b.t >= 0.6) {
+        b.applied = true;
+        const a = angTo(o, k);
+        k.kx += Math.cos(a) * 16; k.ky += Math.sin(a) * 16;
+        k.hp = Math.max(1, Math.round(k.hp - k.maxHp * 0.22));
+        k.flash = 0.25; k.act = null; k.pending = null; k.plan = null;
+        releaseTokens(s, k);
+        setState(k, 'down', 1.8);
+        s.fx.push({ type: 'hit', x: k.x, y: k.y, dmg: Math.round(k.maxHp * 0.22), big: true, from: o.team, v: k.id, u: o.id });
+        say(s, `${o.name} throws ${k.name} into the wall.`);
+      }
+      for (const u of [o, k]) { decayKnock(u, dt); collideWorld(u); }
+    }
+    if (b.t >= b.dur) {
+      if (b.kind === 'throw') { b.boss.act = null; setState(b.boss, 'recover', 0.5); }
+      s.bossBeat = null;
+    }
+  }
+
   function knockOut(s, v) {
     if (lastStandReady(v) && v.team === 'hero') { v.hp = 2; v.flash = 0.2; if (startLastStand(s, v)) return; }
     releaseTokens(s, v);
@@ -1351,6 +1445,14 @@
       v.beaten = true; v.fled = true; s.stats.beaten++;
       s.fx.push({ type: 'dissolve', x: v.x, y: v.y, big: !!v.def.boss });
       say(s, v.def.boss ? 'The Unseen comes apart into light.' : 'A fragment comes apart.');
+      return;
+    }
+    if (v.def.dies) {
+      v.beaten = true; v.dead = true;
+      setState(v, 'out');
+      s.stats.beaten++;
+      say(s, `${v.name} does not move again.`);
+      for (const o of s.units) if (o.team === 'bandit' && alive(o) && o !== v) o.morale -= 0.4;
       return;
     }
     // In the chapter nobody is killed: a beaten bandit goes down, then scrambles off.
@@ -1435,9 +1537,12 @@
     for (const v of opponents(s, u)) {
       if (v.beaten || v.fleeing || dist(u, v) > H.radius) continue;
       if (Math.abs(angDiff(u.facing, angTo(u, v))) > H.arc / 2) continue;
-      const dmg = Math.round((H.dmg[0] + s.rng() * (H.dmg[1] - H.dmg[0])) * (u.power || 1) * HEAVY_MUL);
+      let dmg = Math.round((H.dmg[0] + s.rng() * (H.dmg[1] - H.dmg[0])) * (u.power || 1) * HEAVY_MUL);
+      if (v.finisherKey && u.key === v.finisherKey && v.bossCharged) { dmg = Math.max(dmg, v.hp); s.fx.push({ type: 'wallKill', v: v.id, u: u.id }); }
       v.hp -= dmg;
       v.flash = 0.2;
+      holdForFinisher(s, v);
+      if (v.def.poise) v.poiseAt = s.t + v.def.poise;
       const a = angTo(u, v);
       v.kx += Math.cos(a) * 7; v.ky += Math.sin(a) * 7;
       if (v.act) { releaseTokens(s, v); v.act = null; }
@@ -1445,7 +1550,7 @@
       v.morale -= 0.15;
       s.fx.push({ type: 'hit', x: v.x, y: v.y, dmg, big: true, from: u.team, v: v.id, u: u.id });
       if (v.hp <= 0) { v.hp = 0; knockOut(s, v); }
-      else setState(v, 'down', 1.4);
+      else { setState(v, 'down', 1.4); checkBossBeats(s, v); }
     }
     for (const o of s.units) if (o.team !== u.team && alive(o)) o.morale -= 0.1;
     setState(u, 'recover', 0.45);
@@ -1561,6 +1666,12 @@
     const reach = A.range + t.r - 0.15;
     // Blinkers close the gap in a single step.
     if (d > 3.5 && d < u.def.blink?.range && blink(s, u, t)) return;
+    // A poised boss can't be cut out of its swing: get clear of the telegraph instead.
+    if (t.def.poise && !inAllOut(u) && t.state === 'attack' && t.act && (t.act.phase === 'windup' || t.act.phase === 'feint')) {
+      const R = t.act.A.range + u.r + 0.4;
+      if (d < R && !u.plan) { const a = angTo(t, u) + (t.act.A.arc > 3 ? 0 : 0.9 * (u.id.length % 2 ? 1 : -1)); return moveTo(s, u, t.x + Math.cos(a) * (R + 0.6), t.y + Math.sin(a) * (R + 0.6), 1.25, t); }
+      return circle(s, u, t, Math.max(R, d), 0.3, dt);
+    }
     // Anticipate: if the foe is still winding up and our blade is faster, cut in.
     if (t.state === 'attack' && t.act && t.act.phase === 'windup' && !t.def.ranged) {
       const left = t.act.wind - t.act.t;
@@ -1712,6 +1823,16 @@
   // Casters keep their distance, shoot force bolts, and shove anyone who
   // gets on top of them.
   function brainCaster(s, u, dt) {
+    if (u.charging) {
+      // Her mana is still coming back (TW-075): she keeps clear and gathers it.
+      u.superMeter = 0;
+      const foes = opponents(s, u).filter(inFight);
+      let near = null, nd = Infinity;
+      for (const f of foes) { const d = dist(u, f); if (d < nd) { nd = d; near = f; } }
+      if (near && nd < u.def.keepAway + 1.5) { const a = angTo(near, u); return moveTo(s, u, u.x + Math.cos(a) * 2.2, u.y + Math.sin(a) * 2.2, 1.0, near); }
+      if (u.state !== 'cast') setState(u, 'cast', 0.8);
+      return;
+    }
     if (trySuper(s, u)) return;
     const foes = opponents(s, u).filter(inFight);
     if (!foes.length) return idle(u, dt);
@@ -1824,6 +1945,11 @@
       return circle(s, u, t, want, 0.6, dt);
     }
 
+    // A poised boss answers a flurry with a ground slam round itself.
+    if (u.slamNext && u.def.slam) {
+      u.slamNext = false;
+      if (opponents(s, u).some((o) => inFight(o) && dist(u, o) < u.def.slam.range + o.r)) { say(s, `${u.name} raises both fists.`); return startAttack(s, u, t, { A: u.def.slam }); }
+    }
     const punishing = (u.def.punisher && isDrained(t)) || (u.distractPunish && s.t < u.distractPunish && t === s.lead) || u.def.boss;
     const token = holdsToken(s, u, t) || (u.cd <= 0 && requestToken(s, u, t, punishing));
     const reach = A.range + t.r - 0.1;
@@ -1831,6 +1957,8 @@
       if (d > reach) return moveTo(s, u, t.x, t.y, punishing ? 1.25 : 1, t);
       if (u.cd <= 0) {
         if (s.rng() < 0.25) bark(s, u, 'feint');
+        // Two telegraphs: the wide sweep, or a long overhead smash down a narrow line.
+        if (u.def.smash && s.rng() < 0.4) return startAttack(s, u, t, { A: u.def.smash });
         return startAttack(s, u, t);
       }
     }
@@ -2152,7 +2280,7 @@
           u.cd = u.combo >= cmax ? 1.5 + s.rng() * 0.9 : 0.2 + s.rng() * 0.2;
           if (u.combo >= cmax) u.combo = 0;
         } else if (u.team === 'bandit' && !u.def.ranged) {
-          u.cd = 1.6 + s.rng() * 1.0;
+          u.cd = u.def.cd ? u.def.cd[0] + s.rng() * (u.def.cd[1] - u.def.cd[0]) : 1.6 + s.rng() * 1.0;
         }
       }
     }
@@ -2192,6 +2320,7 @@
       if (c.t >= c.dur) s.cutscene = null;
       return;
     }
+    if (s.bossBeat) { stepBossBeat(s, dt); return; }
     s.t += dt;
     chargeAllOut(s, dt / ALL_OUT.chargeTime);
     s.allOut.active = s.units.filter((u) => u.allOut > 0).length;
@@ -2209,7 +2338,7 @@
   const DT_END = 1 / 60;
   function checkEnd(s) {
     const kael = s.lead;
-    const heroesUp = s.units.some((u) => u.team === 'hero' && !u.guest && alive(u));
+    const heroesUp = s.units.some((u) => u.team === 'hero' && !u.guest && alive(u) && !u.charging);
     if (!heroesUp) {
       s.result = { outcome: 'loss', time: s.t, waves: s.endless ? s.wave - 1 : undefined };
       say(s, s.endless ? `Fallen on wave ${s.wave}.` : `${kael.name} falls. The match is lost.`);
@@ -2223,8 +2352,9 @@
       for (const u of s.units) if (u.team === 'bandit' && alive(u)) { u.fleeing = true; running = true; }
       if (running) { s.fleeWait = (s.fleeWait || 0) + DT_END; if (s.fleeWait < 16) return; }
       s.result = { outcome: 'win', time: s.t };
-      bark(s, kael, 'win');
-      say(s, 'The last of them retreat into the trees. Victory.');
+      const slain = s.units.find((u) => u.dead && u.def.boss);
+      if (slain) say(s, `The ${slain.name.toLowerCase()} does not move again.`);
+      else { bark(s, kael, 'win'); say(s, 'The last of them retreat into the trees. Victory.'); }
     }
   }
 

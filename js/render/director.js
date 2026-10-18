@@ -66,6 +66,11 @@
           if (setShot({ x: e.x, y: e.y, zoom: 1.7, angOff: -0.2, dur: 1.0 }, 3)) slowmo(0.3, 0.55);
         } else if (e.type === 'fizzle') {
           setShot({ focus: e.unit, zoom: 2.1, dur: 1.0 }, 1);
+        } else if (e.type === 'bossBeat') {
+          // Story beats at the boss's health thresholds (the Ogre: the throw, Eiryn's charge).
+          const b = s.bossBeat;
+          if (e.kind === 'throw' && b) { setShot({ focus: e.boss, zoom: 1.6, angOff: -0.3, dur: 0.6, then: [{ focus: b.hero.id, zoom: 1.5, angOff: 0.2, dur: 1.6 }] }, 6); slowmo(0.5, 0.9); }
+          else if (e.kind === 'charge' && b) { setShot({ focus: b.hero.id, zoom: 1.9, angOff: 0.35, dur: 1.6 }, 6); slowmo(0.4, 0.6); }
         } else if (e.type === 'allout') {
           setShot({ focus: s.lead.id, zoom: 1.6, angOff: 0.3, dur: 1.2 }, 4);
         }

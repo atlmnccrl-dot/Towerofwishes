@@ -81,6 +81,8 @@ node test/book-test.js 20         # the book's road and Tower fights
 node test/stage-test.js           # every scene is a staged cutscene (no painted stills)
 node test/grade-test.js           # fight ranks (wins only)
 node test/replay-test.js          # a replayed fight (same seed, same All Out moments) is identical
+node test/ogre-test.js 40          # the Ogre fights back: swing cadence, stagger cap, 60%/35% beats, dies on screen
+NODE_PATH=$(npm root -g) node test/scene-shots.js /tmp/scenes c1.tavern c1.drop   # screenshots of staged scenes, line by line
 NODE_PATH=$(npm root -g) node test/browser-check.js /tmp/shots   # needs Playwright; screenshots + console errors
 NODE_PATH=$(npm root -g) node test/story-browser.js /tmp/story-shots   # plays the whole story in the browser
 ```
