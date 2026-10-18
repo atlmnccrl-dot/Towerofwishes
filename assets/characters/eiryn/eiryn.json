@@ -38,18 +38,73 @@
   "blend": 0.12,
   "animations": {
     "walk": {
-      "sheet": "walk_S.png",
-      "data": "walk_S.json",
-      "dir": "S",
-      "sheetScale": 0.5,
-      "anchor": [
-        208,
-        850
-      ],
-      "figureHeightPx": 824,
       "loop": true,
       "speedMps": 1.3,
-      "note": "Front-facing walk (S), 36 frames at 59 ms from the JSON. Sheet shipped at half size; the JSON keeps the full-size coordinates. Original in source/walk_S_full.png."
+      "sheets": [
+        {
+          "dir": "S",
+          "sheet": "walk_S.webp",
+          "data": "walk_S.json",
+          "sheetScale": 0.5,
+          "anchor": [
+            207,
+            852
+          ],
+          "figureHeightPx": 831
+        },
+        {
+          "dir": "SE",
+          "sheet": "walk_SE.webp",
+          "data": "walk_SE.json",
+          "sheetScale": 0.5,
+          "anchor": [
+            188,
+            762
+          ],
+          "figureHeightPx": 753
+        },
+        {
+          "dir": "SW",
+          "sheet": "walk_SW.webp",
+          "data": "walk_SW.json",
+          "sheetScale": 0.5,
+          "anchor": [
+            240,
+            850
+          ],
+          "figureHeightPx": 839
+        },
+        {
+          "dir": "E",
+          "sheet": "walk_E.webp",
+          "data": "walk_E.json",
+          "sheetScale": 0.5,
+          "anchor": [
+            262,
+            822
+          ],
+          "figureHeightPx": 744
+        }
+      ],
+      "note": "36 frames at 59 ms per direction (timings from each JSON). SE and SW were delivered with each other's labels; filed by how they face on screen. walk_E was delivered with a checkerboard painted in; keyed out (source/walk_E_full.png is the keyed sheet). W is E mirrored; NE, N, NW not drawn yet (nearest drawn view is used)."
+    },
+    "run": {
+      "loop": true,
+      "speedMps": 3.6,
+      "sheets": [
+        {
+          "dir": "S",
+          "sheet": "run_S.webp",
+          "data": "run_S.json",
+          "sheetScale": 0.5,
+          "anchor": [
+            206,
+            776
+          ],
+          "figureHeightPx": 764
+        }
+      ],
+      "note": "Front run (S), 36 frames at 59 ms. Other directions not drawn yet: she runs with her walk in those views, sped up."
     }
   },
   "transitions": {}

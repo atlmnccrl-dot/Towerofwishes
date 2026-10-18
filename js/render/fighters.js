@@ -765,7 +765,9 @@
       const man = Sp.get(u.key);
       if (!man || !man.ready) return false;
       const speed = Math.hypot(u.vx || 0, u.vy || 0);
-      const name = Sp.animFor(man, speed > 0.25 ? 'move' : 'idle');
+      const dir = Sp.dirFor(u.facing, V.cam.ang);
+      // Running uses the run where it is drawn for this direction, else the walk (sped up).
+      const name = Sp.pickAnim(man, speed > 2.4 ? ['run', 'walk', 'idle', 'base'] : speed > 0.25 ? ['walk', 'run', 'idle', 'base'] : ['idle', 'base'], dir);
       if (!name) return false;
       let A = SPR.get(u);
       if (!A || A.man !== man) { A = Sp.animator(man); A.last = V.time; SPR.set(u, A); }
@@ -777,7 +779,7 @@
       const rate = anim.speedMps ? Math.max(0.6, Math.min(1.8, speed / anim.speedMps)) : 1;
       Sp.advance(A, dt * rate);
       const p = P(u.x, u.y, 0), hpx = 1.78 * L.h * V.cam.sc * 0.9;
-      for (const smp of Sp.sample(A, Sp.dirFor(u.facing, V.cam.ang))) Sp.drawFrame(ctx, man, smp, p.x, p.y, hpx);
+      for (const smp of Sp.sample(A, dir)) Sp.drawFrame(ctx, man, smp, p.x, p.y, hpx);
       return true;
     }
 

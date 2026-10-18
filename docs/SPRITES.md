@@ -11,14 +11,21 @@ Code: `js/sprites.js`. Assets: `assets/characters/<id>/`. Test: `node test/sprit
   - Feet anchor at pixel (223, 778).
   - Figure height 741 px (top of head to soles).
   - Used for the sim looks `eiryn`, `eirynAsh` and `eirynMage`.
-  - **walk** (delivered 2026-10-18): front view (S), 36 frames, 59 ms each (timings read from the JSON), looping.
-    - Files: `walk_S.png` + `walk_S.json`. The JSON is kept as delivered.
-    - The sheet ships at half size (`sheetScale: 0.5`); the original is in `source/`.
-    - Feet anchor (208, 850) and figure height 824 px, both in the JSON's full-size pixels.
-    - The cycle speeds up or slows down with her movement so her feet don't slide.
-  - **Where she shows:** in story scenes and the title screen, while standing (her base pose) or walking.
+  - **Delivered so far** (36 frames at 59 ms each, timings read from each JSON, looping):
+
+    | Animation | Drawn | Not drawn yet |
+    |---|---|---|
+    | walk | S, SE, SW, E (W = E mirrored) | NE, N (and NW by mirror) |
+    | run | S | SE, E, NE, N |
+    | idle | none (her base sprite stands in, front only) | all |
+
+    - Where an animation isn't drawn for a facing, the nearest drawn view is used. Running uses the walk, sped up, in views where the run isn't drawn.
+    - Each delivered JSON is kept as is. Runtime sheets are half-size WebP (`sheetScale: 0.5`, about 0.5–0.7 MB each); the full PNGs are in `source/`.
+    - The files labelled SE and SW arrived with each other's directions, so they are filed by how they face on screen. SE = facing down-right.
+    - walk_E arrived with a checkerboard painted into the image (not transparent). It was keyed out; `source/walk_E_full.png` is the keyed sheet.
+    - walk_E also shows a green cape with gold trim that isn't on her base sprite. It is kept as delivered; it needs a call from the author.
+  - **Where she shows:** in story scenes and the title screen, while standing (her base pose) or walking and running.
     - Everything else keeps her drawn body until that art arrives: fights, gestures, sitting, holding props, exhausted.
-  - With only the front view drawn, she faces the camera whichever way she walks.
 
 ## What each animation ZIP should contain
 
@@ -30,6 +37,7 @@ eiryn_idle.zip
 
 - **Frame names:** `<anim>_<DIR>_<NNN>`, for example `idle_S_000`, `idle_SE_007`, `run_N_011`.
   - A one-direction sheet can keep generic names like `frame_000`; I record its direction in the manifest.
+  - Directions are as seen on screen: `SE` faces down-right, `SW` faces down-left.
   - `DIR` is one of `S SW W NW N NE E SE`.
   - `S` faces the viewer; `N` is the back.
 - **Directions:** draw at least `S, SE, E, NE, N`. The game mirrors `SE→SW`, `E→W` and `NE→NW`.

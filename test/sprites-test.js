@@ -7,6 +7,16 @@ const path = require('path');
 const Sp = require('../js/sprites.js');
 const root = path.join(__dirname, '..');
 
+// Width, height and whether there is an alpha channel, for PNG or WebP.
+function imgSize(file) {
+  const b = fs.readFileSync(file);
+  if (b.toString('ascii', 0, 4) !== 'RIFF') return pngSize(file);
+  assert.strictEqual(b.toString('ascii', 8, 12), 'WEBP', file + ' is a WebP');
+  const kind = b.toString('ascii', 12, 16);
+  if (kind === 'VP8X') return { w: 1 + b.readUIntLE(24, 3), h: 1 + b.readUIntLE(27, 3), alpha: !!(b[20] & 0x10) };
+  if (kind === 'VP8L') { const n = b.readUInt32LE(21); return { w: 1 + (n & 0x3fff), h: 1 + ((n >> 14) & 0x3fff), alpha: !!((n >> 28) & 1) }; }
+  return { w: b.readUInt16LE(26) & 0x3fff, h: b.readUInt16LE(28) & 0x3fff, alpha: false };
+}
 function pngSize(file) {
   const b = fs.readFileSync(file);
   assert.strictEqual(b.toString('ascii', 1, 4), 'PNG', file + ' is a PNG');
@@ -24,15 +34,22 @@ for (const rel of Sp.MANIFESTS) {
   assert.ok(man.base.figureHeightPx > 0 && man.base.figureHeightPx <= base.h);
   for (const d of man.directions) assert.ok(Sp.DIRS.includes(d), `${man.id}: direction ${d}`);
   for (const [name, a] of Object.entries(man.animations)) {
-    assert.ok(fs.existsSync(path.join(dir, a.sheet)), `${man.id}/${name}: sheet exists`);
-    const data = JSON.parse(fs.readFileSync(path.join(dir, a.data), 'utf8'));
-    const frames = Sp.parseFrames(data, a.prefix || name, a.dir);
-    assert.ok(Object.keys(frames).length, `${man.id}/${name}: frames named ${a.prefix || name}_<DIR>_<NNN> (or _<NNN> with "dir")`);
-    // The shipped sheet is the JSON's sheet scaled by sheetScale.
-    const sheet = pngSize(path.join(dir, a.sheet)), meta = data.meta && data.meta.size;
-    if (meta) assert.deepStrictEqual([sheet.w, sheet.h], [Math.round(meta.w * (a.sheetScale || 1)), Math.round(meta.h * (a.sheetScale || 1))], `${man.id}/${name}: sheet size`);
-    assert.ok(sheet.alpha, `${man.id}/${name}: transparent sheet`);
-    for (const fr of Object.values(frames)) for (const f of fr) assert.ok((f.x + f.w) * (a.sheetScale || 1) <= sheet.w + 0.5 && (f.y + f.h) * (a.sheetScale || 1) <= sheet.h + 0.5, `${man.id}/${name}: frame inside the sheet`);
+    const dirs = new Set();
+    for (const sh of a.sheets || [a]) {
+      const tag = `${man.id}/${name}/${sh.dir || '?'}`;
+      assert.ok(fs.existsSync(path.join(dir, sh.sheet)), `${tag}: sheet exists`);
+      const data = JSON.parse(fs.readFileSync(path.join(dir, sh.data), 'utf8'));
+      const frames = Sp.parseFrames(data, sh.prefix || a.prefix || name, sh.dir || a.dir);
+      assert.ok(Object.keys(frames).length, `${tag}: frames named ${name}_<DIR>_<NNN> (or _<NNN> with "dir")`);
+      for (const d of Object.keys(frames)) { assert.ok(!dirs.has(d), `${tag}: direction ${d} given once`); dirs.add(d); }
+      // The shipped sheet is the JSON's sheet scaled by sheetScale.
+      const ss = sh.sheetScale || a.sheetScale || 1, sheet = imgSize(path.join(dir, sh.sheet)), meta = data.meta && data.meta.size;
+      if (meta) assert.deepStrictEqual([sheet.w, sheet.h], [Math.floor(meta.w * ss), Math.floor(meta.h * ss)], `${tag}: sheet size`);
+      assert.ok(sheet.alpha, `${tag}: transparent sheet`);
+      for (const fr of Object.values(frames)) for (const f of fr) assert.ok((f.x + f.w) * ss <= sheet.w + 0.5 && (f.y + f.h) * ss <= sheet.h + 0.5, `${tag}: frame inside the sheet`);
+      const an = sh.anchor || a.anchor;
+      if (an) assert.ok(an[0] > 0 && an[1] > 0 && (sh.figureHeightPx || a.figureHeightPx) > 0, `${tag}: anchor and figure height`);
+    }
   }
 }
 // Eiryn is registered with her official base sprite and no animations until they are delivered.
@@ -43,16 +60,26 @@ for (const k of ['eiryn', 'eirynAsh', 'eirynMage']) assert.strictEqual(Sp.get(k)
 
 // Her front-facing walk (delivered 2026-10-18): 36 frames, 59 ms each, looping.
 {
-  const w = eiryn.animations.walk;
-  assert.ok(w && w.dir === 'S' && w.loop !== false, 'walk registered, front view, loops');
-  const fr = Sp.parseFrames(JSON.parse(fs.readFileSync(path.join(root, 'assets/characters/eiryn', w.data), 'utf8')), 'walk', 'S').S;
+  const w = eiryn.animations.walk, ws = w.sheets.find((x) => x.dir === 'S');
+  assert.ok(ws && w.loop !== false, 'walk registered, front view, loops');
+  assert.deepStrictEqual(w.sheets.map((x) => x.dir).sort(), ['E', 'S', 'SE', 'SW'], 'walk drawn front, both front diagonals, side');
+  assert.ok(eiryn.animations.run.sheets.some((x) => x.dir === 'S'), 'run drawn from the front');
+  const fr = Sp.parseFrames(JSON.parse(fs.readFileSync(path.join(root, 'assets/characters/eiryn', ws.data), 'utf8')), 'walk', 'S').S;
   assert.strictEqual(fr.length, 36);
   assert.ok(fr.every((f) => Math.abs(f.dur - 0.059) < 1e-9), 'timings from the JSON');
   assert.deepStrictEqual(fr.map((f) => f.n), [...Array(36).keys()], 'frames in order');
   assert.strictEqual(Sp.frameIndex(w, 36, 0.06, fr), 1);
   assert.strictEqual(Sp.frameIndex(w, 36, 36 * 0.059 + 0.01, fr), 0, 'wraps round smoothly');
-  assert.strictEqual(Sp.animFor(eiryn, 'move'), 'walk');
+  assert.strictEqual(Sp.animFor(eiryn, 'move'), 'run');
   assert.strictEqual(Sp.animFor(eiryn, 'attack'), null, 'no attack art yet: the drawn body stays');
+}
+
+// Running sideways uses the side walk when the run isn't drawn that way; the front run when it is.
+{
+  const m = { mirror: { W: 'E', SW: 'SE', NW: 'NE' }, animations: { run: { frames: { S: [1] } }, walk: { frames: { S: [1], E: [1], SE: [1] } } } };
+  assert.strictEqual(Sp.pickAnim(m, ['run', 'walk'], 'S'), 'run');
+  assert.strictEqual(Sp.pickAnim(m, ['run', 'walk'], 'W'), 'walk', 'W is the side walk mirrored');
+  assert.strictEqual(Sp.pickAnim(m, ['run', 'walk'], 'N'), 'run', 'nothing drawn: the first that exists');
 }
 
 // Directions: facing the camera is S; the camera's turn is taken into account.

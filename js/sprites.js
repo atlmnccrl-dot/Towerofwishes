@@ -162,22 +162,51 @@
     if (isBrowser) {
       man.baseImage = await loadImage(dir + man.base.image);
       for (const [name, a] of Object.entries(man.animations)) {
-        if (!a.sheet || !a.data) continue;
-        const [img, data] = await Promise.all([loadImage(dir + a.sheet), fetch(dir + a.data).then((r) => r.json())]);
-        a.image = img;
-        a.frames = parseFrames(data, a.prefix || name, a.dir);
+        // One sheet per drawn direction ("sheets": [...]), or a single sheet on the animation.
+        const sheets = a.sheets || (a.sheet ? [a] : []);
+        a.frames = {};
+        await Promise.all(sheets.map(async (sh) => {
+          const [img, data] = await Promise.all([loadImage(dir + sh.sheet), fetch(dir + sh.data).then((r) => r.json())]);
+          const fr = parseFrames(data, sh.prefix || a.prefix || name, sh.dir || a.dir);
+          for (const [d, list] of Object.entries(fr)) {
+            for (const f of list) bindFrame(man, a, sh, f, img);
+            a.frames[d] = list;
+          }
+        }));
       }
       addBase(man);
     }
     man.ready = true;
     return man;
   }
+  // Each frame carries its sheet, anchor (feet), figure height and sheet scale, so the
+  // directions of one animation can come from differently sized sheets.
+  function bindFrame(man, a, sh, f, img) {
+    const an = sh.anchor || a.anchor || man.base.anchor;
+    f.img = img; f.ax = an[0]; f.ay = an[1];
+    f.fig = sh.figureHeightPx || a.figureHeightPx || man.base.figureHeightPx;
+    f.ss = sh.sheetScale || a.sheetScale || 1;
+    return f;
+  }
+  // The first of `names` drawn in this direction (or its mirror); else the first that exists.
+  function pickAnim(man, names, dir) {
+    let first = null;
+    for (const n of names) {
+      const a = man.animations[n];
+      if (!a || !a.frames) continue;
+      first = first || n;
+      if ((a.frames[dir] && a.frames[dir].length) || (man.mirror && man.mirror[dir] && a.frames[man.mirror[dir]])) return n;
+    }
+    return first;
+  }
+
   // The official base sprite as a one-frame pose ('base'): standing still, front view.
   function addBase(man) {
     if (!man.baseImage || man.animations.base) return;
     const b = man.base;
-    man.animations.base = { image: man.baseImage, anchor: b.anchor, figureHeightPx: b.figureHeightPx, fps: 1,
-      frames: { [b.facing || 'S']: [{ n: 0, x: 0, y: 0, w: b.size[0], h: b.size[1], ox: 0, oy: 0, sw: b.size[0], sh: b.size[1] }] } };
+    const a = { fps: 1, frames: {} };
+    a.frames[b.facing || 'S'] = [bindFrame(man, a, b, { n: 0, x: 0, y: 0, w: b.size[0], h: b.size[1], ox: 0, oy: 0, sw: b.size[0], sh: b.size[1] }, man.baseImage)];
+    man.animations.base = a;
   }
   function loadAll(urls) {
     return Promise.all(urls.map((u) => load(u).catch((e) => { console.warn(e.message || e); return null; })));
@@ -186,16 +215,14 @@
 
   // Draw one sampled frame with its feet on (x, y), the figure `heightPx` tall on screen.
   function drawFrame(ctx, man, s, x, y, heightPx) {
-    const anim = man.animations[s.anim], f = s.frame;
-    if (!anim || !anim.image || !f) return;
-    const ax = anim.anchor ? anim.anchor[0] : man.base.anchor[0], ay = anim.anchor ? anim.anchor[1] : man.base.anchor[1];
-    const k = heightPx / (anim.figureHeightPx || man.base.figureHeightPx);
+    const f = s.frame;
+    if (!f || !f.img) return;
+    const k = heightPx / f.fig, ss = f.ss; // the shipped sheet may be smaller than the JSON's pixels
     ctx.save();
     ctx.globalAlpha *= s.alpha;
     ctx.translate(x, y);
     if (s.flip) ctx.scale(-1, 1);
-    const ss = anim.sheetScale || 1; // the shipped sheet may be smaller than the JSON's pixels
-    ctx.drawImage(anim.image, f.x * ss, f.y * ss, f.w * ss, f.h * ss, (f.ox - ax) * k, (f.oy - ay) * k, f.w * k, f.h * k);
+    ctx.drawImage(f.img, f.x * ss, f.y * ss, f.w * ss, f.h * ss, (f.ox - f.ax) * k, (f.oy - f.ay) * k, f.w * k, f.h * k);
     ctx.restore();
   }
   // The base sprite (front view), feet on (x, y).
@@ -212,7 +239,7 @@
   const MANIFESTS = ['assets/characters/eiryn/eiryn.json'];
 
   return {
-    DIRS, MANIFESTS, STATE_ANIM, dirFor, resolveDir, parseFrames, frameIndex, animFor,
+    DIRS, MANIFESTS, STATE_ANIM, dirFor, resolveDir, parseFrames, frameIndex, animFor, pickAnim, bindFrame,
     animator, play, advance, sample, register, load, loadAll, get, drawFrame, drawBase, addBase,
   };
 });
