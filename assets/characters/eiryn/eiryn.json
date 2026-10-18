@@ -1,0 +1,18 @@
+{
+  "id": "eiryn",
+  "name": "Eiryn",
+  "note": "Official appearance (author's reference, 2026-10-18). Every animation must match this sprite: hairstyle, face, green eyes, black-and-green outfit, proportions.",
+  "simKeys": ["eiryn", "eirynAsh", "eirynMage"],
+  "base": {
+    "image": "eiryn_base.png",
+    "size": [448, 816],
+    "anchor": [223, 778],
+    "figureHeightPx": 741,
+    "facing": "S"
+  },
+  "directions": ["S", "SW", "W", "NW", "N", "NE", "E", "SE"],
+  "mirror": { "W": "E", "SW": "SE", "NW": "NE" },
+  "blend": 0.12,
+  "animations": {},
+  "transitions": {}
+}

@@ -35,6 +35,9 @@ Read first: [docs/DESIGN.md](docs/DESIGN.md), [docs/STORY.md](docs/STORY.md),
   and come back. No story progress is ever lost.
 - Cutscenes can be skipped (setting); skipping never skips rewards, flags or injuries.
 - No speech bubbles anywhere: subtitles, or ambient "…" for murmurs.
+- **Eiryn's official look** is `assets/characters/eiryn/eiryn_base.png`. Every Eiryn animation
+  must match it; never redesign her. Animations arrive as ZIPs from the author (docs/SPRITES.md);
+  no placeholder animations.
 - Landscape only.
 - Heavy arts are cutscenes. Normal specials keep the standard battle camera.
 - Protected: the prologue's painted skyfire-and-flood Reset shot and other approved cinematics.
@@ -55,6 +58,7 @@ Read first: [docs/DESIGN.md](docs/DESIGN.md), [docs/STORY.md](docs/STORY.md),
 | `js/book/*.js` | The book's chapters (nodes, staged scenes, foes); `pro.js` stages the prologue and the early side scenes |
 | `js/render/director.js` | Camera cuts, slow motion, cut-in panels during fights |
 | `js/grade.js` | Fight ranks S–D from a finished match. Pure |
+| `js/sprites.js`, `assets/characters/<id>/` | Sprite characters: manifests, official base sprites, PNG sheets + JSON frames, crossfading animator (docs/SPRITES.md) |
 | `js/render/spirit.js`, `js/render/itemart.js` | The spirit-tree skill screen; drawn icons for every item |
 | `js/progress.js` | Injuries after story fights (no hearts): pure functions |
 | `js/story.js` | Story campaign: chapter graph, side episodes, choices, team experience. Pure data + functions |
@@ -81,6 +85,7 @@ node test/book-test.js 20         # the book's road and Tower fights
 node test/stage-test.js           # every scene is a staged cutscene (no painted stills)
 node test/grade-test.js           # fight ranks (wins only)
 node test/replay-test.js          # a replayed fight (same seed, same All Out moments) is identical
+node test/sprites-test.js         # sprite manifests, base PNGs, directions, frames, crossfades
 node test/ogre-test.js 40          # the Ogre fights back: swing cadence, stagger cap, 60%/35% beats, dies on screen
 NODE_PATH=$(npm root -g) node test/scene-shots.js /tmp/scenes c1.tavern c1.drop   # screenshots of staged scenes, line by line
 NODE_PATH=$(npm root -g) node test/browser-check.js /tmp/shots   # needs Playwright; screenshots + console errors
