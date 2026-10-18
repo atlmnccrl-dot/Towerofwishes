@@ -127,7 +127,6 @@
     { id: 'p4', key: 'patron', x: 4.5, y: -2.4, f: N + 0.3 },
     { id: 'p5', key: 'patron', x: 5.6, y: -2.45, f: N - 0.4 },
     Object.assign({ id: 'p6', key: 'patron' }, at('p6')),
-    { id: 'cook', key: 'cook', x: 1.4, y: -4.7, f: S },
   ];
   const seated = (id, gest, prop) => ({ who: id, base: 'sit', set: { gest, prop: prop === undefined ? undefined : prop } });
   const folkSetup = () => [
@@ -136,7 +135,7 @@
     seated('p2', 'sip', 'cup'), seated('p3', 'gesture'), seated('p6', 'sip', 'tankard'),
     { who: 'p4', set: { gest: 'cup', prop: 'tankard' } }, { who: 'p5', set: { gest: 'sip', prop: 'cup' } },
   ];
-  // Background life: cups raised, laughs, the cook doing her rounds.
+  // Background life: cups raised, laughs, murmurs ("…", never words).
   const chatter = (talk) => ({
     every: 14,
     do: [
@@ -148,13 +147,6 @@
       { at: 2.2, who: 'p4', set: { gest: 'laugh' } },
       false && { at: 2.3, who: 'p5', say: 'Ha! Not a chance.' },
       { at: 3.6, who: 'p4', set: { gest: 'cup' } },
-      { at: 4.0, who: 'cook', to: [1.6, -0.2], speed: 1.3 },
-      { at: 5.6, who: 'cook', face: 'p2' },
-      false && { at: 5.8, who: 'cook', say: 'Bowls up.' },
-      { at: 5.9, who: 'cook', set: { gest: 'present' } },
-      { at: 7.2, who: 'cook', set: { gest: null }, face: null },
-      { at: 7.4, who: 'cook', path: [[2.2, -2.0], [1.4, -4.7]], speed: 1.3 },
-      { at: 10.8, who: 'cook', face: S },
       { at: 6.2, who: 'p1', set: { gest: 'laugh' } },
       false && { at: 6.3, who: 'p1', say: '…and the cart went over!' },
       { at: 7.0, who: 'spear', set: { gest: 'laugh' } },
@@ -273,22 +265,20 @@
   const tavernAuto = (cast, setup, A) => ({ arena: 'tavern', cast, setup, ambient: chatter(false), cam: { x: -1.6, y: 0.6, view: 7.6, ang: -0.28, pitch: 0.5 }, auto: A });
   const c2Tavern = tavernAuto(folkAt([meSeat('eiryn', 'eirynAsh')]), folkSetup().filter((a) => a.who !== 'spear').concat([seated('eiryn', 'eat', 'spoon')]), {
     nodes: { 'c2.tavern': {
-      0: { cam: { x: -1.0, y: -1.2, view: 7.4, ang: -0.28, pitch: 0.44, push: -0.2, ease: 1.6 }, do: [{ who: 'cook', to: [-1.6, -0.2], speed: 1.3, face: 'kael' }] },
-      5: { cam: { focus: 'eiryn', view: 3.0, ang: 0.3, pitch: 0.4, up: 1.0, ease: 1.2 }, do: [{ who: 'eiryn', icon: '…' }] },
+      0: { cam: { x: -1.0, y: -1.2, view: 7.4, ang: -0.28, pitch: 0.44, push: -0.2, ease: 1.6 } },
+      2: { cam: { focus: 'eiryn', view: 3.0, ang: 0.3, pitch: 0.4, up: 1.0, ease: 1.2 }, do: [{ who: 'eiryn', icon: '…' }] },
     } },
   });
   const c5Home = tavernAuto(folkAt([meSeat('eiryn', 'eirynAsh'), { id: 'miller', key: 'miller', x: -1.0, y: 0.4, f: W }]), folkSetup().filter((a) => a.who !== 'spear').concat([seated('eiryn', 'sip', 'cup'), { who: 'kael', set: { gest: 'lean' } }]), {
     nodes: { 'c5.home': {
       0: { cam: { focus: ['miller', 'kael'], view: 5.4, ang: -0.3, pitch: 0.44, ease: 1.4 } },
-      3: { do: [{ who: 'cook', to: [-1.6, -0.4], speed: 1.2, face: 'kael' }] },
-      6: { cam: { x: 5, y: -2, view: 7, ang: 0.3, pitch: 0.2, up: 2.4, ease: 3 }, do: [{ light: ['255,200,150', 0.12, 3] }] },
+      5: { cam: { x: 5, y: -2, view: 7, ang: 0.3, pitch: 0.2, up: 2.4, ease: 3 }, do: [{ light: ['255,200,150', 0.12, 3] }] },
     } },
   });
   const hireIntro = tavernAuto(folkAt([meSeat('eiryn', 'eirynAsh'), Object.assign({ id: 'ren', key: 'ren', notStarter: true }, at('ren')), Object.assign({ id: 'mara', key: 'mara', notStarter: true }, at('mara')), Object.assign({ id: 'brannoc', key: 'brannoc', notStarter: true }, at('brannoc'))]),
     folkSetup().filter((a) => a.who !== 'spear').concat([seated('eiryn', 'sip', 'cup'), { who: 'ren', set: { gest: 'lean' } }, { who: 'mara', base: 'sit', set: { gest: 'notes' } }, { who: 'brannoc', set: { gest: 'cup', prop: 'tankard' } }]), {
       nodes: { 'hire.intro': {
         0: { cam: { x: 1.0, y: -1.8, view: 9, ang: 0.1, pitch: 0.44, ease: 2 }, do: [{ at: 1.5, who: 'ren', face: 'kael' }, { at: 1.8, who: 'mara', face: 'kael' }, { at: 2.0, who: 'brannoc', face: 'kael' }] },
-        1: { do: [{ who: 'cook', to: [-1.2, -0.6], speed: 1.2, face: 'kael' }] },
       } },
     });
 
@@ -327,58 +317,24 @@
           { who: 'spear', set: { gest: 'table' } },
           { who: 'kael', face: 'spear' },
           { at: 0.3, who: 'kael', say: 'Then they’ve been burning it since spring.' },
-          // ...the cook comes out of the kitchen behind him
-          { at: 0.6, who: 'cook', path: [[1.0, -3.7], [-1.4, -3.6]], speed: 1.2 },
-          { at: 1.8, who: 'p1', set: { gest: 'choke' }, icon: '!' },
+              { at: 1.8, who: 'p1', set: { gest: 'choke' }, icon: '!' },
           { at: 1.9, cam: { face: 'p1', side: -0.25, view: 2.3, up: 0.95, pitch: 0.4, cut: true } },
           { at: 1.95, shake: 3 },
           { at: 3.2, who: 'p1', set: { gest: 'drink', prop: 'cup' } },
           { at: 3.3, cam: { face: 'kael', side: 0.1, view: 4.2, up: 1.15, pitch: 0.42, ease: 1.0 } },
         ],
       },
-      // "You know the cook can hear you."
+      // Around them the regulars murmur over their cups. (murmurs only, never words)
       {
-        cam: { face: 'spear', side: 0.2, view: 2.4, up: 1.0, pitch: 0.4, ease: 0.5 },
+        cam: { focus: ['kael', 'spear', 'p1'], view: 6.2, ang: -0.24, pitch: 0.46, up: 0.5, drift: 0.015, ease: 1.2 },
         do: [
           { who: 'p1', set: { gest: 'table', prop: 'spoon' } },
-          { who: 'cook', to: [-1.4, -3.6] },
-          { at: 0.3, who: 'spear', say: 'You know the cook can hear you.' },
-          { at: 1.1, who: 'spear', face: [-3.3, -3.0] },
-          { at: 1.7, cam: { face: 'kael', side: -0.05, view: 2.2, up: 1.05, pitch: 0.4, cut: true } },
-          { at: 1.7, who: 'kael', face: S },
-          { at: 1.8, who: 'cook', to: [-3.3, -2.95], speed: 1.8, set: { prop: 'ladle', gest: 'hips' } },
-          { at: 2.9, who: 'cook', face: 'kael' },
-          { at: 2.8, who: 'kael', icon: '!', freeze: 0.18 },
-          { at: 3.1, cam: { face: 'kael', side: 0.05, view: 4.3, up: 1.6, pitch: 0.32, ease: 1.1 } },
-        ],
-      },
-      // "Distinctive. I was telling them your stew has a very distinctive flavor."
-      {
-        cam: { face: 'kael', side: 0.55, view: 2.5, up: 1.15, pitch: 0.38, ease: 0.5 },
-        do: [
-          { who: 'cook', to: [-3.3, -2.95], face: 'kael', set: { prop: 'ladle', gest: 'hips' } },
-          { who: 'kael', face: 'cook', turn: 1.6 },
-          { at: 0.6, who: 'kael', say: 'Distinctive.', sayT: 1.6 },
-          { at: 1.5, who: 'spear', set: { gest: 'chin' } },
-          { at: 2.2, who: 'kael', say: 'A very distinctive flavor.' },
-          { at: 2.6, who: 'p1', icon: '…' },
-        ],
-      },
-      // "Then you'll have no trouble finishing it."
-      {
-        cam: { face: 'cook', side: -0.25, view: 3.1, up: 1.3, pitch: 0.34, drift: 0.02, ease: 0.5 },
-        do: [
-          { who: 'cook', face: 'kael' },
-          { at: 0.3, who: 'cook', say: 'Then you’ll have no trouble finishing it.' },
-          { at: 1.6, who: 'cook', set: { gest: 'present' } },
-          { at: 1.9, fx: { type: 'thunk', x: -3.4, y: -1.5 }, shake: 2 },
-          { at: 2.3, cam: { focus: ['kael', 'cook', 'spear'], view: 4.4, ang: -0.2, pitch: 0.46, up: 0.5, ease: 1.0 } },
-          { at: 2.5, who: 'kael', icon: '…', set: { gest: 'eat' } },
-          { at: 2.7, who: 'spear', set: { gest: 'laugh' } },
-          { at: 2.8, who: 'p1', set: { gest: 'laugh' } },
-          { at: 3.2, who: 'cook', set: { gest: null }, face: null, path: [[-1.4, -3.6], [1.0, -3.7], [1.4, -4.7]], speed: 1.3 },
-          { at: 6.4, who: 'cook', face: S, set: { prop: 'bread' } },
-          { at: 5.0, who: 'spear', set: { gest: 'eat' } },
+          { at: 0.3, who: 'kael', set: { gest: 'eat' } },
+          { at: 0.5, who: 'p2', icon: '…' }, { at: 1.1, who: 'p4', icon: '…' }, { at: 1.6, who: 'p6', icon: '…' },
+          { at: 0.9, who: 'spear', set: { gest: 'laugh' } },
+          { at: 1.0, who: 'p1', set: { gest: 'laugh' } },
+          { at: 2.4, who: 'spear', set: { gest: 'eat' } },
+          { at: 2.6, who: 'p1', set: { gest: 'eat' } },
         ],
       },
     ],
@@ -390,7 +346,6 @@
     cast: tavernCast(),
     setup: tavernSetup().concat([
       { who: 'kael', set: { gest: 'sip', prop: 'cup' } },
-      { who: 'cook', set: { prop: 'ladle' } },
     ]),
     cam: { x: -3.0, y: -9.4, view: 1.9, ang: 0, pitch: 0.36 },
     beats: [
@@ -408,8 +363,7 @@
           { at: 3.2, who: 'kael', set: { gest: 'cup' }, face: [-3, -5.2], turn: 2 },
           { at: 3.3, who: 'spear', face: [-3, -5.2], set: { gest: 'table' } },
           { at: 3.5, who: 'p1', face: [-3, -5.2], set: { gest: 'table' } },
-          { at: 4.2, who: 'cook', face: [-3, -5.2], icon: '?' },
-          { at: 5.4, who: 'p4', face: [-3, -6] }, { at: 5.8, who: 'p5', face: [-3, -6] }, { at: 5.6, who: 'p3', face: [-3, -6] }, { at: 6.4, who: 'p6', face: [-3, -6] },
+              { at: 5.4, who: 'p4', face: [-3, -6] }, { at: 5.8, who: 'p5', face: [-3, -6] }, { at: 5.6, who: 'p3', face: [-3, -6] }, { at: 6.4, who: 'p6', face: [-3, -6] },
         ],
       },
       // The starter: "That's not a Guild exercise." (varies)
@@ -529,7 +483,7 @@
     setup: c1Formation.setup.concat(atWindow),
     cam: { x: -3.0, y: -2.2, view: 4.6, ang: 0, pitch: 0.38, up: 1.3 },
     // (the starter's own 'Wait, I'm coming' beat is dropped: nobody follows Kael out as a player character now)
-    beats: c1Formation.beats.slice(3).filter((b, i) => i !== 4).map((b, i) => (i === 0 ? Object.assign({}, b, { do: [{ glow: [0.25, 0.1] }].concat(b.do || []) }) : b)),
+    beats: c1Formation.beats.slice(3).filter((b, i) => i < 4).map((b, i) => (i === 0 ? Object.assign({}, b, { do: [{ glow: [0.25, 0.1] }].concat(b.do || []) }) : b)),
   };
 
   const c1Run = {
@@ -686,6 +640,50 @@
           { at: 2.6, who: 'kael', icon: '!', face: 'brute' },
           { at: 2.8, who: '@', face: 'eiryn' },
           { at: 3.6, who: 'kael', cutin: true },
+        ],
+      },
+    ],
+  };
+
+  // Kael's entrance: from the bank, into the circle; the sword goes into the ground, then out.
+  const c1Drop = {
+    arena: 'clearing',
+    cast: [
+      { id: 'eiryn', key: 'eiryn', x: -0.9, y: 2.45, f: -1.25 },
+      { id: 'brute', key: 'brute', x: 0.1, y: 1.0, f: 2.0 },
+      { id: 'knife', key: 'knife', x: -2.1, y: 1.0, f: 0.6 },
+      { id: 'grabber', key: 'grabber', x: 2.1, y: 2.7, f: W },
+      { id: 'lookout', key: 'lookout', x: 6.4, y: -3.8, f: 2.6 },
+      { id: 'kael', key: 'kael', x: -0.6, y: 1.55, f: -0.9, hidden: true },
+    ],
+    setup: [{ who: 'eiryn', drained: true }, { who: 'brute', face: 'eiryn' }, { who: 'knife', face: 'eiryn' }, { who: 'grabber', face: 'eiryn' }],
+    cam: { behind: 'eiryn', side: 0.2, focus: ['eiryn', 'brute'], view: 4.6, pitch: 0.28, up: 0.6 },
+    beats: [
+      // Something drops from the bank above and lands between them.
+      {
+        cam: { behind: 'eiryn', side: 0.2, focus: ['eiryn', 'brute'], view: 4.6, pitch: 0.24, up: 0.6, cut: true },
+        do: [
+          { at: 0.5, who: 'kael', show: true, drop: [5, 0.45] },
+          { at: 0.95, who: 'kael', burst: 'dust', shake: 9, state: 'recover', dur: 0.8 },
+          { at: 0.95, slow: [0.35, 0.45] },
+          { at: 1.0, who: 'brute', to: [0.6, 0.2], gait: 'back', icon: '!' },
+          { at: 1.05, who: 'knife', to: [-2.8, 0.2], gait: 'back', icon: '!' },
+          { at: 1.1, who: 'grabber', to: [3.0, 2.9], gait: 'back' },
+          { at: 1.1, who: 'eiryn', face: 'kael' },
+          { at: 1.6, cam: { face: 'kael', side: 0.5, view: 3.0, up: 0.9, pitch: 0.36, ease: 0.9 } },
+        ],
+      },
+      // Kael drives his sword into the earth. Then he pulls it free.
+      {
+        cam: { face: 'kael', side: -0.3, view: 2.4, up: 0.6, pitch: 0.3, ease: 0.6 },
+        do: [
+          { who: 'kael', face: 'brute' },
+          { at: 0.3, who: 'kael', state: 'pickup', dur: 0.7 },
+          { at: 0.7, fx: { type: 'thunk', x: -0.4, y: 1.1 }, shake: 5, who: 'kael', burst: 'dust' },
+          { at: 1.4, freeze: 0.25 },
+          { at: 1.9, who: 'kael', state: 'recover', dur: 0.9 },
+          { at: 2.1, cam: { across: ['kael', 'brute'], focus: ['kael', 'brute', 'knife'], view: 5.6, pitch: 0.4, up: 0.5, ease: 1.0 } },
+          { at: 2.4, who: 'brute', icon: '…' },
         ],
       },
     ],
@@ -1178,6 +1176,7 @@
     'c1.go': c1Go,
     'c1.run': c1Run,
     'c1.voice': c1Voice,
+    'c1.drop': c1Drop,
     'c1.approach': 'same',
     'c1.after': c1After,
     'c1.trust': 'same',

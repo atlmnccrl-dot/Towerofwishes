@@ -43,6 +43,7 @@
  *     glow: [k, s] (match.glow: the formation's light), door: [k, s] (tavern door),
  *     light: [rgb, alpha, s] (additive screen wash), speed: [k, s, 'h'|'r'] (speed lines),
  *     hop: [metres, s] (a leap: the fighter is lifted and set down again),
+ *     drop: [metres, s] (falls from that height and lands),
  *     reset: [k, s] (rooftops: the Reset opens in the sky),
  *     whip: [k, s, dir] (blurred trunks sweeping past the lens), sky: [k, s] (the
  *     formation's light over the treeline), burst: 'dust'|'leaf' (at the unit's feet),
@@ -247,7 +248,7 @@
       if (u.barkT > 0) u.barkT -= dt;
       if (u.iconT > 0) u.iconT -= dt;
       u.vx = 0; u.vy = 0; u.kx *= Math.pow(0.02, dt); u.ky *= Math.pow(0.02, dt);
-      if (I.hop) { I.hop.t += dt; u.lift = I.hop.t >= I.hop.dur ? 0 : I.hop.h * Math.sin(Math.PI * I.hop.t / I.hop.dur); if (I.hop.t >= I.hop.dur) I.hop = null; }
+      if (I.hop) { I.hop.t += dt; const hk = I.hop.t / I.hop.dur; u.lift = hk >= 1 ? 0 : I.hop.drop ? I.hop.h * (1 - hk * hk) : I.hop.h * Math.sin(Math.PI * hk); if (I.hop.t >= I.hop.dur) I.hop = null; }
       if (I.knock) {
         const k = I.knock, step = Math.min(dt, k.t);
         u.x += k.vx * step; u.y += k.vy * step; u.kx = k.vx; u.ky = k.vy; k.t -= dt;
@@ -346,6 +347,7 @@
       if (u && a.attack) startAttack(u, I, a.attack, false);
       if (u && a.release && u.act) { u.act.hold = false; if (u.act.phase === 'feint') { u.act.phase = 'strike'; u.act.t = 0; } }
       if (u && a.hop) I.hop = { t: 0, dur: a.hop[1] || 0.7, h: a.hop[0] };
+      if (u && a.drop) { I.hop = { t: 0, dur: a.drop[1] || 0.5, h: a.drop[0], drop: true }; u.lift = a.drop[0]; }
       if (u && a.knock) { const t = a.knockT || 0.25; I.knock = { vx: a.knock[0] / t, vy: a.knock[1] / t, t }; }
       if (u && a.say) { u.bark = a.say === '$' ? lineText() : a.say; u.barkT = a.sayT || clamp(1.4 + u.bark.length * 0.07, 1.6, 4.2); u.barkDelay = 0; }
       if (u && a.icon) { u.icon = a.icon; u.iconT = 0.8; }

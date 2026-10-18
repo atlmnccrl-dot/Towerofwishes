@@ -301,26 +301,20 @@
     }
 
     // Manhwa speech balloon pointing at a spot on screen.
+    // A spoken line as a subtitle in the lower third (no speech bubbles).
     function balloon(text, tx, ty, side, a) {
       const W = V.W, H = V.H;
-      const fs = Math.round(Math.min(W, H) * 0.045);
-      ctx.font = `700 ${fs}px ${FONT.ui}`;
-      const tw = ctx.measureText(text).width;
-      const bw = tw + fs * 2.2, bh = fs * 2.4;
-      let bx = tx + side * (bw * 0.35 + fs), by = ty - bh * 0.9;
-      bx = Math.max(bw / 2 + 12, Math.min(W - bw / 2 - 12, bx));
-      by = Math.max(bh / 2 + H * 0.08, by);
+      const fs = Math.round(Math.min(W, H) * 0.04);
       ctx.save();
-      ctx.globalAlpha = a == null ? 1 : a;
-      ctx.lineJoin = 'round';
-      const shape = () => {
-        ctx.beginPath(); ctx.ellipse(bx, by, bw / 2, bh / 2, 0, 0, Math.PI * 2);
-        ctx.moveTo(bx - side * bw * 0.12, by + bh * 0.38); ctx.lineTo(tx, ty - fs * 0.6); ctx.lineTo(bx + side * bw * 0.05, by + bh * 0.45);
-      };
-      ctx.fillStyle = INK; ctx.strokeStyle = INK; ctx.lineWidth = 6; shape(); ctx.stroke();
-      ctx.fillStyle = '#f6f0ec'; shape(); ctx.fill();
-      ctx.fillStyle = INK; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(text, bx, by + 1);
+      ctx.globalAlpha = a == null ? 1 : Math.max(0, Math.min(1, a));
+      ctx.font = `italic 600 ${fs}px ${FONT.ui}`;
+      const tw = ctx.measureText(text).width, y = H * 0.86;
+      const g = ctx.createLinearGradient(W / 2 - tw, 0, W / 2 + tw, 0);
+      g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(0.5, 'rgba(0,0,0,0.55)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g; ctx.fillRect(W / 2 - tw, y - fs * 1.1, tw * 2, fs * 2.2);
+      ctx.fillStyle = '#f3ead6'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.shadowColor = '#000'; ctx.shadowBlur = 6;
+      ctx.fillText(text, W / 2, y);
       ctx.restore();
     }
 

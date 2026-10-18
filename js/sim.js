@@ -279,7 +279,7 @@
         super: 'Back away.', win: 'They\u2019re gone.', protect: 'Let go.',
         distracted: 'Where do you think you\u2019re going?', reply: 'Then you should have left her alone.',
       },
-      intro: { epithet: 'Guild adventurer', line: 'Somebody who asked nicely.' },
+      intro: { epithet: 'Guild adventurer' },
     },
     eiryn: {
       name: 'Eiryn', team: 'hero', guest: true, r: 0.33, hp: 70, sta: 40, speed: 3.4,

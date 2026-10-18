@@ -45,7 +45,6 @@
     broad: { name: 'Broad-shouldered man', tone: 'foe' },
     knife: { name: 'Man with the knife', tone: 'foe' },
     spear: { name: 'Spearwoman', tone: 'plain' },
-    cook: { name: 'The cook', tone: 'plain' },
     guard: { name: 'Gate guard', tone: 'plain' },
     officer: { name: 'Older guard', tone: 'plain' },
     registrar: { name: 'Registrar', tone: 'plain' },
@@ -263,34 +262,46 @@
         N('At the next table, a Guild swordsman has decided the stew tastes burnt. This is, apparently, a controversial opinion.'),
         B('spear', 'It’s smoked pepper. They’ve been putting it in since spring.'),
         B('kael', 'Then they’ve been burning it since spring.'),
-        B('spear', 'You know the cook can hear you.'),
-        B('kael', 'Distinctive. I was telling them your stew has a very distinctive flavor.'),
-        B('cook', 'Then you’ll have no trouble finishing it.'),
+        N('Around them the regulars murmur over their cups.'),
       ],
     },
     // The tavern goes to the window; then the painted clip of the formation charging and
     // failing; then back in the room as Kael decides.
     'c1.formation': {
-      type: 'scene', chapter: 'c1', bg: 'tavern', next: 'c1.clip',
+      type: 'scene', chapter: 'c1', bg: 'tavern', next: 'c1.go',
       lines: [
         N('A murmur runs through the tavern. One by one, the regulars drift to the window, and the stew is forgotten. Far to the north, the light over the trees has turned purple.'),
       ],
     },
     'c1.clip': {
-      type: 'scene', chapter: 'c1', bg: 'formation', next: 'c1.go',
+      type: 'scene', chapter: 'c1', bg: 'formation', next: 'c1.look',
       lines: [
         N('Above the distant treeline, purple light gathers in the air. Fine lines curve around a bright center, ring inside ring, turning against one another.'),
         N('One of the inner rings stops. The whole formation shudders, holds — and comes apart over the trees.'),
       ],
     },
     'c1.go': {
-      type: 'scene', chapter: 'c1', bg: 'tavern', next: 'c1.run',
+      type: 'scene', chapter: 'c1', bg: 'tavern', next: 'c1.street',
       lines: [
         B('kael', 'I’m going outside.'),
         B('spear', 'You’re doing that thing with your face. The one you do before you run at a problem.'),
         B('kael', 'That’s why I’m going to see.'),
         N('He sets off before she can offer an opinion.'),
-        N('You leave your stew and go after him.'),
+      ],
+    },
+    // Out in the street (TW-041): Kael watches the formation fail from outside.
+    'c1.street': {
+      type: 'scene', chapter: 'c1', bg: 'tavern', next: 'c1.clip',
+      lines: [
+        N('Outside, the street has gone quiet. Every face is turned north.'),
+      ],
+    },
+    // TW-043: nobody knows who cast it. (Kael's line is a placeholder until the author writes it.)
+    'c1.look': {
+      type: 'scene', chapter: 'c1', bg: 'tavern', next: 'c1.run',
+      lines: [
+        B('kael', 'Nobody draws something that big for fun.'),
+        N('He starts north, toward the trees.'),
       ],
     },
     'c1.run': {
@@ -302,7 +313,7 @@
       ],
     },
     'c1.voice': {
-      type: 'scene', chapter: 'c1', bg: 'forest', next: 'c1.fight',
+      type: 'scene', chapter: 'c1', bg: 'forest', next: 'c1.drop',
       lines: [
         N('At the forest’s edge, a man laughs. Another answers. Then a woman, clearly enough to carry through the trees:'),
         B('eiryn', 'Keep your hands off me.'),
@@ -313,6 +324,14 @@
         B('knife', 'Pretty thing, walking alone?'),
         B('grabber', 'Bet you scream nice.'),
         B('broad', 'Or maybe she don’t scream at all.'),
+      ],
+    },
+    // Playtest item 11: Kael drops into the circle, plants his sword, draws it. No line: the action is the line.
+    'c1.drop': {
+      type: 'scene', chapter: 'c1', bg: 'forest', next: 'c1.fight',
+      lines: [
+        N('Something drops from the bank above and lands between them.'),
+        N('Kael drives his sword into the earth. Then he pulls it free.'),
       ],
     },
     'c1.fight': {
@@ -372,9 +391,6 @@
     'c2.tavern': {
       type: 'scene', chapter: 'c2', bg: 'tavern', next: 'c3.tea',
       lines: [
-        B('cook', 'You were gone long enough that I gave your stew to the dog.'),
-        B('kael', 'Cruel. To the dog.'),
-        B('cook', 'He liked it.'),
         B('eiryn', 'What do they say about the Tower?'),
         B('kael', 'That someone reached the top. That they made a wish, and then the world was destroyed. That’s the usual version.'),
         N('At the word wish, something in her face changes.'),
@@ -444,7 +460,7 @@
     },
     // ---------------------------------------------------------- chapter five
     'c5.mill': {
-      type: 'scene', chapter: 'c5', bg: 'hill', next: 'c5.fork',
+      type: 'scene', chapter: 'c5', bg: 'hill', next: 'c5.path',
       lines: [
         B('miller', 'They’ve been coming after dark. First the grain. Then a box of tools. My youngest tried to chase them and came back with a cut on his arm.'),
         KB('How many?'),
@@ -531,7 +547,6 @@
       lines: [
         B('miller', 'I didn’t know. I swear I didn’t know there was anything that big up there.'),
         N('The Guild records the discrepancy and pays the contract with a hazard supplement.'),
-        B('cook', 'What did I tell you? Don’t come back injured.'),
         EB('We should look for another contract once you’re fit.'),
         KB('Something genuinely small this time.'),
         EB('I shall ask every goblin I meet whether it has one hidden in a cupboard.'),
@@ -590,8 +605,7 @@
       type: 'scene', chapter: 'side', bg: 'tavern', next: 'hire.pick',
       lines: [
         N('The tavern by the Guild office, after the supper rush. Three regulars have been watching the contract board as closely as Kael has.'),
-        S('cook', 'Those three have been asking about you. Something about wanting work with people who come back.'),
-        B('kael', 'Distinctive.'),
+        N('Word at the bar is they want work with people who come back.'),
       ],
     },
     // Staged like the old character select (js/stages.js 'p.select').

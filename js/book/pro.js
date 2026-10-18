@@ -359,6 +359,35 @@
       'deep.end': auto('deep', [K(-1.0, 0.6, 0.4), EA(-2.4, 1.2, 0.3), CP(-2.2, -0.4, 0.4)], {
         nodes: { 'deep.end': { 0: { cam: { x: -1.6, y: 0.4, view: 6, ang: -0.3, pitch: 0.42, ease: 1.4 } } } },
       }),
+      // ---- TW-041: Kael steps into the street; every face turned north at the formation
+      'c1.street': {
+        arena: 'square',
+        cast: [K(-1.0, 2.4, -Math.PI / 2), PT('p1', 1.4, 0.6, -Math.PI / 2), PT('p2', -2.8, 0.2, -Math.PI / 2 + 0.2), PT('p3', 2.6, -0.8, -Math.PI / 2 - 0.2), PT('p4', -0.2, -1.2, -Math.PI / 2)],
+        setup: [{ sky: [0.85, 0] }, { who: 'kael', set: { stow: true, gest: 'cross' } }, { who: 'p1', set: { gest: 'cross' } }, { who: 'p2', set: { gest: 'chin' } }, { who: 'p3', set: { gest: 'hips' } }, { who: 'p4', set: { gest: 'cross' } }],
+        cam: { behind: 'kael', side: 0.3, view: 4.2, up: 1.6, pitch: 0.2 },
+        beats: [
+          // Outside, the street has gone quiet. Every face is turned north.
+          { cam: { behind: 'kael', side: 0.3, view: 4.2, up: 1.6, pitch: 0.2, push: 0.1, cut: true },
+            do: [{ who: 'kael', to: [-0.8, 1.2], speed: 1.1, face: -Math.PI / 2 }, { at: 1.4, who: 'kael', set: { gest: 'cross' } }, { sky: [1, 2.5] },
+              { at: 1.0, who: 'p1', icon: '…' }, { at: 1.6, who: 'p3', icon: '…' }, { at: 2.0, who: 'p2', set: { gest: 'point' } },
+              { at: 2.6, cam: { x: -0.4, y: -0.6, view: 9, ang: 0.0, pitch: 0.12, up: 3.2, ease: 2.2 } }] },
+        ],
+      },
+      // ---- TW-043: after the failure, nobody knows who cast it; Kael starts north
+      'c1.look': {
+        arena: 'square',
+        cast: [K(-0.8, 1.2, -Math.PI / 2), PT('p1', 1.4, 0.6, -Math.PI / 2), PT('p2', -2.8, 0.2, -Math.PI / 2 + 0.2), PT('p3', 2.6, -0.8, -Math.PI / 2 - 0.2), PT('p4', -0.2, -1.2, -Math.PI / 2)],
+        setup: [{ sky: [0.15, 0] }, { who: 'kael', set: { stow: true, gest: 'chin' } }, { who: 'p1', set: { gest: 'cross' } }, { who: 'p2', set: { gest: 'chin' } }, { who: 'p3', set: { gest: 'hips' } }, { who: 'p4', set: { gest: 'cross' } }],
+        cam: { face: 'kael', side: 0.3, view: 2.6, up: 1.0, pitch: 0.36 },
+        beats: [
+          // Kael: (placeholder line until the author writes it)
+          { cam: { face: 'kael', side: 0.3, view: 2.6, up: 1.0, pitch: 0.36, drift: 0.015, cut: true },
+            do: [{ sky: [0, 3] }, { at: 0.4, who: 'p1', icon: '…' }, { at: 0.8, who: 'p4', icon: '…' }] },
+          // He starts north, toward the trees.
+          { cam: { behind: 'kael', side: 0.2, view: 5.2, up: 0.8, pitch: 0.34, ease: 1.0 },
+            do: [{ who: 'kael', set: { gest: null }, path: [[-1.6, -1.0], [-2.6, -3.4], [-2.9, -5.4]], gait: 'stride', speed: 2.4 }, { at: 2.6, who: 'kael', hide: true }, { at: 0.6, who: 'p4', face: 'kael' }, { at: 0.9, who: 'p1', face: 'kael' }] },
+        ],
+      },
       // ---- the Guild's call to arms: the formation breaks (c1.clip)
       'c1.clip': {
         arena: 'clearing',
