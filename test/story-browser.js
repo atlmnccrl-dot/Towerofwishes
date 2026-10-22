@@ -115,26 +115,10 @@ const errors = [];
   await page.evaluate(() => { window.__tow.debug.pickNode('c4'); window.__tow.debug.goNode('c4'); });
   await page.waitForTimeout(300);
   await tapThrough(40, true, true);           // the Guild, the board: the map before the quarry
-  // Side missions from the Guild: hire a companion, then the yard, a contract, the arcade.
+  // Side missions from the Guild: the yard, a contract, the arcade (Kael and Eiryn; no hired companions).
   await page.evaluate(() => window.__tow.debug.world());
   await page.waitForTimeout(400);
   await shot('w-branch');
-  await page.evaluate(() => { window.__tow.debug.pickNode('hire'); window.__tow.debug.goNode('hire'); });
-  await page.waitForTimeout(300);
-  await tapThrough(10, false, true);
-  if ((await view()) !== 'select') errors.push('expected the companion pick, got ' + (await view()));
-  await page.waitForTimeout(1200);
-  await shot('s-select-ren');
-  await page.click('.starter[data-k="brannoc"]');
-  await page.waitForTimeout(1500);
-  await shot('s-select-brannoc');
-  await page.click('.starter[data-k="mara"]');
-  await page.waitForTimeout(1500);
-  await shot('s-select-mara');
-  await page.click('#btn-choose');
-  await tapThrough(10, true, true);
-  if ((await view()) !== 'world') errors.push('after hiring: expected the map, got ' + (await view()));
-  if ((await page.evaluate(() => window.__tow.story.companion)) !== 'mara') errors.push('companion not hired');
   for (const id of ['yard', 'cart', 'gauntlet']) {
     await page.evaluate((x) => { window.__tow.debug.pickNode(x); }, id);
     await page.waitForTimeout(200);

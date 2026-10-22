@@ -46,6 +46,7 @@
   // Staged scenes: story nodes listed in window.TowStages play out with the
   // fighters on a real arena (js/render/stage.js), beat by beat with the lines.
   let stage = null, stageKey = null;
+  let cinema = null, cinemaKey = null; // a filmed scene (js/render/cinema.js), when the node has one
   function stageFor(id) { return Render.stage && window.TowStages && window.TowStages[id] ? id : null; }
   let storyBattle = null; // the story battle being fought, if any
   let lastRun = null, replay = null; // the fight just played (options and All Out times), and a replay in progress
@@ -101,15 +102,19 @@
     writeSave();
     match = null; storyBattle = null;
     if (n.type !== 'select') setShowcase(null);
-    if (n.type !== 'scene' && n.type !== 'fork') { stage = null; stageKey = null; renderer.setCameraOverride(null); }
+    if (n.type !== 'scene' && n.type !== 'fork') { stage = null; stageKey = null; cinema = null; cinemaKey = null; renderer.setCameraOverride(null); }
     // Between chapters the story waits on the world map.
     if (!story.side && (Story.atGate(story) || n.type === 'end')) return showWorld();
     if (n.type === 'battle') return startStoryBattle();
     if (n.type === 'select') return showSelect();
     if (n.type === 'cinematic') return startCinematic(n);
     sceneBg = n.bg || 'tower'; sceneT = 0;
+    // A filmed scene (window.TowCinema) takes the place of the staged one.
+    const cid = Story.cur(story), cdef = window.TowCinema && Render.cinema && window.TowCinema[cid];
+    if (cdef && (n.type === 'scene' || n.type === 'fork')) { if (cinemaKey !== cid) { cinema = Render.cinema.start(cdef); cinemaKey = cid; } stage = null; stageKey = null; renderer.setCameraOverride(null); }
+    else { cinema = null; cinemaKey = null; }
     // A node can stage itself, or keep the stage of the scene before it (stage: 'same').
-    const sid = stageFor(Story.cur(story));
+    const sid = cinema ? null : stageFor(Story.cur(story));
     if (sid && sid !== stageKey) { stage = Render.stage.start(window.TowStages[sid], Sim); stageKey = sid; }
     else if (!sid && !(window.TowStages && window.TowStages[Story.cur(story)] === 'same')) { stage = null; stageKey = null; renderer.setCameraOverride(null); }
     $('story-chapter').textContent = chapterLabel(n);
@@ -136,7 +141,8 @@
     $('who').textContent = l.speaker ? l.speaker.name : '';
     $('who').hidden = !l.speaker;
     lineFull = l.speaker ? `“${l.text}”` : l.text;
-    if (stage) stage.beat(lineIdx, lines.length);
+    if (cinema) cinema.beat(lineIdx, lines.length);
+    else if (stage) stage.beat(lineIdx, lines.length);
     typeT = 0; $('line').textContent = '';
   }
   // Auto: lines play on their own, holding long enough to read each one.
@@ -291,7 +297,7 @@
   const LOOT_TEXT = { yard: 'Common gear', contract: 'Gear, sometimes fine', ember: 'Emberbrand, a fire sword (first clear) · gear', frost: 'Frost Fangs, ice daggers (first clear) · gear', storm: 'Stormwake Lance (first clear) · gear', tremor: 'Quake Bands (first clear) · gear', beast: 'The Stray’s Tooth (first clear) · fine gear', relic: 'A relic (first clear) · rare gear', deep: 'Gear from each chamber', chief: 'The Miller’s Cleaver (first clear) · rare and relic gear', gauntlet: 'One piece of gear per 3 waves', story: 'Experience and gear' };
   function showWorld(sel) {
     match = null; storyBattle = null; setShowcase(null);
-    stage = null; stageKey = null; renderer.setCameraOverride(null); renderer.setFollow(null);
+    stage = null; stageKey = null; cinema = null; cinemaKey = null; renderer.setCameraOverride(null); renderer.setFollow(null);
     writeSave();
     worldView = Camp.view(Story, story);
     worldSel = sel || worldView.current || worldSel;
@@ -805,7 +811,7 @@
     if (!prologueKept) return false;
     const id = Story.cur(story);
     if (/^p\./.test(id) && id !== 'p.select' && id !== 'p.who') return false;
-    stage = null; stageKey = null; renderer.setCameraOverride(null);
+    stage = null; stageKey = null; cinema = null; cinemaKey = null; renderer.setCameraOverride(null);
     renderMenu(); show('menu'); // (show restores the save)
     return true;
   }
@@ -909,10 +915,10 @@
     document.addEventListener('pointerdown', stop, { once: true }); document.addEventListener('keydown', stop, { once: true });
     const back = (nodeId, defId, beats) => {
       story.node = nodeId; story.side = null;
-      match = null; stage = Render.stage.start(window.TowStages[defId], Sim); stageKey = defId; show('story'); $('story-card').hidden = true;
+      match = null; cinema = null; cinemaKey = null; stage = Render.stage.start(window.TowStages[defId], Sim); stageKey = defId; show('story'); $('story-card').hidden = true;
       return (async () => { for (const [t, i] of beats) { await wait(t, tok); if (stage) stage.beat(i, 12); } })();
     };
-    const paint = (bg) => { match = null; stage = null; stageKey = null; renderer.setCameraOverride(null); sceneBg = bg; sceneT = 0; show('story'); $('story-card').hidden = true; };
+    const paint = (bg) => { match = null; stage = null; stageKey = null; cinema = null; cinemaKey = null; renderer.setCameraOverride(null); sceneBg = bg; sceneT = 0; show('story'); $('story-card').hidden = true; };
     const fight = async (scenario, party, seed, secs, opt) => {
       document.body.classList.add('fighting');
       startMatch('practice', seed, { scenario, party, allyLevel: 6 });
@@ -943,7 +949,7 @@
     document.body.classList.remove('trailer', 'fighting'); $('replay-bar').hidden = true; $('replay-bar').classList.remove('clean');
     document.removeEventListener('pointerdown', stop); document.removeEventListener('keydown', stop);
     story.node = kept.node; story.side = kept.side;
-    match = null; stage = null; stageKey = null; lastRun = null; renderer.setFollow(null); renderer.setCameraOverride(null);
+    match = null; stage = null; stageKey = null; cinema = null; cinemaKey = null; lastRun = null; renderer.setFollow(null); renderer.setCameraOverride(null);
     save = loadSave(); bindStory(); renderMenu(); show('menu');
   }
   // (the trailer reel stays in the code; its menu button gave way to Settings → Prologue)
@@ -957,6 +963,8 @@
   // Hold a scene or face-off until every pixel character in it has loaded (at most 4 s), so
   // nobody pops in halfway through.
   const castWait = new WeakMap();
+  let cinWait = 0;
+  function cinemaWait(dt) { if (cinema.ready()) { cinWait = 0; return true; } cinWait += dt; return cinWait > 4; }
   function castReady(m, dt) {
     const Sp = window.TowSprites;
     if (!m || !Sp || !Sp.pixelSetFor || !Sp.forUnit) return true;
@@ -992,9 +1000,10 @@
     }
     if (!match && view === 'story') {
       // Story scenes: a painted backdrop and the typewriter.
-      const rdt = !stage || castReady(stage.match, real) ? real : 0;
+      const rdt = cinema ? (cinemaWait(real) && !frozen ? real : 0) : !stage || castReady(stage.match, real) ? real : 0;
       sceneT += rdt;
-      if (stage) {
+      if (cinema) { cinema.update(rdt); cinema.draw(); }
+      else if (stage) {
         stage.update(rdt);
         renderer.setCameraOverride(stage.camera());
         renderer.draw(stage.match, real, true, null);
@@ -1060,6 +1069,7 @@
     get drawMs() { return renderer.stats.drawMs; },
     get cam() { return renderer.cam; },
     get stageCam() { return stage ? stage.camera() : null; },
+    get cinema() { return cinema; },
     debug: {
       start(m, seed, opts) { startMatch(m || 'practice', seed == null ? 1 : seed, opts); },
       introAt(t) { if (faceoff) faceoff.t = t; },
@@ -1085,6 +1095,15 @@
         story.node = node; if (starter) story.companion = starter;
         Object.assign(story.flags, flags || {}); runStory();
       },
+      // the cinema at line i, t seconds (scene time) in, held there: freeze(true) first
+      cineSeek(i, t) {
+        if (!cinema) return false;
+        const run = (s) => { for (let k = 0; k < Math.round(s * 60); k++) cinema.update(1 / 60); };
+        cinema = Render.cinema.start(cinema.def);
+        for (let j = 0; j < i; j++) { cinema.beat(j, lines.length); run(15); }
+        lineIdx = i; showLine(); run(t); return true;
+      },
+      storyLine(i) { if (lines && i < lines.length) { lineIdx = i; showLine(); } },
       allOutNow() { if (match) { match.allOut.meter = 1; Sim.triggerAllOut(match); } },
     },
   };
