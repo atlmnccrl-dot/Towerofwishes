@@ -43,6 +43,8 @@ Read first: [docs/DESIGN.md](docs/DESIGN.md), [docs/STORY.md](docs/STORY.md),
   fight). The earlier anime sprite in `assets/characters/eiryn/` is retired (kept for portraits).
 - **Arenas and scene backgrounds stay painted** (the author, 2026-10-22): the tileset arenas and the
   scene-camera limits were tried and rolled back. Characters and power effects stay pixel art.
+- **Camera: the helicopter view** (the author, 2026-10-22): always high above and a little to the side,
+  one fixed angle (`V.HELI` in core.js) for fights, scenes and heavy arts; shots only move and zoom.
 - **The JavaScript game is the live build** (decided 2026-10-22): it plays on iPhone and PC from the
   published link. The Godot migration plan is shelved; a Godot iPhone build needs a Mac and Xcode.
 - **Goblins are skeleton raiders and the Ogre is a skeleton warlord** (the author, 2026-10-22): the

@@ -37,7 +37,8 @@
     const V = {
       Sim, PAL, FONT, ctx, canvas,
       W: 0, H: 0, dpr: 1, time: 0,
-      cam: { x: 0, y: 0, sc: 40, ang: -0.32, pitch: 0.56, shake: 0, time: 0, horizon: 0.56, ax: 0.5, ay: 0, lift: 0, kx: 0, ky: 0 },
+      HELI: { ang: -0.32, pitch: 0.74 },
+      cam: { x: 0, y: 0, sc: 40, ang: -0.32, pitch: 0.74, shake: 0, time: 0, horizon: 0.56, ax: 0.5, ay: 0, lift: 0, kx: 0, ky: 0 },
       rng: Sim.makeRng(7),
       // Light comes from the upper left of the screen. sx/sy: unit vector toward
       // the light in screen space, used for cel shading and rim light.
@@ -268,6 +269,9 @@
         if (o.ang != null) ang = o.ang;
         if (o.angOff) ang += o.angOff;
       }
+      // The helicopter view (the author's call, 2026-10-22): always high above and a little
+      // to the side, one fixed angle; shots only move and zoom.
+      if (V.HELI) ang = V.HELI.ang;
       let k = c || o ? 0.12 : Math.min(1, dt * 2.2);
       const snap = !!V.cutSnap;
       if (snap) { k = 1; V.cutSnap = false; } // a hard cut
@@ -280,6 +284,7 @@
       // Cutscenes and director shots drop the camera lower for drama.
       const pitchT = o && o.pitch != null ? o.pitch : frame ? frame.pitch : o && o.zoom > 1.3 ? 0.5 : 0.56;
       cam.pitch += (pitchT - cam.pitch) * (snap ? 1 : frame ? 0.2 : Math.min(1, dt * 4));
+      if (V.HELI) cam.pitch = V.HELI.pitch;
       // Where on screen the camera point sits (heavy-art shots frame the
       // caster on a third); the face-off's own camera needs the defaults.
       const axT = frame ? frame.ax : 0.5, ayT = frame ? frame.ay - cam.horizon : 0, liftT = frame ? frame.lift : 0;

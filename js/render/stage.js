@@ -213,8 +213,9 @@
       x += sh.dx || 0; y += sh.dy || 0;
       const ang0 = sh._ang != null ? sh._ang : camOut.ang;
       // up: aim past the subject so it sits lower on screen (frames faces in close-ups)
-      if (sh.up) { x -= Math.sin(ang0) * sh.up; y -= Math.cos(ang0) * sh.up; }
-      const view = Math.max(1.6, (sh.view || 9) + (sh.push || 0) * t);
+      // (from the helicopter view the subject stays centred, and no shot is tighter than 4.2 m)
+      if (sh.up && !V.HELI) { x -= Math.sin(ang0) * sh.up; y -= Math.cos(ang0) * sh.up; }
+      const view = Math.max(V.HELI ? 4.2 : 1.6, (sh.view || 9) + (sh.push || 0) * t);
       const sc = sh.sc || Math.min(W, H) / view;
       const ang = (sh._ang != null ? sh._ang : camOut.ang) + (sh.drift || 0) * t;
       return { x, y, sc, ang, pitch: sh.pitch || 0.52 };
@@ -592,7 +593,7 @@
       // core.js eases pitch toward 0.56 for override shots; pre-compensate so the
       // camera lands on the pitch this shot asks for (lower = more dramatic).
       const k = Math.min(0.9, (dt || 0) * 4);
-      cam.pitch = (camOut.pitch - 0.56 * k) / (1 - k);
+      cam.pitch = V.HELI ? V.HELI.pitch : (camOut.pitch - 0.56 * k) / (1 - k);
       if (shake > 0) { cam.shake = Math.max(cam.shake, shake); shake = 0; }
       pendingCut = null; // eye cut-ins are switched off
       // Balloons and reaction marks are drawn here (post), placed on the real
