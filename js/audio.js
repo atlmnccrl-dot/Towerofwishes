@@ -3,6 +3,10 @@
  *
  *   TowAudio.play(name, volume)   e.g. play('level_up'), play('chest_open', 0.6)
  *   TowAudio.on                   sound on/off (saved), toggled by the menu's Sound button
+ *   TowAudio.sfx(name, vol)       a fight sound (assets/sfx/fight/, made by tools/make_sfx.py); a name
+ *                                 with variants (swish, blow, slash, clang, step) picks one at random
+ *   TowAudio.ambience([names])    the ambience loops that should be playing (assets/sfx/amb/: wind,
+ *                                 fire, night, murmur), cross-faded like the music
  *   TowAudio.music(name | null)   the music that should be playing now; it fades across. Tracks
  *                                 (assets/music/): 'battle' = "Heartfelt Battle" (OpenGameArt, CC0)
  *
@@ -26,8 +30,67 @@
   try { on = localStorage.getItem(KEY) !== 'off'; } catch (e) { /* private mode: default on */ }
   let ctx = null;
   const buffers = {};
-  // Music streams from an <audio> element routed through a gain node (iPhone ignores element volume).
-  const MUSIC = { battle: ['assets/music/heartfelt_battle.mp3', 0.4] };
+  // Fight sounds (decoded once, played with a little pitch variation so repeats don't grate).
+  const FIGHT = { swish: 3, blow: 3, slash: 3, clang: 2, step: 3, blow_big: 0, whoosh: 0, ko: 0, allout: 0, magic: 0, fire: 0, ice: 0, quake: 0, thud: 0, bolt: 0, charge: 0 };
+  const fbuf = {}, lastAt = {};
+  let voices = 0;
+  function loadFight() {
+    for (const [n, k] of Object.entries(FIGHT)) for (const f of k ? [...Array(k).keys()].map((i) => n + '_' + i) : [n]) {
+      fetch('assets/sfx/fight/' + f + '.mp3').then((r) => r.arrayBuffer())
+        .then((b) => new Promise((res, rej) => ctx.decodeAudioData(b, res, rej)))
+        .then((buf) => { fbuf[f] = buf; }).catch(() => {});
+    }
+  }
+  function sfx(name, vol) {
+    if (!on || !ctx || !(name in FIGHT)) return;
+    const now = ctx.currentTime;
+    if (now - (lastAt[name] || -1) < 0.05 || voices > 10) return; // a flurry plays as one, not a roar
+    lastAt[name] = now;
+    const k = FIGHT[name], f = k ? name + '_' + Math.floor(Math.random() * k) : name, buf = fbuf[f];
+    if (!buf) return;
+    const src = ctx.createBufferSource(), g = ctx.createGain();
+    src.buffer = buf; src.playbackRate.value = 0.92 + Math.random() * 0.16;
+    g.gain.value = Math.max(0, Math.min(1, vol == null ? 0.6 : vol));
+    src.connect(g); g.connect(ctx.destination);
+    voices++; src.onended = () => { voices--; };
+    src.start();
+  }
+  // Music and ambience stream from <audio> elements routed through gain nodes (iPhone ignores element volume).
+  // Music cues. A cue without a track yet falls back (boss -> battle) or stays silent: drop a
+  // file in assets/music/ and give it its line here.
+  const MUSIC = { battle: ['assets/music/heartfelt_battle.mp3', 0.4], boss: null, title: null, town: null, story: null, tension: null };
+  const FALLBACK = { boss: 'battle' };
+  const trackFor = (n) => (n && MUSIC[n] ? n : n && FALLBACK[n] && MUSIC[FALLBACK[n]] ? FALLBACK[n] : null);
+  const AMB = { wind: ['assets/sfx/amb/wind.mp3', 0.35], fire: ['assets/sfx/amb/fire.mp3', 0.8], night: ['assets/sfx/amb/night.mp3', 0.3], murmur: ['assets/sfx/amb/murmur.mp3', 0.4] };
+  const ambT = {};
+  let ambWant = [];
+  function ambTrack(n) {
+    if (ambT[n]) return ambT[n];
+    const el = new Audio(AMB[n][0]); el.loop = true; el.preload = 'auto';
+    const g = ctx.createGain(); g.gain.value = 0;
+    ctx.createMediaElementSource(el).connect(g); g.connect(ctx.destination);
+    return (ambT[n] = { el, g, stop: 0 });
+  }
+  function applyAmb() {
+    if (!ctx) return;
+    for (const [n, T] of Object.entries(ambT)) {
+      if (on && ambWant.includes(n)) continue;
+      ramp(T, 0, 1.5); clearTimeout(T.stop);
+      T.stop = setTimeout(() => { if (!ambWant.includes(n) || !on) T.el.pause(); }, 1600);
+    }
+    if (!on) return;
+    for (const n of ambWant) {
+      if (!AMB[n]) continue;
+      const T = ambTrack(n); clearTimeout(T.stop);
+      if (T.el.paused) T.el.play().catch(() => {});
+      ramp(T, AMB[n][1], 2.0);
+    }
+  }
+  function ambience(names) {
+    const w = (names || []).slice().sort();
+    if (w.join() === ambWant.join()) return;
+    ambWant = w; applyAmb();
+  }
   const tracks = {};
   let musName = null;
   function track(n) {
@@ -52,13 +115,13 @@
     if (T.el.paused) { try { T.el.currentTime = 0; } catch (e) { /* not loaded yet */ } T.el.play().catch(() => {}); }
     ramp(T, MUSIC[musName][1], 1.6);
   }
-  function music(name) { if (name === musName) return; musName = name; applyMusic(); }
+  function music(name) { name = trackFor(name); if (name === musName) return; musName = name; applyMusic(); }
   function unlock() {
     if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     ctx = new AC();
-    applyMusic();
+    applyMusic(); applyAmb(); loadFight();
     for (const n of NAMES) {
       fetch('assets/sfx/' + n + '.mp3').then((r) => r.arrayBuffer())
         .then((b) => new Promise((res, rej) => ctx.decodeAudioData(b, res, rej)))
@@ -74,7 +137,7 @@
     src.start();
   }
   function label() { const b = document.getElementById('btn-sound'); if (b) b.textContent = 'Sound: ' + (on ? 'on' : 'off'); }
-  function setOn(v) { on = !!v; try { localStorage.setItem(KEY, on ? 'on' : 'off'); } catch (e) { /* ignore */ } label(); applyMusic(); }
+  function setOn(v) { on = !!v; try { localStorage.setItem(KEY, on ? 'on' : 'off'); } catch (e) { /* ignore */ } label(); applyMusic(); applyAmb(); }
   if (typeof document !== 'undefined') {
     for (const ev of ['pointerdown', 'touchend', 'keydown']) document.addEventListener(ev, unlock, { passive: true });
     document.addEventListener('click', (e) => {
@@ -86,5 +149,6 @@
     }, true);
     document.addEventListener('DOMContentLoaded', label);
   }
-  window.TowAudio = { play, music, get on() { return on; }, set on(v) { setOn(v); } };
+  window.TowAudio = { play, sfx, ambience, music, get on() { return on; }, set on(v) { setOn(v); },
+    get state() { return { music: musName, tracks: Object.keys(tracks), amb: ambWant, ctx: ctx ? ctx.state : null }; } }; // (state: for tests)
 })();

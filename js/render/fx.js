@@ -35,6 +35,40 @@
     const lanceState = new WeakMap(); // cutscene -> {hit: Set of unit ids}
     let GLYPH = '169,139,255', lanceHex = '#a98bff'; const GLYPH_CORE = '#efe8ff';
 
+    // ------------------------------------------------------------ sound (js/audio.js; tools/make_sfx.py)
+    // A blade connects with a slash, fists and clubs with a blow, glyph hands with a spark of magic.
+    const BLUNT = new Set(['none', 'fists', 'cudgel', 'hammer', 'bell', 'branch']);
+    function soundOf(s, e) {
+      const A = window.TowAudio, u = e.u != null && s.byId ? s.byId[e.u] : null;
+      const LOOK = (NS.fighters && NS.fighters.LOOK) || {}, w = u && LOOK[u.key] ? LOOK[u.key].weapon : null;
+      switch (e.type) {
+        case 'hit': {
+          const dmg = e.dmg || 0, v = Math.min(0.9, 0.35 + dmg / 40);
+          if (e.big || dmg >= 18) A.sfx('blow_big', v);
+          if (w === 'glyph' || w === 'hexstick' || w === 'beam') A.sfx('magic', v * 0.6);
+          else if (!w || BLUNT.has(w)) A.sfx('blow', v); else A.sfx('slash', v);
+          break;
+        }
+        case 'whiff': A.sfx('swish', 0.4); break;
+        case 'parry': A.sfx('clang', 0.55); break;
+        case 'dodge': A.sfx('whoosh', 0.35); break;
+        case 'dash': case 'blink': A.sfx('whoosh', 0.22); break;
+        case 'ko': A.sfx('ko', 0.75); break;
+        case 'allout': A.sfx('allout', 0.8); break;
+        case 'bolt': A.sfx('bolt', 0.6); break;
+        case 'flame': A.sfx('fire', 0.55); break;
+        case 'freeze': A.sfx('ice', 0.55); break;
+        case 'thaw': A.sfx('ice', 0.3); break;
+        case 'quake': A.sfx('quake', 0.8); break;
+        case 'thunk': case 'bossBeat': A.sfx('thud', 0.7); break;
+        case 'hazardHit': case 'wallKill': A.sfx('blow_big', 0.8); break;
+        case 'hazard': A.sfx('charge', 0.35); break;
+        case 'cutscene': A.sfx('charge', 0.6); break;
+        case 'fizzle': case 'dissolve': A.sfx('magic', 0.3); break;
+        default: break;
+      }
+    }
+
     // ------------------------------------------------------------ events
     let lastMatch = null, curScene = null;
     function consume(s) {
@@ -42,6 +76,7 @@
       // A new match: drop marks and threads left over from the last one.
       if (s.units && s !== lastMatch) { lastMatch = s; heals = []; hazards = []; hazHits = []; bolts = []; if (PX) PX.clear(); }
       if (px()) for (const e of s.fx) pixelEvent(s, e);
+      if (typeof window !== 'undefined' && window.TowAudio && window.TowAudio.sfx) for (const e of s.fx) soundOf(s, e);
       for (const e of s.fx) {
         if (e.type === 'hit') {
           // Everything scales with the damage: sparks thrown along the blow,
