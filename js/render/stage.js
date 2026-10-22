@@ -23,6 +23,10 @@
  *              notStarter: left out when it is the player's starter. Actions may
  *              name '@' even when the starter is cast under its own key.
  *   ambient    { every: s, do: [actions] }  background life, repeated forever
+ *   crowd      { walkers: n, groups: [[x, y, n], ..], watchers: [n, face], area: [x0, y0, x1, y1] }
+ *              townsfolk who stroll the square, stand and talk in twos and threes, or (watchers)
+ *              stand still facing one way; generated, kept clear of the story's cast
+ *   town       'erdra' | 'ashgate': which city's townsfolk the patrons are
  *   focus      { key: { cam, do: [actions], back: [actions] } }  see focus()
  *   setup      actions applied instantly at the start
  *   cam        the opening shot
@@ -115,6 +119,12 @@
   }
 
   function make(def, Sim) {
+    // Auto-staged scenes carry their options inside def.auto: lift the scene-wide ones out.
+    if (def.auto) {
+      const lift = {};
+      for (const k of ['crowd', 'town', 'ambient']) if (def[k] == null && def.auto[k] != null) lift[k] = def.auto[k];
+      if (Object.keys(lift).length) def = Object.assign({}, def, lift);
+    }
     const DEFS = Sim.DEFS || {};
     const starter = starterKey();
     const cast = [];
@@ -125,10 +135,50 @@
       if (!key || !DEFS[key]) continue;
       cast.push({ id: c.id || (c.key === '@' ? '@' : key), key, x: c.x || 0, y: c.y || 0, f: c.f || 0 });
     }
+    // ---- the town crowd (def.crowd): generated townsfolk, clear of the story's cast
+    const CR = def.crowd || null, crowd = { walkers: [], groups: [] };
+    let crSeed = (def.seed || 7) * 7919 + 13;
+    const crRnd = () => { crSeed = (crSeed * 16807) % 2147483647; return crSeed / 2147483647; };
+    const AR = (Sim.ARENAS && Sim.ARENAS[def.arena || 'clearing']) || { rx: 10, ry: 5, obstacles: [] };
+    const area = (CR && CR.area) || [-AR.rx * 0.9, -AR.ry * 0.85, AR.rx * 0.9, AR.ry * 0.85];
+    const story0 = cast.slice();
+    function freeSpot(away, gap) {
+      for (let k = 0; k < 40; k++) {
+        const x = area[0] + crRnd() * (area[2] - area[0]), y = area[1] + crRnd() * (area[3] - area[1]);
+        if (away.some((p) => Math.hypot(p.x - x, p.y - y) < gap)) continue;
+        if ((AR.obstacles || []).some((o) => o.x != null && Math.hypot(o.x - x, o.y - y) < (o.r || 0.5) + 0.7)) continue;
+        return { x, y };
+      }
+      return { x: area[0] + crRnd() * (area[2] - area[0]), y: area[3] };
+    }
+    if (CR) {
+      let n = 1;
+      const taken = story0.map((c) => ({ x: c.x, y: c.y }));
+      for (const [gx, gy, gn] of CR.groups || []) {
+        const g = { ids: [], x: gx, y: gy, t: 1 + crRnd() * 2 };
+        for (let i = 0; i < gn; i++) {
+          const a = (i / gn) * Math.PI * 2 + crRnd() * 0.5, x = gx + Math.cos(a) * 0.7, y = gy + Math.sin(a) * 0.55, id = 'crowd' + n++;
+          cast.push({ id, key: 'patron', x, y, f: Math.atan2(gy - y, gx - x) });
+          g.ids.push(id); taken.push({ x, y });
+        }
+        crowd.groups.push(g);
+      }
+      if (CR.watchers) {
+        const [wn, wf] = CR.watchers;
+        for (let i = 0; i < wn; i++) { const p = freeSpot(taken, 1.1), id = 'crowd' + n++; cast.push({ id, key: 'patron', x: p.x, y: p.y, f: wf + (crRnd() - 0.5) * 0.5 }); taken.push(p); }
+      }
+      for (let i = 0; i < (CR.walkers || 0); i++) {
+        const p = freeSpot(taken, 1.2), id = 'crowd' + n++;
+        cast.push({ id, key: 'patron', x: p.x, y: p.y, f: crRnd() * 6.28 });
+        crowd.walkers.push({ id, t: crRnd() * 3, speed: 0.55 + crRnd() * 0.5 });
+        taken.push(p);
+      }
+    }
     const hiddenSpare = !cast.length;
     if (hiddenSpare) cast.push({ id: '_spare', key: 'kael', x: 0, y: 0, f: 0 });
     const match = Sim.createMatch({ cast, arena: def.arena || 'clearing', intro: true, seed: def.seed || 7 });
     match.phase = 'stage';
+    match.town = def.town || null;
     match.scenario = def.scenario || 'stage';
     match.cutscene = null;
     const units = match.byId;
@@ -319,6 +369,29 @@
     }
 
     // ---- actions
+    // The town crowd: walkers pick a free spot, stroll there, pause; groups take turns talking.
+    function tickCrowd(dt) {
+      const busy = () => match.units.filter((u) => !u.fled && !/^crowd/.test(u.id)).map((u) => ({ x: u.x, y: u.y }));
+      for (const w of crowd.walkers) {
+        const u = units[w.id];
+        if (!u || u.fled) continue;
+        w.t -= dt;
+        if (w.t > 0) continue;
+        const p = freeSpot(busy(), 1.8), d = Math.hypot(p.x - u.x, p.y - u.y);
+        act({ who: w.id, to: [p.x, p.y], speed: w.speed, gait: 'walk' }, false);
+        w.t = d / w.speed + 1.2 + crRnd() * 3.5;
+      }
+      for (const g of crowd.groups) {
+        g.t -= dt;
+        if (g.t > 0) continue;
+        const id = g.ids[Math.floor(crRnd() * g.ids.length)], u = units[id];
+        g.t = 1.6 + crRnd() * 2.4;
+        if (!u || u.fled) continue;
+        for (const o of g.ids) if (units[o] && o !== id) units[o].gest = crRnd() < 0.5 ? 'cross' : 'hips';
+        u.gest = crRnd() < 0.2 ? 'point' : 'gesture';
+        if (crRnd() < 0.35) act({ who: id, icon: '…' }, false);
+      }
+    }
     function act(a, instant) {
       try { doAct(a, instant); } catch (e) { if (window.console) console.warn('stage action failed', a, e); }
     }
@@ -551,6 +624,7 @@
           while (ambQ.length && (ambQ[0].at || 0) <= ambT) { const x = ambQ.shift(); if (!(inStory && x.say)) act(x, false); }
           if (ambT >= (def.ambient.every || 10)) ambT = 0;
         }
+        if (CR) tickCrowd(dt);
         for (const k in FX) stepEase(FX[k], dt);
         match.glow = FX.glow.v; match.door = FX.door.v; match.reset = FX.reset.v;
         if (rumble.t > 0) { rumble.t -= dt; shake = Math.max(shake, rumble.a); }

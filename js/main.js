@@ -823,7 +823,8 @@
       return;
     }
     // Tap during the face-off to jump to the countdown.
-    if (faceoff && faceoff.t < INTRO.vsEnd) { faceoff.t = INTRO.vsEnd; return; }
+    // (not in its first moments: the tap that ended the scene before must not skip it)
+    if (faceoff && faceoff.t < INTRO.vsEnd) { if (faceoff.t > 1.5) faceoff.t = INTRO.vsEnd; return; }
     if (match && !match.cutscene && !match.result && match.phase === 'fight') {
       const r = $('arena').getBoundingClientRect();
       const hit = renderer.pick(match, e.clientX - r.left, e.clientY - r.top);
@@ -908,6 +909,19 @@
     while (replay.i < replay.inputs.length && match.t >= replay.inputs[replay.i] - 1e-9) { Sim.triggerAllOut(match); replay.i++; }
   }
 
+  // Hold a scene or face-off until every pixel character in it has loaded (at most 4 s), so
+  // nobody pops in halfway through.
+  const castWait = new WeakMap();
+  function castReady(m, dt) {
+    const Sp = window.TowSprites;
+    if (!m || !Sp || !Sp.pixelSetFor || !Sp.forUnit) return true;
+    const w = (castWait.get(m) || 0) + dt;
+    castWait.set(m, w);
+    if (w > 4) return true;
+    const ctx = { scene: !!m.stageHandle, theme: m.arena && m.arena.theme, town: m.town };
+    return m.units.every((u) => u.fled || !Sp.pixelSetFor(u, ctx) || (Sp.forUnit(u, ctx) || {}).ready);
+  }
+
   function frame(now) {
     const real = Math.min(0.05, (now - last) / 1000);
     last = now;
@@ -932,15 +946,16 @@
     }
     if (!match && view === 'story') {
       // Story scenes: a painted backdrop and the typewriter.
-      sceneT += real;
+      const rdt = !stage || castReady(stage.match, real) ? real : 0;
+      sceneT += rdt;
       if (stage) {
-        stage.update(real);
+        stage.update(rdt);
         renderer.setCameraOverride(stage.camera());
         renderer.draw(stage.match, real, true, null);
       } else backdrop.draw(sceneBg, sceneT);
-      autoTick(real);
+      autoTick(rdt);
       if (!$('dialogue').hidden && typing()) {
-        typeT += real;
+        typeT += rdt;
         $('line').textContent = lineFull.slice(0, Math.floor(typeT * 60));
       }
       requestAnimationFrame(frame);
@@ -962,7 +977,7 @@
       attract.log.length = 0;
     } else if (faceoff && !paused && !frozen) {
       // Face-off, then 3-2-1; the fight starts on FIGHT.
-      faceoff.t += real;
+      if (faceoff.t > 0 || castReady(match, real)) faceoff.t += real;
       if (faceoff.t >= INTRO.fight && match.phase !== 'fight') Sim.begin(match);
       if (match.phase === 'fight') {
         acc += real;

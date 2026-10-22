@@ -120,7 +120,7 @@
       accent: '#e3263a', eye: '#ff3a4c', glowEyes: 2, shards: ['#2a1d3a', '#0d0812'],
     },
     veil: {
-      h: 1.8, w: 2.0, build: 2.0, form: 'veil', weapon: 'none', hair: 'hood',
+      h: 1.8, w: 2.0, build: 2.0, form: 'veil', weapon: 'none', hair: 'hood', ghost: 0.92,
       skin: ['#140c18', '#07050a'], hairC: ['#140c18', '#07050a'], hood: ['#140c18', '#07050a'],
       body: ['#140c18', '#07050a'], legs: ['#140c18', '#07050a'], boots: ['#140c18', '#07050a'],
       accent: '#e3263a', eye: '#ffffff',
@@ -708,6 +708,7 @@
       if (fxBody(u, s)) return;
       const pixel = L.form && pixelReady(u, s);
       if (pixel) { /* drawn from the pixel set below */ }
+      else if (L.form && pixelPending(u, s)) { V.shadow(u.x, u.y, u.r * 1.3, 0.35); return; }
       else if (L.form === 'veil') { drawVeil(u, L, sc); return; }
       else if (L.form === 'beast') { drawBeast(u, L, sc); return; }
       else if (L.form === 'golem') { drawGolem(u, L, sc); return; }
@@ -793,12 +794,22 @@
       if (a.phase === 'strike') return at(ph.strike, a.t / Math.max(0.01, a.A.active));
       return at(ph.recover, a.t / Math.max(0.01, a.A.recover));
     }
+    const PXWAIT = new WeakMap();
     function spriteBody(u, L, s, lying) {
       const Sp = window.TowSprites;
       if (!Sp) return false;
       const scene = !!s.stageHandle;
-      const man = Sp.forUnit ? Sp.forUnit(u, { scene, theme: s.arena && s.arena.theme }) : Sp.get(u.key);
-      if (!man || !man.ready) return false;
+      const sctx = { scene, theme: s.arena && s.arena.theme, town: s.town };
+      const man = Sp.forUnit ? Sp.forUnit(u, sctx) : Sp.get(u.key);
+      if (!man || !man.ready) {
+        // A pixel character still loading: just their shadow, never the old drawn body
+        // (for up to 6 s; after that the drawn body stands in, in case the set failed).
+        if (Sp.pixelSetFor && Sp.pixelSetFor(u, sctx)) {
+          const t0 = PXWAIT.get(u) ?? (PXWAIT.set(u, V.time), V.time);
+          if (V.time - t0 < 6) return true;
+        }
+        return false;
+      }
       if (man.pixel) return pixelBody(u, s, lying, man, scene);
       if (scene && ((u.gest && !REST_GEST[u.gest]) || u.prop || u.state === 'sit' || u.state === 'pickup')) return false;
       const has = (n) => !!(man.animations[n] && man.animations[n].frames);
@@ -857,7 +868,7 @@
       if (sx !== 1 || sy !== 1) ctx.scale(sx, sy);
       const flash = u.flash > 0 && 'filter' in ctx;
       if (flash) ctx.filter = 'brightness(2.2)';
-      const look = spriteLook(s, hpx);
+      const look = spriteLook(s, hpx, u);
       for (const smp of smps) Sp.drawFrame(ctx, man, smp, 0, 0, hpx, look);
       if (flash) ctx.filter = 'none';
       ctx.restore();
@@ -887,6 +898,14 @@
       }
       if (u.key !== 'veil' && u.key !== 'calamity') return false;
       if (!PXB && NS.pixelfx) PXB = NS.pixelfx.create(V);
+      if (u.key === 'veil' && pixelReady(u, s)) {
+        // Its body is the shadow silhouette (pixelBody); here only the dark smoke round its feet.
+        if (PXB && PXB.ready() && u.state !== 'out' && !u.fled) {
+          const t = V.time + hashId(u.id) * 0.1;
+          PXB.drawAt('dark_curse', t, u.x, u.y, 0.2, { scale: 2.6, alpha: 0.35 });
+        }
+        return false;
+      }
       if (!PXB || !PXB.ready()) return false;
       if (u.state === 'out' || u.fled) return true;
       const t = V.time + hashId(u.id) * 0.1, a = u.flash > 0 ? 1 : 0.9;
@@ -907,9 +926,16 @@
       }
       return true;
     }
+    // A creature whose pixel set is still loading (shadow only, up to 6 s).
+    function pixelPending(u, s) {
+      const Sp = window.TowSprites, ctx = { scene: !!s.stageHandle, theme: s.arena && s.arena.theme, town: s.town };
+      if (!Sp || !Sp.pixelSetFor || !Sp.pixelSetFor(u, ctx)) return false;
+      const t0 = PXWAIT.get(u) ?? (PXWAIT.set(u, V.time), V.time);
+      return V.time - t0 < 6;
+    }
     function pixelReady(u, s) {
       const Sp = window.TowSprites;
-      const man = Sp && Sp.forUnit && Sp.forUnit(u, { scene: !!s.stageHandle, theme: s.arena && s.arena.theme });
+      const man = Sp && Sp.forUnit && Sp.forUnit(u, { scene: !!s.stageHandle, theme: s.arena && s.arena.theme, town: s.town });
       return !!(man && man.ready && man.pixel);
     }
     // Fitting the pixel cast into the painted arenas: a thin ink outline like the arena's own
@@ -920,7 +946,9 @@
       guildhall: [0.08, '#1e1206'], square: [0.12, '#140a1e'], shadowcity: [0.3, '#06081a'], farmland: [0.08],
       nightcamp: [0.34, '#060a1a'], frosthall: [0.12, '#0a1430'], calamity: [0.18, '#140606'], offering: [0.14, '#1a1004'],
     };
-    function spriteLook(s, hpx) {
+    function spriteLook(s, hpx, u) {
+      // Kharuun is never shown whole: a silhouette of shadow with a faint violet rim.
+      if (u && u.key === 'veil') return { ink: Math.max(2, Math.min(4, hpx / 50)), inkCol: '#6f4fe0', shade: 0.95, shadeCol: '#07040c' };
       const L = LIGHT[s.arena && s.arena.theme] || [0.06];
       return { ink: Math.max(1.2, Math.min(3, hpx / 40)), shade: L[0], shadeCol: L[1] };
     }
@@ -984,7 +1012,8 @@
       else if (timed != null) i = Math.floor(clamp01(timed) * (fr.length - 1));
       else i = Sp.frameIndex(anim, fr.length, A.t, null);
       const smp = { anim: name, dir: r.dir, flip: r.flip, frame: fr[clamp1(i | 0, 0, fr.length - 1)], alpha: 1 };
-      const p = P(u.x, u.y, 0), hpx = 1.78 * V.cam.sc * 0.9 * man.scale;
+      const cs = (Sp.PIXEL_CAST && Sp.PIXEL_CAST[u.key] && Sp.PIXEL_CAST[u.key].scale) || 1;
+      const p = P(u.x, u.y, 0), hpx = 1.78 * V.cam.sc * 0.9 * man.scale * cs;
       const screenFace = Math.cos(face + V.cam.ang) >= 0 ? 1 : -1;
       let rot = 0;
       if (st === 'parry') rot = -0.07 * Math.sin(Math.min(1, u.st / 0.3) * Math.PI) * screenFace;
@@ -994,7 +1023,7 @@
       if (rot) ctx.rotate(rot);
       const flash = u.flash > 0 && 'filter' in ctx;
       if (flash) ctx.filter = 'brightness(2.2)';
-      Sp.drawFrame(ctx, man, smp, 0, 0, hpx);
+      Sp.drawFrame(ctx, man, smp, 0, 0, hpx, spriteLook(s, hpx, u));
       if (flash) ctx.filter = 'none';
       ctx.restore();
       return true;

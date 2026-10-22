@@ -240,7 +240,7 @@
     if (s.flip) ctx.scale(-1, 1);
     const sx = f.x * ss, sy = f.y * ss, sw = f.w * ss, sh = f.h * ss, dx = (f.ox - f.ax) * k, dy = (f.oy - f.ay) * k, dw = f.w * k, dh = f.h * k;
     if (look && look.ink && s.alpha > 0.5) {
-      const ink = flat(f.img, '#120c0e'), o = look.ink;
+      const ink = flat(f.img, look.inkCol || '#120c0e'), o = look.ink;
       for (const [ax, ay] of [[-o, 0], [o, 0], [0, -o], [0, o]]) ctx.drawImage(ink, sx, sy, sw, sh, dx + ax, dy + ay, dw, dh);
     }
     ctx.drawImage(f.img, sx, sy, sw, sh, dx, dy, dw, dh);
@@ -339,7 +339,7 @@
     // The goblins became skeleton raiders and the Ogre a skeleton warlord (the author, 2026-10-22).
     ogre: { set: 'ogre' }, goblinChief: { set: 'ogre' },
     aerys: { set: 'aerys' }, nox: { set: 'nox' }, eloryn: { set: 'eloryn' }, braxen: { set: 'braxen' },
-    skyreaver: { set: 'sky_beast' }, nightCreature: { set: 'nightcrawler' }, ruinBeast: { set: 'hamlet_predator' }, beast: { set: 'caged_creature' },
+    skyreaver: { set: 'sky_beast' }, veil: { set: 'night_creature', scale: 1.8 }, // Kharuun: a living shadow (fighters.js spriteLook), ~2.5x a person nightCreature: { set: 'nightcrawler' }, ruinBeast: { set: 'hamlet_predator' }, beast: { set: 'caged_creature' },
     // Cast of chapters still to come (their keys are ready for when the scenes are built).
     rival: { set: 'rival_kid' }, hooded: { set: 'hooded_follower' }, cassius: { set: 'cassius' }, lyra: { set: 'lyra' },
     lyraGolem: { set: 'golem_a' }, lyraGolem2: { set: 'golem_b' }, frostAssassin: { set: 'frost_assassin' },
@@ -372,7 +372,7 @@
     if (u.key === 'patron') {
       const id = String(u.id || '');
       if (PATRON_ROLES[id]) return PATRON_ROLES[id];
-      const pool = PATRON_POOLS[ERDRA_THEMES[ctx && ctx.theme] ? 'erdra' : 'ashgate'];
+      const pool = PATRON_POOLS[(ctx && ctx.town) || (ERDRA_THEMES[ctx && ctx.theme] ? 'erdra' : 'ashgate')];
       const m = /(\d+)$/.exec(id);
       return pool[(m ? Number(m[1]) : hashStr(id)) % pool.length];
     }

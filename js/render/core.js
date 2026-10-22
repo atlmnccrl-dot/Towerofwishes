@@ -241,8 +241,16 @@
       for (const u of live) spread = Math.max(spread, Math.hypot(u.x - tx, u.y - ty));
       // Fit the fight with a slim margin, and never so wide that the fighters shrink to ants
       // next to the arena's trees and walls (no view wider than about 9 m top to bottom).
-      let sc = Math.min(W / (spread * 2 + 3.6), H / ((spread * 2 + 2.6) * cam.pitch + 2.0));
-      sc = Math.max(Math.min(sc, Math.min(W, H) / 5.6), Math.min(W, H) / 9);
+      // Tall fighters (Kharuun, the warlord, the Skyreaver) need their heads in frame too.
+      let tall = 0;
+      const Sp = window.TowSprites;
+      if (Sp && Sp.forUnit) for (const u of live) {
+        const man = Sp.forUnit(u, { theme: s.arena && s.arena.theme, town: s.town }), cs = Sp.PIXEL_CAST && Sp.PIXEL_CAST[u.key];
+        if (man && man.pixel) tall = Math.max(tall, 1.6 * (man.scale || 1) * ((cs && cs.scale) || 1) - 1.8);
+      }
+      let sc = Math.min(W / (spread * 2 + 3.6), H / ((spread * 2 + 2.6) * cam.pitch + 2.0 + tall * 0.9));
+      if (tall > 0.5) ty -= tall * 0.7 / Math.max(0.3, cam.pitch); // aim a little above the ground
+      sc = Math.max(Math.min(sc, Math.min(W, H) / 5.6), Math.min(W, H) / (9 + tall * 2.5));
       let ang = -0.32 + Math.sin(cam.time * 0.05) * 0.16;
       const c = s.cutscene;
       let frame = null; // heavy-art framing: {ax, ay, lift, pitch}

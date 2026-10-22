@@ -201,7 +201,9 @@
         EI(-9.5, 1.6, 0), AL(5.2, 0.4, W),
         PT('p1', -3, -1.4, 0.4), PT('p2', -1, 2.4, 3.3), PT('p3', 2.2, 1.6, 2.2), PT('p4', -5, 0.2, 0.2), PT('p5', 0.4, -2.2, 3.6),
       ], {
-        noFace: true,
+        noFace: true, town: 'erdra',
+        // the city before the Reset: a full evening square
+        crowd: { walkers: 9, groups: [[-6.2, -2.6, 3], [6.6, 2.9, 2], [1.6, -3.3, 2], [-7.4, 3.2, 2]] },
         ambient: { every: 8, do: [
           { at: 0, who: 'p1', to: [-1.2, -1.2], speed: 0.5 }, { at: 0, who: 'p2', to: [-3, 2.2], speed: 0.5 },
           { at: 0, who: 'p3', to: [3.6, 1.0], speed: 0.45 }, { at: 0, who: 'p4', to: [-2.8, 0.6], speed: 0.5 }, { at: 0, who: 'p5', to: [2.4, -2.0], speed: 0.45 },
@@ -239,6 +241,8 @@
         K(-9.5, 0.6, 0, { armed: true }), EA(-10.8, 1.4, 0),
         PT('p1', -3, -1.8, 0.4), PT('p2', -1, 2.6, 3.3), PT('p3', 2.6, 1.8, 2.2), PT('p4', 4, -2.4, 3.4),
       ], {
+        town: 'ashgate',
+        crowd: { walkers: 7, groups: [[3.4, -3.2, 3], [6.4, 2.8, 2]] },
         nodes: { 'c2.gate': {
           0: { cam: { x: -1, y: 0, view: 11, ang: -0.3, pitch: 0.46, drift: 0.02, ease: 2 }, do: [{ who: 'kael', to: [-3.8, 0.6], speed: 1.1 }, { who: 'eiryn', to: [-5.2, 1.2], speed: 1.1 }] },
           1: { do: [{ who: 'kael', to: [-2.6, 0.6], speed: 0.7 }, { who: 'eiryn', to: [-3.4, 1.4], speed: 0.7, face: 'kael' }] },
@@ -248,6 +252,8 @@
         K(-1.6, 0.4, 0.3), EA(-2.8, 1.2, 0.2), NP('officer', 'officer', 2.6, -0.2, W), NP('guard', 'officer', 3.6, 0.9, W),
         PT('p1', -6.4, -2.2, 0.5), PT('p2', 5.6, -2.4, 2.8),
       ], {
+        town: 'ashgate',
+        crowd: { walkers: 5, groups: [[-6.6, 2.8, 2], [7.4, 1.4, 3]] },
         nodes: { 'c3.tea': {
           0: { cam: { x: -1.6, y: 0.4, view: 7, ang: -0.4, pitch: 0.42, ease: 1.2 }, do: [{ who: 'eiryn', set: { gest: 'cup', prop: 'cup' } }] },
           1: { do: [{ who: 'kael', face: 'officer', icon: '!' }, { who: 'officer', to: [1.0, 0.1], speed: 0.8 }] },
@@ -261,6 +267,8 @@
       'c4.guild': auto('guildhall', [
         K(1.2, 1.2, 0.4), EA(0.4, 2.2, 0.2), NP('registrar', 'registrar', 3.6, -4.2, S), PT('p1', -4.6, 2.4, 0.3), PT('p2', 6.4, 2.0, 2.9),
       ], {
+        town: 'ashgate',
+        crowd: { walkers: 3, groups: [[-5.4, -1.6, 3], [6.0, -0.8, 2]] },
         nodes: { 'c4.guild': {
           0: { cam: { x: 1.0, y: -0.4, view: 9, ang: -0.28, pitch: 0.46, drift: 0.02, ease: 2 }, do: [{ who: 'kael', to: [2.4, -1.4], speed: 1.0 }, { who: 'eiryn', to: [1.8, -0.4], speed: 1.0 }] },
           1: { do: [{ who: 'eiryn', to: [3.6, -2.4], face: 'registrar', speed: 0.8 }, { who: 'kael', to: [2.6, -1.8], face: 'registrar' }] },
@@ -361,7 +369,8 @@
       }),
       // ---- TW-041: Kael steps into the street; every face turned north at the formation
       'c1.street': {
-        arena: 'square',
+        arena: 'square', town: 'ashgate',
+        crowd: { watchers: [8, -Math.PI / 2], area: [-9, -4.4, 9, 4.6] },
         cast: [K(-1.0, 2.4, -Math.PI / 2), PT('p1', 1.4, 0.6, -Math.PI / 2), PT('p2', -2.8, 0.2, -Math.PI / 2 + 0.2), PT('p3', 2.6, -0.8, -Math.PI / 2 - 0.2), PT('p4', -0.2, -1.2, -Math.PI / 2)],
         setup: [{ sky: [0.85, 0] }, { who: 'kael', set: { stow: true, gest: 'cross' } }, { who: 'p1', set: { gest: 'cross' } }, { who: 'p2', set: { gest: 'chin' } }, { who: 'p3', set: { gest: 'hips' } }, { who: 'p4', set: { gest: 'cross' } }],
         cam: { behind: 'kael', side: 0.3, view: 4.2, up: 1.6, pitch: 0.2 },
@@ -375,7 +384,8 @@
       },
       // ---- TW-043: after the failure, nobody knows who cast it; Kael starts north
       'c1.look': {
-        arena: 'square',
+        arena: 'square', town: 'ashgate',
+        crowd: { watchers: [8, -Math.PI / 2], area: [-9, -4.4, 9, 4.6] },
         cast: [K(-0.8, 1.2, -Math.PI / 2), PT('p1', 1.4, 0.6, -Math.PI / 2), PT('p2', -2.8, 0.2, -Math.PI / 2 + 0.2), PT('p3', 2.6, -0.8, -Math.PI / 2 - 0.2), PT('p4', -0.2, -1.2, -Math.PI / 2)],
         setup: [{ sky: [0.15, 0] }, { who: 'kael', set: { stow: true, gest: 'chin' } }, { who: 'p1', set: { gest: 'cross' } }, { who: 'p2', set: { gest: 'chin' } }, { who: 'p3', set: { gest: 'hips' } }, { who: 'p4', set: { gest: 'cross' } }],
         cam: { face: 'kael', side: 0.3, view: 2.6, up: 1.0, pitch: 0.36 },
