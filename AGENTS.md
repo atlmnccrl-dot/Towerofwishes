@@ -53,8 +53,9 @@ Read first: [docs/DESIGN.md](docs/DESIGN.md), [docs/STORY.md](docs/STORY.md),
   node by node, from the staged fight-arena cutscenes to the cinema (`js/render/cinema.js`): a real 3D
   camera (yaw, pitch, first-person shots through a character's eyes) in built sets of solid houses and
   roofs, with the pixel cast as actors. A node with an entry in `window.TowCinema` (js/cinema/*.js) is
-  filmed; every other node keeps its staged scene. First filmed: `p.evening` and `p.overlook` (the
-  first-person rooftop chase: Eiryn runs and leaps, looks back, Alric is chasing her).
+  filmed; every other node keeps its staged scene. Filmed so far: `p.evening`, `p.overlook` (the
+  first-person rooftop chase: Eiryn runs and leaps, looks back, Alric is chasing her) and Chapter One's
+  tavern and street (`c1.tavern`, `c1.formation`, `c1.go`, `c1.street`, `c1.clip`, `c1.look`).
 - **The JavaScript game is the live build** (decided 2026-10-22): it plays on iPhone and PC from the
   published link. The Godot migration plan is shelved; a Godot iPhone build needs a Mac and Xcode.
 - **Goblins are skeleton raiders and the Ogre is a skeleton warlord** (the author, 2026-10-22): the
@@ -86,7 +87,7 @@ Read first: [docs/DESIGN.md](docs/DESIGN.md), [docs/STORY.md](docs/STORY.md),
 | `js/campaign.js` | World map: lands, routes, unlock rules. Pure |
 | `js/progression.js` | Gear, inventory, loot tables, skill trees → per-fighter fight modifiers. Pure |
 | `js/stages.js`, `js/render/stage.js` | Staged story scenes: fighters acting out dialogue on real arenas |
-| `js/render/cinema.js`, `js/cinema/sets.js`, `js/cinema/*.js` | The cinema: filmed story scenes (3D camera with yaw, pitch and first-person shots; solid painted sets; pixel actors; pack effects). `sets.js` builds the places (the square, the rooftops and overlook); the other files hold the shot lists per node, one entry per dialogue line |
+| `js/render/cinema.js`, `js/cinema/*.js` | The cinema: filmed story scenes (3D camera with yaw, pitch and first-person shots; solid painted sets; pixel actors; pack effects). `sets.js` (the square, the rooftops and overlook, and the shared kit) and `ashgate.js` (the tavern, the street, the formation) build the places; `prologue.js` and `c1.js` hold the shot lists per node, one entry per dialogue line |
 | `js/render/overworld.js`, `js/render/inkmap.js` | The world map: layout, stops (wax seals), ink labels, the pin at the current chapter; `inkmap.js` draws the land as an illustrated parchment map (option B, the author's pick 2026-10-22). Without `inkmap.js` it falls back to the pixel overworld (option A, rejected) |
 | `js/render/map.js` | The painted world map (option B; drop the overworld script tag in `index.html` to use it) |
 | `js/render/backdrop.js` | Painted full-screen backgrounds for story scenes |
