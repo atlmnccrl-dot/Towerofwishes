@@ -705,12 +705,14 @@
       // a fighter who has just been floored is still falling for the first moments
       const falling = u.state === 'down' && u.st < 0.22 && !V.introPhase && (L.form == null) && !L.ghost;
       const lying = (u.state === 'down' || u.state === 'out') && !falling;
-      if (L.form === 'veil') { drawVeil(u, L, sc); return; }
-      if (L.form === 'beast') { drawBeast(u, L, sc); return; }
-      if (L.form === 'golem') { drawGolem(u, L, sc); return; }
-      if (L.form === 'flyer') { drawFlyer(u, L, sc, s); return; }
-      if (L.form === 'crawler') { drawCrawler(u, L, sc); return; }
-      if (L.form === 'seraph') { drawSeraph(u, L, sc, s); return; }
+      const pixel = L.form && pixelReady(u, s);
+      if (pixel) { /* drawn from the pixel set below */ }
+      else if (L.form === 'veil') { drawVeil(u, L, sc); return; }
+      else if (L.form === 'beast') { drawBeast(u, L, sc); return; }
+      else if (L.form === 'golem') { drawGolem(u, L, sc); return; }
+      else if (L.form === 'flyer') { drawFlyer(u, L, sc, s); return; }
+      else if (L.form === 'crawler') { drawCrawler(u, L, sc); return; }
+      else if (L.form === 'seraph') { drawSeraph(u, L, sc, s); return; }
       if (L.coldGlow && u.state !== 'out') coldPool(u, L, sc);
       V.shadow(u.x, u.y, u.r * 1.3 * (lying ? 1.7 : 1) * L.build ** 0.5 / (L.build > 1.6 ? 1.2 : 1), L.ghost ? 0.25 : L.float && !lying ? 0.28 : 0.42);
       // Whose side: a ring on the ground, blue for the team, red for the foe; the one you follow is brighter.
@@ -868,6 +870,11 @@
     //   a won fight -> the taunt. Scenes: sitting -> crouched behind the table, pointing -> the
     //   hand thrust held, other gestures -> the relaxed idle. Frames don't crossfade (pixel art).
     const clamp01 = (v) => clamp1(v, 0, 1);
+    function pixelReady(u, s) {
+      const Sp = window.TowSprites;
+      const man = Sp && Sp.forUnit && Sp.forUnit(u, { scene: !!s.stageHandle, theme: s.arena && s.arena.theme });
+      return !!(man && man.ready && man.pixel);
+    }
     function pixelBody(u, s, lying, man, scene) {
       const Sp = window.TowSprites;
       const has = (n) => !!man.animations[n];
@@ -881,7 +888,10 @@
       if (art) { name = 'heavy'; }
       else if (st === 'out') name = 'ko';
       else if (st === 'down') { name = 'down'; timed = u.st / Math.max(0.3, u.dur || 1.2); }
-      else if (st === 'attack') name = u.combo % 2 === 1 && has('attack2') ? 'attack2' : 'attack';
+      else if (st === 'attack') {
+        const A = u.act && u.act.A;
+        name = A && A.slam && has('slam') ? 'slam' : man.attacks && man.attacks.length ? man.attacks[(u.combo || 0) % man.attacks.length] : 'attack';
+      }
       else if (st === 'cast') { name = 'cast'; timed = u.st / Math.max(0.2, u.dur || 0.6); }
       else if (st === 'hurt' || st === 'stagger') { name = 'hit'; timed = u.st / Math.max(0.2, u.dur || 0.4); }
       else if (st === 'dodge') { name = 'dodge'; timed = u.st / Math.max(0.2, u.dur || 0.44); face = u.dodgeDir == null ? face : u.dodgeDir; }

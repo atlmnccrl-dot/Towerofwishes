@@ -109,7 +109,10 @@ for (const set of ['kael_sword', 'eiryn', 'eiryn_branch', 'bandit_broad', 'bandi
   assert.ok(Sp.PATRON_POOLS.ashgate.includes(f({ key: 'patron', id: 'p2' }, { theme: 'tavern' })), 'Ashgate regulars after');
   assert.notStrictEqual(f({ key: 'patron', id: 'p1' }, { theme: 'tavern' }), f({ key: 'patron', id: 'p2' }, { theme: 'tavern' }), 'neighbours differ');
   assert.strictEqual(f({ key: 'patron', id: 'guard' }), 'guard_gate');
-  assert.strictEqual(f({ key: 'aerys' }), null, 'no pixel art yet: keeps the drawn body');
+  assert.strictEqual(f({ key: 'aerys' }), 'aerys');
+  assert.strictEqual(f({ key: 'ogre' }), 'ogre', 'the skeleton warlord');
+  assert.strictEqual(f({ key: 'patron', id: 'victim' }), 'nox_target');
+  assert.strictEqual(f({ key: 'calamity' }), null, 'no pixel art yet: keeps the drawn body');
 }
 
 // Running sideways uses the side walk when the run isn't drawn that way; the front run when it is.

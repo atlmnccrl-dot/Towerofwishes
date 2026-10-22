@@ -19,13 +19,14 @@ DIRS = ['E', 'SE', 'S', 'SW', 'W', 'NW', 'N', 'NE']
 CELL, PAGE = 128, 2048
 
 FIGHT = ['Idle', 'Idle2', 'Idle3', 'Idle4', 'Walk', 'Run', 'StrafeLeft', 'StrafeRight', 'RunBackwards',
-         'Attack1', 'Attack2', 'Attack4', 'Attack5', 'Kick', 'Special1', 'Rolling', 'TakeDamage',
+         'Attack1', 'Attack2', 'Attack3', 'Attack4', 'Attack5', 'Attack6', 'Kick', 'Special1', 'Rolling', 'TakeDamage',
          'Slide', 'Die', 'Taunt', 'CrouchIdle']
 NPC = ['Idle', 'Idle2', 'Idle3', 'Walk', 'Run', 'Attack5', 'Rolling', 'TakeDamage', 'Slide', 'Die',
        'Taunt', 'CrouchIdle', 'CrouchRun']
 NPC_SETS = {'erdra_baker', 'erdra_f1', 'erdra_f2', 'erdra_m1', 'erdra_m2', 'erdra_musician', 'erdra_vendor',
             'ashgate_f1', 'ashgate_m1', 'ashgate_m2', 'tavern_keeper', 'shopkeeper', 'registrar',
-            'evaluator', 'miller', 'guard_officer'}
+            'evaluator', 'miller', 'guard_officer', 'sword_smith', 'nox_target', 'labyrinth_citizen',
+            'merchant_recurring', 'demon_dealer', 'hamlet_people', 'beastfolk_f', 'hooded_follower'}
 NO_STRIP = {'fragment'}  # a black silhouette: its own dark pixels are not a shadow
 
 

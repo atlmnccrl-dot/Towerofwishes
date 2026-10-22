@@ -25,14 +25,14 @@ To add one: copy its folder to `art_source/characters/<set>/`, run `python3 tool
 | standing (scene) | Idle; other gestures Idle2; pointing Attack5 held |
 | walking, running | Walk, Run (pace matched to the ground speed) |
 | circling a foe | StrafeLeft / StrafeRight; backing off RunBackwards |
-| attack | the set's attacks (Kael Attack1 → Attack2 in a combo; fists, grabs and Eiryn's push Attack5). The wind-up stretches to the fight's wind-up and the blow lands on the clip's contact frame |
-| cast (Eiryn's failed glyphs) | Attack5 |
+| attack | the set's attacks, cycled through a combo (Kael Attack1 → Attack2; Nox Attack1 → Attack2 → Attack6; fists, grabs, Eiryn's push and Aerys's bolt Attack5; the warlord's ground slam Attack4). The wind-up stretches to the fight's wind-up and the blow lands on the clip's contact frame |
+| cast | Attack5 (Eiryn's failed glyphs); Attack3 (Eloryn's two-handed heal) |
 | parry | Idle4 with a lean back |
 | hurt, stagger | TakeDamage |
 | dodge | Rolling |
 | knocked down | Slide (falls and gets back up) |
 | defeated | Die (holds the last frame) |
-| heavy art (cutscene) | Special1, its contact frame on the impact |
+| heavy art (cutscene) | Special1 (Aerys and Eloryn: Attack3), its contact frame on the impact |
 | won fight | Taunt |
 | sitting, picking up | CrouchIdle (behind the table) |
 
@@ -50,10 +50,17 @@ To add one: copy its folder to `art_source/characters/<set>/`, run `python3 tool
 | Spearwoman, tavern keeper | `spearwoman`, `tavern_keeper` |
 | Gate guard, guard officer | `guard_gate`, `guard_officer` |
 | Shopkeeper, registrar, evaluator, miller | `shopkeeper`, `registrar`, `evaluator`, `miller` |
-| Goblins (stand-ins: skeleton raiders) | `goblin`, `goblin_spear`, `goblin_archer`, `goblin_hexer` |
+| Aerys; Nox; Eloryn; Braxen | `aerys` (`aerys_spear` for the Spear of Light); `nox`; `eloryn`; `braxen` (`braxen_frost` after Floor One) |
+| Skeleton raiders (were goblins) | `goblin`, `goblin_spear`, `goblin_archer`, `goblin_hexer` |
+| Skeleton Warlord (was the Ogre; ×1.8); the raider chief | `ogre` |
+| Skyreaver (×2.1); Night Creature (×1.5) | `sky_beast`; `nightcrawler` |
+| Ruin beasts; the Stray | `hamlet_predator`; `caged_creature` |
+| Nox's target; the road merchant; the sword-shop owner | `nox_target`; `merchant_recurring`; `sword_smith` |
+| Later chapters (ready, not in scenes yet) | `rival_kid` (×0.9), `hooded_follower`, `cassius`, `lyra`, `golem_a`, `golem_b`, `frost_assassin`, `caged_creature`, `night_creature`, `hamlet_people`, `hamlet_predator`, `beastfolk_m`, `beastfolk_f`, `labyrinth_citizen`, `demon_dealer`, `guild_adventurer` |
 
-Not yet built: Aerys, Nox, Eloryn, Braxen, the Ogre, beasts and the later cast. They keep their
-drawn bodies until their sets arrive.
+Creature sets are stand-ins built on the creator's person body, scaled up in the game.
+Not yet built: Calamity, the knights, Kharuun, the Practice Block, the thugs and other later foes.
+They keep their drawn bodies until their sets arrive.
 
 ## Not in the creator
 

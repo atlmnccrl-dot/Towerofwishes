@@ -907,7 +907,7 @@
       },
       // Two goblins appear above the path...
       {
-        line: 'two goblins appear',
+        line: 'two skeletons appear',
         cam: { x: 1.0, y: -0.6, view: 8.4, ang: -0.3, pitch: 0.5, drift: 0.01, ease: 0.9 },
         do: [
           { who: 'spear', show: true, path: [[5.0, -3.0], [2.0, -0.6]], gait: 'run' },

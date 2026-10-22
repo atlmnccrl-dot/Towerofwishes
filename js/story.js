@@ -452,10 +452,10 @@
     'c4.board': {
       type: 'scene', chapter: 'c4', bg: 'guild', next: 'c5.mill',
       lines: [
-        N('The contract board: road repairs, missing cargo, an escort to the coast. Then a smaller notice — goblins raiding a mill’s grain store, holed up in an abandoned quarry.'),
+        N('The contract board: road repairs, missing cargo, an escort to the coast. Then a smaller notice — skeletons raiding a mill’s grain store, holed up in an abandoned quarry.'),
         B('eiryn', 'That looks straightforward.'),
         B('kael', 'It’s an early contract. Small group reported, no deaths, stolen food and tools.'),
-        S('@', { ren: 'Goblins. I can be up that hill before they know we’re there.', mara: 'Goblins scatter from force bolts. This is my kind of contract.', brannoc: 'Goblins in a quarry. Narrow paths. I’ll take the front.' }),
+        S('@', { ren: 'Skeletons. I can be up that hill before they know we’re there.', mara: 'Skeletons scatter from force bolts. This is my kind of contract.', brannoc: 'Skeletons in a quarry. Narrow paths. I’ll take the front.' }),
       ],
     },
     // ---------------------------------------------------------- chapter five
@@ -465,17 +465,17 @@
         B('miller', 'They’ve been coming after dark. First the grain. Then a box of tools. My youngest tried to chase them and came back with a cut on his arm.'),
         KB('How many?'),
         B('miller', 'Four, maybe five. Hard to count when they’re running through the sheds.'),
-        EB('You said goblins are usually manageable.'),
+        EB('You said skeletons are usually manageable.'),
         KB('They are. One at a time. They get more confident in groups, which is why we don’t let them decide where the fight happens.'),
       ],
     },
     'c5.path': {
       type: 'scene', chapter: 'c5', bg: 'hill', next: 'c5.pathfight',
       lines: [
-        N('A goblin squats by a stolen sack, tearing at the stitching with its teeth. It looks up and lets out a sharp cry.'),
+        N('A skeleton squats by a stolen sack, tearing at the stitching with its teeth. It looks up and lets out a sharp cry.'),
         N('From higher on the hill comes an answering cry.'),
         EB('And now the rest know we’re here.'),
-        N('Two goblins appear above the path, one with a short spear and the other with a rough wooden bow. A third drops out of the scrub.'),
+        N('Two skeletons appear above the path, one with a short spear and the other with a rough wooden bow. A third drops out of the scrub.'),
         KB('Down!'),
         only((st) => !hasKael(st), S('@', 'Get down!')),
       ],
@@ -491,7 +491,7 @@
       lines: [
         N('At the cave mouth: the miller’s grain, a faded loading frame, and a set of narrow three-toed footprints. One print, half under a cart rut, is much larger.'),
         KB('We go far enough to see what they’ve taken. Then we decide whether to clear the place or come back with a bigger party.'),
-        N('Rotting food, wet hides, smoke. Stolen crates against the far wall; a stone basin of dirty water. The archer has joined two goblins by a cooking fire.'),
+        N('Rotting food, wet hides, smoke. Stolen crates against the far wall; a stone basin of dirty water. The archer has joined two skeletons by a cooking fire.'),
         N('For a moment nobody moves. Then the archer points and shouts.'),
       ],
     },
@@ -503,7 +503,7 @@
     'c5.tracks': {
       type: 'scene', chapter: 'c5', bg: 'cave', next: 'c5.ogre',
       lines: [
-        N('Two goblins bolt into the deeper passage. The chamber goes quiet apart from the crackle of damp wood.'),
+        N('Two skeletons bolt into the deeper passage. The chamber goes quiet apart from the crackle of damp wood.'),
         EB('At least we found what they came for.'),
         N('The wet earth by the deeper passage is churned by the same large tracks, and the stone around the opening is scraped well above head height.'),
         KB('Eiryn, I think we’re leaving.'),
@@ -514,8 +514,8 @@
     'c5.ogre': {
       type: 'scene', chapter: 'c5', bg: 'cave', next: 'c5.ogrefight',
       lines: [
-        N('A thick hand closes round the edge of the passage. Then a shoulder, and an enormous figure forces its way into the chamber.'),
-        N('Its skin is the color of old, weathered stone. A heavy wooden beam rests across its shoulder — part of the loading frame outside.'),
+        N('A bony hand closes round the edge of the passage. Then a shoulder, and an enormous figure forces its way into the chamber.'),
+        N('Old bone shows between plates of iron and fur, the color of weathered stone. A horned helm. A heavy war maul rests across its shoulder.'),
         KB('That was not in the contract.'),
         only((st) => !hasKael(st), S('@', 'That was not in the contract.')),
         KB('Make it look at me.'),
@@ -524,13 +524,13 @@
     'c5.ogrefight': {
       type: 'battle', chapter: 'c5', scenario: 'ogre', wounds: true, xp: 150,
       party: (st) => quarryParty(st), mods: () => ({ approach: 'ready' }), win: 'c5.after',
-      outro: 'The ogre is down. Dust drifts from the cave roof.',
+      outro: 'The warlord is down. Dust drifts from the cave roof.',
     },
     'c5.after': {
       type: 'scene', chapter: 'c5', bg: 'hill', next: 'c5.home',
       lines: [
-        only(hasEiryn, N('Eiryn draws the force into a narrow path. The ogre strikes the quarry wall hard enough to drive splintered stone from the rock face. It does not move again.')),
-        only((st) => !hasEiryn(st), N('The ogre staggers back into the quarry wall and folds. It does not move again.')),
+        only(hasEiryn, N('Eiryn draws the force into a narrow path. The warlord strikes the quarry wall hard enough to drive splintered stone from the rock face. It does not move again.')),
+        only((st) => !hasEiryn(st), N('The warlord staggers back into the quarry wall and folds. It does not move again.')),
         only(both, B('kael', 'You could have told me you were capable of that.')),
         only(both, B('eiryn', 'I did.')),
         only(both, B('kael', 'You said you could stop it.')),
@@ -549,7 +549,7 @@
         N('The Guild records the discrepancy and pays the contract with a hazard supplement.'),
         EB('We should look for another contract once you’re fit.'),
         KB('Something genuinely small this time.'),
-        EB('I shall ask every goblin I meet whether it has one hidden in a cupboard.'),
+        EB('I shall ask every skeleton I meet whether it has one hidden in a cupboard.'),
         N('Far to the east, the Tower still stands. The road there starts at the Guild’s contract board.'),
       ],
     },
@@ -597,7 +597,7 @@
     hire: { title: 'Three for Hire', kind: 'side', from: 'hire.intro', repeat: true },
     toll: { title: 'The Toll Bridge', kind: 'contract', from: 'toll.board' },
     orchard: { title: 'Wolves in the Orchard', kind: 'contract', from: 'orchard.board' },
-    warren: { title: 'The Goblin Warren', kind: 'contract', from: 'warren.board' },
+    warren: { title: 'The Skeleton Warren', kind: 'contract', from: 'warren.board' },
   };
   Object.assign(NODES, {
     // ---- the tavern by the Guild: Ren, Mara and Brannoc take contracts with you
@@ -685,8 +685,8 @@
       lines: [
         B('kael', 'We said something genuinely small this time.'),
         B('companion', 'It was small. Then it was a warren.'),
-        N('The goblins from the quarry did not all die in the cave. The Guild has found where the rest went: a hollow under the old quarry road, dug deeper than any goblin should dig. A chief has been seen, wearing a grain sack as a cloak.'),
-        B('eiryn', 'I shall ask every goblin whether it has one hidden in a cupboard.'),
+        N('The skeletons from the quarry did not all die in the cave. The Guild has found where the rest went: a hollow under the old quarry road, dug deeper than any skeleton should dig. A chief has been seen, wearing a grain sack as a cloak.'),
+        B('eiryn', 'I shall ask every skeleton whether it has one hidden in a cupboard.'),
       ],
     },
     'warren.fight': {
@@ -815,7 +815,7 @@
     'deep.mouth': {
       type: 'scene', chapter: 'side', bg: 'cave', next: 'deep.1',
       lines: [
-        N('The two goblins that fled went deeper. The passage behind the ogre’s chamber goes down into the hill.'),
+        N('The two skeletons that fled went deeper. The passage behind the warlord’s chamber goes down into the hill.'),
         B('kael', 'We go far enough to see what they’ve taken. Then we decide.'),
         N('Three chambers. No way to rest between them, unless you make one.'),
       ],
@@ -839,7 +839,7 @@
     },
     'deep.end': {
       type: 'scene', chapter: 'side', bg: 'cave', next: 'map',
-      lines: [N('The goblins’ hoard: stolen tools, a sack of coins, and things they took from people who never reported them.')],
+      lines: [N('The skeletons’ hoard: stolen tools, a sack of coins, and things they took from people who never reported them.')],
     },
   });
 

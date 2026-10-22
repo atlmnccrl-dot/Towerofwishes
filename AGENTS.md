@@ -43,6 +43,8 @@ Read first: [docs/DESIGN.md](docs/DESIGN.md), [docs/STORY.md](docs/STORY.md),
   fight). The earlier anime sprite in `assets/characters/eiryn/` is retired (kept for portraits).
 - **The JavaScript game is the live build** (decided 2026-10-22): it plays on iPhone and PC from the
   published link. The Godot migration plan is shelved; a Godot iPhone build needs a Mac and Xcode.
+- **Goblins are skeleton raiders and the Ogre is a skeleton warlord** (the author, 2026-10-22): the
+  on-screen names and story text say so; internal keys (`goblin`, `ogre`) are unchanged.
 - Landscape only.
 - Heavy arts are cutscenes. Normal specials keep the standard battle camera.
 - Protected: the prologue's painted skyfire-and-flood Reset shot and other approved cinematics.

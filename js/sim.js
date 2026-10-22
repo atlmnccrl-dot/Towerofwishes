@@ -414,25 +414,25 @@
     },
     // ---- Chapter Five: goblins and the ogre.
     goblin: {
-      name: 'Goblin', team: 'bandit', r: 0.3, hp: 58, sta: 100, speed: 4.7,
+      name: 'Skeleton Raider', team: 'bandit', r: 0.3, hp: 58, sta: 100, speed: 4.7,
       react: 0.24, read: 0.3, parry: 0, dodge: 0.4, feint: 0.2, morale: 0.75, opener: 'dip',
       attack: { name: 'Stab', range: 1.2, arc: 1.3, windup: 0.3, active: 0.08, recover: 0.35, dmg: [10, 13], knock: 0.4, lunge: 0.6, sta: 10 },
       barks: {}, intro: { epithet: 'Grain thief', line: null },
     },
     goblinSpear: {
-      name: 'Goblin Spearman', team: 'bandit', r: 0.32, hp: 70, sta: 100, speed: 4.3,
+      name: 'Skeleton Spearman', team: 'bandit', r: 0.32, hp: 70, sta: 100, speed: 4.3,
       react: 0.26, read: 0.3, parry: 0, dodge: 0.3, feint: 0.15, morale: 0.85, opener: 'advance',
       attack: { name: 'Spear Thrust', range: 1.95, arc: 1.0, windup: 0.46, active: 0.1, recover: 0.45, dmg: [13, 16], knock: 0.8, lunge: 0.8, sta: 12 },
       barks: {}, intro: { epithet: 'Holds the narrow path', line: null },
     },
     goblinArcher: {
-      name: 'Goblin Archer', team: 'bandit', r: 0.3, hp: 48, sta: 100, speed: 4.5,
+      name: 'Skeleton Archer', team: 'bandit', r: 0.3, hp: 48, sta: 100, speed: 4.5,
       react: 0.25, read: 0.35, parry: 0, dodge: 0.45, feint: 0, morale: 0.6, ranged: true, keepAway: 6, opener: 'hangback',
       attack: { name: 'Arrow', range: 9, arc: 0.6, windup: 0.7, active: 0.05, recover: 0.5, dmg: [11, 14], knock: 0.4, sta: 0, projectile: 15 },
       barks: {}, intro: { epithet: 'A rough wooden bow', line: null },
     },
     ogre: {
-      name: 'Ogre', team: 'bandit', r: 0.78, hp: 560, sta: 200, speed: 3.0,
+      name: 'Skeleton Warlord', team: 'bandit', r: 0.78, hp: 560, sta: 200, speed: 3.0,
       react: 0.45, read: 0.1, parry: 0, dodge: 0, feint: 0, morale: 99, noFlee: true, boss: true, punisher: true, cleave: true, opener: 'advance',
       // Poise (Director's Bible S13): ordinary hits don't interrupt it; only All Out and heavy arts
       // stagger it, at most once every `poise` seconds. It swings again soon after recovering
@@ -477,13 +477,13 @@
       barks: {}, intro: { epithet: 'A stone block, glyph-driven', line: null },
     },
     goblinHexer: {
-      name: 'Goblin Hexer', team: 'bandit', r: 0.3, hp: 60, sta: 100, speed: 4.2,
+      name: 'Skeleton Hexer', team: 'bandit', r: 0.3, hp: 60, sta: 100, speed: 4.2,
       react: 0.25, read: 0.35, parry: 0, dodge: 0.45, feint: 0, morale: 0.7, ranged: true, keepAway: 5.5, opener: 'hangback',
       attack: { name: 'Stolen Glyph', range: 8, arc: 0.6, windup: 0.75, active: 0.05, recover: 0.5, dmg: [13, 16], knock: 1.2, sta: 0, projectile: 13 },
       barks: {}, intro: { epithet: 'Scratches glyphs it copied', line: null },
     },
     goblinChief: {
-      name: 'Goblin Chief', team: 'bandit', r: 0.46, hp: 340, sta: 160, speed: 4.4,
+      name: 'Skeleton Chief', team: 'bandit', r: 0.46, hp: 340, sta: 160, speed: 4.4,
       react: 0.24, read: 0.4, parry: 0.3, dodge: 0.25, feint: 0.3, morale: 99, noFlee: true, boss: true, punisher: true, opener: 'advance',
       attack: { name: 'Miller’s Cleaver', range: 1.6, arc: 1.7, windup: 0.5, active: 0.1, recover: 0.5, dmg: [20, 27], knock: 1.4, lunge: 0.6, sta: 14 },
       barks: {}, intro: { epithet: 'Wears a grain sack as a cloak', line: null },
@@ -723,7 +723,7 @@
       ],
     },
     warren: {
-      chapter: 'Guild contract', title: 'The Goblin Warren', arena: 'cave', allOutUses: 2, vs: 'goblinChief', scale: { hp: 1.1, dmg: 1.2 },
+      chapter: 'Guild contract', title: 'The Skeleton Warren', arena: 'cave', allOutUses: 2, vs: 'goblinChief', scale: { hp: 1.1, dmg: 1.2 },
       units: [
         { slot: 0, x: 6.6, y: 0.6, f: 3.1 }, { slot: 1, x: 7.2, y: 2.0, f: 3.1 }, { slot: 2, x: 7.4, y: -0.8, f: 3.1 },
         { key: 'goblin', x: -1.0, y: -1.6, f: 0 }, { key: 'goblin', x: -1.4, y: 1.8, f: 0 }, { key: 'goblinSpear', x: -2.6, y: 0.2, f: 0 },

@@ -263,6 +263,8 @@
     Attack5: { windup: [0, 2], strike: [3, 3], recover: [4, 14] },
     Kick: { windup: [0, 6], strike: [7, 7], recover: [8, 14] },
     Special1: { windup: [0, 9], strike: [10, 10], recover: [11, 14] },
+    Attack3: { windup: [0, 6], strike: [7, 7], recover: [8, 14] },
+    Attack6: { windup: [0, 5], strike: [6, 6], recover: [7, 14] },
   };
   // Per set: its basic attacks (alternated through a combo), the cast clip, the stance it
   // waits in, and a size against the others (the broad bandit is wider than Kael).
@@ -274,6 +276,25 @@
     goblin_hexer: { attacks: ['Attack5'], cast: 'Attack5' },
     alric: { attacks: ['Attack5'] },
     alric_beast: { scale: 1.4 },
+    // The party: Aerys fires light from her palms, Eloryn heals with both hands, Nox's daggers
+    // chain three cuts, Braxen fights with his fists.
+    aerys: { attacks: ['Attack5'], cast: 'Attack5', heavy: 'Attack3' },
+    aerys_spear: { attacks: ['Attack6', 'Attack1'], heavy: 'Attack5' },
+    eloryn: { attacks: ['Attack5'], cast: 'Attack3', heavy: 'Attack3' },
+    nox: { attacks: ['Attack1', 'Attack2', 'Attack6'] },
+    braxen: { attacks: ['Attack5', 'Attack1', 'Kick'] }, braxen_frost: { attacks: ['Attack5', 'Attack1', 'Kick'] },
+    rival_kid: { scale: 0.9 }, hooded_follower: { scale: 0.9 },
+    lyra: { attacks: ['Attack5'], cast: 'Attack3', heavy: 'Attack3' },
+    cassius: { attacks: ['Attack1', 'Attack2', 'Kick'] },
+    frost_assassin: { attacks: ['Attack1', 'Attack6'], cast: 'Attack3' },
+    // Big ones (stand-ins built on the person body, scaled to the creature's size).
+    ogre: { scale: 1.8, slam: 'Attack4' },
+    sky_beast: { scale: 2.1 },
+    nightcrawler: { scale: 1.5 },
+    hamlet_predator: { scale: 1.1 },
+    caged_creature: { scale: 1.5 },
+    night_creature: { scale: 1.4 },
+    golem_a: { scale: 1.5, attacks: ['Attack5', 'Attack4'] }, golem_b: { scale: 1.5, attacks: ['Attack5', 'Attack4'] },
   };
   // Sim / look key -> set. fight / scene: different sets in fights and staged scenes;
   // armed: the set once a fighter who starts unarmed has picked up a weapon.
@@ -285,9 +306,20 @@
     spearwoman: { set: 'spearwoman' }, cook: { set: 'tavern_keeper' }, miller: { set: 'miller' },
     officer: { set: 'guard_officer' }, registrar: { set: 'registrar' }, evaluator: { set: 'evaluator' },
     goblin: { set: 'goblin' }, goblinSpear: { set: 'goblin_spear' }, goblinArcher: { set: 'goblin_archer' }, goblinHexer: { set: 'goblin_hexer' },
+    // The goblins became skeleton raiders and the Ogre a skeleton warlord (the author, 2026-10-22).
+    ogre: { set: 'ogre' }, goblinChief: { set: 'ogre' },
+    aerys: { set: 'aerys' }, nox: { set: 'nox' }, eloryn: { set: 'eloryn' }, braxen: { set: 'braxen' },
+    skyreaver: { set: 'sky_beast' }, nightCreature: { set: 'nightcrawler' }, ruinBeast: { set: 'hamlet_predator' }, beast: { set: 'caged_creature' },
+    // Cast of chapters still to come (their keys are ready for when the scenes are built).
+    rival: { set: 'rival_kid' }, hooded: { set: 'hooded_follower' }, cassius: { set: 'cassius' }, lyra: { set: 'lyra' },
+    lyraGolem: { set: 'golem_a' }, lyraGolem2: { set: 'golem_b' }, frostAssassin: { set: 'frost_assassin' },
+    nightcrawler: { set: 'nightcrawler' }, cagedCreature: { set: 'caged_creature' }, hamletPredator: { set: 'hamlet_predator' },
+    healingCreature: { set: 'night_creature' }, beastfolk: { set: 'beastfolk_m' }, beastfolkF: { set: 'beastfolk_f' },
+    hamlet: { set: 'hamlet_people' }, citizen: { set: 'labyrinth_citizen' }, dealer: { set: 'demon_dealer' },
+    swordsmith: { set: 'sword_smith' }, adventurer: { set: 'guild_adventurer' }, braxenFrost: { set: 'braxen_frost' },
   };
   // Townsfolk (key 'patron'): named roles by id, else one of the town's people by id.
-  const PATRON_ROLES = { guard: 'guard_gate', merchant: 'shopkeeper', keeper: 'tavern_keeper', grower: 'miller' };
+  const PATRON_ROLES = { guard: 'guard_gate', merchant: 'merchant_recurring', shopkeeper: 'shopkeeper', keeper: 'tavern_keeper', grower: 'miller', victim: 'nox_target', smith: 'sword_smith' };
   const PATRON_POOLS = {
     erdra: ['erdra_m1', 'erdra_f1', 'erdra_m2', 'erdra_f2', 'erdra_vendor', 'erdra_baker', 'erdra_musician'],
     ashgate: ['ashgate_m1', 'ashgate_f1', 'ashgate_m2', 'ashgate_f2'],
@@ -335,10 +367,15 @@
     for (const [name, [clip, fps, loop]] of Object.entries(PIXEL_CLIPS)) { const a = build(clip, fps, loop); if (a) man.animations[name] = a; }
     if (cfg.stance) man.animations.idle = man.animations.idle_combat = build(cfg.stance, 8);
     const atk = cfg.attacks || ['Attack1', 'Attack2'];
-    atk.forEach((clip, i) => { const a = build(clip, 14, false, PIXEL_PHASES[clip]); if (a) man.animations[i ? 'attack' + (i + 1) : 'attack'] = a; });
+    man.attacks = [];
+    atk.forEach((clip, i) => { const a = build(clip, 14, false, PIXEL_PHASES[clip]); if (a) { const n = i ? 'attack' + (i + 1) : 'attack'; man.animations[n] = a; man.attacks.push(n); } });
     const cast = build(cfg.cast || 'Attack5', 14, false, PIXEL_PHASES[cfg.cast || 'Attack5']);
     if (cast) man.animations.cast = cast;
-    if (man.animations.heavy) man.animations.heavy.phases = PIXEL_PHASES.Special1;
+    const heavy = build(cfg.heavy || 'Special1', 12, false, PIXEL_PHASES[cfg.heavy || 'Special1']);
+    if (heavy) man.animations.heavy = heavy;
+    if (cfg.slam) man.animations.slam = build(cfg.slam, 12, false, PIXEL_PHASES[cfg.slam]);
+    if (man.animations.leap) man.animations.leap.phases = PIXEL_PHASES.Attack4;
+    if (man.animations.kick) man.animations.kick.phases = PIXEL_PHASES.Kick;
     return man;
   }
 

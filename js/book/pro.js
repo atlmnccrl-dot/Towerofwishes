@@ -71,19 +71,19 @@
           lines: [
             N('The water is shin-deep and warmer than it should be. Halfway across, Kael stops. The reeds ahead are the wrong kind of still.'),
             S('kael', 'Eiryn. Behind me.'),
-            N('Three goblins rise out of the reeds with sacks of stolen grain still tied to their belts. A fourth, with a bow, is already on the far bank.'),
+            N('Three skeletons rise out of the reeds with sacks of stolen grain still tied to their belts. A fourth, with a bow, is already on the far bank.'),
           ],
         },
         'c5.fork.afight': {
           type: 'battle', chapter: 'c5', scenario: 'forkMarsh', wounds: false, xp: 90, loot: 'ember',
           party: pair, win: 'c5.fork.aafter',
-          outro: 'The last goblin drops its sack and wades away into the reeds.',
+          outro: 'The last skeleton drops its sack and wades away into the reeds.',
         },
         'c5.fork.aafter': {
           type: 'scene', chapter: 'c5', bg: 'hill', next: 'c5.path',
           lines: [
             N('They wring out their boots on the far bank. The track was shorter. Nobody says it was better.'),
-            N('Up ahead, a goblin squats by a stolen sack. It has not heard them coming. It will.'),
+            N('Up ahead, a skeleton squats by a stolen sack. It has not heard them coming. It will.'),
           ],
         },
         'c5.fork.b': {
@@ -91,7 +91,7 @@
           lines: [
             N('The ridge path is dry, steep and thick with thorn. Kael goes first, cutting through, and Eiryn follows without complaint.'),
             N('At the top there is a hunter\u2019s lean-to, long abandoned, and in it a stack of stolen tools wrapped in sacking. Someone has been sorting them. Carefully.'),
-            S('kael', 'That isn\u2019t goblin work.'),
+            S('kael', 'That isn\u2019t skeleton work.'),
             S('eiryn', 'No.'),
           ],
         },

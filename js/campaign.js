@@ -44,7 +44,7 @@
     { id: 'cart', kind: 'contract', episode: 'cart', region: 'north', x: 220, y: 120, title: 'The Missing Supply Cart', sub: 'Guild contract' },
     { id: 'toll', kind: 'contract', episode: 'toll', region: 'hills', x: 415, y: 150, title: 'The Toll Bridge', sub: 'Guild contract' },
     { id: 'orchard', kind: 'contract', episode: 'orchard', region: 'north', x: 255, y: 40, title: 'Wolves in the Orchard', sub: 'Guild contract' },
-    { id: 'warren', kind: 'contract', episode: 'warren', region: 'hills', x: 540, y: 255, title: 'The Goblin Warren', sub: 'Guild contract · after the quarry' },
+    { id: 'warren', kind: 'contract', episode: 'warren', region: 'hills', x: 540, y: 255, title: 'The Skeleton Warren', sub: 'Guild contract · after the quarry' },
     { id: 'stray', kind: 'contract', episode: 'stray', region: 'north', x: 330, y: 70, title: 'Enough Teeth for Three', sub: 'Guild contract' },
     { id: 'c5', kind: 'story', chapter: 'c5', region: 'hills', x: 480, y: 200, title: 'The Quarry', sub: 'Chapter Five' },
     { id: 'deep', kind: 'dungeon', episode: 'deep', region: 'hills', x: 560, y: 150, title: 'The Deep Passage', sub: 'Dungeon · repeatable' },
