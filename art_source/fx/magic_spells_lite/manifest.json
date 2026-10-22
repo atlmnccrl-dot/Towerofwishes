@@ -1,0 +1,46 @@
+{
+  "pack": "Magic Spells VFX Lite",
+  "effects": 6,
+  "frame_size": [
+    64,
+    64
+  ],
+  "effects_list": {
+    "cast": {
+      "sheet": "cast/cast_sheet.png",
+      "frames": 8,
+      "frame_ms": 70,
+      "loop": false
+    },
+    "impact": {
+      "sheet": "impact/impact_sheet.png",
+      "frames": 8,
+      "frame_ms": 60,
+      "loop": false
+    },
+    "fire_impact": {
+      "sheet": "fire_impact/fire_impact_sheet.png",
+      "frames": 11,
+      "frame_ms": 70,
+      "loop": false
+    },
+    "ice_shatter": {
+      "sheet": "ice_shatter/ice_shatter_sheet.png",
+      "frames": 12,
+      "frame_ms": 70,
+      "loop": false
+    },
+    "zap": {
+      "sheet": "zap/zap_sheet.png",
+      "frames": 8,
+      "frame_ms": 60,
+      "loop": false
+    },
+    "heal": {
+      "sheet": "heal/heal_sheet.png",
+      "frames": 12,
+      "frame_ms": 80,
+      "loop": true
+    }
+  }
+}
