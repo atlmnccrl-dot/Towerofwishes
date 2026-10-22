@@ -6005,8 +6005,17 @@
   function create(V) {
     const built = new Map();
     let cur = null, curArena = null;
+    // Pixel arenas (js/render/tiles.js): built from the author's tilesets once they've loaded;
+    // themes without a recipe (and the moments before loading) keep the painted dressing.
+    const pixelBuilt = new Map();
     function pick(s) {
       const A = (s && s.arena) || V.Sim.ARENA;
+      const T = NS.tiles;
+      if (T && T.ready() && T.has(A.theme)) {
+        let px = pixelBuilt.get(A);
+        if (px === undefined) { px = T.dressing(V, A); pixelBuilt.set(A, px); }
+        if (px) return px;
+      }
       if (A !== curArena) {
         // Leaving an arena drops its big baked layers; they rebuild on return.
         if (cur && cur.free) cur.free();
