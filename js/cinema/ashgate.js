@@ -44,6 +44,9 @@
     const pulse = 0.8 + 0.2 * Math.sin(t * 3.1);
     core.addColorStop(0, `rgba(255,240,255,${0.9 * a * pulse})`); core.addColorStop(0.4, `rgba(200,150,255,${0.55 * a})`); core.addColorStop(1, 'rgba(160,100,255,0)');
     ctx.fillStyle = core; ctx.fillRect(c.x - R * 0.3 * c.s, c.y - R * 0.3 * c.s, R * 0.6 * c.s, R * 0.6 * c.s);
+    // rune circles turning at its heart (assets/vfx/ magic textures)
+    K.sprite3(v, 'magic_02', '200,160,255', cx, cy, cz, R * 0.75 * (1 + fail * 0.3), a * 0.9, t * 0.25 * (1 - (V.stop || 0) * 0.6), true);
+    K.sprite3(v, 'magic_01', '230,210,255', cx, cy, cz, R * 0.42, a * 0.8, -t * 0.4, true);
     ctx.lineCap = 'round';
     const lw = Math.max(1, 1.6 * c.s);
     RINGS.forEach((k, i) => {

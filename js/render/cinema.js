@@ -14,6 +14,7 @@
  * their side, front and back views. Effects are the pack effects (js/render/pixelfx.js),
  * placed in the same space. Scenes (js/cinema/*.js) are written as shot lists per line.
  *
+ * Pixel mode: def.pixel / set.pixel = the buffer height in pixels (default 200; 0 = full resolution).
  * API (main.js): NS.cinema.start(def) -> { beat(i, n), update(dt), draw(), ready(), busy() }
  *
  * Scene def: { set, actors: [{ id, set, x, y, z, dir, anim, hidden }], crowd, grade,
@@ -23,6 +24,7 @@
  * Actions ({ at } seconds into the beat): who + to:[x,y?,z?] (speed or dur, anim), leap:
  *   { to:[x,y,z?], h, dur }, dir, anim, show, hide, cam (a shot), slow: [k, s], flash: [rgb, s],
  *   fade: [alpha, s, rgb], pfx: { name, x, y, z, scale, add, life, follow }, shake,
+ *   pose: 'kneel' | 'lie' | 'collapse' | 'reach' | 'cast' | 'flinch' | 'brace' | null (a held frame),
  *   vars: { name: [value, s] } (eases a value the set reads as view.vars.name: a spell's glow...)
  */
 (function () {
@@ -31,13 +33,25 @@
   const smooth = (k) => (k <= 0 ? 0 : k >= 1 ? 1 : k * k * (3 - 2 * k));
   const lerp = (a, b, k) => a + (b - a) * k;
   const HORIZON = 0.42;
+  // Held poses for cutscenes, made from frames of the creator's clips (it has no sit, kneel or
+  // lie clips): name -> [animation, frame ('last' = the final frame)].
+  const POSES = {
+    kneel: ['crouch', 0], lie: ['ko', 'last'], collapse: ['down', 5], reach: ['point', 3],
+    cast: ['heavy', 3], flinch: ['hit', 1], brace: ['crouch', 4],
+  };
 
   function start(def) {
     const canvas = document.getElementById('arena');
-    const ctx = canvas.getContext('2d');
+    const out = canvas.getContext('2d');
+    // The scene is drawn into a buffer and scaled up onto the screen. In pixel mode (the default)
+    // the buffer is only PIXEL_H pixels tall and scales up without smoothing, so the sets, the
+    // light and the effects share one pixel grid with the characters' pixel art.
     const Sp = window.TowSprites;
     const SETS = window.TowCinemaSets || {};
     const set = SETS[def.set] || null;
+    const PIXEL_H = def.pixel != null ? def.pixel : set && set.pixel != null ? set.pixel : 200;
+    const buf = document.createElement('canvas');
+    const ctx = buf.getContext('2d');
     let W = 0, H = 0, dpr = 1;
     // ---- camera
     const cam = { x: 0, y: 1.6, z: -6, tilt: 0, F: 1.0, yaw: 0, pitch: 0 };
@@ -176,7 +190,8 @@
       if (a.hide) u.hidden = true;
       if (a.put) { u.x = a.put[0]; if (a.put[1] != null) u.y = a.put[1]; if (a.put[2] != null) u.z = a.put[2]; u.mv = null; }
       if (a.dir) u.dir = a.dir;
-      if (a.anim) u.anim = a.anim;
+      if (a.anim) { u.anim = a.anim; u.pose = null; }
+      if (a.pose !== undefined) u.pose = a.pose || null;
       if (a.to) {
         const tx = a.to[0], ty = a.to[1] != null ? a.to[1] : u.y, tz = a.to[2] != null ? a.to[2] : u.z;
         const dist = Math.hypot(tx - u.x, tz - u.z);
@@ -251,9 +266,18 @@
       const man = Sp && Sp.get && Sp.get('px:' + u.set);
       if (!man || !man.ready) return;
       if (!u.A || u.A.man !== man) { u.A = Sp.animator(man); }
-      const name = man.animations[u.anim] ? u.anim : man.animations.idle ? 'idle' : Object.keys(man.animations)[0];
-      Sp.play(u.A, name, { blend: 0.1 });
-      Sp.advance(u.A, dt * (u.mv && u.mv.anim === 'run' ? 1.15 : 1));
+      const P = u.pose && !u.mv && !u.leap ? POSES[u.pose] : null;
+      if (P && man.animations[P[0]]) {
+        // hold one frame of a clip as a pose
+        const an = man.animations[P[0]], fl = Object.values(an.frames)[0] || [];
+        const fi = P[1] === 'last' ? fl.length - 1 : Math.min(fl.length - 1, P[1]);
+        if (u.A.cur !== P[0]) Sp.play(u.A, P[0], { blend: 0.15 });
+        Sp.advance(u.A, dt); u.A.t = (fi + 0.5) / (an.fps || 12);
+      } else {
+        const name = man.animations[u.anim] ? u.anim : man.animations.idle ? 'idle' : Object.keys(man.animations)[0];
+        Sp.play(u.A, name, { blend: 0.1 });
+        Sp.advance(u.A, dt * (u.mv && u.mv.anim === 'run' ? 1.15 : 1));
+      }
       const p = project(u.x, u.y, u.z);
       if (!p) return;
       const hpx = 1.78 * 0.9 * p.s * (man.scale || 1) * (u.scale || 1);
@@ -261,18 +285,21 @@
       // contact shadow on the surface under the actor
       const g = project(u.x, u.ground != null ? u.ground : (u.leap ? Math.min(u.leap.y0, u.leap.y1) : u.y), u.z);
       if (g && !u.noShadow && !u.leap) { ctx.fillStyle = 'rgba(8,6,10,0.35)'; ctx.beginPath(); ctx.ellipse(g.x, g.y, hpx * 0.28, hpx * 0.06, 0, 0, Math.PI * 2); ctx.fill(); }
-      const look = set && set.look ? set.look(u, vars) : null;
+      let look = set && set.look ? set.look(u, vars) : null;
+      if (look && PIXEL_H) look = Object.assign({}, look, { ink: Math.min(look.ink || 1, hpx > 70 ? 1 : 0.6) });
       for (const smp of Sp.sample(u.A, viewDir(u.dir))) Sp.drawFrame(ctx, man, smp, p.x, p.y, hpx, look || { ink: Math.max(1, Math.min(3, hpx / 45)) });
     }
     let lastT = 0;
     function draw() {
       const now = performance.now() / 1000, dt = lastT ? Math.min(0.05, now - lastT) : 0;
       lastT = now;
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
-      W = canvas.clientWidth; H = canvas.clientHeight;
-      if (canvas.width !== Math.round(W * dpr) || canvas.height !== Math.round(H * dpr)) { canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr); }
+      const sdpr = Math.min(window.devicePixelRatio || 1, 2), cw = canvas.clientWidth, ch = canvas.clientHeight;
+      if (canvas.width !== Math.round(cw * sdpr) || canvas.height !== Math.round(ch * sdpr)) { canvas.width = Math.round(cw * sdpr); canvas.height = Math.round(ch * sdpr); }
+      if (PIXEL_H) { H = PIXEL_H; W = Math.round((cw / Math.max(1, ch)) * H); dpr = 1; }
+      else { W = cw; H = ch; dpr = sdpr; }
+      if (buf.width !== Math.round(W * dpr) || buf.height !== Math.round(H * dpr)) { buf.width = Math.round(W * dpr); buf.height = Math.round(H * dpr); }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingEnabled = !PIXEL_H;
       cy = Math.cos(cam.yaw); sy = Math.sin(cam.yaw); cp = Math.cos(cam.pitch); sp = Math.sin(cam.pitch);
       jx = (Math.random() - 0.5) * shake; jy = (Math.random() - 0.5) * shake;
       const view = { ctx, W, H, cam, project, poly, addPoly, face, toCam, vars, t: clock, dpr, hz: H * HORIZON + cam.tilt * H + Math.tan(cam.pitch) * F() };
@@ -308,6 +335,9 @@
       if (flash.a > 0) { ctx.fillStyle = `rgba(${flash.col},${flash.a})`; ctx.fillRect(0, 0, W, H); }
       if (fade.a > 0.001) { ctx.fillStyle = `rgba(${fade.col},${fade.a})`; ctx.fillRect(0, 0, W, H); }
       ctx.setTransform(1, 0, 0, 1, 0, 0);
+      out.setTransform(1, 0, 0, 1, 0, 0);
+      out.imageSmoothingEnabled = !PIXEL_H;
+      out.drawImage(buf, 0, 0, canvas.width, canvas.height);
     }
     // Is the current line's action still playing (queued moves, walks, leaps, slow motion, a camera move)?
     function busy() {

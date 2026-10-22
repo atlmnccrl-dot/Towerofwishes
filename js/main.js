@@ -87,7 +87,30 @@
     for (const s of ['menu', 'result', 'paused', 'story', 'select', 'map', 'world', 'team-screen', 'cine']) $(s).hidden = s !== id;
     $('hud').hidden = !(id === null || id === 'paused');
     view = id || 'fight';
-    if (window.TowAudio && window.TowAudio.music) window.TowAudio.music(view === 'fight' || view === 'paused' ? 'battle' : null);
+    if (window.TowAudio && window.TowAudio.music) {
+      const boss = match && match.units && match.units.some((u) => u.def && u.def.boss);
+      if (view === 'fight' || view === 'paused') window.TowAudio.music(boss ? 'boss' : 'battle');
+      else if (view === 'menu' || view === 'world') window.TowAudio.music('title');
+      else if (view !== 'story') window.TowAudio.music(null);
+    }
+    if (window.TowAudio && window.TowAudio.ambience && id !== 'story') window.TowAudio.ambience([]);
+  }
+  // The sound of the place a story scene is in (js/audio.js ambience loops).
+  const AMB_SET = { square: ['murmur'], roofs: ['wind'], tavern: ['murmur', 'fire'], ashgate: ['night', 'wind'] };
+  const AMB_THEME = { tavern: ['murmur', 'fire'], guildhall: ['murmur'], square: ['murmur'], forest: ['wind'], road: ['wind'], hill: ['wind'], grassland: ['wind'],
+    farmland: ['wind'], rooftops: ['wind'], summit: ['wind'], ruins: ['wind'], nightcamp: ['night', 'fire'], cave: ['wind'], deep: ['wind'], shadowcity: ['wind'], frosthall: ['wind'] };
+  function sceneAmbience() {
+    if (!window.TowAudio || !window.TowAudio.ambience) return;
+    let a = [];
+    if (cinema) a = AMB_SET[cinema.def.set] || [];
+    else if (stage && stage.match && stage.match.arena) a = AMB_THEME[stage.match.arena.theme] || [];
+    window.TowAudio.ambience(a);
+    // the music under a story scene: the spell's nodes get tension, the towns their own theme
+    const id = Story.cur(story);
+    const cue = /^c1\.(formation|street|clip|look)$/.test(id) ? 'tension'
+      : (cinema && ['square', 'tavern', 'ashgate'].includes(cinema.def.set)) || (stage && stage.match && stage.match.arena && ['tavern', 'guildhall', 'square'].includes(stage.match.arena.theme)) ? 'town'
+      : 'story';
+    if (window.TowAudio.music) window.TowAudio.music(cue);
   }
 
   // ------------------------------------------------------------ story
@@ -122,6 +145,7 @@
     const sid = cinema ? null : stageFor(Story.cur(story));
     if (sid && sid !== stageKey) { stage = Render.stage.start(window.TowStages[sid], Sim); stageKey = sid; }
     else if (!sid && !(window.TowStages && window.TowStages[Story.cur(story)] === 'same')) { stage = null; stageKey = null; renderer.setCameraOverride(null); }
+    sceneAmbience();
     $('story-chapter').textContent = chapterLabel(n);
     $('story-card').hidden = n.type !== 'card';
     $('dialogue').hidden = n.type !== 'scene' && n.type !== 'fork';

@@ -104,6 +104,8 @@
     const R = v.W * 0.22;
     ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = gr; ctx.fillRect(t.x - R, gy - R, R * 2, R * 2);
     ctx.fillStyle = 'rgba(200,170,255,0.35)'; ctx.fillRect(t.x - 1, Math.min(t.y, gy) - v.H, 2, v.H);
+    const L = tinted('light_01', '200,170,255');
+    if (L) { const r = v.W * 0.12; ctx.globalAlpha = 0.5; ctx.drawImage(L, t.x - r, gy - r, r * 2, r * 2); ctx.globalAlpha = 1; }
     ctx.globalCompositeOperation = 'source-over';
   }
   // a ring of distant skyline and hills round the city (cheap: culled by bearing)
@@ -154,6 +156,42 @@
     if (opts.city !== false) {
       drawRing(v, RING_CITY, cx, cz, '#6a4a6c', 'rgba(255,207,122,0.9)', opts.open);
       drawRing(v, RING_MID, cx, cz, '#5e4060', 'rgba(255,210,138,0.95)', opts.open);
+    }
+  }
+
+  // ------------------------------------------------------------------ soft textures
+  // assets/vfx/ (from the Brackeys VFX bundle, CC0): white shapes, tinted here on demand.
+  const TEX = {}, TINT = {};
+  function tex(n) {
+    if (!TEX[n] && typeof Image !== 'undefined') { const im = new Image(); im.src = 'assets/vfx/' + n + '.png'; TEX[n] = im; }
+    const im = TEX[n];
+    return im && im.complete && im.naturalWidth ? im : null;
+  }
+  function tinted(n, rgb) {
+    const k = n + '|' + rgb;
+    if (TINT[k]) return TINT[k];
+    const im = tex(n);
+    if (!im) return null;
+    const c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
+    const g = c.getContext('2d'); g.drawImage(im, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = `rgb(${rgb})`; g.fillRect(0, 0, c.width, c.height);
+    return (TINT[k] = c);
+  }
+  // a texture standing in the world at (x, y, z), size in metres
+  function sprite3(v, n, rgb, x, y, z, size, alpha, rot, add) {
+    const p = v.project(x, y, z); if (!p) return;
+    const img = tinted(n, rgb); if (!img) return;
+    const sz = size * p.s; if (sz < 1.5 || alpha <= 0.01) return;
+    const { ctx } = v;
+    ctx.save(); ctx.globalAlpha = Math.min(1, alpha); if (add) ctx.globalCompositeOperation = 'lighter';
+    ctx.translate(p.x, p.y); if (rot) ctx.rotate(rot);
+    ctx.drawImage(img, -sz / 2, -sz / 2, sz, sz); ctx.restore();
+  }
+  // smoke rising from a chimney and leaning with the wind
+  function smoke(v, x, y, z, seed) {
+    if (dist3(v, x, y, z) > 70) return;
+    for (let i = 0; i < 5; i++) {
+      const age = (v.t * 0.18 + i / 5 + seed * 0.37) % 1;
+      sprite3(v, i % 2 ? 'smoke_04' : 'smoke_07', '118,100,122', x + age * 1.8, y + 0.3 + age * 4.5, z, 0.7 + age * 2.6, (1 - age) * age * 1.3, seed + age * 1.5);
     }
   }
 
@@ -262,6 +300,8 @@
     const w = 0.45 * (s || 1), hh = 1.5 * (s || 1);
     block(v, [x - w, x + w, y, y + hh, z - w, z + w], [92, 54, 50], dist3(v, x, y, z) < 30);
     block(v, [x - w - 0.08, x + w + 0.08, y + hh, y + hh + 0.15, z - w - 0.08, z + w + 0.08], [50, 30, 34]);
+    const k = Math.abs(Math.floor(x * 7 + z * 3)) % 3;
+    if (k === 0) smoke(v, x, y + hh, z, (x * 0.13 + z * 0.07) % 1);
   }
   function lantern(v, x, y, z) {
     const p = v.project(x, y, z); if (!p) return;
@@ -269,6 +309,7 @@
     v.ctx.fillStyle = '#2a1a16'; v.ctx.fillRect(p.x - s * 0.6, p.y - s * 1.1, s * 1.2, s * 0.25);
     v.ctx.fillStyle = '#ffcf7a'; v.ctx.fillRect(p.x - s * 0.5, p.y - s * 0.9, s, s * 1.3);
     glow(v, x, y - 0.1, z, 2.2, '255,180,100', 0.45 + 0.08 * Math.sin(v.t * 8 + x));
+    sprite3(v, 'star_06', '255,214,150', x, y - 0.1, z, 0.9, 0.55 + 0.1 * Math.sin(v.t * 7 + z), 0, true);
   }
 
   // ------------------------------------------------------------------ the rooftops and the overlook
@@ -461,5 +502,5 @@
 
   window.TowCinemaSets = Object.assign(window.TowCinemaSets || {}, { square, roofs, RUN, EDGE });
   // the kit, for the other places (js/cinema/ashgate.js ...)
-  window.TowCinemaKit = { INK, rng, wrap, hex, shade, shadeA, setHaze, wallFill, sky, ceiling, tower, farWorld, ridge, glow, dist3, house, block, chimney, lantern, WALLS, ROOFC };
+  window.TowCinemaKit = { INK, rng, wrap, hex, shade, shadeA, setHaze, wallFill, sky, ceiling, tower, farWorld, ridge, glow, dist3, house, block, chimney, lantern, WALLS, ROOFC, tinted, sprite3, smoke };
 })();

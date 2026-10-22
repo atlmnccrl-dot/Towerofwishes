@@ -43,7 +43,12 @@ Read first: [docs/DESIGN.md](docs/DESIGN.md), [docs/STORY.md](docs/STORY.md),
 - **Fight HUD: the clean style** (the author's pick, 2026-10-22, mockup A): portrait chips top left,
   foes left as pips at the top centre (or the boss bar), round speed/pause, a round All Out gauge.
 - **Music:** fights play "Heartfelt Battle" (OpenGameArt, CC0; assets/music/). New tracks must be
-  CC0 or properly credited in Settings → Credits.
+  CC0 or properly credited in Settings → Credits. Cues wait for tracks in js/audio.js (title, town,
+  story, tension, boss → battle); fight sounds and ambience loops are synthesised by
+  `tools/make_sfx.py` (assets/sfx/fight, assets/sfx/amb).
+- **Filmed scenes render at pixel resolution** (a 200 px tall buffer scaled up without smoothing) so
+  the sets, light and effects share the characters' pixel grid. Held poses (kneel, lie, collapse,
+  reach, cast, flinch, brace) are frames of the creator's clips; it has no sit/kneel/talk clips.
 - **Art style: pixel art** from the itch.io "Character Creator 2D Fantasy" (decided 2026-10-22).
   The author builds each character in the creator and sends its export (30 clips × 8 directions).
   The sources live in `art_source/characters/<set>/`, untouched; `tools/pack_pixel.py` packs them
