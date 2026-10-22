@@ -43,6 +43,8 @@ Read first: [docs/DESIGN.md](docs/DESIGN.md), [docs/STORY.md](docs/STORY.md),
   fight). The earlier anime sprite in `assets/characters/eiryn/` is retired (kept for portraits).
 - **Arenas and scene backgrounds stay painted** (the author, 2026-10-22): the tileset arenas and the
   scene-camera limits were tried and rolled back. Characters and power effects stay pixel art.
+- **World map: the illustrated parchment map** (option B, the author, 2026-10-22): ink and watercolour,
+  one road west to east, the Tower on the eastern edge. The pixel overworld (option A) was rejected.
 - **Camera: the helicopter view** (the author, 2026-10-22): always high above and a little to the side,
   one fixed angle (`V.HELI` in core.js) for fights, scenes and heavy arts; shots only move and zoom.
 - **The JavaScript game is the live build** (decided 2026-10-22): it plays on iPhone and PC from the
@@ -76,7 +78,7 @@ Read first: [docs/DESIGN.md](docs/DESIGN.md), [docs/STORY.md](docs/STORY.md),
 | `js/campaign.js` | World map: lands, routes, unlock rules. Pure |
 | `js/progression.js` | Gear, inventory, loot tables, skill trees → per-fighter fight modifiers. Pure |
 | `js/stages.js`, `js/render/stage.js` | Staged story scenes: fighters acting out dialogue on real arenas |
-| `js/render/overworld.js` | The world map (option A, 2026-10-22): a pixel overworld built from the tilesets, UI-pack stop icons, clouds over unreached lands, Kael at the current chapter. Falls back to `map.js` until the tiles load |
+| `js/render/overworld.js`, `js/render/inkmap.js` | The world map: layout, stops (wax seals), ink labels, the pin at the current chapter; `inkmap.js` draws the land as an illustrated parchment map (option B, the author's pick 2026-10-22). Without `inkmap.js` it falls back to the pixel overworld (option A, rejected) |
 | `js/render/map.js` | The painted world map (option B; drop the overworld script tag in `index.html` to use it) |
 | `js/render/backdrop.js` | Painted full-screen backgrounds for story scenes |
 | `js/main.js` | Loop, input, HUD, save, story screens (scenes, choices, select, chapters) |

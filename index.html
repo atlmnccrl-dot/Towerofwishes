@@ -383,23 +383,24 @@ h2 { font-style: italic; }
 .node-card p { margin: 0; font-size: 12px; color: var(--parchment-dim); }
 .node-card .reward { color: var(--bone); }
 .node-card .btn { min-height: 40px; padding: 8px 14px; }
-/* The pixel overworld's UI (2026-10-22): wood plates with a gold edge, the Adventurer font. */
-.screen.world .world-top { background: linear-gradient(rgba(13, 10, 8, 0.85), rgba(13, 10, 8, 0.55) 70%, transparent); padding-bottom: 12px; }
-.screen.world .world-title { font: 400 20px/1.1 "Adventurer", var(--display); font-style: normal; color: #ffe7a8; text-shadow: 2px 2px 0 #0d0a08; }
-.screen.world .world-top .eyebrow { font-family: "Adventurer", var(--ui); letter-spacing: 0.12em; }
-.screen.world .world-top .pill { font-family: "Adventurer", var(--ui); background: #241811; border: 2px solid #c9a25a; box-shadow: 0 0 0 2px #0d0a08; border-radius: 0; color: #f2e6d0; }
+/* The world map's UI (option B, 2026-10-22): parchment, ink borders, serif lettering. */
+.screen.world .world-top { background: linear-gradient(rgba(40, 28, 18, 0.78), rgba(40, 28, 18, 0.45) 70%, transparent); padding-bottom: 14px; }
+.screen.world .world-title { font: 700 21px/1.1 var(--display); font-style: italic; color: #f3e3c0; text-shadow: 0 2px 4px #000; }
+.screen.world .world-top .eyebrow { color: #e0a99a; }
+.screen.world .world-top .pill { background: #e2cfa3; color: #33241a; border: 1.5px solid #33241a; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45); font: 700 13px/1 var(--display); font-style: italic; }
 .screen.world .node-card { left: 50%; right: auto; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); width: min(640px, 90vw);
-  clip-path: none; background: #241811; border: 2px solid #c9a25a; box-shadow: 0 0 0 2px #0d0a08, 0 6px 18px rgba(0, 0, 0, 0.6);
-  grid-template-columns: 1fr auto; column-gap: 14px; row-gap: 2px; padding: 7px 8px 7px 12px; }
+  clip-path: none; background: #e9d9b2; color: #33241a; border: 1.5px solid #33241a; outline: 1px solid #33241a; outline-offset: 3px;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.55); grid-template-columns: 1fr auto; column-gap: 14px; row-gap: 2px; padding: 8px 10px 8px 14px; }
 .screen.world .node-card > :not(.btn) { grid-column: 1; }
-.screen.world .node-card small { font: 400 11px/1 "Adventurer", var(--ui); color: #c9a25a; letter-spacing: 0.1em; }
-.screen.world .node-card b.t { font: 400 17px/1.1 "Adventurer", var(--display); font-style: normal; color: #ffe7a8; }
-.screen.world .node-card p { font-size: 11px; line-height: 1.3; }
-.screen.world .node-card .btn { grid-column: 2; grid-row: 1 / span 4; align-self: center; min-height: 44px; min-width: 120px; border-radius: 0; clip-path: none;
-  background: #c9a25a; color: #241811; border: 2px solid #0d0a08; font-family: "Adventurer", var(--ui); }
-.screen.world .node-card .btn b { font: 400 16px/1 "Adventurer", var(--ui); }
-.screen.world .node-card .btn small { color: #4a3420; }
-.screen.world .node-card .btn:disabled { background: #5a4a38; color: #2a1e16; }
+.screen.world .node-card small { color: #8c1f1a; letter-spacing: 0.16em; }
+.screen.world .node-card b.t { font: 700 18px/1.1 var(--display); font-style: italic; color: #33241a; }
+.screen.world .node-card p { font-size: 11.5px; line-height: 1.3; color: #5a4632; }
+.screen.world .node-card .reward { color: #33241a; }
+.screen.world .node-card .btn { grid-column: 2; grid-row: 1 / span 4; align-self: center; min-height: 44px; min-width: 120px; clip-path: none;
+  background: #8c1f1a; color: #f6e6d0; border: 1.5px solid #33241a; }
+.screen.world .node-card .btn b { font: 700 16px/1 var(--display); font-style: italic; }
+.screen.world .node-card .btn small { color: #f0c8b8; }
+.screen.world .node-card .btn:disabled { background: #a89878; color: #e9d9b2; }
 .world-fallback { position: absolute; right: 16px; top: 60px; display: grid; gap: 4px; max-height: 70%; overflow-y: auto; }
 .world-fallback button { text-align: left; background: rgba(12, 8, 8, 0.85); border: 0; border-left: 2px solid var(--line); padding: 4px 8px; font-size: 12px; }
 .team-wrap { width: min(100%, 860px); display: grid; gap: 10px; }
@@ -793,6 +794,7 @@ body.trailer.fighting .trailer-card:not(.logo) { bottom: auto; top: 10vh; }
 <script src="js/render/backdrop.js"></script>
 <script src="js/render/opening.js"></script>
 <script src="js/render/map.js"></script>
+<script src="js/render/inkmap.js"></script>
 <script src="js/render/overworld.js"></script>
 <script src="js/render/stage.js"></script>
 <script src="js/audio.js"></script>
