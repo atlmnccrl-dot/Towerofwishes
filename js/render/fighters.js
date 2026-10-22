@@ -942,7 +942,7 @@
     // lines, and each arena's light (dark places shade the figures, warm rooms warm them).
     const LIGHT = {
       forest: [0.06], summit: [0.12, '#140a1e'], hill: [0.04], cave: [0.3, '#0a0806'], road: [0.04], ruins: [0.1],
-      yard: [0], deep: [0.32, '#080606'], tavern: [0.16, '#2a1204'], grassland: [0.06], rooftops: [0.16, '#100a1e'],
+      yard: [0], deep: [0.32, '#080606'], tavern: [0.16, '#2a1204'], grassland: [0.06], rooftops: [0.04, '#2a1206'],
       guildhall: [0.08, '#1e1206'], square: [0.12, '#140a1e'], shadowcity: [0.3, '#06081a'], farmland: [0.08],
       nightcamp: [0.34, '#060a1a'], frosthall: [0.12, '#0a1430'], calamity: [0.18, '#140606'], offering: [0.14, '#1a1004'],
     };

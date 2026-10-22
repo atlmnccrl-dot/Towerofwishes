@@ -46,7 +46,8 @@
       {
         cam: { focus: 'climber', dx: 1.2, view: 5.5, ang: -0.6, pitch: 0.46, up: 0.4, ease: 1.2 },
         do: [
-          { who: 'climber', show: true, to: [-5.0, 1.1], speed: 0.9, gait: 'stride' },
+          { who: 'climber', show: true, to: [-5.0, 1.1], speed: 0.9, gait: 'stride', trail: 'dust' },
+          { at: 0.2, who: 'climber', pfx: { name: 'dust_run', z: 0, scale: 1.4 } },
         ],
       },
       // Blood had dried along one side of the stranger's face...
@@ -60,9 +61,15 @@
         do: [
           { who: 'climber', face: E },
           { at: 0.3, who: 'shade1', show: true, blink: [1.2, -1.8] },
+          { at: 0.3, who: 'shade1', pfx: [{ name: 'smoke_dark', scale: 1.8 }, { name: 'teleport', z: 0, scale: 1.6 }] },
           { at: 0.55, who: 'shade2', show: true, blink: [1.8, 2.0] },
+          { at: 0.55, who: 'shade2', pfx: [{ name: 'smoke_dark', scale: 1.8 }, { name: 'teleport', z: 0, scale: 1.6 }] },
           { at: 0.8, who: 'shade3', show: true, blink: [3.6, 0.2] },
+          { at: 0.8, who: 'shade3', pfx: [{ name: 'smoke_dark', scale: 1.8 }, { name: 'teleport', z: 0, scale: 1.6 }] },
+          { at: 1.1, pfx: [{ name: 'portal', x: 6.0, y: -0.4, z: 0.03, scale: 4, ground: true, add: true, life: 2.5 }, { name: 'dark_curse', x: 6.0, y: -0.4, z: 1.6, scale: 4.2, life: 1.6 }] },
           { at: 1.3, who: 'veil', show: true, shake: 10 },
+          { at: 1.3, light: ['120,40,200', 0.22, 0.4] }, { at: 1.8, light: [null, 0, 1.2] }, { at: 1.3, rumble: [4, 1.2] },
+          { at: 1.35, who: 'veil', pfx: { name: 'shockwave', z: 0.05, scale: 4.5, ground: true } },
           { at: 1.35, who: 'climber', icon: '!' },
           { at: 1.9, who: 'climber', attack: { wind: 0.5, hold: true, tele: false } },
         ],
@@ -81,6 +88,7 @@
         cam: { behind: 'climber', x: 0, y: -4.2, view: 9, pitch: 0.34, push: -0.35, ease: 2.5 },
         do: [
           { at: 0.6, who: 'climber', drained: false, path: [[0.2, -2.5], [0, -4.6]], speed: 0.7, gait: 'stride' },
+          { at: 0.2, pfx: [{ name: 'circle_holy', x: 0, y: -5.4, z: 0.03, scale: 2.4, ground: true, add: true, life: 6 }, { name: 'sparkles', x: 0, y: -5.4, z: 1.4, scale: 3, add: true, life: 6 }] },
         ],
       },
       // The climber reached toward it.
@@ -89,6 +97,8 @@
         do: [
           { who: 'climber', face: N },
           { at: 0.5, who: 'climber', state: 'cast', hold: true },
+          { at: 0.7, pfx: [{ name: 'holy_light', x: 0, y: -5.2, z: 0, scale: 4, add: true }, { name: 'lightning_holy', x: 0, y: -5.2, z: 0, scale: 3, add: true, delay: 0.4 }] },
+          { at: 1.0, light: ['255,240,210', 0.25, 0.8] },
           { at: 1.6, fade: [1, 2.4, '246,240,236'] },
         ],
       },

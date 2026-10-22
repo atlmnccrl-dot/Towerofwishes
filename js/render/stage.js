@@ -211,7 +211,7 @@
     const camOut = { x: 0, y: 0, sc: 40, ang: -0.32, pitch: 0.56 };
     let snap = true, pendingCut = null, shake = 0;
     const fade = { a: 0, to: 0, t: 0, dur: 0, from: 0, col: '0,0,0' };
-    let bars = 0;
+    let bars = 0, CINE = null, cineT = 0;
     const arrows = [];
     // Screen effects: eased values {v, to, from, t, dur}.
     const ease = () => ({ v: 0, to: 0, from: 0, t: 0, dur: 0 });
@@ -252,11 +252,20 @@
     }
     function target(sh, t) {
       const { W, H } = screen();
-      let x = camOut.x, y = camOut.y;
+      let x = camOut.x, y = camOut.y, tallView = 0;
       const fid = sh.focus || (sh.x == null ? sh.face || sh.behind : null);
       if (fid) {
         const us = unitsOf(fid);
         if (us.length) { x = 0; y = 0; for (const u of us) { x += u.x; y += u.y; } x /= us.length; y /= us.length; }
+      }
+      // giants (Kharuun, the warlord): frame their heads too
+      if (fid && V.HELI) {
+        const Sp = window.TowSprites;
+        for (const u of unitsOf(fid)) {
+          const cs = Sp && Sp.PIXEL_CAST && Sp.PIXEL_CAST[u.key], man = Sp && Sp.forUnit && Sp.forUnit(u, { scene: true, theme: match.arena && match.arena.theme, town: match.town });
+          const extra = man && man.pixel ? 1.6 * (man.scale || 1) * ((cs && cs.scale) || 1) - 1.8 : 0;
+          if (extra > 0.5) { y -= extra * 0.55; tallView = Math.max(tallView, extra * 1.6); }
+        }
       }
       if (sh.x != null) x = sh.x;
       if (sh.y != null) y = sh.y;
@@ -265,7 +274,9 @@
       // up: aim past the subject so it sits lower on screen (frames faces in close-ups)
       // (from the helicopter view the subject stays centred, and no shot is tighter than 5.6 m)
       if (sh.up && !V.HELI) { x -= Math.sin(ang0) * sh.up; y -= Math.cos(ang0) * sh.up; }
-      const view = Math.max(V.HELI ? 5.6 : 1.6, (sh.view || 9) + (sh.push || 0) * t);
+      // a breathing camera: a slow drift and push even on a held shot
+      x += Math.sin(clock * 0.23 + 1.3) * 0.08; y += Math.cos(clock * 0.19) * 0.05;
+      const view = Math.max(V.HELI ? 5.6 + tallView : 1.6, (sh.view || 9) + (sh.push != null ? sh.push : -0.035) * Math.min(t, 8));
       const sc = sh.sc || Math.min(W, H) / view;
       const ang = (sh._ang != null ? sh._ang : camOut.ang) + (sh.drift || 0) * t;
       return { x, y, sc, ang, pitch: sh.pitch || 0.52 };
@@ -456,6 +467,15 @@
       if (u && a.flash) u.flash = 0.12;
       if (u && a.burst) puff(u.x, u.y, a.burst, a.burstN || 12, 6);
       if (a.rumble) rumble = { a: a.rumble[0], t: a.rumble[1] };
+      // pfx: a pack effect at the unit (or x, y): { name, x, y, z, scale, ground, add, life, follow }
+      if (a.pfx && !instant) {
+        const F = V && V.fxApi && V.fxApi.pxfx && V.fxApi.pxfx();
+        for (const p of Array.isArray(a.pfx) ? a.pfx : [a.pfx]) {
+          if (!F) break;
+          const x = p.x != null ? p.x : u ? u.x : 0, y = p.y != null ? p.y : u ? u.y : 0;
+          F.spawn(p.name, x, y, p.z != null ? p.z : 0.9, Object.assign({ scale: p.scale || 1.6 }, p.ground ? { ground: true } : {}, p.add ? { add: true } : {}, p.life ? { life: p.life } : {}, p.delay ? { delay: p.delay } : {}, p.follow && u ? { follow: u } : {}));
+        }
+      }
       if (a.fx) {
         const e = typeof a.fx === 'string' ? { type: a.fx } : Object.assign({}, a.fx);
         if (u) { e.unit = u.id; if (e.x == null) { e.x = u.x + Math.cos(u.facing) * (e.reach || 0); e.y = u.y + Math.sin(u.facing) * (e.reach || 0); } }
@@ -727,6 +747,10 @@
       const ctx = V.ctx, W = V.W, H = V.H;
       ctx.save();
       ctx.setTransform(V.dpr, 0, 0, V.dpr, 0, 0);
+      // the cinematic layer: grade, light, fog, particles, foreground (js/render/cine.js)
+      if (!CINE && NS.cine) CINE = NS.cine.create(V);
+      const now = V.time || 0, cdt = Math.max(0, Math.min(0.1, now - cineT)); cineT = now;
+      try { if (CINE) CINE.draw(ctx, W, H, match, cdt, def.mood); } catch (e) { /* never break the frame */ }
       try { drawExtras(ctx, W, H); } catch (e) { /* never break the frame */ }
       try { callouts(ctx, W, H); } catch (e) { /* never break the frame */ }
       if (fade.a > 0.001) { ctx.fillStyle = `rgba(${fade.col},${clamp(fade.a, 0, 1)})`; ctx.fillRect(0, 0, W, H); }
@@ -845,6 +869,8 @@
     match.stageHandle = handle;
 
     // ---- opening: setup actions, then the first shot (a hard cut)
+    // Every scene opens out of black (unless its setup chose its own fade).
+    if (!def.noFadeIn && !(def.setup || []).some((a) => a.fade)) { fade.a = 1; fade.from = 1; fade.to = 0; fade.dur = 0.9; fade.t = 0; fade.col = '0,0,0'; }
     for (const a of def.setup || []) act(a, true);
     for (const u of match.units) { const I = info.get(u); if (!I.mv && u.state !== 'attack') u.state = I.base; }
     const first = def.cam || { focus: match.units.filter((u) => !u.fled).map((u) => u.id), view: 9 };
