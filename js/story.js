@@ -854,7 +854,8 @@
     if (st.side && !NODES[st.side.node]) st.side = null;
     // Saves from before the book's party: the old starter becomes a companion,
     // and a save parked at the retired select or party choice moves on.
-    if (st.starter) { if (!st.companion) st.companion = st.starter; st.starter = null; }
+    // (the hired companions are gone: the author removed Ren, Mara and Brannoc, 2026-10-22)
+    st.starter = null; st.companion = null;
     if (st.node === 'p.select' || st.node === 'p.who') st.node = 'c1.tavern';
     if (st.node === 'c4.party') st.node = 'c5.mill';
     // choice screens are gone: a save parked on one moves to where it led

@@ -254,20 +254,10 @@
     ],
   };
 
-  // The cast of the tavern scenes: the room, the starter at the next table,
-  // and the two starters you didn't pick, back in their corners.
-  const tavernCast = () => tavernFolk().concat([
-    Object.assign({ id: '@', key: '@' }, at('me')),
-    Object.assign({ id: 'ren', key: 'ren', notStarter: true }, at('ren')),
-    Object.assign({ id: 'mara', key: 'mara', notStarter: true }, at('mara')),
-    Object.assign({ id: 'brannoc', key: 'brannoc', notStarter: true }, at('brannoc')),
-  ]);
-  const tavernSetup = () => folkSetup().concat([
-    { who: '@', base: 'sit', set: { gest: 'eat', prop: 'spoon' } },
-    { who: 'ren', set: { gest: 'lean' } },
-    { who: 'mara', base: 'sit', set: { gest: 'notes' } },
-    { who: 'brannoc', set: { gest: 'cup', prop: 'tankard' } },
-  ]);
+  // The cast of the tavern scenes: the room and its regulars. (Ren, Mara and Brannoc, the
+  // older manuscript's starters, were removed by the author, 2026-10-22.)
+  const tavernCast = () => tavernFolk();
+  const tavernSetup = () => folkSetup();
 
   // ---- more tavern scenes (Chapters Two and Five, the hiring), staged from their dialogue
   const folkAt = (extra) => tavernFolk().filter((c) => c.id !== 'spear').concat(extra);

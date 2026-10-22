@@ -51,7 +51,6 @@
     { id: 'c5', kind: 'story', chapter: 'c5', region: 'hills', x: 390, y: 205, title: 'The Quarry', sub: 'Chapter Five' },
     { id: 'deep', kind: 'dungeon', episode: 'deep', region: 'hills', x: 445, y: 140, title: 'The Deep Passage', sub: 'Dungeon · repeatable' },
     { id: 'crossing', kind: 'side', episode: 'crossing', region: 'ruins', x: 330, y: 415, title: 'The Old Crossing', sub: 'Side story · Eiryn' },
-    { id: 'hire', kind: 'side', episode: 'hire', region: 'town', x: 265, y: 330, title: 'Three for Hire', sub: 'Tavern · pick a companion' },
     { id: 'c6', kind: 'story', chapter: 'c6', region: 'grass', x: 485, y: 300, title: 'The Sky That Hunts', sub: 'Chapter Six' },
     { id: 'c7', kind: 'story', chapter: 'c7', region: 'shadow', x: 565, y: 150, title: 'The Shadow City', sub: 'Chapter Seven' },
     { id: 'c8', kind: 'story', chapter: 'c8', region: 'bleed', x: 645, y: 265, title: 'The Road That Bleeds', sub: 'Chapter Eight' },
@@ -73,7 +72,6 @@
     ['c4', 'cart'], ['cart', 'stray'], ['c4', 'toll'], ['stray', 'orchard'], ['c5', 'warren'],
     ['c4', 'c5'], ['c5', 'deep'],
     ['c4', 'crossing'],
-    ['c4', 'hire'],
     ['c5', 'c6'], ['c6', 'c7'], ['c7', 'c8'], ['c8', 'c9'], ['c9', 'c10'], ['c10', 'c11'],
     ['c11', 'c12'], ['c12', 'c13'], ['c13', 'c14'], ['c14', 'c15'], ['c15', 'prologue'],
   ];
@@ -91,15 +89,17 @@
     const three = Story.roster(st).length >= 3;
     switch (n.id) {
       case 'cart': case 'stray': case 'crossing': case 'deep': case 'toll': case 'orchard': case 'warren': {
-        const r = baseLock(Story, st, n);
-        return r || (three ? null : 'Hire a companion at the tavern first (Three for Hire)');
+        // (contracts take Kael, Eiryn and any book heroes who have joined; the hired
+        // companions were removed by the author, 2026-10-22)
+        void three;
+        return baseLock(Story, st, n);
       }
       default: return baseLock(Story, st, n);
     }
   }
   function baseLock(Story, st, n) {
     switch (n.id) {
-      case 'yard': case 'gauntlet': case 'cart': case 'hire': case 'toll': return reached(Story, st, 'c4') && (st.seen.c4) ? null : 'Register with the Guild first (Chapter Four)';
+      case 'yard': case 'gauntlet': case 'cart': case 'toll': return reached(Story, st, 'c4') && (st.seen.c4) ? null : 'Register with the Guild first (Chapter Four)';
       case 'stray': return st.done.cart ? null : 'Finish the missing cart contract';
       case 'orchard': return st.done.stray ? null : 'Finish “Enough Teeth for Three” first';
       case 'warren': return past(Story, st, 'c5') ? null : 'Clear the quarry first (Chapter Five)';

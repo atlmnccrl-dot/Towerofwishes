@@ -887,6 +887,8 @@
   // ---------------------------------------------------------------- setup
   // opts: { scenario, party: [{key, level, hpFrac, super}], mods: {approach}, enemyLevel,
   //         seed, intro, allOutUses, heroHp (legacy: {kael, eiryn} health fractions) }
+  // [hp, damage] multipliers for a pair of heroes on a contract (see createMatch).
+  const DUO_EASE = { cart: [0.95, 0.95], toll: [0.85, 0.85], stray: [0.8, 0.85], orchard: [0.8, 0.84], warren: [0.72, 0.8], crossing: [0.8, 0.84], deep2: [0.9, 0.92], deep3: [0.85, 0.9] };
   function createMatch(opts) {
     opts = opts || {};
     const rng = makeRng(opts.seed == null ? (Date.now() & 0xffffffff) : opts.seed);
@@ -927,7 +929,10 @@
     // (Scenario difficulty applies when the player brings a party; the bare
     // Chapter One match keeps its original tuning.)
     const base = Object.assign({ hp: 1, dmg: 1 }, party.length ? sc.scale : null, opts.scale);
-    const hpMul = base.hp * (1 + 0.85 * (fighters - 1)), dmgMul = base.dmg * (1 + 0.35 * (fighters - 1));
+    let hpMul = base.hp * (1 + 0.85 * (fighters - 1)), dmgMul = base.dmg * (1 + 0.35 * (fighters - 1));
+    // The Guild's contracts were tuned for three; with the hired companions gone (the author,
+    // 2026-10-22) Kael and Eiryn often take them as a pair: the foes ease off for a pair.
+    if (fighters === 2 && DUO_EASE[opts.scenario]) { hpMul *= DUO_EASE[opts.scenario][0]; dmgMul *= DUO_EASE[opts.scenario][1]; }
     for (const u of units) if (u.team !== 'hero') scaleFoe(u, hpMul, dmgMul);
     // The lead is the player's own fighter (slot 0), else the first non-guest hero.
     const lead = units.find((u) => u.slot === 0) || heroes.find((u) => !u.guest) || heroes[0] || units[0];

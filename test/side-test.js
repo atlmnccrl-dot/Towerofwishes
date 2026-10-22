@@ -9,6 +9,11 @@ const CASES = [
   ['training ren', 'training', P(1, 'ren')],
   ['training mara', 'training', P(1, 'mara')],
   ['training brannoc', 'training', P(1, 'brannoc')],
+  // Kael and Eiryn as a pair (the hired companions were removed; the foes ease off for a pair)
+  ['cart kael+eiryn', 'cart', P(3, 'kael', 'eirynMage')],
+  ['orchard kael+eiryn', 'orchard', P(3, 'kael', 'eirynMage')],
+  ['warren kael+eiryn', 'warren', P(3, 'kael', 'eirynMage')],
+  ['crossing kael+eiryn', 'crossing', P(3, 'kael', 'eirynMage')],
   ['cart ren+kael+eiryn', 'cart', P(3, 'ren', 'kael', 'eirynMage')],
   ['cart mara+kael+eiryn', 'cart', P(3, 'mara', 'kael', 'eirynMage')],
   ['cart brannoc+kael+eiryn', 'cart', P(3, 'brannoc', 'kael', 'eirynMage')],
