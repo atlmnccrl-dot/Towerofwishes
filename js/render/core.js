@@ -272,9 +272,12 @@
       const io = V.camOverride ? null : intro.cameraFor(s, V.show);
       const o = V.camOverride || io || follow || (!c && director.camera(s));
       // The face-off's own shots (eye level, facing the camera) are exempt from the helicopter view.
-      const heli = V.HELI && !(io && io.ground);
-      V.groundShot = !!(io && io.ground);
-      V.groundSubject = io && io.subject ? io.subject : null;
+      // Ground-level shots (the face-off, story scenes) are exempt from the helicopter view.
+      const gnd = (io && io.ground) ? io : (V.camOverride && V.camOverride.ground) ? V.camOverride : null;
+      const heli = V.HELI && !gnd;
+      V.groundShot = !!gnd;
+      V.groundMist = gnd && gnd.mist != null ? gnd.mist : 1;
+      V.groundSubject = gnd && gnd.subject ? gnd.subject : null;
       if (o) {
         const fu = o.focus && s.byId[o.focus];
         if (fu) { tx = fu.x; ty = fu.y; }
@@ -347,7 +350,7 @@
         let i = 0;
         for (; i < items.length && items[i].d < dTh; i++) items[i].f();
         const g = ctx.createLinearGradient(0, 0, 0, V.H);
-        g.addColorStop(0, 'rgba(12,9,16,0.96)'); g.addColorStop(0.42, 'rgba(12,9,16,0.82)'); g.addColorStop(0.8, 'rgba(12,9,16,0.25)'); g.addColorStop(1, 'rgba(12,9,16,0)');
+        const mk = V.groundMist; g.addColorStop(0, `rgba(12,9,16,${0.96 * mk})`); g.addColorStop(0.42, `rgba(12,9,16,${0.82 * mk})`); g.addColorStop(0.8, `rgba(12,9,16,${0.25 * mk})`); g.addColorStop(1, 'rgba(12,9,16,0)');
         ctx.fillStyle = g; ctx.fillRect(-60, -60, V.W + 120, V.H + 120);
         for (; i < items.length; i++) items[i].f();
       } else for (const it of items) it.f();
@@ -395,6 +398,7 @@
     resize();
     return {
       draw, resize,
+      get cam() { return V.cam; }, // (for tests)
       takeHitstop: () => fx.takeHitstop(),
       timeScale: () => director.timeScale(),
       cinematic: () => director.cinematic(),

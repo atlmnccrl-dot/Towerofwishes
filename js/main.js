@@ -1058,6 +1058,8 @@
     get story() { return story; },
     get view() { return view; },
     get drawMs() { return renderer.stats.drawMs; },
+    get cam() { return renderer.cam; },
+    get stageCam() { return stage ? stage.camera() : null; },
     debug: {
       start(m, seed, opts) { startMatch(m || 'practice', seed == null ? 1 : seed, opts); },
       introAt(t) { if (faceoff) faceoff.t = t; },

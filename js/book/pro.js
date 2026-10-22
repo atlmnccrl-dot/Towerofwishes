@@ -220,17 +220,32 @@
         } },
       }),
       // ---- the overlook: Alric and Eiryn race over the rooftops, leaping the gaps, to the high edge of the city
-      'p.overlook': auto('rooftops', [AL(-10.0, 0.0, E), EI(-11.2, 0.7, E)], {
+      'p.overlook': auto('rooftops', [EI(-8.0, 0.4, E), AL(-11.8, 0.2, E)], {
         nodes: { 'p.overlook': {
-          0: { cam: { focus: ['alric', 'eiryn'], view: 6.2, ang: -0.55, pitch: 0.3, up: 0.9, ease: 0.35 },
-            do: [{ speed: [0.6, 0.8, 'h'] },
-              { who: 'alric', path: [[-6, 0.0], [-1, 0.0], [4, 0.0], [8.2, 0.0]], gait: 'sprint', speed: 4.8 },
-              { who: 'eiryn', path: [[-7, 0.7], [-2, 0.7], [3, 0.7], [7.0, 0.7]], gait: 'sprint', speed: 4.8 },
-              { at: 0.9, who: 'alric', hop: [1.4, 0.75] }, { at: 1.0, who: 'eiryn', hop: [1.3, 0.75] },
-              { at: 2.0, who: 'alric', hop: [1.4, 0.75] }, { at: 2.1, who: 'eiryn', hop: [1.3, 0.75] },
-              { at: 3.1, who: 'alric', hop: [1.4, 0.75] }, { at: 3.2, who: 'eiryn', hop: [1.3, 0.75] },
-              { at: 4.4, speed: [0, 0.6] }, { at: 4.4, shake: 3 }, { at: 4.5, who: 'alric', face: [8.2, -6] }, { at: 4.5, who: 'eiryn', face: [8.2, -6] }] },
-          1: { cam: { across: ['alric', 'eiryn'], side: 0.3, focus: ['alric', 'eiryn'], view: 4.6, pitch: 0.4, up: 0.5, ease: 1.2 }, do: [{ who: 'alric', put: [8.0, 0.0] }, { who: 'eiryn', put: [7.0, 0.7] }, { who: 'alric', face: [8, -6] }, { who: 'eiryn', face: [8, -6] }] },
+          // The chase over the roofs (the author's staging, 2026-10-22): we are just behind and
+          // above Eiryn as she runs and leaps roof to roof; she looks back, and Alric is coming.
+          0: { cam: { behind: 'eiryn', focus: 'eiryn', view: 4.6, high: true, pitch: 0.34, ease: 0.25, cut: true },
+            do: [
+              { who: 'eiryn', path: [[-4, 0.4], [1, 0.4], [6, 0.4], [7.6, 0.6]], gait: 'sprint', speed: 4.8, trail: 'dust' },
+              { who: 'alric', path: [[-7, 0.2], [-2, 0.2], [3, 0.2], [6.6, 0.0]], gait: 'sprint', speed: 4.6, trail: 'dust' },
+              // her leaps over the gaps between the roofs (x about -5.7, -0.4 and 4.9)
+              { at: 0.4, who: 'eiryn', hop: [1.4, 0.75] }, { at: 0.42, who: 'eiryn', pfx: { name: 'jump_puff', z: 0, scale: 1.4 } },
+              { at: 1.5, who: 'eiryn', hop: [1.4, 0.75] }, { at: 1.52, who: 'eiryn', pfx: { name: 'jump_puff', z: 0, scale: 1.4 } },
+              { at: 2.6, who: 'eiryn', hop: [1.4, 0.75] }, { at: 2.62, who: 'eiryn', pfx: { name: 'jump_puff', z: 0, scale: 1.4 } },
+              // his, a beat behind
+              { at: 1.2, who: 'alric', hop: [1.4, 0.75] }, { at: 2.3, who: 'alric', hop: [1.4, 0.75] }, { at: 3.4, who: 'alric', hop: [1.4, 0.75] },
+              // she looks back over her shoulder: the camera turns with her, and there he is
+              { at: 2.0, who: 'eiryn', face: 'alric' },
+              { at: 2.0, cam: { behind: 'eiryn', focus: ['eiryn', 'alric'], view: 5.6, high: true, pitch: 0.3, ease: 0.45 } },
+              { at: 2.25, who: 'alric', icon: '!' },
+              { at: 2.7, who: 'eiryn', face: E },
+              { at: 2.7, cam: { behind: 'eiryn', focus: 'eiryn', view: 4.8, high: true, pitch: 0.34, ease: 0.5 } },
+              // the high edge of the city: she lands, he arrives beside her, both look up at the Tower
+              { at: 3.6, who: 'eiryn', pfx: { name: 'smoke_puff', z: 0.1, scale: 1.2 } },
+              { at: 4.2, cam: { across: ['eiryn', 'alric'], focus: ['eiryn', 'alric'], view: 5.2, pitch: 0.4, ease: 1.0 } },
+              { at: 4.5, who: 'alric', face: [8, -6] }, { at: 4.5, who: 'eiryn', face: [8, -6] },
+            ] },
+          1: { cam: { across: ['alric', 'eiryn'], side: 0.3, focus: ['alric', 'eiryn'], view: 4.6, pitch: 0.4, up: 0.5, ease: 1.2 }, do: [{ who: 'alric', put: [6.8, 0.0] }, { who: 'eiryn', put: [7.8, 0.6] }, { who: 'alric', face: [8, -6] }, { who: 'eiryn', face: [8, -6] }] },
           7: { cam: { focus: ['alric', 'eiryn'], view: 3.2, ang: 0.1, pitch: 0.38, up: 0.9, push: 0.05, ease: 1.8 }, do: [{ who: 'alric', to: [7.6, 0.2], speed: 0.4, face: 'eiryn' }, { who: 'eiryn', face: 'alric' }] },
           9: { cam: { x: 7.4, y: 0.4, view: 3.6, ang: 0.0, pitch: 0.3, up: 1.4, ease: 2.0 } },
           10: { cam: { x: 6, y: -4, view: 16, ang: 0.15, pitch: 0.16, up: 3.4, push: -0.3, ease: 3 }, do: [{ light: ['255,200,160', 0.16, 2.5] }] },

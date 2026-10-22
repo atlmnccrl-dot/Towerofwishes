@@ -60,6 +60,8 @@
 (function () {
   'use strict';
   const NS = (window.TowRender = window.TowRender || {});
+  // Story scenes are shot at ground level (the author, 2026-10-22); fights keep the helicopter view.
+  const GROUND = true;
   let V = null, R = null, last = null;
 
   // ------------------------------------------------------------ renderer hook
@@ -231,9 +233,11 @@
     function puff(x, y, kind, n, sp) {
       const F = pixelFx();
       if (F) {
-        if (kind === 'leaf') F.spawn('leaves', x, y, 0.6, { scale: 1.4 });
-        else if (n > 4) { F.spawn('dust_land', x, y, 0, { scale: 1.1 }); F.spawn('smoke_puff', x + (rnd() - 0.5) * 0.6, y, 0.1, { scale: 0.9, delay: 0.05 }); }
-        else F.spawn('dust_run', x, y, 0, { scale: 0.8, flip: rnd() < 0.5 });
+        // (pack effects scale with the camera: keep them modest in close ground-level shots)
+        const k = Math.max(0.3, Math.min(1, 45 / ((V && V.cam && V.cam.sc) || 45)));
+        if (kind === 'leaf') F.spawn('leaves', x, y, 0.6, { scale: 1.4 * k });
+        else if (n > 4) { F.spawn('dust_cloud', x, y, 0, { scale: 1.1 * k }); F.spawn('smoke_puff', x + (rnd() - 0.5) * 0.6, y, 0.1, { scale: 0.9 * k, delay: 0.05 }); }
+        else F.spawn('dust_run', x, y, 0, { scale: 0.6 * k, flip: rnd() < 0.5 });
         return;
       }
       for (let i = 0; i < n; i++) {
@@ -259,7 +263,7 @@
         if (us.length) { x = 0; y = 0; for (const u of us) { x += u.x; y += u.y; } x /= us.length; y /= us.length; }
       }
       // giants (Kharuun, the warlord): frame their heads too
-      if (fid && V.HELI) {
+      if (fid && !GROUND) {
         const Sp = window.TowSprites;
         for (const u of unitsOf(fid)) {
           const cs = Sp && Sp.PIXEL_CAST && Sp.PIXEL_CAST[u.key], man = Sp && Sp.forUnit && Sp.forUnit(u, { scene: true, theme: match.arena && match.arena.theme, town: match.town });
@@ -272,14 +276,16 @@
       x += sh.dx || 0; y += sh.dy || 0;
       const ang0 = sh._ang != null ? sh._ang : camOut.ang;
       // up: aim past the subject so it sits lower on screen (frames faces in close-ups)
-      // (from the helicopter view the subject stays centred, and no shot is tighter than 5.6 m)
-      if (sh.up && !V.HELI) { x -= Math.sin(ang0) * sh.up; y -= Math.cos(ang0) * sh.up; }
+      if (sh.up && (GROUND || !V.HELI)) { x -= Math.sin(ang0) * sh.up; y -= Math.cos(ang0) * sh.up; }
       // a breathing camera: a slow drift and push even on a held shot
       x += Math.sin(clock * 0.23 + 1.3) * 0.08; y += Math.cos(clock * 0.19) * 0.05;
-      const view = Math.max(V.HELI ? 5.6 + tallView : 1.6, (sh.view || 9) + (sh.push != null ? sh.push : -0.035) * Math.min(t, 8));
+      const view = Math.max(GROUND ? 3.6 : V.HELI ? 5.6 + tallView : 1.6, (sh.view || 9) + (sh.push != null ? sh.push : -0.035) * Math.min(t, 8));
       const sc = sh.sc || Math.min(W, H) / view;
       const ang = (sh._ang != null ? sh._ang : camOut.ang) + (sh.drift || 0) * t;
-      return { x, y, sc, ang, pitch: sh.pitch || 0.52 };
+      // Ground level (the author, 2026-10-22): eye height, like the face-off; a shot marked
+      // high looks down from above (the rooftop chase).
+      const pitch = GROUND ? (sh.high ? (sh.pitch || 0.36) : Math.max(0.15, Math.min(0.26, (sh.pitch || 0.42) * 0.5))) : sh.pitch || 0.52;
+      return { x, y, sc, ang, pitch };
     }
     function setShot(sh) {
       if (!sh) return;
@@ -473,7 +479,8 @@
         for (const p of Array.isArray(a.pfx) ? a.pfx : [a.pfx]) {
           if (!F) break;
           const x = p.x != null ? p.x : u ? u.x : 0, y = p.y != null ? p.y : u ? u.y : 0;
-          F.spawn(p.name, x, y, p.z != null ? p.z : 0.9, Object.assign({ scale: p.scale || 1.6 }, p.ground ? { ground: true } : {}, p.add ? { add: true } : {}, p.life ? { life: p.life } : {}, p.delay ? { delay: p.delay } : {}, p.follow && u ? { follow: u } : {}));
+          const kk = GROUND ? Math.max(0.35, Math.min(1, 45 / ((V.cam && V.cam.sc) || 45))) : 1;
+          F.spawn(p.name, x, y, p.z != null ? p.z : 0.9, Object.assign({ scale: (p.scale || 1.6) * kk }, p.ground ? { ground: true } : {}, p.add ? { add: true } : {}, p.life ? { life: p.life } : {}, p.delay ? { delay: p.delay } : {}, p.follow && u ? { follow: u } : {}));
         }
       }
       if (a.fx) {
@@ -676,7 +683,7 @@
     }
 
     function camera() {
-      return { x: camOut.x, y: camOut.y, sc: camOut.sc, ang: camOut.ang };
+      return { x: camOut.x, y: camOut.y, sc: camOut.sc, ang: camOut.ang, pitch: camOut.pitch, ground: GROUND, mist: 0.55, subject: match.stageSpeaker || null };
     }
 
     // Called by the renderer hook around each draw of this match.
@@ -687,7 +694,7 @@
       // core.js eases pitch toward 0.56 for override shots; pre-compensate so the
       // camera lands on the pitch this shot asks for (lower = more dramatic).
       const k = Math.min(0.9, (dt || 0) * 4);
-      cam.pitch = V.HELI ? V.HELI.pitch : (camOut.pitch - 0.56 * k) / (1 - k);
+      cam.pitch = GROUND ? camOut.pitch : V.HELI ? V.HELI.pitch : (camOut.pitch - 0.56 * k) / (1 - k);
       if (shake > 0) { cam.shake = Math.max(cam.shake, shake); shake = 0; }
       pendingCut = null; // eye cut-ins are switched off
       // Balloons and reaction marks are drawn here (post), placed on the real

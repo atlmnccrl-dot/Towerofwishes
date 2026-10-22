@@ -74,7 +74,7 @@
         for (const p of parts) {
           p.x += p.vx * dt; p.y += p.vy * dt;
           if (Math.abs(p.x - cam.x) > span * 0.8 || Math.abs(p.y - cam.y) > span * 0.6) { p.x = cam.x + (rnd() - 0.5) * span * 1.2; p.y = cam.y + (rnd() - 0.5) * span * 0.8; }
-          PX.drawAt(p.name, t + p.ph, p.x, p.y, p.z, { scale: 0.8, alpha: 0.7, add: p.name !== 'leaves' && p.name !== 'ash' });
+          PX.drawAt(p.name, t + p.ph, p.x, p.y, p.z, { scale: 0.8 * Math.max(0.3, Math.min(1, 50 / cam.sc)), alpha: 0.7, add: p.name !== 'leaves' && p.name !== 'ash' });
         }
       }
       // ---- low fog banks

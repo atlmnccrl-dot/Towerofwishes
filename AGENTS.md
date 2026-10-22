@@ -45,10 +45,10 @@ Read first: [docs/DESIGN.md](docs/DESIGN.md), [docs/STORY.md](docs/STORY.md),
   scene-camera limits were tried and rolled back. Characters and power effects stay pixel art.
 - **World map: the illustrated parchment map** (option B, the author, 2026-10-22): ink and watercolour,
   one road west to east, the Tower on the eastern edge. The pixel overworld (option A) was rejected.
-- **Camera: the helicopter view** (the author, 2026-10-22): always high above and a little to the side,
-  one fixed angle (`V.HELI` in core.js) for fights, scenes and heavy arts; shots only move and zoom.
-  Exception: the match face-off is shot at ground level, each fighter facing the camera, the
-  background sunk in dark mist (the author, 2026-10-22).
+- **Camera** (the author, 2026-10-22): **fights** use the helicopter view, high above and a little to
+  the side at one fixed angle (`V.HELI` in core.js). **Story scenes and the match face-off are shot at
+  ground level**, eye height, first-person feel (`GROUND` in stage.js; shots may be marked `high` to
+  look down, as in the rooftop chase), with the far background softened in mist.
 - **The JavaScript game is the live build** (decided 2026-10-22): it plays on iPhone and PC from the
   published link. The Godot migration plan is shelved; a Godot iPhone build needs a Mac and Xcode.
 - **Goblins are skeleton raiders and the Ogre is a skeleton warlord** (the author, 2026-10-22): the
