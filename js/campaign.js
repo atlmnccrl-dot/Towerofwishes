@@ -15,52 +15,57 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  // biome tells the painter what to draw; x, y, r place the land.
+  // biome tells the painter what to draw; x, y, r place the land. px: the pixel overworld's
+  // ground (js/render/overworld.js). Layout (2026-10-22): one road west to east, the Tower on the
+  // eastern edge with its floors stacked up the spire.
   const REGIONS = [
-    { id: 'town', name: 'Ashgate', biome: 'town', x: 150, y: 265, r: 95 },
-    { id: 'forest', name: 'The Forest Road', biome: 'forest', x: 300, y: 300, r: 85 },
-    { id: 'north', name: 'The North Road', biome: 'fields', x: 260, y: 105, r: 95 },
-    { id: 'hills', name: 'The Mill and the Quarry', biome: 'hills', x: 470, y: 205, r: 105 },
-    { id: 'ruins', name: 'The Old Crossing', biome: 'ruins', x: 470, y: 405, r: 90 },
+    { id: 'forest', name: 'The Forest Road', biome: 'forest', px: 'forest', x: 70, y: 330, r: 80 },
+    { id: 'town', name: 'Ashgate', biome: 'town', px: 'town', x: 185, y: 300, r: 85 },
+    { id: 'north', name: 'The North Road', biome: 'fields', px: 'fields', x: 250, y: 105, r: 90 },
+    { id: 'hills', name: 'The Mill and the Quarry', biome: 'hills', px: 'hills', x: 385, y: 200, r: 85 },
+    { id: 'ruins', name: 'The Old Crossing', biome: 'ruins', px: 'ruins', x: 330, y: 420, r: 70 },
     // The book's road east, after the quarry.
-    { id: 'grass', name: 'The Open Grassland', biome: 'fields', x: 615, y: 315, r: 70 },
-    { id: 'shadow', name: 'The Shadow City', biome: 'ruins', x: 690, y: 120, r: 75 },
-    { id: 'bleed', name: 'The Road That Bleeds', biome: 'forest', x: 765, y: 265, r: 62 },
-    { id: 'farms', name: 'The Outer Farms', biome: 'fields', x: 690, y: 425, r: 65 },
-    { id: 'camp', name: 'The Night Camp', biome: 'wilds', x: 800, y: 420, r: 58 },
-    { id: 'frost', name: 'The Frost Road', biome: 'fields', x: 880, y: 350, r: 50 },
-    { id: 'tower', name: 'The Tower', biome: 'tower', x: 925, y: 230, r: 75 },
+    { id: 'grass', name: 'The Open Grassland', biome: 'fields', px: 'fields', x: 485, y: 310, r: 70 },
+    { id: 'shadow', name: 'The Shadow City', biome: 'ruins', px: 'city', x: 565, y: 140, r: 75 },
+    { id: 'bleed', name: 'The Road That Bleeds', biome: 'forest', px: 'wilds', x: 645, y: 270, r: 60 },
+    { id: 'farms', name: 'The Outer Farms', biome: 'fields', px: 'farms', x: 690, y: 400, r: 65 },
+    { id: 'camp', name: 'The Night Camp', biome: 'wilds', px: 'camp', x: 785, y: 355, r: 55 },
+    { id: 'frost', name: 'The Frost Road', biome: 'fields', px: 'frost', x: 835, y: 250, r: 55 },
+    { id: 'tower', name: 'The Tower', biome: 'tower', px: 'tower', x: 935, y: 220, r: 70 },
   ];
 
   // kind: story | contract | side | dungeon | training | arcade | locked
   // story nodes point at a story chapter (main pointer); others start an episode.
   const NODES = [
-    { id: 'prologue', kind: 'story', chapter: 'prologue', region: 'tower', x: 920, y: 110, title: 'The Last Ascent', sub: 'Prologue' },
-    { id: 'c1', kind: 'story', chapter: 'c1', region: 'forest', x: 305, y: 300, title: 'The Clearing', sub: 'Chapter One' },
-    { id: 'c2', kind: 'story', chapter: 'c2', region: 'town', x: 175, y: 300, title: 'A Town Grown Strange', sub: 'Chapters Two & Three' },
-    { id: 'c4', kind: 'story', chapter: 'c4', region: 'town', x: 120, y: 235, title: 'The First Contract', sub: 'Chapter Four' },
-    { id: 'yard', kind: 'training', episode: 'yard', region: 'town', x: 70, y: 300, title: 'The Evaluation Yard', sub: 'Training · repeatable' },
-    { id: 'gauntlet', kind: 'arcade', episode: 'gauntlet', region: 'town', x: 75, y: 190, title: 'Yard Gauntlet', sub: 'Arcade · endless waves' },
-    { id: 'cart', kind: 'contract', episode: 'cart', region: 'north', x: 220, y: 120, title: 'The Missing Supply Cart', sub: 'Guild contract' },
-    { id: 'toll', kind: 'contract', episode: 'toll', region: 'hills', x: 415, y: 150, title: 'The Toll Bridge', sub: 'Guild contract' },
-    { id: 'orchard', kind: 'contract', episode: 'orchard', region: 'north', x: 255, y: 40, title: 'Wolves in the Orchard', sub: 'Guild contract' },
-    { id: 'warren', kind: 'contract', episode: 'warren', region: 'hills', x: 540, y: 255, title: 'The Skeleton Warren', sub: 'Guild contract · after the quarry' },
-    { id: 'stray', kind: 'contract', episode: 'stray', region: 'north', x: 330, y: 70, title: 'Enough Teeth for Three', sub: 'Guild contract' },
-    { id: 'c5', kind: 'story', chapter: 'c5', region: 'hills', x: 480, y: 200, title: 'The Quarry', sub: 'Chapter Five' },
-    { id: 'deep', kind: 'dungeon', episode: 'deep', region: 'hills', x: 560, y: 150, title: 'The Deep Passage', sub: 'Dungeon · repeatable' },
-    { id: 'crossing', kind: 'side', episode: 'crossing', region: 'ruins', x: 470, y: 400, title: 'The Old Crossing', sub: 'Side story · Eiryn' },
-    { id: 'hire', kind: 'side', episode: 'hire', region: 'town', x: 215, y: 215, title: 'Three for Hire', sub: 'Tavern · pick a companion' },
-    { id: 'c6', kind: 'story', chapter: 'c6', region: 'grass', x: 615, y: 315, title: 'The Sky That Hunts', sub: 'Chapter Six' },
-    { id: 'c7', kind: 'story', chapter: 'c7', region: 'shadow', x: 690, y: 125, title: 'The Shadow City', sub: 'Chapter Seven' },
-    { id: 'c8', kind: 'story', chapter: 'c8', region: 'bleed', x: 765, y: 265, title: 'The Road That Bleeds', sub: 'Chapter Eight' },
-    { id: 'c9', kind: 'story', chapter: 'c9', region: 'farms', x: 690, y: 425, title: 'A Name on a Page', sub: 'Chapter Nine' },
-    { id: 'c10', kind: 'story', chapter: 'c10', region: 'camp', x: 800, y: 420, title: 'The Night Creature', sub: 'Chapter Ten' },
-    { id: 'c11', kind: 'story', chapter: 'c11', region: 'frost', x: 880, y: 350, title: 'The Road That Learns You', sub: 'Chapters Ten & Eleven' },
-    { id: 'c12', kind: 'story', chapter: 'c12', region: 'tower', x: 900, y: 305, title: 'The Hall of Frost and Mist', sub: 'Floor One' },
-    { id: 'c13', kind: 'story', chapter: 'c13', region: 'tower', x: 950, y: 265, title: 'Calamity', sub: 'Floor Two' },
-    { id: 'c14', kind: 'story', chapter: 'c14', region: 'tower', x: 905, y: 228, title: 'The Hall of Offering', sub: 'Floor Three' },
-    { id: 'c15', kind: 'locked', chapter: 'c15', region: 'tower', x: 960, y: 175, title: 'Floor Four', sub: 'Beyond the manuscript · awaiting the author' },
+    { id: 'prologue', kind: 'story', chapter: 'prologue', region: 'tower', x: 935, y: 70, title: 'The Last Ascent', sub: 'Prologue' },
+    { id: 'c1', kind: 'story', chapter: 'c1', region: 'forest', x: 70, y: 335, title: 'The Clearing', sub: 'Chapter One' },
+    { id: 'c2', kind: 'story', chapter: 'c2', region: 'town', x: 160, y: 315, title: 'A Town Grown Strange', sub: 'Chapters Two & Three' },
+    { id: 'c4', kind: 'story', chapter: 'c4', region: 'town', x: 220, y: 250, title: 'The First Contract', sub: 'Chapter Four' },
+    { id: 'yard', kind: 'training', episode: 'yard', region: 'town', x: 135, y: 390, title: 'The Evaluation Yard', sub: 'Training · repeatable' },
+    { id: 'gauntlet', kind: 'arcade', episode: 'gauntlet', region: 'town', x: 215, y: 400, title: 'Yard Gauntlet', sub: 'Arcade · endless waves' },
+    { id: 'cart', kind: 'contract', episode: 'cart', region: 'north', x: 200, y: 140, title: 'The Missing Supply Cart', sub: 'Guild contract' },
+    { id: 'toll', kind: 'contract', episode: 'toll', region: 'hills', x: 330, y: 135, title: 'The Toll Bridge', sub: 'Guild contract' },
+    { id: 'orchard', kind: 'contract', episode: 'orchard', region: 'north', x: 245, y: 45, title: 'Wolves in the Orchard', sub: 'Guild contract' },
+    { id: 'warren', kind: 'contract', episode: 'warren', region: 'hills', x: 420, y: 270, title: 'The Skeleton Warren', sub: 'Guild contract · after the quarry' },
+    { id: 'stray', kind: 'contract', episode: 'stray', region: 'north', x: 290, y: 90, title: 'Enough Teeth for Three', sub: 'Guild contract' },
+    { id: 'c5', kind: 'story', chapter: 'c5', region: 'hills', x: 390, y: 205, title: 'The Quarry', sub: 'Chapter Five' },
+    { id: 'deep', kind: 'dungeon', episode: 'deep', region: 'hills', x: 445, y: 140, title: 'The Deep Passage', sub: 'Dungeon · repeatable' },
+    { id: 'crossing', kind: 'side', episode: 'crossing', region: 'ruins', x: 330, y: 415, title: 'The Old Crossing', sub: 'Side story · Eiryn' },
+    { id: 'hire', kind: 'side', episode: 'hire', region: 'town', x: 265, y: 330, title: 'Three for Hire', sub: 'Tavern · pick a companion' },
+    { id: 'c6', kind: 'story', chapter: 'c6', region: 'grass', x: 485, y: 300, title: 'The Sky That Hunts', sub: 'Chapter Six' },
+    { id: 'c7', kind: 'story', chapter: 'c7', region: 'shadow', x: 565, y: 150, title: 'The Shadow City', sub: 'Chapter Seven' },
+    { id: 'c8', kind: 'story', chapter: 'c8', region: 'bleed', x: 645, y: 265, title: 'The Road That Bleeds', sub: 'Chapter Eight' },
+    { id: 'c9', kind: 'story', chapter: 'c9', region: 'farms', x: 690, y: 390, title: 'A Name on a Page', sub: 'Chapter Nine' },
+    { id: 'c10', kind: 'story', chapter: 'c10', region: 'camp', x: 780, y: 350, title: 'The Night Creature', sub: 'Chapter Ten' },
+    { id: 'c11', kind: 'story', chapter: 'c11', region: 'frost', x: 835, y: 255, title: 'The Road That Learns You', sub: 'Chapters Ten & Eleven' },
+    { id: 'c12', kind: 'story', chapter: 'c12', region: 'tower', x: 935, y: 330, title: 'The Hall of Frost and Mist', sub: 'Floor One' },
+    { id: 'c13', kind: 'story', chapter: 'c13', region: 'tower', x: 935, y: 265, title: 'Calamity', sub: 'Floor Two' },
+    { id: 'c14', kind: 'story', chapter: 'c14', region: 'tower', x: 935, y: 200, title: 'The Hall of Offering', sub: 'Floor Three' },
+    { id: 'c15', kind: 'locked', chapter: 'c15', region: 'tower', x: 935, y: 135, title: 'Floor Four', sub: 'Beyond the manuscript · awaiting the author' },
   ];
+
+  // The river the road crosses (the Toll Bridge sits on it), north to south.
+  const RIVER = [[310, -10], [325, 110], [300, 230], [345, 330], [320, 510]];
 
   // Roads between nodes; the three from the Guild are the branch.
   const EDGES = [
@@ -134,5 +139,5 @@
     return { regions, nodes, edges, current: current ? current.id : null };
   }
 
-  return { REGIONS, NODES, EDGES, view, status, lockReason };
+  return { REGIONS, NODES, EDGES, RIVER, ORDER, view, status, lockReason };
 });

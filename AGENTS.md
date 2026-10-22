@@ -76,7 +76,8 @@ Read first: [docs/DESIGN.md](docs/DESIGN.md), [docs/STORY.md](docs/STORY.md),
 | `js/campaign.js` | World map: lands, routes, unlock rules. Pure |
 | `js/progression.js` | Gear, inventory, loot tables, skill trees → per-fighter fight modifiers. Pure |
 | `js/stages.js`, `js/render/stage.js` | Staged story scenes: fighters acting out dialogue on real arenas |
-| `js/render/map.js` | Painted world map with fog over unrevealed lands |
+| `js/render/overworld.js` | The world map (option A, 2026-10-22): a pixel overworld built from the tilesets, UI-pack stop icons, clouds over unreached lands, Kael at the current chapter. Falls back to `map.js` until the tiles load |
+| `js/render/map.js` | The painted world map (option B; drop the overworld script tag in `index.html` to use it) |
 | `js/render/backdrop.js` | Painted full-screen backgrounds for story scenes |
 | `js/main.js` | Loop, input, HUD, save, story screens (scenes, choices, select, chapters) |
 | `test/` | Node tests and a headless-browser check |

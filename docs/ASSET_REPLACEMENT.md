@@ -64,7 +64,7 @@ Stand-ins made from packs already delivered (replace them when the real exports 
 |---|---|
 | Prologue city: **rooftops**, **square**, **summit** | Kept painted on purpose; they're rebuilt with the opening (section 4). Their speed lines, trunk whips and formation rings are still drawn until then. |
 | Story **backdrops** (`backdrop.js`: full-screen painted stills for some scenes) | Pixel scenes, or replace each with a staged pixel arena. |
-| **World map** (`map.js`, painted) | A pixel overworld map (the tilesets can build one). |
+| **World map** | Done (option A): `overworld.js` builds a pixel overworld from the tilesets, with the UI pack's icons and the Adventurer font. The painted map stays as option B. |
 | **Spirit-tree** skill screen | Pixel frame and icons (UI pack). |
 | Title logo, menus, result screen, Team screen | CSS styling. Pixel option: the UI pack's wooden and stone buttons and frames. |
 | Scene props held in hands (mugs, bread, the branch Eiryn picks up) | Small pixel props (Castle & Dungeon items have bread, potions, a sword). |

@@ -404,5 +404,7 @@
   }
   if (typeof window !== 'undefined' && typeof Image !== 'undefined') load();
   // arenas: false — the author prefers the painted arenas (2026-10-22); the atlas still serves props.
-  NS.tiles = { load, ready, has, dressing, drawProp, RECIPES, arenas: false };
+  // One atlas sprite: { img, x, y, w, h } (the world map draws with these).
+  function sprite(name) { const s = ready() && atlas.sprites[name]; return s ? { img: pages[s[0]], x: s[1], y: s[2], w: s[3], h: s[4] } : null; }
+  NS.tiles = { load, ready, has, dressing, drawProp, sprite, RECIPES, arenas: false };
 })();
