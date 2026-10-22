@@ -20,6 +20,10 @@
     const { ctx, PAL, FONT } = V;
     const P = V.P;
     const R = V.Sim.makeRng(23);
+    // Pixel effects (js/render/pixelfx.js): once the effect atlas has loaded, the fight's
+    // events play the author's pixel effects instead of the drawn shards, stars and rings.
+    const PX = NS.pixelfx ? NS.pixelfx.create(V) : null;
+    const px = () => !!(PX && PX.ready());
     let parts = [], texts = [], streaks = [], flash = 0, flashCol = '255,255,255', hitstop = 0, banner = null, impact = 0;
     const fizzles = []; // {unit, t}
     let blinks = [], dissolves = [];
@@ -32,11 +36,12 @@
     let GLYPH = '169,139,255', lanceHex = '#a98bff'; const GLYPH_CORE = '#efe8ff';
 
     // ------------------------------------------------------------ events
-    let lastMatch = null;
+    let lastMatch = null, curScene = null;
     function consume(s) {
       const cam = V.cam;
       // A new match: drop marks and threads left over from the last one.
-      if (s.units && s !== lastMatch) { lastMatch = s; heals = []; hazards = []; hazHits = []; bolts = []; }
+      if (s.units && s !== lastMatch) { lastMatch = s; heals = []; hazards = []; hazHits = []; bolts = []; if (PX) PX.clear(); }
+      if (px()) for (const e of s.fx) pixelEvent(s, e);
       for (const e of s.fx) {
         if (e.type === 'hit') {
           // Everything scales with the damage: sparks thrown along the blow,
@@ -193,6 +198,152 @@
       }
       s.fx.length = 0;
     }
+    // ------------------------------------------------------------ pixel effects
+    // What a fighter strikes with, for its slash and hit sparks.
+    const DAGGER = { knife: 1, nox: 1, frostAssassin: 1, knightTwin: 1, goblin: 1 };
+    const FIST = { brute: 1, grabber: 1, braxen: 1, knightFist: 1, golem: 1, lyraGolem: 1, lyraGolem2: 1, cassius: 1 };
+    const CLAW = { beast: 1, ruinBeast: 1, nightCreature: 1, skyreaver: 1, nightcrawler: 1, cagedCreature: 1, hamletPredator: 1, healingCreature: 1, elderDragon: 1 };
+    const SPEAR = { goblinSpear: 1, spearwoman: 1, knightSpear: 1 };
+    const HEAVY = { ogre: 1, goblinChief: 1, knightAxe: 1 };
+    function weaponOf(u) {
+      const k = u && u.key;
+      if (!k) return 'sword';
+      if (DAGGER[k]) return 'dagger'; if (FIST[k]) return 'fist'; if (CLAW[k]) return 'claw';
+      if (SPEAR[k]) return 'spear'; if (HEAVY[k]) return 'heavy';
+      if (u.def && u.def.attack && u.def.attack.projectile) return 'magic';
+      return 'sword';
+    }
+    const PROJ = { goblinArcher: 'arrow', goblinHexer: 'homing_orb', eiryn: 'magic_missile', eirynMage: 'magic_missile', eirynAsh: 'magic_missile', mara: 'magic_missile', aerys: 'energy_bolt', calamity: 'ice_shard', veil: 'ice_shard', lyra: 'rock', eloryn: 'energy_bolt' };
+    function pixelEvent(s, e) {
+      const S = PX.spawn, flip = R() < 0.5;
+      if (e.type === 'hit') {
+        const u = s.byId[e.u], w = weaponOf(u), dmg = e.dmg || 0, crit = !s.cutscene && dmg >= 24;
+        let n = w === 'fist' || w === 'heavy' ? (e.big ? 'hit_blunt' : 'hit_punch') : w === 'dagger' ? 'hit_pierce' : w === 'magic' ? 'spell_impact' : 'hit_slash';
+        if (u && u.key === 'goblinArcher') n = 'hit_pierce';
+        else if (u && u.key === 'goblinHexer') n = 'hit_poison';
+        else if (u && u.key === 'aerys') n = 'hit_holy';
+        if (u && u.elem) n = { fire: 'hit_fire', ice: 'hit_ice', storm: 'hit_shock', quake: 'hit_blunt' }[u.elem] || n;
+        S(n, e.x, e.y, 1.1, { scale: n === 'spell_impact' ? 0.8 : 1.3 + Math.min(0.8, dmg / 40), flip });
+        if (e.big || crit) S(crit ? 'hit_crit' : 'hit_big', e.x, e.y, 1.15, { scale: 1.6, delay: 0.03 });
+        if (e.big && !s.cutscene) S('dust_kick', e.x, e.y, 0, { scale: 1.2, flip });
+      } else if (e.type === 'parry') {
+        S('parry', e.x, e.y, 1.25, { scale: 1.8 }); S('block', e.x, e.y, 1.25, { scale: 1.4, delay: 0.04, flip });
+      } else if (e.type === 'dodge') {
+        S('dust_kick', e.x, e.y, 0, { scale: 1.2, flip });
+      } else if (e.type === 'ko') {
+        S('dust_land', e.x, e.y, 0, { scale: 1.7 }); S('dust_cloud', e.x, e.y, 0, { scale: 1.4, delay: 0.08 });
+      } else if (e.type === 'thunk') {
+        S('hit_pierce', e.x, e.y, 0.9, { scale: 1 });
+      } else if (e.type === 'dash') {
+        const u = s.byId[e.unit];
+        S('dust_run', e.x, e.y, 0, { scale: 1.3, flip: !!u && Math.cos(PX.screenAng(e.x, e.y, e.a || 0)) > 0 });
+      } else if (e.type === 'fizzle') {
+        const u = s.byId[e.unit];
+        if (u) {
+          const hx = u.x + Math.cos(u.facing) * 0.62, hy = u.y + Math.sin(u.facing) * 0.62;
+          S('cast_circle', hx, hy, 1.45, { scale: 0.55, life: 0.5, add: true });
+          S('small_pop', hx, hy, 1.45, { scale: 0.7, delay: 0.5 });
+        }
+      } else if (e.type === 'blink') {
+        S('smoke_puff', e.x0, e.y0, 0.9, { scale: 1.4 }); S('teleport', e.x0, e.y0, 0, { scale: 1.4 });
+        S('teleport', e.x1, e.y1, 0, { scale: 1.4, delay: 0.08 });
+      } else if (e.type === 'heal') {
+        const to = s.byId[e.target];
+        S('spell_heal', e.x, e.y, 1.0, { scale: 0.9, follow: to || null });
+        S('heal_cross', e.x, e.y, 2.0, { scale: 1, delay: 0.15, follow: to || null });
+      } else if (e.type === 'hazardHit') {
+        if (e.kind === 'fire') { S('explosion_fire', e.x, e.y, 0.6, { scale: 1.2 * e.r }); S('burning_ground', e.x, e.y, 0, { scale: e.r, life: 1.6 }); }
+        else { S('water_splash', e.x, e.y, 0, { scale: 1.6 * e.r }); S('explosion_frost', e.x, e.y, 0.5, { scale: e.r, delay: 0.05 }); }
+      } else if (e.type === 'flame') {
+        const r = PX.screenAng(e.x, e.y, e.a);
+        S('flamethrower', e.x + Math.cos(e.a) * 1.4, e.y + Math.sin(e.a) * 1.4, 0.9, { scale: 2.4, rot: r, life: 0.45, add: true });
+        S('fire_burst', e.x + Math.cos(e.a) * 2.6, e.y + Math.sin(e.a) * 2.6, 0.8, { scale: 1.6, delay: 0.12 });
+      } else if (e.type === 'freeze') {
+        S('ice_shatter', e.x, e.y, 1.0, { scale: 1.5 }); S('frost_nova', e.x, e.y, 0.05, { scale: 1.6, ground: true });
+      } else if (e.type === 'thaw') {
+        S('ice_shatter', e.x, e.y, 0.9, { scale: 1.1 });
+      } else if (e.type === 'bolt') {
+        S('chain_lightning', e.x1, e.y1, 1.1, { scale: 1.5 }); S('shock', e.x1, e.y1, 1.1, { scale: 1.2, delay: 0.05 });
+      } else if (e.type === 'quake') {
+        S('rock_burst', e.x, e.y, 0, { scale: 2 }); S('shockwave', e.x, e.y, 0.05, { scale: 2.6, ground: true });
+      } else if (e.type === 'dissolve') {
+        const h = e.big ? 1.5 : 0.9;
+        S('dissipate', e.x, e.y, h, { scale: e.big ? 3 : 1.6 }); S('smoke_dark', e.x, e.y, h, { scale: e.big ? 2.4 : 1.2, delay: 0.1 });
+        if (e.big) S('dark_curse', e.x, e.y, 1.2, { scale: 2.6, life: 1.2 });
+      } else if (e.type === 'allout') {
+        for (const u of s.units) if (u.team === 'hero' && u.allOut > 0) { S('fire_burst', u.x, u.y, 1.0, { scale: 1.6 }); S('buff_up', u.x, u.y, 0, { scale: 1.3, follow: u }); }
+      } else if (e.type === 'cutscene') {
+        const u = s.byId[e.unit];
+        if (u) S('charge_up', u.x, u.y, 1.0, { scale: 1.8, follow: u, life: 1.2, add: true });
+      } else if (e.type === 'bossBeat') {
+        const b = s.byId[e.boss];
+        if (b) S('shockwave', b.x, b.y, 0.05, { scale: 3.2, ground: true });
+      }
+    }
+    // A swing: the slash plays the moment the blow comes out, along the fighter's facing.
+    const swung = new WeakSet();
+    function pixelSwing(u, s) {
+      const act = u.act;
+      if (!act || u.state !== 'attack' || act.phase !== 'strike' || act.A.projectile || swung.has(act)) return;
+      swung.add(act);
+      const w = weaponOf(u), A = act.A, f = u.facing;
+      const reach = Math.min(1.4, (A.range || 1.4) * 0.6);
+      const x = u.x + Math.cos(f) * reach, y = u.y + Math.sin(f) * reach;
+      if (A.slam || A.down) { PX.spawn('shockwave', x, y, 0.05, { scale: 2.6, ground: true }); PX.spawn('rock_burst', x, y, 0, { scale: 1.8 }); return; }
+      let n = w === 'dagger' ? 'dagger' : w === 'spear' ? 'thrust' : w === 'claw' ? 'claw' : w === 'heavy' ? 'cleave' : w === 'fist' ? null : (u.combo % 2 ? 'slash_l' : 'slash_r');
+      if (u.key === 'blackKnight') n = 'dark_slash';
+      if (u.elem === 'fire' && n) n = 'fire_slash';
+      if (u.elem === 'ice' && n) n = 'ice_slash';
+      if (u.allOut > 0 && n && w === 'sword') n = 'fire_slash';
+      if (!n) return;
+      let r = PX.screenAng(u.x, u.y, f), flip = false;
+      if (Math.cos(r) < 0) { flip = true; r -= Math.PI; }
+      PX.spawn(n, x, y, 1.0, { scale: w === 'heavy' ? 2.6 : 1.7, rot: r, flip });
+    }
+    function pixelProjectile(p) {
+      const k = p.from && p.from.key, n = PROJ[k] || (p.A && p.A.name === 'Arrow' ? 'arrow' : 'energy_bolt');
+      V.shadow(p.x, p.y, 0.1, 0.3);
+      return PX.drawAt(n, V.time, p.x, p.y, p.z, { rot: PX.screenAng(p.x, p.y, Math.atan2(p.vy, p.vx)), scale: 1.4 });
+    }
+    // Heavy arts: the moment of impact in pixel effects (the cutscene's panels stay).
+    const artDone = new WeakSet();
+    function pixelArt(s) {
+      const c = s.cutscene;
+      if (!c || !c.applied || artDone.has(c)) return;
+      artDone.add(c);
+      const u = c.unit, H = s.byId && u ? u : null, S = PX.spawn;
+      if (!H) return;
+      const f = u.facing, name = c.name || '';
+      const fx = u.x + Math.cos(f) * 1.6, fy = u.y + Math.sin(f) * 1.6;
+      let r = PX.screenAng(u.x, u.y, f), flip = false;
+      if (Math.cos(r) < 0) { flip = true; r -= Math.PI; }
+      const foes = s.units.filter((o) => o.team !== u.team && !o.fled && Math.hypot(o.x - u.x, o.y - u.y) < 4.5);
+      if (/Life Surge/.test(name)) {
+        S('spell_heal', u.x, u.y, 1.0, { scale: 2.2 });
+        for (const o of s.units) if (o.team === u.team && !o.fled) S('heal_loop', o.x, o.y, 0, { follow: o, scale: 1.2, life: 1.4 });
+      } else if (/Legion/.test(name)) {
+        for (let i = 0; i < 5; i++) { const a = f + (i - 2) * 0.5; S('summon', u.x + Math.cos(a) * 2.2, u.y + Math.sin(a) * 2.2, 0, { scale: 1.6, delay: i * 0.06 }); }
+        S('dark_curse', fx, fy, 1.0, { scale: 3, life: 1.0 });
+      } else if (/Spear of Light/.test(name)) {
+        const t = foes[0] || { x: fx, y: fy };
+        S('lightning_holy', t.x, t.y, 0, { scale: 2.2 }); S('holy_light', t.x, t.y, 0, { scale: 2.4, delay: 0.05 });
+      } else if (/Lance/.test(name)) {
+        for (let i = 1; i <= 6; i++) S('spell_zap', u.x + Math.cos(f) * i * 1.3, u.y + Math.sin(f) * i * 1.3, 1.1, { scale: 1.2, delay: i * 0.04, rot: r, flip });
+      } else if (/Pressure/.test(name)) {
+        S('shockwave', fx, fy, 0.05, { scale: 4.2, ground: true }); S('wind_gust', fx, fy, 1.0, { scale: 3, rot: r, flip });
+      } else if (/Bone Breaker/.test(name)) {
+        S('rock_burst', fx, fy, 0, { scale: 3 }); S('shockwave', fx, fy, 0.05, { scale: 3.6, ground: true });
+      } else if (/Thousand Wounds|Hundredfold/.test(name)) {
+        for (const [i, o] of foes.entries()) { S('multi_hit', o.x, o.y, 1.1, { scale: 1.8, delay: i * 0.05 }); S('cross_slash', o.x, o.y, 1.1, { scale: 2, delay: 0.12 + i * 0.05 }); }
+      } else {
+        // Rising Cut and other blade arts: a great arc and a ring of force along the floor.
+        S('arc_white', fx, fy, 1.1, { scale: 1.3, rot: r, flip, add: true });
+        S('cleave', fx, fy, 1.0, { scale: 3.2, rot: r, flip, delay: 0.04 });
+        S('shockwave', u.x, u.y, 0.05, { scale: 3.4, ground: true });
+      }
+      for (const o of foes) S('hit_big', o.x, o.y, 1.1, { scale: 1.8, delay: 0.06 });
+    }
+
     // Which way a blow travelled (world angle): from the nearest fighter of
     // the striking team to the point of impact.
     function blowDir(s, e) {
@@ -240,7 +391,7 @@
     function underUnit(u, s) {
       if (u.fled) return;
       const sc = V.cam.sc;
-      if (!groundDone) { groundDone = true; drawHazardMarks(s); }
+      if (!groundDone) { groundDone = true; drawHazardMarks(s); if (PX) PX.drawGround(); }
       if (V.follow === u.id && u.state !== 'out') {
         // Followed fighter: a bright ring on the ground.
         const p = P(u.x, u.y, 0.01), r = sc * 0.62;
@@ -248,7 +399,7 @@
         ctx.beginPath(); ctx.ellipse(p.x, p.y, r, r * V.cam.pitch, 0, 0, Math.PI * 2); ctx.stroke();
         ctx.strokeStyle = '#f6f0ec'; ctx.lineWidth = 2; ctx.stroke();
       }
-      if (u.allOut > 0) aura(u, sc, true);
+      if (u.allOut > 0) { if (px()) PX.drawAt('fire_ring', V.time + u.x, u.x, u.y, 0.02, { ground: true, scale: 1.7, alpha: 0.85, add: true }); else aura(u, sc, true); }
       // Telegraph: a brushed zone that charges up; the edge sharpens as the blow nears.
       if (u.state === 'attack' && u.act && (u.act.phase === 'windup' || u.act.phase === 'feint') && !u.act.A.projectile) {
         const k = u.act.phase === 'feint' ? 1 : Math.min(1, u.act.t / u.act.wind);
@@ -297,7 +448,7 @@
         ctx.setLineDash([]);
       }
       // Opening dash: speed lines streaming behind.
-      for (const st of streaks) if (st.u === u) dashLines(u, st, sc);
+      if (!px()) for (const st of streaks) if (st.u === u) dashLines(u, st, sc);
     }
 
     function dashLines(u, st, sc) {
@@ -366,7 +517,11 @@
     function overUnit(u) {
       if (u.fled) return;
       const sc = V.cam.sc;
-      if (u.allOut > 0) aura(u, sc, false);
+      const pxOn = px();
+      if (u.allOut > 0) { if (pxOn) PX.drawAt('embers', V.time + u.y, u.x, u.y, 1.1, { scale: 1.6, add: true }); else aura(u, sc, false); }
+      if (pxOn && u.burnT > 0) PX.drawAt('flame', V.time + u.x, u.x, u.y, 0.1, { scale: 1.3, add: true, alpha: 0.9 });
+      if (pxOn && u.drained > 0) PX.drawAt('steam', V.time, u.x, u.y, 1.55, { scale: 0.8, alpha: 0.7 });
+      if (pxOn) pixelSwing(u, curScene);
       if (u.frozenT > 0) {
         // Frozen solid: a pale block of ice round the fighter, cracked.
         const b = P(u.x, u.y, 0), t = P(u.x, u.y, 1.85), w = sc * 0.55, k = Math.min(1, u.frozenT / 0.25);
@@ -376,7 +531,7 @@
         ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.beginPath(); ctx.moveTo(b.x - w * 0.3, t.y + sc * 0.1); ctx.lineTo(b.x + w * 0.1, (b.y + t.y) / 2); ctx.lineTo(b.x - w * 0.4, b.y - sc * 0.2); ctx.stroke();
         ctx.restore();
       }
-      if (u.burnT > 0) {
+      if (u.burnT > 0 && !pxOn) {
         // Burning: tongues of flame licking up the body.
         ctx.save(); ctx.globalCompositeOperation = 'lighter';
         for (let i = 0; i < 5; i++) {
@@ -387,7 +542,7 @@
         }
         ctx.restore();
       }
-      if (u.drained > 0) {
+      if (u.drained > 0 && !pxOn) {
         // Drained: breath clouds and a sweat drop.
         const h = P(u.x, u.y, 1.75);
         const k = (V.time * 1.5) % 1;
@@ -398,10 +553,10 @@
       // moments of the swing, a tapered ribbon with a bright core.
       const CBm = window.TowRender && window.TowRender.combat;
       const trail = CBm && CBm.trailOf(u);
-      const trailing = trail && u.state === 'attack' && u.act && !u.act.A.projectile;
+      const trailing = !pxOn && trail && u.state === 'attack' && u.act && !u.act.A.projectile;
       if (trailing) drawTrail(u, trail, sc);
       // Slash: a tapered ink-brush crescent with a white core.
-      if (!trailing && u.state === 'attack' && u.act && (u.act.phase === 'strike' || (u.act.phase === 'recover' && u.act.t < 0.12)) && !u.act.A.projectile) {
+      if (!pxOn && !trailing && u.state === 'attack' && u.act && (u.act.phase === 'strike' || (u.act.phase === 'recover' && u.act.t < 0.12)) && !u.act.A.projectile) {
         // A sharp crescent: a needle point at the blade's leading edge, the
         // body swelling behind it and the tail fading out. Each swing is
         // tilted a little (alternating), so combos read as separate cuts.
@@ -448,9 +603,12 @@
     // ------------------------------------------------------------ world fx
     function drawWorld(s, dt) {
       const cam = V.cam, sc = cam.sc;
-      if (!groundDone) drawHazardMarks(s);
+      curScene = s;
+      const pxOn = px();
+      if (!groundDone) { drawHazardMarks(s); if (PX) PX.drawGround(); }
       groundDone = false;
-      for (const p of s.projectiles) drawProjectile(p, sc);
+      for (const p of s.projectiles) if (!(pxOn && pixelProjectile(p))) drawProjectile(p, sc);
+      if (pxOn) { heals = []; blinks = []; dissolves = []; bolts = []; }
       drawHeals(dt, sc);
       drawHazardsAbove(s, dt, sc);
       drawBlinks(dt, sc);
@@ -459,7 +617,7 @@
       for (const fz of fizzles) {
         fz.t += dt;
         const u = fz.u, k = fz.t / 0.75;
-        if (k >= 1) continue;
+        if (k >= 1 || pxOn) continue;
         const hand = P(u.x + Math.cos(u.facing) * 0.62, u.y + Math.sin(u.facing) * 0.62, 1.45);
         const r = sc * 0.22;
         const sweep = Math.min(1, k / 0.55) * Math.PI;
@@ -488,6 +646,7 @@
         if (p.t < 0) continue; // not started yet
         if (p.float) { p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt; p.vx *= 1 - dt * 0.8; p.vy *= 1 - dt * 0.8; }
         else if (p.vx != null) { p.x += p.vx * dt; p.y += p.vy * dt; p.z = Math.max(0, p.z + p.vz * dt); p.vz -= 7 * dt; }
+        if (pxOn) continue; // the pixel effects stand in for the drawn particles
         const k = p.t / p.life, q = P(p.x, p.y, p.z);
         ctx.globalAlpha = Math.max(0, 1 - k);
         if (p.ash) {
@@ -557,6 +716,7 @@
       }
       ctx.globalAlpha = 1;
       parts = parts.filter((p) => p.t < p.life);
+      if (pxOn) { pixelArt(s); PX.drawAbove(dt); }
       if (parts.length > 600) parts.splice(0, parts.length - 600);
       for (const t of texts) {
         t.t += dt;
