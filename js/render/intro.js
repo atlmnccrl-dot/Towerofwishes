@@ -766,7 +766,13 @@
         // Impact flash on FIGHT.
         if (fight && t - T.fight < 0.08 && t >= T.fight) { ctx.fillStyle = 'rgba(246,240,236,0.85)'; ctx.fillRect(0, 0, W, H); }
       }
-      if (lb > 0) { ctx.fillStyle = INK; ctx.fillRect(0, 0, W, lb); ctx.fillRect(0, H - lb, W, lb); }
+      if (lb > 0) {
+        // soft fades, not solid bars
+        const k = lb / (H * 0.07), g1 = ctx.createLinearGradient(0, 0, 0, H * 0.13), g2 = ctx.createLinearGradient(0, H * 0.87, 0, H);
+        g1.addColorStop(0, `rgba(12,8,8,${(0.7 * k).toFixed(3)})`); g1.addColorStop(1, 'rgba(12,8,8,0)');
+        g2.addColorStop(0, 'rgba(12,8,8,0)'); g2.addColorStop(1, `rgba(12,8,8,${(0.7 * k).toFixed(3)})`);
+        ctx.fillStyle = g1; ctx.fillRect(0, 0, W, H * 0.13); ctx.fillStyle = g2; ctx.fillRect(0, H * 0.87, W, H * 0.13);
+      }
       if (t < T.vsEnd) {
         ctx.font = `700 12px ${FONT.ui}`; ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic';
         ctx.fillStyle = 'rgba(246,240,236,0.55)'; ctx.fillText('Tap to skip', W - 14, H - Math.max(lb, 6) - 8);

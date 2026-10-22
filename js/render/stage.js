@@ -730,12 +730,16 @@
       try { drawExtras(ctx, W, H); } catch (e) { /* never break the frame */ }
       try { callouts(ctx, W, H); } catch (e) { /* never break the frame */ }
       if (fade.a > 0.001) { ctx.fillStyle = `rgba(${fade.col},${clamp(fade.a, 0, 1)})`; ctx.fillRect(0, 0, W, H); }
-      // Letterbox: the scene reads as an episode, not a menu.
-      const bh = Math.round(H * 0.075 * smooth(bars));
-      if (bh > 0) {
-        ctx.fillStyle = '#0c0808';
-        ctx.fillRect(0, 0, W, bh);
-        ctx.fillRect(0, H - bh, W, bh);
+      // Cinematic framing: soft dark fades at the top and bottom edges, never solid bars
+      // (bars hid the picture on phones).
+      const fk = smooth(bars);
+      if (fk > 0.01) {
+        const top = ctx.createLinearGradient(0, 0, 0, H * 0.14);
+        top.addColorStop(0, `rgba(8,5,6,${(0.62 * fk).toFixed(3)})`); top.addColorStop(1, 'rgba(8,5,6,0)');
+        ctx.fillStyle = top; ctx.fillRect(0, 0, W, H * 0.14);
+        const bot = ctx.createLinearGradient(0, H * 0.8, 0, H);
+        bot.addColorStop(0, 'rgba(8,5,6,0)'); bot.addColorStop(1, `rgba(8,5,6,${(0.55 * fk).toFixed(3)})`);
+        ctx.fillStyle = bot; ctx.fillRect(0, H * 0.8, W, H * 0.2);
       }
       ctx.restore();
     }

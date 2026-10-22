@@ -365,7 +365,8 @@
       const t0 = performance.now();
       V.show = show || null;
       V.spotlight = intro.spotlight(s, V.show);
-      if (!V.W) resize();
+      // (re-measure whenever the canvas changed size: phones report a rotation late)
+      if (!V.W || canvas.clientWidth !== V.W || canvas.clientHeight !== V.H) resize();
       V.time += dt;
       director.observe(s, dt);
       fx.consume(s);
@@ -387,6 +388,10 @@
     }
 
     window.addEventListener('resize', resize);
+    // Phones settle the new size a moment after rotating: measure again then.
+    const later = () => { setTimeout(resize, 120); setTimeout(resize, 500); };
+    window.addEventListener('orientationchange', later);
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', later);
     resize();
     return {
       draw, resize,

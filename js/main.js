@@ -18,9 +18,11 @@
     return Pg.normalise(raw, Date.now());
   }
   function writeSave() {
+    if (prologueKept) return; // watching the prologue again: the real save is kept aside
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) { /* storage unavailable: progress lasts this visit */ }
   }
   let save = loadSave(), story = null;
+  let prologueKept = null; // the save, while the prologue is watched again (Settings)
   let prog = null;
   function bindStory() { story = Story.normalise(save.story); save.story = story; prog = Prog.normalise(save.prog); save.prog = prog; }
   bindStory();
@@ -73,6 +75,7 @@
 
   let menuStage = null;
   function show(id) {
+    if (id === 'menu' && prologueKept) { restorePrologue(); renderMenu(); }
     if (id === 'menu') {
       if (!menuStage && Render.stage && window.TowStages && window.TowStages.title) { try { menuStage = Render.stage.start(window.TowStages.title, Sim); } catch (e) { menuStage = null; } }
     } else if (menuStage) { menuStage = null; if (!stage) renderer.setCameraOverride(null); }
@@ -93,6 +96,7 @@
   }
   // Show whatever the story is at now.
   function runStory() {
+    if (prologueOver()) return;
     const n = Story.node(story);
     writeSave();
     match = null; storyBattle = null;
@@ -765,10 +769,46 @@
   $('btn-speed').addEventListener('click', () => { speed = speed === 1 ? 2 : 1; $('btn-speed').innerHTML = `${speed}&times;`; });
   $('btn-pause').addEventListener('click', () => setPaused(true));
   $('btn-resume').addEventListener('click', () => setPaused(false));
+  // ------------------------------------------------------------ settings
+  function renderSettings() {
+    const a = autoOn();
+    $('btn-set-auto').textContent = a ? 'On' : 'Off'; $('btn-set-auto').setAttribute('aria-pressed', a ? 'true' : 'false');
+    $('btn-sound').setAttribute('aria-pressed', window.TowAudio && window.TowAudio.on === false ? 'false' : 'true');
+  }
+  $('btn-settings').addEventListener('click', () => { $('reset-confirm').hidden = true; renderSettings(); $('settings').hidden = false; });
+  $('btn-settings-close').addEventListener('click', () => { $('settings').hidden = true; });
+  $('settings').addEventListener('click', (e) => { if (e.target === $('settings')) $('settings').hidden = true; });
+  $('btn-sound').addEventListener('click', () => setTimeout(renderSettings, 0));
+  $('btn-set-auto').addEventListener('click', () => { setAuto(!autoOn()); renderSettings(); });
   $('btn-reset').addEventListener('click', () => { $('reset-confirm').hidden = false; });
+  $('btn-reset-no').addEventListener('click', () => { $('reset-confirm').hidden = true; });
   $('btn-reset-yes').addEventListener('click', () => {
-    save = Pg.fresh(Date.now()); bindStory(); writeSave(); $('reset-confirm').hidden = true; renderMenu();
+    // Everything back to the very start (story, team, gear, injuries); the settings stay.
+    const keep = save.settings;
+    save = Pg.fresh(Date.now()); save.settings = keep; bindStory(); writeSave();
+    $('reset-confirm').hidden = true; $('settings').hidden = true; renderMenu();
+    if (window.TowAudio) window.TowAudio.play('cancel_01', 0.5);
   });
+  // Watch the prologue again: the opening plays from its first scene to the choice of
+  // starter, then the game returns to the menu with the save exactly as it was.
+  $('btn-prologue').addEventListener('click', () => {
+    $('settings').hidden = true;
+    prologueKept = JSON.stringify(save);
+    story.node = 'p.lore'; story.side = null;
+    tryLandscape(); runStory();
+  });
+  function prologueOver() {
+    if (!prologueKept) return false;
+    const id = Story.cur(story);
+    if (/^p\./.test(id) && id !== 'p.select' && id !== 'p.who') return false;
+    stage = null; stageKey = null; renderer.setCameraOverride(null);
+    renderMenu(); show('menu'); // (show restores the save)
+    return true;
+  }
+  function restorePrologue() {
+    if (!prologueKept) return;
+    save = JSON.parse(prologueKept); prologueKept = null; bindStory(); writeSave();
+  }
   function setPaused(p) {
     if (!match || match.result) return;
     paused = p;
@@ -902,7 +942,8 @@
     match = null; stage = null; stageKey = null; lastRun = null; renderer.setFollow(null); renderer.setCameraOverride(null);
     save = loadSave(); bindStory(); renderMenu(); show('menu');
   }
-  $('btn-trailer').addEventListener('click', playTrailer);
+  // (the trailer reel stays in the code; its menu button gave way to Settings → Prologue)
+  void playTrailer;
 
   function feedReplay() {
     if (!replay) return;
@@ -924,6 +965,7 @@
 
   function frame(now) {
     const real = Math.min(0.05, (now - last) / 1000);
+    { const c = $('arena'); if (c.clientWidth && Math.round(c.clientWidth * Math.min(window.devicePixelRatio || 1, 2)) !== c.width) renderer.resize(); }
     last = now;
     const s = match || attract;
     if (!match && view === 'select' && selectStaged && stage) {
