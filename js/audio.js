@@ -3,6 +3,8 @@
  *
  *   TowAudio.play(name, volume)   e.g. play('level_up'), play('chest_open', 0.6)
  *   TowAudio.on                   sound on/off (saved), toggled by the menu's Sound button
+ *   TowAudio.music(name | null)   the music that should be playing now; it fades across. Tracks
+ *                                 (assets/music/): 'battle' = "Heartfelt Battle" (OpenGameArt, CC0)
  *
  * Web Audio, unlocked on the first touch (iPhone Safari needs a gesture before any sound).
  * Every button click plays a soft click unless its id has its own sound below.
@@ -24,11 +26,39 @@
   try { on = localStorage.getItem(KEY) !== 'off'; } catch (e) { /* private mode: default on */ }
   let ctx = null;
   const buffers = {};
+  // Music streams from an <audio> element routed through a gain node (iPhone ignores element volume).
+  const MUSIC = { battle: ['assets/music/heartfelt_battle.mp3', 0.4] };
+  const tracks = {};
+  let musName = null;
+  function track(n) {
+    if (tracks[n]) return tracks[n];
+    const el = new Audio(MUSIC[n][0]);
+    el.loop = true; el.preload = 'auto';
+    const g = ctx.createGain(); g.gain.value = 0;
+    ctx.createMediaElementSource(el).connect(g); g.connect(ctx.destination);
+    return (tracks[n] = { el, g, stop: 0 });
+  }
+  function ramp(T, v, s) { const t = ctx.currentTime; T.g.gain.cancelScheduledValues(t); T.g.gain.setValueAtTime(T.g.gain.value, t); T.g.gain.linearRampToValueAtTime(v, t + s); }
+  function applyMusic() {
+    if (!ctx) return;
+    for (const [n, T] of Object.entries(tracks)) {
+      if (n === musName && on) continue;
+      ramp(T, 0, 1.2); clearTimeout(T.stop);
+      T.stop = setTimeout(() => { if (musName !== n || !on) T.el.pause(); }, 1300);
+    }
+    if (!musName || !on || !MUSIC[musName]) return;
+    const T = track(musName);
+    clearTimeout(T.stop);
+    if (T.el.paused) { try { T.el.currentTime = 0; } catch (e) { /* not loaded yet */ } T.el.play().catch(() => {}); }
+    ramp(T, MUSIC[musName][1], 1.6);
+  }
+  function music(name) { if (name === musName) return; musName = name; applyMusic(); }
   function unlock() {
     if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     ctx = new AC();
+    applyMusic();
     for (const n of NAMES) {
       fetch('assets/sfx/' + n + '.mp3').then((r) => r.arrayBuffer())
         .then((b) => new Promise((res, rej) => ctx.decodeAudioData(b, res, rej)))
@@ -44,7 +74,7 @@
     src.start();
   }
   function label() { const b = document.getElementById('btn-sound'); if (b) b.textContent = 'Sound: ' + (on ? 'on' : 'off'); }
-  function setOn(v) { on = !!v; try { localStorage.setItem(KEY, on ? 'on' : 'off'); } catch (e) { /* ignore */ } label(); }
+  function setOn(v) { on = !!v; try { localStorage.setItem(KEY, on ? 'on' : 'off'); } catch (e) { /* ignore */ } label(); applyMusic(); }
   if (typeof document !== 'undefined') {
     for (const ev of ['pointerdown', 'touchend', 'keydown']) document.addEventListener(ev, unlock, { passive: true });
     document.addEventListener('click', (e) => {
@@ -56,5 +86,5 @@
     }, true);
     document.addEventListener('DOMContentLoaded', label);
   }
-  window.TowAudio = { play, get on() { return on; }, set on(v) { setOn(v); } };
+  window.TowAudio = { play, music, get on() { return on; }, set on(v) { setOn(v); } };
 })();

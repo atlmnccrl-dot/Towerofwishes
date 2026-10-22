@@ -326,6 +326,25 @@ h2 { font-style: italic; }
 .dialogue.narr p { font-style: italic; color: var(--bone); letter-spacing: 0.03em; }
 .dialogue .tap { position: absolute; right: 18px; bottom: 14px; width: 0; height: 0; border: 5px solid transparent; border-top-color: var(--parchment-dim); animation: bob 0.9s ease-in-out infinite; }
 @keyframes lineIn { from { opacity: 0.0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+/* ---- film subtitles (the author's pick, 2026-10-22, mockup A): letterbox bars; one or two short
+   lines in the bottom bar; the name only when the speaker changes; the controls appear on a tap */
+:root { --lb: clamp(46px, 15.5vh, 80px); }
+#story.screen.story { background: none; place-items: initial; }
+#story::before, #story::after { content: ""; position: absolute; left: 0; right: 0; height: var(--lb); background: #050407; pointer-events: none; }
+#story::before { top: 0; }
+#story::after { bottom: 0; }
+#story .story-top { z-index: 2; height: var(--lb); padding-top: env(safe-area-inset-top, 0px); opacity: 0; pointer-events: none; transition: opacity 0.35s; }
+#story.ctrl-on .story-top { opacity: 1; pointer-events: auto; }
+#story .dialogue { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; width: auto; height: var(--lb); min-height: 0; margin: 0;
+  padding: 0 max(56px, env(safe-area-inset-right, 0px)) 0 max(56px, env(safe-area-inset-left, 0px));
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; animation: subIn 0.4s ease-out both; }
+#story .dialogue .who { margin: 0; gap: 0; font: 800 9px/1 var(--ui); letter-spacing: 0.38em; }
+#story .dialogue .who::before, #story .dialogue .who::after { display: none; }
+#story .dialogue p { margin: 0; max-width: 66ch; font: 700 clamp(12.5px, 2vw, 16px)/1.28 var(--ui); letter-spacing: 0.01em; text-shadow: 0 1px 2px #000; }
+#story .dialogue.narr p { font-weight: 600; font-style: italic; color: var(--bone); letter-spacing: 0.02em; }
+#story .dialogue .tap { display: none; right: 22px; bottom: calc(var(--lb) / 2 - 3px); }
+#story.waiting .dialogue .tap { display: block; }
+@keyframes subIn { from { opacity: 0; } to { opacity: 1; } }
 .card-title { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; gap: 14px; padding: 24px; pointer-events: none; }
 .card-title b { font: 800 clamp(30px, 7vw, 64px)/1 var(--display); font-style: italic; letter-spacing: 0.04em; text-shadow: 3px 3px 0 var(--crimson); animation: rise 1.2s ease-out both; }
 .card-title small { font: 600 clamp(13px, 2.2vw, 17px)/1.4 var(--ui); color: var(--bone); font-style: italic; animation: rise 1.2s 0.5s ease-out both; }
@@ -597,11 +616,63 @@ body.trailer.fighting .trailer-card:not(.logo) { bottom: auto; top: 10vh; }
 #btn-withdraw .flag { width: 28px; height: 28px; border: 0; background: url("assets/ui/icons1.png") no-repeat; background-size: 224px 224px; background-position: -84px -112px; image-rendering: pixelated; }
 #btn-withdraw .flag::after { display: none; }
 .credits-pop p { margin: 0 0 6px; font: 500 11px/1.4 var(--ui); color: var(--parchment-dim); }
+/* ---- the clean HUD (the author's pick, 2026-10-22, mockup A) */
+#team { width: 172px; gap: 8px; }
+.card.hero { grid-template-columns: 40px minmax(0, 1fr); gap: 8px; padding: 0; background: none; clip-path: none; }
+.card.hero .tab { position: relative; box-sizing: border-box; padding: 0; align-self: center; width: 40px; height: 40px; min-height: 0; border-radius: 50%; overflow: hidden; clip-path: none;
+  background: radial-gradient(circle at 50% 35%, #3a4a66, #10131c 75%); box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.22), 0 2px 6px rgba(0, 0, 0, 0.6); }
+.card.hero .tab .face { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
+.card.hero.has-face .tab b { display: none; }
+.card.hero .card-name { font: 800 10px/1 var(--ui); font-style: normal; letter-spacing: 0.16em; text-transform: uppercase; color: #fffd; }
+.card.hero .meter { transform: none; border-radius: 3px; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55); background: rgba(0, 0, 0, 0.45); }
+.card.hero .meter.hp { height: 6px; margin-top: 4px; }
+.card.hero .meter.hp > i.fill { background: linear-gradient(90deg, #5fd69b, #b8f5cf); border-radius: 3px; }
+.card.hero.low .meter.hp > i.fill { background: linear-gradient(90deg, var(--blood), #ff8a96); }
+.card.hero .meter.hp > i.trail { background: rgba(255, 255, 255, 0.6); border-radius: 3px; }
+.card.hero .meter.sta { height: 2px; width: 100%; margin-top: 2px; background: rgba(0, 0, 0, 0.35); box-shadow: none; }
+.card.hero .meter.art { height: 3px; width: 100%; margin-top: 2px; background: rgba(0, 0, 0, 0.35); box-shadow: none; }
+.card.hero .meter.art > i.fill { background: var(--glyph); }
+.card.hero .meter.art.full > i.fill { background: linear-gradient(90deg, var(--glyph), #ffffff, var(--glyph)); background-size: 200% 100%; }
+.card.hero.followed { box-shadow: none; }
+.card.hero.followed .tab { box-shadow: 0 0 0 2px #ffd46a, 0 0 10px rgba(255, 212, 106, 0.6); }
+.card.hero.art-ready .tab { box-shadow: 0 0 0 2px var(--glyph), 0 0 12px rgba(169, 139, 255, 0.8); }
+.card.hero.gone .tab { filter: grayscale(1) brightness(0.6); }
+.card.hero .art-tag { display: none !important; }
+#foes { display: none; }
+.foe-count { position: absolute; left: 50%; top: var(--hud-y); transform: translateX(-50%); display: flex; align-items: center; gap: 5px; padding: 5px 11px;
+  border-radius: 999px; background: rgba(8, 6, 10, 0.55); font: 800 9.5px/1 var(--ui); letter-spacing: 0.16em; text-transform: uppercase; color: #fffc; pointer-events: none; }
+.foe-count i { width: 7px; height: 7px; border-radius: 50%; background: var(--blood); box-shadow: 0 0 4px rgba(227, 38, 58, 0.7); }
+.foe-count i.off { background: rgba(255, 255, 255, 0.2); box-shadow: none; }
+.foe-count span { margin-left: 3px; }
+.hud.has-boss .foe-count { top: calc(var(--hud-y) + 44px); }
+.hud .pill { width: 32px; height: 32px; min-width: 0; min-height: 0; padding: 0; border-radius: 50%; display: grid; place-items: center; font: 800 10.5px/1 var(--ui);
+  background: rgba(8, 6, 10, 0.55); border: 1px solid rgba(255, 255, 255, 0.2); opacity: 0.85; }
+.mid { gap: 8px; }
+#btn-withdraw { width: 36px; height: 36px; background: rgba(8, 6, 10, 0.55); border: 1px solid rgba(255, 255, 255, 0.2); }
+#btn-allout { width: 84px; height: 84px; border-radius: 50%; }
+#btn-allout::before { inset: 0; border-radius: 50%; clip-path: none; box-shadow: none;
+  background: radial-gradient(circle, rgba(26, 12, 18, 0.92) 0 64%, transparent 65%), conic-gradient(var(--blood) 0 calc(var(--fill) * 100%), rgba(255, 255, 255, 0.14) calc(var(--fill) * 100%) 100%); }
+#btn-allout::after { display: none; }
+#btn-allout .lbl { transform: none; gap: 4px; margin: 0; }
+#btn-allout b { font: 800 13px/1.05 var(--display); font-style: normal; letter-spacing: 0.06em; text-align: center; white-space: normal; width: 50px; }
+#btn-allout small { font-size: 8px; letter-spacing: 0.1em; }
+#btn-allout.ready::before { background: radial-gradient(circle, #8e1621 0 64%, transparent 65%), conic-gradient(#ff5263, var(--blood), #ff5263); box-shadow: 0 0 0 2px #ffd0d4 inset; }
+#btn-allout.ready { animation: badge 1.1s ease-in-out infinite; }
+#btn-allout.active::before { background: radial-gradient(circle, #f6f0ec 0 64%, transparent 65%), conic-gradient(var(--blood), var(--blood)); }
+.feed p { font-size: 10.5px; opacity: 0.85; background: none; }
+@media (max-height: 360px) { #btn-allout { width: 72px; height: 72px; } .card.hero .tab { width: 34px; height: 34px; } .card.hero { grid-template-columns: 34px minmax(0, 1fr); } }
+#btn-pause { font-size: 0; background: rgba(8, 6, 10, 0.55); }
+#btn-pause::before { content: ""; width: 9px; height: 11px; border-left: 3px solid #fffc; border-right: 3px solid #fffc; box-sizing: border-box; }
+#btn-speed { font: 800 10.5px/1 var(--ui); }
+#btn-withdraw .flag { width: 13px; height: 15px; background: none; border-left: 2px solid #fffc; }
+#btn-withdraw .flag::after { display: block; content: ""; position: absolute; left: 0; top: 0; width: 10px; height: 7px; background: #fffc; clip-path: polygon(0 0, 100% 50%, 0 100%); }
+.fps { position: fixed; left: 50%; bottom: 2px; transform: translateX(-50%); z-index: 50; font: 700 10px/1 var(--ui); color: #9f9; background: #000a; padding: 2px 6px; border-radius: 3px; pointer-events: none; }
 </style>
 </head>
 <body>
 <div id="app">
   <canvas id="arena" aria-label="Arena"></canvas>
+  <div class="fps" id="fps" hidden></div>
   <div class="rotate-lock" id="rotate-lock"><div><span class="phone" aria-hidden="true"></span><b>Turn your phone sideways</b><small>Tower of Wishes plays in landscape.</small></div></div>
 
   <div class="hud" id="hud" hidden>
@@ -612,6 +683,7 @@ body.trailer.fighting .trailer-card:not(.logo) { bottom: auto; top: 10vh; }
         <div class="boss-bar"><i class="trail"></i><i class="fill"></i></div>
         <span class="chip" hidden></span>
       </div>
+      <div class="foe-count" id="foe-count" hidden></div>
       <div class="hud-right">
         <div class="mid">
           <button class="pill" id="btn-speed" type="button" aria-label="Match speed">1&times;</button>
@@ -666,6 +738,7 @@ body.trailer.fighting .trailer-card:not(.logo) { bottom: auto; top: 10vh; }
             <p><b>Tiles</b> Pixel Art Top Down &ndash; Basic (Cainos); TopDownFantasy Forest; Pixel Top-down Forest and Village Tileset and Castle and Dungeon Tileset Vol 3 by reodesuxz; EPIC RPG World &ndash; Ancient Ruins; Dark World.</p>
             <p><b>Interface</b> Free Medieval Fantasy UI Pack by Kibyra. Adventurer font by Brian J Smith (CC BY 3.0).</p>
             <p><b>Sound</b> Fantasy UI SFX Free by heyheythere &ndash; heyheythere.itch.io/fantasy-ui-sfx-free &ndash; CC BY 4.0.</p>
+            <p><b>Music</b> &ldquo;Heartfelt Battle&rdquo; from OpenGameArt.org (CC0).</p>
           </div>
         </details>
       </div>
@@ -674,7 +747,8 @@ body.trailer.fighting .trailer-card:not(.logo) { bottom: auto; top: 10vh; }
       <div class="settings-card" role="dialog" aria-labelledby="settings-h">
         <div class="settings-head"><h2 id="settings-h">Settings</h2><button class="link" id="btn-settings-close" type="button">Close ✕</button></div>
         <div class="set-row"><span><b>Sound</b><small>Menu, fight and story sounds</small></span><button class="set-toggle" id="btn-sound" type="button">Sound: on</button></div>
-        <div class="set-row"><span><b>Auto dialogue</b><small>Lines play on their own</small></span><button class="set-toggle" id="btn-set-auto" type="button">Off</button></div>
+        <div class="set-row"><span><b>Auto dialogue</b><small>Subtitles play on their own; a tap hurries them</small></span><button class="set-toggle" id="btn-set-auto" type="button">Off</button></div>
+        <div class="set-row"><span><b>Frame rate</b><small>Show how smoothly the game runs (frames per second)</small></span><button class="set-toggle" id="btn-fps" type="button">Off</button></div>
         <div class="set-row"><span><b>Prologue</b><small>Watch the opening again; your progress is kept</small></span><button class="set-btn" id="btn-prologue" type="button">Watch</button></div>
         <div class="set-row danger"><span><b>Reset progress</b><small>Start over from the very beginning: story, team, gear, injuries</small></span><button class="set-btn" id="btn-reset" type="button">Reset</button></div>
         <div class="set-confirm" id="reset-confirm" hidden><span>Erase everything and start again?</span><button class="set-btn" id="btn-reset-yes" type="button">Yes, reset</button><button class="link" id="btn-reset-no" type="button">Cancel</button></div>

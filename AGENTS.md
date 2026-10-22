@@ -35,6 +35,15 @@ Read first: [docs/DESIGN.md](docs/DESIGN.md), [docs/STORY.md](docs/STORY.md),
   and come back. No story progress is ever lost.
 - Cutscenes can be skipped (setting); skipping never skips rewards, flags or injuries.
 - No speech bubbles anywhere: subtitles, or ambient "…" for murmurs.
+- **Dialogue is film subtitles** (the author's pick, 2026-10-22, mockup A): letterbox bars on story
+  scenes; the book's text split into short subtitles (one or two lines) in the bottom bar; the
+  speaker's name only when the speaker changes; narration in italics; no typewriter; the controls
+  appear on a tap. Filmed scenes play as one continuous take: a tap hurries the subtitles (and the
+  action), never cuts it off; the next line and its shot wait until the current action has played.
+- **Fight HUD: the clean style** (the author's pick, 2026-10-22, mockup A): portrait chips top left,
+  foes left as pips at the top centre (or the boss bar), round speed/pause, a round All Out gauge.
+- **Music:** fights play "Heartfelt Battle" (OpenGameArt, CC0; assets/music/). New tracks must be
+  CC0 or properly credited in Settings → Credits.
 - **Art style: pixel art** from the itch.io "Character Creator 2D Fantasy" (decided 2026-10-22).
   The author builds each character in the creator and sends its export (30 clips × 8 directions).
   The sources live in `art_source/characters/<set>/`, untouched; `tools/pack_pixel.py` packs them

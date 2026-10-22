@@ -50,7 +50,11 @@
   function stageFor(id) { return Render.stage && window.TowStages && window.TowStages[id] ? id : null; }
   let storyBattle = null; // the story battle being fought, if any
   let lastRun = null, replay = null; // the fight just played (options and All Out times), and a replay in progress
-  let lines = [], lineIdx = 0, lineFull = '', typeT = 0, cardShownAt = 0;
+  let lines = [], lineIdx = 0, cardShownAt = 0;
+  // Subtitles (the author's pick, 2026-10-22: film subtitles in a letterbox). A line of the book
+  // becomes one or more short subtitles; a filmed scene plays as one take and the subtitles ride
+  // on it: the next line (and its shot) waits until this one's action has played out.
+  let subs = [], subIdx = 0, subT = 0, beatT = 0, hurry = false, ctrlT = 0;
 
   // ------------------------------------------------------------ menu
   function fmt(ms) {
@@ -83,6 +87,7 @@
     for (const s of ['menu', 'result', 'paused', 'story', 'select', 'map', 'world', 'team-screen', 'cine']) $(s).hidden = s !== id;
     $('hud').hidden = !(id === null || id === 'paused');
     view = id || 'fight';
+    if (window.TowAudio && window.TowAudio.music) window.TowAudio.music(view === 'fight' || view === 'paused' ? 'battle' : null);
   }
 
   // ------------------------------------------------------------ story
@@ -129,25 +134,79 @@
       for (const el of [$('card-title'), $('card-sub')]) { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; }
       cardShownAt = performance.now();
     } else if (n.type === 'scene' || n.type === 'fork') {
-      lines = Story.lines(story); lineIdx = 0; showLine();
+      startLines();
     }
     show('story');
   }
-  function showLine() {
-    const l = lines[lineIdx];
-    const d = $('dialogue');
-    d.className = 'dialogue ' + (l.speaker ? l.speaker.tone : 'narr');
-    d.style.animation = 'none'; void d.offsetWidth; d.style.animation = '';
-    $('who').textContent = l.speaker ? l.speaker.name : '';
-    $('who').hidden = !l.speaker;
-    lineFull = l.speaker ? `“${l.text}”` : l.text;
-    if (cinema) cinema.beat(lineIdx, lines.length);
-    else if (stage) stage.beat(lineIdx, lines.length);
-    typeT = 0; $('line').textContent = '';
+  // Break a line into subtitles of at most about two lines on a phone, at sentence ends first.
+  const SUB_MAX = 92;
+  function chunkText(t) {
+    const out = [];
+    const sentences = t.match(/[^.!?…]+(?:[.!?…]+["”’)]*|$)\s*/g) || [t];
+    let cur = '';
+    const push = (x) => { x = x.trim(); if (x) out.push(x); };
+    for (let sn of sentences) {
+      if ((cur + sn).trim().length <= SUB_MAX) { cur += sn; continue; }
+      push(cur); cur = '';
+      while (sn.trim().length > SUB_MAX) {
+        // split a long sentence at a pause near the middle, else at a space
+        const mid = Math.ceil(sn.length / 2);
+        let k = -1;
+        // the pause (comma, dash, colon) nearest the middle that leaves both halves short enough
+        for (const m of [', ', '; ', ' — ', ': ']) for (let a = sn.indexOf(m); a >= 0; a = sn.indexOf(m, a + 1)) {
+          const cut = a + m.length - 1;
+          if (cut < 12 || cut > SUB_MAX || sn.length - cut > SUB_MAX + 30) continue;
+          if (k < 0 || Math.abs(cut - mid) < Math.abs(k - mid)) k = cut;
+        }
+        if (k < 0) k = sn.lastIndexOf(' ', Math.min(SUB_MAX, mid));
+        if (k < 1) k = mid;
+        push(sn.slice(0, k + 1)); sn = sn.slice(k + 1);
+      }
+      cur = sn;
+    }
+    push(cur);
+    return out.length ? out : [t];
   }
-  // Auto: lines play on their own, holding long enough to read each one.
+  const readTime = (t) => 1.2 + t.length * 0.05;
+  function buildSubs(ls) {
+    const out = [];
+    let prev = null;
+    ls.forEach((l, i) => {
+      const who = l.speaker ? l.speaker.name : null;
+      chunkText(l.text).forEach((text, k) => { out.push({ line: i, text, speaker: l.speaker || null, named: k === 0 && !!who && who !== prev }); prev = who; });
+    });
+    return out;
+  }
+  function startLines() {
+    lines = Story.lines(story); subs = buildSubs(lines); subIdx = 0; lineIdx = -1; hurry = false;
+    showSub();
+  }
+  const lastOfLine = (i) => i + 1 >= subs.length || subs[i + 1].line !== subs[i].line;
+  function showSub() {
+    const u = subs[subIdx];
+    if (!u) return;
+    const d = $('dialogue');
+    d.className = 'dialogue ' + (u.speaker ? u.speaker.tone : 'narr');
+    d.style.animation = 'none'; void d.offsetWidth; d.style.animation = '';
+    $('who').textContent = u.named ? u.speaker.name : '';
+    $('who').hidden = !u.named;
+    $('line').textContent = u.text;
+    subT = 0;
+    if (u.line !== lineIdx) {
+      lineIdx = u.line; beatT = 0; hurry = false;
+      if (cinema) cinema.beat(lineIdx, lines.length);
+      else if (stage) stage.beat(lineIdx, lines.length);
+    }
+  }
+  // Move on one subtitle; at the end of the node, move the story on (or offer the fork).
+  function nextSub() {
+    if (subIdx + 1 < subs.length) { subIdx++; showSub(); return; }
+    const n = Story.node(story);
+    if (n.type === 'fork') showFork(n); else storyStep(() => Story.advance(story));
+  }
+  // Auto: staged scenes play on their own when set; filmed scenes always do (they are one take).
   let autoT = 0;
-  function autoOn() { return !!(save.settings && save.settings.auto); }
+  function autoOn() { return !(save.settings && save.settings.auto === false); } // on unless turned off
   function setAuto(on) {
     save.settings = Object.assign({}, save.settings, { auto: on }); writeSave();
     $('btn-auto').setAttribute('aria-pressed', on ? 'true' : 'false');
@@ -156,17 +215,23 @@
   }
   $('btn-auto').addEventListener('click', (e) => { e.stopPropagation(); setAuto(!autoOn()); });
   setAuto(autoOn());
-  function autoTick(real) {
-    if (!autoOn()) return;
+  // Per frame on the story screen: time the subtitles (and, in a film, wait for the action).
+  function subTick(real) {
     const n = Story.node(story);
-    if (!n || (n.type !== 'scene' && n.type !== 'card' && n.type !== 'fork')) return;
-    if ($('choices').hidden === false) return;
-    if (n.type !== 'card' && typing()) { autoT = 0; return; }
-    autoT += real;
-    const hold = n.type === 'card' ? 2.8 : 1.3 + lineFull.length * 0.045;
-    if (autoT >= hold) { autoT = 0; storyTap(); }
+    if (!n) return;
+    if (n.type === 'card') { if (autoOn()) { autoT += real; if (autoT >= 2.8) { autoT = 0; storyTap(); } } return; }
+    if ((n.type !== 'scene' && n.type !== 'fork') || $('choices').hidden === false || !subs[subIdx]) return;
+    subT += real; beatT += real;
+    const read = subT >= readTime(subs[subIdx].text);
+    $('story').classList.toggle('waiting', !cinema && !autoOn() && read);
+    if (cinema) {
+      if (!read && !hurry) return;
+      if (!lastOfLine(subIdx)) { nextSub(); return; }
+      // the end of this line: its action plays out before the next shot
+      if (cinema.busy() || beatT < 2.2) return;
+      nextSub();
+    } else if (autoOn() && read) nextSub();
   }
-  function typing() { return $('line').textContent.length < lineFull.length; }
   // Full-screen cinematics (TowRender.cinematics[name], e.g. js/render/opening.js):
   //   create(canvas) -> { update(dt) -> true when finished, draw(), skip() }
   let cine = null;
@@ -189,13 +254,11 @@
     if (n.type === 'card') {
       if (performance.now() - cardShownAt < 900) return;
       storyStep(() => Story.advance(story));
-    } else if (n.type === 'scene') {
-      if (typing()) { $('line').textContent = lineFull; return; }
-      if (++lineIdx < lines.length) showLine();
-      else storyStep(() => Story.advance(story));
-    } else if (n.type === 'fork') {
-      if (typing()) { $('line').textContent = lineFull; return; }
-      if (++lineIdx < lines.length) showLine(); else showFork(n);
+    } else if (n.type === 'scene' || n.type === 'fork') {
+      if (!$('choices').hidden) return;
+      // a tap hurries: the next subtitle now; in a film, the action runs fast until it is done
+      if (cinema && lastOfLine(subIdx) && (cinema.busy() || beatT < 2.2)) { hurry = true; subT = 1e3; return; }
+      nextSub();
     }
   }
   // The fork in the road: the camera has shown each way; now two ways on, one on each side of the screen.
@@ -212,6 +275,7 @@
   }
   $('story').addEventListener('click', (e) => {
     tryLandscape();
+    $('story').classList.add('ctrl-on'); ctrlT = 3.5;
     if (e.target.closest('button')) return;
     storyTap();
   });
@@ -600,9 +664,10 @@
   }
 
   // ------------------------------------------------------------ HUD
-  // Slim slanted strips: heroes top-left (tab with the initial, name, HP with
-  // a damage trail, stamina, heavy-art meter), enemies mirrored top-right,
-  // the boss as a lettered bar at the top centre.
+  // The clean HUD (the author's pick, 2026-10-22, mockup A): small portrait chips top-left (the
+  // fighter's own pixel face, HP with a damage trail, stamina, heavy-art meter), how many foes are
+  // left as a row of pips at the top centre (or the boss bar), speed and pause as round buttons,
+  // and All Out as a round gauge that fills.
   let hudEls = {}, hudBoss = null, hudClock = 0;
   function meter(cls) { return `<div class="meter ${cls}"><i class="trail"></i><i class="fill"></i></div>`; }
   function esc(t) { return String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]); }
@@ -620,7 +685,7 @@
       const acc = u.guest ? '#b9a6ff' : L.eye || L.accent || '#9cc3dd';
       return `
       <div class="card hero" data-id="${u.id}" role="button" tabindex="0" aria-label="Follow ${esc(u.name)}" style="--acc:${acc}">
-        <span class="tab" aria-hidden="true"><b>${esc(u.name.charAt(0))}</b></span>
+        <span class="tab" aria-hidden="true"><canvas class="face" width="88" height="88"></canvas><b>${esc(u.name.charAt(0))}</b></span>
         <div class="info">
           <div class="card-head"><span class="card-name">${esc(u.name)}</span>${u.guest ? '<span class="card-tag">Guest</span>' : ''}<span class="art-tag">ART</span><span class="chip" hidden></span></div>
           ${meter('hp')}${meter('sta')}${u.def.superMeter ? meter('art') : ''}
@@ -649,6 +714,35 @@
     for (const el of document.querySelectorAll('#team .card, #foes .card')) grab(el, el.dataset.id);
     if (boss) grab($('boss'), boss.id);
     hudBoss = boss;
+    hudFaces = [...document.querySelectorAll('#team .card')].map((el) => ({ el, c: el.querySelector('canvas.face'), u: match.byId[el.dataset.id], done: false }));
+    hudFoeKey = '';
+  }
+  // Each hero's own pixel face in their chip (drawn once the set has loaded).
+  let hudFaces = [], hudFoeKey = '';
+  function drawFaces() {
+    const Sp = window.TowSprites;
+    if (!Sp || !Sp.forUnit) return;
+    for (const f of hudFaces) {
+      if (f.done || !f.c || !f.u) continue;
+      const man = Sp.forUnit(f.u, {});
+      if (!man || !man.pixel) continue;
+      const A = Sp.animator(man); Sp.play(A, man.animations.idle ? 'idle' : Object.keys(man.animations)[0]);
+      const g = f.c.getContext('2d'), H = f.c.height;
+      g.clearRect(0, 0, f.c.width, H); g.imageSmoothingEnabled = false;
+      for (const smp of Sp.sample(A, 'SE')) Sp.drawFrame(g, man, smp, f.c.width / 2, H * 2.35, H * 2.3, null);
+      f.done = true; f.el.classList.add('has-face');
+    }
+  }
+  // Foes left: one pip each, lit while they still stand.
+  function updateFoeCount() {
+    const foes = match.units.filter((u) => u.team === 'bandit' && u !== hudBoss);
+    const up = foes.filter((u) => u.state !== 'out' && !u.fled && !u.beaten).length;
+    const key = up + '/' + foes.length + (hudBoss ? 'b' : '');
+    if (key === hudFoeKey) return;
+    hudFoeKey = key;
+    const el = $('foe-count');
+    el.hidden = !foes.length || (!!hudBoss && up === 0);
+    el.innerHTML = foes.map((u, i) => `<i class="${i < up ? '' : 'off'}"></i>`).join('') + `<span>${up ? up + ' left' : 'clear'}</span>`;
   }
   function setChip(chip, text, cls) {
     if (!text) { chip.hidden = true; return; }
@@ -662,6 +756,7 @@
   function updateHud() {
     if (!match) return;
     if (Object.keys(hudEls).length !== match.units.length) buildHud();
+    drawFaces(); updateFoeCount();
     const now = performance.now(), dt = Math.min(0.1, (now - (hudClock || now)) / 1000);
     hudClock = now;
     for (const u of match.units) {
@@ -784,7 +879,19 @@
     const a = autoOn();
     $('btn-set-auto').textContent = a ? 'On' : 'Off'; $('btn-set-auto').setAttribute('aria-pressed', a ? 'true' : 'false');
     $('btn-sound').setAttribute('aria-pressed', window.TowAudio && window.TowAudio.on === false ? 'false' : 'true');
+    $('btn-fps').textContent = fpsOn() ? 'On' : 'Off';
   }
+  // Frame rate readout (Settings), so the real number on a phone can be reported.
+  const fpsOn = () => !!(save.settings && save.settings.fps);
+  let fpsAcc = 0, fpsN = 0;
+  function fpsTick(real) {
+    const el = $('fps');
+    el.hidden = !fpsOn();
+    if (el.hidden) return;
+    fpsAcc += real; fpsN++;
+    if (fpsAcc >= 0.5) { el.textContent = Math.round(fpsN / fpsAcc) + ' fps'; fpsAcc = 0; fpsN = 0; }
+  }
+  $('btn-fps').addEventListener('click', () => { save.settings = Object.assign({}, save.settings, { fps: !fpsOn() }); writeSave(); renderSettings(); });
   $('btn-settings').addEventListener('click', () => { $('reset-confirm').hidden = true; renderSettings(); $('settings').hidden = false; });
   $('btn-settings-close').addEventListener('click', () => { $('settings').hidden = true; });
   $('settings').addEventListener('click', (e) => { if (e.target === $('settings')) $('settings').hidden = true; });
@@ -977,6 +1084,7 @@
 
   function frame(now) {
     const real = Math.min(0.05, (now - last) / 1000);
+    fpsTick((now - last) / 1000);
     { const c = $('arena'); if (c.clientWidth && Math.round(c.clientWidth * Math.min(window.devicePixelRatio || 1, 2)) !== c.width) renderer.resize(); }
     last = now;
     const s = match || attract;
@@ -1002,17 +1110,14 @@
       // Story scenes: a painted backdrop and the typewriter.
       const rdt = cinema ? (cinemaWait(real) && !frozen ? real : 0) : !stage || castReady(stage.match, real) ? real : 0;
       sceneT += rdt;
-      if (cinema) { cinema.update(rdt); cinema.draw(); }
+      if (cinema) { cinema.update(rdt * (hurry && cinema.busy() ? 3 : 1)); cinema.draw(); }
       else if (stage) {
         stage.update(rdt);
         renderer.setCameraOverride(stage.camera());
         renderer.draw(stage.match, real, true, null);
       } else backdrop.draw(sceneBg, sceneT);
-      autoTick(rdt);
-      if (!$('dialogue').hidden && typing()) {
-        typeT += rdt;
-        $('line').textContent = lineFull.slice(0, Math.floor(typeT * 60));
-      }
+      subTick(rdt);
+      if (ctrlT > 0 && (ctrlT -= real) <= 0) $('story').classList.remove('ctrl-on');
       requestAnimationFrame(frame);
       return;
     }
@@ -1101,9 +1206,9 @@
         const run = (s) => { for (let k = 0; k < Math.round(s * 60); k++) cinema.update(1 / 60); };
         cinema = Render.cinema.start(cinema.def);
         for (let j = 0; j < i; j++) { cinema.beat(j, lines.length); run(15); }
-        lineIdx = i; showLine(); run(t); return true;
+        subIdx = Math.max(0, subs.findIndex((u) => u.line === i)); lineIdx = -1; showSub(); run(t); return true;
       },
-      storyLine(i) { if (lines && i < lines.length) { lineIdx = i; showLine(); } },
+      storyLine(i) { const k = subs.findIndex((u) => u.line === i); if (k >= 0) { subIdx = k; lineIdx = -1; showSub(); } },
       allOutNow() { if (match) { match.allOut.meter = 1; Sim.triggerAllOut(match); } },
     },
   };
