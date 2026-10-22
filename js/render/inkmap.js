@@ -12,7 +12,7 @@
   'use strict';
   const NS = (window.TowRender = window.TowRender || {});
   const K = 1.6, BW = 1600, BH = 800;
-  const INK = '#33241a', PAPER = '#e2cfa3', PAPER2 = '#d4bd8c';
+  const INK = '#2a1c12', PAPER = '#cdb68a', PAPER2 = '#b89c6c';
   // Watercolour per land
   const WASH = {
     forest: '#6f8f58', town: '#c9a46a', fields: '#b9c27c', hills: '#b48a5a', ruins: '#9a978a', city: '#6e6782',
@@ -50,6 +50,13 @@
     // ---- paper
     g.fillStyle = PAPER; g.fillRect(0, 0, BW, BH);
     for (let i = 0; i < 9000; i++) { g.fillStyle = rnd() < 0.5 ? 'rgba(120,90,50,0.05)' : 'rgba(255,250,235,0.08)'; g.fillRect(rnd() * BW, rnd() * BH, 1 + rnd() * 2, 1 + rnd() * 2); }
+    // aged vellum: big mottled patches, darker toward the edges
+    for (let i = 0; i < 40; i++) {
+      const x = rnd() * BW, y = rnd() * BH, r = 80 + rnd() * 220, gr = g.createRadialGradient(x, y, r * 0.1, x, y, r);
+      const dark = rnd() < 0.55;
+      gr.addColorStop(0, dark ? 'rgba(110,78,40,0.10)' : 'rgba(240,222,180,0.10)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2);
+    }
     for (let i = 0; i < 14; i++) { // tea stains
       const x = rnd() * BW, y = rnd() * BH, r = 40 + rnd() * 120, gr = g.createRadialGradient(x, y, r * 0.2, x, y, r);
       gr.addColorStop(0, 'rgba(150,110,60,0.07)'); gr.addColorStop(1, 'rgba(150,110,60,0)'); g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2);
@@ -76,7 +83,7 @@
       for (let i = 0; i < 4; i++) {
         const ox = (rnd() - 0.5) * rr * 0.4, oy = (rnd() - 0.5) * rr * 0.3;
         const gr = g.createRadialGradient(X(r.x) + ox, Y(r.y) + oy, rr * 0.1, X(r.x) + ox, Y(r.y) + oy, rr);
-        gr.addColorStop(0, col + '48'); gr.addColorStop(0.7, col + '2a'); gr.addColorStop(1, col + '00');
+        gr.addColorStop(0, col + '66'); gr.addColorStop(0.7, col + '3a'); gr.addColorStop(1, col + '00');
         g.fillStyle = gr; g.beginPath(); g.ellipse(X(r.x) + ox, Y(r.y) + oy, rr, rr * 0.82, 0, 0, Math.PI * 2); g.fill();
       }
     }
@@ -253,7 +260,7 @@
       for (let i = 0; i < 22; i++) {
         const a = cr() * Math.PI * 2, d = Math.sqrt(cr()) * rr * 0.85, x = X(r.x) + Math.cos(a) * d, y = Y(r.y) + Math.sin(a) * d * 0.85, rad = rr * (0.3 + cr() * 0.25);
         const gr = g.createRadialGradient(x, y, rad * 0.3, x, y, rad);
-        gr.addColorStop(0, 'rgba(236,226,204,0.97)'); gr.addColorStop(0.75, 'rgba(236,226,204,0.9)'); gr.addColorStop(1, 'rgba(236,226,204,0)');
+        gr.addColorStop(0, 'rgba(196,174,132,0.97)'); gr.addColorStop(0.75, 'rgba(190,168,126,0.9)'); gr.addColorStop(1, 'rgba(190,168,126,0)');
         g.fillStyle = gr; g.beginPath(); g.arc(x, y, rad, 0, Math.PI * 2); g.fill();
       }
       // a few curls of ink
@@ -275,12 +282,27 @@
     }
     g.fillStyle = INK; g.font = 'italic 16px Georgia, serif'; g.textAlign = 'center'; g.fillText('N', ccx, ccy - cs - 6);
     const vg = g.createRadialGradient(BW / 2, BH / 2, BH * 0.45, BW / 2, BH / 2, BW * 0.62);
-    vg.addColorStop(0, 'rgba(90,60,30,0)'); vg.addColorStop(1, 'rgba(90,60,30,0.32)');
+    vg.addColorStop(0, 'rgba(60,36,16,0)'); vg.addColorStop(0.75, 'rgba(60,36,16,0.35)'); vg.addColorStop(1, 'rgba(24,12,6,0.85)');
     g.fillStyle = vg; g.fillRect(0, 0, BW, BH);
-    g.strokeStyle = INK; g.lineWidth = 3; g.strokeRect(8, 8, BW - 16, BH - 16);
-    g.lineWidth = 1; g.strokeRect(15, 15, BW - 30, BH - 30);
+    // scorched, uneven edge
+    const er = rngOf(4242);
+    g.fillStyle = 'rgba(20,10,5,0.9)';
+    for (let x = 0; x < BW; x += 6) { const h1 = 6 + er() * 14, h2 = 6 + er() * 14; g.fillRect(x, 0, 6, h1); g.fillRect(x, BH - h2, 6, h2); }
+    for (let y = 0; y < BH; y += 6) { const w1 = 6 + er() * 14, w2 = 6 + er() * 14; g.fillRect(0, y, w1, 6); g.fillRect(BW - w2, y, w2, 6); }
+    g.strokeStyle = 'rgba(42,28,18,0.8)'; g.lineWidth = 2; g.strokeRect(26, 26, BW - 52, BH - 52);
+    g.lineWidth = 1; g.strokeRect(32, 32, BW - 64, BH - 64);
     return c;
   }
+  // The roads as the land draws them (overworld.js lights the travelled ones along the same curves).
+  function roads(view) {
+    const byId = Object.fromEntries(view.nodes.map((n) => [n.id, n])), out = [];
+    view.edges.forEach((e, i) => {
+      const a = byId[e.a], b = byId[e.b];
+      if (!a || !b || (e.a === 'c15' && e.b === 'prologue') || a.region === 'tower' && b.region === 'tower') return;
+      out.push({ a: e.a, b: e.b, side: e.side, pts: curvePts(curve(a, b, i * 13 + a.x), 24) });
+    });
+    return out;
+  }
 
-  NS.inkmap = { build };
+  NS.inkmap = { build, roads };
 })();

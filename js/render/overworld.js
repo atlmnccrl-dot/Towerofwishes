@@ -278,7 +278,7 @@
         if (rects.some((r) => px < r[0] + r[2] && px + w > r[0] && py < r[1] + r[3] && py + h > r[1])) continue;
         rects.push([px, py, w, h]);
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.lineJoin = 'round'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(234,217,180,0.92)'; ctx.strokeText(text, px + w / 2, py + h / 2);
+        ctx.lineJoin = 'round'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(214,192,148,0.92)'; ctx.strokeText(text, px + w / 2, py + h / 2);
         ctx.fillStyle = col; ctx.fillText(text, px + w / 2, py + h / 2);
         return;
       }
@@ -288,6 +288,72 @@
       ctx.save();
       ctx.beginPath(); ctx.moveTo(x, y - 12); ctx.lineTo(x, top); ctx.strokeStyle = '#33241a'; ctx.lineWidth = 2; ctx.stroke();
       ctx.beginPath(); ctx.moveTo(x, top); ctx.lineTo(x + 16, top + 5); ctx.lineTo(x, top + 11); ctx.closePath(); ctx.fillStyle = '#b3373a'; ctx.fill(); ctx.strokeStyle = '#33241a'; ctx.lineWidth = 1.2; ctx.stroke();
+      ctx.restore();
+    }
+
+    // ---- option B's living layer: the travelled road lit, the river moving, cloud shadows,
+    // birds, and the Tower's beam
+    let roadCache = null, roadKey = '';
+    function living(view, t) {
+      const k = PX * L.s / 1; // map unit -> screen px
+      const S = (p) => [L.ox + p.x * PX * L.s, L.oy + p.y * PX * L.s];
+      // cloud shadows drifting west to east
+      ctx.save();
+      for (let i = 0; i < 6; i++) {
+        const span = 1300, x = ((i * 233 + t * (6 + i)) % span) - 150, y = 60 + ((i * 97) % 380);
+        const [cx, cy] = S({ x, y }), r = (70 + (i % 3) * 30) * k;
+        const gr = ctx.createRadialGradient(cx, cy, r * 0.2, cx, cy, r);
+        gr.addColorStop(0, 'rgba(20,12,6,0.10)'); gr.addColorStop(1, 'rgba(20,12,6,0)');
+        ctx.fillStyle = gr; ctx.beginPath(); ctx.ellipse(cx, cy, r, r * 0.6, 0, 0, Math.PI * 2); ctx.fill();
+      }
+      // the river's current (only where the land has been reached)
+      const R = C.RIVER, open = (x, y) => { let best = null, bd = Infinity; for (const r of view.regions) { const d = Math.hypot(x - r.x, y - r.y) / r.r; if (d < bd) { bd = d; best = r; } } return best && best.revealed; };
+      ctx.setLineDash([3 * k * 4, 12 * k * 4]); ctx.lineDashOffset = -t * 22 * k * 4; ctx.strokeStyle = 'rgba(235,248,255,0.55)'; ctx.lineWidth = Math.max(1, 1.2 * k * 2);
+      // the same curve inkmap.js draws: quadratics through the midpoints, the points as controls
+      const rp = [];
+      let rs = { x: R[0][0], y: R[0][1] };
+      for (let i = 1; i < R.length - 1; i++) {
+        const c = R[i], e = { x: (R[i][0] + R[i + 1][0]) / 2, y: (R[i][1] + R[i + 1][1]) / 2 };
+        for (let j = 0; j < 10; j++) { const q = j / 10, w = 1 - q; rp.push({ x: w * w * rs.x + 2 * w * q * c[0] + q * q * e.x, y: w * w * rs.y + 2 * w * q * c[1] + q * q * e.y }); }
+        rs = e;
+      }
+      rp.push(rs, { x: R[R.length - 1][0], y: R[R.length - 1][1] });
+      for (let i = 0; i + 1 < rp.length; i++) {
+        const x0 = rp[i].x, y0 = rp[i].y, x1 = rp[i + 1].x, y1 = rp[i + 1].y;
+        if (!open((x0 + x1) / 2, (y0 + y1) / 2)) continue;
+        const a0 = S({ x: x0, y: y0 }), a1 = S({ x: x1, y: y1 });
+        ctx.beginPath(); ctx.moveTo(a0[0], a0[1]); ctx.lineTo(a1[0], a1[1]); ctx.stroke();
+      }
+      ctx.setLineDash([]);
+      // the road already travelled: gold, with light running toward the current chapter
+      const key = view.nodes.map((n) => n.status[0]).join('');
+      if (!roadCache || roadKey !== key) { roadCache = NS.inkmap.roads(view); roadKey = key; }
+      const st = Object.fromEntries(view.nodes.map((n) => [n.id, n]));
+      for (const r of roadCache) {
+        const A = st[r.a], B = st[r.b];
+        if (r.side || !A || !B || A.kind !== 'story' || B.kind !== 'story') continue;
+        if (A.status === 'locked' || B.status === 'locked') continue;
+        ctx.beginPath();
+        r.pts.forEach((p, i) => { const q = S(p); i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]); });
+        ctx.strokeStyle = 'rgba(255,205,110,0.35)'; ctx.lineWidth = Math.max(4, 6 * k); ctx.lineCap = 'round'; ctx.stroke();
+        ctx.setLineDash([Math.max(4, 6 * k), Math.max(8, 14 * k)]); ctx.lineDashOffset = -t * 30;
+        ctx.strokeStyle = 'rgba(255,236,170,0.95)'; ctx.lineWidth = Math.max(2, 2.4 * k); ctx.stroke(); ctx.setLineDash([]);
+      }
+      // birds
+      ctx.strokeStyle = 'rgba(30,20,12,0.75)'; ctx.lineWidth = 1.3;
+      for (let i = 0; i < 4; i++) {
+        const x = ((i * 271 + t * (14 + i * 3)) % 1150) - 80, y = 80 + i * 55 + Math.sin(t * 0.6 + i) * 12, [bx, by] = S({ x, y }), w = 5 + (i % 2) * 2, f = Math.sin(t * 8 + i * 2) * 2;
+        ctx.beginPath(); ctx.moveTo(bx - w, by - f); ctx.quadraticCurveTo(bx - w * 0.4, by - 3, bx, by); ctx.quadraticCurveTo(bx + w * 0.4, by - 3, bx + w, by - f); ctx.stroke();
+      }
+      // the Tower's beam into the sky
+      const tw = view.regions.find((r) => r.id === 'tower');
+      if (tw) {
+        const [tx, ty] = S({ x: tw.x, y: 30 }), pulse = 0.6 + 0.4 * Math.sin(t * 1.7), bw = 10 * k * (1 + 0.2 * pulse);
+        const gr = ctx.createLinearGradient(0, ty, 0, 0);
+        gr.addColorStop(0, `rgba(200,170,255,${0.55 * pulse})`); gr.addColorStop(1, 'rgba(200,170,255,0)');
+        ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = gr; ctx.fillRect(tx - bw / 2, 0, bw, ty);
+        ctx.globalCompositeOperation = 'source-over';
+      }
       ctx.restore();
     }
 
@@ -311,6 +377,7 @@
       ctx.imageSmoothingEnabled = false;
       // the Tower's light
       const tw = view.regions.find((r) => r.id === 'tower');
+      if (INKED) living(view, t);
       if (tw && INKED) {
         const pulse = 0.5 + 0.5 * Math.sin(t * 2), gx = sx(tw.x), gy = sy(22), rr = 40 * L.s;
         const gr = ctx.createRadialGradient(gx, gy, 0, gx, gy, rr);

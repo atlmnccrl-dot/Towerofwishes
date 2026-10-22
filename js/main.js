@@ -297,6 +297,10 @@
     worldSel = sel || worldView.current || worldSel;
     const ch = Story.CHAPTERS.find((c) => c.id === Story.NODES[story.node].chapter);
     $('world-title').textContent = ch ? `${ch.label} · ${ch.title}` : '';
+    // the chapter strip: done, current, still ahead
+    const chs = (Camp.ORDER || []).filter((c) => c !== 'c15'), byId = Object.fromEntries(worldView.nodes.map((n) => [n.id, n]));
+    const nDone = chs.filter((c) => byId[c] && byId[c].status === 'done').length;
+    $('world-prog').innerHTML = chs.map((c) => `<i class="${byId[c] ? (byId[c].status === 'done' ? 'done' : byId[c].status === 'current' ? 'cur' : '') : ''}"></i>`).join('') + `<small>${nDone} / ${chs.length}</small>`;
     $('world-fallback').hidden = !!mapR;
     if (!mapR) $('world-fallback').innerHTML = worldView.nodes.map((n) => `<button type="button" data-id="${n.id}">${n.title} <small>· ${n.status}</small></button>`).join('');
     renderNodeCard();
