@@ -203,6 +203,21 @@
       }
       return best;
     }
+    // Ground level: the camera in front of the fighter (delta 0 = they face us). Try a few
+    // near-frontal positions and keep the one with the fewest fighters in the way.
+    const GROUND_PITCH = 0.17;
+    function frontAngle(p, b, sc) {
+      const u = b.u, others = planFor.units.filter((o) => o !== u && !o.fled);
+      // the arena's crates, rocks and pillars count as blockers too
+      for (const ob of (planFor.arena && planFor.arena.obstacles) || []) if (ob.x != null && ob.kind !== 'trunk') others.push({ x: ob.x, y: ob.y, key: '_ob', r: ob.r || 0.5 });
+      let best = 0, bs = Infinity;
+      for (const d of [0, 0.3, -0.3, 0.55, -0.55, 0.8, -0.8]) {
+        const cm = place(u.x, u.y, Math.PI / 2 - u.facing - d, sc, GROUND_PITCH, 0.5, 0.88);
+        const sc2 = clutter(cm, u, others, V.H) + Math.abs(d) * 0.8;
+        if (sc2 < bs) { bs = sc2; best = d; }
+      }
+      return best;
+    }
     // The enemy pan looks from the heroes' side; swing wide enough that the
     // heroes stay out of frame.
     function foeAngle(p, cx, cy, th) {
@@ -236,17 +251,17 @@
         // delta: where the camera stands relative to the facing (negative:
         // the fighter faces screen-left, toward the lettering).
         // The base angle is picked once per beat so nobody stands in the way.
-        if (b.base == null) b.base = clearAngle(p, b, sc);
-        let delta, pitch, zoom, sx = 0.66, sy = 0.9;
-        const d0 = b.base;
-        if (b.style === 'orbit') { delta = d0 - 0.3 + 0.6 * smooth(k); pitch = 0.44; zoom = 1.0 + 0.08 * k; }
-        else if (b.style === 'low') { delta = d0 + 0.1 - 0.2 * k; pitch = 0.3; zoom = 0.94 + 0.14 * easeOut(k); sy = 0.93; }
-        else if (b.style === 'push') { delta = d0; pitch = 0.4; zoom = 0.82 + 0.3 * easeOut(k * 1.4); }
-        else { delta = d0 - 0.4 + 0.5 * easeOut(k * 1.2); pitch = 0.34 + 0.08 * k; zoom = 0.86 + 0.26 * easeOut(k * 1.3); sx = 0.64; }
-        // A punch-in on the hit.
+        // Ground level, face to face (the author, 2026-10-22): the camera stands at eye height
+        // in front of the fighter, who faces us; a slow push in, a punch-in on the hit.
+        if (b.base == null) b.base = frontAngle(p, b, sc);
+        const side = b.kind === 'lead' ? 0 : (b.i % 2 ? 0.22 : -0.22);
+        const delta = b.base + side * (1 - 0.5 * smooth(k));
+        let zoom = 0.9 + 0.16 * easeOut(k * 1.2);
         const hk = (t - b.hit) / 0.18;
         if (hk >= 0 && hk < 1) zoom *= 1 + 0.06 * (1 - hk);
-        return place(u.x, u.y, Math.PI / 2 - f - delta, sc * zoom, pitch, sx, sy);
+        const cm = place(u.x, u.y, Math.PI / 2 - f - delta, sc * zoom, GROUND_PITCH, b.kind === 'lead' ? 0.5 : 0.56, 0.88);
+        cm.ground = true; cm.subject = u.id;
+        return cm;
       }
       if (t < T.foesEnd && p.foes.length) {
         cut('foes');
@@ -258,7 +273,7 @@
         if (p.heroes.length) { for (const u of p.heroes) { hx += u.x; hy += u.y; } hx /= p.heroes.length; hy /= p.heroes.length; } else { hx = cx - 6; hy = cy; }
         const th = Math.atan2(hy - cy, hx - cx);
         if (p.foeSide == null) p.foeSide = foeAngle(p, cx, cy, th);
-        const ang = Math.PI / 2 - th - p.foeSide * (1 - 0.3 * smooth(k));
+        const ang = Math.PI / 2 - th - p.foeSide * 0.45 * (1 - 0.3 * smooth(k));
         const c = Math.cos(ang), sn = Math.sin(ang);
         let span = 1.2, tall = 1.8;
         for (const u of p.foes) { span = Math.max(span, Math.abs((u.x - cx) * c - (u.y - cy) * sn) + u.r); tall = Math.max(tall, heightOf(u)); }
@@ -268,7 +283,9 @@
         const one = p.foes.length === 1;
         const lat = one ? 0.6 * (1 - smooth(k)) : span * (0.75 - 0.75 * smooth(k * 1.15));
         const zoom = one ? 0.86 + 0.22 * easeOut(k) : 1.3 - 0.3 * smooth(k * 1.15);
-        return place(cx + c * lat, cy - sn * lat, ang, fit * zoom, 0.34, 0.5, 0.8);
+        const cm = place(cx + c * lat, cy - sn * lat, ang, fit * zoom, GROUND_PITCH, 0.5, 0.86);
+        cm.ground = true;
+        return cm;
       }
       return null;
     }

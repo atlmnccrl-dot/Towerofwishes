@@ -261,7 +261,12 @@
       const fu = V.follow && s.byId[V.follow];
       if (V.follow && (!fu || !Sim.alive(fu))) V.follow = null;
       const follow = !c && !V.show && V.follow ? { focus: V.follow, zoom: 1.9 } : null;
-      const o = V.camOverride || intro.cameraFor(s, V.show) || follow || (!c && director.camera(s));
+      const io = V.camOverride ? null : intro.cameraFor(s, V.show);
+      const o = V.camOverride || io || follow || (!c && director.camera(s));
+      // The face-off's own shots (eye level, facing the camera) are exempt from the helicopter view.
+      const heli = V.HELI && !(io && io.ground);
+      V.groundShot = !!(io && io.ground);
+      V.groundSubject = io && io.subject ? io.subject : null;
       if (o) {
         const fu = o.focus && s.byId[o.focus];
         if (fu) { tx = fu.x; ty = fu.y; }
@@ -273,7 +278,7 @@
       }
       // The helicopter view (the author's call, 2026-10-22): always high above and a little
       // to the side, one fixed angle; shots only move and zoom.
-      if (V.HELI) { const A = s.arena || {}; ang = A.camAng != null ? A.camAng : V.HELI.ang; }
+      if (heli) { const A = s.arena || {}; ang = A.camAng != null ? A.camAng : V.HELI.ang; }
       let k = c || o ? 0.12 : Math.min(1, dt * 2.2);
       const snap = !!V.cutSnap;
       if (snap) { k = 1; V.cutSnap = false; } // a hard cut
@@ -286,7 +291,7 @@
       // Cutscenes and director shots drop the camera lower for drama.
       const pitchT = o && o.pitch != null ? o.pitch : frame ? frame.pitch : o && o.zoom > 1.3 ? 0.5 : 0.56;
       cam.pitch += (pitchT - cam.pitch) * (snap ? 1 : frame ? 0.2 : Math.min(1, dt * 4));
-      if (V.HELI) cam.pitch = V.HELI.pitch;
+      if (heli) cam.pitch = V.HELI.pitch;
       // Where on screen the camera point sits (heavy-art shots frame the
       // caster on a third); the face-off's own camera needs the defaults.
       const axT = frame ? frame.ax : 0.5, ayT = frame ? frame.ay - cam.horizon : 0, liftT = frame ? frame.lift : 0;
@@ -310,12 +315,34 @@
         if (u.fled || u === focus) continue;
         const p = V.P(u.x, u.y, 0);
         items.push({
-          d: p.d + (u.state === 'out' ? -0.3 : 0),
+          d: p.d + (u.state === 'out' ? -0.3 : 0), u,
           f: () => { fx.underUnit(u, s); fighters.drawUnit(u, s); fx.overUnit(u, s); },
         });
       }
       items.sort((a, b) => a.d - b.d);
-      for (const it of items) it.f();
+      // Eye-level face-off: whatever stands in front of the fighter being introduced turns see-through.
+      const subj = V.groundShot && V.groundSubject && s.byId ? s.byId[V.groundSubject] : null;
+      if (subj) {
+        const sp = V.P(subj.x, subj.y, 0), half = V.cam.sc * 0.7;
+        for (const it of items) {
+          if (it.u === subj || it.d <= sp.d + 0.25) continue;
+          const f0 = it.f;
+          it.f = () => { ctx.save(); ctx.globalAlpha *= 0.3; f0(); ctx.restore(); };
+          if (it.u) { const q = V.P(it.u.x, it.u.y, 0); if (Math.abs(q.x - sp.x) > half * 2.5) it.f = f0; }
+        }
+      }
+      if (V.groundShot) {
+        // Eye-level face-off shots: everything a step behind the subject sinks into dark mist
+        // (the painted ground is drawn from above and reads oddly side-on).
+        const cam = V.cam, oy = V.H * (cam.horizon + cam.ay) + cam.lift * cam.sc * 0.9;
+        const dTh = (V.H * 0.8 - oy) / (cam.sc * cam.pitch) - 1.4;
+        let i = 0;
+        for (; i < items.length && items[i].d < dTh; i++) items[i].f();
+        const g = ctx.createLinearGradient(0, 0, 0, V.H);
+        g.addColorStop(0, 'rgba(12,9,16,0.96)'); g.addColorStop(0.42, 'rgba(12,9,16,0.82)'); g.addColorStop(0.8, 'rgba(12,9,16,0.25)'); g.addColorStop(1, 'rgba(12,9,16,0)');
+        ctx.fillStyle = g; ctx.fillRect(-60, -60, V.W + 120, V.H + 120);
+        for (; i < items.length; i++) items[i].f();
+      } else for (const it of items) it.f();
       if (focus) {
         if (V.cutDim > 0) { ctx.fillStyle = `rgba(6,4,6,${V.cutDim})`; ctx.fillRect(-60, -60, V.W + 120, V.H + 120); }
         fx.underUnit(focus, s); fighters.drawUnit(focus, s); fx.overUnit(focus, s);
