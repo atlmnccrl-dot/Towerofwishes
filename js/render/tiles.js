@@ -403,5 +403,6 @@
     return true;
   }
   if (typeof window !== 'undefined' && typeof Image !== 'undefined') load();
-  NS.tiles = { load, ready, has, dressing, drawProp, RECIPES };
+  // arenas: false — the author prefers the painted arenas (2026-10-22); the atlas still serves props.
+  NS.tiles = { load, ready, has, dressing, drawProp, RECIPES, arenas: false };
 })();

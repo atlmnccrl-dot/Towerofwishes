@@ -25,11 +25,11 @@ pixel art (section 4).
 | Magic | teleport, heal, failed glyph circle, freeze, shatter, lightning, quake, dissolve, fire, burning | events |
 | **Heavy-art cutscenes** (whole sequence, no drawn shapes) | charge: a ground circle and aura on the caster (shock aura, arcane or holy circle, portal, heal loop, dark smoke); glint: star burst or spell flash; release: katana arc and slashes (Rising Cut), laser beam (Force Lance), spear of light, portals and summons (Dark Legion), teleports and slashes (One Step), wind gusts (Pressure), shockwave (Bone Breaker), heal crosses (Life Surge); then a white frame and the impact effects. The move's name is in the Adventurer pixel font | every heavy art |
 | Face-off portraits | the character's own pixel sprite, large, in the slanted panel | boss face-offs |
-| Scene dust and leaves | pack dust and leaf effects (pixel arenas) | staged scenes |
-| **Interiors** | real rooms: brick or stone walls with windows, torches, banners and stained glass (the walls toward the camera stay open), Pixel 16 tables, stools and cabinets, a fire pit; Floor One, the Hall of Offering and Calamity's corridor keep their pillars and statues against the walls | tavern, Guild office, Floor One, Hall of Offering, Calamity |
+| Scene dust and leaves | pack dust and leaf effects (only with the pixel arenas) | staged scenes |
+| **Interiors** (off with the pixel arenas) | real rooms: brick or stone walls with windows, torches, banners and stained glass (the walls toward the camera stay open), Pixel 16 tables, stools and cabinets, a fire pit; Floor One, the Hall of Offering and Calamity's corridor keep their pillars and statues against the walls | tavern, Guild office, Floor One, Hall of Offering, Calamity |
 | Banners, countdown, combos, captions | Adventurer pixel font | fights |
 | All Out, exhausted, burning | fire ring, embers, steam, flame | fighters |
-| **Arenas (15 themes)** | Pixel Art Top Down Basic (Cainos), TopDownFantasy Forest, Forest & Village and Castle & Dungeon tilesets (reodesuxz), EPIC RPG Ancient Ruins, Dark World | `assets/tiles/`, `js/render/tiles.js` |
+| **Arenas (15 themes)** — *switched off 2026-10-22: the author prefers the painted arenas; `tiles.js` `arenas: false` turns them back on* | Pixel Art Top Down Basic (Cainos), TopDownFantasy Forest, Forest & Village and Castle & Dungeon tilesets (reodesuxz), EPIC RPG Ancient Ruins, Dark World | `assets/tiles/`, `js/render/tiles.js` |
 | | clearing, quarry path, cave, deep passage, north road, ruins, Guild yard, tavern, Guild office, grassland, dead farms, night camp, Shadow City, Floor One hall, Hall of Offering, Calamity's corridor | fights and scenes |
 | **Interface** | Free Medieval Fantasy UI Pack (Kibyra), Adventurer font | pause and withdraw buttons, ! and ? reaction marks, every gear icon, fight lettering |
 | **Sound** | Fantasy UI SFX Free (heyheythere) | buttons, menus, chapter cards, fight start, heals, wins, loot, level-ups, equipping |

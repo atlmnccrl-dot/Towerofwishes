@@ -176,7 +176,7 @@
     function pixelFx() {
       const T = NS.tiles, th = match.arena && match.arena.theme;
       const F = V.fxApi && V.fxApi.pxfx && V.fxApi.pxfx();
-      return F && T && T.ready() && T.RECIPES[th] ? F : null;
+      return F && T && T.arenas && T.ready() && T.RECIPES[th] ? F : null;
     }
     function puff(x, y, kind, n, sp) {
       const F = pixelFx();
@@ -214,8 +214,7 @@
       const ang0 = sh._ang != null ? sh._ang : camOut.ang;
       // up: aim past the subject so it sits lower on screen (frames faces in close-ups)
       if (sh.up) { x -= Math.sin(ang0) * sh.up; y -= Math.cos(ang0) * sh.up; }
-      // Pixel cast: never closer than a knee-up shot, so everyone stays readable.
-      const view = Math.max(5.2, (sh.view || 9) + (sh.push || 0) * t);
+      const view = Math.max(1.6, (sh.view || 9) + (sh.push || 0) * t);
       const sc = sh.sc || Math.min(W, H) / view;
       const ang = (sh._ang != null ? sh._ang : camOut.ang) + (sh.drift || 0) * t;
       return { x, y, sc, ang, pitch: sh.pitch || 0.52 };
@@ -231,10 +230,6 @@
       else if (fu) sh._ang = Math.PI / 2 - fu.facing + (sh.side || 0);
       else if (bu) sh._ang = -Math.PI / 2 - bu.facing + (sh.side || 0);
       else sh._ang = camOut.ang + (sh.side || 0);
-      // Keep every shot within about 30 degrees of the stage's front view: no spinning rooms.
-      const base = def.camAng != null ? def.camAng : -0.38;
-      let d = sh._ang - base; d = Math.atan2(Math.sin(d), Math.cos(d));
-      sh._ang = base + Math.max(-0.52, Math.min(0.52, d));
       from = Object.assign({}, camOut);
       shot = sh; shotT = 0;
       if (sh.cut) snap = true;

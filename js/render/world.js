@@ -6007,11 +6007,12 @@
     let cur = null, curArena = null;
     // Pixel arenas (js/render/tiles.js): built from the author's tilesets once they've loaded;
     // themes without a recipe (and the moments before loading) keep the painted dressing.
+    // Switched off by the author (2026-10-22): the painted arenas are used (tiles.js `arenas`).
     const pixelBuilt = new Map();
     function pick(s) {
       const A = (s && s.arena) || V.Sim.ARENA;
       const T = NS.tiles;
-      if (T && T.ready() && T.has(A.theme)) {
+      if (T && T.arenas && T.ready() && T.has(A.theme)) {
         let px = pixelBuilt.get(A);
         if (px === undefined) { px = T.dressing(V, A); pixelBuilt.set(A, px); }
         if (px) return px;
