@@ -34,10 +34,58 @@ def is_shadow(p):
     return p[3] and p[3] < 255 and max(p[0], p[1], p[2]) <= 2
 
 
+# Stand-in sets recoloured from delivered ones (until the author sends the real exports):
+# name -> (source set, recolour). Recolours shift a hue band and tint the rest.
+import colorsys
+import numpy as np
+
+def recolour(im, bands=(), tint=None, tint_k=0.0, light=0.0):
+    a = np.asarray(im).astype(np.float32) / 255.0
+    rgb, al = a[..., :3], a[..., 3:]
+    mx, mn = rgb.max(-1), rgb.min(-1)
+    d = mx - mn + 1e-6
+    r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+    h = np.where(mx == r, ((g - b) / d) % 6, np.where(mx == g, (b - r) / d + 2, (r - g) / d + 4)) / 6.0
+    s = np.where(mx > 0, d / (mx + 1e-6), 0); v = mx
+    for lo, hi, to, smin, smul in bands:
+        m = (((h >= lo) & (h <= hi)) if lo <= hi else ((h >= lo) | (h <= hi))) & (s >= smin)
+        h = np.where(m, to, h); s = np.where(m, np.clip(s * smul, 0, 1), s)
+    i = np.floor(h * 6) % 6; f = h * 6 - np.floor(h * 6)
+    p_, q, t = v * (1 - s), v * (1 - f * s), v * (1 - (1 - f) * s)
+    out = np.zeros_like(rgb)
+    for k, (x, y, z) in enumerate([(v, t, p_), (q, v, p_), (p_, v, t), (p_, q, v), (t, p_, v), (v, p_, q)]):
+        m = i == k
+        out[..., 0] = np.where(m, x, out[..., 0]); out[..., 1] = np.where(m, y, out[..., 1]); out[..., 2] = np.where(m, z, out[..., 2])
+    if tint is not None:
+        out = out * (1 - tint_k) + np.array(tint, np.float32) * tint_k * (0.4 + 0.6 * out.mean(-1, keepdims=True))
+    out = np.clip(out + light, 0, 1)
+    return Image.fromarray((np.concatenate([out, al], -1) * 255).astype(np.uint8), 'RGBA')
+
+RED = 0.94  # hue band start for reds (wraps through 0)
+DERIVED = {
+    # Floor One's Frost Knights: the kingdom's crimson turned to ice blue, steel frosted.
+    'frost_knight_a': ('gothic_knight_a', dict(bands=[(RED, 0.06, 0.56, 0.25, 0.9)], tint=(0.75, 0.88, 1.0), tint_k=0.25, light=0.06)),
+    'frost_knight_b': ('gothic_knight_b', dict(bands=[(RED, 0.06, 0.56, 0.25, 0.9)], tint=(0.75, 0.88, 1.0), tint_k=0.25, light=0.06)),
+    # The Master Knight: pale steel, the violet glow turned gold.
+    'master_knight': ('black_knight', dict(bands=[(0.65, 0.92, 0.12, 0.2, 1.1)], tint=(0.85, 0.85, 0.95), tint_k=0.3, light=0.12)),
+    # Shadow City thugs: the bandits in dull city greys and purples.
+    'thug_a': ('bandit_broad', dict(bands=[(RED, 0.12, 0.75, 0.15, 0.5)], tint=(0.55, 0.5, 0.65), tint_k=0.35)),
+    'thug_b': ('bandit_knife', dict(bands=[(RED, 0.12, 0.75, 0.15, 0.5)], tint=(0.55, 0.5, 0.65), tint_k=0.35)),
+    # Tower echoes: a fragment whose cracks glow gold.
+    'echo': ('fragment', dict(bands=[(0.45, 0.70, 0.12, 0.15, 1.2)])),
+    # The Drowned Bell: the night creature, sea-green and dripping.
+    'drowned_bell': ('night_creature', dict(tint=(0.45, 0.8, 0.75), tint_k=0.45)),
+}
+
 def pack(set_id):
-    src = os.path.join(SRC, set_id)
-    anims = NPC if set_id in NPC_SETS else FIGHT
-    strip = set_id not in NO_STRIP
+    if set_id in DERIVED:
+        return pack_derived(set_id)
+    return pack_as(set_id, set_id)
+
+def pack_as(src_id, set_id):
+    src = os.path.join(SRC, src_id)
+    anims = NPC if src_id in NPC_SETS else FIGHT
+    strip = src_id not in NO_STRIP
     frames, uniq, meta = [], {}, {}
     for an in anims:
         path = os.path.join(src, an + '.png')
@@ -51,6 +99,8 @@ def pack(set_id):
                 for x in range(w):
                     if is_shadow(px[x, y]):
                         px[x, y] = (0, 0, 0, 0)
+        if _recolour is not None:
+            sheet = recolour(sheet, **_recolour)
         meta[an] = {}
         for r, d in enumerate(DIRS):
             row = []
@@ -110,8 +160,18 @@ def pack(set_id):
     return len(frames), [p.size for p in pages]
 
 
+_recolour = None
+def pack_derived(set_id):
+    global _recolour
+    src_id, rc = DERIVED[set_id]
+    _recolour = rc
+    try:
+        return pack_as(src_id, set_id)
+    finally:
+        _recolour = None
+
 if __name__ == '__main__':
-    sets = sys.argv[1:] or sorted(os.listdir(SRC))
+    sets = sys.argv[1:] or sorted(os.listdir(SRC)) + sorted(DERIVED)
     for s in sets:
         n, sizes = pack(s)
         print('%-16s %5d frames  pages %s' % (s, n, sizes))

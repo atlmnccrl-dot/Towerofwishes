@@ -323,6 +323,18 @@
   }
 
   function has(theme) { return !!RECIPES[theme]; }
+  // One prop standing on (x, y), e.g. the Guild's practice dummy. o: { scale, alpha, flash }
+  function drawProp(V, name, x, y, o) {
+    if (!ready() || !atlas.sprites[name]) return false;
+    o = o || {};
+    const s = atlas.sprites[name], ctx = V.ctx, p = V.P(x, y, 0), k = ((1.78 * 0.9 * V.cam.sc) / 44) * TS * (o.scale || 1);
+    ctx.save(); ctx.imageSmoothingEnabled = false;
+    if (o.alpha != null) ctx.globalAlpha *= o.alpha;
+    if (o.flash && 'filter' in ctx) ctx.filter = 'brightness(2.2)';
+    ctx.drawImage(pages[s[0]], s[1], s[2], s[3], s[4], p.x - (s[3] * k) / 2, p.y - s[4] * k, s[3] * k, s[4] * k);
+    ctx.restore();
+    return true;
+  }
   if (typeof window !== 'undefined' && typeof Image !== 'undefined') load();
-  NS.tiles = { load, ready, has, dressing, RECIPES };
+  NS.tiles = { load, ready, has, dressing, drawProp, RECIPES };
 })();

@@ -705,6 +705,7 @@
       // a fighter who has just been floored is still falling for the first moments
       const falling = u.state === 'down' && u.st < 0.22 && !V.introPhase && (L.form == null) && !L.ghost;
       const lying = (u.state === 'down' || u.state === 'out') && !falling;
+      if (fxBody(u, s)) return;
       const pixel = L.form && pixelReady(u, s);
       if (pixel) { /* drawn from the pixel set below */ }
       else if (L.form === 'veil') { drawVeil(u, L, sc); return; }
@@ -870,6 +871,41 @@
     //   a won fight -> the taunt. Scenes: sitting -> crouched behind the table, pointing -> the
     //   hand thrust held, other gestures -> the relaxed idle. Frames don't crossfade (pixel art).
     const clamp01 = (v) => clamp1(v, 0, 1);
+    // Beings made of pixel effects rather than a body: Kharuun (never shown whole: light and
+    // fragments), Calamity (water streaming on its left, liquid fire on its right), and the
+    // Guild's Practice Block (the training dummy prop from the castle tileset).
+    let PXB = null;
+    function fxBody(u, s) {
+      const T = NS.tiles;
+      if (u.key === 'golem') {
+        if (!T || !T.ready()) return false;
+        if (u.state === 'out') return true;
+        V.shadow(u.x, u.y, u.r * 1.1, 0.35);
+        const k = u.state === 'hurt' || u.state === 'stagger' ? Math.sin(u.st * 40) * 0.04 : 0;
+        return T.drawProp(V, 'cd_training_dummy', u.x + k, u.y, { scale: 1.1, flash: u.flash > 0 });
+      }
+      if (u.key !== 'veil' && u.key !== 'calamity') return false;
+      if (!PXB && NS.pixelfx) PXB = NS.pixelfx.create(V);
+      if (!PXB || !PXB.ready()) return false;
+      if (u.state === 'out' || u.fled) return true;
+      const t = V.time + hashId(u.id) * 0.1, a = u.flash > 0 ? 1 : 0.9;
+      const fx = Math.cos(u.facing), fy = Math.sin(u.facing);
+      V.shadow(u.x, u.y, u.r * 1.3, 0.3);
+      if (u.key === 'veil') {
+        PXB.drawAt('dark_curse', t, u.x, u.y, 1.3, { scale: 3.4, alpha: a });
+        PXB.drawAt('portal', t * 0.8, u.x, u.y, 2.0, { scale: 2.4, alpha: 0.9, add: true });
+        PXB.drawAt('sparkles', t, u.x, u.y, 1.9, { scale: 2.8, alpha: 0.8, add: true });
+        if (u.state === 'attack' || u.state === 'cast') PXB.drawAt('charge_up', t, u.x + fx * 0.8, u.y + fy * 0.8, 1.6, { scale: 1.8, add: true });
+      } else {
+        const lx = -fy, ly = fx; // the creature's left
+        PXB.drawAt('burning_ground', t, u.x - lx * 0.9, u.y - ly * 0.9, 0.02, { scale: 1.8, ground: true, alpha: 0.9 });
+        PXB.drawAt('blue_flame', t, u.x + lx * 0.9, u.y + ly * 0.9, 0, { scale: 3, alpha: a });
+        PXB.drawAt('flame', t + 0.3, u.x - lx * 0.9, u.y - ly * 0.9, 0, { scale: 3, alpha: a, add: true });
+        PXB.drawAt('dark_curse', t, u.x, u.y, 1.5, { scale: 3.6, alpha: a });
+        PXB.drawAt('arcane_orb', t, u.x, u.y, 2.4, { scale: 2.2, add: true });
+      }
+      return true;
+    }
     function pixelReady(u, s) {
       const Sp = window.TowSprites;
       const man = Sp && Sp.forUnit && Sp.forUnit(u, { scene: !!s.stageHandle, theme: s.arena && s.arena.theme });

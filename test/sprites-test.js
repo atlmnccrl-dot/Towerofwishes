@@ -63,11 +63,11 @@ for (const rel of Sp.MANIFESTS) {
 // Pixel characters (Character Creator): every set the game maps to is packed, with all eight
 // directions and 15 frames per clip, frames inside their pages, and the source sheets kept.
 const PX = path.join(root, 'assets/pixel');
-const sets = new Set([...Object.values(Sp.PIXEL_CAST).flatMap((c) => [c.set, c.fight, c.scene, c.armed]).filter(Boolean), ...Object.values(Sp.PATRON_POOLS).flat(), 'guard_gate', 'shopkeeper', 'tavern_keeper', 'miller', ...Sp.PIXEL_EARLY]);
+const sets = new Set([...Object.values(Sp.PIXEL_CAST).flatMap((c) => [c.set, c.fight, c.scene, c.armed, ...(c.pool || [])]).filter(Boolean), ...Object.values(Sp.PATRON_POOLS).flat(), 'guard_gate', 'shopkeeper', 'tavern_keeper', 'miller', ...Sp.PIXEL_EARLY]);
 for (const set of sets) {
   const data = JSON.parse(fs.readFileSync(path.join(PX, set + '.json'), 'utf8'));
   assert.strictEqual(data.id, set);
-  assert.strictEqual(fs.readdirSync(path.join(root, 'art_source/characters', set)).filter((f) => f.endsWith('.png')).length, 30, `${set}: the creator's 30 sheets are kept`);
+  assert.strictEqual(fs.readdirSync(path.join(root, 'art_source/characters', Sp.PIXEL_DERIVED[set] || set)).filter((f) => f.endsWith('.png')).length, 30, `${set}: the creator's 30 sheets are kept`);
   const pages = data.pages.map((p) => pngSize(path.join(PX, p)));
   assert.ok(pages.every((p) => p.alpha && p.w <= 2048 && p.h <= 2048), `${set}: transparent pages, at most 2048 px`);
   assert.ok(data.anchor[0] === 64 && data.anchor[1] > 80 && data.anchor[1] < 100, `${set}: feet anchor ${data.anchor}`);

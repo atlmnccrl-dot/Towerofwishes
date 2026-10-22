@@ -297,6 +297,9 @@
     black_knight: { scale: 1.3, attacks: ['Attack1', 'Attack2', 'Attack6'] },
     elder_dragon: { scale: 2.7, attacks: ['Attack1', 'Attack4'] },
     poacher: { attacks: ['Attack3'] },
+    frost_knight_a: { attacks: ['Attack1', 'Attack2', 'Attack6'] }, frost_knight_b: { attacks: ['Attack6', 'Attack1', 'Attack2'] },
+    master_knight: { scale: 1.15, attacks: ['Attack1', 'Attack2', 'Attack6'] }, thug_a: { attacks: ['Attack5'], scale: 1.1 },
+    drowned_bell: { scale: 1.6 },
     golem_a: { scale: 1.5, attacks: ['Attack5', 'Attack4'] }, golem_b: { scale: 1.5, attacks: ['Attack5', 'Attack4'] },
   };
   // Sim / look key -> set. fight / scene: different sets in fights and staged scenes;
@@ -320,9 +323,15 @@
     healingCreature: { set: 'night_creature' }, beastfolk: { set: 'beastfolk_m' }, beastfolkF: { set: 'beastfolk_f' },
     hamlet: { set: 'hamlet_people' }, citizen: { set: 'labyrinth_citizen' }, dealer: { set: 'demon_dealer' },
     swordsmith: { set: 'sword_smith' }, poacher: { set: 'poacher' }, blackKnight: { set: 'black_knight' }, elderDragon: { set: 'elder_dragon' },
-    gothicKnight: { set: 'gothic_knight_a' }, gothicKnight2: { set: 'gothic_knight_b' }, adventurer: { set: 'guild_adventurer' }, braxenFrost: { set: 'braxen_frost' },
+    gothicKnight: { set: 'gothic_knight_a' }, gothicKnight2: { set: 'gothic_knight_b' },
+    // Stand-ins recoloured from delivered sets (tools/pack_pixel.py DERIVED) until their own exports arrive.
+    knightSword: { set: 'frost_knight_a' }, knightAxe: { set: 'frost_knight_a' }, knightFist: { set: 'frost_knight_a' },
+    knightSpear: { set: 'frost_knight_b' }, knightTwin: { set: 'frost_knight_b' }, knightMaster: { set: 'master_knight' },
+    thug: { pool: ['thug_a', 'thug_b'] }, echo: { set: 'echo' }, warden: { set: 'drowned_bell' }, adventurer: { set: 'guild_adventurer' }, braxenFrost: { set: 'braxen_frost' },
   };
   // Townsfolk (key 'patron'): named roles by id, else one of the town's people by id.
+  // Stand-in sets recoloured from a delivered set (tools/pack_pixel.py DERIVED): set -> source.
+  const PIXEL_DERIVED = { frost_knight_a: 'gothic_knight_a', frost_knight_b: 'gothic_knight_b', master_knight: 'black_knight', thug_a: 'bandit_broad', thug_b: 'bandit_knife', echo: 'fragment', drowned_bell: 'night_creature' };
   const PATRON_ROLES = { guard: 'guard_gate', merchant: 'merchant_recurring', shopkeeper: 'shopkeeper', keeper: 'tavern_keeper', grower: 'miller', victim: 'nox_target', smith: 'sword_smith' };
   const PATRON_POOLS = {
     erdra: ['erdra_m1', 'erdra_f1', 'erdra_m2', 'erdra_f2', 'erdra_vendor', 'erdra_baker', 'erdra_musician'],
@@ -345,6 +354,7 @@
     }
     const c = PIXEL_CAST[u.key];
     if (!c) return null;
+    if (c.pool) { const id = String(u.id || ''), m = /(\d+)$/.exec(id); return c.pool[(m ? Number(m[1]) : hashStr(id)) % c.pool.length]; }
     if (c.armed && u.armed && u.def && u.def.startsUnarmed) return c.armed;
     if (c.scene && ctx && ctx.scene) return c.scene;
     return c.fight || c.set;
@@ -411,6 +421,6 @@
   return {
     DIRS, MANIFESTS, STATE_ANIM, dirFor, resolveDir, parseFrames, frameIndex, animFor, pickAnim, bindFrame,
     animator, play, advance, sample, register, load, loadAll, get, drawFrame, drawBase, addBase,
-    PIXEL_CAST, PIXEL_SETS, PIXEL_CLIPS, PIXEL_PHASES, PIXEL_EARLY, PATRON_POOLS, pixelSetFor, pixelManifest, loadPixel, forUnit, preloadPixel,
+    PIXEL_CAST, PIXEL_DERIVED, PIXEL_SETS, PIXEL_CLIPS, PIXEL_PHASES, PIXEL_EARLY, PATRON_POOLS, pixelSetFor, pixelManifest, loadPixel, forUnit, preloadPixel,
   };
 });

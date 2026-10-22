@@ -35,17 +35,20 @@ pixel art (section 4).
 ## 2. Still drawn: what's needed to finish
 
 ### Characters and creatures
-| ID | Who | Needs |
-|---|---|---|
-| `veil` | **Kharuun / the Unseen** (the climber's summit boss) | Custom pixel art: light and fragments, never shown whole. The creator can't make it. |
-| `calamity` (+ fire and water adds) | Calamity, Floor Two | Custom pixel art, or a creator stand-in like the other creatures. |
-| `knightSword`, `knightFist`, `knightSpear`, `knightTwin`, `knightAxe` | **Frost Knights**, Floor One duels | Creator sets in icy armour (the Gothic knights could be recoloured). |
-| `knightMaster` | Horned Master Knight | Creator set (horns: closest helm). |
-| `thug` | Shadow City thugs | Creator set. |
-| `echo`, `warden` | arcade and side foes | Creator sets. |
-| `golem` | the Guild's **Practice Block** (training dummy) | A dummy sprite (Castle & Dungeon has `training_dummy`: map it, or draw one). |
-| `ren`, `mara`, `brannoc` | the old starter heroes | Only if they stay in the game (they come from the older manuscript). |
-| Dialogue cut-in portraits | heavy-art and face-off panels draw faces | Portrait art per main character (pixel busts, or the creator's figure close up). |
+Stand-ins made from packs already delivered (replace them when the real exports arrive):
+
+| ID | Who | Stand-in now | Real art needed |
+|---|---|---|---|
+| `knightSword`, `knightAxe`, `knightFist`, `knightSpear`, `knightTwin` | **Frost Knights**, Floor One | the Gothic knights recoloured ice blue (`frost_knight_a`, `frost_knight_b`). The weapons don't match the axe, fist, spear and twin-blade knights | creator sets in icy armour, one per weapon |
+| `knightMaster` | Horned Master Knight | the Black Knight recoloured pale steel and gold (`master_knight`), no horns | creator set |
+| `thug` | Shadow City thugs | the broad and knife bandits in city greys (`thug_a`, `thug_b`) | creator sets |
+| `echo` | Tower echoes | a Fragment with gold cracks (`echo`) | |
+| `warden` | The Drowned Bell | the Night Creature in sea green (`drowned_bell`) | a design |
+| `veil` | **Kharuun / the Unseen** | built only from pixel effects: a dark curse, a swirling portal and sparkles. It is never shown whole, which fits the book | custom art, if wanted |
+| `calamity` | **Calamity** | pixel effects: blue flame on its left, fire on its right, a dark core | custom art (creature) |
+| `golem` | the Guild's Practice Block | the training dummy from the Castle & Dungeon tileset | |
+| `ren`, `mara`, `brannoc` | the old starter heroes | still drawn | only if they stay (older manuscript) |
+| Dialogue cut-in portraits | heavy-art and face-off panels draw faces | still drawn | portrait art per main character |
 
 ### Effects and fight overlays
 | What | Needs |
