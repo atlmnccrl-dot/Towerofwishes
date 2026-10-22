@@ -413,7 +413,8 @@
               { who: 'p4', to: [-4.6, -1.0], gait: 'run', speed: 3 }, { who: 'p5', to: [-4.4, 1.0], gait: 'run', speed: 3 }, { speed: [0.6, 1.0, 'h'] }] },
           // One of the inner rings stops. The whole formation shudders, holds, and comes apart.
           { cam: { x: 3, y: -4, view: 13, ang: 0.15, pitch: 0.2, up: 2.4, push: 0.0, ease: 1.5 },
-            do: [{ speed: [0, 0.4] }, { rumble: [3, 2.4] }, { at: 1.0, shake: 10 }, { at: 1.1, sky: [0.15, 1.2] }, { at: 1.1, light: ['200,170,255', 0.35, 0.3] }, { at: 1.5, light: [null, 0, 1.2] },
+            do: [{ speed: [0, 0.4] }, { rumble: [3, 2.4] }, { at: 1.0, shake: 10 }, { at: 1.1, sky: [0.15, 1.2] },
+              { at: 1.05, pfx: [{ name: 'spell_impact', x: 4, y: -9, z: 3.4, scale: 3.6, add: true }, { name: 'shockwave', x: 4, y: -9, z: 3.4, scale: 4.4, add: true, ground: true }, { name: 'sparkles', x: 4, y: -9, z: 3.5, scale: 3.4, add: true, life: 1.4 }] }, { at: 1.1, light: ['200,170,255', 0.35, 0.3] }, { at: 1.5, light: [null, 0, 1.2] },
               { at: 1.2, who: 'p1', knock: [-2.4, 0.4], state: 'hurt' }, { at: 1.2, who: 'p2', knock: [-2.8, 0.0], state: 'hurt' }, { at: 1.2, who: 'p3', knock: [-2.4, -0.4], state: 'hurt' },
               { at: 1.3, who: 'p4', knock: [-2.0, 0.2], state: 'hurt' }, { at: 1.3, who: 'p5', knock: [-2.2, 0.0], state: 'hurt' }, { at: 2.6, sky: [0, 2.0] }] },
         ],

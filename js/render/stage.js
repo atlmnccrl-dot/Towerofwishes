@@ -211,7 +211,7 @@
     const camOut = { x: 0, y: 0, sc: 40, ang: -0.32, pitch: 0.56 };
     let snap = true, pendingCut = null, shake = 0;
     const fade = { a: 0, to: 0, t: 0, dur: 0, from: 0, col: '0,0,0' };
-    let bars = 0, CINE = null, cineT = 0;
+    let bars = 0, CINE = null, cineT = 0, skyAt = null;
     const arrows = [];
     // Screen effects: eased values {v, to, from, t, dur}.
     const ease = () => ({ v: 0, to: 0, from: 0, t: 0, dur: 0 });
@@ -226,7 +226,7 @@
     function pixelFx() {
       const T = NS.tiles, th = match.arena && match.arena.theme;
       const F = V.fxApi && V.fxApi.pxfx && V.fxApi.pxfx();
-      return F && T && T.arenas && T.ready() && T.RECIPES[th] ? F : null;
+      return F || null; // (pack dust and leaves in every scene now)
     }
     function puff(x, y, kind, n, sp) {
       const F = pixelFx();
@@ -792,7 +792,20 @@
       ctx.globalAlpha = 1;
       // the formation's light over the treeline
       const sk = FX.sky.v;
-      if (sk > 0.01) {
+      const PF = pixelFx();
+      if (sk > 0.01 && PF) {
+        // the formation from the effect packs: an arcane circle and a spell glyph turning over
+        // the treeline, sparkling; it fades as it fails
+        if (!skyAt) skyAt = { x: V.cam.x + 1, y: V.cam.y - 5 };
+        const tt = V.time || 0;
+        PF.drawAt('circle_arcane', tt, skyAt.x, skyAt.y, 3.4, { scale: 3.6 * (0.6 + 0.4 * sk), alpha: Math.min(0.85, sk), add: true, ground: true });
+        PF.drawAt('cast_circle', tt * 0.7, skyAt.x, skyAt.y, 3.45, { scale: 3 * (0.6 + 0.4 * sk), alpha: Math.min(0.8, sk), add: true, ground: true });
+        PF.drawAt('sparkles', tt, skyAt.x, skyAt.y, 3.5, { scale: 3, alpha: sk * 0.8, add: true });
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        const g = ctx.createLinearGradient(0, 0, 0, H * 0.55);
+        g.addColorStop(0, `rgba(150,110,255,${(0.3 * sk).toFixed(3)})`); g.addColorStop(1, 'rgba(150,110,255,0)');
+        ctx.fillStyle = g; ctx.fillRect(0, 0, W, H * 0.55); ctx.restore();
+      } else if (sk > 0.01) {
         ctx.save(); ctx.globalCompositeOperation = 'lighter';
         const g = ctx.createLinearGradient(0, 0, 0, H * 0.55);
         g.addColorStop(0, `rgba(150,110,255,${(0.42 * sk).toFixed(3)})`); g.addColorStop(1, 'rgba(150,110,255,0)');
@@ -813,7 +826,7 @@
         ctx.restore();
       }
       // trunks whipping past the lens
-      const wk = FX.whip.v;
+      const wk = PF ? 0 : FX.whip.v; // (drawn trunk streaks only without the effect packs)
       if (wk > 0.01) {
         const n = 3, period = 0.55;
         for (let i = 0; i < n; i++) {
@@ -830,7 +843,7 @@
         }
       }
       // speed lines (painted prologue only; pixel scenes show motion with the cast and dust)
-      const spd = pixelFx() ? 0 : FX.speed.v;
+      const spd = PF ? 0 : FX.speed.v; // (drawn speed lines only without the effect packs)
       if (spd > 0.01) {
         ctx.save();
         if (speedMode === 'r') {

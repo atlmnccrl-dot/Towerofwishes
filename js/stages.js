@@ -675,6 +675,7 @@
         do: [
           { at: 0.5, who: 'kael', show: true, drop: [5, 0.45] },
           { at: 0.95, who: 'kael', burst: 'dust', shake: 9, state: 'recover', dur: 0.8 },
+          { at: 0.95, who: 'kael', pfx: [{ name: 'shockwave', z: 0.05, scale: 3, ground: true }, { name: 'dust_cloud', z: 0, scale: 1.4 }, { name: 'rock_burst', z: 0, scale: 1.4 }] },
           { at: 0.95, slow: [0.35, 0.45] },
           { at: 1.0, who: 'brute', to: [0.6, 0.2], gait: 'back', icon: '!' },
           { at: 1.05, who: 'knife', to: [-2.8, 0.2], gait: 'back', icon: '!' },
@@ -690,6 +691,7 @@
           { who: 'kael', face: 'brute' },
           { at: 0.3, who: 'kael', state: 'pickup', dur: 0.7 },
           { at: 0.7, fx: { type: 'thunk', x: -0.4, y: 1.1 }, shake: 5, who: 'kael', burst: 'dust' },
+          { at: 0.7, pfx: [{ name: 'rock_burst', x: -0.4, y: 1.1, z: 0, scale: 1.0 }, { name: 'shockwave', x: -0.4, y: 1.1, z: 0.05, scale: 2.2, ground: true }] },
           { at: 1.4, freeze: 0.25 },
           { at: 1.9, who: 'kael', state: 'recover', dur: 0.9 },
           { at: 2.1, cam: { across: ['kael', 'brute'], focus: ['kael', 'brute', 'knife'], view: 5.6, pitch: 0.4, up: 0.5, ease: 1.0 } },
