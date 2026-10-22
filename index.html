@@ -551,6 +551,15 @@ body.trailer.fighting .trailer-card:not(.logo) { bottom: auto; top: 10vh; }
 .slot .elem { display: block; margin: 3px 0 0; }
 .team-body { gap: 14px; }
 .team-body .statline { margin: 0; }
+/* Pixel UI (assets/ui/): Adventurer font by Brian J Smith (CC BY 3.0); icons from
+   Free Medieval Fantasy UI Pack by Kibyra. Icon sheets are 8x8 grids of 32 px icons. */
+@font-face { font-family: "Adventurer"; src: url("assets/ui/adventurer.ttf") format("truetype"); font-display: swap; }
+.px-icon { display: inline-block; width: 32px; height: 32px; background-repeat: no-repeat; image-rendering: pixelated; }
+#btn-pause { font-size: 0; min-width: 34px; background: rgba(12, 8, 8, 0.7) url("assets/ui/icons1.png") no-repeat; background-size: 272px 272px; background-position: -204px 0; image-rendering: pixelated; clip-path: none; }
+#btn-speed { font-family: "Adventurer", var(--ui); font-weight: 400; font-size: 13px; }
+#btn-withdraw .flag { width: 28px; height: 28px; border: 0; background: url("assets/ui/icons1.png") no-repeat; background-size: 224px 224px; background-position: -84px -112px; image-rendering: pixelated; }
+#btn-withdraw .flag::after { display: none; }
+.credits-pop p { margin: 0 0 6px; font: 500 11px/1.4 var(--ui); color: var(--parchment-dim); }
 </style>
 </head>
 <body>
@@ -602,6 +611,7 @@ body.trailer.fighting .trailer-card:not(.logo) { bottom: auto; top: 10vh; }
         <button class="tl" id="btn-team" type="button">Team</button>
         <button class="tl" id="btn-practice" type="button">Practice</button>
         <button class="tl" id="btn-trailer" type="button">Trailer</button>
+        <button class="tl" id="btn-sound" type="button">Sound: on</button>
         <details class="howto">
           <summary>How to play</summary>
           <div class="how-pop"><ul class="how">
@@ -611,6 +621,16 @@ body.trailer.fighting .trailer-card:not(.logo) { bottom: auto; top: 10vh; }
             <li><b>Defeat</b><span>Losing costs nothing. Try again, or leave to change gear, find loot or train, and come back.</span></li>
           </ul>
           <div class="how-foot"><button class="link" id="btn-reset" type="button">Reset progress</button><span class="fine" id="reset-confirm" hidden><button class="link" id="btn-reset-yes" type="button">Yes, erase the story, gear and injuries</button></span></div></div>
+        </details>
+        <details class="howto">
+          <summary>Credits</summary>
+          <div class="how-pop credits-pop">
+            <p><b>Characters</b> made with Character Creator 2D Fantasy (SmallScaleInt).</p>
+            <p><b>Effects</b> Pixel VFX Essentials; KILN FX Free Sampler; Magic Spells VFX Lite by Willosuna; FX packs 6 and 13.</p>
+            <p><b>Tiles</b> Pixel Art Top Down &ndash; Basic (Cainos); TopDownFantasy Forest; Pixel Top-down Forest and Village Tileset and Castle and Dungeon Tileset Vol 3 by reodesuxz; EPIC RPG World &ndash; Ancient Ruins; Dark World.</p>
+            <p><b>Interface</b> Free Medieval Fantasy UI Pack by Kibyra. Adventurer font by Brian J Smith (CC BY 3.0).</p>
+            <p><b>Sound</b> Fantasy UI SFX Free by heyheythere &ndash; heyheythere.itch.io/fantasy-ui-sfx-free &ndash; CC BY 4.0.</p>
+          </div>
         </details>
       </div>
     </nav>
@@ -757,6 +777,7 @@ body.trailer.fighting .trailer-card:not(.logo) { bottom: auto; top: 10vh; }
 <script src="js/render/opening.js"></script>
 <script src="js/render/map.js"></script>
 <script src="js/render/stage.js"></script>
+<script src="js/audio.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

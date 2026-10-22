@@ -46,6 +46,16 @@
   };
   const BY_ID = { patchedLeathers: 'coat', roadCoat: 'coat', quarryPlate: 'plate', drownedMail: 'plate', waterskinCork: 'cork', grainThread: 'spool', teaRing: 'ring', straysTooth: 'tooth', bellShard: 'shard' };
 
+  // Pixel icons (Free Medieval Fantasy UI Pack by Kibyra): [sheet, row, column] of 32 px icons.
+  const PIX = {
+    sword: [3, 1, 0], blade: [3, 1, 1], glyph: [3, 2, 3], shield: [3, 1, 3], spear: [3, 1, 7], fist: [3, 1, 5],
+    coat: [1, 2, 7], plate: [1, 2, 6], ring: [3, 7, 7], tooth: [3, 7, 0], shard: [3, 0, 4], cork: [2, 2, 0], spool: [3, 3, 7],
+  };
+  function pixelIcon(shape) {
+    const p = PIX[shape];
+    if (!p) return null;
+    return `<svg x="9" y="9" width="46" height="46" viewBox="${p[2] * 32} ${p[1] * 32} 32 32"><image href="assets/ui/icons${p[0]}.png" width="256" height="256" style="image-rendering:pixelated"/></svg>`;
+  }
   function svg(id, size) {
     const I = (window.TowProgression && window.TowProgression.ITEMS[id]) || null;
     if (!I) return '';
@@ -57,7 +67,7 @@
       <defs><radialGradient id="${gid}"><stop offset="0" stop-color="${el ? el.a : rar}" stop-opacity="${el ? 0.55 : 0.25}"/><stop offset="1" stop-color="${el ? el.a : rar}" stop-opacity="0"/></radialGradient></defs>
       <rect x="1.5" y="1.5" width="61" height="61" rx="8" fill="#141016" stroke="${rar}" stroke-width="2"/>
       <circle cx="32" cy="32" r="30" fill="url(#${gid})"/>
-      ${SHAPES[shape](col)}
+      ${pixelIcon(shape) || SHAPES[shape](col)}
       ${I.elem ? DRESS[I.elem](el) : ''}
     </svg>`;
   }

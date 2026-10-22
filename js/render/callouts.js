@@ -11,6 +11,10 @@
   const NS = (window.TowRender = window.TowRender || {});
 
   function create(V) {
+    // Reaction marks drawn from the UI pack's icon sheet (column, row of 32 px icons).
+    const MARKS = { '?': [0, 6], '!': [1, 6] };
+    const marks = typeof Image !== 'undefined' ? new Image() : {};
+    marks.src = 'assets/ui/icons3.png';
     const { ctx, FONT } = V;
     const P = V.P;
 
@@ -37,7 +41,14 @@
         ctx.restore();
       }
       // Reaction mark: bold lettering that pops and rises.
-      if (u.iconT > 0 && u.icon) {
+      if (u.iconT > 0 && u.icon && MARKS[u.icon] && marks.complete && marks.naturalWidth) {
+        // Pixel "!" and "?" (Free Medieval Fantasy UI Pack), popping and rising.
+        const k = 0.8 - u.iconT, pop = k < 0.1 ? 1.4 - k * 4 : 1, [c, r] = MARKS[u.icon];
+        const sz = Math.max(18, sc * 0.55) * pop, y = top.y - sc * 0.35 - k * sc * 0.25;
+        ctx.save(); ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(marks, c * 32, r * 32, 32, 32, top.x - sz / 2, y - sz / 2, sz, sz);
+        ctx.restore();
+      } else if (u.iconT > 0 && u.icon) {
         const col = { '!': '#ffd166', '?': V.PAL.heroGlow, '✦': V.PAL.glow, '…': '#b8c0c8' }[u.icon] || '#fff';
         const k = 0.8 - u.iconT;
         const pop = k < 0.1 ? 1.4 - k * 4 : 1;

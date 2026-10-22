@@ -249,6 +249,7 @@
         S('teleport', e.x1, e.y1, 0, { scale: 1.4, delay: 0.08 });
       } else if (e.type === 'heal') {
         const to = s.byId[e.target];
+        if (window.TowAudio) window.TowAudio.play('heal_02', 0.35);
         S('spell_heal', e.x, e.y, 1.0, { scale: 0.9, follow: to || null });
         S('heal_cross', e.x, e.y, 2.0, { scale: 1, delay: 0.15, follow: to || null });
       } else if (e.type === 'hazardHit') {
@@ -726,7 +727,7 @@
         const pop = k < 0.1 ? slam - (slam - 1) * (k / 0.1) : 1;
         const base = t.word ? 0.3 : t.ko ? 0.62 : 0.3 + 0.1 * (t.size || 1) + (t.crit ? 0.08 : 0);
         const fs = Math.max(11, Math.round(sc * base * pop));
-        ctx.font = `800 ${fs}px ${t.word ? FONT.ui : FONT.display}`;
+        ctx.font = `${fs}px Adventurer, ${t.word ? FONT.ui : FONT.display}`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.globalAlpha = Math.max(0, 1 - Math.pow(k, t.ko ? 4 : 2));
         ctx.save(); ctx.translate(q.x, q.y); ctx.transform(1, 0, t.ko ? -0.3 : -0.15, 1, 0, 0);

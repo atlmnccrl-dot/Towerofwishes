@@ -115,6 +115,7 @@
     $('btn-skip').hidden = n.type !== 'scene';
     if (n.type === 'card') {
       $('card-title').textContent = n.title; $('card-sub').textContent = n.sub || '';
+      if (window.TowAudio) window.TowAudio.play('quest_new', 0.55);
       // Restart the entrance animation.
       for (const el of [$('card-title'), $('card-sub')]) { el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; }
       cardShownAt = performance.now();
@@ -391,6 +392,7 @@
     $('tm-itemtip').textContent = b.dataset.tip;
     const uid = Number(b.dataset.uid);
     if (Prog.wearer(prog, uid) === teamKey) Prog.unequip(prog, teamKey, teamSlot); else Prog.equip(prog, teamKey, uid);
+    if (window.TowAudio) window.TowAudio.play('equip_armor_01', 0.6);
     writeSave(); renderTeam();
   });
   const tipOf = (e) => { const g = e.target.closest && e.target.closest('.snode'); if (g) $('tm-detail').textContent = g.dataset.tip + (g.classList.contains('lock') ? ' (locked: learn the one before it)' : ''); return g; };
@@ -459,6 +461,7 @@
 
   // ------------------------------------------------------------ match
   function startMatch(m, seed, opts) {
+    if (window.TowAudio) window.TowAudio.play('unsheathe_01', 0.45);
     mode = m;
     const now = Date.now();
     const heroHp = mode === 'story' ? { kael: Pg.hpFrac(save, 'kael', now), eiryn: Pg.hpFrac(save, 'eiryn', now) } : {};
@@ -555,6 +558,12 @@
     else if (mode === 'story' && r.outcome === 'win') heartLine = 'Winning restores the whole team to full health.';
     else if (mode === 'story' && r.outcome === 'surrender') heartLine = 'The team is injured and will heal over the next few minutes.';
     $('result-hearts').innerHTML = heartLine + (growth && growth.xp ? ` <span class="levelup">+${growth.xp} XP${growth.levelUp ? ` · Team level ${growth.level}!` : ''}</span>` : '');
+    const Au = window.TowAudio;
+    if (Au) {
+      if (r.outcome === 'win') Au.play('quest_complete', 0.6);
+      if (loot.length) setTimeout(() => Au.play('chest_open', 0.6), 700);
+      if (growth && growth.levelUp) setTimeout(() => Au.play('level_up', 0.7), 1300);
+    }
     // Next step.
     const again = $('btn-again');
     if (storyBattle && (r.outcome === 'win' || mode === 'tutorial' || storyBattle.arcade || (storyBattle.carry && !story.side))) {
