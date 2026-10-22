@@ -35,9 +35,14 @@ Read first: [docs/DESIGN.md](docs/DESIGN.md), [docs/STORY.md](docs/STORY.md),
   and come back. No story progress is ever lost.
 - Cutscenes can be skipped (setting); skipping never skips rewards, flags or injuries.
 - No speech bubbles anywhere: subtitles, or ambient "…" for murmurs.
-- **Eiryn's official look** is `assets/characters/eiryn/eiryn_base.png`. Every Eiryn animation
-  must match it; never redesign her. Animations arrive as ZIPs from the author (docs/SPRITES.md);
-  no placeholder animations.
+- **Art style: pixel art** from the itch.io "Character Creator 2D Fantasy" (decided 2026-10-22).
+  The author builds each character in the creator and sends its export (30 clips × 8 directions).
+  The sources live in `art_source/characters/<set>/`, untouched; `tools/pack_pixel.py` packs them
+  into `assets/pixel/`. Never redesign a character the author has delivered; no placeholder art.
+- **Eiryn's official look** is the creator's `eiryn` set (caster) and `eiryn_branch` (the bandit
+  fight). The earlier anime sprite in `assets/characters/eiryn/` is retired (kept for portraits).
+- **The JavaScript game is the live build** (decided 2026-10-22): it plays on iPhone and PC from the
+  published link. The Godot migration plan is shelved; a Godot iPhone build needs a Mac and Xcode.
 - Landscape only.
 - Heavy arts are cutscenes. Normal specials keep the standard battle camera.
 - Protected: the prologue's painted skyfire-and-flood Reset shot and other approved cinematics.
@@ -58,7 +63,7 @@ Read first: [docs/DESIGN.md](docs/DESIGN.md), [docs/STORY.md](docs/STORY.md),
 | `js/book/*.js` | The book's chapters (nodes, staged scenes, foes); `pro.js` stages the prologue and the early side scenes |
 | `js/render/director.js` | Camera cuts, slow motion, cut-in panels during fights |
 | `js/grade.js` | Fight ranks S–D from a finished match. Pure |
-| `js/sprites.js`, `assets/characters/<id>/` | Sprite characters: manifests, official base sprites, PNG sheets + JSON frames, crossfading animator (docs/SPRITES.md) |
+| `js/sprites.js`, `assets/pixel/`, `art_source/` | Sprite characters: the pixel cast (which set draws which character, clip mapping, hit frames), packed atlases, the creator's source sheets; `tools/pack_pixel.py` repacks (docs/SPRITES.md) |
 | `js/render/spirit.js`, `js/render/itemart.js` | The spirit-tree skill screen; drawn icons for every item |
 | `js/progress.js` | Injuries after story fights (no hearts): pure functions |
 | `js/story.js` | Story campaign: chapter graph, side episodes, choices, team experience. Pure data + functions |

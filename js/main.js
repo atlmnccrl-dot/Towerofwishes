@@ -1018,7 +1018,7 @@
   };
 
   // Sprite characters (js/sprites.js): load the manifests and base sprites in the background.
-  if (window.TowSprites) window.TowSprites.loadAll(window.TowSprites.MANIFESTS);
+  if (window.TowSprites) { window.TowSprites.loadAll(window.TowSprites.MANIFESTS); window.TowSprites.preloadPixel(); }
   renderMenu();
   setInterval(() => { if (!$('menu').hidden) renderMenu(); }, 1000);
   show('menu');

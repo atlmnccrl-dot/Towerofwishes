@@ -60,26 +60,56 @@ for (const rel of Sp.MANIFESTS) {
     }
   }
 }
-// Eiryn is registered with her official base sprite and no animations until they are delivered.
-const eiryn = JSON.parse(fs.readFileSync(path.join(root, 'assets/characters/eiryn/eiryn.json'), 'utf8'));
-assert.strictEqual(eiryn.base.image, 'eiryn_base.png');
-Sp.register(eiryn, 'assets/characters/eiryn/');
-for (const k of ['eiryn', 'eirynAsh', 'eirynMage']) assert.strictEqual(Sp.get(k).id, 'eiryn', `look key ${k} maps to Eiryn`);
-
-// Her front-facing walk (delivered 2026-10-18): 36 frames, 59 ms each, looping.
+// Pixel characters (Character Creator): every set the game maps to is packed, with all eight
+// directions and 15 frames per clip, frames inside their pages, and the source sheets kept.
+const PX = path.join(root, 'assets/pixel');
+const sets = new Set([...Object.values(Sp.PIXEL_CAST).flatMap((c) => [c.set, c.fight, c.scene, c.armed]).filter(Boolean), ...Object.values(Sp.PATRON_POOLS).flat(), 'guard_gate', 'shopkeeper', 'tavern_keeper', 'miller', ...Sp.PIXEL_EARLY]);
+for (const set of sets) {
+  const data = JSON.parse(fs.readFileSync(path.join(PX, set + '.json'), 'utf8'));
+  assert.strictEqual(data.id, set);
+  assert.strictEqual(fs.readdirSync(path.join(root, 'art_source/characters', set)).filter((f) => f.endsWith('.png')).length, 30, `${set}: the creator's 30 sheets are kept`);
+  const pages = data.pages.map((p) => pngSize(path.join(PX, p)));
+  assert.ok(pages.every((p) => p.alpha && p.w <= 2048 && p.h <= 2048), `${set}: transparent pages, at most 2048 px`);
+  assert.ok(data.anchor[0] === 64 && data.anchor[1] > 80 && data.anchor[1] < 100, `${set}: feet anchor ${data.anchor}`);
+  for (const clip of ['Idle', 'Walk', 'Run', 'TakeDamage', 'Slide', 'Die']) {
+    const a = data.anims[clip];
+    assert.ok(a, `${set}: ${clip}`);
+    assert.deepStrictEqual(Object.keys(a).sort(), ['E', 'N', 'NE', 'NW', 'S', 'SE', 'SW', 'W'], `${set}/${clip}: eight directions`);
+    for (const [d, list] of Object.entries(a)) {
+      assert.strictEqual(list.length, 15, `${set}/${clip}/${d}: 15 frames`);
+      for (const f of list) if (f) {
+        const pg = pages[f[0]];
+        assert.ok(f[1] + f[3] <= pg.w && f[2] + f[4] <= pg.h && f[5] + f[3] <= 128 && f[6] + f[4] <= 128, `${set}/${clip}/${d}: frame inside page and cell`);
+      }
+    }
+  }
+  const man = Sp.pixelManifest(data, data.pages.map(() => null));
+  for (const n of ['idle', 'walk', 'run', 'hit', 'down', 'ko', 'dodge']) assert.ok(man.animations[n], `${set}: ${n}`);
+  for (const [n, a] of Object.entries(man.animations)) if (a.phases) {
+    const { windup, strike, recover } = a.phases;
+    assert.ok(windup[1] < strike[0] + 1 && strike[1] < recover[0] && recover[1] === 14, `${set}/${n}: phases in order`);
+  }
+}
+// The fighters have their combat clips.
+for (const set of ['kael_sword', 'eiryn', 'eiryn_branch', 'bandit_broad', 'bandit_knife', 'bandit_grabber', 'climber', 'fragment']) {
+  const man = Sp.pixelManifest(JSON.parse(fs.readFileSync(path.join(PX, set + '.json'), 'utf8')), [null]);
+  for (const n of ['idle_combat', 'attack', 'cast', 'strafe_l', 'strafe_r', 'back', 'heavy']) assert.ok(man.animations[n], `${set}: ${n}`);
+  assert.ok(man.animations.attack.phases, `${set}: the attack lands on its contact frame`);
+}
+// Who is drawn with which set.
 {
-  const w = eiryn.animations.walk, ws = w.sheets.find((x) => x.dir === 'S');
-  assert.ok(ws && w.loop !== false, 'walk registered, front view, loops');
-  assert.deepStrictEqual(w.sheets.map((x) => x.dir).sort(), ['E', 'S', 'SE', 'SW'], 'walk drawn front, both front diagonals, side');
-  assert.ok(eiryn.animations.run.sheets.some((x) => x.dir === 'S'), 'run drawn from the front');
-  const fr = Sp.parseFrames(JSON.parse(fs.readFileSync(path.join(root, 'assets/characters/eiryn', ws.data), 'utf8')), 'walk', 'S').S;
-  assert.strictEqual(fr.length, 36);
-  assert.ok(fr.every((f) => Math.abs(f.dur - 0.059) < 1e-9), 'timings from the JSON');
-  assert.deepStrictEqual(fr.map((f) => f.n), [...Array(36).keys()], 'frames in order');
-  assert.strictEqual(Sp.frameIndex(w, 36, 0.06, fr), 1);
-  assert.strictEqual(Sp.frameIndex(w, 36, 36 * 0.059 + 0.01, fr), 0, 'wraps round smoothly');
-  assert.strictEqual(Sp.animFor(eiryn, 'move'), 'run');
-  assert.strictEqual(Sp.animFor(eiryn, 'attack'), 'attack', 'her Pressure attack is registered');
+  const f = (u, ctx) => Sp.pixelSetFor(u, ctx || {});
+  assert.strictEqual(f({ key: 'kael' }), 'kael_sword');
+  assert.strictEqual(f({ key: 'kael' }, { scene: true }), 'kael_unarmed', 'Kael walks the town without his sword out');
+  assert.strictEqual(f({ key: 'eiryn', armed: false, def: { startsUnarmed: true } }), 'eiryn');
+  assert.strictEqual(f({ key: 'eiryn', armed: true, def: { startsUnarmed: true } }), 'eiryn_branch', 'the branch once she picks it up');
+  assert.strictEqual(f({ key: 'eirynMage', armed: true, def: {} }), 'eiryn');
+  assert.strictEqual(f({ key: 'brute' }), 'bandit_broad');
+  assert.ok(Sp.PATRON_POOLS.erdra.includes(f({ key: 'patron', id: 'p2' }, { theme: 'square' })), 'Erdra townsfolk before the Reset');
+  assert.ok(Sp.PATRON_POOLS.ashgate.includes(f({ key: 'patron', id: 'p2' }, { theme: 'tavern' })), 'Ashgate regulars after');
+  assert.notStrictEqual(f({ key: 'patron', id: 'p1' }, { theme: 'tavern' }), f({ key: 'patron', id: 'p2' }, { theme: 'tavern' }), 'neighbours differ');
+  assert.strictEqual(f({ key: 'patron', id: 'guard' }), 'guard_gate');
+  assert.strictEqual(f({ key: 'aerys' }), null, 'no pixel art yet: keeps the drawn body');
 }
 
 // Running sideways uses the side walk when the run isn't drawn that way; the front run when it is.
@@ -105,7 +135,7 @@ for (const d of ['S', 'SE', 'E']) for (let i = 0; i < 4; i++) data.frames[`walk_
 const fr = Sp.parseFrames(data, 'walk');
 assert.deepStrictEqual(Object.keys(fr).sort(), ['E', 'S', 'SE']);
 assert.strictEqual(fr.S.length, 4);
-const man = { id: 't', base: eiryn.base, mirror: { W: 'E', SW: 'SE', NW: 'NE' }, blend: 0.1,
+const man = { id: 't', base: { anchor: [0, 0], figureHeightPx: 1 }, mirror: { W: 'E', SW: 'SE', NW: 'NE' }, blend: 0.1,
   animations: { walk: { fps: 10, frames: fr }, idle: { fps: 10, frames: { S: fr.S } }, turn: { fps: 10, loop: false, frames: { S: fr.S.slice(0, 2) } } },
   transitions: { 'idle>walk': 'turn' } };
 assert.deepStrictEqual(Sp.resolveDir(man, man.animations.walk, 'W'), { dir: 'E', flip: true });

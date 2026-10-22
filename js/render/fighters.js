@@ -793,9 +793,10 @@
     function spriteBody(u, L, s, lying) {
       const Sp = window.TowSprites;
       if (!Sp) return false;
-      const man = Sp.get(u.key);
-      if (!man || !man.ready) return false;
       const scene = !!s.stageHandle;
+      const man = Sp.forUnit ? Sp.forUnit(u, { scene, theme: s.arena && s.arena.theme }) : Sp.get(u.key);
+      if (!man || !man.ready) return false;
+      if (man.pixel) return pixelBody(u, s, lying, man, scene);
       if (scene && ((u.gest && !REST_GEST[u.gest]) || u.prop || u.state === 'sit' || u.state === 'pickup')) return false;
       const has = (n) => !!(man.animations[n] && man.animations[n].frames);
       const speed = Math.hypot(u.vx || 0, u.vy || 0);
@@ -854,6 +855,87 @@
       const flash = u.flash > 0 && 'filter' in ctx;
       if (flash) ctx.filter = 'brightness(2.2)';
       for (const smp of smps) Sp.drawFrame(ctx, man, smp, 0, 0, hpx);
+      if (flash) ctx.filter = 'none';
+      ctx.restore();
+      return true;
+    }
+
+    // Pixel characters (Character Creator, js/sprites.js): every state has a creator clip.
+    //   attack -> the set's attacks, alternating through a combo, the hit on the clip's contact frame;
+    //   cast -> the hand push; parry -> the guard stance with a lean; hurt, stagger -> TakeDamage;
+    //   dodge -> the roll; down -> falls and gets up (Slide); out -> Die; a heavy art -> Special1,
+    //   its contact on the impact; circling -> strafe steps, backing off -> the backwards run;
+    //   a won fight -> the taunt. Scenes: sitting -> crouched behind the table, pointing -> the
+    //   hand thrust held, other gestures -> the relaxed idle. Frames don't crossfade (pixel art).
+    const clamp01 = (v) => clamp1(v, 0, 1);
+    function pixelBody(u, s, lying, man, scene) {
+      const Sp = window.TowSprites;
+      const has = (n) => !!man.animations[n];
+      const speed = Math.hypot(u.vx || 0, u.vy || 0);
+      const st = u.state;
+      const art = s.cutscene && s.cutscene.unit === u ? s.cutscene : null;
+      const moving = speed > 0.25 && !art && st !== 'attack' && st !== 'parry' && st !== 'hurt' && st !== 'stagger' && st !== 'dodge' && !lying;
+      const won = s.result && s.result.outcome === 'win' && u.team === 'hero' && !lying;
+      const stance = scene || u.def && u.def.noncombat ? 'idle' : 'idle_combat';
+      let name = stance, face = u.facing, timed = null; // timed: 0..1 through the clip, from the sim
+      if (art) { name = 'heavy'; }
+      else if (st === 'out') name = 'ko';
+      else if (st === 'down') { name = 'down'; timed = u.st / Math.max(0.3, u.dur || 1.2); }
+      else if (st === 'attack') name = u.combo % 2 === 1 && has('attack2') ? 'attack2' : 'attack';
+      else if (st === 'cast') { name = 'cast'; timed = u.st / Math.max(0.2, u.dur || 0.6); }
+      else if (st === 'hurt' || st === 'stagger') { name = 'hit'; timed = u.st / Math.max(0.2, u.dur || 0.4); }
+      else if (st === 'dodge') { name = 'dodge'; timed = u.st / Math.max(0.2, u.dur || 0.44); face = u.dodgeDir == null ? face : u.dodgeDir; }
+      else if (st === 'sit' || st === 'pickup') name = 'crouch';
+      else if (moving) {
+        const va = Math.atan2(u.vy, u.vx);
+        // In a fight a fighter circles its foe facing it: step sideways or back off.
+        const rel = angD(u.facing, va);
+        if (!scene && (st === 'circle' || speed < 2.2) && Math.abs(rel) > 0.7) {
+          name = Math.abs(rel) > 2.3 && has('back') ? 'back' : rel > 0 ? 'strafe_r' : 'strafe_l';
+        } else { name = speed > 2.4 ? 'run' : 'walk'; face = va; }
+      } else if (won) name = 'victory';
+      else if (scene && u.gest === 'point') { name = 'point'; timed = 0.25; }
+      else if (scene && u.gest && !REST_GEST[u.gest]) name = 'idle_alt';
+      if (!has(name)) name = has(stance) ? stance : 'idle';
+      if (scene && !moving) {
+        const p = talkPartner(u, s);
+        if (p) { const d = angD(face, Math.atan2(p.y - u.y, p.x - u.x)); face += clamp1(d, -0.8, 0.8); }
+      }
+      const dir = Sp.dirFor(face, V.cam.ang);
+      let A = SPR.get(u);
+      if (!A || A.man !== man) { A = Sp.animator(man); A.last = V.time; A.rate = 1; SPR.set(u, A); }
+      const dt = Math.max(0, Math.min(0.1, V.time - A.last));
+      A.last = V.time;
+      Sp.play(A, name, { blend: 0 });
+      const anim = man.animations[name];
+      // Walk and run keep pace with the ground.
+      const want = name === 'walk' ? clamp1(speed / 1.7, 0.6, 1.6) : name === 'run' ? clamp1(speed / 4.4, 0.7, 1.5) : 1;
+      A.rate += (want - A.rate) * Math.min(1, dt * 6);
+      Sp.advance(A, dt * A.rate);
+      const r = Sp.resolveDir(man, anim, dir);
+      if (!r) return false;
+      const fr = anim.frames[r.dir];
+      let i;
+      if (art) {
+        // The heavy art: the wind-up fills the build-up, the contact frame lands on the impact.
+        const ph = anim.phases;
+        i = art.t < art.impactAt ? Math.round(ph.windup[1] * clamp01(art.t / art.impactAt))
+          : Math.round(ph.strike[0] + (ph.recover[1] - ph.strike[0]) * clamp01((art.t - art.impactAt) / Math.max(0.2, art.dur - art.impactAt)));
+      } else if (st === 'attack' && anim.phases) i = phaseIndex(anim, u);
+      else if (timed != null) i = Math.floor(clamp01(timed) * (fr.length - 1));
+      else i = Sp.frameIndex(anim, fr.length, A.t, null);
+      const smp = { anim: name, dir: r.dir, flip: r.flip, frame: fr[clamp1(i | 0, 0, fr.length - 1)], alpha: 1 };
+      const p = P(u.x, u.y, 0), hpx = 1.78 * V.cam.sc * 0.9 * man.scale;
+      const screenFace = Math.cos(face + V.cam.ang) >= 0 ? 1 : -1;
+      let rot = 0;
+      if (st === 'parry') rot = -0.07 * Math.sin(Math.min(1, u.st / 0.3) * Math.PI) * screenFace;
+      if (u.drained > 0 && !lying) rot = 0.035 * screenFace;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      if (rot) ctx.rotate(rot);
+      const flash = u.flash > 0 && 'filter' in ctx;
+      if (flash) ctx.filter = 'brightness(2.2)';
+      Sp.drawFrame(ctx, man, smp, 0, 0, hpx);
       if (flash) ctx.filter = 'none';
       ctx.restore();
       return true;

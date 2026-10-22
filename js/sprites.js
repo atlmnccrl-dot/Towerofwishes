@@ -220,6 +220,7 @@
     const k = heightPx / f.fig, ss = f.ss; // the shipped sheet may be smaller than the JSON's pixels
     ctx.save();
     ctx.globalAlpha *= s.alpha;
+    if (man.pixel) ctx.imageSmoothingEnabled = false; // pixel art stays crisp when scaled
     ctx.translate(x, y);
     if (s.flip) ctx.scale(-1, 1);
     ctx.drawImage(f.img, f.x * ss, f.y * ss, f.w * ss, f.h * ss, (f.ox - f.ax) * k, (f.oy - f.ay) * k, f.w * k, f.h * k);
@@ -236,10 +237,139 @@
     ctx.restore();
   }
 
-  const MANIFESTS = ['assets/characters/eiryn/eiryn.json'];
+  // The anime-style Eiryn (assets/characters/eiryn/) is retired: every character is now
+  // pixel art from the Character Creator (below). Her files stay for portraits.
+  const MANIFESTS = [];
+
+  // ------------------------------------------------------------ pixel characters
+  // Character Creator 2D Fantasy exports: art_source/characters/<set>/<Clip>.png, packed by
+  // tools/pack_pixel.py into assets/pixel/<set>.json + pages. Every set has the same clips
+  // in eight directions; the game maps them onto the names the animator uses.
+  const PIXEL_ROOT = 'assets/pixel/';
+  const PIXEL_FIG = 44; // a creator figure stands about 44 px tall in its 128 px cell
+  // name -> [creator clip, fps, loops]
+  const PIXEL_CLIPS = {
+    idle: ['Idle', 8], idle_combat: ['Idle4', 8], idle_alt: ['Idle2', 8], idle_nervous: ['Idle3', 8],
+    walk: ['Walk', 12], run: ['Run', 16], strafe_l: ['StrafeLeft', 12], strafe_r: ['StrafeRight', 12], back: ['RunBackwards', 14],
+    dodge: ['Rolling', 30, false], hit: ['TakeDamage', 20, false], down: ['Slide', 12, false], ko: ['Die', 14, false],
+    victory: ['Taunt', 10], crouch: ['CrouchIdle', 8], creep: ['CrouchRun', 12], point: ['Attack5', 14, false],
+    heavy: ['Special1', 12, false], leap: ['Attack4', 12, false], kick: ['Kick', 14, false],
+  };
+  // The creator's attack clips: wind-up frames, the contact frame, recovery.
+  const PIXEL_PHASES = {
+    Attack1: { windup: [0, 5], strike: [6, 6], recover: [7, 14] },
+    Attack2: { windup: [0, 6], strike: [7, 7], recover: [8, 14] },
+    Attack4: { windup: [0, 8], strike: [9, 9], recover: [10, 14] },
+    Attack5: { windup: [0, 2], strike: [3, 3], recover: [4, 14] },
+    Kick: { windup: [0, 6], strike: [7, 7], recover: [8, 14] },
+    Special1: { windup: [0, 9], strike: [10, 10], recover: [11, 14] },
+  };
+  // Per set: its basic attacks (alternated through a combo), the cast clip, the stance it
+  // waits in, and a size against the others (the broad bandit is wider than Kael).
+  const PIXEL_SETS = {
+    eiryn: { attacks: ['Attack5'], cast: 'Attack5' },
+    bandit_broad: { attacks: ['Attack5'], scale: 1.15 },
+    bandit_grabber: { attacks: ['Attack5'] },
+    bandit_lookout: { stance: 'Idle3' },
+    goblin_hexer: { attacks: ['Attack5'], cast: 'Attack5' },
+    alric: { attacks: ['Attack5'] },
+    alric_beast: { scale: 1.4 },
+  };
+  // Sim / look key -> set. fight / scene: different sets in fights and staged scenes;
+  // armed: the set once a fighter who starts unarmed has picked up a weapon.
+  const PIXEL_CAST = {
+    kael: { fight: 'kael_sword', scene: 'kael_unarmed' },
+    eiryn: { set: 'eiryn', armed: 'eiryn_branch' }, eirynAsh: { set: 'eiryn' }, eirynMage: { set: 'eiryn' },
+    alric: { set: 'alric' }, climber: { set: 'climber' }, shade: { set: 'fragment' },
+    brute: { set: 'bandit_broad' }, knife: { set: 'bandit_knife' }, grabber: { set: 'bandit_grabber' }, lookout: { set: 'bandit_lookout' },
+    spearwoman: { set: 'spearwoman' }, cook: { set: 'tavern_keeper' }, miller: { set: 'miller' },
+    officer: { set: 'guard_officer' }, registrar: { set: 'registrar' }, evaluator: { set: 'evaluator' },
+    goblin: { set: 'goblin' }, goblinSpear: { set: 'goblin_spear' }, goblinArcher: { set: 'goblin_archer' }, goblinHexer: { set: 'goblin_hexer' },
+  };
+  // Townsfolk (key 'patron'): named roles by id, else one of the town's people by id.
+  const PATRON_ROLES = { guard: 'guard_gate', merchant: 'shopkeeper', keeper: 'tavern_keeper', grower: 'miller' };
+  const PATRON_POOLS = {
+    erdra: ['erdra_m1', 'erdra_f1', 'erdra_m2', 'erdra_f2', 'erdra_vendor', 'erdra_baker', 'erdra_musician'],
+    ashgate: ['ashgate_m1', 'ashgate_f1', 'ashgate_m2', 'ashgate_f2'],
+  };
+  const ERDRA_THEMES = { square: 1, rooftops: 1, summit: 1 }; // the city before the Reset
+  // Sets fetched in the background at start, in story order, so the opening never waits.
+  const PIXEL_EARLY = ['eiryn', 'alric', 'kael_unarmed', 'kael_sword', 'eiryn_branch', 'bandit_broad', 'bandit_knife',
+    'bandit_grabber', 'bandit_lookout', 'climber', 'fragment', ...PATRON_POOLS.erdra, ...PATRON_POOLS.ashgate, 'spearwoman'];
+
+  function hashStr(s) { let n = 0; for (let i = 0; i < s.length; i++) n = (n * 31 + s.charCodeAt(i)) % 997; return n; }
+  // Which pixel set draws this unit. ctx: { scene, theme }.
+  function pixelSetFor(u, ctx) {
+    if (u.key === 'patron') {
+      const id = String(u.id || '');
+      if (PATRON_ROLES[id]) return PATRON_ROLES[id];
+      const pool = PATRON_POOLS[ERDRA_THEMES[ctx && ctx.theme] ? 'erdra' : 'ashgate'];
+      const m = /(\d+)$/.exec(id);
+      return pool[(m ? Number(m[1]) : hashStr(id)) % pool.length];
+    }
+    const c = PIXEL_CAST[u.key];
+    if (!c) return null;
+    if (c.armed && u.armed && u.def && u.def.startsUnarmed) return c.armed;
+    if (c.scene && ctx && ctx.scene) return c.scene;
+    return c.fight || c.set;
+  }
+
+  // Build a manifest the animator understands from a packed set.
+  function pixelManifest(data, pages) {
+    const cfg = PIXEL_SETS[data.id] || {};
+    const man = { id: 'px:' + data.id, set: data.id, pixel: true, blend: 0, scale: cfg.scale || 1, animations: {}, mirror: {} };
+    const build = (clip, fps, loop, phases) => {
+      const src = data.anims[clip];
+      if (!src) return null;
+      const a = { clip, fps, loop: loop !== false, phases: phases || null, frames: {} };
+      for (const [d, list] of Object.entries(src)) {
+        let last = null;
+        a.frames[d] = list.map((f, n) => {
+          if (!f) return last; // an empty cell repeats the frame before it
+          last = { n, img: pages[f[0]], x: f[1], y: f[2], w: f[3], h: f[4], ox: f[5], oy: f[6], ax: data.anchor[0], ay: data.anchor[1], fig: PIXEL_FIG, ss: 1 };
+          return last;
+        }).filter(Boolean);
+      }
+      return a;
+    };
+    for (const [name, [clip, fps, loop]] of Object.entries(PIXEL_CLIPS)) { const a = build(clip, fps, loop); if (a) man.animations[name] = a; }
+    if (cfg.stance) man.animations.idle = man.animations.idle_combat = build(cfg.stance, 8);
+    const atk = cfg.attacks || ['Attack1', 'Attack2'];
+    atk.forEach((clip, i) => { const a = build(clip, 14, false, PIXEL_PHASES[clip]); if (a) man.animations[i ? 'attack' + (i + 1) : 'attack'] = a; });
+    const cast = build(cfg.cast || 'Attack5', 14, false, PIXEL_PHASES[cfg.cast || 'Attack5']);
+    if (cast) man.animations.cast = cast;
+    if (man.animations.heavy) man.animations.heavy.phases = PIXEL_PHASES.Special1;
+    return man;
+  }
+
+  const pixelLoading = {};
+  function loadPixel(set) {
+    if (pixelLoading[set]) return pixelLoading[set];
+    return (pixelLoading[set] = (async () => {
+      const data = await (await fetch(PIXEL_ROOT + set + '.json')).json();
+      const pages = isBrowser ? await Promise.all(data.pages.map((p) => loadImage(PIXEL_ROOT + p))) : data.pages.map(() => null);
+      const man = register(pixelManifest(data, pages), PIXEL_ROOT);
+      man.ready = true;
+      return man;
+    })().catch((e) => { console.warn('pixel set ' + set + ': ' + (e.message || e)); return null; }));
+  }
+  // The pixel set for a unit, if it has one and it has loaded (loading starts on first ask).
+  function forUnit(u, ctx) {
+    const set = pixelSetFor(u, ctx);
+    if (!set) return get(u.key);
+    const man = registry['px:' + set];
+    if (man && man.ready) return man;
+    loadPixel(set);
+    return null;
+  }
+  function preloadPixel(sets) {
+    // One at a time, so the first ones arrive first.
+    return (sets || PIXEL_EARLY).reduce((p, set) => p.then(() => loadPixel(set)), Promise.resolve());
+  }
 
   return {
     DIRS, MANIFESTS, STATE_ANIM, dirFor, resolveDir, parseFrames, frameIndex, animFor, pickAnim, bindFrame,
     animator, play, advance, sample, register, load, loadAll, get, drawFrame, drawBase, addBase,
+    PIXEL_CAST, PIXEL_SETS, PIXEL_CLIPS, PIXEL_PHASES, PIXEL_EARLY, PATRON_POOLS, pixelSetFor, pixelManifest, loadPixel, forUnit, preloadPixel,
   };
 });
