@@ -857,7 +857,8 @@
       if (sx !== 1 || sy !== 1) ctx.scale(sx, sy);
       const flash = u.flash > 0 && 'filter' in ctx;
       if (flash) ctx.filter = 'brightness(2.2)';
-      for (const smp of smps) Sp.drawFrame(ctx, man, smp, 0, 0, hpx);
+      const look = spriteLook(s, hpx);
+      for (const smp of smps) Sp.drawFrame(ctx, man, smp, 0, 0, hpx, look);
       if (flash) ctx.filter = 'none';
       ctx.restore();
       return true;
@@ -910,6 +911,18 @@
       const Sp = window.TowSprites;
       const man = Sp && Sp.forUnit && Sp.forUnit(u, { scene: !!s.stageHandle, theme: s.arena && s.arena.theme });
       return !!(man && man.ready && man.pixel);
+    }
+    // Fitting the pixel cast into the painted arenas: a thin ink outline like the arena's own
+    // lines, and each arena's light (dark places shade the figures, warm rooms warm them).
+    const LIGHT = {
+      forest: [0.06], summit: [0.12, '#140a1e'], hill: [0.04], cave: [0.3, '#0a0806'], road: [0.04], ruins: [0.1],
+      yard: [0], deep: [0.32, '#080606'], tavern: [0.16, '#2a1204'], grassland: [0.06], rooftops: [0.16, '#100a1e'],
+      guildhall: [0.08, '#1e1206'], square: [0.12, '#140a1e'], shadowcity: [0.3, '#06081a'], farmland: [0.08],
+      nightcamp: [0.34, '#060a1a'], frosthall: [0.12, '#0a1430'], calamity: [0.18, '#140606'], offering: [0.14, '#1a1004'],
+    };
+    function spriteLook(s, hpx) {
+      const L = LIGHT[s.arena && s.arena.theme] || [0.06];
+      return { ink: Math.max(1.2, Math.min(3, hpx / 40)), shade: L[0], shadeCol: L[1] };
     }
     function pixelBody(u, s, lying, man, scene) {
       const Sp = window.TowSprites;

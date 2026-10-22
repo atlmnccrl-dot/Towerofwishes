@@ -239,8 +239,10 @@
       if (wsum) { tx /= wsum; ty /= wsum; }
       let spread = 3;
       for (const u of live) spread = Math.max(spread, Math.hypot(u.x - tx, u.y - ty));
-      let sc = Math.min(W / (spread * 2 + 5.6), H / ((spread * 2 + 4.8) * cam.pitch + 2.2));
-      sc = Math.max(Math.min(sc, Math.min(W, H) / 5.6), Math.min(W, H) / 24);
+      // Fit the fight with a slim margin, and never so wide that the fighters shrink to ants
+      // next to the arena's trees and walls (no view wider than about 9 m top to bottom).
+      let sc = Math.min(W / (spread * 2 + 3.6), H / ((spread * 2 + 2.6) * cam.pitch + 2.0));
+      sc = Math.max(Math.min(sc, Math.min(W, H) / 5.6), Math.min(W, H) / 9);
       let ang = -0.32 + Math.sin(cam.time * 0.05) * 0.16;
       const c = s.cutscene;
       let frame = null; // heavy-art framing: {ax, ay, lift, pitch}
@@ -271,7 +273,7 @@
       }
       // The helicopter view (the author's call, 2026-10-22): always high above and a little
       // to the side, one fixed angle; shots only move and zoom.
-      if (V.HELI) ang = V.HELI.ang;
+      if (V.HELI) { const A = s.arena || {}; ang = A.camAng != null ? A.camAng : V.HELI.ang; }
       let k = c || o ? 0.12 : Math.min(1, dt * 2.2);
       const snap = !!V.cutSnap;
       if (snap) { k = 1; V.cutSnap = false; } // a hard cut

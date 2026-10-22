@@ -223,7 +223,7 @@
     },
     // Floor Two: a long corridor between a waterfall and a wall of lava.
     calamity: {
-      name: 'Calamity’s Corridor', theme: 'calamity', rx: 12, ry: 4.4, exit: { x: 13.5, y: 0 },
+      name: 'Calamity’s Corridor', theme: 'calamity', rx: 12, ry: 4.4, exit: { x: 13.5, y: 0 }, camAng: -0.06,
       obstacles: [],
     },
     // Floor Three: the Hall of Offering and its five wheels.

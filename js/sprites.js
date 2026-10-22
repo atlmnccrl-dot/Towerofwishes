@@ -213,8 +213,23 @@
   }
   function get(idOrKey) { return registry[idOrKey] || registry[byKey[idOrKey]] || null; }
 
+  // A sheet page filled with one flat colour where it has pixels: the ink outline and the
+  // arena's shade are drawn with it (made once per page and colour).
+  const flats = new Map();
+  function flat(img, col) {
+    let m = flats.get(img);
+    if (!m) { m = {}; flats.set(img, m); }
+    if (m[col]) return m[col];
+    const c = document.createElement('canvas');
+    c.width = img.naturalWidth || img.width; c.height = img.naturalHeight || img.height;
+    const g = c.getContext('2d');
+    g.drawImage(img, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = col; g.fillRect(0, 0, c.width, c.height);
+    return (m[col] = c);
+  }
   // Draw one sampled frame with its feet on (x, y), the figure `heightPx` tall on screen.
-  function drawFrame(ctx, man, s, x, y, heightPx) {
+  // look (optional): { ink: outline width in screen px, shade: 0..1, shadeCol } — fits the
+  // pixel figure into the painted arenas (their ink lines and their light).
+  function drawFrame(ctx, man, s, x, y, heightPx, look) {
     const f = s.frame;
     if (!f || !f.img) return;
     const k = heightPx / f.fig, ss = f.ss; // the shipped sheet may be smaller than the JSON's pixels
@@ -223,7 +238,16 @@
     if (man.pixel) ctx.imageSmoothingEnabled = false; // pixel art stays crisp when scaled
     ctx.translate(x, y);
     if (s.flip) ctx.scale(-1, 1);
-    ctx.drawImage(f.img, f.x * ss, f.y * ss, f.w * ss, f.h * ss, (f.ox - f.ax) * k, (f.oy - f.ay) * k, f.w * k, f.h * k);
+    const sx = f.x * ss, sy = f.y * ss, sw = f.w * ss, sh = f.h * ss, dx = (f.ox - f.ax) * k, dy = (f.oy - f.ay) * k, dw = f.w * k, dh = f.h * k;
+    if (look && look.ink && s.alpha > 0.5) {
+      const ink = flat(f.img, '#120c0e'), o = look.ink;
+      for (const [ax, ay] of [[-o, 0], [o, 0], [0, -o], [0, o]]) ctx.drawImage(ink, sx, sy, sw, sh, dx + ax, dy + ay, dw, dh);
+    }
+    ctx.drawImage(f.img, sx, sy, sw, sh, dx, dy, dw, dh);
+    if (look && look.shade > 0.01) {
+      ctx.globalAlpha *= look.shade;
+      ctx.drawImage(flat(f.img, look.shadeCol || '#0a0812'), sx, sy, sw, sh, dx, dy, dw, dh);
+    }
     ctx.restore();
   }
   // The base sprite (front view), feet on (x, y).

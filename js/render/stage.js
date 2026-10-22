@@ -213,9 +213,9 @@
       x += sh.dx || 0; y += sh.dy || 0;
       const ang0 = sh._ang != null ? sh._ang : camOut.ang;
       // up: aim past the subject so it sits lower on screen (frames faces in close-ups)
-      // (from the helicopter view the subject stays centred, and no shot is tighter than 4.2 m)
+      // (from the helicopter view the subject stays centred, and no shot is tighter than 5.6 m)
       if (sh.up && !V.HELI) { x -= Math.sin(ang0) * sh.up; y -= Math.cos(ang0) * sh.up; }
-      const view = Math.max(V.HELI ? 4.2 : 1.6, (sh.view || 9) + (sh.push || 0) * t);
+      const view = Math.max(V.HELI ? 5.6 : 1.6, (sh.view || 9) + (sh.push || 0) * t);
       const sc = sh.sc || Math.min(W, H) / view;
       const ang = (sh._ang != null ? sh._ang : camOut.ang) + (sh.drift || 0) * t;
       return { x, y, sc, ang, pitch: sh.pitch || 0.52 };
