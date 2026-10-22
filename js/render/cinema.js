@@ -14,7 +14,7 @@
  * their side, front and back views. Effects are the pack effects (js/render/pixelfx.js),
  * placed in the same space. Scenes (js/cinema/*.js) are written as shot lists per line.
  *
- * API (main.js): NS.cinema.start(def) -> { beat(i, n), update(dt), draw(), ready() }
+ * API (main.js): NS.cinema.start(def) -> { beat(i, n), update(dt), draw(), ready(), busy() }
  *
  * Scene def: { set, actors: [{ id, set, x, y, z, dir, anim, hidden }], crowd, grade,
  *   beats: [{ cam, do: [actions] }]  (one per dialogue line, by position) }
@@ -309,13 +309,21 @@
       if (fade.a > 0.001) { ctx.fillStyle = `rgba(${fade.col},${fade.a})`; ctx.fillRect(0, 0, W, H); }
       ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
+    // Is the current line's action still playing (queued moves, walks, leaps, slow motion, a camera move)?
+    function busy() {
+      if (queue.length || slow.t > 0) return true;
+      for (const u of actors.values()) if (u.mv || u.leap) return true;
+      // (a short camera move counts; a long slow drift is mood, and the next line may cut in on it)
+      const e = shot && shot.ease == null ? 1.2 : shot ? shot.ease : 0;
+      return !!(shot && !shot.cut && !shot.pov && !shot.track && e <= 3 && shotT < e * 0.8);
+    }
     function ready() {
       if (!Sp || !Sp.get) return true;
       const all = [...actors.values(), ...crowd];
       return all.every((u) => { const m = Sp.get('px:' + u.set); return m && m.ready; });
     }
     if (def.cam) setShot(Object.assign({}, def.cam, { cut: true }));
-    return { beat, update, draw, ready, def, actors, cam };
+    return { beat, update, draw, ready, busy, def, actors, cam };
   }
 
   NS.cinema = { start };

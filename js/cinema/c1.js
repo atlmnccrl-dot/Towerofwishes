@@ -37,7 +37,7 @@
       // "It's smoked pepper. They've been putting it in since spring."
       { cam: { x: 0.25, y: 1.55, z: -1.7, yaw: -0.05, pitch: -0.03, cut: true }, do: [{ who: 'spear', anim: 'idle_alt' }, { at: 0.3, cam: { x: 0.2, y: 1.55, z: -1.3, yaw: -0.06, pitch: -0.03, ease: 5 } }] },
       // "Then they've been burning it since spring."
-      { cam: { x: 0.55, y: 1.55, z: -1.2, yaw: 0.07, pitch: -0.03, cut: true }, do: [{ who: 'spear', anim: 'idle' }, { who: 'kael', anim: 'idle_alt' }] },
+      { cam: { x: 0.5, y: 1.55, z: -1.2, yaw: 0.06, pitch: -0.03, ease: 4 }, do: [{ who: 'spear', anim: 'idle' }, { who: 'kael', anim: 'idle_alt' }] },
       // Around them the regulars murmur over their cups.  (across the room to the hearth)
       { cam: { x: -3.9, y: 1.9, z: 5.0, yaw: 2.55, pitch: -0.12, cut: true }, do: [{ who: 'kael', anim: 'idle' }, { at: 0.2, cam: { x: -3.4, y: 1.85, z: 4.4, yaw: 2.6, pitch: -0.1, ease: 6 } }] },
     ],
@@ -69,9 +69,9 @@
       { cam: { x: 0.35, y: 1.55, z: -1.3, yaw: 0.02, pitch: -0.02, cut: true },
         do: [...windowsPut(), { who: 'keeper', dir: 'NE' }, { who: 'kael', dir: 'W' }, { who: 'spear', dir: 'E' }] },
       // "You're doing that thing with your face. The one you do before you run at a problem."
-      { cam: { x: -0.05, y: 1.55, z: -0.9, yaw: -0.1, pitch: -0.02, cut: true }, do: [{ who: 'spear', anim: 'idle_alt' }] },
+      { cam: { x: 0.15, y: 1.55, z: -1.1, yaw: -0.05, pitch: -0.02, ease: 4 }, do: [{ who: 'spear', anim: 'idle_alt' }] },
       // "That's why I'm going to see."
-      { cam: { x: 0.75, y: 1.55, z: -0.8, yaw: 0.12, pitch: -0.02, cut: true }, do: [{ who: 'spear', anim: 'idle' }, { at: 1.4, who: 'kael', dir: 'E' }] },
+      { cam: { x: 0.55, y: 1.55, z: -1.0, yaw: 0.06, pitch: -0.02, ease: 4 }, do: [{ who: 'spear', anim: 'idle' }, { at: 1.4, who: 'kael', dir: 'E' }] },
       // He sets off before she can offer an opinion.
       { cam: { x: -4.2, y: 1.8, z: 2.4, yaw: 1.42, pitch: -0.05, cut: true },
         do: [{ who: 'kael', to: [4.3, 0, 3.6], speed: 1.9 }, { at: 0.8, who: 'spear', dir: 'E' }, { at: 1.6, vars: { door: [1, 0.5] } },
