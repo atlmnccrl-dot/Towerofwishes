@@ -112,7 +112,8 @@ for (const set of ['kael_sword', 'eiryn', 'eiryn_branch', 'bandit_broad', 'bandi
   assert.strictEqual(f({ key: 'aerys' }), 'aerys');
   assert.strictEqual(f({ key: 'ogre' }), 'ogre', 'the skeleton warlord');
   assert.strictEqual(f({ key: 'patron', id: 'victim' }), 'nox_target');
-  assert.strictEqual(f({ key: 'calamity' }), null, 'no pixel art yet: keeps the drawn body');
+  assert.strictEqual(f({ key: 'calamity' }), 'demon_dealer', 'Calamity: a radiant silhouette (stand-in until its own art)');
+  assert.strictEqual(f({ key: 'veil' }), 'night_creature', 'Kharuun: a living shadow');
 }
 
 // Running sideways uses the side walk when the run isn't drawn that way; the front run when it is.

@@ -339,7 +339,8 @@
     // The goblins became skeleton raiders and the Ogre a skeleton warlord (the author, 2026-10-22).
     ogre: { set: 'ogre' }, goblinChief: { set: 'ogre' },
     aerys: { set: 'aerys' }, nox: { set: 'nox' }, eloryn: { set: 'eloryn' }, braxen: { set: 'braxen' },
-    skyreaver: { set: 'sky_beast' }, veil: { set: 'night_creature', scale: 1.8 }, // Kharuun: a living shadow (fighters.js spriteLook), ~2.5x a person nightCreature: { set: 'nightcrawler' }, ruinBeast: { set: 'hamlet_predator' }, beast: { set: 'caged_creature' },
+    skyreaver: { set: 'sky_beast' }, veil: { set: 'night_creature', scale: 1.8 }, calamity: { set: 'demon_dealer', scale: 1.5 }, // Calamity: a radiant silhouette (stand-in)
+    // Kharuun: a living shadow (fighters.js spriteLook), ~2.5x a person nightCreature: { set: 'nightcrawler' }, ruinBeast: { set: 'hamlet_predator' }, beast: { set: 'caged_creature' },
     // Cast of chapters still to come (their keys are ready for when the scenes are built).
     rival: { set: 'rival_kid' }, hooded: { set: 'hooded_follower' }, cassius: { set: 'cassius' }, lyra: { set: 'lyra' },
     lyraGolem: { set: 'golem_a' }, lyraGolem2: { set: 'golem_b' }, frostAssassin: { set: 'frost_assassin' },

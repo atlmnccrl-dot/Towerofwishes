@@ -906,6 +906,17 @@
         }
         return false;
       }
+      if (u.key === 'calamity' && pixelReady(u, s)) {
+        // Its body is the radiant silhouette; here its halo, the water on its left and fire on its right.
+        if (PXB && PXB.ready() && u.state !== 'out' && !u.fled) {
+          const t = V.time + hashId(u.id) * 0.1, fx = Math.cos(u.facing), fy = Math.sin(u.facing), lx = -fy, ly = fx;
+          PXB.drawAt('burning_ground', t, u.x - lx * 0.8, u.y - ly * 0.8, 0.02, { scale: 1.6, ground: true, alpha: 0.85 });
+          PXB.drawAt('blue_flame', t, u.x + lx * 0.85, u.y + ly * 0.85, 0, { scale: 2.2, alpha: 0.9 });
+          PXB.drawAt('flame', t + 0.3, u.x - lx * 0.85, u.y - ly * 0.85, 0, { scale: 2.2, alpha: 0.9, add: true });
+          PXB.drawAt('circle_holy', t, u.x, u.y, 3.1, { scale: 0.7, alpha: 0.8, add: true });
+        }
+        return false;
+      }
       if (!PXB || !PXB.ready()) return false;
       if (u.state === 'out' || u.fled) return true;
       const t = V.time + hashId(u.id) * 0.1, a = u.flash > 0 ? 1 : 0.9;
@@ -943,11 +954,12 @@
     const LIGHT = {
       forest: [0.06], summit: [0.12, '#140a1e'], hill: [0.04], cave: [0.3, '#0a0806'], road: [0.04], ruins: [0.1],
       yard: [0], deep: [0.32, '#080606'], tavern: [0.16, '#2a1204'], grassland: [0.06], rooftops: [0.04, '#2a1206'],
-      guildhall: [0.08, '#1e1206'], square: [0.12, '#140a1e'], shadowcity: [0.3, '#06081a'], farmland: [0.08],
-      nightcamp: [0.34, '#060a1a'], frosthall: [0.12, '#0a1430'], calamity: [0.18, '#140606'], offering: [0.14, '#1a1004'],
+      guildhall: [0.08, '#1e1206'], square: [0.12, '#140a1e'], shadowcity: [0.16, '#0a0e24'], farmland: [0.08],
+      nightcamp: [0.16, '#0a1430'], frosthall: [0.12, '#0a1430'], calamity: [0.18, '#140606'], offering: [0.14, '#1a1004'],
     };
     function spriteLook(s, hpx, u) {
       // Kharuun is never shown whole: a silhouette of shadow with a faint violet rim.
+      if (u && u.key === 'calamity') return { ink: Math.max(2, Math.min(4, hpx / 50)), inkCol: '#ffae4a', shade: 0.9, shadeCol: '#f6ead2' };
       if (u && u.key === 'veil') return { ink: Math.max(2, Math.min(4, hpx / 50)), inkCol: '#6f4fe0', shade: 0.95, shadeCol: '#07040c' };
       const L = LIGHT[s.arena && s.arena.theme] || [0.06];
       return { ink: Math.max(1.2, Math.min(3, hpx / 40)), shade: L[0], shadeCol: L[1] };
