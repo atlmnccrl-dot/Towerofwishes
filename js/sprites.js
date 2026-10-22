@@ -294,6 +294,9 @@
     hamlet_predator: { scale: 1.1 },
     caged_creature: { scale: 1.5 },
     night_creature: { scale: 1.4 },
+    black_knight: { scale: 1.3, attacks: ['Attack1', 'Attack2', 'Attack6'] },
+    elder_dragon: { scale: 2.7, attacks: ['Attack1', 'Attack4'] },
+    poacher: { attacks: ['Attack3'] },
     golem_a: { scale: 1.5, attacks: ['Attack5', 'Attack4'] }, golem_b: { scale: 1.5, attacks: ['Attack5', 'Attack4'] },
   };
   // Sim / look key -> set. fight / scene: different sets in fights and staged scenes;
@@ -316,7 +319,8 @@
     nightcrawler: { set: 'nightcrawler' }, cagedCreature: { set: 'caged_creature' }, hamletPredator: { set: 'hamlet_predator' },
     healingCreature: { set: 'night_creature' }, beastfolk: { set: 'beastfolk_m' }, beastfolkF: { set: 'beastfolk_f' },
     hamlet: { set: 'hamlet_people' }, citizen: { set: 'labyrinth_citizen' }, dealer: { set: 'demon_dealer' },
-    swordsmith: { set: 'sword_smith' }, adventurer: { set: 'guild_adventurer' }, braxenFrost: { set: 'braxen_frost' },
+    swordsmith: { set: 'sword_smith' }, poacher: { set: 'poacher' }, blackKnight: { set: 'black_knight' }, elderDragon: { set: 'elder_dragon' },
+    gothicKnight: { set: 'gothic_knight_a' }, gothicKnight2: { set: 'gothic_knight_b' }, adventurer: { set: 'guild_adventurer' }, braxenFrost: { set: 'braxen_frost' },
   };
   // Townsfolk (key 'patron'): named roles by id, else one of the town's people by id.
   const PATRON_ROLES = { guard: 'guard_gate', merchant: 'merchant_recurring', shopkeeper: 'shopkeeper', keeper: 'tavern_keeper', grower: 'miller', victim: 'nox_target', smith: 'sword_smith' };
