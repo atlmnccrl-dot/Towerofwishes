@@ -90,8 +90,9 @@
     },
     tavern: {
       base: ['g_wood_floor_h', 'g_wood_plank_h'], alt: ['g_wood_floor_h'], altK: 0.7, edge: ['g_wood_plank_h'], interior: true,
-      border: ['cdw_wall_face_brick', 'cdw_wall_torch_1', 'cdw_wall_face_brick', 'cd_bookshelf', 'barrel', 'cdw_arched_window'], borderN: 22, ring: ['barrel', 'cd_chair_wood', 'crate_b', 'vase_a', 'pot'], ringN: 8,
-      flat: [], flatN: 0, obs: { table: ['cd_banquet_table'], bar: ['cd_banquet_table'], hearth: ['cd_forge'] },
+      room: { wall: 'cdw_wall_face_brick', trim: 'cdw_wall_top_stone', deco: ['cdw_arched_window', 'cdw_wall_torch_1'], every: 3, h: 3.2 },
+      border: [], borderN: 0, wallProps: ['barrel', 'p16_cabinet', 'p16_plant', 'crate_b', 'barrel', 'p16_books', 'vase_a'], wallPropsN: 12, ring: [], ringN: 0,
+      flat: ['p16_rug_green'], flatN: 1, obs: {},
       fires: ['hearth'], grade: [110, 60, 20, 0.16], ambient: ['motes'], dark: 0.75,
     },
     guildhall: null, // set below (tavern, with banners)
@@ -114,24 +115,40 @@
       grade: [40, 20, 70, 0.32], ambient: ['motes'], dark: 0.75,
     },
     frosthall: {
-      base: ['g_flagstone_1', 'g_marble_white', 'g_flagstone_2'], alt: ['g_marble_white'], altK: 0.6, edge: ['g_flagstone_dark'], interior: true,
-      border: ['pillar', 'cdw_pillar', 'statue', 'pillar_broken', 'fv_tree_pine_snow'], borderN: 22, ring: ['stone_b', 'slabs'], ringN: 6, flat: ['stone_a', 'stone_b'], flatN: 20,
+      base: ['g_flagstone_1', 'g_flagstone_2'], alt: ['g_flagstone_dark'], altK: 0.82, edge: ['g_flagstone_dark'], interior: true,
+      border: [], borderN: 0, ring: [], ringN: 0, flat: ['stone_a'], flatN: 4,
+      wallProps: ['cdw_pillar', 'cd_statue_knight', 'cdw_pillar', 'cd_brazier'], wallPropsN: 12,
       obs: { pillar: ['pillar'], frozen: ['monolith_b'] }, grade: [120, 170, 230, 0.22], ambient: ['snow'], dark: 0.6,
     },
     offering: {
       base: ['g_marble_checker', 'g_marble_white'], alt: ['g_flagstone_warm'], altK: 0.7, edge: ['g_flagstone_dark'], interior: true,
-      border: ['pillar', 'statue', 'cd_candelabra', 'cd_statue_knight', 'pillar'], borderN: 20, ring: ['cd_candelabra', 'vase_b'], ringN: 6, flat: [], flatN: 0,
+      border: [], borderN: 0, ring: ['cd_candelabra'], ringN: 4, flat: [], flatN: 0,
+      wallProps: ['cdw_pillar', 'cd_statue_knight', 'cd_candelabra', 'cdw_pillar', 'statue'], wallPropsN: 12,
       obs: { wheel: ['stone_circle'] }, grade: [120, 90, 40, 0.16], ambient: ['sparkles'], dark: 0.7,
     },
     calamity: {
       base: ['g_flagstone_dark', 'g_flagstone_1'], alt: ['g_floor_grate'], altK: 0.75, edge: ['g_flagstone_dark'], interior: true,
       sides: { west: ['g_moat_water_1', 'g_moat_water_2'], east: ['g_lava_pool'] },
-      border: ['pillar', 'cdw_pillar', 'rock_dark', 'cd_brazier'], borderN: 18, ring: [], ringN: 0, flat: [], flatN: 0,
+      border: [], borderN: 0, ring: [], ringN: 0, flat: [], flatN: 0,
+      wallProps: ['cdw_pillar', 'cd_brazier', 'cdw_pillar', 'rock_dark'], wallPropsN: 12,
       obs: {}, grade: [90, 30, 30, 0.18], ambient: ['embers'], dark: 0.75,
     },
   };
   RECIPES.deep = Object.assign({}, RECIPES.cave, { grade: [6, 4, 18, 0.5], border: ['rock_dark', 'rock_big', 'rock_m2', 'rock_dark'] });
-  RECIPES.guildhall = Object.assign({}, RECIPES.tavern, { border: ['cdw_wall_face_stone', 'cd_banner_blue', 'cdw_wall_face_stone', 'cd_bookshelf', 'cdw_arched_window', 'cd_weapon_rack'], grade: [70, 60, 50, 0.12], fires: [] });
+  RECIPES.guildhall = Object.assign({}, RECIPES.tavern, {
+    base: ['g_wood_plank_h', 'g_wood_floor_h'], room: { wall: 'cdw_wall_face_stone', trim: 'cdw_wall_top_stone', deco: ['cd_banner_blue', 'cdw_arched_window', 'cd_banner_red'], every: 3, h: 3.4 },
+    wallProps: ['cd_bookshelf', 'cd_weapon_rack', 'p16_plant', 'p16_cabinet', 'cd_bookshelf', 'p16_books'], grade: [70, 60, 50, 0.1], fires: [],
+  });
+  // Tower halls: stone rooms round the fighting floor.
+  RECIPES.frosthall.room = { wall: 'cdw_wall_face_stone', trim: 'cdw_wall_top_stone', deco: ['cdw_stained_glass', 'cdw_wall_torch_2'], every: 4, h: 4.2, k: 1.35 };
+  RECIPES.offering.room = { wall: 'cdw_wall_face_brick', trim: 'cdw_wall_top_dark', deco: ['cdw_stained_glass', 'cdw_wall_torch_1'], every: 3, h: 4.2, k: 1.3 };
+  RECIPES.calamity.room = { wall: 'cdw_wall_face_dark', trim: 'cdw_wall_top_dark', deco: ['cdw_wall_torch_2'], every: 3, h: 4.5, k: 1.25 };
+  // Furniture standing at an obstacle: [prop, dx, dy (metres), scale].
+  const FURN = {
+    table: [['p16_table', 0, 0, 0.85], ['p16_stool', -1.05, 0.15, 0.85], ['p16_stool', 1.05, 0.15, 0.85], ['p16_stool_b', 0, -0.75, 0.85]],
+    bar: [['p16_cabinet', -1.4, 0, 1], ['p16_cabinet', -0.47, 0, 1], ['p16_cabinet', 0.47, 0, 1], ['p16_cabinet', 1.4, 0, 1], ['barrel', 2.3, -0.2, 0.9], ['vase_a', -0.5, -0.05, 0.6]],
+    hearth: [['fv_campfire', 0, 0, 1.1], ['rock_m1', -0.55, 0.1, 0.7], ['rock_m2', 0.55, 0.05, 0.7], ['rock_m3', 0, -0.4, 0.6], ['fv_log_pile', 0.2, 0.55, 0.7]],
+  };
   // Default obstacle props for any theme.
   const OBS = {
     tree: ['tree_a', 'tree_b'], rock: ['rock_big', 'rock_a', 'rock_m2'], crate: ['crate', 'crate_b'], basin: ['stone_circle'], cart: ['cd_supply_cart'],
@@ -184,6 +201,7 @@
       for (let i = 0; i < cols; i++) {
         const x = X0 + (i + 0.5) * cell, y = Y0 + (j + 0.5) * cell, k = ell(x, y);
         let list = R.base;
+        if (R.room && (Math.abs(x) > A.rx * (R.room.k || 1.08) || Math.abs(y) > A.ry * (R.room.k || 1.08))) { g.fillStyle = '#07060a'; g.fillRect(i * T, j * T, T, T); continue; }
         if (R.sides && k < 1.15) list = x < -A.rx * 0.55 ? R.sides.west : x > A.rx * 0.55 ? R.sides.east : R.base;
         else if (k > 1.06 && R.edge) list = R.edge;
         else if (R.alt && nAt(x, y) > R.altK) list = R.alt;
@@ -220,11 +238,16 @@
     for (const o of A.obstacles) {
       const list = ((R.obs && R.obs[o.kind]) || OBS[o.kind] || []).filter(has);
       if (o.kind === 'trunk') { props.push({ trunk: true, o, name: has('log_a') ? 'log_a' : null }); continue; }
+      if (R.room && FURN[o.kind]) {
+        for (const [n, dx, dy, sc] of FURN[o.kind]) put(n, o.x + dx, o.y + dy, { obstacle: o, furn: true, scale: sc, flip: false });
+        if ((R.fires || []).includes(o.kind)) props.push({ fire: true, x: o.x, y: o.y + 0.5, z: 0.15 });
+        continue;
+      }
       if (!list.length) continue;
       let name = pick(list);
       if (o.kind === 'rock') name = o.r > 0.65 ? 'rock_big' : list.find((n) => n !== 'rock_big') || name;
       put(name, o.x, o.y, { obstacle: o, scale: o.kind === 'table' || o.kind === 'bar' ? 1.6 : o.kind === 'hearth' ? 1.8 : 1 });
-      if ((R.fires || []).includes(o.kind)) props.push({ fire: true, x: o.x, y: o.y + 0.05, z: o.kind === 'hearth' ? 0.3 : 0.1 });
+      if ((R.fires || []).includes(o.kind)) props.push({ fire: true, x: o.x, y: o.y + 0.05, z: o.kind === 'hearth' && !R.room ? 0.3 : 0.1 });
     }
     for (let n = 0, tries = 0; n < (R.ringN || 0) && tries < 300; tries++) {
       const a = rng() * Math.PI * 2, k = 0.86 + rng() * 0.16, x = Math.cos(a) * A.rx * k, y = Math.sin(a) * A.ry * k;
@@ -235,6 +258,48 @@
       const a = rng() * Math.PI * 2, k = 1.12 + rng() * 0.55, x = Math.cos(a) * A.rx * k, y = Math.sin(a) * A.ry * k;
       if (segDist(x, y, pathA.x, pathA.y, pathB.x, pathB.y) < 1.6 || props.some((p) => p.x != null && Math.hypot(p.x - x, p.y - y) < 1.4)) continue;
       put(pick(R.border), x, y, { border: true }); n++;
+    }
+    // A room: four walls round the fighting floor; the ones facing the camera are drawn each frame.
+    const walls = [];
+    if (R.room) {
+      const RX = A.rx * (R.room.k || 1.08), RY = A.ry * (R.room.k || 1.08), hgt = R.room.h || 3.2;
+      const sides = [[-RX, -RY, RX, -RY], [RX, -RY, RX, RY], [RX, RY, -RX, RY], [-RX, RY, -RX, -RY]];
+      for (const [x0, y0, x1, y1] of sides) {
+        const L = Math.hypot(x1 - x0, y1 - y0), wpx = Math.round(L / MPX), hpx = Math.round(hgt / MPX);
+        const wc = document.createElement('canvas'); wc.width = wpx; wc.height = hpx;
+        const wg = wc.getContext('2d'); wg.imageSmoothingEnabled = false;
+        const ws = spr(R.room.wall), tr = spr(R.room.trim);
+        if (ws) for (let y = hpx - ws[4]; y > -ws[4]; y -= ws[4]) for (let x = 0; x < wpx; x += ws[3]) wg.drawImage(pages[ws[0]], ws[1], ws[2], ws[3], ws[4], x, y, ws[3], ws[4]);
+        if (tr) for (let x = 0; x < wpx; x += tr[3]) wg.drawImage(pages[tr[0]], tr[1], tr[2], tr[3], tr[4], x, 0, tr[3], Math.min(tr[4], 16));
+        const deco = R.room.deco || [], step = (R.room.every || 3) * 32;
+        for (let x = step / 2, i = 0; x < wpx - 16; x += step, i++) {
+          const d = spr(deco[i % deco.length]); if (!d) continue;
+          wg.drawImage(pages[d[0]], d[1], d[2], d[3], d[4], Math.round(x - d[3] / 2), Math.round(hpx * 0.42 - d[4] / 2), d[3], d[4]);
+        }
+        // a shadow along the floor line and a darker top, so the room has depth
+        const gr = wg.createLinearGradient(0, 0, 0, hpx); gr.addColorStop(0, 'rgba(0,0,0,0.35)'); gr.addColorStop(0.7, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,0.3)');
+        wg.fillStyle = gr; wg.fillRect(0, 0, wpx, hpx);
+        walls.push({ x0, y0, x1, y1, h: hgt, cv: wc });
+      }
+      // Furniture against the walls (barrels, cabinets, shelves), never in the middle.
+      for (let n = 0, tries = 0; n < (R.wallPropsN || 0) && tries < 400; tries++) {
+        const side = Math.floor(rng() * 4), f = rng() * 1.8 - 0.9, inset = 0.45;
+        const x = side % 2 ? (side === 1 ? RX - inset : -RX + inset) : f * RX, y = side % 2 ? f * RY : (side === 0 ? -RY + inset : RY - inset);
+        if (blocked(x, y, 0.7) || props.some((p) => p.x != null && Math.hypot(p.x - x, p.y - y) < 1.1)) continue;
+        put(pick(R.wallProps), x, y, { wall: side }); n++;
+      }
+    }
+    function drawWalls() {
+      const c0 = P(0, 0, 0).d;
+      for (const w of walls) {
+        const mid = P((w.x0 + w.x1) / 2, (w.y0 + w.y1) / 2, 0);
+        if (mid.d > c0 - 0.5) continue; // a front wall would hide the room: leave it open
+        const b0 = P(w.x0, w.y0, 0), b1 = P(w.x1, w.y1, 0), t0 = P(w.x0, w.y0, w.h);
+        ctx.save(); ctx.imageSmoothingEnabled = false;
+        ctx.transform((b1.x - b0.x) / w.cv.width, (b1.y - b0.y) / w.cv.width, (b0.x - t0.x) / w.cv.height, (b0.y - t0.y) / w.cv.height, t0.x, t0.y);
+        ctx.drawImage(w.cv, 0, 0);
+        ctx.restore();
+      }
     }
     if (R.torches) for (let i = 0; i < R.torches; i++) { const a = (i / R.torches) * Math.PI * 2 + 0.4; props.push({ fire: true, torch: true, x: Math.cos(a) * A.rx * 1.08, y: Math.sin(a) * A.ry * 1.08, z: 0.9 }); }
     // Ambient: a few pixel loops drifting over the arena.
@@ -283,6 +348,7 @@
       ctx.transform(sc * c * MPX, sc * cam.pitch * sn * MPX, -sc * sn * MPX, sc * cam.pitch * c * MPX, o.x, o.y);
       ctx.drawImage(cv, 0, 0);
       ctx.restore();
+      if (walls.length) drawWalls();
       void s;
     }
     function items(s) {
@@ -301,9 +367,10 @@
             // Fade a prop that stands between the camera and a fighter.
             let alpha = null;
             const s = spr(p.name);
-            if (s && (p.border || p.scale > 1 || s[4] > 60)) {
+            if (p.wall != null && walls[p.wall] && P((walls[p.wall].x0 + walls[p.wall].x1) / 2, (walls[p.wall].y0 + walls[p.wall].y1) / 2, 0).d > P(0, 0, 0).d - 0.5) return;
+            if (s && (p.border || (p.obstacle && !p.furn)) && s[4] * p.scale > 40) {
               const k = texel() * p.scale, w = s[3] * k * 0.5, h = s[4] * k;
-              for (const f of fight) if (f.d < q.d && Math.abs(f.x - q.x) < w && f.y < q.y && f.y > q.y - h) { alpha = 0.35; break; }
+              for (const f of fight) if (f.d < q.d && Math.abs(f.x - q.x) < w && f.y < q.y && f.y > q.y - h) { alpha = p.border ? 0.35 : 0.45; break; }
             }
             drawSprite(p.name, p.x, p.y, 0, p.flip, p.scale, alpha);
           },

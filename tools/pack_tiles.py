@@ -99,6 +99,16 @@ for n in ['banquet_table', 'brazier', 'bookshelf', 'throne', 'training_dummy', '
     S['cd_' + n] = tile16(CD + 'props/' + n + '.png')
 for n in ['pillar', 'wall_face_stone', 'wall_face_dark', 'wall_face_mossy', 'wall_face_brick', 'wall_torch_1', 'gate_arch', 'arched_window']:
     S['cdw_' + n] = tile16(CD + 'walls/' + n + '.png')
+# Pixel 16 interiors and village (16 px, doubled): three-quarter-view furniture and houses
+P16I, P16V = 'pixel16/tiles and items.png', 'pixel16/Pixel 16 v2 village free.png'
+for k, i in {'p16_table': 6, 'p16_stool': 5, 'p16_stool_b': 8, 'p16_cabinet': 7, 'p16_chairs': 12, 'p16_sofa': 10, 'p16_beds': 3,
+             'p16_rugs': 2, 'p16_rug_green': 4, 'p16_books': 9, 'p16_plant': 11, 'p16_lamp': 13, 'p16_room': 0}.items():
+    S[k] = x2(piece(P16I, i))
+for k, i in {'p16_stall': 7, 'p16_house_red': 8, 'p16_house_blue': 9, 'p16_lamp_post': 3, 'p16_fence': 1, 'p16_planter': 4,
+             'p16_water_barrel': 6, 'p16_village_kit': 2}.items():
+    S[k] = x2(piece(P16V, i))
+for n in ['wall_top_stone', 'wall_top_dark', 'wall_torch_2', 'stained_glass', 'wooden_gate', 'portcullis']:
+    S['cdw_' + n] = tile16(CD + 'walls/' + n + '.png')
 # Dark World's gnarled tree and mushrooms (night and the Tower's dark floors)
 S['tree_gnarled'] = img('dark_world/Environment/tree.png')
 S['rock_dark'] = img('dark_world/Environment/rock.png')

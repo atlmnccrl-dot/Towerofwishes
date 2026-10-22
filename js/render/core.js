@@ -268,6 +268,8 @@
         if (o.ang != null) ang = o.ang;
         if (o.angOff) ang += o.angOff;
       }
+      // Pixel art blows up into blocks past a point: no shot closer than about 4.4 m.
+      sc = Math.min(sc, Math.min(W, H) / 5.2);
       let k = c || o ? 0.12 : Math.min(1, dt * 2.2);
       const snap = !!V.cutSnap;
       if (snap) { k = 1; V.cutSnap = false; } // a hard cut

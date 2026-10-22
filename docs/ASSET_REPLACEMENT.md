@@ -1,6 +1,6 @@
 # Asset replacement: what is real art now, what is still drawn
 
-Status after the 2026-10-22 pass. "Drawn" means made in code (vector shapes); "pixel" means
+Status after the 2026-10-22 passes (second pass: cutscene cleanup). "Drawn" means made in code (vector shapes); "pixel" means
 the author's asset packs.
 
 **Rule:** once everything in section 2 is replaced, **redo the opening cutscene** to fit the
@@ -23,7 +23,11 @@ pixel art (section 4).
 | Swings | slash per weapon: sword, dagger, thrust, claw, cleave, fire or ice slash, dark slash | every attack |
 | Projectiles | arrow, magic missile, energy bolt, homing orb, ice shard, rock | archers, casters, hexers, Calamity |
 | Magic | teleport, heal, failed glyph circle, freeze, shatter, lightning, quake, dissolve, fire, burning | events |
-| Heavy-art impacts | arcs and shockwave (Rising Cut), summons (Dark Legion), holy light (Spear of Light), heal bloom (Life Surge), zaps (Force Lance), rock burst (Bone Breaker), multi-hit (One Step), shockwave (Pressure) | cutscenes |
+| **Heavy-art cutscenes** (whole sequence, no drawn shapes) | charge: a ground circle and aura on the caster (shock aura, arcane or holy circle, portal, heal loop, dark smoke); glint: star burst or spell flash; release: katana arc and slashes (Rising Cut), laser beam (Force Lance), spear of light, portals and summons (Dark Legion), teleports and slashes (One Step), wind gusts (Pressure), shockwave (Bone Breaker), heal crosses (Life Surge); then a white frame and the impact effects. The move's name is in the Adventurer pixel font | every heavy art |
+| Face-off portraits | the character's own pixel sprite, large, in the slanted panel | boss face-offs |
+| Scene dust and leaves | pack dust and leaf effects (pixel arenas) | staged scenes |
+| **Interiors** | real rooms: brick or stone walls with windows, torches, banners and stained glass (the walls toward the camera stay open), Pixel 16 tables, stools and cabinets, a fire pit; Floor One, the Hall of Offering and Calamity's corridor keep their pillars and statues against the walls | tavern, Guild office, Floor One, Hall of Offering, Calamity |
+| Banners, countdown, combos, captions | Adventurer pixel font | fights |
 | All Out, exhausted, burning | fire ring, embers, steam, flame | fighters |
 | **Arenas (15 themes)** | Pixel Art Top Down Basic (Cainos), TopDownFantasy Forest, Forest & Village and Castle & Dungeon tilesets (reodesuxz), EPIC RPG Ancient Ruins, Dark World | `assets/tiles/`, `js/render/tiles.js` |
 | | clearing, quarry path, cave, deep passage, north road, ruins, Guild yard, tavern, Guild office, grassland, dead farms, night camp, Shadow City, Floor One hall, Hall of Offering, Calamity's corridor | fights and scenes |
@@ -48,19 +52,17 @@ Stand-ins made from packs already delivered (replace them when the real exports 
 | `calamity` | **Calamity** | pixel effects: blue flame on its left, fire on its right, a dark core | custom art (creature) |
 | `golem` | the Guild's Practice Block | the training dummy from the Castle & Dungeon tileset | |
 | `ren`, `mara`, `brannoc` | the old starter heroes | still drawn | only if they stay (older manuscript) |
-| Dialogue cut-in portraits | heavy-art and face-off panels draw faces | still drawn | portrait art per main character |
 
 ### Effects and fight overlays
 | What | Needs |
 |---|---|
-| Heavy-art **cutscene panels** (slanted manhwa panels, Force Lance beam, Rising Cut blade glow, Dark Legion giants) | Pixel versions, or a simpler pixel cutscene (zoom, flash, pixel effect). |
 | Attack **telegraph zones** (red and blue wedges), boss hazard marks | Could stay as clean shapes. Pixel option: Pixel VFX "Cast Circle" or "Fire Ring" tinted. |
 | HP bars, team rings, follow ring | Code UI; restyle to match the UI pack's frames. |
 
 ### Places
 | What | Needs |
 |---|---|
-| Prologue city: **rooftops**, **square**, **summit** | Kept painted on purpose; they're rebuilt with the opening (section 4). |
+| Prologue city: **rooftops**, **square**, **summit** | Kept painted on purpose; they're rebuilt with the opening (section 4). Their speed lines, trunk whips and formation rings are still drawn until then. |
 | Story **backdrops** (`backdrop.js`: full-screen painted stills for some scenes) | Pixel scenes, or replace each with a staged pixel arena. |
 | **World map** (`map.js`, painted) | A pixel overworld map (the tilesets can build one). |
 | **Spirit-tree** skill screen | Pixel frame and icons (UI pack). |
@@ -84,7 +86,7 @@ Stand-ins made from packs already delivered (replace them when the real exports 
 | Super Pixel Fantasy FX Pack 3 (free) | Buff icons (attack up, defence up, haste, regen) for a buff system the game doesn't have; the death effect shows a kanji. |
 | REEBOO Stylized VFX | Godot shaders, which don't run in the browser game. |
 | Desert tileset | No desert arena in the chapters built so far. |
-| Pixel 16 village, interiors, Halloween and Christmas packs | A chibi scale that clashes with the characters. Houses could dress a town map later. |
+| Pixel 16 Halloween and Christmas packs, most of the village pack | A chibi scale that clashes with the characters. (The interiors' tables, stools, cabinets and rug are in use.) |
 | Dark Castle tileset | Mostly very dark tiles; the gates and candles could dress the Tower later. |
 | Mixel Top-Down RPG | Only its nature details and font were usable (font in use). |
 | `model-rigged.glb` (3D Alric) | 3D; the game is 2D pixel art now. |

@@ -139,7 +139,7 @@
         ctx.save();
         ctx.translate(W * 0.9 + slide, y1 - fs * 0.15);
         ctx.transform(1, 0, -0.22, 1, 0, 0);
-        ctx.font = `800 ${fs}px ${FONT.display}`; ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic';
+        ctx.font = `${fs}px Adventurer, ${FONT.display}`; ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic';
         ctx.lineJoin = 'round'; ctx.lineWidth = fs * 0.16; ctx.strokeStyle = INK; ctx.strokeText(cutin.caption, 0, 0);
         ctx.fillStyle = glow; ctx.fillText(cutin.caption, 0, 0);
         ctx.restore();

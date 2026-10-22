@@ -172,7 +172,20 @@
     const parts = [];
     let seed = 1;
     const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+    // Pixel arenas: leaves and dust come from the effect packs (the painted prologue keeps its own).
+    function pixelFx() {
+      const T = NS.tiles, th = match.arena && match.arena.theme;
+      const F = V.fxApi && V.fxApi.pxfx && V.fxApi.pxfx();
+      return F && T && T.ready() && T.RECIPES[th] ? F : null;
+    }
     function puff(x, y, kind, n, sp) {
+      const F = pixelFx();
+      if (F) {
+        if (kind === 'leaf') F.spawn('leaves', x, y, 0.6, { scale: 1.4 });
+        else if (n > 4) { F.spawn('dust_land', x, y, 0, { scale: 1.1 }); F.spawn('smoke_puff', x + (rnd() - 0.5) * 0.6, y, 0.1, { scale: 0.9, delay: 0.05 }); }
+        else F.spawn('dust_run', x, y, 0, { scale: 0.8, flip: rnd() < 0.5 });
+        return;
+      }
       for (let i = 0; i < n; i++) {
         const a = rnd() * TAU, v = (kind === 'leaf' ? 1.5 : 0.6) + rnd() * (sp ? sp * 0.12 : 1.2);
         parts.push({ kind, x: x + (rnd() - 0.5) * 0.3, y: y + (rnd() - 0.5) * 0.3, z: kind === 'leaf' ? 0.3 + rnd() * 1.4 : 0.05, vx: Math.cos(a) * v, vy: Math.sin(a) * v, vz: kind === 'leaf' ? 1 + rnd() * 2 : 0.5 + rnd() * 0.8, t: 0, life: kind === 'leaf' ? 1.2 + rnd() * 0.8 : 0.5 + rnd() * 0.5, r: kind === 'leaf' ? 0.06 + rnd() * 0.05 : 0.15 + rnd() * 0.2, rot: rnd() * 6, spin: (rnd() - 0.5) * 12, c: (rnd() * 3) | 0 });
@@ -201,7 +214,8 @@
       const ang0 = sh._ang != null ? sh._ang : camOut.ang;
       // up: aim past the subject so it sits lower on screen (frames faces in close-ups)
       if (sh.up) { x -= Math.sin(ang0) * sh.up; y -= Math.cos(ang0) * sh.up; }
-      const view = Math.max(1.6, (sh.view || 9) + (sh.push || 0) * t);
+      // Pixel cast: never closer than a knee-up shot, so everyone stays readable.
+      const view = Math.max(5.2, (sh.view || 9) + (sh.push || 0) * t);
       const sc = sh.sc || Math.min(W, H) / view;
       const ang = (sh._ang != null ? sh._ang : camOut.ang) + (sh.drift || 0) * t;
       return { x, y, sc, ang, pitch: sh.pitch || 0.52 };
@@ -217,6 +231,10 @@
       else if (fu) sh._ang = Math.PI / 2 - fu.facing + (sh.side || 0);
       else if (bu) sh._ang = -Math.PI / 2 - bu.facing + (sh.side || 0);
       else sh._ang = camOut.ang + (sh.side || 0);
+      // Keep every shot within about 30 degrees of the stage's front view: no spinning rooms.
+      const base = def.camAng != null ? def.camAng : -0.38;
+      let d = sh._ang - base; d = Math.atan2(Math.sin(d), Math.cos(d));
+      sh._ang = base + Math.max(-0.52, Math.min(0.52, d));
       from = Object.assign({}, camOut);
       shot = sh; shotT = 0;
       if (sh.cut) snap = true;
@@ -713,8 +731,8 @@
           ctx.fillRect(x - w * 0.42, -10, w * 0.12, H + 20);
         }
       }
-      // speed lines
-      const spd = FX.speed.v;
+      // speed lines (painted prologue only; pixel scenes show motion with the cast and dust)
+      const spd = pixelFx() ? 0 : FX.speed.v;
       if (spd > 0.01) {
         ctx.save();
         if (speedMode === 'r') {

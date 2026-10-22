@@ -333,7 +333,7 @@
       } else if (/Pressure/.test(name)) {
         S('shockwave', fx, fy, 0.05, { scale: 4.2, ground: true }); S('wind_gust', fx, fy, 1.0, { scale: 3, rot: r, flip });
       } else if (/Bone Breaker/.test(name)) {
-        S('rock_burst', fx, fy, 0, { scale: 3 }); S('shockwave', fx, fy, 0.05, { scale: 3.6, ground: true });
+        S('rock_burst', fx, fy, 0, { scale: 1.6 }); S('hit_blunt', fx, fy, 1.0, { scale: 2.4 }); S('shockwave', fx, fy, 0.05, { scale: 3.6, ground: true });
       } else if (/Thousand Wounds|Hundredfold/.test(name)) {
         for (const [i, o] of foes.entries()) { S('multi_hit', o.x, o.y, 1.1, { scale: 1.8, delay: i * 0.05 }); S('cross_slash', o.x, o.y, 1.1, { scale: 2, delay: 0.12 + i * 0.05 }); }
       } else {
@@ -1234,6 +1234,7 @@
       ctx.strokeStyle = '#f6f0ec'; ctx.lineWidth = 1.5; ctx.stroke();
     }
     function speedLines(cx, cy, n, r0, r1, col, seed) {
+      if (px()) return; // drawn lines: only with the old painted look
       ctx.fillStyle = col;
       for (let i = 0; i < n; i++) {
         const a = (i / n) * Math.PI * 2 + Math.sin(i * 12.9898 + seed) * 0.08;
@@ -1258,6 +1259,23 @@
       const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
       const w = x1 - x0, h = y1 - y0, cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
       const strip = () => { ctx.beginPath(); poly.forEach((q, i) => (i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]))); ctx.closePath(); };
+      // The pixel cast: the character's own sprite, large, head and shoulders in the strip.
+      const Sp = window.TowSprites, man = Sp && Sp.forUnit && Sp.forUnit(u, {});
+      if (man && man.pixel) {
+        const anim = man.animations.idle_combat || man.animations.idle;
+        const r = anim && Sp.resolveDir(man, anim, hero ? 'SE' : 'SW');
+        ctx.save();
+        strip(); ctx.fillStyle = hero ? '#10151c' : '#1a0b0d'; ctx.fill();
+        ctx.clip();
+        if (r) {
+          const fr = anim.frames[r.dir], f = fr[Sp.frameIndex(anim, fr.length, t, fr)];
+          Sp.drawFrame(ctx, man, { frame: f, flip: r.flip, alpha: 1 }, cx + (hero ? -w * 0.18 : w * 0.18), y0 + h * 2.7, h * 2.6);
+        }
+        ctx.restore();
+        ctx.strokeStyle = INK; ctx.lineWidth = 6; ctx.lineJoin = 'miter'; strip(); ctx.stroke();
+        ctx.strokeStyle = hero ? PAL.hero : PAL.glow; ctx.lineWidth = 2; strip(); ctx.stroke();
+        return;
+      }
       ctx.save();
       strip(); ctx.fillStyle = hero ? '#10151c' : '#1a0b0d'; ctx.fill();
       ctx.clip();
@@ -1882,9 +1900,129 @@
       } finally { GLYPH = saveG; lanceHex = saveH; }
     }
 
+    // ------------------------------------------------------------ pixel heavy arts
+    // With the pixel cast, every heavy art is built from the effect packs (no drawn shapes):
+    // a charge effect on the caster, a glint, the release travelling to the targets, a white
+    // frame on impact, then the hit effects (pixelArt) and the name in the pixel font.
+    function artKind(c) {
+      const n = c.name || '';
+      if (c.legion) return 'legion';
+      if (c.unit.key === 'aerys' || /Spear of Light/.test(n)) return 'holy';
+      if (c.line) return 'lance';
+      if (/Life Surge/.test(n)) return 'heal';
+      if (/Bone Breaker|Anvilfall/.test(n)) return 'earth';
+      if (/Thousand|Hundredfold/.test(n)) return 'step';
+      if (/Pressure/.test(n)) return 'wind';
+      return 'blade';
+    }
+    // Per art: [charge on the caster], [glint], and how the release travels.
+    const ART = {
+      blade: { ground: 'shock_aura', aura: 'charge_up', glint: 'star_burst', go: 'katana', trail: null },
+      lance: { ground: 'circle_arcane', aura: 'cast_circle', glint: 'spell_cast', go: 'laser', trail: null },
+      holy: { ground: 'circle_holy', aura: 'charge_up', glint: 'hit_holy', go: 'spear', trail: null },
+      legion: { ground: 'portal', aura: 'dark_curse', glint: 'smoke_dark', go: 'summon', trail: null },
+      heal: { ground: 'circle_holy', aura: 'heal_loop', glint: 'sparkles', go: null, trail: null },
+      earth: { ground: 'shock_aura', aura: 'charge_up', glint: 'star_burst', go: 'shockwave', trail: null },
+      step: { ground: 'cast_circle', aura: 'smoke_dark', glint: 'star_burst', go: 'teleport', trail: null },
+      wind: { ground: 'shock_aura', aura: 'charge_up', glint: 'star_burst', go: 'wind_gust', trail: null },
+    };
+    function cutTargets(s, c) {
+      const u = c.unit, H = V.Sim.heavyOf(u), R = (H && H.radius) || 4.5, arc = (H && H.arc) || 6.3;
+      return s.units.filter((o) => {
+        if (o.team === u.team || o.fled || o.state === 'out') return false;
+        const d = Math.hypot(o.x - c.x0, o.y - c.y0);
+        if (d > R + 0.6) return false;
+        if (arc >= 6) return true;
+        let a = Math.atan2(o.y - c.y0, o.x - c.x0) - u.facing; a = Math.atan2(Math.sin(a), Math.cos(a));
+        return Math.abs(a) < arc / 2 + 0.25;
+      });
+    }
+    function pixelCutscene(s) {
+      const c = s.cutscene, u = c.unit, W = V.W, H = V.H, t = c.t, S = PX.spawn;
+      const kind = c.pxKind || (c.pxKind = artKind(c)), A = ART[kind];
+      const phase = cutPhase(c), f = u.facing, F = [Math.cos(f), Math.sin(f)];
+      let r = PX.screenAng(u.x, u.y, f), flip = false;
+      if (Math.cos(r) < 0) { flip = true; r -= Math.PI; }
+      const done = c.pxDone || (c.pxDone = {});
+      const once = (k, fn) => { if (!done[k]) { done[k] = true; fn(); } };
+      if (phase === 'charge') {
+        once('charge', () => {
+          S(A.ground, u.x, u.y, 0.03, { ground: true, scale: kind === 'legion' ? 3.4 : 2.4, life: CUT.charge + 0.3, alpha: 0.9, add: true, follow: u });
+          if (A.aura === 'heal_loop') S(A.aura, u.x, u.y, 0, { follow: u, scale: 1.4, life: CUT.charge });
+          else S(A.aura, u.x, u.y, 0.9, { follow: u, scale: 2.6, life: CUT.charge, add: true });
+          if (kind === 'legion') for (let i = 0; i < 3; i++) S('dark_curse', u.x - F[0] * (1 + i * 0.6) + (i - 1) * 0.9, u.y - F[1] * (1 + i * 0.6), 1.2 + i * 0.4, { scale: 2.2, life: CUT.charge, delay: i * 0.2 });
+        });
+        once('pulse', () => S('buff_up', u.x, u.y, 0, { follow: u, scale: 1.2, alpha: 0.85, delay: CUT.charge * 0.55 }));
+        V.cam.shake = Math.max(V.cam.shake, 1 + 3 * (t / CUT.charge));
+      } else if (phase === 'gleam') {
+        once('gleam', () => S(A.glint, u.x + F[0] * 0.25, u.y + F[1] * 0.25, 1.45, { scale: kind === 'legion' ? 2.6 : 1.6, add: true, life: 0.5 }));
+      } else if (phase === 'dash') {
+        const vic = cutTargets(s, c);
+        once('release', () => {
+          if (kind === 'lance' || kind === 'holy') {
+            // The beam: one effect per metre along the aim, fired outward.
+            const H2 = V.Sim.heavyOf(u), len = Math.min(9, ((H2 && H2.radius) || 8));
+            for (let i = 0.8; i <= len; i += 0.9) S(A.go, c.x0 + F[0] * i, c.y0 + F[1] * i, 1.1, { scale: kind === 'holy' ? 2.2 : 1.8, rot: r, flip, add: true, delay: i * 0.025, life: Math.max(0.2, c.impactAt - CUT.gleam - i * 0.025 + 0.15) });
+            S(kind === 'holy' ? 'hit_holy' : 'spell_impact', c.x0 + F[0] * 0.7, c.y0 + F[1] * 0.7, 1.1, { scale: 2.2, add: true });
+          } else if (kind === 'legion') {
+            // The Legion: columns rise one after another out to the targets.
+            const pts = vic.length ? vic : [0, 1, 2, 3, 4].map((i) => ({ x: c.x0 + Math.cos(f + (i - 2) * 0.45) * 3, y: c.y0 + Math.sin(f + (i - 2) * 0.45) * 3 }));
+            pts.forEach((o, i) => { S('portal', o.x, o.y, 0.03, { ground: true, scale: 2.4, life: 1.0, delay: i * 0.1, add: true }); S('summon', o.x, o.y, 0, { scale: 2.6, delay: 0.15 + i * 0.1 }); S('smoke_dark', o.x, o.y, 0.8, { scale: 2, delay: 0.3 + i * 0.1 }); });
+          } else if (kind === 'heal') {
+            for (const o of s.units) if (o.team === u.team && !o.fled && o.state !== 'out') { S('heal_cross', o.x, o.y, 1.2, { scale: 1.6 }); S('sparkles', o.x, o.y, 1, { follow: o, scale: 1.6, life: 1.2 }); }
+          } else if (kind === 'step') {
+            S('smoke_dark', c.x0, c.y0, 0.8, { scale: 2.2 }); S('teleport', c.x0, c.y0, 0, { scale: 2 });
+            vic.forEach((o, i) => { S('teleport', o.x, o.y, 0, { scale: 1.8, delay: 0.08 + i * 0.1 }); S('slash_' + 'lrdu'[i % 4], o.x, o.y, 1.1, { scale: 2.2, delay: 0.1 + i * 0.1 }); });
+          } else if (kind === 'wind') {
+            S('wind_gust', c.x0 + F[0] * 1.2, c.y0 + F[1] * 1.2, 1, { scale: 3.4, rot: r, flip }); S('wind_gust', c.x0 + F[0] * 2.6, c.y0 + F[1] * 2.6, 0.8, { scale: 3, rot: r, flip, delay: 0.12 });
+          } else if (kind === 'earth') {
+            S('jump_puff', c.x0, c.y0, 0, { scale: 1.2 }); S('shockwave', c.x0 + F[0], c.y0 + F[1], 0.05, { scale: 3, ground: true, delay: 0.1 });
+          } else {
+            // Blade: the draw cut leaves a trail of dust, then slashes cross each target in turn.
+            S('katana', c.x0 + F[0] * 0.9, c.y0 + F[1] * 0.9, 1.1, { scale: 2.6, rot: r, flip, add: true });
+            vic.forEach((o, i) => S(i % 2 ? 'slash_d' : 'double_slash', o.x, o.y, 1.1, { scale: 2.4, rot: i % 2 ? 0 : r, flip, delay: 0.12 + i * 0.09 }));
+          }
+          if (A.trail) S(A.trail, c.x0, c.y0, 0, { scale: 1.2, flip });
+        });
+        V.cam.shake = Math.max(V.cam.shake, 5);
+      } else if (phase === 'impact') {
+        // A white frame, then one dark frame: the hit lands.
+        const ft = t - c.impactAt;
+        ctx.fillStyle = ft < 0.06 ? 'rgba(255,250,240,0.92)' : 'rgba(8,6,10,0.75)';
+        ctx.fillRect(0, 0, W, H);
+        V.cam.shake = 14;
+      } else if (!c.dusted) {
+        c.dusted = true;
+        
+      }
+      const bars = Math.min(1, t / 0.2) * Math.min(1, (c.dur - t) / 0.3) * H * 0.11;
+      ctx.fillStyle = INK;
+      ctx.fillRect(0, 0, W, bars); ctx.fillRect(0, H - bars, W, bars);
+      // The move's name, in the pixel font, after the impact.
+      if (phase === 'after' && t > c.impactAt + 0.4) {
+        const tk = Math.min(1, (t - c.impactAt - 0.4) / 0.2);
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, (c.dur - t) / 0.4) * tk;
+        const fs = Math.round(Math.min(W, H) * 0.1), left = V.cam.ax > 0.52;
+        const x = left ? 28 : W - 28, y = H - bars - fs * 0.35;
+        ctx.textAlign = left ? 'left' : 'right'; ctx.textBaseline = 'alphabetic';
+        ctx.font = `${fs}px Adventurer, ${FONT.display}`;
+        ctx.lineJoin = 'miter'; ctx.lineWidth = Math.max(3, fs * 0.12); ctx.strokeStyle = INK;
+        ctx.strokeText(c.name.toUpperCase(), x, y); ctx.fillStyle = PAL.white; ctx.fillText(c.name.toUpperCase(), x, y);
+        const sub = u.name.toUpperCase() + '  ·  HEAVY ART', ss = Math.round(fs * 0.36);
+        ctx.font = `${ss}px Adventurer, ${FONT.ui}`; ctx.lineWidth = 3;
+        ctx.strokeText(sub, x, y - fs * 0.95); ctx.fillStyle = u.team === 'hero' ? PAL.heroGlow : PAL.glow; ctx.fillText(sub, x, y - fs * 0.95);
+        ctx.restore();
+      }
+      if (t > 0.4 && phase !== 'impact' && !document.body.classList.contains('trailer')) {
+        ctx.font = `12px Adventurer, ${FONT.ui}`; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+        ctx.fillStyle = 'rgba(246,240,236,0.6)'; ctx.fillText('Tap to skip', 16, Math.max(bars, 8) + 18);
+      }
+    }
     function drawCutscene(s) {
       const c = s.cutscene;
       if (!c) return;
+      if (px() && PX.ready()) return pixelCutscene(s);
       const W = V.W, H = V.H, t = c.t, u = c.unit, cam = V.cam, sc = cam.sc;
       const hero = u.team === 'hero';
       // Line heavies are force glyph-work: they read violet.
@@ -2103,7 +2241,7 @@
       ctx.restore();
       ctx.translate(W / 2, y);
       ctx.transform(1, 0, -0.22, 1, 0, 0);
-      ctx.font = `800 ${fs}px ${FONT.display}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = `${fs}px Adventurer, ${FONT.display}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.lineJoin = 'round'; ctx.lineWidth = fs * 0.12; ctx.strokeStyle = '#000'; ctx.strokeText(banner.text, 0, 0);
       ctx.fillStyle = banner.col || PAL.glow; ctx.fillText(banner.text, 0, 0);
       ctx.font = `800 ${Math.round(fs * 0.18)}px ${FONT.ui}`;
@@ -2125,7 +2263,7 @@
       ctx.transform(1, 0, -0.25, 1, 0, 0);
       ctx.scale(punch, punch);
       ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic'; ctx.lineJoin = 'round';
-      ctx.font = `800 ${fs}px ${FONT.display}`;
+      ctx.font = `${fs}px Adventurer, ${FONT.display}`;
       const n = String(combo.n);
       ctx.fillStyle = PAL.crimson; ctx.fillText(n, fs * 0.06, fs * 0.06);
       ctx.lineWidth = fs * 0.16; ctx.strokeStyle = INK; ctx.strokeText(n, 0, 0);
@@ -2151,7 +2289,7 @@
 
     function takeHitstop() { const h = hitstop; hitstop = 0; return h; }
 
-    return { consume, underUnit, overUnit, drawWorld, drawScreen, takeHitstop, panel, speedLines, star, portrait, cutPhase };
+    return { consume, underUnit, overUnit, drawWorld, drawScreen, takeHitstop, panel, speedLines, star, portrait, cutPhase, pxfx: () => (px() ? PX : null) };
   }
 
   NS.fx = { create };

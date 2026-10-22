@@ -279,7 +279,7 @@
       ctx.translate(x, y);
       ctx.transform(1, 0, skew == null ? -0.2 : skew, 1, 0, 0);
       ctx.textAlign = align || 'left'; ctx.textBaseline = 'alphabetic';
-      ctx.font = `800 ${fs}px ${FONT.display}`;
+      ctx.font = `${fs}px Adventurer, ${FONT.display}`;
       ctx.lineJoin = 'round'; ctx.lineWidth = fs * 0.16; ctx.strokeStyle = INK;
       ctx.strokeText(text, 0, 0);
       ctx.fillStyle = fill; ctx.fillText(text, 0, 0);
@@ -287,7 +287,7 @@
     }
     // Shrink a display size so the lettering fits in maxW.
     function fitSize(text, fs, maxW) {
-      ctx.font = `800 ${fs}px ${FONT.display}`;
+      ctx.font = `${fs}px Adventurer, ${FONT.display}`;
       const w = ctx.measureText(text).width * 1.05;
       return w > maxW ? Math.floor(fs * maxW / w) : fs;
     }
