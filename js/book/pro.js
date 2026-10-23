@@ -52,26 +52,26 @@
       },
     },
     nodes(h) {
-      const { B, N, S, BOOK, member } = h;
+      const { B, N, S, X, BOOK, member } = h;
       const pair = (st) => [member(st, 'kael'), member(st, 'eirynMage')];
       return {
         // ---- a fork in the road: Chapter Five, up the quarry hill. Both ways reach the quarry path.
         'c5.fork': {
           type: 'fork', chapter: 'c5', bg: 'hill',
           lines: [
-            N('Halfway up the second hill the road divides round marshy ground.'),
-            N('To the left, the shorter track runs straight into standing water. A lantern hangs from a post at the edge of it, unlit.'),
-            N('To the right, the dry way climbs the ridge and loses itself in thorn. Somewhere up there, a crow stops calling.'),
-            N('Kael looks at Eiryn. Eiryn looks at the Tower.'),
+            X('Halfway up the second hill the road divides round marshy ground.'),
+            X('To the left, the shorter track runs straight into standing water. A lantern hangs from a post at the edge of it, unlit.'),
+            X('To the right, the dry way climbs the ridge and loses itself in thorn. Somewhere up there, a crow stops calling.'),
+            X('Kael looks at Eiryn. Eiryn looks at the Tower.'),
           ],
           options: [{ label: 'The flooded track', next: 'c5.fork.a' }, { label: 'The ridge', next: 'c5.fork.b' }],
         },
         'c5.fork.a': {
           type: 'scene', chapter: 'c5', bg: 'hill', next: 'c5.fork.afight',
           lines: [
-            N('The water is shin-deep and warmer than it should be. Halfway across, Kael stops. The reeds ahead are the wrong kind of still.'),
+            X('The water is shin-deep and warmer than it should be. Halfway across, Kael stops. The reeds ahead are the wrong kind of still.'),
             S('kael', 'Eiryn. Behind me.'),
-            N('Three skeletons rise out of the reeds with sacks of stolen grain still tied to their belts. A fourth, with a bow, is already on the far bank.'),
+            X('Three skeletons rise out of the reeds with sacks of stolen grain still tied to their belts. A fourth, with a bow, is already on the far bank.'),
           ],
         },
         'c5.fork.afight': {
@@ -82,15 +82,15 @@
         'c5.fork.aafter': {
           type: 'scene', chapter: 'c5', bg: 'hill', next: 'c5.path',
           lines: [
-            N('They wring out their boots on the far bank. The track was shorter. Nobody says it was better.'),
-            N('Up ahead, a skeleton squats by a stolen sack. It has not heard them coming. It will.'),
+            X('They wring out their boots on the far bank. The track was shorter. Nobody says it was better.'),
+            X('Up ahead, a skeleton squats by a stolen sack. It has not heard them coming. It will.'),
           ],
         },
         'c5.fork.b': {
           type: 'scene', chapter: 'c5', bg: 'hill', next: 'c5.fork.bafter',
           lines: [
-            N('The ridge path is dry, steep and thick with thorn. Kael goes first, cutting through, and Eiryn follows without complaint.'),
-            N('At the top there is a hunter\u2019s lean-to, long abandoned, and in it a stack of stolen tools wrapped in sacking. Someone has been sorting them. Carefully.'),
+            X('The ridge path is dry, steep and thick with thorn. Kael goes first, cutting through, and Eiryn follows without complaint.'),
+            X('At the top there is a hunter\u2019s lean-to, long abandoned, and in it a stack of stolen tools wrapped in sacking. Someone has been sorting them. Carefully.'),
             S('kael', 'That isn\u2019t skeleton work.'),
             S('eiryn', 'No.'),
           ],
@@ -98,7 +98,7 @@
         'c5.fork.bafter': {
           type: 'scene', chapter: 'c5', bg: 'hill', next: 'c5.path', xp: 70, set: { gold: 1 },
           lines: [
-            N('Below them the quarry path lies empty. Whatever is waiting there has not noticed the ridge. They take the tools, and the high ground.'),
+            X('Below them the quarry path lies empty. Whatever is waiting there has not noticed the ridge. They take the tools, and the high ground.'),
           ],
         },
         // ---- a fork in the road: Chapter Two, the viaduct. Both ways reach the camp.

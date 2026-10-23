@@ -478,20 +478,18 @@
     'c5.mill': {
       type: 'scene', chapter: 'c5', bg: 'hill', next: 'c5.path',
       lines: [
-        B('miller', 'They’ve been coming after dark. First the grain. Then a box of tools. My youngest tried to chase them and came back with a cut on his arm.'),
+        B('miller', 'They’ve been coming after dark. First the grain. Then a box of tools.'), // (the book's line, trimmed)
         KB('How many?'),
-        B('miller', 'Four, maybe five. Hard to count when they’re running through the sheds.'),
-        EB('You said skeletons are usually manageable.'),
-        KB('They are. One at a time. They get more confident in groups, which is why we don’t let them decide where the fight happens.'),
+        B('miller', 'Four, maybe five.'), // (the book's line, trimmed)
       ],
     },
     'c5.path': {
       type: 'scene', chapter: 'c5', bg: 'hill', next: 'c5.pathfight',
       lines: [
-        N('A skeleton squats by a stolen sack, tearing at the stitching with its teeth. It looks up and lets out a sharp cry.'),
-        N('From higher on the hill comes an answering cry.'),
+        X('A skeleton squats by a stolen sack, tearing at the stitching with its teeth. It looks up and lets out a sharp cry.'),
+        X('From higher on the hill comes an answering cry.'),
         EB('And now the rest know we’re here.'),
-        N('Two skeletons appear above the path, one with a short spear and the other with a rough wooden bow. A third drops out of the scrub.'),
+        X('Two skeletons appear above the path, one with a short spear and the other with a rough wooden bow. A third drops out of the scrub.'),
         KB('Down!'),
         only((st) => !hasKael(st), S('@', 'Get down!')),
       ],
@@ -505,10 +503,10 @@
     'c5.cave': {
       type: 'scene', chapter: 'c5', bg: 'cave', next: 'c5.cavefight',
       lines: [
-        N('At the cave mouth: the miller’s grain, a faded loading frame, and a set of narrow three-toed footprints. One print, half under a cart rut, is much larger.'),
-        KB('We go far enough to see what they’ve taken. Then we decide whether to clear the place or come back with a bigger party.'),
-        N('Rotting food, wet hides, smoke. Stolen crates against the far wall; a stone basin of dirty water. The archer has joined two skeletons by a cooking fire.'),
-        N('For a moment nobody moves. Then the archer points and shouts.'),
+        X('At the cave mouth: the miller’s grain, a faded loading frame, and a set of narrow three-toed footprints. One print, half under a cart rut, is much larger.'),
+        KB('We go far enough to see what they’ve taken.'), // (the book's line, trimmed)
+        X('Rotting food, wet hides, smoke. Stolen crates against the far wall; a stone basin of dirty water. The archer has joined two skeletons by a cooking fire.'),
+        X('For a moment nobody moves. Then the archer points and shouts.'),
       ],
     },
     'c5.cavefight': {
@@ -519,9 +517,8 @@
     'c5.tracks': {
       type: 'scene', chapter: 'c5', bg: 'cave', next: 'c5.ogre',
       lines: [
-        N('Two skeletons bolt into the deeper passage. The chamber goes quiet apart from the crackle of damp wood.'),
-        EB('At least we found what they came for.'),
-        N('The wet earth by the deeper passage is churned by the same large tracks, and the stone around the opening is scraped well above head height.'),
+        X('Two skeletons bolt into the deeper passage. The chamber goes quiet apart from the crackle of damp wood.'),
+        X('The wet earth by the deeper passage is churned by the same large tracks, and the stone around the opening is scraped well above head height.'),
         KB('Eiryn, I think we’re leaving.'),
         only((st) => !hasKael(st), S('@', 'Those tracks. Eiryn, I think we’re leaving.')),
         only((st) => !hasEiryn(st), S('@', 'Kael. Those tracks.')),
@@ -530,8 +527,8 @@
     'c5.ogre': {
       type: 'scene', chapter: 'c5', bg: 'cave', next: 'c5.ogrefight',
       lines: [
-        N('A bony hand closes round the edge of the passage. Then a shoulder, and an enormous figure forces its way into the chamber.'),
-        N('Old bone shows between plates of iron and fur, the color of weathered stone. A horned helm. A heavy war maul rests across its shoulder.'),
+        X('A bony hand closes round the edge of the passage. Then a shoulder, and an enormous figure forces its way into the chamber.'),
+        X('Old bone shows between plates of iron and fur, the color of weathered stone. A horned helm. A heavy war maul rests across its shoulder.'),
         KB('That was not in the contract.'),
         only((st) => !hasKael(st), S('@', 'That was not in the contract.')),
         KB('Make it look at me.'),
@@ -545,12 +542,8 @@
     'c5.after': {
       type: 'scene', chapter: 'c5', bg: 'hill', next: 'c5.home',
       lines: [
-        only(hasEiryn, N('Eiryn draws the force into a narrow path. The warlord strikes the quarry wall hard enough to drive splintered stone from the rock face. It does not move again.')),
-        only((st) => !hasEiryn(st), N('The warlord staggers back into the quarry wall and folds. It does not move again.')),
-        only(both, B('kael', 'You could have told me you were capable of that.')),
-        only(both, B('eiryn', 'I did.')),
-        only(both, B('kael', 'You said you could stop it.')),
-        only(both, B('eiryn', 'I stopped it.')),
+        only(hasEiryn, X('Eiryn draws the force into a narrow path. The warlord strikes the quarry wall hard enough to drive splintered stone from the rock face. It does not move again.')),
+        only((st) => !hasEiryn(st), X('The warlord staggers back into the quarry wall and folds. It does not move again.')),
         only(both, B('kael', 'You put it through a wall.')),
         only(both, B('eiryn', 'The wall was convenient.')),
         only((st) => !hasEiryn(st), S('kael', 'Remind me never to owe you money.')),
@@ -562,11 +555,10 @@
       type: 'scene', chapter: 'c5', bg: 'tavern', next: 'c6.road',
       lines: [
         B('miller', 'I didn’t know. I swear I didn’t know there was anything that big up there.'),
-        N('The Guild records the discrepancy and pays the contract with a hazard supplement.'),
-        EB('We should look for another contract once you’re fit.'),
+        X('The Guild records the discrepancy and pays the contract with a hazard supplement.'),
         KB('Something genuinely small this time.'),
         EB('I shall ask every skeleton I meet whether it has one hidden in a cupboard.'),
-        N('Far to the east, the Tower still stands. The road there starts at the Guild’s contract board.'),
+        X('Far to the east, the Tower still stands. The road there starts at the Guild’s contract board.'),
       ],
     },
     end: { type: 'end', chapter: 'c15', bg: 'tower' },
@@ -586,7 +578,7 @@
     const g = typeof self !== 'undefined' ? self : this;
     return g.TowBook && g.TowBook[id];
   }).filter(Boolean);
-  const H = { B, S, N, only, member, bookParty, BOOK };
+  const H = { B, S, N, X, P, only, member, bookParty, BOOK };
   for (const m of bookMods) {
     Object.assign(SPEAKERS, m.speakers || {});
     Object.assign(NODES, m.nodes ? m.nodes(H) : {});

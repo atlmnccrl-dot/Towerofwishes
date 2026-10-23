@@ -272,7 +272,7 @@
   const c5Home = tavernAuto(folkAt([meSeat('eiryn', 'eirynAsh'), { id: 'miller', key: 'miller', x: -1.0, y: 0.4, f: W }]), folkSetup().filter((a) => a.who !== 'spear').concat([seated('eiryn', 'sip', 'cup'), { who: 'kael', set: { gest: 'lean' } }]), {
     nodes: { 'c5.home': {
       0: { cam: { focus: ['miller', 'kael'], view: 5.4, ang: -0.3, pitch: 0.44, ease: 1.4 } },
-      5: { cam: { x: 5, y: -2, view: 7, ang: 0.3, pitch: 0.2, up: 2.4, ease: 3 }, do: [{ light: ['255,200,150', 0.12, 3] }] },
+      4: { cam: { x: 5, y: -2, view: 7, ang: 0.3, pitch: 0.2, up: 2.4, ease: 3 }, do: [{ light: ['255,200,150', 0.12, 3] }] },
     } },
   });
   const hireIntro = tavernAuto(folkAt([meSeat('eiryn', 'eirynAsh'), Object.assign({ id: 'ren', key: 'ren', notStarter: true }, at('ren')), Object.assign({ id: 'mara', key: 'mara', notStarter: true }, at('mara')), Object.assign({ id: 'brannoc', key: 'brannoc', notStarter: true }, at('brannoc'))]),
@@ -924,16 +924,6 @@
           { at: 0.25, who: 'goblin2', beaten: true, path: [[-6.8, 0.2], [-10.4, -0.4]], gait: 'run', speed: 5 },
           { at: 2.4, who: 'goblin', hide: true },
           { at: 2.6, who: 'goblin2', hide: true },
-        ],
-      },
-      // At least we found what they came for.
-      {
-        line: 'at least',
-        cam: { face: 'eiryn', side: 0.4, view: 3.2, up: 1.0, pitch: 0.42, ease: 0.8 },
-        do: [
-          { who: 'goblin', hide: true }, { who: 'goblin2', hide: true },
-          { who: 'eiryn', to: [3.6, -1.6], face: [4.6, -2.6] },
-          { at: 1.0, who: 'eiryn', say: 'At least we found what they came for.' },
         ],
       },
       // The wet earth by the deeper passage is churned by the same large tracks...
