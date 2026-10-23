@@ -79,3 +79,69 @@ One arena (a clearing). Kael and Eiryn fight the four bandits with their real cl
 
 Phone and PC, landscape. The combat logic has Node tests: no NaN, no timeouts, and a balance target agreed
 after the first look. It's published as a new artifact.
+
+
+---
+
+# Phase 2: a team builder (proposal, 2026-10-23)
+
+The author's direction: recruit characters, build a team of up to 5, fight campaign missions, level up,
+train, upgrade loot and learn abilities. A full game, using the available art (75 sprite sets and the
+effects pack). Decided so far:
+- **Recruits** are earned in missions, from a fixed pool: each character joins at a moment that fits them. You
+  beat them, rescue them, or finish their story mission. There's no randomness and no summoning.
+- **Setting:** a new, original world.
+- **Money:** built so in-app purchases could plug in later. No real payments now.
+- **Battles:** set the team and formation, then the fight plays itself.
+
+## The core loop
+
+Pick a mission on the campaign map → choose up to 5 units and place them on a 2 × 3 formation (front row
+takes the hits, back row shoots and heals) → the auto battle (×1/×2 speed, skip once a mission is
+cleared) → rewards (XP, gold, gear, materials, sometimes a recruit) → the camp, where you level up, train,
+upgrade gear and learn abilities → harder missions.
+
+## Systems
+
+- **Roster:** about 40 recruitable characters from the 75 sets. Town folk, guards, guild fighters, the old game's
+  heroes, a reformed bandit, a beastfolk pair, a golem, a knight from each order, a tamed night creature, the sky
+  beast, and the dragon at the very end.
+  - Each has a class: Vanguard, Striker, Ranger, Mystic or Support.
+  - Each has a base rarity and stats (HP, attack, defence, speed, crit), a basic attack, one active ability that
+    charges in battle, and a passive.
+- **Levels and promotion:** XP from missions and training raises the level. Promotion (★ to ★★★★★) uses
+  materials and raises the level cap.
+- **Abilities:** each unit learns new abilities at level milestones, choosing one of two at each step. Up to
+  three are equipped.
+- **Gear:** weapon, armour and charm, in rarities from common to legendary. They drop from missions and are
+  upgraded with gold and materials.
+- **Training grounds:** slots where idle units earn XP over real time.
+- **Campaign:** 6 regions of 8–10 missions, each ending in a boss.
+  - Each region has its own recruits and enemy families (bandits, the risen dead, beasts, frost knights,
+    spectres, the dragon's mountain).
+  - Cleared missions have a hard mode for better loot.
+- **Economy (purchase-ready):** gold is earned everywhere; gems are rare and earned in play now. A shop sells gear
+  crates, materials and training boosts for gems. Prices and products live in one catalogue that a real store
+  could connect to later.
+- **Saving:** on the device, with export and import. A cloud save comes with the app version.
+- **App readiness:**
+  - a first-time tutorial, settings (speed, effects, reduced motion) and credits;
+  - phone-first layout in landscape, an install-to-home-screen web app, and fast loading;
+  - a native wrapper for the App Store is a later step and needs a Mac with Xcode and an Apple developer account.
+
+## Milestones
+
+1. **Battle engine for 5 v 5.** Formations, classes, the ability types (area damage, heal, shield, stun, buffs and
+   debuffs, summons) and an enemy AI that uses them. About 12 playable units to start. Balance tests in Node.
+2. **The game loop.** The campaign map with region 1 and its recruits, team and formation selection, results and
+   rewards, and saving.
+3. **Progression.** Levels, gear and loot, upgrades, ability learning, training and promotion.
+4. **The world.** Regions 2–6 with their enemies, bosses, recruits, story beats and hard mode.
+5. **Ready to ship.** Shop and currencies, the tutorial, settings, polish and performance, and the installable
+   web app.
+
+## Open questions for the author
+
+- A name for the world and the game. (Proposal: the land of **Vael**, whose old kingdom fell and whose dead walk
+  the roads. You lead a new company of sellswords out of a border town.)
+- Do the old heroes (Kael, Eiryn, Aerys, Nox, Eloryn, Braxen) keep their names as characters in the new world?
