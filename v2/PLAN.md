@@ -135,9 +135,14 @@ upgrade gear and learn abilities → harder missions.
    debuffs, summons) and an enemy AI that uses them. About 12 playable units to start. Balance tests in Node.
    **Done (2026-10-23):** 13 recruits, 2 summons, 10 foes, 3 test waves, in a battle lab (team and formation,
    1×/2×/3× speed, results with damage, healing and MVP). Sprites load per battle; portraits come from one small atlas.
-2. **The game loop.** The campaign map with region 1 and its recruits, team and formation selection, results and
+2. **The game loop.** **Done with milestone 3 (2026-10-23):** title, camp, the Thornwick Road (10 missions, stars,
+   replays), recruits joining at set missions (8 in region 1; 3 to start), rewards, the company screen, saving.
+   Balance: `test/campaign-test.js` plays the region as a sensible player.
+   **The game loop.** The campaign map with region 1 and its recruits, team and formation selection, results and
    rewards, and saving.
-3. **Progression.** Levels, gear and loot, upgrades, ability learning, training and promotion.
+3. **Progression.** **Done (2026-10-23):** levels and XP (the bench earns 40%), gold, gear in three slots with four
+   tiers and upgrades to +5, selling, training ranks, and two ability upgrades (levels 4 and 8, one of two each).
+   **Progression.** Levels, gear and loot, upgrades, ability learning, training and promotion.
 4. **The world.** Regions 2–6 with their enemies, bosses, recruits, story beats and hard mode.
 5. **Ready to ship.** Shop and currencies, the tutorial, settings, polish and performance, and the installable
    web app.

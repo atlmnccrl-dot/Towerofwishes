@@ -1,7 +1,10 @@
 // The battle: two teams of up to five (plus summons) on a field, fully automatic.
 // Pure logic, no DOM; runs in the browser and in Node (test/).
 //
-//   const b = createBattle({ team: [{ key, slot, level }], wave: 'ambush', seed })
+//   const b = createBattle({ team: [{ key, slot, level, mods }], wave: 'ambush', seed })
+//   const b = createBattle({ team, foes: [[key, slot]], level, might, seed })   (a mission's own foes; might
+//                    scales their health, and their attack by 60% as much)
+//   mods: what gear, training and upgrades add (see statsAt)
 //   step(b, dt)      advance (call at a fixed 1/60 s)
 //   b.events         what happened this step, for the renderer
 //   b.result         null, then 'win' | 'lose' (the time limit counts as a loss)
@@ -18,29 +21,35 @@ export function rng(seed) {
 const dist = (a, b) => Math.hypot(b.x - a.x, b.y - a.y);
 const angTo = (a, b) => Math.atan2(b.y - a.y, b.x - a.x);
 
-// stats at a level: +8% per level over level 1
-export function statsAt(def, level = 1) {
+// stats at a level: +8% per level over level 1, then the passive and the mods (gear, training,
+// upgrades) on top. Percentages add up: hp, atk, def, spd, healPower, summonPower, power (the
+// ability's strength), energy (energy gained); flat: crit, dr, lifesteal, start (energy at the start).
+export const MOD_KEYS = ['hp', 'atk', 'def', 'spd', 'crit', 'dr', 'lifesteal', 'healPower', 'summonPower', 'power', 'energy', 'start'];
+export function statsAt(def, level = 1, mods = {}) {
   const s = def.stats, k = 1 + 0.08 * (level - 1), p = def.passive || {};
+  const m = (key) => (p[key] || 0) + (mods[key] || 0);
   return {
-    max: Math.round(s.hp * k * (1 + (p.hp || 0))), atk: s.atk * k * (1 + (p.atk || 0)), def: s.def * k * (1 + (p.def || 0)),
-    spd: s.spd * (1 + (p.spd || 0)), move: s.move, range: s.range, crit: s.crit + (p.crit || 0),
-    dr: p.dr || 0, heal: 1 + (p.healPower || 0), summon: 1 + (p.summonPower || 0),
+    max: Math.round(s.hp * k * (1 + m('hp'))), atk: s.atk * k * (1 + m('atk')), def: s.def * k * (1 + m('def')),
+    spd: s.spd * (1 + m('spd')), move: s.move, range: s.range, crit: Math.min(0.75, s.crit + m('crit')),
+    dr: Math.min(0.6, m('dr')), heal: 1 + m('healPower'), summon: 1 + m('summonPower'),
+    power: 1 + m('power'), energy: 1 + m('energy'), lifesteal: m('lifesteal'), start: m('start'),
   };
 }
 
-export function createBattle({ team, wave, seed = 1, foes }) {
-  const W = WAVES[wave];
+export function createBattle({ team, wave, seed = 1, foes, level, might = 1 }) {
+  const W = wave ? WAVES[wave] : { foes, level: level || 1 };
+  const foeMods = might !== 1 ? { hp: might - 1, atk: (might - 1) * 0.6 } : undefined;
   const b = { t: 0, rnd: rng(seed), units: [], shots: [], events: [], result: null, wave, field: FIELD, nextId: 1 };
-  for (const m of team) addUnit(b, UNITS[m.key], m.key, 'ally', SLOTS[m.slot], m.level || 1);
-  for (const [key, slot] of foes || W.foes) addUnit(b, ENEMIES[key], key, 'foe', SLOTS[slot], W.level);
+  for (const m of team) addUnit(b, UNITS[m.key], m.key, 'ally', SLOTS[m.slot], m.level || 1, null, m.mods);
+  for (const [key, slot] of foes || W.foes) addUnit(b, ENEMIES[key], key, 'foe', SLOTS[slot], W.level, null, foeMods);
   return b;
 }
 
-function addUnit(b, def, key, team, at, level, extra) {
-  const s = statsAt(def, level), side = team === 'ally' ? -1 : 1;
+function addUnit(b, def, key, team, at, level, extra, mods) {
+  const s = statsAt(def, level, mods), side = team === 'ally' ? -1 : 1;
   const u = Object.assign({
     id: key + '#' + b.nextId++, key, def, team, level, x: at[0] * side, y: at[1], f: team === 'ally' ? 0 : Math.PI, r: def.cls === 'vanguard' ? 0.42 : 0.36,
-    hp: s.max, max: s.max, s, state: 'idle', st: 0, atkCd: 0.2 + b.rnd() * 0.5, energy: Math.round(b.rnd() * 20),
+    hp: s.max, max: s.max, s, state: 'idle', st: 0, atkCd: 0.2 + b.rnd() * 0.5, energy: Math.min(100, Math.round(b.rnd() * 20 + s.start)),
     shield: 0, shieldT: 0, statuses: [], target: null, act: null, summoned: false, dealt: 0, healed: 0, taken: 0,
   }, extra);
   b.units.push(u);
@@ -152,7 +161,7 @@ function tickAttack(b, u, dt) {
       } else if (dist(u, t) <= u.s.range + t.r + 0.4) {
         b.events.push({ type: 'swing', u: u.id, fx: A.fx });
         if (a.heal) heal(b, u, t, 0.9); else damage(b, u, t, 1, { fx: A.fx });
-        u.energy = Math.min(100, u.energy + ENERGY_PER_ATTACK);
+        u.energy = Math.min(100, u.energy + ENERGY_PER_ATTACK * u.s.energy);
       }
     }
   }
@@ -168,7 +177,7 @@ function stepShots(b, dt) {
     if (d <= step + 0.2) {
       s.gone = true;
       b.events.push({ type: 'impact', x: t.x, y: t.y, fx: s.hit, heal: s.heal });
-      if (src) { if (s.heal) heal(b, src, t, 0.9); else damage(b, src, t, 1, { fx: s.hit }); src.energy = Math.min(100, src.energy + ENERGY_PER_ATTACK); }
+      if (src) { if (s.heal) heal(b, src, t, 0.9); else damage(b, src, t, 1, { fx: s.hit }); src.energy = Math.min(100, src.energy + ENERGY_PER_ATTACK * src.s.energy); }
     } else { s.x += Math.cos(s.a) * step; s.y += Math.sin(s.a) * step; }
   }
   b.shots = b.shots.filter((s) => !s.gone);
@@ -187,7 +196,8 @@ export function damage(b, src, t, m, o = {}) {
   t.hp = Math.max(0, t.hp - left);
   if (src) src.dealt += d;
   t.taken += d;
-  t.energy = Math.min(100, t.energy + (d / t.max) * ENERGY_FROM_DAMAGE);
+  t.energy = Math.min(100, t.energy + (d / t.max) * ENERGY_FROM_DAMAGE * t.s.energy);
+  if (src && src.s.lifesteal && !o.dot && alive(src)) { const got = Math.min(src.max - src.hp, Math.round(d * src.s.lifesteal)); src.hp += got; src.healed += got; }
   b.events.push({ type: 'hit', u: t.id, src: src && src.id, dmg: d, crit, shielded: left < d, fx: o.fx, dot: o.dot });
   if (t.hp <= 0) { t.state = 'ko'; t.st = 0; t.act = null; t.statuses = []; t.shield = 0; b.events.push({ type: 'ko', u: t.id }); }
   else if (!o.dot) t.hitT = 0.22; // a short flinch for the renderer; it does not interrupt the unit
@@ -223,7 +233,7 @@ function resolve(b, u, t) {
     } else if (e.type === 'damage') {
       const hitList = targetsFor(b, u, t, e, foes);
       for (const v of hitList) {
-        for (let i = 0; i < (e.hits || 1); i++) damage(b, u, v, e.mult, { fx: ab.fx });
+        for (let i = 0; i < (e.hits || 1); i++) damage(b, u, v, e.mult * u.s.power, { fx: ab.fx });
         if (!alive(v)) continue;
         if (e.stun && !v.def.boss) addStatus(v, { type: 'stun', t: e.stun });
         else if (e.stun) addStatus(v, { type: 'stun', t: e.stun * 0.4 });
@@ -232,11 +242,11 @@ function resolve(b, u, t) {
       }
     } else if (e.type === 'heal') {
       const list = e.area === 'allAllies' ? allies : e.area === 'self' ? [u] : [allies.slice().sort((p, q) => p.hp / p.max - q.hp / q.max)[0]];
-      for (const a of list) heal(b, u, a, e.mult);
+      for (const a of list) heal(b, u, a, e.mult * u.s.power);
     } else if (e.type === 'shield') {
-      for (const a of e.area === 'allAllies' ? allies : [u]) { a.shield = Math.max(a.shield, Math.round(a.max * e.pct)); a.shieldT = e.dur; b.events.push({ type: 'shield', u: a.id }); }
+      for (const a of e.area === 'allAllies' ? allies : [u]) { a.shield = Math.max(a.shield, Math.round(a.max * e.pct * u.s.power)); a.shieldT = e.dur; b.events.push({ type: 'shield', u: a.id }); }
     } else if (e.type === 'buff') {
-      for (const a of e.area === 'allAllies' ? allies : [u]) addStatus(a, { type: 'buff', stat: e.stat, pct: e.pct, t: e.dur });
+      for (const a of e.area === 'allAllies' ? allies : [u]) addStatus(a, { type: 'buff', stat: e.stat, pct: e.pct * (1 + (u.s.power - 1) * 0.5), t: e.dur });
     } else if (e.type === 'debuff') {
       for (const v of e.area === 'allEnemies' ? foes : t ? [t] : []) if (alive(v)) addStatus(v, { type: 'debuff', stat: e.stat, pct: e.pct, t: e.dur });
     } else if (e.type === 'taunt') addStatus(u, { type: 'taunt', t: e.dur });
@@ -248,7 +258,7 @@ function resolve(b, u, t) {
         const a = u.f + (i ? 0.9 : -0.9) * (e.n > 1 ? 1 : 0);
         const m = addUnit(b, def, e.key, u.team, [0, 0], u.level, { summoned: true });
         m.x = u.x + Math.cos(a) * 1.2; m.y = u.y + Math.sin(a) * 1.2; m.f = u.f;
-        m.max = m.hp = Math.round(m.max * u.s.summon); m.s.atk *= u.s.summon;
+        m.max = m.hp = Math.round(m.max * u.s.summon * u.s.power); m.s.atk *= u.s.summon * u.s.power;
         b.events.push({ type: 'summon', u: m.id });
       }
     }

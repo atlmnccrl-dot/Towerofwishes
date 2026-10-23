@@ -1,136 +1,101 @@
-// Vael Company, the battle lab: pick up to five recruits, place them in a 2x3 formation, choose a
-// wave, and watch the battle play itself. Sprites load per battle (only the sets on the field).
+// Vael: boot, the screens and the loop. The title and the camp share the campfire scene; the
+// campaign map leads to a mission's team screen, the battle, and its rewards. The save lives in
+// localStorage ('vael.save'); sprites load per screen (only the sets it shows).
 import { createBattle, step, TIME_LIMIT } from './combat/battle.js';
-import { UNITS, ENEMIES, SUMMONS, WAVES, CLASSES } from './data/units.js';
+import { UNITS, ENEMIES, SUMMONS } from './data/units.js';
+import { missionById, nextMission, PREMISE, START_ROSTER } from './data/campaign.js';
+import * as P from './game/progress.js';
 import { loadSprites, loadFx } from './render/assets.js';
 import { createView } from './render/view.js';
+import { createCamp } from './render/camp.js';
+import { $, h, setPortraits, toast, goldIcon, face } from './ui/common.js';
+import { renderCompany } from './ui/company.js';
+import { renderMap, renderPrep, renderRewards } from './ui/campaign.js';
 
-const DT = 1 / 60, MAX_TEAM = 5, SPEEDS = [1, 2, 3];
-const $ = (s) => document.querySelector(s);
-const canvas = $('#stage');
-const KEYS = Object.keys(UNITS);
-// slots 0-2 are the front row, 3-5 the back row; on screen the back row is the left column
-const SLOT_GRID = [[3, 0], [0, 0], [4, 1], [1, 1], [5, 2], [2, 2]].map(([slot]) => slot);
-
-let portraits = null, fxAtlas = null, view = null;
+const DT = 1 / 60, SPEEDS = [1, 2, 3], KEY = 'vael.save';
+const stage = $('#stage'), bg = $('#bg');
 const sprites = {};
-let save = { team: [], wave: 'ambush', speed: 1 };
-try { Object.assign(save, JSON.parse(localStorage.getItem('vael.lab') || '{}')); } catch (e) { /* storage may be blocked */ }
-if (!save.team.length) save.team = [{ key: 'corvin', slot: 1 }, { key: 'brann', slot: 0 }, { key: 'ysolde', slot: 4 }, { key: 'maren', slot: 3 }, { key: 'saela', slot: 5 }];
-save.team = save.team.filter((m) => UNITS[m.key] && m.slot >= 0 && m.slot < 6);
-if (!WAVES[save.wave]) save.wave = 'ambush';
-const persist = () => { try { localStorage.setItem('vael.lab', JSON.stringify(save)); } catch (e) { /* fine without */ } };
+let view = null, camp = null, screen = 'loading', battle = null, missionId = null, acc = 0, last = 0, ended = false, castKey = '';
 
-let battle = null, acc = 0, last = 0, running = false, selSlot = null, focus = save.team[0] ? save.team[0].key : KEYS[0];
+// ---- the save
+let hasSave = false;
+function readSave() { try { const raw = localStorage.getItem(KEY); hasSave = !!raw; return P.loadSave(raw ? JSON.parse(raw) : null); } catch (e) { return P.newSave(); } }
+const game = {
+  save: readSave(),
+  persist() { try { localStorage.setItem(KEY, JSON.stringify(game.save)); hasSave = true; } catch (e) { /* storage may be blocked: play on without saving */ } },
+  go, from: 'camp',
+};
 
-// ---- a portrait from the atlas, at any size
-function face(set, size = 32) {
-  const el = document.createElement('div'); el.className = 'face';
-  const p = portraits.sets[set] || [0, 0], k = size / portraits.cell;
-  Object.assign(el.style, { width: size + 'px', height: size + 'px', backgroundSize: `${portraits.w * k}px ${portraits.h * k}px`, backgroundPosition: `-${p[0] * k}px -${p[1] * k}px` });
-  return el;
-}
-const clsColor = (cls) => `var(--${cls})`;
-
-// ---- the team screen
-function renderTeam() {
-  const at = (slot) => save.team.find((m) => m.slot === slot);
-  const slots = $('#slots'); slots.innerHTML = '';
-  for (const slot of SLOT_GRID) {
-    const m = at(slot), b = document.createElement('div');
-    b.className = 'slot' + (m ? ' filled' : '') + (selSlot === slot ? ' sel' : '');
-    b.setAttribute('role', 'button'); b.tabIndex = 0;
-    if (m) {
-      const d = UNITS[m.key]; b.style.setProperty('--c', clsColor(d.cls));
-      b.append(face(d.set, 30));
-      const t = document.createElement('div'); t.style.minWidth = '0';
-      t.innerHTML = `<div class="nm">${d.name}</div><div class="cls" style="--c:${clsColor(d.cls)}">${CLASSES[d.cls].name}</div>`;
-      b.append(t);
-      const x = document.createElement('button'); x.className = 'x'; x.type = 'button'; x.textContent = '×'; x.setAttribute('aria-label', 'Remove ' + d.name);
-      x.addEventListener('click', (e) => { e.stopPropagation(); save.team = save.team.filter((q) => q !== m); selSlot = null; persist(); renderTeam(); });
-      b.append(x);
-      b.setAttribute('aria-label', `${d.name}, ${slot < 3 ? 'front' : 'back'} row`);
-    } else { b.innerHTML = '<span class="empty">empty</span>'; b.setAttribute('aria-label', `Empty ${slot < 3 ? 'front' : 'back'} slot`); }
-    b.addEventListener('click', () => tapSlot(slot));
-    slots.append(b);
-  }
-  const roster = $('#roster'); roster.innerHTML = '';
-  for (const key of KEYS) {
-    const d = UNITS[key], inTeam = save.team.some((m) => m.key === key), c = document.createElement('button');
-    c.type = 'button'; c.className = 'card' + (inTeam ? ' in' : '') + (focus === key ? ' focus' : '');
-    c.style.setProperty('--c', clsColor(d.cls)); c.setAttribute('aria-pressed', String(inTeam));
-    c.append(face(d.set, 32));
-    const t = document.createElement('div');
-    t.innerHTML = `<span class="nm">${d.name}</span><span class="cls" style="--c:${clsColor(d.cls)}">${CLASSES[d.cls].name}</span>`;
-    c.append(t);
-    c.addEventListener('click', () => tapCard(key));
-    roster.append(c);
-  }
-  const d = UNITS[focus];
-  $('#detail').innerHTML = d ? `<div class="t">${d.name}<small>${CLASSES[d.cls].name} · ${d.title}</small></div>
-    <div class="ab"><b>${d.ability.name}.</b> ${d.ability.desc}</div>${d.passive ? `<div class="ps">${d.passive.name}: ${d.passive.desc}</div>` : ''}` : '';
-  const waves = $('#waves'); waves.innerHTML = '';
-  for (const [k, w] of Object.entries(WAVES)) {
-    const b = document.createElement('button'); b.type = 'button'; b.className = 'wave'; b.textContent = w.name; b.setAttribute('aria-pressed', String(save.wave === k));
-    b.addEventListener('click', () => { save.wave = k; persist(); renderTeam(); });
-    waves.append(b);
-  }
-  $('#count').textContent = `${save.team.length} / ${MAX_TEAM}`;
-  $('#fight').disabled = !save.team.length;
-}
-function tapCard(key) {
-  focus = key;
-  const m = save.team.find((q) => q.key === key);
-  if (m) { selSlot = selSlot === m.slot ? null : m.slot; }
-  else if (save.team.length < MAX_TEAM) {
-    // front row for those who hold or hunt, back row for the rest; the other row if that one is full
-    const front = ['vanguard', 'striker'].includes(UNITS[key].cls), order = front ? [1, 0, 2, 4, 3, 5] : [4, 3, 5, 1, 0, 2];
-    const slot = selSlot != null && !save.team.some((q) => q.slot === selSlot) ? selSlot : order.find((s) => !save.team.some((q) => q.slot === s));
-    save.team.push({ key, slot }); selSlot = null; persist();
-  }
-  renderTeam();
-}
-function tapSlot(slot) {
-  const here = save.team.find((m) => m.slot === slot);
-  if (selSlot == null) { selSlot = slot; if (here) focus = here.key; }
-  else if (selSlot === slot) selSlot = null;
-  else {
-    // move or swap the selected slot's unit here
-    const from = save.team.find((m) => m.slot === selSlot);
-    if (from) { if (here) here.slot = selSlot; from.slot = slot; persist(); selSlot = null; }
-    else { selSlot = slot; if (here) focus = here.key; }
-  }
-  renderTeam();
+// ---- screens
+const SECTIONS = ['title', 'premise', 'camp', 'map', 'prep', 'company'];
+function go(name, arg) {
+  // the company screen returns to where it was opened from (after a battle: the map)
+  if (name === 'company' && screen !== 'company') game.from = screen === 'battle' ? 'map' : screen;
+  screen = name;
+  for (const s of SECTIONS) $('#' + s).hidden = s !== name;
+  bg.hidden = !['title', 'premise', 'camp'].includes(name);
+  stage.hidden = $('#hud').hidden = name !== 'battle';
+  $('#result').hidden = true; $('#join').hidden = true; $('#loading').hidden = true;
+  if (name === 'title') renderTitle();
+  if (name === 'camp') renderCamp();
+  if (name === 'map') renderMap(game, arg);
+  if (name === 'prep') { missionId = arg; renderPrep(game, arg); }
+  if (name === 'company') renderCompany(game, arg);
+  if (!bg.hidden) { camp.resize(); refreshCast(); }
 }
 
-// ---- battle
-function setsFor(team, wave) {
-  const defs = [...team.map((m) => UNITS[m.key]), ...WAVES[wave].foes.map(([k]) => ENEMIES[k])];
+function renderTitle() {
+  $('#t-continue').hidden = !hasSave;
+  $('#t-new').classList.toggle('primary', !hasSave);
+  $('#t-continue').classList.toggle('primary', hasSave);
+}
+function renderCamp() {
+  const s = game.save, next = nextMission(s.cleared);
+  $('#k-gold').replaceChildren(goldIcon(), String(s.gold));
+  $('#k-next').textContent = next ? `Next: ${next.name}` : 'The road is clear. More to come.';
+  const pend = Object.keys(s.roster).some((k) => P.pendingUpgrade(s, k) >= 0);
+  $('#k-company-dot').hidden = !pend;
+  $('#k-company-sub').textContent = `${Object.keys(s.roster).length} recruits · ${s.inv.length} items`;
+  const team = $('#k-team'); team.replaceChildren();
+  for (const t of s.team) { const d = UNITS[t.key]; team.append(h('div.tchip', { vars: { '--c': `var(--${d.cls})` } }, face(d.set, 26), h('span', null, d.name.split(' ')[0], h('small', null, 'Lv ' + s.roster[t.key].level)))); }
+}
+
+// the campfire shows whoever has joined (the first three before a game starts)
+async function refreshCast() {
+  const keys = screen === 'title' && !hasSave ? START_ROSTER : Object.keys(game.save.roster);
+  const sets = keys.map((k) => UNITS[k].set), key = sets.join();
+  if (key === castKey) return; castKey = key;
+  const need = sets.filter((s) => !sprites[s]);
+  if (need.length) Object.assign(sprites, await loadSprites(need));
+  if (castKey === key) camp.setCast(sets.map((s) => sprites[s]));
+}
+
+// ---- the battle
+function setsFor(team, foes) {
+  const defs = [...team.map((t) => UNITS[t.key]), ...foes.map(([k]) => ENEMIES[k])];
   const out = new Set(defs.map((d) => d.set));
   for (const d of defs) for (const e of d.ability ? d.ability.effects : []) if (e.type === 'summon') out.add(SUMMONS[e.key].set);
   return [...out];
 }
-async function startBattle() {
-  if (!save.team.length) return;
-  show('loading'); $('#loading').textContent = 'Marching out…';
-  const need = setsFor(save.team, save.wave).filter((s) => !sprites[s]);
-  Object.assign(sprites, await loadSprites(need));
-  battle = createBattle({ team: save.team.map((m) => ({ key: m.key, slot: m.slot, level: 1 })), wave: save.wave, seed: (Math.random() * 1e9) | 0 });
+async function fight() {
+  const s = game.save, m = missionById(missionId);
+  if (!s.team.length) { toast('Pick at least one recruit'); return; }
+  $('#loading').textContent = 'Marching out…'; $('#loading').hidden = false;
+  const need = setsFor(s.team, m.foes).filter((x) => !sprites[x]);
+  try { Object.assign(sprites, await loadSprites(need)); } catch (e) { $('#loading').textContent = 'Could not load the art: ' + e.message; return; }
+  battle = createBattle({ team: P.teamFor(s), foes: m.foes, level: m.level, might: m.might || 1, seed: (Math.random() * 1e9) | 0 });
+  battle.theme = m.theme;
   view.setSprites(sprites); view.reset();
   buildAllies();
-  $('#wavename').textContent = WAVES[save.wave].name;
-  show('battle'); view.resize();
-  acc = 0; last = 0;
-  if (!running) { running = true; requestAnimationFrame(frame); }
+  $('#wavename').textContent = m.name;
+  go('battle'); view.resize();
+  acc = 0; ended = false;
 }
 function buildAllies() {
-  const el = $('#allies'); el.innerHTML = '';
+  const el = $('#allies'); el.replaceChildren();
   for (const u of battle.units.filter((u) => u.team === 'ally')) {
-    const c = document.createElement('div'); c.className = 'chip'; c.dataset.id = u.id;
-    c.append(face(u.def.set, 26));
-    const t = document.createElement('div');
-    t.innerHTML = `<span class="nm">${u.def.name.split(' ')[0]}</span><div class="bar"><i class="hp"></i><i class="sh"></i></div><div class="bar en"><i></i></div>`;
-    c.append(t); el.append(c); u._chip = c;
+    const c = h('div.chip', null, face(u.def.set, 26), h('div.ci', null, h('span.nm', null, u.def.name.split(' ')[0]), h('div.bar', null, h('i.hp'), h('i.sh')), h('div.bar.en', null, h('i'))));
+    el.append(c); u._chip = c;
   }
 }
 function updateHud() {
@@ -144,72 +109,72 @@ function updateHud() {
   }
   $('#clock').textContent = `${Math.max(0, Math.ceil(TIME_LIMIT - battle.t))} s`;
 }
+function finish() {
+  if (screen !== 'battle' || !battle) return;
+  const rw = P.grantRewards(game.save, missionId, battle, Math.random);
+  game.persist();
+  renderRewards(game, battle, rw, missionId);
+}
+
+// ---- the loop
 function frame(now) {
-  if (!running) return;
   const real = Math.min(0.05, (now - (last || now)) / 1000); last = now;
-  const speed = save.speed || 1;
-  acc += real * speed;
-  let events = [], ended = false;
-  while (acc >= DT) { step(battle, DT); events = events.concat(battle.events); acc -= DT; if (events.some((e) => e.type === 'end')) ended = true; }
-  battle.events = events;
-  view.draw(battle, real * speed);
-  battle.events = [];
-  updateHud();
-  if (ended) setTimeout(showResult, 1400);
+  if (screen === 'battle' && battle) {
+    const speed = game.save.speed || 1;
+    acc += real * speed;
+    let events = [];
+    while (acc >= DT) { step(battle, DT); events = events.concat(battle.events); acc -= DT; }
+    if (!ended && events.some((e) => e.type === 'end')) { ended = true; setTimeout(finish, 1400); }
+    battle.events = events;
+    view.draw(battle, real * speed);
+    battle.events = [];
+    updateHud();
+  } else if (!bg.hidden) camp.draw(real);
   requestAnimationFrame(frame);
 }
-function showResult() {
-  if (!battle || !battle.result) return;
-  const win = battle.result === 'win', timeout = !win && battle.t >= TIME_LIMIT - 0.01;
-  $('#rtitle').textContent = win ? 'Victory' : timeout ? 'Time ran out' : 'Defeat';
-  $('#rtitle').className = win ? 'win' : '';
-  const foes = battle.units.filter((u) => u.team === 'foe' && !u.summoned);
-  $('#rsub').textContent = `${WAVES[battle.wave].name} · ${Math.round(battle.t)} s · ${foes.filter((u) => u.state === 'ko').length} of ${foes.length} foes down`;
-  const allies = battle.units.filter((u) => u.team === 'ally' && !u.summoned);
-  const top = Math.max(1, ...allies.map((u) => Math.max(u.dealt, u.healed)));
-  const mvp = allies.reduce((a, u) => (u.dealt + u.healed * 1.2 > a.dealt + a.healed * 1.2 ? u : a), allies[0]);
-  const rows = $('#rrows'); rows.innerHTML = '';
-  for (const u of allies) {
-    const r = document.createElement('div'); r.className = 'rrow';
-    r.append(face(u.def.set, 26));
-    const n = document.createElement('div'); n.className = 'nm'; n.innerHTML = `${u.def.name.split(' ')[0]}${u === mvp ? '<span class="mvp">MVP</span>' : ''}`;
-    if (u.state === 'ko') n.style.opacity = '0.6';
-    r.append(n);
-    const bars = document.createElement('div'); bars.className = 'rbars';
-    bars.innerHTML = `<div class="rb"><i style="width:${(u.dealt / top) * 100}%"></i>${Math.round(u.dealt)}</div>` + (u.healed ? `<div class="rb h"><i style="width:${(u.healed / top) * 100}%"></i>+${Math.round(u.healed)}</div>` : '');
-    r.append(bars); rows.append(r);
-  }
-  $('#result').hidden = false;
-}
-function leaveBattle() { running = false; battle = null; renderTeam(); show('team'); }
 
-// ---- screens
-function show(name) {
-  $('#team').hidden = name !== 'team';
-  canvas.hidden = $('#hud').hidden = name !== 'battle';
-  $('#result').hidden = true;
-  $('#loading').hidden = name !== 'loading';
-}
-
-$('#fight').addEventListener('click', startBattle);
-$('#again').addEventListener('click', startBattle);
-$('#toteam').addEventListener('click', leaveBattle);
-$('#leave').addEventListener('click', leaveBattle);
-$('#speed').addEventListener('click', () => {
-  save.speed = SPEEDS[(SPEEDS.indexOf(save.speed) + 1) % SPEEDS.length] || 1; persist();
-  $('#speed').textContent = save.speed + '×';
+// ---- buttons
+$('#t-continue').addEventListener('click', () => go('camp'));
+$('#t-new').addEventListener('click', () => {
+  if (hasSave && $('#t-confirm').hidden) { $('#t-confirm').hidden = false; return; }
+  newGame();
 });
+$('#t-confirm-yes').addEventListener('click', newGame);
+$('#t-confirm-no').addEventListener('click', () => ($('#t-confirm').hidden = true));
+function newGame() { $('#t-confirm').hidden = true; game.save = P.newSave(); game.persist(); castKey = ''; $('#premise-text').textContent = PREMISE; go('premise'); }
+$('#premise-go').addEventListener('click', () => go('camp'));
+$('#k-campaign').addEventListener('click', () => go('map'));
+$('#k-company').addEventListener('click', () => go('company'));
+$('#k-title').addEventListener('click', () => go('title'));
+for (const b of document.querySelectorAll('.open-settings')) b.addEventListener('click', () => { $('#settings').hidden = false; $('#reset-confirm').hidden = true; });
+$('#set-close').addEventListener('click', () => ($('#settings').hidden = true));
+$('#set-reset').addEventListener('click', () => ($('#reset-confirm').hidden = false));
+$('#reset-no').addEventListener('click', () => ($('#reset-confirm').hidden = true));
+$('#reset-yes').addEventListener('click', () => { try { localStorage.removeItem(KEY); } catch (e) { /* fine */ } game.save = P.newSave(); hasSave = false; castKey = ''; $('#settings').hidden = true; go('title'); });
+$('#m-back').addEventListener('click', () => go('camp'));
+$('#m-company').addEventListener('click', () => go('company'));
+$('#p-back').addEventListener('click', () => go('map', missionId));
+$('#p-company').addEventListener('click', () => go('company'));
+$('#p-fight').addEventListener('click', fight);
+$('#c-back').addEventListener('click', () => go(game.from || 'camp', game.from === 'prep' ? missionId : undefined));
+$('#leave').addEventListener('click', () => { battle = null; go('prep', missionId); });
+$('#speed').addEventListener('click', () => {
+  game.save.speed = SPEEDS[(SPEEDS.indexOf(game.save.speed) + 1) % SPEEDS.length] || 1; game.persist();
+  $('#speed').textContent = game.save.speed + '×';
+});
+window.addEventListener('resize', () => { if (screen === 'battle') view.resize(); else if (!bg.hidden) camp.resize(); if (screen === 'map') renderMap(game); });
 
 async function boot() {
   const [p, fx] = await Promise.all([fetch('assets/portraits.json').then((r) => r.json()), loadFx(),
-    new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ok; i.src = 'assets/portraits.png'; })]);
-  portraits = Object.assign(p, { w: 256, h: Math.ceil(Object.keys(p.sets).length / 8) * p.cell });
-  fxAtlas = fx;
-  view = createView(canvas, fxAtlas);
-  window.addEventListener('resize', () => view.resize());
-  $('#speed').textContent = (save.speed || 1) + '×';
-  renderTeam(); show('team');
+    new Promise((ok) => { const i = new Image(); i.onload = ok; i.onerror = ok; i.src = 'assets/portraits.png'; })]);
+  setPortraits(Object.assign(p, { w: 256, h: Math.ceil(Object.keys(p.sets).length / 8) * p.cell }));
+  view = createView(stage, fx); camp = createCamp(bg, fx);
+  $('#speed').textContent = (game.save.speed || 1) + '×';
+  go('title');
+  requestAnimationFrame(frame);
 }
 
-window.__v2 = { get battle() { return battle; }, get save() { return save; }, startBattle, leaveBattle, renderTeam };
+// for the tests: the game, the screens, and a way to run a battle to its end at once
+window.__v2 = { game, get battle() { return battle; }, get screen() { return screen; }, go, fight, finish,
+  skip() { if (!battle) return; while (!battle.result) step(battle, DT); if (!ended) { ended = true; setTimeout(finish, 200); } } };
 boot().catch((e) => { $('#loading').textContent = 'Could not load: ' + e.message; });
