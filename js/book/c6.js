@@ -191,10 +191,10 @@
           8: { cam: { focus: ['aerys', 'kael'], view: 5, ang: -0.4, pitch: 0.42, up: 0.6, ease: 0.8 }, do: [{ who: 'aerys', state: 'idle', hold: true }, { at: 0.6, who: 'aerys', pfx: { name: 'charge_up', z: 0.9, scale: 1, life: 1.6, follow: true, add: true } }, { at: 1.8, cam: { focus: ['eiryn'], view: 4.6, ang: -0.4, pitch: 0.42, up: 0.6, ease: 1.0 } }, { at: 1.8, who: 'eiryn', face: 'sky' }] },
         } },
       }),
-      'c6.after': auto('grassland', [K(1.2, 0.8, -0.4, { armed: true }), E(-0.6, 1.6, -0.2), AE(-1.0, -0.4, 0.4), { id: 'sky', key: 'skyreaver', x: 3.8, y: -2.6, f: 2.6 }], {
+      'c6.after': auto('grassland', [K(1.2, 0.8, -0.4, { armed: true }), E(-0.6, 1.6, -0.2), AE(-1.0, -0.4, 0.4), { id: 'sky', key: 'skyreaver', x: 6.8, y: -3.4, f: 2.6 }], {
         nodes: {
           'c6.after': {
-            0: { cam: { x: 3.4, y: -2.0, view: 8, ang: -0.3, pitch: 0.42, up: 0.4, ease: 1.2 }, do: [{ who: 'sky', state: 'stagger', dur: 0.6 }, { at: 0.6, who: 'sky', drop: [1.6, 0.5] }, { at: 1.1, who: 'sky', state: 'down', hold: true }, { at: 1.1, shake: 9 }, { at: 1.1, pfx: { name: 'dust_cloud', x: 3.8, y: -2.6, scale: 3 } }, { who: 'kael', state: 'recover', dur: 1.2 }] },
+            0: { cam: { x: 5.0, y: -2.4, view: 9, ang: -0.3, pitch: 0.42, up: 0.4, ease: 1.2 }, do: [{ who: 'sky', state: 'stagger', dur: 0.6 }, { at: 0.6, who: 'sky', drop: [1.6, 0.5] }, { at: 1.1, who: 'sky', state: 'down', hold: true }, { at: 1.1, shake: 9 }, { at: 1.1, pfx: { name: 'dust_cloud', x: 6.8, y: -3.4, scale: 3 } }, { who: 'kael', state: 'recover', dur: 1.2 }] },
             1: { cam: { across: ['aerys', 'kael'], side: -0.3, focus: ['aerys', 'kael'], view: 4.6, pitch: 0.42, up: 0.4, ease: 1.0 }, do: [{ who: 'kael', set: { gest: null } }, { at: 0.6, who: 'aerys', face: 'kael' }] },
           },
           'c6.join': {
