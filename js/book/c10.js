@@ -153,7 +153,7 @@
         nodes: { 'c10.shadow': {
           0: { cam: { focus: ['kael', 'nox'], view: 7, ang: -0.3, pitch: 0.44, ease: 0.9 }, do: [{ who: 'nox', to: [3.2, -2.6], gait: 'back', speed: 1.4 }, { at: 1.8, who: 'nox', hide: true }] },
           1: { cam: { x: 3.4, y: -3.4, view: 6, ang: -0.2, pitch: 0.36, up: 1.2, ease: 1.6 }, do: [{ who: 'nox', put: [3.4, -3.4], show: true, face: [-3, 1] }] },
-          2: { cam: { focus: ['aerys', 'kael'], view: 5, ang: -0.3, pitch: 0.44, ease: 1.2 } },
+          2: { cam: { focus: ['aerys', 'kael'], view: 5, ang: -0.3, pitch: 0.44, ease: 1.2 }, do: [{ who: 'kael', set: { stow: true } }] },
         } },
       }),
       'c10.camp': auto('nightcamp', [

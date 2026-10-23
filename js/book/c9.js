@@ -144,6 +144,8 @@
         noFace: true,
         nodes: { 'c9.thuds': {
           0: { cam: { focus: ['kael', 'aerys', 'eloryn', 'eiryn'], view: 8, ang: -0.6, pitch: 0.46, ease: 1.0 }, do: [{ shake: 3 }, { at: 0.6, shake: 3 }] },
+          1: { cam: { face: 'kael', side: 0.4, view: 3.4, up: 1.0, pitch: 0.42, ease: 0.8 }, do: [{ who: 'kael', set: { stow: false, gest: null }, face: [8, 0] }, { who: 'kael', to: [-4.6, 1.2], speed: 0.8 }] },
+          2: { cam: { focus: ['kael', 'aerys', 'eloryn', 'eiryn'], dx: 2, view: 9, ang: -0.5, pitch: 0.46, ease: 1.4 }, do: [{ who: 'kael', to: [-2.6, 1.0], speed: 0.8 }, { who: 'aerys', to: [-3.8, 0.4], speed: 0.8 }, { who: 'eloryn', to: [-4.6, 1.4], speed: 0.8 }, { who: 'eiryn', to: [-5.6, 0.6], speed: 0.8 }] },
           3: { cam: { focus: ['braxen'], dx: -1, view: 5.5, ang: -0.3, pitch: 0.4, up: 0.8, ease: 1.2 }, do: [{ who: 'braxen', show: true }, { who: 'braxen', set: { stow: true, gest: null } }] },
           4: { cam: { across: ['kael', 'braxen'], focus: ['kael', 'braxen'], view: 8, ang: -0.4, pitch: 0.44, ease: 1.0 }, do: [{ who: 'kael', to: [-0.6, 0.8], speed: 0.9 }] },
         } },
@@ -152,19 +154,31 @@
         nodes: { 'c9.stranger': {
           0: { cam: { focus: ['braxen', 'kael'], view: 6, ang: -0.4, pitch: 0.42, ease: 0.9 }, do: [{ who: 'kael', set: { stow: false, gest: null } }, { who: 'aerys', set: { stow: false } }] },
           6: { cam: { face: 'braxen', side: 0.3, view: 3.4, up: 1.1, pitch: 0.42, ease: 0.8 }, do: [{ shake: 4 }, { at: 0.6, shake: 4 }] },
-} },
+          7: { cam: { focus: ['braxen', 'kael'], dx: 2.5, view: 8, ang: -0.4, pitch: 0.44, ease: 1.0 }, do: [{ shake: 3 }, { at: 0.5, who: 'eloryn', state: 'hurt', dur: 0.5 }, { at: 1.0, who: 'braxen', face: [8, 0] }, { at: 1.0, who: 'kael', icon: '!' }] },
+          8: { cam: { face: 'braxen', side: -0.3, view: 3.6, up: 1.0, pitch: 0.42, ease: 0.9 }, do: [{ at: 0.8, who: 'braxen', to: [1.4, 0.4], speed: 0.8, face: [8, 0] }] },
+        } },
       }),
       'c9.after': auto('farmland', [K(-0.2, 1.4, 0.1), AE(-2.0, 0.2, 0.1), EL(1.2, 0.2, 3.4), E(-3.0, 1.4, 0.1), BR(2.0, 0.0, 2.9)], {
         nodes: { 'c9.after': {
           0: { cam: { focus: ['eloryn', 'braxen'], view: 4.6, ang: -0.3, pitch: 0.44, up: 0.4, ease: 0.9 }, do: [{ who: 'braxen', state: 'sit', hold: true }, { who: 'eloryn', state: 'pickup', dur: 4 }, { at: 0.8, fx: { type: 'heal', unit: 'eloryn', target: 'braxen', amt: 0 } }, { at: 0.8, light: ['150,230,200', 0.2, 0.7] }] },
-} },
+          2: { cam: { focus: ['eiryn', 'braxen'], view: 4.4, ang: -0.3, pitch: 0.44, up: 0.5, ease: 0.9 }, do: [{ who: 'eiryn', to: [0.4, 1.6], speed: 0.8, face: 'braxen' }] },
+          5: { cam: { face: 'kael', side: 0.35, view: 3.2, up: 1.0, pitch: 0.42, ease: 0.9 }, do: [{ who: 'kael', set: { stow: false, gest: null }, face: 'braxen' }, { who: 'kael', to: [0.4, 0.6], speed: 0.7 }, { at: 2.4, who: 'kael', set: { stow: true } }] },
+        },
+        'c9.name': {
+          1: { cam: { focus: ['braxen', 'eloryn'], view: 4.6, ang: -0.3, pitch: 0.44, up: 0.7, ease: 0.9 }, do: [{ at: 0.6, who: 'braxen', state: 'idle', hold: true }, { at: 0.6, who: 'eloryn', state: 'idle', hold: true }] },
+          5: { cam: { focus: ['kael', 'aerys', 'eloryn', 'eiryn', 'braxen'], view: 8, ang: -0.5, pitch: 0.48, drift: 0.02, ease: 1.4 }, do: [{ who: 'aerys', to: [-0.6, 0.0], speed: 0.8, face: 'braxen' }, { who: 'eiryn', face: 'braxen' }] },
+        } },
       }),
       'c9.name': 'same',
       'c9.nox': auto('farmland', [K(-1.0, 1.2, 0.1, { armed: true }), AE(-2.6, 0.4, 0.1), EL(-3.2, 1.6, 0.1), E(-4.2, 0.6, 0.1), BR(1.6, 0.4, 3.1), NX(1.0, -3.5, 3.1, { hidden: true, armed: true })], {
         nodes: { 'c9.nox': {
           0: { cam: { focus: ['braxen', 'nox'], view: 6, ang: -0.3, pitch: 0.4, up: 0.6, ease: 0.5 }, do: [{ who: 'nox', show: true, put: [1.0, -4.0] }, { who: 'nox', set: { stow: false, gest: null }, to: [2.3, 0.4], gait: 'dash', speed: 8, face: 'braxen' }, { at: 0.4, shake: 5 }, { at: 0.4, who: 'braxen', icon: '!' }] },
           1: { cam: { face: 'nox', side: 0.3, view: 3.2, up: 1.1, pitch: 0.42, ease: 0.5 } },
-} },
+          2: { cam: { focus: ['kael', 'nox'], view: 5, ang: -0.3, pitch: 0.42, ease: 0.3 }, do: [{ who: 'kael', set: { stow: false, gest: null } }, { who: 'kael', to: [1.4, 0.6], gait: 'dash', speed: 7 }, { at: 0.3, who: 'kael', attack: { wind: 0.1, active: 0.1, recover: 0.4, tele: false } }, { at: 0.4, who: 'nox', state: 'stagger', dur: 0.9, knock: [1.4, -0.4] }, { at: 0.4, shake: 7 }, { at: 1.6, who: 'nox', face: 'kael' }] },
+          3: { cam: { across: ['kael', 'nox'], focus: ['kael', 'nox'], view: 4.4, ang: -0.35, pitch: 0.42, ease: 0.8 }, do: [{ who: 'kael', face: 'nox' }] },
+          4: { cam: { focus: ['kael', 'nox'], view: 3.4, ang: -0.3, pitch: 0.42, up: 0.9, ease: 0.4 }, do: [{ at: 0.3, who: 'nox', blink: [0.7, 0.8] }, { at: 0.4, who: 'nox', face: 'kael' }, { at: 0.5, who: 'kael', icon: '!' }, { at: 0.5, shake: 3 }] },
+          5: { cam: { face: 'nox', side: -0.3, view: 2.8, up: 1.1, pitch: 0.42, ease: 0.7 } },
+        } },
       }),
       'c9.steel': 'same',
       'c9.page': 'same',

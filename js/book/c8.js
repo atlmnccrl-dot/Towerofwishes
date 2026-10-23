@@ -142,7 +142,7 @@
         noFace: true,
         nodes: { 'c8.road': {
           0: { cam: { focus: ['kael', 'aerys', 'eiryn'], view: 9, ang: -0.9, pitch: 0.48, drift: 0.02, ease: 1.4 }, do: [{ who: 'kael', to: [-1.0, 1.4], speed: 1.0 }, { who: 'aerys', to: [-2.4, 0.8], speed: 1.0 }, { who: 'eiryn', to: [-3.4, 1.6], speed: 1.0 }] },
-          1: { cam: { face: 'kael', side: 0.4, view: 3.6, up: 1.0, pitch: 0.42, ease: 0.8 }, do: [{ who: 'merchant', to: [8, -0.4], speed: 1.1 }, { who: 'kael', face: [6, 0] }] },
+          1: { cam: { focus: ['aerys', 'merchant'], view: 5, ang: -0.35, pitch: 0.44, up: 0.9, ease: 1.0 }, do: [{ who: 'merchant', show: true }, { who: 'merchant', to: [0.2, -0.6], speed: 1.1, set: { gest: 'wave' } }, { at: 0.4, who: 'aerys', face: 'merchant' }, { at: 2.8, who: 'merchant', set: { gest: null }, to: [-9.0, -0.8], speed: 1.0 }, { at: 2.9, who: 'aerys', face: [-6, -0.8] }, { at: 3.4, who: 'kael', face: 'aerys' }] },
         } },
       }),
       'c8.market': auto('road', [K(-5.0, 1.4, 0.1), AE(-6.4, 0.8, 0.1), E(-7.4, 1.6, 0.1), P('guard', -1.2, 2.4, 3.0), { id: 'thug', key: 'thug', x: 5.0, y: -1.8, f: 2.8 }], {
@@ -150,7 +150,8 @@
         nodes: { 'c8.market': {
           1: { cam: { focus: ['aerys'], view: 4.4, ang: -0.35, pitch: 0.42, up: 0.9, ease: 1.2 }, do: [{ who: 'aerys', to: [-3.6, 0.2], speed: 0.6 }, { who: 'aerys', face: [-3, -3] }] },
           2: { cam: { across: ['thug', 'aerys'], focus: ['thug', 'aerys'], view: 9, ang: -0.4, pitch: 0.46, ease: 1.2 }, do: [{ who: 'thug', face: 'aerys', icon: '…' }, { who: 'eiryn', face: 'thug', icon: '?' }] },
-          4: { do: [{ who: 'thug', to: [-3.0, 0.4], gait: 'dash', speed: 5 }] },
+          3: { cam: { focus: ['kael', 'guard'], view: 4.6, ang: -0.3, pitch: 0.44, up: 0.9, ease: 1.0 }, do: [{ who: 'kael', to: [-2.2, 2.0], speed: 1.0, face: 'guard' }, { at: 1.2, who: 'guard', face: 'kael' }] },
+          4: { cam: { focus: ['thug', 'aerys'], view: 6, ang: -0.4, pitch: 0.44, ease: 0.8 }, do: [{ who: 'thug', to: [-3.0, 0.4], gait: 'dash', speed: 5 }] },
         } },
       }),
       'c8.alley': auto('shadowcity', [K(-6.2, 0.6, 0.1), AE(-1.0, 0.6, 0.2), E(-7.4, 1.4, 0.1), { id: 'thug', key: 'thug', x: -0.2, y: 0.0, f: 2.9 }], {
@@ -160,6 +161,8 @@
           1: { cam: { face: 'aerys', side: 0.4, view: 2.8, up: 1.1, pitch: 0.4, ease: 0.7 }, do: [{ who: 'aerys', state: 'stagger', dur: 1.2 }] },
           2: { cam: { focus: ['kael', 'thug'], view: 5.4, ang: -0.3, pitch: 0.4, ease: 0.3, cut: true }, do: [{ who: 'kael', set: { stow: false, gest: null } }, { who: 'kael', to: [-1.8, 0.4], gait: 'dash', speed: 7 }, { at: 0.5, who: 'kael', attack: { wind: 0.12, active: 0.1, recover: 0.5, tele: false } }, { at: 0.55, who: 'thug', state: 'down', knock: [1, 0], hold: true }, { at: 0.55, shake: 8 }, { at: 0.55, slow: [0.3, 0.7] }] },
           3: { cam: { focus: ['kael', 'aerys'], view: 4, ang: -0.3, pitch: 0.44, ease: 0.8 }, do: [{ who: 'aerys', state: 'down', hold: true }, { who: 'kael', set: { stow: true }, state: 'pickup', dur: 2 }, { who: 'kael', to: [-0.8, 0.6], speed: 1.5 }] },
+          4: { cam: { face: 'kael', side: 0.4, view: 2.8, up: 0.8, pitch: 0.42, ease: 0.8 }, do: [{ who: 'kael', state: 'pickup', hold: true }] },
+          5: { cam: { focus: ['eiryn', 'aerys', 'kael'], view: 4.2, ang: -0.3, pitch: 0.46, ease: 0.9 }, do: [{ who: 'eiryn', to: [-1.4, 0.2], speed: 2.2 }, { at: 1.0, who: 'eiryn', state: 'pickup', hold: true }] },
 } },
       }),
       'c8.run': auto('road', [K(-9.0, 0.6, 0.0), AE(-9.0, 1.0, 0.0), E(-10.0, 1.2, 0.0)], {
