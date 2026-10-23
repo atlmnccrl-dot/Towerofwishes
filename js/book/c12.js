@@ -199,78 +199,126 @@
         },
       };
     },
-    stages: (() => { const S = {
-      'c12.doors': auto('frosthall', [K(-1.0, 2.6, -1.6), AE(-2.4, 2.8, -1.6), EL(-3.2, 3.4, -1.6), BR(-1.8, 3.6, -1.6), E(-4.0, 2.8, -1.6), NX(-0.2, 3.4, -1.6)], {
+    stages: (() => {
+      const along = (name, x0, y0, x1, y1, n, step, o) => Array.from({ length: n }, (_, i) => Object.assign({ name, x: x0 + (x1 - x0) * i / (n - 1), y: y0 + (y1 - y0) * i / (n - 1), delay: i * step }, o));
+      const hit = (who, name, at, o) => Object.assign({ at, who, pfx: Object.assign({ name, z: 1.3, scale: 1.8 }, o && o.pfx) }, o && o.extra);
+      const shatter = (at, x, y) => [{ at, who: 'knight', hide: true }, { at, pfx: [{ name: 'ice_shatter', x, y, z: 1.0, scale: 2.6 }, { name: 'explosion_frost', x, y, z: 0.8, scale: 2.2, delay: 0.05 }, { name: 'snow', x, y, z: 2, scale: 2, life: 2.4 }] }, { at, shake: 10 }];
+      const S = {
+        'c12.doors': auto('frosthall', [K(-1.0, 2.6, -1.6), AE(-2.4, 2.8, -1.6), EL(-3.2, 3.4, -1.6), BR(-1.8, 3.6, -1.6), E(-4.0, 2.8, -1.6), NX(-0.2, 3.4, -1.6)], {
+          noFace: true,
+          nodes: { 'c12.doors': {
+            0: { cam: { x: -2, y: 3.0, view: 9, ang: 0.0, pitch: 0.4, up: 1.4, ease: 1.2 }, do: [{ door: [0, 0.2] }, { rumble: [5, 1.2] }, { shake: 8 }, { who: 'kael', at: 0.6, face: [-1, 6] }] },
+            1: { cam: { x: -4.8, y: 2.8, view: 4.8, ang: -0.3, pitch: 0.42, up: 0.8, ease: 1.2 }, do: [{ who: 'kael', face: -1.6 }, { who: 'aerys', to: [-3.8, 2.5], speed: 0.6, face: [-5.8, 2.8] }] },
+            3: { cam: { x: 0, y: -2, view: 11, ang: -0.1, pitch: 0.4, up: 1.6, ease: 1.6 }, do: [mist(0.18), ...[['kael', -1.0, 1.0], ['aerys', -2.4, 1.2], ['eloryn', -3.2, 1.8], ['braxen', -1.8, 2.0], ['eiryn', -4.0, 1.2], ['nox', -0.2, 1.8]].map(([w, x, y]) => ({ who: w, to: [x, y], speed: 0.7 }))] },
+            4: { do: [{ who: 'eiryn', face: [-4.0, -6] }] },
+          } },
+        }),
+        'c12.hall': auto('frosthall', [K(-2.4, 1.4, 0, { armed: true }), AE(-4.0, 0.8, 0, { armed: true }), EL(-4.8, 1.8, 0, { armed: true }), BR(-3.4, 2.4, 0), E(-5.4, 1.0, 0), NX(-1.8, 0.4, 0, { armed: true }),
+          KN('kn1', 'knightSword', 4.0, 1.0, 3.14, { hidden: true }), KN('kn2', 'knightFist', 5.4, 2.0, 3.14, { hidden: true }), KN('kn3', 'knightSpear', 5.6, -0.6, 3.14, { hidden: true }),
+          KN('kn4', 'knightAxe', 6.4, 0.8, 3.14, { hidden: true }), KN('kn5', 'knightTwin', 6.2, -1.8, 3.14, { hidden: true }), KN('kn6', 'knightMaster', 7.4, 0.2, 3.14, { hidden: true })], {
+          noFace: true, armed: true,
+          nodes: { 'c12.hall': {
+            0: { cam: { focus: ['kael', 'kn1'], view: 8, ang: -0.3, pitch: 0.44, ease: 1.2 }, do: [{ pfx: { name: 'fog', x: 4.0, y: 1.0, z: 0.6, scale: 2.4, life: 2.6 } }, { at: 0.6, who: 'kn1', show: true }, { at: 0.6, who: 'kn1', pfx: { name: 'spell_ice', scale: 1.6 } }, { who: 'kael', set: { stow: false, gest: null } }, { at: 0.8, who: 'kael', to: [-1.4, 1.2], speed: 1.0 }, { who: 'nox', set: { stow: false, gest: null } }, { who: 'aerys', set: { stow: false } }] },
+            1: { cam: { focus: ['kael', 'nox', 'kn1'], view: 7, ang: -0.3, pitch: 0.42, ease: 0.3 }, do: [{ who: 'kn1', to: [-0.4, 1.2], gait: 'dash', speed: 8 }, { at: 0.3, who: 'nox', blink: [0.4, 0.6] }, { at: 0.4, who: 'nox', attack: { wind: 0.1, active: 0.1, recover: 0.3, tele: false } }, { at: 0.5, who: 'kn1', blink: [4.4, 1.0] }, { at: 0.5, pfx: { name: 'smoke_puff', x: -0.2, y: 1.2, scale: 1.6 } }, { at: 0.5, shake: 5 }, { at: 1.2, who: 'nox', face: 'kn1' }] },
+            3: { cam: { focus: ['kael', 'eloryn'], view: 4.6, ang: -0.3, pitch: 0.42, up: 0.8, ease: 0.8 }, do: [{ who: 'kael', pfx: { name: 'ice_shatter', z: 1.0, scale: 1.0 } }, { at: 0.2, who: 'kael', state: 'hurt', dur: 0.3 }, { at: 0.8, who: 'eloryn', to: [-2.6, 1.6], speed: 1.2, face: 'kael' }] },
+            5: { cam: { focus: ['kn1', 'kn2', 'kn3', 'kn4', 'kn5', 'kn6'], view: 11, ang: -0.25, pitch: 0.4, up: 0.8, ease: 1.4 }, do: [mist(0.15), ...['kn2', 'kn3', 'kn4', 'kn5', 'kn6'].flatMap((k, i) => [{ at: 0.3 + i * 0.3, who: k, show: true }, { at: 0.3 + i * 0.3, who: k, pfx: { name: 'spell_ice', scale: 1.4 } }])] },
+            6: { cam: { focus: ['kn2'], view: 4.6, ang: -0.3, pitch: 0.42, up: 0.9, ease: 0.8 }, do: [{ at: 1.5, cam: { focus: ['kn3'], view: 4.6, ang: -0.3, pitch: 0.42, up: 0.9, ease: 0.8 } }, { at: 3.0, cam: { focus: ['kn4'], view: 4.6, ang: -0.3, pitch: 0.42, up: 0.9, ease: 0.8 } }, { at: 4.5, cam: { focus: ['kn5'], view: 4.6, ang: -0.3, pitch: 0.42, up: 0.9, ease: 0.8 } }, { at: 6.0, cam: { focus: ['kn6'], view: 4.6, ang: -0.3, pitch: 0.42, up: 1.1, ease: 1.2 } }] },
+            7: { cam: { focus: ['kn6', 'eiryn'], view: 11, ang: -0.3, pitch: 0.42, ease: 1.0 }, do: [{ who: 'kn1', face: 'kael' }, { who: 'kn3', face: 'aerys' }, { who: 'nox', face: 'kn4' }, { at: 0.8, who: 'kn6', face: 'eiryn' }, { at: 1.4, cam: { focus: ['eiryn'], view: 4, ang: -0.3, pitch: 0.42, up: 0.9, ease: 0.8 } }, { at: 2.8, fade: [0.95, 0.7, WHITE] }] },
+          } },
+        }),
+        'c12.mist': auto('frosthall', [K(-3.0, 0.8, 0), AE(-4.0, -0.4, 0), EL(-5.2, 1.8, 0), BR(-3.6, 2.6, 0), E(-6.0, 0.6, 0), NX(-1.8, 1.8, 0)], {
+          noFace: true,
+          nodes: { 'c12.mist': {
+            0: { cam: { focus: ['kael', 'aerys', 'eloryn', 'braxen', 'eiryn', 'nox'], view: 9, ang: -0.3, pitch: 0.46, ease: 0.6 }, do: [{ fade: [0.75, 0.8, WHITE] }, { pfx: [{ name: 'fog', x: -3, y: 1, z: 0.6, scale: 3, life: 3 }] }] },
+            1: { do: [{ who: 'kael', icon: '!' }] },
+            2: { cam: { focus: ['braxen', 'eloryn'], view: 5, ang: -0.3, pitch: 0.46, ease: 0.5 }, do: [{ who: 'braxen', to: [-4.2, 2.8], gait: 'back', speed: 1.0 }, { at: 0.8, who: 'braxen', state: 'down', knock: [-0.4, 0], hold: true }, { at: 0.8, shake: 4 }, { at: 1.0, who: 'eloryn', to: [-4.6, 2.2], speed: 2 }] },
+            3: { do: [{ shake: 6 }, { fade: [1.0, 0.3, WHITE] }] },
+            4: { cam: { focus: ['kael'], view: 5, ang: -0.3, pitch: 0.42, up: 0.8, ease: 0.8, cut: true }, do: [{ fade: [0.0, 1.2] }, ...['aerys', 'eloryn', 'braxen', 'nox', 'eiryn'].map((w) => ({ who: w, hide: true })), { who: 'kael', put: [-2.0, 0.4] }, { at: 0.3, who: 'kael', to: [0.0, 0.4], gait: 'run', speed: 3 }, { at: 1.6, who: 'kael', face: Math.PI }] },
+            5: { cam: { focus: ['eiryn'], view: 6, ang: -0.3, pitch: 0.42, up: 0.8, ease: 0.2, cut: true }, do: [{ fade: [0.5, 0.2, WHITE] }, { at: 0.3, fade: [0.2, 1.0, WHITE] }, { who: 'kael', hide: true }, { who: 'eiryn', show: true }, { who: 'eiryn', put: [-1.0, 0.4] }, { who: 'eiryn', face: 0 }] },
+          } },
+        }),
+      };
+      // Each fighter alone with their knight (the Tower separated them): one stage per scene.
+      const solo = (hero, knightKey, nodes) => auto('frosthall', [Object.assign({}, hero, { armed: true }), KN('knight', knightKey, 1.8, hero.y, 3.14)], { armed: true, noFace: true, close: 3.6, wide: { view: 5.4 }, nodes });
+      const open = (id, o) => ({ cam: { focus: ['knight', id], view: 5.4, ang: -0.3, pitch: 0.46, ease: 1.0 }, do: [mist(0), { who: id, set: { stow: false, gest: null } }].concat(o || []) });
+      // Kael and the Swordsman Knight
+      S['c12.kael'] = solo(K(-1.8, 0.4, 0), 'knightSword', { 'c12.kael': {
+        0: open('kael', [{ who: 'knight', put: [4.6, 0.4] }, { who: 'knight', to: [1.8, 0.4], speed: 1.0 }, { at: 1.4, who: 'kael', face: 'knight' }]),
+        1: { cam: { focus: ['knight', 'kael'], view: 4.4, ang: -0.3, pitch: 0.44, ease: 0.4 }, do: [{ who: 'kael', to: [-0.2, 0.4], gait: 'dash', speed: 6 }, { at: 0.2, who: 'kael', attack: { wind: 0.12, active: 0.1, recover: 0.4, tele: false } }, { at: 0.25, who: 'knight', state: 'parry', dur: 0.4 }, { at: 0.35, pfx: { name: 'hit_ice', x: 0.8, y: 0.4, z: 1.2, scale: 2 } }, { at: 0.35, shake: 6 }, { at: 0.9, who: 'knight', to: [0.3, 0.4], gait: 'dash', speed: 6 }, { at: 1.0, who: 'knight', attack: { wind: 0.1, active: 0.1, recover: 0.4, tele: false } }, { at: 1.15, who: 'kael', state: 'hurt', dur: 0.5 }, hit('kael', 'ice_slash', 1.15), { at: 1.2, who: 'kael', pfx: { name: 'ice_shatter', z: 1.0, scale: 1.2 } }] },
+        2: { cam: { focus: ['knight', 'kael'], view: 4.8, ang: -0.3, pitch: 0.44, ease: 0.6 }, do: [{ who: 'kael', to: [-1.0, 0.4], gait: 'back', speed: 1.2 }, { at: 0.9, who: 'kael', attack: { wind: 0.2, active: 0.1, recover: 0.4, tele: false } }, { at: 1.0, who: 'knight', state: 'parry', dur: 0.3 }, { at: 1.05, pfx: { name: 'parry', x: 0.0, y: 0.4, z: 1.2, scale: 1.8 } }, { at: 1.6, who: 'kael', attack: { wind: 0.3, active: 0.1, recover: 0.4, tele: false } }, { at: 1.75, who: 'knight', state: 'parry', dur: 0.3 }, { at: 1.8, pfx: { name: 'parry', x: 0.0, y: 0.4, z: 1.2, scale: 1.8 } }] },
+      } });
+      S['c12.kael2'] = solo(K(-1.8, 0.4, 0), 'knightSword', { 'c12.kael2': {
+        0: open('kael', [{ at: 0.4, who: 'kael', to: [0.4, 0.4], gait: 'dash', speed: 6 }, { at: 0.6, who: 'kael', attack: { wind: 0.2, active: 0.1, recover: 0.5, tele: false } }, { at: 0.8, pfx: [{ name: 'hit_crit', x: 1.1, y: 0.4, z: 1.3, scale: 2.2 }, { name: 'ice_shatter', x: 1.1, y: 0.4, z: 1.2, scale: 2.4, delay: 0.1 }] }, { at: 0.8, shake: 10 }, { at: 0.8, slow: [0.3, 0.8] }, { at: 0.9, who: 'kael', set: { stow: true } }, { at: 1.4, pfx: { name: 'ice_shatter', x: 1.6, y: 0.4, z: 1.2, scale: 2 } }, { at: 1.4, who: 'knight', set: { stow: true } }]),
+        1: { cam: { focus: ['knight', 'kael'], view: 5.6, ang: -0.3, pitch: 0.44, ease: 0.5 }, do: [{ who: 'knight', attack: { wind: 0.12, active: 0.1, recover: 0.4, tele: false } }, hit('kael', 'hit_punch', 0.25), { at: 0.25, who: 'kael', state: 'down', dur: 1.1, knock: [-2.4, 0] }, { at: 0.25, shake: 8 }, { at: 0.9, who: 'knight', to: [-0.8, 0.4], speed: 2 }, { at: 1.6, who: 'knight', attack: { wind: 0.12, active: 0.1, recover: 0.4, tele: false } }, hit('kael', 'hit_blunt', 1.75, { pfx: { z: 0.6 } }), { at: 1.75, shake: 6 }, { at: 2.6, who: 'kael', state: 'idle', hold: true }, { at: 3.0, who: 'kael', attack: { wind: 0.2, active: 0.1, recover: 0.5, tele: false } }, { at: 3.1, who: 'knight', state: 'dodge', dur: 0.4 }, { at: 3.6, who: 'knight', attack: { wind: 0.1, active: 0.1, recover: 0.4, tele: false } }, hit('kael', 'hit_punch', 3.75, { pfx: { z: 1.6 } }), { at: 3.75, who: 'kael', state: 'down', dur: 0.9, knock: [-0.6, 0] }, { at: 4.9, who: 'kael', state: 'idle', hold: true }] },
+        2: { cam: { focus: ['knight', 'kael'], view: 4.2, ang: -0.3, pitch: 0.44, up: 0.6, ease: 0.6 }, do: [{ who: 'knight', attack: { wind: 0.12, active: 0.1, recover: 0.4, tele: false } }, hit('kael', 'hit_punch', 0.25), { at: 0.25, who: 'kael', state: 'hurt', dur: 0.6 }, { at: 0.8, who: 'kael', to: [-1.5, 0.4], speed: 2 }, { at: 1.1, who: 'kael', state: 'pickup', dur: 0.8 }] },
+        4: { cam: { focus: ['knight', 'kael'], view: 4.0, ang: -0.3, pitch: 0.44, up: 0.6, ease: 0.5 }, do: [{ who: 'knight', attack: { wind: 0.12, active: 0.1, recover: 0.4, tele: false } }, hit('kael', 'hit_punch', 0.25, { pfx: { z: 1.6 } }), { at: 1.0, who: 'kael', attack: { wind: 0.3, active: 0.1, recover: 0.5, tele: false } }, { at: 1.3, slow: [0.3, 0.7] }, { at: 1.3, pfx: { name: 'hit_crit', x: -0.8, y: 0.4, z: 1.2, scale: 2.4 } }, { at: 1.3, fade: [0.7, 0.08, WHITE] }, { at: 1.4, fade: [0, 0.5] }, ...shatter(1.3, -0.8, 0.4)] },
+        5: { cam: { focus: ['kael'], view: 3.6, ang: -0.3, pitch: 0.42, up: 0.6, ease: 1.0 }, do: [{ who: 'kael', state: 'pickup', hold: true }, { who: 'kael', pfx: { name: 'frost_nova', scale: 1.4, ground: true } }, { at: 1.2, who: 'kael', state: 'hurt', dur: 0.3 }, { at: 1.6, who: 'kael', state: 'pickup', hold: true }] },
+      } });
+      // Braxen and the Juggernaut
+      S['c12.braxen'] = solo(BR(-1.8, 0.4, 0), 'knightFist', { 'c12.braxen': {
+        0: open('braxen', [{ who: 'braxen', state: 'down', hold: true }, { at: 1.0, who: 'braxen', state: 'idle', hold: true }, { at: 1.6, who: 'knight', face: 'braxen' }]),
+        2: { cam: { focus: ['knight', 'braxen'], view: 7, ang: -0.3, pitch: 0.44, ease: 0.5 }, do: [{ who: 'knight', to: [-0.6, 0.4], gait: 'dash', speed: 7 }, { at: 0.25, who: 'knight', attack: { wind: 0.1, active: 0.1, recover: 0.5, tele: false } }, hit('braxen', 'hit_punch', 0.4), { at: 0.4, who: 'braxen', hop: [1.0, 0.5] }, { at: 0.4, who: 'braxen', state: 'down', dur: 1.2, knock: [-2.6, -2.4] }, { at: 0.75, pfx: [{ name: 'rock_burst', x: -4.6, y: -2.4, z: 1.2, scale: 2 }, { name: 'dust_cloud', x: -4.4, y: -2.1, scale: 1.8 }] }, { at: 0.75, shake: 10 }, { at: 2.0, who: 'braxen', state: 'idle', hold: true }, { at: 2.2, who: 'braxen', face: 'knight' }] },
+      } });
+      S['c12.braxen2'] = solo(BR(-1.8, 0.4, 0), 'knightFist', { 'c12.braxen2': {
+        0: open('braxen', [{ at: 0.3, who: 'braxen', to: [0.4, 0.4], gait: 'run', speed: 4 }, { at: 0.3, who: 'knight', to: [1.2, 0.4], gait: 'run', speed: 3 }, { at: 0.7, who: 'knight', attack: { wind: 0.1, active: 0.1, recover: 0.4, tele: false } }, hit('braxen', 'hit_punch', 0.85), { at: 0.85, who: 'braxen', state: 'hurt', dur: 0.3 }, { at: 1.4, who: 'braxen', attack: { wind: 0.15, active: 0.1, recover: 0.4, tele: false } }, hit('knight', 'hit_blunt', 1.6, { pfx: { z: 1.8 } }), { at: 1.6, shake: 7 }]),
+        1: { cam: { focus: ['knight', 'braxen'], view: 3.8, ang: -0.3, pitch: 0.44, up: 0.7, ease: 0.5 }, do: [{ who: 'knight', attack: { wind: 0.1, active: 0.1, recover: 0.3, tele: false } }, hit('braxen', 'hit_blunt', 0.2, { pfx: { z: 1.7 } }), { at: 0.7, who: 'knight', attack: { wind: 0.1, active: 0.1, recover: 0.3, tele: false } }, hit('braxen', 'hit_blunt', 0.8, { pfx: { z: 1.7 } }), { at: 0.8, who: 'braxen', pfx: { name: 'ice_shatter', z: 1.5, scale: 1.2 } }, { at: 1.5, who: 'braxen', attack: { wind: 0.15, active: 0.1, recover: 0.4, tele: false } }, hit('knight', 'hit_pierce', 1.7, { pfx: { z: 1.6 } }), { at: 2.0, who: 'knight', attack: { wind: 0.1, active: 0.1, recover: 0.3, tele: false } }, hit('braxen', 'hit_blunt', 2.1), { at: 2.6, who: 'braxen', attack: { wind: 0.15, active: 0.1, recover: 0.4, tele: false } }, hit('knight', 'ice_shatter', 2.8, { pfx: { z: 1.7 } }), { at: 2.8, shake: 6 }] },
+        2: { cam: { focus: ['knight', 'braxen'], view: 5, ang: -0.3, pitch: 0.44, ease: 0.5 }, do: [{ who: 'braxen', to: [-0.4, 0.4], gait: 'back', speed: 1.4 }, { at: 0.7, who: 'braxen', to: [0.6, 0.4], gait: 'dash', speed: 7 }, { at: 0.8, who: 'braxen', attack: { wind: 0.1, active: 0.1, recover: 0.5, tele: false } }, { at: 0.95, pfx: { name: 'hit_crit', x: 1.2, y: 0.4, z: 1.8, scale: 2.2 } }, { at: 0.95, slow: [0.35, 0.6] }, ...shatter(1.4, 1.2, 0.4), { at: 2.2, who: 'braxen', to: [-3.9, -1.9], speed: 1.0 }] },
+      } });
+      // Aerys and the Spear Knight; the courtyard memory (her teacher's voice)
+      S['c12.aerys'] = solo(AE(-1.8, 0.4, 0), 'knightSpear', { 'c12.aerys': {
+        0: open('aerys', [{ who: 'knight', put: [4.6, 0.4] }, { who: 'knight', to: [1.8, 0.4], speed: 0.8 }, { at: 1.8, pfx: along('frost_nova', 1.4, 0.4, -1.2, 0.4, 5, 0.12, { scale: 0.8, ground: true }) }]),
+        1: { cam: { focus: ['knight', 'aerys'], view: 6, ang: -0.3, pitch: 0.44, ease: 0.6 }, do: [0, 0.6, 1.2].flatMap((t) => [{ at: t, who: 'aerys', state: 'cast', dur: 0.4 }, { at: t + 0.1, pfx: along('holy_light', -1.4, 0.4, 1.4, 0.4, 4, 0.04, { z: 1.3, scale: 1.2, add: true }) }, { at: t + 0.3, who: 'knight', state: 'parry', dur: 0.3 }, { at: t + 0.3, pfx: { name: 'parry', x: 1.5, y: 0.4, z: 1.3, scale: 1.6 } }]).concat([{ at: 2.0, who: 'aerys', hop: [1.8, 2.6] }]) },
+        2: { cam: { focus: ['knight', 'aerys'], view: 5, ang: -0.3, pitch: 0.44, up: 0.6, ease: 0.5 }, do: [{ who: 'knight', blink: [-1.0, 0.4] }, { at: 0.05, who: 'knight', hop: [1.6, 0.6] }, { at: 0.2, who: 'knight', attack: { wind: 0.08, active: 0.1, recover: 0.4, tele: false } }, hit('aerys', 'hit_ice', 0.35, { pfx: { z: 1.8 } }), { at: 0.35, who: 'aerys', state: 'hurt', dur: 0.5 }, { at: 0.35, shake: 5 }, { at: 1.4, who: 'aerys', to: [-2.4, 0.4], gait: 'back', speed: 1.2 }, { at: 1.6, who: 'knight', to: [0.8, 0.4], speed: 1.2 }] },
+      } });
+      const MEM = '255,236,200';
+      S['c12.aerys2'] = solo(AE(-2.4, 0.4, 0), 'knightSpear', { 'c12.aerys2': {
+        0: { cam: { focus: ['aerys'], view: 3.4, ang: -0.3, pitch: 0.42, up: 0.8, ease: 1.2 }, do: [{ who: 'knight', put: [0.8, 0.4] }, { fade: [0.45, 1.0, MEM] }, { light: [MEM, 0.3, 1.0] }, { who: 'aerys', set: { stow: false, gest: null } }] },
+        1: { cam: { focus: ['aerys'], view: 3.0, ang: -0.1, pitch: 0.42, up: 0.9, ease: 1.0 } },
+        2: { cam: { focus: ['aerys'], view: 3.0, ang: -0.5, pitch: 0.42, up: 0.9, ease: 1.0 } },
+        3: { cam: { focus: ['aerys'], view: 3.4, ang: -0.3, pitch: 0.42, up: 0.8, ease: 1.0 } },
+        4: { cam: { focus: ['aerys'], view: 3.6, ang: -0.3, pitch: 0.42, up: 0.6, ease: 1.0 }, do: [{ who: 'aerys', face: 'knight' }, { at: 0.6, who: 'aerys', set: { gest: 'raise' } }] },
+        6: { cam: { focus: ['knight', 'aerys'], view: 5, ang: -0.3, pitch: 0.44, ease: 0.8 }, do: [{ fade: [0, 0.8] }, { light: [MEM, 0, 0.8] }, { who: 'aerys', set: { gest: null } }] },
+      } });
+      S['c12.aerys3'] = solo(AE(-1.8, 0.4, 0), 'knightSpear', { 'c12.aerys3': {
+        0: open('aerys', [{ at: 0.3, who: 'knight', to: [0.2, 0.4], gait: 'dash', speed: 6 }, { at: 0.4, who: 'knight', attack: { wind: 0.08, active: 0.1, recover: 0.4, tele: false } }, { at: 0.5, who: 'aerys', state: 'dodge', dur: 0.4 }, { at: 0.9, who: 'aerys', attack: { wind: 0.08, active: 0.1, recover: 0.3, tele: false } }, { at: 1.0, pfx: { name: 'parry', x: -0.6, y: 0.4, z: 1.2, scale: 1.8 } }, { at: 1.4, who: 'knight', blink: [-3.0, 0.4] }, { at: 1.6, who: 'aerys', face: 'knight' }, { at: 1.8, who: 'aerys', to: [-2.5, 0.4], gait: 'dash', speed: 5 }, { at: 2.0, who: 'aerys', attack: { wind: 0.1, active: 0.1, recover: 0.4, tele: false } }, { at: 2.15, pfx: { name: 'hit_crit', x: -3.0, y: 0.4, z: 1.6, scale: 2 } }, { at: 2.15, slow: [0.35, 0.5] }, ...shatter(2.4, -3.0, 0.4)]),
+        1: { cam: { focus: ['aerys'], view: 3.4, ang: -0.3, pitch: 0.42, up: 0.7, ease: 1.0 }, do: [{ who: 'aerys', state: 'hurt', dur: 0.4 }, { at: 1.0, who: 'aerys', state: 'hurt', dur: 0.4 }, { at: 1.8, who: 'aerys', face: [0, 4] }] },
+      } });
+      // Eloryn and the twin-bladed knight
+      S['c12.eloryn'] = solo(EL(-1.8, 0.4, 0), 'knightTwin', { 'c12.eloryn': {
+        0: open('eloryn', [{ who: 'eloryn', to: [-3.0, 0.4], gait: 'back', speed: 0.8 }, { who: 'knight', to: [0.6, 0.4], speed: 0.8 }, { at: 1.4, who: 'eloryn', state: 'cast', dur: 0.8 }, { at: 1.5, who: 'eloryn', pfx: [{ name: 'spell_heal', scale: 2.2 }, { name: 'wind_gust', scale: 1.6 }] }, { at: 1.7, who: 'knight', state: 'hurt', dur: 0.3 }]),
+        1: { cam: { focus: ['knight', 'eloryn'], view: 4.6, ang: -0.3, pitch: 0.44, ease: 0.4 }, do: [{ who: 'knight', to: [-2.2, 0.4], gait: 'dash', speed: 6 }, { at: 0.3, who: 'knight', attack: { wind: 0.08, active: 0.1, recover: 0.3, tele: false } }, hit('eloryn', 'ice_slash', 0.45, { pfx: { z: 1.0 } }), { at: 0.45, who: 'eloryn', state: 'hurt', dur: 0.4 }, { at: 1.0, who: 'knight', attack: { wind: 0.08, active: 0.1, recover: 0.4, tele: false } }, hit('eloryn', 'hit_pierce', 1.15, { pfx: { z: 1.0 } }), { at: 1.15, who: 'eloryn', state: 'down', hold: true, knock: [-0.8, 0] }, { at: 1.15, shake: 6 }, { at: 1.3, who: 'eloryn', pfx: { name: 'frost_nova', scale: 1.2, ground: true } }] },
+        2: { cam: { focus: ['knight', 'eloryn'], view: 4.4, ang: -0.3, pitch: 0.42, up: 0.5, ease: 0.8 }, do: [{ who: 'knight', to: [-2.6, 0.4], speed: 0.6 }, { at: 0.6, who: 'eloryn', pfx: { name: 'heal_loop', scale: 1, life: 3, follow: true } }] },
+      } });
+      S['c12.eloryn2'] = solo(EL(-1.8, 0.4, 0), 'knightTwin', { 'c12.eloryn2': {
+        0: { cam: { focus: ['knight', 'eloryn'], view: 4.6, ang: -0.3, pitch: 0.44, up: 0.4, ease: 0.8 }, do: [mist(0), { who: 'eloryn', state: 'down', hold: true }, { who: 'knight', put: [-0.8, 0.4] }, { at: 0.4, who: 'knight', attack: { wind: 0.4, hold: true, tele: false } }, { at: 1.2, light: ['150,230,200', 0.55, 0.3] }, { at: 1.2, who: 'eloryn', pfx: [{ name: 'spell_heal', scale: 3 }, { name: 'shockwave', scale: 3, add: true }, { name: 'holy_light', scale: 2.4, add: true }] }, { at: 1.2, shake: 8 }, { at: 1.3, who: 'knight', release: true }, { at: 1.3, who: 'knight', state: 'stagger', dur: 1.0 }, { at: 1.8, who: 'knight', pfx: { name: 'ice_shatter', z: 1.2, scale: 1.4 } }, ...shatter(2.4, -0.8, 0.4), { at: 2.6, light: ['150,230,200', 0, 1.0] }] },
+        1: { cam: { focus: ['eloryn'], view: 3.4, ang: -0.3, pitch: 0.42, up: 0.5, ease: 1.0 }, do: [{ at: 1.0, who: 'eloryn', state: 'pickup', hold: true }, { at: 1.8, who: 'eloryn', state: 'hurt', dur: 0.4 }, { at: 2.4, who: 'eloryn', state: 'pickup', hold: true }, { at: 2.6, who: 'eloryn', pfx: { name: 'heal_loop', scale: 0.9, life: 2.4, follow: true } }] },
+      } });
+      // Nox and the Axe Knight
+      S['c12.nox'] = solo(NX(-1.8, 0.4, 0), 'knightAxe', { 'c12.nox': {
+        0: open('nox', [{ at: 0.6, cam: { focus: ['knight'], view: 4.4, ang: -0.3, pitch: 0.42, up: 0.8, ease: 1.2 } }]),
+        1: { cam: { focus: ['knight', 'nox'], view: 5.4, ang: -0.3, pitch: 0.44, ease: 0.4 }, do: [{ who: 'nox', blink: [2.6, 0.0] }, { at: 0.1, who: 'nox', attack: { wind: 0.06, active: 0.08, recover: 0.2, tele: false } }, { at: 0.15, who: 'knight', state: 'parry', dur: 0.3 }, { at: 0.2, pfx: { name: 'parry', x: 2.2, y: 0.2, z: 1.6, scale: 1.8 } }, { at: 0.8, who: 'nox', blink: [1.0, -0.4] }, { at: 0.85, who: 'nox', attack: { wind: 0.06, active: 0.08, recover: 0.2, tele: false } }, { at: 0.9, who: 'knight', blink: [2.4, 0.9] }, { at: 1.4, who: 'nox', blink: [3.2, 1.0] }, { at: 1.45, who: 'nox', attack: { wind: 0.06, active: 0.08, recover: 0.2, tele: false } }, { at: 1.5, who: 'knight', blink: [1.6, 0.2] }, { at: 2.0, who: 'nox', blink: [0.8, 0.6] }, { at: 2.05, who: 'nox', attack: { wind: 0.06, active: 0.08, recover: 0.2, tele: false } }, { at: 2.1, who: 'knight', state: 'parry', dur: 0.3 }, { at: 2.15, pfx: { name: 'parry', x: 1.2, y: 0.4, z: 1.4, scale: 1.8 } }] },
+        2: { cam: { focus: ['knight', 'nox'], view: 6, ang: -0.3, pitch: 0.44, ease: 0.5 }, do: [{ who: 'nox', put: [1.4, 0.4] }, { who: 'nox', drop: [2.6, 0.5] }, { at: 0.3, who: 'knight', attack: { wind: 0.1, active: 0.1, recover: 0.4, tele: false } }, { at: 0.45, pfx: { name: 'parry', x: 1.5, y: 0.4, z: 1.8, scale: 1.8 } }, { at: 0.5, who: 'nox', hop: [1.4, 0.5] }, { at: 0.5, who: 'nox', to: [-1.6, 0.4], gait: 'dash', speed: 8 }, { at: 1.2, who: 'nox', blink: [0.8, -0.6] }, { at: 1.3, who: 'knight', blink: [2.2, 0.8] }, { at: 1.7, who: 'knight', attack: { wind: 0.1, active: 0.1, recover: 0.4, tele: false } }, hit('nox', 'hit_ice', 1.85, { pfx: { z: 1.5 } }), { at: 1.85, who: 'nox', state: 'hurt', dur: 0.5 }, { at: 1.9, who: 'nox', pfx: { name: 'steam', scale: 1.2, life: 2.4, follow: true } }, { at: 2.6, who: 'nox', face: [0.8, 3] }] },
+      } });
+      S['c12.nox2'] = solo(NX(-1.8, 0.4, 0), 'knightAxe', { 'c12.nox2': {
+        0: open('nox', [{ at: 0.4, cam: { focus: ['knight'], view: 4.2, ang: -0.3, pitch: 0.42, up: 0.8, ease: 0.8 } }, { at: 0.6, who: 'knight', state: 'hurt', dur: 0.2 }]),
+        2: { cam: { focus: ['knight', 'nox'], view: 6, ang: -0.3, pitch: 0.44, ease: 0.5 }, do: [{ who: 'knight', to: [-0.4, 0.4], gait: 'run', speed: 3.5 }, { at: 0.3, who: 'nox', pfx: { name: 'shock_aura', scale: 1.4, life: 1.4, follow: true, add: true } }, { at: 0.5, light: ['170,140,255', 0.3, 0.5] }, { at: 0.6, slow: [0.15, 1.2] }, { at: 0.9, who: 'nox', blink: [2.8, 0.4] }, { at: 0.95, pfx: [{ name: 'multi_hit', x: -0.2, y: 0.4, z: 1.2, scale: 3 }, { name: 'cross_slash', x: -0.2, y: 0.4, z: 1.2, scale: 2.4, delay: 0.1 }, { name: 'dark_slash', x: -0.2, y: 0.4, z: 1.4, scale: 2.4, delay: 0.2 }] }, { at: 0.95, shake: 12 }, { at: 1.6, light: ['170,140,255', 0, 0.6] }] },
+        3: { cam: { focus: ['knight', 'nox'], view: 5.4, ang: -0.3, pitch: 0.44, ease: 0.6 }, do: [...shatter(0.1, -0.2, 0.4), { at: 1.0, who: 'nox', state: 'hurt', dur: 0.6 }, { at: 1.7, who: 'nox', state: 'pickup', dur: 1.2 }] },
+      } });
+      // Eiryn and the Master Knight
+      S['c12.eiryn'] = solo(E(-1.8, 0.4, 0), 'knightMaster', { 'c12.eiryn': {
+        0: open('eiryn', [{ who: 'knight', put: [4.8, 0.4] }, { who: 'knight', to: [1.8, 0.4], speed: 0.6 }]),
+        1: { cam: { focus: ['knight', 'eiryn'], view: 6, ang: -0.3, pitch: 0.44, ease: 1.0 }, do: [{ who: 'knight', path: [[0.4, -1.2], [-1.2, -1.8], [-2.8, -1.2], [-3.4, 0.0]], speed: 1.2, face: 'eiryn' }, { at: 3.6, who: 'knight', face: 'eiryn' }, { at: 3.8, who: 'knight', attack: { wind: 0.3, active: 0.1, recover: 0.5, tele: false } }, { at: 4.1, slow: [0.1, 0.8] }, { at: 4.1, cam: { focus: ['knight', 'eiryn'], view: 3.4, ang: -0.3, pitch: 0.42, up: 0.6, ease: 0.3 } }] },
+      } });
+      // the closing blast: the hall opens up
+      S['c12.end'] = auto('frosthall', [E(-1.8, 0.4, 0, { armed: true }), KN('knight', 'knightMaster', -3.0, 0.4, 0)], {
         noFace: true,
-        nodes: { 'c12.doors': {
-          0: { cam: { x: -2, y: 3.0, view: 9, ang: 0.0, pitch: 0.4, up: 1.4, ease: 1.2 }, do: [{ door: [0, 0.2] }, { rumble: [5, 1.2] }, { shake: 8 }] },
-          1: { cam: { x: -5.8, y: 2.8, view: 5, ang: -0.3, pitch: 0.42, up: 0.8, ease: 1.2 } },
-          2: { cam: { face: 'aerys', side: 0.4, view: 3.6, up: 1.0, pitch: 0.42, ease: 0.8 } },
-          3: { cam: { x: 0, y: -2, view: 11, ang: -0.1, pitch: 0.4, up: 1.6, ease: 1.6 }, do: [mist(0.18)] },
-} },
-      }),
-      'c12.hall': auto('frosthall', [K(-2.4, 1.4, 0, { armed: true }), AE(-4.0, 0.8, 0, { armed: true }), EL(-4.8, 1.8, 0, { armed: true }), BR(-3.4, 2.4, 0), E(-5.4, 1.0, 0), NX(-1.8, 0.4, 0, { armed: true }),
-        KN('kn1', 'knightSword', 4.0, 1.0, 3.14, { hidden: true }), KN('kn2', 'knightFist', 5.4, 2.0, 3.14, { hidden: true }), KN('kn3', 'knightSpear', 5.6, -0.6, 3.14, { hidden: true }),
-        KN('kn4', 'knightAxe', 6.4, 0.8, 3.14, { hidden: true }), KN('kn5', 'knightTwin', 6.2, -1.8, 3.14, { hidden: true }), KN('kn6', 'knightMaster', 7.4, 0.2, 3.14, { hidden: true })], {
-        noFace: true, armed: true,
-        nodes: { 'c12.hall': {
-          0: { cam: { focus: ['kael', 'kn1'], view: 8, ang: -0.3, pitch: 0.44, ease: 1.2 }, do: [{ who: 'kn1', show: true, blink: [4.0, 1.0] }, { who: 'kael', set: { stow: false, gest: null } }, { who: 'nox', set: { stow: false, gest: null } }, { who: 'aerys', set: { stow: false } }] },
-          1: { cam: { focus: ['kael', 'nox', 'kn1'], view: 7, ang: -0.3, pitch: 0.42, ease: 0.3 }, do: [{ who: 'kn1', to: [-0.4, 1.4], gait: 'dash', speed: 8 }, { at: 0.3, who: 'nox', blink: [0.4, 0.8] }, { at: 0.4, who: 'nox', attack: { wind: 0.1, active: 0.1, recover: 0.3, tele: false } }, { at: 0.5, who: 'kn1', blink: [4.4, 1.0] }, { at: 0.5, shake: 5 }] },
-          2: { cam: { face: 'nox', side: 0.3, view: 3.2, up: 1.1, pitch: 0.42, ease: 0.7 } },
-          3: { cam: { face: 'eloryn', side: 0.3, view: 3.6, up: 1.1, pitch: 0.42, ease: 0.8 } },
-          4: { cam: { focus: ['kn1', 'kn2', 'kn3', 'kn4', 'kn5', 'kn6'], view: 11, ang: -0.25, pitch: 0.4, up: 0.8, ease: 1.4 }, do: [mist(0.15), { who: 'kn2', show: true }, { who: 'kn3', show: true }, { who: 'kn4', show: true }, { who: 'kn5', show: true }, { who: 'kn6', show: true }, { who: 'kn6', face: 'eiryn' }] },
-          5: { cam: { face: 'kn6', side: 0.35, view: 3.4, up: 1.3, pitch: 0.4, ease: 1.4 }, do: [{ who: 'eiryn', face: 'kn6' }, { at: 1.6, fade: [0.95, 0.7, WHITE] }] },
+        nodes: { 'c12.end': {
+          0: { cam: { focus: ['knight', 'eiryn'], view: 4.2, ang: -0.3, pitch: 0.42, up: 0.7, ease: 0.8 }, do: [{ who: 'knight', icon: '?' }] },
+          1: { cam: { focus: ['eiryn'], view: 14, ang: -0.1, pitch: 0.4, up: 0.8, ease: 0.4 }, do: [{ who: 'knight', hide: true }, { fx: { type: 'dissolve', x: -3.0, y: 0.4, big: true } }, { pfx: { name: 'shockwave', x: -1.8, y: 0.4, scale: 5, add: true } }, { shake: 14 }, { fade: [1.0, 0.15, WHITE] }, { at: 0.2, fade: [0.0, 1.4] }] },
         } },
-      }),
-      'c12.mist': auto('frosthall', [K(-3.0, 0.8, 0), AE(-4.0, 0.4, 0), EL(-4.8, 1.8, 0), BR(-3.6, 2.2, 0), E(-5.4, 0.8, 0), NX(-2.2, 1.8, 0)], {
-        noFace: true,
-        nodes: { 'c12.mist': {
-          0: { cam: { focus: ['kael', 'aerys', 'eloryn', 'braxen', 'eiryn', 'nox'], view: 9, ang: -0.3, pitch: 0.46, ease: 0.6 }, do: [{ fade: [0.9, 0.8, WHITE] }] },
-          1: { do: [{ who: 'kael', say: 'TOGETHER—!' }, { who: 'kael', icon: '!' }] },
-          2: { cam: { focus: ['braxen', 'eloryn'], view: 5, ang: -0.3, pitch: 0.46, ease: 0.5 }, do: [{ who: 'braxen', state: 'down', knock: [-0.4, 0], hold: true }, { who: 'eloryn', to: [-3.9, 2.0], speed: 2 }] },
-          3: { do: [{ who: 'eloryn', say: 'BRAX—!' }, { shake: 6 }, { fade: [1.0, 0.3, WHITE] }] },
-          4: { cam: { face: 'kael', side: 0.35, view: 3.6, up: 1.0, pitch: 0.42, ease: 0.8, cut: true }, do: [{ fade: [0.0, 1.2] }, { who: 'aerys', hide: true }, { who: 'eloryn', hide: true }, { who: 'braxen', hide: true }, { who: 'nox', hide: true }, { who: 'eiryn', hide: true }, { who: 'kael', put: [-2.0, 0.4] }] },
-          5: { cam: { focus: ['kael'], view: 12, ang: -0.3, pitch: 0.34, up: 1.2, ease: 1.8 }, do: [{ fade: [0.35, 1.0, WHITE] }] },
-} },
-      }),
-    };
-    // Each fighter alone with their knight (the Tower separated them): one stage per
-    // fight, shared by the scenes before and after it.
-    const solo = (hero, knightKey, knightId, ids, o) => {
-      const cast = [Object.assign({}, hero, { armed: true }), KN('knight', knightKey, 1.8, hero.y, 3.14)];
-      const def = auto('frosthall', cast, { armed: true, noFace: true, close: 3.4, wide: { view: 5.4 } });
-      return def;
-    };
-    const dissolve = [{ who: 'knight', hide: true }, { fx: { type: 'dissolve', x: 1.8, y: 0.4, big: true } }, { shake: 6 }];
-    const pairs = [
-      ['kael', K(-1.8, 0.4, 0), 'knightSword', ['c12.kael', 'c12.kael2']],
-      ['braxen', BR(-1.8, 0.4, 0), 'knightFist', ['c12.braxen', 'c12.braxen2']],
-      ['aerys', AE(-1.8, 0.4, 0), 'knightSpear', ['c12.aerys', 'c12.aerys2', 'c12.aerys3']],
-      ['eloryn', EL(-1.8, 0.4, 0), 'knightTwin', ['c12.eloryn', 'c12.eloryn2']],
-      ['nox', NX(-1.8, 0.4, 0), 'knightAxe', ['c12.nox', 'c12.nox2']],
-      ['eiryn', E(-1.8, 0.4, 0), 'knightMaster', ['c12.eiryn']],
-    ];
-    for (const [, hero, kk, ids] of pairs) {
-      ids.forEach((id, i) => {
-        const def = solo(hero, kk);
-        const last = i === ids.length - 1;
-        def.auto.nodes = { [id]: { 0: { cam: { focus: ['knight', hero.id], view: 5.2, ang: -0.3, pitch: 0.46, ease: 1.0 }, do: [mist(0), { who: hero.id, set: { stow: false, gest: null } }].concat(i > 0 && last && ids.length > 1 ? dissolve : []) } } };
-        S[id] = i === 0 ? def : (ids.length > 2 && i === 1 ? def : def);
       });
-    }
-    // the closing blast: the hall opens up
-    S['c12.end'] = auto('frosthall', [E(-1.8, 0.4, 0, { armed: true }), KN('knight', 'knightMaster', 1.8, 0.4, 3.14)], {
-      noFace: true,
-      nodes: { 'c12.end': {
-        0: { cam: { face: 'knight', side: 0.35, view: 3.2, up: 1.3, pitch: 0.4, ease: 0.8 }, do: [{ who: 'knight', icon: '?' }] },
-        1: { cam: { focus: ['eiryn'], view: 14, ang: -0.1, pitch: 0.4, up: 0.8, ease: 0.4 }, do: [{ who: 'knight', hide: true }, { fx: { type: 'dissolve', x: 1.8, y: 0.4, big: true } }, { shake: 14 }, { fade: [1.0, 0.15, WHITE] }, { at: 0.2, fade: [0.0, 1.4] }] },
-      } },
-    });
-    // The post-fight scenes: the knight is gone.
-    for (const id of ['c12.kael2', 'c12.braxen2', 'c12.aerys3', 'c12.eloryn2', 'c12.nox2']) {
-      const d = S[id]; d.auto.nodes[id][0].do = [{ who: 'knight', hide: true }, { fx: { type: 'dissolve', x: 1.8, y: 0.4, big: false } }].concat(d.auto.nodes[id][0].do.slice(0, 2));
-    }
-    return S; })(),
+      return S;
+    })(),
     defs: {},
     scenarios: {},
     looks: {},

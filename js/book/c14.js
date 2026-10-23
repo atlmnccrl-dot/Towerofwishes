@@ -92,39 +92,46 @@
         },
       };
     },
+    // One take from the door to the offering. The five wheels stand along the north wall (y ≈ -3.4 to -4);
+    // the middle one, at (0, -4), is the empty wheel.
     stages: {
-      'c14.hall': auto('offering', [K(-8.0, 0.4, 0), E(-9.4, -0.8, 0), AE(-9.0, 1.4, 0), BR(-9.8, 0.4, 0), EL(-10.6, 1.2, 0), NX(-7.6, -1.0, 0)], {
+      'c14.hall': auto('offering', [K(-8.0, 0.4, 0), E(-9.4, -0.8, 0), AE(-9.0, 1.4, 0), BR(-9.8, 0.4, 0), EL(-10.6, 1.2, 0), NX(-7.6, -1.0, 0), AL(1.6, -1.6, 3.14, { hidden: true })], {
         noFace: true,
-        nodes: { 'c14.hall': {
-          0: { cam: { focus: ['kael', 'nox', 'aerys', 'braxen', 'eloryn', 'eiryn'], view: 13, ang: -0.1, pitch: 0.36, up: 1.2, drift: 0.01, ease: 1.8 }, do: [{ fade: [0, 1.2, '4,4,10'] }, { who: 'kael', to: [-2.4, 0.4], speed: 0.8 }, { who: 'nox', to: [-3.0, -1.0], speed: 0.8 }, { who: 'aerys', to: [-4.0, 1.4], speed: 0.8 }, { who: 'braxen', to: [-4.8, 0.4], speed: 0.8 }, { who: 'eloryn', to: [-5.6, 1.2], speed: 0.8 }, { who: 'eiryn', to: [-4.6, -0.8], speed: 0.8 }] },
-          1: { cam: { face: 'kael', side: 0.35, view: 3.6, up: 1.0, pitch: 0.42, ease: 1.0 } },
-          2: { cam: { x: 0, y: -3.6, view: 10, ang: -0.1, pitch: 0.4, up: 1.4, ease: 1.6 } },
-        } },
+        nodes: {
+          'c14.hall': {
+            0: { cam: { focus: ['kael', 'nox', 'aerys', 'braxen', 'eloryn', 'eiryn'], view: 13, ang: -0.1, pitch: 0.36, up: 1.2, drift: 0.01, ease: 1.8 }, do: [{ fade: [0, 1.2, '4,4,10'] }, ...[['kael', -2.4, 0.4], ['nox', -3.0, -1.2], ['aerys', -4.2, 1.4], ['braxen', -5.2, 0.2], ['eloryn', -6.0, 1.4], ['eiryn', -4.4, -0.9]].map(([w, x, y]) => ({ who: w, to: [x, y], speed: 0.9 }))] },
+            1: { cam: { focus: ['kael', 'aerys'], view: 6, ang: -0.2, pitch: 0.42, up: 0.8, ease: 1.0 }, do: [{ who: 'kael', face: [0, -4] }, { at: 0.8, who: 'aerys', set: { gest: 'cross' } }] },
+            2: { cam: { x: 0, y: -3.6, view: 10, ang: -0.1, pitch: 0.4, up: 1.4, ease: 1.6 }, do: [{ who: 'nox', face: [6, -2] }, { at: 1.4, who: 'nox', face: [-6, -2] }] },
+            3: { cam: { focus: ['eloryn', 'aerys'], view: 4.2, ang: -0.2, pitch: 0.42, up: 0.8, ease: 1.0 }, do: [{ who: 'eloryn', to: [-4.7, 1.6], speed: 0.6, face: 'aerys' }, { at: 1.6, who: 'aerys', face: 'eloryn' }] },
+          },
+          'c14.king': {
+            0: { cam: { x: -0.6, y: -0.6, view: 11, ang: -0.1, pitch: 0.4, ease: 1.2 }, do: [{ who: 'altheryx', show: true }, { who: 'altheryx', set: { stow: true, gest: null } }, ...['kael', 'nox', 'aerys', 'braxen', 'eloryn', 'eiryn'].map((w, i) => ({ at: 0.3 + i * 0.12, who: w, face: 'altheryx' })), { at: 0.5, who: 'kael', icon: '!' }, { at: 1.2, who: 'altheryx', set: { gest: 'wave' } }, { at: 2.6, who: 'altheryx', set: { gest: null } }] },
+            6: { cam: { focus: ['altheryx'], view: 3.6, ang: -0.2, pitch: 0.42, up: 0.9, ease: 0.8 }, do: [{ who: 'altheryx', face: [0, -4] }, { at: 1.2, who: 'altheryx', face: 'aerys' }] },
+            11: { cam: { focus: ['altheryx'], view: 3.2, ang: -0.1, pitch: 0.42, up: 1.0, push: -0.15, ease: 1.2 } },
+            13: { cam: { focus: ['eiryn'], view: 3.6, ang: -0.2, pitch: 0.42, up: 0.9, ease: 0.8 }, do: [{ at: 1.4, cam: { focus: ['nox', 'altheryx'], view: 5, ang: -0.2, pitch: 0.42, up: 0.8, ease: 0.8 } }, { at: 1.4, who: 'nox', to: [-1.8, -1.2], speed: 1.0, face: 'altheryx' }] },
+          },
+          'c14.wheels': {
+            0: { cam: { x: 0, y: -2.4, view: 10, ang: -0.1, pitch: 0.42, up: 0.8, ease: 1.4 }, do: [...[['kael', -1.0, -2.0], ['eiryn', -3.6, -1.2], ['aerys', -2.2, -0.9], ['braxen', 1.6, -1.8], ['eloryn', -2.8, -2.4], ['nox', 3.0, -1.0], ['altheryx', 0.8, -2.0]].map(([w, x, y]) => ({ who: w, to: [x, y], speed: 0.8 })), { at: 3.0, who: 'eloryn', face: [-2, -3.8] }, { at: 3.0, who: 'kael', face: [0, -4] }] },
+            2: { cam: { focus: ['altheryx'], view: 4.4, ang: -0.1, pitch: 0.42, up: 0.9, ease: 1.0 }, do: [{ who: 'altheryx', to: [0.4, -3.0], speed: 0.7, face: [0, -4] }] },
+            4: { cam: { focus: ['braxen'], view: 4, ang: -0.1, pitch: 0.42, up: 0.6, ease: 1.0 }, do: [{ who: 'braxen', to: [2.0, -2.8], speed: 0.8, face: [2, -3.8] }, { at: 1.4, who: 'braxen', state: 'pickup', hold: true }] },
+            5: { do: [{ who: 'braxen', state: 'idle', hold: true }] },
+            8: { cam: { focus: ['aerys'], view: 4, ang: -0.1, pitch: 0.42, up: 0.7, ease: 1.0 }, do: [{ who: 'aerys', set: { gest: null } }, { who: 'aerys', to: [-2.0, -2.8], speed: 0.8, face: [-2, -3.8] }, { at: 1.4, who: 'aerys', state: 'pickup', dur: 1.4 }] },
+            10: { cam: { focus: ['eloryn', 'altheryx'], view: 4.6, ang: -0.1, pitch: 0.42, up: 0.8, ease: 1.0 }, do: [{ who: 'eloryn', to: [-0.3, -3.0], speed: 0.7, face: [0, -4] }, { at: 1.0, who: 'altheryx', to: [-0.3, -2.1], speed: 0.6 }, { at: 1.8, who: 'eloryn', state: 'pickup', dur: 1.2 }] },
+            11: { do: [{ who: 'eloryn', face: [-2, 0] }] },
+          },
+          'c14.offering': {
+            0: { cam: { focus: ['eloryn', 'altheryx'], view: 4.4, ang: -0.1, pitch: 0.42, up: 0.8, ease: 0.2, cut: true }, do: [{ who: 'altheryx', face: 'eloryn' }, { who: 'altheryx', attack: { wind: 0.05, active: 0.1, recover: 0.6, tele: false } }, { at: 0.15, shake: 10 }, { at: 0.15, slow: [0.2, 1.0] }, { at: 0.15, who: 'eloryn', state: 'hurt', dur: 1.2 }, { at: 0.15, who: 'eloryn', pfx: { name: 'hit_crit', z: 1.2, scale: 2 } }, { at: 0.15, fade: [0.8, 0.08, '200,20,30'] }, { at: 0.25, fade: [0.0, 0.8] }] },
+            1: { cam: { focus: ['eloryn'], view: 3.0, ang: -0.1, pitch: 0.42, up: 0.9, ease: 0.8 }, do: [{ who: 'eloryn', icon: '…' }, { at: 1.0, who: 'eloryn', face: [-0.3, -2.0] }] },
+            2: { cam: { focus: ['aerys', 'eloryn', 'altheryx'], view: 5.4, ang: -0.1, pitch: 0.42, ease: 0.4 }, do: [{ who: 'aerys', icon: '!' }, { who: 'aerys', to: [-1.4, -2.2], gait: 'run', speed: 3.4 }, { at: 0.8, who: 'aerys', state: 'stagger', dur: 0.5 }] },
+            4: { cam: { focus: ['eloryn', 'kael'], view: 5.4, ang: -0.1, pitch: 0.42, ease: 0.5 }, do: [{ at: 0.2, who: 'eloryn', state: 'down', hold: true }, { at: 0.2, who: 'altheryx', to: [0.6, -1.6], gait: 'back', speed: 1.0 }, { at: 0.4, who: 'kael', to: [-1.0, -2.4], gait: 'dash', speed: 7 }, { at: 1.0, who: 'kael', state: 'pickup', hold: true }] },
+            6: { cam: { x: 0, y: -3.0, view: 10, ang: -0.1, pitch: 0.38, up: 1.2, ease: 1.2 }, do: [{ who: 'eloryn', hop: [1.8, 1.8] }, { who: 'eloryn', to: [0, -3.7], speed: 0.6 }, { at: 1.2, who: 'eloryn', hide: true }, { at: 1.2, pfx: [{ name: 'dark_curse', x: 0, y: -4.0, z: 1.6, scale: 2, life: 3.4 }, { name: 'hit_pierce', x: 0, y: -4.0, z: 1.8, scale: 2 }] }, { at: 1.2, shake: 8 }, { at: 1.2, rumble: [6, 3] }, { at: 1.2, light: ['200,30,40', 0.35, 2.0] }, ...[[-2, -3.8], [2, -3.8], [-4, -3.4], [4, -3.4]].map(([x, y], i) => ({ at: 1.8 + i * 0.4, pfx: { name: 'dark_curse', x, y, z: 1.4, scale: 1.6, life: 2.6 } })), { at: 3.6, pfx: [{ name: 'rock_burst', x: -9, y: 0, z: 1, scale: 2.4 }, { name: 'dust_cloud', x: -8.6, y: 0, scale: 2.4 }] }, { at: 3.6, shake: 6 }, { at: 1.6, who: 'kael', state: 'idle', hold: true }, { at: 1.8, who: 'kael', face: [0, -4] }, ...['aerys', 'nox', 'braxen', 'eiryn'].map((w) => ({ at: 3.8, who: w, face: [-9, 0] }))] },
+            7: { cam: { focus: ['altheryx'], view: 3.4, ang: -0.1, pitch: 0.42, up: 1.0, ease: 1.2 }, do: [{ light: ['200,30,40', 0.12, 1.4] }, { at: 0.8, who: 'altheryx', face: 'kael' }] },
+          },
+        },
       }),
-      'c14.king': auto('offering', [K(-2.4, 0.4, 0), E(-4.4, -0.8, 0), AE(-4.0, 1.6, 0), BR(-4.8, 0.4, 0), EL(-5.2, 1.4, 0), NX(-3.0, -1.2, 0), AL(2.0, -0.6, 3.14, { hidden: true })], {
-        nodes: { 'c14.king': {
-          0: { cam: { x: 0, y: -1.0, view: 11, ang: -0.1, pitch: 0.4, ease: 1.2 }, do: [{ who: 'altheryx', show: true, put: [2.0, -0.6] }] },
-          1: { cam: { face: 'altheryx', side: 0.3, view: 3.4, up: 1.1, pitch: 0.42, ease: 0.8 } },
-        } },
-      }),
-      'c14.wheels': auto('offering', [K(-1.0, -1.0, -1.2), E(-3.2, 0.2, -1.2), AE(-1.6, 1.2, -1.2), BR(0.8, 0.0, -1.2), EL(-2.4, -1.4, -1.2), NX(1.8, 1.2, -1.2), AL(0.0, -1.8, -1.2)], {
-        nodes: { 'c14.wheels': {
-          0: { cam: { x: 0, y: -1.0, view: 8, ang: -0.1, pitch: 0.42, up: 0.8, ease: 1.4 }, do: [{ who: 'altheryx', set: { stow: true, gest: 'cross' } }] },
-          3: { do: [{ who: 'altheryx', to: [0.2, -2.6], speed: 0.7, face: [0.2, -5] }] },
-          9: { cam: { face: 'eloryn', side: 0.35, view: 3.4, up: 1.1, pitch: 0.42, ease: 1.0 }, do: [{ who: 'eloryn', to: [-0.6, -2.4], speed: 0.6 }] },
-        } },
-      }),
-      'c14.offering': auto('offering', [K(-2.4, 0.4, -1.2), E(-3.8, -0.6, -1.2), AE(-1.6, 1.4, -1.2), BR(-3.4, 1.6, -1.2), EL(0.2, -2.6, 1.57), NX(-2.0, -1.0, -1.2), AL(0.2, -1.6, 1.57)], {
-        nodes: { 'c14.offering': {
-          0: { cam: { focus: ['eloryn', 'altheryx'], view: 4.4, ang: -0.1, pitch: 0.42, up: 0.8, ease: 0.2, cut: true }, do: [{ who: 'altheryx', set: { gest: 'present' } }, { at: 0.3, shake: 10 }, { at: 0.3, who: 'eloryn', state: 'hurt', dur: 1.0 }, { at: 0.3, fade: [0.8, 0.08, '200,20,30'] }, { at: 0.4, fade: [0.0, 0.8] }] },
-          1: { cam: { face: 'eloryn', side: 0.3, view: 2.8, up: 1.1, pitch: 0.42, ease: 0.8 }, do: [{ who: 'eloryn', icon: '…' }] },
-          2: { cam: { focus: ['aerys', 'eloryn'], view: 5, ang: -0.1, pitch: 0.42, ease: 0.4 }, do: [{ who: 'aerys', to: [-0.4, -0.4], gait: 'run', speed: 3.4 }, { who: 'aerys', say: 'ELORYN!' }] },
-          3: { cam: { face: 'altheryx', side: 0.3, view: 2.8, up: 1.1, pitch: 0.4, ease: 0.8 } },
-          4: { cam: { focus: ['eloryn', 'kael'], view: 5.4, ang: -0.1, pitch: 0.42, ease: 0.5 }, do: [{ who: 'kael', to: [-0.4, -1.6], gait: 'dash', speed: 7 }, { at: 0.4, who: 'eloryn', state: 'down', hold: true }] },
-          6: { cam: { x: 0, y: -3.4, view: 9, ang: -0.1, pitch: 0.36, up: 1.4, ease: 1.2 }, do: [{ rumble: [6, 3] }, { shake: 8 }, { light: ['200,30,40', 0.35, 2.0] }] },
-          8: { cam: { face: 'altheryx', side: -0.3, view: 3.2, up: 1.1, pitch: 0.42, ease: 1.4 } },
-} },
-      }),
+      'c14.king': 'same',
+      'c14.wheels': 'same',
+      'c14.offering': 'same',
     },
     defs: {
       // Altheryx, the Crownless King (book chapter Sixteen): never fights on stage.
