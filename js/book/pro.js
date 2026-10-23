@@ -105,17 +105,17 @@
         'c6.fork': {
           type: 'fork', chapter: 'c6', bg: 'road',
           lines: [
-            N('The road splits where an old viaduct once crossed it. One arm goes under the broken arches; the other climbs onto an open ridge.'),
-            N('Under the arches the air is cool and smells of wet stone. Somewhere in the dark, something drips, steadily.'),
-            N('On the ridge the wind is clean and the grass lies flat as a hand. Nothing has crossed it today. Aerys looks up anyway.'),
-            N('Nobody says which way. They all look at Kael, who does not like being looked at.'),
+            X('The road splits where an old viaduct once crossed it. One arm goes under the broken arches; the other climbs onto an open ridge.'),
+            X('Under the arches the air is cool and smells of wet stone. Somewhere in the dark, something drips, steadily.'),
+            X('On the ridge the wind is clean and the grass lies flat as a hand. Nothing has crossed it today. Aerys looks up anyway.'),
+            X('Nobody says which way. They all look at Kael, who does not like being looked at.'),
           ],
           options: [{ label: 'Under the arches', next: 'c6.fork.a' }, { label: 'Along the ridge', next: 'c6.fork.b' }],
         },
         'c6.fork.a': {
           type: 'scene', chapter: 'c6', bg: 'ruins', next: 'c6.fork.afight',
           lines: [
-            N('The dark under the arches is complete. Aerys lifts one palm. A small light blooms in it, and the stone fills with eyes.'),
+            X('The dark under the arches is complete. Aerys lifts one palm. A small light blooms in it, and the stone fills with eyes.'),
             S('aerys', 'I thought they were stones.'),
             S('kael', 'So did they.'),
           ],
@@ -127,20 +127,24 @@
         },
         'c6.fork.aafter': {
           type: 'scene', chapter: 'c6', bg: 'road', next: 'c6.camp',
-          lines: [N('They climb out the far side into the evening with torn sleeves and a new respect for Aerys\u2019s palm. The camp is not far.')],
+          lines: [
+X('They climb out the far side into the evening with torn sleeves and a new respect for Aerys\u2019s palm. The camp is not far.'),
+          ],
         },
         'c6.fork.b': {
           type: 'scene', chapter: 'c6', bg: 'road', next: 'c6.fork.bafter',
           lines: [
-            N('On the ridge there is nowhere to hide, so they walk fast and keep low. Nothing comes. That is somehow worse.'),
-            N('At the highest point stands a cairn of flat stones, each one scratched with a name. Eiryn stops. She puts two fingers on the topmost stone. It is warm.'),
+            X('On the ridge there is nowhere to hide, so they walk fast and keep low. Nothing comes. That is somehow worse.'),
+            X('At the highest point stands a cairn of flat stones, each one scratched with a name. Eiryn stops. She puts two fingers on the topmost stone. It is warm.'),
             S('aerys', 'Who are they?'),
             S('eiryn', 'People who were on this road.'),
           ],
         },
         'c6.fork.bafter': {
           type: 'scene', chapter: 'c6', bg: 'road', next: 'c6.camp', xp: 90, set: { gold: 1 },
-          lines: [N('Kael does not ask what she is not saying. They leave the stones as they found them, and go down toward the camp.')],
+          lines: [
+X('Kael does not ask what she is not saying. They leave the stones as they found them, and go down toward the camp.'),
+          ],
         },
       };
     },

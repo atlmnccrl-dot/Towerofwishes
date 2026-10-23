@@ -46,7 +46,7 @@ Read first: [docs/DESIGN.md](docs/DESIGN.md), [docs/STORY.md](docs/STORY.md),
   becomes a silent beat (`X(note)` in js/story.js keeps what happens, for staging) and its shot plays it;
   jumps in time or place are short title cards. When something matters but can't be shown and nobody
   says it in the book, ask the author per scene. Lines written for the game are `P(...)` (Proposals).
-  Adapted so far: the prologue and Chapters One to Five (through the quarry); later chapters still
+  Adapted so far: the prologue and Chapters One to Six (through Aerys joining); later chapters still
   show their narration under the picture until they are adapted, chapter by chapter, with the author.
 - **Spare dialogue** (the author, 2026-10-23: "cleaner and simple"): keep only the lines that need a
   voice; everything else is shown. Before the first fight there are six spoken lines in all (the
