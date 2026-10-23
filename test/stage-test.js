@@ -42,5 +42,20 @@ for (const [id, st] of Object.entries(ST)) {
   if (!Sim.ARENAS && !st.arena) continue;
   for (const c of st.cast || []) if (c.key !== '@' && !Sim.DEFS[c.key]) { console.error('unknown fighter key', c.key, 'in', id); bad++; }
 }
+// Every staged action names a known pack effect, a looping one only with a lifetime (or it never stops),
+// a reaction mark the UI sheet has, and a state the pixel cast can draw.
+const FXD = require('../assets/fx/fx.json').fx;
+const STATES = new Set(['idle', 'hurt', 'stagger', 'down', 'out', 'sit', 'pickup', 'cast', 'recover', 'attack', 'dodge', 'parry', 'circle', 'move', 'opener', 'distracted']);
+const acts = [];
+const walk = (o) => { if (Array.isArray(o)) o.forEach(walk); else if (o && typeof o === 'object') { if ('who' in o || 'pfx' in o || 'icon' in o) acts.push(o); for (const v of Object.values(o)) if (v && typeof v === 'object') walk(v); } };
+for (const [id, st] of Object.entries(ST)) if (st !== 'same') { const n0 = acts.length; walk(st); for (let i = n0; i < acts.length; i++) acts[i]._in = id; }
+for (const a of acts) {
+  for (const p of [].concat(a.pfx || [])) {
+    if (!FXD[p.name]) { console.error('unknown effect', p.name, 'in', a._in); bad++; }
+    else if (FXD[p.name].loop && !p.life) { console.error('looping effect without life', p.name, 'in', a._in); bad++; }
+  }
+  if (a.icon && !['!', '?', '…', '✦'].includes(a.icon)) { console.error('icon the UI cannot draw', a.icon, 'in', a._in); bad++; }
+  if (a.state && !STATES.has(a.state)) { console.error('unknown state', a.state, 'in', a._in); bad++; }
+}
 if (bad) { console.error(bad + ' problems'); process.exit(1); }
 console.log('stages ok');

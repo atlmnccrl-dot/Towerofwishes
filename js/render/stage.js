@@ -262,7 +262,15 @@
         const us = unitsOf(fid);
         if (us.length) { x = 0; y = 0; for (const u of us) { x += u.x; y += u.y; } x /= us.length; y /= us.length; }
       }
-      // giants (Kharuun, the warlord): frame their heads too
+      // giants (Kharuun, the warlord): frame their heads too; at ground level, step back from them
+      let big = 1;
+      if (fid && GROUND) {
+        const Sp = window.TowSprites;
+        for (const u of unitsOf(fid)) {
+          const cs = Sp && Sp.PIXEL_CAST && Sp.PIXEL_CAST[u.key], man = Sp && Sp.forUnit && Sp.forUnit(u, { scene: true, theme: match.arena && match.arena.theme, town: match.town });
+          if (man && man.pixel) big = Math.max(big, (man.scale || 1) * ((cs && cs.scale) || 1));
+        }
+      }
       if (fid && !GROUND) {
         const Sp = window.TowSprites;
         for (const u of unitsOf(fid)) {
@@ -279,7 +287,8 @@
       if (sh.up && (GROUND || !V.HELI)) { x -= Math.sin(ang0) * sh.up; y -= Math.cos(ang0) * sh.up; }
       // a breathing camera: a slow drift and push even on a held shot
       x += Math.sin(clock * 0.23 + 1.3) * 0.08; y += Math.cos(clock * 0.19) * 0.05;
-      const view = Math.max(GROUND ? 3.6 : V.HELI ? 5.6 + tallView : 1.6, (sh.view || 9) + (sh.push != null ? sh.push : -0.035) * Math.min(t, 8));
+      let view = Math.max(GROUND ? 3.6 : V.HELI ? 5.6 + tallView : 1.6, (sh.view || 9) + (sh.push != null ? sh.push : -0.035) * Math.min(t, 8));
+      if (big > 1.05 && view < 8) view = Math.min(view * big * 1.25, view + 6);
       const sc = sh.sc || Math.min(W, H) / view;
       const ang = (sh._ang != null ? sh._ang : camOut.ang) + (sh.drift || 0) * t;
       // Ground level (the author, 2026-10-22): eye height, like the face-off; a shot marked
@@ -568,7 +577,9 @@
         const listener = others[0] || null;
         const same = autoState.last === spk;
         b = {
-          cam: { face: spk, side: autoState.side, view: A.close || 3.7, up: 1.05, pitch: 0.42, push: -0.05, ease: same ? 0.4 : 0.7, cut: !same },
+          // closeAng: a set that must be shot from one side (Calamity's corridor: lava on one wall, water on the other)
+          cam: A.closeAng != null ? { focus: [spk], ang: A.closeAng + autoState.side * 0.4, view: A.close || 3.7, up: 1.05, pitch: 0.42, push: -0.05, ease: same ? 0.4 : 0.7, cut: !same }
+            : { face: spk, side: autoState.side, view: A.close || 3.7, up: 1.05, pitch: 0.42, push: -0.05, ease: same ? 0.4 : 0.7, cut: !same },
           do: [
             ...(listener && !A.noFace ? [{ who: spk, face: listener }] : []),
             ...(A.noFace ? [] : others.map((o) => ({ who: o, face: spk }))),
@@ -892,7 +903,12 @@
       const p = V.P(u.x, u.y, headTop(u));
       return { x: p.x, y: p.y, s: V.cam.sc };
     }
-    const handle = { match, beat, update, camera, focus, speakerAt, _pre: pre, _post: post, def };
+    // still acting: a timed action of this beat is still to come, or someone of the cast is still walking
+    function busy() {
+      if (queue.some((a) => !a._focus)) return true;
+      return match.units.some((u) => !u.fled && !/^crowd/.test(u.id) && info.get(u) && info.get(u).mv);
+    }
+    const handle = { match, beat, update, camera, focus, speakerAt, busy, _pre: pre, _post: post, def };
     match.stageHandle = handle;
 
     // ---- opening: setup actions, then the first shot (a hard cut)

@@ -288,7 +288,12 @@
       const nxt = subs[subIdx + 1];
       if ((cinema.busy() && !(nxt && cinema.cont(nxt.line))) || beatT < 2.2) return;
       nextSub();
-    } else if ((autoOn() || cur.silent) && read) nextSub();
+    } else {
+      // staged scenes too: the end of a line waits for its action to play out (9 s at most)
+      const wait = stage && lastOfLine(subIdx) && stage.busy() && beatT < 9;
+      if (hurry) { if (!wait) nextSub(); }
+      else if ((autoOn() || cur.silent) && read && !wait) nextSub();
+    }
   }
   // ---- the floating line: beside the speaker's head, following them; off screen, low on the left
   const SAY_COL = { kael: '#86b8ea', eiryn: '#b9a0ff', alric: '#ee9070', spear: '#e8c27a', broad: '#ff7a84', knife: '#ff7a84', grabber: '#ff7a84', knifeman: '#ff7a84',
@@ -343,6 +348,7 @@
       if (!$('choices').hidden) return;
       // a tap hurries: the next subtitle now; in a film, the action runs fast until it is done
       if (cinema && lastOfLine(subIdx) && (cinema.busy() || beatT < 2.2) && !(subs[subIdx + 1] && cinema.cont(subs[subIdx + 1].line))) { hurry = true; subT = 1e3; return; }
+      if (!cinema && stage && lastOfLine(subIdx) && stage.busy() && beatT < 9) { hurry = true; subT = 1e3; return; }
       nextSub();
     }
   }
@@ -1198,7 +1204,7 @@
       sceneT += rdt;
       if (cinema) { cinema.update(rdt * (hurry && cinema.busy() ? 3 : 1)); cinema.draw(); }
       else if (stage) {
-        stage.update(rdt);
+        stage.update(rdt * (hurry && stage.busy() ? 3 : 1));
         renderer.setCameraOverride(stage.camera());
         renderer.draw(stage.match, real, true, null);
       } else backdrop.draw(sceneBg, sceneT);
@@ -1263,6 +1269,7 @@
     get match() { return match; },
     get save() { return save; },
     get story() { return story; },
+    get lineIdx() { return lineIdx; },
     get view() { return view; },
     get drawMs() { return renderer.stats.drawMs; },
     get cam() { return renderer.cam; },
