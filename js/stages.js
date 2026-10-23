@@ -1057,7 +1057,7 @@
     for (const id of ids) { const m = g.TowBook && g.TowBook[id]; if (m && m.stages) Object.assign(bookStages, m.stages); }
   })();
 
-  return Object.assign(bookStages, {
+  const ALL = Object.assign(bookStages, {
     title: titleStage,
     'c2.tavern': c2Tavern,
     'c5.home': c5Home,
@@ -1083,4 +1083,33 @@
     'c5.leave': 'same',
     'c5.ogre': c5Ogre,
   });
+
+  // Extra per-line beats from the book files (beats: { node: { line: { cam, do } } }), merged into the
+  // stage that plays the node: an auto stage's nodes[node][line] (its shot replaces, its actions add).
+  // A node marked 'same' plays on the stage of the node before it.
+  (function () {
+    const g = typeof self !== 'undefined' ? self : this;
+    const S = g.TowStory, ids = (S && S.BOOK_FILES) || [];
+    if (!S || !S.NODES) return;
+    const prev = {};
+    for (const [id, n] of Object.entries(S.NODES)) if (n && typeof n.next === 'string') prev[n.next] = prev[n.next] || id;
+    const stageOf = (id) => { for (let k = 0, x = id; x && k < 40; k++, x = prev[x]) { const st = ALL[x]; if (st && st !== 'same') return st; if (!st) return null; } return null; };
+    for (const bid of ids) {
+      const m = g.TowBook && g.TowBook[bid];
+      for (const [node, per] of Object.entries((m && m.beats) || {})) {
+        const st = stageOf(node);
+        if (st && st.beats && ALL[node] === st) { // a stage with its own beat list
+          for (const [i, b] of Object.entries(per)) { const o = st.beats[i] || {}; st.beats[i] = Object.assign({}, o, b.cam ? { cam: b.cam } : {}, { do: (o.do || []).concat(b.do || []) }); }
+          continue;
+        }
+        if (!st || !st.auto) { if (g.console) g.console.warn('beats for a node without an auto stage', node); continue; }
+        const N = (st.auto.nodes = st.auto.nodes || {}), O = (N[node] = N[node] || {});
+        for (const [i, b] of Object.entries(per)) {
+          const o = O[i] || {};
+          O[i] = Object.assign({}, o, b.cam ? { cam: b.cam } : {}, { do: (o.do || []).concat(b.do || []) });
+        }
+      }
+    }
+  })();
+  return ALL;
 });
