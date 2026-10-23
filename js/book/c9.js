@@ -130,6 +130,27 @@
         },
       };
     },
+    // Extra per-line beats, merged into the stage that plays each node (js/stages.js).
+    beats: {
+      'c9.farms': {
+        1: { cam: { focus: ['aerys', 'eloryn'], view: 4.4, ang: -0.4, pitch: 0.44, up: 0.7, ease: 0.9 }, do: [{ who: 'aerys', face: 'eloryn' }, { who: 'aerys', set: { gest: 'present' } }, { at: 0.6, who: 'eloryn', face: 'aerys' }, { at: 1.6, who: 'aerys', set: { gest: null } }] },
+        6: { cam: { focus: ['kael', 'aerys', 'eloryn', 'eiryn'], dx: 3, view: 11, ang: -0.6, pitch: 0.44, drift: 0.02, ease: 1.6 }, do: [{ fade: [0.25, 1.2, '20,16,14'] }, ...['kael', 'aerys', 'eloryn', 'eiryn'].map((w, i) => ({ at: 0.2 * i, who: w, to: [-1.0 - 1.2 * i, i % 2 ? 0.4 : 1.2], speed: 0.8 })), { at: 2.6, fade: [0, 1.2] }] },
+      },
+      'c9.stranger': {
+        2: { cam: { focus: ['braxen'], view: 4, ang: -0.3, pitch: 0.42, up: 0.8, ease: 0.8 }, do: [{ who: 'braxen', set: { gest: 'raise' } }] },
+        3: { do: [{ at: 1.6, who: 'braxen', set: { gest: null } }] },
+      },
+      'c9.steel': {
+        0: { cam: { focus: ['aerys', 'eloryn', 'braxen', 'nox'], view: 8, ang: -0.3, pitch: 0.44, ease: 0.6 }, do: [{ who: 'aerys', hop: [1.2, 2.4] }, { who: 'aerys', pfx: { name: 'charge_up', scale: 1, life: 2.4, follow: true, add: true } }, { at: 0.3, who: 'eloryn', to: [-2.4, 1.4], speed: 1.2 }, { at: 0.6, who: 'eloryn', pfx: { name: 'heal_loop', scale: 1.1, life: 2.6, follow: true } }, { at: 0.5, who: 'braxen', set: { stow: false, gest: null } }, { at: 0.6, who: 'braxen', face: 'nox' }] },
+        1: { cam: { focus: ['nox'], view: 3.4, ang: -0.3, pitch: 0.42, up: 0.9, ease: 0.6 }, do: [{ who: 'nox', face: 'aerys' }, { at: 0.5, who: 'nox', face: 'eloryn' }, { at: 1.0, who: 'nox', face: 'braxen' }, { at: 1.5, who: 'nox', face: 'eiryn' }, { at: 1.8, cam: { focus: ['eiryn'], view: 3.6, ang: -0.3, pitch: 0.42, up: 0.8, ease: 0.8 } }, { at: 2.0, rumble: [1, 1.4] }] },
+      },
+      'c9.page': {
+        0: { cam: { focus: ['eloryn', 'nox'], view: 5, ang: -0.3, pitch: 0.42, up: 0.6, ease: 0.8 }, do: [{ who: 'eloryn', to: [-1.0, 1.6], speed: 0.6, face: 'nox' }] },
+        2: { cam: { focus: ['kael', 'nox'], view: 3.2, ang: -0.3, pitch: 0.42, up: 0.8, ease: 0.6 }, do: [{ who: 'kael', to: [1.2, 0.65], speed: 0.4 }, { at: 0.5, who: 'kael', state: 'hurt', dur: 0.2 }] },
+        4: { cam: { focus: ['kael', 'nox'], view: 3.4, ang: -0.3, pitch: 0.42, up: 0.8, ease: 0.8 }, do: [{ fade: [0.35, 0.3, '255,255,255'] }, { at: 0.4, fade: [0, 0.6] }, { at: 1.4, who: 'nox', set: { gest: null } }, { at: 1.4, who: 'nox', face: 'kael' }] },
+        6: { cam: { focus: ['nox', 'kael', 'braxen'], view: 7, ang: -0.3, pitch: 0.42, ease: 0.9 }, do: [{ who: 'nox', to: [0.4, -1.8], gait: 'back', speed: 0.7 }, { at: 1.6, who: 'braxen', face: 'nox' }] },
+      },
+    },
     stages: {
       'c9.farms': auto('farmland', [K(-7.0, 1.0, 0.1), AE(-8.2, 0.4, 0.1), EL(-9.2, 1.2, 0.1), E(-10.0, 0.2, 0.1)], {
         noFace: true,

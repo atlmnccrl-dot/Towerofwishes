@@ -148,6 +148,36 @@
         },
       };
     },
+    // Extra per-line beats, merged into the stage that plays each node (js/stages.js).
+    beats: {
+      'c10.camp': {
+        4: { cam: { focus: ['eiryn'], view: 4, ang: -0.3, pitch: 0.42, up: 0.8, ease: 0.9 }, do: [{ who: 'eiryn', face: [9, -2] }] },
+      },
+      'c10.spring': {
+        4: { cam: { x: 5.4, y: -3, view: 5, ang: -0.3, pitch: 0.36, up: 1.6, ease: 1.0 }, do: [{ at: 0.2, who: 'nox', show: true }, { at: 1.6, cam: { focus: ['aerys'], view: 3.4, ang: -0.3, pitch: 0.42, up: 0.8, ease: 0.8 } }, { at: 2.6, who: 'nox', hide: true }] },
+      },
+      'c10.night': {
+        1: { do: [{ who: 'creature', show: true }, { who: 'creature', face: 'kael' }, { at: 0.8, who: 'creature', face: 'braxen' }, { at: 1.6, who: 'creature', face: 'aerys' }, { at: 2.4, who: 'creature', face: 'eloryn' }] },
+        2: { do: [{ who: 'creature', drop: [2.4, 0.4] }, { who: 'creature', to: [-1.6, 1.2], gait: 'dash', speed: 8 }, { at: 0.3, who: 'creature', attack: { wind: 0.05, active: 0.1, recover: 0.4, tele: false } }] },
+        4: { cam: { x: 7, y: -2.8, view: 5, ang: -0.3, pitch: 0.4, up: 1.2, ease: 0.6 }, do: [{ who: 'nox', show: true }, { at: 0.3, who: 'nox', icon: '!' }, { at: 1.0, who: 'nox', to: [3.0, -0.6], gait: 'dash', speed: 8 }] },
+      },
+      'c10.after': {
+        6: { cam: { focus: ['aerys', 'kael', 'creature'], view: 8, ang: -0.3, pitch: 0.44, ease: 0.9 }, do: [{ at: 0.6, who: 'aerys', state: 'pickup', hold: true }, { at: 1.0, who: 'kael', state: 'sit', hold: true }, { at: 1.4, who: 'kael', face: 'creature' }] },
+        7: { cam: { focus: ['eiryn', 'creature'], view: 5, ang: -0.3, pitch: 0.42, up: 0.6, ease: 0.9 }, do: [{ who: 'eiryn', to: [2.0, 1.8], speed: 0.8 }, { at: 2.4, who: 'eiryn', face: [8, -3] }] },
+      },
+      'c10.dawn': {
+        2: { cam: { focus: ['eloryn', 'braxen'], view: 4, ang: -0.3, pitch: 0.44, up: 0.5, ease: 0.9 }, do: [{ who: 'eloryn', state: 'pickup', dur: 1.6 }, { at: 1.8, who: 'eloryn', state: 'sit', hold: true }] },
+        4: { cam: { focus: ['aerys'], view: 4, ang: -0.3, pitch: 0.42, up: 0.7, ease: 0.8 }, do: [{ who: 'aerys', state: 'idle', hold: true }, { at: 0.8, who: 'aerys', face: [-9, -2] }] },
+        7: { cam: { focus: ['aerys', 'kael', 'braxen'], view: 7, ang: -0.3, pitch: 0.44, ease: 0.9 }, do: [{ who: 'aerys', face: 'braxen' }, { at: 1.4, who: 'aerys', to: [-9.0, -2.0], speed: 1.2 }, { at: 3.6, who: 'aerys', hide: true }] },
+      },
+      'c10.angel': {
+        0: { cam: { focus: ['aerys', 'nox'], view: 6, ang: -0.3, pitch: 0.42, up: 0.6, ease: 1.0 }, do: [{ who: 'aerys', face: 'nox' }] },
+        4: { cam: { focus: ['nox'], view: 3.4, ang: -0.3, pitch: 0.42, up: 0.9, push: -0.1, ease: 1.0 }, do: [{ at: 1.6, who: 'nox', face: [7, 2] }] },
+        11: { cam: { focus: ['nox'], view: 3.2, ang: -0.2, pitch: 0.42, up: 0.9, push: -0.12, ease: 1.0 }, do: [{ who: 'nox', face: 'aerys' }] },
+        13: { cam: { focus: ['nox', 'aerys'], view: 4.6, ang: -0.3, pitch: 0.42, up: 0.7, ease: 0.8 } },
+        15: { cam: { focus: ['aerys'], view: 4.2, ang: -0.3, pitch: 0.42, up: 0.7, ease: 1.0 }, do: [{ who: 'nox', pfx: { name: 'smoke_dark', scale: 1.4 } }, { who: 'nox', hide: true }, { at: 1.2, who: 'aerys', set: { gest: 'present' } }, { at: 1.2, light: ['255,220,180', 0.1, 1.2] }, { at: 3.0, light: ['255,220,180', 0, 1.2] }] },
+      },
+    },
     stages: {
       'c10.shadow': auto('farmland', [K(-1.0, 1.2, 0.1, { armed: true }), AE(-2.6, 0.4, 0.1), EL(-3.2, 1.6, 0.1), E(-4.2, 0.6, 0.1), BR(1.6, 0.4, 3.1), NX(1.0, -0.3, 3.1, { armed: true })], {
         nodes: { 'c10.shadow': {
@@ -193,7 +223,7 @@
           2: { cam: { x: 2, y: -2, view: 9, ang: -0.3, pitch: 0.38, up: 1.0, ease: 1.6 }, do: [{ fade: [0.5, 2.0, '4,4,12'] }] },
         } },
       }),
-      'c10.night': auto('nightcamp', [K(-2.6, 3.0, 0.2), EL(-1.6, 1.8, 0.3), BR(-3.8, 2.0, 0.1), AE(-2.0, 3.6, 0.3), E(-4.2, 2.8, 0.2), NX(7.0, -2.8, 3.0, { hidden: true, armed: true })], {
+      'c10.night': auto('nightcamp', [K(-2.6, 3.0, 0.2), EL(-1.6, 1.8, 0.3), BR(-3.8, 2.0, 0.1), AE(-2.0, 3.6, 0.3), E(-4.2, 2.8, 0.2), NX(7.0, -2.8, 3.0, { hidden: true, armed: true }), { id: 'creature', key: 'nightCreature', x: -1.2, y: 0.2, f: 1.6, hidden: true }], {
         nodes: { 'c10.night': {
           0: { cam: { x: -2, y: 2.4, view: 9, ang: -0.45, pitch: 0.5, ease: 1.2 }, do: [{ fade: [0.5, 1.0, '6,6,14'] }, { who: 'kael', state: 'down', hold: true }, { who: 'braxen', state: 'down', hold: true }, { who: 'aerys', state: 'down', hold: true }, { who: 'eloryn', state: 'down', hold: true }] },
           1: { cam: { x: -1.8, y: 0.0, view: 6, ang: -0.3, pitch: 0.34, up: 2.0, ease: 1.8 } },

@@ -272,7 +272,7 @@
       } });
       const MEM = '255,236,200';
       S['c12.aerys2'] = solo(AE(-2.4, 0.4, 0), 'knightSpear', { 'c12.aerys2': {
-        0: { cam: { focus: ['aerys'], view: 3.4, ang: -0.3, pitch: 0.42, up: 0.8, ease: 1.2 }, do: [{ who: 'knight', put: [0.8, 0.4] }, { fade: [0.45, 1.0, MEM] }, { light: [MEM, 0.3, 1.0] }, { who: 'aerys', set: { stow: false, gest: null } }] },
+        0: { cam: { focus: ['aerys'], view: 3.4, ang: -0.3, pitch: 0.42, up: 0.8, ease: 1.2 }, do: [{ who: 'knight', put: [0.8, 0.4] }, { fade: [0.18, 1.0, MEM] }, { light: [MEM, 0.16, 1.0] }, { who: 'aerys', set: { stow: false, gest: null } }] },
         1: { cam: { focus: ['aerys'], view: 3.0, ang: -0.1, pitch: 0.42, up: 0.9, ease: 1.0 } },
         2: { cam: { focus: ['aerys'], view: 3.0, ang: -0.5, pitch: 0.42, up: 0.9, ease: 1.0 } },
         3: { cam: { focus: ['aerys'], view: 3.4, ang: -0.3, pitch: 0.42, up: 0.8, ease: 1.0 } },
@@ -290,7 +290,7 @@
         2: { cam: { focus: ['knight', 'eloryn'], view: 4.4, ang: -0.3, pitch: 0.42, up: 0.5, ease: 0.8 }, do: [{ who: 'knight', to: [-2.6, 0.4], speed: 0.6 }, { at: 0.6, who: 'eloryn', pfx: { name: 'heal_loop', scale: 1, life: 3, follow: true } }] },
       } });
       S['c12.eloryn2'] = solo(EL(-1.8, 0.4, 0), 'knightTwin', { 'c12.eloryn2': {
-        0: { cam: { focus: ['knight', 'eloryn'], view: 4.6, ang: -0.3, pitch: 0.44, up: 0.4, ease: 0.8 }, do: [mist(0), { who: 'eloryn', state: 'down', hold: true }, { who: 'knight', put: [-0.8, 0.4] }, { at: 0.4, who: 'knight', attack: { wind: 0.4, hold: true, tele: false } }, { at: 1.2, light: ['150,230,200', 0.55, 0.3] }, { at: 1.2, who: 'eloryn', pfx: [{ name: 'spell_heal', scale: 3 }, { name: 'shockwave', scale: 3, add: true }, { name: 'holy_light', scale: 2.4, add: true }] }, { at: 1.2, shake: 8 }, { at: 1.3, who: 'knight', release: true }, { at: 1.3, who: 'knight', state: 'stagger', dur: 1.0 }, { at: 1.8, who: 'knight', pfx: { name: 'ice_shatter', z: 1.2, scale: 1.4 } }, ...shatter(2.4, -0.8, 0.4), { at: 2.6, light: ['150,230,200', 0, 1.0] }] },
+        0: { cam: { focus: ['knight', 'eloryn'], view: 4.6, ang: -0.3, pitch: 0.44, up: 0.4, ease: 0.8 }, do: [mist(0), { who: 'eloryn', state: 'down', hold: true }, { who: 'knight', put: [-0.8, 0.4] }, { at: 0.4, who: 'knight', attack: { wind: 0.4, hold: true, tele: false } }, { at: 1.2, light: ['150,230,200', 0.3, 0.3] }, { at: 1.2, who: 'eloryn', pfx: [{ name: 'spell_heal', scale: 3 }, { name: 'shockwave', scale: 3, add: true }, { name: 'holy_light', scale: 2.4, add: true }] }, { at: 1.2, shake: 8 }, { at: 1.3, who: 'knight', release: true }, { at: 1.3, who: 'knight', state: 'stagger', dur: 1.0 }, { at: 1.8, who: 'knight', pfx: { name: 'ice_shatter', z: 1.2, scale: 1.4 } }, ...shatter(2.4, -0.8, 0.4), { at: 2.6, light: ['150,230,200', 0, 1.0] }] },
         1: { cam: { focus: ['eloryn'], view: 3.4, ang: -0.3, pitch: 0.42, up: 0.5, ease: 1.0 }, do: [{ at: 1.0, who: 'eloryn', state: 'pickup', hold: true }, { at: 1.8, who: 'eloryn', state: 'hurt', dur: 0.4 }, { at: 2.4, who: 'eloryn', state: 'pickup', hold: true }, { at: 2.6, who: 'eloryn', pfx: { name: 'heal_loop', scale: 0.9, life: 2.4, follow: true } }] },
       } });
       // Nox and the Axe Knight

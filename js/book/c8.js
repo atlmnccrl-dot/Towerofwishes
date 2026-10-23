@@ -137,6 +137,34 @@
         },
       };
     },
+    // Extra per-line beats, merged into the stage that plays each node (js/stages.js).
+    beats: {
+      'c8.market': {
+        0: { cam: { x: -2, y: 1, view: 11, ang: -0.4, pitch: 0.44, drift: 0.02, ease: 1.4 }, do: [{ who: 'kael', to: [-3.0, 1.6], speed: 1.0 }, { who: 'aerys', to: [-5.0, 0.6], speed: 1.0 }, { who: 'eiryn', to: [-6.0, 1.6], speed: 1.0 }] },
+      },
+      'c8.infirmary': {
+        3: { cam: { focus: ['eloryn', 'aerys'], view: 6, ang: -0.3, pitch: 0.44, ease: 0.8 }, do: [{ who: 'eloryn', face: 'aerys' }, { at: 0.5, who: 'eloryn', to: [-1.2, 1.8], gait: 'run', speed: 2.6 }] },
+        5: { cam: { focus: ['kael', 'aerys', 'eloryn'], view: 4.4, ang: -0.3, pitch: 0.44, up: 0.5, ease: 0.8 }, do: [{ who: 'kael', state: 'pickup', dur: 1.0 }, { at: 0.6, who: 'aerys', state: 'down', hold: true }, { at: 0.8, who: 'eloryn', state: 'pickup', hold: true }, { at: 1.2, who: 'aerys', state: 'hurt', dur: 0.3 }] },
+      },
+      'c8.heal': {
+        0: { cam: { focus: ['eloryn', 'aerys'], view: 3.8, ang: -0.3, pitch: 0.44, up: 0.5, ease: 0.9 }, do: [{ fx: { type: 'heal', unit: 'eloryn', target: 'aerys', amt: 0 } }, { who: 'aerys', pfx: { name: 'heal_loop', scale: 1.1, life: 2.6, follow: true } }, { light: ['150,230,200', 0.18, 0.8] }, { at: 2.0, who: 'aerys', state: 'hurt', dur: 0.3 }, { at: 2.0, light: ['150,230,200', 0.06, 0.3] }] },
+        2: { cam: { x: -1.6, y: 0.4, view: 9, ang: -0.3, pitch: 0.44, ease: 0.8 }, do: [{ who: 'p3', state: 'hurt', dur: 0.4 }, { at: 0.5, who: 'p3', state: 'hurt', dur: 0.4 }, { at: 1.0, who: 'p3', state: 'hurt', dur: 0.4 }, { at: 0.6, who: 'p2', to: [7.0, -3.2], speed: 1.4 }, { at: 1.4, cam: { focus: ['eloryn', 'aerys', 'kael'], view: 4.2, ang: -0.3, pitch: 0.44, up: 0.5, ease: 0.8 } }, { at: 1.4, light: ['150,230,200', 0.28, 0.6] }, { at: 1.4, who: 'aerys', pfx: { name: 'heal_loop', scale: 1.1, life: 2.6, follow: true } }] },
+        7: { cam: { focus: ['eloryn', 'aerys'], view: 3.6, ang: -0.3, pitch: 0.44, up: 0.5, ease: 0.8 }, do: [{ who: 'aerys', pfx: { name: 'spell_heal', scale: 2 } }, { light: ['150,230,200', 0.35, 0.3] }, { at: 0.8, light: ['150,230,200', 0, 1.4] }] },
+      },
+      'c8.talk': {
+        0: { cam: { focus: ['eloryn'], view: 3.6, ang: -0.3, pitch: 0.42, up: 0.8, ease: 0.8 }, do: [{ who: 'eloryn', state: 'idle', hold: true }, { at: 1.0, who: 'eloryn', face: 'eiryn' }, { at: 1.6, cam: { focus: ['eiryn'], view: 3.6, ang: -0.3, pitch: 0.42, up: 0.8, ease: 0.8 } }, { at: 1.8, who: 'eiryn', face: 'eloryn' }] },
+        2: { cam: { focus: ['kael'], view: 3.6, ang: -0.3, pitch: 0.42, up: 0.6, ease: 0.8 }, do: [{ who: 'kael', state: 'pickup', hold: true }] },
+      },
+      'c8.join': {
+        2: { cam: { focus: ['eloryn', 'eiryn'], view: 5, ang: -0.3, pitch: 0.42, up: 0.7, ease: 0.9 }, do: [{ who: 'kael', state: 'idle', hold: true }, { who: 'eloryn', face: 'eiryn' }, { at: 0.6, who: 'eiryn', face: 'eloryn' }] },
+      },
+      'c8.leave': {
+        0: { cam: { focus: ['eloryn'], view: 5, ang: -0.3, pitch: 0.44, up: 0.6, ease: 0.9 }, do: [{ who: 'eloryn', to: [3.0, 1.2], speed: 1.0 }, { at: 1.8, who: 'eloryn', state: 'pickup', dur: 1.2 }, { at: 3.2, who: 'eloryn', face: [3.6, 0.6] }] },
+        1: { cam: { focus: ['eloryn'], view: 3.6, ang: -0.3, pitch: 0.42, up: 0.6, ease: 0.9 }, do: [{ who: 'eloryn', state: 'pickup', dur: 2.0 }] },
+        2: { cam: { x: -4, y: 0.8, view: 9, ang: -0.3, pitch: 0.44, ease: 1.0 }, do: [...[['kael', -6.0, 0.4], ['aerys', -6.6, 1.2], ['eiryn', -5.2, 1.6], ['eloryn', -4.4, 0.6]].map(([w, x, y]) => ({ who: w, to: [x, y], speed: 1.1 })), { at: 2.4, fade: [0.85, 0.5] }, { at: 3.0, fade: [0, 0.8] }, { at: 3.0, who: 'eloryn', face: [9, -3] }] },
+        6: { cam: { focus: ['kael', 'aerys', 'eiryn', 'eloryn'], view: 9, ang: -0.3, pitch: 0.44, drift: 0.02, ease: 1.2 }, do: [...[['kael', -8.6, 0.4], ['aerys', -8.8, 1.2], ['eloryn', -8.4, 0.8], ['eiryn', -7.8, 1.6]].map(([w, x, y], i) => ({ at: 0.3 * i, who: w, to: [x, y], speed: 0.9 })), { at: 2.6, fade: [1, 1.2] }] },
+      },
+    },
     stages: {
       'c8.road': auto('road', [K(-7.0, 1.2, 0.1), AE(-8.4, 0.6, 0.1), E(-9.4, 1.4, 0.1), P('merchant', 6.5, -1.0, 3.14, { hidden: true })], {
         noFace: true,

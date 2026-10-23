@@ -100,6 +100,26 @@
         },
       };
     },
+    // Extra per-line beats, merged into the stage that plays each node (js/stages.js).
+    beats: {
+      'c7.fog': {
+        0: { cam: { focus: ['kael', 'aerys', 'eiryn'], view: 9, ang: -0.5, pitch: 0.46, drift: 0.02, ease: 1.4 }, do: [{ pfx: [{ name: 'fog', x: -3, y: 1, z: 0.5, scale: 3, life: 4 }, { name: 'fog', x: 1, y: 0.4, z: 0.5, scale: 3, life: 4, delay: 0.4 }] }, { who: 'kael', to: [0.2, 1.0], speed: 0.8 }, { who: 'aerys', to: [-1.6, 0.4], speed: 0.8 }, { who: 'eiryn', to: [-2.4, 1.4], speed: 0.8 }] },
+      },
+      'c7.city': {
+        0: { cam: { x: 0, y: 0, view: 12, ang: -0.3, pitch: 0.4, up: 1.4, drift: 0.02, ease: 1.6 }, do: [{ who: 'kael', to: [-3.6, 0.8], speed: 0.9 }, { who: 'aerys', to: [-4.8, 0.2], speed: 0.9 }, { who: 'eiryn', to: [-5.5, 1.2], speed: 0.9 }] },
+      },
+      'c7.body': {
+        9: { cam: { focus: ['aerys', 'kael', 'nox'], view: 8, ang: -0.3, pitch: 0.42, ease: 0.8 }, do: [{ who: 'aerys', face: 'dead' }, { at: 0.8, who: 'aerys', face: 'nox' }, { at: 1.2, who: 'kael', set: { stow: false, gest: null } }, { at: 1.4, who: 'kael', to: [0.4, -0.6], gait: 'dash', speed: 6 }] },
+      },
+      'c7.duel': {
+        7: { cam: { focus: ['kael', 'dead'], view: 5, ang: -0.3, pitch: 0.42, up: 0.6, ease: 0.8 }, do: [{ who: 'kael', state: 'hurt', dur: 0.3 }, { at: 0.5, who: 'kael', face: 'dead' }, { at: 1.4, who: 'kael', set: { gest: null } }] },
+      },
+      'c7.offer': {
+        1: { cam: { focus: ['nox'], view: 3.6, ang: -0.3, pitch: 0.42, up: 0.9, ease: 0.6 }, do: [{ at: 1.0, cam: { focus: ['aerys'], view: 3.6, ang: -0.3, pitch: 0.42, up: 0.9, ease: 0.6 } }, { at: 1.2, who: 'aerys', icon: '?' }] },
+        3: { cam: { focus: ['nox', 'kael'], view: 5, ang: -0.3, pitch: 0.42, up: 0.6, ease: 0.8 }, do: [{ who: 'nox', to: [2.4, 0.3], gait: 'back', speed: 0.6 }] },
+        8: { cam: { focus: ['nox'], view: 5, ang: -0.3, pitch: 0.42, up: 0.6, ease: 0.6 }, do: [{ at: 0.8, who: 'nox', hide: true }, { at: 1.3, who: 'kael', icon: '?' }, { at: 1.4, cam: { focus: ['kael', 'aerys', 'eiryn'], view: 7, ang: -0.3, pitch: 0.42, ease: 1.0 } }] },
+      },
+    },
     stages: {
       'c7.fog': auto('grassland', [K(-3.2, 1.0, 0.2, { armed: true }), AE(-5.0, 0.4, 0.2), E(-5.8, 1.4, 0.0)], {
         noFace: true,

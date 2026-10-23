@@ -112,6 +112,29 @@
         },
       };
     },
+    // Extra per-line beats, merged into the stage that plays each node (js/stages.js).
+    beats: {
+      'c11.learn': {
+        6: { cam: { focus: ['aerys'], view: 3.4, ang: -0.3, pitch: 0.42, up: 0.8, ease: 0.8 }, do: [{ at: 1.2, cam: { focus: ['eiryn', 'nox'], view: 9, ang: -0.3, pitch: 0.42, ease: 1.0 } }, { at: 1.2, who: 'eiryn', face: 'nox' }] },
+        8: { cam: { focus: ['nox', 'kael'], view: 8, ang: -0.3, pitch: 0.44, ease: 1.0 }, do: [{ who: 'nox', to: [-1.6, -0.8], speed: 0.9 }, { at: 2.4, who: 'kael', face: 'nox' }] },
+      },
+      'c11.train': {
+        7: { cam: { focus: ['kael', 'nox'], view: 6, ang: -0.3, pitch: 0.46, ease: 1.0 }, do: [{ fade: [1, 0.4] }, { at: 0.5, fade: [0, 0.6] }, ...[1.0, 2.0, 3.0].flatMap((t, i) => [{ at: t, who: 'kael', attack: { wind: 0.25, active: 0.12, recover: 0.5, tele: false } }, { at: t + 0.2, who: 'nox', state: i === 1 ? 'dodge' : 'parry', dur: 0.4 }]), { at: 2.4, who: 'nox', attack: { wind: 0.1, active: 0.1, recover: 0.3, tele: false } }, { at: 2.5, who: 'kael', state: 'hurt', dur: 0.4 }] },
+      },
+      'c11.stream': {
+        6: { cam: { focus: ['nox', 'aerys'], view: 4.6, ang: -0.3, pitch: 0.42, up: 0.7, ease: 0.9 }, do: [{ who: 'nox', face: [8, -4] }, { at: 1.2, who: 'aerys', face: [-6, 2] }] },
+      },
+      'c11.lessons': {
+        7: { cam: { x: 0.6, y: 1.0, view: 7, ang: -0.3, pitch: 0.44, drift: 0.02, ease: 1.2 }, do: [{ fade: [1, 0.6] }, { at: 0.65, light: ['255,160,80', 0.14, 0.6] }, { at: 0.65, pfx: { name: 'campfire', x: 0.6, y: 1.0, z: 0.3, scale: 1.2, life: 10 } }, ...[['aerys', -0.6, 0.6], ['eloryn', -0.4, 1.8], ['kael', 1.8, 1.8], ['braxen', 0.6, 2.4], ['eiryn', 1.8, 0.4]].flatMap(([w, x, y]) => [{ at: 0.65, who: w, put: [x, y] }, { at: 0.66, who: w, state: 'sit', hold: true }, { at: 0.66, who: w, face: [0.6, 1.0] }]), { at: 0.65, who: 'nox', put: [4.0, -0.6] }, { at: 0.8, fade: [0.2, 1.0, '10,10,30'] }, { at: 2.0, who: 'nox', to: [1.0, -0.2], speed: 0.6 }, { at: 3.6, who: 'nox', state: 'sit', hold: true }, { at: 3.6, who: 'nox', face: [0.6, 1.0] }] },
+      },
+      'c11.frost': {
+        1: { cam: { x: 5.4, y: -2.4, view: 6, ang: -0.3, pitch: 0.42, up: 0.6, ease: 1.2 }, do: [...[['kael', 3.6, -1.6], ['aerys', 2.6, -2.4], ['eloryn', 2.0, -1.0], ['braxen', 2.6, -0.2], ['eiryn', 1.4, -1.8], ['nox', 4.0, -0.4]].map(([w, x, y]) => ({ who: w, to: [x, y], speed: 0.9 })), { at: 2.2, who: 'aerys', face: [6, -2.8] }, { at: 2.4, who: 'kael', face: [6, -2.8] }] },
+        2: { cam: { x: 2, y: -1, view: 12, ang: -0.3, pitch: 0.3, up: 2.0, ease: 1.6 }, do: [{ pfx: { name: 'snow', x: 2, y: -1, z: 3, scale: 3, life: 4 } }, ...['kael', 'aerys', 'eloryn', 'braxen', 'eiryn', 'nox'].map((w) => ({ who: w, face: [9, -4] }))] },
+      },
+      'c11.doors': {
+        5: { cam: { x: 0, y: -2.4, view: 9, ang: -0.1, pitch: 0.4, up: 1.2, ease: 1.2 }, do: [...[['kael', 0.2, -4.6], ['aerys', -0.8, -4.2], ['eloryn', -1.6, -3.8], ['braxen', 0.8, -3.8], ['eiryn', -0.2, -3.6], ['nox', 1.4, -4.4]].map(([w, x, y], i) => ({ at: 0.15 * i, who: w, to: [x, y], speed: 0.9 })), { at: 2.4, fade: [1, 1.2] }] },
+      },
+    },
     stages: {
       'c11.learn': auto('grassland', [K(-3.0, 1.2, 0.1), AE(-4.4, 0.4, 0.1), EL(-5.2, 1.4, 0.1), BR(-4.0, 2.4, 0.1), E(-6.2, 0.6, 0.1), NX(5.4, -2.2, 3.1)], {
         nodes: { 'c11.learn': {
