@@ -20,7 +20,7 @@
   const CLIMBERS = [['c1', 'guild_adventurer', -1.0, 72.8], ['c2', 'spearwoman', 1.2, 71.4], ['c3', 'master_knight', -0.2, 70.2], ['c4', 'poacher', 2.0, 68.8], ['c5', 'hooded_follower', -1.8, 67.4], ['c6', 'frost_knight_b', 0.6, 66]];
   const LANDZ = (i) => 83.6 - i * 0.6, LANDY = (i) => (LANDZ(i) >= 81.5 ? 3 : 2.5);
   C['p.lore'] = {
-    set: 'square', vars: { lamps: 0, gate: 0.5 },
+    set: 'square', vars: { lamps: 0, gate: 0.5 }, speakers: { child: 'kid1' },
     actors: [
       { id: 'musician', set: 'erdra_musician', x: 1.2, y: 0, z: 4.4, dir: 'S' },
       { id: 'vendor', set: 'erdra_vendor', x: -9, y: 0, z: 3.6, dir: 'S' },
@@ -37,27 +37,30 @@
     ],
     cam: { x: 8, y: 120, z: -40, yaw: 0.09, pitch: 0.16 },
     beats: [
-      // The Tower had been there longer than any history... into the permanent cloud ceiling.
-      // (down out of the clouds, the Tower far off, into the market at dusk)
+      // (silent) Down out of the clouds, the Tower far off, into the market at dusk; a child runs to the fruit stall.
       { do: [{ cam: { x: 8, y: 120, z: -40, yaw: 0.09, pitch: 0.16, cut: true } },
         { at: 0.6, cam: { x: 6, y: 3.2, z: -10, yaw: 0.04, pitch: -0.02, ease: 9.5 } },
-        { at: 6.5, who: 'kid1', to: [26, 0, 3], speed: 4.2, anim: 'run' }, { at: 6.9, who: 'kid2', to: [24, 0, 4], speed: 4.0, anim: 'run' },
-        { at: 11.5, who: 'musician', dir: 'SE' }] },
-      // Stories disagreed about nearly everything else... but they all arrived at the same promise.
-      // (the music and the stalls; the lamps lit up the street toward the Tower; climbers walk to its gate)
-      { do: [{ cam: { x: -1.6, y: 1.5, z: -0.8, yaw: 0.42, pitch: 0.03, F: 1.2, cut: true } },
-        { at: 0.2, cam: { x: -1.0, y: 1.5, z: -0.4, yaw: 0.32, pitch: 0.03, F: 1.2, ease: 3.6 } },
-        { at: 3.6, cam: { x: 8.4, y: 1.6, z: 17.6, yaw: -0.04, pitch: 0.08, F: 1.0, cut: true } },
-        { at: 4.1, who: 'lamplighter', pose: 'reach' },
-        { at: 4.7, vars: { lamps: [1, 0.5] } }, { at: 4.7, pfx: { name: 'fire_puff', x: 5.4, y: 3.45, z: 25, scale: 0.8 } },
-        { at: 5.3, who: 'lamplighter', pose: null, anim: 'idle' },
-        { at: 5.4, vars: { lamps: [10, 3.4] } }, { at: 5.4, cam: { x: 8.3, y: 1.8, z: 19.2, yaw: 0.03, pitch: 0.1, F: 1.0, ease: 4 } },
-        { at: 9.6, place: 'gate' },
-        { at: 9.6, cam: { x: 1.6, y: 1.3, z: 47, yaw: -0.02, pitch: 0.22, cut: true } },
-        ...CLIMBERS.map(([id, , x, z]) => ({ at: 9.6, who: id, show: true, put: [x, 0, z - 6] })),
-        ...CLIMBERS.map(([id, , x, z], i) => ({ at: 9.6, who: id, to: [x, 0, z], speed: 1.15 + i * 0.02, anim: 'walk' })),
-        { at: 9.8, cam: { x: 1.6, y: 1.5, z: 53, yaw: -0.02, pitch: 0.3, ease: 8 } }] },
-      // Reach the summit, and you could make a wish.
+        { at: 6.2, who: 'kid1', to: [-8.3, 0, 2.2], speed: 4.2, anim: 'run', then: 'idle' }, { at: 6.9, who: 'kid2', to: [24, 0, 4], speed: 4.0, anim: 'run' },
+        { at: 10.6, who: 'kid1', dir: 'N' }, { at: 10.6, who: 'vendor', dir: 'SE' }] },
+      // Child: "What's at the top?"  (at the stall, pointing up at the Tower)
+      { do: [{ cam: { x: -4.6, y: 1.35, z: -3.6, yaw: -0.52, pitch: 0.05, F: 1.15, cut: true } },
+        { who: 'kid1', put: [-8.3, 0, 2.2], dir: 'NE' }, { who: 'vendor', dir: 'SE' },
+        { at: 0.2, cam: { x: -4.9, y: 1.35, z: -3.0, yaw: -0.54, pitch: 0.06, F: 1.15, ease: 3 } }] },
+      // Fruit seller: "Reach the summit, and you can make a wish."  (and the camera looks where she points)
+      { do: [{ who: 'kid1', anim: 'idle', dir: 'N' }, { who: 'vendor', anim: 'idle_alt' },
+        { at: 2.4, cam: { x: -7.6, y: 1.3, z: -2.4, yaw: 0.06, pitch: 0.18, F: 1.0, ease: 3.5 } }] },
+      // (silent) The lamps lit up the street toward the Tower; climbers walk up to its gate.
+      { do: [{ cam: { x: 8.4, y: 1.6, z: 17.6, yaw: -0.04, pitch: 0.08, F: 1.0, cut: true } },
+        { at: 0.5, who: 'lamplighter', pose: 'reach' },
+        { at: 1.1, vars: { lamps: [1, 0.5] } }, { at: 1.1, pfx: { name: 'fire_puff', x: 5.4, y: 3.45, z: 25, scale: 0.8 } },
+        { at: 1.7, who: 'lamplighter', pose: null, anim: 'idle' },
+        { at: 1.8, vars: { lamps: [10, 3.4] } }, { at: 1.8, cam: { x: 8.3, y: 1.8, z: 19.2, yaw: 0.03, pitch: 0.1, F: 1.0, ease: 4 } },
+        { at: 6.0, place: 'gate' },
+        { at: 6.0, cam: { x: 1.6, y: 1.3, z: 47, yaw: -0.02, pitch: 0.22, cut: true } },
+        ...CLIMBERS.map(([id, , x, z]) => ({ at: 6.0, who: id, show: true, put: [x, 0, z - 6] })),
+        ...CLIMBERS.map(([id, , x, z], i) => ({ at: 6.0, who: id, to: [x, 0, z], speed: 1.15 + i * 0.02, anim: 'walk' })),
+        { at: 6.2, cam: { x: 1.6, y: 1.5, z: 53, yaw: -0.02, pitch: 0.3, ease: 8 } }] },
+      // (silent) Up the steps; two walk into the light; up the Tower's face into the clouds;
       // (up the steps; the first of them walks into the light; up the Tower's face into the clouds;
       // over the roofs, the title, and down toward the one who is running)
       { do: [{ cam: { x: 3.4, y: 4.8, z: 84.6, yaw: Math.PI + 0.1, pitch: -0.2, cut: true } },
@@ -207,12 +210,6 @@
         { at: 3.3, cam: { x: 0.1, y: R5 + 1.45, z: 72.0, yaw: 0, pitch: -0.02, cut: true } },
         { at: 3.5, cam: { x: 0.1, y: R5 + 1.45, z: 72.6, yaw: 0, pitch: -0.02, ease: 6 } },
       ] },
-      // A glyph flared violet under her feet, and the air itself threw her forward.  (rides on the take)
-      { cont: true },
-      // Alric didn't slow down. He crouched, and the tiles split...  (rides on the take)
-      { cont: true },
-      // He caught her in the air, turned, and took the landing on his back...  (rides on the take)
-      { cont: true },
       // "Too slow."  The two of them on the broken roof, the Tower far beyond.
       { cam: { x: 0.2, y: R5 + 1.5, z: 72.8, yaw: 0.02, pitch: -0.02, ease: 4 }, do: [{ who: 'alric', dir: 'E' }, { who: 'eiryn', dir: 'W' }] },
       // "I let you catch me."

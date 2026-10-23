@@ -12,7 +12,7 @@ for (const f of require('fs').readdirSync(__dirname + '/../js/cinema')) require(
 const FILMED = new Set(Object.keys(global.TowCinema || {}));
 // The prologue's animated painted cinematics (js/render/backdrop.js: the town, the Tower, the Reset's fire and
 // water, the dawn) are the author's favourite opening and stay as they were.
-const PAINTED = new Set(['p.reset', 'p.story', 'p.later', 'p.open']);
+const PAINTED = new Set(['p.reset', 'p.story', 'p.later', 'p.open', 'p.resetcard']); // (p.resetcard: THE RESET over the painted ash)
 let bad = 0;
 for (const [id, n] of Object.entries(S.NODES)) {
   if (!['scene', 'card', 'fork'].includes(n.type)) continue;

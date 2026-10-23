@@ -26,9 +26,17 @@
   'use strict';
 
   // A line's text can be one string, or one per starter: { ren, mara, brannoc }.
-  const B = (who, text) => ({ who, text, book: true });
-  const S = (who, text) => ({ who, text });
+  // tone: 'shout' | 'soft' (how the floating line looks; '!' and a trailing '…' imply them)
+  const B = (who, text, tone) => ({ who, text, book: true, tone });
+  const S = (who, text, tone) => ({ who, text, tone });
   const N = (text) => ({ who: null, text });
+  // A silent beat: no words, the shot shows it (the author, 2026-10-23: no narrator). `note` keeps
+  // what the book said happens here, for whoever stages it; `hold` is its least time on screen.
+  const X = (note, hold) => ({ who: null, text: '', silent: true, note, hold });
+  // (for painted shots timed by the old narration: as long as the line used to take to read)
+  const Xr = (note) => X(note, 1.2 + note.length * 0.05);
+  // A line drafted for the game (not the book's words), waiting for the author's approval.
+  const P = (who, text, tone) => ({ who, text, tone, proposal: true });
   // Chapter Five lines that need Kael or Eiryn in the party (Chapter Four choice).
   const hasKael = (st) => (st.flags.party || 'both') !== 'eiryn';
   const hasEiryn = (st) => (st.flags.party || 'both') !== 'kael';
@@ -62,6 +70,9 @@
     healer: { name: 'The healer', tone: 'plain' },
     teacher: { name: 'Aerys’s teacher', tone: 'plain' },
     keeper: { name: 'The innkeeper', tone: 'plain' },
+    vendor: { name: 'Fruit seller', tone: 'plain' },
+    child: { name: 'Child', tone: 'plain' },
+    storyteller: { name: 'Storyteller', tone: 'plain' },
     alric: { name: 'Alric', tone: 'hero' },
     grabber: { name: 'Man by the trunk', tone: 'foe' },
   };
@@ -162,33 +173,27 @@
     'p.lore': {
       type: 'scene', chapter: 'prologue', bg: 'tower', next: 'p.roof',
       lines: [
-        N('The Tower had been there longer than any history anyone had read. Its upper reaches disappeared into the permanent cloud ceiling.'),
-        N('Stories disagreed about nearly everything else — the floors, the dangers, the people who’d vanished inside — but they all arrived at the same promise.'),
-        N('Reach the summit, and you could make a wish.'),
+        X('Down out of the cloud ceiling, the Tower far off, into the market at dusk.'),
+        P('child', 'What’s at the top?'), // PROPOSAL (a child at the fruit stall points at the Tower)
+        P('vendor', 'Reach the summit, and you can make a wish.'), // PROPOSAL: the book's promise, spoken
+        X('The lamps are lit up the street toward the Tower; climbers walk up to its gate.'),
+        X('Two climbers step into the light; up the Tower into the clouds; over the roofs, the title.'),
       ],
     },
-    // The prologue in the inventory's order and the author's edit (2026-10-23): the rooftop chase
-    // (TW-001-010), the climber's fight on the last floor and the Tower's horn (TW-019, TW-014),
-    // their talk about the Tower (TW-015-018), the climber at the light, the Reset. The street walk
-    // (TW-011-013) is left out by the author's choice. Lines marked PROPOSAL are drafts from the
-    // inventory's beats, waiting for the author's wording (docs/DESIGN.md).
     'p.roof': {
       type: 'scene', chapter: 'prologue', bg: 'tower', next: 'p.tower',
       lines: [
         B('alric', 'You’re slowing down.'), // PROPOSAL (TW-003)
         B('eiryn', 'I’m letting you think you can catch me.'), // PROPOSAL (TW-003)
         B('alric', 'Then stop letting me.'), // PROPOSAL (TW-003)
-        N('The next gap was wider than she had judged.'), // PROPOSAL (TW-004)
-        N('A glyph flared violet under her feet, and the air itself threw her forward.'), // PROPOSAL (TW-005)
-        N('Alric didn’t slow down. He crouched, and the tiles split under a strength no man should have had.'), // PROPOSAL (TW-006)
-        N('He caught her in the air, turned, and took the landing on his back. Half the roof came with them.'), // PROPOSAL (TW-007)
+        X('The take (TW-004-007): the gap wider than she judged; a violet glyph throws her on; Alric leaps by strength alone, catches her midair, takes the landing; half the roof comes with them.'),
         B('alric', 'Too slow.'), // PROPOSAL (TW-008)
         B('eiryn', 'I let you catch me.'), // PROPOSAL (TW-008)
         B('alric', 'Did you.'), // PROPOSAL (TW-008)
         B('eiryn', 'I wanted the hug.'), // PROPOSAL (TW-008)
         B('eiryn', 'We were almost home.'), // PROPOSAL (TW-009)
         B('alric', 'We walk the rest. Before the neighbours start counting their tiles.'), // PROPOSAL (TW-010)
-        N('Somewhere below, one more tile slid off the edge and broke in the street.'), // PROPOSAL (TW-010)
+        X('Somewhere below, one more tile slid off the edge and broke in the street.'), // PROPOSAL (TW-010)
       ],
     },
     // Left out of the road (the author, 2026-10-23: no street walk); kept for old saves.
@@ -211,30 +216,30 @@
     'p.overlook': {
       type: 'scene', chapter: 'prologue', bg: 'tower', next: 'p.light',
       lines: [
-        N('On a roof at the edge of the city, Eiryn and Alric turned toward the sound with everyone else.'), // PROPOSAL (TW-014)
+        X('On a roof at the edge of the city, Eiryn and Alric turned toward the sound with everyone else.'), // PROPOSAL (TW-014)
         B('alric', 'They say someone climbed another floor today.'),
         B('eiryn', 'They always say that.'),
         B('alric', 'Do you think anyone’s ever made it to the top?'),
-        N('Eiryn finally looked. The Tower gave her nothing back.'),
+        X('Eiryn finally looked. The Tower gave her nothing back.'),
         B('eiryn', 'You’d have to be powerful.'),
         B('eiryn', 'You could do it.'), // PROPOSAL (TW-016)
         B('alric', 'Me? I’d be bored by the third floor. You’d end up carrying me.'), // PROPOSAL (TW-016)
         B('alric', 'And if someone did?'),
         B('eiryn', 'What would they wish for?'),
         B('alric', 'I don’t know.'),
-        N('He stepped closer. His arm slid around her waist until the Tower disappeared from the center of her world. Their foreheads touched.'),
+        X('He stepped closer. His arm slid around her waist until the Tower disappeared from the center of her world. Their foreheads touched.'),
         B('eiryn', 'I already have everything I could ever wish for.'), // TW-017: Eiryn says it (the older text gave it to Alric)
-        N('For a moment, the world was enough.'), // TW-018
-        N('Far above them, something was dying.'),
+        X('For a moment, the world was enough.'), // TW-018
+        X('Far above them, something was dying.'),
       ],
     },
     'p.open': { type: 'card', chapter: 'prologue', bg: 'tower', title: 'TOWER OF WISHES', sub: 'Reach the summit, and you could make a wish.', next: 'p.tower' },
     'p.tower': {
       type: 'scene', chapter: 'prologue', bg: 'tower', next: 'p.climb',
       lines: [
-        N('Far away, high inside the Tower, a climber reached the last ascent.'),
-        N('Blood had dried along one side of the stranger’s face. The weapon in their hand was broken. No companion followed.'),
-        N('Something was waiting on the final floor. Something no one had ever seen clearly.'),
+        X('Far away, high inside the Tower, a climber reached the last ascent.'),
+        X('Blood had dried along one side of the stranger’s face. The weapon in their hand was broken. No companion followed.'),
+        X('Something was waiting on the final floor. Something no one had ever seen clearly.'),
       ],
     },
     // The climber's fight, filmed (the author, 2026-10-23: a cutscene, not an auto-battle). No names
@@ -242,15 +247,15 @@
     'p.climb': {
       type: 'scene', chapter: 'prologue', bg: 'summit', next: 'p.overlook',
       lines: [
-        N('Two shapes dropped from the dark to bar the way.'), // PROPOSAL
-        N('The climber cut through both of them in a single stroke.'), // PROPOSAL
-        N('The thing behind them answered.'), // PROPOSAL
-        N('The climber got up.'), // PROPOSAL
-        N('Steel and shadow, again and again.'), // PROPOSAL
-        N('It was not enough.'), // PROPOSAL
-        N('So the climber reached for something older.'), // PROPOSAL
-        N('The last floor fell silent.'), // PROPOSAL
-        N('Then the Tower sounded: one vast note, and every soul in Erdra heard it.'), // PROPOSAL (TW-014)
+        X('Two shapes dropped from the dark to bar the way.'), // PROPOSAL
+        X('The climber cut through both of them in a single stroke.'), // PROPOSAL
+        X('The thing behind them answered.'), // PROPOSAL
+        X('The climber got up.'), // PROPOSAL
+        X('Steel and shadow, again and again.'), // PROPOSAL
+        X('It was not enough.'), // PROPOSAL
+        X('So the climber reached for something older.'), // PROPOSAL
+        X('The last floor fell silent.'), // PROPOSAL
+        X('Then the Tower sounded: one vast note, and every soul in Erdra heard it.'), // PROPOSAL (TW-014)
       ],
     },
     // The playable climber fight, now off the road (its lessons moved to Kael's first fight); kept for old saves.
@@ -266,21 +271,33 @@
     'p.light': {
       type: 'scene', chapter: 'prologue', bg: 'summit', next: 'p.reset',
       lines: [
-        N('Above the final steps was a brightness too pale to see through.'),
-        N('The climber reached toward it.'),
+        X('Above the final steps was a brightness too pale to see through.'),
+        X('The climber reached toward it.'),
       ],
     },
     'p.reset': {
-      type: 'scene', chapter: 'prologue', bg: 'reset', next: 'p.story',
+      type: 'scene', chapter: 'prologue', bg: 'reset', next: 'p.resetcard',
       lines: [
-        N('Then the clouds began to burn.'),
-        N('A straight white line opened overhead, from horizon to horizon. Red gathered at its edges.'),
-        N('Fire rained down. Oceans surged inland. Cities drowned beneath walls of black water. The world that had breathed so easily only moments before began to choke.'),
-        N('Eiryn ran. Alric’s hand was locked around hers. There was nowhere to go. They ran anyway.'),
-        N('Then the light changed. A wall of flame was descending from the sky. Not somewhere beyond the city. Not across another street. Here.'),
-        N('Alric turned and shoved Eiryn backward. He stepped between her and the sky. He covered her with his body. And the fire came down.'),
-        N('Eiryn screamed. No sound came out. Ash fell. The fire passed. Alric was gone.'),
-        N('The world remembered it as the Reset.'),
+        Xr('Then the clouds began to burn.'),
+        Xr('A straight white line opened overhead, from horizon to horizon. Red gathered at its edges.'),
+        Xr('Fire rained down. Oceans surged inland. Cities drowned beneath walls of black water. The world that had breathed so easily only moments before began to choke.'),
+        Xr('Eiryn ran. Alric’s hand was locked around hers. There was nowhere to go. They ran anyway.'),
+        Xr('Then the light changed. A wall of flame was descending from the sky. Not somewhere beyond the city. Not across another street. Here.'),
+        Xr('Alric turned and shoved Eiryn backward. He stepped between her and the sky. He covered her with his body. And the fire came down.'),
+        Xr('Eiryn screamed. No sound came out. Ash fell. The fire passed. Alric was gone.'),
+      ],
+    },
+    'p.resetcard': { type: 'card', chapter: 'prologue', bg: 'reset', title: 'THE RESET', sub: '', next: 'p.legend' },
+    // Years later: the legend told by a fire, with its memories filmed (the author, 2026-10-23).
+    // The storyteller's words are drafted from the book's narration (PROPOSAL, for the author).
+    'p.legend': {
+      type: 'scene', chapter: 'prologue', bg: 'tower', next: 'p.later',
+      lines: [
+        X('A fire in a settlement built from older ruins; children round an old storyteller; Eiryn at the edge of the light.'),
+        P('storyteller', 'Long ago, a man climbed to the top of the Tower of Wishes. No one knows his name.'),
+        P('storyteller', 'What came after was fire, water and storm. The end of a world.'),
+        P('storyteller', 'We built again. It broke again. Only the Tower never changed.'),
+        X('Back at the fire: Eiryn, the same face, the same posture, in a different world.'),
       ],
     },
     'p.story': {
@@ -312,10 +329,10 @@
     'c1.tavern': {
       type: 'scene', chapter: 'c1', bg: 'tavern', next: 'c1.formation',
       lines: [
-        N('At the next table, a Guild swordsman has decided the stew tastes burnt. This is, apparently, a controversial opinion.'),
+        X('At the next table, a Guild swordsman has decided the stew tastes burnt. This is, apparently, a controversial opinion.'),
         B('spear', 'It’s smoked pepper. They’ve been putting it in since spring.'),
         B('kael', 'Then they’ve been burning it since spring.'),
-        N('Around them the regulars murmur over their cups.'),
+        X('Around them the regulars murmur over their cups.'),
       ],
     },
     // The tavern goes to the window; then the painted clip of the formation charging and
@@ -323,14 +340,14 @@
     'c1.formation': {
       type: 'scene', chapter: 'c1', bg: 'tavern', next: 'c1.go',
       lines: [
-        N('A murmur runs through the tavern. One by one, the regulars drift to the window, and the stew is forgotten. Far to the north, the light over the trees has turned purple.'),
+        X('A murmur runs through the tavern. One by one, the regulars drift to the window, and the stew is forgotten. Far to the north, the light over the trees has turned purple.'),
       ],
     },
     'c1.clip': {
       type: 'scene', chapter: 'c1', bg: 'formation', next: 'c1.look',
       lines: [
-        N('Above the distant treeline, purple light gathers in the air. Fine lines curve around a bright center, ring inside ring, turning against one another.'),
-        N('One of the inner rings stops. The whole formation shudders, holds — and comes apart over the trees.'),
+        X('Above the distant treeline, purple light gathers in the air. Fine lines curve around a bright center, ring inside ring, turning against one another.'),
+        X('One of the inner rings stops. The whole formation shudders, holds — and comes apart over the trees.'),
       ],
     },
     'c1.go': {
@@ -339,14 +356,14 @@
         B('kael', 'I’m going outside.'),
         B('spear', 'You’re doing that thing with your face. The one you do before you run at a problem.'),
         B('kael', 'That’s why I’m going to see.'),
-        N('He sets off before she can offer an opinion.'),
+        X('He sets off before she can offer an opinion.'),
       ],
     },
     // Out in the street (TW-041): Kael watches the formation fail from outside.
     'c1.street': {
       type: 'scene', chapter: 'c1', bg: 'tavern', next: 'c1.clip',
       lines: [
-        N('Outside, the street has gone quiet. Every face is turned north.'),
+        X('Outside, the street has gone quiet. Every face is turned north.'),
       ],
     },
     // TW-043: nobody knows who cast it. (Kael's line is a placeholder until the author writes it.)
@@ -354,24 +371,24 @@
       type: 'scene', chapter: 'c1', bg: 'tavern', next: 'c1.run',
       lines: [
         B('kael', 'Nobody draws something that big for fun.'),
-        N('He starts north, toward the trees.'),
+        X('He starts north, toward the trees.'),
       ],
     },
     'c1.run': {
       type: 'scene', chapter: 'c1', bg: 'forest', next: 'c1.voice',
       lines: [
-        N('The road curves north past the market square. Kael follows it until the houses thin, then cuts across hard ground toward the woods.'),
+        X('The road curves north past the market square. Kael follows it until the houses thin, then cuts across hard ground toward the woods.'),
         S('@', { ren: 'Keep up.', mara: 'You run like someone who\u2019s been hit before.', brannoc: 'Go. I\u2019ll be right behind you. Eventually.' }),
-        N('Behind them, the ordinary noise of the town fades, replaced by wind moving through the first trees.'),
+        X('Behind them, the ordinary noise of the town fades, replaced by wind moving through the first trees.'),
       ],
     },
     'c1.voice': {
       type: 'scene', chapter: 'c1', bg: 'forest', next: 'c1.drop',
       lines: [
-        N('At the forest’s edge, a man laughs. Another answers. Then a woman, clearly enough to carry through the trees:'),
+        X('At the forest’s edge, a man laughs. Another answers. Then a woman, clearly enough to carry through the trees:'),
         B('eiryn', 'Keep your hands off me.'),
-        N('Four men in a clearing. A broad-shouldered one by the fallen tree, one with a short knife, one moving round the right, one hanging back by the path.'),
-        N('The woman they have cornered has long silver-white hair. She is exhausted.'),
+        X('Four men in a clearing. A broad-shouldered one by the fallen tree, one with a short knife, one moving round the right, one hanging back by the path.'),
+        X('The woman they have cornered has long silver-white hair. She is exhausted.'),
         B('broad', 'Then do another trick. The big one. We all saw it.'),
         B('knife', 'She can’t. Look at her.'),
         B('knife', 'Pretty thing, walking alone?'),
@@ -383,8 +400,8 @@
     'c1.drop': {
       type: 'scene', chapter: 'c1', bg: 'forest', next: 'c1.fight',
       lines: [
-        N('Something drops from the bank above and lands between them.'),
-        N('Kael drives his sword into the earth. Then he pulls it free.'),
+        X('Something drops from the bank above and lands between them.'),
+        X('Kael drives his sword into the earth. Then he pulls it free.'),
       ],
     },
     'c1.fight': {
@@ -401,10 +418,10 @@
         B('eiryn', 'Not by them.'),
         B('kael', 'That spell over the trees. Was it yours?'),
         B('eiryn', 'It would have been considerably more impressive if it had worked.'),
-        N('Kael offers his waterskin.'),
+        X('Kael offers his waterskin.'),
         B('eiryn', 'That’s what somebody trying to poison me would say.'),
         B('kael', 'Then I’m apparently very committed to the plan.'),
-        N('He studies her. He is waiting for something: shaking, perhaps. The delayed panic of someone whose mind has only just caught up with what nearly happened. Eiryn stands exactly as she did before.'),
+        X('He studies her. He is waiting for something: shaking, perhaps. The delayed panic of someone whose mind has only just caught up with what nearly happened. Eiryn stands exactly as she did before.'),
         B('kael', '…You’re not scared?'),
         B('eiryn', 'And why should I be?'),
         B('kael', 'That road kills people. Especially women who think walking alone means something.'),
@@ -420,11 +437,11 @@
         B('eiryn', 'There should be a crossing east of here. A stone one, before the hills.'),
         B('kael', 'Not on the road I came by.'),
         B('eiryn', 'There was.'),
-        N('Beyond the last branches lie the road and the first roofs of the town. Eiryn stops and looks at them as if they are in the wrong place.'),
+        X('Beyond the last branches lie the road and the first roofs of the town. Eiryn stops and looks at them as if they are in the wrong place.'),
         B('eiryn', 'I thought I knew this place.'),
-        N('He walks on through Ashgate as though the matter had been settled, half a step ahead of her, scanning the road with the vigilance of a man who has already decided she needs protecting.'),
+        X('He walks on through Ashgate as though the matter had been settled, half a step ahead of her, scanning the road with the vigilance of a man who has already decided she needs protecting.'),
         B('kael', 'Stay close.'),
-        N('Her expression does not change. Beyond the city walls, the Tower looms beneath the clouds.'),
+        X('Her expression does not change. Beyond the city walls, the Tower looms beneath the clouds.'),
       ],
     },
 
@@ -925,7 +942,7 @@
   function lines(st, n) {
     n = n || node(st);
     return (n.lines || []).map((l, src) => ({ l, src })).filter(({ l }) => (!l.when || l.when(st)) && (l.who !== '@' || you(st)))
-      .map(({ l, src }) => ({ who: l.who, speaker: speaker(st, l.who), text: text(st, l.text), book: !!l.book, src }));
+      .map(({ l, src }) => ({ who: l.who, speaker: speaker(st, l.who), text: text(st, l.text), book: !!l.book, src, tone: l.tone, silent: !!l.silent, hold: l.hold }));
   }
 
   function setFlags(st, set) {

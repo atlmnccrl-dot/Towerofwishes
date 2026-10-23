@@ -67,6 +67,8 @@
   }
   // the old tree: a thick trunk, a low branch reaching over the camp, a dark crown
   const TREE = { x: -5.6, z: 13.2 };
+  // the hearth's ruins: [x0, x1, y0, y1, z0, z1]
+  const RUINS = [[-7.5, -6.8, 0, 2.6, 9, 14], [-7.5, -4.5, 0, 1.4, 14, 14.6], [5.6, 6.3, 0, 3.2, 12, 16.5], [3.2, 6.3, 0, 1.1, 16, 16.6], [6.4, 9.8, 0, 2.0, 5, 5.6], [-2.4, 0.6, 0, 0.5, 13.4, 14.0]];
   function tree(v) {
     const { x, z } = TREE;
     box(v, [x - 0.55, x + 0.55, 0, 6.5, z - 0.55, z + 0.55], [70, 50, 42], true);
@@ -130,11 +132,16 @@
       for (const P of PINES) out.push({ p: [P.x, 0, P.z], f: () => pine(v, P) });
       out.push({ box: [TREE.x - 2, TREE.x + 2.7, 0, 9, TREE.z - 1.5, TREE.z + 1.5], f: () => tree(v) });
       out.push({ box: [-0.9, 0.9, 0, 0.3, FIRE[2] - 0.9, FIRE[2] + 0.9], f: () => campfire(v) });
-      // Kael's training post, Braxen's log, the tents
-      out.push({ box: [4.65, 4.95, 0, 1.75, 9.25, 9.55], f: () => { box(v, [4.65, 4.95, 0, 1.75, 9.25, 9.55], [96, 70, 50], true); box(v, [4.6, 5.0, 1.2, 1.32, 8.9, 9.9], [96, 70, 50], true); } });
-      out.push({ box: [1.5, 3.7, 0, 0.45, 12.1, 12.6], f: () => box(v, [1.5, 3.7, 0, 0.45, 12.1, 12.6], [84, 60, 46], true) });
-      out.push({ box: [-9, -5.6, 0, 1.6, 4, 7], f: () => tent(v, -7.3, 5.6, 1.5, 1.3, 0.5) });
-      out.push({ box: [7.2, 10.4, 0, 1.6, 13.4, 16.4], f: () => tent(v, 8.8, 14.9, 1.5, 1.3, -0.4) });
+      if (v.vars.hearth) {
+        // a settlement built from older ruins: broken walls round the fire, a shelter of salvaged stone
+        for (const B of RUINS) out.push({ box: B, f: () => box(v, B, [92, 84, 92], true) });
+      } else {
+        // Kael's training post, Braxen's log, the tents
+        out.push({ box: [4.65, 4.95, 0, 1.75, 9.25, 9.55], f: () => { box(v, [4.65, 4.95, 0, 1.75, 9.25, 9.55], [96, 70, 50], true); box(v, [4.6, 5.0, 1.2, 1.32, 8.9, 9.9], [96, 70, 50], true); } });
+        out.push({ box: [1.5, 3.7, 0, 0.45, 12.1, 12.6], f: () => box(v, [1.5, 3.7, 0, 0.45, 12.1, 12.6], [84, 60, 46], true) });
+        out.push({ box: [-9, -5.6, 0, 1.6, 4, 7], f: () => tent(v, -7.3, 5.6, 1.5, 1.3, 0.5) });
+        out.push({ box: [7.2, 10.4, 0, 1.6, 13.4, 16.4], f: () => tent(v, 8.8, 14.9, 1.5, 1.3, -0.4) });
+      }
       // fireflies at the edge of the light
       for (const [x, y, z, ph] of [[-8, 1.4, 11, 0], [9, 1.8, 9, 0.7], [-3, 2.4, 17, 1.3], [5, 1.2, 18, 2.1]]) out.push({ p: [x, y, z], on: false, f: () => v.fx && v.fx('fireflies', x, y, z, { scale: 1.2, add: true, phase: ph }) });
       return out;

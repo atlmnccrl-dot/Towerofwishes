@@ -43,7 +43,7 @@ function walk(st, depth) {
   if (n.type === 'scene' || n.type === 'fork') {
     const ls = Story.lines(st);
     assert(ls.length, `${st.node}: no lines for this branch`);
-    for (const l of ls) assert(typeof l.text === 'string' && l.text.length, `${st.node}: empty line`);
+    for (const l of ls) assert(l.silent || (typeof l.text === 'string' && l.text.length), `${st.node}: empty line`); // (silent beats are shots without words)
   }
   if (n.type === 'select') {
     for (const k of Object.keys(Story.STARTERS)) { const c = clone(st); Story.pickStarter(c, k); walk(c, depth + 1); }

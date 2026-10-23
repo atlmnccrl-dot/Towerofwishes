@@ -34,12 +34,20 @@ Read first: [docs/DESIGN.md](docs/DESIGN.md), [docs/STORY.md](docs/STORY.md),
 - **No hearts.** Losing a fight costs nothing: retry, or leave to change gear, loot or earn XP
   and come back. No story progress is ever lost.
 - Cutscenes can be skipped (setting); skipping never skips rewards, flags or injuries.
-- No speech bubbles anywhere: subtitles, or ambient "…" for murmurs.
-- **Dialogue is film subtitles** (the author's pick, 2026-10-22, mockup A): letterbox bars on story
-  scenes; the book's text split into short subtitles (one or two lines) in the bottom bar; the
-  speaker's name only when the speaker changes; narration in italics; no typewriter; the controls
-  appear on a tap. Filmed scenes play as one continuous take: a tap hurries the subtitles (and the
-  action), never cuts it off; the next line and its shot wait until the current action has played.
+- No speech bubbles anywhere: no boxes or tails; spoken lines float beside the speaker (below), or
+  ambient "…" for murmurs.
+- **Dialogue floats beside the speaker** (the author's pick, 2026-10-23, mockup B + tone; it replaces
+  the film-subtitle bar): the line sits by the speaker's head, tied to them by a thin bar in their
+  colour, their name above it; a shout is big, hot and shakes, a soft line small and fading; someone
+  out of the shot speaks from low on the left. Letterbox bars stay; no typewriter; the controls appear
+  on a tap. Filmed scenes play as one continuous take: a tap hurries the line (and the action), never
+  cuts it off; the next line and its shot wait until the current action has played.
+- **No narrator** (the author, 2026-10-23): the book's narration is shown, not read. A narrated line
+  becomes a silent beat (`X(note)` in js/story.js keeps what happens, for staging) and its shot plays it;
+  jumps in time or place are short title cards. When something matters but can't be shown and nobody
+  says it in the book, ask the author per scene. Lines written for the game are `P(...)` (Proposals).
+  Adapted so far: the prologue and Chapter One; later chapters still show their narration under the
+  picture until they are adapted, chapter by chapter, with the author.
 - **Fight HUD: the clean style** (the author's pick, 2026-10-22, mockup A): portrait chips top left,
   foes left as pips at the top centre (or the boss bar), round speed/pause, a round All Out gauge.
 - **Music:** fights play "Heartfelt Battle" (OpenGameArt, CC0; assets/music/). New tracks must be
@@ -72,8 +80,10 @@ Read first: [docs/DESIGN.md](docs/DESIGN.md), [docs/STORY.md](docs/STORY.md),
   chase and the catch), `p.tower`, `p.climb` and `p.light` (the climber's whole fight, a cutscene, not
   an auto-battle), `p.overlook` (the Tower talk), the unlinked `p.evening`, and Chapter One's tavern and
   street (`c1.tavern`, `c1.formation`, `c1.go`, `c1.street`, `c1.clip`, `c1.look`).
-- **The opening** (the author, 2026-10-23): the world before (`p.lore`, filmed; the old vector opening is gone)
-  → the rooftop chase → the climber's fight → Eiryn and Alric looking at the Tower → the light → the Reset. No street walk, no names for the climber, the thing
+- **The opening** (the author, 2026-10-23): the world before (`p.lore`, filmed; the old vector opening is gone;
+  a fruit seller tells a child the promise) → the rooftop chase → the climber's fight → Eiryn and Alric looking at
+  the Tower → the light → the Reset → THE RESET card → the legend told by a fire, with filmed memories
+  (`p.legend`) → 150 years later. No street walk, no names for the climber, the thing
   or the final move. The prologue has no battle; the guided tutorial is Kael's bandit fight (`c1.fight`).
 - **The menu** (the author, 2026-10-23): a left column (logo top left, the menu as a list, the team as chips
   bottom right) over a campfire at night, filmed (`js/cinema/camp.js`): each hero does what fits them (Kael
@@ -110,7 +120,7 @@ Read first: [docs/DESIGN.md](docs/DESIGN.md), [docs/STORY.md](docs/STORY.md),
 | `js/campaign.js` | World map: lands, routes, unlock rules. Pure |
 | `js/progression.js` | Gear, inventory, loot tables, skill trees → per-fighter fight modifiers. Pure |
 | `js/stages.js`, `js/render/stage.js` | Staged story scenes: fighters acting out dialogue on real arenas |
-| `js/render/cinema.js`, `js/cinema/*.js` | The cinema: filmed story scenes (3D camera with yaw, pitch and first-person shots; solid painted sets; pixel actors; pack effects). `sets.js` (the square, the rooftops and overlook, and the shared kit), `ashgate.js` (the tavern, the street, the formation), `gate.js` (the Tower's gate), `summit.js` (the Tower's last floor above the clouds) and `camp.js` (the menu's campfire, with its scene) build the places; a film may move between places (`place`); `prologue.js`, `climber.js` and `c1.js` hold the shot lists per node, one entry per dialogue line |
+| `js/render/cinema.js`, `js/cinema/*.js` | The cinema: filmed story scenes (3D camera with yaw, pitch and first-person shots; solid painted sets; pixel actors; pack effects). `sets.js` (the square, the rooftops and overlook, and the shared kit), `ashgate.js` (the tavern, the street, the formation), `gate.js` (the Tower's gate), `summit.js` (the Tower's last floor above the clouds) and `camp.js` (the menu's campfire, with its scene; as a hearth among ruins for the legend) build the places; a film may move between places (`place`); `prologue.js`, `climber.js`, `legend.js` and `c1.js` hold the shot lists per node, one entry per dialogue line |
 | `js/render/overworld.js`, `js/render/inkmap.js` | The world map: layout, stops (wax seals), ink labels, the pin at the current chapter; `inkmap.js` draws the land as an illustrated parchment map (option B, the author's pick 2026-10-22). Without `inkmap.js` it falls back to the pixel overworld (option A, rejected) |
 | `js/render/map.js` | The painted world map (option B; drop the overworld script tag in `index.html` to use it) |
 | `js/render/backdrop.js` | Painted full-screen backgrounds for story scenes |

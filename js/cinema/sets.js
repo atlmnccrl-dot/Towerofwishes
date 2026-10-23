@@ -378,6 +378,22 @@
       setHaze([106, 74, 110]);
       sky(v, DUSK, -1.35);
       farWorld(v, 0, 0, { tower: TOWER_R, open: [0, 1.25] });
+      // the sky splitting (vars.burn 0..1): red flooding down from a white line across it
+      const BURN = v.vars.burn || 0;
+      if (BURN > 0.01) {
+        const { ctx, W, H } = v, ly = Math.max(4, v.hz - H * 0.36);
+        const g = ctx.createLinearGradient(0, 0, 0, v.hz);
+        g.addColorStop(0, `rgba(150,20,20,${(0.75 * BURN).toFixed(3)})`); g.addColorStop(1, `rgba(255,90,40,${(0.45 * BURN).toFixed(3)})`);
+        ctx.fillStyle = g; ctx.fillRect(0, 0, W, v.hz);
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = `rgba(255,250,240,${Math.min(1, BURN * 1.6).toFixed(3)})`; ctx.fillRect(0, ly, W, Math.max(1, H * 0.006));
+        const lg = ctx.createLinearGradient(0, ly - H * 0.08, 0, ly + H * 0.08);
+        lg.addColorStop(0, 'rgba(255,80,40,0)'); lg.addColorStop(0.5, `rgba(255,120,60,${(0.6 * BURN).toFixed(3)})`); lg.addColorStop(1, 'rgba(255,80,40,0)');
+        ctx.fillStyle = lg; ctx.fillRect(0, ly - H * 0.08, W, H * 0.16);
+        // fire falling from the line
+        for (let i = 0; i < 14; i++) { const fx = ((i * 97 + v.t * 40 * (1 + (i % 3))) % (W + 40)) - 20, fy = ly + ((v.t * (60 + i * 9) + i * 37) % (v.hz - ly + 20)); ctx.fillStyle = `rgba(255,${150 + (i % 4) * 20},80,${(0.8 * BURN).toFixed(3)})`; ctx.fillRect(fx | 0, fy | 0, 2, 4); }
+        ctx.restore();
+      }
       lands(v);
       // the streets far below
       v.poly([[-60, 0, -90], [-60, 0, EDGE], [60, 0, EDGE], [60, 0, -90]], shade([52, 36, 40], [0, 1, 0], 0));
