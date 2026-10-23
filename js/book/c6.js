@@ -167,44 +167,71 @@
       'c6.road': auto('grassland', [K(-6.2, 0.9, 0), E(-7.6, 0.2, 0)], {
         nodes: { 'c6.road': {
           0: { do: [{ who: 'kael', to: [-1.6, 0.9], speed: 1.1 }, { who: 'eiryn', to: [-3.0, 0.2], speed: 1.1 }] },
-          1: { cam: { focus: ['kael', 'eiryn'], view: 7.5, ang: -0.9, pitch: 0.48, drift: 0.02, ease: 1.2 }, do: [{ who: 'kael', to: [1.2, 0.9], speed: 1.0 }, { who: 'eiryn', to: [-0.4, 0.3], speed: 1.0 }] },
-          2: { cam: { x: -0.2, y: 0.5, view: 8, ang: -0.5, pitch: 0.5, ease: 1.4 }, do: [{ who: 'kael', to: [-1.6, 1.3], face: [0, 1.5], speed: 0.8 }, { who: 'kael', set: { gest: 'cross' } }, { who: 'eiryn', to: [-0.2, 1.0], speed: 0.6 }] },
+          1: { cam: { focus: ['kael', 'eiryn'], view: 7.5, ang: -0.9, pitch: 0.48, drift: 0.02, ease: 1.2 }, do: [{ who: 'kael', to: [1.2, 0.9], speed: 1.0 }, { who: 'eiryn', to: [-0.4, 0.3], speed: 1.0 }, { at: 1.6, who: 'kael', face: 'eiryn' }, { at: 2.4, who: 'kael', face: 0 }] },
+          2: { cam: { x: -0.6, y: 1.2, view: 6, ang: -0.5, pitch: 0.46, ease: 1.4 }, do: [{ who: 'kael', to: [-1.6, 1.3], speed: 0.9 }, { who: 'eiryn', to: [-0.2, 1.0], speed: 0.6 }, { at: 1.6, who: 'kael', face: [-0.9, 2.0] }, { at: 1.8, who: 'kael', state: 'pickup', dur: 1.2 }, { at: 2.4, pfx: [{ name: 'fire_puff', x: -0.9, y: 2.0, scale: 1.2 }, { name: 'campfire', x: -0.9, y: 2.0, z: 0.3, scale: 1.2, life: 30 }] }, { at: 3.2, who: 'kael', face: 'eiryn' }, { at: 3.3, who: 'kael', set: { gest: 'present' } }, { at: 4.4, who: 'kael', set: { gest: 'cross' } }] },
         } },
       }),
-      'c6.youngling': auto('grassland', [K(1.0, 0.6, 0.5), E(0.0, 1.4, 0.2)], {
+      'c6.youngling': Object.assign(auto('grassland', [K(1.0, 0.6, 0.5), E(0.0, 1.4, 0.2), { id: 'young', key: 'skyreaver', x: 4.4, y: -2.8, f: 2.4 }], {
+        noFace: true,
         nodes: { 'c6.youngling': {
-          0: { cam: { x: 3.4, y: -2.6, view: 8.5, ang: -0.3, pitch: 0.46, ease: 1.4 }, do: [{ who: 'kael', icon: '!' }, { who: 'kael', face: [3.4, -2.6] }] },
-          1: { cam: { x: 3.4, y: -2.6, view: 5.2, ang: 0.4, pitch: 0.42, up: 0.5, drift: -0.03, ease: 1.4 } },
+          0: { cam: { x: 3.4, y: -1.6, view: 9, ang: -0.3, pitch: 0.46, ease: 1.4 }, do: [{ shake: 2 }, { who: 'kael', icon: '!' }, { who: 'kael', face: [4.4, -2.8] }, { at: 0.4, who: 'kael', set: { stow: false, gest: null } }] },
+          1: { cam: { focus: ['young'], view: 6, ang: 0.4, pitch: 0.42, up: 0.5, drift: -0.03, ease: 1.4 }, do: [{ who: 'kael', to: [2.4, -0.8], speed: 0.8 }, { who: 'eiryn', to: [2.0, -1.8], speed: 0.8 }, { at: 1.6, who: 'eiryn', face: 'young' }] },
+          6: { cam: { x: 6.6, y: -0.8, view: 6, ang: -0.3, pitch: 0.4, up: 0.4, ease: 1.2 }, do: [{ who: 'kael', to: [5.4, -0.6], speed: 1.0 }, { pfx: [[6.0, -0.9], [7.2, -0.6], [8.4, -0.3]].map(([x, y], i) => ({ name: 'dust_kick', x, y, scale: 1.4, ground: true, delay: 0.4 + i * 0.2 })) }, { at: 1.6, who: 'kael', state: 'pickup', dur: 1.2 }, { at: 3.0, who: 'kael', face: [9, -2] }] },
         } },
-      }),
-      'c6.mother': auto('grassland', [K(1.4, 1.0, 0.1), E(0.0, 1.6, 0.1), AE(-9.5, -1.0, 0.3, { hidden: true })], {
+      }), { setup: [{ who: 'young', state: 'down', hold: true }] }),
+      'c6.mother': auto('grassland', [K(1.4, 1.0, 0.1), E(0.0, 1.6, 0.1), AE(-9.5, -1.0, 0.3, { hidden: true }), { id: 'sky', key: 'skyreaver', x: 6.4, y: -3.0, f: 3.4, hidden: true }], {
         nodes: { 'c6.mother': {
-          1: { cam: { focus: ['kael', 'aerys'], view: 7, ang: -0.6, pitch: 0.46, ease: 0.5 }, do: [{ who: 'aerys', show: true, put: [-9.5, -1.0] }, { who: 'aerys', to: [-1.2, -0.8], gait: 'sprint', speed: 4.6, face: null }, { who: 'kael', face: 'aerys' }] },
+          0: { cam: { focus: ['kael', 'eiryn'], dx: -2, view: 8, ang: -0.5, pitch: 0.46, ease: 1.0 }, do: [{ who: 'eiryn', to: [2.6, 1.2], speed: 0.9 }, { at: 1.4, pfx: [{ name: 'dust_cloud', x: -6, y: -1.2, scale: 2.4 }, { name: 'leaves', x: -6, y: -1.2, z: 0.6, scale: 2, life: 1.4 }] }, { at: 1.4, shake: 4 }, { at: 1.5, who: 'kael', face: [-6, -1] }, { at: 1.5, who: 'eiryn', face: [-6, -1] }] },
+          1: { cam: { focus: ['kael', 'aerys'], view: 7, ang: -0.6, pitch: 0.46, ease: 0.5 }, do: [{ who: 'aerys', show: true, put: [-9.5, -1.0] }, { who: 'aerys', to: [-1.2, -0.8], gait: 'sprint', speed: 4.6, face: null }, { at: 1.0, who: 'aerys', state: 'stagger', dur: 0.4 }, { who: 'kael', face: 'aerys' }] },
           2: { do: [{ who: 'aerys', to: [-0.2, -0.6], speed: 0.4 }, { at: 0.3, who: 'kael', icon: '!' }, { at: 0.5, shake: 6 }] },
-          4: { cam: { x: 0.8, y: 0.2, view: 11, ang: -0.4, pitch: 0.36, up: 0.4, ease: 1.2 }, do: [{ shake: 4 }, { who: 'kael', face: [2, -5] }, { who: 'aerys', face: [2, -5] }] },
-          5: { cam: { focus: ['kael', 'aerys'], view: 6, ang: -0.4, pitch: 0.4, ease: 0.3 }, do: [{ who: 'kael', set: { stow: false, gest: null }, state: 'recover', dur: 0.6 }, { at: 0.2, shake: 8 }, { at: 0.2, who: 'aerys', knock: [-0.6, 0.5], state: 'hurt' }] },
-          6: { do: [{ who: 'aerys', to: [-1.6, 1.0], speed: 1.2 }, { who: 'kael', to: [0.8, 0.8], face: [3, -3] }] },
+          3: { cam: { x: 2.4, y: -1.6, view: 11, ang: -0.4, pitch: 0.34, up: 0.8, ease: 1.0 }, do: [{ fade: [0.35, 1.0, '0,0,12'] }, { pfx: { name: 'wind_gust', x: 0, y: 0, z: 1, scale: 3 } }, { pfx: { name: 'leaves', x: 0, y: 0, z: 1, scale: 2.6, life: 2 } }, { shake: 3 }, { at: 1.2, who: 'sky', show: true }, { at: 1.2, who: 'sky', drop: [7, 1.2] }, { at: 2.4, shake: 7 }, { at: 2.4, pfx: { name: 'dust_cloud', x: 6.4, y: -3.0, scale: 3 } }] },
+          4: { cam: { x: 3.0, y: -1.2, view: 11, ang: -0.4, pitch: 0.36, up: 0.6, ease: 1.2 }, do: [{ fade: [0.15, 1.2] }, { shake: 4 }, { who: 'sky', face: 'aerys' }, { who: 'kael', face: 'sky' }, { who: 'aerys', face: 'sky' }] },
+          5: { cam: { focus: ['kael', 'aerys', 'sky'], view: 9, ang: -0.4, pitch: 0.4, ease: 0.3 }, do: [{ who: 'sky', to: [0.8, -0.8], gait: 'dash', speed: 9 }, { who: 'aerys', state: 'stagger', dur: 0.6 }, { at: 0.2, who: 'kael', set: { stow: false, gest: null } }, { at: 0.3, who: 'kael', attack: { wind: 0.2, active: 0.1, recover: 0.5, tele: false } }, { at: 0.55, pfx: { name: 'hit_crit', x: 1.0, y: -0.2, z: 1.6, scale: 2.6 } }, { at: 0.55, shake: 10 }, { at: 0.55, slow: [0.35, 0.6] }, { at: 0.6, who: 'sky', state: 'stagger', dur: 0.8, knock: [3.6, -1.6] }, { at: 0.6, who: 'aerys', knock: [-0.6, 0.5], state: 'hurt' }] },
+          6: { do: [{ who: 'aerys', to: [-1.6, 1.0], speed: 1.2 }, { who: 'kael', to: [0.8, 0.8], face: 'sky' }, { who: 'sky', to: [6.0, -2.6], speed: 2.4, face: 'kael' }] },
+          8: { cam: { focus: ['aerys', 'kael'], view: 5, ang: -0.4, pitch: 0.42, up: 0.6, ease: 0.8 }, do: [{ who: 'aerys', state: 'idle', hold: true }, { at: 0.6, who: 'aerys', pfx: { name: 'charge_up', z: 0.9, scale: 1, life: 1.6, follow: true, add: true } }, { at: 1.8, cam: { focus: ['eiryn'], view: 4.6, ang: -0.4, pitch: 0.42, up: 0.6, ease: 1.0 } }, { at: 1.8, who: 'eiryn', face: 'sky' }] },
         } },
       }),
-      'c6.after': auto('grassland', [K(1.2, 0.8, -0.4, { armed: true }), E(-0.6, 1.6, -0.2), AE(-1.0, -0.4, 0.4)], {
-        nodes: { 'c6.after': {
-          0: { cam: { x: 3.4, y: -2.6, view: 6.5, ang: -0.3, pitch: 0.42, up: 0.4, ease: 1.2 }, do: [{ shake: 3 }, { who: 'kael', state: 'recover', dur: 1.2 }] },
-          1: { cam: { across: ['aerys', 'kael'], side: -0.3, focus: ['aerys', 'kael'], view: 4.4, pitch: 0.42, up: 0.4, ease: 1.0 } },
-        } },
+      'c6.after': auto('grassland', [K(1.2, 0.8, -0.4, { armed: true }), E(-0.6, 1.6, -0.2), AE(-1.0, -0.4, 0.4), { id: 'sky', key: 'skyreaver', x: 3.8, y: -2.6, f: 2.6 }], {
+        nodes: {
+          'c6.after': {
+            0: { cam: { x: 3.4, y: -2.0, view: 8, ang: -0.3, pitch: 0.42, up: 0.4, ease: 1.2 }, do: [{ who: 'sky', state: 'stagger', dur: 0.6 }, { at: 0.6, who: 'sky', drop: [1.6, 0.5] }, { at: 1.1, who: 'sky', state: 'down', hold: true }, { at: 1.1, shake: 9 }, { at: 1.1, pfx: { name: 'dust_cloud', x: 3.8, y: -2.6, scale: 3 } }, { who: 'kael', state: 'recover', dur: 1.2 }] },
+            1: { cam: { across: ['aerys', 'kael'], side: -0.3, focus: ['aerys', 'kael'], view: 4.6, pitch: 0.42, up: 0.4, ease: 1.0 }, do: [{ who: 'kael', set: { gest: null } }, { at: 0.6, who: 'aerys', face: 'kael' }] },
+          },
+          'c6.join': {
+            5: { cam: { focus: ['kael'], view: 3.6, ang: -0.3, pitch: 0.42, up: 0.8, ease: 1.0 }, do: [{ who: 'kael', face: [8, 0] }, { at: 1.4, who: 'kael', set: { stow: true } }, { at: 2.0, who: 'aerys', face: 'kael' }] },
+          },
+        },
       }),
       'c6.why': 'same',
       'c6.join': 'same',
       'c6.walk': auto('grassland', [K(-6, 0.7, 0), AE(-7.4, 0.2, 0), E(-8.4, 0.9, 0)], {
         noFace: true,
         nodes: { 'c6.walk': {
-          0: { cam: { focus: ['kael', 'aerys', 'eiryn'], view: 8, ang: -0.8, pitch: 0.48, drift: 0.02, ease: 1.2 }, do: [{ who: 'kael', to: [3, 0.7], speed: 1.0 }, { who: 'aerys', to: [1.6, 0.2], speed: 1.0 }, { who: 'eiryn', to: [0.4, 0.9], speed: 1.0 }] },
+          0: { cam: { focus: ['kael', 'aerys', 'eiryn'], view: 8, ang: -0.8, pitch: 0.48, drift: 0.02, ease: 1.2 }, do: [{ who: 'kael', to: [0, 0.7], speed: 1.0 }, { who: 'aerys', to: [-1.4, 0.2], speed: 1.0 }, { who: 'eiryn', to: [-2.6, 0.9], speed: 1.0 }, { at: 2.0, who: 'aerys', face: 'kael' }, { at: 3.4, who: 'aerys', face: 0 }] },
+          4: { cam: { behind: 'aerys', side: 0.25, view: 7, pitch: 0.44, up: 0.8, ease: 1.2 }, do: [{ who: 'kael', to: [3.0, 0.7], speed: 0.9 }, { who: 'aerys', to: [1.6, 0.2], speed: 0.9 }, { who: 'eiryn', to: [0.4, 0.9], speed: 0.9 }, { at: 2.6, who: 'aerys', face: [12, -6] }] },
         } },
       }),
-      'c6.camp': auto('nightcamp', [K(-1.6, 2.2, 0.3), AE(-3.0, 2.8, 0.2), E(-3.8, 1.4, 0.4)], {
-        nodes: { 'c6.camp': {
-          1: { do: [{ who: 'kael', to: [-0.9, 1.6], speed: 1.0 }] },
-          2: { cam: { focus: ['kael', 'aerys'], view: 4.4, ang: -0.5, pitch: 0.44, up: 0.4, ease: 0.8 }, do: [{ who: 'kael', state: 'pickup', dur: 1.2 }, { at: 1.0, who: 'aerys', icon: '…' }] },
-        } },
+      'c6.camp': auto('nightcamp', [K(-5.6, 2.0, 0.3), AE(-7.0, 2.6, 0.2), E(-7.8, 1.2, 0.4)], {
+        nodes: {
+          'c6.camp': {
+            0: { cam: { x: -2.4, y: 1.6, view: 10, ang: -0.3, pitch: 0.44, drift: 0.015, ease: 1.6 }, do: [{ who: 'kael', to: [-2.6, 2.0], speed: 0.9 }, { who: 'aerys', to: [-4.0, 2.6], speed: 0.9 }, { who: 'eiryn', to: [-4.8, 1.2], speed: 0.9 }] },
+            1: { cam: { focus: ['kael'], view: 5, ang: -0.4, pitch: 0.44, up: 0.6, ease: 1.0 }, do: [{ who: 'kael', set: { gest: 'point' } }, { who: 'kael', face: [-0.3, 1.4] }, { at: 1.2, who: 'kael', set: { gest: null } }, { at: 1.2, who: 'kael', to: [-0.9, 1.6], speed: 1.0 }] },
+            2: { cam: { focus: ['kael', 'aerys'], view: 4.4, ang: -0.5, pitch: 0.44, up: 0.4, ease: 0.8 }, do: [{ who: 'aerys', to: [-2.2, 2.0], speed: 0.9 }, { who: 'kael', state: 'pickup', hold: true }, { at: 0.8, pfx: { name: 'small_pop', x: -0.4, y: 1.4, z: 0.2, scale: 1 } }, { at: 1.8, pfx: { name: 'smoke_puff', x: -0.4, y: 1.4, z: 0.2, scale: 1 } }, { at: 2.0, who: 'aerys', icon: '…' }] },
+            6: { cam: { focus: ['aerys'], view: 3.4, ang: -0.4, pitch: 0.42, up: 0.8, ease: 0.8 } },
+          },
+          'c6.fire': {
+            0: { cam: { focus: ['kael', 'aerys'], view: 3.8, ang: -0.5, pitch: 0.44, up: 0.4, ease: 0.9 }, do: [{ who: 'aerys', to: [-1.6, 1.1], speed: 0.8, face: [-0.4, 1.4] }, { at: 1.0, who: 'aerys', state: 'pickup', hold: true }, { at: 1.3, pfx: { name: 'item_glow', x: -1.2, y: 1.2, z: 0.7, scale: 0.8, life: 2.4, add: true } }, { at: 1.3, light: ['255,220,150', 0.1, 1.0] }] },
+            3: { cam: { focus: ['kael', 'aerys'], view: 4.4, ang: -0.5, pitch: 0.44, up: 0.4, ease: 0.9 }, do: [{ pfx: [{ name: 'fire_burst', x: -0.4, y: 1.4, z: 0.2, scale: 1.2, add: true }, { name: 'campfire', x: -0.4, y: 1.4, z: 0.3, scale: 1.2, life: 90 }] }, { light: ['255,170,90', 0.16, 1.0] }, { at: 1.2, who: 'kael', face: 'aerys' }] },
+          },
+          'c6.laugh': {
+            3: { cam: { focus: ['kael', 'aerys'], view: 4, ang: -0.5, pitch: 0.44, up: 0.5, ease: 1.0 }, do: [{ who: 'kael', face: 'aerys' }, { who: 'aerys', face: 'kael' }] },
+          },
+          'c6.sleep': {
+            0: { cam: { x: -1.6, y: 1.4, view: 8, ang: -0.3, pitch: 0.44, ease: 1.2 }, do: [{ fade: [0.8, 0.6] }, { at: 0.7, light: ['255,120,60', 0.06, 0.4] }, { at: 0.7, who: 'aerys', state: 'sit', hold: true }, { at: 0.7, who: 'kael', state: 'sit', hold: true }, { at: 0.7, who: 'aerys', face: [9, -4] }, { at: 0.8, fade: [0, 1.0] }] },
+            5: { cam: { focus: ['eiryn'], view: 4.4, ang: -0.3, pitch: 0.42, up: 0.6, ease: 1.2 }, do: [{ who: 'eiryn', to: [-5.4, 0.6], speed: 0.6 }, { at: 2.0, who: 'eiryn', face: [-9, 0] }] },
+            6: { cam: { x: -6, y: 0, view: 9, ang: -0.3, pitch: 0.42, push: -0.15, ease: 1.6 }, do: [{ at: 2.4, fade: [1, 1.4] }] },
+          },
+        },
       }),
       'c6.fire': 'same',
       'c6.worth': 'same',

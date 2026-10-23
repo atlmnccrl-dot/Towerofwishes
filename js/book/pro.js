@@ -148,6 +148,32 @@ X('Kael does not ask what she is not saying. They leave the stones as they found
         },
       };
     },
+    // Extra per-line beats, merged into the stage that plays each node (js/stages.js).
+    beats: {
+      'c1.after': {
+        3: { cam: { focus: ['kael', 'eiryn'], view: 4.4, ang: -0.3, pitch: 0.42, up: 0.6, ease: 1.0 }, do: [{ who: 'kael', face: 'eiryn' }] },
+        4: { cam: { face: 'kael', side: 0.4, view: 3.4, up: 1.0, pitch: 0.42, ease: 0.8 } },
+      },
+      'c1.walk': {
+        5: { cam: { behind: 'eiryn', side: 0.15, view: 9, pitch: 0.36, up: 1.4, push: -0.1, ease: 1.6 }, do: [{ who: 'eiryn', face: [12.5, -6.5] }] },
+      },
+      'c2.tavern': {
+        0: { cam: { focus: ['kael', 'eiryn'], view: 5, ang: -0.3, pitch: 0.44, up: 0.6, ease: 1.2 }, do: [{ who: 'eiryn', face: [6, -6] }, { at: 1.4, who: 'kael', face: 'eiryn' }] },
+      },
+      'c5.home': {
+        1: { do: [{ who: 'kael', face: 'miller' }, { at: 0.6, who: 'kael', pfx: [{ name: 'coin', z: 1.2, scale: 1.2 }, { name: 'coin', z: 1.4, scale: 1.2, delay: 0.25 }, { name: 'coin', z: 1.3, scale: 1.2, delay: 0.5 }] }] },
+      },
+      'c5.fork.aafter': {
+        0: { cam: { focus: ['kael', 'eiryn'], view: 4.6, ang: -0.3, pitch: 0.44, up: 0.5, ease: 1.0 }, do: [{ who: 'kael', state: 'pickup', dur: 1.4 }, { at: 0.4, who: 'kael', pfx: { name: 'water_splash', scale: 0.8 } }, { at: 1.0, who: 'eiryn', face: 'kael' }] },
+        1: { cam: { x: 5, y: 0.8, view: 8, ang: -0.3, pitch: 0.42, up: 0.6, ease: 1.6 }, do: [{ who: 'kael', to: [2.6, 0.8], gait: 'creep', speed: 0.9 }, { who: 'eiryn', to: [1.4, 1.4], gait: 'creep', speed: 0.9 }] },
+      },
+      'c5.fork.b': {
+        1: { cam: { x: 1.6, y: -1.4, view: 5, ang: -0.3, pitch: 0.42, up: 0.5, ease: 1.2 }, do: [{ who: 'kael', to: [1.0, -1.0], speed: 1.0 }, { at: 1.6, who: 'kael', state: 'pickup', dur: 1.4 }, { at: 1.8, who: 'eiryn', face: 'kael' }] },
+      },
+      'c5.fork.bafter': {
+        0: { cam: { x: 4, y: 1.6, view: 10, ang: -0.3, pitch: 0.36, up: 0.6, ease: 1.4 }, do: [{ who: 'kael', to: [4.6, -0.6], speed: 0.9 }, { who: 'eiryn', to: [3.4, -0.2], speed: 0.9 }] },
+      },
+    },
     stages: {
       // ---- forks: the party stops, the camera shows each way, then the picker
       'c5.fork': {
@@ -192,11 +218,14 @@ X('Kael does not ask what she is not saying. They leave the stones as they found
           1: { cam: { focus: 'aerys', view: 3.6, ang: 0.3, pitch: 0.38, up: 0.9, ease: 1.0 }, do: [{ who: 'aerys', set: { gest: 'cast' } }, { light: ['255,236,170', 0.12, 1.5] }, { at: 1.0, who: 'b1', show: true, blink: [3.0, -1.0] }, { at: 1.2, who: 'b2', show: true, blink: [3.4, 1.6] }] },
         } },
       }),
-      'c6.fork.aafter': auto('road', [K(-1.0, 0.8, 0.3), EA(-2.4, 1.4, 0.2), AE(-2.4, 0.2, 0.3)], { nodes: { 'c6.fork.aafter': { 0: { cam: { x: -1.6, y: 0.6, view: 6, ang: -0.3, pitch: 0.42, ease: 1.4 } } } } }),
+      'c6.fork.aafter': auto('road', [K(-4.0, 0.8, 0.3), EA(-5.4, 1.4, 0.2), AE(-5.4, 0.2, 0.3)], { noFace: true, nodes: { 'c6.fork.aafter': { 0: { cam: { x: -1.6, y: 0.6, view: 7, ang: -0.4, pitch: 0.42, drift: 0.02, ease: 1.4 }, do: [{ who: 'kael', to: [0.6, 0.8], speed: 1.0 }, { who: 'eiryn', to: [-0.8, 1.4], speed: 1.0 }, { who: 'aerys', to: [-0.8, 0.2], speed: 1.0 }, { at: 0.6, who: 'aerys', pfx: { name: 'item_glow', z: 1.0, scale: 0.7, life: 3, follow: true, add: true } }, { at: 2.4, who: 'kael', face: 'aerys' }] } } } }),
       'c6.fork.b': auto('grassland', [K(-6.0, 1.6, 0), EA(-7.2, 1.0, 0), AE(-7.2, 2.2, 0)], {
         nodes: { 'c6.fork.b': {
           0: { cam: { focus: ['kael', 'eiryn', 'aerys'], view: 9, ang: -0.5, pitch: 0.4, ease: 1.4 }, do: [{ who: 'kael', to: [1.0, -0.4], speed: 1.2 }, { who: 'eiryn', to: [-0.4, 0.2], speed: 1.2 }, { who: 'aerys', to: [-0.4, 1.0], speed: 1.2 }] },
           1: { cam: { x: 1.8, y: -0.6, view: 4.8, ang: 0.3, pitch: 0.4, up: 0.5, ease: 1.4 }, do: [{ who: 'eiryn', to: [0.8, -0.2], face: [1.8, -0.6], speed: 0.5 }] },
+        },
+        'c6.fork.bafter': {
+          0: { cam: { focus: ['kael', 'eiryn', 'aerys'], view: 8, ang: -0.5, pitch: 0.42, drift: 0.02, ease: 1.4 }, do: [{ who: 'kael', face: 'eiryn' }, { at: 1.0, who: 'kael', to: [5.0, 1.4], speed: 1.0 }, { at: 1.2, who: 'aerys', to: [3.6, 2.0], speed: 1.0 }, { at: 1.6, who: 'eiryn', to: [3.4, 0.8], speed: 0.9 }] },
         } },
       }),
       'c6.fork.bafter': 'same',
