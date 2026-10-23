@@ -385,20 +385,11 @@
     'c1.after': {
       type: 'scene', chapter: 'c1', bg: 'forest', next: 'c1.walk',
       lines: [
-        B('kael', 'They’re gone.'),
-        B('eiryn', 'Good.'),
+        X('The bandits are gone; Kael turns to her.'),
         B('kael', 'Are you hurt?'),
         B('eiryn', 'Not by them.'),
-        B('kael', 'That spell over the trees. Was it yours?'),
-        B('eiryn', 'It would have been considerably more impressive if it had worked.'),
-        X('Kael offers his waterskin.'),
-        B('eiryn', 'That’s what somebody trying to poison me would say.'),
-        B('kael', 'Then I’m apparently very committed to the plan.'),
         X('He studies her. He is waiting for something: shaking, perhaps. The delayed panic of someone whose mind has only just caught up with what nearly happened. Eiryn stands exactly as she did before.'),
-        B('kael', '…You’re not scared?'),
-        B('eiryn', 'And why should I be?'),
-        B('kael', 'That road kills people. Especially women who think walking alone means something.'),
-        B('kael', 'Look. I don’t know what you’re trying to prove. But you’re not doing it alone.'),
+        B('kael', 'You’re not doing it alone.'), // (the book's line, trimmed)
       ],
     },
     'c1.walk': {
@@ -407,13 +398,8 @@
         B('kael', 'I’m Kael.'),
         B('eiryn', 'Eiryn.'),
         S('@', { ren: 'Ren. Ren Ashgrove.', mara: 'Mara Quill. Registered caster.', brannoc: 'Brannoc Vell. Pleasure.' }),
-        B('eiryn', 'There should be a crossing east of here. A stone one, before the hills.'),
-        B('kael', 'Not on the road I came by.'),
-        B('eiryn', 'There was.'),
         X('Beyond the last branches lie the road and the first roofs of the town. Eiryn stops and looks at them as if they are in the wrong place.'),
         B('eiryn', 'I thought I knew this place.'),
-        X('He walks on through Ashgate as though the matter had been settled, half a step ahead of her, scanning the road with the vigilance of a man who has already decided she needs protecting.'),
-        B('kael', 'Stay close.'),
         X('Her expression does not change. Beyond the city walls, the Tower looms beneath the clouds.'),
       ],
     },
@@ -422,21 +408,17 @@
     'c2.gate': {
       type: 'scene', chapter: 'c2', bg: 'town', next: 'c2.tavern',
       lines: [
-        N('Ashgate is busy in the ordinary, irritating way towns get near supper. Eiryn stares at the water wheel, the lamps, the pipes in the wall.'),
-        B('eiryn', 'There was a town east of here. On the other side of the hills. A stone bridge crossed the river before the houses.'),
-        B('kael', 'There isn’t much there anymore. A few foundations. One wall, maybe.'),
+        X('Ashgate is busy in the ordinary, irritating way towns get near supper. Eiryn stares at the water wheel, the lamps, the pipes in the wall.'),
+        B('eiryn', 'There was a town east of here.'), // (the book's line, trimmed)
         B('eiryn', 'How long?'),
         B('kael', 'Since the Reset, I think. About a hundred and fifty years.'),
         B('eiryn', 'A hundred and fifty.'),
-        B('eiryn', 'You said there was food.'),
       ],
     },
     'c2.tavern': {
       type: 'scene', chapter: 'c2', bg: 'tavern', next: 'c3.tea',
       lines: [
-        B('eiryn', 'What do they say about the Tower?'),
-        B('kael', 'That someone reached the top. That they made a wish, and then the world was destroyed. That’s the usual version.'),
-        N('At the word wish, something in her face changes.'),
+        X('Supper at the tavern; Eiryn quiet, her mind on the Tower; Kael doesn’t press.'),
         B('kael', 'You don’t have to explain everything tonight.'),
         B('eiryn', 'That sounds like the best offer I’m going to get.'),
       ],
@@ -444,32 +426,26 @@
     'c3.tea': {
       type: 'scene', chapter: 'c2', bg: 'market', next: 'c3.kael',
       lines: [
-        N('Morning. A tea stall under a canvas canopy. Eiryn’s tea has gone cold; she draws a small circle with her thumb and it steams again.'),
-        B('kael', 'I think we’re about to have a problem.'),
+        X('Morning. A tea stall under a canvas canopy. Eiryn’s tea has gone cold; she draws a small circle with her thumb and it steams again.'),
         B('officer', 'Was that a spell? Do you have a public casting permit?'),
         B('eiryn', 'For warming tea?'),
-        B('officer', 'For casting. The rules don’t change according to whether you think a spell is harmless.'),
-        B('officer', 'First offense. Issue the standard fine and record the warning.'),
-        N('Eiryn reaches into her cloak. There is no purse. She had left home expecting to be back before supper.'),
+        B('officer', 'First offense. Issue the standard fine.'), // (the book's line, trimmed)
+        X('Eiryn reaches into her cloak. There is no purse. She had left home expecting to be back before supper.'),
       ],
     },
     'c3.kael': {
       type: 'scene', chapter: 'c2', bg: 'market', next: 'c3.guild', set: { kaelBond: 1 },
       lines: [
         B('kael', 'No need.'),
-        N('By the time the guard hands him the written warning, the greater part of his money is gone.'),
+        X('By the time the guard hands him the written warning, the greater part of his money is gone.'),
         B('kael', 'Great. Now I’m broke too.'),
-        B('eiryn', 'You’re enjoying this.'),
-        B('kael', 'Not financially.'),
       ],
     },
     'c3.guild': {
       type: 'scene', chapter: 'c2', bg: 'market', next: 'c4.guild',
       lines: [
         B('eiryn', 'There must be an easy way to make some money.'),
-        B('kael', 'The Adventurer’s Guild. Quick contracts, decent pay if you choose carefully.'),
-        B('eiryn', 'And you think they’ll accept me?'),
-        B('kael', 'I watched you put a spell above the trees yesterday. Even if it didn’t work, I’d say you have a reasonable chance.'),
+        B('kael', 'The Adventurer’s Guild.'), // (the book's line, trimmed)
       ],
     },
 
@@ -477,8 +453,7 @@
     'c4.guild': {
       type: 'scene', chapter: 'c4', bg: 'guild', next: 'c4.eval',
       lines: [
-        N('The Guild office smells of damp wool, sealing wax, and the lunch somebody abandoned on a windowsill.'),
-        B('registrar', 'Name, place of origin, trade or training, and any previous contract registration.'),
+        X('The Guild office smells of damp wool, sealing wax, and the lunch somebody abandoned on a windowsill.'),
         B('registrar', 'How long have you been practicing?'),
         B('eiryn', 'Quite a while.'),
       ],
@@ -486,18 +461,16 @@
     'c4.eval': {
       type: 'scene', chapter: 'c4', bg: 'guild', next: 'c4.board',
       lines: [
-        N('In the evaluation yard, Eiryn slides the middle block onto its mark and back. Keeping a counter floating as she walks is harder. It dips twice.'),
-        B('evaluator', 'You’re accurate, and you understand how to keep an effect contained.'),
-        B('evaluator', 'Your initial credential will be at F rank. It records what this office has verified, not everything you might be capable of.'),
+        X('In the evaluation yard, Eiryn slides the middle block onto its mark and back. Keeping a counter floating as she walks is harder. It dips twice.'),
+        B('evaluator', 'Your initial credential will be at F rank.'), // (the book's line, trimmed)
         B('eiryn', 'Apparently I’m a beginner.'),
       ],
     },
     'c4.board': {
       type: 'scene', chapter: 'c4', bg: 'guild', next: 'c5.mill',
       lines: [
-        N('The contract board: road repairs, missing cargo, an escort to the coast. Then a smaller notice — skeletons raiding a mill’s grain store, holed up in an abandoned quarry.'),
+        X('The contract board: road repairs, missing cargo, an escort to the coast. Then a smaller notice — skeletons raiding a mill’s grain store, holed up in an abandoned quarry.'),
         B('eiryn', 'That looks straightforward.'),
-        B('kael', 'It’s an early contract. Small group reported, no deaths, stolen food and tools.'),
         S('@', { ren: 'Skeletons. I can be up that hill before they know we’re there.', mara: 'Skeletons scatter from force bolts. This is my kind of contract.', brannoc: 'Skeletons in a quarry. Narrow paths. I’ll take the front.' }),
       ],
     },

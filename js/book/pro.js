@@ -271,9 +271,8 @@
         crowd: { walkers: 5, groups: [[-6.6, 2.8, 2], [7.4, 1.4, 3]] },
         nodes: { 'c3.tea': {
           0: { cam: { x: -1.6, y: 0.4, view: 7, ang: -0.4, pitch: 0.42, ease: 1.2 }, do: [{ who: 'eiryn', set: { gest: 'cup', prop: 'cup' } }] },
-          1: { do: [{ who: 'kael', face: 'officer', icon: '!' }, { who: 'officer', to: [1.0, 0.1], speed: 0.8 }] },
-          2: { do: [{ who: 'officer', to: [0.4, 0.2], speed: 0.4 }] },
-          6: { cam: { focus: 'eiryn', view: 3.6, ang: -0.3, pitch: 0.4, up: 0.8, ease: 1.0 }, do: [{ who: 'eiryn', set: { gest: 'hips' } }] },
+          1: { do: [{ who: 'kael', face: 'officer', icon: '!' }, { who: 'officer', to: [0.4, 0.2], speed: 0.8 }] },
+          4: { cam: { focus: 'eiryn', view: 3.6, ang: -0.3, pitch: 0.4, up: 0.8, ease: 1.0 }, do: [{ who: 'eiryn', set: { gest: 'hips' } }] },
         } },
       }),
       'c3.fine': 'same',

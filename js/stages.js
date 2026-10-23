@@ -693,11 +693,6 @@
           { at: 0.4, who: 'kael', say: 'They’re gone.' },
         ],
       },
-      // Good.
-      {
-        cam: { face: 'eiryn', side: -0.3, view: 3.0, up: 1.2, pitch: 0.42, ease: 0.6 },
-        do: [{ at: 0.3, who: 'eiryn', say: 'Good.' }],
-      },
       // Are you hurt?
       {
         cam: { across: ['eiryn', 'kael'], side: -0.35, focus: ['eiryn', 'kael'], view: 4.4, pitch: 0.44, up: 0.6, ease: 0.9 },
@@ -713,50 +708,6 @@
         do: [
           { who: 'eiryn', face: 2.4, turn: 2 },
           { at: 0.4, who: 'eiryn', say: 'Not by them.' },
-        ],
-      },
-      // That spell over the trees. Was it yours?
-      {
-        cam: { across: ['kael', 'eiryn'], side: 0.3, focus: ['eiryn', 'kael'], view: 5, pitch: 0.46, up: 0.4, drift: 0.02, ease: 0.9 },
-        do: [
-          { who: 'kael', face: [0, -9] },
-          { at: 0.6, who: 'kael', say: 'Was it yours?' },
-          { at: 1.0, who: 'kael', face: 'eiryn' },
-          { at: 1.2, who: 'eiryn', face: 'kael' },
-        ],
-      },
-      // It would have been considerably more impressive if it had worked.
-      {
-        cam: { face: 'eiryn', side: -0.4, view: 3.0, up: 1.2, pitch: 0.4, ease: 0.6 },
-        do: [
-          { at: 0.3, who: 'eiryn', state: 'cast', dur: 1.0 },
-          { at: 0.7, who: 'eiryn', fx: 'fizzle' },
-          { at: 1.3, who: 'eiryn', say: '…if it had worked.' },
-        ],
-      },
-      // Kael offers his waterskin.
-      {
-        cam: { across: ['kael', 'eiryn'], side: -0.15, focus: ['eiryn', 'kael'], view: 3.6, pitch: 0.42, up: 0.7, ease: 0.8 },
-        do: [
-          { who: 'kael', to: [-0.1, 1.45], face: 'eiryn', speed: 0.8 },
-          { at: 0.7, who: 'kael', state: 'cast', hold: true },
-        ],
-      },
-      // That's what somebody trying to poison me would say.
-      {
-        cam: { face: 'eiryn', side: 0.35, view: 3.0, up: 1.2, pitch: 0.42, ease: 0.6 },
-        do: [
-          { at: 0.2, who: 'eiryn', icon: '?' },
-          { at: 0.5, who: 'eiryn', say: '…trying to poison me would say.' },
-        ],
-      },
-      // Then I'm apparently very committed to the plan.
-      {
-        cam: { x: -1.0, y: 1.2, view: 6.5, ang: -0.55, pitch: 0.5, drift: 0.02, ease: 1.4 },
-        do: [
-          { who: 'kael', base: 'idle' },
-          { at: 0.4, who: 'kael', say: 'Very committed to the plan.' },
-          { at: 1.5, who: '@', icon: '…' },
         ],
       },
     ],
@@ -798,37 +749,6 @@
           { who: 'eiryn', to: [4.5, -1.8], speed: 1.0 },
           { who: '@', to: [4.1, -3.3], speed: 1.0 },
           { at: 0.5, who: '@', say: '$' },
-        ],
-      },
-      // There should be a crossing east of here.
-      {
-        cam: { focus: ['kael', 'eiryn', '@'], dx: 1.2, dy: -0.6, view: 5.0, ang: -2.2, pitch: 0.46, up: 0.5, drift: -0.02, ease: 1.0 },
-        do: [
-          { who: 'kael', to: [6.8, -3.4], speed: 1.0 },
-          { who: 'eiryn', to: [5.9, -2.6], speed: 1.0 },
-          { who: '@', to: [5.5, -4.1], speed: 1.0 },
-          { at: 0.4, who: 'eiryn', say: 'There should be a crossing east of here.' },
-        ],
-      },
-      // Not on the road I came by.
-      {
-        do: [
-          { who: 'kael', to: [7.9, -4.0], speed: 1.0 },
-          { who: 'eiryn', to: [7.0, -3.2], speed: 1.0 },
-          { who: '@', to: [6.6, -4.7], speed: 1.0 },
-          { at: 0.5, who: 'kael', say: 'Not on the road I came by.' },
-        ],
-      },
-      // There was.
-      {
-        cam: { face: 'eiryn', side: -0.2, view: 3.0, up: 1.2, pitch: 0.4, ease: 0.7 },
-        do: [
-          { who: 'eiryn', to: [7.2, -3.3], speed: 0.6 },
-          { who: 'kael', to: [8.6, -4.4], speed: 1.0 },
-          { who: '@', to: [7.4, -5.2], speed: 1.0 },
-          { at: 0.5, who: 'eiryn', say: 'There was.' },
-          { at: 1.0, who: 'kael', face: 'eiryn' },
-          { at: 1.1, who: '@', face: 'eiryn' },
         ],
       },
       // Beyond the last branches lie the road and the first roofs of the town...
