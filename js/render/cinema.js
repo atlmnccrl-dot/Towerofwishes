@@ -26,7 +26,8 @@
  *   fade: [alpha, s, rgb], pfx: { name, x, y, z, scale, add, mul, life, follow }, shake,
  *   attach: { to, dx, dy, dz } (ride along with another actor: a catch) / detach, ring: { r, col, dur }
  *   (a glyph flaring on the surface under the actor), debris: { n, w, col, floor } (tiles thrown up),
- *   sfx: name | [names] (a fight sound, js/audio.js), vol
+ *   sfx: name | [names] (a fight sound, js/audio.js), vol, place: set name (the film moves to another
+ *   place), title: { text, sub, dur, y } (a title card on the pixel grid)
  * Beat option cont: true carries on the previous beat's action instead of starting a new one.
  *   pose: 'kneel' | 'lie' | 'collapse' | 'reach' | 'cast' | 'flinch' | 'brace' | null (a held frame),
  *   vars: { name: [value, s] } (eases a value the set reads as view.vars.name: a spell's glow...)
@@ -52,7 +53,7 @@
     // light and the effects share one pixel grid with the characters' pixel art.
     const Sp = window.TowSprites;
     const SETS = window.TowCinemaSets || {};
-    const set = SETS[def.set] || null;
+    let set = SETS[def.set] || null, setName = def.set; // a film may move between places ({ place })
     const PIXEL_H = def.pixel != null ? def.pixel : set && set.pixel != null ? set.pixel : 200;
     const buf = document.createElement('canvas');
     const ctx = buf.getContext('2d');
@@ -133,14 +134,14 @@
     for (const a of def.actors || []) actors.set(a.id, Object.assign({ x: 0, y: 0, z: 0, dir: 'E', anim: 'idle', hidden: false, mv: null, leap: null, A: null, man: null, scale: 1 }, a));
     for (const a of actors.values()) if (Sp && Sp.loadPixel) Sp.loadPixel(a.set);
     // ---- the crowd: townsfolk crossing at several depths, wrapping round
+    // (def.crowd may be a list; a crowd with `on` is only there while the film is at that place)
     const crowd = [];
-    if (def.crowd) {
-      const C = def.crowd;
-      let seed = 1234;
-      const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+    let seed = 1234;
+    const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+    for (const C of [].concat(def.crowd || [])) {
       for (let i = 0; i < C.n; i++) {
         const z = C.z[0] + rnd() * (C.z[1] - C.z[0]), right = rnd() < 0.5;
-        const p = { id: 'crowd' + i, set: C.sets[i % C.sets.length], x: C.x[0] + rnd() * (C.x[1] - C.x[0]), y: C.y || 0, z, dir: right ? 'E' : 'W', anim: rnd() < C.still ? 'idle' : 'walk', speed: (0.7 + rnd() * 0.6) * (right ? 1 : -1), hidden: false, crowd: true, scale: 0.95 + rnd() * 0.1 };
+        const p = { id: 'crowd' + crowd.length, C, set: C.sets[i % C.sets.length], x: C.x[0] + rnd() * (C.x[1] - C.x[0]), y: C.y || 0, z, dir: right ? 'E' : 'W', anim: rnd() < C.still ? 'idle' : 'walk', speed: (0.7 + rnd() * 0.6) * (right ? 1 : -1), hidden: false, crowd: true, scale: 0.95 + rnd() * 0.1 };
         if (p.anim === 'idle') { p.speed = 0; p.dir = ['E', 'W', 'SE', 'SW', 'S'][Math.floor(rnd() * 5)]; }
         crowd.push(p);
         if (Sp && Sp.loadPixel) Sp.loadPixel(p.set);
@@ -154,7 +155,8 @@
     const vars = Object.assign({}, def.vars || {}), tweens = {};
     // ---- timeline
     const rings = [], bits = []; // glyph rings flashing on a surface; falling tile debris
-    let clock = 0, beatT = 0, queue = [], slow = { k: 1, t: 0 }, flash = { a: 0, col: '255,255,255', dur: 0.2 };
+    let clock = 0, beatT = 0, queue = [], slow = { k: 1, t: 0 }, flash = { a: 0, col: '255,255,255', dur: 0.2 }, title = null;
+    if (typeof document !== 'undefined' && document.fonts && document.fonts.load) document.fonts.load('16px Adventurer').catch(() => {});
     const fade = { a: def.fadeIn === false ? 0 : 1, from: 1, to: 0, t: 0, dur: def.fadeIn === false ? 0 : 1.1, col: '0,0,0' };
     function setShot(sh) {
       if (!sh) return;
@@ -179,6 +181,8 @@
       return { x, y, z, tilt: sh.tilt != null ? sh.tilt : 0, F: sh.F != null ? sh.F : 1.0, yaw: sh.yaw != null ? sh.yaw : 0, pitch: sh.pitch != null ? sh.pitch : 0 };
     }
     function act(a) {
+      if (a.place) { set = SETS[a.place] || null; setName = a.place; }
+      if (a.title) title = Object.assign({ t: 0, dur: 4.5, sub: '' }, a.title);
       const u = a.who ? actors.get(a.who) : null;
       if (a.cam) setShot(a.cam);
       if (a.slow) slow = { k: a.slow[0], t: a.slow[1] };
@@ -243,6 +247,7 @@
       if (slow.t > 0) { slow.t -= dtReal; dt *= slow.k; }
       clock += dt; beatT += dt; FXV.time = clock;
       if (PX) PX.step(dt); // effects age with the film (and with a seek), not with the frames drawn
+      if (title) { title.t += dtReal; if (title.t > title.dur) title = null; }
       while (queue.length && queue[0].at <= beatT) act(queue.shift());
       // camera
       if (shot) {
@@ -286,7 +291,7 @@
       for (const p of crowd) {
         if (!p.speed) continue;
         p.x += p.speed * dt;
-        const C = def.crowd;
+        const C = p.C;
         if (p.x > C.x[1]) p.x = C.x[0]; else if (p.x < C.x[0]) p.x = C.x[1];
       }
     }
@@ -353,7 +358,8 @@
       ctx.imageSmoothingEnabled = !PIXEL_H;
       cy = Math.cos(cam.yaw); sy = Math.sin(cam.yaw); cp = Math.cos(cam.pitch); sp = Math.sin(cam.pitch);
       jx = (Math.random() - 0.5) * shake; jy = (Math.random() - 0.5) * shake;
-      const view = { ctx, W, H, cam, project, poly, addPoly, face, toCam, vars, t: clock, dpr, hz: H * HORIZON + cam.tilt * H + Math.tan(cam.pitch) * F() };
+      const view = { ctx, W, H, cam, project, poly, addPoly, face, toCam, vars, t: clock, dpr, hz: H * HORIZON + cam.tilt * H + Math.tan(cam.pitch) * F(),
+        fx: (name, x, y, z, o) => PX && PX.drawAt(name, clock + ((o && o.phase) || 0), x, z, y, o) };
       if (set) set.back(view); else { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); }
       // the actors and the set's near pieces, back to front
       // Painter's order: solids by their nearest point, others by distance; whatever stands on
@@ -368,7 +374,7 @@
       }
       const onTop = (x, y, z) => { for (const b of solids) { const B = b.box; if (x >= B[0] && x <= B[1] && z >= B[4] && z <= B[5] && Math.abs(y - B[3]) < 0.35) return b; } return null; };
       for (const pc of items) if (pc.p && pc.on !== false && solids.length) { const b = onTop(pc.p[0], pc.p[1], pc.p[2]); if (b) pc.k = b.k - 1e-3; }
-      for (const u of [...actors.values(), ...crowd]) {
+      for (const u of [...actors.values(), ...crowd.filter((p) => !p.C.on || p.C.on === setName)]) {
         const k2 = solids.length ? dist(u.x, u.y + 0.9, u.z) : u.z - cam.z, b = solids.length ? onTop(u.x, u.y, u.z) : null;
         items.push({ k: b ? b.k - 1e-3 : k2, k2, f: () => drawActor(u, dt) });
       }
@@ -386,14 +392,29 @@
       ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
       if (flash.a > 0) { ctx.fillStyle = `rgba(${flash.col},${flash.a})`; ctx.fillRect(0, 0, W, H); }
       if (fade.a > 0.001) { ctx.fillStyle = `rgba(${fade.col},${fade.a})`; ctx.fillRect(0, 0, W, H); }
+      if (title) drawTitle();
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       out.setTransform(1, 0, 0, 1, 0, 0);
       out.imageSmoothingEnabled = !PIXEL_H;
       out.drawImage(buf, 0, 0, canvas.width, canvas.height);
     }
+    // A title card on the pixel grid (the Adventurer font), fading in and out over the shot.
+    function drawTitle() {
+      const T = title, k = Math.min(1, T.t / 0.9, (T.dur - T.t) / 0.9);
+      if (k <= 0) return;
+      const sz = Math.round(H * 0.11), y = Math.round(H * (T.y || 0.4));
+      ctx.save(); ctx.globalAlpha = k; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = `${sz}px Adventurer, Georgia, serif`;
+      ctx.fillStyle = 'rgba(120,16,30,0.9)'; ctx.fillText(T.text, Math.round(W / 2) + 1, y + 1);
+      ctx.fillStyle = '#f4e6d6'; ctx.fillText(T.text, Math.round(W / 2), y);
+      const tw = ctx.measureText(T.text).width, lw = Math.round(tw * 0.5 * Math.min(1, T.t / 1.4));
+      ctx.fillStyle = 'rgba(200,40,58,0.9)'; ctx.fillRect(Math.round(W / 2 - lw / 2), y + Math.round(sz * 0.62), lw, 1);
+      if (T.sub) { ctx.font = `${Math.round(sz * 0.42)}px Adventurer, Georgia, serif`; ctx.fillStyle = 'rgba(244,230,214,0.8)'; ctx.fillText(T.sub, Math.round(W / 2), y + Math.round(sz * 1.05)); }
+      ctx.restore();
+    }
     // Is the current line's action still playing (queued moves, walks, leaps, slow motion, a camera move)?
     function busy() {
-      if (queue.length || slow.t > 0) return true;
+      if (queue.length || slow.t > 0 || title) return true;
       for (const u of actors.values()) if (u.mv || u.leap) return true;
       // (a short camera move counts; a long slow drift is mood, and the next line may cut in on it)
       const e = shot && shot.ease == null ? 1.2 : shot ? shot.ease : 0;

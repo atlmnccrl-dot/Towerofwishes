@@ -303,13 +303,15 @@
     const k = Math.abs(Math.floor(x * 7 + z * 3)) % 3;
     if (k === 0) smoke(v, x, y + hh, z, (x * 0.13 + z * 0.07) % 1);
   }
-  function lantern(v, x, y, z) {
+  // (lit 0..1: an unlit lantern is dark glass; lighting it brings the flame up)
+  function lantern(v, x, y, z, lit) {
     const p = v.project(x, y, z); if (!p) return;
-    const s = Math.max(1.5, Math.min(14, 0.2 * p.s));
+    const s = Math.max(1.5, Math.min(14, 0.2 * p.s)), L = lit == null ? 1 : Math.max(0, Math.min(1, lit));
     v.ctx.fillStyle = '#2a1a16'; v.ctx.fillRect(p.x - s * 0.6, p.y - s * 1.1, s * 1.2, s * 0.25);
-    v.ctx.fillStyle = '#ffcf7a'; v.ctx.fillRect(p.x - s * 0.5, p.y - s * 0.9, s, s * 1.3);
-    glow(v, x, y - 0.1, z, 2.2, '255,180,100', 0.45 + 0.08 * Math.sin(v.t * 8 + x));
-    sprite3(v, 'star_06', '255,214,150', x, y - 0.1, z, 0.9, 0.55 + 0.1 * Math.sin(v.t * 7 + z), 0, true);
+    v.ctx.fillStyle = L > 0.5 ? '#ffcf7a' : L > 0.05 ? '#b87a48' : '#3a2c34'; v.ctx.fillRect(p.x - s * 0.5, p.y - s * 0.9, s, s * 1.3);
+    if (L <= 0.01) return;
+    glow(v, x, y - 0.1, z, 2.2, '255,180,100', (0.45 + 0.08 * Math.sin(v.t * 8 + x)) * L);
+    sprite3(v, 'star_06', '255,214,150', x, y - 0.1, z, 0.9, (0.55 + 0.1 * Math.sin(v.t * 7 + z)) * L, 0, true);
   }
 
   // ------------------------------------------------------------------ the rooftops and the overlook
@@ -439,10 +441,13 @@
       v.poly([[a, 3.1, z0 - 0.02], [a, 2.5, z0 - 1.2], [b, 2.5, z0 - 1.2], [b, 3.1, z0 - 0.02]], i % 2 ? shade([236, 222, 196], [0, 1, -1], d) : shade(C, [0, 1, -1], d), d < 25 ? INK : null);
     }
   }
-  function lampPost(v, x, z, h) {
+  function lampPost(v, x, z, h, lit) {
     block(v, [x - 0.07, x + 0.07, 0, h, z - 0.07, z + 0.07], [30, 22, 26]);
-    lantern(v, x, h + 0.25, z);
+    lantern(v, x, h + 0.25, z, lit);
+    if (lit != null && lit > 0.01 && lit < 1) glow(v, x, 0.05, z, 4, '255,170,90', 0.28 * lit);
   }
+  // the street to the Tower is lined with lamps; vars.lamps counts how many are lit (all, if unset)
+  const STREET_LAMPS = []; for (let i = 0; i < 10; i++) STREET_LAMPS.push([i % 2 ? 10.6 : 5.4, 25 + i * 7]);
   const square = {
     grade: [255, 170, 120, 0.1],
     look: () => ({ ink: 1.6, shade: 0.1, shadeCol: '#2a1430' }),
@@ -483,6 +488,8 @@
         for (let i = 0; i < 6; i++) v.poly([[x - 2.3 + i * 0.77, 2.5, z - 1.2], [x - 2.3 + i * 0.77, 3.0, z + 0.4], [x - 1.53 + i * 0.77, 3.0, z + 0.4], [x - 1.53 + i * 0.77, 2.5, z - 1.2]], i % 2 ? shade([236, 222, 196], [0, 1, -1], d) : shade(hex(c), [0, 1, -1], d), INK);
       } });
       for (const [x, z] of [[-12, 2], [0, 2.5], [14, 2], [-20, 9], [22, 9], [8, 17], [-5.5, -2.2]]) out.push({ p: [x, 0, z], on: false, f: () => lampPost(v, x, z, 3.2) });
+      const N = v.vars.lamps;
+      STREET_LAMPS.forEach(([x, z], i) => out.push({ p: [x, 0, z], on: false, f: () => lampPost(v, x, z, 3.2, N == null ? 1 : N - i) }));
       return out;
     },
     front(v) {

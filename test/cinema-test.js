@@ -9,6 +9,7 @@ require('../js/cinema/sets.js');
 require('../js/cinema/prologue.js');
 require('../js/cinema/ashgate.js');
 require('../js/cinema/c1.js');
+require('../js/cinema/gate.js');
 require('../js/cinema/summit.js');
 require('../js/cinema/climber.js');
 const SETS = global.TowCinemaSets, FILMS = global.TowCinema;
@@ -28,6 +29,7 @@ for (const [id, F] of Object.entries(FILMS)) {
     if (B.cam) finite(B.cam, `${id} beat ${i} cam`);
     for (const a of B.do || []) {
       if (a.who && !cast.has(a.who)) fail(`${id} beat ${i}: directs ${a.who}, not in the cast`);
+      if (a.place && !SETS[a.place]) fail(`${id} beat ${i}: moves to an unknown place ${a.place}`);
       if (a.dir && !DIRS.has(a.dir)) fail(`${id} beat ${i}: dir ${a.dir}`);
       if ((a.cam && (a.cam.track || a.cam.pov)) && !cast.has(a.cam.track || a.cam.pov)) fail(`${id} beat ${i}: camera follows ${a.cam.track || a.cam.pov}`);
       if (a.cam) finite(a.cam, `${id} beat ${i} cam action`);

@@ -12,6 +12,72 @@
   // ------------------------------------------------------------ the square, evening
   // World: x east, z north (the Tower is far up the street at x ~ 8); the leads cross the
   // front of the plaza at z ~ 1.4, the crowd moves behind them.
+  // ------------------------------------------------------------ the opening: the world before
+  // The author's pick (2026-10-23): the market at dusk under the Tower, the lamps lit up the street
+  // toward it, climbers going up to its gate, the promise; then over the roofs to Eiryn (p.roof).
+  // Places: the square (js/cinema/sets.js), the gate (js/cinema/gate.js), the roofs.
+  // [id, set, x, z]: c1 leads; on the steps each stands at LANDZ(i)
+  const CLIMBERS = [['c1', 'guild_adventurer', -1.0, 72.8], ['c2', 'spearwoman', 1.2, 71.4], ['c3', 'master_knight', -0.2, 70.2], ['c4', 'poacher', 2.0, 68.8], ['c5', 'hooded_follower', -1.8, 67.4], ['c6', 'frost_knight_b', 0.6, 66]];
+  const LANDZ = (i) => 83.6 - i * 0.6, LANDY = (i) => (LANDZ(i) >= 81.5 ? 3 : 2.5);
+  C['p.lore'] = {
+    set: 'square', vars: { lamps: 0, gate: 0.5 },
+    actors: [
+      { id: 'musician', set: 'erdra_musician', x: 1.2, y: 0, z: 4.4, dir: 'S' },
+      { id: 'vendor', set: 'erdra_vendor', x: -9, y: 0, z: 3.6, dir: 'S' },
+      { id: 'baker', set: 'erdra_baker', x: 13, y: 0, z: 6.6, dir: 'S' },
+      { id: 'kid1', set: 'rival_kid', x: -24, y: 0, z: 1.5, dir: 'E' },
+      { id: 'kid2', set: 'rival_kid', x: -27, y: 0, z: 2.6, dir: 'E' },
+      { id: 'lamplighter', set: 'erdra_m2', x: 6.4, y: 0, z: 25.4, dir: 'W' },
+      ...CLIMBERS.map(([id, set, x, z]) => ({ id, set, x, y: 0, z: z - 6, dir: 'N', hidden: true })),
+    ],
+    crowd: [
+      { on: 'square', n: 30, sets: FOLK, x: [-34, 38], z: [2.6, 14], still: 0.3 },
+      { on: 'gate', n: 12, sets: FOLK, x: [-28, -7], z: [12, 64], still: 0.85 },
+      { on: 'gate', n: 12, sets: FOLK, x: [7, 28], z: [12, 64], still: 0.85 },
+    ],
+    cam: { x: 8, y: 120, z: -40, yaw: 0.09, pitch: 0.16 },
+    beats: [
+      // The Tower had been there longer than any history... into the permanent cloud ceiling.
+      // (down out of the clouds, the Tower far off, into the market at dusk)
+      { do: [{ cam: { x: 8, y: 120, z: -40, yaw: 0.09, pitch: 0.16, cut: true } },
+        { at: 0.6, cam: { x: 6, y: 3.2, z: -10, yaw: 0.04, pitch: -0.02, ease: 9.5 } },
+        { at: 6.5, who: 'kid1', to: [26, 0, 3], speed: 4.2, anim: 'run' }, { at: 6.9, who: 'kid2', to: [24, 0, 4], speed: 4.0, anim: 'run' },
+        { at: 11.5, who: 'musician', dir: 'SE' }] },
+      // Stories disagreed about nearly everything else... but they all arrived at the same promise.
+      // (the music and the stalls; the lamps lit up the street toward the Tower; climbers walk to its gate)
+      { do: [{ cam: { x: -1.6, y: 1.5, z: -0.8, yaw: 0.42, pitch: 0.03, F: 1.2, cut: true } },
+        { at: 0.2, cam: { x: -1.0, y: 1.5, z: -0.4, yaw: 0.32, pitch: 0.03, F: 1.2, ease: 3.6 } },
+        { at: 3.6, cam: { x: 8.4, y: 1.6, z: 17.6, yaw: -0.04, pitch: 0.08, F: 1.0, cut: true } },
+        { at: 4.1, who: 'lamplighter', pose: 'reach' },
+        { at: 4.7, vars: { lamps: [1, 0.5] } }, { at: 4.7, pfx: { name: 'fire_puff', x: 5.4, y: 3.45, z: 25, scale: 0.8 } },
+        { at: 5.3, who: 'lamplighter', pose: null, anim: 'idle' },
+        { at: 5.4, vars: { lamps: [10, 3.4] } }, { at: 5.4, cam: { x: 8.3, y: 1.8, z: 19.2, yaw: 0.03, pitch: 0.1, F: 1.0, ease: 4 } },
+        { at: 9.6, place: 'gate' },
+        { at: 9.6, cam: { x: 1.6, y: 1.3, z: 47, yaw: -0.02, pitch: 0.22, cut: true } },
+        ...CLIMBERS.map(([id, , x, z]) => ({ at: 9.6, who: id, show: true, put: [x, 0, z - 6] })),
+        ...CLIMBERS.map(([id, , x, z], i) => ({ at: 9.6, who: id, to: [x, 0, z], speed: 1.15 + i * 0.02, anim: 'walk' })),
+        { at: 9.8, cam: { x: 1.6, y: 1.5, z: 53, yaw: -0.02, pitch: 0.3, ease: 8 } }] },
+      // Reach the summit, and you could make a wish.
+      // (up the steps; the first of them walks into the light; up the Tower's face into the clouds;
+      // over the roofs, the title, and down toward the one who is running)
+      { do: [{ cam: { x: 3.4, y: 4.8, z: 84.6, yaw: Math.PI + 0.1, pitch: -0.2, cut: true } },
+        ...CLIMBERS.map(([id, , x], i) => ({ who: id, to: [x * 0.8, LANDY(i), LANDZ(i)], speed: 1.7, anim: 'walk' })),
+        { at: 3.2, cam: { x: 0.8, y: 4.6, z: 77.6, yaw: 0.02, pitch: 0.14, cut: true } },
+        ...CLIMBERS.map(([id, , x], i) => ({ at: 3.2, who: id, put: [x * 0.8, LANDY(i), LANDZ(i)], dir: 'N', anim: 'idle' })),
+        { at: 3.4, who: 'c1', to: [-0.5, 3, 85.9], speed: 1.2, anim: 'walk' }, { at: 4.3, who: 'c2', to: [0.9, 3, 85.9], speed: 1.2, anim: 'walk' },
+        { at: 4.4, vars: { gate: [2.4, 1.2] } }, { at: 4.6, sfx: 'magic', vol: 0.45 },
+        { at: 5.6, who: 'c1', hide: true }, { at: 5.6, flash: ['225,205,255', 0.5] }, { at: 6.3, who: 'c2', hide: true },
+        { at: 6.4, vars: { gate: [1, 1.0] } },
+        { at: 6.6, cam: { x: 0, y: 2.2, z: 52, yaw: 0, pitch: 0.26, cut: true } },
+        { at: 6.7, cam: { x: 0, y: 26, z: 44, yaw: 0, pitch: 1.2, ease: 4.4 } },
+        { at: 10.9, place: 'roofs' }, { at: 10.9, sfx: 'whoosh', vol: 0.5 },
+        { at: 10.9, cam: { x: 0, y: 40, z: -78, yaw: 0, pitch: -0.42, cut: true } },
+        { at: 11.0, cam: { x: 0, y: 16.4, z: -17, yaw: 0, pitch: -0.12, ease: 5 } },
+        { at: 11.3, title: { text: 'Tower of Wishes', dur: 4.8 } },
+        { at: 15.6, fade: [1, 0.9] }] },
+    ],
+  };
+
   C['p.evening'] = {
     set: 'square',
     actors: [

@@ -156,8 +156,17 @@
   // ------------------------------------------------------------ the graph
   const NODES = {
     // ---------------------------------------------------------- prologue
-    // The opening cinematic: the world before the Reset (js/render/opening.js).
-    'p.lore': { type: 'cinematic', chapter: 'prologue', name: 'opening', next: 'p.roof' },
+    // The opening, filmed (the author, 2026-10-23: "the world before"): the market at dusk under the
+    // Tower, the lamps lit up the street toward it, climbers at its gate, then over the roofs to Eiryn.
+    // The Tower's lines and the promise are the manuscript's (they used to open p.tower).
+    'p.lore': {
+      type: 'scene', chapter: 'prologue', bg: 'tower', next: 'p.roof',
+      lines: [
+        N('The Tower had been there longer than any history anyone had read. Its upper reaches disappeared into the permanent cloud ceiling.'),
+        N('Stories disagreed about nearly everything else — the floors, the dangers, the people who’d vanished inside — but they all arrived at the same promise.'),
+        N('Reach the summit, and you could make a wish.'),
+      ],
+    },
     // The prologue in the inventory's order and the author's edit (2026-10-23): the rooftop chase
     // (TW-001-010), the climber's fight on the last floor and the Tower's horn (TW-019, TW-014),
     // their talk about the Tower (TW-015-018), the climber at the light, the Reset. The street walk
@@ -223,8 +232,6 @@
     'p.tower': {
       type: 'scene', chapter: 'prologue', bg: 'tower', next: 'p.climb',
       lines: [
-        N('The Tower had been there longer than any history anyone had read. Its upper reaches disappeared into the permanent cloud ceiling.'),
-        N('Stories disagreed about nearly everything else — the floors, the dangers, the people who’d vanished inside — but they all arrived at the same promise.'),
         N('Far away, high inside the Tower, a climber reached the last ascent.'),
         N('Blood had dried along one side of the stranger’s face. The weapon in their hand was broken. No companion followed.'),
         N('Something was waiting on the final floor. Something no one had ever seen clearly.'),

@@ -23,15 +23,13 @@
   C['p.tower'] = {
     set: 'summit', vars: { light: 0 },
     actors: CAST(),
-    cam: { x: 70, y: -30, z: -250, yaw: -0.27, pitch: 0.16, F: 1.1 },
+    cam: { x: 30, y: -40, z: -80, yaw: -0.36, pitch: 0.38 },
     beats: [
-      // The Tower had been there longer than any history anyone had read...  (outside, above the clouds)
-      { do: [{ cam: { x: 70, y: -30, z: -250, yaw: -0.27, pitch: 0.16, F: 1.1, cut: true } }, { at: 0.3, cam: { x: 50, y: -12, z: -190, yaw: -0.26, pitch: 0.12, F: 1.1, ease: 9 } }] },
-      // Stories disagreed about nearly everything else...  (rising up its side to the broken top)
-      { do: [{ cam: { x: 30, y: -40, z: -80, yaw: -0.36, pitch: 0.38, cut: true } }, { at: 0.3, cam: { x: 24, y: 6, z: -55, yaw: -0.41, pitch: 0.1, ease: 8 } }] },
-      // Far away, high inside the Tower, a climber reached the last ascent.  (up the stairs, at the lens)
-      { cam: { x: 1.2, y: 1.2, z: -14.6, yaw: PI + 0.06, pitch: -0.42, cut: true },
-        do: [{ who: 'climber', put: [0, -4.6, -25] }, { who: 'climber', to: [0, 0, -15.4], speed: 1.0, anim: 'walk' }] },
+      // Far away, high inside the Tower, a climber reached the last ascent.  (up the Tower's side to
+      // its broken top above the clouds; then the stairs, at the lens)
+      { do: [{ cam: { x: 30, y: -40, z: -80, yaw: -0.36, pitch: 0.38, cut: true } }, { at: 0.3, cam: { x: 24, y: 6, z: -55, yaw: -0.41, pitch: 0.1, ease: 3.4 } },
+        { at: 3.6, cam: { x: 1.2, y: 1.2, z: -14.6, yaw: PI + 0.06, pitch: -0.42, cut: true } },
+        { at: 3.6, who: 'climber', put: [0, -4.6, -25] }, { at: 3.6, who: 'climber', to: [0, 0, -15.4], speed: 1.0, anim: 'walk' }] },
       // Blood had dried along one side of the stranger's face. The weapon in their hand was broken...
       { cam: { x: 2.4, y: 1.4, z: -10.5, yaw: -2.55, pitch: -0.04, cut: true },
         do: [{ who: 'climber', to: [0, 0, -11], speed: 0.8, anim: 'walk' }, { at: 0.3, cam: { x: 2.1, y: 1.4, z: -10.0, yaw: -2.6, pitch: -0.04, ease: 6 } }] },
