@@ -1,4 +1,4 @@
-// Plays a fight in a headless browser (phone landscape), screenshots it and lists console errors.
+// Edits the team, plays every wave in a headless browser (phone landscape), screenshots it and lists console errors.
 // NODE_PATH=$(npm root -g) node v2/test/browser-check.js <outDir>
 import { createRequire } from 'module';
 import http from 'http'; import fs from 'fs'; import path from 'path'; import { fileURLToPath } from 'url';
@@ -21,23 +21,33 @@ for (const [name, vp] of [['phone', { width: 844, height: 390 }], ['desktop', { 
   page.on('console', (m) => { if (m.type() === 'error') errors.push(name + ' console: ' + m.text()); });
   page.on('requestfailed', (r) => errors.push(name + ' failed: ' + r.url()));
   await page.goto('http://localhost:8791/');
-  await page.waitForFunction(() => window.__v2 && window.__v2.fight && document.getElementById('loading').hidden, null, { timeout: 15000 });
+  await page.waitForFunction(() => window.__v2 && !document.getElementById('team').hidden, null, { timeout: 15000 });
+  await page.waitForTimeout(400); await page.screenshot({ path: `${out}/${name}-1-team.png` });
   if (name === 'phone') {
-    await page.waitForTimeout(1200); await page.screenshot({ path: `${out}/${name}-1-start.png` });
-    // target the knife bandit by tapping it
-    const xy = await page.evaluate(() => { const f = window.__v2.fight; return f.units.find((u) => u.id === 'knife') ? true : false; });
-    await page.waitForTimeout(2500); await page.screenshot({ path: `${out}/${name}-2-fight.png` });
-    // a full meter, then the art button
-    await page.evaluate(() => { window.__v2.fight.units.find((u) => u.id === 'eiryn').meter = 100; });
-    await page.waitForTimeout(200); await page.evaluate(() => window.__v2.command({ type: 'special', id: 'eiryn' })); await page.waitForTimeout(700); await page.screenshot({ path: `${out}/${name}-3-art.png` });
-    await page.waitForTimeout(1500); await page.screenshot({ path: `${out}/${name}-4-after.png` });
-    await page.evaluate(() => { window.__v2.fight.units.find((u) => u.id === 'kael').meter = 100; });
-    await page.waitForTimeout(200); await page.evaluate(() => window.__v2.command({ type: 'special', id: 'kael' })); await page.waitForTimeout(900); await page.screenshot({ path: `${out}/${name}-5-kael-art.png` });
-    await page.evaluate(() => document.getElementById('auto').click());
-    const done = await page.waitForFunction(() => window.__v2.fight.result, null, { timeout: 90000 }).then(() => true, () => false);
-    await page.waitForTimeout(1200); await page.screenshot({ path: `${out}/${name}-6-end.png` });
-    console.log('phone result', await page.evaluate(() => window.__v2.fight.result), 'ended', done);
-  } else { await page.waitForTimeout(3000); await page.screenshot({ path: `${out}/${name}-fight.png` }); }
+    // change the team by tapping: drop one, add a recruit, swap two slots
+    await page.click('#slots .slot.filled .x');
+    await page.click('#roster .card:not(.in)');
+    await page.click('#slots .slot:nth-child(1)'); await page.click('#slots .slot:nth-child(2)');
+    await page.screenshot({ path: `${out}/${name}-2-team-edited.png` });
+    console.log('team', JSON.stringify(await page.evaluate(() => window.__v2.save.team)));
+    const waves = await page.$$eval('#waves .wave', (b) => b.length);
+    for (let w = 0; w < waves; w++) {
+      await page.click(`#waves .wave:nth-child(${w + 1})`);
+      await page.click('#fight');
+      await page.waitForFunction(() => window.__v2.battle && !document.getElementById('hud').hidden, null, { timeout: 30000 });
+      await page.waitForTimeout(2500); await page.screenshot({ path: `${out}/${name}-3-wave${w}-a.png` });
+      while ((await page.textContent('#speed')) !== '3×') await page.click('#speed');   // 3x to the end
+      await page.waitForTimeout(3500); await page.screenshot({ path: `${out}/${name}-3-wave${w}-b.png` });
+      const done = await page.waitForFunction(() => !document.getElementById('result').hidden, null, { timeout: 60000 }).then(() => true, () => false);
+      await page.screenshot({ path: `${out}/${name}-4-wave${w}-result.png` });
+      console.log('wave', w, 'result', await page.evaluate(() => window.__v2.battle && [window.__v2.battle.result, Math.round(window.__v2.battle.t)]), 'shown', done);
+      await page.click('#toteam');
+    }
+  } else {
+    await page.click('#fight');
+    await page.waitForFunction(() => window.__v2.battle && !document.getElementById('hud').hidden, null, { timeout: 30000 });
+    await page.waitForTimeout(4000); await page.screenshot({ path: `${out}/${name}-battle.png` });
+  }
   await page.close();
 }
 await browser.close(); server.close();

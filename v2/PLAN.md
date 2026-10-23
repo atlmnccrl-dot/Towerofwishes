@@ -133,6 +133,8 @@ upgrade gear and learn abilities → harder missions.
 
 1. **Battle engine for 5 v 5.** Formations, classes, the ability types (area damage, heal, shield, stun, buffs and
    debuffs, summons) and an enemy AI that uses them. About 12 playable units to start. Balance tests in Node.
+   **Done (2026-10-23):** 13 recruits, 2 summons, 10 foes, 3 test waves, in a battle lab (team and formation,
+   1×/2×/3× speed, results with damage, healing and MVP). Sprites load per battle; portraits come from one small atlas.
 2. **The game loop.** The campaign map with region 1 and its recruits, team and formation selection, results and
    rewards, and saving.
 3. **Progression.** Levels, gear and loot, upgrades, ability learning, training and promotion.
@@ -140,8 +142,7 @@ upgrade gear and learn abilities → harder missions.
 5. **Ready to ship.** Shop and currencies, the tutorial, settings, polish and performance, and the installable
    web app.
 
-## Open questions for the author
+## Answered (the author, 2026-10-23)
 
-- A name for the world and the game. (Proposal: the land of **Vael**, whose old kingdom fell and whose dead walk
-  the roads. You lead a new company of sellswords out of a border town.)
-- Do the old heroes (Kael, Eiryn, Aerys, Nox, Eloryn, Braxen) keep their names as characters in the new world?
+- The world is **Vael**. The old heroes' sprites return as **new characters with new names** (Corvin, Ysolde, Saela,
+  Vesk, Maren, Brann).

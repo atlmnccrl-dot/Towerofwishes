@@ -30,12 +30,33 @@ export const PHASES = {
 
 // Per sprite set: the attack clips it alternates through, the clip it casts with, its stance and size.
 export const SETS = {
+  // recruits
   kael_sword: { attacks: ['Attack1', 'Attack2'] },
   eiryn: { attacks: ['Attack5'], cast: 'Attack5' },
+  aerys: { attacks: ['Attack5'], cast: 'Attack5', heavy: 'Attack3' },
+  nox: { attacks: ['Attack1', 'Attack2', 'Attack6'] },
+  eloryn: { attacks: ['Attack5'], cast: 'Attack3', heavy: 'Attack3' },
+  braxen: { attacks: ['Attack5', 'Attack1', 'Kick'] },
+  guard_gate: { attacks: ['Attack1', 'Attack2'] },
+  spearwoman: { attacks: ['Attack3', 'Attack1'] },
+  poacher: { attacks: ['Attack3'], cast: 'Attack3' },
+  // the three smaller exports have one attack clip and no Special1: they cast with it too
+  erdra_baker: { attacks: ['Attack5'], cast: 'Attack5', heavy: 'Attack5' },
+  hooded_follower: { attacks: ['Attack5'], cast: 'Attack5', heavy: 'Attack5', scale: 0.9 },
+  beastfolk_f: { attacks: ['Attack5'], cast: 'Attack5', heavy: 'Attack5' },
+  golem_a: { attacks: ['Attack5', 'Attack4'], scale: 1.5 },
+  caged_creature: { attacks: ['Attack1', 'Attack2'], scale: 1.5 },
+  // foes
   bandit_broad: { attacks: ['Attack5'], scale: 1.15 },
   bandit_knife: { attacks: ['Attack1', 'Attack2'] },
   bandit_grabber: { attacks: ['Attack5'] },
   bandit_lookout: { stance: 'Idle3' },
+  thug_a: { attacks: ['Attack5'], scale: 1.1 },
+  goblin: { attacks: ['Attack1', 'Attack2'] },
+  goblin_spear: { attacks: ['Attack3'] },
+  goblin_archer: { attacks: ['Attack3'], cast: 'Attack3' },
+  goblin_hexer: { attacks: ['Attack5'], cast: 'Attack5' },
+  ogre: { attacks: ['Attack1', 'Attack2', 'Attack5'], scale: 1.8 },
 };
 
 // The eight directions in the order the sheets store them, clockwise from east (screen space).
