@@ -75,8 +75,11 @@ let errors = [];
   await page.evaluate(() => window.__tow.debug.storyGo('c1.fight', 'ren', { approach: 'charge' }));
   await page.evaluate(() => window.__tow.debug.skipIntro());
   await page.waitForTimeout(1500);
+  // c1.fight is the guided tutorial: the coach pauses the fight, so close its cards as they come.
+  const closeCoach = () => page.evaluate(() => { if (!document.getElementById('coach').hidden) { const ok = document.getElementById('coach-ok'); if (ok.hidden) window.__tow.debug.allOutNow(); else ok.click(); } });
   // The HUD hides during cinematic beats, so keep trying the hold until it lands.
-  for (let i = 0; i < 6 && !(await page.evaluate(() => window.__tow.match.result)); i++) {
+  for (let i = 0; i < 12 && !(await page.evaluate(() => window.__tow.match.result)); i++) {
+    await closeCoach();
     await page.waitForFunction(() => !document.getElementById('hud').classList.contains('cine'), null, { timeout: 8000 }).catch(() => {});
     const box = await page.locator('#btn-withdraw').boundingBox();
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);

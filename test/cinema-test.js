@@ -9,6 +9,8 @@ require('../js/cinema/sets.js');
 require('../js/cinema/prologue.js');
 require('../js/cinema/ashgate.js');
 require('../js/cinema/c1.js');
+require('../js/cinema/summit.js');
+require('../js/cinema/climber.js');
 const SETS = global.TowCinemaSets, FILMS = global.TowCinema;
 const DIRS = new Set(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']);
 let bad = 0;

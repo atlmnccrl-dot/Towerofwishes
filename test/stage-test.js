@@ -6,6 +6,10 @@ const S = require('../js/story.js');
 global.TowStory = S; global.TowBook = {};
 for (const id of S.BOOK_FILES || []) global.TowBook[id] = require('../js/book/' + id + '.js');
 const ST = require('../js/stages.js');
+// Filmed scenes (js/cinema/*.js) need no staged scene: test/cinema-test.js checks them.
+global.window = global;
+for (const f of require('fs').readdirSync(__dirname + '/../js/cinema')) require('../js/cinema/' + f);
+const FILMED = new Set(Object.keys(global.TowCinema || {}));
 // The prologue's animated painted cinematics (js/render/backdrop.js: the town, the Tower, the Reset's fire and
 // water, the dawn) are the author's favourite opening and stay as they were.
 const PAINTED = new Set(['p.reset', 'p.story', 'p.later', 'p.open']);
@@ -13,6 +17,7 @@ let bad = 0;
 for (const [id, n] of Object.entries(S.NODES)) {
   if (!['scene', 'card', 'fork'].includes(n.type)) continue;
   if (!ST[id] && PAINTED.has(id)) continue;
+  if (!ST[id] && FILMED.has(id)) continue;
   if (!ST[id]) { console.error('still image (no stage):', id); bad++; }
   else if (ST[id] === 'same') {
     // the node before must be staged, or 'same' keeps nothing

@@ -157,8 +157,32 @@
   const NODES = {
     // ---------------------------------------------------------- prologue
     // The opening cinematic: the world before the Reset (js/render/opening.js).
-    'p.lore': { type: 'cinematic', chapter: 'prologue', name: 'opening', next: 'p.evening' },
-    // The book's prologue: Erdra before the Reset; Eiryn and Alric.
+    'p.lore': { type: 'cinematic', chapter: 'prologue', name: 'opening', next: 'p.roof' },
+    // The prologue in the inventory's order and the author's edit (2026-10-23): the rooftop chase
+    // (TW-001-010), the climber's fight on the last floor and the Tower's horn (TW-019, TW-014),
+    // their talk about the Tower (TW-015-018), the climber at the light, the Reset. The street walk
+    // (TW-011-013) is left out by the author's choice. Lines marked PROPOSAL are drafts from the
+    // inventory's beats, waiting for the author's wording (docs/DESIGN.md).
+    'p.roof': {
+      type: 'scene', chapter: 'prologue', bg: 'tower', next: 'p.tower',
+      lines: [
+        B('alric', 'You’re slowing down.'), // PROPOSAL (TW-003)
+        B('eiryn', 'I’m letting you think you can catch me.'), // PROPOSAL (TW-003)
+        B('alric', 'Then stop letting me.'), // PROPOSAL (TW-003)
+        N('The next gap was wider than she had judged.'), // PROPOSAL (TW-004)
+        N('A glyph flared violet under her feet, and the air itself threw her forward.'), // PROPOSAL (TW-005)
+        N('Alric didn’t slow down. He crouched, and the tiles split under a strength no man should have had.'), // PROPOSAL (TW-006)
+        N('He caught her in the air, turned, and took the landing on his back. Half the roof came with them.'), // PROPOSAL (TW-007)
+        B('alric', 'Too slow.'), // PROPOSAL (TW-008)
+        B('eiryn', 'I let you catch me.'), // PROPOSAL (TW-008)
+        B('alric', 'Did you.'), // PROPOSAL (TW-008)
+        B('eiryn', 'I wanted the hug.'), // PROPOSAL (TW-008)
+        B('eiryn', 'We were almost home.'), // PROPOSAL (TW-009)
+        B('alric', 'We walk the rest. Before the neighbours start counting their tiles.'), // PROPOSAL (TW-010)
+        N('Somewhere below, one more tile slid off the edge and broke in the street.'), // PROPOSAL (TW-010)
+      ],
+    },
+    // Left out of the road (the author, 2026-10-23: no street walk); kept for old saves.
     'p.evening': {
       type: 'scene', chapter: 'prologue', bg: 'town', next: 'p.overlook',
       lines: [
@@ -174,25 +198,30 @@
         B('eiryn', 'They always say that.'),
       ],
     },
+    // After the horn: on the roof, the two of them look at the Tower (TW-014 reaction, TW-015-018).
     'p.overlook': {
-      type: 'scene', chapter: 'prologue', bg: 'tower', next: 'p.tower',
+      type: 'scene', chapter: 'prologue', bg: 'tower', next: 'p.light',
       lines: [
-        N('The road opened onto a high overlook. From there, Erdra seemed endless: fields breaking against dark forests, rivers between distant settlements, lantern light appearing one by one. And above all of it stood the Tower.'),
+        N('On a roof at the edge of the city, Eiryn and Alric turned toward the sound with everyone else.'), // PROPOSAL (TW-014)
+        B('alric', 'They say someone climbed another floor today.'),
+        B('eiryn', 'They always say that.'),
         B('alric', 'Do you think anyone’s ever made it to the top?'),
         N('Eiryn finally looked. The Tower gave her nothing back.'),
         B('eiryn', 'You’d have to be powerful.'),
+        B('eiryn', 'You could do it.'), // PROPOSAL (TW-016)
+        B('alric', 'Me? I’d be bored by the third floor. You’d end up carrying me.'), // PROPOSAL (TW-016)
         B('alric', 'And if someone did?'),
         B('eiryn', 'What would they wish for?'),
         B('alric', 'I don’t know.'),
         N('He stepped closer. His arm slid around her waist until the Tower disappeared from the center of her world. Their foreheads touched.'),
-        B('alric', 'I already have everything I could ever wish for.'),
-        N('There was no playfulness in his voice now. Only certainty. Eiryn closed her eyes. For a moment, the world was enough.'),
+        B('eiryn', 'I already have everything I could ever wish for.'), // TW-017: Eiryn says it (the older text gave it to Alric)
+        N('For a moment, the world was enough.'), // TW-018
         N('Far above them, something was dying.'),
       ],
     },
     'p.open': { type: 'card', chapter: 'prologue', bg: 'tower', title: 'TOWER OF WISHES', sub: 'Reach the summit, and you could make a wish.', next: 'p.tower' },
     'p.tower': {
-      type: 'scene', chapter: 'prologue', bg: 'tower', next: 'p.ascent',
+      type: 'scene', chapter: 'prologue', bg: 'tower', next: 'p.climb',
       lines: [
         N('The Tower had been there longer than any history anyone had read. Its upper reaches disappeared into the permanent cloud ceiling.'),
         N('Stories disagreed about nearly everything else — the floors, the dangers, the people who’d vanished inside — but they all arrived at the same promise.'),
@@ -201,6 +230,23 @@
         N('Something was waiting on the final floor. Something no one had ever seen clearly.'),
       ],
     },
+    // The climber's fight, filmed (the author, 2026-10-23: a cutscene, not an auto-battle). No names
+    // for the climber, the boss or the final move. Ends with the Tower's horn (TW-014).
+    'p.climb': {
+      type: 'scene', chapter: 'prologue', bg: 'summit', next: 'p.overlook',
+      lines: [
+        N('Two shapes dropped from the dark to bar the way.'), // PROPOSAL
+        N('The climber cut through both of them in a single stroke.'), // PROPOSAL
+        N('The thing behind them answered.'), // PROPOSAL
+        N('The climber got up.'), // PROPOSAL
+        N('Steel and shadow, again and again.'), // PROPOSAL
+        N('It was not enough.'), // PROPOSAL
+        N('So the climber reached for something older.'), // PROPOSAL
+        N('The last floor fell silent.'), // PROPOSAL
+        N('Then the Tower sounded: one vast note, and every soul in Erdra heard it.'), // PROPOSAL (TW-014)
+      ],
+    },
+    // The playable climber fight, now off the road (its lessons moved to Kael's first fight); kept for old saves.
     'p.ascent': {
       type: 'battle', chapter: 'prologue', scenario: 'tutorial', wounds: false, xp: 0, tutorial: true,
       party: () => [], win: 'p.light', lose: 'p.light',
@@ -335,7 +381,7 @@
       ],
     },
     'c1.fight': {
-      type: 'battle', chapter: 'c1', wounds: true, xp: 100,
+      type: 'battle', chapter: 'c1', wounds: true, xp: 100, tutorial: true, // the first playable fight: the coach teaches here
       scenario: 'clearingKael', party: (st) => [member(st, 'kael')], win: 'c1.after',
       outro: 'The bandits are beaten or gone. Nobody dies in the clearing.',
     },

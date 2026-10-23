@@ -315,8 +315,9 @@
   // ------------------------------------------------------------------ the rooftops and the overlook
   // The run goes north along x = 0 over a line of flat terraces, [z0, z1, height]; the gaps
   // between them drop to the alleys. The last terrace is the overlook at the city's edge.
-  const RUN = [[-70, 8, 14], [11.2, 24, 13.4], [27, 40, 14.2], [43, 56, 14.6], [59, 74, 15.4]];
-  const EDGE = 74, TOWER_R = [420, 2600];
+  // the last gap (56 -> 63) is the wide one Eiryn misjudges (TW-004); the last roof is where Alric lands with her
+  const RUN = [[-70, 8, 14], [11.2, 24, 13.4], [27, 40, 14.2], [43, 56, 14.6], [63, 80, 15.4]];
+  const EDGE = 80, TOWER_R = [420, 2600];
   const runAt = (z) => { for (const r of RUN) if (z >= r[0] && z <= r[1]) return r[2]; return null; };
   const WALLS = ['#8a6458', '#7a6050', '#946e5a', '#6e5866', '#8c7460', '#7c5a58'].map(hex);
   const ROOFC = ['#5a2e2e', '#4a3040', '#64382c', '#3e3446'].map(hex);

@@ -82,12 +82,13 @@ function clone(st) { return JSON.parse(JSON.stringify(st)); }
 
 walk(Story.fresh(), 0);
 
-// 4. Losing a story fight keeps you there; the prologue moves on.
+// 4. The prologue is all cutscene (the climber's fight is filmed); the first fight is Kael's in the
+// clearing, and it carries the tutorial. Losing a story fight keeps you there.
 {
   const st = Story.fresh();
   while (Story.node(st).type !== 'battle') Story.advance(st);
-  Story.finishBattle(st, 'loss');
-  assert.notStrictEqual(Story.node(st).type, 'battle', 'prologue loss should move on');
+  assert.strictEqual(Story.cur(st), 'c1.fight', 'the first fight should be Kael\'s in the clearing');
+  assert.ok(Story.node(st).tutorial, 'the first fight should carry the tutorial');
   const s2 = Story.fresh(); s2.node = 'c1.fight';
   Story.finishBattle(s2, 'loss');
   assert.strictEqual(s2.node, 'c1.fight');

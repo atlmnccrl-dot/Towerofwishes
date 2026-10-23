@@ -74,6 +74,7 @@ const errors = [];
     // Retry with fresh seeds until the team wins (losses keep the node in place).
     for (let tries = 0; tries < 6; tries++) {
       await page.evaluate(() => window.__tow.debug.advanceUntil('(s) => s.result', 200));
+      await page.evaluate(() => { if (!document.getElementById('coach').hidden) document.getElementById('coach-ok').click(); }); // a coach card pauses the loop
       await page.waitForFunction(() => !document.getElementById('result').hidden, null, { timeout: 8000 });
       const o = await page.evaluate(() => window.__tow.match.result.outcome);
       if (tries === 0) await shot('b-' + tag + '-result');
@@ -94,20 +95,19 @@ const errors = [];
 
   await shot('0-menu');
   await page.click('#btn-story');
-  await tapThrough(80, true);                 // the opening, the prologue, the Tower
-  // The prologue fight is the guided tutorial: the coach pauses the fight.
+  await tapThrough(240, true);                // the prologue (filmed: the roofs, the climber, the Reset), 150 years later, the tavern, the run
+  // Kael's bandit fight is the guided tutorial: the coach pauses the fight. (The prologue has no battle.)
   await page.waitForFunction(() => window.__tow.match, null, { timeout: 5000 });
   await page.evaluate(() => window.__tow.debug.skipIntro());
   await page.waitForFunction(() => !document.getElementById('coach').hidden, null, { timeout: 8000 }).catch(() => errors.push('coach never appeared'));
   await shot('t-coach-1');
   await page.click('#coach-ok');
+  await page.evaluate(() => window.__tow.debug.advanceUntil('(s) => s.t > 3 && s.allOut.meter >= 1', 60)); // headless runs slow: fast-forward to All Out
   await page.waitForFunction(() => !document.getElementById('coach').hidden, null, { timeout: 12000 }).catch(() => errors.push('All Out coach never appeared'));
   await shot('t-coach-allout');
   await page.click('#btn-allout', { force: true });
   await page.waitForTimeout(500);
   if (!(await page.evaluate(() => window.__tow.match.allOut.uses > 0))) errors.push('coach: All Out tap did not fire');
-  await winBattle('prologue');                // the Last Ascent
-  await tapThrough(80, true);                 // the light, the Reset, 150 years later, the tavern, the run
   await winBattle('clearing');
   await tapThrough(20, true);
   await tapThrough(60, true);                 // walk, town, tavern, tea
