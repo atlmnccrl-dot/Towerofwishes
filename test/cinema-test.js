@@ -13,7 +13,6 @@ require('../js/cinema/gate.js');
 require('../js/cinema/camp.js');
 require('../js/cinema/summit.js');
 require('../js/cinema/climber.js');
-require('../js/cinema/legend.js');
 const SETS = global.TowCinemaSets, FILMS = global.TowCinema;
 const DIRS = new Set(['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']);
 let bad = 0;

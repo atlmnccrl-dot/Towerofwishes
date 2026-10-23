@@ -384,9 +384,7 @@ The prologue plays as filmed scenes (js/render/cinema.js): `p.lore` → `p.roof`
   fire, Aerys on watch with her spear, Nox crouched on a branch of the old tree).
 - **Without a narrator (pilot: the prologue and Chapter One).** Drafted for the game (**Proposal**,
   waiting for the author's wording): the fruit seller's "Reach the summit, and you can make a wish."
-  in the opening (the book's promise, spoken, while a child points at the Tower); the storyteller's
-  "Long ago, a man climbed to the top of the Tower of Wishes." in `p.legend` (from the book's
-  narration). After the author's cut (2026-10-23) these are the only words in those scenes. The legend's
-  memories (the climber walking into the light, the sky splitting over the burning city, the street
-  to the Tower broken and rebuilt as the years flicker past) are Claude's staging.
+  in the opening (the book's promise, spoken, while a child points at the Tower). The legend retold by
+  a fire (`p.legend`, with the storyteller's line) was cut by the author on 2026-10-23: the player has
+  just seen the climb and the Reset, so THE RESET card leads straight to "150 years later".
 

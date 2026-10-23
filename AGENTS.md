@@ -50,9 +50,9 @@ Read first: [docs/DESIGN.md](docs/DESIGN.md), [docs/STORY.md](docs/STORY.md),
   episodes (the Guild's contract briefings, written for the game) still show their narration under the
   picture until the author decides how each is told.
 - **Spare dialogue** (the author, 2026-10-23: "cleaner and simple"): keep only the lines that need a
-  voice; everything else is shown. Before the first fight there are six spoken lines in all (the
+  voice; everything else is shown. Before the first fight there are five spoken lines in all (the
   seller's promise; "Too slow." / "I wanted the hug."; "I already have everything I could ever wish
-  for."; the storyteller's first line; "Keep your hands off me."). Cut lines go, with their shots.
+  for."; "Keep your hands off me."). Cut lines go, with their shots.
 - **Fight HUD: the clean style** (the author's pick, 2026-10-22, mockup A): portrait chips top left,
   foes left as pips at the top centre (or the boss bar), round speed/pause, a round All Out gauge.
 - **Music:** fights play "Heartfelt Battle" (OpenGameArt, CC0; assets/music/). New tracks must be
@@ -87,8 +87,8 @@ Read first: [docs/DESIGN.md](docs/DESIGN.md), [docs/STORY.md](docs/STORY.md),
   street (`c1.tavern`, `c1.formation`, `c1.go`, `c1.street`, `c1.clip`, `c1.look`).
 - **The opening** (the author, 2026-10-23): the world before (`p.lore`, filmed; the old vector opening is gone;
   a fruit seller tells a child the promise) → the rooftop chase → the climber's fight → Eiryn and Alric looking at
-  the Tower → the light → the Reset → THE RESET card → the legend told by a fire, with filmed memories
-  (`p.legend`) → 150 years later. No street walk, no names for the climber, the thing
+  the Tower → the light → the Reset → THE RESET card → 150 years later. The legend retold by a fire was
+  cut (the author, 2026-10-23: the player has just seen it). No street walk, no names for the climber, the thing
   or the final move. The prologue has no battle; the guided tutorial is Kael's bandit fight (`c1.fight`).
 - **The menu** (the author, 2026-10-23): a left column (logo top left, the menu as a list, the team as chips
   bottom right) over a campfire at night, filmed (`js/cinema/camp.js`): each hero does what fits them (Kael
@@ -125,7 +125,7 @@ Read first: [docs/DESIGN.md](docs/DESIGN.md), [docs/STORY.md](docs/STORY.md),
 | `js/campaign.js` | World map: lands, routes, unlock rules. Pure |
 | `js/progression.js` | Gear, inventory, loot tables, skill trees → per-fighter fight modifiers. Pure |
 | `js/stages.js`, `js/render/stage.js` | Staged story scenes: fighters acting out dialogue on real arenas |
-| `js/render/cinema.js`, `js/cinema/*.js` | The cinema: filmed story scenes (3D camera with yaw, pitch and first-person shots; solid painted sets; pixel actors; pack effects). `sets.js` (the square, the rooftops and overlook, and the shared kit), `ashgate.js` (the tavern, the street, the formation), `gate.js` (the Tower's gate), `summit.js` (the Tower's last floor above the clouds) and `camp.js` (the menu's campfire, with its scene; as a hearth among ruins for the legend) build the places; a film may move between places (`place`); `prologue.js`, `climber.js`, `legend.js` and `c1.js` hold the shot lists per node, one entry per dialogue line |
+| `js/render/cinema.js`, `js/cinema/*.js` | The cinema: filmed story scenes (3D camera with yaw, pitch and first-person shots; solid painted sets; pixel actors; pack effects). `sets.js` (the square, the rooftops and overlook, and the shared kit), `ashgate.js` (the tavern, the street, the formation), `gate.js` (the Tower's gate), `summit.js` (the Tower's last floor above the clouds) and `camp.js` (the menu's campfire, with its scene) build the places; a film may move between places (`place`); `prologue.js`, `climber.js` and `c1.js` hold the shot lists per node, one entry per dialogue line |
 | `js/render/overworld.js`, `js/render/inkmap.js` | The world map: layout, stops (wax seals), ink labels, the pin at the current chapter; `inkmap.js` draws the land as an illustrated parchment map (option B, the author's pick 2026-10-22). Without `inkmap.js` it falls back to the pixel overworld (option A, rejected) |
 | `js/render/map.js` | The painted world map (option B; drop the overworld script tag in `index.html` to use it) |
 | `js/render/backdrop.js` | Painted full-screen backgrounds for story scenes |

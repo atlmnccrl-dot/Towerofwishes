@@ -272,19 +272,7 @@
         Xr('Eiryn screamed. No sound came out. Ash fell. The fire passed. Alric was gone.'),
       ],
     },
-    'p.resetcard': { type: 'card', chapter: 'prologue', bg: 'reset', title: 'THE RESET', sub: '', next: 'p.legend' },
-    // Years later: the legend told by a fire, with its memories filmed (the author, 2026-10-23).
-    // The storyteller's words are drafted from the book's narration (PROPOSAL, for the author).
-    'p.legend': {
-      type: 'scene', chapter: 'prologue', bg: 'tower', next: 'p.later',
-      lines: [
-        X('A fire in a settlement built from older ruins; children round an old storyteller; Eiryn at the edge of the light.'),
-        P('storyteller', 'Long ago, a man climbed to the top of the Tower of Wishes.'),
-        X('The memory: the sky splits over the city; fire and water; the end of a world.'),
-        X('The memory: the street to the Tower broken and rebuilt as the years flicker past; the Tower never changes.'),
-        X('Back at the fire: Eiryn, the same face, the same posture, in a different world.'),
-      ],
-    },
+    'p.resetcard': { type: 'card', chapter: 'prologue', bg: 'reset', title: 'THE RESET', sub: '', next: 'p.later' },
     'p.story': {
       type: 'scene', chapter: 'prologue', bg: 'dawn', next: 'p.later',
       lines: [
@@ -866,6 +854,7 @@
     st.starter = null; st.companion = null;
     if (st.node === 'p.select' || st.node === 'p.who') st.node = 'c1.tavern';
     if (st.node === 'c4.party') st.node = 'c5.mill';
+    if (st.node === 'p.legend') st.node = 'p.later'; // the legend by the fire was cut (the author, 2026-10-23)
     // choice screens are gone: a save parked on one moves to where it led
     const gone = { 'c1.trust': 'c1.walk', 'c3.fine': 'c3.kael', 'c3.paid': 'c3.guild', 'c3.argue': 'c3.guild' };
     if (gone[st.node]) st.node = gone[st.node];
