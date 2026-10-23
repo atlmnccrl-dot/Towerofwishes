@@ -92,19 +92,19 @@
         { at: 2.1, who: 'alric', leap: { to: [AX, R3, 27.4], h: 1.3, dur: 0.58 } },
         { at: 2.68, who: 'alric', to: [AX, R3, 27.8], speed: 6.2, anim: 'run' },
       ] },
-      // "Then stop letting me."  Roof to roof; a low shot as they come leaping at the lens.
+      // "Then stop letting me."  On him as he says it, running; then low, as they come leaping at the lens.
       { do: [
-        { cam: pov({ yaw: 0, pitch: -0.22, cut: true }) },
+        { cam: { track: 'alric', dx: -1.4, dy: 1.45, dz: 1.9, yaw: PI - 0.64, pitch: -0.04, F: 1.3, cut: true } },
         { who: 'eiryn', to: [EX, R3, 39.6], speed: 6.6, anim: 'run' },
         { who: 'alric', to: [AX, R3, 38.4], speed: 6.6, anim: 'run' },
-        { at: 0.9, cam: { x: 1.5, y: R4 + 0.9, z: 50, yaw: PI + 0.05, pitch: 0.1, F: 1.2, cut: true } },
+        { at: 1.0, cam: { x: 2.4, y: R4 + 0.8, z: 50, yaw: PI + 0.35, pitch: 0.1, F: 1.2, cut: true } },
         { at: 1.6, who: 'eiryn', leap: { to: [EX, R4, 43.6], h: 1.4, dur: 0.6 } },
         { at: 2.2, who: 'eiryn', to: [EX, R4, 55.4], speed: 6.6, anim: 'run' },
         { at: 2.2, who: 'eiryn', pfx: { name: 'dust_run', scale: 0.9 } },
         { at: 1.85, who: 'alric', leap: { to: [AX, R4, 43.4], h: 1.4, dur: 0.6 } },
         { at: 2.45, who: 'alric', to: [AX, R4, 53.2], speed: 6.2, anim: 'run' },
-        { at: 2.35, cam: { x: 1.5, y: R4 + 0.9, z: 50, yaw: PI + 0.2, pitch: 0.08, F: 1.0, ease: 0.9 } },
-        { at: 3.0, cam: pov({ yaw: 0, pitch: -0.3, cut: true }) },
+        { at: 2.3, cam: { x: 2.4, y: R4 + 0.8, z: 50, yaw: PI + 0.55, pitch: 0.06, F: 1.0, ease: 0.6 } },
+        { at: 2.85, cam: pov({ yaw: 0, pitch: -0.3, cut: true }) },
       ] },
       // The next gap was wider than she had judged.  ...and the rest of the leap, as one take:
       // she jumps short over the drop; a glyph flares under her and throws her on; looking back
@@ -121,24 +121,25 @@
         { at: 0.64, who: 'eiryn', leap: { to: [EX, R5, 79], h: 4.4, dur: 3.2 } }, { at: 0.64, slow: [0.6, 1.4] },
         { at: 0.64, cam: pov({ yaw: 0, pitch: 0.12, ease: 0.4 }) },
         // floating, she looks back: he crouches at the edge, the tiles split, he jumps
-        { at: 1.15, cam: pov({ yaw: PI - 0.04, pitch: -0.32, ease: 0.5 }) },
+        { at: 1.15, cam: pov({ yaw: PI - 0.04, pitch: -0.42, F: 1.7, ease: 0.5 }) },
+        { at: 1.75, cam: pov({ yaw: PI - 0.04, pitch: -0.16, F: 1.4, ease: 0.45 }) },
         { at: 1.2, who: 'alric', pose: 'brace' },
         { at: 1.5, who: 'alric', debris: { n: 10, w: 1.2, col: '#7a3e30', floor: 0 } }, { at: 1.5, who: 'alric', pfx: { name: 'rock_burst', scale: 1.2 } },
-        { at: 1.7, who: 'alric', pose: null }, { at: 1.7, who: 'alric', leap: { to: [0, R5, 76], h: 4.3, dur: 0.9 } },
+        { at: 1.7, who: 'alric', pose: null }, { at: 1.7, who: 'alric', leap: { to: [-0.55, R5, 76], h: 4.3, dur: 0.9 } },
         { at: 1.7, slow: [0.5, 1.2] },
         // the catch: side on against the sky
         { at: 2.25, who: 'eiryn', attach: { to: 'alric', dx: 0.28, dy: 0.35, dz: 0.22 } },
-        { at: 2.25, cam: { x: 9.5, y: R5 + 2.4, z: 71, yaw: -PI / 2 + 0.05, pitch: -0.06, F: 1.0, cut: true } },
+        { at: 2.25, cam: { x: 6.2, y: R5 + 2.6, z: 70.2, yaw: -PI / 2 + 0.06, pitch: 0.24, F: 1.0, cut: true } },
         { at: 2.25, slow: [0.35, 1.1] },
-        { at: 2.4, cam: { x: 9.5, y: R5 + 1.8, z: 73.5, yaw: -PI / 2 + 0.03, pitch: -0.08, F: 1.0, ease: 1.2 } },
+        { at: 2.36, cam: { x: 6.4, y: R5 + 1.7, z: 72.6, yaw: -PI / 2 + 0.44, pitch: -0.1, F: 1.0, ease: 0.9 } },
         // he takes the landing; the tiles go
         { at: 2.62, shake: 7 }, { at: 2.62, who: 'alric', pose: 'brace' },
         { at: 2.62, who: 'alric', debris: { n: 18, w: 2.2, col: '#80402f', floor: 0, vz: 1.5 } },
         { at: 2.62, who: 'alric', pfx: [{ name: 'dust_cloud', scale: 1.6 }, { name: 'rock_burst', scale: 1.4 }] },
-        { at: 2.62, who: 'eiryn', detach: true }, { at: 2.62, who: 'eiryn', put: [0.55, R5, 76.3], anim: 'hit', dir: 'W' },
+        { at: 2.62, who: 'eiryn', detach: true }, { at: 2.62, who: 'eiryn', put: [0.75, R5, 76.3], anim: 'hit', dir: 'W' },
         { at: 3.6, who: 'alric', pose: null, anim: 'idle', dir: 'E' }, { at: 3.2, who: 'eiryn', anim: 'idle', dir: 'W' },
-        { at: 3.3, cam: { x: 0.3, y: R5 + 1.45, z: 72.4, yaw: 0, pitch: -0.02, cut: true } },
-        { at: 3.5, cam: { x: 0.3, y: R5 + 1.45, z: 73.0, yaw: 0, pitch: -0.02, ease: 6 } },
+        { at: 3.3, cam: { x: 0.1, y: R5 + 1.45, z: 72.0, yaw: 0, pitch: -0.02, cut: true } },
+        { at: 3.5, cam: { x: 0.1, y: R5 + 1.45, z: 72.6, yaw: 0, pitch: -0.02, ease: 6 } },
       ] },
       // A glyph flared violet under her feet, and the air itself threw her forward.  (rides on the take)
       { cont: true },
@@ -147,21 +148,21 @@
       // He caught her in the air, turned, and took the landing on his back...  (rides on the take)
       { cont: true },
       // "Too slow."  The two of them on the broken roof, the Tower far beyond.
-      { cam: { x: 0.45, y: R5 + 1.5, z: 73.2, yaw: 0.02, pitch: -0.02, ease: 4 }, do: [{ who: 'alric', dir: 'E' }, { who: 'eiryn', dir: 'W' }] },
+      { cam: { x: 0.2, y: R5 + 1.5, z: 72.8, yaw: 0.02, pitch: -0.02, ease: 4 }, do: [{ who: 'alric', dir: 'E' }, { who: 'eiryn', dir: 'W' }] },
       // "I let you catch me."
-      { cam: { x: 0.15, y: R5 + 1.5, z: 73.4, yaw: -0.03, pitch: -0.02, ease: 4 }, do: [{ who: 'eiryn', anim: 'idle_alt' }] },
+      { cam: { x: 0.35, y: R5 + 1.5, z: 73.2, yaw: 0.04, pitch: -0.02, ease: 4 }, do: [{ who: 'eiryn', anim: 'idle_alt' }] },
       // "Did you."
-      { cam: { x: 0.4, y: R5 + 1.5, z: 73.6, yaw: 0.03, pitch: -0.02, ease: 4 }, do: [{ who: 'eiryn', anim: 'idle' }] },
+      { cam: { x: -0.1, y: R5 + 1.5, z: 73.2, yaw: -0.05, pitch: -0.02, ease: 4 }, do: [{ who: 'eiryn', anim: 'idle' }] },
       // "I wanted the hug."
-      { cam: { x: 0.25, y: R5 + 1.45, z: 74.2, yaw: 0, pitch: -0.02, ease: 4 }, do: [{ who: 'eiryn', to: [0.32, R5, 76.3], speed: 0.6, dir: 'W', then: 'idle' }] },
+      { cam: { x: 0.1, y: R5 + 1.45, z: 73.6, yaw: 0, pitch: -0.02, ease: 4 }, do: [{ who: 'eiryn', to: [0.2, R5, 76.3], speed: 0.6, dir: 'W', then: 'idle' }] },
       // "We were almost home."  (she looks out over the city)
       { cam: { x: -1.2, y: R5 + 2.2, z: 69.5, yaw: 0.12, pitch: -0.08, cut: true }, do: [{ who: 'eiryn', dir: 'N' }, { at: 0.3, cam: { x: -1.0, y: R5 + 2.0, z: 70.5, yaw: 0.12, pitch: -0.06, ease: 5 } }] },
       // "We walk the rest. Before the neighbours start counting their tiles."
-      { cam: { x: 0.3, y: R5 + 1.5, z: 73.4, yaw: 0.01, pitch: -0.02, cut: true }, do: [{ who: 'eiryn', dir: 'W' }, { who: 'alric', dir: 'E' }] },
+      { cam: { x: -0.1, y: R5 + 1.5, z: 73.0, yaw: 0.01, pitch: -0.02, cut: true }, do: [{ who: 'eiryn', dir: 'W' }, { who: 'alric', dir: 'E' }] },
       // Somewhere below, one more tile slid off the edge and broke in the street.  (from the alley)
-      { cam: { x: 5.4, y: 1.5, z: 60, yaw: -0.2, pitch: 0.9, cut: true },
-        do: [{ at: 0.5, debris: { n: 1, x: 3.3, y: R5, z: 70.5, w: 0.2, col: '#8a4a3a', floor: 0 } },
-          { at: 0.6, cam: { x: 5.4, y: 1.5, z: 60, yaw: -0.2, pitch: 0.05, ease: 1.5 } },
+      { cam: { x: 5.4, y: 1.5, z: 60, yaw: -0.2, pitch: 0.72, cut: true },
+        do: [{ at: 0.5, debris: { n: 1, x: 3.3, y: R5, z: 70.5, w: 0.1, s: 0.38, col: '#8a4a3a', floor: 0 } },
+          { at: 0.55, cam: { x: 5.4, y: 1.5, z: 60, yaw: -0.2, pitch: 0.05, ease: 1.65 } },
           { at: 2.2, pfx: { name: 'rock_burst', x: 3.4, y: 0, z: 70.6, scale: 0.9 } }, { at: 2.2, shake: 1.5 }] },
     ],
   };

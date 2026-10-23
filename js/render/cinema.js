@@ -195,7 +195,7 @@
       if (a.debris) {
         const D = a.debris, n = D.n || 8;
         for (let k = 0; k < n; k++) bits.push({ x: (D.x != null ? D.x : u ? u.x : 0) + (Math.random() - 0.5) * (D.w || 1.5), y: (D.y != null ? D.y : u ? u.y : 0) + 0.1, z: (D.z != null ? D.z : u ? u.z : 0) + (Math.random() - 0.5) * (D.w || 1.5),
-          vx: (Math.random() - 0.5) * 3, vy: 2 + Math.random() * 3, vz: (D.vz || 0) + (Math.random() - 0.5) * 3, rot: Math.random() * 6, vr: (Math.random() - 0.5) * 12, s: 0.12 + Math.random() * 0.14, col: D.col || '#8a4a3a', floor: D.floor != null ? D.floor : 0 });
+          vx: (Math.random() - 0.5) * 3, vy: 2 + Math.random() * 3, vz: (D.vz || 0) + (Math.random() - 0.5) * 3, rot: Math.random() * 6, vr: (Math.random() - 0.5) * 12, s: D.s || 0.12 + Math.random() * 0.14, col: D.col || '#8a4a3a', floor: D.floor != null ? D.floor : 0 });
       }
       if (!u) return;
       if (a.attach) { const T = actors.get(a.attach.to); if (T) { u.attach = Object.assign({ dx: 0.2, dy: 0.3, dz: 0.1 }, a.attach); u.mv = null; u.leap = null; } }
