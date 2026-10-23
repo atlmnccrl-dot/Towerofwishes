@@ -885,7 +885,14 @@
       }
     }
 
-    const handle = { match, beat, update, camera, focus, _pre: pre, _post: post, def };
+    // Where a speaker's head is on the screen (CSS pixels), for the floating dialogue.
+    function speakerAt(who) {
+      const al = def.auto && def.auto.alias, id = who && al && al[who] ? al[who] : who, u = id && units[id];
+      if (!u || u.fled || !V || !V.P) return null;
+      const p = V.P(u.x, u.y, headTop(u));
+      return { x: p.x, y: p.y, s: V.cam.sc };
+    }
+    const handle = { match, beat, update, camera, focus, speakerAt, _pre: pre, _post: post, def };
     match.stageHandle = handle;
 
     // ---- opening: setup actions, then the first shot (a hard cut)

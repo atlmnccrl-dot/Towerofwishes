@@ -161,6 +161,7 @@
     $('story-chapter').textContent = chapterLabel(n);
     $('story-card').hidden = n.type !== 'card';
     $('dialogue').hidden = n.type !== 'scene' && n.type !== 'fork';
+    $('say').hidden = true;
     $('choices').hidden = true;
     $('btn-skip').hidden = n.type !== 'scene';
     if (n.type === 'card') {
@@ -175,8 +176,9 @@
     show('story');
   }
   // Break a line into subtitles of at most about two lines on a phone, at sentence ends first.
-  const SUB_MAX = 92;
-  function chunkText(t) {
+  const SUB_MAX0 = 92, SUB_MAX = SUB_MAX0;
+  function chunkText(t, max) {
+    const SUB_MAX = max || SUB_MAX0;
     const out = [];
     const sentences = t.match(/[^.!?…]+(?:[.!?…]+["”’)]*|$)\s*/g) || [t];
     let cur = '';
@@ -204,12 +206,16 @@
     return out.length ? out : [t];
   }
   const readTime = (t) => 1.2 + t.length * 0.05;
+  // A spoken line's tone: given, or read from the text ('!' shouts, a trailing '…' is soft).
+  const toneOf = (l, t) => l.tone || (/!/.test(t) ? 'shout' : /(…|\.\.\.)$/.test(t.trim()) ? 'soft' : '');
   function buildSubs(ls) {
     const out = [];
     let prev = null;
     ls.forEach((l, i) => {
+      if (l.silent) { out.push({ line: i, text: '', silent: true, hold: l.hold }); return; }
       const who = l.speaker ? l.speaker.name : null;
-      chunkText(l.text).forEach((text, k) => { out.push({ line: i, text, speaker: l.speaker || null, named: k === 0 && !!who && who !== prev }); prev = who; });
+      // spoken lines float by the speaker, so they come in shorter pieces
+      chunkText(l.text, l.speaker ? 64 : SUB_MAX).forEach((text, k) => { out.push({ line: i, text, who: l.who, tone: l.speaker ? toneOf(l, text) : '', speaker: l.speaker || null, named: k === 0 && !!who && who !== prev }); prev = who; });
     });
     return out;
   }
@@ -221,12 +227,24 @@
   function showSub() {
     const u = subs[subIdx];
     if (!u) return;
-    const d = $('dialogue');
-    d.className = 'dialogue ' + (u.speaker ? u.speaker.tone : 'narr');
-    d.style.animation = 'none'; void d.offsetWidth; d.style.animation = '';
-    $('who').textContent = u.named ? u.speaker.name : '';
-    $('who').hidden = !u.named;
-    $('line').textContent = u.text;
+    const d = $('dialogue'), say = $('say');
+    // Spoken lines float beside the speaker; silent beats show nothing; narration (in chapters not
+    // yet adapted for the game) keeps the bar under the picture.
+    const narr = !u.silent && !u.speaker;
+    d.className = 'dialogue ' + (u.speaker ? u.speaker.tone : 'narr') + (narr ? '' : ' gone');
+    if (narr) {
+      d.style.animation = 'none'; void d.offsetWidth; d.style.animation = '';
+      $('who').textContent = ''; $('who').hidden = true;
+      $('line').textContent = u.text;
+    }
+    say.hidden = !u.speaker;
+    if (u.speaker) {
+      say.className = 'say' + (u.tone ? ' ' + u.tone : '');
+      say.style.setProperty('--c', SAY_COL[u.who] || SAY_TONE[u.speaker.tone] || '#d8c8b8');
+      $('say-who').textContent = u.speaker.name; $('say-line').textContent = u.text;
+      say.style.animation = 'none'; void say.offsetWidth; say.style.animation = '';
+      sayPos = null; placeSay(0);
+    }
     subT = 0;
     if (u.line !== lineIdx) {
       lineIdx = u.line; beatT = 0; hurry = false;
@@ -258,7 +276,9 @@
     if (n.type === 'card') { if (autoOn()) { autoT += real; if (autoT >= 2.8) { autoT = 0; storyTap(); } } return; }
     if ((n.type !== 'scene' && n.type !== 'fork') || $('choices').hidden === false || !subs[subIdx]) return;
     subT += real; beatT += real;
-    const read = subT >= readTime(subs[subIdx].text);
+    const cur = subs[subIdx];
+    const read = cur.silent ? subT >= (cur.hold || (cinema ? 0 : 2.6)) : subT >= readTime(cur.text);
+    if (cur.speaker) placeSay(real);
     $('story').classList.toggle('waiting', !cinema && !autoOn() && read);
     if (cinema) {
       if (!read && !hurry) return;
@@ -268,7 +288,34 @@
       const nxt = subs[subIdx + 1];
       if ((cinema.busy() && !(nxt && cinema.cont(nxt.line))) || beatT < 2.2) return;
       nextSub();
-    } else if (autoOn() && read) nextSub();
+    } else if ((autoOn() || cur.silent) && read) nextSub();
+  }
+  // ---- the floating line: beside the speaker's head, following them; off screen, low on the left
+  const SAY_COL = { kael: '#86b8ea', eiryn: '#b9a0ff', alric: '#ee9070', spear: '#e8c27a', broad: '#ff7a84', knife: '#ff7a84', grabber: '#ff7a84', knifeman: '#ff7a84',
+    aerys: '#ffd27a', eloryn: '#8fe0b0', braxen: '#9fd0ff', nox: '#c79bff', storyteller: '#e8d2a8', vendor: '#e8c9a0', child: '#f0e0b8', climber: '#c0a0b0' };
+  const SAY_TONE = { hero: '#86b8ea', glyph: '#b9a0ff', foe: '#ff7a84', plain: '#d8c8b8', you: '#f0e0c8' };
+  let sayPos = null;
+  function placeSay(dt) {
+    const el = $('say'), u = subs[subIdx];
+    if (el.hidden || !u || !u.speaker) return;
+    const W = innerWidth, H = innerHeight, lb = Math.min(80, Math.max(46, H * 0.155));
+    const bw = el.offsetWidth, bh = el.offsetHeight;
+    let p = null;
+    try { p = cinema && cinema.screenOf ? cinema.screenOf(u.who) : stage && stage.speakerAt ? stage.speakerAt(u.who) : null; } catch (e) { p = null; }
+    const on = p && p.x > 8 && p.x < W - 8 && p.y > lb * 0.5 && p.y < H - lb;
+    let x, y, flip = false;
+    if (on) {
+      // on the outer side of the speaker (away from whoever they face), unless there is no room
+      const gap = Math.max(12, Math.min(40, (p.s || 40) * 0.2));
+      flip = p.x < W * 0.5;
+      if (flip && p.x - gap - bw < 10) flip = false; else if (!flip && p.x + gap + bw > W - 10) flip = true;
+      x = flip ? p.x - gap - bw : p.x + gap;
+      y = p.y - bh * 0.55;
+    } else { x = Math.max(18, W * 0.04); y = H - lb - bh - 14; } // the voice of someone out of the shot
+    x = Math.max(10, Math.min(W - bw - 10, x)); y = Math.max(lb + 6, Math.min(H - lb - bh - 6, y));
+    if (!sayPos || !dt) sayPos = { x, y }; else { const k = Math.min(1, dt * 8); sayPos.x += (x - sayPos.x) * k; sayPos.y += (y - sayPos.y) * k; }
+    el.classList.toggle('flip', flip); el.classList.toggle('off', !on);
+    el.style.transform = `translate(${sayPos.x.toFixed(1)}px, ${sayPos.y.toFixed(1)}px)`;
   }
   // Full-screen cinematics (TowRender.cinematics[name], e.g. js/render/opening.js):
   //   create(canvas) -> { update(dt) -> true when finished, draw(), skip() }
@@ -301,7 +348,7 @@
   }
   // The fork in the road: the camera has shown each way; now two ways on, one on each side of the screen.
   function showFork(n) {
-    $('dialogue').hidden = true;
+    $('dialogue').hidden = true; $('say').hidden = true;
     $('options').innerHTML = n.options.map((o, i) => `<button class="fork-btn ${i ? 'right' : 'left'}" type="button" data-i="${i}"><span class="arrow" aria-hidden="true">${i ? '\u25B6' : '\u25C0'}</span><b>${o.label}</b></button>`).join('');
     $('choices').hidden = false;
   }

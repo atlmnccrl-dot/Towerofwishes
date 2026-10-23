@@ -528,6 +528,23 @@ h2 { font-style: italic; }
 @keyframes tmRise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 @media (max-height: 460px) { .tm-title { top: 30px; } .tm-title .lede { display: none; } .tm-title .eyebrow { margin-bottom: 6px; } .begin { padding: 9px 36px 8px; } }
 @media (prefers-reduced-motion: reduce) { .tm-title, .tm-menu { animation: none; } }
+/* Floating dialogue (the author's pick, 2026-10-23, mockup B + tone): the line sits beside the
+   speaker's head, tied to them by a bar in their colour, their name above it. A shout is big, hot
+   and shakes; a soft line is small, cool and fades in. Off screen, the voice sits low on the left. */
+.say { position: absolute; left: 0; top: 0; z-index: 3; display: grid; gap: 1px; max-width: min(46vw, 360px); padding: 2px 0 3px 10px; border-left: 3px solid var(--c, #d8c8b8); pointer-events: none; will-change: transform; animation: sayIn 0.32s ease-out both; }
+.say.flip { padding: 2px 10px 3px 0; border-left: 0; border-right: 3px solid var(--c, #d8c8b8); text-align: right; justify-items: end; }
+.say-who { font: 400 11px/1 "Adventurer", var(--ui); letter-spacing: 0.12em; text-transform: uppercase; color: var(--c, #d8c8b8); text-shadow: 0 1px 0 #0c080c, 1px 0 0 #0c080c, -1px 0 0 #0c080c, 0 -1px 0 #0c080c; }
+.say-line { font: 400 clamp(16px, 2.6vw, 22px)/1.15 "Adventurer", var(--ui); color: #f6eee2; text-shadow: 0 2px 0 #0c080c, 2px 0 0 #0c080c, -2px 0 0 #0c080c, 0 -2px 0 #0c080c, 2px 2px 0 #0c080c, -2px 2px 0 #0c080c, 2px -2px 0 #0c080c, -2px -2px 0 #0c080c; }
+.say.shout .say-line { font-size: clamp(22px, 3.6vw, 32px); color: #ffd8b0; text-shadow: 0 0 10px rgba(255, 90, 50, 0.55), 0 2px 0 #1a0606, 2px 0 0 #1a0606, -2px 0 0 #1a0606, 0 -2px 0 #1a0606, 2px 2px 0 #1a0606, -2px -2px 0 #1a0606; animation: sayShake 0.42s steps(6) both; }
+.say.soft { animation: saySoft 0.9s ease-out both; }
+.say.soft .say-line { font-size: clamp(13px, 2.1vw, 17px); color: color-mix(in srgb, var(--c, #d8c8b8) 45%, #f6eee2); opacity: 0.86; }
+.say.off { border-left-style: dashed; }
+@keyframes sayIn { from { opacity: 0; translate: 0 5px; } to { opacity: 1; translate: 0 0; } }
+@keyframes saySoft { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sayShake { 0% { translate: -3px 0; } 20% { translate: 3px -1px; } 40% { translate: -2px 1px; } 60% { translate: 2px 0; } 80% { translate: -1px 0; } 100% { translate: 0 0; } }
+#story .dialogue.gone { visibility: hidden; }
+#story.waiting .say .say-line::after { content: ' \25BE'; color: var(--c, #d8c8b8); animation: bob 0.9s ease-in-out infinite; display: inline-block; }
+body.trailer #say { display: none !important; }
 /* Menu B (the author's pick, 2026-10-23): a left column over the campfire. The logo top left, the
    menu as a list under it, the scene to the right, the team as chips bottom right. */
 #menu { background: linear-gradient(90deg, rgba(5, 4, 8, 0.9) 0%, rgba(5, 4, 8, 0.72) 24%, rgba(5, 4, 8, 0.18) 46%, rgba(5, 4, 8, 0) 60%), linear-gradient(180deg, rgba(5, 4, 8, 0.35), rgba(5, 4, 8, 0) 22%, rgba(5, 4, 8, 0) 78%, rgba(5, 4, 8, 0.5)); }
@@ -789,6 +806,7 @@ body.trailer.fighting .trailer-card:not(.logo) { bottom: auto; top: 10vh; }
     </div>
     <div class="card-title" id="story-card" hidden><b id="card-title"></b><small id="card-sub"></small></div>
     <div class="dialogue" id="dialogue" hidden><span class="who" id="who"></span><p id="line"></p><span class="tap" aria-hidden="true"></span></div>
+    <div class="say" id="say" hidden aria-live="polite"><b class="say-who" id="say-who"></b><span class="say-line" id="say-line"></span></div>
     <div class="choices" id="choices" hidden><div class="fork" id="options"></div></div>
   </section>
 
@@ -934,6 +952,7 @@ body.trailer.fighting .trailer-card:not(.logo) { bottom: auto; top: 10vh; }
 <script src="js/cinema/camp.js"></script>
 <script src="js/cinema/summit.js"></script>
 <script src="js/cinema/climber.js"></script>
+<script src="js/cinema/legend.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/main.js"></script>
 </body>

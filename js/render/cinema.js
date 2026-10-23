@@ -17,7 +17,7 @@
  * Pixel mode: def.pixel / set.pixel = the buffer height in pixels (default 200; 0 = full resolution).
  * API (main.js): NS.cinema.start(def) -> { beat(i, n), update(dt), draw(), ready(), busy() }
  *
- * Scene def: { set, actors: [{ id, set, x, y, z, dir, anim, hidden }], crowd, grade,
+ * Scene def: { set, actors: [{ id, set, x, y, z, dir, anim, hidden, at (the place they are in) }], crowd, grade,
  *   beats: [{ cam, do: [actions] }]  (one per dialogue line, by position) }
  * Camera shot: { x, y, z, yaw, pitch, tilt, track: id, dx, dy, dz, pov: id, eye, ease (s), cut,
  *   F (focal, x H) }. Actor dir is a world compass dir (N = +z); the sprite view turns with yaw.
@@ -297,7 +297,7 @@
     }
     // ---- drawing
     function drawActor(u, dt) {
-      if (u.hidden || (shot && shot.pov === u.id)) return;
+      if (u.hidden || (shot && shot.pov === u.id) || (u.at && u.at !== setName)) return;
       const man = Sp && Sp.get && Sp.get('px:' + u.set);
       if (!man || !man.ready) return;
       if (!u.A || u.A.man !== man) { u.A = Sp.animator(man); }
@@ -390,6 +390,17 @@
       const vg = ctx.createRadialGradient(W / 2, H * 0.5, Math.min(W, H) * 0.4, W / 2, H * 0.5, Math.max(W, H) * 0.75);
       vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.45)');
       ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+      // a memory (vars.memory 0..1): warm and faded like an old picture, grain, the edges sinking
+      const M = vars.memory || 0;
+      if (M > 0.01) {
+        ctx.globalCompositeOperation = 'color'; ctx.fillStyle = `rgba(214,150,92,${(0.75 * M).toFixed(3)})`; ctx.fillRect(0, 0, W, H);
+        ctx.globalCompositeOperation = 'soft-light'; ctx.fillStyle = `rgba(255,200,140,${(0.35 * M).toFixed(3)})`; ctx.fillRect(0, 0, W, H);
+        ctx.globalCompositeOperation = 'source-over';
+        for (let i = 0; i < 260 * M; i++) { ctx.fillStyle = Math.random() < 0.5 ? 'rgba(255,240,210,0.16)' : 'rgba(20,10,6,0.2)'; ctx.fillRect((Math.random() * W) | 0, (Math.random() * H) | 0, 1, 1); }
+        const mv = ctx.createRadialGradient(W / 2, H * 0.5, Math.min(W, H) * 0.3, W / 2, H * 0.5, Math.max(W, H) * 0.62);
+        mv.addColorStop(0, 'rgba(0,0,0,0)'); mv.addColorStop(1, `rgba(16,8,4,${(0.7 * M).toFixed(3)})`);
+        ctx.fillStyle = mv; ctx.fillRect(0, 0, W, H);
+      }
       if (flash.a > 0) { ctx.fillStyle = `rgba(${flash.col},${flash.a})`; ctx.fillRect(0, 0, W, H); }
       if (fade.a > 0.001) { ctx.fillStyle = `rgba(${fade.col},${fade.a})`; ctx.fillRect(0, 0, W, H); }
       if (title) drawTitle();
@@ -425,8 +436,19 @@
       const all = [...actors.values(), ...crowd];
       return all.every((u) => { const m = Sp.get('px:' + u.set); return m && m.ready; });
     }
+    // Where an actor's head is on the screen (CSS pixels), for the floating dialogue; null when
+    // they are not in this shot (hidden, behind the lens, or the camera is their eyes).
+    function screenOf(id) {
+      const u = actors.get((def.speakers && def.speakers[id]) || id); // (def.speakers: a speaker who is played by another actor id)
+      if (!u || u.hidden || !W || (shot && shot.pov === id) || (u.at && u.at !== setName)) return null;
+      const man = Sp && Sp.get && Sp.get('px:' + u.set), k = ((man && man.scale) || 1) * (u.scale || 1);
+      const p = project(u.x, u.y + 1.78 * 0.9 * k * (u.pose === 'kneel' || u.pose === 'brace' ? 0.62 : 0.92), u.z);
+      if (!p) return null;
+      const kx = canvas.clientWidth / W, ky = canvas.clientHeight / H;
+      return { x: p.x * kx, y: p.y * ky, s: p.s * ky };
+    }
     if (def.cam) setShot(Object.assign({}, def.cam, { cut: true }));
-    return { beat, update, draw, ready, busy, cont, def, actors, cam };
+    return { beat, update, draw, ready, busy, cont, def, actors, cam, screenOf };
   }
 
   NS.cinema = { start };
