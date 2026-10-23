@@ -32,6 +32,7 @@
   const shade = (rgb, n, dist, warm) => { const c = shadeA(rgb, n, dist, warm); return `rgb(${c[0]},${c[1]},${c[2]})`; };
   // a wall's fill: lit at the eaves, sinking into shadow toward the street
   function wallFill(v, rgb, n, dist, top, bot) {
+    if (dist > 55) return shade(rgb, n, dist); // (far away the gradient isn't seen; skip its cost)
     const a = v.project(top[0], top[1], top[2]), b = v.project(bot[0], bot[1], bot[2]);
     const c0 = shadeA(rgb, n, dist), c1 = shadeA(rgb, n, dist, 1, 0.45);
     if (!a || !b || Math.abs(b.y - a.y) < 4) return `rgb(${c0[0]},${c0[1]},${c0[2]})`;
@@ -155,7 +156,7 @@
     if (opts.clouds !== false) ceiling(v);
     if (opts.city !== false) {
       drawRing(v, RING_CITY, cx, cz, '#6a4a6c', 'rgba(255,207,122,0.9)', opts.open);
-      drawRing(v, RING_MID, cx, cz, '#5e4060', 'rgba(255,210,138,0.95)', opts.open);
+      if (opts.mid !== false) drawRing(v, RING_MID, cx, cz, '#5e4060', 'rgba(255,210,138,0.95)', opts.open);
     }
   }
 
@@ -464,13 +465,53 @@
   }
   // the street to the Tower is lined with lamps; vars.lamps counts how many are lit (all, if unset)
   const STREET_LAMPS = []; for (let i = 0; i < 10; i++) STREET_LAMPS.push([i % 2 ? 10.6 : 5.4, 25 + i * 7]);
+  // The rest of the city round the square, so that from above it is all roofs to the skyline:
+  // real houses out to 150 m (DISTRICT), then a carpet of roof blocks out to 420 m (ROOFTOPS).
+  const BUILT = (x, z) => x > -66 && x < 76 && z > -40 && z < 168; // the square and its street, built above
+  const DISTRICT = (() => {
+    const r = rng(53), out = [];
+    for (let gx = -150; gx <= 166; gx += 13) for (let gz = -110; gz <= 190; gz += 15) {
+      const x = gx + (r() - 0.5) * 3, z = gz + (r() - 0.5) * 3, d = Math.hypot(x - 8, z - 40);
+      if (d > 150 || BUILT(x, z) || BUILT(x + 10, z + 12)) { r(); r(); r(); continue; }
+      const w = 8 + r() * 3, l = 9 + r() * 4, kind = r();
+      out.push({ b: [x, x + w, 0, 7 + r() * 6, z, z + l], roof: kind < 0.5 ? 'z' : kind < 0.85 ? 'x' : 'flat', rh: 2 + r() * 2, wall: WALLS[(out.length * 7) % WALLS.length], roofCol: ROOFC[(out.length * 3) % ROOFC.length], seed: out.length + 900, lit: 0.4 + r() * 0.3 });
+    }
+    return out;
+  })();
+  const ROOFTOPS = (() => {
+    const r = rng(61), out = [];
+    for (let gx = -420; gx <= 436; gx += 17) for (let gz = -380; gz <= 460; gz += 19) {
+      const x = gx + (r() - 0.5) * 5, z = gz + (r() - 0.5) * 5, d = Math.hypot(x - 8, z - 40);
+      if (d < 146 || d > 420) { r(); r(); continue; }
+      out.push([x, z, 11 + r() * 4, 12 + r() * 5, 7 + r() * 8, (out.length * 5) % 4, r() < 0.45]);
+    }
+    return out;
+  })();
+  const ROOF_TOP = ['#6a3a3a', '#563a4c', '#70443a', '#4a4054'], ROOF_WALL = '#4a3446';
+  function rooftops(v) {
+    const { ctx, cam } = v, fy = Math.sin(cam.yaw), fz = Math.cos(cam.yaw), walls = [], tops = [[], [], [], []], lit = [];
+    if (cam.y < 18) return; // from the street the square's own houses hide them
+    for (const R of ROOFTOPS) {
+      const [x, z, w, l, h, k, on] = R, dx = x + w / 2 - cam.x, dz = z + l / 2 - cam.z, ahead = dx * fy + dz * fz, side = dx * fz - dz * fy;
+      if (ahead < 8 || Math.abs(side) > ahead * 1.15 + 20) continue; // behind the lens, or outside the view
+      walls.push([[x, 0, z], [x, h, z], [x + w, h, z], [x + w, 0, z]]);
+      tops[k].push([[x, h, z], [x, h, z + l], [x + w, h, z + l], [x + w, h, z]]);
+      if (on) lit.push([x + w * 0.5, h * 0.55, z - 0.1]);
+    }
+    ctx.beginPath(); for (const q of walls) v.addPoly(q); ctx.fillStyle = shade(hex(ROOF_WALL), [0, 0, -1], 260); ctx.fill();
+    tops.forEach((list, k) => { ctx.beginPath(); for (const q of list) v.addPoly(q); ctx.fillStyle = shade(hex(ROOF_TOP[k]), [0, 1, 0], 260); ctx.fill(); });
+    ctx.fillStyle = 'rgba(255,207,122,0.85)';
+    for (const L of lit) { const q = v.project(L[0], L[1], L[2]); if (q) ctx.fillRect(q.x, q.y, 1.4, 1.4); }
+  }
   const square = {
     grade: [255, 170, 120, 0.1],
     look: () => ({ ink: 1.6, shade: 0.1, shadeCol: '#2a1430' }),
     back(v) {
       setHaze([106, 74, 110]);
       sky(v, DUSK, -1.25);
-      farWorld(v, 8, 40, { tower: SQ_TOWER });
+      farWorld(v, 8, 40, { tower: SQ_TOWER, mid: false });
+      v.poly([[-460, 0, -420], [-460, 0, 500], [480, 0, 500], [480, 0, -420]], shade([58, 42, 52], [0, 1, 0], 120)); // the streets between
+      rooftops(v);
       // the cobbled plaza and the street
       v.poly([[-60, 0, -30], [-60, 0, 200], [70, 0, 200], [70, 0, -30]], shade([96, 72, 66], [0, 1, 0], 0));
       const { ctx } = v; ctx.strokeStyle = 'rgba(40,24,26,0.35)'; ctx.lineWidth = 1;
@@ -487,6 +528,12 @@
         const B = h.b, c = v.toCam((B[0] + B[1]) / 2, B[3], (B[4] + B[5]) / 2);
         if (c[2] < -Math.max(B[1] - B[0], B[5] - B[4])) continue;
         out.push({ box: [B[0], B[1], 0, B[3] + h.rh, B[4], B[5]], f: () => { house(v, h); if (h.awn) awning(v, h); } });
+      }
+      for (const h of DISTRICT) {
+        const B = h.b, c = v.toCam((B[0] + B[1]) / 2, B[3], (B[4] + B[5]) / 2);
+        if (c[2] < -14 || Math.abs(c[0]) > c[2] * 1.15 + 18) continue; // behind the lens, or outside the view
+        if (v.cam.y < 18 && !(Math.abs((B[0] + B[1]) / 2 - 8) < 16 && B[4] > 150)) continue; // hidden behind the square, but for the street's far end
+        out.push({ box: [B[0], B[1], 0, B[3] + h.rh, B[4], B[5]], f: () => house(v, h) });
       }
       // the fountain
       out.push({ box: [1.8, 6.2, 0, 0.8, 4.8, 9.2], f: () => {
