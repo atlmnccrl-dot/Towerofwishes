@@ -31,7 +31,7 @@
   let ctx = null;
   const buffers = {};
   // Fight sounds (decoded once, played with a little pitch variation so repeats don't grate).
-  const FIGHT = { swish: 3, blow: 3, slash: 3, clang: 2, step: 3, blow_big: 0, whoosh: 0, ko: 0, allout: 0, magic: 0, fire: 0, ice: 0, quake: 0, thud: 0, bolt: 0, charge: 0 };
+  const FIGHT = { swish: 3, blow: 3, slash: 3, clang: 2, step: 3, blow_big: 0, whoosh: 0, ko: 0, allout: 0, magic: 0, fire: 0, ice: 0, quake: 0, thud: 0, bolt: 0, charge: 0, horn: 0 };
   const fbuf = {}, lastAt = {};
   let voices = 0;
   function loadFight() {

@@ -53,6 +53,7 @@
       ctx.imageSmoothingEnabled = false;
       ctx.globalAlpha *= e.alpha == null ? 1 : e.alpha;
       if (e.add) ctx.globalCompositeOperation = 'lighter';
+      else if (e.mul) ctx.globalCompositeOperation = 'multiply'; // grey smoke darkens what is behind it
       ctx.translate(p.x, p.y);
       if (e.ground) ctx.scale(1, V.cam.pitch);
       if (e.rot) ctx.rotate(e.rot);

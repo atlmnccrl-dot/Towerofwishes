@@ -252,7 +252,9 @@
       if (!read && !hurry) return;
       if (!lastOfLine(subIdx)) { nextSub(); return; }
       // the end of this line: its action plays out before the next shot
-      if (cinema.busy() || beatT < 2.2) return;
+      // (unless the next line rides on this action: then it comes in as soon as this one is read)
+      const nxt = subs[subIdx + 1];
+      if ((cinema.busy() && !(nxt && cinema.cont(nxt.line))) || beatT < 2.2) return;
       nextSub();
     } else if (autoOn() && read) nextSub();
   }
@@ -281,7 +283,7 @@
     } else if (n.type === 'scene' || n.type === 'fork') {
       if (!$('choices').hidden) return;
       // a tap hurries: the next subtitle now; in a film, the action runs fast until it is done
-      if (cinema && lastOfLine(subIdx) && (cinema.busy() || beatT < 2.2)) { hurry = true; subT = 1e3; return; }
+      if (cinema && lastOfLine(subIdx) && (cinema.busy() || beatT < 2.2) && !(subs[subIdx + 1] && cinema.cont(subs[subIdx + 1].line))) { hurry = true; subT = 1e3; return; }
       nextSub();
     }
   }
@@ -510,12 +512,12 @@
   $('btn-respec').addEventListener('click', () => { Prog.respec(prog, teamKey); writeSave(); renderTeam(); });
   $('btn-team-back').addEventListener('click', () => { if (teamBack === 'world') showWorld(); else { renderMenu(); show('menu'); } });
 
-  // ------------------------------------------------------------ guided tutorial (the prologue fight)
+  // ------------------------------------------------------------ guided tutorial (Kael's first fight, c1.fight)
   let coach = { i: 0, on: false, enabled: false };
   const COACH = [
     { when: (m) => m.t > 0.8, title: 'You watch. They fight.', text: 'Every fighter reads wind-ups, parries, dodges and feints on their own. Your job is timing.' },
     { when: (m) => m.t > 3 && Sim.allOutReady(m), title: 'ALL OUT', text: 'Tap ALL OUT now. Everyone burns their stamina and power into a flurry — then they’re drained and can’t dodge or block until they recover.', target: '#btn-allout', wait: 'allout' },
-    { when: (m) => m.t > 9, title: 'Follow a fighter', text: 'Tap the climber, or their card at the top left, to follow them with the camera. Tap again to let go.', target: '#team .card', wait: 'follow' },
+    { when: (m) => m.t > 9, title: 'Follow a fighter', text: 'Tap Kael, or his card at the top left, to follow him with the camera. Tap again to let go.', target: '#team .card', wait: 'follow' },
     { when: (m) => m.t > 14, title: 'Heavy arts', text: 'When the bar under a name fills, that fighter unleashes a heavy art as a cutscene. Tap the screen to jump to the impact.' },
     { when: (m) => m.t > 19, title: 'Withdraw', text: 'Hold the flag to leave a story fight. Your team leaves injured; the fight waits.', target: '#btn-withdraw' },
   ];
@@ -558,7 +560,7 @@
       heroHp: spec.wounds ? { kael: hp('kael'), eiryn: 1 } : {},
     });
     storyBattle = Object.assign(spec, { node: Story.cur(story) });
-    coach = { i: 0, on: false, enabled: !!spec.tutorial };
+    coach = { i: 0, on: false, enabled: !!spec.tutorial && !prog.firsts.coach }; // it teaches once, not on every retry
   }
 
   // ------------------------------------------------------------ match
@@ -593,6 +595,7 @@
     let growth = null, loot = [];
     if (storyBattle) {
       const sb = storyBattle;
+      if (coach.enabled) prog.firsts.coach = 1;
       growth = Story.finishBattle(story, r.outcome, fracs, r.waves);
       // Loot on a win (arcade: by waves cleared). First clears add their set piece.
       const table = sb.loot || (mode === 'story' ? 'story' : null);

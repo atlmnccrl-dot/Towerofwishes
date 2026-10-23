@@ -23,7 +23,11 @@
  *   F (focal, x H) }. Actor dir is a world compass dir (N = +z); the sprite view turns with yaw.
  * Actions ({ at } seconds into the beat): who + to:[x,y?,z?] (speed or dur, anim), leap:
  *   { to:[x,y,z?], h, dur }, dir, anim, show, hide, cam (a shot), slow: [k, s], flash: [rgb, s],
- *   fade: [alpha, s, rgb], pfx: { name, x, y, z, scale, add, life, follow }, shake,
+ *   fade: [alpha, s, rgb], pfx: { name, x, y, z, scale, add, mul, life, follow }, shake,
+ *   attach: { to, dx, dy, dz } (ride along with another actor: a catch) / detach, ring: { r, col, dur }
+ *   (a glyph flaring on the surface under the actor), debris: { n, w, col, floor } (tiles thrown up),
+ *   sfx: name | [names] (a fight sound, js/audio.js), vol
+ * Beat option cont: true carries on the previous beat's action instead of starting a new one.
  *   pose: 'kneel' | 'lie' | 'collapse' | 'reach' | 'cast' | 'flinch' | 'brace' | null (a held frame),
  *   vars: { name: [value, s] } (eases a value the set reads as view.vars.name: a spell's glow...)
  */
@@ -149,6 +153,7 @@
     // ---- values the set draws from (def.vars), eased by the beats
     const vars = Object.assign({}, def.vars || {}), tweens = {};
     // ---- timeline
+    const rings = [], bits = []; // glyph rings flashing on a surface; falling tile debris
     let clock = 0, beatT = 0, queue = [], slow = { k: 1, t: 0 }, flash = { a: 0, col: '255,255,255', dur: 0.2 };
     const fade = { a: def.fadeIn === false ? 0 : 1, from: 1, to: 0, t: 0, dur: def.fadeIn === false ? 0 : 1.1, col: '0,0,0' };
     function setShot(sh) {
@@ -180,17 +185,26 @@
       if (a.flash) flash = { a: 1, col: a.flash[0] || '255,255,255', dur: a.flash[1] || 0.25 };
       if (a.fade) Object.assign(fade, { from: fade.a, to: a.fade[0], t: 0, dur: a.fade[1] || 0.6, col: a.fade[2] || fade.col });
       if (a.shake) shake = Math.max(shake, a.shake);
+      if (a.sfx && window.TowAudio && window.TowAudio.sfx) for (const n of [].concat(a.sfx)) window.TowAudio.sfx(n, a.vol == null ? 0.7 : a.vol);
       if (a.vars) for (const [k, v] of Object.entries(a.vars)) { const [to, dur] = [].concat(v); tweens[k] = { from: vars[k] || 0, to, t: 0, dur: dur || 0 }; if (!dur) vars[k] = to; }
       if (a.pfx && PX) for (const p of [].concat(a.pfx)) {
         const x = p.x != null ? p.x : u ? u.x : cam.x, y = p.y != null ? p.y : u ? u.y : 0, z = p.z != null ? p.z : u ? u.z : 0;
-        PX.spawn(p.name, x, z, y + (p.h || 0), Object.assign({ scale: p.scale || 1.5 }, p.add ? { add: true } : {}, p.life ? { life: p.life } : {}, p.ground ? { ground: true } : {}, p.delay ? { delay: p.delay } : {}));
+        PX.spawn(p.name, x, z, y + (p.h || 0), Object.assign({ scale: p.scale || 1.5, life: p.life || 1.4 }, p.add ? { add: true } : {}, p.mul ? { mul: true } : {}, p.ground ? { ground: true } : {}, p.delay ? { delay: p.delay } : {})); // (looping effects need a life, or they stay)
+      }
+      if (a.ring) rings.push(Object.assign({ t: 0, dur: 0.9, r: 1.2, col: '190,150,255' }, a.ring, u && a.ring.x == null ? { x: u.x, y: u.y + 0.05, z: u.z } : {}));
+      if (a.debris) {
+        const D = a.debris, n = D.n || 8;
+        for (let k = 0; k < n; k++) bits.push({ x: (D.x != null ? D.x : u ? u.x : 0) + (Math.random() - 0.5) * (D.w || 1.5), y: (D.y != null ? D.y : u ? u.y : 0) + 0.1, z: (D.z != null ? D.z : u ? u.z : 0) + (Math.random() - 0.5) * (D.w || 1.5),
+          vx: (Math.random() - 0.5) * 3, vy: 2 + Math.random() * 3, vz: (D.vz || 0) + (Math.random() - 0.5) * 3, rot: Math.random() * 6, vr: (Math.random() - 0.5) * 12, s: 0.12 + Math.random() * 0.14, col: D.col || '#8a4a3a', floor: D.floor != null ? D.floor : 0 });
       }
       if (!u) return;
+      if (a.attach) { const T = actors.get(a.attach.to); if (T) { u.attach = Object.assign({ dx: 0.2, dy: 0.3, dz: 0.1 }, a.attach); u.mv = null; u.leap = null; } }
+      if (a.detach) { u.attach = null; if (a.put == null) u.y = Math.max(0, u.y); }
       if (a.show) u.hidden = false;
       if (a.hide) u.hidden = true;
       if (a.put) { u.x = a.put[0]; if (a.put[1] != null) u.y = a.put[1]; if (a.put[2] != null) u.z = a.put[2]; u.mv = null; }
       if (a.dir) u.dir = a.dir;
-      if (a.anim) { u.anim = a.anim; u.pose = null; }
+      if (a.anim) { if (u.A && u.A.cur === a.anim) u.A.cur = null; u.anim = a.anim; u.pose = null; } // (the same clip again restarts it)
       if (a.pose !== undefined) u.pose = a.pose || null;
       if (a.to) {
         const tx = a.to[0], ty = a.to[1] != null ? a.to[1] : u.y, tz = a.to[2] != null ? a.to[2] : u.z;
@@ -206,8 +220,17 @@
         u.mv = null; u.anim = 'run';
       }
     }
+    // A beat marked cont carries on the previous beat's action (its subtitles ride on it): its own
+    // actions join the running timeline, at seconds from that beat's start.
+    const cont = (i) => !!((def.beats || [])[i] && def.beats[i].cont);
     function beat(i) {
       const B = (def.beats || [])[i];
+      if (B && B.cont) {
+        if (B.cam) setShot(B.cam);
+        for (const a of B.do || []) queue.push(Object.assign({}, a, { at: beatT + (a.at || 0) }));
+        queue.sort((p, q) => p.at - q.at);
+        return;
+      }
       beatT = 0; queue = [];
       if (!B) return;
       if (B.cam) setShot(B.cam);
@@ -219,6 +242,7 @@
       let dt = dtReal;
       if (slow.t > 0) { slow.t -= dtReal; dt *= slow.k; }
       clock += dt; beatT += dt; FXV.time = clock;
+      if (PX) PX.step(dt); // effects age with the film (and with a seek), not with the frames drawn
       while (queue.length && queue[0].at <= beatT) act(queue.shift());
       // camera
       if (shot) {
@@ -253,6 +277,12 @@
           if (k >= 1) { u.leap = null; u.anim = L.after; if (L.after === 'run' && !u.mv) u.anim = 'idle'; }
         }
       }
+      // carried actors ride along with their carrier
+      for (const u of actors.values()) if (u.attach) { const T = actors.get(u.attach.to); if (T) { u.x = T.x + u.attach.dx; u.y = T.y + u.attach.dy; u.z = T.z + u.attach.dz; } }
+      for (const r of rings) r.t += dt;
+      for (let i = rings.length - 1; i >= 0; i--) if (rings[i].t > rings[i].dur) rings.splice(i, 1);
+      for (const b of bits) { if (b.dead) continue; b.vy -= 18 * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt; b.rot += b.vr * dt; if (b.y < b.floor) { b.dead = true; } }
+      for (let i = bits.length - 1; i >= 0; i--) if (bits[i].dead) bits.splice(i, 1);
       for (const p of crowd) {
         if (!p.speed) continue;
         p.x += p.speed * dt;
@@ -289,6 +319,27 @@
       if (look && PIXEL_H) look = Object.assign({}, look, { ink: Math.min(look.ink || 1, hpx > 70 ? 1 : 0.6) });
       for (const smp of Sp.sample(u.A, viewDir(u.dir))) Sp.drawFrame(ctx, man, smp, p.x, p.y, hpx, look || { ink: Math.max(1, Math.min(3, hpx / 45)) });
     }
+    // a glyph ring flat on the surface: two circles and rune ticks, flaring and fading
+    function drawRings() {
+      for (const r of rings) {
+        const k = r.t / r.dur, a = (1 - k) * (k < 0.15 ? k / 0.15 : 1), R = r.r * (0.6 + 0.6 * Math.min(1, k * 3));
+        ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineWidth = 1;
+        for (const [rr, al] of [[R, 1], [R * 0.66, 0.8]]) {
+          ctx.strokeStyle = `rgba(${r.col},${(a * al).toFixed(3)})`; ctx.beginPath();
+          for (let j = 0; j <= 40; j++) { const t = (j / 40) * Math.PI * 2, p = project(r.x + Math.cos(t) * rr, r.y, r.z + Math.sin(t) * rr); if (!p) continue; if (j) ctx.lineTo(p.x, p.y); else ctx.moveTo(p.x, p.y); }
+          ctx.stroke();
+        }
+        ctx.beginPath();
+        for (let j = 0; j < 12; j++) { const t = (j / 12) * Math.PI * 2 + k, p0 = project(r.x + Math.cos(t) * R * 0.7, r.y, r.z + Math.sin(t) * R * 0.7), p1 = project(r.x + Math.cos(t) * R * 0.95, r.y, r.z + Math.sin(t) * R * 0.95); if (p0 && p1) { ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); } }
+        ctx.stroke();
+        const c = project(r.x, r.y, r.z);
+        if (c) { const g = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, R * c.s); g.addColorStop(0, `rgba(${r.col},${(0.5 * a).toFixed(3)})`); g.addColorStop(1, `rgba(${r.col},0)`); ctx.fillStyle = g; ctx.fillRect(c.x - R * c.s, c.y - R * c.s, R * c.s * 2, R * c.s * 2); }
+        ctx.restore();
+      }
+    }
+    function drawBits() {
+      for (const b of bits) { const p = project(b.x, b.y, b.z); if (!p) continue; const sz = Math.max(1, b.s * p.s); ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(b.rot); ctx.fillStyle = b.col; ctx.fillRect(-sz / 2, -sz / 4, sz, sz / 2); ctx.restore(); }
+    }
     let lastT = 0;
     function draw() {
       const now = performance.now() / 1000, dt = lastT ? Math.min(0.05, now - lastT) : 0;
@@ -324,7 +375,8 @@
       items.sort((a, b) => b.k - a.k || b.k2 - a.k2);
       if (PX) PX.drawGround();
       for (const it of items) it.f();
-      if (PX) PX.drawAbove(dt);
+      if (PX) PX.drawAbove(0);
+      drawRings(); drawBits();
       if (set && set.front) set.front(view);
       // grade, vignette, flash, fade
       const G = def.grade || (set && set.grade);
@@ -353,7 +405,7 @@
       return all.every((u) => { const m = Sp.get('px:' + u.set); return m && m.ready; });
     }
     if (def.cam) setShot(Object.assign({}, def.cam, { cut: true }));
-    return { beat, update, draw, ready, busy, def, actors, cam };
+    return { beat, update, draw, ready, busy, cont, def, actors, cam };
   }
 
   NS.cinema = { start };

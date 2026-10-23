@@ -151,6 +151,20 @@ def step(i):
     d = 0.09
     return mix(lp(noise(d), 500 + 120 * i) * env(d, a=0.002, curve=3), glide(90, 60, 0.05) * env(0.05, a=0.001) * 0.4)
 
+def horn():
+    # the Tower's horn: one vast low brass note heard across the world (swell, hold, long tail)
+    d = 6.5; t = t_(d)
+    sw = np.clip(t / 1.1, 0, 1) ** 1.6 * np.where(t < 3.6, 1, np.exp(-(t - 3.6) / 1.1))
+    f = 55 * (1 + 0.004 * np.sin(2 * np.pi * 4.2 * t) * sw)
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    tone = sum(np.sin(k * ph + rng.uniform(0, 6.28)) / k ** 1.15 for k in range(1, 18))
+    fifth = sum(np.sin(1.5 * k * ph + rng.uniform(0, 6.28)) / k ** 1.4 for k in range(1, 9))
+    y = tone + 0.35 * fifth
+    y = mix(lp(y, 700, 4) * sw, lp(y, 1600, 2) * sw ** 3 * 0.5)   # the brass opens as it swells
+    rumble = lp(noise(d), 90, 4) * sw * 2.0
+    tail = np.convolve(y, lp(noise(2.5), 900) * np.exp(-t_(2.5) / 0.8), 'full')[:len(y)]
+    return mix(y, norm(tail, np.max(np.abs(y)) * 0.6), rumble)
+
 # ------------------------------------------------------------ ambience loops (seamless)
 def loopify(y, xf=1.0):
     n = int(SR * xf); a = y[:n]; b = y[-n:]
@@ -214,3 +228,4 @@ if __name__ == '__main__':
     save('amb/fire', crackle(), 0.5, 0.009)
     save('amb/night', night(), 0.4, 0.015)
     save('amb/murmur', murmur(), 0.45, 0.02)
+    save('fight/horn', horn(), 0.9, 0.02)
