@@ -528,6 +528,31 @@ h2 { font-style: italic; }
 @keyframes tmRise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 @media (max-height: 460px) { .tm-title { top: 30px; } .tm-title .lede { display: none; } .tm-title .eyebrow { margin-bottom: 6px; } .begin { padding: 9px 36px 8px; } }
 @media (prefers-reduced-motion: reduce) { .tm-title, .tm-menu { animation: none; } }
+/* Menu B (the author's pick, 2026-10-23): a left column over the campfire. The logo top left, the
+   menu as a list under it, the scene to the right, the team as chips bottom right. */
+#menu { background: linear-gradient(90deg, rgba(5, 4, 8, 0.9) 0%, rgba(5, 4, 8, 0.72) 24%, rgba(5, 4, 8, 0.18) 46%, rgba(5, 4, 8, 0) 60%), linear-gradient(180deg, rgba(5, 4, 8, 0.35), rgba(5, 4, 8, 0) 22%, rgba(5, 4, 8, 0) 78%, rgba(5, 4, 8, 0.5)); }
+#menu .tm-title { left: max(22px, calc(env(safe-area-inset-left, 0px) + 14px)); right: auto; top: max(16px, calc(env(safe-area-inset-top, 0px) + 10px)); text-align: left; max-width: 44vw; }
+#menu .tm-title .eyebrow { letter-spacing: 0.32em; margin: 0 0 6px; }
+#menu .logo { flex-wrap: wrap; justify-content: flex-start; gap: 0 0.28em; font-size: clamp(26px, 5.2vw, 52px); }
+#menu .logo .l1 { flex-basis: 100%; }
+#menu .tm-menu { left: max(22px, calc(env(safe-area-inset-left, 0px) + 14px)); right: auto; bottom: max(12px, calc(env(safe-area-inset-bottom, 0px) + 8px)); justify-items: start; gap: 2px; padding: 0; max-width: 46vw; }
+#menu .begin { justify-items: start; min-width: 0; padding: 9px 22px 9px 14px; margin-bottom: 6px; border: 0; border-left: 3px solid var(--blood); background: linear-gradient(90deg, rgba(227, 38, 58, 0.3), rgba(227, 38, 58, 0.08) 70%, transparent); text-align: left; }
+#menu .begin b { font-size: clamp(16px, 2.9vw, 22px); letter-spacing: 0.14em; }
+#menu .begin .slash { display: none; }
+#menu .begin:hover, #menu .begin:focus-visible { background: linear-gradient(90deg, rgba(227, 38, 58, 0.5), rgba(227, 38, 58, 0.14) 80%, transparent); }
+#menu .tm-links { flex-direction: column; align-items: flex-start; flex-wrap: nowrap; gap: 0; padding-left: 17px; }
+#menu .tl, #menu .tm-links .howto summary { padding: 6px 2px; font-size: 12px; letter-spacing: 0.18em; opacity: 0.82; }
+#menu .tl-settings { border: 0 !important; padding: 6px 2px !important; opacity: 0.82 !important; }
+#menu .tl:hover, #menu .tl:focus-visible, #menu .tm-links .howto summary:hover { box-shadow: none; opacity: 1; color: #fff; text-shadow: 0 0 10px rgba(227, 38, 58, 0.9), 0 1px 4px #000; }
+#menu .tl::before, #menu .tm-links .howto summary::before { content: ''; display: inline-block; width: 0; height: 2px; margin-right: 0; vertical-align: middle; background: var(--blood); transition: width 0.2s, margin 0.2s; }
+#menu .tl:hover::before, #menu .tl:focus-visible::before, #menu .tm-links .howto summary:hover::before { width: 10px; margin-right: 8px; }
+#menu .tm-links { position: static; }
+#menu .tm-links .howto .how-pop { left: calc(100% + 18px); bottom: 0; transform: none; width: min(48vw, 440px); max-height: calc(100vh - 24px); overflow: auto; margin: 0; }
+#menu .tm-top { top: auto; bottom: max(12px, calc(env(safe-area-inset-bottom, 0px) + 8px)); left: auto; padding: 0 max(16px, env(safe-area-inset-right, 0px)) 0 0; }
+#menu .tm-team .label { display: none; }
+#menu .tm-team .cond { gap: 4px; justify-items: end; }
+#menu .tm-team .cond-row { grid-template-columns: auto 46px auto; padding: 4px 8px; background: rgba(8, 6, 10, 0.62); border-left: 2px solid rgba(255, 170, 90, 0.7); }
+@media (max-height: 460px) { #menu .tm-title { top: 10px; } #menu .tm-title .eyebrow { margin-bottom: 3px; font-size: 9.5px; } #menu .logo { font-size: clamp(24px, 4.6vw, 40px); } #menu .tl, #menu .tm-links .howto summary { padding: 5px 2px; font-size: 11px; } #menu .begin { padding: 7px 20px 7px 12px; margin-bottom: 3px; } #menu .tm-team .cond { grid-template-columns: repeat(3, auto); gap: 3px; } #menu .tm-team .cond-row { grid-template-columns: auto 28px; padding: 3px 6px; font-size: 10px; } #menu .tm-team .cond-row .card-num { display: none; } }
 
 /* the spirit tree */
 .tree { display: block; position: relative; }
@@ -906,6 +931,7 @@ body.trailer.fighting .trailer-card:not(.logo) { bottom: auto; top: 10vh; }
 <script src="js/cinema/ashgate.js"></script>
 <script src="js/cinema/c1.js"></script>
 <script src="js/cinema/gate.js"></script>
+<script src="js/cinema/camp.js"></script>
 <script src="js/cinema/summit.js"></script>
 <script src="js/cinema/climber.js"></script>
 <script src="js/audio.js"></script>

@@ -78,12 +78,24 @@
     $('story-note').textContent = `${ch.label} · ${ch.title}`;
   }
 
-  let menuStage = null;
+  // The menu's backdrop: the campfire at night, filmed (js/cinema/camp.js) with the heroes met so
+  // far lit and the rest as shadows; the old staged walk if the cinema is missing.
+  let menuStage = null, menuCine = null;
+  function metHeroes() {
+    const keys = Story.roster(story).map((m) => (/^eiryn/.test(m.key) ? 'eiryn' : m.key));
+    return new Set(keys);
+  }
   function show(id) {
     if (id === 'menu' && prologueKept) { restorePrologue(); renderMenu(); }
     if (id === 'menu') {
-      if (!menuStage && Render.stage && window.TowStages && window.TowStages.title) { try { menuStage = Render.stage.start(window.TowStages.title, Sim); } catch (e) { menuStage = null; } }
-    } else if (menuStage) { menuStage = null; if (!stage) renderer.setCameraOverride(null); }
+      const met = metHeroes(), key = [...met].sort().join();
+      if (menuCine && menuCine.met !== key) menuCine = null; // someone joined: they step out of the shadows
+      if (!menuCine && Render.cinema && window.TowCinemaMenu) { try { menuCine = Render.cinema.start(window.TowCinemaMenu.camp(met)); menuCine.met = key; menuCine.beat(0, 1); } catch (e) { menuCine = null; } }
+      if (!menuCine && !menuStage && Render.stage && window.TowStages && window.TowStages.title) { try { menuStage = Render.stage.start(window.TowStages.title, Sim); } catch (e) { menuStage = null; } }
+    } else {
+      menuCine = null;
+      if (menuStage) { menuStage = null; if (!stage) renderer.setCameraOverride(null); }
+    }
     for (const s of ['menu', 'result', 'paused', 'story', 'select', 'map', 'world', 'team-screen', 'cine']) $(s).hidden = s !== id;
     $('hud').hidden = !(id === null || id === 'paused');
     view = id || 'fight';
@@ -93,7 +105,7 @@
       else if (view === 'menu' || view === 'world') window.TowAudio.music('title');
       else if (view !== 'story') window.TowAudio.music(null);
     }
-    if (window.TowAudio && window.TowAudio.ambience && id !== 'story') window.TowAudio.ambience([]);
+    if (window.TowAudio && window.TowAudio.ambience && id !== 'story') window.TowAudio.ambience(id === 'menu' && menuCine ? ['night', 'fire'] : []);
   }
   // The sound of the place a story scene is in (js/audio.js ambience loops).
   const AMB_SET = { square: ['murmur'], roofs: ['wind'], tavern: ['murmur', 'fire'], ashgate: ['night', 'wind'] };
@@ -1148,6 +1160,13 @@
       requestAnimationFrame(frame);
       return;
     }
+    if (!match && view === 'menu' && menuCine) {
+      // the campfire: its one beat plays round and round
+      if (menuCine.ready()) { menuCine.update(real); if (!menuCine.busy()) menuCine.beat(0, 1); }
+      menuCine.draw();
+      requestAnimationFrame(frame);
+      return;
+    }
     if (!match && view === 'menu' && menuStage) {
       // The title tableau: the six walk toward the Tower, a slow camera behind them.
       menuStage.update(real);
@@ -1202,6 +1221,7 @@
     get cam() { return renderer.cam; },
     get stageCam() { return stage ? stage.camera() : null; },
     get cinema() { return cinema; },
+    get menuCine() { return menuCine; },
     debug: {
       start(m, seed, opts) { startMatch(m || 'practice', seed == null ? 1 : seed, opts); },
       introAt(t) { if (faceoff) faceoff.t = t; },
@@ -1219,6 +1239,7 @@
       cutIn(id, caption) { if (match) renderer.cutIn(match.byId[id], caption); },
       superNow() { if (match) match.lead.superMeter = 100; },
       world() { showWorld(); },
+      menu() { renderMenu(); show('menu'); },
       team() { showTeam('menu'); },
       pickNode(id) { pickWorld(id); },
       goNode(id) { goNode(id); },

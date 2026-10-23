@@ -280,6 +280,7 @@ Out counters beyond the punisher, sound, real art, purchases, free modes beyond 
 | 2026-10-17 | Prologue fight: the climber is beaten nearly to death, then a last stand (Dark Legion) wins it | Author |
 | 2026-10-17 | Spirit-tree skill screen; gear has art; elemental weapons change fights (fire sword throws flame, ice daggers freeze) (Proposal: item names, numbers, the element set) | Author |
 | 2026-10-23 | The prologue opens on the rooftop chase (TW-001–010), cuts to the climber's whole fight as a filmed cutscene (no auto-battle; no names on screen), then back to Eiryn and Alric looking at the Tower (TW-014–018). The street walk (TW-011–013) is dropped from the opening. The tutorial moves to Kael's bandit fight (c1.fight) | Author |
+| 2026-10-23 | The opening before the roofs is redone, filmed: "the world before" (the market at dusk, the lamps lit toward the Tower, climbers at its gate, the promise, the title over the roofs). The Tower lines move from the climber section into it. The menu becomes a left column over a campfire at night with every hero doing their own thing; heroes not met yet are shadows | Author |
 
 ## 16. Growth, loot and the world map (built in 0.5, all Proposals)
 
@@ -370,4 +371,11 @@ The prologue plays as filmed scenes (js/render/cinema.js): `p.lore` → `p.roof`
   another floor today." / "They always say that." (**Proposal**, TW-015); "You could do it." / "Me?
   I'd be bored by the third floor. You'd end up carrying me." (**Proposal**, TW-016); Eiryn says "I
   already have everything I could ever wish for." (TW-017; the older text gave it to Alric).
-
+- **The world before (`p.lore`).** Filmed in the square, the new gate set (js/cinema/gate.js) and the
+  roofs. **Proposal** (Claude's staging of the author's pick): the lamplighter and the lamps lighting
+  up the street; six climbers (adventurer, spearwoman, knights, poacher, a hooded one) walking up to
+  an arched gate of light in the Tower's south face, two of them stepping into it; the title card.
+  The lines are the manuscript's.
+- **The menu.** A campfire in a clearing at night (js/cinema/camp.js). **Proposal**: what each hero
+  does there (Kael drilling at a post, Eiryn casting, Eloryn tending with a healing glow, Braxen by the
+  fire, Aerys on watch with her spear, Nox crouched on a branch of the old tree).
