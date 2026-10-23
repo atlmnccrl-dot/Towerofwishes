@@ -7,33 +7,33 @@ Label = canon status (CANON, GAME, OPTION, OPEN). State = what the build actuall
 ## Totals
 
 - Cinematic done: 4
-- In progress: 74
-- Not started: 346
+- In progress: 81
+- Not started: 339
 - Playable: 6
 
 ## 00 — BEFORE THE RESET: EIRYN & ALRIC
 
 | Id | Label | Event | Type | State | Where in the build |
 |---|---|---|---|---|---|
-| TW-001 | CANON | Rooftop feet first | CIN/PLAY | In progress | p.overlook: rooftop run (one roof, no feet close-up) |
-| TW-002 | CANON | Roofline pursuit | PLAY | In progress | p.overlook: rooftop run (one roof, no feet close-up) |
-| TW-003 | CANON | Flirting while running | DIA | Not started |  |
-| TW-004 | CANON | Misjudged leap | CIN | Not started |  |
-| TW-005 | CANON | First magic demonstration | PLAY/CIN | Not started |  |
-| TW-006 | CANON | Alric's physical leap | CIN | Not started |  |
-| TW-007 | CANON | Midair rescue | CIN | Not started |  |
-| TW-008 | CANON | I wanted the hug | DIA | Not started |  |
-| TW-009 | CANON | Almost home | DIA | Not started |  |
-| TW-010 | CANON | The neighbors' roofs | DIA | Not started |  |
-| TW-011 | CANON | Living pre-Reset street | EXP | In progress | p.evening: square at evening (no interactive stroll) |
-| TW-012 | CANON | Pastries and errands | DIA | In progress | p.evening: square at evening (no interactive stroll) |
-| TW-013 | CANON | Tomorrow at home | DIA | In progress | p.evening: square at evening (no interactive stroll) |
-| TW-014 | CANON | The Tower's floor-clear sound | CIN | Not started |  |
-| TW-015 | CANON | Someone's climbing | DIA | In progress | p.evening / p.overlook dialogue (older manuscript lines) |
-| TW-016 | CANON | Could Alric climb it? | DIA | In progress | p.evening / p.overlook dialogue (older manuscript lines) |
-| TW-017 | CANON | Already have my wish | DIA | In progress | p.evening / p.overlook dialogue (older manuscript lines) |
-| TW-018 | CANON | Breathing space | CIN | Not started |  |
-| TW-019 | CANON | Unknown summit climber | CIN | In progress | p.tower + p.ascent: climber tutorial fight, last stand (older staging) |
+| TW-001 | CANON | Rooftop feet first | CIN/PLAY | In progress | p.roof (filmed): feet close-up tracking along the ridge; lines drafted (Proposal) |
+| TW-002 | CANON | Roofline pursuit | PLAY | In progress | p.roof (filmed): the chase across the roofs, POV look-back at Alric gaining |
+| TW-003 | CANON | Flirting while running | DIA | In progress | p.roof (filmed): running banter (drafted lines, Proposal) |
+| TW-004 | CANON | Misjudged leap | CIN | In progress | p.roof (filmed): the gap is wider than she judged (drafted narration, Proposal) |
+| TW-005 | CANON | First magic demonstration | PLAY/CIN | In progress | p.roof (filmed): a violet glyph launches her off the roof (drafted narration, Proposal) |
+| TW-006 | CANON | Alric's physical leap | CIN | In progress | p.roof (filmed): Alric leaps after her, the tiles split (drafted narration, Proposal) |
+| TW-007 | CANON | Midair rescue | CIN | In progress | p.roof (filmed): he catches her midair and takes the landing (drafted narration, Proposal) |
+| TW-008 | CANON | I wanted the hug | DIA | In progress | p.roof (filmed): "I wanted the hug" exchange (drafted lines, Proposal) |
+| TW-009 | CANON | Almost home | DIA | In progress | p.roof (filmed): "We were almost home" (drafted line, Proposal) |
+| TW-010 | CANON | The neighbors' roofs | DIA | In progress | p.roof (filmed): neighbours' tiles line and a tile breaking in the street (drafted, Proposal) |
+| TW-011 | CANON | Living pre-Reset street | EXP | Not started | Dropped from the opening by the author (2026-10-23); p.evening kept, unlinked |
+| TW-012 | CANON | Pastries and errands | DIA | Not started | Dropped from the opening by the author (2026-10-23); p.evening kept, unlinked |
+| TW-013 | CANON | Tomorrow at home | DIA | Not started | Dropped from the opening by the author (2026-10-23); p.evening kept, unlinked |
+| TW-014 | CANON | The Tower's floor-clear sound | CIN | In progress | p.climb (filmed): the horn ends the climber's fight; p.overlook: the roof hears it (drafted, Proposal) |
+| TW-015 | CANON | Someone's climbing | DIA | In progress | p.overlook (filmed): "They say someone climbed another floor today" (drafted, Proposal) |
+| TW-016 | CANON | Could Alric climb it? | DIA | In progress | p.overlook (filmed): "You could do it" exchange (drafted, Proposal) |
+| TW-017 | CANON | Already have my wish | DIA | In progress | p.overlook (filmed): Eiryn says "I already have everything I could ever wish for" |
+| TW-018 | CANON | Breathing space | CIN | In progress | p.overlook (filmed): foreheads touch, "For a moment, the world was enough" |
+| TW-019 | CANON | Unknown summit climber | CIN | In progress | p.tower + p.climb + p.light (filmed): the climber's whole fight as a cutscene, no names (narration drafted, Proposal); p.ascent kept, unlinked |
 | TW-020 | CANON | Alric senses something wrong | CIN | Not started |  |
 | TW-021 | CANON | Firmament splits | CIN | Cinematic done | p.reset: painted skyfire and flood (protected shot) |
 | TW-022 | CANON | Skyfire begins | CIN | Cinematic done | p.reset: painted skyfire and flood (protected shot) |

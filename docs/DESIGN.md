@@ -279,6 +279,7 @@ Out counters beyond the punisher, sound, real art, purchases, free modes beyond 
 | 2026-10-17 | Choice screens are removed; paths are forks in the road: the camera shows each way, the player picks one, both reach the same place (Proposal: the two forks, the encounters and rewards on them) | Author |
 | 2026-10-17 | Prologue fight: the climber is beaten nearly to death, then a last stand (Dark Legion) wins it | Author |
 | 2026-10-17 | Spirit-tree skill screen; gear has art; elemental weapons change fights (fire sword throws flame, ice daggers freeze) (Proposal: item names, numbers, the element set) | Author |
+| 2026-10-23 | The prologue opens on the rooftop chase (TW-001–010), cuts to the climber's whole fight as a filmed cutscene (no auto-battle; no names on screen), then back to Eiryn and Alric looking at the Tower (TW-014–018). The street walk (TW-011–013) is dropped from the opening. The tutorial moves to Kael's bandit fight (c1.fight) | Author |
 
 ## 16. Growth, loot and the world map (built in 0.5, all Proposals)
 
@@ -344,3 +345,29 @@ Out counters beyond the punisher, sound, real art, purchases, free modes beyond 
 - **Trailer.** *Trailer* on the title screen (or `?trailer`) plays a ~75 s reel: the painted opening,
   the Reset, the rooftop run, the dawn, four fights with heavy arts. Cards are manuscript quotes or
   plain taglines. A tap leaves it; nothing is saved. Meant for screen capture.
+
+## 19. The opening, filmed (built 2026-10-23; the drafted lines are Proposals)
+
+The prologue plays as filmed scenes (js/render/cinema.js): `p.lore` → `p.roof` → `p.tower` →
+`p.climb` → `p.overlook` → `p.light` → `p.reset` (the protected painted shot) → `p.story` →
+`p.later`. There is no battle in the prologue; the coach teaches in Kael's bandit fight (`c1.fight`).
+`p.evening` and `p.ascent` stay in js/story.js for old saves but nothing links to them.
+
+- **The rooftop chase (`p.roof`, TW-001–010).** Close on Eiryn's feet along a ridge; her look back
+  (first person) at Alric gaining; the gap she misjudges; a violet glyph throws her off the roof; in
+  the air she looks back and Alric leaps after her, catches her and takes the landing; the two of them
+  on the broken roof. **Proposal** (drafted by Claude, awaiting the author): every line of `p.roof`
+  ("You're slowing down." … "Somewhere below, one more tile slid off the edge and broke in the street.").
+- **The climber (`p.tower`, `p.climb`, `p.light`, TW-019, TW-014).** The Tower above the clouds; the
+  climber comes up the last stairs; the thing on the final floor; two shapes drop and die in one
+  stroke; the thing throws the climber, they trade blows, the climber is beaten to one knee; a rift
+  opens and giants of darkness crush it; the Tower's horn sounds (TW-014, synthesised `horn` in
+  tools/make_sfx.py); the climber walks up into the light. No names on screen (the author). Cast:
+  the climber set; the thing is the night creature drawn as a shadow; the giants are knight sets
+  drawn as shadows at three times size. **Proposal**: the nine narration lines of `p.climb` and the
+  fight's choreography.
+- **The Tower talk (`p.overlook`, TW-014–018).** The roof hears the horn; "They say someone climbed
+  another floor today." / "They always say that." (**Proposal**, TW-015); "You could do it." / "Me?
+  I'd be bored by the third floor. You'd end up carrying me." (**Proposal**, TW-016); Eiryn says "I
+  already have everything I could ever wish for." (TW-017; the older text gave it to Alric).
+
