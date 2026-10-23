@@ -174,7 +174,6 @@
       type: 'scene', chapter: 'prologue', bg: 'tower', next: 'p.roof',
       lines: [
         X('Down out of the cloud ceiling, the Tower far off, into the market at dusk.'),
-        P('child', 'What’s at the top?'), // PROPOSAL (a child at the fruit stall points at the Tower)
         P('vendor', 'Reach the summit, and you can make a wish.'), // PROPOSAL: the book's promise, spoken
         X('The lamps are lit up the street toward the Tower; climbers walk up to its gate.'),
         X('Two climbers step into the light; up the Tower into the clouds; over the roofs, the title.'),
@@ -183,16 +182,12 @@
     'p.roof': {
       type: 'scene', chapter: 'prologue', bg: 'tower', next: 'p.tower',
       lines: [
-        B('alric', 'You’re slowing down.'), // PROPOSAL (TW-003)
-        B('eiryn', 'I’m letting you think you can catch me.'), // PROPOSAL (TW-003)
-        B('alric', 'Then stop letting me.'), // PROPOSAL (TW-003)
+        X('Her boots on the tiles; Alric behind her, faster. (TW-001-003)'),
+        X('Through her eyes, looking back: he is gaining.'),
+        X('Roof to roof, leaping at the lens.'),
         X('The take (TW-004-007): the gap wider than she judged; a violet glyph throws her on; Alric leaps by strength alone, catches her midair, takes the landing; half the roof comes with them.'),
         B('alric', 'Too slow.'), // PROPOSAL (TW-008)
-        B('eiryn', 'I let you catch me.'), // PROPOSAL (TW-008)
-        B('alric', 'Did you.'), // PROPOSAL (TW-008)
         B('eiryn', 'I wanted the hug.'), // PROPOSAL (TW-008)
-        B('eiryn', 'We were almost home.'), // PROPOSAL (TW-009)
-        B('alric', 'We walk the rest. Before the neighbours start counting their tiles.'), // PROPOSAL (TW-010)
         X('Somewhere below, one more tile slid off the edge and broke in the street.'), // PROPOSAL (TW-010)
       ],
     },
@@ -216,21 +211,11 @@
     'p.overlook': {
       type: 'scene', chapter: 'prologue', bg: 'tower', next: 'p.light',
       lines: [
-        X('On a roof at the edge of the city, Eiryn and Alric turned toward the sound with everyone else.'), // PROPOSAL (TW-014)
-        B('alric', 'They say someone climbed another floor today.'),
-        B('eiryn', 'They always say that.'),
-        B('alric', 'Do you think anyone’s ever made it to the top?'),
-        X('Eiryn finally looked. The Tower gave her nothing back.'),
-        B('eiryn', 'You’d have to be powerful.'),
-        B('eiryn', 'You could do it.'), // PROPOSAL (TW-016)
-        B('alric', 'Me? I’d be bored by the third floor. You’d end up carrying me.'), // PROPOSAL (TW-016)
-        B('alric', 'And if someone did?'),
-        B('eiryn', 'What would they wish for?'),
-        B('alric', 'I don’t know.'),
-        X('He stepped closer. His arm slid around her waist until the Tower disappeared from the center of her world. Their foreheads touched.'),
+        X('On a roof at the edge of the city, they turn toward the horn with everyone else. (TW-014)'),
+        X('Eiryn looks at the Tower. It gives her nothing back. (TW-015-016)'),
+        X('He steps closer, his arm round her waist; their foreheads touch.'),
         B('eiryn', 'I already have everything I could ever wish for.'), // TW-017: Eiryn says it (the older text gave it to Alric)
-        X('For a moment, the world was enough.'), // TW-018
-        X('Far above them, something was dying.'),
+        X('For a moment, the world is enough; far above them, something is dying. (TW-018)'),
       ],
     },
     'p.open': { type: 'card', chapter: 'prologue', bg: 'tower', title: 'TOWER OF WISHES', sub: 'Reach the summit, and you could make a wish.', next: 'p.tower' },
@@ -294,9 +279,9 @@
       type: 'scene', chapter: 'prologue', bg: 'tower', next: 'p.later',
       lines: [
         X('A fire in a settlement built from older ruins; children round an old storyteller; Eiryn at the edge of the light.'),
-        P('storyteller', 'Long ago, a man climbed to the top of the Tower of Wishes. No one knows his name.'),
-        P('storyteller', 'What came after was fire, water and storm. The end of a world.'),
-        P('storyteller', 'We built again. It broke again. Only the Tower never changed.'),
+        P('storyteller', 'Long ago, a man climbed to the top of the Tower of Wishes.'),
+        X('The memory: the sky splits over the city; fire and water; the end of a world.'),
+        X('The memory: the street to the Tower broken and rebuilt as the years flicker past; the Tower never changes.'),
         X('Back at the fire: Eiryn, the same face, the same posture, in a different world.'),
       ],
     },
@@ -330,8 +315,6 @@
       type: 'scene', chapter: 'c1', bg: 'tavern', next: 'c1.formation',
       lines: [
         X('At the next table, a Guild swordsman has decided the stew tastes burnt. This is, apparently, a controversial opinion.'),
-        B('spear', 'It’s smoked pepper. They’ve been putting it in since spring.'),
-        B('kael', 'Then they’ve been burning it since spring.'),
         X('Around them the regulars murmur over their cups.'),
       ],
     },
@@ -353,10 +336,7 @@
     'c1.go': {
       type: 'scene', chapter: 'c1', bg: 'tavern', next: 'c1.street',
       lines: [
-        B('kael', 'I’m going outside.'),
-        B('spear', 'You’re doing that thing with your face. The one you do before you run at a problem.'),
-        B('kael', 'That’s why I’m going to see.'),
-        X('He sets off before she can offer an opinion.'),
+        X('Kael gets up and heads for the door before the spearwoman can offer an opinion.'),
       ],
     },
     // Out in the street (TW-041): Kael watches the formation fail from outside.
@@ -370,8 +350,7 @@
     'c1.look': {
       type: 'scene', chapter: 'c1', bg: 'tavern', next: 'c1.run',
       lines: [
-        B('kael', 'Nobody draws something that big for fun.'),
-        X('He starts north, toward the trees.'),
+        X('Kael looks up at it, then starts north, toward the trees.'),
       ],
     },
     'c1.run': {
@@ -385,18 +364,12 @@
     'c1.voice': {
       type: 'scene', chapter: 'c1', bg: 'forest', next: 'c1.drop',
       lines: [
-        X('At the forest’s edge, a man laughs. Another answers. Then a woman, clearly enough to carry through the trees:'),
+        X('At the forest’s edge, men laughing; a woman, exhausted, her spell fizzling.'),
         B('eiryn', 'Keep your hands off me.'),
-        X('Four men in a clearing. A broad-shouldered one by the fallen tree, one with a short knife, one moving round the right, one hanging back by the path.'),
-        X('The woman they have cornered has long silver-white hair. She is exhausted.'),
-        B('broad', 'Then do another trick. The big one. We all saw it.'),
-        B('knife', 'She can’t. Look at her.'),
-        B('knife', 'Pretty thing, walking alone?'),
-        B('grabber', 'Bet you scream nice.'),
-        B('broad', 'Or maybe she don’t scream at all.'),
+        X('Four men in a clearing, closing round the woman with long silver-white hair.'),
+        X('They close in. Kael sees it.'),
       ],
     },
-    // Playtest item 11: Kael drops into the circle, plants his sword, draws it. No line: the action is the line.
     'c1.drop': {
       type: 'scene', chapter: 'c1', bg: 'forest', next: 'c1.fight',
       lines: [

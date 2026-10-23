@@ -34,10 +34,6 @@
       { do: [{ cam: { x: 3.8, y: 1.75, z: -3.4, yaw: -0.45, pitch: -0.08, cut: true } },
         { at: 0.3, cam: { x: 1.9, y: 1.6, z: -1.4, yaw: -0.25, pitch: -0.05, ease: 6 } },
         { at: 2.5, who: 'p6', anim: 'idle_alt' }, { at: 3.5, who: 'keeper', anim: 'idle_alt' }] },
-      // "It's smoked pepper. They've been putting it in since spring."
-      { cam: { x: 0.25, y: 1.55, z: -1.7, yaw: -0.05, pitch: -0.03, cut: true }, do: [{ who: 'spear', anim: 'idle_alt' }, { at: 0.3, cam: { x: 0.2, y: 1.55, z: -1.3, yaw: -0.06, pitch: -0.03, ease: 5 } }] },
-      // "Then they've been burning it since spring."
-      { cam: { x: 0.5, y: 1.55, z: -1.2, yaw: 0.06, pitch: -0.03, ease: 4 }, do: [{ who: 'spear', anim: 'idle' }, { who: 'kael', anim: 'idle_alt' }] },
       // Around them the regulars murmur over their cups.  (across the room to the hearth)
       { cam: { x: -3.9, y: 1.9, z: 5.0, yaw: 2.55, pitch: -0.12, cut: true }, do: [{ who: 'kael', anim: 'idle' }, { at: 0.2, cam: { x: -3.4, y: 1.85, z: 4.4, yaw: 2.6, pitch: -0.1, ease: 6 } }] },
     ],
@@ -65,17 +61,13 @@
     set: 'tavern', vars: { glow: 1, door: 0 },
     actors: ROOM(),
     beats: [
-      // "I'm going outside."  (the room behind them at the windows, lit purple)
+      // (silent) Kael gets up and heads for the door before she can offer an opinion.  (the room at the windows,
+      // lit purple; then across the room as he goes)
       { cam: { x: 0.35, y: 1.55, z: -1.3, yaw: 0.02, pitch: -0.02, cut: true },
-        do: [...windowsPut(), { who: 'keeper', dir: 'NE' }, { who: 'kael', dir: 'W' }, { who: 'spear', dir: 'E' }] },
-      // "You're doing that thing with your face. The one you do before you run at a problem."
-      { cam: { x: 0.15, y: 1.55, z: -1.1, yaw: -0.05, pitch: -0.02, ease: 4 }, do: [{ who: 'spear', anim: 'idle_alt' }] },
-      // "That's why I'm going to see."
-      { cam: { x: 0.55, y: 1.55, z: -1.0, yaw: 0.06, pitch: -0.02, ease: 4 }, do: [{ who: 'spear', anim: 'idle' }, { at: 1.4, who: 'kael', dir: 'E' }] },
-      // He sets off before she can offer an opinion.
-      { cam: { x: -4.2, y: 1.8, z: 2.4, yaw: 1.42, pitch: -0.05, cut: true },
-        do: [{ who: 'kael', to: [4.3, 0, 3.6], speed: 1.9 }, { at: 0.8, who: 'spear', dir: 'E' }, { at: 1.6, vars: { door: [1, 0.5] } },
-          { at: 0.2, cam: { x: -4.0, y: 1.8, z: 2.6, yaw: 1.5, pitch: -0.05, ease: 3 } }, { at: 3.6, who: 'kael', hide: true }, { at: 3.7, vars: { door: [0, 0.6] } }] },
+        do: [...windowsPut(), { who: 'keeper', dir: 'NE' }, { who: 'kael', dir: 'W' }, { who: 'spear', dir: 'E' }, { at: 0.9, who: 'spear', anim: 'idle_alt' }, { at: 1.5, who: 'kael', dir: 'E' },
+          { at: 2.2, cam: { x: -4.2, y: 1.8, z: 2.4, yaw: 1.42, pitch: -0.05, cut: true } },
+          { at: 2.2, who: 'kael', to: [4.3, 0, 3.6], speed: 1.9 }, { at: 2.2, who: 'spear', anim: 'idle' }, { at: 3.0, who: 'spear', dir: 'E' }, { at: 3.8, vars: { door: [1, 0.5] } },
+          { at: 2.4, cam: { x: -4.0, y: 1.8, z: 2.6, yaw: 1.5, pitch: -0.05, ease: 3 } }, { at: 5.8, who: 'kael', hide: true }, { at: 5.9, vars: { door: [0, 0.6] } }] },
     ],
   };
 
@@ -142,13 +134,13 @@
     set: 'ashgate', vars: { glyph: 1, stop: 1, shudder: 0, fail: 1 },
     actors: STREET(-2.2, 0.6, 'N'),
     beats: [
-      // "Nobody draws something that big for fun."
-      { cam: { x: -1.95, y: 1.6, z: 3.1, yaw: PI + 0.08, pitch: -0.02, cut: true }, do: [{ who: 'kael', dir: 'N' }, { at: 0.3, cam: { x: -1.95, y: 1.6, z: 2.8, yaw: PI + 0.08, pitch: -0.02, ease: 5 } }] },
-      // He starts north, toward the trees.
-      { cam: { x: -2.0, y: 1.75, z: -3.5, yaw: 0.02, pitch: 0.03, cut: true },
-        do: [{ who: 'kael', to: [-1.6, 0, 9], speed: 1.8, anim: 'walk' }, { at: 4.4, who: 'kael', to: [-0.8, 0, 40], speed: 5.6, anim: 'run' },
-          { at: 1.2, who: 'f0', dir: 'NE' }, { at: 1.6, who: 'f3', dir: 'NW' }, { at: 2.0, who: 'f1', dir: 'NW' },
-          { at: 0.2, cam: { x: -2.0, y: 1.75, z: -1.0, yaw: 0.02, pitch: 0.03, ease: 6 } }] },
+      // (silent) Kael looks up at it, then starts north, toward the trees.
+      { cam: { x: -1.95, y: 1.6, z: 3.1, yaw: PI + 0.08, pitch: -0.02, cut: true },
+        do: [{ who: 'kael', dir: 'N' }, { at: 0.3, cam: { x: -1.95, y: 1.6, z: 2.8, yaw: PI + 0.08, pitch: -0.02, ease: 2 } },
+          { at: 2.2, cam: { x: -2.0, y: 1.75, z: -3.5, yaw: 0.02, pitch: 0.03, cut: true } },
+          { at: 2.2, who: 'kael', to: [-1.6, 0, 9], speed: 1.8, anim: 'walk' }, { at: 6.6, who: 'kael', to: [-0.8, 0, 40], speed: 5.6, anim: 'run' },
+          { at: 3.4, who: 'f0', dir: 'NE' }, { at: 3.8, who: 'f3', dir: 'NW' }, { at: 4.2, who: 'f1', dir: 'NW' },
+          { at: 2.4, cam: { x: -2.0, y: 1.75, z: -1.0, yaw: 0.02, pitch: 0.03, ease: 6 } }] },
     ],
   };
 })();

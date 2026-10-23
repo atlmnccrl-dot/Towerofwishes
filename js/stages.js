@@ -600,7 +600,7 @@
           { at: 1.0, who: 'eiryn', say: 'Keep your hands off me.' },
         ],
       },
-      // Four men in a clearing...
+      // (silent) Four men in a clearing, closing round her.
       {
         cam: { x: -0.6, y: 0.3, view: 9.2, ang: -0.3, pitch: 0.58, drift: 0.012, ease: 1.3 },
         do: [
@@ -609,37 +609,21 @@
           { at: 0.2, who: 'grabber', show: true, path: [[4.6, 4.8], [2.5, 4.55], [2.6, 2.8]], gait: 'creep', speed: 1.6 },
           { at: 0.4, who: 'lookout', show: true, to: [6.4, -3.8], face: 'eiryn' },
           { at: 2.6, who: 'grabber', face: 'eiryn' },
+          { at: 2.8, who: 'eiryn', drained: true },
         ],
       },
-      // The woman they have cornered has long silver-white hair. She is exhausted.
-      {
-        cam: { face: 'eiryn', side: -0.35, view: 3.1, up: 1.25, pitch: 0.4, push: -0.08, ease: 1.0 },
-        do: [
-          { who: 'grabber', to: [2.6, 2.8], face: 'eiryn' },
-          { who: 'lookout', to: [6.4, -3.8] },
-          { at: 0.6, who: 'eiryn', drained: true },
-        ],
-      },
-      // "Then do another trick. The big one. We all saw it."
+      // (silent) They close in; Kael sees it.
       {
         cam: { behind: 'eiryn', side: 0.3, focus: ['eiryn', 'brute'], view: 4.4, pitch: 0.36, up: 0.6, ease: 0.6 },
         do: [
           { who: 'eiryn', face: 'brute' },
-          { who: 'brute', to: [0.1, 1.3], gait: 'stride', speed: 1.1 },
-          { at: 0.5, who: 'brute', say: 'The big one. We all saw it.', base: 'circle' },
-          { at: 0.9, who: 'grabber', to: [2.1, 2.7], gait: 'creep' },
-        ],
-      },
-      // "She can't. Look at her."
-      {
-        cam: { face: 'knife', side: 0.6, view: 3.4, up: 1.0, pitch: 0.42, ease: 0.6 },
-        do: [
-          { who: 'knife', to: [-1.9, 1.3], gait: 'creep', face: 'eiryn' },
-          { at: 0.4, who: 'knife', say: 'She can’t. Look at her.' },
-          { at: 2.3, cam: { x: -3.6, y: 1.0, view: 8.6, ang: -1.05, pitch: 0.48, drift: 0.01, ease: 1.6 } },
-          { at: 2.6, who: 'kael', icon: '!', face: 'brute' },
-          { at: 2.8, who: '@', face: 'eiryn' },
-          { at: 3.6, who: 'kael', cutin: true },
+          { who: 'brute', to: [0.1, 1.3], gait: 'stride', speed: 1.1, base: 'circle' },
+          { at: 0.4, who: 'grabber', to: [2.1, 2.7], gait: 'creep' },
+          { at: 0.6, who: 'knife', to: [-1.9, 1.3], gait: 'creep', face: 'eiryn' },
+          { at: 1.8, cam: { x: -3.6, y: 1.0, view: 8.6, ang: -1.05, pitch: 0.48, drift: 0.01, ease: 1.6 } },
+          { at: 2.1, who: 'kael', icon: '!', face: 'brute' },
+          { at: 2.3, who: '@', face: 'eiryn' },
+          { at: 3.1, who: 'kael', cutin: true },
         ],
       },
     ],

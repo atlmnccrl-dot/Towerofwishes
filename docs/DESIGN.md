@@ -282,6 +282,7 @@ Out counters beyond the punisher, sound, real art, purchases, free modes beyond 
 | 2026-10-23 | The prologue opens on the rooftop chase (TW-001–010), cuts to the climber's whole fight as a filmed cutscene (no auto-battle; no names on screen), then back to Eiryn and Alric looking at the Tower (TW-014–018). The street walk (TW-011–013) is dropped from the opening. The tutorial moves to Kael's bandit fight (c1.fight) | Author |
 | 2026-10-23 | The opening before the roofs is redone, filmed: "the world before" (the market at dusk, the lamps lit toward the Tower, climbers at its gate, the promise, the title over the roofs). The Tower lines move from the climber section into it. The menu becomes a left column over a campfire at night with every hero doing their own thing; heroes not met yet are shadows | Author |
 | 2026-10-23 | No narrator: the book's narration is shown, not read; spoken lines float beside the speaker (mockup B with tone effects) instead of the subtitle bar; time and place jumps are title cards; anything that can't be shown and isn't said is decided per scene. Pilot: the prologue and Chapter One, then chapter by chapter. The promise is spoken by a townsperson; the Reset ends on a THE RESET card; the legend is told by a storyteller by a fire, with filmed memories | Author |
+| 2026-10-23 | Spare dialogue: before the first fight only six lines are spoken (the seller's promise, "Too slow." / "I wanted the hug.", "I already have everything I could ever wish for.", the storyteller's first line, "Keep your hands off me."); the rest of the roof banter, the Tower talk, the stew argument, Kael's lines in Ashgate and the bandits' taunts are cut | Author |
 
 ## 16. Growth, loot and the world map (built in 0.5, all Proposals)
 
@@ -381,11 +382,10 @@ The prologue plays as filmed scenes (js/render/cinema.js): `p.lore` → `p.roof`
   does there (Kael drilling at a post, Eiryn casting, Eloryn tending with a healing glow, Braxen by the
   fire, Aerys on watch with her spear, Nox crouched on a branch of the old tree).
 - **Without a narrator (pilot: the prologue and Chapter One).** Drafted for the game (**Proposal**,
-  waiting for the author's wording): the child's "What's at the top?" and the fruit seller's "Reach
-  the summit, and you can make a wish." in the opening (the book's promise, spoken); the storyteller's
-  three lines in `p.legend` ("Long ago, a man climbed to the top of the Tower of Wishes. No one knows
-  his name." / "What came after was fire, water and storm. The end of a world." / "We built again. It
-  broke again. Only the Tower never changed."), drafted from the book's narration. The legend's
+  waiting for the author's wording): the fruit seller's "Reach the summit, and you can make a wish."
+  in the opening (the book's promise, spoken, while a child points at the Tower); the storyteller's
+  "Long ago, a man climbed to the top of the Tower of Wishes." in `p.legend` (from the book's
+  narration). After the author's cut (2026-10-23) these are the only words in those scenes. The legend's
   memories (the climber walking into the light, the sky splitting over the burning city, the street
   to the Tower broken and rebuilt as the years flicker past) are Claude's staging.
 

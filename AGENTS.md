@@ -48,6 +48,10 @@ Read first: [docs/DESIGN.md](docs/DESIGN.md), [docs/STORY.md](docs/STORY.md),
   says it in the book, ask the author per scene. Lines written for the game are `P(...)` (Proposals).
   Adapted so far: the prologue and Chapter One; later chapters still show their narration under the
   picture until they are adapted, chapter by chapter, with the author.
+- **Spare dialogue** (the author, 2026-10-23: "cleaner and simple"): keep only the lines that need a
+  voice; everything else is shown. Before the first fight there are six spoken lines in all (the
+  seller's promise; "Too slow." / "I wanted the hug."; "I already have everything I could ever wish
+  for."; the storyteller's first line; "Keep your hands off me."). Cut lines go, with their shots.
 - **Fight HUD: the clean style** (the author's pick, 2026-10-22, mockup A): portrait chips top left,
   foes left as pips at the top centre (or the boss bar), round speed/pause, a round All Out gauge.
 - **Music:** fights play "Heartfelt Battle" (OpenGameArt, CC0; assets/music/). New tracks must be
