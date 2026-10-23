@@ -208,7 +208,7 @@
     for (const c of def.cast || []) if (c.hidden) { const u = units[c.id || (c.key === '@' ? '@' : c.key)]; if (u) u.fled = true; }
 
     // ---- stage state
-    let clock = 0, queue = [], played = -1, freeze = 0, slow = { k: 1, t: 0 };
+    let clock = 0, queue = [], played = -1, freeze = 0, slow = { k: 1, t: 0 }, beatAct = false; // beatAct: the action running now comes from a story beat
     let shot = null, shotT = 0, from = null;
     const camOut = { x: 0, y: 0, sc: 40, ang: -0.32, pitch: 0.56 };
     let snap = true, pendingCut = null, shake = 0;
@@ -452,7 +452,7 @@
         const g = GAIT[a.gait || 'walk'] || GAIT.walk;
         if (instant) { const p = pts[pts.length - 1]; u.x = p[0]; u.y = p[1]; I.mv = null; if (!I.ts) u.state = I.base; }
         else {
-          I.mv = { pts, speed: a.speed || g[0], state: a.gait === 'creep' ? 'circle' : g[1], gait: a.gait || 'walk' };
+          I.mv = { pts, speed: a.speed || g[0], state: a.gait === 'creep' ? 'circle' : g[1], gait: a.gait || 'walk', beat: beatAct };
           if (a.gait === 'dash') match.fx.push({ type: 'dash', unit: u.id, x: u.x, y: u.y });
         }
       }
@@ -543,7 +543,7 @@
       loopBeat = b.loop ? b : null; loopT = 0;
       if (b.cam) setShot(b.cam);
       for (const a of b.do || []) {
-        if (!(a.at > 0)) act(a, false);
+        if (!(a.at > 0)) { beatAct = true; act(a, false); beatAct = false; }
         else queue.push(a);
       }
     }
@@ -653,7 +653,7 @@
         clock += dt;
         if (loopBeat) {
           loopT += dt;
-          if (loopT >= loopBeat.loop) { loopT = 0; for (const a of loopBeat.do || []) { if (!(a.at > 0)) act(a, false); else queue.push(Object.assign({}, a, { at: clock + a.at })); } }
+          if (loopT >= loopBeat.loop) { loopT = 0; for (const a of loopBeat.do || []) { if (!(a.at > 0)) act(a, false); else queue.push(Object.assign({ _loop: true }, a, { at: clock + a.at })); } }
         }
         if (def.ambient) {
           if (ambT === 0) ambQ = def.ambient.do.slice().sort((a, b) => (a.at || 0) - (b.at || 0));
@@ -676,7 +676,7 @@
         }
         if (queue.length) {
           queue.sort((a, b) => a.at - b.at);
-          while (queue.length && queue[0].at <= clock) act(queue.shift(), false);
+          while (queue.length && queue[0].at <= clock) { const q = queue.shift(); beatAct = !q._focus && !q._loop; act(q, false); beatAct = false; }
         }
         for (const u of match.units) updateUnit(u, info.get(u), dt);
         for (let i = arrows.length - 1; i >= 0; i--) {
@@ -905,8 +905,8 @@
     }
     // still acting: a timed action of this beat is still to come, or someone of the cast is still walking
     function busy() {
-      if (queue.some((a) => !a._focus)) return true;
-      return match.units.some((u) => !u.fled && !/^crowd/.test(u.id) && info.get(u) && info.get(u).mv);
+      if (queue.some((a) => !a._focus && !a._loop)) return true;
+      return match.units.some((u) => !u.fled && info.get(u) && info.get(u).mv && info.get(u).mv.beat);
     }
     const handle = { match, beat, update, camera, focus, speakerAt, busy, _pre: pre, _post: post, def };
     match.stageHandle = handle;
