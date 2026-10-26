@@ -1,31 +1,34 @@
-// The filmed scenes (played by render/scene.js). Every line here is written for the game: Proposal,
-// for the author to rewrite or cut. Positions in metres on the arena (see data/arenas.js).
+// The filmed scenes (played by render/scene.js on render/stage.js). Every line here is written for the
+// game: Proposal, for the author to rewrite or cut. Positions are metres along the stage; the camera
+// is [x, zoom]: zoom 1 a wide shot, about 1.8 a close two-shot.
 import { UNITS, ENEMIES } from './units.js';
 import { REGIONS } from './campaign.js';
-import { REGION_ARENA } from './arenas.js';
+import { REGION_STAGE } from './stagesets.js';
+import { SETS } from './anims.js';
 
-const COLOR = { vanguard: '#8fb3d9', striker: '#e08a6a', ranger: '#9fd07a', mystic: '#b99cf0', support: '#f0d27a' };
-const cast = (key, at, o = {}) => ({ set: UNITS[key].set, name: UNITS[key].name.split(' ')[0], color: COLOR[UNITS[key].cls], at, ...o });
-const N = -Math.PI / 2, W = Math.PI, E = 0;
+const COLOR = { vanguard: '#8fb8ff', striker: '#ff9a72', ranger: '#a6e07e', mystic: '#c9a0ff', support: '#ffd97a' };
+const cast = (key, x, o = {}) => ({ set: UNITS[key].set, name: UNITS[key].name.split(' ')[0], color: COLOR[UNITS[key].cls], x, big: (SETS[UNITS[key].set] || {}).scale || 1, ...o });
 
-// the company signs its charter in Thornwick
+// the company signs its charter in Thornwick's square, at dawn
 export const OPENING = {
-  arena: 'square', cam: [-4, -2.4, 1.15],
-  cast: { corvin: cast('corvin', [-12, 0.6]), wren: cast('wren', [1.4, -3.3], { f: W }), maren: cast('maren', [13, 1.2], { f: W }) },
+  set: 'square', cam: [-9, 1],
+  cast: { corvin: cast('corvin', -7.5), wren: cast('wren', 7.4, { f: -1, lane: -1 }), maren: cast('maren', 19, { f: -1 }) },
   steps: [
-    { title: ['Thornwick', 'A border town at the edge of what was Vael'] },
-    { all: [{ walk: ['corvin', -1.9, -3.1] }, { cam: [-0.8, -3.0, 1.45], t: 4 }] },
-    { face: ['corvin', N] }, { wait: 0.8 },
+    { all: [{ cam: [0, 1], t: 6 }, { seq: [{ wait: 0.6 }, { title: ['Thornwick', 'A border town at the edge of what was Vael'] }] }] },
+    { all: [{ follow: 'corvin' }, { walk: ['corvin', 4.4] }] },
+    { cam: [5.9, 1.8], t: 0 },
+    { face: ['wren', 'corvin'] }, { wait: 0.4 },
     { say: ['wren', 'Bandits on the toll bridge. The miller pays twenty silver to see them gone.'] },
-    { face: ['corvin', 'wren'] },
     { say: ['corvin', 'Twenty silver for a bridge full of cutthroats? That is an insult.'] },
     { say: ['wren', 'It is a start. Nobody else in this town will take it.'] },
-    { all: [{ walk: ['maren', 2.6, -1.4] }, { cam: [0.4, -2.7, 1.4], t: 2.4 }] },
-    { face: ['maren', 'corvin'] }, { face: ['corvin', 'maren'] }, { face: ['wren', 'maren'] },
+    { all: [{ cam: [7.6, 1.35], t: 1.6 }, { walk: ['maren', 10.2] }] },
+    { face: ['corvin', 'maren'] }, { face: ['wren', 'maren'] },
     { say: ['maren', 'Then you will want someone to stitch you up afterwards.'] },
+    { cam: [5.4, 1.9], t: 0 }, { face: ['corvin', 'E'] },
     { say: ['corvin', 'Three swords and a charter. Then we are a company.'], tone: 'shout' },
-    { all: [{ walk: ['corvin', 15, 0.2], speed: 2.2 }, { walk: ['wren', 14, -1.0], speed: 2.2 }, { walk: ['maren', 13.5, 1.0], speed: 2.2 }, { cam: [8, -1.6, 1.05], t: 4.5 }] },
-    { title: ['VAEL', 'Sellsword Company'] },
+    { cam: [8, 1], t: 0 },
+    { all: [{ walk: ['corvin', 30], speed: 2.1 }, { seq: [{ wait: 0.3 }, { walk: ['wren', 29], speed: 2.1 }] }, { seq: [{ wait: 0.6 }, { walk: ['maren', 28], speed: 2.1 }] },
+      { cam: [17, 1], t: 6 }, { seq: [{ wait: 2.4 }, { title: ['VAEL', 'Sellsword Company'] }] }] },
   ],
 };
 
@@ -55,45 +58,51 @@ export const JOIN_LINES = {
 
 // a recruit walks up to the company's leader and joins
 export function joinScene(key, leaderKey, region) {
-  const d = UNITS[key];
   return {
-    arena: REGION_ARENA[region] || 'meadow', cam: [0, -0.8, 1.55],
-    cast: { lead: cast(leaderKey, [-2.4, 0], { f: E }), you: cast(key, [11, 0.4], { f: W }) },
+    set: REGION_STAGE[region] || 'meadow', cam: [2, 1.15],
+    cast: { lead: cast(leaderKey, -0.6, { f: 1 }), you: cast(key, 9, { f: -1 }) },
     steps: [
-      { all: [{ walk: ['you', 1.6, 0.1] }, { cam: [-0.4, -0.6, 1.8], t: 3 }] },
-      { face: ['you', 'lead'] },
+      { all: [{ walk: ['you', 2.4] }, { cam: [1, 1.15], t: 3.5 }] },
+      { cam: [0.9, 1.85], t: 0 }, { wait: 0.3 },
       { say: ['you', JOIN_LINES[key] || 'I will fight with you.'] },
       { say: ['lead', 'Then welcome to the company.'] },
-      { clip: ['you', 'Taunt', false] },
-      { title: [`${d.name} joins the company`, d.title] },
+      { all: [{ clip: ['you', 'Taunt', false], fps: 11 }, { cam: [1.4, 2.1], t: 1.2 }] },
+      { wait: 0.6 },
     ],
   };
 }
 
-// the company arrives in a new region
+// the company arrives in a new region: a slow look across the land, then they march in
 export function arrivalScene(rid, teamKeys) {
   const r = REGIONS.find((x) => x.id === rid), c = {};
-  teamKeys.slice(0, 5).forEach((k, i) => { c['m' + i] = cast(k, [-13 - i * 1.4, -1.2 + (i % 3) * 1.1]); });
+  teamKeys.slice(0, 5).forEach((k, i) => { c['m' + i] = cast(k, -22 - i * 1.6, { lane: (i % 3) - 1 }); });
+  const ids = Object.keys(c);
   return {
-    arena: REGION_ARENA[rid], cam: [-6, -1.6, 1.15], cast: c,
+    set: REGION_STAGE[rid], cam: [-10, 1], cast: c,
     steps: [
-      { all: [...Object.keys(c).map((id, i) => ({ walk: [id, -3 + i * 1.3, -1.4 + (i % 3) * 1.2], speed: 1.8 })), { cam: [1, -1.4, 1.05], t: 5 }] },
-      { title: [r.name, r.blurb] },
+      { all: [{ cam: [8, 1], t: 7 }, { seq: [{ wait: 1.2 }, { title: [r.name, r.blurb] }] }] },
+      { cam: [-6, 1], t: 0 },
+      { all: [...ids.map((id, i) => ({ walk: [id, -1.5 - i * 1.5], speed: 2.1 })), { cam: [-3, 1], t: 4 }] },
+      { wait: 0.6 },
     ],
   };
 }
 
-// a boss stands in the company's way: a face-off before the fight
+// a boss stands in the company's way: a close look at it, then the company runs up to face it
 export function bossScene(mission, teamKeys) {
   const [bossKey] = mission.foes.find(([k]) => ENEMIES[k].boss) || mission.foes[0], boss = ENEMIES[bossKey], c = {};
-  teamKeys.slice(0, 5).forEach((k, i) => { c['m' + i] = cast(k, [-10 - i, -1 + (i % 3) * 1.0]); });
-  c.boss = { set: boss.set, name: boss.name, color: '#ff8a7a', at: [4.5, 0], f: W, scale: boss.scale || 1 };
+  teamKeys.slice(0, 5).forEach((k, i) => { c['m' + i] = cast(k, -14 - i * 1.3, { lane: (i % 3) - 1 }); });
+  const big = (boss.scale || 1) * ((SETS[boss.set] || {}).scale || 1);
+  c.boss = { set: boss.set, name: boss.name, color: '#ff8a7a', x: 4.5, f: -1, scale: boss.scale || 1, big: (SETS[boss.set] || {}).scale || 1 };
   return {
-    arena: REGION_ARENA[mission.region], cam: [3.5, -0.8, 1.7], cast: c,
+    // a medium shot of the boss, whole, its feet low in the frame (the big monsters' art is rough up close)
+    set: REGION_STAGE[mission.region], cam: [4.5, Math.max(0.8, Math.min(1.3, 1.5 / big)), 0.86], cast: c,
     steps: [
-      { clip: ['boss', 'Taunt', false] }, { wait: 0.6 }, { shake: 1 },
-      { title: [boss.name, mission.place] },
-      { all: [...Object.keys(c).filter((id) => id !== 'boss').map((id, i) => ({ walk: [id, -5 - (i % 2) * 1.2, -1.2 + (i % 3) * 1.1], run: true })), { cam: [0, -0.6, 1.1], t: 2 }] },
+      { wait: 0.5 }, { clip: ['boss', 'Taunt', false], fps: 11 }, { wait: 0.4 }, { shake: 5 },
+      { title: [boss.name, mission.place], side: true },
+      { cam: [0.5, 1], t: 0 }, { clip: ['boss', 'idle'] },
+      { all: [...Object.keys(c).filter((id) => id !== 'boss').map((id, i) => ({ walk: [id, -1 - (i % 3) * 1.1 - Math.floor(i / 3) * 0.6], run: true })), { cam: [1.2, 1.2], t: 2.2 }] },
+      { wait: 0.5 },
     ],
   };
 }

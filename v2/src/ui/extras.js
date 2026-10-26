@@ -3,8 +3,7 @@
 import { UNITS } from '../data/units.js';
 import { itemName, itemStats, statText } from '../data/items.js';
 import * as E from '../game/economy.js';
-import { $, h, itemIcon, tierColor, toast, goldIcon } from './common.js';
-import { gemIcon } from './campaign.js';
+import { $, h, toast, goldIcon, gemIcon, icon } from './common.js';
 
 let tab = 'shop';
 const price = (c) => h('span.price', null, c.gems ? gemIcon() : goldIcon(), String(c.gems || c.gold));
@@ -14,6 +13,7 @@ export function renderExtras(game, which) {
   if (which) tab = which;
   $('#x-gold').replaceChildren(goldIcon(), String(s.gold));
   $('#x-gems').replaceChildren(gemIcon(), String(s.gems));
+  $('#x-title').textContent = { shop: 'Shop', bounties: 'Bounties', ach: 'Feats' }[tab];
   const tabs = $('#x-tabs'); tabs.replaceChildren();
   const ready = E.bountiesReady(s);
   for (const [id, label] of [['shop', 'Shop'], ['bounties', 'Bounties'], ['ach', 'Feats']]) {
@@ -30,7 +30,7 @@ function renderShop(game, body) {
   const grid = h('div.shop');
   for (const it of E.SHOP) {
     const cost = it.cost(s), ok = E.canAfford(s, cost);
-    grid.append(h('div.ware', null, h('b', null, it.name), h('span.wd', null, it.desc),
+    grid.append(h('div.ware', null, h('span.wi', null, (it.id === 'pouch' ? goldIcon() : icon({ crate: 'bag', officer: 'shield', royal: 'trophy', tome: 'up' }[it.id] || 'shop', 22))), h('b', null, it.name), h('span.wd', null, it.desc),
       h('button.btn.small' + (ok ? '.gold' : ''), { type: 'button', disabled: ok ? null : true, onclick: () => {
         const got = E.buy(s, it.id, Math.random); if (!got) return;
         game.audio.play(got.items ? 'chest_open' : 'coin_01');
@@ -43,7 +43,7 @@ function renderShop(game, body) {
   const packs = h('div.shop');
   for (const p of E.PRODUCTS) {
     const owned = E.owns(s, p.id);
-    packs.append(h('div.ware.pack' + (owned ? '.owned' : ''), null, h('b', null, p.name),
+    packs.append(h('div.ware.pack' + (owned ? '.owned' : ''), null, h('span.wi', null, gemIcon()), h('b', null, p.name),
       h('span.wd', null, p.desc || `${p.gems} gems`),
       h('button.btn.small' + (game.store.available && !owned ? '.gold' : ''), { type: 'button', disabled: !game.store.available || owned ? true : null,
         onclick: () => game.store.buy(p.id) }, owned ? 'Owned' : game.store.available ? game.store.price(p.id) : p.price)));
@@ -77,17 +77,17 @@ function renderAch(game, body) {
   const n = E.ACHIEVEMENTS.filter((a) => got[a.id]).length;
   body.append(h('p.note', null, `${n} of ${E.ACHIEVEMENTS.length} earned. Gems are added the moment one is earned.`));
   const grid = h('div.achs');
-  for (const a of E.ACHIEVEMENTS) grid.append(h('div.ach' + (got[a.id] ? '.on' : ''), null, h('b', null, a.name), h('span', null, a.desc), h('span.price', null, gemIcon(), String(a.gems))));
+  for (const a of E.ACHIEVEMENTS) grid.append(h('div.ach' + (got[a.id] ? '.on' : ''), null, h('span.ai', null, icon(got[a.id] ? 'trophy' : 'lock', 18)), h('b', null, a.name), h('span', null, a.desc), h('span.price', null, gemIcon(), String(a.gems))));
   body.append(grid);
 }
 
 // ---- first-time tips: shown once each, near what they explain
 const TIPS = {
-  map: 'Each seal is a mission. Tap one to read it, then Prepare. Cleared missions can be replayed for gold, experience and gear.',
-  prep: 'Fighters hold the front row, archers, mages and healers the back. Tap a slot, then another, to swap. Best team picks the strongest five.',
+  map: 'Each marker is a mission. Tap one to read it, then Prepare. Cleared missions can be replayed for gold, experience and gear.',
+  prep: 'Fighters hold the front row; archers, mages and healers the back. Tap a hero below to add them, or two places to swap. Best team picks the strongest five.',
   battle: 'Battles play themselves. A recruit\'s ability fires when the gold bar under them fills. The speed button runs the fight faster.',
-  loot: 'New gear goes to the Company screen. Auto-equip puts the best on the team in one tap.',
-  upgrade: 'A recruit can learn an upgrade. Open the Company and look for the gold dot.',
+  loot: 'New gear goes to the Heroes screen. Auto-equip puts the best on the team in one tap.',
+  upgrade: 'A hero can learn an upgrade. Open Heroes and look for the red dot.',
   lose: 'Losing costs nothing. Replay earlier missions for experience, equip gear, train, and come back.',
   extras: 'The camp has a shop, daily bounties and feats. Gems come from three-star wins, bosses, bounties and feats.',
 };
@@ -96,6 +96,7 @@ export function tip(game, id) {
   if (s.flags['tip_' + id] || !TIPS[id] || game.noTips) return false;
   s.flags['tip_' + id] = true; game.persist();
   const el = $('#tip');
+  el.className = 'glass at-' + (game.screen || id);   // placed by the screen it shows on
   el.replaceChildren(h('p', null, TIPS[id]), h('button.btn.small.gold', { type: 'button', onclick: () => { el.hidden = true; } }, 'Got it'));
   el.hidden = false;
   return true;

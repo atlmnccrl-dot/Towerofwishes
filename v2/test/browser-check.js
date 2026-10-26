@@ -48,6 +48,7 @@ for (const [name, vp] of [['phone', { width: 844, height: 390 }], ['desktop', { 
   }
   await page.click('#r-box .btn.primary');
   await page.waitForTimeout(2500); if (await page.isVisible('#scene')) await shot('08-recruit'); await skipScenes(page);
+  if (await page.isVisible('#join')) { await page.waitForTimeout(600); await shot('08b-reveal'); await page.click('#j-card .btn.primary'); }
   await visible(page, '#map'); await shot('09-map-after');
   // the company: an upgrade at level 4, gear, training
   await page.evaluate(() => { const s = window.__v2.game.save; s.roster.corvin.level = 4; s.gold = 2000; window.__v2.game.persist(); });

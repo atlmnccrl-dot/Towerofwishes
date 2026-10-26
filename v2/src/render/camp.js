@@ -4,12 +4,12 @@
 import { framesOf } from './assets.js';
 import { DIRS } from '../data/anims.js';
 
-const BUF_H = 200, PPM = 26, SQUASH = 0.6;
+const BUF_H = 168, PPM = 26, SQUASH = 0.6;
 
 export function createCamp(canvas, fxAtlas) {
   const out = canvas.getContext('2d');
   const buf = document.createElement('canvas'), ctx = buf.getContext('2d');
-  let cast = [], t = 0, ground = null;
+  let cast = [], t = 0, ground = null, focusX = 0.62;
   const fire = { x: 2.6, y: 0.4 };
 
   function resize() {
@@ -18,8 +18,8 @@ export function createCamp(canvas, fxAtlas) {
     buf.height = BUF_H; buf.width = Math.max(200, Math.round(BUF_H * r.width / Math.max(1, r.height)));
     ground = null;
   }
-  // the camera sits so the fire is right of centre, leaving the left for the menu
-  const P = (x, y, z = 0) => ({ x: Math.round(buf.width * 0.62 + (x - fire.x) * PPM), y: Math.round(buf.height * 0.58 + (y - fire.y) * PPM * SQUASH - z * PPM * 0.92) });
+  // the camera puts the fire at focusX of the width, leaving room for the menu
+  const P = (x, y, z = 0) => ({ x: Math.round(buf.width * focusX + (x - fire.x) * PPM), y: Math.round(buf.height * 0.58 + (y - fire.y) * PPM * SQUASH - z * PPM * 0.92) });
 
   function buildGround() {
     const g = document.createElement('canvas'); g.width = buf.width; g.height = buf.height;
@@ -102,5 +102,5 @@ export function createCamp(canvas, fxAtlas) {
     out.imageSmoothingEnabled = false;
     out.drawImage(buf, 0, 0, canvas.width, canvas.height);
   }
-  return { resize, draw, setCast };
+  return { resize, draw, setCast, setFocus(f) { if (f !== focusX) { focusX = f; ground = null; } } };
 }

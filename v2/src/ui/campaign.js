@@ -1,31 +1,59 @@
-// The campaign: the region map (a parchment drawing with the missions as seals along the road),
-// the mission sheet, the team and formation before a battle, and the rewards after one.
+// The campaign: the world map (render/overworld.js) with markers over the missions and the mission
+// card beside it, the formation before a battle, the rewards after one, and the new recruit's reveal.
 import { UNITS, ENEMIES, CLASSES } from '../data/units.js';
 import { MISSIONS, REGIONS, REGION_END, missionById, missionsIn, isOpen, nextMission, regionOpen, regionCleared } from '../data/campaign.js';
 import { itemStats, itemName, statText } from '../data/items.js';
 import * as P from '../game/progress.js';
 import { TIME_LIMIT } from '../combat/battle.js';
 import { joinScene, arrivalScene } from '../data/scenes.js';
-import { $, h, face, itemIcon, tierColor, toast, goldIcon } from './common.js';
+import { $, h, face, itemTile, tierColor, toast, goldIcon, gemIcon, icon } from './common.js';
+import { heroArt } from './heroart.js';
 
+export { gemIcon };
 const clsVar = (cls) => `var(--${cls})`;
 const stars = (n, of = 3) => h('span.stars', { 'aria-label': `${n} of ${of} stars` }, ...Array.from({ length: of }, (_, i) => h('i' + (i < n ? '.on' : ''))));
+const first = (name) => name.split(' ')[0];
 
-// ---- the map: the overworld (render/overworld.js) with the mission sheet beside it
+// ---- the map: the world, markers over the open missions, the card at the right
 let picked = null, regionId = null;
 export let heroicMode = false;
 export function renderMap(game, focusId) {
   const s = game.save, next = nextMission(s.cleared), ow = game.ow;
-  // the map opens on the next mission unless one is asked for; the company stands where it last went
+  // the map opens on the next mission unless one is asked for
   const focus = focusId && missionById(focusId) && isOpen(s.cleared, missionById(focusId)) ? missionById(focusId) : null;
   const target = focus || (picked && isOpen(s.cleared, missionById(picked)) && missionById(picked)) || next || MISSIONS[MISSIONS.length - 1];
   picked = target.id; regionId = target.region;
   $('#m-gold').replaceChildren(goldIcon(), String(s.gold));
   $('#m-gems').replaceChildren(gemIcon(), String(s.gems));
   ow.onPick = (id) => { picked = id; regionId = missionById(id).region; s.flags.at = id; game.persist(); header(game); renderSheet(game, missionById(id), regionCleared(s.cleared, regionId)); };
+  const sheetW = $('#m-sheet').getBoundingClientRect().width, W = $('#map').getBoundingClientRect().width || 1;
+  ow.setPad(Math.min(0.5, (sheetW + 24) / W));
   ow.focus(picked, false);
   header(game);
   renderSheet(game, target, regionCleared(s.cleared, regionId));
+}
+// the markers follow the map every frame (called from the main loop)
+const markEls = new Map();
+export function drawMarks(game) {
+  const s = game.save, layer = $('#m-marks'), next = nextMission(s.cleared), seen = new Set();
+  for (const mk of game.ow.marks()) {
+    const m = mk.m, done = (heroicMode ? s.heroic : s.cleared)[m.id] || 0;
+    let el = markEls.get(m.id);
+    if (!el) {
+      el = h('button.mark', { type: 'button', 'aria-label': m.name, onclick: () => game.ow.pick(m.id) });
+      layer.append(el); markEls.set(m.id, el); el._k = '';
+    }
+    const key = [done, m.id === picked, next && next.id === m.id, heroicMode].join();
+    if (el._k !== key) {
+      el._k = key;
+      const n = missionsIn(m.region).indexOf(m) + 1;
+      el.className = 'mark' + (done ? ' done' : '') + (m.boss ? ' boss' : '') + (m.id === picked ? ' on' : '') + (next && next.id === m.id && !done ? ' next' : '');
+      el.replaceChildren(...[h('b', null, m.boss ? icon('skull', 18) : String(n)), done ? stars(done) : null, m.id === picked ? h('span', null, m.name) : null].filter(Boolean));
+    }
+    el.style.left = mk.x + 'px'; el.style.top = mk.y + 'px'; el.hidden = false;
+    seen.add(m.id);
+  }
+  for (const [id, el] of markEls) if (!seen.has(id)) el.hidden = true;
 }
 // the region named at the top, with arrows to look at the one before or after
 function header(game) {
@@ -41,59 +69,70 @@ function header(game) {
   $('#m-field').classList.toggle('heroic', heroicMode);
 }
 
+const reward = (iconEl, text, cls = '') => h('span.rw' + cls, null, iconEl, h('span', null, text));
 function renderSheet(game, m, regionDone) {
   const s = game.save, sheet = $('#m-sheet'), H = heroicMode, book = H ? s.heroic : s.cleared, done = book[m.id] || 0;
   const spec = P.battleSpec(m, H);
   const foes = {}; for (const [k] of m.foes) foes[k] = (foes[k] || 0) + 1;
-  sheet.replaceChildren(...[
+  const n = missionsIn(m.region).indexOf(m) + 1;
+  const body = h('div.sheet-body');
+  body.replaceChildren(...[
     regionDone ? h('div.modes', { role: 'group', 'aria-label': 'Difficulty' },
       h('button' + (H ? '' : '.on'), { type: 'button', 'aria-pressed': String(!H), onclick: () => { heroicMode = false; renderMap(game, m.id); } }, 'Normal'),
       h('button' + (H ? '.on' : ''), { type: 'button', 'aria-pressed': String(H), onclick: () => { heroicMode = true; renderMap(game, m.id); } }, 'Heroic')) : null,
-    h('div.sh-top', null, h('span.lvl', null, `Level ${spec.level}`), m.boss ? h('span.bosstag', null, 'Boss') : null, H ? h('span.bosstag.hero', null, 'Heroic') : null, done ? stars(done) : null),
+    h('div.sh-top', null, h('span.tag-chip', null, `Mission ${n}`), h('span.tag-chip', null, `Lv ${spec.level}`), m.boss ? h('span.tag-chip.boss', null, 'Boss') : null, H ? h('span.tag-chip.hero', null, 'Heroic') : null, h('span.grow'), stars(done)),
     h('h2', null, m.name), h('div.place', null, m.place),
     h('p.brief', null, m.text),
-    h('div.label', null, 'Foes'),
-    h('div.foes', null, ...Object.entries(foes).map(([k, n]) => h('div.foe', { title: ENEMIES[k].name }, face(ENEMIES[k].set, 28), h('span', null, (n > 1 ? n + '× ' : '') + ENEMIES[k].name)))),
+    h('div.label', null, 'Enemies'),
+    h('div.foes', null, ...Object.entries(foes).map(([k, c]) => h('span.foe' + (ENEMIES[k].boss ? '.boss' : ''), { title: ENEMIES[k].name }, face(ENEMIES[k].set, 36), c > 1 ? h('em', null, '×' + c) : null))),
     h('div.label', null, done ? 'Replay rewards' : 'First clear'),
     h('div.rewards', null,
-      h('span', null, goldIcon(), String(Math.round(P.missionGold(m) * (done ? 1 : 2) * (H ? P.HEROIC.gold : 1)))),
-      h('span', null, `${Math.round(P.missionXp(m) * (done ? 1 : 1.5) * (H ? P.HEROIC.xp : 1))} xp`),
-      h('span', null, done ? 'Gear: a chance' : H ? 'Better gear' : 'Gear'),
-      done < 3 ? h('span', null, gemIcon(), H ? '10 for 3 stars' : (!done && m.boss ? '25 + 5 for 3 stars' : '5 for 3 stars')) : null,
-      !H && !done && m.recruit && !s.roster[m.recruit] ? h('span.who', null, face(UNITS[m.recruit].set, 18, true), 'Someone may join') : null),
-    h('button.btn.primary', { type: 'button', onclick: () => { game.heroic = H; s.flags.at = m.id; game.persist(); game.go('prep', m.id); } }, 'Prepare')].filter(Boolean));
+      reward(goldIcon(), String(Math.round(P.missionGold(m) * (done ? 1 : 2) * (H ? P.HEROIC.gold : 1)))),
+      reward(icon('up', 18), `${Math.round(P.missionXp(m) * (done ? 1 : 1.5) * (H ? P.HEROIC.xp : 1))} xp`),
+      reward(icon('bag', 18), done ? 'Chance' : H ? 'Rare+' : 'Gear'),
+      done < 3 ? reward(gemIcon(), H ? '10' : (!done && m.boss ? '30' : '5')) : null,
+      !H && !done && m.recruit && !s.roster[m.recruit] ? reward(face(UNITS[m.recruit].set, 22, true), 'Recruit', '.who') : null)].filter(Boolean));
+  sheet.replaceChildren(body, h('button.btn.big.primary', { type: 'button', onclick: () => { game.heroic = H; s.flags.at = m.id; game.persist(); game.go('prep', m.id); } }, icon('swords', 20), 'Prepare'));
 }
-export const gemIcon = () => h('span.gem', { 'aria-hidden': 'true' });
 
-// ---- the team and formation for a mission
-const SLOT_GRID = [3, 0, 4, 1, 5, 2]; // on screen: back row on the left, front row on the right
+// ---- the formation: six places on the floor (back row left, front row right), the roster below
+const PADS = [  // slot -> where its pad stands (fractions of the formation area): the front row nearer the foes, above
+  { s: 0, x: 0.2, y: 0.5 }, { s: 1, x: 0.5, y: 0.5 }, { s: 2, x: 0.8, y: 0.5 },
+  { s: 3, x: 0.14, y: 0.97 }, { s: 4, x: 0.5, y: 0.97 }, { s: 5, x: 0.86, y: 0.97 },
+];
 let selSlot = null, focus = null;
 export function renderPrep(game, missionId) {
-  const s = game.save, m = missionById(missionId);
+  const s = game.save, m = missionById(missionId), spec = P.battleSpec(m, game.heroic);
   if (!focus || !s.roster[focus]) focus = s.team[0] ? s.team[0].key : Object.keys(s.roster)[0];
   $('#p-name').textContent = m.name;
-  $('#p-sub').textContent = `Level ${P.battleSpec(m, game.heroic).level} · ${m.foes.length} foes${m.boss ? ' · boss' : ''}${game.heroic ? ' · heroic' : ''}`;
-  const slots = $('#p-slots'); slots.replaceChildren();
-  for (const slot of SLOT_GRID) {
-    const t = s.team.find((q) => q.slot === slot);
-    const el = h('div.slot' + (t ? '.filled' : '') + (selSlot === slot ? '.sel' : ''), { role: 'button', tabindex: '0', onclick: () => tapSlot(game, missionId, slot),
-      'aria-label': t ? `${UNITS[t.key].name}, ${slot < 3 ? 'front' : 'back'} row` : `Empty ${slot < 3 ? 'front' : 'back'} slot` });
+  $('#p-sub').textContent = `Level ${spec.level}${m.boss ? ' · boss' : ''}${game.heroic ? ' · heroic' : ''}`;
+  const foes = {}; for (const [k] of m.foes) foes[k] = (foes[k] || 0) + 1;
+  $('#p-foes').replaceChildren(h('em', null, 'VS'), ...Object.keys(foes).map((k) => face(ENEMIES[k].set, 28)));
+  const slots = $('#p-slots'); slots.replaceChildren(h('span.rowtag', { style: { top: '6%' } }, 'Front row'), h('span.rowtag', { style: { top: '54%' } }, 'Back row'));
+  const big = window.innerHeight > 600 ? 3 : 2;
+  for (const pd of PADS) {
+    const slot = pd.s, t = s.team.find((q) => q.slot === slot);
+    const el = h('div.pad' + (t ? '.filled' : '') + (selSlot === slot ? '.sel' : ''), { role: 'button', tabindex: '0', onclick: () => tapSlot(game, missionId, slot),
+      style: { left: pd.x * 100 + '%', top: pd.y * 100 + '%' },
+      'aria-label': t ? `${UNITS[t.key].name}, ${slot < 3 ? 'front' : 'back'} row` : `Empty ${slot < 3 ? 'front' : 'back'} place` });
     if (t) {
       const d = UNITS[t.key]; el.style.setProperty('--c', clsVar(d.cls));
-      el.append(face(d.set, 30), h('div.si', null, h('div.nm', null, d.name.split(' ')[0]), h('div.cls', { vars: { '--c': clsVar(d.cls) } }, `Lv ${s.roster[t.key].level} · ${CLASSES[d.cls].name}`)),
-        h('button.x', { type: 'button', 'aria-label': 'Remove ' + d.name, onclick: (e) => { e.stopPropagation(); if (s.team.length <= 1) { toast('The team needs at least one'); return; } s.team = s.team.filter((q) => q !== t); selSlot = null; game.persist(); renderPrep(game, missionId); } }, '×'));
-    } else el.append(h('span.empty', null, 'empty'));
+      el.append(heroArt(d.set, big), h('span.nameplate', null, h('i', null, 'Lv ' + s.roster[t.key].level), first(d.name)),
+        h('button.x', { type: 'button', 'aria-label': 'Remove ' + d.name, onclick: (e) => { e.stopPropagation(); if (s.team.length <= 1) { toast('The team needs at least one'); return; } s.team = s.team.filter((q) => q !== t); selSlot = null; game.persist(); renderPrep(game, missionId); } }, icon('close', 14)));
+    } else el.append(h('span.plus', null, icon('plus', 22)));
     slots.append(el);
   }
   const roster = $('#p-roster'); roster.replaceChildren();
-  for (const k of Object.keys(UNITS).filter((k) => s.roster[k])) {
+  const keys = Object.keys(UNITS).filter((k) => s.roster[k]).sort((a, b) => s.team.some((q) => q.key === b) - s.team.some((q) => q.key === a));
+  for (const k of keys) {
     const d = UNITS[k], inT = s.team.some((q) => q.key === k);
-    roster.append(h('button.card' + (inT ? '.in' : '') + (focus === k ? '.focus' : ''), { type: 'button', vars: { '--c': clsVar(d.cls) }, 'aria-pressed': String(inT), onclick: () => tapCard(game, missionId, k) },
-      face(d.set, 30), h('div.ci', null, h('span.nm', null, d.name.split(' ')[0]), h('span.cls', { vars: { '--c': clsVar(d.cls) } }, `Lv ${s.roster[k].level} · ${CLASSES[d.cls].name}`))));
+    roster.append(h('button.card' + (inT ? '.in' : '') + (focus === k ? '.focus' : ''), { type: 'button', vars: { '--c': clsVar(d.cls) }, 'aria-pressed': String(inT), 'aria-label': d.name, onclick: () => tapCard(game, missionId, k) },
+      h('span.lv', null, s.roster[k].level), face(d.set, 42), h('span.nm', null, first(d.name))));
   }
   const d = UNITS[focus];
-  $('#p-detail').replaceChildren(h('div.t', null, d.name, h('small', null, `${CLASSES[d.cls].name} · ${d.title}`)), h('div.ab', null, h('b', null, d.ability.name + '.'), ' ', d.ability.desc));
-  $('#p-count').textContent = `${s.team.length} / ${P.MAX_TEAM}`;
+  $('#p-detail').replaceChildren(h('div.t', null, d.name), h('div.sub', null, h('span.cls', { vars: { '--c': clsVar(d.cls) } }, CLASSES[d.cls].name), h('span.place', null, d.title)),
+    h('div.ability', null, h('b', null, d.ability.name + '. '), d.ability.desc));
+  $('#p-count').textContent = `Team ${s.team.length} / ${P.MAX_TEAM}`;
 }
 function tapCard(game, missionId, key) {
   const s = game.save; focus = key;
@@ -115,39 +154,43 @@ function tapSlot(game, missionId, slot) {
 // ---- after a battle
 export function renderRewards(game, b, rw, missionId) {
   const m = missionById(missionId), box = $('#r-box');
-  box.replaceChildren();
+  box.replaceChildren(); $('#tip').hidden = true;
   const allies = b.units.filter((u) => u.team === 'ally' && !u.summoned);
   const mvp = allies.reduce((a, u) => (u.dealt + u.healed * 1.2 > a.dealt + a.healed * 1.2 ? u : a), allies[0]);
   if (rw.win) {
-    box.append(h('div.rt.win', null, 'Victory'), stars(rw.stars), h('div.rsub', null, `${m.name} · ${Math.round(b.t)} s · MVP ${mvp.def.name.split(' ')[0]}`));
-    box.append(h('div.rgold', null, goldIcon(), `+${rw.gold}`, rw.gems ? h('span', null, gemIcon(), `+${rw.gems}`) : null, rw.first ? h('span.first', null, rw.heroic ? 'Heroic clear' : 'First clear') : null));
+    box.append(h('div.rays'), h('div.rt.win', null, 'Victory'), stars(rw.stars), h('div.rsub', null, `${m.name} · ${Math.round(b.t)} s`));
+    const left = h('div.r-left', null,
+      h('div.mvp', null, heroArt(mvp.def.set, 2), h('div', null, h('div.label', null, 'MVP'), h('div.mvp-n', null, first(mvp.def.name)))),
+      h('div.rgold', null, reward(goldIcon(), `+${rw.gold}`), rw.gems ? reward(gemIcon(), `+${rw.gems}`) : null),
+      rw.first ? h('span.first', null, rw.heroic ? 'Heroic clear' : 'First clear') : null);
+    const right = h('div.r-right'); box.append(h('div.r-body', null, left, right));
     const xs = h('div.xps');
     for (const x of rw.xp.filter((x) => x.team)) {
       const d = UNITS[x.key];
-      xs.append(h('div.xrow', null, face(d.set, 24), h('span.nm', null, d.name.split(' ')[0]), h('span.xp', null, `+${x.xp} xp`), x.to > x.from ? h('span.lvup', null, `Level ${x.to}!`) : h('span.lv', null, `Lv ${x.to}`)));
+      xs.append(h('div.xrow', { vars: { '--c': clsVar(d.cls) } }, face(d.set, 26), h('span.nm', null, first(d.name)), h('span.xp', null, `+${x.xp} xp`), x.to > x.from ? h('span.lvup', null, `Level ${x.to}`) : h('span.lv', null, `Lv ${x.to}`)));
     }
-    box.append(xs);
+    right.append(xs);
     const bench = rw.xp.filter((x) => !x.team && x.to > x.from);
-    if (bench.length) box.append(h('div.rsub', null, `At camp: ${bench.map((x) => `${UNITS[x.key].name.split(' ')[0]} reached level ${x.to}`).join(', ')}`));
-    if (rw.loot.length) box.append(h('div.loot', null, ...rw.loot.map((it) => h('div.lcard', null, itemIcon(it, 28), h('span', null, h('b', { style: { color: tierColor(it) } }, itemName(it)), h('small', null, Object.entries(itemStats(it)).map(([a, v]) => statText(a, v)).join(', ')))))));
+    if (bench.length) right.append(h('div.rsub', null, `At camp: ${bench.map((x) => `${first(UNITS[x.key].name)} reached level ${x.to}`).join(', ')}`));
+    if (rw.loot.length) right.append(h('div.loot', null, ...rw.loot.map((it) => h('div.lcard', null, itemTile(it, 26), h('span', null, h('b', { style: { color: tierColor(it) } }, itemName(it)), h('small', null, Object.entries(itemStats(it)).map(([a, v]) => statText(a, v)).join(', ')))))));
     box.append(h('div.ractions', null,
-      h('button.btn', { type: 'button', onclick: () => game.go('company') }, 'Company'),
+      h('button.btn', { type: 'button', onclick: () => game.go('company') }, icon('heroes', 18), 'Heroes'),
       h('button.btn.primary', { type: 'button', onclick: () => afterWin(game, rw, m) }, 'Continue')));
   } else {
-    box.append(h('div.rt', null, b.t >= TIME_LIMIT - 0.1 ? 'Time ran out' : 'Defeat'), h('div.rsub', null, `${m.name} · ${allies.filter((u) => u.state !== 'ko').length} of ${allies.length} standing`));
-    box.append(h('p.lose', null, 'Nothing is lost. Level up on earlier missions, equip the gear you found, train, or try a different formation.'));
+    box.append(h('div.rt.lose', null, b.t >= TIME_LIMIT - 0.1 ? 'Time ran out' : 'Defeat'), h('div.rsub', null, `${m.name} · ${allies.filter((u) => u.state !== 'ko').length} of ${allies.length} standing`));
+    box.append(h('p.lose-note', null, 'Nothing is lost. Level up on earlier missions, equip the gear you found, train, or try a different formation.'));
     const top = Math.max(1, ...allies.map((u) => Math.max(u.dealt, u.healed)));
-    box.append(h('div.xps', null, ...allies.map((u) => h('div.xrow', null, face(u.def.set, 24), h('span.nm', null, u.def.name.split(' ')[0]),
+    box.append(h('div.xps', null, ...allies.map((u) => h('div.xrow', { vars: { '--c': clsVar(u.def.cls || 'striker') } }, face(u.def.set, 26), h('span.nm', null, first(u.def.name)),
       h('span.dbar', null, h('i', { style: { width: (u.dealt / top) * 100 + '%' } })), h('span.xp', null, String(Math.round(u.dealt)))))));
     box.append(h('div.ractions', null,
-      h('button.btn', { type: 'button', onclick: () => game.go('map') }, 'Map'),
-      h('button.btn', { type: 'button', onclick: () => game.go('company') }, 'Company'),
+      h('button.btn', { type: 'button', onclick: () => game.go('map') }, icon('map', 18), 'Map'),
+      h('button.btn', { type: 'button', onclick: () => game.go('company') }, icon('heroes', 18), 'Heroes'),
       h('button.btn.primary', { type: 'button', onclick: () => game.go('prep', missionId) }, 'Try again')));
   }
   $('#result').hidden = false;
 }
 
-// after a win: who joined, then the story card if that cleared a region, then the map
+// after a win: who joined (on film, then the reveal), then the region's story if that cleared it, then the map
 function afterWin(game, rw, m) {
   const ms = missionsIn(m.region), last = ms[ms.length - 1] === m;
   const toMap = () => {
@@ -157,27 +200,29 @@ function afterWin(game, rw, m) {
         () => (nextR ? game.playScene(arrivalScene(nextR.id, game.save.team.map((t) => t.key))).then(() => game.go('map', missionsIn(nextR.id)[0].id)) : game.go('camp')), !nextR);
     } else game.go('map', m.id);
   };
-  // a recruit joins on film; the company's leader greets them
-  if (rw.joined) game.playScene(joinScene(rw.joined, game.save.team[0] ? game.save.team[0].key : 'corvin', m.region)).then(toMap);
+  if (rw.joined) game.playScene(joinScene(rw.joined, game.save.team[0] ? game.save.team[0].key : 'corvin', m.region)).then(() => showRecruit(game, rw.joined, toMap));
   else toMap();
 }
 export function showStory(game, title, text, button, after, ending = false) {
   $('#j-card').replaceChildren(...[
+    h('div.rays'),
     h('div.jtag', null, ending ? 'The end of the road' : 'Region cleared'),
     h('div.jname', null, title), h('p.story', null, text),
     ending ? h('p.story.dim', null, 'Heroic missions are open in every region for the company that wants more.') : null,
-    h('button.btn.primary', { type: 'button', onclick: () => { $('#join').hidden = true; after(); } }, button)].filter(Boolean));
+    h('button.btn.big.primary', { type: 'button', onclick: () => { $('#join').hidden = true; after(); } }, button)].filter(Boolean));
   $('#result').hidden = true; $('#join').hidden = false;
 }
 export function showRecruit(game, key, after = () => game.go('map')) {
   const d = UNITS[key], m = game.save.roster[key], card = $('#j-card');
+  card.style.setProperty('--c', clsVar(d.cls));
   card.replaceChildren(
-    h('div.jtag', null, 'Joins the company'),
-    face(d.set, 72),
+    h('div.rays'),
+    h('div.jtag', null, 'New hero'),
+    h('div.jart', null, heroArt(d.set, window.innerHeight > 600 ? 4 : 3)),
     h('div.jname', null, d.name), h('div.jtitle', null, d.title),
     h('div.cls', { vars: { '--c': clsVar(d.cls) } }, `${CLASSES[d.cls].name} · Level ${m.level}`),
-    h('div.ability', null, h('b', null, d.ability.name + '.'), ' ', d.ability.desc),
-    h('button.btn.primary', { type: 'button', onclick: () => { $('#join').hidden = true; after(); } }, 'Welcome'));
+    h('div.ability', null, h('b', null, d.ability.name + '. '), d.ability.desc),
+    h('button.btn.big.primary', { type: 'button', onclick: () => { $('#join').hidden = true; after(); } }, 'Welcome'));
   $('#result').hidden = true;
   $('#join').hidden = false;
 }

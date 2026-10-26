@@ -1,12 +1,13 @@
-// The company: the roster on the left; on the right the chosen recruit with three tabs:
-// Stats (stats, ability, passive, the two upgrade picks), Gear (three slots and the pack),
+// The heroes: the roster as tiles on the left, the chosen hero large in the middle, and three tabs
+// on the right: Stats (stats, ability, passive, the upgrade picks), Gear (three slots and the pack),
 // Train (ranks bought with gold).
 import { UNITS, CLASSES } from '../data/units.js';
 import { MISSIONS, regionOf } from '../data/campaign.js';
 import { SLOTS, SLOT_NAMES, BASES, itemStats, itemName, statText, upgradeCost, sellValue, MAX_PLUS } from '../data/items.js';
 import { statsAt } from '../combat/battle.js';
 import * as P from '../game/progress.js';
-import { $, h, face, itemIcon, slotIcon, tierColor, toast, goldIcon } from './common.js';
+import { $, h, face, itemTile, slotIcon, tierColor, toast, goldIcon } from './common.js';
+import { heroArt } from './heroart.js';
 
 let sel = null, tab = 'stats', gearSlot = 'weapon';
 const pct = (v) => `${Math.round(v * 100)}%`;
@@ -21,18 +22,16 @@ export function renderCompany(game, focus) {
   const keys = Object.keys(UNITS), inTeam = (k) => s.team.some((t) => t.key === k);
   const members = keys.filter((k) => s.roster[k]).sort((a, b) => inTeam(b) - inTeam(a));
   const list = $('#c-roster'); list.replaceChildren();
+  $('#c-count').textContent = `${members.length} of ${keys.length} recruited`;
   for (const k of members) {
     const d = UNITS[k], m = s.roster[k], pend = P.pendingUpgrade(s, k) >= 0;
-    list.append(h('button.rcard' + (k === sel ? '.on' : ''), { type: 'button', vars: { '--c': clsVar(d.cls) }, onclick: () => { sel = k; renderCompany(game); }, 'aria-pressed': String(k === sel) },
-      face(d.set, 30),
-      h('span.rinfo', null, h('span.nm', null, d.name.split(' ')[0]), h('span.cls', { vars: { '--c': clsVar(d.cls) } }, CLASSES[d.cls].name)),
-      h('span.lv', null, 'Lv ' + m.level),
-      inTeam(k) ? h('span.tm', { title: 'In the team', 'aria-label': 'In the team' }) : null,
-      pend ? h('span.dot', { title: 'An upgrade to pick', 'aria-label': 'An upgrade to pick' }) : null));
+    list.append(h('button.rcard' + (k === sel ? '.on' : ''), { type: 'button', vars: { '--c': clsVar(d.cls) }, onclick: () => { sel = k; renderCompany(game); }, 'aria-pressed': String(k === sel), 'aria-label': d.name },
+      h('span.lv', null, m.level), face(d.set, 42), h('span.nm', null, d.name.split(' ')[0]),
+      pend ? h('span.dot', { title: 'An upgrade to pick', 'aria-label': 'An upgrade to pick' }) : inTeam(k) ? h('span.tm', { title: 'In the team', 'aria-label': 'In the team' }) : null));
   }
   for (const k of keys.filter((k) => !s.roster[k])) {
     const where = MISSIONS.find((m) => m.recruit === k), hint = where ? `Joins in ${regionOf(where).name}` : 'Not met yet';
-    list.append(h('div.rcard.locked', null, face(UNITS[k].set, 30, true), h('span.rinfo', null, h('span.nm', null, '???'), h('span.cls', null, hint))));
+    list.append(h('div.rcard.locked', { title: hint }, face(UNITS[k].set, 42, true), h('span.nm', null, '???')));
   }
   renderDetail(game);
 }
@@ -41,17 +40,18 @@ function renderDetail(game) {
   const s = game.save, k = sel, d = UNITS[k], m = s.roster[k], mods = P.modsOf(s, k), st = statsAt(d, m.level, mods);
   const inTeam = s.team.some((t) => t.key === k);
   const det = $('#c-detail'); det.replaceChildren();
-  const need = P.xpNeed(m.level);
-  det.append(h('div.dhead', { vars: { '--c': clsVar(d.cls) } },
-    face(d.set, 52),
-    h('div.dname', null,
-      h('div.nm', null, d.name, h('small', null, `${CLASSES[d.cls].name} · ${d.title}`)),
-      h('div.lvrow', null, h('b', null, 'Level ' + m.level), h('div.xpbar', { role: 'progressbar', 'aria-label': 'Experience', 'aria-valuenow': String(m.xp), 'aria-valuemax': String(need) }, h('i', { style: { width: `${m.level >= P.MAX_LEVEL ? 100 : (m.xp / need) * 100}%` } })), h('span.xp', null, m.level >= P.MAX_LEVEL ? 'max' : `${m.xp} / ${need} xp`))),
+  const need = P.xpNeed(m.level), hero = $('#c-hero');
+  hero.style.setProperty('--c', clsVar(d.cls));
+  hero.replaceChildren(
+    h('div.pedestal', null, heroArt(d.set, window.innerHeight > 600 ? 4 : 3)),
+    h('div.nm', null, d.name), h('div.ti', null, d.title),
+    h('div.cls', { vars: { '--c': clsVar(d.cls) } }, CLASSES[d.cls].name),
+    h('div.lvrow', null, h('b', null, 'Lv ' + m.level), h('div.xpbar', { role: 'progressbar', 'aria-label': 'Experience', 'aria-valuenow': String(m.xp), 'aria-valuemax': String(need) }, h('i', { style: { width: `${m.level >= P.MAX_LEVEL ? 100 : (m.xp / need) * 100}%` } })), h('span.xp', null, m.level >= P.MAX_LEVEL ? 'max' : `${m.xp} / ${need}`)),
     h('button.btn.small' + (inTeam ? '' : '.gold'), { type: 'button', onclick: () => {
       if (!inTeam && s.team.length >= P.MAX_TEAM) { toast('The team is full: five at most'); return; }
       if (inTeam && s.team.length <= 1) { toast('The team needs at least one'); return; }
       P.toggleTeam(s, k); game.persist(); renderCompany(game);
-    } }, inTeam ? 'In team ✓' : 'Add to team')));
+    } }, inTeam ? 'In the team ✓' : 'Add to team'));
   const tabs = h('div.tabs', { role: 'tablist' });
   const pend = P.pendingUpgrade(s, k) >= 0;
   for (const [id, label] of [['stats', 'Stats'], ['gear', 'Gear'], ['train', 'Train']]) {
@@ -90,7 +90,7 @@ function renderDetail(game) {
     for (const sl of SLOTS) {
       const it = m.gear[sl] && P.itemByUid(s, m.gear[sl]);
       slots.append(h('button.gslot' + (gearSlot === sl ? '.on' : ''), { type: 'button', onclick: () => { gearSlot = sl; renderDetail(game); }, 'aria-pressed': String(gearSlot === sl) },
-        it ? itemIcon(it, 28) : slotIcon(sl, 28),
+        it ? itemTile(it, 26) : h('span.itile', null, slotIcon(sl, 26)),
         h('span.ginfo', null, h('span.gsl', null, SLOT_NAMES[sl]), it ? h('span.gnm', { style: { color: tierColor(it) } }, itemName(it)) : h('span.gnm.none', null, 'Empty'),
           it ? h('span.gst', null, Object.entries(itemStats(it)).map(([a, v]) => statText(a, v)).join(', ')) : null)));
     }
@@ -111,7 +111,7 @@ function renderDetail(game) {
     if (!pack.length) pl.append(h('div.empty', null, 'Nothing here yet. Missions drop gear: first clears always do.'));
     for (const it of pack) {
       const who = P.wearer(s, it.uid);
-      pl.append(h('div.pitem', null, itemIcon(it, 24),
+      pl.append(h('div.pitem', null, itemTile(it, 24),
         h('span.ginfo', null, h('span.gnm', { style: { color: tierColor(it) } }, itemName(it)), h('span.gst', null, Object.entries(itemStats(it)).map(([a, v]) => statText(a, v)).join(', ') + (who ? ` · on ${UNITS[who].name.split(' ')[0]}` : ''))),
         h('button.btn.small.gold', { type: 'button', onclick: () => { P.equip(s, k, it.uid); game.persist(); renderCompany(game); } }, 'Equip'),
         h('button.btn.small', { type: 'button', 'aria-label': `Sell ${itemName(it)} for ${sellValue(it)} gold`, onclick: () => { P.sellItem(s, it.uid); game.persist(); toast(`Sold for ${sellValue(it)} gold`); renderCompany(game); } }, h('span', null, 'Sell ', goldIcon(), String(sellValue(it))))));

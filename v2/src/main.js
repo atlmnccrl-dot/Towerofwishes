@@ -12,13 +12,15 @@ import { createCamp } from './render/camp.js';
 import { createOverworld } from './render/overworld.js';
 import { REGION_ARENA } from './data/arenas.js';
 import { createScenePlayer } from './render/scene.js';
+import { createStage } from './render/stage.js';
 import { OPENING, bossScene } from './data/scenes.js';
 import * as E from './game/economy.js';
 import { createAudio } from './game/audio.js';
 import { createStore } from './game/store.js';
-import { $, h, setPortraits, toast, goldIcon, face } from './ui/common.js';
+import { $, h, setPortraits, toast, goldIcon, gemIcon, face, fillIcons } from './ui/common.js';
+import { loadHeroArt } from './ui/heroart.js';
 import { renderCompany } from './ui/company.js';
-import { renderMap, renderPrep, renderRewards, gemIcon } from './ui/campaign.js';
+import { renderMap, renderPrep, renderRewards, drawMarks } from './ui/campaign.js';
 import { renderExtras, tip } from './ui/extras.js';
 
 const DT = 1 / 60, SPEEDS = [1, 2, 3], KEY = 'vael.save';
@@ -53,7 +55,7 @@ const SECTIONS = ['title', 'premise', 'camp', 'map', 'prep', 'company', 'extras'
 function go(name, arg) {
   // the company screen returns to where it was opened from (after a battle: the map)
   if (name === 'company' && screen !== 'company') game.from = screen === 'battle' ? 'map' : screen;
-  screen = name;
+  screen = name; game.screen = name;
   for (const s of SECTIONS) $('#' + s).hidden = s !== name;
   bg.hidden = !['title', 'premise', 'camp'].includes(name);
   stage.hidden = name !== 'battle' && name !== 'scene'; $('#hud').hidden = name !== 'battle';
@@ -64,9 +66,13 @@ function go(name, arg) {
   if (name === 'prep') { missionId = arg; renderPrep(game, arg); }
   if (name === 'company') renderCompany(game, arg);
   if (name === 'extras') renderExtras(game, arg);
-  if (!bg.hidden) { camp.resize(); refreshCast(); }
+  if (!bg.hidden) { camp.setFocus(name === 'camp' ? 0.4 : 0.64); camp.resize(); refreshCast(); }
   game.audio.setScene(name === 'battle' ? 'battle' : 'camp');
   $('#tip').hidden = true;
+  // a tip left by the last result comes first, on whatever screen follows it
+  const pend = name !== 'battle' && name !== 'scene' && game.pendingTip;
+  if (pend) game.pendingTip = null;
+  if (pend && tip(game, pend)) return;
   if (name === 'map') tip(game, 'map');
   if (name === 'prep') tip(game, 'prep');
   if (name === 'battle') tip(game, 'battle');
@@ -82,15 +88,16 @@ function renderCamp() {
   const s = game.save, next = nextMission(s.cleared);
   $('#k-gold').replaceChildren(goldIcon(), String(s.gold));
   $('#k-gems').replaceChildren(gemIcon(), String(s.gems));
-  $('#k-region').textContent = (next ? regionOf(next).name : 'Every road walked').toUpperCase();
-  $('#k-next').textContent = next ? `Next: ${next.name}` : 'Every region cleared · heroic missions open';
+  const cleared = Object.keys(s.cleared).length;
+  $('#k-region').textContent = `${Object.keys(s.roster).length} heroes · ${cleared} of ${MISSIONS.length} missions`;
+  $('#k-cta-region').textContent = next ? regionOf(next).name : 'Every road walked';
+  $('#k-next').textContent = next ? `Next: ${next.name}` : 'Heroic missions are open in every region';
   const pend = Object.keys(s.roster).some((k) => P.pendingUpgrade(s, k) >= 0);
   $('#k-company-dot').hidden = !pend;
-  $('#k-company-sub').textContent = `${Object.keys(s.roster).length} recruits · ${s.inv.length} items`;
   $('#k-bounty-dot').hidden = !E.bountiesReady(s);
   $('#k-banner').hidden = !E.owns(s, 'vael.supporter');
   const team = $('#k-team'); team.replaceChildren();
-  for (const t of s.team) { const d = UNITS[t.key]; team.append(h('div.tchip', { vars: { '--c': `var(--${d.cls})` } }, face(d.set, 26), h('span', null, d.name.split(' ')[0], h('small', null, 'Lv ' + s.roster[t.key].level)))); }
+  for (const t of s.team) { const d = UNITS[t.key], f = face(d.set, 30); f.style.setProperty('--c', `var(--${d.cls})`); team.append(f); }
 }
 
 // the campfire shows whoever has joined (the first three before a game starts)
@@ -151,7 +158,8 @@ async function fight() {
 function buildAllies() {
   const el = $('#allies'); el.replaceChildren();
   for (const u of battle.units.filter((u) => u.team === 'ally')) {
-    const c = h('div.chip', null, face(u.def.set, 26), h('div.ci', null, h('span.nm', null, u.def.name.split(' ')[0]), h('div.bar', null, h('i.hp'), h('i.sh')), h('div.bar.en', null, h('i'))));
+    const f = face(u.def.set, 30); f.style.setProperty('--c', `var(--${u.def.cls})`);
+    const c = h('div.chip', null, f, h('div.ci', null, h('span.nm', null, u.def.name.split(' ')[0]), h('div.bar', null, h('i.hp'), h('i.sh')), h('div.bar.en', null, h('i'))));
     el.append(c); u._chip = c;
   }
 }
@@ -174,12 +182,9 @@ function finish() {
   renderRewards(game, battle, rw, missionId);
   if (rw.xp.some((x) => x.to > x.from)) game.audio.play('level_up');
   else if (rw.win) game.audio.play('coin_01');
-  // the tips that a result can bring
-  setTimeout(() => {
-    if (!rw.win) tip(game, 'lose');
-    else if (rw.loot.length && tip(game, 'loot')) return;
-    else if (Object.keys(game.save.roster).some((k) => P.pendingUpgrade(game.save, k) >= 0)) tip(game, 'upgrade');
-  }, 600);
+  // the tips a result can bring, shown on the next screen so they never cover the result
+  const s = game.save;
+  game.pendingTip = !rw.win ? 'lose' : rw.loot.length && !(s.flags || {}).tip_loot ? 'loot' : Object.keys(s.roster).some((k) => P.pendingUpgrade(s, k) >= 0) ? 'upgrade' : null;
 }
 
 // ---- the loop
@@ -196,7 +201,7 @@ function frame(now) {
     view.draw(battle, real * speed);
     battle.events = [];
     updateHud();
-  } else if (screen === 'map') game.ow.draw(real);
+  } else if (screen === 'map') { game.ow.draw(real); drawMarks(game); }
   else if (!bg.hidden) camp.draw(real);
   requestAnimationFrame(frame);
 }
@@ -263,9 +268,11 @@ async function boot() {
   const [p, fx, tiles, world] = await Promise.all([fetch('assets/portraits.json').then((r) => r.json()), loadFx(), loadAtlas('tiles'), loadAtlas('world'),
     new Promise((ok) => { const i = new Image(); i.onload = ok; i.onerror = ok; i.src = 'assets/portraits.png'; })]);
   setPortraits(Object.assign(p, { w: 256, h: Math.ceil(Object.keys(p.sets).length / 8) * p.cell }));
+  await loadHeroArt();
+  fillIcons();
   view = createView(stage, fx, tiles, () => game.save.settings, world); camp = createCamp(bg, fx);
   game.ow = createOverworld($('#world'), { world, tiles, fx });
-  player = createScenePlayer({ view, root: $('#scene') });
+  player = createScenePlayer({ stage: createStage(stage, { world, tiles, fx }), root: $('#scene') });
   // the app stores, inside the iOS and Android app (cordova plugins are ready after 'deviceready')
   const startStore = () => {
     game.store = createStore({

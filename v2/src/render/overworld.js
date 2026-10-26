@@ -68,7 +68,10 @@ export function createOverworld(canvas, { world, tiles, fx }) {
   }
 
   // ---- drawing helpers
-  const P = (x, y) => ({ x: Math.round(x - cam.x + buf.width / 2), y: Math.round(y - cam.y + buf.height / 2) });
+  // the camera's point sits left of centre when a panel covers the right of the map (padR, a fraction)
+  let padR = 0;
+  const CX = () => Math.round(buf.width * (0.5 - padR / 2));
+  const P = (x, y) => ({ x: Math.round(x - cam.x + CX()), y: Math.round(y - cam.y + buf.height / 2) });
   function sprite(name, x, y, k = 1, flip = false, alpha = 1) {
     const [atlas, key] = name.split(':'), A = atlas === 't' ? tiles : world, s = A.data.sprites[key]; if (!s) return;
     const [pg, sx, sy, w, h] = s, p = P(x, y), dw = Math.round(w * k), dh = Math.round(h * k);
@@ -153,13 +156,13 @@ export function createOverworld(canvas, { world, tiles, fx }) {
     t += dt; stepCompany(dt);
     if (!save) return;
     const openR = REGIONS.filter((r) => regionOpen(save.cleared, r.id)).length;
-    const maxX = openR * REGION_W - buf.width / 2 + 40;
+    const maxX = openR * REGION_W - (buf.width - CX()) + 40;
     if (cam.follow) { cam.x += (company.x - cam.x) * Math.min(1, dt * 3); cam.y += (company.y - cam.y) * Math.min(1, dt * 3); }
-    cam.x = Math.max(buf.width / 2, Math.min(Math.max(buf.width / 2, maxX), cam.x));
+    cam.x = Math.max(CX(), Math.min(Math.max(CX(), maxX), cam.x));
     cam.y = Math.max(buf.height / 2, Math.min(REGION_H - buf.height / 2, cam.y));
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.imageSmoothingEnabled = false;
     ctx.fillStyle = '#1a2418'; ctx.fillRect(0, 0, buf.width, buf.height);
-    const r0 = Math.max(0, Math.floor((cam.x - buf.width / 2) / REGION_W)), r1 = Math.min(REGIONS.length - 1, Math.floor((cam.x + buf.width / 2) / REGION_W));
+    const r0 = Math.max(0, Math.floor((cam.x - CX()) / REGION_W)), r1 = Math.min(REGIONS.length - 1, Math.floor((cam.x - CX() + buf.width) / REGION_W));
     const items = [];
     for (let ri = r0; ri <= r1; ri++) {
       const b = build(ri), p = P(b.ox, 0);
@@ -194,16 +197,6 @@ export function createOverworld(canvas, { world, tiles, fx }) {
     });
     items.sort((a, b) => a.y - b.y);
     for (const it of items) it.draw();
-    // labels over open sites
-    ctx.font = '8px "Silkscreen", monospace'; ctx.textAlign = 'center';
-    for (const s of sites) {
-      if (!regionOpen(save.cleared, s.m.region) || !isOpen(save.cleared, s.m) || Math.abs(s.x - cam.x) > buf.width / 2 + 40) continue;
-      const p = P(s.x, s.y), i = missionsIn(s.m.region).indexOf(s.m) + 1, done = save.cleared[s.m.id] || 0;
-      const label = s.m.boss ? '☠' : String(i);
-      ctx.fillStyle = 'rgba(20,14,8,0.75)'; ctx.fillRect(p.x - 7, p.y - 40, 14, 11);
-      ctx.fillStyle = done ? '#9fd0ff' : '#ffd36b'; ctx.fillText(label, p.x, p.y - 32);
-      for (let k = 0; k < 3; k++) { ctx.fillStyle = k < done ? '#ffd36b' : 'rgba(0,0,0,0.4)'; ctx.fillRect(p.x - 6 + k * 5, p.y - 27, 3, 3); }
-    }
     // fog over the regions not yet reached
     for (let ri = r0; ri <= r1; ri++) {
       if (regionOpen(save.cleared, REGIONS[ri].id)) continue;
@@ -223,7 +216,7 @@ export function createOverworld(canvas, { world, tiles, fx }) {
   }
 
   // ---- input: drag to look around, tap a site to pick it
-  const toWorld = (e) => { const r = canvas.getBoundingClientRect(), k = buf.height / r.height; return { x: cam.x + (e.clientX - r.left) * k - buf.width / 2, y: cam.y + (e.clientY - r.top) * k - buf.height / 2, k }; };
+  const toWorld = (e) => { const r = canvas.getBoundingClientRect(), k = buf.height / r.height; return { x: cam.x + (e.clientX - r.left) * k - CX(), y: cam.y + (e.clientY - r.top) * k - buf.height / 2, k }; };
   canvas.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY, cx: cam.x, cy: cam.y, moved: false }; canvas.setPointerCapture(e.pointerId); });
   canvas.addEventListener('pointermove', (e) => {
     if (!drag) return; const r = canvas.getBoundingClientRect(), k = buf.height / r.height, dx = e.clientX - drag.x, dy = e.clientY - drag.y;
@@ -249,6 +242,20 @@ export function createOverworld(canvas, { world, tiles, fx }) {
     focus(id, walk) { pickId = id; const s = siteOf(id); if (!s) return; if (walk) travel(id); else { cam.follow = false; cam.x = s.x; cam.y = s.y; } },
     lookAt(ri) { cam.follow = false; cam.x = ri * REGION_W + REGION_W / 2; },
     get at() { return company.at; },
+    setPad(f) { padR = f; },
+    // the open sites on screen, in CSS pixels of the canvas, for the HTML markers
+    marks() {
+      if (!save) return [];
+      const r = canvas.getBoundingClientRect(), k = r.height / buf.height, out = [];
+      for (const s of sites) {
+        if (!regionOpen(save.cleared, s.m.region) || !isOpen(save.cleared, s.m)) continue;
+        const p = P(s.x, s.y);
+        if (p.x < -30 || p.x > buf.width + 30 || p.y < -30 || p.y > buf.height + 40) continue;
+        out.push({ m: s.m, x: p.x * k, y: (p.y - 20) * k });
+      }
+      return out;
+    },
+    pick(id) { const s = siteOf(id); if (!s) return; pickId = id; travel(id); if (api.onPick) api.onPick(id); },
     regionAtCamera: () => REGIONS[Math.max(0, Math.min(REGIONS.length - 1, Math.floor(cam.x / REGION_W)))],
     prebuild(ri) { build(ri); },
   });

@@ -1,6 +1,7 @@
 // Small DOM helpers shared by the screens: an element builder, portraits from the atlas, drawn
 // item icons, and a toast.
 import { BASES, TIERS } from '../data/items.js';
+import { icon } from './icons.js';
 
 export const $ = (s, root = document) => root.querySelector(s);
 // h('div.card', { onclick, style, ... }, child, 'text', ...)
@@ -61,3 +62,9 @@ export function toast(text) {
   clearTimeout(toastT); toastT = setTimeout(() => { el.classList.add('out'); toastT = setTimeout(() => (el.hidden = true), 300); }, 1800);
 }
 export const goldIcon = () => h('span.coin', { 'aria-hidden': 'true' });
+export const gemIcon = () => h('span.gem', { 'aria-hidden': 'true' });
+// the markup's <i data-icon="name"> placeholders become drawn icons
+export function fillIcons(root = document) { for (const el of root.querySelectorAll('i[data-icon]')) el.replaceWith(icon(el.dataset.icon, 20)); }
+// an item's icon on a tile tinted by its tier
+export const itemTile = (it, size = 28) => h('span.itile', { vars: { '--t': TIERS[it.tier].color } }, itemIcon(it, size));
+export { icon };
