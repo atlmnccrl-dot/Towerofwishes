@@ -15,6 +15,7 @@ export const TIME_LIMIT = 120;
 export const FURY = 45;
 export const fury = (b) => (b.t > FURY ? 1 + 0.05 * (b.t - FURY) : 1);
 const FIELD = { w: 17, h: 7.4 };
+export const FIELD_SIZE = FIELD;
 const ENERGY_PER_ATTACK = 14, ENERGY_FROM_DAMAGE = 70, CAST_TIME = 0.7, CAST_POINT = 0.45;
 
 export function rng(seed) {

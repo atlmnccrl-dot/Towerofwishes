@@ -3,11 +3,13 @@
 // World: x east, y south (towards the viewer), metres. Screen: x right, y down.
 import { framesOf, CLIPS, PHASES } from './assets.js';
 import { DIRS } from '../data/anims.js';
+import { ARENAS } from '../data/arenas.js';
+import { paintTerrain, atlasPixels } from './terrain.js';
 
 const BUF_H = 232, PPM = 26, SQUASH = 0.6, LIFT = 0.92;
 const CAST_POINT = 0.45;
 
-export function createView(canvas, fxAtlas, tiles, settings = () => ({ shake: true })) {
+export function createView(canvas, fxAtlas, tiles, settings = () => ({ shake: true }), world = null) {
   const out = canvas.getContext('2d');
   const buf = document.createElement('canvas'), ctx = buf.getContext('2d'), tmp = document.createElement('canvas');
   const cam = { x: 0, y: 0.2, zoom: 1, shake: 0 };
@@ -37,7 +39,65 @@ export function createView(canvas, fxAtlas, tiles, settings = () => ({ shake: tr
   };
   let theme = GROUNDS.meadow, props = [];
   const TILE = 32, TH = Math.round(TILE * SQUASH);
-  function tileImg(name) { const t = tiles && tiles.data.sprites[name]; return t ? { img: tiles.pages[t[0]], x: t[1], y: t[2], w: t[3], h: t[4] } : null; }
+  // a sprite by name: 'w:' from the world atlas, 't:' (or no prefix) from the tiles atlas
+  function tileImg(name) {
+    const A = name.startsWith('w:') ? world : tiles, key = name.replace(/^[wt]:/, ''), t = A && A.data.sprites[key];
+    return t ? { img: A.pages[t[0]], x: t[1], y: t[2], w: t[3], h: t[4] } : null;
+  }
+
+  // ---- a hand-built arena (data/arenas.js): painted ground, backdrop and foreground props, light
+  let arena = null, worldPx = null;
+  function buildArena(field, key) {
+    const A = ARENAS[key], pad = 7, ox = -field.w / 2 - pad, oy = -field.h / 2 - pad;
+    const W = Math.round((field.w + pad * 2) * PPM), H = Math.round((field.h + pad * 2) * PPM);
+    const X = (x) => (x - ox) * PPM, Y = (y) => (y - oy) * PPM;
+    if (!worldPx) worldPx = atlasPixels(world);
+    const g = A.ground, spec = {
+      base: g.base, patches: g.patches, water: g.water, snow: g.snow, tint: g.tint,
+      rivers: (A.rivers || []).map((r) => ({ pts: r.pts.map(([x, y]) => [X(x), Y(y)]), w: r.w * PPM })),
+      lakes: (A.lakes || []).map((l) => ({ x: X(l.x), y: Y(l.y), rx: l.rx * PPM, ry: l.ry * PPM })),
+      roads: (A.roads || []).map((r) => ({ pts: r.pts.map(([x, y]) => [X(x), Y(y)]), w: r.w * PPM, tex: g.road, edge: g.edge })),
+    };
+    if (!spec.roads.length) spec.roads = [{ pts: [[-10, -10], [-9, -10]], w: 1, tex: g.road, edge: g.edge }];
+    const ter = paintTerrain(spec, W, H, worldPx, { scale: g.scale || 2, seed: key.length * 37 });
+    // the ground is seen at an angle: squash it
+    const sq = document.createElement('canvas'); sq.width = W; sq.height = Math.round(H * SQUASH);
+    const sg = sq.getContext('2d'); sg.imageSmoothingEnabled = false; sg.drawImage(ter.canvas, 0, 0, W, sq.height);
+    ground = { canvas: sq, ox, oy, field, key: 'arena:' + key };
+    // the big pieces (tiles atlas) at 0.6, the small kit pieces (world atlas) at 0.75 of the given scale
+    props = A.props.map(([name, x, y, k = 1, flip = false]) => ({ name, x, y, k: k * (name.startsWith('w:') ? 0.75 : 0.6), flip }));
+    theme = { edge: '#0c0f0b', tint: null };
+    arena = A;
+  }
+  // light and weather over the arena, after the fighters
+  const motes = Array.from({ length: 40 }, (_, i) => ({ x: Math.random() * 600, y: Math.random() * 260, s: Math.random(), p: i * 0.7 }));
+  const WEATHER = {
+    leaves: { col: ['#c98a3a', '#9fbf4a', '#d9b04a'], vx: 10, vy: 8, size: 2, sway: 6 },
+    fireflies: { col: ['#e8f070', '#b8f080'], vx: 2, vy: -1, size: 1, sway: 5, glow: true },
+    snow: { col: ['#ffffff', '#dfe8f4'], vx: 4, vy: 18, size: 1, sway: 4 },
+    embers: { col: ['#ff9a3a', '#ffcf5a'], vx: 3, vy: -14, size: 1, sway: 3, glow: true },
+  };
+  function arenaLight(dt) {
+    const L = arena.light || {}, t = performance.now() / 1000, W = buf.width, H = buf.height;
+    if (L.glow) { ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      for (const [gx, gy] of L.glow) { const p = P(gx, gy, 0.6), r = 34 * cam.zoom * (1 + Math.sin(t * 9 + gx) * 0.06); const gr = ctx.createRadialGradient(p.x, p.y, 2, p.x, p.y, r); gr.addColorStop(0, 'rgba(255,150,60,0.45)'); gr.addColorStop(1, 'rgba(255,90,20,0)'); ctx.fillStyle = gr; ctx.fillRect(p.x - r, p.y - r, r * 2, r * 2); }
+      ctx.restore(); }
+    if (L.fog) { ctx.save(); for (let i = 0; i < 4; i++) { const y = H * (0.45 + i * 0.13), x = ((t * (6 + i * 3)) % W); const gr = ctx.createLinearGradient(0, y - 14, 0, y + 14); gr.addColorStop(0, 'rgba(200,220,210,0)'); gr.addColorStop(0.5, `rgba(200,220,210,${0.12 * L.fog})`); gr.addColorStop(1, 'rgba(200,220,210,0)'); ctx.fillStyle = gr; ctx.fillRect(-8, y - 14, W + 16, 28); ctx.globalAlpha = 1; void x; } ctx.restore(); }
+    if (L.rays) { ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < 3; i++) { const x = ((i * 0.37 + t * 0.01) % 1) * W * 1.3 - W * 0.15; ctx.fillStyle = `rgba(255,230,170,${0.035 + 0.02 * Math.sin(t * 0.7 + i)})`; ctx.beginPath(); ctx.moveTo(x, -8); ctx.lineTo(x + 26, -8); ctx.lineTo(x + 26 + H * 0.6, H + 8); ctx.lineTo(x + H * 0.6, H + 8); ctx.fill(); }
+      ctx.restore(); }
+    const w = WEATHER[arena.weather];
+    if (w) { ctx.save(); if (w.glow) ctx.globalCompositeOperation = 'lighter';
+      for (const q of motes) {
+        q.x += w.vx * (0.5 + q.s) * dt; q.y += w.vy * (0.5 + q.s) * dt;
+        if (q.y > H + 4) q.y = -4; if (q.y < -4) q.y = H + 4; if (q.x > W + 4) q.x = -4; if (q.x < -4) q.x = W + 4;
+        ctx.globalAlpha = w.glow ? 0.35 + 0.65 * Math.max(0, Math.sin(t * 2 + q.p * 3)) : 0.85; ctx.fillStyle = w.col[Math.floor(q.s * w.col.length)];
+        ctx.fillRect(Math.round(q.x + Math.sin(t * 1.3 + q.p) * w.sway), Math.round(q.y), w.size + (q.s > 0.7 ? 1 : 0), w.size);
+      }
+      ctx.restore(); }
+    if (L.tint) { ctx.save(); ctx.globalCompositeOperation = 'soft-light'; ctx.fillStyle = `rgba(${L.tint[0]},${L.tint[1]},${L.tint[2]},${Math.min(1, L.tint[3] * 4)})`; ctx.fillRect(-8, -8, W + 16, H + 16); ctx.restore(); }
+    if (L.vignette) { const v = ctx.createRadialGradient(W / 2, H * 0.55, H * 0.35, W / 2, H * 0.55, W * 0.72); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, `rgba(6,4,8,${L.vignette})`); ctx.fillStyle = v; ctx.fillRect(-8, -8, W + 16, H + 16); }
+  }
   function buildGround(field, key) {
     theme = GROUNDS[key] || GROUNDS.meadow; const T = theme;
     const pad = 7, gw = Math.round((field.w + pad * 2) * PPM), gh = Math.round((field.h + pad * 2) * PPM * SQUASH);
@@ -117,6 +177,8 @@ export function createView(canvas, fxAtlas, tiles, settings = () => ({ shake: tr
   }
   function pose(u) {
     const set = sprites[u.def.set], cfg = set.cfg;
+    // a scene may direct a clip outright
+    if (u.anim) return { clip: u.anim.clip === 'idle' ? (set.data.anims.Idle3 ? 'Idle3' : 'Idle') : u.anim.clip, fps: u.anim.clip === 'idle' ? 7 : u.anim.fps || 10, loop: u.anim.loop !== false };   // at rest in a scene: the relaxed idle, not the fighting stance
     if (u.state === 'attack' && u.act) {
       const list = u.def.attack.projectile ? [cfg.cast || (cfg.attacks || ['Attack1'])[0]] : cfg.attacks || ['Attack1', 'Attack2'];
       const clip = list[(u.combo || 0) % list.length];
@@ -143,10 +205,10 @@ export function createView(canvas, fxAtlas, tiles, settings = () => ({ shake: tr
     else { i = Math.floor(a.t * (ps.fps || 10)); i = ps.loop === false ? Math.min(frames.length - 1, i) : i % frames.length; }
     i = Math.max(0, Math.min(frames.length - 1, i));
     ctx.fillStyle = 'rgba(10,18,8,0.38)'; ctx.beginPath(); ctx.ellipse(p.x, p.y, 9 * k, 3.2 * k, 0, 0, Math.PI * 2); ctx.fill();
-    if (u.state !== 'ko') { ctx.strokeStyle = u.team === 'ally' ? 'rgba(140,200,255,0.55)' : 'rgba(255,120,110,0.5)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(p.x, p.y, 10 * k, 3.6 * k, 0, 0, Math.PI * 2); ctx.stroke(); }
+    if (u.state !== 'ko' && !u.actor) { ctx.strokeStyle = u.team === 'ally' ? 'rgba(140,200,255,0.55)' : 'rgba(255,120,110,0.5)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(p.x, p.y, 10 * k, 3.6 * k, 0, 0, Math.PI * 2); ctx.stroke(); }
     const flash = u.flash > 0 ? ['#ffffff', Math.min(0.85, u.flash * 6)] : null;
     drawFrame(set, frames[i], p.x, p.y, k, u.state === 'ko' ? Math.max(0, 1 - Math.max(0, u.st - 0.8) * 0.8) : 1, flash);
-    if (u.state === 'ko') return;
+    if (u.state === 'ko' || u.actor) return;
     // bars: health (shield over it in white), energy for the team
     const w = 18, x = p.x - w / 2, y = p.y - Math.round(50 * k);
     ctx.fillStyle = 'rgba(10,8,8,0.85)'; ctx.fillRect(x - 1, y - 1, w + 2, u.team === 'ally' ? 6 : 4);
@@ -203,9 +265,12 @@ export function createView(canvas, fxAtlas, tiles, settings = () => ({ shake: tr
 
   // ---- one frame
   function draw(b, dt) {
-    if (!ground || ground.field !== b.field || ground.key !== (b.theme || 'meadow')) buildGround(b.field, b.theme || 'meadow');
+    if (b.arena && ARENAS[b.arena] && world) { if (!ground || ground.field !== b.field || ground.key !== 'arena:' + b.arena) buildArena(b.field, b.arena); }
+    else if (!ground || ground.field !== b.field || ground.key !== (b.theme || 'meadow')) { arena = null; buildGround(b.field, b.theme || 'meadow'); }
     onEvents(b);
-    cam.zoom = Math.min(1.08, buf.width / ((b.field.w + 1.2) * PPM));
+    // the camera: fitted to the field, unless a scene directs it
+    if (b.camera) { cam.x = b.camera.x; cam.y = b.camera.y; cam.zoom = b.camera.zoom; }
+    else { cam.x = 0; cam.y = arena ? -0.7 : 0.2; cam.zoom = Math.min(1.08, buf.width / ((b.field.w + 1.2) * PPM)); }
     const shx = cam.shake > 0.05 ? (Math.random() - 0.5) * cam.shake : 0, shy = cam.shake > 0.05 ? (Math.random() - 0.5) * cam.shake : 0;
     cam.shake *= Math.exp(-dt * 9); if (!settings().shake) cam.shake = 0;
     ctx.setTransform(1, 0, 0, 1, Math.round(shx), Math.round(shy));
@@ -225,10 +290,13 @@ export function createView(canvas, fxAtlas, tiles, settings = () => ({ shake: tr
     ctx.textAlign = 'center'; ctx.font = '8px "Silkscreen", monospace';
     banners = banners.filter((n) => { n.t += dt; const p = P(n.u.x, n.u.y, 2.5 + n.t * 0.3); ctx.globalAlpha = Math.max(0, Math.min(1, (1.4 - n.t) * 2)); ctx.fillStyle = '#120c0a'; ctx.fillText(n.text, p.x + 1, p.y + 1); ctx.fillStyle = n.team === 'ally' ? '#ffe7a8' : '#ffb0a8'; ctx.fillText(n.text, p.x, p.y); ctx.globalAlpha = 1; return n.t < 1.4; });
     floaters = floaters.filter((n) => { n.t += dt; const p = P(n.x, n.y, n.z + n.t * 0.9); ctx.globalAlpha = Math.max(0, 1 - n.t / 0.9); ctx.fillStyle = '#120c0a'; ctx.fillText(n.text, p.x + 1, p.y + 1); ctx.fillStyle = n.col; ctx.fillText(n.text, p.x, p.y); ctx.globalAlpha = 1; return n.t < 0.9; });
-    if (theme.tint) { ctx.fillStyle = theme.tint; ctx.fillRect(-8, -8, buf.width + 16, buf.height + 16); }
+    if (arena) arenaLight(dt);
+    else if (theme.tint) { ctx.fillStyle = theme.tint; ctx.fillRect(-8, -8, buf.width + 16, buf.height + 16); }
     if (flashA > 0.01) { ctx.fillStyle = `rgba(${flashCol},${flashA})`; ctx.fillRect(-8, -8, buf.width + 16, buf.height + 16); flashA *= Math.exp(-dt * 8); }
     out.imageSmoothingEnabled = false;
     out.drawImage(buf, 0, 0, canvas.width, canvas.height);
   }
-  return { resize, draw, setSprites(s) { sprites = s; }, reset() { fx = []; floaters = []; banners = []; anim.clear(); flashA = 0; } };
+  // where a point of the field is on the page (CSS pixels), for text placed over the picture
+  function project(x, y, z = 0) { const r = canvas.getBoundingClientRect(), p = P(x, y, z), k = r.height / buf.height; return { x: r.left + p.x * k, y: r.top + p.y * k }; }
+  return { resize, draw, project, spawn, setSprites(s) { sprites = s; }, reset() { fx = []; floaters = []; banners = []; anim.clear(); flashA = 0; } };
 }

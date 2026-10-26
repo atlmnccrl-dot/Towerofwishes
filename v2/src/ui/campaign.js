@@ -5,91 +5,40 @@ import { MISSIONS, REGIONS, REGION_END, missionById, missionsIn, isOpen, nextMis
 import { itemStats, itemName, statText } from '../data/items.js';
 import * as P from '../game/progress.js';
 import { TIME_LIMIT } from '../combat/battle.js';
+import { joinScene, arrivalScene } from '../data/scenes.js';
 import { $, h, face, itemIcon, tierColor, toast, goldIcon } from './common.js';
 
 const clsVar = (cls) => `var(--${cls})`;
 const stars = (n, of = 3) => h('span.stars', { 'aria-label': `${n} of ${of} stars` }, ...Array.from({ length: of }, (_, i) => h('i' + (i < n ? '.on' : ''))));
 
-// ---- the map
-// The parchment is drawn once per region and size: ink marks that fit the land (woods, reeds and
-// pools, dunes, ruins, peaks, barrows), a river or none, the road through the region's missions.
-let mapArt = null;
-const INK = {
-  meadow: ['tree', 'tree', 'hill'], marsh: ['reed', 'reed', 'pool', 'tree'], desert: ['dune', 'dune', 'rock'],
-  ruins: ['ruin', 'tree', 'hill'], snow: ['peak', 'peak', 'pine'], barrow: ['mound', 'cross', 'peak'],
-};
-const PAPER = { meadow: '#d9c49a', marsh: '#cdc59a', desert: '#e3cf9e', ruins: '#d3c4a0', snow: '#dcd8cc', barrow: '#c9b996' };
-function drawMap(canvas, region) {
-  const r = canvas.getBoundingClientRect(), W = 320, H = Math.max(120, Math.round(W * r.height / Math.max(1, r.width)));
-  if (mapArt && mapArt.w === W && mapArt.h === H && mapArt.region === region.id) return;
-  canvas.width = W; canvas.height = H;
-  const c = canvas.getContext('2d'), theme = region.theme;
-  let seed = 3 + region.id.charCodeAt(1) * 17; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-  c.fillStyle = PAPER[theme] || PAPER.meadow; c.fillRect(0, 0, W, H);
-  for (let i = 0; i < 2600; i++) { c.fillStyle = rnd() < 0.5 ? 'rgba(120,90,50,0.07)' : 'rgba(255,240,200,0.08)'; c.fillRect((rnd() * W) | 0, (rnd() * H) | 0, 1 + ((rnd() * 3) | 0), 1); }
-  const ms = missionsIn(region.id), pt = (m) => [m.map[0] / 100 * W, m.map[1] / 100 * H];
-  if (theme !== 'desert' && theme !== 'barrow') {
-    c.strokeStyle = theme === 'snow' ? 'rgba(110,140,170,0.5)' : 'rgba(70,110,140,0.55)'; c.lineWidth = 3; c.beginPath(); c.moveTo(0, H * 0.82);
-    for (let x = 0; x <= W; x += 8) c.lineTo(x, H * (0.86 - x / W * 0.1) + Math.sin(x / 22 + seed) * 6);
-    c.stroke();
-  }
-  const marks = INK[theme] || INK.meadow;
-  for (let i = 0; i < 80; i++) {
-    const x = rnd() * W, y = rnd() * H, kind = marks[Math.floor(rnd() * marks.length)];
-    if (ms.some((m) => Math.hypot(pt(m)[0] - x, pt(m)[1] - y) < 16)) continue;
-    c.lineWidth = 1;
-    if (kind === 'tree' || kind === 'pine') { c.fillStyle = kind === 'pine' ? 'rgba(50,70,60,0.6)' : 'rgba(60,80,40,0.55)'; c.beginPath(); c.moveTo(x, y - 6); c.lineTo(x - 4, y + 2); c.lineTo(x + 4, y + 2); c.fill(); c.fillStyle = 'rgba(70,50,30,0.6)'; c.fillRect(x - 0.5, y + 2, 1, 2); }
-    else if (kind === 'hill' || kind === 'dune') { c.strokeStyle = kind === 'dune' ? 'rgba(150,110,60,0.55)' : 'rgba(90,70,45,0.5)'; c.beginPath(); c.moveTo(x - 7, y + 2); c.quadraticCurveTo(x, y - 6, x + 7, y + 2); c.stroke(); }
-    else if (kind === 'reed') { c.strokeStyle = 'rgba(70,90,50,0.6)'; for (let k = -2; k <= 2; k += 2) { c.beginPath(); c.moveTo(x + k, y + 3); c.lineTo(x + k * 1.5, y - 4); c.stroke(); } }
-    else if (kind === 'pool') { c.fillStyle = 'rgba(70,110,120,0.35)'; c.beginPath(); c.ellipse(x, y, 8, 3, 0, 0, Math.PI * 2); c.fill(); }
-    else if (kind === 'rock' || kind === 'ruin') { c.fillStyle = 'rgba(100,80,60,0.5)'; c.fillRect(x - 3, y - 4, 2, 6); c.fillRect(x + 1, y - 2, 2, 4); if (kind === 'ruin') c.fillRect(x - 3, y - 5, 6, 1); }
-    else if (kind === 'peak') { c.fillStyle = 'rgba(90,90,100,0.45)'; c.beginPath(); c.moveTo(x, y - 8); c.lineTo(x - 7, y + 3); c.lineTo(x + 7, y + 3); c.fill(); c.fillStyle = 'rgba(255,255,255,0.7)'; c.beginPath(); c.moveTo(x, y - 8); c.lineTo(x - 2.5, y - 4); c.lineTo(x + 2.5, y - 4); c.fill(); }
-    else if (kind === 'mound') { c.fillStyle = 'rgba(80,60,50,0.45)'; c.beginPath(); c.ellipse(x, y, 7, 4, 0, Math.PI, 0); c.fill(); }
-    else if (kind === 'cross') { c.fillStyle = 'rgba(70,50,40,0.6)'; c.fillRect(x - 0.5, y - 5, 1, 7); c.fillRect(x - 2, y - 3, 4, 1); }
-  }
-  c.strokeStyle = 'rgba(90,60,30,0.75)'; c.lineWidth = 1.5; c.setLineDash([4, 3]); c.beginPath();
-  ms.forEach((m, i) => { const [x, y] = pt(m); i ? c.lineTo(x, y) : c.moveTo(x, y); });
-  c.stroke(); c.setLineDash([]);
-  const v = c.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.7);
-  v.addColorStop(0, 'rgba(60,40,20,0)'); v.addColorStop(1, 'rgba(60,35,15,0.55)'); c.fillStyle = v; c.fillRect(0, 0, W, H);
-  mapArt = { w: W, h: H, region: region.id };
-}
-
+// ---- the map: the overworld (render/overworld.js) with the mission sheet beside it
 let picked = null, regionId = null;
 export let heroicMode = false;
 export function renderMap(game, focusId) {
-  const s = game.save, next = nextMission(s.cleared);
-  // the map opens on the next mission (in its region) unless one is asked for
-  const focus = focusId && missionById(focusId);
-  if (focus) regionId = focus.region;
-  else if (!regionId || !regionOpen(s.cleared, regionId)) regionId = next ? next.region : REGIONS[REGIONS.length - 1].id;
-  const region = REGIONS.find((r) => r.id === regionId), ri = REGIONS.indexOf(region), ms = missionsIn(region.id);
-  const cleared = regionCleared(s.cleared, region.id);
-  if (!cleared) heroicMode = false;
+  const s = game.save, next = nextMission(s.cleared), ow = game.ow;
+  // the map opens on the next mission unless one is asked for; the company stands where it last went
+  const focus = focusId && missionById(focusId) && isOpen(s.cleared, missionById(focusId)) ? missionById(focusId) : null;
+  const target = focus || (picked && isOpen(s.cleared, missionById(picked)) && missionById(picked)) || next || MISSIONS[MISSIONS.length - 1];
+  picked = target.id; regionId = target.region;
+  $('#m-gold').replaceChildren(goldIcon(), String(s.gold));
+  $('#m-gems').replaceChildren(gemIcon(), String(s.gems));
+  ow.onPick = (id) => { picked = id; regionId = missionById(id).region; s.flags.at = id; game.persist(); header(game); renderSheet(game, missionById(id), regionCleared(s.cleared, regionId)); };
+  ow.focus(picked, false);
+  header(game);
+  renderSheet(game, target, regionCleared(s.cleared, regionId));
+}
+// the region named at the top, with arrows to look at the one before or after
+function header(game) {
+  const s = game.save, region = REGIONS.find((r) => r.id === regionId), ri = REGIONS.indexOf(region);
+  if (!regionCleared(s.cleared, region.id)) heroicMode = false;
   $('#m-title').textContent = region.name;
   $('#m-region').textContent = `Region ${ri + 1} of ${REGIONS.length}`;
   $('#m-prev').disabled = ri === 0;
   $('#m-next').disabled = ri === REGIONS.length - 1 || !regionOpen(s.cleared, REGIONS[ri + 1].id);
-  $('#m-prev').onclick = () => { regionId = REGIONS[ri - 1].id; picked = null; renderMap(game); };
-  $('#m-next').onclick = () => { regionId = REGIONS[ri + 1].id; picked = null; renderMap(game); };
-  $('#m-gold').replaceChildren(goldIcon(), String(s.gold));
-  $('#m-gems').replaceChildren(gemIcon(), String(s.gems));
-  drawMap($('#m-art'), region);
-  const book = heroicMode ? s.heroic : s.cleared;
-  const inRegion = (id) => id && ms.some((m) => m.id === id);
-  picked = inRegion(focusId) && isOpen(s.cleared, missionById(focusId)) ? focusId
-    : inRegion(picked) ? picked : (ms.find((m) => !book[m.id] && isOpen(s.cleared, m)) || ms[ms.length - 1]).id;
-  const nodes = $('#m-nodes'); nodes.replaceChildren();
+  const go = (r) => { const ms = missionsIn(r.id), m = ms.find((x) => !s.cleared[x.id] && isOpen(s.cleared, x)) || ms[ms.length - 1]; picked = m.id; regionId = r.id; game.ow.focus(m.id, false); header(game); renderSheet(game, m, regionCleared(s.cleared, r.id)); };
+  $('#m-prev').onclick = () => go(REGIONS[ri - 1]);
+  $('#m-next').onclick = () => go(REGIONS[ri + 1]);
   $('#m-field').classList.toggle('heroic', heroicMode);
-  ms.forEach((m, i) => {
-    const open = isOpen(s.cleared, m), done = book[m.id] || 0;
-    nodes.append(h('button.seal' + (done ? '.done' : open ? '.open' : '.locked') + (m.boss ? '.boss' : '') + (picked === m.id ? '.on' : ''), {
-      type: 'button', style: { left: m.map[0] + '%', top: m.map[1] + '%' }, disabled: !open ? true : null,
-      'aria-label': `${i + 1}. ${m.name}${done ? `, ${done} stars` : open ? ', open' : ', locked'}`,
-      onclick: () => { picked = m.id; renderMap(game, m.id); },
-    }, h('span.n', null, m.boss ? '☠' : String(i + 1)), done ? stars(done) : null));
-  });
-  renderSheet(game, missionById(picked), cleared);
 }
 
 function renderSheet(game, m, regionDone) {
@@ -112,7 +61,7 @@ function renderSheet(game, m, regionDone) {
       h('span', null, done ? 'Gear: a chance' : H ? 'Better gear' : 'Gear'),
       done < 3 ? h('span', null, gemIcon(), H ? '10 for 3 stars' : (!done && m.boss ? '25 + 5 for 3 stars' : '5 for 3 stars')) : null,
       !H && !done && m.recruit && !s.roster[m.recruit] ? h('span.who', null, face(UNITS[m.recruit].set, 18, true), 'Someone may join') : null),
-    h('button.btn.primary', { type: 'button', onclick: () => { game.heroic = H; game.go('prep', m.id); } }, 'Prepare')].filter(Boolean));
+    h('button.btn.primary', { type: 'button', onclick: () => { game.heroic = H; s.flags.at = m.id; game.persist(); game.go('prep', m.id); } }, 'Prepare')].filter(Boolean));
 }
 export const gemIcon = () => h('span.gem', { 'aria-hidden': 'true' });
 
@@ -205,10 +154,12 @@ function afterWin(game, rw, m) {
     if (last && rw.first && !rw.heroic) {
       const ri = REGIONS.findIndex((r) => r.id === m.region), nextR = REGIONS[ri + 1];
       showStory(game, REGIONS[ri].name, REGION_END[m.region], nextR ? `Onward to ${nextR.name}` : 'The end',
-        () => (nextR ? game.go('map', missionsIn(nextR.id)[0].id) : game.go('camp')), !nextR);
+        () => (nextR ? game.playScene(arrivalScene(nextR.id, game.save.team.map((t) => t.key))).then(() => game.go('map', missionsIn(nextR.id)[0].id)) : game.go('camp')), !nextR);
     } else game.go('map', m.id);
   };
-  if (rw.joined) showRecruit(game, rw.joined, toMap); else toMap();
+  // a recruit joins on film; the company's leader greets them
+  if (rw.joined) game.playScene(joinScene(rw.joined, game.save.team[0] ? game.save.team[0].key : 'corvin', m.region)).then(toMap);
+  else toMap();
 }
 export function showStory(game, title, text, button, after, ending = false) {
   $('#j-card').replaceChildren(...[

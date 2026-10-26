@@ -9,6 +9,10 @@ import * as P from './game/progress.js';
 import { loadSprites, loadFx, loadAtlas } from './render/assets.js';
 import { createView } from './render/view.js';
 import { createCamp } from './render/camp.js';
+import { createOverworld } from './render/overworld.js';
+import { REGION_ARENA } from './data/arenas.js';
+import { createScenePlayer } from './render/scene.js';
+import { OPENING, bossScene } from './data/scenes.js';
 import * as E from './game/economy.js';
 import { createAudio } from './game/audio.js';
 import { createStore } from './game/store.js';
@@ -20,7 +24,7 @@ import { renderExtras, tip } from './ui/extras.js';
 const DT = 1 / 60, SPEEDS = [1, 2, 3], KEY = 'vael.save';
 const stage = $('#stage'), bg = $('#bg');
 const sprites = {};
-let view = null, camp = null, screen = 'loading', battle = null, missionId = null, acc = 0, last = 0, ended = false, castKey = '';
+let player = null, view = null, camp = null, screen = 'loading', battle = null, missionId = null, acc = 0, last = 0, ended = false, castKey = '';
 
 // ---- the save
 let hasSave = false;
@@ -52,11 +56,11 @@ function go(name, arg) {
   screen = name;
   for (const s of SECTIONS) $('#' + s).hidden = s !== name;
   bg.hidden = !['title', 'premise', 'camp'].includes(name);
-  stage.hidden = $('#hud').hidden = name !== 'battle';
+  stage.hidden = name !== 'battle' && name !== 'scene'; $('#hud').hidden = name !== 'battle';
   $('#result').hidden = true; $('#join').hidden = true; $('#loading').hidden = true;
   if (name === 'title') renderTitle();
   if (name === 'camp') renderCamp();
-  if (name === 'map') renderMap(game, arg);
+  if (name === 'map') { game.ow.resize(); game.ow.setState({ save: game.save }); teamSprites(); renderMap(game, arg); }
   if (name === 'prep') { missionId = arg; renderPrep(game, arg); }
   if (name === 'company') renderCompany(game, arg);
   if (name === 'extras') renderExtras(game, arg);
@@ -101,6 +105,24 @@ async function refreshCast() {
   if (castKey === key) camp.setCast(sets.map((s) => sprites[s]));
 }
 
+// the team walking the overworld: their sprites, loaded once
+async function teamSprites() {
+  const sets = game.save.team.map((t) => UNITS[t.key].set), need = sets.filter((x) => !sprites[x]);
+  if (need.length) Object.assign(sprites, await loadSprites(need));
+  game.ow.setState({ team: sets.map((x) => sprites[x]) });
+}
+
+// ---- filmed scenes: the cast's sprites load first; the stage canvas shows the scene
+async function playScene(sc) {
+  const need = [...new Set(Object.values(sc.cast).map((c) => c.set))].filter((x) => !sprites[x]);
+  if (need.length) { $('#loading').textContent = '…'; $('#loading').hidden = false; Object.assign(sprites, await loadSprites(need)); $('#loading').hidden = true; }
+  const back = screen; go('scene');
+  game.audio.setScene('camp');
+  await player.play(sc, sprites);
+  void back;
+}
+game.playScene = playScene;
+
 // ---- the battle
 function setsFor(team, foes) {
   const defs = [...team.map((t) => UNITS[t.key]), ...foes.map(([k]) => ENEMIES[k])];
@@ -114,9 +136,11 @@ async function fight() {
   $('#loading').textContent = 'Marching out…'; $('#loading').hidden = false;
   const need = setsFor(s.team, m.foes).filter((x) => !sprites[x]);
   try { Object.assign(sprites, await loadSprites(need)); } catch (e) { $('#loading').textContent = 'Could not load the art: ' + e.message; return; }
+  // a boss's first meeting: the face-off, then the fight in the same place
+  if (m.boss && !game.heroic && !s.flags['met_' + m.id]) { s.flags['met_' + m.id] = true; game.persist(); await playScene(bossScene(m, s.team.map((t) => t.key))); }
   const spec = P.battleSpec(m, game.heroic);
   battle = createBattle({ team: P.teamFor(s), foes: spec.foes, level: spec.level, might: spec.might, seed: (Math.random() * 1e9) | 0 });
-  battle.theme = m.theme;
+  battle.theme = m.theme; battle.arena = m.arena || REGION_ARENA[m.region];
   view.setSprites(sprites); view.reset();
   buildAllies();
   $('#wavename').textContent = m.name + (game.heroic ? ' · Heroic' : '');
@@ -172,7 +196,8 @@ function frame(now) {
     view.draw(battle, real * speed);
     battle.events = [];
     updateHud();
-  } else if (!bg.hidden) camp.draw(real);
+  } else if (screen === 'map') game.ow.draw(real);
+  else if (!bg.hidden) camp.draw(real);
   requestAnimationFrame(frame);
 }
 
@@ -184,7 +209,7 @@ $('#t-new').addEventListener('click', () => {
 });
 $('#t-confirm-yes').addEventListener('click', newGame);
 $('#t-confirm-no').addEventListener('click', () => ($('#t-confirm').hidden = true));
-function newGame() { $('#t-confirm').hidden = true; game.save = P.newSave(); game.persist(); castKey = ''; $('#premise-text').textContent = PREMISE; go('premise'); }
+function newGame() { $('#t-confirm').hidden = true; game.save = P.newSave(); game.persist(); castKey = ''; playScene(OPENING).then(() => go('camp')); }
 $('#premise-go').addEventListener('click', () => go('camp'));
 $('#k-campaign').addEventListener('click', () => go('map'));
 $('#k-company').addEventListener('click', () => go('company'));
@@ -232,13 +257,15 @@ $('#speed').addEventListener('click', () => {
   game.save.speed = SPEEDS[(SPEEDS.indexOf(game.save.speed) + 1) % SPEEDS.length] || 1; game.persist();
   $('#speed').textContent = game.save.speed + '×';
 });
-window.addEventListener('resize', () => { if (screen === 'battle') view.resize(); else if (!bg.hidden) camp.resize(); if (screen === 'map') renderMap(game); });
+window.addEventListener('resize', () => { if (screen === 'battle') view.resize(); else if (!bg.hidden) camp.resize(); if (screen === 'map') game.ow.resize(); });
 
 async function boot() {
-  const [p, fx, tiles] = await Promise.all([fetch('assets/portraits.json').then((r) => r.json()), loadFx(), loadAtlas('tiles'),
+  const [p, fx, tiles, world] = await Promise.all([fetch('assets/portraits.json').then((r) => r.json()), loadFx(), loadAtlas('tiles'), loadAtlas('world'),
     new Promise((ok) => { const i = new Image(); i.onload = ok; i.onerror = ok; i.src = 'assets/portraits.png'; })]);
   setPortraits(Object.assign(p, { w: 256, h: Math.ceil(Object.keys(p.sets).length / 8) * p.cell }));
-  view = createView(stage, fx, tiles, () => game.save.settings); camp = createCamp(bg, fx);
+  view = createView(stage, fx, tiles, () => game.save.settings, world); camp = createCamp(bg, fx);
+  game.ow = createOverworld($('#world'), { world, tiles, fx });
+  player = createScenePlayer({ view, root: $('#scene') });
   // the app stores, inside the iOS and Android app (cordova plugins are ready after 'deviceready')
   const startStore = () => {
     game.store = createStore({

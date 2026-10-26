@@ -19,6 +19,8 @@ const server = http.createServer((req, res) => {
 const browser = await chromium.launch();
 const errors = [];
 const visible = (page, sel) => page.waitForSelector(sel, { state: 'visible', timeout: 30000 });
+// filmed scenes come up on new games, recruits, regions and bosses: skip them (one is filmed in full below)
+async function skipScenes(page) { for (let k = 0; k < 6; k++) { await page.waitForTimeout(250); if (await page.isVisible('#scene')) await page.click('#sc-skip'); else return; } }
 
 for (const [name, vp] of [['phone', { width: 844, height: 390 }], ['desktop', { width: 1280, height: 720 }]]) {
   const page = await browser.newPage({ viewport: vp, deviceScaleFactor: 1, hasTouch: name === 'phone', isMobile: name === 'phone' });
@@ -28,24 +30,24 @@ for (const [name, vp] of [['phone', { width: 844, height: 390 }], ['desktop', { 
   const shot = (n) => page.screenshot({ path: `${out}/${name}-${n}.png` });
   await page.goto('http://localhost:8791/');
   await visible(page, '#title'); await page.waitForTimeout(1500); await shot('01-title');
-  await page.click('#t-new'); await visible(page, '#premise'); await page.waitForTimeout(1700); await shot('02-premise');
-  await page.click('#premise-go'); await visible(page, '#camp'); await page.waitForTimeout(800); await shot('03-camp');
+  await page.click('#t-new'); await visible(page, '#scene'); await page.waitForTimeout(9000); await shot('02-opening'); await skipScenes(page);
+  await visible(page, '#camp'); await page.waitForTimeout(800); await shot('03-camp');
   await page.click('#k-campaign'); await visible(page, '#map'); await page.waitForTimeout(300); await shot('04-map');
   await page.click('#m-sheet .btn.primary'); await visible(page, '#prep'); await shot('05-prep');
-  await page.click('#p-fight'); await visible(page, '#hud'); await page.waitForTimeout(3000); await shot('06-battle');
+  await page.click('#p-fight'); await skipScenes(page); await visible(page, '#hud'); await page.waitForTimeout(3000); await shot('06-battle');
   await page.evaluate(() => window.__v2.skip());
   await visible(page, '#result'); await page.waitForTimeout(500); await shot('07-rewards');
   for (let k = 0; k < 6 && await page.evaluate(() => window.__v2.battle.result !== 'win'); k++) {
-    await page.click('#r-box .btn.primary'); await visible(page, '#prep'); await page.click('#p-fight'); await visible(page, '#hud');
+    await page.click('#r-box .btn.primary'); await visible(page, '#prep'); await page.click('#p-fight'); await skipScenes(page); await visible(page, '#hud');
     await page.evaluate(() => window.__v2.skip()); await visible(page, '#result');
   }
   console.log(name, 'mission 1', await page.evaluate(() => [window.__v2.battle.result, JSON.stringify(window.__v2.game.save.cleared)]));
   if (name === 'desktop') {
-    await page.click('#r-box .btn.primary'); await page.waitForTimeout(400); await shot('08-after');
+    await page.click('#r-box .btn.primary'); await skipScenes(page); await page.waitForTimeout(400); await shot('08-after');
     await page.close(); continue;
   }
   await page.click('#r-box .btn.primary');
-  if (await page.isVisible('#join')) { await page.waitForTimeout(600); await shot('08-recruit'); await page.click('#j-card .btn.primary'); }
+  await page.waitForTimeout(2500); if (await page.isVisible('#scene')) await shot('08-recruit'); await skipScenes(page);
   await visible(page, '#map'); await shot('09-map-after');
   // the company: an upgrade at level 4, gear, training
   await page.evaluate(() => { const s = window.__v2.game.save; s.roster.corvin.level = 4; s.gold = 2000; window.__v2.game.persist(); });
@@ -83,7 +85,7 @@ for (const [name, vp] of [['phone', { width: 844, height: 390 }], ['desktop', { 
     await page.click('#m-sheet .btn.primary'); await visible(page, '#prep');
     await page.evaluate(() => window.__v2.pickUpgrades());   // a casual player: upgrade picks, the best team and its best gear
     await page.click('#p-best');
-    await page.click('#p-fight'); await visible(page, '#hud'); await page.waitForTimeout(key ? 2600 : 200);
+    await page.click('#p-fight'); await skipScenes(page); await visible(page, '#hud'); await page.waitForTimeout(key ? 2600 : 200);
     if (key) await shot('15-battle-' + next);
     await page.evaluate(() => window.__v2.skip());
     await visible(page, '#result');
@@ -92,12 +94,12 @@ for (const [name, vp] of [['phone', { width: 844, height: 390 }], ['desktop', { 
       // like the tuned casual player: replay the mission before for experience, then try again
       losses++;
       const prev = await page.evaluate((id) => { const l = window.__v2.missions; return l[l.indexOf(id) - 1] || null; }, next);
-      if (prev) { await page.evaluate((id) => window.__v2.go('map', id), prev); await page.click('#m-sheet .btn.primary'); await visible(page, '#prep'); await page.click('#p-best'); await page.click('#p-fight'); await visible(page, '#hud'); await page.evaluate(() => window.__v2.skip()); await visible(page, '#result'); }
+      if (prev) { await page.evaluate((id) => window.__v2.go('map', id), prev); await page.click('#m-sheet .btn.primary'); await visible(page, '#prep'); await page.click('#p-best'); await page.click('#p-fight'); await skipScenes(page); await visible(page, '#hud'); await page.evaluate(() => window.__v2.skip()); await visible(page, '#result'); }
       continue;
     }
     await page.click('#r-box .btn.primary');
     if (await page.isVisible('#join') && /m10$/.test(next) && (await page.textContent('#j-card')).includes('cleared')) await shot('16-story-' + next);
-    for (let k = 0; k < 3 && await page.isVisible('#join'); k++) await page.click('#j-card .btn.primary');
+    for (let k = 0; k < 4; k++) { await skipScenes(page); if (await page.isVisible('#join')) await page.click('#j-card .btn.primary'); }
   }
   console.log('losses', losses);
   console.log('cleared', await page.evaluate(() => Object.keys(window.__v2.game.save.cleared).length), 'recruits', await page.evaluate(() => Object.keys(window.__v2.game.save.roster).length));
@@ -110,7 +112,7 @@ for (const [name, vp] of [['phone', { width: 844, height: 390 }], ['desktop', { 
   // heroic: the toggle shows on a cleared region and a heroic battle starts
   await page.click('#t-continue'); await visible(page, '#camp'); await page.click('#k-campaign'); await visible(page, '#map');
   await page.click('.modes button:nth-child(2)'); await page.waitForTimeout(200); await shot('19-heroic-map');
-  await page.click('#m-sheet .btn.primary'); await visible(page, '#prep'); await page.click('#p-fight'); await visible(page, '#hud'); await page.waitForTimeout(2000); await shot('20-heroic-battle');
+  await page.click('#m-sheet .btn.primary'); await visible(page, '#prep'); await page.click('#p-fight'); await skipScenes(page); await visible(page, '#hud'); await page.waitForTimeout(2000); await shot('20-heroic-battle');
   console.log('heroic battle level', await page.evaluate(() => window.__v2.battle.units.find((u) => u.team === 'foe').level));
   await page.close();
 }

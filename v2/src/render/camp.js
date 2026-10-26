@@ -84,7 +84,7 @@ export function createCamp(canvas, fxAtlas) {
     gl.addColorStop(0, 'rgba(255,160,70,0.42)'); gl.addColorStop(0.5, 'rgba(200,90,40,0.13)'); gl.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = gl; ctx.fillRect(0, 0, buf.width, buf.height); ctx.restore();
     const items = cast.map((c) => ({ y: c.y, draw: () => {
-      const dir = dirTo(c, fire), frames = framesOf(c.set, c.set.cfg.stance || 'Idle4', dir) || framesOf(c.set, 'Idle', dir);
+      const dir = dirTo(c, fire), frames = framesOf(c.set, 'Idle3', dir) || framesOf(c.set, 'Idle', dir);
       if (!frames) return;
       const fr = frames[Math.floor((t + c.phase) * 7) % frames.length], [pg, sx, sy, w, h, ox, oy] = fr, [ax, ay] = c.set.data.anchor;
       const k = Math.min(1.25, c.set.cfg.scale || 1), p = P(c.x, c.y);

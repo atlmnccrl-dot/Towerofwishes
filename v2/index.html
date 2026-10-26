@@ -52,7 +52,7 @@
   .modes button { background: none; border: 0; padding: 6px 10px; font: 9px var(--label); color: var(--muted); cursor: pointer; letter-spacing: 0.05em; }
   .modes button.on { background: var(--panel-2); color: var(--gold); }
   .bosstag.hero { color: #ff9f6b; border-color: #ff9f6b; }
-  #m-field.heroic #m-art { filter: sepia(0.4) saturate(1.4) hue-rotate(-20deg) brightness(0.85); }
+  #m-field.heroic #world { filter: sepia(0.4) saturate(1.4) hue-rotate(-20deg) brightness(0.85); }
   #map .bar-top h1 small { display: block; font: 7px var(--label); color: #5a4022; letter-spacing: 0.08em; margin-top: 2px; }
   .story { font: 13px/1.5 var(--display); color: var(--text); text-wrap: pretty; max-width: 300px; }
   .story.dim { font-size: 11px; color: var(--muted); }
@@ -92,7 +92,7 @@
   @keyframes fade { from { opacity: 0; transform: translateY(6px); } }
 
   /* ---- camp */
-  #camp { display: grid; grid-template-columns: minmax(230px, 280px) 1fr; grid-template-rows: auto 1fr auto; gap: 10px; background: linear-gradient(90deg, rgba(6, 10, 8, 0.82) 0%, rgba(6, 10, 8, 0.35) 34%, transparent 55%); }
+  #camp { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto 1fr auto; gap: 10px; background: linear-gradient(90deg, rgba(6, 10, 8, 0.82) 0%, rgba(6, 10, 8, 0.35) 34%, transparent 55%); }
   .camp-head { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; }
   .camp-head h1 { font: 700 18px/1 var(--display); flex: 1; }
   .camp-head small { display: block; font: 8px var(--label); color: var(--muted); letter-spacing: 0.08em; margin-top: 4px; }
@@ -110,8 +110,7 @@
   /* ---- map */
   #map { padding: 0; background: #2b1f12; }
   #m-field { position: absolute; top: 0; bottom: 0; left: 0; right: min(300px, 38%); }
-  #m-art { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
-  #m-nodes { position: absolute; inset: 0; }
+  #world { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; touch-action: none; cursor: grab; }
   #map .bar-top { position: absolute; top: var(--top); left: var(--gut-l); right: calc(min(300px, 38%) + 10px); }
   #map .bar-top h1 { color: #3b2611; text-shadow: 0 1px 0 rgba(255, 240, 200, 0.5); }
   .seal { position: absolute; transform: translate(-50%, -50%); width: 34px; height: 34px; border-radius: 50%; border: 0; padding: 0; cursor: pointer; display: grid; place-items: center;
@@ -337,6 +336,102 @@
     #c-detail { padding: 8px 10px; }
   }
   @media (prefers-reduced-motion: reduce) { .seal.open:not(.done), #premise-text, .lcard, #j-card { animation: none; } }
+
+  /* ---- filmed scenes: letterbox, lines beside the speaker, title cards */
+  #scene { position: fixed; inset: 0; z-index: 3; touch-action: none; }
+  .sc-bar { position: absolute; left: 0; right: 0; height: 9vh; background: #000; }
+  .sc-bar.top { top: 0; } .sc-bar.bot { bottom: 0; }
+  .sc-line { position: absolute; max-width: min(46vw, 360px); padding: 2px 0 2px 9px; border-left: 2px solid var(--c); display: grid; gap: 2px; pointer-events: none; animation: fade 0.35s ease both; }
+  .sc-line.flip { border-left: 0; border-right: 2px solid var(--c); padding: 2px 9px 2px 0; text-align: right; }
+  .sc-line b { font: 10px/1 var(--label); color: var(--c); letter-spacing: 0.1em; text-transform: uppercase; text-shadow: 0 1px 0 #000; }
+  .sc-line span { font: 500 15px/1.3 var(--display); color: #fff7e2; text-shadow: 0 2px 0 #000, 0 0 8px rgba(0, 0, 0, 0.8); text-wrap: pretty; }
+  .sc-line.shout span { font-size: 20px; font-weight: 700; color: #ffe08a; animation: shout 0.25s 2; }
+  .sc-line.soft span { font-size: 13px; opacity: 0.85; }
+  @keyframes shout { 25% { transform: translate(-1px, 1px); } 75% { transform: translate(1px, -1px); } }
+  #sc-card { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; gap: 8px; pointer-events: none; background: radial-gradient(closest-side, rgba(0, 0, 0, 0.55), transparent); animation: fade 0.6s ease both; }
+  #sc-card.out { opacity: 0; transition: opacity 0.5s; }
+  .sc-title { font: 700 34px/1 var(--display); color: #ffd36b; text-shadow: 0 3px 0 #5a3410, 0 0 20px rgba(0, 0, 0, 0.8); letter-spacing: 0.06em; }
+  .sc-sub { font: 10px/1.4 var(--label); color: #f0e7cf; letter-spacing: 0.1em; text-transform: uppercase; text-shadow: 0 1px 0 #000; max-width: 70vw; }
+  #sc-skip { position: absolute; right: var(--gut-r); top: calc(9vh + 8px); }
+  @media (prefers-reduced-motion: reduce) { .sc-line.shout span { animation: none; } }
+
+  /* ==== the medieval skin: frames, boards and icons from the Free Medieval Fantasy UI pack (Kibyra),
+     cut and scaled by tools/ui.py; every frame is a nine-slice border drawn 1:1 so it stays crisp ==== */
+  .btn, .gold-chip, .card, .slot, .rcard, .chip, .tchip, .gslot, .pitem, .trow, .stat, .upg, .ware, .ach, .lcard, .set-row, .foe, .modes, .lvl, .bosstag {
+    image-rendering: pixelated; border-radius: 0 !important; }
+  .btn { border: 10px solid transparent; border-image: url(assets/ui/btn.png) 10 fill / 10px stretch; background: none; padding: 1px 7px; color: #f6e7c4; text-shadow: 0 1px 0 #000; min-height: 18px; }
+  .btn.small { padding: 0 3px; font-size: 9px; min-height: 14px; }
+  .btn:hover:not(:disabled) { filter: brightness(1.15); }
+  .btn.primary { border: 6px solid transparent; border-image: url(assets/ui/btn_gold.png) 6 fill / 6px repeat; color: #2a1606; text-shadow: 0 1px 0 rgba(255, 240, 200, 0.5); padding: 9px 20px; font-size: 12px; }
+  .btn.primary:disabled { filter: grayscale(1) brightness(0.6); }
+  .btn.gold { color: var(--gold); }
+  .gold-chip { border: 10px solid transparent; border-image: url(assets/ui/btn.png) 10 fill / 10px; background: none; padding: 0 4px; font-size: 11px; display: inline-flex; align-items: center; }
+  .coin, .gem { width: 14px; height: 14px; border: 0; border-radius: 0; box-shadow: none; clip-path: none; background: url(assets/ui/i_coin.png) center / contain no-repeat; image-rendering: pixelated; vertical-align: -3px; }
+  .gem { background-image: url(assets/ui/i_gem.png); }
+  .gem-chip { color: #ffb0a8; }
+  .stars i, .stars i.on { clip-path: none; background: url(assets/ui/i_star.png) center / contain no-repeat; image-rendering: pixelated; }
+  .stars i:not(.on) { filter: grayscale(1) brightness(0.35); }
+  .dot { width: 9px; height: 9px; border-radius: 0; background: url(assets/ui/i_star.png) center / contain no-repeat; box-shadow: none; image-rendering: pixelated; animation: pulse-dot 1.2s ease-in-out infinite alternate; }
+  @keyframes pulse-dot { to { transform: scale(1.3); } }
+  /* big panels: the dark iron-cornered board */
+  #m-sheet, #p-detail, #c-detail, #r-box, #j-card, .settings-card, #tip, .confirm {
+    border: 12px solid transparent !important; border-image: url(assets/ui/panel.png) 12 fill / 12px stretch !important; background: none !important; border-radius: 0 !important; image-rendering: pixelated; box-shadow: none; }
+  #m-sheet { border-right-width: 0 !important; }
+  #tip { filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6)); }
+  #tip p { color: #f6e7c4; }
+  #tip::before { content: ''; width: 24px; height: 24px; flex: none; background: url(assets/ui/i_scroll.png) center / contain no-repeat; image-rendering: pixelated; }
+  /* cards and slots: the plank board */
+  .card, .rcard, .slot.filled, .ware, .ach.on, .gslot, .pitem, .trow, .upg, .chip, .tchip, .lcard, .set-row {
+    border: 10px solid transparent !important; border-image: url(assets/ui/board.png) 10 fill / 10px stretch !important; background: none !important; padding: 0 2px !important; }
+  .card.in, .rcard.on, .slot.sel, .gslot.on, .upg.on, .chip.ready { border-image-source: url(assets/ui/chip.png) !important; border-image-slice: 14 fill !important; filter: drop-shadow(0 0 3px rgba(255, 211, 107, 0.6)); }
+  .ach:not(.on) { border: 10px solid transparent !important; border-image: url(assets/ui/btn.png) 10 fill / 10px !important; background: none !important; padding: 0 2px !important; }
+  .slot:not(.filled) { border: 2px dashed rgba(240, 220, 170, 0.25) !important; background: rgba(0, 0, 0, 0.3) !important; }
+  .stat { border: 0 !important; background: rgba(0, 0, 0, 0.35) !important; }
+  .face { border-radius: 0; box-shadow: 0 0 0 2px #2a1a0c, 0 0 0 3px #8a6a3a; }
+  .card.in .face, .dhead .face, #j-card .face { box-shadow: 0 0 0 2px #2a1a0c, 0 0 0 3px var(--gold); }
+  /* screens behind: dark planks */
+  #prep, #company, #extras { background: linear-gradient(rgba(10, 7, 4, 0.55), rgba(10, 7, 4, 0.8)), url(assets/ui/plank_dark.png) repeat; background-size: auto, 48px 50px; image-rendering: pixelated; }
+  .bar-top h1 { font-size: 19px; text-shadow: 0 2px 0 #000, 0 0 8px rgba(0, 0, 0, 0.6); color: #f6e7c4; }
+  #map .bar-top h1, #map .bar-top h1 small { color: #f6e7c4 !important; text-shadow: 0 2px 0 #000, 0 0 6px #000 !important; }
+  #map .bar-top h1 { font-size: 15px; }
+  .tabs { border-bottom: 0; gap: 6px; }
+  .tab { border: 10px solid transparent; border-image: url(assets/ui/btn.png) 10 fill / 10px; padding: 0 6px; image-rendering: pixelated; color: var(--muted); }
+  .tab.on { border-image-source: url(assets/ui/chip.png); border-image-slice: 14 fill; color: var(--gold); }
+  .modes { border: 0; gap: 4px; }
+  .modes button { border: 8px solid transparent; border-image: url(assets/ui/btn.png) 10 fill / 8px; image-rendering: pixelated; padding: 0 4px; }
+  .modes button.on { border-image-source: url(assets/ui/btn_gold.png); border-image-slice: 6 fill; border-width: 6px; color: #2a1606; padding: 2px 6px; }
+  /* the title: plaques for the two ways in */
+  .menu .plaque { width: 192px; height: 96px; border: 0; padding: 0; background: center / contain no-repeat; image-rendering: pixelated; cursor: pointer; font-size: 0; filter: drop-shadow(0 3px 0 rgba(0, 0, 0, 0.5)); }
+  .menu .plaque:hover { filter: brightness(1.12) drop-shadow(0 3px 0 rgba(0, 0, 0, 0.5)); }
+  .menu .plaque:active { transform: translateY(2px); }
+  #t-continue { background-image: url(assets/ui/mm_continue.png); }
+  #t-new { background-image: url(assets/ui/mm_new.png); }
+  .menu { width: auto; justify-items: start; }
+  .menu .btn.open-settings { justify-self: start; }
+  .logo { font-size: 64px; color: #ffd36b; text-shadow: 0 4px 0 #6a3a10, 0 8px 0 rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 170, 60, 0.45); letter-spacing: 0.1em; }
+  /* the camp: the pack's illustrated menu */
+  .camp-menu.icons { display: grid; grid-template-columns: repeat(4, auto); gap: 18px 6px; align-content: center; justify-content: start; }
+  .ibtn { position: relative; width: 128px; height: 64px; border: 0; padding: 0; background: center / contain no-repeat; image-rendering: pixelated; cursor: pointer; filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.6)); font-size: 0; }
+  .ibtn:hover { filter: brightness(1.15) drop-shadow(0 2px 0 rgba(0, 0, 0, 0.6)); }
+  .ibtn:active { transform: translateY(2px); }
+  .ibtn.big { grid-column: span 2; width: 256px; height: 128px; }
+  .ibtn .dot { position: absolute; top: 4px; right: 18px; }
+  .ibtn small { position: absolute; left: 0; right: 0; bottom: -10px; font: 8px/1.1 var(--label); color: var(--text); text-shadow: 0 1px 0 #000; letter-spacing: 0.04em; }
+  #k-campaign { background-image: url(assets/ui/mm_map.png); }
+  #k-company { background-image: url(assets/ui/mm_troops.png); }
+  #k-shop { background-image: url(assets/ui/mm_shop.png); }
+  #k-bounties { background-image: url(assets/ui/mm_quests.png); }
+  #k-ach { background-image: url(assets/ui/mm_kingdom.png); }
+  #camp .open-settings { background-image: url(assets/ui/mm_settings.png); }
+  #k-title { background-image: url(assets/ui/mm_exit.png); }
+  #p-fight { border: 0; background: url(assets/ui/mm_fight.png) center / contain no-repeat; image-rendering: pixelated; width: 160px; height: 80px; font-size: 0; padding: 0; filter: drop-shadow(0 3px 0 rgba(0, 0, 0, 0.6)); border-image: none; }
+  #p-fight:disabled { filter: grayscale(1) brightness(0.6); }
+  @media (max-height: 420px) {
+    .ibtn { width: 104px; height: 52px; } .ibtn.big { width: 208px; height: 104px; }
+    .menu .plaque { width: 160px; height: 80px; }
+    #p-fight { width: 128px; height: 64px; }
+    .logo { font-size: 50px; }
+  }
 </style>
 
 <canvas id="bg" aria-hidden="true" hidden></canvas>
@@ -346,8 +441,8 @@
   <div class="logo">VAEL</div>
   <div class="tag">SELLSWORD COMPANY</div>
   <div class="menu">
-    <button class="btn" id="t-continue" type="button">Continue</button>
-    <button class="btn" id="t-new" type="button">New game</button>
+    <button class="plaque" id="t-continue" type="button" aria-label="Continue campaign">Continue campaign</button>
+    <button class="plaque" id="t-new" type="button" aria-label="New campaign">New campaign</button>
     <div class="confirm" id="t-confirm" hidden>Start a new company? Your saved progress will be replaced.<div><button class="btn small" id="t-confirm-yes" type="button">Start over</button><button class="btn small" id="t-confirm-no" type="button">Keep playing</button></div></div>
     <button class="btn open-settings" type="button">Settings</button>
   </div>
@@ -363,25 +458,21 @@
 
 <section id="camp" class="screen" aria-label="Camp" hidden>
   <div class="camp-head"><h1>Company Camp<small id="k-region"></small></h1><span class="gold-chip" id="k-gold"></span><span class="gold-chip gem-chip" id="k-gems"></span></div>
-  <div class="camp-menu">
-    <button class="cbtn" id="k-campaign" type="button"><b>Campaign</b><small id="k-next"></small></button>
-    <button class="cbtn" id="k-company" type="button"><b>Company</b><span class="dot" id="k-company-dot" hidden></span><small id="k-company-sub"></small></button>
-    <div class="tents">
-      <button class="cbtn minor" id="k-shop" type="button"><b>Shop</b></button>
-      <button class="cbtn minor" id="k-bounties" type="button"><b>Bounties</b><span class="dot" id="k-bounty-dot" hidden></span></button>
-      <button class="cbtn minor" id="k-ach" type="button"><b>Feats</b></button>
-    </div>
-    <div class="tents">
-      <button class="cbtn minor open-settings" type="button"><b>Settings</b></button>
-      <button class="cbtn minor" id="k-title" type="button"><b>Title</b></button>
-    </div>
+  <div class="camp-menu icons">
+    <button class="ibtn big" id="k-campaign" type="button" aria-label="Campaign map">Map<small id="k-next"></small></button>
+    <button class="ibtn big" id="k-company" type="button" aria-label="Company">Troops<span class="dot" id="k-company-dot" hidden></span><small id="k-company-sub"></small></button>
+    <button class="ibtn" id="k-shop" type="button" aria-label="Shop">Shop</button>
+    <button class="ibtn" id="k-bounties" type="button" aria-label="Bounties">Quests<span class="dot" id="k-bounty-dot" hidden></span></button>
+    <button class="ibtn" id="k-ach" type="button" aria-label="Feats">Kingdom</button>
+    <button class="ibtn open-settings" type="button" aria-label="Settings">Settings</button>
+    <button class="ibtn" id="k-title" type="button" aria-label="Title screen">Exit</button>
   </div>
   <div><div class="banner" id="k-banner" hidden title="Supporter's banner"></div></div>
   <div id="k-team" aria-label="The team"></div>
 </section>
 
 <section id="map" class="screen" aria-label="Campaign map" hidden>
-  <div id="m-field"><canvas id="m-art" aria-hidden="true"></canvas><div id="m-nodes"></div></div>
+  <div id="m-field"><canvas id="world" aria-label="The map of Vael: tap a banner to choose a mission, drag to look around"></canvas></div>
   <div class="bar-top"><button class="btn small" id="m-back" type="button">‹ Camp</button>
     <button class="btn small" id="m-prev" type="button" aria-label="Previous region">◀</button>
     <h1><span id="m-title"></span><small id="m-region"></small></h1>
@@ -398,7 +489,7 @@
     <div id="p-detail"></div>
   </div>
   <div class="right"><div id="p-roster"></div></div>
-  <div class="foot"><button class="btn small" id="p-best" type="button">Best team</button><button class="btn small" id="p-equip" type="button">Auto-equip</button><span class="grow"></span><span id="p-count"></span><button class="btn primary" id="p-fight" type="button">Fight</button></div>
+  <div class="foot"><button class="btn small" id="p-best" type="button">Best team</button><button class="btn small" id="p-equip" type="button">Auto-equip</button><span class="grow"></span><span id="p-count"></span><button class="btn" id="p-fight" type="button" aria-label="Fight">Fight</button></div>
 </section>
 
 <section id="company" class="screen" aria-label="Company" hidden>
@@ -424,6 +515,13 @@
   <div id="allies"></div>
 </div>
 
+<div id="scene" hidden aria-label="Cutscene">
+  <div class="sc-bar top"></div><div class="sc-bar bot"></div>
+  <div id="sc-line" class="sc-line" hidden></div>
+  <div id="sc-card" hidden></div>
+  <button class="btn small" id="sc-skip" type="button">Skip ›</button>
+</div>
+
 <div id="result" hidden><div id="r-box" role="dialog" aria-label="Battle result"></div></div>
 <div id="join" hidden><div id="j-card" role="dialog" aria-label="A new recruit"></div></div>
 
@@ -446,6 +544,7 @@
       <div><b>Tiles</b> Pixel Art Top Down – Basic (Cainos); TopDownFantasy Forest; Pixel Top-down Forest and Village Tileset and Castle and Dungeon Tileset Vol 3 by reodesuxz; EPIC RPG World – Ancient Ruins; Dark World.</div>
       <div><b>Music</b> “Heartfelt Battle” from OpenGameArt.org (CC0).</div>
       <div><b>Sounds</b> Fantasy UI SFX Free by heyheythere – heyheythere.itch.io/fantasy-ui-sfx-free – CC BY 4.0. Fight sounds and ambience made for the game.</div>
+      <div><b>Interface</b> Free Medieval Fantasy UI Pack by Kibyra. <b>Overworld</b> the desert tileset (32x32) and the tilesets above.</div>
       <div><b>Fonts</b> Pixelify Sans and Silkscreen (SIL Open Font License).</div>
     </details>
   </div>
