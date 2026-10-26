@@ -1,0 +1,28 @@
+{
+  "name": "vael-app",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Vael: Sellsword Company, the iOS and Android app (Capacitor around the web game in ..)",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-web.mjs",
+    "build:web": "node scripts/build-web.mjs --pwa",
+    "icons": "python3 ../tools/icons.py && npx capacitor-assets generate --iconBackgroundColor '#10170f' --iconBackgroundColorDark '#10170f' --splashBackgroundColor '#10170f' --splashBackgroundColorDark '#10170f'",
+    "sync": "node scripts/build-web.mjs && npx cap sync",
+    "ios": "node scripts/build-web.mjs && npx cap sync ios && npx cap open ios",
+    "android": "node scripts/build-web.mjs && npx cap sync android && npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/ios": "8.5.3",
+    "@capacitor/screen-orientation": "^8.0.0",
+    "@capacitor/splash-screen": "^8.0.0",
+    "@capacitor/status-bar": "^8.0.0",
+    "cordova-plugin-purchase": "13.19.1"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "8.5.3"
+  }
+}

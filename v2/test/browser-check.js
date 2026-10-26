@@ -35,6 +35,10 @@ for (const [name, vp] of [['phone', { width: 844, height: 390 }], ['desktop', { 
   await page.click('#p-fight'); await visible(page, '#hud'); await page.waitForTimeout(3000); await shot('06-battle');
   await page.evaluate(() => window.__v2.skip());
   await visible(page, '#result'); await page.waitForTimeout(500); await shot('07-rewards');
+  for (let k = 0; k < 6 && await page.evaluate(() => window.__v2.battle.result !== 'win'); k++) {
+    await page.click('#r-box .btn.primary'); await visible(page, '#prep'); await page.click('#p-fight'); await visible(page, '#hud');
+    await page.evaluate(() => window.__v2.skip()); await visible(page, '#result');
+  }
   console.log(name, 'mission 1', await page.evaluate(() => [window.__v2.battle.result, JSON.stringify(window.__v2.game.save.cleared)]));
   if (name === 'desktop') {
     await page.click('#r-box .btn.primary'); await page.waitForTimeout(400); await shot('08-after');
@@ -54,27 +58,60 @@ for (const [name, vp] of [['phone', { width: 844, height: 390 }], ['desktop', { 
   await page.click('.tab:nth-child(3)'); await page.click('.trow .btn'); await page.waitForTimeout(150); await shot('13-company-train');
   console.log('company', await page.evaluate(() => JSON.stringify(window.__v2.game.save.roster.corvin)));
   await page.click('#c-back'); await visible(page, '#map');
-  // every other mission; after a loss, try again (stronger) until it falls
-  for (let guard = 0; guard < 40; guard++) {
-    const next = await page.evaluate(() => { const s = window.__v2.game.save; return ['r1m1', 'r1m2', 'r1m3', 'r1m4', 'r1m5', 'r1m6', 'r1m7', 'r1m8', 'r1m9', 'r1m10'].find((id) => !s.cleared[id]) || null; });
+  // the camp's tents and the settings
+  await page.evaluate(() => { window.__v2.game.save.gems = 500; window.__v2.go('extras', 'shop'); });
+  await visible(page, '#extras'); await shot('13b-shop');
+  await page.click('.ware .btn.gold'); await page.waitForTimeout(200);
+  console.log('shop', await page.evaluate(() => [window.__v2.game.save.inv.length, window.__v2.game.save.stats.bought]));
+  await page.click('#x-tabs .tab:nth-child(2)'); await shot('13c-bounties');
+  await page.click('#x-tabs .tab:nth-child(3)'); await shot('13d-feats');
+  await page.evaluate(() => window.__v2.go('camp')); await visible(page, '#camp'); await page.waitForTimeout(600); await shot('13e-camp');
+  await page.click('#camp .open-settings'); await visible(page, '#settings'); await page.click('#set-export'); await page.waitForTimeout(200); await shot('13f-settings');
+  const code = await page.inputValue('#save-code');
+  await page.evaluate(() => { window.__v2.game.save.gold = 1; }); await page.click('#save-load'); await visible(page, '#camp');
+  console.log('save code round trip', code.length, await page.evaluate(() => window.__v2.game.save.gold));
+  await page.evaluate(() => window.__v2.go('map'));
+  // every other mission in order; after a loss the company gets a level and tries again.
+  // Screenshots: each region's map, its first battle and its boss battle.
+  let losses = 0;
+  for (let guard = 0; guard < 300; guard++) {
+    const next = await page.evaluate(() => window.__v2.missions.find((id) => !window.__v2.game.save.cleared[id]) || null);
     if (!next) break;
-    await page.evaluate(() => window.__v2.go('map'));
+    await page.evaluate((id) => window.__v2.go('map', id), next);
+    const key = /m1$|m10$/.test(next);
+    if (/m1$/.test(next)) await shot('14-map-' + next);
     await page.click('#m-sheet .btn.primary'); await visible(page, '#prep');
-    await page.click('#p-fight'); await visible(page, '#hud'); await page.waitForTimeout(next === 'r1m10' || next === 'r1m4' ? 2500 : 300);
-    if (next === 'r1m10' || next === 'r1m4') await shot('14-battle-' + next);
+    await page.evaluate(() => window.__v2.pickUpgrades());   // a casual player: upgrade picks, the best team and its best gear
+    await page.click('#p-best');
+    await page.click('#p-fight'); await visible(page, '#hud'); await page.waitForTimeout(key ? 2600 : 200);
+    if (key) await shot('15-battle-' + next);
     await page.evaluate(() => window.__v2.skip());
     await visible(page, '#result');
     const res = await page.evaluate(() => window.__v2.battle.result);
-    console.log(next, res);
-    if (res !== 'win') { await shot('15-lost-' + next); await page.evaluate(() => { const s = window.__v2.game.save; for (const m of Object.values(s.roster)) m.level += 1; window.__v2.game.persist(); }); continue; }
+    if (res !== 'win') {
+      // like the tuned casual player: replay the mission before for experience, then try again
+      losses++;
+      const prev = await page.evaluate((id) => { const l = window.__v2.missions; return l[l.indexOf(id) - 1] || null; }, next);
+      if (prev) { await page.evaluate((id) => window.__v2.go('map', id), prev); await page.click('#m-sheet .btn.primary'); await visible(page, '#prep'); await page.click('#p-best'); await page.click('#p-fight'); await visible(page, '#hud'); await page.evaluate(() => window.__v2.skip()); await visible(page, '#result'); }
+      continue;
+    }
     await page.click('#r-box .btn.primary');
-    if (await page.isVisible('#join')) await page.click('#j-card .btn.primary');
+    if (await page.isVisible('#join') && /m10$/.test(next) && (await page.textContent('#j-card')).includes('cleared')) await shot('16-story-' + next);
+    for (let k = 0; k < 3 && await page.isVisible('#join'); k++) await page.click('#j-card .btn.primary');
   }
+  console.log('losses', losses);
+  console.log('cleared', await page.evaluate(() => Object.keys(window.__v2.game.save.cleared).length), 'recruits', await page.evaluate(() => Object.keys(window.__v2.game.save.roster).length));
+  await page.evaluate(() => window.__v2.go('map', 'r6m10'));
   await visible(page, '#map'); await shot('16-map-done');
   await page.click('#m-back'); await visible(page, '#camp'); await page.waitForTimeout(1500); await shot('17-camp-full');
   await page.click('#k-company'); await visible(page, '#company'); await shot('18-company-full');
   await page.reload(); await visible(page, '#title'); await page.waitForTimeout(600);
   console.log('after reload', await page.evaluate(() => [Object.keys(window.__v2.game.save.roster).length, Object.keys(window.__v2.game.save.cleared).length, !document.getElementById('t-continue').hidden]));
+  // heroic: the toggle shows on a cleared region and a heroic battle starts
+  await page.click('#t-continue'); await visible(page, '#camp'); await page.click('#k-campaign'); await visible(page, '#map');
+  await page.click('.modes button:nth-child(2)'); await page.waitForTimeout(200); await shot('19-heroic-map');
+  await page.click('#m-sheet .btn.primary'); await visible(page, '#prep'); await page.click('#p-fight'); await visible(page, '#hud'); await page.waitForTimeout(2000); await shot('20-heroic-battle');
+  console.log('heroic battle level', await page.evaluate(() => window.__v2.battle.units.find((u) => u.team === 'foe').level));
   await page.close();
 }
 await browser.close(); server.close();

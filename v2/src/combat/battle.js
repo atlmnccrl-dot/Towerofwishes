@@ -10,7 +10,10 @@
 //   b.result         null, then 'win' | 'lose' (the time limit counts as a loss)
 import { UNITS, ENEMIES, SUMMONS, SLOTS, WAVES } from '../data/units.js';
 
-export const TIME_LIMIT = 90;
+export const TIME_LIMIT = 120;
+// after FURY seconds every blow lands harder (+5% a second), so a battle neither side can finish ends
+export const FURY = 45;
+export const fury = (b) => (b.t > FURY ? 1 + 0.05 * (b.t - FURY) : 1);
 const FIELD = { w: 17, h: 7.4 };
 const ENERGY_PER_ATTACK = 14, ENERGY_FROM_DAMAGE = 70, CAST_TIME = 0.7, CAST_POINT = 0.45;
 
@@ -66,6 +69,7 @@ function mult(u, stat) { let m = 1; for (const s of u.statuses) if (s.stat === s
 export function step(b, dt) {
   b.events = [];
   if (b.result) { for (const u of b.units) if (alive(u)) u.st += dt; return; }
+  if (b.t <= FURY && b.t + dt > FURY) b.events.push({ type: 'fury' });
   b.t += dt;
   for (const u of b.units) {
     if (!alive(u)) continue;
@@ -190,6 +194,7 @@ export function damage(b, src, t, m, o = {}) {
   const crit = !o.dot && src && b.rnd() < src.s.crit;
   let d = atk * m * (100 / (100 + t.s.def * mult(t, 'def'))) * (0.92 + b.rnd() * 0.16) * (crit ? 1.6 : 1);
   d *= 1 - t.s.dr; for (const s of t.statuses) if (s.type === 'dr') d *= 1 - s.pct;
+  d *= fury(b);
   d = Math.max(1, Math.round(d));
   let left = d;
   if (t.shield > 0) { const ab = Math.min(t.shield, left); t.shield -= ab; left -= ab; }

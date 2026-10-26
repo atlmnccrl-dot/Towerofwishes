@@ -10,6 +10,7 @@ export const TIERS = [
   { name: 'Fine', k: 1.6, color: '#7fd07a' },
   { name: 'Rare', k: 2.3, color: '#7fb6ff' },
   { name: 'Heirloom', k: 3.1, color: '#e0a2ff' },
+  { name: 'Mythic', k: 4.0, color: '#ffb347' },
 ];
 export const MAX_PLUS = 5;
 
@@ -48,10 +49,10 @@ export const itemName = (it) => `${TIERS[it.tier].name} ${BASES[it.base].name}${
 export const upgradeCost = (it) => Math.round(40 * (it.tier + 1) * (1 + (it.plus || 0) * 0.8));
 export const sellValue = (it) => Math.round(15 * (it.tier + 1) * (it.tier + 1) * (1 + (it.plus || 0) * 0.5));
 
-// A loot roll for a mission of this level: the tier leans higher as the level rises.
-export function rollItem(level, rnd) {
+// A loot roll for a mission of this level: the tier leans higher as the level rises (bonus: heroic, chests).
+export function rollItem(level, rnd, bonus = 0) {
   const keys = Object.keys(BASES), base = keys[Math.floor(rnd() * keys.length)];
-  const r = rnd() + level * 0.06;
-  const tier = r > 1.25 ? 3 : r > 0.95 ? 2 : r > 0.6 ? 1 : 0;
+  const r = rnd() + level * 0.022 + bonus;
+  const tier = r > 1.75 ? 4 : r > 1.3 ? 3 : r > 0.95 ? 2 : r > 0.6 ? 1 : 0;
   return { base, tier, plus: 0 };
 }

@@ -2,7 +2,7 @@
 // Stats (stats, ability, passive, the two upgrade picks), Gear (three slots and the pack),
 // Train (ranks bought with gold).
 import { UNITS, CLASSES } from '../data/units.js';
-import { MISSIONS, LATER } from '../data/campaign.js';
+import { MISSIONS, regionOf } from '../data/campaign.js';
 import { SLOTS, SLOT_NAMES, BASES, itemStats, itemName, statText, upgradeCost, sellValue, MAX_PLUS } from '../data/items.js';
 import { statsAt } from '../combat/battle.js';
 import * as P from '../game/progress.js';
@@ -31,7 +31,7 @@ export function renderCompany(game, focus) {
       pend ? h('span.dot', { title: 'An upgrade to pick', 'aria-label': 'An upgrade to pick' }) : null));
   }
   for (const k of keys.filter((k) => !s.roster[k])) {
-    const where = MISSIONS.find((m) => m.recruit === k), hint = where ? `Joins on the road` : LATER[k] ? 'Found in a later region' : 'Not met yet';
+    const where = MISSIONS.find((m) => m.recruit === k), hint = where ? `Joins in ${regionOf(where).name}` : 'Not met yet';
     list.append(h('div.rcard.locked', null, face(UNITS[k].set, 30, true), h('span.rinfo', null, h('span.nm', null, '???'), h('span.cls', null, hint))));
   }
   renderDetail(game);
@@ -95,6 +95,7 @@ function renderDetail(game) {
           it ? h('span.gst', null, Object.entries(itemStats(it)).map(([a, v]) => statText(a, v)).join(', ')) : null)));
     }
     body.append(slots);
+    body.append(h('div.gacts', null, h('button.btn.small', { type: 'button', onclick: () => { const n = P.autoEquip(s); game.persist(); toast(n ? `${n} piece${n > 1 ? 's' : ''} equipped across the team` : 'The team already wears the best'); renderCompany(game); } }, 'Auto-equip the team')));
     const cur = m.gear[gearSlot] && P.itemByUid(s, m.gear[gearSlot]);
     if (cur) {
       const cost = upgradeCost(cur), maxed = (cur.plus || 0) >= MAX_PLUS;
@@ -119,12 +120,13 @@ function renderDetail(game) {
   }
 
   if (tab === 'train') {
-    body.append(h('p.note', null, 'Training raises a stat for good. Ranks go up to the recruit\'s level, ten at most.'));
+    body.append(h('p.note', null, `Training raises a stat for good. Ranks go up to the recruit's level, ${P.TRAIN_MAX} at most.`));
     for (const [stt, label] of [['hp', 'Health'], ['atk', 'Attack'], ['def', 'Defence']]) {
       const r = m.train[stt], cost = P.trainCost(r), capped = r >= P.TRAIN_MAX || r >= m.level;
       body.append(h('div.trow', null,
         h('span.tl', null, h('b', null, label), h('small', null, `+${Math.round(P.TRAIN[stt] * 100 * r)}% now · +${Math.round(P.TRAIN[stt] * 100)}% a rank`)),
-        h('span.pips', { 'aria-label': `Rank ${r} of ${P.TRAIN_MAX}` }, ...Array.from({ length: P.TRAIN_MAX }, (_, i) => h('i' + (i < r ? '.on' : i < m.level ? '' : '.cap')))),
+        h('span.rank', null, h('span.rbar', { role: 'progressbar', 'aria-label': `Rank ${r} of ${P.TRAIN_MAX}`, 'aria-valuenow': String(r), 'aria-valuemax': String(P.TRAIN_MAX) },
+          h('i.cap', { style: { width: `${(Math.min(m.level, P.TRAIN_MAX) / P.TRAIN_MAX) * 100}%` } }), h('i', { style: { width: `${(r / P.TRAIN_MAX) * 100}%` } })), h('small', null, `${r} / ${P.TRAIN_MAX}`)),
         h('button.btn.small.gold', { type: 'button', disabled: capped || s.gold < cost ? true : null, onclick: () => { if (P.train(s, k, stt)) { game.persist(); renderCompany(game); } } },
           capped ? (r >= P.TRAIN_MAX ? 'Max' : `Level ${r + 1}`) : h('span', null, 'Train ', goldIcon(), String(cost)))));
     }

@@ -143,8 +143,14 @@ upgrade gear and learn abilities → harder missions.
 3. **Progression.** **Done (2026-10-23):** levels and XP (the bench earns 40%), gold, gear in three slots with four
    tiers and upgrades to +5, selling, training ranks, and two ability upgrades (levels 4 and 8, one of two each).
    **Progression.** Levels, gear and loot, upgrades, ability learning, training and promotion.
-4. **The world.** Regions 2–6 with their enemies, bosses, recruits, story beats and hard mode.
-5. **Ready to ship.** Shop and currencies, the tutorial, settings, polish and performance, and the installable
+4. **The world.** **Done (2026-10-26):** regions 2–6 (50 more missions, 60 in all), 10 more recruits (23), 17 more
+   foe types with a boss per region, tiled grounds per region, heroic mode, level cap 60, four upgrade tiers;
+   difficulty tuned by `test/tune.js` for a casual player.
+   **The world.** Regions 2–6 with their enemies, bosses, recruits, story beats and hard mode.
+5. **Ready to ship.** **Done (2026-10-26), waiting on the author:** gems, shop, daily bounties, 23 feats, gem packs
+   through the app stores, music and sounds, first-time tips, settings (volumes, shake, save codes), bundled
+   fonts, the Capacitor iOS/Android projects, icons, an installable web build, `docs/RELEASE.md`, `docs/PRIVACY.md`.
+   **Ready to ship.** Shop and currencies, the tutorial, settings, polish and performance, and the installable
    web app.
 
 ## Answered (the author, 2026-10-23)

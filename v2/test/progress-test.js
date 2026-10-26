@@ -20,13 +20,14 @@ for (const m of MISSIONS) for (const [k] of m.foes) assert.ok(k in (await import
 for (const m of MISSIONS) if (m.recruit) assert.ok(UNITS[m.recruit], m.id + ' recruit');
 
 // a loss changes nothing
-const before = JSON.stringify(s);
+const strip = (x) => JSON.stringify(Object.assign({}, x, { stats: null }));
+const before = strip(s);
 let rw = P.grantRewards(s, 'r1m1', fake('lose', 0, s), r);
-assert.equal(rw.win, false); assert.equal(JSON.stringify(s), before);
+assert.equal(rw.win, false); assert.equal(strip(s), before); assert.equal(s.stats.losses, 1);
 
 // a first clear: three stars, gold, xp, loot, a recruit who joins the team
 rw = P.grantRewards(s, 'r1m1', fake('win', 0, s), r);
-assert.equal(rw.stars, 3); assert.ok(rw.first && rw.gold > 0 && rw.loot.length === 2);
+assert.equal(rw.stars, 3); assert.ok(rw.first && rw.gold > 0 && rw.loot.length === 2); assert.equal(rw.gems, 5);
 assert.equal(rw.joined, 'hesta'); assert.ok(s.roster.hesta && s.team.some((t) => t.key === 'hesta'));
 assert.ok(isOpen(s.cleared, MISSIONS[1]));
 // a replay: less gold, no second recruit, best stars kept
@@ -55,7 +56,7 @@ s.gold = 0; s.roster.maren.level = 9; assert.ok(!P.train(s, 'maren', 'atk'));
 s.roster.corvin.level = 3; assert.ok(!P.pickUpgrade(s, 'corvin', 0, 'empower'));
 s.roster.corvin.level = 4; assert.equal(P.pendingUpgrade(s, 'corvin'), 0);
 assert.ok(!P.pickUpgrade(s, 'corvin', 0, 'nope')); assert.ok(P.pickUpgrade(s, 'corvin', 0, 'empower')); assert.ok(!P.pickUpgrade(s, 'corvin', 0, 'quicken'));
-assert.equal(P.modsOf(s, 'corvin').power, 0.3); assert.equal(P.pendingUpgrade(s, 'corvin'), -1);
+assert.equal(P.modsOf(s, 'corvin').power, 0.4); assert.equal(P.pendingUpgrade(s, 'corvin'), -1);
 
 // the team: at most five, slots swap
 s = P.newSave(); for (const k of Object.keys(UNITS)) s.roster[k] = s.roster[k] || { level: 1, xp: 0, gear: { weapon: null, armor: null, charm: null }, train: { hp: 0, atk: 0, def: 0 }, ups: [null, null] };
@@ -67,4 +68,17 @@ const a = s.team[0], b = s.team[1], sa = a.slot, sb = b.slot; P.moveSlot(s, sa, 
 const raw = JSON.parse(JSON.stringify(s)); raw.roster.ghost = raw.roster.corvin; raw.inv.push({ uid: 999, base: 'nothing', tier: 0 });
 const back = P.loadSave(raw); assert.ok(!back.roster.ghost && !back.inv.some((x) => x.uid === 999)); assert.equal(back.team.length, s.team.length);
 assert.equal(P.loadSave(null).gold, P.newSave().gold);
+// heroic: tougher, its own stars, no recruit, more gems for three stars
+s = P.newSave(); P.grantRewards(s, 'r1m1', fake('win', 0, s), r);
+const g0 = s.gems; rw = P.grantRewards(s, 'r1m1', fake('win', 0, s), r, true);
+assert.ok(rw.heroic && rw.first && s.heroic.r1m1 === 3 && s.gems - g0 === 10 && !rw.joined);
+const spec = P.battleSpec(MISSIONS[0], true); assert.ok(spec.level > MISSIONS[0].level && spec.might > MISSIONS[0].might);
+// four upgrade tiers, each with two choices for every recruit
+for (const k of Object.keys(UNITS)) for (let t = 0; t < 4; t++) assert.equal(P.upgradeChoices(k, t).length, 2, k + t);
+// an old save with two upgrade slots grows to four
+const old = JSON.parse(JSON.stringify(P.newSave())); old.roster.corvin.ups = ['empower', null]; delete old.gems; delete old.stats;
+const up = P.loadSave(old); assert.equal(up.roster.corvin.ups.length, 4); assert.equal(up.roster.corvin.ups[0], 'empower'); assert.equal(up.gems, 50); assert.equal(up.stats.wins, 0);
+// a save code survives the round trip; a damaged one is refused
+s = P.newSave(); s.gold = 777; const code = P.encodeSave(s);
+assert.equal(P.decodeSave(code).gold, 777); assert.equal(P.decodeSave(code.slice(0, -2) + 'zz'), null); assert.equal(P.decodeSave('nonsense'), null);
 console.log('progress ok');

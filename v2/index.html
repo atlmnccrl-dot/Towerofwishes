@@ -1,9 +1,9 @@
 <title>Vael Company</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Silkscreen&display=swap">
 <style>
+  /* the fonts ship with the game (SIL Open Font License, assets/fonts) so it works offline in the app */
+  @font-face { font-family: "Pixelify Sans"; src: url(assets/fonts/PixelifySans.woff2) format("woff2"); font-weight: 400 700; font-display: swap; }
+  @font-face { font-family: "Silkscreen"; src: url(assets/fonts/Silkscreen.woff2) format("woff2"); font-weight: 400; font-display: swap; }
   /* Vael: a sellsword company at night. Parchment text on dark panels, gold for what is chosen or
      ready, a colour per class. One dark look by choice (the camp is at night); landscape only. */
   :root {
@@ -46,6 +46,16 @@
   .btn.primary { background: var(--gold); color: var(--gold-ink); border-color: var(--gold); font-size: 12px; padding: 12px 22px; }
   .btn.gold { border-color: var(--gold); color: var(--gold); }
   .btn.small { padding: 7px 9px; font-size: 9px; }
+  .gem { display: inline-block; width: 8px; height: 8px; background: linear-gradient(135deg, #c9f3ff, #59b7ff 50%, #2a5fd0); clip-path: polygon(50% 0, 100% 40%, 50% 100%, 0 40%); margin-right: 4px; vertical-align: -1px; }
+  .gem-chip { color: #9fdcff; }
+  .modes { display: flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; align-self: flex-start; }
+  .modes button { background: none; border: 0; padding: 6px 10px; font: 9px var(--label); color: var(--muted); cursor: pointer; letter-spacing: 0.05em; }
+  .modes button.on { background: var(--panel-2); color: var(--gold); }
+  .bosstag.hero { color: #ff9f6b; border-color: #ff9f6b; }
+  #m-field.heroic #m-art { filter: sepia(0.4) saturate(1.4) hue-rotate(-20deg) brightness(0.85); }
+  #map .bar-top h1 small { display: block; font: 7px var(--label); color: #5a4022; letter-spacing: 0.08em; margin-top: 2px; }
+  .story { font: 13px/1.5 var(--display); color: var(--text); text-wrap: pretty; max-width: 300px; }
+  .story.dim { font-size: 11px; color: var(--muted); }
   .coin { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff2b0, var(--gold) 45%, #a67a1e); box-shadow: 0 0 0 1px #5a400c; margin-right: 4px; vertical-align: -1px; }
   .gold-chip { font: 11px var(--label); color: var(--gold); background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 6px 9px; font-variant-numeric: tabular-nums; }
   .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 6px var(--gold); flex: none; }
@@ -156,6 +166,7 @@
   #p-detail .ab b, .ability b { color: var(--gold); }
   .foot { grid-column: 1 / -1; display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
   #p-count { font: 9px var(--label); color: var(--muted); }
+  .grow { flex: 1; }
 
   /* ---- company */
   #company { display: grid; grid-template-columns: minmax(170px, 0.7fr) 2fr; grid-template-rows: auto 1fr; gap: 8px 12px; background: radial-gradient(120% 90% at 80% 100%, #1f2a1c 0%, var(--ground) 60%); }
@@ -213,6 +224,11 @@
   .tl { display: grid; gap: 3px; }
   .tl b { font: 700 13px/1 var(--display); }
   .tl small { font: 8px var(--label); color: var(--muted); }
+  .rank { display: grid; gap: 3px; justify-items: end; }
+  .rank small { font: 8px var(--label); color: var(--muted); font-variant-numeric: tabular-nums; }
+  .rbar { position: relative; width: 120px; height: 6px; background: #1d201b; border-radius: 2px; overflow: hidden; }
+  .rbar i { position: absolute; inset: 0 auto 0 0; background: var(--gold); }
+  .rbar i.cap { background: #3a3a30; }
   .pips { display: flex; gap: 2px; }
   .pips i { width: 7px; height: 9px; background: #3a3a30; border-radius: 1px; }
   .pips i.on { background: var(--gold); }
@@ -223,6 +239,8 @@
   .top { position: absolute; top: var(--top); left: var(--gut-l); right: var(--gut-r); display: flex; justify-content: space-between; align-items: center; gap: 12px; }
   .wavename { font: 700 14px/1 var(--display); text-shadow: 0 1px 0 #000; }
   #clock { font: 9px var(--label); color: var(--muted); margin-left: 8px; font-variant-numeric: tabular-nums; }
+  #clock.fury { color: #ff8a5a; }
+  .wavename { background: rgba(10, 14, 11, 0.7); padding: 4px 8px; border-radius: 4px; }
   .tools { display: flex; gap: 6px; pointer-events: auto; }
   .tools .btn { padding: 8px 10px; }
   #allies { position: absolute; bottom: var(--bot); left: var(--gut-l); right: var(--gut-r); display: flex; gap: 6px; justify-content: center; }
@@ -263,12 +281,40 @@
   .jname { font: 700 22px/1 var(--display); }
   .jtitle { font: 12px var(--display); color: var(--muted); }
 
+  /* ---- the camp's tents */
+  .tents { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 6px; }
+  .tents .cbtn { grid-template-columns: 1fr auto; text-align: center; }
+  .banner { width: 26px; height: 54px; margin: 8px 0 0 auto; background: linear-gradient(var(--gold), #b8862a); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 82%, 0 100%); box-shadow: 0 0 18px rgba(255, 211, 107, 0.4); }
+  #extras { display: grid; grid-template-rows: auto auto 1fr; gap: 8px; background: radial-gradient(120% 90% at 50% 100%, #2a2414 0%, var(--ground) 60%); }
+  #x-body { overflow-y: auto; display: grid; gap: 8px; align-content: start; min-height: 0; padding-bottom: 6px; }
+  .shop { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+  .ware { display: grid; gap: 4px; align-content: space-between; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 8px 9px; }
+  .ware b { font: 700 13px/1.1 var(--display); }
+  .ware .wd { font: 10px/1.3 var(--display); color: var(--muted); }
+  .ware.pack { border-color: #2f4c66; }
+  .ware.owned { opacity: 0.6; }
+  .price { display: inline-flex; align-items: center; gap: 2px; font: 9px var(--label); }
+  .achs { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 5px; }
+  .ach { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 7px 9px; opacity: 0.55; }
+  .ach.on { opacity: 1; border-color: var(--gold); }
+  .ach b { font: 700 12px/1.1 var(--display); }
+  .ach > span:not(.price) { grid-column: 1; font: 10px/1.3 var(--display); color: var(--muted); }
+  .ach .price { grid-row: 1 / 3; grid-column: 2; align-self: center; color: #9fdcff; }
+  .bounty { grid-template-columns: minmax(140px, 1fr) auto auto; }
+  #tip { position: fixed; left: 50%; top: calc(var(--top) + 44px); transform: translateX(-50%); width: min(420px, calc(100% - 32px)); box-sizing: border-box; display: flex; gap: 10px; align-items: center;
+    background: #1d2a20; border: 1px solid var(--gold); border-radius: 6px; padding: 9px 10px 9px 12px; z-index: 7; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5); animation: fade 0.4s ease both; }
+  #tip p { font: 12px/1.4 var(--display); flex: 1; }
+
   /* ---- settings */
-  .settings-card { justify-items: stretch; width: min(460px, 100%); }
+  .settings-card { justify-items: stretch; width: min(480px, 100%); }
   .settings-head { display: flex; justify-content: space-between; align-items: center; }
   .settings-head h2 { font: 700 18px/1 var(--display); }
   .set-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--panel-2); border-radius: 4px; padding: 8px 10px; }
   .set-row b { display: block; font: 700 12px/1.1 var(--display); }
+  .set-row input[type="range"] { width: min(220px, 50%); accent-color: var(--gold); }
+  .set-row textarea { flex: 1; min-width: 0; background: #0c120d; color: var(--text); border: 1px solid var(--line); border-radius: 4px; font: 9px/1.3 var(--label); padding: 6px; resize: none; -webkit-user-select: text; user-select: text; }
+  .pair { display: flex; gap: 6px; }
+  .credits summary { font: 9px var(--label); color: var(--text); cursor: pointer; letter-spacing: 0.06em; padding: 4px 0; }
   .set-row small { font: 10px/1.3 var(--display); color: var(--muted); }
   .credits { font: 10px/1.4 var(--display); color: var(--muted); display: grid; gap: 4px; }
   .credits b { color: var(--text); }
@@ -316,20 +362,31 @@
 </section>
 
 <section id="camp" class="screen" aria-label="Camp" hidden>
-  <div class="camp-head"><h1>Thornwick Camp<small>THE THORNWICK ROAD</small></h1><span class="gold-chip" id="k-gold"></span></div>
+  <div class="camp-head"><h1>Company Camp<small id="k-region"></small></h1><span class="gold-chip" id="k-gold"></span><span class="gold-chip gem-chip" id="k-gems"></span></div>
   <div class="camp-menu">
     <button class="cbtn" id="k-campaign" type="button"><b>Campaign</b><small id="k-next"></small></button>
     <button class="cbtn" id="k-company" type="button"><b>Company</b><span class="dot" id="k-company-dot" hidden></span><small id="k-company-sub"></small></button>
-    <button class="cbtn minor open-settings" type="button"><b>Settings</b></button>
-    <button class="cbtn minor" id="k-title" type="button"><b>Title screen</b></button>
+    <div class="tents">
+      <button class="cbtn minor" id="k-shop" type="button"><b>Shop</b></button>
+      <button class="cbtn minor" id="k-bounties" type="button"><b>Bounties</b><span class="dot" id="k-bounty-dot" hidden></span></button>
+      <button class="cbtn minor" id="k-ach" type="button"><b>Feats</b></button>
+    </div>
+    <div class="tents">
+      <button class="cbtn minor open-settings" type="button"><b>Settings</b></button>
+      <button class="cbtn minor" id="k-title" type="button"><b>Title</b></button>
+    </div>
   </div>
-  <div></div>
+  <div><div class="banner" id="k-banner" hidden title="Supporter's banner"></div></div>
   <div id="k-team" aria-label="The team"></div>
 </section>
 
 <section id="map" class="screen" aria-label="Campaign map" hidden>
   <div id="m-field"><canvas id="m-art" aria-hidden="true"></canvas><div id="m-nodes"></div></div>
-  <div class="bar-top"><button class="btn small" id="m-back" type="button">‹ Camp</button><h1 id="m-title"></h1><span class="gold-chip" id="m-gold"></span><button class="btn small" id="m-company" type="button">Company</button></div>
+  <div class="bar-top"><button class="btn small" id="m-back" type="button">‹ Camp</button>
+    <button class="btn small" id="m-prev" type="button" aria-label="Previous region">◀</button>
+    <h1><span id="m-title"></span><small id="m-region"></small></h1>
+    <button class="btn small" id="m-next" type="button" aria-label="Next region">▶</button>
+    <span class="gold-chip" id="m-gold"></span><span class="gold-chip gem-chip" id="m-gems"></span><button class="btn small" id="m-company" type="button">Company</button></div>
   <div id="m-sheet"></div>
 </section>
 
@@ -341,13 +398,19 @@
     <div id="p-detail"></div>
   </div>
   <div class="right"><div id="p-roster"></div></div>
-  <div class="foot"><span id="p-count"></span><button class="btn primary" id="p-fight" type="button">Fight</button></div>
+  <div class="foot"><button class="btn small" id="p-best" type="button">Best team</button><button class="btn small" id="p-equip" type="button">Auto-equip</button><span class="grow"></span><span id="p-count"></span><button class="btn primary" id="p-fight" type="button">Fight</button></div>
 </section>
 
 <section id="company" class="screen" aria-label="Company" hidden>
   <div class="bar-top"><button class="btn small" id="c-back" type="button">‹ Back</button><h1>Company</h1><span class="gold-chip" id="c-gold"></span></div>
   <div id="c-roster"></div>
   <div id="c-detail"></div>
+</section>
+
+<section id="extras" class="screen" aria-label="Shop, bounties and feats" hidden>
+  <div class="bar-top"><button class="btn small" id="x-back" type="button">‹ Camp</button><h1>The Camp's Tents</h1><span class="gold-chip" id="x-gold"></span><span class="gold-chip gem-chip" id="x-gems"></span></div>
+  <div class="tabs" id="x-tabs" role="tablist"></div>
+  <div id="x-body"></div>
 </section>
 
 <div id="hud" hidden>
@@ -367,17 +430,28 @@
 <div id="settings" hidden>
   <div class="settings-card" role="dialog" aria-labelledby="set-h">
     <div class="settings-head"><h2 id="set-h">Settings</h2><button class="btn small" id="set-close" type="button">Close</button></div>
-    <div class="set-row"><span><b>Battle speed</b><small>Use the speed button in battle (1×, 2×, 3×); it is remembered.</small></span></div>
+    <div class="set-row"><label for="set-music"><b>Music</b></label><input type="range" id="set-music" min="0" max="100" step="5"></div>
+    <div class="set-row"><label for="set-sfx"><b>Sounds</b></label><input type="range" id="set-sfx" min="0" max="100" step="5"></div>
+    <div class="set-row"><span><b>Screen shake</b><small>Big blows shake the battle.</small></span><button class="btn small" id="set-shake" type="button" aria-pressed="true">On</button></div>
+    <div class="set-row"><span><b>Save code</b><small>Your progress as text, to move it to another device.</small></span><span class="pair"><button class="btn small" id="set-export" type="button">Copy</button><button class="btn small" id="set-import" type="button">Load</button></span></div>
+    <div class="set-row" id="save-box" hidden><textarea id="save-code" rows="2" aria-label="Save code" spellcheck="false"></textarea><button class="btn small gold" id="save-load" type="button">Load code</button></div>
     <div class="set-row"><span><b>Reset progress</b><small>Erase the company and start again.</small></span><button class="btn small" id="set-reset" type="button">Reset</button></div>
-    <div class="set-row" id="reset-confirm" hidden><span>Erase everything?</span><span><button class="btn small" id="reset-yes" type="button">Yes, erase</button> <button class="btn small" id="reset-no" type="button">Cancel</button></span></div>
-    <div class="credits">
+    <div class="set-row" id="reset-confirm" hidden><span>Erase everything?</span><span class="pair"><button class="btn small" id="reset-yes" type="button">Yes, erase</button><button class="btn small" id="reset-no" type="button">Cancel</button></span></div>
+    <details class="credits"><summary>Privacy</summary>
+      <div>Vael has no accounts, ads, tracking or analytics. Your progress stays on this device. Gem packs are bought through the App Store or Google Play, which handle the payment.</div>
+    </details>
+    <details class="credits"><summary>Credits</summary>
       <div><b>Characters</b> made with Character Creator 2D Fantasy (SmallScaleInt).</div>
       <div><b>Effects</b> Pixel VFX Essentials; KILN FX Free Sampler; Magic Spells VFX Lite by Willosuna; FX packs 6 and 13.</div>
-      <div><b>Fonts</b> Pixelify Sans and Silkscreen (Google Fonts, OFL).</div>
-    </div>
+      <div><b>Tiles</b> Pixel Art Top Down – Basic (Cainos); TopDownFantasy Forest; Pixel Top-down Forest and Village Tileset and Castle and Dungeon Tileset Vol 3 by reodesuxz; EPIC RPG World – Ancient Ruins; Dark World.</div>
+      <div><b>Music</b> “Heartfelt Battle” from OpenGameArt.org (CC0).</div>
+      <div><b>Sounds</b> Fantasy UI SFX Free by heyheythere – heyheythere.itch.io/fantasy-ui-sfx-free – CC BY 4.0. Fight sounds and ambience made for the game.</div>
+      <div><b>Fonts</b> Pixelify Sans and Silkscreen (SIL Open Font License).</div>
+    </details>
   </div>
 </div>
 
+<div id="tip" role="note" hidden></div>
 <div id="toast" role="status" hidden></div>
 <div id="loading">Loading…</div>
 <div id="turn">Turn your phone sideways to play.</div>

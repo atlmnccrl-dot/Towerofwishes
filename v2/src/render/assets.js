@@ -15,11 +15,13 @@ export async function loadSprites(names) {
   return out;
 }
 
-export async function loadFx() {
-  const data = await (await fetch('assets/fx/fx.json')).json();
-  const pages = await Promise.all(data.pages.map((p) => img(`assets/fx/${p}`)));
+// an atlas: assets/<dir>/<dir>.json and its pages (the effects, the tiles)
+export async function loadAtlas(dir) {
+  const data = await (await fetch(`assets/${dir}/${dir}.json`)).json();
+  const pages = await Promise.all(data.pages.map((p) => img(`assets/${dir}/${p}`)));
   return { data, pages };
 }
+export const loadFx = () => loadAtlas('fx');
 
 // The frames of a clip in a direction (an empty cell repeats the frame before it).
 export function framesOf(set, clip, dir) {
