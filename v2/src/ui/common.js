@@ -68,3 +68,15 @@ export function fillIcons(root = document) { for (const el of root.querySelector
 // an item's icon on a tile tinted by its tier
 export const itemTile = (it, size = 28) => h('span.itile', { vars: { '--t': TIERS[it.tier].color } }, itemIcon(it, size));
 export { icon };
+// a building material (one per region), a Seal of Vael
+export const matIcon = (rid) => h('span.mat', { vars: { '--m': `var(--mat-${rid})` }, 'aria-hidden': 'true' });
+// a piece of the world atlas drawn at a whole number of pixels per pixel (the Stronghold's buildings)
+let world = null;
+export function setWorld(w) { world = w; }
+export function sprite(name, px = 3) {
+  const c = h('canvas.icon'), t = world && world.data.sprites[name];
+  if (!t) return c;
+  c.width = t[3]; c.height = t[4]; c.style.width = t[3] * px + 'px'; c.style.height = t[4] * px + 'px';
+  const g = c.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(world.pages[t[0]], t[1], t[2], t[3], t[4], 0, 0, t[3], t[4]);
+  return c;
+}

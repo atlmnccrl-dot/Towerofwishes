@@ -69,6 +69,9 @@ Product ids must match exactly (they are in `src/game/economy.js`):
   > town and lead your sellswords across six regions: river roads, drowned fens, salt deserts, a sunken
   > abbey, the frozen north, and the barrow where the kingdom was buried.
   >
+  > • Take back the six Seals of Vael, one from each region's boss, and reclaim the throne.
+  > • Rebuild your camp into a citadel: six buildings, each with lasting bonuses, raised with materials
+  >   gathered across the kingdom.
   > • Recruit 23 heroes, each met on the road at the moment they join.
   > • Build a team of five and set its formation. Battles play themselves, or switch to Manual and
   >   unleash each hero's ability at the moment you choose.
@@ -83,8 +86,8 @@ Product ids must match exactly (they are in `src/game/economy.js`):
   Data safety form). The policy is in `docs/PRIVACY.md`; host it on any public page (both stores need a URL)
   and add your support email.
 - **Screenshots:** ready in `docs/store/` (landscape, JPEG): `iphone-6.9/` (2868×1320, the App Store's 6.9"
-  size, which also covers the smaller iPhones), `ipad-13/` (2752×2064) and `android/` (1920×1080). Eight each:
-  title, camp, map, team, battle, victory, heroes, a story scene. Remake them after visual changes:
+  size, which also covers the smaller iPhones), `ipad-13/` (2752×2064) and `android/` (1920×1080). Nine each:
+  title, camp, Stronghold, map, team, battle, victory, heroes, a story scene. Remake them after visual changes:
   `NODE_PATH=$(npm root -g) node v2/tools/store-shots.mjs`.
 - **What's new (1.0.0):** First release.
 

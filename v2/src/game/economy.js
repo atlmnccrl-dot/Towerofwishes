@@ -1,9 +1,9 @@
 // The company's economy beyond missions: daily bounties, achievements, the shop (gold and gems) and
 // the catalog of real-money gem packs. Pure functions over the save, like progress.js.
 import { UNITS } from '../data/units.js';
-import { MISSIONS, REGIONS, missionsIn } from '../data/campaign.js';
+import { MISSIONS, REGIONS, missionsIn, regionOpen } from '../data/campaign.js';
 import { rollItem, TIERS } from '../data/items.js';
-import { avgLevel, addXp, xpNeed, MAX_LEVEL } from './progress.js';
+import { avgLevel, addXp, xpNeed, MAX_LEVEL, keepRank, sealsTaken, MATS } from './progress.js';
 
 // ---- daily bounties: three a day from the pool, counted from the day's first look
 export const BOUNTIES = {
@@ -65,6 +65,11 @@ export const ACHIEVEMENTS = [
   { id: 'plus5', name: 'Masterwork', desc: 'Upgrade an item to +5.', gems: 20, test: (s) => s.inv.some((it) => it.plus >= 5) },
   { id: 'train50', name: 'Drillmaster', desc: 'Train 50 ranks.', gems: 20, test: (s) => s.stats.trained >= 50 },
   { id: 'upgrades', name: 'Master of Arts', desc: 'A recruit with all four upgrades.', gems: 30, test: (s) => Object.values(s.roster).some((m) => m.ups.every(Boolean)) },
+  { id: 'keep1', name: 'First Stone', desc: 'Build something at the Stronghold.', gems: 10, test: (s) => keepRank(s) >= 1 },
+  { id: 'keep12', name: 'Walls Rising', desc: 'Raise the Stronghold to rank 12.', gems: 30, test: (s) => keepRank(s) >= 12 },
+  { id: 'keep24', name: 'A Keep Again', desc: 'Raise the Stronghold to rank 24.', gems: 60, test: (s) => keepRank(s) >= 24 },
+  { id: 'keep36', name: 'Citadel of Vael', desc: 'Every building at its highest level.', gems: 150, test: (s) => keepRank(s) >= 36 },
+  { id: 'seals6', name: 'The Six Seals', desc: 'Take every Seal of Vael.', gems: 100, test: (s) => sealsTaken(s).length >= REGIONS.length },
 ];
 // newly earned achievements: their gems are added at once
 export function checkAchievements(s) {
@@ -84,6 +89,8 @@ export const SHOP = [
     const ups = []; for (const t of s.team) { const m = s.roster[t.key], from = m.level; addXp(s, t.key, Math.round(xpNeed(m.level) * 0.8)); if (m.level > from) ups.push(`${UNITS[t.key].name.split(' ')[0]} reached level ${m.level}`); }
     return { text: ups.length ? ups.join(', ') : 'The team grows wiser' };
   } },
+  { id: 'wagon', name: 'Supply Wagon', desc: 'Eight of every building material from the regions you have reached.', cost: () => ({ gems: 45 }),
+    give: (s) => { const got = []; for (const r of REGIONS) if (regionOpen(s.cleared, r.id)) { s.mats[r.id] = (s.mats[r.id] || 0) + 8; got.push(MATS[r.id]); } return { text: `+8 ${got.join(', ')}` }; } },
 ];
 function gear(s, rnd, n, bonus) {
   const out = [];

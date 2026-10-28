@@ -1,7 +1,7 @@
 // The company's progress: the save, rewards, levels, gear, training and ability upgrades.
 // Pure functions over a plain save object (no DOM), so Node tests can play the whole campaign.
 import { UNITS, CLASSES, ENEMIES } from '../data/units.js';
-import { MISSIONS, START_ROSTER, START_TEAM, missionById } from '../data/campaign.js';
+import { MISSIONS, REGIONS, START_ROSTER, START_TEAM, missionById, missionsIn, regionOpen } from '../data/campaign.js';
 import { SLOTS, BASES, itemStats, upgradeCost, sellValue, rollItem, MAX_PLUS } from '../data/items.js';
 import { MOD_KEYS, statsAt } from '../combat/battle.js';
 
@@ -53,7 +53,7 @@ export const upgradeChoices = (key, tier) => [T1, T2[UNITS[key].cls], T3, T4[UNI
 export function newSave() {
   const s = { v: SAVE_VERSION, gold: 120, gems: 50, roster: {}, inv: [], uid: 1, cleared: {}, heroic: {}, team: START_TEAM.map((m) => ({ ...m })), joined: [], speed: 1, seed: 7,
     stats: { wins: 0, losses: 0, kills: 0, bosses: 0, stars3: 0, trained: 0, upgraded: 0, bought: 0 }, flags: {},
-    settings: { music: 0.6, sfx: 0.8, shake: true, auto: true, haptics: true, scenes: true } };
+    settings: { music: 0.6, sfx: 0.8, shake: true, auto: true, haptics: true, scenes: true }, keep: {}, mats: {} };
   for (const k of START_ROSTER) s.roster[k] = newMember(1);
   return s;
 }
@@ -70,6 +70,7 @@ export function loadSave(raw) {
   }
   s.stats = Object.assign(newSave().stats, raw.stats); s.flags = Object.assign({}, raw.flags); s.heroic = Object.assign({}, raw.heroic);
   s.settings = Object.assign(newSave().settings, raw.settings);
+  s.keep = Object.assign({}, raw.keep); s.mats = Object.assign({}, raw.mats);
   if (typeof s.gems !== 'number') s.gems = 50;
   s.inv = (s.inv || []).filter((it) => BASES[it.base]);
   s.team = (s.team || []).filter((m) => s.roster[m.key] && m.slot >= 0 && m.slot < 6).slice(0, MAX_TEAM);
@@ -95,6 +96,7 @@ export function modsOf(s, key) {
   for (const [k, r] of Object.entries(m.train)) if (r) add({ [k]: TRAIN[k] * r });
   for (const sl of SLOTS) { const it = m.gear[sl] && itemByUid(s, m.gear[sl]); if (it) add(itemStats(it)); }
   m.ups.forEach((id, tier) => { const u = id && upgradeChoices(key, tier).find((c) => c.id === id); if (u) add(u.mods); });
+  const kb = keepBonus(s); if (kb.hp) add({ hp: kb.hp }); if (kb.atk) add({ atk: kb.atk });
   for (const k of Object.keys(out)) if (!MOD_KEYS.includes(k)) delete out[k];
   return out;
 }
@@ -148,15 +150,19 @@ export function grantRewards(s, missionId, b, rnd, heroic = false) {
   if (stars === 3 && (book[missionId] || 0) < 3) out.gems += heroic ? 10 : 5;
   book[missionId] = Math.max(stars, book[missionId] || 0);
   s.gems += out.gems;
-  out.gold = Math.round(missionGold(m) * (out.first ? 2 : 1) * (0.8 + stars * 0.1) * (heroic ? HEROIC.gold : 1));
+  const kb = keepBonus(s);
+  out.gold = Math.round(missionGold(m) * (out.first ? 2 : 1) * (0.8 + stars * 0.1) * (heroic ? HEROIC.gold : 1) * (1 + kb.gold));
   s.gold += out.gold;
   const xp = Math.round(missionXp(m) * (out.first ? 1.5 : 1) * (heroic ? HEROIC.xp : 1));
   const inTeam = new Set(s.team.map((t) => t.key));
   for (const key of Object.keys(s.roster)) {
-    const share = inTeam.has(key) ? xp : Math.round(xp * BENCH_XP);   // the bench learns at camp
+    const share = inTeam.has(key) ? xp : Math.round(xp * (BENCH_XP + kb.bench));   // the bench learns at camp (more with the Barracks)
     const from = s.roster[key].level, gained = addXp(s, key, share);
     out.xp.push({ key, xp: share, from, to: from + gained, team: inTeam.has(key) });
   }
+  // the region's building material, for the Stronghold
+  const mat = (out.first ? (m.boss ? 12 : 5) : 1 + (stars === 3 ? 1 : 0) + (rnd() < 0.5 ? 1 : 0)) * (heroic ? 2 : 1);
+  s.mats[m.region] = (s.mats[m.region] || 0) + mat; out.mats = { [m.region]: mat };
   const drops = out.first ? 1 + (stars === 3 ? 1 : 0) : rnd() < 0.35 + stars * 0.1 ? 1 : 0;
   for (let i = 0; i < drops; i++) { const it = Object.assign(rollItem(m.level + (heroic ? HEROIC.level : 0), rnd, heroic ? HEROIC.loot : 0), { uid: s.uid++ }); s.inv.push(it); out.loot.push(it); }
   if (out.first && !heroic && m.recruit && !s.roster[m.recruit]) {
@@ -229,7 +235,7 @@ export function equip(s, key, uid) {
 export function unequip(s, key, slot) { if (s.roster[key]) s.roster[key].gear[slot] = null; }
 export function upgradeItem(s, uid) {
   const it = itemByUid(s, uid); if (!it || (it.plus || 0) >= MAX_PLUS) return false;
-  const c = upgradeCost(it); if (s.gold < c) return false;
+  const c = gearUpgradeCost(s, it); if (s.gold < c) return false;
   s.gold -= c; it.plus = (it.plus || 0) + 1; s.stats.upgraded++; return true;
 }
 export function sellItem(s, uid) {
@@ -240,10 +246,13 @@ export function sellItem(s, uid) {
 
 // ---- training and upgrades
 export const trainCost = (rank) => 30 + rank * 30 + rank * rank * 2;
+// what a rank or a gear upgrade costs this company (the Training Yard and the Forge take some off)
+export const trainCostFor = (s, rank) => Math.round(trainCost(rank) * (1 - keepBonus(s).train));
+export const gearUpgradeCost = (s, it) => Math.round(upgradeCost(it) * (1 - keepBonus(s).forge));
 export function train(s, key, stat) {
   const m = s.roster[key]; if (!m || !(stat in TRAIN)) return false;
   const r = m.train[stat]; if (r >= TRAIN_MAX || r >= m.level) return false;   // ranks up to the recruit's level
-  const c = trainCost(r); if (s.gold < c) return false;
+  const c = trainCostFor(s, r); if (s.gold < c) return false;
   s.gold -= c; m.train[stat] = r + 1; s.stats.trained++; return true;
 }
 export function pickUpgrade(s, key, tier, id) {
@@ -255,6 +264,52 @@ export function pickUpgrade(s, key, tier, id) {
 export const pendingUpgrade = (s, key) => UPGRADE_LEVELS.findIndex((lv, t) => s.roster[key].level >= lv && !s.roster[key].ups[t]);
 
 export { CLASSES, MISSIONS };
+
+// ---- the long goal: the six Seals of Vael, and the Stronghold the company rebuilds on the way
+// Every region's last mission (its boss) guards a seal; the sixth reclaims the throne. Every mission
+// drops its region's material, and level N of a building needs region N's: the Stronghold grows as
+// the company travels, and replaying a region has a purpose. (Proposal: names and numbers.)
+export const MATS = { r1: 'Timber', r2: 'Fen Iron', r3: 'Salt', r4: 'Abbey Stone', r5: 'Frost Iron', r6: 'Grave Silver' };
+export const KEEP_MAX = 6;
+export const KEEP = [
+  { id: 'barracks', name: 'Barracks', what: 'Heroes resting at camp learn more from every win.', bonus: (l) => `Heroes at camp learn ${Math.round((BENCH_XP + 0.05 * l) * 100)}% as much as the team` },
+  { id: 'treasury', name: 'Treasury', what: 'More gold from every mission.', bonus: (l) => `+${8 * l}% gold from missions` },
+  { id: 'forge', name: 'Forge', what: 'Gear upgrades cost less.', bonus: (l) => `Gear upgrades ${8 * l}% cheaper` },
+  { id: 'yard', name: 'Training Yard', what: 'Training costs less.', bonus: (l) => `Training ${8 * l}% cheaper` },
+  { id: 'shrine', name: 'Shrine', what: 'Every hero has more health.', bonus: (l) => `+${2 * l}% health for every hero` },
+  { id: 'hall', name: 'War Hall', what: 'Every hero hits harder.', bonus: (l) => `+${2 * l}% attack for every hero` },
+];
+export const RANKS = ['Campfire', 'Camp', 'Outpost', 'Fort', 'Stronghold', 'Keep', 'Citadel of Vael'];
+export const keepLevel = (s, id) => (s.keep && s.keep[id]) || 0;
+export const keepRank = (s) => KEEP.reduce((a, b) => a + keepLevel(s, b.id), 0);
+export const rankName = (s) => RANKS[Math.min(RANKS.length - 1, Math.floor(keepRank(s) / 6))];
+export function keepBonus(s) {
+  const l = (id) => keepLevel(s, id);
+  return { bench: 0.05 * l('barracks'), gold: 0.08 * l('treasury'), forge: 0.08 * l('forge'), train: 0.08 * l('yard'), hp: 0.02 * l('shrine'), atk: 0.02 * l('hall') };
+}
+// what building level `level` costs: gold, and that many of region `level`'s material
+export const keepCost = (level) => ({ gold: 100 * level * level + 100 * level, mat: 'r' + level, n: 6 + 4 * level });
+// 'max', 'locked' (its material's region not reached yet), 'short' (not enough yet) or 'ok'
+export function buildState(s, id) {
+  const l = keepLevel(s, id) + 1; if (l > KEEP_MAX) return 'max';
+  const c = keepCost(l); if (!regionOpen(s.cleared, c.mat)) return 'locked';
+  return s.gold >= c.gold && (s.mats[c.mat] || 0) >= c.n ? 'ok' : 'short';
+}
+export function build(s, id) {
+  if (buildState(s, id) !== 'ok') return false;
+  const c = keepCost(keepLevel(s, id) + 1);
+  s.gold -= c.gold; s.mats[c.mat] -= c.n; s.keep[id] = keepLevel(s, id) + 1; return true;
+}
+// the next thing worth building: the cheapest one the company can afford, else the closest to it
+export function nextBuild(s) {
+  const open = KEEP.filter((b) => !['max', 'locked'].includes(buildState(s, b.id)));
+  if (!open.length) return null;
+  const score = (b) => { const c = keepCost(keepLevel(s, b.id) + 1); return (buildState(s, b.id) === 'ok' ? 0 : 1e6) + c.gold + c.n * 40 - Math.min(c.n, s.mats[c.mat] || 0) * 40; };
+  return open.sort((a, b) => score(a) - score(b))[0];
+}
+// the seals: a region's boss beaten
+export const sealOf = (rid) => missionsIn(rid)[missionsIn(rid).length - 1];
+export const sealsTaken = (s) => REGIONS.filter((r) => s.cleared[sealOf(r.id).id]).map((r) => r.id);
 
 // ---- a save as a text code, to move it between devices by hand: VAEL1.<base64 json>.<checksum>
 function sum(str) { let h = 2166136261; for (let i = 0; i < str.length; i++) h = Math.imul(h ^ str.charCodeAt(i), 16777619); return (h >>> 0).toString(36); }

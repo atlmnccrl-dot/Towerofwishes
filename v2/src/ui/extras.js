@@ -30,7 +30,7 @@ function renderShop(game, body) {
   const grid = h('div.shop');
   for (const it of E.SHOP) {
     const cost = it.cost(s), ok = E.canAfford(s, cost);
-    grid.append(h('div.ware', null, h('span.wi', null, (it.id === 'pouch' ? goldIcon() : icon({ crate: 'bag', officer: 'shield', royal: 'trophy', tome: 'up' }[it.id] || 'shop', 22))), h('b', null, it.name), h('span.wd', null, it.desc),
+    grid.append(h('div.ware', null, h('span.wi', null, (it.id === 'pouch' ? goldIcon() : icon({ crate: 'bag', officer: 'shield', royal: 'trophy', tome: 'up', wagon: 'castle' }[it.id] || 'shop', 22))), h('b', null, it.name), h('span.wd', null, it.desc),
       h('button.btn.small' + (ok ? '.gold' : ''), { type: 'button', disabled: ok ? null : true, onclick: () => {
         const got = E.buy(s, it.id, Math.random); if (!got) return;
         game.audio.play(got.items ? 'chest_open' : 'coin_01');
@@ -84,12 +84,13 @@ function renderAch(game, body) {
 // ---- first-time tips: shown once each, near what they explain
 const TIPS = {
   map: 'Each marker is a mission. Tap one to read it, then Prepare. Cleared missions can be replayed for gold, experience and gear.',
-  prep: 'Fighters hold the front row; archers, mages and healers the back. Tap a hero below to add them, or two places to swap. Best team picks the strongest five.',
+  prep: 'Fighters hold the front row; archers, mages and healers the back. Drag a hero from below onto a place, or tap them. Drag between places to swap.',
   battle: 'Battles play themselves. When a hero\'s gold bar fills they use their ability; switch Auto to Manual to pick the moment yourself by tapping their card.',
   loot: 'New gear goes to the Heroes screen. Auto-equip puts the best on the team in one tap.',
   upgrade: 'A hero can learn an upgrade. Open Heroes and look for the red dot.',
   lose: 'Losing costs nothing. Replay earlier missions for experience, equip gear, train, and come back.',
   extras: 'The camp has a shop, daily bounties and feats. Gems come from three-star wins, bosses, bounties and feats.',
+  keep: 'Missions drop their region\'s material. Build here to grow the camp into a citadel: each building helps for good, and each level needs the material of a region further along the road.',
 };
 export function tip(game, id) {
   const s = game.save; s.flags = s.flags || {};

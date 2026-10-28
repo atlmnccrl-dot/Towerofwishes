@@ -91,6 +91,7 @@
   .ttl small, .topbar small { font: 700 0.68rem/1 var(--ui); color: var(--muted); letter-spacing: 0.14em; text-transform: uppercase; white-space: nowrap; }
   .tag-chip { font: 700 0.68rem/1 var(--ui); letter-spacing: 0.1em; text-transform: uppercase; padding: 0.3rem 0.55rem; border-radius: 99px; background: rgba(255, 255, 255, 0.08); border: 1px solid var(--stroke); }
   .tag-chip.boss { color: #ffb0a6; border-color: rgba(255, 107, 94, 0.5); background: rgba(255, 107, 94, 0.12); }
+  .tag-chip.seal { color: #3a1c04; background: radial-gradient(circle at 35% 30%, #fff0b8, #ffc64a 45%, #b0661a); border-color: transparent; }
   .tag-chip.hero { color: #ffc28a; border-color: rgba(255, 150, 70, 0.5); background: rgba(255, 150, 70, 0.12); }
   .modes { display: inline-flex; padding: 3px; gap: 3px; background: rgba(0, 0, 0, 0.35); border: 1px solid var(--stroke); border-radius: 99px; align-self: flex-start; }
   .modes button { background: none; border: 0; border-radius: 99px; padding: 0.4rem 0.9rem; font: 700 0.75rem/1 var(--ui); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); cursor: pointer; }
@@ -128,7 +129,56 @@
   .cta-k { font: 700 0.7rem/1 var(--ui); letter-spacing: 0.2em; color: var(--gold); text-transform: uppercase; }
   .cta-r { font: 700 1.45rem/1.05 var(--display); }
   .cta-n { font: 600 0.92rem/1.25 var(--ui); color: var(--muted); }
-  .cta-team { display: flex; gap: 0.3rem; margin: 0.35rem 0 0.2rem; }
+  .cta-k b { color: var(--text); }
+  .goals { display: grid; gap: 0.6rem; width: 17.5rem; }
+  .goals .cta { width: auto; }
+  .seals { display: flex; gap: 0.3rem; margin: 0.15rem 0 0.25rem; }
+  .seal { width: 1.55rem; height: 1.55rem; border-radius: 50%; display: grid; place-items: center; font: 800 0.7rem/1 var(--display); color: var(--dim); background: rgba(0, 0, 0, 0.35); border: 1.5px dashed rgba(255, 255, 255, 0.2); }
+  .seal.on { background: radial-gradient(circle at 35% 30%, #fff0b8, #ffc64a 45%, #b0661a); color: #3a1c04; border: 0; box-shadow: 0 0 10px rgba(255, 190, 80, 0.45); }
+  .seal.next { border-color: var(--gold); color: var(--gold); }
+  .goal { position: relative; display: flex; align-items: center; gap: 0.7rem; padding: 0.6rem 0.8rem; text-align: left; cursor: pointer; color: var(--text); border-radius: 16px; }
+  .goal:active { transform: scale(0.98); }
+  .goal-art { width: 3rem; height: 3rem; border-radius: 12px; display: grid; place-items: center; background: radial-gradient(circle at 50% 40%, rgba(255, 190, 80, 0.2), rgba(0, 0, 0, 0.3)); flex: none; }
+  .goal-txt { display: grid; gap: 0.2rem; min-width: 0; }
+  .goal-n { font: 700 0.95rem/1.15 var(--ui); }
+  .goal-cost { display: flex; gap: 0.5rem; font: 700 0.78rem/1 var(--ui); color: var(--muted); align-items: center; }
+  .goal-cost span, .cost span { display: inline-flex; align-items: center; gap: 0.2rem; }
+  .goal .dot { position: absolute; top: 0.5rem; right: 0.5rem; }
+  /* materials: one colour per region */
+  :root { --mat-r1: #c08447; --mat-r2: #73a283; --mat-r3: #efe9dc; --mat-r4: #c9b07a; --mat-r5: #8fd6ff; --mat-r6: #bb90ff; }
+  .mat { display: inline-block; width: 1.05rem; height: 1.05rem; flex: none; vertical-align: -0.2rem; background: linear-gradient(160deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0) 55%), var(--m); clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); }
+  .short { color: #ff8a7e; }
+  /* the Stronghold: the camp scene on the left, the buildings on the right */
+  #keep { display: flex; flex-direction: column; gap: 0.5rem; background: linear-gradient(90deg, transparent 30%, rgba(5, 7, 12, 0.6) 55%); }
+  .keep-panel { position: absolute; top: calc(var(--top) + 3.2rem); right: var(--gut-r); bottom: var(--bot); width: min(31rem, 60%); box-sizing: border-box; padding: 0.7rem; display: flex; flex-direction: column; gap: 0.5rem; }
+  .keep-head { display: grid; gap: 0.45rem; }
+  .rankbar { height: 0.35rem; border-radius: 99px; background: rgba(0, 0, 0, 0.5); overflow: hidden; }
+  .rankbar i { display: block; height: 100%; background: var(--gold-grad); }
+  .mats { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+  .matpill { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.2rem 0.5rem 0.2rem 0.3rem; border-radius: 99px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--stroke); }
+  .matpill b { font: 800 0.8rem/1 var(--ui); font-variant-numeric: tabular-nums; }
+  .matpill small { font: 600 0.62rem/1 var(--ui); color: var(--muted); }
+  .matpill.locked { opacity: 0.45; }
+  #s-list { flex: 1; min-height: 0; overflow-y: auto; display: grid; gap: 0.4rem; align-content: start; scrollbar-width: none; }
+  #s-list::-webkit-scrollbar { display: none; }
+  .bld { display: grid; grid-template-columns: auto 1fr auto; gap: 0.6rem; align-items: center; padding: 0.45rem 0.6rem 0.45rem 0.45rem; border-radius: 14px; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--stroke); }
+  .bld.ready { border-color: rgba(255, 207, 92, 0.55); background: rgba(255, 207, 92, 0.06); }
+  .bld.unbuilt .bart canvas { filter: grayscale(1) brightness(0.55); }
+  .bart { width: 3.2rem; height: 3.2rem; border-radius: 12px; display: grid; place-items: center; background: radial-gradient(circle at 50% 40%, rgba(255, 190, 80, 0.16), rgba(0, 0, 0, 0.3)); }
+  .binfo { min-width: 0; display: grid; gap: 0.15rem; }
+  .bname { display: flex; align-items: center; gap: 0.5rem; font: 700 1rem/1 var(--display); }
+  .bnow { font: 600 0.78rem/1.25 var(--ui); color: var(--text); }
+  .bnext { display: flex; align-items: center; gap: 0.25rem; font: 600 0.72rem/1.25 var(--ui); color: var(--muted); }
+  .bnext .ico { width: 0.75rem; height: 0.75rem; color: var(--gold); }
+  .pips { display: inline-flex; gap: 2px; }
+  .pips i { width: 0.55rem; height: 0.3rem; border-radius: 2px; background: rgba(255, 255, 255, 0.14); }
+  .pips i.on { background: var(--gold-grad); }
+  .bact { display: grid; gap: 0.3rem; justify-items: end; }
+  .cost { display: flex; gap: 0.5rem; font: 700 0.75rem/1 var(--ui); font-variant-numeric: tabular-nums; }
+  .done { display: inline-flex; align-items: center; gap: 0.25rem; font: 800 0.7rem/1 var(--ui); letter-spacing: 0.1em; text-transform: uppercase; color: #7ff0a4; }
+  .lockline { display: inline-flex; align-items: center; gap: 0.3rem; font: 600 0.7rem/1.2 var(--ui); color: var(--dim); max-width: 10rem; text-align: right; }
+  .rw .mat { width: 1.3rem; height: 1.3rem; }
+  @media (max-width: 720px) { .goals { width: 15.5rem; } }
   .cta-go { margin-top: 0.3rem; height: 2.8rem; border-radius: 99px; background: var(--gold-grad); color: var(--gold-ink); font: 800 1rem/1 var(--ui); letter-spacing: 0.08em; text-transform: uppercase; display: flex; align-items: center; justify-content: center; gap: 0.5rem; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 6px 20px rgba(240, 150, 42, 0.35); }
   .dock { align-self: flex-start; display: flex; gap: 0.25rem; padding: 0.35rem; border-radius: 18px; }
   .dbtn { position: relative; width: 4.4rem; height: 3.7rem; border: 0; border-radius: 13px; background: none; cursor: pointer; display: grid; place-items: center; align-content: center; gap: 0.25rem; color: var(--text); font: 700 0.7rem/1 var(--ui); letter-spacing: 0.08em; text-transform: uppercase; }
@@ -204,18 +254,49 @@
   .foe-row em { font: 800 0.72rem/1 var(--ui); font-style: normal; color: var(--muted); margin-right: 0.2rem; }
   .floor { position: relative; flex: 1; min-height: 0; }
   #p-slots { position: absolute; left: 0; bottom: 1.2rem; height: min(calc(100% - 1.2rem), 17rem); width: 62%; }
-  .pad { position: absolute; width: 7.2rem; height: 6.4rem; transform: translate(-50%, -100%); border: 0; background: none; cursor: pointer; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
-  .pad::before { content: ''; position: absolute; left: 50%; bottom: 0.15rem; width: 5.2rem; height: 1.6rem; transform: translateX(-50%); border-radius: 50%; background: radial-gradient(closest-side, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02)); border: 1.5px dashed rgba(255, 255, 255, 0.22); }
-  .pad.filled::before { border: 1.5px solid var(--c); background: radial-gradient(closest-side, color-mix(in srgb, var(--c) 35%, transparent), transparent); }
-  .pad.sel::before { border-color: var(--gold); box-shadow: 0 0 16px rgba(255, 207, 92, 0.6); }
-  .pad .hero-art { position: relative; margin-bottom: 0.55rem; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.5)); }
-  .pad .plus { position: relative; margin-bottom: 0.6rem; color: rgba(255, 255, 255, 0.35); }
-  .pad .nameplate { position: absolute; bottom: -1.15rem; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 0.3rem; font: 700 0.75rem/1 var(--ui); white-space: nowrap; padding: 0.22rem 0.5rem; border-radius: 99px; background: rgba(8, 10, 16, 0.75); }
+  .pad { position: absolute; width: 7.6rem; height: 6.8rem; transform: translate(-50%, -100%); cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; touch-action: none; -webkit-tap-highlight-color: transparent; }
+  /* the place itself: a lit stone disc with a rim, seen from above at an angle */
+  .pad .plat { position: absolute; left: 50%; bottom: 0; width: 6.4rem; height: 2rem; transform: translateX(-50%); border-radius: 50%;
+    background: radial-gradient(60% 70% at 50% 40%, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.03) 70%), linear-gradient(#262d40, #161b28);
+    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.12), 0 0.35rem 0 #0b0e16, 0 0.6rem 1rem rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 255, 255, 0.12); transition: box-shadow 0.2s, border-color 0.2s; }
+  .pad.front .plat { background: radial-gradient(60% 70% at 50% 40%, rgba(255, 140, 110, 0.14), rgba(255, 255, 255, 0.03) 70%), linear-gradient(#2c2630, #181620); }
+  .pad.back .plat { background: radial-gradient(60% 70% at 50% 40%, rgba(130, 170, 255, 0.14), rgba(255, 255, 255, 0.03) 70%), linear-gradient(#232b3c, #151a26); }
+  .pad.filled .plat { border-color: var(--c); box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.15), inset 0 0 1.2rem color-mix(in srgb, var(--c) 45%, transparent), 0 0.35rem 0 #0b0e16, 0 0 1.2rem color-mix(in srgb, var(--c) 30%, transparent); }
+  /* an open place: a soft column of light rising from the disc */
+  .pad.open .beam { position: absolute; left: 50%; bottom: 0.9rem; width: 4.6rem; height: 4.4rem; transform: translateX(-50%); border-radius: 50% 50% 0 0 / 30% 30% 0 0;
+    background: linear-gradient(to top, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0)); pointer-events: none; transition: background 0.2s; }
+  .pad.open.front .beam { background: linear-gradient(to top, rgba(255, 150, 120, 0.13), rgba(255, 150, 120, 0)); }
+  .pad.open.back .beam { background: linear-gradient(to top, rgba(140, 180, 255, 0.13), rgba(140, 180, 255, 0)); }
+  #p-slots.placing .pad.open .beam, .dragging .pad.open .beam, .pad.sel.open .beam { background: linear-gradient(to top, rgba(255, 207, 92, 0.32), rgba(255, 207, 92, 0)); }
+  .pad.open .addplus { position: absolute; bottom: 0.2rem; left: 50%; transform: translateX(-50%); width: 1.6rem; height: 1.6rem; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2); color: var(--muted); transition: background 0.2s, color 0.2s; }
+  .pad.open .addplus .ico { width: 0.95rem; height: 0.95rem; stroke-width: 2.6; }
+  .pad .slotlabel { position: absolute; bottom: -1.1rem; left: 50%; transform: translateX(-50%); font: 700 0.6rem/1 var(--ui); letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); white-space: nowrap; }
+  .pad.open:hover .plat, .pad.open:focus-visible .plat { border-color: rgba(255, 255, 255, 0.35); }
+  .pad.open:hover .addplus { background: rgba(255, 255, 255, 0.16); color: var(--text); }
+  /* where a hero can go: a chosen hero, a picked place, or a drag in progress */
+  #p-slots.placing .pad.open .plat, .dragging .pad .plat, .pad.sel .plat { border-color: var(--gold); box-shadow: inset 0 0 1.2rem rgba(255, 207, 92, 0.35), 0 0.35rem 0 #0b0e16, 0 0 1.4rem rgba(255, 207, 92, 0.45); animation: placeglow 1s ease-in-out infinite alternate; }
+  #p-slots.placing .pad.open .addplus, .pad.sel.open .addplus { background: var(--gold-grad); color: var(--gold-ink); border-color: transparent; }
+  #p-slots.placing .pad.open .slotlabel, .pad.sel .slotlabel { color: var(--gold); }
+  .pad.over .plat { border-color: #fff !important; box-shadow: inset 0 0 1.6rem rgba(255, 230, 160, 0.6), 0 0.35rem 0 #0b0e16, 0 0 2rem rgba(255, 207, 92, 0.8) !important; }
+  @keyframes placeglow { to { box-shadow: inset 0 0 1.6rem rgba(255, 207, 92, 0.5), 0 0.35rem 0 #0b0e16, 0 0 2rem rgba(255, 207, 92, 0.65); } }
+  .pad .hero-art { position: relative; margin-bottom: 0.7rem; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.5)); pointer-events: none; }
+  .pad .nameplate { position: absolute; bottom: -1.15rem; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 0.3rem; font: 700 0.75rem/1 var(--ui); white-space: nowrap; padding: 0.22rem 0.5rem; border-radius: 99px; background: rgba(8, 10, 16, 0.8); border: 1px solid color-mix(in srgb, var(--c) 50%, transparent); }
   .pad .nameplate i { font-style: normal; color: var(--c); }
+  .pad .warn { position: absolute; top: 0.5rem; left: 0.9rem; width: 1.2rem; height: 1.2rem; border-radius: 50%; display: grid; place-items: center; font: 800 0.75rem/1 var(--ui); background: #e8a33a; color: #2a1703; box-shadow: 0 0 0 2px rgba(8, 10, 16, 0.8); }
   .pad .x { position: absolute; top: 0.2rem; right: 0.6rem; width: 1.6rem; height: 1.6rem; border-radius: 50%; border: 1px solid var(--stroke-2); background: rgba(8, 10, 16, 0.75); color: var(--muted); display: grid; place-items: center; cursor: pointer; padding: 0; opacity: 0; transition: opacity 0.15s; }
   .pad .x .ico { width: 0.9rem; height: 0.9rem; }
   .pad.sel .x, .pad:hover .x { opacity: 1; }
-  .rowtag { position: absolute; left: -0.2rem; margin-top: 0; font: 700 0.62rem/1 var(--ui); letter-spacing: 0.18em; color: var(--dim); text-transform: uppercase; writing-mode: vertical-rl; transform: rotate(180deg); }
+  .rowband { position: absolute; display: grid; gap: 0.25rem; pointer-events: none; max-width: 22%; }
+  .rowband.front { left: 0; top: calc(50% - 2.6rem); }
+  .rowband.back { right: 0; bottom: 0.4rem; text-align: right; }
+  .rowband b { font: 800 0.62rem/1 var(--ui); letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); }
+  .rowband span { font: 600 0.62rem/1.25 var(--ui); color: var(--dim); letter-spacing: 0.04em; }
+  .rowband.front b { color: #ffb4a6; } .rowband.back b { color: #a9c4ff; }
+  .dragghost { position: fixed; z-index: 20; transform: translate(-50%, -60%) scale(1.1); pointer-events: none; filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.6)); }
+  .dragghost .face { border-radius: 12px; box-shadow: 0 0 0 2px var(--c), 0 0 18px var(--c); }
+  .dragging #p-roster { outline: 1px dashed rgba(255, 255, 255, 0.2); outline-offset: 2px; border-radius: 12px; }
+  .dragging #p-roster.over { outline-color: var(--hurt); }
+  .card { touch-action: pan-x; }
   .enemy-side { position: absolute; right: 38%; top: 50%; transform: translateY(-50%); color: rgba(255, 107, 94, 0.45); display: grid; justify-items: center; gap: 0.3rem; font: 700 0.65rem/1 var(--ui); letter-spacing: 0.16em; text-transform: uppercase; }
   #p-detail { position: absolute; right: 0; top: 0.3rem; width: 35%; max-width: 21rem; box-sizing: border-box; padding: 0.85rem 1rem; display: grid; gap: 0.4rem; }
   #p-detail .t { font: 700 1.2rem/1.05 var(--display); }
@@ -425,6 +506,7 @@
   #tip.at-prep { top: var(--top); bottom: auto; }
   #tip.at-battle { top: calc(var(--top) + 3rem); bottom: auto; }
   #tip.at-company { bottom: var(--bot); }
+  #tip.at-keep { left: calc(var(--gut-l) + 20%); bottom: var(--bot); width: min(22rem, 38%); }
   #tip { pointer-events: none; }
   #tip button { pointer-events: auto; }
 
@@ -466,7 +548,7 @@
     .cta { width: 15.5rem; }
     .banner { right: calc(var(--gut-r) + 16.5rem); }
   }
-  @media (prefers-reduced-motion: reduce) { .mark.next b, .rays, #r-box > .stars i.on, .jart, .lcard, #tip, .cut, #banner, #hud.manual .chip.ready { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { .pad .plat, .mark.next b, .rays, #r-box > .stars i.on, .jart, .lcard, #tip, .cut, #banner, #hud.manual .chip.ready { animation: none; } }
 
   /* ---- filmed scenes: letterbox, lines beside the speaker, title cards */
   #scene { position: fixed; inset: 0; z-index: 3; touch-action: none; }
@@ -521,16 +603,24 @@
     <button class="btn icon open-settings" type="button" aria-label="Settings"><i data-icon="gear"></i></button>
   </header>
   <div class="camp-main">
-    <button class="cta" id="k-campaign" type="button" aria-label="Campaign">
-      <span class="cta-k">Campaign</span>
-      <span class="cta-r" id="k-cta-region"></span>
-      <span class="cta-n" id="k-next"></span>
-      <span class="cta-team" id="k-team"></span>
-      <span class="cta-go"><i data-icon="swords"></i>To the map</span>
-    </button>
+    <div class="goals">
+      <button class="cta" id="k-campaign" type="button" aria-label="Campaign">
+        <span class="cta-k">Reclaim Vael · <b id="k-seal-count"></b></span>
+        <span class="seals" id="k-seals"></span>
+        <span class="cta-r" id="k-cta-region"></span>
+        <span class="cta-n" id="k-next"></span>
+        <span class="cta-go"><i data-icon="swords"></i>To the map</span>
+      </button>
+      <button class="goal glass" id="k-keep" type="button" aria-label="Stronghold">
+        <span class="goal-art" id="k-keep-art"></span>
+        <span class="goal-txt"><span class="cta-k">Stronghold · <b id="k-keep-rank"></b></span><span class="goal-n" id="k-keep-next"></span><span class="goal-cost" id="k-keep-cost"></span></span>
+        <span class="dot" id="k-keep-dot" hidden></span>
+      </button>
+    </div>
   </div>
   <nav class="dock glass" aria-label="Camp">
     <button class="dbtn" id="k-company" type="button"><i data-icon="heroes"></i>Heroes<span class="dot" id="k-company-dot" hidden></span></button>
+    <button class="dbtn" id="k-keep2" type="button"><i data-icon="castle"></i>Keep<span class="dot" id="k-keep-dot2" hidden></span></button>
     <button class="dbtn" id="k-shop" type="button"><i data-icon="shop"></i>Shop</button>
     <button class="dbtn" id="k-bounties" type="button"><i data-icon="scroll"></i>Bounties<span class="dot" id="k-bounty-dot" hidden></span></button>
     <button class="dbtn" id="k-ach" type="button"><i data-icon="trophy"></i>Feats</button>
@@ -585,6 +675,19 @@
     <div id="c-roster"></div>
     <div id="c-hero"></div>
     <div id="c-detail" class="glass"></div>
+  </div>
+</section>
+
+<section id="keep" class="screen" aria-label="Stronghold" hidden>
+  <header class="topbar">
+    <button class="btn icon" id="s-back" type="button" aria-label="Back to camp"><i data-icon="back"></i></button>
+    <div class="ttl"><h1>Stronghold</h1><small id="s-rank"></small></div>
+    <span class="grow"></span>
+    <span class="pill" id="s-gold"></span>
+  </header>
+  <div class="keep-panel glass">
+    <div class="keep-head"><div class="rankbar"><i id="s-bar"></i></div><div class="mats" id="s-mats"></div></div>
+    <div id="s-list"></div>
   </div>
 </section>
 

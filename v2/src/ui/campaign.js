@@ -6,7 +6,7 @@ import { itemStats, itemName, statText } from '../data/items.js';
 import * as P from '../game/progress.js';
 import { TIME_LIMIT } from '../combat/battle.js';
 import { joinScene, arrivalScene } from '../data/scenes.js';
-import { $, h, face, itemTile, tierColor, toast, goldIcon, gemIcon, icon } from './common.js';
+import { $, h, face, itemTile, tierColor, toast, goldIcon, gemIcon, icon, matIcon } from './common.js';
 import { heroArt, artPx } from './heroart.js';
 
 export { gemIcon };
@@ -80,7 +80,7 @@ function renderSheet(game, m, regionDone) {
     regionDone ? h('div.modes', { role: 'group', 'aria-label': 'Difficulty' },
       h('button' + (H ? '' : '.on'), { type: 'button', 'aria-pressed': String(!H), onclick: () => { heroicMode = false; renderMap(game, m.id); } }, 'Normal'),
       h('button' + (H ? '.on' : ''), { type: 'button', 'aria-pressed': String(H), onclick: () => { heroicMode = true; renderMap(game, m.id); } }, 'Heroic')) : null,
-    h('div.sh-top', null, h('span.tag-chip', null, `Mission ${n}`), h('span.tag-chip', null, `Lv ${spec.level}`), m.boss ? h('span.tag-chip.boss', null, 'Boss') : null, H ? h('span.tag-chip.hero', null, 'Heroic') : null, h('span.grow'), stars(done)),
+    h('div.sh-top', null, h('span.tag-chip', null, `Mission ${n}`), h('span.tag-chip', null, `Lv ${spec.level}`), m.boss ? h('span.tag-chip.boss', null, 'Boss') : null, m.boss && !H ? h('span.tag-chip.seal', { title: 'Beat the boss to take this region\'s Seal of Vael' }, 'Seal') : null, H ? h('span.tag-chip.hero', null, 'Heroic') : null, h('span.grow'), stars(done)),
     h('h2', null, m.name), h('div.place', null, m.place),
     h('p.brief', null, m.text),
     powerRow(game, m, H),
@@ -91,6 +91,7 @@ function renderSheet(game, m, regionDone) {
       reward(goldIcon(), String(Math.round(P.missionGold(m) * (done ? 1 : 2) * (H ? P.HEROIC.gold : 1)))),
       reward(icon('up', 18), `${Math.round(P.missionXp(m) * (done ? 1 : 1.5) * (H ? P.HEROIC.xp : 1))} xp`),
       reward(icon('bag', 18), done ? 'Chance' : H ? 'Rare+' : 'Gear'),
+      reward(matIcon(m.region), (done ? '1-3' : m.boss ? '12' : '5') + (H ? ' ×2' : ''), '.matrw'),
       done < 3 ? reward(gemIcon(), H ? '10' : (!done && m.boss ? '30' : '5')) : null,
       !H && !done && m.recruit && !s.roster[m.recruit] ? reward(face(UNITS[m.recruit].set, 22, true), 'Recruit', '.who') : null)].filter(Boolean));
   sheet.replaceChildren(body, h('button.btn.big.primary', { type: 'button', onclick: () => { game.heroic = H; s.flags.at = m.id; game.persist(); game.go('prep', m.id); } }, icon('swords', 20), 'Prepare'));
@@ -104,12 +105,17 @@ function powerRow(game, m, H) {
   return h('div.powers', { title: { ok: 'Ready', close: 'A close fight', low: 'Too strong for now' }[c] }, powerChip('Your team', tp, c), h('span.vs', null, 'vs'), powerChip('Enemies', mp, 'foe'));
 }
 
-// ---- the formation: six places on the floor (back row left, front row right), the roster below
-const PADS = [  // slot -> where its pad stands (fractions of the formation area): the front row nearer the foes, above
-  { s: 0, x: 0.2, y: 0.5 }, { s: 1, x: 0.5, y: 0.5 }, { s: 2, x: 0.8, y: 0.5 },
-  { s: 3, x: 0.14, y: 0.97 }, { s: 4, x: 0.5, y: 0.97 }, { s: 5, x: 0.86, y: 0.97 },
+// ---- the formation: two rows of three places on a lit floor, the collection below. A hero gets in by a
+// tap (the best free place, or the place picked first) or by dragging them onto a place; drag between
+// places to swap, back onto the collection to take them out.
+const PADS = [  // slot -> where its place stands (fractions of the formation area): the front row nearer the foes, above
+  { s: 0, x: 0.37, y: 0.5 }, { s: 1, x: 0.61, y: 0.5 }, { s: 2, x: 0.85, y: 0.5 },   // the rows are staggered so the back
+  { s: 3, x: 0.25, y: 0.98 }, { s: 4, x: 0.49, y: 0.98 }, { s: 5, x: 0.73, y: 0.98 },  // row stands between the front row's places
 ];
-let selSlot = null, focus = null;
+const FRONT = ['vanguard', 'striker'];
+const rowOf = (slot) => (slot < 3 ? 'front' : 'back');
+const misplaced = (key, slot) => FRONT.includes(UNITS[key].cls) !== (slot < 3);
+let selSlot = null, focus = null, dragged = 0;
 export function renderPrep(game, missionId) {
   const s = game.save, m = missionById(missionId), spec = P.battleSpec(m, game.heroic);
   if (!focus || !s.roster[focus]) focus = s.team[0] ? s.team[0].key : Object.keys(s.roster)[0];
@@ -117,47 +123,113 @@ export function renderPrep(game, missionId) {
   $('#p-sub').textContent = `Level ${spec.level}${m.boss ? ' · boss' : ''}${game.heroic ? ' · heroic' : ''}`;
   const foes = {}; for (const [k] of m.foes) foes[k] = (foes[k] || 0) + 1;
   $('#p-foes').replaceChildren(h('em', null, 'VS'), ...Object.keys(foes).map((k) => face(ENEMIES[k].set, 28)));
-  const slots = $('#p-slots'); slots.replaceChildren(h('span.rowtag', { style: { top: '6%' } }, 'Front row'), h('span.rowtag', { style: { top: '54%' } }, 'Back row'));
+  const full = s.team.length >= P.MAX_TEAM, placing = !s.team.some((q) => q.key === focus) && !full;   // a hero chosen and not yet in: the free places light up
+  const slots = $('#p-slots');
+  slots.className = placing ? 'placing' : '';
+  slots.replaceChildren(
+    h('div.rowband.front', null, h('b', null, 'Front row'), h('span', null, 'Takes the blows')),
+    h('div.rowband.back', null, h('b', null, 'Back row'), h('span', null, 'Archers, mages, healers')));
   const big = artPx();
   for (const pd of PADS) {
-    const slot = pd.s, t = s.team.find((q) => q.slot === slot);
-    const el = h('div.pad' + (t ? '.filled' : '') + (selSlot === slot ? '.sel' : ''), { role: 'button', tabindex: '0', onclick: () => tapSlot(game, missionId, slot),
+    const slot = pd.s, t = s.team.find((q) => q.slot === slot), row = rowOf(slot);
+    const el = h('div.pad.' + row + (t ? '.filled' : '.open') + (selSlot === slot ? '.sel' : ''), { role: 'button', tabindex: '0', 'data-slot': slot,
+      onclick: () => { if (Date.now() - dragged > 300) tapSlot(game, missionId, slot); },
+      onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tapSlot(game, missionId, slot); } },
       style: { left: pd.x * 100 + '%', top: pd.y * 100 + '%' },
-      'aria-label': t ? `${UNITS[t.key].name}, ${slot < 3 ? 'front' : 'back'} row` : `Empty ${slot < 3 ? 'front' : 'back'} place` });
+      'aria-label': t ? `${UNITS[t.key].name}, ${row} row` : `Empty ${row} place` },
+      h('span.plat'));
     if (t) {
       const d = UNITS[t.key]; el.style.setProperty('--c', clsVar(d.cls));
+      el.addEventListener('pointerdown', (e) => startDrag(e, game, missionId, t.key, slot));
       el.append(heroArt(d.set, big), h('span.nameplate', null, h('i', null, 'Lv ' + s.roster[t.key].level), first(d.name)),
-        h('button.x', { type: 'button', 'aria-label': 'Remove ' + d.name, onclick: (e) => { e.stopPropagation(); if (s.team.length <= 1) { toast('The team needs at least one'); return; } s.team = s.team.filter((q) => q !== t); selSlot = null; game.persist(); renderPrep(game, missionId); } }, icon('close', 14)));
-    } else el.append(h('span.plus', null, icon('plus', 22)));
+        misplaced(t.key, slot) ? h('span.warn', { title: FRONT.includes(d.cls) ? 'Fights best in the front row' : 'Safer in the back row' }, '!') : null,
+        h('button.x', { type: 'button', 'aria-label': 'Remove ' + d.name, onclick: (e) => { e.stopPropagation(); removeHero(game, missionId, t.key); } }, icon('close', 14)));
+    } else {
+      el.append(h('span.beam'), h('span.addplus', null, icon('plus', 16)),
+        h('span.slotlabel', null, placing || selSlot === slot ? 'Place here' : row === 'front' ? 'Fighter' : 'Ranged · Healer'));
+    }
     slots.append(el);
   }
   const roster = $('#p-roster'); roster.replaceChildren();
   const keys = Object.keys(UNITS).filter((k) => s.roster[k]).sort((a, b) => s.team.some((q) => q.key === b) - s.team.some((q) => q.key === a));
   for (const k of keys) {
     const d = UNITS[k], inT = s.team.some((q) => q.key === k);
-    roster.append(h('button.card' + (inT ? '.in' : '') + (focus === k ? '.focus' : ''), { type: 'button', vars: { '--c': clsVar(d.cls) }, 'aria-pressed': String(inT), 'aria-label': d.name, onclick: () => tapCard(game, missionId, k) },
-      h('span.lv', null, s.roster[k].level), face(d.set, 42), h('span.nm', null, first(d.name))));
+    const card = h('button.card' + (inT ? '.in' : '') + (focus === k ? '.focus' : ''), { type: 'button', vars: { '--c': clsVar(d.cls) }, 'aria-pressed': String(inT), 'aria-label': d.name,
+      onclick: () => { if (Date.now() - dragged > 300) tapCard(game, missionId, k); } },
+      h('span.lv', null, s.roster[k].level), face(d.set, 42), h('span.nm', null, first(d.name)));
+    card.addEventListener('pointerdown', (e) => startDrag(e, game, missionId, k, null));
+    roster.append(card);
   }
   const d = UNITS[focus];
   $('#p-detail').replaceChildren(h('div.t', null, d.name), h('div.sub', null, h('span.cls', { vars: { '--c': clsVar(d.cls) } }, CLASSES[d.cls].name), h('span.place', null, d.title)),
     h('div.ability', null, h('b', null, d.ability.name + '. '), d.ability.desc));
   $('#p-count').replaceChildren(`Team ${s.team.length}/${P.MAX_TEAM} · `, powerChip('Power', P.teamPower(s), powerClass(P.teamPower(s), P.missionPower(m, game.heroic))), h('span.vs', null, 'vs'), powerChip('Enemies', P.missionPower(m, game.heroic), 'foe'));
 }
+function removeHero(game, missionId, key) {
+  const s = game.save;
+  if (s.team.length <= 1) { toast('The team needs at least one'); return; }
+  s.team = s.team.filter((q) => q.key !== key); selSlot = null; game.persist(); renderPrep(game, missionId);
+}
+// put a hero on a place: from the collection (taking over the place, or the best free one), or from another place (a swap)
+function placeHero(game, missionId, key, slot) {
+  const s = game.save, mine = s.team.find((q) => q.key === key), here = s.team.find((q) => q.slot === slot);
+  if (mine) { if (mine.slot !== slot) P.moveSlot(s, mine.slot, slot); }
+  else if (here) { s.team = s.team.filter((q) => q !== here); s.team.push({ key, slot }); }
+  else if (s.team.length >= P.MAX_TEAM) { toast('The team is full: take someone out first'); return; }
+  else s.team.push({ key, slot });
+  focus = key; selSlot = null; game.persist(); game.audio.play('equip_armor_01', { gain: 0.4 }); renderPrep(game, missionId);
+}
 function tapCard(game, missionId, key) {
   const s = game.save; focus = key;
   const t = s.team.find((q) => q.key === key);
   if (t) selSlot = selSlot === t.slot ? null : t.slot;
-  else if (s.team.length < P.MAX_TEAM) { P.toggleTeam(s, key, selSlot); selSlot = null; game.persist(); }
-  else toast('The team is full: remove someone first');
+  else if (selSlot != null) { placeHero(game, missionId, key, selSlot); return; }
+  else if (s.team.length < P.MAX_TEAM) { P.toggleTeam(s, key); game.persist(); }
+  else toast('The team is full: take someone out first');
   renderPrep(game, missionId);
 }
 function tapSlot(game, missionId, slot) {
   const s = game.save, here = s.team.find((q) => q.slot === slot);
+  // a hero picked from the collection and not yet in: this is where they go
+  if (selSlot == null && focus && !s.team.some((q) => q.key === focus) && s.team.length < P.MAX_TEAM && !here) { placeHero(game, missionId, focus, slot); return; }
   if (selSlot == null) { selSlot = slot; if (here) focus = here.key; }
   else if (selSlot === slot) selSlot = null;
   else if (s.team.some((q) => q.slot === selSlot)) { P.moveSlot(s, selSlot, slot); selSlot = null; game.persist(); }
   else { selSlot = slot; if (here) focus = here.key; }
   renderPrep(game, missionId);
+}
+// dragging: a face follows the finger; the place under it lights up; letting go places the hero
+function startDrag(e, game, missionId, key, fromSlot) {
+  if (e.button > 0) return;
+  const x0 = e.clientX, y0 = e.clientY, fromRoster = fromSlot == null;
+  let ghost = null, over = null;
+  const target = (ev) => { const el = document.elementFromPoint(ev.clientX, ev.clientY); return el && (el.closest('.pad') || el.closest('#p-roster')); };
+  const move = (ev) => {
+    const dx = ev.clientX - x0, dy = ev.clientY - y0;
+    if (!ghost) {
+      if (Math.hypot(dx, dy) < 10) return;
+      if (fromRoster && Math.abs(dx) > Math.abs(dy)) { end(); return; }   // sideways on the collection: it scrolls
+      ghost = h('div.dragghost', { vars: { '--c': clsVar(UNITS[key].cls) } }, face(UNITS[key].set, 52));
+      document.body.append(ghost); $('#prep').classList.add('dragging');
+    }
+    ev.preventDefault();
+    ghost.style.left = ev.clientX + 'px'; ghost.style.top = ev.clientY + 'px';
+    const t = target(ev); if (over && over !== t) over.classList.remove('over'); over = t; if (t) t.classList.add('over');
+  };
+  const up = (ev) => {
+    const t = ghost && target(ev); end();
+    if (!t) return;
+    dragged = Date.now();
+    if (t.classList.contains('pad')) placeHero(game, missionId, key, +t.dataset.slot);
+    else if (!fromRoster) removeHero(game, missionId, key);
+  };
+  function end() {
+    window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', end);
+    if (ghost) { ghost.remove(); ghost = null; dragged = Date.now(); }
+    if (over) over.classList.remove('over');
+    $('#prep').classList.remove('dragging');
+  }
+  window.addEventListener('pointermove', move, { passive: false }); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', end);
 }
 
 // ---- after a battle
@@ -170,7 +242,7 @@ export function renderRewards(game, b, rw, missionId) {
     box.append(h('div.rays'), h('div.rt.win', null, 'Victory'), stars(rw.stars), h('div.rsub', null, `${m.name} · ${Math.round(b.t)} s`));
     const left = h('div.r-left', null,
       h('div.mvp', null, heroArt(mvp.def.set, 2), h('div', null, h('div.label', null, 'MVP'), h('div.mvp-n', null, first(mvp.def.name)))),
-      h('div.rgold', null, reward(goldIcon(), `+${rw.gold}`), rw.gems ? reward(gemIcon(), `+${rw.gems}`) : null),
+      h('div.rgold', null, reward(goldIcon(), `+${rw.gold}`), rw.gems ? reward(gemIcon(), `+${rw.gems}`) : null, ...Object.entries(rw.mats || {}).map(([r, n]) => reward(matIcon(r), `+${n}`, '.matrw'))),
       rw.first ? h('span.first', null, rw.heroic ? 'Heroic clear' : 'First clear') : null);
     const right = h('div.r-right'); box.append(h('div.r-body', null, left, right));
     const xs = h('div.xps');
@@ -225,7 +297,7 @@ function afterWin(game, rw, m, then = 'map') {
 export function showStory(game, title, text, button, after, ending = false) {
   $('#j-card').replaceChildren(...[
     h('div.rays'),
-    h('div.jtag', null, ending ? 'The end of the road' : 'Region cleared'),
+    h('div.jtag', null, ending ? 'The sixth seal · Vael is reclaimed' : 'Region cleared · a Seal of Vael taken'),
     h('div.jname', null, title), h('p.story', null, text),
     ending ? h('p.story.dim', null, 'Heroic missions are open in every region for the company that wants more.') : null,
     h('button.btn.big.primary', { type: 'button', onclick: () => { $('#join').hidden = true; after(); } }, button)].filter(Boolean));

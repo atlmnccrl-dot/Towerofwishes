@@ -4,7 +4,7 @@
 // load per screen (only the sets it shows). Music and sounds start on the first tap.
 import { createBattle, step, trigger, TIME_LIMIT, FURY, fury } from './combat/battle.js';
 import { UNITS, ENEMIES, SUMMONS } from './data/units.js';
-import { MISSIONS, missionById, nextMission, regionOf, PREMISE, START_ROSTER } from './data/campaign.js';
+import { MISSIONS, REGIONS, missionById, nextMission, regionOf, PREMISE, START_ROSTER } from './data/campaign.js';
 import * as P from './game/progress.js';
 import { loadSprites, loadFx, loadAtlas } from './render/assets.js';
 import { createView } from './render/view.js';
@@ -17,13 +17,14 @@ import { OPENING, bossScene } from './data/scenes.js';
 import * as E from './game/economy.js';
 import { createAudio } from './game/audio.js';
 import { createStore } from './game/store.js';
-import { $, h, setPortraits, toast, goldIcon, gemIcon, face, fillIcons } from './ui/common.js';
+import { $, h, setPortraits, toast, goldIcon, gemIcon, face, fillIcons, setWorld, sprite, matIcon } from './ui/common.js';
 import { loadHeroArt, heroArt } from './ui/heroart.js';
 import { createHaptics } from './game/haptics.js';
 import { VERSION, BUILD } from './version.js';
 import { renderCompany } from './ui/company.js';
 import { renderMap, renderPrep, renderRewards, drawMarks } from './ui/campaign.js';
 import { renderExtras, tip } from './ui/extras.js';
+import { renderKeep, LOOK } from './ui/keep.js';
 
 const DT = 1 / 60, SPEEDS = [1, 2, 3], KEY = 'vael.save', BAK = 'vael.save.bak';
 const stage = $('#stage'), bg = $('#bg');
@@ -68,13 +69,13 @@ function currency() {
 }
 
 // ---- screens
-const SECTIONS = ['title', 'premise', 'camp', 'map', 'prep', 'company', 'extras'];
+const SECTIONS = ['title', 'premise', 'camp', 'map', 'prep', 'company', 'extras', 'keep'];
 function go(name, arg) {
   // the company screen returns to where it was opened from (after a battle: the map)
   if (name === 'company' && screen !== 'company') game.from = screen === 'battle' ? 'map' : screen;
   screen = name; game.screen = name;
   for (const s of SECTIONS) $('#' + s).hidden = s !== name;
-  bg.hidden = !['title', 'premise', 'camp'].includes(name);
+  bg.hidden = !['title', 'premise', 'camp', 'keep'].includes(name);
   stage.hidden = name !== 'battle' && name !== 'scene'; $('#hud').hidden = name !== 'battle';
   $('#result').hidden = true; $('#join').hidden = true; $('#loading').hidden = true;
   if (name === 'title') renderTitle();
@@ -83,7 +84,8 @@ function go(name, arg) {
   if (name === 'prep') { missionId = arg; renderPrep(game, arg); }
   if (name === 'company') renderCompany(game, arg);
   if (name === 'extras') renderExtras(game, arg);
-  if (!bg.hidden) { camp.setFocus(name === 'camp' ? 0.4 : 0.64); camp.resize(); refreshCast(); }
+  if (name === 'keep') renderKeep(game);
+  if (!bg.hidden) { camp.setFocus(name === 'camp' ? 0.4 : name === 'keep' ? 0.27 : 0.64); game.refreshKeep(); camp.resize(); refreshCast(); }
   game.audio.setScene(name === 'battle' ? 'battle' : 'camp');
   $('#tip').hidden = true;
   // a tip left by the last result comes first, on whatever screen follows it
@@ -92,6 +94,7 @@ function go(name, arg) {
   if (pend && tip(game, pend)) return;
   if (name === 'map') tip(game, 'map');
   if (name === 'prep') tip(game, 'prep');
+  if (name === 'keep') tip(game, 'keep');
   if (name === 'battle') tip(game, 'battle');
   if (name === 'camp' && Object.keys(game.save.cleared).length >= 2) tip(game, 'extras');
 }
@@ -108,14 +111,31 @@ function renderCamp() {
   $('#k-gems').replaceChildren(gemIcon(), String(s.gems));
   const cleared = Object.keys(s.cleared).length;
   $('#k-region').textContent = `${Object.keys(s.roster).length} heroes · ${cleared} of ${MISSIONS.length} missions`;
-  $('#k-cta-region').textContent = next ? regionOf(next).name : 'Every road walked';
+  $('#k-cta-region').textContent = next ? regionOf(next).name : 'Vael is reclaimed';
   $('#k-next').textContent = next ? `Next: ${next.name}` : 'Heroic missions are open in every region';
+  // the long goal: the six seals, one for each region's boss
+  const taken = P.sealsTaken(s), nextR = next && next.region;
+  $('#k-seal-count').textContent = `${taken.length} of ${REGIONS.length} seals`;
+  $('#k-seals').replaceChildren(...REGIONS.map((r, i) => h('span.seal' + (taken.includes(r.id) ? '.on' : r.id === nextR ? '.next' : ''), { title: `${r.name}: ${taken.includes(r.id) ? 'seal taken' : 'its boss guards a seal'}` }, ['I', 'II', 'III', 'IV', 'V', 'VI'][i])));
+  // the Stronghold: its rank and the next thing to build
+  const nb = P.nextBuild(s), ready = P.KEEP.some((b) => P.buildState(s, b.id) === 'ok');
+  $('#k-keep-rank').textContent = `Rank ${P.keepRank(s)} ${P.rankName(s)}`;
+  $('#k-keep-dot').hidden = $('#k-keep-dot2').hidden = !ready;
+  if (nb) {
+    const l = P.keepLevel(s, nb.id) + 1, c = P.keepCost(l), have = s.mats[c.mat] || 0;
+    $('#k-keep-art').replaceChildren(sprite(LOOK[nb.id], 2));
+    $('#k-keep-next').textContent = `${ready ? 'Build' : 'Next'}: ${nb.name}${l > 1 ? ' level ' + l : ''}`;
+    $('#k-keep-cost').replaceChildren(h('span' + (s.gold >= c.gold ? '' : '.short'), null, goldIcon(), String(c.gold)), h('span' + (have >= c.n ? '' : '.short'), null, matIcon(c.mat), `${have}/${c.n} ${P.MATS[c.mat]}`));
+  } else {
+    $('#k-keep-art').replaceChildren(sprite('cd_banner_red', 2));
+    $('#k-keep-next').textContent = P.keepRank(s) >= 36 ? 'The Citadel stands' : 'Reach a new region for new materials';
+    $('#k-keep-cost').replaceChildren();
+  }
   const pend = Object.keys(s.roster).some((k) => P.pendingUpgrade(s, k) >= 0);
   $('#k-company-dot').hidden = !pend;
   $('#k-bounty-dot').hidden = !E.bountiesReady(s);
   $('#k-banner').hidden = !E.owns(s, 'vael.supporter');
-  const team = $('#k-team'); team.replaceChildren();
-  for (const t of s.team) { const d = UNITS[t.key], f = face(d.set, 30); f.style.setProperty('--c', `var(--${d.cls})`); team.append(f); }
+
 }
 
 // the campfire shows whoever has joined (the first three before a game starts)
@@ -269,6 +289,10 @@ $('#t-confirm-no').addEventListener('click', () => ($('#t-confirm').hidden = tru
 function newGame() { $('#t-confirm').hidden = true; game.save = P.newSave(); game.persist(); castKey = ''; playScene(OPENING).then(() => go('camp')); }
 $('#premise-go').addEventListener('click', () => go('camp'));
 $('#k-campaign').addEventListener('click', () => go('map'));
+$('#k-keep').addEventListener('click', () => go('keep'));
+$('#k-keep2').addEventListener('click', () => go('keep'));
+$('#s-back').addEventListener('click', () => go('camp'));
+game.refreshKeep = () => camp && camp.setKeep(game.save.keep || {}, P.keepRank(game.save));
 $('#k-company').addEventListener('click', () => go('company'));
 $('#k-title').addEventListener('click', () => go('title'));
 $('#k-shop').addEventListener('click', () => go('extras', 'shop'));
@@ -338,7 +362,8 @@ async function boot() {
   setPortraits(Object.assign(p, { w: 256, h: Math.ceil(Object.keys(p.sets).length / 8) * p.cell }));
   await loadHeroArt(); tick();
   fillIcons();
-  view = createView(stage, fx, tiles, () => game.save.settings, world); camp = createCamp(bg, fx);
+  setWorld(world);
+  view = createView(stage, fx, tiles, () => game.save.settings, world); camp = createCamp(bg, fx, world);
   game.ow = createOverworld($('#world'), { world, tiles, fx });
   player = createScenePlayer({ stage: createStage(stage, { world, tiles, fx }), root: $('#scene') });
   // the app stores, inside the iOS and Android app (cordova plugins are ready after 'deviceready')
@@ -376,7 +401,7 @@ function back() {
   if (screen === 'scene') { $('#sc-skip').click(); return; }
   if (!$('#result').hidden || !$('#join').hidden) return;   // the result needs its own buttons
   if (screen === 'battle') { pause(!paused); return; }
-  const btn = { map: '#m-back', prep: '#p-back', company: '#c-back', extras: '#x-back', camp: '#k-title' }[screen];
+  const btn = { map: '#m-back', prep: '#p-back', company: '#c-back', extras: '#x-back', keep: '#s-back', camp: '#k-title' }[screen];
   if (btn) { $(btn).click(); return; }
   const App = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
   if (screen === 'title' && App) App.exitApp();

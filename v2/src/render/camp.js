@@ -6,10 +6,17 @@ import { DIRS } from '../data/anims.js';
 
 const BUF_H = 168, PPM = 26, SQUASH = 0.6;
 
-export function createCamp(canvas, fxAtlas) {
+// The Stronghold around the fire: where each building stands (metres from the fire) and what it looks
+// like (world-atlas pieces at two pixels per pixel): its main piece from level 1, a second from 3,
+// a brazier from 5. The rank adds a palisade (12), flags at the gate (24) and banners all round (36).
+const SPOTS = { barracks: [-4.6, -3.4], hall: [-2.1, -4.1], shrine: [2.2, -4.1], forge: [4.8, -3.2], yard: [-5.4, 1.2], treasury: [5.4, 1.0] };
+const PIECES = { barracks: ['cd_war_tent_red', 'cd_war_tent_blue'], hall: ['cd_banner_red', 'cd_weapon_rack'], shrine: ['cd_statue_gold', 'cd_candelabra'],
+  forge: ['cd_forge', 'cd_anvil'], yard: ['cd_training_dummy', 'cd_archery_target'], treasury: ['cd_chest_gold', 'cd_barrel'] };
+
+export function createCamp(canvas, fxAtlas, world = null) {
   const out = canvas.getContext('2d');
   const buf = document.createElement('canvas'), ctx = buf.getContext('2d');
-  let cast = [], t = 0, ground = null, focusX = 0.62;
+  let cast = [], t = 0, ground = null, focusX = 0.62, keep = {}, rank = 0, keepKey = '';
   const fire = { x: 2.6, y: 0.4 };
 
   function resize() {
@@ -33,8 +40,8 @@ export function createCamp(canvas, fxAtlas) {
       const a = r() * Math.PI * 2, d = Math.sqrt(r()) * 3.4 * PPM;
       c.fillStyle = r() < 0.5 ? '#2a2a1e' : '#222519'; c.fillRect((f.x + Math.cos(a) * d) | 0, (f.y + Math.sin(a) * d * SQUASH) | 0, 2, 1);
     }
-    // a tent and the treeline behind
-    const tent = P(fire.x - 4.4, fire.y - 2.6);
+    // a tent (until the Barracks stand) and the treeline behind
+    const tent = P(fire.x - 4.4, fire.y - (keep.barracks ? 99 : 2.6));
     c.fillStyle = '#3d3326'; c.beginPath(); c.moveTo(tent.x - 26, tent.y); c.lineTo(tent.x, tent.y - 30); c.lineTo(tent.x + 26, tent.y); c.fill();
     c.fillStyle = '#4c4030'; c.beginPath(); c.moveTo(tent.x - 26, tent.y); c.lineTo(tent.x, tent.y - 30); c.lineTo(tent.x - 4, tent.y); c.fill();
     c.fillStyle = '#120e0a'; c.beginPath(); c.moveTo(tent.x - 6, tent.y); c.lineTo(tent.x, tent.y - 16); c.lineTo(tent.x + 6, tent.y); c.fill();
@@ -92,6 +99,7 @@ export function createCamp(canvas, fxAtlas) {
       ctx.drawImage(c.set.pages[pg], sx, sy, w, h, Math.round(p.x + (ox - ax) * k), Math.round(p.y + (oy - ay) * k), Math.round(w * k), Math.round(h * k));
     } }));
     items.push({ y: fire.y, draw: () => fx('campfire', fire.x, fire.y, 0.25, t, 1.1) });
+    for (const it of buildings()) items.push(it);
     items.sort((a, b) => a.y - b.y);
     for (const it of items) it.draw();
     fx('embers', fire.x, fire.y, 1.4, t, 1.2);
@@ -102,5 +110,33 @@ export function createCamp(canvas, fxAtlas) {
     out.imageSmoothingEnabled = false;
     out.drawImage(buf, 0, 0, canvas.width, canvas.height);
   }
-  return { resize, draw, setCast, setFocus(f) { if (f !== focusX) { focusX = f; ground = null; } } };
+  // ---- the Stronghold's pieces, as items to sort with the cast
+  function piece(name, x, y, k = 2) {
+    const sp = world && world.data.sprites[name]; if (!sp) return;
+    const p = P(x, y), w = sp[3] * k, hh = sp[4] * k;
+    ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.ellipse(p.x, p.y, w * 0.4, 3, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.drawImage(world.pages[sp[0]], sp[1], sp[2], sp[3], sp[4], Math.round(p.x - w / 2), Math.round(p.y - hh), w, hh);
+  }
+  function glow(x, y, z, r) {
+    const p = P(x, y, z), g = ctx.createRadialGradient(p.x, p.y, 1, p.x, p.y, r * (1 + Math.sin(t * 8 + x) * 0.05));
+    g.addColorStop(0, 'rgba(255,150,60,0.4)'); g.addColorStop(1, 'rgba(255,90,20,0)');
+    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.fillRect(p.x - r, p.y - r, r * 2, r * 2); ctx.restore();
+  }
+  function buildings() {
+    const out = [], fx0 = fire.x, fy0 = fire.y;
+    for (const [id, [dx, dy]] of Object.entries(SPOTS)) {
+      const l = keep[id] || 0; if (!l) continue;
+      const [a, b] = PIECES[id], x = fx0 + dx, y = fy0 + dy;
+      out.push({ y, draw: () => piece(a, x, y) });
+      if (l >= 3) out.push({ y: y + 0.2, draw: () => piece(b, x + (dx < 0 ? 1.0 : -1.0), y + 0.2) });
+      if (l >= 5) out.push({ y: y + 0.4, draw: () => { piece('cd_brazier', x + (dx < 0 ? -0.9 : 0.9), y + 0.4, 1); glow(x + (dx < 0 ? -0.9 : 0.9), y + 0.4, 0.5, 18); } });
+    }
+    // the palisade behind the camp, flags at its gate, banners along it
+    if (rank >= 12) for (let x = -11; x <= 11; x += 0.62) if (Math.abs(x) > 0.9) out.push({ y: fy0 - 5.2, draw: () => piece('prop_fence_h', fx0 + x, fy0 - 5.2, 1) });
+    if (rank >= 24) for (const sx of [-1.2, 1.2]) out.push({ y: fy0 - 5.1, draw: () => piece('cd_flagpole_red', fx0 + sx, fy0 - 5.1, 2) });
+    if (rank >= 36) for (let x = -8; x <= 8; x += 4) if (x) out.push({ y: fy0 - 5.15, draw: () => piece('cd_banner_blue', fx0 + x, fy0 - 5.15, 2) });
+    return out;
+  }
+  function setKeep(k, r) { const key = JSON.stringify(k) + r; if (key === keepKey) return; keepKey = key; keep = Object.assign({}, k); rank = r; ground = null; }
+  return { resize, draw, setCast, setKeep, setFocus(f) { if (f !== focusX) { focusX = f; ground = null; } } };
 }

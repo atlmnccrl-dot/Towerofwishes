@@ -81,4 +81,26 @@ const up = P.loadSave(old); assert.equal(up.roster.corvin.ups.length, 4); assert
 // a save code survives the round trip; a damaged one is refused
 s = P.newSave(); s.gold = 777; const code = P.encodeSave(s);
 assert.equal(P.decodeSave(code).gold, 777); assert.equal(P.decodeSave(code.slice(0, -2) + 'zz'), null); assert.equal(P.decodeSave('nonsense'), null);
+// the Stronghold: materials from missions, level N needs region N's material, the bonuses apply
+{
+  const k = P.newSave(), win = { result: 'win', t: 30, units: [] };
+  assert.equal(P.buildState(k, 'forge'), 'short'); assert.equal(P.build(k, 'forge'), false);
+  const rw = P.grantRewards(k, 'r1m1', win, rng(1)); assert.ok(rw.mats.r1 >= 5 && k.mats.r1 === rw.mats.r1);
+  const boss = P.grantRewards(k, P.sealOf('r1').id, win, rng(1)); assert.equal(boss.mats.r1, 12);
+  assert.deepEqual(P.sealsTaken(k), ['r1']);
+  k.gold = 100000; k.mats.r1 = 100;
+  assert.equal(P.buildState(k, 'forge'), 'ok'); assert.ok(P.build(k, 'forge')); assert.equal(P.keepLevel(k, 'forge'), 1);
+  assert.equal(k.mats.r1, 100 - P.keepCost(1).n); assert.equal(k.gold, 100000 - P.keepCost(1).gold);
+  k.cleared = {}; assert.equal(P.buildState(k, 'forge'), 'locked');     // level 2 needs the Greyfen's material: not reached yet
+  k.cleared = Object.fromEntries(P.MISSIONS.filter((m) => m.region === 'r1').map((m) => [m.id, 1])); k.mats.r2 = 50;
+  assert.equal(P.buildState(k, 'forge'), 'ok'); P.build(k, 'forge'); assert.equal(P.keepRank(k), 2);
+  const it = { base: Object.keys(BASES)[0], tier: 0, plus: 0, uid: 999 };
+  assert.ok(P.gearUpgradeCost(k, it) < P.gearUpgradeCost(P.newSave(), it));    // the Forge makes upgrades cheaper
+  const before = statsAt(UNITS.corvin, 1, P.modsOf(k, 'corvin')).max;
+  k.keep.shrine = 3; assert.ok(statsAt(UNITS.corvin, 1, P.modsOf(k, 'corvin')).max > before);   // the Shrine: more health
+  for (const b of P.KEEP) k.keep[b.id] = P.KEEP_MAX; assert.equal(P.keepRank(k), 36); assert.equal(P.rankName(k), P.RANKS[6]);
+  assert.equal(P.buildState(k, 'hall'), 'max'); assert.equal(P.nextBuild(k), null);
+  const old = P.loadSave(JSON.parse(JSON.stringify(Object.assign(P.newSave(), { keep: undefined, mats: undefined }))));
+  assert.deepEqual(old.keep, {}); assert.deepEqual(old.mats, {});          // older saves start with an empty Stronghold
+}
 console.log('progress ok');
