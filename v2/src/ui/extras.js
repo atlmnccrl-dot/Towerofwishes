@@ -85,7 +85,7 @@ function renderAch(game, body) {
 const TIPS = {
   map: 'Each marker is a mission. Tap one to read it, then Prepare. Cleared missions can be replayed for gold, experience and gear.',
   prep: 'Fighters hold the front row; archers, mages and healers the back. Tap a hero below to add them, or two places to swap. Best team picks the strongest five.',
-  battle: 'Battles play themselves. A recruit\'s ability fires when the gold bar under them fills. The speed button runs the fight faster.',
+  battle: 'Battles play themselves. When a hero\'s gold bar fills they use their ability; switch Auto to Manual to pick the moment yourself by tapping their card.',
   loot: 'New gear goes to the Heroes screen. Auto-equip puts the best on the team in one tap.',
   upgrade: 'A hero can learn an upgrade. Open Heroes and look for the red dot.',
   lose: 'Losing costs nothing. Replay earlier missions for experience, equip gear, train, and come back.',

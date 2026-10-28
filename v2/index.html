@@ -39,9 +39,8 @@
     --r: 14px;
     color-scheme: dark;
   }
-  html { font-size: 14px; }
-  @media (min-height: 520px) { html { font-size: 16px; } }
-  @media (min-height: 700px) { html { font-size: 18px; } }
+  /* the interface grows with the screen: 14px on a phone, up to 24px on a large tablet */
+  html { font-size: clamp(14px, min(2.9vh, 1.7vw), 24px); }
   [hidden] { display: none !important; }
   html, body { height: 100%; }
   body { margin: 0; background: var(--bg); color: var(--text); font: 500 1rem/1.3 var(--ui); overflow: hidden; touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-font-smoothing: antialiased; }
@@ -168,6 +167,7 @@
   .sh-top { display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap; }
   .place { font: 700 0.7rem/1 var(--ui); color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; }
   .brief { font: 500 0.92rem/1.4 var(--ui); color: #d6d9e2; }
+  @media (max-height: 520px) { .brief { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; } .foe .face { width: 2.2rem !important; height: 2.2rem !important; } .rw { width: 2.7rem; height: 2.7rem; } }
   .foes { display: flex; flex-wrap: wrap; gap: 0.45rem; }
   .foe { position: relative; }
   .foe .face { width: 2.5rem !important; height: 2.5rem !important; box-shadow: 0 0 0 2px rgba(255, 107, 94, 0.55); }
@@ -180,6 +180,22 @@
   .rw.who { border-color: rgba(255, 207, 92, 0.5); background: rgba(255, 207, 92, 0.08); color: var(--gold); }
   .rw.who .face { width: 1.3rem !important; height: 1.3rem !important; box-shadow: none; }
   #m-sheet .btn.primary { flex: none; }
+  .powers { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+  .power { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.55rem 0.25rem 0.4rem; border-radius: 99px; background: rgba(255, 255, 255, 0.06); border: 1px solid var(--stroke); font-variant-numeric: tabular-nums; }
+  .power b { font: 800 0.9rem/1 var(--ui); }
+  .power small { font: 700 0.6rem/1 var(--ui); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .power .ico { width: 0.85rem; height: 0.85rem; fill: currentColor; stroke: none; }
+  .power.ok { color: #7ff0a4; border-color: rgba(95, 224, 138, 0.4); }
+  .power.close { color: var(--gold); border-color: rgba(255, 207, 92, 0.4); }
+  .power.low { color: #ff8a7e; border-color: rgba(255, 107, 94, 0.45); }
+  .power.foe { color: #ffb4aa; }
+  .power b, .power .ico { color: inherit; }
+  .vs { font: 800 0.65rem/1 var(--ui); color: var(--dim); letter-spacing: 0.1em; text-transform: uppercase; }
+  .verdict { font: 800 0.65rem/1 var(--ui); letter-spacing: 0.12em; text-transform: uppercase; padding: 0.3rem 0.5rem; border-radius: 99px; }
+  .verdict.ok { background: rgba(95, 224, 138, 0.14); color: #7ff0a4; }
+  .verdict.close { background: rgba(255, 207, 92, 0.14); color: var(--gold); }
+  .verdict.low { background: rgba(255, 107, 94, 0.16); color: #ff8a7e; }
+  #p-count { display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap; justify-content: flex-end; }
 
   /* ---- prep: the formation on a lit floor, the roster along the bottom */
   #prep { display: flex; flex-direction: column; gap: 0.4rem; background: radial-gradient(70% 70% at 38% 62%, rgba(255, 190, 110, 0.13), transparent 70%), radial-gradient(120% 100% at 50% 110%, #1c2333 0%, var(--bg) 65%); }
@@ -187,7 +203,7 @@
   .foe-row .face { width: 1.9rem; height: 1.9rem; box-shadow: 0 0 0 2px rgba(255, 107, 94, 0.55); }
   .foe-row em { font: 800 0.72rem/1 var(--ui); font-style: normal; color: var(--muted); margin-right: 0.2rem; }
   .floor { position: relative; flex: 1; min-height: 0; }
-  #p-slots { position: absolute; left: 0; top: 0; bottom: 1.2rem; width: 62%; }
+  #p-slots { position: absolute; left: 0; bottom: 1.2rem; height: min(calc(100% - 1.2rem), 17rem); width: 62%; }
   .pad { position: absolute; width: 7.2rem; height: 6.4rem; transform: translate(-50%, -100%); border: 0; background: none; cursor: pointer; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
   .pad::before { content: ''; position: absolute; left: 50%; bottom: 0.15rem; width: 5.2rem; height: 1.6rem; transform: translateX(-50%); border-radius: 50%; background: radial-gradient(closest-side, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02)); border: 1.5px dashed rgba(255, 255, 255, 0.22); }
   .pad.filled::before { border: 1.5px solid var(--c); background: radial-gradient(closest-side, color-mix(in srgb, var(--c) 35%, transparent), transparent); }
@@ -199,7 +215,7 @@
   .pad .x { position: absolute; top: 0.2rem; right: 0.6rem; width: 1.6rem; height: 1.6rem; border-radius: 50%; border: 1px solid var(--stroke-2); background: rgba(8, 10, 16, 0.75); color: var(--muted); display: grid; place-items: center; cursor: pointer; padding: 0; opacity: 0; transition: opacity 0.15s; }
   .pad .x .ico { width: 0.9rem; height: 0.9rem; }
   .pad.sel .x, .pad:hover .x { opacity: 1; }
-  .rowtag { position: absolute; left: -0.2rem; font: 700 0.62rem/1 var(--ui); letter-spacing: 0.18em; color: var(--dim); text-transform: uppercase; writing-mode: vertical-rl; transform: rotate(180deg); }
+  .rowtag { position: absolute; left: -0.2rem; margin-top: 0; font: 700 0.62rem/1 var(--ui); letter-spacing: 0.18em; color: var(--dim); text-transform: uppercase; writing-mode: vertical-rl; transform: rotate(180deg); }
   .enemy-side { position: absolute; right: 38%; top: 50%; transform: translateY(-50%); color: rgba(255, 107, 94, 0.45); display: grid; justify-items: center; gap: 0.3rem; font: 700 0.65rem/1 var(--ui); letter-spacing: 0.16em; text-transform: uppercase; }
   #p-detail { position: absolute; right: 0; top: 0.3rem; width: 35%; max-width: 21rem; box-sizing: border-box; padding: 0.85rem 1rem; display: grid; gap: 0.4rem; }
   #p-detail .t { font: 700 1.2rem/1.05 var(--display); }
@@ -298,6 +314,29 @@
   .tools { display: flex; gap: 0.4rem; pointer-events: auto; }
   #speed { font-size: 0.9rem; }
   #allies { position: absolute; bottom: var(--bot); left: var(--gut-l); right: var(--gut-r); display: flex; gap: 0.4rem; justify-content: center; }
+  #bossbar { position: absolute; left: 50%; top: 0.1rem; transform: translateX(-50%); width: min(22rem, 40vw); display: grid; gap: 0.25rem; justify-items: center; }
+  #bossbar b { font: 700 0.9rem/1 var(--display); color: #ffd0c8; text-shadow: 0 2px 6px #000; letter-spacing: 0.04em; }
+  .bbar { width: 100%; height: 0.6rem; border-radius: 99px; background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255, 107, 94, 0.5); overflow: hidden; }
+  .bbar i { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, #a5201a, #ff6b5e); transition: width 0.2s; }
+  .btn.auto { pointer-events: auto; }
+  .btn.auto[aria-pressed="true"] { border-color: rgba(255, 207, 92, 0.6); color: var(--gold); }
+  #allies .chip { pointer-events: auto; cursor: default; position: relative; }
+  #hud.manual .chip.ready { cursor: pointer; animation: ready 0.9s ease-in-out infinite alternate; }
+  #hud.manual .chip.ready::after { content: 'TAP'; position: absolute; top: -0.65rem; left: 50%; transform: translateX(-50%); font: 800 0.6rem/1 var(--ui); letter-spacing: 0.14em; padding: 0.2rem 0.45rem; border-radius: 99px; background: var(--gold-grad); color: var(--gold-ink); }
+  .chip.armed { box-shadow: 0 0 0 2px var(--gold), 0 0 18px rgba(255, 207, 92, 0.6); }
+  @keyframes ready { to { box-shadow: 0 0 0 2px var(--gold), 0 0 20px rgba(255, 207, 92, 0.55); } }
+  #cutin { position: absolute; left: 0; top: 22%; pointer-events: none; display: grid; gap: 0.4rem; }
+  .cut { display: flex; align-items: flex-end; gap: 0.6rem; padding: 0.3rem 1.6rem 0.4rem var(--gut-l); background: linear-gradient(90deg, rgba(8, 10, 16, 0.85) 60%, transparent); border-left: 4px solid var(--c); animation: cutin 1.3s ease both; }
+  .cut.foe { --c: #ff6b5e; }
+  .cut .hero-art { margin-bottom: -0.2rem; }
+  .cut b { display: block; font: 700 1.15rem/1 var(--display); color: #fff; }
+  .cut small { display: block; font: 800 0.65rem/1 var(--ui); letter-spacing: 0.16em; text-transform: uppercase; color: var(--c); margin-bottom: 0.3rem; }
+  @keyframes cutin { 0% { transform: translateX(-100%); opacity: 0; } 15%, 80% { transform: none; opacity: 1; } 100% { transform: translateX(-30%); opacity: 0; } }
+  #banner { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; font: 900 3rem/1 var(--display); letter-spacing: 0.14em; text-transform: uppercase; color: #fff; text-shadow: 0 4px 0 rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 190, 80, 0.5); animation: bannerin 1.1s ease both; }
+  @keyframes bannerin { 0% { transform: scale(1.6); opacity: 0; } 20% { transform: scale(1); opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; transform: scale(0.96); } }
+  #paused { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(4, 6, 10, 0.6); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); z-index: 4; }
+  .pause-card { display: grid; gap: 0.6rem; padding: 1.4rem 1.6rem; width: 15rem; text-align: center; }
+  .pause-card h2 { font: 700 1.6rem/1 var(--display); margin-bottom: 0.3rem; }
   .chip { display: flex; align-items: center; gap: 0.45rem; padding: 0.35rem 0.6rem 0.35rem 0.35rem; border-radius: 99px; min-width: 0; flex: 0 1 10rem; background: rgba(10, 13, 20, 0.72); border: 1px solid var(--stroke); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); transition: box-shadow 0.2s; }
   .chip .face { width: 2.1rem !important; height: 2.1rem !important; }
   .chip.down { opacity: 0.4; filter: grayscale(1); }
@@ -390,6 +429,7 @@
   #tip button { pointer-events: auto; }
 
   /* ---- settings */
+  #settings { z-index: 6; }
   .settings-card { justify-items: stretch; width: min(32rem, 100%); }
   .settings-head { display: flex; justify-content: space-between; align-items: center; }
   .settings-head h2 { font: 700 1.4rem/1 var(--display); }
@@ -405,7 +445,17 @@
 
   #toast { position: fixed; left: 50%; bottom: calc(var(--bot) + 0.3rem); transform: translateX(-50%); padding: 0.55rem 1rem; border-radius: 99px; font: 600 0.9rem var(--ui); transition: opacity 0.3s; z-index: 8; pointer-events: none; border-color: rgba(255, 207, 92, 0.4); }
   #toast.out { opacity: 0; }
-  #loading { position: fixed; inset: 0; display: grid; place-items: center; font: 700 0.85rem var(--ui); letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); background: var(--bg); z-index: 9; }
+  #loading { position: fixed; inset: 0; display: grid; place-items: center; background: radial-gradient(60% 60% at 50% 45%, #1d2233, var(--bg)); z-index: 9; }
+  .ld { display: grid; gap: 0.9rem; justify-items: center; }
+  .ld .logo { font-size: 3.4rem; }
+  .ldbar { width: 12rem; height: 0.3rem; border-radius: 99px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
+  .ldbar i { display: block; height: 100%; width: 0; background: var(--gold-grad); transition: width 0.25s; }
+  #ld-text { font: 700 0.75rem/1.4 var(--ui); letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); text-align: center; max-width: 24rem; }
+  #crash { position: fixed; left: 50%; top: var(--top); transform: translateX(-50%); z-index: 10; display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.5rem 0.5rem 1rem; width: min(34rem, calc(100% - 32px)); box-sizing: border-box; border-color: rgba(255, 107, 94, 0.5); font: 500 0.88rem/1.35 var(--ui); }
+  #crash span { flex: 1; }
+  #crash small { display: block; color: var(--dim); font-size: 0.72rem; }
+  .set-version { font: 600 0.75rem var(--ui); color: var(--dim); text-align: center; letter-spacing: 0.06em; }
+  .btn.toggle[aria-pressed="true"] { border-color: rgba(255, 207, 92, 0.6); color: var(--gold); }
   #turn { display: none; }
   @media (orientation: portrait) {
     #turn { position: fixed; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; background: var(--bg); font: 600 1.1rem/1.5 var(--ui); z-index: 10; }
@@ -416,7 +466,7 @@
     .cta { width: 15.5rem; }
     .banner { right: calc(var(--gut-r) + 16.5rem); }
   }
-  @media (prefers-reduced-motion: reduce) { .mark.next b, .rays, #r-box > .stars i.on, .jart, .lcard, #tip { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { .mark.next b, .rays, #r-box > .stars i.on, .jart, .lcard, #tip, .cut, #banner, #hud.manual .chip.ready { animation: none; } }
 
   /* ---- filmed scenes: letterbox, lines beside the speaker, title cards */
   #scene { position: fixed; inset: 0; z-index: 3; touch-action: none; }
@@ -453,7 +503,7 @@
     </div>
   </div>
   <div class="corner"><button class="btn icon open-settings" type="button" aria-label="Settings"><i data-icon="gear"></i></button></div>
-  <div class="fine">Early build · names and story are proposals</div>
+  <div class="fine"><span id="t-version"></span> · Names and story are proposals</div>
 </section>
 
 <section id="premise" class="screen" aria-label="The story so far" hidden>
@@ -552,12 +602,24 @@
 <div id="hud" hidden>
   <div class="top">
     <div class="hud-name glass"><span class="wavename" id="wavename"></span><span id="clock"></span></div>
+    <div id="bossbar" hidden><b id="boss-name"></b><div class="bbar"><i id="boss-hp"></i></div></div>
     <div class="tools">
+      <button class="btn small auto" id="auto" type="button" aria-pressed="true" title="Abilities fire on their own; turn off to fire them yourself">Auto</button>
       <button class="btn icon" id="speed" type="button" aria-label="Speed">1×</button>
-      <button class="btn icon" id="leave" type="button" aria-label="Retreat"><i data-icon="flee"></i></button>
+      <button class="btn icon" id="pause" type="button" aria-label="Pause"><i data-icon="pause"></i></button>
     </div>
   </div>
+  <div id="cutin" aria-live="polite"></div>
+  <div id="banner" hidden></div>
   <div id="allies"></div>
+</div>
+<div id="paused" hidden>
+  <div class="pause-card glass" role="dialog" aria-labelledby="pause-h">
+    <h2 id="pause-h">Paused</h2>
+    <button class="btn big primary" id="resume" type="button">Resume</button>
+    <button class="btn open-settings" type="button"><i data-icon="gear"></i>Settings</button>
+    <button class="btn" id="leave" type="button"><i data-icon="flee"></i>Retreat</button>
+  </div>
 </div>
 
 <div id="scene" hidden aria-label="Cutscene">
@@ -575,11 +637,15 @@
     <div class="settings-head"><h2 id="set-h">Settings</h2><button class="btn icon" id="set-close" type="button" aria-label="Close"><i data-icon="close"></i></button></div>
     <div class="set-row"><label for="set-music"><b>Music</b></label><input type="range" id="set-music" min="0" max="100" step="5"></div>
     <div class="set-row"><label for="set-sfx"><b>Sounds</b></label><input type="range" id="set-sfx" min="0" max="100" step="5"></div>
-    <div class="set-row"><span><b>Screen shake</b><small>Big blows shake the battle.</small></span><button class="btn small" id="set-shake" type="button" aria-pressed="true">On</button></div>
+    <div class="set-row"><span><b>Screen shake</b><small>Big blows shake the battle.</small></span><button class="btn small toggle" id="set-shake" type="button" aria-pressed="true">On</button></div>
+    <div class="set-row"><span><b>Auto abilities</b><small>Off: tap a hero's card in battle to fire their ability yourself.</small></span><button class="btn small toggle" id="set-auto" type="button" aria-pressed="true">On</button></div>
+    <div class="set-row"><span><b>Story scenes</b><small>The short films between missions.</small></span><button class="btn small toggle" id="set-scenes" type="button" aria-pressed="true">On</button></div>
+    <div class="set-row"><span><b>Vibration</b><small>A short buzz on abilities and results.</small></span><button class="btn small toggle" id="set-haptics" type="button" aria-pressed="true">On</button></div>
     <div class="set-row"><span><b>Save code</b><small>Your progress as text, to move it to another device.</small></span><span class="pair"><button class="btn small" id="set-export" type="button">Copy</button><button class="btn small" id="set-import" type="button">Load</button></span></div>
     <div class="set-row" id="save-box" hidden><textarea id="save-code" rows="2" aria-label="Save code" spellcheck="false"></textarea><button class="btn small gold" id="save-load" type="button">Load code</button></div>
     <div class="set-row"><span><b>Reset progress</b><small>Erase the company and start again.</small></span><button class="btn small" id="set-reset" type="button">Reset</button></div>
     <div class="set-row" id="reset-confirm" hidden><span>Erase everything?</span><span class="pair"><button class="btn small" id="reset-yes" type="button">Yes, erase</button><button class="btn small" id="reset-no" type="button">Cancel</button></span></div>
+    <div class="set-version" id="set-version"></div>
     <details class="credits"><summary>Privacy</summary>
       <div>Vael has no accounts, ads, tracking or analytics. Your progress stays on this device. Gem packs are bought through the App Store or Google Play, which handle the payment.</div>
     </details>
@@ -596,6 +662,7 @@
 
 <div id="tip" class="glass" role="note" hidden></div>
 <div id="toast" class="glass" role="status" hidden></div>
-<div id="loading">Loading…</div>
+<div id="loading"><div class="ld"><div class="logo">VAEL</div><div class="ldbar"><i id="ld-bar"></i></div><span id="ld-text">Loading…</span><button class="btn small" id="ld-retry" type="button" hidden>Reload</button></div></div>
+<div id="crash" class="glass" role="alert" hidden><span><b>Something went wrong.</b> Your progress is saved. <small id="crash-msg"></small></span><button class="btn small primary" id="crash-reload" type="button">Reload</button><button class="btn icon ghost" id="crash-close" type="button" aria-label="Dismiss"><i data-icon="close"></i></button></div>
 <div id="turn">Turn your phone sideways to play.</div>
 <script type="module" src="src/main.js"></script>

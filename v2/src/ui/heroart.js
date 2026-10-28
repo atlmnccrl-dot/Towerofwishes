@@ -20,6 +20,9 @@ export async function loadHeroArt() {
   atlas = data;
 }
 
+// screen pixels per sprite pixel for the menus' big art: 2 on a phone, more on taller screens
+export const artPx = () => Math.max(2, Math.min(6, Math.round(window.innerHeight / 260)));
+
 export function heroArt(set, px = 3, o = {}) {
   const c = document.createElement('canvas');
   c.className = 'hero-art' + (o.cls ? ' ' + o.cls : '');

@@ -46,7 +46,7 @@ for (const [name, vp] of [['phone', { width: 844, height: 390 }], ['desktop', { 
     await page.click('#r-box .btn.primary'); await skipScenes(page); await page.waitForTimeout(400); await shot('08-after');
     await page.close(); continue;
   }
-  await page.click('#r-box .btn.primary');
+  await page.click('#r-map');
   await page.waitForTimeout(2500); if (await page.isVisible('#scene')) await shot('08-recruit'); await skipScenes(page);
   if (await page.isVisible('#join')) { await page.waitForTimeout(600); await shot('08b-reveal'); await page.click('#j-card .btn.primary'); }
   await visible(page, '#map'); await shot('09-map-after');

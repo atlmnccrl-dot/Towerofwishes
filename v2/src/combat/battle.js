@@ -8,6 +8,7 @@
 //   step(b, dt)      advance (call at a fixed 1/60 s)
 //   b.events         what happened this step, for the renderer
 //   b.result         null, then 'win' | 'lose' (the time limit counts as a loss)
+//   b.manual = true  the team's abilities wait at full charge until trigger(b, id) fires one
 import { UNITS, ENEMIES, SUMMONS, SLOTS, WAVES } from '../data/units.js';
 
 export const TIME_LIMIT = 120;
@@ -61,6 +62,12 @@ function addUnit(b, def, key, team, at, level, extra, mods) {
 }
 
 export const alive = (u) => u.state !== 'ko';
+// the player fires a hero's ability (manual mode); it goes off on the hero's next move
+export function trigger(b, id) {
+  const u = b.units.find((x) => x.id === id);
+  if (!u || !alive(u) || b.result || u.energy < 100 || !u.def.ability) return false;
+  u.fire = true; return true;
+}
 const teamOf = (b, t) => b.units.filter((u) => u.team === t && alive(u));
 const foesOf = (b, u) => teamOf(b, u.team === 'ally' ? 'foe' : 'ally');
 const has = (u, type) => u.statuses.some((s) => s.type === type);
@@ -110,8 +117,8 @@ function act(b, u, dt) {
   const t = pickTarget(b, u);
   if (!t) { u.state = 'idle'; return; }
   u.target = t.id;
-  // a full charge: the ability
-  if (u.energy >= 100 && u.def.ability) { startCast(b, u, t); return; }
+  // a full charge: the ability (held for the player in manual mode, for the team's own heroes)
+  if (u.energy >= 100 && u.def.ability && (!b.manual || u.team !== 'ally' || u.summoned || u.fire)) { u.fire = false; startCast(b, u, t); return; }
   // a healer heals the most hurt ally in reach
   if (u.def.healer) {
     const hurt = teamOf(b, u.team).filter((a) => a.hp < a.max * 0.75).sort((p, q) => p.hp / p.max - q.hp / q.max)[0];

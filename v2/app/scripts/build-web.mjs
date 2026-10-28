@@ -11,7 +11,7 @@ const body = fs.readFileSync(path.join(game, 'index.html'), 'utf8');
 fs.writeFileSync(path.join(www, 'index.html'), `<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<meta name="color-scheme" content="dark"><meta name="theme-color" content="#10170f">
+<meta name="color-scheme" content="dark"><meta name="theme-color" content="#0a0d14">
 <title>Vael</title>${pwa ? `
 <link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="assets/icons/icon-192.webp">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">

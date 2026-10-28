@@ -1,7 +1,7 @@
 // Battle checks: random teams of five from the roster against each lab wave, at level 1.
 // No NaN, nobody leaves the field, every fight ends; win rates per wave and per unit (balance).
 //   node v2/test/battle-test.js [fights per wave]
-import { createBattle, step, TIME_LIMIT } from '../src/combat/battle.js';
+import { createBattle, step, trigger, TIME_LIMIT } from '../src/combat/battle.js';
 import { UNITS, WAVES } from '../src/data/units.js';
 const N = +process.argv[2] || 150, DT = 1 / 60, keys = Object.keys(UNITS);
 let bad = 0; const per = {}, unitWins = {}, unitGames = {}, dmg = {}, healed = {};
@@ -30,5 +30,20 @@ for (const wave of Object.keys(WAVES)) {
 for (const [w, p] of Object.entries(per)) console.log(`${w.padEnd(8)} win ${Math.round(p.win / p.n * 100)}%  avg ${(p.t / p.n).toFixed(1)}s  timeouts ${p.timeouts}`);
 console.log('unit      win%  dmg/fight  heal/fight');
 for (const k of keys) console.log(`${k.padEnd(9)} ${String(Math.round(unitWins[k] / unitGames[k] * 100)).padStart(4)}  ${String(Math.round(dmg[k] / unitGames[k])).padStart(9)}  ${String(Math.round(healed[k] / unitGames[k])).padStart(10)}`);
+// manual mode: a hero's ability waits at full charge until the player fires it
+{
+  const b = createBattle({ team: [{ key: 'corvin', slot: 0, level: 30 }, { key: 'wren', slot: 3, level: 30 }], wave: Object.keys(WAVES)[0], seed: 3 });
+  b.manual = true;
+  let held = null, cast = null;
+  for (let i = 0; i < 60 * 60 && !b.result && !cast; i++) {
+    step(b, 1 / 60);
+    if (b.events.some((e) => e.type === 'cast' && b.units.find((u) => u.id === e.u).team === 'ally' && !(held && held.fired && e.u === held.id))) { console.error('manual: an ally cast on its own'); bad++; break; }
+    if (!held) { held = b.units.find((u) => u.team === 'ally' && u.energy >= 100); if (held) { for (let k = 0; k < 120; k++) step(b, 1 / 60); if (held.energy < 100) { console.error('manual: charge spent'); bad++; } if (!trigger(b, held.id)) { console.error('manual: trigger refused'); bad++; } held.fired = true; } }
+    else if (b.events.some((e) => e.type === 'cast' && e.u === held.id)) cast = true;
+    if (bad) break;
+  }
+  if (!bad && held && !cast) { console.error('manual: triggered ability never went off'); bad++; }
+  if (!bad) console.log('manual abilities ok' + (held ? '' : ' (no charge reached)'));
+}
 if (bad) { console.error('FAILED'); process.exit(1); }
 console.log('battle ok');

@@ -70,7 +70,8 @@ Product ids must match exactly (they are in `src/game/economy.js`):
   > abbey, the frozen north, and the barrow where the kingdom was buried.
   >
   > • Recruit 23 heroes, each met on the road at the moment they join.
-  > • Build a team of five and set its formation; the battles play themselves.
+  > • Build a team of five and set its formation. Battles play themselves, or switch to Manual and
+  >   unleash each hero's ability at the moment you choose.
   > • Level up, train, equip and upgrade gear, and choose four upgrades for every hero.
   > • 60 story missions and 60 heroic ones, with bosses at the end of every region.
   > • Daily bounties and 23 feats to earn.
@@ -81,20 +82,50 @@ Product ids must match exactly (they are in `src/game/economy.js`):
 - **Privacy:** "Data not collected" (Apple's privacy labels) and "No data collected or shared" (Google's
   Data safety form). The policy is in `docs/PRIVACY.md`; host it on any public page (both stores need a URL)
   and add your support email.
-- **Screenshots:** landscape, from a phone: the camp, a battle, the map, the company screen, the shop.
-  iOS needs 6.7" and 6.5" iPhone sizes (and 13" iPad if the iPad build is kept); Play needs at least 2.
+- **Screenshots:** ready in `docs/store/` (landscape, JPEG): `iphone-6.9/` (2868×1320, the App Store's 6.9"
+  size, which also covers the smaller iPhones), `ipad-13/` (2752×2064) and `android/` (1920×1080). Eight each:
+  title, camp, map, team, battle, victory, heroes, a story scene. Remake them after visual changes:
+  `NODE_PATH=$(npm root -g) node v2/tools/store-shots.mjs`.
+- **What's new (1.0.0):** First release.
+
+## Versions
+
+- `src/version.js`: `VERSION` (shown in Settings and on the title) and `BUILD`.
+- iOS: Xcode → *General* → Version (`MARKETING_VERSION`, now 1.0.0) and Build (`CURRENT_PROJECT_VERSION`).
+- Android: `android/app/build.gradle` → `versionName` (1.0.0) and `versionCode`.
+- Every upload to a store needs a higher build number than the last (iOS Build, Android `versionCode`);
+  raise `BUILD` in `src/version.js` to match.
+
+## What the release build does that a player never sees
+
+- **Saves**: after every change, in the device's local storage. A copy of the last save that loaded cleanly
+  is kept; a damaged save falls back to it (the player is told). If storage is full or blocked, the game
+  says so once and keeps playing.
+- **Errors**: anything unexpected shows a small banner ("Something went wrong. Your progress is saved.")
+  with Reload; the game loop keeps running.
+- **Background**: a battle pauses when the app leaves the screen; the sound stops and resumes.
+- **Android back button**: closes Settings or a tip, skips a story scene, pauses or resumes a battle, goes
+  back a screen, and leaves the app from the title.
+- **Vibration**: abilities and results (Capacitor Haptics); off in Settings.
+- **Settings**: music, sounds, screen shake, auto abilities, story scenes, vibration, save code, reset,
+  privacy, credits, and the version.
 
 ## Before submitting: checklist
 
 - [ ] Commercial licences on file for every art pack (Character Creator 2D Fantasy, the effect packs,
-      the tile packs, the UI pack); the credits are in Settings → Credits.
+      the tile packs); the credits are in Settings → Credits. The desert overworld tileset has no author
+      recorded: find its source and credit it, or replace it.
 - [ ] The names and story are approved (they were written for the game as proposals).
-- [ ] Support email and a public privacy-policy URL.
+- [ ] Support email and a public privacy-policy URL (`docs/PRIVACY.md`).
 - [ ] Products created in both stores with the ids above; tested with sandbox / licence-tester accounts:
       buy each pack, kill the app mid-purchase, restore on a second device.
-- [ ] Played through on a real iPhone and a real Android phone (performance, audio after the first tap,
-      safe areas on notched phones, the app returning from the background).
-- [ ] Version and build numbers set (Xcode: *General*; Android: `android/app/build.gradle`).
+- [ ] Automated checks pass (see `README.md`: the Node tests and `test/browser-check.js`).
+- [ ] Played on a real iPhone, a real iPad and a real Android phone: performance in big battles, audio
+      after the first tap, safe areas on notched phones, leaving and returning mid-battle, the back button
+      (Android), vibration, a full first session (opening, first three missions, the first recruit).
+- [ ] App icon and splash checked on the home screen (`npm run icons` regenerates them).
+- [ ] Version and build numbers set (above).
+- [ ] TestFlight / internal testing round with a few players before the public release.
 
 ## Installable web version (optional)
 

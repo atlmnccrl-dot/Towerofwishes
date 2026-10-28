@@ -7,7 +7,7 @@ import * as P from '../game/progress.js';
 import { TIME_LIMIT } from '../combat/battle.js';
 import { joinScene, arrivalScene } from '../data/scenes.js';
 import { $, h, face, itemTile, tierColor, toast, goldIcon, gemIcon, icon } from './common.js';
-import { heroArt } from './heroart.js';
+import { heroArt, artPx } from './heroart.js';
 
 export { gemIcon };
 const clsVar = (cls) => `var(--${cls})`;
@@ -83,6 +83,7 @@ function renderSheet(game, m, regionDone) {
     h('div.sh-top', null, h('span.tag-chip', null, `Mission ${n}`), h('span.tag-chip', null, `Lv ${spec.level}`), m.boss ? h('span.tag-chip.boss', null, 'Boss') : null, H ? h('span.tag-chip.hero', null, 'Heroic') : null, h('span.grow'), stars(done)),
     h('h2', null, m.name), h('div.place', null, m.place),
     h('p.brief', null, m.text),
+    powerRow(game, m, H),
     h('div.label', null, 'Enemies'),
     h('div.foes', null, ...Object.entries(foes).map(([k, c]) => h('span.foe' + (ENEMIES[k].boss ? '.boss' : ''), { title: ENEMIES[k].name }, face(ENEMIES[k].set, 36), c > 1 ? h('em', null, '×' + c) : null))),
     h('div.label', null, done ? 'Replay rewards' : 'First clear'),
@@ -93,6 +94,14 @@ function renderSheet(game, m, regionDone) {
       done < 3 ? reward(gemIcon(), H ? '10' : (!done && m.boss ? '30' : '5')) : null,
       !H && !done && m.recruit && !s.roster[m.recruit] ? reward(face(UNITS[m.recruit].set, 22, true), 'Recruit', '.who') : null)].filter(Boolean));
   sheet.replaceChildren(body, h('button.btn.big.primary', { type: 'button', onclick: () => { game.heroic = H; s.flags.at = m.id; game.persist(); game.go('prep', m.id); } }, icon('swords', 20), 'Prepare'));
+}
+
+// ---- power: the team's against the mission's (equal power wins about three times in four)
+const powerClass = (tp, mp) => (tp >= mp ? 'ok' : tp >= mp * 0.85 ? 'close' : 'low');
+function powerChip(label, n, cls) { return h('span.power.' + cls, { title: label }, icon('power', 14), h('b', null, n.toLocaleString('en')), h('small', null, label)); }
+function powerRow(game, m, H) {
+  const tp = P.teamPower(game.save), mp = P.missionPower(m, H), c = powerClass(tp, mp);
+  return h('div.powers', { title: { ok: 'Ready', close: 'A close fight', low: 'Too strong for now' }[c] }, powerChip('Your team', tp, c), h('span.vs', null, 'vs'), powerChip('Enemies', mp, 'foe'));
 }
 
 // ---- the formation: six places on the floor (back row left, front row right), the roster below
@@ -109,7 +118,7 @@ export function renderPrep(game, missionId) {
   const foes = {}; for (const [k] of m.foes) foes[k] = (foes[k] || 0) + 1;
   $('#p-foes').replaceChildren(h('em', null, 'VS'), ...Object.keys(foes).map((k) => face(ENEMIES[k].set, 28)));
   const slots = $('#p-slots'); slots.replaceChildren(h('span.rowtag', { style: { top: '6%' } }, 'Front row'), h('span.rowtag', { style: { top: '54%' } }, 'Back row'));
-  const big = window.innerHeight > 600 ? 3 : 2;
+  const big = artPx();
   for (const pd of PADS) {
     const slot = pd.s, t = s.team.find((q) => q.slot === slot);
     const el = h('div.pad' + (t ? '.filled' : '') + (selSlot === slot ? '.sel' : ''), { role: 'button', tabindex: '0', onclick: () => tapSlot(game, missionId, slot),
@@ -132,7 +141,7 @@ export function renderPrep(game, missionId) {
   const d = UNITS[focus];
   $('#p-detail').replaceChildren(h('div.t', null, d.name), h('div.sub', null, h('span.cls', { vars: { '--c': clsVar(d.cls) } }, CLASSES[d.cls].name), h('span.place', null, d.title)),
     h('div.ability', null, h('b', null, d.ability.name + '. '), d.ability.desc));
-  $('#p-count').textContent = `Team ${s.team.length} / ${P.MAX_TEAM}`;
+  $('#p-count').replaceChildren(`Team ${s.team.length}/${P.MAX_TEAM} · `, powerChip('Power', P.teamPower(s), powerClass(P.teamPower(s), P.missionPower(m, game.heroic))), h('span.vs', null, 'vs'), powerChip('Enemies', P.missionPower(m, game.heroic), 'foe'));
 }
 function tapCard(game, missionId, key) {
   const s = game.save; focus = key;
@@ -173,12 +182,19 @@ export function renderRewards(game, b, rw, missionId) {
     const bench = rw.xp.filter((x) => !x.team && x.to > x.from);
     if (bench.length) right.append(h('div.rsub', null, `At camp: ${bench.map((x) => `${first(UNITS[x.key].name)} reached level ${x.to}`).join(', ')}`));
     if (rw.loot.length) right.append(h('div.loot', null, ...rw.loot.map((it) => h('div.lcard', null, itemTile(it, 26), h('span', null, h('b', { style: { color: tierColor(it) } }, itemName(it)), h('small', null, Object.entries(itemStats(it)).map(([a, v]) => statText(a, v)).join(', ')))))));
+    // what next: straight on to the next mission (the usual way), the map, the same mission again, or the heroes
+    const nx = !rw.heroic && nextMission(game.save.cleared), onward = nx && nx !== m;
     box.append(h('div.ractions', null,
-      h('button.btn', { type: 'button', onclick: () => game.go('company') }, icon('heroes', 18), 'Heroes'),
-      h('button.btn.primary', { type: 'button', onclick: () => afterWin(game, rw, m) }, 'Continue')));
+      h('button.btn', { id: 'r-heroes', type: 'button', onclick: () => afterWin(game, rw, m, 'heroes') }, icon('heroes', 18), 'Heroes'),
+      h('button.btn', { id: 'r-map', type: 'button', onclick: () => afterWin(game, rw, m, 'map') }, icon('map', 18), 'Map'),
+      h('button.btn', { id: 'r-replay', type: 'button', onclick: () => afterWin(game, rw, m, 'replay') }, 'Replay'),
+      h('button.btn.primary', { id: 'r-next', type: 'button', onclick: () => afterWin(game, rw, m, onward ? 'next' : 'map') }, onward ? 'Next mission' : 'Continue', icon('right', 18))));
   } else {
     box.append(h('div.rt.lose', null, b.t >= TIME_LIMIT - 0.1 ? 'Time ran out' : 'Defeat'), h('div.rsub', null, `${m.name} · ${allies.filter((u) => u.state !== 'ko').length} of ${allies.length} standing`));
-    box.append(h('p.lose-note', null, 'Nothing is lost. Level up on earlier missions, equip the gear you found, train, or try a different formation.'));
+    const tp = P.teamPower(game.save), mp = P.missionPower(m, !!game.heroic);
+    box.append(h('div.powers', null, powerChip('Your team', tp, tp >= mp ? 'ok' : tp >= mp * 0.85 ? 'close' : 'low'), h('span.vs', null, 'vs'), powerChip('Enemies', mp, 'foe')));
+    box.append(h('p.lose-note', null, tp < mp ? 'Your team is under-powered here. Nothing is lost: replay earlier missions for levels, equip and upgrade gear, train, then come back.'
+      : 'Nothing is lost. Try a different formation, put the healer in the back row, or use Manual to time the abilities.'));
     const top = Math.max(1, ...allies.map((u) => Math.max(u.dealt, u.healed)));
     box.append(h('div.xps', null, ...allies.map((u) => h('div.xrow', { vars: { '--c': clsVar(u.def.cls || 'striker') } }, face(u.def.set, 26), h('span.nm', null, first(u.def.name)),
       h('span.dbar', null, h('i', { style: { width: (u.dealt / top) * 100 + '%' } })), h('span.xp', null, String(Math.round(u.dealt)))))));
@@ -191,14 +207,17 @@ export function renderRewards(game, b, rw, missionId) {
 }
 
 // after a win: who joined (on film, then the reveal), then the region's story if that cleared it, then the map
-function afterWin(game, rw, m) {
+function afterWin(game, rw, m, then = 'map') {
   const ms = missionsIn(m.region), last = ms[ms.length - 1] === m;
   const toMap = () => {
     if (last && rw.first && !rw.heroic) {
       const ri = REGIONS.findIndex((r) => r.id === m.region), nextR = REGIONS[ri + 1];
       showStory(game, REGIONS[ri].name, REGION_END[m.region], nextR ? `Onward to ${nextR.name}` : 'The end',
         () => (nextR ? game.playScene(arrivalScene(nextR.id, game.save.team.map((t) => t.key))).then(() => game.go('map', missionsIn(nextR.id)[0].id)) : game.go('camp')), !nextR);
-    } else game.go('map', m.id);
+    } else if (then === 'next') { const nx = nextMission(game.save.cleared); game.go('prep', nx ? nx.id : m.id); }
+    else if (then === 'replay') game.go('prep', m.id);
+    else if (then === 'heroes') game.go('company');
+    else game.go('map', m.id);
   };
   if (rw.joined) game.playScene(joinScene(rw.joined, game.save.team[0] ? game.save.team[0].key : 'corvin', m.region)).then(() => showRecruit(game, rw.joined, toMap));
   else toMap();
@@ -218,7 +237,7 @@ export function showRecruit(game, key, after = () => game.go('map')) {
   card.replaceChildren(
     h('div.rays'),
     h('div.jtag', null, 'New hero'),
-    h('div.jart', null, heroArt(d.set, window.innerHeight > 600 ? 4 : 3)),
+    h('div.jart', null, heroArt(d.set, artPx() + 1)),
     h('div.jname', null, d.name), h('div.jtitle', null, d.title),
     h('div.cls', { vars: { '--c': clsVar(d.cls) } }, `${CLASSES[d.cls].name} · Level ${m.level}`),
     h('div.ability', null, h('b', null, d.ability.name + '. '), d.ability.desc),

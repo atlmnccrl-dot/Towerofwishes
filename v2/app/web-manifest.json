@@ -1,5 +1,5 @@
 {
-  "background_color": "#10170f",
+  "background_color": "#0a0d14",
   "icons": [
     {
       "src": "assets/icons/icon-48.webp",
@@ -49,6 +49,6 @@
   "start_url": "./",
   "display": "fullscreen",
   "orientation": "landscape",
-  "theme_color": "#10170f",
+  "theme_color": "#0a0d14",
   "description": "Recruit a company of sellswords, build a team of five, and fight across the fallen kingdom of Vael."
 }

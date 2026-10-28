@@ -1,9 +1,9 @@
 // The company's progress: the save, rewards, levels, gear, training and ability upgrades.
 // Pure functions over a plain save object (no DOM), so Node tests can play the whole campaign.
-import { UNITS, CLASSES } from '../data/units.js';
+import { UNITS, CLASSES, ENEMIES } from '../data/units.js';
 import { MISSIONS, START_ROSTER, START_TEAM, missionById } from '../data/campaign.js';
 import { SLOTS, BASES, itemStats, upgradeCost, sellValue, rollItem, MAX_PLUS } from '../data/items.js';
-import { MOD_KEYS } from '../combat/battle.js';
+import { MOD_KEYS, statsAt } from '../combat/battle.js';
 
 export const SAVE_VERSION = 1;
 export const MAX_LEVEL = 60;
@@ -53,7 +53,7 @@ export const upgradeChoices = (key, tier) => [T1, T2[UNITS[key].cls], T3, T4[UNI
 export function newSave() {
   const s = { v: SAVE_VERSION, gold: 120, gems: 50, roster: {}, inv: [], uid: 1, cleared: {}, heroic: {}, team: START_TEAM.map((m) => ({ ...m })), joined: [], speed: 1, seed: 7,
     stats: { wins: 0, losses: 0, kills: 0, bosses: 0, stars3: 0, trained: 0, upgraded: 0, bought: 0 }, flags: {},
-    settings: { music: 0.6, sfx: 0.8, shake: true } };
+    settings: { music: 0.6, sfx: 0.8, shake: true, auto: true, haptics: true, scenes: true } };
   for (const k of START_ROSTER) s.roster[k] = newMember(1);
   return s;
 }
@@ -115,6 +115,20 @@ export function starsFor(b) {
 export const missionXp = (m) => 30 + 18 * m.level;
 export const missionGold = (m) => 40 + 20 * m.level;
 // what a battle for this mission looks like: its foes, their level and strength (heroic: tougher)
+// Power: one number for how strong a fighter is (health, damage per second, defence, crits,
+// ability strength), summed over a side. Shown on the map and the team screen so a player can see
+// at a glance whether the team is ready for a mission.
+export function unitPower(st) {
+  return st.max / 6 + st.atk * st.spd * 3.2 * (1 + st.crit * 0.5) * (0.85 + st.power * 0.15) + st.def * 1.6 + st.max * st.dr / 3;
+}
+export const teamPower = (s) => Math.round(s.team.reduce((a, t) => a + unitPower(statsAt(UNITS[t.key], s.roster[t.key].level, modsOf(s, t.key))), 0));
+export function missionPower(m, heroic = false) {
+  const sp = battleSpec(m, heroic), mods = sp.might !== 1 ? { hp: sp.might - 1, atk: (sp.might - 1) * 0.6 } : undefined;
+  return Math.round(sp.foes.reduce((a, [k]) => a + unitPower(statsAt(ENEMIES[k], sp.level, mods)), 0) * POWER_PAR);
+}
+// the enemy power is scaled so that a team of equal power wins about three times in four (see test/power-test.js)
+export const POWER_PAR = 0.74;
+
 export function battleSpec(m, heroic = false) {
   return { foes: m.foes, level: m.level + (heroic ? HEROIC.level : 0), might: (m.might || 1) * (heroic ? HEROIC.might : 1) };
 }

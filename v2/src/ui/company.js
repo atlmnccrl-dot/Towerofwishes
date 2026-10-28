@@ -7,7 +7,7 @@ import { SLOTS, SLOT_NAMES, BASES, itemStats, itemName, statText, upgradeCost, s
 import { statsAt } from '../combat/battle.js';
 import * as P from '../game/progress.js';
 import { $, h, face, itemTile, slotIcon, tierColor, toast, goldIcon } from './common.js';
-import { heroArt } from './heroart.js';
+import { heroArt, artPx } from './heroart.js';
 
 let sel = null, tab = 'stats', gearSlot = 'weapon';
 const pct = (v) => `${Math.round(v * 100)}%`;
@@ -43,7 +43,7 @@ function renderDetail(game) {
   const need = P.xpNeed(m.level), hero = $('#c-hero');
   hero.style.setProperty('--c', clsVar(d.cls));
   hero.replaceChildren(
-    h('div.pedestal', null, heroArt(d.set, window.innerHeight > 600 ? 4 : 3)),
+    h('div.pedestal', null, heroArt(d.set, artPx() + 1)),
     h('div.nm', null, d.name), h('div.ti', null, d.title),
     h('div.cls', { vars: { '--c': clsVar(d.cls) } }, CLASSES[d.cls].name),
     h('div.lvrow', null, h('b', null, 'Lv ' + m.level), h('div.xpbar', { role: 'progressbar', 'aria-label': 'Experience', 'aria-valuenow': String(m.xp), 'aria-valuemax': String(need) }, h('i', { style: { width: `${m.level >= P.MAX_LEVEL ? 100 : (m.xp / need) * 100}%` } })), h('span.xp', null, m.level >= P.MAX_LEVEL ? 'max' : `${m.xp} / ${need}`)),

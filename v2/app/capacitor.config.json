@@ -2,11 +2,11 @@
   "appId": "com.vaelcompany.game",
   "appName": "Vael",
   "webDir": "www",
-  "backgroundColor": "#10170f",
-  "ios": { "contentInset": "never", "backgroundColor": "#10170f" },
-  "android": { "backgroundColor": "#10170f" },
+  "backgroundColor": "#0a0d14",
+  "ios": { "contentInset": "never", "backgroundColor": "#0a0d14" },
+  "android": { "backgroundColor": "#0a0d14" },
   "plugins": {
-    "SplashScreen": { "launchShowDuration": 800, "backgroundColor": "#10170f", "showSpinner": false },
+    "SplashScreen": { "launchShowDuration": 800, "backgroundColor": "#0a0d14", "showSpinner": false },
     "StatusBar": { "overlaysWebView": true, "style": "DARK" }
   }
 }

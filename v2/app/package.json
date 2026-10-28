@@ -7,14 +7,16 @@
   "scripts": {
     "build": "node scripts/build-web.mjs",
     "build:web": "node scripts/build-web.mjs --pwa",
-    "icons": "python3 ../tools/icons.py && npx capacitor-assets generate --iconBackgroundColor '#10170f' --iconBackgroundColorDark '#10170f' --splashBackgroundColor '#10170f' --splashBackgroundColorDark '#10170f'",
+    "icons": "python3 ../tools/icons.py && npx capacitor-assets generate --iconBackgroundColor '#0a0d14' --iconBackgroundColorDark '#0a0d14' --splashBackgroundColor '#0a0d14' --splashBackgroundColorDark '#0a0d14'",
     "sync": "node scripts/build-web.mjs && npx cap sync",
     "ios": "node scripts/build-web.mjs && npx cap sync ios && npx cap open ios",
     "android": "node scripts/build-web.mjs && npx cap sync android && npx cap open android"
   },
   "dependencies": {
     "@capacitor/android": "8.5.3",
+    "@capacitor/app": "^8.1.2",
     "@capacitor/core": "8.5.3",
+    "@capacitor/haptics": "^8.0.2",
     "@capacitor/ios": "8.5.3",
     "@capacitor/screen-orientation": "^8.0.0",
     "@capacitor/splash-screen": "^8.0.0",

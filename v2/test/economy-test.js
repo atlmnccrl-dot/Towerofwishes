@@ -9,7 +9,7 @@ import * as E from '../src/game/economy.js';
 const r = rng(3);
 let s = P.newSave();
 // bounties
-const day = '2026-10-26', list = E.dailyBounties(s, day);
+const day = E.today(), list = E.dailyBounties(s, day);   // claims count against today's board
 assert.equal(list.length, 3); assert.equal(new Set(list.map((b) => b.id)).size, 3);
 assert.deepEqual(E.dailyBounties(s, day).map((b) => b.id), list.map((b) => b.id));       // same day, same three
 const b0 = list[0]; assert.equal(E.claimBounty(s, b0.id), null);                          // not done yet
@@ -19,7 +19,7 @@ assert.ok(got && s.gold === g + got.gold && s.gems === gems + got.gems); assert.
 for (const b of list.slice(1)) s.stats[b.stat] += b.need;
 const before = s.gems; for (const b of list.slice(1)) E.claimBounty(s, b.id);
 assert.equal(s.gems - before, 2 * E.BOUNTY_GEMS + E.BOUNTY_ALL_GEMS);
-assert.notDeepEqual(E.dailyBounties(s, '2026-10-27').map((b) => b.claimed), [true, true, true]);   // a new day resets
+assert.notDeepEqual(E.dailyBounties(s, E.today(new Date(Date.now() + 864e5))).map((b) => b.claimed), [true, true, true]);   // a new day resets
 // achievements
 s = P.newSave(); assert.equal(E.checkAchievements(s).length, 0);
 s.stats.wins = 1; const a = E.checkAchievements(s); assert.ok(a.some((x) => x.id === 'first')); assert.equal(E.checkAchievements(s).length, 0);

@@ -270,7 +270,8 @@ export function createView(canvas, fxAtlas, tiles, settings = () => ({ shake: tr
     onEvents(b);
     // the camera: fitted to the field, unless a scene directs it
     if (b.camera) { cam.x = b.camera.x; cam.y = b.camera.y; cam.zoom = b.camera.zoom; }
-    else { cam.x = 0; cam.y = arena ? -0.7 : 0.2; cam.zoom = Math.min(1.08, buf.width / ((b.field.w + 1.2) * PPM)); }
+    // fitted to the field's width; on a squarer screen (a tablet) never so far out that the painted ground ends
+    else { cam.x = 0; cam.y = arena ? -0.7 : 0.2; cam.zoom = Math.max(0.74, Math.min(1.08, buf.width / ((b.field.w + 1.2) * PPM))); }
     const shx = cam.shake > 0.05 ? (Math.random() - 0.5) * cam.shake : 0, shy = cam.shake > 0.05 ? (Math.random() - 0.5) * cam.shake : 0;
     cam.shake *= Math.exp(-dt * 9); if (!settings().shake) cam.shake = 0;
     ctx.setTransform(1, 0, 0, 1, Math.round(shx), Math.round(shy));
