@@ -69,7 +69,7 @@ for (const R of ORDER.map((id) => REGIONS.find((r) => r.id === id))) {
   for (const c of companies) if (c.s.run) P.abandonRun(c.s);
 }
 for (const m of MISSIONS) if (MIGHT[m.id] == null) MIGHT[m.id] = 1;
-const body = Object.entries(MIGHT).map(([k, v]) => `${k}: ${v}`).join(', ');
+const body = Object.entries(MIGHT).map(([k, v]) => `${/^\w+$/.test(k) ? k : `'${k}'`}: ${v}`).join(', ');
 fs.writeFileSync(new URL('../src/data/tuning.js', import.meta.url), `// How strong each mission's foes are beyond their level: health x might, attack x (1 + 0.6 (might - 1)).
 // Written by test/tune.js from simulated expeditions (a casual player arriving at a step of the road, as
 // hurt and as blessed as the road left them, wins about ${TARGET * 100}% of fights and ${BOSS * 100}% of boss fights); re-run it after changes.
