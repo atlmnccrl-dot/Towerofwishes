@@ -124,6 +124,9 @@ Product ids must match exactly (they are in `src/game/economy.js`):
       the tile packs); the credits are in Settings → Credits. The desert overworld tileset has no author
       recorded: find its source and credit it, or replace it.
 - [ ] The names and story are approved (they were written for the game as proposals).
+- [ ] The music is approved by ear: the title, camp and boss themes and the stings were synthesised by
+      `tools/compose.py` and only measured (loudness about −20 LUFS), never listened to. Replace them with
+      licensed tracks if they do not hold up ("Heartfelt Battle" is CC0 from OpenGameArt).
 - [ ] Support email and a public privacy-policy URL (`docs/PRIVACY.md`).
 - [ ] Products created in both stores with the ids above; tested with sandbox / licence-tester accounts:
       buy each pack, kill the app mid-purchase, restore on a second device.

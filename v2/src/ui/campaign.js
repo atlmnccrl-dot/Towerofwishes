@@ -165,14 +165,14 @@ export function renderRewards(game, b, rw, missionId) {
       rw.first ? h('span.first', null, rw.heroic ? 'Heroic clear' : 'First clear') : null);
     const right = h('div.r-right'); box.append(h('div.r-body', null, left, right));
     const xs = h('div.xps');
-    for (const x of rw.xp.filter((x) => x.team)) {
+    for (const [i, x] of rw.xp.filter((x) => x.team).entries()) {
       const d = UNITS[x.key];
-      xs.append(h('div.xrow', { vars: { '--c': clsVar(d.cls) } }, face(d.set, 26), h('span.nm', null, first(d.name)), h('span.xp', null, `+${x.xp} xp`), x.to > x.from ? h('span.lvup', null, `Level ${x.to}`) : h('span.lv', null, `Lv ${x.to}`)));
+      xs.append(h('div.xrow', { vars: { '--c': clsVar(d.cls), '--i': i } }, face(d.set, 26), h('span.nm', null, first(d.name)), h('span.xp', null, `+${x.xp} xp`), x.to > x.from ? h('span.lvup', null, `Level ${x.to}`) : h('span.lv', null, `Lv ${x.to}`)));
     }
     right.append(xs);
     const bench = rw.xp.filter((x) => !x.team && x.to > x.from);
     if (bench.length) right.append(h('div.rsub', null, `At camp: ${bench.map((x) => `${first(UNITS[x.key].name)} reached level ${x.to}`).join(', ')}`));
-    if (rw.loot.length) right.append(h('div.loot', null, ...rw.loot.map((it) => h('div.lcard', null, itemTile(it, 26), h('span', null, h('b', { style: { color: tierColor(it) } }, itemName(it)), h('small', null, Object.entries(itemStats(it)).map(([a, v]) => statText(a, v)).join(', ')))))));
+    if (rw.loot.length) right.append(h('div.loot', null, ...rw.loot.map((it, i) => h('div.lcard', { vars: { '--i': i } }, itemTile(it, 26), h('span', null, h('b', { style: { color: tierColor(it) } }, itemName(it)), h('small', null, Object.entries(itemStats(it)).map(([a, v]) => statText(a, v)).join(', ')))))));
     // what next: straight on to the next mission (the usual way), the map, the same mission again, or the heroes
     const nx = !rw.heroic && nextMission(game.save.cleared), onward = nx && nx !== m;
     box.append(h('div.ractions', null,
@@ -197,7 +197,21 @@ export function renderRewards(game, b, rw, missionId) {
       h('button.btn', { type: 'button', onclick: () => game.go('company') }, icon('heroes', 18), 'Heroes'),
       h('button.btn.primary', { type: 'button', onclick: () => game.needRun(() => game.go('prep', missionId)) }, game.save.run || P.unlocked(game.save).length < 2 ? 'Try again' : 'Spin again', icon('right', 18))));
   }
+  $('#result').classList.toggle('lose', !rw.win);
   $('#result').hidden = false;
+  // the reveal, heard: a chime per star, the coins counting up, a chest for the loot
+  if (rw.win) {
+    for (let i = 0; i < rw.stars; i++) setTimeout(() => game.audio.play('coin_01', { gain: 0.55, vary: 0.02 + i * 0.08 }), 260 + i * 150);
+    if (rw.loot.length) setTimeout(() => game.audio.play('chest_open', { gain: 0.6 }), 900);
+    countUp(box.querySelector('.rgold'), rw.gold);
+  } else game.audio.play('cancel_01', { gain: 0.5 });
+}
+// the gold of a win counts up from nothing
+function countUp(row, to) {
+  const el = row && [...row.querySelectorAll('*')].find((n) => n.childNodes.length === 1 && n.textContent === `+${to}`); if (!el || !to) return;
+  const t0 = performance.now(), dur = 700;
+  const tick = (now) => { const k = Math.min(1, (now - t0 - 350) / dur); el.textContent = '+' + Math.round(Math.max(0, k) * to); if (k < 1) requestAnimationFrame(tick); };
+  el.textContent = '+0'; requestAnimationFrame(tick);
 }
 
 // after a win: who joined (on film, then the reveal), then the region's story if that cleared it, then the map

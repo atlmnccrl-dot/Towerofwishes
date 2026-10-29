@@ -11,7 +11,7 @@ import { createView } from './render/view.js';
 import { createDirector } from './render/director.js';
 import { createCamp } from './render/camp.js';
 import { createOverworld } from './render/overworld.js';
-import { REGION_ARENA } from './data/arenas.js';
+import { arenaFor } from './data/arenas.js';
 import { createScenePlayer } from './render/scene.js';
 import { OPENING, bossScene } from './data/scenes.js';
 import * as E from './game/economy.js';
@@ -88,7 +88,7 @@ function go(name, arg) {
   if (name === 'keep') renderKeep(game);
   if (name === 'wheel') renderWheel(game, arg || (() => go('camp')));
   if (!bg.hidden) { camp.setFocus(name === 'camp' ? 0.4 : name === 'keep' ? 0.27 : name === 'prep' ? 0.36 : 0.64); game.refreshKeep(); camp.resize(); refreshCast(); }
-  game.audio.setScene(name === 'battle' ? 'battle' : 'camp');
+  game.audio.setScene(name === 'battle' ? (battle && battle.boss ? 'boss' : 'battle') : name === 'title' ? 'title' : 'camp');
   $('#tip').hidden = true;
   // a tip left by the last result comes first, on whatever screen follows it
   const pend = name !== 'battle' && name !== 'scene' && game.pendingTip;
@@ -97,7 +97,6 @@ function go(name, arg) {
   if (name === 'map') tip(game, 'map');
   if (name === 'prep') tip(game, 'prep');
   if (name === 'keep') tip(game, 'keep');
-  if (name === 'battle') tip(game, 'battle');
   if (name === 'camp' && Object.keys(game.save.cleared).length >= 2) tip(game, 'extras');
 }
 
@@ -114,8 +113,11 @@ function renderCamp() {
   const cleared = Object.keys(s.cleared).length;
   const nh = Object.keys(s.roster).length;
   $('#k-region').textContent = `${nh} ${nh === 1 ? 'hero' : 'heroes'} · ${cleared} of ${MISSIONS.length} missions`;
-  $('#k-cta-region').textContent = next ? regionOf(next).name : 'Vael is reclaimed';
-  $('#k-next').textContent = next ? `Next: ${next.name}` : 'Heroic missions are open in every region';
+  // after the sixth seal the goal is Heroic: every mission again, harder, for better loot
+  const hn = !next && MISSIONS.find((m) => !s.heroic[m.id]), hc = Object.keys(s.heroic).length;
+  const stars = Object.values(s.cleared).reduce((a, n) => a + n, 0);
+  $('#k-cta-region').textContent = next ? regionOf(next).name : hn ? `Heroic · ${regionOf(hn).name}` : 'Vael is reclaimed';
+  $('#k-next').textContent = next ? `Next: ${next.name}` : hn ? `${hc} of ${MISSIONS.length} on Heroic · next: ${hn.name}` : `Every mission won on Heroic · ${stars} of ${MISSIONS.length * 3} stars`;
   const run = s.run, rc = $('#k-run');
   if (run) { const d = UNITS[run.leader], f = face(d.set, 30); f.style.setProperty('--c', `var(--${d.cls})`); rc.replaceChildren(f, h('span', null, `${d.name.split(' ')[0]} leads`, h('small', null, `${P.LEADERS[run.leader].name} · ${run.wins} win${run.wins === 1 ? '' : 's'} this run`))); }
   else rc.replaceChildren(h('span', null, 'No leader yet', h('small', null, P.unlocked(s).length > 1 ? 'Spin the wheel to start a run' : 'A run starts with the next fight')));
@@ -195,7 +197,7 @@ async function fight() {
   if (m.boss && !game.heroic && !s.flags['met_' + m.id]) { s.flags['met_' + m.id] = true; game.persist(); await playScene(bossScene(m, s.team.map((t) => t.key))); }
   const spec = P.battleSpec(m, game.heroic);
   battle = createBattle({ team: P.teamFor(s), foes: spec.foes, level: spec.level, might: spec.might, seed: (Math.random() * 1e9) | 0 });
-  battle.theme = m.theme; battle.arena = m.arena || REGION_ARENA[m.region];
+  battle.theme = m.theme; battle.arena = arenaFor(m);
   battle.manual = game.save.settings.auto === false;
   view.setSprites(sprites); view.reset();
   buildAllies();
@@ -217,7 +219,7 @@ function onCue(c) {
   const m = drama.m;
   if (c === 'vs') {
     const side = (team, cls) => h('div.side.' + cls, null, ...battle.units.filter((u) => u.team === team && !u.summoned).map((u) => { const f = face(u.def.set, 54); if (u.team === 'ally') f.style.setProperty('--c', `var(--${u.def.cls})`); return f; }));
-    $('#vs').replaceChildren(side('ally', 'a'), h('div.mid', null, h('b', null, 'VS'), h('span', null, m.name + (game.heroic ? ' · Heroic' : '')), battle.boss ? h('small', null, battle.boss.def.name) : null), side('foe', 'f'));
+    $('#vs').replaceChildren(side('ally', 'a'), h('div.mid', null, h('b', null, 'VS'), h('span', null, m.name + (game.heroic ? ' · Heroic' : '')), battle.boss && !m.name.includes(battle.boss.def.name) && !battle.boss.def.name.includes(m.name) ? h('small', null, battle.boss.def.name) : null), side('foe', 'f'));
     $('#vs').classList.remove('out'); $('#vs').hidden = false;
     game.audio.play('whoosh', { gain: 0.8 }); game.audio.play('unsheathe_01', { gain: 0.6 });
     if (battle.boss) { view.shake(4); game.audio.play('quake', { gain: 0.6 }); }
@@ -227,7 +229,7 @@ function onCue(c) {
     banner(battle.boss ? 'Boss fight' : 'Fight!', 'fight');
     view.spawn('shockwave', 0, 0, 0.05, { add: true, ground: true, scale: 3.2 }); view.flash(0.45, '255,236,200'); view.shake(6);
     game.audio.play('horn', { gain: 0.9 }); game.audio.play('allout', { gain: 0.6 }); game.haptics.buzz('big');
-  } else if (c === 'go') $('#hud').classList.remove('intro');
+  } else if (c === 'go') { $('#hud').classList.remove('intro'); tip(game, 'battle'); }
 }
 // a word across the field at the start and the end
 function banner(text, cls = '') { const b = $('#banner'); b.textContent = text; b.className = cls; b.hidden = false; b.style.animation = 'none'; void b.offsetWidth; b.style.animation = ''; clearTimeout(banner.t); banner.t = setTimeout(() => (b.hidden = true), 1100); }
@@ -297,7 +299,7 @@ function finish() {
 function frame(now) {
   requestAnimationFrame(frame);   // first, so one bad frame never stops the game
   const real = Math.min(0.05, (now - (last || now)) / 1000); last = now;
-  if (screen === 'battle' && battle && paused) { /* the picture holds while paused */ }
+  if (screen === 'battle' && battle && (paused || !$('#tip').hidden)) { /* the picture holds while paused, or while a tip is read */ }
   else if (screen === 'battle' && battle) {
     // the director: the intro, the camera, and slow time for the big moments (the last blow most of all)
     const d = director.update(real, lastEvents); for (const c of d.cues) onCue(c);
@@ -366,8 +368,9 @@ for (const [id, key] of [['#set-shake', 'shake'], ['#set-auto', 'auto'], ['#set-
   $(id).addEventListener('click', () => { const st = game.save.settings; st[key] = st[key] === false; game.persist(); openSettings(); if (key === 'auto' && battle) setAuto(st.auto); if (key === 'haptics') game.haptics.buzz('tap'); });
 }
 $('#set-export').addEventListener('click', async () => {
-  const code = P.encodeSave(game.save); $('#save-box').hidden = false; $('#save-code').value = code;
-  try { await navigator.clipboard.writeText(code); toast('Save code copied'); } catch (e) { $('#save-code').select(); toast('Copy the code from the box'); }
+  // copied straight away; the code itself only shows when the clipboard is not available
+  const code = P.encodeSave(game.save); $('#save-code').value = code;
+  try { await navigator.clipboard.writeText(code); $('#save-box').hidden = true; toast('Save code copied'); } catch (e) { $('#save-box').hidden = false; $('#save-code').select(); toast('Copy the code from the box'); }
 });
 $('#set-import').addEventListener('click', () => { $('#save-box').hidden = false; $('#save-code').value = ''; $('#save-code').focus(); });
 $('#save-load').addEventListener('click', () => {
@@ -464,7 +467,7 @@ if (CapApp) CapApp.addListener('backButton', back);
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') back(); });
 
 // for the tests: the game, the screens, and a way to run a battle to its end at once
-window.__v2 = { game, spin() { if (!game.save.run) P.spin(game.save, Math.random); game.persist(); }, get battle() { return battle; }, get screen() { return screen; }, go, fight, finish, missions: MISSIONS.map((m) => m.id),
+window.__v2 = { game, spin() { if (!game.save.run) P.spin(game.save, Math.random); game.persist(); }, get battle() { return battle; }, get screen() { return screen; }, go, fight, finish, play(id) { missionId = id; return fight(); }, missions: MISSIONS.map((m) => m.id),
   pickUpgrades() { const s = game.save; for (const k of Object.keys(s.roster)) s.roster[k].ups.forEach((u, t) => { if (!u && s.roster[k].level >= P.UPGRADE_LEVELS[t]) P.pickUpgrade(s, k, t, P.upgradeChoices(k, t)[0].id); }); game.persist(); },
   skip() { if (!battle) return; if (director.playing) director.skip(); while (!battle.result) step(battle, DT); if (!ended) { ended = true; setTimeout(finish, 200); } } };
 boot().catch((e) => { loading('Vael could not start: ' + e.message, true); });

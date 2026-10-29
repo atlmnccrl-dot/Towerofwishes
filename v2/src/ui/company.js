@@ -22,18 +22,22 @@ export function renderCompany(game, focus) {
   const keys = Object.keys(UNITS), inTeam = (k) => s.team.some((t) => t.key === k);
   const members = keys.filter((k) => s.roster[k]).sort((a, b) => inTeam(b) - inTeam(a));
   const list = $('#c-roster'); list.replaceChildren();
-  $('#c-count').textContent = `${members.length} of ${keys.length} in the company`;
+  const left = keys.length - members.length;
+  $('#c-count').textContent = `${members.length} ${members.length === 1 ? 'hero' : 'heroes'}` + (left ? ` · ${left} still to find` : ' · all found');
   for (const k of members) {
     const d = UNITS[k], m = s.roster[k], pend = P.pendingUpgrade(s, k) >= 0;
     list.append(h('button.rcard' + (k === sel ? '.on' : ''), { type: 'button', vars: { '--c': clsVar(d.cls) }, onclick: () => { sel = k; renderCompany(game); }, 'aria-pressed': String(k === sel), 'aria-label': d.name },
       h('span.lv', null, m.level), face(d.set, 42), h('span.nm', null, d.name.split(' ')[0]),
       pend ? h('span.dot', { title: 'An upgrade to pick', 'aria-label': 'An upgrade to pick' }) : inTeam(k) ? h('span.tm', { title: 'In the team', 'aria-label': 'In the team' }) : null));
   }
-  for (const k of keys.filter((k) => !s.roster[k])) {
-    // not met yet: hidden, only where to look
-    const where = P.unlockedBy(k), hint = where ? `Somewhere in ${regionOf(where).name}` : 'Hidden';
-    list.append(h('div.rcard.locked', { title: hint }, h('b.q', null, '?'), h('span.nm', null, '???')));
+  // not met yet: only the next one to find, with where to look, and how many more are out there
+  const order = (k) => { const m = P.unlockedBy(k); return m ? MISSIONS.indexOf(m) : 1e9; };
+  const hidden = keys.filter((k) => !s.roster[k]).sort((a, b) => order(a) - order(b));
+  if (hidden.length) {
+    const where = P.unlockedBy(hidden[0]);
+    list.append(h('div.rcard.locked', { title: where ? `Somewhere in ${regionOf(where).name}` : 'Hidden' }, h('b.q', null, '?'), h('span.nm', null, where ? regionOf(where).name.replace(/^The /, '') : '???')));
   }
+  if (hidden.length > 1) list.append(h('div.rcard.locked.more', { title: 'Heroes still to find on the road' }, h('b.q', null, '+' + (hidden.length - 1)), h('span.nm', null, 'to find')));
   renderDetail(game);
 }
 

@@ -30,6 +30,9 @@ for (const [name, vp] of [['phone', { width: 844, height: 390 }], ['desktop', { 
   page.on('pageerror', (e) => errors.push(name + ' pageerror: ' + e.message));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(name + ' console: ' + m.text()); });
   page.on('requestfailed', (r) => errors.push(name + ' failed: ' + r.url()));
+  // tips are modal cards: a player taps "Got it" before anything else, and so does every click here
+  const click0 = page.click.bind(page), dismiss = async () => { for (let k = 0; k < 3 && await page.isVisible('#tip'); k++) { await click0('#tip .btn'); await page.waitForTimeout(150); } };
+  page.click = async (sel, o) => { if (!sel.startsWith('#tip')) await dismiss(); return click0(sel, o); };
   // every screenshot also checks the page for leaked placeholders in its text
   const shot = async (n) => {
     const bad = await page.evaluate(() => (document.body.innerText.match(/\b(null|undefined|NaN)\b/g) || []).join(','));
@@ -45,7 +48,7 @@ for (const [name, vp] of [['phone', { width: 844, height: 390 }], ['desktop', { 
   await page.evaluate(() => { window.__v2.game.fastWheel = true; }); await page.waitForTimeout(800); await shot('03-camp');
   await page.click('#k-campaign'); await visible(page, '#map'); await page.waitForTimeout(300); await shot('04-map');
   await prepare(page); await shot('05-prep');
-  await page.click('#p-fight'); await skipScenes(page); await visible(page, '#hud'); await page.waitForTimeout(1200); await shot('06a-intro'); await page.waitForTimeout(3600); await shot('06-battle');
+  await page.click('#p-fight'); await skipScenes(page); await visible(page, '#hud'); await page.waitForTimeout(1200); await shot('06a-intro'); await page.waitForTimeout(3600); await shot('06b-tip'); await dismiss(); await page.waitForTimeout(1500); await shot('06-battle');
   await page.evaluate(() => window.__v2.skip());
   await visible(page, '#result'); await page.waitForTimeout(500); await shot('07-rewards');
   for (let k = 0; k < 6 && await page.evaluate(() => window.__v2.battle.result !== 'win'); k++) {

@@ -2,10 +2,11 @@
 // in battles, the campfire and the night at camp. Sounds: the UI pack and the fight sounds, with a
 // little pitch variation and a cap on how many play at once.
 const UI = ['accept_01', 'cancel_01', 'chest_open', 'coin_01', 'confirm_01', 'equip_armor_01', 'error_01', 'level_up', 'locked_01',
-  'notify_01', 'page_turn_01', 'quest_complete', 'quest_new', 'click_wood_01', 'unsheathe_01', 'anvil_01', 'heal_02'];
+  'notify_01', 'page_turn_01', 'quest_complete', 'quest_new', 'click_wood_01', 'unsheathe_01', 'anvil_01', 'heal_02', 'victory', 'defeat'];
 const FIGHT = ['allout', 'blow_0', 'blow_1', 'blow_2', 'blow_big', 'bolt', 'charge', 'clang_0', 'clang_1', 'fire', 'horn', 'ice', 'ko',
   'magic', 'quake', 'slash_0', 'slash_1', 'slash_2', 'swish_0', 'swish_1', 'swish_2', 'thud', 'whoosh'];
-const LOOPS = { battle: 'assets/music/heartfelt_battle.mp3', fire: 'assets/sfx/amb/fire.mp3', night: 'assets/sfx/amb/night.mp3', wind: 'assets/sfx/amb/wind.mp3' };
+const LOOPS = { battle: 'assets/music/heartfelt_battle.mp3', title: 'assets/music/title.mp3', campm: 'assets/music/camp.mp3', boss: 'assets/music/boss.mp3',
+  fire: 'assets/sfx/amb/fire.mp3', night: 'assets/sfx/amb/night.mp3', wind: 'assets/sfx/amb/wind.mp3' };
 
 export function createAudio(getSettings) {
   const settings = new Proxy({}, { get: (_, k) => getSettings()[k] });
@@ -40,18 +41,23 @@ export function createAudio(getSettings) {
     src.buffer = b; src.playbackRate.value = 1 + (Math.random() * 2 - 1) * vary; g.gain.value = gain;
     src.connect(g); g.connect(sfxBus); src.start();
   }
-  // the music for a screen: 'battle', 'camp' (fire and night together), 'storm' (wind and night) or null
+  // the music for a screen: 'title', 'camp' (its theme over the fire and the night), 'battle', 'boss', 'storm' (wind and night) or null
   async function setScene(name) {
     if (name === scene) return; scene = name;
     if (!ctx) return;
     for (const [k, p] of Object.entries(playing)) { p.g.gain.setTargetAtTime(0, ctx.currentTime, 0.4); p.src.stop(ctx.currentTime + 2); delete playing[k]; }
-    const want = name === 'battle' ? [['battle', 0.55]] : name === 'camp' ? [['fire', 0.7], ['night', 0.35]] : name === 'storm' ? [['wind', 0.8], ['night', 0.3]] : [];
+    const want = { battle: [['battle', 0.55]], boss: [['boss', 0.6]], title: [['title', 0.55], ['fire', 0.35]], camp: [['campm', 0.45], ['fire', 0.45], ['night', 0.2]], storm: [['wind', 0.8], ['night', 0.3]] }[name] || [];
     for (const [k, level] of want) {
       const b = await load(k, LOOPS[k]); if (!b || scene !== name) continue;
       const src = ctx.createBufferSource(), g = ctx.createGain();
       src.buffer = b; src.loop = true; g.gain.value = 0; g.gain.setTargetAtTime(level, ctx.currentTime, 0.6);
       src.connect(g); g.connect(musicBus); src.start(); playing[k] = { src, g };
     }
+  }
+  // the music steps back under a sting, then returns
+  function duck(sec = 5) {
+    if (!ctx) return; const now = ctx.currentTime;
+    for (const p of Object.values(playing)) { p.g.gain.cancelScheduledValues(now); const v = p.g.gain.value; p.g.gain.setTargetAtTime(v * 0.2, now, 0.15); p.g.gain.setTargetAtTime(v, now + sec, 0.8); }
   }
   // the battle's events as sounds
   const SWING = { slash: ['swish_0', 'swish_1', 'swish_2'], dagger: ['swish_0', 'swish_1'], thrust: ['whoosh'], blunt: ['swish_2'], claw: ['slash_0', 'slash_1'] };
@@ -66,8 +72,8 @@ export function createAudio(getSettings) {
         play(/fire|flame|ignite/.test(fx) ? 'fire' : /ice|frost/.test(fx) ? 'ice' : /rock|shock|quake/.test(fx) ? 'quake' : /slash|cleave|claw|multi/.test(fx) ? ['slash_0', 'slash_1', 'slash_2'] : 'magic', { gain: 0.8 });
       } else if (e.type === 'heal') play('heal_02', { gain: 0.35, gap: 0.2 });
       else if (e.type === 'ko') play('ko', { gain: 0.6 });
-      else if (e.type === 'end') play(e.result === 'win' ? 'horn' : 'thud', { gain: 0.8 });
+      else if (e.type === 'end') { play(e.result === 'win' ? 'victory' : 'defeat', { gain: 0.9, vary: 0 }); duck(); }
     }
   }
-  return { unlock, play, setScene, battleEvents, setVolumes: vol };
+  return { unlock, play, setScene, battleEvents, setVolumes: vol, get loops() { return Object.keys(playing); } };
 }

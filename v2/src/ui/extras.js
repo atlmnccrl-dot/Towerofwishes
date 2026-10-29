@@ -97,8 +97,7 @@ export function tip(game, id) {
   if (s.flags['tip_' + id] || !TIPS[id] || game.noTips) return false;
   s.flags['tip_' + id] = true; game.persist();
   const el = $('#tip');
-  el.className = 'glass at-' + (game.screen || id);   // placed by the screen it shows on
-  el.replaceChildren(h('p', null, TIPS[id]), h('button.btn.small.gold', { type: 'button', onclick: () => { el.hidden = true; } }, 'Got it'));
+  el.replaceChildren(h('div.tipcard.glass', null, h('p', null, TIPS[id]), h('button.btn.primary', { type: 'button', onclick: () => { el.hidden = true; } }, 'Got it')));
   el.hidden = false;
   return true;
 }

@@ -7,7 +7,8 @@ bosses). The leader always fights and gives the squad their perk; the run lasts 
 a Seal of Vael is taken. Fifteen more heroes join as recruits: they fight but never lead. Every fight
 opens like a film (the foes, the company, FIGHT) and a director camera follows it; battles play
 themselves, or the player fires each hero's ability. The team screen is the camp itself, the team
-drilling and resting round the fire. Built from the Tower of Wishes character art,
+drilling and resting round the fire. Each region fights on three or four different battle maps; after the
+sixth Seal, every mission opens again on Heroic. Built from the Tower of Wishes character art,
 animations and effects; everything else is new. Names and story are proposals for the author.
 
 ## Layout
@@ -17,15 +18,15 @@ animations and effects; everything else is new. Names and story are proposals fo
 | `index.html` | The page: styles and every screen's markup |
 | `src/main.js` | Boot, screens, the loop, buttons |
 | `src/combat/battle.js` | The battle simulation (pure; runs in Node) |
-| `src/data/` | The wheel's eight heroes, their unlocks and leader perks (`heroes.js`), heroes, recruits and foes, animations, campaign (6 regions, 60 missions), items, tuning (foe strength per mission), the world map's lands (`world.js`), battle arenas (`arenas.js`, also the cutscenes' places) and scenes (`scenes.js`) |
+| `src/data/` | The wheel's eight heroes, their unlocks and leader perks (`heroes.js`), heroes, recruits and foes, animations, campaign (6 regions, 60 missions), items, tuning (foe strength per mission), the world map's lands (`world.js`), battle arenas (`arenas.js`: 21 places, which mission fights where, also the cutscenes' places) and scenes (`scenes.js`) |
 | `src/game/progress.js` | The save: rewards, levels, gear, training, upgrades, heroic mode, save codes (pure) |
 | `src/game/economy.js` | Bounties, feats, the shop, the gem-pack catalog (pure) |
 | `src/game/store.js` | App-store purchases (cordova-plugin-purchase); off on the web |
-| `src/game/audio.js` | Music and sounds (Web Audio) |
+| `src/game/audio.js` | Music and sounds (Web Audio): a theme each for the title, the camp, battles and bosses, victory and defeat stings |
 | `src/render/` | The battle view and its arenas, the battle director (`director.js`: the cinematic start, the camera, slow time), the walkable world map (`overworld.js`, painted by `terrain.js`), the cutscene player (`scene.js`: filmed scenes drawn by the battle view, on the same arenas), the campfire, asset loading |
 | `src/ui/` | The wheel (`wheel.js`), the map card and markers, the formation, rewards and the new-hero reveal, heroes, shop/bounties/feats, tips; vector icons (`icons.js`) and big animated hero art (`heroart.js`) |
 | `assets/` | Packed art (lossless), tiles, effects, sounds, music, fonts, icons |
-| `tools/` | `pack.py` (art and sounds from the repo's assets), `portraits.py`, `icons.py` (app icon and splash), `store-shots.mjs` (store screenshots), `world_atlas.py` (map and set pieces), `hero_art.py` (the menus' hero poses) |
+| `tools/` | `pack.py` (art and sounds from the repo's assets), `portraits.py`, `icons.py` (app icon and splash), `store-shots.mjs` (store screenshots), `world_atlas.py` (map and set pieces), `hero_art.py` (the menus' hero poses), `compose.py` (the title, camp and boss themes and the stings, synthesised: `python3 tools/compose.py`, needs numpy, scipy and ffmpeg) |
 | `app/` | The iOS and Android app (Capacitor 8); see `docs/RELEASE.md` |
 | `docs/` | `RELEASE.md` (store steps, products, listing), `PRIVACY.md` |
 

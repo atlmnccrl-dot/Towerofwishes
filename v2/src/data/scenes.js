@@ -4,7 +4,7 @@
 // y -3.7..3.7); the camera is [x, y, zoom]: about 1.1 the fights' wide view, 2 a close shot.
 import { UNITS, ENEMIES } from './units.js';
 import { REGIONS } from './campaign.js';
-import { REGION_ARENA } from './arenas.js';
+import { REGION_ARENA, arenaFor } from './arenas.js';
 import { SETS } from './anims.js';
 
 const COLOR = { vanguard: '#8fb8ff', striker: '#ff9a72', ranger: '#a6e07e', mystic: '#c9a0ff', support: '#ffd97a' };
@@ -181,7 +181,7 @@ export function bossScene(mission, teamKeys) {
   c.boss = { set: boss.set, name: boss.name, color: '#ff8a7a', x: 3.6, y: 0, f: 'W', scale: boss.scale || 1, big: (SETS[boss.set] || {}).scale || 1 };
   const big = (boss.scale || 1) * ((SETS[boss.set] || {}).scale || 1);
   return {
-    arena: REGION_ARENA[mission.region], cam: [3.6, -0.6 - big * 0.3, Math.max(1.3, 2.2 / big)], cast: c,
+    arena: arenaFor(mission), cam: [3.6, -0.6 - big * 0.3, Math.max(1.3, 2.2 / big)], cast: c,
     steps: [
       { wait: 0.5 }, { clip: ['boss', 'Taunt', false], fps: 11 }, { wait: 0.4 }, { shake: 5 },
       { title: [boss.name, mission.place], side: true },

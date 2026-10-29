@@ -213,11 +213,13 @@ export function createView(canvas, fxAtlas, tiles, settings = () => ({ shake: tr
     drawFrame(set, frames[i], at.x, at.y, k, u.alpha != null ? u.alpha : u.state === 'ko' ? Math.max(0, 1 - Math.max(0, u.st - 0.8) * 0.8) : 1, flash);
     if (u.state === 'ko' || u.actor) return;
     // bars: health (shield over it in white), energy for the team
-    const w = 18, x = p.x - w / 2, y = p.y - Math.round(50 * k);
-    ctx.fillStyle = 'rgba(10,8,8,0.85)'; ctx.fillRect(x - 1, y - 1, w + 2, u.team === 'ally' ? 6 : 4);
-    ctx.fillStyle = u.team === 'ally' ? '#6fcf6a' : '#d9534a'; ctx.fillRect(x, y, Math.max(1, Math.round(w * u.hp / u.max)), 2);
+    // bars big enough to read on a phone: health (shield over it in white), energy under it for the team
+    const w = u.def.boss ? 34 : 24, x = Math.round(p.x - w / 2), y = p.y - Math.round(50 * k);
+    ctx.fillStyle = 'rgba(10,8,8,0.88)'; ctx.fillRect(x - 1, y - 1, w + 2, u.team === 'ally' ? 7 : 5);
+    ctx.fillStyle = u.team === 'ally' ? '#6fcf6a' : '#e0564a'; ctx.fillRect(x, y, Math.max(1, Math.round(w * u.hp / u.max)), 3);
+    ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(x, y, Math.max(1, Math.round(w * u.hp / u.max)), 1);
     if (u.shield > 0) { ctx.fillStyle = '#f4f1e6'; ctx.fillRect(x, y, Math.max(1, Math.round(w * Math.min(1, u.shield / u.max))), 1); }
-    if (u.team === 'ally') { ctx.fillStyle = u.energy >= 100 ? '#ffd36b' : '#c9a24a'; ctx.fillRect(x, y + 3, Math.round(w * u.energy / 100), 1); }
+    if (u.team === 'ally') { ctx.fillStyle = u.energy >= 100 ? '#ffd36b' : '#c9a24a'; ctx.fillRect(x, y + 4, Math.round(w * u.energy / 100), 2); }
     if (u.statuses.some((s) => s.type === 'stun')) drawFxAt('star_burst', u.x, u.y, 1.9, performance.now() / 1000 % 0.35, 0.6);
   }
 
@@ -292,7 +294,15 @@ export function createView(canvas, fxAtlas, tiles, settings = () => ({ shake: tr
     // ability names over the caster
     ctx.textAlign = 'center'; ctx.font = '8px "Silkscreen", monospace';
     banners = banners.filter((n) => { n.t += dt; const p = P(n.u.x, n.u.y, 2.5 + n.t * 0.3); ctx.globalAlpha = Math.max(0, Math.min(1, (1.4 - n.t) * 2)); ctx.fillStyle = '#120c0a'; ctx.fillText(n.text, p.x + 1, p.y + 1); ctx.fillStyle = n.team === 'ally' ? '#ffe7a8' : '#ffb0a8'; ctx.fillText(n.text, p.x, p.y); ctx.globalAlpha = 1; return n.t < 1.4; });
-    floaters = floaters.filter((n) => { n.t += dt; const p = P(n.x, n.y, n.z + n.t * 0.9); ctx.globalAlpha = Math.max(0, 1 - n.t / 0.9); ctx.fillStyle = '#120c0a'; ctx.fillText(n.text, p.x + 1, p.y + 1); ctx.fillStyle = n.col; ctx.fillText(n.text, p.x, p.y); ctx.globalAlpha = 1; return n.t < 0.9; });
+    // damage numbers: a pop on the hit, a crit twice the size; an outline so they read on any ground
+    floaters = floaters.filter((n) => {
+      n.t += dt; const p = P(n.x, n.y, n.z + n.t * 0.9), pop = n.t < 0.12 ? 1.25 : 1;
+      ctx.font = `${n.big ? 16 : 8}px "Silkscreen", monospace`; ctx.globalAlpha = Math.max(0, Math.min(1, (1.05 - n.t) / 0.35));
+      ctx.save(); ctx.translate(p.x, p.y); ctx.scale(pop, pop);
+      ctx.fillStyle = '#120c0a'; for (const [ox, oy] of [[1, 1], [-1, 1], [1, -1], [-1, -1], [0, 2]]) ctx.fillText(n.text, ox, oy);
+      ctx.fillStyle = n.col; ctx.fillText(n.text, 0, 0); ctx.restore(); ctx.globalAlpha = 1; return n.t < 1.05;
+    });
+    ctx.font = '8px "Silkscreen", monospace';
     if (arena) arenaLight(dt);
     else if (theme.tint) { ctx.fillStyle = theme.tint; ctx.fillRect(-8, -8, buf.width + 16, buf.height + 16); }
     if (mood) { ctx.save(); ctx.globalCompositeOperation = mood.op || 'soft-light'; ctx.fillStyle = mood.col; ctx.fillRect(-8, -8, buf.width + 16, buf.height + 16); ctx.restore(); }

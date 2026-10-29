@@ -110,6 +110,169 @@ export const ARENAS = {
     ],
     light: { tint: [70, 80, 170, 0.28], vignette: 0.75, fog: 0.9, glow: [[-6, -4.6], [6.5, -4.6]] }, weather: 'rain',
   },
+  // ---- more places on each road, so a region is not one field ten times
+  // a bandit camp on a hill: trampled dirt, tents, a fire, a watchtower behind
+  camp: {
+    ground: { base: ['t_trampled_dirt', 't_dirt_2'], patches: [{ tex: ['t_grass_2', 't_grass_1'], amount: 0.45, size: 60 }, { tex: ['t_hay_floor'], amount: 0.06, size: 20 }], water: { tex: 't_water_1' }, road: ['t_dirt_1'], edge: '#3e2c1c' },
+    roads: [{ pts: [[-16, 1.0], [0, 0.4], [16, 0.9]], w: 2.0 }],
+    props: [
+      ...row(['t:tree_a', 't:tree_b', 't:tree_young'], -15, 15, -6.4, 3.4, 1, 0.8, 41),
+      ['w:cw_round_tower_red', -8.5, -4.7, 3.4], ['w:cd_war_tent_red', -4.6, -4.4, 2.6], ['w:prop_tent_red', -1.8, -4.3, 2.4], ['w:cd_campfire', 0.6, -4.2, 2.2],
+      ['w:cd_weapon_rack', 2.6, -4.3, 2.2], ['w:prop_tent_green', 5.2, -4.3, 2.4, true], ['w:cd_supply_cart', 8.4, -4.3, 2.4], ['w:cd_flagpole_red', 11, -4.4, 2.4], ['w:cd_training_dummy', -12, -4.3, 2.2],
+      ...row(['w:prop_crate', 'w:prop_barrel', 'w:cd_hay_bale', 'w:nat_log_pile', 'w:plant_bush_green'], -14, 14, 4.5, 2.8, 2, 0.7, 43),
+    ],
+    light: { tint: [255, 160, 90, 0.16], vignette: 0.45, glow: [[0.6, -4.4]] }, weather: 'embers',
+  },
+  // Ashby churchyard: grass gone grey, rows of graves, the chapel and dead trees behind
+  churchyard: {
+    ground: { base: ['t_grass_dark_1', 't_grass_dark_2'], patches: [{ tex: ['t_gravel'], amount: 0.18, size: 30 }, { tex: ['t_grass_3'], amount: 0.15, size: 50 }], water: { tex: 't_water_2', rim: '#6a6a58', outline: '#1c2a30' }, road: ['t_flagstone_mossy'], edge: '#20221c', tint: [90, 100, 130, 0.12] },
+    lakes: [{ x: 11, y: 5.6, rx: 3.0, ry: 0.9 }],
+    roads: [{ pts: [[-1.5, 8], [-1.0, 0], [-0.5, -8]], w: 1.6 }],
+    props: [
+      ...row(['w:tree_dead', 't:tree_dark_a', 't:tree_gnarled'], -15, 15, -6.4, 3.0, 1, 0.8, 45),
+      ['t:temple', -0.8, -4.9, 0.85], ['t:grave_cross', -4.2, -4.3, 0.8], ['t:grave_a', -6.0, -4.3, 0.8], ['t:grave_b', -7.8, -4.3, 0.8], ['t:grave_cross', -9.6, -4.3, 0.8], ['t:tomb', -12, -4.3, 0.9],
+      ['t:grave_a', 3.6, -4.3, 0.8], ['t:grave_cross', 5.4, -4.3, 0.8], ['t:grave_b', 7.2, -4.3, 0.8], ['t:monolith_a', 9.6, -4.4, 0.9], ['w:prop_lantern', 2.2, -4.2, 2], ['w:prop_lantern', -2.8, -4.2, 2],
+      ...row(['w:prop_gravestone', 'w:nat_rock_mossy', 'w:plant_mushroom_purple', 'w:prop_fence_post', 'w:plant_bush_dark'], -14, 9, 4.5, 2.6, 2, 0.7, 47),
+    ],
+    light: { tint: [110, 130, 180, 0.18], vignette: 0.55, fog: 0.6, glow: [[2.2, -4.4], [-2.8, -4.4]] }, weather: 'fireflies',
+  },
+  // the King's Road through the wood at night: a dirt road between walls of trees
+  wood: {
+    ground: { base: ['t_grass_2', 't_grass_dark_1'], patches: [{ tex: ['t_grass_tall'], amount: 0.2, size: 40 }, { tex: ['t_dirt_dark'], amount: 0.12, size: 30 }], water: { tex: 't_water_1' }, road: ['t_dirt_1', 't_dirt_2'], edge: '#3a2c1c', tint: [40, 60, 90, 0.12] },
+    roads: [{ pts: [[-16, -0.4], [-5, 0.6], [5, -0.3], [16, 0.5]], w: 2.4 }],
+    props: [
+      ...row(['t:tree_a', 't:tree_b', 't:tree_c', 'w:tree_oak', 'w:tree_pine_dark'], -15, 15, -6.0, 1.8, 1.05, 0.9, 49),
+      ...row(['t:tree_young', 't:bush_a', 't:bush_b', 'w:plant_fern'], -15, 15, -4.4, 2.2, 1, 0.7, 51),
+      ['w:prop_signpost', -3, -4.2, 2.2], ['w:cd_campfire', 7, -4.2, 2],
+      ...row(['t:tree_young', 'w:nat_fallen_log', 'w:plant_fern', 'w:plant_mushroom_red', 't:bush_d'], -14, 14, 4.6, 2.4, 1.4, 0.7, 53),
+    ],
+    light: { tint: [70, 90, 160, 0.22], vignette: 0.65, glow: [[7, -4.4]] }, weather: 'fireflies',
+  },
+  // Low Ashwick and the wharves: half-drowned houses, planks over black water
+  wharf: {
+    ground: { base: ['t_wood_plank_h'], patches: [{ tex: ['t_dirt_dark'], amount: 0.25, size: 40 }, { tex: ['t_grass_dark_2'], amount: 0.15, size: 30 }], water: { tex: 't_water_2', rim: '#4a4030', outline: '#10201e' }, road: ['t_wood_plank_v'], edge: '#1c1a14', tint: [40, 80, 70, 0.12] },
+    lakes: [{ x: -9, y: -5.6, rx: 5.5, ry: 1.4 }, { x: 8, y: -5.8, rx: 6, ry: 1.3 }, { x: 0, y: 5.8, rx: 9, ry: 1.2 }],
+    roads: [],
+    props: [
+      ['t:p16_house_blue', -11, -5.2, 0.9], ['t:p16_house_red', 9.5, -5.3, 0.9, true], ['w:t_bridge_v', -2, -4.5, 2.4],
+      ['w:prop_crate', -6, -4.3, 2], ['w:prop_barrel', -5, -4.3, 2], ['w:prop_lantern', 1.5, -4.2, 2], ['w:cd_hanging_cage', 4, -4.3, 2.2], ['w:prop_grain_sack', 6, -4.3, 2],
+      ...row(['w:plant_reeds', 'w:plant_lily_pad', 'w:prop_barrel', 'w:plant_reeds'], -14, 14, 4.4, 2.2, 2, 0.6, 55),
+    ],
+    light: { tint: [70, 120, 110, 0.18], vignette: 0.55, fog: 0.7, glow: [[1.5, -4.4]] }, weather: 'fireflies',
+  },
+  // the Tangle and Witchlight: a black wood of mushrooms and witch-lanterns
+  witchwood: {
+    ground: { base: ['t_grass_dark_2'], patches: [{ tex: ['t_grass_dark_1'], amount: 0.3, size: 40 }, { tex: ['t_grass_tall'], amount: 0.15, size: 40 }], water: { tex: 't_water_2', rim: '#3a4a30', outline: '#0c1c18' }, road: ['t_dirt_dark'], edge: '#141410', tint: [50, 60, 90, 0.12] },
+    lakes: [{ x: 10.5, y: 5.6, rx: 3.0, ry: 0.9 }],
+    roads: [],
+    props: [
+      ...row(['t:tree_gnarled', 't:tree_dark_a', 't:tree_dark_b', 'w:tree_dead'], -15, 15, -6.0, 1.9, 1.05, 0.9, 57),
+      ...row(['w:plant_mushroom_purple', 'w:plant_mushroom_red', 't:mush_a', 't:mush_c', 'w:prop_lantern'], -14, 14, -4.3, 1.6, 2, 0.6, 59),
+      ['t:stone_circle', 0, -4.6, 0.7],
+      ...row(['w:plant_mushroom_purple', 't:mush_b', 'w:nat_fallen_log', 'w:plant_reeds'], -14, 8, 4.6, 2.6, 2, 0.7, 61),
+    ],
+    light: { tint: [120, 70, 170, 0.24], vignette: 0.6, fog: 0.8, glow: [[-6, -4.5], [6, -4.5]] }, weather: 'fireflies',
+  },
+  // Saltreach town: sandstone walls, stalls and banners, palms over the roofs
+  citadel: {
+    ground: { base: ['t_flagstone_warm'], patches: [{ tex: ['t_d_dirt'], amount: 0.2, size: 40 }, { tex: ['t_flagstone_3'], amount: 0.15, size: 30 }], water: { tex: 't_d_water' }, road: ['t_d_dirt'], edge: '#7a5430' },
+    roads: [],
+    props: [
+      ...row(['w:tree_palm'], -15, 15, -6.6, 3.2, 3, 0.8, 63),
+      ...row(['w:cw_wall_face_sandstone'], -15, 15, -5.0, 1.15, 3.2, 0, 65),
+      ['w:cw_gate_arch', -0.5, -4.7, 3.4], ['w:prop_market_stall_red', -6, -4.3, 2.6], ['w:prop_market_stall_blue', 5.5, -4.3, 2.6, true], ['w:cd_banner_red', -3, -4.4, 2.4], ['w:cd_banner_red', 2.2, -4.4, 2.4],
+      ['w:desert_4', -11, -4.3, 1.5], ['w:desert_5', 11.5, -4.3, 1.6, true], ['w:cd_brazier', -8.6, -4.3, 2], ['w:cd_brazier', 8.6, -4.3, 2],
+      ...row(['w:prop_crate', 'w:cd_grain_sack', 'w:desert_1', 'w:prop_barrel', 'w:desert_13'], -14, 14, 4.5, 2.8, 1.8, 0.7, 67),
+    ],
+    light: { tint: [255, 180, 100, 0.14], vignette: 0.32, rays: true, haze: true, glow: [[-8.6, -4.5], [8.6, -4.5]] }, weather: null,
+  },
+  // the Sunken Tombs and the dry well: warm flagstones, pillars, coffins, sand blown in
+  tombs: {
+    ground: { base: ['t_flagstone_warm', 't_flagstone_2'], patches: [{ tex: ['t_d_dirt'], amount: 0.2, size: 45 }, { tex: ['t_stone_floor'], amount: 0.25, size: 30 }], water: { tex: 't_lava_pool' }, road: ['t_flagstone_3'], edge: '#2a1c12', tint: [110, 70, 40, 0.14] },
+    roads: [],
+    props: [
+      ...row(['t:slab_wall_a', 't:slab_wall_b'], -15, 15, -5.0, 2.4, 1.1, 0, 69),
+      ['t:pillar', -9, -4.4, 1], ['t:pillar', -3, -4.4, 1], ['t:pillar', 3, -4.4, 1], ['t:pillar', 9, -4.4, 1], ['w:cd_statue_gold', 0, -4.3, 2.6], ['t:coffin', -6, -4.3, 0.9], ['t:coffin', 6, -4.3, 0.9],
+      ['w:cd_brazier', -1.6, -4.3, 2], ['w:cd_brazier', 1.6, -4.3, 2], ['t:vase_a', -12, -4.3, 1], ['t:vase_b', 12, -4.3, 1],
+      ...row(['t:ruin_stone_a', 't:vase_a', 'w:desert_1', 't:ruin_stone_c', 'w:cd_skull_on_pike'], -14, 14, 4.5, 2.8, 1.2, 0.6, 71),
+    ],
+    light: { tint: [255, 150, 70, 0.18], vignette: 0.6, glow: [[-1.6, -4.5], [1.6, -4.5]] }, weather: 'embers',
+  },
+  // the cloister and the chapels: pale stone, stained glass, candles
+  cloister: {
+    ground: { base: ['t_flagstone_1', 't_flagstone_2'], patches: [{ tex: ['t_flagstone_mossy'], amount: 0.25, size: 40 }, { tex: ['t_flagstone_3'], amount: 0.2, size: 30 }], water: { tex: 't_water_1', rim: '#9a9a90', outline: '#2a4a56' }, road: ['t_flagstone_3'], edge: '#2a2620' },
+    lakes: [{ x: -11, y: 5.6, rx: 3.0, ry: 0.9 }],
+    roads: [],
+    props: [
+      ...row(['w:cw_wall_face_stone'], -15, 15, -5.0, 1.15, 3.2, 0, 73),
+      ['w:cw_stained_glass', -6, -5.0, 3.2], ['w:cw_stained_glass', 0, -5.0, 3.2], ['w:cw_stained_glass', 6, -5.0, 3.2],
+      ['t:pillar', -9, -4.4, 1], ['t:pillar', -3, -4.4, 1], ['t:pillar', 3, -4.4, 1], ['t:pillar', 9, -4.4, 1],
+      ['w:cd_candelabra', -4.5, -4.3, 2.2], ['w:cd_candelabra', 4.5, -4.3, 2.2], ['t:altar', 0, -4.3, 0.9], ['t:statue', -12, -4.3, 1], ['t:statue', 12, -4.3, 1, true],
+      ...row(['t:pillar_broken', 'w:cd_candelabra', 't:ruin_stone_b', 'w:plant_bush_dark'], -9, 14, 4.6, 3.0, 1, 0.6, 75),
+    ],
+    light: { tint: [180, 170, 230, 0.16], vignette: 0.5, rays: true, glow: [[-4.5, -4.5], [4.5, -4.5]] }, weather: null,
+  },
+  // the ossuary and the Black Gate: dark stone, coffins, skulls, purple banners
+  crypt: {
+    ground: { base: ['t_stone_floor', 't_flagstone_dark'], patches: [{ tex: ['t_floor_grate'], amount: 0.08, size: 14 }, { tex: ['t_gravel'], amount: 0.2, size: 30 }], water: { tex: 't_water_2' }, road: ['t_flagstone_dark'], edge: '#0c0a0c', tint: [60, 60, 90, 0.12] },
+    roads: [],
+    props: [
+      ...row(['w:cw_wall_face_dark'], -15, 15, -5.0, 1.15, 3.2, 0, 77),
+      ['w:cw_portcullis', 0, -4.8, 3.4], ['w:cw_wall_torch_1', -3, -4.6, 2.6], ['w:cw_wall_torch_1', 3, -4.6, 2.6], ['w:cw_wall_torch_2', -9, -4.6, 2.6], ['w:cw_wall_torch_2', 9, -4.6, 2.6],
+      ['t:coffin', -6, -4.3, 0.9], ['t:coffin', 6, -4.3, 0.9], ['w:cd_banner_purple', -11.5, -4.3, 2.2], ['w:cd_banner_purple', 11.5, -4.3, 2.2], ['w:cd_hanging_cage', -7.8, -4.3, 2], ['w:cd_skull_on_pike', 7.8, -4.3, 2.2],
+      ...row(['w:cd_skull_on_pike', 'w:cd_stone_tomb', 't:coffin', 'w:nat_rock_grey'], -14, 14, 4.5, 2.6, 1.6, 0.6, 79),
+    ],
+    light: { tint: [100, 90, 160, 0.14], vignette: 0.6, glow: [[-3, -4.8], [3, -4.8], [-9, -4.8], [9, -4.8]] }, weather: null,
+  },
+  // Frostwatch and the ice chapel: a snowed-in fort, battlements, frozen banners
+  fort: {
+    ground: { base: ['t_grass_1'], patches: [{ tex: ['t_flagstone_1'], amount: 0.3, size: 40 }], water: { tex: 't_water_3', rim: '#eef3f8', outline: '#6a8aa6' }, road: ['t_flagstone_2'], edge: '#7a8494', snow: true },
+    roads: [{ pts: [[-16, 0.2], [16, 0.2]], w: 2.0 }],
+    props: [
+      ...row(['w:tree_pine_snow'], -15, 15, -6.8, 2.0, 3, 0.8, 81),
+      ...row(['w:cw_wall_face_stone'], -15, 15, -5.0, 1.15, 3.2, 0, 83),
+      ['w:cw_round_tower_blue', -10, -4.9, 3.6], ['w:cw_gate_arch', 0, -4.7, 3.4], ['w:cw_round_tower_blue', 10, -4.9, 3.6, true],
+      ['w:cd_banner_blue', -3, -4.4, 2.4], ['w:cd_banner_blue', 3, -4.4, 2.4], ['w:cd_brazier', -6, -4.3, 2], ['w:cd_brazier', 6, -4.3, 2], ['w:cd_ballista', -13, -4.3, 2.2],
+      ...row(['w:cd_crate', 'w:nat_boulder', 'w:cd_shield_rack', 'w:nat_rock_grey'], -12, 12, 4.5, 3.0, 2, 0.6, 85),
+    ],
+    light: { tint: [180, 205, 255, 0.16], vignette: 0.45, glow: [[-6, -4.5], [6, -4.5]] }, weather: 'snow',
+  },
+  // the glacier and Winterheart: ice pools everywhere, dead white trees, nothing alive
+  glacier: {
+    ground: { base: ['t_grass_1'], patches: [{ tex: ['t_gravel'], amount: 0.06, size: 30 }], water: { tex: 't_water_3', rim: '#f4f8fc', outline: '#5a7a9a' }, road: ['t_gravel'], edge: '#7a8494', snow: true, tint: [120, 160, 220, 0.1] },
+    lakes: [{ x: -10, y: -5.6, rx: 5, ry: 1.3 }, { x: 8, y: -5.8, rx: 5, ry: 1.2 }, { x: -6, y: 5.6, rx: 4, ry: 1.0 }, { x: 9, y: 5.6, rx: 3.5, ry: 1.0 }],
+    roads: [],
+    props: [
+      ...row(['w:tree_pine_snow', 't:fv_tree_pine_snow', 'w:tree_dead'], -15, 15, -6.9, 2.8, 2.4, 0.8, 87),
+      ['t:rock_big', -1, -4.5, 1.1], ['t:monolith_c', 2.6, -4.5, 0.9], ['w:nat_boulder', -3.8, -4.3, 2.4], ['w:nat_boulder', 4.8, -4.3, 2.2, true],
+      ...row(['w:nat_boulder', 'w:nat_rock_grey', 'w:tree_dead'], -2, 4, 4.6, 2.6, 2, 0.6, 89),
+    ],
+    light: { tint: [170, 210, 255, 0.2], vignette: 0.45, fog: 0.5 }, weather: 'snow',
+  },
+  // the throne rooms under the Barrow: red marble, a carpet to the throne, black walls and banners
+  hall: {
+    ground: { base: ['t_flagstone_dark', 't_stone_floor'], patches: [{ tex: ['t_flagstone_3'], amount: 0.15, size: 40 }], water: { tex: 't_lava_pool', rim: '#2a1612', outline: '#ff9a3a' }, road: ['t_carpet_red'], edge: '#120c0e', tint: [90, 30, 60, 0.18] },
+    roads: [{ pts: [[0, 9], [0, -9]], w: 2.0 }],
+    props: [
+      ...row(['w:cw_wall_face_dark'], -15, 15, -5.0, 1.15, 3.2, 0, 91),
+      ['w:cd_throne', 0, -4.5, 3.2], ['w:cd_banner_red', -2.4, -4.6, 2.6], ['w:cd_banner_red', 2.4, -4.6, 2.6], ['w:cd_statue_knight', -5.5, -4.3, 2.6], ['w:cd_statue_knight', 5.5, -4.3, 2.6, true],
+      ['t:pillar', -8.5, -4.4, 1], ['t:pillar', 8.5, -4.4, 1], ['w:cd_brazier', -11, -4.3, 2], ['w:cd_brazier', 11, -4.3, 2], ['w:cd_suit_of_armor', -13, -4.3, 2.2], ['w:cd_suit_of_armor', 13, -4.3, 2.2, true],
+      ...row(['t:pillar_broken', 'w:cd_brazier', 'w:cd_skull_on_pike', 't:ruin_stone_b'], -14, 14, 4.6, 3.4, 1, 0.6, 93),
+    ],
+    light: { tint: [150, 50, 90, 0.2], vignette: 0.6, glow: [[-11, -4.5], [11, -4.5]] }, weather: 'embers',
+  },
+  // the Wyrm's hoard: lava and gold
+  hoard: {
+    ground: { base: ['t_flagstone_dark', 't_stone_floor'], patches: [{ tex: ['t_gravel'], amount: 0.3, size: 30 }], water: { tex: 't_lava_pool', rim: '#2a1612', outline: '#ff9a3a' }, road: ['t_flagstone_dark'], edge: '#140a08', tint: [120, 50, 30, 0.12] },
+    lakes: [{ x: -10, y: -5.6, rx: 5, ry: 1.3 }, { x: 9, y: -5.8, rx: 5, ry: 1.2 }, { x: -9, y: 5.6, rx: 4, ry: 1.0 }, { x: 10, y: 5.6, rx: 3.5, ry: 1.0 }],
+    roads: [],
+    props: [
+      ...row(['t:rock_dark', 't:monolith_a', 't:rock_big'], -15, 15, -6.6, 2.6, 1.1, 0.8, 95),
+      ['w:cd_chest_gold', -2.2, -4.3, 2.4], ['w:cd_statue_gold', 0, -4.5, 2.8], ['w:cd_chest_gold', 2.4, -4.3, 2.4, true], ['w:prop_treasure_chest', -4.4, -4.3, 2.2], ['w:cd_chest_open', 4.6, -4.3, 2.2],
+      ...row(['w:cd_chest_gold', 'w:nat_rock_grey', 'w:cd_skull_on_pike'], -3, 4, 4.6, 2.4, 2, 0.6, 97),
+    ],
+    light: { tint: [255, 120, 50, 0.16], vignette: 0.6, glow: [[-10, -5.6], [9, -5.8], [-9, 5.6], [10, 5.6]] }, weather: 'embers',
+  },
   // Thornwick's square, for the company's first scene: houses, the well, the notice board, lamps
   square: {
     ground: { base: ['t_dirt_2'], patches: [{ tex: ['t_cobble'], amount: 0.45, size: 60 }, { tex: ['t_grass_dark_1'], amount: 0.08, size: 30 }], water: { tex: 't_water_1' }, road: ['t_cobble'], edge: '#3a3430', scale: 1 },
@@ -126,3 +289,14 @@ export const ARENAS = {
 
 // the arena each region fights in (a mission may name its own)
 export const REGION_ARENA = { r1: 'meadow', r2: 'fen', r3: 'dunes', r4: 'abbey', r5: 'pass', r6: 'barrow' };
+
+// the missions that fight somewhere other than their region's field
+export const MISSION_ARENA = {
+  r1m3: 'camp', r1m5: 'camp', r1m4: 'churchyard', r1m6: 'churchyard', r1m8: 'churchyard', r1m10: 'churchyard', r1m7: 'wood', r1m9: 'wood',
+  r2m2: 'wharf', r2m4: 'wharf', r2m8: 'wharf', r2m3: 'witchwood', r2m5: 'witchwood', r2m6: 'witchwood', r2m9: 'witchwood',
+  r3m1: 'citadel', r3m5: 'citadel', r3m8: 'citadel', r3m4: 'tombs', r3m7: 'tombs',
+  r4m2: 'cloister', r4m3: 'cloister', r4m5: 'cloister', r4m7: 'cloister', r4m8: 'cloister', r4m10: 'cloister', r4m4: 'crypt', r4m9: 'crypt',
+  r5m2: 'fort', r5m7: 'fort', r5m10: 'fort', r5m4: 'glacier', r5m5: 'glacier', r5m9: 'glacier',
+  r6m3: 'hall', r6m4: 'hall', r6m6: 'hall', r6m8: 'hall', r6m7: 'hoard', r6m10: 'hoard',
+};
+export const arenaFor = (m) => m.arena || MISSION_ARENA[m.id] || REGION_ARENA[m.region];
