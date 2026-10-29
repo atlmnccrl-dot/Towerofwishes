@@ -35,7 +35,7 @@ export function renderCompany(game, focus) {
   const hidden = keys.filter((k) => !s.roster[k]).sort((a, b) => order(a) - order(b));
   if (hidden.length) {
     const where = P.unlockedBy(hidden[0]);
-    list.append(h('div.rcard.locked', { title: where ? `Somewhere in ${regionOf(where).name}` : 'Hidden' }, h('b.q', null, '?'), h('span.nm', null, where ? regionOf(where).name.replace(/^The /, '') : '???')));
+    list.append(h('div.rcard.locked.hint', { title: where ? `Somewhere in ${regionOf(where).name}` : 'Hidden' }, h('b.q', null, '?'), h('span.nm', null, where ? regionOf(where).name.replace(/^The /, '') : '???')));
   }
   if (hidden.length > 1) list.append(h('div.rcard.locked.more', { title: 'Heroes still to find on the road' }, h('b.q', null, '+' + (hidden.length - 1)), h('span.nm', null, 'to find')));
   renderDetail(game);

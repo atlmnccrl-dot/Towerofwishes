@@ -116,7 +116,7 @@ function renderCamp() {
   // after the sixth seal the goal is Heroic: every mission again, harder, for better loot
   const hn = !next && MISSIONS.find((m) => !s.heroic[m.id]), hc = Object.keys(s.heroic).length;
   const stars = Object.values(s.cleared).reduce((a, n) => a + n, 0);
-  $('#k-cta-region').textContent = next ? regionOf(next).name : hn ? `Heroic · ${regionOf(hn).name}` : 'Vael is reclaimed';
+  $('#k-cta-region').textContent = next ? regionOf(next).name : hn ? regionOf(hn).name : 'Vael is reclaimed';
   $('#k-next').textContent = next ? `Next: ${next.name}` : hn ? `${hc} of ${MISSIONS.length} on Heroic · next: ${hn.name}` : `Every mission won on Heroic · ${stars} of ${MISSIONS.length * 3} stars`;
   const run = s.run, rc = $('#k-run');
   if (run) { const d = UNITS[run.leader], f = face(d.set, 30); f.style.setProperty('--c', `var(--${d.cls})`); rc.replaceChildren(f, h('span', null, `${d.name.split(' ')[0]} leads`, h('small', null, `${P.LEADERS[run.leader].name} · ${run.wins} win${run.wins === 1 ? '' : 's'} this run`))); }
@@ -124,7 +124,9 @@ function renderCamp() {
   $('#k-go-label').textContent = run || P.unlocked(s).length < 2 ? 'To the map' : 'Spin the wheel';
   // the long goal: the six seals, one for each region's boss
   const taken = P.sealsTaken(s), nextR = next && next.region;
-  $('#k-seal-count').textContent = `${taken.length} of ${REGIONS.length} seals`;
+  // after the sixth seal the card's headline is the Heroic count (phones have no room for the line below the region)
+  $('#k-goal').textContent = next ? 'Reclaim Vael' : 'Heroic Vael';
+  $('#k-seal-count').textContent = next ? `${taken.length} of ${REGIONS.length} seals` : `${hc} of ${MISSIONS.length} won`;
   $('#k-seals').replaceChildren(...REGIONS.map((r, i) => h('span.seal' + (taken.includes(r.id) ? '.on' : r.id === nextR ? '.next' : ''), { title: `${r.name}: ${taken.includes(r.id) ? 'seal taken' : 'its boss guards a seal'}` }, ['I', 'II', 'III', 'IV', 'V', 'VI'][i])));
   // the Stronghold: its rank and the next thing to build
   const nb = P.nextBuild(s), ready = P.KEEP.some((b) => P.buildState(s, b.id) === 'ok');

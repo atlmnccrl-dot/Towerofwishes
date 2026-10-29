@@ -343,6 +343,9 @@
   .rcard.on { border-color: var(--gold); box-shadow: inset 0 -3px 0 var(--c), 0 0 0 1px var(--gold), 0 0 14px rgba(255, 207, 92, 0.35); }
   .rcard.locked { cursor: default; opacity: 0.55; background: rgba(255, 255, 255, 0.03); box-shadow: none; }
   .rcard.locked .nm { color: var(--dim); }
+  .rcard.hint { align-content: center; }
+  .rcard.hint .q { margin-bottom: 0.15rem; }
+  .rcard.hint .nm { white-space: normal; text-align: center; line-height: 1.05; padding: 0 0.15rem 0.1rem; overflow: visible; }
   .rcard.locked .q, .rw.who .q { font: 900 1.6rem/1 var(--display); color: #4a5166; margin-bottom: 0.35rem; }
   .rw.who .q { font-size: 1.1rem; color: var(--gold); margin: 0; }
   #c-hero { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 0.35rem; min-height: 0; text-align: center; padding-bottom: 0.3rem; }
@@ -676,7 +679,7 @@
   <div class="camp-main">
     <div class="goals">
       <button class="cta" id="k-campaign" type="button" aria-label="Campaign">
-        <span class="cta-k">Reclaim Vael · <b id="k-seal-count"></b></span>
+        <span class="cta-k"><span id="k-goal">Reclaim Vael</span> · <b id="k-seal-count"></b></span>
         <span class="seals" id="k-seals"></span>
         <span class="cta-r" id="k-cta-region"></span>
         <span class="cta-n" id="k-next"></span>
