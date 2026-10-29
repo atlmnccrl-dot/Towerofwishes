@@ -4,7 +4,7 @@
 // them. The boss at the end holds the region's Seal. A lost fight ends the expedition (levels, gear and
 // cleared missions stay). Pure: no DOM; the save's run holds the expedition (s.run.exp).
 import { missionsIn, missionById } from '../data/campaign.js';
-import { BOONS, offerBoons } from '../data/boons.js';
+import { BOONS, offerFor } from '../data/boons.js';
 import { UNITS } from '../data/units.js';
 import { rollItem } from '../data/items.js';
 import { rng } from '../combat/battle.js';
@@ -74,8 +74,10 @@ export function fightSpec(exp, node, spec) {
 // ---- wounds: health carried between fights (a share of each hero's most, 1 = unhurt)
 export const hpOf = (s, key) => (s.run && s.run.hp && s.run.hp[key] != null ? s.run.hp[key] : 1);
 export function afterFight(s, battle) {
-  const hp = s.run.hp || (s.run.hp = {});
-  for (const u of battle.units) if (u.team === 'ally' && !u.summoned && !u.ward && UNITS[u.key]) hp[u.key] = Math.min(1, Math.max(WIN_FLOOR, (u.state === 'ko' ? WOUND_FLOOR : u.hp / u.max) + AFTER_FIGHT));
+  const hp = s.run.hp || (s.run.hp = {}), L = s.legacy || { perks: {} };
+  // the legacy changes the road's mending: Field Medics more, Reavers none (and a lower floor)
+  const reaver = L.charter === 'reavers', back = reaver ? 0 : AFTER_FIGHT + (L.perks.medics ? 0.15 : 0), floor = reaver ? 0.25 : WIN_FLOOR;
+  for (const u of battle.units) if (u.team === 'ally' && !u.summoned && !u.ward && UNITS[u.key]) hp[u.key] = Math.min(1, Math.max(floor, (u.state === 'ko' ? WOUND_FLOOR : u.hp / u.max) + back));
 }
 export function healAll(s, share) { const hp = s.run.hp || (s.run.hp = {}); for (const k of Object.keys(s.roster)) hp[k] = Math.max(0.05, Math.min(1, hpOf(s, k) + share)); }   // a hurt never fells anyone
 
@@ -98,7 +100,7 @@ export function openTreasure(s, node, rnd) {
 // camp: rest, or train (a boon to choose, as after a win)
 export function camp(s, node, choice, rnd) {
   if (choice === 'rest') healAll(s, REST);
-  else s.run.pick = offerBoons(s.run.boons, s.run.wins, rnd);
+  else s.run.pick = offerFor(s, rnd);
   complete(s, node.id);
   return choice;
 }
@@ -116,7 +118,7 @@ export function buy(s, node, id, rnd) {
   if (!w || s.gold < w.cost || bought.includes(node.id + id)) return null;
   s.gold -= w.cost; bought.push(node.id + id);
   if (id === 'heal') healAll(s, 0.35);
-  else if (id === 'boon') s.run.pick = offerBoons(s.run.boons, s.run.wins, rnd);
+  else if (id === 'boon') s.run.pick = offerFor(s, rnd);
   else { const it = Object.assign(rollItem(levelAt(s.run.exp, node), rnd, 0.2), { uid: s.uid++ }); s.inv.push(it); return { item: it }; }
   return { ok: true };
 }
@@ -146,10 +148,17 @@ export const EVENTS = [
     choices: [{ text: 'Take them home (a day lost)', hurt: 0.08, boon: true, note: 'Their village has a gift for the company.' }, { text: 'Point the way and go on', gold: 0 }] },
   { id: 'cache', title: 'A soldier\'s cache', text: 'A marked stone, a hollow beneath it, a dead man\'s savings.',
     choices: [{ text: 'Take it all', gold: 120 }, { text: 'Leave it for his kin', heal: 0.1, note: 'It feels right.' }] },
+  // ---- told only to a company with a name (rank 3, 5, 7)
+  { id: 'oracle', rank: 3, title: 'The blind oracle', text: 'An old woman by the road knows the company\'s name before anyone says it.',
+    choices: [{ text: 'Hear your fortune (80 gold)', need: 80, gold: -80, boon: true, note: 'She was right about everything. That is the frightening part.' }, { text: 'Ask for her blessing', heal: 0.2 }] },
+  { id: 'tourney', rank: 5, title: 'A village tourney', text: 'Banners, a roped-off field, and a prize sword on a cushion. The local champion is enormous.',
+    choices: [{ text: 'Enter the tourney', fight: true, note: 'The whole village is watching.' }, { text: 'Cheer from the crowd', heal: 0.15, gold: 30 }] },
+  { id: 'ghosts', rank: 7, title: 'The marching dead', text: 'A column of ghostly soldiers passes in silence. Their captain stops, and salutes the company.',
+    choices: [{ text: 'Salute back', boon: true, heal: 0.1 }, { text: 'Follow them to their grave', item: true, hurt: 0.2, note: 'Their captain left something for you.' }] },
   { id: 'storm', title: 'The storm', text: 'The sky goes black at noon. Shelter is a cave that smells of something large.',
     choices: [{ text: 'Shelter in the cave', heal: 0.3, fight: true, note: 'Rest, then whatever lives there.' }, { text: 'March through the storm', hurt: 0.15 }] },
 ];
-export function eventFor(exp, node) { const i = (exp.seed + node.row * 7 + Math.round(node.col * 3)) % EVENTS.length; return EVENTS[i]; }
+export function eventFor(exp, node) { const pool = EVENTS.filter((e) => (e.rank || 0) <= (exp.rank || 0)); return pool[(exp.seed + node.row * 7 + Math.round(node.col * 3)) % pool.length]; }
 // applies a choice; returns what happened, and whether a fight follows
 export function choose(s, node, ci, rnd) {
   const ev = eventFor(s.run.exp, node), c = ev.choices[ci];
@@ -159,7 +168,7 @@ export function choose(s, node, ci, rnd) {
   if (c.gamble) { const won = rnd() < 0.45; s.gold += won ? c.gamble : -c.gamble; out.gold = won ? c.gamble : -c.gamble; out.text = won ? 'The dice love you today.' : 'The dice were loaded. Of course they were.'; }
   if (c.heal) healAll(s, c.heal);
   if (c.hurt) healAll(s, -c.hurt);
-  if (c.boon) s.run.pick = offerBoons(s.run.boons, s.run.wins, rnd);
+  if (c.boon) s.run.pick = offerFor(s, rnd);
   if (c.item) { const it = Object.assign(rollItem(levelAt(s.run.exp, node), rnd, 0.25), { uid: s.uid++ }); s.inv.push(it); out.item = it; }
   out.fight = !!c.fight;
   if (!out.fight) complete(s, node.id);

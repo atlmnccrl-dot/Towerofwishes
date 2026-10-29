@@ -9,7 +9,7 @@ import { missionById } from '../src/data/campaign.js';
 
 // one battle; on an expedition (node given) as the game fights it: an elite's extra strength, the wounds
 export function fight(s, m, seed, heroic = false, might, node = null) {
-  let spec = P.battleSpec(m, heroic);
+  let spec = P.specFor(s, m, heroic);
   if (might != null) spec = Object.assign({}, spec, { might: might * (heroic ? P.HEROIC.might : 1) });
   if (node && s.run && s.run.exp) spec = X.fightSpec(s.run.exp, node.type === 'event' ? { type: 'elite' } : node, spec);
   const b = createBattle(Object.assign({}, spec, { team: P.teamFor(s), boons: P.boonsOf(s), seed }));
@@ -41,7 +41,7 @@ function fightAt(s, r, node, missionId, seed, might) {
   const m = missionById(missionId), b = fight(s, m, seed, false, might != null ? might(m) : undefined, node);
   const rw = P.grantRewards(s, m.id, b, r);
   if (rw.win && s.run && s.run.exp) { if (node.type !== 'event') X.enter(s, node.id); X.complete(s, node.id); X.afterFight(s, b); }
-  if (rw.win && s.run && node.type !== 'fight' && node.type !== 'boss') X.eliteSpoils(s, node, r);
+  if (rw.win && s.run && node.type !== 'fight' && node.type !== 'boss') { X.eliteSpoils(s, node, r); s.run.elites = (s.run.elites || 0) + 1; }
   return { node, battle: b, win: rw.win, mission: m };
 }
 // casual: the best-team and auto-equip buttons and the upgrade picks, nothing else (the difficulty is
@@ -53,6 +53,8 @@ export function manage(s, r, casual = true, pick = process.env.PICK ? +process.e
   for (const k of keys) s.roster[k].ups.forEach((u, t) => { if (!u && s.roster[k].level >= P.UPGRADE_LEVELS[t]) P.pickUpgrade(s, k, t, P.upgradeChoices(k, t)[pick != null ? pick : r() < 0.5 ? 0 : 1].id); });
   for (const k of keys) for (let t = 0; t < 2; t++) { const c = P.pathChoices(k, UNITS[k].cls, t); if (s.roster[k].level >= P.PATH_LEVELS[t] && !s.roster[k].paths[t]) P.pickPath(s, k, t, c[pick != null ? pick : r() < 0.5 ? 0 : 1].id); }
   P.autoEquip(s, keys);
+  // the legacy: a perk for every point, in the order a casual player would take them
+  for (const id of Object.keys(P.PERKS)) P.buyPerk(s, id);
   // the Stronghold: anyone builds what the camp offers when it is affordable
   for (let b = P.nextBuild(s); b && P.buildState(s, b.id) === 'ok'; b = P.nextBuild(s)) P.build(s, b.id);
   if (casual) return;

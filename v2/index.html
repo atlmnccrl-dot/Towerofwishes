@@ -490,6 +490,17 @@
   #boons.done .boon:not(.taken) { opacity: 0; transform: scale(0.9); }
   #boons.done .boon.taken { transform: scale(1.08); box-shadow: 0 0 40px color-mix(in srgb, var(--rc) 70%, transparent); }
   @media (max-height: 460px) { .boon .boonart { width: 3rem; height: 3rem; } .boon { padding: 0.5rem 0.5rem 0.6rem; gap: 0.2rem; } .btitle b { font-size: 1.3rem; } .boon p { font-size: 0.78rem; } }
+  .lg-head { display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 0.5rem 1rem; padding: 0.7rem 0.9rem; border-radius: 14px; background: rgba(255, 207, 92, 0.06); border: 1px solid rgba(255, 207, 92, 0.25); }
+  .lg-head small { display: block; font: 800 0.75rem/1 var(--ui); letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); } .lg-head b { font: 700 1.25rem/1.1 var(--display); }
+  .lg-bar { height: 0.5rem; border-radius: 99px; background: rgba(0, 0, 0, 0.5); overflow: hidden; } .lg-bar i { display: block; height: 100%; background: var(--gold-grad); }
+  .lg-head > span { font: 600 0.8rem var(--ui); color: var(--muted); } .lg-pts.on { color: var(--gold) !important; font-weight: 800 !important; }
+  .lg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: 0.45rem; }
+  .lg-card { display: grid; gap: 0.2rem; text-align: left; padding: 0.55rem 0.7rem; border-radius: 12px; border: 1px solid var(--stroke); background: rgba(255, 255, 255, 0.04); color: var(--text); cursor: pointer; }
+  .lg-card b { font: 700 0.92rem/1.1 var(--ui); } .lg-card span { font: 500 0.8rem/1.3 var(--ui); color: var(--muted); } .lg-card small { font: 800 0.72rem/1 var(--ui); letter-spacing: 0.08em; text-transform: uppercase; color: var(--gold); }
+  .lg-card.on { border-color: var(--gold); background: rgba(255, 207, 92, 0.1); } .lg-card.locked { opacity: 0.45; } .lg-card:disabled { cursor: default; }
+  .lg-card.charter b { font-family: var(--display); }
+  .renown { display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.8rem; border-radius: 99px; background: rgba(255, 207, 92, 0.1); border: 1px solid rgba(255, 207, 92, 0.4); font: 700 0.85rem var(--ui); color: #ffe7a8; animation: pop 0.4s ease both; animation-delay: 0.6s; }
+  .renown b { color: var(--gold); font-weight: 900; }
   .jobs { display: flex; flex-wrap: wrap; gap: 0.3rem; }
   .jobchip { font: 700 0.78rem/1 var(--ui); padding: 0.3rem 0.55rem; border-radius: 99px; background: rgba(255, 207, 92, 0.1); border: 1px solid rgba(255, 207, 92, 0.35); color: #ffe7a8; }
   .jobchip.elite { background: rgba(200, 120, 255, 0.1); border-color: rgba(200, 140, 255, 0.45); color: #e2c8ff; }
@@ -748,7 +759,7 @@
     <div class="menu">
       <button class="btn big primary" id="t-continue" type="button">Continue</button>
       <button class="btn big" id="t-new" type="button">New campaign</button>
-      <div class="confirm glass" id="t-confirm" hidden>Start a new company? Your saved progress will be replaced.<div><button class="btn small" id="t-confirm-yes" type="button">Start over</button><button class="btn small" id="t-confirm-no" type="button">Keep playing</button></div></div>
+      <div class="confirm glass" id="t-confirm" hidden>Start a new company? Your saved progress will be replaced; the company's legacy (Renown, perks, charters) stays.<div><button class="btn small" id="t-confirm-yes" type="button">Start over</button><button class="btn small" id="t-confirm-no" type="button">Keep playing</button></div></div>
     </div>
   </div>
   <div class="corner"><button class="btn icon open-settings" type="button" aria-label="Settings"><i data-icon="gear"></i></button></div>
@@ -791,6 +802,7 @@
     <button class="dbtn" id="k-keep2" type="button"><i data-icon="castle"></i>Keep<span class="dot" id="k-keep-dot2" hidden></span></button>
     <button class="dbtn" id="k-shop" type="button"><i data-icon="shop"></i>Shop</button>
     <button class="dbtn" id="k-bounties" type="button"><i data-icon="scroll"></i>Bounties<span class="dot" id="k-bounty-dot" hidden></span></button>
+    <button class="dbtn" id="k-legacy" type="button"><i data-icon="flag"></i>Legacy<span class="dot" id="k-legacy-dot" hidden></span></button>
     <button class="dbtn" id="k-ach" type="button"><i data-icon="trophy"></i>Feats</button>
     <button class="dbtn" id="k-title" type="button"><i data-icon="home"></i>Title</button>
   </nav>

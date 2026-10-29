@@ -160,6 +160,10 @@ function boonTicks(b, dt) {
     b.hymnT += dt;
     if (b.hymnT >= 8) { b.hymnT = 0; for (const u of teamOf(b, 'ally')) if (!u.ward) { const got = Math.min(u.max - u.hp, Math.round(u.max * 0.04 * bo(b, 'hymn'))); if (got > 0) { u.hp += got; b.events.push({ type: 'heal', u: u.id, amount: got }); } } proc(b, 'hymn', null, 'heal_loop'); }
   }
+  if (bo(b, 'stormcall')) {
+    b.stormT = (b.stormT || 0) + dt;
+    if (b.stormT >= 6) { b.stormT = 0; const fs = teamOf(b, 'foe'), v = fs[Math.floor(b.rnd() * fs.length) % Math.max(1, fs.length)]; if (v) { b.events.push({ type: 'strike', x: v.x, y: v.y, r: 0.8, kind: 'lightning' }); proc(b, 'stormcall', v, 'bolt_strike'); damage(b, null, v, 0, { raw: Math.round(v.max * 0.08 * bo(b, 'stormcall')) }); } }
+  }
   if (bo(b, 'laststand') && !b.lastStand) {
     const left = teamOf(b, 'ally').filter((u) => hero(u) && !u.summoned);
     if (left.length === 1 && b.units.some((u) => hero(u) && !u.summoned && !alive(u))) { b.lastStand = left[0]; left[0].lastStand = true; b.events.push({ type: 'proc', boon: 'laststand', u: left[0].id, text: 'Last Stand!', fx: 'fire_shield', col: '#ff9a5a', big: true }); }
@@ -329,6 +333,7 @@ export function damage(b, src, t, m, o = {}) {
       if (bo(b, 'giant') && (t.def.boss || t.elite)) { d *= 1 + 0.3 * bo(b, 'giant'); proc(b, 'giant', t, 'hit_big', 3); }
       if (src.lastStand) d *= 1.6 + 0.4 * bo(b, 'laststand');
     }
+    if (hero(t) && t.def.cls === 'vanguard' && bo(b, 'phalanx')) { d *= 1 - 0.15 * bo(b, 'phalanx'); proc(b, 'phalanx', t, 'shield_bubble', 3); }
   }
   if (t.lastStand) d *= 0.5;
   d = Math.max(1, Math.round(d));
@@ -370,12 +375,14 @@ function fall(b, src, t) {
     b.events.push({ type: 'proc', boon: 'secondwind', u: t.id, text: 'Second Wind!', fx: 'phoenix', col: '#ffcf6a', big: true }); return;
   }
   t.state = 'ko'; t.st = 0; t.act = null; t.statuses = []; t.shield = 0; b.events.push({ type: 'ko', u: t.id });
+  if (hero(t) && !t.summoned && bo(b, 'vengeance')) { for (const a of teamOf(b, 'ally')) if (!a.ward) addStatus(a, { type: 'buff', stat: 'atk', pct: 0.3 * bo(b, 'vengeance'), t: 999 }); proc(b, 'vengeance', t, 'slash_arc_blood'); }
   if (hero(t) && !t.summoned && bo(b, 'martyr')) {
     for (const a of teamOf(b, 'ally')) { const got = Math.min(a.max - a.hp, Math.round(a.max * 0.15 * bo(b, 'martyr'))); a.hp += got; a.shield = Math.max(a.shield, Math.round(a.max * 0.15)); a.shieldT = 5; b.events.push({ type: 'heal', u: a.id, amount: got }); }
     b.events.push({ type: 'proc', boon: 'martyr', u: t.id, text: "Martyr's Oath", fx: 'holy_light', col: '#fff2b0' });
   }
   if (t.team === 'foe') {
     if (src && hero(src) && alive(src) && bo(b, 'bloodlust')) { const p = 0.25 + 0.1 * bo(b, 'bloodlust'); addStatus(src, { type: 'buff', stat: 'atk', pct: p, t: 5 }); addStatus(src, { type: 'buff', stat: 'spd', pct: p, t: 5 }); proc(b, 'bloodlust', src, 'buff_up'); }
+    if (bo(b, 'midas')) { b.gold = (b.gold || 0) + 5 * bo(b, 'midas') * (t.level || 1); proc(b, 'midas', t, 'coin', 0.3); }
     if (bo(b, 'pyre')) {
       proc(b, 'pyre', t, 'explosion_fire');
       for (const v of teamOf(b, 'foe')) if (dist(t, v) < 1.8 + v.r) damage(b, null, v, 0, { raw: Math.round(t.max * 0.2 * bo(b, 'pyre')) });

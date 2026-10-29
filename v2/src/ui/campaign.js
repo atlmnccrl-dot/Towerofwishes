@@ -178,8 +178,10 @@ export function renderRewards(game, b, rw, missionId) {
   const allies = b.units.filter((u) => u.team === 'ally' && !u.summoned && !u.ward);
   const mvp = allies.reduce((a, u) => (u.dealt + u.healed * 1.2 > a.dealt + a.healed * 1.2 ? u : a), allies[0]);
   if (rw.win) {
+    const renownLine = (r) => r && r.renown ? h('div.renown', null, h('span', null, 'Renown'), h('b', null, `+${r.renown}`), r.rankUp ? h('span', null, `· rank ${r.rank}: ${P.LEGACY_NAMES[r.rank]}! A perk to choose`) : null) : null;
     const runNote = rw.runEnded ? ` · ${first(UNITS[rw.runEnded.leader].name)}'s run ends in triumph` : game.save.run ? ` · run: ${game.save.run.wins} win${game.save.run.wins === 1 ? '' : 's'}` : '';
     box.append(h('div.rays'), h('div.rt.win', null, 'Victory'), stars(rw.stars), h('div.rsub', null, `${m.name} · ${Math.round(b.t)} s${runNote}`));
+    if (rw.runEnded && rw.runEnded.renown) box.append(renownLine(rw.runEnded));
     const left = h('div.r-left', null,
       h('div.mvp', null, heroArt(mvp.def.set, 2), h('div', null, h('div.label', null, 'MVP'), h('div.mvp-n', null, first(mvp.def.name)))),
       h('div.rgold', null, reward(goldIcon(), `+${rw.gold}`), rw.gems ? reward(gemIcon(), `+${rw.gems}`) : null, ...Object.entries(rw.mats || {}).map(([r, n]) => reward(matIcon(r), `+${n}`, '.matrw'))),
@@ -210,9 +212,12 @@ export function renderRewards(game, b, rw, missionId) {
     const tp = P.teamPower(game.save), mp = P.missionPower(m, !!game.heroic);
     // the run is over: who led it, how far it went
     if (rw.runEnded) { const d = UNITS[rw.runEnded.leader], f = face(d.set, 30); f.style.setProperty('--c', `var(--${d.cls})`);
-      box.append(h('div.runover', null, f, h('span', null, h('b', null, `${first(d.name)}'s run is over`), h('small', null, `${rw.runEnded.wins} win${rw.runEnded.wins === 1 ? '' : 's'} · best run ${game.save.runs.best}`)))); }
+      box.append(h('div.runover', null, f, h('span', null, h('b', null, `${first(d.name)}'s expedition is over`), h('small', null, `${rw.runEnded.wins} win${rw.runEnded.wins === 1 ? '' : 's'} · best run ${game.save.runs.best}`))));
+      if (rw.runEnded.renown) box.append(h('div.renown', null, h('span', null, 'Renown'), h('b', null, `+${rw.runEnded.renown}`), rw.runEnded.rankUp ? h('span', null, `· rank ${rw.runEnded.rank}: ${P.LEGACY_NAMES[rw.runEnded.rank]}! A perk to choose`) : null)); }
+    if (rw.secondChance) box.append(h('div.renown', null, h('b', null, 'Second Chance'), h('span', null, 'The company gets back up. The expedition goes on.')));
     box.append(h('div.powers', null, powerChip('Your team', tp, tp >= mp ? 'ok' : tp >= mp * 0.85 ? 'close' : 'low'), h('span.vs', null, 'vs'), powerChip('Enemies', mp, 'foe')));
-    if (rw.exp) box.append(h('p.lose-note', null, 'The expedition is over. Levels, gear and cleared missions stay; a new one starts from the gate.'));
+    if (rw.secondChance) box.append(h('p.lose-note', null, 'Everyone is back on their feet with at least half their health. The place is still there to take.'));
+    else if (rw.exp) box.append(h('p.lose-note', null, 'The expedition is over. Levels, gear and cleared missions stay; a new one starts from the gate.'));
     else box.append(h('p.lose-note', null, tp < mp ? 'Your team is under-powered here. Nothing is lost: replay earlier missions for levels, equip and upgrade gear, train, then come back.'
       : 'Nothing is lost. Try a different formation, put the healer in the back row, or use Manual to time the abilities.'));
     const top = Math.max(1, ...allies.map((u) => Math.max(u.dealt, u.healed)));
@@ -221,7 +226,8 @@ export function renderRewards(game, b, rw, missionId) {
     box.append(h('div.ractions', null,
       h('button.btn', { type: 'button', onclick: () => game.go('map') }, icon('map', 18), 'Map'),
       h('button.btn', { type: 'button', onclick: () => game.go('company') }, icon('heroes', 18), 'Heroes'),
-      rw.exp
+      rw.secondChance ? h('button.btn.primary', { type: 'button', onclick: () => game.go('exp') }, 'Back on the road', icon('right', 18))
+      : rw.exp
         ? h('button.btn.primary', { type: 'button', onclick: () => game.beginExpedition(m.region) }, P.unlocked(game.save).length < 2 ? 'New expedition' : 'Spin & go again', icon('right', 18))
         : h('button.btn.primary', { type: 'button', onclick: () => game.go('prep', missionId) }, 'Try again', icon('right', 18))));
   }

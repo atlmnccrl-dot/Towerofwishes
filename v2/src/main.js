@@ -27,6 +27,7 @@ import { renderExtras, tip } from './ui/extras.js';
 import { renderKeep, LOOK } from './ui/keep.js';
 import { renderWheel } from './ui/wheel.js';
 import { showBoons, boonRow } from './ui/boons.js';
+import { offerFor } from './data/boons.js';
 import { VOICES, CLASS_VOICES, PAIRS } from './data/voices.js';
 import * as X from './game/expedition.js';
 import { renderExpedition, beginExpedition, abandonExpedition } from './ui/expedition.js';
@@ -120,7 +121,8 @@ function renderCamp() {
   $('#k-gems').replaceChildren(gemIcon(), String(s.gems));
   const cleared = Object.keys(s.cleared).length;
   const nh = Object.keys(s.roster).length;
-  $('#k-region').textContent = `${nh} ${nh === 1 ? 'hero' : 'heroes'} · ${cleared} of ${MISSIONS.length} missions`;
+  $('#k-legacy-dot').hidden = P.legacyPoints(s) < 1;
+  $('#k-region').textContent = `${nh} ${nh === 1 ? 'hero' : 'heroes'} · ${cleared} of ${MISSIONS.length} missions · ${P.LEGACY_NAMES[P.legacyRank(s)]}${P.legacyPoints(s) > 0 ? ' (a perk to choose)' : ''}`;
   // after the sixth seal the goal is Heroic: every mission again, harder, for better loot
   const hn = !next && MISSIONS.find((m) => !s.heroic[m.id]), hc = Object.keys(s.heroic).length;
   const stars = Object.values(s.cleared).reduce((a, n) => a + n, 0);
@@ -208,7 +210,7 @@ async function fight() {
   try { Object.assign(sprites, await loadSprites(need)); } catch (e) { loading('Could not load the art. Check the connection and try again.', true); return; }
   // a boss's first meeting: the face-off, then the fight in the same place
   if (m.boss && !game.heroic && !s.flags['met_' + m.id]) { s.flags['met_' + m.id] = true; game.persist(); await playScene(bossScene(m, s.team.map((t) => t.key))); }
-  let spec = P.battleSpec(m, game.heroic);
+  let spec = P.specFor(s, m, game.heroic);
   if (node) spec = X.fightSpec(s.run.exp, node.type === 'event' ? { type: 'elite' } : node, spec);
   battle = createBattle(Object.assign({}, spec, { team: P.teamFor(s), boons: P.boonsOf(s), seed: (Math.random() * 1e9) | 0 }));
   // on the road, wounds come along
@@ -395,7 +397,10 @@ function finish() {
   if (node && rw.win) {
     if (node.type !== 'event' && s0.run) X.enter(s0, node.id);   // (a boss's Seal has already ended the run)
     if (s0.run && s0.run.exp) { X.complete(s0, node.id); X.afterFight(s0, battle); }
-    if (node.type === 'elite' || node.type === 'event') rw.loot.push(X.eliteSpoils(s0, node, Math.random));
+    if (node.type === 'elite' || node.type === 'event') {
+      rw.loot.push(X.eliteSpoils(s0, node, Math.random));
+      if (s0.run) { s0.run.elites = (s0.run.elites || 0) + 1; if (P.hasPerk(s0, 'cartographer')) { s0.run.pick = offerFor(s0, Math.random, { min: 1 }); rw.boonPick = s0.run.pick; } }
+    }
     rw.exp = true;
   }
   if (node && !rw.win) rw.exp = true;
@@ -457,7 +462,8 @@ $('#t-new').addEventListener('click', () => {
 });
 $('#t-confirm-yes').addEventListener('click', newGame);
 $('#t-confirm-no').addEventListener('click', () => ($('#t-confirm').hidden = true));
-function newGame() { $('#t-confirm').hidden = true; game.save = P.newSave(); game.persist(); castKey = ''; playScene(OPENING).then(() => go('camp')); }
+function newGame() { $('#t-confirm').hidden = true; const legacy = game.save && game.save.legacy; game.save = P.newSave(); if (legacy) game.save.legacy = legacy; game.persist();   // the legacy outlives the campaign
+ castKey = ''; playScene(OPENING).then(() => go('camp')); }
 $('#premise-go').addEventListener('click', () => go('camp'));
 $('#k-campaign').addEventListener('click', () => (game.save.run && game.save.run.exp ? go('exp') : go('map')));
 // a run needs a leader: the wheel picks one, but with one hero on it there is nothing to spin for
@@ -481,6 +487,7 @@ $('#k-title').addEventListener('click', () => go('title'));
 $('#k-shop').addEventListener('click', () => go('extras', 'shop'));
 $('#k-bounties').addEventListener('click', () => go('extras', 'bounties'));
 $('#k-ach').addEventListener('click', () => go('extras', 'ach'));
+$('#k-legacy').addEventListener('click', () => go('extras', 'legacy'));
 $('#x-back').addEventListener('click', () => go('camp'));
 // ---- settings: volumes, screen shake, the save code, reset
 function openSettings() {

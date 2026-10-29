@@ -1,5 +1,6 @@
 // The camp's other tents: the shop (gold and gems, and gem packs inside the app), the bounty board
 // (three a day) and the achievements. One screen with three tabs. Also the first-time tips.
+import * as P from '../game/progress.js';
 import { UNITS } from '../data/units.js';
 import { itemName, itemStats, statText } from '../data/items.js';
 import * as E from '../game/economy.js';
@@ -13,16 +14,42 @@ export function renderExtras(game, which) {
   if (which) tab = which;
   $('#x-gold').replaceChildren(goldIcon(), String(s.gold));
   $('#x-gems').replaceChildren(gemIcon(), String(s.gems));
-  $('#x-title').textContent = { shop: 'Shop', bounties: 'Bounties', ach: 'Feats' }[tab];
+  $('#x-title').textContent = { shop: 'Shop', bounties: 'Bounties', ach: 'Feats', legacy: 'Legacy' }[tab];
   const tabs = $('#x-tabs'); tabs.replaceChildren();
   const ready = E.bountiesReady(s);
-  for (const [id, label] of [['shop', 'Shop'], ['bounties', 'Bounties'], ['ach', 'Feats']]) {
-    tabs.append(h('button.tab' + (tab === id ? '.on' : ''), { type: 'button', role: 'tab', 'aria-selected': String(tab === id), onclick: () => { tab = id; renderExtras(game); } }, label, id === 'bounties' && ready ? h('span.dot') : null));
+  for (const [id, label] of [['legacy', 'Legacy'], ['shop', 'Shop'], ['bounties', 'Bounties'], ['ach', 'Feats']]) {
+    tabs.append(h('button.tab' + (tab === id ? '.on' : ''), { type: 'button', role: 'tab', 'aria-selected': String(tab === id), onclick: () => { tab = id; renderExtras(game); } }, label, (id === 'bounties' && ready) || (id === 'legacy' && P.legacyPoints(s) > 0) ? h('span.dot') : null));
   }
   const body = $('#x-body'); body.replaceChildren();
   if (tab === 'shop') renderShop(game, body);
   if (tab === 'bounties') renderBounties(game, body);
   if (tab === 'ach') renderAch(game, body);
+  if (tab === 'legacy') renderLegacy(game, body);
+}
+
+// the company's legacy: Renown and rank, a perk for every rank, the charter it sails under
+function renderLegacy(game, body) {
+  const s = game.save, L = s.legacy, rank = P.legacyRank(s), R = P.LEGACY_RANKS, next = R[rank + 1], pts = P.legacyPoints(s);
+  const into = L.renown - R[rank], span = next ? next - R[rank] : 1;
+  body.append(h('div.lg-head', null,
+    h('div', null, h('small', null, `Rank ${rank}`), h('b', null, P.LEGACY_NAMES[rank])),
+    h('div.lg-bar', null, h('i', { style: { width: (next ? Math.min(100, (into / span) * 100) : 100) + '%' } })),
+    h('span', null, next ? `${L.renown} / ${next} Renown` : `${L.renown} Renown · the last rank`),
+    h('span.lg-pts' + (pts > 0 ? '.on' : ''), null, pts > 0 ? `${pts} perk${pts === 1 ? '' : 's'} to choose` : 'Every expedition earns Renown, won or lost')));
+  body.append(h('div.label', null, 'Perks'));
+  body.append(h('div.lg-grid', null, ...Object.entries(P.PERKS).map(([id, p]) => {
+    const have = P.hasPerk(s, id), locked = rank < p.rank, can = !have && !locked && pts > 0;
+    return h('button.lg-card' + (have ? '.on' : '') + (locked ? '.locked' : ''), { type: 'button', disabled: can ? null : true,
+      onclick: () => { if (P.buyPerk(s, id)) { game.persist(); game.audio.play('level_up'); toast(`${p.name}: the company will remember`); renderExtras(game); } } },
+      h('b', null, p.name), h('span', null, p.desc), h('small', null, have ? 'Taken' : locked ? `Rank ${p.rank}` : can ? 'Take it' : 'No point to spend'));
+  })));
+  body.append(h('div.label', null, s.run ? 'Charter (changes between expeditions)' : 'Charter'));
+  body.append(h('div.lg-grid', null, ...Object.entries(P.CHARTERS).map(([id, c]) => {
+    const on = L.charter === id, locked = rank < c.rank;
+    return h('button.lg-card.charter' + (on ? '.on' : '') + (locked ? '.locked' : ''), { type: 'button', disabled: on || locked || s.run ? true : null,
+      onclick: () => { if (P.setCharter(s, id)) { game.persist(); game.audio.play('confirm_01'); toast(`The company sails as ${c.name}`); renderExtras(game); } } },
+      h('b', null, c.name), h('span', null, c.desc), h('small', null, on ? 'Our charter' : locked ? `Rank ${c.rank}` : s.run ? 'After this expedition' : 'Sign it'));
+  })));
 }
 
 function renderShop(game, body) {
