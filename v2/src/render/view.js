@@ -7,6 +7,7 @@ import { ARENAS } from '../data/arenas.js';
 import { paintTerrain, atlasPixels } from './terrain.js';
 
 const BUF_H = 232, PPM = 26, SQUASH = 0.6, LIFT = 0.92;
+export const VIEW = { BUF_H, PPM, SQUASH };
 const CAST_POINT = 0.45;
 
 export function createView(canvas, fxAtlas, tiles, settings = () => ({ shake: true }), world = null) {
@@ -14,7 +15,7 @@ export function createView(canvas, fxAtlas, tiles, settings = () => ({ shake: tr
   const buf = document.createElement('canvas'), ctx = buf.getContext('2d'), tmp = document.createElement('canvas');
   const cam = { x: 0, y: 0.2, zoom: 1, shake: 0 };
   const anim = new Map();
-  let sprites = {}, fx = [], floaters = [], banners = [], ground = null, flashA = 0, flashCol = '255,255,255';
+  let sprites = {}, fx = [], floaters = [], banners = [], ground = null, flashA = 0, flashCol = '255,255,255', mood = null;
 
   function resize() {
     const r = canvas.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -76,6 +77,7 @@ export function createView(canvas, fxAtlas, tiles, settings = () => ({ shake: tr
     fireflies: { col: ['#e8f070', '#b8f080'], vx: 2, vy: -1, size: 1, sway: 5, glow: true },
     snow: { col: ['#ffffff', '#dfe8f4'], vx: 4, vy: 18, size: 1, sway: 4 },
     embers: { col: ['#ff9a3a', '#ffcf5a'], vx: 3, vy: -14, size: 1, sway: 3, glow: true },
+    rain: { col: ['rgba(170,185,235,0.6)', 'rgba(205,215,255,0.45)'], vx: -40, vy: 260, size: 1, len: 6, sway: 0 },
   };
   function arenaLight(dt) {
     const L = arena.light || {}, t = performance.now() / 1000, W = buf.width, H = buf.height;
@@ -92,7 +94,7 @@ export function createView(canvas, fxAtlas, tiles, settings = () => ({ shake: tr
         q.x += w.vx * (0.5 + q.s) * dt; q.y += w.vy * (0.5 + q.s) * dt;
         if (q.y > H + 4) q.y = -4; if (q.y < -4) q.y = H + 4; if (q.x > W + 4) q.x = -4; if (q.x < -4) q.x = W + 4;
         ctx.globalAlpha = w.glow ? 0.35 + 0.65 * Math.max(0, Math.sin(t * 2 + q.p * 3)) : 0.85; ctx.fillStyle = w.col[Math.floor(q.s * w.col.length)];
-        ctx.fillRect(Math.round(q.x + Math.sin(t * 1.3 + q.p) * w.sway), Math.round(q.y), w.size + (q.s > 0.7 ? 1 : 0), w.size);
+        ctx.fillRect(Math.round(q.x + Math.sin(t * 1.3 + q.p) * w.sway), Math.round(q.y), w.len ? 1 : w.size + (q.s > 0.7 ? 1 : 0), w.len || w.size);
       }
       ctx.restore(); }
     if (L.tint) { ctx.save(); ctx.globalCompositeOperation = 'soft-light'; ctx.fillStyle = `rgba(${L.tint[0]},${L.tint[1]},${L.tint[2]},${Math.min(1, L.tint[3] * 4)})`; ctx.fillRect(-8, -8, W + 16, H + 16); ctx.restore(); }
@@ -193,7 +195,7 @@ export function createView(canvas, fxAtlas, tiles, settings = () => ({ shake: tr
   }
   function drawUnit(u, dt) {
     const set = sprites[u.def.set]; if (!set) return;
-    const k = (set.cfg.scale || 1) * (u.def.scale || 1) * cam.zoom, p = P(u.x, u.y);
+    const k = (set.cfg.scale || 1) * (u.def.scale || 1) * cam.zoom, p = P(u.x, u.y), at = u.z ? P(u.x, u.y, u.z) : p;
     const ps = pose(u), dir = dirOf(u.f);
     const frames = framesOf(set, ps.clip, dir) || framesOf(set, 'Idle', dir);
     let a = anim.get(u.id); if (!a || a.clip !== ps.clip) { a = { clip: ps.clip, t: 0 }; anim.set(u.id, a); }
@@ -204,10 +206,11 @@ export function createView(canvas, fxAtlas, tiles, settings = () => ({ shake: tr
     else if (ps.timed != null) i = Math.floor(Math.min(1, ps.timed) * (frames.length - 1));
     else { i = Math.floor(a.t * (ps.fps || 10)); i = ps.loop === false ? Math.min(frames.length - 1, i) : i % frames.length; }
     i = Math.max(0, Math.min(frames.length - 1, i));
-    ctx.fillStyle = 'rgba(10,18,8,0.38)'; ctx.beginPath(); ctx.ellipse(p.x, p.y, 9 * k, 3.2 * k, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = `rgba(10,18,8,${u.z ? 0.38 / (1 + u.z * 0.4) : 0.38})`; ctx.beginPath(); ctx.ellipse(p.x, p.y, 9 * k, 3.2 * k, 0, 0, Math.PI * 2); ctx.fill();
     if (u.state !== 'ko' && !u.actor) { ctx.strokeStyle = u.team === 'ally' ? 'rgba(140,200,255,0.55)' : 'rgba(255,120,110,0.5)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(p.x, p.y, 10 * k, 3.6 * k, 0, 0, Math.PI * 2); ctx.stroke(); }
-    const flash = u.flash > 0 ? ['#ffffff', Math.min(0.85, u.flash * 6)] : null;
-    drawFrame(set, frames[i], p.x, p.y, k, u.state === 'ko' ? Math.max(0, 1 - Math.max(0, u.st - 0.8) * 0.8) : 1, flash);
+    // a scene's silhouette (a lightning flash shows the real thing), or a hit's white flash
+    const flash = u.dark && flashA < 0.25 ? [typeof u.dark === 'string' ? u.dark : '#07060c', 1] : u.flash > 0 ? ['#ffffff', Math.min(0.85, u.flash * 6)] : null;
+    drawFrame(set, frames[i], at.x, at.y, k, u.alpha != null ? u.alpha : u.state === 'ko' ? Math.max(0, 1 - Math.max(0, u.st - 0.8) * 0.8) : 1, flash);
     if (u.state === 'ko' || u.actor) return;
     // bars: health (shield over it in white), energy for the team
     const w = 18, x = p.x - w / 2, y = p.y - Math.round(50 * k);
@@ -286,18 +289,22 @@ export function createView(canvas, fxAtlas, tiles, settings = () => ({ shake: tr
     items.sort((p, q) => p.y - q.y);
     for (const it of items) it.draw();
     for (const u of b.units) if (u.flash > 0) u.flash -= dt;
-    fx = fx.filter((e) => { if (e.follow) { e.x = e.follow.x; e.y = e.follow.y; if (e.follow.state === 'ko' || e.follow.shield <= 0 && e.name === 'shield_bubble') return false; } e.t += dt; return drawFx(e); });
+    fx = fx.filter((e) => { if (e.vx || e.vy || e.vz) { e.x += (e.vx || 0) * dt; e.y += (e.vy || 0) * dt; e.z += (e.vz || 0) * dt; } if (e.follow) { e.x = e.follow.x; e.y = e.follow.y; if (e.follow.state === 'ko' || e.follow.shield <= 0 && e.name === 'shield_bubble') return false; } e.t += dt; return drawFx(e); });
     // ability names over the caster
     ctx.textAlign = 'center'; ctx.font = '8px "Silkscreen", monospace';
     banners = banners.filter((n) => { n.t += dt; const p = P(n.u.x, n.u.y, 2.5 + n.t * 0.3); ctx.globalAlpha = Math.max(0, Math.min(1, (1.4 - n.t) * 2)); ctx.fillStyle = '#120c0a'; ctx.fillText(n.text, p.x + 1, p.y + 1); ctx.fillStyle = n.team === 'ally' ? '#ffe7a8' : '#ffb0a8'; ctx.fillText(n.text, p.x, p.y); ctx.globalAlpha = 1; return n.t < 1.4; });
     floaters = floaters.filter((n) => { n.t += dt; const p = P(n.x, n.y, n.z + n.t * 0.9); ctx.globalAlpha = Math.max(0, 1 - n.t / 0.9); ctx.fillStyle = '#120c0a'; ctx.fillText(n.text, p.x + 1, p.y + 1); ctx.fillStyle = n.col; ctx.fillText(n.text, p.x, p.y); ctx.globalAlpha = 1; return n.t < 0.9; });
     if (arena) arenaLight(dt);
     else if (theme.tint) { ctx.fillStyle = theme.tint; ctx.fillRect(-8, -8, buf.width + 16, buf.height + 16); }
+    if (mood) { ctx.save(); ctx.globalCompositeOperation = mood.op || 'soft-light'; ctx.fillStyle = mood.col; ctx.fillRect(-8, -8, buf.width + 16, buf.height + 16); ctx.restore(); }
     if (flashA > 0.01) { ctx.fillStyle = `rgba(${flashCol},${flashA})`; ctx.fillRect(-8, -8, buf.width + 16, buf.height + 16); flashA *= Math.exp(-dt * 8); }
     out.imageSmoothingEnabled = false;
     out.drawImage(buf, 0, 0, canvas.width, canvas.height);
   }
   // where a point of the field is on the page (CSS pixels), for text placed over the picture
   function project(x, y, z = 0) { const r = canvas.getBoundingClientRect(), p = P(x, y, z), k = r.height / buf.height; return { x: r.left + p.x * k, y: r.top + p.y * k }; }
-  return { resize, draw, project, spawn, setSprites(s) { sprites = s; }, reset() { fx = []; floaters = []; banners = []; anim.clear(); flashA = 0; } };
+  return { resize, draw, project, spawn, setSprites(s) { sprites = s; },
+    // for filmed scenes: a flash of light, a shake, a colour over everything
+    flash(a = 0.5, col = '255,240,220') { flashA = a; flashCol = col; }, shake(n = 3) { cam.shake = Math.max(cam.shake, n); }, mood(m) { mood = m; },
+    reset() { fx = []; floaters = []; banners = []; anim.clear(); flashA = 0; mood = null; } };
 }

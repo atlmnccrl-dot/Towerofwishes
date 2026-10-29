@@ -1,8 +1,9 @@
 # Vael: Sellsword Company (v2)
 
-A squad RPG across six regions of the fallen kingdom of Vael. Each run starts with a spin of the wheel:
-it picks which of the eight wheel heroes leads the company (three are free at the start, five are freed
-by beating region bosses). The leader always fights and gives the squad their perk; the run lasts until
+A squad RPG across six regions of the fallen kingdom of Vael. A new company is one hero: the first spin
+of the wheel picks Corvin, Wren or Maren, and the other two join on the first missions. After that, each
+run starts with a spin that picks which of the eight wheel heroes leads (the last five are freed by
+beating region bosses). The leader always fights and gives the squad their perk; the run lasts until
 a battle is lost or a Seal of Vael is taken. Fifteen more heroes are met on the road and join the
 company as recruits: they fight in the squad but never lead. Battles play themselves, or the player fires each hero's ability. Built from the Tower of Wishes character art,
 animations and effects; everything else is new. Names and story are proposals for the author.
@@ -14,12 +15,12 @@ animations and effects; everything else is new. Names and story are proposals fo
 | `index.html` | The page: styles and every screen's markup |
 | `src/main.js` | Boot, screens, the loop, buttons |
 | `src/combat/battle.js` | The battle simulation (pure; runs in Node) |
-| `src/data/` | The wheel's eight heroes, their unlocks and leader perks (`heroes.js`), heroes, recruits and foes, animations, campaign (6 regions, 60 missions), items, tuning (foe strength per mission), the world map's lands (`world.js`), battle arenas (`arenas.js`), cutscene sets (`stagesets.js`) and scenes (`scenes.js`) |
+| `src/data/` | The wheel's eight heroes, their unlocks and leader perks (`heroes.js`), heroes, recruits and foes, animations, campaign (6 regions, 60 missions), items, tuning (foe strength per mission), the world map's lands (`world.js`), battle arenas (`arenas.js`, also the cutscenes' places) and scenes (`scenes.js`) |
 | `src/game/progress.js` | The save: rewards, levels, gear, training, upgrades, heroic mode, save codes (pure) |
 | `src/game/economy.js` | Bounties, feats, the shop, the gem-pack catalog (pure) |
 | `src/game/store.js` | App-store purchases (cordova-plugin-purchase); off on the web |
 | `src/game/audio.js` | Music and sounds (Web Audio) |
-| `src/render/` | The battle view and its arenas, the walkable world map (`overworld.js`, painted by `terrain.js`), the cutscene stage (`stage.js`: a low side-on camera, layered sets) and its player (`scene.js`), the campfire, asset loading |
+| `src/render/` | The battle view and its arenas, the walkable world map (`overworld.js`, painted by `terrain.js`), the cutscene player (`scene.js`: filmed scenes drawn by the battle view, on the same arenas), the campfire, asset loading |
 | `src/ui/` | The wheel (`wheel.js`), the map card and markers, the formation, rewards and the new-hero reveal, heroes, shop/bounties/feats, tips; vector icons (`icons.js`) and big animated hero art (`heroart.js`) |
 | `assets/` | Packed art (lossless), tiles, effects, sounds, music, fonts, icons |
 | `tools/` | `pack.py` (art and sounds from the repo's assets), `portraits.py`, `icons.py` (app icon and splash), `store-shots.mjs` (store screenshots), `world_atlas.py` (map and set pieces), `hero_art.py` (the menus' hero poses) |

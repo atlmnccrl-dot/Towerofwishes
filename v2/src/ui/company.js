@@ -30,7 +30,8 @@ export function renderCompany(game, focus) {
       pend ? h('span.dot', { title: 'An upgrade to pick', 'aria-label': 'An upgrade to pick' }) : inTeam(k) ? h('span.tm', { title: 'In the team', 'aria-label': 'In the team' }) : null));
   }
   for (const k of keys.filter((k) => !s.roster[k])) {
-    const where = P.unlockedBy(k), hint = !where ? 'Locked' : P.onWheel(k) ? `Freed by beating ${where.name} (${regionOf(where).name})` : `Met on ${where.name} (${regionOf(where).name})`;
+    const where = P.unlockedBy(k, s), at = where ? `${where.name} (${regionOf(where).name})` : '';
+    const hint = !where ? 'Locked' : (s.early || []).includes(k) ? `Joins after ${at}` : P.onWheel(k) ? `Freed by beating ${at}` : `Met on ${at}`;
     list.append(h('div.rcard.locked', { title: hint }, face(UNITS[k].set, 42, true), h('span.nm', null, '???')));
   }
   renderDetail(game);

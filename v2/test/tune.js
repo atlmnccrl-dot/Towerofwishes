@@ -30,7 +30,7 @@ for (const [i, m] of MISSIONS.entries()) {
   // the first two missions teach the game: nearly always won
   const target = { r1m1: 0.97, r1m2: 0.9 }[m.id] || (m.boss ? BOSS : TARGET);
   // win rate falls as might rises: bisect in log space
-  let lo = Math.log(0.5), hi = Math.log(8);
+  let lo = Math.log(0.12), hi = Math.log(8);
   for (let it = 0; it < 8; it++) { const mid = (lo + hi) / 2, wr = winRate(m, Math.exp(mid)); if (wr.avg >= target && wr.worst >= FLOOR) lo = mid; else hi = mid; }
   const might = Math.round(Math.exp(lo) * 100) / 100;
   MIGHT[m.id] = might; m.might = might;

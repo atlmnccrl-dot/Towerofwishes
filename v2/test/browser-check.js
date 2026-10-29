@@ -63,7 +63,7 @@ for (const [name, vp] of [['phone', { width: 844, height: 390 }], ['desktop', { 
   if (await page.isVisible('#join')) { await page.waitForTimeout(600); await shot('08b-reveal'); await page.click('#j-card .btn.primary'); }
   await visible(page, '#map'); await shot('09-map-after');
   // the company: an upgrade at level 4, gear, training
-  await page.evaluate(() => { const s = window.__v2.game.save; s.roster.corvin.level = 4; s.gold = 2000; window.__v2.game.persist(); });
+  await page.evaluate(() => { const s = window.__v2.game.save; s.roster[Object.keys(s.roster)[0]].level = 4; s.gold = 2000; window.__v2.game.persist(); });
   await page.click('#m-company'); await visible(page, '#company'); await page.waitForTimeout(200); await shot('10-company-stats');
   await page.click('.upg'); await page.waitForTimeout(200); await shot('11-company-upgraded');
   await page.click('.tab:nth-child(2)'); await page.waitForTimeout(100);
@@ -71,7 +71,7 @@ for (const [name, vp] of [['phone', { width: 844, height: 390 }], ['desktop', { 
   if (slotWithItem) { await page.click(`.gslot:nth-child(${slotWithItem})`); await page.click('.pitem .btn.gold'); }
   await page.waitForTimeout(150); await shot('12-company-gear');
   await page.click('.tab:nth-child(3)'); await page.click('.trow .btn'); await page.waitForTimeout(150); await shot('13-company-train');
-  console.log('company', await page.evaluate(() => JSON.stringify(window.__v2.game.save.roster.corvin)));
+  console.log('company', await page.evaluate(() => JSON.stringify(window.__v2.game.save.roster[Object.keys(window.__v2.game.save.roster)[0]])));
   await page.click('#c-back'); await visible(page, '#map');
   // the camp's tents and the settings
   await page.evaluate(() => { window.__v2.game.save.gems = 500; window.__v2.go('extras', 'shop'); });

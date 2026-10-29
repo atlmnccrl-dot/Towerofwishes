@@ -24,7 +24,7 @@ assert.notDeepEqual(E.dailyBounties(s, E.today(new Date(Date.now() + 864e5))).ma
 s = P.newSave(); assert.equal(E.checkAchievements(s).length, 0);
 s.stats.wins = 1; const a = E.checkAchievements(s); assert.ok(a.some((x) => x.id === 'first')); assert.equal(E.checkAchievements(s).length, 0);
 // shop
-s = P.newSave(); s.gold = 0; s.gems = 0; assert.equal(E.buy(s, 'crate', r), null);
+s = P.newSave(); P.spin(s, () => 0); s.gold = 0; s.gems = 0; assert.equal(E.buy(s, 'crate', r), null);
 s.gold = 10000; s.gems = 1000; const n = s.inv.length;
 assert.equal(E.buy(s, 'crate', r).items.length, 1); assert.equal(E.buy(s, 'royal', r).items.length, 3); assert.equal(s.inv.length, n + 4);
 assert.ok(s.inv.slice(-3).every((it) => it.tier >= 1));

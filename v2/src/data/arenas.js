@@ -94,6 +94,22 @@ export const ARENAS = {
     ],
     light: { tint: [120, 60, 140, 0.2], vignette: 0.6, glow: [[-2.6, -4.6], [5, -4.6], [-11, 5.5], [11, -5.0]] }, weather: 'embers',
   },
+  // the opening: the Barrow at night in a storm, the graves the dead climb out of standing on the field
+  storm: {
+    ground: { base: ['t_grass_dark_1', 't_grass_dark_2'], patches: [{ tex: ['t_gravel'], amount: 0.22, size: 40 }, { tex: ['t_dirt_dark'], amount: 0.3, size: 50 }],
+      water: { tex: 't_water_2', rim: '#3a3a40', outline: '#101820' }, road: ['t_gravel'], edge: '#0a0a10', tint: [40, 50, 110, 0.25] },
+    lakes: [{ x: 12, y: 5.4, rx: 3.0, ry: 0.9 }],
+    roads: [{ pts: [[-16, 2.6], [-4, 2.2], [6, 2.7], [16, 2.3]], w: 1.4 }],
+    props: [
+      ...row(['t:tree_dark_a', 't:tree_dark_b', 't:tree_gnarled', 't:monolith_a', 't:tree_dark_a'], -15, 15, -6.2, 2.6, 1, 0.8, 31),
+      ['t:monolith_b', -9, -4.6, 1.1], ['t:tomb', -3.5, -4.5, 1], ['w:cd_brazier', -6, -4.3, 2.2], ['w:cd_brazier', 6.5, -4.3, 2.2], ['t:monolith_c', 3.5, -4.6, 1], ['t:tomb', 9.5, -4.5, 1],
+      // the graves the dead rise from
+      ['t:grave_cross', -5.5, -1.9, 0.75], ['t:grave_a', -2.5, -2.4, 0.75], ['t:tomb', 0.5, -1.6, 0.8], ['t:grave_cross', 3.2, -2.3, 0.75], ['t:grave_a', 5.8, -1.4, 0.75], ['t:grave_a', -7.4, 0.6, 0.7],
+      ['t:grave_cross', 7.6, 0.9, 0.7], ['t:grave_a', -1.2, 1.2, 0.7],
+      ...row(['w:cd_skull_on_pike', 'w:nat_rock_grey', 'w:cd_stone_tomb', 'w:plant_mushroom_purple'], -14, 14, 4.6, 3.0, 2, 0.6, 33),
+    ],
+    light: { tint: [70, 80, 170, 0.28], vignette: 0.75, fog: 0.9, glow: [[-6, -4.6], [6.5, -4.6]] }, weather: 'rain',
+  },
   // Thornwick's square, for the company's first scene: houses, the well, the notice board, lamps
   square: {
     ground: { base: ['t_dirt_2'], patches: [{ tex: ['t_cobble'], amount: 0.45, size: 60 }, { tex: ['t_grass_dark_1'], amount: 0.08, size: 30 }], water: { tex: 't_water_1' }, road: ['t_cobble'], edge: '#3a3430', scale: 1 },

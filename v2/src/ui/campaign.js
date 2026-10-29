@@ -94,7 +94,8 @@ function renderSheet(game, m, regionDone) {
       reward(matIcon(m.region), (done ? '1-3' : m.boss ? '12' : '5') + (H ? ' ×2' : ''), '.matrw'),
       done < 3 ? reward(gemIcon(), H ? '10' : (!done && m.boss ? '30' : '5')) : null,
       !H && !done && P.sealOf(m.region) === m && P.UNLOCKS[m.region] && !s.roster[P.UNLOCKS[m.region]] ? reward(face(UNITS[P.UNLOCKS[m.region]].set, 22, true), 'Frees a hero', '.who') : null,
-      !H && !done && m.recruit && !s.roster[m.recruit] ? reward(face(UNITS[m.recruit].set, 22, true), 'Recruit', '.who') : null)].filter(Boolean));
+      !H && !done && m.recruit && !s.roster[m.recruit] ? reward(face(UNITS[m.recruit].set, 22, true), 'Recruit', '.who') : null,
+      !H && !done && starterAt(s, m) ? reward(face(UNITS[starterAt(s, m)].set, 22, true), 'Joins', '.who') : null)].filter(Boolean));
   sheet.replaceChildren(body, h('button.btn.big.primary', { type: 'button', onclick: () => { game.heroic = H; s.flags.at = m.id; game.persist(); game.needRun(() => game.go('prep', m.id)); } }, icon('swords', 20), s.run ? 'Prepare' : 'Spin & prepare'));
 }
 
@@ -312,12 +313,15 @@ export function showStory(game, title, text, button, after, ending = false) {
     h('button.btn.big.primary', { type: 'button', onclick: () => { $('#join').hidden = true; after(); } }, button)].filter(Boolean));
   $('#result').hidden = true; $('#join').hidden = false;
 }
+// the starter who joins on this mission's first clear, if they have not yet
+const starterAt = (s, m) => { const i = P.EARLY_JOINS.indexOf(m.id), k = i >= 0 && (s.early || [])[i]; return k && !s.roster[k] ? k : null; };
+
 export function showRecruit(game, key, after = () => game.go('map')) {
   const d = UNITS[key], m = game.save.roster[key], card = $('#j-card');
   card.style.setProperty('--c', clsVar(d.cls));
   card.replaceChildren(
     h('div.rays'),
-    h('div.jtag', null, P.onWheel(key) ? 'A hero is freed · now on the wheel' : 'A new recruit joins the company'),
+    h('div.jtag', null, (game.save.early || []).includes(key) ? 'A hero joins · now on the wheel' : P.onWheel(key) ? 'A hero is freed · now on the wheel' : 'A new recruit joins the company'),
     h('div.jart', null, heroArt(d.set, artPx() + 1)),
     h('div.jname', null, d.name), h('div.jtitle', null, d.title),
     h('div.cls', { vars: { '--c': clsVar(d.cls) } }, `${CLASSES[d.cls].name} · Level ${m.level}`),

@@ -74,8 +74,8 @@ Product ids must match exactly (they are in `src/game/economy.js`):
   >   gathered across the kingdom.
   > • Every run starts with a spin of the wheel: it picks your leader, who always fights and gives the
   >   whole squad their perk. Lose a battle or take a Seal, and the wheel spins again.
-  > • 23 heroes, each different. Eight can lead from the wheel: three to start, five freed by beating
-  >   region bosses. Fifteen more are met on the road and join your squad.
+  > • Start with a single hero and earn the rest: 23 heroes, each different. Eight can lead from the
+  >   wheel; fifteen more are met on the road and join your squad.
   > • Build a team of five and set its formation. Battles play themselves, or switch to Manual and
   >   unleash each hero's ability at the moment you choose.
   > • Level up, train, equip and upgrade gear, and choose four upgrades for every hero.

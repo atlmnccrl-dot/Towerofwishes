@@ -12,7 +12,6 @@ import { createCamp } from './render/camp.js';
 import { createOverworld } from './render/overworld.js';
 import { REGION_ARENA } from './data/arenas.js';
 import { createScenePlayer } from './render/scene.js';
-import { createStage } from './render/stage.js';
 import { OPENING, bossScene } from './data/scenes.js';
 import * as E from './game/economy.js';
 import { createAudio } from './game/audio.js';
@@ -72,6 +71,8 @@ function currency() {
 // ---- screens
 const SECTIONS = ['title', 'premise', 'camp', 'map', 'prep', 'company', 'extras', 'keep', 'wheel'];
 function go(name, arg) {
+  // a new company has no hero until its first spin: every screen of the company waits for the wheel
+  if (['camp', 'map', 'prep', 'company', 'keep', 'extras'].includes(name) && !Object.keys(game.save.roster).length) { go('wheel', () => go(name, arg)); return; }
   // the company screen returns to where it was opened from (after a battle: the map)
   if (name === 'company' && screen !== 'company') game.from = screen === 'battle' ? 'map' : screen;
   screen = name; game.screen = name;
@@ -112,7 +113,8 @@ function renderCamp() {
   $('#k-gold').replaceChildren(goldIcon(), String(s.gold));
   $('#k-gems').replaceChildren(gemIcon(), String(s.gems));
   const cleared = Object.keys(s.cleared).length;
-  $('#k-region').textContent = `${Object.keys(s.roster).length} heroes · ${cleared} of ${MISSIONS.length} missions`;
+  const nh = Object.keys(s.roster).length;
+  $('#k-region').textContent = `${nh} ${nh === 1 ? 'hero' : 'heroes'} · ${cleared} of ${MISSIONS.length} missions`;
   $('#k-cta-region').textContent = next ? regionOf(next).name : 'Vael is reclaimed';
   $('#k-next').textContent = next ? `Next: ${next.name}` : 'Heroic missions are open in every region';
   const run = s.run, rc = $('#k-run');
@@ -374,7 +376,7 @@ async function boot() {
   setWorld(world);
   view = createView(stage, fx, tiles, () => game.save.settings, world); camp = createCamp(bg, fx, world);
   game.ow = createOverworld($('#world'), { world, tiles, fx });
-  player = createScenePlayer({ stage: createStage(stage, { world, tiles, fx }), root: $('#scene'), audio: game.audio });
+  player = createScenePlayer({ view, root: $('#scene'), audio: game.audio });
   // the app stores, inside the iOS and Android app (cordova plugins are ready after 'deviceready')
   const startStore = () => {
     game.store = createStore({

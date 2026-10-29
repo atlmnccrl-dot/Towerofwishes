@@ -4,8 +4,10 @@
 // A mission: id, name, place, text (the briefing), level (the foes' level), foes ([key, slot]),
 // boss, recruit (who joins on the first clear), theme (the ground), map ([x, y] in % of the map).
 
+// the company starts as one hero: the first spin picks one of these three, and the other two join on the
+// first clears of EARLY_JOINS, in the order left
 export const START_ROSTER = ['corvin', 'wren', 'maren'];
-export const START_TEAM = [{ key: 'corvin', slot: 1 }, { key: 'maren', slot: 3 }, { key: 'wren', slot: 5 }];
+export const EARLY_JOINS = ['r1m1', 'r1m3'];
 
 export const PREMISE = 'The old kingdom of Vael is gone, and its dead walk the roads. In the border town of Thornwick, three sellswords sign a company charter and take the first job on the board.';
 
@@ -44,10 +46,10 @@ function region(id, theme, list) {
 export const MISSIONS = [
   { id: 'r1m1', region: 'r1', name: 'The Toll Bridge', place: 'Thornwick River', level: 1, theme: 'meadow', map: [12, 70],
     text: 'Bandits hold the bridge and charge a toll in blood. A ferry guard has been holding them off alone.',
-    foes: [['brawler', 1], ['cutthroat', 0], ['slinger', 4]] },
+    foes: [['cutthroat', 1], ['slinger', 4]] },   // two: the company is one hero yet
   { id: 'r1m2', region: 'r1', name: 'Smoke over Millbrook', place: 'Millbrook', level: 2, theme: 'meadow', map: [24, 50],
     text: 'The same gang is burning the mill. The baker refuses to leave her ovens.',
-    foes: [['bruiser', 1], ['cutthroat', 2], ['slinger', 3], ['slinger', 5]], recruit: 'pell' },
+    foes: [['bruiser', 1], ['slinger', 3], ['slinger', 5]], recruit: 'pell' },
   { id: 'r1m3', region: 'r1', name: 'The Old Watchtower', place: 'Watchtower Hill', level: 3, theme: 'dusk', map: [33, 26], boss: true,
     text: 'Their chief, Garrow, keeps a prisoner in the tower: a mage who set his camp on fire twice.',
     foes: [['chief', 1], ['thug', 0], ['brawler', 2], ['slinger', 4]] },

@@ -1,7 +1,7 @@
 // The company's progress: the save, rewards, levels, gear, training and ability upgrades.
 // Pure functions over a plain save object (no DOM), so Node tests can play the whole campaign.
 import { UNITS, CLASSES, ENEMIES } from '../data/units.js';
-import { MISSIONS, REGIONS, START_ROSTER, START_TEAM, missionById, missionsIn, regionOpen } from '../data/campaign.js';
+import { MISSIONS, REGIONS, START_ROSTER, EARLY_JOINS, missionById, missionsIn, regionOpen } from '../data/campaign.js';
 import { HEROES, UNLOCKS, LEADERS } from '../data/heroes.js';
 import { SLOTS, BASES, itemStats, upgradeCost, sellValue, rollItem, MAX_PLUS } from '../data/items.js';
 import { MOD_KEYS, statsAt } from '../combat/battle.js';
@@ -52,10 +52,9 @@ export const upgradeChoices = (key, tier) => [T1, T2[UNITS[key].cls], T3, T4[UNI
 
 // ---- the save
 export function newSave() {
-  const s = { v: SAVE_VERSION, gold: 120, gems: 50, roster: {}, inv: [], uid: 1, cleared: {}, heroic: {}, team: START_TEAM.map((m) => ({ ...m })), joined: [], speed: 1, seed: 7,
+  const s = { v: SAVE_VERSION, gold: 120, gems: 50, roster: {}, inv: [], uid: 1, cleared: {}, heroic: {}, team: [], early: [], joined: [], speed: 1, seed: 7,
     stats: { wins: 0, losses: 0, kills: 0, bosses: 0, stars3: 0, trained: 0, upgraded: 0, bought: 0 }, flags: {},
     settings: { music: 0.6, sfx: 0.8, shake: true, auto: true, haptics: true, scenes: true }, keep: {}, mats: {}, run: null, runs: { count: 0, best: 0 } };
-  for (const k of START_ROSTER) s.roster[k] = newMember(1);
   return s;
 }
 function newMember(level) { return { level, xp: 0, gear: { weapon: null, armor: null, charm: null }, train: { hp: 0, atk: 0, def: 0 }, ups: [null, null, null, null] }; }
@@ -72,7 +71,7 @@ export function loadSave(raw) {
   s.stats = Object.assign(newSave().stats, raw.stats); s.flags = Object.assign({}, raw.flags); s.heroic = Object.assign({}, raw.heroic);
   s.settings = Object.assign(newSave().settings, raw.settings);
   s.keep = Object.assign({}, raw.keep); s.mats = Object.assign({}, raw.mats);
-  s.run = raw.run && s.roster[raw.run.leader] ? Object.assign({ wins: 0 }, raw.run) : null; s.runs = Object.assign({ count: 0, best: 0 }, raw.runs);
+  s.run = raw.run && s.roster[raw.run.leader] ? Object.assign({ wins: 0 }, raw.run) : null; s.early = Array.isArray(raw.early) ? raw.early.filter((k) => UNITS[k]) : []; s.runs = Object.assign({ count: 0, best: 0 }, raw.runs);
   if (typeof s.gems !== 'number') s.gems = 50;
   s.inv = (s.inv || []).filter((it) => BASES[it.base]);
   s.team = (s.team || []).filter((m) => s.roster[m.key] && m.slot >= 0 && m.slot < 6).slice(0, MAX_TEAM);
@@ -169,7 +168,9 @@ export function grantRewards(s, missionId, b, rnd, heroic = false) {
   s.mats[m.region] = (s.mats[m.region] || 0) + mat; out.mats = { [m.region]: mat };
   const drops = out.first ? 1 + (stars === 3 ? 1 : 0) : rnd() < 0.35 + stars * 0.1 ? 1 : 0;
   for (let i = 0; i < drops; i++) { const it = Object.assign(rollItem(m.level + (heroic ? HEROIC.level : 0), rnd, heroic ? HEROIC.loot : 0), { uid: s.uid++ }); s.inv.push(it); out.loot.push(it); }
-  // a recruit met on the road joins on the first clear
+  // the other starters join on the first missions; a recruit met on the road joins on the first clear
+  const early = EARLY_JOINS.indexOf(m.id), starter = early >= 0 && (s.early || [])[early];
+  if (out.first && !heroic && starter && !s.roster[starter]) { join(s, starter, out); out.freed = true; }
   if (out.first && !heroic && m.recruit && !s.roster[m.recruit]) join(s, m.recruit, out);
   if (out.first && !heroic && sealOf(m.region) === m) {
     // a Seal of Vael: the hero it frees goes on the wheel, and the run ends in triumph
@@ -184,7 +185,7 @@ function join(s, k, out) {
   s.roster[k] = newMember(Math.max(1, Math.round(avgLevel(s)))); s.joined.push(k); out.joined = k;
   if (s.team.length < MAX_TEAM) { const slot = freeSlot(s, k); if (slot != null) s.team.push({ key: k, slot }); }
 }
-export const avgLevel = (s) => { const l = Object.values(s.roster).map((m) => m.level); return l.reduce((a, b) => a + b, 0) / l.length; };
+export const avgLevel = (s) => { const l = Object.values(s.roster).map((m) => m.level); return l.length ? l.reduce((a, b) => a + b, 0) / l.length : 1; };
 
 // ---- the team
 export function freeSlot(s, key) {
@@ -274,14 +275,18 @@ export function pickUpgrade(s, key, tier, id) {
 // what is waiting for the player's attention on a recruit: an upgrade to pick
 export const pendingUpgrade = (s, key) => UPGRADE_LEVELS.findIndex((lv, t) => s.roster[key].level >= lv && !s.roster[key].ups[t]);
 
-export { CLASSES, MISSIONS, HEROES, UNLOCKS, LEADERS };
+export { CLASSES, MISSIONS, HEROES, UNLOCKS, LEADERS, EARLY_JOINS };
 
 // ---- runs: the wheel picks a leader from the unlocked heroes; the run lasts until a battle is lost or a
 // Seal of Vael is taken. The leader always fights, gives the whole squad their perk, and fights harder.
 export const LEAD_EDGE = { hp: 0.15, atk: 0.15 };
 export const unlocked = (s) => HEROES.filter((k) => s.roster[k]);
+// who the wheel can land on: the heroes unlocked, or for a new company, the three starters
+export const spinPool = (s) => (Object.keys(s.roster).length ? unlocked(s) : START_ROSTER.slice());
 export function spin(s, rnd) {
-  const pool = unlocked(s), leader = pool[Math.floor(rnd() * pool.length) % pool.length];
+  const pool = spinPool(s), leader = pool[Math.floor(rnd() * pool.length) % pool.length];
+  // the first spin of a new company: the hero it lands on is the whole company; the other two starters join early
+  if (!Object.keys(s.roster).length) { s.roster[leader] = newMember(1); s.early = START_ROSTER.filter((k) => k !== leader); }
   s.run = { leader, wins: 0 }; s.runs.count++;
   // the leader joins the squad: in a free place, or in place of the weakest
   if (!s.team.some((t) => t.key === leader)) {
@@ -299,7 +304,11 @@ function endRun(s, triumph = false) {
 }
 // which boss frees a locked hero
 // the mission that brings a hero in: a region's seal for the wheel's heroes, the meeting on the road for a recruit
-export const unlockedBy = (k) => { const rid = Object.keys(UNLOCKS).find((r) => UNLOCKS[r] === k); return rid ? sealOf(rid) : MISSIONS.find((m) => m.recruit === k) || null; };
+export const unlockedBy = (k, s) => {
+  const rid = Object.keys(UNLOCKS).find((r) => UNLOCKS[r] === k); if (rid) return sealOf(rid);
+  const e = s && s.early ? s.early.indexOf(k) : -1; if (e >= 0) return missionById(EARLY_JOINS[e]);
+  return MISSIONS.find((m) => m.recruit === k) || null;
+};
 export const onWheel = (k) => HEROES.includes(k);
 
 // ---- the long goal: the six Seals of Vael, and the Stronghold the company rebuilds on the way

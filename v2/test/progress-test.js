@@ -11,23 +11,28 @@ import * as P from '../src/game/progress.js';
 const r = rng(5);
 const fake = (result, fell = 0, s) => ({ result, units: s.team.map((t, i) => ({ team: 'ally', summoned: false, state: i < fell ? 'ko' : 'idle' })) });
 
-// a new company: three recruits, all on the team, mission one open and two closed
+// a new company: nobody until the first spin, which picks one of the three starters; that hero is the
+// whole company, and the other two will join on the first missions. Mission one open, two closed
 let s = P.newSave();
-assert.deepEqual(Object.keys(s.roster).sort(), [...START_ROSTER].sort());
-assert.equal(s.team.length, 3);
+assert.deepEqual(s.roster, {}); assert.equal(s.team.length, 0); assert.deepEqual(P.spinPool(s), START_ROSTER);
+assert.equal(P.spin(s, () => 0), START_ROSTER[0]);
+assert.deepEqual(Object.keys(s.roster), [START_ROSTER[0]]); assert.equal(s.team.length, 1); assert.deepEqual(s.early, START_ROSTER.slice(1));
+assert.deepEqual(P.unlocked(s), [START_ROSTER[0]]);
 assert.ok(isOpen(s.cleared, MISSIONS[0]) && !isOpen(s.cleared, MISSIONS[1]));
 for (const m of MISSIONS) for (const [k] of m.foes) assert.ok(k in (await import('../src/data/units.js')).ENEMIES, m.id + ' foe ' + k);
 
 // a loss changes nothing
-const strip = (x) => JSON.stringify(Object.assign({}, x, { stats: null }));
+const strip = (x) => JSON.stringify(Object.assign({}, x, { stats: null, run: null, lastRun: null, runs: null }));   // (a loss ends the run: below)
 const before = strip(s);
 let rw = P.grantRewards(s, 'r1m1', fake('lose', 0, s), r);
 assert.equal(rw.win, false); assert.equal(strip(s), before); assert.equal(s.stats.losses, 1);
 
-// a first clear: three stars, gold, xp, loot (no one is met on the first mission)
+// a first clear: three stars, gold, xp, loot, and the second starter (a new run, the only hero leads)
+assert.equal(P.spin(s, r), START_ROSTER[0]);
 rw = P.grantRewards(s, 'r1m1', fake('win', 0, s), r);
 assert.equal(rw.stars, 3); assert.ok(rw.first && rw.gold > 0 && rw.loot.length === 2); assert.equal(rw.gems, 5);
-assert.equal(rw.joined, null);
+assert.equal(rw.joined, START_ROSTER[1]); assert.ok(rw.freed); assert.equal(s.team.length, 2);          // the second starter joins, onto the wheel
+assert.deepEqual(P.unlocked(s), START_ROSTER.slice(0, 2)); assert.equal(P.unlockedBy(START_ROSTER[2], s).id, 'r1m3');
 assert.ok(isOpen(s.cleared, MISSIONS[1]));
 // a replay: less gold, no second recruit, best stars kept
 const g = s.gold; rw = P.grantRewards(s, 'r1m1', fake('win', 2, s), r);
@@ -46,10 +51,10 @@ s.gold = 10000; const plus = it.plus || 0; assert.ok(P.upgradeItem(s, it.uid)); 
 const n = s.inv.length; assert.ok(P.sellItem(s, it.uid)); assert.equal(s.inv.length, n - 1); assert.equal(s.roster.wren.gear[sl], null);
 
 // training: ranks cost gold, cap at the recruit's level, and raise stats
-s.roster.maren.level = 2; const hp0 = statsAt(UNITS.maren, 2, P.modsOf(s, 'maren')).max;
-assert.ok(P.train(s, 'maren', 'hp')); assert.ok(P.train(s, 'maren', 'hp')); assert.ok(!P.train(s, 'maren', 'hp'));
-assert.ok(statsAt(UNITS.maren, 2, P.modsOf(s, 'maren')).max > hp0);
-s.gold = 0; s.roster.maren.level = 9; assert.ok(!P.train(s, 'maren', 'atk'));
+s.roster.wren.level = 2; const hp0 = statsAt(UNITS.wren, 2, P.modsOf(s, 'wren')).max;
+assert.ok(P.train(s, 'wren', 'hp')); assert.ok(P.train(s, 'wren', 'hp')); assert.ok(!P.train(s, 'wren', 'hp'));
+assert.ok(statsAt(UNITS.wren, 2, P.modsOf(s, 'wren')).max > hp0);
+s.gold = 0; s.roster.wren.level = 9; assert.ok(!P.train(s, 'wren', 'atk'));
 
 // upgrades: only at their level, one per tier, only listed choices
 s.roster.corvin.level = 3; assert.ok(!P.pickUpgrade(s, 'corvin', 0, 'empower'));
@@ -75,14 +80,14 @@ const spec = P.battleSpec(MISSIONS[0], true); assert.ok(spec.level > MISSIONS[0]
 // four upgrade tiers, each with two choices for every recruit
 for (const k of Object.keys(UNITS)) for (let t = 0; t < 4; t++) assert.equal(P.upgradeChoices(k, t).length, 2, k + t);
 // an old save with two upgrade slots grows to four
-const old = JSON.parse(JSON.stringify(P.newSave())); old.roster.corvin.ups = ['empower', null]; delete old.gems; delete old.stats;
+const old0 = P.newSave(); P.spin(old0, () => 0); const old = JSON.parse(JSON.stringify(old0)); old.roster.corvin.ups = ['empower', null]; delete old.gems; delete old.stats;
 const up = P.loadSave(old); assert.equal(up.roster.corvin.ups.length, 4); assert.equal(up.roster.corvin.ups[0], 'empower'); assert.equal(up.gems, 50); assert.equal(up.stats.wins, 0);
 // a save code survives the round trip; a damaged one is refused
 s = P.newSave(); s.gold = 777; const code = P.encodeSave(s);
 assert.equal(P.decodeSave(code).gold, 777); assert.equal(P.decodeSave(code.slice(0, -2) + 'zz'), null); assert.equal(P.decodeSave('nonsense'), null);
 // the Stronghold: materials from missions, level N needs region N's material, the bonuses apply
 {
-  const k = P.newSave(), win = { result: 'win', t: 30, units: [] };
+  const k = P.newSave(), win = { result: 'win', t: 30, units: [] }; P.spin(k, () => 0);
   assert.equal(P.buildState(k, 'forge'), 'short'); assert.equal(P.build(k, 'forge'), false);
   const rw = P.grantRewards(k, 'r1m1', win, rng(1)); assert.ok(rw.mats.r1 >= 5 && k.mats.r1 === rw.mats.r1);
   const boss = P.grantRewards(k, P.sealOf('r1').id, win, rng(1)); assert.equal(boss.mats.r1, 12);
@@ -105,8 +110,11 @@ assert.equal(P.decodeSave(code).gold, 777); assert.equal(P.decodeSave(code.slice
 // runs: the wheel only lands on unlocked heroes; the leader always fights; a loss ends the run; a seal
 // ends it in triumph and frees the next hero
 {
-  const w = P.newSave(), rr = rng(9), seen = new Set();
-  for (let i = 0; i < 200; i++) { w.run = null; seen.add(P.spin(w, rr)); }
+  const w = P.newSave(), rr = rng(9), seen = new Set(), first = P.spin(w, rr);
+  for (let i = 0; i < 50; i++) { w.run = null; seen.add(P.spin(w, rr)); }
+  assert.deepEqual([...seen], [first]);                                           // one hero, until the others join
+  for (const id of ['r1m1', 'r1m3']) { const j = P.grantRewards(w, id, fake('win', 0, w), rr); assert.ok(j.freed && START_ROSTER.includes(j.joined)); }
+  seen.clear(); for (let i = 0; i < 200; i++) { w.run = null; seen.add(P.spin(w, rr)); }
   assert.deepEqual([...seen].sort(), [...START_ROSTER].sort());                   // never a locked hero
   P.spin(w, () => 0.99); const lead = w.run.leader;
   assert.ok(w.team.some((t) => t.key === lead)); P.toggleTeam(w, lead); assert.ok(w.team.some((t) => t.key === lead));   // the leader cannot be benched
