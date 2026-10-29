@@ -145,14 +145,22 @@ for (const [name, vp] of [['phone', { width: 844, height: 390 }], ['desktop', { 
       continue;
     }
     if (st.screen === 'prep') {
-      await page.evaluate(() => window.__v2.pickUpgrades());   // a casual player: upgrade picks, the best team and its best gear
+      // a casual player: upgrade and path picks, the legacy's perks, spare gold on training, the best team and its best gear
+      await page.evaluate(async () => {
+        window.__v2.pickUpgrades();
+        const P = await import('/src/game/progress.js'), { UNITS } = await import('/src/data/units.js'), s = window.__v2.game.save;
+        for (const k of Object.keys(s.roster)) for (let t = 0; t < 2; t++) if (s.roster[k].level >= P.PATH_LEVELS[t] && !(s.roster[k].paths || [])[t]) P.pickPath(s, k, t, P.pathChoices(k, UNITS[k].cls, t)[0].id);
+        for (const id of Object.keys(P.PERKS)) P.buyPerk(s, id);
+        for (let n = 0; n < 40; n++) for (const t of s.team) for (const st of Object.keys(P.TRAIN)) { const rk = s.roster[t.key].train[st]; if (rk < P.TRAIN_MAX && rk < s.roster[t.key].level && s.gold > P.trainCostFor(s, rk) + 500) P.train(s, t.key, st); }
+        window.__v2.game.persist();
+      });
       await page.click('#p-best'); await page.click('#p-fight'); await skipScenes(page); await visible(page, '#hud');
       const boss = await page.evaluate(() => !!window.__v2.battle.boss && /m10$/.test(window.__v2.battle.node && window.__v2.battle.node.mission || ''));
       if (boss || !seen.has('fight-' + st.region)) { seen.add('fight-' + st.region); await page.waitForTimeout(2600); await shot('15-battle-' + st.region + (boss ? '-boss' : '')); }
       await page.evaluate(() => window.__v2.skip()); await visible(page, '#result');
     }
   }
-  console.log('expeditions', exps, 'places', [...seen].length);
+  console.log('expeditions', exps, 'places', [...seen].length, 'seals left', await page.evaluate(() => window.__v2.missions.filter((id) => /m10$/.test(id) && !window.__v2.game.save.cleared[id]).join(',') || 'none'));
   console.log('losses', losses, 'runs', await page.evaluate(() => JSON.stringify(window.__v2.game.save.runs)), 'boons now', await page.evaluate(() => JSON.stringify(window.__v2.game.save.run && window.__v2.game.save.run.boons)));
   console.log('cleared', await page.evaluate(() => Object.keys(window.__v2.game.save.cleared).length), 'recruits', await page.evaluate(() => Object.keys(window.__v2.game.save.roster).length));
   if (await page.isVisible('#join')) await page.click('#j-card .btn.primary');
