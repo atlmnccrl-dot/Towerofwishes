@@ -7,7 +7,15 @@ with wounds carried from fight to fight. Each expedition starts with a spin of t
 of the eight wheel heroes leads (the others join it as they are met or freed by the region bosses). The
 leader always fights and gives the squad their perk; the expedition lasts until a fight is lost (levels,
 gear and cleared missions stay) or the boss's Seal of Vael is taken. Cleared missions can be replayed from
-the world map, outside expeditions. Fifteen more heroes join as recruits: they fight but never lead. Every fight
+the world map, outside expeditions.
+
+Playthroughs differ: after each boss the company chooses mercy or dread (a relic either way), events on
+the road side it with the Crown's loyalists or the Free Towns, the road forks twice (the region taken
+second is the harder one), and those choices earn one of three endings. Heroes choose a path at levels 10
+and 25 that changes their special (the second can make it a finisher with its own cinematic). Bosses
+transform at half health, call reinforcements and wind up telegraphed attacks. Every expedition earns
+Renown; ranks give perks, unlock charters (Mercenaries, Crusaders, Reavers, Wardens), boons and events,
+and the legacy outlives a campaign. Fifteen more heroes join as recruits: they fight but never lead. Every fight
 opens like a film (the foes, the company, FIGHT) and a director camera follows it; battles play
 themselves, or the player fires each hero's ability. The team screen is the camp itself, the team
 drilling and resting round the fire. After every win in a run the company picks one of three boons
@@ -25,7 +33,7 @@ animations and effects; everything else is new. Names and story are proposals fo
 | `index.html` | The page: styles and every screen's markup |
 | `src/main.js` | Boot, screens, the loop, buttons |
 | `src/combat/battle.js` | The battle simulation (pure; runs in Node) |
-| `src/data/` | The run's boons (`boons.js`), what the heroes say in a fight (`voices.js`), the wheel's eight heroes, their unlocks and leader perks (`heroes.js`), heroes, recruits and foes, animations, campaign (6 regions, 60 missions, each with its job, elites and hazard), items, tuning (foe strength per mission), the world map's lands (`world.js`), battle arenas (`arenas.js`: 21 places, which mission fights where, also the cutscenes' places) and scenes (`scenes.js`) |
+| `src/data/` | The run's boons (`boons.js`), what the heroes say in a fight (`voices.js`), hero paths (`paths.js`), boss phases (`phases.js`), the legacy (`legacy.js`), the story's choices and endings (`story.js`), the wheel's eight heroes, their unlocks and leader perks (`heroes.js`), heroes, recruits and foes, animations, campaign (6 regions, 60 missions, each with its job, elites and hazard), items, tuning (foe strength per mission), the world map's lands (`world.js`), battle arenas (`arenas.js`: 21 places, which mission fights where, also the cutscenes' places) and scenes (`scenes.js`) |
 | `src/game/expedition.js` | Expeditions (pure): a region's branching map, wounds, camps, the pedlar, treasure, events |
 | `src/game/progress.js` | The save: rewards, levels, gear, training, upgrades, heroic mode, save codes (pure) |
 | `src/game/economy.js` | Bounties, feats, the shop, the gem-pack catalog (pure) |
@@ -49,6 +57,7 @@ node v2/test/expedition-test.js      # every region's road can be crossed; every
 node v2/test/campaign-test.js 8      # plays the campaign as expeditions, as a casual player: expeditions per region, win rates
 node v2/test/power-test.js 4         # the power rating predicts wins (equal power: about three wins in four)
 node v2/test/tune.js 8               # re-tunes every mission's foe strength from simulated expeditions (writes src/data/tuning.js)
+ORDER=alt node v2/test/tune.js 8     # the same for the other order at the road's forks (stored as id@tier)
 NODE_PATH=$(npm root -g) node v2/test/browser-check.js /tmp/shots   # plays the whole game in a browser
 ```
 

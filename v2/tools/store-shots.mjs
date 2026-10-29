@@ -29,6 +29,8 @@ async function showcase(page) {
     const path = [exp.nodes.find((n) => n.row === 0)]; while (path.length < 3) path.push(X.nodeOf(exp, path[path.length - 1].next[0]));
     exp.at = path[2].id; exp.done = path.map((n) => n.id); s.run.hp = { wren: 0.8, corvin: 0.55, maren: 0.9 }; void seed;
     window.__showRun = JSON.parse(JSON.stringify(s.run));
+    s.legacy = { renown: 1980, perks: { veterans: true, medics: true, scholars: true, provisions: true, fortune: true }, charter: 'crusaders', endings: { free: true } };
+    s.story = { verdicts: { r1: 'mercy', r2: 'dread', r3: 'mercy' }, crown: 1, free: 3, order: ['r1', 'r2', 'r3', 'r4'], ending: null };
     for (const k of ['map', 'prep', 'battle', 'extras', 'loot', 'upgrade', 'lose', 'keep', 'exp']) s.flags['tip_' + k] = true;
     for (const m of C.MISSIONS) s.flags['met_' + m.id] = true;
     P.bestTeam(s); g.save = s; g.noTips = true; g.persist = () => {};
@@ -52,7 +54,7 @@ for (const d of DEVICES) {
   await page.click('#w-spin'); await page.waitForTimeout(1900); await shot('03-wheel');
   await page.evaluate(() => { window.__v2.game.save.run = JSON.parse(JSON.stringify(window.__showRun)); });
   await page.evaluate(() => window.__v2.go('camp')); await page.waitForTimeout(6000); await shot('04-camp');
-  await page.evaluate(() => window.__v2.go('keep')); await page.waitForTimeout(1500); await shot('05-stronghold');
+  await page.evaluate(() => window.__v2.go('extras', 'legacy')); await page.waitForTimeout(1200); await shot('05-legacy');
   await page.evaluate(() => window.__v2.go('exp')); await page.waitForTimeout(1500); await shot('06-road');
   await page.evaluate(() => { const b = document.querySelector('.enode.open.fight') || document.querySelector('.enode.open'); b.click(); }); await page.waitForTimeout(900); await shot('07-team');
   await page.click('#p-fight'); await page.waitForSelector('#hud', { state: 'visible' }); await page.waitForTimeout(6500); await shot('08-battle');
