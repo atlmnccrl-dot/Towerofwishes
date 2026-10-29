@@ -2,6 +2,7 @@
 // Pure functions over a plain save object (no DOM), so Node tests can play the whole campaign.
 import { UNITS, CLASSES, ENEMIES } from '../data/units.js';
 import { MISSIONS, REGIONS, START_ROSTER, START_TEAM, missionById, missionsIn, regionOpen } from '../data/campaign.js';
+import { HEROES, UNLOCKS, LEADERS } from '../data/heroes.js';
 import { SLOTS, BASES, itemStats, upgradeCost, sellValue, rollItem, MAX_PLUS } from '../data/items.js';
 import { MOD_KEYS, statsAt } from '../combat/battle.js';
 
@@ -53,7 +54,7 @@ export const upgradeChoices = (key, tier) => [T1, T2[UNITS[key].cls], T3, T4[UNI
 export function newSave() {
   const s = { v: SAVE_VERSION, gold: 120, gems: 50, roster: {}, inv: [], uid: 1, cleared: {}, heroic: {}, team: START_TEAM.map((m) => ({ ...m })), joined: [], speed: 1, seed: 7,
     stats: { wins: 0, losses: 0, kills: 0, bosses: 0, stars3: 0, trained: 0, upgraded: 0, bought: 0 }, flags: {},
-    settings: { music: 0.6, sfx: 0.8, shake: true, auto: true, haptics: true, scenes: true }, keep: {}, mats: {} };
+    settings: { music: 0.6, sfx: 0.8, shake: true, auto: true, haptics: true, scenes: true }, keep: {}, mats: {}, run: null, runs: { count: 0, best: 0 } };
   for (const k of START_ROSTER) s.roster[k] = newMember(1);
   return s;
 }
@@ -71,6 +72,7 @@ export function loadSave(raw) {
   s.stats = Object.assign(newSave().stats, raw.stats); s.flags = Object.assign({}, raw.flags); s.heroic = Object.assign({}, raw.heroic);
   s.settings = Object.assign(newSave().settings, raw.settings);
   s.keep = Object.assign({}, raw.keep); s.mats = Object.assign({}, raw.mats);
+  s.run = raw.run && s.roster[raw.run.leader] ? Object.assign({ wins: 0 }, raw.run) : null; s.runs = Object.assign({ count: 0, best: 0 }, raw.runs);
   if (typeof s.gems !== 'number') s.gems = 50;
   s.inv = (s.inv || []).filter((it) => BASES[it.base]);
   s.team = (s.team || []).filter((m) => s.roster[m.key] && m.slot >= 0 && m.slot < 6).slice(0, MAX_TEAM);
@@ -97,6 +99,7 @@ export function modsOf(s, key) {
   for (const sl of SLOTS) { const it = m.gear[sl] && itemByUid(s, m.gear[sl]); if (it) add(itemStats(it)); }
   m.ups.forEach((id, tier) => { const u = id && upgradeChoices(key, tier).find((c) => c.id === id); if (u) add(u.mods); });
   const kb = keepBonus(s); if (kb.hp) add({ hp: kb.hp }); if (kb.atk) add({ atk: kb.atk });
+  if (s.run && LEADERS[s.run.leader]) { add(LEADERS[s.run.leader].mods); if (key === s.run.leader) add(LEAD_EDGE); }
   for (const k of Object.keys(out)) if (!MOD_KEYS.includes(k)) delete out[k];
   return out;
 }
@@ -142,7 +145,8 @@ export function grantRewards(s, missionId, b, rnd, heroic = false) {
   const out = { win: stars > 0, stars, first: false, gold: 0, gems: 0, xp: [], loot: [], joined: null, best: book[missionId] || 0, heroic };
   const kills = b.units.filter((u) => u.team === 'foe' && !u.summoned && u.state === 'ko');
   s.stats.kills += kills.length;
-  if (!out.win) { s.stats.losses++; return out; }
+  if (!out.win) { s.stats.losses++; out.runEnded = endRun(s); return out; }
+  if (s.run) s.run.wins++;
   s.stats.wins++; s.stats.bosses += kills.filter((u) => u.def.boss).length; if (stars === 3) s.stats.stars3++;
   out.first = !book[missionId];
   // gems: a first clear of a boss, three stars for the first time, a first heroic clear
@@ -165,11 +169,14 @@ export function grantRewards(s, missionId, b, rnd, heroic = false) {
   s.mats[m.region] = (s.mats[m.region] || 0) + mat; out.mats = { [m.region]: mat };
   const drops = out.first ? 1 + (stars === 3 ? 1 : 0) : rnd() < 0.35 + stars * 0.1 ? 1 : 0;
   for (let i = 0; i < drops; i++) { const it = Object.assign(rollItem(m.level + (heroic ? HEROIC.level : 0), rnd, heroic ? HEROIC.loot : 0), { uid: s.uid++ }); s.inv.push(it); out.loot.push(it); }
-  if (out.first && !heroic && m.recruit && !s.roster[m.recruit]) {
-    // a recruit joins at the company's level, so new faces are worth fielding
-    const lv = Math.max(1, Math.round(avgLevel(s)));
-    s.roster[m.recruit] = newMember(lv); s.joined.push(m.recruit); out.joined = m.recruit;
-    if (s.team.length < MAX_TEAM) { const slot = freeSlot(s, m.recruit); if (slot != null) s.team.push({ key: m.recruit, slot }); }
+  if (out.first && !heroic && sealOf(m.region) === m) {
+    // a Seal of Vael: the hero it frees joins at the company's level, and the run ends in triumph
+    const k = UNLOCKS[m.region];
+    if (k && !s.roster[k]) {
+      s.roster[k] = newMember(Math.max(1, Math.round(avgLevel(s)))); s.joined.push(k); out.joined = k;
+      if (s.team.length < MAX_TEAM) { const slot = freeSlot(s, k); if (slot != null) s.team.push({ key: k, slot }); }
+    }
+    out.runEnded = endRun(s, true);
   }
   return out;
 }
@@ -182,7 +189,7 @@ export function freeSlot(s, key) {
 }
 export function toggleTeam(s, key, slot) {
   const i = s.team.findIndex((t) => t.key === key);
-  if (i >= 0) { s.team.splice(i, 1); return false; }
+  if (i >= 0) { if (s.run && s.run.leader === key) return false; s.team.splice(i, 1); return false; }   // the leader stays
   if (s.team.length >= MAX_TEAM || !s.roster[key]) return false;
   const sl = slot != null && !s.team.some((t) => t.slot === slot) ? slot : freeSlot(s, key);
   s.team.push({ key, slot: sl }); return true;
@@ -203,10 +210,10 @@ export function gearScore(it, key) {
 }
 export function bestTeam(s) {
   const keys = Object.keys(s.roster).sort((a, b) => power(s, b) - power(s, a));
-  // a balanced five: the strongest healer, at most two who hold the front, then the strongest of the rest
-  const pick = [], cap = { vanguard: 2, support: 2 };
+  // a balanced five around the run's leader: the strongest healer, at most two who hold the front, then the strongest of the rest
+  const pick = s.run && s.roster[s.run.leader] ? [s.run.leader] : [], cap = { vanguard: 2, support: 2 };
   const healer = keys.find((k) => UNITS[k].healer);
-  if (healer) pick.push(healer);
+  if (healer && !pick.includes(healer)) pick.push(healer);
   const count = (cls) => pick.filter((k) => UNITS[k].cls === cls).length;
   for (const k of keys) if (pick.length < MAX_TEAM && !pick.includes(k) && count(UNITS[k].cls) < (cap[UNITS[k].cls] || MAX_TEAM)) pick.push(k);
   for (const k of keys) if (pick.length < MAX_TEAM && !pick.includes(k)) pick.push(k);
@@ -263,7 +270,31 @@ export function pickUpgrade(s, key, tier, id) {
 // what is waiting for the player's attention on a recruit: an upgrade to pick
 export const pendingUpgrade = (s, key) => UPGRADE_LEVELS.findIndex((lv, t) => s.roster[key].level >= lv && !s.roster[key].ups[t]);
 
-export { CLASSES, MISSIONS };
+export { CLASSES, MISSIONS, HEROES, UNLOCKS, LEADERS };
+
+// ---- runs: the wheel picks a leader from the unlocked heroes; the run lasts until a battle is lost or a
+// Seal of Vael is taken. The leader always fights, gives the whole squad their perk, and fights harder.
+export const LEAD_EDGE = { hp: 0.15, atk: 0.15 };
+export const unlocked = (s) => HEROES.filter((k) => s.roster[k]);
+export function spin(s, rnd) {
+  const pool = unlocked(s), leader = pool[Math.floor(rnd() * pool.length) % pool.length];
+  s.run = { leader, wins: 0 }; s.runs.count++;
+  // the leader joins the squad: in a free place, or in place of the weakest
+  if (!s.team.some((t) => t.key === leader)) {
+    if (s.team.length >= MAX_TEAM) { const weakest = s.team.slice().sort((a, b) => power(s, a.key) - power(s, b.key))[0]; s.team = s.team.filter((t) => t !== weakest); }
+    const slot = freeSlot(s, leader); s.team.push({ key: leader, slot });
+  }
+  return leader;
+}
+// ends the run: what it was (leader, wins, how it ended), kept for the screens
+function endRun(s, triumph = false) {
+  if (!s.run) return null;
+  const r = { leader: s.run.leader, wins: s.run.wins, triumph };
+  s.runs.best = Math.max(s.runs.best || 0, r.wins); s.lastRun = r; s.run = null;
+  return r;
+}
+// which boss frees a locked hero
+export const unlockedBy = (k) => { const rid = Object.keys(UNLOCKS).find((r) => UNLOCKS[r] === k); return rid ? sealOf(rid) : null; };
 
 // ---- the long goal: the six Seals of Vael, and the Stronghold the company rebuilds on the way
 // Every region's last mission (its boss) guards a seal; the sixth reclaims the throne. Every mission

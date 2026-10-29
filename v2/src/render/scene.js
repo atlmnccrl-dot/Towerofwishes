@@ -8,17 +8,21 @@
 //
 // Steps: { cam: [x, zoom, g], t }  { follow: id }  { walk: [id, x], run, speed }  { face: [id, x|id|'E'|'W'] }
 //        { clip: [id, name, loop], fps }  { say: [id, text], tone }  { wait: s }  { title: [text, sub], side }
-//        { fx: [name, x, height, scale] }  { enter: [id, x] }  { hide: id }  { shake: n }  { flash: a }  { all: [steps] }  { seq: [steps] }
-export function createScenePlayer({ stage, root }) {
-  const line = root.querySelector('#sc-line'), card = root.querySelector('#sc-card');
-  let actors = {}, speed = 1, skip = false, raf = 0, setKey = null, follow = null;
+//        { fx: [name, x, height, scale] }  { enter: [id, x] }  { hide: id }  { shake: n }  { flash: a | [a, 'r,g,b'] }  { all: [steps] }  { seq: [steps] }
+// Film steps: { set: key } (cut to another place)  { slow: k } (time runs k times as fast, 1 back to normal)
+//        { sfx: name, gain }  { music: 'battle' | null }  { fade: [alpha, seconds] } (to black and back)
+//        { mood: { col, op } | null } (a colour grade over the whole frame)  { fly: [fx, x0, h0, x1, h1, seconds, scale], hit, hitScale }
+//        { dark: [id, true | colour | false] } (a silhouette)  { alpha: [id, a] }  { lift: [id, px, seconds] }  { title: [...], slam: true } (the title lands hard)
+export function createScenePlayer({ stage, root, audio }) {
+  const line = root.querySelector('#sc-line'), card = root.querySelector('#sc-card'), fade = root.querySelector('#sc-fade');
+  let actors = {}, speed = 1, slow = 1, skip = false, raf = 0, setKey = null, follow = null;
   const cam = { x: 0, zoom: 1, g: null };
   const waits = [];
 
   const ease = (t) => t * t * (3 - 2 * t);
   const sleep = (s) => new Promise((ok) => { let left = s; waits.push({ tick: (dt) => (left -= dt) <= 0 || skip, ok }); });
   function frame(dt) {
-    const d = dt * speed;
+    const d = dt * speed * slow;
     for (const w of waits.slice()) if (w.tick(d)) { waits.splice(waits.indexOf(w), 1); w.ok(); }
     for (const a of Object.values(actors)) stepActor(a, d);
     if (follow && actors[follow]) cam.x += (actors[follow].x - cam.x) * Math.min(1, d * 2.5);
@@ -55,11 +59,12 @@ export function createScenePlayer({ stage, root }) {
     line.hidden = true; current = null;
     if (a && a.anim.clip === 'Taunt' && tone === 'shout') a.anim = { clip: 'idle' };
   }
-  async function title(text, sub, side) {
+  async function title(text, sub, side, slam, hold) {
     card.replaceChildren(); const h = document.createElement('div'); h.className = 'sc-title'; h.textContent = text; card.append(h);
     if (sub) { const s = document.createElement('div'); s.className = 'sc-sub'; s.textContent = sub; card.append(s); }
-    card.hidden = false; card.classList.remove('out'); card.classList.toggle('side', !!side);
-    await sleep(2.6);
+    card.hidden = false; card.classList.remove('out'); card.classList.toggle('side', side === true); card.classList.toggle('slam', !!slam);
+    card.classList.toggle('plain', side === 'plain');
+    await sleep(hold || 2.6);
     card.classList.add('out'); await sleep(0.5); card.hidden = true;
   }
   function moveCam(to, t) {
@@ -92,19 +97,41 @@ export function createScenePlayer({ stage, root }) {
     if (step.clip) { const [id, name, loop] = step.clip; actors[id].anim = { clip: name, loop: loop !== false, fps: step.fps || 10 }; return Promise.resolve(); }
     if (step.say) return say(step.say[0], step.say[1], step.tone);
     if (step.wait) return sleep(step.wait);
-    if (step.title) return title(step.title[0], step.title[1], step.side);
-    if (step.fx) { const [name, x, height = 20, scale = 1] = step.fx; stage.spawn(name, x, height, { scale }); return Promise.resolve(); }
+    if (step.title) return title(step.title[0], step.title[1], step.side, step.slam, step.hold);
+    if (step.fx) { const [name, x, height = 20, scale = 1] = step.fx; stage.spawn(name, x, height, { scale, life: step.life, flip: step.flip }); return Promise.resolve(); }
     if (step.shake) { stage.shake(step.shake); return Promise.resolve(); }
-    if (step.flash) { stage.flash(step.flash); return Promise.resolve(); }
+    if (step.flash) { if (Array.isArray(step.flash)) stage.flash(step.flash[0], step.flash[1]); else stage.flash(step.flash); return Promise.resolve(); }
+    if (step.set) { setKey = step.set; return Promise.resolve(); }
+    if ('slow' in step) { slow = step.slow || 1; return Promise.resolve(); }
+    if (step.sfx) { if (audio) audio.play(step.sfx, { gain: step.gain || 1, gap: 0 }); return Promise.resolve(); }
+    if ('music' in step) { if (audio) audio.setScene(step.music); return Promise.resolve(); }
+    if ('mood' in step) { stage.mood(step.mood); return Promise.resolve(); }
+    if (step.fade) { const [a, t = 0.6] = step.fade; fade.style.transition = `opacity ${t / Math.max(0.2, speed)}s linear`; fade.style.opacity = a; return sleep(t); }
+    if (step.dark) { const [id, v] = step.dark; actors[id].dark = v; return Promise.resolve(); }
+    if (step.alpha) { const [id, v] = step.alpha; actors[id].alpha = v; return Promise.resolve(); }
+    if (step.lift) {
+      const [id, px, t] = step.lift, a = actors[id];
+      if (!t) { a.lift = px; return Promise.resolve(); }
+      const from = a.lift || 0; let k = 0;
+      return new Promise((ok) => waits.push({ tick: (dt) => { k = Math.min(1, k + dt / t); a.lift = from + (px - from) * ease(k); return k >= 1 || skip; }, ok }));
+    }
+    if (step.fly) {
+      // a missile from one point to another; it bursts where it lands
+      const [name, x0, h0, x1, h1, dur, scale = 1] = step.fly;
+      stage.spawn(name, x0, h0, { scale, vx: (x1 - x0) / dur, vh: (h1 - h0) / dur, life: dur, flip: x1 < x0 });
+      return sleep(dur).then(() => { if (step.hit && !skip) stage.spawn(step.hit, x1, h1, { scale: step.hitScale || 1 }); });
+    }
     return Promise.resolve();
   }
 
   async function play(scene, sprites) {
-    skip = false; speed = 1; follow = null; setKey = scene.set;
+    skip = false; speed = 1; slow = 1; follow = null; setKey = scene.set;
     actors = {};
     for (const [id, c] of Object.entries(scene.cast)) {
-      actors[id] = { id, name: c.name, color: c.color, set: c.set, x: c.x, lane: c.lane || 0, f: c.f || 1, scale: c.scale || 1, big: c.big || 1, hidden: !!c.off, anim: { clip: 'idle' } };
+      actors[id] = { id, name: c.name, color: c.color, set: c.set, x: c.x, lane: c.lane || 0, f: c.f || 1, scale: c.scale || 1, big: c.big || 1, hidden: !!c.off,
+        dark: c.dark || false, lift: c.lift || 0, dir: c.dir, p: c.p, alpha: c.alpha, anim: { clip: 'idle' } };
     }
+    fade.style.transition = 'none'; fade.style.opacity = scene.black ? 1 : 0;
     cam.x = scene.cam[0]; cam.zoom = scene.cam[1] || 1; cam.g = scene.cam[2] != null ? scene.cam[2] : null;
     stage.setSprites(sprites); stage.reset(); stage.resize();
     root.hidden = false; line.hidden = true; card.hidden = true;
@@ -112,7 +139,7 @@ export function createScenePlayer({ stage, root }) {
     const loop = (now) => { const dt = Math.min(0.05, (now - (last || now)) / 1000); last = now; frame(dt); raf = requestAnimationFrame(loop); };
     raf = requestAnimationFrame(loop);
     for (const st of scene.steps) { if (skip) break; await run(st); }
-    cancelAnimationFrame(raf); root.hidden = true; line.hidden = true; card.hidden = true;
+    cancelAnimationFrame(raf); root.hidden = true; line.hidden = true; card.hidden = true; fade.style.opacity = 0; slow = 1;
   }
   // a tap hurries everything (three times as fast while held); Skip ends the scene
   root.addEventListener('pointerdown', (e) => { if (e.target.closest('#sc-skip')) return; speed = 3; });

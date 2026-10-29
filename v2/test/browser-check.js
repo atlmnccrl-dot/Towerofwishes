@@ -1,5 +1,5 @@
 // Plays Vael in a headless browser at phone-landscape and desktop sizes: a new game, the camp, the
-// map, a mission's team screen, a battle, the rewards and the recruit card, the company tabs (an
+// wheel (a leader for the run), the map, a mission's team screen, a battle, the rewards and the freed-hero card, the company tabs (an
 // upgrade picked, gear equipped, a rank trained), then every mission of region 1 to the end.
 // Screenshots go to <outDir>; console errors are listed at the end.
 // NODE_PATH=$(npm root -g) node v2/test/browser-check.js <outDir>
@@ -21,24 +21,36 @@ const errors = [];
 const visible = (page, sel) => page.waitForSelector(sel, { state: 'visible', timeout: 30000 });
 // filmed scenes come up on new games, recruits, regions and bosses: skip them (one is filmed in full below)
 async function skipScenes(page) { for (let k = 0; k < 6; k++) { await page.waitForTimeout(250); if (await page.isVisible('#scene')) await page.click('#sc-skip'); else return; } }
+// a run needs a leader: when the wheel comes up, spin it and take who it lands on
+async function wheel(page) { await page.waitForTimeout(150); if (!await page.isVisible('#wheel')) return; await page.click('#w-spin'); await visible(page, '#w-go'); await page.click('#w-go'); }
+async function prepare(page) { await page.click('#m-sheet .btn.primary'); await wheel(page); await visible(page, '#prep'); }
 
 for (const [name, vp] of [['phone', { width: 844, height: 390 }], ['desktop', { width: 1280, height: 720 }]]) {
   const page = await browser.newPage({ viewport: vp, deviceScaleFactor: 1, hasTouch: name === 'phone', isMobile: name === 'phone' });
   page.on('pageerror', (e) => errors.push(name + ' pageerror: ' + e.message));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(name + ' console: ' + m.text()); });
   page.on('requestfailed', (r) => errors.push(name + ' failed: ' + r.url()));
-  const shot = (n) => page.screenshot({ path: `${out}/${name}-${n}.png` });
+  // every screenshot also checks the page for leaked placeholders in its text
+  const shot = async (n) => {
+    const bad = await page.evaluate(() => (document.body.innerText.match(/\b(null|undefined|NaN)\b/g) || []).join(','));
+    if (bad) errors.push(`${name} ${n}: page text shows ${bad}`);
+    return page.screenshot({ path: `${out}/${name}-${n}.png` });
+  };
   await page.goto('http://localhost:8791/');
   await visible(page, '#title'); await page.waitForTimeout(1500); await shot('01-title');
-  await page.click('#t-new'); await visible(page, '#scene'); await page.waitForTimeout(9000); await shot('02-opening'); await skipScenes(page);
+  await page.click('#t-new'); await visible(page, '#scene'); await page.waitForTimeout(9000); await shot('02-opening'); await page.waitForTimeout(16000); await shot('02a-opening'); await skipScenes(page);
+  await visible(page, '#wheel'); await page.waitForTimeout(500); await shot('02b-wheel');
+  await page.click('#w-spin'); await page.waitForTimeout(2000); await shot('02c-spinning'); await visible(page, '#w-go'); await page.waitForTimeout(400); await shot('02d-leader');
+  console.log(name, 'leader', await page.evaluate(() => JSON.stringify(window.__v2.game.save.run)));
+  await page.evaluate(() => { window.__v2.game.fastWheel = true; }); await page.click('#w-go');
   await visible(page, '#camp'); await page.waitForTimeout(800); await shot('03-camp');
   await page.click('#k-campaign'); await visible(page, '#map'); await page.waitForTimeout(300); await shot('04-map');
-  await page.click('#m-sheet .btn.primary'); await visible(page, '#prep'); await shot('05-prep');
+  await prepare(page); await shot('05-prep');
   await page.click('#p-fight'); await skipScenes(page); await visible(page, '#hud'); await page.waitForTimeout(3000); await shot('06-battle');
   await page.evaluate(() => window.__v2.skip());
   await visible(page, '#result'); await page.waitForTimeout(500); await shot('07-rewards');
   for (let k = 0; k < 6 && await page.evaluate(() => window.__v2.battle.result !== 'win'); k++) {
-    await page.click('#r-box .btn.primary'); await visible(page, '#prep'); await page.click('#p-fight'); await skipScenes(page); await visible(page, '#hud');
+    await page.click('#r-box .btn.primary'); await wheel(page); await visible(page, '#prep'); await page.click('#p-fight'); await skipScenes(page); await visible(page, '#hud');
     await page.evaluate(() => window.__v2.skip()); await visible(page, '#result');
   }
   console.log(name, 'mission 1', await page.evaluate(() => [window.__v2.battle.result, JSON.stringify(window.__v2.game.save.cleared)]));
@@ -83,7 +95,7 @@ for (const [name, vp] of [['phone', { width: 844, height: 390 }], ['desktop', { 
     await page.evaluate((id) => window.__v2.go('map', id), next);
     const key = /m1$|m10$/.test(next);
     if (/m1$/.test(next)) await shot('14-map-' + next);
-    await page.click('#m-sheet .btn.primary'); await visible(page, '#prep');
+    await prepare(page);
     await page.evaluate(() => window.__v2.pickUpgrades());   // a casual player: upgrade picks, the best team and its best gear
     await page.click('#p-best');
     await page.click('#p-fight'); await skipScenes(page); await visible(page, '#hud'); await page.waitForTimeout(key ? 2600 : 200);
@@ -95,14 +107,14 @@ for (const [name, vp] of [['phone', { width: 844, height: 390 }], ['desktop', { 
       // like the tuned casual player: replay the mission before for experience, then try again
       losses++;
       const prev = await page.evaluate((id) => { const l = window.__v2.missions; return l[l.indexOf(id) - 1] || null; }, next);
-      if (prev) { await page.evaluate((id) => window.__v2.go('map', id), prev); await page.click('#m-sheet .btn.primary'); await visible(page, '#prep'); await page.click('#p-best'); await page.click('#p-fight'); await skipScenes(page); await visible(page, '#hud'); await page.evaluate(() => window.__v2.skip()); await visible(page, '#result'); }
+      if (prev) { await page.evaluate((id) => window.__v2.go('map', id), prev); await prepare(page); await page.click('#p-best'); await page.click('#p-fight'); await skipScenes(page); await visible(page, '#hud'); await page.evaluate(() => window.__v2.skip()); await visible(page, '#result'); }
       continue;
     }
     await page.click('#r-box .btn.primary');
     if (await page.isVisible('#join') && /m10$/.test(next) && (await page.textContent('#j-card')).includes('cleared')) await shot('16-story-' + next);
     for (let k = 0; k < 4; k++) { await skipScenes(page); if (await page.isVisible('#join')) await page.click('#j-card .btn.primary'); }
   }
-  console.log('losses', losses);
+  console.log('losses', losses, 'runs', await page.evaluate(() => JSON.stringify(window.__v2.game.save.runs)));
   console.log('cleared', await page.evaluate(() => Object.keys(window.__v2.game.save.cleared).length), 'recruits', await page.evaluate(() => Object.keys(window.__v2.game.save.roster).length));
   await page.evaluate(() => window.__v2.go('map', 'r6m10'));
   await visible(page, '#map'); await shot('16-map-done');
@@ -111,9 +123,9 @@ for (const [name, vp] of [['phone', { width: 844, height: 390 }], ['desktop', { 
   await page.reload(); await visible(page, '#title'); await page.waitForTimeout(600);
   console.log('after reload', await page.evaluate(() => [Object.keys(window.__v2.game.save.roster).length, Object.keys(window.__v2.game.save.cleared).length, !document.getElementById('t-continue').hidden]));
   // heroic: the toggle shows on a cleared region and a heroic battle starts
-  await page.click('#t-continue'); await visible(page, '#camp'); await page.click('#k-campaign'); await visible(page, '#map');
+  await page.click('#t-continue'); await visible(page, '#camp'); await page.click('#k-campaign'); await wheel(page); await visible(page, '#map');
   await page.click('.modes button:nth-child(2)'); await page.waitForTimeout(200); await shot('19-heroic-map');
-  await page.click('#m-sheet .btn.primary'); await visible(page, '#prep'); await page.click('#p-fight'); await skipScenes(page); await visible(page, '#hud'); await page.waitForTimeout(2000); await shot('20-heroic-battle');
+  await prepare(page); await page.click('#p-fight'); await skipScenes(page); await visible(page, '#hud'); await page.waitForTimeout(2000); await shot('20-heroic-battle');
   console.log('heroic battle level', await page.evaluate(() => window.__v2.battle.units.find((u) => u.team === 'foe').level));
   await page.close();
 }

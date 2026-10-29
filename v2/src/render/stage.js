@@ -7,6 +7,7 @@
 //   const stage = createStage(canvas, { world, tiles, fx })
 //   stage.draw({ set, cam: { x, zoom, g }, actors }, dt)  // g: the ground line, a fraction of the height      // set: a key of data/stagesets.js
 //   stage.project(x, lane, height)                            // a point of the stage on the page
+//   stage.spawn(fx, x, height, { scale, vx, vh, flip, life })   stage.flash(a, 'r,g,b')   stage.shake(n)   stage.mood({ col, op })
 import { framesOf } from './assets.js';
 import { STAGE_SETS } from '../data/stagesets.js';
 
@@ -16,7 +17,8 @@ export function createStage(canvas, { world, tiles, fx: fxAtlas }) {
   const out = canvas.getContext('2d');
   const buf = document.createElement('canvas'), ctx = buf.getContext('2d');
   const cache = new Map();
-  let sprites = {}, aspect = 16 / 9, W = 240, H = BUF_H, gy = 100, cam = { x: 0, zoom: 1 }, t = 0, shake = 0, flash = 0, effects = [];
+  let sprites = {}, aspect = 16 / 9, W = 240, H = BUF_H, gy = 100, cam = { x: 0, zoom: 1 }, t = 0, shake = 0, flash = 0, flashCol = '255,240,220', mood = null, effects = [];
+  const tmp = document.createElement('canvas'), tg = tmp.getContext('2d');
   let set = null, setKey = null, layout = null;
 
   function resize() {
@@ -81,7 +83,7 @@ export function createStage(canvas, { world, tiles, fx: fxAtlas }) {
       const s = set.sun, x = W * s.x - cam.x * 0.6, y = gy * s.y, r = s.r || 40;
       const gl = ctx.createRadialGradient(x, y, 1, x, y, r * 2.4); gl.addColorStop(0, s.col); gl.addColorStop(0.25, s.glow || 'rgba(255,220,160,0.35)'); gl.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = gl; ctx.fillRect(0, 0, W, gy);
-      ctx.fillStyle = s.disc || s.col; ctx.beginPath(); ctx.arc(Math.round(x), Math.round(y), Math.max(2, r / 8), 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = s.disc || s.col; ctx.beginPath(); ctx.arc(Math.round(x), Math.round(y), s.dr || Math.max(2, r / 8), 0, Math.PI * 2); ctx.fill();
     }
     if (set.stars) { const r = rnd(5); ctx.fillStyle = 'rgba(255,255,255,0.8)'; for (let i = 0; i < 70; i++) { const x = ((r() * 600 - cam.x * 0.4) % W + W) % W, y = r() * gy * 0.7; if ((i + Math.floor(t * 2)) % 9) ctx.fillRect(x | 0, y | 0, 1, 1); } }
     if (set.clouds) {
@@ -137,13 +139,22 @@ export function createStage(canvas, { world, tiles, fx: fxAtlas }) {
     const clip = a.anim.clip === 'idle' ? IDLE(s) : a.anim.clip, fps = a.anim.clip === 'idle' ? 7 : a.anim.fps || 10;
     if (a._clip !== clip) { a._clip = clip; a._t = 0; }
     a._t += dt;
-    const moving = /Walk|Run/.test(clip), dir = a.f > 0 ? (moving ? 'E' : 'SE') : (moving ? 'W' : 'SW');
+    // walking, running and falling read best from the pure side (the diagonal views fall 'into' the screen, above the ground line)
+    const side = /Walk|Run|Die/.test(clip), dir = a.dir || (a.f > 0 ? (side ? 'E' : 'SE') : (side ? 'W' : 'SW'));
     const frames = framesOf(s, clip, dir) || framesOf(s, IDLE(s), dir); if (!frames) return;
     let i = Math.floor(a._t * fps); i = a.anim.loop === false ? Math.min(frames.length - 1, i) : i % frames.length;
     const [pg, fx0, fy0, w, h, ox, oy] = frames[i], [ax, ay] = s.data.anchor, k = (s.cfg.scale || 1) * (a.scale || 1);
-    const x = Math.round(sx(a.x, 1)), y = gy + (a.lane || 0) * 3;
-    ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.ellipse(x, y, 10 * k, 2.5, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.drawImage(s.pages[pg], fx0, fy0, w, h, Math.round(x + (ox - ax) * k), Math.round(y + (oy - ay) * k), Math.round(w * k), Math.round(h * k));
+    const x = Math.round(sx(a.x, a.p || 1)), y = gy + (a.lane || 0) * 3 - (a.lift || 0);
+    if (!a.lift) { ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.ellipse(x, y, 10 * k, 2.5, 0, 0, Math.PI * 2); ctx.fill(); }
+    const dx = Math.round(x + (ox - ax) * k), dy = Math.round(y + (oy - ay) * k), dw = Math.round(w * k), dh = Math.round(h * k);
+    ctx.globalAlpha = a.alpha != null ? a.alpha : 1;
+    if (a.dark && flash < 0.25) {
+      // a silhouette against the sky: the shape only, in the set's darkest colour (a flash shows the real thing)
+      tmp.width = w; tmp.height = h; tg.clearRect(0, 0, w, h); tg.globalCompositeOperation = 'source-over'; tg.drawImage(s.pages[pg], fx0, fy0, w, h, 0, 0, w, h);
+      tg.globalCompositeOperation = 'source-in'; tg.fillStyle = typeof a.dark === 'string' ? a.dark : '#07060c'; tg.fillRect(0, 0, w, h);
+      ctx.drawImage(tmp, dx, dy, dw, dh);
+    } else ctx.drawImage(s.pages[pg], fx0, fy0, w, h, dx, dy, dw, dh);
+    ctx.globalAlpha = 1;
   }
   // ---- effects from the fx atlas, at a point of the stage (height in pixels above the ground)
   function spawn(name, x, height = 20, o = {}) { const d = fxAtlas.data.fx[name]; if (d) effects.push(Object.assign({ d, x, height, t: 0, scale: 1 }, o)); }
@@ -152,9 +163,11 @@ export function createStage(canvas, { world, tiles, fx: fxAtlas }) {
       e.t += dt; const n = e.d.frames.length; let i = Math.floor(e.t * e.d.fps);
       if (e.d.loop) { if (e.t > (e.life || 1.2)) return false; i %= n; } else if (i >= n) return false;
       const fr = e.d.frames[i]; if (!fr) return true;
+      if (e.vx) e.x += e.vx * dt; if (e.vh) e.height += e.vh * dt;
       const [pg, x0, y0, w, h, ox, oy] = fr, [ax, ay] = e.d.anchor, k = e.scale;
       ctx.save(); if (e.add !== false) ctx.globalCompositeOperation = 'lighter';
-      ctx.drawImage(fxAtlas.pages[pg], x0, y0, w, h, Math.round(sx(e.x, 1) + (ox - ax) * k), Math.round(gy - e.height + (oy - ay) * k), Math.round(w * k), Math.round(h * k));
+      ctx.translate(Math.round(sx(e.x, 1)), Math.round(gy - e.height)); if (e.flip) ctx.scale(-1, 1);
+      ctx.drawImage(fxAtlas.pages[pg], x0, y0, w, h, Math.round((ox - ax) * k), Math.round((oy - ay) * k), Math.round(w * k), Math.round(h * k));
       ctx.restore(); return true;
     });
   }
@@ -166,6 +179,7 @@ export function createStage(canvas, { world, tiles, fx: fxAtlas }) {
     snow: { col: ['#ffffff', '#dfe8f4'], vx: 6, vy: 16, sway: 4, size: 1 },
     embers: { col: ['#ff9a3a', '#ffcf5a'], vx: 3, vy: -12, sway: 3, size: 1, glow: true },
     dust: { col: ['rgba(255,236,200,0.35)'], vx: 3, vy: -1, sway: 3, size: 1, glow: true, n: 18 },
+    rain: { col: ['rgba(170,180,230,0.55)', 'rgba(200,210,255,0.4)'], vx: -30, vy: 190, sway: 0, size: 1, len: 5 },
   };
   function light(dt) {
     const L = set.light || {};
@@ -182,7 +196,7 @@ export function createStage(canvas, { world, tiles, fx: fxAtlas }) {
         q.x += w.vx * (0.5 + q.s) * dt; q.y += w.vy * (0.5 + q.s) * dt;
         const x = ((q.x - cam.x * PPM * 0.5) % W + W) % W, y = ((q.y % H) + H) % H;
         ctx.globalAlpha = w.glow ? 0.3 + 0.7 * Math.max(0, Math.sin(t * 2 + q.p * 3)) : 0.85; ctx.fillStyle = w.col[q.p % w.col.length];
-        ctx.fillRect(Math.round(x + Math.sin(t * 1.3 + q.p) * w.sway), Math.round(y), w.size + (q.s > 0.7 ? 1 : 0), w.size);
+        ctx.fillRect(Math.round(x + Math.sin(t * 1.3 + q.p) * w.sway), Math.round(y), w.len ? 1 : w.size + (q.s > 0.7 ? 1 : 0), w.len || w.size);
       }
       ctx.restore(); }
     const v = ctx.createRadialGradient(W / 2, H * 0.55, H * 0.3, W / 2, H * 0.55, W * 0.7);
@@ -198,19 +212,22 @@ export function createStage(canvas, { world, tiles, fx: fxAtlas }) {
     t += dt;
     if (state.set !== setKey) { setKey = state.set; set = STAGE_SETS[setKey] || STAGE_SETS.meadow; layout = buildLayout(set); }
     cam = state.cam;
-    H = Math.max(40, Math.round(BUF_H / (cam.zoom || 1))); W = Math.max(60, Math.round(H * aspect));
+    // a narrower screen (a tablet) pulls the camera back a little, so it sees about as much of the stage across as a phone
+    const z = (cam.zoom || 1) * Math.max(0.7, Math.min(1, aspect / 2));
+    H = Math.max(40, Math.round(BUF_H / z)); W = Math.max(60, Math.round(H * aspect));
     if (buf.width !== W || buf.height !== H) { buf.width = W; buf.height = H; }
     // the ground line: low in a wide shot, near the bottom in a close-up so the faces fill the frame
     gy = Math.round(H * (cam.g != null ? cam.g : Math.min(0.94, 0.78 + ((cam.zoom || 1) - 1) * 0.16)));
-    const shx = shake > 0.05 ? Math.round((Math.random() - 0.5) * shake) : 0;
+    const shx = shake > 0.05 ? Math.round((Math.random() - 0.5) * shake) : 0, shy = shake > 0.05 ? Math.round((Math.random() - 0.5) * shake * 0.6) : 0;
     shake *= Math.exp(-dt * 7);
-    ctx.setTransform(1, 0, 0, 1, shx, 0); ctx.imageSmoothingEnabled = false;
+    ctx.setTransform(1, 0, 0, 1, shx, shy); ctx.imageSmoothingEnabled = false;
     sky(); ridges(); mid(); back(); ground(); grade();
     const list = state.actors.slice().sort((a, b) => (a.lane || 0) - (b.lane || 0));
     for (const a of list) actor(a, dt);
     effectsDraw(dt);
     fore(); light(dt);
-    if (flash > 0.01) { ctx.fillStyle = `rgba(255,240,220,${flash})`; ctx.fillRect(0, 0, W, H); flash *= Math.exp(-dt * 6); }
+    if (mood) { ctx.save(); ctx.globalCompositeOperation = mood.op || 'soft-light'; ctx.fillStyle = mood.col; ctx.fillRect(0, 0, W, H); ctx.restore(); }
+    if (flash > 0.01) { ctx.fillStyle = `rgba(${flashCol},${flash})`; ctx.fillRect(0, 0, W, H); flash *= Math.exp(-dt * 6); }
     out.imageSmoothingEnabled = false;
     out.drawImage(buf, 0, 0, canvas.width, canvas.height);
   }
@@ -219,5 +236,6 @@ export function createStage(canvas, { world, tiles, fx: fxAtlas }) {
     const r = canvas.getBoundingClientRect(), k = r.height / H;
     return { x: r.left + sx(x, 1) * k, y: r.top + (gy + lane * 3 - height) * k };
   }
-  return { resize, draw, project, spawn, setSprites(s) { sprites = s; }, shake(n = 4) { shake = n; }, flash(a = 0.5) { flash = a; }, reset() { effects = []; shake = 0; flash = 0; } };
+  return { resize, draw, project, spawn, setSprites(s) { sprites = s; }, shake(n = 4) { shake = n; }, flash(a = 0.5, col = '255,240,220') { flash = a; flashCol = col; },
+    mood(m) { mood = m; }, reset() { effects = []; shake = 0; flash = 0; mood = null; } };
 }

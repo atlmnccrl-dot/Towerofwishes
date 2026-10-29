@@ -50,7 +50,7 @@ function renderShop(game, body) {
   }
   body.append(h('div.label', null, 'Gem packs'), packs,
     h('p.note', null, game.store.available ? 'Purchases go through your app store account.' : 'Gem packs can be bought in the iOS and Android app. Everything in the game can also be earned by playing.'),
-    game.store.available ? h('button.btn.small', { type: 'button', onclick: () => { game.store.restore(); toast('Restoring purchases…'); } }, 'Restore purchases') : null);
+    ...(game.store.available ? [h('button.btn.small', { type: 'button', onclick: () => { game.store.restore(); toast('Restoring purchases…'); } }, 'Restore purchases')] : []));
 }
 function showGot(got) {
   if (got.items) toast(got.items.map(itemName).join(', '));

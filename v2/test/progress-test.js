@@ -17,7 +17,6 @@ assert.deepEqual(Object.keys(s.roster).sort(), [...START_ROSTER].sort());
 assert.equal(s.team.length, 3);
 assert.ok(isOpen(s.cleared, MISSIONS[0]) && !isOpen(s.cleared, MISSIONS[1]));
 for (const m of MISSIONS) for (const [k] of m.foes) assert.ok(k in (await import('../src/data/units.js')).ENEMIES, m.id + ' foe ' + k);
-for (const m of MISSIONS) if (m.recruit) assert.ok(UNITS[m.recruit], m.id + ' recruit');
 
 // a loss changes nothing
 const strip = (x) => JSON.stringify(Object.assign({}, x, { stats: null }));
@@ -25,10 +24,10 @@ const before = strip(s);
 let rw = P.grantRewards(s, 'r1m1', fake('lose', 0, s), r);
 assert.equal(rw.win, false); assert.equal(strip(s), before); assert.equal(s.stats.losses, 1);
 
-// a first clear: three stars, gold, xp, loot, a recruit who joins the team
+// a first clear: three stars, gold, xp, loot (heroes are freed by the region bosses, below)
 rw = P.grantRewards(s, 'r1m1', fake('win', 0, s), r);
 assert.equal(rw.stars, 3); assert.ok(rw.first && rw.gold > 0 && rw.loot.length === 2); assert.equal(rw.gems, 5);
-assert.equal(rw.joined, 'hesta'); assert.ok(s.roster.hesta && s.team.some((t) => t.key === 'hesta'));
+assert.equal(rw.joined, null);
 assert.ok(isOpen(s.cleared, MISSIONS[1]));
 // a replay: less gold, no second recruit, best stars kept
 const g = s.gold; rw = P.grantRewards(s, 'r1m1', fake('win', 2, s), r);
@@ -102,5 +101,26 @@ assert.equal(P.decodeSave(code).gold, 777); assert.equal(P.decodeSave(code.slice
   assert.equal(P.buildState(k, 'hall'), 'max'); assert.equal(P.nextBuild(k), null);
   const old = P.loadSave(JSON.parse(JSON.stringify(Object.assign(P.newSave(), { keep: undefined, mats: undefined }))));
   assert.deepEqual(old.keep, {}); assert.deepEqual(old.mats, {});          // older saves start with an empty Stronghold
+}
+// runs: the wheel only lands on unlocked heroes; the leader always fights; a loss ends the run; a seal
+// ends it in triumph and frees the next hero
+{
+  const w = P.newSave(), rr = rng(9), seen = new Set();
+  for (let i = 0; i < 200; i++) { w.run = null; seen.add(P.spin(w, rr)); }
+  assert.deepEqual([...seen].sort(), [...START_ROSTER].sort());                   // never a locked hero
+  P.spin(w, () => 0.99); const lead = w.run.leader;
+  assert.ok(w.team.some((t) => t.key === lead)); P.toggleTeam(w, lead); assert.ok(w.team.some((t) => t.key === lead));   // the leader cannot be benched
+  P.bestTeam(w); assert.ok(w.team.some((t) => t.key === lead));
+  assert.ok(P.modsOf(w, lead).hp >= P.LEAD_EDGE.hp);                              // the leader's own edge
+  const won = P.grantRewards(w, 'r1m1', fake('win', 0, w), rr); assert.equal(w.run.wins, 1); assert.ok(!won.runEnded);
+  const lost = P.grantRewards(w, 'r1m2', fake('lose', 0, w), rr);
+  assert.equal(lost.runEnded.leader, lead); assert.equal(lost.runEnded.wins, 1); assert.equal(w.run, null);
+  P.spin(w, rr);
+  for (const m of MISSIONS.filter((x) => x.region === 'r1')) w.cleared[m.id] = w.cleared[m.id] || (m.id === 'r1m10' ? 0 : 1);
+  delete w.cleared.r1m10;
+  const seal = P.grantRewards(w, 'r1m10', fake('win', 0, w), rr);
+  assert.equal(seal.joined, P.UNLOCKS.r1); assert.ok(w.roster[P.UNLOCKS.r1]); assert.ok(seal.runEnded && seal.runEnded.triumph); assert.equal(w.run, null);
+  assert.ok(P.unlocked(w).includes(P.UNLOCKS.r1)); assert.equal(P.unlockedBy(P.UNLOCKS.r2).region, 'r2');
+  for (const k of P.HEROES) assert.ok(UNITS[k] && P.LEADERS[k], k);               // every wheel hero exists and has a perk
 }
 console.log('progress ok');

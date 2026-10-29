@@ -5,7 +5,7 @@ const UI = ['accept_01', 'cancel_01', 'chest_open', 'coin_01', 'confirm_01', 'eq
   'notify_01', 'page_turn_01', 'quest_complete', 'quest_new', 'click_wood_01', 'unsheathe_01', 'anvil_01', 'heal_02'];
 const FIGHT = ['allout', 'blow_0', 'blow_1', 'blow_2', 'blow_big', 'bolt', 'charge', 'clang_0', 'clang_1', 'fire', 'horn', 'ice', 'ko',
   'magic', 'quake', 'slash_0', 'slash_1', 'slash_2', 'swish_0', 'swish_1', 'swish_2', 'thud', 'whoosh'];
-const LOOPS = { battle: 'assets/music/heartfelt_battle.mp3', fire: 'assets/sfx/amb/fire.mp3', night: 'assets/sfx/amb/night.mp3' };
+const LOOPS = { battle: 'assets/music/heartfelt_battle.mp3', fire: 'assets/sfx/amb/fire.mp3', night: 'assets/sfx/amb/night.mp3', wind: 'assets/sfx/amb/wind.mp3' };
 
 export function createAudio(getSettings) {
   const settings = new Proxy({}, { get: (_, k) => getSettings()[k] });
@@ -40,12 +40,12 @@ export function createAudio(getSettings) {
     src.buffer = b; src.playbackRate.value = 1 + (Math.random() * 2 - 1) * vary; g.gain.value = gain;
     src.connect(g); g.connect(sfxBus); src.start();
   }
-  // the music for a screen: 'battle', 'camp' (fire and night together) or null
+  // the music for a screen: 'battle', 'camp' (fire and night together), 'storm' (wind and night) or null
   async function setScene(name) {
     if (name === scene) return; scene = name;
     if (!ctx) return;
     for (const [k, p] of Object.entries(playing)) { p.g.gain.setTargetAtTime(0, ctx.currentTime, 0.4); p.src.stop(ctx.currentTime + 2); delete playing[k]; }
-    const want = name === 'battle' ? [['battle', 0.55]] : name === 'camp' ? [['fire', 0.7], ['night', 0.35]] : [];
+    const want = name === 'battle' ? [['battle', 0.55]] : name === 'camp' ? [['fire', 0.7], ['night', 0.35]] : name === 'storm' ? [['wind', 0.8], ['night', 0.3]] : [];
     for (const [k, level] of want) {
       const b = await load(k, LOOPS[k]); if (!b || scene !== name) continue;
       const src = ctx.createBufferSource(), g = ctx.createGain();

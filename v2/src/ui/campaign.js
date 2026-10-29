@@ -93,8 +93,8 @@ function renderSheet(game, m, regionDone) {
       reward(icon('bag', 18), done ? 'Chance' : H ? 'Rare+' : 'Gear'),
       reward(matIcon(m.region), (done ? '1-3' : m.boss ? '12' : '5') + (H ? ' ×2' : ''), '.matrw'),
       done < 3 ? reward(gemIcon(), H ? '10' : (!done && m.boss ? '30' : '5')) : null,
-      !H && !done && m.recruit && !s.roster[m.recruit] ? reward(face(UNITS[m.recruit].set, 22, true), 'Recruit', '.who') : null)].filter(Boolean));
-  sheet.replaceChildren(body, h('button.btn.big.primary', { type: 'button', onclick: () => { game.heroic = H; s.flags.at = m.id; game.persist(); game.go('prep', m.id); } }, icon('swords', 20), 'Prepare'));
+      !H && !done && P.sealOf(m.region) === m && P.UNLOCKS[m.region] && !s.roster[P.UNLOCKS[m.region]] ? reward(face(UNITS[P.UNLOCKS[m.region]].set, 22, true), 'Frees a hero', '.who') : null)].filter(Boolean));
+  sheet.replaceChildren(body, h('button.btn.big.primary', { type: 'button', onclick: () => { game.heroic = H; s.flags.at = m.id; game.persist(); game.needRun(() => game.go('prep', m.id)); } }, icon('swords', 20), s.run ? 'Prepare' : 'Spin & prepare'));
 }
 
 // ---- power: the team's against the mission's (equal power wins about three times in four)
@@ -141,9 +141,10 @@ export function renderPrep(game, missionId) {
     if (t) {
       const d = UNITS[t.key]; el.style.setProperty('--c', clsVar(d.cls));
       el.addEventListener('pointerdown', (e) => startDrag(e, game, missionId, t.key, slot));
-      el.append(heroArt(d.set, big), h('span.nameplate', null, h('i', null, 'Lv ' + s.roster[t.key].level), first(d.name)),
-        misplaced(t.key, slot) ? h('span.warn', { title: FRONT.includes(d.cls) ? 'Fights best in the front row' : 'Safer in the back row' }, '!') : null,
-        h('button.x', { type: 'button', 'aria-label': 'Remove ' + d.name, onclick: (e) => { e.stopPropagation(); removeHero(game, missionId, t.key); } }, icon('close', 14)));
+      if (s.run && s.run.leader === t.key) el.append(h('span.crown', { title: 'Leader of this run' }));
+      el.append(heroArt(d.set, big), h('span.nameplate', null, h('i', null, 'Lv ' + s.roster[t.key].level), first(d.name)));
+      if (misplaced(t.key, slot)) el.append(h('span.warn', { title: FRONT.includes(d.cls) ? 'Fights best in the front row' : 'Safer in the back row' }, '!'));
+      el.append(h('button.x', { type: 'button', 'aria-label': 'Remove ' + d.name, onclick: (e) => { e.stopPropagation(); removeHero(game, missionId, t.key); } }, icon('close', 14)));
     } else {
       el.append(h('span.beam'), h('span.addplus', null, icon('plus', 16)),
         h('span.slotlabel', null, placing || selSlot === slot ? 'Place here' : row === 'front' ? 'Fighter' : 'Ranged · Healer'));
@@ -156,17 +157,19 @@ export function renderPrep(game, missionId) {
     const d = UNITS[k], inT = s.team.some((q) => q.key === k);
     const card = h('button.card' + (inT ? '.in' : '') + (focus === k ? '.focus' : ''), { type: 'button', vars: { '--c': clsVar(d.cls) }, 'aria-pressed': String(inT), 'aria-label': d.name,
       onclick: () => { if (Date.now() - dragged > 300) tapCard(game, missionId, k); } },
-      h('span.lv', null, s.roster[k].level), face(d.set, 42), h('span.nm', null, first(d.name)));
+      h('span.lv', null, s.roster[k].level), s.run && s.run.leader === k ? h('span.crown') : null, face(d.set, 42), h('span.nm', null, first(d.name)));
     card.addEventListener('pointerdown', (e) => startDrag(e, game, missionId, k, null));
     roster.append(card);
   }
   const d = UNITS[focus];
   $('#p-detail').replaceChildren(h('div.t', null, d.name), h('div.sub', null, h('span.cls', { vars: { '--c': clsVar(d.cls) } }, CLASSES[d.cls].name), h('span.place', null, d.title)),
-    h('div.ability', null, h('b', null, d.ability.name + '. '), d.ability.desc));
+    h('div.ability', null, h('b', null, d.ability.name + '. '), d.ability.desc),
+    ...(s.run && s.run.leader === focus ? [h('div.perk', null, h('b', null, 'Leader: ' + P.LEADERS[focus].name), h('span', null, P.LEADERS[focus].desc))] : []));
   $('#p-count').replaceChildren(`Team ${s.team.length}/${P.MAX_TEAM} · `, powerChip('Power', P.teamPower(s), powerClass(P.teamPower(s), P.missionPower(m, game.heroic))), h('span.vs', null, 'vs'), powerChip('Enemies', P.missionPower(m, game.heroic), 'foe'));
 }
 function removeHero(game, missionId, key) {
   const s = game.save;
+  if (s.run && s.run.leader === key) { toast('The leader of the run always fights'); return; }
   if (s.team.length <= 1) { toast('The team needs at least one'); return; }
   s.team = s.team.filter((q) => q.key !== key); selSlot = null; game.persist(); renderPrep(game, missionId);
 }
@@ -174,6 +177,7 @@ function removeHero(game, missionId, key) {
 function placeHero(game, missionId, key, slot) {
   const s = game.save, mine = s.team.find((q) => q.key === key), here = s.team.find((q) => q.slot === slot);
   if (mine) { if (mine.slot !== slot) P.moveSlot(s, mine.slot, slot); }
+  else if (here && s.run && s.run.leader === here.key) { toast('The leader of the run always fights'); return; }
   else if (here) { s.team = s.team.filter((q) => q !== here); s.team.push({ key, slot }); }
   else if (s.team.length >= P.MAX_TEAM) { toast('The team is full: take someone out first'); return; }
   else s.team.push({ key, slot });
@@ -239,7 +243,8 @@ export function renderRewards(game, b, rw, missionId) {
   const allies = b.units.filter((u) => u.team === 'ally' && !u.summoned);
   const mvp = allies.reduce((a, u) => (u.dealt + u.healed * 1.2 > a.dealt + a.healed * 1.2 ? u : a), allies[0]);
   if (rw.win) {
-    box.append(h('div.rays'), h('div.rt.win', null, 'Victory'), stars(rw.stars), h('div.rsub', null, `${m.name} · ${Math.round(b.t)} s`));
+    const runNote = rw.runEnded ? ` · ${first(UNITS[rw.runEnded.leader].name)}'s run ends in triumph` : game.save.run ? ` · run: ${game.save.run.wins} win${game.save.run.wins === 1 ? '' : 's'}` : '';
+    box.append(h('div.rays'), h('div.rt.win', null, 'Victory'), stars(rw.stars), h('div.rsub', null, `${m.name} · ${Math.round(b.t)} s${runNote}`));
     const left = h('div.r-left', null,
       h('div.mvp', null, heroArt(mvp.def.set, 2), h('div', null, h('div.label', null, 'MVP'), h('div.mvp-n', null, first(mvp.def.name)))),
       h('div.rgold', null, reward(goldIcon(), `+${rw.gold}`), rw.gems ? reward(gemIcon(), `+${rw.gems}`) : null, ...Object.entries(rw.mats || {}).map(([r, n]) => reward(matIcon(r), `+${n}`, '.matrw'))),
@@ -264,6 +269,9 @@ export function renderRewards(game, b, rw, missionId) {
   } else {
     box.append(h('div.rt.lose', null, b.t >= TIME_LIMIT - 0.1 ? 'Time ran out' : 'Defeat'), h('div.rsub', null, `${m.name} · ${allies.filter((u) => u.state !== 'ko').length} of ${allies.length} standing`));
     const tp = P.teamPower(game.save), mp = P.missionPower(m, !!game.heroic);
+    // the run is over: who led it, how far it went
+    if (rw.runEnded) { const d = UNITS[rw.runEnded.leader], f = face(d.set, 30); f.style.setProperty('--c', `var(--${d.cls})`);
+      box.append(h('div.runover', null, f, h('span', null, h('b', null, `${first(d.name)}'s run is over`), h('small', null, `${rw.runEnded.wins} win${rw.runEnded.wins === 1 ? '' : 's'} · best run ${game.save.runs.best}`)))); }
     box.append(h('div.powers', null, powerChip('Your team', tp, tp >= mp ? 'ok' : tp >= mp * 0.85 ? 'close' : 'low'), h('span.vs', null, 'vs'), powerChip('Enemies', mp, 'foe')));
     box.append(h('p.lose-note', null, tp < mp ? 'Your team is under-powered here. Nothing is lost: replay earlier missions for levels, equip and upgrade gear, train, then come back.'
       : 'Nothing is lost. Try a different formation, put the healer in the back row, or use Manual to time the abilities.'));
@@ -273,7 +281,7 @@ export function renderRewards(game, b, rw, missionId) {
     box.append(h('div.ractions', null,
       h('button.btn', { type: 'button', onclick: () => game.go('map') }, icon('map', 18), 'Map'),
       h('button.btn', { type: 'button', onclick: () => game.go('company') }, icon('heroes', 18), 'Heroes'),
-      h('button.btn.primary', { type: 'button', onclick: () => game.go('prep', missionId) }, 'Try again')));
+      h('button.btn.primary', { type: 'button', onclick: () => game.needRun(() => game.go('prep', missionId)) }, game.save.run ? 'Try again' : 'Spin again', icon('right', 18))));
   }
   $('#result').hidden = false;
 }
@@ -291,7 +299,7 @@ function afterWin(game, rw, m, then = 'map') {
     else if (then === 'heroes') game.go('company');
     else game.go('map', m.id);
   };
-  if (rw.joined) game.playScene(joinScene(rw.joined, game.save.team[0] ? game.save.team[0].key : 'corvin', m.region)).then(() => showRecruit(game, rw.joined, toMap));
+  if (rw.joined) game.playScene(joinScene(rw.joined, rw.runEnded ? rw.runEnded.leader : game.save.team[0] ? game.save.team[0].key : 'corvin', m.region)).then(() => showRecruit(game, rw.joined, toMap));
   else toMap();
 }
 export function showStory(game, title, text, button, after, ending = false) {
@@ -308,7 +316,7 @@ export function showRecruit(game, key, after = () => game.go('map')) {
   card.style.setProperty('--c', clsVar(d.cls));
   card.replaceChildren(
     h('div.rays'),
-    h('div.jtag', null, 'New hero'),
+    h('div.jtag', null, 'A hero is freed · now on the wheel'),
     h('div.jart', null, heroArt(d.set, artPx() + 1)),
     h('div.jname', null, d.name), h('div.jtitle', null, d.title),
     h('div.cls', { vars: { '--c': clsVar(d.cls) } }, `${CLASSES[d.cls].name} · Level ${m.level}`),

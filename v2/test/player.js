@@ -14,6 +14,7 @@ export function fight(s, m, seed, heroic = false, might) {
 // tuned for this player); otherwise also training and gear upgrades with every coin, and selling spares.
 // pick: which upgrade option to take (0, 1), or random when left out
 export function manage(s, r, casual = true, pick = process.env.PICK ? +process.env.PICK : undefined) {
+  if (!s.run) P.spin(s, r);   // no run going: spin the wheel for a leader
   const keys = P.bestTeam(s);
   for (const k of keys) s.roster[k].ups.forEach((u, t) => { if (!u && s.roster[k].level >= P.UPGRADE_LEVELS[t]) P.pickUpgrade(s, k, t, P.upgradeChoices(k, t)[pick != null ? pick : r() < 0.5 ? 0 : 1].id); });
   P.autoEquip(s, keys);

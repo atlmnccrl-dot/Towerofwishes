@@ -35,6 +35,8 @@ const stats = (cls, o = {}) => Object.assign({}, C[cls], o);
 const MELEE = (o) => Object.assign({ windup: 0.32, active: 0.1, recover: 0.4, fx: 'slash' }, o);
 const SHOT = (o) => Object.assign({ windup: 0.36, active: 0.05, recover: 0.45, projectile: 16, bolt: 'arrow', hit: 'hit_pierce' }, o);
 
+// The company's eight heroes: three from the start, five unlocked one by one as the region bosses fall
+// (each guards a Seal of Vael). Every run, the wheel picks one to lead (see game/progress.js).
 export const UNITS = {
   corvin: {
     name: 'Corvin Hale', title: 'Knight without a lord', set: 'kael_sword', cls: 'vanguard', stats: stats('vanguard'),
@@ -43,26 +45,12 @@ export const UNITS = {
       effects: [{ type: 'taunt', dur: 3 }, { type: 'shield', pct: 0.25, area: 'self', dur: 6 }] },
     passive: { name: 'Steadfast', desc: '+15% defence.', def: 0.15 },
   },
-  ysolde: {
-    name: 'Ysolde', title: 'Mage of the old school', set: 'eiryn', cls: 'mystic', stats: stats('mystic'),
-    attack: SHOT({ projectile: 18, bolt: 'energy_bolt', hit: 'spell_impact' }),
-    ability: { name: 'Force Wave', desc: 'Crushing force around her target: heavy damage, a stun and a shove.', fx: 'shockwave',
-      effects: [{ type: 'damage', mult: 2.2, area: 'circle', radius: 2.4, stun: 0.8, knock: 2.5 }] },
-    passive: { name: 'Deep Focus', desc: '+10% critical chance.', crit: 0.1 },
-  },
-  saela: {
-    name: 'Saela', title: 'Archer of the dawn order', set: 'aerys', cls: 'ranger', stats: stats('ranger'),
-    attack: SHOT({ bolt: 'magic_missile', hit: 'hit_holy' }),
-    ability: { name: 'Lance of Dawn', desc: 'A beam of light through every foe in a line.', fx: 'lightning_holy',
-      effects: [{ type: 'damage', mult: 2.6, area: 'line', length: 9, width: 0.9 }] },
-    passive: { name: 'Keen Eye', desc: '+15% attack.', atk: 0.15 },
-  },
-  vesk: {
-    name: 'Vesk', title: 'Knife for hire', set: 'nox', cls: 'striker', stats: stats('striker', { crit: 0.2 }), dive: true,
-    attack: MELEE({ windup: 0.2, recover: 0.24, fx: 'dagger' }),
-    ability: { name: 'Shadow Step', desc: 'Steps behind the weakest foe and cuts three times.', fx: 'teleport',
-      effects: [{ type: 'blink', to: 'lowestEnemy' }, { type: 'damage', mult: 0.95, area: 'target', hits: 3 }] },
-    passive: { name: 'Killer Instinct', desc: '+15% critical chance.', crit: 0.15 },
+  wren: {
+    name: 'Wren', title: 'Poacher turned scout', set: 'poacher', cls: 'ranger', stats: stats('ranger'),
+    attack: SHOT({ bolt: 'arrow', hit: 'hit_pierce' }),
+    ability: { name: 'Barbed Volley', desc: 'Three arrows at the three nearest foes; their wounds keep bleeding.', fx: 'arrow',
+      effects: [{ type: 'damage', mult: 1.0, area: 'nearest3', dot: { mult: 0.4, dur: 4 } }] },
+    passive: { name: 'Woodcraft', desc: '+10% attack speed.', spd: 0.1 },
   },
   maren: {
     name: 'Maren', title: 'Field healer', set: 'eloryn', cls: 'support', stats: stats('support'), healer: true,
@@ -71,54 +59,12 @@ export const UNITS = {
       effects: [{ type: 'heal', mult: 2.0, area: 'allAllies' }] },
     passive: { name: 'Gentle Hands', desc: '+20% healing.', healPower: 0.2 },
   },
-  brann: {
-    name: 'Brann', title: 'Pit fighter with stone fists', set: 'braxen', cls: 'vanguard', stats: stats('vanguard', { hp: 980, atk: 58, def: 50 }),
-    attack: MELEE({ windup: 0.34, fx: 'blunt' }),
-    ability: { name: 'Earthbreaker', desc: 'Slams the ground: damage and a long stun around him.', fx: 'rock_burst',
-      effects: [{ type: 'damage', mult: 1.8, area: 'self', radius: 2.2, stun: 1.2 }] },
-    passive: { name: 'Thick Hide', desc: 'Takes 10% less damage.', dr: 0.1 },
-  },
-  osric: {
-    name: 'Osric', title: 'Warden of the north gate', set: 'guard_gate', cls: 'vanguard', stats: stats('vanguard', { def: 70 }),
-    attack: MELEE({ fx: 'thrust' }),
-    ability: { name: 'Shield Wall', desc: 'Shields every ally for 15% of their health.', fx: 'shield_bubble',
-      effects: [{ type: 'shield', pct: 0.15, area: 'allAllies', dur: 6 }] },
-    passive: { name: 'Gatekeeper', desc: '+15% health.', hp: 0.15 },
-  },
   hesta: {
     name: 'Hesta', title: 'Spear of the river clans', set: 'spearwoman', cls: 'striker', stats: stats('striker', { range: 1.9 }),
     attack: MELEE({ windup: 0.28, fx: 'thrust' }),
     ability: { name: 'Skewer', desc: 'A lunging thrust through everything in a line.', fx: 'thrust',
       effects: [{ type: 'damage', mult: 2.4, area: 'line', length: 4.5, width: 0.9, knock: 1.5 }] },
     passive: { name: 'Reach', desc: '+10% attack.', atk: 0.1 },
-  },
-  wren: {
-    name: 'Wren', title: 'Poacher turned scout', set: 'poacher', cls: 'ranger', stats: stats('ranger'),
-    attack: SHOT({ bolt: 'arrow', hit: 'hit_pierce' }),
-    ability: { name: 'Barbed Volley', desc: 'Three arrows at the three nearest foes; their wounds keep bleeding.', fx: 'arrow',
-      effects: [{ type: 'damage', mult: 1.0, area: 'nearest3', dot: { mult: 0.4, dur: 4 } }] },
-    passive: { name: 'Woodcraft', desc: '+10% attack speed.', spd: 0.1 },
-  },
-  pell: {
-    name: 'Pell', title: 'Baker who would not leave', set: 'erdra_baker', cls: 'support', stats: stats('support', { range: 1.4, hp: 700 }),
-    attack: MELEE({ fx: 'blunt' }),
-    ability: { name: 'Warm Bread', desc: 'Every ally heals and hits 30% harder for 7 seconds.', fx: 'buff_up',
-      effects: [{ type: 'heal', mult: 1.3, area: 'allAllies' }, { type: 'buff', stat: 'atk', pct: 0.3, dur: 7, area: 'allAllies' }] },
-    passive: { name: 'Hearty', desc: '+20% health.', hp: 0.2 },
-  },
-  sable: {
-    name: 'Sable', title: 'Hexer in a borrowed hood', set: 'hooded_follower', cls: 'mystic', stats: stats('mystic'),
-    attack: SHOT({ projectile: 15, bolt: 'homing_orb', hit: 'debuff' }),
-    ability: { name: 'Withering Hex', desc: 'Every foe takes damage and hits 25% softer for 5 seconds.', fx: 'dark_curse',
-      effects: [{ type: 'damage', mult: 0.8, area: 'allEnemies' }, { type: 'debuff', stat: 'atk', pct: 0.25, dur: 5, area: 'allEnemies' }] },
-    passive: { name: 'Malice', desc: '+10% attack.', atk: 0.1 },
-  },
-  cairn: {
-    name: 'Cairn', title: 'A golem that chose a side', set: 'golem_a', cls: 'vanguard', stats: stats('vanguard', { hp: 1150, atk: 44, move: 2.9 }),
-    attack: MELEE({ windup: 0.42, recover: 0.5, fx: 'blunt' }),
-    ability: { name: 'Bulwark', desc: 'Draws every foe to it and takes half damage for 4 seconds.', fx: 'shield_bubble',
-      effects: [{ type: 'taunt', dur: 4 }, { type: 'dr', pct: 0.5, dur: 4 }] },
-    passive: { name: 'Stoneskin', desc: '+20% health.', hp: 0.2 },
   },
   thistle: {
     name: 'Thistle', title: 'Beastfolk wanderer', set: 'beastfolk_f', cls: 'support', stats: stats('support', { atk: 56 }),
@@ -127,55 +73,12 @@ export const UNITS = {
       effects: [{ type: 'summon', key: 'briarhound', n: 1 }] },
     passive: { name: 'Wild Kin', desc: 'Her summons are 25% stronger.', summonPower: 0.25 },
   },
-  // ---- found further down the road (regions 2 to 6)
-  grath: {
-    name: 'Grath', title: 'Fen-born brute', set: 'beastfolk_m', cls: 'vanguard', stats: stats('vanguard', { hp: 960, atk: 56 }),
-    attack: MELEE({ windup: 0.36, fx: 'claw' }),
-    ability: { name: 'Feral Roar', desc: 'Roars every foe onto himself, hits 30% harder and takes 25% less damage for 4 seconds.', fx: 'shockwave',
-      effects: [{ type: 'taunt', dur: 3 }, { type: 'buff', stat: 'atk', pct: 0.3, dur: 4, area: 'self' }, { type: 'dr', pct: 0.25, dur: 4 }] },
-    passive: { name: 'Blood of the Fen', desc: 'Heals for 8% of damage dealt.', lifesteal: 0.08 },
-  },
-  pip: {
-    name: 'Pip', title: 'Street kid with a borrowed sword', set: 'rival_kid', cls: 'striker', stats: stats('striker', { hp: 600 }), dive: true,
-    attack: MELEE({ windup: 0.22, recover: 0.3, fx: 'slash' }),
-    ability: { name: 'Dirty Trick', desc: 'Darts behind the weakest foe, cuts hard and leaves them reeling.', fx: 'dark_slash',
-      effects: [{ type: 'blink', to: 'lowestEnemy' }, { type: 'damage', mult: 1.9, area: 'target', stun: 1.0 }] },
-    passive: { name: 'Lucky', desc: '+12% critical chance.', crit: 0.12 },
-  },
-  tam: {
-    name: 'Tam', title: 'Bare-knuckle monk', set: 'kael_unarmed', cls: 'striker', stats: stats('striker', { hp: 700, atk: 74, def: 38 }),
-    attack: MELEE({ windup: 0.18, recover: 0.24, fx: 'blunt' }),
-    ability: { name: 'Hundred Fists', desc: 'Six blows in a blur on his target.', fx: 'multi_hit',
-      effects: [{ type: 'damage', mult: 0.55, area: 'target', hits: 6 }] },
-    passive: { name: 'Light Feet', desc: '+15% attack speed.', spd: 0.15 },
-  },
-  nyssa: {
-    name: 'Nyssa', title: 'Exiled flame-scholar', set: 'lyra', cls: 'mystic', stats: stats('mystic', { atk: 82 }),
-    attack: SHOT({ projectile: 15, bolt: 'fireball', hit: 'hit_fire' }),
-    ability: { name: 'Firestorm', desc: 'Fire bursts around her target and keeps burning.', fx: 'explosion_fire',
-      effects: [{ type: 'damage', mult: 1.6, area: 'circle', radius: 2.6, dot: { mult: 0.45, dur: 4 } }] },
-    passive: { name: 'Kindled', desc: 'Ability 15% stronger.', power: 0.15 },
-  },
-  garrick: {
-    name: 'Garrick', title: 'Guild veteran with a battered shield', set: 'guild_adventurer', cls: 'vanguard', stats: stats('vanguard', { hp: 940 }),
-    attack: MELEE({ windup: 0.3, fx: 'thrust' }),
-    ability: { name: 'Hold the Line', desc: 'Shields every ally for 12% of their health and draws the foes to him.', fx: 'shield_bubble',
-      effects: [{ type: 'shield', pct: 0.12, area: 'allAllies', dur: 6 }, { type: 'taunt', dur: 2.5 }] },
-    passive: { name: 'Old Scars', desc: '+10% health and defence.', hp: 0.1, def: 0.1 },
-  },
-  ilse: {
-    name: 'Ilse', title: 'Javelin of the dawn order', set: 'aerys_spear', cls: 'ranger', stats: stats('ranger', { hp: 580, atk: 76 }),
-    attack: SHOT({ windup: 0.4, projectile: 18, bolt: 'spear', hit: 'hit_holy' }),
-    ability: { name: 'Sunlance Rain', desc: 'Light falls on every foe and cracks their armour for 5 seconds.', fx: 'lightning_holy',
-      effects: [{ type: 'damage', mult: 1.2, area: 'allEnemies' }, { type: 'debuff', stat: 'def', pct: 0.25, dur: 5, area: 'allEnemies' }] },
-    passive: { name: 'True Aim', desc: '+10% critical chance.', crit: 0.1 },
-  },
-  rhys: {
-    name: 'Rhys', title: 'A climber who came back down', set: 'climber', cls: 'striker', stats: stats('striker', { hp: 680 }),
-    attack: MELEE({ windup: 0.26, fx: 'slash' }),
-    ability: { name: 'Rising Blade', desc: 'A whirling cut around him, then he fights 25% harder for 6 seconds.', fx: 'spin_slash',
-      effects: [{ type: 'damage', mult: 1.9, area: 'self', radius: 2.0, knock: 1.5 }, { type: 'buff', stat: 'atk', pct: 0.25, dur: 6, area: 'self' }] },
-    passive: { name: 'Summit-hardened', desc: '+12% attack.', atk: 0.12 },
+  ysolde: {
+    name: 'Ysolde', title: 'Mage of the old school', set: 'eiryn', cls: 'mystic', stats: stats('mystic'),
+    attack: SHOT({ projectile: 18, bolt: 'energy_bolt', hit: 'spell_impact' }),
+    ability: { name: 'Force Wave', desc: 'Crushing force around her target: heavy damage, a stun and a shove.', fx: 'shockwave',
+      effects: [{ type: 'damage', mult: 2.2, area: 'circle', radius: 2.4, stun: 0.8, knock: 2.5 }] },
+    passive: { name: 'Deep Focus', desc: '+10% critical chance.', crit: 0.1 },
   },
   kesh: {
     name: 'Kesh', title: 'Assassin of the white pass', set: 'frost_assassin', cls: 'striker', stats: stats('striker', { crit: 0.18 }), dive: true,
@@ -190,13 +93,6 @@ export const UNITS = {
     ability: { name: 'Oathbreaker', desc: 'A dark sweep around him that feeds his own wounds.', fx: 'dark_slash',
       effects: [{ type: 'damage', mult: 1.6, area: 'self', radius: 2.4 }, { type: 'heal', mult: 1.6, area: 'self' }] },
     passive: { name: 'Black Plate', desc: 'Takes 12% less damage.', dr: 0.12 },
-  },
-  aldren: {
-    name: 'Aldren', title: 'Once the Pale Herald', set: 'alric', cls: 'mystic', stats: stats('mystic', { hp: 560 }),
-    attack: SHOT({ projectile: 14, bolt: 'homing_orb', hit: 'debuff' }),
-    ability: { name: 'Grave Tide', desc: 'A cold tide over every foe that keeps eating at them.', fx: 'smoke_dark',
-      effects: [{ type: 'damage', mult: 1.0, area: 'allEnemies', dot: { mult: 0.4, dur: 5 } }] },
-    passive: { name: 'Herald\'s Voice', desc: 'Ability 20% stronger.', power: 0.2 },
   },
 };
 

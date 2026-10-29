@@ -25,6 +25,7 @@ import { renderCompany } from './ui/company.js';
 import { renderMap, renderPrep, renderRewards, drawMarks } from './ui/campaign.js';
 import { renderExtras, tip } from './ui/extras.js';
 import { renderKeep, LOOK } from './ui/keep.js';
+import { renderWheel } from './ui/wheel.js';
 
 const DT = 1 / 60, SPEEDS = [1, 2, 3], KEY = 'vael.save', BAK = 'vael.save.bak';
 const stage = $('#stage'), bg = $('#bg');
@@ -69,7 +70,7 @@ function currency() {
 }
 
 // ---- screens
-const SECTIONS = ['title', 'premise', 'camp', 'map', 'prep', 'company', 'extras', 'keep'];
+const SECTIONS = ['title', 'premise', 'camp', 'map', 'prep', 'company', 'extras', 'keep', 'wheel'];
 function go(name, arg) {
   // the company screen returns to where it was opened from (after a battle: the map)
   if (name === 'company' && screen !== 'company') game.from = screen === 'battle' ? 'map' : screen;
@@ -85,6 +86,7 @@ function go(name, arg) {
   if (name === 'company') renderCompany(game, arg);
   if (name === 'extras') renderExtras(game, arg);
   if (name === 'keep') renderKeep(game);
+  if (name === 'wheel') renderWheel(game, arg || (() => go('camp')));
   if (!bg.hidden) { camp.setFocus(name === 'camp' ? 0.4 : name === 'keep' ? 0.27 : 0.64); game.refreshKeep(); camp.resize(); refreshCast(); }
   game.audio.setScene(name === 'battle' ? 'battle' : 'camp');
   $('#tip').hidden = true;
@@ -113,6 +115,10 @@ function renderCamp() {
   $('#k-region').textContent = `${Object.keys(s.roster).length} heroes · ${cleared} of ${MISSIONS.length} missions`;
   $('#k-cta-region').textContent = next ? regionOf(next).name : 'Vael is reclaimed';
   $('#k-next').textContent = next ? `Next: ${next.name}` : 'Heroic missions are open in every region';
+  const run = s.run, rc = $('#k-run');
+  if (run) { const d = UNITS[run.leader], f = face(d.set, 30); f.style.setProperty('--c', `var(--${d.cls})`); rc.replaceChildren(f, h('span', null, `${d.name.split(' ')[0]} leads`, h('small', null, `${P.LEADERS[run.leader].name} · ${run.wins} win${run.wins === 1 ? '' : 's'} this run`))); }
+  else rc.replaceChildren(h('span', null, 'No leader yet', h('small', null, 'Spin the wheel to start a run')));
+  $('#k-go-label').textContent = run ? 'To the map' : 'Spin the wheel';
   // the long goal: the six seals, one for each region's boss
   const taken = P.sealsTaken(s), nextR = next && next.region;
   $('#k-seal-count').textContent = `${taken.length} of ${REGIONS.length} seals`;
@@ -178,7 +184,8 @@ function setsFor(team, foes) {
 }
 async function fight() {
   const s = game.save, m = missionById(missionId);
-  if (!s.team.length) { toast('Pick at least one recruit'); return; }
+  if (!s.run) { go('wheel', () => go('prep', missionId)); return; }
+  if (!s.team.length) { toast('Pick at least one hero'); return; }
   loading('Marching out…');
   const need = setsFor(s.team, m.foes).filter((x) => !sprites[x]);
   try { Object.assign(sprites, await loadSprites(need)); } catch (e) { loading('Could not load the art. Check the connection and try again.', true); return; }
@@ -224,7 +231,7 @@ function buildAllies() {
     const c = h('div.chip', { role: 'button', 'aria-label': `${u.def.name}: ${u.def.ability.name}`, onclick: () => {
       if (!battle.manual || !trigger(battle, u.id)) return;
       c.classList.add('armed'); game.audio.play('unsheathe_01', { gain: 0.5 }); game.haptics.buzz('hit');
-    } }, f, h('div.ci', null, h('span.nm', null, u.def.name.split(' ')[0]), h('div.bar', null, h('i.hp'), h('i.sh')), h('div.bar.en', null, h('i'))));
+    } }, game.save.run && u.key === game.save.run.leader ? h('span.crown') : null, f, h('div.ci', null, h('span.nm', null, u.def.name.split(' ')[0]), h('div.bar', null, h('i.hp'), h('i.sh')), h('div.bar.en', null, h('i'))));
     el.append(c); u._chip = c;
   }
 }
@@ -286,9 +293,11 @@ $('#t-new').addEventListener('click', () => {
 });
 $('#t-confirm-yes').addEventListener('click', newGame);
 $('#t-confirm-no').addEventListener('click', () => ($('#t-confirm').hidden = true));
-function newGame() { $('#t-confirm').hidden = true; game.save = P.newSave(); game.persist(); castKey = ''; playScene(OPENING).then(() => go('camp')); }
+function newGame() { $('#t-confirm').hidden = true; game.save = P.newSave(); game.persist(); castKey = ''; playScene(OPENING).then(() => go('wheel', () => go('camp'))); }
 $('#premise-go').addEventListener('click', () => go('camp'));
-$('#k-campaign').addEventListener('click', () => go('map'));
+$('#k-campaign').addEventListener('click', () => game.needRun(() => go('map')));
+// a run needs a leader: without one, the wheel comes first, then wherever the player was going
+game.needRun = (then) => (game.save.run ? then() : go('wheel', then));
 $('#k-keep').addEventListener('click', () => go('keep'));
 $('#k-keep2').addEventListener('click', () => go('keep'));
 $('#s-back').addEventListener('click', () => go('camp'));
@@ -365,7 +374,7 @@ async function boot() {
   setWorld(world);
   view = createView(stage, fx, tiles, () => game.save.settings, world); camp = createCamp(bg, fx, world);
   game.ow = createOverworld($('#world'), { world, tiles, fx });
-  player = createScenePlayer({ stage: createStage(stage, { world, tiles, fx }), root: $('#scene') });
+  player = createScenePlayer({ stage: createStage(stage, { world, tiles, fx }), root: $('#scene'), audio: game.audio });
   // the app stores, inside the iOS and Android app (cordova plugins are ready after 'deviceready')
   const startStore = () => {
     game.store = createStore({
@@ -401,6 +410,7 @@ function back() {
   if (screen === 'scene') { $('#sc-skip').click(); return; }
   if (!$('#result').hidden || !$('#join').hidden) return;   // the result needs its own buttons
   if (screen === 'battle') { pause(!paused); return; }
+  if (screen === 'wheel') return;   // the wheel decides; no way round it
   const btn = { map: '#m-back', prep: '#p-back', company: '#c-back', extras: '#x-back', keep: '#s-back', camp: '#k-title' }[screen];
   if (btn) { $(btn).click(); return; }
   const App = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
@@ -411,7 +421,7 @@ if (CapApp) CapApp.addListener('backButton', back);
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') back(); });
 
 // for the tests: the game, the screens, and a way to run a battle to its end at once
-window.__v2 = { game, get battle() { return battle; }, get screen() { return screen; }, go, fight, finish, missions: MISSIONS.map((m) => m.id),
+window.__v2 = { game, spin() { if (!game.save.run) P.spin(game.save, Math.random); game.persist(); }, get battle() { return battle; }, get screen() { return screen; }, go, fight, finish, missions: MISSIONS.map((m) => m.id),
   pickUpgrades() { const s = game.save; for (const k of Object.keys(s.roster)) s.roster[k].ups.forEach((u, t) => { if (!u && s.roster[k].level >= P.UPGRADE_LEVELS[t]) P.pickUpgrade(s, k, t, P.upgradeChoices(k, t)[0].id); }); game.persist(); },
   skip() { if (!battle) return; while (!battle.result) step(battle, DT); if (!ended) { ended = true; setTimeout(finish, 200); } } };
 boot().catch((e) => { loading('Vael could not start: ' + e.message, true); });

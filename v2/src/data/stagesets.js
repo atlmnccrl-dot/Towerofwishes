@@ -91,5 +91,30 @@ export const STAGE_SETS = {
     tufts: { list: ['w:plant_mushroom_purple', 'w:nat_rock_grey'], k: 1, gap: [3, 6], jitter: 6 },
     light: { tint: 'rgba(140,90,200,0.35)', glow: [[-3.4, 26, 42], [5, 26, 42]], fog: 0.6, fogCol: '150,120,190', vignette: 0.65 }, weather: 'embers',
   },
+  // the opening: the Barrow in a storm, the night Vael's dead woke (graves at a person's height or less)
+  storm: {
+    sky: ['#05040a', '#130f22', '#261b34'], sun: { x: 0.62, y: 0.3, r: 34, col: 'rgba(214,206,240,1)', glow: 'rgba(150,130,220,0.3)', disc: '#d8d2ee', dr: 15 }, clouds: 'rgba(40,32,60,0.9)',
+    ridges: [{ col: '#120e1a', base: 34, amp: 14, p: 0.05, freq: 0.18 }, { col: '#0d0a14', base: 16, amp: 6, p: 0.1, freq: 0.35 }],
+    mid: { list: ['tree_dark_a', 'monolith_b', 'tree_dark_b', 'monolith_a'], col: '#0a0810', k: 0.55, p: 0.45, gap: [2, 4.5], base: 2 },
+    haze: 'rgba(90,70,130,0.35)',
+    back: [['tree_dark_a', -14, 0, 1.1], ['monolith_a', -10, 0], ['grave_cross', -7.5, 0, 0.65], ['grave_a', -6.2, 0, 0.6], ['cd_brazier', -4.5, 0],
+      ['grave_cross', -2.6, 0, 0.6, true], ['tomb', 0.4, 0, 0.9], ['grave_a', 2.8, 0, 0.6, true], ['monolith_b', 5, 0], ['grave_cross', 7, 0, 0.65],
+      ['cd_brazier', 8.6, 0], ['grave_a', 10.4, 0, 0.6], ['tree_dark_b', 13.5, 0, 1.1, true], ['monolith_c', 16, 0], ['cd_skull_on_pike', 18.5, 0]],
+    ground: { tex: 'w:t_flagstone_dark', edge: '#1a1424', shade: 'rgba(0,0,0,0.7)' },
+    tufts: { list: ['w:plant_mushroom_purple', 'w:nat_rock_grey'], k: 1, gap: [3, 6], jitter: 6 },
+    light: { tint: 'rgba(110,80,190,0.4)', glow: [[-4.5, 26, 36, '150,110,255'], [8.6, 26, 36, '150,110,255']], fog: 0.9, fogCol: '120,100,170', vignette: 0.75 }, weather: 'rain',
+  },
+  // the opening: the last stand at the abbey wall, at a red dusk, fires burning along the line
+  warfield: {
+    sky: ['#1a0e1a', '#7a2a24', '#e0743a'], sun: { x: 0.5, y: 0.86, r: 46, col: 'rgba(255,170,90,1)', glow: 'rgba(255,90,40,0.45)', disc: '#ffc27a' }, clouds: 'rgba(60,20,30,0.75)',
+    ridges: [{ col: '#4a1e26', base: 30, amp: 10, p: 0.05, freq: 0.15 }, { col: '#2e1218', base: 14, amp: 6, p: 0.1, freq: 0.3 }],
+    mid: { list: ['temple', 'arch_a', 'ruin_wall', 'pillar', 'ruin_pillar'], col: '#200c14', k: 0.45, p: 0.45, gap: [2.5, 5], base: 2 },
+    haze: 'rgba(255,110,60,0.35)',
+    back: [['ruin_wall', -13, 0], ['pillar_broken', -9.5, 0], ['cd_banner_red', -7.4, 0], ['ruin_pillar', -4.8, 0], ['arch_a', -1, 0], ['cd_banner_red', 2.6, 0],
+      ['pillar_broken', 5, 0, 1, true], ['statue', 8.2, 0], ['ruin_wall', 12, 0, 1, true], ['ruin_pillar', 15.6, 0], ['arch_a', 19.5, 0]],
+    ground: { tex: 'w:t_flagstone_mossy', edge: '#3a2a22', shade: 'rgba(30,0,0,0.6)' },
+    tufts: { list: ['w:nat_rock_grey', 'w:plant_fern'], k: 1, gap: [2.5, 5], jitter: 6 },
+    light: { tint: 'rgba(255,90,50,0.4)', glow: [[-6, 6, 50], [3.5, 6, 50], [11, 6, 50]], rays: '255,150,90', vignette: 0.6 }, weather: 'embers',
+  },
 };
 export const REGION_STAGE = { r1: 'meadow', r2: 'fen', r3: 'dunes', r4: 'abbey', r5: 'pass', r6: 'barrow' };

@@ -56,28 +56,30 @@ Product ids must match exactly (they are in `src/game/economy.js`):
 - The shop shows the store's own localized prices. "Restore purchases" is in the shop (Apple requires it).
 - Purchases are checked on the device only. A receipt-validation server would stop tampering; for a
   single-player game with no trading this is a common trade-off, and can be added later.
-- Gem packs only speed things up. Every recruit, region and item can be earned by playing; there are
+- Gem packs only speed things up. Every hero, region and item can be earned by playing; there are
   no random paid boxes for characters (gear chests bought with gems show what they can contain).
 
 ## Store listing (draft; edit freely)
 
 - **Name:** Vael: Sellsword Company
-- **Subtitle (iOS, 30 chars):** Recruit. Equip. Conquer.
+- **Subtitle (iOS, 30 chars):** Spin. Lead. Reclaim.
 - **Short description (Play, 80 chars):** Build a company of sellswords and fight across a fallen pixel-art kingdom.
 - **Description:**
-  > The old kingdom of Vael is gone, and its dead walk the roads. Sign a company charter in a border
-  > town and lead your sellswords across six regions: river roads, drowned fens, salt deserts, a sunken
+  > The old kingdom of Vael is gone, its dead walk the roads, and a wyrm sleeps under its barrow. Lead
+  > a company of sellswords across six regions: river roads, drowned fens, salt deserts, a sunken
   > abbey, the frozen north, and the barrow where the kingdom was buried.
   >
   > • Take back the six Seals of Vael, one from each region's boss, and reclaim the throne.
   > • Rebuild your camp into a citadel: six buildings, each with lasting bonuses, raised with materials
   >   gathered across the kingdom.
-  > • Recruit 23 heroes, each met on the road at the moment they join.
+  > • Every run starts with a spin of the wheel: it picks your leader, who always fights and gives the
+  >   whole squad their perk. Lose a battle or take a Seal, and the wheel spins again.
+  > • Eight heroes, each different: three to start, five more freed by beating region bosses.
   > • Build a team of five and set its formation. Battles play themselves, or switch to Manual and
   >   unleash each hero's ability at the moment you choose.
   > • Level up, train, equip and upgrade gear, and choose four upgrades for every hero.
   > • 60 story missions and 60 heroic ones, with bosses at the end of every region.
-  > • Daily bounties and 23 feats to earn.
+  > • Daily bounties and 28 feats to earn.
   > • Play offline. No ads. No account.
 - **Category:** Games → Role Playing (secondary: Strategy)
 - **Age rating:** fantasy violence, no blood, no chat, no ads → 9+ (Apple), PEGI 7 / Everyone 10+ (Google);
@@ -86,8 +88,8 @@ Product ids must match exactly (they are in `src/game/economy.js`):
   Data safety form). The policy is in `docs/PRIVACY.md`; host it on any public page (both stores need a URL)
   and add your support email.
 - **Screenshots:** ready in `docs/store/` (landscape, JPEG): `iphone-6.9/` (2868×1320, the App Store's 6.9"
-  size, which also covers the smaller iPhones), `ipad-13/` (2752×2064) and `android/` (1920×1080). Nine each:
-  title, camp, Stronghold, map, team, battle, victory, heroes, a story scene. Remake them after visual changes:
+  size, which also covers the smaller iPhones), `ipad-13/` (2752×2064) and `android/` (1920×1080). Ten each:
+  the opening, title, the wheel, camp, Stronghold, map, team, battle, victory, heroes. Remake them after visual changes:
   `NODE_PATH=$(npm root -g) node v2/tools/store-shots.mjs`.
 - **What's new (1.0.0):** First release.
 
@@ -125,7 +127,7 @@ Product ids must match exactly (they are in `src/game/economy.js`):
 - [ ] Automated checks pass (see `README.md`: the Node tests and `test/browser-check.js`).
 - [ ] Played on a real iPhone, a real iPad and a real Android phone: performance in big battles, audio
       after the first tap, safe areas on notched phones, leaving and returning mid-battle, the back button
-      (Android), vibration, a full first session (opening, first three missions, the first recruit).
+      (Android), vibration, a full first session (opening, the wheel, first three missions, a lost battle and a new spin).
 - [ ] App icon and splash checked on the home screen (`npm run icons` regenerates them).
 - [ ] Version and build numbers set (above).
 - [ ] TestFlight / internal testing round with a few players before the public release.

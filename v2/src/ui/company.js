@@ -22,7 +22,7 @@ export function renderCompany(game, focus) {
   const keys = Object.keys(UNITS), inTeam = (k) => s.team.some((t) => t.key === k);
   const members = keys.filter((k) => s.roster[k]).sort((a, b) => inTeam(b) - inTeam(a));
   const list = $('#c-roster'); list.replaceChildren();
-  $('#c-count').textContent = `${members.length} of ${keys.length} recruited`;
+  $('#c-count').textContent = `${members.length} of ${keys.length} heroes free`;
   for (const k of members) {
     const d = UNITS[k], m = s.roster[k], pend = P.pendingUpgrade(s, k) >= 0;
     list.append(h('button.rcard' + (k === sel ? '.on' : ''), { type: 'button', vars: { '--c': clsVar(d.cls) }, onclick: () => { sel = k; renderCompany(game); }, 'aria-pressed': String(k === sel), 'aria-label': d.name },
@@ -30,7 +30,7 @@ export function renderCompany(game, focus) {
       pend ? h('span.dot', { title: 'An upgrade to pick', 'aria-label': 'An upgrade to pick' }) : inTeam(k) ? h('span.tm', { title: 'In the team', 'aria-label': 'In the team' }) : null));
   }
   for (const k of keys.filter((k) => !s.roster[k])) {
-    const where = MISSIONS.find((m) => m.recruit === k), hint = where ? `Joins in ${regionOf(where).name}` : 'Not met yet';
+    const where = P.unlockedBy(k), hint = where ? `Freed by beating ${where.name} (${regionOf(where).name})` : 'Locked';
     list.append(h('div.rcard.locked', { title: hint }, face(UNITS[k].set, 42, true), h('span.nm', null, '???')));
   }
   renderDetail(game);
@@ -120,7 +120,7 @@ function renderDetail(game) {
   }
 
   if (tab === 'train') {
-    body.append(h('p.note', null, `Training raises a stat for good. Ranks go up to the recruit's level, ${P.TRAIN_MAX} at most.`));
+    body.append(h('p.note', null, `Training raises a stat for good. Ranks go up to the hero's level, ${P.TRAIN_MAX} at most.`));
     for (const [stt, label] of [['hp', 'Health'], ['atk', 'Attack'], ['def', 'Defence']]) {
       const r = m.train[stt], cost = P.trainCost(r), capped = r >= P.TRAIN_MAX || r >= m.level;
       body.append(h('div.trow', null,
