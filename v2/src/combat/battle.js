@@ -15,6 +15,7 @@
 //   limit (seconds), elites ([[foe index, affix]]), hazard ('rockfall' | 'fire' | 'lightning'), and the
 //   run's boons ({ id: level }, data/boons.js).
 import { UNITS, ENEMIES, SUMMONS, SLOTS, WAVES } from '../data/units.js';
+import { PHASES, SUPER_EVERY, SUPER_WARN, SUPER_RADIUS, SUPER_HIT } from '../data/phases.js';
 
 export const TIME_LIMIT = 120;
 // after FURY seconds every blow lands harder (+5% a second), so a battle neither side can finish ends
@@ -142,6 +143,7 @@ export function step(b, dt) {
   stepShots(b, dt);
   separate(b);
   for (const u of b.units) clamp(u);
+  bossSupers(b);
   if (b.hz) hazards(b, dt);
   boonTicks(b, dt);
   for (const u of b.units) if (u.regen && alive(u)) { u.regenT = (u.regenT || 0) + dt; if (u.regenT >= u.regen) { u.regenT = 0; u.shield = Math.max(u.shield, Math.round(u.max * 0.25)); u.shieldT = 1e9; b.events.push({ type: 'shield', u: u.id }); } }
@@ -163,6 +165,33 @@ function boonTicks(b, dt) {
     if (left.length === 1 && b.units.some((u) => hero(u) && !u.summoned && !alive(u))) { b.lastStand = left[0]; left[0].lastStand = true; b.events.push({ type: 'proc', boon: 'laststand', u: left[0].id, text: 'Last Stand!', fx: 'fire_shield', col: '#ff9a5a', big: true }); }
   }
 }
+// ---- boss phases (data/phases.js): at half health the boss transforms and calls for help
+function phaseUp(b, u) {
+  const P = PHASES[u.key]; u.phased = true;
+  addStatus(u, { type: 'buff', stat: 'atk', pct: 0.3, t: 999 }); addStatus(u, { type: 'buff', stat: 'spd', pct: 0.2, t: 999 });
+  u.shield = Math.max(u.shield, Math.round(u.max * 0.15)); u.shieldT = 8;
+  addStatus(u, { type: 'stun', t: 1.2 }); u.act = null;   // the roar: a moment's stillness
+  P.adds.forEach((k, i) => {
+    const a = addUnit(b, ENEMIES[k], k, 'foe', [0, 0], b.level, null, b.foeMods);
+    a.x = Math.min(FIELD.w / 2 - 0.5, u.x + 1.4); a.y = Math.max(-3, Math.min(3, u.y + (i ? 1.6 : -1.6))); a.hunter = true;
+    b.events.push({ type: 'summon', u: a.id });
+  });
+  if (P.hazard && !b.hazard) { b.hazard = P.hazard; b.hz = b.hz || { next: 3, list: [] }; b.hz.next = Math.min(b.hz.next, 3); }
+  u.superAt = b.t + 3.5;
+  b.events.push({ type: 'phase', u: u.id, title: P.title, line: P.line });
+}
+// a phased boss winds up its great attack on the company: a wide ring where they stand, then the blow
+function bossSupers(b) {
+  for (const u of b.units) {
+    if (!u.phased || !alive(u) || b.t < u.superAt) continue;
+    u.superAt = b.t + SUPER_EVERY;
+    const heroes = teamOf(b, 'ally').filter((x) => !x.ward); if (!heroes.length) continue;
+    const x = heroes.reduce((a, h) => a + h.x, 0) / heroes.length, y = heroes.reduce((a, h) => a + h.y, 0) / heroes.length, P = PHASES[u.key];
+    const w = { x, y, r: SUPER_RADIUS, t: SUPER_WARN, kind: 'super', src: u.id, name: P.super[0], fx: P.super[1] };
+    if (!b.hz) b.hz = { next: 1e9, list: [] };
+    b.hz.list.push(w); b.events.push({ type: 'warn', x, y, r: w.r, t: w.t, kind: 'super', name: w.name, u: u.id });
+  }
+}
 // rockfall, fire or lightning: a warning ring on the ground, then the strike; everyone in it is hurt
 function hazards(b, dt) {
   const H = b.hz; H.next -= dt;
@@ -173,7 +202,8 @@ function hazards(b, dt) {
   }
   for (const w of H.list) {
     w.t -= dt; if (w.t > 0) continue;
-    w.done = true; b.events.push({ type: 'strike', x: w.x, y: w.y, r: w.r, kind: b.hazard });
+    w.done = true; b.events.push({ type: 'strike', x: w.x, y: w.y, r: w.r, kind: w.kind || b.hazard, fx: w.fx });
+    if (w.kind === 'super') { const src = b.units.find((q) => q.id === w.src); for (const u of b.units) if (u.team === 'ally' && alive(u) && Math.hypot(u.x - w.x, u.y - w.y) <= w.r + u.r) damage(b, src && alive(src) ? src : null, u, 0, { raw: Math.round(u.max * (u.ward ? 0.12 : SUPER_HIT)), hazard: true }); continue; }
     for (const u of b.units) if (alive(u) && Math.hypot(u.x - w.x, u.y - w.y) <= w.r + u.r) damage(b, null, u, 0, { raw: Math.round(u.max * (u.def.boss ? 0.04 : u.ward ? 0.06 : 0.12)), hazard: true });
   }
   H.list = H.list.filter((w) => !w.done);
@@ -314,6 +344,7 @@ export function damage(b, src, t, m, o = {}) {
     t.raged = true; addStatus(t, { type: 'buff', stat: 'atk', pct: 0.5, t: 999 }); addStatus(t, { type: 'buff', stat: 'spd', pct: 0.4, t: 999 });
     b.events.push({ type: 'proc', u: t.id, text: 'Enraged!', fx: 'fire_ring', col: '#ff7a5a' });
   }
+  if (t.def.boss && t.team === 'foe' && !t.phased && t.hp > 0 && t.hp < t.max * 0.5 && PHASES[t.key]) phaseUp(b, t);
   if (t.hp <= 0) fall(b, src, t);
   else if (!o.dot) t.hitT = 0.22; // a short flinch for the renderer; it does not interrupt the unit
   if (src && o.raw == null && !o.dot) onHit(b, src, t, d, crit, o);

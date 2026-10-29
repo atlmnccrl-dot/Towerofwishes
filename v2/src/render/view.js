@@ -306,6 +306,8 @@ export function createView(canvas, fxAtlas, tiles, settings = () => ({ shake: tr
         if (u.team === 'foe') floaters.push({ text: big ? 'DEFEATED' : 'K.O.', x: u.x, y: u.y, z: 2.4, t: 0, col: big ? '#ffcf6a' : '#ffe7a8', big, word: true });
       }
       else if (e.type === 'fury') { flashA = 0.35; flashCol = '255,90,40'; cam.shake = Math.max(cam.shake, 3); }
+      // a boss's second phase: fire around it, the screen jolts
+      else if (e.type === 'phase' && u) { spawn('fire_ring', u.x, u.y, 0.05, { add: true, ground: true, scale: 3.4 }); spawn('star_burst', u.x, u.y, 1.4, { add: true, scale: 2.2 }); flashA = 0.5; flashCol = '255,90,60'; cam.shake = 10; }
       // a boon going off (its effect, and its name for the big ones), an arc of lightning
       else if (e.type === 'proc') {
         const at = u || null;
@@ -316,11 +318,13 @@ export function createView(canvas, fxAtlas, tiles, settings = () => ({ shake: tr
       // a hazard: the warning ring stays until the strike
       else if (e.type === 'warn') {
         warns.push({ x: e.x, y: e.y, r: e.r, t: 0, life: e.t, kind: e.kind });
+        if (e.kind === 'super') floaters.push({ text: e.name, x: e.x, y: e.y, z: 0.6, t: 0, col: '#ff8a6a', big: true, word: true });
         const fall = { rockfall: 'rock', fire: 'fireball_big', lightning: null }[e.kind];
         if (fall) spawn(fall, e.x, e.y, 7, { delay: e.t - 0.35, vz: -20, life: 0.35, scale: 1.6 });
       } else if (e.type === 'strike') {
-        const S = { rockfall: ['rock_burst', true], fire: ['explosion_fire', false], lightning: ['bolt_strike', false] }[e.kind] || ['boom', false];
-        spawn(S[0], e.x, e.y, S[1] ? 0.05 : 0.8, { add: !S[1], ground: S[1], scale: S[1] ? 2.4 : 1.8 });
+        const S = { rockfall: ['rock_burst', true], fire: ['explosion_fire', false], lightning: ['bolt_strike', false], super: [e.fx || 'explosion_fire', false] }[e.kind] || ['boom', false];
+        spawn(S[0], e.x, e.y, S[1] ? 0.05 : 0.8, { add: !S[1], ground: S[1], scale: S[1] ? 2.4 : e.kind === 'super' ? 3.2 : 1.8 });
+        if (e.kind === 'super') { spawn('shockwave', e.x, e.y, 0.05, { add: true, ground: true, scale: 4.2 }); flashA = Math.max(flashA, 0.45); flashCol = '255,120,80'; cam.shake = Math.max(cam.shake, 8); }
         if (e.kind === 'lightning') { flashA = Math.max(flashA, 0.4); flashCol = '210,225,255'; }
         cam.shake = Math.max(cam.shake, 3.2);
       }
@@ -332,7 +336,7 @@ export function createView(canvas, fxAtlas, tiles, settings = () => ({ shake: tr
     warns = warns.filter((w) => {
       w.t += dt; if (w.t > w.life) return false;
       const p = P(w.x, w.y), rx = w.r * PPM * cam.zoom, ry = rx * SQUASH, k = w.t / w.life, pulse = 0.5 + 0.5 * Math.sin(w.t * 18);
-      const col = { rockfall: '255,190,120', fire: '255,110,60', lightning: '170,200,255' }[w.kind] || '255,90,80';
+      const col = { rockfall: '255,190,120', fire: '255,110,60', lightning: '170,200,255', super: '255,50,40' }[w.kind] || '255,90,80';
       ctx.fillStyle = `rgba(${col},${0.12 + 0.18 * k})`; ctx.beginPath(); ctx.ellipse(p.x, p.y, rx * k, ry * k, 0, 0, Math.PI * 2); ctx.fill();
       ctx.strokeStyle = `rgba(${col},${0.5 + 0.4 * pulse})`; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(p.x, p.y, rx, ry, 0, 0, Math.PI * 2); ctx.stroke();
       return true;

@@ -252,7 +252,7 @@ function onCue(c) {
   } else if (c === 'go') { $('#hud').classList.remove('intro'); tip(game, 'battle'); openingLines(); }
 }
 // a word across the field at the start and the end
-function banner(text, cls = '') { const b = $('#banner'); b.textContent = text; b.className = cls; b.hidden = false; b.style.animation = 'none'; void b.offsetWidth; b.style.animation = ''; clearTimeout(banner.t); banner.t = setTimeout(() => (b.hidden = true), 1100); }
+function banner(text, cls = '') { const b = $('#banner'); b.textContent = text; b.className = cls; b.hidden = false; b.style.animation = 'none'; void b.offsetWidth; b.style.animation = ''; clearTimeout(banner.t); banner.t = setTimeout(() => (b.hidden = true), cls === 'phase' ? 2200 : 1100); }
 // Auto: abilities fire on their own; off: the player taps a ready hero's card
 function setAuto(on) {
   game.save.settings.auto = on; $('#auto').setAttribute('aria-pressed', String(on)); $('#auto').textContent = on ? 'Auto' : 'Manual';
@@ -432,6 +432,11 @@ function frame(now) {
     }
     battle.events = events; lastEvents = events;
     for (const e of events) if (e.type === 'wave') { banner(`Wave ${e.n} of ${e.of}`, 'fight'); view.shake(4); game.haptics.buzz('hit'); }
+    for (const e of events) if (e.type === 'phase') {
+      // a boss's second phase: its words, its new name across the screen
+      const bu = battle.units.find((x) => x.id === e.u); banner(e.title, 'phase'); say(bu, e.line); talk.cd = 0;
+      game.audio.play('horn', { gain: 1 }); game.audio.play('quake', { gain: 0.8 }); game.haptics.buzz('big');
+    }
     comboTick(events, real);
     talkTick(events, real);
     game.audio.battleEvents(battle);

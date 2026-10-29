@@ -59,6 +59,7 @@ export function createDirector(view) {
       else if (e.type === 'hit' && e.crit) hold = Math.max(hold, 0.05);
       else if (e.type === 'proc' && e.big && u) { lean = { x: u.x, y: u.y, t: 0.8 }; slow(0.35, 0.5); }
       else if (e.type === 'wave') slow(0.5, 0.4);
+      else if (e.type === 'phase' && u) { lean = { x: u.x, y: u.y, t: 2.2 }; hold = Math.max(hold, 0.25); slow(0.25, 1.6); }   // a boss transforms: the camera holds on it
       else if (e.type === 'ko' && u && !u.summoned) { hold = Math.max(hold, u.elite ? 0.12 : 0.06); slow(0.5, 0.3); if (u.def.boss) { lean = { x: u.x, y: u.y, t: 1.4 }; slow(0.25, 1.2); } }
     }
     // the camera: towards the middle of the fighters still standing, tighter as fewer remain

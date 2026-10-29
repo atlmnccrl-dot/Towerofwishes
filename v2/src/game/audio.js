@@ -75,7 +75,7 @@ export function createAudio(getSettings) {
       else if (e.type === 'proc') play(e.big ? 'magic' : e.fx === 'ignite' || e.fx === 'explosion_fire' ? 'fire' : e.fx === 'ice_shatter' ? 'ice' : 'magic', { gain: e.big ? 0.9 : 0.35, gap: 0.15 });
       else if (e.type === 'wave') play('horn', { gain: 0.8 });
       else if (e.type === 'warn') play('charge', { gain: 0.3, gap: 0.3 });
-      else if (e.type === 'strike') play(e.kind === 'fire' ? 'fire' : e.kind === 'lightning' ? 'bolt' : 'quake', { gain: 0.9 });
+      else if (e.type === 'strike') play(e.kind === 'fire' ? 'fire' : e.kind === 'lightning' ? 'bolt' : e.kind === 'super' ? 'blow_big' : 'quake', { gain: e.kind === 'super' ? 1 : 0.9 });
       else if (e.type === 'end') { play(e.result === 'win' ? 'victory' : 'defeat', { gain: 0.9, vary: 0 }); duck(); }
     }
   }
