@@ -93,7 +93,8 @@ function renderSheet(game, m, regionDone) {
       reward(icon('bag', 18), done ? 'Chance' : H ? 'Rare+' : 'Gear'),
       reward(matIcon(m.region), (done ? '1-3' : m.boss ? '12' : '5') + (H ? ' ×2' : ''), '.matrw'),
       done < 3 ? reward(gemIcon(), H ? '10' : (!done && m.boss ? '30' : '5')) : null,
-      !H && !done && P.sealOf(m.region) === m && P.UNLOCKS[m.region] && !s.roster[P.UNLOCKS[m.region]] ? reward(face(UNITS[P.UNLOCKS[m.region]].set, 22, true), 'Frees a hero', '.who') : null)].filter(Boolean));
+      !H && !done && P.sealOf(m.region) === m && P.UNLOCKS[m.region] && !s.roster[P.UNLOCKS[m.region]] ? reward(face(UNITS[P.UNLOCKS[m.region]].set, 22, true), 'Frees a hero', '.who') : null,
+      !H && !done && m.recruit && !s.roster[m.recruit] ? reward(face(UNITS[m.recruit].set, 22, true), 'Recruit', '.who') : null)].filter(Boolean));
   sheet.replaceChildren(body, h('button.btn.big.primary', { type: 'button', onclick: () => { game.heroic = H; s.flags.at = m.id; game.persist(); game.needRun(() => game.go('prep', m.id)); } }, icon('swords', 20), s.run ? 'Prepare' : 'Spin & prepare'));
 }
 
@@ -299,7 +300,7 @@ function afterWin(game, rw, m, then = 'map') {
     else if (then === 'heroes') game.go('company');
     else game.go('map', m.id);
   };
-  if (rw.joined) game.playScene(joinScene(rw.joined, rw.runEnded ? rw.runEnded.leader : game.save.team[0] ? game.save.team[0].key : 'corvin', m.region)).then(() => showRecruit(game, rw.joined, toMap));
+  if (rw.joined) game.playScene(joinScene(rw.joined, rw.runEnded ? rw.runEnded.leader : game.save.run ? game.save.run.leader : game.save.team[0] ? game.save.team[0].key : 'corvin', m.region)).then(() => showRecruit(game, rw.joined, toMap));
   else toMap();
 }
 export function showStory(game, title, text, button, after, ending = false) {
@@ -316,7 +317,7 @@ export function showRecruit(game, key, after = () => game.go('map')) {
   card.style.setProperty('--c', clsVar(d.cls));
   card.replaceChildren(
     h('div.rays'),
-    h('div.jtag', null, 'A hero is freed · now on the wheel'),
+    h('div.jtag', null, P.onWheel(key) ? 'A hero is freed · now on the wheel' : 'A new recruit joins the company'),
     h('div.jart', null, heroArt(d.set, artPx() + 1)),
     h('div.jname', null, d.name), h('div.jtitle', null, d.title),
     h('div.cls', { vars: { '--c': clsVar(d.cls) } }, `${CLASSES[d.cls].name} · Level ${m.level}`),

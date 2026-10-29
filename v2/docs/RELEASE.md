@@ -74,7 +74,8 @@ Product ids must match exactly (they are in `src/game/economy.js`):
   >   gathered across the kingdom.
   > • Every run starts with a spin of the wheel: it picks your leader, who always fights and gives the
   >   whole squad their perk. Lose a battle or take a Seal, and the wheel spins again.
-  > • Eight heroes, each different: three to start, five more freed by beating region bosses.
+  > • 23 heroes, each different. Eight can lead from the wheel: three to start, five freed by beating
+  >   region bosses. Fifteen more are met on the road and join your squad.
   > • Build a team of five and set its formation. Battles play themselves, or switch to Manual and
   >   unleash each hero's ability at the moment you choose.
   > • Level up, train, equip and upgrade gear, and choose four upgrades for every hero.
@@ -127,7 +128,7 @@ Product ids must match exactly (they are in `src/game/economy.js`):
 - [ ] Automated checks pass (see `README.md`: the Node tests and `test/browser-check.js`).
 - [ ] Played on a real iPhone, a real iPad and a real Android phone: performance in big battles, audio
       after the first tap, safe areas on notched phones, leaving and returning mid-battle, the back button
-      (Android), vibration, a full first session (opening, the wheel, first three missions, a lost battle and a new spin).
+      (Android), vibration, a full first session (opening, the wheel, first three missions, the first recruit, a lost battle and a new spin).
 - [ ] App icon and splash checked on the home screen (`npm run icons` regenerates them).
 - [ ] Version and build numbers set (above).
 - [ ] TestFlight / internal testing round with a few players before the public release.

@@ -169,16 +169,20 @@ export function grantRewards(s, missionId, b, rnd, heroic = false) {
   s.mats[m.region] = (s.mats[m.region] || 0) + mat; out.mats = { [m.region]: mat };
   const drops = out.first ? 1 + (stars === 3 ? 1 : 0) : rnd() < 0.35 + stars * 0.1 ? 1 : 0;
   for (let i = 0; i < drops; i++) { const it = Object.assign(rollItem(m.level + (heroic ? HEROIC.level : 0), rnd, heroic ? HEROIC.loot : 0), { uid: s.uid++ }); s.inv.push(it); out.loot.push(it); }
+  // a recruit met on the road joins on the first clear
+  if (out.first && !heroic && m.recruit && !s.roster[m.recruit]) join(s, m.recruit, out);
   if (out.first && !heroic && sealOf(m.region) === m) {
-    // a Seal of Vael: the hero it frees joins at the company's level, and the run ends in triumph
+    // a Seal of Vael: the hero it frees goes on the wheel, and the run ends in triumph
     const k = UNLOCKS[m.region];
-    if (k && !s.roster[k]) {
-      s.roster[k] = newMember(Math.max(1, Math.round(avgLevel(s)))); s.joined.push(k); out.joined = k;
-      if (s.team.length < MAX_TEAM) { const slot = freeSlot(s, k); if (slot != null) s.team.push({ key: k, slot }); }
-    }
+    if (k && !s.roster[k]) { join(s, k, out); out.freed = true; }
     out.runEnded = endRun(s, true);
   }
   return out;
+}
+// a new member joins at the company's level, so new faces are worth fielding; into the team if there is room
+function join(s, k, out) {
+  s.roster[k] = newMember(Math.max(1, Math.round(avgLevel(s)))); s.joined.push(k); out.joined = k;
+  if (s.team.length < MAX_TEAM) { const slot = freeSlot(s, k); if (slot != null) s.team.push({ key: k, slot }); }
 }
 export const avgLevel = (s) => { const l = Object.values(s.roster).map((m) => m.level); return l.reduce((a, b) => a + b, 0) / l.length; };
 
@@ -294,7 +298,9 @@ function endRun(s, triumph = false) {
   return r;
 }
 // which boss frees a locked hero
-export const unlockedBy = (k) => { const rid = Object.keys(UNLOCKS).find((r) => UNLOCKS[r] === k); return rid ? sealOf(rid) : null; };
+// the mission that brings a hero in: a region's seal for the wheel's heroes, the meeting on the road for a recruit
+export const unlockedBy = (k) => { const rid = Object.keys(UNLOCKS).find((r) => UNLOCKS[r] === k); return rid ? sealOf(rid) : MISSIONS.find((m) => m.recruit === k) || null; };
+export const onWheel = (k) => HEROES.includes(k);
 
 // ---- the long goal: the six Seals of Vael, and the Stronghold the company rebuilds on the way
 // Every region's last mission (its boss) guards a seal; the sixth reclaims the throne. Every mission

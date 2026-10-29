@@ -14,14 +14,14 @@ const types = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'applic
 const wrap = (b) => `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body>${b}</body></html>`;
 const server = http.createServer((q, r) => { const u = decodeURIComponent(q.url.split('?')[0]), f = path.join(root, u === '/' ? 'index.html' : u); fs.readFile(f, (e, d) => { if (e) { r.writeHead(404); r.end(); return; } r.writeHead(200, { 'content-type': types[path.extname(f)] || 'application/octet-stream' }); r.end(u === '/' ? wrap(d.toString()) : d); }); }).listen(8817);
 
-// a company that has cleared the first three regions: six of the eight heroes free, levels in the thirties, a run under way
+// a company that has cleared the first three regions: six wheel heroes free and the recruits met on the way, levels in the thirties, a run under way
 async function showcase(page) {
   await page.evaluate(async () => {
     const P = await import('/src/game/progress.js'), C = await import('/src/data/campaign.js'), U = await import('/src/data/units.js');
     const g = window.__v2.game, s = P.newSave();
     const done = C.MISSIONS.filter((m) => ['r1', 'r2', 'r3'].includes(m.region));
     for (const m of done) s.cleared[m.id] = m.boss ? 3 : 2 + (m.id.length % 2);
-    for (const k of P.HEROES.slice(0, 6)) s.roster[k] = { level: 38 + (k.length % 5), xp: 0, gear: { weapon: null, armor: null, charm: null }, train: { hp: 6, atk: 5, def: 4 }, ups: [null, null, null, null] };
+    for (const k of [...P.HEROES.slice(0, 6), ...done.map((m) => m.recruit).filter(Boolean)]) s.roster[k] = { level: 38 + (k.length % 5), xp: 0, gear: { weapon: null, armor: null, charm: null }, train: { hp: 6, atk: 5, def: 4 }, ups: [null, null, null, null] };
     s.gold = 18450; s.gems = 640; s.keep = { barracks: 3, treasury: 2, forge: 2, yard: 1, shrine: 3, hall: 2 }; s.mats = { r1: 41, r2: 26, r3: 19, r4: 6 }; s.flags = { at: done[done.length - 1].id }; s.stats.wins = 40;
     s.run = { leader: 'wren', wins: 7 }; s.runs = { count: 4, best: 12 };
     for (const k of ['map', 'prep', 'battle', 'extras', 'loot', 'upgrade', 'lose', 'keep']) s.flags['tip_' + k] = true;

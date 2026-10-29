@@ -22,7 +22,7 @@ export function renderCompany(game, focus) {
   const keys = Object.keys(UNITS), inTeam = (k) => s.team.some((t) => t.key === k);
   const members = keys.filter((k) => s.roster[k]).sort((a, b) => inTeam(b) - inTeam(a));
   const list = $('#c-roster'); list.replaceChildren();
-  $('#c-count').textContent = `${members.length} of ${keys.length} heroes free`;
+  $('#c-count').textContent = `${members.length} of ${keys.length} in the company`;
   for (const k of members) {
     const d = UNITS[k], m = s.roster[k], pend = P.pendingUpgrade(s, k) >= 0;
     list.append(h('button.rcard' + (k === sel ? '.on' : ''), { type: 'button', vars: { '--c': clsVar(d.cls) }, onclick: () => { sel = k; renderCompany(game); }, 'aria-pressed': String(k === sel), 'aria-label': d.name },
@@ -30,7 +30,7 @@ export function renderCompany(game, focus) {
       pend ? h('span.dot', { title: 'An upgrade to pick', 'aria-label': 'An upgrade to pick' }) : inTeam(k) ? h('span.tm', { title: 'In the team', 'aria-label': 'In the team' }) : null));
   }
   for (const k of keys.filter((k) => !s.roster[k])) {
-    const where = P.unlockedBy(k), hint = where ? `Freed by beating ${where.name} (${regionOf(where).name})` : 'Locked';
+    const where = P.unlockedBy(k), hint = !where ? 'Locked' : P.onWheel(k) ? `Freed by beating ${where.name} (${regionOf(where).name})` : `Met on ${where.name} (${regionOf(where).name})`;
     list.append(h('div.rcard.locked', { title: hint }, face(UNITS[k].set, 42, true), h('span.nm', null, '???')));
   }
   renderDetail(game);
@@ -68,6 +68,9 @@ function renderDetail(game) {
       st.dr ? stat('Damage taken', '-' + pct(st.dr)) : null,
       ...extra.map((x) => stat({ power: 'Ability', energy: 'Energy gain', lifesteal: 'Lifesteal', healPower: 'Healing', summonPower: 'Summons', start: 'Start energy' }[x], x === 'start' ? '+' + Math.round(st.start) : '+' + pct((mods[x] || 0) + ((d.passive || {})[x] || 0))))));
     body.append(h('div.ability', null, h('b', null, d.ability.name), ' ', d.ability.desc));
+    // the wheel's heroes can lead a run; a recruit fights in the squad
+    body.append(P.onWheel(k) ? h('div.perk', null, h('b', null, 'On the wheel · ' + P.LEADERS[k].name), h('span', null, P.LEADERS[k].desc))
+      : h('div.note', null, 'A recruit: fights in the squad, but the wheel never picks them to lead.'));
     if (d.passive) body.append(h('div.passive', null, h('b', null, d.passive.name + ':'), ' ', d.passive.desc));
     P.UPGRADE_LEVELS.forEach((lv, tier) => {
       const picked = m.ups[tier], open = m.level >= lv;

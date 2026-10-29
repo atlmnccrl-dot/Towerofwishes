@@ -24,7 +24,7 @@ const before = strip(s);
 let rw = P.grantRewards(s, 'r1m1', fake('lose', 0, s), r);
 assert.equal(rw.win, false); assert.equal(strip(s), before); assert.equal(s.stats.losses, 1);
 
-// a first clear: three stars, gold, xp, loot (heroes are freed by the region bosses, below)
+// a first clear: three stars, gold, xp, loot (no one is met on the first mission)
 rw = P.grantRewards(s, 'r1m1', fake('win', 0, s), r);
 assert.equal(rw.stars, 3); assert.ok(rw.first && rw.gold > 0 && rw.loot.length === 2); assert.equal(rw.gems, 5);
 assert.equal(rw.joined, null);
@@ -122,5 +122,15 @@ assert.equal(P.decodeSave(code).gold, 777); assert.equal(P.decodeSave(code.slice
   assert.equal(seal.joined, P.UNLOCKS.r1); assert.ok(w.roster[P.UNLOCKS.r1]); assert.ok(seal.runEnded && seal.runEnded.triumph); assert.equal(w.run, null);
   assert.ok(P.unlocked(w).includes(P.UNLOCKS.r1)); assert.equal(P.unlockedBy(P.UNLOCKS.r2).region, 'r2');
   for (const k of P.HEROES) assert.ok(UNITS[k] && P.LEADERS[k], k);               // every wheel hero exists and has a perk
+  // a recruit met on the road joins the company on the first clear, fights, but never comes up on the wheel
+  const rec = MISSIONS.find((x) => x.recruit), r2 = P.newSave(); P.spin(r2, rr);
+  const met = P.grantRewards(r2, rec.id, fake('win', 0, r2), rr);
+  assert.equal(met.joined, rec.recruit); assert.ok(!met.freed && !met.runEnded); assert.ok(r2.roster[rec.recruit]); assert.ok(!P.onWheel(rec.recruit));
+  for (let i = 0; i < 100; i++) { r2.run = null; assert.ok(P.HEROES.includes(P.spin(r2, rr))); }
+  assert.equal(P.unlockedBy(rec.recruit), rec);
+  const recruits = MISSIONS.filter((x) => x.recruit).map((x) => x.recruit);
+  assert.equal(new Set(recruits).size, recruits.length);                           // each recruit is met once
+  assert.deepEqual([...P.HEROES, ...recruits].sort(), Object.keys(UNITS).sort());  // everyone is on the wheel or met on the road
+  for (const k of recruits) assert.ok(!P.HEROES.includes(k), k);
 }
 console.log('progress ok');

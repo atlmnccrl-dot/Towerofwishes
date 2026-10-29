@@ -122,13 +122,29 @@ export const OPENING = {
   ],
 };
 
-// what each freed hero says on joining the wheel (Proposal)
+// what each hero says on joining: the freed ones go on the wheel, the recruits join the squad (Proposal)
 export const JOIN_LINES = {
   hesta: 'The Warlord held my river for a year. You broke him. My spear is yours, for as long as the river runs.',
   thistle: 'The fen is quiet for the first time in years. The lanterns can burn without me. The wolves come too.',
   ysolde: 'The Roc kept me in its nest like a trinket. Thank you for burning it. I would like to burn a few more things.',
   moraine: 'My oath is broken, and so is my blade\'s master. Give me a better oath.',
   kesh: 'My debt is paid in blood and snow. Now I choose who I serve.',
+  // the recruits met on the road
+  pell: 'Somebody has to feed you lot. And I hit harder than I bake.',
+  brann: 'Nobody has stood up to me in the pit for a year. I will follow anyone who can.',
+  sable: 'The caller is dead and I am out of work. Hexes are cheaper by the dozen.',
+  vesk: 'I steal from the living and the dead alike. With you, at least, it pays.',
+  saela: 'The dawn order is one archer now. Let that archer ride with you.',
+  cairn: 'BOUND. THEN UNBOUND. I REMEMBER THE OATH OF THE ROAD. I WALK WITH YOU.',
+  osric: 'The north gate fell without me. I will not let another one fall.',
+  grath: 'The fen is in my blood. So is the fight.',
+  pip: 'I owe you my neck. I always pay my debts. Mostly.',
+  tam: 'My fists are slow to anger and quick to end it.',
+  nyssa: 'They burned my books. I will burn their banners. Fair trade.',
+  garrick: 'Thirty years with the guild and they left me holding the hall. You came back for me.',
+  ilse: 'Dawn breaks on the ones who stand. I will stand with you.',
+  rhys: 'I climbed for something I never found. Maybe it was down here.',
+  aldren: 'I called the dead from their graves. Let me spend what is left of me sending them back.',
 };
 
 // a recruit walks up to the company's leader and joins
