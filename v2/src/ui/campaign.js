@@ -109,8 +109,8 @@ function renderSheet(game, m, regionDone) {
   const go = ex ? [ex.region === m.region ? 'Continue expedition' : `Back to the road (${R(ex.region)})`, () => game.go('exp')]
     : done || H ? ['Replay', () => { game.heroic = H; s.flags.at = m.id; game.persist(); game.go('prep', m.id); }]
     : [P.unlocked(s).length < 2 ? 'Begin expedition' : 'Spin & begin expedition', () => { game.heroic = false; s.flags.at = m.id; game.persist(); game.beginExpedition(m.region); }];
-  sheet.replaceChildren(body, h('button.btn.big.primary', { type: 'button', onclick: go[1] }, icon('swords', 20), go[0]),
-    !ex && !done && !H ? h('small.sheet-note', null, `An expedition crosses ${R(m.region)} from its gate to its boss. Wounds carry between fights.`) : null);
+  sheet.replaceChildren(...[body, h('button.btn.big.primary', { type: 'button', onclick: go[1] }, icon('swords', 20), go[0]),
+    !ex && !done && !H ? h('small.sheet-note', null, `An expedition crosses ${R(m.region)} from its gate to its boss. Wounds carry between fights.`) : null].filter(Boolean));
 }
 
 // ---- power: the team's against the mission's (equal power wins about three times in four)
