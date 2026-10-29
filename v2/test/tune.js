@@ -19,7 +19,8 @@ const MIGHT = {};
 function winRate(m, might) {
   let w = 0, n = 0, worst = 1;
   for (const run of runs) {
-    const c = clone(run.s); manage(c, rng(run.seed), true, run.pick); let rw = 0;
+    const c = clone(run.s); manage(c, rng(run.seed), true, run.pick); if (c.run) c.run.boons = {};   // tuned without boons: a run's boons are pure gain
+    let rw = 0;
     for (let k = 0; k < SEEDS; k++) { rw += fight(c, m, run.seed * 31 + k * 7 + Math.round(might * 1000), false, might).result === 'win' ? 1 : 0; n++; }
     w += rw; worst = Math.min(worst, rw / SEEDS);
   }

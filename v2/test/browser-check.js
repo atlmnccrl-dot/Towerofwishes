@@ -18,7 +18,15 @@ const server = http.createServer((req, res) => {
 }).listen(8791);
 const browser = await chromium.launch();
 const errors = [];
-const visible = (page, sel) => page.waitForSelector(sel, { state: 'visible', timeout: 30000 });
+// waits for a screen; a boon on offer (after a win in a run) is picked on the way, as a player would
+async function visible(page, sel) {
+  for (let t = 0; t < 150; t++) {
+    if (await page.isVisible(sel)) return;
+    if (await page.isVisible('#boons') && sel !== '#boons') { await page.locator('#boons .boon').first().click(); await page.waitForTimeout(900); continue; }
+    await page.waitForTimeout(200);
+  }
+  return page.waitForSelector(sel, { state: 'visible', timeout: 1000 });
+}
 // filmed scenes come up on new games, recruits, regions and bosses: skip them (one is filmed in full below)
 async function skipScenes(page) { for (let k = 0; k < 6; k++) { await page.waitForTimeout(250); if (await page.isVisible('#scene')) await page.click('#sc-skip'); else return; } }
 // a run needs a leader: when the wheel comes up, spin it and take who it lands on
@@ -31,8 +39,11 @@ for (const [name, vp] of [['phone', { width: 844, height: 390 }], ['desktop', { 
   page.on('console', (m) => { if (m.type() === 'error') errors.push(name + ' console: ' + m.text()); });
   page.on('requestfailed', (r) => errors.push(name + ' failed: ' + r.url()));
   // tips are modal cards: a player taps "Got it" before anything else, and so does every click here
-  const click0 = page.click.bind(page), dismiss = async () => { for (let k = 0; k < 3 && await page.isVisible('#tip'); k++) { await click0('#tip .btn'); await page.waitForTimeout(150); } };
-  page.click = async (sel, o) => { if (!sel.startsWith('#tip')) await dismiss(); return click0(sel, o); };
+  const click0 = page.click.bind(page), dismiss = async () => {
+    if (await page.isVisible('#boons')) { await click0('#boons .boon'); await page.waitForTimeout(900); }
+    for (let k = 0; k < 3 && await page.isVisible('#tip'); k++) { await click0('#tip .btn'); await page.waitForTimeout(150); }
+  };
+  page.click = async (sel, o) => { if (!sel.startsWith('#tip') && !sel.startsWith('#boons')) await dismiss(); return click0(sel, o); };
   // every screenshot also checks the page for leaked placeholders in its text
   const shot = async (n) => {
     const bad = await page.evaluate(() => (document.body.innerText.match(/\b(null|undefined|NaN)\b/g) || []).join(','));
@@ -116,7 +127,7 @@ for (const [name, vp] of [['phone', { width: 844, height: 390 }], ['desktop', { 
     if (await page.isVisible('#join') && /m10$/.test(next) && (await page.textContent('#j-card')).includes('cleared')) await shot('16-story-' + next);
     for (let k = 0; k < 4; k++) { await skipScenes(page); if (await page.isVisible('#join')) await page.click('#j-card .btn.primary'); }
   }
-  console.log('losses', losses, 'runs', await page.evaluate(() => JSON.stringify(window.__v2.game.save.runs)));
+  console.log('losses', losses, 'runs', await page.evaluate(() => JSON.stringify(window.__v2.game.save.runs)), 'boons now', await page.evaluate(() => JSON.stringify(window.__v2.game.save.run && window.__v2.game.save.run.boons)));
   console.log('cleared', await page.evaluate(() => Object.keys(window.__v2.game.save.cleared).length), 'recruits', await page.evaluate(() => Object.keys(window.__v2.game.save.roster).length));
   await page.evaluate(() => window.__v2.go('map', 'r6m10'));
   await visible(page, '#map'); await shot('16-map-done');

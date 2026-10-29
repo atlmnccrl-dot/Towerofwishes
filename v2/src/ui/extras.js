@@ -83,7 +83,7 @@ function renderAch(game, body) {
 
 // ---- first-time tips: shown once each, near what they explain
 const TIPS = {
-  map: 'Each marker is a mission. Tap one to read it, then Prepare. Cleared missions can be replayed for gold, experience and gear.',
+  map: 'Each marker is a mission. Tap one to read it, then Prepare. Some missions have a job (hold out against waves, protect a cart, hunt a target) and elite foes with a trait. Cleared missions can be replayed for gold, experience and gear.',
   prep: 'Your team waits at the fire. Tap a hero below to see them, tap again to take them along or leave them at camp. Fighters take the front, archers, mages and healers the back.',
   battle: 'Battles play themselves. When a hero\'s gold bar fills they use their ability; switch Auto to Manual to pick the moment yourself by tapping their card.',
   loot: 'New gear goes to the Heroes screen. Auto-equip puts the best on the team in one tap.',

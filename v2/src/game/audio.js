@@ -72,6 +72,10 @@ export function createAudio(getSettings) {
         play(/fire|flame|ignite/.test(fx) ? 'fire' : /ice|frost/.test(fx) ? 'ice' : /rock|shock|quake/.test(fx) ? 'quake' : /slash|cleave|claw|multi/.test(fx) ? ['slash_0', 'slash_1', 'slash_2'] : 'magic', { gain: 0.8 });
       } else if (e.type === 'heal') play('heal_02', { gain: 0.35, gap: 0.2 });
       else if (e.type === 'ko') play('ko', { gain: 0.6 });
+      else if (e.type === 'proc') play(e.big ? 'magic' : e.fx === 'ignite' || e.fx === 'explosion_fire' ? 'fire' : e.fx === 'ice_shatter' ? 'ice' : 'magic', { gain: e.big ? 0.9 : 0.35, gap: 0.15 });
+      else if (e.type === 'wave') play('horn', { gain: 0.8 });
+      else if (e.type === 'warn') play('charge', { gain: 0.3, gap: 0.3 });
+      else if (e.type === 'strike') play(e.kind === 'fire' ? 'fire' : e.kind === 'lightning' ? 'bolt' : 'quake', { gain: 0.9 });
       else if (e.type === 'end') { play(e.result === 'win' ? 'victory' : 'defeat', { gain: 0.9, vary: 0 }); duck(); }
     }
   }

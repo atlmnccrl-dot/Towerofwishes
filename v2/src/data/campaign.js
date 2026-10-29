@@ -135,8 +135,52 @@ export const MISSIONS = [
   ]),
 ];
 
+// ---- what each mission asks of the company, beyond beating everyone on the field (Proposal)
+//   waves: more foes walk in (2 waves, 3 from the fifth region); protect: [name, sprite] of what the foes
+//   go for; hunt: the foe to kill (index in foes) within the time; ambush: foes on both sides.
+//   hazard: rockfall, fire or lightning strikes the field (a warning ring first).
+const JOBS = {
+  r1m2: { kind: 'protect', ward: ["The Miller's Cart", 'w:cd_supply_cart'] }, r1m4: { kind: 'waves' }, r1m5: { kind: 'hunt', mark: 1 },
+  r1m6: { kind: 'hunt', mark: 4 }, r1m7: { kind: 'ambush' }, r1m8: { kind: 'protect', ward: ['The Wounded', 'w:cd_bed_red'] }, r1m9: { hazard: 'rockfall' },
+  r2m1: { kind: 'protect', ward: ["The Warden's Cart", 'w:prop_hand_cart'] }, r2m2: { kind: 'waves' }, r2m3: { kind: 'ambush' }, r2m4: { kind: 'hunt', mark: 1 },
+  r2m5: { hazard: 'lightning' }, r2m6: { kind: 'waves' }, r2m7: { kind: 'ambush' }, r2m8: { kind: 'hunt', mark: 4 }, r2m9: { hazard: 'lightning' },
+  r3m1: { kind: 'hunt', mark: 0 }, r3m2: { kind: 'protect', ward: ['The Caravan', 'w:cd_supply_cart'] }, r3m3: { hazard: 'lightning' }, r3m4: { kind: 'waves' },
+  r3m5: { kind: 'protect', ward: ['The Library', 'w:cd_bookshelf'] }, r3m6: { kind: 'ambush' }, r3m7: { kind: 'waves' }, r3m8: { kind: 'hunt', mark: 0 }, r3m9: { kind: 'ambush', hazard: 'rockfall' },
+  r4m2: { kind: 'waves' }, r4m3: { kind: 'protect', ward: ['The Altar', 't:altar'] }, r4m4: { kind: 'waves', hazard: 'fire' }, r4m5: { kind: 'ambush' }, r4m6: { kind: 'hunt', mark: 0 },
+  r4m7: { kind: 'waves' }, r4m8: { kind: 'protect', ward: ['The Relics', 'w:cd_chest_gold'] }, r4m9: { kind: 'ambush', hazard: 'fire' },
+  r5m2: { kind: 'waves' }, r5m3: { kind: 'hunt', mark: 2 }, r5m4: { kind: 'waves' }, r5m5: { kind: 'protect', ward: ['The Supply Sled', 'w:cd_supply_cart'], hazard: 'rockfall' },
+  r5m6: { kind: 'ambush' }, r5m7: { kind: 'hunt', mark: 2 }, r5m8: { hazard: 'rockfall' }, r5m9: { kind: 'waves', hazard: 'rockfall' },
+  r6m1: { kind: 'waves' }, r6m2: { kind: 'hunt', mark: 0 }, r6m3: { kind: 'ambush' }, r6m4: { kind: 'hunt', mark: 4 }, r6m6: { kind: 'waves' },
+  r6m7: { hazard: 'fire' }, r6m9: { kind: 'ambush', hazard: 'fire' }, r6m10: { hazard: 'fire' },
+};
+export const HUNT_TIME = 50;
+const AFFIX_ORDER = ['shielded', 'enraged', 'splitting', 'vampiric', 'swift'];
+MISSIONS.forEach((m, i) => {
+  Object.assign(m, { kind: 'rout' }, JOBS[m.id]);
+  if (m.kind === 'hunt') m.limit = HUNT_TIME;
+  // reinforcements: the mission's own rank and file, coming in from the right
+  if (m.kind === 'waves') {
+    const common = m.foes.map(([k]) => k), n = m.region < 'r3' ? 2 : 3;
+    const wave = (j) => Array.from({ length: n }, (_, q) => [common[(q + j) % common.length], [1, 4, 0, 3, 2, 5][q]]);
+    m.waves = m.region >= 'r5' ? [wave(1), wave(2)] : [wave(1)];
+  }
+  // elites: one from the fourth mission on, two in the later regions (never the boss or the one to hunt)
+  const n = i < 3 ? 0 : i < 20 ? 1 : i < 40 ? 1 + (i % 2) : 2;
+  const pool = m.foes.map((f, q) => q).filter((q) => !ENEMIES[m.foes[q][0]].boss && !(m.kind === 'hunt' && q === m.mark)).reverse();
+  m.elites = pool.slice(0, n).map((q, j) => [q, AFFIX_ORDER[(i * 3 + j) % AFFIX_ORDER.length]]);
+});
+// what the mission card says the job is
+export function jobOf(m) {
+  return {
+    rout: null, waves: `Hold out: ${(m.waves || []).length + 1} waves`, protect: `Protect ${(m.ward || ['the cart'])[0].replace(/^The /, 'the ')}`,
+    hunt: `Hunt: kill the marked foe in ${m.limit} s`, ambush: 'Ambush: foes on both sides',
+  }[m.kind];
+}
+export const HAZARD_NAMES = { rockfall: 'Rockfall', fire: 'Firestorm', lightning: 'Lightning' };
+
 // how strong each mission's foes are beyond their level (tuned by test/tune.js)
 import { MIGHT } from './tuning.js';
+import { ENEMIES } from './units.js';
 for (const m of MISSIONS) m.might = MIGHT[m.id] || 1;
 
 // who joins where, on a mission's first clear: three or four a region, so every new face is an event.

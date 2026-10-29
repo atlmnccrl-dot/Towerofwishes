@@ -6,7 +6,7 @@ import * as P from '../src/game/progress.js';
 
 export function fight(s, m, seed, heroic = false, might) {
   const spec = P.battleSpec(m, heroic);
-  const b = createBattle({ team: P.teamFor(s), foes: spec.foes, level: spec.level, might: might != null ? might * (heroic ? P.HEROIC.might : 1) : spec.might, seed });
+  const b = createBattle(Object.assign({}, spec, { team: P.teamFor(s), boons: P.boonsOf(s), might: might != null ? might * (heroic ? P.HEROIC.might : 1) : spec.might, seed }));
   for (let i = 0; i < 60 * 125 && !b.result; i++) step(b, 1 / 60);
   return b;
 }
@@ -15,6 +15,7 @@ export function fight(s, m, seed, heroic = false, might) {
 // pick: which upgrade option to take (0, 1), or random when left out
 export function manage(s, r, casual = true, pick = process.env.PICK ? +process.env.PICK : undefined) {
   if (!s.run) P.spin(s, r);   // no run going: spin the wheel for a leader
+  if (s.run && s.run.pick) P.chooseBoon(s, s.run.pick[Math.floor(r() * s.run.pick.length) % s.run.pick.length]);   // a boon on offer: any of the three
   const keys = P.bestTeam(s);
   for (const k of keys) s.roster[k].ups.forEach((u, t) => { if (!u && s.roster[k].level >= P.UPGRADE_LEVELS[t]) P.pickUpgrade(s, k, t, P.upgradeChoices(k, t)[pick != null ? pick : r() < 0.5 ? 0 : 1].id); });
   P.autoEquip(s, keys);

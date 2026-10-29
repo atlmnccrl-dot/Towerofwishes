@@ -3,6 +3,7 @@
 import { UNITS, CLASSES, ENEMIES } from '../data/units.js';
 import { MISSIONS, REGIONS, START_ROSTER, missionById, missionsIn, regionOpen } from '../data/campaign.js';
 import { HEROES, UNLOCKS, LEADERS } from '../data/heroes.js';
+import { BOONS, offerBoons, boonMods } from '../data/boons.js';
 import { SLOTS, BASES, itemStats, upgradeCost, sellValue, rollItem, MAX_PLUS } from '../data/items.js';
 import { MOD_KEYS, statsAt } from '../combat/battle.js';
 
@@ -72,7 +73,7 @@ export function loadSave(raw) {
   s.stats = Object.assign(newSave().stats, raw.stats); s.flags = Object.assign({}, raw.flags); s.heroic = Object.assign({}, raw.heroic);
   s.settings = Object.assign(newSave().settings, raw.settings);
   s.keep = Object.assign({}, raw.keep); s.mats = Object.assign({}, raw.mats);
-  s.run = raw.run && s.roster[raw.run.leader] ? Object.assign({ wins: 0 }, raw.run) : null; s.runs = Object.assign({ count: 0, best: 0 }, raw.runs);
+  s.run = raw.run && s.roster[raw.run.leader] ? Object.assign({ wins: 0, boons: {}, pick: null }, raw.run) : null; s.runs = Object.assign({ count: 0, best: 0 }, raw.runs);
   if (typeof s.gems !== 'number') s.gems = 50;
   s.inv = (s.inv || []).filter((it) => BASES[it.base]);
   if (!Object.keys(s.roster).length) for (const k of START_ROSTER) s.roster[k] = newMember(1);   // a company always has its first hero
@@ -102,6 +103,7 @@ export function modsOf(s, key) {
   m.ups.forEach((id, tier) => { const u = id && upgradeChoices(key, tier).find((c) => c.id === id); if (u) add(u.mods); });
   const kb = keepBonus(s); if (kb.hp) add({ hp: kb.hp }); if (kb.atk) add({ atk: kb.atk });
   if (s.run && LEADERS[s.run.leader]) { add(LEADERS[s.run.leader].mods); if (key === s.run.leader) add(LEAD_EDGE); }
+  if (s.run) add(boonMods(s.run.boons));
   for (const k of Object.keys(out)) if (!MOD_KEYS.includes(k)) delete out[k];
   return out;
 }
@@ -137,8 +139,11 @@ export function missionPower(m, heroic = false) {
 export const POWER_PAR = 0.74;
 
 export function battleSpec(m, heroic = false) {
-  return { foes: m.foes, level: m.level + (heroic ? HEROIC.level : 0), might: (m.might || 1) * (heroic ? HEROIC.might : 1) };
+  return { foes: m.foes, level: m.level + (heroic ? HEROIC.level : 0), might: (m.might || 1) * (heroic ? HEROIC.might : 1),
+    kind: m.kind, waves: m.waves, ward: m.ward, mark: m.mark, limit: m.limit, elites: m.elites, hazard: m.hazard };
 }
+// the run's boons as the battle reads them
+export const boonsOf = (s) => (s.run ? s.run.boons : {});
 
 // Applies a finished battle to the save. Returns what to show: stars, gold, xp per recruit with
 // level-ups, loot, and who joined. A loss changes nothing (nothing is ever lost).
@@ -158,6 +163,7 @@ export function grantRewards(s, missionId, b, rnd, heroic = false) {
   s.gems += out.gems;
   const kb = keepBonus(s);
   out.gold = Math.round(missionGold(m) * (out.first ? 2 : 1) * (0.8 + stars * 0.1) * (heroic ? HEROIC.gold : 1) * (1 + kb.gold));
+  if (s.run && s.run.boons.bounty) out.gold = Math.round(out.gold * (1 + 0.25 * s.run.boons.bounty));
   s.gold += out.gold;
   const xp = Math.round(missionXp(m) * (out.first ? 1.5 : 1) * (heroic ? HEROIC.xp : 1));
   const inTeam = new Set(s.team.map((t) => t.key));
@@ -179,7 +185,15 @@ export function grantRewards(s, missionId, b, rnd, heroic = false) {
     if (k && !s.roster[k]) { join(s, k, out); out.freed = true; }
     out.runEnded = endRun(s, true);
   }
+  // the run goes on: three boons to choose one from (kept in the save until one is taken)
+  if (s.run) { s.run.pick = offerBoons(s.run.boons, s.run.wins, rnd); out.boonPick = s.run.pick; }
   return out;
+}
+// takes one of the offered boons (a boon taken again goes up a level)
+export function chooseBoon(s, id) {
+  if (!s.run || !s.run.pick || !s.run.pick.includes(id)) return false;
+  s.run.boons[id] = (s.run.boons[id] || 0) + 1; s.run.pick = null;
+  return true;
 }
 // a new member joins at the company's level, so new faces are worth fielding; into the team if there is room
 function join(s, k, out) {
@@ -281,7 +295,7 @@ export function pickUpgrade(s, key, tier, id) {
 // what is waiting for the player's attention on a recruit: an upgrade to pick
 export const pendingUpgrade = (s, key) => UPGRADE_LEVELS.findIndex((lv, t) => s.roster[key].level >= lv && !s.roster[key].ups[t]);
 
-export { CLASSES, MISSIONS, HEROES, UNLOCKS, LEADERS };
+export { CLASSES, MISSIONS, HEROES, UNLOCKS, LEADERS, BOONS };
 
 // ---- runs: the wheel picks a leader from the unlocked heroes; the run lasts until a battle is lost or a
 // Seal of Vael is taken. The leader always fights, gives the whole squad their perk, and fights harder.
@@ -289,7 +303,7 @@ export const LEAD_EDGE = { hp: 0.15, atk: 0.15 };
 export const unlocked = (s) => HEROES.filter((k) => s.roster[k]);
 export function spin(s, rnd) {
   const pool = unlocked(s), leader = pool[Math.floor(rnd() * pool.length) % pool.length];
-  s.run = { leader, wins: 0 }; s.runs.count++;
+  s.run = { leader, wins: 0, boons: {}, pick: null }; s.runs.count++;
   // the leader joins the squad: in a free place, or in place of the weakest
   if (!s.team.some((t) => t.key === leader)) {
     if (s.team.length >= MAX_TEAM) { const weakest = s.team.slice().sort((a, b) => power(s, a.key) - power(s, b.key))[0]; s.team = s.team.filter((t) => t !== weakest); }
@@ -300,7 +314,7 @@ export function spin(s, rnd) {
 // ends the run: what it was (leader, wins, how it ended), kept for the screens
 function endRun(s, triumph = false) {
   if (!s.run) return null;
-  const r = { leader: s.run.leader, wins: s.run.wins, triumph };
+  const r = { leader: s.run.leader, wins: s.run.wins, triumph, boons: s.run.boons };
   s.runs.best = Math.max(s.runs.best || 0, r.wins); s.lastRun = r; s.run = null;
   return r;
 }

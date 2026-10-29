@@ -9,6 +9,11 @@
 //   b.events         what happened this step, for the renderer
 //   b.result         null, then 'win' | 'lose' (the time limit counts as a loss)
 //   b.manual = true  the team's abilities wait at full charge until trigger(b, id) fires one
+//   A mission may add (see battleSpec in game/progress.js): kind ('rout' | 'waves' | 'protect' | 'ambush' |
+//   'hunt'), waves (more foe lists, each arriving when the field is clear or after WAVE_GAP s), ward
+//   ([name, prop sprite]: the thing to protect; it falling loses), mark (the foe to kill; its death wins),
+//   limit (seconds), elites ([[foe index, affix]]), hazard ('rockfall' | 'fire' | 'lightning'), and the
+//   run's boons ({ id: level }, data/boons.js).
 import { UNITS, ENEMIES, SUMMONS, SLOTS, WAVES } from '../data/units.js';
 
 export const TIME_LIMIT = 120;
@@ -17,7 +22,14 @@ export const FURY = 45;
 export const fury = (b) => (b.t > FURY ? 1 + 0.05 * (b.t - FURY) : 1);
 const FIELD = { w: 17, h: 7.4 };
 export const FIELD_SIZE = FIELD;
-const ENERGY_PER_ATTACK = 14, ENERGY_FROM_DAMAGE = 70, CAST_TIME = 0.7, CAST_POINT = 0.45;
+const ENERGY_PER_ATTACK = 14, ENERGY_FROM_DAMAGE = 70, CAST_TIME = 0.7, CAST_POINT = 0.45, WAVE_GAP = 20;
+// what an elite foe adds: more health and attack, and one trait
+export const AFFIXES = {
+  shielded: { name: 'Shielded', col: '#9fd8ff' }, enraged: { name: 'Enraged', col: '#ff7a5a' }, splitting: { name: 'Splitting', col: '#b6f07a' },
+  vampiric: { name: 'Vampiric', col: '#e05a8a' }, swift: { name: 'Swift', col: '#ffe07a' },
+};
+// the thing a 'protect' mission guards: it does not fight or move, and the foes go for it
+const WARD = { name: 'Supply Cart', cls: 'vanguard', ward: true, stats: { hp: 2400, atk: 0, def: 60, spd: 1, move: 0, range: 0, crit: 0 }, attack: { windup: 1, active: 0.1, recover: 0.5 } };
 
 export function rng(seed) {
   let a = seed >>> 0 || 1;
@@ -41,13 +53,41 @@ export function statsAt(def, level = 1, mods = {}) {
   };
 }
 
-export function createBattle({ team, wave, seed = 1, foes, level, might = 1 }) {
+export function createBattle({ team, wave, seed = 1, foes, level, might = 1, kind = 'rout', waves, ward, mark, limit, elites, hazard, boons }) {
   const W = wave ? WAVES[wave] : { foes, level: level || 1 };
   const foeMods = might !== 1 ? { hp: might - 1, atk: (might - 1) * 0.6 } : undefined;
-  const b = { t: 0, rnd: rng(seed), units: [], shots: [], events: [], result: null, wave, field: FIELD, nextId: 1 };
-  for (const m of team) addUnit(b, UNITS[m.key], m.key, 'ally', SLOTS[m.slot], m.level || 1, null, m.mods);
-  for (const [key, slot] of foes || W.foes) addUnit(b, ENEMIES[key], key, 'foe', SLOTS[slot], W.level, null, foeMods);
+  const b = { t: 0, rnd: rng(seed), units: [], shots: [], events: [], result: null, wave, field: FIELD, nextId: 1,
+    kind, limit: limit || TIME_LIMIT, boons: boons || {}, level: W.level, foeMods, queue: (waves || []).slice(), waveN: 1, waveAt: WAVE_GAP,
+    hazard: hazard || null, hz: hazard ? { next: 5 + seed % 3, list: [] } : null, hymnT: 0 };
+  b.waveOf = 1 + b.queue.length;
+  // an ambush: the company in the middle, the foes on both sides
+  const ambush = kind === 'ambush';
+  for (const m of team) { const u = addUnit(b, UNITS[m.key], m.key, 'ally', SLOTS[m.slot], m.level || 1, null, m.mods); if (ambush) u.x += 3.2; }
+  (foes || W.foes).forEach(([key, slot], i) => {
+    const u = addUnit(b, ENEMIES[key], key, 'foe', SLOTS[slot], W.level, null, foeMods);
+    if (ambush && i % 2) { u.x = -SLOTS[slot][0] - 1.6; u.f = 0; }
+    u.hunter = i % 2 === 1 || !!u.def.dive;   // in a 'protect' mission, these go for the ward
+  });
+  if (kind === 'protect') {
+    const [name, prop] = ward || [WARD.name, 'w:cd_supply_cart'];
+    b.ward = addUnit(b, Object.assign({}, WARD, { name, prop }), 'ward', 'ally', [3.8, 0], W.level, { ward: true, energy: 0 });
+  }
+  if (kind === 'hunt') { const foesL = b.units.filter((u) => u.team === 'foe'); b.mark = foesL[Math.min(mark || 0, foesL.length - 1)]; b.mark.mark = true; }
+  const foesL = b.units.filter((u) => u.team === 'foe');
+  for (const [i, affix] of elites || []) if (foesL[i] && !foesL[i].def.boss) makeElite(b, foesL[i], affix);
   return b;
+}
+function makeElite(b, u, affix) {
+  u.elite = affix; u.max = u.hp = Math.round(u.max * 1.6); u.s.atk *= 1.2; u.size = 1.15;
+  if (affix === 'swift') { u.s.spd *= 1.4; u.s.move *= 1.3; }
+  if (affix === 'vampiric') u.s.lifesteal += 0.25;
+  if (affix === 'shielded') { u.shield = Math.round(u.max * 0.35); u.shieldT = 1e9; u.regen = 8; }
+}
+// the next wave walks in from the right
+function spawnWave(b) {
+  const list = b.queue.shift(); b.waveN++; b.waveAt = b.t + WAVE_GAP;
+  list.forEach(([key, slot]) => { const u = addUnit(b, ENEMIES[key], key, 'foe', SLOTS[slot], b.level, null, b.foeMods); u.x = FIELD.w / 2 - 0.5; u.y = SLOTS[slot][1]; u.hunter = true; });
+  b.events.push({ type: 'wave', n: b.waveN, of: b.waveOf });
 }
 
 function addUnit(b, def, key, team, at, level, extra, mods) {
@@ -69,6 +109,15 @@ export function trigger(b, id) {
   u.fire = true; return true;
 }
 const teamOf = (b, t) => b.units.filter((u) => u.team === t && alive(u));
+// the run's boons: the level of one (0: not taken); heroes are the company's own fighters, not the ward
+const bo = (b, id) => b.boons[id] || 0;
+const hero = (u) => u.team === 'ally' && !u.ward;
+// a boon going off, for the renderer; the quiet ones at most once every `gap` seconds
+function proc(b, boon, u, fx, gap = 0) {
+  b.procAt = b.procAt || {};
+  if (gap && b.t - (b.procAt[boon] ?? -99) < gap) return;
+  b.procAt[boon] = b.t; b.events.push({ type: 'proc', boon, u: u && u.id, fx });
+}
 const foesOf = (b, u) => teamOf(b, u.team === 'ally' ? 'foe' : 'ally');
 const has = (u, type) => u.statuses.some((s) => s.type === type);
 function mult(u, stat) { let m = 1; for (const s of u.statuses) if (s.stat === stat) m *= s.type === 'buff' ? 1 + s.pct : 1 - s.pct; return m; }
@@ -92,8 +141,41 @@ export function step(b, dt) {
   stepShots(b, dt);
   separate(b);
   for (const u of b.units) clamp(u);
-  const a = teamOf(b, 'ally').length, f = teamOf(b, 'foe').length;
-  if (!f) end(b, 'win'); else if (!a) end(b, 'lose'); else if (b.t >= TIME_LIMIT) end(b, 'lose');
+  if (b.hz) hazards(b, dt);
+  boonTicks(b, dt);
+  for (const u of b.units) if (u.regen && alive(u)) { u.regenT = (u.regenT || 0) + dt; if (u.regenT >= u.regen) { u.regenT = 0; u.shield = Math.max(u.shield, Math.round(u.max * 0.25)); u.shieldT = 1e9; b.events.push({ type: 'shield', u: u.id }); } }
+  const a = teamOf(b, 'ally').filter((u) => !u.ward).length, f = teamOf(b, 'foe').length;
+  if (b.queue.length && (!f || b.t >= b.waveAt)) spawnWave(b);
+  else if (b.mark && !alive(b.mark)) end(b, 'win');
+  else if (!f) end(b, 'win');
+  else if (!a || (b.ward && !alive(b.ward))) end(b, 'lose');
+  else if (b.t >= b.limit) end(b, 'lose');
+}
+// the boons that run on the clock: the hymn's healing, the last hero standing
+function boonTicks(b, dt) {
+  if (bo(b, 'hymn')) {
+    b.hymnT += dt;
+    if (b.hymnT >= 8) { b.hymnT = 0; for (const u of teamOf(b, 'ally')) if (!u.ward) { const got = Math.min(u.max - u.hp, Math.round(u.max * 0.04 * bo(b, 'hymn'))); if (got > 0) { u.hp += got; b.events.push({ type: 'heal', u: u.id, amount: got }); } } proc(b, 'hymn', null, 'heal_loop'); }
+  }
+  if (bo(b, 'laststand') && !b.lastStand) {
+    const left = teamOf(b, 'ally').filter((u) => hero(u) && !u.summoned);
+    if (left.length === 1 && b.units.some((u) => hero(u) && !u.summoned && !alive(u))) { b.lastStand = left[0]; left[0].lastStand = true; b.events.push({ type: 'proc', boon: 'laststand', u: left[0].id, text: 'Last Stand!', fx: 'fire_shield', col: '#ff9a5a', big: true }); }
+  }
+}
+// rockfall, fire or lightning: a warning ring on the ground, then the strike; everyone in it is hurt
+function hazards(b, dt) {
+  const H = b.hz; H.next -= dt;
+  if (H.next <= 0) {
+    H.next = 6 + b.rnd() * 3;
+    const live = b.units.filter((u) => alive(u) && !u.ward), v = live[Math.floor(b.rnd() * live.length) % Math.max(1, live.length)];
+    if (v) { const w = { x: v.x + (b.rnd() - 0.5) * 1.2, y: v.y + (b.rnd() - 0.5) * 0.8, r: 1.5, t: 1.6 }; H.list.push(w); b.events.push({ type: 'warn', x: w.x, y: w.y, r: w.r, t: w.t, kind: b.hazard }); }
+  }
+  for (const w of H.list) {
+    w.t -= dt; if (w.t > 0) continue;
+    w.done = true; b.events.push({ type: 'strike', x: w.x, y: w.y, r: w.r, kind: b.hazard });
+    for (const u of b.units) if (alive(u) && Math.hypot(u.x - w.x, u.y - w.y) <= w.r + u.r) damage(b, null, u, 0, { raw: Math.round(u.max * (u.def.boss ? 0.04 : u.ward ? 0.06 : 0.12)), hazard: true });
+  }
+  H.list = H.list.filter((w) => !w.done);
 }
 function end(b, r) {
   b.result = r; b.events.push({ type: 'end', result: r });
@@ -112,8 +194,12 @@ function tickStatuses(b, u, dt) {
 
 // ---- what a unit does
 function act(b, u, dt) {
+  if (u.def.ward) { u.state = 'idle'; return; }
   if (u.act) return u.act.kind === 'cast' ? tickCast(b, u, dt) : tickAttack(b, u, dt);
   u.atkCd -= dt;
+  // the company (and the quick foes) step out of a warning on the ground
+  const w = b.hz && (u.team === 'ally' || u.def.dive) && !u.def.boss && b.hz.list.find((w) => Math.hypot(u.x - w.x, u.y - w.y) < w.r + u.r);
+  if (w) { const a = Math.atan2(u.y - w.y, u.x - w.x) || 0, sp = u.s.move * mult(u, 'move') * dt; u.x += Math.cos(a) * sp; u.y += Math.sin(a) * sp; u.f = a; u.state = 'move'; return; }
   const t = pickTarget(b, u);
   if (!t) { u.state = 'idle'; return; }
   u.target = t.id;
@@ -136,6 +222,7 @@ function pickTarget(b, u) {
   if (!foes.length) return null;
   const taunter = foes.find((o) => has(o, 'taunt'));
   if (taunter) return taunter;
+  if (u.team === 'foe' && u.hunter && b.ward && alive(b.ward)) return b.ward;
   const cur = u.target && b.units.find((o) => o.id === u.target && alive(o));
   if (u.def.dive) {
     // strikers hunt the weakest they can find, and stick to them
@@ -199,10 +286,20 @@ function stepShots(b, dt) {
 export function damage(b, src, t, m, o = {}) {
   if (!alive(t)) return 0;
   const atk = src ? src.s.atk * mult(src, 'atk') : 40;
-  const crit = !o.dot && src && b.rnd() < src.s.crit;
-  let d = atk * m * (100 / (100 + t.s.def * mult(t, 'def'))) * (0.92 + b.rnd() * 0.16) * (crit ? 1.6 : 1);
-  d *= 1 - t.s.dr; for (const s of t.statuses) if (s.type === 'dr') d *= 1 - s.pct;
-  d *= fury(b);
+  const crit = o.raw == null && !o.dot && src && b.rnd() < src.s.crit;
+  let d;
+  if (o.raw != null) d = o.raw;   // a hazard, thorns, a pyre: a set amount
+  else {
+    d = atk * m * (100 / (100 + t.s.def * mult(t, 'def'))) * (0.92 + b.rnd() * 0.16) * (crit ? 1.6 : 1);
+    d *= 1 - t.s.dr; for (const s of t.statuses) if (s.type === 'dr') d *= 1 - s.pct;
+    d *= fury(b);
+    if (src && hero(src)) {
+      if (bo(b, 'executioner') && t.hp < t.max * 0.3) { d *= 1 + 0.4 * bo(b, 'executioner'); proc(b, 'executioner', t, 'cross_slash', 2); }
+      if (bo(b, 'giant') && (t.def.boss || t.elite)) { d *= 1 + 0.3 * bo(b, 'giant'); proc(b, 'giant', t, 'hit_big', 3); }
+      if (src.lastStand) d *= 1.6 + 0.4 * bo(b, 'laststand');
+    }
+  }
+  if (t.lastStand) d *= 0.5;
   d = Math.max(1, Math.round(d));
   let left = d;
   if (t.shield > 0) { const ab = Math.min(t.shield, left); t.shield -= ab; left -= ab; }
@@ -210,11 +307,52 @@ export function damage(b, src, t, m, o = {}) {
   if (src) src.dealt += d;
   t.taken += d;
   t.energy = Math.min(100, t.energy + (d / t.max) * ENERGY_FROM_DAMAGE * t.s.energy);
-  if (src && src.s.lifesteal && !o.dot && alive(src)) { const got = Math.min(src.max - src.hp, Math.round(d * src.s.lifesteal)); src.hp += got; src.healed += got; }
-  b.events.push({ type: 'hit', u: t.id, src: src && src.id, dmg: d, crit, shielded: left < d, fx: o.fx, dot: o.dot });
-  if (t.hp <= 0) { t.state = 'ko'; t.st = 0; t.act = null; t.statuses = []; t.shield = 0; b.events.push({ type: 'ko', u: t.id }); }
+  if (src && src.s.lifesteal && !o.dot && o.raw == null && alive(src)) { const got = Math.min(src.max - src.hp, Math.round(d * src.s.lifesteal)); src.hp += got; src.healed += got; }
+  b.events.push({ type: 'hit', u: t.id, src: src && src.id, dmg: d, crit, shielded: left < d, fx: o.fx, dot: o.dot || o.raw != null && !o.hazard });
+  if (t.elite === 'enraged' && !t.raged && t.hp > 0 && t.hp < t.max / 2) {
+    t.raged = true; addStatus(t, { type: 'buff', stat: 'atk', pct: 0.5, t: 999 }); addStatus(t, { type: 'buff', stat: 'spd', pct: 0.4, t: 999 });
+    b.events.push({ type: 'proc', u: t.id, text: 'Enraged!', fx: 'fire_ring', col: '#ff7a5a' });
+  }
+  if (t.hp <= 0) fall(b, src, t);
   else if (!o.dot) t.hitT = 0.22; // a short flinch for the renderer; it does not interrupt the unit
+  if (src && o.raw == null && !o.dot) onHit(b, src, t, d, crit, o);
   return d;
+}
+// a hero's boons on a hit (and the thorns of a hero who is hit)
+function onHit(b, src, t, d, crit, o) {
+  if (hero(src) && alive(t)) {
+    if (bo(b, 'kindling') && b.rnd() < 0.15 * bo(b, 'kindling')) { addStatus(t, { type: 'dot', t: 3, per: 0.3, src }); proc(b, 'kindling', t, 'ignite'); }
+    if (bo(b, 'frostbite') && b.rnd() < 0.12 * bo(b, 'frostbite')) { addStatus(t, { type: 'debuff', stat: 'spd', pct: 0.35, t: 2.5 }); addStatus(t, { type: 'debuff', stat: 'move', pct: 0.35, t: 2.5 }); proc(b, 'frostbite', t, 'ice_shatter'); }
+  }
+  if (hero(src) && crit && bo(b, 'chain') && !o.chain) {
+    const near = foesOf(b, src).filter((v) => v !== t && dist(t, v) < 3.5).sort((p, q) => dist(t, p) - dist(t, q)).slice(0, bo(b, 'chain'));
+    for (const v of near) { b.events.push({ type: 'arc', u: v.id, x0: t.x, y0: t.y }); damage(b, src, v, 0.5, { chain: true, fx: 'shock' }); }
+  }
+  if (hero(t) && src.team === 'foe' && bo(b, 'thorns') && !src.def.attack.projectile && !o.ability && alive(src)) { damage(b, t, src, 0, { raw: Math.round(d * 0.25 * bo(b, 'thorns')) }); proc(b, 'thorns', src, 'hit_pierce', 1); }
+}
+// a unit falls: the boons and traits that answer a death
+function fall(b, src, t) {
+  // Second Wind: the first hero to fall gets back up
+  if (hero(t) && !t.summoned && bo(b, 'secondwind') && !b.revived) {
+    b.revived = true; t.hp = Math.round(t.max * (0.3 + 0.15 * bo(b, 'secondwind'))); t.statuses = []; t.act = null; t.state = 'idle';
+    b.events.push({ type: 'proc', boon: 'secondwind', u: t.id, text: 'Second Wind!', fx: 'phoenix', col: '#ffcf6a', big: true }); return;
+  }
+  t.state = 'ko'; t.st = 0; t.act = null; t.statuses = []; t.shield = 0; b.events.push({ type: 'ko', u: t.id });
+  if (hero(t) && !t.summoned && bo(b, 'martyr')) {
+    for (const a of teamOf(b, 'ally')) { const got = Math.min(a.max - a.hp, Math.round(a.max * 0.15 * bo(b, 'martyr'))); a.hp += got; a.shield = Math.max(a.shield, Math.round(a.max * 0.15)); a.shieldT = 5; b.events.push({ type: 'heal', u: a.id, amount: got }); }
+    b.events.push({ type: 'proc', boon: 'martyr', u: t.id, text: "Martyr's Oath", fx: 'holy_light', col: '#fff2b0' });
+  }
+  if (t.team === 'foe') {
+    if (src && hero(src) && alive(src) && bo(b, 'bloodlust')) { const p = 0.25 + 0.1 * bo(b, 'bloodlust'); addStatus(src, { type: 'buff', stat: 'atk', pct: p, t: 5 }); addStatus(src, { type: 'buff', stat: 'spd', pct: p, t: 5 }); proc(b, 'bloodlust', src, 'buff_up'); }
+    if (bo(b, 'pyre')) {
+      proc(b, 'pyre', t, 'explosion_fire');
+      for (const v of teamOf(b, 'foe')) if (dist(t, v) < 1.8 + v.r) damage(b, null, v, 0, { raw: Math.round(t.max * 0.2 * bo(b, 'pyre')) });
+    }
+    if (t.elite === 'splitting') {
+      b.events.push({ type: 'proc', u: t.id, text: 'Splits!', fx: 'poison_cloud', col: '#b6f07a' });
+      for (const s of [-1, 1]) { const c = addUnit(b, t.def, t.key, 'foe', [0, 0], t.level, { split: true, size: 0.75 }); c.x = t.x + s * 0.5; c.y = t.y + s * 0.4; c.max = c.hp = Math.round(t.max * 0.3); c.s.atk = t.s.atk * 0.6; c.hunter = t.hunter; }
+    }
+  }
 }
 function heal(b, src, t, m) {
   if (!alive(t)) return 0;
@@ -234,7 +372,7 @@ function tickCast(b, u, dt) {
   if (!a.done && u.st >= CAST_POINT) { a.done = true; resolve(b, u, b.units.find((o) => o.id === a.t)); }
   if (u.st >= CAST_TIME) { u.act = null; u.state = 'idle'; u.st = 0; u.atkCd = 0.2; }
 }
-function resolve(b, u, t) {
+function resolve(b, u, t, echo = false) {
   const foes = foesOf(b, u), allies = teamOf(b, u.team);
   if (!t || !alive(t)) t = foes.slice().sort((p, q) => dist(u, p) - dist(u, q))[0];
   const ab = u.def.ability;
@@ -246,7 +384,7 @@ function resolve(b, u, t) {
     } else if (e.type === 'damage') {
       const hitList = targetsFor(b, u, t, e, foes);
       for (const v of hitList) {
-        for (let i = 0; i < (e.hits || 1); i++) damage(b, u, v, e.mult * u.s.power, { fx: ab.fx });
+        for (let i = 0; i < (e.hits || 1); i++) damage(b, u, v, e.mult * u.s.power, { fx: ab.fx, ability: true });
         if (!alive(v)) continue;
         if (e.stun && !v.def.boss) addStatus(v, { type: 'stun', t: e.stun });
         else if (e.stun) addStatus(v, { type: 'stun', t: e.stun * 0.4 });
@@ -276,6 +414,9 @@ function resolve(b, u, t) {
       }
     }
   }
+  if (!hero(u) || echo) return;
+  if (bo(b, 'overflow')) { u.energy = Math.min(100, u.energy + 20 * bo(b, 'overflow')); proc(b, 'overflow', u, 'charge_up'); }
+  if (bo(b, 'echo') && b.rnd() < 0.25 * bo(b, 'echo') && alive(u)) { b.events.push({ type: 'proc', boon: 'echo', u: u.id, text: 'Echo!', fx: 'arc_gold', col: '#ffe07a' }); resolve(b, u, t, true); }
 }
 function targetsFor(b, u, t, e, foes) {
   if (!t) return [];
@@ -303,8 +444,8 @@ function separate(b) {
   for (let i = 0; i < us.length; i++) for (let j = i + 1; j < us.length; j++) {
     const a = us[i], c = us[j], d = dist(a, c), m = (a.r + c.r) * 0.95;
     if (d >= m || d < 1e-6) continue;
-    const p = (m - d) / 2, nx = (c.x - a.x) / d, ny = (c.y - a.y) / d;
-    a.x -= nx * p; a.y -= ny * p; c.x += nx * p; c.y += ny * p;
+    const p = (m - d) / 2, nx = (c.x - a.x) / d, ny = (c.y - a.y) / d, ka = a.ward ? 0 : c.ward ? 2 : 1, kc = c.ward ? 0 : a.ward ? 2 : 1;
+    a.x -= nx * p * ka; a.y -= ny * p * ka; c.x += nx * p * kc; c.y += ny * p * kc;
   }
 }
 function clamp(u) { const hw = FIELD.w / 2 - u.r, hh = FIELD.h / 2 - u.r; u.x = Math.max(-hw, Math.min(hw, u.x)); u.y = Math.max(-hh, Math.min(hh, u.y)); }

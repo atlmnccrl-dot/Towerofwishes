@@ -4,6 +4,8 @@
 import { framesOf, CLIPS, PHASES } from './assets.js';
 import { DIRS } from '../data/anims.js';
 import { ARENAS } from '../data/arenas.js';
+import { AFFIXES } from '../combat/battle.js';
+const AFX = Object.fromEntries(Object.entries(AFFIXES).map(([k, a]) => [k, a.col]));
 import { paintTerrain, atlasPixels } from './terrain.js';
 
 const BUF_H = 232, PPM = 26, SQUASH = 0.6, LIFT = 0.92;
@@ -193,9 +195,34 @@ export function createView(canvas, fxAtlas, tiles, settings = () => ({ shake: tr
     const [clip, fps, loop] = CLIPS[name];
     return { clip: name === 'idle' && cfg.stance ? cfg.stance : clip, fps, loop };
   }
+  // health over a unit: green for the company, red for foes; energy under it for the company's heroes
+  function bars(u, p, k) {
+    const w = u.def.boss ? 34 : u.elite || u.ward ? 30 : 24, x = Math.round(p.x - w / 2), y = p.y - Math.round((u.ward ? 30 : 50) * k);
+    if (u.elite) { ctx.strokeStyle = AFX[u.elite]; ctx.lineWidth = 1; ctx.strokeRect(x - 1.5, y - 1.5, w + 3, 6); }
+    ctx.fillStyle = 'rgba(10,8,8,0.88)'; ctx.fillRect(x - 1, y - 1, w + 2, u.team === 'ally' && !u.ward ? 7 : 5);
+    ctx.fillStyle = u.ward ? '#7fc8ff' : u.team === 'ally' ? '#6fcf6a' : '#e0564a'; ctx.fillRect(x, y, Math.max(1, Math.round(w * u.hp / u.max)), 3);
+    ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(x, y, Math.max(1, Math.round(w * u.hp / u.max)), 1);
+    if (u.shield > 0) { ctx.fillStyle = '#f4f1e6'; ctx.fillRect(x, y, Math.max(1, Math.round(w * Math.min(1, u.shield / u.max))), 1); }
+    if (u.team === 'ally' && !u.ward) { ctx.fillStyle = u.energy >= 100 ? '#ffd36b' : '#c9a24a'; ctx.fillRect(x, y + 4, Math.round(w * u.energy / 100), 2); }
+    // an elite's trait, the foe to hunt, the thing to protect: named over the bar
+    const tag = u.elite ? [AFFIXES[u.elite].name, AFX[u.elite]] : u.mark ? ['Target', '#ff6a5a'] : u.ward ? [u.def.name, '#bfe4ff'] : null;
+    if (tag) { ctx.font = '8px "Silkscreen", monospace'; ctx.textAlign = 'center'; ctx.fillStyle = '#120c0a'; ctx.fillText(tag[0], p.x + 1, y - 3); ctx.fillStyle = tag[1]; ctx.fillText(tag[0], p.x, y - 4); }
+    if (u.mark) { const t = performance.now() / 1000, yy = y - 14 + Math.sin(t * 6) * 1.5; ctx.fillStyle = '#ff5a4a'; ctx.beginPath(); ctx.moveTo(p.x - 4, yy - 5); ctx.lineTo(p.x + 4, yy - 5); ctx.lineTo(p.x, yy); ctx.fill(); }
+  }
+  // a still thing on the field (a cart, a bed, an altar): a sprite of the world or tiles atlas
+  function drawProp(u) {
+    const p = P(u.x, u.y);
+    if (u.state === 'ko') { if (u.st < 0.6) spawnOnce(u, 'smoke_burst'); return; }
+    prop({ name: u.def.prop, x: u.x, y: u.y, k: (u.def.prop.startsWith('w:') ? 0.75 : 0.6) * 2.6 });
+    if (u.flash > 0) { ctx.globalAlpha = Math.min(0.5, u.flash * 4); ctx.fillStyle = '#ffffff'; ctx.fillRect(p.x - 12 * cam.zoom, p.y - 24 * cam.zoom, 24 * cam.zoom, 24 * cam.zoom); ctx.globalAlpha = 1; }
+    if (!u.actor) bars(u, p, cam.zoom);
+  }
+  const spawned = new WeakSet();
+  function spawnOnce(u, name) { if (spawned.has(u)) return; spawned.add(u); spawn(name, u.x, u.y, 0.6, { scale: 1.6 }); }
   function drawUnit(u, dt) {
+    if (u.def.prop) return drawProp(u);
     const set = sprites[u.def.set]; if (!set) return;
-    const k = (set.cfg.scale || 1) * (u.def.scale || 1) * cam.zoom, p = P(u.x, u.y), at = u.z ? P(u.x, u.y, u.z) : p;
+    const k = (set.cfg.scale || 1) * (u.def.scale || 1) * (u.size || 1) * cam.zoom, p = P(u.x, u.y), at = u.z ? P(u.x, u.y, u.z) : p;
     const ps = pose(u), dir = dirOf(u.f);
     const frames = framesOf(set, ps.clip, dir) || framesOf(set, 'Idle', dir);
     let a = anim.get(u.id); if (!a || a.clip !== ps.clip) { a = { clip: ps.clip, t: 0 }; anim.set(u.id, a); }
@@ -207,19 +234,17 @@ export function createView(canvas, fxAtlas, tiles, settings = () => ({ shake: tr
     else { i = Math.floor(a.t * (ps.fps || 10)); i = ps.loop === false ? Math.min(frames.length - 1, i) : i % frames.length; }
     i = Math.max(0, Math.min(frames.length - 1, i));
     ctx.fillStyle = `rgba(10,18,8,${u.z ? 0.38 / (1 + u.z * 0.4) : 0.38})`; ctx.beginPath(); ctx.ellipse(p.x, p.y, 9 * k, 3.2 * k, 0, 0, Math.PI * 2); ctx.fill();
-    if (u.state !== 'ko' && !u.actor) { ctx.strokeStyle = u.team === 'ally' ? 'rgba(140,200,255,0.55)' : 'rgba(255,120,110,0.5)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(p.x, p.y, 10 * k, 3.6 * k, 0, 0, Math.PI * 2); ctx.stroke(); }
+    if (u.state !== 'ko' && !u.actor) {
+      ctx.strokeStyle = u.elite ? AFX[u.elite] : u.mark ? '#ff5a4a' : u.team === 'ally' ? 'rgba(140,200,255,0.55)' : 'rgba(255,120,110,0.5)'; ctx.lineWidth = u.elite || u.mark ? 2 : 1;
+      ctx.beginPath(); ctx.ellipse(p.x, p.y, 10 * k, 3.6 * k, 0, 0, Math.PI * 2); ctx.stroke();
+    }
     // a scene's silhouette (a lightning flash shows the real thing), or a hit's white flash
     const flash = u.dark && flashA < 0.25 ? [typeof u.dark === 'string' ? u.dark : '#07060c', 1] : u.flash > 0 ? ['#ffffff', Math.min(0.85, u.flash * 6)] : null;
     drawFrame(set, frames[i], at.x, at.y, k, u.alpha != null ? u.alpha : u.state === 'ko' ? Math.max(0, 1 - Math.max(0, u.st - 0.8) * 0.8) : 1, flash);
     if (u.state === 'ko' || u.actor) return;
-    // bars: health (shield over it in white), energy for the team
-    // bars big enough to read on a phone: health (shield over it in white), energy under it for the team
-    const w = u.def.boss ? 34 : 24, x = Math.round(p.x - w / 2), y = p.y - Math.round(50 * k);
-    ctx.fillStyle = 'rgba(10,8,8,0.88)'; ctx.fillRect(x - 1, y - 1, w + 2, u.team === 'ally' ? 7 : 5);
-    ctx.fillStyle = u.team === 'ally' ? '#6fcf6a' : '#e0564a'; ctx.fillRect(x, y, Math.max(1, Math.round(w * u.hp / u.max)), 3);
-    ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(x, y, Math.max(1, Math.round(w * u.hp / u.max)), 1);
-    if (u.shield > 0) { ctx.fillStyle = '#f4f1e6'; ctx.fillRect(x, y, Math.max(1, Math.round(w * Math.min(1, u.shield / u.max))), 1); }
-    if (u.team === 'ally') { ctx.fillStyle = u.energy >= 100 ? '#ffd36b' : '#c9a24a'; ctx.fillRect(x, y + 4, Math.round(w * u.energy / 100), 2); }
+    bars(u, p, k);
+    if (u.statuses.some((s) => s.type === 'dot')) drawFxAt('flame', u.x, u.y, 0.6, performance.now() / 1000 % 1, 0.45, { add: true });
+    if (u.statuses.some((s) => s.type === 'debuff' && s.stat === 'move')) { ctx.globalAlpha = 0.35; ctx.fillStyle = '#9fd8ff'; ctx.beginPath(); ctx.ellipse(p.x, p.y, 9 * k, 3.2 * k, 0, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1; }
     if (u.statuses.some((s) => s.type === 'stun')) drawFxAt('star_burst', u.x, u.y, 1.9, performance.now() / 1000 % 0.35, 0.6);
   }
 
@@ -265,7 +290,37 @@ export function createView(canvas, fxAtlas, tiles, settings = () => ({ shake: tr
       else if (e.type === 'summon' && u) spawn('summon', u.x, u.y, 0.6, { add: true, scale: 1.2 });
       else if (e.type === 'ko' && u) spawn('dust_cloud', u.x, u.y, 0.2, { scale: 1.1 });
       else if (e.type === 'fury') { flashA = 0.35; flashCol = '255,90,40'; cam.shake = Math.max(cam.shake, 3); }
+      // a boon going off (its effect, and its name for the big ones), an arc of lightning
+      else if (e.type === 'proc') {
+        const at = u || null;
+        if (e.fx && at) spawn(e.fx, at.x, at.y, e.fx === 'explosion_fire' || e.fx === 'phoenix' ? 0.6 : 1.0, { add: true, scale: e.big ? 1.4 : 0.9 });
+        if (e.text && at) floaters.push({ text: e.text, x: at.x, y: at.y, z: 2.6, t: -0.05, col: e.col || '#ffe7a8', big: !!e.big, word: true });
+        if (e.big) { flashA = Math.max(flashA, 0.22); flashCol = '255,220,150'; cam.shake = Math.max(cam.shake, 2.5); }
+      } else if (e.type === 'arc' && u) spawn('chain_lightning', (e.x0 + u.x) / 2, (e.y0 + u.y) / 2, 1.0, { add: true, scale: 0.9, flip: u.x < e.x0 });
+      // a hazard: the warning ring stays until the strike
+      else if (e.type === 'warn') {
+        warns.push({ x: e.x, y: e.y, r: e.r, t: 0, life: e.t, kind: e.kind });
+        const fall = { rockfall: 'rock', fire: 'fireball_big', lightning: null }[e.kind];
+        if (fall) spawn(fall, e.x, e.y, 7, { delay: e.t - 0.35, vz: -20, life: 0.35, scale: 1.6 });
+      } else if (e.type === 'strike') {
+        const S = { rockfall: ['rock_burst', true], fire: ['explosion_fire', false], lightning: ['bolt_strike', false] }[e.kind] || ['boom', false];
+        spawn(S[0], e.x, e.y, S[1] ? 0.05 : 0.8, { add: !S[1], ground: S[1], scale: S[1] ? 2.4 : 1.8 });
+        if (e.kind === 'lightning') { flashA = Math.max(flashA, 0.4); flashCol = '210,225,255'; }
+        cam.shake = Math.max(cam.shake, 3.2);
+      }
     }
+  }
+  // the hazards' warning rings: red, filling up as the strike comes
+  let warns = [];
+  function drawWarns(dt) {
+    warns = warns.filter((w) => {
+      w.t += dt; if (w.t > w.life) return false;
+      const p = P(w.x, w.y), rx = w.r * PPM * cam.zoom, ry = rx * SQUASH, k = w.t / w.life, pulse = 0.5 + 0.5 * Math.sin(w.t * 18);
+      const col = { rockfall: '255,190,120', fire: '255,110,60', lightning: '170,200,255' }[w.kind] || '255,90,80';
+      ctx.fillStyle = `rgba(${col},${0.12 + 0.18 * k})`; ctx.beginPath(); ctx.ellipse(p.x, p.y, rx * k, ry * k, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = `rgba(${col},${0.5 + 0.4 * pulse})`; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(p.x, p.y, rx, ry, 0, 0, Math.PI * 2); ctx.stroke();
+      return true;
+    });
   }
 
   // ---- one frame
@@ -283,6 +338,7 @@ export function createView(canvas, fxAtlas, tiles, settings = () => ({ shake: tr
     ctx.fillStyle = theme.edge; ctx.fillRect(-8, -8, buf.width + 16, buf.height + 16);
     const g0 = P(ground.ox, ground.oy);
     ctx.drawImage(ground.canvas, g0.x, g0.y, Math.round(ground.canvas.width * cam.zoom), Math.round(ground.canvas.height * cam.zoom));
+    drawWarns(dt);
     const items = [];
     for (const pr of props) items.push({ y: pr.y, draw: () => prop(pr) });
     for (const u of b.units) items.push({ y: u.y + (u.state === 'ko' ? -0.3 : 0), draw: () => drawUnit(u, dt) });
@@ -296,11 +352,12 @@ export function createView(canvas, fxAtlas, tiles, settings = () => ({ shake: tr
     banners = banners.filter((n) => { n.t += dt; const p = P(n.u.x, n.u.y, 2.5 + n.t * 0.3); ctx.globalAlpha = Math.max(0, Math.min(1, (1.4 - n.t) * 2)); ctx.fillStyle = '#120c0a'; ctx.fillText(n.text, p.x + 1, p.y + 1); ctx.fillStyle = n.team === 'ally' ? '#ffe7a8' : '#ffb0a8'; ctx.fillText(n.text, p.x, p.y); ctx.globalAlpha = 1; return n.t < 1.4; });
     // damage numbers: a pop on the hit, a crit twice the size; an outline so they read on any ground
     floaters = floaters.filter((n) => {
-      n.t += dt; const p = P(n.x, n.y, n.z + n.t * 0.9), pop = n.t < 0.12 ? 1.25 : 1;
-      ctx.font = `${n.big ? 16 : 8}px "Silkscreen", monospace`; ctx.globalAlpha = Math.max(0, Math.min(1, (1.05 - n.t) / 0.35));
+      n.t += dt; const life = n.word ? 1.5 : 1.05, p = P(n.x, n.y, n.z + Math.max(0, n.t) * (n.word ? 0.5 : 0.9)), pop = n.t < 0.12 ? 1.25 : 1;
+      if (n.t < 0) return true;
+      ctx.font = `${n.big ? 16 : 8}px "Silkscreen", monospace`; ctx.globalAlpha = Math.max(0, Math.min(1, (life - n.t) / 0.35));
       ctx.save(); ctx.translate(p.x, p.y); ctx.scale(pop, pop);
       ctx.fillStyle = '#120c0a'; for (const [ox, oy] of [[1, 1], [-1, 1], [1, -1], [-1, -1], [0, 2]]) ctx.fillText(n.text, ox, oy);
-      ctx.fillStyle = n.col; ctx.fillText(n.text, 0, 0); ctx.restore(); ctx.globalAlpha = 1; return n.t < 1.05;
+      ctx.fillStyle = n.col; ctx.fillText(n.text, 0, 0); ctx.restore(); ctx.globalAlpha = 1; return n.t < life;
     });
     ctx.font = '8px "Silkscreen", monospace';
     if (arena) arenaLight(dt);
@@ -320,5 +377,5 @@ export function createView(canvas, fxAtlas, tiles, settings = () => ({ shake: tr
   return { resize, draw, project, spawn, fit, room, setSprites(s) { sprites = s; },
     // for filmed scenes: a flash of light, a shake, a colour over everything
     flash(a = 0.5, col = '255,240,220') { flashA = a; flashCol = col; }, shake(n = 3) { cam.shake = Math.max(cam.shake, n); }, mood(m) { mood = m; },
-    reset() { fx = []; floaters = []; banners = []; anim.clear(); flashA = 0; mood = null; } };
+    reset() { fx = []; floaters = []; banners = []; warns = []; anim.clear(); flashA = 0; mood = null; } };
 }

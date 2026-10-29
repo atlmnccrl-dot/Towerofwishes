@@ -26,6 +26,8 @@ import { renderMap, renderPrep, renderRewards, drawMarks } from './ui/campaign.j
 import { renderExtras, tip } from './ui/extras.js';
 import { renderKeep, LOOK } from './ui/keep.js';
 import { renderWheel } from './ui/wheel.js';
+import { showBoons, boonRow } from './ui/boons.js';
+import { HAZARD_NAMES } from './data/campaign.js';
 
 const DT = 1 / 60, SPEEDS = [1, 2, 3], KEY = 'vael.save', BAK = 'vael.save.bak';
 const stage = $('#stage'), bg = $('#bg');
@@ -78,7 +80,7 @@ function go(name, arg) {
   for (const s of SECTIONS) $('#' + s).hidden = s !== name;
   bg.hidden = !['title', 'premise', 'camp', 'keep', 'prep'].includes(name);
   stage.hidden = name !== 'battle' && name !== 'scene'; $('#hud').hidden = name !== 'battle';
-  $('#result').hidden = true; $('#join').hidden = true; $('#loading').hidden = true;
+  $('#result').hidden = true; $('#join').hidden = true; $('#loading').hidden = true; $('#boons').hidden = true;   // a boon left on offer waits for the next fight
   if (name === 'title') renderTitle();
   if (name === 'camp') renderCamp();
   if (name === 'map') { game.ow.resize(); game.ow.setState({ save: game.save }); teamSprites(); renderMap(game, arg); }
@@ -119,7 +121,7 @@ function renderCamp() {
   $('#k-cta-region').textContent = next ? regionOf(next).name : hn ? regionOf(hn).name : 'Vael is reclaimed';
   $('#k-next').textContent = next ? `Next: ${next.name}` : hn ? `${hc} of ${MISSIONS.length} on Heroic · next: ${hn.name}` : `Every mission won on Heroic · ${stars} of ${MISSIONS.length * 3} stars`;
   const run = s.run, rc = $('#k-run');
-  if (run) { const d = UNITS[run.leader], f = face(d.set, 30); f.style.setProperty('--c', `var(--${d.cls})`); rc.replaceChildren(f, h('span', null, `${d.name.split(' ')[0]} leads`, h('small', null, `${P.LEADERS[run.leader].name} · ${run.wins} win${run.wins === 1 ? '' : 's'} this run`))); }
+  if (run) { const d = UNITS[run.leader], f = face(d.set, 30); f.style.setProperty('--c', `var(--${d.cls})`); rc.replaceChildren(f, h('span', null, `${d.name.split(' ')[0]} leads`, h('small', null, `${P.LEADERS[run.leader].name} · ${run.wins} win${run.wins === 1 ? '' : 's'}` + (Object.keys(run.boons).length ? ` · ${Object.keys(run.boons).length} boon${Object.keys(run.boons).length === 1 ? '' : 's'}` : '') + (run.pick ? ' · a boon to choose' : '')))); }
   else rc.replaceChildren(h('span', null, 'No leader yet', h('small', null, P.unlocked(s).length > 1 ? 'Spin the wheel to start a run' : 'A run starts with the next fight')));
   $('#k-go-label').textContent = run || P.unlocked(s).length < 2 ? 'To the map' : 'Spin the wheel';
   // the long goal: the six seals, one for each region's boss
@@ -192,13 +194,14 @@ async function fight() {
   const s = game.save, m = missionById(missionId);
   if (!s.run) { game.needRun(fight); return; }
   if (!s.team.length) { toast('Pick at least one hero'); return; }
+  if (s.run && s.run.pick) { showBoons(game, fight); return; }   // a boon still on offer: taken before the next fight
   loading('Marching out…');
-  const need = setsFor(s.team, m.foes).filter((x) => !sprites[x]);
+  const need = setsFor(s.team, m.foes.concat(...(m.waves || []))).filter((x) => !sprites[x]);
   try { Object.assign(sprites, await loadSprites(need)); } catch (e) { loading('Could not load the art. Check the connection and try again.', true); return; }
   // a boss's first meeting: the face-off, then the fight in the same place
   if (m.boss && !game.heroic && !s.flags['met_' + m.id]) { s.flags['met_' + m.id] = true; game.persist(); await playScene(bossScene(m, s.team.map((t) => t.key))); }
   const spec = P.battleSpec(m, game.heroic);
-  battle = createBattle({ team: P.teamFor(s), foes: spec.foes, level: spec.level, might: spec.might, seed: (Math.random() * 1e9) | 0 });
+  battle = createBattle(Object.assign({}, spec, { team: P.teamFor(s), boons: P.boonsOf(s), seed: (Math.random() * 1e9) | 0 }));
   battle.theme = m.theme; battle.arena = arenaFor(m);
   battle.manual = game.save.settings.auto === false;
   view.setSprites(sprites); view.reset();
@@ -207,11 +210,12 @@ async function fight() {
   const boss = battle.units.find((u) => u.team === 'foe' && u.def.boss);
   $('#bossbar').hidden = !boss; battle.boss = boss || null;
   if (boss) $('#boss-name').textContent = boss.def.name;
+  $('#hud-boons').replaceChildren(...boonRow(game, 18));
   setAuto(game.save.settings.auto !== false);
   game.audio.play('unsheathe_01');
   go('battle'); view.resize();
   acc = 0; ended = false; paused = false; slow = 0; lastEvents = []; $('#paused').hidden = true; $('#cutin').replaceChildren(); $('#danger').hidden = true;
-  drama = { allies: battle.units.filter((u) => u.team === 'ally').length, foes: battle.units.filter((u) => u.team === 'foe').length, m };
+  drama = { allies: battle.units.filter((u) => u.team === 'ally' && !u.ward).length, foes: battle.units.filter((u) => u.team === 'foe').length, m };
   // the start, filmed: a fight fought before gets the short version
   director.start(battle, { quick: !!s.cleared[m.id] || !!game.heroic });
   $('#hud').classList.add('intro');
@@ -228,7 +232,7 @@ function onCue(c) {
   } else if (c === 'heroes') { game.audio.play('charge', { gain: 0.6 }); game.haptics.buzz('tap'); }
   else if (c === 'fight') {
     $('#vs').classList.add('out'); setTimeout(() => ($('#vs').hidden = true), 400);
-    banner(battle.boss ? 'Boss fight' : 'Fight!', 'fight');
+    banner({ waves: 'Hold the line!', protect: 'Protect it!', hunt: 'Hunt!', ambush: 'Ambush!' }[battle.kind] || (battle.boss ? 'Boss fight' : 'Fight!'), 'fight');
     view.spawn('shockwave', 0, 0, 0.05, { add: true, ground: true, scale: 3.2 }); view.flash(0.45, '255,236,200'); view.shake(6);
     game.audio.play('horn', { gain: 0.9 }); game.audio.play('allout', { gain: 0.6 }); game.haptics.buzz('big');
   } else if (c === 'go') { $('#hud').classList.remove('intro'); tip(game, 'battle'); }
@@ -252,7 +256,7 @@ function pause(on) {
 }
 function buildAllies() {
   const el = $('#allies'); el.replaceChildren();
-  for (const u of battle.units.filter((u) => u.team === 'ally')) {
+  for (const u of battle.units.filter((u) => u.team === 'ally' && !u.ward)) {
     const f = face(u.def.set, 30); f.style.setProperty('--c', `var(--${u.def.cls})`);
     const c = h('div.chip', { role: 'button', 'aria-label': `${u.def.name}: ${u.def.ability.name}`, onclick: () => {
       if (!battle.manual || !trigger(battle, u.id)) return;
@@ -273,16 +277,22 @@ function updateHud() {
   }
   if (battle.boss) $('#boss-hp').style.width = `${Math.max(0, battle.boss.hp / battle.boss.max) * 100}%`;
   // the tug of war: each side's share of the health still standing; the edges pulse when the company is nearly down
-  const side = (team) => { let hp = 0, max = 0; for (const u of battle.units) if (u.team === team && !u.summoned) { hp += Math.max(0, u.hp); max += u.max; } return max ? hp / max : 0; };
+  const side = (team) => { let hp = 0, max = 0; for (const u of battle.units) if (u.team === team && !u.summoned && !u.ward) { hp += Math.max(0, u.hp); max += u.max; } return max ? hp / max : 0; };
   const a = side('ally'), f = side('foe'), sum = Math.max(0.0001, a + f);
   $('#tug .a').style.width = `${(a / sum) * 100}%`; $('#tug .f').style.width = `${(f / sum) * 100}%`;
   $('#danger').hidden = !(a < 0.3 && a > 0 && !battle.result);
   // the last of a side: called out once
-  const up = (team) => battle.units.filter((u) => u.team === team && !u.summoned && u.state !== 'ko').length;
+  const up = (team) => battle.units.filter((u) => u.team === team && !u.summoned && !u.ward && u.state !== 'ko').length;
   if (!battle.result && !drama.last && drama.allies > 1 && up('ally') === 1) { drama.last = true; banner('Last stand'); }
   else if (!battle.result && !drama.one && drama.foes > 1 && up('foe') === 1) { drama.one = true; banner('One left!'); }
-  $('#clock').textContent = `${Math.max(0, Math.ceil(TIME_LIMIT - battle.t))} s` + (battle.t > FURY ? ` · Fury ×${fury(battle).toFixed(1)}` : '');
-  $('#clock').classList.toggle('fury', battle.t > FURY);
+  $('#clock').textContent = `${Math.max(0, Math.ceil(battle.limit - battle.t))} s` + (battle.t > FURY ? ` · Fury ×${fury(battle).toFixed(1)}` : '');
+  $('#clock').classList.toggle('fury', battle.t > FURY || battle.limit - battle.t < 10);
+  // the job, live: the wave, the ward's health, the target
+  const B = battle, hz = B.hazard ? HAZARD_NAMES[B.hazard] : null;
+  const job = { waves: `Wave ${B.waveN} of ${B.waveOf}`, protect: B.ward && `${B.ward.def.name} ${Math.max(0, Math.round((B.ward.hp / B.ward.max) * 100))}%`, hunt: B.mark && (B.mark.state === 'ko' ? 'Target down' : 'Kill the target'), ambush: 'Ambush' }[B.kind];
+  const text = [job, hz].filter(Boolean).join(' · ');
+  $('#job').hidden = !text; if ($('#job').textContent !== text) $('#job').textContent = text;
+  $('#job').classList.toggle('warn', B.kind === 'protect' && B.ward && B.ward.hp < B.ward.max * 0.35);
 }
 function finish() {
   if (screen !== 'battle' || !battle) return;
@@ -318,6 +328,7 @@ function frame(now) {
       $('#danger').hidden = true; setTimeout(finish, 2200);
     }
     battle.events = events; lastEvents = events;
+    for (const e of events) if (e.type === 'wave') { banner(`Wave ${e.n} of ${e.of}`, 'fight'); view.shake(4); game.haptics.buzz('hit'); }
     game.audio.battleEvents(battle);
     view.draw(battle, real * speed);
     battle.events = [];
@@ -417,6 +428,7 @@ async function boot() {
   const [p, fx, tiles, world] = await Promise.all([fetch('assets/portraits.json').then((r) => r.json()).then(tick), loadFx().then(tick), loadAtlas('tiles').then(tick), loadAtlas('world').then(tick),
     new Promise((ok) => { const i = new Image(); i.onload = ok; i.onerror = ok; i.src = 'assets/portraits.png'; }).then(tick)]);
   setPortraits(Object.assign(p, { w: 256, h: Math.ceil(Object.keys(p.sets).length / 8) * p.cell }));
+  game.fxAtlas = fx;
   await loadHeroArt(); tick();
   fillIcons();
   setWorld(world);

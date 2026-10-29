@@ -1,10 +1,11 @@
 // The campaign: the world map (render/overworld.js) with markers over the missions and the mission
 // card beside it, the formation before a battle, the rewards after one, and the new recruit's reveal.
 import { UNITS, ENEMIES, CLASSES } from '../data/units.js';
-import { MISSIONS, REGIONS, REGION_END, missionById, missionsIn, isOpen, nextMission, regionOpen, regionCleared } from '../data/campaign.js';
+import { MISSIONS, REGIONS, REGION_END, missionById, missionsIn, isOpen, nextMission, regionOpen, regionCleared, jobOf, HAZARD_NAMES } from '../data/campaign.js';
+import { AFFIXES } from '../combat/battle.js';
+import { showBoons, boonRow } from './boons.js';
 import { itemStats, itemName, statText } from '../data/items.js';
 import * as P from '../game/progress.js';
-import { TIME_LIMIT } from '../combat/battle.js';
 import { joinScene, arrivalScene } from '../data/scenes.js';
 import { $, h, face, itemTile, tierColor, toast, goldIcon, gemIcon, icon, matIcon } from './common.js';
 import { heroArt, artPx } from './heroart.js';
@@ -69,6 +70,12 @@ function header(game) {
   $('#m-field').classList.toggle('heroic', heroicMode);
 }
 
+// the job and its twists: what to do, the elites' traits, the hazard
+export function jobChips(m) {
+  const list = [jobOf(m) && h('span.jobchip', null, jobOf(m)), ...m.elites.map(([, a]) => h('span.jobchip.elite', { title: 'An elite foe: more health and attack, and this trait' }, `Elite: ${AFFIXES[a].name}`)),
+    m.hazard && h('span.jobchip.hz', { title: 'Strikes the field; a warning ring shows where' }, HAZARD_NAMES[m.hazard])].filter(Boolean);
+  return list.length ? h('div.jobs', null, ...list) : null;
+}
 const reward = (iconEl, text, cls = '') => h('span.rw' + cls, null, iconEl, h('span', null, text));
 function renderSheet(game, m, regionDone) {
   const s = game.save, sheet = $('#m-sheet'), H = heroicMode, book = H ? s.heroic : s.cleared, done = book[m.id] || 0;
@@ -83,6 +90,7 @@ function renderSheet(game, m, regionDone) {
     h('div.sh-top', null, h('span.tag-chip', null, `Mission ${n}`), h('span.tag-chip', null, `Lv ${spec.level}`), m.boss ? h('span.tag-chip.boss', null, 'Boss') : null, m.boss && !H ? h('span.tag-chip.seal', { title: 'Beat the boss to take this region\'s Seal of Vael' }, 'Seal') : null, H ? h('span.tag-chip.hero', null, 'Heroic') : null, h('span.grow'), stars(done)),
     h('h2', null, m.name), h('div.place', null, m.place),
     h('p.brief', null, m.text),
+    jobChips(m),
     powerRow(game, m, H),
     h('div.label', null, 'Enemies'),
     h('div.foes', null, ...Object.entries(foes).map(([k, c]) => h('span.foe' + (ENEMIES[k].boss ? '.boss' : ''), { title: ENEMIES[k].name }, face(ENEMIES[k].set, 36), c > 1 ? h('em', null, '×' + c) : null))),
@@ -120,8 +128,11 @@ export function renderPrep(game, missionId) {
   $('#p-foes').replaceChildren(h('em', null, 'VS'), ...Object.keys(foes).map((k) => face(ENEMIES[k].set, 28)));
   // who is going: front and back, in the order they will stand
   const row = (front) => s.team.filter((t) => FRONT.includes(UNITS[t.key].cls) === front).map((t) => first(UNITS[t.key].name));
+  const boons = boonRow(game, 20);
   $('#p-slots').replaceChildren(h('div.lineup', null,
-    h('span', null, h('b', null, 'Front'), row(true).join(' · ') || '—'), h('span', null, h('b', null, 'Back'), row(false).join(' · ') || '—')));
+    h('span', null, h('b', null, 'Front'), row(true).join(' · ') || '—'), h('span', null, h('b', null, 'Back'), row(false).join(' · ') || '—'),
+    jobOf(m) ? h('span', null, h('b', null, 'Job'), jobOf(m)) : null,
+    boons.length ? h('div.boonrow', null, h('small', null, 'Boons'), ...boons) : null));
   const roster = $('#p-roster'); roster.replaceChildren();
   const keys = Object.keys(UNITS).filter((k) => s.roster[k]).sort((a, b) => s.team.some((q) => q.key === b) - s.team.some((q) => q.key === a));
   for (const k of keys) {
@@ -154,7 +165,7 @@ function tapCard(game, missionId, key) {
 export function renderRewards(game, b, rw, missionId) {
   const m = missionById(missionId), box = $('#r-box');
   box.replaceChildren(); $('#tip').hidden = true;
-  const allies = b.units.filter((u) => u.team === 'ally' && !u.summoned);
+  const allies = b.units.filter((u) => u.team === 'ally' && !u.summoned && !u.ward);
   const mvp = allies.reduce((a, u) => (u.dealt + u.healed * 1.2 > a.dealt + a.healed * 1.2 ? u : a), allies[0]);
   if (rw.win) {
     const runNote = rw.runEnded ? ` · ${first(UNITS[rw.runEnded.leader].name)}'s run ends in triumph` : game.save.run ? ` · run: ${game.save.run.wins} win${game.save.run.wins === 1 ? '' : 's'}` : '';
@@ -179,9 +190,13 @@ export function renderRewards(game, b, rw, missionId) {
       h('button.btn', { id: 'r-heroes', type: 'button', onclick: () => afterWin(game, rw, m, 'heroes') }, icon('heroes', 18), 'Heroes'),
       h('button.btn', { id: 'r-map', type: 'button', onclick: () => afterWin(game, rw, m, 'map') }, icon('map', 18), 'Map'),
       h('button.btn', { id: 'r-replay', type: 'button', onclick: () => afterWin(game, rw, m, 'replay') }, 'Replay'),
-      h('button.btn.primary', { id: 'r-next', type: 'button', onclick: () => afterWin(game, rw, m, onward ? 'next' : 'map') }, onward ? 'Next mission' : 'Continue', icon('right', 18))));
+      // a boon on offer comes first: the pick, then on
+      game.save.run && game.save.run.pick
+        ? h('button.btn.primary.boonbtn', { id: 'r-next', type: 'button', onclick: () => showBoons(game, () => afterWin(game, rw, m, onward ? 'next' : 'map')) }, icon('star', 18), 'Choose a boon')
+        : h('button.btn.primary', { id: 'r-next', type: 'button', onclick: () => afterWin(game, rw, m, onward ? 'next' : 'map') }, onward ? 'Next mission' : 'Continue', icon('right', 18))));
   } else {
-    box.append(h('div.rt.lose', null, b.t >= TIME_LIMIT - 0.1 ? 'Time ran out' : 'Defeat'), h('div.rsub', null, `${m.name} · ${allies.filter((u) => u.state !== 'ko').length} of ${allies.length} standing`));
+    const why = b.ward && b.ward.state === 'ko' ? `${b.ward.def.name} was lost` : b.mark && b.t >= b.limit - 0.1 ? 'The target got away' : b.t >= b.limit - 0.1 ? 'Time ran out' : 'Defeat';
+    box.append(h('div.rt.lose', null, why), h('div.rsub', null, `${m.name} · ${allies.filter((u) => u.state !== 'ko').length} of ${allies.length} standing`));
     const tp = P.teamPower(game.save), mp = P.missionPower(m, !!game.heroic);
     // the run is over: who led it, how far it went
     if (rw.runEnded) { const d = UNITS[rw.runEnded.leader], f = face(d.set, 30); f.style.setProperty('--c', `var(--${d.cls})`);
