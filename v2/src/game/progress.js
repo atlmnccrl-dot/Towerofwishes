@@ -4,6 +4,7 @@ import { UNITS, CLASSES, ENEMIES } from '../data/units.js';
 import { MISSIONS, REGIONS, START_ROSTER, missionById, missionsIn, regionOpen } from '../data/campaign.js';
 import { HEROES, UNLOCKS, LEADERS } from '../data/heroes.js';
 import { BOONS, offerBoons, boonMods } from '../data/boons.js';
+import { generate } from './expedition.js';
 import { SLOTS, BASES, itemStats, upgradeCost, sellValue, rollItem, MAX_PLUS } from '../data/items.js';
 import { MOD_KEYS, statsAt } from '../combat/battle.js';
 
@@ -73,7 +74,7 @@ export function loadSave(raw) {
   s.stats = Object.assign(newSave().stats, raw.stats); s.flags = Object.assign({}, raw.flags); s.heroic = Object.assign({}, raw.heroic);
   s.settings = Object.assign(newSave().settings, raw.settings);
   s.keep = Object.assign({}, raw.keep); s.mats = Object.assign({}, raw.mats);
-  s.run = raw.run && s.roster[raw.run.leader] ? Object.assign({ wins: 0, boons: {}, pick: null }, raw.run) : null; s.runs = Object.assign({ count: 0, best: 0 }, raw.runs);
+  s.run = raw.run && raw.run.exp && s.roster[raw.run.leader] ? Object.assign({ wins: 0, boons: {}, pick: null, hp: {} }, raw.run) : null;   // a run is an expedition (an older run without one is let go) s.runs = Object.assign({ count: 0, best: 0 }, raw.runs);
   if (typeof s.gems !== 'number') s.gems = 50;
   s.inv = (s.inv || []).filter((it) => BASES[it.base]);
   if (!Object.keys(s.roster).length) for (const k of START_ROSTER) s.roster[k] = newMember(1);   // a company always has its first hero
@@ -311,6 +312,14 @@ export function spin(s, rnd) {
   }
   return leader;
 }
+// an expedition: the run (its leader already chosen by the wheel) takes the region's road
+export function startExpedition(s, regionId, rnd) {
+  if (!s.run) spin(s, rnd);
+  s.run.exp = generate(regionId, (rnd() * 1e9) | 0); s.run.hp = {};
+  return s.run.exp;
+}
+// turning back: the run ends; everything earned stays
+export function abandonRun(s) { return endRun(s, false); }
 // ends the run: what it was (leader, wins, how it ended), kept for the screens
 function endRun(s, triumph = false) {
   if (!s.run) return null;

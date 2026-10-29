@@ -3,18 +3,50 @@
 import { createBattle, step } from '../src/combat/battle.js';
 import { BASES, SLOTS, itemStats } from '../src/data/items.js';
 import * as P from '../src/game/progress.js';
+import * as X from '../src/game/expedition.js';
+import { missionById } from '../src/data/campaign.js';
 
-export function fight(s, m, seed, heroic = false, might) {
-  const spec = P.battleSpec(m, heroic);
-  const b = createBattle(Object.assign({}, spec, { team: P.teamFor(s), boons: P.boonsOf(s), might: might != null ? might * (heroic ? P.HEROIC.might : 1) : spec.might, seed }));
+// one battle; on an expedition (node given) as the game fights it: an elite's extra strength, the wounds
+export function fight(s, m, seed, heroic = false, might, node = null) {
+  let spec = P.battleSpec(m, heroic);
+  if (might != null) spec = Object.assign({}, spec, { might: might * (heroic ? P.HEROIC.might : 1) });
+  if (node && s.run && s.run.exp) spec = X.fightSpec(s.run.exp, node.type === 'event' ? { type: 'elite' } : node, spec);
+  const b = createBattle(Object.assign({}, spec, { team: P.teamFor(s), boons: P.boonsOf(s), seed }));
+  if (node && s.run && s.run.exp) for (const u of b.units) if (u.team === 'ally' && !u.ward && !u.summoned) u.hp = Math.max(1, Math.round(u.max * X.hpOf(s, u.key)));
   for (let i = 0; i < 60 * 125 && !b.result; i++) step(b, 1 / 60);
   return b;
+}
+const avgHp = (s) => { const k = s.team.map((t) => X.hpOf(s, t.key)); return k.reduce((a, v) => a + v, 0) / Math.max(1, k.length); };
+// a casual player on the road: picks a place (a camp when hurt, mostly the row's fight otherwise) and
+// resolves it. Returns { node, battle, win } (battle only for fights), or null when there is nowhere to go.
+export function walk(s, r, seed, might) {
+  const exp = s.run.exp, opts = X.reachable(exp).map((id) => X.nodeOf(exp, id)); if (!opts.length) return null;
+  const hurt = avgHp(s) < 0.6, score = (n) => ({ camp: hurt ? 5 : 0.5, shop: hurt && s.gold > 100 ? 3 : 0.6, fight: 2, boss: 9, elite: hurt ? 0.3 : 1, treasure: 1.2, event: 1 }[n.type] || 1) * (0.6 + r());
+  const node = opts.sort((a, b) => score(b) - score(a))[0];
+  if (['fight', 'elite', 'boss'].includes(node.type)) return fightAt(s, r, node, node.mission, seed, might);
+  X.enter(s, node.id);
+  if (node.type === 'treasure') X.openTreasure(s, node, r);
+  else if (node.type === 'camp') X.camp(s, node, hurt ? 'rest' : 'train', r);
+  else if (node.type === 'shop') { if (hurt) X.buy(s, node, 'heal', r); else if (s.gold > 400) X.buy(s, node, 'boon', r); X.complete(s, node.id); }
+  else if (node.type === 'event') {
+    const ev = X.eventFor(exp, node), ok = ev.choices.map((c, i) => i).filter((i) => !ev.choices[i].need || s.gold >= ev.choices[i].need);
+    const out = X.choose(s, node, ok[Math.floor(r() * ok.length)], r);
+    if (out && out.fight) return fightAt(s, r, node, X.eventFight(exp, node), seed, might);
+  }
+  if (s.run && s.run.pick) P.chooseBoon(s, s.run.pick[Math.floor(r() * s.run.pick.length) % s.run.pick.length]);
+  return { node };
+}
+function fightAt(s, r, node, missionId, seed, might) {
+  const m = missionById(missionId), b = fight(s, m, seed, false, might != null ? might(m) : undefined, node);
+  const rw = P.grantRewards(s, m.id, b, r);
+  if (rw.win && s.run && s.run.exp) { if (node.type !== 'event') X.enter(s, node.id); X.complete(s, node.id); X.afterFight(s, b); }
+  if (rw.win && s.run && node.type !== 'fight' && node.type !== 'boss') X.eliteSpoils(s, node, r);
+  return { node, battle: b, win: rw.win, mission: m };
 }
 // casual: the best-team and auto-equip buttons and the upgrade picks, nothing else (the difficulty is
 // tuned for this player); otherwise also training and gear upgrades with every coin, and selling spares.
 // pick: which upgrade option to take (0, 1), or random when left out
 export function manage(s, r, casual = true, pick = process.env.PICK ? +process.env.PICK : undefined) {
-  if (!s.run) P.spin(s, r);   // no run going: spin the wheel for a leader
   if (s.run && s.run.pick) P.chooseBoon(s, s.run.pick[Math.floor(r() * s.run.pick.length) % s.run.pick.length]);   // a boon on offer: any of the three
   const keys = P.bestTeam(s);
   for (const k of keys) s.roster[k].ups.forEach((u, t) => { if (!u && s.roster[k].level >= P.UPGRADE_LEVELS[t]) P.pickUpgrade(s, k, t, P.upgradeChoices(k, t)[pick != null ? pick : r() < 0.5 ? 0 : 1].id); });

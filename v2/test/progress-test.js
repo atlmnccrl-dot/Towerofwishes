@@ -30,7 +30,7 @@ rw = P.grantRewards(s, 'r1m1', fake('win', 0, s), r);
 assert.equal(rw.stars, 3); assert.ok(rw.first && rw.gold > 0 && rw.loot.length === 2); assert.equal(rw.gems, 5);
 assert.equal(rw.joined, null);
 // heroes come slowly: the first is met on mission 4, and no more than four join in any region
-assert.equal(MISSIONS.find((m) => m.recruit).id, 'r1m4');
+assert.equal(MISSIONS.find((m) => m.recruit).id, 'r1m2');
 for (const rid of ['r1', 'r2', 'r3', 'r4', 'r5', 'r6']) assert.ok(MISSIONS.filter((m) => m.region === rid && (m.recruit || (P.sealOf(rid) === m && P.UNLOCKS[rid]))).length <= 4, rid);
 s.roster.wren = JSON.parse(JSON.stringify(s.roster.corvin)); s.team.push({ key: 'wren', slot: 4 });   // (the tests below use a second hero)
 assert.ok(isOpen(s.cleared, MISSIONS[1]));
@@ -113,7 +113,7 @@ assert.equal(P.decodeSave(code).gold, 777); assert.equal(P.decodeSave(code.slice
   const w = P.newSave(), rr = rng(9), seen = new Set();
   for (let i = 0; i < 50; i++) { w.run = null; seen.add(P.spin(w, rr)); }
   assert.deepEqual([...seen], ['corvin']);                                        // one hero, until others join
-  for (const id of ['r1m4', 'r1m8']) { P.spin(w, rr); const j = P.grantRewards(w, id, fake('win', 0, w), rr); assert.ok(j.freed && P.HEROES.includes(j.joined), id); }
+  for (const id of ['r1m2', 'r1m8']) { P.spin(w, rr); const j = P.grantRewards(w, id, fake('win', 0, w), rr); assert.ok(j.freed && P.HEROES.includes(j.joined), id); }
   seen.clear(); for (let i = 0; i < 200; i++) { w.run = null; seen.add(P.spin(w, rr)); }
   assert.deepEqual([...seen].sort(), ['corvin', 'maren', 'wren']);                 // never a hidden hero
   P.spin(w, () => 0.99); const lead = w.run.leader;

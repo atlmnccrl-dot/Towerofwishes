@@ -46,13 +46,13 @@ export const MISSIONS = [
     text: 'Bandits hold the bridge and charge a toll in blood.',
     foes: [['cutthroat', 1], ['slinger', 4]] },   // two: the company is one hero yet
   { id: 'r1m2', region: 'r1', name: 'Smoke over Millbrook', place: 'Millbrook', level: 2, theme: 'meadow', map: [24, 50],
-    text: 'The same gang is burning the mill.',
+    text: 'The same gang is burning the mill. Someone on the ridge is already shooting at them: a poacher, by the look of the arrows.',
     foes: [['bruiser', 1], ['slinger', 3], ['slinger', 5]] },
   { id: 'r1m3', region: 'r1', name: 'The Old Watchtower', place: 'Watchtower Hill', level: 3, theme: 'dusk', map: [33, 26], boss: true,
     text: 'Their chief, Garrow, holds the old watchtower and everything for a mile around it.',
     foes: [['chief', 1], ['thug', 0], ['brawler', 2], ['slinger', 4]] },
   { id: 'r1m4', region: 'r1', name: 'Graves That Stir', place: 'Ashby Churchyard', level: 4, theme: 'grave', map: [44, 46],
-    text: 'The churchyard at Ashby is empty. Its graves are open from the inside. A poacher has been hunting the dead through the woods, one arrow at a time.',
+    text: 'The churchyard at Ashby is empty. Its graves are open from the inside, and the dead are still climbing out.',
     foes: [['risen', 0], ['risen', 1], ['risen', 2], ['archer', 4]] },
   { id: 'r1m5', region: 'r1', name: 'The Fighting Pit', place: 'Ashby Crossing', level: 5, theme: 'dusk', map: [52, 70],
     text: 'A pit fighter\'s crew has taken the crossing and fights anyone who tries it.',
@@ -185,7 +185,7 @@ for (const m of MISSIONS) m.might = MIGHT[m.id] || 1;
 
 // who joins where, on a mission's first clear: three or four a region, so every new face is an event.
 // Wren and Maren go on the wheel when they join; each region's boss frees one more wheel hero (data/heroes.js)
-const MEETS = { r1m4: 'wren', r1m8: 'maren', r2m1: 'osric', r2m6: 'grath', r3m2: 'tam', r3m5: 'nyssa', r3m8: 'garrick',
+const MEETS = { r1m2: 'wren', r1m8: 'maren', r2m1: 'osric', r2m6: 'grath', r3m2: 'tam', r3m5: 'nyssa', r3m8: 'garrick',
   r4m3: 'ilse', r4m6: 'rhys', r4m8: 'saela', r5m2: 'pip', r5m5: 'brann', r5m7: 'sable', r6m2: 'vesk', r6m3: 'cairn', r6m5: 'aldren', r6m6: 'pell' };
 for (const m of MISSIONS) if (MEETS[m.id]) m.recruit = MEETS[m.id];
 

@@ -23,8 +23,13 @@ async function showcase(page) {
     for (const m of done) s.cleared[m.id] = m.boss ? 3 : 2 + (m.id.length % 2);
     for (const k of [...P.HEROES.slice(0, 6), ...done.map((m) => m.recruit).filter(Boolean)]) s.roster[k] = { level: 38 + (k.length % 5), xp: 0, gear: { weapon: null, armor: null, charm: null }, train: { hp: 6, atk: 5, def: 4 }, ups: [null, null, null, null] };
     s.gold = 18450; s.gems = 640; s.keep = { barracks: 3, treasury: 2, forge: 2, yard: 1, shrine: 3, hall: 2 }; s.mats = { r1: 41, r2: 26, r3: 19, r4: 6 }; s.flags = { at: done[done.length - 1].id }; s.stats.wins = 40;
-    s.run = { leader: 'wren', wins: 7 }; s.runs = { count: 4, best: 12 };
-    for (const k of ['map', 'prep', 'battle', 'extras', 'loot', 'upgrade', 'lose', 'keep']) s.flags['tip_' + k] = true;
+    s.run = { leader: 'wren', wins: 3, boons: { kindling: 2, chain: 1, secondwind: 1, whetstone: 1 }, pick: null }; s.runs = { count: 4, best: 12 };
+    // mid-expedition in the Sunken Abbey: three steps along, a little hurt
+    const X = await import('/src/game/expedition.js'); let seed = 11; const exp = X.generate('r4', 4242); s.run.exp = exp;
+    const path = [exp.nodes.find((n) => n.row === 0)]; while (path.length < 3) path.push(X.nodeOf(exp, path[path.length - 1].next[0]));
+    exp.at = path[2].id; exp.done = path.map((n) => n.id); s.run.hp = { wren: 0.8, corvin: 0.55, maren: 0.9 }; void seed;
+    window.__showRun = JSON.parse(JSON.stringify(s.run));
+    for (const k of ['map', 'prep', 'battle', 'extras', 'loot', 'upgrade', 'lose', 'keep', 'exp']) s.flags['tip_' + k] = true;
     for (const m of C.MISSIONS) s.flags['met_' + m.id] = true;
     P.bestTeam(s); g.save = s; g.noTips = true; g.persist = () => {};
     for (const k of Object.keys(s.roster)) s.roster[k].ups.forEach((u, t) => { if (s.roster[k].level >= P.UPGRADE_LEVELS[t]) P.pickUpgrade(s, k, t, P.upgradeChoices(k, t)[0].id); });
@@ -45,11 +50,11 @@ for (const d of DEVICES) {
   await page.evaluate(() => window.__v2.go('title')); await page.waitForTimeout(1500); await shot('02-title');
   await page.evaluate(() => { const g = window.__v2.game; g.save.run = null; window.__v2.go('wheel', () => {}); }); await page.waitForTimeout(600);
   await page.click('#w-spin'); await page.waitForTimeout(1900); await shot('03-wheel');
-  await page.evaluate(() => { const s = window.__v2.game.save; s.run = { leader: 'wren', wins: 7 }; });
+  await page.evaluate(() => { window.__v2.game.save.run = JSON.parse(JSON.stringify(window.__showRun)); });
   await page.evaluate(() => window.__v2.go('camp')); await page.waitForTimeout(6000); await shot('04-camp');
   await page.evaluate(() => window.__v2.go('keep')); await page.waitForTimeout(1500); await shot('05-stronghold');
-  await page.evaluate(() => window.__v2.go('map', 'r4m3')); await page.waitForTimeout(1500); await shot('06-map');
-  await page.evaluate(() => window.__v2.go('prep', 'r4m3')); await page.waitForTimeout(800); await shot('07-team');
+  await page.evaluate(() => window.__v2.go('exp')); await page.waitForTimeout(1500); await shot('06-road');
+  await page.evaluate(() => { const b = document.querySelector('.enode.open.fight') || document.querySelector('.enode.open'); b.click(); }); await page.waitForTimeout(900); await shot('07-team');
   await page.click('#p-fight'); await page.waitForSelector('#hud', { state: 'visible' }); await page.waitForTimeout(6500); await shot('08-battle');
   await page.evaluate(() => window.__v2.skip()); await page.waitForSelector('#result', { state: 'visible' }); await page.waitForTimeout(1200); await shot('09-victory');
   await page.evaluate(() => window.__v2.go('company', 'ysolde')); await page.waitForTimeout(800); await shot('10-heroes');

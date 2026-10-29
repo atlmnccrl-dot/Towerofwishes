@@ -1,6 +1,7 @@
-// Plays Vael in a headless browser at phone-landscape and desktop sizes: a new game, the camp, the
-// wheel (a leader for the run), the map, a mission's team screen, a battle, the rewards and the freed-hero card, the company tabs (an
-// upgrade picked, gear equipped, a rank trained), then every mission of region 1 to the end.
+// Plays Vael in a headless browser at phone-landscape and desktop sizes: a new game, the camp, the map,
+// an expedition (the road's map, a mission's team screen, a battle, the rewards), the company tabs (an
+// upgrade picked, gear equipped, a rank trained), the shop and settings, then expeditions through every
+// region to the sixth Seal, by tapping through the screens as a player would.
 // Screenshots go to <outDir>; console errors are listed at the end.
 // NODE_PATH=$(npm root -g) node v2/test/browser-check.js <outDir>
 import { createRequire } from 'module';
@@ -32,6 +33,16 @@ async function skipScenes(page) { for (let k = 0; k < 6; k++) { await page.waitF
 // a run needs a leader: when the wheel comes up, spin it and take who it lands on
 async function wheel(page) { await page.waitForTimeout(150); if (!await page.isVisible('#wheel')) return; await page.click('#w-spin'); await visible(page, '#w-go'); await page.click('#w-go'); }
 async function prepare(page) { await page.click('#m-sheet .btn.primary'); await wheel(page); await visible(page, '#prep'); }
+// begins an expedition from the map's card (the wheel spins when there is a choice of leader)
+async function begin(page) { await page.click('#m-sheet .btn.primary'); await wheel(page); await visible(page, '#exp'); }
+// on the road: the next place (the boss first, then fights, then the rest), and whatever it opens
+async function onward(page) {
+  return page.evaluate(() => {
+    const open = [...document.querySelectorAll('.enode.open')], order = ['boss', 'fight', 'camp', 'treasure', 'event', 'shop', 'elite'];
+    open.sort((a, b) => order.findIndex((t) => a.classList.contains(t)) - order.findIndex((t) => b.classList.contains(t)));
+    if (!open[0]) return null; const t = order.find((x) => open[0].classList.contains(x)); open[0].click(); return t;
+  });
+}
 
 for (const [name, vp] of [['phone', { width: 844, height: 390 }], ['desktop', { width: 1280, height: 720 }]]) {
   const page = await browser.newPage({ viewport: vp, deviceScaleFactor: 1, hasTouch: name === 'phone', isMobile: name === 'phone' });
@@ -58,12 +69,13 @@ for (const [name, vp] of [['phone', { width: 844, height: 390 }], ['desktop', { 
   console.log(name, 'start', await page.evaluate(() => JSON.stringify(Object.keys(window.__v2.game.save.roster))));
   await page.evaluate(() => { window.__v2.game.fastWheel = true; }); await page.waitForTimeout(800); await shot('03-camp');
   await page.click('#k-campaign'); await visible(page, '#map'); await page.waitForTimeout(300); await shot('04-map');
-  await prepare(page); await shot('05-prep');
+  await begin(page); await page.waitForTimeout(400); await shot('04b-expedition');
+  await page.click('.enode.open'); await visible(page, '#prep'); await shot('05-prep');
   await page.click('#p-fight'); await skipScenes(page); await visible(page, '#hud'); await page.waitForTimeout(1200); await shot('06a-intro'); await page.waitForTimeout(3600); await shot('06b-tip'); await dismiss(); await page.waitForTimeout(1500); await shot('06-battle');
   await page.evaluate(() => window.__v2.skip());
   await visible(page, '#result'); await page.waitForTimeout(500); await shot('07-rewards');
   for (let k = 0; k < 6 && await page.evaluate(() => window.__v2.battle.result !== 'win'); k++) {
-    await page.click('#r-box .btn.primary'); await wheel(page); await visible(page, '#prep'); await page.click('#p-fight'); await skipScenes(page); await visible(page, '#hud');
+    await page.click('#r-box .btn.primary'); await wheel(page); await visible(page, '#exp'); await page.click('.enode.open'); await visible(page, '#prep'); await page.click('#p-fight'); await skipScenes(page); await visible(page, '#hud');
     await page.evaluate(() => window.__v2.skip()); await visible(page, '#result');
   }
   console.log(name, 'mission 1', await page.evaluate(() => [window.__v2.battle.result, JSON.stringify(window.__v2.game.save.cleared)]));
@@ -71,7 +83,8 @@ for (const [name, vp] of [['phone', { width: 844, height: 390 }], ['desktop', { 
     await page.click('#r-box .btn.primary'); await skipScenes(page); await page.waitForTimeout(400); await shot('08-after');
     await page.close(); continue;
   }
-  await page.click('#r-map');
+  await page.click('#r-box .btn.primary'); await visible(page, '#exp'); await page.waitForTimeout(300); await shot('08-road');
+  await page.click('#e-abandon'); await page.click('#e-confirm-yes'); await visible(page, '#map');   // turn back: the map
   await page.waitForTimeout(2500); if (await page.isVisible('#scene')) await shot('08-recruit'); await skipScenes(page);
   if (await page.isVisible('#join')) { await page.waitForTimeout(600); await shot('08b-reveal'); await page.click('#j-card .btn.primary'); }
   await visible(page, '#map'); await shot('09-map-after');
@@ -99,36 +112,49 @@ for (const [name, vp] of [['phone', { width: 844, height: 390 }], ['desktop', { 
   await page.evaluate(() => { window.__v2.game.save.gold = 1; }); await page.click('#save-load'); await visible(page, '#camp');
   console.log('save code round trip', code.length, await page.evaluate(() => window.__v2.game.save.gold));
   await page.evaluate(() => window.__v2.go('map'));
-  // every other mission in order; after a loss the company gets a level and tries again.
-  // Screenshots: each region's map, its first battle and its boss battle.
-  let losses = 0;
-  for (let guard = 0; guard < 300; guard++) {
-    const next = await page.evaluate(() => window.__v2.missions.find((id) => !window.__v2.game.save.cleared[id]) || null);
-    if (!next) break;
-    await page.evaluate((id) => window.__v2.go('map', id), next);
-    const key = /m1$|m10$/.test(next);
-    if (/m1$/.test(next)) await shot('14-map-' + next);
-    await prepare(page);
-    await page.evaluate(() => window.__v2.pickUpgrades());   // a casual player: upgrade picks, the best team and its best gear
-    await page.click('#p-best');
-    await page.click('#p-fight'); await skipScenes(page); await visible(page, '#hud'); await page.waitForTimeout(key ? 2600 : 200);
-    if (key) await shot('15-battle-' + next);
-    await page.evaluate(() => window.__v2.skip());
-    await visible(page, '#result');
-    const res = await page.evaluate(() => window.__v2.battle.result);
-    if (res !== 'win') {
-      // like the tuned casual player: replay the mission before for experience, then try again
-      losses++;
-      const prev = await page.evaluate((id) => { const l = window.__v2.missions; return l[l.indexOf(id) - 1] || null; }, next);
-      if (prev) { await page.evaluate((id) => window.__v2.go('map', id), prev); await prepare(page); await page.click('#p-best'); await page.click('#p-fight'); await skipScenes(page); await visible(page, '#hud'); await page.evaluate(() => window.__v2.skip()); await visible(page, '#result'); }
+  // expeditions through every region, to the sixth Seal; a lost fight ends one and the next starts from the gate.
+  // Screenshots: each region's road, a place of each kind, the first battle and the boss of each region.
+  let losses = 0, exps = 0; const seen = new Set();
+  for (let guard = 0; guard < 1500; guard++) {
+    const st = await page.evaluate(() => { const s = window.__v2.game.save, seals = window.__v2.missions.filter((id) => /m10$/.test(id)); return { screen: window.__v2.screen, run: !!(s.run && s.run.exp), left: seals.find((id) => !s.cleared[id]) || null, region: s.run && s.run.exp && s.run.exp.region }; });
+    if (!st.left) break;
+    await skipScenes(page);
+    if (await page.isVisible('#join')) { await page.click('#j-card .btn.primary'); continue; }
+    if (await page.isVisible('#result')) {
+      const res = await page.evaluate(() => window.__v2.battle.result); if (res !== 'win') losses++;
+      await page.click('#r-box .btn.primary'); await wheel(page); continue;
+    }
+    if (!st.run) {
+      // no expedition: begin one in the region of the next Seal
+      await page.evaluate((id) => window.__v2.go('map', window.__v2.missions.find((m) => m.startsWith(id.slice(0, 2)) && !window.__v2.game.save.cleared[m]) || id), st.left);
+      await visible(page, '#map'); await begin(page); exps++; continue;
+    }
+    if (st.screen !== 'exp' && st.screen !== 'prep' && st.screen !== 'battle') { await page.evaluate(() => window.__v2.go('exp')); continue; }
+    if (st.screen === 'exp') {
+      await dismiss();
+      if (!seen.has('road-' + st.region)) { seen.add('road-' + st.region); await shot('14-road-' + st.region); }
+      if (await page.isVisible('#e-modal')) {
+        const kind = await page.textContent('#e-modal .emt'); if (!seen.has(kind)) { seen.add(kind); await shot('14b-place-' + seen.size); }
+        await page.evaluate(() => { const b = [...document.querySelectorAll('#e-modal .eware:not([disabled])')][0]; if (b) b.click(); }); await page.waitForTimeout(300);
+        if (await page.isVisible('#boons')) { await dismiss(); continue; }
+        await page.evaluate(() => { const b = [...document.querySelectorAll('#e-modal .emb .btn:not([disabled])')].pop(); if (b) b.click(); }); await page.waitForTimeout(300); continue;
+      }
+      const went = await onward(page); await page.waitForTimeout(300);
+      if (!went) { await page.evaluate(() => window.__v2.go('map')); continue; }
       continue;
     }
-    await page.click('#r-box .btn.primary');
-    if (await page.isVisible('#join') && /m10$/.test(next) && (await page.textContent('#j-card')).includes('cleared')) await shot('16-story-' + next);
-    for (let k = 0; k < 4; k++) { await skipScenes(page); if (await page.isVisible('#join')) await page.click('#j-card .btn.primary'); }
+    if (st.screen === 'prep') {
+      await page.evaluate(() => window.__v2.pickUpgrades());   // a casual player: upgrade picks, the best team and its best gear
+      await page.click('#p-best'); await page.click('#p-fight'); await skipScenes(page); await visible(page, '#hud');
+      const boss = await page.evaluate(() => !!window.__v2.battle.boss && /m10$/.test(window.__v2.battle.node && window.__v2.battle.node.mission || ''));
+      if (boss || !seen.has('fight-' + st.region)) { seen.add('fight-' + st.region); await page.waitForTimeout(2600); await shot('15-battle-' + st.region + (boss ? '-boss' : '')); }
+      await page.evaluate(() => window.__v2.skip()); await visible(page, '#result');
+    }
   }
+  console.log('expeditions', exps, 'places', [...seen].length);
   console.log('losses', losses, 'runs', await page.evaluate(() => JSON.stringify(window.__v2.game.save.runs)), 'boons now', await page.evaluate(() => JSON.stringify(window.__v2.game.save.run && window.__v2.game.save.run.boons)));
   console.log('cleared', await page.evaluate(() => Object.keys(window.__v2.game.save.cleared).length), 'recruits', await page.evaluate(() => Object.keys(window.__v2.game.save.roster).length));
+  if (await page.isVisible('#join')) await page.click('#j-card .btn.primary');
   await page.evaluate(() => window.__v2.go('map', 'r6m10'));
   await visible(page, '#map'); await shot('16-map-done');
   await page.click('#m-back'); await visible(page, '#camp'); await page.waitForTimeout(1500); await shot('17-camp-full');

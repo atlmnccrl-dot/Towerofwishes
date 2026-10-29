@@ -19,7 +19,8 @@ export const NODE = {
   event: { name: 'Something on the road', art: 'sparkles', desc: 'Who knows. Choose well.' },
 };
 export const WOUND_FLOOR = 0.15;   // a hero who falls in a won fight gets up with this much health
-export const AFTER_FIGHT = 0.1;    // and everyone gets this much back on the road
+export const AFTER_FIGHT = 0.25;   // and everyone gets this much back on the road
+export const WIN_FLOOR = 0.4;      // after a won fight nobody is lower than this
 export const REST = 0.45;
 
 // ---- the map: rows from the gate to the boss. Rows whose mission brings a hero along have only that
@@ -74,7 +75,7 @@ export function fightSpec(exp, node, spec) {
 export const hpOf = (s, key) => (s.run && s.run.hp && s.run.hp[key] != null ? s.run.hp[key] : 1);
 export function afterFight(s, battle) {
   const hp = s.run.hp || (s.run.hp = {});
-  for (const u of battle.units) if (u.team === 'ally' && !u.summoned && !u.ward && UNITS[u.key]) hp[u.key] = Math.min(1, (u.state === 'ko' ? WOUND_FLOOR : u.hp / u.max) + AFTER_FIGHT);
+  for (const u of battle.units) if (u.team === 'ally' && !u.summoned && !u.ward && UNITS[u.key]) hp[u.key] = Math.min(1, Math.max(WIN_FLOOR, (u.state === 'ko' ? WOUND_FLOOR : u.hp / u.max) + AFTER_FIGHT));
 }
 export function healAll(s, share) { const hp = s.run.hp || (s.run.hp = {}); for (const k of Object.keys(s.roster)) hp[k] = Math.max(0.05, Math.min(1, hpOf(s, k) + share)); }   // a hurt never fells anyone
 
@@ -121,6 +122,8 @@ export function buy(s, node, id, rnd) {
 }
 const levelAt = (exp, node) => { const ms = missionsIn(exp.region), m = ms[Math.min(ms.length - 1, node.row)]; return m.level; };
 
+// an elite's (or an ambush's) extra spoils: a piece of gear a little above the road's level
+export function eliteSpoils(s, node, rnd) { const it = Object.assign(rollItem(levelAt(s.run.exp, node) + 2, rnd, 0.35), { uid: s.uid++ }); s.inv.push(it); return it; }
 // ---- events on the road: a short scene and two or three choices. Each choice: text, and what it does
 // (gold, heal: a share of everyone's health, hurt: the same lost, boon: a boon to choose, item, fight: the
 // row's mission as an elite ambush). `need`: a gold price. (Proposal: every word.)

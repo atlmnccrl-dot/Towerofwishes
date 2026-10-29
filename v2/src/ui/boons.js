@@ -5,9 +5,11 @@ import * as P from '../game/progress.js';
 import { $, h } from './common.js';
 
 // a boon's icon: the middle of its effect, drawn at pixel scale into a small canvas
-export function boonArt(game, id, size = 48) {
+export const boonArt = (game, id, size = 48) => fxArt(game, BOONS[id].art, size);
+// any effect of the atlas as a still icon (the boons, the places of an expedition)
+export function fxArt(game, art, size = 48) {
   const c = document.createElement('canvas'); c.width = c.height = size; c.className = 'boonart';
-  const A = game.fxAtlas, d = A && A.data.fx[BOONS[id].art];
+  const A = game.fxAtlas, d = A && A.data.fx[art];
   if (!d) return c;
   const fr = d.frames[Math.floor(d.frames.length * 0.45)] || d.frames[0], [pg, sx, sy, w, hh] = fr;
   const k = Math.max(1, Math.floor(Math.min(size / w, size / hh) * 2) / 2), g = c.getContext('2d');

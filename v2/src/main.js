@@ -28,6 +28,8 @@ import { renderKeep, LOOK } from './ui/keep.js';
 import { renderWheel } from './ui/wheel.js';
 import { showBoons, boonRow } from './ui/boons.js';
 import { VOICES, CLASS_VOICES, PAIRS } from './data/voices.js';
+import * as X from './game/expedition.js';
+import { renderExpedition, beginExpedition, abandonExpedition } from './ui/expedition.js';
 import { HAZARD_NAMES } from './data/campaign.js';
 
 const DT = 1 / 60, SPEEDS = [1, 2, 3], KEY = 'vael.save', BAK = 'vael.save.bak';
@@ -73,13 +75,13 @@ function currency() {
 }
 
 // ---- screens
-const SECTIONS = ['title', 'premise', 'camp', 'map', 'prep', 'company', 'extras', 'keep', 'wheel'];
+const SECTIONS = ['title', 'premise', 'camp', 'map', 'prep', 'company', 'extras', 'keep', 'wheel', 'exp'];
 function go(name, arg) {
   // the company screen returns to where it was opened from (after a battle: the map)
   if (name === 'company' && screen !== 'company') game.from = screen === 'battle' ? 'map' : screen;
   screen = name; game.screen = name;
   for (const s of SECTIONS) $('#' + s).hidden = s !== name;
-  bg.hidden = !['title', 'premise', 'camp', 'keep', 'prep'].includes(name);
+  bg.hidden = !['title', 'premise', 'camp', 'keep', 'prep', 'exp'].includes(name);
   stage.hidden = name !== 'battle' && name !== 'scene'; $('#hud').hidden = name !== 'battle';
   $('#result').hidden = true; $('#join').hidden = true; $('#loading').hidden = true; $('#boons').hidden = true;   // a boon left on offer waits for the next fight
   if (name === 'title') renderTitle();
@@ -90,7 +92,9 @@ function go(name, arg) {
   if (name === 'extras') renderExtras(game, arg);
   if (name === 'keep') renderKeep(game);
   if (name === 'wheel') renderWheel(game, arg || (() => go('camp')));
-  if (!bg.hidden) { camp.setFocus(name === 'camp' ? 0.4 : name === 'keep' ? 0.27 : name === 'prep' ? 0.36 : 0.64); game.refreshKeep(); camp.resize(); refreshCast(); }
+  if (name === 'exp') renderExpedition(game);
+  if (name !== 'prep' && name !== 'battle' && name !== 'exp' && name !== 'scene') game.expNode = null;   // left the road: the next fight is a replay
+  if (!bg.hidden) { camp.setFocus(name === 'camp' ? 0.4 : name === 'keep' ? 0.27 : name === 'prep' ? 0.36 : name === 'exp' ? 0.5 : 0.64); game.refreshKeep(); camp.resize(); refreshCast(); }
   game.audio.setScene(name === 'battle' ? (battle && battle.boss ? 'boss' : 'battle') : name === 'title' ? 'title' : 'camp');
   $('#tip').hidden = true;
   // a tip left by the last result comes first, on whatever screen follows it
@@ -99,6 +103,7 @@ function go(name, arg) {
   if (pend && tip(game, pend)) return;
   if (name === 'map') tip(game, 'map');
   if (name === 'prep') tip(game, 'prep');
+  if (name === 'exp') tip(game, 'exp');
   if (name === 'keep') tip(game, 'keep');
   if (name === 'camp' && Object.keys(game.save.cleared).length >= 2) tip(game, 'extras');
 }
@@ -122,9 +127,10 @@ function renderCamp() {
   $('#k-cta-region').textContent = next ? regionOf(next).name : hn ? regionOf(hn).name : 'Vael is reclaimed';
   $('#k-next').textContent = next ? `Next: ${next.name}` : hn ? `${hc} of ${MISSIONS.length} on Heroic · next: ${hn.name}` : `Every mission won on Heroic · ${stars} of ${MISSIONS.length * 3} stars`;
   const run = s.run, rc = $('#k-run');
+  if (run && run.exp) { const ex = run.exp; $('#k-cta-region').textContent = REGIONS.find((r) => r.id === ex.region).name; $('#k-next').textContent = `Expedition · step ${ex.at ? X.nodeOf(ex, ex.at).row + 1 : 0} of ${ex.rows}`; }
   if (run) { const d = UNITS[run.leader], f = face(d.set, 30); f.style.setProperty('--c', `var(--${d.cls})`); rc.replaceChildren(f, h('span', null, `${d.name.split(' ')[0]} leads`, h('small', null, `${P.LEADERS[run.leader].name} · ${run.wins} win${run.wins === 1 ? '' : 's'}` + (Object.keys(run.boons).length ? ` · ${Object.keys(run.boons).length} boon${Object.keys(run.boons).length === 1 ? '' : 's'}` : '') + (run.pick ? ' · a boon to choose' : '')))); }
-  else rc.replaceChildren(h('span', null, 'No leader yet', h('small', null, P.unlocked(s).length > 1 ? 'Spin the wheel to start a run' : 'A run starts with the next fight')));
-  $('#k-go-label').textContent = run || P.unlocked(s).length < 2 ? 'To the map' : 'Spin the wheel';
+  else rc.replaceChildren(h('span', null, 'No expedition', h('small', null, P.unlocked(s).length > 1 ? 'Begin one from the map: the wheel picks its leader' : 'Begin one from the map')));
+  $('#k-go-label').textContent = run && run.exp ? 'Continue expedition' : 'To the map';
   // the long goal: the six seals, one for each region's boss
   const taken = P.sealsTaken(s), nextR = next && next.region;
   // after the sixth seal the card's headline is the Heroic count (phones have no room for the line below the region)
@@ -193,7 +199,8 @@ function setsFor(team, foes) {
 }
 async function fight() {
   const s = game.save, m = missionById(missionId);
-  if (!s.run) { game.needRun(fight); return; }
+  const node = s.run && s.run.exp && game.expNode ? X.nodeOf(s.run.exp, game.expNode) : null;
+  if (s.run && !node) { toast('The company is on an expedition: finish it or turn back first'); go('exp'); return; }
   if (!s.team.length) { toast('Pick at least one hero'); return; }
   if (s.run && s.run.pick) { showBoons(game, fight); return; }   // a boon still on offer: taken before the next fight
   loading('Marching out…');
@@ -201,8 +208,12 @@ async function fight() {
   try { Object.assign(sprites, await loadSprites(need)); } catch (e) { loading('Could not load the art. Check the connection and try again.', true); return; }
   // a boss's first meeting: the face-off, then the fight in the same place
   if (m.boss && !game.heroic && !s.flags['met_' + m.id]) { s.flags['met_' + m.id] = true; game.persist(); await playScene(bossScene(m, s.team.map((t) => t.key))); }
-  const spec = P.battleSpec(m, game.heroic);
+  let spec = P.battleSpec(m, game.heroic);
+  if (node) spec = X.fightSpec(s.run.exp, node.type === 'event' ? { type: 'elite' } : node, spec);
   battle = createBattle(Object.assign({}, spec, { team: P.teamFor(s), boons: P.boonsOf(s), seed: (Math.random() * 1e9) | 0 }));
+  // on the road, wounds come along
+  if (node) for (const u of battle.units) if (u.team === 'ally' && !u.ward && !u.summoned) u.hp = Math.max(1, Math.round(u.max * X.hpOf(s, u.key)));
+  battle.node = node;
   battle.theme = m.theme; battle.arena = arenaFor(m);
   battle.manual = game.save.settings.auto === false;
   view.setSprites(sprites); view.reset();
@@ -312,9 +323,10 @@ function say(u, text, delay = 0) {
 function openingLines() {
   const up = heroesUp(), has = (k) => up.find((u) => u.key === k);
   const pairs = PAIRS.filter(([a, b]) => has(a) && has(b));
+  if (!up.length || battle.result) return;
   if (pairs.length && Math.random() < 0.45) { const [a, b, la, lb] = pairs[Math.floor(Math.random() * pairs.length)]; say(has(a), la); say(has(b), lb, 1.7); return; }
   const lead = (game.save.run && has(game.save.run.leader)) || up[0];
-  say(lead, pickLine(lead, battle.boss ? 'boss' : 'start'));
+  if (lead && !battle.result) say(lead, pickLine(lead, battle.boss ? 'boss' : 'start'));
 }
 function talkTick(events, dt) {
   if (!battle) return;
@@ -370,7 +382,17 @@ function comboTick(events, dt) {
 }
 function finish() {
   if (screen !== 'battle' || !battle) return;
+  const s0 = game.save, node = battle.node;
   const rw = P.grantRewards(game.save, missionId, battle, Math.random, !!game.heroic);
+  // on the road: the place is passed, the wounds carried on; an elite or an ambush pays extra
+  if (node && rw.win) {
+    if (node.type !== 'event') X.enter(s0, node.id);
+    if (s0.run && s0.run.exp) { X.complete(s0, node.id); X.afterFight(s0, battle); }
+    if (node.type === 'elite' || node.type === 'event') rw.loot.push(X.eliteSpoils(s0, node, Math.random));
+    rw.exp = true;
+  }
+  if (node && !rw.win) rw.exp = true;
+  game.expNode = null;
   game.haptics.buzz(rw.win ? 'big' : 'hit');
   renderRewards(game, battle, rw, missionId);
   game.after();   // after the result is up, so a feat's news lands in its card
@@ -425,7 +447,7 @@ $('#t-confirm-yes').addEventListener('click', newGame);
 $('#t-confirm-no').addEventListener('click', () => ($('#t-confirm').hidden = true));
 function newGame() { $('#t-confirm').hidden = true; game.save = P.newSave(); game.persist(); castKey = ''; playScene(OPENING).then(() => go('camp')); }
 $('#premise-go').addEventListener('click', () => go('camp'));
-$('#k-campaign').addEventListener('click', () => game.needRun(() => go('map')));
+$('#k-campaign').addEventListener('click', () => (game.save.run && game.save.run.exp ? go('exp') : go('map')));
 // a run needs a leader: the wheel picks one, but with one hero on it there is nothing to spin for
 game.needRun = (then) => {
   if (game.save.run) return then();
@@ -433,6 +455,12 @@ game.needRun = (then) => {
   go('wheel', then);
 };
 $('#k-keep').addEventListener('click', () => go('keep'));
+$('#e-back').addEventListener('click', () => go('camp'));
+$('#e-heroes').addEventListener('click', () => go('company'));
+$('#e-abandon').addEventListener('click', () => { $('#e-confirm').hidden = false; });
+$('#e-confirm-no').addEventListener('click', () => { $('#e-confirm').hidden = true; });
+$('#e-confirm-yes').addEventListener('click', () => { $('#e-confirm').hidden = true; abandonExpedition(game); });
+game.beginExpedition = (rid) => beginExpedition(game, rid);
 $('#k-keep2').addEventListener('click', () => go('keep'));
 $('#s-back').addEventListener('click', () => go('camp'));
 game.refreshKeep = () => camp && camp.setKeep(game.save.keep || {}, P.keepRank(game.save));
@@ -474,7 +502,7 @@ $('#reset-yes').addEventListener('click', () => { try { localStorage.removeItem(
 document.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b && !b.disabled && !b.matches('#p-fight')) game.audio.play('click_wood_01', { gain: 0.35, gap: 0.03 }); });
 $('#m-back').addEventListener('click', () => go('camp'));
 $('#m-company').addEventListener('click', () => go('company'));
-$('#p-back').addEventListener('click', () => go('map', missionId));
+$('#p-back').addEventListener('click', () => (game.expNode ? go('exp') : go('map', missionId)));
 $('#p-company').addEventListener('click', () => go('company'));
 $('#p-fight').addEventListener('click', fight);
 $('#p-best').addEventListener('click', () => { P.bestTeam(game.save); P.autoEquip(game.save); game.persist(); renderPrep(game, missionId); toast('The strongest five, best gear on'); });
@@ -547,7 +575,7 @@ function back() {
   if (!$('#result').hidden || !$('#join').hidden) return;   // the result needs its own buttons
   if (screen === 'battle') { pause(!paused); return; }
   if (screen === 'wheel') return;   // the wheel decides; no way round it
-  const btn = { map: '#m-back', prep: '#p-back', company: '#c-back', extras: '#x-back', keep: '#s-back', camp: '#k-title' }[screen];
+  const btn = { map: '#m-back', prep: '#p-back', company: '#c-back', extras: '#x-back', keep: '#s-back', camp: '#k-title', exp: '#e-back' }[screen];
   if (btn) { $(btn).click(); return; }
   const App = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
   if (screen === 'title' && App) App.exitApp();
@@ -557,7 +585,7 @@ if (CapApp) CapApp.addListener('backButton', back);
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') back(); });
 
 // for the tests: the game, the screens, and a way to run a battle to its end at once
-window.__v2 = { game, spin() { if (!game.save.run) P.spin(game.save, Math.random); game.persist(); }, get battle() { return battle; }, get screen() { return screen; }, go, fight, finish, play(id) { missionId = id; return fight(); }, missions: MISSIONS.map((m) => m.id),
+window.__v2 = { game, spin() { if (!game.save.run) P.spin(game.save, Math.random); game.persist(); }, get battle() { return battle; }, get screen() { return screen; }, go, fight, finish, play(id) { missionId = id; return fight(); }, startExp(rid, seed) { P.startExpedition(game.save, rid, () => (seed * 0.0137) % 1); game.persist(); }, missions: MISSIONS.map((m) => m.id),
   pickUpgrades() { const s = game.save; for (const k of Object.keys(s.roster)) s.roster[k].ups.forEach((u, t) => { if (!u && s.roster[k].level >= P.UPGRADE_LEVELS[t]) P.pickUpgrade(s, k, t, P.upgradeChoices(k, t)[0].id); }); game.persist(); },
   skip() { if (!battle) return; if (director.playing) director.skip(); while (!battle.result) step(battle, DT); if (!ended) { ended = true; setTimeout(finish, 200); } } };
 boot().catch((e) => { loading('Vael could not start: ' + e.message, true); });

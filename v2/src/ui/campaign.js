@@ -4,6 +4,7 @@ import { UNITS, ENEMIES, CLASSES } from '../data/units.js';
 import { MISSIONS, REGIONS, REGION_END, missionById, missionsIn, isOpen, nextMission, regionOpen, regionCleared, jobOf, HAZARD_NAMES } from '../data/campaign.js';
 import { AFFIXES } from '../combat/battle.js';
 import { showBoons, boonRow } from './boons.js';
+import * as X from '../game/expedition.js';
 import { itemStats, itemName, statText } from '../data/items.js';
 import * as P from '../game/progress.js';
 import { joinScene, arrivalScene } from '../data/scenes.js';
@@ -103,7 +104,13 @@ function renderSheet(game, m, regionDone) {
       done < 3 ? reward(gemIcon(), H ? '10' : (!done && m.boss ? '30' : '5')) : null,
       // someone waits here: who stays hidden until they join
       !H && !done && ((P.sealOf(m.region) === m && P.UNLOCKS[m.region] && !s.roster[P.UNLOCKS[m.region]]) || (m.recruit && !s.roster[m.recruit])) ? reward(h('b.q', null, '?'), 'A hero', '.who') : null)].filter(Boolean));
-  sheet.replaceChildren(body, h('button.btn.big.primary', { type: 'button', onclick: () => { game.heroic = H; s.flags.at = m.id; game.persist(); game.needRun(() => game.go('prep', m.id)); } }, icon('swords', 20), s.run || P.unlocked(s).length < 2 ? 'Prepare' : 'Spin & prepare'));
+  // new ground is crossed on an expedition (the region's road, gate to boss); what is won can be replayed
+  const ex = s.run && s.run.exp, R = (id) => REGIONS.find((r) => r.id === id).name;
+  const go = ex ? [ex.region === m.region ? 'Continue expedition' : `Back to the road (${R(ex.region)})`, () => game.go('exp')]
+    : done || H ? ['Replay', () => { game.heroic = H; s.flags.at = m.id; game.persist(); game.go('prep', m.id); }]
+    : [P.unlocked(s).length < 2 ? 'Begin expedition' : 'Spin & begin expedition', () => { game.heroic = false; s.flags.at = m.id; game.persist(); game.beginExpedition(m.region); }];
+  sheet.replaceChildren(body, h('button.btn.big.primary', { type: 'button', onclick: go[1] }, icon('swords', 20), go[0]),
+    !ex && !done && !H ? h('small.sheet-note', null, `An expedition crosses ${R(m.region)} from its gate to its boss. Wounds carry between fights.`) : null);
 }
 
 // ---- power: the team's against the mission's (equal power wins about three times in four)
@@ -123,7 +130,8 @@ export function renderPrep(game, missionId) {
   const s = game.save, m = missionById(missionId), spec = P.battleSpec(m, game.heroic);
   if (!focus || !s.roster[focus]) focus = s.team[0] ? s.team[0].key : Object.keys(s.roster)[0];
   $('#p-name').textContent = m.name;
-  $('#p-sub').textContent = `Level ${spec.level}${m.boss ? ' · boss' : ''}${game.heroic ? ' · heroic' : ''}`;
+  const node = s.run && s.run.exp && game.expNode && X.nodeOf(s.run.exp, game.expNode);
+  $('#p-sub').textContent = `Level ${spec.level}${m.boss ? ' · boss' : ''}${node && node.type === 'elite' ? ' · elite: harder, better spoils' : node && node.type === 'event' ? ' · ambush' : ''}${game.heroic ? ' · heroic' : ''}`;
   const foes = {}; for (const [k] of m.foes) foes[k] = (foes[k] || 0) + 1;
   $('#p-foes').replaceChildren(h('em', null, 'VS'), ...Object.keys(foes).map((k) => face(ENEMIES[k].set, 28)));
   // who is going: front and back, in the order they will stand
@@ -139,7 +147,9 @@ export function renderPrep(game, missionId) {
     const d = UNITS[k], inT = s.team.some((q) => q.key === k);
     roster.append(h('button.card' + (inT ? '.in' : '') + (focus === k ? '.focus' : ''), { type: 'button', vars: { '--c': clsVar(d.cls) }, 'aria-pressed': String(inT), 'aria-label': (inT ? 'Leave at camp: ' : 'Take along: ') + d.name,
       onclick: () => tapCard(game, missionId, k) },
-      h('span.lv', null, s.roster[k].level), s.run && s.run.leader === k ? h('span.crown') : null, face(d.set, 42), h('span.nm', null, first(d.name))));
+      h('span.lv', null, s.roster[k].level), s.run && s.run.leader === k ? h('span.crown') : null, face(d.set, 42), h('span.nm', null, first(d.name)),
+      // on an expedition: how hurt they are
+      s.run && s.run.exp ? h('span.wound' + (X.hpOf(s, k) < 0.35 ? '.low' : ''), { title: `${Math.round(X.hpOf(s, k) * 100)}% health` }, h('i', { style: { width: X.hpOf(s, k) * 100 + '%' } })) : null));
   }
   const d = UNITS[focus];
   $('#p-detail').replaceChildren(h('div.t', null, d.name), h('div.sub', null, h('span.cls', { vars: { '--c': clsVar(d.cls) } }, CLASSES[d.cls].name), h('span.place', null, d.title)),
@@ -189,11 +199,11 @@ export function renderRewards(game, b, rw, missionId) {
     box.append(h('div.ractions', null,
       h('button.btn', { id: 'r-heroes', type: 'button', onclick: () => afterWin(game, rw, m, 'heroes') }, icon('heroes', 18), 'Heroes'),
       h('button.btn', { id: 'r-map', type: 'button', onclick: () => afterWin(game, rw, m, 'map') }, icon('map', 18), 'Map'),
-      h('button.btn', { id: 'r-replay', type: 'button', onclick: () => afterWin(game, rw, m, 'replay') }, 'Replay'),
+      rw.exp ? null : h('button.btn', { id: 'r-replay', type: 'button', onclick: () => afterWin(game, rw, m, 'replay') }, 'Replay'),
       // a boon on offer comes first: the pick, then on
       game.save.run && game.save.run.pick
         ? h('button.btn.primary.boonbtn', { id: 'r-next', type: 'button', onclick: () => showBoons(game, () => afterWin(game, rw, m, onward ? 'next' : 'map')) }, icon('star', 18), 'Choose a boon')
-        : h('button.btn.primary', { id: 'r-next', type: 'button', onclick: () => afterWin(game, rw, m, onward ? 'next' : 'map') }, onward ? 'Next mission' : 'Continue', icon('right', 18))));
+        : h('button.btn.primary', { id: 'r-next', type: 'button', onclick: () => afterWin(game, rw, m, onward || rw.exp ? 'next' : 'map') }, rw.exp && game.save.run ? 'Onward' : onward ? 'Next mission' : 'Continue', icon('right', 18))));
   } else {
     const why = b.ward && b.ward.state === 'ko' ? `${b.ward.def.name} was lost` : b.mark && b.t >= b.limit - 0.1 ? 'The target got away' : b.t >= b.limit - 0.1 ? 'Time ran out' : 'Defeat';
     box.append(h('div.rt.lose', null, why), h('div.rsub', null, `${m.name} · ${allies.filter((u) => u.state !== 'ko').length} of ${allies.length} standing`));
@@ -202,7 +212,8 @@ export function renderRewards(game, b, rw, missionId) {
     if (rw.runEnded) { const d = UNITS[rw.runEnded.leader], f = face(d.set, 30); f.style.setProperty('--c', `var(--${d.cls})`);
       box.append(h('div.runover', null, f, h('span', null, h('b', null, `${first(d.name)}'s run is over`), h('small', null, `${rw.runEnded.wins} win${rw.runEnded.wins === 1 ? '' : 's'} · best run ${game.save.runs.best}`)))); }
     box.append(h('div.powers', null, powerChip('Your team', tp, tp >= mp ? 'ok' : tp >= mp * 0.85 ? 'close' : 'low'), h('span.vs', null, 'vs'), powerChip('Enemies', mp, 'foe')));
-    box.append(h('p.lose-note', null, tp < mp ? 'Your team is under-powered here. Nothing is lost: replay earlier missions for levels, equip and upgrade gear, train, then come back.'
+    if (rw.exp) box.append(h('p.lose-note', null, 'The expedition is over. Levels, gear and cleared missions stay; a new one starts from the gate.'));
+    else box.append(h('p.lose-note', null, tp < mp ? 'Your team is under-powered here. Nothing is lost: replay earlier missions for levels, equip and upgrade gear, train, then come back.'
       : 'Nothing is lost. Try a different formation, put the healer in the back row, or use Manual to time the abilities.'));
     const top = Math.max(1, ...allies.map((u) => Math.max(u.dealt, u.healed)));
     box.append(h('div.xps', null, ...allies.map((u) => h('div.xrow', { vars: { '--c': clsVar(u.def.cls || 'striker') } }, face(u.def.set, 26), h('span.nm', null, first(u.def.name)),
@@ -210,7 +221,9 @@ export function renderRewards(game, b, rw, missionId) {
     box.append(h('div.ractions', null,
       h('button.btn', { type: 'button', onclick: () => game.go('map') }, icon('map', 18), 'Map'),
       h('button.btn', { type: 'button', onclick: () => game.go('company') }, icon('heroes', 18), 'Heroes'),
-      h('button.btn.primary', { type: 'button', onclick: () => game.needRun(() => game.go('prep', missionId)) }, game.save.run || P.unlocked(game.save).length < 2 ? 'Try again' : 'Spin again', icon('right', 18))));
+      rw.exp
+        ? h('button.btn.primary', { type: 'button', onclick: () => game.beginExpedition(m.region) }, P.unlocked(game.save).length < 2 ? 'New expedition' : 'Spin & go again', icon('right', 18))
+        : h('button.btn.primary', { type: 'button', onclick: () => game.go('prep', missionId) }, 'Try again', icon('right', 18))));
   }
   $('#result').classList.toggle('lose', !rw.win);
   $('#result').hidden = false;
@@ -237,7 +250,8 @@ function afterWin(game, rw, m, then = 'map') {
       const ri = REGIONS.findIndex((r) => r.id === m.region), nextR = REGIONS[ri + 1];
       showStory(game, REGIONS[ri].name, REGION_END[m.region], nextR ? `Onward to ${nextR.name}` : 'The end',
         () => (nextR ? game.playScene(arrivalScene(nextR.id, game.save.team.map((t) => t.key))).then(() => game.go('map', missionsIn(nextR.id)[0].id)) : game.go('camp')), !nextR);
-    } else if (then === 'next') { const nx = nextMission(game.save.cleared); game.go('prep', nx ? nx.id : m.id); }
+    } else if (then === 'next' && game.save.run && game.save.run.exp) game.go('exp');
+    else if (then === 'next') { const nx = nextMission(game.save.cleared); game.go('prep', nx ? nx.id : m.id); }
     else if (then === 'replay') game.go('prep', m.id);
     else if (then === 'heroes') game.go('company');
     else game.go('map', m.id);
