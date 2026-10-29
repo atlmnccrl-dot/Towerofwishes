@@ -53,8 +53,9 @@ export function createDirector(view) {
     // the big moments: a lean towards a hero's (or a boss's) ability, a stop on a critical hit, a beat of slow time on a kill
     for (const e of events) {
       const u = e.u && b.units.find((x) => x.id === e.u);
-      if (e.type === 'cast' && u && (u.team === 'ally' || u.def.boss)) { lean = { x: u.x, y: u.y, t: 0.9 }; slow(0.45, 0.35); }
-      else if (e.type === 'ability' && u && !u.summoned) hold = Math.max(hold, 0.07);   // the blow lands: a beat of stillness
+      if (e.type === 'cast' && u && u.team === 'ally' && u.def.ability.epic) { lean = { x: u.x, y: u.y, t: 1.6 }; slow(0.2, 1.1); }   // a finisher: held
+      else if (e.type === 'cast' && u && (u.team === 'ally' || u.def.boss)) { lean = { x: u.x, y: u.y, t: 0.9 }; slow(0.45, 0.35); }
+      else if (e.type === 'ability' && u && !u.summoned) hold = Math.max(hold, e.epic ? 0.18 : 0.07);   // the blow lands: a beat of stillness
       else if (e.type === 'hit' && e.crit) hold = Math.max(hold, 0.05);
       else if (e.type === 'proc' && e.big && u) { lean = { x: u.x, y: u.y, t: 0.8 }; slow(0.35, 0.5); }
       else if (e.type === 'wave') slow(0.5, 0.4);

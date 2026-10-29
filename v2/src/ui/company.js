@@ -6,6 +6,7 @@ import { MISSIONS, regionOf } from '../data/campaign.js';
 import { SLOTS, SLOT_NAMES, BASES, itemStats, itemName, statText, upgradeCost, sellValue, MAX_PLUS } from '../data/items.js';
 import { statsAt } from '../combat/battle.js';
 import * as P from '../game/progress.js';
+import { pathAbility } from '../data/paths.js';
 import { $, h, face, itemTile, slotIcon, tierColor, toast, goldIcon } from './common.js';
 import { heroArt, artPx } from './heroart.js';
 
@@ -28,7 +29,7 @@ export function renderCompany(game, focus) {
     const d = UNITS[k], m = s.roster[k], pend = P.pendingUpgrade(s, k) >= 0;
     list.append(h('button.rcard' + (k === sel ? '.on' : ''), { type: 'button', vars: { '--c': clsVar(d.cls) }, onclick: () => { sel = k; renderCompany(game); }, 'aria-pressed': String(k === sel), 'aria-label': d.name },
       h('span.lv', null, m.level), face(d.set, 42), h('span.nm', null, d.name.split(' ')[0]),
-      pend ? h('span.dot', { title: 'An upgrade to pick', 'aria-label': 'An upgrade to pick' }) : inTeam(k) ? h('span.tm', { title: 'In the team', 'aria-label': 'In the team' }) : null));
+      pend || P.pendingPath(s, k) >= 0 ? h('span.dot', { title: 'An upgrade or a path to pick', 'aria-label': 'An upgrade or a path to pick' }) : inTeam(k) ? h('span.tm', { title: 'In the team', 'aria-label': 'In the team' }) : null));
   }
   // not met yet: only the next one to find, with where to look, and how many more are out there
   const order = (k) => { const m = P.unlockedBy(k); return m ? MISSIONS.indexOf(m) : 1e9; };
@@ -58,7 +59,7 @@ function renderDetail(game) {
       P.toggleTeam(s, k); game.persist(); renderCompany(game);
     } }, inTeam ? 'In the team ✓' : 'Add to team'));
   const tabs = h('div.tabs', { role: 'tablist' });
-  const pend = P.pendingUpgrade(s, k) >= 0;
+  const pend = P.pendingUpgrade(s, k) >= 0 || P.pendingPath(s, k) >= 0;
   for (const [id, label] of [['stats', 'Stats'], ['gear', 'Gear'], ['train', 'Train']]) {
     tabs.append(h('button.tab' + (tab === id ? '.on' : ''), { type: 'button', role: 'tab', 'aria-selected': String(tab === id), onclick: () => { tab = id; renderDetail(game); } }, label, id === 'stats' && pend ? h('span.dot') : null));
   }
@@ -72,7 +73,23 @@ function renderDetail(game) {
       stat('Critical', pct(st.crit)), stat('Speed', st.spd.toFixed(2) + '×'), stat('Range', st.range > 3 ? 'Far' : 'Melee'),
       st.dr ? stat('Damage taken', '-' + pct(st.dr)) : null,
       ...extra.map((x) => stat({ power: 'Ability', energy: 'Energy gain', lifesteal: 'Lifesteal', healPower: 'Healing', summonPower: 'Summons', start: 'Start energy' }[x], x === 'start' ? '+' + Math.round(st.start) : '+' + pct((mods[x] || 0) + ((d.passive || {})[x] || 0))))));
-    body.append(h('div.ability', null, h('b', null, d.ability.name), ' ', d.ability.desc));
+    const ab = pathAbility(d.ability, k, d.cls, m.paths);
+    body.append(h('div.ability', null, h('b', null, d.ability.name + (ab && ab.path ? ' · ' + ab.path : '')), ' ', d.ability.desc));
+    // the hero's paths: two choices that change the special (level 10, then 25)
+    P.PATH_LEVELS.forEach((lv, tier) => {
+      const picked = m.paths[tier], open = m.level >= lv;
+      const row = h('div.uprow.pathrow' + (open ? '' : '.locked'), null, h('span.uplv', null, tier ? 'Path II' : 'Path I'));
+      for (const c of P.pathChoices(k, d.cls, tier)) {
+        const on = picked === c.id;
+        row.append(h('button.upg.path' + (on ? '.on' : '') + (picked && !on ? '.off' : ''), {
+          type: 'button', disabled: !open || (picked && !on) ? true : null, 'aria-pressed': String(on),
+          onclick: () => { if (picked) return; if (P.pickPath(s, k, tier, c.id)) { game.persist(); game.audio.play('level_up'); toast(`${d.name.split(' ')[0]} walks the path of the ${c.name}`); renderCompany(game); } },
+        }, h('b', null, c.name), h('span', null, c.desc)));
+      }
+      if (!open) row.append(h('span.uplock', null, `Opens at level ${lv}`));
+      else if (!picked) row.append(h('span.upnote', null, 'Choose a path (for good)'));
+      body.append(row);
+    });
     // the wheel's heroes can lead a run; a recruit fights in the squad
     body.append(P.onWheel(k) ? h('div.perk', null, h('b', null, 'On the wheel · ' + P.LEADERS[k].name), h('span', null, P.LEADERS[k].desc))
       : h('div.note', null, 'A recruit: fights in the squad, but the wheel never picks them to lead.'));

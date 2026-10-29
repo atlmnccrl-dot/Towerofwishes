@@ -62,7 +62,8 @@ export function createBattle({ team, wave, seed = 1, foes, level, might = 1, kin
   b.waveOf = 1 + b.queue.length;
   // an ambush: the company in the middle, the foes on both sides
   const ambush = kind === 'ambush';
-  for (const m of team) { const u = addUnit(b, UNITS[m.key], m.key, 'ally', SLOTS[m.slot], m.level || 1, null, m.mods); if (ambush) u.x += 3.2; }
+  // a hero's special may be their own path's version of it (data/paths.js)
+  for (const m of team) { const u = addUnit(b, m.ability ? Object.assign({}, UNITS[m.key], { ability: m.ability }) : UNITS[m.key], m.key, 'ally', SLOTS[m.slot], m.level || 1, null, m.mods); if (ambush) u.x += 3.2; }
   (foes || W.foes).forEach(([key, slot], i) => {
     const u = addUnit(b, ENEMIES[key], key, 'foe', SLOTS[slot], W.level, null, foeMods);
     if (ambush && i % 2) { u.x = -SLOTS[slot][0] - 1.6; u.f = 0; }
@@ -375,8 +376,8 @@ function tickCast(b, u, dt) {
 function resolve(b, u, t, echo = false) {
   const foes = foesOf(b, u), allies = teamOf(b, u.team);
   if (!t || !alive(t)) t = foes.slice().sort((p, q) => dist(u, p) - dist(u, q))[0];
-  const ab = u.def.ability;
-  b.events.push({ type: 'ability', u: u.id, name: ab.name, fx: ab.fx, x: t ? t.x : u.x, y: t ? t.y : u.y });
+  const ab = u.def.ability, pw = u.s.power * (ab.boost || 1) * (u.twiceK || 1);   // a path's boost; the second of a twinned special is weaker
+  b.events.push({ type: 'ability', u: u.id, name: ab.name, fx: ab.fx, x: t ? t.x : u.x, y: t ? t.y : u.y, epic: !!ab.epic && !u.twiceK });
   for (const e of ab.effects) {
     if (e.type === 'blink') {
       const v = foes.slice().sort((p, q) => p.hp / p.max - q.hp / q.max)[0];
@@ -384,7 +385,7 @@ function resolve(b, u, t, echo = false) {
     } else if (e.type === 'damage') {
       const hitList = targetsFor(b, u, t, e, foes);
       for (const v of hitList) {
-        for (let i = 0; i < (e.hits || 1); i++) damage(b, u, v, e.mult * u.s.power, { fx: ab.fx, ability: true });
+        for (let i = 0; i < (e.hits || 1); i++) damage(b, u, v, e.mult * pw, { fx: ab.fx, ability: true });
         if (!alive(v)) continue;
         if (e.stun && !v.def.boss) addStatus(v, { type: 'stun', t: e.stun });
         else if (e.stun) addStatus(v, { type: 'stun', t: e.stun * 0.4 });
@@ -393,15 +394,16 @@ function resolve(b, u, t, echo = false) {
       }
     } else if (e.type === 'heal') {
       const list = e.area === 'allAllies' ? allies : e.area === 'self' ? [u] : [allies.slice().sort((p, q) => p.hp / p.max - q.hp / q.max)[0]];
-      for (const a of list) heal(b, u, a, e.mult * u.s.power);
+      for (const a of list) heal(b, u, a, e.mult * pw);
     } else if (e.type === 'shield') {
-      for (const a of e.area === 'allAllies' ? allies : [u]) { a.shield = Math.max(a.shield, Math.round(a.max * e.pct * u.s.power)); a.shieldT = e.dur; b.events.push({ type: 'shield', u: a.id }); }
+      for (const a of e.area === 'allAllies' ? allies : [u]) { a.shield = Math.max(a.shield, Math.round(a.max * e.pct * pw)); a.shieldT = e.dur; b.events.push({ type: 'shield', u: a.id }); }
     } else if (e.type === 'buff') {
-      for (const a of e.area === 'allAllies' ? allies : [u]) addStatus(a, { type: 'buff', stat: e.stat, pct: e.pct * (1 + (u.s.power - 1) * 0.5), t: e.dur });
+      for (const a of e.area === 'allAllies' ? allies : [u]) addStatus(a, { type: 'buff', stat: e.stat, pct: e.pct * (1 + (pw - 1) * 0.5), t: e.dur });
     } else if (e.type === 'debuff') {
       for (const v of e.area === 'allEnemies' ? foes : t ? [t] : []) if (alive(v)) addStatus(v, { type: 'debuff', stat: e.stat, pct: e.pct, t: e.dur });
     } else if (e.type === 'taunt') addStatus(u, { type: 'taunt', t: e.dur });
     else if (e.type === 'dr') addStatus(u, { type: 'dr', pct: e.pct, t: e.dur });
+    else if (e.type === 'energy') u.energy = Math.min(100, u.energy + e.amount);
     else if (e.type === 'summon') {
       const def = SUMMONS[e.key];
       for (let i = 0; i < e.n; i++) {
@@ -409,11 +411,13 @@ function resolve(b, u, t, echo = false) {
         const a = u.f + (i ? 0.9 : -0.9) * (e.n > 1 ? 1 : 0);
         const m = addUnit(b, def, e.key, u.team, [0, 0], u.level, { summoned: true });
         m.x = u.x + Math.cos(a) * 1.2; m.y = u.y + Math.sin(a) * 1.2; m.f = u.f;
-        m.max = m.hp = Math.round(m.max * u.s.summon * u.s.power); m.s.atk *= u.s.summon * u.s.power;
+        m.max = m.hp = Math.round(m.max * u.s.summon * pw); m.s.atk *= u.s.summon * pw;
         b.events.push({ type: 'summon', u: m.id });
       }
     }
   }
+  // a twinned special goes off again, weaker
+  if (ab.twice && !u.twiceK) { u.twiceK = ab.twice; b.events.push({ type: 'proc', u: u.id, text: 'Again!', fx: ab.fx, col: '#bfe4ff' }); resolve(b, u, t, true); u.twiceK = 0; }
   if (!hero(u) || echo) return;
   if (bo(b, 'overflow')) { u.energy = Math.min(100, u.energy + 20 * bo(b, 'overflow')); proc(b, 'overflow', u, 'charge_up'); }
   if (bo(b, 'echo') && b.rnd() < 0.25 * bo(b, 'echo') && alive(u)) { b.events.push({ type: 'proc', boon: 'echo', u: u.id, text: 'Echo!', fx: 'arc_gold', col: '#ffe07a' }); resolve(b, u, t, true); }

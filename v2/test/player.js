@@ -3,6 +3,7 @@
 import { createBattle, step } from '../src/combat/battle.js';
 import { BASES, SLOTS, itemStats } from '../src/data/items.js';
 import * as P from '../src/game/progress.js';
+import { UNITS } from '../src/data/units.js';
 import * as X from '../src/game/expedition.js';
 import { missionById } from '../src/data/campaign.js';
 
@@ -50,6 +51,7 @@ export function manage(s, r, casual = true, pick = process.env.PICK ? +process.e
   if (s.run && s.run.pick) P.chooseBoon(s, s.run.pick[Math.floor(r() * s.run.pick.length) % s.run.pick.length]);   // a boon on offer: any of the three
   const keys = P.bestTeam(s);
   for (const k of keys) s.roster[k].ups.forEach((u, t) => { if (!u && s.roster[k].level >= P.UPGRADE_LEVELS[t]) P.pickUpgrade(s, k, t, P.upgradeChoices(k, t)[pick != null ? pick : r() < 0.5 ? 0 : 1].id); });
+  for (const k of keys) for (let t = 0; t < 2; t++) { const c = P.pathChoices(k, UNITS[k].cls, t); if (s.roster[k].level >= P.PATH_LEVELS[t] && !s.roster[k].paths[t]) P.pickPath(s, k, t, c[pick != null ? pick : r() < 0.5 ? 0 : 1].id); }
   P.autoEquip(s, keys);
   // the Stronghold: anyone builds what the camp offers when it is affordable
   for (let b = P.nextBuild(s); b && P.buildState(s, b.id) === 'ok'; b = P.nextBuild(s)) P.build(s, b.id);

@@ -5,6 +5,7 @@ import { MISSIONS, REGIONS, START_ROSTER, missionById, missionsIn, regionOpen } 
 import { HEROES, UNLOCKS, LEADERS } from '../data/heroes.js';
 import { BOONS, offerBoons, boonMods } from '../data/boons.js';
 import { generate } from './expedition.js';
+import { PATH_LEVELS, pathChoices, pathAbility, pathMods } from '../data/paths.js';
 import { SLOTS, BASES, itemStats, upgradeCost, sellValue, rollItem, MAX_PLUS } from '../data/items.js';
 import { MOD_KEYS, statsAt } from '../combat/battle.js';
 
@@ -60,7 +61,7 @@ export function newSave() {
   for (const k of START_ROSTER) s.roster[k] = newMember(1);
   return s;
 }
-function newMember(level) { return { level, xp: 0, gear: { weapon: null, armor: null, charm: null }, train: { hp: 0, atk: 0, def: 0 }, ups: [null, null, null, null] }; }
+function newMember(level) { return { level, xp: 0, gear: { weapon: null, armor: null, charm: null }, train: { hp: 0, atk: 0, def: 0 }, ups: [null, null, null, null], paths: [null, null] }; }
 // a stored save made whole again (missing fields filled, unknown units and items dropped)
 export function loadSave(raw) {
   const s = newSave();
@@ -70,6 +71,7 @@ export function loadSave(raw) {
     if (!UNITS[k]) { delete s.roster[k]; continue; }
     const m = s.roster[k] = Object.assign(newMember(1), s.roster[k]);
     while (m.ups.length < UPGRADE_LEVELS.length) m.ups.push(null);
+    if (!Array.isArray(m.paths)) m.paths = [null, null];
   }
   s.stats = Object.assign(newSave().stats, raw.stats); s.flags = Object.assign({}, raw.flags); s.heroic = Object.assign({}, raw.heroic);
   s.settings = Object.assign(newSave().settings, raw.settings);
@@ -105,10 +107,11 @@ export function modsOf(s, key) {
   const kb = keepBonus(s); if (kb.hp) add({ hp: kb.hp }); if (kb.atk) add({ atk: kb.atk });
   if (s.run && LEADERS[s.run.leader]) { add(LEADERS[s.run.leader].mods); if (key === s.run.leader) add(LEAD_EDGE); }
   if (s.run) add(boonMods(s.run.boons));
+  add(pathMods(key, UNITS[key].cls, m.paths));
   for (const k of Object.keys(out)) if (!MOD_KEYS.includes(k)) delete out[k];
   return out;
 }
-export const teamFor = (s) => s.team.map((m) => ({ key: m.key, slot: m.slot, level: s.roster[m.key].level, mods: modsOf(s, m.key) }));
+export const teamFor = (s) => s.team.map((m) => ({ key: m.key, slot: m.slot, level: s.roster[m.key].level, mods: modsOf(s, m.key), ability: pathAbility(UNITS[m.key].ability, m.key, UNITS[m.key].cls, s.roster[m.key].paths) }));
 // a rough strength number for the screens (not used by the battle)
 export function power(s, key) {
   const m = s.roster[key], mods = modsOf(s, key), d = UNITS[key].stats, k = 1 + 0.08 * (m.level - 1);
@@ -294,6 +297,15 @@ export function pickUpgrade(s, key, tier, id) {
   m.ups[tier] = id; return true;
 }
 // what is waiting for the player's attention on a recruit: an upgrade to pick
+// ---- hero paths: at levels 10 and 25 one of two ways to grow, changing the special (data/paths.js)
+export { PATH_LEVELS, pathChoices };
+export const pathsOf = (s, key) => pathChoices(key, UNITS[key].cls, 0).concat(pathChoices(key, UNITS[key].cls, 1));
+export function pickPath(s, key, tier, id) {
+  const m = s.roster[key]; if (!m || m.level < PATH_LEVELS[tier] || m.paths[tier]) return false;
+  if (!pathChoices(key, UNITS[key].cls, tier).some((c) => c.id === id)) return false;
+  m.paths[tier] = id; return true;
+}
+export const pendingPath = (s, key) => PATH_LEVELS.findIndex((lv, t) => s.roster[key].level >= lv && !s.roster[key].paths[t]);
 export const pendingUpgrade = (s, key) => UPGRADE_LEVELS.findIndex((lv, t) => s.roster[key].level >= lv && !s.roster[key].ups[t]);
 
 export { CLASSES, MISSIONS, HEROES, UNLOCKS, LEADERS, BOONS };

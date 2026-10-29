@@ -151,7 +151,7 @@ function renderCamp() {
     $('#k-keep-next').textContent = P.keepRank(s) >= 36 ? 'The Citadel stands' : 'Reach a new region for new materials';
     $('#k-keep-cost').replaceChildren();
   }
-  const pend = Object.keys(s.roster).some((k) => P.pendingUpgrade(s, k) >= 0);
+  const pend = Object.keys(s.roster).some((k) => P.pendingUpgrade(s, k) >= 0 || P.pendingPath(s, k) >= 0);
   $('#k-company-dot').hidden = !pend;
   $('#k-bounty-dot').hidden = !E.bountiesReady(s);
   $('#k-banner').hidden = !E.owns(s, 'vael.supporter');
@@ -260,6 +260,13 @@ function setAuto(on) {
 }
 // a hero's ability: their art slides in with its name
 function cutIn(u) {
+  // a finisher (a hero's second path): the screen narrows to bars, the hero large in gold
+  if (u.def.ability.epic && u.team === 'ally') {
+    const el = h('div.finisher', { vars: { '--c': `var(--${u.def.cls})` } }, heroArt(u.def.set, 4, { shadow: false }), h('div', null, h('small', null, u.def.ability.path || 'Finisher'), h('b', null, u.def.ability.name)));
+    $('#hud').append(el); $('#hud').classList.add('epic'); game.audio.play('allout', { gain: 0.9 }); game.haptics.buzz('big');
+    setTimeout(() => { el.remove(); $('#hud').classList.remove('epic'); }, 1500);
+    return;
+  }
   const box = $('#cutin'); if (box.children.length >= 2) box.firstChild.remove();
   const el = h('div.cut' + (u.team === 'foe' ? '.foe' : ''), { vars: u.team === 'ally' ? { '--c': `var(--${u.def.cls})` } : {} }, heroArt(u.def.set, 2, { shadow: false }), h('div', null, h('small', null, u.def.name.split(' ')[0]), h('b', null, u.def.ability.name)));
   box.append(el); setTimeout(() => el.remove(), 1300);
@@ -400,7 +407,7 @@ function finish() {
   else if (rw.win) game.audio.play('coin_01');
   // the tips a result can bring, shown on the next screen so they never cover the result
   const s = game.save;
-  game.pendingTip = !rw.win ? 'lose' : rw.loot.length && !(s.flags || {}).tip_loot ? 'loot' : Object.keys(s.roster).some((k) => P.pendingUpgrade(s, k) >= 0) ? 'upgrade' : null;
+  game.pendingTip = !rw.win ? 'lose' : rw.loot.length && !(s.flags || {}).tip_loot ? 'loot' : Object.keys(s.roster).some((k) => P.pendingPath(s, k) >= 0) && !(s.flags || {}).tip_path ? 'path' : Object.keys(s.roster).some((k) => P.pendingUpgrade(s, k) >= 0) ? 'upgrade' : null;
 }
 
 // ---- the loop

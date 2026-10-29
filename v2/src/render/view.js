@@ -293,6 +293,7 @@ export function createView(canvas, fxAtlas, tiles, settings = () => ({ shake: tr
         spawn('shockwave', e.x, e.y, 0.05, { add: true, ground: true, scale: 2.4 });
         const caster = u && u.team === 'ally';
         flashA = Math.max(flashA, caster ? 0.3 : 0.22); flashCol = caster ? '255,236,190' : '255,170,150'; cam.shake = Math.max(cam.shake, 4.5);
+        if (e.epic) { flashA = 0.6; cam.shake = 9; spawn('star_burst', e.x, e.y, 1.2, { add: true, scale: 2.6 }); spawn('explosion_fire', e.x, e.y, 0.8, { add: true, scale: 2.4, delay: 0.08 }); spawn('shockwave', e.x, e.y, 0.05, { add: true, ground: true, scale: 4, delay: 0.05 }); }
       } else if (e.type === 'blink' && u) { spawn('teleport', e.x0, e.y0, 0.9, { add: true }); spawn('teleport', u.x, u.y, 0.9, { add: true, delay: 0.05 }); }
       else if (e.type === 'summon' && u) spawn('summon', u.x, u.y, 0.6, { add: true, scale: 1.2 });
       else if (e.type === 'ko' && u) {
