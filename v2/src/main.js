@@ -27,6 +27,7 @@ import { renderExtras, tip } from './ui/extras.js';
 import { renderKeep, LOOK } from './ui/keep.js';
 import { renderWheel } from './ui/wheel.js';
 import { showBoons, boonRow } from './ui/boons.js';
+import { VOICES, CLASS_VOICES, PAIRS } from './data/voices.js';
 import { HAZARD_NAMES } from './data/campaign.js';
 
 const DT = 1 / 60, SPEEDS = [1, 2, 3], KEY = 'vael.save', BAK = 'vael.save.bak';
@@ -214,6 +215,8 @@ async function fight() {
   setAuto(game.save.settings.auto !== false);
   game.audio.play('unsheathe_01');
   go('battle'); view.resize();
+  combo.n = 0; combo.best = 0; $('#combo').hidden = true;
+  talk.cd = 0; talk.low.clear(); talk.queue = []; for (const l of talk.list) l.el.remove(); talk.list = [];
   acc = 0; ended = false; paused = false; slow = 0; lastEvents = []; $('#paused').hidden = true; $('#cutin').replaceChildren(); $('#danger').hidden = true;
   drama = { allies: battle.units.filter((u) => u.team === 'ally' && !u.ward).length, foes: battle.units.filter((u) => u.team === 'foe').length, m };
   // the start, filmed: a fight fought before gets the short version
@@ -235,7 +238,7 @@ function onCue(c) {
     banner({ waves: 'Hold the line!', protect: 'Protect it!', hunt: 'Hunt!', ambush: 'Ambush!' }[battle.kind] || (battle.boss ? 'Boss fight' : 'Fight!'), 'fight');
     view.spawn('shockwave', 0, 0, 0.05, { add: true, ground: true, scale: 3.2 }); view.flash(0.45, '255,236,200'); view.shake(6);
     game.audio.play('horn', { gain: 0.9 }); game.audio.play('allout', { gain: 0.6 }); game.haptics.buzz('big');
-  } else if (c === 'go') { $('#hud').classList.remove('intro'); tip(game, 'battle'); }
+  } else if (c === 'go') { $('#hud').classList.remove('intro'); tip(game, 'battle'); openingLines(); }
 }
 // a word across the field at the start and the end
 function banner(text, cls = '') { const b = $('#banner'); b.textContent = text; b.className = cls; b.hidden = false; b.style.animation = 'none'; void b.offsetWidth; b.style.animation = ''; clearTimeout(banner.t); banner.t = setTimeout(() => (b.hidden = true), 1100); }
@@ -294,6 +297,77 @@ function updateHud() {
   $('#job').hidden = !text; if ($('#job').textContent !== text) $('#job').textContent = text;
   $('#job').classList.toggle('warn', B.kind === 'protect' && B.ward && B.ward.hp < B.ward.max * 0.35);
 }
+// ---- the heroes talk: a line beside the speaker at the moments that matter (data/voices.js)
+const talk = { cd: 0, low: new Set(), list: [], queue: [] };
+const pickLine = (u, moment) => { const v = (VOICES[u.key] && VOICES[u.key][moment]) || (CLASS_VOICES[u.def.cls] || {})[moment]; return v && v[Math.floor(Math.random() * v.length)]; };
+const heroesUp = () => battle.units.filter((u) => u.team === 'ally' && !u.summoned && !u.ward && u.state !== 'ko');
+function say(u, text, delay = 0) {
+  if (!u || !text) return;
+  if (delay) { talk.queue.push({ u, text, at: delay }); return; }
+  const el = h('div.say', { vars: { '--c': `var(--${u.def.cls})` } }, h('small', null, u.def.name.split(' ')[0]), h('span', null, text));
+  $('#says').append(el); talk.list.push({ u, el, t: 0, life: 1.6 + text.length * 0.045 });
+  talk.cd = 2.6;
+}
+// when the fight starts: two heroes trading words, or the leader's call
+function openingLines() {
+  const up = heroesUp(), has = (k) => up.find((u) => u.key === k);
+  const pairs = PAIRS.filter(([a, b]) => has(a) && has(b));
+  if (pairs.length && Math.random() < 0.45) { const [a, b, la, lb] = pairs[Math.floor(Math.random() * pairs.length)]; say(has(a), la); say(has(b), lb, 1.7); return; }
+  const lead = (game.save.run && has(game.save.run.leader)) || up[0];
+  say(lead, pickLine(lead, battle.boss ? 'boss' : 'start'));
+}
+function talkTick(events, dt) {
+  if (!battle) return;
+  talk.cd -= dt;
+  for (const q of talk.queue) q.at -= dt;
+  for (const q of talk.queue.filter((q) => q.at <= 0)) say(q.u, q.text);
+  talk.queue = talk.queue.filter((q) => q.at > 0);
+  const U = (id) => battle.units.find((x) => x.id === id), hero = (u) => u && u.team === 'ally' && !u.summoned && !u.ward;
+  if (!$('#hud').classList.contains('intro')) for (const e of events) {
+    const u = e.u && U(e.u);
+    if (e.type === 'cast' && hero(u) && talk.cd <= 0 && Math.random() < 0.35) say(u, pickLine(u, 'ability'));
+    else if (e.type === 'ko' && hero(u)) { const others = heroesUp(); const o = others[Math.floor(Math.random() * others.length)]; if (o) say(o, pickLine(o, 'fallen')); }
+    else if (e.type === 'ko' && u && u.team === 'foe' && (u.def.boss || u.elite)) {
+      const blow = events.filter((x) => x.type === 'hit' && x.u === u.id && x.src).pop(), k = blow && U(blow.src);
+      if (hero(k) && k.state !== 'ko') say(k, pickLine(k, 'kill'));
+    } else if (e.type === 'proc' && e.boon === 'secondwind' && hero(u)) say(u, pickLine(u, 'revive'));
+    else if (e.type === 'end' && e.result === 'win') { const up = heroesUp(); const w = up[Math.floor(Math.random() * up.length)]; if (w) { talk.cd = 0; say(w, pickLine(w, 'win')); } }
+  }
+  if (talk.cd <= 0) for (const u of heroesUp()) if (!talk.low.has(u.id) && u.hp < u.max * 0.25) { talk.low.add(u.id); say(u, pickLine(u, 'low')); break; }
+  // the lines follow their speakers, then fade
+  talk.list = talk.list.filter((l) => {
+    l.t += dt;
+    if (l.t > l.life || l.u.state === 'ko' && l.t > 0.6) { l.el.remove(); return false; }
+    // kept on the screen: clear of the edges and below the bar at the top
+    const p = view.project(l.u.x, l.u.y, 3.1), w = l.el.offsetWidth, hh = l.el.offsetHeight;
+    const x = Math.max(w / 2 + 8, Math.min(innerWidth - w / 2 - 8, p.x)), y = Math.max(hh + 52, Math.min(innerHeight - 70, p.y));
+    l.el.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px) translate(-50%, -100%)`;
+    l.el.style.opacity = String(Math.min(1, (l.life - l.t) / 0.3, l.t / 0.12));
+    return true;
+  });
+}
+// the company's combo: hits landing one after another, counted until the blows stop for a moment
+const combo = { n: 0, idle: 0, best: 0 };
+function comboTick(events, dt) {
+  const el = $('#combo'); let hit = false;
+  for (const e of events) {
+    if (e.type !== 'hit' || e.dot) continue;
+    const src = e.src && battle.units.find((u) => u.id === e.src);
+    if (src && src.team === 'ally' && !src.ward) { combo.n++; hit = true; }
+  }
+  if (hit) {
+    combo.idle = 0; combo.best = Math.max(combo.best, combo.n);
+    if (combo.n >= 5) {
+      el.hidden = false; el.classList.remove('fade', 'pop'); void el.offsetWidth; el.classList.add('pop');
+      el.querySelector('b').textContent = combo.n;
+      const big = combo.n >= 25; el.classList.toggle('big', big);
+      if ([10, 25, 50, 100].includes(combo.n)) { game.audio.play('coin_01', { gain: 0.5, vary: 0 }); view.shake(2); }
+    }
+  } else if (combo.n) {
+    combo.idle += dt;
+    if (combo.idle > 1.6) { combo.n = 0; el.classList.add('fade'); setTimeout(() => { if (!combo.n) el.hidden = true; }, 400); }
+  }
+}
 function finish() {
   if (screen !== 'battle' || !battle) return;
   const rw = P.grantRewards(game.save, missionId, battle, Math.random, !!game.heroic);
@@ -329,6 +403,8 @@ function frame(now) {
     }
     battle.events = events; lastEvents = events;
     for (const e of events) if (e.type === 'wave') { banner(`Wave ${e.n} of ${e.of}`, 'fight'); view.shake(4); game.haptics.buzz('hit'); }
+    comboTick(events, real);
+    talkTick(events, real);
     game.audio.battleEvents(battle);
     view.draw(battle, real * speed);
     battle.events = [];

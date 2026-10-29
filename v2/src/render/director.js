@@ -54,14 +54,15 @@ export function createDirector(view) {
     for (const e of events) {
       const u = e.u && b.units.find((x) => x.id === e.u);
       if (e.type === 'cast' && u && (u.team === 'ally' || u.def.boss)) { lean = { x: u.x, y: u.y, t: 0.9 }; slow(0.45, 0.35); }
+      else if (e.type === 'ability' && u && !u.summoned) hold = Math.max(hold, 0.07);   // the blow lands: a beat of stillness
       else if (e.type === 'hit' && e.crit) hold = Math.max(hold, 0.05);
       else if (e.type === 'proc' && e.big && u) { lean = { x: u.x, y: u.y, t: 0.8 }; slow(0.35, 0.5); }
       else if (e.type === 'wave') slow(0.5, 0.4);
-      else if (e.type === 'ko' && u && !u.summoned) { slow(0.5, 0.3); if (u.def.boss) { lean = { x: u.x, y: u.y, t: 1.4 }; slow(0.25, 1.2); } }
+      else if (e.type === 'ko' && u && !u.summoned) { hold = Math.max(hold, u.elite ? 0.12 : 0.06); slow(0.5, 0.3); if (u.def.boss) { lean = { x: u.x, y: u.y, t: 1.4 }; slow(0.25, 1.2); } }
     }
     // the camera: towards the middle of the fighters still standing, tighter as fewer remain
     const left = alive('ally').concat(alive('foe')), c = centre(left), n = left.length;
-    let tz = fit.zoom * (n <= 2 ? 1.32 : n <= 4 ? 1.18 : n <= 6 ? 1.07 : 1), tx = c.x * 0.55, ty = fit.y + c.y * 0.35;
+    let tz = Math.min(1.6, fit.zoom * (n <= 2 ? 1.25 : n <= 4 ? 1.14 : n <= 6 ? 1.05 : 1)), tx = c.x * 0.8, ty = fit.y + c.y * 0.35;
     if (lean) { lean.t -= dt; const w = Math.min(1, lean.t / 0.3); tx = lerp(tx, lean.x, 0.55 * w); ty = lerp(ty, fit.y + lean.y * 0.6, 0.5 * w); tz *= 1 + 0.22 * w; if (lean.t <= 0) lean = null; }
     const k = 1 - Math.exp(-dt * 3.2);
     camera.zoom = lerp(camera.zoom, tz, k); camera.x = clampX(lerp(camera.x, tx, k), camera.zoom); camera.y = lerp(camera.y, ty, k);

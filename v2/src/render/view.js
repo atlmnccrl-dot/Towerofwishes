@@ -222,7 +222,9 @@ export function createView(canvas, fxAtlas, tiles, settings = () => ({ shake: tr
   function drawUnit(u, dt) {
     if (u.def.prop) return drawProp(u);
     const set = sprites[u.def.set]; if (!set) return;
-    const k = (set.cfg.scale || 1) * (u.def.scale || 1) * (u.size || 1) * cam.zoom, p = P(u.x, u.y), at = u.z ? P(u.x, u.y, u.z) : p;
+    let ox = 0, oy = 0;
+    if (u.recoil) { const r = u.recoil, q = Math.max(0, 1 - r.t / r.life), e = r.stay ? 1 - q * q : q * q; ox = r.dx * e; oy = r.dy * e; r.t += dt; if (r.t >= r.life && !r.stay) u.recoil = null; }   // a hit: shoved and back; a fall: thrown and left there
+    const k = (set.cfg.scale || 1) * (u.def.scale || 1) * (u.size || 1) * cam.zoom, p = P(u.x + ox, u.y + oy), at = u.z ? P(u.x + ox, u.y + oy, u.z) : p;
     const ps = pose(u), dir = dirOf(u.f);
     const frames = framesOf(set, ps.clip, dir) || framesOf(set, 'Idle', dir);
     let a = anim.get(u.id); if (!a || a.clip !== ps.clip) { a = { clip: ps.clip, t: 0 }; anim.set(u.id, a); }
@@ -274,8 +276,11 @@ export function createView(canvas, fxAtlas, tiles, settings = () => ({ shake: tr
       const u = e.u && U(e.u);
       if (e.type === 'swing' && u && SWING[e.fx]) spawn(SWING[e.fx], u.x + Math.cos(u.f) * 0.7, u.y + Math.sin(u.f) * 0.7, 1.0, { flip: Math.cos(u.f) < 0, scale: 0.9 });
       else if (e.type === 'hit' && u) {
-        if (!e.dot && HIT[e.fx]) spawn(HIT[e.fx], u.x, u.y, 1.0, { scale: e.crit ? 1.3 : 0.9 });
-        u.flash = 0.1;
+        if (!e.dot && HIT[e.fx]) spawn(HIT[e.fx], u.x, u.y, 1.0, { scale: e.crit ? 1.5 : 1.0 });
+        if (e.crit) spawn('hit_crit', u.x, u.y, 1.1, { add: true, scale: 1.2 });
+        u.flash = e.crit ? 0.16 : 0.1;
+        const src = e.src && U(e.src);
+        if (src && !e.dot && !u.def.boss) { const a = Math.atan2(u.y - src.y, u.x - src.x), m = e.crit ? 0.45 : 0.16; u.recoil = { dx: Math.cos(a) * m, dy: Math.sin(a) * m * 0.6, t: 0, life: e.crit ? 0.22 : 0.12 }; }
         floaters.push({ text: String(e.dmg), x: u.x, y: u.y, z: 1.9, t: 0, col: e.dot ? '#b9e07a' : e.crit ? '#ffd36b' : u.team === 'ally' ? '#ff8a7a' : '#fff2c8', big: e.crit });
         if (e.crit) cam.shake = Math.max(cam.shake, 1.6);
       } else if (e.type === 'impact' && e.fx) spawn(e.fx, e.x, e.y, 1.0, { add: !e.heal, scale: 0.9 });
@@ -284,11 +289,21 @@ export function createView(canvas, fxAtlas, tiles, settings = () => ({ shake: tr
       else if (e.type === 'cast' && u) { spawn('spell_cast', u.x, u.y, 1.1, { add: true }); banners.push({ text: e.name, u, t: 0, team: u.team }); }
       else if (e.type === 'ability' && e.fx) {
         const g = GROUND.has(e.fx);
-        spawn(e.fx, e.x, e.y, g ? 0.05 : 1.0, { add: true, ground: g, scale: g ? 2.2 : 1.6, life: 1.2 });
-        flashA = Math.max(flashA, 0.18); flashCol = '255,255,255'; cam.shake = Math.max(cam.shake, 2.4);
+        spawn(e.fx, e.x, e.y, g ? 0.05 : 1.0, { add: true, ground: g, scale: g ? 2.6 : 2.0, life: 1.2 });
+        spawn('shockwave', e.x, e.y, 0.05, { add: true, ground: true, scale: 2.4 });
+        const caster = u && u.team === 'ally';
+        flashA = Math.max(flashA, caster ? 0.3 : 0.22); flashCol = caster ? '255,236,190' : '255,170,150'; cam.shake = Math.max(cam.shake, 4.5);
       } else if (e.type === 'blink' && u) { spawn('teleport', e.x0, e.y0, 0.9, { add: true }); spawn('teleport', u.x, u.y, 0.9, { add: true, delay: 0.05 }); }
       else if (e.type === 'summon' && u) spawn('summon', u.x, u.y, 0.6, { add: true, scale: 1.2 });
-      else if (e.type === 'ko' && u) spawn('dust_cloud', u.x, u.y, 0.2, { scale: 1.1 });
+      else if (e.type === 'ko' && u) {
+        // a kill: a burst, the body thrown back, the screen jolts (a boss or an elite: a big one, and its name)
+        const big = u.def.boss || u.elite;
+        spawn('dust_cloud', u.x, u.y, 0.2, { scale: 1.3 }); spawn(big ? 'explosion_fire' : 'hit_big', u.x, u.y, 0.9, { add: true, scale: big ? 1.6 : 1.1 });
+        const src = b.units.find((x) => x.team !== u.team && x.target === u.id) || null, a = src ? Math.atan2(u.y - src.y, u.x - src.x) : (u.team === 'foe' ? 0 : Math.PI);
+        u.recoil = { dx: Math.cos(a) * 0.9, dy: Math.sin(a) * 0.5, t: 0, life: 0.35, stay: true };
+        cam.shake = Math.max(cam.shake, big ? 6 : 2.6); if (big) { flashA = Math.max(flashA, 0.3); flashCol = '255,240,210'; }
+        if (u.team === 'foe') floaters.push({ text: big ? 'DEFEATED' : 'K.O.', x: u.x, y: u.y, z: 2.4, t: 0, col: big ? '#ffcf6a' : '#ffe7a8', big, word: true });
+      }
       else if (e.type === 'fury') { flashA = 0.35; flashCol = '255,90,40'; cam.shake = Math.max(cam.shake, 3); }
       // a boon going off (its effect, and its name for the big ones), an arc of lightning
       else if (e.type === 'proc') {
@@ -369,7 +384,7 @@ export function createView(canvas, fxAtlas, tiles, settings = () => ({ shake: tr
   }
   // the fights' own camera: fitted to the field's width; on a squarer screen (a tablet) never so far out
   // that the painted ground ends
-  function fit(b) { return { x: 0, y: b.arena && ARENAS[b.arena] ? -0.7 : 0.2, zoom: Math.max(0.74, Math.min(1.08, buf.width / ((b.field.w + 1.2) * PPM))) }; }
+  function fit(b) { return { x: 0, y: b.arena && ARENAS[b.arena] ? -0.7 : 0.2, zoom: Math.max(0.8, Math.min(1.16, buf.width / ((b.field.w - 0.4) * PPM))) }; }
   // how far the camera may wander from the middle at a zoom before the painted ground ends (metres)
   const room = (b, zoom) => Math.max(0, b.field.w / 2 + 6.5 - buf.width / 2 / (PPM * zoom));
   // where a point of the field is on the page (CSS pixels), for text placed over the picture

@@ -412,6 +412,16 @@
   .wavename { font: 700 0.95rem/1 var(--display); }
   #clock { font: 700 0.8rem/1 var(--ui); color: var(--muted); font-variant-numeric: tabular-nums; }
   #clock.fury { color: #ff8a5a; }
+  #says { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+  .say { position: absolute; left: 0; top: 0; display: grid; justify-items: center; gap: 0.1rem; max-width: 13rem; text-align: center; will-change: transform; }
+  .say small { font: 800 0.7rem/1 var(--ui); letter-spacing: 0.08em; text-transform: uppercase; color: var(--c, var(--gold)); text-shadow: 0 1px 2px #000; }
+  .say span { font: 700 0.92rem/1.15 var(--ui); color: #fff; padding: 0.25rem 0.55rem; border-radius: 8px; background: rgba(6, 8, 14, 0.72); border-bottom: 2px solid var(--c, var(--gold)); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); }
+  #combo { position: absolute; right: var(--gut-r); top: calc(var(--top) + 3.1rem); display: grid; justify-items: end; line-height: 0.9; transform-origin: right center; }
+  #combo b { font: 900 2.2rem/1 var(--display); color: #fff2c8; text-shadow: 0 3px 0 #7a3a10, 0 0 18px rgba(255, 170, 60, 0.6); font-style: italic; }
+  #combo small { font: 800 0.78rem/1 var(--ui); letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); }
+  #combo.pop { animation: combopop 0.18s ease-out; } #combo.big b { color: #ffcf6a; font-size: 2.8rem; }
+  #combo.fade { opacity: 0; transition: opacity 0.4s; }
+  @keyframes combopop { from { transform: scale(1.35); } }
   .hud-left { display: grid; gap: 0.3rem; justify-items: start; }
   #job { font: 700 0.8rem/1 var(--ui); padding: 0.35rem 0.7rem; border-radius: 99px; color: #ffe7a8; border-color: rgba(255, 207, 92, 0.35); }
   #job.warn { color: #ffb0a0; border-color: rgba(255, 107, 94, 0.6); animation: jobpulse 0.8s ease-in-out infinite alternate; }
@@ -833,6 +843,8 @@
       <button class="btn icon" id="pause" type="button" aria-label="Pause"><i data-icon="pause"></i></button>
     </div>
   </div>
+  <div id="says" aria-live="polite"></div>
+  <div id="combo" hidden><b></b><small>hits</small></div>
   <div id="cutin" aria-live="polite"></div>
   <div id="banner" hidden></div>
   <div id="allies"></div>
