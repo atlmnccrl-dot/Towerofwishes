@@ -119,6 +119,7 @@ for (const [name, vp] of [['phone', { width: 844, height: 390 }], ['desktop', { 
     const st = await page.evaluate(() => { const s = window.__v2.game.save, seals = window.__v2.missions.filter((id) => /m10$/.test(id)); return { screen: window.__v2.screen, run: !!(s.run && s.run.exp), left: seals.find((id) => !s.cleared[id]) || null, region: s.run && s.run.exp && s.run.exp.region }; });
     if (!st.left) break;
     await skipScenes(page);
+    if (await page.isVisible('#boons') || await page.isVisible('#tip')) { await dismiss(); continue; }
     if (await page.isVisible('#join')) { await page.click('#j-card .btn.primary'); continue; }
     if (await page.isVisible('#result')) {
       const res = await page.evaluate(() => window.__v2.battle.result); if (res !== 'win') losses++;

@@ -59,11 +59,11 @@ for (const m of MISSIONS) {
   assert.ok(foes.some((u) => u.x < -2) && foes.some((u) => u.x > 2), 'ambush: foes on both sides');
 }
 for (const [k, v] of Object.entries(kinds)) console.log(`${k.padEnd(8)} ${String(v.n).padStart(4)} fights  ${Math.round((v.win / v.n) * 100)}% won  ${(v.t / v.n).toFixed(1)} s`);
-// Last Stand needs a company worn down to one hero: an outmatched company with that boon alone
+// Last Stand and Martyr's Oath need heroes falling: an outmatched company with just those boons
 for (const m of MISSIONS.slice(10, 40)) {
-  if (seen.has('laststand')) break;
-  const b = createBattle(Object.assign({}, P.battleSpec(m), { team: company(Math.max(1, m.level - 6)), boons: { laststand: 1 }, seed: 5 }));
-  for (let i = 0; i < 60 * 130 && !b.result; i++) { step(b, DT); if (b.events.some((e) => e.boon === 'laststand')) seen.add('laststand'); }
+  if (seen.has('laststand') && seen.has('martyr')) break;
+  const b = createBattle(Object.assign({}, P.battleSpec(m), { team: company(Math.max(1, m.level - 6)), boons: { laststand: 1, martyr: 1 }, seed: 5 }));
+  for (let i = 0; i < 60 * 130 && !b.result; i++) { step(b, DT); for (const e of b.events) if (e.boon === 'laststand' || e.boon === 'martyr') seen.add(e.boon); }
 }
 const quiet = Object.keys(BOONS).filter((id) => !BOONS[id].mods && id !== 'bounty' && !seen.has(id));
 console.log('boons that went off:', [...seen].sort().join(' '));
