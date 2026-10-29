@@ -11,10 +11,13 @@ import * as P from '../src/game/progress.js';
 
 const RUNS = +process.argv[2] || 8;
 const rows = REGIONS.map(() => ({ exps: 0, firstOk: 0, fights: 0, lost: 0, lvl: 0, kinds: {} }));
-let stuck = 0;
+let stuck = 0; const endings = {};
 for (let run = 0; run < RUNS; run++) {
   const s = P.newSave(), r = rng(1000 + run); let seed = run * 7919;
-  REGIONS.forEach((R, ri) => {
+  // half the companies take the forks the other way round (Saltreach before the Greyfen, Frostmarch before the Abbey)
+  const order = run % 2 ? ['r1', 'r3', 'r2', 'r5', 'r4', 'r6'] : REGIONS.map((r) => r.id);
+  order.map((id) => REGIONS.find((r) => r.id === id)).forEach((R) => {
+    const ri = REGIONS.indexOf(R);
     const st = rows[ri], seal = missionsIn(R.id).slice(-1)[0];
     let tries = 0;
     while (!s.cleared[seal.id] && tries < 30) {
@@ -32,6 +35,7 @@ for (let run = 0; run < RUNS; run++) {
     if (!s.cleared[seal.id]) { stuck++; console.log('run', run, 'stuck in', R.name); }
     st.lvl += P.avgLevel(s);
   });
+  manage(s, r, true); endings[s.story.ending || 'none'] = (endings[s.story.ending || 'none'] || 0) + 1;
 }
 console.log('region                 expeditions  first-try ok  fights/exp  won   fight/elite/boss win%     company lv');
 REGIONS.forEach((R, i) => {
@@ -39,3 +43,4 @@ REGIONS.forEach((R, i) => {
   console.log(`${R.name.padEnd(22)} ${(st.exps / RUNS).toFixed(1).padStart(11)} ${String(Math.round((st.firstOk / RUNS) * 100) + '%').padStart(13)} ${(st.fights / st.exps).toFixed(1).padStart(11)}  ${String(Math.round(((st.fights - st.lost) / Math.max(1, st.fights)) * 100) + '%').padStart(4)}   ${[pct('fight'), pct('elite'), pct('boss')].join(' / ').padStart(20)}   ${(st.lvl / RUNS).toFixed(1).padStart(8)}`);
 });
 console.log(stuck ? `${stuck} companies stuck` : 'no company stuck');
+console.log('endings', JSON.stringify(endings));

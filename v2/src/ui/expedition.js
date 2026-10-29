@@ -88,7 +88,7 @@ function event(game, n) {
   modal(game, ev.title, ev.text, [], ev.choices.map((c, i) => [c.text, () => {
     const out = X.choose(s, n, i, Math.random); if (!out) return;
     game.after();
-    const lines = [out.text, out.gold > 0 ? `+${out.gold} gold` : out.gold < 0 ? `${out.gold} gold` : '', out.item ? `Found: ${itemName(out.item)}` : ''].filter(Boolean).join(' · ');
+    const lines = [out.text, out.gold > 0 ? `+${out.gold} gold` : out.gold < 0 ? `${out.gold} gold` : '', out.item ? `Found: ${itemName(out.item)}` : '', out.side ? (out.side === 'crown' ? 'The Crown will remember this.' : 'The Free Towns will remember this.') : ''].filter(Boolean).join(' · ');
     if (out.fight) { modal(game, ev.title, lines || 'Weapons out!', [], [['Fight!', () => { game.expNode = n.id; game.expEventFight = true; game.go('prep', X.eventFight(s.run.exp, n)); }]]); return; }
     modal(game, ev.title, lines || 'The company moves on.', [], [['Continue', () => renderExpedition(game)]]);
   }, c.need && s.gold < c.need]));

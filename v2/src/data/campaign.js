@@ -19,11 +19,11 @@ export const REGIONS = [
 ];
 // told when a region is cleared
 export const REGION_END = {
-  r1: 'The Warlord falls and the Thornwick Road goes quiet. Word of the company spreads east, into the fens.',
-  r2: 'The Mire Mother sinks for good. Past the Greyfen, the land dries into salt and sand.',
-  r3: 'The Roc falls from the sky. Its feathers point north-east, to an abbey half under water.',
-  r4: 'The Black Knight lays down his sword and kneels to the company. The road turns north, into the snow.',
-  r5: 'The Colossus cracks and is still. Beyond the pass lies the barrow where Vael was buried.',
+  r1: 'The Warlord falls and the Thornwick Road goes quiet. Word of the company spreads, and two roads lead on: east into the fens, or south into the salt.',
+  r2: 'The Mire Mother sinks for good, and the Greyfen goes quiet for the first time in a hundred years.',
+  r3: 'The Roc falls from the sky, and the caravans of Saltreach move again.',
+  r4: 'The oath of the abbey is broken, and its knights can rest at last.',
+  r5: 'The Colossus cracks and is still. The white pass is open, and beyond it lies the barrow where Vael was buried.',
   r6: 'The Barrow Wyrm is dead and the throne is empty. The dead of Vael lie down at last. The company is legend.',
 };
 
@@ -181,7 +181,23 @@ export const HAZARD_NAMES = { rockfall: 'Rockfall', fire: 'Firestorm', lightning
 // how strong each mission's foes are beyond their level (tuned by test/tune.js)
 import { MIGHT } from './tuning.js';
 import { ENEMIES } from './units.js';
-for (const m of MISSIONS) m.might = MIGHT[m.id] || 1;
+for (const m of MISSIONS) { m.might = MIGHT[m.id] || 1; m.step = MISSIONS.filter((x) => x.region === m.region).indexOf(m); }
+
+// ---- the order the regions are taken in: after the first, the next two in either order, and so on
+// (data/story.js FORKS). A region's missions are as strong as the place it takes in the company's road:
+// the second region played is levels 11-20 whichever it is. `order`: regions in the order begun.
+const GATES = { r2: ['r1'], r3: ['r1'], r4: ['r2', 'r3'], r5: ['r2', 'r3'], r6: ['r4', 'r5'] };
+export const tierOf = (rid, order = [], cleared = {}) => {
+  const i = order.indexOf(rid); if (i >= 0) return i;
+  return regionOpen(cleared, rid) ? Math.min(order.length, REGIONS.length - 1) : REGIONS.findIndex((r) => r.id === rid);
+};
+export function applyOrder(order = [], cleared = {}) {
+  for (const m of MISSIONS) {
+    const tier = tierOf(m.region, order, cleared), home = REGIONS.findIndex((r) => r.id === m.region);
+    m.level = tier * 10 + m.step + 1; m.tier = tier;
+    m.might = (tier !== home && MIGHT[`${m.id}@${tier}`]) || MIGHT[m.id] || 1;
+  }
+}
 
 // who joins where, on a mission's first clear: three or four a region, so every new face is an event.
 // Wren and Maren go on the wheel when they join; each region's boss frees one more wheel hero (data/heroes.js)
@@ -194,10 +210,7 @@ export const regionOf = (m) => REGIONS.find((r) => r.id === m.region);
 export const missionsIn = (rid) => MISSIONS.filter((m) => m.region === rid);
 // a region opens once the last mission of the one before it is cleared
 export function regionOpen(cleared, rid) {
-  const i = REGIONS.findIndex((r) => r.id === rid);
-  if (i <= 0) return true;
-  const prev = missionsIn(REGIONS[i - 1].id);
-  return !!cleared[prev[prev.length - 1].id];
+  return (GATES[rid] || []).every((g) => { const ms = missionsIn(g); return !!cleared[ms[ms.length - 1].id]; });
 }
 // a region is won with its Seal (its last mission); an expedition need not pass every place on the way
 export const regionCleared = (cleared, rid) => { const ms = missionsIn(rid); return !!cleared[ms[ms.length - 1].id]; };

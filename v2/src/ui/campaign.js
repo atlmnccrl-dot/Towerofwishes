@@ -252,11 +252,8 @@ function countUp(row, to) {
 function afterWin(game, rw, m, then = 'map') {
   const ms = missionsIn(m.region), last = ms[ms.length - 1] === m;
   const toMap = () => {
-    if (last && rw.first && !rw.heroic) {
-      const ri = REGIONS.findIndex((r) => r.id === m.region), nextR = REGIONS[ri + 1];
-      showStory(game, REGIONS[ri].name, REGION_END[m.region], nextR ? `Onward to ${nextR.name}` : 'The end',
-        () => (nextR ? game.playScene(arrivalScene(nextR.id, game.save.team.map((t) => t.key))).then(() => game.go('map', missionsIn(nextR.id)[0].id)) : game.go('camp')), !nextR);
-    } else if (then === 'next' && game.save.run && game.save.run.exp) game.go('exp');
+    if (last && rw.first && !rw.heroic) sealStory(game, m.region);
+    else if (then === 'next' && game.save.run && game.save.run.exp) game.go('exp');
     else if (then === 'next') { const nx = nextMission(game.save.cleared); game.go('prep', nx ? nx.id : m.id); }
     else if (then === 'replay') game.go('prep', m.id);
     else if (then === 'heroes') game.go('company');
@@ -264,6 +261,40 @@ function afterWin(game, rw, m, then = 'map') {
   };
   if (rw.joined) game.playScene(joinScene(rw.joined, rw.runEnded ? rw.runEnded.leader : game.save.run ? game.save.run.leader : game.save.team[0] ? game.save.team[0].key : 'corvin', m.region)).then(() => showRecruit(game, rw.joined, toMap));
   else toMap();
+}
+// ---- after a Seal: the verdict on the boss, then the region's end and the road on (a fork, the next
+// region), or, after the last boss, the ending the company's choices earned
+const arrive = (game, rid) => game.playScene(arrivalScene(rid, game.save.team.map((t) => t.key))).then(() => game.go('map', missionsIn(rid)[0].id));
+function card(tag, title, body, buttons) {
+  $('#j-card').replaceChildren(h('div.rays'), h('div.jtag', null, tag), h('div.jname', null, title), ...body,
+    h('div.jchoices', null, ...buttons.map(([label, sub, fn], i) => h('button.btn.big' + (i === 0 || buttons.length > 1 ? '.primary' : '') + (buttons.length > 1 ? '.choice' : ''), { type: 'button', onclick: fn }, h('span', null, label, sub ? h('small', null, sub) : null)))));
+  $('#result').hidden = true; $('#join').hidden = false;
+}
+function sealStory(game, rid) {
+  const s = game.save, V = P.VERDICTS[rid], R = REGIONS.find((r) => r.id === rid);
+  if (P.verdictDue(s, rid)) {
+    card(`${R.name} · the Seal is taken`, V.who, [h('p.story', null, V.ask)], ['mercy', 'dread'].map((way) => [V[way].label, `${V[way].relic}: ${V[way].desc}`, () => {
+      P.giveVerdict(s, rid, way); game.persist(); game.audio.play(way === 'mercy' ? 'heal_02' : 'blow_big');
+      card(way === 'mercy' ? 'Mercy' : 'Dread', V[way].relic, [h('p.story', null, V[way].text), h('p.story.dim', null, V[way].desc)], [['Continue', null, () => afterVerdict(game, rid)]]);
+    }]));
+  } else afterVerdict(game, rid);
+}
+function afterVerdict(game, rid) {
+  const s = game.save, R = REGIONS.find((r) => r.id === rid);
+  if (rid === 'r6') {
+    // the ending: what the company was, told back to it
+    const E = P.ENDINGS[s.story.ending || P.endingFor(s.story)], ways = Object.values(s.story.verdicts), mercy = ways.filter((w) => w === 'mercy').length;
+    const seen = Object.keys(s.legacy.endings || {}).length;
+    card('The sixth Seal · Vael is reclaimed', E.title, [h('p.story', null, E.text),
+      h('p.story.dim', null, `Mercy ${mercy} of ${ways.length} · ${s.story.crown > s.story.free ? 'with the Crown' : s.story.free > s.story.crown ? 'with the Free Towns' : 'with no side'} · endings found: ${seen} of 3. A new campaign keeps the company's legacy; Heroic is open in every region.`)],
+    [['The end', null, () => { $('#join').hidden = true; game.go('camp'); }]]);
+    return;
+  }
+  const fork = P.forkNow(s);
+  const on = fork ? [['The road forks', null, () => card('The road forks', 'Where now?', [h('p.story', null, 'Two roads lead on. Whichever the company takes first, the other will be the harder for it.')],
+    fork.map((id) => { const F = REGIONS.find((r) => r.id === id); return [F.name, F.blurb, () => { $('#join').hidden = true; arrive(game, id); }]; }))]]
+    : (() => { const nx = REGIONS.find((r) => regionOpen(s.cleared, r.id) && !regionCleared(s.cleared, r.id)); return [[nx ? `Onward to ${nx.name}` : 'Onward', null, () => { $('#join').hidden = true; nx ? arrive(game, nx.id) : game.go('map'); }]]; })();
+  card('Region cleared · a Seal of Vael taken', R.name, [h('p.story', null, REGION_END[rid])], on);
 }
 export function showStory(game, title, text, button, after, ending = false) {
   $('#j-card').replaceChildren(...[

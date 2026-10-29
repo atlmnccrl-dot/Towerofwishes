@@ -1,11 +1,12 @@
 // The company's progress: the save, rewards, levels, gear, training and ability upgrades.
 // Pure functions over a plain save object (no DOM), so Node tests can play the whole campaign.
 import { UNITS, CLASSES, ENEMIES } from '../data/units.js';
-import { MISSIONS, REGIONS, START_ROSTER, missionById, missionsIn, regionOpen } from '../data/campaign.js';
+import { MISSIONS, REGIONS, START_ROSTER, missionById, missionsIn, regionOpen, applyOrder, tierOf } from '../data/campaign.js';
 import { HEROES, UNLOCKS, LEADERS } from '../data/heroes.js';
 import { BOONS, offerFor, boonMods } from '../data/boons.js';
 import { generate } from './expedition.js';
 import { PATH_LEVELS, pathChoices, pathAbility, pathMods } from '../data/paths.js';
+import { VERDICTS, relicMods, relicSum, relicsOf, endingFor, ENDINGS, FORKS } from '../data/story.js';
 import { PERKS, CHARTERS, RANKS as LEGACY_RANKS, RANK_NAMES as LEGACY_NAMES, renownFor, rankOf } from '../data/legacy.js';
 import { SLOTS, BASES, itemStats, upgradeCost, sellValue, rollItem, MAX_PLUS } from '../data/items.js';
 import { MOD_KEYS, statsAt } from '../combat/battle.js';
@@ -58,8 +59,9 @@ export const upgradeChoices = (key, tier) => [T1, T2[UNITS[key].cls], T3, T4[UNI
 export function newSave() {
   const s = { v: SAVE_VERSION, gold: 120, gems: 50, roster: {}, inv: [], uid: 1, cleared: {}, heroic: {}, team: START_ROSTER.map((key) => ({ key, slot: 1 })), joined: [], speed: 1, seed: 7,
     stats: { wins: 0, losses: 0, kills: 0, bosses: 0, stars3: 0, trained: 0, upgraded: 0, bought: 0 }, flags: {},
-    settings: { music: 0.6, sfx: 0.8, shake: true, auto: true, haptics: true, scenes: true }, keep: {}, mats: {}, run: null, runs: { count: 0, best: 0 }, legacy: { renown: 0, perks: {}, charter: 'free' } };
+    settings: { music: 0.6, sfx: 0.8, shake: true, auto: true, haptics: true, scenes: true }, keep: {}, mats: {}, run: null, runs: { count: 0, best: 0 }, legacy: { renown: 0, perks: {}, charter: 'free', endings: {} }, story: { verdicts: {}, crown: 0, free: 0, order: [], ending: null } };
   for (const k of START_ROSTER) s.roster[k] = newMember(1);
+  applyOrder(s.story.order, s.cleared);
   return s;
 }
 function newMember(level) { return { level, xp: 0, gear: { weapon: null, armor: null, charm: null }, train: { hp: 0, atk: 0, def: 0 }, ups: [null, null, null, null], paths: [null, null] }; }
@@ -76,7 +78,10 @@ export function loadSave(raw) {
   }
   s.stats = Object.assign(newSave().stats, raw.stats); s.flags = Object.assign({}, raw.flags); s.heroic = Object.assign({}, raw.heroic);
   s.settings = Object.assign(newSave().settings, raw.settings);
-  s.legacy = Object.assign(newSave().legacy, raw.legacy); s.legacy.perks = Object.assign({}, s.legacy.perks); if (!CHARTERS[s.legacy.charter]) s.legacy.charter = 'free';
+  s.legacy = Object.assign(newSave().legacy, raw.legacy); s.legacy.perks = Object.assign({}, s.legacy.perks); s.legacy.endings = Object.assign({}, s.legacy.endings); if (!CHARTERS[s.legacy.charter]) s.legacy.charter = 'free';
+  s.story = Object.assign(newSave().story, raw.story); s.story.verdicts = Object.assign({}, s.story.verdicts);
+  if (!s.story.order.length && Object.keys(s.cleared).length) s.story.order = REGIONS.filter((r) => missionsIn(r.id).some((m) => s.cleared[m.id])).map((r) => r.id);   // an older save: the order it was played in
+  applyOrder(s.story.order, s.cleared);
   s.keep = Object.assign({}, raw.keep); s.mats = Object.assign({}, raw.mats);
   s.run = raw.run && raw.run.exp && s.roster[raw.run.leader] ? Object.assign({ wins: 0, boons: {}, pick: null, hp: {} }, raw.run) : null;   // a run is an expedition (an older run without one is let go) s.runs = Object.assign({ count: 0, best: 0 }, raw.runs);
   if (typeof s.gems !== 'number') s.gems = 50;
@@ -117,6 +122,7 @@ export function modsOf(s, key) {
   if (pk.oathbound) add({ start: 30 });
   if (pk.banner && s.run && key === s.run.leader) add(LEAD_EDGE);
   if (CHARTERS[L.charter]) add(CHARTERS[L.charter].mods);
+  if (s.story) add(relicMods(s.story));   // what the company kept of the bosses it beat
   for (const k of Object.keys(out)) if (!MOD_KEYS.includes(k)) delete out[k];
   return out;
 }
@@ -182,9 +188,9 @@ export function grantRewards(s, missionId, b, rnd, heroic = false) {
   const kb = keepBonus(s);
   out.gold = Math.round(missionGold(m) * (out.first ? 2 : 1) * (0.8 + stars * 0.1) * (heroic ? HEROIC.gold : 1) * (1 + kb.gold));
   if (s.run && s.run.boons.bounty) out.gold = Math.round(out.gold * (1 + 0.25 * s.run.boons.bounty));
-  out.gold = Math.round(out.gold * (1 + (hasPerk(s, 'warchest') ? 0.2 : 0) + (charterOf(s).gold || 0)) + (b.gold || 0));   // Midas Touch drops gold on the field
+  out.gold = Math.round(out.gold * (1 + (hasPerk(s, 'warchest') ? 0.2 : 0) + (charterOf(s).gold || 0) + relicSum(s.story, 'gold')) + (b.gold || 0));   // Midas Touch drops gold on the field
   s.gold += out.gold;
-  const xp = Math.round(missionXp(m) * (out.first ? 1.5 : 1) * (heroic ? HEROIC.xp : 1) * (hasPerk(s, 'scholars') ? 1.2 : 1));
+  const xp = Math.round(missionXp(m) * (out.first ? 1.5 : 1) * (heroic ? HEROIC.xp : 1) * (hasPerk(s, 'scholars') ? 1.2 : 1) * (1 + relicSum(s.story, 'xp')));
   const inTeam = new Set(s.team.map((t) => t.key));
   for (const key of Object.keys(s.roster)) {
     const share = inTeam.has(key) ? xp : Math.round(xp * (BENCH_XP + kb.bench));   // the bench learns at camp (more with the Barracks)
@@ -203,6 +209,8 @@ export function grantRewards(s, missionId, b, rnd, heroic = false) {
     const k = UNLOCKS[m.region];
     if (k && !s.roster[k]) { join(s, k, out); out.freed = true; }
     out.runEnded = endRun(s, true);
+    applyOrder(s.story.order, s.cleared);   // the next regions open, at the next step of the road
+    out.verdict = m.region;
   }
   // the run goes on: three boons to choose one from (kept in the save until one is taken)
   if (s.run) { s.run.pick = offerFor(s, rnd); out.boonPick = s.run.pick; }
@@ -341,6 +349,14 @@ export function spin(s, rnd) {
 }
 // an expedition: the run (its leader already chosen by the wheel) takes the region's road
 export function startExpedition(s, regionId, rnd) {
+  // the road's order: a region takes its place when first begun (at a fork, begun instead of the other, it takes that one's place)
+  const o = s.story.order;
+  if (!o.includes(regionId)) {
+    const fork = FORKS.find((f) => f.includes(regionId)), other = fork && fork.find((r) => r !== regionId && o.includes(r) && !sealTaken(s, r));
+    if (other) o.splice(o.indexOf(other), 1);
+    o.push(regionId);
+  }
+  applyOrder(o, s.cleared);
   if (!s.run) spin(s, rnd);
   s.run.exp = generate(regionId, (rnd() * 1e9) | 0); s.run.hp = {}; s.run.exp.rank = legacyRank(s);
   // the legacy's head start: gold, a boon or two
@@ -360,6 +376,19 @@ function endRun(s, triumph = false) {
   s.runs.best = Math.max(s.runs.best || 0, r.wins); s.lastRun = r; s.run = null;
   return r;
 }
+// ---- the story (data/story.js): a verdict on each region's boss, the side taken, the ending
+export { VERDICTS, ENDINGS, FORKS, relicsOf, endingFor, tierOf };
+const sealTaken = (s, rid) => !!s.cleared[sealOf(rid).id];
+export const verdictDue = (s, rid) => sealTaken(s, rid) && !s.story.verdicts[rid];
+export function giveVerdict(s, rid, way) {
+  if (!verdictDue(s, rid) || !['mercy', 'dread'].includes(way)) return false;
+  s.story.verdicts[rid] = way;
+  if (rid === 'r6') { s.story.ending = endingFor(s.story); s.legacy.endings[s.story.ending] = true; }
+  return true;
+}
+// the regions the road forks to now (two open, neither begun yet)
+export const forkNow = (s) => (FORKS.find((f) => f.every((r) => regionOpenFor(s, r) && !sealTaken(s, r))) || null);
+const regionOpenFor = (s, rid) => regionOpen(s.cleared, rid);
 // ---- the legacy (data/legacy.js): Renown, ranks, perks bought with a point a rank, the charter
 export { PERKS, CHARTERS, LEGACY_RANKS, LEGACY_NAMES };
 export const legacyRank = (s) => rankOf((s.legacy || {}).renown || 0);

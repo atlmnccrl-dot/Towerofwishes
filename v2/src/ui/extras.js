@@ -36,6 +36,13 @@ function renderLegacy(game, body) {
     h('div.lg-bar', null, h('i', { style: { width: (next ? Math.min(100, (into / span) * 100) : 100) + '%' } })),
     h('span', null, next ? `${L.renown} / ${next} Renown` : `${L.renown} Renown · the last rank`),
     h('span.lg-pts' + (pts > 0 ? '.on' : ''), null, pts > 0 ? `${pts} perk${pts === 1 ? '' : 's'} to choose` : 'Every expedition earns Renown, won or lost')));
+  // this campaign's story so far, and the endings the company has found (kept across campaigns)
+  const st = s.story || {}, relics = P.relicsOf(st), found = Object.keys(L.endings || {});
+  body.append(h('div.label', null, 'This campaign'));
+  body.append(h('div.lg-grid', null,
+    h('div.lg-card', null, h('b', null, 'The side taken'), h('span', null, st.crown > st.free ? `The Crown's loyalists (${st.crown} to ${st.free})` : st.free > st.crown ? `The Free Towns (${st.free} to ${st.crown})` : 'Neither, yet. Choices on the road decide it.')),
+    ...(relics.length ? relics.map((r) => h('div.lg-card.on', null, h('b', null, r.relic), h('span', null, r.desc), h('small', null, r.way === 'mercy' ? 'Mercy' : 'Dread'))) : [h('div.lg-card', null, h('b', null, 'No relics yet'), h('span', null, 'Each region\'s boss leaves one, for mercy or for dread.'))]),
+    h('div.lg-card', null, h('b', null, `Endings found: ${found.length} of 3`), h('span', null, found.length ? found.map((e) => P.ENDINGS[e].title).join(', ') : 'Mercy, dread and the side taken decide how it ends.'))));
   body.append(h('div.label', null, 'Perks'));
   body.append(h('div.lg-grid', null, ...Object.entries(P.PERKS).map(([id, p]) => {
     const have = P.hasPerk(s, id), locked = rank < p.rank, can = !have && !locked && pts > 0;

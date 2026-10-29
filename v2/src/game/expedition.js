@@ -8,6 +8,7 @@ import { BOONS, offerFor } from '../data/boons.js';
 import { UNITS } from '../data/units.js';
 import { rollItem } from '../data/items.js';
 import { rng } from '../combat/battle.js';
+import { FACTION_EVENTS, relicSum } from '../data/story.js';
 
 export const NODE = {
   fight: { name: 'Fight', art: 'cross_slash' },
@@ -76,7 +77,7 @@ export const hpOf = (s, key) => (s.run && s.run.hp && s.run.hp[key] != null ? s.
 export function afterFight(s, battle) {
   const hp = s.run.hp || (s.run.hp = {}), L = s.legacy || { perks: {} };
   // the legacy changes the road's mending: Field Medics more, Reavers none (and a lower floor)
-  const reaver = L.charter === 'reavers', back = reaver ? 0 : AFTER_FIGHT + (L.perks.medics ? 0.15 : 0), floor = reaver ? 0.25 : WIN_FLOOR;
+  const reaver = L.charter === 'reavers', back = reaver ? 0 : AFTER_FIGHT + (L.perks.medics ? 0.15 : 0) + relicSum(s.story, 'recover'), floor = reaver ? 0.25 : WIN_FLOOR;
   for (const u of battle.units) if (u.team === 'ally' && !u.summoned && !u.ward && UNITS[u.key]) hp[u.key] = Math.min(1, Math.max(floor, (u.state === 'ko' ? WOUND_FLOOR : u.hp / u.max) + back));
 }
 export function healAll(s, share) { const hp = s.run.hp || (s.run.hp = {}); for (const k of Object.keys(s.roster)) hp[k] = Math.max(0.05, Math.min(1, hpOf(s, k) + share)); }   // a hurt never fells anyone
@@ -158,6 +159,7 @@ export const EVENTS = [
   { id: 'storm', title: 'The storm', text: 'The sky goes black at noon. Shelter is a cave that smells of something large.',
     choices: [{ text: 'Shelter in the cave', heal: 0.3, fight: true, note: 'Rest, then whatever lives there.' }, { text: 'March through the storm', hurt: 0.15 }] },
 ];
+EVENTS.push(...FACTION_EVENTS);   // the Crown or the Free Towns (data/story.js)
 export function eventFor(exp, node) { const pool = EVENTS.filter((e) => (e.rank || 0) <= (exp.rank || 0)); return pool[(exp.seed + node.row * 7 + Math.round(node.col * 3)) % pool.length]; }
 // applies a choice; returns what happened, and whether a fight follows
 export function choose(s, node, ci, rnd) {
@@ -167,6 +169,9 @@ export function choose(s, node, ci, rnd) {
   if (c.gold) { s.gold = Math.max(0, s.gold + c.gold); out.gold = c.gold; }
   if (c.gamble) { const won = rnd() < 0.45; s.gold += won ? c.gamble : -c.gamble; out.gold = won ? c.gamble : -c.gamble; out.text = won ? 'The dice love you today.' : 'The dice were loaded. Of course they were.'; }
   if (c.heal) healAll(s, c.heal);
+  if (c.crown && s.story) s.story.crown += c.crown;
+  if (c.free && s.story) s.story.free += c.free;
+  if (c.crown || c.free) out.side = c.crown ? 'crown' : 'free';
   if (c.hurt) healAll(s, -c.hurt);
   if (c.boon) s.run.pick = offerFor(s, rnd);
   if (c.item) { const it = Object.assign(rollItem(levelAt(s.run.exp, node), rnd, 0.25), { uid: s.uid++ }); s.inv.push(it); out.item = it; }

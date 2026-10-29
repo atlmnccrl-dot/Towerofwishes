@@ -5,10 +5,13 @@
 // have), win it about TARGET of the time (bosses: BOSS; the first steps of the first region: more), and
 // every company at least FLOOR. Then every company takes its next step. A company that loses starts a
 // new expedition from where it fell (fresh, without boons). Writes src/data/tuning.js.
-// node v2/test/tune.js [companies]
+// The road forks (Saltreach or the Greyfen second, Frostmarch or the Abbey fourth), and a region's foes
+// are as strong as its place on the road: ORDER=alt tunes the other order, stored as id@tier, keeping the rest.
+// node v2/test/tune.js [companies]      ORDER=alt node v2/test/tune.js [companies]
 import fs from 'fs';
 import { rng } from '../src/combat/battle.js';
 import { REGIONS, missionsIn, MISSIONS } from '../src/data/campaign.js';
+import { MIGHT as LIVE } from '../src/data/tuning.js';
 import * as P from '../src/game/progress.js';
 import * as X from '../src/game/expedition.js';
 import { fight, walk, manage } from './player.js';
@@ -17,7 +20,8 @@ const RUNS = +process.argv[2] || 8, TARGET = 0.88, BOSS = 0.72, SEEDS = 5, FLOOR
 const EARLY = { r1m1: 0.97, r1m2: 0.93, r1m3: 0.85 };
 const companies = Array.from({ length: RUNS }, (_, i) => ({ s: P.newSave(), r: rng(500 + i), seed: 9000 + i * 7919 }));
 const clone = (s) => JSON.parse(JSON.stringify(s));
-const MIGHT = {}, t0 = Date.now();
+const MIGHT = Object.assign({}, LIVE), t0 = Date.now();
+const ORDER = process.env.ORDER === 'alt' ? ['r1', 'r3', 'r2', 'r5', 'r4', 'r6'] : REGIONS.map((r) => r.id);
 // a company back on the road after a loss: a new expedition (and leader), placed at the step it fell on
 function restart(c, rid, row) {
   if (c.s.run) P.abandonRun(c.s);
@@ -36,7 +40,7 @@ function winRate(m, row, might) {
   }
   return { avg: w / n, worst };
 }
-for (const R of REGIONS) {
+for (const R of ORDER.map((id) => REGIONS.find((r) => r.id === id))) {
   const list = missionsIn(R.id), seal = list[list.length - 1];
   for (const c of companies) restart(c, R.id, 0);
   for (const [row, m] of list.entries()) {
@@ -45,7 +49,9 @@ for (const R of REGIONS) {
     let lo = Math.log(0.05), hi = Math.log(10);
     for (let it = 0; it < 8; it++) { const mid = (lo + hi) / 2, wr = winRate(m, row, Math.exp(mid)); if (wr.avg >= target && wr.worst >= FLOOR) lo = mid; else hi = mid; }
     const might = Math.round(Math.exp(lo) * 100) / 100;
-    MIGHT[m.id] = might; m.might = might;
+    // stored under its own id in its home place on the road, as id@tier elsewhere (the game reads both)
+    const key = m.tier === REGIONS.indexOf(R) ? m.id : `${m.id}@${m.tier}`;
+    MIGHT[key] = might; LIVE[key] = might; m.might = might;
     // every company takes its next step (and, at the boss, keeps at it until the Seal is taken)
     let losses = 0;
     for (const c of companies) {
@@ -62,7 +68,7 @@ for (const R of REGIONS) {
   }
   for (const c of companies) if (c.s.run) P.abandonRun(c.s);
 }
-for (const m of MISSIONS) if (MIGHT[m.id] == null) MIGHT[m.id] = m.might || 1;
+for (const m of MISSIONS) if (MIGHT[m.id] == null) MIGHT[m.id] = 1;
 const body = Object.entries(MIGHT).map(([k, v]) => `${k}: ${v}`).join(', ');
 fs.writeFileSync(new URL('../src/data/tuning.js', import.meta.url), `// How strong each mission's foes are beyond their level: health x might, attack x (1 + 0.6 (might - 1)).
 // Written by test/tune.js from simulated expeditions (a casual player arriving at a step of the road, as
