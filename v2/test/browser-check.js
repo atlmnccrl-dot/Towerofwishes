@@ -167,7 +167,7 @@ for (const [name, vp] of [['phone', { width: 844, height: 390 }], ['desktop', { 
   await page.evaluate(() => window.__v2.go('map', 'r6m10'));
   await visible(page, '#map'); await shot('16-map-done');
   await page.click('#m-back'); await visible(page, '#camp'); await page.waitForTimeout(1500); await shot('17-camp-full');
-  await page.click('#k-company'); await visible(page, '#company'); await shot('18-company-full');
+  await page.click('#k-company'); await visible(page, '#company'); await page.waitForTimeout(400); await shot('18-company-full');
   await page.reload(); await visible(page, '#title'); await page.waitForTimeout(600);
   console.log('after reload', await page.evaluate(() => [Object.keys(window.__v2.game.save.roster).length, Object.keys(window.__v2.game.save.cleared).length, !document.getElementById('t-continue').hidden]));
   // heroic: the toggle shows on a cleared region and a heroic battle starts
