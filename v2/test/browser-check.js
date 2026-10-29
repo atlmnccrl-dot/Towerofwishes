@@ -39,14 +39,13 @@ for (const [name, vp] of [['phone', { width: 844, height: 390 }], ['desktop', { 
   await page.goto('http://localhost:8791/');
   await visible(page, '#title'); await page.waitForTimeout(1500); await shot('01-title');
   await page.click('#t-new'); await visible(page, '#scene'); await page.waitForTimeout(9000); await shot('02-opening'); await page.waitForTimeout(16000); await shot('02a-opening'); await skipScenes(page);
-  await visible(page, '#wheel'); await page.waitForTimeout(500); await shot('02b-wheel');
-  await page.click('#w-spin'); await page.waitForTimeout(2000); await shot('02c-spinning'); await visible(page, '#w-go'); await page.waitForTimeout(400); await shot('02d-leader');
-  console.log(name, 'leader', await page.evaluate(() => JSON.stringify(window.__v2.game.save.run)));
-  await page.evaluate(() => { window.__v2.game.fastWheel = true; }); await page.click('#w-go');
-  await visible(page, '#camp'); await page.waitForTimeout(800); await shot('03-camp');
+  // a new company is Corvin alone: no wheel until a second wheel hero joins (it is spun later, in the missions)
+  await visible(page, '#camp');
+  console.log(name, 'start', await page.evaluate(() => JSON.stringify(Object.keys(window.__v2.game.save.roster))));
+  await page.evaluate(() => { window.__v2.game.fastWheel = true; }); await page.waitForTimeout(800); await shot('03-camp');
   await page.click('#k-campaign'); await visible(page, '#map'); await page.waitForTimeout(300); await shot('04-map');
   await prepare(page); await shot('05-prep');
-  await page.click('#p-fight'); await skipScenes(page); await visible(page, '#hud'); await page.waitForTimeout(3000); await shot('06-battle');
+  await page.click('#p-fight'); await skipScenes(page); await visible(page, '#hud'); await page.waitForTimeout(1200); await shot('06a-intro'); await page.waitForTimeout(3600); await shot('06-battle');
   await page.evaluate(() => window.__v2.skip());
   await visible(page, '#result'); await page.waitForTimeout(500); await shot('07-rewards');
   for (let k = 0; k < 6 && await page.evaluate(() => window.__v2.battle.result !== 'win'); k++) {

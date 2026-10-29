@@ -1,11 +1,13 @@
 # Vael: Sellsword Company (v2)
 
-A squad RPG across six regions of the fallen kingdom of Vael. A new company is one hero: the first spin
-of the wheel picks Corvin, Wren or Maren, and the other two join on the first missions. After that, each
-run starts with a spin that picks which of the eight wheel heroes leads (the last five are freed by
-beating region bosses). The leader always fights and gives the squad their perk; the run lasts until
-a battle is lost or a Seal of Vael is taken. Fifteen more heroes are met on the road and join the
-company as recruits: they fight in the squad but never lead. Battles play themselves, or the player fires each hero's ability. Built from the Tower of Wishes character art,
+A squad RPG across six regions of the fallen kingdom of Vael. A new company is one hero, Corvin; every
+other hero stays hidden until met, three or four to a region. Each run starts with a spin of the wheel that
+picks which of the eight wheel heroes leads (the others join it as they are met or freed by the region
+bosses). The leader always fights and gives the squad their perk; the run lasts until a battle is lost or
+a Seal of Vael is taken. Fifteen more heroes join as recruits: they fight but never lead. Every fight
+opens like a film (the foes, the company, FIGHT) and a director camera follows it; battles play
+themselves, or the player fires each hero's ability. The team screen is the camp itself, the team
+drilling and resting round the fire. Built from the Tower of Wishes character art,
 animations and effects; everything else is new. Names and story are proposals for the author.
 
 ## Layout
@@ -20,7 +22,7 @@ animations and effects; everything else is new. Names and story are proposals fo
 | `src/game/economy.js` | Bounties, feats, the shop, the gem-pack catalog (pure) |
 | `src/game/store.js` | App-store purchases (cordova-plugin-purchase); off on the web |
 | `src/game/audio.js` | Music and sounds (Web Audio) |
-| `src/render/` | The battle view and its arenas, the walkable world map (`overworld.js`, painted by `terrain.js`), the cutscene player (`scene.js`: filmed scenes drawn by the battle view, on the same arenas), the campfire, asset loading |
+| `src/render/` | The battle view and its arenas, the battle director (`director.js`: the cinematic start, the camera, slow time), the walkable world map (`overworld.js`, painted by `terrain.js`), the cutscene player (`scene.js`: filmed scenes drawn by the battle view, on the same arenas), the campfire, asset loading |
 | `src/ui/` | The wheel (`wheel.js`), the map card and markers, the formation, rewards and the new-hero reveal, heroes, shop/bounties/feats, tips; vector icons (`icons.js`) and big animated hero art (`heroart.js`) |
 | `assets/` | Packed art (lossless), tiles, effects, sounds, music, fonts, icons |
 | `tools/` | `pack.py` (art and sounds from the repo's assets), `portraits.py`, `icons.py` (app icon and splash), `store-shots.mjs` (store screenshots), `world_atlas.py` (map and set pieces), `hero_art.py` (the menus' hero poses) |

@@ -74,9 +74,11 @@ Product ids must match exactly (they are in `src/game/economy.js`):
   >   gathered across the kingdom.
   > • Every run starts with a spin of the wheel: it picks your leader, who always fights and gives the
   >   whole squad their perk. Lose a battle or take a Seal, and the wheel spins again.
-  > • Start with a single hero and earn the rest: 23 heroes, each different. Eight can lead from the
-  >   wheel; fifteen more are met on the road and join your squad.
-  > • Build a team of five and set its formation. Battles play themselves, or switch to Manual and
+  > • Start with a single sellsword and earn the rest: 23 hidden heroes, each different, met one by one
+  >   across the kingdom. Eight can lead from the wheel; fifteen more join your squad.
+  > • Every battle opens like a film, and the camera follows the fight: slow motion for the big hits,
+  >   a tug of war for who is winning, the last blow held.
+  > • Pick your five while they drill and rest round the fire. Battles play themselves, or switch to Manual and
   >   unleash each hero's ability at the moment you choose.
   > • Level up, train, equip and upgrade gear, and choose four upgrades for every hero.
   > • 60 story missions and 60 heroic ones, with bosses at the end of every region.

@@ -1,7 +1,7 @@
 // The company's progress: the save, rewards, levels, gear, training and ability upgrades.
 // Pure functions over a plain save object (no DOM), so Node tests can play the whole campaign.
 import { UNITS, CLASSES, ENEMIES } from '../data/units.js';
-import { MISSIONS, REGIONS, START_ROSTER, EARLY_JOINS, missionById, missionsIn, regionOpen } from '../data/campaign.js';
+import { MISSIONS, REGIONS, START_ROSTER, missionById, missionsIn, regionOpen } from '../data/campaign.js';
 import { HEROES, UNLOCKS, LEADERS } from '../data/heroes.js';
 import { SLOTS, BASES, itemStats, upgradeCost, sellValue, rollItem, MAX_PLUS } from '../data/items.js';
 import { MOD_KEYS, statsAt } from '../combat/battle.js';
@@ -10,51 +10,52 @@ export const SAVE_VERSION = 1;
 export const MAX_LEVEL = 60;
 export const MAX_TEAM = 5;
 export const TRAIN_MAX = 30;
-export const TRAIN = { hp: 0.03, atk: 0.03, def: 0.035 };      // per rank
+export const TRAIN = { hp: 0.04, atk: 0.04, def: 0.045 };      // per rank
 export const UPGRADE_LEVELS = [4, 8, 20, 35];
 export const BENCH_XP = 0.7;   // what recruits left at camp learn from a win
 export const HEROIC = { level: 5, might: 1.3, gold: 1.6, xp: 1.4, loot: 0.35 };
 
 // Ability upgrades: four picks of one from two, at levels 4, 8, 20 and 35 (8 and 35 depend on the class).
 const T1 = [
-  { id: 'empower', name: 'Empowered', desc: 'Ability 40% stronger.', mods: { power: 0.4 } },
-  { id: 'quicken', name: 'Quickened', desc: 'Gains energy 30% faster.', mods: { energy: 0.3 } },
+  { id: 'empower', name: 'Empowered', desc: 'Ability 55% stronger.', mods: { power: 0.55 } },
+  { id: 'quicken', name: 'Quickened', desc: 'Gains energy 40% faster.', mods: { energy: 0.4 } },
 ];
 const T2 = {
-  vanguard: [{ id: 'bastion', name: 'Bastion', desc: 'Takes 12% less damage.', mods: { dr: 0.12 } },
-    { id: 'ironwill', name: 'Iron Will', desc: '+15% health and +10% attack.', mods: { hp: 0.15, atk: 0.1 } }],
-  striker: [{ id: 'bloodlust', name: 'Bloodlust', desc: 'Heals for 12% of damage dealt.', mods: { lifesteal: 0.12 } },
-    { id: 'precision', name: 'Precision', desc: '+15% critical chance.', mods: { crit: 0.15 } }],
-  ranger: [{ id: 'rapid', name: 'Rapid Fire', desc: '+20% attack speed.', mods: { spd: 0.2 } },
-    { id: 'deadeye', name: 'Deadeye', desc: '+15% critical chance.', mods: { crit: 0.15 } }],
+  vanguard: [{ id: 'bastion', name: 'Bastion', desc: 'Takes 15% less damage.', mods: { dr: 0.15 } },
+    { id: 'ironwill', name: 'Iron Will', desc: '+20% health and +15% attack.', mods: { hp: 0.2, atk: 0.15 } }],
+  striker: [{ id: 'bloodlust', name: 'Bloodlust', desc: 'Heals for 15% of damage dealt.', mods: { lifesteal: 0.15 } },
+    { id: 'precision', name: 'Precision', desc: '+20% critical chance.', mods: { crit: 0.2 } }],
+  ranger: [{ id: 'rapid', name: 'Rapid Fire', desc: '+25% attack speed.', mods: { spd: 0.25 } },
+    { id: 'deadeye', name: 'Deadeye', desc: '+20% critical chance.', mods: { crit: 0.2 } }],
   mystic: [{ id: 'primed', name: 'Primed', desc: 'Starts each battle with 70 energy.', mods: { start: 70 } },
-    { id: 'overcharge', name: 'Overcharge', desc: 'Ability 40% stronger.', mods: { power: 0.4 } }],
-  support: [{ id: 'blessing', name: 'Blessing', desc: '+30% healing and shields.', mods: { healPower: 0.3, power: 0.15 } },
+    { id: 'overcharge', name: 'Overcharge', desc: 'Ability 55% stronger.', mods: { power: 0.55 } }],
+  support: [{ id: 'blessing', name: 'Blessing', desc: '+40% healing and shields.', mods: { healPower: 0.4, power: 0.2 } },
     { id: 'ready', name: 'Ready Hands', desc: 'Starts each battle with 60 energy.', mods: { start: 60 } }],
 };
 const T3 = [
-  { id: 'veteran', name: 'Veteran', desc: '+15% health and defence.', mods: { hp: 0.15, def: 0.15 } },
-  { id: 'ruthless', name: 'Ruthless', desc: '+15% attack and +5% critical chance.', mods: { atk: 0.15, crit: 0.05 } },
+  { id: 'veteran', name: 'Veteran', desc: '+20% health and defence.', mods: { hp: 0.2, def: 0.2 } },
+  { id: 'ruthless', name: 'Ruthless', desc: '+20% attack and +7% critical chance.', mods: { atk: 0.2, crit: 0.07 } },
 ];
 const T4 = {
-  vanguard: [{ id: 'unbreakable', name: 'Unbreakable', desc: 'Takes 15% less damage, +10% health.', mods: { dr: 0.15, hp: 0.1 } },
-    { id: 'juggernaut', name: 'Juggernaut', desc: '+20% health, +10% attack, heals for 6% of damage dealt.', mods: { hp: 0.2, atk: 0.1, lifesteal: 0.06 } }],
-  striker: [{ id: 'assassin', name: 'Assassin', desc: '+20% critical chance, +10% attack.', mods: { crit: 0.2, atk: 0.1 } },
-    { id: 'whirlwind', name: 'Whirlwind', desc: '+25% attack speed, +20% energy gain.', mods: { spd: 0.25, energy: 0.2 } }],
-  ranger: [{ id: 'volley', name: 'Volley Master', desc: 'Ability 50% stronger, +20% energy gain.', mods: { power: 0.5, energy: 0.2 } },
-    { id: 'sniper', name: 'Sniper', desc: '+25% attack, +10% critical chance.', mods: { atk: 0.25, crit: 0.1 } }],
-  mystic: [{ id: 'archmage', name: 'Archmage', desc: 'Ability 60% stronger.', mods: { power: 0.6 } },
-    { id: 'wellspring', name: 'Wellspring', desc: '+45% energy gain, +10% health.', mods: { energy: 0.45, hp: 0.1 } }],
-  support: [{ id: 'saint', name: 'Saint', desc: '+40% healing, ability 20% stronger.', mods: { healPower: 0.4, power: 0.2 } },
-    { id: 'beacon', name: 'Beacon', desc: '+30% energy gain, +15% health.', mods: { energy: 0.3, hp: 0.15 } }],
+  vanguard: [{ id: 'unbreakable', name: 'Unbreakable', desc: 'Takes 20% less damage, +15% health.', mods: { dr: 0.2, hp: 0.15 } },
+    { id: 'juggernaut', name: 'Juggernaut', desc: '+25% health, +15% attack, heals for 8% of damage dealt.', mods: { hp: 0.25, atk: 0.15, lifesteal: 0.08 } }],
+  striker: [{ id: 'assassin', name: 'Assassin', desc: '+25% critical chance, +15% attack.', mods: { crit: 0.25, atk: 0.15 } },
+    { id: 'whirlwind', name: 'Whirlwind', desc: '+35% attack speed, +25% energy gain.', mods: { spd: 0.35, energy: 0.25 } }],
+  ranger: [{ id: 'volley', name: 'Volley Master', desc: 'Ability 70% stronger, +25% energy gain.', mods: { power: 0.7, energy: 0.25 } },
+    { id: 'sniper', name: 'Sniper', desc: '+35% attack, +15% critical chance.', mods: { atk: 0.35, crit: 0.15 } }],
+  mystic: [{ id: 'archmage', name: 'Archmage', desc: 'Ability 80% stronger.', mods: { power: 0.8 } },
+    { id: 'wellspring', name: 'Wellspring', desc: '+60% energy gain, +15% health.', mods: { energy: 0.6, hp: 0.15 } }],
+  support: [{ id: 'saint', name: 'Saint', desc: '+55% healing, ability 25% stronger.', mods: { healPower: 0.55, power: 0.25 } },
+    { id: 'beacon', name: 'Beacon', desc: '+40% energy gain, +20% health.', mods: { energy: 0.4, hp: 0.2 } }],
 };
 export const upgradeChoices = (key, tier) => [T1, T2[UNITS[key].cls], T3, T4[UNITS[key].cls]][tier];
 
 // ---- the save
 export function newSave() {
-  const s = { v: SAVE_VERSION, gold: 120, gems: 50, roster: {}, inv: [], uid: 1, cleared: {}, heroic: {}, team: [], early: [], joined: [], speed: 1, seed: 7,
+  const s = { v: SAVE_VERSION, gold: 120, gems: 50, roster: {}, inv: [], uid: 1, cleared: {}, heroic: {}, team: START_ROSTER.map((key) => ({ key, slot: 1 })), joined: [], speed: 1, seed: 7,
     stats: { wins: 0, losses: 0, kills: 0, bosses: 0, stars3: 0, trained: 0, upgraded: 0, bought: 0 }, flags: {},
     settings: { music: 0.6, sfx: 0.8, shake: true, auto: true, haptics: true, scenes: true }, keep: {}, mats: {}, run: null, runs: { count: 0, best: 0 } };
+  for (const k of START_ROSTER) s.roster[k] = newMember(1);
   return s;
 }
 function newMember(level) { return { level, xp: 0, gear: { weapon: null, armor: null, charm: null }, train: { hp: 0, atk: 0, def: 0 }, ups: [null, null, null, null] }; }
@@ -71,10 +72,12 @@ export function loadSave(raw) {
   s.stats = Object.assign(newSave().stats, raw.stats); s.flags = Object.assign({}, raw.flags); s.heroic = Object.assign({}, raw.heroic);
   s.settings = Object.assign(newSave().settings, raw.settings);
   s.keep = Object.assign({}, raw.keep); s.mats = Object.assign({}, raw.mats);
-  s.run = raw.run && s.roster[raw.run.leader] ? Object.assign({ wins: 0 }, raw.run) : null; s.early = Array.isArray(raw.early) ? raw.early.filter((k) => UNITS[k]) : []; s.runs = Object.assign({ count: 0, best: 0 }, raw.runs);
+  s.run = raw.run && s.roster[raw.run.leader] ? Object.assign({ wins: 0 }, raw.run) : null; s.runs = Object.assign({ count: 0, best: 0 }, raw.runs);
   if (typeof s.gems !== 'number') s.gems = 50;
   s.inv = (s.inv || []).filter((it) => BASES[it.base]);
+  if (!Object.keys(s.roster).length) for (const k of START_ROSTER) s.roster[k] = newMember(1);   // a company always has its first hero
   s.team = (s.team || []).filter((m) => s.roster[m.key] && m.slot >= 0 && m.slot < 6).slice(0, MAX_TEAM);
+  if (!s.team.length) s.team = [{ key: Object.keys(s.roster)[0], slot: 1 }];
   for (const m of Object.values(s.roster)) for (const sl of SLOTS) if (m.gear[sl] && !s.inv.some((it) => it.uid === m.gear[sl])) m.gear[sl] = null;
   return s;
 }
@@ -168,10 +171,8 @@ export function grantRewards(s, missionId, b, rnd, heroic = false) {
   s.mats[m.region] = (s.mats[m.region] || 0) + mat; out.mats = { [m.region]: mat };
   const drops = out.first ? 1 + (stars === 3 ? 1 : 0) : rnd() < 0.35 + stars * 0.1 ? 1 : 0;
   for (let i = 0; i < drops; i++) { const it = Object.assign(rollItem(m.level + (heroic ? HEROIC.level : 0), rnd, heroic ? HEROIC.loot : 0), { uid: s.uid++ }); s.inv.push(it); out.loot.push(it); }
-  // the other starters join on the first missions; a recruit met on the road joins on the first clear
-  const early = EARLY_JOINS.indexOf(m.id), starter = early >= 0 && (s.early || [])[early];
-  if (out.first && !heroic && starter && !s.roster[starter]) { join(s, starter, out); out.freed = true; }
-  if (out.first && !heroic && m.recruit && !s.roster[m.recruit]) join(s, m.recruit, out);
+  // a hero met on the road joins on the first clear (onto the wheel if they are one of its eight)
+  if (out.first && !heroic && m.recruit && !s.roster[m.recruit]) { join(s, m.recruit, out); out.freed = HEROES.includes(m.recruit); }
   if (out.first && !heroic && sealOf(m.region) === m) {
     // a Seal of Vael: the hero it frees goes on the wheel, and the run ends in triumph
     const k = UNLOCKS[m.region];
@@ -198,6 +199,11 @@ export function toggleTeam(s, key, slot) {
   if (s.team.length >= MAX_TEAM || !s.roster[key]) return false;
   const sl = slot != null && !s.team.some((t) => t.slot === slot) ? slot : freeSlot(s, key);
   s.team.push({ key, slot: sl }); return true;
+}
+// the formation from the classes: fighters to the front row, archers, mages and healers to the back
+export function autoFormation(s) {
+  const keys = s.team.map((t) => t.key); s.team = [];
+  for (const k of keys) s.team.push({ key: k, slot: freeSlot(s, k) });
 }
 export function moveSlot(s, from, to) {
   const a = s.team.find((t) => t.slot === from), b = s.team.find((t) => t.slot === to);
@@ -275,18 +281,14 @@ export function pickUpgrade(s, key, tier, id) {
 // what is waiting for the player's attention on a recruit: an upgrade to pick
 export const pendingUpgrade = (s, key) => UPGRADE_LEVELS.findIndex((lv, t) => s.roster[key].level >= lv && !s.roster[key].ups[t]);
 
-export { CLASSES, MISSIONS, HEROES, UNLOCKS, LEADERS, EARLY_JOINS };
+export { CLASSES, MISSIONS, HEROES, UNLOCKS, LEADERS };
 
 // ---- runs: the wheel picks a leader from the unlocked heroes; the run lasts until a battle is lost or a
 // Seal of Vael is taken. The leader always fights, gives the whole squad their perk, and fights harder.
 export const LEAD_EDGE = { hp: 0.15, atk: 0.15 };
 export const unlocked = (s) => HEROES.filter((k) => s.roster[k]);
-// who the wheel can land on: the heroes unlocked, or for a new company, the three starters
-export const spinPool = (s) => (Object.keys(s.roster).length ? unlocked(s) : START_ROSTER.slice());
 export function spin(s, rnd) {
-  const pool = spinPool(s), leader = pool[Math.floor(rnd() * pool.length) % pool.length];
-  // the first spin of a new company: the hero it lands on is the whole company; the other two starters join early
-  if (!Object.keys(s.roster).length) { s.roster[leader] = newMember(1); s.early = START_ROSTER.filter((k) => k !== leader); }
+  const pool = unlocked(s), leader = pool[Math.floor(rnd() * pool.length) % pool.length];
   s.run = { leader, wins: 0 }; s.runs.count++;
   // the leader joins the squad: in a free place, or in place of the weakest
   if (!s.team.some((t) => t.key === leader)) {
@@ -304,9 +306,8 @@ function endRun(s, triumph = false) {
 }
 // which boss frees a locked hero
 // the mission that brings a hero in: a region's seal for the wheel's heroes, the meeting on the road for a recruit
-export const unlockedBy = (k, s) => {
+export const unlockedBy = (k) => {
   const rid = Object.keys(UNLOCKS).find((r) => UNLOCKS[r] === k); if (rid) return sealOf(rid);
-  const e = s && s.early ? s.early.indexOf(k) : -1; if (e >= 0) return missionById(EARLY_JOINS[e]);
   return MISSIONS.find((m) => m.recruit === k) || null;
 };
 export const onWheel = (k) => HEROES.includes(k);

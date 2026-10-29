@@ -31,7 +31,7 @@ const angTo = (a, b) => Math.atan2(b.y - a.y, b.x - a.x);
 // ability's strength), energy (energy gained); flat: crit, dr, lifesteal, start (energy at the start).
 export const MOD_KEYS = ['hp', 'atk', 'def', 'spd', 'crit', 'dr', 'lifesteal', 'healPower', 'summonPower', 'power', 'energy', 'start'];
 export function statsAt(def, level = 1, mods = {}) {
-  const s = def.stats, k = 1 + 0.08 * (level - 1), p = def.passive || {};
+  const s = def.stats, k = 1 + 0.12 * (level - 1), p = def.passive || {};   // each level counts: +12% (foes grow the same way)
   const m = (key) => (p[key] || 0) + (mods[key] || 0);
   return {
     max: Math.round(s.hp * k * (1 + m('hp'))), atk: s.atk * k * (1 + m('atk')), def: s.def * k * (1 + m('def')),

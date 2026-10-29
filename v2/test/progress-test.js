@@ -11,13 +11,10 @@ import * as P from '../src/game/progress.js';
 const r = rng(5);
 const fake = (result, fell = 0, s) => ({ result, units: s.team.map((t, i) => ({ team: 'ally', summoned: false, state: i < fell ? 'ko' : 'idle' })) });
 
-// a new company: nobody until the first spin, which picks one of the three starters; that hero is the
-// whole company, and the other two will join on the first missions. Mission one open, two closed
+// a new company: one hero, Corvin, on the team and the wheel; everyone else hidden until met. Mission one open, two closed
 let s = P.newSave();
-assert.deepEqual(s.roster, {}); assert.equal(s.team.length, 0); assert.deepEqual(P.spinPool(s), START_ROSTER);
-assert.equal(P.spin(s, () => 0), START_ROSTER[0]);
-assert.deepEqual(Object.keys(s.roster), [START_ROSTER[0]]); assert.equal(s.team.length, 1); assert.deepEqual(s.early, START_ROSTER.slice(1));
-assert.deepEqual(P.unlocked(s), [START_ROSTER[0]]);
+assert.deepEqual(Object.keys(s.roster), ['corvin']); assert.deepEqual(START_ROSTER, ['corvin']); assert.equal(s.team.length, 1);
+assert.deepEqual(P.unlocked(s), ['corvin']); assert.equal(P.spin(s, r), 'corvin');
 assert.ok(isOpen(s.cleared, MISSIONS[0]) && !isOpen(s.cleared, MISSIONS[1]));
 for (const m of MISSIONS) for (const [k] of m.foes) assert.ok(k in (await import('../src/data/units.js')).ENEMIES, m.id + ' foe ' + k);
 
@@ -27,12 +24,15 @@ const before = strip(s);
 let rw = P.grantRewards(s, 'r1m1', fake('lose', 0, s), r);
 assert.equal(rw.win, false); assert.equal(strip(s), before); assert.equal(s.stats.losses, 1);
 
-// a first clear: three stars, gold, xp, loot, and the second starter (a new run, the only hero leads)
-assert.equal(P.spin(s, r), START_ROSTER[0]);
+// a first clear: three stars, gold, xp, loot, nobody met (a new run: the only hero leads)
+assert.equal(P.spin(s, r), 'corvin');
 rw = P.grantRewards(s, 'r1m1', fake('win', 0, s), r);
 assert.equal(rw.stars, 3); assert.ok(rw.first && rw.gold > 0 && rw.loot.length === 2); assert.equal(rw.gems, 5);
-assert.equal(rw.joined, START_ROSTER[1]); assert.ok(rw.freed); assert.equal(s.team.length, 2);          // the second starter joins, onto the wheel
-assert.deepEqual(P.unlocked(s), START_ROSTER.slice(0, 2)); assert.equal(P.unlockedBy(START_ROSTER[2], s).id, 'r1m3');
+assert.equal(rw.joined, null);
+// heroes come slowly: the first is met on mission 4, and no more than four join in any region
+assert.equal(MISSIONS.find((m) => m.recruit).id, 'r1m4');
+for (const rid of ['r1', 'r2', 'r3', 'r4', 'r5', 'r6']) assert.ok(MISSIONS.filter((m) => m.region === rid && (m.recruit || (P.sealOf(rid) === m && P.UNLOCKS[rid]))).length <= 4, rid);
+s.roster.wren = JSON.parse(JSON.stringify(s.roster.corvin)); s.team.push({ key: 'wren', slot: 4 });   // (the tests below use a second hero)
 assert.ok(isOpen(s.cleared, MISSIONS[1]));
 // a replay: less gold, no second recruit, best stars kept
 const g = s.gold; rw = P.grantRewards(s, 'r1m1', fake('win', 2, s), r);
@@ -60,7 +60,7 @@ s.gold = 0; s.roster.wren.level = 9; assert.ok(!P.train(s, 'wren', 'atk'));
 s.roster.corvin.level = 3; assert.ok(!P.pickUpgrade(s, 'corvin', 0, 'empower'));
 s.roster.corvin.level = 4; assert.equal(P.pendingUpgrade(s, 'corvin'), 0);
 assert.ok(!P.pickUpgrade(s, 'corvin', 0, 'nope')); assert.ok(P.pickUpgrade(s, 'corvin', 0, 'empower')); assert.ok(!P.pickUpgrade(s, 'corvin', 0, 'quicken'));
-assert.equal(P.modsOf(s, 'corvin').power, 0.4); assert.equal(P.pendingUpgrade(s, 'corvin'), -1);
+assert.equal(P.modsOf(s, 'corvin').power, 0.55); assert.equal(P.pendingUpgrade(s, 'corvin'), -1);
 
 // the team: at most five, slots swap
 s = P.newSave(); for (const k of Object.keys(UNITS)) s.roster[k] = s.roster[k] || { level: 1, xp: 0, gear: { weapon: null, armor: null, charm: null }, train: { hp: 0, atk: 0, def: 0 }, ups: [null, null] };
@@ -110,12 +110,12 @@ assert.equal(P.decodeSave(code).gold, 777); assert.equal(P.decodeSave(code.slice
 // runs: the wheel only lands on unlocked heroes; the leader always fights; a loss ends the run; a seal
 // ends it in triumph and frees the next hero
 {
-  const w = P.newSave(), rr = rng(9), seen = new Set(), first = P.spin(w, rr);
+  const w = P.newSave(), rr = rng(9), seen = new Set();
   for (let i = 0; i < 50; i++) { w.run = null; seen.add(P.spin(w, rr)); }
-  assert.deepEqual([...seen], [first]);                                           // one hero, until the others join
-  for (const id of ['r1m1', 'r1m3']) { const j = P.grantRewards(w, id, fake('win', 0, w), rr); assert.ok(j.freed && START_ROSTER.includes(j.joined)); }
+  assert.deepEqual([...seen], ['corvin']);                                        // one hero, until others join
+  for (const id of ['r1m4', 'r1m8']) { P.spin(w, rr); const j = P.grantRewards(w, id, fake('win', 0, w), rr); assert.ok(j.freed && P.HEROES.includes(j.joined), id); }
   seen.clear(); for (let i = 0; i < 200; i++) { w.run = null; seen.add(P.spin(w, rr)); }
-  assert.deepEqual([...seen].sort(), [...START_ROSTER].sort());                   // never a locked hero
+  assert.deepEqual([...seen].sort(), ['corvin', 'maren', 'wren']);                 // never a hidden hero
   P.spin(w, () => 0.99); const lead = w.run.leader;
   assert.ok(w.team.some((t) => t.key === lead)); P.toggleTeam(w, lead); assert.ok(w.team.some((t) => t.key === lead));   // the leader cannot be benched
   P.bestTeam(w); assert.ok(w.team.some((t) => t.key === lead));
@@ -131,14 +131,14 @@ assert.equal(P.decodeSave(code).gold, 777); assert.equal(P.decodeSave(code.slice
   assert.ok(P.unlocked(w).includes(P.UNLOCKS.r1)); assert.equal(P.unlockedBy(P.UNLOCKS.r2).region, 'r2');
   for (const k of P.HEROES) assert.ok(UNITS[k] && P.LEADERS[k], k);               // every wheel hero exists and has a perk
   // a recruit met on the road joins the company on the first clear, fights, but never comes up on the wheel
-  const rec = MISSIONS.find((x) => x.recruit), r2 = P.newSave(); P.spin(r2, rr);
+  const rec = MISSIONS.find((x) => x.recruit && !P.HEROES.includes(x.recruit)), r2 = P.newSave(); P.spin(r2, rr);
   const met = P.grantRewards(r2, rec.id, fake('win', 0, r2), rr);
   assert.equal(met.joined, rec.recruit); assert.ok(!met.freed && !met.runEnded); assert.ok(r2.roster[rec.recruit]); assert.ok(!P.onWheel(rec.recruit));
   for (let i = 0; i < 100; i++) { r2.run = null; assert.ok(P.HEROES.includes(P.spin(r2, rr))); }
   assert.equal(P.unlockedBy(rec.recruit), rec);
   const recruits = MISSIONS.filter((x) => x.recruit).map((x) => x.recruit);
   assert.equal(new Set(recruits).size, recruits.length);                           // each recruit is met once
-  assert.deepEqual([...P.HEROES, ...recruits].sort(), Object.keys(UNITS).sort());  // everyone is on the wheel or met on the road
-  for (const k of recruits) assert.ok(!P.HEROES.includes(k), k);
+  const freed = Object.values(P.UNLOCKS);                                          // everyone: the first hero, met on the road, or freed by a boss
+  assert.deepEqual([...START_ROSTER, ...recruits, ...freed].sort(), Object.keys(UNITS).sort());
 }
 console.log('progress ok');

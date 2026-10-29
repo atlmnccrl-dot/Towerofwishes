@@ -1,7 +1,7 @@
 // Tunes every mission's foe strength (might) from simulated playthroughs: several companies play the
 // campaign in order; at each mission, might is searched until a casual player (best team, auto-equip,
 // upgrade picks; no training or gear upgrades) wins on the first try about TARGET of the time
-// (bosses: BOSS), and every company at least FLOOR of the time, so no team makeup is ever stuck.
+// (bosses: BOSS), and every company at least FLOOR of the time (one try in five: hard, never a wall).
 // Training and upgrading gear then make missions easier. Writes src/data/tuning.js.
 // node v2/test/tune.js [runs]
 import fs from 'fs';
@@ -10,7 +10,7 @@ import { MISSIONS } from '../src/data/campaign.js';
 import * as P from '../src/game/progress.js';
 import { fight, manage } from './player.js';
 
-const RUNS = +process.argv[2] || 8, TARGET = 0.75, BOSS = 0.55, SEEDS = 3, FLOOR = 0.33;
+const RUNS = +process.argv[2] || 8, TARGET = 0.6, BOSS = 0.45, SEEDS = 5, FLOOR = 0.2;
 // half the companies always take the first upgrade option, half the second: both extremes must stay winnable
 const runs = Array.from({ length: RUNS }, (_, i) => ({ s: P.newSave(), r: rng(500 + i), seed: 9000 + i * 7919, pick: i % 2 }));
 const clone = (s) => JSON.parse(JSON.stringify(s));
@@ -28,7 +28,7 @@ function winRate(m, might) {
 const t0 = Date.now();
 for (const [i, m] of MISSIONS.entries()) {
   // the first two missions teach the game: nearly always won
-  const target = { r1m1: 0.97, r1m2: 0.9 }[m.id] || (m.boss ? BOSS : TARGET);
+  const target = { r1m1: 0.95, r1m2: 0.8 }[m.id] || (m.boss ? BOSS : TARGET);
   // win rate falls as might rises: bisect in log space
   let lo = Math.log(0.12), hi = Math.log(8);
   for (let it = 0; it < 8; it++) { const mid = (lo + hi) / 2, wr = winRate(m, Math.exp(mid)); if (wr.avg >= target && wr.worst >= FLOOR) lo = mid; else hi = mid; }

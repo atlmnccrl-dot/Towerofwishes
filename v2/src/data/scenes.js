@@ -20,7 +20,7 @@ const rise = (id, x, y) => ({ seq: [{ all: [{ fx: ['smoke_dark', x, y, 0.4, 1.1]
   { all: [{ enter: [id, x, y] }, { clip: [id, 'Taunt', false], fps: 10 }] }, { wait: 0.32 }] });
 // a hero's entrance: a close shot, their name at the side
 const intro = (key) => ({ title: [UNITS[key].name.toUpperCase(), UNITS[key].title], side: true, hold: 1.7 });
-const SHADOWS = ['hesta', 'thistle', 'ysolde', 'kesh', 'moraine'];
+const SHADOWS = ['wren', 'maren', 'hesta', 'thistle', 'ysolde', 'kesh', 'moraine'];
 // where the dead stand up: in front of the graves on the storm arena (data/arenas.js)
 const GRAVE = { s1: [-5.5, -1.3], s2: [0.5, -1.0], s3: [3.2, -1.7], s4: [5.8, -0.8], s5: [-2.5, -1.8], s6: [-1.2, 1.7] };
 
@@ -29,7 +29,7 @@ export const OPENING = {
   cast: {
     wyrm: { set: 'elder_dragon', name: 'Vaelor', color: '#ff6a4a', x: 13, y: -2.2, z: 3.6, f: 'W', scale: 1.9, dark: true, off: true },
     s1: risen('goblin', ...GRAVE.s1), s2: risen('goblin_spear', ...GRAVE.s2), s3: risen('goblin', ...GRAVE.s3), s4: risen('goblin_hexer', ...GRAVE.s4), s5: risen('goblin_archer', ...GRAVE.s5), s6: risen('goblin_spear', ...GRAVE.s6),
-    corvin: cast('corvin', -12, 0.2, { off: true }), wren: cast('wren', -12, -1.3, { off: true }), maren: cast('maren', -12, 1.3, { off: true }),
+    corvin: cast('corvin', -12, 0.2, { off: true }),
     ...Object.fromEntries(SHADOWS.map((k) => ['x' + k, cast(k, -12, -2.4, { off: true, dark: '#1a0a10', f: 'S' })])),
   },
   steps: [
@@ -62,7 +62,7 @@ export const OPENING = {
     { wait: 0.8 },
     { all: [{ fade: [1, 1.2] }, { cam: [1.6, -0.6, 1.15], t: 1.2 }] },
     { title: ['The dead marched on the living. Town after town went dark.'], side: 'plain', hold: 2.6 },
-    { title: ['Until a handful of sellswords would not run.'], side: 'plain', hold: 2.4 },
+    { title: ['Until one sellsword would not run.'], side: 'plain', hold: 2.4 },
 
     // the abbey wall at dusk: the horde comes on
     { arena: 'abbey' }, { mood: DUSK }, { music: 'battle' },
@@ -76,55 +76,44 @@ export const OPENING = {
     { all: [{ walk: ['corvin', -3, 0.2], run: true, speed: 6 }] },
     { all: [{ fx: ['dust_land', -3, 0.2, 0.1, 1.2] }, { face: ['corvin', 'E'] }, { clip: ['corvin', 'Taunt', false], fps: 11 }, { sfx: 'unsheathe_01', gain: 0.9 }] },
     { all: [{ fx: ['shield_bubble', -3, 0.2, 0.9, 1], life: 1.6 }, { sfx: 'magic', gain: 0.5 }, intro('corvin')] },
-    // Wren: one arrow, one skull
-    { cam: [-6, -1.6, 1.8], t: 0 }, { enter: ['wren', -4.6, -1.3] }, { face: ['wren', 'E'] },
-    { all: [{ clip: ['wren', 'Attack3', false], fps: 12 }, { seq: [{ wait: 0.35 }, { sfx: 'bolt', gain: 0.8 }, { fly: ['arrow', [-4.2, -1.3, 1.1], [3.5, -0.8, 1.0], 0.3, 1] }] },
-      { seq: [{ wait: 0.5 }, { cam: [3.2, -1, 2], t: 0 }] }] },
-    { all: [{ fx: ['hit_pierce', 3.5, -0.8, 1, 1.3] }, { clip: ['s1', 'Die', false], fps: 10 }, { sfx: 'blow_0' }, { shake: 3 }] }, { wait: 0.6 },
-    { cam: [-6, -1.6, 1.8], t: 0 }, intro('wren'),
-    // Maren: the light
-    { cam: [-6.6, 1.0, 1.8], t: 0 }, { enter: ['maren', -5.2, 1.3] }, { face: ['maren', 'E'] },
-    { all: [{ clip: ['maren', 'Attack3', false], fps: 9 }, { fx: ['circle_holy', -5.2, 1.3, 0, 1], life: 2.4 }, { seq: [{ wait: 0.5 }, { fx: ['holy_light', -5.2, 1.3, 1.2, 1] }, { flash: [0.35, '255,240,180'] }, { sfx: 'heal_02', gain: 0.8 }] }] },
-    intro('maren'),
-    // the three of them, and the horde
-    { cam: [-1.6, -0.2, 1.25], t: 0 }, { face: ['corvin', 'E'] },
-    { say: ['wren', 'That is the whole Barrow coming.'], tone: 'soft' },
+    // one sellsword, and the horde
+    { cam: [-1.2, -0.2, 1.25], t: 0 }, { face: ['corvin', 'E'] }, { wait: 0.6 },
     { cam: [-3.6, -0.2, 1.9], t: 0 },
-    { say: ['corvin', 'Then we send it back.'], tone: 'shout' },
+    { say: ['corvin', 'Come on, then.'], tone: 'shout' },
     // the charge
-    { all: [{ cam: [0.4, -0.2, 1.25], t: 1.6 }, { walk: ['corvin', 0.6, 0.1], run: true, speed: 6 }, { seq: [{ wait: 0.15 }, { walk: ['wren', -3.2, -1.1], run: true, speed: 5 }] },
-      { seq: [{ wait: 0.3 }, { walk: ['maren', -4.2, 1.1], run: true, speed: 5 }] },
-      { walk: ['s2', 1.4, 0.2], run: true, speed: 3 }, { walk: ['s6', 2.0, -0.9], run: true, speed: 3 }, { walk: ['s3', 2.8, 1.0], run: true, speed: 3 }, { walk: ['s4', 5, -0.4], speed: 1.5 }, { walk: ['s5', 5.6, 0.8], speed: 1.5 }] },
+    { all: [{ cam: [0.4, -0.2, 1.25], t: 1.6 }, { walk: ['corvin', 0.6, 0.1], run: true, speed: 6 },
+      { walk: ['s2', 1.4, 0.2], run: true, speed: 3 }, { walk: ['s6', 2.0, -0.9], run: true, speed: 3 }, { walk: ['s3', 2.0, 1.0], run: true, speed: 3 }, { walk: ['s1', 3.2, -0.6], run: true, speed: 2.4 },
+      { walk: ['s4', 5, -0.4], speed: 1.5 }, { walk: ['s5', 5.6, 0.8], speed: 1.5 }] },
     // the first blow, slowed down
     { cam: [1, -0.2, 1.9], t: 0 }, { slow: 0.3 },
     { all: [{ face: ['corvin', 's2'] }, { clip: ['corvin', 'Attack2', false], fps: 14 }, { seq: [{ wait: 0.12 }, { fx: ['cross_slash', 1.2, 0.15, 1, 1.4] }, { flash: [0.5, '255,255,255'] }, { sfx: 'slash_1', gain: 1 }, { clip: ['s2', 'Die', false], fps: 10 }, { fx: ['hit_crit', 1.4, 0.2, 1, 1.2] }] }] },
     { wait: 0.35 }, { slow: 1 }, { shake: 5 },
-    // the line holds: arrows, light, steel
-    { cam: [1.2, -0.2, 1.4], t: 0 },
+    // alone in the press: steel, a spin, an arrow turned on the shield
+    { cam: [1.6, -0.2, 1.4], t: 0 },
     { all: [
-      { seq: [{ face: ['wren', 's3'] }, { clip: ['wren', 'Attack3', false], fps: 12 }, { wait: 0.3 }, { sfx: 'bolt', gain: 0.6 }, { fly: ['arrow', [-2.9, -1.1, 1.1], [2.8, 1.0, 1.0], 0.25] }, { fx: ['hit_pierce', 2.8, 1.0, 1, 1.1] }, { clip: ['s3', 'Die', false], fps: 10 },
-        { face: ['wren', 's5'] }, { clip: ['wren', 'Attack3', false], fps: 12 }, { wait: 0.3 }, { sfx: 'bolt', gain: 0.6 }, { fly: ['arrow', [-2.9, -1.1, 1.1], [5.6, 0.8, 1.0], 0.3] }, { fx: ['hit_pierce', 5.6, 0.8, 1, 1.1] }, { clip: ['s5', 'Die', false], fps: 10 }] },
-      { seq: [{ wait: 0.3 }, { face: ['corvin', 's6'] }, { clip: ['corvin', 'Attack1', false], fps: 14 }, { fx: ['slash_r', 1.3, -0.4, 1, 1.2] }, { sfx: 'slash_0' }, { fx: ['hit_slash', 2.0, -0.9, 1, 1.1] }, { clip: ['s6', 'Die', false], fps: 10 }, { wait: 0.6 },
-        { clip: ['corvin', 'Attack2', false], fps: 14 }, { fx: ['spin_slash', 0.6, 0.1, 0.9, 1.4] }, { sfx: 'slash_2' }, { shake: 4 }] },
-      { seq: [{ wait: 0.6 }, { clip: ['maren', 'Attack3', false], fps: 9 }, { fx: ['heal_loop', 0.6, 0.1, 0.8, 1.1], life: 1.6 }, { sfx: 'heal_02', gain: 0.4 }] },
-      { seq: [{ wait: 0.5 }, { clip: ['s4', 'Attack5', false], fps: 10 }, { wait: 0.3 }, { fly: ['magic_missile', [4.6, -0.4, 1.2], [0.9, 0.1, 1.0], 0.5] }, { fx: ['block', 0.9, 0.1, 1, 1.2] }, { sfx: 'clang_0' }] },
+      { seq: [{ wait: 0.2 }, { face: ['corvin', 's6'] }, { clip: ['corvin', 'Attack1', false], fps: 14 }, { fx: ['slash_r', 1.3, -0.4, 1, 1.2] }, { sfx: 'slash_0' }, { fx: ['hit_slash', 2.0, -0.9, 1, 1.1] }, { clip: ['s6', 'Die', false], fps: 10 }, { wait: 0.5 },
+        { clip: ['corvin', 'Attack2', false], fps: 14 }, { fx: ['spin_slash', 0.6, 0.1, 0.9, 1.5] }, { sfx: 'slash_2' }, { shake: 4 }, { clip: ['s3', 'Die', false], fps: 10 }, { fx: ['hit_slash', 2.0, 1.0, 1, 1.1] }, { wait: 0.3 },
+        { walk: ['corvin', 2.6, -0.5], run: true, speed: 9 }, { face: ['corvin', 's1'] }, { clip: ['corvin', 'Attack1', false], fps: 14 }, { fx: ['slash_r', 2.9, -0.5, 1, 1.2] }, { sfx: 'slash_1' }, { clip: ['s1', 'Die', false], fps: 10 }, { fx: ['hit_slash', 3.2, -0.6, 1, 1.1] }] },
+      { seq: [{ wait: 0.6 }, { clip: ['s5', 'Attack3', false], fps: 12 }, { wait: 0.3 }, { fly: ['arrow', [5.4, 0.8, 1.1], [0.9, 0.1, 1.0], 0.35] }, { fx: ['block', 0.9, 0.1, 1, 1.2] }, { sfx: 'clang_1' }] },
+      { seq: [{ wait: 1.2 }, { clip: ['s4', 'Attack5', false], fps: 10 }, { wait: 0.3 }, { fly: ['magic_missile', [4.6, -0.4, 1.2], [2.7, -0.5, 1.0], 0.4] }, { fx: ['block', 2.7, -0.5, 1, 1.2] }, { sfx: 'clang_0' }] },
     ] },
     { wait: 0.4 },
     // the wyrm answers: fire from the sky, and the shield holds
     { all: [{ shake: 6 }, { sfx: 'quake' }, { mood: RAGE }] },
-    { cam: [-1, -0.4, 1.2], t: 0 }, { face: ['wren', 'E'] }, { face: ['maren', 'E'] },
-    { all: [{ sfx: 'fire', gain: 1 }, { fly: ['fireball_big', [9, -3.5, 6], [-1.6, 0.2, 0.6], 0.9, 1.4] }, { seq: [{ wait: 0.3 }, { walk: ['corvin', -1.6, 0], run: true, speed: 9 }] }] },
-    { all: [{ face: ['corvin', 'NE'] }, { fx: ['shield_bubble', -1.6, 0, 0.9, 1.6], life: 1.4 }, { fx: ['explosion_fire', -1.2, 0.1, 0.8, 2] }, { fx: ['shockwave', -1.4, 0.1, 0, 2.2] }, { flash: [0.8, FIRE] }, { shake: 14 }, { sfx: 'blow_big', gain: 1 }, { clip: ['corvin', 'TakeDamage', false], fps: 10 }] },
-    { wait: 0.9 }, { fx: ['smoke_burst', -1.2, 0.1, 0.6, 1.8] }, { wait: 0.4 }, { mood: DUSK },
+    { cam: [1.6, -0.5, 1.25], t: 0 },
+    { all: [{ sfx: 'fire', gain: 1 }, { fly: ['fireball_big', [11, -3.5, 6], [2.6, -0.5, 0.6], 0.9, 1.4] }, { seq: [{ wait: 0.2 }, { face: ['corvin', 'NE'] }, { clip: ['corvin', 'Taunt', false], fps: 12 }] }] },
+    { all: [{ fx: ['shield_bubble', 2.6, -0.5, 0.9, 1.6], life: 1.4 }, { fx: ['explosion_fire', 3.0, -0.4, 0.8, 2] }, { fx: ['shockwave', 2.8, -0.4, 0, 2.2] }, { flash: [0.8, FIRE] }, { shake: 14 }, { sfx: 'blow_big', gain: 1 }, { clip: ['corvin', 'TakeDamage', false], fps: 10 }] },
+    { wait: 0.9 }, { fx: ['smoke_burst', 3, -0.4, 0.6, 1.8] }, { wait: 0.4 }, { mood: DUSK },
     // through the smoke, the last of them
-    { all: [{ walk: ['corvin', 4.2, -0.4], run: true, speed: 9 }, { cam: [2.6, -0.4, 1.5], t: 0.6 }, { fx: ['dust_run', -1.4, 0, 0.1, 1.1] }] },
-    { all: [{ face: ['corvin', 's4'] }, { clip: ['corvin', 'Attack2', false], fps: 14 }, { seq: [{ wait: 0.1 }, { fx: ['arc_gold', 4.7, -0.4, 1, 1.4] }, { flash: [0.45, '255,230,160'] }, { sfx: 'slash_1', gain: 1 }, { shake: 6 }, { clip: ['s4', 'Die', false], fps: 10 }, { fx: ['hit_big', 5, -0.4, 1, 1.2] }] }] },
+    { all: [{ walk: ['corvin', 4.4, 0.1], run: true, speed: 9 }, { cam: [3.4, -0.3, 1.5], t: 0.6 }, { fx: ['dust_run', 2.6, -0.5, 0.1, 1.1] }] },
+    { all: [{ face: ['corvin', 'E'] }, { clip: ['corvin', 'Attack2', false], fps: 14 }, { seq: [{ wait: 0.1 }, { fx: ['arc_gold', 5, 0.1, 1, 1.6] }, { flash: [0.45, '255,230,160'] }, { sfx: 'slash_1', gain: 1 }, { shake: 6 },
+      { clip: ['s4', 'Die', false], fps: 10 }, { clip: ['s5', 'Die', false], fps: 10 }, { fx: ['hit_big', 5, -0.4, 1, 1.2] }, { fx: ['hit_big', 5.6, 0.8, 1, 1.2] }] }] },
     { wait: 0.7 },
-    // the company turns to the camera; behind them in the smoke, the five the wheel cannot reach yet
-    { all: [{ walk: ['corvin', 0.2, 0.4], speed: 3.2 }, { walk: ['wren', -1.6, -0.2], speed: 2 }, { walk: ['maren', 1.9, -0.1], speed: 2 }, { cam: [0.2, -0.9, 1.25], t: 2.4 },
-      ...SHADOWS.map((k, i) => ({ enter: ['x' + k, [-5.2, -2.9, -0.6, 2.4, 4.8][i], -2.6] }))] },
-    { all: [{ face: ['corvin', 'S'] }, { face: ['wren', 'S'] }, { face: ['maren', 'S'] }, { clip: ['corvin', 'Taunt', false], fps: 10 }] },
-    { all: [{ title: ['VAEL', 'Sellsword Company'], slam: true, hold: 3.2 }, { seq: [{ wait: 0.08 }, { flash: [0.6, '255,236,200'] }, { fx: ['shockwave', 0.2, 0.4, 0, 3] }, { shake: 9 }, { sfx: 'horn', gain: 1 }] }] },
+    // he turns to the camera; behind him in the smoke, the seven the wheel cannot reach yet
+    { all: [{ walk: ['corvin', 0.4, 0.4], speed: 3.2 }, { cam: [0.4, -0.9, 1.25], t: 2.4 },
+      ...SHADOWS.map((k, i) => ({ enter: ['x' + k, [-6, -4.2, -2.4, -0.6, 1.4, 3.2, 5][i], -2.6] }))] },
+    { all: [{ face: ['corvin', 'S'] }, { clip: ['corvin', 'Taunt', false], fps: 10 }] },
+    { all: [{ title: ['VAEL', 'Sellsword Company'], slam: true, hold: 3.2 }, { seq: [{ wait: 0.08 }, { flash: [0.6, '255,236,200'] }, { fx: ['shockwave', 0.4, 0.4, 0, 3] }, { shake: 9 }, { sfx: 'horn', gain: 1 }] }] },
     { fade: [1, 0.9] },
   ],
 };

@@ -1,5 +1,5 @@
 // Gear: three slots per recruit (weapon, armour, charm). An item is { uid, base, tier, plus }:
-// its base gives the stats, its tier multiplies them, and each upgrade (+1 to +5) adds 12% more.
+// its base gives the stats, its tier multiplies them, and each upgrade (+1 to +5) adds 15% more.
 // Stat keys are the battle mods (see statsAt in combat/battle.js). Pure data and functions.
 
 export const SLOTS = ['weapon', 'armor', 'charm'];
@@ -7,10 +7,10 @@ export const SLOT_NAMES = { weapon: 'Weapon', armor: 'Armour', charm: 'Charm' };
 
 export const TIERS = [
   { name: 'Worn', k: 1, color: '#b8b2a0' },
-  { name: 'Fine', k: 1.6, color: '#7fd07a' },
-  { name: 'Rare', k: 2.3, color: '#7fb6ff' },
-  { name: 'Heirloom', k: 3.1, color: '#e0a2ff' },
-  { name: 'Mythic', k: 4.0, color: '#ffb347' },
+  { name: 'Fine', k: 1.8, color: '#7fd07a' },
+  { name: 'Rare', k: 2.8, color: '#7fb6ff' },
+  { name: 'Heirloom', k: 4.0, color: '#e0a2ff' },
+  { name: 'Mythic', k: 5.5, color: '#ffb347' },
 ];
 export const MAX_PLUS = 5;
 
@@ -41,7 +41,7 @@ export function statText(key, v) {
 }
 
 export function itemStats(it) {
-  const b = BASES[it.base], k = TIERS[it.tier].k * (1 + 0.12 * (it.plus || 0)), out = {};
+  const b = BASES[it.base], k = TIERS[it.tier].k * (1 + 0.15 * (it.plus || 0)), out = {};
   for (const [key, v] of Object.entries(b.stats)) out[key] = v * k;
   return out;
 }

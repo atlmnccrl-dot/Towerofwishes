@@ -8,6 +8,7 @@ import { MISSIONS, REGIONS, missionById, nextMission, regionOf, PREMISE, START_R
 import * as P from './game/progress.js';
 import { loadSprites, loadFx, loadAtlas } from './render/assets.js';
 import { createView } from './render/view.js';
+import { createDirector } from './render/director.js';
 import { createCamp } from './render/camp.js';
 import { createOverworld } from './render/overworld.js';
 import { REGION_ARENA } from './data/arenas.js';
@@ -29,7 +30,7 @@ import { renderWheel } from './ui/wheel.js';
 const DT = 1 / 60, SPEEDS = [1, 2, 3], KEY = 'vael.save', BAK = 'vael.save.bak';
 const stage = $('#stage'), bg = $('#bg');
 const sprites = {};
-let player = null, view = null, camp = null, screen = 'loading', battle = null, missionId = null, acc = 0, last = 0, ended = false, castKey = '', paused = false, slow = 0;
+let player = null, view = null, director = null, lastEvents = [], drama = {}, camp = null, screen = 'loading', battle = null, missionId = null, acc = 0, last = 0, ended = false, castKey = '', paused = false, slow = 0;
 
 // ---- the save
 let hasSave = false;
@@ -71,13 +72,11 @@ function currency() {
 // ---- screens
 const SECTIONS = ['title', 'premise', 'camp', 'map', 'prep', 'company', 'extras', 'keep', 'wheel'];
 function go(name, arg) {
-  // a new company has no hero until its first spin: every screen of the company waits for the wheel
-  if (['camp', 'map', 'prep', 'company', 'keep', 'extras'].includes(name) && !Object.keys(game.save.roster).length) { go('wheel', () => go(name, arg)); return; }
   // the company screen returns to where it was opened from (after a battle: the map)
   if (name === 'company' && screen !== 'company') game.from = screen === 'battle' ? 'map' : screen;
   screen = name; game.screen = name;
   for (const s of SECTIONS) $('#' + s).hidden = s !== name;
-  bg.hidden = !['title', 'premise', 'camp', 'keep'].includes(name);
+  bg.hidden = !['title', 'premise', 'camp', 'keep', 'prep'].includes(name);
   stage.hidden = name !== 'battle' && name !== 'scene'; $('#hud').hidden = name !== 'battle';
   $('#result').hidden = true; $('#join').hidden = true; $('#loading').hidden = true;
   if (name === 'title') renderTitle();
@@ -88,7 +87,7 @@ function go(name, arg) {
   if (name === 'extras') renderExtras(game, arg);
   if (name === 'keep') renderKeep(game);
   if (name === 'wheel') renderWheel(game, arg || (() => go('camp')));
-  if (!bg.hidden) { camp.setFocus(name === 'camp' ? 0.4 : name === 'keep' ? 0.27 : 0.64); game.refreshKeep(); camp.resize(); refreshCast(); }
+  if (!bg.hidden) { camp.setFocus(name === 'camp' ? 0.4 : name === 'keep' ? 0.27 : name === 'prep' ? 0.36 : 0.64); game.refreshKeep(); camp.resize(); refreshCast(); }
   game.audio.setScene(name === 'battle' ? 'battle' : 'camp');
   $('#tip').hidden = true;
   // a tip left by the last result comes first, on whatever screen follows it
@@ -119,8 +118,8 @@ function renderCamp() {
   $('#k-next').textContent = next ? `Next: ${next.name}` : 'Heroic missions are open in every region';
   const run = s.run, rc = $('#k-run');
   if (run) { const d = UNITS[run.leader], f = face(d.set, 30); f.style.setProperty('--c', `var(--${d.cls})`); rc.replaceChildren(f, h('span', null, `${d.name.split(' ')[0]} leads`, h('small', null, `${P.LEADERS[run.leader].name} · ${run.wins} win${run.wins === 1 ? '' : 's'} this run`))); }
-  else rc.replaceChildren(h('span', null, 'No leader yet', h('small', null, 'Spin the wheel to start a run')));
-  $('#k-go-label').textContent = run ? 'To the map' : 'Spin the wheel';
+  else rc.replaceChildren(h('span', null, 'No leader yet', h('small', null, P.unlocked(s).length > 1 ? 'Spin the wheel to start a run' : 'A run starts with the next fight')));
+  $('#k-go-label').textContent = run || P.unlocked(s).length < 2 ? 'To the map' : 'Spin the wheel';
   // the long goal: the six seals, one for each region's boss
   const taken = P.sealsTaken(s), nextR = next && next.region;
   $('#k-seal-count').textContent = `${taken.length} of ${REGIONS.length} seals`;
@@ -146,17 +145,18 @@ function renderCamp() {
 
 }
 
-// the campfire shows whoever has joined (the first three before a game starts)
+// the campfire shows whoever has joined (before a game starts, the first hero); on the team screen, the team
 async function refreshCast() {
   // the team first, then others, ten at most around one fire
-  const s = game.save, keys = screen === 'title' && !hasSave ? START_ROSTER
+  const s = game.save, keys = screen === 'title' && !hasSave ? START_ROSTER : screen === 'prep' ? s.team.map((t) => t.key)
     : [...s.team.map((t) => t.key), ...Object.keys(s.roster).filter((k) => !s.team.some((t) => t.key === k))].slice(0, 10);
-  const sets = keys.map((k) => UNITS[k].set), key = sets.join();
+  const sets = keys.map((k) => UNITS[k].set), key = keys.join();
   if (key === castKey) return; castKey = key;
   const need = sets.filter((s) => !sprites[s]);
   if (need.length) Object.assign(sprites, await loadSprites(need));
-  if (castKey === key) camp.setCast(sets.map((s) => sprites[s]));
+  if (castKey === key) camp.setCast(keys.map((k) => ({ set: sprites[UNITS[k].set], cls: UNITS[k].cls })));
 }
+game.refreshCast = () => { if (!bg.hidden) refreshCast(); };
 
 // the team walking the overworld: their sprites, loaded once
 async function teamSprites() {
@@ -186,7 +186,7 @@ function setsFor(team, foes) {
 }
 async function fight() {
   const s = game.save, m = missionById(missionId);
-  if (!s.run) { go('wheel', () => go('prep', missionId)); return; }
+  if (!s.run) { game.needRun(fight); return; }
   if (!s.team.length) { toast('Pick at least one hero'); return; }
   loading('Marching out…');
   const need = setsFor(s.team, m.foes).filter((x) => !sprites[x]);
@@ -206,11 +206,31 @@ async function fight() {
   setAuto(game.save.settings.auto !== false);
   game.audio.play('unsheathe_01');
   go('battle'); view.resize();
-  acc = 0; ended = false; paused = false; slow = 0; $('#paused').hidden = true; $('#cutin').replaceChildren();
-  banner(m.boss ? 'Boss battle' : 'Fight');
+  acc = 0; ended = false; paused = false; slow = 0; lastEvents = []; $('#paused').hidden = true; $('#cutin').replaceChildren(); $('#danger').hidden = true;
+  drama = { allies: battle.units.filter((u) => u.team === 'ally').length, foes: battle.units.filter((u) => u.team === 'foe').length, m };
+  // the start, filmed: a fight fought before gets the short version
+  director.start(battle, { quick: !!s.cleared[m.id] || !!game.heroic });
+  $('#hud').classList.add('intro');
+}
+// the director's cues: the faces of both sides, the company's turn, then FIGHT
+function onCue(c) {
+  const m = drama.m;
+  if (c === 'vs') {
+    const side = (team, cls) => h('div.side.' + cls, null, ...battle.units.filter((u) => u.team === team && !u.summoned).map((u) => { const f = face(u.def.set, 54); if (u.team === 'ally') f.style.setProperty('--c', `var(--${u.def.cls})`); return f; }));
+    $('#vs').replaceChildren(side('ally', 'a'), h('div.mid', null, h('b', null, 'VS'), h('span', null, m.name + (game.heroic ? ' · Heroic' : '')), battle.boss ? h('small', null, battle.boss.def.name) : null), side('foe', 'f'));
+    $('#vs').classList.remove('out'); $('#vs').hidden = false;
+    game.audio.play('whoosh', { gain: 0.8 }); game.audio.play('unsheathe_01', { gain: 0.6 });
+    if (battle.boss) { view.shake(4); game.audio.play('quake', { gain: 0.6 }); }
+  } else if (c === 'heroes') { game.audio.play('charge', { gain: 0.6 }); game.haptics.buzz('tap'); }
+  else if (c === 'fight') {
+    $('#vs').classList.add('out'); setTimeout(() => ($('#vs').hidden = true), 400);
+    banner(battle.boss ? 'Boss fight' : 'Fight!', 'fight');
+    view.spawn('shockwave', 0, 0, 0.05, { add: true, ground: true, scale: 3.2 }); view.flash(0.45, '255,236,200'); view.shake(6);
+    game.audio.play('horn', { gain: 0.9 }); game.audio.play('allout', { gain: 0.6 }); game.haptics.buzz('big');
+  } else if (c === 'go') $('#hud').classList.remove('intro');
 }
 // a word across the field at the start and the end
-function banner(text) { const b = $('#banner'); b.textContent = text; b.hidden = false; b.style.animation = 'none'; void b.offsetWidth; b.style.animation = ''; clearTimeout(banner.t); banner.t = setTimeout(() => (b.hidden = true), 1100); }
+function banner(text, cls = '') { const b = $('#banner'); b.textContent = text; b.className = cls; b.hidden = false; b.style.animation = 'none'; void b.offsetWidth; b.style.animation = ''; clearTimeout(banner.t); banner.t = setTimeout(() => (b.hidden = true), 1100); }
 // Auto: abilities fire on their own; off: the player taps a ready hero's card
 function setAuto(on) {
   game.save.settings.auto = on; $('#auto').setAttribute('aria-pressed', String(on)); $('#auto').textContent = on ? 'Auto' : 'Manual';
@@ -248,6 +268,15 @@ function updateHud() {
     if (u.energy < 100 || u.state === 'ko') c.classList.remove('armed');
   }
   if (battle.boss) $('#boss-hp').style.width = `${Math.max(0, battle.boss.hp / battle.boss.max) * 100}%`;
+  // the tug of war: each side's share of the health still standing; the edges pulse when the company is nearly down
+  const side = (team) => { let hp = 0, max = 0; for (const u of battle.units) if (u.team === team && !u.summoned) { hp += Math.max(0, u.hp); max += u.max; } return max ? hp / max : 0; };
+  const a = side('ally'), f = side('foe'), sum = Math.max(0.0001, a + f);
+  $('#tug .a').style.width = `${(a / sum) * 100}%`; $('#tug .f').style.width = `${(f / sum) * 100}%`;
+  $('#danger').hidden = !(a < 0.3 && a > 0 && !battle.result);
+  // the last of a side: called out once
+  const up = (team) => battle.units.filter((u) => u.team === team && !u.summoned && u.state !== 'ko').length;
+  if (!battle.result && !drama.last && drama.allies > 1 && up('ally') === 1) { drama.last = true; banner('Last stand'); }
+  else if (!battle.result && !drama.one && drama.foes > 1 && up('foe') === 1) { drama.one = true; banner('One left!'); }
   $('#clock').textContent = `${Math.max(0, Math.ceil(TIME_LIMIT - battle.t))} s` + (battle.t > FURY ? ` · Fury ×${fury(battle).toFixed(1)}` : '');
   $('#clock').classList.toggle('fury', battle.t > FURY);
 }
@@ -270,15 +299,21 @@ function frame(now) {
   const real = Math.min(0.05, (now - (last || now)) / 1000); last = now;
   if (screen === 'battle' && battle && paused) { /* the picture holds while paused */ }
   else if (screen === 'battle' && battle) {
-    // the last blow plays in slow motion
-    const speed = (game.save.speed || 1) * (slow > 0 ? 0.3 : 1); if (slow > 0) slow -= real;
+    // the director: the intro, the camera, and slow time for the big moments (the last blow most of all)
+    const d = director.update(real, lastEvents); for (const c of d.cues) onCue(c);
+    battle.camera = director.camera;
+    const speed = (game.save.speed || 1) * (slow > 0 ? 0.3 : 1) * d.scale; if (slow > 0) slow -= real;
     acc += real * speed;
     let events = [];
     while (acc >= DT) { step(battle, DT); events = events.concat(battle.events); acc -= DT; }
     for (const e of events) if (e.type === 'cast') { const u = battle.units.find((x) => x.id === e.u); if (u && u.def.ability && !u.summoned && (u.team === 'ally' || u.def.boss)) cutIn(u); }
     const end = events.find((e) => e.type === 'end');
-    if (!ended && end) { ended = true; slow = 1.1; banner(end.result === 'win' ? 'Victory' : 'Defeat'); setTimeout(finish, 1900); }
-    battle.events = events;
+    if (!ended && end) {
+      ended = true; slow = 1.4; banner(end.result === 'win' ? 'Victory' : 'Defeat', end.result === 'win' ? 'fight' : '');
+      const lastKo = events.filter((e) => e.type === 'ko').map((e) => battle.units.find((x) => x.id === e.u)).pop(); director.slowFinal(lastKo);
+      $('#danger').hidden = true; setTimeout(finish, 2200);
+    }
+    battle.events = events; lastEvents = events;
     game.audio.battleEvents(battle);
     view.draw(battle, real * speed);
     battle.events = [];
@@ -288,6 +323,8 @@ function frame(now) {
 }
 
 // ---- buttons
+// a tap during a fight's intro cuts straight to the fight
+stage.addEventListener('pointerdown', () => { if (screen === 'battle' && director && director.playing) director.skip(); });
 $('#t-continue').addEventListener('click', () => go('camp'));
 $('#t-new').addEventListener('click', () => {
   if (hasSave && $('#t-confirm').hidden) { $('#t-confirm').hidden = false; return; }
@@ -295,11 +332,15 @@ $('#t-new').addEventListener('click', () => {
 });
 $('#t-confirm-yes').addEventListener('click', newGame);
 $('#t-confirm-no').addEventListener('click', () => ($('#t-confirm').hidden = true));
-function newGame() { $('#t-confirm').hidden = true; game.save = P.newSave(); game.persist(); castKey = ''; playScene(OPENING).then(() => go('wheel', () => go('camp'))); }
+function newGame() { $('#t-confirm').hidden = true; game.save = P.newSave(); game.persist(); castKey = ''; playScene(OPENING).then(() => go('camp')); }
 $('#premise-go').addEventListener('click', () => go('camp'));
 $('#k-campaign').addEventListener('click', () => game.needRun(() => go('map')));
-// a run needs a leader: without one, the wheel comes first, then wherever the player was going
-game.needRun = (then) => (game.save.run ? then() : go('wheel', then));
+// a run needs a leader: the wheel picks one, but with one hero on it there is nothing to spin for
+game.needRun = (then) => {
+  if (game.save.run) return then();
+  if (P.unlocked(game.save).length < 2) { P.spin(game.save, Math.random); game.persist(); return then(); }
+  go('wheel', then);
+};
 $('#k-keep').addEventListener('click', () => go('keep'));
 $('#k-keep2').addEventListener('click', () => go('keep'));
 $('#s-back').addEventListener('click', () => go('camp'));
@@ -374,7 +415,7 @@ async function boot() {
   await loadHeroArt(); tick();
   fillIcons();
   setWorld(world);
-  view = createView(stage, fx, tiles, () => game.save.settings, world); camp = createCamp(bg, fx, world);
+  view = createView(stage, fx, tiles, () => game.save.settings, world); director = createDirector(view); camp = createCamp(bg, fx, world);
   game.ow = createOverworld($('#world'), { world, tiles, fx });
   player = createScenePlayer({ view, root: $('#scene'), audio: game.audio });
   // the app stores, inside the iOS and Android app (cordova plugins are ready after 'deviceready')
@@ -425,5 +466,5 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape') back(); })
 // for the tests: the game, the screens, and a way to run a battle to its end at once
 window.__v2 = { game, spin() { if (!game.save.run) P.spin(game.save, Math.random); game.persist(); }, get battle() { return battle; }, get screen() { return screen; }, go, fight, finish, missions: MISSIONS.map((m) => m.id),
   pickUpgrades() { const s = game.save; for (const k of Object.keys(s.roster)) s.roster[k].ups.forEach((u, t) => { if (!u && s.roster[k].level >= P.UPGRADE_LEVELS[t]) P.pickUpgrade(s, k, t, P.upgradeChoices(k, t)[0].id); }); game.persist(); },
-  skip() { if (!battle) return; while (!battle.result) step(battle, DT); if (!ended) { ended = true; setTimeout(finish, 200); } } };
+  skip() { if (!battle) return; if (director.playing) director.skip(); while (!battle.result) step(battle, DT); if (!ended) { ended = true; setTimeout(finish, 200); } } };
 boot().catch((e) => { loading('Vael could not start: ' + e.message, true); });

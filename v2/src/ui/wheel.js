@@ -1,5 +1,5 @@
 // The wheel: eight heroes round a wheel, the locked ones dark. A spin picks who leads the next run (only
-// unlocked heroes can come up: game/progress.js spin; a new company's first spin picks its one starting hero); the wheel turns, ticks past every wedge, slows,
+// unlocked heroes can come up: game/progress.js spin; the others stay hidden until met); the wheel turns, ticks past every wedge, slows,
 // lands on them, and the leader is revealed with their perk for the squad.
 import { UNITS, CLASSES } from '../data/units.js';
 import * as P from '../game/progress.js';
@@ -14,19 +14,19 @@ export function renderWheel(game, after) {
   spinning = false;
   wheel.style.transform = `rotate(${angle}deg)`;
   wheel.replaceChildren(...P.HEROES.map((k, i) => {
-    const d = UNITS[k], open = P.spinPool(s).includes(k);
+    const d = UNITS[k], open = !!s.roster[k];
     return h('div.wedge' + (open ? '' : '.locked'), { vars: { '--a': i * STEP + 'deg', '--c': `var(--${d.cls})` } },
-      h('div.wface', null, face(d.set, 64, !open), open ? null : h('span.wlock', null, icon('lock', 18))),
+      // a hero not met yet stays hidden: a question mark, no face
+      open ? h('div.wface', null, face(d.set, 64)) : h('div.wface.hidden', null, h('b', null, '?'), h('span.wlock', null, icon('lock', 18))),
       h('div.wname', null, open ? d.name.split(' ')[0] : '???'));
   }), ...P.HEROES.map((_, i) => h('i.peg', { vars: { '--a': i * STEP + STEP / 2 + 'deg' } })),   // the rim's pegs, between the wedges
   h('div.hub', null, h('span', null, 'VAEL')));
-  const lockedN = P.HEROES.length - P.spinPool(s).length, first = !Object.keys(s.roster).length;
+  const lockedN = P.HEROES.length - P.unlocked(s).length;
   $('#w-info').replaceChildren(...[
-    h('div.jtag', null, first ? 'A new company' : s.runs && s.runs.count ? `Run ${s.runs.count + 1}` : 'Your first run'),
-    h('h2.w-h', null, first ? 'Who starts the company?' : 'Who leads the company?'),
-    first ? h('p.w-p', null, 'The wheel picks your first hero: for now, the whole company. The other two join you on the road, and more are earned as you go.')
-      : h('p.w-p', null, 'The wheel picks the hero who leads this run. They always fight, fight harder, and give the whole squad their perk. The run lasts until a battle is lost or a Seal of Vael is taken.'),
-    first ? null : lockedN ? h('p.w-p.dim', null, `${lockedN} heroes are still locked: they join along the road and as the region bosses fall.`) : h('p.w-p.dim', null, 'Every hero is free.'),
+    h('div.jtag', null, s.runs && s.runs.count ? `Run ${s.runs.count + 1}` : 'Your first run'),
+    h('h2.w-h', null, 'Who leads the company?'),
+    h('p.w-p', null, 'The wheel picks the hero who leads this run. They always fight, fight harder, and give the whole squad their perk. The run lasts until a battle is lost or a Seal of Vael is taken.'),
+    lockedN ? h('p.w-p.dim', null, `${lockedN} places on the wheel are still hidden. Find them on the road.`) : h('p.w-p.dim', null, 'Every hero is free.'),
     h('button.btn.big.primary', { id: 'w-spin', type: 'button', onclick: () => doSpin(game, after) }, icon('play', 18), 'Spin the wheel')].filter(Boolean));
   $('#w-burst').replaceChildren();
 }
@@ -65,7 +65,7 @@ function land(game, leader, after) {
   }
   setTimeout(() => {
     $('#w-info').replaceChildren(
-      h('div.jtag', null, Object.keys(game.save.roster).length === 1 ? 'Your first hero' : 'Leader of this run'),
+      h('div.jtag', null, 'Leader of this run'),
       h('div.w-art', { vars: { '--c': `var(--${d.cls})` } }, heroArt(d.set, artPx() + 1)),
       h('div.jname', null, d.name), h('div.jtitle', null, d.title),
       h('div.cls', { vars: { '--c': `var(--${d.cls})` } }, `${CLASSES[d.cls].name} · leads with +${Math.round(P.LEAD_EDGE.hp * 100)}% health and attack`),

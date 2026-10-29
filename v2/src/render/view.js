@@ -273,8 +273,7 @@ export function createView(canvas, fxAtlas, tiles, settings = () => ({ shake: tr
     onEvents(b);
     // the camera: fitted to the field, unless a scene directs it
     if (b.camera) { cam.x = b.camera.x; cam.y = b.camera.y; cam.zoom = b.camera.zoom; }
-    // fitted to the field's width; on a squarer screen (a tablet) never so far out that the painted ground ends
-    else { cam.x = 0; cam.y = arena ? -0.7 : 0.2; cam.zoom = Math.max(0.74, Math.min(1.08, buf.width / ((b.field.w + 1.2) * PPM))); }
+    else Object.assign(cam, fit(b));
     const shx = cam.shake > 0.05 ? (Math.random() - 0.5) * cam.shake : 0, shy = cam.shake > 0.05 ? (Math.random() - 0.5) * cam.shake : 0;
     cam.shake *= Math.exp(-dt * 9); if (!settings().shake) cam.shake = 0;
     ctx.setTransform(1, 0, 0, 1, Math.round(shx), Math.round(shy));
@@ -301,9 +300,14 @@ export function createView(canvas, fxAtlas, tiles, settings = () => ({ shake: tr
     out.imageSmoothingEnabled = false;
     out.drawImage(buf, 0, 0, canvas.width, canvas.height);
   }
+  // the fights' own camera: fitted to the field's width; on a squarer screen (a tablet) never so far out
+  // that the painted ground ends
+  function fit(b) { return { x: 0, y: b.arena && ARENAS[b.arena] ? -0.7 : 0.2, zoom: Math.max(0.74, Math.min(1.08, buf.width / ((b.field.w + 1.2) * PPM))) }; }
+  // how far the camera may wander from the middle at a zoom before the painted ground ends (metres)
+  const room = (b, zoom) => Math.max(0, b.field.w / 2 + 6.5 - buf.width / 2 / (PPM * zoom));
   // where a point of the field is on the page (CSS pixels), for text placed over the picture
   function project(x, y, z = 0) { const r = canvas.getBoundingClientRect(), p = P(x, y, z), k = r.height / buf.height; return { x: r.left + p.x * k, y: r.top + p.y * k }; }
-  return { resize, draw, project, spawn, setSprites(s) { sprites = s; },
+  return { resize, draw, project, spawn, fit, room, setSprites(s) { sprites = s; },
     // for filmed scenes: a flash of light, a shake, a colour over everything
     flash(a = 0.5, col = '255,240,220') { flashA = a; flashCol = col; }, shake(n = 3) { cam.shake = Math.max(cam.shake, n); }, mood(m) { mood = m; },
     reset() { fx = []; floaters = []; banners = []; anim.clear(); flashA = 0; mood = null; } };
