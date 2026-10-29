@@ -77,7 +77,7 @@ function renderDetail(game) {
     body.append(h('div.ability', null, h('b', null, d.ability.name + (ab && ab.path ? ' · ' + ab.path : '')), ' ', d.ability.desc));
     // the hero's paths: two choices that change the special (level 10, then 25)
     P.PATH_LEVELS.forEach((lv, tier) => {
-      const picked = m.paths[tier], open = m.level >= lv;
+      const picked = (m.paths || [])[tier], open = m.level >= lv;
       const row = h('div.uprow.pathrow' + (open ? '' : '.locked'), null, h('span.uplv', null, tier ? 'Path II' : 'Path I'));
       for (const c of P.pathChoices(k, d.cls, tier)) {
         const on = picked === c.id;

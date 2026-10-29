@@ -41,7 +41,7 @@ const browser = await chromium.launch();
 for (const d of DEVICES) {
   const out = path.join(outRoot, d.name); fs.mkdirSync(out, { recursive: true });
   const page = await browser.newPage({ viewport: { width: d.w, height: d.h }, deviceScaleFactor: d.dpr });
-  const errs = []; page.on('pageerror', (e) => errs.push(e.message));
+  const errs = []; page.on('pageerror', (e) => errs.push(e.stack)); page.on('console', (m) => { if (m.text().startsWith('ERR')) console.log(m.text()); });
   await page.goto('http://localhost:8817/'); await page.waitForSelector('#title', { state: 'visible' });
   const shot = (n) => page.screenshot({ path: path.join(out, n + '.jpg'), type: 'jpeg', quality: 92 });
   await showcase(page);
@@ -53,7 +53,7 @@ for (const d of DEVICES) {
   await page.evaluate(() => { const g = window.__v2.game; g.save.run = null; window.__v2.go('wheel', () => {}); }); await page.waitForTimeout(600);
   await page.click('#w-spin'); await page.waitForTimeout(1900); await shot('03-wheel');
   await page.evaluate(() => { window.__v2.game.save.run = JSON.parse(JSON.stringify(window.__showRun)); });
-  await page.evaluate(() => window.__v2.go('camp')); await page.waitForTimeout(6000); await shot('04-camp');
+  await page.evaluate(() => { try { window.__v2.go('camp'); } catch (e) { console.log('ERR', e.stack); throw e; } }); await page.waitForTimeout(6000); await shot('04-camp');
   await page.evaluate(() => window.__v2.go('extras', 'legacy')); await page.waitForTimeout(1200); await shot('05-legacy');
   await page.evaluate(() => window.__v2.go('exp')); await page.waitForTimeout(1500); await shot('06-road');
   await page.evaluate(() => { const b = document.querySelector('.enode.open.fight') || document.querySelector('.enode.open'); b.click(); }); await page.waitForTimeout(900); await shot('07-team');

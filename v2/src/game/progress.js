@@ -324,11 +324,13 @@ export function pickUpgrade(s, key, tier, id) {
 export { PATH_LEVELS, pathChoices };
 export const pathsOf = (s, key) => pathChoices(key, UNITS[key].cls, 0).concat(pathChoices(key, UNITS[key].cls, 1));
 export function pickPath(s, key, tier, id) {
-  const m = s.roster[key]; if (!m || m.level < PATH_LEVELS[tier] || m.paths[tier]) return false;
+  const m = s.roster[key]; if (!m || m.level < PATH_LEVELS[tier]) return false;
+  if (!Array.isArray(m.paths)) m.paths = [null, null];
+  if (m.paths[tier]) return false;
   if (!pathChoices(key, UNITS[key].cls, tier).some((c) => c.id === id)) return false;
   m.paths[tier] = id; return true;
 }
-export const pendingPath = (s, key) => PATH_LEVELS.findIndex((lv, t) => s.roster[key].level >= lv && !s.roster[key].paths[t]);
+export const pendingPath = (s, key) => PATH_LEVELS.findIndex((lv, t) => s.roster[key].level >= lv && !(s.roster[key].paths || [])[t]);
 export const pendingUpgrade = (s, key) => UPGRADE_LEVELS.findIndex((lv, t) => s.roster[key].level >= lv && !s.roster[key].ups[t]);
 
 export { CLASSES, MISSIONS, HEROES, UNLOCKS, LEADERS, BOONS };

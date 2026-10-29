@@ -91,7 +91,7 @@ for (const [name, vp] of [['phone', { width: 844, height: 390 }], ['desktop', { 
   // the company: an upgrade at level 4, gear, training
   await page.evaluate(() => { const s = window.__v2.game.save; s.roster[Object.keys(s.roster)[0]].level = 4; s.gold = 2000; window.__v2.game.persist(); });
   await page.click('#m-company'); await visible(page, '#company'); await page.waitForTimeout(200); await shot('10-company-stats');
-  await page.click('.upg'); await page.waitForTimeout(200); await shot('11-company-upgraded');
+  await page.click('.uprow:not(.pathrow) .upg'); await page.waitForTimeout(200); await shot('11-company-upgraded');
   await page.click('.tab:nth-child(2)'); await page.waitForTimeout(100);
   const slotWithItem = await page.evaluate(() => { const s = window.__v2.game.save; return s.inv.length ? ({ weapon: 1, armor: 2, charm: 3 })[{ blade: 'weapon', edge: 'weapon', maul: 'weapon', focus: 'weapon', mail: 'armor', leathers: 'armor', robe: 'armor' }[s.inv[0].base] || 'charm'] : 0; });
   if (slotWithItem) { await page.click(`.gslot:nth-child(${slotWithItem})`); await page.click('.pitem .btn.gold'); }
