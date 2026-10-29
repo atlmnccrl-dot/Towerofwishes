@@ -58,6 +58,13 @@ export const baseSlot = (it) => BASES[it.base].slot;
 
 let toastT = 0;
 export function toast(text) {
+  // over the battle result the top of the screen is its title: the news goes into the result card instead
+  const box = $('#r-box'), res = $('#result');
+  if (res && !res.hidden && box) {
+    let row = box.querySelector('.rnewsrow');
+    if (!row) row = box.insertBefore(h('div.rnewsrow', { role: 'status' }), box.querySelector('.ractions'));
+    row.append(h('span.rnews', null, text)); return;
+  }
   const el = $('#toast'); el.textContent = text; el.hidden = false; el.classList.remove('out');
   clearTimeout(toastT); toastT = setTimeout(() => { el.classList.add('out'); toastT = setTimeout(() => (el.hidden = true), 300); }, 1800);
 }

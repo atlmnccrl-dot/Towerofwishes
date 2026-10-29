@@ -286,8 +286,8 @@ function finish() {
   if (screen !== 'battle' || !battle) return;
   const rw = P.grantRewards(game.save, missionId, battle, Math.random, !!game.heroic);
   game.haptics.buzz(rw.win ? 'big' : 'hit');
-  game.after();
   renderRewards(game, battle, rw, missionId);
+  game.after();   // after the result is up, so a feat's news lands in its card
   if (rw.xp.some((x) => x.to > x.from)) game.audio.play('level_up');
   else if (rw.win) game.audio.play('coin_01');
   // the tips a result can bring, shown on the next screen so they never cover the result

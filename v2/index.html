@@ -590,6 +590,8 @@
 
   #toast { position: fixed; left: 50%; top: calc(var(--top) + 3.2rem); transform: translateX(-50%); max-width: calc(100% - 2 * var(--gut-r)); text-align: center; padding: 0.55rem 1rem; border-radius: 99px; font: 600 0.9rem var(--ui); transition: opacity 0.3s; z-index: 8; pointer-events: none; border-color: rgba(255, 207, 92, 0.4); }
   #toast.out { opacity: 0; }
+  .rnewsrow { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.35rem; }
+  .rnews { font: 700 0.78rem/1.2 var(--ui); color: var(--gold); padding: 0.22rem 0.7rem; border-radius: 99px; border: 1px solid rgba(255, 207, 92, 0.4); background: rgba(255, 207, 92, 0.08); animation: pop 0.4s ease both; }
   #loading { position: fixed; inset: 0; display: grid; place-items: center; background: radial-gradient(60% 60% at 50% 45%, #1d2233, var(--bg)); z-index: 9; }
   .ld { display: grid; gap: 0.9rem; justify-items: center; }
   .ld .logo { font-size: 3.4rem; }
