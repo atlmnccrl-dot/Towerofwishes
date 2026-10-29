@@ -15,7 +15,7 @@ const fake = (result, fell = 0, s) => ({ result, units: s.team.map((t, i) => ({ 
 let s = P.newSave();
 assert.deepEqual(Object.keys(s.roster), ['corvin']); assert.deepEqual(START_ROSTER, ['corvin']); assert.equal(s.team.length, 1);
 assert.deepEqual(P.unlocked(s), ['corvin']); assert.equal(P.spin(s, r), 'corvin');
-assert.ok(isOpen(s.cleared, MISSIONS[0]) && !isOpen(s.cleared, MISSIONS[1]));
+assert.ok(isOpen(s.cleared, MISSIONS[0]) && isOpen(s.cleared, MISSIONS[1]) && !isOpen(s.cleared, MISSIONS[10]))   // the first region is open; the next waits for its Seal;
 for (const m of MISSIONS) for (const [k] of m.foes) assert.ok(k in (await import('../src/data/units.js')).ENEMIES, m.id + ' foe ' + k);
 
 // a loss changes nothing

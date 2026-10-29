@@ -386,7 +386,7 @@ function finish() {
   const rw = P.grantRewards(game.save, missionId, battle, Math.random, !!game.heroic);
   // on the road: the place is passed, the wounds carried on; an elite or an ambush pays extra
   if (node && rw.win) {
-    if (node.type !== 'event') X.enter(s0, node.id);
+    if (node.type !== 'event' && s0.run) X.enter(s0, node.id);   // (a boss's Seal has already ended the run)
     if (s0.run && s0.run.exp) { X.complete(s0, node.id); X.afterFight(s0, battle); }
     if (node.type === 'elite' || node.type === 'event') rw.loot.push(X.eliteSpoils(s0, node, Math.random));
     rw.exp = true;

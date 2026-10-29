@@ -199,10 +199,12 @@ export function regionOpen(cleared, rid) {
   const prev = missionsIn(REGIONS[i - 1].id);
   return !!cleared[prev[prev.length - 1].id];
 }
-export const regionCleared = (cleared, rid) => missionsIn(rid).every((m) => cleared[m.id]);
-// a mission is open once the one before it in its region is cleared
-export function isOpen(cleared, m) {
-  const i = MISSIONS.indexOf(m);
-  return i === 0 || !!cleared[MISSIONS[i - 1].id];
+// a region is won with its Seal (its last mission); an expedition need not pass every place on the way
+export const regionCleared = (cleared, rid) => { const ms = missionsIn(rid); return !!cleared[ms[ms.length - 1].id]; };
+// every mission of an open region can be looked at (and begun from, or replayed once won)
+export function isOpen(cleared, m) { return regionOpen(cleared, m.region); }
+// the way on: the first mission not yet won in the first region whose Seal is still out there
+export function nextMission(cleared) {
+  const R = REGIONS.find((r) => !regionCleared(cleared, r.id));
+  return R ? missionsIn(R.id).find((m) => !cleared[m.id]) : null;
 }
-export function nextMission(cleared) { return MISSIONS.find((m) => !cleared[m.id]) || null; }
