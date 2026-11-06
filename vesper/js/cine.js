@@ -78,12 +78,18 @@
   }
   // Big glitchy title: red, a dark drop, sliced and shifted rows on the punch-in.
   function title(ctx, text, x, y, size, k, t) {
-    const pad = 4; ctx.font = R.font(size); const w = Math.ceil(ctx.measureText(text).width) + pad * 2, h = Math.ceil(size * 1.4);
-    const c = title.c || (title.c = document.createElement('canvas')); c.width = w; c.height = h;
-    const g = c.getContext('2d'); g.font = R.font(size); g.textBaseline = 'middle'; g.textAlign = 'left';
-    g.fillStyle = '#3a000a'; g.fillText(text, pad + 2, h / 2 + 2);
-    g.fillStyle = RED; g.fillText(text, pad, h / 2);
-    g.globalCompositeOperation = 'source-atop'; g.fillStyle = 'rgba(255,255,255,0.85)'; g.fillRect(0, h / 2 - size * 0.42, w, 1);
+    const pad = 4, key = text + '|' + size;
+    let c = title.cache && title.cache[key];
+    if (!c) {
+      ctx.font = R.font(size); const w = Math.ceil(ctx.measureText(text).width) + pad * 2, h = Math.ceil(size * 1.4);
+      c = document.createElement('canvas'); c.width = w; c.height = h;
+      const g = c.getContext('2d'); g.font = R.font(size); g.textBaseline = 'middle'; g.textAlign = 'left';
+      g.fillStyle = '#3a000a'; g.fillText(text, pad + 2, h / 2 + 2);
+      g.fillStyle = RED; g.fillText(text, pad, h / 2);
+      g.globalCompositeOperation = 'source-atop'; g.fillStyle = 'rgba(255,255,255,0.85)'; g.fillRect(0, h / 2 - size * 0.42, w, 1);
+      (title.cache = title.cache || {})[key] = c;
+    }
+    const w = c.width, h = c.height;
     const punch = k < 0.12 ? 1 + (0.12 - k) * 3 : 1, sh = k < 0.5 ? (Math.random() - 0.5) * 3 : 0;
     const dw = Math.round(w * punch), dh = Math.round(h * punch), dx = Math.round(x - dw / 2 + sh), dy = Math.round(y - dh / 2);
     for (let row = 0; row < dh; row += 3) {
@@ -152,7 +158,7 @@
     // Rain in front.
     ctx.fillStyle = 'rgba(190,210,240,0.55)';
     for (let i = 0; i < 90; i++) { const x = hash(i, 4) * W(), y = ((hash(i, 5) * H() + T * (420 + hash(i, 6) * 200)) % (H() + 20)) - 10; ctx.fillRect(Math.round(x - (y * 0.08)), Math.round(y), 1, 6); }
-    title(ctx, 'LAST DITCH EFFORT', W() / 2, H() * 0.47, 30, k, T);
+    title(ctx, 'LAST DITCH EFFORT', W() / 2, H() * 0.47, Math.min(30, Math.round(W() / 11)), k, T);
     if (k > 0.2) R.text(ctx, 'VESPER  ·  MOON ART', W() / 2, H() * 0.47 + 26, 7, '#e8c8d0', 'center');
   };
   // The blade stands in the ground under a vast pale moon; the ground rings out.
@@ -225,7 +231,7 @@
   B.moon = function (ctx, s, c, k, T, d) {
     const g = ctx.createLinearGradient(0, 0, 0, H()); g.addColorStop(0, '#07060c'); g.addColorStop(1, '#141020');
     ctx.fillStyle = g; ctx.fillRect(0, 0, W(), H());
-    const mx = Math.round(W() * 0.6), my = Math.round(H() * 0.4), mr = 62;
+    const mx = Math.round(W() * 0.6), my = Math.round(H() * 0.42), mr = Math.round(H() * 0.3);
     R.moon(ctx, mx, my, mr, '#ff3a52', 'rgba(255,40,70,0.4)');
     // The ground and the foes in silhouette.
     ctx.fillStyle = '#05040a'; ctx.fillRect(0, H() * 0.86, W(), H() * 0.14);
@@ -262,7 +268,7 @@
     if (tg) {
       const total = Math.min(tg.hp, VS.artDamage(s, c.kind, tg)), h0 = tg.hp / tg.maxHp, h1 = Math.max(0, (tg.hp - total) / tg.maxHp);
       const frac = h0 - (h0 - h1) * hitsDone / 6;
-      const bw = 170, bx = Math.round(W() / 2 - bw / 2 + 50), by = 18;
+      const bw = 170, bx = Math.round(W() / 2 - bw / 2 + 50), by = 23;
       R.text(ctx, tg.def.name.toUpperCase(), bx, by - 3, 6, '#e8d8dc');
       ctx.fillStyle = '#000000'; ctx.fillRect(bx, by, bw, 3); ctx.fillStyle = '#ffffff'; ctx.fillRect(bx, by, bw, 1);
       ctx.fillStyle = RED; ctx.fillRect(bx, by + 1, Math.round(bw * frac), 2);
@@ -296,7 +302,7 @@
     const k = Math.min(1, t / 0.25), out = t > 1.5 ? Math.min(1, (t - 1.5) / 0.35) : 0;
     ctx.save(); ctx.globalAlpha = 1 - out;
     ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(0, 0, W(), H());
-    const y = H() * 0.36, off = (1 - ease(k)) * W();
+    const y = H() * 0.32, off = (1 - ease(k)) * W();
     ctx.fillStyle = INK; ctx.beginPath(); ctx.moveTo(-10 + off, y); ctx.lineTo(W() + 10 + off, y - 14); ctx.lineTo(W() + 10 + off, y + 44); ctx.lineTo(-10 + off, y + 58); ctx.closePath(); ctx.fill();
     ctx.fillStyle = RED; ctx.fillRect(0, Math.round(y + 50), W(), 1);
     keys.forEach((key, i) => {

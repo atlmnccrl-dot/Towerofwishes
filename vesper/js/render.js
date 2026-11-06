@@ -2,33 +2,56 @@
 // moon, parallax silhouettes, a tiled floor band), the fighters, effects, floaters and the HUD.
 (function () {
   const VS = window.VS, D = VS.DATA, A = VS.A;
-  const R = VS.R = { W: 384, H: 216, FLOOR: 150, cam: 0, shake: 0, t: 0, touch: false, fx: [], floaters: [], flash: 0, flashCol: '255,255,255' };
+  const R = VS.R = { W: 320, H: 180, FLOOR: 118, cam: 0, shake: 0, t: 0, touch: false, fx: [], floaters: [], flash: 0, flashCol: '255,255,255' };
   const FONT = 'Adventurer, "Courier New", monospace';
   R.font = (size) => `${size}px ${FONT}`;
 
+  // The visible canvas is the pixel buffer itself, scaled up by CSS with pixelated sampling: the
+  // graphics card does the enlargement, nothing full-resolution is painted each frame.
   R.init = function (canvas) {
-    R.canvas = canvas; R.buf = document.createElement('canvas'); R.buf.width = R.W; R.buf.height = R.H;
-    R.ctx = R.buf.getContext('2d'); R.ctx.imageSmoothingEnabled = false; R.out = canvas.getContext('2d');
+    R.canvas = R.buf = canvas; R.ctx = canvas.getContext('2d'); R.ctx.imageSmoothingEnabled = false;
     R.resize(); window.addEventListener('resize', R.resize);
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', R.resize);
   };
   R.resize = function () {
-    const c = R.canvas, dpr = Math.min(2, window.devicePixelRatio || 1), w = window.innerWidth, h = window.innerHeight;
-    c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); c.style.width = w + 'px'; c.style.height = h + 'px';
-    const k = Math.min(c.width / R.W, c.height / R.H); R.scale = k; R.dpr = dpr;
-    R.offX = Math.round((c.width - R.W * k) / 2); R.offY = Math.round((c.height - R.H * k) / 2);
+    const w = window.innerWidth, h = window.innerHeight;
+    // The picture keeps its height (180 px) and widens to the screen's shape, so a phone has no side bars.
+    const W = Math.max(300, Math.min(420, Math.round(R.H * w / Math.max(1, h))));
+    if (W !== R.W || R.canvas.width !== W) { R.W = W; R.canvas.width = W; R.canvas.height = R.H; R.ctx.imageSmoothingEnabled = false; }
+    const k = Math.min(w / R.W, h / R.H); R.scale = k;
+    R.offX = Math.round((w - R.W * k) / 2); R.offY = Math.round((h - R.H * k) / 2);
+    const st = R.canvas.style; st.width = Math.round(R.W * k) + 'px'; st.height = Math.round(R.H * k) + 'px'; st.left = R.offX + 'px'; st.top = R.offY + 'px';
   };
   R.present = function () {
-    const o = R.out; o.imageSmoothingEnabled = false; o.fillStyle = '#000'; o.fillRect(0, 0, R.canvas.width, R.canvas.height);
-    const sx = R.shake > 0 ? Math.round((Math.random() - 0.5) * R.shake * R.scale) : 0, sy = R.shake > 0 ? Math.round((Math.random() - 0.5) * R.shake * R.scale) : 0;
-    o.drawImage(R.buf, R.offX + sx, R.offY + sy, Math.round(R.W * R.scale), Math.round(R.H * R.scale));
+    const k = R.scale, st = R.canvas.style;
+    if (R.shake > 0.3) { const sx = Math.round((Math.random() - 0.5) * R.shake * k), sy = Math.round((Math.random() - 0.5) * R.shake * k); st.transform = `translate(${sx}px,${sy}px)`; R.shook = true; }
+    else if (R.shook) { st.transform = ''; R.shook = false; }
   };
-  R.toBuf = (cx, cy) => ({ x: (cx * R.dpr - R.offX) / R.scale, y: (cy * R.dpr - R.offY) / R.scale });
+  R.toBuf = (cx, cy) => ({ x: (cx - R.offX) / R.scale, y: (cy - R.offY) / R.scale });
 
   // ---- text -----------------------------------------------------------------------------------
+  // Text is rendered once per string, size and colour into a small canvas and reused (filling text
+  // with a custom font every frame was one of the most expensive things on a phone).
+  const tcache = new Map();
   R.text = function (ctx, s, x, y, size, col, align, o) {
-    o = o || {}; ctx.font = R.font(size); ctx.textAlign = align || 'left'; ctx.textBaseline = o.base || 'alphabetic';
-    if (o.shadow !== false) { ctx.fillStyle = o.shadowCol || 'rgba(0,0,0,0.9)'; ctx.fillText(s, x + 1, y + 1); if (o.outline) { ctx.fillText(s, x - 1, y); ctx.fillText(s, x, y - 1); ctx.fillText(s, x - 1, y + 1); ctx.fillText(s, x + 1, y - 1); } }
-    ctx.fillStyle = col || '#fff'; ctx.fillText(s, x, y);
+    o = o || {}; s = String(s);
+    const shadow = o.shadow !== false, key = s + '|' + size + '|' + (col || '#fff') + '|' + (o.outline ? 1 : 0) + (shadow ? 1 : 0) + '|' + (o.shadowCol || '');
+    let c = tcache.get(key);
+    if (!c) {
+      const m = R.ctx; m.font = R.font(size);
+      const tw = Math.ceil(m.measureText(s).width), pad = 2, h = Math.ceil(size * 1.5) + pad * 2;
+      c = document.createElement('canvas'); c.width = Math.max(1, tw + pad * 2 + 1); c.height = h;
+      const g = c.getContext('2d'); g.font = R.font(size); g.textBaseline = 'alphabetic'; g.textAlign = 'left';
+      const bx = pad, by = pad + Math.ceil(size * 1.1);
+      if (shadow) { g.fillStyle = o.shadowCol || 'rgba(0,0,0,0.9)'; g.fillText(s, bx + 1, by + 1); if (o.outline) { g.fillText(s, bx - 1, by); g.fillText(s, bx, by - 1); g.fillText(s, bx - 1, by + 1); g.fillText(s, bx + 1, by - 1); } }
+      g.fillStyle = col || '#fff'; g.fillText(s, bx, by);
+      c.tw = tw; c.bx = bx; c.by = by;
+      if (tcache.size > 800) { let n = 0; for (const k of tcache.keys()) { tcache.delete(k); if (++n >= 200) break; } }
+      tcache.set(key, c);
+    }
+    const ax = align === 'center' ? c.tw / 2 : align === 'right' ? c.tw : 0;
+    const ay = o.base === 'middle' ? Math.round(size * 0.35) : 0;
+    ctx.drawImage(c, Math.round(x - ax - c.bx), Math.round(y + ay - c.by));
   };
   R.wrap = function (ctx, s, size, maxW) {
     ctx.font = R.font(size); const out = []; let cur = '';
@@ -73,25 +96,34 @@
   }
   function floorTex(st) {
     const k = 'floor' + st.id; if (layerCache[k]) return layerCache[k];
-    const w = D.ARENA.w + R.W, h = R.H - R.FLOOR + 8, c = document.createElement('canvas'); c.width = w; c.height = h;
+    const w = D.ARENA.w + 440, h = R.H - R.FLOOR + 8, c = document.createElement('canvas'); c.width = w; c.height = h;
     const g = c.getContext('2d'); g.imageSmoothingEnabled = false; const t = st.look.ground;
     for (let y = 0; y < h; y += 16) for (let x = 0; x < w; x += 16) {
-      const r = hash(x, y + 999); A.tile(g, r < 0.6 ? t[0] : r < 0.85 ? t[1] : t[2], x, y, 16, 16);
+      const r = hash(x >> 4, (y >> 4) + 999); A.tile(g, r < 0.88 ? t[0] : r < 0.97 ? t[1] : t[2], x, y, 16, 16);
     }
+    // Depth: dark at the back wall, lighter where the fighters stand, dark again at the front edge.
     const sh = g.createLinearGradient(0, 0, 0, h);
-    sh.addColorStop(0, 'rgba(0,0,0,0.78)'); sh.addColorStop(0.35, 'rgba(0,0,0,0.45)'); sh.addColorStop(1, 'rgba(0,0,0,0.6)');
+    sh.addColorStop(0, 'rgba(0,0,0,0.85)'); sh.addColorStop(0.3, 'rgba(0,0,0,0.5)'); sh.addColorStop(0.75, 'rgba(0,0,0,0.42)'); sh.addColorStop(1, 'rgba(0,0,0,0.75)');
     g.fillStyle = sh; g.fillRect(0, 0, w, h);
-    g.fillStyle = st.look.fog; g.globalAlpha = 0.35; g.fillRect(0, 0, w, h); g.globalAlpha = 1;
+    g.fillStyle = st.look.fog; g.globalAlpha = 0.4; g.fillRect(0, 0, w, h); g.globalAlpha = 1;
+    // A wash of moonlight down the middle of the floor.
+    const ml = g.createLinearGradient(0, 0, 0, h); ml.addColorStop(0, 'rgba(255,60,80,0)'); ml.addColorStop(0.55, 'rgba(255,60,80,0.07)'); ml.addColorStop(1, 'rgba(255,60,80,0)');
+    g.fillStyle = ml; g.fillRect(0, 0, w, h);
     return (layerCache[k] = c);
   }
   R.drawArena = function (ctx, st, cam, moonPull) {
     const L = st.look, W = R.W, H = R.H, F = R.FLOOR;
-    const sky = ctx.createLinearGradient(0, 0, 0, F);
-    sky.addColorStop(0, L.sky[0]); sky.addColorStop(0.65, L.sky[1]); sky.addColorStop(1, L.sky[2]);
-    ctx.fillStyle = sky; ctx.fillRect(0, 0, W, F);
-    // The moon: larger and redder every hour.
-    const mr = Math.round(L.moon * (1 + (moonPull || 0) * 0.15));
-    R.moon(ctx, Math.round(W * 0.7 - cam * 0.04), Math.round(26 + L.moon * 0.6), mr, L.moonCol);
+    // The sky and the moon (larger and redder every hour), built once per stage and screen width.
+    const sk = 'sky' + st.id + W;
+    let skyC = layerCache[sk];
+    if (!skyC) {
+      skyC = layerCache[sk] = document.createElement('canvas'); skyC.width = W + 60; skyC.height = F;
+      const g = skyC.getContext('2d'), sky = g.createLinearGradient(0, 0, 0, F);
+      sky.addColorStop(0, L.sky[0]); sky.addColorStop(0.65, L.sky[1]); sky.addColorStop(1, L.sky[2]);
+      g.fillStyle = sky; g.fillRect(0, 0, skyC.width, F);
+      R.moon(g, Math.round(W * 0.7 + 30), Math.round(22 + L.moon * 0.5), L.moon, L.moonCol);
+    }
+    ctx.drawImage(skyC, -30 - Math.round(Math.min(30, cam * 0.04)), 0);
     // Ridges, far to near.
     const far = mix(L.sky[1], '#000000', 0.35), mid = mix(L.sky[1], '#000000', 0.6);
     const r1 = ridge(st.id.length, 1, 900, 70, far, 3), r2 = ridge(st.id.length, 2, 900, 60, mid, 5);
@@ -232,9 +264,13 @@
     if (s.slowT > 0) { ctx.fillStyle = 'rgba(120,220,255,0.10)'; ctx.fillRect(0, 0, R.W, R.H); }
     // Low health: a red pulse at the edges.
     if (h.alive && h.hp / h.maxHp <= s.mods.ldx) {
-      const g = ctx.createRadialGradient(R.W / 2, R.H / 2, R.H * 0.35, R.W / 2, R.H / 2, R.W * 0.6);
-      g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, `rgba(200,10,30,${0.25 + 0.12 * Math.sin(R.t * 5)})`);
-      ctx.fillStyle = g; ctx.fillRect(0, 0, R.W, R.H);
+      const vk = 'vig' + R.W;
+      if (!layerCache[vk]) {
+        const c = layerCache[vk] = document.createElement('canvas'); c.width = R.W; c.height = R.H; const g2 = c.getContext('2d');
+        const g = g2.createRadialGradient(R.W / 2, R.H / 2, R.H * 0.35, R.W / 2, R.H / 2, R.W * 0.6);
+        g.addColorStop(0, 'rgba(200,10,30,0)'); g.addColorStop(1, 'rgba(200,10,30,1)'); g2.fillStyle = g; g2.fillRect(0, 0, R.W, R.H);
+      }
+      ctx.save(); ctx.globalAlpha = 0.3 + 0.12 * Math.sin(R.t * 5); ctx.drawImage(layerCache[vk], 0, 0); ctx.restore();
     }
     if (R.flash > 0) { ctx.fillStyle = `rgba(${R.flashCol},${R.flash * 0.5})`; ctx.fillRect(0, 0, R.W, R.H); R.flash = Math.max(0, R.flash - dt * 2.5); }
     R.shake = Math.max(0, R.shake - dt * 18);
@@ -281,10 +317,10 @@
   // Touch controls: a stick bottom left; ATTACK, DODGE, PARRY and the MOON bottom right.
   R.touchLayout = function () {
     const W = R.W, H = R.H;
-    return { stick: { x: 44, y: H - 44, r: 26 },
-      buttons: [{ id: 'atk', x: W - 40, y: H - 38, r: 18, label: 'ATK' }, { id: 'dodge', x: W - 80, y: H - 22, r: 13, label: 'DASH' },
-        { id: 'parry', x: W - 72, y: H - 62, r: 13, label: 'PARRY' }, { id: 'art', x: W - 34, y: H - 84, r: 13, label: 'MOON' },
-        { id: 'pause', x: W - 14, y: 26, r: 8, label: 'II' }] };
+    return { stick: { x: 42, y: H - 42, r: 26 },
+      buttons: [{ id: 'atk', x: W - 36, y: H - 34, r: 20, label: 'CUT' }, { id: 'dodge', x: W - 80, y: H - 20, r: 14, label: 'DASH' },
+        { id: 'parry', x: W - 74, y: H - 60, r: 14, label: 'PARRY' }, { id: 'art', x: W - 32, y: H - 82, r: 14, label: 'MOON' },
+        { id: 'pause', x: W - 14, y: 30, r: 9, label: 'II' }] };
   };
   R.drawTouch = function (ctx, s, st) {
     const L = R.touchLayout();
@@ -297,7 +333,7 @@
       ctx.globalAlpha = on ? (st.held[b.id] ? 0.85 : 0.5) : 0.2;
       R.disc(ctx, b.x, b.y, b.r, b.id === 'art' ? '#a01028' : b.id === 'atk' ? '#3a2028' : '#202030');
       ctx.strokeStyle = b.id === 'art' && on ? '#ff4060' : '#ffffff'; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 7); ctx.stroke();
-      R.text(ctx, b.label, b.x, b.y + 2, b.r > 14 ? 7 : 5, '#ffffff', 'center', { shadow: false });
+      R.text(ctx, b.label, b.x, b.y + 3, b.r > 16 ? 9 : 7, '#ffffff', 'center', { shadow: false });
     }
     ctx.restore();
   };

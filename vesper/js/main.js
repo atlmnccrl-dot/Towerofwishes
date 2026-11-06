@@ -11,7 +11,7 @@
   function load() { try { const j = JSON.parse(localStorage.getItem(KEY)); if (j && j.opts) return Object.assign(fresh(), j); } catch (e) { /* storage blocked */ } return fresh(); }
   M.write = () => { try { localStorage.setItem(KEY, JSON.stringify(M.save)); } catch (e) { /* storage blocked */ } };
   M.save = load();
-  const applyOpts = () => { AU.setVolume(M.save.opts.music); AU.sfxVol = M.save.opts.sfx; };
+  const applyOpts = () => { AU.sfxVol = M.save.opts.sfx; AU.setVolume(M.save.opts.music); };
 
   // ---- input ------------------------------------------------------------------------------------
   const KEYS = { KeyJ: 'atk', KeyZ: 'atk', KeyK: 'parry', KeyX: 'parry', Space: 'dodge', ShiftLeft: 'dodge', KeyC: 'dodge', KeyL: 'art', KeyV: 'art', KeyE: 'art',
@@ -73,14 +73,14 @@
     R.drawArena(ctx, st, M.t * 6 % 200, 0.3);
     R.drawWeather(ctx, st, M.t * 6 % 200, M.t);
     // The hero on the floor, small, looking at the moon.
-    A.actor(ctx, D.HERO.set, 'Idle', Math.floor(M.t * 6) % 15, 0, 250, R.FLOOR + 30, 1, { shade: '#000000' });
-    ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fillRect(0, 0, 150, H);
-    R.text(ctx, 'VESPER', 18, 52, 34, '#ff2a44', 'left', { outline: true });
-    R.text(ctx, 'a last ditch effort', 20, 66, 8, '#e8c8d0');
+    A.actor(ctx, D.HERO.set, 'Idle', Math.floor(M.t * 6) % 15, 0, Math.round(R.W * 0.66), R.FLOOR + 30, 1, { shade: '#000000' });
+    ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fillRect(0, 0, 140, H);
+    R.text(ctx, 'VESPER', 18, 44, 32, '#ff2a44', 'left', { outline: true });
+    R.text(ctx, 'a last ditch effort', 20, 57, 8, '#e8c8d0');
     const cont = M.save.stage > 0;
     const items = (cont ? ['CONTINUE  ·  ' + D.STAGES[M.save.stage].hour] : []).concat(['NEW NIGHT', 'THEATRE', 'SETTINGS', 'CREDITS']);
     menuNav(items.length);
-    const i = list(ctx, items, 22, 100, 15, 9);
+    const i = list(ctx, items, 22, 84, 15, 9);
     R.text(ctx, R.touch ? 'Landscape · touch' : 'WASD move · J cut · K parry · Space dash · L moon', 20, H - 10, 6, '#8a7a82');
     if (i < 0) return;
     AU.sfx('clang_0', 0.5);
@@ -95,11 +95,11 @@
   // Settings.
   function settings(ctx) {
     ctx.fillStyle = '#08060a'; ctx.fillRect(0, 0, R.W, R.H);
-    R.text(ctx, 'SETTINGS', 22, 30, 16, '#ff2a44');
+    R.text(ctx, 'SETTINGS', 22, 26, 16, '#ff2a44');
     const o = M.save.opts;
     const items = [`MUSIC  ·  ${o.music ? (o.music < 1 ? 'LOW' : 'ON') : 'OFF'}`, `SOUND  ·  ${o.sfx ? 'ON' : 'OFF'}`, `SCREEN SHAKE  ·  ${o.shake ? 'ON' : 'OFF'}`, `AUTO BATTLE  ·  ${o.auto ? 'ON' : 'OFF'}`, 'RESET PROGRESS', 'BACK'];
     menuNav(items.length);
-    const i = list(ctx, items, 30, 62, 16, 9);
+    const i = list(ctx, items, 30, 54, 15, 9);
     R.text(ctx, 'Auto battle lets the knight fight on his own; you can still press any button.', 30, R.H - 14, 6, '#8a7a82');
     if (M.pressed.back) { M.write(); M.go('title'); return; }
     if (i < 0) return;
@@ -121,7 +121,7 @@
       'Tiles: Pixel Art Top Down - Basic (Cainos); TopDownFantasy Forest; reodesuxz tilesets; EPIC RPG World; Dark World.',
       'Adventurer font by Brian J Smith (CC BY 3.0).', 'Music: "Heartfelt Battle", OpenGameArt.org (CC0).',
       'Fight sounds and ambience synthesised for these games (tools/make_sfx.py).', 'The moon arts are drawn in code over the cast and effect packs.'];
-    let y = 48; for (const l of lines) for (const w of R.wrap(ctx, l, 7, R.W - 50)) { R.text(ctx, w, 24, y, 7, '#d8c8d0'); y += 11; }
+    let y = 42; for (const l of lines) for (const w of R.wrap(ctx, l, 6, R.W - 44)) { R.text(ctx, w, 24, y, 6, '#d8c8d0'); y += 9; }
     R.text(ctx, 'tap or press Esc', 24, R.H - 12, 6, '#8a7a82');
     if (M.pressed.back || M.pressed.tap || M.pressed.confirm) M.go('title');
   }
@@ -138,7 +138,7 @@
     R.drawArena(ctx, st, 60, 0.2);
     const cast = sc.def.cast, n = cast.length, pos = {};
     cast.forEach((key, i) => {
-      const sp = S.speaker(key), x = Math.round(120 + i * (n > 2 ? 85 : 140)), y = R.FLOOR + 32;
+      const sp = S.speaker(key), x = Math.round(R.W * (n > 2 ? 0.3 + i * 0.22 : 0.33 + i * 0.36)), y = R.FLOOR + 32;
       const face = i === n - 1 && n > 1 ? Math.PI : 0, sc2 = sp.scale || 1;
       ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fillRect(x - 7 * sc2, y - 1, 14 * sc2, 2);
       A.actor(ctx, sp.set, key === 'vesper' ? 'Idle4' : 'Idle', Math.floor((M.t + i) * 7) % 15, face, x, y, sc2, {});
@@ -228,10 +228,10 @@
   }
   function pauseMenu(ctx) {
     ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(0, 0, R.W, R.H);
-    R.text(ctx, 'PAUSED', R.W / 2, 60, 16, '#ff2a44', 'center');
+    R.text(ctx, 'PAUSED', R.W / 2, 48, 16, '#ff2a44', 'center');
     const items = ['RESUME', 'RESTART HOUR', `AUTO  ·  ${M.save.opts.auto ? 'ON' : 'OFF'}`, 'QUIT TO TITLE'];
     menuNav(items.length);
-    const i = list(ctx, items, R.W / 2 - 50, 90, 16, 9);
+    const i = list(ctx, items, R.W / 2 - 50, 74, 16, 9);
     if (i === 0) M.paused = false;
     if (i === 1) startFight(M.fight.stage);
     if (i === 2) { M.save.opts.auto = !M.save.opts.auto; M.write(); }
@@ -257,23 +257,23 @@
     const st = D.STAGES[M.result.stage];
     R.drawArena(ctx, st, 120, 0.4);
     ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(0, 0, R.W, R.H);
-    R.text(ctx, 'HOUR CLEARED', R.W / 2, 28, 14, '#ff2a44', 'center');
+    R.text(ctx, 'HOUR CLEARED', R.W / 2, 24, 14, '#ff2a44', 'center');
     const ss = M.result.stats;
-    R.text(ctx, `${M.result.time.toFixed(1)} s  ·  ${ss.maxCombo} best combo  ·  ${ss.parries} parries  ·  ${ss.perfects} perfect dodges  ·  ${ss.arts} moon arts`, R.W / 2, 42, 6, '#d8c8d0', 'center');
-    R.text(ctx, 'The moon gives you one of these.', R.W / 2, 60, 7, '#e8d8dc', 'center');
+    R.text(ctx, `${M.result.time.toFixed(1)} s  ·  ${ss.maxCombo} best combo  ·  ${ss.parries} parries  ·  ${ss.perfects} perfect dodges  ·  ${ss.arts} moon arts`, R.W / 2, 37, 6, '#d8c8d0', 'center');
+    R.text(ctx, 'The moon gives you one of these.', R.W / 2, 54, 7, '#e8d8dc', 'center');
     if (M.pressed.left) M.menu = (M.menu + M.boons.length - 1) % M.boons.length;
     if (M.pressed.right) M.menu = (M.menu + 1) % M.boons.length;
     let chosen = M.pressed.confirm ? M.menu : -1;
     M.boons.forEach((b, i) => {
-      const w = 108, x = R.W / 2 - (M.boons.length * (w + 8)) / 2 + i * (w + 8) + 4, y = 72, h = 100, sel = i === M.menu;
+      const w = Math.min(108, Math.floor((R.W - 40) / 3)), x = R.W / 2 - (M.boons.length * (w + 8)) / 2 + i * (w + 8) + 4, y = 66, h = 88, sel = i === M.menu;
       if (M.tap && M.tap.x >= x && M.tap.x <= x + w && M.tap.y >= y && M.tap.y <= y + h) { M.menu = i; chosen = i; }
       ctx.fillStyle = sel ? '#1a0a10' : '#0c080c'; ctx.fillRect(x, y, w, h);
       ctx.strokeStyle = sel ? '#ff2a44' : '#4a3038'; ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
-      R.moon(ctx, x + w / 2, y + 22, 9, sel ? '#ff2a44' : '#a02030', 'rgba(255,40,60,0.15)');
-      R.text(ctx, b.name.toUpperCase(), x + w / 2, y + 46, 8, '#ffffff', 'center');
-      R.wrap(ctx, b.desc, 6, w - 12).forEach((l, j) => R.text(ctx, l, x + w / 2, y + 60 + j * 9, 6, '#c8b8c0', 'center'));
+      R.moon(ctx, x + w / 2, y + 18, 8, sel ? '#ff2a44' : '#a02030', 'rgba(255,40,60,0.15)');
+      R.text(ctx, b.name.toUpperCase(), x + w / 2, y + 40, 8, '#ffffff', 'center');
+      R.wrap(ctx, b.desc, 6, w - 12).forEach((l, j) => R.text(ctx, l, x + w / 2, y + 54 + j * 9, 6, '#c8b8c0', 'center'));
     });
-    if (M.save.boons.length) R.text(ctx, 'Carried: ' + M.save.boons.map((id) => D.BOONS.find((b) => b.id === id).name).join(' · '), R.W / 2, R.H - 14, 6, '#8a7a82', 'center');
+    if (M.save.boons.length) R.text(ctx, 'Carried: ' + M.save.boons.map((id) => D.BOONS.find((b) => b.id === id).name).join(' · '), R.W / 2, R.H - 8, 6, '#8a7a82', 'center');
     if (chosen < 0) return;
     AU.sfx('allout', 0.4);
     M.save.boons.push(M.boons[chosen].id); M.save.stage = M.result.stage + 1; M.write();
@@ -283,12 +283,12 @@
     const st = D.STAGES[M.lost.stage];
     R.drawArena(ctx, st, 100, 1);
     ctx.fillStyle = 'rgba(30,0,6,0.78)'; ctx.fillRect(0, 0, R.W, R.H);
-    R.text(ctx, 'YOU FELL', R.W / 2, 70, 20, '#ff2a44', 'center');
-    R.text(ctx, '"Then fall forward."', R.W / 2, 86, 8, '#e8c8d0', 'center');
-    R.text(ctx, 'Nothing is lost. Your boons stay with you.', R.W / 2, 100, 6, '#a898a0', 'center');
+    R.text(ctx, 'YOU FELL', R.W / 2, 58, 20, '#ff2a44', 'center');
+    R.text(ctx, '"Then fall forward."', R.W / 2, 74, 8, '#e8c8d0', 'center');
+    R.text(ctx, 'Nothing is lost. Your boons stay with you.', R.W / 2, 88, 6, '#a898a0', 'center');
     const items = ['TRY THE HOUR AGAIN', 'TITLE'];
     menuNav(items.length);
-    const i = list(ctx, items, R.W / 2 - 46, 130, 16, 9);
+    const i = list(ctx, items, R.W / 2 - 46, 112, 16, 9);
     if (i === 0) startFight(M.lost.stage);
     if (i === 1) { M.go('title'); AU.playAmb('night'); }
   }
@@ -340,6 +340,7 @@
     requestAnimationFrame(frame);
     const ids = new Set([D.HERO.set, D.LYS.set]); for (const k in D.FOES) ids.add(D.FOES[k].set);
     await A.load([...ids], (p) => { M.progress = p; });
+    A.warm(R.ctx);
     applyOpts();
     if (params.has('auto')) M.save.opts.auto = true;
     if (params.has('theatre')) theatre();

@@ -2,35 +2,58 @@
 // sounds and ambience loops. Nothing plays before the first tap (browser autoplay rules).
 (function () {
   const VS = window.VS;
-  const A = VS.audio = { unlocked: false, music: null, musicName: null, amb: null, ambName: null, vol: 1, sfxVol: 1, pool: {} };
-  const ROOT = '../assets/';
+  const A = VS.audio = { unlocked: false, music: null, musicName: null, amb: null, ambName: null, vol: 1, sfxVol: 1 };
+  const ROOT = () => VS.A.ROOT;
+  // Effects play through Web Audio from decoded buffers (no stalls, real volume on iPhone);
+  // music and ambience stream from media elements routed through gain nodes.
+  const SFX = ['allout', 'blow_0', 'blow_1', 'blow_2', 'blow_big', 'bolt', 'charge', 'clang_0', 'clang_1', 'horn', 'ko', 'magic', 'quake',
+    'slash_0', 'slash_1', 'slash_2', 'step_0', 'step_1', 'step_2', 'swish_0', 'swish_1', 'swish_2', 'thud', 'whoosh'];
+  let ac = null, sfxGain = null, musicGain = null, ambGain = null; const buf = {}, live = {};
+  function media(src, gain) {
+    const a = new Audio(src); a.loop = true; a.preload = 'auto'; a.crossOrigin = 'anonymous';
+    try { ac.createMediaElementSource(a).connect(gain); } catch (e) { a.volume = gain.gain.value; }
+    return a;
+  }
   A.unlock = function () {
-    if (A.unlocked) return; A.unlocked = true;
+    if (A.unlocked) { if (ac && ac.state === 'suspended') ac.resume(); return; }
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    try { ac = new AC(); } catch (e) { return; }
+    A.unlocked = true;
+    sfxGain = ac.createGain(); musicGain = ac.createGain(); ambGain = ac.createGain();
+    for (const g of [sfxGain, musicGain, ambGain]) g.connect(ac.destination);
+    A.setVolume(A.vol);
+    // A silent tick unlocks iOS output.
+    try { const b = ac.createBuffer(1, 1, 22050), src = ac.createBufferSource(); src.buffer = b; src.connect(ac.destination); src.start(0); } catch (e) { /* fine */ }
+    for (const n of SFX) fetch(ROOT() + 'sfx/fight/' + n + '.mp3').then((r) => r.arrayBuffer()).then((d) => new Promise((ok, no) => ac.decodeAudioData(d, ok, no))).then((b) => { buf[n] = b; }).catch(() => {});
     if (A.pendingMusic) { const m = A.pendingMusic; A.pendingMusic = null; A.playMusic(m); }
     if (A.pendingAmb) { const m = A.pendingAmb; A.pendingAmb = null; A.playAmb(m); }
   };
   A.sfx = function (name, vol) {
-    if (!A.unlocked || A.sfxVol <= 0) return;
-    const p = A.pool[name] || (A.pool[name] = []);
-    let a = p.find((x) => x.paused || x.ended);
-    if (!a) { if (p.length >= 4) return; a = new Audio(ROOT + 'sfx/fight/' + name + '.mp3'); p.push(a); }
-    a.volume = Math.min(1, (vol == null ? 0.7 : vol) * A.sfxVol); try { a.currentTime = 0; } catch (e) { /* not loaded yet */ }
-    a.play().catch(() => {});
+    if (!A.unlocked || A.sfxVol <= 0 || !buf[name]) return;
+    if ((live[name] || 0) >= 3) return;
+    const src = ac.createBufferSource(), g = ac.createGain();
+    src.buffer = buf[name]; g.gain.value = Math.min(1, vol == null ? 0.7 : vol);
+    src.connect(g); g.connect(sfxGain); live[name] = (live[name] || 0) + 1;
+    src.onended = () => { live[name]--; };
+    src.start(0);
   };
   A.pick = (names, vol) => A.sfx(names[Math.floor(Math.random() * names.length)], vol);
   A.playMusic = function (name) {
     if (!A.unlocked) { A.pendingMusic = name; return; }
     if (A.musicName === name) return; A.stopMusic(); if (!name) return;
-    const a = new Audio(ROOT + 'music/' + name + '.mp3'); a.loop = true; a.volume = 0.5 * A.vol; a.play().catch(() => {}); A.music = a; A.musicName = name;
+    const a = media(ROOT() + 'music/' + name + '.mp3', musicGain); a.play().catch(() => {}); A.music = a; A.musicName = name;
   };
   A.stopMusic = function () { if (A.music) A.music.pause(); A.music = null; A.musicName = null; };
   A.playAmb = function (name) {
     if (!A.unlocked) { A.pendingAmb = name; return; }
     if (A.ambName === name) return; if (A.amb) A.amb.pause(); A.amb = null; A.ambName = name; if (!name) return;
-    const a = new Audio(ROOT + 'sfx/amb/' + name + '.mp3'); a.loop = true; a.volume = 0.35 * A.vol; a.play().catch(() => {}); A.amb = a;
+    const a = media(ROOT() + 'sfx/amb/' + name + '.mp3', ambGain); a.play().catch(() => {}); A.amb = a;
   };
-  A.setVolume = function (v) { A.vol = v; if (A.music) A.music.volume = 0.5 * v; if (A.amb) A.amb.volume = 0.35 * v; };
-  A.duck = function (on) { if (A.music) A.music.volume = (on ? 0.15 : 0.5) * A.vol; };
+  A.setVolume = function (v) {
+    A.vol = v; if (!ac) return;
+    musicGain.gain.value = 0.5 * v * (A.ducked ? 0.3 : 1); ambGain.gain.value = 0.35 * v; sfxGain.gain.value = A.sfxVol;
+  };
+  A.duck = function (on) { A.ducked = on; A.setVolume(A.vol); };
   // Fight events to sounds.
   A.events = function (evs) {
     for (const e of evs) {
