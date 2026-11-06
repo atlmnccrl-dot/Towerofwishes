@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Vesper</title>
+<style>
+  @font-face { font-family: 'Adventurer'; src: url('../assets/ui/adventurer.ttf') format('truetype'); font-display: swap; }
+  html, body { margin: 0; padding: 0; background: #000; overflow: hidden; height: 100%; width: 100%; touch-action: none; -webkit-user-select: none; user-select: none; }
+  canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edges; position: fixed; left: 0; top: 0; }
+  #rotate { display: none; position: fixed; inset: 0; background: #08060a; color: #ff2a44; font: 18px Adventurer, sans-serif; align-items: center; justify-content: center; text-align: center; z-index: 9; }
+  @media (orientation: portrait) and (max-width: 900px) { #rotate { display: flex; } }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="rotate">Turn your phone sideways.<br><small>Vesper plays in landscape.</small></div>
+<script src="js/data.js"></script>
+<script src="js/story.js"></script>
+<script src="js/sim.js"></script>
+<script src="js/assets.js"></script>
+<script src="js/render.js"></script>
+<script src="js/cine.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
