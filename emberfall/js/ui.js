@@ -11,7 +11,7 @@
     R.text(ctx, label, x + (o.icon ? 24 : w / 2), y + h / 2 + 3, o.size || 8, dis ? '#776' : '#fff', o.icon ? 'left' : 'center', { bold: !!o.primary });
     if (!dis) U.buttons.push({ x, y, w, h, label, onClick });
   };
-  U.hit = function (x, y) { for (let i = U.buttons.length - 1; i >= 0; i--) { const b = U.buttons[i]; if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) return b; } return null; };
+  U.hit = function (x, y) { const m = R.touch ? 4 : 0; for (let i = U.buttons.length - 1; i >= 0; i--) { const b = U.buttons[i]; if (x >= b.x - m && x <= b.x + b.w + m && y >= b.y - m && y <= b.y + b.h + m) return b; } return null; };
   U.backdrop = function (ctx, place, t, drift) { R.sky(ctx, place); const cam = { x: R.WORLD.w / 2 + Math.sin(t * 0.1) * 20 * (drift || 0), y: R.WORLD.h / 2 + 10, zoom: 1.15 }; R.drawWorld(ctx, place, cam, [], t); R.weather(ctx, S.PLACES[place].weather, t, R.W, R.H, 0.8); ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(0, 0, R.W, R.H); };
 
   // ---- title ----------------------------------------------------------------------------
@@ -42,10 +42,11 @@
     ctx.fillStyle = '#5a4a36'; ctx.fillRect(10, 30, R.W - 20, R.H - 60); ctx.fillStyle = '#6a5a44'; ctx.fillRect(14, 34, R.W - 28, R.H - 68);
     for (let i = 0; i < 60; i++) { ctx.fillStyle = 'rgba(0,0,0,' + (0.05 + (i % 5) * 0.02) + ')'; const x = 14 + ((i * 97) % (R.W - 40)), y = 34 + ((i * 53) % (R.H - 80)); ctx.fillRect(x, y, 10 + (i % 7) * 4, 3 + (i % 3)); }
     // the road
-    ctx.save(); ctx.strokeStyle = 'rgba(40,24,12,0.8)'; ctx.lineWidth = 2; ctx.setLineDash([4, 3]); ctx.beginPath(); U.NODES.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.stroke(); ctx.restore();
+    ctx.save(); ctx.strokeStyle = 'rgba(40,24,12,0.8)'; ctx.lineWidth = 2; ctx.setLineDash([4, 3]); ctx.beginPath(); U.NODES.forEach(([x, y], i) => i ? ctx.lineTo(x + Math.round((R.W - 480) / 2), y) : ctx.moveTo(x + Math.round((R.W - 480) / 2), y)); ctx.stroke(); ctx.restore();
     // landmarks
     const marks = ['fv_well', 'cd_skull_on_pike', 'fv_tree_pine_snow', 'rock_big', 'ruin_pillar', 'monolith_b', 'tree_dark_a', 'cd_throne', 'stone_circle'];
-    S.ACTS.forEach((a, i) => { const [x, y] = U.NODES[i]; const st = G.progress[a.id] || (i === 0 ? 'open' : 'locked'); const cur = st === 'open';
+    const ox = Math.round((R.W - 480) / 2);
+    S.ACTS.forEach((a, i) => { const x = U.NODES[i][0] + ox, y = U.NODES[i][1]; const st = G.progress[a.id] || (i === 0 ? 'open' : 'locked'); const cur = st === 'open';
       ctx.save(); ctx.globalAlpha = st === 'locked' ? 0.35 : 0.9; EF.drawProp(ctx, marks[i], x, y - 10, 0.7); ctx.restore();
       ctx.fillStyle = st === 'done' ? '#c8a040' : cur ? '#c03030' : '#3a3030'; ctx.beginPath(); ctx.arc(x, y, cur ? 9 + Math.sin(t * 5) : 8, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = '#2a1a10'; ctx.lineWidth = 1; ctx.stroke();
       R.text(ctx, a.num, x, y + 3, 7, st === 'locked' ? '#776' : '#fff', 'center', { bold: true });

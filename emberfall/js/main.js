@@ -81,8 +81,8 @@
   function onDown(e) {
     A.unlock(); const p = R.toBuf(e.clientX, e.clientY); pointers[e.pointerId] = p;
     if (M.state === 'fight' && !M.combat.result) {
-      const L = R.touchLayout(); if (R.touch) { if (Math.hypot(p.x - L.stick.x, p.y - L.stick.y) < L.stick.r + 20 && M.stick == null) { M.stick = e.pointerId; R.stickPos = p; return; }
-        for (const b of L.buttons) if (Math.hypot(p.x - b.x, p.y - b.y) < b.r + 4) { M.pressed[b.id] = true; M.held[b.id] = true; pointers[e.pointerId].btn = b.id; return; } }
+      const L = R.touchLayout(); if (R.touch) { for (const b of L.buttons) if (Math.hypot(p.x - b.x, p.y - b.y) < b.r + 6) { M.pressed[b.id] = true; M.held[b.id] = true; pointers[e.pointerId].btn = b.id; return; }
+        if (p.x < R.W * 0.45 && p.y > 20 + M.combat.heroes.length * 30 && M.stick == null) { M.stick = e.pointerId; R.stickCenter = { x: p.x, y: p.y }; R.stickPos = p; return; } }
       if (p.x < 60 && p.y < 20 + M.combat.heroes.length * 30) { const i = Math.floor((p.y - 6) / 30); if (M.combat.heroes[i] && !M.combat.heroes[i].dead) M.combat.host = i; return; }
       if (p.x > R.W - 30 && p.y < 24) { M.go('pause'); return; }
       if (!R.touch) { M.pressed.attack = true; return; }
@@ -91,8 +91,8 @@
     if (M.state === 'scene') { if (p.x > R.W - 40 && p.y > R.H - 20) M.scene.skip(); else M.scene.tap(); return; }
     const b = U.hit(p.x, p.y); if (b) { A.sfx('step_0', 0.3); b.onClick(); U.clear(); }
   }
-  function onMove(e) { const p = R.toBuf(e.clientX, e.clientY); if (M.stick === e.pointerId) { const L = R.touchLayout(); const dx = p.x - L.stick.x, dy = p.y - L.stick.y; const d = Math.hypot(dx, dy); const k = Math.min(1, d / L.stick.r); R.stickPos = { x: L.stick.x + dx / (d || 1) * Math.min(d, L.stick.r), y: L.stick.y + dy / (d || 1) * Math.min(d, L.stick.r) }; M.stickVec = d > 6 ? { x: dx / d * k, y: dy / d * k } : null; } else if (!R.touch) { const b = U.hit(p.x, p.y); U.hover = b ? b.label : null; } }
-  function onUp(e) { if (M.stick === e.pointerId) { M.stick = null; M.stickVec = null; R.stickPos = null; } const q = pointers[e.pointerId]; if (q && q.btn) M.held[q.btn] = false; delete pointers[e.pointerId]; }
+  function onMove(e) { const p = R.toBuf(e.clientX, e.clientY); if (M.stick === e.pointerId) { const L = R.touchLayout(); const c = R.stickCenter || L.stick; const dx = p.x - c.x, dy = p.y - c.y; const d = Math.hypot(dx, dy); const k = Math.min(1, d / L.stick.r); R.stickPos = { x: c.x + dx / (d || 1) * Math.min(d, L.stick.r), y: c.y + dy / (d || 1) * Math.min(d, L.stick.r) }; M.stickVec = d > 6 ? { x: dx / d * k, y: dy / d * k } : null; } else if (!R.touch) { const b = U.hit(p.x, p.y); U.hover = b ? b.label : null; } }
+  function onUp(e) { if (M.stick === e.pointerId) { M.stick = null; M.stickVec = null; R.stickPos = null; R.stickCenter = null; } const q = pointers[e.pointerId]; if (q && q.btn) M.held[q.btn] = false; delete pointers[e.pointerId]; }
   function readInput(dt) {
     const k = M.keys; let mx = 0, my = 0; if (k.KeyA || k.ArrowLeft) mx -= 1; if (k.KeyD || k.ArrowRight) mx += 1; if (k.KeyW || k.ArrowUp) my -= 1; if (k.KeyS || k.ArrowDown) my += 1;
     if (M.stickVec) { mx = M.stickVec.x; my = M.stickVec.y; }

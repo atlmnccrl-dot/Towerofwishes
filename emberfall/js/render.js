@@ -13,6 +13,7 @@
   };
   R.resize = function () {
     const c = R.canvas; const dpr = Math.min(2, window.devicePixelRatio || 1); const w = window.innerWidth, h = window.innerHeight;
+    const W = Math.max(480, Math.min(600, Math.round(270 * w / Math.max(1, h)))); if (W !== R.W) { R.W = W; R.buf.width = W; R.ctx.imageSmoothingEnabled = false; }
     c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); c.style.width = w + 'px'; c.style.height = h + 'px';
     const k = Math.min(c.width / R.W, c.height / R.H); R.scale = k; R.offX = Math.round((c.width - R.W * k) / 2); R.offY = Math.round((c.height - R.H * k) / 2); R.dpr = dpr;
   };
@@ -186,6 +187,7 @@
     // touch controls
     if (R.touch) R.drawTouch(ctx, c, t);
     else if (c.t < 6 && !c.auto) { ctx.save(); ctx.globalAlpha = Math.min(1, (6 - c.t)); R.text(ctx, 'WASD move   J attack   K heavy   SPACE dodge   L special   Q surge   TAB swap   E potion', W / 2, H - 8, 6, '#c0b0a0', 'center'); ctx.restore(); }
+    if (R.touch && c.t < 6 && !c.auto) { ctx.save(); ctx.globalAlpha = Math.min(1, (6 - c.t)); R.text(ctx, 'LEFT: touch and drag to move', 60, H - 100, 6, '#c0b0a0', 'left'); ctx.restore(); }
   };
   // Touch layout (buffer coordinates).
   R.touchLayout = function () {
@@ -196,8 +198,8 @@
   };
   R.drawTouch = function (ctx, c, t) {
     const L = R.touchLayout(); ctx.save(); ctx.globalAlpha = 0.55;
-    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(L.stick.x, L.stick.y, L.stick.r, 0, Math.PI * 2); ctx.stroke();
-    const st = R.stickPos || { x: L.stick.x, y: L.stick.y }; ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.beginPath(); ctx.arc(st.x, st.y, 12, 0, Math.PI * 2); ctx.fill();
+    const sc = R.stickCenter || L.stick; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.globalAlpha = R.stickCenter ? 0.7 : 0.3; ctx.beginPath(); ctx.arc(sc.x, sc.y, L.stick.r, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 0.55;
+    const st = R.stickPos || { x: sc.x, y: sc.y }; ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.beginPath(); ctx.arc(st.x, st.y, 12, 0, Math.PI * 2); ctx.fill();
     for (const b of L.buttons) { const h = c.hostEnt(); let on = true; if (b.id === 'special' && h.cd > 0) on = false; if (b.id === 'surge' && c.surge < 100) on = false; if (b.id === 'potion' && c.potions <= 0) on = false;
       ctx.globalAlpha = on ? 0.65 : 0.25; ctx.fillStyle = b.col; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 0.9; R.text(ctx, b.label, b.x, b.y + 3, 6, '#000', 'center', { shadow: false }); }
     ctx.restore();
