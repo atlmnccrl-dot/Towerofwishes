@@ -382,6 +382,7 @@
     for (const id in st.units) { const u = st.units[id]; if (u.side === 'e' && !u.dead && D.FOE[u.kind].faction === 'raider') lightsList.push({ x: u.x, y: u.y - 20, r: 2.2 * TS }); if (u.side === 's' && u.job === 'guard' && !u.inside && !u.away) lightsList.push({ x: u.x, y: u.y - 20, r: 1.8 * TS }); }
     for (const f of R.fx) if (f.name === 'explosion_fire' || f.name === 'fire_burst') lightsList.push({ x: f.x, y: f.y, r: 3 * TS });
     if (R.extraLights) for (const L of R.extraLights) lightsList.push(L);
+    for (const id in st.units) { const u = st.units[id]; if (u.side === 'e' && !u.dead && D.FOE[u.kind].boss) lightsList.push({ x: u.x, y: u.y - 60, r: 3.2 * TS }); }
   }
   function drawLighting(st) {
     const L = S.light(st); const h = S.hour(st);

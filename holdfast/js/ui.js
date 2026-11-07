@@ -122,8 +122,10 @@
     const exp = s.exps.length; $('act-map').querySelector('.badge').textContent = exp ? exp : '';
     // Threat banner.
     const th = $('threat'); const r = s.threat.raid;
-    if (s.threat.active) { th.className = 'panel danger'; th.innerHTML = ic('swords', 18) + ' ' + S.foes(s).length + ' foes in camp'; }
-    else if (r && r.warned) { th.className = 'panel warn'; th.innerHTML = ic('flag', 18) + ' ' + (r.hollow ? 'The Hollow' : 'Raiders') + ' in ' + Math.max(0, Math.round(r.at - s.hours)) + 'h · ' + r.dirs.map(S.dirName).join(', '); }
+    const bossUp = S.foes(s).some(e => D.FOE[e.kind].boss && !e.flee);
+    if (bossUp) th.className = 'hidden';
+    else if (s.threat.active) { const n = S.foes(s).filter(e => !e.flee).length; th.className = 'panel danger'; th.innerHTML = ic('swords', 18) + '<span>' + n + (n === 1 ? ' foe' : ' foes') + ' in the camp</span>'; }
+    else if (r && r.warned) { th.className = 'panel warn'; th.innerHTML = ic('flag', 18) + '<span>' + (r.kind === 'dino' ? (r.comp.includes('trex') ? 'The Tyrant' : 'Dinosaurs') : r.hollow ? 'The Hollow' : 'Raiders') + ' in ' + Math.max(0, Math.round(r.at - s.hours)) + 'h · ' + r.dirs.map(S.dirName).join(', ') + '</span>'; }
     else th.className = 'hidden';
     const boss = S.foes(s).find(e => D.FOE[e.kind].boss && !e.flee);
     const bb = $('boss'); if (boss) { bb.className = ''; bb.innerHTML = '<b>' + D.FOE[boss.kind].name + '</b><div class="bb"><i style="width:' + Math.max(0, boss.hp / boss.maxHp * 100) + '%"></i></div>'; } else bb.className = 'hidden';
@@ -467,6 +469,7 @@
       '<p>World: Pixel Art Top Down - Basic by Cainos; Pixel 16 village; forest village and castle tile sets; Mixel Topdown RPG ruins (see art_source/tiles licences).</p>' +
       '<p>Effects: the repository\'s effect atlas (Brackeys VFX, Kiln, magic and slash packs; see art_source/fx licences).</p>' +
       '<p>Interface: Medieval Fantasy UI icons by Kibyra; Adventurer font by Brian J Smith; fantasy UI sound pack.</p>' +
+      '<p>Dinosaurs: "Dinosaur Animated Pack" by Quaternius (CC0), rendered to pixel sprites (tools/dino).</p>' +
       '<p>Music: "Heartfelt Battle" (OpenGameArt, CC0). Fight sounds and ambience: synthesised (tools/make_sfx.py).</p>' +
       '<p>Stand-in art drawn in code: the palisade and the timber lookout.</p></div>');
   };

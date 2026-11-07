@@ -19,7 +19,7 @@ Landscape; touch or mouse and keyboard.
 
 | System | State |
 |---|---|
-| Opening | A filmed flyover of the real world with letterbox and captions (skippable), then one survivor in the wilds. Objectives teach by doing, with a marker on the target or an arrow at the screen edge: make camp at the lit clearing, gather by tapping trees and rocks, light the campfire, build a lean-to, forage, survive the night. The first day's clock waits for you. |
+| Opening | A storm at night: the survivor runs by torchlight from a raptor pack, reaches the clearing as dawn breaks, the hunters turn back, and the title slams in over the sunrise. All in-engine on the real map (skippable). Objectives teach by doing, with a marker on the target or an arrow at the screen edge: make camp at the lit clearing, gather by tapping trees and rocks, light the campfire, build a lean-to, forage, survive the night. The first day's clock waits for you. |
 | Camera and controls | Drag to pan, pinch or wheel to zoom (0.55x to 3.2x), tap to select or order. WASD and arrows, Space to pause, B to build, Esc to cancel, 1-3 for speed. Pause, 1x, 2x and 3x. |
 | World | 96 x 96 tiles: forests, meadows, lakes, a stream, a pond near the camp, stone outcrops, ruins with salvage, wildlife (deer, hares), birds overhead, fireflies at night, soft terrain blending. Fog of war lifts as people explore, and lookouts reveal the land around them. Day and night with firelight, dusk tint, rain. |
 | Gathering and resources | Wood, stone, food (berries, hunting, fields), water (from the lake, rain barrels, wells), metal (ruin salvage, expeditions), knowledge (scholars, expeditions). Storage caps; workers haul loads to the nearest store. Paths wear into dirt tracks, then stone roads with Paved Roads. |
@@ -27,7 +27,7 @@ Landscape; touch or mouse and keyboard.
 | Survivors | Individual names, appearances (Character Creator cast), a trait, a past, six skills that grow with use, levels, health, morale, injuries, gear (club, spear, bow, sword, hide, mail). Ten jobs; people walk to the work and do it. They eat and drink at dawn, gather around the fire in the evening, sleep in beds at night, hide from danger, fight, rescue the wounded and mourn the dead. A downed survivor bleeds out unless someone reaches them. Neglect has a price: three hungry or thirsty dawns in a row can kill the weakest, and people in despair leave in the night. |
 | Recruitment and trade | A scripted stranger on day 2, then wanderers more often when there are free beds and spirits are high. Expeditions rescue people. Each arrival is a choice. A travelling trader visits every four days (two with a Market) with three or four offers: resources, gear, or a hired hand. |
 | Expeditions | A parchment world map with 14 places revealed by exploring. Choose a party (1 to 4) and rations. The party walks out of the map. Road events and an arrival encounter with two choices each are resolved by party skill checks (chance shown). Outcomes include loot, recruits, relics, new places, injuries and deaths. Clearing the raider camp or the stalker den quiets that threat for days. Millbrook trades and helps. |
-| Defense | Night stalkers; Ash Raider raids announced 12 hours ahead (24 with Watch Fires), from more directions as days pass; the Hollow at night later; the Bone Warlord. Enemies path around walls or break through them, loot stores and run, shoot from range and attack towers. Guards man towers and shoot farther. The Alarm sends civilians into shelters and fighters to the fire. Beasts are weaker in firelight. Raids retreat after a while or rout when most fall. |
+| Defense | Raptor packs at night (weaker in firelight, gone at dawn); dinosaur raids from day 7 with Triceratops that charge through walls and Stegosaurus tail sweeps; the Tyrant, a T-Rex boss whose stomps shake the ground and whose roar scatters the frightened; night stalkers; Ash Raider raids announced 12 hours ahead (24 with Watch Fires), from more directions as days pass; the Hollow at night later; the Bone Warlord. Enemies path around walls or break through them, loot stores and run, shoot from range and attack towers. Guards man towers and shoot farther. The Alarm sends civilians into shelters and fighters to the fire. Beasts are weaker in firelight. Raids retreat after a while or rout when most fall. |
 | Progression | Eras (Camp, Settlement, Village) raised at the Heart, with requirements: people, a raid repelled, research, a relic. Research (8 techs) spends knowledge. Crafting at the Workshop. Three relics found on expeditions. |
 | Cinematics | Opening, first fire, night one, dawn, a stranger arriving, the first wall, raids (camera on the attackers), the boss, era changes, the first raid held. All in-engine on the live world. |
 | Interface | A compact game HUD: objective card, resource bar with full and low warnings, clock and speed, a threat banner, round action buttons, a build drawer with building thumbnails and costs, a selection panel for survivors, buildings and foes, a people roster, job and gear pickers, research, craft, relics, event dialogs with an animated vignette, settings and credits, a game-over screen. |
@@ -48,6 +48,7 @@ Landscape; touch or mouse and keyboard.
   props. Extras the atlas lacks are packed by `tools/pack_extra.py` into `assets/extra.png`: gates,
   tents, flags, animals, berry bushes, ground textures. They come from the 16 px village and castle
   sets, drawn at 2x.
+- **Dinosaurs:** the "Dinosaur Animated Pack" by Quaternius (CC0), FBX sources in `art_source/dinos/`, rendered to 8-direction pixel sheets (Idle, Walk, Run, Attack, Die) by `tools/dino` (three.js in headless Chromium, flat shading, 1 px outline). Raptor, Triceratops, Stegosaurus, T-Rex as foes; Parasaurolophus herds as big game.
 - **Effects:** the shared effect atlas (`../assets/fx`): campfire, hits, dust, sparkles, smoke, flame,
   arrows, orbs.
 - **Interface:** the Kibyra icon sheets (`../assets/ui`) and the Adventurer font.
@@ -81,6 +82,9 @@ node holdfast/test/sim-test.js 12 3          # headless autoplayer: opening, bui
 python3 -m http.server 8765 &                 # from the repository root
 NODE_PATH=$(npm root -g) node holdfast/test/browser.js /tmp/hf-shots          # loads, opens, console errors
 NODE_PATH=$(npm root -g) node holdfast/test/play-browser.js /tmp/hf-play      # plays days 1-5 through the real UI, screenshots
+NODE_PATH=$(npm root -g) node holdfast/test/perf.js                           # frame times on an emulated phone (CPU x4)
+NODE_PATH=$(npm root -g) node holdfast/test/opening.js /tmp/hf-open           # the opening cinematic, frame by frame
+NODE_PATH=$(npm root -g) node holdfast/test/dinoshots.js /tmp/hf-dino         # a dinosaur raid with the Tyrant
 ```
 
 ## Not done yet (planned, not implemented)

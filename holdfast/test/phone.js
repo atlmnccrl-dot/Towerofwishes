@@ -30,7 +30,7 @@ require('fs').mkdirSync(out, { recursive: true });
     const tk = await ev(([x, y]) => { const u = HF.debug.S.present(HF.debug.G.st)[0]; const pk = HF.debug.pickAt(x, y); return { task: u.task && u.task.t, pick: pk.unit ? 'unit ' + pk.unit.side : pk.node ? 'node ' + pk.node.type : pk.b ? 'b' : 'ground', sel: HF.debug.U.sel, cine: HF.debug.C.busy(), open: HF.debug.U.open, mode: HF.debug.U.mode }; }, [t.x, t.y]);
     check(tk.task === 'gather', name + ': touch tap on a tree orders gathering ' + JSON.stringify(tk));
     await ev(() => { const { G, S } = HF.debug; for (let k = 0; k < 2400 && G.st.res.wood < 12; k++) S.step(G.st, 0.05); });
-    await ev(() => { const { G, S } = HF.debug; G.st.res.stone = 8; for (let k = 0; k < 40; k++) S.step(G.st, 0.05); });
+    await ev(() => { const { G, S } = HF.debug; G.st.res.stone = Math.max(8, G.st.res.stone); G.st.res.wood = Math.max(12, G.st.res.wood); for (let k = 0; k < 40; k++) S.step(G.st, 0.05); });
     await page.waitForTimeout(400);
     // Build drawer by touch.
     await page.tap('#act-build'); await page.waitForTimeout(400);
