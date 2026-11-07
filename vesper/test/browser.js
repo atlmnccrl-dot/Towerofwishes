@@ -1,5 +1,5 @@
-// Headless check: title, a scene, a fight, a boss card, every beat of both moon arts, the boon pick,
-// defeat, pause, settings, credits, every arena and the touch layout. Screenshots each and reports
+// Headless check: a new game (prologue, guided trial, result, map, skill tree, the next node), the
+// roster, the Last Ditch Effort beat by beat, defeat, settings, credits, every arena, the phone layout. Screenshots each and reports
 // console errors. Usage: NODE_PATH=$(npm root -g) node vesper/test/browser.js <outdir> [port]
 const { chromium, devices } = require('playwright');
 const fs = require('fs');
@@ -18,28 +18,45 @@ fs.mkdirSync(out, { recursive: true });
   const button = (text) => page.locator('#ui .btn', { hasText: text }).first().click();
   await shot('01-title', 900);
 
-  await button('New night');
-  await page.waitForFunction(() => VS.ui.current === 'heroes'); await shot('01b-heroes', 600);
-  await page.locator('#ui .card').first().click();
+  // A new game: the prologue, the trial (guided), its result, the map.
+  await button('New game');
   await page.waitForFunction(() => VS.main.state === 'scene');
-  await shot('02-card', 700);
-  for (let i = 0; i < 2; i++) { await page.keyboard.press('Enter'); await page.waitForTimeout(350); }
-  await shot('03-line', 500);
+  await shot('02-prologue', 700);
   await page.keyboard.press('Escape');
-  await page.waitForFunction(() => VS.main.state === 'fight');
-  await shot('04-fight', 1500);
-  await page.keyboard.down('KeyD'); await page.waitForTimeout(600); await page.keyboard.up('KeyD');
+  await page.waitForFunction(() => VS.main.state === 'fight' && VS.main.fight.nodeId === 'a0-t');
+  await shot('03-trial', 2600);
+  await page.keyboard.down('KeyD'); await page.waitForTimeout(700); await page.keyboard.up('KeyD');
+  if ((await page.evaluate(() => VS.main.fight.tut.step)) < 1) errors.push('trial did not advance after moving');
   for (let i = 0; i < 4; i++) { await page.keyboard.press('KeyJ'); await page.waitForTimeout(130); }
-  await shot('05-combo', 40);
-  await page.keyboard.press('Space'); await page.waitForTimeout(120); await page.keyboard.press('KeyJ'); await shot('06-dash-cut', 60);
-  await page.keyboard.press('Escape'); await shot('07-pause', 400);
+  await shot('04-combo', 40);
+  await page.keyboard.press('Space'); await page.waitForTimeout(120);
+  if (await page.evaluate(() => VS.main.fight.s.hero.state === 'dodge')) errors.push('dodge worked before it was learned');
+  await page.keyboard.press('Escape'); await shot('05-pause', 400);
   if (!(await page.evaluate(() => VS.ui.current === 'pause'))) errors.push('pause menu did not open');
   await button('Resume'); await page.waitForTimeout(200);
   await page.evaluate(() => { VS.main.save.opts.auto = true; });
-  await page.waitForFunction(() => VS.main.fight.card, null, { timeout: 90000 });
-  await shot('08-boss-card', 500);
-  await page.waitForFunction(() => !VS.main.fight.card, null, { timeout: 5000 });
-  await shot('09-boss-fight', 1500);
+  await page.waitForFunction(() => VS.ui.current === 'result', null, { timeout: 90000 });
+  await shot('06-trial-result', 900);
+  console.log('after trial', await page.evaluate(() => { const p = VS.main.save; return `level ${p.lvl} sp ${p.sp} cleared ${VS.PROG.cleared(p, 'a0-t')}`; }));
+  await button('Continue');
+  await page.waitForFunction(() => VS.main.state === 'map'); await shot('07-map', 900);
+  // Learn dodge in the skill tree, then fight the next node.
+  await page.locator('#ui .chip', { hasText: 'Skills' }).click();
+  await page.waitForFunction(() => VS.ui.current === 'skills'); await shot('08-skills', 400);
+  await page.locator('#ui .sk.can').first().click(); await page.waitForTimeout(200);
+  console.log('skills', await page.evaluate(() => VS.main.save.skills.join(',')));
+  await page.locator('#ui .chip', { hasText: 'Back to map' }).click();
+  await page.waitForFunction(() => VS.main.state === 'map');
+  await page.locator('#ui .big-btn').click();
+  await page.waitForFunction(() => VS.main.state === 'fight' && VS.main.fight.nodeId === 'a0-1');
+  await shot('09-tip', 2600);
+  await page.waitForFunction(() => VS.ui.current === 'result', null, { timeout: 120000 });
+  await shot('10-result', 900);
+  await button('Continue'); await page.waitForFunction(() => VS.main.state === 'map');
+  // Heroes, with the locked ones.
+  await page.locator('#ui .chip', { hasText: 'Vesper' }).click(); await page.waitForFunction(() => VS.ui.current === 'roster'); await shot('11-roster', 700);
+  await button('Back');
+  await page.evaluate(() => { VS.main.save.opts.auto = false; });
 
   // The Last Ditch Effort, beat by beat (frozen), from the theatre.
   await page.evaluate(() => { VS.main.save.opts.auto = false; VS.main.theatre(); });
@@ -53,17 +70,10 @@ fs.mkdirSync(out, { recursive: true });
   console.log('after ldx', await page.evaluate(() => { const s = VS.main.fight.s; return s.hero.hp + '/' + s.hero.maxHp + ' ' + VS.sim.foes(s).map((u) => u.key + ':' + u.hp).join(','); }));
   await page.waitForFunction(() => VS.main.state === 'title', null, { timeout: 5000 });
 
-  // The boon pick after a won hour.
-  await page.evaluate(() => { VS.main.startFight(0); const s = VS.main.fight.s; s.stats.maxCombo = 14; s.stats.parries = 3; s.time = 41.2; s.result = 'win'; });
-  await page.waitForFunction(() => VS.ui.current === 'boon'); await shot('12-boon', 500);
-  await page.locator('#ui .card').first().click();
-  await page.waitForFunction(() => VS.main.state === 'scene');
-  console.log('after boon', await page.evaluate(() => JSON.stringify(VS.main.save.boons) + ' stage ' + VS.main.save.stage));
-
-  // Defeat.
-  await page.evaluate(() => { VS.main.startFight(2); const s = VS.main.fight.s; s.hero.hp = 0; s.result = 'lose'; });
-  await page.waitForFunction(() => VS.ui.current === 'lost'); await shot('13-lost', 400);
-  await button('Try the hour again'); await page.waitForFunction(() => VS.main.state === 'fight');
+  // Defeat in a campaign fight.
+  await page.evaluate(() => { VS.main.startNode('a0-1'); const s = VS.main.fight.s; s.hero.hp = 0; s.result = 'lose'; });
+  await page.waitForFunction(() => VS.ui.current === 'result'); await shot('13-lost', 400);
+  await button('Try again'); await page.waitForFunction(() => VS.main.state === 'fight');
 
   // Settings and credits.
   await page.evaluate(() => VS.main.title()); await page.waitForTimeout(200);
@@ -79,7 +89,7 @@ fs.mkdirSync(out, { recursive: true });
   const ph = await ctx.newPage(); ph.on('pageerror', (e) => errors.push('PHONE ' + e.message));
   await ph.goto(url); await ph.waitForFunction(() => VS.main && VS.main.state === 'title', null, { timeout: 60000 });
   await ph.waitForTimeout(600); await ph.screenshot({ path: `${out}/17-phone-title.png` });
-  await ph.evaluate(() => { VS.R.touch = true; VS.main.startFight(3); VS.main.save.opts.auto = true; });
+  await ph.evaluate(() => { VS.R.touch = true; VS.main.save.skills = VS.PROG.SKILLS.filter((k) => k.core).map((k) => k.id); VS.main.startFight(3); VS.main.save.opts.auto = true; });
   await ph.waitForFunction(() => VS.main.fight.s.wave === VS.main.fight.s.waves.length - 1 && !VS.main.fight.card, null, { timeout: 90000 });
   await ph.waitForTimeout(1500); await ph.screenshot({ path: `${out}/18-phone-boss.png` });
   await ctx.close();

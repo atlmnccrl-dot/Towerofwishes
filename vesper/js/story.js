@@ -85,6 +85,20 @@
       clash(5, 'firstCut')] },
   ];
 
+  // The campaign plays these pieces: the prologue before the first trial, each act's intro the
+  // first time you climb into it, and each guardian's intro before its fight.
+  const B = S.BEFORE;
+  S.PROLOGUE = { shots: B[0].shots.slice(0, 6) };
+  S.ACTS = [
+    { intro: null, boss: { shots: B[0].shots.slice(6) } },
+    { intro: { shots: B[1].shots.slice(0, 2) }, boss: { shots: B[1].shots.slice(2) } },
+    { intro: { shots: B[2].shots.slice(0, 2) }, boss: { shots: B[2].shots.slice(2) } },
+    { intro: { shots: B[3].shots.slice(0, 2) }, boss: { shots: B[3].shots.slice(2) } },
+    { intro: { shots: B[4].shots.slice(0, 2) }, boss: { shots: B[4].shots.slice(2) } },
+    { intro: { shots: B[5].shots.slice(0, 1) }, boss: { shots: B[5].shots.slice(1) } },
+    { intro: { shots: [{ k: 'title', top: 'AFTER DAWN', title: 'ECHOES OF THE NIGHT', sub: 'The guardians are gone, but their echoes still walk the Spire.', d: 3.4 }] }, boss: null },
+  ];
+
   // No lines are spoken in fights.
   S.PHASE = {};
 

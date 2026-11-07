@@ -18,12 +18,18 @@
   // Foes overall: tuned with the bot so a good run wins most hours and a sloppy one loses often.
   VS.DIFF = { hp: 1.4, bossHp: 1.35, dmg: 2.0 };
   VS.POWER = { dmg: 1.3, hp: 1.3, gain: 1.2, killHeal: 0.03 };
-  function mods(boons, H) {
-    const has = (id) => boons.indexOf(id) >= 0; H = H || D.HERO;
+  // boons: owned passives (skill tree ids). kit: unlocked abilities; without one, the whole kit.
+  const CORE = ['heavy', 'dodge', 'parry', 'skill1', 'skill2', 'art'];
+  function mods(boons, H, kit, rules) {
+    const has = (id) => boons.indexOf(id) >= 0; H = H || D.HERO; rules = rules || {};
+    const can = {}; for (const k of CORE) can[k] = !kit || kit.indexOf(k) >= 0;
+    if (rules.nomoon) can.art = false;
+    const glass = rules.glass ? 2 : 1;
     return {
+      can, rules, quick: has('quick') ? 0.7 : 1, exec: has('exec'),
       // The hero hits harder and lasts longer than the base kit, to match the bigger waves; kills heal.
-      dmg: VS.POWER.dmg * (H.pow || 1) * (has('edge') ? 1.2 : 1), hp: Math.round(H.hp * VS.POWER.hp) + (has('vigor') ? 30 : 0), parryWin: H.parry.win * (has('guard') ? 1.6 : 1),
-      gain: VS.POWER.gain * (has('moonblood') ? 1.4 : 1), killHeal: VS.POWER.killHeal, thirst: has('thirst') ? 0.05 : 0, combo: Math.min(H.combo.length, has('fourth') ? 5 : 4),
+      dmg: VS.POWER.dmg * (H.pow || 1) * (has('edge') ? 1.2 : 1) * (has('edge2') ? 1.15 : 1) * glass, hp: Math.round((Math.round(H.hp * VS.POWER.hp) + (has('vigor') ? 30 : 0) + (has('vigor2') ? 30 : 0)) / glass), parryWin: H.parry.win * (has('guard') ? 1.6 : 1),
+      gain: VS.POWER.gain * (has('moonblood') ? 1.4 : 1), killHeal: rules.noheal ? 0 : VS.POWER.killHeal, thirst: has('thirst') ? 0.05 : 0, combo: Math.min(H.combo.length, has('fourth') ? 5 : 4),
       dodgeDist: H.dodge.dist * (has('ghost') ? 1.3 : 1), perfect: H.dodge.perfect + (has('ghost') ? 0.08 : 0),
       riposte: has('riposte'), ldx: has('breath') ? 0.45 : H.lastDitch, moonStart: has('rising') ? 50 : 0,
     };
@@ -41,12 +47,14 @@
 
   function create(stageIdx, opts) {
     opts = opts || {};
-    const st = D.STAGES[stageIdx], boons = opts.boons || [], H = (D.HEROES && D.HEROES[opts.hero]) || (D.HEROES ? D.HEROES.vesper : D.HERO), M = mods(boons, H);
-    const s = { stage: stageIdx, def: st, t: 0, time: 0, rand: rng(opts.seed || 1), units: [], bolts: [], events: [], nextId: 1,
-      waves: st.waves.concat([st.bossWave]), wave: -1, waveT: 0.9, area: 0, portal: null, transit: null, freeze: 0, hitstop: 0, slow: 1, slowT: 0, cine: null,
+    // A campaign node brings its own waves, arenas, difficulty and rules; otherwise the classic hour.
+    const N = opts.node, st0 = D.STAGES[stageIdx], st = N ? Object.assign({}, st0, { arenas: N.arenas || st0.arenas, scale: N.scale || st0.scale }) : st0;
+    const boons = opts.boons || [], H = (D.HEROES && D.HEROES[opts.hero]) || (D.HEROES ? D.HEROES.vesper : D.HERO), M = mods(boons, H, opts.kit, N && N.rules);
+    const s = { stage: stageIdx, def: st, t: 0, time: 0, rand: rng(opts.seed || 1), units: [], bolts: [], events: [], nextId: 1, rules: M.rules, hasBoss: N ? !!N.boss : true,
+      waves: N ? N.waves.map((w) => w.slice()) : st.waves.concat([st.bossWave]), wave: -1, waveT: 0.9, area: 0, portal: null, transit: null, freeze: 0, hitstop: 0, slow: 1, slowT: 0, cine: null,
       result: null, endT: 0, moon: M.moonStart, mods: M, boons, combo: 0, comboT: 0, serial: 0, bossIds: [],
       heroDef: H, cds: [0, 0], hazards: [], invisT: 0,
-      stats: { dealt: 0, taken: 0, parries: 0, perfects: 0, arts: 0, ldx: 0, maxCombo: 0, hitsTaken: 0 } };
+      stats: { dealt: 0, taken: 0, parries: 0, perfects: 0, arts: 0, ldx: 0, maxCombo: 0, hitsTaken: 0, bossHits: 0, zoneHits: 0 } };
     curArena = arenaOf(s);
     const en = VS.entryOf(curArena); s.hero = makeUnit(s, 'hero', H.id, Object.assign({}, H, { hp: M.hp }), en.x * 0.6, en.y * 0.6, Math.atan2(-en.y, -en.x));
     return s;
@@ -100,7 +108,7 @@
   // Damage with no reaction of its own (zones): hp, flash, the floater, death.
   function directDamage(s, o, dmg, quiet) {
     if (!o.alive || o.state === 'spawn') return;
-    if (o === s.hero) { if (o.iframes > 0) return; dmg = Math.round(dmg); o.hp -= dmg; s.stats.taken += dmg; o.flash = 0.6; if (!quiet) ev(s, { type: 'hurt', x: o.x, y: o.y, dmg, id: o.id, small: true }); if (o.hp <= 0) { o.hp = 0; kill(s, o); } return; }
+    if (o === s.hero) { if (o.iframes > 0) return; dmg = Math.round(dmg); o.hp -= dmg; s.stats.taken += dmg; s.stats.zoneHits = (s.stats.zoneHits || 0) + 1; if (s.units.some((b) => b.alive && b.def.boss)) s.stats.bossHits = (s.stats.bossHits || 0) + 1; if (s.rules.nohit) o.hp = 0; o.flash = 0.6; if (!quiet) ev(s, { type: 'hurt', x: o.x, y: o.y, dmg, id: o.id, small: true }); if (o.hp <= 0) { o.hp = 0; kill(s, o); } return; }
     dmg = Math.max(1, Math.round(dmg * (o.team === 'foe' ? s.mods.dmg : 1))); o.hp -= dmg; if (o.team === 'foe') s.stats.dealt += dmg; o.flash = 0.5;
     if (!quiet) ev(s, { type: 'tick', x: o.x, y: o.y, dmg, id: o.id });
     if (o.hp <= 0) { o.hp = 0; kill(s, o); }
@@ -283,7 +291,7 @@
       const dmg = Math.round(k.dmg * (a.dmgMul || 1) * (a.phase === 2 ? 1.15 : 1));
       if (o !== s.hero) { o.hp -= dmg; o.flash = 1; push(o, a, (k.kb || 6) * 6); if (o.hp <= 0) { o.hp = 0; kill(s, o); } else { setState(o, 'hurt', 0.25); o.atk = null; } return; }
       if (k.slow) o.slowT = Math.max(o.slowT, k.slow);
-      o.hp -= dmg; s.stats.taken += dmg; s.stats.hitsTaken++; s.combo = 0; o.flash = 1;
+      o.hp -= dmg; s.stats.taken += dmg; s.stats.hitsTaken++; if (s.units.some((b) => b.alive && b.def.boss)) s.stats.bossHits = (s.stats.bossHits || 0) + 1; s.combo = 0; o.flash = 1; if (s.rules.nohit) o.hp = 0;
       push(o, bolt ? { x: bolt.x - bolt.vx, y: bolt.y - bolt.vy } : a, k.kb * 7);
       gainMoon(s, 9);
       ev(s, { type: 'hurt', x: o.x, y: o.y, dmg, id: o.id, big: dmg >= 16 });
@@ -294,7 +302,7 @@
     }
     // A foe hit by the hero (or a reflected bolt).
     if (o.iframes > 0 || o.state === 'dead' || o.state === 'spawn') return;
-    let mult = M.dmg * (o.state === 'down' ? 1.5 : 1);
+    let mult = M.dmg * (o.state === 'down' ? 1.5 : 1) * (M.exec && o.hp < o.maxHp * 0.25 ? 1.5 : 1);
     if (!bolt && a.riposte) { mult *= 3; a.riposte = false; ev(s, { type: 'riposte', x: o.x, y: o.y }); }
     const dmg = Math.max(1, Math.round(k.dmg * mult * (0.9 + 0.2 * s.rand())));
     o.hp -= dmg; s.stats.dealt += dmg; o.flash = 1; o.lastHit = s.time;
@@ -342,6 +350,7 @@
   // ---- the moon arts -----------------------------------------------------------------------
   VS.ART = { moon: { dur: 3.4, name: 'RED MOON' }, ldx: { dur: 6.4, name: 'LAST DITCH EFFORT' }, petals: { dur: 4.2, name: 'THOUSAND PETALS' }, storm: { dur: 4.2, name: "HEAVEN'S SPEAR" }, cuts: { dur: 4.2, name: 'HUNDRED CUTS' } };
   function startArt(s) {
+    if (!s.mods.can.art) return false;
     const h = s.hero; if (s.moon < 100 || !h.alive || s.cine || s.result) return false;
     const last = VS.ldxReady(s), art = s.heroDef.art || 'moon', kind = art === 'moon' ? (last ? 'ldx' : 'moon') : art;
     const tg = foes(s).filter((o) => o.state !== 'dead');
@@ -420,9 +429,9 @@
   function groupsOf(list) { const g = [[]]; for (const k of list) { if (k === '+') g.push([]); else g[g.length - 1].push(k); } return g.filter((x) => x.length); }
   function spawnWave(s) {
     s.wave++;
-    const groups = groupsOf(s.waves[s.wave]), boss = s.wave === s.waves.length - 1;
+    const groups = groupsOf(s.waves[s.wave]), boss = s.hasBoss && s.wave === s.waves.length - 1;
     s.reinf = groups.slice(1);
-    spawnGroup(s, groups[0], boss);
+    spawnGroup(s, groups[0], boss, !!s.rules.elites && !boss);
     if (boss) { s.freeze = 1.9; ev(s, { type: 'boss', keys: groups[0].slice() }); }
     else ev(s, { type: 'wave', n: s.wave + 1, of: s.waves.length - 1 });
   }
@@ -480,6 +489,7 @@
     if (!h) { if (u.state === 'idle' || u.state === 'move') { setAng(u, u.ang + dt * 0.6); if (u.state !== 'idle') setState(u, 'idle'); } return; }
     u.target = h;
     if (u.state === 'spawn' || u.state === 'air' || u.stunT > 0) return;
+    if (u.def.passive) { if (u.state === 'move') setState(u, 'idle'); setAng(u, Math.atan2(h.y - u.y, h.x - u.x)); return; }   // training dummies stand still
     if (u.tauntT > 0 && (u.state === 'idle' || u.state === 'move')) { if (u.state !== 'idle') setState(u, 'idle'); return; }
     // During a wind-up the foe keeps turning toward the hero, slowly: step aside and it misses.
     if (u.state === 'attack' && u.st < u.atk.wind * u.windMul * 0.75 && !u.atk.blink) {
@@ -535,8 +545,11 @@
   function heroStep(s, h, dt, inp) {
     const M = s.mods, H = s.heroDef;
     if (!h.alive || h.leap) return;
-    if (inp.art && startArt(s)) return;
+    const can = M.can;
+    if (inp.art && can.art && startArt(s)) return;
     const free = h.state === 'idle' || h.state === 'move';
+    if (!can.dodge) inp.dodge = false; if (!can.parry) inp.parry = false; if (!can.heavy) inp.heavy = false;
+    if (!can.skill1) inp.s1 = false; if (!can.skill2) inp.s2 = false;
     h.comboWin -= dt;
     if (inp.atk) { if (h.state === 'attack') h.queued = true; else h.bufAtk = 0.18; }
     if (inp.dodge) h.bufDodge = 0.16;
@@ -545,7 +558,7 @@
     h.bufHeavy = (h.bufHeavy || 0) - dt;
     h.bufAtk = (h.bufAtk || 0) - dt; h.bufDodge = (h.bufDodge || 0) - dt; h.bufParry = (h.bufParry || 0) - dt;
     let mx = inp.mx || 0, my = inp.my || 0; const mn = Math.hypot(mx, my); if (mn > 1) { mx /= mn; my /= mn; }
-    if (h.bufAtk > 0 && ((h.state === 'dodge' && h.st > h.dur * 0.35) || (free && s.time - (h.dodgeEnd || -9) < 0.14))) {
+    if (h.bufAtk > 0 && can.dodge && ((h.state === 'dodge' && h.st > h.dur * 0.35) || (free && s.time - (h.dodgeEnd || -9) < 0.14))) {
       h.bufAtk = 0; h.combo = 0; h.comboWin = 0; startAttack(s, h, H.dashCut); ev(s, { type: 'dashCut', x: h.x, y: h.y }); return;
     }
     const canCancel = h.state === 'attack' && h.st > h.atk.wind + 0.04;
@@ -558,7 +571,7 @@
     if (free && h.bufParry > 0) { h.bufParry = 0; setState(h, 'parry', H.parry.dur); ev(s, { type: 'guard', x: h.x, y: h.y }); return; }
     // Skills (R and F): a short cast, the effect on its contact frame, then the cooldown.
     for (let i = 0; i < 2; i++) if ((free || canCancel) && inp['s' + (i + 1)] && s.cds[i] <= 0 && H.skills && H.skills[i]) {
-      const sk = H.skills[i]; s.cds[i] = sk.cd; h.combo = 0; h.queued = false;
+      const sk = H.skills[i]; s.cds[i] = sk.cd * M.quick; h.combo = 0; h.queued = false;
       startAttack(s, h, { clip: sk.clip, wind: sk.kind === 'smoke' || sk.kind === 'blink' ? 0.04 : 0.12, recover: sk.kind === 'leapSlam' ? 0.05 : 0.22, skill: sk });
       return;
     }
@@ -591,6 +604,8 @@
     if (s.slowT > 0) { s.slowT -= dtReal; dt *= s.slow; }
     s.time += dt;
     const h = s.hero;
+    // A timed challenge: the clock running out ends the run.
+    if (s.rules.time && s.time > s.rules.time && h.alive && !s.result && s.endT <= 0) { h.hp = 0; ev(s, { type: 'timeout' }); kill(s, h); }
     s.aim = inp.aim != null ? inp.aim : null; curArena = arenaOf(s);
     if (s.transit) { transit(s, dtReal); return s; }
 
@@ -701,9 +716,9 @@
     if (s.comboT > 0) { s.comboT -= dt; if (s.comboT <= 0) s.combo = 0; }
 
     if (s.endT > 0) { s.endT -= dtReal; if (s.endT <= 0) s.result = h.alive ? 'win' : 'lose'; }
-    else if (h.alive && s.reinf && s.reinf.length && foes(s).filter((u) => !u.def.boss).length <= 1 && !foes(s).some((u) => u.state === 'spawn')) {
+    else if (h.alive && s.reinf && s.reinf.length && foes(s).filter((u) => !u.def.boss).length <= 1 && !foes(s).some((u) => u.state === 'spawn') && !foes(s).some((u) => u.def.boss && u.hp > u.maxHp * 0.6)) {
       s.reinfT = (s.reinfT || 0) + dt;
-      if (s.reinfT > 0.5) { s.reinfT = 0; const g = s.reinf.shift(); spawnGroup(s, g, false, s.stage >= 1); ev(s, { type: 'reinforce', n: g.length, left: s.reinf.length }); }
+      if (s.reinfT > 0.5) { s.reinfT = 0; const g = s.reinf.shift(); spawnGroup(s, g, false, s.stage >= 1 || !!s.rules.elites); ev(s, { type: 'reinforce', n: g.length, left: s.reinf.length }); }
     }
     else if (h.alive && !foes(s).length) {
       if (s.wave >= s.waves.length - 1) { s.endT = 2.2; setState(h, 'win'); ev(s, { type: 'clear' }); }
@@ -728,9 +743,9 @@
       mem.seen[u.serial] = true;
       const reach = (k.aoe ? (k.at || 0) + k.aoe : (k.reach || 0) + (k.lunge || 0)) * u.scale + 12;
       if (k.bolt || k.blink || dist(h, u) > reach) continue;
-      if (r() < skill) {
-        if (!k.unparry && r() < 0.6) inp.parry = true;
-        else { inp.dodge = true; const a = Math.atan2(h.y - u.y, h.x - u.x) + (r() < 0.5 ? 1.2 : -1.2); inp.mx = Math.cos(a); inp.my = Math.sin(a); }
+      if (r() < skill && (s.mods.can.parry || s.mods.can.dodge)) {
+        if (!k.unparry && s.mods.can.parry && (r() < 0.6 || !s.mods.can.dodge)) inp.parry = true;
+        else if (s.mods.can.dodge) { inp.dodge = true; const a = Math.atan2(h.y - u.y, h.x - u.x) + (r() < 0.5 ? 1.2 : -1.2); inp.mx = Math.cos(a); inp.my = Math.sin(a); }
         return inp;
       }
     }
@@ -740,27 +755,36 @@
       const ttc = along / sp;
       if (ttc > 0 && ttc < 0.14 && side < 12) {
         b.seen = true;
-        if (r() < skill) { if (r() < 0.5) inp.parry = true; else { inp.dodge = true; inp.mx = -b.vy / sp; inp.my = b.vx / sp; } return inp; }
+        if (r() < skill) { if (s.mods.can.parry && (r() < 0.5 || !s.mods.can.dodge)) { inp.parry = true; return inp; } if (s.mods.can.dodge) { inp.dodge = true; inp.mx = -b.vy / sp; inp.my = b.vx / sp; return inp; } }
       }
     }
-    if (s.moon >= 100 && foes(s).some((u) => u.state !== 'spawn') && (VS.ldxReady(s) || s.units.some((u) => u.alive && u.def.boss))) { inp.art = true; return inp; }
+    const can = s.mods.can;
+    if (can.art && s.moon >= 100 && foes(s).some((u) => u.state !== 'spawn') && (VS.ldxReady(s) || s.units.some((u) => u.alive && u.def.boss))) { inp.art = true; return inp; }
     // Step out of danger on the floor: a strike about to land, a burning or poisoned zone, a tornado.
     for (const z of s.hazards) {
       if (z.team === 'hero') continue;
       const dx = h.x - z.x, dy = h.y - z.y, dd = Math.hypot(dx, dy) || 1;
       if (dd > z.r + h.rad + 6 || (z.kind === 'strike' && z.delay - z.t > 0.6)) continue;
-      if (r() < skill) { inp.mx = dx / dd; inp.my = dy / dd; if (z.kind === 'strike' && z.delay - z.t < 0.25 && r() < 0.5) inp.dodge = true; return inp; }
+      if (r() < skill) { inp.mx = dx / dd; inp.my = dy / dd; if (z.kind === 'strike' && z.delay - z.t < 0.25 && r() < 0.5 && can.dodge) inp.dodge = true; return inp; }
     }
-    if (s.portal && !s.transit) { const dx = s.portal.x - h.x, dy = s.portal.y - h.y, d = Math.hypot(dx, dy) || 1; inp.mx = dx / d; inp.my = dy / d; return inp; }
+    if (s.portal && !s.transit) {
+      let tx = s.portal.x, ty = s.portal.y; const A = arenaOf(s);
+      // Around the pit's hole, not into it: aim at a point further round the ring.
+      if (A.shape === 'donut') {
+        const sx = tx - h.x, sy = ty - h.y, L2 = sx * sx + sy * sy || 1, k = Math.max(0, Math.min(1, -(h.x * sx + h.y * sy) / L2)), cx = h.x + sx * k, cy = h.y + sy * k;
+        if (Math.hypot(cx, cy) < A.inner + 16) { const ah = Math.atan2(h.y, h.x), sg = angDiff(Math.atan2(ty, tx), ah) >= 0 ? 1 : -1, rm = (A.inner + A.r) / 2; tx = Math.cos(ah + sg * 0.8) * rm; ty = Math.sin(ah + sg * 0.8) * rm; }
+      }
+      const dx = tx - h.x, dy = ty - h.y, d = Math.hypot(dx, dy) || 1; inp.mx = dx / d; inp.my = dy / d; return inp;
+    }
     const o = nearestFoe(s, h);
     if (!o) return inp;
-    if (foes(s).filter((f) => f.state !== 'spawn' && dist(f, h) < 40).length >= 2 && r() < 0.05) { inp.heavy = true; return inp; }
+    if (can.heavy && foes(s).filter((f) => f.state !== 'spawn' && dist(f, h) < 40).length >= 2 && r() < 0.05) { inp.heavy = true; return inp; }
     const H = s.heroDef, d = dist(o, h), want = H.ranged ? 95 : 18 + o.rad;
-    if (H.skills) for (let i = 0; i < 2; i++) if (s.cds[i] <= 0 && d < 130 && r() < 0.03) { inp['s' + (i + 1)] = true; return inp; }
+    if (H.skills) for (let i = 0; i < 2; i++) if (can['skill' + (i + 1)] && s.cds[i] <= 0 && d < 130 && r() < 0.03) { inp['s' + (i + 1)] = true; return inp; }
     if (d > want + 4) { inp.mx = (o.x - h.x) / d; inp.my = (o.y - h.y) / d; } else if (H.ranged && d < want - 25) { inp.mx = -(o.x - h.x) / d; inp.my = -(o.y - h.y) / d; }
-    if (H.ranged ? d <= 230 : d <= 26 + o.rad) { if (!H.ranged) { inp.mx = 0; inp.my = 0; } inp.atk = true; }
+    if (H.ranged ? d <= 230 : d <= 26 + o.rad) { if (!H.ranged) { inp.mx = 0; inp.my = 0; } else inp.aim = Math.atan2(o.y - h.y, o.x - h.x); inp.atk = true; }
     return inp;
   }
 
-  VS.sim = { create, step, bot, rng, foes, startArt, mods, angDiff, makeUnit };
+  VS.sim = { create, step, bot, rng, foes, startArt, mods, angDiff, makeUnit, CORE };
 })(typeof window !== 'undefined' ? window : globalThis);

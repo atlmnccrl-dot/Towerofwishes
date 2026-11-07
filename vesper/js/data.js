@@ -88,8 +88,33 @@
       skills: [
         { name: 'Shadow Clones', kind: 'clones', cd: 10, clip: 'Taunt', n: 2, dur: 6 },
         { name: 'Smoke Veil', kind: 'smoke', cd: 8, clip: 'Rolling', r: 56, stun: 1.3 }] }),
+    // Unlocked at level 12: a frost duelist who slows everything she cuts.
+    rime: Object.assign({}, base, { id: 'rime', pow: 0.95, name: 'Rime', title: 'The Frost Blade', weapon: 'Twin blades', color: '#8ad0ff', set: 'frost_assassin', art: 'cuts', hp: 110, spd: 132,
+      blurb: 'Quick twin blades that chill. Frost fields, ice dashes, everything slows around her.',
+      combo: [
+        { clip: 'Attack1', wind: 0.08, recover: 0.14, reach: 28, dmg: 5, poise: 5, kb: 4, step: 8, fx: 'slash' },
+        { clip: 'Attack2', wind: 0.08, recover: 0.14, reach: 28, dmg: 5, poise: 5, kb: 4, step: 8, fx: 'slash' },
+        { clip: 'Attack6', wind: 0.1, recover: 0.18, reach: 28, dmg: 7, poise: 8, kb: 8, step: 8, fx: 'slash', slow: 1.5 },
+        { clip: 'Attack3', wind: 0.14, recover: 0.28, reach: 32, dmg: 12, poise: 14, kb: 20, step: 10, fx: 'finisher', finisher: true, slow: 2.5 },
+        { clip: 'Attack5', wind: 0.14, recover: 0.3, reach: 34, dmg: 14, poise: 16, kb: 22, step: 12, fx: 'finisher', finisher: true, slow: 3 }],
+      heavy: { clip: 'Special1', wind: 0.24, recover: 0.36, aoe: 46, at: 0, dmg: 13, poise: 20, kb: 28, fx: 'frost', slow: 3 },
+      skills: [
+        { name: 'Frost Field', kind: 'zone', cd: 8, clip: 'Special1', r: 50, dur: 4.5, dps: 9, slow: 1, fx: 'frost_nova', range: 120 },
+        { name: 'Glacial Step', kind: 'blinkStrike', cd: 6, clip: 'Attack4', dmg: 16, range: 150, r: 34, poise: 18 }] }),
+    // Unlocked by defeating him: the swordsman who cut the moon, seven hundred years of practice.
+    firstcut: Object.assign({}, base, { id: 'firstcut', pow: 1.0, name: 'The First Cut', title: 'Who Wounded the Moon', weapon: 'Longsword', color: '#ffffff', set: 'master_knight', art: 'moon', hp: 140, spd: 120,
+      blurb: 'The swordsman himself. Long, heavy cuts and the moon art he invented.',
+      combo: [
+        { clip: 'Attack1', wind: 0.11, recover: 0.2, reach: 36, arc: 1.7, dmg: 8, poise: 8, kb: 6, step: 8, fx: 'slash' },
+        { clip: 'Attack2', wind: 0.11, recover: 0.22, reach: 36, arc: 1.7, dmg: 8, poise: 8, kb: 6, step: 8, fx: 'slash' },
+        { clip: 'Attack6', wind: 0.13, recover: 0.24, reach: 38, dmg: 10, poise: 12, kb: 14, step: 9, fx: 'slash' },
+        { clip: 'Attack3', wind: 0.17, recover: 0.32, reach: 40, dmg: 14, poise: 16, kb: 22, step: 11, fx: 'finisher', finisher: true },
+        { clip: 'Attack4', wind: 0.18, recover: 0.36, reach: 44, dmg: 18, poise: 20, kb: 28, step: 14, fx: 'finisher', finisher: true }],
+      skills: [
+        { name: 'Moon Cleave', kind: 'wave', cd: 6, clip: 'Attack3', dmg: 18, speed: 320, r: 20, fx: 'dark_slash', poise: 18 },
+        { name: 'Seven Centuries', kind: 'blinkStrike', cd: 7, clip: 'Attack4', dmg: 22, range: 170, r: 38, poise: 24 }] }),
   };
-  D.HERO_ORDER = ['vesper', 'lys', 'kestrel', 'wisp'];
+  D.HERO_ORDER = ['vesper', 'lys', 'kestrel', 'wisp', 'rime', 'firstcut'];
   // Wisp's shadow clones.
   D.CLONE = { name: 'Shadow', set: 'nox', hp: 30, spd: 130, poise: 0, ally: true,
     atks: [{ clip: 'Attack1', wind: 0.12, recover: 0.22, reach: 26, dmg: 5, poise: 5, kb: 6 }, { clip: 'Attack6', wind: 0.12, recover: 0.22, reach: 26, dmg: 5, poise: 5, kb: 6 }] };
@@ -104,6 +129,8 @@
   //  next: chains into another attack of the same foe; range: [min, max] distance it is chosen at;
   //  phase: only from phase 2.
   D.FOES = {
+    // A training dummy for the first trial: stands, takes cuts, never strikes back.
+    dummy: { name: 'Training Husk', set: 'thug_a', hp: 26, spd: 0, poise: 0, minion: true, passive: true, color: '#9a8a92', atks: [{ clip: 'Attack1', wind: 9, recover: 1, reach: 1, dmg: 0, kb: 0 }] },
     ghoul: { name: 'Ghoul', set: 'thug_a', hp: 34, spd: 52, poise: 0, minion: true, color: '#b9a2d8',
       atks: [{ clip: 'Attack1', wind: 0.5, recover: 0.45, reach: 26, dmg: 7, kb: 8 }] },
     ghast: { name: 'Ghast', set: 'thug_b', hp: 48, spd: 58, poise: 0, minion: true, color: '#c7b0e8',

@@ -907,7 +907,8 @@
     const bw = Math.min(W * 0.3, 250 * k), hf = h.hp / h.maxHp;
     slantBar(ctx, m, m + 17 * k, bw, 9 * k, hf, trailOf('hero', hf, dt), RED);
     label(ctx, `${Math.ceil(h.hp)}`, m + bw + 8 * k, m + 25 * k, 12 * k, '#f3eef0', 'left', 0, 700);
-    // The moon gauge.
+    // The moon gauge (once the ultimate is learned).
+    if (!s.mods.can || s.mods.can.art) {
     const gx = m + 16 * k, gy = m + 52 * k, gr = 14 * k, mk = s.moon / 100, full = mk >= 1;
     ctx.lineWidth = 3 * k * 0.8; ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.beginPath(); ctx.arc(gx, gy, gr, 0, 7); ctx.stroke();
     ctx.strokeStyle = full ? RED : '#c8203a'; ctx.beginPath(); ctx.arc(gx, gy, gr, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * mk); ctx.stroke();
@@ -916,8 +917,9 @@
     if (full) {
       const ldx = VS.ldxReady(s);
       label(ctx, ldx ? 'LAST DITCH EFFORT' : 'RED MOON', gx + gr + 10 * k, gy + 1 * k, (ldx ? 15 : 13) * k, ldx ? (Math.sin(R.t * 10) > 0 ? RED : '#ffffff') : '#ff8a9a', 'left', 2, 700);
-      label(ctx, opts.touch ? 'TAP MOON' : 'PRESS L', gx + gr + 10 * k, gy + 14 * k, 9 * k, '#a99aa2', 'left', 2);
+      label(ctx, opts.touch ? 'TAP MOON' : 'PRESS E', gx + gr + 10 * k, gy + 14 * k, 9 * k, '#a99aa2', 'left', 2);
     } else label(ctx, `MOON ${Math.floor(s.moon)}%`, gx + gr + 10 * k, gy + 4 * k, 10 * k, '#a99aa2', 'left', 2);
+    }
     // Bosses.
     const bosses = s.units.filter((u) => u.def.boss && (u.alive || u.deadT < 1));
     // Bosses: a long slim bar at the bottom centre, between the stick and the buttons on a phone.
@@ -931,9 +933,13 @@
       ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.fillRect(bx + bwid * 0.5, by - 2 * k, Math.max(1, R.dpr), 11 * k);
       if (b.maxPoise) { ctx.fillStyle = 'rgba(255,208,96,0.85)'; ctx.fillRect(bx + 6 * k, by + 10 * k, (bwid - 12 * k) * b.poise / b.maxPoise, 2 * k); }
     });
-    { const G = VS.STORY && VS.STORY.GOALS && VS.STORY.GOALS[s.stage], gx = W - m - (opts.touch ? 44 * k : 0), last = s.area >= s.waves.length - 1;
+    { const G = s.goal || (VS.STORY && VS.STORY.GOALS && VS.STORY.GOALS[s.stage]), gx = W - m - (opts.touch ? 44 * k : 0), last = s.hasBoss && s.area >= s.waves.length - 1;
       if (G) { label(ctx, 'GOAL', gx, m + 10 * k, 9 * k, RED, 'right', 3, 700); label(ctx, (s.portal && !s.transit ? 'Go through the door' : last ? G.boss : G.reach).toUpperCase(), gx, m + 25 * k, 12 * k, '#f3eef0', 'right', 2, 700); }
-      if (!bosses.length) label(ctx, `AREA ${(s.area || 0) + 1} / ${s.waves.length}`, gx, m + 40 * k, 9 * k, '#a99aa2', 'right', 3); }
+      if (!bosses.length) label(ctx, `AREA ${(s.area || 0) + 1} / ${s.waves.length}`, gx, m + 40 * k, 9 * k, '#a99aa2', 'right', 3);
+      // Challenge rules: the clock, or a reminder that one hit ends it.
+      if (s.rules && s.rules.time) { const left = Math.max(0, s.rules.time - s.time), urgent = left < 15; label(ctx, `${Math.floor(left / 60)}:${String(Math.floor(left % 60)).padStart(2, '0')}`, gx, m + 66 * k, 22 * k, urgent && Math.sin(R.t * 10) > 0 ? RED : '#ffffff', 'right', 2, 700); }
+      if (s.rules && s.rules.nohit) label(ctx, 'UNTOUCHABLE', gx, m + 58 * k, 11 * k, '#c9a0ff', 'right', 4, 700);
+      if (s.rules && s.rules.glass) label(ctx, 'GLASS BLADE', gx, m + 58 * k, 11 * k, '#c9a0ff', 'right', 4, 700); }
     if (s.combo >= 3) {
       const c = s.combo, x = W - m - (opts.touch ? 6 * k : 0), y = R.H * 0.36;
       ctx.save(); ctx.font = R.fd((30 + Math.min(14, c * 0.4)) * k, 700); ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic';
@@ -948,6 +954,7 @@
     if (touch || !s.heroDef.skills) return;
     const k = R.k, m = 18 * k, sz = 34 * k;
     s.heroDef.skills.forEach((sk, i) => {
+      if (s.mods.can && !s.mods.can['skill' + (i + 1)]) return;
       const x = m + i * (sz + 96 * k), y = R.H - m - sz - 22 * k, cd = s.cds[i] / sk.cd, ready = s.cds[i] <= 0;
       ctx.save(); ctx.fillStyle = 'rgba(10,6,12,0.6)'; ctx.fillRect(x, y, sz, sz);
       if (!ready) { ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.beginPath(); ctx.moveTo(x + sz / 2, y + sz / 2); ctx.arc(x + sz / 2, y + sz / 2, sz * 0.7, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (1 - cd)); ctx.closePath(); ctx.save(); ctx.clip(); ctx.fillRect(x, y, sz, sz); ctx.restore(); }
@@ -995,7 +1002,7 @@
         { id: 'parry', x: W - m - 136 * k, y: H - m - 110 * k, r: 28 * k }, { id: 'heavy', x: W - m - 48 * k, y: H - m - 150 * k, r: 28 * k },
         { id: 'art', x: W - m - 128 * k, y: H - m - 186 * k, r: 26 * k },
         { id: 's1', x: W - m - 226 * k, y: H - m - 34 * k, r: 26 * k }, { id: 's2', x: W - m - 216 * k, y: H - m - 112 * k, r: 26 * k },
-        { id: 'pause', x: W - m - 18 * k, y: m + 18 * k, r: 18 * k }] };
+        { id: 'pause', x: W - m - 18 * k, y: m + 18 * k, r: 18 * k }].filter((b) => !R.kit || R.kit[{ dodge: 'dodge', parry: 'parry', heavy: 'heavy', art: 'art', s1: 'skill1', s2: 'skill2' }[b.id]] !== false) };
   };
   function icon(ctx, id, x, y, r, col) {
     ctx.save(); ctx.translate(x, y); ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = Math.max(2, r * 0.11); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
@@ -1088,6 +1095,20 @@
     ctx.font = R.fd(22 * k, 700); const hw = Math.max(120 * k, (ctx.measureText(text).width + text.length * 6 * R.dpr) / 2 + 26 * k);
     ctx.fillStyle = rgba(col === RED ? '#ff2a44' : '#ffffff', 0.5); ctx.fillRect(R.W / 2 - lw - hw, y - 6 * k, lw, Math.max(1, R.dpr)); ctx.fillRect(R.W / 2 + hw, y - 6 * k, lw, Math.max(1, R.dpr));
     label(ctx, text, R.W / 2, y, 22 * k, col, 'center', 6, 700); if (sub) label(ctx, sub, R.W / 2, y + 18 * k, 10 * k, '#d8c8d0', 'center', 4, 600); ctx.restore();
+  };
+  // A coaching card at the top of the screen: the tutorial's steps and new-ability tips.
+  R.coach = function (ctx, o) {
+    const k = R.k, a = Math.min(1, o.t * 4, o.life != null ? (o.life - o.t) * 3 : 1); if (a <= 0) return;
+    const w = Math.min(R.W * 0.62, 520 * k), h = 64 * k, x = R.W / 2 - w / 2, y = 70 * k + (1 - a) * -12 * k;
+    ctx.save(); ctx.globalAlpha = a;
+    ctx.fillStyle = 'rgba(10,6,12,0.86)'; ctx.fillRect(x, y, w, h); ctx.fillStyle = o.col || '#ffd060'; ctx.fillRect(x, y, 3 * k, h);
+    label(ctx, o.title, x + 16 * k, y + 22 * k, 11 * k, o.col || '#ffd060', 'left', 4, 700);
+    ctx.font = R.fb(15 * k, 500); ctx.fillStyle = '#f3eef0'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    const words = o.text.split(' '); let line = '', ly = y + 42 * k;
+    for (const wd of words) { if (ctx.measureText(line + ' ' + wd).width > w - 32 * k && line) { ctx.fillText(line, x + 16 * k, ly); ly += 18 * k; line = wd; } else line = line ? line + ' ' + wd : wd; }
+    ctx.fillText(line, x + 16 * k, ly);
+    if (o.of) for (let i = 0; i < o.of; i++) { ctx.fillStyle = i < o.step ? (o.col || '#ffd060') : i === o.step ? '#ffffff' : 'rgba(255,255,255,0.2)'; ctx.fillRect(x + w - (o.of - i) * 14 * k - 6 * k, y + 14 * k, 9 * k, 3 * k); }
+    ctx.restore();
   };
   R.hint = function (ctx, text, a) { ctx.save(); ctx.globalAlpha = a; label(ctx, text, R.W / 2, R.H - 20 * R.k, 11 * R.k, '#d8c8d0', 'center', 2, 500); ctx.restore(); };
 

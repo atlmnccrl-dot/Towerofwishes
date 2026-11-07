@@ -31,6 +31,41 @@ At low health every ultimate hits as hard as the Last Ditch Effort and heals 30 
 
 ## The night
 
+## The campaign
+
+The game is a climb up the Spire on a scrolling map (`js/mapview.js`): seven acts, one per hour
+of the night plus the post-game, each a band in its hour's colours split from the next by cloud.
+65 nodes join by branching paths: **trials** (the tutorial), **battles**, **elites** (every wave
+led by an elite), **challenges** (against the clock, Glass Blade, Untouchable, Moonless, No Mercy,
+the Horde), **shrines** (a skill point) and a **guardian** at the top of each act. The post-game act,
+Echoes of the Night, brings every guardian back stronger and ends with the Endless Night. Nodes
+open as you clear the ones below them; each has three stars (win, finish above half health, and a
+goal that depends on the node: a time, a 20-hit combo, or beating the guardian without a hit). The
+story plays where it belongs: the prologue before the first trial, each act's intro the first
+time you climb into it, each guardian's intro before its fight, the ending after the First Cut.
+
+**Levels and the skill tree** (`js/progress.js`): fights give experience (more the first time,
+more per new star, a little for trying); every level gives a skill point, so do shrines and
+guardians. You start with only movement and the light-attack combo. Dodge, parry, the heavy
+attack, both skills and the ultimate are learned in the skill tree's three branches (Blade,
+Shadow, Moon) alongside passives (more damage, health, a wider parry window, a faster moon, an
+executioner bonus, quicker skills). Refunding the whole tree is free. A new ability gets a short
+tip card the first time you fight with it.
+
+**Heroes**: Vesper starts. Lys unlocks at level 4, Kestrel by defeating the Umbral, Wisp by
+defeating any guardian without being hit (the Untouchable challenge is made for it), Rime at
+level 12, and the First Cut himself by defeating him. The roster shows locked heroes as shadows
+with what it takes and how close you are.
+
+**Tutorial**: the First Steps trial walks you through moving, cutting, chaining a combo on
+training husks, then a real fight, with a coaching card for each step.
+
+**Balance**: `node test/campaign-test.js [runs] [hero]` plays the whole map in order with the
+profile a player would have by then (levels from the experience earned, skills bought in a sensible
+order). With the bot at a good player's skill: Act I about 100%, the middle acts mostly 70 to 100%,
+the last acts 50 to 90%, the post-game harder; about 80% overall for every hero. The First Cut:
+50 to 88% depending on the hero. Knobs: `P.TUNE` and the per-node adjustments in `progress.js`.
+
 ## Combat
 
 Fights are seen from a helicopter camera: high above and a little to the side at one fixed angle,
@@ -133,6 +168,8 @@ style: they are drawn on a 180 px buffer laid over the game and scaled up withou
 | File | Role |
 |---|---|
 | `js/data.js` | Hero, Lys, foes and their attacks, stages, boons. Pure |
+| `js/progress.js` | The profile, experience and levels, the skill tree, hero unlocks, the campaign's nodes, their fights, stars and rewards. Pure |
+| `js/mapview.js` | The campaign map: the Spire, act bands, paths, nodes, guardians, input |
 | `js/story.js` | The story: shot lists with captions, each hour's goal, the ending. Pure |
 | `js/sim.js` | The fight simulation on a round 2D ring (cones and circles, waves, parry, dodge, dash-cut, poise, the moon arts) and a bot. Pure, runs in Node |
 | `js/assets.js` | Loads and draws the cast (plain, flashed, silhouette, hard grey), effects and tiles |
