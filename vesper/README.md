@@ -39,21 +39,33 @@ Fights are seen from a helicopter camera: high above and a little to the side at
 over a round ring floating in the night. Move freely; foes surround you and keep turning toward you
 while they wind up, so stepping aside makes them miss.
 
-- **Move** WASD or arrows (the touch stick moves the way you push it on screen). **Cut** J: a
-  three-hit combo, auto-aimed at the nearest foe. Every blow freezes the frame for a few
-  hundredths of a second so it lands.
+- **PC**: WASD to move, the mouse aims. **Left click** cuts (slash, slash, kick, cut; a fifth cut
+  with the Fifth Cut boon), **right click** is the heavy, a spinning cut all around. **Space**
+  dashes, **Q** or Shift parries, **E** plays the moon art. Keys only: J cut, K heavy, L parry.
+  Touch: a stick, CUT, HEAVY, DASH, PARRY and MOON buttons.
 - **Danger on the floor**: during a wind-up the floor shows where the blow will land: the circle
   of a slam, the strip of a lunge, the cone of a swing. A ring also closes over the foe's head.
-- **Parry** K: a short window. **White** danger can be parried; a parry staggers the attacker and
-  reflects bolts back at whoever threw them.
-- **Dash** Space: i-frames. **Red** danger cannot be parried, only dashed out of or through.
-  Dashing at the last moment is a perfect dodge (slow motion). **Cut during or right after a dash**
-  for a lunging dash-cut.
-- **Moon** L: the gauge fills from cuts, parries, perfect dodges and taking hits. Full, it plays the
+  **White** can be parried; a parry staggers the attacker and reflects bolts. **Red** can only be
+  dashed out of or through. Dash at the last moment for a perfect dodge; cut during or right after
+  a dash for a lunging dash-cut.
+- **Impact frames**: parries, finishers that kill, boss poise breaks, boss landings and boss deaths
+  flash white with black silhouettes, then black with white ones, as in the moon arts.
+- **Areas**: each hour is a chain of arenas. Clear one and the way on opens at the back of the ring
+  (a gate of light, a stairway into the sky, or a rift); walk into it to cross to the next arena.
+  Foes rise out of rifts in the floor; bosses drop from the sky onto a marked spot.
+- **Moon**: the gauge fills from cuts, parries, perfect dodges and taking hits. Full, it plays the
   **Red Moon** (3.4 s). At 30 % health or less it plays the **Last Ditch Effort** instead (6.4 s,
   more than twice the damage, heals 30 %). Tap or any key skips to the final frame.
-- Bosses have poise (the gold line under their bar): break it to knock them down for extra damage.
-- Esc pauses (restart the hour, auto battle, quit). Touch: a stick on the left, buttons on the right.
+- Bosses have poise (the gold line under their bar): break it to knock them down. At half health
+  they enter a second phase, wrapped in a dark aura.
+- Esc pauses (restart the hour, auto battle, quit).
+
+## Story scenes
+
+Each hour opens with an anime sequence drawn like the moon arts, on the pixel buffer: glitch title
+cards, reveals against the moon, grey close-ups with the red eye, speed lines, clashes that land on
+impact frames, and the first cut across the moon in the prologue. Shots play on their own; a tap
+moves on, Esc skips the scene. The shot lists live in `js/story.js`, the shots in `js/scene.js`.
 
 ## Look
 
@@ -69,11 +81,11 @@ style: they are drawn on a 180 px buffer laid over the game and scaled up withou
 | File | Role |
 |---|---|
 | `js/data.js` | Hero, Lys, foes and their attacks, stages, boons. Pure |
-| `js/story.js` | The scenes, the bosses' phase lines, the ending. Pure |
+| `js/story.js` | The story scenes as shot lists, the bosses' phase lines, the ending. Pure |
 | `js/sim.js` | The fight simulation on a round 2D ring (cones and circles, waves, parry, dodge, dash-cut, poise, the moon arts) and a bot. Pure, runs in Node |
 | `js/assets.js` | Loads and draws the cast (plain, flashed, silhouette, hard grey), effects and tiles |
 | `js/view.js` | The full-resolution game: the helicopter view for fights (projection, ring, props, floor danger, fighters, effects), the side-on stage for menus and scenes, HUD, touch controls, dialogue, boss card |
-| `js/px.js`, `js/cine.js` | The pixel buffer and the moon arts drawn on it |
+| `js/px.js`, `js/cine.js`, `js/scene.js` | The pixel buffer, the moon arts and the story scenes drawn on it |
 | `js/ui.js` | Menus as buttons: title, settings, credits, boon pick, defeat, pause |
 | `js/audio.js`, `js/main.js` | Sound; the loop, input, saves and the flow |
 

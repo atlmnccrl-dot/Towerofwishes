@@ -98,6 +98,10 @@
     }
   }
 
+  // Red embers rising through a shot (the hero's power gathering).
+  function embers(ctx, T, n, x0, x1, col) {
+    for (let i = 0; i < n; i++) { const x = x0 + hash(i, 61) * (x1 - x0) + Math.sin(T * 3 + i) * 3, y = H() - ((T * (30 + hash(i, 62) * 50) + hash(i, 63) * H()) % (H() + 10)); ctx.fillStyle = i % 4 ? col : '#ffffff'; ctx.fillRect(Math.round(x), Math.round(y), i % 3 ? 1 : 2, i % 3 ? 1 : 2); }
+  }
   // The figures in the shot.
   const hero = (s) => s.hero;
   const target = (s, c) => s.units.find((u) => u.id === c.main) || s.units.find((u) => u.team === 'foe');
@@ -108,8 +112,10 @@
   B.snap = function (ctx, s, c, k) {
     fill(ctx, INK, Math.min(0.92, k * 1.6));
     const h = hero(s), at = R.heroAt || { x: W() / 2, y: H() * 0.8, k: 1 }, x = Math.round(at.x), y = Math.round(at.y);
-    A.actor(ctx, h.set, 'Idle4', 0, h.face > 0 ? 0 : Math.PI, x, y, at.k, { shade: RED, alpha: 0.4 + 0.6 * k });
-    A.actor(ctx, h.set, 'Idle4', 0, h.face > 0 ? 0 : Math.PI, x, y, at.k, { alpha: 1 - k });
+    const fr = Math.min(6, Math.floor(k * 7)), fa = h.face > 0 ? 0 : Math.PI;
+    A.actor(ctx, h.set, 'Special1', fr, fa, x, y, at.k, { shade: RED, alpha: 0.4 + 0.6 * k });
+    A.actor(ctx, h.set, 'Special1', fr, fa, x, y, at.k, { alpha: 1 - k });
+    for (let i = 0; i < 14; i++) { const px = x + (hash(i, 5) - 0.5) * 30 * at.k, py = y - ((k * 60 + hash(i, 6) * 40) % 50) * at.k; ctx.fillStyle = i % 3 ? RED : '#ffffff'; ctx.fillRect(Math.round(px), Math.round(py), 1, 2); }
     const lw = Math.round(W() * ease(k * 1.4));
     ctx.fillStyle = RED; ctx.fillRect(x - lw / 2, y - Math.round(22 * at.k), lw, 1);
     if (k > 0.75) { ctx.fillStyle = '#ffffff'; ctx.fillRect(0, y - Math.round(22 * at.k), W(), 1); }
@@ -120,7 +126,9 @@
     const h = hero(s), sc = 5.4 + 0.7 * ease(k), bx = A.box(h.set, 'Idle4', 0, 0, sc);
     const head = { x: 22 * sc, y: 6 * sc };
     const fx = Math.round(W() * 0.58 - bx.x - head.x), fy = Math.round(H() * 0.4 - bx.y - head.y);
-    A.actor(ctx, h.set, 'Idle4', 0, 0, fx, fy, sc, { grey: true });
+    embers(ctx, T, 26, 0, W(), RED);
+    const sway = Math.round(Math.sin(T * 2.2) * 2);
+    A.actor(ctx, h.set, 'Idle4', Math.floor(T * 7) % 15, 0, fx + sway, fy, sc, { grey: true });
     const ex = fx + bx.x + head.x, ey = fy + bx.y + head.y;
     // The eye: a red slit, then its glow.
     const open = ease((k - 0.15) / 0.35);
@@ -186,7 +194,8 @@
     fill(ctx, INK);
     hStreaks(ctx, 40, 'rgba(120,120,135,0.6)', 3, T, 1300);
     const h = hero(s), sc = 4.4, fr = Math.min(14, 6 + Math.floor(k * 9));
-    const fx = Math.round(W() * 0.66 + (1 - ease(k * 2)) * 30), fy = Math.round(H() * 1.12);
+    const fx = Math.round(W() * 0.7 - ease(k * 1.6) * W() * 0.08), fy = Math.round(H() * 1.12);
+    for (let i = 3; i >= 1; i--) A.actor(ctx, h.set, 'Special1', Math.max(0, fr - i), Math.PI, fx + i * 10, fy, sc, { shade: i === 1 ? '#5a1020' : '#2a0810', alpha: 0.5 - i * 0.12 });
     A.actor(ctx, h.set, 'Special1', fr, Math.PI, fx, fy, sc, { grey: true });
     if (k > 0.42) {
       const kk = ease((k - 0.42) / 0.3), y0 = H() * 0.48, x0 = fx - 40;
@@ -211,7 +220,8 @@
     ctx.fillStyle = '#e8e8ee'; ctx.beginPath(); ctx.moveTo(0, H() * 0.18); ctx.lineTo(W() * 0.62, H() * 0.08); ctx.lineTo(W() * 0.5, H() * 0.92); ctx.lineTo(0, H()); ctx.closePath(); ctx.fill();
     const L = D.LYS, sc = 4.2, fx = Math.round(W() * 0.27 + (1 - ease(k * 3)) * -20), fy = Math.round(H() * 1.18);
     ctx.save(); ctx.beginPath(); ctx.moveTo(0, H() * 0.18); ctx.lineTo(W() * 0.62, H() * 0.08); ctx.lineTo(W() * 0.5, H() * 0.92); ctx.lineTo(0, H()); ctx.closePath(); ctx.clip();
-    A.actor(ctx, L.set, 'Idle', 0, 0, fx, fy, sc, { grey: true });
+    A.actor(ctx, L.set, 'Attack5', Math.min(14, Math.floor(T * 22) % 15), 0, fx, fy, sc, { grey: true });
+    for (let i = 0; i < 16; i++) { const tt = (T * 1.6 + hash(i, 9)) % 1, px = fx + 20 * sc * 0.3 + tt * W() * 0.5, py = fy - 30 * sc + Math.sin(tt * 6 + i) * 14 - tt * 20; ctx.fillStyle = i % 2 ? '#ffffff' : RED; ctx.fillRect(Math.round(px), Math.round(py), 2, 1); }
     const bx = A.box(L.set, 'Idle', 0, 0, sc);
     flower(ctx, fx + bx.x + 13 * sc, fy + bx.y + 4 * sc, 12, '#ffffff', T * 0.5);
     ctx.restore();
@@ -236,10 +246,11 @@
     // The ground and the foes in silhouette.
     ctx.fillStyle = '#05040a'; ctx.fillRect(0, H() * 0.86, W(), H() * 0.14);
     const tg = target(s, c), others = c.targets.map((id) => s.units.find((u) => u.id === id)).filter((u) => u && u !== tg);
-    others.slice(0, 4).forEach((o, i) => A.actor(ctx, o.set, 'TakeDamage', 3, Math.PI, Math.round(W() * (0.78 + i * 0.06)), Math.round(H() * 0.88), o.scale * 1.6, { shade: '#0c0912' }));
+    others.slice(0, 4).forEach((o, i) => A.actor(ctx, o.set, 'TakeDamage', Math.floor(T * 14 + i * 3) % 15, Math.PI, Math.round(W() * (0.78 + i * 0.06) + Math.sin(T * 9 + i) * 2), Math.round(H() * 0.88), o.scale * 1.6, { shade: '#0c0912' }));
     const ts = tg ? Math.min(3.6, 2.3 * tg.scale) : 2.3, tx = Math.round(W() * 0.38), ty = Math.round(H() * 0.9);
     const hitsDone = Math.max(0, Math.min(6, Math.floor((k - 0.3) / 0.7 * 6 + 0.4)));
-    if (tg) A.actor(ctx, tg.set, hitsDone ? 'TakeDamage' : 'Idle4', hitsDone ? Math.min(14, 3 + hitsDone) : 0, 0, tx + (hitsDone % 2) * 2, ty, ts, { shade: '#000000' });
+    const knock = hitsDone * 4 + (hitsDone ? Math.max(0, 6 - ((k - 0.3) / 0.7 * 6 - hitsDone + 1) * 6) : 0);
+    if (tg) A.actor(ctx, tg.set, hitsDone ? 'TakeDamage' : 'Idle4', hitsDone ? Math.min(14, Math.floor(((k - 0.3) / 0.7 * 6 % 1) * 10) + 2) : Math.floor(T * 8) % 15, 0, Math.round(tx - knock), ty, ts, { shade: '#000000' });
     const h = hero(s);
     if (k < 0.3) {
       // The leap across the moon.
@@ -279,15 +290,16 @@
   B.red = function (ctx, s, c, k) {
     fill(ctx, RED);
     const tg = target(s, c), ts = tg ? Math.min(3.8, 2.6 * tg.scale) : 2.6;
-    if (tg) A.actor(ctx, tg.set, 'TakeDamage', 8, 0, Math.round(W() * 0.4), Math.round(H() * 0.95), ts, { shade: '#000000' });
+    if (tg) A.actor(ctx, tg.set, 'Die', Math.min(14, Math.floor(k * 16)), 0, Math.round(W() * 0.4 - k * 10), Math.round(H() * 0.95), ts, { shade: '#000000' });
     const h = hero(s);
-    A.actor(ctx, h.set, 'Special1', 14, Math.PI, Math.round(W() * 0.86), Math.round(H() * 0.95), 1.9, { shade: '#000000' });
+    A.actor(ctx, h.set, k < 0.5 ? 'Special1' : 'Idle4', k < 0.5 ? 14 : Math.floor(k * 10) % 15, Math.PI, Math.round(W() * 0.86), Math.round(H() * 0.95), 1.9, { shade: '#000000' });
     const kk = ease(k * 2.5);
     line(ctx, W() * 1.05, H() * 0.02, W() * 1.05 - W() * 1.2 * kk, H() * 0.02 + H() * 1.0 * kk, 2, '#ffffff');
     ctx.fillStyle = 'rgba(0,0,0,0.6)'; for (let i = 0; i < 8; i++) ctx.fillRect(Math.round(hash(i, 3) * W()), Math.round(hash(i, 4) * H()), 2, 2);
     if (k > 0.75) fill(ctx, '#ffffff', (k - 0.75) / 0.25 * 0.6);
   };
 
+  C.kit = { title, sword, flower, crack, speedLines, hStreaks, line, fill, ease, embers, hash };
   C.draw = function (ctx, s) {
     const c = s.cine; if (!c) return;
     const b = C.beatAt(c), d = b[2] - b[1], T = c.t - b[1], k = Math.max(0, Math.min(1, T / d));

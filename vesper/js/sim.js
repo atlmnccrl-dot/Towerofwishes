@@ -19,7 +19,7 @@
     const has = (id) => boons.indexOf(id) >= 0;
     return {
       dmg: has('edge') ? 1.2 : 1, hp: D.HERO.hp + (has('vigor') ? 30 : 0), parryWin: D.HERO.parry.win * (has('guard') ? 1.6 : 1),
-      gain: has('moonblood') ? 1.4 : 1, thirst: has('thirst') ? 0.05 : 0, combo: has('fourth') ? 4 : 3,
+      gain: has('moonblood') ? 1.4 : 1, thirst: has('thirst') ? 0.05 : 0, combo: has('fourth') ? 5 : 4,
       dodgeDist: D.HERO.dodge.dist * (has('ghost') ? 1.3 : 1), perfect: D.HERO.dodge.perfect + (has('ghost') ? 0.08 : 0),
       riposte: has('riposte'), ldx: has('breath') ? 0.45 : D.HERO.lastDitch, moonStart: has('rising') ? 50 : 0,
     };
@@ -39,7 +39,7 @@
     opts = opts || {};
     const st = D.STAGES[stageIdx], boons = opts.boons || [], M = mods(boons);
     const s = { stage: stageIdx, def: st, t: 0, time: 0, rand: rng(opts.seed || 1), units: [], bolts: [], events: [], nextId: 1,
-      waves: st.waves.concat([st.bossWave]), wave: -1, waveT: 0.8, freeze: 0, hitstop: 0, slow: 1, slowT: 0, cine: null,
+      waves: st.waves.concat([st.bossWave]), wave: -1, waveT: 0.9, area: 0, portal: null, transit: null, freeze: 0, hitstop: 0, slow: 1, slowT: 0, cine: null,
       result: null, endT: 0, moon: M.moonStart, mods: M, boons, combo: 0, comboT: 0, serial: 0, bossIds: [],
       stats: { dealt: 0, taken: 0, parries: 0, perfects: 0, arts: 0, ldx: 0, maxCombo: 0, hitsTaken: 0 } };
     s.hero = makeUnit(s, 'hero', 'vesper', Object.assign({}, D.HERO, { hp: M.hp }), 0, 70, -Math.PI / 2);
@@ -64,6 +64,7 @@
       case 'down': { u.clip = 'Slide'; const up = u.dur - 0.5; u.frame = st < 0.45 ? Math.floor(st / 0.45 * 8) : st < up ? 7 : Math.min(F, 8 + Math.floor((st - up) / 0.5 * 7)); break; }
       case 'dead': u.clip = 'Die'; u.frame = Math.min(F, Math.floor(st * 14)); break;
       case 'win': u.clip = 'Taunt'; u.frame = loopFrame('Taunt', st); break;
+      case 'spawn': u.clip = u.def.boss ? 'Attack4' : 'Idle'; u.frame = u.def.boss ? Math.min(F, Math.floor(st / u.dur * 10)) : loopFrame('Idle', s.t); break;
       case 'move': u.clip = u.team === 'hero' ? 'Run' : (u.def.spd * u.spdMul > 68 ? 'Run' : 'Walk'); u.frame = loopFrame(u.clip, s.t + u.id * 0.37); break;
       default: u.clip = 'Idle4'; u.frame = loopFrame('Idle4', s.t + u.id * 0.37);
     }
@@ -75,14 +76,21 @@
   function gainMoon(s, n) { if (s.cine) return; const was = s.moon; s.moon = Math.min(100, s.moon + n * s.mods.gain); if (was < 100 && s.moon >= 100) ev(s, { type: 'moonFull' }); }
   function setState(u, state, dur) { u.state = state; u.st = 0; u.dur = dur || 0; }
   const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-  function nearestFoe(s, u, maxD) { let best = null, bd = maxD || 1e9; for (const o of foes(s)) { const d = dist(o, u); if (d < bd) { bd = d; best = o; } } return best; }
+  function nearestFoe(s, u, maxD) { let best = null, bd = maxD || 1e9; for (const o of foes(s)) { if (o.state === 'spawn') continue; const d = dist(o, u); if (d < bd) { bd = d; best = o; } } return best; }
   function push(u, from, power) { const dx = u.x - from.x, dy = u.y - from.y, n = Math.hypot(dx, dy) || 1; u.kvx = dx / n * power; u.kvy = dy / n * power; }
   VS.ldxReady = (s) => s.hero.alive && s.hero.hp / s.hero.maxHp <= s.mods.ldx;
 
   // ---- attacks ----------------------------------------------------------------------------
   function startAttack(s, u, k) {
     setState(u, 'attack'); u.atk = k; u.hits = []; u.serial = ++s.serial;
-    if (u.team === 'hero') { const o = nearestFoe(s, u, 100); if (o) setAng(u, Math.atan2(o.y - u.y, o.x - u.x)); }
+    if (u.team === 'hero') {
+      // Mouse aim: the foe nearest the aimed direction, else the aimed direction itself; without aim, the nearest foe.
+      if (s.aim != null) {
+        let best = null, bd = 1e9;
+        for (const o of foes(s)) { if (o.state === 'spawn') continue; const d = dist(o, u), da = Math.abs(angDiff(Math.atan2(o.y - u.y, o.x - u.x), s.aim)); if (d < 115 && da < 0.9 && d + da * 60 < bd) { bd = d + da * 60; best = o; } }
+        setAng(u, best ? Math.atan2(best.y - u.y, best.x - u.x) : s.aim);
+      } else { const o = nearestFoe(s, u, 100); if (o) setAng(u, Math.atan2(o.y - u.y, o.x - u.x)); }
+    }
     else if (s.hero.alive) setAng(u, Math.atan2(s.hero.y - u.y, s.hero.x - u.x));
     ev(s, { type: 'windup', id: u.id, unparry: !!k.unparry, boss: !!u.def.boss, clip: k.clip });
   }
@@ -114,7 +122,7 @@
       if (inReach(a, k, o)) { a.hits.push(o.id); hit(s, a, o, k); }
     }
     if (a.team === 'hero') ev(s, { type: 'swing', id: a.id, clip: k.clip });
-    if (k.aoe) { const c = VS.aoeAt(a, k); ev(s, { type: 'slam', x: c.x, y: c.y, r: c.r, id: a.id }); }
+    if (k.aoe) { const c = VS.aoeAt(a, k); ev(s, { type: a.team === 'hero' ? 'spin' : 'slam', x: c.x, y: c.y, r: c.r, id: a.id }); }
   }
 
   // a: attacker (unit or bolt), o: target, k: attack.
@@ -127,7 +135,7 @@
       }
       if (o.iframes > 0) return;
       if (o.state === 'parry' && o.st <= M.parryWin && !k.unparry) {
-        s.stats.parries++; gainMoon(s, 22); s.hitstop = 0.11; o.riposte = M.riposte;
+        s.stats.parries++; gainMoon(s, 22); s.hitstop = 0.13; o.riposte = M.riposte; ev(s, { type: 'impact', size: 'small', x: o.x, y: o.y });
         const d = dir(o.ang); ev(s, { type: 'parry', x: o.x + d[0] * 10, y: o.y + d[1] * 10, id: o.id });
         if (bolt) {
           const own = s.units.find((u) => u.id === bolt.owner), sp = Math.hypot(bolt.vx, bolt.vy) * 1.35;
@@ -152,7 +160,7 @@
       return;
     }
     // A foe hit by the hero (or a reflected bolt).
-    if (o.iframes > 0 || o.state === 'dead') return;
+    if (o.iframes > 0 || o.state === 'dead' || o.state === 'spawn') return;
     let mult = M.dmg * (o.state === 'down' ? 1.5 : 1);
     if (!bolt && a.riposte) { mult *= 3; a.riposte = false; ev(s, { type: 'riposte', x: o.x, y: o.y }); }
     const dmg = Math.max(1, Math.round(k.dmg * mult * (0.9 + 0.2 * s.rand())));
@@ -161,9 +169,9 @@
     s.combo++; s.comboT = 1.6; s.stats.maxCombo = Math.max(s.stats.maxCombo, s.combo);
     gainMoon(s, (k.poise || 6) >= 12 ? 5 : 3);
     const src = bolt ? { x: bolt.x - bolt.vx, y: bolt.y - bolt.vy } : a;
-    ev(s, { type: 'hit', x: o.x, y: o.y, dmg, id: o.id, heavy: (k.poise || 0) >= 12, combo: s.combo, ang: Math.atan2(o.y - src.y, o.x - src.x) });
+    ev(s, { type: 'hit', x: o.x, y: o.y, dmg, id: o.id, heavy: (k.poise || 0) >= 12, combo: s.combo, ang: Math.atan2(o.y - src.y, o.x - src.x), fx: bolt ? 'bolt' : k.fx, finisher: !!k.finisher });
     s.hitstop = Math.max(s.hitstop, (k.poise || 0) >= 12 ? 0.075 : 0.045);
-    if (o.hp <= 0) { o.hp = 0; kill(s, o); return; }
+    if (o.hp <= 0) { o.hp = 0; kill(s, o); if (k.finisher || k.fx === 'spin') ev(s, { type: 'impact', size: 'small', x: o.x, y: o.y }); return; }
     if (o.def.boss && o.phase === 1 && o.hp <= o.maxHp * 0.5) phaseTwo(s, o);
     const kb = k.kb || 6;
     if (o.maxPoise <= 0) { setState(o, 'hurt', 0.3); o.atk = null; push(o, src, kb * 9); return; }
@@ -174,13 +182,14 @@
   }
   function breakPoise(s, o, src) {
     setState(o, 'down', 1.9); o.atk = null; o.poise = o.maxPoise; push(o, src || s.hero, 70); gainMoon(s, 8);
+    if (o.def.boss) { s.hitstop = Math.max(s.hitstop, 0.16); ev(s, { type: 'impact', size: 'big', x: o.x, y: o.y }); }
     ev(s, { type: 'break', x: o.x, y: o.y, id: o.id });
   }
-  function phaseTwo(s, o) { o.phase = 2; o.windMul = 0.86; o.spdMul = 1.15; s.freeze = Math.max(s.freeze, 1.1); ev(s, { type: 'phase', id: o.id, key: o.key }); }
+  function phaseTwo(s, o) { o.phase = 2; o.windMul = 0.86; o.spdMul = 1.15; o.aura = true; s.freeze = Math.max(s.freeze, 1.1); ev(s, { type: 'phase', id: o.id, key: o.key }); }
   function kill(s, o) {
     o.alive = false; setState(o, 'dead'); o.atk = null;
     ev(s, { type: 'kill', id: o.id, x: o.x, y: o.y, boss: !!o.def.boss, hero: o.team === 'hero' });
-    if (o.team === 'hero') { s.endT = 2.0; s.combo = 0; } else if (o.def.boss) { s.slow = 0.25; s.slowT = 0.9; }
+    if (o.team === 'hero') { s.endT = 2.0; s.combo = 0; } else if (o.def.boss) { s.slow = 0.25; s.slowT = 0.9; ev(s, { type: 'impact', size: 'big', x: o.x, y: o.y }); }
   }
 
   // ---- the moon arts -----------------------------------------------------------------------
@@ -226,16 +235,40 @@
   function spawnWave(s) {
     s.wave++;
     const list = s.waves[s.wave], h = s.hero, boss = s.wave === s.waves.length - 1, R = D.ARENA.r;
-    const away = Math.atan2(-h.y, -h.x) + (Math.hypot(h.x, h.y) < 20 ? -Math.PI / 2 - Math.atan2(-h.y, -h.x) : 0);
+    const away = Math.hypot(h.x, h.y) < 30 ? -Math.PI / 2 : Math.atan2(-h.y, -h.x);
     list.forEach((key, i) => {
-      const def = D.FOES[key], a = away + (list.length > 1 ? (i - (list.length - 1) / 2) * 0.7 : 0), rr = R * (boss ? 0.62 : 0.8);
+      const def = D.FOES[key], a = away + (list.length > 1 ? (i - (list.length - 1) / 2) * 0.75 : 0), rr = R * (boss ? 0.5 : 0.62);
       const u = makeUnit(s, 'foe', key, def, Math.cos(a) * rr, Math.sin(a) * rr, 0);
       const sk = s.def.scale || { hp: 1, dmg: 1 }; u.hp = u.maxHp = Math.round(def.hp * sk.hp); u.dmgMul = sk.dmg;
-      setAng(u, Math.atan2(h.y - u.y, h.x - u.x)); u.orbit = (s.rand() < 0.5 ? -1 : 1); u.cd = 0.5 + i * 0.5 + (def.boss ? 0.8 : 0);
+      setAng(u, Math.atan2(h.y - u.y, h.x - u.x)); u.orbit = (s.rand() < 0.5 ? -1 : 1); u.cd = 0.4 + i * 0.3 + (def.boss ? 0.6 : 0);
       keepIn(u); if (def.boss) s.bossIds.push(u.id);
+      // The entrance: minions rise out of a rift in the floor, bosses drop from the sky.
+      setState(u, 'spawn', def.boss ? 1.5 : 0.85 + i * 0.22); u.spawnDelay = def.boss ? 0 : i * 0.22;
+      ev(s, { type: 'spawn', id: u.id, x: u.x, y: u.y, boss: !!def.boss, dur: u.dur });
     });
     if (boss) { s.freeze = 1.9; ev(s, { type: 'boss', keys: list.slice() }); }
     else ev(s, { type: 'wave', n: s.wave + 1, of: s.waves.length - 1 });
+  }
+  // A cleared area opens the way on: a gate, a stairway or a rift at the back of the ring.
+  function openPortal(s) {
+    const h = s.hero, R = D.ARENA.r; let x = 0, y = -R * 0.74;
+    if (Math.hypot(h.x - x, h.y - y) < 70) { x = -R * 0.74; y = 0; }
+    s.portal = { x, y, t: 0, kind: s.def.portal || 'rift' };
+    ev(s, { type: 'portal', x, y, kind: s.portal.kind });
+  }
+  VS.TRANSIT = { into: 0.55, swap: 0.8, dur: 1.6 };
+  function transit(s, dt) {
+    const h = s.hero, T = VS.TRANSIT, tr = s.transit, p = s.portal || tr.p;
+    const prev = tr.t; tr.t += dt;
+    if (tr.t < T.into) { const dx = p.x - h.x, dy = p.y - h.y, d = Math.hypot(dx, dy); if (d > 1) { setAng(h, Math.atan2(dy, dx)); h.x += dx / d * Math.min(d, 90 * dt); h.y += dy / d * Math.min(d, 90 * dt); } if (h.state !== 'move') setState(h, 'move'); }
+    if (prev < T.swap && tr.t >= T.swap) {
+      s.area++; s.units = s.units.filter((u) => u === h || u.alive); s.bolts = []; s.portal = null;
+      h.x = 0; h.y = D.ARENA.r * 0.62; setAng(h, -Math.PI / 2); h.kvx = h.kvy = 0; h.iframes = 0; setState(h, 'move');
+      ev(s, { type: 'area', n: s.area });
+    }
+    if (tr.t >= T.swap) { h.y -= 46 * dt; }
+    if (tr.t >= T.dur) { s.transit = null; setState(h, 'idle'); s.waveT = 0.35; }
+    setFrame(s, h);
   }
 
   // ---- foe brains ---------------------------------------------------------------------------
@@ -247,6 +280,7 @@
   function foeThink(s, u, dt) {
     const h = s.hero;
     if (!h.alive) { if (u.state === 'idle' || u.state === 'move') setState(u, 'idle'); return; }
+    if (u.state === 'spawn') return;
     // During a wind-up the foe keeps turning toward the hero, slowly: step aside and it misses.
     if (u.state === 'attack' && u.st < u.atk.wind * u.windMul * 0.75 && !u.atk.blink) {
       const want = Math.atan2(h.y - u.y, h.x - u.x), d = angDiff(want, u.ang), turn = 2.6 * dt;
@@ -290,6 +324,8 @@
     if (inp.atk) { if (h.state === 'attack') h.queued = true; else h.bufAtk = 0.18; }
     if (inp.dodge) h.bufDodge = 0.16;
     if (inp.parry) h.bufParry = 0.12;
+    if (inp.heavy) h.bufHeavy = 0.18;
+    h.bufHeavy = (h.bufHeavy || 0) - dt;
     h.bufAtk = (h.bufAtk || 0) - dt; h.bufDodge = (h.bufDodge || 0) - dt; h.bufParry = (h.bufParry || 0) - dt;
     let mx = inp.mx || 0, my = inp.my || 0; const mn = Math.hypot(mx, my); if (mn > 1) { mx /= mn; my /= mn; }
     if (h.bufAtk > 0 && ((h.state === 'dodge' && h.st > h.dur * 0.35) || (free && s.time - (h.dodgeEnd || -9) < 0.14))) {
@@ -298,11 +334,12 @@
     const canCancel = h.state === 'attack' && h.st > h.atk.wind + 0.04;
     if ((free || canCancel) && h.bufDodge > 0) {
       h.bufDodge = 0; setState(h, 'dodge', H.dodge.dur); h.atk = null; h.queued = false; h.perfectDone = false;
-      if (mn > 0.2) setAng(h, Math.atan2(my, mx));
+      if (mn > 0.2) setAng(h, Math.atan2(my, mx)); else if (s.aim != null) setAng(h, s.aim);
       h.dodgeDir = dir(h.ang);
       ev(s, { type: 'dodge', x: h.x, y: h.y }); return;
     }
     if (free && h.bufParry > 0) { h.bufParry = 0; setState(h, 'parry', H.parry.dur); ev(s, { type: 'guard', x: h.x, y: h.y }); return; }
+    if (free && h.bufHeavy > 0) { h.bufHeavy = 0; h.combo = 0; h.comboWin = 0; startAttack(s, h, H.heavy); return; }
     if (free && h.bufAtk > 0) { h.bufAtk = 0; h.combo = h.comboWin > 0 ? (h.combo + 1) % M.combo : 0; startAttack(s, h, H.combo[h.combo]); return; }
     if (free) {
       h.x += mx * H.spd * dt; h.y += my * H.spd * dt;
@@ -330,6 +367,8 @@
     if (s.slowT > 0) { s.slowT -= dtReal; dt *= s.slow; }
     s.time += dt;
     const h = s.hero;
+    s.aim = inp.aim != null ? inp.aim : null;
+    if (s.transit) { transit(s, dtReal); return s; }
 
     heroStep(s, h, dt, inp);
     for (const u of s.units) if (u.team === 'foe' && u.alive) foeThink(s, u, dt);
@@ -365,6 +404,9 @@
         if (u.st >= u.dur) { setState(u, 'idle'); u.dodgeEnd = s.time; }
       } else if ((u.state === 'parry' || u.state === 'hurt' || u.state === 'down') && u.st >= u.dur) {
         setState(u, 'idle'); if (u.team === 'foe') u.cd = Math.min(u.cd, 0.25);
+      } else if (u.state === 'spawn') {
+        u.iframes = 0.1;
+        if (u.st >= u.dur) { setState(u, 'idle'); ev(s, { type: 'landed', id: u.id, x: u.x, y: u.y, boss: !!u.def.boss }); if (u.def.boss) { s.hitstop = Math.max(s.hitstop, 0.12); ev(s, { type: 'impact', size: 'big', x: u.x, y: u.y }); } }
       } else if (u.state === 'dead') u.deadT += dt;
       if (u.team === 'foe' && u.def.boss && u.alive && u.state !== 'down' && s.time - u.lastHit > 2.4) u.poise = u.maxPoise;
       keepIn(u);
@@ -391,7 +433,9 @@
     if (s.endT > 0) { s.endT -= dtReal; if (s.endT <= 0) s.result = h.alive ? 'win' : 'lose'; }
     else if (h.alive && !foes(s).length) {
       if (s.wave >= s.waves.length - 1) { s.endT = 2.2; setState(h, 'win'); ev(s, { type: 'clear' }); }
-      else { s.waveT -= dt; if (s.waveT <= 0) { spawnWave(s); s.waveT = 1.1; } }
+      else if (s.wave < 0 || s.area > s.wave) { s.waveT -= dt; if (s.waveT <= 0) { spawnWave(s); s.waveT = 1.1; } }
+      else if (!s.portal) openPortal(s);
+      else { s.portal.t += dt; if (s.portal.t > 0.7 && Math.hypot(h.x - s.portal.x, h.y - s.portal.y) < 18 && (h.state === 'idle' || h.state === 'move')) { s.transit = { t: 0, p: s.portal }; ev(s, { type: 'transit', kind: s.portal.kind }); } }
     }
     return s;
   }
@@ -426,8 +470,10 @@
       }
     }
     if (s.moon >= 100 && (VS.ldxReady(s) || s.units.some((u) => u.alive && u.def.boss))) { inp.art = true; return inp; }
+    if (s.portal && !s.transit) { const dx = s.portal.x - h.x, dy = s.portal.y - h.y, d = Math.hypot(dx, dy) || 1; inp.mx = dx / d; inp.my = dy / d; return inp; }
     const o = nearestFoe(s, h);
     if (!o) return inp;
+    if (foes(s).filter((f) => f.state !== 'spawn' && dist(f, h) < 40).length >= 2 && r() < 0.05) { inp.heavy = true; return inp; }
     const d = dist(o, h), want = 18 + o.rad;
     if (d > want + 4) { inp.mx = (o.x - h.x) / d; inp.my = (o.y - h.y) / d; }
     if (d <= 26 + o.rad) { inp.mx = 0; inp.my = 0; inp.atk = true; }

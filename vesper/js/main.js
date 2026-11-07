@@ -14,7 +14,8 @@
   const applyOpts = () => { AU.sfxVol = M.save.opts.sfx; AU.setVolume(M.save.opts.music); };
 
   // ---- input --------------------------------------------------------------------------------------
-  const KEYS = { KeyJ: 'atk', KeyZ: 'atk', KeyK: 'parry', KeyX: 'parry', Space: 'dodge', ShiftLeft: 'dodge', KeyC: 'dodge', KeyL: 'art', KeyV: 'art', KeyE: 'art',
+  // PC: left mouse cuts, right mouse is the heavy, the mouse aims. Keys: J cut, K heavy, Q/Shift/L parry, Space dash, E/R moon.
+  const KEYS = { KeyJ: 'atk', KeyZ: 'atk', KeyK: 'heavy', KeyX: 'heavy', KeyQ: 'parry', ShiftLeft: 'parry', ShiftRight: 'parry', KeyL: 'parry', Space: 'dodge', KeyC: 'dodge', KeyE: 'art', KeyR: 'art', KeyV: 'art',
     Enter: 'confirm', Escape: 'back', KeyP: 'back', ArrowLeft: 'left', ArrowRight: 'right', KeyA: 'left', KeyD: 'right', ArrowUp: 'up', ArrowDown: 'down', KeyW: 'up', KeyS: 'down' };
   addEventListener('keydown', (e) => {
     AU.unlock();
@@ -27,6 +28,10 @@
   const pointers = {};
   function onDown(e) {
     AU.unlock(); if (e.pointerType === 'touch') R.touch = true;
+    if (e.pointerType === 'mouse') {
+      R.touch = false; M.mouse = R.toDev(e.clientX, e.clientY); M.mouseAim = true;
+      if (M.state === 'fight' && !M.paused && !M.fight.s.cine) { if (e.button === 2) { M.pressed.heavy = true; return; } if (e.button === 0) { M.pressed.atk = true; return; } }
+    }
     const p = R.toDev(e.clientX, e.clientY); pointers[e.pointerId] = { role: null };
     if (M.state === 'fight' && R.touch && !M.fight.s.cine && !M.paused) {
       const L = R.touchLayout();
@@ -39,6 +44,7 @@
     M.pressed.tap = true;
   }
   function onMove(e) {
+    if (e.pointerType === 'mouse') { M.mouse = R.toDev(e.clientX, e.clientY); M.mouseAim = true; }
     const q = pointers[e.pointerId]; if (!q || q.role !== 'stick' || !M.stick) return;
     const p = R.toDev(e.clientX, e.clientY), dx = p.x - M.stick.ox, dy = p.y - M.stick.oy, r = 36 * R.k, n = Math.hypot(dx, dy);
     M.stick.dx = n > r ? dx / n : dx / r; M.stick.dy = n > r ? dy / n : dy / r;
@@ -76,28 +82,16 @@
   // ---- scenes -------------------------------------------------------------------------------------------
   function startScene(stageIdx, def, then) {
     U.hide();
-    M.scene = { def: def || S.BEFORE[stageIdx], i: 0, t: 0, stage: stageIdx, then: then || (() => startFight(stageIdx)) };
+    M.scene = { sc: VS.SC.start(def || S.BEFORE[stageIdx]), stage: stageIdx, then: then || (() => startFight(stageIdx)) };
     M.go('scene'); AU.playMusic(null); AU.playAmb(stageIdx === 3 || stageIdx === 4 ? 'wind' : 'night');
   }
   function scene(ctx, dt) {
-    const sc = M.scene, b = sc.def.beats[sc.i], st = D.STAGES[Math.min(5, sc.stage)];
-    sc.t += dt;
-    const vw = R.viewW(), cam = Math.max(0, (R.SIDE_W - vw) / 2);
-    R.drawBackdrop(ctx, st, cam, dt);
-    const cast = sc.def.cast, n = cast.length, pos = {};
-    cast.forEach((key, i) => {
-      const sp = S.speaker(key), x = cam + vw * (n > 2 ? 0.28 + i * 0.22 : 0.32 + i * 0.36);
-      const face = i === n - 1 && n > 1 ? Math.PI : 0;
-      pos[key] = R.drawFigure(ctx, sp.set, key === 'vesper' ? 'Idle4' : 'Idle', Math.floor((M.t + i) * 7) % 15, face, x, 4, sp.scale || 1, {});
-    });
-    if (b.card) R.card(ctx, b.card, b.sub ? b.sub.toUpperCase() : '', sc.t, b.stage ? 0.72 : 0.95);
-    else if (pos[b.who]) { const sp = S.speaker(b.who); R.say(ctx, pos[b.who].x, pos[b.who].y, sp.name, sp.color, b.line, sc.t, { shout: b.shout }); }
-    R.label(ctx, 'TAP TO CONTINUE  ·  ESC SKIPS', R.W - 18 * R.k, R.H - 14 * R.k, 9 * R.k, 'rgba(220,210,214,0.45)', 'right', 2, 500);
-    if (M.pressed.back) { sc.then(); return; }
-    if ((M.pressed.tap || M.pressed.confirm) && sc.t > 0.25) {
-      sc.i++; sc.t = 0; AU.sfx('step_2', 0.3);
-      if (sc.i >= sc.def.beats.length) sc.then();
-    }
+    const m = M.scene;
+    VS.SC.update(m.sc, dt, { tap: M.pressed.tap || M.pressed.confirm || M.pressed.atk, back: M.pressed.back });
+    for (const [n, v] of m.sc.cues.splice(0)) AU.sfx(n, v);
+    if (m.sc.done) { R.hideCine(); m.then(); return; }
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, R.W, R.H);
+    R.drawScene(m.sc);
   }
 
   // ---- fights --------------------------------------------------------------------------------------------
@@ -110,14 +104,16 @@
   }
   function gather(f) {
     const s = f.s, p = M.pressed;
-    const inp = { mx: 0, my: 0, atk: !!p.atk, dodge: !!p.dodge, parry: !!p.parry, art: !!p.art, skip: !!(p.tap || p.confirm || p.atk) };
+    const inp = { mx: 0, my: 0, atk: !!p.atk, heavy: !!p.heavy, dodge: !!p.dodge, parry: !!p.parry, art: !!p.art, skip: !!(p.tap || p.confirm || p.atk) };
+    // Aim at the mouse: the direction from the knight to the cursor, on the ground.
+    if (M.mouseAim && M.mouse && !R.touch && s.hero.alive) { const q = R.P(s.hero.x, s.hero.y, 20), g = R.screenToGround(M.mouse.x - q.x, M.mouse.y - q.y); if (Math.hypot(g.x, g.y) > 0.01) inp.aim = Math.atan2(g.y, g.x); }
     if (M.held.left) inp.mx -= 1; if (M.held.right) inp.mx += 1; if (M.held.up) inp.my -= 1; if (M.held.down) inp.my += 1;
     if (M.stick && Math.hypot(M.stick.dx, M.stick.dy) > 0.25) { inp.mx = M.stick.dx; inp.my = M.stick.dy; }
     // The stick and the keys move on screen; turn that into the ground's directions under the camera.
     if (inp.mx || inp.my) { const g = R.screenToGround(inp.mx, inp.my); inp.mx = g.x; inp.my = g.y; }
     if (M.save.opts.auto || f.auto) {
       const b = SIM.bot(s, 0.7);
-      if (!inp.mx && !inp.my && !inp.atk && !inp.dodge && !inp.parry) Object.assign(inp, b, { skip: inp.skip });
+      if (!inp.mx && !inp.my && !inp.atk && !inp.heavy && !inp.dodge && !inp.parry) Object.assign(inp, b, { skip: inp.skip, aim: undefined });
     }
     return inp;
   }
@@ -133,9 +129,9 @@
     if (!M.paused && !M.hold) {
       f.acc += dt;
       const live = gather(f); f.pend = f.pend || {};
-      for (const k of ['atk', 'dodge', 'parry', 'art', 'skip']) if (live[k]) f.pend[k] = true;
+      for (const k of ['atk', 'heavy', 'dodge', 'parry', 'art', 'skip']) if (live[k]) f.pend[k] = true;
       while (f.acc >= STEP) {
-        const c0 = s.cine ? s.cine.t : null, inp = Object.assign({ mx: live.mx, my: live.my }, f.pend); f.pend = {};
+        const c0 = s.cine ? s.cine.t : null, inp = Object.assign({ mx: live.mx, my: live.my, aim: live.aim }, f.pend); f.pend = {};
         SIM.step(s, STEP, inp); f.acc -= STEP;
         if (s.cine && c0 != null) for (const [n, v] of VS.cine.cues(s.cine, c0, s.cine.t)) AU.sfx(n, v);
         R.consume(s); AU.events(s.events);
@@ -144,7 +140,8 @@
           if (e.type === 'phase' && !e.quiet) { const line = S.PHASE[e.key]; if (line && line !== '…') f.say = { id: e.id, key: e.key, text: line, t: 0 }; }
           if (e.type === 'art') { AU.duck(true); if (e.kind === 'ldx') M.save.seenLdx = true; }
           if (e.type === 'artEnd') { AU.duck(false); if (f.theatre) f.theatreEnd = 2.2; }
-          if (e.type === 'wave' && e.n > 1) f.banner = { text: 'WAVE ' + e.n, t: 0, col: '#ffffff' };
+          if (e.type === 'portal') f.banner = { text: 'THE WAY OPENS', t: 0, col: '#ffffff' };
+          if (e.type === 'area') f.banner = { text: e.n === s.waves.length - 1 ? 'THE LAST GATE' : 'AREA ' + (e.n + 1) + ' / ' + s.waves.length, t: 0, col: e.n === s.waves.length - 1 ? '#ff2a44' : '#ffffff' };
           if (e.type === 'clear' && !f.theatre) f.banner = { text: 'HOUR CLEARED', t: 0, col: '#ff2a44' };
         }
         if (f.acc > STEP * 5) f.acc = 0;
@@ -163,8 +160,9 @@
       }
       if (f.banner) { f.banner.t += dt; if (f.banner.t < 1.6) R.banner(ctx, f.banner.text, f.banner.t, f.banner.col); else f.banner = null; }
       if (f.card) { f.cardT += dt; if (f.cardT < 1.9) R.bossCard(ctx, s, f.card, f.cardT); else f.card = null; }
-      if (s.time < 7 && f.stage === 0 && !f.theatre) R.hint(ctx, R.touch ? 'PARRY white danger  ·  DASH out of red danger  ·  cut after a dash for a dash-cut' : 'WASD move  ·  J cut  ·  K parry white danger  ·  Space dash out of red  ·  J after a dash: dash-cut  ·  L moon', Math.min(1, 7 - s.time));
+      if (s.time < 7 && f.stage === 0 && !f.theatre) R.hint(ctx, R.touch ? 'PARRY white danger  ·  DASH out of red danger  ·  cut after a dash for a dash-cut' : 'WASD move  ·  LEFT CLICK cut  ·  RIGHT CLICK heavy  ·  Q parry white  ·  SPACE dash out of red  ·  E moon', Math.min(1, 7 - s.time));
       if (R.touch && !M.paused) R.drawTouch(ctx, s, { stick: M.stick, held: M.touchHeld });
+      if (!R.touch && M.mouseAim && M.mouse && !M.paused) R.drawReticle(ctx, M.mouse.x, M.mouse.y);
     }
     if (f.theatreEnd > 0 && !M.paused) { f.theatreEnd -= dt; if (f.theatreEnd <= 0) { title(); return; } }
     if (s.result && !M.paused) endFight(s.result);
@@ -194,8 +192,9 @@
   function theatre() {
     startFight(5, { theatre: true });
     const s = M.fight.s;
-    s.wave = s.waves.length - 2; s.waveT = 0;
+    s.wave = s.waves.length - 2; s.area = s.waves.length - 1; s.waveT = 0;
     SIM.step(s, STEP, {}); s.freeze = 0; M.fight.card = null;
+    for (const u of SIM.foes(s)) { u.state = 'idle'; u.st = 0; }
     const boss = SIM.foes(s)[0]; if (boss) { boss.x = s.hero.x + 70; boss.face = -1; }
     s.hero.hp = Math.round(s.hero.maxHp * 0.25); s.moon = 100;
     R.snapCam(s);
@@ -210,7 +209,8 @@
     if (figure) R.drawFigure(ctx, D.HERO.set, 'Idle', Math.floor(M.t * 7) % 15, Math.PI, cam + vw * 0.7, 4, 1, {});
   }
   function frame(now) {
-    const dt = Math.min(0.05, (now - (last || now)) / 1000); last = now; M.t += dt; R.t += dt;
+    const dt = Math.min(0.05, (now - (last || now)) / 1000); last = now; M.t += dt; R.t += dt; R.realDt = dt;
+    R.canvas.style.cursor = M.state === 'fight' && !M.paused && !R.touch ? 'none' : '';
     const ctx = R.ctx;
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.imageSmoothingEnabled = false;
     if (M.state === 'fight' && M.fight.theatreT > 0) { M.fight.theatreT -= dt; if (M.fight.theatreT <= 0) SIM.startArt(M.fight.s); }
@@ -232,6 +232,7 @@
   async function boot() {
     R.init(document.getElementById('game'));
     const c = R.canvas;
+    c.addEventListener('contextmenu', (e) => e.preventDefault());
     c.addEventListener('pointerdown', onDown); c.addEventListener('pointermove', onMove); c.addEventListener('pointerup', onUp); c.addEventListener('pointercancel', onUp);
     requestAnimationFrame(frame);
     U.loading(0);

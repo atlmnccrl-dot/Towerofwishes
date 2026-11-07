@@ -22,13 +22,20 @@ for (const st of D.STAGES) {
   if (!st.bossWave.every((k) => D.FOES[k].boss)) bad(`${st.id} boss wave has a minion`);
 }
 // Effect names used in the code (keep in step with view.js and cine.js).
-const used = new Set(['slash_arc_blood']);   // the fight's effects are drawn in code; the cinematic uses this pack effect
+const used = new Set(['slash_arc_blood', 'hit_slash', 'hit_crit', 'cross_slash', 'hit_punch', 'dust_kick', 'katana', 'hit_big', 'hit_blunt', 'parry', 'dissipate', 'smoke_dark', 'blast', 'teleport', 'shockwave', 'rock_burst', 'spin_slash', 'smoke_burst', 'portal', 'dark_curse']);
 const src = ['view.js', 'cine.js'].map((f) => fs.readFileSync(path.join(__dirname, '../js', f), 'utf8')).join('\n');
 for (const n of used) { if (!fx[n]) bad('fx ' + n); if (src.indexOf("'" + n + "'") < 0) bad('fx listed but unused ' + n); }
-// Scenes.
+// Scenes: known shot kinds, known speakers, one scene per stage.
+const KINDS = ['card', 'wide', 'close', 'reveal', 'speed', 'clash', 'impact', 'moonbreak', 'moonwhite'];
 const scenes = S.BEFORE.concat([S.ENDING]);
 if (S.BEFORE.length !== D.STAGES.length) bad('one scene per stage');
-for (const sc of scenes) for (const b of sc.beats) if (b.who && (!S.speaker(b.who) || sc.cast.indexOf(b.who) < 0)) bad('speaker not in cast: ' + b.who);
+for (const sc of scenes) for (const sh of sc.shots) {
+  if (KINDS.indexOf(sh.k) < 0) bad('unknown shot ' + sh.k);
+  for (const w of [sh.who, sh.also, sh.a, sh.b].concat((sh.cast || []).map((c) => (typeof c === 'string' ? c : c.who)), sh.line ? [sh.line.who] : [])) if (w && !S.speaker(w)) bad('unknown speaker ' + w);
+  for (const w of [sh.who, sh.also, sh.a, sh.b].concat((sh.cast || []).map((c) => (typeof c === 'string' ? c : c.who)))) if (w) check('scene ' + w, S.speaker(w).set, ['Attack4', 'Attack3', 'Attack1']);
+}
+const used2 = new Set(); for (const sc of scenes) for (const sh of sc.shots) used2.add(sh.k);
+for (const k of KINDS) if (!used2.has(k)) bad('shot kind never used: ' + k);
 for (const k of Object.keys(S.PHASE)) if (!D.FOES[k]) bad('phase line for unknown ' + k);
 console.log(`${Object.keys(D.FOES).length} foes, ${D.STAGES.length} stages, ${used.size} effects named, ${scenes.length} scenes`);
 console.log(fail ? `${fail} failures` : 'all assets found');

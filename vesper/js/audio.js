@@ -72,6 +72,12 @@
         case 'boss': A.sfx('horn', 0.8); break;
         case 'phase': A.sfx('quake', 0.8); break;
         case 'moonFull': A.sfx('allout', 0.5); break;
+        case 'impact': A.sfx('blow_big', e.size === 'big' ? 1 : 0.7); if (e.size === 'big') A.sfx('clang_1', 0.6); break;
+        case 'spin': A.sfx('whoosh', 0.7); A.sfx('swish_2', 0.6); break;
+        case 'spawn': A.sfx(e.boss ? 'charge' : 'magic', 0.4); break;
+        case 'landed': if (e.boss) { A.sfx('quake', 1); A.sfx('blow_big', 0.8); } break;
+        case 'portal': A.sfx('allout', 0.6); break;
+        case 'transit': A.sfx('whoosh', 0.9); break;
       }
     }
   };

@@ -19,13 +19,17 @@
   D.HERO = {
     id: 'vesper', name: 'Vesper', set: 'gothic_knight_b', color: '#ff3048',
     hp: 120, spd: 118,
+    // The cut combo: slash, slash, kick, cut (and a fifth with the Fourth Cut boon). fx: the pack effect on contact.
     combo: [
-      { clip: 'Attack1', wind: 0.11, recover: 0.2, reach: 30, dmg: 7, poise: 6, kb: 4, step: 6 },
-      { clip: 'Attack2', wind: 0.11, recover: 0.22, reach: 30, dmg: 7, poise: 6, kb: 4, step: 6 },
-      { clip: 'Attack3', wind: 0.17, recover: 0.3, reach: 34, dmg: 12, poise: 12, kb: 16, step: 10 },
-      { clip: 'Attack6', wind: 0.16, recover: 0.34, reach: 38, dmg: 16, poise: 16, kb: 22, step: 12 }],
-    // The dash-cut: press cut during or just after a dash.
-    dashCut: { clip: 'Attack4', wind: 0.1, recover: 0.3, reach: 30, dmg: 11, poise: 16, kb: 20, lunge: 56 },
+      { clip: 'Attack1', wind: 0.1, recover: 0.18, reach: 30, dmg: 6, poise: 6, kb: 4, step: 7, fx: 'slash' },
+      { clip: 'Attack2', wind: 0.1, recover: 0.2, reach: 30, dmg: 6, poise: 6, kb: 4, step: 7, fx: 'slash' },
+      { clip: 'Kick', wind: 0.12, recover: 0.22, reach: 26, dmg: 7, poise: 10, kb: 16, step: 6, fx: 'kick' },
+      { clip: 'Attack3', wind: 0.16, recover: 0.3, reach: 34, dmg: 11, poise: 13, kb: 18, step: 10, fx: 'finisher', finisher: true },
+      { clip: 'Attack6', wind: 0.15, recover: 0.34, reach: 38, dmg: 15, poise: 16, kb: 24, step: 12, fx: 'finisher', finisher: true }],
+    // The heavy: a spinning cut all around him (right mouse button, or K).
+    heavy: { clip: 'Special1', wind: 0.28, recover: 0.4, aoe: 36, at: 0, dmg: 14, poise: 22, kb: 26, fx: 'spin' },
+    // The dash-cut: cut during or just after a dash.
+    dashCut: { clip: 'Attack4', wind: 0.1, recover: 0.3, reach: 30, dmg: 11, poise: 16, kb: 20, lunge: 56, fx: 'dash' },
     dodge: { dur: 0.34, dist: 96, iframes: [0.02, 0.3], perfect: 0.16, cd: 0.12 },
     parry: { win: 0.2, dur: 0.42 },
     lastDitch: 0.3, // the Last Ditch Effort opens at or below this share of health
@@ -96,22 +100,22 @@
   // ---- Stages: the six hours of the night ---------------------------------------------
   // look: sky colours, moon size and colour, ground tiles, silhouettes behind the arena.
   D.STAGES = [
-    { id: 'gate', scale: { hp: 1, dmg: 1 }, hour: 'DUSK', name: 'The Black Gate', boss: 'warden',
+    { id: 'gate', portal: 'gate', scale: { hp: 1, dmg: 1 }, hour: 'DUSK', name: 'The Black Gate', boss: 'warden',
       waves: [['ghoul', 'ghoul'], ['ghoul', 'ghast', 'ghoul']], bossWave: ['warden'],
       look: { sky: ['#140d1c', '#3a1622', '#6a2a2a'], moon: 22, moonCol: '#e8a0a0', ground: ['g_flagstone_dark', 'g_flagstone_2', 'g_cobble'], props: ['cdw_gate_arch', 'ruin_pillar', 'fv_tree_dead', 'cdw_pillar', 'monolith_b'], fog: '#3a1a24' } },
-    { id: 'cloister', scale: { hp: 1.1, dmg: 1.1 }, hour: 'THE FIRST HOUR', name: 'Cloister of Frost', boss: 'twins',
+    { id: 'cloister', portal: 'gate', scale: { hp: 1.1, dmg: 1.1 }, hour: 'THE FIRST HOUR', name: 'Cloister of Frost', boss: 'twins',
       waves: [['knife', 'ghoul', 'knife'], ['ghast', 'knife', 'ghast']], bossWave: ['twinA', 'twinB'],
       look: { sky: ['#0a1020', '#18283c', '#30485c'], moon: 26, moonCol: '#f0b0b0', ground: ['g_marble_white', 'g_flagstone_1', 'g_stone_floor'], props: ['fv_tree_pine_snow', 'cdw_arched_window', 'statue', 'cd_statue_knight', 'pillar'], fog: '#1a2a3a', snow: true } },
-    { id: 'stair', scale: { hp: 1.25, dmg: 1.25 }, hour: 'THE SECOND HOUR', name: 'The Umbral Stair', boss: 'umbral',
+    { id: 'stair', portal: 'stairs', scale: { hp: 1.25, dmg: 1.25 }, hour: 'THE SECOND HOUR', name: 'The Umbral Stair', boss: 'umbral',
       waves: [['bone', 'ghoul'], ['knife', 'bone', 'knife']], bossWave: ['umbral'],
       look: { sky: ['#0c0814', '#221430', '#3a1c40'], moon: 30, moonCol: '#ff8a8a', ground: ['g_flagstone_dark', 'g_slab_0_0', 'g_floor_grate'], props: ['temple', 'shrine_b', 'monolith_a', 'cdw_stained_glass', 'cd_candelabra'], fog: '#2a1430' } },
-    { id: 'waste', scale: { hp: 1.3, dmg: 1.25 }, hour: 'THE THIRD HOUR', name: 'The Ashen Waste', boss: 'hunger',
+    { id: 'waste', portal: 'rift', scale: { hp: 1.3, dmg: 1.25 }, hour: 'THE THIRD HOUR', name: 'The Ashen Waste', boss: 'hunger',
       waves: [['ghast', 'ghast', 'ghoul'], ['bone', 'knife', 'bone']], bossWave: ['hunger'],
       look: { sky: ['#0e0c10', '#24202a', '#4a3a40'], moon: 34, moonCol: '#ff6060', ground: ['g_dirt_dark', 'g_gravel', 'g_trampled_dirt'], props: ['fv_tree_dead', 'rock_big', 'ruin_stone_a', 'fv_boulder', 'grave_cross'], fog: '#2a2228', ash: true } },
-    { id: 'throat', scale: { hp: 1.35, dmg: 1.3 }, hour: 'THE FOURTH HOUR', name: "The Wind's Throat", boss: 'wing',
+    { id: 'throat', portal: 'rift', scale: { hp: 1.35, dmg: 1.3 }, hour: 'THE FOURTH HOUR', name: "The Wind's Throat", boss: 'wing',
       waves: [['knife', 'knife', 'ghast'], ['bone', 'bone', 'ghast']], bossWave: ['wing'],
       look: { sky: ['#06080e', '#141c2c', '#2c3448'], moon: 40, moonCol: '#ff4a50', ground: ['g_stone_floor', 'g_gravel', 'g_slab_1_1'], props: ['rock_m1', 'monolith_c', 'ruin_wall', 'rock_dark', 'stone_circle'], fog: '#1a2030', wind: true } },
-    { id: 'shadow', scale: { hp: 1.2, dmg: 1.25 }, hour: 'THE LAST HOUR', name: "The Moon's Shadow", boss: 'firstCut',
+    { id: 'shadow', portal: 'stairs', scale: { hp: 1.2, dmg: 1.25 }, hour: 'THE LAST HOUR', name: "The Moon's Shadow", boss: 'firstCut',
       waves: [['bone', 'knife', 'ghast', 'knife']], bossWave: ['firstCut'],
       look: { sky: ['#040306', '#0e0610', '#200a14'], moon: 58, moonCol: '#ff2a44', ground: ['g_marble_checker', 'g_flagstone_dark', 'g_slab_0_1'], props: ['altar', 'cd_throne', 'ruin_pillar', 'pillar_broken', 'cdw_pillar'], fog: '#200810', embers: true } },
   ];
@@ -123,7 +127,7 @@
     { id: 'guard', name: 'Steady Hand', desc: 'The parry window is 60% wider.' },
     { id: 'moonblood', name: 'Moonblood', desc: 'The moon fills 40% faster.' },
     { id: 'thirst', name: 'Red Thirst', desc: 'Heal 5% of the damage you deal.' },
-    { id: 'fourth', name: 'Fourth Cut', desc: 'Your combo gains a fourth, heavier cut.' },
+    { id: 'fourth', name: 'Fifth Cut', desc: 'Your combo gains a fifth, heavier cut.' },
     { id: 'ghost', name: 'Ghoststep', desc: 'Dodges go farther; the perfect dodge is easier.' },
     { id: 'riposte', name: 'Riposte', desc: 'After a parry, your next cut deals triple damage.' },
     { id: 'breath', name: 'Last Breath', desc: 'The Last Ditch Effort opens at 45% health.' },

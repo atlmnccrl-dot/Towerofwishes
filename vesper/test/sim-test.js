@@ -40,8 +40,8 @@ for (let st = 0; st < D.STAGES.length; st++) {
 }
 // The Last Ditch Effort opens at low health and does more than the Red Moon.
 {
-  const s = S.create(5, { seed: 3 }); S.step(s, DT, {});
-  for (let i = 0; i < 2000 && !(s.wave === s.waves.length - 1 && s.freeze <= 0); i++) { for (const u of S.foes(s)) if (!u.def.boss) u.hp = 0, u.alive = false, u.state = 'dead'; S.step(s, DT, {}); }
+  const s = S.create(5, { seed: 3 }); s.wave = s.waves.length - 2; s.area = s.waves.length - 1; s.waveT = 0;
+  for (let i = 0; i < 2000 && !(s.wave === s.waves.length - 1 && s.freeze <= 0 && S.foes(s).every((u) => u.state !== 'spawn')); i++) S.step(s, DT, {});
   const boss = S.foes(s).find((u) => u.def.boss);
   if (!boss) bad('no boss in the last stage');
   else {
@@ -57,6 +57,13 @@ for (let st = 0; st < D.STAGES.length; st++) {
     console.log(`art damage on the First Cut: Last Ditch ${ldx}, Red Moon ${moon}`);
     if (!(ldx > moon && moon > 0)) bad('ldx should hit harder than the red moon');
   }
+}
+// Every area opens a portal and the hero passes through it.
+{
+  const s = S.create(0, { seed: 9 }); let portals = 0, areas = 0, t = 0;
+  while (!s.result && t < 300) { S.step(s, DT, S.bot(s, 0.6)); t += DT; for (const e of s.events) { if (e.type === 'portal') portals++; if (e.type === 'area') areas++; } }
+  console.log(`The Black Gate: ${portals} portals opened, ${areas} areas entered, result ${s.result}`);
+  if (portals !== s.waves.length - 1 || areas !== s.waves.length - 1) bad('portals and areas should match the waves');
 }
 console.log(fail ? `${fail} failures` : 'all invariants hold');
 process.exit(fail ? 1 : 0);
