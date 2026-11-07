@@ -650,6 +650,12 @@
       const ink = easeOut((lt - 0.05) / 0.22);
       const fs = Math.round(m * (b.kind === 'lead' ? 0.15 : b.kind === 'guest' ? 0.1 : 0.13));
       const nx = W * 0.05 - (1 - ink) * W * 0.4, ny = H * 0.66;
+      // The hero's anime portrait in a slanted panel above the name (js/portraits.js).
+      const Pt = window.TowPortraits, pimg = fx && fx.bust && Pt && u.team === 'hero' && Pt.get(u, 'calm');
+      if (pimg && ink > 0) {
+        const px0 = W * 0.04 - (1 - ink) * W * 0.45, py0 = H * 0.1, py1 = ny - fs * 1.35, pw = W * 0.34, sk = (py1 - py0) * 0.12;
+        fx.bust(pimg, u, [[px0 + sk, py0], [px0 + pw + sk, py0 - sk * 0.4], [px0 + pw - sk, py1 - sk * 0.4], [px0 - sk, py1]], { band: 'face', fill: 1.12, at: [0.46, 0.5], zoom: 1 + lt * 0.03, t: lt, glint: true });
+      }
       if (ink > 0) {
         smallCaps(((d.intro && d.intro.epithet) || '').toUpperCase(), nx + fs * 0.1, ny - fs * 0.95, Math.round(fs * 0.24), u.guest ? PAL.guest : heroCol);
         lettering(u.name.toUpperCase(), nx, ny, fitSize(u.name.toUpperCase(), fs, W * 0.5), PAL.white, 'left');

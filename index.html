@@ -664,6 +664,7 @@ body.trailer.fighting .trailer-card:not(.logo) { bottom: auto; top: 10vh; }
 .card.hero .tab { position: relative; box-sizing: border-box; padding: 0; align-self: center; width: 40px; height: 40px; min-height: 0; border-radius: 50%; overflow: hidden; clip-path: none;
   background: radial-gradient(circle at 50% 35%, #3a4a66, #10131c 75%); box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.22), 0 2px 6px rgba(0, 0, 0, 0.6); }
 .card.hero .tab .face { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; }
+.card.hero .tab .face.anime { image-rendering: auto; }
 .card.hero.has-face .tab b { display: none; }
 .card.hero .card-name { font: 800 10px/1 var(--ui); font-style: normal; letter-spacing: 0.16em; text-transform: uppercase; color: #fffd; }
 .card.hero .meter { transform: none; border-radius: 3px; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55); background: rgba(0, 0, 0, 0.45); }
@@ -791,6 +792,7 @@ body.trailer.fighting .trailer-card:not(.logo) { bottom: auto; top: 10vh; }
         <div class="settings-head"><h2 id="settings-h">Settings</h2><button class="link" id="btn-settings-close" type="button">Close ✕</button></div>
         <div class="set-row"><span><b>Sound</b><small>Menu, fight and story sounds</small></span><button class="set-toggle" id="btn-sound" type="button">Sound: on</button></div>
         <div class="set-row"><span><b>Auto dialogue</b><small>Subtitles play on their own; a tap hurries them</small></span><button class="set-toggle" id="btn-set-auto" type="button">Off</button></div>
+        <div class="set-row"><span><b>Hero cut-ins</b><small>A hero's portrait slams in for heavy arts and All Out</small></span><button class="set-toggle" id="btn-cutins" type="button">On</button></div>
         <div class="set-row"><span><b>Frame rate</b><small>Show how smoothly the game runs (frames per second)</small></span><button class="set-toggle" id="btn-fps" type="button">Off</button></div>
         <div class="set-row"><span><b>Prologue</b><small>Watch the opening again; your progress is kept</small></span><button class="set-btn" id="btn-prologue" type="button">Watch</button></div>
         <div class="set-row danger"><span><b>Reset progress</b><small>Start over from the very beginning: story, team, gear, injuries</small></span><button class="set-btn" id="btn-reset" type="button">Reset</button></div>
@@ -936,6 +938,7 @@ body.trailer.fighting .trailer-card:not(.logo) { bottom: auto; top: 10vh; }
 <script src="js/render/itemart.js"></script>
 <script src="js/render/director.js"></script>
 <script src="js/sprites.js"></script>
+<script src="js/portraits.js"></script>
 <script src="js/render/core.js"></script>
 <script src="js/render/backdrop.js"></script>
 <script src="js/render/map.js"></script>

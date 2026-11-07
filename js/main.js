@@ -806,6 +806,7 @@
     for (const el of document.querySelectorAll('#team .card, #foes .card')) grab(el, el.dataset.id);
     if (boss) grab($('boss'), boss.id);
     hudBoss = boss;
+    if (window.TowPortraits) window.TowPortraits.preload(team.map((u) => u.key));
     hudFaces = [...document.querySelectorAll('#team .card')].map((el) => ({ el, c: el.querySelector('canvas.face'), u: match.byId[el.dataset.id], done: false }));
     hudFoeKey = '';
   }
@@ -814,8 +815,21 @@
   function drawFaces() {
     const Sp = window.TowSprites;
     if (!Sp || !Sp.forUnit) return;
+    const Pt = window.TowPortraits;
     for (const f of hudFaces) {
       if (f.done || !f.c || !f.u) continue;
+      // The hero's anime portrait, framed on the face; the pixel face if there is none.
+      if (Pt && Pt.keyFor(f.u) && !Pt.failed(f.u)) {
+        const im = Pt.get(f.u, 'calm');
+        if (!im) continue; // still loading
+        const g = f.c.getContext('2d'), S = f.c.width, F = Pt.FACE, side = F[2] * 1.12 * im.width;
+        const cx = (F[0] + F[2] / 2) * im.width, cy = (F[1] + F[3] * 0.46) * im.width;
+        g.clearRect(0, 0, S, S); g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+        g.drawImage(im, cx - side / 2, cy - side / 2, side, side, 0, 0, S, S);
+        f.c.classList.add('anime');
+        f.done = true; f.el.classList.add('has-face');
+        continue;
+      }
       const man = Sp.forUnit(f.u, {});
       if (!man || !man.pixel) continue;
       const A = Sp.animator(man); Sp.play(A, man.animations.idle ? 'idle' : Object.keys(man.animations)[0]);
@@ -972,7 +986,12 @@
     $('btn-set-auto').textContent = a ? 'On' : 'Off'; $('btn-set-auto').setAttribute('aria-pressed', a ? 'true' : 'false');
     $('btn-sound').setAttribute('aria-pressed', window.TowAudio && window.TowAudio.on === false ? 'false' : 'true');
     $('btn-fps').textContent = fpsOn() ? 'On' : 'Off';
+    $('btn-cutins').textContent = cutinsOn() ? 'On' : 'Off'; $('btn-cutins').setAttribute('aria-pressed', cutinsOn() ? 'true' : 'false');
   }
+  // Hero cut-ins in fights (Settings): on unless turned off.
+  const cutinsOn = () => !(save.settings && save.settings.cutins === false);
+  const syncCutins = () => { if (window.TowPortraits) window.TowPortraits.cutins = cutinsOn(); };
+  syncCutins();
   // Frame rate readout (Settings), so the real number on a phone can be reported.
   const fpsOn = () => !!(save.settings && save.settings.fps);
   let fpsAcc = 0, fpsN = 0;
@@ -983,6 +1002,7 @@
     fpsAcc += real; fpsN++;
     if (fpsAcc >= 0.5) { el.textContent = Math.round(fpsN / fpsAcc) + ' fps'; fpsAcc = 0; fpsN = 0; }
   }
+  $('btn-cutins').addEventListener('click', () => { save.settings = Object.assign({}, save.settings, { cutins: !cutinsOn() }); writeSave(); syncCutins(); renderSettings(); });
   $('btn-fps').addEventListener('click', () => { save.settings = Object.assign({}, save.settings, { fps: !fpsOn() }); writeSave(); renderSettings(); });
   $('btn-settings').addEventListener('click', () => { $('reset-confirm').hidden = true; renderSettings(); $('settings').hidden = false; });
   $('btn-settings-close').addEventListener('click', () => { $('settings').hidden = true; });

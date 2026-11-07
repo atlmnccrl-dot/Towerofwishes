@@ -25,6 +25,7 @@
     const PX = NS.pixelfx ? NS.pixelfx.create(V) : null;
     const px = () => !!(PX && PX.ready());
     let parts = [], texts = [], streaks = [], flash = 0, flashCol = '255,255,255', hitstop = 0, banner = null, impact = 0;
+    let aoCut = null; // All Out: the heroes' battle cries slam in, one slice each
     const fizzles = []; // {unit, t}
     let blinks = [], dissolves = [];
     let bolts = []; // storm arcs between foes
@@ -136,6 +137,8 @@
         } else if (e.type === 'allout') {
           flash = 0.55; flashCol = '227,38,58';
           banner = { text: 'ALL OUT', sub: 'Everything they have', t: 0, life: 1.5 };
+          const Pt = window.TowPortraits;
+          if (Pt) { Pt.preload(s.units.map((o) => o.key)); aoCut = { t: 0, heroes: s.units.filter((o) => o.team === 'hero' && !o.beaten && o.state !== 'out' && Pt.keyFor(o)) }; }
           cam.shake = 12; impact = 0.08;
         } else if (e.type === 'dash') {
           const u = s.byId[e.unit];
@@ -1286,10 +1289,75 @@
     // A manhwa close-up of the eyes, drawn flat into a slanted strip: the face
     // in deep shadow, sharp bangs, glowing slit eyes with starburst glints.
     // poly: strip corners; t: seconds since it appeared (for the glint).
+    // ------------------------------------------------------------ anime portraits
+    // The heroes' bust portraits (js/portraits.js) in a slanted panel: a dark ground, ink speed
+    // lines in the hero's colour, the portrait framed on its face or its eyes, glints, a border.
+    function rgbaOf(hex, a) {
+      const n = parseInt(hex.slice(1), 16);
+      return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+    }
+    function inkLines(cx, cy, n, r0, r1, col, seed) {
+      ctx.fillStyle = col;
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2 + Math.sin(i * 12.9898 + seed) * 0.08;
+        const w = 0.006 + ((i * 7) % 5) * 0.003;
+        const ri = r0 * (0.85 + ((i * 13) % 7) / 20);
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(a - w) * r1, cy + Math.sin(a - w) * r1);
+        ctx.lineTo(cx + Math.cos(a) * ri, cy + Math.sin(a) * ri);
+        ctx.lineTo(cx + Math.cos(a + w) * r1, cy + Math.sin(a + w) * r1);
+        ctx.closePath(); ctx.fill();
+      }
+    }
+    // o: { band: 'face' | 'eyes', fill (band height / panel height), at: [fx, fy] where the band's
+    //      centre sits in the panel (fractions), zoom, t (seconds shown), glint, border }
+    function bust(img, u, poly, o) {
+      const Pt = window.TowPortraits, key = Pt.keyFor(u), acc = Pt.ACCENT[key] || PAL.heroGlow;
+      const xs = poly.map((q) => q[0]), ys = poly.map((q) => q[1]);
+      const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+      const w = x1 - x0, h = y1 - y0;
+      const strip = () => { ctx.beginPath(); poly.forEach((q, i) => (i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]))); ctx.closePath(); };
+      const B = o.band === 'eyes' ? Pt.EYES : Pt.FACE;
+      const size = (h * (o.fill || 1.2) * (o.zoom || 1)) / B[3];
+      const at = o.at || [0.32, 0.5];
+      const tx = x0 + w * at[0], ty = y0 + h * at[1];
+      const ix = tx - (B[0] + B[2] / 2) * size, iy = ty - (B[1] + B[3] / 2) * size;
+      ctx.save();
+      strip(); ctx.fillStyle = '#0d0b10'; ctx.fill(); ctx.clip();
+      const g = ctx.createLinearGradient(x0, 0, x1, 0);
+      g.addColorStop(0, rgbaOf(acc, 0.32)); g.addColorStop(0.6, rgbaOf(acc, 0.08)); g.addColorStop(1, 'rgba(13,11,16,0)');
+      ctx.fillStyle = g; ctx.fillRect(x0, y0, w, h);
+      inkLines(tx, ty, 64, size * 0.2, Math.max(w, h) * 1.2, rgbaOf(acc, 0.22), key.length);
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(img, ix, iy, size, size);
+      // a light sweep across the panel as it lands
+      const sw = ((o.t || 0) - 0.05) / 0.35;
+      if (sw > 0 && sw < 1) {
+        const sx = x0 - w * 0.2 + sw * w * 1.4;
+        ctx.globalCompositeOperation = 'lighter';
+        const lg = ctx.createLinearGradient(sx - w * 0.08, 0, sx + w * 0.08, 0);
+        lg.addColorStop(0, 'rgba(255,255,255,0)'); lg.addColorStop(0.5, 'rgba(255,255,255,0.28)'); lg.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = lg; ctx.fillRect(x0, y0, w, h);
+        ctx.globalCompositeOperation = 'source-over';
+      }
+      ctx.restore();
+      if (o.glint) {
+        const gk = Math.min(1, Math.max(0, ((o.t || 0) - 0.12) / 0.1)) * Math.max(0, 1 - ((o.t || 0) - 0.3) / 0.3);
+        if (gk > 0) for (const e of Pt.EYE_POS) star(ix + e[0] * size, iy + e[1] * size, Math.min(size * 0.012, h * 0.05) * gk, '#ffffff', 4, 0.25);
+      }
+      if (o.border !== false) {
+        ctx.strokeStyle = INK; ctx.lineWidth = 6; ctx.lineJoin = 'miter'; strip(); ctx.stroke();
+        ctx.strokeStyle = acc; ctx.lineWidth = 2; strip(); ctx.stroke();
+      }
+    }
+
     function portrait(u, poly, t, slide) {
       const L = NS.fighters.LOOK[u.key] || {};
       const hero = u.team === 'hero';
       const glow = u.key === 'eiryn' ? PAL.glyph : hero ? PAL.heroGlow : PAL.glow;
+      // The anime bust portrait when the hero has one (and it has loaded).
+      const Pt = window.TowPortraits, pimg = Pt && hero && Pt.get(u, 'calm');
+      if (pimg) { bust(pimg, u, poly, { band: 'face', fill: 1.25, at: [0.3, 0.52], t, glint: true }); return; }
       const xs = poly.map((q) => q[0]), ys = poly.map((q) => q[1]);
       const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
       const w = x1 - x0, h = y1 - y0, cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
@@ -2309,9 +2377,64 @@
       ctx.restore();
     }
 
+    // ------------------------------------------------------------ combat cut-ins
+    // The author switched the old eye cut-ins off; these portrait cut-ins came back with the
+    // anime portraits (2026-11-07) and have their own Settings toggle (TowPortraits.cutins).
+    const cutinsOn = () => { const Pt = window.TowPortraits; return !!(Pt && Pt.cutins) && !document.body.classList.contains('trailer'); };
+    const clamp01 = (v) => Math.max(0, Math.min(1, v));
+    function slant(text, x, y, fs, col, align) {
+      ctx.save(); ctx.translate(x, y); ctx.transform(1, 0, -0.22, 1, 0, 0);
+      ctx.font = `${fs}px Adventurer, ${FONT.display}`; ctx.textAlign = align; ctx.textBaseline = 'alphabetic';
+      ctx.lineJoin = 'round'; ctx.lineWidth = fs * 0.18; ctx.strokeStyle = INK; ctx.strokeText(text, 0, 0);
+      ctx.fillStyle = col; ctx.fillText(text, 0, 0);
+      ctx.restore();
+    }
+    // Heavy art: while the power gathers, the hero's battle cry slams across the screen.
+    function heavyCutIn(c) {
+      const Pt = window.TowPortraits, u = c.unit;
+      if (!cutinsOn() || u.team !== 'hero' || c.t > CUT.charge) return;
+      const img = Pt.get(u, 'cry');
+      if (!img) return;
+      const W = V.W, H = V.H, t = c.t - 0.08;
+      if (t < 0) return;
+      const inK = clamp01(t / 0.12), outK = clamp01((t - 0.86) / 0.14);
+      const e = 1 - Math.pow(1 - inK, 3);
+      const sl = (1 - e) * -W * 1.1 + outK * outK * W * 1.1;
+      const y0 = H * 0.15, y1 = H * 0.5, sk = H * 0.04;
+      const poly = [[W * 0.03 + sl, y0 + sk], [W * 0.99 + sl, y0], [W * 0.97 + sl, y1 - sk], [W * 0.01 + sl, y1]];
+      bust(img, u, poly, { band: 'face', fill: 1.35, at: [0.4, 0.5], zoom: 1 + t * 0.06, t, glint: true });
+      const acc = Pt.ACCENT[Pt.keyFor(u)];
+      slant((c.name || u.name).toUpperCase(), W * 0.94 + sl, y1 - sk - H * 0.035, Math.round(Math.min(W, H) * 0.075), acc, 'right');
+    }
+    // All Out: one slanted slice per hero, dropping in left to right, then flying off.
+    function allOutCutIn(dt) {
+      if (!aoCut) return;
+      aoCut.t += dt;
+      const Pt = window.TowPortraits, T = 1.15, t = aoCut.t;
+      if (t > T + 0.4 || !cutinsOn()) { aoCut = null; return; }
+      const list = aoCut.heroes, n = list.length;
+      if (!n) { aoCut = null; return; }
+      const W = V.W, H = V.H, y0 = H * 0.13, y1 = H * 0.87, sk = W * 0.05;
+      const span = Math.min(W * 0.92, n * H * 0.62), x0 = (W - span) / 2, sw = span / n;
+      list.forEach((u, i) => {
+        const img = Pt.get(u, 'cry');
+        if (!img) return;
+        const ti = t - i * 0.07;
+        if (ti < 0) return;
+        const inK = 1 - Math.pow(1 - clamp01(ti / 0.14), 3), outK = clamp01((t - T) / 0.25);
+        const dy = (1 - inK) * -H * 1.1 + outK * outK * -H * 1.1;
+        const a = x0 + i * sw, b = a + sw;
+        const poly = [[a + sk + 4, y0 + dy], [b + sk - 4, y0 + dy], [b - sk - 4, y1 + dy], [a - sk + 4, y1 + dy]];
+        // faces low in the slice: the eyes sit under the ALL OUT banner, not behind it
+        bust(img, u, poly, { band: 'face', fill: 0.55, at: [0.5, 0.72], zoom: 1 + ti * 0.05, t: ti, glint: true });
+      });
+    }
+
     function drawScreen(s, dt) {
       const W = V.W, H = V.H;
       drawCutscene(s);
+      if (s.cutscene) heavyCutIn(s.cutscene);
+      allOutCutIn(dt || 0);
       if (impact > 0) {
         // Small impact frame for big hits: a brief inverted flash.
         ctx.save(); ctx.globalCompositeOperation = 'difference'; ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fillRect(0, 0, W, H); ctx.restore();
@@ -2324,7 +2447,7 @@
 
     function takeHitstop() { const h = hitstop; hitstop = 0; return h; }
 
-    return { consume, underUnit, overUnit, drawWorld, drawScreen, takeHitstop, panel, speedLines, star, portrait, cutPhase, pxfx: () => (px() ? PX : null) };
+    return { consume, underUnit, overUnit, drawWorld, drawScreen, takeHitstop, panel, speedLines, star, portrait, bust, cutPhase, pxfx: () => (px() ? PX : null) };
   }
 
   NS.fx = { create };
