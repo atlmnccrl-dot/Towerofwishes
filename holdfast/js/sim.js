@@ -36,6 +36,7 @@
     reveal(st, tileOf(u.x), tileOf(u.y), 9);
     reveal(st, gen.clearing.x, gen.clearing.y, 8);
     for (const a of gen.animals) spawnAnimal(st, a.kind, ctr(a.x), ctr(a.y));
+    { const a0 = gen.animals[0]; if (a0) for (let k = 0; k < 3; k++) spawnAnimal(st, 'para', ctr(a0.x) + k * 34, ctr(a0.y) + (k % 2) * 30); }
     return st;
   };
 
@@ -150,14 +151,15 @@
 
   // ---- Wildlife -------------------------------------------------------------------------
   function spawnAnimal(st, kind, x, y) {
-    const a = { id: nid(st, 'a'), side: 'a', kind, x, y, hp: kind === 'deer' ? 24 : 8, maxHp: kind === 'deer' ? 24 : 8, dir: 0, anim: 'idle', at: 0, path: null, wander: 0, flee: 0 };
+    const ahp = kind === 'para' ? 70 : kind === 'deer' ? 24 : 8;
+    const a = { id: nid(st, 'a'), side: 'a', kind, x, y, hp: ahp, maxHp: ahp, dir: 0, anim: 'idle', at: 0, path: null, wander: 0, flee: 0 };
     st.units[a.id] = a; return a;
   }
 
   // ---- Enemies ------------------------------------------------------------------------
   function spawnFoe(st, kind, x, y, wave) {
     const F = D.FOE[kind]; const day = S.day(st);
-    const k = 1 + Math.max(0, day - 3) * 0.035;
+    const k = F.boss ? 1 : 1 + Math.max(0, day - 3) * 0.035;
     const e = { id: nid(st, 'e'), side: 'e', kind, set: F.set, born: st.hours, px: x, py: y, stuckN: 0, x, y, hp: Math.round(F.hp * k), maxHp: Math.round(F.hp * k), dir: Math.PI, anim: 'idle', at: 0, path: null, target: null, cd: rnd(st), wave, carry: 0, flee: false, swing: 0, retarget: 0 };
     if (kind === 'thug' && rnd(st) < 0.5) e.set = 'thug_b';
     if (kind === 'raider' && rnd(st) < 0.35) e.set = 'bandit_grabber';
@@ -454,7 +456,7 @@
     const crossed = h => (hb < h && ha >= h) || (hb > ha && (hb < h || ha >= h));
     if (crossed(6)) dawn(st);
     if (crossed(19.5) && S.day(st) === 1) { ev(st, { type: 'cine', id: 'firstNight' }); note(st, 'Night is falling. Something is moving in the trees.', 'warn'); }
-    if (crossed(21) && S.day(st) === 1 && !st.flags.night1) { st.flags.night1 = true; spawnWave(st, [['stalker', 2]], 1, 'beast'); }
+    if (crossed(21) && S.day(st) === 1 && !st.flags.night1) { st.flags.night1 = true; spawnWave(st, [['raptor', 2]], 1, 'beast'); for (const e of S.foes(st)) { e.hp = e.maxHp = 28; } }
     if (crossed(8) && S.day(st) === 2 && !st.flags.stranger) { st.flags.stranger = true; spawnStranger(st, true); }
     if (crossed(12)) midday(st);
     threatTick(st);
@@ -512,6 +514,7 @@
     for (const id in st.nodes) { const nd = st.nodes[id]; if (nd.type === 'bush' && nd.amt < nd.max) nd.amt = Math.min(nd.max, nd.amt + 3); }
     const animals = Object.values(st.units).filter(u => u.side === 'a' && !u.dead).length;
     if (animals < 12) for (let k = 0; k < 3; k++) { const p = edgePoint(st, rnd(st) * Math.PI * 2, 6); if (p) spawnAnimal(st, rnd(st) < 0.4 ? 'deer' : 'rabbit', p.x, p.y); }
+    if (!Object.values(st.units).some(u => u.kind === 'para' && !u.dead) && day >= 2) { const p = edgePoint(st, rnd(st) * Math.PI * 2, 10); if (p) { for (let k = 0; k < 3; k++) spawnAnimal(st, 'para', p.x + k * 30, p.y + (k % 2) * 30); note(st, 'A herd of parasaurs is grazing nearby. Good meat, if you can catch them.', 'info'); } }
     // Weather.
     if (rnd(st) < 0.25 && day > 1) { st.weather.rain = true; st.weather.until = st.hours + 4 + rnd(st) * 8; note(st, 'Rain today. The barrels will fill.', 'info'); }
     // Wanderers: more likely when there is room and spirits are high.
@@ -525,7 +528,7 @@
     if (day >= 2 && !st.threat.beasts && day >= st.threat.beastCalm) {
       if (rnd(st) < (day < 4 ? 0.35 : 0.5)) {
         const p = 2 + day * 0.7; const comp = []; let left = p;
-        while (left > 1) { const k = day >= 6 && rnd(st) < 0.3 ? 'pale' : 'stalker'; comp.push(k); left -= D.FOE[k].power; }
+        while (left > 1) { const k = rnd(st) < 0.65 ? 'raptor' : day >= 6 && rnd(st) < 0.4 ? 'pale' : 'stalker'; comp.push(k); left -= D.FOE[k].power; }
         st.threat.beasts = { day, hour: 22 + rnd(st) * 3, comp };
       }
     }
@@ -535,25 +538,30 @@
     if (st.threat.raids >= 1 && !st.threat.raid && day >= 4) {
       const gap = rnd(st) < 0.5 ? 2 : 3;
       const rd = day + gap;
-      const hollow = rd >= 8 && rnd(st) < 0.45;
-      planRaid(st, rd, hollow ? 22 : 17 + rnd(st) * 3, false, hollow);
+      const r0 = rnd(st); let kind = rd >= 8 && r0 < 0.3 ? 'hollow' : rd >= 7 && r0 < 0.65 ? 'dino' : 'raider';
+      if (rd >= 11 && !st.flags.tyrant) kind = 'dino';
+      planRaid(st, rd, kind === 'hollow' ? 22 : kind === 'dino' ? 19 : 17 + rnd(st) * 3, false, kind);
     }
   }
-  function planRaid(st, day, hour, first, hollow) {
+  function planRaid(st, day, hour, first, kind) {
+    if (kind === true) kind = 'hollow'; kind = kind || 'raider'; const hollow = kind === 'hollow';
     const era = st.era;
     let P = first ? 8 : (7 + (day - 3) * 2.3) * (1 + 0.25 * (era - 1));
-    if (!hollow && day < st.threat.raiderCalm) P *= 0.6;
-    const pool = hollow ? ['hollow', 'hollow', 'hspear', 'harcher'].concat(day >= 11 ? ['hexer'] : []) : ['raider', 'raider', 'thug'].concat(day >= 5 ? ['thrower'] : []).concat(day >= 7 ? ['brute'] : []);
+    if (kind === 'raider' && day < st.threat.raiderCalm) P *= 0.6;
+    if (kind === 'dino' && day < st.threat.beastCalm) P *= 0.6;
+    P *= Math.max(0.55, Math.min(1.3, S.present(st).length / 5));   // small camps face smaller raids
+    const pool = kind === 'dino' ? ['raptor', 'raptor', 'raptor'].concat(day >= 8 ? ['trike'] : []).concat(day >= 10 ? ['stego'] : []) : hollow ? ['hollow', 'hollow', 'hspear', 'harcher'].concat(day >= 11 ? ['hexer'] : []) : ['raider', 'raider', 'thug'].concat(day >= 5 ? ['thrower'] : []).concat(day >= 7 ? ['brute'] : []);
     const comp = []; let left = P;
     if (first) comp.push('first');
     else {
       if (hollow && day >= 14 && st.threat.raids % 3 === 2) { comp.push('warlord'); left -= D.FOE.warlord.power; }
+      if (kind === 'dino' && day >= 11 && (!st.flags.tyrant || st.threat.raids % 4 === 3)) { comp.push('trex'); left -= D.FOE.trex.power * 0.6; st.flags.tyrant = true; }
       let guard = 0; while (left > 2 && guard++ < 60) { const k = rpick(st, pool); comp.push(k); left -= D.FOE[k].power; }
     }
     const dirs = []; const nd = first ? 1 : Math.min(3, 1 + Math.floor(day / 7) + (rnd(st) < 0.3 ? 1 : 0));
     const base = rnd(st) * Math.PI * 2; for (let i = 0; i < nd; i++) dirs.push(base + i * (Math.PI * 2 / nd) + (rnd(st) - 0.5) * 0.6);
     const lead = st.techs.watchfires ? 24 : 12;
-    st.threat.raid = { day, hour, comp, dirs, warned: false, warnAt: (day - 1) * 24 + hour - lead, at: (day - 1) * 24 + hour, hollow: !!hollow, first: !!first };
+    st.threat.raid = { day, hour, comp, dirs, warned: false, warnAt: (day - 1) * 24 + hour - lead, at: (day - 1) * 24 + hour, hollow: !!hollow, kind, first: !!first };
   }
   S.planRaid = planRaid;
   function dirName(a) { const n = ['east', 'south-east', 'south', 'south-west', 'west', 'north-west', 'north', 'north-east']; return n[((Math.round(a / (Math.PI / 4)) % 8) + 8) % 8]; }
@@ -561,8 +569,8 @@
     const T = st.threat, h = st.hours;
     if (T.raid && !T.raid.warned && h >= T.raid.warnAt) {
       T.raid.warned = true;
-      const R = T.raid; const who = R.hollow ? 'The Hollow are stirring' : 'Ash Raiders have been seen';
-      note(st, who + ' to the ' + R.dirs.map(dirName).join(' and ') + '. They will strike ' + (R.hollow ? 'tonight' : 'by dusk') + (h > R.at - 12 ? '' : ' tomorrow') + '.', 'warn');
+      const R = T.raid; const who = R.kind === 'dino' ? (R.comp.includes('trex') ? 'The ground shakes. Something huge is coming' : 'Fresh tracks in the mud: dinosaurs are moving') : R.hollow ? 'The Hollow are stirring' : 'Ash Raiders have been seen';
+      note(st, who + ' from the ' + R.dirs.map(dirName).join(' and ') + '. They will reach the camp ' + (R.hollow ? 'tonight' : 'by dusk') + (h > R.at - 12 ? '' : ' tomorrow') + '.', 'warn');
       ev(st, { type: 'warn', raid: R }); ev(st, { type: 'sfx', s: 'horn_far' });
     }
     if (T.raid && h >= T.raid.at) {
@@ -571,20 +579,20 @@
       const per = Math.ceil(R.comp.length / R.dirs.length);
       const groups = R.dirs.map((d, i) => ({ dir: d, comp: R.comp.slice(i * per, (i + 1) * per) }));
       T.waveId++;
-      for (const gp of groups) { const counts = {}; for (const k of gp.comp) counts[k] = (counts[k] || 0) + 1; spawnWave(st, Object.entries(counts), T.waveId, R.hollow ? 'hollow' : 'raider', gp.dir); }
-      T.active = true; T.activeKind = R.hollow ? 'hollow' : 'raider'; T.first = R.first; T.spawned = S.foes(st).length;
-      ev(st, { type: 'cine', id: R.first ? 'firstRaid' : 'raid', dir: groups[0].dir, boss: R.comp.includes('warlord') });
-      note(st, R.hollow ? 'The Hollow are here!' : 'Raiders at the edge of camp!', 'bad');
+      for (const gp of groups) { const counts = {}; for (const k of gp.comp) counts[k] = (counts[k] || 0) + 1; spawnWave(st, Object.entries(counts), T.waveId, R.kind || (R.hollow ? 'hollow' : 'raider'), gp.dir); }
+      T.active = true; T.activeKind = R.kind || (R.hollow ? 'hollow' : 'raider'); T.first = R.first; T.spawned = S.foes(st).length;
+      ev(st, { type: 'cine', id: R.first ? 'firstRaid' : 'raid', dir: groups[0].dir, boss: R.comp.includes('warlord') || R.comp.includes('trex'), kind: R.kind });
+      note(st, R.kind === 'dino' ? (R.comp.includes('trex') ? 'THE TYRANT IS HERE!' : 'Dinosaurs are charging the camp!') : R.hollow ? 'The Hollow are here!' : 'Raiders at the edge of camp!', 'bad');
     }
-    if (T.beasts && h >= (T.beasts.day - 1) * 24 + T.beasts.hour) { const B = T.beasts; T.beasts = null; const counts = {}; for (const k of B.comp) counts[k] = (counts[k] || 0) + 1; spawnWave(st, Object.entries(counts), ++T.waveId, 'beast'); note(st, 'Eyes in the dark. Stalkers circle the camp.', 'warn'); }
+    if (T.beasts && h >= (T.beasts.day - 1) * 24 + T.beasts.hour) { const B = T.beasts; T.beasts = null; const counts = {}; for (const k of B.comp) counts[k] = (counts[k] || 0) + 1; spawnWave(st, Object.entries(counts), ++T.waveId, 'beast'); note(st, B.comp.includes('raptor') ? 'Raptors! A pack is circling the camp.' : 'Eyes in the dark. Stalkers circle the camp.', 'warn'); ev(st, { type: 'sfx', s: 'screech' }); }
     // Wave over? A band that loses most of its fighters breaks and runs.
     if (T.active) {
       const all = S.foes(st), foes = all.filter(e => !e.flee);
       if (T.activeKind !== 'beast' && T.spawned >= 3 && foes.length && foes.length <= Math.floor(T.spawned * 0.3) && !foes.some(e => D.FOE[e.kind].boss)) { for (const e of foes) { e.flee = true; e.path = null; } note(st, 'The attackers break and run!', 'good'); foes.length = 0; }
-      if (!foes.length && T.activeKind === 'beast') { T.active = false; note(st, 'The stalkers are gone. The camp breathes again.', 'good'); ev(st, { type: 'sfx', s: 'confirm' }); }
+      if (!foes.length && T.activeKind === 'beast') { T.active = false; note(st, 'The night hunters are gone. The camp breathes again.', 'good'); ev(st, { type: 'sfx', s: 'confirm' }); }
       else if (!foes.length) {
         T.active = false; st.threat.raids++; st.stats.raids++; st.morale.win = 12;
-        note(st, T.activeKind === 'raider' ? 'The raid is broken. The camp holds!' : 'The dead fall still. The camp holds!', 'good');
+        note(st, T.activeKind === 'raider' ? 'The raid is broken. The camp holds!' : T.activeKind === 'dino' ? 'The beasts are dead or fled. The camp holds!' : 'The dead fall still. The camp holds!', 'good');
         ev(st, { type: 'victory', first: T.first }); ev(st, { type: 'sfx', s: 'reward' });
         if (st.alarm) CMD.alarm(st, { on: false });
         done(st, 'defend'); done(st, 'raid');
@@ -616,7 +624,7 @@
   }
   S.spawnWave = spawnWave;
   function spawnTrader(st) {
-    const p = edgePoint(st, rnd(st) * Math.PI * 2, 8); if (!p) return;
+    const p = nearPoint(st, 18); if (!p) return;
     const u = { id: nid(st, 'n'), side: 'n', set: 'erdra_vendor', name: 'Travelling Trader', x: p.x, y: p.y, dir: 0, hp: 60, maxHp: 60, anim: 'idle', at: 0, path: null, task: { t: 'approach' } };
     st.units[u.id] = u;
     const pool = D.TRADES.map((o, i) => i); const offers = [];
@@ -639,8 +647,15 @@
       if (r !== 'moving') { delete st.units[u.id]; st.trader = null; }
     }
   }
+  function nearPoint(st, dist) {   // a reachable open tile about `dist` tiles from the camp
+    const h = S.heart(st); const c = h ? { x: h.x + 2, y: h.y + 1 } : (st.camp || st.clearing); const cs = costS(st);
+    for (let k = 0; k < 40; k++) { const a = rnd(st) * Math.PI * 2, d = dist + rnd(st) * 4; const x = Math.round(c.x + Math.cos(a) * d), y = Math.round(c.y + Math.sin(a) * d);
+      if (x < 2 || y < 2 || x >= N - 2 || y >= M - 2 || cs(y * N + x) < 0) continue;
+      if (Wd.path(N, M, x, y, { x0: c.x - 1, y0: c.y - 1, x1: c.x + 1, y1: c.y + 1, adj: true }, cs, 6000)) return { x: ctr(x), y: ctr(y) }; }
+    return edgePoint(st, rnd(st) * Math.PI * 2, 8);
+  }
   function spawnStranger(st, scripted) {
-    const p = edgePoint(st, rnd(st) * Math.PI * 2, 8); if (!p) return;
+    const p = nearPoint(st, 16); if (!p) return;
     const u = makeSurvivor(st, { x: p.x, y: p.y });
     u.stranger = true; u.task = { t: 'approach' };
     if (scripted) { u.trait = 'gentle'; u.skills.medic = Math.max(u.skills.medic, 4); }
@@ -737,7 +752,7 @@
       const sh = nearestShelter(st, u);
       if (sh) { u.task = { t: 'hide', bid: sh.id }; u.path = null; return; }
       // Nowhere to hide: fight back if cornered, else run toward the fire.
-      if (DIST(u, foe) < TS * 1.5) { u.task = { t: 'fight', eid: foe.id }; u.path = null; return; }
+      if (DIST(u, foe) < TS * 1.5 && !D.FOE[foe.kind].boss) { u.task = { t: 'fight', eid: foe.id }; u.path = null; return; }
       const h = S.heart(st); const c = h ? { x: h.x + 2, y: h.y + h.h } : st.camp || st.clearing;
       u.task = { t: 'flee', x: c.x, y: c.y + 1 }; u.path = null; return;
     }
@@ -976,7 +991,7 @@
       case 'hunt': {
         if (u.carry && u.carry.amt > 0) { deliver(st, u, dt); break; }
         const a = st.units[t.aid];
-        if (!a || a.dead) { if (a && a.dead && !a.butchered && DIST(a, u) < TS * 1.8) { a.butchered = true; u.carry = { res: 'food', amt: a.kind === 'deer' ? 14 : 5 }; u.foraged = true; gainXp(st, u, 'gather', 4); break; } u.task = null; break; }
+        if (!a || a.dead) { if (a && a.dead && !a.butchered && DIST(a, u) < TS * 1.8) { a.butchered = true; u.carry = { res: 'food', amt: a.kind === 'para' ? 30 : a.kind === 'deer' ? 14 : 5 }; u.foraged = true; gainXp(st, u, 'gather', 4); break; } u.task = null; break; }
         const W = D.WEAPON[u.gear.w];
         const range = (W.ranged ? W.range : Math.max(1, W.range)) * TS;
         if (DIST(u, a) > range) { goTo(st, u, rectT(tileOf(a.x), tileOf(a.y), true), dt, true); if (u.at > 0.5) { u.path = null; u.at = 0; } }
@@ -1194,17 +1209,18 @@
     if (u.swing > 0) { u.swing -= dt; if (u.swing <= 0) landHit(st, u, target); u.anim = 'attack'; return; }
     if (u.cd > 0) { if (u.anim === 'attack' && u.at > 0.6) u.anim = 'idle'; return; }
     const cd = u.side === 's' ? W.cd : D.FOE[u.kind].cd;
-    u.cd = cd * (0.9 + rnd(st) * 0.2); u.swing = 0.32; u.anim = 'attack'; u.at = 0;
-    ev(st, { type: 'sfx', s: 'swing', x: u.x, y: u.y });
+    u.cd = cd * (0.9 + rnd(st) * 0.2); u.swing = u.side === 'e' && D.FOE[u.kind].dino ? 0.42 : 0.32; u.anim = 'attack'; u.at = 0;
+    ev(st, { type: 'sfx', s: u.side === 'e' && u.kind === 'raptor' && rnd(st) < 0.5 ? 'screech' : 'swing', x: u.x, y: u.y });
   }
   function landHit(st, u, target) {
     if (!target || target.dead) return;
     const reach = u.side === 's' ? Math.max(0.9, D.WEAPON[u.gear.w].range) * TS + 14 : D.FOE[u.kind].range * TS + 16;
     if (target.side && DIST(u, target) > reach) return;
     let dmg = u.side === 's' ? survivorDmg(st, u) : D.FOE[u.kind].dmg * (1 + Math.max(0, S.day(st) - 3) * 0.025);
-    const beast = u.side === 'e' ? D.FOE[u.kind].faction === 'beast' : (target.side === 'e' && D.FOE[target.kind].faction === 'beast');
+    const beast = u.side === 'e' ? !!D.FOE[u.kind].nocturnal : (target.side === 'e' && !!D.FOE[target.kind].nocturnal);
     if (beast && inFirelight(st, u.side === 'e' ? u : target)) dmg *= u.side === 'e' ? 0.6 : 1.3;
-    if (target.side) damageUnit(st, target, dmg, u, 'hit_slash');
+    if (target.side && u.side === 'e' && D.FOE[u.kind].sweep) { for (const v of S.present(st)) if (v !== target && !v.inside && !(v.downed > 0) && DIST(u, v) < reach * 0.8) damageUnit(st, v, dmg * 0.45, u, 'hit_blunt'); ev(st, { type: 'impact', x: target.x, y: target.y }); }
+    if (target.side) damageUnit(st, target, dmg, u, D.FOE[u.kind] && D.FOE[u.kind].dino ? 'claw' : 'hit_slash');
     else damageBuilding(st, target, dmg * (u.side === 'e' ? D.FOE[u.kind].bdmg : 1), u);
   }
   function inFirelight(st, p) {
@@ -1267,7 +1283,7 @@
     if (t.hp <= 0) {
       if (t.side === 's') {
         if (!t.injury || rnd(st) < 0.5) injure(st, t, false);
-        t.hp = 0; t.downed = 30; t.task = null; t.path = null; t.onTower = null; t.lastHit = src ? (D.FOE[src.kind] || { name: 'a wound' }).name : 'a wound';
+        t.hp = 0; t.downed = 40; t.task = null; t.path = null; t.onTower = null; t.lastHit = src ? (D.FOE[src.kind] || { name: 'a wound' }).name : 'a wound';
         note(st, t.name + ' is down and bleeding!', 'bad'); ev(st, { type: 'sfx', s: 'down' });
       } else {
         t.dead = true; t.anim = 'die'; t.at = 0; t.path = null;
@@ -1307,7 +1323,13 @@
     if (b.hp <= 0) {
       ev(st, { type: 'sfx', s: 'collapse' }); ev(st, { type: 'fx', fx: 'smoke_burst', x: ctr(b.x + b.w / 2), y: ctr(b.y + b.h) - 10 });
       const B = D.B[b.type];
-      if (b.type === 'heart') { b.hp = 1; b.state = 'done'; note(st, 'The ' + B.name[b.tier] + ' is burning! Defend it!', 'bad'); return; }
+      if (b.type === 'heart') {
+        b.hp = 1; b.state = 'done';
+        // The heart of the camp cannot be razed; once it is down to embers the attackers have what they came for.
+        if (!b.burnNote || st.hours - b.burnNote > 2) { b.burnNote = st.hours; note(st, 'The ' + B.name[b.tier] + ' is in ruins and burning. The attackers withdraw.', 'bad'); st.morale.death = Math.min(30, st.morale.death + 10); }
+        for (const e of S.foes(st)) if (!e.flee && Math.hypot(e.x - ctr(b.x + 2), e.y - ctr(b.y + 1)) < 10 * TS) { e.flee = true; e.path = null; }
+        return;
+      }
       note(st, B.name[b.tier] + ' was destroyed.', 'bad');
       st.deco.push({ k: 'rubble', x: b.x + (b.w >> 1), y: b.y + b.h - 1 });
       removeBuilding(st, b);
@@ -1321,8 +1343,9 @@
     if (e.cd > 0) e.cd -= dt;
     reveal(st, tileOf(e.x), tileOf(e.y), 1);
     // Night creatures slink away at dawn; looters run for the edge.
-    if (F.faction === 'beast' && !S.isNight(st) && S.hour(st) > 6) e.flee = true;
-    if (!e.flee && !F.boss && st.hours - e.born > 9) { e.flee = true; e.path = null; }   // a raid does not last forever
+    if (F.nocturnal && !S.isNight(st) && S.hour(st) > 6 && S.hour(st) < 18) e.flee = true;
+    if (!e.flee && st.hours - e.born > (F.boss ? 8 : 9)) { e.flee = true; e.path = null; }
+    if (F.boss && F.dino && !e.flee && e.hp < e.maxHp * 0.22) { e.flee = true; e.path = null; note(st, 'The Tyrant is badly wounded! It limps back into the forest.', 'good'); ev(st, { type: 'roar', x: e.x, y: e.y }); st.flags.tyrantBeaten = (st.flags.tyrantBeaten || 0) + 1; }   // a raid does not last forever
     // Stuck (no reachable target): pick the nearest structure, then give up and leave.
     if (!e.flee && (e.stuckT = (e.stuckT || 0) + dt) > 5) { e.stuckT = 0; const moved = Math.hypot(e.x - e.px, e.y - e.py); e.px = e.x; e.py = e.y; if (moved < 10 && e.anim !== 'attack' && !e.swing) { e.stuckN++; e.target = nearestStructure(st, e); e.path = null; if (e.stuckN > 3) { e.flee = true; } } else e.stuckN = 0; }
     if (e.flee) {
@@ -1333,17 +1356,30 @@
       if (r && r.block) { attackBuilding(st, e, r.block, dt); }
       return;
     }
+    if (e.charging > 0) {
+      e.charging -= dt; const sp = F.spd * 2.8 * dt; const nx = e.x + Math.cos(e.cdir) * sp, ny = e.y + Math.sin(e.cdir) * sp;
+      const ti = tileOf(ny) * N + tileOf(nx); const bid = st._.bAt[ti]; const b = bid && st.buildings[bid];
+      e.anim = 'run'; e.dir = e.cdir; e.path = null;
+      if (tileOf(nx) < 1 || tileOf(ny) < 1 || tileOf(nx) >= N - 1 || tileOf(ny) >= M - 1 || isWater(st, ti) || st._.nodeAt[ti]) e.charging = 0;
+      else if (b && b.state !== 'ruin' && solidTile(b, ti % N, (ti / N) | 0)) { damageBuilding(st, b, F.dmg * F.bdmg * 1.6, e); ev(st, { type: 'impact', x: nx, y: ny }); e.charging = 0; }
+      else { e.x = nx; e.y = ny; for (const u of S.present(st)) if (!u.inside && !(u.downed > 0) && !e.hitSet[u.id] && DIST(u, e) < TS * 1.2) { e.hitSet[u.id] = 1; damageUnit(st, u, F.dmg * 1.6, e, 'hit_blunt'); ev(st, { type: 'impact', x: u.x, y: u.y }); } }
+      if (rnd(st) < 0.35) ev(st, { type: 'fx', fx: 'dust_run', x: e.x, y: e.y, small: true });
+      return;
+    }
     if (e.swing > 0) { e.swing -= dt; if (e.swing <= 0) { const t = e.target && (e.target.u ? st.units[e.target.u] : st.buildings[e.target.b]); if (t) landHit(st, e, t); } e.anim = 'attack'; return; }
     // Pick a target now and then.
     if ((e.retarget -= dt) <= 0 || !validTarget(st, e)) { e.retarget = 1.2 + rnd(st); e.target = chooseTarget(st, e); e.path = null; }
     let t = e.target && (e.target.u ? st.units[e.target.u] : st.buildings[e.target.b]);
+    if (F.roar) { e.roarT = (e.roarT == null ? 3 : e.roarT) - dt; if (e.roarT <= 0 && t) { e.roarT = 13 + rnd(st) * 5; roar(st, e); } }
+    if (F.dino && (e.anim === 'walk' || e.anim === 'run') && F.boss && (e.stompT = (e.stompT || 0) - dt) <= 0) { e.stompT = 0.55; ev(st, { type: 'stomp', x: e.x, y: e.y }); }
+    if (F.charge && t && !e.target.b && (e.chargeCd = (e.chargeCd || 2) - dt) <= 0) { const d = DIST(e, t); if (d > 3 * TS && d < 9 * TS) { e.charging = 1.4; e.cdir = Math.atan2(t.y - e.y, t.x - e.x); e.hitSet = {}; e.chargeCd = 7; ev(st, { type: 'sfx', s: 'charge', x: e.x, y: e.y }); } }
     if (t && e.target.u && t.onTower && !F.ranged && st.buildings[t.onTower]) { e.target = { b: t.onTower }; t = st.buildings[t.onTower]; e.path = null; }
     if (!t) { e.anim = 'idle'; return; }
     if (e.target.u) {
       const range = F.range * TS + (F.ranged ? 0 : 6);
       if (DIST(e, t) <= range && (!F.ranged || true)) { if (F.ranged) shoot(st, e, t, dt, false); else attack(st, e, t, dt); return; }
       if ((e.chaseT = (e.chaseT || 0) - dt) <= 0) { e.chaseT = 0.7; e.path = null; }
-      const r = goTo(st, e, rectT(tileOf(t.x), tileOf(t.y), true), dt, F.faction === 'beast');
+      const r = goTo(st, e, rectT(tileOf(t.x), tileOf(t.y), true), dt, F.faction === 'beast' || F.faction === 'dino');
       if (r && r.block) attackBuilding(st, e, r.block, dt);
       else if (r === 'arrived' && DIST(e, t) > range) { const dx = t.x - e.x, dy = t.y - e.y, d = Math.hypot(dx, dy) || 1; e.x += dx / d * F.spd * dt; e.y += dy / d * F.spd * dt; e.dir = Math.atan2(dy, dx); e.anim = 'walk'; }
       else if (r === 'stuck') e.target = null;
@@ -1357,6 +1393,12 @@
     }
   }
   function nearestStructure(st, e) { let best = null, bd = 1e9; for (const b of Object.values(st.buildings)) { const d = Math.hypot(ctr(b.x + b.w / 2) - e.x, ctr(b.y + b.h / 2) - e.y); if (d < bd) { bd = d; best = b; } } return best ? { b: best.id } : null; }
+  function roar(st, e) {
+    ev(st, { type: 'roar', x: e.x, y: e.y });
+    let n = 0;
+    for (const u of S.present(st)) { if (u.inside || DIST(u, e) > 9 * TS) continue; u.morale = Math.max(0, u.morale - 5); if (u.job !== 'guard' && !(D.TRAITS[u.trait] || {}).brave && !(u.task && u.task.manual)) { u.task = null; u.path = null; n++; } }
+    if (n) note(st, 'The Tyrant roars. ' + n + (n > 1 ? ' people scatter' : ' person scatters') + ' in terror.', 'warn');
+  }
   function attackBuilding(st, e, b, dt) {
     e.target = { b: b.id }; face(e, ctr(b.x + b.w / 2), ctr(b.y + b.h / 2));
     if (e.cd > 0) { if (e.anim === 'attack' && e.at > 0.6) e.anim = 'idle'; return; }
@@ -1371,7 +1413,7 @@
   function chooseTarget(st, e) {
     const F = D.FOE[e.kind];
     let best = null, bd = 1e9;
-    const aggro = (F.faction === 'beast' ? 14 : 7) * TS;
+    const aggro = (F.boss ? 4 : F.faction === 'beast' || F.faction === 'dino' ? 14 : 7) * TS;
     for (const u of S.present(st)) {
       if (u.inside || u.downed > 0 || u.away) continue;
       const d = DIST(u, e) - (u.onTower ? -60 : 0); if (d < bd && d < aggro) { bd = d; best = { u: u.id }; }
@@ -1383,6 +1425,7 @@
       if (b.wall) continue;
       let d = Math.hypot(ctr(b.x + b.w / 2) - e.x, ctr(b.y + b.h / 2) - e.y);
       if (F.loot && (b.type === 'stockpile' || b.type === 'heart')) d *= 0.6;
+      if (F.boss && F.dino) d *= b.type === 'heart' ? 0.5 : 0.8;
       if (F.faction !== 'raider' && D.B[b.type].beds) d *= 0.7;
       if (d < bd) { bd = d; best = { b: b.id }; }
     }
@@ -1394,7 +1437,7 @@
   // ---- Animals --------------------------------------------------------------------------
   function animalStep(st, a, dt) {
     if (a.flee > 0) a.flee -= dt;
-    const threat = S.present(st).find(u => !u.inside && DIST(u, a) < TS * (a.kind === 'deer' ? 5 : 3.5));
+    const threat = S.present(st).find(u => !u.inside && DIST(u, a) < TS * (a.kind === 'para' ? 6 : a.kind === 'deer' ? 5 : 3.5));
     if (threat && !a.flee) { a.flee = 3; a.fleeFrom = { x: threat.x, y: threat.y }; a.path = null; }
     if (a.flee > 0 && a.fleeFrom) {
       if (!a.path || !a.path.length) { const ang = Math.atan2(a.y - a.fleeFrom.y, a.x - a.fleeFrom.x) + (rnd(st) - 0.5); const tx = clamp(Math.round(tileOf(a.x) + Math.cos(ang) * 6), 1, N - 2), ty = clamp(Math.round(tileOf(a.y) + Math.sin(ang) * 6), 1, M - 2); a.goal = [tx, ty]; a.path = null; }
@@ -1421,7 +1464,7 @@
   // ---- Strangers ------------------------------------------------------------------------
   function strangerStep(st, u, dt) {
     const h = S.heart(st); const c = h ? { x: h.x + 2, y: h.y + h.h } : (st.camp || st.clearing);
-    const r = goTo(st, u, rectT(c.x, c.y + 1, true, true), dt);
+    const r = goTo(st, u, rectT(c.x, c.y + 1, true, true), dt, Math.hypot(u.x - ctr(c.x), u.y - ctr(c.y)) > 6 * TS);
     if (r === 'arrived' || r === 'stuck') { u.anim = 'idle'; if (!u.asked) { u.asked = true; st.pending.push({ kind: 'stranger', uid: u.id }); ev(st, { type: 'modal' }); } }
   }
 

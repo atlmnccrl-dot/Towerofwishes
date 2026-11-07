@@ -23,6 +23,7 @@
     place: [['craft'], 0.5, 0.05], built: [['reward'], 0.45, 0], click: [['click'], 0.5, 0], confirm: [['confirm'], 0.5, 0], cancel: [['cancel'], 0.5, 0],
     craft: [['craft'], 0.5, 0], reward: [['reward'], 0.5, 0], notify: [['notify'], 0.45, 0], page: [['page'], 0.5, 0], error: [['error'], 0.45, 0], coins: [['coins'], 0.5, 0],
     hit: [['slash_0', 'slash_1', 'blow_0'], 0.4, 0.15], bhit: [['thud', 'blow_2'], 0.35, 0.15],
+    stomp: [['thud'], 0.55, 0.05], impact: [['blow_big', 'quake'], 0.6, 0.1],
   };
   AU.unlock = function () {
     if (AU.ctx) { if (AU.ctx.state === 'suspended') AU.ctx.resume(); return; }
@@ -48,6 +49,7 @@
   };
   // A simulation sound, attenuated by distance from the camera.
   AU.sfx = function (name, x, y) {
+    if (name === 'screech') return AU.screech(x, y);
     const m = MAP[name]; if (!m) return;
     const now = performance.now(); if (AU.last[name] && now - AU.last[name] < 45) return; AU.last[name] = now;
     let vol = m[1], pan = 0;
@@ -60,6 +62,22 @@
     AU.play(f, vol, 1 + (Math.random() - 0.5) * 2 * m[2], pan);
   };
   AU.ui = name => AU.sfx(name);
+  // Synthesised creature voices (no samples for these): a roar and a screech.
+  function noiseBuf() { if (AU.nb) return AU.nb; const c = AU.ctx, b = c.createBuffer(1, c.sampleRate * 2, c.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; return AU.nb = b; }
+  function voice(dur, f0, f1, q, vol, pan, type) {
+    if (!AU.ctx) return; const c = AU.ctx, t = c.currentTime;
+    const n = c.createBufferSource(); n.buffer = noiseBuf(); const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = q;
+    bp.frequency.setValueAtTime(f0, t); bp.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    const o = c.createOscillator(); o.type = type || 'sawtooth'; o.frequency.setValueAtTime(f0 / 4, t); o.frequency.exponentialRampToValueAtTime(f1 / 4, t + dur);
+    const og = c.createGain(); og.gain.value = 0.35;
+    const g = c.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + dur * 0.12); g.gain.setValueAtTime(vol, t + dur * 0.55); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    let out = g; if (c.createStereoPanner) { const p = c.createStereoPanner(); p.pan.value = pan || 0; g.connect(p); out = p; }
+    n.connect(bp); bp.connect(g); o.connect(og); og.connect(g); out.connect(AU.gSfx); n.start(t); o.start(t); n.stop(t + dur + 0.05); o.stop(t + dur + 0.05);
+  }
+  function place(x, y) { if (x == null || !HF.R) return [1, 0]; const p = HF.R.w2s(x, y); const dx = (p.x - HF.R.W / 2) / HF.R.W, dy = (p.y - HF.R.H / 2) / HF.R.H; return [Math.max(0.15, 1 - Math.max(0, Math.hypot(dx, dy) - 0.4) * 0.9), dx]; }
+  AU.roar = function (x, y) { const [v, p] = place(x, y); voice(1.9, 520, 140, 3, 0.9 * v, p); voice(1.6, 260, 90, 2, 0.6 * v, p, 'square'); AU.play('quake', 0.5 * v); };
+  AU.screech = function (x, y) { const now = performance.now(); if (AU.lastScreech && now - AU.lastScreech < 600) return; AU.lastScreech = now; const [v, p] = place(x, y); voice(0.45, 2600, 1200, 6, 0.45 * v, p); };
+  AU.thunder = function () { if (!AU.ctx) return; voice(2.6, 300, 60, 0.8, 0.9, 0, 'triangle'); AU.play('quake', 0.6, 0.7); };
   function loop(name, target) {
     if (!AU.ctx || !AU.buf[name]) return;
     let L = AU.loops[name];

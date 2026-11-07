@@ -32,9 +32,9 @@
   };
   A.want = id => { if (!A.cast[id] && !A.loading[id]) A.loadCast(id); return A.cast[id]; };
   A.dirIndex = a => { let d = Math.round(a / (Math.PI / 4)); return ((d % 8) + 8) % 8; };
-  A.FPS = { Idle: 8, Walk: 13, Run: 18, Attack1: 22, Attack3: 18, Attack5: 20, CrouchIdle: 7, TakeDamage: 20, Die: 14 };
-  A.LOOP = { Idle: 1, Walk: 1, Run: 1, CrouchIdle: 1, Attack5: 1, Attack1: 1, Attack3: 1 };
-  A.frame = (clip, t) => { const f = Math.floor(t * (A.FPS[clip] || 12)); return A.LOOP[clip] ? f % 15 : Math.min(14, f); };
+  A.FPS = { Idle: 8, Walk: 13, Run: 18, Attack1: 22, Attack3: 18, Attack5: 20, CrouchIdle: 7, TakeDamage: 20, Die: 14, Attack: 11 };
+  A.LOOP = { Idle: 1, Walk: 1, Run: 1, CrouchIdle: 1, Attack5: 1, Attack1: 1, Attack3: 1, Attack: 1 };
+  A.frame = (clip, t) => { const f = Math.floor(t * (A.FPS[clip] || 12)); return A.LOOP[clip] ? f : Math.min(14, f); };
   const tintCache = {};
   function tinted(im, col, key) {
     const k = key + col; if (tintCache[k]) return tintCache[k];
@@ -47,17 +47,20 @@
     const s = A.want(id); if (!s) return false;
     const an = s.anims[clip] || s.anims.Attack5 || s.anims.Idle; if (!an) return false;
     const fr = an[DIRS[A.dirIndex(angle)]] || an.S; if (!fr || !fr.length) return false;
-    const f = fr[Math.max(0, Math.min(fr.length - 1, frame | 0))];
+    const fi = A.LOOP[clip] ? ((frame | 0) % fr.length + fr.length) % fr.length : Math.max(0, Math.min(fr.length - 1, frame | 0));
+    const f = fr[fi];
     const dx = x + (f[4] - s.anchor[0]) * k, dy = y + (f[5] - s.anchor[1]) * k, dw = f[2] * k, dh = f[3] * k;
     const o = opts || {};
-    if (o.alpha != null) { ctx.save(); ctx.globalAlpha *= o.alpha; }
+    const ga = ctx.globalAlpha, al = ga * (o.alpha != null ? o.alpha : 1);
+    if (al <= 0.01) return true;
+    ctx.globalAlpha = al;
     if (o.shade) ctx.drawImage(tinted(s.img, o.shade, id), f[0], f[1], f[2], f[3], dx, dy, dw, dh);
     else {
       ctx.drawImage(s.img, f[0], f[1], f[2], f[3], dx, dy, dw, dh);
-      if (o.flash) { ctx.save(); ctx.globalAlpha *= o.flash; ctx.drawImage(tinted(s.img, '#ffffff', id), f[0], f[1], f[2], f[3], dx, dy, dw, dh); ctx.restore(); }
-      if (o.tint) { ctx.save(); ctx.globalAlpha *= o.tintA || 0.4; ctx.drawImage(tinted(s.img, o.tint, id), f[0], f[1], f[2], f[3], dx, dy, dw, dh); ctx.restore(); }
+      if (o.flash) { ctx.globalAlpha = al * o.flash; ctx.drawImage(tinted(s.img, '#ffffff', id), f[0], f[1], f[2], f[3], dx, dy, dw, dh); }
+      if (o.tint) { ctx.globalAlpha = al * (o.tintA || 0.4); ctx.drawImage(tinted(s.img, o.tint, id), f[0], f[1], f[2], f[3], dx, dy, dw, dh); }
     }
-    if (o.alpha != null) ctx.restore();
+    ctx.globalAlpha = ga;
     return true;
   };
   // A cropped portrait canvas of an actor's idle front frame.
@@ -88,10 +91,10 @@
       src = c; sx = 0; sy = 0; sw = c.width; sh = c.height; k = 1;
     }
     const w = sw * k, h = sh * k;
-    if (alpha != null && alpha < 1) { ctx.save(); ctx.globalAlpha *= alpha; }
-    if (flip) { ctx.save(); ctx.translate(x, 0); ctx.scale(-1, 1); ctx.drawImage(src, sx, sy, sw, sh, -w / 2, y - h, w, h); ctx.restore(); }
+    const ga = ctx.globalAlpha; if (alpha != null && alpha < 1) ctx.globalAlpha = ga * alpha;
+    if (flip) { ctx.translate(x, 0); ctx.scale(-1, 1); ctx.drawImage(src, sx, sy, sw, sh, -w / 2, y - h, w, h); ctx.scale(-1, 1); ctx.translate(-x, 0); }
     else ctx.drawImage(src, sx, sy, sw, sh, x - w / 2, y - h, w, h);
-    if (alpha != null && alpha < 1) ctx.restore();
+    ctx.globalAlpha = ga;
     return { w, h };
   };
   A.size = (atlas, key, k) => { const sp = A.sprite(atlas, key); return sp ? { w: sp.w * (k || 1), h: sp.h * (k || 1) } : { w: 0, h: 0 }; };
@@ -109,9 +112,9 @@
     const f = A.fx && A.fx.fx[name]; if (!f) return false;
     let i = Math.floor(t * f.fps); if (f.loop) i %= f.frames.length; else if (i >= f.frames.length) return false;
     const fr = f.frames[i]; k = k || 1;
-    if (alpha != null) { ctx.save(); ctx.globalAlpha *= alpha; }
+    const ga = ctx.globalAlpha; if (alpha != null) ctx.globalAlpha = ga * alpha;
     ctx.drawImage(A.fx.imgs[fr[0]] || A.fx.imgs[0], fr[1], fr[2], fr[3], fr[4], x + (fr[5] - f.anchor[0]) * k, y + (fr[6] - f.anchor[1]) * k, fr[3] * k, fr[4] * k);
-    if (alpha != null) ctx.restore();
+    ctx.globalAlpha = ga;
     return true;
   };
 

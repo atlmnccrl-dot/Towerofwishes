@@ -99,7 +99,14 @@
     document.querySelectorAll('#speed .sp').forEach(b => b.classList.toggle('on', +b.dataset.v === G().speed));
     // Objective.
     const o = D.OBJ[s.obj];
-    if (o) { $('obj-text').textContent = o.text; $('obj-hint').textContent = o.hint || ''; }
+    const TUT = 9; let prog = -1;
+    if (o) { $('obj-text').textContent = o.text; $('obj-hint').textContent = o.hint || ''; $('obj-step').textContent = s.obj < TUT ? 'Tutorial · step ' + (s.obj + 1) + ' of ' + TUT : 'Objective'; $('obj-count').textContent = ''; }
+    if (o && o.id === 'gather') prog = (Math.min(10, s.res.wood) / 10 + Math.min(6, s.res.stone) / 6) / 2;
+    if (o && o.id === 'food') prog = Math.min(1, (s.flags.foraged || 0) / 6);
+    if (o && o.id === 'defend') prog = ((S.has(s, 'tower') ? 1 : 0) + Math.min(6, S.count(s, 'wall', true)) / 6) / 2;
+    if (o && o.id === 'grow') prog = Math.min(1, pop / 8);
+    if (o && o.id === 'stock') prog = ((S.has(s, 'stockpile') ? 1 : 0) + (S.has(s, 'water') ? 1 : 0)) / 2;
+    $('obj-bar').style.display = prog >= 0 ? '' : 'none'; if (prog >= 0) $('obj-bar').firstChild.style.width = Math.round(prog * 100) + '%';
     if (o && o.id === 'defend') { const r = s.threat.raid; if (r) $('obj-hint').textContent = 'Raid in ' + Math.max(0, Math.round(r.at - s.hours)) + ' hours.'; }
     if (o && o.id === 'gather') $('obj-hint').textContent = 'Wood ' + Math.min(10, Math.floor(s.res.wood)) + '/10 · Stone ' + Math.min(6, Math.floor(s.res.stone)) + '/6';
     // Actions.
@@ -118,15 +125,18 @@
     if (s.threat.active) { th.className = 'panel danger'; th.innerHTML = ic('swords', 18) + ' ' + S.foes(s).length + ' foes in camp'; }
     else if (r && r.warned) { th.className = 'panel warn'; th.innerHTML = ic('flag', 18) + ' ' + (r.hollow ? 'The Hollow' : 'Raiders') + ' in ' + Math.max(0, Math.round(r.at - s.hours)) + 'h · ' + r.dirs.map(S.dirName).join(', '); }
     else th.className = 'hidden';
+    const boss = S.foes(s).find(e => D.FOE[e.kind].boss && !e.flee);
+    const bb = $('boss'); if (boss) { bb.className = ''; bb.innerHTML = '<b>' + D.FOE[boss.kind].name + '</b><div class="bb"><i style="width:' + Math.max(0, boss.hp / boss.maxHp * 100) + '%"></i></div>'; } else bb.className = 'hidden';
     if (U.sel) U.refreshPanel(false);
     if (s.pending.length && U.open !== 'pending' && !HF.C.busy()) U.openPending();
   };
 
   // ---- Toasts ---------------------------------------------------------------------------------------
   U.toast = function (text, kind) {
+    const s0 = st(); if (s0 && s0.obj < 6 && (kind || 'info') === 'info') return;   // keep the tutorial quiet
     const box = $('toasts'); const d = document.createElement('div'); d.className = 'toast ' + (kind || 'info'); d.textContent = text;
-    box.appendChild(d); while (box.children.length > 4) box.removeChild(box.firstChild);
-    setTimeout(() => d.classList.add('out'), 4200); setTimeout(() => d.remove(), 4800);
+    box.appendChild(d); while (box.children.length > 3) box.removeChild(box.firstChild);
+    setTimeout(() => d.classList.add('out'), 3600); setTimeout(() => d.remove(), 4200);
   };
   U.banner = function (title, sub) {
     const b = $('banner'); b.innerHTML = title + (sub ? '<small>' + sub + '</small>' : ''); b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
@@ -240,13 +250,13 @@
       (u.job === 'guard' && towers.length ? '<div class="row">' + towers.map(b => '<button class="pill small" data-act="tower" data-id="' + u.id + '" data-bid="' + b.id + '">' + ic('tower', 14) + 'Post: ' + D.B[b.type].name[b.tier] + '</button>').join('') + '</div>' : '') +
       '<details><summary>Skills · joined day ' + u.joined + (u.kills ? ' · ' + u.kills + ' kills' : '') + '</summary>' + skills + '<p class="bio">' + esc(u.name.split(' ')[0]) + ' ' + esc(u.origin) + '.</p></details>';
   }
-  function foeHTML(u) { const F = D.FOE[u.kind]; return '<div class="ph"><div><b class="nm foe">' + F.name + '</b><div class="sub">' + { beast: 'A night predator', raider: 'Ash Raiders', hollow: 'The Hollow' }[F.faction] + '</div></div><button class="x" onclick="HF.U.select(null)">' + ic('x', 16) + '</button></div>' + barHTML(u.hp / u.maxHp, '#d04838', Math.ceil(u.hp) + ' / ' + u.maxHp) + '<div class="sub">Select a survivor, then tap this foe to attack it.</div>'; }
+  function foeHTML(u) { const F = D.FOE[u.kind]; return '<div class="ph"><div><b class="nm foe">' + F.name + '</b><div class="sub">' + { beast: 'A night predator', raider: 'Ash Raiders', hollow: 'The Hollow', dino: F.boss ? 'King of the old forest' : F.charge ? 'Charges through walls' : F.sweep ? 'Tail sweeps hit everyone near' : 'Hunts in packs at night' }[F.faction] + '</div></div><button class="x" onclick="HF.U.select(null)">' + ic('x', 16) + '</button></div>' + barHTML(u.hp / u.maxHp, '#d04838', Math.ceil(u.hp) + ' / ' + u.maxHp) + '<div class="sub">Select a survivor, then tap this foe to attack it.</div>'; }
   function traderHTML(s, u) {
     const T = s.trader; const offers = T ? T.offers.map((o, i) => { const d = D.TRADES[o.i]; const get = d.get.recruit ? ic('people', 14) + (d.label || 'A hand') : d.get.item ? ic(d.get.item === 'bow' ? 'bow' : 'shield', 14) + (D.WEAPON[d.get.item] || D.ARMOR[d.get.item]).name : costHTML(d.get);
       return '<button class="btn ' + (o.used ? 'off' : S.canAfford(s, d.give) ? 'gold' : 'off') + '" data-act="trade" data-i="' + i + '" data-why="' + (o.used ? 'Done' : 'You cannot afford that') + '">' + costHTML(d.give, s.res) + ' &rarr; ' + get + (o.used ? ' · done' : '') + '</button>'; }).join('') : '';
     return '<div class="ph"><canvas class="portrait" width="48" height="48"></canvas><div><b class="nm">Travelling Trader</b><div class="sub">' + (u.arrived ? 'Trading until dusk.' : 'On the way to the fire.') + '</div></div><button class="x" onclick="HF.U.select(null)">' + ic('x', 16) + '</button></div><div class="row" style="flex-direction:column;align-items:stretch">' + offers + '</div>';
   }
-  function animalHTML(u) { return '<div class="ph"><div><b class="nm">' + (u.kind === 'deer' ? 'Deer' : 'Hare') + '</b><div class="sub">Game. Foragers hunt it for food.</div></div><button class="x" onclick="HF.U.select(null)">' + ic('x', 16) + '</button></div>'; }
+  function animalHTML(u) { return '<div class="ph"><div><b class="nm">' + (u.kind === 'para' ? 'Parasaurolophus' : u.kind === 'deer' ? 'Deer' : 'Hare') + '</b><div class="sub">Game. Foragers hunt it for food.</div></div><button class="x" onclick="HF.U.select(null)">' + ic('x', 16) + '</button></div>'; }
   function buildingHTML(s, b) {
     const B = D.B[b.type]; const name = B.name[b.tier];
     let info = '';

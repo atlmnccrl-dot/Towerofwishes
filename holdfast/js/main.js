@@ -81,7 +81,7 @@
     R.cam.x = u.x; R.cam.y = u.y; R.cam.z = 1.8;
     U.select({ uid: u.id });
     C.play('opening', G.st);
-    C.onEnd = (id) => { if (id === 'opening') { U.banner('Day 1', 'Find a place to make camp'); } };
+    C.onEnd = (id) => { if (id === 'opening') { U.banner('Day 1', 'Find a place to make camp'); U.select({ uid: u.id }); } };
     AU.set({ menu: false });
     save(false);
   }
@@ -119,6 +119,9 @@
         case 'sfx': AU.sfx(e.s, e.x, e.y); break;
         case 'hit': AU.sfx('hit', e.x, e.y); break;
         case 'bhit': AU.sfx('bhit', e.x, e.y); break;
+        case 'roar': AU.roar(e.x, e.y); break;
+        case 'stomp': AU.sfx('stomp', e.x, e.y); break;
+        case 'impact': AU.sfx('impact', e.x, e.y); break;
         case 'note': U.toast(e.text, e.kind); if (e.kind === 'bad' || e.kind === 'warn') AU.ui('notify'); break;
         case 'cine': C.play(e.id, st, e); break;
         case 'obj': { const o = D.OBJ[e.obj]; const prev = D.OBJ[e.obj - 1]; if (prev && st.objDone[prev.id] && G.mode === 'play' && !C.busy()) U.banner(prev.text, o && o.id !== 'free' ? 'Next: ' + o.text : ''); $('obj').classList.remove('done'); void $('obj').offsetWidth; $('obj').classList.add('done'); break; }
@@ -135,6 +138,15 @@
   }
 
   // ---- Loop ------------------------------------------------------------------------------------
+  const prev = new Map();
+  // Adaptive resolution: drop the canvas scale when frames run long, raise it again when there is room.
+  let ema = 16, slowT = 0, fastT = 0;
+  function adapt(dt) {
+    ema = ema * 0.92 + dt * 1000 * 0.08;
+    if (ema > 26) { slowT += dt; fastT = 0; } else if (ema < 15) { fastT += dt; slowT = 0; } else { slowT = 0; fastT = 0; }
+    if (slowT > 1.2 && R.dpr > 1) { R.setScale(R.dpr - 0.25); slowT = 0; ema = 18; }
+    if (fastT > 8 && R.dpr < R.cap) { R.setScale(R.dpr + 0.25); fastT = 0; }
+  }
   let errShown = 0;
   function frame(t) {
     requestAnimationFrame(frame);
@@ -152,14 +164,15 @@
       const paused = G.speed === 0 && !C.busy();
       if (!paused) {
         acc += dt * (C.busy() ? C.speed() : G.speed);
-        let n = 0; while (acc >= STEP && n < 8) { S.step(st, STEP); acc -= STEP; n++; } if (n >= 8) acc = 0;
+        let n = 0; while (acc >= STEP && n < 5) { if (acc < STEP * 2) { prev.clear(); for (const id in st.units) { const u = st.units[id]; prev.set(id, [u.x, u.y]); } } S.step(st, STEP); acc -= STEP; n++; } if (n >= 5) acc = 0;
       }
       handleEvents();
       // Camera follow.
       if (G.followId && !C.busy()) { const u = st.units[G.followId]; if (u && !u.dead && !u.away) { R.cam.x += (u.x - R.cam.x) * Math.min(1, dt * 4); R.cam.y += (u.y - 20 - R.cam.y) * Math.min(1, dt * 4); } else G.followId = null; }
       keyPan(dt);
       if (!C.busy()) R.clampCam();
-      R.frame(st, dt, { sel: U.sel, ghost: U.mode === 'place' ? U.ghost() : null });
+      R.frame(st, dt, { sel: U.sel, ghost: U.mode === 'place' ? U.ghost() : null, interp: { prev, a: paused ? 1 : Math.min(1, acc / STEP) } });
+      adapt(dt);
       uiT -= dt; if (uiT <= 0) { uiT = 0.15; U.update(); audioState(st); }
       saveT += dt; if (saveT > 90) { saveT = 0; save(false); }
     }
@@ -230,7 +243,8 @@
     let best = null, bd = 22 / Math.min(1.4, R.cam.z) + 8;
     for (const id in st.units) { const u = st.units[id]; if (u.dead || u.inside || u.away) continue; let ux = u.x, uy = u.y;
       if (u.onTower && st.buildings[u.onTower]) { const b = st.buildings[u.onTower]; ux = (b.x + b.w / 2) * TS; uy = (b.y + b.h) * TS - 92; }
-      const d = Math.hypot(ux - w.x, uy - 16 - w.y); if (d < bd) { bd = d; best = { unit: u }; } }
+      const F = u.side === 'e' ? HF.D.FOE[u.kind] : null; const cy = F && F.hpY ? F.hpY * 0.45 : u.kind === 'para' ? 22 : 16; const rr = F && F.hpY ? F.hpY * 0.4 : 0;
+      const d = Math.hypot(ux - w.x, uy - cy - w.y) - rr; if (d < bd) { bd = d; best = { unit: u }; } }
     const nodeHere = st._.nodeAt[ty * D.W + tx] || [1, 2, 3].map(k => st._.nodeAt[(ty + k) * D.W + tx]).find(n => n && st.nodes[n].type === 'tree');
     if (best && !(nodeHere && bd > 9 && best.unit.side === 's')) return Object.assign(best, { w, tx, ty });
     // Buildings: footprint, or the tall sprite above it.

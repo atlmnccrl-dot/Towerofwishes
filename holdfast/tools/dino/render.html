@@ -1,0 +1,64 @@
+<!doctype html><html><body style="margin:0;background:#888">
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three'; import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+const q = new URLSearchParams(location.search);
+const name = q.get('m'), K = +q.get('k'), id = q.get('id');
+const PAL = JSON.parse(q.get('pal'));
+const CLIPS = JSON.parse(q.get('clips'));   // [[gameName, fbxSuffix, frames, loop]]
+const ELEV = 40 * Math.PI / 180;
+const o = await new FBXLoader().loadAsync('models/' + name + '.fbx');
+o.traverse(c => { if (c.isMesh) { c.frustumCulled = false; const ms = Array.isArray(c.material) ? c.material : [c.material]; const nm = ms.map(m => new THREE.MeshLambertMaterial({ color: new THREE.Color(PAL[m.name] || '#888888'), flatShading: true })); c.material = Array.isArray(c.material) ? nm : nm[0]; } });
+const box = new THREE.Box3().setFromObject(o); const sz = box.getSize(new THREE.Vector3()); const ctr = box.getCenter(new THREE.Vector3());
+const rig = new THREE.Group(); o.position.set(o.position.x - ctr.x, o.position.y - box.min.y, o.position.z - ctr.z); rig.add(o);
+const len = Math.max(sz.x, sz.z), S = Math.ceil(len * K * 1.25 + 24);
+const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1); renderer.setSize(S, S); renderer.setClearColor(0, 0);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+const scene = new THREE.Scene(); scene.add(rig);
+scene.add(new THREE.HemisphereLight(0xfff4e0, 0x3a3020, 1.6));
+const sun = new THREE.DirectionalLight(0xffffff, 2.2); sun.position.set(-1, 2, 1.2); scene.add(sun);
+const half = S / 2 / K;
+const cam = new THREE.OrthographicCamera(-half, half, half, -half, -100000, 100000);
+const dist = 10000; cam.position.set(0, Math.sin(ELEV) * dist, Math.cos(ELEV) * dist);
+const lookY = sz.y * 0.3; cam.position.y += lookY; cam.lookAt(0, lookY, 0);
+const mixer = new THREE.AnimationMixer(o);
+const c2 = document.createElement('canvas'); c2.width = c2.height = S; const g2 = c2.getContext('2d', { willReadFrequently: true });
+// anchor: where the ground origin lands on screen
+cam.updateMatrixWorld(); cam.updateProjectionMatrix(); const p0 = new THREE.Vector3(0, 0, 0).project(cam); const ax = Math.round((p0.x + 1) / 2 * S), ay = Math.round((1 - p0.y) / 2 * S);
+const DIRS = ['E', 'SE', 'S', 'SW', 'W', 'NW', 'N', 'NE'];
+const frames = []; // {clip, dir, img(ImageData trimmed), x0, y0}
+for (const [gname, suf, n, loop] of CLIPS) {
+  const clip = o.animations.find(a => a.name.endsWith('_' + suf)) || o.animations.find(a => a.name.includes(suf));
+  if (!clip) { console.log('missing clip', suf); continue; }
+  mixer.stopAllAction(); const act = mixer.clipAction(clip); act.reset().play(); act.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce); act.clampWhenFinished = true;
+  for (let d = 0; d < 8; d++) {
+    const a = d * Math.PI / 4; rig.rotation.y = Math.atan2(Math.cos(a), Math.sin(a));
+    for (let f = 0; f < n; f++) {
+      const t = loop ? clip.duration * f / n : clip.duration * Math.min(1, f / (n - 1)) * 0.999;
+      mixer.setTime(t);
+      renderer.render(scene, cam);
+      g2.clearRect(0, 0, S, S); g2.drawImage(renderer.domElement, 0, 0);
+      const im = g2.getImageData(0, 0, S, S); const D = im.data;
+      // 1px dark outline around the silhouette
+      const A = new Uint8Array(S * S); for (let i = 0; i < S * S; i++) A[i] = D[i * 4 + 3] > 100 ? 1 : 0;
+      for (let i = 0; i < S * S; i++) D[i * 4 + 3] = A[i] ? 255 : 0;
+      for (let y = 1; y < S - 1; y++) for (let x = 1; x < S - 1; x++) { const i = y * S + x; if (A[i]) continue; if (A[i - 1] || A[i + 1] || A[i - S] || A[i + S]) { D[i * 4] = 28; D[i * 4 + 1] = 20; D[i * 4 + 2] = 16; D[i * 4 + 3] = 255; } }
+      let x0 = S, y0 = S, x1 = -1, y1 = -1;
+      for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) if (D[(y * S + x) * 4 + 3]) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+      if (x1 < 0) { x0 = y0 = 0; x1 = y1 = 0; }
+      g2.putImageData(im, 0, 0);
+      const w = x1 - x0 + 1, h = y1 - y0 + 1; const cut = g2.getImageData(x0, y0, w, h);
+      frames.push({ clip: gname, dir: DIRS[d], cut, x0, y0, w, h });
+    }
+  }
+}
+// shelf-pack
+const PW = 2048; let x = 0, y = 0, shelf = 0; const order = frames.slice().sort((a, b) => b.h - a.h);
+for (const f of order) { if (x + f.w + 1 > PW) { x = 0; y += shelf + 1; shelf = 0; } f.px = x; f.py = y; x += f.w + 1; shelf = Math.max(shelf, f.h); }
+const atlas = document.createElement('canvas'); atlas.width = PW; atlas.height = y + shelf + 1; const ga = atlas.getContext('2d');
+for (const f of frames) ga.putImageData(f.cut, f.px, f.py);
+const anims = {}; for (const f of frames) { (anims[f.clip] = anims[f.clip] || {}); (anims[f.clip][f.dir] = anims[f.clip][f.dir] || []).push([f.px, f.py, f.w, f.h, f.x0, f.y0]); }
+window.result = { json: { id, anchor: [ax, ay], page: id + '.png', anims, frames: Object.fromEntries(CLIPS.map(c => [c[0], c[2]])) }, png: atlas.toDataURL('image/png') };
+window.done = true;
+</script></body></html>

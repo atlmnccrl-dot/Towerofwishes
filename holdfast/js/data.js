@@ -5,7 +5,7 @@
   const D = HF.D = {};
   D.TILE = 32;
   D.W = 96; D.H = 96;               // world size in tiles
-  D.DAY = 300;                       // seconds of real time per game day at 1x
+  D.DAY = 240;                       // seconds of real time per game day at 1x
   D.RES = ['wood', 'stone', 'food', 'water', 'metal', 'knowledge'];
   D.RES_NAME = { wood: 'Wood', stone: 'Stone', food: 'Food', water: 'Water', metal: 'Metal', knowledge: 'Knowledge' };
 
@@ -231,8 +231,8 @@
   // ---- Enemies ------------------------------------------------------------------------
   // faction: beast | raider | hollow. bdmg: damage multiplier against buildings.
   D.FOE = {
-    stalker: { name: 'Stalker', set: 'hamlet_predator', faction: 'beast', hp: 40, dmg: 4.5, cd: 1.1, range: 0.9, spd: 66, bdmg: 0.5, clip: 'Attack1', scale: 1, power: 2, night: true },
-    pale: { name: 'Pale Thing', set: 'night_creature', faction: 'beast', hp: 80, dmg: 7, cd: 1.2, range: 1.0, spd: 58, bdmg: 0.8, clip: 'Attack1', scale: 1.3, power: 4, night: true },
+    stalker: { name: 'Stalker', set: 'hamlet_predator', faction: 'beast', nocturnal: true, hp: 40, dmg: 4.5, cd: 1.1, range: 0.9, spd: 66, bdmg: 0.5, clip: 'Attack1', scale: 1, power: 2, night: true },
+    pale: { name: 'Pale Thing', set: 'night_creature', faction: 'beast', nocturnal: true, hp: 80, dmg: 7, cd: 1.2, range: 1.0, spd: 58, bdmg: 0.8, clip: 'Attack1', scale: 1.3, power: 4, night: true },
     raider: { name: 'Ash Raider', set: 'bandit_knife', faction: 'raider', hp: 45, dmg: 5, cd: 0.95, range: 0.95, spd: 56, bdmg: 1, clip: 'Attack1', power: 3, loot: true },
     thug: { name: 'Raider Thug', set: 'thug_a', faction: 'raider', hp: 55, dmg: 6, cd: 1.0, range: 1.0, spd: 54, bdmg: 1.2, clip: 'Attack1', power: 3.5, loot: true },
     brute: { name: 'Raider Brute', set: 'bandit_broad', faction: 'raider', hp: 100, dmg: 10, cd: 1.5, range: 1.1, spd: 46, bdmg: 2.2, clip: 'Attack1', scale: 1.15, power: 6 },
@@ -241,6 +241,10 @@
     hspear: { name: 'Hollow Spear', set: 'goblin_spear', faction: 'hollow', hp: 54, dmg: 6.5, cd: 1.1, range: 1.35, spd: 54, bdmg: 1, clip: 'Attack1', power: 4, night: true },
     harcher: { name: 'Hollow Archer', set: 'goblin_archer', faction: 'hollow', hp: 38, dmg: 5, cd: 1.6, range: 6, spd: 54, bdmg: 0.3, clip: 'Attack3', ranged: 'arrow', power: 4.5, night: true },
     hexer: { name: 'Hexer', set: 'goblin_hexer', faction: 'hollow', hp: 46, dmg: 8, cd: 2.0, range: 5.5, spd: 50, bdmg: 0.8, clip: 'Attack5', ranged: 'dark', power: 6, night: true },
+    raptor: { name: 'Raptor', set: 'dino_raptor', faction: 'dino', hp: 34, dmg: 4.5, cd: 0.85, range: 1.0, spd: 90, bdmg: 0.4, clip: 'Attack', power: 2.2, night: true, nocturnal: true, dino: true, hpY: 44, shadow: 16 },
+    trike: { name: 'Triceratops', set: 'dino_trike', faction: 'dino', hp: 170, dmg: 9, cd: 1.6, range: 1.5, spd: 48, bdmg: 3.5, clip: 'Attack', power: 9, charge: true, dino: true, hpY: 64, shadow: 26 },
+    stego: { name: 'Stegosaurus', set: 'dino_stego', faction: 'dino', hp: 210, dmg: 8, cd: 1.8, range: 1.7, spd: 40, bdmg: 2.5, clip: 'Attack', power: 9, sweep: true, dino: true, hpY: 74, shadow: 26 },
+    trex: { name: 'The Tyrant', set: 'dino_trex', faction: 'dino', hp: 720, dmg: 15, cd: 2.5, range: 2.0, spd: 52, bdmg: 6, clip: 'Attack', power: 30, boss: true, sweep: true, roar: true, dino: true, hpY: 150, shadow: 46 },
     warlord: { name: 'Bone Warlord', set: 'ogre', faction: 'hollow', hp: 420, dmg: 18, cd: 2.0, range: 1.3, spd: 40, bdmg: 4, clip: 'Attack1', scale: 1.7, power: 22, night: true, boss: true },
   };
 
@@ -369,15 +373,15 @@
 
   // ---- Objectives (the opening, then the long road) --------------------------------------
   D.OBJ = [
-    { id: 'camp', text: 'Find a place to make camp', hint: 'Tap the clearing marked with light.' },
-    { id: 'gather', text: 'Gather 10 wood and 6 stone', hint: 'Tap a tree or a rock.' },
-    { id: 'fire', text: 'Light a campfire', hint: 'Tap BUILD, then place the Campfire.' },
-    { id: 'shelter', text: 'Build a lean-to', hint: 'BUILD a Lean-to near the fire.' },
-    { id: 'food', text: 'Forage 6 food', hint: 'Tap a berry bush.' },
-    { id: 'night', text: 'Survive the night', hint: 'Stay near the fire.' },
-    { id: 'stranger', text: 'Welcome the stranger', hint: '' },
-    { id: 'jobs', text: 'Give someone a job', hint: 'Tap a survivor, then pick a job.' },
-    { id: 'stock', text: 'Build a stockpile and a rain barrel', hint: '' },
+    { id: 'camp', text: 'Find a place to make camp', hint: 'Tap the glowing ring in the clearing. Follow the arrow.' },
+    { id: 'gather', text: 'Gather 10 wood and 6 stone', hint: 'Tap a tree, then a rock. Your survivor does the work.' },
+    { id: 'fire', text: 'Light a campfire', hint: 'Tap Build (bottom right), pick Campfire, tap the ground, then the tick.' },
+    { id: 'shelter', text: 'Build a lean-to', hint: 'Build a Lean-to next to the fire. You need a bed for the night.' },
+    { id: 'food', text: 'Forage 6 food', hint: 'Tap a berry bush. Night will not fall until you are ready.' },
+    { id: 'night', text: 'Survive the night', hint: 'Raptors are coming. They are weaker in the firelight. Stay close to it.' },
+    { id: 'stranger', text: 'Welcome the stranger', hint: 'Someone is walking toward your fire.' },
+    { id: 'jobs', text: 'Give someone a job', hint: 'Tap a survivor, then the job button in their card.' },
+    { id: 'stock', text: 'Build a stockpile and a rain barrel', hint: 'More storage, and water that collects itself.' },
     { id: 'defend', text: 'Build a lookout and 6 barricades', hint: 'Raiders are coming.' },
     { id: 'raid', text: 'Repel the raid', hint: 'Sound the alarm if needed.' },
     { id: 'expedition', text: 'Send an expedition', hint: 'Tap the map button.' },
