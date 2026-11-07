@@ -21,9 +21,9 @@ for (const st of D.STAGES) {
   for (const w of st.waves.concat([st.bossWave])) for (const k of w) if (!D.FOES[k]) bad(`${st.id} foe ${k}`);
   if (!st.bossWave.every((k) => D.FOES[k].boss)) bad(`${st.id} boss wave has a minion`);
 }
-// Effect names used in the code (keep in step with render.js and cine.js).
-const used = new Set(['hit_crit', 'hit_slash', 'hit_blunt', 'parry', 'star_burst', 'hit_big', 'smoke_dark', 'dissipate', 'teleport', 'dust_kick', 'spell_impact', 'slash_arc_blood', 'slash_l', 'slash_r']);
-const src = ['render.js', 'cine.js'].map((f) => fs.readFileSync(path.join(__dirname, '../js', f), 'utf8')).join('\n');
+// Effect names used in the code (keep in step with view.js and cine.js).
+const used = new Set(['slash_arc_blood']);   // the fight's effects are drawn in code; the cinematic uses this pack effect
+const src = ['view.js', 'cine.js'].map((f) => fs.readFileSync(path.join(__dirname, '../js', f), 'utf8')).join('\n');
 for (const n of used) { if (!fx[n]) bad('fx ' + n); if (src.indexOf("'" + n + "'") < 0) bad('fx listed but unused ' + n); }
 // Scenes.
 const scenes = S.BEFORE.concat([S.ENDING]);

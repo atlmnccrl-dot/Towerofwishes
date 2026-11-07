@@ -12,18 +12,20 @@
   D.STRIKE = { Attack1: 6, Attack2: 7, Attack3: 7, Attack4: 9, Attack5: 3, Attack6: 6, Kick: 7, Special1: 10 };
 
   // The arena: a floor band seen from the side. x across, y is depth (0 = back wall, DEPTH = front).
-  D.ARENA = { w: 560, depth: 54 };
+  D.ARENA = { w: 560, depth: 8 };   // one fighting line (a sliver of depth only orders who is drawn in front)
 
   // ---- The hero -------------------------------------------------------------------------
   D.HERO = {
     id: 'vesper', name: 'Vesper', set: 'gothic_knight_b', color: '#ff3048',
-    hp: 120, spdX: 96, spdY: 62,
+    hp: 120, spdX: 122, spdY: 0,
     combo: [
       { clip: 'Attack1', wind: 0.11, recover: 0.2, reach: 30, dmg: 7, poise: 6, kb: 4, step: 6 },
       { clip: 'Attack2', wind: 0.11, recover: 0.22, reach: 30, dmg: 7, poise: 6, kb: 4, step: 6 },
       { clip: 'Attack3', wind: 0.17, recover: 0.3, reach: 34, dmg: 12, poise: 12, kb: 16, step: 10 },
       { clip: 'Attack6', wind: 0.16, recover: 0.34, reach: 38, dmg: 16, poise: 16, kb: 22, step: 12 }],
-    dodge: { dur: 0.36, dist: 92, iframes: [0.02, 0.3], perfect: 0.16, cd: 0.12 },
+    // The dash-cut: press cut during or just after a dash.
+    dashCut: { clip: 'Attack4', wind: 0.1, recover: 0.3, reach: 30, dmg: 11, poise: 16, kb: 20, lunge: 56 },
+    dodge: { dur: 0.34, dist: 96, iframes: [0.02, 0.3], perfect: 0.16, cd: 0.12 },
     parry: { win: 0.2, dur: 0.42 },
     lastDitch: 0.3, // the Last Ditch Effort opens at or below this share of health
   };

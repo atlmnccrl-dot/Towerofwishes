@@ -113,8 +113,7 @@
     if (k.bolt) {
       const n = k.bolt.fan || 1;
       for (let i = 0; i < n; i++) {
-        const dy = n > 1 ? (i - (n - 1) / 2) * 18 : 0;
-        s.bolts.push({ x: a.x + a.face * 14 * a.scale, y: clamp(a.y + dy, 0, D.ARENA.depth), vx: a.face * k.bolt.speed, team: a.team, owner: a.id, dmg: Math.round(k.dmg * (a.dmgMul || 1)), kb: k.kb, fx: k.bolt.fx, life: 4, t: 0 });
+        s.bolts.push({ delay: i * 0.24, x: a.x + a.face * 14 * a.scale, y: a.y, vx: a.face * k.bolt.speed, team: a.team, owner: a.id, dmg: Math.round(k.dmg * (a.dmgMul || 1)), kb: k.kb, fx: k.bolt.fx, life: 4, t: 0 });
       }
       ev(s, { type: 'bolt', id: a.id }); return;
     }
@@ -153,6 +152,7 @@
       o.flash = 1; o.kv = (bolt ? sign(bolt.vx) : a.face) * k.kb * 7;
       gainMoon(s, 9);
       ev(s, { type: 'hurt', x: o.x, y: o.y, dmg, id: o.id, big: dmg >= 16 });
+      s.hitstop = Math.max(s.hitstop, 0.08);
       if (o.hp <= 0) { o.hp = 0; kill(s, o); return; }
       setState(o, 'hurt', 0.34); o.iframes = 0.55; o.atk = null; o.queued = false;
       return;
@@ -166,7 +166,8 @@
     if (M.thirst) s.hero.hp = Math.min(s.hero.maxHp, s.hero.hp + dmg * M.thirst);
     s.combo++; s.comboT = 1.6; s.stats.maxCombo = Math.max(s.stats.maxCombo, s.combo);
     gainMoon(s, (k.poise || 6) >= 12 ? 5 : 3);
-    ev(s, { type: 'hit', x: o.x, y: o.y, dmg, id: o.id, heavy: (k.poise || 0) >= 12, combo: s.combo });
+    ev(s, { type: 'hit', x: o.x, y: o.y, dmg, id: o.id, heavy: (k.poise || 0) >= 12, combo: s.combo, face: bolt ? sign(bolt.vx) : a.face });
+    s.hitstop = Math.max(s.hitstop, (k.poise || 0) >= 12 ? 0.075 : 0.045);
     if (o.hp <= 0) { o.hp = 0; kill(s, o); return; }
     if (o.def.boss && o.def.boss && o.phase === 1 && o.hp <= o.maxHp * 0.5) phaseTwo(s, o);
     const kb = (bolt ? sign(bolt.vx) : a.face) * (k.kb || 6);
@@ -269,6 +270,7 @@
     let want = melee.length ? Math.min(...melee.map((k) => (k.aoe ? (k.at || 0) + k.aoe * 0.5 : k.reach) * u.scale)) * 0.8 : 100;
     if (u.key === 'umbral') want = 110;
     if (u.def.minion && busy >= 2) want = 64 + (u.id % 3) * 14;
+    if (u.def.minion) { const ahead = s.units.filter((o) => o !== u && o.team === 'foe' && o.alive && o.def.minion && sign(o.x - h.x) === sign(u.x - h.x) && Math.abs(o.x - h.x) < adx - 2).length; want += ahead * 20; }
     let mx = 0, my = 0;
     if (Math.abs(adx - want) > 5) mx = adx > want ? sign(dx) : -sign(dx);
     const ty = clamp(h.y + (u.def.minion ? u.lane : 0), 0, D.ARENA.depth);
@@ -290,12 +292,15 @@
     if (inp.dodge) h.bufDodge = 0.16;
     if (inp.parry) h.bufParry = 0.12;
     h.bufAtk = (h.bufAtk || 0) - dt; h.bufDodge = (h.bufDodge || 0) - dt; h.bufParry = (h.bufParry || 0) - dt;
+    // The dash-cut: cut late in a dash, or right after one.
+    if (h.bufAtk > 0 && ((h.state === 'dodge' && h.st > h.dur * 0.35) || (free && s.time - (h.dodgeEnd || -9) < 0.14))) {
+      h.bufAtk = 0; h.combo = 0; h.comboWin = 0; startAttack(s, h, H.dashCut); ev(s, { type: 'dashCut', x: h.x, y: h.y }); return;
+    }
     const canCancel = h.state === 'attack' && h.st > h.atk.wind + 0.04;
     if ((free || canCancel) && h.bufDodge > 0) {
       h.bufDodge = 0; setState(h, 'dodge', H.dodge.dur); h.atk = null; h.queued = false; h.perfectDone = false;
-      const dx = inp.mx || 0, dy = inp.my || 0;
-      h.dodgeDir = dx || dy ? [dx, dy * 0.6] : [h.face, 0];
-      const n = Math.hypot(h.dodgeDir[0], h.dodgeDir[1]) || 1; h.dodgeDir = [h.dodgeDir[0] / n, h.dodgeDir[1] / n];
+      const dx = inp.mx || 0;
+      h.dodgeDir = [dx ? sign(dx) : h.face, 0];
       if (dx) h.face = sign(dx);
       ev(s, { type: 'dodge', x: h.x, y: h.y }); return;
     }
@@ -305,8 +310,8 @@
       startAttack(s, h, H.combo[h.combo]); return;
     }
     if (free) {
-      const mx = inp.mx || 0, my = inp.my || 0;
-      h.x += mx * H.spdX * dt; h.y += my * H.spdY * dt;
+      const mx = inp.mx || 0, my = 0;
+      h.x += mx * H.spdX * dt;
       if (mx) h.face = sign(mx);
       if (mx || my) { if (h.state !== 'move') setState(h, 'move'); } else if (h.state !== 'idle') setState(h, 'idle');
     }
@@ -363,7 +368,7 @@
         const k = u.st / u.dur, sp = s.mods.dodgeDist / u.dur * 1.6 * (1 - k);
         u.x += u.dodgeDir[0] * sp * dt; u.y += u.dodgeDir[1] * sp * dt;
         const I = D.HERO.dodge.iframes; u.iframes = u.st >= I[0] && u.st <= I[1] ? 0.02 : u.iframes;
-        if (u.st >= u.dur) setState(u, 'idle');
+        if (u.st >= u.dur) { setState(u, 'idle'); u.dodgeEnd = s.time; }
       } else if ((u.state === 'parry' || u.state === 'hurt' || u.state === 'down') && u.st >= u.dur) {
         setState(u, 'idle'); if (u.team === 'foe') u.cd = Math.min(u.cd, 0.25);
       } else if (u.state === 'dead') u.deadT += dt;
@@ -374,6 +379,7 @@
 
     // Bolts.
     for (const b of s.bolts) {
+      if (b.delay > 0) { b.delay -= dt; continue; }
       b.t += dt; b.x += b.vx * dt; b.life -= dt;
       if (b.x < -20 || b.x > W + 20) b.life = 0;
       if (b.life <= 0) continue;
@@ -418,11 +424,11 @@
       if (r() < skill) { if (!k.unparry && r() < 0.6) inp.parry = true; else { inp.dodge = true; inp.mx = -sign(u.x - h.x); } return inp; }
     }
     for (const b of s.bolts) {
-      if (b.team === 'hero' || b.seen) continue;
+      if (b.team === 'hero' || b.seen || b.delay > 0) continue;
       const ttc = (h.x - b.x) / b.vx;
       if (ttc > 0 && ttc < 0.14 && Math.abs(b.y - h.y) < 10) {
         b.seen = true;
-        if (r() < skill) { if (r() < 0.5) inp.parry = true; else { inp.dodge = true; inp.my = h.y > D.ARENA.depth / 2 ? -1 : 1; } return inp; }
+        if (r() < skill) { if (r() < 0.5) inp.parry = true; else { inp.dodge = true; inp.mx = sign(b.x - h.x); } return inp; }
       }
     }
     if (s.moon >= 100 && (VS.ldxReady(s) || s.units.some((u) => u.alive && u.def.boss))) { inp.art = true; return inp; }

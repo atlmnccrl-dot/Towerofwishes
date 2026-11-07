@@ -35,16 +35,27 @@ three boons. Losing costs nothing: retry the hour with your boons.
 
 ## Combat
 
-- **Move** WASD or arrows. **Cut** J: a three-hit combo, auto-aimed at the nearest foe.
-- **Parry** K: a short window. A white glint on a foe means the blow can be parried; a parry
-  staggers the attacker and reflects bolts.
-- **Dash** Space: i-frames. A red glint means the blow cannot be parried, only dodged. Dashing at
-  the last moment is a perfect dodge (slow motion).
+One fighting line, side-on: spacing, timing and reading the wind-ups.
+
+- **Move** A/D or arrows. **Cut** J: a three-hit combo, auto-aimed at the nearest foe. Every blow
+  freezes the frame for a few hundredths of a second so it lands.
+- **Parry** K: a short window. A **white ring** closing over a foe's head means the blow can be
+  parried; a parry staggers the attacker and reflects bolts.
+- **Dash** Space: i-frames. A **red ring** means the blow cannot be parried, only dashed through.
+  Dashing at the last moment is a perfect dodge (slow motion). **Cut during or right after a dash**
+  for a lunging dash-cut.
 - **Moon** L: the gauge fills from cuts, parries, perfect dodges and taking hits. Full, it plays the
   **Red Moon** (3.4 s). At 30 % health or less it plays the **Last Ditch Effort** instead (6.4 s,
   more than twice the damage, heals 30 %). Tap or any key skips to the final frame.
-- Bosses have poise: break it to knock them down for extra damage.
+- Bosses have poise (the gold line under their bar): break it to knock them down for extra damage.
 - Esc pauses (restart the hour, auto battle, quit). Touch: a stick on the left, buttons on the right.
+
+## Look
+
+The game is drawn at the screen's full resolution: layered silhouettes under the red moon, a glossy
+floor that reflects the fighters, crisp pixel characters, effects drawn in code, a slim HUD and
+menus as real buttons (Chakra Petch and Barlow from Google Fonts). The moon arts keep their pixel
+style: they are drawn on a 180 px buffer laid over the game and scaled up without smoothing.
 
 ## Code
 
@@ -52,11 +63,12 @@ three boons. Losing costs nothing: retry the hour with your boons.
 |---|---|
 | `js/data.js` | Hero, Lys, foes and their attacks, stages, boons. Pure |
 | `js/story.js` | The scenes, the bosses' phase lines, the ending. Pure |
-| `js/sim.js` | The fight simulation (waves, parry, dodge, poise, the moon arts) and a bot. Pure, runs in Node |
+| `js/sim.js` | The fight simulation (waves, parry, dodge, dash-cut, poise, the moon arts) and a bot. Pure, runs in Node |
 | `js/assets.js` | Loads and draws the cast (plain, flashed, silhouette, hard grey), effects and tiles |
-| `js/render.js` | The arena (sky, moon, parallax silhouettes, tiled floor, weather), fighters, effects, HUD, touch |
-| `js/cine.js` | The moon arts as cinematics, the boss name card, floating lines |
-| `js/audio.js`, `js/main.js` | Sound; the loop, input, saves and screens |
+| `js/view.js` | The full-resolution game: arenas, fighters and reflections, drawn effects, HUD, touch controls, dialogue, boss card |
+| `js/px.js`, `js/cine.js` | The pixel buffer and the moon arts drawn on it |
+| `js/ui.js` | Menus as buttons: title, settings, credits, boon pick, defeat, pause |
+| `js/audio.js`, `js/main.js` | Sound; the loop, input, saves and the flow |
 
 ## Tests
 

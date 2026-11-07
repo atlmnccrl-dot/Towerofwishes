@@ -4,7 +4,7 @@
 //   assault in silhouette · the red frame.  Red Moon (3.4 s): snap · draw · red moon · red frame.
 // Also the boss name card and the floating lines used in fights.
 (function () {
-  const VS = window.VS, D = VS.DATA, A = VS.A, R = VS.R;
+  const VS = window.VS, D = VS.DATA, A = VS.A, R = VS.PX;
   const C = VS.cine = {};
   const W = () => R.W, H = () => R.H;
   const RED = '#ff2a44', INK = '#050507';
@@ -107,12 +107,12 @@
   // The world drops to black; the hero stays lit, a red line cuts across.
   B.snap = function (ctx, s, c, k) {
     fill(ctx, INK, Math.min(0.92, k * 1.6));
-    const h = hero(s), x = Math.round(h.x - R.cam), y = R.FLOOR + Math.round(h.y);
-    A.actor(ctx, h.set, 'Idle4', 0, h.face > 0 ? 0 : Math.PI, x, y, 1, { shade: RED, alpha: 0.4 + 0.6 * k });
-    A.actor(ctx, h.set, 'Idle4', 0, h.face > 0 ? 0 : Math.PI, x, y, 1, { alpha: 1 - k });
+    const h = hero(s), at = R.heroAt || { x: W() / 2, y: H() * 0.8, k: 1 }, x = Math.round(at.x), y = Math.round(at.y);
+    A.actor(ctx, h.set, 'Idle4', 0, h.face > 0 ? 0 : Math.PI, x, y, at.k, { shade: RED, alpha: 0.4 + 0.6 * k });
+    A.actor(ctx, h.set, 'Idle4', 0, h.face > 0 ? 0 : Math.PI, x, y, at.k, { alpha: 1 - k });
     const lw = Math.round(W() * ease(k * 1.4));
-    ctx.fillStyle = RED; ctx.fillRect(x - lw / 2, y - 22, lw, 1);
-    if (k > 0.75) { ctx.fillStyle = '#ffffff'; ctx.fillRect(0, y - 22, W(), 1); }
+    ctx.fillStyle = RED; ctx.fillRect(x - lw / 2, y - Math.round(22 * at.k), lw, 1);
+    if (k > 0.75) { ctx.fillStyle = '#ffffff'; ctx.fillRect(0, y - Math.round(22 * at.k), W(), 1); }
   };
   // The knight huge and grey; under the visor an eye opens red and the red cracks run out of it.
   B.eye = function (ctx, s, c, k, T) {
@@ -297,36 +297,4 @@
     if (c.t > 0.6 && b[0] !== 'red') R.text(ctx, 'tap to skip', 6, H() - 3, 6, 'rgba(230,220,224,0.55)', 'left', { shadow: false });
   };
 
-  // ---- a boss's name card ---------------------------------------------------------------------------
-  C.bossCard = function (ctx, s, keys, t) {
-    const k = Math.min(1, t / 0.25), out = t > 1.5 ? Math.min(1, (t - 1.5) / 0.35) : 0;
-    ctx.save(); ctx.globalAlpha = 1 - out;
-    ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(0, 0, W(), H());
-    const y = H() * 0.32, off = (1 - ease(k)) * W();
-    ctx.fillStyle = INK; ctx.beginPath(); ctx.moveTo(-10 + off, y); ctx.lineTo(W() + 10 + off, y - 14); ctx.lineTo(W() + 10 + off, y + 44); ctx.lineTo(-10 + off, y + 58); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = RED; ctx.fillRect(0, Math.round(y + 50), W(), 1);
-    keys.forEach((key, i) => {
-      const f = D.FOES[key], u = s.units.find((o) => o.key === key);
-      const sc = Math.min(3, 2.2 / (f.scale || 1) * (f.scale || 1)), x = W() * (keys.length > 1 ? 0.64 + i * 0.2 : 0.78) - off * 0.4;
-      A.actor(ctx, f.set, 'Idle4', u ? u.frame : 0, Math.PI, Math.round(x), Math.round(y + 56), Math.min(3.2, 2.2 * (f.scale || 1) * 0.8), { grey: true });
-    });
-    const f = D.FOES[keys[0]];
-    R.text(ctx, (keys.length > 1 ? 'THE HOLLOW TWINS' : f.name.toUpperCase()), 20 + off, y + 26, 18, '#ffffff', 'left');
-    R.text(ctx, (keys.length > 1 ? 'THE LEFT HAND AND THE RIGHT' : f.title.toUpperCase()), 22 + off, y + 40, 7, '#ff8090', 'left');
-    ctx.restore();
-  };
-
-  // ---- floating lines (no speech bubbles): beside the speaker, a thin bar in their colour ------
-  C.say = function (ctx, x, y, who, col, text, k, o) {
-    o = o || {};
-    const size = o.shout ? 10 : 8, lines = R.wrap(ctx, text, size, 150), lh = size + 2;
-    const left = x > R.W * 0.6, tx = left ? x - 14 : x + 14, top = y - lines.length * lh;
-    ctx.save(); ctx.globalAlpha = Math.min(1, k * 4);
-    const sh = o.shout && k < 0.5 ? (Math.random() - 0.5) * 2 : 0;
-    ctx.fillStyle = col; ctx.fillRect(Math.round(left ? tx + 4 : tx - 6), Math.round(top - 9), 2, lines.length * lh + 10);
-    ctx.fillStyle = col; ctx.fillRect(Math.round(left ? tx + 4 : x + 2), Math.round(y - 2), Math.abs(tx - x) - 4, 1);
-    R.text(ctx, who.toUpperCase(), tx, top - 2, 6, col, left ? 'right' : 'left');
-    lines.forEach((l, i) => R.text(ctx, l, tx + sh, top + 7 + i * lh, size, o.shout ? '#fff0f2' : '#f2eef0', left ? 'right' : 'left'));
-    ctx.restore();
-  };
 })();
