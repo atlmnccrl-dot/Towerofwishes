@@ -19,7 +19,7 @@ Landscape; touch or mouse and keyboard.
 
 | System | State |
 |---|---|
-| Opening | A filmed flyover of the real world with letterbox and captions (skippable), then one survivor in the wilds. Objectives teach by doing: make camp at the lit clearing, gather by tapping trees and rocks, light the campfire, build a lean-to, forage, survive the night. The first day's clock waits for you. |
+| Opening | A filmed flyover of the real world with letterbox and captions (skippable), then one survivor in the wilds. Objectives teach by doing, with a marker on the target or an arrow at the screen edge: make camp at the lit clearing, gather by tapping trees and rocks, light the campfire, build a lean-to, forage, survive the night. The first day's clock waits for you. |
 | Camera and controls | Drag to pan, pinch or wheel to zoom (0.55x to 3.2x), tap to select or order. WASD and arrows, Space to pause, B to build, Esc to cancel, 1-3 for speed. Pause, 1x, 2x and 3x. |
 | World | 96 x 96 tiles: forests, meadows, lakes, a stream, a pond near the camp, stone outcrops, ruins with salvage, wildlife (deer, hares), birds overhead, fireflies at night, soft terrain blending. Fog of war lifts as people explore, and lookouts reveal the land around them. Day and night with firelight, dusk tint, rain. |
 | Gathering and resources | Wood, stone, food (berries, hunting, fields), water (from the lake, rain barrels, wells), metal (ruin salvage, expeditions), knowledge (scholars, expeditions). Storage caps; workers haul loads to the nearest store. Paths wear into dirt tracks, then stone roads with Paved Roads. |
