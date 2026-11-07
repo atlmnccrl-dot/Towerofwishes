@@ -60,10 +60,13 @@ with what it takes and how close you are.
 the heavy attack and the dodge on training husks, then a real fight, with a coaching card for
 each step.
 
-**The opening** (`js/opening.js`): an anime sequence in the style of the moon arts, on the
-pixel buffer: the moon falling, the swordsman's eye, his leap across the moon, the first cut and
-its impact frame, the wound, the dead rising, "tonight it bleeds out", your hero's eye and draw,
-and a tilt up the Spire past every guardian to the title. About 23 seconds; a tap skips to the
+**The opening** (`js/opening.js`): about 23 seconds, cut like an anime transformation and drawn at
+full resolution (painted light, ribbons and grain around crisp scaled-up pixel figures): a flat red
+sky with the swordsman as a black silhouette, pushing in, one glint, the cut tearing the sky; ribbons
+of light whipping across the frame around the wounded moon and THE FIRST CUT; the dead assembling
+out of flying shards; a dark smear and a gold flash; your hero forming out of the ribbons as the
+camera climbs the figure; an extreme close-up as the eye opens red; the flat red sky again with the
+Spire black against it, a guardian's eyes lit on every ledge, and the title. A tap skips to the
 next beat.
 
 **Foes with a trick**: Shieldbearers block cuts from the front (a heavy blow breaks the guard, or

@@ -1,175 +1,218 @@
-// VESPER — the opening, as an anime sequence in the style of the moon arts: drawn on the 180 px
-// pixel buffer with hard cuts, close-ups, speed lines and impact frames. Twelve beats, about 23 s:
-// the moon falls · the swordsman's eye · his leap · the first cut · impact · the wound · the dead
-// rise · tonight it bleeds out · your hero's eye · the draw · up the Spire past the guardians · title.
+// VESPER — the opening, about 23 seconds, drawn at full resolution: smooth painted light and
+// ribbons around crisp scaled-up pixel figures. It is cut like an anime transformation:
+//   blood sky   a flat red sky, the swordsman a black silhouette, pushing in, one glint; the cut
+//   ribbons     the cut tears the sky; ribbons of red light whip across the frame; the title
+//   the dead    the ribbons fall and the dead assemble out of flying shards
+//   wipes       a dark smear, a gold flash
+//   the hero    your hero forms out of the ribbons, shard by shard; the camera climbs the figure
+//   the eye     an extreme close-up: the eye opens red
+//   the spire   the flat red sky again, the Spire black with a guardian's eyes on every ledge; title
 (function () {
-  const VS = window.VS, D = VS.DATA, A = VS.A, P = VS.PX;
+  const VS = window.VS, D = VS.DATA, A = VS.A, R = VS.R;
   const O = VS.OPEN = {};
-  const RED = '#ff2a44', INK = '#050507', PALE = '#e6e0e6';
-  const BEATS = [['black', 0, 1.4], ['fall', 1.4, 4.0], ['eye', 4.0, 5.2], ['leap', 5.2, 6.6], ['cut', 6.6, 8.0], ['impact', 8.0, 8.7], ['wound', 8.7, 11.3],
-    ['rise', 11.3, 13.9], ['bleed', 13.9, 16.4], ['hero', 16.4, 17.8], ['draw', 17.8, 19.4], ['spire', 19.4, 23.2]];
+  const RED = '#ff2a44', BLOOD = '#e8141e';
+  const BEATS = [['sky', 0, 4.6], ['ribbons', 4.6, 7.4], ['dead', 7.4, 10.4], ['wipe', 10.4, 11.0], ['hero', 11.0, 15.6], ['eye', 15.6, 18.6], ['spire', 18.6, 23.4]];
   O.BEATS = BEATS; O.dur = BEATS[BEATS.length - 1][2];
   O.next = (t) => { const b = BEATS.find((x) => x[1] > t + 0.01); return b ? b[1] : O.dur; };
   O.cues = function (t0, t1) {
     const out = [], at = (t) => t0 < t && t <= t1;
-    const C = { black: [['charge', 0.6]], fall: [['quake', 0.9], ['whoosh', 0.7]], eye: [['clang_1', 0.6]], leap: [['whoosh', 1]], cut: [['slash_0', 1], ['allout', 0.8]], impact: [['blow_big', 1], ['quake', 1]],
-      wound: [['charge', 0.7]], rise: [['quake', 0.7], ['horn', 0.5]], bleed: [['clang_1', 0.8]], hero: [['quake', 0.6]], draw: [['whoosh', 1], ['slash_2', 1]], spire: [['allout', 0.7]] };
-    for (const b of BEATS) if (at(b[1])) out.push(...(C[b[0]] || []));
-    if (at(23.2 - 1.4)) out.push(['blow_big', 0.9], ['clang_1', 0.8]);
+    const C = [[0.05, 'quake', 0.5], [1.6, 'charge', 0.5], [3.6, 'charge', 0.9], [4.45, 'whoosh', 1], [4.6, 'blow_big', 1], [4.6, 'clang_1', 0.9], [4.7, 'quake', 1], [5.6, 'allout', 0.9],
+      [7.4, 'quake', 0.8], [8.2, 'horn', 0.6], [10.4, 'whoosh', 1], [10.75, 'blow_big', 0.9], [11.2, 'magic', 0.8], [12.6, 'charge', 0.7], [14.6, 'allout', 0.8],
+      [15.6, 'quake', 0.7], [16.6, 'clang_1', 0.8], [18.6, 'whoosh', 0.9], [21.0, 'blow_big', 1], [21.0, 'clang_1', 0.8], [21.05, 'quake', 1]];
+    for (const [t, n, v] of C) if (at(t)) out.push([n, v]);
     return out;
   };
-  const K = () => VS.cine.kit;
-  const W = () => P.W, H = () => P.H;
-  const hash = (a, b) => K().hash(a, b), ease = (k) => K().ease(k);
-  const fill = (ctx, col, a) => K().fill(ctx, col, a);
-  const sub = (ctx, text, k, y) => { if (k <= 0) return; ctx.save(); ctx.globalAlpha = Math.min(1, k * 3); P.text(ctx, text, W() / 2, y || H() * 0.86, 8, '#f0e4e8', 'center'); ctx.restore(); };
-  function shake(ctx, n) { ctx.translate(Math.round((Math.random() - 0.5) * n), Math.round((Math.random() - 0.5) * n)); }
-  // A huge grey close-up whose eye opens (white for the swordsman, red for the hero), cracks running out.
-  function eyeShot(ctx, set, k, T, col) {
-    fill(ctx, INK);
-    const sc = 5.4 + 0.7 * ease(k), bx = A.box(set, 'Idle4', 0, 0, sc) || { x: -32 * sc, y: -60 * sc };
-    const head = { x: 22 * sc, y: 6 * sc }, fx = Math.round(W() * 0.58 - bx.x - head.x), fy = Math.round(H() * 0.4 - bx.y - head.y);
-    K().embers(ctx, T, 26, 0, W(), col);
-    A.actor(ctx, set, 'Idle4', Math.floor(T * 7) % 15, 0, fx + Math.round(Math.sin(T * 2.2) * 2), fy, sc, { grey: true });
-    const ex = fx + bx.x + head.x, ey = fy + bx.y + head.y, open = ease((k - 0.15) / 0.35);
-    if (open > 0) {
-      const g = ctx.createRadialGradient(ex, ey, 1, ex, ey, 30 * open); g.addColorStop(0, col === RED ? 'rgba(255,42,68,0.75)' : 'rgba(200,230,255,0.75)'); g.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = g; ctx.fillRect(ex - 40, ey - 40, 80, 80);
-      ctx.fillStyle = col; ctx.fillRect(Math.round(ex - 7 * open), ey - 1, Math.round(14 * open), 3); ctx.fillStyle = '#ffffff'; ctx.fillRect(Math.round(ex - 2 * open), ey, Math.round(4 * open), 1);
-      ctx.globalAlpha = Math.min(1, (k - 0.3) * 3);
-      for (let i = 0; i < 6; i++) K().crack(ctx, ex + (i % 2 ? 6 : -6), ey + 2, Math.PI / 2 + (i - 2.5) * 0.35, 40 + 50 * ease((k - 0.3) / 0.5), 70 + i, col, 1);
-      ctx.globalAlpha = 1;
-    }
-    const cx = Math.round(W() * 0.3); ctx.fillStyle = INK; ctx.fillRect(cx - 3, 0, 6, H()); ctx.fillStyle = '#ffffff'; ctx.fillRect(cx + 3, 0, 1, H());
-    if (k > 0.88) fill(ctx, '#ffffff', (k - 0.88) / 0.12);
-  }
-  // The draw: the figure huge and grey, the cut thrown across the whole frame.
-  function drawShot(ctx, set, k, T, col, fringe) {
-    fill(ctx, INK); K().hStreaks(ctx, 40, 'rgba(120,120,135,0.6)', 3, T, 1300);
-    const sc = 4.4, fr = Math.min(14, 6 + Math.floor(k * 9)), fx = Math.round(W() * 0.7 - ease(k * 1.6) * W() * 0.08), fy = Math.round(H() * 1.12);
-    for (let i = 3; i >= 1; i--) A.actor(ctx, set, 'Special1', Math.max(0, fr - i), Math.PI, fx + i * 10, fy, sc, { shade: col === RED ? '#5a1020' : '#203050', alpha: 0.5 - i * 0.12 });
-    A.actor(ctx, set, 'Special1', fr, Math.PI, fx, fy, sc, { grey: true });
-    if (k > 0.42) {
-      const kk = ease((k - 0.42) / 0.3), y0 = H() * 0.48, x0 = fx - 40;
-      ctx.save(); ctx.translate(x0, y0); ctx.rotate(-0.12);
-      ctx.fillStyle = fringe; ctx.fillRect(-W() * 1.2 * kk, -6, W() * 1.2 * kk, 12);
-      ctx.fillStyle = col; ctx.fillRect(-W() * 1.2 * kk, -3, W() * 1.2 * kk, 6);
-      ctx.fillStyle = '#ffffff'; ctx.fillRect(-W() * 1.2 * kk, -1, W() * 1.2 * kk, 1);
-      for (let i = 0; i < 60; i++) { const px = -hash(i, 1) * W() * 1.1 * kk, py = (hash(i, 2) - 0.5) * 40 * (0.3 + kk) + Math.sin(i + T * 6) * 3; ctx.fillStyle = i % 3 ? col : '#ffffff'; ctx.fillRect(Math.round(px), Math.round(py), 2, 2); }
-      ctx.restore();
-    }
-    if (k > 0.82) { K().line(ctx, 0, H() * 0.15, W(), H() * 0.75, 2, '#ffffff'); K().line(ctx, W() * 0.2, H(), W() * 0.85, 0, 1, '#ffffff'); }
-  }
-  function moonDisc(ctx, x, y, r, col, gash) {
-    P.moon(ctx, x, y, r, col, col === PALE ? 'rgba(220,220,240,0.3)' : 'rgba(255,40,60,0.4)');
-    if (gash) { ctx.save(); ctx.translate(x, y); ctx.rotate(-0.36); ctx.fillStyle = '#3a0008'; ctx.fillRect(-r * 0.95, -2, r * 1.9 * gash, 4); ctx.fillStyle = RED; ctx.fillRect(-r * 0.95, -1, r * 1.9 * gash, 1); ctx.restore(); }
-  }
-  function spireShape(ctx, cx, base, top, wB) { ctx.beginPath(); ctx.moveTo(cx - wB, base); ctx.lineTo(cx - wB * 0.18, top + 8); ctx.lineTo(cx, top); ctx.lineTo(cx + wB * 0.18, top + 8); ctx.lineTo(cx + wB, base); ctx.closePath(); ctx.fill(); }
+  const hash = (a, b) => { let h = (a * 374761393 + b * 668265263) | 0; h = (h ^ (h >>> 13)) * 1274126177; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
+  const ease = (k) => 1 - Math.pow(1 - Math.max(0, Math.min(1, k)), 3);
+  const easeIn = (k) => Math.pow(Math.max(0, Math.min(1, k)), 2.2);
+  const clamp01 = (k) => Math.max(0, Math.min(1, k));
+  const W = () => R.W, H = () => R.H;
 
-  const S = {};
-  S.black = function (ctx, k) {
-    fill(ctx, INK);
-    const lw = Math.round(W() * ease(k * 1.3)); ctx.fillStyle = RED; ctx.fillRect(Math.round(W() / 2 - lw / 2), Math.round(H() / 2), lw, 1);
-    if (k > 0.3) { ctx.save(); ctx.globalAlpha = Math.min(1, (k - 0.3) * 3); P.text(ctx, 'SEVEN HUNDRED YEARS AGO', W() / 2, H() / 2 - 8, 8, '#e8c8d0', 'center'); ctx.restore(); }
-  };
-  S.fall = function (ctx, k, T) {
-    const g = ctx.createLinearGradient(0, 0, 0, H()); g.addColorStop(0, '#05040a'); g.addColorStop(0.7, '#2a0a14'); g.addColorStop(1, '#5a1420'); ctx.fillStyle = g; ctx.fillRect(0, 0, W(), H());
-    ctx.save(); if (k > 0.5) shake(ctx, 3 * k);
-    // Streaks rushing up past the camera: the moon is coming down.
-    ctx.fillStyle = 'rgba(255,220,220,0.5)'; for (let i = 0; i < 50; i++) { const x = hash(i, 3) * W(), len = 8 + hash(i, 4) * 26, y = H() - ((T * (300 + hash(i, 5) * 300) + hash(i, 6) * H()) % (H() + len)); ctx.fillRect(Math.round(x), Math.round(y), 1, Math.round(len)); }
-    const r = 20 + 90 * ease(k), my = -24 + 90 * ease(k);
-    // Fire trailing off its edge.
-    for (let i = 0; i < 40; i++) { const a = Math.PI + hash(i, 7) * Math.PI, d = r + 2 + hash(i, 8) * 6, y = my + Math.sin(a) * d - ((T * 80 + i * 7) % 30); ctx.fillStyle = i % 3 ? '#ff7a3a' : RED; ctx.fillRect(Math.round(W() / 2 + Math.cos(a) * d), Math.round(y), 2, 2); }
-    moonDisc(ctx, W() / 2, my, Math.round(r), PALE);
-    // The city and the Spire below, shaking.
-    ctx.fillStyle = '#05030a'; for (let i = 0; i < 24; i++) { const x = i * W() / 24, h = 10 + hash(i, 9) * 22; ctx.fillRect(Math.round(x), Math.round(H() - h), Math.ceil(W() / 24) + 1, Math.round(h)); }
-    spireShape(ctx, W() * 0.24, H(), H() * 0.28, 22);
+  // ---- painting tools -----------------------------------------------------------------------------
+  // A figure at a screen scale, its feet at (x, y); shade turns it into a flat silhouette.
+  const fig = (ctx, set, clip, fr, ang, x, y, sc, o) => A.actor(ctx, set, clip, fr, ang, Math.round(x), Math.round(y), sc, o || {});
+  // The point on a figure: fx, fy are fractions of its frame (0,0 top-left), feet at (x, y).
+  function onFig(set, clip, fr, ang, x, y, sc, fx, fy) { const b = A.box(set, clip, fr, ang, sc) || { x: -16 * sc, y: -48 * sc, w: 32 * sc, h: 48 * sc }; return { x: x + b.x + b.w * fx, y: y + b.y + b.h * fy, b }; }
+  // A ribbon of light: a tapered band following a moving curve, soft edge, bright core.
+  function ribbon(ctx, pts, w, col, core, alpha) {
+    if (pts.length < 2) return;
+    const L = [], Rt = [];
+    for (let i = 0; i < pts.length; i++) {
+      const p = pts[i], q = pts[Math.min(pts.length - 1, i + 1)], o = pts[Math.max(0, i - 1)], dx = q[0] - o[0], dy = q[1] - o[1], n = Math.hypot(dx, dy) || 1, f = Math.sin(Math.PI * i / (pts.length - 1)), ww = w * (0.15 + 0.85 * f);
+      L.push([p[0] - dy / n * ww, p[1] + dx / n * ww]); Rt.push([p[0] + dy / n * ww, p[1] - dx / n * ww]);
+    }
+    const path = new Path2D(); path.moveTo(L[0][0], L[0][1]); for (const p of L) path.lineTo(p[0], p[1]); for (let i = Rt.length - 1; i >= 0; i--) path.lineTo(Rt[i][0], Rt[i][1]); path.closePath();
+    ctx.save(); ctx.globalAlpha *= alpha == null ? 1 : alpha; ctx.fillStyle = col; ctx.shadowColor = col; ctx.shadowBlur = w * 0.8; ctx.fill(path); ctx.shadowBlur = 0;
+    if (core) { ctx.lineWidth = Math.max(1, w * 0.16); ctx.strokeStyle = core; ctx.beginPath(); pts.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); ctx.stroke(); }
     ctx.restore();
-    if (k > 0.55) K().title(ctx, 'THE MOON FELL', W() / 2, H() * 0.8, 20, (k - 0.55) / 0.45, T);
+  }
+  const PAL = ['#f6e6cc', '#f0b48a', '#e2643c', '#c8283a', '#7a1424', '#ffd9b0'];
+  // A storm of ribbons whipping across the frame; density 0..1, dir: sweep direction.
+  function storm(ctx, t, n, seed, density, front) {
+    for (let i = 0; i < n; i++) {
+      if (hash(seed, i) > density) continue;
+      const sp = 0.8 + hash(seed + 1, i) * 1.6, ph = (t * sp * 0.55 + hash(seed + 2, i)) % 1, ang = -0.5 + hash(seed + 3, i) * 1.0 + (i % 2 ? Math.PI : 0);
+      const cx = W() / 2 + Math.cos(ang) * (ph - 0.5) * W() * 2.4, cy = H() * (0.1 + hash(seed + 4, i) * 0.8) + Math.sin(ang) * (ph - 0.5) * H(), len = W() * (0.5 + hash(seed + 5, i) * 0.7), amp = H() * (0.05 + hash(seed + 6, i) * 0.12);
+      const pts = []; for (let j = 0; j <= 18; j++) { const u = j / 18 - 0.5; pts.push([cx + Math.cos(ang) * u * len - Math.sin(ang) * Math.sin(u * 5 + t * 6 + i) * amp, cy + Math.sin(ang) * u * len + Math.cos(ang) * Math.sin(u * 5 + t * 6 + i) * amp]); }
+      const w = H() * (front ? 0.05 + hash(seed + 7, i) * 0.06 : 0.015 + hash(seed + 7, i) * 0.03), col = PAL[Math.floor(hash(seed + 8, i) * PAL.length)];
+      ribbon(ctx, pts, w, col, hash(seed + 9, i) < 0.4 ? 'rgba(255,250,240,0.85)' : null, front ? 0.92 : 0.6);
+    }
+  }
+  // A figure assembling out of shards: triangles of its frame fly in from scattered spots.
+  const shardCache = new Map();
+  function shards(ctx, set, clip, fr, ang, x, y, sc, k, seed, o) {
+    const b = A.box(set, clip, fr, ang, sc); if (!b) return;
+    const key = set + clip + fr + ang + Math.round(sc * 100) + (o && o.shade || '');
+    let c = shardCache.get(key);
+    if (!c) { c = document.createElement('canvas'); c.width = Math.ceil(b.w) + 2; c.height = Math.ceil(b.h) + 2; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; A.actor(g, set, clip, fr, ang, Math.round(-b.x) + 1, Math.round(-b.y) + 1, sc, o || {}); if (shardCache.size > 30) shardCache.clear(); shardCache.set(key, c); }
+    const N = 7, cw = c.width / N, ch = c.height / (N + 3), ox = x + b.x - 1, oy = y + b.y - 1;
+    for (let gy = 0; gy < N + 3; gy++) for (let gx = 0; gx < N; gx++) for (let tri = 0; tri < 2; tri++) {
+      const id = (gy * N + gx) * 2 + tri, delay = hash(seed, id) * 0.5, kk = ease((k - delay) / 0.5); if (kk <= 0) continue;
+      const a = hash(seed + 1, id) * Math.PI * 2, dist = (1 - kk) * H() * (0.4 + hash(seed + 2, id) * 0.8), rot = (1 - kk) * (hash(seed + 3, id) - 0.5) * 6;
+      const x0 = gx * cw, y0 = gy * ch, P = tri ? [[x0, y0], [x0 + cw, y0], [x0, y0 + ch]] : [[x0 + cw, y0], [x0 + cw, y0 + ch], [x0, y0 + ch]], cxp = (P[0][0] + P[1][0] + P[2][0]) / 3, cyp = (P[0][1] + P[1][1] + P[2][1]) / 3;
+      ctx.save(); ctx.translate(ox + cxp + Math.cos(a) * dist, oy + cyp + Math.sin(a) * dist); ctx.rotate(rot); ctx.translate(-cxp, -cyp);
+      ctx.beginPath(); ctx.moveTo(P[0][0] - 0.6, P[0][1] - 0.6); ctx.lineTo(P[1][0] + 0.6, P[1][1] - 0.6); ctx.lineTo(P[2][0] - 0.6, P[2][1] + 0.6); ctx.closePath(); ctx.clip();
+      ctx.globalAlpha *= Math.min(1, kk * 2); ctx.drawImage(c, 0, 0); ctx.restore();
+    }
+  }
+  function grade(ctx, top, bot, a) { const g = ctx.createLinearGradient(0, 0, 0, H()); g.addColorStop(0, top); g.addColorStop(1, bot); ctx.save(); ctx.globalAlpha = a == null ? 1 : a; ctx.fillStyle = g; ctx.fillRect(0, 0, W(), H()); ctx.restore(); }
+  function vignette(ctx, a) { const g = ctx.createRadialGradient(W() / 2, H() / 2, H() * 0.35, W() / 2, H() / 2, W() * 0.7); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, `rgba(0,0,0,${a})`); ctx.fillStyle = g; ctx.fillRect(0, 0, W(), H()); }
+  let grainC = null;
+  function grain(ctx, t) {
+    if (!grainC) { grainC = document.createElement('canvas'); grainC.width = 256; grainC.height = 256; const g = grainC.getContext('2d'), d = g.createImageData(256, 256); for (let i = 0; i < d.data.length; i += 4) { const v = Math.random() * 255; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 18; } g.putImageData(d, 0, 0); }
+    ctx.save(); ctx.globalCompositeOperation = 'overlay'; const ox = Math.floor(hash(Math.floor(t * 24), 1) * 256), oy = Math.floor(hash(Math.floor(t * 24), 2) * 256);
+    for (let y = -oy; y < H(); y += 256) for (let x = -ox; x < W(); x += 256) ctx.drawImage(grainC, x, y); ctx.restore();
+  }
+  function flash(ctx, col, a) { if (a <= 0) return; ctx.save(); ctx.globalAlpha = Math.min(1, a); ctx.fillStyle = col; ctx.fillRect(0, 0, W(), H()); ctx.restore(); }
+  // Big type: a red glow, a hard white face, a slam in with a little glitch.
+  function title(ctx, text, x, y, size, k, t, col) {
+    if (k <= 0) return;
+    const slam = k < 0.12 ? 1 + (0.12 - k) * 4 : 1, a = Math.min(1, k * 6);
+    ctx.save(); ctx.globalAlpha = a; ctx.translate(x, y); ctx.scale(slam, slam);
+    ctx.font = R.fd(size, 700); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; if ('letterSpacing' in ctx) ctx.letterSpacing = Math.round(size * 0.12) + 'px';
+    const tw = ctx.measureText(text).width + ('letterSpacing' in ctx ? 0 : text.length * size * 0.12); if (tw > W() * 0.9) ctx.scale(W() * 0.9 / tw, W() * 0.9 / tw);
+    ctx.shadowColor = col || RED; ctx.shadowBlur = size * 0.5; ctx.fillStyle = col || RED; ctx.fillText(text, 0, 0);
+    ctx.shadowBlur = 0; ctx.fillStyle = '#ffffff'; ctx.fillText(text, (k < 0.3 && hash(Math.floor(t * 30), 3) < 0.4) ? (hash(Math.floor(t * 30), 4) - 0.5) * size * 0.2 : 0, 0);
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '0px'; ctx.restore();
+  }
+  function line(ctx, text, y, k, size) { if (k <= 0) return; ctx.save(); ctx.globalAlpha = Math.min(1, k * 3); ctx.font = R.fb((size || 20) * R.k, 600); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 8 * R.dpr; ctx.fillStyle = '#f6eef0'; ctx.fillText(text, W() / 2, y); ctx.restore(); }
+  function bars(ctx, a) { const h = H() * 0.09 * (a == null ? 1 : a); ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W(), h); ctx.fillRect(0, H() - h, W(), h); }
+
+  // ---- the shots ------------------------------------------------------------------------------------
+  const S = {};
+  // A flat red sky, the swordsman a black silhouette from below; slow push in; one glint; the cut.
+  S.sky = function (ctx, k, t) {
+    grade(ctx, '#ff2a1e', BLOOD); grade(ctx, 'rgba(0,0,0,0)', 'rgba(40,0,0,0.85)', 1);
+    const push = 1 + 0.16 * ease(k), sc = H() / 52 * 0.95 * push, fx = W() * 0.52, fy = H() * 1.12;
+    const fr = k < 0.75 ? Math.min(5, Math.floor(k * 8)) : Math.min(14, 6 + Math.floor((k - 0.75) / 0.25 * 9));
+    ctx.save(); if (k > 0.95) ctx.translate((Math.random() - 0.5) * 30 * R.dpr, (Math.random() - 0.5) * 30 * R.dpr);
+    // Ground and the risen dead in the foreground, all black.
+    ctx.fillStyle = '#0a0000'; ctx.beginPath(); ctx.moveTo(0, H()); for (let i = 0; i <= 12; i++) ctx.lineTo(i * W() / 12, H() * (0.86 - hash(i, 2) * 0.06)); ctx.lineTo(W(), H()); ctx.fill();
+    fig(ctx, 'master_knight', 'Special1', fr, Math.PI * 0.5, fx, fy, sc, { shade: '#000000' });
+    // The glint: the only light on him.
+    const e = onFig('master_knight', 'Special1', fr, Math.PI * 0.5, fx, fy, sc, 0.5, 0.2);
+    const g = ease((k - 0.35) / 0.15) * (1 - ease((k - 0.6) / 0.1));
+    if (g > 0) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; A.tex(ctx, 'star_06', e.x, e.y, 140 * R.k * g, 140 * R.k * g, '#ffffff', g, t, true); ctx.restore(); }
+    ctx.restore();
+    line(ctx, 'SEVEN HUNDRED YEARS AGO, THE MOON BEGAN TO FALL.', H() * 0.16, (k - 0.15) * 2 * (1 - clamp01((k - 0.7) * 6)), 22);
+    // The cut: a white line tears across the whole sky.
+    if (k > 0.9) { const kk = ease((k - 0.9) / 0.08); ctx.save(); ctx.translate(W() / 2, H() * 0.42); ctx.rotate(-0.22); ctx.fillStyle = '#ffffff'; ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 30 * R.dpr; ctx.fillRect(-W() * kk, -3 * R.dpr, W() * 2 * kk, 6 * R.dpr); ctx.restore(); }
+    if (k > 0.97) flash(ctx, '#ffffff', (k - 0.97) / 0.03);
+    vignette(ctx, 0.5);
   };
-  S.eye = (ctx, k, T) => eyeShot(ctx, 'master_knight', k, T, '#cfe8ff');
-  S.leap = function (ctx, k, T) {
-    const g = ctx.createLinearGradient(0, 0, 0, H()); g.addColorStop(0, '#1a0c18'); g.addColorStop(1, '#05030a'); ctx.fillStyle = g; ctx.fillRect(0, 0, W(), H());
-    moonDisc(ctx, W() * 0.82, H() * 0.12, Math.round(H() * 0.42), PALE);
-    K().speedLines(ctx, W() * 0.82, H() * 0.12, 60, 'rgba(255,255,255,0.55)', 9, T, 70);
-    ctx.fillStyle = '#05030a'; spireShape(ctx, W() * 0.2, H() + 10, H() * 0.6, 40);
-    // He leaps from the tip across the face of the moon: a black shape trailing pale afterimages.
-    const kk = ease(k), x = W() * 0.18 + kk * W() * 0.55, y = H() * 1.0 - kk * H() * 0.62;
-    for (let i = 5; i >= 0; i--) A.actor(ctx, 'master_knight', 'Attack4', Math.min(14, Math.floor(k * 12)), 0, Math.round(x - i * 16), Math.round(y + i * 12), 2.8, { shade: i ? '#cfe8ff' : '#000000', alpha: i ? 0.22 - i * 0.03 : 1 });
+  // The sky torn open: ribbons of the moon's light whip across the frame; the title slams in.
+  S.ribbons = function (ctx, k, t) {
+    grade(ctx, '#2a0610', '#7a1424'); A.tex(ctx, 'light_01', W() * 0.5, H() * 0.4, W() * 1.4, H() * 1.4, '#ff6a4a', 0.5 + 0.2 * Math.sin(t * 9), 0, true);
+    storm(ctx, t, 26, 11, 0.9, false);
+    // The moon behind it all, cut in two, the wound blazing.
+    const mx = W() * 0.5, my = H() * 0.42, mr = H() * (0.24 + 0.04 * ease(k));
+    ctx.save(); ctx.fillStyle = '#f2e6e0'; ctx.shadowColor = '#ffb0a0'; ctx.shadowBlur = 60 * R.dpr; ctx.beginPath(); ctx.arc(mx, my, mr, 0, 7); ctx.fill(); ctx.restore();
+    ctx.save(); ctx.translate(mx, my); ctx.rotate(-0.22); const gw = mr * 0.12 * ease(k * 2); ctx.fillStyle = RED; ctx.shadowColor = RED; ctx.shadowBlur = 40 * R.dpr; ctx.fillRect(-mr * 1.05, -gw, mr * 2.1, gw * 2); ctx.fillStyle = '#ffffff'; ctx.fillRect(-mr * 1.05, -gw * 0.2, mr * 2.1, gw * 0.4); ctx.restore();
+    storm(ctx, t + 3, 14, 23, 0.85, true);
+    flash(ctx, '#ffffff', 1 - k * 6);
+    title(ctx, 'THE FIRST CUT', W() / 2, H() * 0.78, Math.min(74 * R.k, W() / 10), (k - 0.3) / 0.7, t);
+    line(ctx, 'A swordsman cut the falling moon. It stopped. The wound never closed.', H() * 0.9, (k - 0.5) * 2, 18);
+    vignette(ctx, 0.55);
   };
-  S.cut = function (ctx, k, T) {
-    drawShot(ctx, 'master_knight', k, T, '#ffffff', 'rgba(120,170,255,0.6)');
-    if (k > 0.5) K().title(ctx, 'THE FIRST CUT', W() / 2, H() * 0.22, 22, (k - 0.5) / 0.5, T);
+  // The ribbons rain down; the dead assemble out of flying shards under the bleeding moon.
+  S.dead = function (ctx, k, t) {
+    grade(ctx, '#3a0610', '#120206'); A.tex(ctx, 'light_01', W() * 0.5, H() * 0.15, W() * 1.2, H() * 0.9, RED, 0.55, 0, true);
+    const mr = H() * 0.16; ctx.save(); ctx.fillStyle = '#ff3a48'; ctx.shadowColor = RED; ctx.shadowBlur = 50 * R.dpr; ctx.beginPath(); ctx.arc(W() * 0.5, H() * 0.18, mr, 0, 7); ctx.fill(); ctx.restore();
+    // Red light pouring down in strands.
+    for (let i = 0; i < 14; i++) { const x = W() * (0.1 + hash(i, 4) * 0.8), y0 = H() * 0.2, y1 = y0 + (H() * 0.7) * ease(k * 1.5 - hash(i, 5) * 0.3); const pts = []; for (let j = 0; j <= 10; j++) pts.push([x + Math.sin(j * 0.8 + t * 4 + i) * 12 * R.dpr, y0 + (y1 - y0) * j / 10]); ribbon(ctx, pts, 5 * R.dpr, i % 3 ? '#e2343c' : '#ffb08a', null, 0.7); }
+    const gy = H() * 0.86; A.tex(ctx, 'light_01', W() * 0.5, gy, W() * 1.3, H() * 0.7, '#ff3a3a', 0.9, 0, true); ctx.fillStyle = '#080102'; ctx.fillRect(0, gy, W(), H() - gy);
+    const keys = ['shield', 'raider', 'brute', 'ghoul', 'husk', 'archer', 'spearman'];
+    keys.forEach((key, i) => { const f = D.FOES[key], x = W() * (0.09 + i * 0.137), sc = H() / 52 * 0.42 * Math.min(1.25, f.scale || 1); shards(ctx, f.set, 'Idle4', Math.floor(t * 7 + i) % 15, i % 2 ? Math.PI * 0.75 : Math.PI * 0.25, x, gy, sc, k * 1.4 - i * 0.07, 40 + i, { shade: '#050000' });
+      const e = onFig(f.set, 'Idle4', 0, i % 2 ? Math.PI * 0.75 : Math.PI * 0.25, x, gy, sc, 0.5, 0.14); if (k * 1.4 - i * 0.07 > 0.9) { ctx.fillStyle = RED; ctx.shadowColor = RED; ctx.shadowBlur = 12 * R.dpr; ctx.fillRect(e.x - 6 * R.dpr, e.y, 12 * R.dpr, 3 * R.dpr); ctx.shadowBlur = 0; } });
+    storm(ctx, t, 10, 31, 0.35, true);
+    title(ctx, 'ITS LIGHT RAISES THE DEAD', W() / 2, H() * 0.3, Math.min(54 * R.k, W() / 15), (k - 0.35) / 0.65, t);
+    line(ctx, 'Tonight the wound bleeds out. At dawn, the moon falls for good.', H() * 0.4, (k - 0.6) * 2.5, 18);
+    vignette(ctx, 0.6);
   };
-  S.impact = function (ctx, k, T) {
-    const white = Math.floor(k * 6) % 2 === 0, fg = white ? '#000000' : '#ffffff';
-    fill(ctx, white ? '#ffffff' : INK);
-    K().speedLines(ctx, W() * 0.55, H() * 0.42, 80, white ? '#000000' : RED, 4, T, 20);
-    P.disc(ctx, W() * 0.55, H() * 0.42, Math.round(H() * 0.3), fg);
-    A.actor(ctx, 'master_knight', 'Attack3', 9, 0, Math.round(W() * 0.42), Math.round(H() * 0.86), 3, { shade: fg });
-    K().line(ctx, 0, H() * 0.9, W(), H() * 0.05, 2, fg);
-    P.shake = 6;
+  // A dark smear across the frame, then a gold flash.
+  S.wipe = function (ctx, k, t) {
+    grade(ctx, '#5a0c14', '#1a0406'); storm(ctx, t, 12, 41, 0.6, false);
+    const p = ease(k / 0.6), edge = -W() * 0.2 + p * W() * 1.5;
+    ctx.save(); ctx.fillStyle = '#060001'; ctx.beginPath(); ctx.moveTo(-W(), 0); ctx.lineTo(edge, 0);
+    for (let i = 0; i <= 12; i++) ctx.lineTo(edge - H() * 0.4 * i / 12 + (hash(i, 7) - 0.5) * 70 * R.dpr, H() * i / 12);
+    ctx.lineTo(-W(), H()); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#ff3a3a'; ctx.lineWidth = 4 * R.dpr; ctx.shadowColor = RED; ctx.shadowBlur = 20 * R.dpr; ctx.beginPath(); ctx.moveTo(edge, 0); for (let i = 0; i <= 12; i++) ctx.lineTo(edge - H() * 0.4 * i / 12 + (hash(i, 7) - 0.5) * 70 * R.dpr, H() * i / 12); ctx.stroke(); ctx.restore();
+    if (k > 0.55) { const g = ease((k - 0.55) / 0.4), gr = ctx.createRadialGradient(W() * 0.5, H() * 0.5, 0, W() * 0.5, H() * 0.5, W() * 0.8); gr.addColorStop(0, '#fff6d8'); gr.addColorStop(0.4, '#ffc848'); gr.addColorStop(1, '#b85a08'); ctx.save(); ctx.globalAlpha = g; ctx.fillStyle = gr; ctx.fillRect(0, 0, W(), H()); ctx.restore(); }
   };
-  S.wound = function (ctx, k, T) {
-    fill(ctx, '#07050c');
-    for (let i = 0; i < 40; i++) { ctx.fillStyle = `rgba(255,240,240,${0.2 + hash(i, 2) * 0.5})`; ctx.fillRect(Math.round(hash(i, 3) * W()), Math.round(hash(i, 4) * H() * 0.7), 1, 1); }
-    const mx = W() / 2, my = H() * 0.38, mr = Math.round(H() * 0.28), red = ease(k * 1.5);
-    moonDisc(ctx, mx, my, mr, red > 0.5 ? '#ff6070' : PALE, 1);
-    // It bleeds: drops falling from the gash.
-    for (let i = 0; i < 28; i++) { const x = mx - mr * 0.8 + hash(i, 5) * mr * 1.6, y = my + (hash(i, 6) - 0.5) * 12 + ((T * (40 + hash(i, 7) * 50) + hash(i, 8) * 100) % (H() - my)); ctx.fillStyle = RED; ctx.fillRect(Math.round(x), Math.round(y), 1, 3); }
-    sub(ctx, 'IT STOPPED.', k, H() * 0.82); sub(ctx, 'BUT THE WOUND NEVER CLOSED.', k - 0.35, H() * 0.9);
+  // Your hero forms out of the ribbons, shard by shard; the camera climbs the figure, feet to face.
+  S.hero = function (ctx, k, t, set) {
+    grade(ctx, '#3a0c10', '#120408'); A.tex(ctx, 'light_01', W() * 0.5, H() * 0.5, W() * 1.3, H() * 1.3, '#ff5a3a', 0.55, 0, true);
+    storm(ctx, t, 22, 51, 0.9, false);
+    const sc = H() * 1.25 / 46, climb = ease(clamp01((k - 0.35) / 0.65)), x = W() * 0.5, y = H() * (1.55 - 0.42 * climb);
+    flash(ctx, '#ffd070', 0.9 - k * 8);
+    shards(ctx, set, 'Idle4', Math.floor(t * 6) % 15, Math.PI * 0.5, x, y, sc, k * 2.2, 77, {});
+    // Red rim light down one side once formed.
+    if (k > 0.45) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.5 * ease((k - 0.45) * 3); fig(ctx, set, 'Idle4', Math.floor(t * 6) % 15, Math.PI * 0.5, x + 4 * R.dpr, y, sc, { shade: '#ff2a3a' }); ctx.restore(); fig(ctx, set, 'Idle4', Math.floor(t * 6) % 15, Math.PI * 0.5, x, y, sc, { alpha: ease((k - 0.45) * 3) }); }
+    storm(ctx, t + 7, 12, 61, 0.45 - 0.35 * clamp01((k - 0.4) * 3), true);
+    line(ctx, 'One blade can close the wound.', H() * 0.88, (k - 0.55) * 2.5, 22);
+    vignette(ctx, 0.6);
   };
-  S.rise = function (ctx, k, T) {
-    const g = ctx.createLinearGradient(0, 0, 0, H()); g.addColorStop(0, '#1a0408'); g.addColorStop(1, '#4a0c16'); ctx.fillStyle = g; ctx.fillRect(0, 0, W(), H());
-    moonDisc(ctx, W() * 0.5, H() * 0.2, Math.round(H() * 0.18), '#ff4a5a', 1);
-    const gy = Math.round(H() * 0.8); ctx.fillStyle = '#0a0306'; ctx.fillRect(0, gy, W(), H() - gy);
-    ctx.globalAlpha = 0.8; for (let i = 0; i < 7; i++) K().crack(ctx, W() * (0.1 + i * 0.13), gy + 2, Math.PI / 2 + (hash(i, 1) - 0.5), 20, 30 + i, RED, 1); ctx.globalAlpha = 1;
-    const keys = ['ghoul', 'raider', 'archer', 'bone', 'ghast', 'spearman'];
-    keys.forEach((key, i) => {
-      const f = D.FOES[key], x = Math.round(W() * (0.12 + i * 0.155)), rise = ease(k * 1.8 - i * 0.12); if (rise <= 0) return;
-      ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W(), gy + 1); ctx.clip();
-      const y = Math.round(gy + (1 - rise) * 60);
-      A.actor(ctx, f.set, 'Idle4', Math.floor(T * 7 + i) % 15, i % 2 ? Math.PI : 0, x, y, 1.6, { shade: '#000000' });
-      ctx.fillStyle = RED; ctx.fillRect(x + (i % 2 ? -3 : 1), y - 50, 2, 1);
-      ctx.restore();
-    });
-    sub(ctx, 'ITS LIGHT RAISES THE DEAD.', k - 0.2, H() * 0.92);
+  // An extreme close-up: the eye opens red, light cracks out of it, the camera keeps pushing.
+  S.eye = function (ctx, k, t, set) {
+    grade(ctx, '#0a0204', '#000000');
+    const sc = H() / 48 * (1.5 + 0.35 * ease(k)), fr = Math.floor(t * 5) % 15, x0 = W() * 0.5, y0 = H() * 0.42;
+    const e = onFig(set, 'Idle4', fr, Math.PI * 0.5, 0, 0, sc, 0.5, 0.16), x = x0 - e.x, y = y0 - e.y;
+    fig(ctx, set, 'Idle4', fr, Math.PI * 0.5, x + Math.sin(t * 2) * 3 * R.dpr, y, sc, {}); fig(ctx, set, 'Idle4', fr, Math.PI * 0.5, x + Math.sin(t * 2) * 3 * R.dpr, y, sc, { shade: '#1a0004', alpha: 0.55 });
+    const open = ease((k - 0.2) / 0.3);
+    if (open > 0) {
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      A.tex(ctx, 'light_01', x0, y0, W() * 0.45 * open, W() * 0.45 * open, RED, 0.5, 0, true);
+      A.tex(ctx, 'star_06', x0, y0, W() * 0.3 * open, W() * 0.3 * open, '#ffb0b0', 0.55, t * 0.5, true); ctx.restore();
+      ctx.fillStyle = RED; ctx.shadowColor = RED; ctx.shadowBlur = 30 * R.dpr; ctx.fillRect(x0 - 26 * R.dpr * open, y0 - 4 * R.dpr, 52 * R.dpr * open, 8 * R.dpr); ctx.fillStyle = '#ffffff'; ctx.fillRect(x0 - 8 * R.dpr * open, y0 - 1.5 * R.dpr, 16 * R.dpr * open, 3 * R.dpr); ctx.shadowBlur = 0;
+      ctx.strokeStyle = RED; ctx.lineWidth = 3 * R.dpr; ctx.shadowColor = RED; ctx.shadowBlur = 12 * R.dpr;
+      for (let i = 0; i < 8; i++) { let px = x0 + (i % 2 ? 22 : -22) * R.dpr, py = y0 + 6 * R.dpr, a = Math.PI / 2 + (i - 3.5) * 0.3; const L = H() * 0.6 * ease((k - 0.35) / 0.5); ctx.beginPath(); ctx.moveTo(px, py); for (let j = 0; j < 8; j++) { a += (hash(i, j) - 0.5) * 1.0; px += Math.cos(a) * L / 8; py += Math.sin(a) * L / 8; ctx.lineTo(px, py); } ctx.stroke(); }
+      ctx.shadowBlur = 0;
+    }
+    title(ctx, 'CLIMB THE SPIRE', W() / 2, H() * 0.82, 46 * R.k, (k - 0.55) / 0.45, t);
+    line(ctx, 'Six guardians. One night. Close the wound before dawn.', H() * 0.9, (k - 0.7) * 3, 18);
+    if (k > 0.92) flash(ctx, '#ffffff', (k - 0.92) / 0.08);
+    vignette(ctx, 0.7);
   };
-  S.bleed = function (ctx, k, T) {
-    fill(ctx, INK);
-    const mx = W() / 2, my = H() * 0.3, mr = Math.round(H() * 0.2);
-    moonDisc(ctx, mx, my, mr, '#ff3a50', 1);
-    for (let i = 0; i < 9; i++) { const x = Math.round(mx - mr * 0.7 + i * mr * 0.17), len = Math.round((20 + hash(i, 3) * 60) * ease(k * 1.4)); ctx.fillStyle = RED; ctx.fillRect(x, Math.round(my + 4), 1, len); P.disc(ctx, x, my + 4 + len, 1, RED); }
-    if (k > 0.2) K().title(ctx, 'TONIGHT IT BLEEDS OUT', W() / 2, H() * 0.66, 18, (k - 0.2) / 0.8, T);
-    sub(ctx, 'AT DAWN, THE MOON FALLS FOR GOOD.', k - 0.5, H() * 0.82);
-  };
-  S.hero = (ctx, k, T, set) => eyeShot(ctx, set, k, T, RED);
-  S.draw = function (ctx, k, T, set) { drawShot(ctx, set, k, T, RED, 'rgba(120,40,200,0.65)'); sub(ctx, 'ONLY ONE BLADE CAN CLOSE IT.', k - 0.15, H() * 0.9); if (k > 0.94) fill(ctx, '#ffffff', (k - 0.94) / 0.06); };
-  // Up the Spire: the camera tilts from the hero at its foot past a guardian on every ledge to the moon.
-  S.spire = function (ctx, k, T, set) {
-    const tall = H() * 3.2, pan = ease(Math.min(1, k / 0.7)) * (tall - H()), y0 = (wy) => H() - (wy - pan);
-    const g = ctx.createLinearGradient(0, 0, 0, H()); g.addColorStop(0, '#0a0610'); g.addColorStop(1, '#2a0a14'); ctx.fillStyle = g; ctx.fillRect(0, 0, W(), H());
-    for (let i = 0; i < 50; i++) { ctx.fillStyle = `rgba(255,240,240,${0.2 + hash(i, 2) * 0.5})`; ctx.fillRect(Math.round(hash(i, 3) * W()), Math.round(((hash(i, 4) * tall * 0.6 + pan * 0.4) % H())), 1, 1); }
-    moonDisc(ctx, W() / 2, y0(tall + 10), Math.round(H() * 0.3), '#ff3a50', 1);
-    ctx.fillStyle = 'rgba(255,42,68,0.35)'; spireShape(ctx, W() / 2 + 2, y0(0), y0(tall - 30) - 2, W() * 0.42 + 2); ctx.fillStyle = '#1c1020'; spireShape(ctx, W() / 2, y0(0), y0(tall - 30), W() * 0.42);
-    ctx.fillStyle = 'rgba(255,42,68,0.25)'; for (let i = 0; i < 30; i++) { const wy = hash(i, 5) * (tall - 60), w = W() * 0.42 * (1 - wy / tall); ctx.fillRect(Math.round(W() / 2 + (hash(i, 6) - 0.5) * w * 1.4), Math.round(y0(wy)), 2, 3); }
-    // A guardian on each ledge, dark with lit eyes, higher and higher.
+  // Back to the flat red sky: the Spire black against it, a guardian's eyes lit on every ledge.
+  S.spire = function (ctx, k, t, set) {
+    grade(ctx, '#ff2a1e', BLOOD); grade(ctx, 'rgba(0,0,0,0)', 'rgba(30,0,0,0.9)');
+    const push = 1 + 0.1 * ease(k), cx = W() / 2, base = H() * 1.02, top = H() * (0.06 - 0.04 * ease(k)), wB = W() * 0.3 * push;
+    ctx.fillStyle = '#000000'; ctx.beginPath(); ctx.moveTo(cx - wB, base); ctx.lineTo(cx - wB * 0.12, top + 30 * R.dpr); ctx.lineTo(cx, top); ctx.lineTo(cx + wB * 0.12, top + 30 * R.dpr); ctx.lineTo(cx + wB, base); ctx.closePath(); ctx.fill();
     const G = ['warden', 'twinA', 'umbral', 'hunger', 'wing', 'firstCut'];
-    G.forEach((key, i) => { const f = D.FOES[key], wy = tall * (0.12 + i * 0.14), side = i % 2 ? 1 : -1, w = W() * 0.42 * (1 - wy / tall), x = Math.round(W() / 2 + side * w * 0.55), y = Math.round(y0(wy)); if (y < -40 || y > H() + 60) return;
-      ctx.fillStyle = 'rgba(255,42,68,0.5)'; ctx.fillRect(x - 18, y, 36, 1); ctx.fillStyle = '#05030a'; ctx.fillRect(x - 16, y + 1, 32, 3);
-      const gg = ctx.createRadialGradient(x, y - 20, 2, x, y - 20, 34); gg.addColorStop(0, 'rgba(255,60,80,0.35)'); gg.addColorStop(1, 'rgba(255,60,80,0)'); ctx.fillStyle = gg; ctx.fillRect(x - 40, y - 60, 80, 70);
-      A.actor(ctx, f.set, 'Idle4', Math.floor(T * 7 + i) % 15, side > 0 ? Math.PI : 0, x, y, 1.3 / Math.max(1, (f.scale || 1) * 0.8) * (f.scale || 1), { shade: '#000000' });
-      ctx.fillStyle = f.color || RED; ctx.fillRect(x - 1, y - Math.round(40 * (f.scale || 1)), 2, 1); });
-    // The hero at the foot, looking up.
-    A.actor(ctx, set, 'Idle4', Math.floor(T * 7) % 15, -Math.PI / 2, Math.round(W() / 2), Math.round(y0(0) - 4), 1.6, { shade: '#000000' });
-    if (k > 0.72) { const kk = (k - 0.72) / 0.28; fill(ctx, INK, Math.min(0.55, kk)); K().title(ctx, 'VESPER', W() / 2, H() * 0.44, 40, kk, T); if (kk > 0.3) { ctx.save(); ctx.globalAlpha = Math.min(1, (kk - 0.3) * 3); P.text(ctx, 'CLIMB THE SPIRE BEFORE DAWN', W() / 2, H() * 0.62, 8, '#f0e4e8', 'center'); ctx.restore(); } }
+    G.forEach((key, i) => { const f = D.FOES[key], fy = base - (base - top) * (0.14 + i * 0.13), side = i % 2 ? 1 : -1, w = wB * (1 - (base - fy) / (base - top)), fx = cx + side * (w + 26 * R.dpr), sc = H() / 52 * 0.42 * Math.min(1.3, f.scale || 1);
+      ctx.fillStyle = '#000'; ctx.fillRect(fx - 40 * R.dpr, fy, 80 * R.dpr, 6 * R.dpr);
+      fig(ctx, f.set, 'Idle4', Math.floor(t * 7 + i) % 15, side > 0 ? Math.PI * 0.8 : Math.PI * 0.2, fx, fy, sc, { shade: '#000000' });
+      const lit = clamp01((k - 0.08 - i * 0.07) * 5); if (lit > 0) { const e = onFig(f.set, 'Idle4', 0, side > 0 ? Math.PI * 0.8 : Math.PI * 0.2, fx, fy, sc, 0.5, 0.14); ctx.save(); ctx.globalAlpha = lit; ctx.fillStyle = '#ffffff'; ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 14 * R.dpr; ctx.fillRect(e.x - 8 * R.dpr, e.y, 16 * R.dpr, 3 * R.dpr); ctx.restore(); } });
+    // The hero at the foot, small, looking up.
+    fig(ctx, set, 'Idle4', Math.floor(t * 7) % 15, -Math.PI / 2, cx, H() * 0.97, H() / 52 * 0.6, { shade: '#000000' });
+    if (k > 0.52) { const kk = (k - 0.52) / 0.48; flash(ctx, '#ffffff', 1 - kk * 8); flash(ctx, '#000000', Math.min(0.45, kk)); title(ctx, 'VESPER', W() / 2, H() * 0.44, 150 * R.k, kk, t); line(ctx, 'A LAST DITCH EFFORT', H() * 0.58, (kk - 0.25) * 3, 20); }
+    vignette(ctx, 0.5);
   };
 
-  // Draw the opening at time t onto the pixel buffer's context.
+  // Draw the opening at time t, at full resolution.
   O.draw = function (ctx, t, heroSet) {
-    const b = BEATS.find((x) => t < x[2]) || BEATS[BEATS.length - 1], k = Math.max(0, Math.min(1, (t - b[1]) / (b[2] - b[1])));
-    ctx.save(); S[b[0]](ctx, k, t, heroSet); ctx.restore();
-    // Letterbox.
-    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W(), 12); ctx.fillRect(0, H() - 12, W(), 12);
+    const b = BEATS.find((x) => t < x[2]) || BEATS[BEATS.length - 1], k = clamp01((t - b[1]) / (b[2] - b[1]));
+    ctx.save(); ctx.imageSmoothingEnabled = false; S[b[0]](ctx, k, t, heroSet); ctx.restore();
+    grain(ctx, t); bars(ctx, 1);
   };
 })();

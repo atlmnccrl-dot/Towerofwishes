@@ -228,10 +228,7 @@
     const sh = sc.def.shots[Math.min(sc.i, sc.def.shots.length - 1)]; if (!sh) return;
     const k = Math.min(1, sc.t / durOf(sh));
     if (sh.k === 'anime') {
-      const PX = VS.PX, c = PX.ctx; PX.fit(R.W / R.H); c.setTransform(1, 0, 0, 1, 0, 0); c.globalAlpha = 1; c.clearRect(0, 0, PX.W, PX.H);
-      VS.OPEN.draw(c, sc.t, (sp('hero') || {}).set || 'gothic_knight_b');
-      const sx = PX.shake > 0 ? (Math.random() - 0.5) * PX.shake * R.H / PX.H * 0.5 : 0, sy = PX.shake > 0 ? (Math.random() - 0.5) * PX.shake * R.H / PX.H * 0.5 : 0; PX.shake = Math.max(0, PX.shake - 1);
-      ctx.save(); ctx.imageSmoothingEnabled = false; ctx.drawImage(PX.buf, 0, 0, PX.W, PX.H, sx, sy, R.W, R.H); ctx.restore();
+      VS.OPEN.draw(ctx, sc.t, (sp('hero') || {}).set || 'gothic_knight_b');
       if (sc.t > 0.6) R.label(ctx, 'CLICK TO SKIP AHEAD  ·  ESC SKIPS', R.W - 18 * R.k, 16 * R.k, 9 * R.k, 'rgba(220,210,214,0.4)', 'right', 2, 500);
       return;
     }
