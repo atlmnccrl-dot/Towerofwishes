@@ -388,3 +388,27 @@ The prologue plays as filmed scenes (js/render/cinema.js): `p.lore` → `p.roof`
   a fire (`p.legend`, with the storyteller's line) was cut by the author on 2026-10-23: the player has
   just seen the climb and the Reset, so THE RESET card leads straight to "150 years later".
 
+
+## 20. Hero portraits and combat cut-ins (built 2026-11-07, Proposals: the author approves each)
+
+The author asked for anime art in the game (2026-11-07: "do all, add combat too"). All of it is
+Proposal art, drawn in code by `tools/portraits/` and `tools/make_pixfx.py`, and replaceable.
+
+- **Bust portraits** of the six heroes (Kael, Eiryn, Eloryn, Braxen, Aerys, Nox), each from their
+  delivered Character Creator set (hair and outfit colours) and the cast list (eyes, build, details:
+  Kael's left shoulder plate, Braxen's altered right arm, Eiryn's side braids, high collar and green
+  ornament). Two expressions: *calm* and a *battle cry*. `assets/portraits/<hero>_<expr>.webp`,
+  768 px, facing right; loaded by `js/portraits.js`. Eiryn's road and mage forms share hers; frost
+  Braxen uses Braxen's (no frost scars yet).
+- **Where they show:** the fight HUD chips (the face, in place of the pixel head); the face-off
+  card (a slanted panel above the hero's name). The VS screen also uses them, but it is off
+  (`D.vs = 0` since Chapter Twelve).
+- **Combat cut-ins** (Settings → Hero cut-ins, on by default): while a hero's heavy art gathers, their
+  battle cry slams across the screen with the art's name; on **All Out** every standing hero's battle
+  cry drops in as a slanted slice under the ALL OUT banner. This reverses the earlier call that heavy
+  arts show no faces (§7c's eye cut-ins stay off) — the author approved it on 2026-11-07; the toggle
+  turns it off.
+- **Calamity's area attacks as pixel art** (`assets/fx/tow.json`): the Skyfire and Moving Ocean
+  warning marks (loop) with a fill that grows over the wind-up, the knot of flame / slab of water
+  gathering overhead, and their impacts (the meteor and burst; the slab and the splash crown).
+  They replace the vector marks and impacts whenever the pixel cast is on.

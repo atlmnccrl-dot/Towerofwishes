@@ -70,8 +70,8 @@ The body uses a creator clip; the **effect** is the art needed.
 | Warlord throw | the Warlord | dust burst where Kael hits the wall; 8 frames |
 | Fragment blink | the Fragments | a pale-blue break-up and re-form; 6 frames each |
 | Fragment dissolve | Fragments, Kharuun | shatter into pale-blue light motes; 10 frames |
-| Skyfire mark + impact | Calamity, the Reset | a red warning circle on the floor (loop 4) and a fire burst (10) |
-| Moving Ocean mark + impact | Calamity | a blue warning circle (loop 4) and a water slam (10) |
+| Skyfire mark + impact | Calamity, the Reset | a red warning circle on the floor (loop 4) and a fire burst (10). **Done for Calamity** (2026-11-07, `tools/make_pixfx.py`: mark, fill, gathering knot, meteor and burst) |
+| Moving Ocean mark + impact | Calamity | a blue warning circle (loop 4) and a water slam (10). **Done** (2026-11-07, `tools/make_pixfx.py`: mark, fill, slab overhead, slam and splash crown) |
 | Frost | frost assassin, ice gear | ice crystals forming and shattering; 8 + 6 |
 | Shadow Step | Nox | a puff of black smoke at both ends; 6 frames |
 

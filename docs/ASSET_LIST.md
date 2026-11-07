@@ -182,7 +182,7 @@ Every rig uses these sets. The extra animations for each character are listed in
 | Logo / wordmark (light and dark) | SVG | P1 |
 | Title-screen key art (or a moving title scene, as now) | PNG 2560×1440 | P1 |
 | HUD icons: crown (host), ATTACK, SPECIAL, ALL OUT badge, withdraw flag, pause, speed, follow | SVG | P1 |
-| Character portraits for the HUD cards and the subtitle name plate, every playable and named character | PNG 512×512 | P1 |
+| Character portraits for the HUD cards and the subtitle name plate, every playable and named character (the six heroes have Proposal busts since 2026-11-07: `assets/portraits/`, calm + battle cry, 768 px WebP) | PNG 512×512 | P1 |
 | Item icons (final equipment roster pending; 39 are drawn in code now) | SVG | P1 |
 | Coin / money icon; shop UI frame | SVG | P1 |
 | Spirit-tree skill icons, one per skill | SVG | P2 |

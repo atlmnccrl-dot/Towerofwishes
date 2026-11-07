@@ -119,6 +119,8 @@ Read first: [docs/DESIGN.md](docs/DESIGN.md), [docs/STORY.md](docs/STORY.md),
 | `js/render/director.js` | Camera cuts, slow motion, cut-in panels during fights |
 | `js/grade.js` | Fight ranks S–D from a finished match. Pure |
 | `js/sprites.js`, `assets/pixel/`, `art_source/` | Sprite characters: the pixel cast (which set draws which character, clip mapping, hit frames), packed atlases, the creator's source sheets; `tools/pack_pixel.py` repacks (docs/SPRITES.md) |
+| `js/portraits.js`, `assets/portraits/`, `tools/portraits/` | The heroes' anime bust portraits (Proposal art, 2026-11-07): calm for the HUD chips and the face-off card, battle cry for the combat cut-ins (heavy arts, All Out; Settings → Hero cut-ins). `NODE_PATH=$(npm root -g) python3 tools/portraits/make.py` redraws them |
+| `tools/make_pixfx.py`, `assets/fx/tow.json` | The game's own pixel effects (Calamity's Skyfire and Moving Ocean marks, overhead gathers and impacts), loaded by `js/render/pixelfx.js` beside the packed effects |
 | `js/render/spirit.js`, `js/render/itemart.js` | The spirit-tree skill screen; drawn icons for every item |
 | `js/progress.js` | Injuries after story fights (no hearts): pure functions |
 | `js/story.js` | Story campaign: chapter graph, side episodes, choices, team experience. Pure data + functions |
