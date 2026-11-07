@@ -51,6 +51,7 @@
     demolish(d) { const b = st().buildings[d.id]; if (!b) return; if (!t2confirm('demolish' + d.id)) { U.toast('Tap again to ' + (b.state === 'site' ? 'cancel' : 'tear down') + ' it.', 'warn'); return; } const r = G().cmd('cancel', { id: d.id }); if (r.ok) U.select(null); },
     selUnit(d) { U.closeModal(); U.select({ uid: d.id }); G().focus(st().units[d.id]); },
     follow(d) { G().follow(d.id); },
+    trade(d) { G().cmd('trade', { i: +d.i }); U.refreshPanel(true); },
     tower(d) { const r = G().cmd('post', { id: d.id, bid: d.bid }); if (r.ok) { U.toast('Posted to the tower.', 'good'); U.refreshPanel(true); } },
     craft(d) { const r = G().cmd('craft', { item: d.item }); if (r.ok) U.openResearch('craft'); },
     tech(d) { const r = G().cmd('research', { id: d.id }); if (r.ok) U.openResearch('research'); },
@@ -196,9 +197,9 @@
     if (!U.sel) { p.className = 'hidden'; panelKey = ''; return; }
     if (U.sel.uid) {
       const u = s.units[U.sel.uid]; if (!u || u.dead || u.away) { U.sel = null; p.className = 'hidden'; return; }
-      const key = 'u' + u.id + u.job + u.gear.w + u.gear.a + (u.injury ? u.injury.name : '') + taskText(s, u) + Math.round(u.hp / 5) + Math.round(u.morale / 5) + (u.downed > 0) + JSON.stringify(u.skills);
+      const key = 'u' + u.id + (u.side === 'n' ? JSON.stringify(s.trader) + Math.floor(s.res.food) + Math.floor(s.res.wood) + Math.floor(s.res.metal) + Math.floor(s.res.stone) : '') + u.job + (u.gear ? u.gear.w + u.gear.a : '') + (u.injury ? u.injury.name : '') + taskText(s, u) + Math.round(u.hp / 5) + Math.round(u.morale / 5) + (u.downed > 0) + JSON.stringify(u.skills);
       if (!force && key === panelKey) return; panelKey = key;
-      p.className = 'panel'; p.innerHTML = u.side === 's' ? survivorHTML(s, u) : u.side === 'e' ? foeHTML(u) : animalHTML(u);
+      p.className = 'panel'; p.innerHTML = u.side === 's' ? survivorHTML(s, u) : u.side === 'e' ? foeHTML(u) : u.side === 'n' ? traderHTML(s, u) : animalHTML(u);
       const pc = p.querySelector('canvas.portrait'); if (pc && u.set) { const c = A.portrait(u.set, 48); if (c) pc.getContext('2d').drawImage(c, 0, 0); }
     } else if (U.sel.bid) {
       const b = s.buildings[U.sel.bid]; if (!b) { U.sel = null; p.className = 'hidden'; return; }
@@ -230,16 +231,21 @@
     const tr = D.TRAITS[u.trait];
     const skills = D.SKILLS.map(k => '<div class="sk"><span>' + D.SKILL_NAME[k] + '</span><i><b style="width:' + Math.min(100, u.skills[k] * 8.3) + '%"></b></i><em>' + u.skills[k] + '</em></div>').join('');
     const W = D.WEAPON[u.gear.w], Ar = D.ARMOR[u.gear.a];
-    const towers = Object.values(s.buildings).filter(b => b.type === 'tower' && b.state === 'done');
+    const towers = Object.values(s.buildings).filter(b => D.B[b.type].slots && b.state === 'done');
     return '<div class="ph"><canvas class="portrait" width="48" height="48"></canvas><div><b class="nm">' + esc(u.name) + '</b><div class="sub">Lv ' + u.level + ' · <span class="trait" title="' + esc(tr.desc) + '">' + tr.name + '</span>' + (u.leader ? ' · founder' : '') + '</div><div class="sub status">' + taskText(s, u) + '</div></div><button class="x" data-act="close" onclick="HF.U.select(null)">' + ic('x', 16) + '</button></div>' +
       barHTML(u.hp / u.maxHp, u.hp / u.maxHp > 0.5 ? '#5fbf5f' : '#d8a040', 'Health ' + Math.ceil(u.hp)) + barHTML(u.morale / 100, '#d9b85a', 'Morale ' + Math.round(u.morale)) +
       (u.injury ? '<div class="inj">' + ic('potion', 14) + esc(u.injury.name) + ' · ' + Math.ceil(u.injury.t) + 'h</div>' : '') +
       '<div class="row"><button class="pill" data-act="jobPick" data-id="' + u.id + '">' + ic(D.JOBS[u.job].icon, 16) + D.JOBS[u.job].name + '</button>' +
       '<button class="pill" data-act="gearPick" data-id="' + u.id + '">' + ic(W.ranged ? 'bow' : u.gear.w === 'sword' ? 'sword' : u.gear.w === 'none' ? 'swords' : 'spear', 16) + W.name + ' · ' + Ar.name + '</button></div>' +
-      (u.job === 'guard' && towers.length ? '<div class="row">' + towers.map(b => '<button class="pill small" data-act="tower" data-id="' + u.id + '" data-bid="' + b.id + '">' + ic('tower', 14) + 'Post: ' + D.B.tower.name[b.tier] + '</button>').join('') + '</div>' : '') +
+      (u.job === 'guard' && towers.length ? '<div class="row">' + towers.map(b => '<button class="pill small" data-act="tower" data-id="' + u.id + '" data-bid="' + b.id + '">' + ic('tower', 14) + 'Post: ' + D.B[b.type].name[b.tier] + '</button>').join('') + '</div>' : '') +
       '<details><summary>Skills · joined day ' + u.joined + (u.kills ? ' · ' + u.kills + ' kills' : '') + '</summary>' + skills + '<p class="bio">' + esc(u.name.split(' ')[0]) + ' ' + esc(u.origin) + '.</p></details>';
   }
   function foeHTML(u) { const F = D.FOE[u.kind]; return '<div class="ph"><div><b class="nm foe">' + F.name + '</b><div class="sub">' + { beast: 'A night predator', raider: 'Ash Raiders', hollow: 'The Hollow' }[F.faction] + '</div></div><button class="x" onclick="HF.U.select(null)">' + ic('x', 16) + '</button></div>' + barHTML(u.hp / u.maxHp, '#d04838', Math.ceil(u.hp) + ' / ' + u.maxHp) + '<div class="sub">Select a survivor, then tap this foe to attack it.</div>'; }
+  function traderHTML(s, u) {
+    const T = s.trader; const offers = T ? T.offers.map((o, i) => { const d = D.TRADES[o.i]; const get = d.get.recruit ? ic('people', 14) + (d.label || 'A hand') : d.get.item ? ic(d.get.item === 'bow' ? 'bow' : 'shield', 14) + (D.WEAPON[d.get.item] || D.ARMOR[d.get.item]).name : costHTML(d.get);
+      return '<button class="btn ' + (o.used ? 'off' : S.canAfford(s, d.give) ? 'gold' : 'off') + '" data-act="trade" data-i="' + i + '" data-why="' + (o.used ? 'Done' : 'You cannot afford that') + '">' + costHTML(d.give, s.res) + ' &rarr; ' + get + (o.used ? ' · done' : '') + '</button>'; }).join('') : '';
+    return '<div class="ph"><canvas class="portrait" width="48" height="48"></canvas><div><b class="nm">Travelling Trader</b><div class="sub">' + (u.arrived ? 'Trading until dusk.' : 'On the way to the fire.') + '</div></div><button class="x" onclick="HF.U.select(null)">' + ic('x', 16) + '</button></div><div class="row" style="flex-direction:column;align-items:stretch">' + offers + '</div>';
+  }
   function animalHTML(u) { return '<div class="ph"><div><b class="nm">' + (u.kind === 'deer' ? 'Deer' : 'Hare') + '</b><div class="sub">Game. Foragers hunt it for food.</div></div><button class="x" onclick="HF.U.select(null)">' + ic('x', 16) + '</button></div>'; }
   function buildingHTML(s, b) {
     const B = D.B[b.type]; const name = B.name[b.tier];
@@ -250,7 +256,7 @@
       if (B.beds) { const n = S.survivors(s).filter(u => u.home === b.id).length; info += '<div class="sub">' + ic('house', 14) + n + ' / ' + B.beds[b.tier] + ' beds</div>'; }
       if (B.store) info += '<div class="sub">' + ic('chest', 14) + '+' + B.store[b.tier] + ' storage (total ' + S.capacity(s) + ')</div>';
       if (b.crop) info += '<div class="sub">' + ic('wheat', 14) + ({ fallow: 'Waiting to be sown', growing: 'Growing · ' + pct(b.crop.g), ripe: 'Ripe! Ready to harvest' })[b.crop.stage] + (S.present(s).some(u => u.job === 'farm') ? '' : ' · no farmers') + '</div>';
-      if (b.type === 'tower') { const g = S.present(s).filter(u => u.post === b.id); info += '<div class="sub">' + ic('shield', 14) + 'Guards: ' + (g.map(u => esc(u.name.split(' ')[0])).join(', ') || 'none') + ' / ' + B.slots[b.tier] + '</div>'; }
+      if (B.slots) { const g = S.present(s).filter(u => u.post === b.id); info += '<div class="sub">' + ic('shield', 14) + 'Guards: ' + (g.map(u => esc(u.name.split(' ')[0])).join(', ') || 'none') + ' / ' + B.slots[b.tier] + '</div>'; }
       if (b.type === 'workshop') info += '<div class="sub">' + ic('anvil', 14) + 'Queue: ' + (s.craftQ.map(q => (D.WEAPON[q.item] || D.ARMOR[q.item]).name).join(', ') || 'empty') + (S.present(s).some(u => u.job === 'craft') ? '' : ' · no crafters') + '</div>';
       if (b.type === 'study') info += '<div class="sub">' + ic('book', 14) + Math.floor(s.res.knowledge) + ' Knowledge' + (S.present(s).some(u => u.job === 'research') ? '' : ' · no scholars') + '</div>';
       if (b.type === 'infirmary') info += '<div class="sub">' + ic('potion', 14) + 'Patients: ' + S.present(s).filter(u => u.inside === b.id).length + (S.present(s).some(u => u.job === 'medic') ? '' : ' · no medic') + '</div>';

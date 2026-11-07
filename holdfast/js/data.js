@@ -82,7 +82,22 @@
       name: ['Lookout', 'Watchtower'], w: 3, h: 3, cat: 'defense', cost: [{ wood: 30, stone: 6 }, { wood: 30, stone: 80 }], work: [16, 40],
       hp: [220, 800], era: [1, 2], tech: [null, 'masonry'], range: [7, 10], slots: [1, 2], reveal: [12, 16],
       desc: ['A raised platform. A guard here shoots farther and sees raiders coming.', 'Stone tower for two archers. Long range.'],
-      parts: [[['p', 'lookout', 0, 2, 1]], [['t', 'temple', 0, 4, 0.66]]],
+      parts: [[['p', 'lookout', 0, 2, 1]], [['t', 'temple', 0, 4, 0.66]]], platform: [92, 100],
+    },
+    ballista: {
+      name: ['Ballista Tower'], w: 2, h: 2, cat: 'defense', cost: [{ stone: 60, wood: 40, metal: 20 }], work: [34], hp: [700], era: [3], tech: ['metalwork'],
+      range: [11], slots: [1], reveal: [12], heavy: true, platform: [62],
+      desc: ['A great crossbow on a stone platform. One guard; slow, huge bolts that hit hard.'],
+      parts: [[['t', 'cdw_wall_face_stone', -16, 0, 1], ['t', 'cdw_wall_face_stone', 16, 0, 1], ['t', 'cdw_wall_top_stone', -16, -32, 1], ['t', 'cdw_wall_top_stone', 16, -32, 1], ['x', 'ballista', 2, -40, 1.5]]],
+    },
+    fountain: {
+      name: ['Fountain Square'], w: 4, h: 3, cat: 'core', cost: [{ stone: 90, wood: 20 }], work: [30], hp: [500], era: [3], morale: 8,
+      desc: ['Paving and a fountain at the heart of the village. +8 morale for everyone.'], parts: [[['t', 'fountain', 0, 6, 1]]],
+    },
+    market: {
+      name: ['Market'], w: 4, h: 2, cat: 'work', cost: [{ wood: 60, stone: 30, metal: 8 }], work: [26], hp: [260], era: [3],
+      desc: ['Stalls for traders. Caravans come every two days with an extra offer.'],
+      parts: [[['t', 'fv_market_stall_red', -34, 2, 2], ['t', 'fv_market_stall_blue', 32, 2, 2], ['t', 'barrel', 0, 10, 1]]],
     },
     workshop: {
       name: ['Workshop', 'Smithy'], w: 3, h: 2, cat: 'work', cost: [{ wood: 30, stone: 10 }, { wood: 40, stone: 40, metal: 10 }], work: [14, 30],
@@ -110,7 +125,7 @@
       parts: [[['t', 'cd_war_tent_red', -30, -8, 2], ['x', 'war_tent_blue', 30, -8, 2], ['t', 'cd_weapon_rack', 0, 10, 1.5], ['x', 'flag_red', -58, 10, 1.5], ['x', 'flag_blue', 58, 10, 1.5]]],
     },
   };
-  D.BUILD_ORDER = ['heart', 'tent', 'stockpile', 'water', 'woodcamp', 'quarry', 'wall', 'gate', 'tower', 'workshop', 'cabin', 'farm', 'infirmary', 'training', 'study', 'barracks'];
+  D.BUILD_ORDER = ['heart', 'tent', 'stockpile', 'water', 'woodcamp', 'quarry', 'wall', 'gate', 'tower', 'workshop', 'cabin', 'farm', 'infirmary', 'training', 'study', 'barracks', 'fountain', 'market', 'ballista'];
   D.CATS = [['core', 'Camp'], ['home', 'Homes'], ['work', 'Work'], ['defense', 'Defense']];
 
   // ---- Eras ---------------------------------------------------------------------------
@@ -132,6 +147,13 @@
     drill: { name: 'Drill & Discipline', cost: 35, era: 2, req: ['bowcraft'], desc: 'Barracks. Soldiers learn faster.' },
     metalwork: { name: 'Metalworking', cost: 45, era: 2, req: ['masonry'], relic: 'schematics', desc: 'Smithy, swords, mail, iron gates. Needs Old World Schematics.' },
   };
+  // Trader offers (give -> get). get.recruit hires a hand; get.item adds gear to the armoury.
+  D.TRADES = [
+    { give: { food: 20 }, get: { metal: 8 } }, { give: { wood: 40 }, get: { food: 20 } }, { give: { stone: 30 }, get: { knowledge: 10 } },
+    { give: { metal: 10 }, get: { food: 35 } }, { give: { food: 15 }, get: { water: 25 } }, { give: { wood: 30 }, get: { stone: 30 } },
+    { give: { food: 40 }, get: { recruit: 1 }, label: 'A hired hand joins' }, { give: { metal: 12 }, get: { item: 'bow' } }, { give: { food: 25 }, get: { item: 'hide' } },
+    { give: { stone: 40 }, get: { metal: 10 } }, { give: { water: 30 }, get: { wood: 30 } },
+  ];
   D.TECH_ORDER = ['masonry', 'bowcraft', 'herbalism', 'agriculture', 'watchfires', 'roads', 'drill', 'metalwork'];
 
   D.RELICS = {

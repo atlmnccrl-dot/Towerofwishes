@@ -68,6 +68,15 @@ require('fs').mkdirSync(out, { recursive: true });
   await page.waitForTimeout(3500); await shot('era-cinematic');
   await page.waitForTimeout(4000); await shot('era-cinematic2');
   await ev(() => { HF.debug.C.skip(); HF.R.cam.z = 1.2; }); await page.waitForTimeout(1200); await shot('longhall');
+  // Village buildings and a trader.
+  await ev(() => { const { G, S } = HF.debug; const st = G.st; st.techs.metalwork = true; const h = S.heart(st);
+    const place = (t) => { for (let r = 3; r < 16; r++) for (let k = 0; k < 24; k++) { const a = k / 24 * Math.PI * 2; const x = h.x + 2 + Math.round(Math.cos(a) * r), y = h.y + 1 + Math.round(Math.sin(a) * r); if (S.canPlace(st, t, x, y)) { S.addBuilding(st, t, x, y, 0, true); return; } } };
+    place('fountain'); place('market'); place('ballista'); st.hours = 24 * 10 + 11; st.lastTrader = 0; S.spawnTrader(st);
+    const tr = Object.values(st.units).find(u => u.side === 'n'); const c = S.heart(st); tr.x = (c.x + 7) * 32; tr.y = (c.y + c.h) * 32; tr.arrived = true;
+    HF.debug.C.queue.length = 0; HF.debug.C.skip(); HF.debug.U.select({ uid: tr.id }); HF.R.cam.x = tr.x; HF.R.cam.y = tr.y - 40; HF.R.cam.z = 1.4; });
+  await page.waitForTimeout(800); await shot('trader');
+  await ev(() => { const { G, S } = HF.debug; HF.debug.U.select(null); const b = Object.values(G.st.buildings).find(b => b.type === 'ballista') || S.heart(G.st); HF.R.cam.x = (b.x + 1) * 32; HF.R.cam.y = (b.y + 1) * 32; HF.R.cam.z = 1.1; });
+  await page.waitForTimeout(600); await shot('village');
   const perf = await ev(async () => { const t0 = performance.now(); let n = 0; await new Promise(r => { const f = () => { n++; if (performance.now() - t0 < 2000) requestAnimationFrame(f); else r(); }; requestAnimationFrame(f); }); return Math.round(n / 2); });
   console.log('fps (headless, software):', perf);
   const st = await ev(() => { const { G, S } = HF.debug; return { pop: S.survivors(G.st).length, era: G.st.era, foes: S.foes(G.st).length, deaths: G.st.stats.deaths }; });

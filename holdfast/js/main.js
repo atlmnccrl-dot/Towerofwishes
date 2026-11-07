@@ -134,7 +134,12 @@
   }
 
   // ---- Loop ------------------------------------------------------------------------------------
+  let errShown = 0;
   function frame(t) {
+    requestAnimationFrame(frame);
+    try { tick(t); } catch (e) { console.error(e); if (errShown++ < 1 && U.toast) U.toast('Something went wrong: ' + e.message, 'bad'); }
+  }
+  function tick(t) {
     const dt = Math.min(0.05, (t - lastT) / 1000 || 0.016); lastT = t;
     if (G.mode === 'title' && G.demo) {
       const d = G.demo; R.cam.x += dt * 9; if (R.cam.x > (d.clearing.x + 14) * TS) R.cam.x = (d.clearing.x - 14) * TS;
@@ -157,7 +162,6 @@
       uiT -= dt; if (uiT <= 0) { uiT = 0.15; U.update(); audioState(st); }
       saveT += dt; if (saveT > 90) { saveT = 0; save(false); }
     }
-    requestAnimationFrame(frame);
   }
   function audioState(st) {
     const h = S.heart(st); let fire = 0;

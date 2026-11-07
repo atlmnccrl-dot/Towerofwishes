@@ -27,7 +27,8 @@ require('fs').mkdirSync(out, { recursive: true });
     // Tap a tree.
     const t = await ev(() => { const st = HF.debug.G.st; for (const id in st.units) if (st.units[id].side === 'a') delete st.units[id]; const n = Object.values(st.nodes).filter(n => n.type === 'tree').sort((a, b) => Math.hypot(a.x - st.clearing.x, a.y - st.clearing.y) - Math.hypot(b.x - st.clearing.x, b.y - st.clearing.y))[0]; HF.R.cam.x = (n.x + 0.5) * 32; HF.R.cam.y = (n.y + 0.5) * 32; return HF.R.w2s((n.x + 0.5) * 32, (n.y + 1) * 32 - 8); });
     await page.waitForTimeout(200); await page.touchscreen.tap(t.x, t.y); await page.waitForTimeout(400);
-    check(await ev(() => { const u = HF.debug.S.present(HF.debug.G.st)[0]; return u.task && u.task.t === 'gather'; }), name + ': touch tap on a tree orders gathering');
+    const tk = await ev(([x, y]) => { const u = HF.debug.S.present(HF.debug.G.st)[0]; const pk = HF.debug.pickAt(x, y); return { task: u.task && u.task.t, pick: pk.unit ? 'unit ' + pk.unit.side : pk.node ? 'node ' + pk.node.type : pk.b ? 'b' : 'ground', sel: HF.debug.U.sel, cine: HF.debug.C.busy(), open: HF.debug.U.open, mode: HF.debug.U.mode }; }, [t.x, t.y]);
+    check(tk.task === 'gather', name + ': touch tap on a tree orders gathering ' + JSON.stringify(tk));
     await ev(() => { const { G, S } = HF.debug; for (let k = 0; k < 2400 && G.st.res.wood < 12; k++) S.step(G.st, 0.05); });
     await ev(() => { const { G, S } = HF.debug; G.st.res.stone = 8; for (let k = 0; k < 40; k++) S.step(G.st, 0.05); });
     await page.waitForTimeout(400);
@@ -54,7 +55,8 @@ require('fs').mkdirSync(out, { recursive: true });
     const top = await page.$eval('#top', el => { const r = el.getBoundingClientRect(); return { right: r.right, w: window.innerWidth, sw: el.scrollWidth, cw: el.clientWidth }; });
     check(top.right <= top.w + 1, name + ': top bar fits');
     // Save, reload, continue.
-    const before = await ev(() => { const { G, S } = HF.debug; G.save(false); return { day: S.day(G.st), wood: Math.round(G.st.res.wood), b: Object.keys(G.st.buildings).length, obj: G.st.obj }; });
+    await drain();
+    const before = await ev(() => { const { G, S } = HF.debug; G.setSpeed(0); G.save(false); return { day: S.day(G.st), wood: Math.round(G.st.res.wood), b: Object.keys(G.st.buildings).length, obj: G.st.obj }; });
     await page.reload(); await page.waitForFunction(() => document.getElementById('loading').style.display === 'none', null, { timeout: 30000 });
     await page.waitForTimeout(400);
     check(await page.$eval('#t-continue', el => el.style.display !== 'none'), name + ': Continue offered after reload');

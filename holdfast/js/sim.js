@@ -24,7 +24,7 @@
       exps: [], sites: D.SITES.map(s => ({ id: s.id, type: s.type, dist: s.dist, dir: s.dir, known: !!s.known, visits: 0, cleared: false })),
       pending: [], log: [], stats: { raids: 0, deaths: 0, built: 0, recruited: 1, expeditions: 0, kills: 0, daysSurvived: 0 },
       flags: {}, weather: { rain: false, until: 0 }, mill: 0, graves: [], deco: [],
-      gameOver: false, lastDay: 1, victory: 0, morale: { death: 0, win: 0 },
+      gameOver: false, lastDay: 1, victory: 0, morale: { death: 0, win: 0 }, trader: null, lastTrader: 0,
     };
     for (const n of gen.nodes) st.nodes[n.id] = n;
     st.decoBlock = Array.from(gen.decoBlock);
@@ -355,12 +355,27 @@
       return { ok: true };
     },
     post(st, a) { // assign a guard to a tower
-      const u = st.units[a.id], b = st.buildings[a.bid]; if (!u || !b || b.type !== 'tower') return fail('No');
+      const u = st.units[a.id], b = st.buildings[a.bid]; if (!u || !b || !D.B[b.type].slots || b.state !== 'done') return fail('No');
       const used = S.present(st).filter(x => x.post === b.id).length;
-      if (used >= D.B.tower.slots[b.tier]) return fail('The tower is full');
+      if (used >= D.B[b.type].slots[b.tier]) return fail('The tower is full');
       u.job = 'guard'; u.post = b.id; u.task = null; return { ok: true };
     },
     expedition(st, a) { return startExpedition(st, a.site, a.ids, a.food); },
+    trade(st, a) {
+      const T = st.trader; if (!T) return fail('No trader here');
+      const o = T.offers[a.i]; if (!o || o.used) return fail('That deal is done');
+      const deal = D.TRADES[o.i];
+      if (!S.canAfford(st, deal.give)) return fail('You cannot afford that');
+      pay(st, deal.give); o.used = true;
+      const tu = st.units[T.uid];
+      for (const k in deal.get) {
+        if (k === 'recruit') { const nu = makeSurvivor(st, { x: tu ? tu.x : ctr(st.camp.x), y: tu ? tu.y : ctr(st.camp.y) }); assignHome(st, nu); st.stats.recruited++; note(st, nu.name + ' signs on with the camp.', 'good'); }
+        else if (k === 'item') { st.items[deal.get.item] = (st.items[deal.get.item] || 0) + 1; autoEquip(st, deal.get.item); }
+        else { st.res[k] += deal.get[k]; }
+      }
+      clampRes(st); ev(st, { type: 'sfx', s: 'coins' });
+      return { ok: true };
+    },
     choose(st, a) { return choosePending(st, a.choice); },
     speed(st, a) { st.speed = a.v; return { ok: true }; },
   };
@@ -455,6 +470,7 @@
       u.at += dt; if (u.hurtT > 0) u.hurtT -= dt;
       if (u.side === 's') survivorStep(st, u, dt);
       else if (u.side === 'e') foeStep(st, u, dt);
+      else if (u.side === 'n') traderStep(st, u, dt);
       else animalStep(st, u, dt);
     }
     separate(st);
@@ -499,6 +515,7 @@
       }
     }
     if (st.threat.raids === 0 && !st.threat.raid && !st.threat.active && day >= 3 && st.obj >= 6) planRaid(st, day + 1, 18, true);
+    if (!st.trader && day >= 5 && day - st.lastTrader >= (S.has(st, 'market') ? 2 : 4) && S.heart(st) && !st.threat.active) spawnTrader(st);
     // Raids: after the first, every 3 days or so, growing.
     if (st.threat.raids >= 1 && !st.threat.raid && day >= 4) {
       const gap = rnd(st) < 0.5 ? 2 : 3;
@@ -583,6 +600,30 @@
     return out;
   }
   S.spawnWave = spawnWave;
+  function spawnTrader(st) {
+    const p = edgePoint(st, rnd(st) * Math.PI * 2, 8); if (!p) return;
+    const u = { id: nid(st, 'n'), side: 'n', set: 'erdra_vendor', name: 'Travelling Trader', x: p.x, y: p.y, dir: 0, hp: 60, maxHp: 60, anim: 'idle', at: 0, path: null, task: { t: 'approach' } };
+    st.units[u.id] = u;
+    const pool = D.TRADES.map((o, i) => i); const offers = [];
+    const n = 3 + (S.has(st, 'market') ? 1 : 0);
+    while (offers.length < n && pool.length) { const i = pool.splice(Math.floor(rnd(st) * pool.length), 1)[0]; offers.push({ i, used: false }); }
+    st.trader = { uid: u.id, offers }; st.lastTrader = S.day(st); st.stats.traders = (st.stats.traders || 0) + 1;
+    note(st, 'A trader\'s cart is coming up the track.', 'info'); ev(st, { type: 'cine', id: 'stranger', uid: u.id });
+  }
+  S.spawnTrader = spawnTrader;
+  function traderStep(st, u, dt) {
+    const h = S.heart(st); const hr = S.hour(st);
+    if (u.task.t === 'approach') {
+      const c = h ? { x: h.x + 6, y: h.y + h.h } : (st.camp || st.clearing);
+      const r = goTo(st, u, rectT(c.x, c.y, true, true), dt);
+      if (r !== 'moving') { u.anim = 'idle'; if (!u.arrived) { u.arrived = true; note(st, 'The trader has set up by the fire. Tap them to trade.', 'good'); ev(st, { type: 'sfx', s: 'coins' }); } }
+      if (hr >= 19.5 || st.threat.active) { u.task = { t: 'go' }; u.path = null; if (st.threat.active) note(st, 'The trader packs up in a hurry.', 'info'); }
+    } else {
+      if (!u.exit) { const p = edgePoint(st, rnd(st) * Math.PI * 2, 2); u.exit = p ? [tileOf(p.x), tileOf(p.y)] : [1, 1]; }
+      const r = goTo(st, u, rectT(u.exit[0], u.exit[1], true, true), dt, true);
+      if (r !== 'moving') { delete st.units[u.id]; st.trader = null; }
+    }
+  }
   function spawnStranger(st, scripted) {
     const p = edgePoint(st, rnd(st) * Math.PI * 2, 8); if (!p) return;
     const u = makeSurvivor(st, { x: p.x, y: p.y });
@@ -663,6 +704,7 @@
     const cheer = S.present(st).filter(x => x.trait === 'cheerful' && x !== u).length; m += Math.min(12, cheer * 5);
     if (st.weather.rain) m -= 3;
     if (st.relics.banner) m += 6;
+    if (S.has(st, 'fountain')) m += D.B.fountain.morale;
     if (u.trait === 'grim') m = 50 + (m - 50) * 0.4;
     return clamp(m, 5, 100);
   }
@@ -705,6 +747,8 @@
       const home = assignHome(st, u);
       u.task = home ? { t: 'sleep', bid: home.id } : { t: 'campsleep' }; u.path = null; return;
     }
+    // Evenings: people drift to the fire and sit together before bed.
+    { const hr = S.hour(st); const h = S.heart(st); if (hr >= 18.3 && hr < 20 && h && h.state === 'done' && u.job !== 'guard' && !(u.injury && u.injury.t > 0)) { u.task = { t: 'social' }; u.path = null; return; } }
     // Injured rest at the healer's tent, if there is one.
     if (u.injury && u.injury.t > 0) { const inf = Object.values(st.buildings).find(b => b.type === 'infirmary' && b.state === 'done'); if (inf && u.job !== 'medic') { u.task = { t: 'rest', bid: inf.id }; return; } }
     u.task = jobTask(st, u) || { t: 'idle', until: st.hours + 0.4 };
@@ -732,7 +776,7 @@
     const sites = Object.values(st.buildings).filter(b => b.state === 'site' || b.up);
     const damaged = Object.values(st.buildings).filter(b => b.state === 'done' && !b.up && b.hp < b.maxHp * 0.85);
     const crew = (b, kind) => S.present(st).filter(x => x.task && x.task.bid === b.id && x.task.t === kind).length;
-    const pickSite = () => { let best = null, bd = 1e9; for (const b of sites) { if (crew(b, 'build') >= 3) continue; const d = Math.hypot(ctr(b.x) - u.x, ctr(b.y) - u.y) + (b.type === 'heart' ? -400 : 0) + (b.wall ? 60 : 0); if (d < bd) { bd = d; best = b; } } return best; };
+    const pickSite = () => { let best = null, bd = 1e9; for (const b of sites) { if (crew(b, 'build') >= 3 || (b.unreach && b.unreach > st.hours)) continue; const d = Math.hypot(ctr(b.x) - u.x, ctr(b.y) - u.y) + (b.type === 'heart' ? -400 : 0) + (b.wall ? 60 : 0); if (d < bd) { bd = d; best = b; } } return best; };
     if (job === 'build' || job === 'labor') {
       const s = pickSite(); if (s) return { t: 'build', bid: s.id };
       const r = damaged.find(b => crew(b, 'repair') < 2 && !nearestFoe(st, { x: ctr(b.x), y: ctr(b.y) }, 6)); if (r) return { t: 'repair', bid: r.id };
@@ -740,7 +784,7 @@
     if (u.leader && st.obj < 3) return null;      // the opening: the player gathers by hand
     if (job === 'guard') {
       if (u.post && st.buildings[u.post] && st.buildings[u.post].state === 'done') return { t: 'guard', bid: u.post };
-      const tw = Object.values(st.buildings).find(b => b.type === 'tower' && b.state === 'done' && S.present(st).filter(x => x.post === b.id).length < D.B.tower.slots[b.tier]);
+      const tw = Object.values(st.buildings).find(b => D.B[b.type].slots && b.state === 'done' && S.present(st).filter(x => x.post === b.id).length < D.B[b.type].slots[b.tier]);
       if (tw) { u.post = tw.id; return { t: 'guard', bid: tw.id }; }
       const yard = Object.values(st.buildings).find(b => b.type === 'training' && b.state === 'done');
       if (yard && !S.isNight(st) && crew(yard, 'train') < 3) return { t: 'train', bid: yard.id };
@@ -799,7 +843,7 @@
     let best = null, bd = 1e9;
     const taken = new Set(S.present(st).filter(x => x !== u && x.task && x.task.node).map(x => x.task.node));
     for (const id in st.nodes) {
-      const n = st.nodes[id]; if (n.type !== type || n.amt <= 0 || !st.fog[n.y * N + n.x]) continue;
+      const n = st.nodes[id]; if (n.type !== type || n.amt <= 0 || !st.fog[n.y * N + n.x] || (n.unreach && n.unreach > st.hours)) continue;
       if (type === 'bush' && n.amt < 2) continue;
       const d = Math.hypot(n.x - tx, n.y - ty) * 0.6 + Math.hypot(n.x - base.x, n.y - base.y) * 0.4 + (taken.has(id) ? 6 : 0);
       if (d < bd && d < maxTiles) { bd = d; best = n; }
@@ -832,12 +876,13 @@
     const key = goal.x0 + ',' + goal.y0 + ',' + goal.x1 + ',' + goal.y1 + (goal.adj ? 'a' : '');
     if (inGoal && (!u.path || !u.path.length)) { u.path = null; return 'arrived'; }
     if (!u.path || u.pathKey !== key) {
+      if (u.retryAt && st.hours < u.retryAt && u.retryKey === key) { if (u.anim === 'walk' || u.anim === 'run') u.anim = 'idle'; return 'moving'; }
       if (st._.pathBudget <= 0) { u.anim = 'idle'; return 'moving'; }
       st._.pathBudget--;
       const cost = u.side === 'e' ? costE(st) : costS(st);
       const p = Wd.path(N, M, tx, ty, goal, cost, u.side === 'e' ? 12000 : 7000);
-      if (!p) { u.path = null; u.stuck = (u.stuck || 0) + 1; if (u.stuck > 3) { u.stuck = 0; return 'stuck'; } return 'moving'; }
-      u.path = p; u.pathKey = key; u.stuck = 0;
+      if (!p) { u.path = null; u.stuck = (u.stuck || 0) + 1; u.retryKey = key; u.retryAt = st.hours + 0.1 * u.stuck; if (u.stuck > 2) { u.stuck = 0; u.retryAt = st.hours + 0.4; return 'stuck'; } return 'moving'; }
+      u.path = p; u.pathKey = key; u.stuck = 0; u.retryAt = 0;
       if (!p.length) return 'arrived';
     }
     return follow(st, u, dt, run) ;
@@ -858,7 +903,7 @@
     return u.path.length ? 'moving' : 'arrived';
   }
   const rectB = (b, adj) => ({ x0: b.x, y0: b.y, x1: b.x + b.w - 1, y1: b.y + b.h - 1, adj: adj !== false });
-  const rectT = (x, y, adj) => ({ x0: x, y0: y, x1: x, y1: y, adj: !!adj });
+  const rectT = (x, y, adj, partial) => ({ x0: x, y0: y, x1: x, y1: y, adj: !!adj, partial: !!partial });
   function face(u, x, y) { u.dir = Math.atan2(y - u.y, x - u.x); }
 
   function doTask(st, u, dt) {
@@ -869,14 +914,14 @@
         u.anim = 'idle';
         if (st.hours > t.until) u.task = null;
         else if (!t.wx && st.camp && rnd(st) < 0.01) { const h = S.heart(st) || st.camp; t.wx = (h.x || st.camp.x) + rint(st, -4, 6); t.wy = (h.y || st.camp.y) + rint(st, -2, 5); }
-        if (t.wx != null) { const r = goTo(st, u, rectT(t.wx, t.wy, true), dt); if (r !== 'moving') { t.wx = null; } }
+        if (t.wx != null) { const r = goTo(st, u, rectT(t.wx, t.wy, true, true), dt); if (r !== 'moving') { t.wx = null; } }
         break;
       }
       case 'move': { const r = goTo(st, u, rectT(t.x, t.y, false), dt); if (r === 'arrived' || r === 'stuck') { u.task = null; u.anim = 'idle'; } break; }
-      case 'flee': { const r = goTo(st, u, rectT(t.x, t.y, true), dt, true); if (r !== 'moving') { u.task = null; } break; }
+      case 'flee': { const r = goTo(st, u, rectT(t.x, t.y, true, true), dt, true); if (r !== 'moving') { u.task = null; } break; }
       case 'muster': {
         const h = S.heart(st); if (!h) { u.task = null; break; }
-        const r = goTo(st, u, rectB(h, true), dt, true); if (r !== 'moving') u.anim = 'idle';
+        const r = goTo(st, u, Object.assign(rectB(h, true), { partial: true }), dt, true); if (r !== 'moving') u.anim = 'idle';
         if (!st.alarm) u.task = null; break;
       }
       case 'gather': {
@@ -884,7 +929,7 @@
         const n = st.nodes[t.node];
         if (!n || n.amt <= 0) { const nt = t.manual ? gatherTask(st, u, t.res) : null; u.task = nt ? Object.assign(nt, { manual: true }) : null; break; }
         const r = goTo(st, u, rectT(n.x, n.y, true), dt);
-        if (r === 'stuck') { u.task = null; break; }
+        if (r === 'stuck') { n.unreach = st.hours + 12; u.task = null; break; }
         if (r !== 'arrived') { t.w = 0; break; }
         face(u, ctr(n.x), ctr(n.y));
         u.anim = n.type === 'bush' || n.type === 'scrap' ? 'crouch' : 'work';
@@ -907,7 +952,7 @@
         if (!t.tile) t.tile = shoreTile(st, u);
         if (!t.tile) { u.task = null; break; }
         const r = goTo(st, u, rectT(t.tile[0], t.tile[1], false), dt);
-        if (r === 'stuck') { t.tile = null; u.task = null; break; }
+        if (r === 'stuck') { st._.badShore = st._.badShore || new Set(); st._.badShore.add(t.tile[1] * N + t.tile[0]); t.tile = null; u.task = null; break; }
         if (r !== 'arrived') break;
         u.anim = 'crouch'; t.w = (t.w || 0) + dt * workRate(st, u, 'gather');
         if (t.w >= 2.5) { t.w = 0; u.carry = { res: 'water', amt: 4 }; ev(st, { type: 'fx', fx: 'water_splash', x: u.x, y: u.y }); if (!dropoff(st, u, 'water')) deposit(st, u); }
@@ -927,7 +972,7 @@
         const b = st.buildings[t.bid];
         if (!b || (t.t === 'build' && b.state !== 'site' && !b.up) || (t.t === 'repair' && b.hp >= b.maxHp)) { u.task = null; break; }
         const r = goTo(st, u, rectB(b), dt);
-        if (r === 'stuck') { u.task = null; break; }
+        if (r === 'stuck') { b.unreach = st.hours + 2; u.task = null; break; }
         if (r !== 'arrived') break;
         face(u, ctr(b.x + b.w / 2), ctr(b.y + b.h / 2)); u.anim = 'work';
         const k = workRate(st, u, 'build');
@@ -940,7 +985,7 @@
           if (b.prog >= 1) finishBuilding(st, b);
         } else {
           b.hp = Math.min(b.maxHp, b.hp + dt * 8 * k);
-          if ((t.costT = (t.costT || 0) + dt * 8 * k) >= 30) { t.costT = 0; const res = b.tier >= 1 && (b.type === 'wall' || b.type === 'tower') ? 'stone' : 'wood'; if (st.res[res] >= 1) st.res[res] -= 1; else { u.task = null; } }
+          if ((t.costT = (t.costT || 0) + dt * 8 * k) >= 30) { t.costT = 0; const res = (b.tier >= 1 && (b.type === 'wall' || b.type === 'tower')) || b.type === 'ballista' || b.type === 'fountain' ? 'stone' : 'wood'; if (st.res[res] >= 1) st.res[res] -= 1; else { u.task = null; } }
           gainXp(st, u, 'build', dt * 0.4);
         }
         break;
@@ -996,10 +1041,19 @@
         const r = goTo(st, u, rectB(b), dt); if (r === 'arrived') enterBuilding(st, u, b); else if (r === 'stuck') u.task = { t: 'campsleep' };
         break;
       }
+      case 'social': {
+        const h = S.heart(st); const hr = S.hour(st);
+        if (!h || hr < 18 || hr >= 20) { u.task = null; break; }
+        if (!t.spot) { const k = parseInt(u.id.slice(1), 10) || 0; const a = k * 2.399; t.spot = [Math.round(h.x + 2 + Math.cos(a) * 3.4), Math.round(h.y + 1 + Math.sin(a) * 2.6)]; }
+        const r = goTo(st, u, rectT(t.spot[0], t.spot[1], true, true), dt);
+        if (r === 'stuck') { u.task = null; break; }
+        if (r !== 'moving') { u.anim = (parseInt(u.id.slice(1), 10) || 0) % 3 ? 'crouch' : 'idle'; face(u, ctr(h.x + 2), ctr(h.y + 1)); }
+        break;
+      }
       case 'campsleep': {
         if (!S.isNight(st)) { u.task = null; break; }
         const h = S.heart(st); const c = h ? { x: h.x + (u.id.charCodeAt(1) % 5), y: h.y + h.h } : (st.camp || st.clearing);
-        const r = goTo(st, u, rectT(c.x, c.y, true), dt); if (r !== 'moving') u.anim = 'crouch';
+        const r = goTo(st, u, rectT(c.x, c.y, true, true), dt); if (r !== 'moving') u.anim = 'crouch';
         break;
       }
       case 'hide': {
@@ -1022,15 +1076,15 @@
         const b = st.buildings[t.bid]; if (!b || b.state !== 'done') { u.post = null; u.task = null; break; }
         if (!u.onTower) { const r = goTo(st, u, rectB(b), dt); if (r === 'arrived') { u.onTower = b.id; const k = S.present(st).filter(x => x.onTower === b.id).indexOf(u); u.x = ctr(b.x + 1) + (k ? 14 : -6); u.y = ctr(b.y) + 6; u.path = null; } else if (r === 'stuck') u.task = null; break; }
         u.anim = 'idle';
-        const R = D.B.tower.range[b.tier] * TS;
+        const R = D.B[b.type].range[b.tier] * TS;
         const e = nearestFoe(st, u, R / TS + 1);
-        if (e && DIST(u, e) <= R + 16) shoot(st, u, e, dt, true);
+        if (e && DIST(u, e) <= R + 16) shoot(st, u, e, dt, b);
         break;
       }
       case 'patrol': {
         const h = S.heart(st); if (!h) { u.task = null; break; }
         if (!t.wx || rnd(st) < dt * 0.05) { const a = rnd(st) * Math.PI * 2; t.wx = clamp(Math.round(h.x + 2 + Math.cos(a) * 7), 2, N - 3); t.wy = clamp(Math.round(h.y + 1 + Math.sin(a) * 6), 2, M - 3); }
-        const r = goTo(st, u, rectT(t.wx, t.wy, true), dt); if (r !== 'moving') { u.anim = 'idle'; if (rnd(st) < dt * 0.3) u.task = null; }
+        const r = goTo(st, u, rectT(t.wx, t.wy, true, true), dt); if (r !== 'moving') { u.anim = 'idle'; if (rnd(st) < dt * 0.3) u.task = null; }
         break;
       }
       case 'train': {
@@ -1072,7 +1126,7 @@
     const tx = tileOf(u.x), ty = tileOf(u.y); let best = null, bd = 1e9;
     const cs = costS(st);
     for (let y = Math.max(1, ty - 30); y < Math.min(M - 1, ty + 30); y++) for (let x = Math.max(1, tx - 30); x < Math.min(N - 1, tx + 30); x++) {
-      const i = y * N + x; if (cs(i) < 0 || !st.fog[i]) continue;
+      const i = y * N + x; if (cs(i) < 0 || !st.fog[i] || (st._.badShore && st._.badShore.has(i))) continue;
       if (!(isWater(st, i + 1) || isWater(st, i - 1) || isWater(st, i + N) || isWater(st, i - N))) continue;
       const d = Math.hypot(x - tx, y - ty); if (d < bd) { bd = d; best = [x, y]; }
     }
@@ -1095,6 +1149,7 @@
       if (B.beds) for (const u of S.survivors(st)) if (!u.home) assignHome(st, u);
     }
     ev(st, { type: 'sfx', s: 'built' }); ev(st, { type: 'fx', fx: 'dust_cloud', x: ctr(b.x + b.w / 2), y: ctr(b.y + b.h) - 8 });
+    if (B.reveal) reveal(st, Math.floor(b.x + b.w / 2), Math.floor(b.y + b.h / 2), B.reveal[b.tier] + (st.techs.watchfires ? 3 : 0));
     invalidatePaths(st);
   }
   function autoEquip(st, item) {
@@ -1160,6 +1215,7 @@
       if (!W.ranged) kind = 'rock';
       if (tower) { dmg *= 1.2 * (st.techs.bowcraft ? 1.25 : 1); }
       cd = W.ranged ? W.cd : 1.6;
+      if (tower && tower.type && D.B[tower.type].heavy) { dmg = 34 + skillOf(u, 'combat') * 2; cd = 2.8; kind = 'bolt'; }
       gainXp(st, u, 'combat', 0.6);
     } else { const F = D.FOE[u.kind]; dmg = F.dmg; kind = F.ranged; cd = F.cd; }
     u.cd = cd * (0.9 + rnd(st) * 0.2); u.anim = 'attack'; u.at = 0;
@@ -1256,7 +1312,7 @@
     if (!e.flee && (e.stuckT = (e.stuckT || 0) + dt) > 5) { e.stuckT = 0; const moved = Math.hypot(e.x - e.px, e.y - e.py); e.px = e.x; e.py = e.y; if (moved < 10 && e.anim !== 'attack' && !e.swing) { e.stuckN++; e.target = nearestStructure(st, e); e.path = null; if (e.stuckN > 3) { e.flee = true; } } else e.stuckN = 0; }
     if (e.flee) {
       if (!e.fleeTo) { const a = Math.atan2(e.y - M * TS / 2, e.x - N * TS / 2); e.fleeTo = { x: clamp(Math.round(N / 2 + Math.cos(a) * N * 0.6), 0, N - 1), y: clamp(Math.round(M / 2 + Math.sin(a) * M * 0.6), 0, M - 1) }; }
-      const r = goTo(st, e, rectT(e.fleeTo.x, e.fleeTo.y, true), dt, true);
+      const r = goTo(st, e, rectT(e.fleeTo.x, e.fleeTo.y, true, true), dt, true);
       const tx = tileOf(e.x), ty = tileOf(e.y);
       if (r === 'stuck' || tx <= 1 || ty <= 1 || tx >= N - 2 || ty >= M - 2 || (r === 'arrived')) { if (e.carry) note(st, 'The raider escaped with ' + e.carry + ' ' + (e.lootRes || 'supplies') + '.', 'bad'); delete st.units[e.id]; }
       if (r && r.block) { attackBuilding(st, e, r.block, dt); }
@@ -1327,12 +1383,12 @@
     if (threat && !a.flee) { a.flee = 3; a.fleeFrom = { x: threat.x, y: threat.y }; a.path = null; }
     if (a.flee > 0 && a.fleeFrom) {
       if (!a.path || !a.path.length) { const ang = Math.atan2(a.y - a.fleeFrom.y, a.x - a.fleeFrom.x) + (rnd(st) - 0.5); const tx = clamp(Math.round(tileOf(a.x) + Math.cos(ang) * 6), 1, N - 2), ty = clamp(Math.round(tileOf(a.y) + Math.sin(ang) * 6), 1, M - 2); a.goal = [tx, ty]; a.path = null; }
-      const r = goTo(st, a, rectT(a.goal[0], a.goal[1], true), dt, true); if (r !== 'moving') a.path = null;
+      const r = goTo(st, a, rectT(a.goal[0], a.goal[1], true, true), dt, true); if (r !== 'moving') a.path = null;
       return;
     }
     if (!a.goal || (a.wander -= dt) <= 0) { a.wander = 4 + rnd(st) * 8; const tx = clamp(tileOf(a.x) + rint(st, -5, 5), 1, N - 2), ty = clamp(tileOf(a.y) + rint(st, -5, 5), 1, M - 2); a.goal = [tx, ty]; a.path = null; a.rest = rnd(st) < 0.5; }
     if (a.rest) { a.anim = 'idle'; return; }
-    const r = goTo(st, a, rectT(a.goal[0], a.goal[1], true), dt); if (r !== 'moving') { a.anim = 'idle'; a.rest = true; }
+    const r = goTo(st, a, rectT(a.goal[0], a.goal[1], true, true), dt); if (r !== 'moving') { a.anim = 'idle'; a.rest = true; }
   }
 
   // Keep units from stacking on one spot.
@@ -1350,7 +1406,7 @@
   // ---- Strangers ------------------------------------------------------------------------
   function strangerStep(st, u, dt) {
     const h = S.heart(st); const c = h ? { x: h.x + 2, y: h.y + h.h } : (st.camp || st.clearing);
-    const r = goTo(st, u, rectT(c.x, c.y + 1, true), dt);
+    const r = goTo(st, u, rectT(c.x, c.y + 1, true, true), dt);
     if (r === 'arrived' || r === 'stuck') { u.anim = 'idle'; if (!u.asked) { u.asked = true; st.pending.push({ kind: 'stranger', uid: u.id }); ev(st, { type: 'modal' }); } }
   }
 

@@ -3,7 +3,7 @@
 (function () {
   const HF = window.HF, D = HF.D, A = HF.A, S = HF.Sim, Wd = HF.World;
   const TS = D.TILE, N = D.W, M = D.H, T = D.T;
-  const R = HF.R = { cam: { x: N * TS / 2, y: M * TS / 2, z: 1.6 }, fx: [], texts: [], shake: 0, letter: 0, marks: [], time: 0, dpr: 1, W: 0, H: 0, fogA: 1, fogTarget: 1 };
+  const R = HF.R = { cam: { x: N * TS / 2, y: M * TS / 2, z: 1.6 }, fx: [], birds: [], texts: [], shake: 0, letter: 0, marks: [], time: 0, dpr: 1, W: 0, H: 0, fogA: 1, fogTarget: 1 };
   const CH = 16; const chunks = {}; let chunkDirty = new Set();
   let canvas, ctx, lightC, lightG, fogC, fogG, tintC, tintG;
 
@@ -29,7 +29,7 @@
     const hw = R.W / 2 / c.z, hh = R.H / 2 / c.z;
     c.x = Math.max(hw * 0.4, Math.min(N * TS - hw * 0.4, c.x)); c.y = Math.max(hh * 0.4, Math.min(M * TS - hh * 0.4, c.y));
   };
-  R.addFx = (name, x, y, k, opts) => { if (!A.fx || !A.fx.fx[name]) return; R.fx.push(Object.assign({ name, x, y, t: 0, k: k || 1 }, opts || {})); if (R.fx.length > 160) R.fx.shift(); };
+  R.addFx = (name, x, y, k, opts) => { if (!A.fx || !A.fx.fx[name]) return; const f = Object.assign({ name, x, y, t: 0, k: k || 1 }, opts || {}); if (!f.life && A.fxLoop(name)) f.life = 1.6; R.fx.push(f); if (R.fx.length > 160) R.fx.shift(); };
   R.addText = (text, x, y, col, size) => { R.texts.push({ text, x, y, t: 0, col: col || '#fff', size: size || 9 }); if (R.texts.length > 60) R.texts.shift(); };
 
   // ---- Terrain ----------------------------------------------------------------------------
@@ -210,13 +210,14 @@
     }
     if (u.dead || u.downed > 0) return 'Die';
     if (u.hurtT > 0.05 && u.anim !== 'attack') return 'TakeDamage';
+    if (!u.gear) return { walk: 'Walk', run: 'Run', crouch: 'CrouchIdle' }[u.anim] || 'Idle';
     const armed = D.ARMED[u.set];
     const atk = D.WEAPON[u.gear.w].ranged ? (A.cast[u.set] && A.cast[u.set].anims.Attack3 && (u.set === 'poacher') ? 'Attack3' : 'Attack5') : armed ? 'Attack1' : 'Attack5';
     return { idle: 'Idle', walk: 'Walk', run: 'Run', attack: atk, work: 'Attack5', crouch: 'CrouchIdle', down: 'Die' }[u.anim] || 'Idle';
   }
   function drawUnit(g, st, u, view) {
     let x = u.x, y = u.y;
-    if (u.onTower && st.buildings[u.onTower]) { const b = st.buildings[u.onTower]; const k = st.units ? S.present(st).filter(m => m.onTower === b.id).indexOf(u) : 0; x = (b.x + b.w / 2) * TS + (k ? 16 : -10); y = (b.y + b.h) * TS - (b.tier ? 100 : 92); }
+    if (u.onTower && st.buildings[u.onTower]) { const b = st.buildings[u.onTower]; const k = st.units ? S.present(st).filter(m => m.onTower === b.id).indexOf(u) : 0; x = (b.x + b.w / 2) * TS + (k ? 16 : -10) * (b.w > 2 ? 1 : 0.6); y = (b.y + b.h) * TS - (D.B[b.type].platform || [92])[b.tier]; }
     if (u.side === 'a') {
       const k = u.kind === 'deer' ? 1.15 : 0.8; const bob = u.anim === 'walk' || u.anim === 'run' ? Math.abs(Math.sin(R.time * 14 + x)) * 2 : 0;
       if (u.dead) { g.save(); g.globalAlpha = Math.max(0, 1 - (u.deadT || 0) / 6); A.draw(g, 'x', u.kind, x, y + 4, k * 0.95, 1, Math.cos(u.dir) > 0); g.restore(); return; }
@@ -246,6 +247,7 @@
     else if (u.hp < u.maxHp - 1 || sel) { g.fillStyle = 'rgba(0,0,0,0.6)'; g.fillRect(x - 10, y - 46, 20, 3); g.fillStyle = u.hp / u.maxHp > 0.5 ? '#6fd26f' : '#e8c050'; g.fillRect(x - 9, y - 45, 18 * Math.max(0, u.hp / u.maxHp), 1.5); }
     if (u.side === 's' && u.injury && !u.downed) { g.fillStyle = '#e05040'; g.fillRect(x + 9, y - 42, 2, 6); g.fillRect(x + 7, y - 40, 6, 2); }
     if (u.stranger) { g.font = '10px Adventurer'; g.fillStyle = '#ffe9a8'; g.textAlign = 'center'; g.fillText('?', x, y - 46 + Math.sin(R.time * 4) * 2); }
+    if (u.side === 'n') { A.icon(g, 'trade', x - 7, y - 60 + Math.sin(R.time * 3) * 2, 14); if (u.arrived) A.draw(g, 't', 'fv_hand_cart', x + 22, y + 4, 1); }
     if (sel && u.name) { g.font = '8px Adventurer'; g.textAlign = 'center'; g.fillStyle = 'rgba(0,0,0,0.6)'; const w = g.measureText(u.name).width; g.fillRect(x - w / 2 - 3, y - 60, w + 6, 10); g.fillStyle = '#ffe9a8'; g.fillText(u.name, x, y - 52); }
   }
 
@@ -290,7 +292,7 @@
     // Placement ghost footprint.
     if (view.ghost) drawGhostFloor(ctx, st, view.ghost);
     // Selected building footprint, tower range.
-    if (view.sel && view.sel.bid && st.buildings[view.sel.bid]) { const b = st.buildings[view.sel.bid]; ctx.strokeStyle = '#ffd36a'; ctx.lineWidth = 1.5; ctx.strokeRect(b.x * TS, b.y * TS, b.w * TS, b.h * TS); if (b.type === 'tower') { ctx.strokeStyle = 'rgba(255,211,106,0.4)'; ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.arc((b.x + 1.5) * TS, (b.y + 1.5) * TS, D.B.tower.range[b.tier] * TS, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); } if (b.type === 'heart') { ctx.strokeStyle = 'rgba(255,170,80,0.25)'; ctx.setLineDash([3, 5]); ctx.beginPath(); ctx.arc((b.x + 2.5) * TS, (b.y + 1.5) * TS, D.B.heart.light[b.tier] * TS, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); } }
+    if (view.sel && view.sel.bid && st.buildings[view.sel.bid]) { const b = st.buildings[view.sel.bid]; ctx.strokeStyle = '#ffd36a'; ctx.lineWidth = 1.5; ctx.strokeRect(b.x * TS, b.y * TS, b.w * TS, b.h * TS); if (D.B[b.type].range) { ctx.strokeStyle = 'rgba(255,211,106,0.4)'; ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.arc((b.x + b.w / 2) * TS, (b.y + b.h / 2) * TS, D.B[b.type].range[b.tier] * TS, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); } if (b.type === 'heart') { ctx.strokeStyle = 'rgba(255,170,80,0.25)'; ctx.setLineDash([3, 5]); ctx.beginPath(); ctx.arc((b.x + 2.5) * TS, (b.y + 1.5) * TS, D.B.heart.light[b.tier] * TS, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); } }
     // Collect and sort visible objects.
     const objs = [];
     const inView = (x, y, m) => x > wx0 - m && x < wx0 + vw + m && y > wy0 - m && y < wy0 + vh + m * 3;
@@ -312,11 +314,19 @@
       else if (o.grave) A.draw(ctx, 't', 'grave_cross', (o.grave.x + 0.5) * TS, (o.grave.y + 1) * TS, 1);
     }
     if (view.ghost) drawGhostParts(ctx, st, view.ghost);
+    // Life: fireflies at night, birds by day.
+    const Lt = S.light(st);
+    if (Lt < 0.5 && Math.random() < dt * 2.5) { const x = wx0 + Math.random() * vw, y = wy0 + Math.random() * vh; const t = st.terrain[Math.floor(y / TS) * N + Math.floor(x / TS)]; if (t === T.FOREST || t === T.MEADOW || t === T.GRASS) R.addFx('fireflies', x, y, 1, { life: 4, alpha: 0.9 }); }
+    if (Lt > 0.8 && !st.weather.rain && Math.random() < dt * 0.04 && R.birds.length < 2) { const dir = Math.random() < 0.5 ? 1 : -1; const fl = { x: dir > 0 ? wx0 - 60 : wx0 + vw + 60, y: wy0 + Math.random() * vh * 0.7, vx: dir * (60 + Math.random() * 30), vy: (Math.random() - 0.5) * 20, n: 4 + Math.floor(Math.random() * 4), t: 0 }; R.birds.push(fl); }
+    for (let i = R.birds.length - 1; i >= 0; i--) { const f = R.birds[i]; f.t += dt; f.x += f.vx * dt; f.y += f.vy * dt; if (f.t > 30) { R.birds.splice(i, 1); continue; }
+      for (let k = 0; k < f.n; k++) { const bx = f.x - Math.sign(f.vx) * (k % 2 ? k * 9 : k * 6) , by = f.y + (k % 2 ? k * 5 : -k * 4); const w = 3 + Math.sin(R.time * 14 + k) * 2;
+        ctx.fillStyle = 'rgba(0,0,0,0.12)'; ctx.fillRect(bx + 50, by + 70, 4, 2);
+        ctx.strokeStyle = 'rgba(30,25,20,0.85)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(bx - 4, by - w + 2); ctx.lineTo(bx, by); ctx.lineTo(bx + 4, by - w + 2); ctx.stroke(); } }
     // Projectiles.
     for (const p of st.proj) {
       if (p.kind === 'rock') { ctx.fillStyle = '#9a9488'; ctx.fillRect(p.x - 2, p.y - 2, 4, 4); continue; }
       ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.a || 0);
-      if (p.kind === 'dark') A.drawFx(ctx, 'arcane_orb', R.time % 0.5, 0, 0, 0.8); else A.drawFx(ctx, p.kind === 'dagger' ? 'dagger' : 'arrow', 0, 0, 0, 1);
+      if (p.kind === 'dark') A.drawFx(ctx, 'arcane_orb', R.time % 0.5, 0, 0, 0.8); else A.drawFx(ctx, p.kind === 'dagger' ? 'dagger' : p.kind === 'bolt' ? 'spear' : 'arrow', 0, 0, 0, p.kind === 'bolt' ? 1.6 : 1);
       ctx.restore();
     }
     // Effects.
@@ -345,7 +355,8 @@
     if (h && h.state === 'done') lightsList.push({ x: (h.x + 2.5) * TS, y: (h.y + 1.3) * TS, r: D.B.heart.light[h.tier] * TS * 0.75 * (1 + Math.sin(R.time * 9) * 0.03 + Math.sin(R.time * 23) * 0.015) });
     for (const id in st.buildings) {
       const b = st.buildings[id]; if (b.state !== 'done' || b === h) continue;
-      if (b.type === 'tower') lightsList.push({ x: (b.x + 1.5) * TS, y: (b.y + 0.6) * TS, r: 3.5 * TS });
+      if (D.B[b.type].range) lightsList.push({ x: (b.x + b.w / 2) * TS, y: (b.y + 0.6) * TS, r: 3.5 * TS });
+      else if (b.type === 'fountain' || b.type === 'market') lightsList.push({ x: (b.x + b.w / 2) * TS, y: (b.y + b.h) * TS - 16, r: 3 * TS });
       else if (b.type === 'cabin' || b.type === 'workshop' || b.type === 'barracks' || b.type === 'infirmary' || b.type === 'study') lightsList.push({ x: (b.x + b.w / 2) * TS, y: (b.y + b.h) * TS - 20, r: 3 * TS });
       else if (b.type === 'tent' && S.present(st).some(u => u.inside === b.id)) lightsList.push({ x: (b.x + 1) * TS, y: (b.y + 1.5) * TS, r: 1.6 * TS });
     }

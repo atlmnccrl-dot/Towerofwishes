@@ -4,6 +4,8 @@ const path = require('path');
 const J = f => require(path.join(__dirname, '..', 'js', f));
 J('data.js'); J('world.js'); J('sim.js');
 const HF = globalThis.HF, D = HF.D, S = HF.Sim;
+const PS = { calls: 0, fail: 0, ms: 0, why: {} };
+if (process.env.HF_PROGRESS) { const W = HF.World, orig = W.path; W.path = function (w, h, sx, sy, goal, cost, it) { PS.calls++; const t = Date.now(); const r = orig.apply(this, arguments); PS.ms += Date.now() - t; if (!r) { PS.fail++; } return r; }; }
 const DAYS = +process.argv[2] || 12, SEEDS = +process.argv[3] || 3;
 let failures = 0;
 const check = (c, msg) => { if (!c) { failures++; console.log('  FAIL', msg); } };
@@ -73,6 +75,9 @@ function run(seed, starter) {
     for (const [t, n] of want) if (S.unlocked(st, t) && S.count(st, t) < n && S.canAfford(st, D.B[t].cost[0])) place(st, t, h, 4);
     // A ring of barricades on the east side.
     if (S.count(st, 'wall') < 8 && st.res.wood > 30 && S.unlocked(st, 'wall')) { const tiles = []; for (let k = -4; k < 4; k++) tiles.push([h.x + 9, h.y + k]); S.cmd(st, 'placeLine', { type: 'wall', tiles }); }
+    // Trade with a visiting caravan.
+    if (st.trader) st.trader.offers.forEach((o, i) => { if (!o.used && S.canAfford(st, D.TRADES[o.i].give) && st.res.food > 30) { const r = S.cmd(st, 'trade', { i }); if (r.ok) log.push('    day ' + day + ' traded ' + JSON.stringify(D.TRADES[o.i])); } });
+    if (st.era >= 3) for (const t of ['fountain', 'market', 'ballista']) if (S.unlocked(st, t) && !S.count(st, t) && S.canAfford(st, D.B[t].cost[0])) { const id = place(st, t, h, 6); if (id) log.push('    day ' + day + ' placed ' + t); }
     // Craft and research.
     if (S.has(st, 'workshop') && st.craftQ.length < 2 && st.res.wood > 40) S.cmd(st, 'craft', { item: 'spear' });
     for (const t of D.TECH_ORDER) if (!st.techs[t] && st.res.knowledge >= D.TECH[t].cost) S.cmd(st, 'research', { id: t });
@@ -84,6 +89,7 @@ function run(seed, starter) {
       if (site) { const party = surv.filter(u => u.job !== 'guard').slice(0, 2).map(u => u.id); const r = S.cmd(st, 'expedition', { site: site.id, ids: party, food: S.supplyNeed(st, site, 2) }); if (r.ok) log.push('    day ' + day + ' expedition -> ' + S.siteName(site)); }
     }
     if (day !== lastDay) {
+      if (process.env.HF_PROGRESS) { const fails = {}; for (const u of Object.values(st.units)) if (u.stuck) fails[(u.side) + ':' + (u.task ? u.task.t : '-')] = (fails[(u.side) + ':' + (u.task ? u.task.t : '-')] || 0) + 1; console.error('  day', day, 'at', Date.now() - t0, 'ms', 'foes', S.foes(st).length, 'units', Object.keys(st.units).length, 'paths', PS.calls, 'fail', PS.fail, 'pathms', PS.ms, JSON.stringify(fails)); PS.calls = PS.fail = PS.ms = 0; }
       lastDay = day;
       log.push('    day ' + day + ': pop ' + S.survivors(st).length + ' era ' + st.era + ' raids ' + st.stats.raids + ' deaths ' + st.stats.deaths + ' bld ' + Object.keys(st.buildings).length + ' res ' + JSON.stringify(roundRes(st.res)) + ' obj ' + D.OBJ[st.obj].id);
     }
@@ -97,7 +103,7 @@ function run(seed, starter) {
   check(st2.terrain.length === D.W * D.H && st2.fog.length === D.W * D.H, 'save/load grids');
   for (let k = 0; k < 200; k++) S.step(st2, 0.05);
   const ms = Date.now() - t0;
-  console.log('seed ' + seed + ' starter ' + starter + ': day ' + S.day(st) + ', pop ' + S.survivors(st).length + ', era ' + st.era + ', raids ' + st.stats.raids + ', deaths ' + st.stats.deaths + ', kills ' + st.stats.kills + ', expeditions ' + st.stats.expeditions + ', obj ' + D.OBJ[st.obj].id + (st.gameOver ? ' GAME OVER' : '') + ', save ' + (json.length / 1024 | 0) + ' KB, ' + steps + ' steps in ' + ms + ' ms (' + (ms / steps).toFixed(2) + ' ms/step)');
+  console.log('seed ' + seed + ' starter ' + starter + ': day ' + S.day(st) + ', pop ' + S.survivors(st).length + ', era ' + st.era + ', raids ' + st.stats.raids + ', deaths ' + st.stats.deaths + ', kills ' + st.stats.kills + ', expeditions ' + st.stats.expeditions + ', traders ' + (st.stats.traders || 0) + ', obj ' + D.OBJ[st.obj].id + (st.gameOver ? ' GAME OVER' : '') + ', save ' + (json.length / 1024 | 0) + ' KB, ' + steps + ' steps in ' + ms + ' ms (' + (ms / steps).toFixed(2) + ' ms/step)');
   for (const l of log) console.log(l);
   return st;
 }
