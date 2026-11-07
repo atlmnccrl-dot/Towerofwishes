@@ -1,6 +1,7 @@
 /*
  * Tower of Wishes — pixel effects (assets/fx/, packed by tools/pack_fx.py from the author's
- * effect packs: Pixel VFX Essentials, KILN FX, Magic Spells VFX Lite, slash arcs, fireballs).
+ * effect packs: Pixel VFX Essentials, KILN FX, Magic Spells VFX Lite, slash arcs, fireballs;
+ * plus the game's own, drawn by tools/make_pixfx.py into tow.json).
  *
  * Effects are world-anchored sprite animations, drawn at the characters' pixel scale (one art
  * pixel = one character pixel) and never smoothed. fx.js spawns them from the fight's events.
@@ -20,6 +21,12 @@
     if (loading) return loading;
     loading = (async () => {
       data = await (await fetch(ROOT + 'fx.json')).json();
+      // The game's own effects (tools/make_pixfx.py: Calamity's marks and impacts), on their own page.
+      try {
+        const tow = await (await fetch(ROOT + 'tow.json')).json(), off = data.pages.length;
+        data.pages = data.pages.concat(tow.pages);
+        for (const k in tow.fx) data.fx[k] = Object.assign({}, tow.fx[k], { frames: tow.fx[k].frames.map((fr) => [fr[0] + off].concat(fr.slice(1))) });
+      } catch (e) { /* the packed effects still work alone */ }
       pages = await Promise.all(data.pages.map((p) => new Promise((res, rej) => {
         const im = new Image(); im.onload = () => res(im); im.onerror = () => rej(new Error('fx page ' + p)); im.src = ROOT + p;
       })));

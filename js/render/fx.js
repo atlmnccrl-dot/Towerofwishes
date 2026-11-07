@@ -291,7 +291,12 @@
         S('spell_heal', e.x, e.y, 1.0, { scale: 0.9, follow: to || null });
         S('heal_cross', e.x, e.y, 2.0, { scale: 1, delay: 0.15, follow: to || null });
       } else if (e.type === 'hazardHit') {
-        if (e.kind === 'fire') { S('explosion_fire', e.x, e.y, 0.6, { scale: 1.2 * e.r }); S('burning_ground', e.x, e.y, 0, { scale: e.r, life: 1.6 }); }
+        const g = (e.r * 27.47) / 62;
+        if (PX.has('skyfire_impact')) {
+          // the game's own: the meteor of skyfire / the slab of ocean coming down, then the burst
+          if (e.kind === 'fire') { S('skyfire_impact', e.x, e.y, 0, { scale: g * 1.05 }); S('burning_ground', e.x, e.y, 0, { scale: e.r, life: 1.6, delay: 0.15 }); }
+          else S('ocean_impact', e.x, e.y, 0, { scale: g * 0.95 });
+        } else if (e.kind === 'fire') { S('explosion_fire', e.x, e.y, 0.6, { scale: 1.2 * e.r }); S('burning_ground', e.x, e.y, 0, { scale: e.r, life: 1.6 }); }
         else { S('water_splash', e.x, e.y, 0, { scale: 1.6 * e.r }); S('explosion_frost', e.x, e.y, 0.5, { scale: e.r, delay: 0.05 }); }
       } else if (e.type === 'flame') {
         const r = PX.screenAng(e.x, e.y, e.a);
@@ -962,8 +967,20 @@
     function ringPath(c, r, pitch) { ctx.beginPath(); ctx.ellipse(c.x, c.y, r, r * pitch, 0, 0, Math.PI * 2); }
     // On the ground, under the fighters: the marked circle filling up, and
     // what an impact leaves behind (scorch, a wet stain).
+    // Calamity's marks as pixel art (tools/make_pixfx.py): 1 m is 27.5 art px, the ring's radius 62 px.
+    const pxHaz = () => px() && PX.has('skyfire_mark');
+    const hazScale = (r) => (r * 27.47) / 62;
     function drawHazardMarks(s) {
       const sc = V.cam.sc, pitch = V.cam.pitch, t = V.time;
+      if (pxHaz()) {
+        for (const h of hazards) {
+          const k = hazardK(s, h), pre = h.kind === 'fire' ? 'skyfire' : 'ocean', g = hazScale(h.r);
+          PX.drawAt(pre + '_fill', 0, h.x, h.y, 0.02, { ground: true, scale: g * (0.12 + 0.88 * k), alpha: 0.45 + 0.45 * k });
+          const blink = k > 0.75 && Math.sin(t * 40) > 0;
+          PX.drawAt(pre + '_mark', t, h.x, h.y, 0.02, { ground: true, scale: g, alpha: 1, add: blink });
+        }
+        return;
+      }
       for (const d of hazHits) {
         const k = d.t / d.life, c = P(d.x, d.y, 0.02), r = d.r * sc;
         if (d.kind === 'fire') {
@@ -1010,6 +1027,18 @@
     // lifting, then the impact.
     function drawHazardsAbove(s, dt, sc) {
       for (const h of hazards) h.t += dt;
+      if (pxHaz()) {
+        // The knot of flame or the slab of water gathering overhead; the impacts are pixel sprites
+        // spawned from the hit (pixelEvent).
+        hazards = hazards.filter((h) => h.t < h.windup + 0.4 || (s.hazards && s.hazards.some((q) => Math.abs(q.x - h.x) < 0.05 && Math.abs(q.y - h.y) < 0.05)));
+        for (const h of hazards) {
+          const k = hazardK(s, h), g = hazScale(h.r);
+          if (h.kind === 'fire') PX.drawAt('skyfire_gather', V.time, h.x, h.y, 5.2 - 0.6 * k, { scale: g * (0.6 + 0.9 * k) });
+          else PX.drawAt('ocean_gather', V.time, h.x, h.y, 3.8 - 0.8 * k, { scale: g * (0.8 + 0.5 * k) });
+        }
+        hazHits = [];
+        return;
+      }
       hazards = hazards.filter((h) => h.t < h.windup + 0.4 || (s.hazards && s.hazards.some((q) => Math.abs(q.x - h.x) < 0.05 && Math.abs(q.y - h.y) < 0.05)));
       const t = V.time;
       for (const h of hazards) {
