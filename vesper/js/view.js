@@ -400,13 +400,16 @@
         case 'hit': {
           const z = 22 * sc, sa = R.screenAng(e.ang || 0);
           // Pack effects only on the blows that matter; light cuts get clean sparks alone.
-          if (e.fx === 'finisher') { PK('cross_slash', e.x, e.y, z, 1.4); R.punch = 0.03; }
-          else if (e.fx === 'dash') PK('katana', e.x, e.y, z, 1.5, { angle: sa });
+          // Every blow lands: a slash mark in its direction, sparks, a number; heavier blows punch the camera.
+          if (e.fx === 'finisher') { PK('cross_slash', e.x, e.y, z, 1.7); PK('hit_big', e.x, e.y, z, 1.6); R.punch = Math.max(R.punch || 0, 0.06); }
+          else if (e.fx === 'dash') PK('katana', e.x, e.y, z, 1.7, { angle: sa });
           else if (e.art) PK('hit_crit', e.x, e.y, z, 2);
-          FX({ kind: 'spark', x: e.x, y: e.y, z, life: 0.2, col: e.art ? RED : '#ffffff', r: e.heavy ? 26 : 18 });
-          sparks(e.x, e.y, z, e.heavy ? 12 : 7, e.heavy ? '#ffd9a0' : '#ffffff', e.heavy ? 160 : 110);
-          if (e.heavy || e.art) R.float(String(e.dmg), e.x, e.y, z + 14, e.art ? RED : '#ffd9a0', true);
-          R.shake = Math.max(R.shake, e.art ? 8 : e.heavy ? 3.5 : 1.6);
+          else if (e.heavy) { PK('hit_big', e.x, e.y, z, 1.5); R.punch = Math.max(R.punch || 0, 0.035); }
+          else PK('hit_slash', e.x, e.y, z, 1.2, { angle: sa });
+          FX({ kind: 'spark', x: e.x, y: e.y, z, life: 0.22, col: e.art ? RED : '#ffffff', r: e.finisher ? 36 : e.heavy ? 28 : 20 });
+          sparks(e.x, e.y, z, e.finisher ? 18 : e.heavy ? 13 : 8, e.heavy ? '#ffd9a0' : '#ffffff', e.heavy ? 190 : 130);
+          R.float(String(e.dmg), e.x, e.y, z + 14, e.art ? RED : e.heavy || e.finisher ? '#ffd9a0' : '#ffffff', e.heavy || e.finisher || e.art);
+          R.shake = Math.max(R.shake, e.art ? 8 : e.finisher ? 7 : e.heavy ? 5 : 2.6);
           break;
         }
         case 'hurt': sparks(e.x, e.y, 22, 9, RED, 130, 1.6); R.float(String(e.dmg), e.x, e.y, 38, '#ff5a6e', e.big); R.flash = 0.35; R.flashCol = '255,30,50'; R.shake = Math.max(R.shake, e.big ? 6 : 4); break;
@@ -414,6 +417,9 @@
         case 'perfect': R.float('PERFECT', e.x, e.y, 56, '#8ef0ff', true, true); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.5, col: '#8ef0ff', r0: 6, r1: 60, w: 2 }); break;
         case 'riposte': R.float('RIPOSTE', e.x, e.y, 64, '#ff9aa8', true, true); break;
         case 'break': { PK('hit_big', e.x, e.y, 24 * sc, 1.8); FX({ kind: 'ring', x: e.x, y: e.y, z: 24 * sc, life: 0.45, col: '#ffd060', r0: 6, r1: 60, w: 3 }); for (let i = 0; i < 14; i++) { const a = Math.random() * Math.PI * 2, v = 90 + Math.random() * 120; P({ x: e.x, y: e.y, z: 24 * sc, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.6, vz: 60 + Math.random() * 80, g: -380, life: 0.6, size: 3, col: '#ffd060', shape: 'tri', rot: Math.random() * 6 }); } R.float('BREAK', e.x, e.y, 56 * sc, '#ffd060', true, true); R.shake = 7; break; }
+        case 'block': PK('parry', e.x, e.y, 22, 1.1); R.float('BLOCK', e.x, e.y, 54, '#c8c0b0', false, true); sparks(e.x, e.y, 22, 6, '#e8e0c8', 120); break;
+        case 'guardbreak': PK('hit_big', e.x, e.y, 22, 2); FX({ kind: 'ring', x: e.x, y: e.y, z: 22, life: 0.4, col: '#ffd060', r0: 6, r1: 56, w: 3 }); R.float('GUARD BREAK', e.x, e.y, 60, '#ffd060', true, true); R.shake = Math.max(R.shake, 8); R.punch = Math.max(R.punch || 0, 0.05); break;
+        case 'explode': PK('blast', e.x, e.y, 10, 3.2); PK('smoke_burst', e.x, e.y, 8, 2.2); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.5, col: '#ff6a5a', r0: 6, r1: e.r * 1.4, w: 4 }); sparks(e.x, e.y, 14, 24, '#ff8a6a', 260); R.flash = 0.4; R.flashCol = '255,90,60'; R.shake = Math.max(R.shake, 10); break;
         case 'reinforce': R.flash = 0.35; R.flashCol = '255,40,70'; R.shake = Math.max(R.shake, 7); break;
         case 'heal': R.float('+' + e.n, e.x, e.y, 58, '#7dffb0'); break;
         case 'finisher': R.impactF = { t: 0, dur: 0.14, x: e.x, y: e.y, big: true }; R.punch = 0.09; R.shake = Math.max(R.shake, 12); R.float('FINISH', e.x, e.y, 70, '#ffffff', true, true); break;
@@ -570,6 +576,10 @@
     if (alpha <= 0) return;
     if (u.state === 'spawn') { if (pass !== 'reflect') drawSpawn(ctx, u, x, y, sc, sa); return; }
     if (pass === 'reflect') { ctx.save(); ctx.translate(0, 2 * y0 + lift); ctx.scale(1, -1); A.actor(ctx, u.set, u.clip, u.frame, sa, x, y, sc, { alpha: 0.11 * alpha }); ctx.restore(); return; }
+    if (u.def.tint && u.alive) { A.tex(ctx, 'light_01', x, y - 20 * sc, 60 * sc, 60 * sc, u.def.tint, 0.45 + 0.25 * Math.sin(R.t * 12 + u.id), 0, true); }
+    if (u.def.guard && u.alive && !(u.guardT > 0) && u.state !== 'hurt' && u.state !== 'down') {
+      ctx.save(); ground(ctx); ctx.strokeStyle = 'rgba(230,220,200,0.55)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(u.x, u.y, 18 * u.scale, u.ang - u.def.guard.arc, u.ang + u.def.guard.arc); ctx.stroke(); ctx.restore(); unground(ctx);
+    }
     if (u.elite && u.alive) {
       ctx.save(); ctx.translate(x, y0); ctx.scale(1, HELI.pitch); A.tex(ctx, 'magic_01', 0, 0, 52 * sc, 52 * sc, RED, 0.75, R.t * 1.5, true); ctx.restore();
       A.tex(ctx, 'smoke_07', x, y - 22 * sc, 60 * sc, 70 * sc, RED, 0.35 + 0.1 * Math.sin(R.t * 8), R.t * 2, true);
@@ -584,6 +594,7 @@
     const winding = u.state === 'attack' && u.team === 'foe' && u.st < u.atk.wind * u.windMul;
     const opts = { alpha, flash: u.flash * 0.55 };
     if (u.slowT > 0 && !u.flash) { opts.flash = 0.3; opts.flashCol = '#8fd0ff'; if (Math.random() < 0.15) P({ x: u.x + (Math.random() - 0.5) * 14, y: u.y, z: 10 + Math.random() * 30, vz: 10, life: 0.6, size: 1.4, col: '#d8f0ff', shape: 'sq' }); }
+    if (u.def.tint && !opts.flash) { opts.flash = 0.25 + 0.25 * Math.sin(R.t * 12 + u.id); opts.flashCol = u.def.tint; }
     if (u.ally) { opts.alpha = alpha * 0.82; opts.flash = Math.max(opts.flash || 0, 0.35); opts.flashCol = '#a070ff'; }
     if (u.def.clone) { opts.flash = Math.max(opts.flash || 0, 0.45); opts.flashCol = '#20081a'; }
     if (u === s.hero && s.invisT > 0) opts.alpha = 0.35;
@@ -772,6 +783,8 @@
     if (zoomIn) { const c = R.P(s.transit.p.x, s.transit.p.y, 40), z = 1 + zoomIn; ctx.translate(c.x, c.y); ctx.scale(z, z); ctx.translate(-c.x, -c.y); }
     // A filmed story shot pushes the camera in on the action.
     if (s.zoom && s.zoom !== 1) { ctx.translate(R.W / 2, R.H * 0.56); ctx.scale(s.zoom, s.zoom); ctx.translate(-R.W / 2, -R.H * 0.56); }
+    // A camera punch on the big blows: a quick zoom in that springs back.
+    if (R.punch > 0.001) { const z = 1 + R.punch; ctx.translate(R.W / 2, R.H * 0.56); ctx.scale(z, z); ctx.translate(-R.W / 2, -R.H * 0.56); R.punch = Math.max(0, R.punch - (R.realDt || dt) * 0.45); }
     R.baseT = ctx.getTransform();
     // The sky and the moon behind the platform, drifting a little with the camera.
     const sky = heliSky(st); ctx.drawImage(sky, -40 - Math.round(R.hcam.x * 0.06 * R.dpr), 0);

@@ -115,6 +115,10 @@
         { name: 'Seven Centuries', kind: 'blinkStrike', cd: 7, clip: 'Attack4', dmg: 22, range: 170, r: 38, poise: 24 }] }),
   };
   D.HERO_ORDER = ['vesper', 'lys', 'kestrel', 'wisp', 'rime', 'firstcut'];
+  // Snappier: every hero's cuts wind up and recover faster, and they move quicker.
+  for (const id of D.HERO_ORDER) { const H = D.HEROES[id] = Object.assign({}, D.HEROES[id]); H.spd = Math.round(H.spd * 1.12);
+    const quick = (k) => Object.assign({}, k, { wind: +(k.wind * 0.8).toFixed(3), recover: +(k.recover * 0.75).toFixed(3) });
+    H.combo = H.combo.map(quick); H.heavy = quick(H.heavy); H.dashCut = quick(H.dashCut); }
   // Wisp's shadow clones.
   D.CLONE = { name: 'Shadow', set: 'nox', hp: 30, spd: 130, poise: 0, ally: true,
     atks: [{ clip: 'Attack1', wind: 0.12, recover: 0.22, reach: 26, dmg: 5, poise: 5, kb: 6 }, { clip: 'Attack6', wind: 0.12, recover: 0.22, reach: 26, dmg: 5, poise: 5, kb: 6 }] };
@@ -131,6 +135,17 @@
   D.FOES = {
     // A training dummy for the first trial: stands, takes cuts, never strikes back.
     dummy: { name: 'Training Husk', set: 'thug_a', hp: 26, spd: 0, poise: 0, minion: true, passive: true, color: '#9a8a92', atks: [{ clip: 'Attack1', wind: 9, recover: 1, reach: 1, dmg: 0, kb: 0 }] },
+    // A shield wall in one man: blocks cuts from the front. A heavy blow, or getting behind him, breaks the guard.
+    shield: { name: 'Shieldbearer', set: 'gothic_knight_a', hp: 80, spd: 44, poise: 0, minion: true, color: '#c8c0b0', guard: { arc: 1.15, mul: 0.15 },
+      atks: [{ clip: 'Attack1', wind: 0.45, recover: 0.5, reach: 28, dmg: 9, kb: 20 },
+        { clip: 'Attack4', wind: 0.6, recover: 0.6, reach: 26, dmg: 12, kb: 26, lunge: 70, range: [40, 100] }] },
+    // A charging brute: a long telegraphed rush you must sidestep, and a slam that shakes the floor.
+    brute: { name: 'Grave Brute', set: 'golem_b', scale: 1.35, hp: 150, spd: 46, poise: 60, minion: true, color: '#c89070',
+      atks: [{ clip: 'Attack4', wind: 0.85, recover: 1.0, reach: 30, dmg: 22, kb: 44, lunge: 210, range: [70, 240], unparry: true },
+        { clip: 'Attack3', wind: 0.75, recover: 0.9, aoe: 44, at: 18, dmg: 18, kb: 30, unparry: true }] },
+    // Fast and swollen with red light: it runs at you and bursts. Kill it near its friends.
+    husk: { name: 'Blood Husk', set: 'thug_a', hp: 22, spd: 104, poise: 0, minion: true, color: '#ff4a5a', blast: { r: 56, dmg: 40 }, tint: '#ff2a44',
+      atks: [{ clip: 'Attack2', wind: 0.7, recover: 0.2, aoe: 46, at: 0, dmg: 26, kb: 44, unparry: true, explode: true }] },
     ghoul: { name: 'Ghoul', set: 'thug_a', hp: 34, spd: 52, poise: 0, minion: true, color: '#b9a2d8',
       atks: [{ clip: 'Attack1', wind: 0.5, recover: 0.45, reach: 26, dmg: 7, kb: 8 }] },
     ghast: { name: 'Ghast', set: 'thug_b', hp: 48, spd: 58, poise: 0, minion: true, color: '#c7b0e8',

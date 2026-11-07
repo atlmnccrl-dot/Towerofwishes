@@ -212,19 +212,29 @@
 
   // ---- playback ------------------------------------------------------------------------------------
   const CUE = { film: [['magic', 0.4]], title: [['clang_1', 0.6]], moonfall: [['charge', 0.8]], clash: [['whoosh', 0.9]], seal: [['charge', 0.8]], spire: [['step_2', 0.5]] };
-  const durOf = (sh) => Math.max(sh.d || 2.4, sh.say ? 1.6 + sh.say.length * 0.05 : 0);
-  T.durOf = durOf; T.kinds = () => Object.keys(SHOT);
+  const durOf = (sh) => (sh.k === 'anime' ? VS.OPEN.dur : Math.max(sh.d || 2.4, sh.say ? 1.6 + sh.say.length * 0.05 : 0));
+  T.durOf = durOf; T.kinds = () => Object.keys(SHOT).concat(['anime']);
   T.start = function (def) { const sc = { def, i: 0, t: 0, done: false, cues: [] }; enter(sc); return sc; };
   function enter(sc) { const sh = sc.def.shots[sc.i]; if (!sh) { sc.done = true; return; } sc.t = 0; sc.cues.push(...(CUE[sh.k] || [])); sc.hitCued = false; }
   T.update = function (sc, dt, inp) {
     if (sc.done) return; if (inp.back) { sc.done = true; return; }
-    const sh = sc.def.shots[sc.i]; sc.t += dt; sc.dt = dt; const d = durOf(sh);
+    const sh = sc.def.shots[sc.i], t0 = sc.t; sc.t += dt; sc.dt = dt; const d = durOf(sh);
+    // The anime opening: its own sound cues, and a tap jumps to its next beat rather than past it.
+    if (sh.k === 'anime') { sc.cues.push(...VS.OPEN.cues(t0, sc.t)); if (inp.tap && sc.t > 0.35) { sc.t = VS.OPEN.next(sc.t); if (sc.t >= d) { sc.i++; enter(sc); } return; } }
     if ((sh.k === 'clash' || sh.k === 'moonfall' || sh.k === 'seal') && !sc.hitCued && sc.t / d > ({ clash: 0.45, moonfall: 0.62, seal: 0.58 })[sh.k]) { sc.hitCued = true; sc.cues.push(['blow_big', 1], ['clang_1', 0.8], ['quake', 0.6]); }
     if (sc.t >= d || (inp.tap && sc.t > 0.35)) { sc.i++; enter(sc); }
   };
   T.draw = function (ctx, sc) {
     const sh = sc.def.shots[Math.min(sc.i, sc.def.shots.length - 1)]; if (!sh) return;
     const k = Math.min(1, sc.t / durOf(sh));
+    if (sh.k === 'anime') {
+      const PX = VS.PX, c = PX.ctx; PX.fit(R.W / R.H); c.setTransform(1, 0, 0, 1, 0, 0); c.globalAlpha = 1; c.clearRect(0, 0, PX.W, PX.H);
+      VS.OPEN.draw(c, sc.t, (sp('hero') || {}).set || 'gothic_knight_b');
+      const sx = PX.shake > 0 ? (Math.random() - 0.5) * PX.shake * R.H / PX.H * 0.5 : 0, sy = PX.shake > 0 ? (Math.random() - 0.5) * PX.shake * R.H / PX.H * 0.5 : 0; PX.shake = Math.max(0, PX.shake - 1);
+      ctx.save(); ctx.imageSmoothingEnabled = false; ctx.drawImage(PX.buf, 0, 0, PX.W, PX.H, sx, sy, R.W, R.H); ctx.restore();
+      if (sc.t > 0.6) R.label(ctx, 'CLICK TO SKIP AHEAD  ·  ESC SKIPS', R.W - 18 * R.k, 16 * R.k, 9 * R.k, 'rgba(220,210,214,0.4)', 'right', 2, 500);
+      return;
+    }
     ctx.save(); ctx.imageSmoothingEnabled = false; SHOT[sh.k](ctx, sh, k, sc.t, sc); ctx.restore();
     caption(ctx, sh, sc.t);
     if (sc.t > 0.6) R.label(ctx, 'CLICK TO CONTINUE  ·  ESC SKIPS', R.W - 18 * R.k, 16 * R.k, 9 * R.k, 'rgba(220,210,214,0.4)', 'right', 2, 500);

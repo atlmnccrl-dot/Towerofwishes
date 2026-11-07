@@ -46,9 +46,8 @@ time you climb into it, each guardian's intro before its fight, the ending after
 
 **Levels and the skill tree** (`js/progress.js`): fights give experience (more the first time,
 more per new star, a little for trying); every level gives a skill point, so do shrines and
-guardians. You start with only movement and the light-attack combo. Dodge, parry, the heavy
-attack, both skills and the ultimate are learned in the skill tree's three branches (Blade,
-Shadow, Moon) alongside passives (more damage, health, a wider parry window, a faster moon, an
+guardians. You start with the light-attack combo, the heavy attack and dodge. Parry, both skills
+and the ultimate are learned in the skill tree's three branches (Blade, Shadow, Moon) alongside passives (more damage, health, a wider parry window, a faster moon, an
 executioner bonus, quicker skills). Refunding the whole tree is free. A new ability gets a short
 tip card the first time you fight with it.
 
@@ -57,8 +56,19 @@ defeating any guardian without being hit (the Untouchable challenge is made for 
 level 12, and the First Cut himself by defeating him. The roster shows locked heroes as shadows
 with what it takes and how close you are.
 
-**Tutorial**: the First Steps trial walks you through moving, cutting, chaining a combo on
-training husks, then a real fight, with a coaching card for each step.
+**Tutorial**: the First Steps trial walks you through moving, cutting and chaining a combo,
+the heavy attack and the dodge on training husks, then a real fight, with a coaching card for
+each step.
+
+**The opening** (`js/opening.js`): an anime sequence in the style of the moon arts, on the
+pixel buffer: the moon falling, the swordsman's eye, his leap across the moon, the first cut and
+its impact frame, the wound, the dead rising, "tonight it bleeds out", your hero's eye and draw,
+and a tilt up the Spire past every guardian to the title. About 23 seconds; a tap skips to the
+next beat.
+
+**Foes with a trick**: Shieldbearers block cuts from the front (a heavy blow breaks the guard, or
+get behind them); Grave Brutes charge down a telegraphed lane and slam the floor; Blood Husks run
+at you and burst, and killing one blows up the foes around it.
 
 **Balance**: `node test/campaign-test.js [runs] [hero]` plays the whole map in order with the
 profile a player would have by then (levels from the experience earned, skills bought in a sensible

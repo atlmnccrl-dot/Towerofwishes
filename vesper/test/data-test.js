@@ -29,7 +29,7 @@ const src = ['view.js', 'cine.js'].map((f) => fs.readFileSync(path.join(__dirnam
 for (const n of used) { if (!fx[n]) bad('fx ' + n); if (src.indexOf("'" + n + "'") < 0) bad('fx listed but unused ' + n); }
 // Scenes: known shot kinds, known speakers, one scene per stage.
 for (const H of Object.values(D.HEROES)) for (const sk of H.skills) if (sk.fx && !fx[sk.fx]) bad('skill fx ' + sk.fx);
-const KINDS = ['title', 'moonfall', 'film', 'spire', 'clash', 'seal'];
+const KINDS = ['title', 'moonfall', 'film', 'spire', 'clash', 'seal', 'anime'];
 const scenes = S.BEFORE.concat([S.ENDING]);
 if (S.BEFORE.length !== D.STAGES.length) bad('one scene per stage');
 for (const sc of scenes) for (const sh of sc.shots) {

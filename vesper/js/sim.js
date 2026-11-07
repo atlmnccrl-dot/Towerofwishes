@@ -195,6 +195,7 @@
       if (inReach(a, k, o)) { a.hits.push(o.id); hit(s, a, o, k); }
     }
     if (a === s.hero && !k.bolt) ev(s, { type: 'swing', id: a.id, clip: k.clip });
+    if (k.explode && a.alive) { a.hp = 0; kill(s, a); return; }
     if (k.aoe) { const c = VS.aoeAt(a, k); ev(s, { type: a.team === 'hero' ? 'spin' : 'slam', x: c.x, y: c.y, r: c.r, id: a.id }); }
   }
 
@@ -302,6 +303,12 @@
     }
     // A foe hit by the hero (or a reflected bolt).
     if (o.iframes > 0 || o.state === 'dead' || o.state === 'spawn') return;
+    const src0 = bolt ? { x: bolt.x - bolt.vx, y: bolt.y - bolt.vy } : a;
+    // A shieldbearer turns aside cuts from the front; a heavy blow breaks the guard, a cut from behind slips past.
+    if (o.def.guard && !(o.guardT > 0) && o.state !== 'hurt' && o.state !== 'down' && o.state !== 'air' && Math.abs(angDiff(Math.atan2(src0.y - o.y, src0.x - o.x), o.ang)) < o.def.guard.arc) {
+      if ((k.poise || 0) >= 12 && !bolt) { o.guardT = 2.6; setState(o, 'hurt', 1.1); o.atk = null; push(o, src0, 60); s.hitstop = Math.max(s.hitstop, 0.12); gainMoon(s, 6); ev(s, { type: 'guardbreak', x: o.x, y: o.y, id: o.id }); }
+      else { const bd = Math.max(1, Math.round(k.dmg * M.dmg * o.def.guard.mul)); o.hp -= bd; s.stats.dealt += bd; o.flash = 0.4; push(o, src0, 20); s.hitstop = Math.max(s.hitstop, 0.04); ev(s, { type: 'block', x: o.x, y: o.y, id: o.id }); if (o.hp <= 0) { o.hp = 0; kill(s, o); } return; }
+    }
     let mult = M.dmg * (o.state === 'down' ? 1.5 : 1) * (M.exec && o.hp < o.maxHp * 0.25 ? 1.5 : 1);
     if (!bolt && a.riposte) { mult *= 3; a.riposte = false; ev(s, { type: 'riposte', x: o.x, y: o.y }); }
     const dmg = Math.max(1, Math.round(k.dmg * mult * (0.9 + 0.2 * s.rand())));
@@ -311,7 +318,7 @@
     gainMoon(s, (k.poise || 6) >= 12 ? 5 : 3);
     const src = bolt ? { x: bolt.x - bolt.vx, y: bolt.y - bolt.vy } : a;
     ev(s, { type: 'hit', x: o.x, y: o.y, dmg, id: o.id, heavy: (k.poise || 0) >= 12, combo: s.combo, ang: Math.atan2(o.y - src.y, o.x - src.x), fx: bolt ? 'bolt' : k.fx, finisher: !!k.finisher });
-    s.hitstop = Math.max(s.hitstop, (k.poise || 0) >= 12 ? 0.075 : 0.045);
+    s.hitstop = Math.max(s.hitstop, k.finisher ? 0.13 : (k.poise || 0) >= 12 ? 0.1 : 0.06);
     if (o.hp <= 0) { o.hp = 0; kill(s, o); return; }
     if (o.def.boss && o.phase === 1 && o.hp <= o.maxHp * 0.5) phaseTwo(s, o);
     if (k.slow) o.slowT = Math.max(o.slowT, k.slow);
@@ -323,7 +330,7 @@
       o.vz = Math.max(o.vz, launcher ? 270 : 165); o.atk = null; push(o, src, kb * (launcher ? 6 : 2.5));
       ev(s, { type: first ? 'launch' : 'juggle', id: o.id, x: o.x, y: o.y }); return;
     }
-    if (o.maxPoise <= 0) { setState(o, 'hurt', Math.max(0.3, o.stunT)); o.atk = null; push(o, src, kb * 11); return; }
+    if (o.maxPoise <= 0) { setState(o, 'hurt', Math.max(0.36, o.stunT)); o.atk = null; push(o, src, kb * 15); return; }
     if (o.state === 'down') return;
     o.poise -= k.poise || 6;
     if (o.poise <= 0) { if (o.def.minion) { setState(o, 'hurt', 0.45); o.atk = null; push(o, src, kb * 12); o.poise = o.maxPoise; } else breakPoise(s, o, src); }
@@ -336,6 +343,13 @@
   }
   function phaseTwo(s, o) { o.phase = 2; o.windMul = 0.86; o.spdMul = 1.15; o.aura = true; o.tauntT = 1.1; s.freeze = Math.max(s.freeze, 1.1); ev(s, { type: 'phase', id: o.id, key: o.key }); }
   function kill(s, o) {
+    if (o.def.blast && !o.exploded) {
+      o.exploded = true; const B = o.def.blast;
+      ev(s, { type: 'explode', x: o.x, y: o.y, r: B.r });
+      for (const f of s.units.slice()) { if (f === o || !f.alive || f.ally) continue; const d = Math.hypot(f.x - o.x, f.y - o.y); if (d > B.r + f.rad) continue;
+        if (f.team === 'foe') { directDamage(s, f, B.dmg); if (f.alive && f.def.minion) { setState(f, 'hurt', 0.5); push(f, o, 120); } }
+        else if (o.atk && o.atk.explode && !(f.iframes > 0)) { /* the contact blow already hit the hero */ } }
+    }
     if (o.state === 'spawn') { const c = VS.clampTo(curArena, o.x, o.y, o.rad * 0.6); o.x = c[0]; o.y = c[1]; }
     o.alive = false; setState(o, 'dead'); o.atk = null;
     if (o.team === 'foe') { const h = s.hero; push(o, h, o.def.boss ? 90 : 210); o.vz = Math.max(o.vz, o.def.boss ? 60 : 150); }
@@ -461,7 +475,7 @@
     s.portal = { x, y, t: 0, kind: s.def.portal || 'rift' };
     ev(s, { type: 'portal', x, y, kind: s.portal.kind });
   }
-  VS.TRANSIT = { into: 0.6, swap: 1.5, dur: 2.3 };
+  VS.TRANSIT = { into: 0.45, swap: 1.05, dur: 1.6 };
   function transit(s, dt) {
     const h = s.hero, T = VS.TRANSIT, tr = s.transit, p = s.portal || tr.p;
     const prev = tr.t; tr.t += dt;
@@ -484,7 +498,7 @@
     return d <= r;
   }
   function foeThink(s, u, dt) {
-    u.sigCd -= dt; u.summonCd -= dt;
+    u.sigCd -= dt; u.summonCd -= dt; if (u.guardT > 0) u.guardT -= dt;
     const h = targetOf(s, u);
     if (!h) { if (u.state === 'idle' || u.state === 'move') { setAng(u, u.ang + dt * 0.6); if (u.state !== 'idle') setState(u, 'idle'); } return; }
     u.target = h;
@@ -724,7 +738,7 @@
       if (s.wave >= s.waves.length - 1) { s.endT = 2.2; setState(h, 'win'); ev(s, { type: 'clear' }); }
       else if (s.wave < 0 || s.area > s.wave) { s.waveT -= dt; if (s.waveT <= 0) { spawnWave(s); s.waveT = 1.1; } }
       else if (!s.portal) openPortal(s);
-      else { s.portal.t += dt; if (s.portal.t > 1.6 && Math.hypot(h.x - s.portal.x, h.y - s.portal.y) < 18 && (h.state === 'idle' || h.state === 'move')) { s.transit = { t: 0, p: s.portal }; ev(s, { type: 'transit', kind: s.portal.kind }); } }
+      else { s.portal.t += dt; if (s.portal.t > 1.15 && Math.hypot(h.x - s.portal.x, h.y - s.portal.y) < 22 && (h.state === 'idle' || h.state === 'move')) { s.transit = { t: 0, p: s.portal }; ev(s, { type: 'transit', kind: s.portal.kind }); } }
     }
     return s;
   }

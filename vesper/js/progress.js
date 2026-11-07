@@ -9,7 +9,7 @@
   // ---- levels -------------------------------------------------------------------------------
   P.MAX_LVL = 40;
   P.need = (lvl) => 60 + 50 * (lvl - 1);                 // XP from this level to the next
-  P.fresh = () => ({ v: 2, xp: 0, lvl: 1, sp: 0, skills: [], heroes: ['vesper'], hero: 'vesper', nodes: {}, flags: {}, seen: {}, tips: {}, last: 'a0-t',
+  P.fresh = () => ({ v: 2, xp: 0, lvl: 1, sp: 0, skills: ['heavy', 'dodge'], heroes: ['vesper'], hero: 'vesper', nodes: {}, flags: {}, seen: {}, tips: {}, last: 'a0-t',
     stats: { wins: 0, kills: 0, bosses: 0, stars: 0 } });
   // Add XP; every level gives a skill point. Returns the number of levels gained.
   P.addXp = function (p, n) {
@@ -27,22 +27,22 @@
     { id: 'shadow', name: 'Shadow', desc: 'Evasion and endurance', col: '#c9a0ff' },
     { id: 'moon', name: 'Moon', desc: 'Skills and the ultimate', col: '#ffd060' }];
   P.SKILLS = [
-    { id: 'heavy', br: 'blade', core: true, name: 'Heavy Attack', desc: 'Right click: a heavy blow that hits all around and breaks guards.', cost: 1, lvl: 2, req: [] },
+    { id: 'heavy', br: 'blade', core: true, base: true, name: 'Heavy Attack', desc: 'Right click: a heavy blow that hits all around and breaks shields.', cost: 0, lvl: 1, req: [] },
     { id: 'fourth', br: 'blade', name: 'Fifth Cut', desc: 'Your combo gains a fifth, heavier cut.', cost: 1, lvl: 4, req: ['heavy'] },
     { id: 'edge', br: 'blade', name: 'Whetted Edge', desc: 'Deal 20% more damage.', cost: 2, lvl: 6, req: ['fourth'] },
     { id: 'riposte', br: 'blade', name: 'Riposte', desc: 'After a parry, your next cut deals triple damage.', cost: 2, lvl: 9, req: ['edge', 'parry'] },
     { id: 'edge2', br: 'blade', name: 'Keen Edge', desc: 'Deal 15% more damage again.', cost: 3, lvl: 12, req: ['edge'] },
     { id: 'exec', br: 'blade', name: 'Executioner', desc: 'Deal 50% more damage to foes under a quarter health.', cost: 3, lvl: 15, req: ['edge2'] },
-    { id: 'dodge', br: 'shadow', core: true, name: 'Dodge', desc: 'Space: dash through danger, untouchable for a moment. Cut right after for a dash-cut.', cost: 1, lvl: 2, req: [] },
-    { id: 'parry', br: 'shadow', core: true, name: 'Parry', desc: 'Q: turn aside white attacks. A clean parry staggers the foe and fills the moon.', cost: 2, lvl: 3, req: ['dodge'] },
+    { id: 'dodge', br: 'shadow', core: true, base: true, name: 'Dodge', desc: 'Space: dash through danger, untouchable for a moment. Cut right after for a dash-cut.', cost: 0, lvl: 1, req: [] },
+    { id: 'parry', br: 'shadow', core: true, name: 'Parry', desc: 'Q: turn aside white attacks. A clean parry staggers the foe and fills the moon.', cost: 1, lvl: 2, req: ['dodge'] },
     { id: 'ghost', br: 'shadow', name: 'Ghoststep', desc: 'Dodges go farther; the perfect dodge is easier.', cost: 1, lvl: 5, req: ['dodge'] },
     { id: 'guard', br: 'shadow', name: 'Steady Hand', desc: 'The parry window is 60% wider.', cost: 2, lvl: 7, req: ['parry'] },
     { id: 'vigor', br: 'shadow', name: 'Second Heart', desc: '30 more health.', cost: 2, lvl: 8, req: ['ghost'] },
     { id: 'vigor2', br: 'shadow', name: 'Third Heart', desc: '30 more health again.', cost: 3, lvl: 11, req: ['vigor'] },
     { id: 'thirst', br: 'shadow', name: 'Red Thirst', desc: 'Heal 5% of the damage you deal.', cost: 3, lvl: 14, req: ['vigor2', 'guard'] },
-    { id: 'skill1', br: 'moon', core: true, hero: 0, name: 'First Skill', desc: 'R: your hero\'s first skill.', cost: 1, lvl: 3, req: [] },
-    { id: 'art', br: 'moon', core: true, name: 'Moon Art', desc: 'E when the moon is full: your hero\'s ultimate, a cinematic strike.', cost: 2, lvl: 4, req: ['skill1'] },
-    { id: 'skill2', br: 'moon', core: true, hero: 1, name: 'Second Skill', desc: 'F: your hero\'s second skill.', cost: 1, lvl: 6, req: ['skill1'] },
+    { id: 'skill1', br: 'moon', core: true, hero: 0, name: 'First Skill', desc: 'R: your hero\'s first skill.', cost: 1, lvl: 2, req: [] },
+    { id: 'art', br: 'moon', core: true, name: 'Moon Art', desc: 'E when the moon is full: your hero\'s ultimate, a cinematic strike.', cost: 2, lvl: 3, req: ['skill1'] },
+    { id: 'skill2', br: 'moon', core: true, hero: 1, name: 'Second Skill', desc: 'F: your hero\'s second skill.', cost: 1, lvl: 5, req: ['skill1'] },
     { id: 'moonblood', br: 'moon', name: 'Moonblood', desc: 'The moon fills 40% faster.', cost: 2, lvl: 8, req: ['art'] },
     { id: 'rising', br: 'moon', name: 'Rising Moon', desc: 'Start every fight with the moon half full.', cost: 2, lvl: 10, req: ['moonblood'] },
     { id: 'breath', br: 'moon', name: 'Last Breath', desc: 'Low-health ultimates open at 45% health instead of 30%.', cost: 3, lvl: 13, req: ['art'] },
@@ -60,7 +60,7 @@
   };
   P.buy = function (p, id) { const c = P.canBuy(p, id); if (!c.ok) return false; p.sp -= P.skill(id).cost; p.skills.push(id); return true; };
   // Take every point back (free): spent points return, abilities are unlearned.
-  P.respec = function (p) { for (const id of p.skills) p.sp += P.skill(id).cost; p.skills = []; };
+  P.respec = function (p) { for (const id of p.skills) p.sp += P.skill(id).cost; p.skills = P.SKILLS.filter((k) => k.base).map((k) => k.id); };
   P.spent = (p) => p.skills.reduce((n, id) => n + P.skill(id).cost, 0);
   P.kit = (p) => p.skills.filter((id) => P.skill(id).core);
   P.passives = (p) => p.skills.filter((id) => !P.skill(id).core);
@@ -94,13 +94,13 @@
   // Acts are the hours of the night (the stage whose arenas and foes they use). Echoes is the
   // post-game: every guardian again, stronger, and the endless night.
   P.ACTS = [
-    { stage: 0, num: 'I', hour: 'DUSK', name: 'The Black Gate', pool: ['ghoul', 'raider', 'ghoul', 'ghast', 'archer', 'spearman'] },
-    { stage: 1, num: 'II', hour: 'THE FIRST HOUR', name: 'Cloister of Frost', pool: ['knife', 'spearman', 'raider', 'archer', 'knife', 'hexer'] },
-    { stage: 2, num: 'III', hour: 'THE SECOND HOUR', name: 'The Umbral Stair', pool: ['bone', 'raider', 'poacher', 'knife', 'archer', 'hexer', 'golem'] },
-    { stage: 3, num: 'IV', hour: 'THE THIRD HOUR', name: 'The Ashen Waste', pool: ['ghast', 'pyre', 'ghoul', 'bone', 'hexer', 'golem'] },
-    { stage: 4, num: 'V', hour: 'THE FOURTH HOUR', name: "The Wind's Throat", pool: ['poacher', 'knife', 'spearman', 'archer', 'bone', 'pyre', 'golem'] },
-    { stage: 5, num: 'VI', hour: 'THE LAST HOUR', name: "The Moon's Shadow", pool: ['spearman', 'knife', 'hexer', 'archer', 'pyre', 'bone', 'golem'] },
-    { stage: 5, num: 'VII', hour: 'AFTER DAWN', name: 'Echoes of the Night', pool: ['golem', 'hexer', 'pyre', 'knife', 'spearman', 'archer', 'bone', 'poacher'], echoes: true },
+    { stage: 0, num: 'I', hour: 'DUSK', name: 'The Black Gate', pool: ['ghoul', 'raider', 'ghoul', 'husk', 'ghast', 'archer', 'shield'] },
+    { stage: 1, num: 'II', hour: 'THE FIRST HOUR', name: 'Cloister of Frost', pool: ['knife', 'spearman', 'raider', 'husk', 'shield', 'archer', 'hexer', 'brute'] },
+    { stage: 2, num: 'III', hour: 'THE SECOND HOUR', name: 'The Umbral Stair', pool: ['bone', 'husk', 'raider', 'poacher', 'shield', 'knife', 'archer', 'hexer', 'brute'] },
+    { stage: 3, num: 'IV', hour: 'THE THIRD HOUR', name: 'The Ashen Waste', pool: ['ghast', 'husk', 'pyre', 'ghoul', 'husk', 'bone', 'brute', 'hexer', 'golem'] },
+    { stage: 4, num: 'V', hour: 'THE FOURTH HOUR', name: "The Wind's Throat", pool: ['poacher', 'knife', 'shield', 'spearman', 'husk', 'archer', 'bone', 'pyre', 'brute'] },
+    { stage: 5, num: 'VI', hour: 'THE LAST HOUR', name: "The Moon's Shadow", pool: ['shield', 'knife', 'husk', 'hexer', 'archer', 'brute', 'pyre', 'bone', 'golem'] },
+    { stage: 5, num: 'VII', hour: 'AFTER DAWN', name: 'Echoes of the Night', pool: ['brute', 'hexer', 'pyre', 'husk', 'shield', 'knife', 'archer', 'bone', 'poacher'], echoes: true },
   ];
   P.RULES = {
     time: (n) => 'Against the clock: clear it within ' + n + ' seconds',
@@ -212,28 +212,28 @@
   const rngOf = (seed) => { let a = seed | 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
   P.depth = (n) => n.act + n.y * 0.9;            // 0 at the first trial, about 6 at the First Cut
   // Foe health and damage for a node: gentle while the kit is small, full strength at the top.
-  P.TUNE = { hp0: 0.55, hpK: 0.23, dmg0: 0.4, dmgK: 0.25 };
+  P.TUNE = { hp0: 0.72, hpK: 0.22, dmg0: 0.62, dmgK: 0.26 };
   P.scaleOf = (n) => { const d = Math.min(7, P.depth(n)), T = P.TUNE; return { hp: T.hp0 + T.hpK * d, dmg: T.dmg0 + T.dmgK * d }; };
   const BOSS = { warden: ['warden'], twins: ['twinA', 'twinB'], umbral: ['umbral'], hunger: ['hunger'], wing: ['wing'], firstCut: ['firstCut'] };
   function pick(pool, n, r, early) { const out = []; for (let i = 0; i < n; i++) out.push(pool[Math.floor(Math.pow(r(), early ? 1.6 : 1) * pool.length)]); return out; }
   // The fight a node holds: waves (pulses split by '+'), whether its last wave is a guardian, arenas, rules.
   P.build = function (n) {
     const A = P.ACTS[n.act], st = D().STAGES[A.stage], r = rngOf(hashStr(n.id)), d = P.depth(n), pool = A.pool, ar = st.arenas;
-    const per = Math.min(6, 3 + Math.floor(d * 0.45)), early = d < 1.5, idx = P.NODES.indexOf(n);
+    const per = Math.min(5, 3 + Math.floor(d * 0.4)), early = d < 1.5, idx = P.NODES.indexOf(n);
     const area = (k) => { const w = []; for (let i = 0; i < k; i++) { if (i) w.push('+'); w.push(...pick(pool, per - (i ? 1 : 0), r, early)); } return w; };
     const rules = {}; if (n.rule) rules[n.rule] = n.rule === 'time' ? true : true;
     if (n.rule === 'time') rules.time = n.n;
     let waves, boss = false, arenas = [ar[idx % ar.length], ar[(idx + 1) % ar.length]];
     switch (n.type) {
-      case 'trial': waves = [['dummy', 'dummy', 'dummy', '+', 'ghoul', 'ghoul', '+', 'ghoul', 'raider', 'ghoul']]; arenas = ['court']; break;
-      case 'battle': waves = [area(d < 1 ? 2 : 3), area(d < 3 ? 2 : 3)]; break;
-      case 'elite': rules.elites = true; waves = [area(2), area(3)]; break;
-      case 'boss': waves = st.waves.map((w) => w.slice()).concat([st.bossWave.slice()]); boss = true; arenas = ar.slice(); break;
+      case 'trial': waves = [['dummy', 'dummy', 'dummy', 'dummy', '+', 'ghoul', 'husk', 'ghoul', '+', 'shield', 'raider']]; arenas = ['court']; break;
+      case 'battle': waves = [area(2), area(2)]; break;
+      case 'elite': rules.elites = true; waves = [area(3)]; arenas = [arenas[0]]; break;
+      case 'boss': waves = [st.waves[st.waves.length - 1].slice(), st.bossWave.slice()]; boss = true; arenas = [ar[ar.length - 2] || ar[0], ar[ar.length - 1]]; break;
       case 'echo': waves = [area(2), BOSS[n.echo].concat(['+'], pick(pool, 3, r))]; boss = true; arenas = [ar[0], ar[ar.length - 1]]; break;
       case 'challenge':
         if (n.echo) { waves = [BOSS[n.echo].slice()]; boss = true; arenas = [D().STAGES[0].arenas[2]]; }
-        else if (n.rule === 'horde') { const k = n.big ? 7 : 5; waves = [area(k)]; arenas = [ar[idx % ar.length]]; }
-        else waves = [area(2), area(3)];
+        else if (n.rule === 'horde') { const k = n.big ? 6 : 4; waves = [area(k)]; arenas = [ar[idx % ar.length]]; }
+        else waves = [area(2), area(2)];
         break;
       default: waves = [];
     }

@@ -153,9 +153,10 @@
   };
   const TUT = [
     { title: 'TRIAL · MOVE', text: () => (R.touch ? 'Drag the left side of the screen to move.' : 'Use WASD to move.') },
-    { title: 'TRIAL · ATTACK', text: () => (R.touch ? 'Tap the big button to cut. Strike a training husk.' : 'Left click to cut. Aim with the mouse. Strike a training husk.') },
-    { title: 'TRIAL · COMBO', text: () => (R.touch ? 'Keep tapping to chain cuts into a combo. Finish the husks.' : 'Keep clicking to chain cuts into a combo. Finish the husks.') },
-    { title: 'TRIAL · FIGHT', text: () => 'The dead are rising. A white flash means a blow is coming: step out of reach, then strike back.' },
+    { title: 'TRIAL · CUT', text: () => (R.touch ? 'Tap the big button to cut, again and again for a combo. Destroy a training husk.' : 'Left click to cut; keep clicking for a combo. Aim with the mouse. Destroy a training husk.') },
+    { title: 'TRIAL · HEAVY', text: () => (R.touch ? 'Tap HEAVY for a heavy blow all around you.' : 'Right click for a heavy blow all around you. It breaks shields.') },
+    { title: 'TRIAL · DODGE', text: () => (R.touch ? 'Tap DASH to dodge. You cannot be hit while dashing.' : 'Press Space to dodge. You cannot be hit while dashing; cut right after for a dash-cut.') },
+    { title: 'TRIAL · FIGHT', text: () => 'The dead are coming. Red flashes cannot be blocked: dodge them. Shields block from the front: use a heavy or get behind. Kill the Blood Husk near the others.' },
   ];
   function startNode(id) {
     const p = P(), n = PR.node(id), b = PR.build(n);
@@ -192,7 +193,7 @@
       const bossName = s.hasBoss ? (n.echo ? n.name.replace('Echo: ', '') : n.name) : null;
       s.goal = { reach: n.type === 'trial' ? 'Finish the trial' : n.rule === 'horde' ? 'Survive the horde' : 'Clear every wave', boss: bossName ? 'Defeat ' + bossName : 'Clear every wave' };
       f0.banner = { text: n.name, sub: (n.rule ? PR.RULES[n.rule](n.n).split(':')[0].toUpperCase() + '  ·  ' : '') + AR.name + '  ·  AREA 1 / ' + s.waves.length, t: -0.4, col: '#ffffff' };
-      if (n.type === 'trial') f0.tut = { step: 0, x0: s.hero.x, y0: s.hero.y, t: 0 };
+      if (n.type === 'trial') { f0.tut = { step: 0, x0: s.hero.x, y0: s.hero.y, t: 0 }; p.tips.heavy = p.tips.dodge = true; }
       f0.tips = kit.filter((k) => !p.tips[k]).map((k) => ({ id: k, t: 0 }));
     } else f0.banner = { text: AR.name, sub: 'AREA 1 / ' + s.waves.length, t: -0.4, col: '#ffffff' };
     M.go('fight'); AU.playAmb(null); AU.playMusic('heartfelt_battle');
@@ -219,11 +220,13 @@
   }
   // The trial's steps, checked against the fight as it plays.
   function tutorial(f) {
-    const s = f.s, T = f.tut, foes = SIM.foes(s);
-    T.t += 1 / 60;
-    if (T.step === 0 && Math.hypot(s.hero.x - T.x0, s.hero.y - T.y0) > 60) { T.step = 1; T.t = 0; AU.sfx('step_2', 0.6); }
-    if (T.step === 1 && foes.filter((u) => u.key === 'dummy').length < 3 && s.wave >= 0) { T.step = 2; T.t = 0; AU.sfx('step_2', 0.6); }
-    if (T.step === 2 && foes.some((u) => u.key !== 'dummy')) { T.step = 3; T.t = 0; AU.sfx('horn', 0.5); }
+    const s = f.s, T = f.tut, h = s.hero, foes = SIM.foes(s);
+    T.t += 1 / 60; const next = () => { T.step++; T.t = 0; AU.sfx('step_2', 0.6); };
+    if (T.step === 0 && Math.hypot(h.x - T.x0, h.y - T.y0) > 60) next();
+    else if (T.step === 1 && foes.filter((u) => u.key === 'dummy').length < 4 && s.wave >= 0) next();
+    else if (T.step === 2 && h.state === 'attack' && h.atk === s.heroDef.heavy) next();
+    else if (T.step === 3 && h.state === 'dodge') next();
+    else if (T.step === 4 && T.t < 0.02) AU.sfx('horn', 0.5);
   }
   function fight(ctx, dt) {
     const f = M.fight, s = f.s;
@@ -261,7 +264,7 @@
       if (f.card) { f.cardT += dt; if (f.cardT < 1.9) R.bossCard(ctx, s, f.card, f.cardT); else f.card = null; }
       // Coaching: the trial's steps, then a card for each newly learned ability.
       if (f.banner && f.banner.t < 2.2 && !f.banner.low) { /* the coach waits for the banner */ }
-      else if (f.tut && !M.paused) { const st = TUT[Math.min(3, f.tut.step)]; R.coach(ctx, { title: st.title, text: st.text(), t: f.tut.t + 0.3, step: f.tut.step, of: 4, col: '#8ad0ff' }); }
+      else if (f.tut && !M.paused) { const st = TUT[Math.min(4, f.tut.step)]; R.coach(ctx, { title: st.title, text: st.text(), t: f.tut.t + 0.3, step: f.tut.step, of: 5, col: '#8ad0ff' }); }
       else if (f.tips && f.tips.length && !M.paused && s.time > 1.2) {
         const tp = f.tips[0], H = s.heroDef, [tt, tx] = TIPS[tp.id](H); tp.t += dt;
         R.coach(ctx, { title: tt, text: tx, t: tp.t, life: 6 });

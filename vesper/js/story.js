@@ -88,7 +88,8 @@
   // The campaign plays these pieces: the prologue before the first trial, each act's intro the
   // first time you climb into it, and each guardian's intro before its fight.
   const B = S.BEFORE;
-  S.PROLOGUE = { shots: B[0].shots.slice(0, 6) };
+  // The prologue is the anime opening (opening.js), the whole premise in about 23 seconds.
+  S.PROLOGUE = { shots: [{ k: 'anime', seq: 'opening' }] };
   S.ACTS = [
     { intro: null, boss: { shots: B[0].shots.slice(6) } },
     { intro: { shots: B[1].shots.slice(0, 2) }, boss: { shots: B[1].shots.slice(2) } },

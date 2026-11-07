@@ -30,7 +30,7 @@ fs.mkdirSync(out, { recursive: true });
   for (let i = 0; i < 4; i++) { await page.keyboard.press('KeyJ'); await page.waitForTimeout(130); }
   await shot('04-combo', 40);
   await page.keyboard.press('Space'); await page.waitForTimeout(120);
-  if (await page.evaluate(() => VS.main.fight.s.hero.state === 'dodge')) errors.push('dodge worked before it was learned');
+  if (!(await page.evaluate(() => VS.main.fight.s.hero.state === 'dodge'))) errors.push('dodge did not work from the start');
   await page.keyboard.press('Escape'); await shot('05-pause', 400);
   if (!(await page.evaluate(() => VS.ui.current === 'pause'))) errors.push('pause menu did not open');
   await button('Resume'); await page.waitForTimeout(200);
