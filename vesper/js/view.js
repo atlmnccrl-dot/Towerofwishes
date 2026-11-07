@@ -412,7 +412,7 @@
         case 'spin': { const h = s.hero; if (s.heroDef.heavy.fx === 'frost') { PK('explosion_frost', h.x, h.y, 10, 3); PK('frost_nova', h.x, h.y, 4, 2.6); } else PK('spin_slash', h.x, h.y, 18, 2.2); FX({ kind: 'gring', x: h.x, y: h.y, life: 0.35, col: '#ffffff', r0: 8, r1: 46, w: 3 }); FX({ kind: 'spin', x: h.x, y: h.y, life: 0.3 }); R.shake = Math.max(R.shake, 4); break; }
         case 'spawn': break;
         case 'landed': if (e.boss) { PK('shockwave', e.x, e.y, 0, 3.2); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.6, col: '#ffffff', r0: 10, r1: 110, w: 4 }); R.shake = 14; } else { const u2 = s.units.find((o) => o.id === e.id); if (u2 && u2.mode === 'drop') { FX({ kind: 'gring', x: e.x, y: e.y, life: 0.4, col: '#ffffff', r0: 4, r1: 34, w: 2 }); R.shake = Math.max(R.shake, 2.5); } else if (u2 && u2.mode === 'rift') PK('smoke_burst', e.x, e.y, 6, 1.0); } break;
-        case 'portal': FX({ kind: 'gring', x: e.x, y: e.y, life: 0.8, col: '#ffffff', r0: 4, r1: 90, w: 3 }); R.flash = 0.4; R.flashCol = '255,220,230'; break;
+        case 'portal': R.flash = 0.4; R.flashCol = '255,220,230'; break;
         case 'impact': R.impactF = { t: 0, dur: e.size === 'big' ? 0.17 : 0.1, x: e.x, y: e.y, big: e.size === 'big' }; R.shake = Math.max(R.shake, e.size === 'big' ? 12 : 6); break;
         case 'launch': { const z = 20 * sc; FX({ kind: 'gring', x: e.x, y: e.y, life: 0.35, col: '#ffffff', r0: 4, r1: 36, w: 2 }); for (let i = 0; i < 8; i++) P({ x: e.x, y: e.y, z: 2, vx: (Math.random() - 0.5) * 30, vy: (Math.random() - 0.5) * 20, vz: 160 + Math.random() * 120, life: 0.35, size: 1.4, col: '#ffffff', shape: 'line' }); R.float('LAUNCH', e.x, e.y, z + 40, '#ffd060', true, true); R.shake = Math.max(R.shake, 4); break; }
         case 'juggle': sparks(e.x, e.y, (u ? u.z : 0) + 22, 6, '#ffd9a0', 120); break;
@@ -587,7 +587,7 @@
     const k = Math.min(1, u.st / u.dur), Sh = R.Sh();
     if (u.mode === 'side') {
       // Running in through a side gate at the arena's edge: the gate glows while it lets them through.
-      drawSideGate(ctx, u.from.x, u.from.y, 1 - Math.max(0, (k - 0.7) / 0.3));
+      drawSideGate(ctx, u.from.x, u.from.y, 1 - Math.max(0, (k - 0.7) / 0.3), Math.min(1, k * 4));
       A.actor(ctx, u.set, 'Run', u.frame, sa, x, y, sc, k < 0.25 ? { shade: '#05030a', alpha: 0.4 + k * 2.4 } : {});
       if (Math.random() < 0.4) P({ x: u.x, y: u.y, z: 1, vz: 10, life: 0.3, size: 1.5, col: 'rgba(200,190,200,0.4)', shape: 'circle' });
       return;
@@ -611,9 +611,9 @@
     }
     const open = Math.min(1, k * 3), rw = 18 * sc * open;
     ctx.save();
-    const g = ctx.createRadialGradient(x, y, 0, x, y, rw); g.addColorStop(0, 'rgba(10,0,16,0.95)'); g.addColorStop(0.7, 'rgba(70,10,60,0.8)'); g.addColorStop(1, 'rgba(255,42,68,0)');
-    ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(x, y, rw, rw * HELI.pitch * 0.6, 0, 0, 7); ctx.fill();
-    ctx.strokeStyle = 'rgba(255,60,90,0.8)'; ctx.lineWidth = 1.5 * R.dpr; ctx.beginPath(); ctx.ellipse(x, y, rw, rw * HELI.pitch * 0.6, 0, 0, 7); ctx.stroke();
+    ctx.save(); ctx.translate(x, y); ctx.scale(1, HELI.pitch * 0.7);
+    A.fx(ctx, 'circle_arcane', R.t + u.id, 0, 0, sc * 0.75 * open, 0.9, R.t * 0.5);
+    A.tex(ctx, 'twirl_02', 0, 0, rw * 2.4, rw * 2.4, '#c070ff', 0.8, R.t * 3, true); ctx.restore();
     A.fx(ctx, 'portal', R.t + u.id, x, y - 4 * sc, sc * 0.9, 0.8 * open);
     // The body rises out of the floor: cut off at the floor line, black first, then its colours.
     const rise = Math.max(0, (k - 0.25) / 0.75);
@@ -625,122 +625,91 @@
     ctx.restore();
     for (let i = 0; i < 2; i++) if (Math.random() < 0.5) P({ x: u.x + (Math.random() - 0.5) * 20, y: u.y + (Math.random() - 0.5) * 8, z: 2, vx: 0, vy: 0, vz: 30 + Math.random() * 40, g: 0, life: 0.6, size: 1.4, col: 'rgba(200,90,255,0.8)', shape: 'sq' });
   }
-  function raysImg(col) {
-    const key = 'rays' + col; if (cache[key]) return cache[key];
-    const W = 512, H = 288, c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
-    for (let i = 0; i < 11; i++) {
-      const a = -Math.PI / 2 + (i - 5) * 0.27, w = 0.05 + 0.035 * hash(i, 3), L = H * (0.75 + 0.25 * hash(i, 4));
-      const gr = g.createLinearGradient(W / 2, H, W / 2 + Math.cos(a) * L, H + Math.sin(a) * L); gr.addColorStop(0, rgba(i % 2 ? '#ffffff' : col, 0.24)); gr.addColorStop(1, 'rgba(0,0,0,0)');
-      g.fillStyle = gr; g.beginPath(); g.moveTo(W / 2, H); g.lineTo(W / 2 + Math.cos(a - w) * L * 1.2, H + Math.sin(a - w) * L * 1.2); g.lineTo(W / 2 + Math.cos(a + w) * L * 1.2, H + Math.sin(a + w) * L * 1.2); g.closePath(); g.fill();
-    }
-    return (cache[key] = c);
-  }
-  function drawSideGate(ctx, x, y, a) {
+  // ---- Doors, built from the tile set and effect sprites ------------------------------------------------
+  // A side gate: the castle arch with its portcullis winching up while foes run through.
+  function drawSideGate(ctx, x, y, a, open) {
     if (a <= 0) return;
-    const q = R.P(x, y), Sh = R.Sh(), w = 16 * Sh, h = 40 * Sh;
-    ctx.save(); ctx.globalAlpha = a; ctx.translate(q.x, q.y);
-    R.glowAt(ctx, '#c070ff', 0, -h * 0.45, h, 0.45);
-    const lg = ctx.createLinearGradient(0, -h, 0, 0); lg.addColorStop(0, 'rgba(255,255,255,0.9)'); lg.addColorStop(1, 'rgba(192,112,255,0.5)');
-    ctx.fillStyle = lg; ctx.fillRect(-w * 0.6, -h, w * 1.2, h);
-    ctx.fillStyle = '#120c18'; ctx.fillRect(-w, -h - 4 * Sh, w * 0.4, h + 4 * Sh); ctx.fillRect(w * 0.6, -h - 4 * Sh, w * 0.4, h + 4 * Sh); ctx.fillRect(-w * 1.1, -h - 7 * Sh, w * 2.2, 5 * Sh);
-    ctx.restore();
+    const q = R.P(x, y), ts = R.Sh() * 1.5, up = open == null ? 1 : open;
+    ctx.save(); ctx.globalAlpha = a; ctx.imageSmoothingEnabled = false; ctx.translate(q.x, q.y);
+    A.tex(ctx, 'light_01', 0, -14 * ts, 44 * ts, 44 * ts, '#c070ff', 0.35 + 0.25 * up, 0, true);
+    A.prop(ctx, 'cdw_gate_arch', 0, 0, ts);
+    A.tex(ctx, 'light_01', 0, -10 * ts, 22 * ts, 26 * ts, '#e8c8ff', 0.8 * up, 0, true);
+    ctx.save(); ctx.beginPath(); ctx.rect(-11 * ts, -27 * ts, 22 * ts, 27 * ts); ctx.clip();
+    A.tile(ctx, 'cdw_portcullis', Math.round(-16 * ts), Math.round(-32 * ts - up * 26 * ts), Math.round(32 * ts), Math.round(32 * ts));
+    ctx.restore(); ctx.restore();
   }
-  // The way on: a gate of light, a stairway into the sky, or a rift.
+  // The way on. Each kind is assembled from tiles: a stone arch whose wooden door sinks into the
+  // floor (gate), the shrine on its steps (stairs), or a ring of standing stones around a vortex (rift).
+  // It rises out of the floor (0 to 1 s), then opens (0.9 to 1.5 s). An arrival door (p.closing)
+  // stands open, shuts, then sinks away in smoke.
   function drawPortal(ctx, st, p) {
-    // It rises out of the floor (0 to 1 s), its runes light one by one, then it opens (0.9 to 1.5 s)
-    // and throws a pillar of light into the sky. An arrival door (p.closing) plays this backwards.
-    const Sh = R.Sh(), L = st.look, t = R.t, q = R.P(p.x, p.y);
-    // An arrival door bursts open with light, dims, then crumbles away (from 1.0 s).
+    const Sh = R.Sh(), L = st.look, t = R.t, q = R.P(p.x, p.y), col = L.moonCol;
     const rise = p.closing ? 1 : Math.min(1, p.t / 1.0);
-    const open = p.closing ? (p.t < 0.15 ? p.t / 0.15 : Math.max(0, 1 - (p.t - 0.15) / 0.8)) : Math.max(0, Math.min(1, (p.t - 0.9) / 0.6));
-    const fade = p.closing && p.t > 1.0 ? Math.max(0, 1 - (p.t - 1.0) / 0.6) : 1;
-    if (fade <= 0) return;
-    if (!p.boomed && open > 0.05) {
-      // The doors burst: a flash of an impact frame, rings, debris flung out, the camera kicked.
-      p.boomed = true;
-      FX({ kind: 'gring', x: p.x, y: p.y, life: 0.7, col: '#ffffff', r0: 8, r1: 150, w: 5 }); FX({ kind: 'gring', x: p.x, y: p.y, life: 1.0, col: '#ff2a44', r0: 4, r1: 100, w: 2 }); FX({ kind: 'gring', x: p.x, y: p.y, life: 1.3, col: '#ffffff', r0: 20, r1: 200, w: 1.5 });
-      for (let i = 0; i < 26; i++) { const a = Math.random() * Math.PI * 2, v = 80 + Math.random() * 160; P({ x: p.x, y: p.y, z: 10 + Math.random() * 50, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.7, vz: 60 + Math.random() * 120, g: -420, life: 0.9, size: 2.4 + Math.random() * 2, col: i % 3 ? mix(L.sky[0], '#ffffff', 0.25) : '#ffffff', shape: 'tri', rot: Math.random() * 6 }); }
+    const open = p.closing ? (p.t < 0.15 ? 1 : Math.max(0, 1 - (p.t - 0.15) / 0.7)) : Math.max(0, Math.min(1, (p.t - 0.9) / 0.6));
+    const sink = p.closing && p.t > 1.0 ? Math.min(1, (p.t - 1.0) / 0.7) : 0;
+    if (sink >= 1) return;
+    if (!p.boomed && (p.closing || open > 0.05)) {
+      p.boomed = true; p.boomT = t;
+      for (let i = 0; i < 20; i++) { const a = Math.random() * Math.PI * 2, v = 80 + Math.random() * 150; P({ x: p.x, y: p.y, z: 10 + Math.random() * 50, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.7, vz: 60 + Math.random() * 120, g: -420, life: 0.9, size: 2.2 + Math.random() * 2, col: i % 3 ? mix(L.sky[0], '#ffffff', 0.25) : '#ffffff', shape: 'tri', rot: Math.random() * 6 }); }
       if (!p.closing) { R.impactF = { t: 0, dur: 0.09, x: p.x, y: p.y, big: false }; R.punch = 0.05; }
-      R.shake = Math.max(R.shake, p.closing ? 5 : 10); R.flash = p.closing ? 0.6 : 0.5; R.flashCol = '255,235,240';
+      R.shake = Math.max(R.shake, p.closing ? 4 : 10); R.flash = p.closing ? 0.5 : 0.5; R.flashCol = '255,235,240';
     }
-    if (p.closing && !p.crumbled && p.t > 1.0) { p.crumbled = true; for (let i = 0; i < 30; i++) P({ x: p.x + (Math.random() - 0.5) * 40, y: p.y + (Math.random() - 0.5) * 8, z: Math.random() * 90, vx: (Math.random() - 0.5) * 30, vy: (Math.random() - 0.5) * 10, vz: -20 - Math.random() * 40, g: 300, life: 0.8, size: 2 + Math.random() * 2.5, col: mix(L.sky[0], '#ffffff', 0.2), shape: 'tri', rot: Math.random() * 6 }); for (let i = 0; i < 10; i++) P({ x: p.x + (Math.random() - 0.5) * 50, y: p.y, z: 2, vx: (Math.random() - 0.5) * 60, vy: (Math.random() - 0.5) * 30, vz: 10 + Math.random() * 20, g: -20, life: 0.9, size: 3, col: 'rgba(200,190,200,0.4)', shape: 'circle' }); }
-    // Energy spiralling in from all around while it stands open.
-    p.motes = p.motes || [];
-    if (!p.closing && rise > 0.5) p.motes.push({ a: Math.random() * Math.PI * 2, r: 70 + Math.random() * 60, z: Math.random() * 20, life: 0 });
-    const dtm = R.realDt || 0.016, paths = [new Path2D(), new Path2D()];
-    p.motes = p.motes.filter((m, i) => {
-      const pa = m.a, pr = m.r; m.life += dtm; m.r -= (50 + m.life * 90) * dtm; m.a += (2.4 + 60 / Math.max(10, m.r)) * dtm; m.z += (45 - m.z) * dtm * 2;
-      if (m.r < 6) return false;
-      const a1 = R.P(p.x + Math.cos(m.a) * m.r, p.y + Math.sin(m.a) * m.r, m.z), a0 = R.P(p.x + Math.cos(pa) * pr, p.y + Math.sin(pa) * pr, m.z), path = paths[i % 2];
-      path.moveTo(a0.x, a0.y); path.lineTo(a1.x + (a1.x - a0.x) * 2, a1.y + (a1.y - a0.y) * 2);
-      return true;
-    });
-    ctx.lineWidth = 1.6 * R.dpr; ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.stroke(paths[0]); ctx.strokeStyle = rgba(L.moonCol, 0.9); ctx.stroke(paths[1]);
-    ctx.save(); ctx.globalAlpha = fade; ctx.translate(q.x, q.y);
-    // A rune circle on the floor beneath it.
-    ctx.save(); ctx.scale(1, HELI.pitch); const rr = 46 * Sh * rise;
-    ctx.strokeStyle = rgba(L.moonCol, 0.7 * rise); ctx.lineWidth = 2 * R.dpr; ctx.beginPath(); ctx.arc(0, 0, rr, 0, 7); ctx.stroke();
-    ctx.setLineDash([6 * R.dpr, 8 * R.dpr]); ctx.lineDashOffset = -t * 30; ctx.beginPath(); ctx.arc(0, 0, rr * 0.8, 0, 7); ctx.stroke(); ctx.setLineDash([]);
-    for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2 + t * 0.4, lit = Math.max(0, Math.min(1, rise * 9 - i)) * (0.5 + 0.5 * Math.sin(t * 5 - i * 0.8)), rx = Math.cos(a) * rr * 1.15, ry = Math.sin(a) * rr * 1.15, sz = 4 * Sh; ctx.fillStyle = rgba(L.moonCol, 0.25 + 0.75 * lit); ctx.beginPath(); ctx.moveTo(rx, ry - sz); ctx.lineTo(rx + sz * 0.6, ry); ctx.lineTo(rx, ry + sz); ctx.lineTo(rx - sz * 0.6, ry); ctx.fill(); }
+    ctx.save(); ctx.translate(q.x, q.y); ctx.imageSmoothingEnabled = false;
+    // On the floor: a summoning circle turning under it, a rune ring, and the shockwave when it bursts.
+    ctx.save(); ctx.scale(1, HELI.pitch); const fl = (1 - sink) * rise;
+    A.fx(ctx, p.kind === 'rift' ? 'circle_arcane' : 'circle_holy', t, 0, 0, Sh * 1.7 * fl, 0.75 * fl, t * 0.25);
+    A.tex(ctx, 'magic_02', 0, 0, 150 * Sh * fl, 150 * Sh * fl, col, 0.55 * fl, -t * 0.4, true);
+    if (p.boomT != null && t - p.boomT < 0.9) { const k = (t - p.boomT) / 0.9; A.tex(ctx, 'circle_03', 0, 0, (60 + 320 * k) * Sh, (60 + 320 * k) * Sh, '#ffffff', 1 - k, 0, true); }
     ctx.restore();
-    // God rays fanning out of the door once it opens (one cached fan, breathing).
-    if (open > 0.1) {
-      const fan = raysImg(L.moonCol), w = R.H * 1.6 * (0.96 + 0.04 * Math.sin(t * 2)), h = R.H * 0.9;
-      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = (0.75 + 0.25 * Math.sin(t * 3)) * open;
-      ctx.drawImage(fan, -w / 2, -46 * Sh - h, w, h); ctx.restore();
-    }
-    R.glowAt(ctx, L.moonCol, 0, -30 * Sh, 110 * Sh * Math.max(rise * 0.5, open), 0.4);
-    if (open > 0.3) {
-      // The pillar of light.
-      const bw = (10 + 4 * Math.sin(t * 9)) * Sh * open, bg = ctx.createLinearGradient(0, -R.H, 0, 0); bg.addColorStop(0, rgba('#ffffff', 0)); bg.addColorStop(0.6, rgba(L.moonCol, 0.35 * open)); bg.addColorStop(1, rgba('#ffffff', 0.7 * open));
-      ctx.fillStyle = bg; ctx.fillRect(-bw, -R.H, bw * 2, R.H - 40 * Sh);
-    }
+    // The whole door rises out of the floor (and sinks back into it when an arrival door is done).
+    const H0 = p.kind === 'stairs' ? 170 : 100, lift = (1 - rise + sink) * H0 * Sh;
+    ctx.save(); ctx.beginPath(); ctx.rect(-R.W, -R.H * 2, R.W * 2, R.H * 2 + 2 * Sh); ctx.clip(); ctx.translate(0, lift);
+    // The light beyond it: a soft glow while it stands, a beam into the sky once it is open.
+    A.tex(ctx, 'light_01', 0, -40 * Sh, 150 * Sh, 150 * Sh, col, 0.25 + 0.35 * open, 0, true);
+    if (open > 0.2) A.tex(ctx, 'light_01', 0, -R.H * 0.55, (26 + 6 * Math.sin(t * 9)) * Sh * open, R.H * 1.1, '#ffffff', 0.5 * open, 0, true);
     if (p.kind === 'gate') {
-      const w = 44 * Sh, h = 96 * Sh, dark = mix(L.sky[0], '#000000', 0.55);
-      ctx.save(); ctx.beginPath(); ctx.rect(-w * 2, -h * 2, w * 4, h * 2); ctx.clip(); ctx.translate(0, (1 - rise) * h * 1.1);
-      // Light inside the arch, behind the doors.
-      const lg = ctx.createLinearGradient(0, -h, 0, 0); lg.addColorStop(0, '#ffffff'); lg.addColorStop(1, rgba(L.moonCol, 0.9));
-      ctx.fillStyle = lg; ctx.beginPath(); ctx.moveTo(-w * 0.6, 0); ctx.lineTo(-w * 0.6, -h * 0.6); ctx.arc(0, -h * 0.6, w * 0.6, Math.PI, 0); ctx.lineTo(w * 0.6, 0); ctx.closePath(); ctx.fill();
-      // The doors, sliding apart.
-      ctx.save(); ctx.clip(); const dw = w * 0.6 * (1 - open);
-      ctx.fillStyle = mix(dark, '#ffffff', 0.06); ctx.fillRect(-w * 0.6, -h * 1.3, dw, h * 1.3); ctx.fillRect(w * 0.6 - dw, -h * 1.3, dw, h * 1.3);
-      ctx.fillStyle = rgba(L.moonCol, 0.8); ctx.fillRect(-w * 0.6 + dw - 2 * R.dpr, -h * 1.3, 2 * R.dpr, h * 1.3); ctx.fillRect(w * 0.6 - dw, -h * 1.3, 2 * R.dpr, h * 1.3);
+      const ts = Sh * 1.5;
+      // Behind the door: the vortex turning in the arch.
+      ctx.save(); ctx.beginPath(); ctx.rect(-16 * ts, -45 * ts, 32 * ts, 45 * ts); ctx.clip();
+      ctx.fillStyle = mix(L.sky[0], '#000000', 0.7); ctx.fillRect(-16 * ts, -45 * ts, 32 * ts, 45 * ts);
+      A.tex(ctx, 'twirl_02', 0, -22 * ts, 46 * ts, 54 * ts, col, 0.9, t * 2.2, true);
+      A.tex(ctx, 'twirl_02', 0, -22 * ts, 34 * ts, 40 * ts, '#ffffff', 0.7, -t * 3, true);
+      A.fx(ctx, 'portal', t, 0, -20 * ts, ts * 1.1, 0.9);
+      A.tex(ctx, 'light_01', 0, -20 * ts, 30 * ts, 36 * ts, '#ffffff', 0.4 + 0.5 * open, 0, true);
+      // The door sinks into the floor as it opens, light bleeding over its top edge.
+      const dh = 39 * ts, dy = -dh + open * dh;
+      A.tile(ctx, 'door', Math.round(-16 * ts), Math.round(dy - 6 * ts), Math.round(32 * ts), Math.round(dh + 6 * ts));
+      if (open > 0 && open < 1) A.tex(ctx, 'light_01', 0, dy - 6 * ts, 40 * ts, 10 * ts, '#ffffff', 0.9, 0, true);
       ctx.restore();
-      // The frame: pillars with runes that light one by one, a lintel with a red stone.
-      ctx.fillStyle = dark; ctx.fillRect(-w, -h, w * 0.4, h); ctx.fillRect(w * 0.6, -h, w * 0.4, h); ctx.fillRect(-w * 1.15, -h - 12 * Sh, w * 2.3, 13 * Sh);
-      for (let i = 0; i < 6; i++) { const lit = Math.max(0, Math.min(1, rise * 7 - i - 0.5)); ctx.fillStyle = rgba(L.moonCol, 0.2 + 0.8 * lit); const ry = -h * (0.15 + i * 0.13); ctx.fillRect(-w * 0.82, ry, w * 0.06, 6 * Sh); ctx.fillRect(w * 0.76, ry, w * 0.06, 6 * Sh); }
-      ctx.fillStyle = RED; ctx.beginPath(); ctx.arc(0, -h - 6 * Sh, 4 * Sh, 0, 7); ctx.fill(); R.glowAt(ctx, RED, 0, -h - 6 * Sh, 16 * Sh, 0.6);
-      ctx.restore();
+      A.prop(ctx, 'arch_b', 0, 0, ts);
+      for (const sx of [-1, 1]) { A.prop(ctx, 'cd_brazier', sx * 40 * ts, 2 * ts, ts * 0.8); A.tex(ctx, 'light_01', sx * 40 * ts, -14 * ts, 40 * ts, 40 * ts, '#ff7a30', 0.35 + 0.08 * Math.sin(t * 9 + sx), 0, true); }
     } else if (p.kind === 'stairs') {
-      // Steps of light set down one after another, climbing away into the sky.
-      const n = 11;
-      for (let i = n - 1; i >= 0; i--) {
-        const a = Math.max(0, Math.min(1, rise * (n + 2) * 0.6 - i * 0.6 + (open > 0 ? 9 : 0) * 0)); if (a <= 0) continue;
-        const sx = i * 8 * Sh, sy = -i * 15 * Sh - (1 - a) * 30 * Sh, w = 44 * Sh;
-        ctx.globalAlpha = a; ctx.fillStyle = mix(L.sky[0], '#000000', 0.45); ctx.fillRect(sx - w / 2, sy - 6 * Sh, w, 7 * Sh);
-        ctx.fillStyle = rgba(L.moonCol, 0.95); ctx.fillRect(sx - w / 2, sy - 6 * Sh, w, 2 * R.dpr);
-        if (a < 1) { ctx.fillStyle = `rgba(255,255,255,${1 - a})`; ctx.fillRect(sx - w / 2, sy - 6 * Sh, w, 7 * Sh); }
-        R.glowAt(ctx, L.moonCol, sx, sy - 3 * Sh, 26 * Sh, 0.25 + 0.3 * open);
-      }
-      ctx.globalAlpha = open; const top = { x: (n - 1) * 8 * Sh, y: -(n - 1) * 15 * Sh };
-      const lg = ctx.createLinearGradient(0, top.y - 50 * Sh, 0, top.y); lg.addColorStop(0, '#ffffff'); lg.addColorStop(1, rgba(L.moonCol, 0.8));
-      ctx.fillStyle = lg; ctx.beginPath(); ctx.moveTo(top.x - 16 * Sh, top.y - 6 * Sh); ctx.lineTo(top.x - 16 * Sh, top.y - 40 * Sh); ctx.arc(top.x, top.y - 40 * Sh, 16 * Sh, Math.PI, 0); ctx.lineTo(top.x + 16 * Sh, top.y - 6 * Sh); ctx.fill();
-      ctx.globalAlpha = 1;
-    } else {
-      // A tear down the air that splits into a vortex, with lightning around its edge.
-      const rh = 56 * Sh, rw = 34 * Sh * Math.max(0.06, open);
-      const crack = Math.min(1, rise * 1.2);
-      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2 * R.dpr; ctx.beginPath(); ctx.moveTo(0, -rh * (1 - crack)); for (let i = 1; i <= 8; i++) ctx.lineTo((hash(i, Math.floor(t * 12)) - 0.5) * 6 * Sh, -rh * (1 - crack) - rh * 2 * crack * i / 8); ctx.stroke();
+      // The shrine on its steps; its doorway and the basin on its roof fill with light as it opens.
+      const ts = Sh * 0.95;
+      A.prop(ctx, 'temple', 0, 8 * ts, ts);
+      A.tex(ctx, 'light_01', 0, -58 * ts, 80 * ts, 70 * ts, col, 0.35 + 0.6 * open, 0, true);
       if (open > 0) {
-        const g = ctx.createRadialGradient(0, -rh, 0, 0, -rh, rh * 1.1); g.addColorStop(0, 'rgba(255,255,255,0.95)'); g.addColorStop(0.3, rgba(L.moonCol, 0.9)); g.addColorStop(0.75, 'rgba(60,0,40,0.85)'); g.addColorStop(1, 'rgba(20,0,20,0)');
-        ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(0, -rh, rw, rh, 0, 0, 7); ctx.fill();
-        ctx.lineWidth = 2 * R.dpr;
-        for (let i = 0; i < 4; i++) { ctx.strokeStyle = i % 2 ? rgba(L.moonCol, 0.9) : 'rgba(255,255,255,0.9)'; ctx.beginPath(); ctx.ellipse(0, -rh, rw * (1 - i * 0.18), rh * (1 - i * 0.18), 0, t * (3 + i) + i, t * (3 + i) + i + 2.2); ctx.stroke(); }
-        if (Math.floor(t * 8) % 3 === 0) { ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5 * R.dpr; ctx.beginPath(); const a0 = hash(Math.floor(t * 8), 3) * 6.28; let lx = Math.cos(a0) * rw, ly = -rh + Math.sin(a0) * rh; ctx.moveTo(lx, ly); for (let i = 0; i < 5; i++) { lx += Math.cos(a0) * 8 * Sh + (hash(i, Math.floor(t * 8)) - 0.5) * 10 * Sh; ly += Math.sin(a0) * 8 * Sh + (hash(i + 9, Math.floor(t * 8)) - 0.5) * 10 * Sh; ctx.lineTo(lx, ly); } ctx.stroke(); }
+        A.tex(ctx, 'twirl_02', 0, -58 * ts, 60 * ts, 56 * ts, col, 0.8 * open, t * 2, true);
+        A.fx(ctx, 'portal', t, 0, -56 * ts, ts * 1.6, 0.9 * open);
+        A.tex(ctx, 'light_01', 0, -150 * ts, 90 * ts, 50 * ts, '#ffffff', 0.7 * open, 0, true);
       }
+      A.fx(ctx, 'sparkles', t, 0, -60 * ts, ts * 2.4, 0.8 * Math.max(0.3, open));
+    } else {
+      // Standing stones rise one after another around a vortex that tears open between them.
+      const ts = Sh * 1.4, stones = [['monolith_b', -46, -6, 0], ['monolith_a', -20, -20, 0.15], ['monolith_c', 22, -20, 0.3], ['monolith_a', 48, -6, 0.45]];
+      for (const [n, sx, sy, d] of stones) { const r = p.closing ? 1 : Math.max(0, Math.min(1, (p.t - d) / 0.5)); if (r <= 0) continue; ctx.save(); ctx.beginPath(); ctx.rect(sx * ts - 30 * ts, -200 * ts, 60 * ts, 200 * ts + sy * ts); ctx.clip(); A.prop(ctx, n, sx * ts, sy * ts + (1 - r) * 70 * ts, ts); ctx.restore(); A.tex(ctx, 'light_01', sx * ts, sy * ts - 30 * ts, 30 * ts, 40 * ts, col, 0.3 * r, 0, true); }
+      const vk = Math.max(open, rise * 0.15);
+      A.tex(ctx, 'star_06', 0, -40 * ts, 60 * ts * (1 - open * 0.5), 60 * ts * (1 - open * 0.5), '#ffffff', rise < 1 ? rise : 0.6 * (1 - open), t, true);
+      A.tex(ctx, 'magic_02', 0, -40 * ts, 70 * ts * vk, 90 * ts * vk, col, 0.8 * vk, t * 1.5, true);
+      A.tex(ctx, 'twirl_02', 0, -40 * ts, 56 * ts * vk, 76 * ts * vk, col, vk, t * 2.6, true);
+      A.tex(ctx, 'twirl_02', 0, -40 * ts, 40 * ts * vk, 56 * ts * vk, '#ffffff', 0.8 * vk, -t * 3.4, true);
+      A.fx(ctx, 'portal', t, 0, -40 * ts, ts * 1.8 * vk, vk);
     }
     ctx.restore();
-    if (!p.closing && rise > 0.3 && Math.random() < 0.8) P({ x: p.x + (Math.random() - 0.5) * 50, y: p.y + (Math.random() - 0.5) * 16, z: 2, vz: 50 + Math.random() * 70, life: 1.0, size: 1.6, col: Math.random() < 0.5 ? 'rgba(255,255,255,0.9)' : rgba(L.moonCol, 0.9), shape: 'sq' });
+    // An arrival door sinks away in smoke.
+    if (sink > 0) for (let i = 0; i < 5; i++) A.tex(ctx, 'smoke_04', (i - 2) * 22 * Sh, -10 * Sh - sink * 20 * Sh * (1 + i % 2), 70 * Sh, 60 * Sh, mix(L.sky[0], '#ffffff', 0.35), 0.7 * Math.sin(sink * Math.PI), i + sink, false);
+    ctx.restore();
+    if (!p.closing && rise > 0.3 && Math.random() < 0.6) P({ x: p.x + (Math.random() - 0.5) * 50, y: p.y + (Math.random() - 0.5) * 16, z: 2, vz: 50 + Math.random() * 70, life: 1.0, size: 1.6, col: Math.random() < 0.5 ? 'rgba(255,255,255,0.9)' : rgba(col, 0.9), shape: 'sq' });
   }
   // Chevrons on the floor from the hero toward the way on.
   function guide(ctx, s) {
@@ -766,9 +735,10 @@
     let tx = h.x, ty = h.y;
     if (f && Math.hypot(f.x - h.x, f.y - h.y) < 180) { tx = h.x * 0.65 + f.x * 0.35; ty = h.y * 0.65 + f.y * 0.35; }
     // While a door opens the camera turns to it, then keeps it in view as the hero walks over.
-    if (s.portal) { const k = Math.min(1, s.portal.t / 1.2), w = s.portal.t < 1.9 ? 0.75 * k : 0.4; tx += (s.portal.x - tx) * w; ty += (s.portal.y - ty) * w; }
-    const A = VS.arenaOf(s), lx = A.shape === 'rect' ? A.hw * 0.62 : A.shape === 'cross' ? A.arm * 0.6 : A.r * 0.45, ly = A.shape === 'rect' ? A.hh * 0.55 : lx;
+    const A = VS.arenaOf(s); let lx = A.shape === 'rect' ? A.hw * 0.62 : A.shape === 'cross' ? A.arm * 0.6 : A.r * 0.45, ly = A.shape === 'rect' ? A.hh * 0.55 : lx;
     tx = clamp(tx, -lx, lx); ty = clamp(ty, -ly, ly);
+    // The door stands tall: aim a little above its foot (screen up) so the whole of it is in frame.
+    if (s.portal) { const P0 = s.portal, k = Math.min(1, P0.t / 1.2), w = P0.t < 1.9 ? 0.95 * k : 0.5, up = P0.kind === 'stairs' ? 95 : P0.kind === 'rift' ? 85 : 65; tx += (P0.x - hs * up - tx) * w; ty += (P0.y - hc * up - ty) * w; }
     const k = Math.min(1, dt * 4); R.hcam.x += (tx - R.hcam.x) * k; R.hcam.y += (ty - R.hcam.y) * k;
   };
   R.snapCam = function (s) { R.hcam.x = s.hero.x * 0.6; R.hcam.y = s.hero.y * 0.6; };
@@ -851,14 +821,10 @@
         const cx = R.W / 2, cy = R.H / 2, D = Math.hypot(R.W, R.H) / 2;
         ctx.fillStyle = '#07040a'; ctx.fillRect(0, 0, R.W, R.H);
         const gl = ctx.createRadialGradient(cx, cy, 0, cx, cy, R.H * 0.5); gl.addColorStop(0, 'rgba(255,255,255,0.9)'); gl.addColorStop(0.15, 'rgba(255,60,90,0.45)'); gl.addColorStop(1, 'rgba(255,42,68,0)'); ctx.fillStyle = gl; ctx.fillRect(0, 0, R.W, R.H);
-        // Streaks, batched by distance (near ones thicker and brighter) and colour.
-        ctx.lineCap = 'round'; const bands = [0, 1, 2].map(() => [new Path2D(), new Path2D()]);
-        for (let i = 0; i < 110; i++) {
-          const an = hash(i, 101) * Math.PI * 2, sp = 0.6 + hash(i, 102) * 1.2, ph = (hash(i, 103) + t * sp * 1.6) % 1, r0 = D * Math.pow(ph, 2.2), r1 = r0 + D * 0.08 * (0.3 + ph * 2);
-          const path = bands[Math.min(2, Math.floor(ph * 3))][i % 4 ? 0 : 1]; path.moveTo(cx + Math.cos(an) * r0, cy + Math.sin(an) * r0); path.lineTo(cx + Math.cos(an) * r1, cy + Math.sin(an) * r1);
-        }
-        bands.forEach((b, j) => { ctx.lineWidth = (1 + j * 1.3) * R.dpr; ctx.strokeStyle = `rgba(255,255,255,${0.35 + j * 0.3})`; ctx.stroke(b[0]); ctx.strokeStyle = `rgba(255,42,68,${0.5 + j * 0.25})`; ctx.stroke(b[1]); });
-        for (let i = 0; i < 4; i++) { const rr = ((t * 1.4 + i / 4) % 1); ctx.strokeStyle = `rgba(255,42,68,${0.5 * rr})`; ctx.lineWidth = 2 * R.dpr; ctx.beginPath(); ctx.ellipse(cx, cy, D * rr * rr, D * rr * rr * 0.62, 0, 0, 7); ctx.stroke(); }
+        // The vortex: layers of the swirl texture turning and swelling toward the viewer, a rune ring.
+        for (let i = 0; i < 4; i++) { const ph = (t * 0.9 + i / 4) % 1, sz = D * 2.6 * ph * ph; A.tex(ctx, 'twirl_02', cx, cy, sz, sz * 0.7, i % 2 ? '#ff2a44' : '#ffffff', Math.sin(ph * Math.PI) * 0.9, t * (2 + i) * (i % 2 ? -1 : 1), true); }
+        A.tex(ctx, 'magic_02', cx, cy, R.H * (0.6 + tun), R.H * (0.6 + tun) * 0.7, '#ff2a44', 0.6, t * 1.2, true);
+        A.tex(ctx, 'light_01', cx, cy, R.H * 0.5, R.H * 0.5, '#ffffff', 0.8, 0, true);
         const h2 = s.hero, sc = R.Sh() * (1.6 + tun * 1.4);
         for (let i = 3; i >= 1; i--) A.actor(ctx, h2.set, 'Rolling', 6, -Math.PI / 2, cx, cy + 30 * R.Sh() + i * 14 * R.Sh(), sc, { shade: '#ff2a44', alpha: 0.15 * (4 - i) });
         A.actor(ctx, h2.set, 'Attack4', Math.min(14, Math.floor(tun * 14)), -Math.PI / 2, cx, cy + 30 * R.Sh(), sc, { shade: '#ffffff' });
@@ -892,15 +858,6 @@
     VS.cine.draw(c, s);
     if (el.style.display !== 'block') el.style.display = 'block';
     if (PX.shake > 0) { R.shake = Math.max(R.shake, PX.shake * 1.5); PX.shake = 0; }
-  };
-  // A story scene on the same overlay.
-  R.drawScene = function (sc) {
-    const el = PX.buf;
-    if (!el.parentNode) { el.id = 'cine'; Object.assign(el.style, { position: 'fixed', left: '0', top: '0', width: '100%', height: '100%', imageRendering: 'pixelated', zIndex: '4', pointerEvents: 'none', display: 'none' }); document.body.appendChild(el); }
-    PX.fit(R.W / R.H); const c = PX.ctx; c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, PX.W, PX.H);
-    VS.SC.draw(c, sc);
-    if (el.style.display !== 'block') el.style.display = 'block';
-    if (PX.shake > 0) { const d = PX.shake * R.k; el.style.transform = `translate(${Math.round((Math.random() - 0.5) * d)}px,${Math.round((Math.random() - 0.5) * d)}px)`; PX.shake = Math.max(0, PX.shake - 1); } else el.style.transform = '';
   };
   R.hideCine = function () { if (PX.buf.parentNode && PX.buf.style.display !== 'none') PX.buf.style.display = 'none'; };
   R.cineCovers = (s) => s.cine && VS.cine.beatAt(s.cine)[0] !== 'snap';
@@ -953,14 +910,16 @@
       ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.fillRect(bx + bwid * 0.5, by - 2 * k, Math.max(1, R.dpr), 11 * k);
       if (b.maxPoise) { ctx.fillStyle = 'rgba(255,208,96,0.85)'; ctx.fillRect(bx + 6 * k, by + 10 * k, (bwid - 12 * k) * b.poise / b.maxPoise, 2 * k); }
     });
-    if (!bosses.length) label(ctx, `AREA ${(s.area || 0) + 1} / ${s.waves.length}`, W - m - (opts.touch ? 44 * k : 0), m + 12 * k, 11 * k, '#c8b8c0', 'right', 3);
+    { const G = VS.STORY && VS.STORY.GOALS && VS.STORY.GOALS[s.stage], gx = W - m - (opts.touch ? 44 * k : 0), last = s.area >= s.waves.length - 1;
+      if (G) { label(ctx, 'GOAL', gx, m + 10 * k, 9 * k, RED, 'right', 3, 700); label(ctx, (s.portal && !s.transit ? 'Go through the door' : last ? G.boss : G.reach).toUpperCase(), gx, m + 25 * k, 12 * k, '#f3eef0', 'right', 2, 700); }
+      if (!bosses.length) label(ctx, `AREA ${(s.area || 0) + 1} / ${s.waves.length}`, gx, m + 40 * k, 9 * k, '#a99aa2', 'right', 3); }
     if (s.combo >= 3) {
       const c = s.combo, x = W - m - (opts.touch ? 6 * k : 0), y = R.H * 0.36;
       ctx.save(); ctx.font = R.fd((30 + Math.min(14, c * 0.4)) * k, 700); ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic';
       ctx.lineWidth = 4 * R.dpr; ctx.strokeStyle = 'rgba(8,4,10,0.8)'; ctx.strokeText(String(c), x, y); ctx.fillStyle = c >= 20 ? RED : '#ffffff'; ctx.fillText(String(c), x, y); ctx.restore();
       label(ctx, 'HITS', x, y + 14 * k, 10 * k, '#ff8a9a', 'right', 3);
     }
-    if (opts.auto) label(ctx, 'AUTO', W - m - (opts.touch ? 44 * k : 0), m + 12 * k + (bosses.length ? 0 : 16 * k), 10 * k, '#ff8a9a', 'right', 3);
+    if (opts.auto) label(ctx, 'AUTO', W - m - (opts.touch ? 44 * k : 0), m + 56 * k, 10 * k, '#ff8a9a', 'right', 3);
   };
 
   // The two skills: square slots bottom left (keys R and F), a sweep while they recharge.
@@ -968,7 +927,7 @@
     if (touch || !s.heroDef.skills) return;
     const k = R.k, m = 18 * k, sz = 34 * k;
     s.heroDef.skills.forEach((sk, i) => {
-      const x = m + i * (sz + 10 * k), y = R.H - m - sz, cd = s.cds[i] / sk.cd, ready = s.cds[i] <= 0;
+      const x = m + i * (sz + 96 * k), y = R.H - m - sz - 22 * k, cd = s.cds[i] / sk.cd, ready = s.cds[i] <= 0;
       ctx.save(); ctx.fillStyle = 'rgba(10,6,12,0.6)'; ctx.fillRect(x, y, sz, sz);
       if (!ready) { ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.beginPath(); ctx.moveTo(x + sz / 2, y + sz / 2); ctx.arc(x + sz / 2, y + sz / 2, sz * 0.7, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (1 - cd)); ctx.closePath(); ctx.save(); ctx.clip(); ctx.fillRect(x, y, sz, sz); ctx.restore(); }
       ctx.strokeStyle = ready ? rgba(s.heroDef.color, 0.95) : 'rgba(255,255,255,0.25)'; ctx.lineWidth = 1.5 * R.dpr; ctx.strokeRect(x, y, sz, sz);
@@ -976,7 +935,7 @@
       label(ctx, i ? 'F' : 'R', x + 3 * k, y + 10 * k, 9 * k, ready ? s.heroDef.color : '#a99aa2', 'left', 0, 700);
       if (!ready) label(ctx, Math.ceil(s.cds[i]) + '', x + sz - 3 * k, y + sz - 4 * k, 10 * k, '#ffffff', 'right', 0, 700);
       ctx.restore();
-      label(ctx, sk.name.toUpperCase(), x, y - 5 * k, 8 * k, ready ? '#f3eef0' : '#8a7a82', 'left', 1.5, 600);
+      label(ctx, sk.name.toUpperCase(), x + sz + 7 * k, y + sz / 2 + 3 * k, 9 * k, ready ? '#f3eef0' : '#8a7a82', 'left', 1.5, 600);
     });
   };
   function skillIcon(ctx, kind, x, y, r, col) {
@@ -1102,10 +1061,11 @@
     label(ctx, sub, R.W * 0.07 + off + 2 * k, y + bh * 0.58 + 22 * k, 11 * k, '#ff8a9a', 'left', 4, 600);
     ctx.restore();
   };
-  R.banner = function (ctx, text, t, col, sub) {
-    const k = R.k, a = Math.min(1, t * 4, (1.6 - t) * 3); if (a <= 0) return;
-    ctx.save(); ctx.globalAlpha = a; const y = R.H * 0.3, lw = (60 + 80 * Math.min(1, t * 3)) * k;
-    ctx.fillStyle = rgba(col === RED ? '#ff2a44' : '#ffffff', 0.5); ctx.fillRect(R.W / 2 - lw - 120 * k, y - 6 * k, lw, Math.max(1, R.dpr)); ctx.fillRect(R.W / 2 + 120 * k, y - 6 * k, lw, Math.max(1, R.dpr));
+  R.banner = function (ctx, text, t, col, sub, low) {
+    const k = R.k, a = Math.min(1, t * 4, (2.2 - t) * 3); if (a <= 0) return;
+    text = String(text).toUpperCase(); ctx.save(); ctx.globalAlpha = a; const y = R.H * (low ? 0.78 : 0.3), lw = (60 + 80 * Math.min(1, t * 3)) * k;
+    ctx.font = R.fd(22 * k, 700); const hw = Math.max(120 * k, (ctx.measureText(text).width + text.length * 6 * R.dpr) / 2 + 26 * k);
+    ctx.fillStyle = rgba(col === RED ? '#ff2a44' : '#ffffff', 0.5); ctx.fillRect(R.W / 2 - lw - hw, y - 6 * k, lw, Math.max(1, R.dpr)); ctx.fillRect(R.W / 2 + hw, y - 6 * k, lw, Math.max(1, R.dpr));
     label(ctx, text, R.W / 2, y, 22 * k, col, 'center', 6, 700); if (sub) label(ctx, sub, R.W / 2, y + 18 * k, 10 * k, '#d8c8d0', 'center', 4, 600); ctx.restore();
   };
   R.hint = function (ctx, text, a) { ctx.save(); ctx.globalAlpha = a; label(ctx, text, R.W / 2, R.H - 20 * R.k, 11 * R.k, '#d8c8d0', 'center', 2, 500); ctx.restore(); };

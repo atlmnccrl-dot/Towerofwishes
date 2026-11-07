@@ -29,7 +29,7 @@ const src = ['view.js', 'cine.js'].map((f) => fs.readFileSync(path.join(__dirnam
 for (const n of used) { if (!fx[n]) bad('fx ' + n); if (src.indexOf("'" + n + "'") < 0) bad('fx listed but unused ' + n); }
 // Scenes: known shot kinds, known speakers, one scene per stage.
 for (const H of Object.values(D.HEROES)) for (const sk of H.skills) if (sk.fx && !fx[sk.fx]) bad('skill fx ' + sk.fx);
-const KINDS = ['card', 'wide', 'close', 'reveal', 'speed', 'clash', 'impact', 'moonbreak', 'moonwhite', 'two', 'eyes', 'slash'];
+const KINDS = ['title', 'moonfall', 'wound', 'stage', 'spire', 'guardian', 'clash', 'seal', 'dawn'];
 const scenes = S.BEFORE.concat([S.ENDING]);
 if (S.BEFORE.length !== D.STAGES.length) bad('one scene per stage');
 for (const sc of scenes) for (const sh of sc.shots) {
@@ -37,7 +37,11 @@ for (const sc of scenes) for (const sh of sc.shots) {
   for (const w of [sh.who, sh.also, sh.a, sh.b].concat((sh.cast || []).map((c) => (typeof c === 'string' ? c : c.who)), sh.line ? [sh.line.who] : [])) if (w && !S.speaker(w)) bad('unknown speaker ' + w);
   for (const w of [sh.who, sh.also, sh.a, sh.b].concat((sh.cast || []).map((c) => (typeof c === 'string' ? c : c.who)))) if (w) check('scene ' + w, S.speaker(w).set, ['Attack4', 'Attack3', 'Attack1']);
 }
-for (const sc of scenes) for (const sh of sc.shots) if (sh.line) bad('a spoken line in a scene (the story has no dialogue)');
+for (const sc of scenes) for (const sh of sc.shots) {
+  if (sh.line) bad('a spoken line in a scene (the story has no dialogue)');
+  if (sh.say && sh.say.length > 90) bad('caption too long: ' + sh.say);
+}
+if (!S.GOALS || S.GOALS.length !== D.STAGES.length) bad('one goal per stage');
 for (const k of Object.keys(S.PHASE)) if (!D.FOES[k]) bad('phase line for unknown ' + k);
 console.log(`${Object.keys(D.FOES).length} foes, ${D.STAGES.length} stages, ${used.size} effects named, ${scenes.length} scenes`);
 console.log(fail ? `${fail} failures` : 'all assets found');

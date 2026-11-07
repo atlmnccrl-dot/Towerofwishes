@@ -1,69 +1,79 @@
-// VESPER — the night's story as wordless anime sequences (played by scene.js on the cinematics'
-// buffer): an action intro before each hour and the ending. No dialogue. Pure data; runs in Node.
-// Shot kinds: card, wide, close, reveal, speed, clash, impact, moonbreak, moonwhite. d = seconds.
+// VESPER — the night's story, told in clean scenes (played by tale.js): one caption line per shot,
+// no dialogue. The plot in one breath: seven hundred years ago a swordsman cut the falling moon and
+// stopped it; the cut never healed, and its red light raises the dead. Tonight the wound bleeds out
+// and at dawn the moon falls. Your blade can close it, at the top of the Spire, past six guardians.
+// The last of them is the swordsman himself: the wound keeps him alive. Pure data; runs in Node.
+// Shot kinds: title, moonfall, wound, stage, spire, guardian, clash, seal, dawn. d = seconds.
 (function (root) {
   const VS = root.VS = root.VS || {};
   const S = VS.STORY = {};
   S.SPEAKERS = {
     vesper: { name: 'Vesper', set: 'gothic_knight_b', color: '#ff3048' },
-    lys: { name: 'Lys', set: 'lyra', color: '#ff7aa0' },
     swordsman: { name: 'A swordsman', set: 'master_knight', color: '#ffffff' },
   };
-  const L = (who, text, shout) => ({ who, text, shout: !!shout });
 
-  // No dialogue: each hour opens with a short wordless action intro.
+  // What each hour asks of you, shown when the fight starts and in the corner while it lasts.
+  S.GOALS = [
+    { reach: 'Break through the Black Gate', boss: 'Defeat the Gatewarden' },
+    { reach: 'Cross the frozen cloister', boss: 'Defeat the Hollow Twins' },
+    { reach: 'Climb the Umbral Stair', boss: 'Defeat the Umbral' },
+    { reach: 'Cross the Ashen Waste', boss: 'Defeat the Hunger' },
+    { reach: "Climb the Wind's Throat", boss: 'Defeat the Pale Wing' },
+    { reach: 'Reach the top of the Spire', boss: 'Defeat the First Cut' },
+  ];
+  // How many hours remain before dawn, as the climb goes on.
+  const LEFT = ['SIX HOURS TO DAWN', 'FIVE HOURS TO DAWN', 'FOUR HOURS TO DAWN', 'THREE HOURS TO DAWN', 'TWO HOURS TO DAWN', 'THE LAST HOUR'];
+
+  const climb = (i, say) => ({ k: 'spire', at: i, eyebrow: LEFT[i], say, d: 2.6 });
+  const walk = (i, say, eyebrow) => ({ k: 'stage', stage: i, eyebrow, say, cast: [{ who: 'hero', move: [0.1, 0.42], face: 1 }], pan: 30, d: 2.4 });
+  const meet = (i, who, say, also) => ({ k: 'guardian', stage: i, who, also, say, d: 3 });
+  const clash = (i, b) => ({ k: 'clash', stage: i, b, d: 1.8 });
+
   S.BEFORE = [
-    // Dusk: the first cut, the climb, the gate.
+    // Dusk: the whole premise, then the first guardian.
     { shots: [
-      { k: 'card', top: 'SEVEN HUNDRED YEARS AGO', title: 'THE FIRST CUT', d: 2.0 },
-      { k: 'moonbreak', d: 3.2 },
-      { k: 'card', title: 'IT HAS BLED EVER SINCE', size: 16, d: 1.6 },
-      { k: 'speed', who: 'hero', d: 1.0 },
-      { k: 'card', top: 'DUSK', title: 'THE BLACK GATE', d: 1.6 },
-      { k: 'reveal', who: 'warden', stage: 0, d: 1.8 },
-      { k: 'slash', d: 0.5 },
-      { k: 'clash', a: 'hero', b: 'warden', stage: 0, d: 1.8 }] },
+      { k: 'title', top: 'SEVEN HUNDRED YEARS AGO', title: 'THE MOON FELL', d: 2.2 },
+      { k: 'moonfall', eyebrow: 'THE FIRST CUT', say: 'A swordsman leapt from the Spire and cut the falling moon. It stopped.', d: 4.6 },
+      { k: 'wound', eyebrow: 'THE WOUND', say: 'But the cut never healed. Its red light raises the dead.', d: 3.4 },
+      { k: 'title', top: 'TONIGHT', title: 'THE WOUND BLEEDS OUT', sub: 'At dawn, the moon falls for good.', d: 2.8 },
+      { k: 'stage', stage: 0, eyebrow: 'hero', say: 'Only your blade can close the wound, from the top of the Spire.', cast: [{ who: 'hero', x: 0.5, face: 1, clip: 'Idle4', glow: '#ff2a44', scale: 2.1 }], cam: 40, pan: 20, d: 3.2 },
+      climb(0, 'Six guardians stand between you and the top.'),
+      meet(0, 'warden', 'The Gatewarden holds the Black Gate. Get past him.'),
+      clash(0, 'warden')] },
     { shots: [
-      { k: 'card', top: 'THE FIRST HOUR', title: 'CLOISTER OF FROST', d: 1.6 },
-      { k: 'wide', stage: 1, cast: [{ who: 'hero', move: [0.06, 0.4], face: 1 }], d: 1.1 },
-      { k: 'reveal', who: 'twinA', also: 'twinB', stage: 1, d: 1.8 },
-      { k: 'impact', cast: ['twinA', 'hero', 'twinB'], d: 0.8 },
-      { k: 'slash', angle: 0.3, d: 0.5 },
-      { k: 'clash', a: 'hero', b: 'twinB', stage: 1, d: 1.7 }] },
+      climb(1, 'The gate is open. The climb begins.'),
+      walk(1, 'Frost has sealed the old cloister.', 'THE FIRST HOUR'),
+      meet(1, 'twinA', 'The Hollow Twins guard it. Two blades, one will.', 'twinB'),
+      clash(1, 'twinB')] },
     { shots: [
-      { k: 'card', top: 'THE SECOND HOUR', title: 'THE UMBRAL STAIR', d: 1.6 },
-      { k: 'wide', stage: 2, cast: [{ who: 'hero', move: [0.06, 0.4], face: 1 }], d: 1.1 },
-      { k: 'reveal', who: 'umbral', stage: 2, d: 1.8 },
-      { k: 'slash', angle: -0.2, d: 0.5 },
-      { k: 'clash', a: 'hero', b: 'umbral', stage: 2, d: 1.7 }] },
+      climb(2, 'Higher. The air grows dark.'),
+      walk(2, 'The Umbral Stair winds through total darkness.', 'THE SECOND HOUR'),
+      meet(2, 'umbral', 'The Umbral hides in your own shadow. Watch your back.'),
+      clash(2, 'umbral')] },
     { shots: [
-      { k: 'card', top: 'THE THIRD HOUR', title: 'THE ASHEN WASTE', d: 1.6 },
-      { k: 'speed', who: 'hero', d: 1.0 },
-      { k: 'reveal', who: 'hunger', stage: 3, d: 1.9 },
-      { k: 'slash', angle: 0.4, d: 0.5 },
-      { k: 'clash', a: 'hero', b: 'hunger', stage: 3, d: 1.8 }] },
+      climb(3, 'Halfway up. The moon bleeds faster.'),
+      walk(3, 'Nothing lives in the Ashen Waste.', 'THE THIRD HOUR'),
+      meet(3, 'hunger', 'Only the Hunger, which eats the light itself.'),
+      clash(3, 'hunger')] },
     { shots: [
-      { k: 'card', top: 'THE FOURTH HOUR', title: "THE WIND'S THROAT", d: 1.6 },
-      { k: 'speed', who: 'hero', d: 1.0 },
-      { k: 'reveal', who: 'wing', stage: 4, d: 1.9 },
-      { k: 'slash', angle: -0.45, d: 0.5 },
-      { k: 'clash', a: 'hero', b: 'wing', stage: 4, d: 1.8 }] },
+      climb(4, 'Near the top, the wind turns to blades.'),
+      walk(4, "The Wind's Throat: one narrow path into the storm.", 'THE FOURTH HOUR'),
+      meet(4, 'wing', 'The Pale Wing rules the storm. It has never let anyone pass.'),
+      clash(4, 'wing')] },
     { shots: [
-      { k: 'card', top: 'THE LAST HOUR', title: "THE MOON'S SHADOW", d: 1.8 },
-      { k: 'wide', stage: 5, cast: [{ who: 'hero', move: [0.08, 0.32], face: 1, clip: 'Walk' }, { who: 'firstCut', x: 0.76, face: -1, clip: 'Idle4', silhouette: true }], d: 1.6 },
-      { k: 'reveal', who: 'firstCut', stage: 5, d: 2.0 },
-      { k: 'impact', cast: ['hero', 'firstCut'], d: 0.8 },
-      { k: 'slash', d: 0.5 },
-      { k: 'clash', a: 'hero', b: 'firstCut', stage: 5, d: 2.1 }] },
+      climb(5, 'The top of the Spire. Someone is waiting.'),
+      { k: 'stage', stage: 5, eyebrow: 'THE LAST HOUR', say: 'The same swordsman. Seven hundred years old, and alive.', cast: [{ who: 'hero', move: [0.1, 0.34], face: 1 }, { who: 'firstCut', x: 0.74, face: -1, clip: 'Idle4', glow: '#ff2a44' }], pan: 20, d: 3.4 },
+      meet(5, 'firstCut', 'The wound keeps him alive. He will not let you close it.'),
+      clash(5, 'firstCut')] },
   ];
 
-  // No lines are spoken in fights either.
+  // No lines are spoken in fights.
   S.PHASE = {};
 
   S.ENDING = { shots: [
-    { k: 'card', title: 'DAWN', d: 1.6 },
-    { k: 'moonwhite', d: 3.6 },
-    { k: 'card', top: 'THANK YOU FOR PLAYING', title: 'VESPER', d: 3.0 }] };
+    { k: 'seal', eyebrow: 'DAWN', say: 'You strike the wound with everything you have.', d: 4.2 },
+    { k: 'dawn', say: 'The wound closes. The moon turns white and rises. The night is over.', d: 4.6 },
+    { k: 'title', top: 'THANK YOU FOR PLAYING', title: 'VESPER', d: 3.2 }] };
 
   // 'hero' is whoever is being played (set by main.js).
   S.heroKey = 'vesper';

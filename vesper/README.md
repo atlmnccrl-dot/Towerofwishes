@@ -57,13 +57,15 @@ while they wind up, so stepping aside makes them miss.
   square courtyard, a long bridge, a ring around a bottomless pit, a crossroads. Foes arrive by the
   arena's rules: rising out of rifts in the floor, dropping from the sky onto a marked spot, or
   running in through glowing side gates. Bosses drop in (the Umbral rises from a rift).
-- **The way on**: clearing an arena raises a door at its far end while the camera turns to it: a
-  gate whose runes light one by one before its doors split open, a stairway of light set down step
-  by step, or a tear in the air that splits into a vortex; each throws a pillar of light into the
-  sky. The doors burst open on an impact frame with debris flung out; god rays fan from the door and
-  energy spirals into it while it stands open. Walk in: the view rushes in, you fall through a red
-  and white warp tunnel, and arrive through a door that blazes open and then crumbles to dust, with
-  the arena's name.
+- **The way on**: clearing an arena raises a door at its far end while the camera turns to it, and
+  the goal in the corner changes to "Go through the door". Every door is built from the tile set
+  and effect sprites, not drawn: a stone arch (`arch_b`) whose wooden `door` sinks into the floor to
+  show a turning vortex, flanked by braziers; the `temple` shrine on its steps, its doorway and roof
+  basin filling with light; or four standing stones (`monolith_*`) rising around a vortex. A
+  summoning circle (`circle_holy` / `circle_arcane`) turns under each, with soft light, swirl and
+  shockwave textures from `assets/vfx`. Walk in: you fall through a vortex of the same swirl
+  textures and arrive through a door that shuts behind you and sinks away in smoke. Foes that run
+  in from the side come through a castle arch whose portcullis winches up.
 - **Arena art**: each arena is a floating stone platform on cliffs, with flagstones, cracks, inlaid
   runes and marks for each hour (moss, snow, gold inlay, ash, wind streaks, blood pools), brazier
   light on the floor, drifting fog, and props: pillars, braziers, banners, knight statues, broken
@@ -89,11 +91,19 @@ while they wind up, so stepping aside makes them miss.
 
 ## Story scenes
 
-No dialogue. Each hour opens with a short wordless action intro drawn like the moon arts, on the
-pixel buffer: a glitch title card, the boss revealed against the moon, a blade flash, and a clash
-that lands on impact frames (about 8 to 10 seconds; the prologue adds the first cut across the moon).
-The ending turns the moon white. A tap moves on, Esc skips. Shot lists in `js/story.js`, shots in
-`js/scene.js`.
+The story in one breath: seven hundred years ago a swordsman leapt from the Spire and cut the
+falling moon, and it stopped. The cut never healed, and its red light raises the dead. Tonight the
+wound bleeds out, and at dawn the moon falls for good. Only your blade can close it, from the top
+of the Spire, past six guardians. The last is the swordsman himself: the wound keeps him alive.
+
+It is told in clean full-resolution scenes (`js/tale.js`), with no dialogue: one caption line per
+shot at the bottom of the screen. The first night opens with the whole premise (the falling moon
+and the cut, the wound raising the dead, tonight's deadline, the climb). Every hour after it shows
+the Spire with the guardians up its side and the hours left to dawn, the next place, the guardian
+named with one line about it, and a clash on an impact frame. The ending: you leap at the moon and
+strike the wound, it turns white and rises, dawn. Each fight starts with its goal ("Break through
+the Black Gate", then "Defeat the Gatewarden"), which stays in the top right corner. A tap moves
+on, Esc skips. Shot lists and goals in `js/story.js`.
 
 ## Look
 
@@ -109,11 +119,12 @@ style: they are drawn on a 180 px buffer laid over the game and scaled up withou
 | File | Role |
 |---|---|
 | `js/data.js` | Hero, Lys, foes and their attacks, stages, boons. Pure |
-| `js/story.js` | The story scenes as shot lists, the bosses' phase lines, the ending. Pure |
+| `js/story.js` | The story: shot lists with captions, each hour's goal, the ending. Pure |
 | `js/sim.js` | The fight simulation on a round 2D ring (cones and circles, waves, parry, dodge, dash-cut, poise, the moon arts) and a bot. Pure, runs in Node |
 | `js/assets.js` | Loads and draws the cast (plain, flashed, silhouette, hard grey), effects and tiles |
 | `js/view.js` | The full-resolution game: the helicopter view for fights (projection, ring, props, floor danger, fighters, effects), the side-on stage for menus and scenes, HUD, touch controls, dialogue, boss card |
-| `js/px.js`, `js/cine.js`, `js/scene.js` | The pixel buffer, the moon arts and the story scenes drawn on it |
+| `js/px.js`, `js/cine.js` | The pixel buffer and the moon arts drawn on it |
+| `js/tale.js` | The story scenes, drawn at full resolution with captions |
 | `js/ui.js` | Menus as buttons: title, settings, credits, boon pick, defeat, pause |
 | `js/audio.js`, `js/main.js` | Sound; the loop, input, saves and the flow |
 

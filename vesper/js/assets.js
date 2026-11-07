@@ -4,7 +4,9 @@
   const VS = window.VS; const D = VS.DATA;
   const A = VS.A = { ROOT: '../assets/' };
   const DIRS = ['E', 'SE', 'S', 'SW', 'W', 'NW', 'N', 'NE'];
-  const sets = {}; let fxData = null, tileData = null;
+  const sets = {}, tex = {}; let fxData = null, tileData = null;
+  // Soft particle textures (white on clear, CC0): glows, a vortex, a rune ring, smoke, a ring, a flare.
+  A.TEX = ['light_01', 'twirl_02', 'magic_02', 'smoke_04', 'circle_03', 'star_06'];
 
   // Decoded during loading so the first draw of a sheet does not stall a frame.
   const loadImage = (src) => new Promise((res, rej) => { const im = new Image(); im.onload = () => (im.decode ? im.decode().catch(() => {}) : Promise.resolve()).then(() => res(im)); im.onerror = () => rej(new Error('image ' + src)); im.src = src; });
@@ -17,10 +19,11 @@
     sets[id] = d; return d;
   }
   A.load = async function (ids, onProgress) {
-    let n = 0; const total = ids.length + 2; const tick = () => { n++; if (onProgress) onProgress(n / total); };
+    let n = 0; const total = ids.length + 3; const tick = () => { n++; if (onProgress) onProgress(n / total); };
     const jobs = ids.map((id) => loadSet(id).then(tick));
     jobs.push(loadJSON(A.ROOT + 'fx/fx.json').then(async (d) => { d.images = await Promise.all(d.pages.map((p) => loadImage(A.ROOT + 'fx/' + p))); fxData = d; tick(); }));
     jobs.push(loadJSON(A.ROOT + 'tiles/tiles.json').then(async (d) => { d.images = await Promise.all(d.pages.map((p) => loadImage(A.ROOT + 'tiles/' + p))); tileData = d; tick(); }));
+    jobs.push(Promise.all(A.TEX.map((t) => loadImage(A.ROOT + 'vfx/' + t + '.png').then((im) => { tex[t] = im; }).catch(() => {}))).then(tick));
     await Promise.all(jobs);
     try { if (document.fonts && document.fonts.load) await document.fonts.load('16px Adventurer'); } catch (e) { /* the font is optional */ }
   };
@@ -30,7 +33,7 @@
   A.warm = function (ctx) {
     const all = [];
     for (const k in sets) all.push(...sets[k].images);
-    if (fxData) all.push(...fxData.images); if (tileData) all.push(...tileData.images);
+    if (fxData) all.push(...fxData.images); if (tileData) all.push(...tileData.images); for (const k in tex) all.push(tex[k]);
     for (const im of all) ctx.drawImage(im, 0, 0, 1, 1, 0, 0, 1, 1);
     ctx.clearRect(0, 0, 2, 2);
   };
@@ -121,6 +124,20 @@
     ctx.globalAlpha = ga; return true;
   };
   A.propSize = (name) => { const f = tileData && tileData.sprites[name]; return f ? { w: f[3], h: f[4] } : { w: 0, h: 0 }; };
+  // A texture tinted to a colour (cached per colour), drawn centred, optionally rotated and squashed.
+  const tinted = new Map();
+  function tint(name, col) {
+    const k = name + col; let c = tinted.get(k); if (c) return c; const im = tex[name]; if (!im) return null;
+    c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const g = c.getContext('2d');
+    g.drawImage(im, 0, 0); if (col) { g.globalCompositeOperation = 'multiply'; g.fillStyle = col; g.fillRect(0, 0, c.width, c.height); g.globalCompositeOperation = 'destination-in'; g.drawImage(im, 0, 0); }
+    tinted.set(k, c); return c;
+  }
+  A.tex = function (ctx, name, x, y, w, h, col, alpha, rot, add) {
+    const c = tint(name, col || ''); if (!c || alpha <= 0) return false;
+    ctx.save(); if (add) ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha *= alpha == null ? 1 : alpha; ctx.imageSmoothingEnabled = true;
+    ctx.translate(x, y); if (rot) ctx.rotate(rot); ctx.drawImage(c, -w / 2, -h / 2, w, h); ctx.restore(); return true;
+  };
+  A.hasTex = (name) => !!tex[name];
   A.hasTile = (name) => !!(tileData && tileData.sprites[name]);
   A.hasFx = (name) => !!(fxData && fxData.fx[name]);
 })();
