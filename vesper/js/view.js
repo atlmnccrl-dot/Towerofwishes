@@ -175,9 +175,12 @@
   };
   R.screenAng = (a) => Math.atan2(Math.sin(a + HELI.ang) * HELI.pitch, Math.cos(a + HELI.ang));
   // Put the canvas in ground coordinates (world px on the floor).
+  function unground(ctx) { if (R.baseT) ctx.setTransform(R.baseT); else ctx.setTransform(1, 0, 0, 1, 0, 0); }
   function ground(ctx) {
     const Sh = R.Sh(), p = HELI.pitch, cx = R.hcam.x, cy = R.hcam.y;
-    ctx.setTransform(Sh * hc, Sh * p * hs, -Sh * hs, Sh * p * hc, R.W / 2 - Sh * (hc * cx - hs * cy), R.H * 0.56 - Sh * p * (hs * cx + hc * cy));
+    // On top of the frame's base transform (a zoom or a shake), not instead of it.
+    const B = R.baseT; if (B) ctx.setTransform(B); else ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.transform(Sh * hc, Sh * p * hs, -Sh * hs, Sh * p * hc, R.W / 2 - Sh * (hc * cx - hs * cy), R.H * 0.56 - Sh * p * (hs * cx + hc * cy));
   }
   function heliSky(st) {
     const key = 'hsky' + st.id; if (cache[key]) return cache[key];
@@ -376,6 +379,20 @@
   function sparks(x, y, z, n, col, speed, size) {
     for (let i = 0; i < n; i++) { const a = Math.random() * Math.PI * 2, e = (Math.random() - 0.3) * 1.2, v = speed * (0.4 + Math.random()); P({ x, y, z, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.6, vz: Math.sin(e) * v, life: 0.18 + Math.random() * 0.15, size: size || 1.2, col, shape: 'line' }); }
   }
+  // Kill streaks: kills close together build up to a called-out streak.
+  R.streak = 0; R.streakT = 0; R.streakShow = null;
+  const STREAK = [null, null, 'DOUBLE KILL', 'TRIPLE KILL', 'QUAD KILL', 'RAMPAGE', 'RAMPAGE', 'RAMPAGE', 'MASSACRE'];
+  function streakName(n) { return n >= 8 ? 'MASSACRE' : STREAK[n]; }
+  R.drawStreak = function (ctx, dt) {
+    R.streakT = Math.max(0, R.streakT - dt); if (!R.streakT) R.streak = 0;
+    const sh = R.streakShow; if (!sh) return; sh.t += dt; if (sh.t > 1.4) { R.streakShow = null; return; }
+    const k = R.k, pop = sh.t < 0.1 ? 1.6 - sh.t / 0.1 * 0.6 : 1, a = Math.min(1, (1.4 - sh.t) / 0.3), x = R.W * 0.72, y = R.H * 0.44;
+    ctx.save(); ctx.globalAlpha = a; ctx.translate(x, y); ctx.rotate(-0.08); ctx.scale(pop, pop);
+    ctx.font = R.fd(34 * k, 700); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; if ('letterSpacing' in ctx) ctx.letterSpacing = 3 * R.dpr + 'px';
+    ctx.lineWidth = 6 * R.dpr; ctx.strokeStyle = 'rgba(8,2,6,0.9)'; ctx.strokeText(sh.text, 0, 0); ctx.fillStyle = sh.n >= 5 ? RED : '#ffffff'; ctx.fillText(sh.text, 0, 0);
+    if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+    label(ctx, sh.n + ' KILLS', 0, 26 * k, 11 * k, '#ff8a9a', 'center', 4, 700); ctx.restore();
+  };
   R.consume = function (s) {
     for (const e of s.events) {
       const u = e.id != null ? s.units.find((o) => o.id === e.id) : null, sc = u ? u.scale : 1;
@@ -397,7 +414,11 @@
         case 'perfect': R.float('PERFECT', e.x, e.y, 56, '#8ef0ff', true, true); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.5, col: '#8ef0ff', r0: 6, r1: 60, w: 2 }); break;
         case 'riposte': R.float('RIPOSTE', e.x, e.y, 64, '#ff9aa8', true, true); break;
         case 'break': { PK('hit_big', e.x, e.y, 24 * sc, 1.8); FX({ kind: 'ring', x: e.x, y: e.y, z: 24 * sc, life: 0.45, col: '#ffd060', r0: 6, r1: 60, w: 3 }); for (let i = 0; i < 14; i++) { const a = Math.random() * Math.PI * 2, v = 90 + Math.random() * 120; P({ x: e.x, y: e.y, z: 24 * sc, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.6, vz: 60 + Math.random() * 80, g: -380, life: 0.6, size: 3, col: '#ffd060', shape: 'tri', rot: Math.random() * 6 }); } R.float('BREAK', e.x, e.y, 56 * sc, '#ffd060', true, true); R.shake = 7; break; }
+        case 'reinforce': R.flash = 0.35; R.flashCol = '255,40,70'; R.shake = Math.max(R.shake, 7); break;
+        case 'heal': R.float('+' + e.n, e.x, e.y, 58, '#7dffb0'); break;
+        case 'finisher': R.impactF = { t: 0, dur: 0.14, x: e.x, y: e.y, big: true }; R.punch = 0.09; R.shake = Math.max(R.shake, 12); R.float('FINISH', e.x, e.y, 70, '#ffffff', true, true); break;
         case 'kill': {
+          if (!e.hero && !e.boss && u && !u.ally) { R.streak = R.streakT > 0 ? R.streak + 1 : 1; R.streakT = 2.4; const nm = streakName(R.streak); if (nm) R.streakShow = { text: nm, n: R.streak, t: 0 }; if (u.elite) { R.float('ELITE DOWN', e.x, e.y, 64, RED, true, true); R.shake = Math.max(R.shake, 8); } }
           const col = (u && u.def.color) || '#ffffff';
           for (let i = 0; i < (e.boss ? 60 : 22); i++) P({ x: e.x + (Math.random() - 0.5) * 16 * sc, y: e.y + (Math.random() - 0.5) * 8 * sc, z: Math.random() * 36 * sc, vx: (Math.random() - 0.5) * 30, vy: (Math.random() - 0.5) * 16, vz: 20 + Math.random() * 60, g: 10, life: 0.7 + Math.random() * 0.6, size: 1.5 + Math.random() * 1.5, col, shape: 'sq' });
           PK(e.hero ? 'smoke_dark' : 'dissipate', e.x, e.y, 16 * sc, 1.3 * sc);
@@ -540,7 +561,7 @@
       else { const r = k.reach * u.scale + 8, half = (k.arc || 1.5) / 2 + 0.2; ctx.translate(u.x, u.y); ctx.fillStyle = rgba(col, 0.06 + 0.14 * t); ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, r, u.ang - half, u.ang + half); ctx.closePath(); ctx.fill(); ctx.strokeStyle = rgba(col, 0.45 * t); ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(0, 0, r, u.ang - half, u.ang + half); ctx.stroke(); }
       ctx.restore();
     }
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    unground(ctx);
   }
   function drawUnit(ctx, s, u, pass) {
     const Sh = R.Sh(), sc = Sh * u.scale, q = R.P(u.x, u.y), x = Math.round(q.x), y0 = Math.round(q.y), lift = Math.round((u.z || 0) * Sh), y = y0 - lift, sa = R.screenAng(u.ang);
@@ -549,12 +570,17 @@
     if (alpha <= 0) return;
     if (u.state === 'spawn') { if (pass !== 'reflect') drawSpawn(ctx, u, x, y, sc, sa); return; }
     if (pass === 'reflect') { ctx.save(); ctx.translate(0, 2 * y0 + lift); ctx.scale(1, -1); A.actor(ctx, u.set, u.clip, u.frame, sa, x, y, sc, { alpha: 0.11 * alpha }); ctx.restore(); return; }
+    if (u.elite && u.alive) {
+      ctx.save(); ctx.translate(x, y0); ctx.scale(1, HELI.pitch); A.tex(ctx, 'magic_01', 0, 0, 52 * sc, 52 * sc, RED, 0.75, R.t * 1.5, true); ctx.restore();
+      A.tex(ctx, 'smoke_07', x, y - 22 * sc, 60 * sc, 70 * sc, RED, 0.35 + 0.1 * Math.sin(R.t * 8), R.t * 2, true);
+      A.tex(ctx, 'light_01', x, y - 22 * sc, 70 * sc, 70 * sc, RED, 0.3, 0, true);
+    }
     if (u.aura && u.alive) { R.glowAt(ctx, RED, x, y - 22 * sc, 46 * sc, 0.3 + 0.12 * Math.sin(R.t * 7)); if (Math.random() < 0.4) P({ x: u.x + (Math.random() - 0.5) * 20 * u.scale, y: u.y, z: 4, vz: 50 + Math.random() * 40, life: 0.7, size: 1.6, col: 'rgba(255,60,90,0.9)', shape: 'sq' }); }
 
     const sw = 26 * sc * Math.max(0.45, 1 - (u.z || 0) / 160); ctx.globalAlpha = alpha * Math.max(0.35, 1 - (u.z || 0) / 200); ctx.drawImage(shadowImg(), x - sw / 2, y0 - sw * 0.12, sw, sw * 0.25); ctx.globalAlpha = 1;
     R.glowAt(ctx, u.team === 'hero' ? RED : '#c8c0e0', x, y - 22 * sc, 34 * sc, u.team === 'hero' ? 0.16 : 0.07);
     // A ring under each fighter: red for the knight, white for foes, red and white for a boss.
-    if (u.alive) { const rw = 13 * sc, rh = rw * HELI.pitch * 0.9; ctx.save(); ctx.lineWidth = (u.def.boss ? 2.4 : 1.6) * R.dpr; ctx.strokeStyle = u === s.hero ? rgba(s.heroDef.color || '#ff2a44', 0.95) : u.ally ? 'rgba(170,120,255,0.7)' : u.def.boss ? 'rgba(255,120,140,0.8)' : 'rgba(255,255,255,0.45)'; ctx.beginPath(); ctx.ellipse(x, y0, rw, rh, 0, 0, 7); ctx.stroke(); if (u === s.hero) { ctx.fillStyle = rgba(s.heroDef.color || '#ff2a44', 0.12); ctx.fill(); } ctx.restore(); }
+    if (u.alive && !s.staged) { const rw = 13 * sc, rh = rw * HELI.pitch * 0.9; ctx.save(); ctx.lineWidth = (u.def.boss ? 2.4 : 1.6) * R.dpr; ctx.strokeStyle = u === s.hero ? rgba(s.heroDef.color || '#ff2a44', 0.95) : u.ally ? 'rgba(170,120,255,0.7)' : u.def.boss ? 'rgba(255,120,140,0.8)' : 'rgba(255,255,255,0.45)'; ctx.beginPath(); ctx.ellipse(x, y0, rw, rh, 0, 0, 7); ctx.stroke(); if (u === s.hero) { ctx.fillStyle = rgba(s.heroDef.color || '#ff2a44', 0.12); ctx.fill(); } ctx.restore(); }
     const winding = u.state === 'attack' && u.team === 'foe' && u.st < u.atk.wind * u.windMul;
     const opts = { alpha, flash: u.flash * 0.55 };
     if (u.slowT > 0 && !u.flash) { opts.flash = 0.3; opts.flashCol = '#8fd0ff'; if (Math.random() < 0.15) P({ x: u.x + (Math.random() - 0.5) * 14, y: u.y, z: 10 + Math.random() * 30, vz: 10, life: 0.6, size: 1.4, col: '#d8f0ff', shape: 'sq' }); }
@@ -612,9 +638,10 @@
     const open = Math.min(1, k * 3), rw = 18 * sc * open;
     ctx.save();
     ctx.save(); ctx.translate(x, y); ctx.scale(1, HELI.pitch * 0.7);
-    A.fx(ctx, 'circle_arcane', R.t + u.id, 0, 0, sc * 0.75 * open, 0.9, R.t * 0.5);
-    A.tex(ctx, 'twirl_02', 0, 0, rw * 2.4, rw * 2.4, '#c070ff', 0.8, R.t * 3, true); ctx.restore();
-    A.fx(ctx, 'portal', R.t + u.id, x, y - 4 * sc, sc * 0.9, 0.8 * open);
+    A.tex(ctx, 'magic_01', 0, 0, rw * 3.2, rw * 3.2, '#c070ff', 0.9, R.t * 0.8 + u.id, true);
+    A.tex(ctx, 'twirl_02', 0, 0, rw * 2.4, rw * 2.4, '#c070ff', 0.85, R.t * 3, true);
+    A.tex(ctx, 'smoke_07', 0, 0, rw * 2.6, rw * 2.6, '#1a0820', 0.6, -R.t, false); ctx.restore();
+    A.tex(ctx, 'light_01', x, y - 10 * sc, 40 * sc * open, 50 * sc * open, '#c070ff', 0.7, 0, true);
     // The body rises out of the floor: cut off at the floor line, black first, then its colours.
     const rise = Math.max(0, (k - 0.25) / 0.75);
     if (rise > 0) {
@@ -625,91 +652,81 @@
     ctx.restore();
     for (let i = 0; i < 2; i++) if (Math.random() < 0.5) P({ x: u.x + (Math.random() - 0.5) * 20, y: u.y + (Math.random() - 0.5) * 8, z: 2, vx: 0, vy: 0, vz: 30 + Math.random() * 40, g: 0, life: 0.6, size: 1.4, col: 'rgba(200,90,255,0.8)', shape: 'sq' });
   }
-  // ---- Doors, built from the tile set and effect sprites ------------------------------------------------
-  // A side gate: the castle arch with its portcullis winching up while foes run through.
+  // ---- The portal, built only from the vfx textures (assets/vfx) ----------------------------------------
+  // On the floor: two rune rings turning against each other over a pool of light. Upright: a ring of
+  // light for a rim, smoke churning around it, three layers of swirl turning inside, a bright core,
+  // flares orbiting the edge and a beam into the sky. open (0..1) grows it from a single flare to a
+  // slit to the full oval; rise (0..1) gathers the floor rings and smoke before it opens.
+  function vfxPortal(ctx, x, y, u, col, rise, open, t, alpha) {
+    const ga = ctx.globalAlpha; ctx.globalAlpha = ga * (alpha == null ? 1 : alpha);
+    const hot = mix(col, '#ffffff', 0.45), deep = mix(col, '#000000', 0.55);
+    // The floor.
+    ctx.save(); ctx.translate(x, y); ctx.scale(1, HELI.pitch);
+    A.tex(ctx, 'light_01', 0, 0, 130 * u * rise, 130 * u * rise, col, 0.28 * rise, 0, true);
+    A.tex(ctx, 'magic_02', 0, 0, 150 * u * rise, 150 * u * rise, col, 0.9 * rise, t * 0.6, true);
+    A.tex(ctx, 'magic_01', 0, 0, 100 * u * rise, 100 * u * rise, hot, 0.8 * rise, -t * 0.9, true);
+    A.tex(ctx, 'circle_03', 0, 0, (120 + 10 * Math.sin(t * 4)) * u * rise, (120 + 10 * Math.sin(t * 4)) * u * rise, col, 0.32 * rise, 0, true);
+    ctx.restore();
+    const cy = y - 58 * u, W = 74 * u, H = 112 * u, w = W * Math.max(0.04, open), h = H * (0.25 + 0.75 * Math.min(1, open * 3 + rise * 0.2));
+    // Smoke gathering and churning around the rim (spiralling in while it rises).
+    for (let i = 0; i < 12; i++) {
+      const a = t * (1.1 + (i % 3) * 0.25) + i * 0.52, rr = 0.55 + (1 - rise) * 0.9 + 0.06 * Math.sin(t * 3 + i);
+      const sx = x + Math.cos(a) * (Math.max(w, W * 0.3)) * rr, sy = cy + Math.sin(a) * h * rr * 0.62, sz = (34 + 14 * ((i * 7) % 3)) * u;
+      A.tex(ctx, i % 2 ? 'smoke_07' : 'smoke_04', sx, sy, sz, sz, deep, 0.55 * rise, a, false);
+      A.tex(ctx, i % 2 ? 'smoke_04' : 'smoke_07', sx, sy, sz * 0.8, sz * 0.8, col, 0.22 * rise, -a, true);
+    }
+    // The beam into the sky.
+    if (open > 0.15) A.tex(ctx, 'light_01', x, cy - R.H * 0.5, (30 + 8 * Math.sin(t * 9)) * u * open, R.H * 1.1, hot, 0.35 * open, 0, true);
+    // The flare that becomes the portal.
+    if (open < 1) { const f = rise * (1 - open); A.tex(ctx, 'star_06', x, cy, (60 + 90 * open) * u, (60 + 90 * open) * u, '#ffffff', f, t * 0.8, true); }
+    if (open > 0) {
+      // Inside: the swirl, three layers turning, and a hot core.
+      A.tex(ctx, 'light_01', x, cy, w * 1.8, h * 1.5, col, 0.3 * open, 0, true);
+      A.tex(ctx, 'smoke_07', x, cy, w * 1.15, h * 0.95, '#07020a', 0.95, t * 0.5, false);
+      A.tex(ctx, 'smoke_04', x, cy, w * 0.95, h * 0.8, '#0c0310', 0.9, -t * 0.7, false);
+      A.tex(ctx, 'twirl_02', x, cy, w * 1.25, h * 1.05, col, 0.95, t * 2.4, true);
+      A.tex(ctx, 'twirl_02', x, cy, w * 0.95, h * 0.8, RED, 0.6, -t * 3.1, true);
+      A.tex(ctx, 'twirl_02', x, cy, w * 0.7, h * 0.6, '#ffffff', 0.5, t * 4, true);
+      A.tex(ctx, 'magic_01', x, cy, w * 0.9, h * 0.65, hot, 0.5 * open, -t * 1.5, true);
+      A.tex(ctx, 'light_01', x, cy, w * 0.45, h * 0.38, '#ffffff', 0.7, 0, true);
+      // The rim: a ring of light squeezed into an oval, doubled for a hot edge.
+      A.tex(ctx, 'circle_03', x, cy, w * 1.35, h * 1.15, col, 0.9, 0, true);
+      A.tex(ctx, 'circle_03', x, cy, w * 1.25, h * 1.07, '#ffffff', 0.3 + 0.15 * Math.sin(t * 7), 0, true);
+      // Flares riding the rim.
+      for (let i = 0; i < 6; i++) { const a = t * 1.8 + i * Math.PI / 3, tw = 0.5 + 0.5 * Math.sin(t * 9 + i * 2); A.tex(ctx, 'star_06', x + Math.cos(a) * w * 0.6, cy + Math.sin(a) * h * 0.52, (14 + 18 * tw) * u, (14 + 18 * tw) * u, i % 2 ? '#ffffff' : hot, open * (0.5 + 0.5 * tw), a, true); }
+    }
+    ctx.globalAlpha = ga;
+  }
+  // Foes coming in from the side step out of a small portal at the arena's edge.
   function drawSideGate(ctx, x, y, a, open) {
     if (a <= 0) return;
-    const q = R.P(x, y), ts = R.Sh() * 1.5, up = open == null ? 1 : open;
-    ctx.save(); ctx.globalAlpha = a; ctx.imageSmoothingEnabled = false; ctx.translate(q.x, q.y);
-    A.tex(ctx, 'light_01', 0, -14 * ts, 44 * ts, 44 * ts, '#c070ff', 0.35 + 0.25 * up, 0, true);
-    A.prop(ctx, 'cdw_gate_arch', 0, 0, ts);
-    A.tex(ctx, 'light_01', 0, -10 * ts, 22 * ts, 26 * ts, '#e8c8ff', 0.8 * up, 0, true);
-    ctx.save(); ctx.beginPath(); ctx.rect(-11 * ts, -27 * ts, 22 * ts, 27 * ts); ctx.clip();
-    A.tile(ctx, 'cdw_portcullis', Math.round(-16 * ts), Math.round(-32 * ts - up * 26 * ts), Math.round(32 * ts), Math.round(32 * ts));
-    ctx.restore(); ctx.restore();
+    const q = R.P(x, y), o = open == null ? 1 : open;
+    vfxPortal(ctx, q.x, q.y, R.Sh() * 0.55, '#c070ff', 1, Math.min(1, o * 1.4), R.t * 1.4 + x, a);
   }
-  // The way on. Each kind is assembled from tiles: a stone arch whose wooden door sinks into the
-  // floor (gate), the shrine on its steps (stairs), or a ring of standing stones around a vortex (rift).
-  // It rises out of the floor (0 to 1 s), then opens (0.9 to 1.5 s). An arrival door (p.closing)
-  // stands open, shuts, then sinks away in smoke.
+  // The way on: the portal rises (0 to 1 s) and bursts open (0.9 to 1.5 s). An arrival portal
+  // (p.closing) stands open, then collapses to a flare and vanishes in smoke.
   function drawPortal(ctx, st, p) {
-    const Sh = R.Sh(), L = st.look, t = R.t, q = R.P(p.x, p.y), col = L.moonCol;
-    const rise = p.closing ? 1 : Math.min(1, p.t / 1.0);
-    const open = p.closing ? (p.t < 0.15 ? 1 : Math.max(0, 1 - (p.t - 0.15) / 0.7)) : Math.max(0, Math.min(1, (p.t - 0.9) / 0.6));
-    const sink = p.closing && p.t > 1.0 ? Math.min(1, (p.t - 1.0) / 0.7) : 0;
-    if (sink >= 1) return;
+    const Sh = R.Sh(), L = st.look, t = R.t, q = R.P(p.x, p.y), col = mix(L.moonCol, '#ff2a44', 0.35);
+    const rise = p.closing ? Math.max(0, 1 - Math.max(0, p.t - 0.9) / 0.6) : Math.min(1, p.t / 1.0);
+    const open = p.closing ? (p.t < 0.15 ? 1 : Math.max(0, 1 - (p.t - 0.15) / 0.6)) : Math.max(0, Math.min(1, (p.t - 0.9) / 0.6));
+    if (p.closing && p.t > 1.6) return;
     if (!p.boomed && (p.closing || open > 0.05)) {
       p.boomed = true; p.boomT = t;
-      for (let i = 0; i < 20; i++) { const a = Math.random() * Math.PI * 2, v = 80 + Math.random() * 150; P({ x: p.x, y: p.y, z: 10 + Math.random() * 50, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.7, vz: 60 + Math.random() * 120, g: -420, life: 0.9, size: 2.2 + Math.random() * 2, col: i % 3 ? mix(L.sky[0], '#ffffff', 0.25) : '#ffffff', shape: 'tri', rot: Math.random() * 6 }); }
+      for (let i = 0; i < 22; i++) { const a = Math.random() * Math.PI * 2, v = 80 + Math.random() * 160; P({ x: p.x, y: p.y, z: 20 + Math.random() * 70, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.7, vz: 40 + Math.random() * 120, g: -300, life: 0.9, size: 2 + Math.random() * 2, col: i % 3 ? col : '#ffffff', shape: 'sq' }); }
       if (!p.closing) { R.impactF = { t: 0, dur: 0.09, x: p.x, y: p.y, big: false }; R.punch = 0.05; }
-      R.shake = Math.max(R.shake, p.closing ? 4 : 10); R.flash = p.closing ? 0.5 : 0.5; R.flashCol = '255,235,240';
+      R.shake = Math.max(R.shake, p.closing ? 4 : 10); R.flash = 0.5; R.flashCol = '255,235,240';
     }
-    ctx.save(); ctx.translate(q.x, q.y); ctx.imageSmoothingEnabled = false;
-    // On the floor: a summoning circle turning under it, a rune ring, and the shockwave when it bursts.
-    ctx.save(); ctx.scale(1, HELI.pitch); const fl = (1 - sink) * rise;
-    A.fx(ctx, p.kind === 'rift' ? 'circle_arcane' : 'circle_holy', t, 0, 0, Sh * 1.7 * fl, 0.75 * fl, t * 0.25);
-    A.tex(ctx, 'magic_02', 0, 0, 150 * Sh * fl, 150 * Sh * fl, col, 0.55 * fl, -t * 0.4, true);
-    if (p.boomT != null && t - p.boomT < 0.9) { const k = (t - p.boomT) / 0.9; A.tex(ctx, 'circle_03', 0, 0, (60 + 320 * k) * Sh, (60 + 320 * k) * Sh, '#ffffff', 1 - k, 0, true); }
-    ctx.restore();
-    // The whole door rises out of the floor (and sinks back into it when an arrival door is done).
-    const H0 = p.kind === 'stairs' ? 170 : 100, lift = (1 - rise + sink) * H0 * Sh;
-    ctx.save(); ctx.beginPath(); ctx.rect(-R.W, -R.H * 2, R.W * 2, R.H * 2 + 2 * Sh); ctx.clip(); ctx.translate(0, lift);
-    // The light beyond it: a soft glow while it stands, a beam into the sky once it is open.
-    A.tex(ctx, 'light_01', 0, -40 * Sh, 150 * Sh, 150 * Sh, col, 0.25 + 0.35 * open, 0, true);
-    if (open > 0.2) A.tex(ctx, 'light_01', 0, -R.H * 0.55, (26 + 6 * Math.sin(t * 9)) * Sh * open, R.H * 1.1, '#ffffff', 0.5 * open, 0, true);
-    if (p.kind === 'gate') {
-      const ts = Sh * 1.5;
-      // Behind the door: the vortex turning in the arch.
-      ctx.save(); ctx.beginPath(); ctx.rect(-16 * ts, -45 * ts, 32 * ts, 45 * ts); ctx.clip();
-      ctx.fillStyle = mix(L.sky[0], '#000000', 0.7); ctx.fillRect(-16 * ts, -45 * ts, 32 * ts, 45 * ts);
-      A.tex(ctx, 'twirl_02', 0, -22 * ts, 46 * ts, 54 * ts, col, 0.9, t * 2.2, true);
-      A.tex(ctx, 'twirl_02', 0, -22 * ts, 34 * ts, 40 * ts, '#ffffff', 0.7, -t * 3, true);
-      A.fx(ctx, 'portal', t, 0, -20 * ts, ts * 1.1, 0.9);
-      A.tex(ctx, 'light_01', 0, -20 * ts, 30 * ts, 36 * ts, '#ffffff', 0.4 + 0.5 * open, 0, true);
-      // The door sinks into the floor as it opens, light bleeding over its top edge.
-      const dh = 39 * ts, dy = -dh + open * dh;
-      A.tile(ctx, 'door', Math.round(-16 * ts), Math.round(dy - 6 * ts), Math.round(32 * ts), Math.round(dh + 6 * ts));
-      if (open > 0 && open < 1) A.tex(ctx, 'light_01', 0, dy - 6 * ts, 40 * ts, 10 * ts, '#ffffff', 0.9, 0, true);
-      ctx.restore();
-      A.prop(ctx, 'arch_b', 0, 0, ts);
-      for (const sx of [-1, 1]) { A.prop(ctx, 'cd_brazier', sx * 40 * ts, 2 * ts, ts * 0.8); A.tex(ctx, 'light_01', sx * 40 * ts, -14 * ts, 40 * ts, 40 * ts, '#ff7a30', 0.35 + 0.08 * Math.sin(t * 9 + sx), 0, true); }
-    } else if (p.kind === 'stairs') {
-      // The shrine on its steps; its doorway and the basin on its roof fill with light as it opens.
-      const ts = Sh * 0.95;
-      A.prop(ctx, 'temple', 0, 8 * ts, ts);
-      A.tex(ctx, 'light_01', 0, -58 * ts, 80 * ts, 70 * ts, col, 0.35 + 0.6 * open, 0, true);
-      if (open > 0) {
-        A.tex(ctx, 'twirl_02', 0, -58 * ts, 60 * ts, 56 * ts, col, 0.8 * open, t * 2, true);
-        A.fx(ctx, 'portal', t, 0, -56 * ts, ts * 1.6, 0.9 * open);
-        A.tex(ctx, 'light_01', 0, -150 * ts, 90 * ts, 50 * ts, '#ffffff', 0.7 * open, 0, true);
-      }
-      A.fx(ctx, 'sparkles', t, 0, -60 * ts, ts * 2.4, 0.8 * Math.max(0.3, open));
-    } else {
-      // Standing stones rise one after another around a vortex that tears open between them.
-      const ts = Sh * 1.4, stones = [['monolith_b', -46, -6, 0], ['monolith_a', -20, -20, 0.15], ['monolith_c', 22, -20, 0.3], ['monolith_a', 48, -6, 0.45]];
-      for (const [n, sx, sy, d] of stones) { const r = p.closing ? 1 : Math.max(0, Math.min(1, (p.t - d) / 0.5)); if (r <= 0) continue; ctx.save(); ctx.beginPath(); ctx.rect(sx * ts - 30 * ts, -200 * ts, 60 * ts, 200 * ts + sy * ts); ctx.clip(); A.prop(ctx, n, sx * ts, sy * ts + (1 - r) * 70 * ts, ts); ctx.restore(); A.tex(ctx, 'light_01', sx * ts, sy * ts - 30 * ts, 30 * ts, 40 * ts, col, 0.3 * r, 0, true); }
-      const vk = Math.max(open, rise * 0.15);
-      A.tex(ctx, 'star_06', 0, -40 * ts, 60 * ts * (1 - open * 0.5), 60 * ts * (1 - open * 0.5), '#ffffff', rise < 1 ? rise : 0.6 * (1 - open), t, true);
-      A.tex(ctx, 'magic_02', 0, -40 * ts, 70 * ts * vk, 90 * ts * vk, col, 0.8 * vk, t * 1.5, true);
-      A.tex(ctx, 'twirl_02', 0, -40 * ts, 56 * ts * vk, 76 * ts * vk, col, vk, t * 2.6, true);
-      A.tex(ctx, 'twirl_02', 0, -40 * ts, 40 * ts * vk, 56 * ts * vk, '#ffffff', 0.8 * vk, -t * 3.4, true);
-      A.fx(ctx, 'portal', t, 0, -40 * ts, ts * 1.8 * vk, vk);
+    if (p.closing && !p.puffed && p.t > 0.75) { p.puffed = true; p.puffT = t; }
+    vfxPortal(ctx, q.x, q.y, Sh, col, rise, open, t, 1);
+    // The burst: a shockwave across the floor and a ring flung outward.
+    if (p.boomT != null && t - p.boomT < 0.9) {
+      const k = (t - p.boomT) / 0.9, r = (60 + 360 * k) * Sh;
+      ctx.save(); ctx.translate(q.x, q.y); ctx.scale(1, HELI.pitch); A.tex(ctx, 'circle_03', 0, 0, r, r, '#ffffff', 1 - k, 0, true); ctx.restore();
+      A.tex(ctx, 'circle_03', q.x, q.y - 58 * Sh, (80 + 220 * k) * Sh, (110 + 300 * k) * Sh, col, (1 - k) * 0.8, 0, true);
     }
-    ctx.restore();
-    // An arrival door sinks away in smoke.
-    if (sink > 0) for (let i = 0; i < 5; i++) A.tex(ctx, 'smoke_04', (i - 2) * 22 * Sh, -10 * Sh - sink * 20 * Sh * (1 + i % 2), 70 * Sh, 60 * Sh, mix(L.sky[0], '#ffffff', 0.35), 0.7 * Math.sin(sink * Math.PI), i + sink, false);
-    ctx.restore();
-    if (!p.closing && rise > 0.3 && Math.random() < 0.6) P({ x: p.x + (Math.random() - 0.5) * 50, y: p.y + (Math.random() - 0.5) * 16, z: 2, vz: 50 + Math.random() * 70, life: 1.0, size: 1.6, col: Math.random() < 0.5 ? 'rgba(255,255,255,0.9)' : rgba(col, 0.9), shape: 'sq' });
+    // A collapsed portal leaves a puff of smoke.
+    if (p.puffT != null && t - p.puffT < 0.9) { const k = (t - p.puffT) / 0.9; for (let i = 0; i < 6; i++) { const a = i * 1.05; A.tex(ctx, i % 2 ? 'smoke_07' : 'smoke_04', q.x + Math.cos(a) * 40 * Sh * k, q.y - 58 * Sh + Math.sin(a) * 30 * Sh * k - 20 * Sh * k, (50 + 50 * k) * Sh, (50 + 50 * k) * Sh, mix(L.sky[0], '#ffffff', 0.4), 0.7 * (1 - k), a + k, false); } }
+    if (!p.closing && rise > 0.3 && Math.random() < 0.6) P({ x: p.x + (Math.random() - 0.5) * 60, y: p.y + (Math.random() - 0.5) * 20, z: 2, vz: 50 + Math.random() * 70, life: 1.0, size: 1.6, col: Math.random() < 0.5 ? 'rgba(255,255,255,0.9)' : rgba(col, 0.9), shape: 'sq' });
   }
   // Chevrons on the floor from the hero toward the way on.
   function guide(ctx, s) {
@@ -717,7 +734,7 @@
     const dx = p.x - h.x, dy = p.y - h.y, d = Math.hypot(dx, dy); if (d < 30) return;
     ground(ctx); ctx.save(); ctx.translate(h.x, h.y); ctx.rotate(Math.atan2(dy, dx));
     for (let i = 0; i < 3; i++) { const o = 26 + i * 14 + (R.t * 30) % 14, a = 0.55 - i * 0.15; ctx.strokeStyle = rgba('#ffffff', a); ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(o - 5, -6); ctx.lineTo(o, 0); ctx.lineTo(o - 5, 6); ctx.stroke(); }
-    ctx.restore(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.restore(); unground(ctx);
   }
   // An impact frame, as in the moon arts: white with black silhouettes, then black with white ones.
   function impactFrame(ctx, s, dt) {
@@ -738,13 +755,13 @@
     const A = VS.arenaOf(s); let lx = A.shape === 'rect' ? A.hw * 0.62 : A.shape === 'cross' ? A.arm * 0.6 : A.r * 0.45, ly = A.shape === 'rect' ? A.hh * 0.55 : lx;
     tx = clamp(tx, -lx, lx); ty = clamp(ty, -ly, ly);
     // The door stands tall: aim a little above its foot (screen up) so the whole of it is in frame.
-    if (s.portal) { const P0 = s.portal, k = Math.min(1, P0.t / 1.2), w = P0.t < 1.9 ? 0.95 * k : 0.5, up = P0.kind === 'stairs' ? 95 : P0.kind === 'rift' ? 85 : 65; tx += (P0.x - hs * up - tx) * w; ty += (P0.y - hc * up - ty) * w; }
+    if (s.portal) { const P0 = s.portal, k = Math.min(1, P0.t / 1.2), w = P0.t < 1.9 ? 0.95 * k : 0.5, up = 70; tx += (P0.x - hs * up - tx) * w; ty += (P0.y - hc * up - ty) * w; }
     const k = Math.min(1, dt * 4); R.hcam.x += (tx - R.hcam.x) * k; R.hcam.y += (ty - R.hcam.y) * k;
   };
   R.snapCam = function (s) { R.hcam.x = s.hero.x * 0.6; R.hcam.y = s.hero.y * 0.6; };
   R.drawFight = function (ctx, s, dt) {
     const st = s.def;
-    R.follow(s, dt);
+    if (!s.staged) R.follow(s, dt);
     // Inside the warp tunnel nothing of the arena shows: draw only the tunnel.
     if (s.transit && s.transit.t > VS.TRANSIT.into + 0.05 && s.transit.t < VS.TRANSIT.swap) { transitOverlay(ctx, s); R.shake = Math.max(0, R.shake - dt * 22); return; }
     // Arriving: the door he came through seals behind him.
@@ -753,6 +770,9 @@
     const zoomIn = s.transit && s.transit.t < VS.TRANSIT.swap && s.transit.p ? Math.pow(Math.min(1, s.transit.t / VS.TRANSIT.swap), 2) * 0.7 : 0;
     ctx.save();
     if (zoomIn) { const c = R.P(s.transit.p.x, s.transit.p.y, 40), z = 1 + zoomIn; ctx.translate(c.x, c.y); ctx.scale(z, z); ctx.translate(-c.x, -c.y); }
+    // A filmed story shot pushes the camera in on the action.
+    if (s.zoom && s.zoom !== 1) { ctx.translate(R.W / 2, R.H * 0.56); ctx.scale(s.zoom, s.zoom); ctx.translate(-R.W / 2, -R.H * 0.56); }
+    R.baseT = ctx.getTransform();
     // The sky and the moon behind the platform, drifting a little with the camera.
     const sky = heliSky(st); ctx.drawImage(sky, -40 - Math.round(R.hcam.x * 0.06 * R.dpr), 0);
     // The platform.
@@ -784,7 +804,7 @@
     chains(ctx, dt);
     drawFx(ctx, dt);
     R.drawWeather(ctx, st, R.hcam.x * 0.5, R.t, 0.45);
-    ctx.restore();
+    ctx.restore(); R.baseT = null;
     // Floaters.
     R.floaters = R.floaters.filter((fl) => {
       fl.t += dt; const k = fl.t / (fl.label ? 1.0 : 0.8); if (k >= 1) return false;
@@ -794,6 +814,7 @@
       ctx.lineWidth = 4 * R.dpr; ctx.strokeStyle = 'rgba(8,4,10,0.85)'; ctx.strokeText(fl.text, q.x, q.y); ctx.fillStyle = fl.col; ctx.fillText(fl.text, q.x, q.y);
       ctx.restore(); return true;
     });
+    R.drawStreak(ctx, dt);
     const h = s.hero;
     if (s.slowT > 0) { ctx.fillStyle = 'rgba(140,230,255,0.07)'; ctx.fillRect(0, 0, R.W, R.H); }
     if (h.alive && h.hp / h.maxHp <= s.mods.ldx) vignette(ctx, 0.35 + 0.15 * Math.sin(R.t * 5));

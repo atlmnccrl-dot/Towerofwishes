@@ -20,8 +20,8 @@ for (const [k, f] of Object.entries(D.FOES)) {
 for (const st of D.STAGES) {
   for (const t of st.look.ground) if (!tiles[t]) bad(`${st.id} ground ${t}`);
   for (const t of st.look.props) if (!tiles[t]) bad(`${st.id} prop ${t}`);
-  for (const w of st.waves.concat([st.bossWave])) for (const k of w) if (!D.FOES[k]) bad(`${st.id} foe ${k}`);
-  if (!st.bossWave.every((k) => D.FOES[k].boss)) bad(`${st.id} boss wave has a minion`);
+  for (const w of st.waves.concat([st.bossWave])) for (const k of w) if (k !== '+' && !D.FOES[k]) bad(`${st.id} foe ${k}`);
+  if (!D.FOES[st.bossWave[0]].boss) bad(`${st.id} boss wave does not open with its boss`);
 }
 // Effect names used in the code (keep in step with view.js and cine.js).
 const used = new Set(['slash_arc_blood', 'hit_crit', 'cross_slash', 'katana', 'hit_big', 'parry', 'dissipate', 'smoke_dark', 'blast', 'teleport', 'shockwave', 'spin_slash', 'smoke_burst', 'portal', 'hit_shock', 'thunder', 'lightning_holy', 'explosion_frost', 'frost_nova', 'spell_cast', 'summon', 'spell_zap', 'charge_up', 'cast_circle', 'wind_gust']);
@@ -29,13 +29,13 @@ const src = ['view.js', 'cine.js'].map((f) => fs.readFileSync(path.join(__dirnam
 for (const n of used) { if (!fx[n]) bad('fx ' + n); if (src.indexOf("'" + n + "'") < 0) bad('fx listed but unused ' + n); }
 // Scenes: known shot kinds, known speakers, one scene per stage.
 for (const H of Object.values(D.HEROES)) for (const sk of H.skills) if (sk.fx && !fx[sk.fx]) bad('skill fx ' + sk.fx);
-const KINDS = ['title', 'moonfall', 'wound', 'stage', 'spire', 'guardian', 'clash', 'seal', 'dawn'];
+const KINDS = ['title', 'moonfall', 'film', 'spire', 'clash', 'seal'];
 const scenes = S.BEFORE.concat([S.ENDING]);
 if (S.BEFORE.length !== D.STAGES.length) bad('one scene per stage');
 for (const sc of scenes) for (const sh of sc.shots) {
   if (KINDS.indexOf(sh.k) < 0) bad('unknown shot ' + sh.k);
-  for (const w of [sh.who, sh.also, sh.a, sh.b].concat((sh.cast || []).map((c) => (typeof c === 'string' ? c : c.who)), sh.line ? [sh.line.who] : [])) if (w && !S.speaker(w)) bad('unknown speaker ' + w);
-  for (const w of [sh.who, sh.also, sh.a, sh.b].concat((sh.cast || []).map((c) => (typeof c === 'string' ? c : c.who)))) if (w) check('scene ' + w, S.speaker(w).set, ['Attack4', 'Attack3', 'Attack1']);
+  for (const w of [sh.who, sh.also, sh.a, sh.b, sh.card && sh.card.who, sh.card && sh.card.also].concat((sh.cast || []).map((c) => (typeof c === 'string' ? c : c.who)), sh.line ? [sh.line.who] : [])) if (w && !S.speaker(w)) bad('unknown speaker ' + w);
+  for (const w of [sh.who, sh.also, sh.a, sh.b, sh.card && sh.card.who, sh.card && sh.card.also].concat((sh.cast || []).map((c) => (typeof c === 'string' ? c : c.who)))) if (w) check('scene ' + w, S.speaker(w).set, ['Attack4', 'Attack3', 'Attack1']);
 }
 for (const sc of scenes) for (const sh of sc.shots) {
   if (sh.line) bad('a spoken line in a scene (the story has no dialogue)');

@@ -6,7 +6,7 @@
   const DIRS = ['E', 'SE', 'S', 'SW', 'W', 'NW', 'N', 'NE'];
   const sets = {}, tex = {}; let fxData = null, tileData = null;
   // Soft particle textures (white on clear, CC0): glows, a vortex, a rune ring, smoke, a ring, a flare.
-  A.TEX = ['light_01', 'twirl_02', 'magic_02', 'smoke_04', 'circle_03', 'star_06'];
+  A.TEX = ['light_01', 'twirl_02', 'magic_01', 'magic_02', 'smoke_04', 'smoke_07', 'circle_03', 'star_06'];
 
   // Decoded during loading so the first draw of a sheet does not stall a frame.
   const loadImage = (src) => new Promise((res, rej) => { const im = new Image(); im.onload = () => (im.decode ? im.decode().catch(() => {}) : Promise.resolve()).then(() => res(im)); im.onerror = () => rej(new Error('image ' + src)); im.src = src; });

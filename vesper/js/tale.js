@@ -1,6 +1,6 @@
 // VESPER — the story, told in clean full-resolution scenes: the side-on stage under the moon,
 // crisp figures, slow camera moves, and one caption line at a time at the bottom of the screen.
-// Shot kinds: title, moonfall, wound, stage, spire, guardian, clash, seal, dawn. A tap moves on, Esc skips.
+// Shot kinds: title, moonfall, film (the fight camera on a real arena), spire, clash, seal. A tap moves on, Esc skips.
 (function () {
   const VS = window.VS, D = VS.DATA, A = VS.A, R = VS.R, S = VS.STORY;
   const T = VS.TALE = {};
@@ -83,27 +83,6 @@
     ctx.strokeStyle = R.rgba('#5a0010', 0.9); ctx.lineWidth = 3 * R.dpr; ctx.beginPath(); ctx.moveTo(mx - mr * 0.95, my + mr * 0.35); ctx.lineTo(mx + mr * 0.95, my - mr * 0.35); ctx.stroke();
     for (let i = 0; i < 26; i++) { const x = mx - mr * 0.8 + hash(i, 11) * mr * 1.6, y = my + mr * 0.2 + ((t * 70 + hash(i, 12) * 300) % (R.H * 0.7)) * g; ctx.fillStyle = R.rgba(RED, 0.8); ctx.fillRect(x, y, 2 * R.dpr, 7 * R.dpr); }
   };
-  // The bleeding moon over the world; its light raises the dead.
-  SHOT.wound = function (ctx, sh, k, t) {
-    const st = D.STAGES[0]; R.drawArena(ctx, st, 40 + k * 40);
-    ctx.fillStyle = R.rgba(RED, 0.12 + 0.06 * Math.sin(t * 3)); ctx.fillRect(0, 0, R.W, R.H);
-    const keys = ['ghoul', 'ghast', 'raider', 'archer', 'bone'];
-    keys.forEach((key, i) => { const f = D.FOES[key], x = R.W * (0.12 + i * 0.19), y = R.floorY + 10 * R.k, rise = ease(k * 1.6 - i * 0.15); if (rise <= 0) return; ctx.save(); ctx.beginPath(); ctx.rect(0, 0, R.W, y + 2); ctx.clip(); A.actor(ctx, f.set, 'Idle', loop('Idle', t + i), i % 2 ? Math.PI : 0, Math.round(x), Math.round(y + (1 - rise) * 60 * R.S), R.S * 1.6, rise < 0.6 ? { shade: '#05030a' } : {}); ctx.restore(); });
-    bars(ctx, 1);
-  };
-  // A side-on scene on a stage's set: the cast stands or walks, the camera drifts.
-  SHOT.stage = function (ctx, sh, k, t) {
-    const st = D.STAGES[Math.min(5, sh.stage || 0)], cam = (sh.cam || 60) + (sh.pan || 0) * ease(k);
-    R.drawArena(ctx, st, cam); R.drawWeather(ctx, st, cam, R.t, 0.6);
-    for (const c of sh.cast || []) {
-      const x = R.W * (c.move ? c.move[0] + (c.move[1] - c.move[0]) * ease(k) : c.x), y = R.floorY + 8 * R.k, sc = R.S * (c.scale || 1.7);
-      const clip = c.clip || (c.move ? 'Walk' : 'Idle4'), fr = D.LOOP[clip] ? loop(clip, t) : Math.min(14, Math.floor(t * (c.fps || 10)));
-      shadow(ctx, x, y, 22 * sc / R.S);
-      if (c.glow) R.glowAt(ctx, c.glow, x, y - 26 * sc, 46 * sc, 0.35 + 0.1 * Math.sin(t * 4));
-      figure(ctx, c.who, clip, fr, c.face || 1, x, y, sc, c.silhouette ? { shade: '#05030a' } : {});
-    }
-    bars(ctx, 1);
-  };
   // The climb: the Spire with six guardians up its side, the next one lit.
   SHOT.spire = function (ctx, sh, k, t) {
     sky(ctx, '#05040a', '#160810'); stars(ctx, 60, 1);
@@ -121,29 +100,11 @@
       ctx.strokeStyle = now ? '#ffffff' : 'rgba(255,255,255,0.3)'; ctx.lineWidth = 1.5 * R.dpr; ctx.stroke();
       const f = D.FOES[p.st.bossWave[0]], left = p.x > cx, tx = p.x + (left ? 1 : -1) * 18 * R.k;
       R.label(ctx, p.st.hour, tx, p.y - 5 * R.k, 10 * R.k, now ? RED : done ? '#7a6a72' : '#a99aa2', left ? 'left' : 'right', 3, 700);
-      R.label(ctx, done ? p.st.name.toUpperCase() + '  ·  CLEARED' : (p.st.bossWave.length > 1 ? 'THE HOLLOW TWINS' : f.name.toUpperCase()), tx, p.y + 11 * R.k, (now ? 16 : 12) * R.k, now ? '#ffffff' : done ? '#6a5a62' : '#c8b8c0', left ? 'left' : 'right', 2, now ? 700 : 600);
+      R.label(ctx, done ? p.st.name.toUpperCase() + '  ·  CLEARED' : (p.st.boss === 'twins' ? 'THE HOLLOW TWINS' : f.name.toUpperCase()), tx, p.y + 11 * R.k, (now ? 16 : 12) * R.k, now ? '#ffffff' : done ? '#6a5a62' : '#c8b8c0', left ? 'left' : 'right', 2, now ? 700 : 600);
       if (done) { ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 2 * R.dpr; ctx.beginPath(); ctx.moveTo(p.x - r * 0.6, p.y); ctx.lineTo(p.x - r * 0.1, p.y + r * 0.5); ctx.lineTo(p.x + r * 0.6, p.y - r * 0.5); ctx.stroke(); }
     }
     // The hero climbing toward the current guardian.
     const p = pts[cur], h = sp('hero'); if (h) A.actor(ctx, h.set, 'Walk', loop('Walk', t), 0, Math.round(p.x + (p.x > cx ? -1 : 1) * 22 * R.k), Math.round(p.y + 8 * R.k), R.S * 0.6, {});
-    bars(ctx, 1);
-  };
-  // A guardian, revealed: dark at first against its own sky, then lit, its name.
-  SHOT.guardian = function (ctx, sh, k, t) {
-    const st = D.STAGES[sh.stage], keys = [sh.who].concat(sh.also ? [sh.also] : []);
-    R.drawArena(ctx, st, 100 + k * 20); ctx.fillStyle = `rgba(4,2,6,${0.55 - 0.3 * ease(k * 2)})`; ctx.fillRect(0, 0, R.W, R.H);
-    keys.forEach((key, i) => {
-      const f = D.FOES[key], sc = R.S * (1.8 + 0.2 * ease(k)) * ((f.scale || 1) > 1 ? 0.78 : 1), x = R.W * (keys.length > 1 ? 0.56 + i * 0.2 : 0.64), y = R.floorY + 10 * R.k;
-      shadow(ctx, x, y, 30 * sc / R.S); R.glowAt(ctx, f.color || RED, x, y - 30 * sc, 60 * sc, 0.25 * ease(k * 2));
-      A.actor(ctx, f.set, k < 0.35 ? 'Idle4' : 'Taunt', loop(k < 0.35 ? 'Idle4' : 'Taunt', t), keys.length > 1 && i === 0 ? 0 : Math.PI, Math.round(x), Math.round(y), sc, k < 0.3 ? { shade: '#05030a' } : {});
-    });
-    if (k > 0.3) {
-      const a = ease((k - 0.3) * 4), f = D.FOES[sh.who], name = sh.also ? 'THE HOLLOW TWINS' : f.name.toUpperCase(), sub = sh.also ? 'THE LEFT HAND AND THE RIGHT' : f.title.toUpperCase();
-      ctx.save(); ctx.globalAlpha = a; ctx.font = R.fd(40 * R.k, 700); ctx.textAlign = 'left'; ctx.fillStyle = '#ffffff'; if ('letterSpacing' in ctx) ctx.letterSpacing = 3 * R.dpr + 'px';
-      ctx.fillText(name, R.W * 0.06 + (1 - a) * -30, R.H * 0.24); if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
-      R.label(ctx, sub, R.W * 0.06 + 2, R.H * 0.24 + 24 * R.k, 12 * R.k, '#ff8a9a', 'left', 4, 600);
-      ctx.fillStyle = RED; ctx.fillRect(R.W * 0.06, R.H * 0.24 + 34 * R.k, 140 * R.k * a, 2 * R.k); ctx.restore();
-    }
     bars(ctx, 1);
   };
   // The hero and the guardian rush each other and meet on an impact frame.
@@ -181,32 +142,90 @@
     ctx.strokeStyle = R.rgba('#46000e', 0.95 * (1 - g)); ctx.lineWidth = 4 * R.dpr; ctx.beginPath(); ctx.moveTo(mx - mr * 0.95 * (1 - g), my + mr * 0.35 * (1 - g)); ctx.lineTo(mx + mr * 0.95 * (1 - g), my - mr * 0.35 * (1 - g)); ctx.stroke();
     ctx.fillStyle = `rgba(255,255,255,${0.7 * (1 - g)})`; ctx.fillRect(0, 0, R.W, R.H);
   };
-  // The ending: the wound closes, the moon goes white and rises, dawn.
-  SHOT.dawn = function (ctx, sh, k, t) {
-    const g = ease(k); sky(ctx, R.mix('#05040a', '#2a3a5a', g), R.mix('#160810', '#e8a070', g)); stars(ctx, 70, 1 - g);
-    const col = R.mix('#ff2a44', '#f4f0ec', g); moon(ctx, R.W * 0.5, R.H * (0.42 - 0.18 * g), R.H * 0.16, col, 0.35);
-    ridge(ctx, R.H * 0.82, R.H * 0.1, R.mix('#0a0810', '#2a2030', g), 5, R.W / 16);
-    ctx.fillStyle = R.mix('#05040a', '#1a1420', g); ctx.fillRect(0, R.H * 0.82, R.W, R.H * 0.18);
-    figure(ctx, 'hero', 'Idle', loop('Idle', t), 1, R.W * 0.5, R.H * 0.84, R.S * 1.6, { shade: '#05030a' });
+  // ---- Filmed shots: the fight camera's high three-quarter view on the real arena --------------------
+  // A shot stages its cast on a stage's arena (entering from rifts or dropping from the sky, walking,
+  // standing), moves the camera from one point to another and pushes the zoom, then draws it with
+  // the fight renderer. Positions are world units on the arena floor.
+  const TOWARD_CAM = Math.atan2(Math.cos(-0.3), Math.sin(-0.3));
+  function nameCard(ctx, who, also, a) {
+    const f = D.FOES[who], name = also ? 'THE HOLLOW TWINS' : f.name.toUpperCase(), sub = also ? 'THE LEFT HAND AND THE RIGHT' : f.title.toUpperCase();
+    ctx.save(); ctx.globalAlpha = a; ctx.font = R.fd(44 * R.k, 700); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = '#ffffff'; if ('letterSpacing' in ctx) ctx.letterSpacing = 3 * R.dpr + 'px';
+    ctx.lineWidth = 6 * R.dpr; ctx.strokeStyle = 'rgba(6,2,6,0.7)'; ctx.strokeText(name, R.W * 0.06 + (1 - a) * -30, R.H * 0.24); ctx.fillText(name, R.W * 0.06 + (1 - a) * -30, R.H * 0.24); if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+    R.label(ctx, sub, R.W * 0.06 + 2, R.H * 0.24 + 24 * R.k, 12 * R.k, '#ff8a9a', 'left', 4, 600);
+    ctx.fillStyle = RED; ctx.fillRect(R.W * 0.06, R.H * 0.24 + 34 * R.k, 160 * R.k * a, 2 * R.k); ctx.restore();
+  }
+  function filmOf(sc, sh) {
+    if (sc.film && sc.film.sh === sh) return sc.film;
+    R.fx = []; R.parts = []; R.floaters = []; R.pfx = []; R.entryDoor = null; R.impactF = null; R.shake = 0; R.flash = 0;
+    const s = VS.sim.create(sh.stage, { seed: 7, hero: S.heroKey });
+    s.staged = true; s.area = sh.area === 'last' ? s.waves.length - 1 : sh.area || 0; s.wave = s.area; s.units = []; s.hero.hp = s.hero.maxHp;
+    const cast = (sh.cast || []).map((c) => {
+      const u = c.who === 'hero' ? s.hero : VS.sim.makeUnit(s, 'foe', c.who, D.FOES[c.who], c.at[0], c.at[1], 0);
+      u.x = c.at[0]; u.y = c.at[1]; u.alive = true; u.state = 'idle'; u.aura = !!c.aura; s.units.push(u); return { c, u, landed: !c.enter };
+    });
+    return (sc.film = { sh, s, cast });
+  }
+  const lerp2 = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
+  SHOT.film = function (ctx, sh, k, t, sc) {
+    const F = filmOf(sc, sh), s = F.s, dt = Math.min(0.05, sc.dt || 0.016);
+    for (const m of F.cast) {
+      const { c, u } = m, tt = t - (c.delay || 0), ed = c.edur || (c.enter === 'drop' ? 1.3 : 1.1);
+      if (c.enter && tt < ed) {
+        if (tt < 0) { u.state = 'dead'; u.deadT = 99; continue; }
+        u.state = 'spawn'; u.mode = c.enter; u.st = tt; u.dur = ed; u.from = { x: u.x, y: u.y }; u.to = u.from;
+        u.clip = c.enter === 'drop' ? 'Attack4' : 'Idle'; u.frame = c.enter === 'drop' ? Math.min(14, Math.floor(tt / ed * 10)) : loop('Idle', t);
+        continue;
+      }
+      if (!m.landed) {
+        m.landed = true; m.landT = t;
+        s.events = [{ type: 'landed', id: u.id, x: u.x, y: u.y, boss: !!u.def.boss }]; R.consume(s); s.events = [];
+        if (u.def.boss) { R.impactF = { t: 0, dur: 0.12, x: u.x, y: u.y, big: true }; R.shake = 12; sc.cues.push(['quake', 1], ['blow_big', 0.9]); }
+      }
+      u.state = 'idle';
+      const mv = c.to ? ease(Math.max(0, Math.min(1, tt / (c.mdur || sh.d || 2.4)))) : 0, p = c.to ? lerp2(c.at, c.to, mv) : c.at, moving = c.to && mv < 0.98;
+      u.x = p[0]; u.y = p[1];
+      const after = m.landT != null && t - m.landT < 1.4 && c.after;
+      const clip = moving ? (c.run ? 'Run' : 'Walk') : after ? c.after : c.clip || 'Idle4';
+      u.clip = clip; u.frame = D.LOOP[clip] ? loop(clip, t + u.id * 0.3) : Math.min(14, Math.floor((t - (m.landT || 0)) * (D.FPS[clip] || 10)));
+      const look = c.face === 'cam' ? TOWARD_CAM : Array.isArray(c.face) ? Math.atan2(c.face[1] - u.y, c.face[0] - u.x) : typeof c.face === 'number' ? c.face : moving ? Math.atan2(c.to[1] - c.at[1], c.to[0] - c.at[0]) : TOWARD_CAM;
+      u.ang = look; u.face = Math.cos(look) >= 0 ? 1 : -1;
+    }
+    const cam = sh.cam || {}, at = cam.at || [0, 0], c2 = lerp2(at, cam.to || at, ease(k));
+    if (cam.follow) { const h = F.cast.find((m) => m.c.who === cam.follow); if (h) { c2[0] = h.u.x + (cam.off ? cam.off[0] : 0); c2[1] = h.u.y + (cam.off ? cam.off[1] : 0); } }
+    // Aim at chest height, not the feet: shift the camera toward the viewer by the lift.
+    const lift = cam.lift == null ? 6 : cam.lift, hs = Math.sin(-0.3), hc = Math.cos(-0.3);
+    R.hcam.x = c2[0] - hs * lift / 0.72; R.hcam.y = c2[1] - hc * lift / 0.72;
+    const z = cam.zoom || [1.3, 1.5]; s.zoom = z[0] + (z[1] - z[0]) * ease(k);
+    s.t += dt; R.t = R.t || 0;
+    ctx.save(); if (R.shake > 0.5) ctx.translate((Math.random() - 0.5) * R.shake * R.dpr, (Math.random() - 0.5) * R.shake * R.dpr); R.drawFight(ctx, s, dt); ctx.restore();
+    if (sh.tint === 'red') { ctx.fillStyle = R.rgba(RED, 0.1 + 0.06 * Math.sin(t * 3)); ctx.fillRect(0, 0, R.W, R.H); }
+    if (sh.tint === 'dawn') {
+      // Dawn: the red drains out under a warm wash, and light breaks over the top of the frame.
+      const g = ease(k); ctx.fillStyle = `rgba(40,60,90,${0.35 * g})`; ctx.fillRect(0, 0, R.W, R.H);
+      const gr = ctx.createLinearGradient(0, 0, 0, R.H); gr.addColorStop(0, `rgba(255,214,160,${0.7 * g})`); gr.addColorStop(0.5, `rgba(255,170,120,${0.3 * g})`); gr.addColorStop(1, `rgba(255,140,100,${0.08 * g})`);
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = gr; ctx.fillRect(0, 0, R.W, R.H);
+      A.tex(ctx, 'light_01', R.W * 0.5, R.H * 0.02, R.W * 1.2, R.H * 0.7, '#fff0d8', 0.8 * g, 0, true); ctx.restore();
+    }
+    if (sh.card) { const kk = (t - (sh.card.at || 1.2)) / 0.4; if (kk > 0) nameCard(ctx, sh.card.who, sh.card.also, ease(kk)); }
     bars(ctx, 1);
   };
 
   // ---- playback ------------------------------------------------------------------------------------
-  const CUE = { title: [['clang_1', 0.6]], moonfall: [['charge', 0.8]], guardian: [['horn', 0.5]], clash: [['whoosh', 0.9]], dawn: [['allout', 0.6]], seal: [['charge', 0.8]], spire: [['step_2', 0.5]] };
+  const CUE = { film: [['magic', 0.4]], title: [['clang_1', 0.6]], moonfall: [['charge', 0.8]], clash: [['whoosh', 0.9]], seal: [['charge', 0.8]], spire: [['step_2', 0.5]] };
   const durOf = (sh) => Math.max(sh.d || 2.4, sh.say ? 1.6 + sh.say.length * 0.05 : 0);
   T.durOf = durOf; T.kinds = () => Object.keys(SHOT);
   T.start = function (def) { const sc = { def, i: 0, t: 0, done: false, cues: [] }; enter(sc); return sc; };
   function enter(sc) { const sh = sc.def.shots[sc.i]; if (!sh) { sc.done = true; return; } sc.t = 0; sc.cues.push(...(CUE[sh.k] || [])); sc.hitCued = false; }
   T.update = function (sc, dt, inp) {
     if (sc.done) return; if (inp.back) { sc.done = true; return; }
-    const sh = sc.def.shots[sc.i]; sc.t += dt; const d = durOf(sh);
+    const sh = sc.def.shots[sc.i]; sc.t += dt; sc.dt = dt; const d = durOf(sh);
     if ((sh.k === 'clash' || sh.k === 'moonfall' || sh.k === 'seal') && !sc.hitCued && sc.t / d > ({ clash: 0.45, moonfall: 0.62, seal: 0.58 })[sh.k]) { sc.hitCued = true; sc.cues.push(['blow_big', 1], ['clang_1', 0.8], ['quake', 0.6]); }
     if (sc.t >= d || (inp.tap && sc.t > 0.35)) { sc.i++; enter(sc); }
   };
   T.draw = function (ctx, sc) {
     const sh = sc.def.shots[Math.min(sc.i, sc.def.shots.length - 1)]; if (!sh) return;
     const k = Math.min(1, sc.t / durOf(sh));
-    ctx.save(); ctx.imageSmoothingEnabled = false; SHOT[sh.k](ctx, sh, k, sc.t); ctx.restore();
+    ctx.save(); ctx.imageSmoothingEnabled = false; SHOT[sh.k](ctx, sh, k, sc.t, sc); ctx.restore();
     caption(ctx, sh, sc.t);
     if (sc.t > 0.6) R.label(ctx, 'CLICK TO CONTINUE  ·  ESC SKIPS', R.W - 18 * R.k, 16 * R.k, 9 * R.k, 'rgba(220,210,214,0.4)', 'right', 2, 500);
   };

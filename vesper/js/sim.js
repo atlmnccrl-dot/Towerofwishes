@@ -15,11 +15,15 @@
   }
 
   // ---- setup ------------------------------------------------------------------------------
+  // Foes overall: tuned with the bot so a good run wins most hours and a sloppy one loses often.
+  VS.DIFF = { hp: 1.4, bossHp: 1.35, dmg: 2.0 };
+  VS.POWER = { dmg: 1.3, hp: 1.3, gain: 1.2, killHeal: 0.03 };
   function mods(boons, H) {
     const has = (id) => boons.indexOf(id) >= 0; H = H || D.HERO;
     return {
-      dmg: has('edge') ? 1.2 : 1, hp: H.hp + (has('vigor') ? 30 : 0), parryWin: H.parry.win * (has('guard') ? 1.6 : 1),
-      gain: has('moonblood') ? 1.4 : 1, thirst: has('thirst') ? 0.05 : 0, combo: Math.min(H.combo.length, has('fourth') ? 5 : 4),
+      // The hero hits harder and lasts longer than the base kit, to match the bigger waves; kills heal.
+      dmg: VS.POWER.dmg * (H.pow || 1) * (has('edge') ? 1.2 : 1), hp: Math.round(H.hp * VS.POWER.hp) + (has('vigor') ? 30 : 0), parryWin: H.parry.win * (has('guard') ? 1.6 : 1),
+      gain: VS.POWER.gain * (has('moonblood') ? 1.4 : 1), killHeal: VS.POWER.killHeal, thirst: has('thirst') ? 0.05 : 0, combo: Math.min(H.combo.length, has('fourth') ? 5 : 4),
       dodgeDist: H.dodge.dist * (has('ghost') ? 1.3 : 1), perfect: H.dodge.perfect + (has('ghost') ? 0.08 : 0),
       riposte: has('riposte'), ldx: has('breath') ? 0.45 : H.lastDitch, moonStart: has('rising') ? 50 : 0,
     };
@@ -324,11 +328,15 @@
   }
   function phaseTwo(s, o) { o.phase = 2; o.windMul = 0.86; o.spdMul = 1.15; o.aura = true; o.tauntT = 1.1; s.freeze = Math.max(s.freeze, 1.1); ev(s, { type: 'phase', id: o.id, key: o.key }); }
   function kill(s, o) {
+    if (o.state === 'spawn') { const c = VS.clampTo(curArena, o.x, o.y, o.rad * 0.6); o.x = c[0]; o.y = c[1]; }
     o.alive = false; setState(o, 'dead'); o.atk = null;
     if (o.team === 'foe') { const h = s.hero; push(o, h, o.def.boss ? 90 : 210); o.vz = Math.max(o.vz, o.def.boss ? 60 : 150); }
     ev(s, { type: 'kill', id: o.id, x: o.x, y: o.y, boss: !!o.def.boss, hero: o.team === 'hero' });
     if (o.ally) { ev(s, { type: 'vanish', id: o.id, x: o.x, y: o.y }); return; }
-    if (o === s.hero) { s.endT = 2.0; s.combo = 0; } else if (o.def.boss) { s.slow = 0.25; s.slowT = 0.9; ev(s, { type: 'impact', size: 'big', x: o.x, y: o.y }); }
+    if (o === s.hero) { s.endT = 2.0; s.combo = 0; return; }
+    if (o.team === 'foe') { const h = s.hero; if (h.alive) { const n = Math.max(2, Math.round(h.maxHp * s.mods.killHeal)); h.hp = Math.min(h.maxHp, h.hp + n); ev(s, { type: 'heal', x: h.x, y: h.y, n }); } gainMoon(s, o.def.boss ? 0 : 5); s.kills = (s.kills || 0) + 1; }
+    if (o.def.boss) { s.slow = 0.25; s.slowT = 0.9; ev(s, { type: 'impact', size: 'big', x: o.x, y: o.y }); }
+    else if (o.team === 'foe' && !(s.reinf && s.reinf.length) && !foes(s).length) { s.slow = 0.22; s.slowT = 0.7; ev(s, { type: 'finisher', x: o.x, y: o.y }); }
   }
 
   // ---- the moon arts -----------------------------------------------------------------------
@@ -408,26 +416,35 @@
     }
     const c = VS.clampTo(A, -h.x, -h.y, 30); return { x: c[0], y: c[1] };
   }
+  // A wave comes in pulses split by '+': the next pulse charges in when one foe is left standing.
+  function groupsOf(list) { const g = [[]]; for (const k of list) { if (k === '+') g.push([]); else g[g.length - 1].push(k); } return g.filter((x) => x.length); }
   function spawnWave(s) {
     s.wave++;
-    const list = s.waves[s.wave], h = s.hero, boss = s.wave === s.waves.length - 1, A = arenaOf(s), gates = VS.sideGates(A).sort((a, b) => Math.hypot(b.x - h.x, b.y - h.y) - Math.hypot(a.x - h.x, a.y - h.y));
+    const groups = groupsOf(s.waves[s.wave]), boss = s.wave === s.waves.length - 1;
+    s.reinf = groups.slice(1);
+    spawnGroup(s, groups[0], boss);
+    if (boss) { s.freeze = 1.9; ev(s, { type: 'boss', keys: groups[0].slice() }); }
+    else ev(s, { type: 'wave', n: s.wave + 1, of: s.waves.length - 1 });
+  }
+  function spawnGroup(s, list, boss, elite) {
+    const h = s.hero, A = arenaOf(s), gates = VS.sideGates(A).sort((a, b) => Math.hypot(b.x - h.x, b.y - h.y) - Math.hypot(a.x - h.x, a.y - h.y));
     list.forEach((key, i) => {
       const def = D.FOES[key], mode = def.boss ? (key === 'umbral' ? 'rift' : 'drop') : A.spawn[i % A.spawn.length];
       let x, y, tx, ty;
       if (mode === 'side') { const g = gates[i % gates.length]; x = g.x; y = g.y; const c = VS.clampTo(A, g.tx + (s.rand() - 0.5) * 30, g.ty + (s.rand() - 0.5) * 30, 20); tx = c[0]; ty = c[1]; }
       else { const p = def.boss ? (() => { const c = VS.clampTo(A, -h.x * 0.6, -h.y * 0.6 - 40, 40); return { x: c[0], y: c[1] }; })() : spawnPoint(s, A, i); x = p.x; y = p.y; }
       const u = makeUnit(s, 'foe', key, def, x, y, 0);
-      const sk = s.def.scale || { hp: 1, dmg: 1 }; u.hp = u.maxHp = Math.round(def.hp * sk.hp); u.dmgMul = sk.dmg;
+      const sk = s.def.scale || { hp: 1, dmg: 1 }, DF = VS.DIFF; u.hp = u.maxHp = Math.round(def.hp * sk.hp * (def.boss ? DF.bossHp : DF.hp)); u.dmgMul = sk.dmg * DF.dmg;
       setAng(u, Math.atan2(h.y - u.y, h.x - u.x)); u.orbit = (s.rand() < 0.5 ? -1 : 1); u.cd = 0.4 + i * 0.3 + (def.boss ? 0.6 : 0);
       if (def.boss) s.bossIds.push(u.id);
+      // An elite leads each wave of reinforcements: bigger, tougher, harder hitting, wreathed in red.
+      if (elite && i === 0 && !def.boss) { u.elite = true; u.hp = u.maxHp = Math.round(u.maxHp * 2.2); u.dmgMul *= 1.25; u.scale *= 1.18; u.rad *= 1.18; u.maxPoise = (u.maxPoise || 0) * 1.6 || u.maxPoise; }
       // The entrance: rise from a rift, drop from the sky, or run in through a side gate.
       u.mode = mode; u.from = { x, y }; u.to = mode === 'side' ? { x: tx, y: ty } : { x, y };
       if (mode === 'side') setAng(u, Math.atan2(ty - y, tx - x));
       setState(u, 'spawn', def.boss ? 1.5 : mode === 'side' ? 1.1 + i * 0.2 : mode === 'drop' ? 0.75 + i * 0.18 : 0.85 + i * 0.22);
       ev(s, { type: 'spawn', id: u.id, x: u.to.x, y: u.to.y, fx: x, fy: y, boss: !!def.boss, mode, dur: u.dur });
     });
-    if (boss) { s.freeze = 1.9; ev(s, { type: 'boss', keys: list.slice() }); }
-    else ev(s, { type: 'wave', n: s.wave + 1, of: s.waves.length - 1 });
   }
   // A cleared area opens the way on: a gate, a stairway or a rift at the back of the ring.
   function openPortal(s) {
@@ -474,7 +491,7 @@
     setAng(u, Math.atan2(dy, dx));
     u.cd -= dt;
     const busy = s.units.filter((o) => o.team === 'foe' && o.alive && o.state === 'attack' && o.def.minion).length;
-    if (u.cd <= 0 && (u.def.boss || busy < 2)) {
+    if (u.cd <= 0 && (u.def.boss || busy < 3)) {
       // A boss's signature move, every so often, announced by its title card.
       const sigs = u.def.atks.filter((k) => k.sig && (!k.phase || u.phase >= k.phase) && fits(u, k, d));
       if (sigs.length && u.sigCd <= 0 && s.rand() < 0.5) {
@@ -489,11 +506,11 @@
     let want = melee.length ? Math.min(...melee.map((k) => (k.aoe ? (k.at || 0) + k.aoe * 0.5 : k.reach) * u.scale)) * 0.8 + h.rad : 100;
     if (u.key === 'umbral') want = 110;
     if (u.def.keep) want = u.def.keep;
-    if (u.def.minion && busy >= 2) want = 62 + (u.id % 3) * 12;
+    if (u.def.minion && busy >= 3) want = 62 + (u.id % 3) * 12;
     const nx = d > 0 ? dx / d : 1, ny = d > 0 ? dy / d : 0;
     let vx = 0, vy = 0;
     if (Math.abs(d - want) > 5) { const k = d > want ? 1 : -0.7; vx += nx * k; vy += ny * k; }
-    if (u.cd > 0 || (u.def.minion && busy >= 2)) { vx += -ny * u.orbit * 0.45; vy += nx * u.orbit * 0.45; }
+    if (u.cd > 0 || (u.def.minion && busy >= 3)) { vx += -ny * u.orbit * 0.45; vy += nx * u.orbit * 0.45; }
     for (const o of s.units) {
       if (o === u || o.team !== 'foe' || !o.alive) continue;
       const ox = u.x - o.x, oy = u.y - o.y, od = Math.hypot(ox, oy), min = u.rad + o.rad + 8;
@@ -684,6 +701,10 @@
     if (s.comboT > 0) { s.comboT -= dt; if (s.comboT <= 0) s.combo = 0; }
 
     if (s.endT > 0) { s.endT -= dtReal; if (s.endT <= 0) s.result = h.alive ? 'win' : 'lose'; }
+    else if (h.alive && s.reinf && s.reinf.length && foes(s).filter((u) => !u.def.boss).length <= 1 && !foes(s).some((u) => u.state === 'spawn')) {
+      s.reinfT = (s.reinfT || 0) + dt;
+      if (s.reinfT > 0.5) { s.reinfT = 0; const g = s.reinf.shift(); spawnGroup(s, g, false, s.stage >= 1); ev(s, { type: 'reinforce', n: g.length, left: s.reinf.length }); }
+    }
     else if (h.alive && !foes(s).length) {
       if (s.wave >= s.waves.length - 1) { s.endT = 2.2; setState(h, 'win'); ev(s, { type: 'clear' }); }
       else if (s.wave < 0 || s.area > s.wave) { s.waveT -= dt; if (s.waveT <= 0) { spawnWave(s); s.waveT = 1.1; } }
@@ -741,5 +762,5 @@
     return inp;
   }
 
-  VS.sim = { create, step, bot, rng, foes, startArt, mods, angDiff };
+  VS.sim = { create, step, bot, rng, foes, startArt, mods, angDiff, makeUnit };
 })(typeof window !== 'undefined' ? window : globalThis);

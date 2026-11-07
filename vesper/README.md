@@ -57,15 +57,25 @@ while they wind up, so stepping aside makes them miss.
   square courtyard, a long bridge, a ring around a bottomless pit, a crossroads. Foes arrive by the
   arena's rules: rising out of rifts in the floor, dropping from the sky onto a marked spot, or
   running in through glowing side gates. Bosses drop in (the Umbral rises from a rift).
-- **The way on**: clearing an arena raises a door at its far end while the camera turns to it, and
-  the goal in the corner changes to "Go through the door". Every door is built from the tile set
-  and effect sprites, not drawn: a stone arch (`arch_b`) whose wooden `door` sinks into the floor to
-  show a turning vortex, flanked by braziers; the `temple` shrine on its steps, its doorway and roof
-  basin filling with light; or four standing stones (`monolith_*`) rising around a vortex. A
-  summoning circle (`circle_holy` / `circle_arcane`) turns under each, with soft light, swirl and
-  shockwave textures from `assets/vfx`. Walk in: you fall through a vortex of the same swirl
-  textures and arrive through a door that shuts behind you and sinks away in smoke. Foes that run
-  in from the side come through a castle arch whose portcullis winches up.
+- **The way on**: clearing an arena opens a portal at its far end while the camera turns to it, and
+  the goal in the corner changes to "Go through the door". The portal is made only from the soft
+  vfx textures in `assets/vfx`: two rune rings turning against each other on the floor, smoke
+  gathering and churning around a ring of light, a dark core with three layers of swirl turning
+  inside, flares riding the rim and a beam into the sky. It opens from a single flare to a slit,
+  then bursts wide on an impact frame. Walk in: you fall through a vortex of the same swirl
+  textures and arrive through a portal that collapses behind you in smoke. Foes that come in from
+  the side step out of small portals at the arena's edge.
+- **Waves and reinforcements**: every arena throws two or three pulses of foes at you; when one is
+  left standing the next pulse charges in ("REINFORCEMENTS"), led from the first hour on by an
+  elite (bigger, wreathed in red, more than twice the health). Bosses get escorts mid-fight. Up to
+  three foes swing at once.
+- **Stronger hero to match**: heroes hit 30% harder and have 30% more health than their base kit,
+  every kill heals 3% and fills the moon, and kills close together call out streaks (double kill
+  up to massacre). The last kill of an arena plays a slow-motion finisher with an impact frame.
+- **Difficulty**: tuned with the test bot so a good run wins most hours (about 75 to 90% per hero
+  across the night, 50 to 100% per hour) and fights last 60 to 105 seconds. Losing costs nothing:
+  retry the hour. Knobs: `VS.DIFF` (foe health and damage) and `VS.POWER` (hero) in `js/sim.js`,
+  `pow` per hero in `js/data.js`.
 - **Arena art**: each arena is a floating stone platform on cliffs, with flagstones, cracks, inlaid
   runes and marks for each hour (moss, snow, gold inlay, ash, wind streaks, blood pools), brazier
   light on the floor, drifting fog, and props: pillars, braziers, banners, knight statues, broken
@@ -96,8 +106,12 @@ falling moon, and it stopped. The cut never healed, and its red light raises the
 wound bleeds out, and at dawn the moon falls for good. Only your blade can close it, from the top
 of the Spire, past six guardians. The last is the swordsman himself: the wound keeps him alive.
 
-It is told in clean full-resolution scenes (`js/tale.js`), with no dialogue: one caption line per
-shot at the bottom of the screen. The first night opens with the whole premise (the falling moon
+It is told with no dialogue, one caption line per shot at the bottom of the screen (`js/tale.js`).
+The story shots are filmed from the fights' own high three-quarter camera on the hour's real
+arena: the dead rising from rifts, the hero close up, guardians dropping from the sky onto the far
+side of their arena (with an impact frame when they land), the camera pushing in and zooming. The
+attack shots (the first cut across the moon, each clash, the final strike) stay as full-screen
+anime impact frames. The first night opens with the whole premise (the falling moon
 and the cut, the wound raising the dead, tonight's deadline, the climb). Every hour after it shows
 the Spire with the guardians up its side and the hours left to dawn, the next place, the guardian
 named with one line about it, and a clash on an impact frame. The ending: you leap at the moon and

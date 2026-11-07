@@ -47,12 +47,12 @@
   // art: the ultimate's cinematic (cine.js). Vesper's is the Red Moon / the Last Ditch Effort.
   const base = D.HERO;
   D.HEROES = {
-    vesper: Object.assign({}, base, { id: 'vesper', name: 'Vesper', title: 'The Moonblade', weapon: 'Sword', color: '#ff3048', art: 'moon',
+    vesper: Object.assign({}, base, { id: 'vesper', pow: 1.12, name: 'Vesper', title: 'The Moonblade', weapon: 'Sword', color: '#ff3048', art: 'moon',
       blurb: 'A knight in a red hood. Combos, parries, and the moon itself.',
       skills: [
         { name: 'Crescent Wave', kind: 'wave', cd: 6, clip: 'Attack3', dmg: 14, speed: 300, r: 16, fx: 'dark_slash', poise: 14 },
         { name: 'Phantom Step', kind: 'blinkStrike', cd: 7, clip: 'Attack6', dmg: 18, range: 150, r: 34, poise: 20 }] }),
-    lys: Object.assign({}, base, { id: 'lys', name: 'Lys', title: 'The Bloom Witch', weapon: 'Spells', color: '#ff7aa0', set: 'lyra', art: 'petals', hp: 108, spd: 116, ranged: true, dodge: { dur: 0.34, dist: 128, iframes: [0.02, 0.34], perfect: 0.18, cd: 0.12 },
+    lys: Object.assign({}, base, { id: 'lys', pow: 1.32, name: 'Lys', title: 'The Bloom Witch', weapon: 'Spells', color: '#ff7aa0', set: 'lyra', art: 'petals', hp: 135, spd: 116, ranged: true, dodge: { dur: 0.34, dist: 128, iframes: [0.02, 0.34], perfect: 0.18, cd: 0.12 },
       blurb: 'Fights from range with bolts, frost and blight. Fragile up close.',
       combo: [
         { clip: 'Attack5', wind: 0.09, recover: 0.14, dmg: 8, poise: 7, kb: 8, bolt: { fx: 'magic_missile', speed: 320 } },
@@ -64,7 +64,7 @@
       skills: [
         { name: 'Blight Bloom', kind: 'zone', cd: 8, clip: 'Attack3', r: 44, dur: 4.5, dps: 10, slow: 1, fx: 'poison_cloud', range: 140 },
         { name: 'Petal Blink', kind: 'blink', cd: 5, clip: 'Attack5', range: 110, r: 36, dmg: 9, poise: 12 }] }),
-    kestrel: Object.assign({}, base, { id: 'kestrel', name: 'Kestrel', title: 'The Stormlancer', weapon: 'Spear', color: '#ffd060', set: 'aerys_spear', art: 'storm', hp: 125, spd: 122,
+    kestrel: Object.assign({}, base, { id: 'kestrel', pow: 0.94, name: 'Kestrel', title: 'The Stormlancer', weapon: 'Spear', color: '#ffd060', set: 'aerys_spear', art: 'storm', hp: 125, spd: 122,
       blurb: 'Long reach and lightning. Chains bolts through crowds, drops thunder from the sky.',
       combo: [
         { clip: 'Attack1', wind: 0.12, recover: 0.2, reach: 44, arc: 0.8, dmg: 7, poise: 7, kb: 6, step: 9, fx: 'slash' },
@@ -76,7 +76,7 @@
       skills: [
         { name: 'Chain Lightning', kind: 'chain', cd: 6, clip: 'Attack5', dmg: 15, jumps: 5, range: 150, hop: 90, stun: 0.5 },
         { name: 'Thunder Drop', kind: 'leapSlam', cd: 8, clip: 'Attack4', range: 140, r: 50, dmg: 20, poise: 26, stun: 0.9 }] }),
-    wisp: Object.assign({}, base, { id: 'wisp', name: 'Wisp', title: 'The Shadow', weapon: 'Daggers', color: '#c9a0ff', set: 'nox', art: 'cuts', hp: 100, spd: 138,
+    wisp: Object.assign({}, base, { id: 'wisp', pow: 0.8, name: 'Wisp', title: 'The Shadow', weapon: 'Daggers', color: '#c9a0ff', set: 'nox', art: 'cuts', hp: 90, spd: 138,
       blurb: 'Fast and fragile. Knife fans, shadow clones, smoke that blinds.',
       combo: [
         { clip: 'Attack1', wind: 0.07, recover: 0.12, reach: 26, dmg: 4, poise: 4, kb: 3, step: 8, fx: 'slash' },
@@ -191,22 +191,22 @@
   // look: sky colours, moon size and colour, ground tiles, silhouettes behind the arena.
   D.STAGES = [
     { id: 'gate', arenas: ['court', 'bridge', 'ring'], portal: 'gate', scale: { hp: 1, dmg: 1 }, hour: 'DUSK', name: 'The Black Gate', boss: 'warden',
-      waves: [['raider', 'ghoul', 'raider'], ['ghoul', 'archer', 'ghast', 'archer']], bossWave: ['warden'],
+      waves: [['raider', 'ghoul', 'raider', 'ghoul', '+', 'ghoul', 'raider', 'ghast'], ['ghoul', 'archer', 'ghast', 'archer', 'raider', '+', 'raider', 'ghoul', 'spearman', 'ghoul']], bossWave: ['warden', '+', 'raider', 'raider', 'ghoul'],
       look: { sky: ['#140d1c', '#3a1622', '#6a2a2a'], moon: 22, moonCol: '#e8a0a0', ground: ['g_flagstone_dark', 'g_flagstone_2', 'g_cobble'], props: ['cdw_gate_arch', 'ruin_pillar', 'fv_tree_dead', 'cdw_pillar', 'monolith_b'], fog: '#3a1a24' } },
     { id: 'cloister', arenas: ['cross', 'court', 'pit'], portal: 'gate', scale: { hp: 1.1, dmg: 1.1 }, hour: 'THE FIRST HOUR', name: 'Cloister of Frost', boss: 'twins',
-      waves: [['knife', 'spearman', 'knife', 'archer'], ['hexer', 'raider', 'spearman', 'raider']], bossWave: ['twinA', 'twinB'],
+      waves: [['knife', 'spearman', 'knife', 'archer', 'raider', '+', 'knife', 'knife', 'hexer', 'spearman'], ['hexer', 'raider', 'spearman', 'raider', 'archer', '+', 'golem', 'knife', 'knife']], bossWave: ['twinA', 'twinB', '+', 'knife', 'knife', 'spearman'],
       look: { sky: ['#0a1020', '#18283c', '#30485c'], moon: 26, moonCol: '#f0b0b0', ground: ['g_marble_white', 'g_flagstone_1', 'g_stone_floor'], props: ['fv_tree_pine_snow', 'cdw_arched_window', 'statue', 'cd_statue_knight', 'pillar'], fog: '#1a2a3a', snow: true } },
     { id: 'stair', arenas: ['bridge', 'cross', 'ring'], portal: 'stairs', scale: { hp: 1.25, dmg: 1.25 }, hour: 'THE SECOND HOUR', name: 'The Umbral Stair', boss: 'umbral',
-      waves: [['bone', 'poacher', 'raider'], ['golem', 'archer', 'hexer']], bossWave: ['umbral'],
+      waves: [['bone', 'poacher', 'raider', 'bone', '+', 'knife', 'knife', 'poacher', 'archer', 'raider'], ['golem', 'archer', 'hexer', 'raider', '+', 'bone', 'bone', 'spearman', 'hexer']], bossWave: ['umbral', '+', 'knife', 'knife', 'hexer', 'knife'],
       look: { sky: ['#0c0814', '#221430', '#3a1c40'], moon: 30, moonCol: '#ff8a8a', ground: ['g_flagstone_dark', 'g_slab_0_0', 'g_floor_grate'], props: ['temple', 'shrine_b', 'monolith_a', 'cdw_stained_glass', 'cd_candelabra'], fog: '#2a1430' } },
     { id: 'waste', arenas: ['court', 'pit', 'ring'], portal: 'rift', scale: { hp: 1.3, dmg: 1.25 }, hour: 'THE THIRD HOUR', name: 'The Ashen Waste', boss: 'hunger',
-      waves: [['pyre', 'ghast', 'raider', 'pyre'], ['golem', 'hexer', 'bone']], bossWave: ['hunger'],
+      waves: [['pyre', 'ghast', 'raider', 'pyre', 'ghoul', '+', 'bone', 'golem', 'ghast', 'ghoul', 'ghoul'], ['golem', 'hexer', 'bone', 'raider', '+', 'pyre', 'pyre', 'archer', 'spearman', 'bone']], bossWave: ['hunger', '+', 'ghoul', 'ghoul', 'ghast', 'ghoul'],
       look: { sky: ['#0e0c10', '#24202a', '#4a3a40'], moon: 34, moonCol: '#ff6060', ground: ['g_dirt_dark', 'g_gravel', 'g_trampled_dirt'], props: ['fv_tree_dead', 'rock_big', 'ruin_stone_a', 'fv_boulder', 'grave_cross'], fog: '#2a2228', ash: true } },
     { id: 'throat', arenas: ['bridge', 'cross', 'pit'], portal: 'rift', scale: { hp: 1.35, dmg: 1.3 }, hour: 'THE FOURTH HOUR', name: "The Wind's Throat", boss: 'wing',
-      waves: [['poacher', 'knife', 'spearman', 'poacher'], ['golem', 'pyre', 'archer', 'bone']], bossWave: ['wing'],
+      waves: [['poacher', 'knife', 'spearman', 'poacher', 'archer', '+', 'knife', 'knife', 'bone', 'golem'], ['golem', 'pyre', 'archer', 'bone', 'spearman', '+', 'hexer', 'poacher', 'raider', 'raider', 'archer']], bossWave: ['wing', '+', 'archer', 'archer', 'poacher'],
       look: { sky: ['#06080e', '#141c2c', '#2c3448'], moon: 40, moonCol: '#ff4a50', ground: ['g_stone_floor', 'g_gravel', 'g_slab_1_1'], props: ['rock_m1', 'monolith_c', 'ruin_wall', 'rock_dark', 'stone_circle'], fog: '#1a2030', wind: true } },
     { id: 'shadow', arenas: ['bridge', 'ring'], portal: 'stairs', scale: { hp: 1.2, dmg: 1.25 }, hour: 'THE LAST HOUR', name: "The Moon's Shadow", boss: 'firstCut',
-      waves: [['golem', 'hexer', 'pyre', 'spearman', 'archer']], bossWave: ['firstCut'],
+      waves: [['golem', 'hexer', 'pyre', 'spearman', 'archer', '+', 'golem', 'knife', 'knife', 'bone', 'hexer', '+', 'pyre', 'archer', 'spearman', 'raider']], bossWave: ['firstCut', '+', 'golem', 'hexer', 'knife', 'knife'],
       look: { sky: ['#040306', '#0e0610', '#200a14'], moon: 58, moonCol: '#ff2a44', ground: ['g_marble_checker', 'g_flagstone_dark', 'g_slab_0_1'], props: ['altar', 'cd_throne', 'ruin_pillar', 'pillar_broken', 'cdw_pillar'], fog: '#200810', embers: true } },
   ];
 

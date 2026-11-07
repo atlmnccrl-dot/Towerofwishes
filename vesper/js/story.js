@@ -3,7 +3,7 @@
 // stopped it; the cut never healed, and its red light raises the dead. Tonight the wound bleeds out
 // and at dawn the moon falls. Your blade can close it, at the top of the Spire, past six guardians.
 // The last of them is the swordsman himself: the wound keeps him alive. Pure data; runs in Node.
-// Shot kinds: title, moonfall, wound, stage, spire, guardian, clash, seal, dawn. d = seconds.
+// Shot kinds: title, moonfall, film, spire, clash, seal. d = seconds.
 (function (root) {
   const VS = root.VS = root.VS || {};
   const S = VS.STORY = {};
@@ -24,19 +24,33 @@
   // How many hours remain before dawn, as the climb goes on.
   const LEFT = ['SIX HOURS TO DAWN', 'FIVE HOURS TO DAWN', 'FOUR HOURS TO DAWN', 'THREE HOURS TO DAWN', 'TWO HOURS TO DAWN', 'THE LAST HOUR'];
 
+  // Shots. film: the fight camera's high three-quarter view on the hour's real arena (see tale.js).
   const climb = (i, say) => ({ k: 'spire', at: i, eyebrow: LEFT[i], say, d: 2.6 });
-  const walk = (i, say, eyebrow) => ({ k: 'stage', stage: i, eyebrow, say, cast: [{ who: 'hero', move: [0.1, 0.42], face: 1 }], pan: 30, d: 2.4 });
-  const meet = (i, who, say, also) => ({ k: 'guardian', stage: i, who, also, say, d: 3 });
+  const walk = (i, say, eyebrow) => ({ k: 'film', stage: i, area: 0, eyebrow, say, d: 2.6,
+    cast: [{ who: 'hero', at: [-170, 10], to: [-30, 10], mdur: 2.4 }], cam: { follow: 'hero', off: [30, -14], zoom: [1.8, 2.0] } });
+  // The guardian drops onto the far side of its arena (the Umbral rises from a rift) and is named.
+  const meet = (i, who, say, also) => {
+    const big = (D().FOES[who].scale || 1) > 1.2, by = big ? -105 : -85, enter = who === 'umbral' ? 'rift' : 'drop';
+    const cast = [{ who: 'hero', at: [0, 112], face: [0, by] }];
+    if (also) cast.push({ who, at: [-48, by], enter, delay: 0.3, after: 'Taunt', face: [0, 112] }, { who: also, at: [48, by], enter, delay: 0.55, after: 'Taunt', face: [0, 112] });
+    else cast.push({ who, at: [0, by], enter, delay: 0.3, edur: enter === 'rift' ? 1.4 : 1.3, after: 'Taunt', face: [0, 112] });
+    return { k: 'film', stage: i, area: 'last', say, d: 3.6, cast, cam: { at: [0, 40], to: [0, by + 10], zoom: [1.3, big ? 1.6 : 2.1], lift: big ? 40 : 28 }, card: { who, also, at: 1.6 } };
+  };
   const clash = (i, b) => ({ k: 'clash', stage: i, b, d: 1.8 });
+  const D = () => VS.DATA;
 
   S.BEFORE = [
     // Dusk: the whole premise, then the first guardian.
     { shots: [
       { k: 'title', top: 'SEVEN HUNDRED YEARS AGO', title: 'THE MOON FELL', d: 2.2 },
       { k: 'moonfall', eyebrow: 'THE FIRST CUT', say: 'A swordsman leapt from the Spire and cut the falling moon. It stopped.', d: 4.6 },
-      { k: 'wound', eyebrow: 'THE WOUND', say: 'But the cut never healed. Its red light raises the dead.', d: 3.4 },
+      { k: 'film', stage: 0, area: 0, tint: 'red', eyebrow: 'THE WOUND', say: 'But the cut never healed. Its red light raises the dead.', d: 3.8,
+        cam: { at: [0, 10], to: [0, -20], zoom: [1.05, 1.35] },
+        cast: [{ who: 'ghoul', at: [-110, -50], enter: 'rift', delay: 0.2 }, { who: 'ghast', at: [90, -60], enter: 'rift', delay: 0.5 }, { who: 'raider', at: [-40, 40], enter: 'rift', delay: 0.8 },
+          { who: 'archer', at: [130, 30], enter: 'rift', delay: 1.1 }, { who: 'bone', at: [-150, 20], enter: 'rift', delay: 1.4 }, { who: 'ghoul', at: [40, -95], enter: 'rift', delay: 1.7 }] },
       { k: 'title', top: 'TONIGHT', title: 'THE WOUND BLEEDS OUT', sub: 'At dawn, the moon falls for good.', d: 2.8 },
-      { k: 'stage', stage: 0, eyebrow: 'hero', say: 'Only your blade can close the wound, from the top of the Spire.', cast: [{ who: 'hero', x: 0.5, face: 1, clip: 'Idle4', glow: '#ff2a44', scale: 2.1 }], cam: 40, pan: 20, d: 3.2 },
+      { k: 'film', stage: 0, area: 'last', eyebrow: 'hero', say: 'Only your blade can close the wound, from the top of the Spire.', d: 3.4,
+        cast: [{ who: 'hero', at: [0, 20], aura: true, face: 'cam' }], cam: { at: [0, 22], zoom: [2.5, 3.0] } },
       climb(0, 'Six guardians stand between you and the top.'),
       meet(0, 'warden', 'The Gatewarden holds the Black Gate. Get past him.'),
       clash(0, 'warden')] },
@@ -62,8 +76,12 @@
       clash(4, 'wing')] },
     { shots: [
       climb(5, 'The top of the Spire. Someone is waiting.'),
-      { k: 'stage', stage: 5, eyebrow: 'THE LAST HOUR', say: 'The same swordsman. Seven hundred years old, and alive.', cast: [{ who: 'hero', move: [0.1, 0.34], face: 1 }, { who: 'firstCut', x: 0.74, face: -1, clip: 'Idle4', glow: '#ff2a44' }], pan: 20, d: 3.4 },
-      meet(5, 'firstCut', 'The wound keeps him alive. He will not let you close it.'),
+      { k: 'film', stage: 5, area: 'last', eyebrow: 'THE LAST HOUR', say: 'The same swordsman. Seven hundred years old, and alive.', d: 3.6,
+        cast: [{ who: 'hero', at: [-40, 80], to: [-8, 22], mdur: 2.8 }, { who: 'firstCut', at: [0, -60], aura: true, face: [0, 22] }],
+        cam: { at: [0, 30], to: [0, -14], zoom: [1.2, 1.5] } },
+      { k: 'film', stage: 5, area: 'last', say: 'The wound keeps him alive. He will not let you close it.', d: 3.4,
+        cast: [{ who: 'hero', at: [-8, 22], face: [0, -60] }, { who: 'firstCut', at: [0, -60], aura: true, clip: 'Taunt', face: [0, 22] }],
+        cam: { at: [0, -50], to: [0, -60], zoom: [2.3, 2.7] }, card: { who: 'firstCut', at: 0.5 } },
       clash(5, 'firstCut')] },
   ];
 
@@ -72,7 +90,8 @@
 
   S.ENDING = { shots: [
     { k: 'seal', eyebrow: 'DAWN', say: 'You strike the wound with everything you have.', d: 4.2 },
-    { k: 'dawn', say: 'The wound closes. The moon turns white and rises. The night is over.', d: 4.6 },
+    { k: 'film', stage: 5, area: 'last', tint: 'dawn', say: 'The wound closes. The moon turns white and rises. The night is over.', d: 4.8,
+      cast: [{ who: 'hero', at: [0, 20], face: 'cam' }], cam: { at: [0, 22], to: [0, 10], zoom: [2.6, 1.4] } },
     { k: 'title', top: 'THANK YOU FOR PLAYING', title: 'VESPER', d: 3.2 }] };
 
   // 'hero' is whoever is being played (set by main.js).

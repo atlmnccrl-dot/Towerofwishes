@@ -150,6 +150,7 @@
           if (e.type === 'artEnd') { AU.duck(false); if (f.theatre) f.theatreEnd = 2.2; }
           if (e.type === 'portal') f.banner = { text: 'THE WAY OPENS', sub: 'GO THROUGH THE DOOR', t: 0, col: '#ffffff', low: true };
           if (e.type === 'area') { const last = e.n === s.waves.length - 1; const G = S.GOALS[f.stage]; f.banner = { text: last && G ? G.boss : VS.arenaOf(s).name, sub: last ? VS.arenaOf(s).name.toUpperCase() + '  ·  THE GUARDIAN' : 'AREA ' + (e.n + 1) + ' / ' + s.waves.length, t: 0, col: last ? '#ff2a44' : '#ffffff' }; }
+          if (e.type === 'reinforce') f.banner = { text: 'REINFORCEMENTS', sub: e.left ? 'MORE ARE COMING' : 'THE LAST OF THEM', t: 0, col: '#ff2a44' };
           if (e.type === 'clear' && !f.theatre) f.banner = { text: 'HOUR CLEARED', t: 0, col: '#ff2a44' };
         }
         if (f.acc > STEP * 5) f.acc = 0;
