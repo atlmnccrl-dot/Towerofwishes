@@ -54,6 +54,32 @@
   }
   const DECO = ['tuft_0', 'tuft_1', 'tuft_2', 'tuft_3', 'tuft_4', 'tuft_5', 'tuft_6', 'tuft_7', 'tuft_8', 'tuft_9', 'tuft_10', 'tuft_11', 'tuft_12', 'tuft_13', 'tuft_14', 'tuft_15'];
   const DECO_F = ['fern_a', 'fern_b', 'fern_c', 'fern_d', 'mush_a', 'mush_b', 'mush_c', 'mush_d', 'mush_e', 'shrub_s', 'shrub_t'];
+  let maskC = null, layC = null, pats = {};
+  function pattern(g, key) {
+    if (pats[key]) return pats[key];
+    const c = document.createElement('canvas'); c.width = c.height = 64; const cg = c.getContext('2d'); cg.imageSmoothingEnabled = false;
+    if (key === 'dirt') { A.tile(cg, 'x', 'dirt_1', 0, 0, 32); A.tile(cg, 'x', 'dirt_2', 32, 0, 32); A.tile(cg, 'x', 'dirt_2', 0, 32, 32); A.tile(cg, 'x', 'dirt_1', 32, 32, 32); }
+    else for (let k = 0; k < 4; k++) A.tile(cg, 'x', 'cobble', (k % 2) * 32, (k >> 1) * 32, 32);
+    return pats[key] = g.createPattern(c, 'repeat');
+  }
+  function pathLayer(g, st, x0, y0, lo, span, key) {
+    const W2 = CH + 2;
+    if (!maskC) { maskC = document.createElement('canvas'); maskC.width = maskC.height = W2; layC = document.createElement('canvas'); layC.width = layC.height = CH * TS; }
+    const mg = maskC.getContext('2d'); const im = mg.createImageData(W2, W2); let any = false;
+    for (let j = 0; j < W2; j++) for (let i = 0; i < W2; i++) {
+      const x = x0 + i - 1, y = y0 + j - 1; if (x < 0 || y < 0 || x >= N || y >= M) continue;
+      const k = y * N + x; if (st.terrain[k] === T.WATER) continue;
+      const a = Math.max(0, Math.min(1, (st.wear[k] - lo) / span)); if (a > 0) any = true;
+      im.data[(j * W2 + i) * 4 + 3] = Math.round(a * 235);
+    }
+    if (!any) return;
+    mg.putImageData(im, 0, 0);
+    const lg = layC.getContext('2d'); lg.globalCompositeOperation = 'source-over'; lg.clearRect(0, 0, layC.width, layC.height);
+    lg.fillStyle = pattern(lg, key); lg.fillRect(0, 0, layC.width, layC.height);
+    lg.globalCompositeOperation = 'destination-in'; lg.imageSmoothingEnabled = true; lg.drawImage(maskC, 0, 0, W2, W2, -TS, -TS, W2 * TS, W2 * TS);
+    lg.globalCompositeOperation = 'source-over';
+    g.drawImage(layC, 0, 0);
+  }
   function drawChunk(st, cx, cy) {
     let c = chunks[cx + ',' + cy];
     if (!c) { c = document.createElement('canvas'); c.width = c.height = CH * TS; chunks[cx + ',' + cy] = c; }
@@ -68,15 +94,9 @@
       for (let s = 0; s < 4; s++) if (rank(nb[s]) > rank(t)) { g.save(); band(g, s, dx, dy, x, y); g.clip(); groundTex(g, st, nb[s], x, y, dx, dy); g.restore(); }
       if (t === T.WATER) for (let s = 0; s < 4; s++) if (nb[s] !== T.WATER) { g.fillStyle = 'rgba(220,240,255,0.35)'; const k = 3; if (s === 0) g.fillRect(dx, dy + 8, TS, 1); if (s === 1) g.fillRect(dx, dy + TS - 9, TS, 1); if (s === 2) g.fillRect(dx + 8, dy, 1, TS); if (s === 3) g.fillRect(dx + TS - 9, dy, 1, TS); void k; }
     }
-    // Worn paths become dirt tracks, then stone roads.
-    const roads = !!st.techs.roads;
-    for (let y = y0; y < y0 + CH; y++) for (let x = x0; x < x0 + CH; x++) {
-      const w = st.wear[y * N + x]; if (w < 25 || st.terrain[y * N + x] === T.WATER) continue;
-      const dx = (x - x0) * TS, dy = (y - y0) * TS;
-      g.save(); g.beginPath(); g.arc(dx + 16 + (H(x, y, 41) - 0.5) * 4, dy + 16 + (H(x, y, 43) - 0.5) * 4, w >= 60 ? 18 : 12 + w / 10, 0, Math.PI * 2); g.clip();
-      if (roads && w >= 60) A.tile(g, 'x', 'cobble', dx, dy, TS); else { g.globalAlpha = Math.min(0.85, 0.35 + w / 120); A.tile(g, 'x', H(x, y, 45) < 0.5 ? 'dirt_1' : 'dirt_2', dx, dy, TS); g.globalAlpha = 1; }
-      g.restore();
-    }
+    // Worn paths: a smoothed wear mask cuts dirt (and later stone road) out of a texture layer.
+    pathLayer(g, st, x0, y0, 25, 45, H(cx, cy, 1) < 2 ? 'dirt' : 'dirt');
+    if (st.techs.roads) pathLayer(g, st, x0, y0, 60, 25, 'cobble');
     // Ground clutter (purely visual).
     for (let y = y0; y < y0 + CH; y++) for (let x = x0; x < x0 + CH; x++) {
       const i = y * N + x, t = st.terrain[i]; if (st._.nodeAt[i] || st.wear[i] > 25) continue;
@@ -148,6 +168,7 @@
     drawParts(g, parts, bx, by, 1, false, b);
     if (b.hitT > 0) { b.hitT -= 1 / 60; }
     if (b.up) { scaffold(g, b, bx, by, 40); bar(g, bx, by - 60, b.prog, '#e8c050'); }
+    if (S.isNight(st) && D.B[b.type].beds && S.present(st).some(u => u.inside === b.id)) { g.font = '8px Adventurer'; g.fillStyle = 'rgba(220,230,255,0.8)'; g.textAlign = 'center'; const p = (R.time * 0.6 + b.x) % 1; g.globalAlpha = 1 - p; g.fillText('z', bx + 10 + p * 6, by - b.h * TS - 4 - p * 14); g.globalAlpha = 1; }
     // Damage: smoke, then fire.
     const f = b.hp / b.maxHp;
     if (f < 0.55 && !b.wall) A.drawFx(g, 'smoke_puff', (R.time + b.x) % A.fxLen('smoke_puff'), bx - 8, by - b.h * TS * 0.7, 1.2, 0.7);
@@ -220,7 +241,7 @@
     if (!A.drawActor(g, set, clip, fr, u.dir, x, y, scale, opts)) { g.fillStyle = u.side === 'e' ? '#402020' : '#30302a'; g.fillRect(x - 5, y - 30, 10, 30); }
     if (u.dead) return;
     // Overlays: carried load, health, status.
-    if (u.carry && u.carry.amt > 0) { const ic = u.carry.res === 'wood' ? ['t', 'log_a', 0.45] : u.carry.res === 'stone' ? ['t', 'rock_m3', 0.7] : u.carry.res === 'metal' ? ['t', 'brick_b', 0.7] : u.carry.res === 'water' ? ['t', 'pot', 0.55] : ['x', 'berry_red', 0.6]; A.draw(g, ic[0], ic[1], x, y - 40, ic[2]); }
+    if (u.carry && u.carry.amt > 0) { if (u.carry.res === 'wood') A.draw(g, 't', 'log_a', x, y - 38, 0.4); else if (u.carry.res === 'stone') A.draw(g, 't', 'rock_m3', x, y - 38, 0.6); else A.icon(g, u.carry.res === 'water' ? 'water' : u.carry.res === 'metal' ? 'anvil' : 'meat', x - 6, y - 50, 12); }
     if (u.side === 'e') { if (u.hp < u.maxHp || S.foes(st).length < 30) { const big = D.FOE[u.kind].boss; const w = big ? 40 : 20; g.fillStyle = 'rgba(0,0,0,0.65)'; g.fillRect(x - w / 2, y - 46 * scale, w, 3); g.fillStyle = '#e04838'; g.fillRect(x - w / 2 + 1, y - 46 * scale + 1, (w - 2) * Math.max(0, u.hp / u.maxHp), 1.5); } if (u.carry) A.draw(g, 'x', 'berry_red', x + 8, y - 38, 0.5); }
     else if (u.hp < u.maxHp - 1 || sel) { g.fillStyle = 'rgba(0,0,0,0.6)'; g.fillRect(x - 10, y - 46, 20, 3); g.fillStyle = u.hp / u.maxHp > 0.5 ? '#6fd26f' : '#e8c050'; g.fillRect(x - 9, y - 45, 18 * Math.max(0, u.hp / u.maxHp), 1.5); }
     if (u.side === 's' && u.injury && !u.downed) { g.fillStyle = '#e05040'; g.fillRect(x + 9, y - 42, 2, 6); g.fillRect(x + 7, y - 40, 6, 2); }
@@ -235,7 +256,7 @@
     const c = R.cam, dpr = R.dpr;
     if (!R.tintBuilt) buildTint(st);
     if (st._.fogDirty) buildFog(st);
-    for (const i of st._.dirty) chunkDirty.add(Math.floor((i % N) / CH) + ',' + Math.floor(Math.floor(i / N) / CH));
+    for (const i of st._.dirty) { const x = i % N, y = Math.floor(i / N); for (const [dx, dy] of [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1]]) { const xx = x + dx, yy = y + dy; if (xx >= 0 && yy >= 0 && xx < N && yy < M) chunkDirty.add(Math.floor(xx / CH) + ',' + Math.floor(yy / CH)); } }
     st._.dirty.clear();
     let sx = 0, sy = 0; if (R.shake > 0) { R.shake = Math.max(0, R.shake - dt * 10); sx = (Math.random() - 0.5) * R.shake * 4; sy = (Math.random() - 0.5) * R.shake * 4; }
     const z = c.z * dpr;
@@ -265,7 +286,7 @@
     // Clearing beacon (before the camp exists).
     if (!st.camp) { const cx = (st.clearing.x + 0.5) * TS, cy = (st.clearing.y + 0.5) * TS; const p = 0.5 + 0.5 * Math.sin(R.time * 3); ctx.strokeStyle = 'rgba(255,220,140,' + (0.35 + p * 0.4) + ')'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(cx, cy, 52 + p * 6, 26 + p * 3, 0, 0, Math.PI * 2); ctx.stroke(); if (Math.random() < 0.15) R.addFx('motes', cx + (Math.random() - 0.5) * 80, cy + (Math.random() - 0.5) * 40, 1); }
     // Deco on the ground: stumps, rubble, graves.
-    for (const d of st.deco) { if (d.x < tx0 || d.x > tx1 || d.y < ty0 || d.y > ty1) continue; if (d.k === 'stump') A.draw(ctx, 't', 'fv_tree_stump', d.x * TS + 16, (d.y + 1) * TS - 2, 1); else A.draw(ctx, 't', 'ruin_stone_c', d.x * TS + 16, (d.y + 1) * TS, 1); }
+    for (const d of st.deco) { if (d.x < tx0 || d.x > tx1 || d.y < ty0 || d.y > ty1) continue; if (d.k === 'stump') A.draw(ctx, 'p', 'stump', d.x * TS + 16, (d.y + 1) * TS - 6, 1); else A.draw(ctx, 't', 'ruin_stone_c', d.x * TS + 16, (d.y + 1) * TS, 1); }
     // Placement ghost footprint.
     if (view.ghost) drawGhostFloor(ctx, st, view.ghost);
     // Selected building footprint, tower range.
@@ -378,7 +399,7 @@
     switch (e.type) {
       case 'hit': R.addFx(e.fx === 'dark_curse' ? 'dark_curse' : e.fx === 'hit_pierce' ? 'hit_pierce' : 'hit_slash', e.x, e.y, 1); R.addText('' + e.dmg, e.x, e.y - 6, e.side === 's' ? '#ff8a70' : '#fff2c0', 9); if (e.side === 's') R.shake = Math.max(R.shake, 0.6); break;
       case 'bhit': R.addFx('hit_blunt', e.x, e.y, 1.1); if (Math.random() < 0.3) R.addFx('dust_cloud', e.x, e.y + 10, 0.8); break;
-      case 'fx': R.addFx(e.fx, e.x, e.y, e.small ? 0.7 : 1.2); break;
+      case 'fx': if (e.small && e.fx === 'leaves' && Math.random() < 0.5) break; R.addFx(e.fx, e.x, e.y, e.small ? 0.45 : 1.2, e.small ? { alpha: 0.7 } : null); break;
       case 'gain': if (e.amt > 0) R.addText('+' + e.amt + ' ' + e.res, e.x, e.y, { wood: '#e0b070', stone: '#d0d0c8', food: '#ff9a80', water: '#8fd0ff', metal: '#b8c8d8' }[e.res] || '#fff', 8); break;
       case 'built': { const b = st.buildings[e.id]; if (b) { R.addFx('dust_cloud', (b.x + b.w / 2) * TS, (b.y + b.h) * TS - 6, 1.6); R.addFx('sparkles', (b.x + b.w / 2) * TS, (b.y + b.h / 2) * TS - 16, 1.4); } break; }
       case 'death': R.shake = 1.2; break;

@@ -41,6 +41,7 @@
     alarm() { G().cmd('alarm', {}); },
     speed(d) { G().setSpeed(+d.v); },
     menu() { U.openSettings(); },
+    home() { const h = S.heart(st()); const u = S.present(st())[0]; const t = h ? { x: (h.x + 2.5) * D.TILE, y: (h.y + 1.5) * D.TILE } : u ? { x: u.x, y: u.y } : null; if (t) HF.C.returnTo = { from: { x: HF.R.cam.x, y: HF.R.cam.y, z: HF.R.cam.z }, to: { x: t.x, y: t.y, z: Math.max(1.1, Math.min(HF.R.cam.z, 1.8)) }, t: 0 }; },
     close() { U.closeModal(); },
     job(d) { const r = G().cmd('job', { id: d.id, job: d.job }); if (r.ok) { U.closeModal(); U.refreshPanel(true); } },
     jobPick(d) { U.openJobs(d.id); },
@@ -326,18 +327,21 @@
     $('wmap').onclick = e => { const r = e.target.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width * 360, y = (e.clientY - r.top) / r.height * 300; let best = null, bd = 30; for (const p of mapPts) { const d = Math.hypot(p.x - x, p.y - y); if (d < bd) { bd = d; best = p; } } if (best) { HF.AU.ui('page'); U.expSel = best.id; U.openExpeditions(); } };
   };
   let mapPts = [];
+  const mapR = d => 0.2 + 0.8 * Math.max(0, d - 1.2) / 6.8;
   function drawWorldMap(c, s) {
     const g = c.getContext('2d'); const W = c.width, H = c.height; g.imageSmoothingEnabled = false;
     g.fillStyle = '#d8c497'; g.fillRect(0, 0, W, H);
     for (let i = 0; i < 900; i++) { const h = HF.World.hash(i, 3, 1), h2 = HF.World.hash(i, 7, 2); g.fillStyle = 'rgba(120,90,40,' + (0.05 + h * 0.08) + ')'; g.fillRect(h * W, h2 * H, 2, 2); }
     // Land features drawn in ink: forests, hills, a river.
     g.strokeStyle = 'rgba(80,110,140,0.6)'; g.lineWidth = 2; g.beginPath(); for (let x = 0; x < W; x += 6) { const y = H * 0.78 + Math.sin(x / 40) * 18 + Math.sin(x / 13) * 4; x ? g.lineTo(x, y) : g.moveTo(x, y); } g.stroke();
-    for (let i = 0; i < 70; i++) { const x = HF.World.hash(i, 11, 5) * W, y = HF.World.hash(i, 13, 5) * H * 0.7; g.fillStyle = 'rgba(60,90,50,0.35)'; g.beginPath(); g.arc(x, y, 3 + HF.World.hash(i, 1, 1) * 3, 0, Math.PI * 2); g.fill(); }
+    for (let i = 0; i < 90; i++) { const x = HF.World.hash(i, 11, 5) * W, y = 10 + HF.World.hash(i, 13, 5) * H * 0.68; if (Math.hypot(x - W / 2, y - H / 2) < 34) continue; const k = 4 + HF.World.hash(i, 1, 1) * 3; g.fillStyle = 'rgba(70,100,55,0.45)'; g.strokeStyle = 'rgba(50,40,25,0.55)'; g.lineWidth = 1; g.beginPath(); g.moveTo(x, y - k * 1.4); g.lineTo(x - k, y + k * 0.6); g.lineTo(x + k, y + k * 0.6); g.closePath(); g.fill(); g.stroke(); g.beginPath(); g.moveTo(x, y + k * 0.6); g.lineTo(x, y + k * 1.1); g.stroke(); }
+    for (let i = 0; i < 14; i++) { const x = W * 0.08 + HF.World.hash(i, 21, 3) * W * 0.3, y = H * 0.12 + HF.World.hash(i, 23, 3) * H * 0.3; const k = 7 + HF.World.hash(i, 2, 2) * 6; g.strokeStyle = 'rgba(80,60,35,0.6)'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(x - k, y + k * 0.5); g.lineTo(x, y - k * 0.6); g.lineTo(x + k, y + k * 0.5); g.stroke(); }
+    g.fillStyle = 'rgba(90,130,160,0.35)'; g.beginPath(); g.ellipse(W * 0.78, H * 0.3, 26, 14, 0.3, 0, Math.PI * 2); g.fill();
     g.strokeStyle = '#6b4a2b'; g.lineWidth = 3; g.strokeRect(3, 3, W - 6, H - 6);
     const cx = W / 2, cy = H / 2, R = Math.min(W, H) / 2 - 22;
     mapPts = [];
     for (const site of s.sites) {
-      const a = site.dir * Math.PI / 180, r = site.dist / 8.4 * R;
+      const a = site.dir * Math.PI / 180, r = mapR(site.dist) * R;
       const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r * 0.85;
       if (!site.known) { g.fillStyle = 'rgba(80,60,30,0.25)'; g.font = '10px Adventurer'; g.textAlign = 'center'; g.fillText('?', x, y + 3); continue; }
       mapPts.push({ id: site.id, x, y });
@@ -349,7 +353,7 @@
       g.font = '8px Adventurer'; g.textAlign = 'center'; g.fillStyle = '#3a2814'; g.fillText(S.siteName(site), x, y + 21);
     }
     A.icon(g, 'campfire', cx - 12, cy - 12, 24); g.font = '9px Adventurer'; g.fillStyle = '#5a1810'; g.fillText('Camp', cx, cy + 22);
-    for (const x of s.exps) { const site = s.sites.find(q => q.id === x.site); const tot = site.dist * D.HOURS_PER_LEAGUE; const f = x.phase === 'out' ? 1 - x.t / tot : x.phase === 'back' ? x.t / tot : x.phase === 'site' ? 1 : 0; const a = site.dir * Math.PI / 180, r = site.dist / 8.4 * R * f; g.fillStyle = '#a02818'; g.beginPath(); g.arc(cx + Math.cos(a) * r, cy + Math.sin(a) * r * 0.85, 4, 0, Math.PI * 2); g.fill(); }
+    for (const x of s.exps) { const site = s.sites.find(q => q.id === x.site); const tot = site.dist * D.HOURS_PER_LEAGUE; const f = x.phase === 'out' ? 1 - x.t / tot : x.phase === 'back' ? x.t / tot : x.phase === 'site' ? 1 : 0; const a = site.dir * Math.PI / 180, r = mapR(site.dist) * R * f; g.fillStyle = '#a02818'; g.beginPath(); g.arc(cx + Math.cos(a) * r, cy + Math.sin(a) * r * 0.85, 4, 0, Math.PI * 2); g.fill(); }
     // Compass rose.
     g.fillStyle = '#6b4a2b'; g.font = '9px Adventurer'; g.fillText('N', W - 22, 18); g.beginPath(); g.moveTo(W - 22, 22); g.lineTo(W - 26, 34); g.lineTo(W - 18, 34); g.fill();
   }

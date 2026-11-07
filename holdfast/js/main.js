@@ -26,6 +26,7 @@
     catch (e) { $('lmsg').textContent = 'Could not load: ' + e.message + '. Serve the repository root over HTTP.'; console.error(e); return; }
     U.init();
     $('btn-menu').innerHTML = '<img class="ic" src="' + A.iconURL('gear') + '" width="22" height="22">';
+    $('btn-home').innerHTML = '<img class="ic" src="' + A.iconURL('campfire') + '" width="22" height="22">';
     $('place-ok').innerHTML = '<img class="ic" src="' + A.iconURL('check') + '" width="26" height="26">';
     $('place-no').innerHTML = '<img class="ic" src="' + A.iconURL('x') + '" width="26" height="26">';
     loadSettings();
@@ -225,7 +226,8 @@
     for (const id in st.units) { const u = st.units[id]; if (u.dead || u.inside || u.away) continue; let ux = u.x, uy = u.y;
       if (u.onTower && st.buildings[u.onTower]) { const b = st.buildings[u.onTower]; ux = (b.x + b.w / 2) * TS; uy = (b.y + b.h) * TS - 92; }
       const d = Math.hypot(ux - w.x, uy - 16 - w.y); if (d < bd) { bd = d; best = { unit: u }; } }
-    if (best) return Object.assign(best, { w, tx, ty });
+    const nodeHere = st._.nodeAt[ty * D.W + tx] || [1, 2, 3].map(k => st._.nodeAt[(ty + k) * D.W + tx]).find(n => n && st.nodes[n].type === 'tree');
+    if (best && !(nodeHere && bd > 9 && best.unit.side === 's')) return Object.assign(best, { w, tx, ty });
     // Buildings: footprint, or the tall sprite above it.
     for (const id in st.buildings) { const b = st.buildings[id]; if (tx >= b.x && tx < b.x + b.w && ((ty >= b.y && ty < b.y + b.h) || (!b.wall && ty >= b.y - 2 && ty < b.y))) return { b, w, tx, ty }; }
     const i = ty * D.W + tx; const nid = st._.nodeAt[i];

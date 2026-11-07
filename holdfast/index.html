@@ -43,7 +43,7 @@
   #speed { display: flex; gap: 2px; justify-content: center; margin-top: 2px; }
   .sp { font-size: 10px; padding: 2px 5px; border-radius: 3px; background: rgba(0,0,0,0.3); min-width: 24px; height: 20px; }
   .sp.on { background: #6b4a2b; color: #fff3cc; }
-  #btn-menu { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
+  #btn-menu, #btn-home { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
 
   /* Threat banner */
   #threat { position: absolute; top: 58px; left: 50%; transform: translateX(-50%); padding: 4px 12px; font-size: 12px; display: flex; gap: 6px; align-items: center; white-space: nowrap; }
@@ -203,6 +203,7 @@
     <div class="spacer"></div>
     <div id="resbar" class="panel"></div>
     <div id="clock" class="panel"><div id="dayline">Day 1</div><div id="hourline"></div><div id="speed"></div></div>
+    <button id="btn-home" class="rb" data-act="home" title="Back to camp"></button>
     <button id="btn-menu" class="rb" data-act="menu"></button>
   </div>
   <div id="threat" class="hidden"></div>

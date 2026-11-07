@@ -190,5 +190,10 @@
     px(88, 0, 2, 14, o); px(90, 2, 6, 6, '#c8a040');
     px(8, 128, 80, 4, 'rgba(0,0,0,0.22)');
     A.proc.lookout = c;
+    // Stump: a cut trunk with rings (16 x 12).
+    c = document.createElement('canvas'); c.width = 16; c.height = 13; g = c.getContext('2d');
+    px(1, 4, 14, 9, '#2e1f14'); px(2, 5, 12, 7, '#5a3d22'); px(2, 8, 12, 4, '#4a3220'); px(4, 11, 2, 2, '#4a3220'); px(11, 11, 2, 2, '#4a3220');
+    px(2, 1, 12, 6, '#2e1f14'); px(3, 2, 10, 4, '#c8a46a'); px(5, 3, 6, 2, '#a9824f'); px(7, 3, 2, 1, '#c8a46a');
+    A.proc.stump = c;
   }
 })();

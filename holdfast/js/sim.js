@@ -270,6 +270,7 @@
       if (!S.canAfford(st, B.cost[0])) return fail('Not enough resources');
       pay(st, B.cost[0]);
       const b = addBuilding(st, a.type, a.x, a.y, 0, false);
+      for (const u of S.present(st)) if (u.task && u.task.manual && (u.task.t === 'gather' || u.task.t === 'water') && (u.job === 'labor' || u.job === 'build')) { if (u.carry) deposit(st, u); u.task = null; }
       ev(st, { type: 'sfx', s: 'place' }); ev(st, { type: 'fx', fx: 'dust_cloud', x: (b.x + b.w / 2) * TS, y: (b.y + b.h) * TS - 8 });
       return { ok: true, id: b.id };
     },
