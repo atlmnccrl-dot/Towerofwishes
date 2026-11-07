@@ -106,7 +106,7 @@
     const early = s.obj < 2;
     $('act-build').classList.toggle('hidden', early);
     $('act-people').classList.toggle('hidden', pop < 2);
-    $('act-map').classList.toggle('hidden', s.obj < 11 && pop < 3);
+    $('act-map').classList.toggle('hidden', s.obj < 11 && pop < 3 && !s.stats.raids);
     $('act-research').classList.toggle('hidden', !S.has(s, 'study') && !S.has(s, 'workshop'));
     $('act-alarm').classList.toggle('hidden', s.obj < 9 && !s.threat.active);
     $('act-alarm').classList.toggle('on', !!s.alarm);

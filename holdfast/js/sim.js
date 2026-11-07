@@ -587,7 +587,7 @@
         note(st, T.activeKind === 'raider' ? 'The raid is broken. The camp holds!' : 'The dead fall still. The camp holds!', 'good');
         ev(st, { type: 'victory', first: T.first }); ev(st, { type: 'sfx', s: 'reward' });
         if (st.alarm) CMD.alarm(st, { on: false });
-        done(st, 'raid');
+        done(st, 'defend'); done(st, 'raid');
       }
     }
   }

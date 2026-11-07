@@ -345,6 +345,7 @@
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     drawLighting(st);
     if (st.weather.rain) drawRain(dt);
+    drawObjective(st);
     if (R.letter > 0) { const h = Math.round(canvas.height * 0.11 * R.letter); ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, h); ctx.fillRect(0, canvas.height - h, canvas.width, h); }
     if (R.fade > 0) { ctx.fillStyle = 'rgba(0,0,0,' + Math.min(1, R.fade) + ')'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
   };
@@ -380,6 +381,43 @@
       lightG.fillStyle = g; lightG.fillRect(x - r, y - r, r * 2, r * 2);
     }
     ctx.imageSmoothingEnabled = true; ctx.drawImage(lightC, 0, 0, canvas.width, canvas.height); ctx.imageSmoothingEnabled = false;
+  }
+  // Where the current objective points, in world px (or null).
+  R.objTarget = function (st) {
+    const o = D.OBJ[st.obj]; if (!o) return null;
+    const lead = S.present(st)[0];
+    const near = (type, cond) => { let best = null, bd = 1e9; const from = lead || { x: st.clearing.x * TS, y: st.clearing.y * TS }; for (const id in st.nodes) { const n = st.nodes[id]; if (n.type !== type || !st.fog[n.y * N + n.x] || (cond && !cond(n))) continue; const d = Math.hypot(n.x * TS - from.x, n.y * TS - from.y); if (d < bd) { bd = d; best = n; } } return best ? { x: (best.x + 0.5) * TS, y: (best.y + 1) * TS - 40 } : null; };
+    switch (o.id) {
+      case 'camp': return st.camp ? null : { x: (st.clearing.x + 0.5) * TS, y: (st.clearing.y + 0.5) * TS - 10 };
+      case 'gather': return st.res.wood < 10 ? near('tree') : near('rock');
+      case 'food': return near('bush', n => n.amt >= 2);
+      case 'stranger': { const u = Object.values(st.units).find(u => u.stranger); return u ? { x: u.x, y: u.y - 50 } : null; }
+      case 'raid': { const f = S.foes(st).filter(e => !e.flee).sort((a, b) => (a.x - R.cam.x) ** 2 + (a.y - R.cam.y) ** 2 - ((b.x - R.cam.x) ** 2 + (b.y - R.cam.y) ** 2))[0]; return f ? { x: f.x, y: f.y - 50 } : null; }
+      case 'era2': case 'era3': { const h = S.heart(st); return h ? { x: (h.x + 2.5) * TS, y: h.y * TS - 20 } : null; }
+    }
+    return null;
+  };
+  function drawObjective(st) {
+    if (R.letter > 0.1 || HF.U && HF.U.mode === 'place') return;
+    const t = R.objTarget(st); if (!t) return;
+    const p = R.w2s(t.x, t.y); const d = R.dpr; const m = 46;
+    const on = p.x > m && p.y > m + 30 && p.x < R.W - m && p.y < R.H - m;
+    const pulse = 0.5 + 0.5 * Math.sin(R.time * 5);
+    ctx.save(); ctx.scale(d, d);
+    if (on) {
+      const y = p.y - 6 - pulse * 5;
+      ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.beginPath(); ctx.moveTo(p.x - 8, y - 12); ctx.lineTo(p.x + 8, y - 12); ctx.lineTo(p.x, y); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#f2d68a'; ctx.beginPath(); ctx.moveTo(p.x - 6, y - 13); ctx.lineTo(p.x + 6, y - 13); ctx.lineTo(p.x, y - 3); ctx.closePath(); ctx.fill();
+    } else {
+      const cx = R.W / 2, cy = R.H / 2; const a = Math.atan2(p.y - cy, p.x - cx);
+      const k = Math.min((R.W / 2 - m) / Math.abs(Math.cos(a) || 1e-6), (R.H / 2 - m) / Math.abs(Math.sin(a) || 1e-6));
+      const x = cx + Math.cos(a) * k, y = cy + Math.sin(a) * k;
+      ctx.translate(x, y); ctx.rotate(a);
+      ctx.fillStyle = 'rgba(20,15,10,0.75)'; ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#f2d68a'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = '#f2d68a'; ctx.beginPath(); ctx.moveTo(10 + pulse * 2, 0); ctx.lineTo(-5, -7); ctx.lineTo(-2, 0); ctx.lineTo(-5, 7); ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
   }
   const drops = []; for (let i = 0; i < 140; i++) drops.push({ x: Math.random(), y: Math.random(), s: 0.6 + Math.random() * 0.6 });
   function drawRain(dt) {
