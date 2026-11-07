@@ -27,7 +27,10 @@ NPC_SETS = {'erdra_baker', 'erdra_f1', 'erdra_f2', 'erdra_m1', 'erdra_m2', 'erdr
             'ashgate_f1', 'ashgate_m1', 'ashgate_m2', 'tavern_keeper', 'shopkeeper', 'registrar',
             'evaluator', 'miller', 'guard_officer', 'sword_smith', 'nox_target', 'labyrinth_citizen',
             'merchant_recurring', 'demon_dealer', 'hamlet_people', 'beastfolk_f', 'hooded_follower'}
-NO_STRIP = {'fragment'}  # a black silhouette: its own dark pixels are not a shadow
+NO_STRIP = {'fragment'}
+# Vesper's random-cast foes skip the relaxed idles, the backpedal and the crouch; its heroes keep all.
+VH = [a for a in FIGHT if a not in ('Idle2', 'Idle3', 'RunBackwards', 'CrouchIdle')]
+VH_HEROES = {'vh_paladin_008', 'vh_monk_001'}  # a black silhouette: its own dark pixels are not a shadow
 
 
 def is_shadow(p):
@@ -84,7 +87,7 @@ def pack(set_id):
 
 def pack_as(src_id, set_id):
     src = os.path.join(SRC, src_id)
-    anims = NPC if src_id in NPC_SETS else FIGHT
+    anims = NPC if src_id in NPC_SETS else VH if src_id.startswith('vh_') and src_id not in VH_HEROES else FIGHT
     strip = src_id not in NO_STRIP
     frames, uniq, meta = [], {}, {}
     for an in anims:
@@ -142,6 +145,10 @@ def pack_as(src_id, set_id):
     names = []
     for n, pg in enumerate(pages):
         name = '%s_%d.png' % (set_id, n)
+        # The random-cast sets for Vesper (vh_*) carry glows with a thousand shades: a 256-colour
+        # palette (alpha kept) makes their pages about four times smaller with no visible change.
+        if set_id.startswith('vh_'):
+            pg = pg.quantize(colors=256, method=Image.FASTOCTREE)
         pg.save(os.path.join(OUT, name), optimize=True)
         names.append(name)
     # Anchor: the feet, from the standing frames (bottom row of pixels, centre of the cell).

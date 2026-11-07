@@ -79,6 +79,30 @@ order). With the bot at a good player's skill: Act I about 100%, the middle acts
 the last acts 50 to 90%, the post-game harder; about 80% overall for every hero. The First Cut:
 50 to 88% depending on the hero. Knobs: `P.TUNE` and the per-node adjustments in `progress.js`.
 
+## The armies
+
+Each act fights its own army, drawn from the random-cast characters (Fantasy Character Creator
+parts, 19 batches, 200 characters; 33 chosen, sets `vh_*`, sources in `art_source/characters/`):
+
+| Act | Army | Foes |
+|---|---|---|
+| I, the Black Gate | raiders and the first dead | Gate Reaver (axe spin), Raider Chieftain (leaping cleave), Bone Bulwark (shield), Bone Pikeman, Black Gate Guard |
+| II, the Cloister of Frost | the frost order | Rime Acolyte (slowing ice, falling ice), Frost Seer (ice fields, summons), Cloister Knight, Mirror Duelist (counters light cuts), Frost Pike |
+| III, the Umbral Stair | the shadow cult | Umbral Wraith and Violet Shade (blink away when struck), Cutthroat (blinks behind you), Stair Warlock (summons), Shadow Bulwark |
+| IV, the Ashen Waste | beasts and fire | Ash Hound (pounce), Bone Ram (charge), Cinder Mage, Ash Warlock (fire rain, summons hounds), Ash Ravager |
+| V, the Wind's Throat | the hunters | Throat Ranger (volleys), Gale Sniper (one huge arrow), Wind Monk and Storm Fist (kick chains), Ridge Pikeman, Gale Harpy (long dive) |
+| VI, the Moon's Shadow | the Knights of the Wound | Wound Paladin (heals allies), Knight of the Wound, Wound Duelist, Blood Warlock, Blood Wraith |
+
+Duelists turn aside light cuts from the front and strike back (heavy blows and finishers get
+through); wraiths come apart when struck and gather again near you; paladins mend the foes around
+them every few seconds (kill them first). These sets are packed with a 256-colour palette and
+without the idle variants they never use, and they load when a fight needs them (during its story
+scene), not at start.
+
+Two more heroes: **Ember**, the Ash Monk (fists, burning palm, a step through fire), unlocked by
+defeating the Hollow Twins; **Halden**, the Dawn Shield (mace and shield, holy ground, judgment from
+the sky), unlocked by earning 60 stars.
+
 ## Combat
 
 Fights are seen from a helicopter camera: high above and a little to the side at one fixed angle,

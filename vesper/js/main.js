@@ -136,9 +136,10 @@
       U.result({ p, node: n, win: true, r: Object.assign({ goals: [], stars: [] }, r), stats: null, buttons: [{ label: 'Continue', act: () => map(PR.nextNode(p)) }] });
       return;
     }
-    const A = S.ACTS[n.act] || {}, scenes = [];
-    if (!skipIntro && A.intro && !p.seen['act' + n.act]) { scenes.push(A.intro); p.seen['act' + n.act] = true; }
-    if (n.type === 'boss' && A.boss) scenes.push(A.boss);
+    A.loadSets(missingFor(PR.build(n))).catch(() => {});   // start loading the army while the scene plays
+    const Ac = S.ACTS[n.act] || {}, scenes = [];
+    if (!skipIntro && Ac.intro && !p.seen['act' + n.act]) { scenes.push(Ac.intro); p.seen['act' + n.act] = true; }
+    if (n.type === 'boss' && Ac.boss) scenes.push(Ac.boss);
     M.write();
     const run = () => { if (!scenes.length) return startNode(id); startScene(PR.ACTS[n.act].stage, scenes.shift(), run); };
     run();
@@ -158,9 +159,14 @@
     { title: 'TRIAL · DODGE', text: () => (R.touch ? 'Tap DASH to dodge. You cannot be hit while dashing.' : 'Press Space to dodge. You cannot be hit while dashing; cut right after for a dash-cut.') },
     { title: 'TRIAL · FIGHT', text: () => 'The dead are coming. Red flashes cannot be blocked: dodge them. Shields block from the front: use a heavy or get behind. Kill the Blood Husk near the others.' },
   ];
+  // The sets a node's fight needs that are not loaded yet.
+  const missingFor = (b) => [...new Set(PR.foeKeys(b).map((k) => D.FOES[k].set))].filter((id) => !A.hasSet(id));
   function startNode(id) {
-    const p = P(), n = PR.node(id), b = PR.build(n);
-    startFight(b.stage, { nodeId: id, node: n, build: b });
+    const n = PR.node(id), b = PR.build(n), miss = missingFor(b);
+    const go = () => startFight(b.stage, { nodeId: id, node: n, build: b });
+    if (!miss.length) return go();
+    M.go('load'); U.loading(0);
+    A.loadSets(miss, (f) => U.loading(f)).then(() => { A.warm(R.ctx); U.hide(); go(); }, () => { U.hide(); go(); });
   }
 
   // ---- scenes -------------------------------------------------------------------------------------------
@@ -346,7 +352,8 @@
     c.addEventListener('pointerdown', onDown); c.addEventListener('pointermove', onMove); c.addEventListener('pointerup', onUp); c.addEventListener('pointercancel', onUp);
     requestAnimationFrame(frame);
     U.loading(0);
-    const ids = new Set([D.HERO.set, D.LYS.set, D.CLONE.set]); for (const k in D.FOES) ids.add(D.FOES[k].set); for (const k in D.HEROES) ids.add(D.HEROES[k].set);
+    // At start: every hero and the original foes. The act armies (vh_*) load when a fight needs them.
+    const ids = new Set([D.HERO.set, D.LYS.set, D.CLONE.set]); for (const k in D.FOES) if (!D.FOES[k].set.startsWith('vh_')) ids.add(D.FOES[k].set); for (const k in D.HEROES) ids.add(D.HEROES[k].set);
     await A.load([...ids], (p) => U.loading(p));
     try { if (document.fonts) await Promise.race([Promise.all(['700 20px "Chakra Petch"', '600 16px "Chakra Petch"', '500 16px Barlow', '700 16px Barlow'].map((f) => document.fonts.load(f))), new Promise((r) => setTimeout(r, 2500))]); } catch (e) { /* fonts optional */ }
     A.warm(R.ctx);

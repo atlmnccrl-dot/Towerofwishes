@@ -113,8 +113,33 @@
       skills: [
         { name: 'Moon Cleave', kind: 'wave', cd: 6, clip: 'Attack3', dmg: 18, speed: 320, r: 20, fx: 'dark_slash', poise: 18 },
         { name: 'Seven Centuries', kind: 'blinkStrike', cd: 7, clip: 'Attack4', dmg: 22, range: 170, r: 38, poise: 24 }] }),
+    // Earned with stars: a paladin who holds the line.
+    halden: Object.assign({}, base, { id: 'halden', pow: 1.0, name: 'Halden', title: 'The Dawn Shield', weapon: 'Mace and shield', color: '#ffe08a', set: 'vh_paladin_008', art: 'storm', hp: 160, spd: 108,
+      blurb: 'Slow and unbreakable. Heavy mace blows, holy ground, and judgment from the sky.',
+      combo: [
+        { clip: 'Attack1', wind: 0.13, recover: 0.22, reach: 32, arc: 1.6, dmg: 8, poise: 9, kb: 8, step: 7, fx: 'slash' },
+        { clip: 'Attack2', wind: 0.13, recover: 0.24, reach: 32, arc: 1.6, dmg: 8, poise: 9, kb: 8, step: 7, fx: 'slash' },
+        { clip: 'Attack3', wind: 0.16, recover: 0.3, reach: 34, dmg: 13, poise: 16, kb: 22, step: 9, fx: 'finisher', finisher: true, stun: 0.4 },
+        { clip: 'Attack4', wind: 0.2, recover: 0.36, reach: 36, dmg: 17, poise: 22, kb: 30, step: 12, fx: 'finisher', finisher: true, stun: 0.6 }],
+      heavy: { clip: 'Special1', wind: 0.3, recover: 0.42, aoe: 44, at: 0, dmg: 16, poise: 26, kb: 30, fx: 'spin', stun: 0.5 },
+      skills: [
+        { name: 'Holy Ground', kind: 'zone', cd: 9, clip: 'Taunt', r: 50, dur: 5, dps: 11, slow: 1, fx: 'circle_holy', range: 60 },
+        { name: 'Judgment', kind: 'leapSlam', cd: 8, clip: 'Attack4', range: 150, r: 54, dmg: 22, poise: 28, stun: 1.0 }] }),
+    // Earned by felling the Hollow Twins: a monk whose fists burn.
+    ember: Object.assign({}, base, { id: 'ember', pow: 0.95, name: 'Ember', title: 'The Ash Monk', weapon: 'Fists', color: '#ff9a4a', set: 'vh_monk_001', art: 'cuts', hp: 112, spd: 136,
+      blurb: 'Fast, close and relentless. Chains of strikes, a burning palm, a step through fire.',
+      combo: [
+        { clip: 'Attack1', wind: 0.07, recover: 0.11, reach: 26, dmg: 5, poise: 5, kb: 3, step: 8, fx: 'slash' },
+        { clip: 'Attack2', wind: 0.07, recover: 0.11, reach: 26, dmg: 5, poise: 5, kb: 3, step: 8, fx: 'slash' },
+        { clip: 'Attack5', wind: 0.08, recover: 0.13, reach: 28, dmg: 6, poise: 7, kb: 6, step: 8, fx: 'kick' },
+        { clip: 'Kick', wind: 0.1, recover: 0.2, reach: 28, dmg: 9, poise: 12, kb: 20, step: 8, fx: 'kick', finisher: true },
+        { clip: 'Attack3', wind: 0.12, recover: 0.26, reach: 30, dmg: 12, poise: 15, kb: 24, step: 12, fx: 'finisher', finisher: true }],
+      heavy: { clip: 'Special1', wind: 0.22, recover: 0.34, aoe: 40, at: 0, dmg: 12, poise: 20, kb: 26, fx: 'spin' },
+      skills: [
+        { name: 'Burning Palm', kind: 'wave', cd: 5, clip: 'Attack5', dmg: 15, speed: 280, r: 18, fx: 'fireball', poise: 16 },
+        { name: 'Step Through Fire', kind: 'blinkStrike', cd: 6, clip: 'Attack6', dmg: 16, range: 150, r: 34, poise: 18 }] }),
   };
-  D.HERO_ORDER = ['vesper', 'lys', 'kestrel', 'wisp', 'rime', 'firstcut'];
+  D.HERO_ORDER = ['vesper', 'lys', 'kestrel', 'wisp', 'ember', 'halden', 'rime', 'firstcut'];
   // Snappier: every hero's cuts wind up and recover faster, and they move quicker.
   for (const id of D.HERO_ORDER) { const H = D.HEROES[id] = Object.assign({}, D.HEROES[id]); H.spd = Math.round(H.spd * 1.12);
     const quick = (k) => Object.assign({}, k, { wind: +(k.wind * 0.8).toFixed(3), recover: +(k.recover * 0.75).toFixed(3) });
@@ -146,6 +171,78 @@
     // Fast and swollen with red light: it runs at you and bursts. Kill it near its friends.
     husk: { name: 'Blood Husk', set: 'thug_a', hp: 22, spd: 104, poise: 0, minion: true, color: '#ff4a5a', blast: { r: 56, dmg: 40 }, tint: '#ff2a44',
       atks: [{ clip: 'Attack2', wind: 0.7, recover: 0.2, aoe: 46, at: 0, dmg: 26, kb: 44, unparry: true, explode: true }] },
+    // ---- The armies of the six acts (random-cast sets, vh_*: loaded when a fight needs them) ----
+    // Act I, the Black Gate: raiders and the first of the dead.
+    reaver: { name: 'Gate Reaver', set: 'vh_barbarian_002', hp: 58, spd: 62, poise: 0, minion: true, color: '#c89070',
+      atks: [{ clip: 'Attack1', wind: 0.5, recover: 0.5, reach: 32, arc: 1.6, dmg: 10, kb: 14 }, { clip: 'Special1', wind: 0.7, recover: 0.7, aoe: 40, at: 0, dmg: 12, kb: 26, unparry: true }] },
+    chieftain: { name: 'Raider Chieftain', set: 'vh_barbarian_008', scale: 1.15, hp: 140, spd: 58, poise: 40, minion: true, color: '#ffd060',
+      atks: [{ clip: 'Attack2', wind: 0.55, recover: 0.55, reach: 34, arc: 1.7, dmg: 14, kb: 20, next: 1 }, { clip: 'Attack3', wind: 0.3, recover: 0.6, reach: 34, dmg: 14, kb: 26, chainOnly: true },
+        { clip: 'Attack4', wind: 0.75, recover: 0.8, reach: 30, dmg: 18, kb: 34, lunge: 130, range: [60, 170], unparry: true }] },
+    bulwark: { name: 'Bone Bulwark', set: 'vh_skeleton_002', hp: 70, spd: 46, poise: 0, minion: true, color: '#e0d8c8', guard: { arc: 1.15, mul: 0.15 },
+      atks: [{ clip: 'Attack1', wind: 0.5, recover: 0.5, reach: 28, dmg: 9, kb: 18 }] },
+    pikeman: { name: 'Bone Pikeman', set: 'vh_skeleton_001', hp: 40, spd: 56, poise: 0, minion: true, color: '#e0d8c8',
+      atks: [{ clip: 'Attack1', wind: 0.55, recover: 0.5, reach: 50, arc: 0.5, dmg: 9, kb: 14 }, { clip: 'Attack4', wind: 0.6, recover: 0.6, reach: 44, dmg: 11, kb: 20, lunge: 90, range: [60, 140], unparry: true }] },
+    gateguard: { name: 'Black Gate Guard', set: 'vh_knight_003', hp: 90, spd: 48, poise: 0, minion: true, color: '#8a8aa0', guard: { arc: 1.1, mul: 0.2 },
+      atks: [{ clip: 'Attack2', wind: 0.6, recover: 0.6, reach: 32, dmg: 13, kb: 22 }, { clip: 'Attack6', wind: 0.55, recover: 0.6, reach: 30, dmg: 12, kb: 20, lunge: 70, range: [40, 110] }] },
+    // Act II, the Cloister of Frost: the frost order.
+    acolyte: { name: 'Rime Acolyte', set: 'vh_mage_009', hp: 38, spd: 54, poise: 0, minion: true, keep: 130, color: '#8ad0ff',
+      atks: [{ clip: 'Attack5', wind: 0.6, recover: 0.6, dmg: 8, kb: 8, slow: 1.5, bolt: { fx: 'ice_shard', speed: 230 }, range: [40, 320] },
+        { clip: 'Special1', wind: 0.9, recover: 0.8, rain: { n: 3, r: 22, spread: 50, dmg: 11, fx: 'frost_nova', delay: 0.9 }, range: [40, 320], rare: true }] },
+    seer: { name: 'Frost Seer', set: 'vh_mage_017', hp: 46, spd: 50, poise: 0, minion: true, keep: 140, color: '#a8e0ff',
+      atks: [{ clip: 'Attack5', wind: 0.8, recover: 0.7, dmg: 0, zone: { r: 36, dur: 3.5, dps: 7, delay: 0.7, fx: 'frost_nova', slow: 1.5 }, range: [30, 300] },
+        { clip: 'Special1', wind: 0.9, recover: 0.9, summon: { key: 'pikeman', n: 2 }, range: [0, 400], rare: true }] },
+    cloisterknight: { name: 'Cloister Knight', set: 'vh_knight_004', hp: 88, spd: 50, poise: 0, minion: true, color: '#7aa0d0', guard: { arc: 1.1, mul: 0.2 },
+      atks: [{ clip: 'Attack6', wind: 0.5, recover: 0.6, reach: 32, dmg: 12, kb: 18, next: 1 }, { clip: 'Attack3', wind: 0.25, recover: 0.6, reach: 32, dmg: 12, kb: 22, chainOnly: true }] },
+    duelist: { name: 'Mirror Duelist', set: 'vh_duelist_008', hp: 52, spd: 74, poise: 0, minion: true, color: '#5ac8b0', counter: 0.4,
+      atks: [{ clip: 'Attack1', wind: 0.32, recover: 0.4, reach: 30, dmg: 9, kb: 10, next: 1 }, { clip: 'Attack2', wind: 0.22, recover: 0.5, reach: 30, dmg: 10, kb: 14, chainOnly: true }] },
+    frostpike: { name: 'Frost Pike', set: 'vh_spearman_014', hp: 44, spd: 58, poise: 0, minion: true, color: '#8ac0e8',
+      atks: [{ clip: 'Attack1', wind: 0.5, recover: 0.5, reach: 48, arc: 0.5, dmg: 9, kb: 14, slow: 1.2 }] },
+    // Act III, the Umbral Stair: the shadow cult.
+    wraith: { name: 'Umbral Wraith', set: 'vh_wraith_004', hp: 48, spd: 70, poise: 0, minion: true, color: '#9a8ac8', fade: 0.45,
+      atks: [{ clip: 'Attack1', wind: 0.45, recover: 0.5, reach: 34, arc: 1.6, dmg: 11, kb: 14 }, { clip: 'Special1', wind: 0.7, recover: 0.7, aoe: 38, at: 0, dmg: 12, kb: 22, unparry: true }] },
+    shade: { name: 'Violet Shade', set: 'vh_wraith_001', hp: 40, spd: 66, poise: 0, minion: true, keep: 110, color: '#c070ff', fade: 0.5,
+      atks: [{ clip: 'Attack5', wind: 0.6, recover: 0.6, dmg: 9, kb: 10, bolt: { fx: 'arcane_orb', speed: 170 }, range: [40, 320] }, { clip: 'Attack1', wind: 0.4, recover: 0.5, reach: 30, dmg: 9, kb: 12 }] },
+    cutthroat: { name: 'Cutthroat', set: 'vh_rogue_002', hp: 36, spd: 84, poise: 0, minion: true, color: '#5a5a6a',
+      atks: [{ clip: 'Rolling', wind: 0.3, recover: 0.2, blink: true, range: [60, 220] }, { clip: 'Attack1', wind: 0.28, recover: 0.4, reach: 26, dmg: 9, kb: 10, next: 2 }, { clip: 'Attack6', wind: 0.2, recover: 0.5, reach: 28, dmg: 11, kb: 16, chainOnly: true }] },
+    warlock: { name: 'Stair Warlock', set: 'vh_warlock_005', hp: 60, spd: 52, poise: 0, minion: true, keep: 140, color: '#9a6aff',
+      atks: [{ clip: 'Attack5', wind: 0.7, recover: 0.6, dmg: 9, kb: 10, bolt: { fx: 'arcane_orb', speed: 150, fan: 3 }, range: [40, 320] }, { clip: 'Special1', wind: 1.0, recover: 0.9, summon: { key: 'cutthroat', n: 2 }, range: [0, 400], rare: true }] },
+    shadowbulwark: { name: 'Shadow Bulwark', set: 'vh_skeleton_015', hp: 76, spd: 46, poise: 0, minion: true, color: '#6a6a7a', guard: { arc: 1.15, mul: 0.15 },
+      atks: [{ clip: 'Attack1', wind: 0.5, recover: 0.5, reach: 30, dmg: 10, kb: 18 }] },
+    // Act IV, the Ashen Waste: beasts and fire.
+    hound: { name: 'Ash Hound', set: 'vh_beastfolk_003', hp: 34, spd: 96, poise: 0, minion: true, color: '#b07a4a',
+      atks: [{ clip: 'Attack4', wind: 0.45, recover: 0.6, reach: 26, dmg: 11, kb: 18, lunge: 150, range: [50, 190] }, { clip: 'Attack1', wind: 0.3, recover: 0.4, reach: 26, dmg: 8, kb: 10 }] },
+    ram: { name: 'Bone Ram', set: 'vh_beastfolk_007', scale: 1.15, hp: 90, spd: 56, poise: 30, minion: true, color: '#e8dcc8',
+      atks: [{ clip: 'Attack4', wind: 0.7, recover: 0.8, reach: 30, dmg: 18, kb: 40, lunge: 180, range: [70, 220], unparry: true }, { clip: 'Attack2', wind: 0.45, recover: 0.5, reach: 30, dmg: 11, kb: 18 }] },
+    cinder: { name: 'Cinder Mage', set: 'vh_mage_001', hp: 40, spd: 52, poise: 0, minion: true, keep: 130, color: '#ff6a3a',
+      atks: [{ clip: 'Attack5', wind: 0.65, recover: 0.6, dmg: 10, kb: 12, bolt: { fx: 'fireball', speed: 210, burst: 24, burstFx: 'explosion_fire', ground: { r: 24, dur: 2.2, dps: 7, fx: 'burning_ground' } }, range: [40, 320] }] },
+    ashlock: { name: 'Ash Warlock', set: 'vh_warlock_002', hp: 64, spd: 50, poise: 0, minion: true, keep: 150, color: '#ff8a40',
+      atks: [{ clip: 'Special1', wind: 0.9, recover: 0.8, rain: { n: 4, r: 24, spread: 70, dmg: 12, fx: 'explosion_fire', delay: 0.9 }, range: [40, 340] }, { clip: 'Attack5', wind: 1.0, recover: 0.9, summon: { key: 'hound', n: 2 }, range: [0, 400], rare: true }] },
+    ravager: { name: 'Ash Ravager', set: 'vh_barbarian_013', hp: 66, spd: 60, poise: 0, minion: true, color: '#a06050',
+      atks: [{ clip: 'Attack1', wind: 0.5, recover: 0.5, reach: 32, arc: 1.6, dmg: 11, kb: 16 }, { clip: 'Special1', wind: 0.65, recover: 0.7, aoe: 42, at: 0, dmg: 13, kb: 28, unparry: true }] },
+    // Act V, the Wind's Throat: the hunters.
+    ranger: { name: 'Throat Ranger', set: 'vh_ranger_013', hp: 36, spd: 62, poise: 0, minion: true, keep: 160, color: '#7ab060',
+      atks: [{ clip: 'Attack1', wind: 0.75, recover: 0.7, dmg: 7, kb: 10, bolt: { fx: 'arrow', speed: 300, fan: 3 }, range: [50, 340] }] },
+    sniper: { name: 'Gale Sniper', set: 'vh_ranger_006', hp: 34, spd: 56, poise: 0, minion: true, keep: 220, color: '#5aa0a0',
+      atks: [{ clip: 'Attack1', wind: 1.05, recover: 0.8, dmg: 15, kb: 26, bolt: { fx: 'arrow', speed: 440, big: true }, range: [80, 420] }] },
+    windmonk: { name: 'Wind Monk', set: 'vh_monk_002', hp: 50, spd: 82, poise: 0, minion: true, color: '#9ab070',
+      atks: [{ clip: 'Attack1', wind: 0.3, recover: 0.3, reach: 26, dmg: 7, kb: 6, next: 1 }, { clip: 'Attack2', wind: 0.18, recover: 0.3, reach: 26, dmg: 7, kb: 8, chainOnly: true, next: 2 }, { clip: 'Kick', wind: 0.2, recover: 0.6, reach: 28, dmg: 11, kb: 26, chainOnly: true }] },
+    stormfist: { name: 'Storm Fist', set: 'vh_monk_003', hp: 56, spd: 80, poise: 0, minion: true, color: '#7a9ad0', counter: 0.25,
+      atks: [{ clip: 'Attack5', wind: 0.35, recover: 0.4, reach: 28, dmg: 9, kb: 14, next: 1 }, { clip: 'Kick', wind: 0.2, recover: 0.6, reach: 28, dmg: 12, kb: 30, chainOnly: true, stun: 0.2 }] },
+    ridgepike: { name: 'Ridge Pikeman', set: 'vh_spearman_008', hp: 46, spd: 58, poise: 0, minion: true, color: '#8ab070',
+      atks: [{ clip: 'Attack1', wind: 0.5, recover: 0.5, reach: 50, arc: 0.5, dmg: 10, kb: 16 }, { clip: 'Attack4', wind: 0.6, recover: 0.6, reach: 44, dmg: 12, kb: 22, lunge: 100, range: [60, 150], unparry: true }] },
+    harpy: { name: 'Gale Harpy', set: 'vh_beastfolk_005', hp: 44, spd: 78, poise: 0, minion: true, color: '#c8a070',
+      atks: [{ clip: 'Attack4', wind: 0.7, recover: 0.8, reach: 28, dmg: 11, kb: 24, lunge: 230, range: [90, 260], unparry: true }, { clip: 'Attack1', wind: 0.35, recover: 0.4, reach: 28, dmg: 9, kb: 12 }] },
+    // Act VI, the Moon's Shadow: the Knights of the Wound.
+    paladin: { name: 'Wound Paladin', set: 'vh_paladin_007', hp: 96, spd: 48, poise: 0, minion: true, color: '#ffd060', guard: { arc: 1.1, mul: 0.2 }, heal: { every: 7, r: 100, pct: 0.13 },
+      atks: [{ clip: 'Attack1', wind: 0.55, recover: 0.55, reach: 32, dmg: 13, kb: 22 }, { clip: 'Attack4', wind: 0.7, recover: 0.8, aoe: 40, at: 20, dmg: 15, kb: 26, unparry: true }] },
+    woundknight: { name: 'Knight of the Wound', set: 'vh_knight_014', scale: 1.1, hp: 92, spd: 52, poise: 40, minion: true, color: '#c070c0',
+      atks: [{ clip: 'Attack2', wind: 0.5, recover: 0.5, reach: 36, arc: 1.6, dmg: 14, kb: 20, next: 1 }, { clip: 'Attack3', wind: 0.25, recover: 0.6, reach: 36, dmg: 15, kb: 26, chainOnly: true }, { clip: 'Special1', wind: 0.7, recover: 0.8, aoe: 44, at: 0, dmg: 16, kb: 30, unparry: true }] },
+    woundblade: { name: 'Wound Duelist', set: 'vh_duelist_012', hp: 60, spd: 78, poise: 0, minion: true, color: '#c050a0', counter: 0.38,
+      atks: [{ clip: 'Attack1', wind: 0.3, recover: 0.4, reach: 32, dmg: 11, kb: 12, next: 1 }, { clip: 'Attack6', wind: 0.2, recover: 0.5, reach: 34, dmg: 12, kb: 18, chainOnly: true }] },
+    bloodlock: { name: 'Blood Warlock', set: 'vh_warlock_003', hp: 70, spd: 52, poise: 0, minion: true, keep: 150, color: '#ff2a44',
+      atks: [{ clip: 'Special1', wind: 0.9, recover: 0.8, rain: { n: 4, r: 24, spread: 80, dmg: 11, fx: 'blast', delay: 0.95 }, range: [40, 340] }, { clip: 'Attack5', wind: 1.0, recover: 0.9, summon: { key: 'redwraith', n: 1 }, range: [0, 400], rare: true }] },
+    redwraith: { name: 'Blood Wraith', set: 'vh_wraith_003', hp: 54, spd: 72, poise: 0, minion: true, color: '#ff4a5a', fade: 0.45,
+      atks: [{ clip: 'Attack1', wind: 0.42, recover: 0.5, reach: 34, arc: 1.6, dmg: 13, kb: 14 }, { clip: 'Special1', wind: 0.65, recover: 0.7, aoe: 40, at: 0, dmg: 14, kb: 24, unparry: true }] },
     ghoul: { name: 'Ghoul', set: 'thug_a', hp: 34, spd: 52, poise: 0, minion: true, color: '#b9a2d8',
       atks: [{ clip: 'Attack1', wind: 0.5, recover: 0.45, reach: 26, dmg: 7, kb: 8 }] },
     ghast: { name: 'Ghast', set: 'thug_b', hp: 48, spd: 58, poise: 0, minion: true, color: '#c7b0e8',

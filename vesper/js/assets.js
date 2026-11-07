@@ -12,8 +12,12 @@
   const loadImage = (src) => new Promise((res, rej) => { const im = new Image(); im.onload = () => (im.decode ? im.decode().catch(() => {}) : Promise.resolve()).then(() => res(im)); im.onerror = () => rej(new Error('image ' + src)); im.src = src; });
   async function loadJSON(src) { const r = await fetch(src); if (!r.ok) throw new Error('json ' + src); return r.json(); }
 
-  async function loadSet(id) {
-    if (sets[id]) return sets[id];
+  const pending = {};
+  function loadSet(id) {
+    if (sets[id]) return Promise.resolve(sets[id]);
+    return pending[id] || (pending[id] = loadSetNow(id).finally(() => { delete pending[id]; }));
+  }
+  async function loadSetNow(id) {
     const d = await loadJSON(A.ROOT + 'pixel/' + id + '.json');
     d.images = await Promise.all(d.pages.map((p) => loadImage(A.ROOT + 'pixel/' + p)));
     sets[id] = d; return d;
@@ -28,6 +32,8 @@
     try { if (document.fonts && document.fonts.load) await document.fonts.load('16px Adventurer'); } catch (e) { /* the font is optional */ }
   };
   A.hasSet = (id) => !!sets[id];
+  // Load more character sets later (the act armies load when a fight needs them).
+  A.loadSets = async function (ids, onProgress) { let n = 0; await Promise.all(ids.map((id) => loadSet(id).then(() => { n++; if (onProgress) onProgress(n / ids.length); }))); };
   // Draw one pixel of every sheet into the game's own buffer during loading, so the browser uploads
   // them to the graphics card then and not on the frame a new character first appears.
   A.warm = function (ctx) {

@@ -82,6 +82,8 @@
         case 'spawn': A.sfx(e.boss ? 'charge' : 'magic', 0.4); break;
         case 'landed': if (e.boss) { A.sfx('quake', 1); A.sfx('blow_big', 0.8); } break;
         case 'portal': A.sfx('allout', 0.6); break;
+        case 'counter': A.sfx('clang_0', 0.9); A.sfx('swish_1', 0.6); break;
+        case 'healpulse': A.sfx('magic', 0.5); break;
         case 'reinforce': A.sfx('horn', 0.7); A.sfx('quake', 0.5); break;
         case 'finisher': A.sfx('blow_big', 1); A.sfx('clang_1', 0.7); break;
         case 'transit': A.sfx('whoosh', 0.9); break;

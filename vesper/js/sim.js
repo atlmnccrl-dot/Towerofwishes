@@ -309,6 +309,11 @@
       if ((k.poise || 0) >= 12 && !bolt) { o.guardT = 2.6; setState(o, 'hurt', 1.1); o.atk = null; push(o, src0, 60); s.hitstop = Math.max(s.hitstop, 0.12); gainMoon(s, 6); ev(s, { type: 'guardbreak', x: o.x, y: o.y, id: o.id }); }
       else { const bd = Math.max(1, Math.round(k.dmg * M.dmg * o.def.guard.mul)); o.hp -= bd; s.stats.dealt += bd; o.flash = 0.4; push(o, src0, 20); s.hitstop = Math.max(s.hitstop, 0.04); ev(s, { type: 'block', x: o.x, y: o.y, id: o.id }); if (o.hp <= 0) { o.hp = 0; kill(s, o); } return; }
     }
+    // A duelist turns a light cut from the front aside and strikes back at once; heavy blows and finishers get through.
+    if (o.def.counter && !bolt && (o.state === 'idle' || o.state === 'move') && (k.poise || 0) < 12 && !k.finisher && Math.abs(angDiff(Math.atan2(src0.y - o.y, src0.x - o.x), o.ang)) < 1.3 && s.rand() < o.def.counter) {
+      s.hitstop = Math.max(s.hitstop, 0.07); setAng(o, Math.atan2(src0.y - o.y, src0.x - o.x)); ev(s, { type: 'counter', x: o.x, y: o.y, id: o.id });
+      const ck = o.def.atks.find((x) => x.reach && !x.chainOnly) || o.def.atks[0]; startAttack(s, o, ck); o.st = ck.wind * 0.55; return;
+    }
     let mult = M.dmg * (o.state === 'down' ? 1.5 : 1) * (M.exec && o.hp < o.maxHp * 0.25 ? 1.5 : 1);
     if (!bolt && a.riposte) { mult *= 3; a.riposte = false; ev(s, { type: 'riposte', x: o.x, y: o.y }); }
     const dmg = Math.max(1, Math.round(k.dmg * mult * (0.9 + 0.2 * s.rand())));
@@ -321,6 +326,11 @@
     s.hitstop = Math.max(s.hitstop, k.finisher ? 0.13 : (k.poise || 0) >= 12 ? 0.1 : 0.06);
     if (o.hp <= 0) { o.hp = 0; kill(s, o); return; }
     if (o.def.boss && o.phase === 1 && o.hp <= o.maxHp * 0.5) phaseTwo(s, o);
+    // A wraith comes apart when struck and gathers again somewhere else near you.
+    if (o.def.fade && o.state !== 'air' && s.rand() < o.def.fade) {
+      const an = s.rand() * TAU, c = VS.clampTo(curArena, s.hero.x + Math.cos(an) * 85, s.hero.y + Math.sin(an) * 85, 20);
+      ev(s, { type: 'blink', id: o.id, x: o.x, y: o.y }); o.x = c[0]; o.y = c[1]; o.iframes = 0.45; o.atk = null; setState(o, 'idle'); o.cd = 0.45; ev(s, { type: 'blink', id: o.id, x: o.x, y: o.y }); return;
+    }
     if (k.slow) o.slowT = Math.max(o.slowT, k.slow);
     if (k.stun && !o.def.boss) o.stunT = Math.max(o.stunT, k.stun);
     else if (k.stun) o.poise -= k.stun * 18;
@@ -499,6 +509,11 @@
   }
   function foeThink(s, u, dt) {
     u.sigCd -= dt; u.summonCd -= dt; if (u.guardT > 0) u.guardT -= dt;
+    // A paladin's prayer: every few seconds the foes around him mend.
+    if (u.def.heal && u.state !== 'spawn') {
+      const Hh = u.def.heal; u.healCd = (u.healCd == null ? Hh.every * 0.6 : u.healCd) - dt;
+      if (u.healCd <= 0) { u.healCd = Hh.every; let n = 0; for (const f of foes(s)) if (!f.def.boss && f.state !== 'spawn' && dist(f, u) <= Hh.r && f.hp < f.maxHp) { f.hp = Math.min(f.maxHp, f.hp + f.maxHp * Hh.pct); n++; } ev(s, { type: 'healpulse', x: u.x, y: u.y, r: Hh.r, n }); }
+    }
     const h = targetOf(s, u);
     if (!h) { if (u.state === 'idle' || u.state === 'move') { setAng(u, u.ang + dt * 0.6); if (u.state !== 'idle') setState(u, 'idle'); } return; }
     u.target = h;

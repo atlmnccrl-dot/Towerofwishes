@@ -72,6 +72,8 @@
     lys: { kind: 'level', n: 4, text: 'Reach level 4' },
     kestrel: { kind: 'boss', node: 'a2-b', text: 'Defeat the Umbral' },
     wisp: { kind: 'feat', flag: 'untouchable', text: 'Defeat a guardian without taking a single hit' },
+    ember: { kind: 'boss', node: 'a1-b', text: 'Defeat the Hollow Twins' },
+    halden: { kind: 'stars', n: 60, text: 'Earn 60 stars' },
     rime: { kind: 'level', n: 12, text: 'Reach level 12' },
     firstcut: { kind: 'boss', node: 'a5-b', text: 'Defeat the First Cut' },
   };
@@ -81,6 +83,7 @@
     if (u.kind === 'level') return { text: u.text, now: Math.min(p.lvl, u.n), of: u.n };
     if (u.kind === 'boss') return { text: u.text, now: P.cleared(p, u.node) ? 1 : 0, of: 1 };
     if (u.kind === 'feat') return { text: u.text, now: p.flags[u.flag] ? 1 : 0, of: 1 };
+    if (u.kind === 'stars') return { text: u.text, now: Math.min(u.n, P.totalStars(p)), of: u.n };
     return { text: u.text, now: 1, of: 1 };
   };
   // Grant whatever has been earned; returns the newly unlocked hero ids.
@@ -94,13 +97,13 @@
   // Acts are the hours of the night (the stage whose arenas and foes they use). Echoes is the
   // post-game: every guardian again, stronger, and the endless night.
   P.ACTS = [
-    { stage: 0, num: 'I', hour: 'DUSK', name: 'The Black Gate', pool: ['ghoul', 'raider', 'ghoul', 'husk', 'ghast', 'archer', 'shield'] },
-    { stage: 1, num: 'II', hour: 'THE FIRST HOUR', name: 'Cloister of Frost', pool: ['knife', 'spearman', 'raider', 'husk', 'shield', 'archer', 'hexer', 'brute'] },
-    { stage: 2, num: 'III', hour: 'THE SECOND HOUR', name: 'The Umbral Stair', pool: ['bone', 'husk', 'raider', 'poacher', 'shield', 'knife', 'archer', 'hexer', 'brute'] },
-    { stage: 3, num: 'IV', hour: 'THE THIRD HOUR', name: 'The Ashen Waste', pool: ['ghast', 'husk', 'pyre', 'ghoul', 'husk', 'bone', 'brute', 'hexer', 'golem'] },
-    { stage: 4, num: 'V', hour: 'THE FOURTH HOUR', name: "The Wind's Throat", pool: ['poacher', 'knife', 'shield', 'spearman', 'husk', 'archer', 'bone', 'pyre', 'brute'] },
-    { stage: 5, num: 'VI', hour: 'THE LAST HOUR', name: "The Moon's Shadow", pool: ['shield', 'knife', 'husk', 'hexer', 'archer', 'brute', 'pyre', 'bone', 'golem'] },
-    { stage: 5, num: 'VII', hour: 'AFTER DAWN', name: 'Echoes of the Night', pool: ['brute', 'hexer', 'pyre', 'husk', 'shield', 'knife', 'archer', 'bone', 'poacher'], echoes: true },
+    { stage: 0, num: 'I', hour: 'DUSK', name: 'The Black Gate', pool: ['ghoul', 'reaver', 'raider', 'bulwark', 'husk', 'pikeman', 'archer', 'gateguard', 'chieftain'] },
+    { stage: 1, num: 'II', hour: 'THE FIRST HOUR', name: 'Cloister of Frost', pool: ['frostpike', 'acolyte', 'cloisterknight', 'knife', 'duelist', 'husk', 'seer', 'brute'] },
+    { stage: 2, num: 'III', hour: 'THE SECOND HOUR', name: 'The Umbral Stair', pool: ['cutthroat', 'wraith', 'shadowbulwark', 'shade', 'bone', 'husk', 'warlock', 'brute'] },
+    { stage: 3, num: 'IV', hour: 'THE THIRD HOUR', name: 'The Ashen Waste', pool: ['hound', 'ravager', 'cinder', 'husk', 'ram', 'ghast', 'ashlock', 'golem'] },
+    { stage: 4, num: 'V', hour: 'THE FOURTH HOUR', name: "The Wind's Throat", pool: ['ridgepike', 'ranger', 'windmonk', 'harpy', 'husk', 'stormfist', 'sniper', 'brute'] },
+    { stage: 5, num: 'VI', hour: 'THE LAST HOUR', name: "The Moon's Shadow", pool: ['woundknight', 'woundblade', 'paladin', 'redwraith', 'husk', 'bloodlock', 'shield', 'brute'] },
+    { stage: 5, num: 'VII', hour: 'AFTER DAWN', name: 'Echoes of the Night', pool: ['woundknight', 'duelist', 'wraith', 'ram', 'harpy', 'paladin', 'ashlock', 'sniper', 'cutthroat', 'chieftain'], echoes: true },
   ];
   P.RULES = {
     time: (n) => 'Against the clock: clear it within ' + n + ' seconds',
@@ -242,9 +245,12 @@
     if (n.echo && n.rule === 'nohit') { sc.hp *= n.act >= 6 ? 0.45 : 0.6; }
     const adj = { 'a1-b': [0.78, 0.8], 'a5-b': [0.9, 0.95], 'a6-2': [0.85, 0.9] }[n.id]; if (adj) { sc.hp *= adj[0]; sc.dmg *= adj[1]; }   // two guardians at once; the finale
     if (n.rule === 'glass') sc.dmg *= 0.75;
-    if (n.big) { sc.hp *= 0.85; sc.dmg *= 0.85; }
+    if (n.big) { sc.hp *= 0.85; sc.dmg *= 0.85; } else if (n.rule === 'horde') { sc.hp *= 0.85; sc.dmg *= 0.85; }
     return { stage: A.stage, node: { waves, boss, arenas, scale: sc, rules } };
   };
+  // Every foe key a fight can put on the floor (its waves and what they summon), for loading their sets.
+  P.foeKeys = function (b) { const out = new Set(); const add = (k) => { if (out.has(k) || !D().FOES[k]) return; out.add(k); for (const a of D().FOES[k].atks) if (a.summon) add(a.summon.key); };
+    for (const w of b.node.waves) for (const k of w) if (k !== '+') add(k); return [...out]; };
   P.foeCount = (b) => b.node.waves.reduce((n, w) => n + w.filter((k) => k !== '+').length, 0);
   // Three stars: win, then two goals that depend on the kind of node.
   P.goals = function (n) {
