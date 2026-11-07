@@ -62,8 +62,10 @@ while they wind up, so stepping aside makes them miss.
 - **The way on**: clearing an arena raises a door at its far end while the camera turns to it: a
   gate whose runes light one by one before its doors split open, a stairway of light set down step
   by step, or a tear in the air that splits into a vortex; each throws a pillar of light into the
-  sky. Walk in: the view rushes into the door through speed lines, whites out, and you arrive in the
-  next arena through a gate that seals behind you, with the arena's name.
+  sky. The doors burst open on an impact frame with debris flung out; god rays fan from the door and
+  energy spirals into it while it stands open. Walk in: the view rushes in, you fall through a red
+  and white warp tunnel, and arrive through a door that blazes open and then crumbles to dust, with
+  the arena's name.
 - **Arena art**: each arena is a floating stone platform on cliffs, with flagstones, cracks, inlaid
   runes and marks for each hour (moss, snow, gold inlay, ash, wind streaks, blood pools), brazier
   light on the floor, drifting fog, and props: pillars, braziers, banners, knight statues, broken
@@ -80,12 +82,11 @@ while they wind up, so stepping aside makes them miss.
 
 ## Story scenes
 
-Each hour opens with an anime sequence drawn like the moon arts, on the pixel buffer: glitch title
-cards, reveals against the moon, grey close-ups with the red eye, extreme close-ups of the eyes,
-two-shots of the stand-off, blade flashes, speed lines, clashes that land on impact frames, and the
-first cut across the moon in the prologue. Every scene builds through a short exchange before the
-clash. Shots play on their own; a tap
-moves on, Esc skips the scene. The shot lists live in `js/story.js`, the shots in `js/scene.js`.
+No dialogue. Each hour opens with a short wordless action intro drawn like the moon arts, on the
+pixel buffer: a glitch title card, the boss revealed against the moon, a blade flash, and a clash
+that lands on impact frames (about 8 to 10 seconds; the prologue adds the first cut across the moon).
+The ending turns the moon white. A tap moves on, Esc skips. Shot lists in `js/story.js`, shots in
+`js/scene.js`.
 
 ## Look
 

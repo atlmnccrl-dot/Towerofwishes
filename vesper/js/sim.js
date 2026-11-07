@@ -302,7 +302,7 @@
     s.portal = { x, y, t: 0, kind: s.def.portal || 'rift' };
     ev(s, { type: 'portal', x, y, kind: s.portal.kind });
   }
-  VS.TRANSIT = { into: 0.7, swap: 1.0, dur: 1.9 };
+  VS.TRANSIT = { into: 0.6, swap: 1.5, dur: 2.3 };
   function transit(s, dt) {
     const h = s.hero, T = VS.TRANSIT, tr = s.transit, p = s.portal || tr.p;
     const prev = tr.t; tr.t += dt;

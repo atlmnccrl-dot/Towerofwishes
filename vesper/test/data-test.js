@@ -34,8 +34,7 @@ for (const sc of scenes) for (const sh of sc.shots) {
   for (const w of [sh.who, sh.also, sh.a, sh.b].concat((sh.cast || []).map((c) => (typeof c === 'string' ? c : c.who)), sh.line ? [sh.line.who] : [])) if (w && !S.speaker(w)) bad('unknown speaker ' + w);
   for (const w of [sh.who, sh.also, sh.a, sh.b].concat((sh.cast || []).map((c) => (typeof c === 'string' ? c : c.who)))) if (w) check('scene ' + w, S.speaker(w).set, ['Attack4', 'Attack3', 'Attack1']);
 }
-const used2 = new Set(); for (const sc of scenes) for (const sh of sc.shots) used2.add(sh.k);
-for (const k of KINDS) if (!used2.has(k)) bad('shot kind never used: ' + k);
+for (const sc of scenes) for (const sh of sc.shots) if (sh.line) bad('a spoken line in a scene (the story has no dialogue)');
 for (const k of Object.keys(S.PHASE)) if (!D.FOES[k]) bad('phase line for unknown ' + k);
 console.log(`${Object.keys(D.FOES).length} foes, ${D.STAGES.length} stages, ${used.size} effects named, ${scenes.length} scenes`);
 console.log(fail ? `${fail} failures` : 'all assets found');
