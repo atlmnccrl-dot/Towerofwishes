@@ -42,7 +42,8 @@
       waves: st.waves.concat([st.bossWave]), wave: -1, waveT: 0.9, area: 0, portal: null, transit: null, freeze: 0, hitstop: 0, slow: 1, slowT: 0, cine: null,
       result: null, endT: 0, moon: M.moonStart, mods: M, boons, combo: 0, comboT: 0, serial: 0, bossIds: [],
       stats: { dealt: 0, taken: 0, parries: 0, perfects: 0, arts: 0, ldx: 0, maxCombo: 0, hitsTaken: 0 } };
-    s.hero = makeUnit(s, 'hero', 'vesper', Object.assign({}, D.HERO, { hp: M.hp }), 0, 70, -Math.PI / 2);
+    curArena = arenaOf(s);
+    const en = VS.entryOf(curArena); s.hero = makeUnit(s, 'hero', 'vesper', Object.assign({}, D.HERO, { hp: M.hp }), en.x * 0.6, en.y * 0.6, Math.atan2(-en.y, -en.x));
     return s;
   }
 
@@ -64,7 +65,7 @@
       case 'down': { u.clip = 'Slide'; const up = u.dur - 0.5; u.frame = st < 0.45 ? Math.floor(st / 0.45 * 8) : st < up ? 7 : Math.min(F, 8 + Math.floor((st - up) / 0.5 * 7)); break; }
       case 'dead': u.clip = 'Die'; u.frame = Math.min(F, Math.floor(st * 14)); break;
       case 'win': u.clip = 'Taunt'; u.frame = loopFrame('Taunt', st); break;
-      case 'spawn': u.clip = u.def.boss ? 'Attack4' : 'Idle'; u.frame = u.def.boss ? Math.min(F, Math.floor(st / u.dur * 10)) : loopFrame('Idle', s.t); break;
+      case 'spawn': u.clip = u.mode === 'side' ? 'Run' : u.mode === 'drop' ? 'Attack4' : 'Idle'; u.frame = u.mode === 'drop' ? Math.min(F, Math.floor(st / u.dur * 10)) : loopFrame(u.clip, s.t + u.id); break;
       case 'move': u.clip = u.team === 'hero' ? 'Run' : (u.def.spd * u.spdMul > 68 ? 'Run' : 'Walk'); u.frame = loopFrame(u.clip, s.t + u.id * 0.37); break;
       default: u.clip = 'Idle4'; u.frame = loopFrame('Idle4', s.t + u.id * 0.37);
     }
@@ -135,7 +136,7 @@
       }
       if (o.iframes > 0) return;
       if (o.state === 'parry' && o.st <= M.parryWin && !k.unparry) {
-        s.stats.parries++; gainMoon(s, 22); s.hitstop = 0.13; o.riposte = M.riposte; ev(s, { type: 'impact', size: 'small', x: o.x, y: o.y });
+        s.stats.parries++; gainMoon(s, 22); s.hitstop = 0.13; o.riposte = M.riposte; if (a.def && a.def.boss) ev(s, { type: 'impact', size: 'small', x: o.x, y: o.y });
         const d = dir(o.ang); ev(s, { type: 'parry', x: o.x + d[0] * 10, y: o.y + d[1] * 10, id: o.id });
         if (bolt) {
           const own = s.units.find((u) => u.id === bolt.owner), sp = Math.hypot(bolt.vx, bolt.vy) * 1.35;
@@ -171,7 +172,7 @@
     const src = bolt ? { x: bolt.x - bolt.vx, y: bolt.y - bolt.vy } : a;
     ev(s, { type: 'hit', x: o.x, y: o.y, dmg, id: o.id, heavy: (k.poise || 0) >= 12, combo: s.combo, ang: Math.atan2(o.y - src.y, o.x - src.x), fx: bolt ? 'bolt' : k.fx, finisher: !!k.finisher });
     s.hitstop = Math.max(s.hitstop, (k.poise || 0) >= 12 ? 0.075 : 0.045);
-    if (o.hp <= 0) { o.hp = 0; kill(s, o); if (k.finisher || k.fx === 'spin') ev(s, { type: 'impact', size: 'small', x: o.x, y: o.y }); return; }
+    if (o.hp <= 0) { o.hp = 0; kill(s, o); return; }
     if (o.def.boss && o.phase === 1 && o.hp <= o.maxHp * 0.5) phaseTwo(s, o);
     const kb = k.kb || 6;
     if (o.maxPoise <= 0) { setState(o, 'hurt', 0.3); o.atk = null; push(o, src, kb * 9); return; }
@@ -227,46 +228,83 @@
     ev(s, { type: 'artEnd', kind: c.kind });
   }
 
+  // ---- arenas -------------------------------------------------------------------------------
+  // The shape of the current area: circle, rect, donut (a ring around a pit) or cross.
+  const arenaOf = (s) => D.ARENAS[(s.def.arenas || [])[s.area]] || D.ARENAS.ring;
+  VS.arenaOf = arenaOf;
+  function clampRect(x, y, hw, hh, m) { return [clamp(x, -hw + m, hw - m), clamp(y, -hh + m, hh - m)]; }
+  VS.clampTo = function (A, x, y, m) {
+    if (A.shape === 'rect') return clampRect(x, y, A.hw, A.hh, m);
+    if (A.shape === 'cross') {
+      const inH = Math.abs(x) <= A.arm - m && Math.abs(y) <= A.hw - m, inV = Math.abs(x) <= A.hw - m && Math.abs(y) <= A.arm - m;
+      if (inH || inV) return [x, y];
+      const a = clampRect(x, y, A.arm, A.hw, m), b = clampRect(x, y, A.hw, A.arm, m);
+      return Math.hypot(a[0] - x, a[1] - y) < Math.hypot(b[0] - x, b[1] - y) ? a : b;
+    }
+    const R = A.r - m, d = Math.hypot(x, y) || 0.001;
+    if (d > R) return [x * R / d, y * R / d];
+    if (A.shape === 'donut' && d < A.inner + m) { const r = A.inner + m; return d < 0.01 ? [r, 0] : [x * r / d, y * r / d]; }
+    return [x, y];
+  };
+  VS.inside = (A, x, y, m) => { const c = VS.clampTo(A, x, y, m || 0); return Math.abs(c[0] - x) < 0.01 && Math.abs(c[1] - y) < 0.01; };
+  // Where the way on opens and where the hero arrives.
+  VS.exitOf = (A) => A.shape === 'rect' ? (A.hw > A.hh * 2 ? { x: A.hw - 34, y: 0 } : { x: 0, y: -A.hh + 30 }) : A.shape === 'cross' ? { x: 0, y: -A.arm + 34 } : { x: 0, y: -A.r + 34 };
+  VS.entryOf = (A) => A.shape === 'rect' ? (A.hw > A.hh * 2 ? { x: -A.hw + 34, y: 0 } : { x: 0, y: A.hh - 34 }) : A.shape === 'cross' ? { x: 0, y: A.arm - 40 } : { x: 0, y: A.r - 40 };
+  // Side gates the foes run in through.
+  VS.sideGates = function (A) {
+    if (A.shape === 'rect') return A.hw > A.hh * 2 ? [{ x: A.hw + 30, y: 0, tx: A.hw - 50, ty: 0 }, { x: -A.hw - 30, y: 0, tx: -A.hw + 50, ty: 0 }] : [{ x: -A.hw - 30, y: 0, tx: -A.hw + 50, ty: 0 }, { x: A.hw + 30, y: 0, tx: A.hw - 50, ty: 0 }, { x: 0, y: -A.hh - 30, tx: 0, ty: -A.hh + 50 }];
+    if (A.shape === 'cross') return [{ x: -A.arm - 30, y: 0, tx: -A.arm + 50, ty: 0 }, { x: A.arm + 30, y: 0, tx: A.arm - 50, ty: 0 }, { x: 0, y: -A.arm - 30, tx: 0, ty: -A.arm + 50 }];
+    return [0, 1, 2, 3, 4].map((i) => { const a = -Math.PI / 2 + (i - 2) * 0.9; return { x: Math.cos(a) * (A.r + 30), y: Math.sin(a) * (A.r + 30), tx: Math.cos(a) * (A.r - 50), ty: Math.sin(a) * (A.r - 50) }; });
+  };
+  let curArena = D.ARENAS.ring;
+  function keepIn(u) { if (u.state === 'spawn' && u.mode === 'side') return; const c = VS.clampTo(curArena, u.x, u.y, u.rad * 0.6); u.x = c[0]; u.y = c[1]; }
   // ---- waves --------------------------------------------------------------------------------
-  function keepIn(u) {
-    const R = D.ARENA.r - u.rad * 0.6, d = Math.hypot(u.x, u.y);
-    if (d > R) { u.x *= R / d; u.y *= R / d; }
+  function spawnPoint(s, A, i) {
+    const h = s.hero;
+    for (let k = 0; k < 40; k++) {
+      const x = (s.rand() * 2 - 1) * 260, y = (s.rand() * 2 - 1) * 260;
+      if (VS.inside(A, x, y, 30) && Math.hypot(x - h.x, y - h.y) > 95) return { x, y };
+    }
+    const c = VS.clampTo(A, -h.x, -h.y, 30); return { x: c[0], y: c[1] };
   }
   function spawnWave(s) {
     s.wave++;
-    const list = s.waves[s.wave], h = s.hero, boss = s.wave === s.waves.length - 1, R = D.ARENA.r;
-    const away = Math.hypot(h.x, h.y) < 30 ? -Math.PI / 2 : Math.atan2(-h.y, -h.x);
+    const list = s.waves[s.wave], h = s.hero, boss = s.wave === s.waves.length - 1, A = arenaOf(s), gates = VS.sideGates(A).sort((a, b) => Math.hypot(b.x - h.x, b.y - h.y) - Math.hypot(a.x - h.x, a.y - h.y));
     list.forEach((key, i) => {
-      const def = D.FOES[key], a = away + (list.length > 1 ? (i - (list.length - 1) / 2) * 0.75 : 0), rr = R * (boss ? 0.5 : 0.62);
-      const u = makeUnit(s, 'foe', key, def, Math.cos(a) * rr, Math.sin(a) * rr, 0);
+      const def = D.FOES[key], mode = def.boss ? (key === 'umbral' ? 'rift' : 'drop') : A.spawn[i % A.spawn.length];
+      let x, y, tx, ty;
+      if (mode === 'side') { const g = gates[i % gates.length]; x = g.x; y = g.y; const c = VS.clampTo(A, g.tx + (s.rand() - 0.5) * 30, g.ty + (s.rand() - 0.5) * 30, 20); tx = c[0]; ty = c[1]; }
+      else { const p = def.boss ? (() => { const c = VS.clampTo(A, -h.x * 0.6, -h.y * 0.6 - 40, 40); return { x: c[0], y: c[1] }; })() : spawnPoint(s, A, i); x = p.x; y = p.y; }
+      const u = makeUnit(s, 'foe', key, def, x, y, 0);
       const sk = s.def.scale || { hp: 1, dmg: 1 }; u.hp = u.maxHp = Math.round(def.hp * sk.hp); u.dmgMul = sk.dmg;
       setAng(u, Math.atan2(h.y - u.y, h.x - u.x)); u.orbit = (s.rand() < 0.5 ? -1 : 1); u.cd = 0.4 + i * 0.3 + (def.boss ? 0.6 : 0);
-      keepIn(u); if (def.boss) s.bossIds.push(u.id);
-      // The entrance: minions rise out of a rift in the floor, bosses drop from the sky.
-      setState(u, 'spawn', def.boss ? 1.5 : 0.85 + i * 0.22); u.spawnDelay = def.boss ? 0 : i * 0.22;
-      ev(s, { type: 'spawn', id: u.id, x: u.x, y: u.y, boss: !!def.boss, dur: u.dur });
+      if (def.boss) s.bossIds.push(u.id);
+      // The entrance: rise from a rift, drop from the sky, or run in through a side gate.
+      u.mode = mode; u.from = { x, y }; u.to = mode === 'side' ? { x: tx, y: ty } : { x, y };
+      if (mode === 'side') setAng(u, Math.atan2(ty - y, tx - x));
+      setState(u, 'spawn', def.boss ? 1.5 : mode === 'side' ? 1.1 + i * 0.2 : mode === 'drop' ? 0.75 + i * 0.18 : 0.85 + i * 0.22);
+      ev(s, { type: 'spawn', id: u.id, x: u.to.x, y: u.to.y, fx: x, fy: y, boss: !!def.boss, mode, dur: u.dur });
     });
     if (boss) { s.freeze = 1.9; ev(s, { type: 'boss', keys: list.slice() }); }
     else ev(s, { type: 'wave', n: s.wave + 1, of: s.waves.length - 1 });
   }
   // A cleared area opens the way on: a gate, a stairway or a rift at the back of the ring.
   function openPortal(s) {
-    const h = s.hero, R = D.ARENA.r; let x = 0, y = -R * 0.74;
-    if (Math.hypot(h.x - x, h.y - y) < 70) { x = -R * 0.74; y = 0; }
+    const e = VS.exitOf(arenaOf(s)), x = e.x, y = e.y;
     s.portal = { x, y, t: 0, kind: s.def.portal || 'rift' };
     ev(s, { type: 'portal', x, y, kind: s.portal.kind });
   }
-  VS.TRANSIT = { into: 0.55, swap: 0.8, dur: 1.6 };
+  VS.TRANSIT = { into: 0.7, swap: 1.0, dur: 1.9 };
   function transit(s, dt) {
     const h = s.hero, T = VS.TRANSIT, tr = s.transit, p = s.portal || tr.p;
     const prev = tr.t; tr.t += dt;
     if (tr.t < T.into) { const dx = p.x - h.x, dy = p.y - h.y, d = Math.hypot(dx, dy); if (d > 1) { setAng(h, Math.atan2(dy, dx)); h.x += dx / d * Math.min(d, 90 * dt); h.y += dy / d * Math.min(d, 90 * dt); } if (h.state !== 'move') setState(h, 'move'); }
     if (prev < T.swap && tr.t >= T.swap) {
       s.area++; s.units = s.units.filter((u) => u === h || u.alive); s.bolts = []; s.portal = null;
-      h.x = 0; h.y = D.ARENA.r * 0.62; setAng(h, -Math.PI / 2); h.kvx = h.kvy = 0; h.iframes = 0; setState(h, 'move');
+      curArena = arenaOf(s); const en = VS.entryOf(curArena); h.x = en.x; h.y = en.y; setAng(h, Math.atan2(-en.y, -en.x)); h.kvx = h.kvy = 0; h.iframes = 0; setState(h, 'move'); s.entry = { x: en.x, y: en.y, t: 0, kind: s.def.portal || 'rift' };
       ev(s, { type: 'area', n: s.area });
     }
-    if (tr.t >= T.swap) { h.y -= 46 * dt; }
+    if (tr.t >= T.swap) { const d = dir(h.ang); h.x += d[0] * 46 * dt; h.y += d[1] * 46 * dt; }
     if (tr.t >= T.dur) { s.transit = null; setState(h, 'idle'); s.waveT = 0.35; }
     setFrame(s, h);
   }
@@ -367,7 +405,7 @@
     if (s.slowT > 0) { s.slowT -= dtReal; dt *= s.slow; }
     s.time += dt;
     const h = s.hero;
-    s.aim = inp.aim != null ? inp.aim : null;
+    s.aim = inp.aim != null ? inp.aim : null; curArena = arenaOf(s);
     if (s.transit) { transit(s, dtReal); return s; }
 
     heroStep(s, h, dt, inp);
@@ -406,7 +444,8 @@
         setState(u, 'idle'); if (u.team === 'foe') u.cd = Math.min(u.cd, 0.25);
       } else if (u.state === 'spawn') {
         u.iframes = 0.1;
-        if (u.st >= u.dur) { setState(u, 'idle'); ev(s, { type: 'landed', id: u.id, x: u.x, y: u.y, boss: !!u.def.boss }); if (u.def.boss) { s.hitstop = Math.max(s.hitstop, 0.12); ev(s, { type: 'impact', size: 'big', x: u.x, y: u.y }); } }
+        if (u.mode === 'side') { const k = Math.min(1, u.st / u.dur); u.x = u.from.x + (u.to.x - u.from.x) * k; u.y = u.from.y + (u.to.y - u.from.y) * k; }
+        if (u.st >= u.dur) { setState(u, 'idle'); ev(s, { type: 'landed', id: u.id, x: u.x, y: u.y, boss: !!u.def.boss }); if (u.def.boss && u.mode === 'drop') { s.hitstop = Math.max(s.hitstop, 0.12); ev(s, { type: 'impact', size: 'big', x: u.x, y: u.y }); } }
       } else if (u.state === 'dead') u.deadT += dt;
       if (u.team === 'foe' && u.def.boss && u.alive && u.state !== 'down' && s.time - u.lastHit > 2.4) u.poise = u.maxPoise;
       keepIn(u);
@@ -416,7 +455,7 @@
     // Bolts.
     for (const b of s.bolts) {
       b.t += dt; b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
-      if (Math.hypot(b.x, b.y) > D.ARENA.r + 30) b.life = 0;
+      if (Math.hypot(b.x, b.y) > 420) b.life = 0;
       if (b.life <= 0) continue;
       for (const o of s.units) {
         if (o.team === b.team || !o.alive || Math.hypot(o.x - b.x, o.y - b.y) > 6 + o.rad) continue;
@@ -435,7 +474,7 @@
       if (s.wave >= s.waves.length - 1) { s.endT = 2.2; setState(h, 'win'); ev(s, { type: 'clear' }); }
       else if (s.wave < 0 || s.area > s.wave) { s.waveT -= dt; if (s.waveT <= 0) { spawnWave(s); s.waveT = 1.1; } }
       else if (!s.portal) openPortal(s);
-      else { s.portal.t += dt; if (s.portal.t > 0.7 && Math.hypot(h.x - s.portal.x, h.y - s.portal.y) < 18 && (h.state === 'idle' || h.state === 'move')) { s.transit = { t: 0, p: s.portal }; ev(s, { type: 'transit', kind: s.portal.kind }); } }
+      else { s.portal.t += dt; if (s.portal.t > 1.6 && Math.hypot(h.x - s.portal.x, h.y - s.portal.y) < 18 && (h.state === 'idle' || h.state === 'move')) { s.transit = { t: 0, p: s.portal }; ev(s, { type: 'transit', kind: s.portal.kind }); } }
     }
     return s;
   }

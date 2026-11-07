@@ -95,11 +95,13 @@
   }
 
   // ---- fights --------------------------------------------------------------------------------------------
+  let f0;
   function startFight(stageIdx, opts) {
     U.hide();
     const s = SIM.create(stageIdx, { seed: (Date.now() & 0xffff) + 1, boons: M.save.boons });
     M.fight = Object.assign({ s, stage: stageIdx, acc: 0, card: null, cardT: 0, say: null, banner: null }, opts || {});
-    M.paused = false; R.snapCam(s); R.fx = []; R.parts = []; R.floaters = [];
+    M.paused = false; R.snapCam(s); R.fx = []; R.parts = []; R.floaters = []; R.pfx = []; R.entryDoor = null; R.impactF = null;
+    f0 = M.fight; f0.banner = { text: VS.arenaOf(s).name, sub: 'AREA 1 / ' + s.waves.length, t: -0.4, col: '#ffffff' };
     M.go('fight'); AU.playAmb(null); AU.playMusic('heartfelt_battle');
   }
   function gather(f) {
@@ -141,7 +143,7 @@
           if (e.type === 'art') { AU.duck(true); if (e.kind === 'ldx') M.save.seenLdx = true; }
           if (e.type === 'artEnd') { AU.duck(false); if (f.theatre) f.theatreEnd = 2.2; }
           if (e.type === 'portal') f.banner = { text: 'THE WAY OPENS', t: 0, col: '#ffffff' };
-          if (e.type === 'area') f.banner = { text: e.n === s.waves.length - 1 ? 'THE LAST GATE' : 'AREA ' + (e.n + 1) + ' / ' + s.waves.length, t: 0, col: e.n === s.waves.length - 1 ? '#ff2a44' : '#ffffff' };
+          if (e.type === 'area') { const last = e.n === s.waves.length - 1; f.banner = { text: VS.arenaOf(s).name, sub: last ? 'THE LAST GATE' : 'AREA ' + (e.n + 1) + ' / ' + s.waves.length, t: 0, col: last ? '#ff2a44' : '#ffffff' }; }
           if (e.type === 'clear' && !f.theatre) f.banner = { text: 'HOUR CLEARED', t: 0, col: '#ff2a44' };
         }
         if (f.acc > STEP * 5) f.acc = 0;
@@ -158,7 +160,7 @@
         if (u && f.say.t < 2.6) { const hd = R.headOf(u); R.say(ctx, hd.x, hd.y, sp.name, sp.color, f.say.text, f.say.t, { shout: true }); }
         if (f.say.t > 2.6) f.say = null;
       }
-      if (f.banner) { f.banner.t += dt; if (f.banner.t < 1.6) R.banner(ctx, f.banner.text, f.banner.t, f.banner.col); else f.banner = null; }
+      if (f.banner) { f.banner.t += dt; if (f.banner.t < 1.6) R.banner(ctx, f.banner.text, f.banner.t, f.banner.col, f.banner.sub); else f.banner = null; }
       if (f.card) { f.cardT += dt; if (f.cardT < 1.9) R.bossCard(ctx, s, f.card, f.cardT); else f.card = null; }
       if (s.time < 7 && f.stage === 0 && !f.theatre) R.hint(ctx, R.touch ? 'PARRY white danger  ·  DASH out of red danger  ·  cut after a dash for a dash-cut' : 'WASD move  ·  LEFT CLICK cut  ·  RIGHT CLICK heavy  ·  Q parry white  ·  SPACE dash out of red  ·  E moon', Math.min(1, 7 - s.time));
       if (R.touch && !M.paused) R.drawTouch(ctx, s, { stick: M.stick, held: M.touchHeld });

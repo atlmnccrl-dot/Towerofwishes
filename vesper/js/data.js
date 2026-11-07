@@ -12,8 +12,16 @@
   D.STRIKE = { Attack1: 6, Attack2: 7, Attack3: 7, Attack4: 9, Attack5: 3, Attack6: 6, Kick: 7, Special1: 10 };
 
   // The arena: a floor band seen from the side. x across, y is depth (0 = back wall, DEPTH = front).
-  // A round dueling ring seen from a high camera: x across, y toward the camera, centre at 0,0.
+  // Arenas seen from a high camera: x across, y toward the camera, centre at 0,0. Each area of an hour
+  // is one of these. spawn: how foes arrive there (rise from rifts, drop from the sky, run in from the sides).
   D.ARENA = { r: 185 };
+  D.ARENAS = {
+    ring: { name: 'THE RING', shape: 'circle', r: 185, spawn: ['rift', 'drop'] },
+    court: { name: 'THE COURTYARD', shape: 'rect', hw: 200, hh: 140, spawn: ['side', 'drop'] },
+    bridge: { name: 'THE BRIDGE', shape: 'rect', hw: 290, hh: 62, spawn: ['side', 'drop'] },
+    pit: { name: 'THE PIT', shape: 'donut', r: 200, inner: 62, spawn: ['drop', 'rift'] },
+    cross: { name: 'THE CROSSROADS', shape: 'cross', arm: 225, hw: 68, spawn: ['side', 'rift'] },
+  };
 
   // ---- The hero -------------------------------------------------------------------------
   D.HERO = {
@@ -100,22 +108,22 @@
   // ---- Stages: the six hours of the night ---------------------------------------------
   // look: sky colours, moon size and colour, ground tiles, silhouettes behind the arena.
   D.STAGES = [
-    { id: 'gate', portal: 'gate', scale: { hp: 1, dmg: 1 }, hour: 'DUSK', name: 'The Black Gate', boss: 'warden',
+    { id: 'gate', arenas: ['court', 'bridge', 'ring'], portal: 'gate', scale: { hp: 1, dmg: 1 }, hour: 'DUSK', name: 'The Black Gate', boss: 'warden',
       waves: [['ghoul', 'ghoul'], ['ghoul', 'ghast', 'ghoul']], bossWave: ['warden'],
       look: { sky: ['#140d1c', '#3a1622', '#6a2a2a'], moon: 22, moonCol: '#e8a0a0', ground: ['g_flagstone_dark', 'g_flagstone_2', 'g_cobble'], props: ['cdw_gate_arch', 'ruin_pillar', 'fv_tree_dead', 'cdw_pillar', 'monolith_b'], fog: '#3a1a24' } },
-    { id: 'cloister', portal: 'gate', scale: { hp: 1.1, dmg: 1.1 }, hour: 'THE FIRST HOUR', name: 'Cloister of Frost', boss: 'twins',
+    { id: 'cloister', arenas: ['cross', 'court', 'pit'], portal: 'gate', scale: { hp: 1.1, dmg: 1.1 }, hour: 'THE FIRST HOUR', name: 'Cloister of Frost', boss: 'twins',
       waves: [['knife', 'ghoul', 'knife'], ['ghast', 'knife', 'ghast']], bossWave: ['twinA', 'twinB'],
       look: { sky: ['#0a1020', '#18283c', '#30485c'], moon: 26, moonCol: '#f0b0b0', ground: ['g_marble_white', 'g_flagstone_1', 'g_stone_floor'], props: ['fv_tree_pine_snow', 'cdw_arched_window', 'statue', 'cd_statue_knight', 'pillar'], fog: '#1a2a3a', snow: true } },
-    { id: 'stair', portal: 'stairs', scale: { hp: 1.25, dmg: 1.25 }, hour: 'THE SECOND HOUR', name: 'The Umbral Stair', boss: 'umbral',
+    { id: 'stair', arenas: ['bridge', 'cross', 'ring'], portal: 'stairs', scale: { hp: 1.25, dmg: 1.25 }, hour: 'THE SECOND HOUR', name: 'The Umbral Stair', boss: 'umbral',
       waves: [['bone', 'ghoul'], ['knife', 'bone', 'knife']], bossWave: ['umbral'],
       look: { sky: ['#0c0814', '#221430', '#3a1c40'], moon: 30, moonCol: '#ff8a8a', ground: ['g_flagstone_dark', 'g_slab_0_0', 'g_floor_grate'], props: ['temple', 'shrine_b', 'monolith_a', 'cdw_stained_glass', 'cd_candelabra'], fog: '#2a1430' } },
-    { id: 'waste', portal: 'rift', scale: { hp: 1.3, dmg: 1.25 }, hour: 'THE THIRD HOUR', name: 'The Ashen Waste', boss: 'hunger',
+    { id: 'waste', arenas: ['court', 'pit', 'ring'], portal: 'rift', scale: { hp: 1.3, dmg: 1.25 }, hour: 'THE THIRD HOUR', name: 'The Ashen Waste', boss: 'hunger',
       waves: [['ghast', 'ghast', 'ghoul'], ['bone', 'knife', 'bone']], bossWave: ['hunger'],
       look: { sky: ['#0e0c10', '#24202a', '#4a3a40'], moon: 34, moonCol: '#ff6060', ground: ['g_dirt_dark', 'g_gravel', 'g_trampled_dirt'], props: ['fv_tree_dead', 'rock_big', 'ruin_stone_a', 'fv_boulder', 'grave_cross'], fog: '#2a2228', ash: true } },
-    { id: 'throat', portal: 'rift', scale: { hp: 1.35, dmg: 1.3 }, hour: 'THE FOURTH HOUR', name: "The Wind's Throat", boss: 'wing',
+    { id: 'throat', arenas: ['bridge', 'cross', 'pit'], portal: 'rift', scale: { hp: 1.35, dmg: 1.3 }, hour: 'THE FOURTH HOUR', name: "The Wind's Throat", boss: 'wing',
       waves: [['knife', 'knife', 'ghast'], ['bone', 'bone', 'ghast']], bossWave: ['wing'],
       look: { sky: ['#06080e', '#141c2c', '#2c3448'], moon: 40, moonCol: '#ff4a50', ground: ['g_stone_floor', 'g_gravel', 'g_slab_1_1'], props: ['rock_m1', 'monolith_c', 'ruin_wall', 'rock_dark', 'stone_circle'], fog: '#1a2030', wind: true } },
-    { id: 'shadow', portal: 'stairs', scale: { hp: 1.2, dmg: 1.25 }, hour: 'THE LAST HOUR', name: "The Moon's Shadow", boss: 'firstCut',
+    { id: 'shadow', arenas: ['bridge', 'ring'], portal: 'stairs', scale: { hp: 1.2, dmg: 1.25 }, hour: 'THE LAST HOUR', name: "The Moon's Shadow", boss: 'firstCut',
       waves: [['bone', 'knife', 'ghast', 'knife']], bossWave: ['firstCut'],
       look: { sky: ['#040306', '#0e0610', '#200a14'], moon: 58, moonCol: '#ff2a44', ground: ['g_marble_checker', 'g_flagstone_dark', 'g_slab_0_1'], props: ['altar', 'cd_throne', 'ruin_pillar', 'pillar_broken', 'cdw_pillar'], fog: '#200810', embers: true } },
   ];

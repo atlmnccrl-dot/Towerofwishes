@@ -50,9 +50,18 @@ while they wind up, so stepping aside makes them miss.
   a dash for a lunging dash-cut.
 - **Impact frames**: parries, finishers that kill, boss poise breaks, boss landings and boss deaths
   flash white with black silhouettes, then black with white ones, as in the moon arts.
-- **Areas**: each hour is a chain of arenas. Clear one and the way on opens at the back of the ring
-  (a gate of light, a stairway into the sky, or a rift); walk into it to cross to the next arena.
-  Foes rise out of rifts in the floor; bosses drop from the sky onto a marked spot.
+- **Arenas**: each hour is a chain of two or three arenas of different shapes: a round ring, a
+  square courtyard, a long bridge, a ring around a bottomless pit, a crossroads. Foes arrive by the
+  arena's rules: rising out of rifts in the floor, dropping from the sky onto a marked spot, or
+  running in through glowing side gates. Bosses drop in (the Umbral rises from a rift).
+- **The way on**: clearing an arena raises a door at its far end while the camera turns to it: a
+  gate whose runes light one by one before its doors split open, a stairway of light set down step
+  by step, or a tear in the air that splits into a vortex; each throws a pillar of light into the
+  sky. Walk in: the view rushes into the door through speed lines, whites out, and you arrive in the
+  next arena through a gate that seals behind you, with the arena's name.
+- **Readability**: a red ring under the knight, white rings under foes; pack effects only on the
+  blows that matter (finishers, dash-cuts, spins, parries, breaks, deaths); damage numbers only for
+  heavy blows; impact frames only for boss moments.
 - **Moon**: the gauge fills from cuts, parries, perfect dodges and taking hits. Full, it plays the
   **Red Moon** (3.4 s). At 30 % health or less it plays the **Last Ditch Effort** instead (6.4 s,
   more than twice the damage, heals 30 %). Tap or any key skips to the final frame.
