@@ -12,12 +12,13 @@
   D.STRIKE = { Attack1: 6, Attack2: 7, Attack3: 7, Attack4: 9, Attack5: 3, Attack6: 6, Kick: 7, Special1: 10 };
 
   // The arena: a floor band seen from the side. x across, y is depth (0 = back wall, DEPTH = front).
-  D.ARENA = { w: 560, depth: 8 };   // one fighting line (a sliver of depth only orders who is drawn in front)
+  // A round dueling ring seen from a high camera: x across, y toward the camera, centre at 0,0.
+  D.ARENA = { r: 185 };
 
   // ---- The hero -------------------------------------------------------------------------
   D.HERO = {
     id: 'vesper', name: 'Vesper', set: 'gothic_knight_b', color: '#ff3048',
-    hp: 120, spdX: 122, spdY: 0,
+    hp: 120, spd: 118,
     combo: [
       { clip: 'Attack1', wind: 0.11, recover: 0.2, reach: 30, dmg: 7, poise: 6, kb: 4, step: 6 },
       { clip: 'Attack2', wind: 0.11, recover: 0.22, reach: 30, dmg: 7, poise: 6, kb: 4, step: 6 },
@@ -110,7 +111,7 @@
     { id: 'throat', scale: { hp: 1.35, dmg: 1.3 }, hour: 'THE FOURTH HOUR', name: "The Wind's Throat", boss: 'wing',
       waves: [['knife', 'knife', 'ghast'], ['bone', 'bone', 'ghast']], bossWave: ['wing'],
       look: { sky: ['#06080e', '#141c2c', '#2c3448'], moon: 40, moonCol: '#ff4a50', ground: ['g_stone_floor', 'g_gravel', 'g_slab_1_1'], props: ['rock_m1', 'monolith_c', 'ruin_wall', 'rock_dark', 'stone_circle'], fog: '#1a2030', wind: true } },
-    { id: 'shadow', scale: { hp: 1.3, dmg: 1.35 }, hour: 'THE LAST HOUR', name: "The Moon's Shadow", boss: 'firstCut',
+    { id: 'shadow', scale: { hp: 1.2, dmg: 1.25 }, hour: 'THE LAST HOUR', name: "The Moon's Shadow", boss: 'firstCut',
       waves: [['bone', 'knife', 'ghast', 'knife']], bossWave: ['firstCut'],
       look: { sky: ['#040306', '#0e0610', '#200a14'], moon: 58, moonCol: '#ff2a44', ground: ['g_marble_checker', 'g_flagstone_dark', 'g_slab_0_1'], props: ['altar', 'cd_throne', 'ruin_pillar', 'pillar_broken', 'cdw_pillar'], fog: '#200810', embers: true } },
   ];

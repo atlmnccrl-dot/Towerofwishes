@@ -40,8 +40,8 @@
   }
   function onMove(e) {
     const q = pointers[e.pointerId]; if (!q || q.role !== 'stick' || !M.stick) return;
-    const p = R.toDev(e.clientX, e.clientY), dx = p.x - M.stick.ox, r = 36 * R.k;
-    M.stick.dx = Math.max(-1, Math.min(1, dx / r));
+    const p = R.toDev(e.clientX, e.clientY), dx = p.x - M.stick.ox, dy = p.y - M.stick.oy, r = 36 * R.k, n = Math.hypot(dx, dy);
+    M.stick.dx = n > r ? dx / n : dx / r; M.stick.dy = n > r ? dy / n : dy / r;
   }
   function onUp(e) {
     const q = pointers[e.pointerId]; if (!q) return;
@@ -82,7 +82,7 @@
   function scene(ctx, dt) {
     const sc = M.scene, b = sc.def.beats[sc.i], st = D.STAGES[Math.min(5, sc.stage)];
     sc.t += dt;
-    const vw = R.viewW(), cam = Math.max(0, (D.ARENA.w - vw) / 2);
+    const vw = R.viewW(), cam = Math.max(0, (R.SIDE_W - vw) / 2);
     R.drawBackdrop(ctx, st, cam, dt);
     const cast = sc.def.cast, n = cast.length, pos = {};
     cast.forEach((key, i) => {
@@ -105,17 +105,19 @@
     U.hide();
     const s = SIM.create(stageIdx, { seed: (Date.now() & 0xffff) + 1, boons: M.save.boons });
     M.fight = Object.assign({ s, stage: stageIdx, acc: 0, card: null, cardT: 0, say: null, banner: null }, opts || {});
-    M.paused = false; R.cam = Math.max(0, s.hero.x - R.viewW() / 2); R.fx = []; R.parts = []; R.floaters = [];
+    M.paused = false; R.snapCam(s); R.fx = []; R.parts = []; R.floaters = [];
     M.go('fight'); AU.playAmb(null); AU.playMusic('heartfelt_battle');
   }
   function gather(f) {
     const s = f.s, p = M.pressed;
     const inp = { mx: 0, my: 0, atk: !!p.atk, dodge: !!p.dodge, parry: !!p.parry, art: !!p.art, skip: !!(p.tap || p.confirm || p.atk) };
-    if (M.held.left) inp.mx -= 1; if (M.held.right) inp.mx += 1;
-    if (M.stick && Math.abs(M.stick.dx) > 0.25) inp.mx = M.stick.dx;
+    if (M.held.left) inp.mx -= 1; if (M.held.right) inp.mx += 1; if (M.held.up) inp.my -= 1; if (M.held.down) inp.my += 1;
+    if (M.stick && Math.hypot(M.stick.dx, M.stick.dy) > 0.25) { inp.mx = M.stick.dx; inp.my = M.stick.dy; }
+    // The stick and the keys move on screen; turn that into the ground's directions under the camera.
+    if (inp.mx || inp.my) { const g = R.screenToGround(inp.mx, inp.my); inp.mx = g.x; inp.my = g.y; }
     if (M.save.opts.auto || f.auto) {
       const b = SIM.bot(s, 0.7);
-      if (!inp.mx && !inp.atk && !inp.dodge && !inp.parry) Object.assign(inp, b, { skip: inp.skip });
+      if (!inp.mx && !inp.my && !inp.atk && !inp.dodge && !inp.parry) Object.assign(inp, b, { skip: inp.skip });
     }
     return inp;
   }
@@ -133,7 +135,7 @@
       const live = gather(f); f.pend = f.pend || {};
       for (const k of ['atk', 'dodge', 'parry', 'art', 'skip']) if (live[k]) f.pend[k] = true;
       while (f.acc >= STEP) {
-        const c0 = s.cine ? s.cine.t : null, inp = Object.assign({ mx: live.mx, my: 0 }, f.pend); f.pend = {};
+        const c0 = s.cine ? s.cine.t : null, inp = Object.assign({ mx: live.mx, my: live.my }, f.pend); f.pend = {};
         SIM.step(s, STEP, inp); f.acc -= STEP;
         if (s.cine && c0 != null) for (const [n, v] of VS.cine.cues(s.cine, c0, s.cine.t)) AU.sfx(n, v);
         R.consume(s); AU.events(s.events);
@@ -156,12 +158,12 @@
       if (!M.paused) R.drawHud(ctx, s, dt, { touch: R.touch, auto: M.save.opts.auto });
       if (f.say) {
         f.say.t += dt; const u = s.units.find((o) => o.id === f.say.id), sp = S.speaker(f.say.key);
-        if (u && f.say.t < 2.6) R.say(ctx, R.sx(u.x), R.sy(u.y) - 48 * u.scale * R.S, sp.name, sp.color, f.say.text, f.say.t, { shout: true });
+        if (u && f.say.t < 2.6) { const hd = R.headOf(u); R.say(ctx, hd.x, hd.y, sp.name, sp.color, f.say.text, f.say.t, { shout: true }); }
         if (f.say.t > 2.6) f.say = null;
       }
       if (f.banner) { f.banner.t += dt; if (f.banner.t < 1.6) R.banner(ctx, f.banner.text, f.banner.t, f.banner.col); else f.banner = null; }
       if (f.card) { f.cardT += dt; if (f.cardT < 1.9) R.bossCard(ctx, s, f.card, f.cardT); else f.card = null; }
-      if (s.time < 7 && f.stage === 0 && !f.theatre) R.hint(ctx, R.touch ? 'CUT  ·  PARRY a white ring  ·  DASH through a red ring  ·  cut after a dash for a dash-cut' : 'J cut  ·  K parry a white ring  ·  Space dash through a red ring  ·  J after a dash: dash-cut  ·  L moon', Math.min(1, 7 - s.time));
+      if (s.time < 7 && f.stage === 0 && !f.theatre) R.hint(ctx, R.touch ? 'PARRY white danger  ·  DASH out of red danger  ·  cut after a dash for a dash-cut' : 'WASD move  ·  J cut  ·  K parry white danger  ·  Space dash out of red  ·  J after a dash: dash-cut  ·  L moon', Math.min(1, 7 - s.time));
       if (R.touch && !M.paused) R.drawTouch(ctx, s, { stick: M.stick, held: M.touchHeld });
     }
     if (f.theatreEnd > 0 && !M.paused) { f.theatreEnd -= dt; if (f.theatreEnd <= 0) { title(); return; } }
@@ -196,14 +198,14 @@
     SIM.step(s, STEP, {}); s.freeze = 0; M.fight.card = null;
     const boss = SIM.foes(s)[0]; if (boss) { boss.x = s.hero.x + 70; boss.face = -1; }
     s.hero.hp = Math.round(s.hero.maxHp * 0.25); s.moon = 100;
-    R.cam = Math.max(0, s.hero.x + 35 - R.viewW() / 2);
+    R.snapCam(s);
     M.fight.theatreT = 0.6;
   }
 
   // ---- loop ------------------------------------------------------------------------------------------------
   let last = 0;
   function backdrop(ctx, dt, stIdx, figure) {
-    const st = D.STAGES[stIdx], vw = R.viewW(), cam = Math.max(0, (D.ARENA.w - vw) / 2 + Math.sin(M.t * 0.08) * 40);
+    const st = D.STAGES[stIdx], vw = R.viewW(), cam = Math.max(0, (R.SIDE_W - vw) / 2 + Math.sin(M.t * 0.08) * 40);
     R.drawBackdrop(ctx, st, cam, dt);
     if (figure) R.drawFigure(ctx, D.HERO.set, 'Idle', Math.floor(M.t * 7) % 15, Math.PI, cam + vw * 0.7, 4, 1, {});
   }
@@ -212,6 +214,7 @@
     const ctx = R.ctx;
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.imageSmoothingEnabled = false;
     if (M.state === 'fight' && M.fight.theatreT > 0) { M.fight.theatreT -= dt; if (M.fight.theatreT <= 0) SIM.startArt(M.fight.s); }
+    try {
     switch (M.state) {
       case 'load': ctx.fillStyle = '#07060a'; ctx.fillRect(0, 0, R.W, R.H); break;
       case 'title': case 'menu': backdrop(ctx, dt, 5, true); break;
@@ -220,6 +223,7 @@
       case 'boon': backdrop(ctx, dt, M.result.stage, false); break;
       case 'lost': backdrop(ctx, dt, M.lost.stage, false); ctx.fillStyle = 'rgba(40,0,8,0.55)'; ctx.fillRect(0, 0, R.W, R.H); break;
     }
+    } catch (err) { if (!M.lastErr || M.t - M.lastErr > 2) { M.lastErr = M.t; console.error(err); } }   // one bad frame must not stop the game
     M.pressed = {};
     R.present();
     requestAnimationFrame(frame);

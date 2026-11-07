@@ -35,13 +35,18 @@ three boons. Losing costs nothing: retry the hour with your boons.
 
 ## Combat
 
-One fighting line, side-on: spacing, timing and reading the wind-ups.
+Fights are seen from a helicopter camera: high above and a little to the side at one fixed angle,
+over a round ring floating in the night. Move freely; foes surround you and keep turning toward you
+while they wind up, so stepping aside makes them miss.
 
-- **Move** A/D or arrows. **Cut** J: a three-hit combo, auto-aimed at the nearest foe. Every blow
-  freezes the frame for a few hundredths of a second so it lands.
-- **Parry** K: a short window. A **white ring** closing over a foe's head means the blow can be
-  parried; a parry staggers the attacker and reflects bolts.
-- **Dash** Space: i-frames. A **red ring** means the blow cannot be parried, only dashed through.
+- **Move** WASD or arrows (the touch stick moves the way you push it on screen). **Cut** J: a
+  three-hit combo, auto-aimed at the nearest foe. Every blow freezes the frame for a few
+  hundredths of a second so it lands.
+- **Danger on the floor**: during a wind-up the floor shows where the blow will land: the circle
+  of a slam, the strip of a lunge, the cone of a swing. A ring also closes over the foe's head.
+- **Parry** K: a short window. **White** danger can be parried; a parry staggers the attacker and
+  reflects bolts back at whoever threw them.
+- **Dash** Space: i-frames. **Red** danger cannot be parried, only dashed out of or through.
   Dashing at the last moment is a perfect dodge (slow motion). **Cut during or right after a dash**
   for a lunging dash-cut.
 - **Moon** L: the gauge fills from cuts, parries, perfect dodges and taking hits. Full, it plays the
@@ -52,9 +57,11 @@ One fighting line, side-on: spacing, timing and reading the wind-ups.
 
 ## Look
 
-The game is drawn at the screen's full resolution: layered silhouettes under the red moon, a glossy
-floor that reflects the fighters, crisp pixel characters, effects drawn in code, a slim HUD and
-menus as real buttons (Chakra Petch and Barlow from Google Fonts). The moon arts keep their pixel
+The game is drawn at the screen's full resolution. Fights: a glossy ring with the red moon in its
+floor and a line of red light at its rim, props around it per hour (pillars, braziers, dead trees,
+ice crystals, rock needles), crisp pixel characters turned to the camera with their reflections,
+effects drawn in code. Title, menus and scenes are shot side-on with layered silhouettes under the
+moon. A slim HUD and menus as real buttons (Chakra Petch and Barlow from Google Fonts). The moon arts keep their pixel
 style: they are drawn on a 180 px buffer laid over the game and scaled up without smoothing.
 
 ## Code
@@ -63,9 +70,9 @@ style: they are drawn on a 180 px buffer laid over the game and scaled up withou
 |---|---|
 | `js/data.js` | Hero, Lys, foes and their attacks, stages, boons. Pure |
 | `js/story.js` | The scenes, the bosses' phase lines, the ending. Pure |
-| `js/sim.js` | The fight simulation (waves, parry, dodge, dash-cut, poise, the moon arts) and a bot. Pure, runs in Node |
+| `js/sim.js` | The fight simulation on a round 2D ring (cones and circles, waves, parry, dodge, dash-cut, poise, the moon arts) and a bot. Pure, runs in Node |
 | `js/assets.js` | Loads and draws the cast (plain, flashed, silhouette, hard grey), effects and tiles |
-| `js/view.js` | The full-resolution game: arenas, fighters and reflections, drawn effects, HUD, touch controls, dialogue, boss card |
+| `js/view.js` | The full-resolution game: the helicopter view for fights (projection, ring, props, floor danger, fighters, effects), the side-on stage for menus and scenes, HUD, touch controls, dialogue, boss card |
 | `js/px.js`, `js/cine.js` | The pixel buffer and the moon arts drawn on it |
 | `js/ui.js` | Menus as buttons: title, settings, credits, boon pick, defeat, pause |
 | `js/audio.js`, `js/main.js` | Sound; the loop, input, saves and the flow |

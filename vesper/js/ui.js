@@ -43,7 +43,7 @@
     items.push({ label: 'Theatre', sub: 'Watch the Last Ditch Effort', act: o.onTheatre });
     items.push({ label: 'Settings', act: o.onSettings });
     items.push({ label: 'Credits', act: o.onCredits });
-    const keys = o.touch ? '' : `<div class="keys"><span><kbd>A</kbd><kbd>D</kbd> Move</span><span><kbd>J</kbd> Cut</span><span><kbd>K</kbd> Parry</span><span><kbd>Space</kbd> Dash</span><span><kbd>L</kbd> Moon</span></div>`;
+    const keys = o.touch ? '' : `<div class="keys"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Move</span><span><kbd>J</kbd> Cut</span><span><kbd>K</kbd> Parry</span><span><kbd>Space</kbd> Dash</span><span><kbd>L</kbd> Moon</span></div>`;
     U.show('title', `<div class="title-col"><header class="logo"><h1>VESPER</h1><p>A last ditch effort</p></header>${buttons(items)}${keys}</div>`, items);
   };
   U.settings = function (o) {

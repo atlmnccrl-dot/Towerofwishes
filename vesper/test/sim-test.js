@@ -16,7 +16,7 @@ function play(stage, skill, seed, boons) {
     S.step(s, DT, inp); t += DT;
     for (const u of s.units) {
       if (!isFinite(u.x) || !isFinite(u.y) || !isFinite(u.hp)) { bad(`NaN stage ${stage} unit ${u.key}`); return { result: 'nan', t }; }
-      if (u.x < 0 || u.x > D.ARENA.w || u.y < 0 || u.y > D.ARENA.depth) { bad(`out of arena stage ${stage} ${u.key} ${u.x},${u.y}`); return { result: 'out', t }; }
+      if (Math.hypot(u.x, u.y) > D.ARENA.r + 0.5) { bad(`out of arena stage ${stage} ${u.key} ${u.x},${u.y}`); return { result: 'out', t }; }
     }
     if (!isFinite(s.moon) || s.moon < 0 || s.moon > 100) bad('moon ' + s.moon);
   }
