@@ -29,7 +29,7 @@
     const sc = def.scale || 1;
     const u = { id: s.nextId++, team, key, def, set: def.set, scale: sc, rad: 8 * sc, x, y, ang: 0, face: 1,
       hp: def.hp, maxHp: def.hp, poise: def.poise || 0, maxPoise: def.poise || 0, lastHit: -9,
-      state: 'idle', st: 0, dur: 0, clip: 'Idle4', frame: 0, atk: null, hits: [], cd: 0.6, iframes: 0, flash: 0, kvx: 0, kvy: 0,
+      state: 'idle', st: 0, dur: 0, clip: 'Idle4', frame: 0, atk: null, hits: [], cd: 0.6, iframes: 0, flash: 0, kvx: 0, kvy: 0, z: 0, vz: 0, mdir: 'f', tauntT: 0, wallT: 0,
       alive: true, phase: 1, windMul: 1, spdMul: 1, queued: false, combo: 0, comboWin: 0, riposte: false, serial: 0, deadT: 0, orbit: 0 };
     setAng(u, ang || 0);
     s.units.push(u); return u;
@@ -66,8 +66,9 @@
       case 'dead': u.clip = 'Die'; u.frame = Math.min(F, Math.floor(st * 14)); break;
       case 'win': u.clip = 'Taunt'; u.frame = loopFrame('Taunt', st); break;
       case 'spawn': u.clip = u.mode === 'side' ? 'Run' : u.mode === 'drop' ? 'Attack4' : 'Idle'; u.frame = u.mode === 'drop' ? Math.min(F, Math.floor(st / u.dur * 10)) : loopFrame(u.clip, s.t + u.id); break;
-      case 'move': u.clip = u.team === 'hero' ? 'Run' : (u.def.spd * u.spdMul > 68 ? 'Run' : 'Walk'); u.frame = loopFrame(u.clip, s.t + u.id * 0.37); break;
-      default: u.clip = 'Idle4'; u.frame = loopFrame('Idle4', s.t + u.id * 0.37);
+      case 'move': u.clip = u.mdir === 'l' ? 'StrafeLeft' : u.mdir === 'r' ? 'StrafeRight' : u.mdir === 'b' ? 'RunBackwards' : u.team === 'hero' ? 'Run' : (u.def.spd * u.spdMul > 68 ? 'Run' : 'Walk'); u.frame = loopFrame(u.clip, s.t + u.id * 0.37); break;
+      case 'air': u.clip = 'TakeDamage'; u.frame = u.vz > 0 ? Math.min(6, 2 + Math.floor(st * 20)) : Math.min(13, 8 + Math.floor(-u.vz / 60)); break;
+      default: if (u.tauntT > 0) { u.clip = 'Taunt'; u.frame = loopFrame('Taunt', s.t); break; } u.clip = 'Idle4'; u.frame = loopFrame('Idle4', s.t + u.id * 0.37);
     }
   }
 
@@ -79,6 +80,7 @@
   const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
   function nearestFoe(s, u, maxD) { let best = null, bd = maxD || 1e9; for (const o of foes(s)) { if (o.state === 'spawn') continue; const d = dist(o, u); if (d < bd) { bd = d; best = o; } } return best; }
   function push(u, from, power) { const dx = u.x - from.x, dy = u.y - from.y, n = Math.hypot(dx, dy) || 1; u.kvx = dx / n * power; u.kvy = dy / n * power; }
+  function moveDir(u, vx, vy) { const d = angDiff(Math.atan2(vy, vx), u.ang), f = Math.cos(d), l = Math.sin(d); u.mdir = f > 0.45 ? 'f' : f < -0.55 ? 'b' : l > 0 ? 'r' : 'l'; }
   VS.ldxReady = (s) => s.hero.alive && s.hero.hp / s.hero.maxHp <= s.mods.ldx;
 
   // ---- attacks ----------------------------------------------------------------------------
@@ -174,11 +176,16 @@
     s.hitstop = Math.max(s.hitstop, (k.poise || 0) >= 12 ? 0.075 : 0.045);
     if (o.hp <= 0) { o.hp = 0; kill(s, o); return; }
     if (o.def.boss && o.phase === 1 && o.hp <= o.maxHp * 0.5) phaseTwo(s, o);
-    const kb = k.kb || 6;
-    if (o.maxPoise <= 0) { setState(o, 'hurt', 0.3); o.atk = null; push(o, src, kb * 9); return; }
+    const kb = k.kb || 6, launcher = !bolt && (k.finisher || k.fx === 'spin' || k.fx === 'dash');
+    if (o.def.minion && (launcher || o.state === 'air')) {
+      const first = o.state !== 'air'; if (first) setState(o, 'air');
+      o.vz = Math.max(o.vz, launcher ? 270 : 165); o.atk = null; push(o, src, kb * (launcher ? 6 : 2.5));
+      ev(s, { type: first ? 'launch' : 'juggle', id: o.id, x: o.x, y: o.y }); return;
+    }
+    if (o.maxPoise <= 0) { setState(o, 'hurt', 0.3); o.atk = null; push(o, src, kb * 11); return; }
     if (o.state === 'down') return;
     o.poise -= k.poise || 6;
-    if (o.poise <= 0) { if (o.def.minion) { setState(o, 'hurt', 0.45); o.atk = null; push(o, src, kb * 10); o.poise = o.maxPoise; } else breakPoise(s, o, src); }
+    if (o.poise <= 0) { if (o.def.minion) { setState(o, 'hurt', 0.45); o.atk = null; push(o, src, kb * 12); o.poise = o.maxPoise; } else breakPoise(s, o, src); }
     else push(o, src, kb * 2);
   }
   function breakPoise(s, o, src) {
@@ -186,9 +193,10 @@
     if (o.def.boss) { s.hitstop = Math.max(s.hitstop, 0.16); ev(s, { type: 'impact', size: 'big', x: o.x, y: o.y }); }
     ev(s, { type: 'break', x: o.x, y: o.y, id: o.id });
   }
-  function phaseTwo(s, o) { o.phase = 2; o.windMul = 0.86; o.spdMul = 1.15; o.aura = true; s.freeze = Math.max(s.freeze, 1.1); ev(s, { type: 'phase', id: o.id, key: o.key }); }
+  function phaseTwo(s, o) { o.phase = 2; o.windMul = 0.86; o.spdMul = 1.15; o.aura = true; o.tauntT = 1.1; s.freeze = Math.max(s.freeze, 1.1); ev(s, { type: 'phase', id: o.id, key: o.key }); }
   function kill(s, o) {
     o.alive = false; setState(o, 'dead'); o.atk = null;
+    if (o.team === 'foe') { const h = s.hero; push(o, h, o.def.boss ? 90 : 210); o.vz = Math.max(o.vz, o.def.boss ? 60 : 150); }
     ev(s, { type: 'kill', id: o.id, x: o.x, y: o.y, boss: !!o.def.boss, hero: o.team === 'hero' });
     if (o.team === 'hero') { s.endT = 2.0; s.combo = 0; } else if (o.def.boss) { s.slow = 0.25; s.slowT = 0.9; ev(s, { type: 'impact', size: 'big', x: o.x, y: o.y }); }
   }
@@ -318,7 +326,8 @@
   function foeThink(s, u, dt) {
     const h = s.hero;
     if (!h.alive) { if (u.state === 'idle' || u.state === 'move') setState(u, 'idle'); return; }
-    if (u.state === 'spawn') return;
+    if (u.state === 'spawn' || u.state === 'air') return;
+    if (u.tauntT > 0 && (u.state === 'idle' || u.state === 'move')) { if (u.state !== 'idle') setState(u, 'idle'); return; }
     // During a wind-up the foe keeps turning toward the hero, slowly: step aside and it misses.
     if (u.state === 'attack' && u.st < u.atk.wind * u.windMul * 0.75 && !u.atk.blink) {
       const want = Math.atan2(h.y - u.y, h.x - u.x), d = angDiff(want, u.ang), turn = 2.6 * dt;
@@ -348,7 +357,7 @@
       if (od < min && od > 0.01) { vx += ox / od * (min - od) / min * 1.6; vy += oy / od * (min - od) / min * 1.6; }
     }
     const n = Math.hypot(vx, vy), spd = u.def.spd * u.spdMul;
-    if (n > 0.08) { u.x += vx / Math.max(1, n) * spd * dt; u.y += vy / Math.max(1, n) * spd * dt; if (u.state !== 'move') setState(u, 'move'); }
+    if (n > 0.08) { u.x += vx / Math.max(1, n) * spd * dt; u.y += vy / Math.max(1, n) * spd * dt; moveDir(u, vx, vy); if (u.state !== 'move') setState(u, 'move'); }
     else if (u.state !== 'idle') setState(u, 'idle');
   }
 
@@ -380,8 +389,9 @@
     if (free && h.bufHeavy > 0) { h.bufHeavy = 0; h.combo = 0; h.comboWin = 0; startAttack(s, h, H.heavy); return; }
     if (free && h.bufAtk > 0) { h.bufAtk = 0; h.combo = h.comboWin > 0 ? (h.combo + 1) % M.combo : 0; startAttack(s, h, H.combo[h.combo]); return; }
     if (free) {
-      h.x += mx * H.spd * dt; h.y += my * H.spd * dt;
-      if (mn > 0.2) setAng(h, Math.atan2(my, mx));
+      const back = s.aim != null && mn > 0.2 && Math.cos(angDiff(Math.atan2(my, mx), s.aim)) < -0.55;
+      h.x += mx * H.spd * (back ? 0.8 : 1) * dt; h.y += my * H.spd * (back ? 0.8 : 1) * dt;
+      if (s.aim != null) { setAng(h, s.aim); if (mn > 0.2) moveDir(h, mx, my); } else if (mn > 0.2) { setAng(h, Math.atan2(my, mx)); h.mdir = 'f'; }
       if (mn > 0.2) { if (h.state !== 'move') setState(h, 'move'); } else if (h.state !== 'idle') setState(h, 'idle');
     }
   }
@@ -399,7 +409,7 @@
       return s;
     }
     s.t += dtReal;
-    if (s.freeze > 0) { s.freeze -= dtReal; for (const u of s.units) setFrame(s, u); return s; }
+    if (s.freeze > 0) { s.freeze -= dtReal; for (const u of s.units) { if (u.tauntT > 0) u.tauntT -= dtReal; setFrame(s, u); } return s; }
     if (s.hitstop > 0) { s.hitstop -= dtReal; return s; }
     let dt = dtReal;
     if (s.slowT > 0) { s.slowT -= dtReal; dt *= s.slow; }
@@ -413,7 +423,12 @@
 
     for (const u of s.units) {
       u.st += dt; u.iframes = Math.max(0, u.iframes - dt); u.flash = Math.max(0, u.flash - dt * 5);
-      if (u.kvx || u.kvy) { u.x += u.kvx * dt; u.y += u.kvy * dt; const f = Math.exp(-9 * dt); u.kvx *= f; u.kvy *= f; if (Math.hypot(u.kvx, u.kvy) < 2) u.kvx = u.kvy = 0; }
+      if (u.tauntT > 0) u.tauntT -= dt; if (u.wallT > 0) u.wallT -= dt;
+      if (u.kvx || u.kvy) { u.x += u.kvx * dt; u.y += u.kvy * dt; const f = Math.exp(-(u.state === 'air' || u.state === 'dead' ? 4 : 9) * dt); u.kvx *= f; u.kvy *= f; if (Math.hypot(u.kvx, u.kvy) < 2) u.kvx = u.kvy = 0; }
+      if (u.z > 0 || u.vz > 0) {
+        u.vz -= 780 * dt; u.z = Math.max(0, u.z + u.vz * dt);
+        if (u.z <= 0 && u.vz < 0) { u.vz = 0; if (u.state === 'air') { setState(u, 'down', 0.75); ev(s, { type: 'land', id: u.id, x: u.x, y: u.y }); } }
+      }
       if (u.state === 'attack') {
         const k = u.atk, w = k.wind * u.windMul, prev = u.st - dt;
         if (k.lunge) {
@@ -445,10 +460,17 @@
       } else if (u.state === 'spawn') {
         u.iframes = 0.1;
         if (u.mode === 'side') { const k = Math.min(1, u.st / u.dur); u.x = u.from.x + (u.to.x - u.from.x) * k; u.y = u.from.y + (u.to.y - u.from.y) * k; }
-        if (u.st >= u.dur) { setState(u, 'idle'); ev(s, { type: 'landed', id: u.id, x: u.x, y: u.y, boss: !!u.def.boss }); if (u.def.boss && u.mode === 'drop') { s.hitstop = Math.max(s.hitstop, 0.12); ev(s, { type: 'impact', size: 'big', x: u.x, y: u.y }); } }
+        if (u.st >= u.dur) { setState(u, 'idle'); ev(s, { type: 'landed', id: u.id, x: u.x, y: u.y, boss: !!u.def.boss }); if (u.def.boss) { u.tauntT = 0.9; u.cd += 0.6; }
+          if (u.def.boss && u.mode === 'drop') { s.hitstop = Math.max(s.hitstop, 0.12); ev(s, { type: 'impact', size: 'big', x: u.x, y: u.y }); } }
       } else if (u.state === 'dead') u.deadT += dt;
       if (u.team === 'foe' && u.def.boss && u.alive && u.state !== 'down' && s.time - u.lastHit > 2.4) u.poise = u.maxPoise;
+      const px = u.x, py = u.y, sp0 = Math.hypot(u.kvx, u.kvy);
       keepIn(u);
+      // Thrown hard into an edge: bounce off it, take a knock.
+      if (u.team === 'foe' && u.alive && sp0 > 150 && u.wallT <= 0 && Math.hypot(u.x - px, u.y - py) > 0.5) {
+        u.kvx *= -0.45; u.kvy *= -0.45; u.wallT = 0.4; const dmg = Math.round(4 * s.mods.dmg); u.hp -= dmg; s.stats.dealt += dmg; u.flash = 1; s.hitstop = Math.max(s.hitstop, 0.05);
+        ev(s, { type: 'wall', id: u.id, x: u.x, y: u.y, dmg }); if (u.hp <= 0) { u.hp = 0; kill(s, u); }
+      }
       setFrame(s, u);
     }
 

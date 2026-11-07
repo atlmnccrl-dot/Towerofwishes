@@ -48,6 +48,11 @@ while they wind up, so stepping aside makes them miss.
   **White** can be parried; a parry staggers the attacker and reflects bolts. **Red** can only be
   dashed out of or through. Dash at the last moment for a perfect dodge; cut during or right after
   a dash for a lunging dash-cut.
+- **Launches and walls**: finishers, the heavy spin and dash-cuts throw minions into the air; hits
+  keep them up (a juggle) until they crash down. Anything thrown hard into an arena's edge bounces
+  off it and takes a knock. Bodies fly back when they die.
+- **Facing**: with the mouse, Vesper faces where you aim and strafes or backpedals as he moves; foes
+  strafe as they circle; bosses taunt as they land and as their second phase begins.
 - **Impact frames**: parries, finishers that kill, boss poise breaks, boss landings and boss deaths
   flash white with black silhouettes, then black with white ones, as in the moon arts.
 - **Arenas**: each hour is a chain of two or three arenas of different shapes: a round ring, a
@@ -59,6 +64,10 @@ while they wind up, so stepping aside makes them miss.
   by step, or a tear in the air that splits into a vortex; each throws a pillar of light into the
   sky. Walk in: the view rushes into the door through speed lines, whites out, and you arrive in the
   next arena through a gate that seals behind you, with the arena's name.
+- **Arena art**: each arena is a floating stone platform on cliffs, with flagstones, cracks, inlaid
+  runes and marks for each hour (moss, snow, gold inlay, ash, wind streaks, blood pools), brazier
+  light on the floor, drifting fog, and props: pillars, braziers, banners, knight statues, broken
+  walls, lantern posts, trees, crystals, rock needles.
 - **Readability**: a red ring under the knight, white rings under foes; pack effects only on the
   blows that matter (finishers, dash-cuts, spins, parries, breaks, deaths); damage numbers only for
   heavy blows; impact frames only for boss moments.
@@ -72,8 +81,10 @@ while they wind up, so stepping aside makes them miss.
 ## Story scenes
 
 Each hour opens with an anime sequence drawn like the moon arts, on the pixel buffer: glitch title
-cards, reveals against the moon, grey close-ups with the red eye, speed lines, clashes that land on
-impact frames, and the first cut across the moon in the prologue. Shots play on their own; a tap
+cards, reveals against the moon, grey close-ups with the red eye, extreme close-ups of the eyes,
+two-shots of the stand-off, blade flashes, speed lines, clashes that land on impact frames, and the
+first cut across the moon in the prologue. Every scene builds through a short exchange before the
+clash. Shots play on their own; a tap
 moves on, Esc skips the scene. The shot lists live in `js/story.js`, the shots in `js/scene.js`.
 
 ## Look

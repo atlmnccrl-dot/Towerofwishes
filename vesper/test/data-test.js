@@ -7,7 +7,7 @@ const root = path.join(__dirname, '../../assets');
 const fx = JSON.parse(fs.readFileSync(root + '/fx/fx.json')).fx, tiles = JSON.parse(fs.readFileSync(root + '/tiles/tiles.json')).sprites;
 let fail = 0; const bad = (m) => { fail++; console.log('FAIL', m); };
 const clipsOf = (set) => { const f = root + '/pixel/' + set + '.json'; if (!fs.existsSync(f)) { bad('no set ' + set); return {}; } return JSON.parse(fs.readFileSync(f)).anims; };
-const need = ['Idle', 'Idle4', 'Walk', 'Run', 'TakeDamage', 'Slide', 'Die', 'Rolling', 'Special1', 'Taunt'];
+const need = ['Idle', 'Idle4', 'Walk', 'Run', 'TakeDamage', 'Slide', 'Die', 'Rolling', 'Special1', 'Taunt', 'StrafeLeft', 'StrafeRight', 'RunBackwards'];
 const check = (who, set, extra) => { const a = clipsOf(set); for (const c of need.concat(extra || [])) if (!a[c]) bad(`${who} (${set}) lacks ${c}`); };
 check('hero', D.HERO.set, D.HERO.combo.map((k) => k.clip).concat(['Attack4', 'Attack6']));
 check('lys', D.LYS.set, []);
@@ -22,11 +22,11 @@ for (const st of D.STAGES) {
   if (!st.bossWave.every((k) => D.FOES[k].boss)) bad(`${st.id} boss wave has a minion`);
 }
 // Effect names used in the code (keep in step with view.js and cine.js).
-const used = new Set(['slash_arc_blood', 'hit_slash', 'hit_crit', 'cross_slash', 'hit_punch', 'dust_kick', 'katana', 'hit_big', 'hit_blunt', 'parry', 'dissipate', 'smoke_dark', 'blast', 'teleport', 'shockwave', 'rock_burst', 'spin_slash', 'smoke_burst', 'portal', 'dark_curse']);
+const used = new Set(['slash_arc_blood', 'hit_crit', 'cross_slash', 'katana', 'hit_big', 'parry', 'dissipate', 'smoke_dark', 'blast', 'teleport', 'shockwave', 'spin_slash', 'smoke_burst', 'portal']);
 const src = ['view.js', 'cine.js'].map((f) => fs.readFileSync(path.join(__dirname, '../js', f), 'utf8')).join('\n');
 for (const n of used) { if (!fx[n]) bad('fx ' + n); if (src.indexOf("'" + n + "'") < 0) bad('fx listed but unused ' + n); }
 // Scenes: known shot kinds, known speakers, one scene per stage.
-const KINDS = ['card', 'wide', 'close', 'reveal', 'speed', 'clash', 'impact', 'moonbreak', 'moonwhite'];
+const KINDS = ['card', 'wide', 'close', 'reveal', 'speed', 'clash', 'impact', 'moonbreak', 'moonwhite', 'two', 'eyes', 'slash'];
 const scenes = S.BEFORE.concat([S.ENDING]);
 if (S.BEFORE.length !== D.STAGES.length) bad('one scene per stage');
 for (const sc of scenes) for (const sh of sc.shots) {

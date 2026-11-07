@@ -33,6 +33,7 @@
     if ((live[name] || 0) >= 3) return;
     const src = ac.createBufferSource(), g = ac.createGain();
     src.buffer = buf[name]; g.gain.value = Math.min(1, vol == null ? 0.7 : vol);
+    src.playbackRate.value = 0.9 + Math.random() * 0.2;   // a little variety so repeated blows don't sound identical
     src.connect(g); g.connect(sfxGain); live[name] = (live[name] || 0) + 1;
     src.onended = () => { live[name]--; };
     src.start(0);
@@ -58,7 +59,7 @@
   A.events = function (evs) {
     for (const e of evs) {
       switch (e.type) {
-        case 'hit': if (!e.art) A.pick(e.heavy ? ['slash_2', 'blow_big'] : ['slash_0', 'slash_1'], e.heavy ? 0.7 : 0.5); break;
+        case 'hit': if (!e.art) { A.pick(e.heavy ? ['slash_2', 'blow_big'] : ['slash_0', 'slash_1'], e.heavy ? 0.7 : 0.5); if (e.heavy) A.pick(['blow_0', 'blow_1', 'blow_2'], 0.5); } break;
         case 'hurt': A.pick(['blow_0', 'blow_1', 'blow_2'], 0.7); break;
         case 'parry': A.sfx('clang_0', 0.9); A.sfx('clang_1', 0.5); break;
         case 'perfect': A.sfx('whoosh', 0.8); break;
@@ -72,6 +73,10 @@
         case 'boss': A.sfx('horn', 0.8); break;
         case 'phase': A.sfx('quake', 0.8); break;
         case 'moonFull': A.sfx('allout', 0.5); break;
+        case 'launch': A.sfx('whoosh', 0.8); A.sfx('blow_big', 0.6); break;
+        case 'juggle': A.pick(['slash_1', 'slash_2'], 0.6); break;
+        case 'land': A.sfx('thud', 0.8); break;
+        case 'wall': A.sfx('clang_1', 0.8); A.sfx('blow_big', 0.7); break;
         case 'impact': A.sfx('blow_big', e.size === 'big' ? 1 : 0.7); if (e.size === 'big') A.sfx('clang_1', 0.6); break;
         case 'spin': A.sfx('whoosh', 0.7); A.sfx('swish_2', 0.6); break;
         case 'spawn': A.sfx(e.boss ? 'charge' : 'magic', 0.4); break;

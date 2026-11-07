@@ -135,6 +135,40 @@
     kit().line(ctx, W() * 0.1, 0, W() * 0.9, H(), 2, white ? '#000000' : '#ffffff');
     P.shake = 4;
   };
+  // A two-shot: both of them side-on in a mid shot, facing each other, a slow push in.
+  SHOT.two = function (ctx, sh, k, T) {
+    const F = stageBg(ctx, sh.stage, T, k * 12, 1.25), z = 1.85 + 0.3 * ease(k);
+    const pos = [[sh.a, W() * (0.3 - 0.03 * k), 1], [sh.b, W() * (0.7 + 0.03 * k), -1]];
+    for (const [who, x, face] of pos) {
+      const s = sp(who), sc = z / Math.max(1, (s.scale || 1) * 0.75), clip = who === 'vesper' ? 'Idle4' : (sh.clips && sh.clips[who]) || 'Idle4';
+      ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fillRect(Math.round(x - 10 * sc), F + 2, Math.round(20 * sc), 2);
+      fig(ctx, who, clip, loop(clip, T, 7), face, x, F + 3, sc);
+    }
+    ctx.fillStyle = 'rgba(255,42,68,0.25)'; ctx.fillRect(Math.round(W() / 2), 0, 1, H());
+    bars(ctx);
+    if (sh.line) { const left = sh.line.who === sh.a; sh.textAt = { x: left ? W() * 0.06 : W() * 0.54, y: H() * 0.2, align: 'left', w: W() * 0.4 }; }
+  };
+  // An extreme close-up of the eyes: the visor fills the screen, the eye opens red.
+  SHOT.eyes = function (ctx, sh, k, T) {
+    fill(ctx, INK);
+    const s = sp('vesper'), sc = 7.5 + 1 * ease(k), bx = A.box(s.set, 'Idle4', 0, 0, sc);
+    const fx = Math.round(W() * 0.5 - bx.x - 22 * sc), fy = Math.round(H() * 0.5 - bx.y - 6 * sc);
+    A.actor(ctx, s.set, 'Idle4', 0, 0, fx, fy, sc, { grey: true });
+    const hx = fx + bx.x + 22 * sc, hy = fy + bx.y + 6 * sc, o = ease((k - 0.2) / 0.3);
+    const g = ctx.createRadialGradient(hx, hy, 1, hx, hy, 50 * o); g.addColorStop(0, 'rgba(255,42,68,0.8)'); g.addColorStop(1, 'rgba(255,42,68,0)');
+    ctx.fillStyle = g; ctx.fillRect(hx - 60, hy - 60, 120, 120); ctx.fillStyle = RED; ctx.fillRect(Math.round(hx - 16 * o), hy - 2, Math.round(32 * o), 5); ctx.fillStyle = '#fff'; ctx.fillRect(Math.round(hx - 5 * o), hy - 1, Math.round(10 * o), 2);
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W(), H() * 0.3); ctx.fillRect(0, H() * 0.7, W(), H() * 0.3);
+    ctx.fillStyle = RED; ctx.fillRect(0, Math.round(H() * 0.3), W() * ease(k * 2), 1); ctx.fillRect(W() * (1 - ease(k * 2)), Math.round(H() * 0.7), W(), 1);
+  };
+  // A blade flash: one white cut across black, a spray of red, gone.
+  SHOT.slash = function (ctx, sh, k, T) {
+    fill(ctx, k < 0.18 ? '#ffffff' : INK);
+    const kk = ease(k * 3), a = sh.angle || -0.35, len = W() * 1.3, cx = W() / 2, cy = H() / 2;
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(a);
+    ctx.fillStyle = RED; ctx.fillRect(-len / 2, -3, len * kk, 6); ctx.fillStyle = '#ffffff'; ctx.fillRect(-len / 2, -1, len * kk, 2);
+    for (let i = 0; i < 50; i++) { const px = -len / 2 + hash(i, 3) * len * kk, py = (hash(i, 4) - 0.5) * 60 * k + (hash(i, 5) - 0.3) * 30 * k; ctx.fillStyle = i % 3 ? RED : '#7a0010'; ctx.fillRect(Math.round(px), Math.round(py), 2, 2); }
+    ctx.restore(); P.shake = 3;
+  };
   // The prologue: a swordsman leaps at the moon and cuts it; it bleeds.
   SHOT.moonbreak = function (ctx, sh, k, T) {
     const hit = 0.5, mx = W() * 0.6, my = H() * 0.42, mr = Math.round(H() * 0.36);
@@ -176,6 +210,8 @@
     const lines = P.wrap(ctx, L.text, size, at.w), lh = size + 3, top = at.y - lines.length * lh / 2;
     ctx.save(); ctx.globalAlpha = Math.min(1, t * 5);
     const sh2 = L.shout && t < 0.4 ? Math.round((Math.random() - 0.5) * 2) : 0;
+    let tw = 0; ctx.font = P.font(size); for (const l of lines) tw = Math.max(tw, ctx.measureText(l).width);
+    ctx.fillStyle = 'rgba(4,2,6,0.62)'; ctx.fillRect(Math.round(at.x - 8), Math.round(top - 14), Math.round(tw + 16), lines.length * lh + 18);
     ctx.fillStyle = s.color; ctx.fillRect(Math.round(at.x - 5), Math.round(top - 10), 2, lines.length * lh + 12);
     P.text(ctx, s.name.toUpperCase(), Math.round(at.x), Math.round(top - 3), 6, s.color, 'left');
     lines.forEach((l, i) => P.text(ctx, l, Math.round(at.x + sh2), Math.round(top + 8 + i * lh), size, L.shout ? '#ffffff' : '#f2eef0', 'left', { outline: true }));
@@ -183,7 +219,7 @@
   }
 
   // ---- playback ------------------------------------------------------------------------------------------
-  const CUE = { card: [['clang_1', 0.7]], reveal: [['horn', 0.5], ['quake', 0.5]], speed: [['whoosh', 0.8]], clash: [['whoosh', 0.9]], impact: [['blow_big', 1], ['clang_0', 0.7]], moonbreak: [['charge', 0.8]], moonwhite: [['allout', 0.6]] };
+  const CUE = { slash: [['slash_2', 1], ['whoosh', 0.7]], eyes: [['charge', 0.6]], two: [], card: [['clang_1', 0.7]], reveal: [['horn', 0.5], ['quake', 0.5]], speed: [['whoosh', 0.8]], clash: [['whoosh', 0.9]], impact: [['blow_big', 1], ['clang_0', 0.7]], moonbreak: [['charge', 0.8]], moonwhite: [['allout', 0.6]] };
   const durOf = (sh) => Math.max(sh.d || 1.6, sh.line ? 1.3 + sh.line.text.length * 0.045 : 0);
   SC.start = function (def) { const sc = { def, i: 0, t: 0, done: false, cues: [] }; enter(sc); return sc; };
   function enter(sc) { const sh = sc.def.shots[sc.i]; if (!sh) { sc.done = true; return; } sc.t = 0; sc.cues.push(...(CUE[sh.k] || [])); sh.anchor = null; sh.textAt = null; sc.hitCued = false; }
