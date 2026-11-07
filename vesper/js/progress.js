@@ -97,11 +97,11 @@
   // Acts are the hours of the night (the stage whose arenas and foes they use). Echoes is the
   // post-game: every guardian again, stronger, and the endless night.
   P.ACTS = [
-    { stage: 0, num: 'I', hour: 'DUSK', name: 'The Black Gate', pool: ['ghoul', 'reaver', 'raider', 'bulwark', 'husk', 'pikeman', 'archer', 'gateguard', 'chieftain'] },
+    { stage: 0, num: 'I', hour: 'DUSK', name: 'The Black Gate', pool: ['thrall', 'reaver', 'thrall', 'bulwark', 'gatespear', 'husk', 'pikeman', 'boneguard', 'gateguard', 'chieftain'] },
     { stage: 1, num: 'II', hour: 'THE FIRST HOUR', name: 'Cloister of Frost', pool: ['frostpike', 'acolyte', 'cloisterknight', 'knife', 'duelist', 'husk', 'seer', 'brute'] },
-    { stage: 2, num: 'III', hour: 'THE SECOND HOUR', name: 'The Umbral Stair', pool: ['cutthroat', 'wraith', 'shadowbulwark', 'shade', 'bone', 'husk', 'warlock', 'brute'] },
-    { stage: 3, num: 'IV', hour: 'THE THIRD HOUR', name: 'The Ashen Waste', pool: ['hound', 'ravager', 'cinder', 'husk', 'ram', 'ghast', 'ashlock', 'golem'] },
-    { stage: 4, num: 'V', hour: 'THE FOURTH HOUR', name: "The Wind's Throat", pool: ['ridgepike', 'ranger', 'windmonk', 'harpy', 'husk', 'stormfist', 'sniper', 'brute'] },
+    { stage: 2, num: 'III', hour: 'THE SECOND HOUR', name: 'The Umbral Stair', pool: ['cutthroat', 'wraith', 'boneguard', 'shadowbulwark', 'shade', 'stalker', 'husk', 'warlock', 'brute'] },
+    { stage: 3, num: 'IV', hour: 'THE THIRD HOUR', name: 'The Ashen Waste', pool: ['hound', 'ravager', 'cinder', 'blight', 'husk', 'ram', 'thrall', 'ashlock', 'golem'] },
+    { stage: 4, num: 'V', hour: 'THE FOURTH HOUR', name: "The Wind's Throat", pool: ['ridgepike', 'ranger', 'windmonk', 'harpy', 'stalker', 'husk', 'stormfist', 'sniper', 'brute'] },
     { stage: 5, num: 'VI', hour: 'THE LAST HOUR', name: "The Moon's Shadow", pool: ['woundknight', 'woundblade', 'paladin', 'redwraith', 'husk', 'bloodlock', 'shield', 'brute'] },
     { stage: 5, num: 'VII', hour: 'AFTER DAWN', name: 'Echoes of the Night', pool: ['woundknight', 'duelist', 'wraith', 'ram', 'harpy', 'paladin', 'ashlock', 'sniper', 'cutthroat', 'chieftain'], echoes: true },
   ];
@@ -217,6 +217,8 @@
   // Foe health and damage for a node: gentle while the kit is small, full strength at the top.
   P.TUNE = { hp0: 0.72, hpK: 0.22, dmg0: 0.62, dmgK: 0.26 };
   P.scaleOf = (n) => { const d = Math.min(7, P.depth(n)), T = P.TUNE; return { hp: T.hp0 + T.hpK * d, dmg: T.dmg0 + T.dmgK * d }; };
+  const CHAMPS = [['ch_gatebreaker', 'ch_bonecaptain'], ['ch_mother', 'ch_saber'], ['ch_bishop', 'ch_widow'], ['ch_carrion', 'ch_ashmother'], ['ch_huntmaster', 'ch_gale'], ['ch_woundlord', 'ch_saint'], ['ch_saber', 'ch_widow', 'ch_carrion', 'ch_woundlord']];
+  P.CHAMPS = CHAMPS;
   const BOSS = { warden: ['warden'], twins: ['twinA', 'twinB'], umbral: ['umbral'], hunger: ['hunger'], wing: ['wing'], firstCut: ['firstCut'] };
   function pick(pool, n, r, early) { const out = []; for (let i = 0; i < n; i++) out.push(pool[Math.floor(Math.pow(r(), early ? 1.6 : 1) * pool.length)]); return out; }
   // The fight a node holds: waves (pulses split by '+'), whether its last wave is a guardian, arenas, rules.
@@ -226,31 +228,39 @@
     const area = (k) => { const w = []; for (let i = 0; i < k; i++) { if (i) w.push('+'); w.push(...pick(pool, per - (i ? 1 : 0), r, early)); } return w; };
     const rules = {}; if (n.rule) rules[n.rule] = n.rule === 'time' ? true : true;
     if (n.rule === 'time') rules.time = n.n;
-    let waves, boss = false, arenas = [ar[idx % ar.length], ar[(idx + 1) % ar.length]];
+    let waves, boss = false, champion = null, arenas = [ar[idx % ar.length], ar[(idx + 1) % ar.length]];
     switch (n.type) {
       case 'trial': waves = [['dummy', 'dummy', 'dummy', 'dummy', '+', 'ghoul', 'husk', 'ghoul', '+', 'shield', 'raider']]; arenas = ['court']; break;
       case 'battle': waves = [area(2), area(2)]; break;
-      case 'elite': rules.elites = true; waves = [area(3)]; arenas = [arenas[0]]; break;
+      case 'elite': { // the act's champion leads the second area
+        const ch = CHAMPS[n.act][P.NODES.filter((x) => x.act === n.act && x.type === 'elite').indexOf(n) % 2];
+        rules.elites = true; waves = [area(2), [ch, '+'].concat(pick(pool, per - 1, r))]; boss = true; champion = ch; break; }
       case 'boss': waves = [st.waves[st.waves.length - 1].slice(), st.bossWave.slice()]; boss = true; arenas = [ar[ar.length - 2] || ar[0], ar[ar.length - 1]]; break;
       case 'echo': waves = [area(2), BOSS[n.echo].concat(['+'], pick(pool, 3, r))]; boss = true; arenas = [ar[0], ar[ar.length - 1]]; break;
       case 'challenge':
         if (n.echo) { waves = [BOSS[n.echo].slice()]; boss = true; arenas = [D().STAGES[0].arenas[2]]; }
-        else if (n.rule === 'horde') { const k = n.big ? 6 : 4; waves = [area(k)]; arenas = [ar[idx % ar.length]]; }
+        else if (n.rule === 'horde') { const k = n.big ? 6 : 4; waves = [area(k)]; arenas = [ar[idx % ar.length]]; if (n.big) { const all = CHAMPS.flat(); waves[0].push('+', all[Math.floor(r() * all.length)], all[Math.floor(r() * all.length)]); } }
         else waves = [area(2), area(2)];
         break;
       default: waves = [];
     }
+    // Looks: up to three of each army foe's looks for this fight (chosen by the node, so a replay looks the same).
+    const variants = {}, seen = new Set(); const want = (k) => { if (seen.has(k) || !D().FOES[k]) return; seen.add(k); const L = D().VARIANTS && D().VARIANTS[k];
+      if (L) { const pool2 = L.slice(), out = [], nv = Math.min(3, L.length); while (out.length < nv) out.push(pool2.splice(Math.floor(r() * pool2.length), 1)[0]); variants[k] = out; }
+      for (const a of D().FOES[k].atks) if (a.summon) want(a.summon.key); };
+    for (const w of waves) for (const k of w) if (k !== '+') want(k);
     const sc = P.scaleOf(n);
     if (n.type === 'echo') { sc.hp *= 1.15; sc.dmg *= 1.05; }
     if (n.echo && n.rule === 'nohit') { sc.hp *= n.act >= 6 ? 0.45 : 0.6; }
     const adj = { 'a1-b': [0.78, 0.8], 'a5-b': [0.9, 0.95], 'a6-2': [0.85, 0.9] }[n.id]; if (adj) { sc.hp *= adj[0]; sc.dmg *= adj[1]; }   // two guardians at once; the finale
     if (n.rule === 'glass') sc.dmg *= 0.75;
     if (n.big) { sc.hp *= 0.85; sc.dmg *= 0.85; } else if (n.rule === 'horde') { sc.hp *= 0.85; sc.dmg *= 0.85; }
-    return { stage: A.stage, node: { waves, boss, arenas, scale: sc, rules } };
+    return { stage: A.stage, champion, node: { waves, boss, arenas, scale: sc, rules, variants } };
   };
   // Every foe key a fight can put on the floor (its waves and what they summon), for loading their sets.
   P.foeKeys = function (b) { const out = new Set(); const add = (k) => { if (out.has(k) || !D().FOES[k]) return; out.add(k); for (const a of D().FOES[k].atks) if (a.summon) add(a.summon.key); };
     for (const w of b.node.waves) for (const k of w) if (k !== '+') add(k); return [...out]; };
+  P.setsFor = function (b) { const out = new Set(); for (const k of P.foeKeys(b)) { out.add(D().FOES[k].set); for (const v of (b.node.variants && b.node.variants[k]) || []) out.add(v); } return [...out]; };
   P.foeCount = (b) => b.node.waves.reduce((n, w) => n + w.filter((k) => k !== '+').length, 0);
   // Three stars: win, then two goals that depend on the kind of node.
   P.goals = function (n) {

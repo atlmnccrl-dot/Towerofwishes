@@ -190,6 +190,15 @@
       A.actor(ctx, f.set, 'Idle4', Math.floor(MAP.t * 7 + n.act) % 15, Math.PI * 0.85, Math.round(x), Math.round(y), sc * (f.scale || 1), st === 'locked' ? { shade: '#05030a' } : st === 'cleared' ? { grey: true } : {});
       ctx.restore();
     }
+    // Champions stand beside the elite fights they lead.
+    MAP.champ = MAP.champ || {}; for (const n of P.NODES) if (n.type === 'elite') {
+      const key = MAP.champ[n.id] || (MAP.champ[n.id] = P.build(n).champion), f = D.FOES[key]; if (!f || !A.hasSet(f.set)) continue;
+      const q = nodePos(n, F); if (q.y < -150 || q.y > R.H + 150) continue;
+      const st = P.state(MAP.p, n.id), sc = F.k * 1.7, x = q.x + radius(n, F) * 2.1 * (n.x > 0 ? -1 : 1), y = q.y + radius(n, F) * 0.9;
+      ctx.save(); ctx.globalAlpha = st === 'cleared' ? 0.55 : 1;
+      A.actor(ctx, f.set, 'Idle4', Math.floor(MAP.t * 7 + n.act * 3) % 15, n.x > 0 ? Math.PI * 0.15 : Math.PI * 0.85, Math.round(x), Math.round(y), sc, st === 'locked' ? { shade: '#05030a' } : st === 'cleared' ? { grey: true } : {});
+      ctx.restore();
+    }
     // Your hero, at the node you last fought (or the one you have chosen).
     const at = P.node(MAP.sel || MAP.p.last) || P.NODES[0], H = D.HEROES[MAP.p.hero] || D.HEROES.vesper, q = nodePos(at, F), x = q.x - radius(at, F) * 2.3, y = q.y + radius(at, F) * 0.8;
     A.tex(ctx, 'light_01', x, y - 26 * F.k, 70 * F.k, 70 * F.k, H.color, 0.35, 0, true);

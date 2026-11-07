@@ -160,9 +160,12 @@
     const s = VS.sim.create(sh.stage, { seed: 7, hero: S.heroKey });
     s.staged = true; s.area = sh.area === 'last' ? s.waves.length - 1 : sh.area || 0; s.wave = s.area; s.units = []; s.hero.hp = s.hero.maxHp;
     const cast = (sh.cast || []).map((c) => {
+      // '@armyN': the Nth foe of the army the coming fight brings (given by main.js with its look).
+      if (c.who[0] === '@') { const a = (sc.def.army || [])[+c.who.slice(5)]; if (!a) return null; if (!A.hasSet(a.set)) A.loadSets([a.set]).catch(() => {}); const u = VS.sim.makeUnit(s, 'foe', a.key, D.FOES[a.key], c.at[0], c.at[1], 0); u.set = a.set; u.x = c.at[0]; u.y = c.at[1]; u.alive = true; u.state = 'idle'; return { c, u, landed: !c.enter }; }
       const u = c.who === 'hero' ? s.hero : VS.sim.makeUnit(s, 'foe', c.who, D.FOES[c.who], c.at[0], c.at[1], 0);
       u.x = c.at[0]; u.y = c.at[1]; u.alive = true; u.state = 'idle'; u.aura = !!c.aura; s.units.push(u); return { c, u, landed: !c.enter };
-    });
+    }).filter(Boolean);
+    s.units = cast.map((m) => m.u).filter((u, i, a) => a.indexOf(u) === i);
     return (sc.film = { sh, s, cast });
   }
   const lerp2 = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];

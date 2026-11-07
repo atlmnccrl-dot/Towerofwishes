@@ -34,8 +34,8 @@ const scenes = S.BEFORE.concat([S.ENDING]);
 if (S.BEFORE.length !== D.STAGES.length) bad('one scene per stage');
 for (const sc of scenes) for (const sh of sc.shots) {
   if (KINDS.indexOf(sh.k) < 0) bad('unknown shot ' + sh.k);
-  for (const w of [sh.who, sh.also, sh.a, sh.b, sh.card && sh.card.who, sh.card && sh.card.also].concat((sh.cast || []).map((c) => (typeof c === 'string' ? c : c.who)), sh.line ? [sh.line.who] : [])) if (w && !S.speaker(w)) bad('unknown speaker ' + w);
-  for (const w of [sh.who, sh.also, sh.a, sh.b, sh.card && sh.card.who, sh.card && sh.card.also].concat((sh.cast || []).map((c) => (typeof c === 'string' ? c : c.who)))) if (w) check('scene ' + w, S.speaker(w).set, ['Attack4', 'Attack3', 'Attack1']);
+  for (const w of [sh.who, sh.also, sh.a, sh.b, sh.card && sh.card.who, sh.card && sh.card.also].concat((sh.cast || []).map((c) => (typeof c === 'string' ? c : c.who)), sh.line ? [sh.line.who] : [])) if (w && w[0] !== '@' && !S.speaker(w)) bad('unknown speaker ' + w);
+  for (const w of [sh.who, sh.also, sh.a, sh.b, sh.card && sh.card.who, sh.card && sh.card.also].concat((sh.cast || []).map((c) => (typeof c === 'string' ? c : c.who)))) if (w && w[0] !== '@') check('scene ' + w, S.speaker(w).set, ['Attack4', 'Attack3', 'Attack1']);
 }
 for (const sc of scenes) for (const sh of sc.shots) {
   if (sh.line) bad('a spoken line in a scene (the story has no dialogue)');

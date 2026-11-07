@@ -13,7 +13,7 @@ import json, os, sys, hashlib
 from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SRC = os.path.join(ROOT, 'art_source', 'characters')
+SRC = os.environ.get('PACK_SRC') or os.path.join(ROOT, 'art_source', 'characters')
 OUT = os.path.join(ROOT, 'assets', 'pixel')
 DIRS = ['E', 'SE', 'S', 'SW', 'W', 'NW', 'N', 'NE']
 CELL, PAGE = 128, 2048

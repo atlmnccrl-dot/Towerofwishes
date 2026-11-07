@@ -17,8 +17,13 @@
     if (sets[id]) return Promise.resolve(sets[id]);
     return pending[id] || (pending[id] = loadSetNow(id).finally(() => { delete pending[id]; }));
   }
+  // The random-cast sets' metadata comes in bundles by act (vh_b<N>.json, found through vh_map.json);
+  // without them, each set's own file.
+  let vhMapP = null; const bundleP = {};
+  const vhMap = () => vhMapP || (vhMapP = loadJSON(A.ROOT + 'pixel/vh_map.json').catch(() => ({})));
+  async function vhMeta(id) { const m = await vhMap(), b = m[id]; if (b == null) return null; const B = await (bundleP[b] || (bundleP[b] = loadJSON(A.ROOT + 'pixel/vh_b' + b + '.json').catch(() => ({})))); return B[id] ? Object.assign({}, B[id]) : null; }
   async function loadSetNow(id) {
-    const d = await loadJSON(A.ROOT + 'pixel/' + id + '.json');
+    const d = (id.startsWith('vh_') && await vhMeta(id)) || await loadJSON(A.ROOT + 'pixel/' + id + '.json');
     d.images = await Promise.all(d.pages.map((p) => loadImage(A.ROOT + 'pixel/' + p)));
     sets[id] = d; return d;
   }

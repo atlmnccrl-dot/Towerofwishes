@@ -141,8 +141,9 @@
     // Red light pouring down in strands.
     for (let i = 0; i < 14; i++) { const x = W() * (0.1 + hash(i, 4) * 0.8), y0 = H() * 0.2, y1 = y0 + (H() * 0.7) * ease(k * 1.5 - hash(i, 5) * 0.3); const pts = []; for (let j = 0; j <= 10; j++) pts.push([x + Math.sin(j * 0.8 + t * 4 + i) * 12 * R.dpr, y0 + (y1 - y0) * j / 10]); ribbon(ctx, pts, 5 * R.dpr, i % 3 ? '#e2343c' : '#ffb08a', null, 0.7); }
     const gy = H() * 0.86; A.tex(ctx, 'light_01', W() * 0.5, gy, W() * 1.3, H() * 0.7, '#ff3a3a', 0.9, 0, true); ctx.fillStyle = '#080102'; ctx.fillRect(0, gy, W(), H() - gy);
-    const keys = ['shield', 'raider', 'brute', 'ghoul', 'husk', 'archer', 'spearman'];
-    keys.forEach((key, i) => { const f = D.FOES[key], x = W() * (0.09 + i * 0.137), sc = H() / 52 * 0.42 * Math.min(1.25, f.scale || 1); shards(ctx, f.set, 'Idle4', Math.floor(t * 7 + i) % 15, i % 2 ? Math.PI * 0.75 : Math.PI * 0.25, x, gy, sc, k * 1.4 - i * 0.07, 40 + i, { shade: '#050000' });
+    // The dead it raises: the townsfolk of the Spire's city, a skeleton, a raider.
+    const keys = ['vh_townsfolk_001', 'vh_skeleton_002', 'vh_townsfolk_004', 'vh_barbarian_002', 'vh_townsfolk_007', 'vh_townsfolk_010', 'vh_townsfolk_013'];
+    keys.forEach((set, i) => { const f = { set, scale: 1 }, x = W() * (0.09 + i * 0.137), sc = H() / 52 * 0.42; shards(ctx, f.set, 'Idle4', Math.floor(t * 7 + i) % 15, i % 2 ? Math.PI * 0.75 : Math.PI * 0.25, x, gy, sc, k * 1.4 - i * 0.07, 40 + i, { shade: '#050000' });
       const e = onFig(f.set, 'Idle4', 0, i % 2 ? Math.PI * 0.75 : Math.PI * 0.25, x, gy, sc, 0.5, 0.14); if (k * 1.4 - i * 0.07 > 0.9) { ctx.fillStyle = RED; ctx.shadowColor = RED; ctx.shadowBlur = 12 * R.dpr; ctx.fillRect(e.x - 6 * R.dpr, e.y, 12 * R.dpr, 3 * R.dpr); ctx.shadowBlur = 0; } });
     storm(ctx, t, 10, 31, 0.35, true);
     title(ctx, 'ITS LIGHT RAISES THE DEAD', W() / 2, H() * 0.3, Math.min(54 * R.k, W() / 15), (k - 0.35) / 0.65, t);

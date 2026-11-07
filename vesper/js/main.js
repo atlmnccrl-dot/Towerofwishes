@@ -93,12 +93,19 @@
       } });
   }
   // A new game: the prologue, then the first trial.
-  function newGame() { startScene(0, S.PROLOGUE, () => playNode('a0-t', true)); }
+  // The opening's risen dead are turned townsfolk: load them first.
+  const OPENING_SETS = ['vh_townsfolk_001', 'vh_townsfolk_004', 'vh_townsfolk_007', 'vh_townsfolk_010', 'vh_townsfolk_013', 'vh_skeleton_002', 'vh_barbarian_002'];
+  function newGame() {
+    const play = () => startScene(0, S.PROLOGUE, () => playNode('a0-t', true)), miss = OPENING_SETS.filter((id) => !A.hasSet(id));
+    if (!miss.length) return play();
+    M.go('load'); U.loading(0); A.loadSets(miss, (f) => U.loading(f)).then(() => { A.warm(R.ctx); U.hide(); play(); }, () => { U.hide(); play(); });
+  }
 
   // ---- the map hub -------------------------------------------------------------------------------------
   function map(sel) {
     const p = P(); M.mapSel = sel || M.mapSel || PR.nextNode(p);
-    if (M.state !== 'map') { M.go('map'); VS.MAP.open(p, M.mapSel); AU.playMusic(null); AU.playAmb('wind'); }
+    if (M.state !== 'map') { M.go('map'); VS.MAP.open(p, M.mapSel); AU.playMusic(null); AU.playAmb('wind');
+      A.loadSets(PR.CHAMPS.flat().map((k) => D.FOES[k].set).filter((id) => !A.hasSet(id))).catch(() => {}); }   // the champions shown on the map
     VS.MAP.sel = M.mapSel; VS.MAP.p = p;
     VS.MAP.onSelect = (id) => { AU.sfx('step_0', 0.5); map(id); };
     U.map({ p, sel: M.mapSel, onGo: () => playNode(M.mapSel), onSkills: () => skills(), onHeroes: () => roster(() => map()),
@@ -137,8 +144,10 @@
       return;
     }
     A.loadSets(missingFor(PR.build(n))).catch(() => {});   // start loading the army while the scene plays
-    const Ac = S.ACTS[n.act] || {}, scenes = [];
-    if (!skipIntro && Ac.intro && !p.seen['act' + n.act]) { scenes.push(Ac.intro); p.seen['act' + n.act] = true; }
+    const Ac = S.ACTS[n.act] || {}, scenes = [], bd = PR.build(n);
+    // The act's intro casts a few of the army this fight will bring (in the looks it will wear).
+    const army = PR.foeKeys(bd).filter((k) => !D.FOES[k].boss && D.FOES[k].set.startsWith('vh_')).slice(0, 3).map((k) => ({ key: k, set: ((bd.node.variants || {})[k] || [D.FOES[k].set])[0] }));
+    if (!skipIntro && Ac.intro && !p.seen['act' + n.act]) { scenes.push(Object.assign({}, Ac.intro, { army })); p.seen['act' + n.act] = true; }
     if (n.type === 'boss' && Ac.boss) scenes.push(Ac.boss);
     M.write();
     const run = () => { if (!scenes.length) return startNode(id); startScene(PR.ACTS[n.act].stage, scenes.shift(), run); };
@@ -160,7 +169,7 @@
     { title: 'TRIAL · FIGHT', text: () => 'The dead are coming. Red flashes cannot be blocked: dodge them. Shields block from the front: use a heavy or get behind. Kill the Blood Husk near the others.' },
   ];
   // The sets a node's fight needs that are not loaded yet.
-  const missingFor = (b) => [...new Set(PR.foeKeys(b).map((k) => D.FOES[k].set))].filter((id) => !A.hasSet(id));
+  const missingFor = (b) => PR.setsFor(b).filter((id) => !A.hasSet(id));
   function startNode(id) {
     const n = PR.node(id), b = PR.build(n), miss = missingFor(b);
     const go = () => startFight(b.stage, { nodeId: id, node: n, build: b });
@@ -196,7 +205,7 @@
     M.paused = false; R.snapCam(s); R.fx = []; R.parts = []; R.floaters = []; R.pfx = []; R.entryDoor = null; R.impactF = null; R.kit = s.mods.can;
     f0 = M.fight; const n = opts.node, AR = VS.arenaOf(s);
     if (n) {
-      const bossName = s.hasBoss ? (n.echo ? n.name.replace('Echo: ', '') : n.name) : null;
+      const bossName = s.hasBoss ? (b && b.champion ? D.FOES[b.champion].name : n.echo ? n.name.replace('Echo: ', '') : n.name) : null;
       s.goal = { reach: n.type === 'trial' ? 'Finish the trial' : n.rule === 'horde' ? 'Survive the horde' : 'Clear every wave', boss: bossName ? 'Defeat ' + bossName : 'Clear every wave' };
       f0.banner = { text: n.name, sub: (n.rule ? PR.RULES[n.rule](n.n).split(':')[0].toUpperCase() + '  ·  ' : '') + AR.name + '  ·  AREA 1 / ' + s.waves.length, t: -0.4, col: '#ffffff' };
       if (n.type === 'trial') { f0.tut = { step: 0, x0: s.hero.x, y0: s.hero.y, t: 0 }; p.tips.heavy = p.tips.dodge = true; }

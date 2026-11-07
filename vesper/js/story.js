@@ -27,7 +27,8 @@
   // Shots. film: the fight camera's high three-quarter view on the hour's real arena (see tale.js).
   const climb = (i, say) => ({ k: 'spire', at: i, eyebrow: LEFT[i], say, d: 2.6 });
   const walk = (i, say, eyebrow) => ({ k: 'film', stage: i, area: 0, eyebrow, say, d: 2.6,
-    cast: [{ who: 'hero', at: [-170, 10], to: [-30, 10], mdur: 2.4 }], cam: { follow: 'hero', off: [30, -14], zoom: [1.8, 2.0] } });
+    cast: [{ who: 'hero', at: [-170, 10], to: [-30, 10], mdur: 2.4 }, { who: '@army0', at: [70, -30], enter: 'rift', delay: 0.5, face: [-30, 10] }, { who: '@army1', at: [115, 18], enter: 'rift', delay: 0.85, face: [-30, 10] }, { who: '@army2', at: [62, 52], enter: 'rift', delay: 1.2, face: [-30, 10] }],
+    cam: { follow: 'hero', off: [40, -14], zoom: [1.6, 1.8] } });
   // The guardian drops onto the far side of its arena (the Umbral rises from a rift) and is named.
   const meet = (i, who, say, also) => {
     const big = (D().FOES[who].scale || 1) > 1.2, by = big ? -105 : -85, enter = who === 'umbral' ? 'rift' : 'drop';

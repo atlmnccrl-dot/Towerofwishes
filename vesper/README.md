@@ -81,23 +81,37 @@ the last acts 50 to 90%, the post-game harder; about 80% overall for every hero.
 
 ## The armies
 
-Each act fights its own army, drawn from the random-cast characters (Fantasy Character Creator
-parts, 19 batches, 200 characters; 33 chosen, sets `vh_*`, sources in `art_source/characters/`):
+Every one of the 200 random-cast characters (Fantasy Character Creator parts, 19 batches, sets
+`vh_*`) has a place:
+
+- **Looks**: each army foe has several looks (`D.VARIANTS`), all 200 characters spread across them.
+  A fight picks up to three looks per foe type, so a wave of reavers is never five copies, and it
+  loads only those (`P.setsFor`).
+- **Champions**: twelve named elites with a name card and a health bar, two to an act, each leading
+  the second area of an elite fight and standing beside it on the map: Hrolf the Gatebreaker and the
+  Bone Captain; Mother Rime and the Saber of the Cloister; the Hollow Bishop and Night's Widow; the
+  Carrion King and the Ashmother; the Huntmaster and Grandmaster Gale; the Lord of the Wound and the
+  Last Saint. The Endless Night ends with two of them.
+- **Thralls**: the thirteen townsfolk are the city's people turned by the wound's light, a swarm in
+  the Black Gate and the Ashen Waste, and the dead rising in the opening.
+- **Cutscenes**: each act's intro has a few of the army it is about to send rise out of rifts.
 
 | Act | Army | Foes |
 |---|---|---|
-| I, the Black Gate | raiders and the first dead | Gate Reaver (axe spin), Raider Chieftain (leaping cleave), Bone Bulwark (shield), Bone Pikeman, Black Gate Guard |
+| I, the Black Gate | raiders, thralls, the first dead | Thrall, Gate Reaver (axe spin), Gate Spearman, Bone Bulwark (shield), Bone Pikeman, Bone Guard, Black Gate Guard, Raider Chieftain |
 | II, the Cloister of Frost | the frost order | Rime Acolyte (slowing ice, falling ice), Frost Seer (ice fields, summons), Cloister Knight, Mirror Duelist (counters light cuts), Frost Pike |
-| III, the Umbral Stair | the shadow cult | Umbral Wraith and Violet Shade (blink away when struck), Cutthroat (blinks behind you), Stair Warlock (summons), Shadow Bulwark |
-| IV, the Ashen Waste | beasts and fire | Ash Hound (pounce), Bone Ram (charge), Cinder Mage, Ash Warlock (fire rain, summons hounds), Ash Ravager |
-| V, the Wind's Throat | the hunters | Throat Ranger (volleys), Gale Sniper (one huge arrow), Wind Monk and Storm Fist (kick chains), Ridge Pikeman, Gale Harpy (long dive) |
+| III, the Umbral Stair | the shadow cult | Umbral Wraith and Violet Shade (blink away when struck), Cutthroat and Stalker (blink behind you), Stair Warlock (summons), Shadow Bulwark, Bone Guard |
+| IV, the Ashen Waste | beasts, fire and blight | Ash Hound (pounce), Bone Ram (charge), Cinder Mage, Blight Mage (poison), Ash Warlock (fire rain, summons hounds), Ash Ravager, Thrall |
+| V, the Wind's Throat | the hunters | Throat Ranger (volleys), Gale Sniper (one huge arrow), Wind Monk and Storm Fist (kick chains), Ridge Pikeman, Gale Harpy (long dive), Stalker |
 | VI, the Moon's Shadow | the Knights of the Wound | Wound Paladin (heals allies), Knight of the Wound, Wound Duelist, Blood Warlock, Blood Wraith |
 
 Duelists turn aside light cuts from the front and strike back (heavy blows and finishers get
 through); wraiths come apart when struck and gather again near you; paladins mend the foes around
 them every few seconds (kill them first). These sets are packed with a 256-colour palette and
-without the idle variants they never use, and they load when a fight needs them (during its story
-scene), not at start.
+without the idle variants they never use, their metadata bundled by act in `assets/pixel/vh_b<N>.json`
+with `vh_map.json` (`node vesper/tools_vh_bundles.js`), and they load when a fight needs them (during its story scene), not at
+start. The 33 first chosen keep their source sheets in `art_source/characters/`; the rest were
+packed straight from the batches (`PACK_SRC=<dir> python3 tools/pack_pixel.py ...`).
 
 Two more heroes: **Ember**, the Ash Monk (fists, burning palm, a step through fire), unlocked by
 defeating the Hollow Twins; **Halden**, the Dawn Shield (mace and shield, holy ground, judgment from

@@ -34,6 +34,8 @@
       riposte: has('riposte'), ldx: has('breath') ? 0.45 : H.lastDitch, moonStart: has('rising') ? 50 : 0,
     };
   }
+  // Army foes wear one of the looks the fight was given for their type.
+  function lookOf(s, u) { const vs = s.variants && s.variants[u.key]; if (vs && vs.length) u.set = vs[Math.floor(s.rand() * vs.length)]; }
   function setAng(u, a) { u.ang = a; u.face = Math.cos(a) >= 0 ? 1 : -1; }
   function makeUnit(s, team, key, def, x, y, ang) {
     const sc = def.scale || 1;
@@ -50,7 +52,7 @@
     // A campaign node brings its own waves, arenas, difficulty and rules; otherwise the classic hour.
     const N = opts.node, st0 = D.STAGES[stageIdx], st = N ? Object.assign({}, st0, { arenas: N.arenas || st0.arenas, scale: N.scale || st0.scale }) : st0;
     const boons = opts.boons || [], H = (D.HEROES && D.HEROES[opts.hero]) || (D.HEROES ? D.HEROES.vesper : D.HERO), M = mods(boons, H, opts.kit, N && N.rules);
-    const s = { stage: stageIdx, def: st, t: 0, time: 0, rand: rng(opts.seed || 1), units: [], bolts: [], events: [], nextId: 1, rules: M.rules, hasBoss: N ? !!N.boss : true,
+    const s = { stage: stageIdx, def: st, t: 0, time: 0, rand: rng(opts.seed || 1), units: [], bolts: [], events: [], nextId: 1, rules: M.rules, hasBoss: N ? !!N.boss : true, variants: (N && N.variants) || null,
       waves: N ? N.waves.map((w) => w.slice()) : st.waves.concat([st.bossWave]), wave: -1, waveT: 0.9, area: 0, portal: null, transit: null, freeze: 0, hitstop: 0, slow: 1, slowT: 0, cine: null,
       result: null, endT: 0, moon: M.moonStart, mods: M, boons, combo: 0, comboT: 0, serial: 0, bossIds: [],
       heroDef: H, cds: [0, 0], hazards: [], invisT: 0,
@@ -202,7 +204,7 @@
   // ---- summons ------------------------------------------------------------------------------------
   function summonFoe(s, key, x, y, mode, def) {
     def = def || D.FOES[key];
-    const u = makeUnit(s, 'foe', key, def, x, y, 0), sk = s.def.scale || { hp: 1, dmg: 1 };
+    const u = makeUnit(s, 'foe', key, def, x, y, 0), sk = s.def.scale || { hp: 1, dmg: 1 }; lookOf(s, u);
     if (!def.clone) { u.hp = u.maxHp = Math.round(def.hp * sk.hp); u.dmgMul = sk.dmg; }
     u.mode = mode; u.from = { x, y }; u.to = { x, y }; u.orbit = s.rand() < 0.5 ? -1 : 1; u.cd = 0.6;
     setState(u, 'spawn', 0.7); ev(s, { type: 'spawn', id: u.id, x, y, mode, dur: 0.7 });
@@ -466,7 +468,7 @@
       let x, y, tx, ty;
       if (mode === 'side') { const g = gates[i % gates.length]; x = g.x; y = g.y; const c = VS.clampTo(A, g.tx + (s.rand() - 0.5) * 30, g.ty + (s.rand() - 0.5) * 30, 20); tx = c[0]; ty = c[1]; }
       else { const p = def.boss ? (() => { const c = VS.clampTo(A, -h.x * 0.6, -h.y * 0.6 - 40, 40); return { x: c[0], y: c[1] }; })() : spawnPoint(s, A, i); x = p.x; y = p.y; }
-      const u = makeUnit(s, 'foe', key, def, x, y, 0);
+      const u = makeUnit(s, 'foe', key, def, x, y, 0); lookOf(s, u);
       const sk = s.def.scale || { hp: 1, dmg: 1 }, DF = VS.DIFF; u.hp = u.maxHp = Math.round(def.hp * sk.hp * (def.boss ? DF.bossHp : DF.hp)); u.dmgMul = sk.dmg * DF.dmg;
       setAng(u, Math.atan2(h.y - u.y, h.x - u.x)); u.orbit = (s.rand() < 0.5 ? -1 : 1); u.cd = 0.4 + i * 0.3 + (def.boss ? 0.6 : 0);
       if (def.boss) s.bossIds.push(u.id);
