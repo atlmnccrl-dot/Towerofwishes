@@ -51,7 +51,7 @@
     for (let i = 0; i < 3; i++) { const u = S.makeSurvivor(G.demo, { x: (c.x + i * 2 - 2) * TS, y: (c.y + 3) * TS }); u.job = ['wood', 'build', 'forage'][i]; }
     R.reset(); R.cam.x = (c.x - 6) * TS; R.cam.y = c.y * TS; R.cam.z = 1.5;
     G.st = null;
-    $('t-continue').style.display = localStorage.getItem(SAVE) ? '' : 'none';
+    $('t-continue').style.display = readSave() ? '' : 'none';
     AU.set({ menu: true, battle: false, night: false, fire: 0.2 });
   }
   G.toTitle = toTitle;
@@ -86,7 +86,7 @@
     save(false);
   }
   function loadGame() {
-    const raw = localStorage.getItem(SAVE); if (!raw) { U.toast('No saved camp.', 'warn'); return; }
+    const raw = readSave(); if (!raw) { U.toast('No saved camp.', 'warn'); return; }
     try {
       const data = JSON.parse(raw);
       G.st = S.load(data.st); C.seen = data.seen || {}; G.mode = 'play'; G.speed = 1;
@@ -105,6 +105,7 @@
     catch (e) { if (show) U.toast('Could not save: ' + e.message, 'bad'); }
   }
   G.save = save;
+  function readSave() { try { return localStorage.getItem(SAVE); } catch (e) { return null; } }
   function loadSettings() { try { const s = JSON.parse(localStorage.getItem(SET) || '{}'); if (s.vol) Object.assign(AU.vol, s.vol); C.skipAll = !!s.skipAll; } catch (e) { /* defaults */ } }
   G.saveSettings = () => { try { localStorage.setItem(SET, JSON.stringify({ vol: AU.vol, skipAll: C.skipAll })); } catch (e) { /* ignore */ } };
   document.addEventListener('visibilitychange', () => { if (document.hidden) save(false); });
