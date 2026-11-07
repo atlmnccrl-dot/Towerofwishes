@@ -25,7 +25,7 @@
     fire(st, e) { const b = st.buildings[e.bid]; if (!b) return null; const x = (b.x + 2.5) * TS, y = (b.y + 1.5) * TS; return { speed: 0.4, shots: [{ dur: 2.2, to: { x, y, z: 2.6 }, text: 'Fire.' }, { dur: 1.6, to: { x, y, z: 2.2 }, text: 'Something to come back to.' }] }; },
     firstNight(st) { const h = S.heart(st) || { x: st.clearing.x, y: st.clearing.y, w: 5, h: 3 }; const x = (h.x + 2.5) * TS, y = (h.y + 1.5) * TS; return { speed: 0.5, shots: [{ dur: 3, to: { x, y: y - 40, z: 1.0 }, title: 'Night One' }, { dur: 2.5, to: { x: x + 120, y: y - 60, z: 1.1 }, text: 'Stay close to the fire.' }] }; },
     dawn1(st) { const h = S.heart(st); if (!h) return null; return { speed: 0.6, shots: [{ dur: 3.2, to: { x: (h.x + 2.5) * TS, y: (h.y + 1.5) * TS, z: 1.5 }, title: 'Dawn', sub: 'You are still alive.' }] }; },
-    stranger(st, e) { const u = st.units[e.uid]; if (!u) return null; return { speed: 0.6, shots: [{ dur: 2.2, to: { x: u.x, y: u.y - 20, z: 2.0 }, text: 'Someone is coming.' }, { dur: 1.4, to: { x: u.x, y: u.y - 20, z: 2.2 } }] }; },
+    stranger(st, e) { const u = st.units[e.uid]; if (!u) return null; S.reveal(st, Math.floor(u.x / TS), Math.floor(u.y / TS), 3); R.fogTarget = 0.35; return { speed: 0.6, onEnd: () => { R.fogTarget = 1; }, shots: [{ dur: 2.2, to: { x: u.x, y: u.y - 20, z: 2.0 }, text: u.side === 'n' ? 'A trader\'s cart on the track.' : 'Someone is coming.' }, { dur: 1.4, to: { x: u.x, y: u.y - 20, z: 2.2 } }] }; },
     firstWall(st, e) { const b = st.buildings[e.bid]; if (!b) return null; return { speed: 0.5, shots: [{ dur: 3, to: { x: (b.x + 0.5) * TS, y: (b.y + 0.5) * TS, z: 2.2 }, text: 'A wall. A line between us and the dark.' }] }; },
     firstRaid(st, e) { return raidScene(st, e, 'RAIDERS', 'Ash Raiders have come for your stores.'); },
     raid(st, e) { if (!e.boss && C.seen.raid && Math.random() < 0.6) return null; return raidScene(st, e, e.boss ? 'THE BONE WARLORD' : 'ATTACK', e.boss ? 'The dead march behind it.' : 'They are at the edge of camp.'); },
@@ -42,7 +42,8 @@
     const foes = S.foes(st); if (!foes.length) return null;
     let mx = 0, my = 0; for (const f of foes) { mx += f.x; my += f.y; } mx /= foes.length; my /= foes.length;
     for (const f of foes) S.reveal(st, Math.floor(f.x / TS), Math.floor(f.y / TS), 4);
-    return { speed: 0.25, shots: [{ dur: 1.6, to: { x: mx, y: my, z: 1.6 }, at: () => { HF.AU && HF.AU.sfx('horn'); R.shake = 1; } }, { dur: 2.2, to: { x: mx, y: my - 20, z: 1.9 }, title, sub: text }] };
+    R.fogTarget = 0.4;
+    return { speed: 0.25, onEnd: () => { R.fogTarget = 1; }, shots: [{ dur: 1.6, to: { x: mx, y: my, z: 1.6 }, at: () => { HF.AU && HF.AU.sfx('horn'); R.shake = 1; } }, { dur: 2.2, to: { x: mx, y: my - 20, z: 1.9 }, title, sub: text }] };
   }
 
   C.play = function (id, st, e) {

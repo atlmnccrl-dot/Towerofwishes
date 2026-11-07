@@ -491,6 +491,21 @@
     if (st.res.water >= n) st.res.water -= n; else { shortW = n - st.res.water; st.res.water = 0; }
     st.flags.hungry = shortF > 0; st.flags.thirsty = shortW > 0;
     if (shortF || shortW) { note(st, 'Not enough ' + (shortF && shortW ? 'food or water' : shortF ? 'food' : 'water') + ' this morning. People go without.', 'bad'); for (const u of pop) { u.hp = Math.max(1, u.hp - 6); } }
+    // Neglect has a price: long hunger kills the weakest; despair makes people leave.
+    st.flags.hungerDays = shortF || shortW ? (st.flags.hungerDays || 0) + 1 : 0;
+    if (st.flags.hungerDays >= 3 && pop.length > 1 && rnd(st) < 0.4) { const v = pop.slice().sort((a, b) => a.hp - b.hp)[0]; killSurvivor(st, v, shortF ? 'starvation' : 'thirst'); }
+    for (const u of S.present(st)) {
+      if (S.present(st).length <= 1) break;
+      if (u.leader) continue;
+      if (u.morale < 18 && u.trait !== 'brave' && rnd(st) < 0.35) {
+        note(st, u.name + ' could not bear it any more and left in the night.', 'bad');
+        if (u.gear.w !== 'none') st.items[u.gear.w] = (st.items[u.gear.w] || 0) + 1;
+        if (u.gear.a !== 'none') st.items[u.gear.a] = (st.items[u.gear.a] || 0) + 1;
+        if (u.inside) exitBuilding(st, u);
+        delete st.units[u.id]; st.stats.deserted = (st.stats.deserted || 0) + 1; st.morale.death = Math.min(30, st.morale.death + 6);
+        break;
+      }
+    }
     ev(st, { type: 'dawn', day, food: n, water: n, short: shortF + shortW });
     if (day === 2 && !st.flags.night1done) { st.flags.night1done = true; done(st, 'night'); ev(st, { type: 'cine', id: 'dawn1' }); }
     // Regrowth and wildlife.

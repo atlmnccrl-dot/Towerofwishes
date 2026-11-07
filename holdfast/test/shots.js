@@ -45,6 +45,8 @@ require('fs').mkdirSync(out, { recursive: true });
   await page.waitForTimeout(800); await shot('settlement-day');
   await ev(() => { HF.R.cam.z = 1.9; }); await page.waitForTimeout(400); await shot('settlement-close');
   // Panels.
+  const drain = () => ev(() => { const C = HF.debug.C; for (let k = 0; k < 20 && (C.busy() || C.queue.length); k++) { if (C.busy()) C.skip(); else C.update(0.01, HF.debug.G.st); } C.returnTo = null; });
+  await drain(); await ev(() => { HF.R.cam.z = 1.9; const h = HF.debug.S.heart(HF.debug.G.st); HF.R.cam.x = (h.x + 2.5) * 32; HF.R.cam.y = (h.y + 1.5) * 32; });
   await ev(() => { const { G, S, U } = HF.debug; const h = S.heart(G.st); U.select({ bid: h.id }); }); await page.waitForTimeout(400); await shot('panel-heart');
   await ev(() => { const { G, S, U } = HF.debug; const u = S.present(G.st).find(x => x.job === 'guard'); U.select({ uid: u.id }); }); await page.waitForTimeout(400); await shot('panel-survivor');
   await ev(() => { HF.debug.U.select(null); HF.debug.U.openResearch('research'); }); await page.waitForTimeout(400); await shot('research');
