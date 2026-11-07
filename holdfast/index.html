@@ -204,18 +204,68 @@
     .rb { width: 50px; height: 50px; } .rb img { width: 26px; height: 26px; } #panel { width: min(290px, 44vw); } .card { width: 88px; min-height: 112px; } .card canvas { width: 54px; height: 54px; }
     #title h1 { font-size: 40px; } #cap-title { font-size: 30px; } #toasts { top: 74px; }
   }
+
+  #actions .rb.rally { border-color: #e0a040; background: radial-gradient(circle at 50% 35%, rgba(150,90,30,.95), rgba(60,25,8,.92)); }
+  body.rallying #game { cursor: crosshair; }
+  /* ---- Cinematic HUD: fewer boxes, translucent chips, the world first ---- */
+  #vignette { position: fixed; inset: 0; pointer-events: none; z-index: 1; background: radial-gradient(ellipse 75% 70% at 50% 50%, rgba(0,0,0,0) 60%, rgba(0,0,0,.42) 100%); }
+  body.title #vignette { background: none; }
+  #ui { z-index: 2; }
+  #top { top: max(6px, env(safe-area-inset-top, 0px)); gap: 8px; }
+  #obj { background: linear-gradient(90deg, rgba(8,6,4,.78), rgba(8,6,4,.45) 70%, rgba(8,6,4,0)); border: 0; border-left: 3px solid #e0b860; border-radius: 0; box-shadow: none; padding: 4px 34px 6px 10px; min-width: 0; max-width: 42vw; cursor: pointer; }
+  #obj .t { font-size: 10px; letter-spacing: 1.5px; }
+  #obj-text { font-size: 15px; text-shadow: 0 2px 3px #000; margin-top: 1px; }
+  #obj-hint { font-size: 12.5px; text-shadow: 0 1px 2px #000; }
+  #obj.collapsed #obj-hint { display: none; }
+  #obj-bar { height: 3px; margin-top: 5px; max-width: 180px; }
+  #hudr { display: flex; align-items: center; gap: 5px; pointer-events: auto; }
+  #resbar, #clock { background: rgba(8,6,4,.6); border: 0; box-shadow: none; border-radius: 18px; }
+  #resbar { padding: 3px 9px; gap: 0; }
+  .res { min-width: 0; padding: 1px 5px; font-size: 14px; text-shadow: 0 1px 2px #000; }
+  #clock { padding: 5px 11px; min-width: 0; display: flex; gap: 7px; align-items: baseline; text-align: left; }
+  #dayline { font-size: 14px; } #hourline { font-size: 12px; }
+  #speed { margin: 0; gap: 4px; }
+  .sp, .ib { width: 34px; height: 34px; border-radius: 50%; background: rgba(8,6,4,.6); border: 1px solid rgba(224,184,96,.35); display: flex; align-items: center; justify-content: center; font-size: 12px; color: #f2d68a; padding: 0; min-width: 0; }
+  .sp.on { background: #7a5228; border-color: #e0b860; color: #fff3cc; }
+  .ib img { width: 20px; height: 20px; }
+  #btn-cine { position: fixed; z-index: 7; right: calc(10px + var(--sr)); top: calc(48px + env(safe-area-inset-top, 0px)); width: 30px; height: 30px; border-radius: 50%; background: rgba(8,6,4,.45); border: 1px solid rgba(224,184,96,.25); display: flex; align-items: center; justify-content: center; opacity: .75; }
+  #btn-cine .film { width: 14px; height: 10px; border: 2px solid #f2d68a; border-left-width: 0; border-right-width: 0; display: block; position: relative; }
+  #btn-cine .film::after { content: ''; position: absolute; left: 3px; right: 3px; top: 1px; bottom: 1px; background: rgba(242,214,138,.5); }
+  body.title #btn-cine, body.cine #btn-cine { display: none; }
+  body.nohud #ui { opacity: 0; pointer-events: none; } body.nohud #ui > * { pointer-events: none !important; }
+  body.nohud #btn-cine { opacity: .4; }
+  #toasts { top: 76px; width: min(300px, 38vw); gap: 3px; }
+  .toast { background: rgba(8,6,4,.66); border-left-width: 2px; font-size: 12.5px; padding: 4px 9px; }
+  #threat { top: 50px; background: rgba(8,6,4,.66); border-width: 1px; }
+  #boss { top: 46px; width: min(320px, 38vw); }
+  body.bossfight #toasts { top: 100px; }
+  #actions { gap: 5px; }
+  #actions .rb { width: 52px; height: 52px; background: radial-gradient(circle at 50% 35%, rgba(78,57,35,.9), rgba(24,17,10,.88)); border-width: 1.5px; box-shadow: 0 3px 10px rgba(0,0,0,.5); }
+  #actions .rb img { width: 26px; height: 26px; }
+  #actions .rb span { font-size: 9.5px; }
+  #panel { background: linear-gradient(180deg, rgba(30,23,16,.9), rgba(18,13,9,.9)); width: min(290px, 40vw); padding: 8px 10px; }
+  #banner { top: 27%; font-size: 22px; letter-spacing: 4px; }
+  body.cine #banner { display: none; }
+  .sp .pz { width: 10px; height: 12px; border-left: 3px solid currentColor; border-right: 3px solid currentColor; display: block; }
+  #banner small { font-size: 12.5px; letter-spacing: 1.5px; }
+  #banner::before, #banner::after { content: ''; display: block; height: 1px; width: min(420px, 60vw); margin: 6px auto; background: linear-gradient(90deg, transparent, rgba(242,214,138,.7), transparent); }
+  @media (max-height: 430px) { #obj { max-width: 36vw; } .res { font-size: 13px; padding: 1px 3px; } .sp, .ib { width: 30px; height: 30px; } #actions .rb { width: 46px; height: 46px; } #actions .rb img { width: 22px; height: 22px; } #toasts { top: 68px; } }
 </style>
 </head>
 <body class="title">
 <canvas id="game"></canvas>
+<div id="vignette"></div>
 <div id="ui">
   <div id="top">
-    <div id="obj" class="panel"><div class="t"><span id="obj-step">Objective</span><span id="obj-count"></span></div><div id="obj-text"></div><div id="obj-hint"></div><div id="obj-bar"><i></i></div></div>
+    <div id="obj" data-act="objtoggle"><div class="t"><span id="obj-step">Objective</span><span id="obj-count"></span></div><div id="obj-text"></div><div id="obj-hint"></div><div id="obj-bar"><i></i></div></div>
     <div class="spacer"></div>
-    <div id="resbar" class="panel"></div>
-    <div id="clock" class="panel"><div id="dayline">Day 1</div><div id="hourline"></div><div id="speed"></div></div>
-    <button id="btn-home" class="rb" data-act="home" title="Back to camp"></button>
-    <button id="btn-menu" class="rb" data-act="menu"></button>
+    <div id="hudr">
+      <div id="resbar"></div>
+      <div id="clock"><span id="dayline">Day 1</span><span id="hourline"></span></div>
+      <div id="speed"></div>
+      <button id="btn-home" class="ib" data-act="home" title="Back to camp"></button>
+      <button id="btn-menu" class="ib" data-act="menu" title="Menu"></button>
+    </div>
   </div>
   <div id="threat" class="hidden"></div>
   <div id="boss" class="hidden"></div>
@@ -226,6 +276,7 @@
   <div id="placebar" class="hidden"><div id="place-label"></div><button class="rb" data-act="placeOk" id="place-ok"></button><button class="rb" data-act="placeNo" id="place-no"></button></div>
 </div>
 <div id="banner"></div>
+<button id="btn-cine" data-act="cine" title="Hide the interface (H)"><i class="film"></i></button>
 <div id="modal" class="hidden"></div>
 <div id="cine"><div id="cap-title"></div><div id="cap-text"></div><div id="skip">Tap to skip</div></div>
 <div id="title"><div class="col"><h1>HOLDFAST</h1><div class="tag">Start with nothing. Build everything. Defend what you create.</div>

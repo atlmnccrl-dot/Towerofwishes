@@ -363,6 +363,15 @@
       u.job = 'guard'; u.post = b.id; u.task = null; return { ok: true };
     },
     expedition(st, a) { return startExpedition(st, a.site, a.ids, a.food); },
+    rally(st, a) {
+      if (!st.threat.active) return fail('There is nothing to fight right now');
+      if (st.rallyCd > 0) return fail('The horn needs ' + Math.ceil(st.rallyCd) + ' more seconds');
+      st.rally = { x: a.x, y: a.y, t: 20 }; st.rallyCd = 60;
+      let n = 0;
+      for (const u of S.present(st)) { if (u.onTower || u.downed > 0 || !(isFighter(st, u) || u.job === 'guard')) continue; if (u.inside) exitBuilding(st, u); u.task = { t: 'move', x: a.x, y: a.y, manual: true }; u.path = null; n++; }
+      ev(st, { type: 'rally', x: ctr(a.x), y: ctr(a.y) }); ev(st, { type: 'sfx', s: 'horn' });
+      return { ok: true };
+    },
     trade(st, a) {
       const T = st.trader; if (!T) return fail('No trader here');
       const o = T.offers[a.i]; if (!o || o.used) return fail('That deal is done');
@@ -460,6 +469,8 @@
     if (crossed(8) && S.day(st) === 2 && !st.flags.stranger) { st.flags.stranger = true; spawnStranger(st, true); }
     if (crossed(12)) midday(st);
     threatTick(st);
+    if (st.rally && (st.rally.t -= dt) <= 0) st.rally = null;
+    if (st.rallyCd > 0) st.rallyCd -= dt;
     // Weather.
     if (st.weather.rain && st.hours > st.weather.until) { st.weather.rain = false; }
     // Production.
@@ -581,6 +592,7 @@
       T.waveId++;
       for (const gp of groups) { const counts = {}; for (const k of gp.comp) counts[k] = (counts[k] || 0) + 1; spawnWave(st, Object.entries(counts), T.waveId, R.kind || (R.hollow ? 'hollow' : 'raider'), gp.dir); }
       T.active = true; T.activeKind = R.kind || (R.hollow ? 'hollow' : 'raider'); T.first = R.first; T.spawned = S.foes(st).length;
+      if (!st.alarm) CMD.alarm(st, { on: true });
       ev(st, { type: 'cine', id: R.first ? 'firstRaid' : 'raid', dir: groups[0].dir, boss: R.comp.includes('warlord') || R.comp.includes('trex'), kind: R.kind });
       note(st, R.kind === 'dino' ? (R.comp.includes('trex') ? 'THE TYRANT IS HERE!' : 'Dinosaurs are charging the camp!') : R.hollow ? 'The Hollow are here!' : 'Raiders at the edge of camp!', 'bad');
     }
@@ -593,7 +605,7 @@
       else if (!foes.length) {
         T.active = false; st.threat.raids++; st.stats.raids++; st.morale.win = 12;
         note(st, T.activeKind === 'raider' ? 'The raid is broken. The camp holds!' : T.activeKind === 'dino' ? 'The beasts are dead or fled. The camp holds!' : 'The dead fall still. The camp holds!', 'good');
-        ev(st, { type: 'victory', first: T.first }); ev(st, { type: 'sfx', s: 'reward' });
+        ev(st, { type: 'victory', first: T.first, big: T.spawned >= 5 }); st.rally = null; ev(st, { type: 'sfx', s: 'reward' });
         if (st.alarm) CMD.alarm(st, { on: false });
         done(st, 'defend'); done(st, 'raid');
       }
@@ -1199,6 +1211,7 @@
   function survivorDmg(st, u) {
     const W = D.WEAPON[u.gear.w]; let d = W.dmg * (1 + skillOf(u, 'combat') * 0.06);
     if (S.has(st, 'barracks') && u.job === 'guard') d *= 1.2;
+    if (st.rally) d *= 1.3;
     if (u.injury && u.injury.weak) d *= 0.7;
     return d;
   }
@@ -1291,6 +1304,7 @@
           st.stats.kills++; if (src && src.side === 's') { src.kills = (src.kills || 0) + 1; gainXp(st, src, 'combat', 6); }
           if (t.carry) { st.res[t.lootRes || 'food'] += t.carry; clampRes(st); note(st, 'The stolen ' + (t.lootRes || 'supplies') + ' are recovered.', 'good'); }
           ev(st, { type: 'sfx', s: D.FOE[t.kind].boss ? 'boss_die' : 'ko' });
+          if (D.FOE[t.kind].boss) { ev(st, { type: 'bossdown', x: t.x, y: t.y, name: D.FOE[t.kind].name }); note(st, D.FOE[t.kind].name + ' is dead!', 'good'); st.stats.bosses = (st.stats.bosses || 0) + 1; }
         }
       }
     } else if (t.side === 's' && dmg >= 8 && rnd(st) < 0.08) injure(st, t, false);
@@ -1345,7 +1359,7 @@
     // Night creatures slink away at dawn; looters run for the edge.
     if (F.nocturnal && !S.isNight(st) && S.hour(st) > 6 && S.hour(st) < 18) e.flee = true;
     if (!e.flee && st.hours - e.born > (F.boss ? 8 : 9)) { e.flee = true; e.path = null; }
-    if (F.boss && F.dino && !e.flee && e.hp < e.maxHp * 0.22) { e.flee = true; e.path = null; note(st, 'The Tyrant is badly wounded! It limps back into the forest.', 'good'); ev(st, { type: 'roar', x: e.x, y: e.y }); st.flags.tyrantBeaten = (st.flags.tyrantBeaten || 0) + 1; }   // a raid does not last forever
+    if (F.boss && F.dino && !e.flee && e.hp < e.maxHp * 0.22) { e.flee = true; e.path = null; note(st, 'The Tyrant is badly wounded! It limps back into the forest.', 'good'); ev(st, { type: 'roar', x: e.x, y: e.y }); ev(st, { type: 'bossflee', x: e.x, y: e.y }); st.flags.tyrantBeaten = (st.flags.tyrantBeaten || 0) + 1; }   // a raid does not last forever
     // Stuck (no reachable target): pick the nearest structure, then give up and leave.
     if (!e.flee && (e.stuckT = (e.stuckT || 0) + dt) > 5) { e.stuckT = 0; const moved = Math.hypot(e.x - e.px, e.y - e.py); e.px = e.x; e.py = e.y; if (moved < 10 && e.anim !== 'attack' && !e.swing) { e.stuckN++; e.target = nearestStructure(st, e); e.path = null; if (e.stuckN > 3) { e.flee = true; } } else e.stuckN = 0; }
     if (e.flee) {

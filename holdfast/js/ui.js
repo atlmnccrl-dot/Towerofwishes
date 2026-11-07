@@ -18,7 +18,7 @@
       '<div class="res" id="r-pop" title="Survivors / beds">' + ic('pop', 18) + '<b>1</b></div>';
     $('actions').innerHTML = [['build', 'build', 'Build'], ['people', 'pop', 'People'], ['map', 'map', 'Explore'], ['research', 'book', 'Research'], ['alarm', 'horn', 'Alarm']]
       .map(([a, i, l]) => '<button class="rb" data-act="' + a + '" id="act-' + a + '">' + ic(i, 30) + '<span>' + l + '</span><i class="badge"></i></button>').join('');
-    $('speed').innerHTML = [[0, 'pause'], [1, '1x'], [2, '2x'], [3, '3x']].map(([v, l]) => '<button data-act="speed" data-v="' + v + '" class="sp">' + (l === 'pause' ? ic('pause', 14) : l) + '</button>').join('');
+    $('speed').innerHTML = '<button data-act="pause" class="sp" id="sp-pause" title="Pause (Space)"><i class="pz"></i></button><button data-act="speedcycle" class="sp" id="sp-speed" title="Game speed">1x</button>';
     document.addEventListener('click', onClick);
     document.addEventListener('pointerdown', () => HF.AU && HF.AU.unlock(), { once: false });
   };
@@ -38,8 +38,12 @@
     pick(d) { U.startPlace(d.type); },
     placeOk() { U.confirmPlace(); }, placeNo() { U.cancelPlace(); },
     people() { U.openPeople(); }, map() { U.openExpeditions(); }, research() { U.openResearch('research'); },
-    alarm() { G().cmd('alarm', {}); },
+    alarm() { const s0 = st(); if (s0.threat.active) { if (s0.rallyCd > 0) { HF.AU.ui('error'); U.toast('The horn needs ' + Math.ceil(s0.rallyCd) + ' more seconds.', 'warn'); return; } U.mode = 'rally'; document.body.classList.add('rallying'); U.toast('Tap where your fighters should charge.', 'warn'); } else G().cmd('alarm', {}); },
     speed(d) { G().setSpeed(+d.v); },
+    pause() { const g = G(); if (g.speed === 0) g.setSpeed(U.lastSpeed || 1); else { U.lastSpeed = g.speed; g.setSpeed(0); } },
+    speedcycle() { const g = G(); const v = g.speed === 0 ? (U.lastSpeed || 1) : g.speed % 3 + 1; U.lastSpeed = v; g.setSpeed(v); },
+    cine() { document.body.classList.toggle('nohud'); },
+    objtoggle() { $('obj').classList.toggle('collapsed'); U.objPinned = !$('obj').classList.contains('collapsed'); },
     menu() { U.openSettings(); },
     home() { const h = S.heart(st()); const u = S.present(st())[0]; const t = h ? { x: (h.x + 2.5) * D.TILE, y: (h.y + 1.5) * D.TILE } : u ? { x: u.x, y: u.y } : null; if (t) HF.C.returnTo = { from: { x: HF.R.cam.x, y: HF.R.cam.y, z: HF.R.cam.z }, to: { x: t.x, y: t.y, z: Math.max(1.1, Math.min(HF.R.cam.z, 1.8)) }, t: 0 }; },
     close() { U.closeModal(); },
@@ -95,11 +99,13 @@
     // Clock.
     const h = S.hour(s), hh = Math.floor(h), mm = Math.floor((h - hh) * 6) * 10;
     $('dayline').textContent = 'Day ' + S.day(s);
-    $('hourline').innerHTML = (S.isNight(s) ? '&#9790; ' : '&#9728; ') + String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0') + (s.weather.rain ? ' · rain' : '');
-    document.querySelectorAll('#speed .sp').forEach(b => b.classList.toggle('on', +b.dataset.v === G().speed));
+    $('hourline').innerHTML = (S.isNight(s) ? '&#9790; ' : s.weather.rain ? '&#9730; ' : '&#9728; ') + String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
+    $('sp-pause').classList.toggle('on', G().speed === 0); $('sp-speed').textContent = (G().speed || U.lastSpeed || 1) + 'x'; $('sp-speed').classList.toggle('on', G().speed > 1);
     // Objective.
     const o = D.OBJ[s.obj];
     const TUT = 9; let prog = -1;
+    if (U.lastObj !== s.obj) { U.lastObj = s.obj; U.objT = performance.now(); U.objPinned = false; $('obj').classList.remove('collapsed'); }
+    if (!U.objPinned && s.obj >= TUT && performance.now() - U.objT > 12000) $('obj').classList.add('collapsed');
     if (o) { $('obj-text').textContent = o.text; $('obj-hint').textContent = o.hint || ''; $('obj-step').textContent = s.obj < TUT ? 'Tutorial · step ' + (s.obj + 1) + ' of ' + TUT : 'Objective'; $('obj-count').textContent = ''; }
     if (o && o.id === 'gather') prog = (Math.min(10, s.res.wood) / 10 + Math.min(6, s.res.stone) / 6) / 2;
     if (o && o.id === 'food') prog = Math.min(1, (s.flags.foraged || 0) / 6);
@@ -116,7 +122,8 @@
     $('act-map').classList.toggle('hidden', s.obj < 11 && pop < 3 && !s.stats.raids);
     $('act-research').classList.toggle('hidden', !S.has(s, 'study') && !S.has(s, 'workshop'));
     $('act-alarm').classList.toggle('hidden', s.obj < 9 && !s.threat.active);
-    $('act-alarm').classList.toggle('on', !!s.alarm);
+    $('act-alarm').classList.toggle('on', !!s.alarm && !s.threat.active);
+    { const rb = $('act-alarm'), lab = rb.querySelector('span'), war = s.threat.active; const want = war ? 'Rally' : 'Alarm'; if (lab.textContent !== want) lab.textContent = want; rb.classList.toggle('rally', war); rb.classList.toggle('pulse', war && !(s.rallyCd > 0) && !s.rally); rb.querySelector('.badge').textContent = war && s.rallyCd > 0 ? Math.ceil(s.rallyCd) : ''; }
     $('act-build').classList.toggle('pulse', o && ['fire', 'shelter', 'stock', 'defend'].includes(o.id) && U.open !== 'drawer' && U.mode !== 'place');
     $('act-map').classList.toggle('pulse', o && o.id === 'expedition');
     const exp = s.exps.length; $('act-map').querySelector('.badge').textContent = exp ? exp : '';
@@ -128,6 +135,7 @@
     else if (r && r.warned) { th.className = 'panel warn'; th.innerHTML = ic('flag', 18) + '<span>' + (r.kind === 'dino' ? (r.comp.includes('trex') ? 'The Tyrant' : 'Dinosaurs') : r.hollow ? 'The Hollow' : 'Raiders') + ' in ' + Math.max(0, Math.round(r.at - s.hours)) + 'h · ' + r.dirs.map(S.dirName).join(', ') + '</span>'; }
     else th.className = 'hidden';
     const boss = S.foes(s).find(e => D.FOE[e.kind].boss && !e.flee);
+    document.body.classList.toggle('bossfight', !!boss);
     const bb = $('boss'); if (boss) { bb.className = ''; bb.innerHTML = '<b>' + D.FOE[boss.kind].name + '</b><div class="bb"><i style="width:' + Math.max(0, boss.hp / boss.maxHp * 100) + '%"></i></div>'; } else bb.className = 'hidden';
     if (U.sel) U.refreshPanel(false);
     if (s.pending.length && U.open !== 'pending' && !HF.C.busy()) U.openPending();

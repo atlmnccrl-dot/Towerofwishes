@@ -75,8 +75,16 @@
         { dur: 4, to: { x, y: y - 40, z: 0.85 }, title: D.ERAS[e.era].toUpperCase(), sub: 'The ' + D.ERAS[e.era - 1] + ' becomes a ' + D.ERAS[e.era] + '.' },
       ] };
     },
-    held(st) { const h = S.heart(st); if (!h) return null; return { speed: 0.5, shots: [{ dur: 3, to: { x: (h.x + 2.5) * TS, y: (h.y + 1.5) * TS, z: 1.3 }, title: 'The camp holds' }] }; },
+    bossfall(st, e) { return bossScene(e, 'THE TYRANT HAS FALLEN', 'The forest will remember this night.'); },
+    bossflee(st, e) { return bossScene(e, 'THE TYRANT RETREATS', 'Wounded. It will be back.'); },
+    held(st) { const h = S.heart(st); if (!h) return null; const x = (h.x + 2.5) * TS, y = (h.y + 1.5) * TS; return { speed: 0.4, shots: [{ dur: 1.4, to: { x, y, z: 1.4 }, at: () => HF.AU && HF.AU.swell(3.5, 110) }, { dur: 2.6, to: { x, y: y - 30, z: 0.85 }, title: 'THE CAMP HOLDS', sub: 'Count the living. Mend the walls.' }] }; },
   };
+  function bossScene(e, title, sub) {
+    return { speed: 0.12, shots: [
+      { dur: 1.3, to: { x: e.x, y: e.y - 70, z: 2.2 }, at: () => { R.flash = 0.7; R.shake = 2.5; R.addFx('shockwave', e.x, e.y - 40, 3); R.addFx('explosion_fire', e.x, e.y - 30, 1.5); HF.AU && (HF.AU.roar(e.x, e.y), HF.AU.swell(4, 73)); } },
+      { dur: 2.6, to: { x: e.x, y: e.y - 60, z: 1.5 }, title, sub },
+    ] };
+  }
   function raidScene(st, e, title, text) {
     const foes = S.foes(st); if (!foes.length) return null;
     let mx = 0, my = 0; for (const f of foes) { mx += f.x; my += f.y; } mx /= foes.length; my /= foes.length;

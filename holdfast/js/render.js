@@ -251,14 +251,14 @@
     const fr = A.frame(clip, clip === 'Walk' || clip === 'Run' ? R.time + (x + y) * 0.001 : t);
     const set = u.set;
     const alpha = u.dead ? Math.max(0, 1 - Math.max(0, (u.deadT || 0) - 3) / 3) : 1;
-    const opts = { alpha, flash: u.hurtT > 0 ? 0.8 : 0 };
+    const opts = { alpha, flash: u.hurtT > 0 && !u.dead ? 0.8 : 0 };
     if (u.side === 'e' && S.isNight(st)) { opts.tint = '#401020'; opts.tintA = 0.25; }
     if (!A.drawActor(g, set, clip, fr, u.dir, x, y, scale, opts)) { g.fillStyle = u.side === 'e' ? '#402020' : '#30302a'; g.fillRect(x - 5, y - 30, 10, 30); }
     if (u.dead) return;
     // Overlays: carried load, health, status.
     if (u.carry && u.carry.amt > 0) { if (u.carry.res === 'wood') A.draw(g, 't', 'log_a', x, y - 38, 0.4); else if (u.carry.res === 'stone') A.draw(g, 't', 'rock_m3', x, y - 38, 0.6); else A.icon(g, u.carry.res === 'water' ? 'water' : u.carry.res === 'metal' ? 'anvil' : 'meat', x - 6, y - 50, 12); }
     if (u.side === 'e') { if (u.hp < u.maxHp && !FD.boss) { const w = FD.dino ? 30 : 20, hy = y - (FD.hpY || 46 * scale); g.fillStyle = 'rgba(0,0,0,0.65)'; g.fillRect(x - w / 2, hy, w, 3); g.fillStyle = '#e04838'; g.fillRect(x - w / 2 + 1, hy + 1, (w - 2) * Math.max(0, u.hp / u.maxHp), 1.5); } if (u.carry) A.draw(g, 'x', 'berry_red', x + 8, y - 38, 0.5); }
-    else if (u.hp < u.maxHp - 1 || sel) { g.fillStyle = 'rgba(0,0,0,0.6)'; g.fillRect(x - 10, y - 46, 20, 3); g.fillStyle = u.hp / u.maxHp > 0.5 ? '#6fd26f' : '#e8c050'; g.fillRect(x - 9, y - 45, 18 * Math.max(0, u.hp / u.maxHp), 1.5); }
+    else if (u.hp < u.maxHp * 0.7 || sel) { g.fillStyle = 'rgba(0,0,0,0.6)'; g.fillRect(x - 10, y - 46, 20, 3); g.fillStyle = u.hp / u.maxHp > 0.5 ? '#6fd26f' : '#e8c050'; g.fillRect(x - 9, y - 45, 18 * Math.max(0, u.hp / u.maxHp), 1.5); }
     if (u.side === 's' && u.injury && !u.downed) { g.fillStyle = '#e05040'; g.fillRect(x + 9, y - 42, 2, 6); g.fillRect(x + 7, y - 40, 6, 2); }
     if (u.stranger) { g.font = '10px Adventurer'; g.fillStyle = '#ffe9a8'; g.textAlign = 'center'; g.fillText('?', x, y - 46 + Math.sin(R.time * 4) * 2); }
     if (u.side === 'n') { A.icon(g, 'trade', x - 7, y - 60 + Math.sin(R.time * 3) * 2, 14); if (u.arrived) A.draw(g, 't', 'fv_hand_cart', x + 22, y + 4, 1); }
@@ -298,9 +298,10 @@
       if (p < 2) { ctx.fillStyle = 'rgba(200,235,255,' + (0.25 * (1 - Math.abs(p - 1))) + ')'; ctx.fillRect(x * TS + 4 + h * 18, y * TS + 6 + ((h * 97) % 1) * 18, 8, 1); }
     }
     // Clearing beacon (before the camp exists).
-    if (!st.camp && !(R.actors && R.actors.length)) { const cx = (st.clearing.x + 0.5) * TS, cy = (st.clearing.y + 0.5) * TS; const p = 0.5 + 0.5 * Math.sin(R.time * 3); ctx.strokeStyle = 'rgba(255,220,140,' + (0.35 + p * 0.4) + ')'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(cx, cy, 52 + p * 6, 26 + p * 3, 0, 0, Math.PI * 2); ctx.stroke(); if (Math.random() < 0.15) R.addFx('motes', cx + (Math.random() - 0.5) * 80, cy + (Math.random() - 0.5) * 40, 1); }
+    if (!st.camp && !(R.actors && R.actors.length)) { const cx = (st.clearing.x + 0.5) * TS, cy = (st.clearing.y + 0.5) * TS; const p = 0.5 + 0.5 * Math.sin(R.time * 3); ctx.strokeStyle = 'rgba(255,220,140,' + (0.35 + p * 0.4) + ')'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(cx, cy, 52 + p * 6, 26 + p * 3, 0, 0, Math.PI * 2); ctx.stroke(); if (Math.random() < 0.04) R.addFx('motes', cx + (Math.random() - 0.5) * 80, cy + (Math.random() - 0.5) * 40, 1); }
     // Deco on the ground: stumps, rubble, graves.
     for (const d of st.deco) { if (d.x < tx0 || d.x > tx1 || d.y < ty0 || d.y > ty1) continue; if (d.k === 'stump') A.draw(ctx, 'p', 'stump', d.x * TS + 16, (d.y + 1) * TS - 6, 1); else A.draw(ctx, 't', 'ruin_stone_c', d.x * TS + 16, (d.y + 1) * TS, 1); }
+    if (st.rally) { const rx = (st.rally.x + 0.5) * TS, ry = (st.rally.y + 0.5) * TS, p = 0.5 + 0.5 * Math.sin(R.time * 6); ctx.strokeStyle = 'rgba(255,200,90,' + (0.4 + p * 0.5) + ')'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(rx, ry, 30 + p * 6, 14 + p * 3, 0, 0, Math.PI * 2); ctx.stroke(); A.draw(ctx, 'x', 'flag_red', rx, ry + 4, 1.5); }
     // Placement ghost footprint.
     if (view.ghost) drawGhostFloor(ctx, st, view.ghost);
     // Selected building footprint, tower range.
@@ -352,6 +353,14 @@
     // Floating texts.
     ctx.textAlign = 'center';
     for (let i = R.texts.length - 1; i >= 0; i--) { const t = R.texts[i]; t.t += dt; if (t.t > 1.3) { R.texts.splice(i, 1); continue; } ctx.font = t.size + 'px Adventurer'; ctx.globalAlpha = Math.min(1, 2.2 - t.t * 1.7); ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillText(t.text, t.x + 0.7, t.y - t.t * 22 + 0.7); ctx.fillStyle = t.col; ctx.fillText(t.text, t.x, t.y - t.t * 22); ctx.globalAlpha = 1; }
+    // Cloud shadows drifting over the land by day (skipped on the lowest resolution).
+    if (S.light(st) > 0.35 && R.dpr > 1.05 && !st.weather.rain && !R.noClouds && R.richFx !== false) {
+      if (!cloudC) cloudC = makeClouds();
+      const T = 1024, dx = (R.time * 9) % T, dy = (R.time * 4) % T;
+      ctx.globalAlpha = 0.16 * S.light(st); ctx.imageSmoothingEnabled = true;
+      for (let yy = Math.floor((wy0 - dy) / T) * T + dy; yy < wy0 + vh; yy += T) for (let xx = Math.floor((wx0 - dx) / T) * T + dx; xx < wx0 + vw; xx += T) ctx.drawImage(cloudC, xx, yy, T, T);
+      ctx.globalAlpha = 1; ctx.imageSmoothingEnabled = false;
+    }
     // Fog of war.
     if (R.fogA > 0.01) {
       let dark = false; for (let y = ty0; y <= Math.min(M - 1, ty1) && !dark; y++) for (let x = tx0; x <= tx1; x++) if (!st.fog[y * N + x]) { dark = true; break; }
@@ -415,6 +424,13 @@
     ctx.imageSmoothingEnabled = false;
   }
   let glowC = null;
+  let cloudC = null;
+  function makeClouds() { // a tileable 128 px field of soft dark blobs, drawn 8x larger
+    const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+    for (let i = 0; i < 9; i++) { const x = Wd.hash(i, 3, 91) * 128, y = Wd.hash(i, 5, 91) * 128, r = 18 + Wd.hash(i, 7, 91) * 30;
+      for (const [ox, oy] of [[0, 0], [128, 0], [-128, 0], [0, 128], [0, -128], [128, 128], [-128, -128], [128, -128], [-128, 128]]) { const gr = g.createRadialGradient(x + ox, y + oy, 0, x + ox, y + oy, r); gr.addColorStop(0, 'rgba(10,20,30,1)'); gr.addColorStop(1, 'rgba(10,20,30,0)'); g.fillStyle = gr; g.fillRect(x + ox - r, y + oy - r, r * 2, r * 2); } }
+    return c;
+  }
   // Where the current objective points, in world px (or null).
   R.objTarget = function (st) {
     const o = D.OBJ[st.obj]; if (!o) return null;
@@ -479,14 +495,14 @@
   // ---- Simulation events -> effects ---------------------------------------------------------------
   R.onEvent = function (st, e) {
     switch (e.type) {
-      case 'hit': R.addFx(['dark_curse', 'hit_pierce', 'claw', 'hit_blunt'].includes(e.fx) ? e.fx : 'hit_slash', e.x, e.y, e.fx === 'claw' ? 1.2 : 1); R.addText('' + e.dmg, e.x, e.y - 6, e.side === 's' ? '#ff8a70' : '#fff2c0', 9); if (e.side === 's') R.shake = Math.max(R.shake, 0.6); break;
+      case 'hit': R.addFx(['dark_curse', 'hit_pierce', 'claw', 'hit_blunt'].includes(e.fx) ? e.fx : 'hit_slash', e.x, e.y, e.fx === 'claw' ? 1.2 : 1); if (e.dmg >= 9 || e.side === 's') R.addText('' + e.dmg, e.x, e.y - 6, e.side === 's' ? '#ff8a70' : '#fff2c0', e.dmg >= 15 ? 11 : 8); if (e.side === 's') R.shake = Math.max(R.shake, 0.5); if (e.dmg >= 15) R.hitstop = Math.max(R.hitstop || 0, 0.05); break;
       case 'bhit': R.addFx('hit_blunt', e.x, e.y, 1.1); if (Math.random() < 0.3) R.addFx('dust_cloud', e.x, e.y + 10, 0.8); break;
       case 'fx': if (e.small && e.fx === 'leaves' && Math.random() < 0.5) break; R.addFx(e.fx, e.x, e.y, e.small ? 0.45 : 1.2, e.small ? { alpha: 0.7 } : null); break;
-      case 'gain': if (e.amt > 0) R.addText('+' + e.amt + ' ' + e.res, e.x, e.y, { wood: '#e0b070', stone: '#d0d0c8', food: '#ff9a80', water: '#8fd0ff', metal: '#b8c8d8' }[e.res] || '#fff', 8); break;
+      case 'gain': if (e.amt >= 3 && R.cam.z > 1.0) R.addText('+' + e.amt + ' ' + e.res, e.x, e.y, { wood: '#e0b070', stone: '#d0d0c8', food: '#ff9a80', water: '#8fd0ff', metal: '#b8c8d8' }[e.res] || '#fff', 7); break;
       case 'built': { const b = st.buildings[e.id]; if (b) { R.addFx('dust_cloud', (b.x + b.w / 2) * TS, (b.y + b.h) * TS - 6, 1.6); R.addFx('sparkles', (b.x + b.w / 2) * TS, (b.y + b.h / 2) * TS - 16, 1.4); } break; }
       case 'death': R.shake = 1.2; break;
       case 'roar': { const d = Math.hypot(e.x - R.cam.x, e.y - R.cam.y); R.shake = Math.max(R.shake, Math.max(0.8, 3 - d / 300)); R.addFx('shockwave', e.x, e.y - 60, 2.5); R.flash = Math.max(R.flash || 0, 0.12); break; }
-      case 'stomp': { const d = Math.hypot(e.x - R.cam.x, e.y - R.cam.y); if (d < 700) R.shake = Math.max(R.shake, 0.9 * (1 - d / 700)); R.addFx('dust_land', e.x, e.y, 1.2); break; }
+      case 'stomp': { const d = Math.hypot(e.x - R.cam.x, e.y - R.cam.y); if (d < 700) R.shake = Math.max(R.shake, 0.9 * (1 - d / 700)); R.addFx('dust_land', e.x, e.y + 4, 0.8, { alpha: 0.45 }); break; }
       case 'impact': R.shake = Math.max(R.shake, 1.2); R.addFx('hit_big', e.x, e.y - 20, 1.5); R.addFx('dust_cloud', e.x, e.y, 1.2); break;
     }
     if (e.type === 'sfx' && e.s === 'chop') { const n = Object.values(st.nodes).find(n => n.type === 'tree' && Math.abs(n.x * TS + 16 - e.x) < 48 && Math.abs((n.y + 1) * TS - e.y) < 48); if (n) n.hitT = 0.15; }

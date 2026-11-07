@@ -79,9 +79,8 @@
     C.seen = {}; C.queue = []; C.active = null;
     const u = Object.values(G.st.units).find(x => x.leader);
     R.cam.x = u.x; R.cam.y = u.y; R.cam.z = 1.8;
-    U.select({ uid: u.id });
     C.play('opening', G.st);
-    C.onEnd = (id) => { if (id === 'opening') { U.banner('Day 1', 'Find a place to make camp'); U.select({ uid: u.id }); } };
+    C.onEnd = (id) => { if (id === 'opening') { U.banner('Day 1', 'Find a place to make camp'); } };
     AU.set({ menu: false });
     save(false);
   }
@@ -126,7 +125,10 @@
         case 'cine': C.play(e.id, st, e); break;
         case 'obj': { const o = D.OBJ[e.obj]; const prev = D.OBJ[e.obj - 1]; if (prev && st.objDone[prev.id] && G.mode === 'play' && !C.busy()) U.banner(prev.text, o && o.id !== 'free' ? 'Next: ' + o.text : ''); $('obj').classList.remove('done'); void $('obj').offsetWidth; $('obj').classList.add('done'); break; }
         case 'dawn': U.banner('Day ' + e.day, e.short ? 'Not enough to go round' : 'Ate ' + e.food + ' food · drank ' + e.water + ' water'); break;
-        case 'victory': if (e.first) C.play('held', st); else U.banner('The camp holds', ''); break;
+        case 'victory': if (e.first || e.big) C.play('held', st); else U.banner('The camp holds', ''); break;
+        case 'bossdown': C.play('bossfall', st, e); break;
+        case 'bossflee': C.play('bossflee', st, e); break;
+        case 'rally': R.addFx('shockwave', e.x, e.y, 1.6); R.marks.push({ x: e.x, y: e.y, t: 0, col: 'rgba(255,200,90,0.95)' }); U.banner('RALLY', 'Fighters to the horn · +30% damage for 20 s'); break;
         case 'warn': U.banner(e.raid.hollow ? 'The Hollow stir' : 'Raiders sighted', 'From the ' + e.raid.dirs.map(S.dirName).join(' and ')); break;
         case 'death': U.banner(e.name, 'is dead'); break;
         case 'gameover': setTimeout(() => U.gameOver(st), 1500); try { localStorage.removeItem(SAVE); } catch (er) { /* */ } break;
@@ -144,8 +146,8 @@
   function adapt(dt) {
     ema = ema * 0.92 + dt * 1000 * 0.08;
     if (ema > 26) { slowT += dt; fastT = 0; } else if (ema < 15) { fastT += dt; slowT = 0; } else { slowT = 0; fastT = 0; }
-    if (slowT > 1.2 && R.dpr > 1) { R.setScale(R.dpr - 0.25); slowT = 0; ema = 18; }
-    if (fastT > 8 && R.dpr < R.cap) { R.setScale(R.dpr + 0.25); fastT = 0; }
+    if (slowT > 1.2) { if (R.richFx !== false) R.richFx = false; else if (R.dpr > 1) R.setScale(R.dpr - 0.25); slowT = 0; ema = 18; }
+    if (fastT > 8) { if (R.dpr < R.cap) R.setScale(R.dpr + 0.25); else if (R.richFx === false) R.richFx = true; fastT = 0; }
   }
   let errShown = 0;
   function frame(t) {
@@ -161,7 +163,8 @@
     } else if (G.mode === 'play' && G.st) {
       const st = G.st;
       C.update(dt, st);
-      const paused = G.speed === 0 && !C.busy();
+      if (R.hitstop > 0) R.hitstop -= dt;
+      const paused = (G.speed === 0 && !C.busy()) || R.hitstop > 0;
       if (!paused) {
         acc += dt * (C.busy() ? C.speed() : G.speed);
         let n = 0; while (acc >= STEP && n < 5) { if (acc < STEP * 2) { prev.clear(); for (const id in st.units) { const u = st.units[id]; prev.set(id, [u.x, u.y]); } } S.step(st, STEP); acc -= STEP; n++; } if (n >= 5) acc = 0;
@@ -169,7 +172,7 @@
       handleEvents();
       // Camera follow.
       if (G.followId && !C.busy()) { const u = st.units[G.followId]; if (u && !u.dead && !u.away) { R.cam.x += (u.x - R.cam.x) * Math.min(1, dt * 4); R.cam.y += (u.y - 20 - R.cam.y) * Math.min(1, dt * 4); } else G.followId = null; }
-      keyPan(dt);
+      keyPan(dt); if (!C.busy()) cameraFeel(dt);
       if (!C.busy()) R.clampCam();
       R.frame(st, dt, { sel: U.sel, ghost: U.mode === 'place' ? U.ghost() : null, interp: { prev, a: paused ? 1 : Math.min(1, acc / STEP) } });
       adapt(dt);
@@ -189,7 +192,7 @@
   function bindInput() {
     const cv = $('game');
     cv.addEventListener('pointerdown', e => {
-      AU.unlock();
+      AU.unlock(); glide.on = false; glide.vx = glide.vy = 0;
       if (C.busy()) { C.skip(); return; }
       cv.setPointerCapture && cv.setPointerCapture(e.pointerId);
       ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -209,28 +212,35 @@
         const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
         if (Math.hypot(dx, dy) > 8) drag.moved = true;
         if (drag.place) { const w = R.s2w(e.clientX, e.clientY); U.placeAt(Math.floor(w.x / TS), Math.floor(w.y / TS), false); }
-        else if (drag.moved) { R.cam.x = drag.cx - dx / R.cam.z; R.cam.y = drag.cy - dy / R.cam.z; G.followId = null; }
+        else if (drag.moved) { const nx = drag.cx - dx / R.cam.z, ny = drag.cy - dy / R.cam.z; const now = performance.now(), dtm = Math.max(8, now - (drag.lt || now - 16)); glide.vx = glide.vx * 0.6 + (nx - R.cam.x) / dtm * 1000 * 0.4; glide.vy = glide.vy * 0.6 + (ny - R.cam.y) / dtm * 1000 * 0.4; drag.lt = now; R.cam.x = nx; R.cam.y = ny; G.followId = null; }
       }
     });
     const up = e => {
+      if (drag && drag.moved && !drag.place && performance.now() - (drag.lt || 0) < 80) glide.on = true; else if (drag) { glide.vx = glide.vy = 0; }
       if (!ptrs.has(e.pointerId)) return; ptrs.delete(e.pointerId);
       if (drag && !drag.moved && !drag.place && performance.now() - drag.t < 600) tap(e.clientX, e.clientY);
       if (ptrs.size < 2) pinch = null; if (ptrs.size === 0) drag = null;
     };
     cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
-    cv.addEventListener('wheel', e => { e.preventDefault(); const w0 = R.s2w(e.clientX, e.clientY); R.cam.z = Math.max(0.55, Math.min(3.2, R.cam.z * Math.pow(1.0015, -e.deltaY))); const w1 = R.s2w(e.clientX, e.clientY); R.cam.x += w0.x - w1.x; R.cam.y += w0.y - w1.y; }, { passive: false });
+    cv.addEventListener('wheel', e => { e.preventDefault(); zoomT = { z: Math.max(0.55, Math.min(3.2, (zoomT ? zoomT.z : R.cam.z) * Math.pow(1.0018, -e.deltaY))), sx: e.clientX, sy: e.clientY }; }, { passive: false });
     window.addEventListener('keydown', e => {
       keys[e.key.toLowerCase()] = true;
       if (G.mode !== 'play') return;
       if (e.key === ' ') { G.speed = G.speed === 0 ? 1 : 0; e.preventDefault(); }
       if (e.key === 'Escape') { if (C.busy()) C.skip(); else if (U.mode === 'place') U.cancelPlace(); else if (U.open) U.closeModal(); else U.select(null); U.closeDrawer(); }
       if (e.key === 'b' && !U.open) U.openBuild();
+      if (e.key === 'h') document.body.classList.toggle('nohud');
       if (e.key === 'Enter' && U.mode === 'place') U.confirmPlace();
       if (e.key === '+' || e.key === '=') R.cam.z *= 1.15; if (e.key === '-') R.cam.z /= 1.15;
       if (['1', '2', '3'].includes(e.key)) G.speed = +e.key;
     });
     window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
     document.addEventListener('gesturestart', e => e.preventDefault());
+  }
+  const glide = { vx: 0, vy: 0, on: false }; let zoomT = null;
+  function cameraFeel(dt) {   // coasting after a fling, eased wheel zoom around the cursor
+    if (glide.on) { R.cam.x -= 0; R.cam.x += glide.vx * dt; R.cam.y += glide.vy * dt; const k = Math.exp(-dt * 4.5); glide.vx *= k; glide.vy *= k; if (Math.hypot(glide.vx, glide.vy) < 8) glide.on = false; }
+    if (zoomT) { const w0 = R.s2w(zoomT.sx, zoomT.sy); R.cam.z += (zoomT.z - R.cam.z) * Math.min(1, dt * 12); const w1 = R.s2w(zoomT.sx, zoomT.sy); R.cam.x += w0.x - w1.x; R.cam.y += w0.y - w1.y; if (Math.abs(zoomT.z - R.cam.z) < 0.002) zoomT = null; }
   }
   function keyPan(dt) {
     const v = 420 * dt / R.cam.z; let mx = 0, my = 0;
@@ -259,6 +269,7 @@
   function tap(sx, sy) {
     const st = G.st; if (!st || G.mode !== 'play') return;
     if (U.mode === 'place') return;
+    if (U.mode === 'rally') { const w = R.s2w(sx, sy); U.mode = 'normal'; document.body.classList.remove('rallying'); G.cmd('rally', { x: Math.floor(w.x / TS), y: Math.floor(w.y / TS) }); return; }
     if (U.open === 'drawer') U.closeDrawer();
     const p = pickAt(sx, sy);
     if (!st.camp) {
