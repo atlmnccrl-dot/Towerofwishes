@@ -12,6 +12,9 @@
   C.BEATS = {
     ldx: [['snap', 0, 0.3], ['eye', 0.3, 1.3], ['title', 1.3, 2.3], ['plant', 2.3, 2.8], ['draw', 2.8, 3.8], ['lys', 3.8, 4.3], ['moon', 4.3, 5.95], ['red', 5.95, 6.4]],
     moon: [['snap', 0, 0.25], ['draw', 0.25, 1.15], ['moon', 1.15, 2.95], ['red', 2.95, 3.4]],
+    petals: [['snap', 0, 0.3], ['bloom', 0.3, 1.5], ['petalstorm', 1.5, 3.5], ['finale', 3.5, 4.2]],
+    storm: [['snap', 0, 0.3], ['charge', 0.3, 1.4], ['spear', 1.4, 2.5], ['thunderrain', 2.5, 3.5], ['finale', 3.5, 4.2]],
+    cuts: [['snap', 0, 0.3], ['vanish', 0.3, 1.0], ['hundred', 1.0, 3.5], ['finale', 3.5, 4.2]],
   };
   C.beatAt = function (c) {
     for (const b of C.BEATS[c.kind]) if (c.t < b[2]) return b;
@@ -22,13 +25,17 @@
     const out = [], at = (t) => t0 < t && t <= t1;
     for (const b of C.BEATS[c.kind]) {
       if (!at(b[1])) continue;
-      ({ snap: () => out.push(['charge', 0.9]), eye: () => out.push(['quake', 0.6]), title: () => { out.push(['allout', 1]); out.push(['clang_1', 0.7]); },
+      ({ bloom: () => out.push(['magic', 0.9]), petalstorm: () => out.push(['whoosh', 1]), charge: () => out.push(['charge', 1]), spear: () => { out.push(['blow_big', 1]); out.push(['quake', 1]); }, thunderrain: () => out.push(['quake', 0.8]),
+        vanish: () => out.push(['whoosh', 0.8]), hundred: () => out.push(['slash_2', 1]), finale: () => { out.push(['blow_big', 1]); out.push(['ko', 0.8]); },
+        snap: () => out.push(['charge', 0.9]), eye: () => out.push(['quake', 0.6]), title: () => { out.push(['allout', 1]); out.push(['clang_1', 0.7]); },
         plant: () => { out.push(['blow_big', 1]); out.push(['quake', 0.8]); }, draw: () => { out.push(['whoosh', 1]); }, lys: () => out.push(['magic', 0.8]),
         moon: () => out.push(['swish_0', 0.8]), red: () => { out.push(['blow_big', 1]); out.push(['ko', 0.8]); } })[b[0]]();
     }
     const m = C.BEATS[c.kind].find((b) => b[0] === 'moon');
-    for (let i = 0; i < 6; i++) { const ht = m[1] + (m[2] - m[1]) * (0.3 + 0.7 * (i + 0.6) / 6); if (at(ht)) out.push([i % 2 ? 'slash_1' : 'slash_2', 0.8]); }
-    const d = C.BEATS[c.kind].find((b) => b[0] === 'draw'); if (at(d[1] + (d[2] - d[1]) * 0.45)) out.push(['slash_0', 1]);
+    if (m) for (let i = 0; i < 6; i++) { const ht = m[1] + (m[2] - m[1]) * (0.3 + 0.7 * (i + 0.6) / 6); if (at(ht)) out.push([i % 2 ? 'slash_1' : 'slash_2', 0.8]); }
+    const d = C.BEATS[c.kind].find((b) => b[0] === 'draw'); if (d && at(d[1] + (d[2] - d[1]) * 0.45)) out.push(['slash_0', 1]);
+    const many = C.BEATS[c.kind].find((b) => b[0] === 'petalstorm' || b[0] === 'hundred' || b[0] === 'thunderrain');
+    if (many) for (let i = 0; i < 8; i++) { const ht = many[1] + (many[2] - many[1]) * (i + 0.5) / 8; if (at(ht)) out.push([c.kind === 'storm' ? 'quake' : i % 2 ? 'slash_1' : 'swish_2', 0.6]); }
     return out;
   };
 
@@ -299,6 +306,82 @@
     if (k > 0.75) fill(ctx, '#ffffff', (k - 0.75) / 0.25 * 0.6);
   };
 
+  // ---- the other heroes' ultimates -------------------------------------------------------------
+  const ART_COL = { petals: '#ff7aa0', storm: '#ffd060', cuts: '#c9a0ff' };
+  const others = (s, c) => c.targets.map((id) => s.units.find((u) => u.id === id)).filter(Boolean);
+  function silhouettes(ctx, s, c, k, T, col, react) {
+    const tg = others(s, c);
+    tg.slice(0, 5).forEach((o, i) => { const main = i === 0, sc = main ? Math.min(3.2, 2.2 * o.scale) : 1.5 * o.scale, x = main ? W() * 0.5 : W() * (0.15 + i * 0.2), y = H() * (main ? 0.94 : 0.9); A.actor(ctx, o.set, react ? 'TakeDamage' : 'Idle4', react ? Math.floor(T * 16 + i * 3) % 15 : Math.floor(T * 8) % 15, Math.PI, Math.round(x + (react ? Math.sin(T * 40 + i) * 2 : 0)), Math.round(y), sc, { shade: col }); });
+  }
+  // A grey close-up of the hero casting (Lys), with a flower sigil blooming.
+  B.bloom = function (ctx, s, c, k, T) {
+    fill(ctx, '#0a0408'); embers(ctx, T, 30, 0, W(), '#ff7aa0');
+    const h = hero(s), sc = 4.2;
+    A.actor(ctx, h.set, 'Attack5', Math.floor(T * 18) % 15, 0, Math.round(W() * 0.3), Math.round(H() * 1.12), sc, { grey: true });
+    const kk = ease(k * 1.3), cx = W() * 0.68, cy = H() * 0.46;
+    ctx.strokeStyle = 'rgba(255,122,160,0.8)'; ctx.lineWidth = 1;
+    for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(cx, cy, 20 + i * 14 + kk * 10, T * (i % 2 ? 1 : -1), T * (i % 2 ? 1 : -1) + 5); ctx.stroke(); }
+    flower(ctx, cx, cy, 8 + 34 * kk, '#ff7aa0', T * 0.8); flower(ctx, cx, cy, 4 + 16 * kk, '#ffffff', -T);
+    if (k > 0.9) fill(ctx, '#ffffff', (k - 0.9) / 0.1);
+  };
+  // A storm of petals tearing through the foes.
+  B.petalstorm = function (ctx, s, c, k, T) {
+    const g = ctx.createLinearGradient(0, 0, W(), H()); g.addColorStop(0, '#1a0610'); g.addColorStop(1, '#3a0a1c'); ctx.fillStyle = g; ctx.fillRect(0, 0, W(), H());
+    silhouettes(ctx, s, c, k, T, '#05020a', true);
+    for (let i = 0; i < 220; i++) {
+      const sp = 0.6 + hash(i, 1) * 1.4, ph = (hash(i, 2) + T * sp * 0.9) % 1, x = -40 + ph * (W() + 80), y = hash(i, 3) * H() + Math.sin(T * 4 + i) * 8 - ph * 30, sz = 1 + (i % 3);
+      ctx.fillStyle = i % 5 ? (i % 2 ? '#ff7aa0' : '#ffb8d0') : '#ffffff'; ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.rotate(T * 6 + i); ctx.fillRect(-sz, -sz / 2, sz * 2, sz); ctx.restore();
+    }
+    for (let j = 0; j < 4; j++) { const kk = (k * 4 - j); if (kk < 0 || kk > 1) continue; const yy = H() * (0.3 + j * 0.15); ctx.globalAlpha = 1 - kk; line(ctx, 0, yy + 20, W(), yy - 20, 2, '#ffffff'); ctx.globalAlpha = 1; if (kk < 0.15) PX.shake = 3; }
+  };
+  // The spear raised in a thunderstorm (Kestrel).
+  B.charge = function (ctx, s, c, k, T) {
+    fill(ctx, '#05060c'); const h = hero(s);
+    if (Math.floor(T * 14) % 5 === 0) fill(ctx, 'rgba(255,240,180,0.25)');
+    A.actor(ctx, h.set, 'Special1', Math.min(9, Math.floor(k * 10)), 0, Math.round(W() * 0.5), Math.round(H() * 1.1), 4.0, { grey: true });
+    for (let i = 0; i < 5; i++) { const sx = W() * 0.5 + (hash(i, Math.floor(T * 12)) - 0.5) * 60, sy = H() * 0.2; ctx.strokeStyle = i % 2 ? '#ffffff' : '#ffd060'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(sx, 0); let x = sx, y = 0; while (y < sy + 40) { x += (hash(i, y | 0) - 0.5) * 14; y += 8; ctx.lineTo(x, y); } ctx.stroke(); }
+    embers(ctx, T, 26, 0, W(), '#ffd060');
+  };
+  // One colossal bolt from the sky onto the foe, an impact frame.
+  B.spear = function (ctx, s, c, k, T) {
+    const white = k > 0.25 && k < 0.36, dark = k >= 0.36 && k < 0.45;
+    fill(ctx, white ? '#ffffff' : dark ? '#000000' : '#0a0a14');
+    silhouettes(ctx, s, c, k, T, white ? '#000000' : dark ? '#ffffff' : '#000000', k > 0.3);
+    if (k > 0.2 && !white && !dark) {
+      const cx = W() * 0.5, w = 6 + 10 * Math.max(0, 1 - (k - 0.45) * 2);
+      for (const [col, ww] of [['rgba(255,208,96,0.45)', w * 3], ['#ffffff', w]]) { ctx.strokeStyle = col; ctx.lineWidth = ww; ctx.beginPath(); ctx.moveTo(cx, 0); let x = cx; for (let y = 0; y <= H() * 0.9; y += 10) { x = cx + (hash(Math.floor(T * 20), y) - 0.5) * 18; ctx.lineTo(x, y); } ctx.stroke(); }
+      ctx.fillStyle = 'rgba(255,240,180,0.35)'; ctx.beginPath(); ctx.ellipse(cx, H() * 0.9, 80, 14, 0, 0, 7); ctx.fill();
+    }
+    if (white || dark) { ctx.strokeStyle = white ? '#000' : '#ffd060'; ctx.lineWidth = 1; ctx.beginPath(); for (let i = 0; i < 50; i++) { const a = hash(i, 9) * 6.28, r0 = 30 + hash(i, 8) * 30; ctx.moveTo(W() / 2 + Math.cos(a) * r0, H() * 0.6 + Math.sin(a) * r0); ctx.lineTo(W() / 2 + Math.cos(a) * (r0 + 200), H() * 0.6 + Math.sin(a) * (r0 + 200)); } ctx.stroke(); PX.shake = 7; }
+  };
+  B.thunderrain = function (ctx, s, c, k, T) {
+    fill(ctx, '#07070f'); silhouettes(ctx, s, c, k, T, '#000000', true);
+    for (let i = 0; i < 9; i++) { const ph = (T * 3 + hash(i, 4)) % 1; if (ph > 0.3) continue; const x = hash(i, Math.floor(T * 3 + hash(i, 4))) * W(); ctx.strokeStyle = ph < 0.1 ? '#ffffff' : '#ffd060'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, 0); let xx = x; for (let y = 0; y < H() * 0.92; y += 9) { xx += (hash(i * 7, y) - 0.5) * 12; ctx.lineTo(xx, y); } ctx.stroke(); if (ph < 0.08) fill(ctx, 'rgba(255,240,200,0.25)'); }
+  };
+  // Wisp vanishes into smoke, then a hundred cuts land from every side.
+  B.vanish = function (ctx, s, c, k, T) {
+    fill(ctx, '#08060c'); const h = hero(s);
+    A.actor(ctx, h.set, 'Idle4', Math.floor(T * 8) % 15, 0, Math.round(W() * 0.5), Math.round(H() * 1.05), 3.8, { grey: true, alpha: 1 - ease(k * 1.2) });
+    for (let i = 0; i < 60; i++) { const a = hash(i, 2) * 6.28, r = ease(k) * (20 + hash(i, 3) * 90); ctx.fillStyle = `rgba(${i % 3 ? '60,40,80' : '201,160,255'},${0.8 - k * 0.6})`; const sz = 3 + hash(i, 4) * 6; ctx.fillRect(Math.round(W() * 0.5 + Math.cos(a) * r), Math.round(H() * 0.6 + Math.sin(a) * r * 0.6), sz, sz); }
+  };
+  B.hundred = function (ctx, s, c, k, T) {
+    fill(ctx, '#050307'); silhouettes(ctx, s, c, k, T, '#e8e0f0', true);
+    const n = Math.floor(k * 60), h = hero(s);
+    for (let i = 0; i < n; i++) { const age = (k * 60 - i) / 60, a = hash(i, 5) * Math.PI, cx = W() * (0.3 + hash(i, 6) * 0.4), cy = H() * (0.45 + hash(i, 7) * 0.4), L = 60 + hash(i, 8) * 80; if (age > 0.25) continue; ctx.globalAlpha = 1 - age / 0.25; line(ctx, cx - Math.cos(a) * L, cy - Math.sin(a) * L, cx + Math.cos(a) * L, cy + Math.sin(a) * L, age < 0.03 ? 2 : 1, i % 4 ? '#ffffff' : '#c9a0ff'); }
+    ctx.globalAlpha = 1;
+    const j = Math.floor(T * 14); A.actor(ctx, h.set, ['Attack1', 'Attack2', 'Attack6', 'Kick'][j % 4], 8, j % 2 ? 0 : Math.PI, Math.round(W() * (0.2 + hash(j, 1) * 0.6)), Math.round(H() * (0.5 + hash(j, 2) * 0.35)), 1.6, { shade: '#c9a0ff' });
+    if (Math.floor(T * 14) % 4 === 0) PX.shake = 2;
+  };
+  // The last frame: the art's colour, the foes falling in black, its name.
+  B.finale = function (ctx, s, c, k, T) {
+    const col = ART_COL[c.kind] || RED; fill(ctx, col);
+    const tg = others(s, c)[0], h = hero(s);
+    if (tg) A.actor(ctx, tg.set, 'Die', Math.min(14, Math.floor(k * 16)), 0, Math.round(W() * 0.4), Math.round(H() * 0.95), Math.min(3.4, 2.4 * tg.scale), { shade: '#000000' });
+    A.actor(ctx, h.set, 'Idle4', Math.floor(T * 8) % 15, Math.PI, Math.round(W() * 0.84), Math.round(H() * 0.95), 1.9, { shade: '#000000' });
+    line(ctx, W() * 1.05, H() * 0.05, W() * 1.05 - W() * 1.2 * ease(k * 2.5), H() * 0.05 + H() * ease(k * 2.5), 2, '#ffffff');
+    title(ctx, VS.ART[c.kind].name, W() / 2, H() * 0.22, Math.min(20, Math.round(W() / (VS.ART[c.kind].name.length * 0.62 + 2))), k, T);
+    if (k > 0.8) fill(ctx, '#ffffff', (k - 0.8) / 0.2 * 0.6);
+  };
   C.kit = { title, sword, flower, crack, speedLines, hStreaks, line, fill, ease, embers, hash };
   C.draw = function (ctx, s) {
     const c = s.cine; if (!c) return;

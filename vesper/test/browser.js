@@ -19,6 +19,8 @@ fs.mkdirSync(out, { recursive: true });
   await shot('01-title', 900);
 
   await button('New night');
+  await page.waitForFunction(() => VS.ui.current === 'heroes'); await shot('01b-heroes', 600);
+  await page.locator('#ui .card').first().click();
   await page.waitForFunction(() => VS.main.state === 'scene');
   await shot('02-card', 700);
   for (let i = 0; i < 2; i++) { await page.keyboard.press('Enter'); await page.waitForTimeout(350); }

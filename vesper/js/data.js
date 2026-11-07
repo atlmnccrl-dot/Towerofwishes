@@ -42,6 +42,57 @@
     parry: { win: 0.2, dur: 0.42 },
     lastDitch: 0.3, // the Last Ditch Effort opens at or below this share of health
   };
+  // ---- The roster: four playable heroes, each with a combo, a heavy, two skills and an ultimate.
+  // Skill kinds (sim.js): wave, blinkStrike, zone, blink, chain, leapSlam, clones, smoke.
+  // art: the ultimate's cinematic (cine.js). Vesper's is the Red Moon / the Last Ditch Effort.
+  const base = D.HERO;
+  D.HEROES = {
+    vesper: Object.assign({}, base, { id: 'vesper', name: 'Vesper', title: 'The Moonblade', weapon: 'Sword', color: '#ff3048', art: 'moon',
+      blurb: 'A knight in a red hood. Combos, parries, and the moon itself.',
+      skills: [
+        { name: 'Crescent Wave', kind: 'wave', cd: 6, clip: 'Attack3', dmg: 14, speed: 300, r: 16, fx: 'dark_slash', poise: 14 },
+        { name: 'Phantom Step', kind: 'blinkStrike', cd: 7, clip: 'Attack6', dmg: 18, range: 150, r: 34, poise: 20 }] }),
+    lys: Object.assign({}, base, { id: 'lys', name: 'Lys', title: 'The Bloom Witch', weapon: 'Spells', color: '#ff7aa0', set: 'lyra', art: 'petals', hp: 108, spd: 116, ranged: true, dodge: { dur: 0.34, dist: 128, iframes: [0.02, 0.34], perfect: 0.18, cd: 0.12 },
+      blurb: 'Fights from range with bolts, frost and blight. Fragile up close.',
+      combo: [
+        { clip: 'Attack5', wind: 0.09, recover: 0.14, dmg: 8, poise: 7, kb: 8, bolt: { fx: 'magic_missile', speed: 320 } },
+        { clip: 'Attack5', wind: 0.09, recover: 0.14, dmg: 8, poise: 7, kb: 8, bolt: { fx: 'magic_missile', speed: 320 } },
+        { clip: 'Attack3', wind: 0.18, recover: 0.28, dmg: 13, poise: 14, kb: 18, bolt: { fx: 'fireball_arcane', speed: 240, burst: 26 }, finisher: true },
+        { clip: 'Attack3', wind: 0.2, recover: 0.3, dmg: 16, poise: 16, kb: 22, bolt: { fx: 'fireball_big', speed: 240, burst: 34, fan: 3 }, finisher: true }],
+      heavy: { clip: 'Special1', wind: 0.26, recover: 0.36, aoe: 54, at: 0, dmg: 13, poise: 20, kb: 34, fx: 'frost', slow: 3 },
+      dashCut: { clip: 'Attack5', wind: 0.08, recover: 0.2, dmg: 9, poise: 8, kb: 10, bolt: { fx: 'arcane_orb', speed: 320, fan: 3 } },
+      skills: [
+        { name: 'Blight Bloom', kind: 'zone', cd: 8, clip: 'Attack3', r: 44, dur: 4.5, dps: 10, slow: 1, fx: 'poison_cloud', range: 140 },
+        { name: 'Petal Blink', kind: 'blink', cd: 5, clip: 'Attack5', range: 110, r: 36, dmg: 9, poise: 12 }] }),
+    kestrel: Object.assign({}, base, { id: 'kestrel', name: 'Kestrel', title: 'The Stormlancer', weapon: 'Spear', color: '#ffd060', set: 'aerys_spear', art: 'storm', hp: 125, spd: 122,
+      blurb: 'Long reach and lightning. Chains bolts through crowds, drops thunder from the sky.',
+      combo: [
+        { clip: 'Attack1', wind: 0.12, recover: 0.2, reach: 44, arc: 0.8, dmg: 7, poise: 7, kb: 6, step: 9, fx: 'slash' },
+        { clip: 'Attack2', wind: 0.12, recover: 0.22, reach: 44, arc: 0.8, dmg: 7, poise: 7, kb: 6, step: 9, fx: 'slash' },
+        { clip: 'Attack6', wind: 0.14, recover: 0.24, reach: 40, dmg: 8, poise: 10, kb: 14, step: 8, fx: 'kick', stun: 0.25 },
+        { clip: 'Attack3', wind: 0.18, recover: 0.32, reach: 50, arc: 0.7, dmg: 12, poise: 14, kb: 22, step: 12, fx: 'finisher', finisher: true, stun: 0.4 },
+        { clip: 'Attack6', wind: 0.16, recover: 0.34, reach: 50, dmg: 15, poise: 16, kb: 24, step: 12, fx: 'finisher', finisher: true }],
+      heavy: { clip: 'Attack4', wind: 0.22, recover: 0.38, reach: 34, dmg: 14, poise: 22, kb: 26, lunge: 90, fx: 'dash', stun: 0.6 },
+      skills: [
+        { name: 'Chain Lightning', kind: 'chain', cd: 6, clip: 'Attack5', dmg: 15, jumps: 5, range: 150, hop: 90, stun: 0.5 },
+        { name: 'Thunder Drop', kind: 'leapSlam', cd: 8, clip: 'Attack4', range: 140, r: 50, dmg: 20, poise: 26, stun: 0.9 }] }),
+    wisp: Object.assign({}, base, { id: 'wisp', name: 'Wisp', title: 'The Shadow', weapon: 'Daggers', color: '#c9a0ff', set: 'nox', art: 'cuts', hp: 100, spd: 138,
+      blurb: 'Fast and fragile. Knife fans, shadow clones, smoke that blinds.',
+      combo: [
+        { clip: 'Attack1', wind: 0.07, recover: 0.12, reach: 26, dmg: 4, poise: 4, kb: 3, step: 8, fx: 'slash' },
+        { clip: 'Attack2', wind: 0.07, recover: 0.12, reach: 26, dmg: 4, poise: 4, kb: 3, step: 8, fx: 'slash' },
+        { clip: 'Attack6', wind: 0.07, recover: 0.14, reach: 26, dmg: 5, poise: 5, kb: 4, step: 8, fx: 'slash' },
+        { clip: 'Kick', wind: 0.1, recover: 0.2, reach: 26, dmg: 7, poise: 10, kb: 16, step: 6, fx: 'kick' },
+        { clip: 'Attack3', wind: 0.12, recover: 0.26, reach: 30, dmg: 11, poise: 14, kb: 20, step: 12, fx: 'finisher', finisher: true }],
+      heavy: { clip: 'Attack5', wind: 0.16, recover: 0.3, dmg: 6, poise: 6, kb: 8, bolt: { fx: 'dagger', speed: 360, fan: 5 } },
+      skills: [
+        { name: 'Shadow Clones', kind: 'clones', cd: 10, clip: 'Taunt', n: 2, dur: 6 },
+        { name: 'Smoke Veil', kind: 'smoke', cd: 8, clip: 'Rolling', r: 56, stun: 1.3 }] }),
+  };
+  D.HERO_ORDER = ['vesper', 'lys', 'kestrel', 'wisp'];
+  // Wisp's shadow clones.
+  D.CLONE = { name: 'Shadow', set: 'nox', hp: 30, spd: 130, poise: 0, ally: true,
+    atks: [{ clip: 'Attack1', wind: 0.12, recover: 0.22, reach: 26, dmg: 5, poise: 5, kb: 6 }, { clip: 'Attack6', wind: 0.12, recover: 0.22, reach: 26, dmg: 5, poise: 5, kb: 6 }] };
 
   // The ally who lends her flower to the Last Ditch Effort (she does not fight).
   D.LYS = { id: 'lys', name: 'Lys', set: 'lyra', color: '#ff7aa0' };
@@ -65,36 +116,64 @@
       atks: [{ clip: 'Attack6', wind: 0.42, recover: 0.45, reach: 28, dmg: 8, kb: 8, next: 1 },
         { clip: 'Attack2', wind: 0.24, recover: 0.5, reach: 30, dmg: 9, kb: 14, chainOnly: true }] },
 
+    raider: { name: 'Bone Raider', set: 'goblin', hp: 36, spd: 66, poise: 0, minion: true, color: '#e0d8c8',
+      atks: [{ clip: 'Attack1', wind: 0.42, recover: 0.4, reach: 26, dmg: 7, kb: 8, next: 1 }, { clip: 'Attack2', wind: 0.3, recover: 0.5, reach: 26, dmg: 7, kb: 10, chainOnly: true }] },
+    spearman: { name: 'Bone Spearman', set: 'goblin_spear', hp: 42, spd: 58, poise: 0, minion: true, color: '#e0d8c8',
+      atks: [{ clip: 'Attack1', wind: 0.55, recover: 0.5, reach: 46, arc: 0.6, dmg: 9, kb: 14 }, { clip: 'Attack4', wind: 0.65, recover: 0.6, reach: 40, dmg: 11, kb: 20, lunge: 80, range: [60, 130], unparry: true }] },
+    archer: { name: 'Bone Archer', set: 'goblin_archer', hp: 30, spd: 60, poise: 0, minion: true, keep: 120, color: '#e0d8c8',
+      atks: [{ clip: 'Attack1', wind: 0.7, recover: 0.6, dmg: 8, kb: 10, bolt: { fx: 'arrow', speed: 260 }, range: [40, 320] }] },
+    hexer: { name: 'Hexer', set: 'goblin_hexer', hp: 44, spd: 52, poise: 0, minion: true, keep: 110, color: '#c070ff',
+      atks: [{ clip: 'Attack5', wind: 0.8, recover: 0.7, dmg: 0, zone: { r: 34, dur: 3.2, dps: 8, delay: 0.7, fx: 'poison_cloud', slow: 1 }, range: [30, 300] },
+        { clip: 'Special1', wind: 0.9, recover: 0.9, summon: { key: 'raider', n: 2 }, range: [0, 400], rare: true }] },
+    golem: { name: 'Golem', set: 'golem_a', scale: 1.3, hp: 110, spd: 40, poise: 40, minion: true, color: '#d8b060',
+      atks: [{ clip: 'Attack1', wind: 0.7, recover: 0.7, reach: 36, dmg: 14, kb: 26 },
+        { clip: 'Special1', wind: 0.9, recover: 0.8, dmg: 16, kb: 30, aoe: 44, at: 10, unparry: true },
+        { clip: 'Attack4', wind: 0.8, recover: 0.7, dmg: 14, kb: 24, bolt: { fx: 'rock', speed: 190, burst: 26, burstFx: 'rock_burst' }, range: [70, 260] }] },
+    pyre: { name: 'Pyre Priest', set: 'demon_dealer', limited: true, hp: 46, spd: 50, poise: 0, minion: true, keep: 120, color: '#ff8040',
+      atks: [{ clip: 'Attack5', wind: 0.7, recover: 0.6, dmg: 9, kb: 12, bolt: { fx: 'fireball', speed: 200, burst: 22, burstFx: 'explosion_fire', ground: { r: 26, dur: 2.5, dps: 7, fx: 'burning_ground' } }, range: [40, 320] }] },
+    poacher: { name: 'Poacher', set: 'poacher', hp: 40, spd: 70, poise: 0, minion: true, keep: 90, color: '#a0c070',
+      atks: [{ clip: 'Attack1', wind: 0.55, recover: 0.5, dmg: 6, kb: 8, bolt: { fx: 'dart', speed: 280, fan: 3 }, range: [40, 260] }, { clip: 'Attack2', wind: 0.4, recover: 0.5, reach: 26, dmg: 7, kb: 10 }] },
+
     warden: { name: 'The Gatewarden', title: 'Keeper of the Black Gate', set: 'black_knight', hp: 300, spd: 56, poise: 46, boss: true, color: '#9a8cff',
       atks: [{ clip: 'Attack1', wind: 0.5, recover: 0.45, reach: 34, dmg: 11, kb: 10, next: 1 },
         { clip: 'Attack2', wind: 0.32, recover: 0.6, reach: 34, dmg: 11, kb: 14, chainOnly: true },
         { clip: 'Attack3', wind: 0.8, recover: 0.7, reach: 38, dmg: 18, kb: 26 },
         { clip: 'Attack4', wind: 0.72, recover: 0.7, reach: 30, dmg: 16, kb: 24, lunge: 96, range: [56, 150], unparry: true },
-        { clip: 'Special1', wind: 0.9, recover: 0.8, dmg: 20, kb: 30, aoe: 46, at: 16, unparry: true, phase: 2 }] },
+        { clip: 'Special1', wind: 0.9, recover: 0.8, dmg: 20, kb: 30, aoe: 46, at: 16, unparry: true, phase: 2 },
+        { sig: 'EARTHSPLITTER', clip: 'Special1', wind: 0.6, recover: 1.0, quake: { rings: 4, step: 36, dmg: 15, fx: 'rock_burst' } },
+        { sig: 'CALL OF THE GATE', clip: 'Taunt', wind: 0.6, recover: 0.6, summon: { key: 'raider', n: 3 }, phase: 2 }] },
     twinA: { name: 'Hollow Twin', title: 'the Left Hand', set: 'frost_knight_a', hp: 190, spd: 64, poise: 34, boss: true, color: '#a8d8ff',
       atks: [{ clip: 'Attack1', wind: 0.42, recover: 0.5, reach: 32, dmg: 10, kb: 10 },
         { clip: 'Attack3', wind: 0.7, recover: 0.6, reach: 36, dmg: 15, kb: 22 },
-        { clip: 'Attack4', wind: 0.64, recover: 0.66, reach: 28, dmg: 14, kb: 22, lunge: 100, range: [56, 150], unparry: true }] },
+        { clip: 'Attack4', wind: 0.64, recover: 0.66, reach: 28, dmg: 14, kb: 22, lunge: 100, range: [56, 150], unparry: true },
+        { sig: 'ICE LANCE RAIN', clip: 'Attack5', wind: 0.6, recover: 0.9, rain: { n: 7, r: 26, spread: 70, dmg: 12, fx: 'ice_shatter', delay: 0.8, slow: 1.5 } }] },
     twinB: { name: 'Hollow Twin', title: 'the Right Hand', set: 'frost_knight_b', hp: 190, spd: 64, poise: 34, boss: true, color: '#c8e8ff',
       atks: [{ clip: 'Attack2', wind: 0.4, recover: 0.5, reach: 32, dmg: 10, kb: 10, next: 1 },
         { clip: 'Attack6', wind: 0.26, recover: 0.6, reach: 34, dmg: 10, kb: 14, chainOnly: true },
-        { clip: 'Special1', wind: 0.86, recover: 0.8, dmg: 17, kb: 26, aoe: 42, at: 14, unparry: true }] },
+        { clip: 'Special1', wind: 0.86, recover: 0.8, dmg: 17, kb: 26, aoe: 42, at: 14, unparry: true },
+        { sig: 'FROST BLOOM', clip: 'Special1', wind: 0.9, recover: 0.9, dmg: 14, kb: 30, aoe: 70, at: 0, unparry: true, slow: 2.5, fx: 'frost' }] },
     umbral: { name: 'The Umbral', title: 'Who Walks Behind', set: 'cassius', hp: 270, spd: 60, poise: 36, boss: true, color: '#c070ff',
       atks: [{ clip: 'Attack5', wind: 0.5, recover: 0.5, dmg: 10, kb: 12, bolt: { fx: 'arcane_orb', speed: 150 }, range: [50, 400] },
         { clip: 'Attack1', wind: 0.36, recover: 0.5, reach: 28, dmg: 10, kb: 12 },
         { clip: 'Rolling', wind: 0.3, recover: 0.25, blink: true, range: [0, 60] },
-        { clip: 'Special1', wind: 0.8, recover: 0.7, dmg: 11, kb: 14, bolt: { fx: 'arcane_orb', speed: 130, fan: 3 }, phase: 2, range: [40, 400] }] },
+        { clip: 'Special1', wind: 0.8, recover: 0.7, dmg: 11, kb: 14, bolt: { fx: 'arcane_orb', speed: 130, fan: 3 }, phase: 2, range: [40, 400] },
+        { sig: 'SHADOW COURT', clip: 'Taunt', wind: 0.6, recover: 0.6, clones: 3 },
+        { sig: 'NIGHTFALL', clip: 'Attack5', wind: 0.6, recover: 0.9, rain: { n: 9, r: 24, spread: 110, dmg: 11, fx: 'smoke_dark', delay: 0.9 }, phase: 2 }] },
     hunger: { name: 'The Hunger', title: 'It Eats the Light', set: 'nightcrawler', scale: 1.45, hp: 380, spd: 70, poise: 54, boss: true, color: '#ff6a5a',
       atks: [{ clip: 'Attack1', wind: 0.44, recover: 0.4, reach: 40, dmg: 12, kb: 12, next: 1 },
         { clip: 'Attack2', wind: 0.28, recover: 0.6, reach: 42, dmg: 12, kb: 16, chainOnly: true },
         { clip: 'Attack4', wind: 0.7, recover: 0.8, reach: 40, dmg: 20, kb: 30, lunge: 150, range: [70, 220], unparry: true },
-        { clip: 'Special1', wind: 0.95, recover: 0.8, dmg: 22, kb: 30, aoe: 58, at: 18, unparry: true, phase: 2 }] },
+        { clip: 'Special1', wind: 0.95, recover: 0.8, dmg: 22, kb: 30, aoe: 58, at: 18, unparry: true, phase: 2 },
+        { sig: 'BLIGHT', clip: 'Special1', wind: 0.7, recover: 0.9, rain: { n: 6, r: 30, spread: 120, dmg: 6, fx: 'poison_cloud', delay: 0.7, zone: { dur: 3.5, dps: 7 } } },
+        { sig: 'DEVOUR', clip: 'Attack4', wind: 0.7, recover: 0.9, reach: 44, dmg: 26, kb: 40, lunge: 220, unparry: true, range: [60, 320], phase: 2 }] },
     wing: { name: 'The Pale Wing', title: 'Throat of the Wind', set: 'sky_beast', scale: 1.6, hp: 430, spd: 62, poise: 60, boss: true, color: '#e8f0ff',
       atks: [{ clip: 'Attack2', wind: 0.5, recover: 0.5, reach: 52, dmg: 13, kb: 18 },
         { clip: 'Attack3', wind: 0.75, recover: 0.6, reach: 54, dmg: 18, kb: 26 },
         { clip: 'Attack4', wind: 0.75, recover: 0.8, reach: 44, dmg: 20, kb: 30, lunge: 170, range: [80, 260], unparry: true },
         { clip: 'Special1', wind: 1.0, recover: 0.9, dmg: 24, kb: 34, aoe: 66, at: 10, unparry: true },
-        { clip: 'Attack5', wind: 0.55, recover: 0.5, dmg: 12, kb: 12, bolt: { fx: 'wind_gust', speed: 170 }, phase: 2, range: [90, 400] }] },
+        { clip: 'Attack5', wind: 0.55, recover: 0.5, dmg: 12, kb: 12, bolt: { fx: 'wind_gust', speed: 170 }, phase: 2, range: [90, 400] },
+        { sig: 'GALE', clip: 'Special1', wind: 0.7, recover: 0.9, tornado: { n: 2, r: 26, dur: 5, speed: 60, dmg: 10 } },
+        { sig: 'FEATHERSTORM', clip: 'Attack5', wind: 0.6, recover: 0.9, rain: { n: 10, r: 22, spread: 120, dmg: 11, fx: 'wind_gust', delay: 0.8 }, phase: 2 }] },
     firstCut: { name: 'The First Cut', title: 'Who Wounded the Moon', set: 'master_knight', hp: 560, spd: 74, poise: 70, boss: true, color: '#ffffff',
       atks: [{ clip: 'Attack1', wind: 0.4, recover: 0.4, reach: 34, dmg: 12, kb: 10, next: 1 },
         { clip: 'Attack2', wind: 0.24, recover: 0.4, reach: 34, dmg: 12, kb: 10, next: 2, chainOnly: true },
@@ -102,29 +181,32 @@
         { clip: 'Attack4', wind: 0.6, recover: 0.7, reach: 32, dmg: 18, kb: 28, lunge: 130, range: [60, 220], unparry: true },
         { clip: 'Attack6', wind: 0.75, recover: 0.6, reach: 40, dmg: 20, kb: 26 },
         { clip: 'Special1', wind: 0.9, recover: 0.9, dmg: 26, kb: 36, aoe: 64, at: 12, unparry: true, phase: 2 },
-        { clip: 'Attack5', wind: 0.5, recover: 0.5, dmg: 14, kb: 14, bolt: { fx: 'dark_slash', speed: 210 }, phase: 2, range: [80, 400] }] },
+        { clip: 'Attack5', wind: 0.5, recover: 0.5, dmg: 14, kb: 14, bolt: { fx: 'dark_slash', speed: 210 }, phase: 2, range: [80, 400] },
+        { sig: 'CRESCENT', clip: 'Attack6', wind: 0.6, recover: 0.8, dmg: 18, kb: 20, bolt: { fx: 'dark_slash', speed: 240, fan: 5, big: true }, unparry: true, range: [0, 400] },
+        { sig: 'MOONFALL', clip: 'Special1', wind: 0.7, recover: 1.0, rain: { n: 12, r: 28, spread: 140, dmg: 16, fx: 'blast', delay: 0.9 }, phase: 2 },
+        { sig: 'MIRROR OF THE FIRST', clip: 'Taunt', wind: 0.6, recover: 0.6, clones: 2, phase: 2 }] },
   };
 
   // ---- Stages: the six hours of the night ---------------------------------------------
   // look: sky colours, moon size and colour, ground tiles, silhouettes behind the arena.
   D.STAGES = [
     { id: 'gate', arenas: ['court', 'bridge', 'ring'], portal: 'gate', scale: { hp: 1, dmg: 1 }, hour: 'DUSK', name: 'The Black Gate', boss: 'warden',
-      waves: [['ghoul', 'ghoul'], ['ghoul', 'ghast', 'ghoul']], bossWave: ['warden'],
+      waves: [['raider', 'ghoul', 'raider'], ['ghoul', 'archer', 'ghast', 'archer']], bossWave: ['warden'],
       look: { sky: ['#140d1c', '#3a1622', '#6a2a2a'], moon: 22, moonCol: '#e8a0a0', ground: ['g_flagstone_dark', 'g_flagstone_2', 'g_cobble'], props: ['cdw_gate_arch', 'ruin_pillar', 'fv_tree_dead', 'cdw_pillar', 'monolith_b'], fog: '#3a1a24' } },
     { id: 'cloister', arenas: ['cross', 'court', 'pit'], portal: 'gate', scale: { hp: 1.1, dmg: 1.1 }, hour: 'THE FIRST HOUR', name: 'Cloister of Frost', boss: 'twins',
-      waves: [['knife', 'ghoul', 'knife'], ['ghast', 'knife', 'ghast']], bossWave: ['twinA', 'twinB'],
+      waves: [['knife', 'spearman', 'knife', 'archer'], ['hexer', 'raider', 'spearman', 'raider']], bossWave: ['twinA', 'twinB'],
       look: { sky: ['#0a1020', '#18283c', '#30485c'], moon: 26, moonCol: '#f0b0b0', ground: ['g_marble_white', 'g_flagstone_1', 'g_stone_floor'], props: ['fv_tree_pine_snow', 'cdw_arched_window', 'statue', 'cd_statue_knight', 'pillar'], fog: '#1a2a3a', snow: true } },
     { id: 'stair', arenas: ['bridge', 'cross', 'ring'], portal: 'stairs', scale: { hp: 1.25, dmg: 1.25 }, hour: 'THE SECOND HOUR', name: 'The Umbral Stair', boss: 'umbral',
-      waves: [['bone', 'ghoul'], ['knife', 'bone', 'knife']], bossWave: ['umbral'],
+      waves: [['bone', 'poacher', 'raider'], ['golem', 'archer', 'hexer']], bossWave: ['umbral'],
       look: { sky: ['#0c0814', '#221430', '#3a1c40'], moon: 30, moonCol: '#ff8a8a', ground: ['g_flagstone_dark', 'g_slab_0_0', 'g_floor_grate'], props: ['temple', 'shrine_b', 'monolith_a', 'cdw_stained_glass', 'cd_candelabra'], fog: '#2a1430' } },
     { id: 'waste', arenas: ['court', 'pit', 'ring'], portal: 'rift', scale: { hp: 1.3, dmg: 1.25 }, hour: 'THE THIRD HOUR', name: 'The Ashen Waste', boss: 'hunger',
-      waves: [['ghast', 'ghast', 'ghoul'], ['bone', 'knife', 'bone']], bossWave: ['hunger'],
+      waves: [['pyre', 'ghast', 'raider', 'pyre'], ['golem', 'hexer', 'bone']], bossWave: ['hunger'],
       look: { sky: ['#0e0c10', '#24202a', '#4a3a40'], moon: 34, moonCol: '#ff6060', ground: ['g_dirt_dark', 'g_gravel', 'g_trampled_dirt'], props: ['fv_tree_dead', 'rock_big', 'ruin_stone_a', 'fv_boulder', 'grave_cross'], fog: '#2a2228', ash: true } },
     { id: 'throat', arenas: ['bridge', 'cross', 'pit'], portal: 'rift', scale: { hp: 1.35, dmg: 1.3 }, hour: 'THE FOURTH HOUR', name: "The Wind's Throat", boss: 'wing',
-      waves: [['knife', 'knife', 'ghast'], ['bone', 'bone', 'ghast']], bossWave: ['wing'],
+      waves: [['poacher', 'knife', 'spearman', 'poacher'], ['golem', 'pyre', 'archer', 'bone']], bossWave: ['wing'],
       look: { sky: ['#06080e', '#141c2c', '#2c3448'], moon: 40, moonCol: '#ff4a50', ground: ['g_stone_floor', 'g_gravel', 'g_slab_1_1'], props: ['rock_m1', 'monolith_c', 'ruin_wall', 'rock_dark', 'stone_circle'], fog: '#1a2030', wind: true } },
     { id: 'shadow', arenas: ['bridge', 'ring'], portal: 'stairs', scale: { hp: 1.2, dmg: 1.25 }, hour: 'THE LAST HOUR', name: "The Moon's Shadow", boss: 'firstCut',
-      waves: [['bone', 'knife', 'ghast', 'knife']], bossWave: ['firstCut'],
+      waves: [['golem', 'hexer', 'pyre', 'spearman', 'archer']], bossWave: ['firstCut'],
       look: { sky: ['#040306', '#0e0610', '#200a14'], moon: 58, moonCol: '#ff2a44', ground: ['g_marble_checker', 'g_flagstone_dark', 'g_slab_0_1'], props: ['altar', 'cd_throne', 'ruin_pillar', 'pillar_broken', 'cdw_pillar'], fog: '#200810', embers: true } },
   ];
 

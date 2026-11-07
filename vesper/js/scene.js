@@ -8,7 +8,7 @@
   const W = () => P.W, H = () => P.H, kit = () => VS.cine.kit;
   const hash = (a, b) => { let h = (a * 374761393 + b * 668265263) | 0; h = (h ^ (h >>> 13)) * 1274126177; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
   const ease = (k) => 1 - Math.pow(1 - Math.max(0, Math.min(1, k)), 3);
-  const sp = (who) => S.speaker(who);
+  const sp = (who) => S.speaker(who);   // 'hero' resolves to whoever is being played
   const loop = (clip, T, fps) => Math.floor(T * (fps || (D.FPS[clip] || 8))) % 15;
   const once = (T, fps) => Math.min(14, Math.floor(T * (fps || 14)));
   const fill = (ctx, c, a) => { ctx.save(); if (a != null) ctx.globalAlpha = a; ctx.fillStyle = c; ctx.fillRect(0, 0, W(), H()); ctx.restore(); };

@@ -15,23 +15,21 @@ Play: serve the repository root and open `vesper/index.html` (for example
 `python3 -m http.server` then <http://localhost:8000/vesper/>). Landscape; keyboard or touch.
 *Theatre* on the title screen plays the Last Ditch Effort on demand.
 
+## Heroes
+
+Pick a hero on **New night** or under **Heroes** on the title screen. Each has a combo (left click),
+a heavy (right click), two skills on cooldown (R and F) and an ultimate with its own cinematic (E).
+
+| Hero | Style | Skills | Ultimate |
+|---|---|---|---|
+| Vesper, the Moonblade | Sword: combos, parries | Crescent Wave (a piercing wave), Phantom Step (blink behind a foe and cut) | Red Moon; the Last Ditch Effort at low health |
+| Lys, the Bloom Witch | Spells from range: bolts, a frost nova that slows | Blight Bloom (a poison zone), Petal Blink (teleport, petals burst where she was) | Thousand Petals |
+| Kestrel, the Stormlancer | Spear: long reach, stuns, a lunging heavy | Chain Lightning (jumps through five foes), Thunder Drop (leap and slam with lightning) | Heaven's Spear |
+| Wisp, the Shadow | Daggers: fast, a fan of knives | Shadow Clones (two clones fight for 6 s), Smoke Veil (stuns around her, foes lose her) | Hundred Cuts |
+
+At low health every ultimate hits as hard as the Last Ditch Effort and heals 30 %.
+
 ## The night
-
-Vesper, a knight in a red hood, climbs through six hours of one night to finish the cut. Lys, a
-witch with a flower in her hair, lends her flower to the Last Ditch Effort.
-
-| Hour | Place | Boss |
-|---|---|---|
-| Dusk | The Black Gate | The Gatewarden |
-| The First Hour | Cloister of Frost | The Hollow Twins |
-| The Second Hour | The Umbral Stair | The Umbral |
-| The Third Hour | The Ashen Waste | The Hunger |
-| The Fourth Hour | The Wind's Throat | The Pale Wing |
-| The Last Hour | The Moon's Shadow | The First Cut |
-
-Each hour is a short scene (title cards, lines floating beside the speaker), waves of minions, then
-the boss with a name card and a second phase at half health. After each won hour you keep one of
-three boons. Losing costs nothing: retry the hour with your boons.
 
 ## Combat
 
@@ -39,10 +37,10 @@ Fights are seen from a helicopter camera: high above and a little to the side at
 over a round ring floating in the night. Move freely; foes surround you and keep turning toward you
 while they wind up, so stepping aside makes them miss.
 
-- **PC**: WASD to move, the mouse aims. **Left click** cuts (slash, slash, kick, cut; a fifth cut
-  with the Fifth Cut boon), **right click** is the heavy, a spinning cut all around. **Space**
-  dashes, **Q** or Shift parries, **E** plays the moon art. Keys only: J cut, K heavy, L parry.
-  Touch: a stick, CUT, HEAVY, DASH, PARRY and MOON buttons.
+- **PC**: WASD to move, the mouse aims. **Left click** attacks (the hero's combo; a fifth hit with
+  the Fifth Cut boon), **right click** is the heavy, **R** and **F** the skills, **Space** dashes,
+  **Q** or Shift parries, **E** plays the ultimate. Keys only: J attack, K heavy, L parry, 1 and 2
+  skills. Touch: a stick, attack, heavy, dash, parry, two skill buttons and the ultimate.
 - **Danger on the floor**: during a wind-up the floor shows where the blow will land: the circle
   of a slam, the strip of a lunge, the cone of a swing. A ring also closes over the foe's head.
   **White** can be parried; a parry staggers the attacker and reflects bolts. **Red** can only be
@@ -77,7 +75,16 @@ while they wind up, so stepping aside makes them miss.
   **Red Moon** (3.4 s). At 30 % health or less it plays the **Last Ditch Effort** instead (6.4 s,
   more than twice the damage, heals 30 %). Tap or any key skips to the final frame.
 - Bosses have poise (the gold line under their bar): break it to knock them down. At half health
-  they enter a second phase, wrapped in a dark aura.
+  they enter a second phase, wrapped in a dark aura. Every few seconds a boss throws a **signature
+  move**, announced by an anime title card: Earthsplitter (rings of rock bursting outward), Call of
+  the Gate (raiders), Ice Lance Rain, Frost Bloom, Shadow Court (clones of the Umbral), Nightfall,
+  Blight (poison raining down), Devour, Gale (tornadoes that chase you), Featherstorm, Crescent (a
+  fan of moon waves), Moonfall, Mirror of the First.
+- **Foes**: skeleton raiders and spearmen, archers who keep their distance, hexers who curse the
+  ground and call more raiders, armored golems that throw rocks, pyre priests whose fireballs leave
+  burning ground, poachers with fans of darts, plus the ghouls, knives and gilded bones.
+- **Danger on the floor**: strikes show a filling circle before they land; poison and fire zones
+  tick; tornadoes chase. Statuses: slow (frost, poison), stun (lightning, smoke).
 - Esc pauses (restart the hour, auto battle, quit).
 
 ## Story scenes

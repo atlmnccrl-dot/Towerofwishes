@@ -40,10 +40,11 @@
     const items = [];
     if (o.cont) items.push({ label: 'Continue', sub: o.cont, act: o.onContinue, cls: 'focus-first' });
     items.push({ label: 'New night', sub: o.cont ? 'Start from dusk' : 'Six hours, six bosses', act: o.onNew });
-    items.push({ label: 'Theatre', sub: 'Watch the Last Ditch Effort', act: o.onTheatre });
+    items.push({ label: 'Heroes', sub: 'Playing as ' + o.heroName, act: o.onHeroes });
+    items.push({ label: 'Theatre', sub: 'Watch your hero\'s ultimate', act: o.onTheatre });
     items.push({ label: 'Settings', act: o.onSettings });
     items.push({ label: 'Credits', act: o.onCredits });
-    const keys = o.touch ? '' : `<div class="keys"><span><kbd>WASD</kbd> Move</span><span><kbd>Left click</kbd> Cut</span><span><kbd>Right click</kbd> Heavy</span><span><kbd>Q</kbd> Parry</span><span><kbd>Space</kbd> Dash</span><span><kbd>E</kbd> Moon</span></div>`;
+    const keys = o.touch ? '' : `<div class="keys"><span><kbd>WASD</kbd> Move</span><span><kbd>Left click</kbd> Cut</span><span><kbd>Right click</kbd> Heavy</span><span><kbd>Q</kbd> Parry</span><span><kbd>Space</kbd> Dash</span><span><kbd>R</kbd><kbd>F</kbd> Skills</span><span><kbd>E</kbd> Ultimate</span></div>`;
     U.show('title', `<div class="title-col"><header class="logo"><h1>VESPER</h1><p>A last ditch effort</p></header>${buttons(items)}${keys}</div>`, items);
   };
   U.settings = function (o) {
@@ -84,6 +85,16 @@
   U.pause = function (o) {
     const items = [{ label: 'Resume', act: o.onResume }, { label: 'Restart hour', act: o.onRestart }, { label: 'Auto battle', sub: o.auto ? 'On' : 'Off', act: o.onAuto }, { label: 'Quit to title', act: o.onQuit }];
     U.show('pause', `<div class="center"><h2>Paused</h2>${buttons(items, 'center')}</div>`, items, { back: o.onResume, cls: 'dim' });
+  };
+  // Choose a hero: a card each with their figure, weapon, skills and ultimate.
+  U.heroes = function (o) {
+    const D = VS.DATA, items = D.HERO_ORDER.map((id) => ({ label: D.HEROES[id].name, act: () => o.pick(id) }));
+    const cards = '<nav class="cards heroes">' + D.HERO_ORDER.map((id, i) => { const H = D.HEROES[id]; return `<button class="btn card hero${id === o.current ? ' focus-first' : ''}" data-i="${i}" type="button" style="--hc:${H.color}">
+      <canvas class="hero-fig" width="96" height="96" data-hero="${id}"></canvas><span class="btn-label">${esc(H.name)}</span><span class="hero-title">${esc(H.title)} · ${esc(H.weapon)}</span>
+      <span class="btn-sub">${esc(H.blurb)}</span><span class="hero-kit">${H.skills.map((k, j) => `<b>${j ? 'F' : 'R'}</b> ${esc(k.name)}`).join('<br>')}<br><b>E</b> ${esc(VS.ART[H.art === 'moon' ? 'moon' : H.art].name)}</span></button>`; }).join('') + '</nav>';
+    const el = U.show('heroes', `<div class="boon-wrap"><p class="eyebrow">Choose your hero</p><h2>Who climbs tonight?</h2>${cards}</div>`, items, { back: o.onBack });
+    el.querySelectorAll('canvas.hero-fig').forEach((c) => { const g = c.getContext('2d'); g.imageSmoothingEnabled = false; const H = D.HEROES[c.dataset.hero]; let t = 0;
+      const draw = () => { if (!c.isConnected) return; g.clearRect(0, 0, 96, 96); VS.A.actor(g, H.set, 'Idle4', Math.floor(t * 8) % 15, Math.PI * 0.25, 48, 88, 1.7, {}); t += 1 / 30; setTimeout(draw, 33); }; draw(); });
   };
   U.loading = function (p) {
     const r = root(); let el = r.querySelector('.screen-loading');

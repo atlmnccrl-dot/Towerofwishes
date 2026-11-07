@@ -7,7 +7,7 @@
   const params = new URLSearchParams(location.search);
 
   // ---- save -----------------------------------------------------------------------------------
-  const fresh = () => ({ stage: 0, boons: [], best: {}, cleared: false, seenLdx: false, opts: { music: 1, sfx: 1, shake: 1, auto: false } });
+  const fresh = () => ({ stage: 0, boons: [], best: {}, cleared: false, seenLdx: false, hero: 'vesper', opts: { music: 1, sfx: 1, shake: 1, auto: false } });
   function load() { try { const j = JSON.parse(localStorage.getItem(KEY)); if (j && j.opts) return Object.assign(fresh(), j); } catch (e) { /* storage blocked */ } return fresh(); }
   M.write = () => { try { localStorage.setItem(KEY, JSON.stringify(M.save)); } catch (e) { /* storage blocked */ } };
   M.save = load();
@@ -15,7 +15,7 @@
 
   // ---- input --------------------------------------------------------------------------------------
   // PC: left mouse cuts, right mouse is the heavy, the mouse aims. Keys: J cut, K heavy, Q/Shift/L parry, Space dash, E/R moon.
-  const KEYS = { KeyJ: 'atk', KeyZ: 'atk', KeyK: 'heavy', KeyX: 'heavy', KeyQ: 'parry', ShiftLeft: 'parry', ShiftRight: 'parry', KeyL: 'parry', Space: 'dodge', KeyC: 'dodge', KeyE: 'art', KeyR: 'art', KeyV: 'art',
+  const KEYS = { KeyJ: 'atk', KeyZ: 'atk', KeyK: 'heavy', KeyX: 'heavy', KeyQ: 'parry', ShiftLeft: 'parry', ShiftRight: 'parry', KeyL: 'parry', Space: 'dodge', KeyC: 'dodge', KeyE: 'art', KeyV: 'art', KeyR: 's1', KeyF: 's2', Digit1: 's1', Digit2: 's2',
     Enter: 'confirm', Escape: 'back', KeyP: 'back', ArrowLeft: 'left', ArrowRight: 'right', KeyA: 'left', KeyD: 'right', ArrowUp: 'up', ArrowDown: 'down', KeyW: 'up', KeyS: 'down' };
   addEventListener('keydown', (e) => {
     AU.unlock();
@@ -60,10 +60,14 @@
   // ---- menus -----------------------------------------------------------------------------------------
   function title() {
     M.go('title'); AU.playMusic(null); AU.playAmb('night');
-    U.title({ touch: R.touch, cont: M.save.stage > 0 ? D.STAGES[M.save.stage].hour + ' · ' + D.STAGES[M.save.stage].name : null,
+    U.title({ touch: R.touch, heroName: D.HEROES[M.save.hero || 'vesper'].name, onHeroes: () => heroes(title), cont: M.save.stage > 0 ? D.STAGES[M.save.stage].hour + ' · ' + D.STAGES[M.save.stage].name : null,
       onContinue: () => startScene(M.save.stage),
-      onNew: () => { const o = M.save.opts, cl = M.save.cleared, b = M.save.best; M.save = fresh(); M.save.opts = o; M.save.cleared = cl; M.save.best = b; M.write(); startScene(0); },
+      onNew: () => heroes(() => title(), () => { const o = M.save.opts, cl = M.save.cleared, b = M.save.best, hr = M.save.hero; M.save = fresh(); M.save.opts = o; M.save.cleared = cl; M.save.best = b; M.save.hero = hr; M.write(); startScene(0); }),
       onTheatre: () => theatre(), onSettings: () => settings(), onCredits: () => { M.go('menu'); U.credits({ onBack: title }); } });
+  }
+  function heroes(back, then) {
+    M.go('menu');
+    U.heroes({ current: M.save.hero || 'vesper', onBack: back, pick: (id) => { M.save.hero = id; M.write(); AU.sfx('allout', 0.5); (then || back)(); } });
   }
   function settings(focus, confirmReset) {
     M.go('menu');
@@ -82,6 +86,7 @@
   // ---- scenes -------------------------------------------------------------------------------------------
   function startScene(stageIdx, def, then) {
     U.hide();
+    S.heroKey = M.save.hero || 'vesper';
     M.scene = { sc: VS.SC.start(def || S.BEFORE[stageIdx]), stage: stageIdx, then: then || (() => startFight(stageIdx)) };
     M.go('scene'); AU.playMusic(null); AU.playAmb(stageIdx === 3 || stageIdx === 4 ? 'wind' : 'night');
   }
@@ -98,7 +103,7 @@
   let f0;
   function startFight(stageIdx, opts) {
     U.hide();
-    const s = SIM.create(stageIdx, { seed: (Date.now() & 0xffff) + 1, boons: M.save.boons });
+    const s = SIM.create(stageIdx, { seed: (Date.now() & 0xffff) + 1, boons: M.save.boons, hero: M.save.hero });
     M.fight = Object.assign({ s, stage: stageIdx, acc: 0, card: null, cardT: 0, say: null, banner: null }, opts || {});
     M.paused = false; R.snapCam(s); R.fx = []; R.parts = []; R.floaters = []; R.pfx = []; R.entryDoor = null; R.impactF = null;
     f0 = M.fight; f0.banner = { text: VS.arenaOf(s).name, sub: 'AREA 1 / ' + s.waves.length, t: -0.4, col: '#ffffff' };
@@ -106,7 +111,7 @@
   }
   function gather(f) {
     const s = f.s, p = M.pressed;
-    const inp = { mx: 0, my: 0, atk: !!p.atk, heavy: !!p.heavy, dodge: !!p.dodge, parry: !!p.parry, art: !!p.art, skip: !!(p.tap || p.confirm || p.atk) };
+    const inp = { mx: 0, my: 0, atk: !!p.atk, heavy: !!p.heavy, dodge: !!p.dodge, parry: !!p.parry, art: !!p.art, s1: !!p.s1, s2: !!p.s2, skip: !!(p.tap || p.confirm || p.atk) };
     // Aim at the mouse: the direction from the knight to the cursor, on the ground.
     if (M.mouseAim && M.mouse && !R.touch && s.hero.alive) { const q = R.P(s.hero.x, s.hero.y, 20), g = R.screenToGround(M.mouse.x - q.x, M.mouse.y - q.y); if (Math.hypot(g.x, g.y) > 0.01) inp.aim = Math.atan2(g.y, g.x); }
     if (M.held.left) inp.mx -= 1; if (M.held.right) inp.mx += 1; if (M.held.up) inp.my -= 1; if (M.held.down) inp.my += 1;
@@ -115,7 +120,7 @@
     if (inp.mx || inp.my) { const g = R.screenToGround(inp.mx, inp.my); inp.mx = g.x; inp.my = g.y; }
     if (M.save.opts.auto || f.auto) {
       const b = SIM.bot(s, 0.7);
-      if (!inp.mx && !inp.my && !inp.atk && !inp.heavy && !inp.dodge && !inp.parry) Object.assign(inp, b, { skip: inp.skip, aim: undefined });
+      if (!inp.mx && !inp.my && !inp.atk && !inp.heavy && !inp.dodge && !inp.parry && !inp.s1 && !inp.s2) Object.assign(inp, b, { skip: inp.skip, aim: undefined });
     }
     return inp;
   }
@@ -131,7 +136,7 @@
     if (!M.paused && !M.hold) {
       f.acc += dt;
       const live = gather(f); f.pend = f.pend || {};
-      for (const k of ['atk', 'heavy', 'dodge', 'parry', 'art', 'skip']) if (live[k]) f.pend[k] = true;
+      for (const k of ['atk', 'heavy', 'dodge', 'parry', 'art', 's1', 's2', 'skip']) if (live[k]) f.pend[k] = true;
       while (f.acc >= STEP) {
         const c0 = s.cine ? s.cine.t : null, inp = Object.assign({ mx: live.mx, my: live.my, aim: live.aim }, f.pend); f.pend = {};
         SIM.step(s, STEP, inp); f.acc -= STEP;
@@ -153,8 +158,8 @@
     if (!R.cineCovers(s)) R.drawFight(ctx, s, M.paused ? 0 : dt);
     if (s.cine) R.drawCine(ctx, s);
     else {
-      R.hideCine();
-      if (!M.paused) R.drawHud(ctx, s, dt, { touch: R.touch, auto: M.save.opts.auto });
+      if (!R.drawBossArt(s, dt)) R.hideCine();
+      if (!M.paused) { R.drawHud(ctx, s, dt, { touch: R.touch, auto: M.save.opts.auto }); R.drawSkills(ctx, s, R.touch); }
       if (f.say) {
         f.say.t += dt; const u = s.units.find((o) => o.id === f.say.id), sp = S.speaker(f.say.key);
         if (u && f.say.t < 2.6) { const hd = R.headOf(u); R.say(ctx, hd.x, hd.y, sp.name, sp.color, f.say.text, f.say.t, { shout: true }); }
@@ -162,7 +167,7 @@
       }
       if (f.banner) { f.banner.t += dt; if (f.banner.t < 1.6) R.banner(ctx, f.banner.text, f.banner.t, f.banner.col, f.banner.sub); else f.banner = null; }
       if (f.card) { f.cardT += dt; if (f.cardT < 1.9) R.bossCard(ctx, s, f.card, f.cardT); else f.card = null; }
-      if (s.time < 7 && f.stage === 0 && !f.theatre) R.hint(ctx, R.touch ? 'PARRY white danger  ·  DASH out of red danger  ·  cut after a dash for a dash-cut' : 'WASD move  ·  LEFT CLICK cut  ·  RIGHT CLICK heavy  ·  Q parry white  ·  SPACE dash out of red  ·  E moon', Math.min(1, 7 - s.time));
+      if (s.time < 7 && f.stage === 0 && !f.theatre) R.hint(ctx, R.touch ? 'PARRY white danger  ·  DASH out of red danger  ·  two SKILL buttons on the left' : 'WASD move  ·  LEFT CLICK attack  ·  RIGHT CLICK heavy  ·  R  F skills  ·  Q parry  ·  SPACE dash  ·  E ultimate', Math.min(1, 7 - s.time));
       if (R.touch && !M.paused) R.drawTouch(ctx, s, { stick: M.stick, held: M.touchHeld });
       if (!R.touch && M.mouseAim && M.mouse && !M.paused) R.drawReticle(ctx, M.mouse.x, M.mouse.y);
     }
@@ -238,12 +243,13 @@
     c.addEventListener('pointerdown', onDown); c.addEventListener('pointermove', onMove); c.addEventListener('pointerup', onUp); c.addEventListener('pointercancel', onUp);
     requestAnimationFrame(frame);
     U.loading(0);
-    const ids = new Set([D.HERO.set, D.LYS.set]); for (const k in D.FOES) ids.add(D.FOES[k].set);
+    const ids = new Set([D.HERO.set, D.LYS.set, D.CLONE.set]); for (const k in D.FOES) ids.add(D.FOES[k].set); for (const k in D.HEROES) ids.add(D.HEROES[k].set);
     await A.load([...ids], (p) => U.loading(p));
     try { if (document.fonts) await Promise.race([Promise.all(['700 20px "Chakra Petch"', '600 16px "Chakra Petch"', '500 16px Barlow', '700 16px Barlow'].map((f) => document.fonts.load(f))), new Promise((r) => setTimeout(r, 2500))]); } catch (e) { /* fonts optional */ }
     A.warm(R.ctx);
     applyOpts();
     if (params.has('auto')) M.save.opts.auto = true;
+    if (params.has('hero') && D.HEROES[params.get('hero')]) M.save.hero = params.get('hero');
     if (params.has('theatre')) theatre();
     else if (params.has('stage')) startFight(Math.max(0, Math.min(5, +params.get('stage') || 0)));
     else if (params.has('scene')) startScene(Math.max(0, Math.min(5, +params.get('scene') || 0)));

@@ -9,11 +9,13 @@ let fail = 0; const bad = (m) => { fail++; console.log('FAIL', m); };
 const clipsOf = (set) => { const f = root + '/pixel/' + set + '.json'; if (!fs.existsSync(f)) { bad('no set ' + set); return {}; } return JSON.parse(fs.readFileSync(f)).anims; };
 const need = ['Idle', 'Idle4', 'Walk', 'Run', 'TakeDamage', 'Slide', 'Die', 'Rolling', 'Special1', 'Taunt', 'StrafeLeft', 'StrafeRight', 'RunBackwards'];
 const check = (who, set, extra) => { const a = clipsOf(set); for (const c of need.concat(extra || [])) if (!a[c]) bad(`${who} (${set}) lacks ${c}`); };
-check('hero', D.HERO.set, D.HERO.combo.map((k) => k.clip).concat(['Attack4', 'Attack6']));
+for (const [id, H] of Object.entries(D.HEROES)) { check('hero ' + id, H.set, H.combo.map((k) => k.clip).concat([H.heavy.clip, H.dashCut.clip], H.skills.map((k) => k.clip))); for (const k of H.combo.concat([H.heavy, H.dashCut])) if (k.bolt && !fx[k.bolt.fx]) bad(id + ' bolt fx ' + k.bolt.fx); }
+check('clone', D.CLONE.set, D.CLONE.atks.map((k) => k.clip));
 check('lys', D.LYS.set, []);
 for (const [k, f] of Object.entries(D.FOES)) {
-  check(k, f.set, f.atks.map((a) => a.clip));
-  for (const a of f.atks) { if (a.bolt && !fx[a.bolt.fx]) bad(`${k} bolt fx ${a.bolt.fx}`); if (a.next != null && !f.atks[a.next]) bad(`${k} chains to nothing`); }
+  if (f.limited) { const a = clipsOf(f.set); for (const c of ['Idle', 'Walk', 'TakeDamage', 'Die'].concat(f.atks.map((x) => x.clip))) if (!a[c]) bad(`${k} (${f.set}) lacks ${c}`); }
+  else check(k, f.set, f.atks.map((a) => a.clip));
+  for (const a of f.atks) { if (a.bolt && !fx[a.bolt.fx]) bad(`${k} bolt fx ${a.bolt.fx}`); if (a.bolt && a.bolt.burstFx && !fx[a.bolt.burstFx]) bad(`${k} burst fx`); for (const z of [a.zone, a.rain, a.quake]) if (z && z.fx && !fx[z.fx]) bad(`${k} fx ${z.fx}`); if (a.summon && !D.FOES[a.summon.key]) bad(`${k} summons nothing`); if (a.next != null && !f.atks[a.next]) bad(`${k} chains to nothing`); }
 }
 for (const st of D.STAGES) {
   for (const t of st.look.ground) if (!tiles[t]) bad(`${st.id} ground ${t}`);
@@ -22,10 +24,11 @@ for (const st of D.STAGES) {
   if (!st.bossWave.every((k) => D.FOES[k].boss)) bad(`${st.id} boss wave has a minion`);
 }
 // Effect names used in the code (keep in step with view.js and cine.js).
-const used = new Set(['slash_arc_blood', 'hit_crit', 'cross_slash', 'katana', 'hit_big', 'parry', 'dissipate', 'smoke_dark', 'blast', 'teleport', 'shockwave', 'spin_slash', 'smoke_burst', 'portal']);
+const used = new Set(['slash_arc_blood', 'hit_crit', 'cross_slash', 'katana', 'hit_big', 'parry', 'dissipate', 'smoke_dark', 'blast', 'teleport', 'shockwave', 'spin_slash', 'smoke_burst', 'portal', 'hit_shock', 'thunder', 'lightning_holy', 'explosion_frost', 'frost_nova', 'spell_cast', 'summon', 'spell_zap', 'charge_up', 'cast_circle', 'wind_gust']);
 const src = ['view.js', 'cine.js'].map((f) => fs.readFileSync(path.join(__dirname, '../js', f), 'utf8')).join('\n');
 for (const n of used) { if (!fx[n]) bad('fx ' + n); if (src.indexOf("'" + n + "'") < 0) bad('fx listed but unused ' + n); }
 // Scenes: known shot kinds, known speakers, one scene per stage.
+for (const H of Object.values(D.HEROES)) for (const sk of H.skills) if (sk.fx && !fx[sk.fx]) bad('skill fx ' + sk.fx);
 const KINDS = ['card', 'wide', 'close', 'reveal', 'speed', 'clash', 'impact', 'moonbreak', 'moonwhite', 'two', 'eyes', 'slash'];
 const scenes = S.BEFORE.concat([S.ENDING]);
 if (S.BEFORE.length !== D.STAGES.length) bad('one scene per stage');
