@@ -310,7 +310,7 @@
     $('hudObj').textContent = B.obj ? objText(B) : '';
     const boss = B.ents.find((e) => e.boss && !e.dead);
     const bb = $('bossbar');
-    if (boss && !B.intro) { bb.style.display = 'block'; bb.querySelector('.nm').textContent = boss.F.name + (boss.enraged ? ' — enraged' : ''); bb.querySelector('i').style.width = Math.max(0, boss.hp / boss.maxhp * 100) + '%'; }
+    if (boss && !B.intro) { bb.style.display = 'block'; bb.querySelector('.nm').textContent = boss.F.name + (boss.brokenT > 0 ? ' — BROKEN' : boss.enraged ? ' — enraged' : ''); bb.querySelector('.b i').style.width = Math.max(0, boss.hp / boss.maxhp * 100) + '%'; bb.querySelector('.p i').style.width = (boss.brokenT > 0 ? 100 : Math.max(0, boss.poise / boss.maxPoise * 100)) + '%'; bb.classList.toggle('broken', boss.brokenT > 0); }
     else bb.style.display = 'none';
     // cinematic bars for the intro and the victory moment
     if (B.intro) letterbox(true);

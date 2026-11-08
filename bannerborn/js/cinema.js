@@ -79,8 +79,9 @@
     const st = g.createLinearGradient(sx - 200, 0, sx + 200, 0); st.addColorStop(0, 'rgba(255,255,255,0)'); st.addColorStop(0.5, 'rgba(255,255,255,0.18)'); st.addColorStop(1, 'rgba(255,255,255,0)');
     g.fillStyle = st; g.fillRect(sx - 200, cy - ph, 400, ph * 2);
     if (o.burst) rays(g, cx, cy, W, ph * 2, o.burst, t, 18);
+    if (o.waves) { g.save(); g.globalCompositeOperation = 'lighter'; for (let i = 0; i < 7; i++) { const q = (t * 0.9 + i / 7) % 1; g.strokeStyle = o.waves.replace('A', String((1 - q) * 0.7)); g.lineWidth = ph * 0.02 * (1 - q) + 1; g.beginPath(); g.ellipse(cx, cy - ph * 0.15, q * W * 0.7, q * ph * 1.3, 0, 0, 7); g.stroke(); } g.restore(); }
     // the face: a whole-number scale so the pixels stay square; the head sits on the focal point
-    const S = Math.max(4, Math.round(ph * 1.15 / 14)), slide = (1 - easeOut(clamp01(k * 3))) * fromX;
+    const S = Math.max(4, Math.round(ph * 1.15 / 14 * (o.zoom || 1))), slide = (1 - easeOut(clamp01(k * 3))) * fromX;
     const clip = 'Idle', fr = Math.floor(t * 8) % clipLen(a, clip), lift = headLift(a, clip, dir, fr);
     g.save(); g.imageSmoothingEnabled = false;
     if (flip) { g.translate(cx * 2, 0); g.scale(-1, 1); }
@@ -97,7 +98,8 @@
     g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
     g.save(); panelPath(g, -40, cy - ph, W + 40, cy + ph, W * 0.03); g.clip();
     const silA = sh.sil === undefined ? 0 : typeof sh.sil === 'number' ? sh.sil : clamp01(1 - (k - sh.sil[0]) / (sh.sil[1] - sh.sil[0]));
-    closeupBody(g, sh.who, k, t, W * (sh.x || 0.5), cy, ph, sh.dir === undefined ? 2 : sh.dir, false, sh.col1, sh.col2, sh.rise ? 0 : W * 0.3 * (sh.from || 1), { rise: sh.rise, sil: silA, rim: sh.rim, burst: sh.burst });
+    closeupBody(g, sh.who, k, t, W * (sh.x || 0.5), cy + (sh.dy || 0) * ph, ph, sh.dir === undefined ? 2 : sh.dir, false, sh.col1, sh.col2, sh.rise ? 0 : W * 0.3 * (sh.from || 1), { rise: sh.rise, sil: silA, rim: sh.rim, burst: sh.burst, waves: sh.waves, zoom: sh.zoom });
+    if (sh.converge && k < 0.95) for (let i = 0; i < 3; i++) { const a = Math.random() * Math.PI * 2, R = Math.max(W, H) * 0.6; C.parts.push({ x: W / 2 + Math.cos(a) * R, y: cy + Math.sin(a) * R * 0.6, vx: -Math.cos(a) * R * 1.1, vy: -Math.sin(a) * R * 0.66, t: 0, life: 0.85, col: sh.converge, r: 1.5 + Math.random() * 2, drift: true, nograv: true }); }
     g.restore();
     g.strokeStyle = sh.edge || 'rgba(255,255,255,0.85)'; g.lineWidth = 3; panelPath(g, -40, cy - ph, W + 40, cy + ph, W * 0.03); g.stroke();
     if (sh.label) titleText(g, sh.label, W * 0.07, cy + ph - 24, Math.round(H * 0.035), k, 'left', sh.edge || '#fff', true);
@@ -141,6 +143,12 @@
     g.shadowColor = col; g.shadowBlur = small ? 10 : 30; g.fillStyle = small ? col : '#fff'; g.fillText(s, 0, 0);
     if (!small) { g.shadowBlur = 0; g.strokeStyle = col; g.lineWidth = 2; g.strokeText(s, 0, 0); }
     g.restore();
+  }
+  function drawHeart(g, W, H, sh, k, t) { // black, and a heartbeat
+    g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
+    const beat = Math.max(0, Math.sin((t % 1.05) / 1.05 * Math.PI * 2) ** 12);
+    const gl = g.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, H * (0.3 + beat * 0.35)); gl.addColorStop(0, 'rgba(160,20,20,' + (0.12 + beat * 0.35) + ')'); gl.addColorStop(1, 'rgba(160,20,20,0)'); g.fillStyle = gl; g.fillRect(0, 0, W, H);
+    if (k > 0.7) { const lw = W * easeOut(clamp01((k - 0.7) / 0.3)); g.fillStyle = '#ffd27a'; g.shadowColor = '#ffbe55'; g.shadowBlur = 20; g.fillRect(W / 2 - lw / 2, H / 2 - 1, lw, 2); g.shadowBlur = 0; }
   }
   function drawTitle(g, W, H, sh, k, t) {
     if (!sh.over) { const bg = g.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, W * 0.7); bg.addColorStop(0, sh.bg || '#1a1208'); bg.addColorStop(1, '#000'); g.fillStyle = bg; g.fillRect(0, 0, W, H); }
@@ -228,7 +236,7 @@
   C.play = async function (name, opts, done) {
     const build = SCENES[name]; if (!build) { done && done(); return; }
     const el = document.getElementById('cine'); el.classList.add('on');
-    Object.assign(C, { on: true, loading: true, t: 0, done, parts: [], shake: 0, flash: 0, flashCol: '#fff', bolts: [], cued: {}, shots: [], banners: [], fall: {} });
+    Object.assign(C, { on: true, loading: true, t: 0, done, parts: [], shake: 0, flash: 0, flashCol: '#fff', bolts: [], cued: {}, shots: [], banners: [], fall: {}, cracks: [], crackShot: -1, rgb: 0 });
     try { const def = await build(opts || {}); C.shots = def.shots; C.total = C.shots.reduce((a, s) => a + s.dur, 0); }
     catch (e) { console.warn('cutscene skipped', e); C.end(); return; }
     C.loading = false;
@@ -264,6 +272,7 @@
     else if (sh.kind === 'split') drawSplit(g, W, H, sh, k, lt);
     else if (sh.kind === 'impact') drawImpact(g, W, H, sh, k, lt);
     else if (sh.kind === 'title') drawTitle(g, W, H, sh, k, lt);
+    else if (sh.kind === 'heart') drawHeart(g, W, H, sh, k, lt);
     g.restore();
     g.setTransform(1, 0, 0, 1, 0, 0);
     // lightning
@@ -271,8 +280,28 @@
     C.bolts = C.bolts.filter((b) => b.t < 0.2);
     // sparks and embers, screen space
     g.save(); g.globalCompositeOperation = 'lighter';
-    for (const p of C.parts) { p.t += dt; p.x += p.vx * dt * dpr; p.y += p.vy * dt * dpr; if (!p.drift) p.vy += 220 * dt; else p.vx += Math.sin(p.t * 3 + p.y) * 10 * dt; const a = Math.max(0, 1 - p.t / p.life); g.globalAlpha = a; g.fillStyle = p.col; g.beginPath(); g.arc(p.x, p.y, p.r * dpr, 0, 7); g.fill(); }
+    for (const p of C.parts) { p.t += dt; p.x += p.vx * dt * dpr; p.y += p.vy * dt * dpr; if (p.nograv) { /* straight in */ } else if (!p.drift) p.vy += 220 * dt; else p.vx += Math.sin(p.t * 3 + p.y) * 10 * dt; const a = Math.max(0, 1 - p.t / p.life); g.globalAlpha = a; g.fillStyle = p.col; g.beginPath(); g.arc(p.x, p.y, p.r * dpr, 0, 7); g.fill(); }
     g.restore(); C.parts = C.parts.filter((p) => p.t < p.life);
+    // cracks spreading across the glass
+    if (C.crackShot !== si) { C.cracks = []; C.crackShot = si; }
+    for (const c of C.cracks) {
+      c.t += dt; const grow = clamp01(c.t / 0.25);
+      g.save(); g.strokeStyle = 'rgba(255,255,255,0.9)'; g.shadowColor = c.col || '#fff'; g.shadowBlur = 10; g.lineWidth = 2;
+      for (const br of c.br) { g.beginPath(); g.moveTo(c.x * W, c.y * H); const n = Math.max(1, Math.floor(br.length * grow)); for (let i = 0; i < n; i++) g.lineTo(br[i][0] * W, br[i][1] * H); g.stroke(); }
+      g.restore();
+    }
+    // a colour split on the hardest moments
+    if (C.rgb > 0) {
+      const off = Math.round(C.rgb * 14 * dpr), tmp = C.tmp || (C.tmp = document.createElement('canvas'));
+      if (tmp.width !== W || tmp.height !== H) { tmp.width = W; tmp.height = H; }
+      const x = tmp.getContext('2d'); x.globalCompositeOperation = 'copy'; x.drawImage(cv, 0, 0); x.globalCompositeOperation = 'multiply'; x.fillStyle = '#ff2030'; x.fillRect(0, 0, W, H);
+      g.save(); g.globalCompositeOperation = 'screen'; g.globalAlpha = 0.55; g.drawImage(tmp, off, 0);
+      x.globalCompositeOperation = 'copy'; x.drawImage(cv, 0, 0); x.globalCompositeOperation = 'multiply'; x.fillStyle = '#20e0ff'; x.fillRect(0, 0, W, H);
+      g.drawImage(tmp, -off, 0); g.restore();
+      C.rgb = Math.max(0, C.rgb - dt * 2.2);
+    }
+    // film grain
+    g.fillStyle = 'rgba(255,255,255,0.05)'; for (let i = 0; i < 260; i++) g.fillRect(Math.random() * W, Math.random() * H, dpr, dpr);
     // fades from and to black
     if (sh.fadeIn && lt < sh.fadeIn) { g.fillStyle = 'rgba(0,0,0,' + (1 - lt / sh.fadeIn) + ')'; g.fillRect(0, 0, W, H); }
     if (sh.fadeOut && lt > sh.dur - sh.fadeOut) { g.fillStyle = 'rgba(0,0,0,' + clamp01((lt - (sh.dur - sh.fadeOut)) / sh.fadeOut) + ')'; g.fillRect(0, 0, W, H); }
@@ -298,6 +327,13 @@
   const SPARKS = (n, col, fx, fy, spd) => (o) => sparks(n, o.W * (fx || 0.5), o.H * (fy || 0.5), col, (spd || 500) * o.dpr, 0);
   const EMBERS = (n, col) => (o) => embers(o.W, o.H, col, n);
   const MUSIC = (m) => () => BB.music(m);
+  const RGB = (v) => () => { C.rgb = Math.max(C.rgb, v); };
+  const CRACK = (x, y, col) => () => { // jagged cracks from a point
+    const br = [];
+    for (let b = 0; b < 7; b++) { let a = b / 7 * Math.PI * 2 + Math.random() * 0.5, px = x, py = y; const pts = []; for (let i = 0; i < 9; i++) { a += (Math.random() - 0.5) * 0.7; const st = 0.025 + Math.random() * 0.04; px += Math.cos(a) * st; py += Math.sin(a) * st * 1.6; pts.push([px, py]); } br.push(pts); }
+    C.cracks.push({ x, y, br, t: 0, col }); BB.sfx('slam');
+  };
+  const BEAT = () => () => { BB.sfx('herodie'); C.shake = Math.max(C.shake, 0.12); };
 
   // load the art a cutscene needs
   async function cast(list) {
@@ -320,28 +356,42 @@
       const cols = BB.BANNER_COLORS.concat(['#3a6a8a']);
       for (let i = 0; i < 9; i++) C.banners.push(Object.assign({}, i === 8 ? BB.save.banner : { color: cols[i], sigil: BB.SIGILS[i % BB.SIGILS.length], trim: '#e8c66a' }));
       return { shots: [
-        { kind: 'title', dur: 2.6, sup: 'GREENVALE', text: 'THREE HUNDRED YEARS AGO', size: 0.06, col: '#c9b48a', bg: '#100c08', fadeIn: 0.8, cues: [[0, MUSIC('calm')]] },
-        { kind: 'banners', dur: 6, top: '#24183a', bot: '#d4703c', caption: 'Nine banners stood between the living and the dead.', capAt: 0.6, cues: [[0.2, EMBERS(30, '#ffcf8a')]] },
-        { kind: 'triple', dur: 4.6, who: knights, cols: [GOLD, STEEL, GOLD], edge: '#ffe7a3', caption: 'Nine knights swore to hold them. For three hundred years, they did.', capAt: 0.5, cues: [[0.1, SFX('chime')], [0.6, SFX('chime')], [1.1, SFX('chime')]] },
-        { kind: 'gate', dur: 5, col: [150, 90, 255], hue: 0, rain: true, caption: 'Then, one night, the Gravegates opened.', capAt: 1.4, cues: [
-          [0, MUSIC('boss')], [0.1, SFX('charge')], [0.9, BOLT()], [1.6, () => { SHAKE(0.7)(); BB.sfx('portal'); BB.sfx('burst'); FLASH(0.5, '#e0d0ff')(); }], [1.7, SPARKS(140, '#c9a8ff', 0.5, 0.5, 900)], [2.8, BOLT()], [3.9, BOLT()]] },
+        { kind: 'heart', dur: 3.6, cues: [[0.25, BEAT()], [1.3, BEAT()], [2.35, BEAT()], [2.6, SFX('chime')]] },
+        { kind: 'title', dur: 2.6, sup: 'GREENVALE', text: 'THREE HUNDRED YEARS AGO', size: 0.06, col: '#c9b48a', bg: '#100c08', cues: [[0, MUSIC('calm')]] },
+        { kind: 'banners', dur: 6, top: '#24183a', bot: '#d4703c', caption: 'Nine banners stood between the living and the dead.', capAt: 0.6, cues: [[0.2, EMBERS(40, '#ffcf8a')], [3, EMBERS(30, '#ffcf8a')]] },
+        { kind: 'triple', dur: 4.4, who: knights, cols: [GOLD, STEEL, GOLD], edge: '#ffe7a3', caption: 'Nine knights swore an oath to hold them.', capAt: 0.5, cues: [[0.1, SFX('chime')], [0.6, SFX('chime')], [1.1, SFX('chime')]] },
+        { kind: 'closeup', dur: 2.2, who: knights[0], dir: 2, burst: 'rgba(255,220,150,0.09)', col1: 'rgba(220,160,60,1)', col2: 'rgba(30,18,6,1)', edge: '#ffe7a3', from: 0.4, caption: 'For three hundred years, they held.', capAt: 0.3,
+          cues: [[0.15, SFX('rally')], [0.2, SPARKS(80, '#ffe7a3', 0.5, 0.5, 600)], [0.25, SHAKE(0.3)]] },
+        { kind: 'gate', dur: 5.6, col: [150, 90, 255], hue: 0, rain: true, caption: 'Then, one night, the Gravegates opened.', capAt: 2.4, cues: [
+          [0, MUSIC('boss')], [0.1, SFX('charge')], [0.8, BOLT()], [1.4, CRACK(0.47, 0.42, '#c9a8ff')], [1.9, CRACK(0.56, 0.6, '#c9a8ff')], [2.2, () => { SHAKE(0.8)(); BB.sfx('portal'); BB.sfx('burst'); FLASH(0.6, '#e0d0ff')(); RGB(1)(); }],
+          [2.25, SPARKS(180, '#c9a8ff', 0.5, 0.5, 1000)], [3.4, BOLT()], [4.5, BOLT()]] },
         { kind: 'closeup', dur: 3.6, who: vesh, dir: 2, rise: true, sil: [0.25, 0.6], rim: '#7dffb0', col1: 'rgba(40,120,70,1)', col2: 'rgba(4,16,10,1)', edge: '#7dffb0', label: 'VESH MORROW · THE BONE CANTOR',
-          caption: 'Out of the first one walked Vesh Morrow.', capAt: 0.5, cues: [[0, SFX('charge')], [0.3, EMBERS(40, '#7dffb0')], [1.4, SHAKE(0.3)]] },
-        { kind: 'closeup', dur: 2.2, who: vesh, dir: 2, burst: 'rgba(125,255,176,0.07)', col1: 'rgba(60,170,100,1)', col2: 'rgba(4,20,12,1)', edge: '#7dffb0', from: 0.3, caption: 'He sang —', capAt: 0.3, cues: [[0, SFX('boss')], [0.2, SHAKE(0.4)]] },
-        { kind: 'impact', dur: 0.45, who: vesh, clip: 'Attack1', accent: '#7dffb0', cues: [[0, SHAKE(0.9)], [0, SFX('burst')], [0, FLASH(0.6, '#c8ffe0')]] },
-        { kind: 'horde', dur: 3.6, who: [ghoul, warden, skel, ghoul], caption: '— and the dead rose to listen.', capAt: 0.4, cues: [[0, SFX('slam')], [0.3, SHAKE(0.5)], [0.9, SHAKE(0.4)], [1.6, BOLT()]] },
-        { kind: 'split', dur: 1.5, a: knights[0], b: warden, colA: GOLD, colB: EMBER, cues: [[0, SFX('rally')]] },
-        { kind: 'impact', dur: 0.32, who: knights[0], who2: ghoul, clip: 'Attack1', accent: '#ff7a3a', cues: [[0, SHAKE(1)], [0, SFX('slam')], [0, FLASH(0.8)]] },
+          caption: 'Out of the first one walked Vesh Morrow.', capAt: 0.5, cues: [[0, SFX('charge')], [0.3, EMBERS(50, '#7dffb0')], [1.4, SHAKE(0.3)]] },
+        { kind: 'closeup', dur: 1.8, who: vesh, dir: 2, zoom: 2.3, dy: 0.35, col1: 'rgba(30,90,55,1)', col2: 'rgba(2,10,6,1)', edge: '#7dffb0', from: 0.05, caption: 'He opened his mouth —', capAt: 0.2, cues: [[0, SFX('charge')], [1.2, SHAKE(0.3)]] },
+        { kind: 'closeup', dur: 2.6, who: vesh, dir: 2, waves: 'rgba(125,255,176,A)', burst: 'rgba(125,255,176,0.06)', col1: 'rgba(60,170,100,1)', col2: 'rgba(4,20,12,1)', edge: '#7dffb0', from: 0.2, caption: '— and sang.', capAt: 0.3,
+          cues: [[0, SFX('boss')], [0.1, RGB(0.6)], [0.2, SHAKE(0.5)], [1.0, RGB(0.5)], [1.0, SHAKE(0.4)], [1.8, RGB(0.6)]] },
+        { kind: 'impact', dur: 0.45, who: vesh, clip: 'Attack1', accent: '#7dffb0', cues: [[0, SHAKE(1)], [0, SFX('burst')], [0, FLASH(0.6, '#c8ffe0')], [0, RGB(1)]] },
+        { kind: 'horde', dur: 3.2, who: [ghoul, warden, skel, ghoul], caption: 'The dead heard him. Every grave in the vale broke open.', capAt: 0.3, cues: [[0, SFX('slam')], [0.3, SHAKE(0.5)], [0.9, SHAKE(0.4)], [1.6, BOLT()]] },
+        { kind: 'horde', dur: 2.2, who: [warden, ghoul, ghoul, skel, warden, ghoul, skel, ghoul], cues: [[0, SFX('slam')], [0.2, SHAKE(0.6)], [0.2, RGB(0.5)]] },
+        { kind: 'split', dur: 1.3, a: knights[0], b: warden, colA: GOLD, colB: EMBER, cues: [[0, SFX('rally')]] },
+        { kind: 'impact', dur: 0.24, who: knights[0], who2: warden, clip: 'Attack1', accent: '#ff7a3a', cues: [[0, SHAKE(1)], [0, SFX('slam')], [0, FLASH(0.6)], [0, RGB(0.8)]] },
+        { kind: 'impact', dur: 0.24, who: knights[1], who2: ghoul, clip: 'Attack1', accent: '#ff7a3a', cues: [[0, SHAKE(0.9)], [0, SFX('slam')], [0, FLASH(0.5)]] },
+        { kind: 'impact', dur: 0.24, who: ghoul, who2: knights[2], clip: 'Attack1', accent: '#ff3d2a', cues: [[0, SHAKE(1)], [0, SFX('slam')], [0, FLASH(0.6)], [0, RGB(0.8)]] },
+        { kind: 'closeup', dur: 1.6, who: knights[2], dir: 2, sil: [0.4, 0], rim: '#ff5a3a', col1: 'rgba(120,20,15,1)', col2: 'rgba(14,2,2,1)', edge: '#ff5a3a', from: 0.1, cues: [[0.5, SFX('herodie')], [0.5, SHAKE(0.4)]] },
         { kind: 'banners', dur: 6, top: '#0a0810', bot: '#5a1a10', sun: false, fire: true, smoke: 'rgba(30,20,20,A)', rayCol: 'rgba(255,120,60,0.04)', caption: 'Eight banners fell before dawn.', capAt: 3.6, cues: [
-          [0, EMBERS(60, '#ff8a3a')], [0.4, FALL(0)], [0.9, FALL(1)], [1.4, FALL(2)], [1.9, FALL(3)], [2.4, FALL(4)], [2.9, FALL(5)], [3.3, FALL(6)], [3.7, FALL(7)], [3.8, SHAKE(0.5)]] },
-        { kind: 'banners', dur: 4.4, only: 8, top: '#3a3a42', bot: '#8a7468', sunCol: 'rgba(230,210,190,0.35)', smoke: 'rgba(60,55,55,A)', caption: 'One banner still stood.', capAt: 0.6, cues: [[0, SFX('chime')], [0, EMBERS(20, '#d8c8b8')]] },
-        { kind: 'closeup', dur: 3.4, who: capW, dir: 2, sil: 1, rim: '#ffbe55', col1: 'rgba(110,70,40,1)', col2: 'rgba(14,8,4,1)', edge: '#ffbe55', from: -0.3, caption: 'Its bearer had no army left.', capAt: 0.5 },
-        { kind: 'closeup', dur: 2.6, who: capW, dir: 2, sil: [0.1, 0.45], rim: '#ffbe55', burst: 'rgba(255,190,85,0.08)', col1: 'rgba(210,120,30,1)', col2: 'rgba(30,12,4,1)', edge: '#ffbe55', from: 0.2, cues: [[0, SFX('charge')], [0.3, () => { FLASH(0.5, '#ffe2a0')(); }], [0.4, EMBERS(70, '#ffb347')]] },
-        { kind: 'impact', dur: 0.45, who: capW, clip: 'Taunt', accent: '#ffbe55', cues: [[0, SHAKE(1)], [0, SFX('slam')], [0, FLASH(0.9)]] },
-        { kind: 'banners', dur: 4.2, only: 8, top: '#4a2a1a', bot: '#ffb85a', sunCol: 'rgba(255,220,150,0.6)', rayCol: 'rgba(255,220,150,0.08)', caption: 'So the Captain raised it, and swore to build a new army.', capAt: 0.5, capEnd: 4,
-          cues: [[0, SFX('rally')], [0, SPARKS(140, '#ffcf7a', 0.5, 0.6, 800)], [0.1, SHAKE(0.6)], [0.4, EMBERS(60, '#ffcf7a')]] },
-        { kind: 'title', dur: 3.8, text: 'BANNERBORN', sub: 'Raise your banner. Earn your heroes. Shut the Gravegates.', size: 0.13, col: '#ffbe55', bg: '#1d1206', fadeOut: 0.6,
-          cues: [[0, SFX('burst')], [0, SHAKE(0.5)], [0.02, SPARKS(140, '#ffcf7a', 0.5, 0.5, 800)], [0.05, EMBERS(60, '#ffb347')], [0, MUSIC('calm')]] },
+          [0, EMBERS(70, '#ff8a3a')], [0.4, FALL(0)], [0.9, FALL(1)], [1.4, FALL(2)], [1.9, FALL(3)], [2.4, FALL(4)], [2.9, FALL(5)], [3.3, FALL(6)], [3.7, FALL(7)], [3.8, SHAKE(0.6)], [3.8, RGB(0.6)]] },
+        { kind: 'banners', dur: 4.4, only: 8, top: '#3a3a42', bot: '#8a7468', sunCol: 'rgba(230,210,190,0.35)', smoke: 'rgba(60,55,55,A)', caption: 'One banner still stood.', capAt: 0.6, cues: [[0, MUSIC('calm')], [0.2, SFX('chime')], [0, EMBERS(20, '#d8c8b8')]] },
+        { kind: 'closeup', dur: 3.4, who: capW, dir: 2, sil: 1, rim: '#ffbe55', col1: 'rgba(110,70,40,1)', col2: 'rgba(14,8,4,1)', edge: '#ffbe55', from: -0.3, caption: 'Its bearer had no army left.', capAt: 0.5, cues: [[0.6, BEAT()], [1.7, BEAT()], [2.8, BEAT()]] },
+        { kind: 'closeup', dur: 2.8, who: capW, dir: 2, sil: 1, rim: '#ffd27a', converge: '#ffcf7a', burst: 'rgba(255,190,85,0.05)', col1: 'rgba(150,90,40,1)', col2: 'rgba(20,10,4,1)', edge: '#ffbe55', from: 0, caption: 'But a banner remembers every oath sworn under it.', capAt: 0.3,
+          cues: [[0, SFX('charge')], [0.5, BEAT()], [1.2, BEAT()], [1.8, BEAT()], [2.2, BEAT()], [2.5, RGB(0.4)]] },
+        { kind: 'closeup', dur: 2.6, who: capW, dir: 2, zoom: 1.2, sil: [0.05, 0.35], rim: '#ffbe55', burst: 'rgba(255,190,85,0.1)', col1: 'rgba(230,140,40,1)', col2: 'rgba(30,12,4,1)', edge: '#ffbe55', from: 0.15,
+          cues: [[0, SFX('rally')], [0.05, () => { FLASH(0.8, '#ffe2a0')(); RGB(0.8)(); SHAKE(0.6)(); }], [0.1, SPARKS(160, '#ffcf7a', 0.5, 0.5, 900)], [0.3, EMBERS(80, '#ffb347')]] },
+        { kind: 'impact', dur: 0.5, who: capW, clip: 'Taunt', accent: '#ffbe55', cues: [[0, SHAKE(1)], [0, SFX('burst')], [0, FLASH(1)], [0, RGB(1)], [0.05, CRACK(0.5, 0.5, '#ffbe55')]] },
+        { kind: 'banners', dur: 4.4, only: 8, top: '#4a2a1a', bot: '#ffb85a', sunCol: 'rgba(255,220,150,0.6)', rayCol: 'rgba(255,220,150,0.08)', caption: 'So the Captain raised it, and swore to build a new army.', capAt: 0.5, capEnd: 4.2,
+          cues: [[0, SFX('rally')], [0, SPARKS(160, '#ffcf7a', 0.5, 0.6, 900)], [0.1, SHAKE(0.6)], [0.4, EMBERS(70, '#ffcf7a')]] },
+        { kind: 'heart', dur: 1.2, cues: [[0.2, BEAT()]] },
+        { kind: 'title', dur: 4.8, text: 'BANNERBORN', sub: 'Raise your banner. Earn your heroes. Shut the Gravegates.', size: 0.14, col: '#ffbe55', bg: '#1d1206', fadeOut: 0.7,
+          cues: [[0, SFX('burst')], [0, SHAKE(0.8)], [0, RGB(1)], [0, CRACK(0.5, 0.5, '#ffbe55')], [0.02, SPARKS(200, '#ffcf7a', 0.5, 0.5, 1000)], [0.05, EMBERS(80, '#ffb347')], [0.3, MUSIC('calm')], [1.6, EMBERS(40, '#ffcf7a')]] },
       ] };
     },
     // before a boss: the gate, the boss rising out of shadow, impact, the name, the face-off, the clash
@@ -354,8 +404,9 @@
       return { shots: [
         { kind: 'gate', dur: 2.2, col: red[3], hue: M.boss === 'vesh' ? 150 : M.boss === 'sallow' ? 30 : 0, cues: [[0, SFX('charge')], [0.8, () => { SHAKE(0.5)(); BB.sfx('portal'); }], [1.2, BOLT()]] },
         { kind: 'closeup', dur: 2.6, who: bossW, dir: 3, rise: true, sil: [0.3, 0.75], rim: red[2], col1: red[0], col2: red[1], edge: red[2], cues: [[0, SFX('boss')], [0.3, SHAKE(0.4)], [0.2, EMBERS(40, red[2])]] },
-        { kind: 'impact', dur: 0.4, who: bossW, clip: F.atkClips ? F.atkClips[0] : 'Attack1', dir: 3, accent: red[2], cues: [[0, SHAKE(0.9)], [0, SFX('burst')], [0, FLASH(0.6)]] },
-        { kind: 'title', dur: 2.1, text: name, sup: 'STAGE ' + M.code, sub: epi, size: 0.11, col: red[2], bg: red[1].replace(',1)', ',1)'), cues: [[0, SFX('slam')], [0, SHAKE(0.5)], [0.02, SPARKS(90, red[2], 0.5, 0.5, 650)]] },
+        { kind: 'closeup', dur: 1.3, who: bossW, dir: 3, zoom: 2.2, dy: 0.35, col1: red[0], col2: red[1], edge: red[2], from: 0.05, cues: [[0, SFX('charge')], [0.8, SHAKE(0.4)], [0.8, RGB(0.5)]] },
+        { kind: 'impact', dur: 0.4, who: bossW, clip: F.atkClips ? F.atkClips[0] : 'Attack1', dir: 3, accent: red[2], cues: [[0, SHAKE(0.9)], [0, SFX('burst')], [0, FLASH(0.6)], [0, RGB(1)]] },
+        { kind: 'title', dur: 2.3, text: name, sup: 'STAGE ' + M.code, sub: epi, size: 0.11, col: red[2], bg: red[1], cues: [[0, SFX('slam')], [0, SHAKE(0.6)], [0, CRACK(0.5, 0.5, red[2])], [0, RGB(0.7)], [0.02, SPARKS(110, red[2], 0.5, 0.5, 750)]] },
         { kind: 'horde', dur: 1.6, who: [grunt, grunt, bossW, grunt], cues: [[0, SFX('slam')], [0.3, SHAKE(0.4)]] },
         { kind: 'split', dur: 1.7, a: heroW, b: bossW, colA: GOLD, colB: [red[0], red[1]], cues: [[0, SFX('rally')], [0.5, SHAKE(0.3)]] },
         { kind: 'impact', dur: 0.34, who: heroW, who2: bossW, clip: 'Attack1', accent: '#ffffff', cues: [[0, SHAKE(1)], [0, SFX('slam')], [0, FLASH(0.9)]] },

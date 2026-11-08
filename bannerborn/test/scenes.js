@@ -15,7 +15,7 @@ require('fs').mkdirSync(out, { recursive: true });
   for (const idx of list) {
     await p.evaluate((idx) => {
       const S = BB.newSave(Date.now()); BB.save = S;
-      S.settings.auto = true;
+      S.settings.auto = true; BB.MISSIONS.forEach((m) => (S.seen['cine_' + m.id] = 1)); [2, 3, 4].forEach((c) => (S.seen['cine_ch' + c] = 1));
       const st = BB.MISSIONS[idx];
       BB.MISSIONS.slice(0, idx).forEach((m) => (S.cleared[m.id] = 1));
       const legends = Object.keys(BB.LEGENDS).filter((id) => BB.MISSIONS.findIndex((m) => m.legend === id) < idx);

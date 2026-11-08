@@ -50,6 +50,17 @@ A hero-collector RPG: you build the team, the team fights.
    and backstab archers and casters; **archers and healers** hold a line behind the shields and fall back behind
    them when something reaches them. Enemies do the same: shields lead each wave with archers behind, enemy
    archers fall back behind their shields, and **Grave Stalkers** sneak in after your back line.
+   **The exchange.** Melee is a read-and-answer duel. A fighter sees a blow wind up and **blocks** (a shield arc;
+   most of the hit glances off, tanks sometimes strike back) or **parries** (a white flash: no damage, the attacker
+   staggers with stars over their head, and a sure-critical **counter** lands). Bosses, elites, assassins, berserkers
+   and monks **feint**: a fake swing baits the guard, then the real blow lands in the opening (**OPEN!**, extra damage).
+   Every foe has **poise** (the thin gold bar under its health, and under the boss bar); hits wear it down, parries
+   and counters tear it, and at zero the foe is **BROKEN**: stunned, glowing, taking extra damage, and the heroes
+   near it gain ultimate energy. **Teamwork:** a tank **covers** a soft ally by stepping into the blow; two heroes
+   striking the same foe within a second **link** for bonus damage. Melee fighters **dash** across short gaps.
+   High-level heroes (level 15+, 3★ or a legend) of the shadowblade, arcanist, ranger, monk and warpriest
+   callings **teleport**: assassins blink behind their prey, archers and casters blink to safety; Grave Stalkers and
+   phasing bosses blink too. Guard and parry rates grow with level and stars.
    Four to six waves a stage, reinforcements arriving mid-fight, bosses calling adds as they weaken. Each charges an **ultimate** by fighting and taking hits;
    tap the glowing card (or 1–5) to unleash it with a cut-in, or turn on **AUTO**. 1×/2× speed, pause.
 6. **Campaign.** Four chapters, thirty stages (Greenvale, the Sunscar, Aldmere, the Cantor's Gate):
@@ -78,8 +89,10 @@ Settings: music, effects, screen shake, damage numbers, erase save.
 graphic, never from the game camera: slanted close-up panels of faces in coloured light, silhouettes that light up,
 three-face panels, a wall of skull faces, screen-filling gates with lightning and rain, great banners against the
 sky that topple in fire, VS splits, black-and-white impact frames and title slams, with sparks, embers, smoke, shake
-and letterbox. The opening (~55 s) tells how it began: nine banners and their knights; the Gravegates open; Vesh
-Morrow walks out and sings; the dead rise; eight banners fall before dawn; one stands; its bearer, alone, raises it
+and letterbox. Post effects sell the big beats: the screen cracks on impacts, the colour splits apart, film grain, rim-lit
+silhouettes, sound rings off a singing mouth, embers that converge on the hero, and a slam zoom into an eye.
+The opening (~72 s) tells how it began: nine banners and their knights swear an oath; the Gravegates open in
+lightning; Vesh Morrow rises out of the dark, opens his eyes and sings; the dead rise in waves and clash with the knights; eight banners fall before dawn; one stands; its bearer, alone, raises it
 and swears to build a new army; BANNERBORN. Bosses get an entrance the first time (gate, rise from shadow, impact,
 name, their horde, the face-off, the clash) and a fall; chapters 2-4 open with your banner and the chapter's name.
 

@@ -311,6 +311,9 @@ button.hc:active{transform:scale(.97)}
 #hud .bossbar{position:absolute;top:calc(14px + var(--safe-t));left:50%;transform:translateX(-50%);width:min(520px,44vw);display:none}
 #hud .bossbar .nm{font:600 13px var(--head);letter-spacing:.08em;text-align:center;margin-bottom:6px;text-shadow:0 2px 8px #000}
 #hud .bossbar .b{height:8px;border-radius:4px;background:rgba(0,0,0,.55);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);overflow:hidden}
+#hud .bossbar .p{height:4px;margin:4px auto 0;width:70%;border-radius:2px;background:rgba(0,0,0,.55);overflow:hidden}
+#hud .bossbar .p i{display:block;height:100%;background:linear-gradient(90deg,#ffcf5a,#ffe9a0);transition:width .1s}
+#hud .bossbar.broken .p i{background:#ff9a3a;box-shadow:0 0 10px #ff9a3a}
 #hud .bossbar .b i{display:block;height:100%;background:linear-gradient(90deg,#ff3d3d,#ff7a59);box-shadow:0 0 12px rgba(255,80,60,.7);transition:width .15s}
 #hud .topr{position:absolute;top:calc(10px + var(--safe-t));right:calc(12px + var(--safe-r));display:flex;gap:6px;transition:opacity .3s}
 #hud .topr .auto{width:auto;padding:0 14px;border-radius:999px;font:700 11px var(--head);letter-spacing:.14em;color:var(--mute)}
@@ -496,7 +499,7 @@ input[type=range]{accent-color:var(--accent)} input[type=checkbox]{accent-color:
   <div class="lb top"></div>
   <div class="lb bot"><div class="lbt" id="lbTitle"></div><div class="lbs" id="lbSub"></div></div>
   <div class="stg"><b id="hudStage"></b><span id="hudObj"></span></div>
-  <div class="bossbar" id="bossbar"><div class="nm"></div><div class="b"><i></i></div></div>
+  <div class="bossbar" id="bossbar"><div class="nm"></div><div class="b"><i></i></div><div class="p"><i></i></div></div>
   <div class="topr"><button class="rbtn auto" id="bAuto">AUTO</button><button class="rbtn" id="bSpeed">1×</button><button class="rbtn" id="bPause">❚❚</button></div>
   <div class="bnr" id="bnr"></div>
   <div class="tut" id="tut"></div>
