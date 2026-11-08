@@ -94,10 +94,10 @@ arts and drawn on the same 180 px pixel buffer, with its words on a sharp full-r
 None of it is the game's own view: every shot is a set built for it. The plot: seven hundred years ago the First Cut climbed the Spire
 and cut the moon to raise an army that would never die; by its red light his dead rise; tonight the
 wound bleeds out, and Vesper's blade is the one that can stop him. The shots: a red drop in the dark;
-the camera running with a swordsman across the moonlit roofs of a living city (lanterns, chimney smoke,
-birds bursting up, a leap across a street); racing up the Spire as he leaps ledge to ledge cutting down
-its guards; the summit, where he raises his sword before the vast white moon and darkness pours out of
-him, his shadow rising into a god, eyes igniting, sword raised; the cut: the tower-sized blade drinking
+a city under the white moon with the Spire over its roofs, the ground shaking, birds bursting off the
+roofs and people running in the streets as the First Cut rises behind the Spire, a black shape against a
+swelling red glow, until his eyes ignite; the god towering over the Spire against the moon, raising his
+sword into it; the cut: the tower-sized blade drinking
 the moon's light, the swing across its face, a storm of impact frames, then the moon splitting along
 the cut, white-hot, with red light pouring out of the gap onto the world, rings of force across a sky
 turning to blood, and his crowned head rising beneath it; the moon hanging still and bleeding; the earth cracking

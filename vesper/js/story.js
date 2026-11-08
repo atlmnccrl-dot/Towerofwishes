@@ -1,5 +1,5 @@
 // VESPER — the night's story, told in clean scenes (played by tale.js): one caption line per shot,
-// no dialogue. The plot in one breath: seven hundred years ago a swordsman climbed the Spire and cut
+// no dialogue. The plot in one breath: seven hundred years ago the First Cut rose over the Spire and cut
 // the moon, to raise an army that would never die; the wound never healed, and by its red light his
 // dead rise. Tonight the wound bleeds out and at dawn the moon falls. Your blade can stop him, at the
 // top of the Spire, past six guardians. The last of them is the swordsman himself: the wound keeps him
@@ -45,7 +45,7 @@
     // Dusk: the whole premise, then the first guardian.
     { shots: [
       { k: 'title', top: 'SEVEN HUNDRED YEARS AGO', title: 'THE MOON WAS CUT', d: 2.2 },
-      { k: 'moonfall', eyebrow: 'THE FIRST CUT', say: 'A swordsman climbed the Spire and cut the moon, to raise an army that would never die.', d: 4.6 },
+      { k: 'moonfall', eyebrow: 'THE FIRST CUT', say: 'He rose over the Spire and cut the moon, to raise an army that would never die.', d: 4.6 },
       { k: 'film', stage: 0, area: 0, tint: 'red', eyebrow: 'THE WOUND', say: 'The wound never healed. By its red light, his dead rise.', d: 3.8,
         cam: { at: [0, 10], to: [0, -20], zoom: [1.05, 1.35] },
         cast: [{ who: 'ghoul', at: [-110, -50], enter: 'rift', delay: 0.2 }, { who: 'ghast', at: [90, -60], enter: 'rift', delay: 0.5 }, { who: 'raider', at: [-40, 40], enter: 'rift', delay: 0.8 },
