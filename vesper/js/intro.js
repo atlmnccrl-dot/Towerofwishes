@@ -307,7 +307,7 @@
       ctx.fillStyle = '#1a0a0e'; for (let i = 0; i < 30; i++) ctx.fillRect(Math.round(hash(i, 201) * W()), gy + 4 + Math.round(hash(i, 202) * (H() - gy)), 2 + Math.round(hash(i, 203) * 4), 1);
       const hx = Math.round(W() * 0.5), hy = gy + 30, ck = clamp(t / 0.4);
       // The earth cracks red.
-      if (ck > 0) { A.tex(ctx, 'light_01', hx, hy, 120 * ck, 30 * ck, RED, 0.5, 0, true); for (let i = 0; i < 6; i++) K().crack(ctx, hx, hy, (i / 6) * Math.PI * 2, 14 + 40 * ck, 210 + i, i % 2 ? RED : '#ff9aa8', 1); }
+      if (ck > 0) { A.tex(ctx, 'light_01', hx, hy, 120 * ck, 30 * ck, RED, 0.5, 0, true); const L = Math.round(34 * ease(ck)); ctx.fillStyle = RED; ctx.fillRect(hx - L, hy - 1, L * 2, 3); ctx.fillStyle = '#ffd0d6'; ctx.fillRect(hx - Math.round(L * 0.6), hy, Math.round(L * 1.2), 1); }   // one clean fissure of red light
       // The hand bursts out.
       const hk = clamp((t - 0.35) / 0.45);
       if (hk > 0) {
@@ -388,7 +388,7 @@
     K().embers(ctx, T, 26, 0, W(), RED);
     const sc = 3.4 + 0.6 * ease(k), open = ease((k - 0.2) / 0.35);
     const at = closeUp(ctx, S.cast.vesper, 0, sc, Math.round(W() * 0.6 + Math.sin(T * 2) * 2), Math.round(H() * 0.42), [19, 6], open, RED, T);
-    if (open > 0) { ctx.globalAlpha = clamp((k - 0.35) * 3); for (let i = 0; i < 6; i++) K().crack(ctx, at.x + (i % 2 ? 6 : -6), at.y + 2, Math.PI / 2 + (i - 2.5) * 0.35, 40 + 50 * ease((k - 0.35) / 0.5), 70 + i, RED, 1); ctx.globalAlpha = 1; }
+    if (open > 0) A.tex(ctx, 'light_01', at.x, at.y, 120 * open, 26 * open, RED, 0.45 * clamp((k - 0.3) * 3), 0, true);   // a flare across the visor
     rain(ctx, T, 50, 0.25, 0.1);
     if (T > 0.5) say(S, 'card', 'VESPER', W() - 10, BAR + 16, { align: 'right', sub: 'THE MOONBLADE', col: '#ff9aaa', k: T - 0.5 });
     const cx = Math.round(W() * 0.28); ctx.fillStyle = INK; ctx.fillRect(cx - 3, 0, 6, H()); ctx.fillStyle = '#ffffff'; ctx.fillRect(cx + 3, 0, 1, H());
@@ -605,7 +605,7 @@
     ctx.fillStyle = hot; ctx.fillRect(-8, -8, W() + 16, H() + 16);
     burst(ctx, tipX, tipY, 'rgba(60,0,10,0.4)', 60, 243, 24);
     ground();
-    for (let i = 0; i < 10; i++) K().crack(ctx, gx, gy + 1, (i < 5 ? Math.PI : 0) + (hash(i, 244) - 0.5) * 0.5, 30 + 120 * ease(e * 2), 250 + i, i % 2 ? RED : '#ffb050', 1);
+    { const L = Math.round(W() * 0.6 * ease(e * 2)); ctx.fillStyle = '#ffb050'; ctx.fillRect(gx - L, gy, L * 2, 2); ctx.fillStyle = '#ffffff'; ctx.fillRect(gx - (L >> 1), gy, L, 1); A.tex(ctx, 'light_01', gx, gy, L * 2.2, 20, '#ffb050', 0.6, 0, true); }   // the ground splits in one bright line
     for (let i = 0; i < 2; i++) { const rk = ease(e * 2 - i * 0.2); if (rk <= 0 || rk >= 1) continue; ctx.strokeStyle = `rgba(255,230,200,${1 - rk})`; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(gx, gy, 10 + rk * 200, 3 + rk * 22, 0, 0, 7); ctx.stroke(); }
     const push = Math.round(Math.sin(T * 50) * 1.5);
     bigBlade(ctx, fromX, fromY, tipX + push, tipY, 26, '#000');
