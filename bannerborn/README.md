@@ -79,9 +79,11 @@ how it began (dusk over Ashford under nine banners; night, and a Gravegate tears
 sings; the dead rise and march; the banner knights fall one by one with their banners; at grey dawn the Captain
 kneels by the last banner, rises with it and blasts the dead back; BANNERBORN); each boss's entrance the first time (the camera
 sweeps the arena to the boss rising, an extreme pixel close-up, black-and-white impact frames, the name slam, a VS
-split with your lead hero); a fly-over title for each new chapter; and the boss's fall. They are built from shots:
-real map fly-throughs with scripted actors, slanted close-up panels with speed lines and light streaks, impact
-frames, kinetic titles, lightning, shockwaves, sparks, embers, shake and letterbox.
+split with your lead hero); a fly-over title for each new chapter; and the boss's fall. They never use the game's camera: every
+shot is side-on, like film — painted skies (dusk, night, dawn, desert, crimson, toxic, violet) over parallax ridges
+and land silhouettes (village roofs, pines, dunes and palms, ruins, the great gates), the cast drawn big and in
+profile with distance haze, banners that wave and topple, rain, ash and embers — cut with slanted close-up panels,
+VS splits, impact frames and kinetic titles, plus lightning, shockwaves, sparks, shake and letterbox.
 
 ## Code
 

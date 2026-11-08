@@ -17,6 +17,7 @@
   // ---------------------------------------------------------------- actors: who appears, drawn how
   // an actor is { hero } (paper-doll or recruit) or { foe: kind } (fixed art, maybe tinted)
   function actorArt(a) {
+    if (a.npcKey) return { key: a.npcKey, tint: '' };
     if (a.hero) return { layers: BB.heroLayers(a.hero) };
     const F = BB.FOES[a.foe]; const key = F.art || (F.poolPick ? 'h/' + F.poolPick : null);
     return { key, tint: F.tint || '' };
@@ -146,44 +147,145 @@
     titleText(g, sh.text, W / 2, H * 0.5, Math.round(H * (sh.size || 0.12)), k, 'center', sh.col || '#ffbe55');
     if (sh.sub) titleText(g, sh.sub, W / 2, H * 0.64, Math.round(H * 0.032), clamp01((k - 0.25) * 2), 'center', '#c8d0dc', true);
   }
-  function drawScene(g, W, H, sh, k, t, dt, dpr) {
-    const sc = C.scene; if (!sc) return;
-    const ks = sh.cam, n = ks.length - 1, kk = ease(k) * n, i = Math.min(n - 1, Math.floor(kk)), f = kk - i;
-    const A = ks[i], B = ks[Math.min(n, i + 1)];
-    const base = Math.min(W / dpr / (10.5 * BB.TW), H / dpr / (8.5 * BB.TH));
-    sc.cam.x = lerp(A.x, B.x, f); sc.cam.y = lerp(A.y, B.y, f); sc.cam.zoom = base * lerp(A.z, B.z, f);
-    // scripted actors walk to their marks
-    for (const e of sc.ents) if (e.goTo && !e.dead) {
-      const dx = e.goTo.x - e.x, dy = e.goTo.y - e.y, d = Math.hypot(dx, dy), step = (e.goTo.spd || 2.4) * dt;
-      if (d <= step) { e.x = e.goTo.x; e.y = e.goTo.y; const then = e.goTo.then; e.goTo = null; sc.setClip(e, then || 'Idle', true); if (then && then.startsWith('Attack')) e.loopAtk = then; }
-      else { e.x += dx / d * step; e.y += dy / d * step; sc.face(e, e.x + dx, e.y + dy); if (e.clip !== 'Run') sc.setClip(e, 'Run', true); }
-    }
-    for (const e of sc.ents) if (e.loopAtk && !e.dead && e.ct > 0.75) sc.setClip(e, e.loopAtk, true); // keep swinging
-    sc.update(dt, null);
-    sc.render(g, W, H, dpr);
-    // banners on their poles, in the world; a falling one tips over from its base
-    if (C.banners && C.banners.length && sc.view) {
-      const v = sc.view; g.setTransform(v.z, 0, 0, v.z, v.ox, v.oy);
-      for (const b of C.banners.slice().sort((p, q) => (p.x + p.y) - (q.x + q.y))) {
-        if (b.fallT !== undefined) b.fallT += dt;
-        const ang = b.fallT !== undefined ? Math.min(1, b.fallT / 0.9) ** 2 * 1.45 * b.side : 0;
-        if (!b.cv) { b.cv = document.createElement('canvas'); b.cv.width = 100; b.cv.height = 140; }
-        BB.UI.drawBanner(b.cv.getContext('2d'), b, 100, 140, C.t + b.x);
-        const p = BB.iso(b.x, b.y);
-        g.save(); g.translate(p.x, p.y); g.rotate(ang); g.globalAlpha = b.fallT !== undefined ? Math.max(0.35, 1 - b.fallT * 0.25) : 1; g.drawImage(b.cv, -5, -42, 28, 40); g.restore();
+  // ---------------------------------------------------------------- the side-on stage: a painted world seen like a film, never the game camera
+  const SKY = {
+    dusk: { top: [42, 27, 61], bot: [214, 104, 58], sun: [255, 190, 110], far: [62, 34, 54], mid: [36, 21, 42], gnd: [26, 18, 16], fog: [214, 120, 80], stars: 0 },
+    night: { top: [5, 7, 15], bot: [26, 35, 64], sun: [223, 232, 255], far: [14, 20, 36], mid: [10, 14, 26], gnd: [7, 9, 15], fog: [60, 80, 130], stars: 1, moon: 1 },
+    dawn: { top: [52, 50, 60], bot: [150, 118, 104], sun: [255, 220, 190], far: [74, 64, 72], mid: [46, 40, 48], gnd: [28, 24, 24], fog: [170, 150, 140], stars: 0 },
+    warm: { top: [70, 44, 40], bot: [235, 160, 90], sun: [255, 225, 160], far: [92, 56, 50], mid: [56, 34, 34], gnd: [32, 22, 18], fog: [240, 180, 120], stars: 0 },
+    day: { top: [70, 120, 190], bot: [200, 225, 240], sun: [255, 250, 230], far: [110, 130, 150], mid: [60, 90, 60], gnd: [50, 64, 36], fog: [220, 235, 245], stars: 0 },
+    desert: { top: [120, 70, 60], bot: [246, 200, 130], sun: [255, 235, 180], far: [170, 110, 74], mid: [140, 86, 56], gnd: [120, 80, 50], fog: [250, 210, 150], stars: 0 },
+    crimson: { top: [16, 4, 6], bot: [110, 22, 18], sun: [255, 120, 90], far: [40, 10, 12], mid: [24, 6, 8], gnd: [12, 4, 5], fog: [160, 40, 30], stars: 0 },
+    toxic: { top: [4, 12, 10], bot: [24, 80, 56], sun: [160, 255, 200], far: [10, 30, 24], mid: [6, 18, 14], gnd: [4, 10, 8], fog: [60, 160, 110], stars: 1, moon: 1 },
+    violet: { top: [10, 6, 22], bot: [70, 44, 120], sun: [210, 180, 255], far: [24, 16, 44], mid: [14, 10, 28], gnd: [8, 6, 16], fog: [120, 90, 190], stars: 1, moon: 1 },
+  };
+  const rgb = (c, a) => 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + (a === undefined ? 1 : a) + ')';
+  const mixC = (a, b, k) => [0, 1, 2].map((i) => Math.round(lerp(a[i], b[i], k)));
+  function mixPal(A, B, k) { const o = {}; for (const q in A) o[q] = Array.isArray(A[q]) ? mixC(A[q], B[q], k) : lerp(A[q], B[q] || 0, k); return o; }
+  const fr = (x) => x - Math.floor(x);
+  const noise = (x, s) => Math.sin(x * 0.9 + s) * 0.5 + Math.sin(x * 2.3 + s * 1.7) * 0.3 + Math.sin(x * 5.1 + s * 3.1) * 0.2;
+  // the landscape behind, in parallax layers
+  function backdrop(g, W, H, P, camX, unit, gy, land, t) {
+    const sk = g.createLinearGradient(0, 0, 0, gy); sk.addColorStop(0, rgb(P.top)); sk.addColorStop(1, rgb(P.bot)); g.fillStyle = sk; g.fillRect(0, 0, W, gy + 2);
+    if (P.stars > 0.05) { g.fillStyle = 'rgba(255,255,255,' + 0.7 * P.stars + ')'; for (let i = 0; i < 90; i++) { const x = ((i * 137.5) % 1000) / 1000 * W, y = ((i * 71.3) % 1000) / 1000 * gy * 0.7; g.fillRect(x, y, 1.5, 1.5); } }
+    // sun or moon
+    const sx = W * 0.72 - camX * unit * 0.03, sy = gy * (P.moon ? 0.28 : 0.62), sr = H * (P.moon ? 0.06 : 0.09);
+    const gl = g.createRadialGradient(sx, sy, 0, sx, sy, sr * 5); gl.addColorStop(0, rgb(P.sun, 0.55)); gl.addColorStop(1, rgb(P.sun, 0)); g.fillStyle = gl; g.fillRect(sx - sr * 5, sy - sr * 5, sr * 10, sr * 10);
+    g.fillStyle = rgb(P.sun, 0.95); g.beginPath(); g.arc(sx, sy, sr, 0, 7); g.fill();
+    // far ridge
+    const layer = (par, base, amp, col, seed, deco) => {
+      const off = camX * unit * par;
+      g.fillStyle = col; g.beginPath(); g.moveTo(0, gy + 2);
+      for (let x = 0; x <= W + 8; x += 8) { const wx = (x + off) / (unit * 3); g.lineTo(x, base - (noise(wx, seed) * 0.5 + 0.5) * amp); }
+      g.lineTo(W, gy + 2); g.closePath(); g.fill();
+      if (deco) deco(off, base, amp, col);
+    };
+    layer(0.15, gy - H * 0.12, H * 0.16, rgb(P.far), 3);
+    // the middle distance: what this land looks like
+    layer(0.4, gy - H * 0.04, H * 0.07, rgb(P.mid), 9, (off, base, amp, col) => {
+      g.fillStyle = col;
+      for (let i = -2; i < 40; i++) {
+        const wx = i * unit * 1.6 - (off % (unit * 1.6 * 40)), seedv = Math.sin(i * 12.9898) * 0.5 + 0.5;
+        if (wx < -unit * 2 || wx > W + unit * 2) continue;
+        const by = base - (noise((wx + off) / (unit * 3), 9) * 0.5 + 0.5) * amp + 2;
+        if (land === 'village' && seedv > 0.35) { const w = unit * (0.7 + seedv * 0.5), h = unit * (0.5 + seedv * 0.4); g.fillRect(wx, by - h, w, h + 4); g.beginPath(); g.moveTo(wx - w * 0.12, by - h); g.lineTo(wx + w / 2, by - h - w * 0.55); g.lineTo(wx + w * 1.12, by - h); g.fill(); if (seedv > 0.8) g.fillRect(wx + w * 0.7, by - h - w * 0.75, w * 0.15, w * 0.4); }
+        else if (land === 'desert') { g.beginPath(); g.ellipse(wx, by + 4, unit * (1.4 + seedv), unit * 0.35, 0, Math.PI, 0); g.fill(); if (seedv > 0.75) { g.fillRect(wx, by - unit * 1.3, unit * 0.07, unit * 1.3); for (let f = 0; f < 5; f++) { g.beginPath(); g.ellipse(wx + Math.cos(f * 1.25 - 2.2) * unit * 0.3, by - unit * 1.3 + Math.sin(f * 1.25 - 2.2) * unit * 0.12, unit * 0.32, unit * 0.06, f * 1.25 - 2.2, 0, 7); g.fill(); } } }
+        else if (land === 'ruins' || land === 'gate') { if (seedv > 0.3) { const w = unit * (0.4 + seedv * 0.5), h = unit * (0.8 + seedv * 1.6); g.beginPath(); g.moveTo(wx, by + 4); g.lineTo(wx, by - h); g.lineTo(wx + w * 0.3, by - h + unit * 0.2); g.lineTo(wx + w * 0.6, by - h - unit * 0.1); g.lineTo(wx + w, by - h + unit * 0.3); g.lineTo(wx + w, by + 4); g.fill(); } if (land === 'gate' && i % 9 === 4) { g.fillRect(wx, by - unit * 3, unit * 0.5, unit * 3); g.fillRect(wx + unit * 2, by - unit * 3, unit * 0.5, unit * 3); g.beginPath(); g.arc(wx + unit * 1.25, by - unit * 3, unit * 1.25, Math.PI, 0); g.lineTo(wx + unit * 2, by - unit * 3); g.arc(wx + unit * 1.25, by - unit * 3, unit * 0.75, 0, Math.PI, true); g.fill(); } }
+        else { if (seedv > 0.25) { const h = unit * (0.9 + seedv * 1.1); g.beginPath(); g.moveTo(wx - unit * 0.32, by + 2); g.lineTo(wx, by - h); g.lineTo(wx + unit * 0.32, by + 2); g.fill(); } }
       }
+    });
+    // fog where the land meets the sky
+    const fg = g.createLinearGradient(0, gy - H * 0.16, 0, gy); fg.addColorStop(0, rgb(P.fog, 0)); fg.addColorStop(1, rgb(P.fog, 0.28)); g.fillStyle = fg; g.fillRect(0, gy - H * 0.16, W, H * 0.16);
+    // the ground
+    const gg = g.createLinearGradient(0, gy, 0, H); gg.addColorStop(0, rgb(mixC(P.gnd, P.fog, 0.25))); gg.addColorStop(1, rgb(P.gnd)); g.fillStyle = gg; g.fillRect(0, gy, W, H - gy);
+    g.fillStyle = rgb(mixC(P.gnd, P.fog, 0.4), 0.5); g.fillRect(0, gy, W, 2);
+  }
+  function foreground(g, W, H, P, camX, unit, gy, land) { // dark grass and stones close to the lens
+    const off = camX * unit * 1.35;
+    g.fillStyle = rgb(mixC(P.gnd, [0, 0, 0], 0.5));
+    for (let i = -2; i < 60; i++) {
+      const x = i * unit * 0.9 - (off % (unit * 0.9 * 60)); if (x < -unit || x > W + unit) continue;
+      const s = Math.sin(i * 7.77) * 0.5 + 0.5, y = H - H * 0.02;
+      if (land === 'desert' || land === 'ruins') { g.beginPath(); g.ellipse(x, y, unit * (0.3 + s * 0.4), unit * (0.15 + s * 0.15), 0, Math.PI, 0); g.fill(); }
+      else for (let b = 0; b < 4; b++) { g.beginPath(); g.moveTo(x + b * 6, y); g.quadraticCurveTo(x + b * 6 + 4, y - unit * (0.3 + s * 0.5), x + b * 6 + 9, y - unit * (0.4 + s * 0.6)); g.lineTo(x + b * 6 + 5, y); g.fill(); }
     }
-    g.setTransform(1, 0, 0, 1, 0, 0);
-    if (sh.tint) { g.fillStyle = sh.tint; g.fillRect(0, 0, W, H); }
-    if (sh.tintFrom) { const a = sh.tintFrom, b = sh.tintTo || a, q = clamp01(t / (sh.tintIn || sh.dur)); g.fillStyle = 'rgba(' + [0, 1, 2].map((i) => Math.round(lerp(a[i], b[i], q))).join(',') + ',' + lerp(a[3], b[3], q) + ')'; g.fillRect(0, 0, W, H); }
+  }
+  // cast on the side-on stage: x in metres along the ground, d = depth (0 near, 1 far)
+  const A2 = (who, x, o) => Object.assign({ who, x, d: 0, dir: 0, clip: 'Idle', ct: Math.random(), rise: 1, riseSpd: 1.2, alpha: 1, dead: false, deadT: 0, vx: 0, scale: 1, fade: false }, o || {});
+  const act = (a, clip) => { if (!a) return; a.clip = clip; a.ct = 0; };
+  function drawStage2d(g, W, H, sh, k, t, dt) {
+    const camX = lerp(sh.pan[0], sh.pan[1], ease(k)), zoom = lerp((sh.zoom || [1, 1])[0], (sh.zoom || [1, 1])[1], ease(k));
+    const unit = H / 9 * zoom, gy = H * (sh.ground || 0.76);
+    const P = mixPal(SKY[sh.sky], SKY[sh.skyTo || sh.sky], clamp01(t / (sh.skyIn || sh.dur)));
+    C.pal = P;
+    g.save(); g.imageSmoothingEnabled = true;
+    backdrop(g, W, H, P, camX, unit, gy, sh.land || 'forest', t);
+    const toX = (x, d) => W / 2 + (x - camX) * unit * (1 - (d || 0) * 0.35);
+    // the gate, if one is open
+    if (C.gate) {
+      C.gate.open = Math.min(1, C.gate.open + dt * 0.8);
+      const gx = toX(C.gate.x, 0.15), gs = unit / 70 * 2.6 * (0.3 + C.gate.open * 0.7), gyy = gy - unit * 1.4;
+      g.save(); g.globalCompositeOperation = 'lighter';
+      const gl = g.createRadialGradient(gx, gy, 0, gx, gy, unit * 3); gl.addColorStop(0, 'rgba(160,90,255,0.45)'); gl.addColorStop(1, 'rgba(160,90,255,0)'); g.fillStyle = gl; g.beginPath(); g.ellipse(gx, gy, unit * 3, unit * 0.8, 0, 0, 7); g.fill();
+      BB.drawFx(g, C.gate.open < 1 ? 'portalopen' : 'portal', Math.floor(t * 14) % (BB.fxLen(C.gate.open < 1 ? 'portalopen' : 'portal') || 1), gx, gyy, gs, { add: true, hue: C.gate.hue || 0 });
+      g.restore();
+    }
+    // banners on the ridge
+    for (const b of C.banners) {
+      if (b.fallT !== undefined) b.fallT += dt;
+      const ang = b.fallT !== undefined ? Math.min(1, b.fallT / 0.9) ** 2 * 1.45 * (b.side || 1) : 0;
+      if (!b.cv) { b.cv = document.createElement('canvas'); b.cv.width = 100; b.cv.height = 140; }
+      BB.UI.drawBanner(b.cv.getContext('2d'), b, 100, 140, C.t * 1.4 + b.x);
+      const bx = toX(b.x, b.d || 0.1), bh = unit * 2.3 * (1 - (b.d || 0.1) * 0.35), byy = gy - (b.d || 0.1) * unit * 0.9;
+      g.save(); g.translate(bx, byy); g.rotate(ang); g.globalAlpha = b.fallT !== undefined ? Math.max(0.4, 1 - b.fallT * 0.2) : 1;
+      g.drawImage(b.cv, -bh * 0.16, -bh, bh * 0.72, bh); g.restore();
+    }
+    // the cast, far to near
+    const list = C.cast.slice().sort((p, q) => q.d - p.d);
+    g.imageSmoothingEnabled = false;
+    for (const a of list) {
+      a.ct += dt; if (a.rise < 1) a.rise = Math.min(1, a.rise + dt * a.riseSpd);
+      if (a.goTo && !a.dead) { const dx = a.goTo.x - a.x, step = (a.goTo.spd || 2) * dt; if (Math.abs(dx) <= step) { a.x = a.goTo.x; const th = a.goTo.then; a.goTo = null; act(a, th || 'Idle'); if (th && th.startsWith('Attack')) a.loop = th; } else { a.x += Math.sign(dx) * step; a.dir = dx > 0 ? 0 : 4; if (a.clip !== 'Run') act(a, 'Run'); } }
+      if (a.vx) { a.x += a.vx * dt; a.vx *= Math.pow(0.08, dt); if (Math.abs(a.vx) < 0.1) a.vx = 0; }
+      if (a.loop && !a.dead && a.ct > 0.8) a.ct = 0;
+      if (a.dead) { a.deadT += dt; if (a.fade) a.alpha = Math.max(0, 1 - (a.deadT - 0.6) / 0.8); }
+      if (a.alpha <= 0) continue;
+      const sf = 1 - a.d * 0.35, sc = Math.max(1, Math.round(unit * sf / 17 * a.scale));
+      const x = toX(a.x, a.d), y = gy - a.d * unit * 0.9;
+      const n = clipLen(a.who, a.clip), loop = a.clip === 'Idle' || a.clip === 'Run' || a.clip === 'Walk';
+      const fr = a.dead ? Math.min(n - 1, Math.floor(a.deadT * 14)) : loop ? Math.floor(a.ct * (a.clip === 'Run' ? 18 : 9)) % n : Math.min(n - 1, Math.floor(a.ct * 16));
+      const lift = (1 - a.rise) * 60 * sc;
+      g.save(); g.globalAlpha = a.alpha;
+      if (a.rise < 1) { g.beginPath(); g.rect(x - 80 * sc, y - 140 * sc, 160 * sc, 140 * sc + 2); g.clip(); }
+      g.fillStyle = 'rgba(0,0,0,0.35)'; g.beginPath(); g.ellipse(x, y, 14 * sc, 3.5 * sc, 0, 0, 7); g.fill();
+      drawActor(g, a.who, a.clip, a.dir, fr, x, y + lift, sc, { flash: a.flash || 0 });
+      if (a.d > 0.05 || a.shadowed) { // distance haze: the far ones melt into the dusk
+        const sv = silhouette(a.who, a.clip, a.dir, fr, sc, rgb(P.mid)); g.globalAlpha = a.alpha * Math.min(0.85, a.d * 0.75 + (a.shadowed || 0)); g.drawImage(sv, x - 64 * sc, y + lift - 90 * sc);
+      }
+      g.restore();
+      if (a.flash) a.flash = Math.max(0, a.flash - dt * 2);
+    }
+    // shockwaves along the ground
+    g.imageSmoothingEnabled = true;
+    for (const r of C.rings) { r.t += dt; const q = r.t / 0.9; if (q >= 1) continue; g.strokeStyle = r.col; g.globalAlpha = 1 - q; g.lineWidth = unit * 0.12 * (1 - q); g.beginPath(); g.ellipse(toX(r.x, 0), gy, q * unit * 7, q * unit * 1.4, 0, 0, 7); g.stroke(); g.globalAlpha = 1; }
+    C.rings = C.rings.filter((r) => r.t < 0.9);
+    foreground(g, W, H, P, camX, unit, gy, sh.land || 'forest');
+    // weather
+    if (C.weather === 'rain') { // streaks at scattered places and speeds
+      g.strokeStyle = 'rgba(180,200,255,0.3)'; g.lineWidth = 1.1; g.beginPath();
+      for (let i = 0; i < 150; i++) { const h1 = fr(Math.sin(i * 12.9898) * 43758.5), h2 = fr(Math.sin(i * 78.233) * 12345.6), sp = 0.7 + h2 * 0.6; const y = ((h2 * (H + 60) + C.t * 1500 * sp) % (H + 60)) - 30, x = ((h1 * (W + 100) - C.t * 300 * sp) % (W + 100) + W + 100) % (W + 100) - 50; g.moveTo(x, y); g.lineTo(x - 7, y + 18 * sp); }
+      g.stroke(); }
+    if (C.weather === 'ash') { g.fillStyle = 'rgba(220,210,200,0.6)'; for (let i = 0; i < 90; i++) { const x = ((i * 131.1 + C.t * 30 + Math.sin(C.t + i) * 20) % W), y = ((i * 77.7 + C.t * 40) % H); g.fillRect(x, y, 2, 2); } }
+    if (C.weather === 'embers') { g.globalCompositeOperation = 'lighter'; g.fillStyle = 'rgba(255,150,60,0.8)'; for (let i = 0; i < 70; i++) { const x = ((i * 113.3 + Math.sin(C.t * 0.7 + i) * 40) % W), y = H - ((i * 61.1 + C.t * 70) % H); g.fillRect(x, y, 2, 2); } g.globalCompositeOperation = 'source-over'; }
+    g.restore();
   }
 
   // ---------------------------------------------------------------- the player
   C.play = async function (name, opts, done) {
     const build = SCENES[name]; if (!build) { done && done(); return; }
     const el = document.getElementById('cine'); el.classList.add('on');
-    Object.assign(C, { on: true, loading: true, t: 0, done, parts: [], shake: 0, flash: 0, flashCol: '#fff', bolts: [], cued: {}, scene: null, shots: [], banners: [] });
-    try { const def = await build(opts || {}); C.shots = def.shots; C.scene = def.scene || null; C.total = C.shots.reduce((a, s) => a + s.dur, 0); }
+    Object.assign(C, { on: true, loading: true, t: 0, done, parts: [], shake: 0, flash: 0, flashCol: '#fff', bolts: [], cued: {}, shots: [], banners: [], cast: [], rings: [], gate: null, weather: null, vesh: null });
+    try { const def = await build(opts || {}); C.shots = def.shots; C.total = C.shots.reduce((a, s) => a + s.dur, 0); }
     catch (e) { console.warn('cutscene skipped', e); C.end(); return; }
     C.loading = false;
     BB.music(opts.music || 'boss');
@@ -191,7 +293,7 @@
   C.end = function () {
     if (!C.on) return;
     C.on = false; document.getElementById('cine').classList.remove('on');
-    const d = C.done; C.done = null; C.scene = null; d && d();
+    const d = C.done; C.done = null; C.cast = []; d && d();
   };
   C.render = function (dt) {
     const cv = CV(); if (!cv) return;
@@ -210,11 +312,11 @@
     g.save();
     if (C.shake > 0) { C.shake = Math.max(0, C.shake - dt * 1.6); g.translate((Math.random() - 0.5) * C.shake * 40 * dpr, (Math.random() - 0.5) * C.shake * 30 * dpr); }
     g.imageSmoothingEnabled = false;
-    if (sh.kind === 'scene') drawScene(g, W, H, sh, k, lt, dt, dpr);
+    if (sh.kind === 'stage2d') drawStage2d(g, W, H, sh, k, lt, dt);
     else if (sh.kind === 'closeup') drawCloseup(g, W, H, sh, k, lt);
     else if (sh.kind === 'split') drawSplit(g, W, H, sh, k, lt);
     else if (sh.kind === 'impact') drawImpact(g, W, H, sh, k, lt);
-    else if (sh.kind === 'title') { if (sh.over && C.scene) drawScene(g, W, H, Object.assign({}, sh, { cam: sh.cam }), k, lt, dt, dpr); drawTitle(g, W, H, sh, k, lt); }
+    else if (sh.kind === 'title') { if (sh.bg2d) { drawStage2d(g, W, H, Object.assign({ dur: sh.dur }, sh.bg2d), k, lt, dt); sh.over = true; } drawTitle(g, W, H, sh, k, lt); }
     g.restore();
     g.setTransform(1, 0, 0, 1, 0, 0);
     // lightning
@@ -250,119 +352,105 @@
   const EMBERS = (n, col) => (o) => embers(o.W, o.H, col, n);
   const MUSIC = (m) => () => BB.music(m);
 
-  // a stage set: a map, some actors
-  async function stage(layout, biome, night, seed, cast, villagers) {
+  // load the art a cutscene needs
+  async function cast(list, npcs) {
     const keys = new Set();
-    const npc = villagers ? BB.npcKeys().slice(0, villagers) : [];
-    npc.forEach((k) => keys.add(k));
-    for (const c of cast) { const art = actorArt(c.who || c); if (art.key) keys.add(art.key); }
-    await Promise.all([BB.loadEnv(biome), BB.loadEnv('vale'), BB.loadEnv('ground'), BB.loadOther()].concat([...keys].map((k) => BB.loadChar(k).catch(() => null))));
-    const map = BB.buildMap(layout, biome, seed, { night });
-    BB.renderGround(map);
-    const sc = new BB.Battle({ map, heroes: [], peaceful: true, save: BB.save, seed: 5 });
-    sc.noBars = true;
-    sc.npcs = npc.filter((k) => BB.A.chars[k]).map((art, i) => { const x = map.w / 2 - 5 + i * 2.2, y = map.h / 2 + 2 + (i % 2) * 1.5; return { x, y, home: { x, y }, art, clip: 'Idle', dir: 2, ct: i, walker: true, wait: 0.5 + i * 0.7 }; });
-    return sc;
-  }
-  function place(sc, who, x, y, dir, opts) {
-    opts = opts || {};
-    let e;
-    if (who.hero) { e = sc.spawnHero(who.hero, BB.heroStats(who.hero), x, y); }
-    else { e = sc.spawnFoe(who.foe, x, y, { rise: !!opts.rise }); }
-    e.scripted = true; e.dir = dir; sc.setClip(e, opts.clip || 'Idle', true);
-    if (opts.scale) e.sc = opts.scale;
-    return e;
+    for (const w of list) { const art = actorArt(w); if (art.key) keys.add(art.key); else if (art.layers) art.layers.forEach((L) => keys.add(L.key)); }
+    for (const k of (npcs || [])) keys.add(k);
+    await Promise.all([BB.loadOther()].concat([...keys].map((k) => BB.loadChar(k).catch(() => null))));
   }
   const leader = () => (BB.UI && BB.UI.leader ? BB.UI.leader() : BB.save.heroes[0]);
+  const RING = (x, col) => () => C.rings.push({ x, t: 0, col: col || '#ffcf7a' });
+  const WEATHER = (w) => () => { C.weather = w; };
 
   // ---------------------------------------------------------------- the cutscenes
   const SCENES = {
     // a new game: what the nine banners were, how they fell, and why one is left
     async intro() {
-      const cap = { hero: leader() }, vesh = { foe: 'vesh' }, ghoul = { foe: 'ghoul' }, skel = { foe: 'warden' };
-      const knights = BB.ROSTER.filter((c) => c.role === 'hero' && (c.arch === 'knight' || c.arch === 'spearman')).slice(0, 4)
-        .map((c) => ({ hero: BB.newHero({ calling: c.calling, recruit: c.key, name: c.name }) }));
-      await Promise.all(knights.map((k) => BB.loadChar('h/' + k.hero.recruit).catch(() => null)));
-      const sc = await stage('village', 'vale', false, 9, [cap, vesh, ghoul, skel], 4);
-      const m = sc.map, c = m.w / 2;
-      // nine banners on the ridge; the ninth is yours
-      const cols = BB.BANNER_COLORS.concat(['#3a6a8a']), sig = BB.SIGILS;
-      for (let i = 0; i < 9; i++) {
-        const mine = i === 8, bx = c - 4.6 + i * 1.15, by = c - 2.2 + i * 0.05;
-        C.banners.push(Object.assign({ x: bx, y: by, side: i % 2 ? 1 : -1 }, mine ? BB.save.banner : { color: cols[i], sigil: sig[i % sig.length], trim: '#e8c66a' }));
-      }
-      const gateAt = { x: c + 6, y: c - 6 };
-      const kn = knights.map((k, i) => place(sc, k, C.banners[1 + i * 2].x + 0.3, C.banners[1 + i * 2].y + 1.1, 1));
-      const captain = place(sc, cap, C.banners[8].x + 0.5, C.banners[8].y + 1.0, 1, { clip: 'CrouchIdle' });
+      const capW = { hero: leader() }, vesh = { foe: 'vesh' }, ghoul = { foe: 'ghoul' }, warden = { foe: 'warden' };
+      const knights = BB.ROSTER.filter((c) => c.role === 'hero' && (c.arch === 'knight' || c.arch === 'spearman')).slice(0, 4).map((c) => ({ hero: BB.newHero({ calling: c.calling, recruit: c.key, name: c.name }) }));
+      const npcs = BB.npcKeys().slice(0, 4);
+      await cast([capW, vesh, ghoul, warden].concat(knights), npcs);
+      // nine banners on the ridge, two metres apart; the ninth is yours
+      const cols = BB.BANNER_COLORS.concat(['#3a6a8a']);
+      for (let i = 0; i < 9; i++) C.banners.push(Object.assign({ x: -8 + i * 2, d: 0.12, side: i % 2 ? 1 : -1 }, i === 8 ? BB.save.banner : { color: cols[i], sigil: BB.SIGILS[i % BB.SIGILS.length], trim: '#e8c66a' }));
+      const folk = npcs.filter((k) => BB.A.chars[k]).map((k, i) => { const a = A2({ foe: null, npc: k }, -16 + i * 3.2, { d: 0.25 + (i % 2) * 0.2, dir: i % 2 ? 0 : 4 }); a.who = { npcKey: k }; return a; });
+      folk.forEach((a, i) => { a.goTo = { x: a.x + (i % 2 ? 4 : -4), spd: 0.7, then: 'Idle' }; });
+      const kn = knights.map((w, i) => A2(w, -6 + i * 4 + 0.6, { d: 0, dir: 0 }));
+      const cap = A2(capW, 8.8, { d: 0, dir: 4, clip: 'Idle', shadowed: 0 });
+      C.cast.push(...folk, ...kn);
       const dead = [];
-      const raise = (n, cx, cy, spread) => { for (let i = 0; i < n; i++) { const a = Math.random() * Math.PI * 2, r = Math.random() * spread; dead.push(place(sc, Math.random() < 0.2 ? skel : ghoul, cx + Math.cos(a) * r, cy + Math.sin(a) * r, 5, { rise: true })); } };
-      const march = (spd) => dead.forEach((d, i) => { if (d.dead) return; const t = C.banners[i % 9]; d.goTo = { x: t.x + (Math.random() - 0.5) * 1.2, y: t.y + 1.6 + Math.random() * 1.5, spd: spd * (0.8 + Math.random() * 0.4), then: 'Attack1' }; });
+      const raise = (n, x0, x1) => { for (let i = 0; i < n; i++) { const a = A2(Math.random() < 0.25 ? warden : ghoul, x0 + Math.random() * (x1 - x0), { d: Math.random() * 0.8, dir: 4, rise: 0, riseSpd: 0.8 + Math.random() * 0.6 }); dead.push(a); C.cast.push(a); } };
+      const march = (spd, near) => dead.forEach((a, i) => { if (a.dead) return; const tx = near !== undefined ? near + 1.2 + Math.random() * 4 : -6 + (i % 4) * 4 + 1.6 + Math.random() * 0.6; a.goTo = { x: tx, spd: spd * (0.8 + Math.random() * 0.4), then: near !== undefined ? 'Idle' : 'Attack1' }; });
       const fall = (i) => () => { const b = C.banners[i]; if (b && b.fallT === undefined) { b.fallT = 0; BB.sfx('slam'); } };
-      const slay = (k) => () => { if (k && !k.dead) { k.dead = true; k.deadT = 0; sc.setClip(k, 'Die', true); } };
-      const dusk = [70, 34, 10, 0.16], dark = [14, 22, 50, 0.34], ash = [64, 46, 44, 0.24];
-      return { scene: sc, shots: [
-        { kind: 'scene', dur: 7, fadeIn: 1.2, cam: [{ x: c - 7, y: c + 2, z: 1.05 }, { x: c - 1.2, y: c - 1.4, z: 1.25 }], tintFrom: dusk, tintTo: dusk,
-          caption: 'For three hundred years, nine banners kept the dead in their graves.', capAt: 0.9, cues: [[0, MUSIC('calm')]] },
-        { kind: 'scene', dur: 6.5, cam: [{ x: c - 1.2, y: c - 1.4, z: 1.25 }, { x: gateAt.x - 2, y: gateAt.y + 2, z: 1.35 }], tintFrom: dusk, tintTo: dark, tintIn: 2.2,
-          caption: 'Then, one night, the Gravegates opened.', capAt: 2.2, cues: [
-            [1.6, () => { sc.npcs = []; }], [2.4, BOLT()], [3.2, () => { const gt = sc.spawnFoe('portal', gateAt.x, gateAt.y, { rise: true }); gt.scripted = true; SHAKE(0.5)(); BB.sfx('portal'); MUSIC('boss')(); }], [4.8, BOLT()]] },
-        { kind: 'scene', dur: 4.5, cam: [{ x: gateAt.x - 1.5, y: gateAt.y + 1.5, z: 1.7 }, { x: gateAt.x - 0.8, y: gateAt.y + 0.8, z: 2.1 }], tintFrom: dark,
-          caption: 'Out of the first one walked Vesh Morrow, the Bone Cantor.', capAt: 0.8, cues: [
-            [0.4, () => { const v = place(sc, vesh, gateAt.x - 0.4, gateAt.y + 0.6, 2, { rise: true, scale: 2.1 }); C.vesh = v; BB.sfx('charge'); }], [2.4, () => { if (C.vesh) sc.setClip(C.vesh, 'Taunt', true); SHAKE(0.4)(); BB.sfx('boss'); }]] },
-        { kind: 'closeup', dur: 2.4, who: vesh, dir: 2, col1: 'rgba(40,120,70,1)', col2: 'rgba(4,16,10,1)', edge: '#7dffb0', caption: 'He sang —', capAt: 0.6, cues: [[0, SFX('charge')], [0.3, EMBERS(40, '#7dffb0')]] },
-        { kind: 'impact', dur: 0.4, who: vesh, clip: 'Attack1', accent: '#7dffb0', cues: [[0, SHAKE(0.8)], [0, SFX('burst')], [0, FLASH(0.6, '#c8ffe0')]] },
-        { kind: 'scene', dur: 6, cam: [{ x: c + 3.5, y: c - 2.5, z: 1.45 }, { x: c + 1, y: c - 1, z: 1.3 }], tintFrom: dark,
+      const slay = (a) => () => { if (a && !a.dead) { a.dead = true; a.deadT = 0; act(a, 'Die'); a.loop = null; a.flash = 0.8; BB.sfx('herodie'); } };
+      return { shots: [
+        { kind: 'stage2d', dur: 7, fadeIn: 1.4, sky: 'dusk', land: 'village', pan: [-14, -3], zoom: [1, 1.08],
+          caption: 'For three hundred years, nine banners kept the dead in their graves.', capAt: 1, cues: [[0, MUSIC('calm')]] },
+        { kind: 'stage2d', dur: 6.5, sky: 'dusk', skyTo: 'night', skyIn: 2.4, land: 'village', pan: [-3, 11], zoom: [1.08, 1.0],
+          caption: 'Then, one night, the Gravegates opened.', capAt: 2.4, cues: [
+            [1.4, () => folk.forEach((a) => { a.goTo = { x: a.x - 30, spd: 4.5, then: 'Idle' }; })], [2.2, BOLT()], [2.5, WEATHER('rain')],
+            [3.3, () => { C.gate = { x: 15, open: 0 }; SHAKE(0.6)(); BB.sfx('portal'); MUSIC('boss')(); }], [3.4, RING(15, '#b98cff')], [4.9, BOLT()]] },
+        { kind: 'stage2d', dur: 4.8, sky: 'night', land: 'village', pan: [13.6, 14.4], zoom: [1.5, 2.1],
+          caption: 'Out of the first one walked Vesh Morrow, the Bone Cantor.', capAt: 0.9, cues: [
+            [0.3, () => { C.vesh = A2(vesh, 14.4, { d: 0.05, dir: 4, rise: 0, riseSpd: 0.55, scale: 1.35 }); C.cast.push(C.vesh); BB.sfx('charge'); }],
+            [2.6, () => { act(C.vesh, 'Taunt'); SHAKE(0.5)(); BB.sfx('boss'); }], [2.6, RING(14.4, '#7dffb0')], [3.2, BOLT()]] },
+        { kind: 'closeup', dur: 2.5, who: vesh, dir: 2, col1: 'rgba(40,120,70,1)', col2: 'rgba(4,16,10,1)', edge: '#7dffb0', caption: 'He sang —', capAt: 0.7, cues: [[0, SFX('charge')], [0.3, EMBERS(40, '#7dffb0')]] },
+        { kind: 'impact', dur: 0.42, who: vesh, clip: 'Attack1', accent: '#7dffb0', cues: [[0, SHAKE(0.8)], [0, SFX('burst')], [0, FLASH(0.6, '#c8ffe0')]] },
+        { kind: 'stage2d', dur: 6.2, sky: 'night', land: 'village', pan: [16, 6], zoom: [1.2, 1.0],
           caption: '— and the dead rose to listen.', capAt: 0.6, cues: [
-            [0.2, () => raise(6, gateAt.x - 1, gateAt.y + 2, 2.5)], [1.2, () => raise(6, c + 4, c + 1, 3)], [2.2, () => raise(5, c + 1, c - 6, 2.5)], [3.0, () => march(1.6)], [3.6, BOLT()]] },
-        { kind: 'scene', dur: 7.5, cam: [{ x: C.banners[1].x + 0.4, y: C.banners[1].y + 0.6, z: 2.0 }, { x: C.banners[7].x + 0.4, y: C.banners[7].y + 0.6, z: 2.0 }], tintFrom: dark,
-          caption: 'Eight banners fell before dawn.', capAt: 4.4, capEnd: 7.3, cues: [
-            [0.1, () => kn.forEach((k) => { k.loopAtk = 'Attack1'; sc.setClip(k, 'Attack1', true); })], [0.2, () => march(2.4)],
-            [1.2, fall(0)], [1.8, slay(kn[0])], [2.0, fall(1)], [2.6, fall(2)], [3.1, slay(kn[1])], [3.3, fall(3)], [3.9, fall(4)], [4.4, slay(kn[2])], [4.6, fall(5)], [5.2, fall(6)], [5.7, slay(kn[3])], [5.9, fall(7)], [6.3, SHAKE(0.3)]] },
-        { kind: 'scene', dur: 5, cam: [{ x: C.banners[8].x, y: C.banners[8].y + 0.9, z: 2.0 }, { x: C.banners[8].x + 0.2, y: C.banners[8].y + 0.7, z: 2.5 }], tintFrom: dark, tintTo: ash, tintIn: 2.5,
-          caption: 'One banner still stood. Its bearer had no army left.', capAt: 0.8, cues: [
-            [0.2, () => dead.forEach((d) => { if (!d.dead) d.goTo = { x: captain.x + (Math.random() - 0.5) * 3.5, y: captain.y + 1.6 + Math.random() * 1.6, spd: 1.1, then: 'Idle' }; })]] },
-        { kind: 'closeup', dur: 2.3, who: cap, dir: 1, col1: 'rgba(200,110,30,1)', col2: 'rgba(30,12,4,1)', edge: '#ffbe55', from: -1, cues: [[0.1, EMBERS(50, '#ffb347')], [1.4, SFX('charge')]] },
-        { kind: 'impact', dur: 0.4, who: cap, clip: 'Taunt', accent: '#ffbe55', cues: [[0, SHAKE(0.8)], [0, SFX('slam')], [0, FLASH(0.8)]] },
-        { kind: 'scene', dur: 4.5, cam: [{ x: C.banners[8].x, y: C.banners[8].y + 1.2, z: 2.3 }, { x: C.banners[8].x, y: C.banners[8].y + 1.4, z: 1.6 }], tintFrom: ash, tintTo: [60, 40, 10, 0.12], tintIn: 1.5, fadeOut: 0.8,
-          caption: 'So the Captain raised it, and swore to build a new one.', capAt: 0.9, capEnd: 3.8, cues: [
-            [0, () => { sc.setClip(captain, 'Taunt', true); sc.addFx('aoe', captain.x, captain.y, { sc: 1.4, ground: true, add: true, hue: 30, fps: 22 }); sc.addFx('levelup', captain.x, captain.y, { sc: 1.2, add: true }); BB.sfx('rally'); }],
-            [0.15, () => dead.forEach((d) => { if (d.dead) return; const dx = d.x - captain.x, dy = d.y - captain.y, l = Math.hypot(dx, dy) || 1; if (l < 6) { d.goTo = { x: d.x + dx / l * 2.5, y: d.y + dy / l * 2.5, spd: 9, then: 'Idle' }; setTimeout(() => { d.dead = true; d.deadT = 0; sc.setClip(d, 'Die', true); }, 250 + Math.random() * 300); } })],
-            [0.2, SHAKE(0.6)], [0.25, SPARKS(90, '#ffcf7a', 0.5, 0.55, 600)], [1.2, EMBERS(40, '#ffb347')]] },
-        { kind: 'title', dur: 3.6, text: 'BANNERBORN', sub: 'Raise your banner. Earn your heroes. Shut the Gravegates.', size: 0.13, col: '#ffbe55', bg: '#1d1206', fadeOut: 0.6,
+            [0.1, () => { C.vesh.alpha = 0; }], [0.2, () => raise(7, 10, 22)], [1.0, () => raise(7, 6, 18)], [1.9, () => raise(6, 12, 24)], [2.8, () => march(2.2)], [3.4, BOLT()], [4.5, SHAKE(0.3)]] },
+        { kind: 'stage2d', dur: 8, sky: 'night', land: 'village', pan: [-7, 6], zoom: [1.3, 1.3], ground: 0.8,
+          caption: 'Eight banners fell before dawn.', capAt: 4.8, capEnd: 7.8, cues: [
+            [0, WEATHER('embers')], [0.05, () => { kn.forEach((a) => { act(a, 'Attack1'); a.loop = 'Attack1'; }); dead.forEach((a, i) => { if (i >= 12) { a.alpha = 0; return; } const j = i % 4, row = Math.floor(i / 4); a.x = kn[j].x + 1.25 + row * 0.75 + (row % 2) * 0.3; a.d = Math.min(0.85, row * 0.2); a.goTo = null; a.dir = 4; act(a, 'Attack1'); a.ct = Math.random() * 0.6; a.loop = 'Attack1'; }); }],
+            [1.0, fall(0)], [1.6, slay(kn[0])], [1.8, fall(1)], [2.5, fall(2)], [3.1, slay(kn[1])], [3.3, fall(3)], [4.0, fall(4)], [4.6, slay(kn[2])], [4.8, fall(5)], [5.5, fall(6)], [6.1, slay(kn[3])], [6.3, fall(7)], [6.4, SHAKE(0.35)]] },
+        { kind: 'stage2d', dur: 5.4, sky: 'dawn', land: 'village', pan: [8.2, 8.8], zoom: [1.9, 2.5], ground: 0.8,
+          caption: 'One banner still stood. Its bearer had no army left.', capAt: 0.9, cues: [
+            [0, WEATHER('ash')], [0.01, () => { C.cast = C.cast.filter((a) => !kn.includes(a)); C.cast.push(cap); dead.forEach((a) => { if (a.dead) return; a.loop = null; a.x = 13 + Math.random() * 8; act(a, 'Idle'); }); march(0.9, 9); }]] },
+        { kind: 'closeup', dur: 2.4, who: capW, dir: 1, col1: 'rgba(200,110,30,1)', col2: 'rgba(30,12,4,1)', edge: '#ffbe55', from: -1, cues: [[0.1, EMBERS(50, '#ffb347')], [1.4, SFX('charge')]] },
+        { kind: 'impact', dur: 0.42, who: capW, clip: 'Taunt', accent: '#ffbe55', cues: [[0, SHAKE(0.8)], [0, SFX('slam')], [0, FLASH(0.8)]] },
+        { kind: 'stage2d', dur: 4.6, sky: 'dawn', skyTo: 'warm', skyIn: 1.4, land: 'village', pan: [9, 9.6], zoom: [2.3, 1.5], ground: 0.8, fadeOut: 0.9,
+          caption: 'So the Captain raised it, and swore to build a new one.', capAt: 1, capEnd: 3.9, cues: [
+            [0, () => { act(cap, 'Taunt'); cap.flash = 1; BB.sfx('rally'); C.weather = null; }], [0.05, RING(8.8)], [0.25, RING(8.8, '#ffffff')],
+            [0.15, () => dead.forEach((a) => { if (a.dead) return; a.vx = 9 + Math.random() * 6; setTimeout(() => { a.dead = true; a.deadT = 0; a.fade = true; act(a, 'Die'); a.loop = null; }, 200 + Math.random() * 300); })],
+            [0.2, SHAKE(0.7)], [0.25, SPARKS(110, '#ffcf7a', 0.5, 0.62, 650)], [1.1, EMBERS(50, '#ffb347')]] },
+        { kind: 'title', dur: 3.8, text: 'BANNERBORN', sub: 'Raise your banner. Earn your heroes. Shut the Gravegates.', size: 0.13, col: '#ffbe55', bg: '#1d1206', fadeOut: 0.6,
           cues: [[0, SFX('burst')], [0, SHAKE(0.5)], [0.02, SPARKS(120, '#ffcf7a', 0.5, 0.5, 700)], [0.05, EMBERS(60, '#ffb347')], [0, MUSIC('calm')]] },
       ] };
     },
-    // before a boss: the camera finds them, they rise, a close-up, impact, the name, the face-off
+    // before a boss: on a side-on stage the boss rises, then the close-up, impact, the name, the face-off
     async boss(o) {
-      const M = o.stage, F = BB.FOES[M.boss], R = BB.REGIONS.find((r) => r.id === M.region) || BB.REGIONS[0];
-      const boss = { foe: M.boss }, hero = { hero: leader() }, grunt = { foe: M.waves && M.waves[0] ? M.waves[0][0] : 'ghoul' };
-      const sc = await stage(M.layout, R.biome, !!R.night, BB.hashStr(M.id) % 999, [boss, hero, grunt]);
-      const m = sc.map, b = m.bossSpot, h = m.heroSpawn;
-      place(sc, hero, h.x, h.y, 7);
-      const name = F.name.split(',')[0].toUpperCase(), epi = (F.name.split(',')[1] || '').trim().toUpperCase();
+      const M = o.stage, F = BB.FOES[M.boss];
+      const bossW = { foe: M.boss }, heroW = { hero: leader() }, grunt = { foe: M.waves && M.waves[0] ? M.waves[0][0] : 'ghoul' };
+      await cast([bossW, heroW, grunt]);
+      const ch = M.chapter, land = ['', 'forest', 'desert', 'ruins', 'gate'][ch], sky = { vesh: 'toxic', regent: 'violet', sallow: 'desert', kestrelfoe: 'desert' }[M.boss] || 'crimson';
       const red = M.boss === 'vesh' ? ['rgba(40,130,80,1)', 'rgba(4,16,10,1)', '#7dffb0'] : M.boss === 'regent' ? ['rgba(90,70,160,1)', 'rgba(10,6,22,1)', '#c9a8ff'] : M.boss === 'sallow' ? ['rgba(170,120,40,1)', 'rgba(24,14,4,1)', '#ffd27a'] : ['rgba(160,30,24,1)', 'rgba(20,4,4,1)', '#ff7a6a'];
-      let be = null;
-      return { scene: sc, shots: [
-        { kind: 'scene', dur: 2.8, cam: [{ x: h.x, y: h.y - 1, z: 1.3 }, { x: (h.x + b.x) / 2, y: (h.y + b.y) / 2, z: 1.0 }, { x: b.x, y: b.y + 0.6, z: 1.8 }], cues: [
-          [0.1, SFX('charge')], [1.2, () => { be = place(sc, boss, b.x, b.y, 3, { rise: true, scale: (F.scale || 1.8) }); sc.addFx('aoe', b.x, b.y, { sc: 0.9, ground: true, add: true, hue: -40, fps: 24 }); BB.sfx('portal'); }],
-          [1.8, () => { for (let i = 0; i < 4; i++) place(sc, grunt, b.x + Math.cos(i * 1.6) * 2.2, b.y + 1.5 + Math.sin(i * 1.6), 1, { rise: true }); }],
-          [2.2, () => { if (be) sc.setClip(be, 'Taunt', true); SHAKE(0.6)(); BB.sfx('boss'); }]] },
-        { kind: 'closeup', dur: 1.5, who: boss, dir: 3, col1: red[0], col2: red[1], edge: red[2], cues: [[0, SFX('charge')], [0.1, EMBERS(30, red[2])]] },
-        { kind: 'impact', dur: 0.35, who: boss, clip: F.atkClips ? F.atkClips[0] : 'Attack1', dir: 3, accent: red[2], cues: [[0, SHAKE(0.9)], [0, SFX('burst')], [0, FLASH(0.6)]] },
-        { kind: 'title', dur: 1.9, over: true, cam: [{ x: b.x, y: b.y + 0.6, z: 1.8 }, { x: b.x, y: b.y + 0.4, z: 2.0 }], text: name, sup: 'STAGE ' + M.code, sub: epi, size: 0.11, col: red[2], cues: [[0, SFX('slam')], [0, SHAKE(0.5)], [0.02, SPARKS(80, red[2], 0.5, 0.5, 600)]] },
-        { kind: 'split', dur: 1.5, a: hero, b: boss, colA: ['rgba(200,110,30,1)', 'rgba(30,12,4,1)'], colB: [red[0], red[1]], cues: [[0, SFX('rally')], [0.5, SHAKE(0.3)]] },
-        { kind: 'impact', dur: 0.3, who: hero, who2: boss, clip: 'Attack1', accent: '#ffffff', cues: [[0, SHAKE(1)], [0, SFX('slam')], [0, FLASH(0.9)]] },
+      const hero = A2(heroW, -7, { dir: 0 }); C.cast.push(hero); hero.goTo = { x: -4, spd: 1.6, then: 'Idle' };
+      let boss = null;
+      const name = F.name.split(',')[0].toUpperCase(), epi = (F.name.split(',')[1] || '').trim().toUpperCase();
+      return { shots: [
+        { kind: 'stage2d', dur: 3.4, sky, land, pan: [-5, 0.5], zoom: [1.0, 1.2], cues: [
+          [0.1, SFX('charge')], [1.1, () => { boss = A2(bossW, 3, { d: 0, dir: 4, rise: 0, riseSpd: 0.7, scale: Math.min(1.3, (F.scale || 1.6) * 0.7) }); C.cast.push(boss); BB.sfx('portal'); SHAKE(0.4)(); }], [1.1, RING(3, red[2])],
+          [1.7, () => { for (let i = 0; i < 4; i++) C.cast.push(A2(grunt, 5 + i * 1.6, { d: 0.35 + (i % 2) * 0.3, dir: 4, rise: 0, riseSpd: 1 })); }], [1.5, BOLT()],
+          [2.6, () => { if (boss) act(boss, 'Taunt'); SHAKE(0.6)(); BB.sfx('boss'); }]] },
+        { kind: 'closeup', dur: 1.6, who: bossW, dir: 3, col1: red[0], col2: red[1], edge: red[2], cues: [[0, SFX('charge')], [0.1, EMBERS(30, red[2])]] },
+        { kind: 'impact', dur: 0.38, who: bossW, clip: F.atkClips ? F.atkClips[0] : 'Attack1', dir: 3, accent: red[2], cues: [[0, SHAKE(0.9)], [0, SFX('burst')], [0, FLASH(0.6)]] },
+        { kind: 'title', dur: 2.0, bg2d: { sky, land, pan: [0.5, 1], zoom: [1.2, 1.25] }, text: name, sup: 'STAGE ' + M.code, sub: epi, size: 0.11, col: red[2], cues: [[0, SFX('slam')], [0, SHAKE(0.5)], [0.02, SPARKS(80, red[2], 0.5, 0.5, 600)]] },
+        { kind: 'split', dur: 1.6, a: heroW, b: bossW, colA: ['rgba(200,110,30,1)', 'rgba(30,12,4,1)'], colB: [red[0], red[1]], cues: [[0, SFX('rally')], [0.5, SHAKE(0.3)]] },
+        { kind: 'impact', dur: 0.32, who: heroW, who2: bossW, clip: 'Attack1', accent: '#ffffff', cues: [[0, SHAKE(1)], [0, SFX('slam')], [0, FLASH(0.9)]] },
       ] };
     },
-    // a new chapter: a fly-over of the region and its name
+    // a new chapter: the banner crosses a new land
     async chapter(o) {
-      const ch = o.chapter, st = BB.MISSIONS.find((m) => m.chapter === ch.id), R = BB.REGIONS.find((r) => r.id === 'c' + ch.id);
-      const sc = await stage(st.layout, R.biome, !!R.night, ch.id * 31, []);
-      const m = sc.map, c = m.w / 2;
+      const ch = o.chapter, heroW = { hero: leader() };
+      await cast([heroW]);
+      const land = ['', 'forest', 'desert', 'ruins', 'gate'][ch.id], sky = ['', 'day', 'desert', 'dusk', 'night'][ch.id];
+      const walker = A2(heroW, -6, { d: 0.05, dir: 0 }); walker.goTo = { x: 4, spd: 2.2, then: 'Idle' }; C.cast.push(walker);
+      C.banners.push(Object.assign({ x: -7, d: 0.05, side: 1 }, BB.save.banner));
       const roman = ['', 'I', 'II', 'III', 'IV'][ch.id];
-      return { scene: sc, shots: [
-        { kind: 'scene', dur: 3.2, cam: [{ x: c - 6, y: c + 5, z: 0.75 }, { x: c + 2, y: c - 2, z: 1.15 }], cues: [[0, SFX('charge')]] },
-        { kind: 'title', dur: 2.4, over: true, cam: [{ x: c + 2, y: c - 2, z: 1.15 }, { x: c + 3, y: c - 3, z: 1.25 }], sup: 'CHAPTER ' + roman, text: ch.name.toUpperCase(), sub: ch.blurb, size: 0.1, col: '#ffbe55', cues: [[0, SFX('burst')], [0, SHAKE(0.4)], [0.02, SPARKS(60, '#ffcf7a', 0.5, 0.5, 500)]] },
+      return { shots: [
+        { kind: 'stage2d', dur: 3.4, fadeIn: 0.8, sky, land, pan: [-12, 2], zoom: [0.9, 1.05], cues: [[0, SFX('charge')], [0, WEATHER(ch.id === 4 ? 'ash' : null)]] },
+        { kind: 'title', dur: 2.6, bg2d: { sky, land, pan: [2, 3], zoom: [1.05, 1.1] }, sup: 'CHAPTER ' + roman, text: ch.name.toUpperCase(), sub: ch.blurb, size: 0.1, col: '#ffbe55', cues: [[0, SFX('burst')], [0, SHAKE(0.4)], [0.02, SPARKS(60, '#ffcf7a', 0.5, 0.5, 500)]] },
       ] };
     },
     // a boss falls
