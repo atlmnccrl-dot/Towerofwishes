@@ -32,7 +32,7 @@
       const st = BB.heroStats(f.hero, callings, this.save);
       const off = f.row === 'front' ? { a: 1.1, b: (f.slot - 0.5) * 1.5 } : { a: -0.6, b: (f.slot - 1) * 1.4 };
       const e = this.spawnHero(f.hero, st, sp.x + fx * off.a + px * off.b, sp.y + fy * off.a + py * off.b);
-      e.row = f.row; e.energy = 25;
+      e.row = f.row; e.fslot = f.slot; e.energy = 25;
       if (st.revive) this.revives = 1;
     });
     this.heroList = this.ents.filter((e) => e.side === 'hero');
@@ -683,6 +683,7 @@
         if (sc < bs) { bs = sc; best = o; }
       }
       this.advTarget = best;
+      this.updateMarch(dt);
       if (this.order.focus && (this.order.focus.dead || this.order.focus.hidden)) this.order.focus = null;
     }
     for (const e of this.ents) this.updateEnt(e, dt, input);
@@ -693,8 +694,10 @@
       const dx = b.x - a.x, dy = b.y - a.y, d = hyp(dx, dy), min = (a.r + b.r) * 0.9;
       if (d < min && d > 1e-4) {
         const push = (min - d) / 2, ux = dx / d, uy = dy / d;
-        const wa = a.boss ? 0.1 : 1, wb = b.boss ? 0.1 : 1;
-        a.x -= ux * push * wa; a.y -= uy * push * wa; b.x += ux * push * wb; b.y += uy * push * wb;
+        const wt = (q) => (q.boss ? 0.08 : q.state === 'run' ? 1 : 0.3);
+        let wa = wt(a), wb = wt(b); const sum = wa + wb; wa = wa / sum * 2; wb = wb / sum * 2;
+        const pp = Math.min(push, 0.04);
+        a.x -= ux * pp * wa; a.y -= uy * pp * wa; b.x += ux * pp * wb; b.y += uy * pp * wb;
       }
     }
     for (const e of movers) BB.collide(this.map, e);
@@ -806,44 +809,168 @@
     } else this.foeAI(e, dt);
   };
 
+  // ---------------------------------------------------------------- movement: paths, steering, attack slots
+  // turn the body only when the new facing holds for a moment (no flicker between two of the eight rows)
+  Battle.prototype.faceVel = function (e, vx, vy, dt) {
+    const d = BB.dirFromVec(vx, vy); if (d === null || d === e.dir) { e.dirPend = null; return; }
+    if (e.dirPend !== d) { e.dirPend = d; e.dirPendT = 0; }
+    e.dirPendT += dt;
+    const diff = Math.min((d - e.dir + 8) % 8, (e.dir - d + 8) % 8);
+    if (diff >= 2 || e.dirPendT > 0.14) { e.dir = d; e.dirPend = null; }
+  };
+  // the next point to head for: straight at the goal when the way is open, else along an A* path,
+  // always skipping ahead to the farthest waypoint in sight
+  Battle.prototype.waypoint = function (e, tx, ty, dt) {
+    const m = this.map;
+    if (this.peaceful || !m.block) return { x: tx, y: ty };
+    if (!(e.forcePath > 0) && (hyp(tx - e.x, ty - e.y) < 0.7 || BB.lineClear(m, e.x, e.y, tx, ty, e.r))) { e.path = null; return { x: tx, y: ty }; }
+    let P = e.path;
+    if (!P || P.t <= 0 || hyp(P.tx - tx, P.ty - ty) > 1.2 || !P.pts.length) {
+      P = e.path = { pts: BB.findPath(m, e.x, e.y, tx, ty) || [], t: 1.2 + this.r() * 0.4, tx, ty };
+    } else P.t -= dt;
+    const pts = P.pts;
+    while (pts.length > 1 && (hyp(pts[0].x - e.x, pts[0].y - e.y) < 0.4 || BB.lineClear(m, e.x, e.y, pts[1].x, pts[1].y, e.r))) pts.shift();
+    return pts.length ? pts[0] : { x: tx, y: ty };
+  };
+  // step around anyone standing in the way, always to the same side for a moment
+  Battle.prototype.avoidAhead = function (e, ux, uy, dt) {
+    let ax = 0, ay = 0, hit = null, best = 9;
+    for (const o of this.ents) {
+      if (o === e || o.dead || o.prop || o.hidden || o.leap || o === e.tgt) continue;
+      const rx = o.x - e.x, ry = o.y - e.y, along = rx * ux + ry * uy;
+      if (along <= 0 || along > 1.4) continue;
+      const side = rx * -uy + ry * ux, min = e.r + (o.r || 0.3) + 0.1;
+      if (Math.abs(side) >= min) continue;
+      if (along < best) { best = along; hit = { side, min, along }; }
+    }
+    // solid props in the way too (trees, rocks, walls): slide around them instead of pushing into them
+    const m = this.map;
+    for (let gy = Math.floor(e.y) - 1; gy <= Math.floor(e.y) + 1; gy++) for (let gx = Math.floor(e.x) - 1; gx <= Math.floor(e.x) + 1; gx++) {
+      if (gx < 0 || gy < 0 || gx >= m.w || gy >= m.h) continue;
+      for (const p of m.grid[gy * m.w + gx]) {
+        if (!p.solid) continue;
+        const rx = p.x - e.x, ry = p.y - e.y, along = rx * ux + ry * uy;
+        if (along <= -0.1 || along > 1.2 + p.r) continue;
+        const side = rx * -uy + ry * ux, min = e.r + p.r + 0.08;
+        if (Math.abs(side) >= min) continue;
+        const a2 = Math.max(0, along - p.r);
+        if (a2 < best) { best = a2; hit = { side, min, along: a2 }; }
+      }
+    }
+    if (e.avT > 0) e.avT -= dt;
+    if (!hit) return { x: 0, y: 0 };
+    if (!(e.avT > 0)) { e.avSide = hit.side > 0 ? -1 : 1; e.avT = 0.6; }
+    const k = (1 - hit.along / 1.4) * 1.6 + 0.4;
+    ax = -uy * e.avSide * k; ay = ux * e.avSide * k;
+    return { x: ax, y: ay };
+  };
+  Battle.prototype.halt = function (e) { e.vx = 0; e.vy = 0; if (e.state === 'run' || e.clip === 'Run') { this.setClip(e, 'Idle'); e.state = 'idle'; } };
+  // returns true when arrived
   Battle.prototype.moveToward = function (e, tx, ty, dt, speedMul, direct) {
     if (!this.peaceful) { tx = clamp(tx, 2.7, this.map.w - 2.7); ty = clamp(ty, 2.7, this.map.h - 2.7); }
-    // route around water and props when the straight line is blocked
     if (e.forcePath > 0) e.forcePath -= dt;
-    if (!direct && !this.peaceful && this.map.block && hyp(tx - e.x, ty - e.y) > 1.2 && (e.forcePath > 0 || !BB.lineClear(this.map, e.x, e.y, tx, ty))) {
-      const P = e.path;
-      if (!P || P.t <= 0 || hyp(P.tx - tx, P.ty - ty) > 1.5 || !P.pts.length) {
-        const pts = BB.findPath(this.map, e.x, e.y, tx, ty);
-        e.path = { pts: pts || [], t: 1 + this.r() * 0.5, tx, ty };
-      } else e.path.t -= dt;
-      const pts = e.path.pts;
-      while (pts.length > 1 && hyp(pts[0].x - e.x, pts[0].y - e.y) < 0.35) pts.shift();
-      if (pts.length) { tx = pts[0].x; ty = pts[0].y; }
-    } else if (e.path) e.path = null;
-    const dx = tx - e.x, dy = ty - e.y, d = hyp(dx, dy);
-    if (d < 0.05) { this.setClip(e, 'Idle'); e.state = 'idle'; return true; }
-    const sp = e.spd * (speedMul || 1) * (e.buffs.slow > 0 ? 0.55 : 1);
-    const step = Math.min(d, sp * dt);
-    // stuck on a prop? slide sideways for a moment
-    if (e.lastPos) {
-      const moved = hyp(e.x - e.lastPos.x, e.y - e.lastPos.y);
-      if (moved < step * 0.35) e.stuckT = (e.stuckT || 0) + dt; else e.stuckT = Math.max(0, (e.stuckT || 0) - dt);
-      if (e.stuckT > 0.45 && !(e.sideT > 0)) { e.sideT = 0.6 + this.r() * 0.4; e.sideDir = this.r() < 0.5 ? 1 : -1; e.stuckT = 0; e.stuckN = (e.stuckN || 0) + 1; if (e.stuckN > 1) { e.forcePath = 3; e.path = null; e.stuckN = 0; } }
+    const goal = hyp(tx - e.x, ty - e.y);
+    if (goal < 0.08) { this.halt(e); return true; }
+    const wp = direct ? { x: tx, y: ty } : this.waypoint(e, tx, ty, dt);
+    let ux = wp.x - e.x, uy = wp.y - e.y; const wl = hyp(ux, uy) || 1; ux /= wl; uy /= wl;
+    if (!direct && !this.peaceful) {
+      const av = this.avoidAhead(e, ux, uy, dt);
+      ux += av.x; uy += av.y; const l = hyp(ux, uy) || 1; ux /= l; uy /= l;
     }
-    let ux = dx / d, uy = dy / d;
-    if (e.sideT > 0) { e.sideT -= dt; const a = 1.2 * e.sideDir, c = Math.cos(a), s2 = Math.sin(a); const nx = ux * c - uy * s2; uy = ux * s2 + uy * c; ux = nx; }
+    const sp = e.spd * (speedMul || 1) * (e.buffs.slow > 0 ? 0.55 : 1);
+    const want = sp * Math.min(1, goal / 0.6 + 0.3); // ease in at the end
+    const k = Math.min(1, dt * 10);
+    e.vx = (e.vx || 0) + (ux * want - (e.vx || 0)) * k; e.vy = (e.vy || 0) + (uy * want - (e.vy || 0)) * k;
+    let vl = hyp(e.vx, e.vy); if (vl * dt > goal) { e.vx *= goal / (vl * dt); e.vy *= goal / (vl * dt); vl = goal / dt; }
     e.px = e.x; e.py = e.y;
-    e.x += ux * step; e.y += uy * step; e.vx = ux * sp; e.vy = uy * sp;
-    e.lastPos = { x: e.x, y: e.y };
-    this.face(e, tx, ty); this.setClip(e, 'Run'); e.state = 'run';
+    e.x += e.vx * dt; e.y += e.vy * dt;
+    this.faceVel(e, e.vx, e.vy, dt);
+    this.setClip(e, 'Run'); e.state = 'run';
+    // no headway for a second: plan a proper path and give up the attack slot
+    if (!e.prog || hyp(e.prog.tx - tx, e.prog.ty - ty) > 1) e.prog = { d: goal, t: 0, tx, ty };
+    e.prog.t += dt;
+    if (goal < e.prog.d - 0.3) { e.prog.d = goal; e.prog.t = 0; }
+    else if (e.prog.t > 1) { e.forcePath = 2.5; e.path = null; e.slotT = null; e.prog = null; }
     return false;
+  };
+  // a place on a ring around the target, kept while fighting it, apart from the others on the ring
+  Battle.prototype.slotPoint = function (e, t) {
+    const R = (t.r || 0.3) + Math.min(e.range * 0.8, e.r + 0.55);
+    if (e.slotT !== t || e.slotA === undefined) {
+      const a = 2 * Math.asin(Math.min(1, (e.r + 0.1) / R));
+      const taken = [];
+      for (const o of this.ents) if (o !== e && !o.dead && o.slotT === t && o.slotA !== undefined) taken.push(o.slotA);
+      const base = Math.atan2(e.y - t.y, e.x - t.x);
+      let pick = base, found = false;
+      for (let i = 0; i <= 16 && !found; i++) {
+        for (const sg of i ? [1, -1] : [1]) {
+          const ang = base + sg * i * a * 0.55;
+          const px = t.x + Math.cos(ang) * R, py = t.y + Math.sin(ang) * R;
+          if (BB.blocked(this.map, px, py)) continue;
+          if (taken.every((q) => Math.abs(Math.atan2(Math.sin(q - ang), Math.cos(q - ang))) >= a * 0.95)) { pick = ang; found = true; break; }
+        }
+      }
+      e.slotT = t; e.slotA = pick; e.slotFull = !found;
+    }
+    return { x: t.x + Math.cos(e.slotA) * R, y: t.y + Math.sin(e.slotA) * R };
+  };
+  // melee: walk to the slot; true once the target is in reach (a little extra reach once fighting)
+  Battle.prototype.closeIn = function (e, t, dt) {
+    const d = hyp(t.x - e.x, t.y - e.y) - (t.r || 0);
+    if (d <= e.range + (e.engaged === t ? 0.35 : 0)) { e.engaged = t; return true; }
+    e.engaged = null;
+    const s = this.slotPoint(e, t);
+    this.moveToward(e, s.x, s.y, dt);
+    return false;
+  };
+  // ranged: keep at a good distance, step back from anyone too close, spread out by formation slot
+  Battle.prototype.keepRange = function (e, t, dt) {
+    const d = hyp(t.x - e.x, t.y - e.y) - (t.r || 0);
+    if (e.kiting) { if (d > 2.8) e.kiting = false; } else if (d < 1.4 && e.calling !== 'warpriest') e.kiting = true;
+    if (e.kiting) {
+      const ux = (e.x - t.x) / (d || 1), uy = (e.y - t.y) / (d || 1);
+      const fx = e.x + ux * 1.4, fy = e.y + uy * 1.4;
+      if (!BB.blocked(this.map, fx, fy)) { this.moveToward(e, fx, fy, dt, 0.95, true); return false; }
+      e.kiting = false;
+    }
+    if (d <= e.range + (e.engaged === t ? 0.5 : 0)) { e.engaged = t; return true; }
+    e.engaged = null;
+    const spread = ((e.fslot || 0) - 1) * 0.35, base = Math.atan2(e.y - t.y, e.x - t.x) + spread, R = (t.r || 0) + e.range * 0.82;
+    this.moveToward(e, t.x + Math.cos(base) * R, t.y + Math.sin(base) * R, dt);
+    return false;
+  };
+  // the warband marches as one: a point leads along the road, each hero keeps a place around it
+  Battle.prototype.updateMarch = function (dt) {
+    const c = this.warCenter;
+    if (!this.march) {
+      const fx = this.map.w / 2 - c.x, fy = this.map.h / 2 - c.y, l = hyp(fx, fy) || 1;
+      this.march = { x: c.x, y: c.y, hx: fx / l, hy: fy / l, r: 0.5 };
+    }
+    const M = this.march, g = this.advTarget;
+    if (!g) return;
+    const dg = hyp(g.x - M.x, g.y - M.y);
+    if (dg < 3.2) { M.movingT = (M.movingT || 0) - dt; return; } // close enough: the fight starts from here
+    let lead = hyp(M.x - c.x, M.y - c.y);
+    if (lead > 4) { M.x = c.x; M.y = c.y; M.path = null; lead = 0; } // the column lost its leader: start again from the heroes
+    const wp = this.waypoint(M, g.x, g.y, dt);
+    let ux = wp.x - M.x, uy = wp.y - M.y; const l = hyp(ux, uy) || 1; ux /= l; uy /= l;
+    const sp = lead > 2.2 ? 0 : lead > 1.4 ? 1.2 : 2.5;
+    M.x += ux * sp * dt; M.y += uy * sp * dt; M.movingT = sp > 0 ? 0.4 : (M.movingT || 0) - dt;
+    const k = Math.min(1, dt * 2.5); M.hx += (ux - M.hx) * k; M.hy += (uy - M.hy) * k; const hl = hyp(M.hx, M.hy) || 1; M.hx /= hl; M.hy /= hl;
+  };
+  Battle.prototype.marchSpot = function (e) {
+    const M = this.march; if (!M) return { x: e.x, y: e.y };
+    const front = e.row === 'front', s = e.fslot || 0;
+    const f = front ? 0.6 : -0.8, side = front ? (s - 0.5) * 1.3 : (s - 1) * 1.25;
+    let x = M.x + M.hx * f - M.hy * side, y = M.y + M.hy * f + M.hx * side;
+    if (BB.blocked(this.map, x, y)) { x = M.x; y = M.y; }
+    return { x, y };
   };
 
   Battle.prototype.nearestBarrel = function (e, rad) {
     return this.ents.find((o) => o.barrel && !o.dead && hyp(o.x - e.x, o.y - e.y) < rad + 0.3) || null;
   };
 
-  const FORM = [[0, 0], [-1.2, 0.9], [1.0, 1.1], [0.1, 1.9]];
   // is (x, y) inside a hostile telegraph that is about to land? returns a point to step out to
   Battle.prototype.dangerAt = function (x, y) {
     for (const t of this.tele) {
@@ -888,54 +1015,55 @@
       if (danger.left < 0.45 && e.dodgeCd <= 0) { this.dodge(e, danger.x - e.x, danger.y - e.y); return; }
       this.moveToward(e, danger.x, danger.y, dt, 1.15, true); return;
     }
-    // 2. pick a target: the nearest foe near the warband (a focus is kept for scripted moments)
-    const anchor = O.mode === 'hold' ? O : this.warCenter;
+    // 2. pick a target near the warband; keep it unless a clearly better one turns up
+    const anchor = this.warCenter;
     let t = O.focus && !O.focus.dead && !O.focus.hidden ? O.focus : null;
-    if (!t) t = this.nearest(e, 'foe', 9, (o) => hyp(o.x - anchor.x, o.y - anchor.y) < (O.mode === 'hold' ? 5.5 : 8) && !o.hidden);
-    if (this.ward && !this.ward.dead && !O.focus) {
-      const near = this.nearest(this.ward, 'foe', 5); if (near && (e.calling === 'vanguard' || e.calling === 'lancer' || this.r() < 0.02)) t = near;
+    if (!t) t = this.pickTarget(e, 'foe', (o) => hyp(o.x - anchor.x, o.y - anchor.y) < 8.5, dt);
+    if (this.ward && !this.ward.dead && !O.focus && (e.calling === 'vanguard' || e.calling === 'lancer')) {
+      const near = this.nearest(this.ward, 'foe', 5); if (near) { t = near; e.tgt = near; }
     }
     // 3. skills
     if (this.wantSkill(e, t)) { this.useSkill(e, false); return; }
-    // 4. no target: hold the banner, or march with the warband on the next foe
-    const idx = this.heroList.indexOf(e), f = FORM[idx % 4];
+    // 4. no target in reach: march in formation toward the next foe
     if (!t) {
-      if (O.mode === 'hold') {
-        const tx = O.x + f[0] * 0.9, ty = O.y + f[1] * 0.9;
-        if (hyp(tx - e.x, ty - e.y) > 0.5) this.moveToward(e, tx, ty, dt, hyp(tx - e.x, ty - e.y) > 3 ? 1.2 : 1);
-        else { e.state = 'idle'; this.setClip(e, 'Idle'); }
-        return;
-      }
-      const far = this.advTarget;
-      if (far) {
-        // stay together: the ones far ahead slow down, the ones behind hurry
-        const ahead = hyp(far.x - e.x, far.y - e.y) - hyp(far.x - this.warCenter.x, far.y - this.warCenter.y);
-        const k = ahead < -1.5 ? 0.75 : ahead > 1.5 ? 1.2 : 1;
-        if (hyp(far.x - e.x, far.y - e.y) - (far.r || 0) > e.range) this.moveToward(e, far.x + f[0] * 0.5, far.y + f[1] * 0.5, dt, k); else this.basicAttack(e, far);
-        return;
-      }
-      e.state = 'idle'; this.setClip(e, 'Idle'); return;
+      const sp = this.marchSpot(e), dd = hyp(sp.x - e.x, sp.y - e.y), moving = this.march && this.march.movingT > 0;
+      // while the column moves, everyone keeps walking at the column's pace instead of stop-and-go
+      if (moving || dd > (e.state === 'run' ? 0.12 : 0.45)) this.moveToward(e, sp.x + (moving ? this.march.hx * 0.35 : 0), sp.y + (moving ? this.march.hy * 0.35 : 0), dt, dd > 2.5 ? 1.25 : moving ? clamp(0.55 + dd * 0.6, 0.6, 1.1) : dd < 0.6 ? 0.7 : 1);
+      else { this.halt(e); if (this.march) this.faceVel(e, this.march.hx, this.march.hy, dt); }
+      return;
     }
-    const d = hyp(t.x - e.x, t.y - e.y) - (t.r || 0);
-    if (C.ranged && d < 1.8 && e.calling !== 'warpriest') { // kite
-      const ux = (e.x - t.x) / (d || 1), uy = (e.y - t.y) / (d || 1);
-      this.moveToward(e, e.x + ux, e.y + uy, dt, 0.9); return;
+    const ok = C.ranged ? this.keepRange(e, t, dt) : this.closeIn(e, t, dt);
+    if (ok) { this.halt(e); this.basicAttack(e, t); }
+  };
+  // a sticky target: re-chosen a few times a second, switched only for a clearly better one;
+  // melee fighters spread across foes instead of all piling onto one
+  Battle.prototype.pickTarget = function (e, side, filter, dt) {
+    const valid = (o) => o && !o.dead && !o.hidden && o.side === side && (!filter || filter(o));
+    const melee = !e.ranged;
+    const cost = (o) => {
+      let c = hyp(o.x - e.x, o.y - e.y) - (o.r || 0);
+      if (melee) for (const q of this.ents) if (q !== e && !q.dead && q.tgt === o && !q.ranged) c += 0.7;
+      if (side === 'hero' && o.row === 'front') c -= 1.6; // the front row draws the blows
+      if (o.gate) c += 2.5;
+      return c;
+    };
+    if (!valid(e.tgt)) { e.tgt = null; e.retT = 0; }
+    e.retT = (e.retT || 0) - dt;
+    if (e.retT <= 0) {
+      e.retT = 0.45 + this.r() * 0.25;
+      let best = null, bc = 1e9;
+      for (const o of this.ents) if (valid(o) && !o.ward) { const c = cost(o); if (c < bc) { bc = c; best = o; } }
+      if (best && hyp(best.x - e.x, best.y - e.y) < 9.5 && (!e.tgt || bc < cost(e.tgt) - 1.2)) e.tgt = best;
     }
-    if (d > e.range) { this.moveToward(e, t.x, t.y, dt); return; }
-    this.basicAttack(e, t);
+    if (e.tgt && e.slotT && e.slotT !== e.tgt) e.slotT = null;
+    return e.tgt;
   };
 
   // ---------------------------------------------------------------- foes
   Battle.prototype.foeTarget = function (e) {
-    if (e.taunt && e.tauntT > 0 && !e.taunt.dead) { e.tauntT -= this.dt; return e.taunt; }
+    if (e.taunt && e.tauntT > 0 && !e.taunt.dead) { e.tauntT -= this.dt; e.tgt = e.taunt; return e.taunt; }
     if (this.ward && !this.ward.dead && (e.wardFocus === undefined ? (e.wardFocus = this.r() < 0.45) : e.wardFocus)) return this.ward;
-    let best = null, bd = 1e9;
-    for (const o of this.ents) {
-      if (o.dead || o.side !== 'hero' || o.ward || o.hidden) continue;
-      const d = hyp(o.x - e.x, o.y - e.y) - (o.row === 'front' ? 1.6 : 0); // the front row draws the blows
-      if (d < bd) { bd = d; best = o; }
-    }
-    return best;
+    return this.pickTarget(e, 'hero', (o) => !o.ward, this.dt);
   };
   Battle.prototype.foeAI = function (e, dt) {
     if (e.gate) {
@@ -971,9 +1099,10 @@
       if (d < e.range && e.cd <= 0) { e.cd = 1 / e.aspd; this.shoot(e, t.x, t.y, 'bolt', 1, { hue: 0 }); }
       return;
     }
-    if (e.ranged && d < 2.2) { const ux = (e.x - t.x) / (d || 1), uy = (e.y - t.y) / (d || 1); this.moveToward(e, e.x + ux, e.y + uy, dt, 0.8); return; }
-    if (d > e.range) { this.moveToward(e, t.x, t.y, dt); return; }
-    if (e.cd > 0) { this.face(e, t.x, t.y); e.state = 'idle'; this.setClip(e, 'Idle'); return; }
+    const ok = t.ward ? (d <= e.range || (this.moveToward(e, t.x, t.y, dt), false)) : e.ranged ? this.keepRange(e, t, dt) : this.closeIn(e, t, dt);
+    if (!ok) return;
+    this.halt(e);
+    if (e.cd > 0) { this.face(e, t.x, t.y); return; }
     this.foeAttack(e, t);
   };
   Battle.prototype.foeAttack = function (e, t, clip) {

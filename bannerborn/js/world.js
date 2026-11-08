@@ -370,9 +370,15 @@
     m.block = b;
   };
   BB.blocked = (m, x, y) => { x |= 0; y |= 0; return x < 0 || y < 0 || x >= m.w || y >= m.h || m.block[y * m.w + x] === 1; };
-  BB.lineClear = function (m, x0, y0, x1, y1) {
-    const d = Math.hypot(x1 - x0, y1 - y0), n = Math.ceil(d / 0.3);
-    for (let i = 1; i < n; i++) { const t = i / n; if (BB.blocked(m, x0 + (x1 - x0) * t, y0 + (y1 - y0) * t)) return false; }
+  // is the straight walk open? with a radius, the walker's whole width must pass
+  BB.lineClear = function (m, x0, y0, x1, y1, r) {
+    const d = Math.hypot(x1 - x0, y1 - y0), n = Math.ceil(d / 0.25);
+    const ox = r ? -(y1 - y0) / (d || 1) * r * 0.9 : 0, oy = r ? (x1 - x0) / (d || 1) * r * 0.9 : 0;
+    for (let i = 1; i < n; i++) {
+      const t = i / n, x = x0 + (x1 - x0) * t, y = y0 + (y1 - y0) * t;
+      if (BB.blocked(m, x, y)) return false;
+      if (r && (BB.blocked(m, x + ox, y + oy) || BB.blocked(m, x - ox, y - oy))) return false;
+    }
     return true;
   };
   BB.findPath = function (m, sx, sy, tx, ty) {

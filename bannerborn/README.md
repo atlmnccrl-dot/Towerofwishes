@@ -36,7 +36,8 @@ A hero-collector RPG: you build the team, the team fights.
    Rarity (Common → Legendary) multiplies every stat.
 4. **Formation.** Up to five heroes: two in the front row (they draw the blows), three behind.
    **Bonds** reward mixed callings. *Auto-fill* puts the strongest five in place.
-5. **Battle.** Heroes fight on their own. Each charges an **ultimate** by fighting and taking hits;
+5. **Battle.** Heroes march as a column between fights, then take places around their targets
+   (fighters spread across foes, ranged heroes hold back and step away from anyone too close). They fight on their own. Each charges an **ultimate** by fighting and taking hits;
    tap the glowing card (or 1–5) to unleash it with a cut-in, or turn on **AUTO**. 1×/2× speed, pause.
 6. **Campaign.** Four chapters, thirty stages (Greenvale, the Sunscar, Aldmere, the Cantor's Gate):
    rout waves, destroy Gravegates, defend a ward against the clock, a duel and four bosses with
@@ -104,6 +105,7 @@ node test/rules-test.js                    # pure rules: stats, levels, stars, g
 node test/sim-node.js all 4                # every stage fast-forwarded on AUTO: win rate, length
 LAG=4 node test/sim-node.js all 2          # same, heroes four levels below the stage
 NOULT=1 node test/sim-node.js all 4        # same, nobody casts ultimates
+node test/path-metrics.js                  # movement quality: running in place, stuck units, facing flicker, march spread
 NODE_PATH=$(npm root -g) node test/shots.js /tmp/bb-shots            # title → story → camp → campaign → team → battle → results → every tab
 NODE_PATH=$(npm root -g) node test/shots.js /tmp/bb-phone 844 390    # the same on a phone-sized touch screen
 NODE_PATH=$(npm root -g) node test/scenes.js /tmp/bb-scenes 4,7,15,23,29   # stages mid-fight with a five-hero team

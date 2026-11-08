@@ -53,7 +53,7 @@ require('fs').mkdirSync(out, { recursive: true });
   await wait(600); await shot('11-camp-rich');
   await tap('.tab[data-tab=heroes]'); await wait(300); await shot('12-heroes');
   await tap('#bRecruit'); await wait(800); await shot('13-recruit');
-  await tap('#altars .altar .btn');
+  await tap('#altarInfo .btn.xl');
   await wait(600); await shot('14-reveal-open');
   await wait(1600); await shot('15-reveal');
   await tap('#rvOk');

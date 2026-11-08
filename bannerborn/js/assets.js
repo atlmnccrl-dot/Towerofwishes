@@ -282,9 +282,9 @@
     if (portraitCache[sig]) return portraitCache[sig];
     const c = document.createElement('canvas'); c.width = c.height = size;
     const x = c.getContext('2d'); x.imageSmoothingEnabled = false;
-    const sc = size / 28;
+    const sc = Math.max(1, Math.round(size / 28)); // whole pixels: crisp art
     const layers = BB.heroLayers(hero);
-    BB.drawLayers(x, layers, 'Idle', 2, 0, size / 2, 47 * sc, sc, { noSlash: true });
+    BB.drawLayers(x, layers, 'Idle', 2, 0, size / 2, size / 2 + 33 * sc, sc, { noSlash: true });
     portraitCache[sig] = c;
     return c;
   };

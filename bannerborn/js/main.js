@@ -269,7 +269,8 @@
     scene.heroList.forEach((e, i) => {
       const b = UI.el('button', 'ucard');
       b.style.setProperty('--rc', BB.HERO_RARITY[e.hero.rarity || 0].color);
-      b.appendChild(UI.copyCanvas(BB.portrait(e.hero, 64)));
+      b.appendChild(UI.copyCanvas(BB.portrait(e.hero, 76)));
+      b.appendChild(UI.el('div', 'cic', UI.callIcon(e.calling)));
       b.appendChild(UI.el('div', 'rdy', 'ULTIMATE'));
       b.appendChild(UI.el('div', 'hp', '<i></i>'));
       b.appendChild(UI.el('div', 'en', '<i></i>'));
@@ -387,6 +388,7 @@
   UI.click($('hrPrev'), () => UI.heroStep(-1));
   UI.click($('hrNext'), () => UI.heroStep(1));
   $('pathCv').addEventListener('pointerdown', (e) => UI.pathClick(e));
+  $('boardCv').addEventListener('pointerdown', (e) => UI.boardClick(e));
   UI.click($('bSpoils'), () => {
     const S = BB.save, p = BB.idlePending(S, now());
     if (p.gold < 1 && p.sigils < 1) { UI.toast('The camp is still gathering. Come back a little later.'); return; }
@@ -413,7 +415,8 @@
 
   // ---------------------------------------------------------------- loop
   let lastT = performance.now(), spoilT = 0;
-  const SCENE_UNDER = ['title', 'home', 'hud', 'cine'];
+  // the camp keeps living behind every menu (dimmed by each screen's backdrop)
+  const SCENE_UNDER = ['title', 'home', 'hud', 'cine', 'heroes', 'hero', 'team', 'forge', 'shop', 'campaign', 'recruit'];
   function frame(t) {
     const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
     const visible = SCENE_UNDER.includes(UI.current);
@@ -433,6 +436,7 @@
     if (UI.current === 'campaign') UI.pathRender();
     if (UI.current === 'hero') UI.heroRender(dt);
     if (UI.current === 'recruit') UI.recruitRender(dt);
+    if (UI.current === 'team') UI.teamRender(dt);
     UI.revealRender(dt);
     requestAnimationFrame(frame);
   }
