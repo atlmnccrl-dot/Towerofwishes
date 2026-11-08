@@ -788,6 +788,7 @@
       return;
     }
     if (e.spawnT > 0) { e.spawnT -= dt; e.ct += dt; return; }
+    if (e.scripted) { e.ct += dt; return; } // a cutscene moves this one
     if (e.buffs.burn > 0 && Math.floor(this.time * 2) !== Math.floor((this.time - dt) * 2)) {
       const b = Math.max(1, Math.round((e.burnAtk || 20) * 0.22 * (100 / (100 + (e.def || 0) * 3)))); e.hp -= b; this.text(e.x, e.y, b, '#ff9a3a');
       if (e.hp <= 0) this.kill(e, null);
@@ -1529,7 +1530,7 @@
     this.drawLight(ctx, W, H, z, ox, oy);
     ctx.setTransform(z, 0, 0, z, ox, oy);
     // bars and texts
-    for (const e of this.ents) this.drawBars(ctx, e);
+    if (!this.noBars) for (const e of this.ents) this.drawBars(ctx, e);
     const nums = !this.save || this.save.settings.dmgNums !== false;
     for (const t of this.texts) {
       if (!nums && !t.big) continue;

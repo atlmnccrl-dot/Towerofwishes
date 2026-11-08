@@ -74,8 +74,12 @@ Losing costs nothing: level up, forge, change the formation and fight again.
 
 Settings: music, effects, screen shake, damage numbers, erase save.
 
-There are no dialogue scenes: the title leads straight to camp and a stage straight into battle (each battle opens
-with a short cinematic stage title).
+**Cutscenes** instead of dialogue (js/cinema.js, skippable): an opening (the Gravegate tears open, the dead rise,
+a close-up of Vesh Morrow, the Captain answers, BANNERBORN slams in); each boss's entrance the first time (the camera
+sweeps the arena to the boss rising, an extreme pixel close-up, black-and-white impact frames, the name slam, a VS
+split with your lead hero); a fly-over title for each new chapter; and the boss's fall. They are built from shots:
+real map fly-throughs with scripted actors, slanted close-up panels with speed lines and light streaks, impact
+frames, kinetic titles, lightning, shockwaves, sparks, embers, shake and letterbox.
 
 ## Code
 
@@ -89,6 +93,7 @@ with a short cinematic stage title).
 | `js/battle.js` | the battlefield: formation, hero/foe AI, energy and ultimates, bosses, objectives, rendering, lighting |
 | `js/audio.js` | synthesised sound effects and a procedural war-drum score |
 | `js/aura.js` | what gear and skills look like on a hero: gear glow, enchant particles, capstone marks (stateless) |
+| `js/cinema.js` | cutscenes: shot sequencer (scene fly-throughs, close-ups, splits, impact frames, titles) and the four scripts |
 | `js/heroui.js` | the hero screen: canvas-drawn stage, gear sockets and picker, attributes, skill tree, its own hit-testing |
 | `js/screens.js` | every menu screen: top bar and tabs, camp, campaign, heroes, hero, recruit and reveal, team, forge, shop, goals, results |
 | `js/main.js` | boot, loop, input, camp and title scenes, battle HUD, deploy → rewards, saving |

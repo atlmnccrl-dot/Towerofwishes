@@ -244,6 +244,11 @@ button.hc:active{transform:scale(.97)}
 .faces{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
 .faces canvas{width:40px;height:40px;border-radius:10px;background:var(--fill);border:1px solid var(--line);image-rendering:pixelated}
 .faces.locked canvas{filter:brightness(0) opacity(.5)}
+#cine{position:fixed;inset:0;z-index:35;display:none;background:#000}
+#cine.on{display:block}
+#cineCv{position:absolute;inset:0;width:100%;height:100%}
+#cineSkip{position:absolute;right:calc(18px + var(--safe-r));top:calc(14px + var(--safe-t));z-index:2;padding:8px 14px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:#fff;font:700 11px var(--head);letter-spacing:.2em}
+#cineSkip:hover{background:rgba(255,255,255,.16)}
 #reveal{position:fixed;inset:0;z-index:30;display:none;background:radial-gradient(ellipse at 50% 40%,#0e111a,#040508 75%)}
 #reveal.on{display:block}
 #reveal canvas{position:absolute;inset:0;width:100%;height:100%}
@@ -499,6 +504,7 @@ input[type=range]{accent-color:var(--accent)} input[type=checkbox]{accent-color:
   <div class="cards" id="cards"></div>
 </div>
 
+<div id="cine"><canvas id="cineCv"></canvas><button id="cineSkip">SKIP ▸▸</button></div>
 <div id="reveal"><canvas id="revealCv"></canvas><div class="txt"><div class="rk" id="rvRk"></div><div class="nm" id="rvNm"></div><div class="cl" id="rvCl"></div><button class="btn" id="rvOk">Welcome</button></div></div>
 <div id="mResults" class="modal"><div class="frame scroll" id="resBody"></div></div>
 <div id="mPause" class="modal"><div class="frame" style="width:min(380px,90vw)">
@@ -530,6 +536,7 @@ input[type=range]{accent-color:var(--accent)} input[type=checkbox]{accent-color:
 <script src="js/audio.js"></script>
 <script src="js/screens.js"></script>
 <script src="js/heroui.js"></script>
+<script src="js/cinema.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

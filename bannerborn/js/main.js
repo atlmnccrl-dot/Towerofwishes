@@ -160,8 +160,7 @@
   function newGame() {
     BB.save = BB.newSave(now());
     BB.persist();
-    BB.music('calm');
-    goCamp();
+    BB.Cinema.play('intro', { music: 'boss' }, () => goCamp());
   }
 
   // ---------------------------------------------------------------- deploy and finish
@@ -172,7 +171,14 @@
     if (!BB.stageUnlocked(S, idx)) { UI.toast('Clear the stage before it first.'); return; }
     const stage = BB.MISSIONS[idx];
     current = { stage, idx };
-    startBattle();
+    // first time only: a chapter's opening fly-over, a boss's entrance
+    const first = BB.MISSIONS.findIndex((m) => m.chapter === stage.chapter) === idx;
+    const queue = [];
+    if (first && stage.chapter > 1 && !S.seen['cine_ch' + stage.chapter]) { S.seen['cine_ch' + stage.chapter] = 1; queue.push(['chapter', { chapter: BB.CHAPTERS[stage.chapter - 1], music: 'calm' }]); }
+    if (stage.boss && !S.seen['cine_' + stage.id]) { S.seen['cine_' + stage.id] = 1; queue.push(['boss', { stage }]); }
+    BB.persist();
+    const next = () => { const q = queue.shift(); if (q) BB.Cinema.play(q[0], q[1], next); else startBattle(); };
+    next();
   };
   async function startBattle() {
     const S = BB.save, M = current.stage;
@@ -249,8 +255,8 @@
       actions.push(['Retry', '', () => UI.openTeam(current.idx)]);
       actions.push(['Upgrade heroes', 'dark', () => { goCamp().then(() => UI.go('heroes')); }]);
     }
-    UI.results(res, actions);
-    BB.sfx(win ? 'levelup' : 'click');
+    if (win && M.boss && first) BB.Cinema.play('bossDown', { stage: M, music: 'calm' }, () => { BB.music(M.type === 'boss' ? 'calm' : 'battle'); UI.results(res, actions); BB.sfx('levelup'); });
+    else { UI.results(res, actions); BB.sfx(win ? 'levelup' : 'click'); }
   }
 
   // ---------------------------------------------------------------- the battle HUD: heroes fight on their own, you call the ultimates
@@ -414,6 +420,7 @@
   const SCENE_UNDER = ['title', 'home', 'hud', 'cine', 'heroes', 'hero', 'team', 'forge', 'shop', 'campaign', 'recruit'];
   function frame(t) {
     const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
+    if (BB.Cinema && BB.Cinema.on) { BB.Cinema.render(dt); requestAnimationFrame(frame); return; } // a cutscene owns the screen
     const visible = SCENE_UNDER.includes(UI.current);
     if (scene && (visible || mode === 'battle')) {
       scene.cam.zoom = camZoom() * (scene.zoomK || 1);

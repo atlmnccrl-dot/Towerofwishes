@@ -21,7 +21,10 @@ require('fs').mkdirSync(out, { recursive: true });
   await p.waitForFunction(() => window.BB && BB.UI && BB.UI.current === 'title', null, { timeout: 30000 });
   await wait(1200); await shot('01-title');
   await tap('#bPlay');
-  await wait(400);
+  // the opening cutscene plays on a new game
+  await p.waitForFunction(() => BB.Cinema.on && !BB.Cinema.loading, null, { timeout: 20000 });
+  await wait(3500); await shot('02-intro-cutscene');
+  await p.click('#cineSkip');
   await p.waitForFunction(() => BB.UI.current === 'home', null, { timeout: 15000 });
   await wait(1500); await shot('03-camp');
   await tap('#bContinue'); await wait(500); await shot('04-campaign');
