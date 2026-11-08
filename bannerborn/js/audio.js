@@ -66,6 +66,8 @@
     charge: (t) => { tone(t, 1.3, 90, 420, 'sawtooth', 0.05); noise(t, 1.3, 300, 2600, 3, 0.1); },
     chime: (t) => { [880, 1320, 1760].forEach((f, i) => tone(t + i * 0.05, 0.5, f, 0, 'triangle', 0.09)); },
     burst: (t) => { tone(t, 0.9, 240, 40, 'sawtooth', 0.16); noise(t, 0.7, 3200, 180, 4, 0.4); [523, 784, 1046, 1318].forEach((f, i) => tone(t + 0.12 + i * 0.07, 1, f, 0, 'triangle', 0.1)); },
+    flame: (t) => { noise(t, 1.1, 400, 1800, 2, 0.22); noise(t + 0.1, 0.9, 1200, 500, 3, 0.12); tone(t, 0.8, 70, 50, 'sawtooth', 0.05); },
+    snap: (t) => { noise(t, 0.08, 6000, 2500, 8, 0.45); tone(t, 0.25, 180, 60, 'square', 0.12); noise(t + 0.05, 0.4, 900, 200, 3, 0.2); },
     enchant: (t) => { [660, 990, 1320, 1760].forEach((f, i) => tone(t + i * 0.05, 0.45, f, 0, 'sine', 0.08)); noise(t, 0.35, 6000, 2000, 2, 0.14); },
   };
   BB.sfx = function (name) {

@@ -226,9 +226,10 @@
   }
   // a war banner's cloth, painted once: a long gonfalon with a swallowtail, trim, the sigil, fringe
   const TEX_W = 128, TEX_H = 320, PAD = 70;
-  function clothTex(b) {
-    if (b.tex) return b.tex;
-    const c = b.tex = document.createElement('canvas'); c.width = TEX_W; c.height = TEX_H; const x = c.getContext('2d');
+  function clothTex(b, q) {
+    q = q || 1; const key = 'tex' + q;
+    if (b[key]) return b[key];
+    const c = b[key] = document.createElement('canvas'); c.width = TEX_W * q; c.height = TEX_H * q; const x = c.getContext('2d'); x.scale(q, q);
     const base = rgbOf(b.color), trim = b.trim || '#e8c66a', tr = rgbOf(trim);
     const shape = (o) => { x.beginPath(); x.moveTo(o, o); x.lineTo(TEX_W - o, o); x.lineTo(TEX_W - o, TEX_H * 0.84 - o); x.lineTo(TEX_W * 0.75, TEX_H - o * 2); x.lineTo(TEX_W * 0.5, TEX_H * 0.86 - o); x.lineTo(TEX_W * 0.25, TEX_H - o * 2); x.lineTo(o, TEX_H * 0.84 - o); x.closePath(); };
     shape(0); x.save(); x.clip();
@@ -254,31 +255,43 @@
   }
   // the cloth in the wind: strips that sway (pinned at the bar), folds that roll across, backlight, burning
   function warpCloth(b, t, o) {
-    const tex = clothTex(b), out = b.wcv || (b.wcv = document.createElement('canvas'));
-    if (out.width !== TEX_W + PAD * 2) { out.width = TEX_W + PAD * 2; out.height = TEX_H + 30; }
-    const x = out.getContext('2d'); x.globalCompositeOperation = 'source-over'; x.clearRect(0, 0, out.width, out.height);
-    const n = 44, sh = TEX_H / n, seed = b.seed || 0, wind = o.wind || 0, offs = [];
+    const q = o.q || 1, tex = clothTex(b, q), ck = 'wcv' + q, out = b[ck] || (b[ck] = document.createElement('canvas'));
+    const OW = TEX_W + PAD * 2, OH = TEX_H + 30;
+    if (out.width !== OW * q) { out.width = OW * q; out.height = OH * q; }
+    const x = out.getContext('2d'); x.setTransform(q, 0, 0, q, 0, 0); x.globalCompositeOperation = 'source-over'; x.clearRect(0, 0, OW, OH);
+    const n = q > 1 ? 110 : 44, sh = TEX_H / n, seed = b.seed || 0, wind = o.wind || 0, offs = [];
     for (let i = 0; i < n; i++) {
       const v = (i + 0.5) / n;
       const off = wind * Math.pow(v, 1.3) * 46 + Math.sin(t * 2.1 + v * 4.5 + seed) * v * 12 * (o.gust || 1) + Math.sin(t * 5.3 + v * 10 + seed) * v * 3;
-      offs.push(off); x.drawImage(tex, 0, i * sh, TEX_W, sh + 1, PAD + off, i * sh + Math.sin(t * 3 + v * 6 + seed) * v * 2, TEX_W, sh + 1);
+      offs.push(off); x.drawImage(tex, 0, i * sh * q, TEX_W * q, (sh + 1) * q, PAD + off, i * sh + Math.sin(t * 3 + v * 6 + seed) * v * 2, TEX_W, sh + 1);
     }
     x.globalCompositeOperation = 'source-atop';
     const fold = x.createLinearGradient(0, 0, TEX_W, 0);
     for (let j = 0; j <= 8; j++) { const c = Math.cos(j * 1.25 - t * 3.2 + seed); fold.addColorStop(j / 8, c < 0 ? 'rgba(0,0,0,' + (-c * 0.42) + ')' : 'rgba(255,236,200,' + (c * 0.16) + ')'); }
     for (let i = 0; i < n; i++) { x.save(); x.translate(PAD + offs[i], 0); x.fillStyle = fold; x.fillRect(0, i * sh, TEX_W, sh + 2); x.restore(); }
-    if (o.back) { x.fillStyle = o.back; x.fillRect(0, 0, out.width, out.height); }
+    if (o.back) { x.fillStyle = o.back; x.fillRect(0, 0, OW, OH); }
+    if (o.torn) { // scorched from below, holed, a ragged hem
+      const sc = x.createLinearGradient(0, TEX_H * 0.3, 0, TEX_H); sc.addColorStop(0, 'rgba(20,10,6,0)'); sc.addColorStop(1, 'rgba(20,10,6,' + 0.75 * Math.min(1, o.torn) + ')'); x.fillStyle = sc; x.fillRect(0, 0, OW, OH);
+      const jag = (cx, cy, r, sd) => { x.beginPath(); for (let j = 0; j < 9; j++) { const a = j / 9 * Math.PI * 2, rr = r * (0.55 + hr(sd + j) * 0.7); x.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); } x.closePath(); };
+      for (let h = 0; h < Math.round(o.torn * 6); h++) {
+        const hu = hr(seed * 13 + h), hv = hu < 0.3 ? 0.1 + hu * 0.5 : 0.56 + (hu - 0.3) * 0.45, row = Math.min(n - 1, Math.floor(hv * n)), cx = PAD + (0.12 + hr(seed * 13 + h + 40) * 0.76) * TEX_W + offs[row], cy = hv * TEX_H, r = 3 + hr(seed * 13 + h + 80) * 7;
+        x.globalCompositeOperation = 'source-atop'; x.fillStyle = 'rgba(14,6,3,0.75)'; jag(cx, cy, r * 1.35, h * 11); x.fill();
+        x.globalCompositeOperation = 'destination-out'; jag(cx, cy, r, h * 11 + 3); x.fill();
+      }
+      if (o.torn > 0.5) { x.globalCompositeOperation = 'destination-out'; x.beginPath(); x.moveTo(0, OH); for (let px = 0; px <= OW; px += 7) x.lineTo(px, TEX_H * (0.8 + hr(px + seed) * 0.12)); x.lineTo(OW, OH); x.closePath(); x.fill(); }
+      x.globalCompositeOperation = 'source-atop';
+    }
     if (o.burn > 0) {
       const edge = (px) => TEX_H * (1.05 - o.burn * 1.05) + Math.sin(px * 0.11 + seed) * 9 + Math.sin(px * 0.037 + seed * 3) * 16 + Math.sin(px * 0.3 + t * 6) * 2;
-      x.globalCompositeOperation = 'destination-out'; x.beginPath(); x.moveTo(0, out.height);
-      for (let px = 0; px <= out.width; px += 6) x.lineTo(px, edge(px)); x.lineTo(out.width, out.height); x.closePath(); x.fill();
+      x.globalCompositeOperation = 'destination-out'; x.beginPath(); x.moveTo(0, OH);
+      for (let px = 0; px <= OW; px += q > 1 ? 2 : 6) x.lineTo(px, edge(px)); x.lineTo(OW, OH); x.closePath(); x.fill();
       x.globalCompositeOperation = 'source-atop';
-      for (let px = 0; px <= out.width; px += 6) { const ey = edge(px), gr = x.createLinearGradient(0, ey - 26, 0, ey); gr.addColorStop(0, 'rgba(20,8,4,0)'); gr.addColorStop(0.6, 'rgba(25,8,4,0.85)'); gr.addColorStop(1, 'rgba(255,120,30,1)'); x.fillStyle = gr; x.fillRect(px, ey - 26, 6, 27); }
+      const stp = q > 1 ? 2 : 6; for (let px = 0; px <= OW; px += stp) { const ey = edge(px), gr = x.createLinearGradient(0, ey - 26, 0, ey); gr.addColorStop(0, 'rgba(20,8,4,0)'); gr.addColorStop(0.6, 'rgba(25,8,4,0.85)'); gr.addColorStop(1, 'rgba(255,120,30,1)'); x.fillStyle = gr; x.fillRect(px, ey - 26, stp + 0.5, 27); }
     }
-    if (o.haze) { x.globalCompositeOperation = 'source-atop'; x.fillStyle = o.haze; x.fillRect(0, 0, out.width, out.height); }
+    if (o.haze) { x.globalCompositeOperation = 'source-atop'; x.fillStyle = o.haze; x.fillRect(0, 0, OW, OH); }
     if (o.burn > 0 && o.fire) {
       x.globalCompositeOperation = 'lighter';
-      for (let px = 4; px <= out.width; px += 9) {
+      for (let px = 4; px <= OW; px += q > 1 ? 5 : 9) {
         const ey = TEX_H * (1.05 - o.burn * 1.05) + Math.sin(px * 0.11 + seed) * 9 + Math.sin(px * 0.037 + seed * 3) * 16;
         if (ey > TEX_H + 10 || ey < -20) continue;
         const fl = 0.6 + 0.4 * Math.sin(t * 17 + px), h = 22 + 26 * fl * hr(px + Math.floor(t * 8));
@@ -286,6 +299,7 @@
         x.fillStyle = gr; x.fillRect(px - h, ey - h * 1.1, h * 2, h * 1.6);
       }
     }
+    x.setTransform(1, 0, 0, 1, 0, 0);
     return out;
   }
   // one banner on its pole, drawn in world units at a base point; returns the pole tip in screen space
@@ -310,6 +324,29 @@
     const tip = { x: bx + Math.sin(ang) * (P + 0.3) * s, y: by - Math.cos(ang) * (P + 0.3) * s };
     if (o.glint) { const a = Math.max(0, Math.sin(t * 1.3 + (b.seed || 0) * 2)) ** 12; if (a > 0.02) { g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = a; g.fillStyle = '#fff6d8'; const r = s * 0.6; g.beginPath(); g.moveTo(tip.x - r, tip.y); g.lineTo(tip.x, tip.y - r * 0.08); g.lineTo(tip.x + r, tip.y); g.lineTo(tip.x, tip.y + r * 0.08); g.closePath(); g.fill(); g.beginPath(); g.moveTo(tip.x, tip.y - r * 0.7); g.lineTo(tip.x + r * 0.06, tip.y); g.lineTo(tip.x, tip.y + r * 0.7); g.lineTo(tip.x - r * 0.06, tip.y); g.closePath(); g.fill(); g.restore(); } }
     return tip;
+  }
+  // a fallen banner trampled into the mud: the pole along the ground, the cloth lying flat, torn and burnt
+  function drawWreck(g, b, x, y, s, side, t, o) {
+    const P = 4.6, cw = 1.25, m = cw / TEX_W;
+    const cv = warpCloth(b, t * 0.15 + (b.seed || 0), { wind: 0, gust: 0.2, burn: 0.35, torn: 1, haze: o.haze || 'rgba(26,18,14,0.5)' });
+    g.save(); g.translate(x, y); g.scale(s, s * 0.32); g.rotate(-side * (Math.PI / 2 - 0.1));
+    g.fillStyle = o.wood || '#1a120c'; g.fillRect(-0.06, -P * 0.7, 0.12, P * 0.7);
+    g.save(); g.translate(0.15 * side, -P * 0.74); g.rotate(side * 0.5); g.fillRect(-0.06, -P * 0.3, 0.12, P * 0.3); g.restore(); // the snapped top
+    g.imageSmoothingEnabled = true; g.drawImage(cv, -cw / 2 - PAD * m, -P * 0.66, cv.width * m, cv.height * m * 0.9); g.imageSmoothingEnabled = false;
+    g.restore();
+  }
+  // the field after a battle: spears stuck in the earth, dropped shields, swords
+  function drawDebris(g, P, H, near, col, rim) {
+    for (let i = 0; i < 46; i++) {
+      const x = -7 + hr(i + 1500) * 14, z = 3.4 + hr(i + 1501) * 15; if ((z < 6) !== near) continue;
+      if (Math.abs(x - 0.35) < 0.7 && Math.abs(z - 6.2) < 1.2) continue;
+      const p = P(x, z), s = p.s, type = Math.floor(hr(i + 1502) * 4), tilt = (hr(i + 1503) - 0.5) * 0.9;
+      g.save(); g.translate(p.x, p.y); g.fillStyle = col; g.strokeStyle = col; g.lineCap = 'round';
+      if (type === 0 || type === 3) { const L = type ? 0.8 : 1.9; g.rotate(tilt); g.lineWidth = s * 0.05; g.beginPath(); g.moveTo(0, 0); g.lineTo(0, -L * s); g.stroke(); if (!type) { g.beginPath(); g.moveTo(0, -L * s - s * 0.22); g.lineTo(s * 0.06, -L * s); g.lineTo(-s * 0.06, -L * s); g.closePath(); g.fill(); } else { g.beginPath(); g.moveTo(-s * 0.05, -L * s); g.lineTo(s * 0.03, -L * s - s * 0.1); g.lineTo(s * 0.06, -L * s + s * 0.02); g.fill(); } }
+      else if (type === 1) { g.rotate(tilt * 0.9 + (tilt > 0 ? 0.5 : -0.5)); const w = s * 0.17, h = s * 0.36; g.beginPath(); g.moveTo(-w, -h); g.lineTo(w, -h); g.lineTo(w, -h * 0.45); g.quadraticCurveTo(w * 0.9, -h * 0.05, 0, 0); g.quadraticCurveTo(-w * 0.9, -h * 0.05, -w, -h * 0.45); g.closePath(); g.fill(); if (rim) { g.strokeStyle = rim; g.lineWidth = Math.max(1, s * 0.015); g.beginPath(); g.moveTo(-w, -h); g.lineTo(w, -h); g.lineTo(w, -h * 0.45); g.stroke(); } }
+      else { g.rotate(tilt * 0.6); g.lineWidth = s * 0.035; g.beginPath(); g.moveTo(0, 0); g.lineTo(0, -s * 0.9); g.moveTo(-s * 0.16, -s * 0.68); g.lineTo(s * 0.16, -s * 0.68); g.stroke(); }
+      g.restore();
+    }
   }
   // a figure as a backlit cut-out standing in the field (fixed sprite scale, drawn into world units)
   function figure(g, a, x, y, s, col, rim, flip, clip) {
@@ -337,6 +374,15 @@
     }
     clouds(g, W, H, t, 9, H * 0.12, hy - H * 0.2, mix(top, [0, 0, 0], 0.25), mix(bot, sunC, 0.5), W * 0.012, 3);
     clouds(g, W, H, t, 6, hy - H * 0.22, hy - H * 0.06, mix(bot, top, 0.5), mix(bot, sunC, 0.7), W * 0.02, 11);
+    if (sh.storm) { // a storm gathering over it all
+      clouds(g, W, H, t, Math.round(12 * sh.storm), -H * 0.08, H * 0.32, [5, 4, 8], mix([40, 26, 30], bot, 0.25), W * 0.035, 41);
+      if (C.flash > 0.15) { g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = 'rgba(200,210,255,' + (C.flash * 0.25) + ')'; g.fillRect(0, 0, W, H * 0.4); g.restore(); }
+    }
+    if (sh.part) { // the clouds tear open over the sun
+      const pk = clamp01((k - sh.part) / 0.3); g.save(); g.globalCompositeOperation = 'lighter';
+      const br = g.createRadialGradient(sunX, sunY, 0, sunX, sunY, H * (0.2 + pk * 0.9)); br.addColorStop(0, rgba(sunC, 0.7 * pk)); br.addColorStop(1, rgba(sunC, 0)); g.fillStyle = br; g.fillRect(0, 0, W, H);
+      g.restore(); rays(g, sunX, sunY, W, H, rgba(sunC, (0.12 * pk).toFixed(3)), t * 0.4, 26);
+    }
     if (sh.sun !== false) rays(g, sunX, sunY, W, H, sh.rayCol || rgba(sunC, 0.05), t * 0.5, 22);
     if (sh.fire) { // the far fields burn
       for (let i = 0; i < 14; i++) { const x = hr(i + 90) * W, fl = 0.6 + 0.4 * Math.sin(t * 7 + i * 3); const gr = g.createRadialGradient(x, hy, 0, x, hy, H * 0.12 * fl); gr.addColorStop(0, 'rgba(255,140,40,' + 0.5 * fl + ')'); gr.addColorStop(1, 'rgba(255,60,20,0)'); g.fillStyle = gr; g.fillRect(x - H * 0.2, hy - H * 0.2, H * 0.4, H * 0.3); }
@@ -357,6 +403,8 @@
     g.save(); g.globalCompositeOperation = 'lighter'; const mg = g.createLinearGradient(0, hy - H * 0.05, 0, hy + H * 0.08); mg.addColorStop(0, rgba(haze, 0)); mg.addColorStop(0.5, rgba(haze, 0.18)); mg.addColorStop(1, rgba(haze, 0)); g.fillStyle = mg; g.fillRect(0, hy - H * 0.05, W, H * 0.13); g.restore();
     // the banners, far to near
     const P = (x, z) => ({ x: W / 2 + (x - camX) * F / z, y: hy + camH * F / z, s: F / z });
+    const debCol = rgba(mix(bot, [0, 0, 0], 0.9), 1), debRim = sh.sun !== false ? rgba(sunC, 0.5) : null;
+    if (sh.debris) drawDebris(g, P, H, false, debCol, debRim);
     let list;
     if (solo) {
       list = [{ i: sh.only, x: 0.35, z: sh.near || 6.2, stand: true }];
@@ -370,8 +418,8 @@
       const ft = C.fall && C.fall[L.i] !== undefined ? C.t - C.fall[L.i] : -1;
       let ang = Math.sin(C.t * 1.1 + L.i) * 0.012, burn = 0, fire = false, wind = sh.wind === undefined ? 0.35 : sh.wind;
       const side = L.side || (L.i % 2 ? 1 : -1);
-      if (L.wreck) { ang = side * 1.42; burn = 0.75; }
-      else if (ft >= 0) {
+      if (L.wreck) { drawWreck(g, b, p.x, p.y, p.s, side, t, { haze: rgba(mix([26, 18, 14], haze, hz), 0.55), wood: rgba(mix([22, 15, 10], haze, hz), 1) }); if (sh.smoke) { const tp = { x: p.x + side * 1.6 * p.s, y: p.y }; for (let q = 0; q < 4; q++) { const qq = (t * 0.25 + q / 4 + L.i * 0.1) % 1, r = p.s * (0.3 + qq * 1.2); const gr = g.createRadialGradient(tp.x + qq * p.s, tp.y - qq * p.s * 3, 0, tp.x + qq * p.s, tp.y - qq * p.s * 3, r); gr.addColorStop(0, 'rgba(40,36,36,' + 0.35 * (1 - qq) + ')'); gr.addColorStop(1, 'rgba(40,36,36,0)'); g.fillStyle = gr; g.fillRect(tp.x - r * 2, tp.y - qq * p.s * 3 - r, r * 4, r * 2); } } continue; }
+      if (ft >= 0) {
         burn = clamp01(ft / 1.9) * 0.9; fire = true;
         const tf = Math.max(0, ft - 0.35), D = 0.85; ang = side * (tf < D ? Math.pow(tf / D, 2) * 1.42 : 1.42 + Math.sin((tf - D) * 18) * 0.05 * Math.exp(-(tf - D) * 6));
         wind = -side * 1.4 * clamp01(tf / D);
@@ -381,11 +429,12 @@
       const knight = knights.length && !L.wreck ? knights[L.i % knights.length] : null;
       const silCol = rgba(mix([10, 7, 8], haze, hz), 1), rim = sh.sun !== false ? rgba(mix(sunC, [255, 255, 255], 0.3), (0.85 * (1 - hz)).toFixed(3)) : null;
       if (knight && !(ft > 0.6)) figure(g, knight, p.x + 0.55 * p.s, p.y, p.s * 1.45, silCol, rim, L.i % 2);
-      drawWarBanner(g, b, p.x, p.y, p.s, ang, C.t, { wind, burn, fire, haze: hz > 0.01 ? hcol : null, wood: rgba(mix([30, 20, 14], haze, hz), 1), rim, glint: !L.wreck && !burn, back: sh.sun !== false ? rgba(sunC, 0.12) : null, gust: sh.gust });
+      drawWarBanner(g, b, p.x, p.y, p.s, ang, C.t, { wind, burn, fire, torn: L.stand && sh.torn ? sh.torn : 0, haze: hz > 0.01 ? hcol : null, wood: rgba(mix([30, 20, 14], haze, hz), 1), rim, glint: !L.wreck && !burn, back: sh.sun !== false ? rgba(sunC, 0.12) : null, gust: sh.gust });
       if ((L.wreck || ft > 1.4) && sh.smoke) { const tp = { x: p.x + Math.sin(ang) * 3 * p.s, y: p.y - Math.cos(ang) * 3 * p.s }; for (let q = 0; q < 4; q++) { const qq = (t * 0.25 + q / 4 + L.i * 0.1) % 1, r = p.s * (0.3 + qq * 1.2); const gr = g.createRadialGradient(tp.x + qq * p.s, tp.y - qq * p.s * 3, 0, tp.x + qq * p.s, tp.y - qq * p.s * 3, r); gr.addColorStop(0, 'rgba(40,36,36,' + 0.35 * (1 - qq) + ')'); gr.addColorStop(1, 'rgba(40,36,36,0)'); g.fillStyle = gr; g.fillRect(tp.x - r * 2, tp.y - qq * p.s * 3 - r, r * 4, r * 2); } }
       if (fire && burn < 0.9 && Math.random() < 0.5) { const tp = { x: p.x + Math.sin(ang) * 3.4 * p.s, y: p.y - Math.cos(ang) * 3.4 * p.s }; C.parts.push({ x: tp.x + (Math.random() - 0.5) * p.s, y: tp.y + (Math.random() - 0.5) * p.s * 2, vx: (Math.random() - 0.5) * 40, vy: -80 - Math.random() * 80, t: 0, life: 1 + Math.random(), col: Math.random() < 0.5 ? '#ffb347' : '#ff6a2a', r: 1 + Math.random() * 2, drift: true }); }
       if (sh.bearer && L.stand) figure(g, sh.bearer, p.x - 0.45 * p.s, p.y + 0.05 * p.s, p.s * 1.7, '#0b0705', rim, false, sh.raise && k < 0.5 ? 'Attack1' : 'Idle');
     }
+    if (sh.debris) drawDebris(g, P, H, true, debCol, debRim);
     if (sh.fire) { g.save(); g.globalCompositeOperation = 'lighter'; const fl = g.createLinearGradient(0, H * 0.7, 0, H); fl.addColorStop(0, 'rgba(255,90,20,0)'); fl.addColorStop(1, 'rgba(255,110,30,0.4)'); g.fillStyle = fl; g.fillRect(0, H * 0.7, W, H * 0.3); g.restore(); }
     grass(g, W, H, t, 70, rgba(mix(bot, [0, 0, 0], 0.95), 1), camX * 0.25, 1);
     if (sh.ash) { g.fillStyle = 'rgba(210,205,200,0.7)'; for (let i = 0; i < 90; i++) { const x = ((hr(i + 300) * W + Math.sin(t * 0.8 + i) * 30 + t * 18) % W + W) % W, y = (hr(i + 301) * H + t * H * 0.05 * (0.5 + hr(i + 302))) % H, r = 0.6 + hr(i + 303) * 1.8; g.fillRect(x, y, r * (W / 1280) * 1.5, r * (W / 1280) * 1.5); } }
@@ -398,6 +447,70 @@
       g.fillStyle = rgba(sunC, 0.08 * (sh.flare || 1)); g.fillRect(0, sunY - H * 0.003, W, H * 0.006);
       g.restore();
     }
+  }
+  // an extreme close-up of one banner streaming across the frame from its pole: the cloth snapping in the wind,
+  // fire eating through the sigil (`burn: [from, to]`), or unfurling in gold light (`unfurl`)
+  function drawClothClose(g, W, H, sh, k, t) {
+    const b = C.banners[sh.banner]; if (!b) return; if (b.seed === undefined) b.seed = sh.banner * 1.7;
+    const top = rgbOf(sh.top || '#070508'), bot = rgbOf(sh.bot || '#4a140c'), glow = rgbOf(sh.glow || '#ff8a3a');
+    g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
+    const ph = H * 0.36, cy = H * 0.5, sl = W * 0.03;
+    g.save(); panelPath(g, -40, cy - ph, W + 40, cy + ph, sl); g.clip();
+    const bg = g.createLinearGradient(0, cy - ph, 0, cy + ph); bg.addColorStop(0, rgba(top, 1)); bg.addColorStop(1, rgba(bot, 1)); g.fillStyle = bg; g.fillRect(0, cy - ph, W, ph * 2);
+    const gx = W * (sh.glowX || 0.7), gl = g.createRadialGradient(gx, cy + ph * 0.6, 0, gx, cy + ph * 0.6, W * 0.6); gl.addColorStop(0, rgba(glow, 0.55)); gl.addColorStop(1, rgba(glow, 0));
+    g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = gl; g.fillRect(0, cy - ph, W, ph * 2);
+    if (sh.rays) rays(g, gx, cy + ph * 0.2, W, ph * 2, rgba(glow, 0.07), t, 20);
+    // wind streaks rushing past
+    g.strokeStyle = rgba(mix(glow, [255, 255, 255], 0.5), 0.12); g.lineWidth = Math.max(1, H * 0.002); g.beginPath();
+    for (let i = 0; i < 40; i++) { const y = cy - ph + hr(i + 1600) * ph * 2, len = W * (0.08 + hr(i + 1601) * 0.2), x = ((hr(i + 1602) * (W + len) + t * W * (1.2 + hr(i + 1603))) % (W + len)) - len; g.moveTo(x, y); g.lineTo(x + len, y); }
+    g.stroke(); g.restore();
+    // the cloth: its pinned edge on the pole at the left, the tails streaming right
+    const burn = sh.burn ? clamp01((k - sh.burn[0]) / (sh.burn[1] - sh.burn[0])) * 0.92 : 0, unf = sh.unfurl ? lerp(0.25, 1, easeBack(clamp01(k / 0.45))) : 1;
+    const Q = 3, cv = warpCloth(b, t * 1.7, { q: Q, wind: sh.vertical ? 0.05 : 0.15, gust: sh.vertical ? 1.0 : 2.4, burn, fire: burn > 0, torn: sh.torn || 0, back: sh.back });
+    const sc = (W * 1.02 / TEX_H) * lerp(1, 1.1, k), px = W * 0.07 - k * W * 0.05;
+    if (sh.vertical) { // hanging from its crossbar and unrolling downward, the camera settling on the sigil
+      const vs = W * 0.46 / TEX_W, drop = easeOut(clamp01(k / 0.55)), len = lerp(0.12, 1, drop), cx = W / 2;
+      const yTop = lerp(cy - ph * 0.75, cy - TEX_H * 0.42 * vs, ease(clamp01(k / 0.8)));
+      g.save(); g.imageSmoothingEnabled = true; g.translate(cx, yTop); g.scale(vs, vs * len);
+      g.shadowColor = 'rgba(0,0,0,0.6)'; g.shadowBlur = 30; g.drawImage(cv, -(PAD + TEX_W / 2), 0, cv.width / Q, cv.height / Q); g.shadowBlur = 0; g.restore();
+      g.fillStyle = '#1a120c'; g.fillRect(cx - W * 0.29, yTop - H * 0.03, W * 0.58, H * 0.035); g.fillStyle = rgba(glow, 0.6); g.fillRect(cx - W * 0.29, yTop - H * 0.03, W * 0.58, H * 0.008);
+      g.fillStyle = b.trim || '#e8c66a'; for (const sx of [-1, 1]) { g.beginPath(); g.arc(cx + sx * W * 0.29, yTop - H * 0.012, H * 0.025, 0, 7); g.fill(); }
+      if (drop < 1 && Math.random() < 0.8) sparks(2, cx + (Math.random() - 0.5) * W * 0.46, yTop + TEX_H * vs * len, '#ffe7a3', 300 * (W / 1280), 60);
+    } else {
+      g.save(); g.imageSmoothingEnabled = true; g.translate(px, cy - ph * 0.02); g.rotate(-Math.PI / 2 + Math.sin(t * 1.4) * 0.03); g.scale(sc, sc * unf);
+      g.shadowColor = 'rgba(0,0,0,0.6)'; g.shadowBlur = 30; g.drawImage(cv, -(PAD + TEX_W / 2), 0, cv.width / Q, cv.height / Q); g.shadowBlur = 0;
+      g.restore();
+      g.fillStyle = '#1a120c'; g.fillRect(px - H * 0.022, cy - ph, H * 0.044, ph * 2);
+      g.fillStyle = rgba(glow, 0.5); g.fillRect(px + H * 0.012, cy - ph, H * 0.01, ph * 2);
+    }
+    // embers off the burning edge / sparks off the gold
+    if (burn > 0 && burn < 0.9) { const fx = px + TEX_H * (1.05 - burn * 1.05) * sc * unf; for (let i = 0; i < 3; i++) C.parts.push({ x: fx + (Math.random() - 0.5) * W * 0.03, y: cy + (Math.random() - 0.5) * TEX_W * sc, vx: 60 + Math.random() * 160, vy: -60 - Math.random() * 120, t: 0, life: 0.8 + Math.random(), col: Math.random() < 0.5 ? '#ffb347' : '#ff5a1a', r: 1 + Math.random() * 2.5, drift: true }); }
+    if (sh.sparkle && Math.random() < 0.7) C.parts.push({ x: px + Math.random() * W * 0.9, y: cy + (Math.random() - 0.5) * ph * 1.6, vx: 40 + Math.random() * 80, vy: -20 - Math.random() * 50, t: 0, life: 1 + Math.random(), col: '#ffe7a3', r: 1 + Math.random() * 2, drift: true });
+    g.restore();
+    g.strokeStyle = sh.edge || '#ffbe55'; g.lineWidth = 3; panelPath(g, -40, cy - ph, W + 40, cy + ph, sl); g.stroke();
+  }
+  // an impact frame: a banner's pole snapping in two, flashing black and white, splinters flying
+  function drawSnap(g, W, H, sh, k, t) {
+    const inv = Math.floor(t / 0.05) % 2 === 1, fg = inv ? '#050505' : '#f4f1ea';
+    g.fillStyle = inv ? '#f4f1ea' : '#050505'; g.fillRect(0, 0, W, H);
+    speedLines(g, W * 0.5, H * 0.45, W, H, 90, inv ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.9)', Math.floor(t * 20), 0.05);
+    const b = C.banners[sh.banner]; if (!b) return; if (b.seed === undefined) b.seed = sh.banner * 1.7;
+    const cv = warpCloth(b, t * 3, { wind: -0.8 * (sh.side || 1), gust: 2.5, burn: 0.25 });
+    const sil = C.snapCv || (C.snapCv = document.createElement('canvas'));
+    if (sil.width !== cv.width) { sil.width = cv.width; sil.height = cv.height; }
+    const x = sil.getContext('2d'); x.globalCompositeOperation = 'copy'; x.drawImage(cv, 0, 0); x.globalCompositeOperation = 'source-in'; x.fillStyle = fg; x.fillRect(0, 0, sil.width, sil.height);
+    const side = sh.side || 1, bx = W * (sh.x || 0.5), brk = H * 0.64, pw = H * 0.02, e = easeOut(k);
+    g.fillStyle = fg;
+    g.save(); g.translate(bx, H * 1.1); g.rotate(-side * 0.05); g.fillRect(-pw / 2, brk - H * 1.1, pw, H * 1.1 - brk + H * 0.1); g.restore(); // the stump
+    g.save(); g.translate(bx, brk - e * H * 0.06); g.rotate(side * (0.12 + e * 0.6));
+    const L = H * 0.44; g.fillRect(-pw / 2, -L, pw, L);
+    g.fillRect(-H * 0.11, -L + H * 0.03, H * 0.22, pw * 0.8); // crossbar
+    g.beginPath(); g.moveTo(0, -L - H * 0.06); g.lineTo(pw, -L); g.lineTo(-pw, -L); g.closePath(); g.fill(); // spearhead
+    const m = (H * 0.19) / TEX_W; g.imageSmoothingEnabled = false; g.drawImage(sil, -H * 0.095 - PAD * m, -L + H * 0.035, sil.width * m, sil.height * m);
+    g.restore();
+    // splinters
+    for (let i = 0; i < 16; i++) { const a = hr(i + 1700) * Math.PI * 2, d = e * H * (0.12 + hr(i + 1701) * 0.35), sx = bx + Math.cos(a) * d, sy = brk + Math.sin(a) * d * 0.8, sz = H * (0.008 + hr(i + 1702) * 0.02); g.save(); g.translate(sx, sy); g.rotate(a + t * 8); g.beginPath(); g.moveTo(-sz, 0); g.lineTo(sz * 2.5, -sz * 0.3); g.lineTo(sz * 2.5, sz * 0.3); g.closePath(); g.fill(); g.restore(); }
+    if (sh.accent) { g.fillStyle = sh.accent; g.globalAlpha = 0.85; g.fillRect(0, brk - H * 0.01, W, H * 0.02); g.globalAlpha = 1; }
   }
   // the Gravegate: an ancient stone arch in a graveyard under a storm. Its runes wake one by one, a seam of light
   // splits the arch, then it tears open: a shockwave, a vortex, the dead taking shape inside, the camera falling in
@@ -654,6 +767,8 @@
     else if (sh.kind === 'triple') drawTriple(g, W, H, sh, k, lt);
     else if (sh.kind === 'gate') drawGate(g, W, H, sh, k, lt);
     else if (sh.kind === 'gates') drawGates(g, W, H, sh, k, lt);
+    else if (sh.kind === 'cloth') drawClothClose(g, W, H, sh, k, lt);
+    else if (sh.kind === 'snap') drawSnap(g, W, H, sh, k, lt);
     else if (sh.kind === 'horde') drawHorde(g, W, H, sh, k, lt);
     else if (sh.kind === 'closeup') drawCloseup(g, W, H, sh, k, lt);
     else if (sh.kind === 'split') drawSplit(g, W, H, sh, k, lt);
@@ -750,7 +865,7 @@
       return { shots: [
         { kind: 'heart', dur: 3.6, cues: [[0.25, BEAT()], [1.3, BEAT()], [2.35, BEAT()], [2.6, SFX('chime')]] },
         { kind: 'title', dur: 2.6, sup: 'GREENVALE', text: 'THREE HUNDRED YEARS AGO', size: 0.06, col: '#c9b48a', bg: '#100c08', cues: [[0, MUSIC('calm')]] },
-        { kind: 'banners', dur: 6.5, top: '#1c1430', bot: '#e07a3c', sunHex: '#ffc27a', knights, crane: 0.06, push: 1.12, caption: 'Nine banners stood between the living and the dead.', capAt: 0.8, fadeIn: 0.8, cues: [[0.2, SFX('chime')], [1.5, EMBERS(25, '#ffcf8a')], [3.5, SFX('chime')]] },
+        { kind: 'banners', dur: 6.5, top: '#0b0812', bot: '#b84a26', sunHex: '#ff9a5a', sunUp: -0.004, storm: 0.55, rayCol: 'rgba(255,150,90,0.075)', knights, crane: 0.06, push: 1.12, caption: 'Nine banners stood between the living and the dead.', capAt: 0.8, fadeIn: 0.8, cues: [[0.2, SFX('chime')], [1.5, EMBERS(25, '#ffb07a')], [3.5, SFX('chime')], [4.6, BOLT()]] },
         { kind: 'triple', dur: 5.2, who: knights, cols: oathCols, banners: true, edge: '#ffe7a3', caption: 'Nine knights swore an oath to hold them.', capAt: 1.2, cues: [0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => [0.05 + i * 0.39, i === 8 ? () => { BB.sfx('rally'); SHAKE(0.4)(); } : SFX('chime')]).concat([[3.4, SPARKS(90, '#ffe7a3', 0.5, 0.5, 700)]]) },
         { kind: 'closeup', dur: 2.2, who: knights[0], dir: 2, burst: 'rgba(255,220,150,0.09)', col1: 'rgba(220,160,60,1)', col2: 'rgba(30,18,6,1)', edge: '#ffe7a3', from: 0.4, caption: 'For three hundred years, they held.', capAt: 0.3,
           cues: [[0.15, SFX('rally')], [0.2, SPARKS(80, '#ffe7a3', 0.5, 0.5, 600)], [0.25, SHAKE(0.3)]] },
@@ -771,17 +886,22 @@
         { kind: 'impact', dur: 0.24, who: knights[1], who2: ghoul, clip: 'Attack1', accent: '#ff7a3a', cues: [[0, SHAKE(0.9)], [0, SFX('slam')], [0, FLASH(0.5)]] },
         { kind: 'impact', dur: 0.24, who: ghoul, who2: knights[2], clip: 'Attack1', accent: '#ff3d2a', cues: [[0, SHAKE(1)], [0, SFX('slam')], [0, FLASH(0.6)], [0, RGB(0.8)]] },
         { kind: 'closeup', dur: 1.6, who: knights[2], dir: 2, sil: [0.4, 0], rim: '#ff5a3a', col1: 'rgba(120,20,15,1)', col2: 'rgba(14,2,2,1)', edge: '#ff5a3a', from: 0.1, cues: [[0.5, SFX('herodie')], [0.5, SHAKE(0.4)]] },
-        { kind: 'banners', dur: 6.4, top: '#0a0608', bot: '#6a1c10', sun: false, fire: true, smoke: 'rgba(30,20,20,A)', push: 1.05, cam: [-0.4, 0.3], wind: 0.6, caption: 'Eight banners fell before dawn.', capAt: 4.2, cues: [
-          [0, EMBERS(70, '#ff8a3a')], [0.4, FALL(0)], [0.9, FALL(1)], [1.4, FALL(2)], [1.9, FALL(3)], [2.4, FALL(4)], [2.9, FALL(5)], [3.3, FALL(6)], [3.7, FALL(7)], [3.8, SHAKE(0.6)], [3.8, RGB(0.6)]] },
-        { kind: 'banners', dur: 5, only: 8, fallen: true, ash: true, top: '#2a2a32', bot: '#7a6a62', sunHex: '#d8c8b8', sunUp: -0.01, flare: 0.4, wind: 0.15, gust: 0.5, smoke: 'rgba(60,55,55,A)', cam: [0.6, -0.1], push: 1.1, caption: 'One banner still stood.', capAt: 0.8, cues: [[0, MUSIC('calm')], [0.4, SFX('chime')]] },
+        { kind: 'cloth', dur: 2.6, banner: 1, burn: [0.12, 0.95], top: '#050306', bot: '#3a0c06', glow: '#ff6a1a', edge: '#ff7a3a', cues: [[0, SFX('flame')], [0.3, EMBERS(40, '#ff8a3a')], [1.3, SFX('flame')], [1.4, SHAKE(0.2)]] },
+        { kind: 'snap', dur: 0.32, banner: 2, side: 1, x: 0.42, accent: '#ff7a3a', cues: [[0, SFX('snap')], [0, SHAKE(1)], [0, FLASH(0.4)], [0, RGB(0.8)]] },
+        { kind: 'snap', dur: 0.3, banner: 5, side: -1, x: 0.58, accent: '#ff3d2a', cues: [[0, SFX('snap')], [0, SHAKE(1)], [0, RGB(0.6)]] },
+        { kind: 'banners', dur: 5.4, top: '#040306', bot: '#5a160c', sun: false, fire: true, storm: 0.9, smoke: 'rgba(30,20,20,A)', push: 1.06, cam: [-0.4, 0.3], wind: 0.7, caption: 'Eight banners fell before dawn.', capAt: 2.6, cues: [
+          [0, EMBERS(70, '#ff8a3a')], [0, SFX('flame')], [0.15, FALL(0)], [0.5, FALL(1)], [0.85, FALL(2)], [1.2, FALL(3)], [1.5, FALL(4)], [1.8, FALL(5)], [2.1, FALL(6)], [2.4, FALL(7)], [1.0, BOLT()], [3.6, SHAKE(0.6)], [3.6, RGB(0.6)]] },
+        { kind: 'banners', dur: 5, only: 8, fallen: true, debris: true, torn: 0.6, ash: true, storm: 0.45, top: '#16161c', bot: '#5e544e', sunHex: '#c8bcb0', sunUp: -0.01, flare: 0.25, wind: 0.15, gust: 0.5, smoke: 'rgba(50,46,46,A)', cam: [0.6, -0.1], push: 1.1, caption: 'One banner still stood.', capAt: 0.8, cues: [[0, MUSIC('calm')], [0.4, SFX('chime')]] },
         { kind: 'closeup', dur: 3.4, who: capW, dir: 2, sil: 1, rim: '#ffbe55', col1: 'rgba(110,70,40,1)', col2: 'rgba(14,8,4,1)', edge: '#ffbe55', from: -0.3, caption: 'Its bearer had no army left.', capAt: 0.5, cues: [[0.6, BEAT()], [1.7, BEAT()], [2.8, BEAT()]] },
         { kind: 'closeup', dur: 2.8, who: capW, dir: 2, sil: 1, rim: '#ffd27a', converge: '#ffcf7a', burst: 'rgba(255,190,85,0.05)', col1: 'rgba(150,90,40,1)', col2: 'rgba(20,10,4,1)', edge: '#ffbe55', from: 0, caption: 'But a banner remembers every oath sworn under it.', capAt: 0.3,
           cues: [[0, SFX('charge')], [0.5, BEAT()], [1.2, BEAT()], [1.8, BEAT()], [2.2, BEAT()], [2.5, RGB(0.4)]] },
         { kind: 'closeup', dur: 2.6, who: capW, dir: 2, zoom: 1.2, sil: [0.05, 0.35], rim: '#ffbe55', burst: 'rgba(255,190,85,0.1)', col1: 'rgba(230,140,40,1)', col2: 'rgba(30,12,4,1)', edge: '#ffbe55', from: 0.15,
           cues: [[0, SFX('rally')], [0.05, () => { FLASH(0.8, '#ffe2a0')(); RGB(0.8)(); SHAKE(0.6)(); }], [0.1, SPARKS(160, '#ffcf7a', 0.5, 0.5, 900)], [0.3, EMBERS(80, '#ffb347')]] },
         { kind: 'impact', dur: 0.5, who: capW, clip: 'Taunt', accent: '#ffbe55', cues: [[0, SHAKE(1)], [0, SFX('burst')], [0, FLASH(1)], [0, RGB(1)], [0.05, CRACK(0.5, 0.5, '#ffbe55')]] },
-        { kind: 'banners', dur: 5.2, only: 8, fallen: true, raise: true, rise: true, bearer: capW, top: '#3a2216', bot: '#ffb85a', sunHex: '#ffd890', flare: 1.6, rayCol: 'rgba(255,220,150,0.09)', cam: [-0.3, 0.2], push: 1.1, caption: 'So the Captain raised it, and swore to build a new army.', capAt: 2.8, capEnd: 5,
+        { kind: 'banners', dur: 5, only: 8, fallen: true, debris: true, torn: 0.6, raise: true, rise: true, storm: 0.75, part: 0.42, near: 4.9, hy: 0.69, bearer: capW, top: '#140c10', bot: '#c87a40', sunHex: '#ffd890', flare: 1.3, rayCol: 'rgba(255,220,150,0.06)', cam: [-0.3, 0.2], push: 1.06, caption: 'So the Captain raised it,', capAt: 0.6, capEnd: 4.8,
           cues: [[0, SFX('charge')], [0.6, SHAKE(0.15)], [1.2, SHAKE(0.2)], [2.5, () => { BB.sfx('rally'); BB.sfx('burst'); FLASH(0.7, '#ffe8b0')(); SHAKE(0.8)(); RGB(0.6)(); }], [2.52, SPARKS(200, '#ffcf7a', 0.53, 0.3, 1000)], [2.6, EMBERS(90, '#ffcf7a')], [3.6, EMBERS(40, '#ffe0a0')]] },
+        { kind: 'cloth', dur: 3.4, banner: 8, vertical: true, torn: 0.3, rays: true, sparkle: true, top: '#1e1006', bot: '#7a4a14', glow: '#ffd27a', glowX: 0.6, edge: '#ffbe55', caption: 'and swore to build a new army.', capAt: 0.5, capEnd: 3.0,
+          cues: [[0, SFX('rally')], [0.05, FLASH(0.5, '#ffe8b0')], [0.1, SPARKS(140, '#ffcf7a', 0.5, 0.5, 900)], [0.2, SHAKE(0.5)], [0.4, EMBERS(60, '#ffcf7a')], [1.6, SFX('chime')]] },
         { kind: 'heart', dur: 1.2, cues: [[0.2, BEAT()]] },
         { kind: 'title', dur: 4.8, text: 'BANNERBORN', sub: 'Raise your banner. Earn your heroes. Shut the Gravegates.', size: 0.14, col: '#ffbe55', bg: '#1d1206', fadeOut: 0.7,
           cues: [[0, SFX('burst')], [0, SHAKE(0.8)], [0, RGB(1)], [0, CRACK(0.5, 0.5, '#ffbe55')], [0.02, SPARKS(200, '#ffcf7a', 0.5, 0.5, 1000)], [0.05, EMBERS(80, '#ffb347')], [0.3, MUSIC('calm')], [1.6, EMBERS(40, '#ffcf7a')]] },
