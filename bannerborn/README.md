@@ -110,8 +110,8 @@ light and rushing rings, arcs leaping to the stones, debris dragged in, gravesto
 taking shape in the light and striding out, and the camera falls into it. Bosses open through their own gate in
 their colour. Post effects sell the big beats: the screen cracks on impacts, the colour splits apart, film grain, rim-lit
 silhouettes, sound rings off a singing mouth, embers that converge on the hero, and a slam zoom into an eye.
-The opening (~75 s) tells how it began: nine banners on the ridge, a knight under each (the ninth banner is yours and
-its knight is the Captain); nine knights swear the oath, one slanted panel each in their banner's colour with its sigil; the Gravegates open in
+The opening (~75 s) tells how it began: nine knights swear the oath, one slanted panel each in their banner's colour
+with its sigil (the ninth banner is yours and its knight is the Captain); the Gravegates open in
 lightning; Vesh Morrow rises out of the dark, opens his mouth and sings; *he was only the first*: three more gates flare open
 on far hills (red, gold, violet), a shape standing black in each with only its eyes lit — the bosses still to come,
 unnamed; the dead rise and clash with the knights; eight banners fall before dawn; one stands; its bearer, alone, raises it
