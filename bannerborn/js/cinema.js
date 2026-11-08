@@ -13,6 +13,7 @@
   const easeOut = (k) => 1 - Math.pow(1 - k, 3);
   const lerp = (a, b, k) => a + (b - a) * k;
   const clamp01 = (k) => Math.max(0, Math.min(1, k));
+  const TAU = Math.PI * 2;
 
   // ---------------------------------------------------------------- actors: who appears, drawn how
   // an actor is { hero } (paper-doll or recruit) or { foe: kind } (fixed art, maybe tinted)
@@ -81,7 +82,7 @@
     if (o.waves) { g.save(); g.globalCompositeOperation = 'lighter'; for (let i = 0; i < 7; i++) { const q = (t * 0.9 + i / 7) % 1; g.strokeStyle = o.waves.replace('A', String((1 - q) * 0.7)); g.lineWidth = ph * 0.02 * (1 - q) + 1; g.beginPath(); g.ellipse(cx, cy - ph * 0.15, q * W * 0.7, q * ph * 1.3, 0, 0, 7); g.stroke(); } g.restore(); }
     // the face: a whole-number scale so the pixels stay square; the head sits on the focal point
     const S = Math.max(4, Math.round(ph * 1.15 / 14 * (o.zoom || 1))), slide = (1 - easeOut(clamp01(k * 3))) * fromX;
-    const clip = 'Idle', fr = Math.floor(t * 8) % clipLen(a, clip), lift = headLift(a, clip, dir, fr);
+    const clip = o.clip || 'Idle', fr = o.fr !== undefined ? o.fr : Math.floor(t * 8) % clipLen(a, clip), lift = headLift(a, o.clip ? 'Idle' : clip, dir, o.clip ? 0 : fr);
     g.save(); g.imageSmoothingEnabled = false;
     if (flip) { g.translate(cx * 2, 0); g.scale(-1, 1); }
     const push = 1 + k * 0.06, riseY = o.rise ? (1 - easeOut(clamp01(k * 2.2))) * ph * 1.1 : 0;
@@ -716,6 +717,89 @@
     g.stroke();
     g.restore();
   }
+  // ---------------------------------------------------------------- the oath panels again: they fall, one stands, the army to come
+  // mode 'fall': the nine panels; eight crack, drain to grey as their knight falls, and drop away (sh.fallAt seconds)
+  // mode 'lone': the last panel slides to the middle in falling ash, the Captain dim
+  // mode 'renew': the Captain's panel blazes; eight empty frames light up around it, waiting to be filled
+  function oathPanel(g, W, H, i, x0, x1, o) {
+    const sl = o.sl || W * 0.025, b = C.banners[i], c = rgbOf(b ? b.color : '#555555');
+    g.save(); if (o.dy || o.rot) { const mx = (x0 + x1) / 2; g.translate(mx, H / 2 + (o.dy || 0)); g.rotate(o.rot || 0); g.translate(-mx, -H / 2); }
+    g.globalAlpha = o.alpha === undefined ? 1 : o.alpha;
+    g.beginPath(); g.moveTo(x0 + sl, 0); g.lineTo(x1 + sl, 0); g.lineTo(x1 - sl, H); g.lineTo(x0 - sl, H); g.closePath(); g.save(); g.clip();
+    const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, rgba(mix(c, [0, 0, 0], 0.85), 1)); bg.addColorStop(0.45, rgba(mix(c, [255, 230, 190], o.glow ? 0.3 : 0.12), 1)); bg.addColorStop(1, rgba(mix(c, [0, 0, 0], 0.85), 1)); g.fillStyle = bg; g.fillRect(x0 - sl, 0, x1 - x0 + sl * 2, H);
+    if (o.glow) rays(g, (x0 + x1) / 2, H * 0.45, W, H, 'rgba(255,220,150,' + (0.06 * o.glow) + ')', o.t, 16);
+    if (o.who) closeupBody(g, o.who, 1, o.t + i, (x0 + x1) / 2, H * 0.47, H * (o.ph || 0.125), 2, false, 'rgba(0,0,0,0)', 'rgba(0,0,0,0)', 0, { noBg: true, clip: o.clip, fr: o.fr, sil: o.sil, rim: o.rim });
+    if (o.empty) { // an empty place: a "?" in the dark
+      g.fillStyle = 'rgba(255,231,163,' + 0.5 * o.empty + ')'; g.font = '800 ' + Math.round(H * 0.16) + 'px Outfit, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('?', (x0 + x1) / 2, H * 0.46);
+    }
+    if (b && BB.UI.sigilPath && !o.empty) { const cx = (x0 + x1) / 2 - sl * 0.55, cy = H * 0.8, r = Math.min(x1 - x0, H) * 0.16; g.fillStyle = b.trim || '#e8c66a'; g.shadowColor = o.glow ? '#ffd27a' : 'rgba(0,0,0,0.7)'; g.shadowBlur = o.glow ? 18 : 8; BB.UI.sigilPath(g, b.sigil, cx, cy, r); g.fill('evenodd'); g.shadowBlur = 0; }
+    if (o.grey > 0) { g.globalCompositeOperation = 'saturation'; g.fillStyle = 'rgba(128,128,128,' + o.grey + ')'; g.fillRect(x0 - sl, 0, x1 - x0 + sl * 2, H); g.globalCompositeOperation = 'source-over'; g.fillStyle = 'rgba(8,8,10,' + o.grey * 0.5 + ')'; g.fillRect(x0 - sl, 0, x1 - x0 + sl * 2, H); }
+    if (o.crack > 0) { g.strokeStyle = 'rgba(255,255,255,' + Math.min(1, o.crack * 2) + ')'; g.lineWidth = 2.5; g.shadowColor = '#fff'; g.shadowBlur = 10; g.beginPath(); const mx = (x0 + x1) / 2; let py = 0, px = mx + sl * 0.6; g.moveTo(px, py); for (let s = 1; s <= 9; s++) { py = H * s / 9 * Math.min(1, o.crack * 3); px = mx + sl * (0.6 - s / 9 * 1.2) + Math.sin(i * 7 + s * 3.1) * (x1 - x0) * 0.18; g.lineTo(px, py); } g.stroke(); g.shadowBlur = 0; }
+    if (o.flash > 0) { g.fillStyle = 'rgba(255,255,255,' + o.flash + ')'; g.fillRect(x0 - sl, 0, x1 - x0 + sl * 2, H); }
+    g.restore();
+    g.strokeStyle = o.edge || '#ffe7a3'; g.lineWidth = o.glow ? 4 : 3; if (o.glow) { g.shadowColor = '#ffd27a'; g.shadowBlur = 16 * o.glow; }
+    g.beginPath(); g.moveTo(x0 + sl, 0); g.lineTo(x1 + sl, 0); g.lineTo(x1 - sl, H); g.lineTo(x0 - sl, H); g.closePath(); g.stroke(); g.shadowBlur = 0;
+    g.restore();
+  }
+  function drawOath(g, W, H, sh, k, t) {
+    g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
+    const who = sh.who, n = 9, pw = W / n;
+    if (sh.mode === 'fall') {
+      for (let i = 0; i < n; i++) {
+        const ft = sh.fallAt[i] === undefined ? -1 : t - sh.fallAt[i];
+        const o = { t, who: who[i], fr: undefined, clip: undefined };
+        if (ft >= 0) {
+          o.flash = Math.max(0, 0.9 - ft * 8); o.crack = ft; o.grey = Math.min(1, ft * 2.5);
+          o.clip = 'Die'; o.fr = Math.min(clipLen(who[i], 'Die') - 1, Math.floor(ft * 12));
+          const d = Math.max(0, ft - 0.45); o.dy = d * d * H * 2.2; o.rot = d * d * (i % 2 ? 0.5 : -0.5); o.alpha = Math.max(0, 1 - d * 1.4);
+        }
+        if (o.alpha === 0) continue;
+        oathPanel(g, W, H, i, pw * i, pw * (i + 1), Object.assign(o, { glow: i === 8 && k > 0.75 ? (k - 0.75) * 4 : 0 }));
+      }
+      return;
+    }
+    if (sh.mode === 'lone') {
+      const q = ease(clamp01(k / 0.45)), x0 = lerp(pw * 8, W * 0.32, q), x1 = lerp(W, W * 0.68, q);
+      oathPanel(g, W, H, 8, x0, x1, { t, who: who[8], ph: lerp(0.125, 0.3, q), grey: 0.55, sl: W * 0.03, glow: 0 });
+      g.fillStyle = 'rgba(210,205,200,0.6)'; for (let i = 0; i < 80; i++) { const x = ((hr(i + 2100) * W + Math.sin(t * 0.8 + i) * 30 + t * 14) % W + W) % W, y = (hr(i + 2101) * H + t * H * 0.06 * (0.5 + hr(i + 2102))) % H, r = (0.6 + hr(i + 2103) * 1.8) * (W / 1280) * 1.5; g.fillRect(x, y, r, r); }
+      return;
+    }
+    if (sh.mode === 'renew') {
+      const cw = W * 0.34, cx0 = W / 2 - cw / 2, side = (W - cw) / 2 / 4;
+      for (let j = 0; j < 8; j++) {
+        const at = 0.18 + j * 0.07, q = clamp01((k - at) / 0.12); if (q <= 0) continue;
+        const slot = j < 4 ? j : j + 1, x0 = slot < 4 ? slot * side : cx0 + cw + (slot - 5) * side;
+        oathPanel(g, W, H, j, x0, x0 + side, { t, empty: q, alpha: q, sl: W * 0.015, edge: 'rgba(255,231,163,' + (0.5 + 0.5 * q) + ')' });
+      }
+      oathPanel(g, W, H, 8, cx0, cx0 + cw, { t, who: who[8], ph: 0.3, glow: 0.5 + 0.5 * clamp01(k * 3), sl: W * 0.03 });
+    }
+  }
+  // the bosses still to come, each in its own gate: a black shape, rim-lit, only the eyes
+  function drawTease(g, W, H, sh, k, t) {
+    g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
+    const n = sh.gates.length, sl = W * 0.05;
+    sh.gates.forEach((G, i) => {
+      const x0 = W * i / n, x1 = W * (i + 1) / n, kk = clamp01((k - i * 0.22) / 0.3); if (kk <= 0) return;
+      const drop = (1 - easeOut(clamp01(kk * 2))) * H * (i % 2 ? 1 : -1), c = G.col, hot = mix(c, [255, 255, 255], 0.55), mx = (x0 + x1) / 2;
+      g.save(); g.translate(0, drop); g.beginPath(); g.moveTo(x0 + sl, 0); g.lineTo(x1 + sl, 0); g.lineTo(x1 - sl, H); g.lineTo(x0 - sl, H); g.closePath(); g.clip();
+      g.fillStyle = rgba(mix(c, [0, 0, 0], 0.88), 1); g.fillRect(x0 - sl, 0, x1 - x0 + sl * 2, H);
+      // the gate's vortex behind it
+      g.save(); g.globalCompositeOperation = 'lighter'; g.translate(mx, H * 0.45);
+      const R = H * 0.55;
+      for (let r = 0; r < 7; r++) { const q = 1 - ((t * 0.5 + r / 7) % 1); g.strokeStyle = rgba(c, (0.45 * q).toFixed(3)); g.lineWidth = Math.max(1, R * 0.025 * q); g.beginPath(); g.ellipse(0, 0, R * q * 0.7, R * q, 0, 0, TAU); g.stroke(); }
+      for (let a = 0; a < 6; a++) { g.strokeStyle = rgba(a % 2 ? hot : c, 0.4); g.lineWidth = Math.max(1, R * 0.012); g.beginPath(); for (let s = 2; s <= 24; s++) { const q = s / 24, an = a / 6 * TAU + q * 4.5 + t * 2; const px = Math.cos(an) * R * 0.7 * (1 - q), py = Math.sin(an) * R * (1 - q); s === 2 ? g.moveTo(px, py) : g.lineTo(px, py); } g.stroke(); }
+      const core = g.createRadialGradient(0, 0, 0, 0, 0, R * 0.5); core.addColorStop(0, rgba(hot, 0.85)); core.addColorStop(1, rgba(c, 0)); g.fillStyle = core; g.beginPath(); g.arc(0, 0, R * 0.5, 0, TAU); g.fill();
+      g.restore();
+      // the shape, black, rim-lit
+      closeupBody(g, G.who, kk, t + i, mx, H * 0.5, H * 0.2, 2, false, 'rgba(0,0,0,0)', 'rgba(0,0,0,0)', 0, { noBg: true, sil: 1, rim: rgba(hot, 1), rise: true });
+      // the eyes light
+      const ea = clamp01((kk - 0.6) * 4) * (Math.sin(t * 1.4 + i * 3) > 0.96 ? 0.1 : 1);
+      if (ea > 0) { const ey = H * (0.5 + (G.eyeY || -0.08)), d = H * 0.009; g.save(); g.globalCompositeOperation = 'lighter'; for (const sx of [-1, 1]) { const gx = mx + sx * d * 1.6 + (G.eyeX || 0) * H, gl = g.createRadialGradient(gx, ey, 0, gx, ey, d * 5); gl.addColorStop(0, rgba(c, 0.9 * ea)); gl.addColorStop(1, rgba(c, 0)); g.fillStyle = gl; g.fillRect(gx - d * 5, ey - d * 5, d * 10, d * 10); g.fillStyle = 'rgba(255,255,255,' + ea + ')'; g.beginPath(); g.ellipse(gx, ey, d, d * 0.5, sx * 0.3, 0, TAU); g.fill(); } g.restore(); }
+      g.restore();
+      g.strokeStyle = rgba(hot, 0.9); g.lineWidth = 3; g.beginPath(); g.moveTo(x1 + sl, -4 + drop); g.lineTo(x1 - sl, H + 4 + drop); g.stroke();
+      if (kk > 0.5) { g.save(); g.globalAlpha = clamp01((kk - 0.5) * 3); const lg = g.createLinearGradient(0, H * 0.7, 0, H * 0.9); lg.addColorStop(0, 'rgba(0,0,0,0)'); lg.addColorStop(0.4, 'rgba(0,0,0,0.75)'); lg.addColorStop(1, 'rgba(0,0,0,0.75)'); g.fillStyle = lg; g.fillRect(x0 - sl, H * 0.7 + drop, x1 - x0, H * 0.2); g.textAlign = 'center'; g.font = '700 ' + Math.round(H * 0.024) + 'px Outfit, sans-serif'; g.fillStyle = rgba(hot, 1); if (g.letterSpacing !== undefined) g.letterSpacing = '4px'; g.fillText(G.land, mx - sl * 0.4, H * 0.84 + drop); g.font = '800 ' + Math.round(H * 0.05) + 'px Outfit, sans-serif'; g.fillStyle = '#e8e8f0'; g.fillText('? ? ?', mx - sl * 0.5, H * 0.79 + drop); if (g.letterSpacing !== undefined) g.letterSpacing = '0px'; g.restore(); }
+    });
+  }
   // the horde: a wall of small panels, each a dead face, crashing in from the right
   function drawHorde(g, W, H, sh, k, t) {
     g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
@@ -767,6 +851,8 @@
     else if (sh.kind === 'triple') drawTriple(g, W, H, sh, k, lt);
     else if (sh.kind === 'gate') drawGate(g, W, H, sh, k, lt);
     else if (sh.kind === 'gates') drawGates(g, W, H, sh, k, lt);
+    else if (sh.kind === 'oath') drawOath(g, W, H, sh, k, lt);
+    else if (sh.kind === 'tease') drawTease(g, W, H, sh, k, lt);
     else if (sh.kind === 'cloth') drawClothClose(g, W, H, sh, k, lt);
     else if (sh.kind === 'snap') drawSnap(g, W, H, sh, k, lt);
     else if (sh.kind === 'horde') drawHorde(g, W, H, sh, k, lt);
@@ -877,30 +963,28 @@
         { kind: 'closeup', dur: 2.6, who: vesh, dir: 2, waves: 'rgba(125,255,176,A)', burst: 'rgba(125,255,176,0.06)', col1: 'rgba(60,170,100,1)', col2: 'rgba(4,20,12,1)', edge: '#7dffb0', from: 0.2, caption: '— and sang.', capAt: 0.3,
           cues: [[0, SFX('boss')], [0.1, RGB(0.6)], [0.2, SHAKE(0.5)], [1.0, RGB(0.5)], [1.0, SHAKE(0.4)], [1.8, RGB(0.6)]] },
         { kind: 'impact', dur: 0.45, who: vesh, clip: 'Attack1', accent: '#7dffb0', cues: [[0, SHAKE(1)], [0, SFX('burst')], [0, FLASH(0.6, '#c8ffe0')], [0, RGB(1)]] },
-        { kind: 'gates', dur: 5.6, caption: 'He was only the first.', capAt: 0.4, capEnd: 2.5, cap2: ['Three more gates opened that night. What stood in them is waiting still.', 2.8, 5.4],
+        { kind: 'gates', dur: 3.6, caption: 'He was only the first.', capAt: 0.4, capEnd: 3.4,
           gates: [{ x: 0.2, dy: 0.02, sc: 0.42, col: [255, 80, 60], at: 0.3, who: later[0] }, { x: 0.52, dy: -0.04, sc: 0.3, col: [255, 196, 90], at: 0.48, who: later[1] }, { x: 0.82, dy: 0.06, sc: 0.55, col: [190, 150, 255], at: 0.66, who: later[2] }],
-          cues: [[0, SFX('charge')], [1.68, () => { BB.sfx('portal'); SHAKE(0.5)(); }], [2.0, SFX('boss')], [2.69, () => { BB.sfx('portal'); SHAKE(0.4)(); }], [3.7, () => { BB.sfx('portal'); BB.sfx('slam'); SHAKE(0.7)(); RGB(0.6)(); }], [4.3, BOLT()]] },
+          cues: [[0, SFX('charge')], [1.08, () => { BB.sfx('portal'); SHAKE(0.5)(); }], [1.73, () => { BB.sfx('portal'); SHAKE(0.4)(); }], [2.38, () => { BB.sfx('portal'); BB.sfx('slam'); SHAKE(0.7)(); RGB(0.6)(); }], [3.0, BOLT()]] },
+        { kind: 'tease', dur: 4.6, caption: 'Three more gates opened that night. What stood in them is waiting still.', capAt: 0.5, capEnd: 4.4,
+          gates: [{ land: 'GREENVALE', col: [255, 80, 60], who: later[0] }, { land: 'THE SUNSCAR', col: [255, 196, 90], who: later[1] }, { land: 'ALDMERE', col: [190, 150, 255], who: later[2] }],
+          cues: [[0, () => { BB.sfx('portal'); SHAKE(0.4)(); }], [1.0, () => { BB.sfx('portal'); SHAKE(0.4)(); }], [2.0, () => { BB.sfx('portal'); SHAKE(0.5)(); }], [0.75, SFX('charge')], [1.75, SFX('charge')], [2.75, () => { BB.sfx('boss'); RGB(0.6)(); }]] },
         { kind: 'horde', dur: 3.2, who: [ghoul, warden, skel, ghoul], caption: 'The dead heard him. Every grave in the vale broke open.', capAt: 0.3, cues: [[0, SFX('slam')], [0.3, SHAKE(0.5)], [0.9, SHAKE(0.4)], [1.6, BOLT()]] },
         { kind: 'impact', dur: 0.24, who: knights[0], who2: warden, clip: 'Attack1', accent: '#ff7a3a', cues: [[0, SHAKE(1)], [0, SFX('slam')], [0, FLASH(0.6)], [0, RGB(0.8)]] },
         { kind: 'impact', dur: 0.24, who: knights[1], who2: ghoul, clip: 'Attack1', accent: '#ff7a3a', cues: [[0, SHAKE(0.9)], [0, SFX('slam')], [0, FLASH(0.5)]] },
         { kind: 'impact', dur: 0.24, who: ghoul, who2: knights[2], clip: 'Attack1', accent: '#ff3d2a', cues: [[0, SHAKE(1)], [0, SFX('slam')], [0, FLASH(0.6)], [0, RGB(0.8)]] },
         { kind: 'closeup', dur: 1.6, who: knights[2], dir: 2, sil: [0.4, 0], rim: '#ff5a3a', col1: 'rgba(120,20,15,1)', col2: 'rgba(14,2,2,1)', edge: '#ff5a3a', from: 0.1, cues: [[0.5, SFX('herodie')], [0.5, SHAKE(0.4)]] },
-        { kind: 'cloth', dur: 2.6, banner: 1, burn: [0.12, 0.95], top: '#050306', bot: '#3a0c06', glow: '#ff6a1a', edge: '#ff7a3a', cues: [[0, SFX('flame')], [0.3, EMBERS(40, '#ff8a3a')], [1.3, SFX('flame')], [1.4, SHAKE(0.2)]] },
-        { kind: 'snap', dur: 0.32, banner: 2, side: 1, x: 0.42, accent: '#ff7a3a', cues: [[0, SFX('snap')], [0, SHAKE(1)], [0, FLASH(0.4)], [0, RGB(0.8)]] },
-        { kind: 'snap', dur: 0.3, banner: 5, side: -1, x: 0.58, accent: '#ff3d2a', cues: [[0, SFX('snap')], [0, SHAKE(1)], [0, RGB(0.6)]] },
-        { kind: 'banners', dur: 5.4, top: '#040306', bot: '#5a160c', sun: false, fire: true, storm: 0.9, smoke: 'rgba(30,20,20,A)', push: 1.06, cam: [-0.4, 0.3], wind: 0.7, caption: 'Eight banners fell before dawn.', capAt: 2.6, cues: [
-          [0, EMBERS(70, '#ff8a3a')], [0, SFX('flame')], [0.15, FALL(0)], [0.5, FALL(1)], [0.85, FALL(2)], [1.2, FALL(3)], [1.5, FALL(4)], [1.8, FALL(5)], [2.1, FALL(6)], [2.4, FALL(7)], [1.0, BOLT()], [3.6, SHAKE(0.6)], [3.6, RGB(0.6)]] },
-        { kind: 'banners', dur: 5, only: 8, fallen: true, debris: true, torn: 0.6, ash: true, storm: 0.45, top: '#16161c', bot: '#5e544e', sunHex: '#c8bcb0', sunUp: -0.01, flare: 0.25, wind: 0.15, gust: 0.5, smoke: 'rgba(50,46,46,A)', cam: [0.6, -0.1], push: 1.1, caption: 'One banner still stood.', capAt: 0.8, cues: [[0, MUSIC('calm')], [0.4, SFX('chime')]] },
+        { kind: 'oath', mode: 'fall', dur: 5.4, who: knights, fallAt: [0.55, 1.0, 1.4, 1.75, 2.05, 2.32, 2.56, 2.78], caption: 'Eight banners fell before dawn.', capAt: 3.3, capEnd: 5.2,
+          cues: [[0, SFX('flame')], [0.55, () => { BB.sfx('snap'); SHAKE(0.35)(); }], [1.0, () => { BB.sfx('snap'); SHAKE(0.35)(); }], [1.4, () => { BB.sfx('snap'); SHAKE(0.35)(); }], [1.75, () => { BB.sfx('snap'); SHAKE(0.35)(); }], [2.05, () => { BB.sfx('snap'); SHAKE(0.35)(); }], [2.32, () => { BB.sfx('snap'); SHAKE(0.35)(); }], [2.56, () => { BB.sfx('snap'); SHAKE(0.35)(); }], [2.78, () => { BB.sfx('snap'); SHAKE(0.6)(); }], [2.85, RGB(0.6)], [3.0, EMBERS(50, '#ff8a3a')], [4.3, SFX('chime')]] },
+        { kind: 'oath', mode: 'lone', dur: 4.4, who: knights, caption: 'One banner still stood.', capAt: 0.9, cues: [[0, MUSIC('calm')], [0.5, SFX('chime')]] },
         { kind: 'closeup', dur: 3.4, who: capW, dir: 2, sil: 1, rim: '#ffbe55', col1: 'rgba(110,70,40,1)', col2: 'rgba(14,8,4,1)', edge: '#ffbe55', from: -0.3, caption: 'Its bearer had no army left.', capAt: 0.5, cues: [[0.6, BEAT()], [1.7, BEAT()], [2.8, BEAT()]] },
         { kind: 'closeup', dur: 2.8, who: capW, dir: 2, sil: 1, rim: '#ffd27a', converge: '#ffcf7a', burst: 'rgba(255,190,85,0.05)', col1: 'rgba(150,90,40,1)', col2: 'rgba(20,10,4,1)', edge: '#ffbe55', from: 0, caption: 'But a banner remembers every oath sworn under it.', capAt: 0.3,
           cues: [[0, SFX('charge')], [0.5, BEAT()], [1.2, BEAT()], [1.8, BEAT()], [2.2, BEAT()], [2.5, RGB(0.4)]] },
         { kind: 'closeup', dur: 2.6, who: capW, dir: 2, zoom: 1.2, sil: [0.05, 0.35], rim: '#ffbe55', burst: 'rgba(255,190,85,0.1)', col1: 'rgba(230,140,40,1)', col2: 'rgba(30,12,4,1)', edge: '#ffbe55', from: 0.15,
           cues: [[0, SFX('rally')], [0.05, () => { FLASH(0.8, '#ffe2a0')(); RGB(0.8)(); SHAKE(0.6)(); }], [0.1, SPARKS(160, '#ffcf7a', 0.5, 0.5, 900)], [0.3, EMBERS(80, '#ffb347')]] },
         { kind: 'impact', dur: 0.5, who: capW, clip: 'Taunt', accent: '#ffbe55', cues: [[0, SHAKE(1)], [0, SFX('burst')], [0, FLASH(1)], [0, RGB(1)], [0.05, CRACK(0.5, 0.5, '#ffbe55')]] },
-        { kind: 'banners', dur: 5, only: 8, fallen: true, debris: true, torn: 0.6, raise: true, rise: true, storm: 0.75, part: 0.42, near: 4.9, hy: 0.69, bearer: capW, top: '#140c10', bot: '#c87a40', sunHex: '#ffd890', flare: 1.3, rayCol: 'rgba(255,220,150,0.06)', cam: [-0.3, 0.2], push: 1.06, caption: 'So the Captain raised it,', capAt: 0.6, capEnd: 4.8,
-          cues: [[0, SFX('charge')], [0.6, SHAKE(0.15)], [1.2, SHAKE(0.2)], [2.5, () => { BB.sfx('rally'); BB.sfx('burst'); FLASH(0.7, '#ffe8b0')(); SHAKE(0.8)(); RGB(0.6)(); }], [2.52, SPARKS(200, '#ffcf7a', 0.53, 0.3, 1000)], [2.6, EMBERS(90, '#ffcf7a')], [3.6, EMBERS(40, '#ffe0a0')]] },
-        { kind: 'cloth', dur: 3.4, banner: 8, vertical: true, torn: 0.3, rays: true, sparkle: true, top: '#1e1006', bot: '#7a4a14', glow: '#ffd27a', glowX: 0.6, edge: '#ffbe55', caption: 'and swore to build a new army.', capAt: 0.5, capEnd: 3.0,
-          cues: [[0, SFX('rally')], [0.05, FLASH(0.5, '#ffe8b0')], [0.1, SPARKS(140, '#ffcf7a', 0.5, 0.5, 900)], [0.2, SHAKE(0.5)], [0.4, EMBERS(60, '#ffcf7a')], [1.6, SFX('chime')]] },
+        { kind: 'oath', mode: 'renew', dur: 5.4, who: knights, caption: 'So the Captain raised it, and swore to build a new army.', capAt: 0.5, capEnd: 5.2,
+          cues: [[0, () => { BB.sfx('rally'); BB.sfx('burst'); FLASH(0.6, '#ffe8b0')(); SHAKE(0.6)(); }], [0.05, SPARKS(160, '#ffcf7a', 0.5, 0.45, 900)], [0.3, EMBERS(70, '#ffcf7a')]].concat([0, 1, 2, 3, 4, 5, 6, 7].map((j) => [(0.18 + j * 0.07) * 5.4 + 0.1, SFX('chime')])).concat([[4.3, EMBERS(40, '#ffe0a0')]]) },
         { kind: 'heart', dur: 1.2, cues: [[0.2, BEAT()]] },
         { kind: 'title', dur: 4.8, text: 'BANNERBORN', sub: 'Raise your banner. Earn your heroes. Shut the Gravegates.', size: 0.14, col: '#ffbe55', bg: '#1d1206', fadeOut: 0.7,
           cues: [[0, SFX('burst')], [0, SHAKE(0.8)], [0, RGB(1)], [0, CRACK(0.5, 0.5, '#ffbe55')], [0.02, SPARKS(200, '#ffcf7a', 0.5, 0.5, 1000)], [0.05, EMBERS(80, '#ffb347')], [0.3, MUSIC('calm')], [1.6, EMBERS(40, '#ffcf7a')]] },
