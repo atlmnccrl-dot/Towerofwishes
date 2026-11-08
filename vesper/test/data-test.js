@@ -8,7 +8,8 @@ const fx = JSON.parse(fs.readFileSync(root + '/fx/fx.json')).fx, tiles = JSON.pa
 let fail = 0; const bad = (m) => { fail++; console.log('FAIL', m); };
 const clipsOf = (set) => { const f = root + '/pixel/' + set + '.json'; if (!fs.existsSync(f)) { bad('no set ' + set); return {}; } return JSON.parse(fs.readFileSync(f)).anims; };
 const need = ['Idle', 'Idle4', 'Walk', 'Run', 'TakeDamage', 'Slide', 'Die', 'Rolling', 'Special1', 'Taunt', 'StrafeLeft', 'StrafeRight', 'RunBackwards'];
-const check = (who, set, extra) => { const a = clipsOf(set), skip = set.startsWith('vh_') && !Object.values(D.HEROES).some((H) => H.set === set) ? ['RunBackwards'] : []; for (const c of need.concat(extra || [])) if (!a[c] && skip.indexOf(c) < 0) bad(`${who} (${set}) lacks ${c}`); };
+// The tile packs' own characters (vh_sand_*, vh_iso_*) have no roll or slide: the engine falls back to Run and TakeDamage.
+const check = (who, set, extra) => { const a = clipsOf(set), skip = /^vh_(sand|iso)_/.test(set) ? ['RunBackwards', 'Slide', 'Rolling'] : set.startsWith('vh_') && !Object.values(D.HEROES).some((H) => H.set === set) ? ['RunBackwards'] : []; for (const c of need.concat(extra || [])) if (!a[c] && skip.indexOf(c) < 0) bad(`${who} (${set}) lacks ${c}`); };
 for (const [id, H] of Object.entries(D.HEROES)) { check('hero ' + id, H.set, H.combo.map((k) => k.clip).concat([H.heavy.clip, H.dashCut.clip], H.skills.map((k) => k.clip))); for (const k of H.combo.concat([H.heavy, H.dashCut])) if (k.bolt && !fx[k.bolt.fx]) bad(id + ' bolt fx ' + k.bolt.fx); }
 check('clone', D.CLONE.set, D.CLONE.atks.map((k) => k.clip));
 check('lys', D.LYS.set, []);

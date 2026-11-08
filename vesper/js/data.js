@@ -255,6 +255,20 @@
     gatespear: { name: 'Gate Spearman', set: 'vh_spearman_001', hp: 42, spd: 58, poise: 0, minion: true, color: '#c8a080',
       atks: [{ clip: 'Attack1', wind: 0.5, recover: 0.5, reach: 48, arc: 0.5, dmg: 9, kb: 14 }, { clip: 'Attack4', wind: 0.6, recover: 0.6, reach: 42, dmg: 11, kb: 20, lunge: 90, range: [60, 140], unparry: true }] },
 
+    // ---- The desert raiders and the graveyard dead (the tile packs' own characters) ----
+    risen: { name: 'Risen Dead', set: 'vh_iso_ghoul', hp: 44, spd: 54, poise: 0, minion: true, color: '#9a9aa8',
+      atks: [{ clip: 'Attack1', wind: 0.55, recover: 0.5, reach: 28, arc: 1.6, dmg: 10, kb: 14, next: 1 }, { clip: 'Attack2', wind: 0.3, recover: 0.6, reach: 28, dmg: 11, kb: 18, chainOnly: true }] },
+    sunguard: { name: 'Sun Warden', set: 'vh_sand_guard', hp: 74, spd: 50, poise: 0, minion: true, color: '#ffd060', guard: { arc: 1.0, mul: 0.25 },
+      atks: [{ clip: 'Attack1', wind: 0.5, recover: 0.5, reach: 50, arc: 0.5, dmg: 10, kb: 16 }, { clip: 'Attack4', wind: 0.65, recover: 0.6, reach: 44, dmg: 13, kb: 22, lunge: 100, range: [60, 150], unparry: true }] },
+    dunereaver: { name: 'Dune Reaver', set: 'vh_sand_horn', hp: 64, spd: 64, poise: 0, minion: true, color: '#d0a070',
+      atks: [{ clip: 'Attack2', wind: 0.45, recover: 0.5, reach: 32, arc: 1.7, dmg: 11, kb: 16, next: 1 }, { clip: 'Attack3', wind: 0.3, recover: 0.6, reach: 32, dmg: 12, kb: 22, chainOnly: true },
+        { clip: 'Special1', wind: 0.7, recover: 0.7, aoe: 42, at: 0, dmg: 13, kb: 28, unparry: true }] },
+    scrapper: { name: 'Sand Imp', set: 'vh_sand_imp', scale: 0.9, hp: 24, spd: 108, poise: 0, minion: true, color: '#c87a4a',
+      atks: [{ clip: 'Attack1', wind: 0.26, recover: 0.35, reach: 22, dmg: 7, kb: 8, next: 1 }, { clip: 'Attack3', wind: 0.18, recover: 0.5, reach: 24, dmg: 8, kb: 12, chainOnly: true }] },
+    dunebrute: { name: 'Dune Brute', set: 'vh_sand_brute', scale: 1.2, hp: 130, spd: 48, poise: 50, minion: true, color: '#d8b080',
+      atks: [{ clip: 'Attack4', wind: 0.8, recover: 0.9, reach: 30, dmg: 20, kb: 40, lunge: 180, range: [70, 220], unparry: true },
+        { clip: 'Attack3', wind: 0.7, recover: 0.85, aoe: 46, at: 16, dmg: 17, kb: 30, unparry: true }, { clip: 'Attack1', wind: 0.45, recover: 0.6, reach: 30, arc: 1.6, dmg: 12, kb: 20 }] },
+
     // ---- Champions: named elites with a name card and a health bar, two to an act ----
     ch_gatebreaker: { name: 'Hrolf the Gatebreaker', title: 'Champion of the Raiders', set: 'vh_barbarian_016', scale: 1.4, hp: 300, spd: 60, poise: 50, boss: true, champion: true, color: '#ffb060',
       atks: [{ clip: 'Attack2', wind: 0.5, recover: 0.5, reach: 38, arc: 1.7, dmg: 14, kb: 22, next: 1 }, { clip: 'Attack3', wind: 0.3, recover: 0.6, reach: 38, dmg: 15, kb: 28, chainOnly: true },
@@ -375,18 +389,19 @@
   // ---- Looks: each army foe spawns in one of these looks (the whole random cast has a place) ----
   const V = (pre, nums) => nums.map((n) => `vh_${pre}_${String(n).padStart(3, '0')}`);
   D.VARIANTS = {
+    sunguard: ['vh_sand_guard', 'vh_sand_warden'], dunereaver: ['vh_sand_horn', 'vh_sand_nomad'], risen: ['vh_iso_ghoul'],
     reaver: V('barbarian', [2, 1, 3, 4, 5, 6, 7]), ravager: V('barbarian', [13, 9, 10, 11, 12, 14, 15]), chieftain: V('barbarian', [8, 17]),
     hound: V('beastfolk', [3, 2, 4, 8, 9]), harpy: V('beastfolk', [5, 6]), ram: V('beastfolk', [7, 10]),
-    duelist: V('duelist', [8, 1, 2, 3, 4, 5, 6]), woundblade: V('duelist', [12, 9, 10, 11, 13, 14]),
+    duelist: V('duelist', [8, 1, 2, 3, 4, 5, 6]).concat(['vh_iso_rover']), woundblade: V('duelist', [12, 9, 10, 11, 13, 14]),
     gateguard: V('knight', [3, 1, 2, 5, 6]), cloisterknight: V('knight', [4, 7, 9, 10, 12, 13]), woundknight: V('knight', [14, 8, 11, 15]),
-    acolyte: V('mage', [9, 2, 8, 17, 18, 19, 24]), seer: V('mage', [17, 5, 11, 15, 21, 22]), cinder: V('mage', [1, 3, 4, 10, 16, 23]), blight: V('mage', [6, 12, 13, 14]),
+    acolyte: V('mage', [9, 2, 8, 17, 18, 19, 24]).concat(['vh_iso_cultist']), seer: V('mage', [17, 5, 11, 15, 21, 22]), cinder: V('mage', [1, 3, 4, 10, 16, 23]), blight: V('mage', [6, 12, 13, 14]),
     windmonk: V('monk', [2, 4]), stormfist: V('monk', [3, 5]), paladin: V('paladin', [7, 1, 2, 3, 4, 5]),
     ranger: V('ranger', [13, 1, 2, 3, 4, 5, 7, 8, 9]), sniper: V('ranger', [6, 10, 11, 12, 14, 15, 17]),
     cutthroat: V('rogue', [2, 1, 3, 4, 5, 6, 7, 8]), stalker: V('rogue', [9, 10, 11, 12, 13, 14, 15]),
-    bulwark: V('skeleton', [2, 4, 9]), shadowbulwark: V('skeleton', [15, 12, 16]), pikeman: V('skeleton', [1, 5, 8, 11, 14, 17]), boneguard: V('skeleton', [3, 6, 10, 13, 18]),
+    bulwark: V('skeleton', [2, 4, 9]).concat(['vh_iso_knight']), shadowbulwark: V('skeleton', [15, 12, 16]).concat(['vh_iso_knight']), pikeman: V('skeleton', [1, 5, 8, 11, 14, 17]), boneguard: V('skeleton', [3, 6, 10, 13, 18]),
     frostpike: V('spearman', [14, 3, 6, 7, 16, 17]), ridgepike: V('spearman', [8, 9, 10, 11, 12, 13, 15, 18, 19]), gatespear: V('spearman', [1, 2, 4, 5]),
-    thrall: V('townsfolk', [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]),
-    warlock: V('warlock', [5, 4, 9, 10, 12]), ashlock: V('warlock', [2, 1, 8, 11]), bloodlock: V('warlock', [3, 7]),
+    thrall: V('townsfolk', [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]).concat(['vh_iso_folk1', 'vh_iso_folk2', 'vh_iso_folk3']),
+    warlock: V('warlock', [5, 4, 9, 10, 12]).concat(['vh_iso_cultist']), ashlock: V('warlock', [2, 1, 8, 11]), bloodlock: V('warlock', [3, 7]),
     wraith: V('wraith', [4, 6, 7]), shade: V('wraith', [1, 9, 10, 11]), redwraith: V('wraith', [3, 5, 8]),
   };
 

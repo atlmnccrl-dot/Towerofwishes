@@ -97,11 +97,11 @@
   // Acts are the hours of the night (the stage whose arenas and foes they use). Echoes is the
   // post-game: every guardian again, stronger, and the endless night.
   P.ACTS = [
-    { stage: 0, num: 'I', hour: 'DUSK', name: 'The Black Gate', pool: ['thrall', 'reaver', 'thrall', 'bulwark', 'gatespear', 'husk', 'pikeman', 'boneguard', 'gateguard', 'chieftain'] },
+    { stage: 0, num: 'I', hour: 'DUSK', name: 'The Black Gate', pool: ['thrall', 'reaver', 'thrall', 'bulwark', 'gatespear', 'husk', 'risen', 'pikeman', 'boneguard', 'gateguard', 'chieftain'] },
     { stage: 1, num: 'II', hour: 'THE FIRST HOUR', name: 'Cloister of Frost', pool: ['frostpike', 'acolyte', 'cloisterknight', 'knife', 'duelist', 'husk', 'seer', 'brute'] },
-    { stage: 2, num: 'III', hour: 'THE SECOND HOUR', name: 'The Umbral Stair', pool: ['cutthroat', 'wraith', 'boneguard', 'shadowbulwark', 'shade', 'stalker', 'husk', 'warlock', 'brute'] },
-    { stage: 3, num: 'IV', hour: 'THE THIRD HOUR', name: 'The Ashen Waste', pool: ['hound', 'ravager', 'cinder', 'blight', 'husk', 'ram', 'thrall', 'ashlock', 'golem'] },
-    { stage: 4, num: 'V', hour: 'THE FOURTH HOUR', name: "The Wind's Throat", pool: ['ridgepike', 'ranger', 'windmonk', 'harpy', 'stalker', 'husk', 'stormfist', 'sniper', 'brute'] },
+    { stage: 2, num: 'III', hour: 'THE SECOND HOUR', name: 'The Umbral Stair', pool: ['cutthroat', 'wraith', 'boneguard', 'shadowbulwark', 'sunguard', 'shade', 'stalker', 'husk', 'warlock', 'brute'] },
+    { stage: 3, num: 'IV', hour: 'THE THIRD HOUR', name: 'The Ashen Waste', pool: ['hound', 'ravager', 'dunereaver', 'cinder', 'scrapper', 'blight', 'husk', 'ram', 'dunebrute', 'ashlock', 'golem'] },
+    { stage: 4, num: 'V', hour: 'THE FOURTH HOUR', name: "The Wind's Throat", pool: ['ridgepike', 'ranger', 'windmonk', 'scrapper', 'harpy', 'stalker', 'husk', 'stormfist', 'sniper', 'dunereaver', 'brute'] },
     { stage: 5, num: 'VI', hour: 'THE LAST HOUR', name: "The Moon's Shadow", pool: ['woundknight', 'woundblade', 'paladin', 'redwraith', 'husk', 'bloodlock', 'shield', 'brute'] },
     { stage: 5, num: 'VII', hour: 'AFTER DAWN', name: 'Echoes of the Night', pool: ['woundknight', 'duelist', 'wraith', 'ram', 'harpy', 'paladin', 'ashlock', 'sniper', 'cutthroat', 'chieftain'], echoes: true },
   ];
