@@ -86,14 +86,19 @@ its own distance (rising or dropping 150 to 300 away, or running in from 300 to 
 sight), never closer than 64 to another, so a wave closes in from around you instead of in one
 clump. Red chevrons at the screen's edge point at every foe out of sight.
 
-**The opening** (`js/intro.js`) is played in the engine: the moon falling over the night sky and the
-First Cut's leap across it, then a real fight in the Gatehouse at the Black Gate. Vesper walks in, the
-dead rise from rifts around her and she cuts through them with her own kit (the test bot at full
-skill, so every combo, dodge, dash-cut and finisher is the game's), the Gatewarden lands with a shake,
-and the Last Ditch Effort ends it before the title slams in. The camera is directed shot by shot
-(tight as she walks in, wide for the swarm, on the guardian, pulling back for the title), with
-letterbox bars and the story told in short captions. Any tap skips it. The older hand-drawn
-sequence (`js/opening.js`) stays in the code for the Theatre.
+**The opening** (`js/intro.js`): about 39 seconds, cut like an anime fight in the style of the moon
+arts and drawn on the same 180 px pixel buffer. None of it is the game's own view: every shot is a set
+built for it, with the cast as actors, silhouettes and close-ups. The shots: a red drop in the dark;
+the moon falling on a sleeping city while the townsfolk look up; the First Cut in silhouette against
+it, then his leap; the cut in impact frames (white, inverted, then the wound torn across the moon);
+the moon hanging still and bleeding red light; the dead rising from the graves (their death clips
+played backwards); the horde marching on the Black Gate; Vesper's walk in the rain, the red eye, the
+draw; the charge, where she cuts through eight of the dead and throws them; three manga panels; the
+Gatewarden crashing down with his name card; split-screen eyes; the clash (impact frames, then the
+blade lock in silhouette with sparks); one red frame where she passes through him and he comes
+apart; the title over the red moon. Captions sit in the letterbox, sounds are timed per shot and the
+battle music comes in on the draw. Any tap skips it. The older hand-drawn sequence (`js/opening.js`)
+stays in the code for the Theatre.
 
 **The opening** (`js/opening.js`): about 23 seconds, cut like an anime transformation and drawn at
 full resolution (painted light, ribbons and grain around crisp scaled-up pixel figures): a flat red

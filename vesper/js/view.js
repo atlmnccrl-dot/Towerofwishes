@@ -752,18 +752,23 @@
 
   // The cinematic has its own canvas over the game: the 180 px pixel buffer, stretched to the screen
   // by CSS with pixelated sampling (the browser's compositor does the enlargement).
-  R.drawCine = function (ctx, s) {
-    const h = s.hero, c = PX.ctx, el = PX.buf;
+  // Clear the pixel buffer, fit it to the screen's shape and show it; returns its context.
+  R.pxBegin = function () {
+    const c = PX.ctx, el = PX.buf;
     if (!el.parentNode) {
       el.id = 'cine'; Object.assign(el.style, { position: 'fixed', left: '0', top: '0', width: '100%', height: '100%', imageRendering: 'pixelated', zIndex: '4', pointerEvents: 'none', display: 'none' });
       document.body.appendChild(el);
     }
     PX.fit(R.W / R.H);
+    c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, PX.W, PX.H); c.globalAlpha = 1; c.imageSmoothingEnabled = false;
+    if (el.style.display !== 'block') el.style.display = 'block';
+    return c;
+  };
+  R.drawCine = function (ctx, s) {
+    const h = s.hero, c = R.pxBegin();
     const q = R.P(h.x, h.y);
     PX.heroAt = { x: q.x / R.W * PX.W, y: q.y / R.H * PX.H, k: R.Sh() * h.scale * PX.H / R.H };
-    c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, PX.W, PX.H); c.globalAlpha = 1; c.imageSmoothingEnabled = false;
     VS.cine.draw(c, s);
-    if (el.style.display !== 'block') el.style.display = 'block';
     if (PX.shake > 0) { R.shake = Math.max(R.shake, PX.shake * 1.5); PX.shake = 0; }
   };
   R.hideCine = function () { if (PX.buf.parentNode && PX.buf.style.display !== 'none') PX.buf.style.display = 'none'; };
