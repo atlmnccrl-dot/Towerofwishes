@@ -524,7 +524,7 @@
   function hazards(ctx, s) {
     const Sh = R.Sh();
     for (const z of s.hazards) {
-      const foe = z.team === 'foe', col = foe ? '#ff2a44' : '#ffffff';
+      const foe = z.team === 'foe', col = foe ? '#ff2a44' : z.team === 'arena' ? '#ffa040' : '#ffffff';
       if (z.t < z.delay) {
         // The warning: a circle filling in until the strike lands.
         const k = z.t / z.delay; ctx.save(); ground(ctx);
@@ -535,7 +535,7 @@
         continue;
       }
       if (z.kind === 'zone') {
-        const life = Math.min(1, (z.t - z.delay) / 0.3, (z.delay + z.dur - z.t) / 0.4), tint = z.fx === 'burning_ground' ? '#ff7030' : z.fx === 'poison_cloud' ? '#80ff60' : '#c070ff';
+        const life = Math.min(1, (z.t - z.delay) / 0.3, (z.delay + z.dur - z.t) / 0.4), tint = z.fx === 'burning_ground' ? '#ff7030' : z.fx === 'poison_cloud' ? '#80ff60' : z.fx === 'frost_nova' ? '#9ad8ff' : '#c070ff';
         ctx.save(); ground(ctx); const gr = ctx.createRadialGradient(z.x, z.y, 0, z.x, z.y, z.r); gr.addColorStop(0, rgba(tint, 0.35 * life)); gr.addColorStop(1, rgba(tint, 0)); ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, 7); ctx.fill();
         ctx.strokeStyle = rgba(tint, 0.5 * life); ctx.lineWidth = 1; ctx.setLineDash([4, 5]); ctx.lineDashOffset = -R.t * 10; ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, 7); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
         if (z.fx) for (let i = 0; i < 3; i++) { const a = i * 2.1 + z.x, rr = z.r * 0.45, q = R.P(z.x + Math.cos(a) * rr, z.y + Math.sin(a) * rr * 0.8, 0); A.fx(ctx, z.fx, R.t + i * 0.3, q.x, q.y, Sh * 0.7 * Math.max(0.5, z.r / 40), 0.85 * life); }

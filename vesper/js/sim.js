@@ -67,7 +67,7 @@
     // A scripted fight (the guided trial): no waves come on their own; the tutorial places each foe and
     // lets the waves loose at the end.
     s.scripted = !!(N && N.script && opts.guided);
-    curArena = arenaOf(s);
+    curArena = arenaOf(s); lairHazards(s);
     const en = VS.entryOf(curArena); s.hero = makeUnit(s, 'hero', H.id, Object.assign({}, H, { hp: M.hp }), en.x, en.y, 0);
     return s;
   }
@@ -555,6 +555,22 @@
     if (A.kind === 'grid') { const e = A.exit, dx = e.x - h.x, dy = e.y - h.y, d = Math.hypot(dx, dy) || 1, c = AR.clamp(A, h.x + dx / d * Math.min(170, d * 0.6), h.y + dy / d * Math.min(170, d * 0.6), 40); return { x: c[0], y: c[1] }; }
     const c = VS.clampTo(A, -h.x * 0.6, -h.y * 0.6 - 40, 40); return { x: c[0], y: c[1] };
   }
+  // A guardian's lair: its lingering zones from the start (they harm everyone, foes included), and
+  // its vents striking on a rhythm while there is a fight on.
+  function lairHazards(s) {
+    s.hazards = s.hazards.filter((z) => !z.arena); s.ventT = 0; s.ventN = 0;
+    const A = curArena; if (!A || !A.hz) return;
+    for (const z of A.hz.zones) addHazard(s, { kind: 'zone', team: 'arena', arena: true, x: z.x, y: z.y, r: z.r, dur: 1e9, dps: z.dps, slow: z.slow, fx: z.fx, tick: 0.5 });
+  }
+  function lairVents(s, dt) {
+    const A = curArena, V = A && A.hz && A.hz.vents; if (!V || !foes(s).some((u) => u.state !== 'spawn')) return;
+    s.ventT += dt; if (s.ventT < V.every) return; s.ventT = 0; s.ventN++;
+    const boss = foes(s).find((u) => u.def.boss), hot = boss && boss.phase === 2;
+    V.spots.forEach((p, i) => {
+      const on = V.pattern === 'all' || (V.pattern === 'alt' && i % 2 === s.ventN % 2) || (V.pattern === 'seq' && i % 4 === s.ventN % 4) || (V.pattern === 'rand' && s.rand() < (hot ? 0.55 : 0.4));
+      if (on || (hot && V.pattern !== 'rand' && i % 4 === (s.ventN + 2) % 4)) addHazard(s, { kind: 'strike', team: 'arena', arena: true, x: p.x, y: p.y, r: V.r, delay: V.delay, dmg: V.dmg * (s.def.scale ? s.def.scale.dmg : 1), fx: V.fx, quiet: i % 2 });
+    });
+  }
   // A cleared area opens the way on: a gate, a stairway or a rift at the back of the ring.
   function openPortal(s) {
     const e = VS.exitOf(arenaOf(s)), x = e.x, y = e.y;
@@ -569,7 +585,7 @@
     if (prev < T.swap && tr.t >= T.swap) {
       s.area++; s.units = s.units.filter((u) => u === h || u.alive); s.bolts = []; s.portal = null;
       curArena = arenaOf(s); const en = VS.entryOf(curArena); h.x = en.x; h.y = en.y; setAng(h, curArena.kind === 'grid' ? 0 : Math.atan2(-en.y, -en.x)); h.kvx = h.kvy = 0; h.iframes = 0; setState(h, 'move'); s.entry = { x: en.x, y: en.y, t: 0, kind: s.def.portal || 'rift' };
-      ev(s, { type: 'area', n: s.area });
+      lairHazards(s); ev(s, { type: 'area', n: s.area });
     }
     if (tr.t >= T.swap) { const d = dir(h.ang); h.x += d[0] * 46 * dt; h.y += d[1] * 46 * dt; }
     if (tr.t >= T.dur) { s.transit = null; setState(h, 'idle'); s.waveT = 0.35; }
@@ -731,6 +747,7 @@
       if (u.slowT > 0) u.slowT -= dt; if (u.stunT > 0) u.stunT -= dt;
       if (u.def.clone) { u.life -= dt; if (u.life <= 0) { u.hp = 0; kill(s, u); } }
     }
+    lairVents(s, dt);
     // Hazards: zones that tick, strikes that land after their warning, tornadoes that chase.
     for (const z of s.hazards) {
       z.t += dt; if (z.t < z.delay) continue;

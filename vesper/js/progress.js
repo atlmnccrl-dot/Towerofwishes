@@ -222,6 +222,7 @@
   const CHAMPS = [['ch_gatebreaker', 'ch_bonecaptain'], ['ch_mother', 'ch_saber'], ['ch_bishop', 'ch_widow'], ['ch_carrion', 'ch_ashmother'], ['ch_huntmaster', 'ch_gale'], ['ch_woundlord', 'ch_saint'], ['ch_saber', 'ch_widow', 'ch_carrion', 'ch_woundlord']];
   P.CHAMPS = CHAMPS;
   const BOSS = { warden: ['warden'], twins: ['twinA', 'twinB'], umbral: ['umbral'], hunger: ['hunger'], wing: ['wing'], firstCut: ['firstCut'] };
+  const LAIR = { warden: 'lair_warden', twins: 'lair_twins', umbral: 'lair_umbral', hunger: 'lair_hunger', wing: 'lair_wing', firstCut: 'lair_firstCut' };
   function pick(pool, n, r, early) { const out = []; for (let i = 0; i < n; i++) out.push(pool[Math.floor(Math.pow(r(), early ? 1.6 : 1) * pool.length)]); return out; }
   // The fight a node holds: waves (pulses split by '+'), whether its last wave is a guardian, arenas, rules.
   P.build = function (n) {
@@ -238,10 +239,11 @@
       case 'elite': { // the act's champion leads the second area
         const ch = CHAMPS[n.act][P.NODES.filter((x) => x.act === n.act && x.type === 'elite').indexOf(n) % 2];
         rules.elites = true; waves = [area(2), [ch, '+'].concat(pick(pool, per - 1, r))]; boss = true; champion = ch; break; }
-      case 'boss': waves = [st.waves[st.waves.length - 1].slice(), st.bossWave.slice()]; boss = true; arenas = [ar[ar.length - 2] || ar[0], ar[ar.length - 1]]; break;
-      case 'echo': waves = [area(2), BOSS[n.echo].concat(['+'], pick(pool, 3, r))]; boss = true; arenas = [ar[0], ar[ar.length - 1]]; break;
+      // The guardian waits in its own hand-built lair (js/arenas.js).
+      case 'boss': waves = [st.waves[st.waves.length - 1].slice(), st.bossWave.slice()]; boss = true; arenas = [ar[ar.length - 2] || ar[0], 'lair_' + st.boss]; break;
+      case 'echo': waves = [area(2), BOSS[n.echo].concat(['+'], pick(pool, 3, r))]; boss = true; arenas = [ar[0], LAIR[n.echo] || ar[ar.length - 1]]; break;
       case 'challenge':
-        if (n.echo) { waves = [BOSS[n.echo].slice()]; boss = true; arenas = [D().STAGES[0].arenas[2]]; }
+        if (n.echo) { waves = [BOSS[n.echo].slice()]; boss = true; arenas = [LAIR[n.echo] || D().STAGES[0].arenas[2]]; }
         else if (n.rule === 'horde') { const k = n.big ? 6 : 4; waves = [area(k)]; arenas = [ar[idx % ar.length]]; if (n.big) { const all = CHAMPS.flat(); waves[0].push('+', all[Math.floor(r() * all.length)], all[Math.floor(r() * all.length)]); } }
         else waves = [area(2), area(2)];
         break;
