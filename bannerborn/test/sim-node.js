@@ -1,7 +1,7 @@
-// Runs the battle engine in Node with stubbed art. usage: node test/sim-node.js [missionIdx|all] [runs]
+// Runs every campaign stage in Node with stubbed art. usage: node test/sim-node.js [stageIdx|all] [runs]
+//   LAG=n   heroes are n levels below the stage (default 1)      NOULT=1  nobody casts ultimates (Auto off, no taps)
 global.window = globalThis;
 const BB = require('../js/rules.js');
-// stubs for the art layer
 BB.A = { chars: {}, env: {}, fx: null };
 BB.ENV_DRAW = 0.9; BB.TW = 128 * 0.45; BB.TH = 64 * 0.45;
 BB.fxLen = () => 16; BB.clipLen = () => 15; BB.hasClip = () => true; BB.heroLayers = () => [];
@@ -9,42 +9,37 @@ BB.envRect = () => null; BB.drawFx = () => {}; BB.drawEnv = () => {}; BB.drawOth
 BB.ROSTER = []; BB.poolKeys = () => []; BB.npcKeys = () => [];
 BB.dirFromVec = function (dx, dy) { const sx = dx - dy, sy = (dx + dy) / 2; if (Math.abs(sx) + Math.abs(sy) < 1e-6) return null; const a = Math.atan2(sy, sx) * 180 / Math.PI; return ((Math.round(a / 45) % 8) + 8) % 8; };
 require('../js/world.js'); require('../js/battle.js');
-const which = process.argv[2] || 'all', runs = +(process.argv[3] || 2);
+const which = process.argv[2] || 'all', runs = +(process.argv[3] || 4);
+const LAG = +(process.env.LAG || 1);
 const list = which === 'all' ? BB.MISSIONS.map((_, i) => i) : [+which];
 let bad = 0;
+const comps = [['vanguard', 'ranger', 'warpriest', 'berserker', 'arcanist'], ['vanguard', 'lancer', 'ranger', 'arcanist', 'warpriest'], ['monk', 'shadowblade', 'warpriest', 'ranger', 'arcanist']];
 for (const idx of list) {
   const M = BB.MISSIONS[idx];
-  const agg = { n: 0, w: 0, t: 0, alive: 0, to: 0, minF: 1 };
+  const agg = { n: 0, w: 0, t: 0, alive: 0, to: 0 };
   for (let k = 0; k < runs; k++) {
-    const save = BB.newSave(); save.settings.autoSkills = process.env.AUTO === "1";
     const r = BB.rng(idx * 100 + k + 1);
-    const comps = [['vanguard', 'ranger', 'warpriest'], ['vanguard', 'ranger', 'warpriest', 'arcanist'], ['berserker', 'arcanist', 'warpriest', 'ranger'], ['vanguard', 'berserker', 'ranger', 'arcanist'],
-      ['lancer', 'monk', 'warpriest', 'shadowblade'], ['vanguard', 'shadowblade', 'arcanist', 'monk']];
-    const comp = (idx < 2 ? comps[0] : comps[1 + (k % 5)]).slice(0, process.env.PROG ? Math.min(4, idx + 1) : 4);
-    const heroes = comp.map((c, i) => {
-      const h = BB.newHero({ calling: c, level: M.level, seed: i + k * 7 });
-      if (i === 0 && c === 'vanguard') h.captain = true;
-      // what a player has by then: a few pieces of loot, a perk per level
-      for (const slot of ['chest', 'weapon', 'head', 'legs']) if (r() < Math.min(0.9, 0.25 + idx * 0.08)) {
-        const it = BB.makeItem(r, slot, Math.max(1, M.level - 1), BB.rollRarity(r, 0), slot === 'weapon' ? BB.weaponType(c) : undefined);
-        if (BB.canEquip(h, it)) h.gear[slot] = it;
-      }
-      for (let L = 2; L <= M.level; L++) { const ch = BB.perkChoices(h, L * 31 + i); if (ch.length) h.perks.push(ch[0].id); }
+    const save = BB.newSave(1); save.settings.auto = !process.env.NOULT;
+    const n = Math.min(5, 1 + Math.floor(idx / 1.5));
+    const lvl = Math.max(1, M.level - LAG);
+    const heroes = comps[k % 3].slice(0, n).map((c, i) => {
+      const h = i === 0 ? BB.newCaptain() : BB.newHero({ calling: c, rarity: Math.min(3, Math.floor(idx / 8)), seed: i + k * 7 });
+      h.level = lvl; h.stars = 1 + Math.floor(idx / 10);
+      for (const slot of ['weapon', 'chest']) if (r() < Math.min(0.9, 0.3 + idx * 0.05)) h.gear[slot] = BB.makeItem(r, slot, Math.max(1, lvl - 1), r() < 0.3 ? 1 : 0, slot === 'weapon' ? BB.weaponType(h.calling) : undefined);
       return h;
     });
-    const map = BB.buildMap(M.layout, BB.REGIONS.find((x) => x.id === M.region).biome, 1000 + idx * 10 + k, {});
-    const B = new BB.Battle({ map, mission: M, heroes, level: M.level, save, seed: k + 1 });
-    let t = 0; const t0 = Date.now();
+    const formation = heroes.map((h, i) => ({ hero: h, row: i < 2 ? 'front' : 'back', slot: i < 2 ? i : i - 2 }));
+    const map = BB.buildMap(M.layout, BB.CHAPTERS[M.chapter - 1].biome, 1000 + idx * 10 + k, {});
+    const B = new BB.Battle({ map, mission: M, formation, level: M.level, save, seed: k + 1 });
+    let t = 0;
     while (!B.result && t < 400) {
       B.update(1 / 30, null); t += 1 / 30;
-      if (B.rally >= 100) B.useRally();
-      for (const e of B.ents) if (!Number.isFinite(e.x) || !Number.isFinite(e.y) || !Number.isFinite(e.hp)) { console.log('NaN', idx, e.kind || e.calling, e.x, e.y, e.hp); bad++; e.x = e.y = 10; e.hp = 0; }
-      if (B.ents.length > 400 || B.projs.length > 2000 || B.timers.length > 500) { console.log('RUNAWAY', idx, B.ents.length, B.projs.length, B.timers.length); bad++; break; }
+      for (const e of B.ents) if (!Number.isFinite(e.x) || !Number.isFinite(e.y) || !Number.isFinite(e.hp)) { console.log('NaN', idx, e.kind || e.calling); bad++; e.x = e.y = 10; e.hp = 0; }
+      if (B.ents.length > 400 || B.projs.length > 2000 || B.timers.length > 500) { console.log('RUNAWAY', idx); bad++; break; }
     }
     const res = B.result ? (B.result.win ? 'win' : 'loss') : 'timeout';
     agg.n++; if (res === 'win') { agg.w++; agg.t += t; agg.alive += B.heroesAlive().length; } if (res === 'timeout') { agg.to++; bad++; }
-    agg.minF = Math.min(agg.minF, B.metrics.minFrac);
   }
-  console.log((M.id + ' ' + M.name).padEnd(36), M.type.padEnd(7), 'L' + String(M.level).padEnd(3), 'win ' + agg.w + '/' + agg.n, 'avg ' + (agg.w ? Math.round(agg.t / agg.w) : '-') + 's', 'alive ' + (agg.w ? (agg.alive / agg.w).toFixed(1) : '-'), agg.to ? 'TIMEOUTS ' + agg.to : '');
+  console.log((M.code + ' ' + M.name).padEnd(36), M.type.padEnd(7), 'L' + String(M.level).padEnd(3), 'team ' + Math.min(5, 1 + Math.floor(idx / 1.5)), 'win ' + agg.w + '/' + agg.n, 'avg ' + (agg.w ? Math.round(agg.t / agg.w) : '-') + 's', agg.to ? 'TIMEOUTS ' + agg.to : '');
 }
 process.exit(bad ? 1 : 0);

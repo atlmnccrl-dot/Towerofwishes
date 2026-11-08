@@ -1,54 +1,87 @@
-// Headless screenshots of the main screens + console errors. usage: node test/shots.js <outdir> [port]
+// Headless playthrough: title → new game → story → camp → campaign → team → battle (ultimate, auto) → results
+// → heroes → hero → recruit (reveal) → team → forge → shop → settings. Fails on console errors.
+// usage: NODE_PATH=$(npm root -g) node test/shots.js /tmp/bb-shots [width height]
 const { chromium } = require('playwright');
 const out = process.argv[2] || '/tmp/bb-shots';
-const port = process.argv[3] || 8123;
+const W = +process.argv[3] || 1280, H = +process.argv[4] || 720;
 require('fs').mkdirSync(out, { recursive: true });
 (async () => {
   const b = await chromium.launch();
-  let p2;
-  const p = await b.newPage({ viewport: { width: 1280, height: 640 }, deviceScaleFactor: 1 });
-  const errors = [];
-  p.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
-  p.on('pageerror', (e) => errors.push('PAGEERROR ' + e.message));
-  process.on('unhandledRejection', (e) => { console.log('FAIL', e.message.split('\n')[0]); console.log('ERRORS', errors.join('\n') || 'none'); process.exit(1); });
-  await p.goto(`http://localhost:${port}/index.html?test`);
-  await p.waitForFunction(() => document.querySelector('#title.on'), null, { timeout: 30000 });
-  await p.waitForTimeout(1500);
-  await p.screenshot({ path: out + '/01-title.png' });
-  const shot = async (n) => { await p.waitForTimeout(700); await p.screenshot({ path: `${out}/${n}.png` }); };
-  // new game
-  await p.click('#bNew');
-  for (let i = 0; i < 4; i++) { await p.waitForTimeout(250); if (i === 0) await shot('02-story'); await p.click('#story'); }
-  await p.waitForFunction(() => document.querySelector('#camp.on'), null, { timeout: 15000 });
-  await shot('07-camp');
-  await p.click('#bTavern'); await p.waitForFunction(() => BB.UI.current === 'tavern', null, { timeout: 10000 }); await shot('07b-heroes');
-  await p.evaluate(() => { BB.save.marks = 1; BB.UI.renderTavern(); });
-  await p.click('#tiers .tier:not(.locked) button.tcard >> nth=0'); await p.waitForTimeout(900); await shot('07c-hero-card');
-  await p.click('#heroBody .btn:last-child'); await p.waitForTimeout(400);
-  console.log('after recruit', await p.evaluate(() => BB.save.heroes.length + ' heroes, marks ' + BB.save.marks));
-  await p.click('#bTvBack'); await p.waitForTimeout(1200);
-  await p.click('#bWarband'); await shot('08-warband');
-  await p.click('#bWbBack'); await p.waitForTimeout(400);
-  await p.click('#bWarMap'); await shot('09-map');
-  await p.click('#brief > .btn:last-child');
-  await p.waitForTimeout(400);
-  if (await p.$('#story.on')) await p.click('#story');
-  await p.waitForFunction(() => document.querySelector('#hud.on'), null, { timeout: 20000 });
-  await p.waitForTimeout(400); await p.screenshot({ path: out + '/10-battle-intro.png' });
-  await p.waitForFunction(() => !BB.testHooks.scene().intro, null, { timeout: 10000 });
-  await shot('10b-battle-start');
-  // command: plant the banner ahead, then a skill, then focus a foe
-  await p.mouse.click(760, 260); await p.waitForTimeout(2500);
-  await p.waitForFunction(() => BB.testHooks.scene().foesAlive().length > 0, null, { timeout: 10000 });
-  await p.keyboard.press('Digit1'); await p.waitForTimeout(250); await p.screenshot({ path: out + '/11-cutin.png' });
-  await p.waitForTimeout(1500);
-  await p.keyboard.press('Digit2'); await p.waitForTimeout(500);
-  await p.evaluate(() => { const s = BB.testHooks.scene(); const f = s.foesAlive()[0]; if (f) { s.order.focus = f; } });
-  await p.click('#bAdvance').catch(() => {});
-  await p.waitForTimeout(2500); await shot('11b-battle-fight');
-  await p.evaluate(() => { const s = BB.testHooks.scene(); s.rally = 100; });
-  await p.keyboard.press('KeyR'); await p.waitForTimeout(500); await shot('12-rally');
-  console.log('orders', await p.evaluate(() => { const s = BB.testHooks.scene(); return JSON.stringify({ held: !!s.held, used: !!s.usedSkill, combo: s.combo, rallied: !!s.rallied }); }));
-  console.log('ERRORS', errors.length ? errors.join('\n') : 'none');
+  const p = await b.newPage({ viewport: { width: W, height: H }, hasTouch: W < 1000 });
+  const errs = [];
+  p.on('pageerror', (e) => errs.push('pageerror: ' + e.message));
+  p.on('console', (m) => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
+  const shot = (n) => p.screenshot({ path: out + '/' + n + '.png' });
+  const wait = (ms) => p.waitForTimeout(ms);
+  const tap = async (sel) => { await p.click(sel); await wait(250); };
+  const screen = () => p.evaluate(() => BB.UI.current);
+  await p.goto('http://localhost:8123/index.html?test');
+  await p.evaluate(() => localStorage.clear());
+  await p.reload();
+  await p.waitForFunction(() => window.BB && BB.UI && BB.UI.current === 'title', null, { timeout: 30000 });
+  await wait(1200); await shot('01-title');
+  await tap('#bPlay');
+  await wait(400); await shot('02-story');
+  for (let i = 0; i < 20 && await p.evaluate(() => document.getElementById('story').classList.contains('on')); i++) await tap('#story');
+  await p.waitForFunction(() => BB.UI.current === 'home', null, { timeout: 15000 });
+  await wait(1500); await shot('03-camp');
+  await tap('#bContinue'); await wait(500); await shot('04-campaign');
+  await tap('#stageCard .btn.xl'); await wait(400); await shot('05-team-prebattle');
+  await p.click('#teamTop .btn.xl');
+  for (let i = 0; i < 20 && await p.evaluate(() => document.getElementById('story').classList.contains('on')); i++) await tap('#story');
+  await p.waitForFunction(() => BB.UI.current === 'hud', null, { timeout: 20000 });
+  await wait(600); await shot('06-battle-intro');
+  await wait(3500); await shot('07-battle');
+  // charge and cast an ultimate by hand
+  await p.evaluate(() => { const s = BB.testHooks.scene(); s.paused = false; s.heroList[0].energy = 100; for (const e of s.ents) if (e.side === 'hero') e.hp = e.maxhp = 99999; });
+  await wait(300); await shot('08-ready');
+  await p.dispatchEvent('#cards .ucard', 'pointerdown');
+  await wait(450); await shot('09-cutin');
+  await tap('#bAuto'); await tap('#bSpeed');
+  // win quickly
+  await p.evaluate(() => { const s = BB.testHooks.scene(); for (const e of s.ents) if (e.side === 'foe') { e.hp = 1; } s.heroList.forEach((h) => (h.st.atk *= 50)); });
+  await p.waitForFunction(() => document.getElementById('mResults').classList.contains('on'), null, { timeout: 90000 });
+  await wait(500); await shot('10-results');
+  const res = await p.evaluate(() => document.getElementById('resBody').innerText);
+  if (!/Victory/.test(res)) errs.push('results: no victory: ' + res.slice(0, 120));
+  // Camp
+  await p.click('#resBody .btn.dark');
+  for (let i = 0; i < 20 && await p.evaluate(() => document.getElementById('story').classList.contains('on')); i++) await tap('#story');
+  await p.waitForFunction(() => BB.UI.current === 'home', null, { timeout: 15000 });
+  // give resources so every screen shows its buttons
+  await p.evaluate(() => { const S = BB.save; S.gold += 20000; S.crystals += 2000; S.sigils += 20; for (let i = 0; i < 6; i++) S.inventory.push(BB.makeItem(BB.rng(i + 1), BB.SLOTS[i % 4], 3, i % 4, i % 4 === 0 ? 'sword' : undefined)); BB.UI.refreshTop(); BB.UI.renderHome(); });
+  await wait(600); await shot('11-camp-rich');
+  await tap('.tab[data-tab=heroes]'); await wait(300); await shot('12-heroes');
+  await tap('#bRecruit'); await wait(800); await shot('13-recruit');
+  await tap('#altars .altar .btn');
+  await wait(600); await shot('14-reveal-open');
+  await wait(1600); await shot('15-reveal');
+  await tap('#rvOk');
+  await tap('#bRecBack'); await wait(300);
+  await tap('#heroList .hc'); await wait(700); await shot('16-hero');
+  await p.click('#hrInfo .ups .btn'); await wait(200);
+  await p.click('#hrInfo .gear4 .gs'); await wait(300); await shot('17-pick-gear');
+  await p.evaluate(() => BB.UI.modal('mPick', false));
+  await tap('#hrNext'); await wait(500); await shot('18-hero-next');
+  await p.evaluate(() => BB.UI.go('team')); await wait(400); await shot('19-team');
+  await tap('.tab[data-tab=forge]'); await wait(300); await shot('20-forge');
+  await tap('.tab[data-tab=shop]'); await wait(300); await shot('21-shop');
+  await tap('#offers .btn'); await wait(200);
+  await tap('#bSettings'); await wait(300); await shot('22-settings');
+  await tap('#bSetClose');
+  await tap('.tab[data-tab=home]'); await wait(800);
+  await tap('#bSpoils'); await wait(300);
+  // a defeat: results offer a retry
+  await p.evaluate(() => BB.deploy(1));
+  for (let i = 0; i < 20 && await p.evaluate(() => document.getElementById('story').classList.contains('on')); i++) await tap('#story');
+  await p.waitForFunction(() => BB.UI.current === 'hud', null, { timeout: 20000 });
+  await wait(3500);
+  await tap('#bPause'); await shot('23-pause');
+  await tap('#bRetreat');
+  await p.waitForFunction(() => document.getElementById('mResults').classList.contains('on'), null, { timeout: 20000 });
+  await wait(400); await shot('24-defeat');
+  console.log('screen at end:', await screen());
+  console.log(errs.length ? 'ERRORS:\n' + errs.join('\n') : 'no console errors');
   await b.close();
-})();
+  process.exit(errs.length ? 1 : 0);
+})().catch((e) => { console.error(e); process.exit(1); });

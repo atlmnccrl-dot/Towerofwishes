@@ -22,18 +22,22 @@
     this.revives = 0;
     this.waveK = BB.waveScale ? BB.waveScale((opts.heroes || []).length) : 1;
     this.metrics = { taken: 0, dealt: 0, healed: 0, minFrac: 1 };
-    const heroes = opts.heroes || [];
-    const callings = heroes.map((h) => h.calling);
+    // formation: front row (2) ahead, back row (3) behind, facing the map's centre
+    const form = opts.formation || (opts.heroes || []).map((h, i) => ({ hero: h, row: i < 2 ? 'front' : 'back', slot: i < 2 ? i : i - 2 }));
+    const callings = form.map((f) => f.hero.calling);
     const sp = this.map.heroSpawn;
-    heroes.forEach((h, i) => {
-      const st = BB.heroStats(h, callings, this.save);
-      const e = this.spawnHero(h, st, sp.x + [0, -1, 1, 0][i] * 0.9, sp.y + [0, 0.6, 0.6, 1.2][i] * 0.9);
+    let fx = this.map.w / 2 - sp.x, fy = this.map.h / 2 - sp.y; const fl = hyp(fx, fy) || 1; fx /= fl; fy /= fl;
+    const px = -fy, py = fx;
+    form.forEach((f) => {
+      const st = BB.heroStats(f.hero, callings, this.save);
+      const off = f.row === 'front' ? { a: 1.1, b: (f.slot - 0.5) * 1.5 } : { a: -0.6, b: (f.slot - 1) * 1.4 };
+      const e = this.spawnHero(f.hero, st, sp.x + fx * off.a + px * off.b, sp.y + fy * off.a + py * off.b);
+      e.row = f.row; e.energy = 25;
       if (st.revive) this.revives = 1;
     });
-    this.controlled = null; // the player commands the warband; nobody is steered by hand
     this.heroList = this.ents.filter((e) => e.side === 'hero');
     this.order = { mode: 'advance', x: sp.x, y: sp.y, focus: null };
-    this.autoSkills = !!(this.save && this.save.settings && this.save.settings.autoSkills);
+    this.autoSkills = !!(this.save && this.save.settings && this.save.settings.auto);
     this.cutins = []; this.combo = 0; this.lastSkill = null; this.zoomK = 1; this.zoomTarget = 1;
     this.warCenter = { x: sp.x, y: sp.y };
     if (!this.peaceful) this.setupObjective();
@@ -103,7 +107,7 @@
       this.obj.text = 'Destroy the Gravegates';
     } else if (M.type === 'defend') {
       const w = m.wardSpot;
-      const hp = 900 + M.level * 260;
+      const hp = 1400 + M.level * 420;
       this.ward = { id: 'ward', side: 'hero', ward: true, prop: true, x: w.x, y: w.y, r: 0.7, hp, maxhp: hp, def: 4, buffs: {}, name: { cart: 'Caravan', refugees: 'Refugees', cage: 'Witch\'s Cage' }[M.ward] || 'Ward', dir: 0, sc: 1 };
       this.ents.push(this.ward);
       this.obj.timeLeft = M.time; this.obj.text = 'Protect the ' + this.ward.name;
@@ -285,6 +289,8 @@
     dmg = Math.round(dmg);
     tgt.hp -= dmg; tgt.flash = 0.18;
     if (tgt.side === 'hero' && !tgt.ward) { this.metrics.taken += dmg; this.metrics.minFrac = Math.min(this.metrics.minFrac, Math.max(0, tgt.hp / tgt.maxhp)); } else if (tgt.side === 'foe') this.metrics.dealt += dmg;
+    if (src && src.side === 'hero' && !o.aoe) src.energy = Math.min(100, (src.energy || 0) + (src.ranged ? 9 : 12));
+    if (tgt.side === 'hero' && !tgt.ward) tgt.energy = Math.min(100, (tgt.energy || 0) + dmg / tgt.maxhp * 70);
     if (src && src.side === 'hero') { src.dealt = (src.dealt || 0) + dmg; this.addRally(dmg * 0.045); if (src.st && src.st.leech) src.hp = Math.min(src.maxhp, src.hp + dmg * src.st.leech); }
     if (tgt.side === 'hero' && tgt.st && tgt.st.thorns && src && !src.ranged && !o.aoe) this.hit(null, src, 1, { atk: dmg * tgt.st.thorns * 3, aoe: true });
     if (o.burn) { tgt.buffs.burn = 3; tgt.burnAtk = Math.max(tgt.burnAtk || 0, atk); }
@@ -369,34 +375,10 @@
     const sx = (px - v.ox) / v.z, sy = (py - v.oy) / v.z;
     return BB.unIso(sx, sy);
   };
-  // a tap on the field: on a foe -> focus fire; on open ground -> plant the banner there
-  Battle.prototype.commandAt = function (wx, wy) {
-    if (this.result || this.intro) return null;
-    let foe = null, bd = 1.1;
-    for (const o of this.ents) {
-      if (o.dead || o.side !== 'foe' || o.hidden) continue;
-      const d = hyp(o.x - wx, o.y - (wy + 0.25 * (o.sc || 1))) - (o.r || 0.3) * (o.boss ? 1.6 : 1);
-      if (d < bd) { bd = d; foe = o; }
-    }
-    if (foe) {
-      this.order.focus = foe; this.order.mode = 'advance'; this.map.bannerProp = null;
-      this.text(foe.x, foe.y, 'FOCUS', '#ff8a6a', 1); BB.sfx && BB.sfx('click'); this.focused = true;
-      return 'focus';
-    }
-    const p = BB.freeSpot(this.map, wx, wy, 0.4);
-    this.order = { mode: 'hold', x: p.x, y: p.y, focus: null };
-    this.map.bannerProp = this.save ? { x: p.x, y: p.y, banner: this.save.banner } : null;
-    this.addFx('buff1', p.x, p.y, { sc: 0.7, add: true, ground: true }); BB.sfx && BB.sfx('guard'); this.held = true;
-    return 'hold';
-  };
-  Battle.prototype.advance = function () {
-    this.order = { mode: 'advance', x: this.warCenter.x, y: this.warCenter.y, focus: null };
-    this.map.bannerProp = null; BB.sfx && BB.sfx('click');
-  };
   // the player unleashes hero i's skill
   Battle.prototype.castSkill = function (i) {
     const e = this.heroList[i];
-    if (!e || e.dead || e.cd > 0 || this.result || this.intro || e.leap || e.dash || e.state === 'skill') return false;
+    if (!e || e.dead || (e.energy || 0) < 100 || this.result || this.intro || e.leap || e.dash || e.state === 'skill') return false;
     e.lock = 0; e.state = 'idle'; e.hitDone = true;
     const ok = this.useSkill(e, true);
     if (ok) this.usedSkill = true;
@@ -492,8 +474,9 @@
     return best;
   };
   Battle.prototype.useSkill = function (e, manual) {
-    if (e.cd > 0 || e.dead || e.state === 'skill') return false;
+    if (e.dead || e.state === 'skill' || (!this.peaceful && (e.energy || 0) < 100)) return false;
     const id = BB.CALLINGS[e.calling].skill.id;
+    e.energy = 0;
     e.readyT = 0;
     const say = (t, c) => { if (!manual) this.text(e.x, e.y, t, c, 1); };
     if (!this.peaceful) {
@@ -610,8 +593,7 @@
       if (!h) continue;
       c.opened = true;
       const team = this.ents.filter((e) => e.side === 'hero' && !e.ward).map((e) => e.hero);
-      const save = this.save || BB.newSave();
-      const it = BB.rollLoot(this.r, { level: this.level, type: c.gold ? 'boss' : 'rout' }, team, save, 1)[0];
+      const it = BB.rollLoot(this.r, this.level, team, 1)[0];
       if (c.gold && it.rarity < 1) it.rarity = 1;
       this.loot.push(it);
       const g = Math.round((c.gold ? 30 : 12) + this.level * (c.gold ? 6 : 3));
@@ -653,29 +635,6 @@
     this.addFx('dash', e.x, e.y, { sc: 0.45, rot: Math.atan2(s.y, s.x) + Math.PI, alpha: 0.8, fps: 40 });
     BB.sfx && BB.sfx('dodge');
   };
-  Battle.prototype.useRally = function () {
-    if (this.rally < 100 || this.rallyT > 0 || this.result) return false;
-    this.rally = 0; this.rallyT = 8; this.slow = 0.9; this.flash = 0.6; this.shake = 0.5;
-    this.banner('FOR THE BANNER!', 2.2, 'rally');
-    for (const h of this.heroesAlive()) {
-      h.buffs.rally = 8; h.cd = 0; h.state = 'rally'; h.lock = 0.7; h.invuln = 0.8; this.setClip(h, 'Taunt', true);
-      this.addFx('buff4', h.x, h.y, { sc: 0.55, add: true, alpha: 0.85 });
-      this.addFx('levelup', h.x, h.y, { sc: 0.8, add: true });
-    }
-    const alive = this.heroesAlive(); const c = alive.length ? { x: this.warCenter.x, y: this.warCenter.y, atk: alive.reduce((a, h) => a + h.atk, 0) / alive.length, side: 'hero', buffs: {}, crit: 0.1 } : null;
-    this.rays.push({ x: this.warCenter.x, y: this.warCenter.y, t: 0, dur: 2.4, god: true });
-    this.zoomPulse(1.14, 1.3);
-    if (c) {
-      this.addFx('aoe', c.x, c.y, { sc: 0.7, ground: true, add: true, hue: 30, fps: 24, alpha: 0.8 });
-      for (const f of this.inRadius(c.x, c.y, 4, 'foe')) {
-        this.hit(c, f, 1.2, { aoe: true });
-        const d = hyp(f.x - c.x, f.y - c.y) || 1; if (!f.boss && !f.gate && !f.turret) { f.x += (f.x - c.x) / d * 1.2; f.y += (f.y - c.y) / d * 1.2; }
-      }
-    }
-    BB.sfx && BB.sfx('rally');
-    return true;
-  };
-
   function dirVec(d) { // screen facing row -> world unit vector
     const a = d * Math.PI / 4; const sx = Math.cos(a), sy = Math.sin(a);
     // invert iso: x - y = sx, (x + y)/2 = sy  =>  x = sy + sx/2, y = sy - sx/2
@@ -795,8 +754,8 @@
       if (e.hp <= 0) this.kill(e, null);
     }
     if (e.dodgeCd > 0) e.dodgeCd -= dt;
-    if (e.side === 'hero' && e.cd <= 0) e.readyT = (e.readyT || 0) + dt;
-    if (e.cd > 0) e.cd -= dt * (e.buffs.rally > 0 ? 2 : 1);
+    if (e.side === 'hero') e.energy = Math.min(100, (e.energy || 0) + dt * 4); // ultimates charge with time, blows and wounds
+    e.cd = 0;
     e.ct += dt;
     if (e.lock > 0) e.lock -= dt;
     // dash / leap motion
@@ -906,8 +865,7 @@
   // when a hero would use its skill on its own: right away with "auto skills", otherwise after the
   // player has left it unused for a few seconds
   Battle.prototype.wantSkill = function (e, t) {
-    if (e.cd > 0) return false;
-    if (!this.autoSkills && (e.readyT || 0) < 4) return false;
+    if ((e.energy || 0) < 100 || !this.autoSkills) return false; // ultimates are the player's call unless Auto is on
     if (e.calling === 'warpriest') return this.ents.some((o) => o.side === 'hero' && !o.dead && !o.ward && o.hp < o.maxhp * 0.65 && hyp(o.x - e.x, o.y - e.y) < 5);
     if (!t) return false;
     const near = this.inRadius(e.x, e.y, 4, 'foe').length, d = hyp(t.x - e.x, t.y - e.y);
@@ -930,7 +888,7 @@
       if (danger.left < 0.45 && e.dodgeCd <= 0) { this.dodge(e, danger.x - e.x, danger.y - e.y); return; }
       this.moveToward(e, danger.x, danger.y, dt, 1.15, true); return;
     }
-    // 2. pick a target: the commander's focus, else the nearest foe near the banner (holding) or the warband
+    // 2. pick a target: the nearest foe near the warband (a focus is kept for scripted moments)
     const anchor = O.mode === 'hold' ? O : this.warCenter;
     let t = O.focus && !O.focus.dead && !O.focus.hidden ? O.focus : null;
     if (!t) t = this.nearest(e, 'foe', 9, (o) => hyp(o.x - anchor.x, o.y - anchor.y) < (O.mode === 'hold' ? 5.5 : 8) && !o.hidden);
@@ -971,7 +929,13 @@
   Battle.prototype.foeTarget = function (e) {
     if (e.taunt && e.tauntT > 0 && !e.taunt.dead) { e.tauntT -= this.dt; return e.taunt; }
     if (this.ward && !this.ward.dead && (e.wardFocus === undefined ? (e.wardFocus = this.r() < 0.45) : e.wardFocus)) return this.ward;
-    return this.nearest(e, 'hero', 30, (o) => !o.ward);
+    let best = null, bd = 1e9;
+    for (const o of this.ents) {
+      if (o.dead || o.side !== 'hero' || o.ward || o.hidden) continue;
+      const d = hyp(o.x - e.x, o.y - e.y) - (o.row === 'front' ? 1.6 : 0); // the front row draws the blows
+      if (d < bd) { bd = d; best = o; }
+    }
+    return best;
   };
   Battle.prototype.foeAI = function (e, dt) {
     if (e.gate) {
@@ -1263,7 +1227,9 @@
     ctx.setTransform(z, 0, 0, z, ox, oy);
     // bars and texts
     for (const e of this.ents) this.drawBars(ctx, e);
+    const nums = !this.save || this.save.settings.dmgNums !== false;
     for (const t of this.texts) {
+      if (!nums && !t.big) continue;
       const s = P(t.x + t.dx, t.y); const k = t.t / (t.big ? 1.3 : 0.9);
       ctx.globalAlpha = Math.min(1, (1 - k) * 2.5);
       ctx.font = (t.big === 2 ? 'bold 13px ' : t.big ? 'bold 11px ' : 'bold 9px ') + 'Cinzel, Georgia, serif';
