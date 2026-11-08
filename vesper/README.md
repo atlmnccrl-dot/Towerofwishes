@@ -87,19 +87,20 @@ its own distance (rising or dropping 150 to 300 away, or running in from 300 to 
 sight), never closer than 64 to another, so a wave closes in from around you instead of in one
 clump. Red chevrons at the screen's edge point at every foe out of sight.
 
-**The opening** (`js/intro.js`): about 39 seconds, cut like an anime fight in the style of the moon
-arts and drawn on the same 180 px pixel buffer. None of it is the game's own view: every shot is a set
-built for it, with the cast as actors, silhouettes and close-ups. The shots: a red drop in the dark;
-the moon falling on a sleeping city while the townsfolk look up; the First Cut in silhouette against
-it, then his leap; the cut in impact frames (white, inverted, then the wound torn across the moon);
-the moon hanging still and bleeding red light; the dead rising from the graves (their death clips
-played backwards); the horde marching on the Black Gate; Vesper's walk in the rain, the red eye, the
-draw; the charge, where she cuts through eight of the dead and throws them; three manga panels; the
-Gatewarden crashing down with his name card; split-screen eyes; the clash (impact frames, then the
-blade lock in silhouette with sparks); one red frame where she passes through him and he comes
-apart; the title over the red moon. Captions sit in the letterbox, sounds are timed per shot and the
-battle music comes in on the draw. Any tap skips it. The older hand-drawn sequence (`js/opening.js`)
-stays in the code for the Theatre.
+**The opening** (`js/intro.js`): about 42 seconds, cut like an anime fight in the style of the moon
+arts and drawn on the same 180 px pixel buffer, with its words on a sharp full-resolution layer above.
+None of it is the game's own view: every shot is a set built for it. The shots: a red drop in the dark;
+the moon falling on a sleeping city; the First Cut against it, then his leap, a small black figure
+across its vast face; the cut in impact frames; the moon hanging still and bleeding; the earth cracking
+and a hand bursting out, then the dead standing up one by one in a row on a ridge against the moon,
+their eyes lighting; the horde marching on the Black Gate; Vesper's walk in the rain, the red eye, the
+draw; the charge through eight of the dead; three manga panels; then the First Cut as a god over the
+Spire (a drawn silhouette: crowned and horned helm, spiked pauldrons, a cape like wings, both hands on
+a sword the size of a tower), the camera tilting from his sword's point past her, small on a rampart,
+up to his burning eyes with the red moon as his halo; his gaze, her eye answering; his blade coming
+down from the sky and her holding it (impact frames, the ground breaking); her throwing it off and
+raising her blade at him; the title over the red moon. Any tap skips it. The older hand-drawn
+sequence (`js/opening.js`) stays in the code for the Theatre.
 
 **The opening** (`js/opening.js`): about 23 seconds, cut like an anime transformation and drawn at
 full resolution (painted light, ribbons and grain around crisp scaled-up pixel figures): a flat red
