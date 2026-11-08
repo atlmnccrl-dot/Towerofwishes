@@ -146,8 +146,11 @@
     text(g, (R.name + (h.legend ? ' · Legend' : h.captain ? ' · Banner-Captain' : '')).toUpperCase(), 24, 32, 11, { w: 700, col, ls: 2.5 });
     text(g, h.name, 24, 66, h.name.length > 18 ? 26 : 32, { w: 700, glow: 'rgba(0,0,0,0.8)', blur: 10 });
     g.save(); g.translate(24, 76); g.fillStyle = col; const ci = new Path2D(UI.callPath(h.calling)); g.scale(0.7, 0.7); g.fill(ci); g.restore();
-    text(g, C.name + ' · ' + C.role, 46, 89, 14, { body: true, w: 500, col: '#9aa3b3' });
+    const I = BB.identityOf ? BB.identityOf(h) : null;
+    if (I) { const w0 = text(g, BB.CLASSES[I.cls].name, 46, 89, 14, { w: 700, col: BB.CLASSES[I.cls].col }); text(g, ' · ' + BB.TEMPERS[I.temper].name + ' · ' + C.name, 46 + w0, 89, 14, { body: true, w: 500, col: '#9aa3b3' }); }
+    else text(g, C.name + ' · ' + C.role, 46, 89, 14, { body: true, w: 500, col: '#9aa3b3' });
     for (let i = 0; i < BB.MAX_STARS; i++) starShape(g, 32 + i * 24, 116, 9, i < h.stars ? ACC : 'rgba(255,255,255,0.08)', i < h.stars ? null : 'rgba(255,255,255,0.18)');
+    if (I) text(g, 'ENTRANCE · ' + BB.ENTRANCES[I.entrance].name.toUpperCase(), 24, 146, 10.5, { w: 700, col: '#7b8494', ls: 1.5 });
     // gear sockets around the stage
     const sockets = { weapon: [62, 210], chest: [62, 310], head: [368, 210], charm: [368, 310] };
     for (const slot of BB.SLOTS) socket(g, h, slot, sockets[slot][0], sockets[slot][1]);
@@ -218,20 +221,22 @@
     const rows = [['heart', 'Health', Math.round(st.hp), nx && Math.round(nx.hp - st.hp), '#ff6b6b'], ['sword', 'Attack', Math.round(st.atk), nx && Math.round(nx.atk - st.atk), '#ffbe55'], ['shield', 'Defence', Math.round(st.def), nx && Math.round(nx.def - st.def), '#5aa8ff'],
       ['crit', 'Crit chance', Math.round(st.crit * 100) + '%', null, '#ff7ad9'], ['wind', 'Attack speed', st.aspd.toFixed(2), null, '#5cd3ff'], ['target', 'Range', C.ranged ? 'Far' : 'Melee', null, '#9aa3b3']];
     rows.forEach(([ic, nm, v, plus, col], i) => {
-      const x = 474 + (i % 2) * 258, y = 168 + Math.floor(i / 2) * 54;
-      rrect(g, x, y, 246, 46, 10); g.fillStyle = 'rgba(255,255,255,0.035)'; g.fill(); g.strokeStyle = 'rgba(255,255,255,0.06)'; g.lineWidth = 1; g.stroke();
-      rrect(g, x + 8, y + 8, 30, 30, 8); g.fillStyle = col + '22'; g.fill(); icon(g, ic, x + 23, y + 23, 9, col);
-      text(g, nm, x + 48, y + 20, 11, { body: true, w: 500, col: '#9aa3b3' });
-      text(g, String(v), x + 48, y + 38, 17, { w: 700 });
-      if (plus) text(g, '+' + plus, x + 234, y + 30, 13, { w: 700, align: 'right', col: '#4ade80' });
+      const x = 474 + (i % 2) * 258, y = 160 + Math.floor(i / 2) * 46;
+      rrect(g, x, y, 246, 40, 10); g.fillStyle = 'rgba(255,255,255,0.035)'; g.fill(); g.strokeStyle = 'rgba(255,255,255,0.06)'; g.lineWidth = 1; g.stroke();
+      rrect(g, x + 6, y + 6, 28, 28, 8); g.fillStyle = col + '22'; g.fill(); icon(g, ic, x + 20, y + 20, 8.5, col);
+      text(g, nm, x + 44, y + 17, 10.5, { body: true, w: 500, col: '#9aa3b3' });
+      text(g, String(v), x + 44, y + 34, 15.5, { w: 700 });
+      if (plus) text(g, '+' + plus, x + 234, y + 26, 13, { w: 700, align: 'right', col: '#4ade80' });
     });
     // ultimate
-    const uy = 338;
-    rrect(g, 474, uy, 504, 62, 12); const ug = g.createLinearGradient(474, 0, 978, 0); ug.addColorStop(0, 'rgba(181,124,255,0.18)'); ug.addColorStop(1, 'rgba(255,255,255,0.02)'); g.fillStyle = ug; g.fill(); g.strokeStyle = 'rgba(181,124,255,0.3)'; g.lineWidth = 1; g.stroke();
-    rrect(g, 484, uy + 10, 42, 42, 10); g.fillStyle = 'rgba(181,124,255,0.25)'; g.fill();
-    g.save(); g.translate(493, uy + 19); g.scale(1, 1); g.fillStyle = '#d9b8ff'; g.fill(new Path2D(UI.callPath(h.calling))); g.restore();
-    text(g, 'ULTIMATE · ' + C.skill.name.toUpperCase(), 538, uy + 26, 13, { w: 700, col: '#d9b8ff', ls: 1.5 });
-    text(g, C.skill.desc, 538, uy + 46, 12.5, { body: true, w: 400, col: '#b9c0cc' });
+    const uy = 300, I2 = BB.identityOf ? BB.identityOf(h) : null;
+    const row = (y, label, desc, c1, c2) => { rrect(g, 474, y, 504, 38, 10); const ug = g.createLinearGradient(474, 0, 978, 0); ug.addColorStop(0, c1); ug.addColorStop(1, 'rgba(255,255,255,0.02)'); g.fillStyle = ug; g.fill(); g.strokeStyle = c1.replace(/0\.\d+\)$/, '0.35)'); g.lineWidth = 1; g.stroke(); text(g, label, 486, y + 16, 11.5, { w: 700, col: c2, ls: 1.2 }); text(g, desc.length > 86 ? desc.slice(0, 85) + '…' : desc, 486, y + 31, 11, { body: true, w: 400, col: '#b9c0cc' }); };
+    row(uy, 'ULTIMATE · ' + C.skill.name.toUpperCase(), C.skill.desc, 'rgba(181,124,255,0.18)', '#d9b8ff');
+    if (I2) {
+      const S2 = BB.SIGNATURES[I2.sig], T2 = BB.TEMPERS[I2.temper];
+      row(uy + 44, 'SIGNATURE · ' + S2.name.toUpperCase(), S2.line.charAt(0).toUpperCase() + S2.line.slice(1) + '. Comes round every 10 s or so.', 'rgba(255,190,85,0.16)', '#ffd27a');
+      text(g, T2.name.toUpperCase() + ' — ' + T2.line(BB.shortName(h)), 474, uy + 104, 11.5, { body: true, w: 500, col: '#9aa3b3' });
+    }
     // level up (hold to keep levelling), ascend
     const capped = h.level >= cap, cost = BB.levelCost(h);
     button(g, 'lvl', 474, 420, 300, 66, capped ? 'LEVEL CAP' : 'LEVEL UP', { kind: 'gold', sub: capped ? 'Ascend to raise the cap' : '● ' + cost.toLocaleString() + ' gold · hold to repeat', disabled: capped || S0.gold < cost, hold: true, fn: () => {

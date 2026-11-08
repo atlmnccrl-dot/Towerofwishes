@@ -8,7 +8,7 @@ BB.fxLen = () => 16; BB.clipLen = () => 15; BB.hasClip = () => true; BB.heroLaye
 BB.envRect = () => null; BB.drawFx = () => {}; BB.drawEnv = () => {}; BB.drawOther = () => {};
 BB.ROSTER = []; BB.poolKeys = () => []; BB.npcKeys = () => [];
 BB.dirFromVec = function (dx, dy) { const sx = dx - dy, sy = (dx + dy) / 2; if (Math.abs(sx) + Math.abs(sy) < 1e-6) return null; const a = Math.atan2(sy, sx) * 180 / Math.PI; return ((Math.round(a / 45) % 8) + 8) % 8; };
-require('../js/world.js'); require('../js/battle.js'); require('../js/tactics.js');
+require('../js/world.js'); require('../js/battle.js'); require('../js/identity.js'); require('../js/tactics.js'); require('../js/signatures.js');
 const which = process.argv[2] || 'all', runs = +(process.argv[3] || 4);
 const LAG = +(process.env.LAG || 1);
 const list = which === 'all' ? BB.MISSIONS.map((_, i) => i) : [+which];

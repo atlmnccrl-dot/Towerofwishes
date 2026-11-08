@@ -682,7 +682,10 @@
     const R = BB.HERO_RARITY[h.rarity || 0];
     $('reveal').style.setProperty('--rc', RCOL[h.rarity || 0]);
     $('rvRk').textContent = R.name + (h.legend ? ' · Legend' : '');
-    $('rvNm').textContent = h.name; $('rvCl').textContent = BB.CALLINGS[h.calling].name + ' · ' + BB.CALLINGS[h.calling].role;
+    const I = BB.identityOf ? BB.identityOf(h) : null; RV.ent = I ? I.entrance : 'stride'; RV.landed = false;
+    $('rvNm').textContent = h.name;
+    $('rvCl').innerHTML = I ? '<b style="color:' + BB.CLASSES[I.cls].col + '">' + BB.CLASSES[I.cls].name + '</b> · ' + BB.TEMPERS[I.temper].name + ' · <span class="sig">' + BB.SIGNATURES[I.sig].name + '</span>' : BB.CALLINGS[h.calling].name;
+    if ($('rvDs')) $('rvDs').textContent = BB.heroDesc ? BB.heroDesc(h) : '';
     $('reveal').classList.remove('done'); $('reveal').classList.add('on');
     BB.sfx('portal'); BB.sfx('charge');
   };
@@ -752,13 +755,40 @@
       const k = T - RV.tS, layers = BB.heroLayers(RV.h), key = layers[0].key;
       const clip = k < 1.6 ? (BB.hasClip(key, 'Taunt') ? 'Taunt' : 'Special1') : 'Idle';
       const n = BB.clipLen(key, clip) || 15, fr = clip === 'Idle' ? Math.floor(T * 9) % n : Math.min(n - 1, Math.floor(k * 11));
-      const sc = Math.max(2, Math.round(h / 165)), rise = Math.max(0, 1 - k * 3) * 40 * u;
-      g.globalAlpha = Math.min(1, k * 3);
+      const sc = Math.max(2, Math.round(h / 165));
+      // each hero arrives their own way
+      const ent = RV.ent, cl01 = (v) => Math.max(0, Math.min(1, v));
+      let rise = Math.max(0, 1 - k * 3) * 40 * u, ox = 0, vis = Math.min(1, k * 3);
+      if (ent === 'slam') { const q = cl01(k / 0.32); rise = -(1 - q) * (1 - q) * 520 * u; vis = 1; if (q >= 1 && !RV.landed) { RV.landed = true; RV.shake = 0.9; RV.flash = 0.5; RV.rings.push({ t: 0, col: '#ffd9a0', big: true }); BB.sfx('slam'); } }
+      else if (ent === 'charge') { const q = cl01(k / 0.38); ox = -(1 - q) * (1 - q) * w * 0.7; rise = 0; vis = 1; if (q >= 1 && !RV.landed) { RV.landed = true; RV.shake = 0.4; BB.sfx('dodge'); } }
+      else if (ent === 'holy') { const q = cl01(k / 0.9); rise = -(1 - q) * (1 - q) * 200 * u; vis = Math.min(1, k * 2); }
+      else if (ent === 'shadow') { const q = cl01(k / 0.7); rise = (1 - q) * 70 * sc; vis = 1; }
+      else if (ent === 'blink' || ent === 'lightning' || ent === 'flame' || ent === 'frost' || ent === 'leaves') { vis = k < 0.18 ? 0 : 1; rise = 0; if (k >= 0.18 && !RV.landed) { RV.landed = true; RV.flash = ent === 'lightning' ? 0.9 : 0.45; RV.shake = ent === 'lightning' ? 0.6 : 0.3; BB.sfx(ent === 'lightning' ? 'slam' : ent === 'flame' ? 'burst' : ent === 'frost' ? 'guard' : ent === 'blink' ? 'slash' : 'enchant'); } }
+      else if (ent === 'stride') { const q = cl01(k / 1.0); rise = 0; vis = q; }
+      g.globalAlpha = vis;
       g.fillStyle = 'rgba(0,0,0,0.55)'; g.beginPath(); g.ellipse(cx, fy, 34 * sc, 10 * sc, 0, 0, 7); g.fill();
-      const reveal = Math.min(1, Math.max(0, (k - 0.45) / 0.7));
-      if (reveal < 1) { const sv = sil(layers, clip, 2, fr, sc); g.drawImage(sv, cx - 64 * sc, fy - 90 * sc + rise); }
-      if (reveal > 0) { g.globalAlpha = reveal; BB.drawLayers(g, layers, clip, 2, fr, cx, fy + rise, sc, { noSlash: true, flash: Math.max(0, 1 - reveal) * 0.8 }); }
-      g.globalAlpha = 1;
+      const reveal = Math.min(1, Math.max(0, (k - (ent === 'stride' ? 0.7 : 0.45)) / 0.7));
+      g.save(); if (ent === 'shadow') { g.beginPath(); g.rect(0, 0, w, fy + 2 * sc); g.clip(); }
+      if (reveal < 1) { const sv = sil(layers, clip, 2, fr, sc); g.drawImage(sv, cx + ox - 64 * sc, fy - 90 * sc + rise); }
+      if (reveal > 0) { g.globalAlpha = reveal * vis; BB.drawLayers(g, layers, clip, 2, fr, cx + ox, fy + rise, sc, { noSlash: true, flash: Math.max(0, 1 - reveal) * 0.8 }); }
+      g.restore(); g.globalAlpha = 1;
+      // and what comes with them
+      g.save(); g.globalCompositeOperation = 'lighter'; const top = fy - 100 * sc;
+      if (ent === 'lightning' && k < 0.5) { g.strokeStyle = 'rgba(210,235,255,' + (1 - k * 2) + ')'; g.lineWidth = 6 * u; g.shadowColor = '#9fdcff'; g.shadowBlur = 30 * u; g.beginPath(); let px = cx; g.moveTo(px, 0); for (let i = 1; i <= 12; i++) { px = cx + (i < 12 ? Math.sin(i * 9.1 + RV.h.name.length) * 40 * u : 0); g.lineTo(px, fy * i / 12); } g.stroke(); }
+      if (ent === 'flame' && k < 1.2) { const a = Math.max(0, 1 - k / 1.2); const fg = g.createLinearGradient(0, top - 60 * u, 0, fy); fg.addColorStop(0, 'rgba(255,90,20,0)'); fg.addColorStop(0.6, 'rgba(255,120,30,' + 0.6 * a + ')'); fg.addColorStop(1, 'rgba(255,220,120,' + 0.9 * a + ')'); g.fillStyle = fg; g.fillRect(cx - 40 * sc, top - 60 * u, 80 * sc, fy - top + 60 * u);
+        for (let i = 0; i < 18; i++) { const q = (T * 1.6 + i / 18) % 1; g.fillStyle = 'rgba(255,' + (140 + i * 5) + ',40,' + (1 - q) * a + ')'; g.beginPath(); g.arc(cx + Math.sin(i * 2.3 + T * 3) * 30 * sc, fy - q * 120 * sc, (3 + (1 - q) * 5) * u, 0, 7); g.fill(); } }
+      if (ent === 'frost' && k < 0.9) { const a = k < 0.18 ? 1 : Math.max(0, 1 - (k - 0.18) / 0.5); g.globalCompositeOperation = 'source-over'; g.fillStyle = 'rgba(170,220,255,' + 0.45 * a + ')'; g.strokeStyle = 'rgba(230,248,255,' + a + ')'; g.lineWidth = 2 * u; g.beginPath(); g.moveTo(cx - 34 * sc, fy); g.lineTo(cx - 38 * sc, top + 10 * sc); g.lineTo(cx, top - 6 * sc); g.lineTo(cx + 38 * sc, top + 10 * sc); g.lineTo(cx + 34 * sc, fy); g.closePath(); if (k < 0.18) { g.fill(); g.stroke(); }
+        if (k >= 0.18) { for (let i = 0; i < 26; i++) { const an = i / 26 * 7, d = (k - 0.18) * 900 * u; g.fillStyle = 'rgba(220,245,255,' + a + ')'; g.fillRect(cx + Math.cos(an) * d, fy - 50 * sc + Math.sin(an) * d * 0.7, 6 * u, 6 * u); } } }
+      if (ent === 'leaves' && k < 1.4) { const a = Math.max(0, 1 - k / 1.4); for (let i = 0; i < 40; i++) { const an = i / 40 * 7 + T * 5, r = (40 + (i % 5) * 12) * sc * (0.4 + a * 0.6); g.fillStyle = i % 3 ? 'rgba(140,220,90,' + a + ')' : 'rgba(230,200,90,' + a + ')'; g.beginPath(); g.ellipse(cx + Math.cos(an) * r, fy - 45 * sc + Math.sin(an) * r * 0.45 - (1 - a) * 60 * u, 6 * u, 3 * u, an, 0, 7); g.fill(); } }
+      if (ent === 'blink' && k < 0.6) { const a = Math.max(0, 1 - k / 0.6); g.strokeStyle = 'rgba(160,220,255,' + a + ')'; g.lineWidth = 10 * u * a; g.beginPath(); g.moveTo(cx - 260 * u, fy - 140 * sc * 0.4); g.lineTo(cx + 260 * u, fy - 20 * sc); g.stroke(); for (let i = 1; i <= 3; i++) { g.globalAlpha = a * 0.3 / i; const sv = sil(layers, clip, 2, fr, sc); g.drawImage(sv, cx - 64 * sc - i * 40 * u, fy - 90 * sc); } g.globalAlpha = 1; }
+      if (ent === 'charge' && k < 0.5) { const a = Math.max(0, 1 - k / 0.5); g.strokeStyle = 'rgba(255,255,255,' + 0.5 * a + ')'; g.lineWidth = 3 * u; for (let i = 0; i < 9; i++) { const yy = fy - (10 + i * 12) * sc * 0.9; g.beginPath(); g.moveTo(cx + ox - 30 * sc, yy); g.lineTo(cx + ox - (120 + i * 30) * sc, yy); g.stroke(); } }
+      if (ent === 'shadow' && k < 1.0) { g.globalCompositeOperation = 'source-over'; g.fillStyle = 'rgba(20,0,30,' + 0.7 * Math.max(0, 1 - k) + ')'; g.beginPath(); g.ellipse(cx, fy, 60 * sc, 16 * sc, 0, 0, 7); g.fill(); }
+      if (ent === 'stride') { g.globalCompositeOperation = 'source-over'; for (let i = 0; i < 12; i++) { const q = (T * 0.25 + i / 12) % 1; g.fillStyle = 'rgba(70,64,72,' + 0.35 * (1 - q) * Math.max(0, 1 - k / 2.4) + ')'; g.beginPath(); g.arc(cx + (i - 6) * 26 * sc * 0.4, fy - q * 70 * sc, (16 + q * 30) * sc * 0.5, 0, 7); g.fill(); }
+}
+      if (ent === 'slam' && RV.landed && k < 1.0) { g.globalCompositeOperation = 'source-over'; for (let i = 0; i < 16; i++) { const an = Math.PI + i / 15 * Math.PI, d = (k - 0.32) * 500 * u, yy = fy + Math.sin(an) * d * 0.25 - Math.sin((k - 0.32) * 4) * 40 * u * (i % 3 + 1); g.fillStyle = 'rgba(60,50,40,' + Math.max(0, 1 - k) + ')'; g.fillRect(cx + Math.cos(an) * d, yy, 7 * u, 5 * u); } }
+      g.restore();
+      // the entrance's name under the hero
+      if (k > 0.35 && k < 2.6) { g.save(); g.globalAlpha = Math.min(1, (k - 0.35) * 3) * Math.min(1, (2.6 - k) * 2); g.font = '700 ' + Math.round(14 * u) + 'px Outfit, sans-serif'; g.textAlign = 'center'; g.fillStyle = '#ffe7a3'; g.shadowColor = 'rgba(0,0,0,0.9)'; g.shadowBlur = 8; g.fillText((BB.ENTRANCES[ent] ? BB.ENTRANCES[ent].name : '').toUpperCase(), cx, fy + 26 * u); g.restore(); }
       // rim light on the silhouette
       if (reveal < 1) { g.save(); g.globalCompositeOperation = 'lighter'; const rl = g.createRadialGradient(cx, fy - 45 * sc, 0, cx, fy - 45 * sc, 60 * sc); rl.addColorStop(0, col + '55'); rl.addColorStop(1, col + '00'); g.fillStyle = rl; g.fillRect(cx - 70 * sc, fy - 110 * sc, 140 * sc, 120 * sc); g.restore(); }
     }
@@ -858,6 +888,10 @@
       const vs = el('div', 'vs'); vs.appendChild(el('span', 'lbl', 'Foes')); vs.appendChild(UI.foeIcons(st, 40)); top.appendChild(vs);
     } else top.appendChild(el('div', 'power', '<span class="ico pow">⚔</span><b>' + fmt(tp) + '</b><span class="mute">' + team.length + ' / 5 heroes</span>'));
     top.appendChild(el('div', 'bondrow', bonds.length ? bonds.map((b) => '<span class="bond" title="' + esc(b.desc) + '">✦ ' + b.name + '</span>').join('') : '<span class="mute" style="font-size:13px">Mix callings to unlock team bonds.</span>'));
+    if (BB.teamBalance) { // the team at a glance: one chip per class, and what it is missing
+      const bal = BB.teamBalance(team), chips = Object.keys(BB.CLASSES).map((k) => { const n = bal.counts[k] || 0; return '<span class="cls' + (n ? ' on' : '') + '" style="--cc:' + BB.CLASSES[k].col + '" title="' + esc(BB.CLASSES[k].job) + '">' + BB.CLASSES[k].name + (n > 1 ? ' ×' + n : '') + '</span>'; }).join('');
+      top.appendChild(el('div', 'clsrow', chips + (team.length ? '<span class="clstip' + (bal.balanced ? ' good' : '') + '">' + (bal.balanced ? '✓ Balanced team' : esc(bal.tips[0] || '')) + '</span>' : '')));
+    }
     const row = el('div', 'row');
     const af = el('button', 'btn dark sm', UI.si('bolt', 14) + ' Auto-fill'); af.title = 'The strongest five: fighters in front, the rest behind';
     click(af, () => { BB.autoFill(S); T.sel = null; BB.persist(); UI.renderTeam(); UI.refreshTop(); });

@@ -89,7 +89,8 @@
     const nearFoe = (x, y, r) => enemies.find((o) => hyp(o.x - x, o.y - y) < r);
     const dT = t ? hyp(t.x - e.x, t.y - e.y) : 99;
     // a potion, out of the press
-    if (hero && e.hp < e.maxhp * 0.42 && !(e.potCd > 0)) opts.push({ kind: 'potion', w: 9, cd: 3 });
+    const sg = this.sigOption && this.sigOption(e, t); if (sg) opts.push(sg); // their signature, when it is ready
+    if (hero && e.hp < e.maxhp * (e.temper ? e.temper.potion : 0.42) && !(e.potCd > 0)) opts.push({ kind: 'potion', w: 9, cd: 3 });
     // run to the weakest ally and take the heat off them
     if (hero && (role === 'tank' || (role === 'bruiser' && this.r() < 0.5))) {
       let a = null; for (const o of allies) if (o !== e && o.hp < o.maxhp * 0.45 && (!a || o.hp / o.maxhp < a.hp / a.maxhp)) a = o;
@@ -106,7 +107,7 @@
       const soft = enemies.filter((o) => isBack(this.roleOf(o)) || o.ranged).sort((a, b) => hyp(a.x - e.x, a.y - e.y) - hyp(b.x - e.x, b.y - e.y))[0];
       if (p && (soft || t)) opts.push({ kind: 'rock', peb: p, mark: soft && hyp(soft.x - e.x, soft.y - e.y) < 11 ? soft : t, w: (hero ? 3.5 : 3) + (sw >= 3 ? 2 : 0) + (soft ? 1.5 : 0), cd: 4.5 });
     }
-    if (!t) return this.choose(opts);
+    if (!t) return this.choose(this.temperW(e, opts));
     // a kick or a shield bash that sends them sliding
     if (!e.ranged && dT < e.range + 0.8 && sw >= 2) opts.push({ kind: 'shove', tgt: t, w: role === 'tank' ? 5 : 4, cd: 4 });
     // fall back, wind up, charge through
@@ -115,8 +116,12 @@
     if (!hero && POUNCERS[e.kind] && dT > 2.2 && dT < 7) opts.push({ kind: 'pounce', tgt: t, w: 7, cd: 4.5 });
     // the back line tumbles away from anyone on top of it
     if (isBack(role) && hero && nearFoe(e.x, e.y, 1.5) && !(e.dodgeCd > 0)) opts.push({ kind: 'tumble', w: 5, cd: 3.5 });
-    return this.choose(opts);
+    // skirmishers strike and spring away
+    if (e.temper && e.temper.hitrun && !e.ranged && sw >= 3 && dT < 2) opts.push({ kind: 'hitrun', tgt: t, w: 4, cd: 3 });
+    return this.choose(this.temperW(e, opts));
   };
+  // a temperament leans on the moves it likes
+  B.temperW = function (e, opts) { const W = e.temper && e.temper.w; if (W) for (const o of opts) if (W[o.kind]) o.w *= W[o.kind]; return opts; };
   B.choose = function (opts) {
     if (!opts.length) return null;
     let sum = 0; for (const o of opts) sum += o.w; let r = this.r() * (sum + 1); // sometimes: just keep fighting
@@ -270,6 +275,16 @@
         if (e.arc) return true;
         return done();
       }
+      case 'sig': {
+        if (m.phase === 0) { m.phase = 1; this.runSig(e, t, m); return true; }
+        if (e.arc) return true;
+        return done();
+      }
+      case 'hitrun': {
+        const f = m.tgt;
+        if (f && !f.dead) { const dx = e.x - f.x, dy = e.y - f.y, l = hyp(dx, dy) || 1; e.dash = { vx: dx / l * 10, vy: dy / l * 10, t: 0.26 }; e.state = 'attack'; e.lock = 0.5; e.atkDur = 0.34; e.hitAt = 99; e.hitDone = true; this.setClip(e, has(this, e, 'Rolling') ? 'Rolling' : 'Run', true); BB.sfx && BB.sfx('dodge'); }
+        return done();
+      }
       case 'tumble': {
         const f = (e.side === 'hero' ? this.foesAlive() : this.heroesAlive()).filter((o) => !o.gate).sort((a, b) => hyp(a.x - e.x, a.y - e.y) - hyp(b.x - e.x, b.y - e.y))[0];
         if (f) { const dx = e.x - f.x, dy = e.y - f.y, l = hyp(dx, dy) || 1, sd = this.r() < 0.5 ? 1 : -1; this.dodge(e, dx / l * 0.8 - dy / l * 0.6 * sd, dy / l * 0.8 + dx / l * 0.6 * sd); }
@@ -284,7 +299,7 @@
   B.tryDodge = function (e, t, hitAt) {
     if (t.ward || t.gate || t.turret || t.boss || t.stunT > 0 || (t.lock > 0.15) || (t.dodgeCd > 0) || t.tac) return false;
     let ch = DODGE[this.roleOf(t)] || 0;
-    if (t.side === 'hero') { if (t.calling === 'monk') ch = 0.16; ch += Math.min(0.06, (t.hero.level || 1) * 0.002); }
+    if (t.side === 'hero') { if (t.calling === 'monk') ch = 0.16; ch += Math.min(0.06, (t.hero.level || 1) * 0.002) + ((t.temper && t.temper.dodge) || 0); }
     else ch = t.kind === 'stalker' ? 0.25 : t.elite ? 0.06 : ch * 0.6;
     if (this.r() >= ch) return false;
     this.later(Math.max(0, hitAt - 0.14), () => {

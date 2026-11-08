@@ -44,7 +44,7 @@
     if (!this.peaceful) this.setupObjective();
     if (!this.peaceful && opts.intro) {
       const m = this.map, g = (m.gateSpots && m.gateSpots[0]) || (this.mission.boss ? m.bossSpot : m.foeSpawns[0]);
-      this.intro = { t: 0, dur: 2.8, from: { x: g.x, y: g.y } };
+      this.intro = { t: 0, dur: 3.6, from: { x: g.x, y: g.y } };
       this.cam.x = g.x; this.cam.y = g.y;
     }
   }
@@ -64,6 +64,7 @@
       cd: st.cd * 0.35, cdMax: st.cd, dodgeCd: 0, buffs: {}, flash: 0, combo: 0, color: BB.heroColor(h), z: 0,
       aura: BB.auraOf ? BB.auraOf(h) : null, ench: BB.heroEnch ? BB.heroEnch(h) : null,
     };
+    e.brain = BB.identityOf ? BB.identityOf(h) : null; e.temper = e.brain && BB.TEMPERS ? BB.TEMPERS[e.brain.temper] : null; e.sigCd = 3 + this.r() * 4;
     this.ents.push(e); return e;
   };
 
@@ -242,7 +243,7 @@
   };
   Battle.prototype.win = function () {
     if (this.result) return;
-    this.result = { win: true, t: 0 }; this.slow = 1.4; this.intro = null;
+    this.result = { win: true, t: 0 }; this.slow = 1.4; if (this.intro && this.endEntrances) this.endEntrances(); this.intro = null;
     for (const h of this.heroesAlive()) { h.state = 'victory'; this.setClip(h, 'Taunt', true); }
     this.zoomPulse(1.22, 9); if (this.rays) this.rays.push({ x: this.warCenter.x, y: this.warCenter.y, t: 0, dur: 3, god: true });
     this.camFocus = { x: this.warCenter.x, y: this.warCenter.y, t: 3 };
@@ -718,12 +719,13 @@
     for (const c of this.cutins) c.t += dtReal;
     if (this.intro) {
       const I = this.intro; I.t += dtReal;
-      const k = Math.min(1, Math.max(0, (I.t - 0.6) / (I.dur - 0.9))); const ease = k * k * (3 - 2 * k);
+      const k = Math.min(1, Math.max(0, (I.t - 0.25) / 1.0)); const ease = k * k * (3 - 2 * k); // a quick look at the foes, then onto the warband as it arrives
       const c = this.centroid();
       this.cam.x = I.from.x + (c.x - I.from.x) * ease; this.cam.y = I.from.y + (c.y - I.from.y) * ease;
       for (const a of this.map.anims) a.t += dtReal;
       for (const e of this.ents) { if (!e.dead && !e.prop) { e.ct += dtReal; } }
-      if (I.t >= I.dur) { this.intro = null; this.banner('FOR THE BANNER — ADVANCE!', 1.4, 'small'); }
+      if (this.updateEntrances) this.updateEntrances(dtReal); // the heroes arrive, each in their own way
+      if (I.t >= I.dur) { if (this.endEntrances) this.endEntrances(); this.intro = null; this.banner('FOR THE BANNER — ADVANCE!', 1.4, 'small'); }
       return;
     }
     if (this.hitstop > 0) { this.hitstop -= dtReal; dtReal *= 0.05; }
@@ -900,7 +902,8 @@
       const r = HERO_ROLE[e.calling] || 'bruiser', lv = e.hero.level || 1, st = e.hero.stars || 1;
       const base = { tank: [0.32, 0.08], bruiser: [0.16, 0.06], assassin: [0.06, 0.1], ranged: [0, 0.02], healer: [0, 0.02] }[r];
       const up = Math.min(0.1, lv * 0.003) + (st - 1) * 0.015;
-      return [base[0] ? base[0] + up : 0, base[1] + up * 0.8];
+      const T = e.temper || {};
+      return [base[0] ? base[0] + up + (T.guard || 0) : 0, base[1] + up * 0.8 + (T.parry || 0) + (T.guard || 0) * 0.3];
     }
     const role = this.roleOf(e);
     if (e.boss) return [0.18, 0.1];
@@ -1338,6 +1341,13 @@
       if (o.gate) c += 2.5;
       if (o.stealth) c += 6;
       if (o.brokenT > 0 || o.stunT > 0) c -= 2.5;
+      if (e.temper) switch (e.temper.target) { // each hero's own idea of who matters
+        case 'weakest': c -= (1 - o.hp / o.maxhp) * 4; break;
+        case 'backline': if (isBack(this.roleOf(o)) || o.ranged) c -= 3; break;
+        case 'strongest': c -= (o.elite ? 2 : 0) + (o.boss ? 3 : 0) + Math.min(2, o.maxhp / 400); break;
+        case 'threat': if (o.tgt && o.tgt.side === e.side && o.tgt !== e) c -= 2.5; break;
+        case 'nearest': c -= 0; break;
+      }
       const myRole = this.roleOf(e), r = this.roleOf(o);
       // shields peel for their soft allies: whoever is attacking a back-liner is the shield's business
       if (myRole === 'tank' && o.tgt && isBack(this.roleOf(o.tgt))) c -= 3;
@@ -1720,6 +1730,7 @@
     if (e.dead && e.side === 'foe') alpha = Math.max(0, 1 - (e.deadT - 1.4) / 1);
     if (e.spawnT > 0) alpha = 1 - e.spawnT / 0.6;
     if (e.invuln > 0 && e.dodging) alpha = 0.6;
+    if (e.entAlpha !== undefined) alpha *= e.entAlpha;
     if (e.stealth && !e.dead) alpha = Math.min(alpha, 0.38 + Math.sin(this.time * 6 + (e.x * 3)) * 0.06);
     ctx.globalAlpha = alpha;
     const fl = e.flash > 0 ? Math.min(0.9, e.flash * 5) : 0;
@@ -1795,7 +1806,7 @@
   };
 
   Battle.prototype.drawBars = function (ctx, e) {
-    if (e.dead || e.barrel) return;
+    if (e.dead || e.barrel || (e.entAlpha !== undefined && e.entAlpha < 0.5)) return;
     if (this.peaceful) return;
     if (e.side === 'foe' && e.hp >= e.maxhp && !e.gate && !e.elite) return;
     if (e.boss) return; // boss bar is in the HUD

@@ -421,7 +421,7 @@
   BB.foeStats = function (kind, level, elite) {
     const F = BB.FOES[kind];
     const g = 1 + (level - 1) * 0.2;
-    const s = { hp: Math.round(F.hp * g * (F.boss ? 3.5 : F.gate ? 1.6 : 2.5)), atk: F.atk * (1 + (level - 1) * 0.16) * (F.boss ? 2.25 : 2.6), def: F.def + (level - 1) * 0.6 };
+    const s = { hp: Math.round(F.hp * g * (F.boss ? 3.5 : F.gate ? 1.6 : 2.5)), atk: F.atk * (1 + (level - 1) * 0.16) * (F.boss ? 2.5 : 2.9), def: F.def + (level - 1) * 0.6 };
     if (elite) { s.hp = Math.round(s.hp * elite.hp); s.atk *= elite.atk; }
     return s;
   };
