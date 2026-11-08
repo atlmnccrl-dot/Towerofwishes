@@ -61,6 +61,14 @@ A hero-collector RPG: you build the team, the team fights.
    High-level heroes (level 15+, 3★ or a legend) of the shadowblade, arcanist, ranger, monk and warpriest
    callings **teleport**: assassins blink behind their prey, archers and casters blink to safety; Grave Stalkers and
    phasing bosses blink too. Guard and parry rates grow with level and stars.
+   **Tactics.** Every few swings, or when the moment calls for it, a fighter breaks off and does something you can
+   see (js/tactics.js): a wounded hero **falls back and drinks a potion**; a tank or bruiser **sprints to the weakest
+   ally**, shield-bashes the attacker sliding back and taunts everyone near; the healer **runs over and lays hands** on
+   the worst-hurt (enemy casters *dark-mend* their own); fighters **grab a stone off the ground** (loose stones lie
+   about the field) and lob it at an archer or caster — *BONK*, dazed; **kicks and shield bashes** send foes sliding;
+   berserkers, monks, lancers and assassins **spring back, wind up and charge through**; reavers, beastkin and
+   stalkers **pounce** from range; nimble fighters **roll** out of blows (*DODGE*) and the back line tumbles away from
+   anyone on top of it. Blocks jar both fighters back a step; a parry throws the attacker back reeling.
    Four to six waves a stage, reinforcements arriving mid-fight, bosses calling adds as they weaken. Each charges an **ultimate** by fighting and taking hits;
    tap the glowing card (or 1–5) to unleash it with a cut-in, or turn on **AUTO**. 1×/2× speed, pause.
 6. **Campaign.** Four chapters, thirty stages (Greenvale, the Sunscar, Aldmere, the Cantor's Gate):
@@ -122,6 +130,7 @@ name, their horde, the face-off, the clash) and a fall; chapters 2-4 open with y
 | `js/battle.js` | the battlefield: formation, hero/foe AI, energy and ultimates, bosses, objectives, rendering, lighting |
 | `js/audio.js` | synthesised sound effects and a procedural war-drum score |
 | `js/aura.js` | what gear and skills look like on a hero: gear glow, enchant particles, capstone marks (stateless) |
+| `js/tactics.js` | battlefield tactics: potions, rescues, hands-on heals, stones to throw, kicks, charges, pounces, dodge rolls |
 | `js/cinema.js` | cutscenes: shot sequencer (scene fly-throughs, close-ups, splits, impact frames, titles) and the four scripts |
 | `js/heroui.js` | the hero screen: canvas-drawn stage, gear sockets and picker, attributes, skill tree, its own hit-testing |
 | `js/screens.js` | every menu screen: top bar and tabs, camp, campaign, heroes, hero, recruit and reveal, team, forge, shop, goals, results |

@@ -309,7 +309,7 @@
       tgt.parryAt = 0; tgt.guardUntil = 0;
       this.text(tgt.x, tgt.y, 'PARRY!', '#ffffff', 2); this.addFx('hit2', (tgt.x + src.x) / 2, (tgt.y + src.y) / 2 - 0.3, { sc: 0.9, add: true });
       this.hitstop = Math.max(this.hitstop, 0.1); this.shake = Math.max(this.shake, 0.25); this.flash = Math.max(this.flash, 0.15); BB.sfx && BB.sfx('perfect');
-      this.stun(src, src.boss ? 0.45 : 0.75); this.breakPoise(src, src.maxPoise ? src.maxPoise * 0.3 : 0);
+      if (this.knock) this.knock(src, tgt.x, tgt.y, 1.0, src.boss ? 0.45 : 0.75); else this.stun(src, src.boss ? 0.45 : 0.75); this.breakPoise(src, src.maxPoise ? src.maxPoise * 0.3 : 0);
       if (tgt.side === 'hero') tgt.energy = Math.min(100, (tgt.energy || 0) + 15);
       this.later(0.12, () => { if (!tgt.dead && !src.dead) { this.face(tgt, src.x, src.y); this.setClip(tgt, tgt.side === 'hero' ? BB.CALLINGS[tgt.calling].basic[0] : (tgt.F.atkClips || ['Attack1'])[0], true); tgt.lock = 0.3; this.text(tgt.x, tgt.y + 0.1, 'COUNTER', '#ffd23a', 1); this.hit(tgt, src, 1.3, { counter: true, sureCrit: true }); } });
       return 0;
@@ -317,6 +317,7 @@
     if (melee && tgt.guardUntil > this.time && !(tgt.openT > 0)) {
       mult = (mult || 1) * (this.roleOf(tgt) === 'tank' ? 0.45 : 0.62);
       this.text(tgt.x, tgt.y, 'BLOCK', '#a9c4e0'); this.addFx('hit2', tgt.x, tgt.y - 0.3, { sc: 0.4, add: true, hue: 180 }); BB.sfx && BB.sfx('guard');
+      if (this.knock && !tgt.kb) { this.knock(tgt, src.x, src.y, 0.35, 0); this.knock(src, tgt.x, tgt.y, 0.25, 0); } // the blow jars them both
       if (this.roleOf(tgt) === 'tank' && this.r() < 0.25) this.later(0.1, () => { if (!tgt.dead && !src.dead && hyp(tgt.x - src.x, tgt.y - src.y) < 2) { this.text(tgt.x, tgt.y + 0.1, 'COUNTER', '#ffd23a', 1); this.hit(tgt, src, 1.0, { counter: true }); } });
     }
     if (tgt.openT > 0 && src && !o.aoe) { mult = (mult || 1) * 1.35; if (!tgt.openSaid) { tgt.openSaid = true; this.text(tgt.x, tgt.y, 'OPEN!', '#ff6b6b', 1); } }
@@ -487,7 +488,7 @@
   Battle.prototype.basicAttack = function (e, tgt) {
     const C = BB.CALLINGS[e.calling];
     const clips = C.basic;
-    const clip = clips[e.combo % clips.length]; e.combo++;
+    const clip = clips[e.combo % clips.length]; e.combo++; e.swings = (e.swings || 0) + 1;
     const dur = 0.62 / (e.aspd * (e.buffs.rally > 0 ? 1.25 : 1));
     e.state = 'attack'; e.lock = dur; e.atkDur = dur; e.hitAt = dur * (C.ranged ? 0.55 : 0.48); e.hitDone = false; e.atkTgt = tgt;
     if (tgt && !C.ranged) e.atkTgt = tgt = this.readBlow(e, tgt, e.hitAt);
@@ -767,6 +768,7 @@
     }
     for (const e of movers) BB.collide(this.map, e);
     this.updateProjs(dt);
+    if (this.updateTactics) this.updateTactics(dt);
     if (this.ents.length > 60) this.ents = this.ents.filter((e) => !(e.dead && e.side === 'foe' && e.deadT > 3));
     for (const c of this.clouds) {
       c.t += dt;
@@ -818,6 +820,8 @@
     }
     if (e.spawnT > 0) { e.spawnT -= dt; e.ct += dt; return; }
     if (e.scripted) { e.ct += dt; return; } // a cutscene moves this one
+    if (e.kb && this.updateKnock) this.updateKnock(e, dt);
+    if (e.arc && this.updateArc && this.updateArc(e, dt)) return;
     if (e.buffs.burn > 0 && Math.floor(this.time * 2) !== Math.floor((this.time - dt) * 2)) {
       const b = Math.max(1, Math.round((e.burnAtk || 20) * 0.22 * (100 / (100 + (e.def || 0) * 3)))); e.hp -= b; this.text(e.x, e.y, b, '#ff9a3a');
       if (e.hp <= 0) this.kill(e, null);
@@ -919,6 +923,7 @@
       }
     }
     if (t.stunT > 0 || t.openT > 0 || (t.lock > 0.1 && t.state === 'attack')) return t;
+    if (this.tryDodge && this.tryDodge(e, t, hitAt)) return t; // a roll out of the way
     const [pb, pp] = this.guardSkill(t), roll = this.r();
     const when = this.time + hitAt;
     if (roll < pp) { t.parryAt = when; t.guardUntil = when + 0.15; }
@@ -1306,6 +1311,7 @@
     }
     // 3. skills
     if (this.wantSkill(e, t)) { this.useSkill(e, false); return; }
+    if (this.tactic && this.tactic(e, t, dt)) return; // a move of its own: a potion, a rescue, a stone, a kick...
     if (this.roleOf(e) === 'assassin' && (t || e.prey || this.frontEngaged)) { this.assassin(e, dt); return; }
     // 4. no target in reach: march in formation toward the next foe
     if (!t) {
@@ -1392,6 +1398,7 @@
       if (d < e.range && e.cd <= 0) { e.cd = 1 / e.aspd; this.shoot(e, t.x, t.y, 'bolt', 1, { hue: 0 }); }
       return;
     }
+    if (this.tactic && !t.ward && this.tactic(e, t, dt)) return;
     const role = this.roleOf(e);
     if (role === 'assassin' && !t.ward) { this.assassin(e, dt); return; }
     let tt = t;
@@ -1408,7 +1415,7 @@
   Battle.prototype.foeAttack = function (e, t, clip) {
     const clips = e.F.atkClips || ['Attack1'];
     const dur = 0.75 / e.aspd * (e.boss && e.hp < e.maxhp / 2 ? 0.8 : 1);
-    e.state = 'attack'; e.lock = dur; e.atkDur = dur; e.hitAt = dur * 0.55; e.hitDone = false; e.atkTgt = t;
+    e.state = 'attack'; e.lock = dur; e.atkDur = dur; e.hitAt = dur * 0.55; e.hitDone = false; e.atkTgt = t; e.swings = (e.swings || 0) + 1;
     if (!e.ranged && t && !t.ward) e.atkTgt = t = this.readBlow(e, t, e.hitAt);
     e.cd = (1 / e.aspd) * (0.9 + this.r() * 0.5);
     this.face(e, t.x, t.y); this.setClip(e, clip || clips[this.r.int(clips.length)], true);
@@ -1609,6 +1616,7 @@
       if (e.buffs && e.buffs.guard > 0) { ctx.strokeStyle = 'rgba(120,200,255,0.7)'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.ellipse(s.x, s.y, 16, 8, 0, 0, TAU); ctx.stroke(); }
       if (e.buffs && e.buffs.rally > 0) { ctx.strokeStyle = 'rgba(255,210,90,0.8)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(s.x, s.y, 13 + Math.sin(this.time * 8) * 2, 6.5, 0, 0, TAU); ctx.stroke(); }
     }
+    if (this.drawPebbles) this.drawPebbles(ctx);
     // depth sorted world
     const list = [];
     // cull to the view (in world pixels) with a margin for tall sprites
@@ -1648,6 +1656,7 @@
     }
     // projectiles
     for (const p of this.projs) this.drawProj(ctx, p);
+    if (this.drawRocks) this.drawRocks(ctx);
     for (const r of this.rays || []) {
       const s = P(r.x, r.y), a = Math.min(1, r.t * 4, (r.dur - r.t) * 1.5);
       if (r.god) { for (let i = -2; i <= 2; i++) BB.drawOther(ctx, 'GodRay', s.x + i * 22, s.y - 120, 0.5, { add: true, alpha: a * (0.55 - Math.abs(i) * 0.08), sx: 2.4, rot: i * 0.12 }); continue; }
@@ -1730,6 +1739,7 @@
         ctx.restore();
       }
       if (e.brokenT > 0) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; const gl = ctx.createRadialGradient(s.x, y - hh * 0.5, 0, s.x, y - hh * 0.5, 22 * (e.sc || 1)); gl.addColorStop(0, 'rgba(255,170,60,0.35)'); gl.addColorStop(1, 'rgba(255,170,60,0)'); ctx.fillStyle = gl; ctx.fillRect(s.x - 30, y - hh - 10, 60, hh + 20); ctx.restore(); }
+      if (this.drawTac) this.drawTac(ctx, e, s.x, y);
       if (e.openT > 0) { ctx.save(); ctx.strokeStyle = 'rgba(255,90,90,0.8)'; ctx.lineWidth = 1.2; ctx.setLineDash([2, 2]); ctx.beginPath(); ctx.ellipse(s.x, s.y, 12 * (e.sc || 1), 4 * (e.sc || 1), 0, 0, 7); ctx.stroke(); ctx.restore(); }
     }
   };
