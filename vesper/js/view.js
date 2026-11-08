@@ -301,6 +301,12 @@
         case 'land': FX({ kind: 'gring', x: e.x, y: e.y, life: 0.4, col: 'rgba(220,210,220,0.8)', r0: 6, r1: 40, w: 2 }); for (let i = 0; i < 10; i++) { const a = Math.random() * 6.28; P({ x: e.x, y: e.y, z: 1, vx: Math.cos(a) * 50, vy: Math.sin(a) * 30, vz: 20 + Math.random() * 30, g: -120, life: 0.45, size: 2.2, col: 'rgba(200,190,200,0.5)', shape: 'circle' }); } R.shake = Math.max(R.shake, 3.5); break;
         case 'wall': FX({ kind: 'star', x: e.x, y: e.y, z: 20, life: 0.25, col: '#ffffff', r: 30 }); sparks(e.x, e.y, 20, 14, '#ffffff', 180, 1.6); R.float('WALL ' + e.dmg, e.x, e.y, 50, '#ffffff', true, true); R.shake = Math.max(R.shake, 6); break;
         case 'phase': if (!e.quiet) { R.flash = 0.6; R.flashCol = '255,40,60'; R.shake = 8; } break;
+        // The god: his blade landing along its line, his hand slamming down, his phases, his kneeling, his fall.
+        case 'cut': { FX({ kind: 'gcut', x1: e.x1, y1: e.y1, x2: e.x2, y2: e.y2, w: e.w, life: 0.45 }); R.shake = Math.max(R.shake, 12); R.flash = 0.25; R.flashCol = '255,255,255'; const n = 10; for (let i = 0; i <= n; i++) { const f = i / n; sparks(e.x1 + (e.x2 - e.x1) * f, e.y1 + (e.y2 - e.y1) * f, 4, 3, '#ffd0d6', 160, 1.2); } break; }
+        case 'godMove': R.godPose = { move: e.move, t: 0 }; break;
+        case 'godPhase': R.bossArt = { key: 'godCut', name: e.n === 2 ? 'HIS DEAD RISE' : 'HE KNEELS TO KILL', t: 0 }; R.flash = 0.7; R.flashCol = '255,40,60'; R.shake = 14; break;
+        case 'godKneel': R.shake = 16; R.flash = 0.4; R.flashCol = '255,255,255'; FX({ kind: 'gring', x: e.x, y: e.y, life: 0.7, col: '#ffffff', r0: 20, r1: 200, w: 4 }); break;
+        case 'godDown': R.flash = 1; R.flashCol = '255,250,252'; R.shake = 24; R.godFall = 0.001; break;
         case 'skill': {
           const h = s.hero; R.float(e.name.toUpperCase(), h.x, h.y, 64, s.heroDef.color, true, true);
           if (e.kind === 'wave') PK('slash_arc_blood', h.x + Math.cos(e.ang) * 14, h.y + Math.sin(e.ang) * 14, 20, 1.6, { angle: R.screenAng(e.ang) });
@@ -313,7 +319,7 @@
         }
         case 'chain': R.chains.push({ pts: e.pts, t: 0 }); for (const p of e.pts.slice(1)) PK('hit_shock', p[0], p[1], 22, 1.6); R.flash = 0.3; R.flashCol = '255,240,170'; R.shake = Math.max(R.shake, 4); break;
         case 'thunder': PK('thunder', e.x, e.y, 0, 3.2); PK('lightning_holy', e.x, e.y, 0, 2.4); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.5, col: '#fff0a0', r0: 6, r1: e.r * 1.6, w: 4 }); R.impactF = { t: 0, dur: 0.08, x: e.x, y: e.y, big: false }; R.shake = Math.max(R.shake, 9); break;
-        case 'strike': if (!e.quiet) { PK(e.fx || 'blast', e.x, e.y, 6, e.fx === 'poison_cloud' ? 1.6 : 2.2); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.35, col: e.team === 'hero' ? '#ffffff' : '#ff8070', r0: 3, r1: e.r * 1.3, w: 2 }); R.shake = Math.max(R.shake, 3); } else PK(e.fx || 'blast', e.x, e.y, 6, 1.4); break;
+        case 'strike': if (e.hand) { R.shake = Math.max(R.shake, 14); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.6, col: '#ffffff', r0: 20, r1: 150, w: 4 }); FX({ kind: 'ghand', x: e.x, y: e.y, life: 0.18 }); } if (!e.quiet) { PK(e.fx || 'blast', e.x, e.y, 6, e.fx === 'poison_cloud' ? 1.6 : 2.2); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.35, col: e.team === 'hero' ? '#ffffff' : '#ff8070', r0: 3, r1: e.r * 1.3, w: 2 }); R.shake = Math.max(R.shake, 3); } else PK(e.fx || 'blast', e.x, e.y, 6, 1.4); break;
         case 'tick': R.float(String(e.dmg), e.x, e.y, 30, '#b0ff90', false); break;
         case 'cast': if (u) PK('cast_circle', u.x, u.y, 2, 1.6); break;
         case 'vanish': PK('smoke_dark', e.x, e.y, 10, 1.2); break;
@@ -329,6 +335,12 @@
     R.fx = R.fx.filter((f) => {
       f.t += dt; const k = f.t / f.life; if (k >= 1) return false;
       ctx.save();
+      if (f.kind === 'gcut') {
+        ground(ctx); const a = Math.atan2(f.y2 - f.y1, f.x2 - f.x1), L = Math.hypot(f.x2 - f.x1, f.y2 - f.y1); ctx.translate(f.x1, f.y1); ctx.rotate(a);
+        ctx.globalAlpha = 1 - k; ctx.fillStyle = '#ffffff'; ctx.fillRect(0, -f.w * (1 - k), L, f.w * 2 * (1 - k)); ctx.fillStyle = '#ff2a44'; ctx.fillRect(0, -1, L, 2);
+        ctx.restore(); return true;
+      }
+      if (f.kind === 'ghand') { const q = R.P(f.x, f.y, 0); godHand(ctx, q.x, q.y - (1 - k) * R.H * 0.6, R.Sh() * (1.4 - k * 0.4), 1); ctx.restore(); return true; }
       if (f.kind === 'gring') {
         ground(ctx); ctx.globalAlpha = 1 - k; ctx.strokeStyle = f.col; ctx.lineWidth = f.w * (1 - k * 0.5);
         ctx.beginPath(); ctx.arc(f.x, f.y, f.r0 + (f.r1 - f.r0) * (1 - Math.pow(1 - k, 2)), 0, 7); ctx.stroke();
@@ -379,12 +391,23 @@
     const Sh = R.Sh();
     for (const z of s.hazards) {
       const foe = z.team === 'foe', col = foe ? '#ff2a44' : z.team === 'arena' ? '#ffa040' : '#ffffff';
+      if (z.kind === 'cut') {
+        if (z.t >= z.delay) continue;
+        const k = z.t / z.delay, a = Math.atan2(z.y2 - z.y1, z.x2 - z.x1), L = Math.hypot(z.x2 - z.x1, z.y2 - z.y1);
+        ctx.save(); ground(ctx); ctx.translate(z.x1, z.y1); ctx.rotate(a);
+        ctx.fillStyle = rgba('#ff2a44', 0.1 + 0.16 * k); ctx.fillRect(0, -z.w, L, z.w * 2);
+        ctx.fillStyle = rgba('#ff2a44', 0.32); ctx.fillRect(0, -z.w * k, L, z.w * 2 * k);
+        ctx.strokeStyle = rgba('#ff5a6a', 0.85); ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(0, -z.w); ctx.lineTo(L, -z.w); ctx.moveTo(0, z.w); ctx.lineTo(L, z.w); ctx.stroke();
+        if (z.delay - z.t < 0.3) { ctx.fillStyle = rgba('#ffffff', 0.6 * (1 - (z.delay - z.t) / 0.3)); ctx.fillRect(0, -2, L, 4); }
+        ctx.restore(); continue;
+      }
       if (z.t < z.delay) {
         // The warning: a circle filling in until the strike lands.
         const k = z.t / z.delay; ctx.save(); ground(ctx);
         ctx.fillStyle = rgba(col, 0.08 + 0.12 * k); ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, 7); ctx.fill();
         ctx.fillStyle = rgba(col, 0.28); ctx.beginPath(); ctx.arc(z.x, z.y, z.r * k, 0, 7); ctx.fill();
         ctx.strokeStyle = rgba(col, 0.8); ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, 7); ctx.stroke(); ctx.restore();
+        if (z.part) { const q = R.P(z.x, z.y, 0), k2 = z.t / z.delay, Sh2 = R.Sh(); ctx.save(); ctx.globalAlpha = 0.35 + 0.4 * k2; ctx.fillStyle = '#000000'; ctx.beginPath(); ctx.ellipse(q.x, q.y, z.r * Sh2 * 0.7 * (0.5 + 0.5 * k2), z.r * Sh2 * 0.35 * (0.5 + 0.5 * k2), 0, 0, 7); ctx.fill(); ctx.restore(); }
         if (z.kind === 'strike' && z.delay - z.t < 0.35) { const q = R.P(z.x, z.y, 0), q2 = R.P(z.x, z.y, 200); ctx.strokeStyle = rgba('#ffffff', 0.5 * (1 - (z.delay - z.t) / 0.35)); ctx.lineWidth = 2 * R.dpr; ctx.beginPath(); ctx.moveTo(q.x, q.y); ctx.lineTo(q2.x, q2.y); ctx.stroke(); }
         continue;
       }
@@ -426,7 +449,68 @@
     }
     unground(ctx);
   }
+  // ---- the god (the final fight) ----------------------------------------------------------------
+  // He looms behind the summit in screen space, a vast black shape against the moon, eyes burning; his
+  // sword goes up as he readies a cut, his head comes down when he kneels; he falls away when he dies.
+  function drawGod(ctx, s, dt) {
+    const K = VS.INTRO && VS.INTRO.kit; if (!K) return;
+    const g = s.god, P = R.godPose; if (P) { P.t += dt; if (P.t > 1.6) R.godPose = null; }
+    const kneel = s.units.some((u) => u.alive && u.part === 'head'), fall = R.godFall ? (R.godFall += dt) : 0;
+    R.godKneel = (R.godKneel || 0) + ((kneel ? 1 : 0) - (R.godKneel || 0)) * Math.min(1, dt * 3);
+    const u = R.H / 56, ex = Math.round(R.W * 0.52 - R.hcam.x * 0.03 * R.dpr), ey = Math.round(R.H * (0.25 + 0.2 * R.godKneel + fall * 0.6) + Math.sin(R.t * 0.8) * 3 * R.dpr);
+    const a = fall ? Math.max(0, 1 - fall / 1.6) : 1; if (a <= 0) return;
+    let L = R.godLayer; if (!L || L.width !== R.W || L.height !== R.H) { L = R.godLayer = document.createElement('canvas'); L.width = R.W; L.height = R.H; }
+    const c = L.getContext('2d'); c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, R.W, R.H); c.globalCompositeOperation = 'source-over';
+    A.tex(c, 'light_01', ex, ey + 6 * u, R.W * 1.1, R.H * 1.1, '#ff3048', 0.45, 0, true);
+    const raise = P && (P.move === 'blade' || P.move === 'sweep') && P.t < 1.3;
+    K.colossus(c, null, ex, ey, u * 2, R.t, { flat: true, col: g.flash > 0 ? '#3a0a14' : '#0a0306', pose: raise ? 'raise' : 'plant' });
+    K.burningEyes(c, ex, ey, u * 2, 1, R.t);
+    // He fades into the floor below the middle of the screen, so the fight stays clear.
+    const mk = c.createLinearGradient(0, 0, 0, R.H); mk.addColorStop(0, 'rgba(0,0,0,1)'); mk.addColorStop(0.46, 'rgba(0,0,0,0.92)'); mk.addColorStop(0.68, 'rgba(0,0,0,0)'); mk.addColorStop(1, 'rgba(0,0,0,0)');
+    c.globalCompositeOperation = 'destination-in'; c.fillStyle = mk; c.fillRect(0, 0, R.W, R.H); c.globalCompositeOperation = 'source-over';
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = a; ctx.drawImage(L, 0, 0); ctx.restore();
+  }
+  // A giant gauntlet, fingers spread, lying on the floor (its wrist rising out of the frame toward him).
+  function godHand(ctx, x, y, k, a) {
+    ctx.save(); ctx.globalAlpha = a; ctx.fillStyle = '#0c0608'; ctx.strokeStyle = '#3a2830'; ctx.lineWidth = 2 * R.dpr;
+    ctx.beginPath(); ctx.moveTo(x - 14 * k, y - 10 * k); ctx.lineTo(x + 40 * k, y - 120 * k); ctx.lineTo(x + 64 * k, y - 110 * k); ctx.lineTo(x + 18 * k, y - 4 * k); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(x, y, 26 * k, 13 * k, 0, 0, 7); ctx.fill(); ctx.stroke();
+    for (let i = 0; i < 4; i++) { const fx = x - 22 * k + i * 13 * k; ctx.beginPath(); ctx.ellipse(fx, y + 12 * k, 5 * k, 12 * k, (i - 1.5) * 0.25, 0, 7); ctx.fill(); ctx.stroke(); }
+    ctx.beginPath(); ctx.ellipse(x + 26 * k, y - 2 * k, 11 * k, 5 * k, -0.6, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.restore();
+  }
+  function drawGodPart(ctx, s, u) {
+    const K = VS.INTRO && VS.INTRO.kit, Sh = R.Sh(), q = R.P(u.x, u.y, 0), x = Math.round(q.x), y = Math.round(q.y);
+    const fade = u.alive ? Math.min(1, u.st * 6, u.life * 2) : Math.max(0, 1 - u.deadT * 3), flash = u.flash > 0;
+    ctx.save(); ctx.globalAlpha = fade;
+    if (u.part === 'blade') {
+      // His sword stands in the floor, rising out of the frame, its rune burning.
+      const tilt = 0.18, top = -40, bx = x + (y - top) * tilt, w = 9 * Sh;
+      A.tex(ctx, 'light_01', x, y, 70 * Sh, 30 * Sh, '#ff3048', 0.5, 0, true);
+      ctx.fillStyle = flash ? '#5a3a44' : '#1a1418'; ctx.beginPath(); ctx.moveTo(x - w, y); ctx.lineTo(bx - w * 1.4, top); ctx.lineTo(bx + w * 1.4, top); ctx.lineTo(x + w, y); ctx.lineTo(x, y + 6 * Sh); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#e8dcf0'; ctx.lineWidth = 1.5 * R.dpr; ctx.beginPath(); ctx.moveTo(x + w, y); ctx.lineTo(bx + w * 1.4, top); ctx.stroke();
+      ctx.strokeStyle = '#ff3048'; ctx.lineWidth = 2 * R.dpr; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(bx, top); ctx.stroke();
+    } else if (u.part === 'hand') {
+      godHand(ctx, x, y, Sh * 1.0, 1);
+      if (flash) { ctx.globalAlpha = fade * 0.5; godHand(ctx, x, y, Sh * 1.0, 0.4); }
+    } else if (u.part === 'head' && K) {
+      // His head lowered to the summit's edge: the crowned helm, the eyes burning.
+      const hu = 7 * Sh, hy = y - 8 * Sh;
+      ctx.save(); ctx.beginPath(); ctx.rect(0, 0, R.W, y + 4 * Sh); ctx.clip();
+      A.tex(ctx, 'light_01', x, hy, 160 * Sh, 120 * Sh, '#ff3048', 0.45, 0, true);
+      K.colossus(ctx, null, x, hy, hu * 2, R.t, { flat: true, col: flash ? '#3a0a14' : '#0a0306' });
+      K.burningEyes(ctx, x, hy, hu * 2, 1, R.t);
+      ctx.restore();
+    }
+    // The place to strike: a ring pulsing on the floor, brighter on his head.
+    const pr = (u.rad + 6) * Sh * 0.75, pk = 0.5 + 0.5 * Math.sin(R.t * 8);
+    ctx.globalAlpha = fade * (0.55 + 0.35 * pk); ctx.strokeStyle = u.part === 'head' ? '#ffffff' : '#ffd0d6'; ctx.lineWidth = 2.5 * R.dpr;
+    ctx.beginPath(); ctx.ellipse(x, y, pr, pr * 0.5, 0, 0, 7); ctx.stroke();
+    ctx.restore();
+  }
   function drawUnit(ctx, s, u, pass) {
+    if (u.def.god) return;
+    if (u.def.part) { if (pass !== 'reflect' && (u.alive || u.deadT < 0.4)) drawGodPart(ctx, s, u); return; }
     const Sh = R.Sh(), sc = Sh * u.scale, q = R.P(u.x, u.y), x = Math.round(q.x), y0 = Math.round(q.y), lift = Math.round((u.z || 0) * Sh), y = y0 - lift, sa = R.screenAng(u.ang);
     let alpha = 1;
     if (u.state === 'dead' && u.team === 'foe') alpha = Math.max(0, 1 - Math.max(0, u.deadT - 0.5) / 0.6);
@@ -653,6 +737,7 @@
     R.isoGround(ctx, s, AR);
     // Warm light from the braziers on the floor, and fog drifting across it.
     fog(ctx, st);
+    if (s.god) drawGod(ctx, s, dt);   // the god towers over the far edge of the summit
     hazards(ctx, s);
     telegraphs(ctx, s);
     guide(ctx, s);
@@ -703,7 +788,7 @@
   function offscreen(ctx, s) {
     const m = 26 * R.k, cx = R.W / 2, cy = R.H / 2;
     for (const u of s.units) {
-      if (u.team !== 'foe' || !u.alive) continue;
+      if (u.team !== 'foe' || !u.alive || u.def.god) continue;
       const q = R.P(u.x, u.y, 20); if (q.x > m && q.x < R.W - m && q.y > m && q.y < R.H - m) continue;
       const dx = q.x - cx, dy = q.y - cy, k = Math.min((cx - m) / Math.abs(dx || 1e-6), (cy - m) / Math.abs(dy || 1e-6)), x = cx + dx * k, y = cy + dy * k, an = Math.atan2(dy, dx), r = (u.def.boss ? 11 : 7) * R.k;
       ctx.save(); ctx.translate(x, y); ctx.rotate(an); ctx.globalAlpha = 0.6 + 0.3 * Math.sin(R.t * 6 + u.id);

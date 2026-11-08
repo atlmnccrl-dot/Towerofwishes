@@ -235,7 +235,7 @@
     const rules = {}; if (n.rule) rules[n.rule] = n.rule === 'time' ? true : true;
     if (n.rule === 'time') rules.time = n.n;
     let waves, boss = false, champion = null, arenas = [ar[idx % ar.length], ar[(idx + 1) % ar.length]];
-    switch (n.type) {
+    switch (n.id === 'a5-b' ? 'god' : n.type) {
       // The guided trial: the tutorial places each foe itself, then lets this wave loose for the last step.
       case 'trial': waves = [['ghoul', 'husk', 'ghoul', '+', 'shield', 'raider', 'ghoul']]; arenas = ['court']; break;
       case 'battle': waves = [area(2), area(2)]; break;
@@ -244,6 +244,8 @@
         rules.elites = true; waves = [area(2), [ch, '+'].concat(pick(pool, per - 1, r))]; boss = true; champion = ch; break; }
       // The guardian waits in its own hand-built lair (js/arenas.js).
       case 'boss': waves = [st.waves[st.waves.length - 1].slice(), st.bossWave.slice()]; boss = true; arenas = [ar[ar.length - 2] || ar[0], 'lair_' + st.boss]; break;
+      // The last guardian is the god himself, on the summit (the Lamb-style fight in js/sim.js).
+      case 'god': waves = [['godCut']]; boss = true; arenas = ['lair_firstCut']; break;
       case 'echo': waves = [area(2), BOSS[n.echo].concat(['+'], pick(pool, 3, r))]; boss = true; arenas = [ar[0], LAIR[n.echo] || ar[ar.length - 1]]; break;
       case 'challenge':
         if (n.echo) { waves = [BOSS[n.echo].slice()]; boss = true; arenas = [LAIR[n.echo] || D().STAGES[0].arenas[2]]; }
@@ -263,7 +265,9 @@
     const adj = { 'a1-b': [0.78, 0.8], 'a5-b': [0.9, 0.95], 'a6-2': [0.85, 0.9] }[n.id]; if (adj) { sc.hp *= adj[0]; sc.dmg *= adj[1]; }   // two guardians at once; the finale
     if (n.rule === 'glass') sc.dmg *= 0.75;
     if (n.big) { sc.hp *= 0.85; sc.dmg *= 0.85; } else if (n.rule === 'horde') { sc.hp *= 0.85; sc.dmg *= 0.85; }
-    return { stage: A.stage, champion, node: { waves, boss, arenas, scale: sc, rules, variants, script: n.type === 'trial', arenaSeed: P.arenaSeed(n) } };
+    // The god calls his dead and the echoes of the guardians: load them with the fight.
+    const preload = n.id === 'a5-b' ? ['woundknight', 'woundblade', 'husk', 'redwraith', 'ghoul', 'raider', 'warden', 'twinA', 'umbral', 'hunger', 'wing'] : undefined;
+    return { stage: A.stage, champion, node: { waves, boss, arenas, scale: sc, rules, variants, script: n.type === 'trial', arenaSeed: P.arenaSeed(n), preload } };
   };
   // Every foe key a fight can put on the floor (its waves and what they summon), for loading their sets.
   P.foeKeys = function (b) { const out = new Set(); const add = (k) => { if (out.has(k) || !D().FOES[k]) return; out.add(k); for (const a of D().FOES[k].atks) if (a.summon) add(a.summon.key); };

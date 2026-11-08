@@ -112,6 +112,29 @@ raising her blade at him; the title, THE BLEEDING MOON, over the red moon, his s
 it and his eyes burning above the name. Any tap skips it. The older hand-drawn
 sequence (`js/opening.js`) stays in the code for the Theatre.
 
+**The guardians' entrances** (`js/bossfilms.js`): before each guardian's fight, a short anime film
+in the opening's style, played by the same film player: the Gatewarden leaping from the Black Gate and
+splitting the ground (EARTHSPLITTER); the Hollow Twins waking in the frozen cloister, crossing blades and
+raining ice; the Umbral rising out of Vesper's own shadow with his court of shadows; the Hunger eating
+the last light of the Ashen Waste and lunging; the Pale Wing diving out of the storm onto the cliff;
+and the First Cut rising over the summit with the echoes of the fallen beside him. Each plays in full
+the first time and can be skipped after that (`?film=warden|twins|umbral|hunger|wing|firstCut`).
+
+**How the guardians fight**: besides their signature moves, every guardian has a delayed blow (the
+wind-up stops one frame short of the strike and hangs there with a glint, so the blow comes late),
+and the Gatewarden, a Hollow Twin, the Hunger and the Pale Wing have leaping slams (up from where they
+stand, down where you stood, the landing ringed in red). The Gatewarden and the Right Hand chain three
+blows ending in a delayed finisher.
+
+**The final fight** (Act VI's guardian, `js/sim.js` 'the god'): the First Cut is the colossus of the
+opening, too vast for the summit, so he looms over its far edge and strikes into it, Binding-of-Isaac
+"Lamb" style. His blade cuts a line across the floor (a red band warns, then a white cut); his hand
+slams a circle (its shadow grows); moonfall rains small strikes around you; later a sweep of cuts
+crosses the summit one after another (stand in a gap or roll). Where his blade or hand comes down it
+stays in the floor for a few seconds, ringed: cut it and he bleeds. At two thirds his dead pour in;
+at one third the echoes of the guardians you beat rise one by one, and he kneels, lowering his head
+to the summit's edge, where it takes double damage. The moon arts take a fixed share of him.
+
 **The opening** (`js/opening.js`): about 23 seconds, cut like an anime transformation and drawn at
 full resolution (painted light, ribbons and grain around crisp scaled-up pixel figures): a flat red
 sky with the swordsman as a black silhouette, pushing in, one glint, the cut tearing the sky; ribbons

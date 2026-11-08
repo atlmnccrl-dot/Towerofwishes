@@ -108,13 +108,13 @@
   function gainMoon(s, n) { if (s.cine) return; const was = s.moon; s.moon = Math.min(100, s.moon + n * s.mods.gain); if (was < 100 && s.moon >= 100) ev(s, { type: 'moonFull' }); }
   function setState(u, state, dur) { u.state = state; u.st = 0; u.dur = dur || 0; }
   const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-  function nearestFoe(s, u, maxD) { let best = null, bd = maxD || 1e9; for (const o of foes(s)) { if (o.state === 'spawn') continue; const d = dist(o, u); if (d < bd) { bd = d; best = o; } } return best; }
+  function nearestFoe(s, u, maxD) { let best = null, bd = maxD || 1e9; for (const o of foes(s)) { if (o.state === 'spawn' || o.def.god) continue; const d = dist(o, u); if (d < bd) { bd = d; best = o; } } return best; }
   function push(u, from, power) { const dx = u.x - from.x, dy = u.y - from.y, n = Math.hypot(dx, dy) || 1; u.kvx = dx / n * power; u.kvy = dy / n * power; }
   function moveDir(u, vx, vy) { const d = angDiff(Math.atan2(vy, vx), u.ang), f = Math.cos(d), l = Math.sin(d); u.mdir = f > 0.45 ? 'f' : f < -0.55 ? 'b' : l > 0 ? 'r' : 'l'; }
   // Who a unit goes after. Foes: the hero, or one of his allies if it is clearly nearer; nobody while
   // he is hidden in smoke. Allies: the nearest foe.
   function targetOf(s, u) {
-    if (u.team === 'hero') { let best = null, bd = 1e9; for (const o of foes(s)) { if (o.state === 'spawn') continue; const d = dist(o, u); if (d < bd) { bd = d; best = o; } } return best; }
+    if (u.team === 'hero') { let best = null, bd = 1e9; for (const o of foes(s)) { if (o.state === 'spawn' || o.def.god) continue; const d = dist(o, u); if (d < bd) { bd = d; best = o; } } return best; }
     const h = s.hero; if (s.invisT > 0 || !h.alive) return null;
     let best = h, bd = dist(h, u) - 25;
     for (const o of s.units) if (o.ally && o.alive) { const d = dist(o, u); if (d < bd) { bd = d; best = o; } }
@@ -124,6 +124,7 @@
   function directDamage(s, o, dmg, quiet) {
     if (!o.alive || o.state === 'spawn') return;
     if (o === s.hero) { if (o.iframes > 0) return; dmg = Math.round(dmg * (1 - (s.mods.armor || 0))); o.hp -= dmg; s.stats.taken += dmg; s.stats.zoneHits = (s.stats.zoneHits || 0) + 1; if (s.units.some((b) => b.alive && b.def.boss)) s.stats.bossHits = (s.stats.bossHits || 0) + 1; if (s.rules.nohit) o.hp = 0; o.flash = 0.6; if (!quiet) ev(s, { type: 'hurt', x: o.x, y: o.y, dmg, id: o.id, small: true }); if (o.hp <= 0) { o.hp = 0; kill(s, o); } return; }
+    if (o.def.part) { godHurt(s, o, Math.max(1, Math.round(dmg * s.mods.dmg)), quiet); return; }
     dmg = Math.max(1, Math.round(dmg * (o.team === 'foe' ? s.mods.dmg : 1))); o.hp -= dmg; if (o.team === 'foe') s.stats.dealt += dmg; o.flash = 0.5;
     if (!quiet) ev(s, { type: 'tick', x: o.x, y: o.y, dmg, id: o.id });
     if (o.hp <= 0) { o.hp = 0; kill(s, o); }
@@ -138,7 +139,7 @@
       // Mouse aim: the foe nearest the aimed direction, else the aimed direction itself; without aim, the nearest foe.
       if (s.aim != null) {
         let best = null, bd = 1e9;
-        for (const o of foes(s)) { if (o.state === 'spawn') continue; const d = dist(o, u), da = Math.abs(angDiff(Math.atan2(o.y - u.y, o.x - u.x), s.aim)); if (d < 115 && da < 0.9 && d + da * 60 < bd) { bd = d + da * 60; best = o; } }
+        for (const o of foes(s)) { if (o.state === 'spawn' || o.def.god) continue; const d = dist(o, u), da = Math.abs(angDiff(Math.atan2(o.y - u.y, o.x - u.x), s.aim)); if (d < 115 && da < 0.9 && d + da * 60 < bd) { bd = d + da * 60; best = o; } }
         setAng(u, best ? Math.atan2(best.y - u.y, best.x - u.x) : s.aim);
       } else { const o = nearestFoe(s, u, 100); if (o) setAng(u, Math.atan2(o.y - u.y, o.x - u.x)); }
     }
@@ -363,6 +364,7 @@
     let mult = M.dmg * (o.state === 'down' ? 1.5 : 1) * (M.exec && o.hp < o.maxHp * 0.25 ? 1.5 : 1);
     if (!bolt && a.riposte) { mult *= 3; a.riposte = false; ev(s, { type: 'riposte', x: o.x, y: o.y }); }
     const dmg = Math.max(1, Math.round(k.dmg * mult * (0.9 + 0.2 * s.rand())));
+    if (o.def.part) { const src1 = bolt ? { x: bolt.x - bolt.vx, y: bolt.y - bolt.vy } : a; godHurt(s, o, dmg, false, (k.poise || 0) >= 12, Math.atan2(o.y - src1.y, o.x - src1.x)); s.hitstop = Math.max(s.hitstop, (k.poise || 0) >= 12 ? 0.1 : 0.06); return; }
     o.hp -= dmg; s.stats.dealt += dmg; o.flash = 1; o.lastHit = s.time;
     if (M.thirst) s.hero.hp = Math.min(s.hero.maxHp, s.hero.hp + dmg * M.thirst);
     s.combo++; s.comboT = 1.6; s.stats.maxCombo = Math.max(s.stats.maxCombo, s.combo);
@@ -413,8 +415,97 @@
     if (o.ally) { ev(s, { type: 'vanish', id: o.id, x: o.x, y: o.y }); return; }
     if (o === s.hero) { s.endT = 2.0; s.combo = 0; return; }
     if (o.team === 'foe') { const h = s.hero; if (h.alive) { const n = Math.max(2, Math.round(h.maxHp * s.mods.killHeal)); h.hp = Math.min(h.maxHp, h.hp + n); ev(s, { type: 'heal', x: h.x, y: h.y, n }); } gainMoon(s, o.def.boss ? 0 : 5); s.kills = (s.kills || 0) + 1; }
-    if (o.def.boss) { s.slow = 0.25; s.slowT = 0.9; ev(s, { type: 'impact', size: 'big', x: o.x, y: o.y }); }
+    if (o.def.god) { s.slow = 0.2; s.slowT = 1.6; for (const f of foes(s)) dismiss(s, f); s.hazards = s.hazards.filter((z) => z.team !== 'foe'); s.reinf = []; ev(s, { type: 'godDown', x: o.x, y: o.y }); ev(s, { type: 'impact', size: 'big', x: s.hero.x, y: s.hero.y }); }
+    else if (o.def.boss) { s.slow = 0.25; s.slowT = 0.9; ev(s, { type: 'impact', size: 'big', x: o.x, y: o.y }); }
     else if (o.team === 'foe' && !(s.reinf && s.reinf.length) && !foes(s).length) { s.slow = 0.22; s.slowT = 0.7; ev(s, { type: 'finisher', x: o.x, y: o.y }); }
+  }
+
+  // ---- the god: the First Cut as the colossus of the opening -------------------------------------
+  // He stands beyond the summit, too vast for it, and strikes into it: his blade cuts a line across the
+  // floor (the red band warns), his hand slams a circle, moonfall rains around you, and later a sweep of
+  // cuts in a row. Where the blade or the hand comes down it stays a moment in the floor: cut it, and he
+  // bleeds. Past two thirds his dead pour in; past one third the echoes of the guardians you beat rise
+  // to fight beside him, and he kneels, lowering his head to the summit's edge, the best place to strike.
+  function segDist(px, py, x1, y1, x2, y2) { const lx = x2 - x1, ly = y2 - y1, L2 = lx * lx + ly * ly || 1, t = Math.max(0, Math.min(1, ((px - x1) * lx + (py - y1) * ly) / L2)); return Math.hypot(px - (x1 + lx * t), py - (y1 + ly * t)); }
+  function godArrive(s, key, def) {
+    const sk = s.def.scale || { hp: 1, dmg: 1 }, DF = VS.DIFF, R0 = godRadius(s);
+    const u = makeUnit(s, 'foe', key, def, R0 * 0.75 + 260, -R0 * 0.75 - 260, 0);
+    u.hp = u.maxHp = Math.round(def.hp * sk.hp * DF.bossHp); u.dmgMul = sk.dmg * DF.dmg; u.rad = 1;
+    u.cd = 3.2; u.gPhase = 1; u.echoes = ['warden', 'twinA', 'umbral', 'hunger', 'wing']; u.kneelCd = 6; setState(u, 'idle');
+    s.god = u; s.bossIds.push(u.id);
+  }
+  function godRadius(s) { const A = arenaOf(s); return A.kind === 'grid' ? Math.min(A.w, A.h) * A.T * 0.42 : (A.r || 300); }
+  // Where he can strike: the summit's floor, kept inside.
+  const onFloor = (s, x, y, m) => VS.clampTo(arenaOf(s), x, y, m || 20);
+  function godPart(s, x, y, P) {
+    const c = onFloor(s, x, y, 18), u = makeUnit(s, 'foe', 'godPart', D.FOES.godPart, c[0], c[1], 0);
+    u.rad = P.rad || 26; u.part = P.kind; u.weak = P.weak || 1; u.life = P.life || 3; u.partLine = P.line || null; setState(u, 'idle');
+    ev(s, { type: 'godPart', id: u.id, kind: P.kind, x: u.x, y: u.y });
+    return u;
+  }
+  function godHurt(s, part, dmg, quiet, heavy, ang) {
+    const g = s.god; if (!g || !g.alive) return;
+    const d = Math.max(1, Math.round(dmg * (part.weak || 1)));
+    g.hp -= d; s.stats.dealt += d; part.flash = 1; g.flash = 1; g.lastHit = s.time;
+    s.combo++; s.comboT = 1.6; s.stats.maxCombo = Math.max(s.stats.maxCombo, s.combo); gainMoon(s, heavy ? 4 : 2);
+    if (!quiet) ev(s, { type: 'hit', x: part.x, y: part.y, dmg: d, id: part.id, heavy: !!heavy, combo: s.combo, ang: ang || 0, weak: part.weak > 1.5 });
+    if (g.hp <= 0) { g.hp = 0; kill(s, g); }
+  }
+  function godThink(s, dt) {
+    const g = s.god, h = s.hero; if (!h.alive || s.cine) return;
+    for (const u of s.units) if (u.alive && u.def.part) { u.life -= dt; if (u.life <= 0) { dismiss(s, u); ev(s, { type: 'godPartGone', id: u.id, x: u.x, y: u.y }); } }
+    // His phases: at two thirds his dead pour in; at one third the echoes rise and he begins to kneel.
+    const f = g.hp / g.maxHp, want = f > 0.66 ? 1 : f > 0.33 ? 2 : 3;
+    if (want > g.gPhase) {
+      g.gPhase = want; s.freeze = Math.max(s.freeze, 1.3); ev(s, { type: 'godPhase', n: want });
+      if (want === 2) godSummon(s, 5);
+      if (want === 3) { godEcho(s); g.kneelCd = 2.5; }
+    }
+    if (g.gPhase === 3) { g.kneelCd -= dt; if (g.kneelCd <= 0 && !s.units.some((u) => u.alive && u.part === 'head')) { g.kneelCd = 17; godKneel(s); } }
+    g.summonT = (g.summonT || 0) + dt;
+    if (g.gPhase >= 2 && g.summonT > 16 && foes(s).filter((u) => !u.def.god && !u.def.part).length < 3) { g.summonT = 0; if (g.gPhase === 3 && g.echoes.length && s.rand() < 0.5) godEcho(s); else godSummon(s, 3 + g.gPhase); }
+    g.cd -= dt; if (g.cd > 0) return;
+    const pool = g.gPhase === 1 ? ['blade', 'hand', 'blade', 'rain'] : g.gPhase === 2 ? ['blade', 'hand', 'rain', 'sweep', 'hand'] : ['blade', 'sweep', 'hand', 'rain', 'blade'];
+    let pick = pool[Math.floor(s.rand() * pool.length)]; if (pick === g.lastMove && s.rand() < 0.7) pick = pool[(pool.indexOf(pick) + 1) % pool.length]; g.lastMove = pick;
+    const quick = g.gPhase === 3 ? 0.8 : g.gPhase === 2 ? 0.9 : 1, dmg = (n) => Math.round(n * (g.dmgMul || 1));
+    if (pick === 'blade') {
+      // The blade comes down along a line through where you stand, from his side of the summit.
+      const a = Math.atan2(h.y - g.y, h.x - g.x) + (s.rand() - 0.5) * 0.5, L = godRadius(s) * 2.6, dx = Math.cos(a), dy = Math.sin(a);
+      addHazard(s, { kind: 'cut', team: 'foe', x1: h.x - dx * L * 0.6, y1: h.y - dy * L * 0.6, x2: h.x + dx * L * 0.4, y2: h.y + dy * L * 0.4, w: 24, delay: 1.35 * quick, dmg: dmg(26), r: 0, x: h.x, y: h.y,
+        part: { kind: 'blade', x: h.x, y: h.y, life: 3.8, weak: 1, rad: 24, line: { ang: a } } });
+      ev(s, { type: 'godMove', move: 'blade', x: h.x, y: h.y, ang: a }); g.cd = 3.4 * quick;
+    } else if (pick === 'hand') {
+      const c = onFloor(s, h.x + (s.rand() - 0.5) * 20, h.y + (s.rand() - 0.5) * 20, 30);
+      addHazard(s, { kind: 'strike', team: 'foe', x: c[0], y: c[1], r: 58, delay: 1.2 * quick, dmg: dmg(28), fx: 'rock_burst', part: { kind: 'hand', life: 3.2, weak: 1.25, rad: 30 } });
+      ev(s, { type: 'godMove', move: 'hand', x: c[0], y: c[1] }); g.cd = 3.2 * quick;
+    } else if (pick === 'rain') {
+      const n = 8 + g.gPhase * 2;
+      for (let i = 0; i < n; i++) { const an = s.rand() * Math.PI * 2, rr = 20 + s.rand() * 140, c = onFloor(s, h.x + Math.cos(an) * rr, h.y + Math.sin(an) * rr, 14); addHazard(s, { kind: 'strike', team: 'foe', x: c[0], y: c[1], r: 26, delay: (0.8 + i * 0.1) * quick, dmg: dmg(14), fx: 'blast' }); }
+      ev(s, { type: 'godMove', move: 'rain', x: h.x, y: h.y }); g.cd = 2.8 * quick;
+    } else if (pick === 'sweep') {
+      // A row of cuts, one after another, across the summit: stand in a gap or roll through.
+      const a = s.rand() * Math.PI, dx = Math.cos(a), dy = Math.sin(a), nx = -dy, ny = dx, L = godRadius(s) * 2.6;
+      for (let i = -3; i <= 3; i++) { const ox = h.x + nx * i * 76, oy = h.y + ny * i * 76; addHazard(s, { kind: 'cut', team: 'foe', x1: ox - dx * L / 2, y1: oy - dy * L / 2, x2: ox + dx * L / 2, y2: oy + dy * L / 2, w: 18, delay: (1.1 + (i + 3) * 0.28) * quick, dmg: dmg(20), x: ox, y: oy, r: 0 }); }
+      ev(s, { type: 'godMove', move: 'sweep', x: h.x, y: h.y }); g.cd = 4.2 * quick;
+    }
+  }
+  function godSummon(s, n) {
+    const keys = ['woundknight', 'woundblade', 'husk', 'redwraith', 'ghoul', 'raider'].filter((k) => D.FOES[k]), h = s.hero;
+    for (let i = 0; i < n; i++) { const an = s.rand() * Math.PI * 2, c = onFloor(s, h.x + Math.cos(an) * (120 + s.rand() * 80), h.y + Math.sin(an) * (120 + s.rand() * 80), 26); summonFoe(s, keys[Math.floor(s.rand() * keys.length)], c[0], c[1], 'rift'); }
+    ev(s, { type: 'reinforce', n, left: 0 });
+  }
+  // An echo of a guardian you beat rises beside him, weaker than it was.
+  function godEcho(s) {
+    const g = s.god, key = g.echoes.shift(); if (!key || !D.FOES[key]) return;
+    const h = s.hero, an = s.rand() * Math.PI * 2, c = onFloor(s, h.x + Math.cos(an) * 150, h.y + Math.sin(an) * 150, 40);
+    const u = summonFoe(s, key, c[0], c[1], 'drop'); u.hp = u.maxHp = Math.round(u.maxHp * 0.32); u.echo = true; u.cd = 1.2;
+    ev(s, { type: 'bossArt', key, name: 'ECHO · ' + D.FOES[key].name.toUpperCase(), id: u.id });
+  }
+  // He kneels: his head comes down at the summit's edge on his side, open, for a few seconds.
+  function godKneel(s) {
+    const g = s.god, R0 = godRadius(s), d = Math.hypot(g.x, g.y) || 1, x = g.x / d * (R0 - 40), y = g.y / d * (R0 - 40);
+    godPart(s, x, y, { kind: 'head', life: 5.5, weak: 2.2, rad: 40 });
+    s.freeze = Math.max(s.freeze, 0.6); ev(s, { type: 'godKneel', x, y });
   }
 
   // ---- the moon arts -----------------------------------------------------------------------
@@ -436,6 +527,8 @@
   }
   VS.artDamage = function (s, kind, o) {
     if (o.def.minion) return 9999;
+    if (o.def.part) return 0;
+    if (o.def.god) return Math.round(o.maxHp * (kind === 'ldx' || (s.cine && s.cine.last) ? 0.12 : 0.06));
     const big = kind === 'ldx' || (kind !== 'moon' && s.cine && s.cine.last);
     return Math.round((big ? 60 + 0.32 * o.maxHp : (26 + 0.15 * o.maxHp) * (kind === 'moon' ? 1 : 1.25)) * s.mods.dmg);
   };
@@ -540,6 +633,7 @@
         x = p.x; y = p.y; tx = c[0]; ty = c[1];
       } else if (mode === 'side') { const g = gates[i % gates.length]; x = g.x; y = g.y; const c = VS.clampTo(A, g.tx + (s.rand() - 0.5) * 30, g.ty + (s.rand() - 0.5) * 30, 20); tx = c[0]; ty = c[1]; }
       else { const p = def.boss ? bossPoint(s, A) : spawnPoint(s, A, i); x = p.x; y = p.y; }
+      if (def.god) { godArrive(s, key, def); return; }
       const u = makeUnit(s, 'foe', key, def, x, y, 0); lookOf(s, u);
       const sk = s.def.scale || { hp: 1, dmg: 1 }, DF = VS.DIFF; u.hp = u.maxHp = Math.round(def.hp * sk.hp * (def.boss ? DF.bossHp : DF.hp)); u.dmgMul = sk.dmg * DF.dmg;
       setAng(u, Math.atan2(h.y - u.y, h.x - u.x)); u.orbit = (s.rand() < 0.5 ? -1 : 1); u.cd = 0.4 + i * 0.3 + (def.boss ? 0.6 : 0);
@@ -568,7 +662,7 @@
     for (const z of A.hz.zones) addHazard(s, { kind: 'zone', team: 'arena', arena: true, x: z.x, y: z.y, r: z.r, dur: 1e9, dps: z.dps, slow: z.slow, fx: z.fx, tick: 0.5 });
   }
   function lairVents(s, dt) {
-    const A = curArena, V = A && A.hz && A.hz.vents; if (!V || !foes(s).some((u) => u.state !== 'spawn')) return;
+    const A = curArena, V = A && A.hz && A.hz.vents; if (!V || s.god || !foes(s).some((u) => u.state !== 'spawn')) return;
     s.ventT += dt; if (s.ventT < V.every) return; s.ventT = 0; s.ventN++;
     const boss = foes(s).find((u) => u.def.boss), hot = boss && boss.phase === 2;
     V.spots.forEach((p, i) => {
@@ -747,6 +841,7 @@
       if (k >= 1) { h.z = 0; h.vz = 0; h.leap = null; areaHit(s, h, h.x, h.y, L.sk.r, { dmg: L.sk.dmg, poise: L.sk.poise, kb: 30, stun: L.sk.stun, fx: 'spin' }); ev(s, { type: 'thunder', x: h.x, y: h.y, r: L.sk.r }); s.hitstop = Math.max(s.hitstop, 0.08); setState(h, 'idle'); }
     }
     for (const u of s.units) if (u.alive && u.team === 'foe') foeThink(s, u, dt); else if (u.alive && u.ally) allyThink(s, u, dt);
+    if (s.god && s.god.alive) godThink(s, dt);
     for (const u of s.units) {
       if (!u.alive) continue;
       if (u.slowT > 0) u.slowT -= dt; if (u.stunT > 0) u.stunT -= dt;
@@ -757,8 +852,15 @@
     for (const z of s.hazards) {
       z.t += dt; if (z.t < z.delay) continue;
       const victims = s.units.filter((o) => o.alive && o.team !== z.team && o.state !== 'spawn' && Math.hypot(o.x - z.x, o.y - z.y) <= z.r + o.rad);
+      if (z.kind === 'cut' && !z.done) {
+        z.done = true; ev(s, { type: 'cut', x1: z.x1, y1: z.y1, x2: z.x2, y2: z.y2, w: z.w });
+        for (const o of s.units) if (o.alive && o.team !== z.team && o.state !== 'spawn' && segDist(o.x, o.y, z.x1, z.y1, z.x2, z.y2) <= z.w + o.rad) hit(s, { team: z.team, x: o.x - (z.y2 - z.y1) * 0.01, y: o.y + (z.x2 - z.x1) * 0.01, ang: 0, phase: 1, def: {}, dmgMul: 1, face: 1 }, o, { dmg: z.dmg, kb: 22, poise: 20, unparry: true });
+        if (z.part) godPart(s, z.part.x, z.part.y, z.part);
+        continue;
+      }
       if (z.kind === 'strike' && !z.done) {
-        z.done = true; ev(s, { type: 'strike', x: z.x, y: z.y, r: z.r, fx: z.fx, quiet: z.quiet, team: z.team });
+        z.done = true; ev(s, { type: 'strike', x: z.x, y: z.y, r: z.r, fx: z.fx, quiet: z.quiet, team: z.team, hand: !!z.part });
+        if (z.part) godPart(s, z.x, z.y, z.part);
         for (const o of victims) hit(s, { team: z.team, x: z.x, y: z.y, ang: 0, phase: 1, def: {}, dmgMul: 1, face: 1 }, o, { dmg: z.dmg, kb: 16, poise: 12, slow: z.slow, unparry: true });
         if (z.then) addHazard(s, Object.assign({ team: z.team, x: z.x, y: z.y }, z.then));
       } else if (z.kind === 'zone') {
@@ -769,7 +871,7 @@
         z.tick -= dt; if (z.tick <= 0 && victims.length) { z.tick = 0.6; for (const o of victims) hit(s, { team: z.team, x: z.x, y: z.y, ang: 0, phase: 1, def: {}, dmgMul: 1, face: 1 }, o, { dmg: z.dmg, kb: 30, poise: 10, unparry: true }); }
       }
     }
-    s.hazards = s.hazards.filter((z) => (z.kind === 'strike' ? !z.done : z.t < z.delay + z.dur));
+    s.hazards = s.hazards.filter((z) => (z.kind === 'strike' || z.kind === 'cut' ? !z.done : z.t < z.delay + z.dur));
 
     for (const u of s.units) {
       u.st += dt; u.iframes = Math.max(0, u.iframes - dt); u.flash = Math.max(0, u.flash - dt * 5);
@@ -905,6 +1007,12 @@
     // Step out of danger on the floor: a strike about to land, a burning or poisoned zone, a tornado.
     for (const z of s.hazards) {
       if (z.team === 'hero') continue;
+      if (z.kind === 'cut') {
+        if (z.delay - z.t > 0.75 || segDist(h.x, h.y, z.x1, z.y1, z.x2, z.y2) > z.w + h.rad + 8) continue;
+        const lx = z.x2 - z.x1, ly = z.y2 - z.y1, L = Math.hypot(lx, ly) || 1, side = ((h.x - z.x1) * -ly + (h.y - z.y1) * lx) >= 0 ? 1 : -1;
+        if (r() < skill) { inp.mx = -ly / L * side; inp.my = lx / L * side; if (z.delay - z.t < 0.25 && r() < 0.5 && can.dodge) inp.dodge = true; return inp; }
+        continue;
+      }
       const dx = h.x - z.x, dy = h.y - z.y, dd = Math.hypot(dx, dy) || 1;
       if (dd > z.r + h.rad + 6 || (z.kind === 'strike' && z.delay - z.t > 0.6)) continue;
       if (r() < skill) { inp.mx = dx / dd; inp.my = dy / dd; if (z.kind === 'strike' && z.delay - z.t < 0.25 && r() < 0.5 && can.dodge) inp.dodge = true; return inp; }

@@ -385,6 +385,12 @@
         { clip: 'Attack5', wind: 0.55, recover: 0.5, dmg: 12, kb: 12, bolt: { fx: 'wind_gust', speed: 170 }, phase: 2, range: [90, 400] },
         { sig: 'GALE', clip: 'Special1', wind: 0.7, recover: 0.9, tornado: { n: 2, r: 26, dur: 5, speed: 60, dmg: 10 } },
         { sig: 'FEATHERSTORM', clip: 'Attack5', wind: 0.6, recover: 0.9, rain: { n: 10, r: 22, spread: 120, dmg: 11, fx: 'wind_gust', delay: 0.8 }, phase: 2 }] },
+    // The final fight: the First Cut as the god of the opening, too vast for the arena. He looms beyond the
+    // summit and strikes into it (js/sim.js, 'the god'); where his blade, hand or head comes down, it can be cut.
+    godCut: { name: 'The First Cut', title: 'Who Wounded the Moon', set: 'master_knight', hp: 1150, spd: 0, poise: 0, boss: true, god: true, passive: true, color: '#ff3048',
+      atks: [{ clip: 'Idle4', wind: 1, recover: 1, reach: 1, dmg: 0, kb: 0 }] },
+    godPart: { name: 'The First Cut', set: 'master_knight', hp: 99999, spd: 0, poise: 0, part: true, passive: true, color: '#ff3048',
+      atks: [{ clip: 'Idle4', wind: 1, recover: 1, reach: 1, dmg: 0, kb: 0 }] },
     firstCut: { name: 'The First Cut', title: 'Who Wounded the Moon', set: 'master_knight', hp: 560, spd: 74, poise: 70, boss: true, color: '#ffffff',
       atks: [{ clip: 'Attack1', wind: 0.4, recover: 0.4, reach: 34, dmg: 12, kb: 10, next: 1 },
         { clip: 'Attack2', wind: 0.24, recover: 0.4, reach: 34, dmg: 12, kb: 10, next: 2, chainOnly: true },
