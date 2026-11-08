@@ -21,9 +21,9 @@ require('fs').mkdirSync(out, { recursive: true });
     BB.goCamp();
   });
   await p.waitForTimeout(1200); await p.screenshot({ path: out + '/p2-camp.png' });
-  await p.tap('#bHire'); await p.waitForTimeout(700); await p.screenshot({ path: out + '/p3-forge.png' });
-  await p.tap('#forge .tabs button[data-tab=look]'); await p.waitForTimeout(400); await p.screenshot({ path: out + '/p3b-forge-look.png' });
-  await p.tap('#bForgeBack'); await p.waitForTimeout(800);
+  await p.tap('#bTavern'); await p.waitForTimeout(1200); await p.screenshot({ path: out + '/p3-heroes.png' });
+
+  await p.tap('#bTvBack'); await p.waitForTimeout(1000);
   await p.tap('#bWarband'); await p.waitForTimeout(700); await p.screenshot({ path: out + '/p4-warband.png' });
   await p.tap('#bWbBack'); await p.waitForTimeout(800);
   await p.tap('#bStronghold'); await p.waitForTimeout(500); await p.screenshot({ path: out + '/p5-stronghold.png' });

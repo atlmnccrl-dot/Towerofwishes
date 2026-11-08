@@ -272,11 +272,10 @@
 
   // ---- stronghold buildings
   BB.BUILDINGS = {
-    barracks: { name: 'Barracks', desc: 'Room for more heroes in the warband.', costs: [0, 120, 320, 700], effect: (l) => 'Roster ' + (5 + l * 2) },
+    barracks: { name: 'Barracks', desc: 'Drills and hot meals: every hero is hardier.', costs: [0, 120, 320, 700], effect: (l) => '+' + l * 6 + '% health' },
     forge: { name: 'War Forge', desc: 'Finer gear from every victory.', costs: [0, 150, 400, 900], effect: (l) => '+' + l * 8 + '% rare drops' },
     yard: { name: 'Training Yard', desc: 'Heroes learn faster.', costs: [0, 100, 280, 650], effect: (l) => '+' + l * 15 + '% XP' },
     chapel: { name: 'Chapel of Dawn', desc: 'Faster recovery, stronger heals.', costs: [0, 130, 350, 800], effect: (l) => '+' + l * 10 + '% healing' },
-    tavern: { name: 'Hall of Heroes', desc: 'More wandering heroes come to your fire, and better ones.', costs: [0, 140, 360, 780], effect: (l) => (3 + l) + ' recruits, ' + (l * 10) + '% three-star' },
     market: { name: 'Market', desc: 'More coin, and a merchant with wares.', costs: [0, 110, 300, 720], effect: (l) => '+' + l * 12 + '% gold' },
   };
   BB.HIRE_COST = (n) => 60 + n * 45;
@@ -291,16 +290,16 @@
   // type: rout (clear every wave) | gates (destroy every gate) | defend (keep the ward alive) | boss | duel
   BB.MISSIONS = [
     { id: 'm1', region: 'vale', name: 'The Burning Hamlet', type: 'rout', level: 1, layout: 'village',
-      waves: [['ghoul', 3], ['ghoul', 4], ['ghoul', 3, 'warden', 1]], tutorial: true,
+      waves: [['ghoul', 2], ['ghoul', 3], ['ghoul', 3, 'warden', 1]], tutorial: true,
       brief: 'Ashford is burning. Drive the reavers out of the hamlet.', reward: { gold: 60 } },
     { id: 'm2', region: 'vale', name: 'Bones at the Mill', type: 'gates', level: 2, layout: 'mill', gates: 1,
-      waves: [['ghoul', 3, 'skel', 1], ['skel', 2, 'skelarcher', 1, 'necro', 1]],
+      waves: [['ghoul', 3], ['skel', 2, 'skelarcher', 1]],
       brief: 'A Gravegate has torn open beside the old mill. Smash it before it spills more dead.', reward: { gold: 80 } },
     { id: 'm3', region: 'vale', name: 'Witch of the Thornwood', type: 'defend', level: 3, layout: 'grove', ward: 'cage', time: 50,
       waves: [['ghoul', 4], ['warden', 2, 'ghoul', 3], ['necro', 2, 'ghoul', 4], ['warden', 2, 'necro', 1]], recruit: 'sera',
       brief: 'The dead want the caged witch. Keep the cage standing until the spell breaks.', reward: { gold: 100 } },
     { id: 'm4', region: 'vale', name: 'The Old Watch', type: 'gates', level: 4, layout: 'ruins', gates: 3, elites: 1,
-      waves: [['skel', 3], ['necro', 1, 'skelarcher', 1, 'ghoul', 2]],
+      waves: [['skel', 2, 'ghoul', 1], ['necro', 1, 'skelarcher', 1, 'ghoul', 1]],
       brief: 'Three gates ring the fallen watchtower. Close them all.', reward: { gold: 130 } },
     { id: 'm5', region: 'vale', name: 'Ossric, the Gravewarden', type: 'boss', level: 5, layout: 'courtyard', boss: 'ossric',
       waves: [['ghoul', 3]],

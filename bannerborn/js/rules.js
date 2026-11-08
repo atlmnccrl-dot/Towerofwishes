@@ -61,6 +61,52 @@
     const owned = new Set(save.heroes.filter((h) => h.recruit).map((h) => h.recruit));
     return (roster || []).filter((c) => c.role === 'hero' && arch.includes(c.arch) && !owned.has(c.key));
   };
+  // ---- hero tiers: set sections of the roster, opened by the campaign and bought with Banner Marks
+  BB.TIERS = [
+    { id: 1, name: 'Recruits', sub: 'Sworn at the first fire', unlock: null, cost: 1, stars: 1, arch: ['knight', 'barbarian', 'ranger', 'spearman'], count: 10 },
+    { id: 2, name: 'Veterans', sub: 'Opens when Greenvale is free', unlock: 'm5', cost: 2, stars: 2, arch: ['monk', 'paladin', 'knight', 'mage', 'spearman', 'barbarian'], count: 10 },
+    { id: 3, name: 'Elite', sub: 'Opens when the Sunscar is quiet', unlock: 'm10', cost: 3, stars: 2, arch: ['rogue', 'duelist', 'mage', 'beastfolk', 'monk', 'ranger'], count: 10 },
+    { id: 4, name: 'Champions', sub: 'Opens when Aldmere is free', unlock: 'c4', cost: 4, stars: 3, arch: null, count: 10 },
+  ];
+  const hashStr = (s) => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  // deterministic: the same roster always gives the same tiers and names
+  BB.heroTiers = function (roster) {
+    const heroes = (roster || []).filter((c) => c.role === 'hero').slice().sort((a, b) => hashStr(a.key) - hashStr(b.key));
+    const used = new Set(), out = [], names = new Set();
+    const uniqueName = (key) => { const r = BB.rng(hashStr(key)); let n = BB.randomName(r), g = 0; while (names.has(n.split(' ')[0]) && g++ < 40) n = BB.randomName(r); names.add(n.split(' ')[0]); return n; };
+    for (const T of BB.TIERS) {
+      const list = []; names.clear();
+      // round-robin through the tier's archetypes so each section is varied
+      const archs = T.arch || [...new Set(heroes.map((c) => c.arch))];
+      let guard = 0;
+      while (list.length < T.count && guard++ < 400) {
+        let added = false;
+        for (const a of archs) {
+          if (list.length >= T.count) break;
+          const c = heroes.find((x) => x.arch === a && !used.has(x.key));
+          if (c) { used.add(c.key); list.push(Object.assign({ tier: T.id, stars: T.stars, name: uniqueName(c.key) }, c)); added = true; }
+        }
+        if (!added) break;
+      }
+      out.push({ tier: T, heroes: list });
+    }
+    return out;
+  };
+  BB.tierOpen = (save, T) => !T.unlock || !!save.cleared[T.unlock];
+  BB.recruitFromTier = function (save, entry) {
+    const lvl = Math.max(1, Math.round(save.heroes.reduce((a, h) => a + h.level, 0) / Math.max(1, save.heroes.length)));
+    return BB.makeRecruit({ key: entry.key, calling: entry.calling, elem: entry.elem, arch: entry.arch, stars: entry.stars, level: lvl, name: entry.name });
+  };
+  BB.newCaptain = function () {
+    const h = BB.newHero({ calling: 'vanguard', captain: true, name: 'The Captain',
+      look: { skin: 'tan', head: 'hair', hair: 'copper', headTint: 'natural', chestTint: 'natural', legsTint: 'natural', shieldTint: 'crimson', chest: 'chestA', legs: 'legsA' } });
+    h.captain = true; return h;
+  };
+  // Banner Marks: earned by first victories (bosses give two), spent on heroes
+  BB.marksFor = (mission, firstClear) => !firstClear ? 0 : (mission.type === 'boss' || mission.type === 'duel' ? 2 : 1);
+  // fewer foes for a small warband: a lone captain can win the first fight
+  BB.waveScale = (n) => Math.min(1, Math.max(0.4, (n + 1) / 5));
+
   BB.recruitPrice = (o) => Math.round(70 + o.level * 25 + (o.stars - 1) * 70);
   BB.rollOffers = function (save, roster, seed) {
     const r = BB.rng(seed || (Date.now() & 0xffffff));
@@ -82,6 +128,7 @@
     return h;
   };
 
+  BB.shortName = (h) => { const p = h.name.split(' '); return p[0] === 'The' && p[1] ? p[1] : p[0]; };
   BB.heroColor = (h) => h.legend ? BB.LEGENDS[h.legend].color : BB.CALLINGS[h.calling].color;
   BB.heroElem = (h) => h.elem || (h.legend === 'sera' ? 'shadow' : (h.calling === 'arcanist' ? 'fire' : h.calling === 'warpriest' ? 'holy' : null));
   BB.heroTitle = (h) => h.legend ? BB.LEGENDS[h.legend].title : (h.captain ? 'Banner-Captain' : BB.CALLINGS[h.calling].name);
@@ -139,6 +186,7 @@
     };
     if (hero.legend) { s.hp *= 1.12; s.atk *= 1.1; s.def += 1; }
     if (hero.stars) { const k = 1 + (hero.stars - 1) * 0.08; s.hp *= k; s.atk *= k; }
+    if (hero.captain) { s.hp *= 1.45; s.atk *= 1.25; s.def += 2; }
     for (const slot of BB.SLOTS) {
       const it = hero.gear[slot]; if (!it) continue;
       for (const k in it.stats) s[k] = (s[k] || 0) + it.stats[k];
@@ -147,7 +195,7 @@
     const all = BB.PERKS.any.concat(BB.PERKS[hero.calling] || []);
     for (const pid of hero.perks) { const p = all.find((x) => x.id === pid); if (p) add(p.mod); }
     if (teamCallings) for (const b of BB.bondsFor(teamCallings)) add(b.mod);
-    if (save && save.buildings) s.heal += (save.buildings.chapel || 0) * 0.1;
+    if (save && save.buildings) { s.heal += (save.buildings.chapel || 0) * 0.1; s.hpPct += (save.buildings.barracks || 0) * 0.06; }
     if (C.ranged && hero.calling !== 'warpriest') s.crit += s.rangedCrit;
     if (hero.calling === 'arcanist' || hero.calling === 'warpriest') s.atkPct += s.casterAtk;
     if (!C.ranged) s.atkPct += s.meleeAtk;
@@ -208,13 +256,13 @@
     return items;
   };
 
-  BB.rosterCap = (save) => 5 + (save.buildings.barracks || 0) * 2;
+  BB.rosterCap = () => 99;
 
   BB.newSave = function () {
     return {
       v: 1, created: Date.now(), gold: 0, banner: { name: 'The Last Banner', color: BB.BANNER_COLORS[0], sigil: 'crown', trim: '#e8c66a' },
       heroes: [], team: [], inventory: [], cleared: {}, seen: {}, buildings: { barracks: 0, forge: 0, yard: 0, chapel: 0, market: 0, tavern: 0 }, offers: null,
-      endlessBest: 0, settings: { music: 0.5, sfx: 0.8, auto: false, shake: true }, stage: 'new', freeHires: 2, stats: { kills: 0, gates: 0 },
+      endlessBest: 0, marks: 0, settings: { music: 0.5, sfx: 0.8, autoSkills: false, speed: 1, shake: true }, stage: 'new', freeHires: 2, stats: { kills: 0, gates: 0 },
     };
   };
 

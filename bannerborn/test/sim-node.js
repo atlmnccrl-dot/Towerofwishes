@@ -16,13 +16,14 @@ for (const idx of list) {
   const M = BB.MISSIONS[idx];
   const agg = { n: 0, w: 0, t: 0, alive: 0, to: 0, minF: 1 };
   for (let k = 0; k < runs; k++) {
-    const save = BB.newSave(); save.settings.auto = true;
+    const save = BB.newSave(); save.settings.autoSkills = process.env.AUTO === "1";
     const r = BB.rng(idx * 100 + k + 1);
     const comps = [['vanguard', 'ranger', 'warpriest'], ['vanguard', 'ranger', 'warpriest', 'arcanist'], ['berserker', 'arcanist', 'warpriest', 'ranger'], ['vanguard', 'berserker', 'ranger', 'arcanist'],
       ['lancer', 'monk', 'warpriest', 'shadowblade'], ['vanguard', 'shadowblade', 'arcanist', 'monk']];
-    const comp = idx < 2 ? comps[0] : comps[1 + (k % 5)];
+    const comp = (idx < 2 ? comps[0] : comps[1 + (k % 5)]).slice(0, process.env.PROG ? Math.min(4, idx + 1) : 4);
     const heroes = comp.map((c, i) => {
       const h = BB.newHero({ calling: c, level: M.level, seed: i + k * 7 });
+      if (i === 0 && c === 'vanguard') h.captain = true;
       // what a player has by then: a few pieces of loot, a perk per level
       for (const slot of ['chest', 'weapon', 'head', 'legs']) if (r() < Math.min(0.9, 0.25 + idx * 0.08)) {
         const it = BB.makeItem(r, slot, Math.max(1, M.level - 1), BB.rollRarity(r, 0), slot === 'weapon' ? BB.weaponType(c) : undefined);

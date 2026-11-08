@@ -30,9 +30,9 @@ require('fs').mkdirSync(out, { recursive: true });
   console.log('result text:', res.replace(/\n/g, ' | '));
   // defeat + retry on a mission
   await p.evaluate(() => { document.querySelector('#resBody .btn:last-child').click(); });
-  await p.waitForTimeout(1500);
+  await p.waitForFunction(() => BB.UI.current === 'camp', null, { timeout: 20000 });
   await p.evaluate(() => BB.deploy(5));
-  await p.waitForFunction(() => BB.testHooks.mode() === 'battle', null, { timeout: 20000 });
+  await p.waitForFunction(() => BB.testHooks.mode() === 'battle' && BB.testHooks.scene().mission.id === 'm6', null, { timeout: 20000 });
   await p.waitForTimeout(1500);
   await p.evaluate(() => BB.testHooks.scene().lose('test'));
   await p.waitForTimeout(3500);

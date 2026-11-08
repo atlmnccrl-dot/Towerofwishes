@@ -240,14 +240,14 @@
   UI.heroById = (id) => BB.save.heroes.find((h) => h.id === id);
   UI.renderWarband = function () {
     const S = BB.save;
-    $('wbGold').textContent = S.gold; $('wbCount').textContent = S.heroes.length + ' / ' + BB.rosterCap(S) + ' heroes';
+    $('wbGold').textContent = S.gold; $('wbCount').textContent = S.heroes.length + (S.heroes.length === 1 ? ' hero' : ' heroes');
     const ts = $('teamSlots'); ts.innerHTML = '';
     for (let i = 0; i < 4; i++) {
       const h = UI.heroById(S.team[i]);
       const s = el('button', 'slot' + (W.slot === i ? ' sel' : ''));
       if (h) {
         s.appendChild(BB.portrait(h, 64).cloneNode ? copyCanvas(BB.portrait(h, 64)) : null);
-        s.appendChild(el('div', 'n', esc(h.name.split(' ')[0])));
+        s.appendChild(el('div', 'n', esc(BB.shortName(h))));
         s.appendChild(el('div', 'lv', 'L' + h.level));
         if (h.captain) s.appendChild(el('div', 'cap', '⚑'));
         s.style.boxShadow = W.sel === h.id ? 'inset 0 0 0 2px ' + BB.heroColor(h) : '';
@@ -258,12 +258,16 @@
     const team = S.team.map(UI.heroById).filter(Boolean);
     const cs = team.map((h) => h.calling);
     const bd = $('bonds'); bd.innerHTML = '';
-    for (const b of BB.BONDS) { const on = b.test(cs); const x = el('span', 'bond' + (on ? '' : ' off'), (on ? '✦ ' : '') + b.name); x.title = b.desc; click(x, () => UI.toast(b.name + ': ' + b.desc)); bd.appendChild(x); }
+    const active = BB.BONDS.filter((b) => b.test(cs));
+    for (const b of active) { const x = el('span', 'bond', '✦ ' + b.name); x.title = b.desc; click(x, () => UI.toast(b.name + ': ' + b.desc)); bd.appendChild(x); }
+    const hint = el('button', 'bond off', active.length ? 'All bonds ›' : 'No bonds yet — mix callings ›');
+    click(hint, () => UI.confirm('<div class="howto">' + BB.BONDS.map((b) => '<div><b>' + (b.test(cs) ? '✦ ' : '') + b.name + '</b><span>' + b.desc + '</span></div>').join('') + '</div>', () => {}));
+    bd.appendChild(hint);
     const ro = $('roster'); ro.innerHTML = '';
     for (const h of S.heroes) {
       const s = el('button', 'slot' + (W.sel === h.id ? ' sel' : ''));
       s.appendChild(copyCanvas(BB.portrait(h, 64)));
-      s.appendChild(el('div', 'n', esc(h.name.split(' ')[0])));
+      s.appendChild(el('div', 'n', esc(BB.shortName(h))));
       s.appendChild(el('div', 'lv', 'L' + h.level));
       if (S.team.includes(h.id)) s.appendChild(el('div', 'cap', '★'));
       if (h.pendingPerks) s.appendChild(el('div', 'badge', h.pendingPerks));
@@ -301,16 +305,33 @@
       box.appendChild(el('div', '', '<span style="color:#ffd35a">' + '★'.repeat(h.stars || 1) + '</span> <span class="mute" style="font-size:13px">' + esc((BB.ROSTER.find((c) => c.key === h.recruit) || {}).desc || '') + '</span>' + (E ? ' <span style="color:' + E.col + ';font-size:13px;font-weight:800">' + E.name + '</span>' : '')));
     }
     if (h.pendingPerks) { const b = el('button', 'btn', '✦ Choose a perk (' + h.pendingPerks + ')'); click(b, () => UI.openPerk(h)); box.appendChild(b); }
+    const tabs = el('div', 'tabs');
+    for (const [id, name] of [['overview', 'Overview'], ['gear', 'Gear · ' + BB.SLOTS.filter((sl) => h.gear[sl]).length + '/' + (C.offhand && !h.recruit ? 6 : 5)]]) {
+      const t = el('button', W.tab === id || (!W.tab && id === 'overview') ? 'on' : '', name); click(t, () => { W.tab = id; UI.renderHeroDetail(); }); tabs.appendChild(t);
+    }
+    box.appendChild(tabs);
+    const gearTab = W.tab === 'gear';
+    if (!gearTab) {
     box.appendChild(el('div', 'stats', '<div>Health<b>' + st.hp + '</b></div><div>Attack<b>' + Math.round(st.atk) + '</b></div><div>Defence<b>' + Math.round(st.def) + '</b></div><div>Crit<b>' + Math.round(st.crit * 100) + '%</b></div><div>Speed<b>' + st.spd.toFixed(1) + '</b></div><div>Skill CD<b>' + st.cd.toFixed(1) + 's</b></div>'));
     box.appendChild(el('div', 'lbl', '✦ ' + C.skill.name + ' — <span style="text-transform:none;letter-spacing:0;font-family:Alegreya Sans">' + C.skill.desc + '</span>'));
     if (h.perks.length) {
       const all = BB.PERKS.any.concat(BB.PERKS[h.calling] || []);
       box.appendChild(el('div', 'bonds', h.perks.map((p) => '<span class="bond">' + esc((all.find((x) => x.id === p) || {}).name || p) + '</span>').join('')));
     }
-    box.appendChild(el('div', 'lbl', 'Gear'));
+    if (!h.captain && !h.legend) {
+      const d = el('button', 'btn red sm', 'Dismiss'); d.style.alignSelf = 'flex-start'; d.style.marginTop = '6px';
+      click(d, () => UI.confirm('Dismiss <b>' + esc(h.name) + '</b>? Their gear returns to the armory.', () => {
+        for (const s of BB.SLOTS) if (h.gear[s]) S.inventory.push(h.gear[s]);
+        S.heroes = S.heroes.filter((x) => x !== h); S.team = S.team.filter((x) => x !== h.id); W.sel = null; BB.persist(); UI.openWarband();
+      }));
+      box.appendChild(d);
+    }
+    return;
+    }
+    box.appendChild(el('div', 'lbl', 'Equipped — tap to take off'));
     const gr = el('div', 'gearrow');
     for (const slot of BB.SLOTS) {
-      if (slot === 'offhand' && !C.offhand) continue;
+      if (slot === 'offhand' && (!C.offhand || h.recruit)) continue;
       const it = h.gear[slot];
       const b = el('button', 'gslot', '<small>' + BB.SLOT_NAME[slot] + '</small>' + (it ? '<span style="color:' + BB.RARITY[it.rarity].color + '">' + esc(it.name) + '</span>' : '<span class="mute">—</span>'));
       if (it) click(b, () => { S.inventory.push(it); h.gear[slot] = null; BB.persist(); UI.renderWarband(); });
@@ -337,14 +358,8 @@
     const row = el('div', 'row'); row.style.marginTop = '8px';
     const sell = S.inventory.filter((it) => it.rarity === 0).length;
     if (sell) { const b = el('button', 'btn dark sm', 'Sell ' + sell + ' common items'); click(b, () => { const g = S.inventory.filter((it) => it.rarity === 0).reduce((a, it) => a + 6 + it.level * 2, 0); S.inventory = S.inventory.filter((it) => it.rarity > 0); S.gold += g; BB.sfx('coin'); BB.persist(); UI.toast('+' + g + ' gold'); UI.renderWarband(); }); row.appendChild(b); }
-    const best = el('button', 'btn dark sm', 'Equip best'); click(best, () => { UI.equipBest(h); UI.renderWarband(); }); row.appendChild(best);
-    if (!h.captain && !h.legend) {
-      const d = el('button', 'btn red sm', 'Dismiss'); click(d, () => UI.confirm('Dismiss <b>' + esc(h.name) + '</b>? Their gear returns to the armory.', () => {
-        for (const s of BB.SLOTS) if (h.gear[s]) S.inventory.push(h.gear[s]);
-        S.heroes = S.heroes.filter((x) => x !== h); S.team = S.team.filter((x) => x !== h.id); W.sel = null; BB.persist(); UI.openWarband();
-      })); row.appendChild(el('div', 'grow')); row.appendChild(d);
-    }
-    box.appendChild(row);
+    const best = el('button', 'btn sm', 'Equip best'); click(best, () => { UI.equipBest(h); UI.renderWarband(); }); row.insertBefore(best, row.firstChild);
+    box.insertBefore(row, box.querySelector('.gearrow').previousSibling);
   };
   UI.equipBest = function (h) {
     const S = BB.save;
@@ -371,6 +386,14 @@
   };
 
   // ---------------------------------------------------------------- stronghold
+  const BICON = {
+    barracks: '<svg viewBox="0 0 24 24"><path d="M3 20h18M4 20V9l8-5 8 5v11"/><path d="M9 20v-6h6v6"/></svg>',
+    forge: '<svg viewBox="0 0 24 24"><path d="M3 8h12.5c0 2.2 2 3.5 5 3.5V14h-7l2 5H8.5l2-5H7C4.5 14 3 11.5 3 8z"/></svg>',
+    yard: '<svg viewBox="0 0 24 24"><path d="M5 19L17 7M14 4l6 6M4 16l4 4M7 13l4 4"/></svg>',
+    chapel: '<svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="4"/><path d="M12 2v2M12 16v6M4 10H2M22 10h-2M6 4l1.5 1.5M18 4l-1.5 1.5"/></svg>',
+    market: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7v10M9.5 9.5c0-1 1-1.5 2.5-1.5s2.5.6 2.5 1.7c0 2.6-5 1.3-5 4 0 1.1 1 1.8 2.5 1.8s2.5-.6 2.5-1.5"/></svg>',
+    tavern: '<svg viewBox="0 0 24 24"><path d="M3 20h18M5 20V10l7-6 7 6v10"/><path d="M10 20v-5h4v5"/></svg>',
+  };
   UI.openStronghold = function () { UI.renderStronghold(); UI.show('stronghold'); };
   UI.renderStronghold = function () {
     const S = BB.save; $('shGold').textContent = S.gold;
@@ -378,7 +401,7 @@
     for (const id in BB.BUILDINGS) {
       const B = BB.BUILDINGS[id], lv = S.buildings[id] || 0, max = B.costs.length - 1;
       const c = el('div', 'bcard');
-      c.appendChild(el('h3', '', B.name));
+      c.appendChild(el('h3', '', (BICON[id] || '') + B.name));
       c.appendChild(el('div', 'lvl', [1, 2, 3].map((i) => '<i class="' + (i <= lv ? 'on' : '') + '"></i>').join('')));
       c.appendChild(el('div', '', '<span style="font-size:14px">' + B.desc + '</span>'));
       c.appendChild(el('div', 'gold', '<span style="font-size:13px">Now: ' + B.effect(lv) + (lv < max ? ' → ' + B.effect(lv + 1) : '') + '</span>'));
@@ -535,60 +558,110 @@
     box.appendChild(go);
   };
 
-  // ---------------------------------------------------------------- Hall of Heroes
-  const T = UI.tav = { cards: [], t: 0 };
+  // ---------------------------------------------------------------- Heroes: set tiers opened by the campaign
+  const ROMAN = ['', 'I', 'II', 'III', 'IV'];
+  UI.thumb = function (key, size) {
+    const c = document.createElement('canvas'); c.width = c.height = size || 40;
+    const P = BB.A.portraits; if (!P) return c;
+    const r = P.meta.f[key]; if (!r) return c;
+    const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+    g.drawImage(P.img, r[0], r[1], r[2], r[3], 0, 0, c.width, c.height);
+    return c;
+  };
+  const T = UI.tav = { preview: null, t: 0 };
   UI.openTavern = async function () {
-    const S = BB.save;
-    if (!S.offers) { S.offers = BB.rollOffers(S, BB.ROSTER); BB.persist(); }
-    await Promise.all(S.offers.map((o) => BB.loadChar('h/' + o.key)));
+    await BB.loadPortraits();
     UI.renderTavern(); UI.show('tavern');
   };
   UI.renderTavern = function () {
-    const S = BB.save, box = $('recruits'); box.innerHTML = '';
-    $('tvGold').textContent = S.gold; $('tvCount').textContent = S.heroes.length + ' / ' + BB.rosterCap(S) + ' heroes';
-    T.cards = [];
-    if (!S.offers.length) box.appendChild(el('div', 'mute', 'No one new at the fire. Win battles to draw more heroes.'));
-    for (const o of S.offers) {
-      const C = BB.CALLINGS[o.calling], E = o.elem && BB.ELEMENTS[o.elem], price = BB.recruitPrice(o);
-      const c = el('div', 'rcard' + (o.stars === 3 ? ' star3' : ''));
-      const cv = document.createElement('canvas'); c.appendChild(cv);
-      c.appendChild(el('div', 'stars', '★'.repeat(o.stars)));
-      if (E) { const t = el('div', 'el', E.name); t.style.color = E.col; c.appendChild(t); }
-      c.appendChild(el('div', 'nm', esc(o.name)));
-      c.appendChild(el('div', 'cl', '<span style="color:' + C.color + '">' + C.name + '</span> <span class="mute">· ' + C.role + ' · L' + o.level + '</span>'));
-      c.appendChild(el('div', 'mute', '<span style="font-size:12px">✦ ' + C.skill.name + ' — ' + C.skill.desc + '</span>'));
-      const b = el('button', 'btn sm', 'Recruit · <span class="coin">' + price + '</span>');
-      b.disabled = S.gold < price || S.heroes.length >= BB.rosterCap(S);
+    const S = BB.save, box = $('tiers'); box.innerHTML = '';
+    $('tvGold').textContent = S.gold; $('tvMarks').textContent = S.marks || 0;
+    const owned = new Set(S.heroes.filter((h) => h.recruit).map((h) => h.recruit));
+    for (const { tier, heroes } of BB.heroTiers(BB.ROSTER)) {
+      const open = BB.tierOpen(S, tier);
+      const sec = el('section', 'tier' + (open ? '' : ' locked'));
+      const unlockM = tier.unlock && BB.MISSIONS.find((m) => m.id === tier.unlock);
+      sec.appendChild(el('header', '', '<div class="crest">' + ROMAN[tier.id] + '</div><div class="grow"><h3>' + tier.name + ' <span class="stars">' + '★'.repeat(tier.stars) + '</span></h3><div class="mute">' +
+        (open ? tier.sub.replace(/^Opens when.*/, 'Open') : '🔒 Clear “' + esc(unlockM.name) + '” to open') + '</div></div><div class="cost">⚑ ' + tier.cost + '<small>per hero</small></div>'));
+      const grid = el('div', 'tgrid');
+      for (const c of heroes) {
+        const C = BB.CALLINGS[c.calling], has = owned.has(c.key);
+        const card = el('button', 'tcard' + (has ? ' owned' : open ? '' : ' shut'));
+        card.style.setProperty('--hc', C.color);
+        card.appendChild(UI.thumb(c.key, 40));
+        card.appendChild(el('div', 'nm', open || has ? esc(c.name.split(' ')[0]) : '???'));
+        card.appendChild(el('div', 'cl', open || has ? C.name : '—'));
+        if (has) card.appendChild(el('div', 'own', '✓'));
+        if (open || has) click(card, () => UI.openHeroCard(c, tier, has));
+        grid.appendChild(card);
+      }
+      sec.appendChild(grid);
+      box.appendChild(sec);
+    }
+    // legends join through the story
+    const sec = el('section', 'tier legends');
+    sec.appendChild(el('header', '', '<div class="crest">✦</div><div class="grow"><h3>Legends</h3><div class="mute">They join through the story</div></div>'));
+    const grid = el('div', 'tgrid');
+    for (const id in BB.LEGENDS) {
+      const L = BB.LEGENDS[id], has = S.heroes.some((h) => h.legend === id);
+      const m = BB.MISSIONS.find((x) => x.recruit === id) || BB.MISSIONS.find((x) => x.id === 'm11');
+      const card = el('div', 'tcard' + (has ? ' owned' : ' shut'));
+      card.style.setProperty('--hc', L.color);
+      const cv = document.createElement('canvas'); cv.width = cv.height = 40;
+      if (BB.A.chars[L.art]) cv.getContext('2d').drawImage(BB.portrait(BB.newHero({ legend: id }), 40), 0, 0);
+      card.appendChild(cv);
+      card.appendChild(el('div', 'nm', has ? esc(L.name.split(' ')[0]) : '???'));
+      card.appendChild(el('div', 'cl', has ? BB.CALLINGS[L.calling].name : esc(m ? m.name : '')));
+      if (has) card.appendChild(el('div', 'own', '✓'));
+      grid.appendChild(card);
+    }
+    sec.appendChild(grid); box.appendChild(sec);
+  };
+  UI.openHeroCard = async function (c, tier, has) {
+    const S = BB.save, C = BB.CALLINGS[c.calling], E = c.elem && BB.ELEMENTS[c.elem];
+    const body = $('heroBody'); body.innerHTML = '';
+    const cv = document.createElement('canvas'); cv.className = 'hpreview'; body.appendChild(cv);
+    const info = el('div', 'col grow');
+    info.appendChild(el('div', 'lbl', 'Tier ' + ROMAN[tier.id] + ' · ' + tier.name + ' · <span style="color:#ffd35a">' + '★'.repeat(tier.stars) + '</span>'));
+    info.appendChild(el('h2', '', '<span style="color:' + C.color + '">' + esc(c.name) + '</span>'));
+    info.appendChild(el('div', 'mute', C.name + ' · ' + C.role + (E ? ' · <span style="color:' + E.col + '">' + E.name + '</span>' : '')));
+    info.appendChild(el('p', '', '<span style="font-size:15px">' + C.blurb + '</span>'));
+    info.appendChild(el('div', '', '<span class="gold" style="font-size:14px">✦ ' + C.skill.name + '</span> <span style="font-size:14px">— ' + C.skill.desc + '</span>'));
+    const row = el('div', 'row'); row.style.marginTop = 'auto';
+    const close = el('button', 'btn dark', 'Close'); click(close, () => { T.preview = null; UI.modal('mHero', false); }); row.appendChild(close);
+    row.appendChild(el('div', 'grow'));
+    if (has) row.appendChild(el('span', 'pill', '✓ In your warband'));
+    else {
+      const marks = S.marks || 0;
+      const b = el('button', 'btn', 'Recruit · ⚑ ' + tier.cost); b.disabled = marks < tier.cost;
+      if (marks < tier.cost) row.appendChild(el('span', 'mute', 'Win battles to earn Banner Marks'));
       click(b, () => {
-        S.gold -= price; const h = BB.makeRecruit(o); S.heroes.push(h); if (S.team.length < 4) S.team.push(h.id);
-        S.offers = S.offers.filter((x) => x !== o); BB.persist(); BB.sfx('levelup');
+        S.marks -= tier.cost; const h = BB.recruitFromTier(S, c); S.heroes.push(h); if (S.team.length < 4) S.team.push(h.id);
+        BB.persist(); BB.sfx('levelup'); T.preview = null; UI.modal('mHero', false);
         UI.toast(h.name + ' the ' + C.name + ' joins the warband!'); UI.renderTavern();
       });
-      c.appendChild(b);
-      box.appendChild(c);
-      T.cards.push({ cv, key: 'h/' + o.key, dir: 2, ph: Math.random() * 10 });
+      row.appendChild(b);
     }
-    const full = S.heroes.length >= BB.rosterCap(S);
-    if (full) box.appendChild(el('div', 'mute', 'The barracks are full — build more in the Stronghold, or dismiss a hero.'));
-    $('bTvRefresh').disabled = S.gold < 30;
+    info.appendChild(row);
+    body.appendChild(info);
+    UI.modal('mHero');
+    T.preview = { cv, key: 'h/' + c.key, t: 0 };
+    await BB.loadChar('h/' + c.key);
   };
   UI.tavernRender = function (dt) {
-    T.t += dt;
+    const k = T.preview; if (!k || !BB.A.chars[k.key]) return;
+    k.t += dt;
     const dpr = Math.min(2, window.devicePixelRatio || 1);
-    for (const k of T.cards) {
-      const c = k.cv, w = Math.round(c.clientWidth * dpr), h = Math.round(c.clientHeight * dpr);
-      if (!w || !h) continue;
-      if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
-      const g = c.getContext('2d'); g.clearRect(0, 0, w, h); g.imageSmoothingEnabled = false;
-      const t = T.t + k.ph, cyc = t % 9;
-      const clip = cyc > 7.4 ? 'Taunt' : 'Idle';
-      const n = BB.clipLen(k.key, clip) || 15;
-      const fr = clip === 'Idle' ? Math.floor(t * 9) % n : Math.min(n - 1, Math.floor((cyc - 7.4) * 12));
-      const sc = Math.max(1, Math.floor(h / 52));
-      const dir = Math.floor(t / 2.2) % 8;
-      g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.ellipse(w / 2, h * 0.86, 12 * sc, 5 * sc, 0, 0, 7); g.fill();
-      BB.drawChar(g, k.key, null, clip, dir, fr, w / 2, h * 0.86, sc);
-    }
+    const c = k.cv, w = Math.round(c.clientWidth * dpr), h = Math.round(c.clientHeight * dpr);
+    if (!w || !h) return;
+    if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+    const g = c.getContext('2d'); g.clearRect(0, 0, w, h); g.imageSmoothingEnabled = false;
+    const cyc = k.t % 6, clip = cyc > 4.2 ? 'Taunt' : 'Idle';
+    const n = BB.clipLen(k.key, clip) || 15;
+    const fr = clip === 'Idle' ? Math.floor(k.t * 9) % n : Math.min(n - 1, Math.floor((cyc - 4.2) * 12));
+    const sc = Math.max(2, Math.floor(h / 70));
+    g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.ellipse(w / 2, h * 0.84, 14 * sc, 5 * sc, 0, 0, 7); g.fill();
+    BB.drawChar(g, k.key, null, clip, Math.floor(k.t / 1.6) % 8, fr, w / 2, h * 0.84, sc);
   };
 
   // ---------------------------------------------------------------- story cards
@@ -626,13 +699,17 @@
   // ---------------------------------------------------------------- results
   UI.results = function (res, onContinue, onRetry) {
     const body = $('resBody'); body.innerHTML = '';
-    body.appendChild(el('h2', '', '<span style="color:' + (res.win ? '#e8c66a' : '#ff7a6a') + ';font-size:28px">' + (res.win ? 'Victory' : 'Defeat') + '</span> <span class="mute" style="font-size:15px">' + esc(res.title) + '</span>'));
+    const hd = el('div', 'reshead');
+    hd.appendChild(el('h2', '', '<span style="color:' + (res.win ? '#e8c66a' : '#ff7a6a') + ';font-size:28px">' + (res.win ? 'Victory' : 'Defeat') + '</span> <span class="mute" style="font-size:15px">' + esc(res.title) + '</span>'));
+    if (res.grade) hd.appendChild(el('div', 'grade g' + res.grade, '<b>' + res.grade + '</b><span>' + ({ S: 'Flawless · +25% gold', A: 'Strong · +10% gold', B: 'Hard-won', C: 'Barely' }[res.grade]) + '</span>'));
+    body.appendChild(hd);
     if (!res.win) body.appendChild(el('div', 'mute', esc(res.why || '') + ' — nothing is lost. Heroes keep the experience they earned. Re-equip, train, and march again.'));
     const g = el('div', 'resgrid');
     for (const r of res.heroes) {
-      const c = el('div', 'reshero');
+      const c = el('div', 'reshero' + (res.mvp === r.hero ? ' mvp' : ''));
+      if (res.mvp === r.hero) c.appendChild(el('div', 'mvptag', '♛ MVP · ' + res.mvpDmg + ' dmg'));
       c.appendChild(copyCanvas(BB.portrait(r.hero, 56)));
-      c.appendChild(el('div', '', '<b>' + esc(r.hero.name.split(' ')[0]) + '</b>'));
+      c.appendChild(el('div', '', '<b>' + esc(BB.shortName(r.hero)) + '</b>'));
       c.appendChild(el('div', 'mute', '+' + r.xp + ' XP'));
       c.appendChild(el('div', 'xpbar', '<i style="width:' + (r.hero.level >= BB.MAX_LEVEL ? 100 : Math.round(r.hero.xp / BB.xpNext(r.hero.level) * 100)) + '%"></i>'));
       if (r.levels.length) c.appendChild(el('div', 'lvup', 'LEVEL ' + r.hero.level + '!'));
@@ -644,6 +721,7 @@
     line.appendChild(el('span', 'pill', '☠ ' + res.kills + ' slain'));
     if (res.endlessWave) line.appendChild(el('span', 'pill', 'Wave ' + res.endlessWave));
     if (res.bench) line.appendChild(el('span', 'pill mute', 'Bench heroes +' + res.bench + ' XP'));
+    if (res.marks) line.appendChild(el('span', 'pill marks', '⚑ +' + res.marks + ' Banner Mark' + (res.marks > 1 ? 's' : '')));
     body.appendChild(line);
     if (res.items && res.items.length) {
       body.appendChild(el('div', 'lbl', 'Spoils'));

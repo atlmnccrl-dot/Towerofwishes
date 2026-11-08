@@ -1,6 +1,6 @@
 # BANNERBORN
 
-*Forge your heroes. Raise your banner. Shut the Gravegates.*
+*Raise your banner. Earn your heroes. Shut the Gravegates.*
 
 A new, original isometric action RPG about **building a team**. It is a separate game from Tower of
 Wishes and Emberfall: own world, cast, story, code and art. It uses only the asset packs the author
@@ -16,50 +16,62 @@ Progress saves in the browser.
 Nine banners once stood between the living and the dead. Then the Gravegates opened, Vesh Morrow
 began to sing, and the dead got up to listen. One banner is left, carried by a captain with no army.
 
-1. **Raise your banner** — name the warband, pick its field colour, sigil and trim. It flies over
-   your camp.
-2. **Forge your heroes** — a full character creator built on the pack's paper-doll layers: skin,
-   hair or helm, gilded or plate armour and legs, eight dyes each, and a **calling**:
+1. **Start alone.** The Captain is your only hero. Every first victory earns a **Banner Mark**
+   (two for a boss, one more for a first S grade).
+2. **Earn your heroes.** The Heroes screen holds set **tiers** opened by the campaign, each with ten
+   heroes from the horde cast, bought with Marks:
 
-   | Calling | Role | Weapon | Skill |
+   | Tier | Opens | Cost | Stars |
    |---|---|---|---|
-   | Vanguard | Tank | sword + shield | **Shield Wall** — taunt, halve damage |
-   | Berserker | Bruiser | great axe | **Ravager Leap** — leap and smash |
-   | Ranger | Marksman | bow | **Arrow Storm** — rain on a crowd |
-   | Arcanist | Caster | bare hands | **Dragonbreath** — cone of fire |
-   | Warpriest | Healer | shield | **Sanctuary** — heal and cleanse |
-   | Monk | Striker | fists and kicks | **Whirlwind Kick** — spinning leap, scatters foes |
-   | Shadowblade | Assassin | knives | **Shadowstep** — reappear behind a foe, sure critical |
-   | Lancer *(recruits only)* | Skirmisher | spear (hits a line) | **Impaling Charge** — spear everything in a line |
+   | I · Recruits | at the start | ⚑ 1 | ★ |
+   | II · Veterans | Greenvale freed (Ossric) | ⚑ 2 | ★★ |
+   | III · Elite | the Sunscar quiet (Sallow) | ⚑ 3 | ★★ |
+   | IV · Champions | Aldmere freed (the Pale Regent) | ⚑ 4 | ★★★ |
 
-3. **Build the warband** — up to four march; the rest bank experience. **Bonds** reward the mix
-   (Full Banner, Shield & Sorcery, Bloodpact, Hold the Line, Blessed, Wall of Steel). Every level
-   offers a choice of three **perks**. Loot (four rarities) changes how heroes look: a plate cuirass
-   you equip is the plate your hero wears. Six **legendary heroes** join through the story
-   (Sera Nightveil, Ahmos, Kestrel, Brenna Redmane, Silas Grey, Talia Sunblade).
-   The **Hall of Heroes** offers wandering recruits — 102 ready-made heroes from the horde cast,
-   each with its own look, calling, star rating (1–3) and, for mages, an element (fire burns, frost
-   slows, blood drains, storm chains, holy heals…). New faces arrive after every battle.
-4. **Grow the stronghold** — Barracks, War Forge, Training Yard, Chapel, Market, Hall of Heroes.
-   Each one you build appears in the camp scene, where townsfolk wander between the tents.
-5. **March** — sixteen missions across Greenvale, the Sunscar, **Aldmere the fallen capital** and the
+   Six **legendary heroes** join through the story (Sera Nightveil, Ahmos, Kestrel, Brenna Redmane,
+   Silas Grey, Talia Sunblade). Locked tiers show as silhouettes.
+3. **Callings:**
+
+   | Calling | Role | Skill |
+   |---|---|---|
+   | Vanguard | Tank | **Shield Wall** — taunt, halve damage |
+   | Berserker | Bruiser | **Ravager Leap** — leap and smash |
+   | Ranger | Marksman | **Arrow Storm** — rain on a crowd |
+   | Arcanist | Caster | **Dragonbreath** — cone of fire (mages carry an element) |
+   | Warpriest | Healer | **Sanctuary** — heal and cleanse |
+   | Monk | Striker | **Whirlwind Kick** — spinning leap, scatters foes |
+   | Shadowblade | Assassin | **Shadowstep** — reappear behind a foe, sure critical |
+   | Lancer | Skirmisher | **Impaling Charge** — spear everything in a line |
+
+4. **Build the warband** — up to four march; the rest bank experience. **Bonds** reward the mix.
+   Every level offers a choice of three **perks**. Loot comes in four rarities; on the Captain it
+   also changes the armour you see.
+5. **Grow the stronghold** — Barracks (+health), War Forge, Training Yard, Chapel, Market. Each one
+   you build appears in the camp scene, where townsfolk wander between the tents.
+6. **March** — sixteen missions across Greenvale, the Sunscar, **Aldmere the fallen capital** and the
    Cantor's Gate: rout waves, destroy Gravegates, defend a ward against the clock, a duel and four
-   bosses with telegraphed moves and enrage phases. Chests on every map open with a beam of light
-   in the colour of the loot. After the vale is free, the **Endless Gate** opens for score.
+   bosses with telegraphed moves and enrage phases. Chests open with a beam of light in the colour
+   of the loot. After the vale is free, the **Endless Gate** opens for score. Waves shrink for a
+   small warband, so a lone Captain can win the first fight.
 
-### Fighting
+### Commanding a battle
 
-Real-time, isometric. You command one hero; the others fight on their own. Swap any time.
+The warband fights on its own: heroes pick targets, kite, protect wards and step out of telegraphed
+attacks by themselves. You are the commander.
 
-| Action | Touch | Keyboard |
+| Order | Touch | Keyboard |
 |---|---|---|
-| Move | left thumb (floating stick) | WASD / arrows |
-| Attack (hold) | ATTACK | J / Enter |
-| Calling skill | ✦ | K / E |
-| Dodge (a dodge through a blow is a **Perfect Dodge**: slow-motion, banner charge) | DODGE | Space / Shift |
-| **Raise the Banner** when the gauge is full: the warband cheers, shockwave, +50 % damage, skills reset | ⚑ | R / Q |
-| Take command of hero 1–4 | tap a portrait | 1–4 |
-| Full auto | A | — |
+| Unleash a hero's skill (a cut-in plays; unused skills fire on their own after a few seconds, or always with *auto skills* in Settings) | tap the hero's card | 1–4 |
+| Plant the banner: the warband holds there | tap the ground | — |
+| Focus every blade on one foe | tap the foe | — |
+| March on | Advance | A |
+| **Raise the Banner** when the gauge is full: shockwave, +50 % damage, skills reset | ⚑ | R |
+| Battle speed 1× / 2× | 1× | F |
+| Pause (with a short command guide) | ❚❚ | Space |
+
+Two skills from different heroes within a moment make a **combo**: the whole warband hits 25 %
+harder for four seconds. Battles open with a short cinematic, bosses get an entrance, and every
+victory ends with a grade (S/A/B/C, gold bonus) and an MVP.
 
 Foes: Bone Reavers, Bonewardens (block blows from the front), Gravecallers (curse bolts, raise
 reavers), skeleton soldiers, shieldbearers and archers (fifteen different skeletons), Wraiths
@@ -111,20 +123,21 @@ The raw packs are not committed (≈300 MB). `tools/pack.py <raw_dir> assets` re
 
 ```sh
 node test/rules-test.js                    # pure rules: stats, xp, perks, loot, bonds, unlocks
-node test/sim-node.js all 12               # every mission fast-forwarded in full auto: win rate, length, timeouts
-NODE_PATH=$(npm root -g) node test/shots.js /tmp/bb-shots     # new game → forge → camp → map → battle → rally
+node test/sim-node.js all 12               # every mission fast-forwarded hands-off: win rate, length, timeouts
+PROG=1 node test/sim-node.js all 10        # same, with the warband growing from one hero (1, 2, 3, then 4)
+AUTO=1 node test/sim-node.js all 10        # same, with heroes casting skills on their own
+NODE_PATH=$(npm root -g) node test/shots.js /tmp/bb-shots     # new game → camp → Heroes → recruit → map → battle (orders, cut-in, rally)
 NODE_PATH=$(npm root -g) node test/scenes.js /tmp/bb-scenes 0,4,5,9,11   # missions mid-fight + results
 NODE_PATH=$(npm root -g) node test/phone.js /tmp/bb-phone     # 844×390 touch layout
 NODE_PATH=$(npm root -g) node test/legends.js /tmp/bb-legends # legends in the party, Endless Gate, defeat → retry
-NODE_PATH=$(npm root -g) node test/tavern.js /tmp/bb-tavern   # Hall of Heroes: offers, recruiting, recruits in camp and battle
 ```
 The browser tests expect a static server on port 8123 at `bannerborn/`
 (`npx http-server -p 8123 bannerborn`).
 
-Full-auto balance at mission level with typical gear and mixed teams of all eight callings
-(10 runs each, 16 missions): 60–100 % wins, bosses ≈ 60–120 s, occasional wipes at the spikes
-(the Old Watch, Tombs of Glass, the Regent, the Cantor).
-A player who dodges and aims skills does better. No stalls over 384 simulated runs.
+Hands-off balance (no orders given, skills firing only after the wait), mission-level heroes with
+typical gear, the warband growing from one hero: the first two fights ≈ 60 %, the rest 90–100 %,
+the Bone Cantor ≈ 60 %; bosses ≈ 50–110 s. A commander who times skills, focuses and plants the
+banner does better. No stalls in the sweeps.
 Endless Gate: a level-5 warband falls around wave 5, a level-10 one around wave 9.
 
 ## Next (the last batch)

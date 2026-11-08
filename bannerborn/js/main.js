@@ -140,13 +140,25 @@
     const perks = S.heroes.reduce((a, h) => a + h.pendingPerks, 0);
     const wb = $('bWarband'); wb.querySelectorAll('.badge').forEach((b) => b.remove());
     if (perks) { const b = UI.el('span', 'badge', perks); wb.appendChild(b); }
-    $('bHire').textContent = S.freeHires > 0 ? 'Forge Hero (free)' : 'Forge Hero';
+    $('campMarks').textContent = S.marks || 0;
+    const mb = $('marksBadge'); mb.textContent = S.marks || ''; mb.classList.toggle('on', (S.marks || 0) > 0);
+    // the next mission, so the way forward is always one tap away
+    let ni = BB.MISSIONS.findIndex((m) => !S.cleared[m.id]);
+    const nm = ni >= 0 ? BB.MISSIONS[ni] : null;
+    if (nm) {
+      const R = BB.REGIONS.find((r) => r.id === nm.region);
+      const team = S.team.map(UI.heroById).filter(Boolean);
+      $('nxRegion').textContent = 'Next · ' + R.name;
+      $('nxName').textContent = nm.name;
+      $('nxMeta').textContent = ({ rout: 'Rout', gates: 'Gravegates', defend: 'Defend', boss: 'Boss', duel: 'Duel' }[nm.type]) + ' · foe level ' + BB.foeLevel(nm, team) + (nm.recruit ? ' · a legend may join' : '');
+      UI.mapState.sel = ni;
+    } else { $('nxRegion').textContent = 'Campaign won'; $('nxName').textContent = 'The Endless Gate'; $('nxMeta').textContent = 'Best: wave ' + (S.endlessBest || 0); UI.mapState.sel = 'endless'; }
     let hint = '';
-    if (!cleared) hint = 'Your warband is ready. Open the War Map and march on Ashford.';
+    if (!cleared) hint = S.heroes.length === 1 ? 'You march alone for now. Win battles to earn Banner Marks and recruit heroes.' : 'Your warband is ready. March on Ashford.';
+    else if ((S.marks || 0) > 0 && BB.heroTiers(BB.ROSTER).some(({ tier }) => BB.tierOpen(S, tier) && tier.cost <= S.marks)) hint = 'You have ⚑ ' + S.marks + ' Banner Mark' + (S.marks > 1 ? 's' : '') + '. Recruit a hero in Heroes.';
     else if (perks) hint = 'Heroes have perks to choose — open the Warband.';
     else if (S.inventory.length && cleared < 3) hint = 'New gear waits in the armory. Open the Warband to equip it.';
     else if (S.gold >= 100 && !Object.values(S.buildings).some((v) => v)) hint = 'Spend gold in the Stronghold to grow your camp.';
-    else if (S.gold >= 120 && S.heroes.length < 5) hint = 'Wandering heroes wait at the Hall of Heroes. Recruit one.';
     else if (BB.campaignDone(S)) hint = 'The Cantor is silenced. The Endless Gate still flickers on the War Map.';
     $('campHint').textContent = hint;
     UI.show('camp');
@@ -157,41 +169,10 @@
 
   function newGame() {
     BB.save = BB.newSave();
-    UI.story(BB.STORY.intro, () => {
-      UI.openBannerEdit(() => {
-        BB.persist();
-        UI.openForge({ captain: true, calling: 'vanguard', title: 'Forge Your Captain', confirm: 'This is my captain', back: null });
-        forgeDone = (h) => {
-          h.captain = true; BB.save.heroes.push(h); BB.save.team = [h.id]; BB.persist();
-          forgeCompanion(1);
-        };
-      });
-    });
+    const cap = BB.newCaptain(); BB.save.heroes.push(cap); BB.save.team = [cap.id];
+    BB.persist();
+    UI.story(BB.STORY.intro, () => goCamp());
     BB.music('calm');
-  }
-  function forgeCompanion(n) {
-    const S = BB.save;
-    const calling = n === 1 ? 'ranger' : 'warpriest';
-    UI.openForge({ calling, title: 'Forge Companion ' + n + ' of 2', confirm: n === 1 ? 'Recruit & next' : 'Recruit & march', back: null });
-    UI.toast('Every banner needs a warband. Forge two companions.');
-    forgeDone = (h) => {
-      S.heroes.push(h); S.team.push(h.id); S.freeHires = Math.max(0, S.freeHires - 1); BB.persist();
-      if (n === 1) forgeCompanion(2); else goCamp();
-    };
-  }
-  let forgeDone = null;
-  function hire() {
-    const S = BB.save;
-    if (S.heroes.length >= BB.rosterCap(S)) { UI.toast('The barracks are full. Build more in the Stronghold.'); return; }
-    const cost = S.freeHires > 0 ? 0 : BB.HIRE_COST(S.heroes.length);
-    if (S.gold < cost) { UI.toast('You need ' + cost + ' gold to forge another hero.'); return; }
-    const avg = Math.max(1, Math.round(S.heroes.reduce((a, h) => a + h.level, 0) / Math.max(1, S.heroes.length)) - 1);
-    UI.openForge({ title: 'Forge a Hero', confirm: cost ? 'Forge · ' + cost + ' gold' : 'Forge (free)', cost: cost || 0, back: goCamp, hero: BB.newHero({ level: avg }) });
-    forgeDone = (h) => {
-      if (cost) S.gold -= cost; else S.freeHires--;
-      S.heroes.push(h); if (S.team.length < 4) S.team.push(h.id);
-      BB.persist(); UI.toast(h.name + ' joins the warband at level ' + h.level + '.'); BB.sfx('levelup'); goCamp();
-    };
   }
 
   // ---------------------------------------------------------------- deploy and finish
@@ -226,13 +207,12 @@
     const seed = (M.id.charCodeAt(1) || 7) * 1000 + (S.cleared[M.id] ? Math.floor(Math.random() * 999) : 1);
     const map = BB.buildMap(M.layout, biome, seed, { night: region.night || M.id === 'm12' });
     BB.renderGround(map);
-    scene = new BB.Battle({ map, mission: M, heroes: team, level: M.id === 'endless' ? M.level : BB.foeLevel(M, team), save: S, seed });
+    scene = new BB.Battle({ map, mission: M, heroes: team, level: M.id === 'endless' ? M.level : BB.foeLevel(M, team), save: S, seed, intro: true });
     scene.cam.zoom = 1;
     mode = 'battle';
     buildHud();
     UI.show('hud');
     BB.music(M.type === 'boss' || M.type === 'duel' ? 'boss' : 'battle');
-    scene.banner(M.name, 2.2, 'small');
     tutorial = M.tutorial && !S.seen.tutorial ? 0 : -1;
   }
 
@@ -245,15 +225,25 @@
     if (M.id === 'endless') base = 30 + (B.obj.endlessWave || 0) * 35 + B.level * 6;
     if (!win) base *= 0.35;
     const res = { win, why: B.result.why, title: M.name, heroes: [], kills: B.kills };
+    // MVP: the hero who dealt the most; grade: how many stood at the end and how quickly
+    const ents = B.heroList; let mvp = null; for (const e of ents) if (!mvp || (e.dealt || 0) > (mvp.dealt || 0)) mvp = e;
+    res.mvp = mvp && mvp.hero; res.mvpDmg = mvp ? Math.round(mvp.dealt || 0) : 0;
+    if (win) {
+      const alive = ents.filter((e) => !e.dead).length / ents.length, fast = B.time < 75;
+      res.grade = alive >= 1 && fast ? 'S' : alive >= 0.75 ? 'A' : alive >= 0.5 ? 'B' : 'C';
+    }
     for (const h of team) { const xp = Math.round(base * yard); const lv = BB.grantXp(h, xp); res.heroes.push({ hero: h, xp, levels: lv }); if (lv.length) BB.sfx('levelup'); }
     const bench = Math.round(base * yard * 0.3);
     if (bench) { for (const h of S.heroes) if (!team.includes(h)) BB.grantXp(h, bench); res.bench = bench; }
     let gold = Math.round(B.goldGot * market);
     if (win) gold += Math.round(M.reward.gold * (firstClear ? 1 : 0.5) * market);
+    if (res.grade === 'S') gold = Math.round(gold * 1.25); else if (res.grade === 'A') gold = Math.round(gold * 1.1);
     res.gold = gold; S.gold += gold;
     S.stats.kills += B.kills;
     if (B.loot && B.loot.length) S.inventory.push(...B.loot);
-    S.offers = null; // new faces at the Hall of Heroes
+    res.marks = BB.marksFor(M, firstClear && M.id !== 'endless');
+    if (win && res.grade === 'S' && !S.seen['S_' + M.id] && M.id !== 'endless') { S.seen['S_' + M.id] = 1; res.marks++; }
+    S.marks = (S.marks || 0) + (win ? res.marks : 0); if (!win) res.marks = 0;
     if (M.id === 'endless') { res.endlessWave = (B.obj.endlessWave || 0) + 1; S.endlessBest = Math.max(S.endlessBest || 0, res.endlessWave); res.items = BB.rollLoot(BB.rng(Date.now()), { level: B.level, type: 'rout' }, team, S, Math.min(4, 1 + (res.endlessWave >> 1))); S.inventory.push(...res.items); }
     else if (win) {
       res.items = BB.rollLoot(BB.rng(Date.now()), M, team, S); S.inventory.push(...res.items);
@@ -264,7 +254,7 @@
         if (S.team.length < 4) S.team.push(L.id);
         if (S.heroes.length > BB.rosterCap(S)) S.buildings.barracks = Math.min(3, (S.buildings.barracks || 0) + 1);
       }
-      if (M.id === 'm11' && !S.heroes.find((h) => h.legend === 'talia')) { const L = BB.newHero({ legend: 'talia', level: M.level }); S.heroes.push(L); res.recruit = 'talia'; }
+      if (M.id === 'm11' && !S.heroes.find((h) => h.legend === 'talia')) { const L = BB.newHero({ legend: 'talia', level: M.level }); S.heroes.push(L); res.recruit = 'talia'; if (S.team.length < 4) S.team.push(L.id); }
     }
     if (M.tutorial) S.seen.tutorial = 1;
     if (B.loot && B.loot.length) res.items = (res.items || []).concat(B.loot);
@@ -277,131 +267,126 @@
     UI.results(res, after, M.id !== 'endless' ? () => BB.deploy(current.idx) : null);
   }
 
-  // ---------------------------------------------------------------- HUD
+  // ---------------------------------------------------------------- HUD (the commander's view)
+  let forgeDone = null; // the hero creator is retired; kept so its old screen stays inert
   let tutorial = -1, tutT = 0;
   const TUT = [
-    ['Move with the left thumb (or WASD).', (b) => b.moved],
-    ['Hold ATTACK (or J) to strike the nearest foe.', (b) => b.kills > 0],
-    ['Use your SKILL (K) — every calling has one.', (b) => b.usedSkill],
-    ['DODGE (Space) through a blow for a Perfect Dodge.', (b) => b.dodged],
-    ['Tap a portrait (1-4) to take command of another hero.', (b) => b.swapped],
-    ['When the banner gauge fills, raise it: R or the ⚑ button.', (b) => b.rallied || b.waveIdx >= 3],
+    ['Your warband fights on its own. Tap a hero card to unleash their skill.', (b) => b.usedSkill],
+    ['Tap the ground to plant your banner. The warband holds there.', (b) => b.held],
+    ['Tap an enemy to focus every blade on it.', (b) => b.focused],
+    ['Two skills close together make a COMBO: the whole warband hits harder.', (b) => b.combo >= 2 || b.waveIdx >= 3],
+    ['When the banner gauge fills, raise it.', (b) => b.rallied || b.waveIdx >= 3],
   ];
+  const SHORT = { shieldwall: 'Wall', leap: 'Leap', volley: 'Storm', flame: 'Breath', sanctuary: 'Heal', whirlwind: 'Whirl', shadowstep: 'Step', impale: 'Impale' };
   function buildHud() {
-    const box = $('party'); box.innerHTML = '';
-    const hs = scene.ents.filter((e) => e.side === 'hero' && !e.ward);
-    hs.forEach((e, i) => {
-      const b = UI.el('button', 'pchip');
-      b.appendChild(UI.copyCanvas(BB.portrait(e.hero, 54)));
-      b.appendChild(UI.el('div', 'hp', '<i></i>')); b.appendChild(UI.el('div', 'cd', '<i></i>'));
+    const box = $('cards'); box.innerHTML = '';
+    scene.heroList.forEach((e, i) => {
+      const b = UI.el('button', 'hcard');
+      b.style.setProperty('--hc', e.color);
+      b.appendChild(UI.copyCanvas(BB.portrait(e.hero, 64)));
+      b.appendChild(UI.el('div', 'ring'));
+      b.appendChild(UI.el('div', 'sk', SHORT[BB.CALLINGS[e.calling].skill.id] || 'Skill'));
+      b.appendChild(UI.el('div', 'hp', '<i></i>'));
       b.appendChild(UI.el('div', 'k', i + 1));
-      b.addEventListener('pointerdown', (ev) => { ev.stopPropagation(); scene.swapTo(i); scene.swapped = true; });
+      b.addEventListener('pointerdown', (ev) => { ev.stopPropagation(); ev.preventDefault(); BB.audioUnlock(); if (!scene.castSkill(i)) b.classList.add('nope'); setTimeout(() => b.classList.remove('nope'), 250); });
       box.appendChild(b); e.chip = b;
     });
-    $('keys').style.display = matchMedia('(pointer:coarse)').matches ? 'none' : '';
-    $('bAuto').classList.toggle('on', !!BB.save.settings.auto);
-    $('bAuto').style.color = BB.save.settings.auto ? '#e8c66a' : '';
+    const kk = $('keys'); kk.style.display = matchMedia('(pointer:coarse)').matches ? 'none' : ''; kk.style.animation = 'none'; void kk.offsetWidth; kk.style.animation = '';
+    $('bSpeed').textContent = (BB.save.settings.speed || 1) + '×';
+    $('cutin').classList.remove('on');
+    letterbox(true, current.mission.name, scene.obj ? scene.obj.text : '');
   }
-  function updateHud() {
+  let lbTimer = 0;
+  function letterbox(on, title, sub) {
+    const h = $('hud');
+    h.classList.toggle('cine', on);
+    if (title !== undefined) { $('lbTitle').textContent = title || ''; $('lbSub').textContent = sub || ''; }
+  }
+  let cutShown = null;
+  function updateHud(dt) {
     const B = scene;
-    for (const e of B.ents) {
-      if (!e.chip) continue;
-      e.chip.classList.toggle('on', e === B.controlled);
-      e.chip.classList.toggle('dead', !!e.dead);
-      e.chip.querySelector('.hp i').style.width = Math.max(0, e.hp / e.maxhp * 100) + '%';
-      e.chip.querySelector('.cd i').style.width = (e.cd > 0 ? (1 - e.cd / e.cdMax) * 100 : 100) + '%';
+    for (const e of B.heroList) {
+      const c = e.chip; if (!c) continue;
+      const ready = !e.dead && e.cd <= 0;
+      c.classList.toggle('dead', !!e.dead); c.classList.toggle('ready', ready);
+      c.classList.toggle('urge', ready && !B.autoSkills && (e.readyT || 0) > 2.5);
+      c.querySelector('.hp i').style.width = Math.max(0, e.hp / e.maxhp * 100) + '%';
+      c.querySelector('.ring').style.setProperty('--p', (e.cd > 0 ? (1 - e.cd / e.cdMax) * 100 : 100) + '%');
     }
     $('objText').textContent = B.obj ? B.obj.text : '';
     const boss = B.ents.find((e) => e.boss && !e.dead);
     const bb = $('bossbar');
-    if (boss) { bb.style.display = 'block'; bb.querySelector('.nm').textContent = boss.F.name + (boss.enraged ? ' — ENRAGED' : ''); bb.querySelector('i').style.width = (boss.hp / boss.maxhp * 100) + '%'; }
+    if (boss && !B.intro) { bb.style.display = 'block'; bb.querySelector('.nm').textContent = boss.F.name + (boss.enraged ? ' — enraged' : ''); bb.querySelector('i').style.width = (boss.hp / boss.maxhp * 100) + '%'; }
     else bb.style.display = 'none';
-    const c = B.controlled;
-    if (c) {
-      const C = BB.CALLINGS[c.calling];
-      $('aSkillName').textContent = { shieldwall: 'WALL', leap: 'LEAP', volley: 'STORM', flame: 'BREATH', sanctuary: 'HEAL' }[C.skill.id] || 'SKILL';
-      $('aSkill').querySelector('.cdm').style.setProperty('--p', (c.cd > 0 ? c.cd / c.cdMax * 100 : 0) + '%');
-    }
-    const r = $('aRally'); r.classList.toggle('ready', B.rally >= 100 && B.rallyT <= 0);
-    r.querySelector('.fill').style.height = (B.rallyT > 0 ? B.rallyT / 8 * 100 : B.rally) + '%';
+    const r = $('aRally'); const full = B.rally >= 100 && B.rallyT <= 0;
+    r.classList.toggle('ready', full);
+    r.style.setProperty('--p', (B.rallyT > 0 ? B.rallyT / 8 * 100 : B.rally) + '%');
+    $('stance').classList.toggle('on', B.order.mode === 'hold' && !B.result);
+    // cinematic bars: the intro and the first moments of a rally or a victory
+    if (B.intro) letterbox(true);
+    else if (B.result && B.result.win && !B.result.shown) letterbox(true, 'Victory', current.mission.name);
+    else if (B.rallyT > 6.6) letterbox(true, '', '');
+    else letterbox(false);
+    // skill cut-in
+    const ci = B.cutins[B.cutins.length - 1];
+    const cut = $('cutin');
+    if (ci && ci.t < 1.1) {
+      if (cutShown !== ci) {
+        cutShown = ci;
+        const cv = cut.querySelector('canvas'), g = cv.getContext('2d'); g.clearRect(0, 0, cv.width, cv.height); g.drawImage(BB.portrait(ci.hero, 96), 0, 0);
+        cut.querySelector('.ciName').textContent = ci.hero.name; cut.querySelector('.ciSkill').textContent = ci.name;
+        cut.style.setProperty('--hc', ci.color);
+        cut.classList.remove('on'); void cut.offsetWidth; cut.classList.add('on');
+      }
+    } else if (cut.classList.contains('on') && (!ci || ci.t >= 1.1)) cut.classList.remove('on');
+    if (B.cutins.length > 4) B.cutins.splice(0, B.cutins.length - 4);
     // banners
     const bn = $('bnr'); const top = B.banners[B.banners.length - 1];
-    if (top) {
+    if (top && !B.intro) {
       const k = top.t / top.dur; const a = Math.min(1, top.t * 4, (1 - k) * 4);
       if (bn.dataset.t !== top.text) { bn.innerHTML = '<div class="' + top.kind + '">' + UI.esc(top.text) + '</div>'; bn.dataset.t = top.text; }
       bn.style.opacity = a; bn.firstChild.style.transform = 'scale(' + (1 + (1 - Math.min(1, top.t * 3)) * 0.3) + ')';
     } else { bn.style.opacity = 0; bn.dataset.t = ''; }
     // tutorial
     const tut = $('tut');
-    if (tutorial >= 0 && tutorial < TUT.length) {
+    if (tutorial >= 0 && tutorial < TUT.length && !B.intro && !B.result) {
       B.waveIdx = B.waveIdx || 0;
       tut.style.display = 'block'; tut.textContent = TUT[tutorial][0];
-      tutT += 1 / 60;
-      if (TUT[tutorial][1](B) && tutT > 1.2) { tutorial++; tutT = 0; BB.sfx('click'); }
+      tutT += dt;
+      if (TUT[tutorial][1](B) && tutT > 1.5) { tutorial++; tutT = 0; BB.sfx('click'); }
     } else tut.style.display = 'none';
   }
 
-  // ---------------------------------------------------------------- input
+  // ---------------------------------------------------------------- input: taps on the field are orders
   window.addEventListener('keydown', (e) => {
     if (e.target && e.target.tagName === 'INPUT') return;
     keys[e.code] = true; BB.audioUnlock();
     if (mode === 'battle' && scene) {
-      if (e.code === 'KeyK' || e.code === 'KeyE') edge.skill = true;
-      if (e.code === 'Space' || e.code === 'ShiftLeft' || e.code === 'KeyL') edge.dodge = true;
-      if (e.code === 'KeyR' || e.code === 'KeyQ') edge.rally = true;
-      if (/Digit[1-4]/.test(e.code)) { scene.swapTo(+e.code.slice(5) - 1); scene.swapped = true; }
-      if (e.code === 'Escape' || e.code === 'KeyP') togglePause();
-      if (e.code === 'Space') e.preventDefault();
+      if (/Digit[1-4]/.test(e.code)) scene.castSkill(+e.code.slice(5) - 1);
+      if (e.code === 'KeyR' || e.code === 'KeyQ') { if (scene.useRally()) scene.rallied = true; }
+      if (e.code === 'KeyA') scene.advance();
+      if (e.code === 'KeyF') toggleSpeed();
+      if (e.code === 'Escape' || e.code === 'KeyP' || e.code === 'Space') { togglePause(); e.preventDefault(); }
     }
   });
   window.addEventListener('keyup', (e) => { keys[e.code] = false; });
-  const edge = { skill: false, dodge: false, rally: false };
-  let joy = null, atkHeld = false;
-  const joyEl = $('joy'), base = joyEl.querySelector('.base'), knob = joyEl.querySelector('.knob');
-  joyEl.addEventListener('pointerdown', (e) => {
-    BB.audioUnlock();
-    joy = { id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, dy: 0 };
-    const r = joyEl.getBoundingClientRect();
-    base.style.left = knob.style.left = (e.clientX - r.left) + 'px'; base.style.top = knob.style.top = (e.clientY - r.top) + 'px';
-    base.style.display = knob.style.display = 'block';
-    joyEl.setPointerCapture(e.pointerId);
+  let tap = null;
+  cv.addEventListener('pointerdown', (e) => { if (mode !== 'battle') return; BB.audioUnlock(); tap = { x: e.clientX, y: e.clientY, t: performance.now() }; });
+  cv.addEventListener('pointerup', (e) => {
+    if (mode !== 'battle' || !tap || !scene) return;
+    const moved = Math.hypot(e.clientX - tap.x, e.clientY - tap.y), dur = performance.now() - tap.t; tap = null;
+    if (moved > 14 || dur > 600) return;
+    const w = scene.screenToWorld(e.clientX * DPR, e.clientY * DPR);
+    if (w) scene.commandAt(w.x, w.y);
   });
-  joyEl.addEventListener('pointermove', (e) => {
-    if (!joy || e.pointerId !== joy.id) return;
-    let dx = e.clientX - joy.x, dy = e.clientY - joy.y; const d = Math.hypot(dx, dy), max = 52;
-    if (d > max) { joy.x += dx - dx / d * max; joy.y += dy - dy / d * max; dx = dx / d * max; dy = dy / d * max; const r = joyEl.getBoundingClientRect(); base.style.left = (joy.x - r.left) + 'px'; base.style.top = (joy.y - r.top) + 'px'; }
-    joy.dx = dx / max; joy.dy = dy / max;
-    const r = joyEl.getBoundingClientRect();
-    knob.style.left = (joy.x + dx - r.left) + 'px'; knob.style.top = (joy.y + dy - r.top) + 'px';
-  });
-  const joyEnd = (e) => { if (joy && e.pointerId === joy.id) { joy = null; base.style.display = knob.style.display = 'none'; } };
-  joyEl.addEventListener('pointerup', joyEnd); joyEl.addEventListener('pointercancel', joyEnd);
-  const hold = (id, on, off) => {
+  hold('aRally', () => { if (scene && scene.useRally()) scene.rallied = true; });
+  function hold(id, on) {
     const b = $(id);
-    b.addEventListener('pointerdown', (e) => { e.preventDefault(); BB.audioUnlock(); on(); b.setPointerCapture(e.pointerId); });
-    const up = () => off && off();
-    b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('lostpointercapture', up);
-  };
-  hold('aAtk', () => (atkHeld = true), () => (atkHeld = false));
-  hold('aSkill', () => (edge.skill = true));
-  hold('aDodge', () => (edge.dodge = true));
-  hold('aRally', () => (edge.rally = true));
-  function readInput() {
-    let mx = 0, my = 0;
-    if (keys.KeyA || keys.ArrowLeft) mx -= 1; if (keys.KeyD || keys.ArrowRight) mx += 1;
-    if (keys.KeyW || keys.ArrowUp) my -= 1; if (keys.KeyS || keys.ArrowDown) my += 1;
-    if (mx || my) { const l = Math.hypot(mx, my); mx /= l; my /= l; }
-    if (joy) { mx = joy.dx; my = joy.dy; }
-    input.mx = mx; input.my = my;
-    input.atk = atkHeld || !!keys.KeyJ || !!keys.Enter;
-    input.skill = edge.skill; input.dodge = edge.dodge; input.rally = edge.rally;
-    edge.skill = edge.dodge = edge.rally = false;
-    if (scene && !scene.peaceful) {
-      if (Math.hypot(mx, my) > 0.3) scene.moved = true;
-      if (input.skill && scene.controlled && scene.controlled.cd <= 0) scene.usedSkill = true;
-      if (input.dodge) scene.dodged = true;
-    }
-    return input;
+    b.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); BB.audioUnlock(); on(); });
+  }
+  function toggleSpeed() {
+    const s = BB.save.settings; s.speed = (s.speed || 1) === 1 ? 2 : 1; BB.persist();
+    $('bSpeed').textContent = s.speed + '×';
   }
   function togglePause() {
     if (mode !== 'battle' || !scene || scene.result) return;
@@ -415,9 +400,7 @@
   UI.click($('bWarband'), async () => { mode = 'menu'; await BB.loadHeroes(BB.save.heroes); UI.openWarband(); });
   UI.click($('bTavern'), () => { mode = 'menu'; UI.openTavern(); });
   UI.click($('bTvBack'), () => goCamp());
-  UI.click($('bTvRefresh'), async () => { const S = BB.save; if (S.gold < 30) return; S.gold -= 30; S.offers = BB.rollOffers(S, BB.ROSTER); BB.persist(); await UI.openTavern(); });
   UI.click($('bStronghold'), () => { UI.openStronghold(); });
-  UI.click($('bHire'), () => { mode = 'menu'; hire(); });
   UI.click($('bWbBack'), () => goCamp());
   UI.click($('bShBack'), () => goCamp());
   UI.click($('bMapBack'), () => goCamp());
@@ -430,17 +413,18 @@
   document.querySelectorAll('#forge .tabs button').forEach((b) => UI.click(b, () => { UI.forge.tab = b.dataset.tab; UI.forgeTabs(); }));
   UI.click($('bPause'), togglePause);
   UI.click($('bResume'), togglePause);
-  UI.click($('bAuto'), () => { BB.save.settings.auto = !BB.save.settings.auto; BB.persist(); $('bAuto').style.color = BB.save.settings.auto ? '#e8c66a' : ''; UI.toast(BB.save.settings.auto ? 'Full auto: your hero fights alone' : 'You command the hero'); });
+  UI.click($('bSpeed'), toggleSpeed);
+  UI.click($('bAdvance'), () => scene && scene.advance());
   UI.click($('bRetreat'), () => { UI.modal('mPause', false); scene.paused = false; scene.lose('Retreated'); });
   const openSettings = () => {
     const s = BB.save ? BB.save.settings : BB.newSave().settings;
-    $('sMusic').value = s.music; $('sSfx').value = s.sfx; $('sShake').checked = s.shake; $('sAuto').checked = s.auto;
+    $('sMusic').value = s.music; $('sSfx').value = s.sfx; $('sShake').checked = s.shake; $('sAuto').checked = !!s.autoSkills;
     UI.modal('mSettings');
   };
   ['bSettings1', 'bSettings2', 'bSettings3'].forEach((id) => UI.click($(id), openSettings));
   UI.click($('bSetClose'), () => {
     if (!BB.save) BB.save = BB.newSave();
-    const s = BB.save.settings; s.music = +$('sMusic').value; s.sfx = +$('sSfx').value; s.shake = $('sShake').checked; s.auto = $('sAuto').checked;
+    const s = BB.save.settings; s.music = +$('sMusic').value; s.sfx = +$('sSfx').value; s.shake = $('sShake').checked; s.autoSkills = $('sAuto').checked; if (scene && !scene.peaceful) scene.autoSkills = s.autoSkills;
     BB.setVolumes(); BB.persist(); UI.modal('mSettings', false);
   });
   ['sMusic', 'sSfx'].forEach((id) => $(id).addEventListener('input', () => { if (BB.save) { BB.save.settings.music = +$('sMusic').value; BB.save.settings.sfx = +$('sSfx').value; BB.setVolumes(); } }));
@@ -451,17 +435,14 @@
   function frame(now) {
     const dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
     if (scene && (mode === 'title' || mode === 'camp' || mode === 'battle' || mode === 'menu')) {
-      const inp = mode === 'battle' ? readInput() : null;
-      if (mode === 'battle' && inp) {
-        if (inp.rally && scene.useRally()) scene.rallied = true;
-      }
-      scene.cam.zoom = camZoom();
+      scene.cam.zoom = camZoom() * (scene.zoomK || 1);
       if (scene.isTitle) { scene.cam.x = scene.map.w / 2 + Math.sin(now / 9000) * 1.6 - 1.2; scene.cam.y = scene.map.h / 2 + Math.cos(now / 11000) * 0.8 + 0.4; }
-      scene.update(dt, inp);
+      const reps = mode === 'battle' && !scene.intro && !scene.result && BB.save && BB.save.settings.speed === 2 ? 2 : 1;
+      for (let i = 0; i < reps; i++) scene.update(dt, null);
       const visibleScene = !['forge', 'warband', 'stronghold', 'map', 'bannerEdit', 'boot', 'tavern'].includes(UI.current);
       if (visibleScene) scene.render(ctx, W, H, DPR);
       if (mode === 'battle') {
-        updateHud();
+        updateHud(dt);
         if (scene.result && scene.result.t > 2.6 && !scene.result.shown) { scene.result.shown = true; finishBattle(); }
       }
     } else { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#0d0a08'; ctx.fillRect(0, 0, W, H); }
@@ -477,6 +458,7 @@
     BB.save = loadSave();
     try {
       await BB.loadBase((p) => { document.querySelector('#boot .bar i').style.width = Math.round(p * 100) + '%'; });
+    BB.loadPortraits();
     } catch (e) { $('bootmsg').textContent = 'Could not load the art: ' + e.message; throw e; }
     requestAnimationFrame(frame);
     ['ghoul', 'warden', 'necro', 'witch', 'sunguard', 'shade', 'sunblade', 'brenna', 'reaper'].forEach((k) => BB.loadChar(k));

@@ -19,18 +19,14 @@ require('fs').mkdirSync(out, { recursive: true });
   // new game
   await p.click('#bNew');
   for (let i = 0; i < 4; i++) { await p.waitForTimeout(250); if (i === 0) await shot('02-story'); await p.click('#story'); }
-  await shot('03-banner');
-  await p.click('#bandSigils button:nth-child(6)');
-  await p.click('#bBannerOk');
-  await shot('04-forge-calling');
-  await p.click('#forge .tabs button[data-tab=look]');
-  await shot('05-forge-look');
-  await p.click('#fConfirm');
-  await p.click('#fRandom'); await shot('06-forge-comp1');
-  await p.click('#fConfirm');
-  await p.click('#fConfirm');
   await p.waitForFunction(() => document.querySelector('#camp.on'), null, { timeout: 15000 });
   await shot('07-camp');
+  await p.click('#bTavern'); await p.waitForFunction(() => BB.UI.current === 'tavern', null, { timeout: 10000 }); await shot('07b-heroes');
+  await p.evaluate(() => { BB.save.marks = 1; BB.UI.renderTavern(); });
+  await p.click('#tiers .tier:not(.locked) button.tcard >> nth=0'); await p.waitForTimeout(900); await shot('07c-hero-card');
+  await p.click('#heroBody .btn:last-child'); await p.waitForTimeout(400);
+  console.log('after recruit', await p.evaluate(() => BB.save.heroes.length + ' heroes, marks ' + BB.save.marks));
+  await p.click('#bTvBack'); await p.waitForTimeout(1200);
   await p.click('#bWarband'); await shot('08-warband');
   await p.click('#bWbBack'); await p.waitForTimeout(400);
   await p.click('#bWarMap'); await shot('09-map');
@@ -38,15 +34,21 @@ require('fs').mkdirSync(out, { recursive: true });
   await p.waitForTimeout(400);
   if (await p.$('#story.on')) await p.click('#story');
   await p.waitForFunction(() => document.querySelector('#hud.on'), null, { timeout: 20000 });
-  await shot('10-battle-start');
-  // play: hold attack and walk toward the centre
-  await p.keyboard.down('KeyD'); await p.keyboard.down('KeyW'); await p.waitForTimeout(1200); await p.keyboard.up('KeyW'); await p.keyboard.up('KeyD');
-  await p.keyboard.down('KeyJ');
-  for (let i = 0; i < 6; i++) { await p.waitForTimeout(900); if (i === 2) await p.keyboard.press('KeyK'); if (i === 4) await p.keyboard.press('Space'); }
-  await shot('11-battle-fight');
+  await p.waitForTimeout(400); await p.screenshot({ path: out + '/10-battle-intro.png' });
+  await p.waitForFunction(() => !BB.testHooks.scene().intro, null, { timeout: 10000 });
+  await shot('10b-battle-start');
+  // command: plant the banner ahead, then a skill, then focus a foe
+  await p.mouse.click(760, 260); await p.waitForTimeout(2500);
+  await p.waitForFunction(() => BB.testHooks.scene().foesAlive().length > 0, null, { timeout: 10000 });
+  await p.keyboard.press('Digit1'); await p.waitForTimeout(250); await p.screenshot({ path: out + '/11-cutin.png' });
+  await p.waitForTimeout(1500);
+  await p.keyboard.press('Digit2'); await p.waitForTimeout(500);
+  await p.evaluate(() => { const s = BB.testHooks.scene(); const f = s.foesAlive()[0]; if (f) { s.order.focus = f; } });
+  await p.click('#bAdvance').catch(() => {});
+  await p.waitForTimeout(2500); await shot('11b-battle-fight');
   await p.evaluate(() => { const s = BB.testHooks.scene(); s.rally = 100; });
-  await p.keyboard.press('KeyR'); await p.waitForTimeout(300); await shot('12-rally');
-  await p.keyboard.up('KeyJ');
+  await p.keyboard.press('KeyR'); await p.waitForTimeout(500); await shot('12-rally');
+  console.log('orders', await p.evaluate(() => { const s = BB.testHooks.scene(); return JSON.stringify({ held: !!s.held, used: !!s.usedSkill, combo: s.combo, rallied: !!s.rallied }); }));
   console.log('ERRORS', errors.length ? errors.join('\n') : 'none');
   await b.close();
 })();

@@ -88,5 +88,21 @@ for (const c of ['monk', 'shadowblade', 'lancer']) { const hh = BB.newHero({ cal
 ok(BB.FORGE_CALLINGS.indexOf('lancer') < 0 && BB.FORGE_CALLINGS.length === 7, 'the forge offers seven callings (no spear art)');
 ok(BB.foeStats('vesh', 16).hp < 80000 && BB.foeStats('ossric', 5).hp > 5000, 'boss health on a sane curve');
 
+// tiers and Banner Marks
+const tiers = BB.heroTiers(roster);
+ok(tiers.length === 4 && tiers.every((t) => t.heroes.length > 0), 'four hero tiers, none empty');
+const keys = tiers.flatMap((t) => t.heroes.map((h) => h.key));
+ok(new Set(keys).size === keys.length, 'no hero in two tiers');
+ok(tiers.every((t) => new Set(t.heroes.map((h) => h.name.split(' ')[0])).size === t.heroes.length), 'first names unique within a tier');
+ok(JSON.stringify(BB.heroTiers(roster).map((t) => t.heroes.map((h) => h.key))) === JSON.stringify(tiers.map((t) => t.heroes.map((h) => h.key))), 'tiers are deterministic');
+const ts = BB.newSave(); ts.heroes.push(BB.newCaptain());
+ok(BB.tierOpen(ts, BB.TIERS[0]) && !BB.tierOpen(ts, BB.TIERS[1]), 'only the first tier opens at the start');
+ts.cleared.m5 = 1; ok(BB.tierOpen(ts, BB.TIERS[1]) && !BB.tierOpen(ts, BB.TIERS[2]), 'freeing Greenvale opens the Veterans');
+ok(BB.marksFor(BB.MISSIONS[0], true) === 1 && BB.marksFor(BB.MISSIONS[4], true) === 2 && BB.marksFor(BB.MISSIONS[0], false) === 0, 'marks: one per first victory, two for a boss, none on replays');
+const rh = BB.recruitFromTier(ts, tiers[3].heroes[0]);
+ok(rh.recruit && rh.stars === 3, 'champions arrive with three stars');
+const cap = BB.newCaptain(); ok(cap.captain && BB.heroStats(cap).hp > BB.heroStats(BB.newHero({ calling: 'vanguard', look: cap.look })).hp, 'the captain is hardier than a plain vanguard');
+ok(BB.waveScale(1) < BB.waveScale(4) && BB.waveScale(4) === 1, 'fewer foes for a small warband');
+
 console.log(fails ? fails + ' of ' + n + ' checks FAILED' : 'rules: all ' + n + ' checks passed');
 process.exit(fails ? 1 : 0);

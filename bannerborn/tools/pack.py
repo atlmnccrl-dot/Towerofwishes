@@ -371,6 +371,18 @@ def pack_other():
     save(atlas, {'f': rects}, 'fx/other')
     print('other', atlas.size)
 
+def pack_portraits():
+    """Head-and-shoulders thumbnails of every roster character (Idle, facing the camera), one small atlas."""
+    roster = horde_roster()
+    frames = []
+    for key, c in sorted(roster.items()):
+        sheet = Image.open(os.path.join(c['src'], 'Idle.png')).convert('RGBA')
+        cell = sheet.crop((0, 2 * 128, 128, 3 * 128))
+        frames.append((key, cell.crop((44, 36, 84, 76)), 0, 0))
+    atlas, rects = pack_frames(frames, 1024)
+    save(atlas, {'f': {k: r[:4] for k, r in rects.items()}}, 'chars/h/portraits')
+    print('portraits', atlas.size, len(rects))
+
 if __name__ == '__main__':
     what = sys.argv[3:] or ['chars', 'env', 'fx']
     if 'chars' in what: pack_chars()
@@ -379,3 +391,4 @@ if __name__ == '__main__':
     if 'horde' in what: pack_horde()
     if 'ground' in what: pack_ground()
     if 'other' in what: pack_other()
+    if 'portraits' in what: pack_portraits()

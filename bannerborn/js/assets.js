@@ -36,6 +36,11 @@
     if (!pending.other) pending.other = loadAtlas('assets/fx/other').then((a) => (A.other = a));
     return pending.other;
   };
+  BB.loadPortraits = function () {
+    if (A.portraits) return Promise.resolve(A.portraits);
+    if (!pending.portraits) pending.portraits = loadAtlas('assets/chars/h/portraits').then((a) => (A.portraits = a)).catch(() => null);
+    return pending.portraits;
+  };
   BB.ROSTER = [];
   BB.loadRoster = function () {
     if (pending.roster) return pending.roster;
