@@ -83,7 +83,8 @@
       case 'attack': {
         const k = u.atk, w = k.wind * u.windMul, r = k.recover * u.windMul, sk = k.blink ? 7 : (D.STRIKE[k.clip] || 7);
         u.clip = k.clip;
-        u.frame = st < w ? Math.floor(sk * st / w) : Math.min(F, sk + Math.floor((st - w) / Math.max(0.05, r) * (F - sk + 1)));
+        const hold = (k.hold || 0) * u.windMul, w0 = w - hold;   // a delayed blow: the wind-up stops just short of the strike and hangs there
+        u.frame = st < w0 ? Math.floor((hold ? sk - 1 : sk) * st / Math.max(0.01, w0)) : st < w ? sk - 1 : Math.min(F, sk + Math.floor((st - w) / Math.max(0.05, r) * (F - sk + 1)));
         break;
       }
       case 'dodge': u.clip = 'Rolling'; u.frame = Math.min(F, Math.floor(st / u.dur * D.FRAMES)); break;
@@ -142,10 +143,12 @@
       } else { const o = nearestFoe(s, u, 100); if (o) setAng(u, Math.atan2(o.y - u.y, o.x - u.x)); }
     }
     else { const tg = targetOf(s, u) || s.hero; u.target = tg; if (tg) setAng(u, Math.atan2(tg.y - u.y, tg.x - u.x)); }
+    // A leaping slam: up from here, down where the target stands now (the ring on the floor shows where).
+    if (k.leap && u !== s.hero) { const tg = u.target || s.hero, c = VS.clampTo(curArena, tg.x, tg.y, u.rad + 4); u.leapFrom = { x: u.x, y: u.y }; u.leapTo = { x: c[0], y: c[1] }; }
     ev(s, { type: 'windup', id: u.id, unparry: !!k.unparry, boss: !!u.def.boss, clip: k.clip });
   }
   // Where an area blow lands (for the danger zone on the floor).
-  VS.aoeAt = (u, k) => { const d = dir(u.ang); return { x: u.x + d[0] * (k.at || 0) * u.scale, y: u.y + d[1] * (k.at || 0) * u.scale, r: k.aoe * u.scale * 0.8 }; };
+  VS.aoeAt = (u, k) => { if (k.leap && u.leapTo) return { x: u.leapTo.x, y: u.leapTo.y, r: k.aoe * u.scale * 0.8 }; const d = dir(u.ang); return { x: u.x + d[0] * (k.at || 0) * u.scale, y: u.y + d[1] * (k.at || 0) * u.scale, r: k.aoe * u.scale * 0.8 }; };
   function inReach(a, k, o) {
     if (k.aoe) { const c = VS.aoeAt(a, k); return Math.hypot(o.x - c.x, o.y - c.y) <= c.r + o.rad; }
     const dx = o.x - a.x, dy = o.y - a.y, d = Math.hypot(dx, dy);
@@ -778,6 +781,12 @@
       }
       if (u.state === 'attack') {
         const k = u.atk, w = k.wind * u.windMul, prev = u.st - dt;
+        if (k.hold) { const g = w - k.hold * u.windMul; if (prev < g && u.st >= g) ev(s, { type: 'glint', id: u.id, x: u.x, y: u.y, z: 40 * u.scale, unparry: !!k.unparry }); }
+        if (k.leap && u.leapTo) {
+          const a = w * 0.3, f = Math.max(0, Math.min(1, (u.st - a) / (w - a)));
+          if (u.st > a && prev < w) { u.x = u.leapFrom.x + (u.leapTo.x - u.leapFrom.x) * f; u.y = u.leapFrom.y + (u.leapTo.y - u.leapFrom.y) * f; u.z = Math.sin(f * Math.PI) * (k.leap.h || 90); u.vz = 0; u.iframes = Math.max(u.iframes, f < 0.9 ? 0.05 : 0); }
+          if (prev < w && u.st >= w) { u.z = 0; ev(s, { type: 'landed', id: u.id, x: u.x, y: u.y, boss: true }); }
+        }
         if (k.lunge) {
           const a = w - 0.1, b = w + 0.14, d = dir(u.ang);
           if (u.st > a && prev < b) { const f = Math.min(u.st, b) - Math.max(prev, a); u.x += d[0] * k.lunge / 0.24 * f; u.y += d[1] * k.lunge / 0.24 * f; }
@@ -938,5 +947,5 @@
   function release(s) { s.scripted = false; s.waveT = 0.6; }
   // A training foe whose part is over leaves in a puff (no kill, no reward).
   function dismiss(s, u) { if (!u || !u.alive) return; u.alive = false; u.hp = 0; u.atk = null; setState(u, 'dead'); u.deadT = 9; ev(s, { type: 'vanish', id: u.id, x: u.x, y: u.y }); }
-  VS.sim = { create, step, bot, rng, foes, startArt, mods, angDiff, makeUnit, CORE, place, addBreak, release, dismiss };
+  VS.sim = { create, step, bot, rng, foes, startArt, mods, angDiff, makeUnit, CORE, place, addBreak, release, dismiss, startAttack };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -318,6 +318,8 @@
         case 'cast': if (u) PK('cast_circle', u.x, u.y, 2, 1.6); break;
         case 'vanish': PK('smoke_dark', e.x, e.y, 10, 1.2); break;
         case 'bossArt': R.bossArt = { key: e.key, name: e.name, t: 0 }; break;
+        // The tell before a delayed blow: a hard glint on the weapon, held.
+        case 'glint': { const c = e.unparry ? '#ff5a6a' : '#ffffff'; FX({ kind: 'star', x: e.x, y: e.y, z: e.z, life: 0.45, col: c, r: 46 }); FX({ kind: 'ring', x: e.x, y: e.y, z: e.z, life: 0.4, col: c, r0: 4, r1: 40, w: 2 }); break; }
         case 'artEnd': R.flash = 1; R.flashCol = '255,255,255'; R.shake = 12; break;
       }
     }

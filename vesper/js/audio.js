@@ -81,6 +81,7 @@
         case 'dodge': A.pick(['swish_0', 'swish_1'], 0.45); break;
         case 'swing': A.pick(['swish_0', 'swish_1', 'swish_2'], 0.35); break;
         case 'windup': if (e.unparry) A.sfx('charge', 0.35); break;
+        case 'glint': A.sfx('swish_0', 0.6); A.sfx(e.unparry ? 'charge' : 'parry', 0.35); break;
         case 'bolt': A.sfx('bolt', 0.5); break;
         case 'blink': A.sfx('magic', 0.5); break;
         case 'boss': A.sfx('horn', 0.8); break;
