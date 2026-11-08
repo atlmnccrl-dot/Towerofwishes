@@ -129,32 +129,36 @@
       <span class="chip stars" style="cursor:default">${ic('star', 1)}${PR.totalStars(p)} / ${PR.maxStars()}</span>
       <button class="chip icon" data-act="menu" type="button" aria-label="Menu">${ic('gear', 1)}</button></div>`;
     const n = o.sel && PR.node(o.sel);
-    let panel;
-    if (!n) panel = `<p class="np-empty">Choose a place on the Spire.</p>`;
+    let card;
+    if (!n) card = `<p class="np-empty">Choose an island on the Spire.</p>`;
     else {
-      const st = PR.state(p, n.id), T = PR.TYPES[n.type], A = PR.ACTS[n.act], rec = PR.rec(p, n.id), goals = PR.goals(n), got = rec && rec.stars ? rec.stars : [];
-      let body = `<span class="np-type" style="--tc:${T.col}">${esc(T.label)}</span><h2>${esc(n.name)}</h2>${n.sub ? `<p class="np-sub">${esc(n.sub)}</p>` : ''}`;
-      body += `<p class="np-h">Act ${A.num} · ${esc(A.name)}</p>`;
-      if (n.type === 'shrine') body += `<p class="tip">A quiet place on the climb. Kneel here for a skill point and experience.</p>`;
+      const st = PR.state(p, n.id), T = PR.TYPES[n.type], A = PR.ACTS[n.act], rec = PR.rec(p, n.id), goals = PR.goals(n), got = rec && rec.stars ? rec.stars : [], cleared = st === 'cleared';
+      let left = `<span class="np-type" style="--tc:${T.col}">${esc(T.label)}</span><h2>${esc(n.name)}</h2>${n.sub ? `<p class="np-sub">${esc(n.sub)}</p>` : ''}<p class="ms-act">Act ${A.num} · ${esc(A.name)}</p>`;
+      if (n.rule) left += `<div class="np-rule">${esc(PR.RULES[n.rule](n.n))}</div>`;
+      let foes = '', mid = '';
+      if (n.type === 'shrine') mid = `<p class="tip">A quiet place on the climb. Kneel here for a skill point and experience.</p>`;
       else {
-        const b = PR.build(n);
-        if (n.rule) body += `<div class="np-rule">${esc(PR.RULES[n.rule](n.n))}</div>`;
-        const foes = {}; for (const w of b.node.waves) for (const k of w) if (k !== '+') { const f = DD().FOES[k]; foes[f.name] = foes[f.name] || !!f.boss; }
-        body += `<p class="np-h">Foes</p><div class="np-foes">${Object.keys(foes).map((nm) => `<span class="${foes[nm] ? 'boss' : ''}">${esc(nm)}</span>`).join('')}${b.node.rules.elites || n.act >= 1 ? '<span class="boss">Elites</span>' : ''}</div>`;
-        body += `<p class="np-h">Goals</p><ul class="goals">${goals.map((g, i) => `<li class="${got[i] ? 'on' : ''}"><i class="st"></i>${esc(g.text)}</li>`).join('')}</ul>`;
-        if (rec && rec.best) body += `<p class="tip">Best time ${rec.best}s · won ${rec.wins}×</p>`;
+        // The foes as portraits: the guardian or champion first and larger, then each kind once, in the look it will wear.
+        const b = PR.build(n), seen = new Set(), list = [];
+        for (const w of b.node.waves) for (const k of w) if (k !== '+' && !seen.has(k)) { seen.add(k); const f = DD().FOES[k]; list.push({ k, f, set: ((b.node.variants || {})[k] || [f.set])[0] }); }
+        list.sort((a, c) => (c.f.boss ? 1 : 0) - (a.f.boss ? 1 : 0));
+        foes = list.slice(0, 5).map((x) => `<div class="ms-foe${x.f.boss ? ' boss' : ''}"><canvas width="${x.f.boss ? 96 : 64}" height="${x.f.boss ? 96 : 64}" data-set="${x.set}"></canvas><span>${esc(x.f.name)}</span></div>`).join('') + (list.length > 5 ? `<div class="ms-foe more"><span>+${list.length - 5}</span></div>` : '') ;
+        mid = `<p class="np-h">Foes</p><div class="ms-row">${foes}</div>`;
       }
-      const xp = PR.baseXp(n), sp = PR.spOf(n), cleared = st === 'cleared';
-      body += `<p class="np-h">Reward</p><div class="np-reward"><span><b>+${cleared && n.type !== 'shrine' ? Math.round(xp * 0.3) : xp}</b> XP</span>${!cleared && sp ? `<span><b>+${sp}</b> skill point</span>` : ''}${!cleared && n.type !== 'shrine' && n.type !== 'trial' ? '<span><b>+25%</b> XP per new star</span>' : ''}</div>`;
-      for (const id in PR.UNLOCKS) { const u = PR.UNLOCKS[id]; if (((u.kind === 'boss' && u.node === n.id) || (u.kind === 'feat' && n.rule === 'nohit')) && !PR.heroOk(p, id)) body += `<div class="np-unlock" style="--hc:${DD().HEROES[id].color}">Unlocks a new hero: ${esc(DD().HEROES[id].name)}</div>`; }
+      let right = '';
+      if (n.type !== 'shrine') right += `<p class="np-h">Goals</p><ul class="goals">${goals.map((g, i) => `<li class="${got[i] ? 'on' : ''}"><i class="st"></i>${esc(g.text)}</li>`).join('')}</ul>`;
+      const xp = PR.baseXp(n), sp = PR.spOf(n);
+      right += `<div class="np-reward"><span><b>+${cleared && n.type !== 'shrine' ? Math.round(xp * 0.3) : xp}</b> XP</span>${!cleared && sp ? `<span><b>+${sp}</b> skill point</span>` : ''}${rec && rec.best ? `<span>Best ${rec.best}s</span>` : ''}</div>`;
+      for (const id in PR.UNLOCKS) { const u = PR.UNLOCKS[id]; if (((u.kind === 'boss' && u.node === n.id) || (u.kind === 'feat' && n.rule === 'nohit')) && !PR.heroOk(p, id)) right += `<div class="np-unlock" style="--hc:${DD().HEROES[id].color}">Unlocks ${esc(DD().HEROES[id].name)}</div>`; }
       let go;
-      if (st === 'locked') go = `<button class="big-btn" disabled type="button">Locked</button><p class="np-as">Clear a node below to reach this one.</p>`;
+      if (st === 'locked') go = `<button class="big-btn" disabled type="button">Locked</button><p class="np-as">Clear an island below first.</p>`;
       else if (n.type === 'shrine') go = cleared ? `<button class="big-btn" disabled type="button">Claimed</button>` : `<button class="big-btn gold" data-act="go" type="button">Kneel</button>`;
-      else go = `<button class="big-btn" data-act="go" type="button">${cleared ? 'Fight again' : n.type === 'trial' ? 'Begin' : 'Fight'}</button><p class="np-as" style="--hc:${H.color}">As ${esc(H.name)} · <button data-act="heroes" type="button">change</button></p>`;
-      panel = body + `<div class="np-go">${go}</div>`;
+      else go = `<button class="big-btn" data-act="go" type="button">${cleared ? 'Again' : n.type === 'trial' ? 'Begin' : 'Fight'}</button><p class="np-as" style="--hc:${H.color}">As ${esc(H.name)} · <button data-act="heroes" type="button">change</button></p>`;
+      card = `<div class="ms-left">${left}</div><div class="ms-mid">${mid}</div><div class="ms-right">${right}</div><div class="ms-go">${go}</div>`;
     }
-    const el = U.show('map', bar + `<aside class="map-panel">${panel}</aside>`, null, { back: o.onMenu });
+    const el = U.show('map', bar + `<section class="mission${n ? ' has' : ''}">${card}</section>`, null, { back: o.onMenu });
     el.querySelectorAll('[data-act]').forEach((b) => b.addEventListener('click', () => { VS.audio.unlock(); VS.audio.sfx('clang_0', 0.4); ({ skills: o.onSkills, heroes: o.onHeroes, menu: o.onMenu, go: o.onGo, gear: o.onGear, modes: o.onModes })[b.dataset.act](); }));
+    el.querySelectorAll('.ms-foe canvas').forEach((c) => figure(c, c.dataset.set));
     const go = el.querySelector('[data-act="go"]'); if (go) go.focus({ preventScroll: true });
     return el;
   };

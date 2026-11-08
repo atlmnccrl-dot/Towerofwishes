@@ -169,10 +169,14 @@
     const p = P(); M.mapSel = sel || M.mapSel || PR.nextNode(p);
     if (M.state !== 'map') { M.go('map'); VS.MAP.open(p, M.mapSel); AU.cue('map'); AU.playAmb('wind');
       A.loadSets(PR.CHAMPS.flat().map((k) => D.FOES[k].set).filter((id) => !A.hasSet(id))).catch(() => {}); }   // the champions shown on the map
+    if (VS.MAP.sel !== M.mapSel) VS.MAP.focus(M.mapSel);
     VS.MAP.sel = M.mapSel; VS.MAP.p = p;
     VS.MAP.onSelect = (id) => { AU.sfx('step_0', 0.5); map(id); };
     U.map({ p, sel: M.mapSel, onGo: () => playNode(M.mapSel), onSkills: () => skills(), onHeroes: () => roster(() => map()), onGear: () => gear(), onModes: () => modes(),
       onMenu: () => { M.go('menu'); U.menu({ onBack: () => map(), onSettings: () => settings(null, false, () => map()), onTitle: () => title() }); } });
+    // The mission card's portraits: one look of each foe of the chosen island (loaded if not yet).
+    const sn = PR.node(M.mapSel);
+    if (sn && sn.type !== 'shrine') { const b = PR.build(sn), sets = [...new Set(PR.foeKeys(b).map((k) => ((b.node.variants || {})[k] || [D.FOES[k].set])[0]))].filter((id) => !A.hasSet(id)); if (sets.length) A.loadSets(sets).catch(() => {}); }
   }
   function mapKey(e) {
     if (U.current !== 'map') return false;
@@ -548,7 +552,7 @@
     else if (params.has('map')) map();
     else title();
   }
-  addEventListener('wheel', (e) => { if (M.state === 'map' && !e.target.closest('.map-panel')) { VS.MAP.wheel(e.deltaY); } }, { passive: true });
+  addEventListener('wheel', (e) => { if (M.state === 'map' && !e.target.closest('.mission')) { VS.MAP.wheel(e.deltaY); } }, { passive: true });
   M.startFight = startFight; M.startScene = startScene; M.theatre = theatre; M.title = title; M.endFight = endFight; M.map = map; M.playNode = playNode; M.startNode = startNode; M.skills = skills; M.roster = roster;
   boot();
 })();
