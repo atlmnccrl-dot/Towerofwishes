@@ -48,7 +48,7 @@
     items.push({ label: 'Theatre', sub: 'Watch an ultimate', act: o.onTheatre, ic: 'orb' });
     items.push({ label: 'Settings', act: o.onSettings, ic: 'gear' });
     items.push({ label: 'Credits', act: o.onCredits, ic: 'quill' });
-    const el = U.show('title', `<div class="title-col"><header class="logo"><h1>VESPER</h1><p>A last ditch effort</p></header>${buttons(items)}</div>`, items);
+    const el = U.show('title', `<div class="title-col"><header class="logo"><h1><span class="the">THE</span>BLEEDING<br>MOON</h1></header>${buttons(items)}</div>`, items);
     if (o.confirmNew) { const b = el.querySelectorAll('.btn')[o.cont ? 1 : 0]; if (b) b.focus({ preventScroll: true }); }
   };
   // Settings in four groups; the focused row stays focused after a change (o.focus is its key).
@@ -107,7 +107,7 @@
   };
   U.loading = function (p) {
     const r = root(); let el = r.querySelector('.screen-loading');
-    if (!el) el = U.show('loading', `<div class="center"><div class="loader"><span></span></div><p class="eyebrow">VESPER</p></div>`);
+    if (!el) el = U.show('loading', `<div class="center"><div class="loader"><span></span></div><p class="eyebrow">THE BLEEDING MOON</p></div>`);
     el.querySelector('.loader span').style.width = Math.round(p * 100) + '%';
   };
 

@@ -1,6 +1,6 @@
-# Vesper — release checklist
+# The Bleeding Moon — release checklist
 
-What it takes to ship Vesper, what is done and what only the author can do.
+What it takes to ship The Bleeding Moon, what is done and what only the author can do.
 
 ## Build
 
@@ -35,7 +35,7 @@ already visited work offline). The `dist/` folder is not committed.
 | Soft particle textures (glows, swirl, rune ring, smoke) | `assets/vfx` | Confirm their source and licence |
 | Older tile sets (Cainos Top Down Basic, TopDownFantasy Forest, reodesuxz, EPIC RPG World, Dark World), used by the menus' backdrops | `assets/tiles` | Each pack's licence |
 | Fonts: Chakra Petch, Barlow (Google Fonts); Adventurer by Brian J Smith | loaded from Google / `assets/ui` | OFL; Adventurer is CC BY 3.0 (credit kept in Settings → Credits) |
-| The name "Vesper" | — | Search existing games and trademarks before a store listing |
+| The name "The Bleeding Moon" | — | Search existing games and trademarks before a store listing |
 
 ## Still to do
 

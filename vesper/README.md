@@ -1,6 +1,8 @@
-# VESPER
+# THE BLEEDING MOON
 
-*Seven hundred years ago a swordsman cut the moon. It has bled ever since.*
+*Seven hundred years ago a swordsman cut the moon to raise the dead. It has bled ever since.*
+
+The hero is Vesper; the code, folder and save keys keep the working name `vesper`.
 
 A side-on pixel action game built on this repository's packed assets (the Character Creator cast,
 the effect and tile atlases, the battle track and the synthesised fight sounds). Its centrepiece is
@@ -92,10 +94,13 @@ arts and drawn on the same 180 px pixel buffer, with its words on a sharp full-r
 None of it is the game's own view: every shot is a set built for it. The plot: seven hundred years ago the First Cut climbed the Spire
 and cut the moon to raise an army that would never die; by its red light his dead rise; tonight the
 wound bleeds out, and Vesper's blade is the one that can stop him. The shots: a red drop in the dark;
-a calm white moon over a sleeping city and the Spire; the First Cut on top of the Spire as a god, his
-eyes igniting, raising a sword the size of a tower into the moon; the cut in impact frames (the blade
-across the moon's face, white, inverted, black on white) and red light bursting from the wound; the
-moon hanging still and bleeding; the earth cracking
+the camera running with a swordsman across the moonlit roofs of a living city (lanterns, chimney smoke,
+birds bursting up, a leap across a street); racing up the Spire as he leaps ledge to ledge cutting down
+its guards; the summit, where he raises his sword before the vast white moon and darkness pours out of
+him, his shadow rising into a god, eyes igniting, sword raised; the cut: the tower-sized blade drinking
+the moon's light, the swing across its face, a storm of impact frames, then the moon splitting along
+the cut, white-hot, with red light pouring out of the gap onto the world, rings of force across a sky
+turning to blood, and his crowned head rising beneath it; the moon hanging still and bleeding; the earth cracking
 and a hand bursting out, then the dead standing up one by one in a row on a ridge against the moon,
 their eyes lighting, his eyes watching from the sky; red eyes opening in waves across a black plain, hundreds of them, and lightning showing the horde
 they belong to, rank behind rank to the horizon; Vesper's red eye and her name, the draw; the charge through eight of the dead; three manga panels; then the First Cut as a god over the
@@ -103,8 +108,8 @@ Spire (a drawn silhouette: crowned and horned helm, spiked pauldrons, a cape lik
 a sword the size of a tower), the camera tilting from his sword's point past her, small on a rampart,
 up to his burning eyes with the red moon as his halo; his gaze, her eye answering; his blade coming
 down from the sky and her holding it (impact frames, the ground breaking); her throwing it off and
-raising her blade at him; the title over the red moon, his shadow faint behind it and his eyes
-burning above her name. Any tap skips it. The older hand-drawn
+raising her blade at him; the title, THE BLEEDING MOON, over the red moon, his shadow faint behind
+it and his eyes burning above the name. Any tap skips it. The older hand-drawn
 sequence (`js/opening.js`) stays in the code for the Theatre.
 
 **The opening** (`js/opening.js`): about 23 seconds, cut like an anime transformation and drawn at

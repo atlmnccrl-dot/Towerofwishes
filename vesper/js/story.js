@@ -109,7 +109,7 @@
     { k: 'seal', eyebrow: 'DAWN', say: 'You strike the wound with everything you have.', d: 4.2 },
     { k: 'film', stage: 5, area: 'last', tint: 'dawn', say: 'The wound closes. The moon turns white and rises. The night is over.', d: 4.8,
       cast: [{ who: 'hero', at: [0, 20], face: 'cam' }], cam: { at: [0, 22], to: [0, 10], zoom: [2.6, 1.4] } },
-    { k: 'title', top: 'THANK YOU FOR PLAYING', title: 'VESPER', d: 3.2 }] };
+    { k: 'title', top: 'THANK YOU FOR PLAYING', title: 'THE BLEEDING MOON', d: 3.2 }] };
 
   // 'hero' is whoever is being played (set by main.js).
   S.heroKey = 'vesper';

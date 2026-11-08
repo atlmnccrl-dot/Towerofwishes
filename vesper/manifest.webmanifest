@@ -1,6 +1,6 @@
 {
-  "name": "Vesper",
-  "short_name": "Vesper",
+  "name": "The Bleeding Moon",
+  "short_name": "Bleeding Moon",
   "description": "Climb the Spire before dawn: an isometric action game under a red moon.",
   "start_url": "./index.html",
   "scope": "./",
