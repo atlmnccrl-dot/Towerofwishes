@@ -280,6 +280,9 @@
         if (m.free(x, y, 0.6)) m.barrels = (m.barrels || []).concat([{ x, y, kind: r() < 0.5 ? 'barrel1' : 'barrel3' }]);
       }
     }
+    // keep every key spot reachable: no props on spawns, gates, wards or boss spots
+    const keys = [m.heroSpawn, m.bossSpot].concat(m.foeSpawns || [], m.gateSpots || []);
+    m.props = m.props.filter((p) => p.ward || /Misc C14|Misc B42|Misc C12|Misc B6_E/.test(p.name) || !keys.some((k) => Math.hypot(p.x - k.x, p.y - k.y) < 1.6 + (p.r || 0)));
     edgeForest(m, set, 3);
     for (const p of m.props) { const s = BB.iso(p.x, p.y); p.depth = p.x + p.y; p.sx = s.x; p.sy = s.y; }
     m.props.sort((a, b) => a.depth - b.depth);
@@ -302,7 +305,7 @@
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       if (x < 3 || y < 3 || x >= W - 3 || y >= H - 3 || m.at(x, y) === 3) { b[y * W + x] = 1; continue; }
       const cx = x + 0.5, cy = y + 0.5;
-      for (const p of m.grid[y * W + x]) if (p.r >= 0.3 && Math.hypot(p.x - cx, p.y - cy) < p.r + 0.15) { b[y * W + x] = 1; break; }
+      for (const p of m.grid[y * W + x]) if (p.r >= 0.15 && (Math.hypot(p.x - cx, p.y - cy) < p.r + 0.2 || ((p.x | 0) === x && (p.y | 0) === y))) { b[y * W + x] = 1; break; }
     }
     m.block = b;
   };

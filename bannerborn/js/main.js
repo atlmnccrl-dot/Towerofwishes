@@ -185,7 +185,7 @@
     const team = S.team.map(UI.heroById).filter(Boolean);
     if (!team.length) { UI.toast('Choose who marches in the Warband.'); return; }
     let mission;
-    if (idx === 'endless') mission = { id: 'endless', name: 'The Endless Gate', type: 'endless', level: Math.max(3, Math.round(team.reduce((a, h) => a + h.level, 0) / team.length)), layout: 'endless', waves: [['ghoul', 4], ['warden', 1, 'ghoul', 3]], reward: { gold: 40 }, region: 'vale' };
+    if (idx === 'endless') mission = { id: 'endless', name: 'The Endless Gate', type: 'endless', level: Math.max(2, Math.round(team.reduce((a, h) => a + h.level, 0) / team.length) - 2), layout: 'endless', waves: [['ghoul', 4], ['warden', 1, 'ghoul', 3]], reward: { gold: 40 }, region: 'vale' };
     else mission = BB.MISSIONS[idx];
     current = { mission, idx };
     const pre = BB.STORY[mission.id + 'pre'];
@@ -204,7 +204,7 @@
     const seed = (M.id.charCodeAt(1) || 7) * 1000 + (S.cleared[M.id] ? Math.floor(Math.random() * 999) : 1);
     const map = BB.buildMap(M.layout, biome, seed, { night: region.night || M.id === 'm12' });
     BB.renderGround(map);
-    scene = new BB.Battle({ map, mission: M, heroes: team, level: BB.foeLevel(M, team), save: S, seed });
+    scene = new BB.Battle({ map, mission: M, heroes: team, level: M.id === 'endless' ? M.level : BB.foeLevel(M, team), save: S, seed });
     scene.cam.zoom = 1;
     mode = 'battle';
     buildHud();
@@ -294,7 +294,7 @@
     const c = B.controlled;
     if (c) {
       const C = BB.CALLINGS[c.calling];
-      $('aSkillName').textContent = C.skill.name.split(' ')[0].toUpperCase();
+      $('aSkillName').textContent = { shieldwall: 'WALL', leap: 'LEAP', volley: 'STORM', flame: 'BREATH', sanctuary: 'HEAL' }[C.skill.id] || 'SKILL';
       $('aSkill').querySelector('.cdm').style.setProperty('--p', (c.cd > 0 ? c.cd / c.cdMax * 100 : 0) + '%');
     }
     const r = $('aRally'); r.classList.toggle('ready', B.rally >= 100 && B.rallyT <= 0);

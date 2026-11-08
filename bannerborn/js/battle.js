@@ -55,7 +55,7 @@
     const F = BB.FOES[kind];
     const elite = opts.elite || null;
     const st = BB.foeStats(kind, opts.level || this.level, elite);
-    if (!F.gate) { const fs = BB.freeSpot(this.map, x, y, F.r); x = fs.x; y = fs.y; }
+    { const fs = BB.freeSpot(this.map, x, y, F.gate ? 0.9 : F.r); x = fs.x; y = fs.y; }
     const e = {
       id: BB.uid('f'), side: 'foe', kind, F, name: (elite ? elite.name + ' ' : '') + F.name, x, y, vx: 0, vy: 0, r: F.r * (elite ? 1.1 : 1),
       hp: st.hp, maxhp: st.hp, atk: st.atk, def: st.def, spd: F.spd * (elite && elite.id === 'blood' ? 1.15 : 1), crit: 0.05,
@@ -95,6 +95,7 @@
       this.obj.text = 'Survive the Endless Gate';
       const spots = (m.gateSpots || m.foeSpawns).slice(0, 2);
       this.obj.gates = spots.map((s) => this.spawnFoe('portal', s.x, s.y));
+      for (const g of this.obj.gates) g.budget = 2;
       this.obj.endlessWave = 0;
     } else {
       this.obj.text = 'Rout the Bone Tide';
@@ -145,10 +146,12 @@
       } else {
         o.text = 'Endless Gate — wave ' + (o.endlessWave + 1) + ' · gates ' + left;
         if (!left && foes.length < 2) {
-          o.endlessWave++; this.level++;
+          o.endlessWave++; if (o.endlessWave % 2 === 0) this.level++;
           this.banner('Wave ' + (o.endlessWave + 1), 1.5);
           const spots = this.map.gateSpots.slice(0, Math.min(3, 2 + (o.endlessWave >> 2)));
           o.gates = spots.map((s) => this.spawnFoe('portal', s.x + this.r.range(-1, 1), s.y + this.r.range(-1, 1)));
+          for (const g of o.gates) g.budget = 2 + (o.endlessWave >> 1);
+          for (const h of this.heroesAlive()) this.heal(null, h, h.maxhp * 0.25);
           o.waves = [[this.r.pick(['ghoul', 'warden', 'necro']), 3 + (o.endlessWave >> 1), 'ghoul', 2]];
           if (o.endlessWave % 5 === 4) this.spawnFoe(this.r.pick(['ossric', 'sallow']), this.map.w / 2, this.map.h / 2 - 3, { rise: true, level: this.level });
           o.nextWaveT = 2;
@@ -542,6 +545,7 @@
     }
     for (const e of movers) BB.collide(this.map, e);
     this.updateProjs(dt);
+    if (this.ents.length > 60) this.ents = this.ents.filter((e) => !(e.dead && e.side === 'foe' && e.deadT > 3));
     for (const c of this.clouds) {
       c.t += dt;
       if (Math.floor(c.t * 2) !== Math.floor((c.t - dt) * 2))
@@ -643,7 +647,8 @@
   Battle.prototype.moveToward = function (e, tx, ty, dt, speedMul, direct) {
     if (!this.peaceful) { tx = clamp(tx, 2.7, this.map.w - 2.7); ty = clamp(ty, 2.7, this.map.h - 2.7); }
     // route around water and props when the straight line is blocked
-    if (!direct && !this.peaceful && this.map.block && hyp(tx - e.x, ty - e.y) > 1.2 && !BB.lineClear(this.map, e.x, e.y, tx, ty)) {
+    if (e.forcePath > 0) e.forcePath -= dt;
+    if (!direct && !this.peaceful && this.map.block && hyp(tx - e.x, ty - e.y) > 1.2 && (e.forcePath > 0 || !BB.lineClear(this.map, e.x, e.y, tx, ty))) {
       const P = e.path;
       if (!P || P.t <= 0 || hyp(P.tx - tx, P.ty - ty) > 1.5 || !P.pts.length) {
         const pts = BB.findPath(this.map, e.x, e.y, tx, ty);
@@ -661,7 +666,7 @@
     if (e.lastPos) {
       const moved = hyp(e.x - e.lastPos.x, e.y - e.lastPos.y);
       if (moved < step * 0.35) e.stuckT = (e.stuckT || 0) + dt; else e.stuckT = Math.max(0, (e.stuckT || 0) - dt);
-      if (e.stuckT > 0.45 && !(e.sideT > 0)) { e.sideT = 0.6 + this.r() * 0.4; e.sideDir = this.r() < 0.5 ? 1 : -1; e.stuckT = 0; }
+      if (e.stuckT > 0.45 && !(e.sideT > 0)) { e.sideT = 0.6 + this.r() * 0.4; e.sideDir = this.r() < 0.5 ? 1 : -1; e.stuckT = 0; e.stuckN = (e.stuckN || 0) + 1; if (e.stuckN > 1) { e.forcePath = 3; e.path = null; e.stuckN = 0; } }
     }
     let ux = dx / d, uy = dy / d;
     if (e.sideT > 0) { e.sideT -= dt; const a = 1.2 * e.sideDir, c = Math.cos(a), s2 = Math.sin(a); const nx = ux * c - uy * s2; uy = ux * s2 + uy * c; ux = nx; }
@@ -751,8 +756,9 @@
     if (e.gate) {
       e.spawnCd -= dt;
       const foes = this.foesAlive().length;
-      if (e.spawnCd <= 0 && foes < 9) {
+      if (e.spawnCd <= 0 && foes < 9 && (e.budget === undefined || e.budget > 0)) {
         e.spawnCd = 8.5 + this.r() * 2.5;
+        if (e.budget !== undefined) e.budget--;
         const k = this.r.pick(this.obj.pool);
         this.spawnFoe(k, e.x + this.r.range(0.6, 1.2), e.y + this.r.range(0.6, 1.2), { rise: true });
       }

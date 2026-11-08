@@ -98,13 +98,15 @@ node test/sim-node.js all 12               # every mission fast-forwarded in ful
 NODE_PATH=$(npm root -g) node test/shots.js /tmp/bb-shots     # new game → forge → camp → map → battle → rally
 NODE_PATH=$(npm root -g) node test/scenes.js /tmp/bb-scenes 0,4,5,9,11   # missions mid-fight + results
 NODE_PATH=$(npm root -g) node test/phone.js /tmp/bb-phone     # 844×390 touch layout
+NODE_PATH=$(npm root -g) node test/legends.js /tmp/bb-legends # legends in the party, Endless Gate, defeat → retry
 ```
 The browser tests expect a static server on port 8123 at `bannerborn/`
 (`npx http-server -p 8123 bannerborn`).
 
 Full-auto balance at mission level with typical gear (12 runs each): 75–100 % wins, bosses
 ≈ 60–80 s, occasional wipes at the spikes (Ossric, the Old Watch, Tombs of Glass, the Cantor).
-A player who dodges and aims skills does better.
+A player who dodges and aims skills does better. 288 simulated runs (24 per mission): no stalls.
+Endless Gate: a level-5 warband falls around wave 5, a level-10 one around wave 9.
 
 ## Next (batches 2–4)
 
