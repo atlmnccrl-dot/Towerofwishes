@@ -49,6 +49,7 @@
     }
   }
   BB.Battle = Battle;
+  const PACE = 1.2;
 
   Battle.prototype.heroesAlive = function () { return this.ents.filter((e) => e.side === 'hero' && !e.dead && !e.ward); };
   Battle.prototype.foesAlive = function () { return this.ents.filter((e) => e.side === 'foe' && !e.dead && !e.prop); };
@@ -178,7 +179,7 @@
       o.nextWaveT -= dt;
       // reinforcements arrive while the last wave is still fighting: once it is mostly down, or after a while
       const lastN = o.lastWaveN || 1;
-      if (o.waves.length && o.nextWaveT <= 0 && (foes.length <= Math.max(1, Math.floor(lastN * 0.35)) || o.nextWaveT < -16)) {
+      if (o.waves.length && o.nextWaveT <= 0 && (foes.length <= Math.max(1, Math.floor(lastN * 0.45)) || o.nextWaveT < -11)) {
         const w = o.waves.shift(); this.spawnWave(w); o.nextWaveT = 4; o.lastWaveN = this.foesAlive().filter((f) => !f.gate).length;
         this.banner('Wave ' + this.waveIdx + ' / ' + this.mission.waves.length, 1.3, 'small');
       }
@@ -729,7 +730,7 @@
     let ts = 1;
     if (this.slow > 0) { this.slow -= dtReal; ts = 0.35; }
     if (this.paused) return;
-    const dt = Math.min(0.05, dtReal) * ts;
+    const dt = Math.min(0.05, dtReal) * ts * PACE; // the fight runs a touch quicker than the clock
     this.time += dt; this.dt = dt;
     if (this.result) this.result.t += dtReal;
     if (this.rallyT > 0) this.rallyT -= dt;

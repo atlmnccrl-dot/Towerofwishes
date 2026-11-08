@@ -328,7 +328,7 @@
       }
     }
     // ground plants on grass (no collision)
-    if (biome === 'vale' && !/throne/.test(layout)) for (let i = 0; i < W * H * 0.05; i++) {
+    if (biome === 'vale' && !/throne/.test(layout)) for (let i = 0; i < W * H * 0.025; i++) {
       const x = r.range(3, W - 3), y = r.range(3, H - 3);
       if (m.at(x, y) <= 1 && m.free(x, y, 0.3)) m.add('Flora ' + r.pick(['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'B3', 'B5']) + '_' + r.pick(DIRS), x, y, { biome: 'ground', r: 0 });
     }
@@ -339,6 +339,21 @@
         if (Math.hypot(x - m.heroSpawn.x, y - m.heroSpawn.y) < 3) continue;
         if (m.free(x, y, 0.6)) m.barrels = (m.barrels || []).concat([{ x, y, kind: r() < 0.5 ? 'barrel1' : 'barrel3' }]);
       }
+    }
+    // open ground for the fight: thin the clutter, keep the middle and the lanes between spawns clear
+    if (!/camp|title/.test(layout)) {
+      const cx = W / 2, cy = H / 2, keep = /Torch|Misc C14|Misc B42|Misc C12|Misc B6_E|FirePlace/;
+      const lanes = [m.heroSpawn].concat(m.foeSpawns || [], m.gateSpots || [], m.bossSpot ? [m.bossSpot] : []).map((q) => [cx, cy, q.x, q.y]);
+      const segD = (px, py, [x0, y0, x1, y1]) => { const dx = x1 - x0, dy = y1 - y0, l2 = dx * dx + dy * dy || 1, k = Math.max(0, Math.min(1, ((px - x0) * dx + (py - y0) * dy) / l2)); return Math.hypot(px - x0 - dx * k, py - y0 - dy * k); };
+      m.props = m.props.filter((p) => {
+        if (p.ward || keep.test(p.name) || p.wall) return true;
+        const dc = Math.hypot(p.x - cx, p.y - cy), lane = lanes.some((L) => segD(p.x, p.y, L) < 1.5 + (p.r || 0));
+        if (!p.solid) return dc < 6 ? r() < 0.35 : r() < 0.7; // ground decor: lighter in the middle
+        if (lane) return false;
+        if (dc < 6.5) return r() < 0.2;
+        return r() < 0.55;
+      });
+      m.anims = m.anims.filter((a) => a.ground || a.pole || /torch|fire|portal|ripple/.test(a.key) || r() < 0.6);
     }
     // keep every key spot reachable: no props on spawns, gates, wards or boss spots
     const keys = [m.heroSpawn, m.bossSpot].concat(m.foeSpawns || [], m.gateSpots || []);

@@ -358,7 +358,7 @@
     }
   });
   function toggleSpeed() {
-    const s = BB.save.settings; s.speed = (s.speed || 1) === 1 ? 2 : 1; BB.persist();
+    const s = BB.save.settings; s.speed = ((s.speed || 1) % 3) + 1; BB.persist();
     $('bSpeed').textContent = s.speed + '×';
   }
   function toggleAuto() {
@@ -426,7 +426,7 @@
       scene.cam.zoom = camZoom() * (scene.zoomK || 1);
       if (scene.isTitle) { scene.cam.x = scene.map.w / 2 + Math.sin(t / 9000) * 1.6 - 1.2; scene.cam.y = scene.map.h / 2 + Math.cos(t / 11000) * 0.8 + 0.4; }
       else if (scene.peaceful) { scene.cam.x = scene.map.w / 2 - 1.8 + Math.sin(t / 14000) * 0.4; scene.cam.y = scene.map.h / 2 + 1.6; }
-      const reps = mode === 'battle' && !scene.intro && !scene.result && BB.save.settings.speed === 2 ? 2 : 1;
+      const reps = mode === 'battle' && !scene.intro && !scene.result ? Math.min(3, Math.max(1, BB.save.settings.speed || 1)) : 1;
       for (let i = 0; i < reps; i++) scene.update(dt, null);
       if (visible) scene.render(ctx, W, H, DPR);
       if (mode === 'battle' && UI.current === 'hud') {
