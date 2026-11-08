@@ -33,6 +33,7 @@ DESERT = {
     'Stone': (rng('A', 1, 24) + rng('B', 1, 11), ['E', 'S']),
     'Flora': (rng('A', 1, 7) + rng('B', 1, 6) + rng('C', 1, 6), ['E', 'S']),
     'Door': (['A1', 'A2'] + rng('C', 1, 10), D2),
+    'Chest': (['A1', 'A2', 'A3', 'A4', 'B1', 'B2'], ['E', 'S']),
 }
 ISO = {
     'Ground': (['A1', 'A2'] + rng('B', 1, 6) + rng('C', 1, 6) + ['D1'] + rng('F', 1, 6) + rng('G', 1, 22)
@@ -49,7 +50,7 @@ ANIMS = ['Torch 1', 'Fire', 'Fire2', 'Barrel 1', 'Barrel 2', 'Barrel 3', 'Gas', 
 # Atlas groups, loaded per arena theme: shared walls and rocks, desert ground and props, iso ground and props, animations.
 def group(key):
     if key.startswith('a:'): return 'a'
-    if key.split(' ')[0][2:] in ('Wall', 'WallFlora', 'Door', 'Stone', 'Tree') or key in ['d:' + n for n in SINGLES]: return 'w'
+    if key.split(' ')[0][2:] in ('Wall', 'WallFlora', 'Door', 'Stone', 'Tree', 'Chest') or key in ['d:' + n for n in SINGLES]: return 'w'
     return key[0]
 
 def index(pattern):

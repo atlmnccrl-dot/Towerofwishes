@@ -4,7 +4,8 @@
 // Usage: node vesper/test/campaign-test.js [runs per node] [hero] [skill]
 require('../js/data.js'); require('../js/sim.js'); require('../js/progress.js');
 const VS = globalThis.VS, D = VS.DATA, S = VS.sim, P = VS.PROG, DT = 1 / 60;
-const runs = +process.argv[2] || 4, hero = process.argv[3] || 'vesper', skill = +(process.argv[4] || 0.55);
+const runs = +process.argv[2] || 4, hero = process.argv[3] || 'vesper', skill = +(process.argv[4] || 0.55), useGear = process.argv[5] !== 'nogear';
+let seed = 7; const rand = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
 let fails = 0; const bad = (m) => { fails++; console.log('FAIL', m); };
 
 // The map: ids unique, links valid, every node reachable from the first trial, every foe known.
@@ -25,17 +26,19 @@ for (const n of P.NODES) {
   if (n.type === 'shrine') { P.claimShrine(p, n.id); line += `  ${n.id}:shrine`; continue; }
   const b = P.build(n); let w = 0, T = 0, best = null;
   for (let i = 0; i < runs; i++) {
-    const s = S.create(b.stage, { seed: 11 + i * 97, hero, node: b.node, kit: P.kit(p), boons: P.passives(p) }); let t = 0;
+    const s = S.create(b.stage, { seed: 11 + i * 97, hero, node: b.node, kit: P.kit(p), boons: P.passives(p), gear: useGear ? VS.LOOT.mods(p, hero) : null }); let t = 0;
     while (!s.result && t < 400) { S.step(s, DT, S.bot(s, skill)); t += DT; }
     const r = { win: s.result === 'win', time: s.time, hpFrac: s.hero.hp / s.hero.maxHp, bossHits: s.stats.bossHits, maxCombo: s.stats.maxCombo, kills: 0 };
     if (r.win) { w++; if (!best) best = r; } T += s.time;
   }
   rows.push({ id: n.id, win: w / runs, t: T / runs });
-  P.finish(p, n.id, best || { win: true, time: 999, hpFrac: 0.3, bossHits: 9, maxCombo: 0 });   // the player keeps going until they win
+  P.finish(p, n.id, Object.assign({ rand, chests: rand() < 0.5 ? ['wood'] : [] }, best || { win: true, time: 999, hpFrac: 0.3, bossHits: 9, maxCombo: 0 }));   // the player keeps going until they win
+  if (useGear) VS.LOOT.autoEquip(p, hero);
   line += `  ${n.id}:${Math.round(w / runs * 100)}%/${Math.round(T / runs)}s`;
 }
 console.log(line);
 const avg = rows.reduce((a, r) => a + r.win, 0) / rows.length;
+const G = VS.LOOT.mods(p, hero); console.log(`gear: ${p.bag.length} items, ${p.gold} gold, +${Math.round((G.dmg - 1) * 100)}% damage, +${G.hp} health, ${Math.round(G.armor * 100)}% armour`);
 console.log(`hero ${hero}, skill ${skill}: average win ${Math.round(avg * 100)}%, level ${p.lvl}, skills ${p.skills.length}/${P.SKILLS.length} (${p.sp} sp left), heroes ${p.heroes.join(' ')}, stars ${P.totalStars(p)}/${P.maxStars()}`);
 const walls = rows.filter((r) => r.win === 0); if (walls.length) console.log('never won:', walls.map((r) => r.id).join(' '));
 console.log(fails ? fails + ' failures' : 'campaign sound');

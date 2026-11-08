@@ -79,7 +79,11 @@
   R.isoDraw = function (ctx, s, Ar, it) {
     const o = it.iso, q = it.q, Sh = R.Sh(), x = Math.round(q.x), y = Math.round(q.y);
     const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
-    if (o.kind === 'break') {
+    if (o.kind === 'chest') {
+      A.iso(ctx, o.broken ? o.openKey : o.key, x, y, Sh, Ar.tint);
+      // Unopened: a soft glint in its tier's colour, so it reads as treasure from across the map.
+      if (!o.broken) { const col = o.tier === 'gold' ? '#ffd060' : o.tier === 'iron' ? '#9ad0ff' : '#ffb070'; R.glowAt(ctx, col, x, y - 10 * Sh, 26 * Sh, 0.22 + 0.12 * Math.sin(R.t * 3 + o.x)); }
+    } else if (o.kind === 'break') {
       const fr = A.isoAnim(o.anim) || [];
       if (!o.broken) { if (!(o.key && A.iso(ctx, o.key, x, y, Sh, Ar.tint)) && fr.length) A.iso(ctx, fr[0], x, y, Sh, Ar.tint); }
       else if (fr.length) { const k = Math.min(fr.length - 1, Math.max(0, Math.floor((s.time - o.brokeT) * 18))); A.iso(ctx, fr[k], x, y, Sh, k < fr.length - 1 ? null : Ar.tint); }

@@ -5,11 +5,13 @@
   const VS = root.VS = root.VS || {};
   const P = VS.PROG = {};
   const D = () => VS.DATA;
+  if (!VS.LOOT && typeof require === 'function') require('./loot.js');
+  const LT = () => VS.LOOT;
 
   // ---- levels -------------------------------------------------------------------------------
   P.MAX_LVL = 40;
   P.need = (lvl) => 60 + 50 * (lvl - 1);                 // XP from this level to the next
-  P.fresh = () => ({ v: 2, xp: 0, lvl: 1, sp: 0, skills: ['heavy', 'dodge'], heroes: ['vesper'], hero: 'vesper', nodes: {}, flags: {}, seen: {}, tips: {}, last: 'a0-t',
+  P.fresh = () => LT().migrate({ v: 2, xp: 0, lvl: 1, sp: 0, skills: ['heavy', 'dodge'], heroes: ['vesper'], hero: 'vesper', nodes: {}, flags: {}, seen: {}, tips: {}, last: 'a0-t',
     stats: { wins: 0, kills: 0, bosses: 0, stars: 0 } });
   // Add XP; every level gives a skill point. Returns the number of levels gained.
   P.addXp = function (p, n) {
@@ -215,7 +217,7 @@
   const rngOf = (seed) => { let a = seed | 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
   P.depth = (n) => n.act + n.y * 0.9;            // 0 at the first trial, about 6 at the First Cut
   // Foe health and damage for a node: gentle while the kit is small, full strength at the top.
-  P.TUNE = { hp0: 0.72, hpK: 0.22, dmg0: 0.62, dmgK: 0.26 };
+  P.TUNE = { hp0: 0.72, hpK: 0.25, dmg0: 0.62, dmgK: 0.29 };
   P.scaleOf = (n) => { const d = Math.min(7, P.depth(n)), T = P.TUNE; return { hp: T.hp0 + T.hpK * d, dmg: T.dmg0 + T.dmgK * d }; };
   const CHAMPS = [['ch_gatebreaker', 'ch_bonecaptain'], ['ch_mother', 'ch_saber'], ['ch_bishop', 'ch_widow'], ['ch_carrion', 'ch_ashmother'], ['ch_huntmaster', 'ch_gale'], ['ch_woundlord', 'ch_saint'], ['ch_saber', 'ch_widow', 'ch_carrion', 'ch_woundlord']];
   P.CHAMPS = CHAMPS;
@@ -301,7 +303,13 @@
     const lv0 = p.lvl; p.sp += sp; const ups = P.addXp(p, xp);
     const heroes = P.checkHeroes(p);
     p.stats.stars = P.totalStars(p);
-    return { xp, sp, ups, lv0, lvl: p.lvl, stars, newStars, first, heroes, goals: P.goals(n) };
+    // Loot: gold, and items from the fight, its chests and its guardian. A full bag turns spare finds into gold.
+    LT().migrate(p);
+    const g = LT().mods(p, p.hero), drop = LT().drops(r.rand || Math.random, { type: n.type, depth: P.depth(n), first, win: r.win, progress: r.progress, stars: newStars.filter(Boolean).length, chests: r.win ? r.chests || [] : [], smashed: r.smashed || 0, goldMul: g.gold });
+    const got = [], sold = [];
+    for (const it of drop.items) { if (p.bag.length < LT().BAG_MAX) got.push(LT().give(p, it)); else { const v = LT().sellPrice(it); drop.gold += v; sold.push(it); } }
+    p.gold += drop.gold; if (r.win) LT().restock(p);
+    return { xp, sp, ups, lv0, lvl: p.lvl, stars, newStars, first, heroes, goals: P.goals(n), loot: { gold: drop.gold, items: got, sold } };
   };
   P.claimShrine = function (p, id) {
     const n = P.node(id); if (P.cleared(p, id) || P.state(p, id) !== 'open') return null;

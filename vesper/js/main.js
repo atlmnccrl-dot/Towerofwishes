@@ -12,7 +12,7 @@
   const defOpts = () => ({ music: 1, sfx: 1, shake: 1, auto: false });
   const fresh = (opts) => Object.assign(PR.fresh(), { opts: opts || defOpts(), seenLdx: false });
   function load() {
-    try { const j = JSON.parse(localStorage.getItem(KEY)); if (j && j.v === 2) return Object.assign(fresh(), j, { opts: Object.assign(defOpts(), j.opts) }); } catch (e) { /* storage blocked */ }
+    try { const j = JSON.parse(localStorage.getItem(KEY)); if (j && j.v === 2) return VS.LOOT.migrate(Object.assign(fresh(), j, { opts: Object.assign(defOpts(), j.opts) })); } catch (e) { /* storage blocked */ }
     try { const o = JSON.parse(localStorage.getItem(OLD)); if (o && o.opts) return fresh(Object.assign(defOpts(), o.opts)); } catch (e) { /* none */ }
     return fresh();
   }
@@ -108,7 +108,7 @@
       A.loadSets(PR.CHAMPS.flat().map((k) => D.FOES[k].set).filter((id) => !A.hasSet(id))).catch(() => {}); }   // the champions shown on the map
     VS.MAP.sel = M.mapSel; VS.MAP.p = p;
     VS.MAP.onSelect = (id) => { AU.sfx('step_0', 0.5); map(id); };
-    U.map({ p, sel: M.mapSel, onGo: () => playNode(M.mapSel), onSkills: () => skills(), onHeroes: () => roster(() => map()),
+    U.map({ p, sel: M.mapSel, onGo: () => playNode(M.mapSel), onSkills: () => skills(), onHeroes: () => roster(() => map()), onGear: () => gear(),
       onMenu: () => { M.go('menu'); U.menu({ onBack: () => map(), onSettings: () => settings(null, false, () => map()), onTitle: () => title() }); } });
   }
   function mapKey(e) {
@@ -118,7 +118,24 @@
     if (e.code === 'ArrowDown' || e.code === 'KeyS' || e.code === 'ArrowLeft' || e.code === 'KeyA') { e.preventDefault(); const n = open[Math.max(0, i - 1)]; if (n) { VS.MAP.focus(n.id); map(n.id); } return true; }
     if (e.code === 'KeyK') { e.preventDefault(); skills(); return true; }
     if (e.code === 'KeyH') { e.preventDefault(); roster(() => map()); return true; }
+    if (e.code === 'KeyG') { e.preventDefault(); gear(); return true; }
     return false;
+  }
+  // Gear and the blacksmith.
+  function gear(tab, sel, confirm) {
+    M.go('menu'); const p = P(), LT = VS.LOOT; LT.migrate(p);
+    const act = Math.max(0, ...PR.NODES.filter((n) => PR.state(p, n.id) !== 'locked').map((n) => n.act));
+    U.gear({ p, hero: p.hero, tab: tab || 'gear', sel, confirm, act,
+      onBack: () => map(), onTab: (t) => gear(t), onSelect: (k) => gear(tab, k),
+      onAct: (a, it) => {
+        if (a === 'best') { LT.autoEquip(p, p.hero); AU.sfx('clang_1', 0.5); }
+        else if (a === 'equip' && it) { LT.equip(p, p.hero, it.uid); AU.sfx('clang_1', 0.6); }
+        else if (a === 'unequip' && it) { LT.unequip(p, p.hero, it.slot); AU.sfx('step_1', 0.5); }
+        else if (a === 'upgrade' && it) { if (LT.upgrade(p, it.uid)) AU.sfx('allout', 0.5); else AU.sfx('thud', 0.5); }
+        else if (a === 'salvage' && it) { if (!confirm) return gear(tab, sel, true); LT.salvage(p, it.uid); AU.sfx('clang_0', 0.6); M.write(); return gear(tab); }
+        else if (a === 'buy' && it) { const got = LT.buy(p, act, it.offer); if (got) { AU.sfx('allout', 0.5); M.write(); return gear('gear', 'u' + got.uid); } AU.sfx('thud', 0.5); }
+        M.write(); gear(tab, sel);
+      } });
   }
   function skills(flash, confirm) {
     M.go('menu'); const p = P();
@@ -230,7 +247,7 @@
   function startFight(stageIdx, opts) {
     U.hide(); opts = opts || {};
     const p = P(), b = opts.build, kit = opts.theatre ? null : PR.kit(p);
-    const s = SIM.create(stageIdx, { seed: (Date.now() & 0xffff) + 1, boons: opts.theatre ? [] : PR.passives(p), kit, hero: p.hero, node: b ? b.node : null, guided: !!(opts.node && opts.node.type === 'trial') });
+    const s = SIM.create(stageIdx, { seed: (Date.now() & 0xffff) + 1, boons: opts.theatre ? [] : PR.passives(p), kit, hero: p.hero, node: b ? b.node : null, gear: opts.theatre ? null : VS.LOOT.mods(p, p.hero), guided: !!(opts.node && opts.node.type === 'trial') });
     M.fight = Object.assign({ s, stage: stageIdx, acc: 0, card: null, cardT: 0, say: null, banner: null }, opts);
     M.paused = false; R.snapCam(s); R.fx = []; R.parts = []; R.floaters = []; R.pfx = []; R.entryDoor = null; R.impactF = null; R.kit = s.mods.can;
     f0 = M.fight; const n = opts.node, AR = VS.arenaOf(s);
@@ -343,7 +360,7 @@
     AU.duck(false);
     if (f.theatre || !f.nodeId) { title(); return; }
     const n = f.node, win = result === 'win', groups = s.waves.length;
-    const r = { win, time: s.time, hpFrac: s.hero.hp / s.hero.maxHp, bossHits: s.stats.bossHits, maxCombo: s.stats.maxCombo, kills: s.kills || 0, progress: (s.area + (win ? 1 : 0)) / groups };
+    const r = { win, time: s.time, hpFrac: s.hero.hp / s.hero.maxHp, bossHits: s.stats.bossHits, maxCombo: s.stats.maxCombo, kills: s.kills || 0, progress: (s.area + (win ? 1 : 0)) / groups, chests: s.chests || [], smashed: s.smashed || 0, rand: Math.random };
     const res = PR.finish(p, n.id, r); M.write();
     const stats = [[s.time.toFixed(1) + 's', 'Time'], [s.stats.maxCombo, 'Best combo'], [s.kills || 0, 'Kills'], [s.stats.parries, 'Parries']];
     const showResult = () => {

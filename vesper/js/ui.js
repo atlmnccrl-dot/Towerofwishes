@@ -115,6 +115,7 @@
       <div class="lvl"><div class="lvl-num">${p.lvl}</div><div class="lvl-info"><b>Level ${p.lvl}</b><div class="xpbar"><i style="width:${p.lvl >= PR.MAX_LVL ? 100 : Math.round(p.xp / need * 100)}%"></i></div><small>${p.lvl >= PR.MAX_LVL ? 'Max level' : p.xp + ' / ' + need + ' XP'}</small></div></div>
       <button class="chip ${p.sp ? 'hot' : ''}" data-act="skills" type="button">Skills ${p.sp ? `<span class="badge">${p.sp}</span>` : ''}</button>
       <button class="chip" data-act="heroes" type="button" style="--hc:${H.color}"><span class="dot"></span>${esc(H.name)}</button>
+      <button class="chip" data-act="gear" type="button">Gear · <span class="gold">${p.gold || 0} g</span></button>
       <span class="chip" style="cursor:default">★ ${PR.totalStars(p)} / ${PR.maxStars()}</span>
       <button class="chip icon" data-act="menu" type="button" aria-label="Menu">☰</button></div>`;
     const n = o.sel && PR.node(o.sel);
@@ -143,7 +144,7 @@
       panel = body + `<div class="np-go">${go}</div>`;
     }
     const el = U.show('map', bar + `<aside class="map-panel">${panel}</aside>`, null, { back: o.onMenu });
-    el.querySelectorAll('[data-act]').forEach((b) => b.addEventListener('click', () => { VS.audio.unlock(); VS.audio.sfx('clang_0', 0.4); ({ skills: o.onSkills, heroes: o.onHeroes, menu: o.onMenu, go: o.onGo })[b.dataset.act](); }));
+    el.querySelectorAll('[data-act]').forEach((b) => b.addEventListener('click', () => { VS.audio.unlock(); VS.audio.sfx('clang_0', 0.4); ({ skills: o.onSkills, heroes: o.onHeroes, menu: o.onMenu, go: o.onGo, gear: o.onGear })[b.dataset.act](); }));
     const go = el.querySelector('[data-act="go"]'); if (go) go.focus({ preventScroll: true });
     return el;
   };
@@ -191,11 +192,80 @@
     const need = PR.need(p.lvl), pct = p.lvl >= PR.MAX_LVL ? 100 : Math.round(p.xp / need * 100);
     body += `<div class="res-xp"><div class="row"><span>Level ${p.lvl}</span><b>+${r.xp} XP${r.sp ? ` · +${r.sp} SP` : ''}</b></div><div class="xpbar"><i style="width:${r.ups ? 0 : Math.max(0, pct - 20)}%" data-to="${pct}"></i></div></div>`;
     if (r.ups) body += `<p class="lvlup">Level up! · ${r.ups > 1 ? r.ups + ' levels' : 'level ' + r.lvl} · +${r.ups} skill point${r.ups > 1 ? 's' : ''}</p>`;
+    if (r.loot && (r.loot.gold || r.loot.items.length)) {
+      body += `<div class="res-loot"><span class="gold">+${r.loot.gold} gold</span>${r.loot.items.map((it) => `<div class="loot-it" style="--rc:${VS.LOOT.RARITY[it.rar].col}"><canvas width="40" height="40" data-uid="${it.uid}"></canvas><div><b>${esc(it.name)}</b><span>${VS.LOOT.RARITY[it.rar].name} ${VS.LOOT.SLOT_NAME[it.slot].toLowerCase()} · ${esc(VS.LOOT.lines(it).join(' · '))}</span></div></div>`).join('')}${r.loot.sold && r.loot.sold.length ? `<p class="tip">Your bag was full: ${r.loot.sold.length} find${r.loot.sold.length > 1 ? 's were' : ' was'} sold.</p>` : ''}</div>`;
+    }
     for (const id of r.heroes || []) { const H = DD().HEROES[id]; body += `<div class="unlock-card" style="--hc:${H.color}"><canvas width="64" height="64" data-set="${H.set}"></canvas><div><b>New hero · ${esc(H.name)}</b><span>${esc(H.title)}. Choose them from Heroes on the map.</span></div></div>`; }
     const items = (o.buttons || []).map((b, i) => Object.assign({ cls: i === 0 ? 'focus-first' : '' }, b));
     const el = U.show('result', `<div class="res">${body}${buttons(items, 'center')}</div>`, items, { back: items[items.length - 1] && items[items.length - 1].act });
     setTimeout(() => { const i = el.querySelector('.xpbar i'); if (i) i.style.width = i.dataset.to + '%'; }, 250);
     el.querySelectorAll('.unlock-card canvas').forEach((c) => figure(c, c.dataset.set));
+    el.querySelectorAll('.loot-it canvas').forEach((c) => { const it = r.loot.items.find((x) => x.uid === +c.dataset.uid); if (it) U.itemIcon(c, it); });
+  };
+  // ---- gear ------------------------------------------------------------------------------------------
+  // An item's icon, drawn: its shape by base, in its rarity's colour, on a dark tile.
+  U.itemIcon = function (c, it) {
+    const g = c.getContext('2d'), W = c.width, col = VS.LOOT.RARITY[it.rar].col, k = W / 40;
+    g.clearRect(0, 0, W, W); g.fillStyle = 'rgba(8,6,10,.9)'; g.fillRect(0, 0, W, W); g.strokeStyle = col; g.lineWidth = 1.5 * k; g.strokeRect(1, 1, W - 2, W - 2);
+    const gr = g.createRadialGradient(W / 2, W / 2, 0, W / 2, W / 2, W * 0.6); gr.addColorStop(0, col + '40'); gr.addColorStop(1, col + '00'); g.fillStyle = gr; g.fillRect(0, 0, W, W);
+    g.save(); g.translate(W / 2, W / 2); g.scale(k, k); g.strokeStyle = '#f3eef0'; g.fillStyle = col; g.lineWidth = 2.4; g.lineCap = 'round'; g.lineJoin = 'round';
+    const L = (pts) => { g.beginPath(); pts.forEach((q, i) => (i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]))); };
+    switch (it.base) {
+      case 'blade': case 'saber': case 'great': g.rotate(-Math.PI / 4); { const len = it.base === 'great' ? 15 : 12; L([[0, -len], [it.base === 'saber' ? 3 : 0, 6]]); g.lineWidth = it.base === 'great' ? 4.5 : 3; g.stroke(); g.lineWidth = 2.4; L([[-5, 6], [5, 6]]); g.stroke(); g.strokeStyle = col; L([[0, 7], [0, 12]]); g.stroke(); } break;
+      case 'axe': g.rotate(-Math.PI / 5); L([[0, -12], [0, 12]]); g.stroke(); g.beginPath(); g.moveTo(1, -11); g.quadraticCurveTo(11, -8, 9, 1); g.lineTo(1, -2); g.closePath(); g.fill(); break;
+      case 'spear': g.rotate(-Math.PI / 4); L([[0, -8], [0, 14]]); g.stroke(); g.beginPath(); g.moveTo(0, -15); g.lineTo(3.5, -7); g.lineTo(-3.5, -7); g.closePath(); g.fill(); break;
+      case 'coat': case 'cloak': L([[-9, -9], [-4, -11], [0, -7], [4, -11], [9, -9], [it.base === 'cloak' ? 11 : 8, 11], [it.base === 'cloak' ? -11 : -8, 11]]); g.closePath(); g.fill(); g.stroke(); break;
+      case 'mail': case 'plate': L([[-10, -8], [-5, -11], [5, -11], [10, -8], [8, 10], [-8, 10]]); g.closePath(); g.fill(); g.stroke(); L([[-8, 0], [8, 0]]); g.stroke(); if (it.base === 'plate') { L([[0, -11], [0, 10]]); g.stroke(); } break;
+      case 'ring': g.beginPath(); g.arc(0, 3, 8, 0, 7); g.lineWidth = 3.5; g.stroke(); g.beginPath(); g.arc(0, -7, 3.5, 0, 7); g.fill(); break;
+      case 'fang': g.beginPath(); g.moveTo(-5, -10); g.quadraticCurveTo(7, -8, 2, 12); g.quadraticCurveTo(-2, 0, -5, -10); g.fill(); g.stroke(); break;
+      case 'locket': L([[-6, -12], [0, -6], [6, -12]]); g.stroke(); g.beginPath(); g.arc(0, 3, 8, 0, 7); g.fill(); g.stroke(); break;
+      default: g.beginPath(); for (let i = 0; i < 6; i++) { const a = i / 6 * 6.283 - 1.57; g.lineTo(Math.cos(a) * 10, Math.sin(a) * 10); } g.closePath(); g.fill(); g.stroke();
+    }
+    g.restore();
+    if (it.plus) { g.font = `700 ${11 * k}px "Chakra Petch", sans-serif`; g.fillStyle = '#fff'; g.textAlign = 'right'; g.fillText('+' + it.plus, W - 3 * k, W - 4 * k); }
+  };
+  // The gear screen: the hero's three slots, the bag, the selected item; or the blacksmith's wares.
+  U.gear = function (o) {
+    const p = o.p, LT = VS.LOOT, H = DD().HEROES[o.hero], tab = o.tab || 'gear';
+    const rc = (it) => LT.RARITY[it.rar].col, worn = (it) => LT.wornBy(p, it.uid);
+    const tile = (it, act, extra) => `<button class="gi${o.sel === act ? ' sel' : ''}" data-sel="${act}" type="button" style="--rc:${rc(it)}"><canvas width="40" height="40" data-k="${act}"></canvas><span class="gi-name">${esc(it.name)}</span><span class="gi-sub">${esc(extra || LT.SLOT_NAME[it.slot] + ' · lv ' + it.ilvl)}</span></button>`;
+    const M = LT.mods(p, o.hero), sum = [['+' + Math.round((M.dmg - 1) * 100) + '%', 'damage'], ['+' + M.hp, 'health'], [Math.round(M.armor * 100) + '%', 'armour'], ['+' + Math.round((M.gain - 1) * 100) + '%', 'moon']];
+    let left = '', mid = '', sel = null, selAct = '';
+    if (tab === 'gear') {
+      left = LT.SLOTS.map((sl) => { const it = LT.equipped(p, o.hero, sl); return it ? tile(it, 'u' + it.uid, LT.SLOT_NAME[sl] + ' · equipped') : `<div class="gi empty"><span class="gi-name">${LT.SLOT_NAME[sl]}</span><span class="gi-sub">Empty</span></div>`; }).join('');
+      const bag = p.bag.slice().sort((a, b) => LT.SLOTS.indexOf(a.slot) - LT.SLOTS.indexOf(b.slot) || LT.score(b) - LT.score(a));
+      mid = bag.length ? bag.map((it) => { const w = worn(it); return tile(it, 'u' + it.uid, (w ? (w === o.hero ? 'Equipped' : 'On ' + DD().HEROES[w].name) : LT.SLOT_NAME[it.slot]) + ' · lv ' + it.ilvl); }).join('') : '<p class="tip">Your bag is empty. Win fights and open chests.</p>';
+      if (o.sel && o.sel[0] === 'u') sel = LT.item(p, +o.sel.slice(1));
+    } else {
+      const wares = LT.shop(p, o.act);
+      mid = wares.map((it) => tile(it, 's' + it.offer, it.sold ? 'Sold' : it.price + ' gold')).join('');
+      left = `<p class="tip">The blacksmith of the Spire sells four pieces at a time, fresh after every win. Salvage what you do not need for gold, and upgrade what you love (up to +${LT.MAX_PLUS}).</p>`;
+      if (o.sel && o.sel[0] === 's') sel = wares[+o.sel.slice(1)];
+    }
+    let detail = '<p class="tip">Choose an item.</p>';
+    if (sel) {
+      const cur = LT.equipped(p, o.hero, sel.slot), d = cur && cur !== sel ? Math.round((LT.score(sel) - LT.score(cur)) * 10) / 10 : null, w = sel.uid && worn(sel);
+      detail = `<div class="gd" style="--rc:${rc(sel)}"><canvas width="64" height="64" data-k="detail"></canvas><h3>${esc(sel.name)}${sel.plus ? ' +' + sel.plus : ''}</h3><p class="gd-sub">${LT.RARITY[sel.rar].name} ${LT.SLOT_NAME[sel.slot].toLowerCase()} · item level ${sel.ilvl}</p>
+        <ul class="gd-lines">${LT.lines(sel).map((l) => `<li>${esc(l)}</li>`).join('')}</ul>${d != null ? `<p class="gd-cmp ${d >= 0 ? 'up' : 'down'}">${d >= 0 ? '▲' : '▼'} ${Math.abs(d)} against your ${esc(cur.name)}</p>` : ''}<div class="gd-acts">`;
+      if (tab === 'gear') {
+        detail += w === o.hero ? `<button class="chip" data-act="unequip" type="button">Take off</button>` : `<button class="chip hot" data-act="equip" type="button">Equip on ${esc(H.name)}</button>`;
+        const uc = LT.upgradeCost(sel); detail += uc ? `<button class="chip${p.gold >= uc ? '' : ' off'}" data-act="upgrade" type="button">Upgrade · ${uc} g</button>` : `<span class="chip off">Fully upgraded</span>`;
+        if (!w) detail += `<button class="chip${o.confirm ? ' danger' : ''}" data-act="salvage" type="button">${o.confirm ? 'Press again' : 'Salvage'} · +${LT.sellPrice(sel)} g</button>`;
+      } else detail += sel.sold ? `<span class="chip off">Sold</span>` : `<button class="chip${p.gold >= sel.price ? ' hot' : ' off'}" data-act="buy" type="button">Buy · ${sel.price} g</button>`;
+      detail += '</div></div>';
+    }
+    const html = `<div class="gear-wrap"><div class="gear-head"><div><p class="eyebrow">${esc(H.name)}</p><h2>${tab === 'gear' ? 'Gear' : 'Blacksmith'}</h2></div>
+      <span class="gold big">${p.gold} gold</span><div class="gear-tabs"><button class="chip${tab === 'gear' ? ' on' : ''}" data-act="tab-gear" type="button">Gear</button><button class="chip${tab === 'shop' ? ' on' : ''}" data-act="tab-shop" type="button">Blacksmith</button>
+      ${tab === 'gear' ? '<button class="chip" data-act="best" type="button">Equip best</button>' : ''}<button class="chip" data-act="back" type="button">Back</button></div></div>
+      <div class="gear-body"><section class="gear-col"><p class="np-h">${tab === 'gear' ? 'Equipped' : 'The forge'}</p>${left}${tab === 'gear' ? `<div class="gear-sum">${sum.map(([v, l]) => `<div><b>${v}</b><span>${l}</span></div>`).join('')}</div>` : ''}</section>
+      <section class="gear-col bag"><p class="np-h">${tab === 'gear' ? 'Bag · ' + p.bag.length + ' / ' + LT.BAG_MAX : 'Wares'}</p><div class="gi-grid">${mid}</div></section><section class="gear-col">${detail}</section></div></div>`;
+    const el = U.show('gear', html, null, { back: o.onBack });
+    const all = tab === 'gear' ? p.bag : LT.shop(p, o.act);
+    el.querySelectorAll('canvas[data-k]').forEach((c) => { const k = c.dataset.k, it = k === 'detail' ? sel : k[0] === 'u' ? LT.item(p, +k.slice(1)) : all[+k.slice(1)]; if (it) U.itemIcon(c, it); });
+    el.querySelectorAll('[data-sel]').forEach((b) => b.addEventListener('click', () => { VS.audio.sfx('step_0', 0.4); o.onSelect(b.dataset.sel); }));
+    el.querySelectorAll('[data-act]').forEach((b) => b.addEventListener('click', () => { VS.audio.unlock(); const a = b.dataset.act; if (a === 'back') o.onBack(); else if (a.startsWith('tab-')) o.onTab(a.slice(4)); else o.onAct(a, sel); }));
+    const f = el.querySelector('.gi.sel') || el.querySelector('.gi[data-sel]') || el.querySelector('[data-act="back"]'); if (f) f.focus({ preventScroll: true });
+    return el;
   };
   U.menu = function (o) {
     const items = [{ label: 'Back to the map', act: o.onBack, cls: 'focus-first' }, { label: 'Settings', act: o.onSettings }, { label: 'Title screen', act: o.onTitle }];

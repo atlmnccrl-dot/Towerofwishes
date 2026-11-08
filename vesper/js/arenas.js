@@ -169,6 +169,15 @@
       }
       c++;
     }
+    // A chest tucked away off the way through, against a wall or among the props: worth the detour.
+    if (r() < 0.7) {
+      const cand = cellsList.filter(([cx, cy]) => { const [x, y] = ctr(cx, cy); if (clear(x, y, 40) || Math.abs(y - A.entry.y) < T * 1.6) return false; let edge = 0; for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (!floor(cx + dx, cy + dy)) edge++; return edge > 0 && !A.objs.some((o) => Math.hypot(o.x - x, o.y - y) < o.r + 40); });
+      if (cand.length) {
+        const [cx, cy] = pick(cand, r), [x, y] = ctr(cx, cy), v = r(), tier = v < 0.12 ? 'gold' : v < 0.42 ? 'iron' : 'wood', K = { wood: ['A1', 'A2'], iron: ['A3', 'A4'], gold: ['B1', 'B2'] }[tier], d = pick(['E', 'S'], r);
+        A.objs.push({ key: 'd:Chest ' + K[0] + '_' + d, openKey: 'd:Chest ' + K[1] + '_' + d, x, y, r: 13, kind: 'chest', tier, hp: 1, solid: true });
+        A.lights.push({ x, y, r: 60 });
+      }
+    }
     // Plants and small things underfoot (walk-through).
     for (let k = 0; k < Math.round(floors * 0.1); k++) {
       const [cx, cy] = pick(cellsList, r), [x, y] = ctr(cx, cy), d = pick(th.decor, r), flat = d.endsWith('!');
@@ -223,7 +232,7 @@
     }
     const list = A.byCell[cy * A.w + cx];
     if (list) for (const o of list) {
-      if (o.broken) continue;
+      if (o.broken && o.kind !== 'chest') continue;
       const dx = x - o.x, dy = y - o.y, d = Math.hypot(dx, dy), rr = o.r + Math.max(0, m);
       if (d < rr) { if (d < 0.01) { x = o.x + rr; } else { x = o.x + dx / d * rr; y = o.y + dy / d * rr; } }
     }

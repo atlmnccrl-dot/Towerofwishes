@@ -22,17 +22,19 @@
   VS.POWER = { dmg: 1.3, hp: 1.3, gain: 1.2, killHeal: 0.03 };
   // boons: owned passives (skill tree ids). kit: unlocked abilities; without one, the whole kit.
   const CORE = ['heavy', 'dodge', 'parry', 'skill1', 'skill2', 'art'];
-  function mods(boons, H, kit, rules) {
+  function mods(boons, H, kit, rules, gear) {
     const has = (id) => boons.indexOf(id) >= 0; H = H || D.HERO; rules = rules || {};
+    // Gear (js/loot.js): multipliers and additions on top of the kit and the skill tree.
+    const G = Object.assign({ dmg: 1, hp: 0, armor: 0, gain: 1, thirst: 0, cd: 1, dodge: 1, parry: 1, heal: 1 }, gear || {});
     const can = {}; for (const k of CORE) can[k] = !kit || kit.indexOf(k) >= 0;
     if (rules.nomoon) can.art = false;
     const glass = rules.glass ? 2 : 1;
     return {
-      can, rules, quick: has('quick') ? 0.7 : 1, exec: has('exec'),
+      can, rules, quick: (has('quick') ? 0.7 : 1) * G.cd, exec: has('exec'), armor: G.armor,
       // The hero hits harder and lasts longer than the base kit, to match the bigger waves; kills heal.
-      dmg: VS.POWER.dmg * (H.pow || 1) * (has('edge') ? 1.2 : 1) * (has('edge2') ? 1.15 : 1) * glass, hp: Math.round((Math.round(H.hp * VS.POWER.hp) + (has('vigor') ? 30 : 0) + (has('vigor2') ? 30 : 0)) / glass), parryWin: H.parry.win * (has('guard') ? 1.6 : 1),
-      gain: VS.POWER.gain * (has('moonblood') ? 1.4 : 1), killHeal: rules.noheal ? 0 : VS.POWER.killHeal, thirst: has('thirst') ? 0.05 : 0, combo: Math.min(H.combo.length, has('fourth') ? 5 : 4),
-      dodgeDist: H.dodge.dist * (has('ghost') ? 1.3 : 1), perfect: H.dodge.perfect + (has('ghost') ? 0.08 : 0),
+      dmg: VS.POWER.dmg * (H.pow || 1) * (has('edge') ? 1.2 : 1) * (has('edge2') ? 1.15 : 1) * glass * G.dmg, hp: Math.round((Math.round(H.hp * VS.POWER.hp) + (has('vigor') ? 30 : 0) + (has('vigor2') ? 30 : 0) + G.hp) / glass), parryWin: H.parry.win * (has('guard') ? 1.6 : 1) * G.parry,
+      gain: VS.POWER.gain * (has('moonblood') ? 1.4 : 1) * G.gain, killHeal: rules.noheal ? 0 : VS.POWER.killHeal * G.heal, thirst: (has('thirst') ? 0.05 : 0) + G.thirst, combo: Math.min(H.combo.length, has('fourth') ? 5 : 4),
+      dodgeDist: H.dodge.dist * (has('ghost') ? 1.3 : 1) * G.dodge, perfect: H.dodge.perfect + (has('ghost') ? 0.08 : 0),
       riposte: has('riposte'), ldx: has('breath') ? 0.45 : H.lastDitch, moonStart: has('rising') ? 50 : 0,
     };
   }
@@ -53,7 +55,7 @@
     opts = opts || {};
     // A campaign node brings its own waves, arenas, difficulty and rules; otherwise the classic hour.
     const N = opts.node, st0 = D.STAGES[stageIdx], st = N ? Object.assign({}, st0, { arenas: N.arenas || st0.arenas, scale: N.scale || st0.scale }) : st0;
-    const boons = opts.boons || [], H = (D.HEROES && D.HEROES[opts.hero]) || (D.HEROES ? D.HEROES.vesper : D.HERO), M = mods(boons, H, opts.kit, N && N.rules);
+    const boons = opts.boons || [], H = (D.HEROES && D.HEROES[opts.hero]) || (D.HEROES ? D.HEROES.vesper : D.HERO), M = mods(boons, H, opts.kit, N && N.rules, opts.gear);
     const s = { stage: stageIdx, def: st, t: 0, time: 0, rand: rng(opts.seed || 1), units: [], bolts: [], events: [], nextId: 1, rules: M.rules, hasBoss: N ? !!N.boss : true, variants: (N && N.variants) || null,
       waves: N ? N.waves.map((w) => w.slice()) : st.waves.concat([st.bossWave]), wave: -1, waveT: 0.9, area: 0, portal: null, transit: null, freeze: 0, hitstop: 0, slow: 1, slowT: 0, cine: null,
       result: null, endT: 0, moon: M.moonStart, mods: M, boons, combo: 0, comboT: 0, serial: 0, bossIds: [],
@@ -118,7 +120,7 @@
   // Damage with no reaction of its own (zones): hp, flash, the floater, death.
   function directDamage(s, o, dmg, quiet) {
     if (!o.alive || o.state === 'spawn') return;
-    if (o === s.hero) { if (o.iframes > 0) return; dmg = Math.round(dmg); o.hp -= dmg; s.stats.taken += dmg; s.stats.zoneHits = (s.stats.zoneHits || 0) + 1; if (s.units.some((b) => b.alive && b.def.boss)) s.stats.bossHits = (s.stats.bossHits || 0) + 1; if (s.rules.nohit) o.hp = 0; o.flash = 0.6; if (!quiet) ev(s, { type: 'hurt', x: o.x, y: o.y, dmg, id: o.id, small: true }); if (o.hp <= 0) { o.hp = 0; kill(s, o); } return; }
+    if (o === s.hero) { if (o.iframes > 0) return; dmg = Math.round(dmg * (1 - (s.mods.armor || 0))); o.hp -= dmg; s.stats.taken += dmg; s.stats.zoneHits = (s.stats.zoneHits || 0) + 1; if (s.units.some((b) => b.alive && b.def.boss)) s.stats.bossHits = (s.stats.bossHits || 0) + 1; if (s.rules.nohit) o.hp = 0; o.flash = 0.6; if (!quiet) ev(s, { type: 'hurt', x: o.x, y: o.y, dmg, id: o.id, small: true }); if (o.hp <= 0) { o.hp = 0; kill(s, o); } return; }
     dmg = Math.max(1, Math.round(dmg * (o.team === 'foe' ? s.mods.dmg : 1))); o.hp -= dmg; if (o.team === 'foe') s.stats.dealt += dmg; o.flash = 0.5;
     if (!quiet) ev(s, { type: 'tick', x: o.x, y: o.y, dmg, id: o.id });
     if (o.hp <= 0) { o.hp = 0; kill(s, o); }
@@ -235,11 +237,14 @@
   // ---- breakables on the large maps: barrels, crates and pots the hero's blows smash ---------------
   function smashAt(s, x, y, r, test) {
     const A = curArena; if (!A || A.kind !== 'grid') return;
-    for (const o of A.objs) if (o.kind === 'break' && !o.broken && (test ? test(o) : Math.hypot(o.x - x, o.y - y) <= r + o.r)) smash(s, o);
+    for (const o of A.objs) if ((o.kind === 'break' || o.kind === 'chest') && !o.broken && (test ? test(o) : Math.hypot(o.x - x, o.y - y) <= r + o.r)) smash(s, o);
   }
   function smash(s, o) {
     o.hp -= 1; if (o.hp > 0) { ev(s, { type: 'knock', x: o.x, y: o.y }); return; }
-    o.broken = true; o.brokeT = s.time; gainMoon(s, 3);
+    o.broken = true; o.brokeT = s.time;
+    // A chest springs open: what is inside is paid out when the fight is won.
+    if (o.kind === 'chest') { (s.chests || (s.chests = [])).push(o.tier); ev(s, { type: 'chest', x: o.x, y: o.y, tier: o.tier }); return; }
+    gainMoon(s, 3); s.smashed = (s.smashed || 0) + 1;
     ev(s, { type: 'smash', x: o.x, y: o.y, kind: o.type, anim: o.anim });
     if (o.type === 'barrel') {
       // Black powder: a blast that throws the foes around it.
@@ -325,7 +330,7 @@
         setState(o, 'idle'); o.iframes = 0.15;
         return;
       }
-      const dmg = Math.round(k.dmg * (a.dmgMul || 1) * (a.phase === 2 ? 1.15 : 1));
+      const dmg = Math.round(k.dmg * (a.dmgMul || 1) * (a.phase === 2 ? 1.15 : 1) * (o === s.hero ? 1 - (M.armor || 0) : 1));
       if (o !== s.hero) { o.hp -= dmg; o.flash = 1; push(o, a, (k.kb || 6) * 6); if (o.hp <= 0) { o.hp = 0; kill(s, o); } else { setState(o, 'hurt', 0.25); o.atk = null; } return; }
       if (k.slow) o.slowT = Math.max(o.slowT, k.slow);
       o.hp -= dmg; s.stats.taken += dmg; s.stats.hitsTaken++; if (s.units.some((b) => b.alive && b.def.boss)) s.stats.bossHits = (s.stats.bossHits || 0) + 1; s.combo = 0; o.flash = 1; if (s.rules.nohit) o.hp = 0;
@@ -813,7 +818,7 @@
         if (b.ground) addHazard(s, { kind: 'zone', team: b.team, x: b.x, y: b.y, r: b.ground.r, dur: b.ground.dur, dps: b.ground.dps, fx: b.ground.fx });
         if (!b.pierce) { b.life = 0; ev(s, { type: 'boltHit', x: b.x, y: b.y, fx: b.fx, burst: b.burst, burstFx: b.burstFx }); break; }
       }
-      if (b.life > 0 && b.team === 'hero' && curArena.kind === 'grid') for (const o of curArena.objs) if (o.kind === 'break' && !o.broken && Math.hypot(o.x - b.x, o.y - b.y) <= (b.r || 6) + o.r) { smash(s, o); if (!b.pierce) { b.life = 0; ev(s, { type: 'boltHit', x: b.x, y: b.y, fx: b.fx }); } break; }
+      if (b.life > 0 && b.team === 'hero' && curArena.kind === 'grid') for (const o of curArena.objs) if ((o.kind === 'break' || o.kind === 'chest') && !o.broken && Math.hypot(o.x - b.x, o.y - b.y) <= (b.r || 6) + o.r) { smash(s, o); if (!b.pierce) { b.life = 0; ev(s, { type: 'boltHit', x: b.x, y: b.y, fx: b.fx }); } break; }
       if (b.life > 0 && b.t > 0.05 && (curArena.kind === 'grid' ? boltBlocked(curArena, b) : !VS.inside(curArena, b.x, b.y, -20))) { b.life = 0; if (b.ground) addHazard(s, { kind: 'zone', team: b.team, x: b.x, y: b.y, r: b.ground.r, dur: b.ground.dur, dps: b.ground.dps, fx: b.ground.fx }); }
     }
     s.bolts = s.bolts.filter((b) => b.life > 0);
