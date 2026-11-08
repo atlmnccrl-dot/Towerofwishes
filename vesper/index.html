@@ -264,6 +264,116 @@
   .tip { font-size: 13px; color: var(--dim); max-width: 46ch; }
   #rotate { display: none; position: fixed; inset: 0; background: var(--ink); color: var(--red); font: 600 18px var(--f-display); letter-spacing: .1em; align-items: center; justify-content: center; text-align: center; z-index: 9; padding: 24px; }
   @media (orientation: portrait) and (max-width: 900px) { #rotate { display: flex; } }
+
+  /* ==== Game skin: pixel font, iron-and-blood pixel frames, plate buttons, pixel bars and icons ==== */
+  :root { --f-display: "Adventurer", "Chakra Petch", system-ui, sans-serif; --f-body: "Adventurer", "Barlow", system-ui, sans-serif;
+    --frame: url('../assets/ui/vesper/frame.png'); --frame-hot: url('../assets/ui/vesper/frame_hot.png'); --frame-thin: url('../assets/ui/vesper/frame_thin.png');
+    --plate: url('../assets/ui/vesper/btn_idle.png'); --plate-hot: url('../assets/ui/vesper/btn_hot.png'); --plate-down: url('../assets/ui/vesper/btn_down.png');
+    --slot: url('../assets/ui/vesper/slot.png'); --slot-hot: url('../assets/ui/vesper/slot_hot.png'); --divider: url('../assets/ui/vesper/divider.png'); --gem: url('../assets/ui/vesper/gem.png');
+    --outline: 2px 0 #050307, -2px 0 #050307, 0 2px #050307, 0 -2px #050307, 2px 2px #050307, -2px 2px #050307, 2px -2px #050307, -2px -2px #050307; }
+  #ui, #ui * { font-family: var(--f-body); letter-spacing: .02em !important; }
+  #ui { image-rendering: pixelated; }
+  #ui b, #ui strong { font-weight: normal; }
+  h1, h2, h3, .btn-label, .chip, .big-btn, .eyebrow, .np-h, .gold, .stat b, .lvl-info b, .sk-name, .branch-h b, .res-xp .row, .lvlup { font-weight: normal !important; }
+  h1, h2 { text-shadow: var(--outline); }
+  .eyebrow { color: var(--red-soft); font-size: 14px; text-shadow: 2px 2px #050307; }
+  .note, .tip, .np-sub, .np-empty, .np-as { font-size: 14px; }
+  /* Titles get an ornament under them. */
+  .panel h2::after, .boon-wrap h2::after, .res h2::after, .tree-head h2::after, .gear-head h2::after, .center h2::after { content: ""; display: block; height: 18px; width: min(320px, 100%); margin: 6px auto 0; background: var(--divider) center / 320px 18px no-repeat; image-rendering: pixelated; }
+  .panel h2::after, .tree-head h2::after, .gear-head h2::after { margin-left: 0; }
+  /* Frames. */
+  .panel, .res, .gear-col, .btn.card, .unlock-card, .np-rule, .lvl, .map-panel { background: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; border-radius: 0 !important; box-shadow: none !important;
+    border: 32px solid transparent !important; border-image: var(--frame) 16 fill / 32px stretch !important; image-rendering: pixelated; }
+  .panel { padding: 0 6px !important; }
+  .res { padding: 0 8px !important; }
+  .gear-col { padding: 0 2px !important; border-width: 16px !important; border-image: var(--frame-thin) 8 fill / 16px stretch !important; }
+  .lvl, .np-rule, .unlock-card { border-width: 16px !important; border-image: var(--frame-thin) 8 fill / 16px stretch !important; padding: 0 6px 0 0 !important; }
+  .np-rule { padding: 0 !important; }
+  .map-panel { border-width: 32px 32px 32px 32px !important; }
+  .btn.card { padding: 4px 4px !important; transition: transform .12s !important; }
+  .btn.card:hover, .btn.card:focus { border-image: var(--frame-hot) 16 fill / 32px stretch !important; transform: translateY(-3px) !important; }
+  .btn.card.hero { border-image: var(--frame) 16 fill / 32px stretch !important; }
+  .btn.card.hero:hover, .btn.card.hero:focus { border-image: var(--frame-hot) 16 fill / 32px stretch !important; }
+  /* Menu buttons as iron plates; the focused one glows red with a gem beside it. */
+  .menu { gap: 6px; }
+  .btn { border: 12px solid transparent !important; border-image: var(--plate) 6 fill / 12px stretch !important; border-radius: 0 !important; padding: 0 10px !important; color: #e8dce0 !important; transform: none !important; background: none !important; min-height: 20px; transition: none !important; }
+  .btn::before { display: none !important; }
+  .btn .btn-label { font-size: clamp(18px, 3.6vh, 24px); text-transform: none; text-shadow: 2px 2px #050307; line-height: 1.05; }
+  .btn .btn-sub { color: #b8a6ae !important; font-size: clamp(12px, 2.2vh, 15px); text-transform: none; }
+  .btn:hover, .btn:focus, .btn:focus-visible { border-image: var(--plate-hot) 6 fill / 12px stretch !important; color: #fff !important; outline: none; }
+  .btn:hover .btn-sub, .btn:focus .btn-sub { color: #ffd8de !important; }
+  .btn:active { border-image: var(--plate-down) 6 fill / 12px stretch !important; }
+  .menu:not(.rows):not(.center) .btn:focus::after, .menu:not(.rows):not(.center) .btn:hover::after { content: ""; position: absolute; left: -30px; top: 50%; width: 14px; height: 14px; margin-top: -7px; background: var(--gem) center / 14px 14px; image-rendering: pixelated; animation: gemBob .6s ease-in-out infinite alternate; }
+  @keyframes gemBob { to { transform: translateX(4px); } }
+  .btn.danger { border-image: var(--plate-hot) 6 fill / 12px stretch !important; }
+  .menu.rows { gap: 4px; }
+  .menu.rows .btn { border-bottom: 12px solid transparent !important; flex-direction: row; align-items: center; }
+  .menu.rows .btn-label { font-size: clamp(15px, 3vh, 19px); }
+  .menu.rows .btn-sub { color: var(--gold) !important; font-size: 14px; text-transform: none; }
+  .btn.card .btn-label { font-size: clamp(17px, 3.2vh, 22px); }
+  .btn.card { border-image: var(--frame) 16 fill / 32px stretch !important; border-width: 32px !important; }
+  /* Small plate buttons (chips) and the big action button. */
+  .chip { border: 10px solid transparent !important; border-image: var(--plate) 6 fill / 10px stretch !important; border-radius: 0 !important; background: none !important; backdrop-filter: none !important; padding: 0 6px !important; font-size: 15px !important; text-transform: none !important; text-shadow: 2px 2px #050307; transform: none !important; gap: 6px !important; min-height: 22px; }
+  .chip:hover, .chip:focus-visible, .chip.on { border-image: var(--plate-hot) 6 fill / 10px stretch !important; color: #fff; }
+  .chip.hot { border-image: var(--plate-hot) 6 fill / 10px stretch !important; color: #fff !important; animation: none; }
+  .chip .badge { border-radius: 0; background: var(--gold); color: #1a0e04; padding: 0 5px; box-shadow: 2px 2px #050307; }
+  .big-btn { border: 14px solid transparent !important; border-image: var(--plate-hot) 6 fill / 14px stretch !important; border-radius: 0 !important; background: none !important; box-shadow: none !important; padding: 4px 10px !important; font-size: 26px !important; text-transform: none !important; text-shadow: var(--outline); transform: none !important; }
+  .big-btn:hover, .big-btn:focus-visible { filter: brightness(1.18); animation: plateGlow 1s ease-in-out infinite alternate; }
+  @keyframes plateGlow { to { filter: brightness(1.32) drop-shadow(0 0 10px rgba(255,42,68,.6)); } }
+  .big-btn.gold { filter: hue-rotate(40deg) saturate(1.4) brightness(1.2); color: #fff; }
+  .big-btn[disabled] { border-image: var(--plate-down) 6 fill / 14px stretch !important; color: #7a6a72; filter: none; animation: none; }
+  /* Bars, stars, foe tags, slots. */
+  .xpbar, .lockbar { height: 10px !important; background: #1a0e14 !important; border: 2px solid #050307; border-radius: 0 !important; box-shadow: inset 0 2px #0c060a; }
+  .xpbar i, .lockbar i { border-radius: 0 !important; background: repeating-linear-gradient(90deg, #ff3a54 0 6px, #c8102e 6px 8px) !important; box-shadow: inset 0 2px rgba(255,255,255,.35); }
+  .lockbar i { background: repeating-linear-gradient(90deg, #ffd060 0 6px, #c89020 6px 8px) !important; }
+  .np-foes span { border-radius: 0; border: 2px solid #050307; background: #2a1820; box-shadow: inset 0 2px #3a2630; font-size: 14px; }
+  .np-foes span.boss { background: #4a1020; border-color: #050307; color: #ffb8c4; }
+  .np-type { border-radius: 0; border: 2px solid var(--tc); font-size: 13px; box-shadow: 2px 2px #050307; }
+  .goals li, .np-reward, .gi-sub, .gd-sub, .gd-lines li, .sk-desc, .ach-list span, .unlock-card span, .loot-it span, .hero-kit, .hero-title, .lockreq, .stat span, .credits dd, .credits dt { font-size: 14px; }
+  .gi { border-radius: 0 !important; border: 12px solid transparent !important; border-image: var(--slot) 5 fill / 12px stretch !important; background: none !important; padding: 0 !important; }
+  .gi.sel, .gi:hover, .gi:focus-visible { border-image: var(--slot-hot) 5 fill / 12px stretch !important; }
+  .gi canvas { border: 0; }
+  .gi-name { font-size: 15px; text-shadow: 2px 2px #050307; }
+  .gd h3 { font-size: 22px; text-shadow: var(--outline); }
+  .sk { border-radius: 0 !important; border: 12px solid transparent !important; border-image: var(--slot) 5 fill / 12px stretch !important; background: none !important; box-shadow: none !important; padding: 0 2px !important; }
+  .sk.can { border-image: var(--slot-hot) 5 fill / 12px stretch !important; }
+  .sk.owned { border-image: var(--frame-thin) 8 fill / 12px stretch !important; }
+  .sk-ic { border-radius: 0 !important; transform: rotate(45deg) scale(.82); box-shadow: 2px 2px #050307; }
+  .sk-ic > * { transform: rotate(-45deg); }
+  .sk-name { font-size: 16px; text-transform: none; }
+  .sk.core .sk-name::after { border-radius: 0; font-size: 11px; }
+  .branch-h b { font-size: 22px; text-transform: none; text-shadow: 2px 2px #050307; }
+  .ach-list li, .loot-it { border-radius: 0 !important; border: 12px solid transparent !important; border-image: var(--slot) 5 fill / 12px stretch !important; background: none !important; padding: 0 2px !important; }
+  .ach-list li.on { border-image: var(--slot-hot) 5 fill / 12px stretch !important; }
+  .ach-list b, .unlock-card b, .loot-it b { font-size: 16px; text-transform: none; }
+  .res h2 { font-size: clamp(40px, 10vh, 64px); text-transform: none; }
+  .res h2.win { color: #ffd060; text-shadow: var(--outline), 0 0 24px rgba(255,208,96,.5); }
+  .res h2.lose { color: #ff3a54; text-shadow: var(--outline), 0 0 24px rgba(255,42,68,.5); }
+  .lvlup { font-size: 20px; text-transform: none; text-shadow: 2px 2px #050307; }
+  .center h2, .boon-wrap h2, .panel h2, .tree-head h2, .gear-head h2, .map-panel h2 { text-transform: none; }
+  .center h2.big { font-size: clamp(48px, 12vh, 80px); }
+  .map-panel h2 { font-size: clamp(24px, 5vh, 32px); }
+  .stat b { font-size: clamp(20px, 4vh, 28px); text-shadow: 2px 2px #050307; }
+  .gold { text-shadow: 2px 2px #050307; }
+  .gold.big { font-size: 22px; }
+  .lvl-num { border-radius: 0 !important; transform: rotate(45deg); border: 2px solid #050307 !important; background: linear-gradient(135deg, #ff5a70, #b0122c) !important; box-shadow: 2px 2px #050307, inset 2px 2px rgba(255,255,255,.35); width: 30px !important; height: 30px !important; font-size: 16px !important; }
+  .lvl-num > span { transform: rotate(-45deg); }
+  .logo h1 { font-size: clamp(64px, 15vh, 128px); background: linear-gradient(180deg, #ff8a9a 0%, #ff2a44 45%, #8a1022 100%); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: none; filter: drop-shadow(3px 0 #050307) drop-shadow(-3px 0 #050307) drop-shadow(0 3px #050307) drop-shadow(0 -3px #050307) drop-shadow(0 0 24px rgba(255,42,68,.45)); }
+  .logo p { font-size: clamp(14px, 2.8vh, 18px); text-transform: none; color: #ffb8c4; text-shadow: 2px 2px #050307; }
+  .logo h1::after { content: ""; display: block; height: 18px; width: 320px; margin-top: 4px; background: var(--divider) left / 320px 18px no-repeat; }
+  .loader { height: 12px !important; width: 240px !important; background: #1a0e14 !important; border: 2px solid #050307; }
+  .loader span { background: repeating-linear-gradient(90deg, #ff3a54 0 6px, #c8102e 6px 8px) !important; }
+  .ic { display: inline-block; flex: none; width: 32px; height: 32px; background-image: var(--s); background-size: 256px 256px; background-position: calc(var(--c) * -32px) calc(var(--r) * -32px); image-rendering: pixelated; vertical-align: middle; }
+  .ic.sm { width: 24px; height: 24px; background-size: 192px 192px; background-position: calc(var(--c) * -24px) calc(var(--r) * -24px); }
+  .btn.with-ic { flex-direction: row !important; align-items: center; gap: 10px; }
+  .btn.with-ic .btn-text { display: flex; flex-direction: column; }
+  .np-h, .set-h { font-size: 14px !important; color: #c8a8b2; text-shadow: 2px 2px #050307; text-transform: none; }
+  .map-bar { flex-wrap: nowrap; }
+  @media (max-height: 480px), (max-width: 900px) { .map-bar .chip .lbl { display: none; } .map-bar .chip { gap: 3px !important; border-width: 8px !important; border-image-width: 8px !important; padding: 0 3px !important; } .map-bar .lvl-info { min-width: 54px !important; } .map-bar .lvl-info b { display: none; } .map-bar { gap: 4px !important; max-width: calc(100% - min(380px, 38vw) - 30px) !important; } }
+  .chip .ic.sm { margin: -4px 0; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; } ::-webkit-scrollbar-track { background: #12080e; } ::-webkit-scrollbar-thumb { background: #4a3a46; border: 2px solid #12080e; }
+  #rotate { font-family: var(--f-display); font-size: 22px; }
+  @media (max-height: 480px) { .panel, .res, .btn.card, .map-panel { border-width: 20px !important; border-image-width: 20px !important; } .btn .btn-label { font-size: 17px; } .map-panel h2 { font-size: 22px; } .logo h1 { font-size: 64px; } }
 </style>
 </head>
 <body>

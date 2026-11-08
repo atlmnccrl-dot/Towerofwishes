@@ -536,7 +536,7 @@
     // At start: every hero and the original foes. The act armies (vh_*) load when a fight needs them.
     const ids = new Set([D.HERO.set, D.LYS.set, D.CLONE.set]); for (const k in D.FOES) if (!D.FOES[k].set.startsWith('vh_')) ids.add(D.FOES[k].set); for (const k in D.HEROES) ids.add(D.HEROES[k].set);
     await Promise.all([A.load([...ids], (p) => U.loading(p)), A.loadIso(['w', 'a', 'i']).catch(() => {})]);
-    try { if (document.fonts) await Promise.race([Promise.all(['700 20px "Chakra Petch"', '600 16px "Chakra Petch"', '500 16px Barlow', '700 16px Barlow'].map((f) => document.fonts.load(f))), new Promise((r) => setTimeout(r, 2500))]); } catch (e) { /* fonts optional */ }
+    try { if (document.fonts) await Promise.race([Promise.all(['20px Adventurer', '700 20px "Chakra Petch"', '500 16px Barlow', '700 16px Barlow'].map((f) => document.fonts.load(f))), new Promise((r) => setTimeout(r, 2500))]); } catch (e) { /* fonts optional */ }
     A.warm(R.ctx); A.isoWarm(R.ctx);
     applyOpts();
     if (params.has('auto')) M.save.opts.auto = true;

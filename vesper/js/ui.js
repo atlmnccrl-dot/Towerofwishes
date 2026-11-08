@@ -6,9 +6,14 @@
   const root = () => document.getElementById('ui');
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-  // items: [{ label, sub, act, cls }]
+  // A pixel icon from the UI pack (assets/ui/icons1..3.png: 8 x 8 icons of 32 px). ICONS names the ones used.
+  const ICONS = { sword: [3, 1, 0], book: [3, 2, 3], helm: [3, 1, 4], anvil: [3, 4, 5], coins: [3, 0, 3], star: [3, 3, 0], gear: [3, 4, 2], trophy: [1, 6, 4], castle: [3, 7, 5], orb: [3, 2, 4], quill: [3, 7, 1],
+    back: [1, 0, 5], skull: [3, 7, 0], chest: [3, 6, 4], map: [3, 4, 4], crown: [3, 7, 6], hourglass: [3, 7, 2], key: [3, 3, 4], scroll: [3, 3, 7], fire: [3, 2, 5], shield: [3, 1, 3], heart: [3, 0, 0], door: [3, 4, 7], dragon: [3, 7, 4], gem: [3, 0, 4], bag: [3, 4, 0] };
+  const ic = (name, small) => { const d = ICONS[name]; if (!d) return ''; return `<i class="ic${small ? ' sm' : ''}" style="--s:url('${VS.A.ROOT}ui/icons${d[0]}.png');--r:${d[1]};--c:${d[2]}"></i>`; };
+  U.ic = ic;
+  // items: [{ label, sub, act, cls, ic }]
   function buttons(items, cls) {
-    return `<nav class="menu ${cls || ''}">` + items.map((it, i) => `<button class="btn ${it.cls || ''}" data-i="${i}" type="button"><span class="btn-label">${esc(it.label)}</span>${it.sub ? `<span class="btn-sub">${esc(it.sub)}</span>` : ''}</button>`).join('') + '</nav>';
+    return `<nav class="menu ${cls || ''}">` + items.map((it, i) => `<button class="btn ${it.cls || ''}${it.ic ? ' with-ic' : ''}" data-i="${i}" type="button">${it.ic ? ic(it.ic) + '<span class="btn-text">' : ''}<span class="btn-label">${esc(it.label)}</span>${it.sub ? `<span class="btn-sub">${esc(it.sub)}</span>` : ''}${it.ic ? '</span>' : ''}</button>`).join('') + '</nav>';
   }
   function wire(el, items) {
     el.querySelectorAll('.btn').forEach((b) => b.addEventListener('click', () => { VS.audio.unlock(); VS.audio.sfx('clang_0', 0.4); items[+b.dataset.i].act(); }));
@@ -38,11 +43,11 @@
   // ---- screens ----------------------------------------------------------------------------------
   U.title = function (o) {
     const items = [];
-    if (o.cont) items.push({ label: 'Continue', sub: o.cont, act: o.onContinue, cls: 'focus-first' });
-    items.push({ label: 'New game', sub: o.confirmNew ? 'Press again: this erases your climb' : o.cont ? 'Start the climb over' : 'Climb the Spire before dawn', act: o.onNew, cls: o.confirmNew ? 'danger' : (o.cont ? '' : 'focus-first') });
-    items.push({ label: 'Theatre', sub: 'Watch an ultimate', act: o.onTheatre });
-    items.push({ label: 'Settings', act: o.onSettings });
-    items.push({ label: 'Credits', act: o.onCredits });
+    if (o.cont) items.push({ label: 'Continue', sub: o.cont, act: o.onContinue, cls: 'focus-first', ic: 'sword' });
+    items.push({ label: 'New game', sub: o.confirmNew ? 'Press again: this erases your climb' : o.cont ? 'Start the climb over' : 'Climb the Spire before dawn', act: o.onNew, cls: o.confirmNew ? 'danger' : (o.cont ? '' : 'focus-first'), ic: 'castle' });
+    items.push({ label: 'Theatre', sub: 'Watch an ultimate', act: o.onTheatre, ic: 'orb' });
+    items.push({ label: 'Settings', act: o.onSettings, ic: 'gear' });
+    items.push({ label: 'Credits', act: o.onCredits, ic: 'quill' });
     const el = U.show('title', `<div class="title-col"><header class="logo"><h1>VESPER</h1><p>A last ditch effort</p></header>${buttons(items)}</div>`, items);
     if (o.confirmNew) { const b = el.querySelectorAll('.btn')[o.cont ? 1 : 0]; if (b) b.focus({ preventScroll: true }); }
   };
@@ -87,8 +92,8 @@
     U.show('lost', `<div class="center"><h2 class="big">You fell</h2><p class="quote">“Then fall forward.”</p><p class="note">Nothing is lost. Your boons stay with you.</p>${buttons(items, 'center')}</div>`, items, { back: o.onTitle });
   };
   U.pause = function (o) {
-    const items = [{ label: 'Resume', act: o.onResume }, { label: 'Restart fight', act: o.onRestart }, { label: 'Auto battle', sub: o.auto ? 'On' : 'Off', act: o.onAuto }, { label: 'Leave the fight', sub: 'Back to the map', act: o.onQuit }];
-    U.show('pause', `<div class="center"><h2>Paused</h2>${buttons(items, 'center')}</div>`, items, { back: o.onResume, cls: 'dim' });
+    const items = [{ label: 'Resume', act: o.onResume, ic: 'sword' }, { label: 'Restart fight', act: o.onRestart, ic: 'hourglass' }, { label: 'Auto battle', sub: o.auto ? 'On' : 'Off', act: o.onAuto, ic: 'orb' }, { label: 'Leave the fight', sub: 'Back to the map', act: o.onQuit, ic: 'door' }];
+    U.show('pause', `<div class="center panel-ish"><h2>Paused</h2>${buttons(items, 'center')}</div>`, items, { back: o.onResume, cls: 'dim' });
   };
   // Choose a hero: a card each with their figure, weapon, skills and ultimate.
   U.heroes = function (o) {
@@ -116,13 +121,13 @@
   U.map = function (o) {
     const p = o.p, PR = P(), need = PR.need(p.lvl), H = DD().HEROES[p.hero];
     const bar = `<div class="map-bar">
-      <div class="lvl"><div class="lvl-num">${p.lvl}</div><div class="lvl-info"><b>Level ${p.lvl}</b><div class="xpbar"><i style="width:${p.lvl >= PR.MAX_LVL ? 100 : Math.round(p.xp / need * 100)}%"></i></div><small>${p.lvl >= PR.MAX_LVL ? 'Max level' : p.xp + ' / ' + need + ' XP'}</small></div></div>
-      <button class="chip ${p.sp ? 'hot' : ''}" data-act="skills" type="button">Skills ${p.sp ? `<span class="badge">${p.sp}</span>` : ''}</button>
-      <button class="chip" data-act="heroes" type="button" style="--hc:${H.color}"><span class="dot"></span>${esc(H.name)}</button>
-      <button class="chip" data-act="gear" type="button">Gear · <span class="gold">${p.gold || 0} g</span></button>
-      <button class="chip" data-act="modes" type="button">Modes${p.ng ? ' · NG+' + p.ng : ''}</button>
-      <span class="chip stars" style="cursor:default">★ ${PR.totalStars(p)} / ${PR.maxStars()}</span>
-      <button class="chip icon" data-act="menu" type="button" aria-label="Menu">☰</button></div>`;
+      <div class="lvl"><div class="lvl-num"><span>${p.lvl}</span></div><div class="lvl-info"><b>Level ${p.lvl}</b><div class="xpbar"><i style="width:${p.lvl >= PR.MAX_LVL ? 100 : Math.round(p.xp / need * 100)}%"></i></div><small>${p.lvl >= PR.MAX_LVL ? 'Max level' : p.xp + ' / ' + need + ' XP'}</small></div></div>
+      <button class="chip ${p.sp ? 'hot' : ''}" data-act="skills" type="button">${ic('book', 1)}<span class="lbl">Skills</span> ${p.sp ? `<span class="badge">${p.sp}</span>` : ''}</button>
+      <button class="chip" data-act="heroes" type="button" style="--hc:${H.color}"><span class="dot"></span><span class="lbl">${esc(H.name)}</span></button>
+      <button class="chip" data-act="gear" type="button">${ic('anvil', 1)}<span class="lbl">Gear</span> ${ic('coins', 1)}<span class="gold">${p.gold || 0}</span></button>
+      <button class="chip" data-act="modes" type="button">${ic('trophy', 1)}<span class="lbl">Modes${p.ng ? ' · NG+' + p.ng : ''}</span></button>
+      <span class="chip stars" style="cursor:default">${ic('star', 1)}${PR.totalStars(p)} / ${PR.maxStars()}</span>
+      <button class="chip icon" data-act="menu" type="button" aria-label="Menu">${ic('gear', 1)}</button></div>`;
     const n = o.sel && PR.node(o.sel);
     let panel;
     if (!n) panel = `<p class="np-empty">Choose a place on the Spire.</p>`;
@@ -260,7 +265,7 @@
       default: g.beginPath(); for (let i = 0; i < 6; i++) { const a = i / 6 * 6.283 - 1.57; g.lineTo(Math.cos(a) * 10, Math.sin(a) * 10); } g.closePath(); g.fill(); g.stroke();
     }
     g.restore();
-    if (it.plus) { g.font = `700 ${11 * k}px "Chakra Petch", sans-serif`; g.fillStyle = '#fff'; g.textAlign = 'right'; g.fillText('+' + it.plus, W - 3 * k, W - 4 * k); }
+    if (it.plus) { g.font = `${13 * k}px Adventurer, sans-serif`; g.fillStyle = '#fff'; g.textAlign = 'right'; g.fillText('+' + it.plus, W - 3 * k, W - 4 * k); }
   };
   // The gear screen: the hero's three slots, the bag, the selected item; or the blacksmith's wares.
   U.gear = function (o) {
@@ -306,7 +311,7 @@
     return el;
   };
   U.menu = function (o) {
-    const items = [{ label: 'Back to the map', act: o.onBack, cls: 'focus-first' }, { label: 'Settings', act: o.onSettings }, { label: 'Title screen', act: o.onTitle }];
+    const items = [{ label: 'Back to the map', act: o.onBack, cls: 'focus-first', ic: 'map' }, { label: 'Settings', act: o.onSettings, ic: 'gear' }, { label: 'Title screen', act: o.onTitle, ic: 'castle' }];
     U.show('pause', `<div class="center"><h2>Menu</h2>${buttons(items, 'center')}</div>`, items, { back: o.onBack, cls: 'dim' });
   };
 })();

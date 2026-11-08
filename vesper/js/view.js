@@ -5,9 +5,10 @@
 (function () {
   const VS = window.VS, D = VS.DATA, A = VS.A, PX = VS.PX;
   const R = VS.R = { t: 0, cam: 0, shake: 0, flash: 0, flashCol: '255,255,255', fx: [], parts: [], floaters: [], touch: false, punch: 0 };
-  const FD = '"Chakra Petch", "Barlow Condensed", "Arial Narrow", system-ui, sans-serif', FB = '"Barlow", "Segoe UI", system-ui, sans-serif';
-  R.fd = (px, w) => `${w || 700} ${Math.round(px)}px ${FD}`;
-  R.fb = (px, w) => `${w || 600} ${Math.round(px)}px ${FB}`;
+  // The pixel font everywhere (Adventurer): no synthetic bold, labels a touch larger to stay crisp.
+  const FD = '"Adventurer", "Chakra Petch", system-ui, sans-serif', FB = FD;
+  R.fd = (px) => `${Math.round(px * 1.15)}px ${FD}`;
+  R.fb = (px) => `${Math.round(px * 1.15)}px ${FB}`;
   const RED = '#ff2a44';
   const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
   const hash = (a, b) => { let h = (a * 374761393 + b * 668265263) | 0; h = (h ^ (h >>> 13)) * 1274126177; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
@@ -769,18 +770,40 @@
   R.cineCovers = (s) => s.cine && VS.cine.beatAt(s.cine)[0] !== 'snap';
 
   // ---- HUD --------------------------------------------------------------------------------------------
+  // The interface's pixel pieces (assets/ui/vesper, drawn by tools_ui.py), shown at a whole-pixel scale.
+  const uiImg = {};
+  function ui(name) { let im = uiImg[name]; if (!im) { im = uiImg[name] = new Image(); im.src = A.ROOT + 'ui/vesper/' + name + '.png'; } return im.complete && im.naturalWidth ? im : null; }
+  R.px = () => Math.max(2, Math.round(R.k * 1.5));
+  // A 9-slice frame: the corners at whole-pixel scale, the edges and the middle stretched.
+  R.frame9 = function (ctx, name, x, y, w, h, slice, ps) {
+    const im = ui(name); if (!im) { ctx.fillStyle = 'rgba(10,6,12,0.86)'; ctx.fillRect(x, y, w, h); return; }
+    const n = im.naturalWidth, c = slice, d = c * (ps || R.px()), sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
+    x = Math.round(x); y = Math.round(y); w = Math.round(w); h = Math.round(h);
+    const sx = [0, c, n - c, n], dx = [x, x + d, x + w - d, x + w], sy = [0, c, n - c, n], dy = [y, y + d, y + h - d, y + h];
+    for (let j = 0; j < 3; j++) for (let i = 0; i < 3; i++) { const sw = sx[i + 1] - sx[i], sh = sy[j + 1] - sy[j], ww = dx[i + 1] - dx[i], hh = dy[j + 1] - dy[j]; if (ww > 0 && hh > 0) ctx.drawImage(im, sx[i], sy[j], sw, sh, dx[i], dy[j], ww, hh); }
+    ctx.imageSmoothingEnabled = sm;
+  };
+  R.uiImg = ui;
+  // A pixel bar: an iron rim, a dark trough, the fill in segments with a lit top row, a white trail for damage just taken.
   function slantBar(ctx, x, y, w, h, frac, trail, col) {
-    const sk = h * 0.9, path = (ww) => { ctx.beginPath(); ctx.moveTo(x + sk, y); ctx.lineTo(x + ww, y); ctx.lineTo(x + ww - sk, y + h); ctx.lineTo(x, y + h); ctx.closePath(); };
-    ctx.fillStyle = 'rgba(255,255,255,0.08)'; path(w); ctx.fill();
-    if (trail > frac) { ctx.fillStyle = 'rgba(255,255,255,0.75)'; path(Math.max(sk, w * trail)); ctx.fill(); }
-    if (frac > 0) { const g = ctx.createLinearGradient(x, 0, x + w, 0); g.addColorStop(0, mix(col, '#000000', 0.25)); g.addColorStop(1, col); ctx.fillStyle = g; path(Math.max(sk, w * frac)); ctx.fill(); }
-    ctx.strokeStyle = 'rgba(255,255,255,0.28)'; ctx.lineWidth = R.dpr; path(w); ctx.stroke();
+    const p = Math.max(1, Math.round(R.px() / 2)); x = Math.round(x); y = Math.round(y); w = Math.round(w); h = Math.max(4 * p, Math.round(h / p) * p);
+    ctx.fillStyle = '#050307'; ctx.fillRect(x - 2 * p, y - 2 * p, w + 4 * p, h + 4 * p);
+    ctx.fillStyle = '#4a3a46'; ctx.fillRect(x - p, y - p, w + 2 * p, p); ctx.fillStyle = '#261c24'; ctx.fillRect(x - p, y + h, w + 2 * p, p);
+    ctx.fillStyle = '#160c12'; ctx.fillRect(x, y, w, h);
+    if (trail > frac) { ctx.fillStyle = '#f3e0e4'; ctx.fillRect(x, y, Math.round(w * trail), h); }
+    if (frac > 0) {
+      const fw = Math.max(p, Math.round(w * frac)); ctx.fillStyle = mix(col, '#000000', 0.2); ctx.fillRect(x, y, fw, h);
+      ctx.fillStyle = col; ctx.fillRect(x, y, fw, h - 2 * p); ctx.fillStyle = mix(col, '#ffffff', 0.45); ctx.fillRect(x, y, fw, p);
+      ctx.fillStyle = 'rgba(5,3,7,0.45)'; const seg = 8 * p; for (let sx = x + seg; sx < x + fw; sx += seg) ctx.fillRect(sx, y, p, h);
+    }
   }
   const trails = {};
   function trailOf(id, v, dt) { const t = trails[id] == null ? v : trails[id]; trails[id] = v < t ? Math.max(v, t - dt * 0.5) : v; return trails[id]; }
   function label(ctx, text, x, y, size, col, align, spacing, weight) {
     ctx.font = R.fd(size, weight || 600); ctx.textAlign = align || 'left'; ctx.textBaseline = 'alphabetic';
-    if ('letterSpacing' in ctx) ctx.letterSpacing = (spacing || 0) * R.dpr + 'px';
+    if ('letterSpacing' in ctx) ctx.letterSpacing = (spacing || 0) * 0.35 * R.dpr + 'px';
+    // A hard pixel shadow under every label, like the rest of the game's text.
+    const off = Math.max(1, Math.round(size / 9)); ctx.fillStyle = 'rgba(5,3,7,0.9)'; ctx.fillText(text, x + off, y + off);
     ctx.fillStyle = col; ctx.fillText(text, x, y);
     if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
   }
@@ -788,8 +811,9 @@
   R.drawHud = function (ctx, s, dt, opts) {
     const h = s.hero, k = R.k, m = 18 * k, W = R.W;
     // The knight.
-    label(ctx, (s.heroDef.name || 'VESPER').toUpperCase(), m, m + 10 * k, 12 * k, '#f3eef0', 'left', 3);
     const bw = Math.min(W * 0.3, 250 * k), hf = h.hp / h.maxHp;
+    R.frame9(ctx, 'frame_thin', m - 10 * k, m - 8 * k, bw + 56 * k, 46 * k, 8, Math.max(1, Math.round(R.px() * 0.75)));
+    label(ctx, s.heroDef.name || 'Vesper', m, m + 10 * k, 13 * k, '#f3eef0', 'left', 1);
     slantBar(ctx, m, m + 17 * k, bw, 9 * k, hf, trailOf('hero', hf, dt), RED);
     label(ctx, `${Math.ceil(h.hp)}`, m + bw + 8 * k, m + 25 * k, 12 * k, '#f3eef0', 'left', 0, 700);
     // The moon gauge (once the ultimate is learned).
@@ -978,8 +1002,8 @@
     const k = R.k, a = Math.min(1, t * 4, (2.2 - t) * 3); if (a <= 0) return;
     text = String(text).toUpperCase(); ctx.save(); ctx.globalAlpha = a; const y = R.H * (low ? 0.78 : 0.3), lw = (60 + 80 * Math.min(1, t * 3)) * k;
     ctx.font = R.fd(22 * k, 700); const hw = Math.max(120 * k, (ctx.measureText(text).width + text.length * 6 * R.dpr) / 2 + 26 * k);
-    ctx.fillStyle = rgba(col === RED ? '#ff2a44' : '#ffffff', 0.5); ctx.fillRect(R.W / 2 - lw - hw, y - 6 * k, lw, Math.max(1, R.dpr)); ctx.fillRect(R.W / 2 + hw, y - 6 * k, lw, Math.max(1, R.dpr));
-    label(ctx, text, R.W / 2, y, 22 * k, col, 'center', 6, 700); if (sub) label(ctx, sub, R.W / 2, y + 18 * k, 10 * k, '#d8c8d0', 'center', 4, 600); ctx.restore();
+    const dv = ui('divider'); if (dv) { const ps = R.px(), dw = dv.naturalWidth * ps * Math.min(1, t * 3 + 0.3), sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false; ctx.drawImage(dv, 0, 0, dv.naturalWidth, dv.naturalHeight, Math.round(R.W / 2 - dw / 2), Math.round(y + (sub ? 24 : 8) * k), Math.round(dw), dv.naturalHeight * ps); ctx.imageSmoothingEnabled = sm; }
+    void lw; void hw; label(ctx, text, R.W / 2, y, 26 * k, col, 'center', 6, 700); if (sub) label(ctx, sub, R.W / 2, y + 18 * k, 10 * k, '#d8c8d0', 'center', 4, 600); ctx.restore();
   };
   // A coaching card at the top of the screen: the tutorial's steps and new-ability tips.
   R.coach = function (ctx, o) {
@@ -988,15 +1012,15 @@
     ctx.save(); ctx.globalAlpha = a;
     ctx.font = R.fb(15 * k, 500);
     const lines = []; let line = ''; for (const wd of o.text.split(' ')) { if (ctx.measureText(line + ' ' + wd).width > w - 32 * k && line) { lines.push(line); line = wd; } else line = line ? line + ' ' + wd : wd; } lines.push(line);
-    const h = (28 + 18 * lines.length) * k;
-    ctx.fillStyle = 'rgba(10,6,12,0.86)'; ctx.fillRect(x, y, w, h); ctx.fillStyle = o.col || '#ffd060'; ctx.fillRect(x, y, 3 * k, h);
+    const h = (34 + 18 * lines.length) * k;
+    R.frame9(ctx, o.done ? 'frame_hot' : 'frame_thin', x - 6 * k, y - 6 * k, w + 12 * k, h + 12 * k, o.done ? 16 : 8, o.done ? Math.max(1, Math.round(R.px() / 2)) : R.px());
     label(ctx, o.title, x + 16 * k, y + 22 * k, 11 * k, o.col || '#ffd060', 'left', 4, 700);
     ctx.font = R.fb(15 * k, 500); ctx.fillStyle = '#f3eef0'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
     lines.forEach((ln, i) => ctx.fillText(ln, x + 16 * k, y + (42 + i * 18) * k));
     if (o.of) for (let i = 0; i < o.of; i++) { ctx.fillStyle = i < o.step || (i === o.step && o.done) ? (o.col || '#ffd060') : i === o.step ? '#ffffff' : 'rgba(255,255,255,0.2)'; ctx.fillRect(x + w - (o.of - i) * 14 * k - 6 * k, y + 14 * k, 9 * k, 3 * k); }
     // The step's count (2 / 3) under the pips, and a tick across the card when it is done.
     if (o.prog) label(ctx, o.prog, x + w - 14 * k, y + 30 * k, 12 * k, '#ffffff', 'right', 1, 700);
-    if (o.done) { ctx.fillStyle = 'rgba(120,220,160,0.16)'; ctx.fillRect(x, y, w, h); label(ctx, '✓  DONE', x + w - 14 * k, y + 30 * k, 13 * k, '#9af0b8', 'right', 2, 700); }
+    if (o.done) label(ctx, '✓  DONE', x + w - 14 * k, y + 30 * k, 13 * k, '#9af0b8', 'right', 2, 700);
     ctx.restore();
   };
   // The trial's guides: a glowing circle on the ground to walk to (with chevrons leading there), a
