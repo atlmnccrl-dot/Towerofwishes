@@ -16,7 +16,7 @@ require('fs').mkdirSync(out, { recursive: true });
       BB.save = BB.newSave(); BB.save.settings.auto = true; BB.save.seen = { tutorial: 1 };
       const M = BB.MISSIONS[idx];
       for (const c of ['vanguard', 'ranger', 'warpriest', 'arcanist']) { const h = BB.newHero({ calling: c, level: M.level, captain: c === 'vanguard' }); BB.save.heroes.push(h); BB.save.team.push(h.id); }
-      for (let i = 0; i < 12; i++) BB.save.seen['m' + i + 'pre'] = 1;
+      for (const mm of BB.MISSIONS) BB.save.seen[mm.id + 'pre'] = 1;
       BB.deploy(idx);
     }, idx);
     await p.waitForFunction(() => BB.testHooks.mode() === 'battle', null, { timeout: 20000 });

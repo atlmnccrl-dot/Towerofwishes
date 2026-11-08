@@ -222,8 +222,160 @@ def pack_fx():
     save(atlas, out, 'fx/fx')
     print('fx', atlas.size)
 
+# ---------------------------------------------------------------- batch 2
+# The "horde": ready-made characters, one folder each (e.g. knight_004/) with 30 clip sheets, and a
+# README per pack listing every character's archetype and parts. Each character becomes a hero
+# recruit, a foe or a townsfolk extra; only the clips its role uses are packed.
+import re
+HERO_CLIPS = {
+    'vanguard': ['Idle', 'Run', 'Attack1', 'Attack2', 'Special1', 'Rolling', 'TakeDamage', 'Die', 'Taunt'],
+    'berserker': ['Idle', 'Run', 'Attack1', 'Attack2', 'Attack4', 'Rolling', 'TakeDamage', 'Die', 'Taunt'],
+    'ranger': ['Idle', 'Run', 'Attack3', 'Special1', 'Rolling', 'TakeDamage', 'Die', 'Taunt'],
+    'arcanist': ['Idle', 'Run', 'Attack5', 'Special1', 'Rolling', 'TakeDamage', 'Die', 'Taunt'],
+    'warpriest': ['Idle', 'Run', 'Attack5', 'Special1', 'Rolling', 'TakeDamage', 'Die', 'Taunt'],
+    'monk': ['Idle', 'Run', 'Attack1', 'Attack2', 'Kick', 'Special1', 'Rolling', 'TakeDamage', 'Die', 'Taunt'],
+    'shadowblade': ['Idle', 'Run', 'Attack1', 'Attack2', 'Attack3', 'Attack6', 'Rolling', 'TakeDamage', 'Die', 'Taunt'],
+    'lancer': ['Idle', 'Run', 'Attack1', 'Attack2', 'AttackRun', 'Rolling', 'TakeDamage', 'Die', 'Taunt'],
+}
+FOE_CLIPS = {
+    'skel': ['Idle', 'Run', 'Attack1', 'Attack2', 'TakeDamage', 'Die'],
+    'skelshield': ['Idle', 'Run', 'Attack1', 'Attack2', 'TakeDamage', 'Die'],
+    'skelarcher': ['Idle', 'Run', 'Attack3', 'TakeDamage', 'Die'],
+    'wraith': ['Idle', 'Run', 'Attack5', 'Special1', 'TakeDamage', 'Die'],
+    'warlock': ['Idle', 'Run', 'Attack5', 'Special1', 'TakeDamage', 'Die'],
+}
+NPC_CLIPS = ['Idle', 'Walk', 'Run', 'CrouchIdle', 'Taunt', 'Die']
+ELEMENTS = ['fire', 'frost', 'blood', 'arcane', 'shadow', 'holy', 'storm', 'nature']
+
+def horde_roster():
+    chars = {}
+    for readme in glob.glob(os.path.join(RAW, '*', 'README.md')):
+        txt = open(readme, encoding='utf-8-sig').read()
+        base = os.path.dirname(readme)
+        for m in re.finditer(r'^\|\s*`([a-z]+_\d+)/`\s*\|\s*([^|]+)\|', txt, re.M):
+            key, desc = m.group(1), m.group(2).strip()
+            if key in chars or not os.path.exists(os.path.join(base, key, 'Idle.png')):
+                continue
+            pm = re.search(r'### `' + key + r'/`\s*```n?(.*?)```', txt, re.S)
+            parts = []
+            if pm:
+                for line in pm.group(1).replace('```n', '').splitlines():
+                    bits = line.strip().split('|')
+                    if len(bits) >= 2 and bits[0]:
+                        parts.append([bits[0]] + bits[1:3])
+            names = [p[0] for p in parts]
+            arch = key.split('_')[0]
+            bow = any(n.startswith('Ranged') for n in names)
+            shield = any(n.startswith('Shield') for n in names)
+            magic = any(n.startswith('Magic') for n in names)
+            elem = next((e for e in ELEMENTS if e in desc.lower()), None)
+            role, calling, foe = 'hero', None, None
+            if arch == 'skeleton':
+                role, foe = 'foe', 'skelarcher' if bow else 'skelshield' if shield else 'skel'
+            elif arch in ('wraith', 'warlock'):
+                role, foe = 'foe', arch
+            elif arch == 'townsfolk':
+                role = 'npc'
+            elif bow:
+                calling = 'ranger'
+            elif arch == 'mage':
+                calling = 'warpriest' if elem == 'holy' else 'arcanist'
+            else:
+                calling = {'knight': 'vanguard', 'paladin': 'warpriest', 'barbarian': 'berserker', 'beastfolk': 'berserker',
+                           'monk': 'monk', 'rogue': 'shadowblade', 'duelist': 'shadowblade', 'spearman': 'lancer'}.get(arch, 'vanguard')
+            chest = next((p for p in parts if p[0].startswith('Chest')), None)
+            color = '#' + chest[1] if chest and len(chest) > 1 else '#888888'
+            chars[key] = {'key': key, 'arch': arch, 'desc': desc, 'role': role, 'calling': calling, 'foe': foe, 'elem': elem,
+                          'shield': shield, 'bow': bow, 'magic': magic, 'color': color, 'src': os.path.join(base, key)}
+    return chars
+
+def pack_one(args):
+    key, src, clips, shadow = args
+    frames = []; meta = {'clips': {}, 'cell': 128}
+    for clip in clips:
+        f = os.path.join(src, clip + '.png')
+        if not os.path.exists(f):
+            continue
+        sheet = Image.open(f).convert('RGBA')
+        if shadow:
+            sheet = strip(sheet)
+        n = sheet.size[0] // 128
+        meta['clips'][clip] = n
+        for r in range(8):
+            for c in range(n):
+                cell = sheet.crop((c * 128, r * 128, c * 128 + 128, r * 128 + 128))
+                bb = cell.getchannel('A').point(lambda v: 255 if v > 8 else 0).getbbox()
+                k = '%s:%d:%d' % (clip, r, c)
+                if not bb:
+                    frames.append((k, Image.new('RGBA', (1, 1)), 0, 0)); continue
+                frames.append((k, cell.crop(bb), bb[0], bb[1]))
+    atlas, rects = pack_frames(frames)
+    meta['f'] = {clip: [rects['%s:%d:%d' % (clip, r, c)] for r in range(8) for c in range(n)] for clip, n in meta['clips'].items()}
+    save(atlas, meta, key)
+    return key, atlas.size
+
+def pack_horde():
+    from multiprocessing import Pool
+    os.makedirs(os.path.join(OUT, 'chars', 'h'), exist_ok=True)
+    roster = horde_roster()
+    jobs = []
+    for key, c in sorted(roster.items()):
+        clips = HERO_CLIPS[c['calling']] if c['role'] == 'hero' else FOE_CLIPS[c['foe']] if c['role'] == 'foe' else NPC_CLIPS
+        out = os.path.join(OUT, 'chars', 'h', key + '.webp')
+        if os.path.exists(out) and os.path.getmtime(out) > os.path.getmtime(os.path.join(c['src'], 'Idle.png')):
+            continue
+        jobs.append(('chars/h/' + key, c['src'], clips, False))
+    # the two iso pack characters (they carry a baked shadow like the desert pack)
+    for key, rel in (('brenna', 'Characters/Player'), ('reaper', 'Characters/NPC3')):
+        src = glob.glob(os.path.join(RAW, '*iso_*', rel))
+        if src and not os.path.exists(os.path.join(OUT, 'chars', key + '.webp')):
+            jobs.append(('chars/' + key, src[0], FULL, False))
+    with Pool(4) as pool:
+        for key, size in pool.imap_unordered(pack_one, jobs):
+            print('horde', key, size)
+    out = [{k: v for k, v in c.items() if k != 'src'} for c in sorted(roster.values(), key=lambda c: c['key'])]
+    with open(os.path.join(OUT, 'chars', 'h', 'roster.json'), 'w') as f:
+        json.dump(out, f, separators=(',', ':'))
+    print('roster', len(out), 'heroes', sum(1 for c in out if c['role'] == 'hero'), 'foes', sum(1 for c in out if c['role'] == 'foe'))
+
+def pack_ground():
+    """Ground blocks, flora, chests, doors and the fireplace, anchored like the env props."""
+    E = glob.glob(os.path.join(RAW, '*iso_11_environment', 'Environment'))[0]
+    frames = []
+    for f in sorted(glob.glob(os.path.join(E, '*.png'))):
+        n = os.path.basename(f)[:-4]
+        if n.startswith('BLACK'):
+            continue
+        im = Image.open(f).convert('RGBA')
+        im = im.resize((int(im.size[0] * ENV_SCALE), int(im.size[1] * ENV_SCALE)), Image.LANCZOS)
+        bb = im.getchannel('A').point(lambda v: 255 if v > 8 else 0).getbbox()
+        if not bb:
+            continue
+        frames.append((n, im.crop(bb), bb[0] - 128 * ENV_SCALE, bb[1] - 209 * ENV_SCALE))
+    atlas, rects = pack_frames(frames, 4096)
+    save(atlas, {'scale': ENV_SCALE, 'f': rects}, 'env/ground')
+    print('ground', atlas.size, len(rects))
+
+def pack_other():
+    """Single images: fire ring, cloud shadows, light rays, dash line."""
+    O = glob.glob(os.path.join(RAW, '*iso_14_other', 'Other'))[0]
+    frames = []
+    for f in sorted(glob.glob(os.path.join(O, '*.png'))):
+        n = os.path.basename(f)[:-4]
+        im = Image.open(f).convert('RGBA')
+        sc = 0.5 if n.startswith('Cloud') or n == 'AoEFire' else 1
+        if sc != 1:
+            im = im.resize((int(im.size[0] * sc), int(im.size[1] * sc)), Image.LANCZOS)
+        frames.append((n, im, -im.size[0] / 2, -im.size[1] / 2))
+    atlas, rects = pack_frames(frames, 2048)
+    save(atlas, {'f': rects}, 'fx/other')
+    print('other', atlas.size)
+
 if __name__ == '__main__':
     what = sys.argv[3:] or ['chars', 'env', 'fx']
     if 'chars' in what: pack_chars()
     if 'env' in what: pack_env()
     if 'fx' in what: pack_fx()
+    if 'horde' in what: pack_horde()
+    if 'ground' in what: pack_ground()
+    if 'other' in what: pack_other()

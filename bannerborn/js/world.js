@@ -260,6 +260,51 @@
         for (const [dx, dy] of [[-3, -1], [4, 1], [-1, 3], [3, -5]]) { m.add('Torch2', c + dx, c + dy, { biome: 'vale' }); m.anim('torch', c + dx + 0.02, c + dy + 0.02, { sc: 0.7, pole: 1 }); m.lights.push({ x: c + dx, y: c + dy, rad: 3, col: '120,255,160' }); }
         m.bossSpot = { x: c + 0.5, y: c - 1 }; m.heroSpawn = { x: c - 3, y: c + 5 };
         break;
+      case 'city': {
+        // two crossing cobbled streets, a flagstone square, house fronts along the streets
+        m.floor = 'cobble';
+        path(m, [[2, c], [W - 2, c]], 1.3, 4); path(m, [[c, 2], [c, H - 2]], 1.3, 4);
+        blob(m, c, c, 3.2, 5);
+        const fronts = ['Wall D2', 'Wall D4', 'Wall F1', 'Wall F3', 'Wall F7', 'Wall F9', 'Wall D8', 'Wall C4', 'Wall G2', 'Wall G6'];
+        for (let i = 0; i < 26; i++) {
+          const along = r.range(4, W - 4), side = r() < 0.5 ? -1 : 1, hor = r() < 0.5;
+          const x = hor ? along : c + side * r.range(2.8, 3.6), y = hor ? c + side * r.range(2.8, 3.6) : along;
+          if (Math.hypot(x - c, y - c) < 4.5) continue;
+          m.tryAdd(r.pick(fronts) + '_' + (hor ? (side < 0 ? 'S' : 'N') : (side < 0 ? 'E' : 'W')), x, y, { biome: 'vale', r: 0.5 }, 0.55);
+        }
+        const clutter = ['Misc B3', 'Misc A4', 'Misc A9', 'Misc B28', 'Misc B17', 'Misc B18', 'Misc B11', 'Misc A3', 'Misc B14'];
+        for (let i = 0; i < 14; i++) m.tryAdd(nm(r.pick(clutter), r), r.range(4, W - 4), r.range(4, H - 4), { biome: 'vale' }, 0.5);
+        for (let i = 0; i < 5; i++) m.tryAdd(nm(r.pick(['Misc D1', 'Misc D2', 'Misc D3', 'Misc D4', 'Misc B44']), r), c + r.range(-4, 4), c + r.range(-4, 4), { biome: 'vale' }, 0.3);
+        m.add('Misc C6_S', c, c, { biome: 'vale', r: 0.5 });
+        for (let i = 0; i < 4; i++) m.tryAdd('Door ' + r.pick(['A1', 'A2', 'C1', 'C3']) + '_' + r.pick(DIRS), r.range(4, W - 4), r.range(4, H - 4), { biome: 'ground', r: 0.3 }, 0.6);
+        m.gateSpots = [{ x: W - 5.5, y: c + 0.5 }, { x: c + 0.5, y: 5.5 }, { x: 5.5, y: 5.5 }];
+        m.heroSpawn = { x: c - 1, y: H - 5 };
+        scatter(m, set.trees, 6, inner);
+        break;
+      }
+      case 'plaza':
+        m.floor = 'cobble';
+        blob(m, c, c, 5.5, 5); path(m, [[2, c], [W - 2, c]], 1, 4); path(m, [[c, 2], [c, H - 2]], 1, 4);
+        m.wardSpot = { x: c, y: c };
+        m.add('FirePlace', c, c, { biome: 'ground', r: 0.6, ward: true });
+        m.anim('fire', c + 0.03, c + 0.03, { sc: 0.7, fps: 14 });
+        m.lights.push({ x: c, y: c, rad: 5, col: '255,160,70' });
+        m.npcSpots = [[-1.2, 0.4], [0.9, 1], [1.1, -0.9], [-0.6, -1.1], [0.2, 1.4]].map(([dx, dy]) => ({ x: c + dx, y: c + dy }));
+        for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2; m.tryAdd(nm(r.pick(['Misc B3', 'Misc A4', 'Misc B28', 'Misc A9', 'Wall F1', 'Wall D2']), r), c + Math.cos(a) * 6.3, c + Math.sin(a) * 6.3, { biome: 'vale' }, 0.6); }
+        m.heroSpawn = { x: c - 2, y: c + 2.5 };
+        m.foeSpawns = [{ x: W - 4.5, y: 4.5 }, { x: 4.5, y: 4.5 }, { x: W - 4.5, y: H - 4.5 }, { x: 4.5, y: H - 5 }];
+        scatter(m, set.trees, 6, inner);
+        break;
+      case 'throne':
+        m.floor = 'tiles';
+        blob(m, c, c, 8, 6);
+        for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2 + 0.39; m.add(r.pick(['Misc C7_S', 'Stone A14_S']), c + Math.cos(a) * 5.4, c + Math.sin(a) * 5.4, { biome: 'vale', r: 0.4 }); }
+        m.add('Misc C1_S', c + 2.5, c - 4.5, { biome: 'vale', r: 0.6, sc: 1.2 });
+        for (const [dx, dy] of [[-3, -4], [4, -1], [-4, 3], [2, 4]]) { m.add('Torch2', c + dx, c + dy, { biome: 'vale' }); m.anim('torch', c + dx + 0.02, c + dy + 0.02, { sc: 0.7, pole: 1 }); m.lights.push({ x: c + dx, y: c + dy, rad: 3, col: '160,200,255' }); }
+        for (let i = 0; i < 6; i++) m.tryAdd(nm(r.pick(['Misc D1', 'Misc D3', 'Misc D5']), r), c + r.range(-6, 6), c + r.range(-6, 6), { biome: 'vale' }, 0.4);
+        ruins(m, c, c, 8.4, false);
+        m.bossSpot = { x: c + 1, y: c - 2 }; m.heroSpawn = { x: c - 3, y: c + 5 };
+        break;
       case 'endless':
         blob(m, c, c, 6, 4); ruins(m, c, c, 6.4, biome === 'sand');
         m.gateSpots = [{ x: W - 5.5, y: 5.5 }, { x: 5.5, y: 6 }, { x: W - 5.5, y: H - 7 }];
@@ -271,6 +316,21 @@
         blob(m, c, c, 4.5, 2);
         scatter(m, set.trees, 8, [3, 3, W - 3, 6]); scatter(m, set.small, 14, inner);
         break;
+    }
+    // treasure: wooden chests, sometimes a golden one
+    if (!/camp|title/.test(layout)) {
+      m.chests = [];
+      const n = 1 + (r() < 0.6 ? 1 : 0);
+      for (let i = 0; i < n * 6 && m.chests.length < n; i++) {
+        const x = r.range(5, W - 5), y = r.range(5, H - 5);
+        if (Math.hypot(x - m.heroSpawn.x, y - m.heroSpawn.y) < 4 || !m.free(x, y, 0.7)) continue;
+        m.chests.push({ x, y, gold: r() < 0.25 });
+      }
+    }
+    // ground plants on grass (no collision)
+    if (biome === 'vale' && !/throne/.test(layout)) for (let i = 0; i < W * H * 0.05; i++) {
+      const x = r.range(3, W - 3), y = r.range(3, H - 3);
+      if (m.at(x, y) <= 1 && m.free(x, y, 0.3)) m.add('Flora ' + r.pick(['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'B3', 'B5']) + '_' + r.pick(DIRS), x, y, { biome: 'ground', r: 0 });
     }
     // explosive barrels in fights
     if (!/camp|title/.test(layout)) {
@@ -397,6 +457,61 @@
     vale: { base: [86, 122, 58], alt: [104, 134, 62], path: [138, 112, 76], water: [52, 98, 128], floor: [126, 122, 112], dark: [56, 84, 44], light: [140, 160, 80] },
     sand: { base: [204, 172, 116], alt: [214, 184, 128], path: [182, 146, 98], water: [58, 128, 150], floor: [170, 150, 118], dark: [176, 140, 92], light: [232, 206, 150] },
   };
+  // ground from the tile kit: a dirt block per tile, then an overlay (grass, dry grass, cobbles, flagstones, tiles)
+  let sandAtlas = null;
+  function drawTiles(m, g, r, MG) {
+    const G = BB.A.env.ground, f = G.meta.f, k = BB.ENV_DRAW;
+    if (m.biome === 'sand' && !sandAtlas) {
+      const c = document.createElement('canvas'); c.width = G.img.width; c.height = G.img.height;
+      const x = c.getContext('2d'); x.filter = 'none'; x.drawImage(G.img, 0, 0);
+      const d = x.getImageData(0, 0, c.width, c.height), p = d.data;
+      for (let i = 0; i < p.length; i += 4) { // warm, light sand from the brown dirt
+        const l = (p[i] * 0.3 + p[i + 1] * 0.55 + p[i + 2] * 0.15) / 255;
+        p[i] = Math.min(255, 120 + l * 230); p[i + 1] = Math.min(255, 92 + l * 205); p[i + 2] = Math.min(255, 55 + l * 150);
+      }
+      x.putImageData(d, 0, 0); sandAtlas = c;
+    }
+    const put = (img, name, x, y, alpha) => {
+      const q = f[name]; if (!q) return;
+      const s = BB.iso(x + 0.5, y + 0.5);
+      if (alpha !== undefined) g.globalAlpha = alpha;
+      g.drawImage(img, q[0], q[1], q[2], q[3], s.x + q[4] * k, s.y + q[5] * k, q[2] * k, q[3] * k);
+      if (alpha !== undefined) g.globalAlpha = 1;
+    };
+    const D = ['_N', '_E', '_S', '_W'];
+    const dd = () => D[r.int(4)];
+    const sand = m.biome === 'sand';
+    const base = sand ? sandAtlas : G.img;
+    const tiles = [];
+    for (let y = -MG; y < m.h + MG; y++) for (let x = -MG; x < m.w + MG; x++) tiles.push([x, y]);
+    tiles.sort((a, b) => (a[0] + a[1]) - (b[0] + b[1]));
+    const near = (x, y, v) => [m.at(x - 1, y), m.at(x + 1, y), m.at(x, y - 1), m.at(x, y + 1)].some((t) => t === v);
+    for (const [x, y] of tiles) {
+      const t = m.at(x, y);
+      if (t === 3) continue;
+      if (t === 2) { put(sand ? sandAtlas : G.img, 'Ground A1' + dd(), x, y); if (r() < 0.45) put(G.img, 'Ground ' + r.pick(['E10', 'E11', 'E13']) + dd(), x, y, sand ? 0.5 : 0.8); continue; }
+      const edgeDist = Math.min(x, y, m.w - 1 - x, m.h - 1 - y);
+      if (t === 4 || t === 5 || t === 6) {
+        put(base, 'Ground A1' + dd(), x, y);
+        const style = t === 5 ? 'flag' : t === 6 ? 'tiles' : m.floor || (sand ? 'tiles' : 'flag');
+        if (style === 'cobble') put(G.img, 'Ground E1' + dd(), x, y);
+        else if (style === 'tiles') put(sand ? sandAtlas : G.img, 'Ground ' + r.pick(['H1', 'H4', 'H4', 'H9']) + dd(), x, y);
+        else put(sand ? sandAtlas : G.img, 'Ground D1' + dd(), x, y);
+        continue;
+      }
+      put(base, 'Ground A1' + dd(), x, y);
+      if (sand) {
+        if (r() < 0.1) put(G.img, 'Ground ' + r.pick(['E10', 'E11', 'E14']) + dd(), x, y, 0.45);
+      } else {
+        const edge = near(x, y, 2) || near(x, y, 4) || near(x, y, 5);
+        if (edgeDist < 2) put(G.img, 'Ground A18' + dd(), x, y);
+        else if (edge) put(G.img, 'Ground ' + r.pick(['A3', 'A5', 'A6']) + dd(), x, y);
+        else { put(G.img, 'Ground A2' + dd(), x, y); if (t === 1 && r() < 0.5) put(G.img, 'Ground ' + r.pick(['A20', 'A21', 'A10', 'A11']) + dd(), x, y, 0.9); }
+        if (r() < 0.04) put(G.img, 'Ground ' + r.pick(['A22', 'A23', 'E11', 'E12']) + dd(), x, y, 0.85);
+      }
+    }
+    m.tiled = true;
+  }
   BB.renderGround = function (m, scale) {
     scale = scale || 1.5;
     const P = PAL[m.biome];
@@ -451,10 +566,22 @@
       else { g.fillStyle = 'rgba(20,50,90,0.25)'; diamond(x, y, 0.5); g.fill(); }
       if (r() < 0.4) { g.strokeStyle = 'rgba(200,230,255,0.25)'; g.lineWidth = 0.8; g.beginPath(); g.ellipse(s.x + r.range(-8, 8), s.y + r.range(-4, 4), 5, 1.6, 0, 0, 7); g.stroke(); }
     }
+    if (BB.A.env.ground) drawTiles(m, g, r, MG);
     // grass tufts / sand ripples
-    for (let i = 0; i < m.w * m.h * (m.biome === 'vale' ? 3.2 : 1.6); i++) {
-      const x = r() * m.w, y = r() * m.h, t = m.at(x, y); if (t === 3 || t === 4 || t === 2) continue;
+    if (m.tiled) { // soft light and shade over the tiles so the grid does not read too strongly
+      for (let i = 0; i < (m.w + MG * 2) * (m.h + MG * 2) * 0.25; i++) {
+        const x = r() * (m.w + MG * 2) - MG, y = r() * (m.h + MG * 2) - MG; if (m.at(x, y) === 3) continue;
+        const s = BB.iso(x, y), rad = r.range(14, 46), tone = r() < 0.55 ? P.dark : P.light;
+        const gr = g.createRadialGradient(s.x, s.y, 0, s.x, s.y, rad);
+        gr.addColorStop(0, 'rgba(' + tone.join(',') + ',0.10)'); gr.addColorStop(1, 'rgba(' + tone.join(',') + ',0)');
+        g.fillStyle = gr; g.save(); g.translate(s.x, s.y); g.scale(1, 0.5); g.translate(-s.x, -s.y); g.beginPath(); g.arc(s.x, s.y, rad, 0, 7); g.fill(); g.restore();
+      }
+    }
+    for (let i = 0; i < m.w * m.h * (m.tiled ? (m.biome === 'vale' ? 0.25 : 1.2) : m.biome === 'vale' ? 3.2 : 1.6); i++) {
+      const x = r() * m.w, y = r() * m.h, t = m.at(x, y); if (t === 3 || t >= 4 || t === 2) continue;
       const s = BB.iso(x, y);
+      if (m.tiled && m.biome === 'vale') { if (r() < 0.5) { g.fillStyle = r.pick(['#e8d46a', '#e07a9a', '#f2f2f2', '#9ab6ff']); g.beginPath(); g.arc(s.x, s.y - 2, 1.1, 0, 7); g.fill(); } continue; }
+      if (m.tiled && m.biome === 'vale') continue;
       if (m.biome === 'vale') {
         const j = (r() - 0.5) * 30;
         g.strokeStyle = col([r() < 0.5 ? 70 : 120, r() < 0.5 ? 104 : 150, 50], j); g.lineWidth = 0.9;

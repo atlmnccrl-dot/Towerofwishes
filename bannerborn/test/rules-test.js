@@ -67,5 +67,26 @@ ok(BB.foeStats('ghoul', 10).hp > BB.foeStats('ghoul', 1).hp * 2, 'foes scale wit
 ok(BB.foeStats('ghoul', 3, BB.ELITES[0]).hp > BB.foeStats('ghoul', 3).hp, 'elites are tougher');
 ok(BB.damage(50, 0) > BB.damage(50, 20) && BB.damage(1, 999) >= 1, 'defence reduces damage, minimum 1');
 
+// recruits (the real roster when packed, else a stand-in)
+let roster;
+try { roster = require('../assets/chars/h/roster.json'); } catch (e) { roster = ['knight', 'monk', 'ranger', 'mage', 'rogue'].map((a, i) => ({ key: a + '_00' + i, arch: a, role: 'hero', calling: { knight: 'vanguard', monk: 'monk', ranger: 'ranger', mage: 'arcanist', rogue: 'shadowblade' }[a] })); }
+ok(roster.every((c) => c.role !== 'hero' || BB.CALLINGS[c.calling]), 'every roster hero has a known calling');
+ok(roster.filter((c) => c.role === 'foe').every((c) => BB.FOES[c.foe]), 'every roster foe maps to a foe kind');
+const rs = BB.newSave(); rs.heroes.push(BB.newHero({ calling: 'vanguard', level: 5 }));
+const offers = BB.rollOffers(rs, roster, 11);
+ok(offers.length >= 1 && offers.length <= 3 && new Set(offers.map((o) => o.key)).size === offers.length, 'offers are distinct, three without a hall');
+ok(offers.every((o) => ['knight', 'barbarian', 'ranger', 'spearman', 'monk'].includes(o.arch)), 'early offers use the first archetypes');
+rs.cleared = { m1: 1, m2: 1, m3: 1, m4: 1, m5: 1, m6: 1 }; rs.buildings.tavern = 3;
+ok(BB.rollOffers(rs, roster, 12).length <= 6, 'a full hall offers up to six');
+const o1 = Object.assign({}, offers[0], { stars: 1 }), o3 = Object.assign({}, offers[0], { stars: 3 });
+ok(BB.recruitPrice(o3) > BB.recruitPrice(o1), 'three stars cost more');
+const h1 = BB.makeRecruit(o1), h3 = BB.makeRecruit(o3);
+ok(h3.recruit === o3.key && BB.heroStats(h3).atk > BB.heroStats(h1).atk, 'stars raise stats');
+rs.heroes.push(h1); ok(!BB.recruitPool(rs, roster).some((c) => c.key === h1.recruit), 'owned recruits leave the pool');
+ok(!BB.canEquip(h1, BB.makeItem(BB.rng(1), 'offhand', 3, 1)), 'recruits keep their own shields');
+for (const c of ['monk', 'shadowblade', 'lancer']) { const hh = BB.newHero({ calling: c, level: 6 }); ok(BB.heroStats(hh).atk > 20, c + ' grows'); ok(BB.weaponType(c), c + ' has a weapon type'); }
+ok(BB.FORGE_CALLINGS.indexOf('lancer') < 0 && BB.FORGE_CALLINGS.length === 7, 'the forge offers seven callings (no spear art)');
+ok(BB.foeStats('vesh', 16).hp < 80000 && BB.foeStats('ossric', 5).hp > 5000, 'boss health on a sane curve');
+
 console.log(fails ? fails + ' of ' + n + ' checks FAILED' : 'rules: all ' + n + ' checks passed');
 process.exit(fails ? 1 : 0);

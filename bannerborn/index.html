@@ -136,6 +136,15 @@ input.name{width:100%;font:700 18px 'Cinzel',serif;color:var(--text);background:
 .item .dn{color:var(--red);font-size:12px}
 .ico{width:30px;height:30px;flex:none;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:17px;background:rgba(0,0,0,.4)}
 
+/* tavern */
+.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;align-content:start}
+.rcard{position:relative;display:flex;flex-direction:column;gap:4px;padding:10px;border-radius:10px;background:rgba(0,0,0,.4);box-shadow:inset 0 0 0 1px var(--line)}
+.rcard canvas{width:100%;height:120px;border-radius:8px;background:radial-gradient(ellipse at 50% 80%,#3d2d1b,#120d09 75%);image-rendering:pixelated}
+.rcard .nm{font-family:'Cinzel',serif;font-weight:800;font-size:15px}
+.rcard .cl{font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:800}
+.rcard .stars{position:absolute;top:14px;right:16px;color:#ffd35a;font-size:16px;text-shadow:0 1px 2px #000;letter-spacing:2px}
+.rcard .el{position:absolute;top:14px;left:16px;font-size:11px;font-weight:800;padding:2px 7px;border-radius:9px;background:rgba(0,0,0,.6)}
+.rcard.star3{box-shadow:inset 0 0 0 2px #ffd35a,0 0 18px rgba(255,211,90,.25)}
 /* map */
 #map .body{flex:1;display:flex;gap:12px;min-height:0}
 #mapCv{flex:1.6;width:100%;min-width:0;border-radius:10px;box-shadow:0 0 0 1px var(--line),0 10px 30px rgba(0,0,0,.5)}
@@ -213,6 +222,8 @@ input.name{width:100%;font:700 18px 'Cinzel',serif;color:var(--text);background:
 #rotate{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;background:var(--ink);text-align:center;padding:20px}
 @media (orientation:portrait) and (max-width:760px){#rotate{display:flex}}
 @media (max-height:430px){
+  .rcard canvas{height:80px}
+  .rgrid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
   .full{gap:6px}
   #forge .opts .optbox{padding:8px}
   .callcard p{display:none}
@@ -242,7 +253,7 @@ input.name{width:100%;font:700 18px 'Cinzel',serif;color:var(--text);background:
       <button class="btn dark" id="bSettings1">Settings</button>
     </div>
   </div>
-  <div class="ver">v0.1 · batch 1 of 4</div>
+  <div class="ver">v0.2 · asset batches 1–3</div>
 </div>
 
 <div id="story" class="screen">
@@ -282,6 +293,7 @@ input.name{width:100%;font:700 18px 'Cinzel',serif;color:var(--text);background:
   <div class="hint" id="campHint"></div>
   <div class="nav">
     <button class="btn dark" id="bStronghold">Stronghold</button>
+    <button class="btn dark" id="bTavern">Hall of Heroes</button>
     <button class="btn dark" id="bHire">Forge Hero</button>
     <button class="btn dark" id="bWarband">Warband</button>
     <button class="btn big" id="bWarMap">War Map ▸</button>
@@ -305,6 +317,12 @@ input.name{width:100%;font:700 18px 'Cinzel',serif;color:var(--text);background:
 <div id="stronghold" class="screen"><div class="full">
   <div class="topbar"><button class="btn dark sm" id="bShBack">‹ Camp</button><h2>The Stronghold</h2><div class="sp"></div><span class="pill coin" id="shGold"></span></div>
   <div class="bld scroll grow" id="buildings"></div>
+</div></div>
+
+<div id="tavern" class="screen"><div class="full">
+  <div class="topbar"><button class="btn dark sm" id="bTvBack">‹ Camp</button><h2>Hall of Heroes</h2><div class="sp"></div><button class="btn dark sm" id="bTvRefresh">New faces · <span class="coin">30</span></button><span class="pill" id="tvCount"></span><span class="pill coin" id="tvGold"></span></div>
+  <div class="mute" style="font-size:13px">Wandering heroes come to your fire. Each has a face, a calling and a temper of their own. New faces arrive after every battle.</div>
+  <div class="rgrid scroll grow" id="recruits"></div>
 </div></div>
 
 <div id="map" class="screen"><div class="full">

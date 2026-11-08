@@ -5,7 +5,8 @@ const BB = require('../js/rules.js');
 BB.A = { chars: {}, env: {}, fx: null };
 BB.ENV_DRAW = 0.9; BB.TW = 128 * 0.45; BB.TH = 64 * 0.45;
 BB.fxLen = () => 16; BB.clipLen = () => 15; BB.hasClip = () => true; BB.heroLayers = () => [];
-BB.envRect = () => null; BB.drawFx = () => {}; BB.drawEnv = () => {};
+BB.envRect = () => null; BB.drawFx = () => {}; BB.drawEnv = () => {}; BB.drawOther = () => {};
+BB.ROSTER = []; BB.poolKeys = () => []; BB.npcKeys = () => [];
 BB.dirFromVec = function (dx, dy) { const sx = dx - dy, sy = (dx + dy) / 2; if (Math.abs(sx) + Math.abs(sy) < 1e-6) return null; const a = Math.atan2(sy, sx) * 180 / Math.PI; return ((Math.round(a / 45) % 8) + 8) % 8; };
 require('../js/world.js'); require('../js/battle.js');
 const which = process.argv[2] || 'all', runs = +(process.argv[3] || 2);
@@ -17,8 +18,9 @@ for (const idx of list) {
   for (let k = 0; k < runs; k++) {
     const save = BB.newSave(); save.settings.auto = true;
     const r = BB.rng(idx * 100 + k + 1);
-    const comps = [['vanguard', 'ranger', 'warpriest'], ['vanguard', 'ranger', 'warpriest', 'arcanist'], ['berserker', 'arcanist', 'warpriest', 'ranger'], ['vanguard', 'berserker', 'ranger', 'arcanist']];
-    const comp = idx < 2 ? comps[0] : comps[1 + (k % 3)];
+    const comps = [['vanguard', 'ranger', 'warpriest'], ['vanguard', 'ranger', 'warpriest', 'arcanist'], ['berserker', 'arcanist', 'warpriest', 'ranger'], ['vanguard', 'berserker', 'ranger', 'arcanist'],
+      ['lancer', 'monk', 'warpriest', 'shadowblade'], ['vanguard', 'shadowblade', 'arcanist', 'monk']];
+    const comp = idx < 2 ? comps[0] : comps[1 + (k % 5)];
     const heroes = comp.map((c, i) => {
       const h = BB.newHero({ calling: c, level: M.level, seed: i + k * 7 });
       // what a player has by then: a few pieces of loot, a perk per level

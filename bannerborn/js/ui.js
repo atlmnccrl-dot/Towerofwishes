@@ -139,7 +139,7 @@
     const h = F.hero, lk = h.look;
     if (F.tab === 'calling') {
       const grid = el('div', 'callings');
-      for (const id of BB.CALLING_ORDER) {
+      for (const id of BB.FORGE_CALLINGS) {
         const C = BB.CALLINGS[id];
         const card = el('button', 'callcard' + (h.calling === id ? ' on' : ''),
           '<b style="color:' + C.color + '">' + C.name + '</b><i class="mute">' + C.role + '</i><p>' + C.blurb + '</p><div class="sk">✦ ' + C.skill.name + '</div>');
@@ -194,7 +194,7 @@
   UI.forgeRandom = function () {
     const r = BB.rng(Math.random() * 1e9);
     F.hero.look = BB.randomLook(r, F.hero.calling);
-    if (F.tab !== 'name') F.hero.calling = r.pick(BB.CALLING_ORDER);
+    if (F.tab !== 'name') F.hero.calling = r.pick(BB.FORGE_CALLINGS);
     F.hero.name = BB.randomName(r);
     F.anim = 'Taunt'; F.t = 0;
     UI.forgeTabs();
@@ -296,6 +296,10 @@
       '<div class="xpbar"><i style="width:' + (h.level >= BB.MAX_LEVEL ? 100 : Math.round(h.xp / BB.xpNext(h.level) * 100)) + '%"></i></div>'));
     box.appendChild(head);
     if (h.legend) box.appendChild(el('div', 'mute', '<i style="font-size:13px">' + esc(BB.LEGENDS[h.legend].lore) + '</i>'));
+    if (h.recruit) {
+      const E = BB.heroElem(h) && BB.ELEMENTS[BB.heroElem(h)];
+      box.appendChild(el('div', '', '<span style="color:#ffd35a">' + '★'.repeat(h.stars || 1) + '</span> <span class="mute" style="font-size:13px">' + esc((BB.ROSTER.find((c) => c.key === h.recruit) || {}).desc || '') + '</span>' + (E ? ' <span style="color:' + E.col + ';font-size:13px;font-weight:800">' + E.name + '</span>' : '')));
+    }
     if (h.pendingPerks) { const b = el('button', 'btn', '✦ Choose a perk (' + h.pendingPerks + ')'); click(b, () => UI.openPerk(h)); box.appendChild(b); }
     box.appendChild(el('div', 'stats', '<div>Health<b>' + st.hp + '</b></div><div>Attack<b>' + Math.round(st.atk) + '</b></div><div>Defence<b>' + Math.round(st.def) + '</b></div><div>Crit<b>' + Math.round(st.crit * 100) + '%</b></div><div>Speed<b>' + st.spd.toFixed(1) + '</b></div><div>Skill CD<b>' + st.cd.toFixed(1) + 's</b></div>'));
     box.appendChild(el('div', 'lbl', '✦ ' + C.skill.name + ' — <span style="text-transform:none;letter-spacing:0;font-family:Alegreya Sans">' + C.skill.desc + '</span>'));
@@ -389,7 +393,8 @@
   };
 
   // ---------------------------------------------------------------- war map
-  const MAPPOS = [[0.12, 0.72], [0.2, 0.52], [0.13, 0.32], [0.28, 0.22], [0.36, 0.42], [0.48, 0.66], [0.58, 0.8], [0.68, 0.62], [0.62, 0.42], [0.76, 0.5], [0.8, 0.28], [0.9, 0.14]];
+  const MAPPOS = [[0.08, 0.74], [0.15, 0.55], [0.08, 0.36], [0.2, 0.24], [0.27, 0.44], [0.36, 0.68], [0.45, 0.84], [0.55, 0.7], [0.5, 0.52], [0.62, 0.6],
+    [0.6, 0.34], [0.68, 0.2], [0.75, 0.36], [0.72, 0.5], [0.86, 0.4], [0.92, 0.16]];
   const M = UI.mapState = { sel: null };
   UI.openMap = function () {
     const S = BB.save;
@@ -399,7 +404,7 @@
   };
   UI.mapNodes = function (w, h) {
     const nodes = BB.MISSIONS.map((m, i) => ({ i, x: MAPPOS[i][0] * w, y: MAPPOS[i][1] * h, m }));
-    if (BB.save.cleared.m5) nodes.push({ i: 'endless', x: 0.47 * w, y: 0.16 * h, m: null });
+    if (BB.save.cleared.m5) nodes.push({ i: 'endless', x: 0.4 * w, y: 0.16 * h, m: null });
     return nodes;
   };
   let mapBg = null;
@@ -446,7 +451,10 @@
     const wash = (cx, cy, rad, col, n) => { for (let i = 0; i < n; i++) { const x = cx + r.range(-rad, rad), y = cy + r.range(-rad * 0.6, rad * 0.6), rr = r.range(rad * 0.25, rad * 0.6); const gr = g.createRadialGradient(x, y, 0, x, y, rr); gr.addColorStop(0, col); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(x - rr, y - rr, rr * 2, rr * 2); } };
     wash(w * 0.22, h * 0.45, w * 0.2, 'rgba(70,120,50,0.22)', 40);
     wash(w * 0.65, h * 0.62, w * 0.2, 'rgba(210,150,60,0.22)', 40);
-    wash(w * 0.86, h * 0.22, w * 0.12, 'rgba(60,30,80,0.25)', 30);
+    wash(w * 0.88, h * 0.26, w * 0.1, 'rgba(60,30,80,0.25)', 30);
+    wash(w * 0.66, h * 0.32, w * 0.1, 'rgba(90,90,100,0.22)', 30);
+    g.strokeStyle = 'rgba(60,40,20,0.5)';
+    for (let i = 0; i < 40; i++) { const x = r.range(0.58, 0.76) * w, y = r.range(0.16, 0.5) * h; g.strokeRect(x, y, 6 * dpr, 4 * dpr); g.beginPath(); g.moveTo(x - 1 * dpr, y); g.lineTo(x + 3 * dpr, y - 3 * dpr); g.lineTo(x + 7 * dpr, y); g.stroke(); }
     // trees and dunes as ink marks
     g.strokeStyle = 'rgba(60,40,20,0.45)'; g.lineWidth = 1 * dpr;
     for (let i = 0; i < 140; i++) {
@@ -458,12 +466,12 @@
       g.beginPath(); g.moveTo(x - 8 * dpr, y); g.quadraticCurveTo(x, y - 5 * dpr, x + 8 * dpr, y); g.stroke();
     }
     for (let i = 0; i < 30; i++) {
-      const x = r.range(0.78, 0.98) * w, y = r.range(0.04, 0.4) * h;
+      const x = r.range(0.8, 0.98) * w, y = r.range(0.06, 0.5) * h;
       g.beginPath(); g.moveTo(x - 6 * dpr, y + 6 * dpr); g.lineTo(x, y - 6 * dpr); g.lineTo(x + 6 * dpr, y + 6 * dpr); g.stroke();
     }
     g.fillStyle = 'rgba(60,35,15,0.75)'; g.textAlign = 'center';
     g.font = '800 ' + Math.round(17 * dpr) + 'px Cinzel, serif';
-    g.fillText('GREENVALE', w * 0.2, h * 0.92); g.fillText('THE SUNSCAR', w * 0.62, h * 0.96); g.fillText('CANTOR\'S GATE', w * 0.86, h * 0.06 + 14 * dpr);
+    g.fillText('GREENVALE', w * 0.16, h * 0.92); g.fillText('THE SUNSCAR', w * 0.5, h * 0.96); g.fillText('ALDMERE', w * 0.67, h * 0.1); g.fillText('CANTOR\'S GATE', w * 0.88, h * 0.62);
     // speckle + edge burn
     for (let i = 0; i < 1600; i++) { g.fillStyle = 'rgba(80,50,20,' + r.range(0.02, 0.08) + ')'; g.fillRect(r() * w, r() * h, 1.5 * dpr, 1.5 * dpr); }
     const v = g.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.35, w / 2, h / 2, Math.max(w, h) * 0.72);
@@ -502,7 +510,14 @@
       const fs = el('div', 'foes');
       for (const k of kinds) {
         const Fd = BB.FOES[k]; let cv;
-        if (Fd.art) cv = copyCanvas(BB.foePortrait(Fd.art, Fd.tint || '', 42)); else { cv = document.createElement('canvas'); cv.width = cv.height = 42; const gg = cv.getContext('2d'); BB.drawFx(gg, 'turret', 0, 21, 26, 0.6); }
+        let art = Fd.art;
+        if (!art && Fd.pool) {
+          const keys = Fd.poolPick ? ['h/' + Fd.poolPick] : BB.poolKeys(Fd.pool);
+          art = keys.find((q) => BB.A.chars[q]);
+          if (!art && keys[0]) { BB.loadChar(keys[0]).then(() => UI.current === 'map' && UI.renderBrief()); art = null; }
+        }
+        if (art && BB.A.chars[art]) cv = copyCanvas(BB.foePortrait(art, Fd.tint || '', 42));
+        else { cv = document.createElement('canvas'); cv.width = cv.height = 42; const gg = cv.getContext('2d'); if (Fd.turret) BB.drawFx(gg, 'turret', 0, 21, 26, 0.6); else if (Fd.gate) BB.drawFx(gg, 'portal', 0, 21, 21, 0.3); }
         cv.title = Fd.name; fs.appendChild(cv);
       }
       box.appendChild(fs);
@@ -518,6 +533,62 @@
     go.disabled = !team.length || (M.sel !== 'endless' && !BB.missionUnlocked(S, M.sel));
     click(go, () => BB.deploy(M.sel));
     box.appendChild(go);
+  };
+
+  // ---------------------------------------------------------------- Hall of Heroes
+  const T = UI.tav = { cards: [], t: 0 };
+  UI.openTavern = async function () {
+    const S = BB.save;
+    if (!S.offers) { S.offers = BB.rollOffers(S, BB.ROSTER); BB.persist(); }
+    await Promise.all(S.offers.map((o) => BB.loadChar('h/' + o.key)));
+    UI.renderTavern(); UI.show('tavern');
+  };
+  UI.renderTavern = function () {
+    const S = BB.save, box = $('recruits'); box.innerHTML = '';
+    $('tvGold').textContent = S.gold; $('tvCount').textContent = S.heroes.length + ' / ' + BB.rosterCap(S) + ' heroes';
+    T.cards = [];
+    if (!S.offers.length) box.appendChild(el('div', 'mute', 'No one new at the fire. Win battles to draw more heroes.'));
+    for (const o of S.offers) {
+      const C = BB.CALLINGS[o.calling], E = o.elem && BB.ELEMENTS[o.elem], price = BB.recruitPrice(o);
+      const c = el('div', 'rcard' + (o.stars === 3 ? ' star3' : ''));
+      const cv = document.createElement('canvas'); c.appendChild(cv);
+      c.appendChild(el('div', 'stars', '★'.repeat(o.stars)));
+      if (E) { const t = el('div', 'el', E.name); t.style.color = E.col; c.appendChild(t); }
+      c.appendChild(el('div', 'nm', esc(o.name)));
+      c.appendChild(el('div', 'cl', '<span style="color:' + C.color + '">' + C.name + '</span> <span class="mute">· ' + C.role + ' · L' + o.level + '</span>'));
+      c.appendChild(el('div', 'mute', '<span style="font-size:12px">✦ ' + C.skill.name + ' — ' + C.skill.desc + '</span>'));
+      const b = el('button', 'btn sm', 'Recruit · <span class="coin">' + price + '</span>');
+      b.disabled = S.gold < price || S.heroes.length >= BB.rosterCap(S);
+      click(b, () => {
+        S.gold -= price; const h = BB.makeRecruit(o); S.heroes.push(h); if (S.team.length < 4) S.team.push(h.id);
+        S.offers = S.offers.filter((x) => x !== o); BB.persist(); BB.sfx('levelup');
+        UI.toast(h.name + ' the ' + C.name + ' joins the warband!'); UI.renderTavern();
+      });
+      c.appendChild(b);
+      box.appendChild(c);
+      T.cards.push({ cv, key: 'h/' + o.key, dir: 2, ph: Math.random() * 10 });
+    }
+    const full = S.heroes.length >= BB.rosterCap(S);
+    if (full) box.appendChild(el('div', 'mute', 'The barracks are full — build more in the Stronghold, or dismiss a hero.'));
+    $('bTvRefresh').disabled = S.gold < 30;
+  };
+  UI.tavernRender = function (dt) {
+    T.t += dt;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    for (const k of T.cards) {
+      const c = k.cv, w = Math.round(c.clientWidth * dpr), h = Math.round(c.clientHeight * dpr);
+      if (!w || !h) continue;
+      if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+      const g = c.getContext('2d'); g.clearRect(0, 0, w, h); g.imageSmoothingEnabled = false;
+      const t = T.t + k.ph, cyc = t % 9;
+      const clip = cyc > 7.4 ? 'Taunt' : 'Idle';
+      const n = BB.clipLen(k.key, clip) || 15;
+      const fr = clip === 'Idle' ? Math.floor(t * 9) % n : Math.min(n - 1, Math.floor((cyc - 7.4) * 12));
+      const sc = Math.max(1, Math.floor(h / 52));
+      const dir = Math.floor(t / 2.2) % 8;
+      g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.ellipse(w / 2, h * 0.86, 12 * sc, 5 * sc, 0, 0, 7); g.fill();
+      BB.drawChar(g, k.key, null, clip, dir, fr, w / 2, h * 0.86, sc);
+    }
   };
 
   // ---------------------------------------------------------------- story cards

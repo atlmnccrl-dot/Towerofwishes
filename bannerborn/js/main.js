@@ -29,6 +29,11 @@
     return Math.max(0.8, Math.min(2.6, z * (mode === 'battle' ? 1 : 0.92)));
   }
 
+  // ---------------------------------------------------------------- art for heroes and foes
+  BB.heroArt = (h) => h.legend ? BB.LEGENDS[h.legend].art : h.recruit ? 'h/' + h.recruit : null;
+  BB.loadHeroes = (list) => Promise.all(list.map((h) => BB.heroArt(h)).filter(Boolean).map((k) => BB.loadChar(k).catch(() => null)));
+  function pickLoad(keys, n, r) { const out = []; const pool = keys.slice(); while (out.length < n && pool.length) out.push(pool.splice(Math.floor(r() * pool.length), 1)[0]); return Promise.all(out.map((k) => BB.loadChar(k).catch(() => null))); }
+
   // ---------------------------------------------------------------- scenes
   function sceneHeroes() {
     const S = BB.save;
@@ -38,7 +43,11 @@
   }
   function titleHeroes() {
     const r = BB.rng(7);
-    return ['vanguard', 'arcanist', 'ranger', 'berserker', 'warpriest'].map((c, i) => BB.newHero({ calling: c, seed: 100 + i * 17, name: 'x' }));
+    const out = ['vanguard', 'arcanist'].map((c, i) => BB.newHero({ calling: c, seed: 100 + i * 17, name: 'x' }));
+    const pool = BB.ROSTER.filter((c) => c.role === 'hero');
+    const want = ['knight', 'mage', 'monk', 'spearman', 'rogue', 'ranger'];
+    for (const a of want) { const opts = pool.filter((c) => c.arch === a); if (opts.length) out.push(BB.makeRecruit({ key: r.pick(opts).key, calling: opts[0].calling, level: 1, stars: 1, name: 'x' })); }
+    return out.slice(0, 8);
   }
   async function buildCampScene(isTitle) {
     const S = BB.save;
@@ -60,13 +69,18 @@
     if (B.chapel) { m.add('Misc C5_S', c + 0.5, c + 4.6, { biome: 'vale', r: 0.4 }); if (B.chapel > 1) m.add('Stone A6_S', c + 2.4, c + 5, { biome: 'vale', r: 0.8 }); }
     if (B.market) { m.add('Misc B17_S', c + 4.5, c - 4.4, { biome: 'vale' }); if (B.market > 1) m.add('Misc B6_S', c + 5.4, c - 2.6, { biome: 'vale' }); }
     if (B.barracks > 1) m.add('Misc B55_S', c - 5.6, c - 4.6, { biome: 'vale' });
+    if (B.tavern) { m.add('Misc B14_S', c - 0.5, c - 5.6, { biome: 'vale' }); m.add('Misc B45_S', c + 0.8, c - 5.2, { biome: 'vale', r: 0.2 }); if (B.tavern > 1) m.add('Misc A4_S', c - 1.8, c - 5.4, { biome: 'vale' }); }
     m.add('Torch2', c - 2.5, c + 2.2, { biome: 'vale' }); m.anim('torch', c - 2.48, c + 2.22, { sc: 0.7, pole: 1 }); m.lights.push({ x: c - 2.5, y: c + 2.2, rad: 2.5, col: '255,170,80' });
     for (const p of m.props) { const s = BB.iso(p.x, p.y); p.depth = p.x + p.y; p.sx = s.x; p.sy = s.y; }
     m.props.sort((a, b2) => a.depth - b2.depth);
     rebuildGrid(m);
     BB.renderGround(m);
     const heroes = isTitle ? titleHeroes() : sceneHeroes();
+    await BB.loadHeroes(heroes);
+    const npcKeys = BB.npcKeys(); await pickLoad(npcKeys, 3, BB.rng(isTitle ? 5 : Date.now() & 0xffff));
     const sc = new BB.Battle({ map: m, heroes: [], peaceful: true, save: S, seed: 3 });
+    const loadedNpc = npcKeys.filter((k) => BB.A.chars[k]);
+    sc.npcs = (isTitle ? [] : [[c + 4, c + 3.4], [c - 4.6, c - 1], [c + 2, c - 5]]).slice(0, loadedNpc.length).map(([x, y], i) => ({ x, y, home: { x, y }, art: loadedNpc[i], clip: 'Idle', dir: 2, ct: 0, walker: true, wait: 1 + i }));
     const ring = [[-1.4, 1.1], [1.3, 1.2], [-1.8, -0.4], [1.9, -0.2], [0, 1.9], [-0.4, -1.8], [2.2, 1.9], [-2.4, 1.8]];
     heroes.forEach((h, i) => {
       const st = BB.heroStats(h, null, S);
@@ -114,6 +128,7 @@
   }
   async function goCamp() {
     mode = 'camp';
+    if (BB.save) await BB.loadHeroes(BB.save.heroes);
     scene = await buildCampScene(false);
     const S = BB.save;
     $('campName').textContent = S.banner.name;
@@ -131,6 +146,7 @@
     else if (perks) hint = 'Heroes have perks to choose — open the Warband.';
     else if (S.inventory.length && cleared < 3) hint = 'New gear waits in the armory. Open the Warband to equip it.';
     else if (S.gold >= 100 && !Object.values(S.buildings).some((v) => v)) hint = 'Spend gold in the Stronghold to grow your camp.';
+    else if (S.gold >= 120 && S.heroes.length < 5) hint = 'Wandering heroes wait at the Hall of Heroes. Recruit one.';
     else if (BB.campaignDone(S)) hint = 'The Cantor is silenced. The Endless Gate still flickers on the War Map.';
     $('campHint').textContent = hint;
     UI.show('camp');
@@ -198,9 +214,15 @@
     UI.show('boot'); $('bootmsg').textContent = 'Marching to ' + M.name + '…';
     const region = BB.REGIONS.find((r) => r.id === M.region) || BB.REGIONS[0];
     const biome = M.id === 'endless' ? (Math.random() < 0.5 ? 'vale' : 'sand') : region.biome;
-    const arts = ['ghoul', 'warden', 'necro'].concat(team.filter((h) => h.legend).map((h) => BB.LEGENDS[h.legend].art));
-    if (M.boss) arts.push(BB.FOES[M.boss].art);
-    await Promise.all([BB.loadEnv(biome), BB.loadEnv('vale')].concat(arts.map((a) => BB.loadChar(a))));
+    const arts = ['ghoul', 'warden', 'necro'];
+    if (M.boss && BB.FOES[M.boss].art) arts.push(BB.FOES[M.boss].art);
+    const pools = new Set(); M.waves.forEach((w) => { for (let i = 0; i < w.length; i += 2) if (BB.FOES[w[i]].pool) pools.add(BB.FOES[w[i]].pool); });
+    if (M.boss && BB.FOES[M.boss].pool) { pools.add(BB.FOES[M.boss].pool); if (BB.FOES[M.boss].poolPick) arts.push('h/' + BB.FOES[M.boss].poolPick); }
+    if (M.boss === 'regent') pools.add('skel');
+    if (M.id === 'endless') ['skel', 'wraith', 'skelarcher'].forEach((p) => pools.add(p));
+    const rr = BB.rng(Date.now() & 0xffff);
+    await Promise.all([BB.loadEnv(biome), BB.loadEnv('vale'), BB.loadEnv('ground'), BB.loadOther(), BB.loadHeroes(team)]
+      .concat(arts.map((a) => BB.loadChar(a)), [...pools].map((p) => pickLoad(BB.poolKeys(p), 4, rr)), [pickLoad(BB.npcKeys(), 4, rr)]));
     const seed = (M.id.charCodeAt(1) || 7) * 1000 + (S.cleared[M.id] ? Math.floor(Math.random() * 999) : 1);
     const map = BB.buildMap(M.layout, biome, seed, { night: region.night || M.id === 'm12' });
     BB.renderGround(map);
@@ -230,6 +252,8 @@
     if (win) gold += Math.round(M.reward.gold * (firstClear ? 1 : 0.5) * market);
     res.gold = gold; S.gold += gold;
     S.stats.kills += B.kills;
+    if (B.loot && B.loot.length) S.inventory.push(...B.loot);
+    S.offers = null; // new faces at the Hall of Heroes
     if (M.id === 'endless') { res.endlessWave = (B.obj.endlessWave || 0) + 1; S.endlessBest = Math.max(S.endlessBest || 0, res.endlessWave); res.items = BB.rollLoot(BB.rng(Date.now()), { level: B.level, type: 'rout' }, team, S, Math.min(4, 1 + (res.endlessWave >> 1))); S.inventory.push(...res.items); }
     else if (win) {
       res.items = BB.rollLoot(BB.rng(Date.now()), M, team, S); S.inventory.push(...res.items);
@@ -243,6 +267,7 @@
       if (M.id === 'm11' && !S.heroes.find((h) => h.legend === 'talia')) { const L = BB.newHero({ legend: 'talia', level: M.level }); S.heroes.push(L); res.recruit = 'talia'; }
     }
     if (M.tutorial) S.seen.tutorial = 1;
+    if (B.loot && B.loot.length) res.items = (res.items || []).concat(B.loot);
     BB.persist();
     const after = () => {
       const post = win && firstClear ? BB.STORY[M.id + 'post'] : null;
@@ -386,8 +411,11 @@
   // ---------------------------------------------------------------- buttons
   UI.click($('bNew'), () => { if (BB.save && BB.save.heroes.length) UI.confirm('Start a new warband? Your current save will be replaced.', newGame); else newGame(); });
   UI.click($('bContinue'), () => goCamp());
-  UI.click($('bWarMap'), () => { mode = 'menu'; UI.openMap(); });
-  UI.click($('bWarband'), () => { mode = 'menu'; UI.openWarband(); });
+  UI.click($('bWarMap'), async () => { mode = 'menu'; await BB.loadHeroes(BB.save.heroes); UI.openMap(); });
+  UI.click($('bWarband'), async () => { mode = 'menu'; await BB.loadHeroes(BB.save.heroes); UI.openWarband(); });
+  UI.click($('bTavern'), () => { mode = 'menu'; UI.openTavern(); });
+  UI.click($('bTvBack'), () => goCamp());
+  UI.click($('bTvRefresh'), async () => { const S = BB.save; if (S.gold < 30) return; S.gold -= 30; S.offers = BB.rollOffers(S, BB.ROSTER); BB.persist(); await UI.openTavern(); });
   UI.click($('bStronghold'), () => { UI.openStronghold(); });
   UI.click($('bHire'), () => { mode = 'menu'; hire(); });
   UI.click($('bWbBack'), () => goCamp());
@@ -430,7 +458,7 @@
       scene.cam.zoom = camZoom();
       if (scene.isTitle) { scene.cam.x = scene.map.w / 2 + Math.sin(now / 9000) * 1.6 - 1.2; scene.cam.y = scene.map.h / 2 + Math.cos(now / 11000) * 0.8 + 0.4; }
       scene.update(dt, inp);
-      const visibleScene = !['forge', 'warband', 'stronghold', 'map', 'bannerEdit', 'boot'].includes(UI.current);
+      const visibleScene = !['forge', 'warband', 'stronghold', 'map', 'bannerEdit', 'boot', 'tavern'].includes(UI.current);
       if (visibleScene) scene.render(ctx, W, H, DPR);
       if (mode === 'battle') {
         updateHud();
@@ -439,6 +467,7 @@
     } else { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#0d0a08'; ctx.fillRect(0, 0, W, H); }
     if (UI.current === 'forge') UI.forgeRender(dt);
     if (UI.current === 'map') UI.mapRender();
+    if (UI.current === 'tavern') UI.tavernRender(dt);
     if (UI.current === 'bannerEdit' && UI.bannerAnim) UI.bannerAnim();
     requestAnimationFrame(frame);
   }
@@ -450,7 +479,7 @@
       await BB.loadBase((p) => { document.querySelector('#boot .bar i').style.width = Math.round(p * 100) + '%'; });
     } catch (e) { $('bootmsg').textContent = 'Could not load the art: ' + e.message; throw e; }
     requestAnimationFrame(frame);
-    ['ghoul', 'warden', 'necro', 'witch', 'sunguard', 'shade', 'sunblade'].forEach((k) => BB.loadChar(k));
+    ['ghoul', 'warden', 'necro', 'witch', 'sunguard', 'shade', 'sunblade', 'brenna', 'reaper'].forEach((k) => BB.loadChar(k));
     BB.loadEnv('sand');
     const q = new URLSearchParams(location.search);
     if (q.has('test')) { BB.testHooks = { goCamp, newGame, startBattle: (idx) => BB.deploy(idx), scene: () => scene, finish: finishBattle, mode: () => mode }; }

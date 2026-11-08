@@ -31,11 +31,27 @@
     if (!pending.fx) pending.fx = loadAtlas('assets/fx/fx').then((a) => (A.fx = a));
     return pending.fx;
   };
+  BB.loadOther = function () {
+    if (A.other) return Promise.resolve(A.other);
+    if (!pending.other) pending.other = loadAtlas('assets/fx/other').then((a) => (A.other = a));
+    return pending.other;
+  };
+  BB.ROSTER = [];
+  BB.loadRoster = function () {
+    if (pending.roster) return pending.roster;
+    pending.roster = fetch('assets/chars/h/roster.json').then((r) => r.json()).then((j) => (BB.ROSTER = j)).catch(() => (BB.ROSTER = []));
+    return pending.roster;
+  };
+  // roster keys for a foe pool: skel, skelshield, skelarcher, wraith, warlock, beast
+  BB.poolKeys = function (pool) {
+    return BB.ROSTER.filter((c) => (pool === 'beast' ? c.arch === 'beastfolk' : c.foe === pool)).map((c) => 'h/' + c.key);
+  };
+  BB.npcKeys = () => BB.ROSTER.filter((c) => c.role === 'npc').map((c) => 'h/' + c.key);
   BB.loadBase = function (onProgress) {
     const list = ['body', 'hair', 'helm', 'chestA', 'chestB', 'legsA', 'legsB', 'sword', 'axe', 'shield', 'slash'];
     let done = 0; const total = list.length + 2;
     const tick = () => { done++; onProgress && onProgress(done / total); };
-    return Promise.all(list.map((k) => BB.loadChar(k).then(tick)).concat([BB.loadFx().then(tick), BB.loadEnv('vale').then(tick)]));
+    return Promise.all(list.map((k) => BB.loadChar(k).then(tick)).concat([BB.loadFx().then(tick), BB.loadEnv('vale').then(tick), BB.loadEnv('ground'), BB.loadOther(), BB.loadRoster()]));
   };
 
   // ---- colour helpers
@@ -100,12 +116,23 @@
   };
 
   // ---- character drawing. dir 0..7 (0 east, clockwise). frame index wraps per clip.
+  // a clip a set lacks falls back to the nearest one it has (the paper-doll body has no Kick or Rolling)
+  const FALLBACK = { Kick: ['Attack2', 'Attack1'], Attack6: ['AttackRun', 'Attack2', 'Attack1'], Rolling: ['Run'], Attack4: ['AttackRun', 'Attack1'],
+    AttackRun: ['Attack1', 'Attack4'], Attack3: ['Attack1', 'Attack5'], Attack5: ['Attack1', 'Attack3'], Attack1: ['Attack5', 'Attack3'], Attack2: ['Attack1', 'Attack5', 'Attack3'],
+    Special1: ['Attack1', 'Attack5', 'Taunt'], Taunt: ['Special1', 'Idle'], Walk: ['Run'], TakeDamage: ['Idle'], CrouchIdle: ['Idle'], Die: ['Idle'] };
+  BB.resolveClip = function (key, clip) {
+    const a = A.chars[key]; if (!a) return clip;
+    if (a.meta.clips[clip]) return clip;
+    for (const c of FALLBACK[clip] || []) if (a.meta.clips[c]) return c;
+    return 'Idle';
+  };
   BB.clipLen = function (key, clip) {
-    const a = A.chars[key]; return a && a.meta.clips[clip] || 0;
+    const a = A.chars[key]; return a && a.meta.clips[BB.resolveClip(key, clip)] || 0;
   };
   BB.hasClip = (key, clip) => !!(A.chars[key] && A.chars[key].meta.clips[clip]);
   function drawFrame(ctx, key, img, clip, dir, frame, x, y, sc) {
     const a = A.chars[key]; if (!a) return;
+    clip = BB.resolveClip(key, clip);
     const n = a.meta.clips[clip]; if (!n) return;
     const r = a.meta.f[clip][dir * n + (Math.max(0, Math.min(n - 1, frame | 0)))];
     if (!r || r[2] <= 1) return;
@@ -119,6 +146,7 @@
       const L = BB.LEGENDS[hero.legend];
       return [{ key: L.art, spec: null, sk: '' }];
     }
+    if (hero.recruit) return [{ key: 'h/' + hero.recruit, spec: null, sk: '' }];
     const C = BB.CALLINGS[hero.calling], lk = hero.look, g = hero.gear || {};
     const skin = BB.SKINS.find((s) => s.id === lk.skin) || BB.SKINS[1];
     const out = [];
@@ -160,16 +188,15 @@
       if (L.slash && (opts.noSlash || !BB.hasClip('slash', clip))) continue;
       const img = BB.atlasImg(L.key, L.spec, L.sk);
       if (!img) continue;
-      let c = clip;
-      if (!BB.hasClip(L.key, c)) c = 'Idle';
-      drawFrame(ctx, L.key, img, c, dir, frame, x, y, sc);
+      if (L.slash && !BB.hasClip('slash', clip)) continue;
+      drawFrame(ctx, L.key, img, clip, dir, frame, x, y, sc);
     }
     if (opts.flash) {
       ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = opts.flash;
       for (const L of layers) {
         if (L.slash) continue;
         const img = BB.atlasImg(L.key, L.spec, L.sk); if (!img) continue;
-        drawFrame(ctx, L.key, img, BB.hasClip(L.key, clip) ? clip : 'Idle', dir, frame, x, y, sc);
+        drawFrame(ctx, L.key, img, clip, dir, frame, x, y, sc);
       }
       ctx.restore();
     }
@@ -178,7 +205,6 @@
     const spec = BB.tintSpec(key, tintId);
     const img = BB.atlasImg(key, spec, tintId || '');
     if (!img) return;
-    if (!BB.hasClip(key, clip)) clip = 'Idle';
     drawFrame(ctx, key, img, clip, dir, frame, x, y, sc);
     if (flash) {
       ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = flash;
@@ -195,6 +221,21 @@
     ctx.drawImage(a.img, r[0], r[1], r[2], r[3], x + r[4] * k, y + r[5] * k, r[2] * k, r[3] * k);
     if (alpha !== undefined) ctx.globalAlpha = 1;
     return true;
+  };
+  // single images from the "Other" pack: AoEFire, Cloud1-3, GodRay, ItemRay, DashLine (anchor = centre)
+  BB.drawOther = function (ctx, name, x, y, sc, o) {
+    const a = A.other; if (!a) return; const r = a.meta.f[name]; if (!r) return;
+    o = o || {}; sc = sc || 1;
+    ctx.save();
+    if (o.alpha !== undefined) ctx.globalAlpha = o.alpha;
+    if (o.add) ctx.globalCompositeOperation = 'lighter';
+    if (o.mul) ctx.globalCompositeOperation = 'multiply';
+    ctx.translate(x, y); if (o.rot) ctx.rotate(o.rot);
+    const sx = o.sx || 1, sy = o.sy || 1;
+    let img = a.img;
+    if (o.hue !== undefined) { const ck = 'o' + o.hue; if (!fxTint[ck]) fxTint[ck] = recolor(a.img, { mode: 'flat', h: o.hue, s: 0.85, l: 1 }); img = fxTint[ck]; }
+    ctx.drawImage(img, r[0], r[1], r[2], r[3], r[4] * sc * sx, r[5] * sc * sy, r[2] * sc * sx, r[3] * sc * sy);
+    ctx.restore();
   };
   BB.envRect = function (biome, name) { const a = A.env[biome]; return a && a.meta.f[name]; };
   BB.envHas = (biome, name) => !!(A.env[biome] && A.env[biome].meta.f[name]);

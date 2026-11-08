@@ -1,0 +1,41 @@
+// Hall of Heroes: offers, recruiting, a recruit in the warband and in battle. usage: node test/tavern.js <outdir> [port] [w h]
+const { chromium } = require('playwright');
+const out = process.argv[2] || '/tmp/bb-tavern';
+const port = process.argv[3] || 8123;
+const W = +(process.argv[4] || 1280), H = +(process.argv[5] || 640);
+require('fs').mkdirSync(out, { recursive: true });
+(async () => {
+  const b = await chromium.launch();
+  const p = await b.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: W < 900 ? 2 : 1 });
+  const errors = [];
+  p.on('pageerror', (e) => errors.push(e.message));
+  await p.goto(`http://localhost:${port}/index.html?test`);
+  await p.waitForFunction(() => document.querySelector('#title.on'), null, { timeout: 30000 });
+  await p.evaluate(() => {
+    BB.save = BB.newSave(); BB.save.gold = 2000; BB.save.buildings.tavern = 2; BB.save.buildings.barracks = 2;
+    BB.save.cleared = { m1: 1, m2: 1, m3: 1, m4: 1, m5: 1, m6: 1 };
+    for (const mm of BB.MISSIONS) BB.save.seen[mm.id + 'pre'] = 1; BB.save.seen.tutorial = 1;
+    const c = BB.newHero({ captain: true, calling: 'vanguard', level: 6 }); BB.save.heroes.push(c); BB.save.team.push(c.id);
+    BB.goCamp();
+  });
+  await p.waitForTimeout(1500); await p.screenshot({ path: out + '/t1-camp.png' });
+  await p.click('#bTavern'); await p.waitForFunction(() => BB.UI.current === 'tavern', null, { timeout: 10000 });
+  await p.waitForTimeout(1200); await p.screenshot({ path: out + '/t2-hall.png' });
+  const n = await p.evaluate(() => BB.save.offers.length);
+  for (let i = 0; i < 3; i++) await p.click('#recruits .rcard .btn >> nth=0');
+  await p.waitForTimeout(400);
+  console.log('offers', n, 'heroes after recruiting', await p.evaluate(() => BB.save.heroes.map((h) => h.name + ' ' + h.calling + ' ' + (h.recruit || '')).join(' | ')));
+  await p.click('#bTvBack'); await p.waitForTimeout(1200);
+  await p.screenshot({ path: out + '/t3-camp-recruits.png' });
+  await p.click('#bWarband'); await p.waitForTimeout(800);
+  await p.click('#teamSlots .slot >> nth=1'); await p.waitForTimeout(300);
+  await p.screenshot({ path: out + '/t4-warband.png' });
+  await p.click('#bWbBack'); await p.waitForTimeout(800);
+  await p.evaluate(() => BB.deploy(10));
+  await p.waitForFunction(() => BB.testHooks.mode() === 'battle', null, { timeout: 20000 });
+  await p.keyboard.down('KeyJ'); await p.waitForTimeout(3000); await p.keyboard.press('KeyK'); await p.waitForTimeout(1500); await p.keyboard.press('Space'); await p.waitForTimeout(300);
+  await p.screenshot({ path: out + '/t5-battle.png' });
+  await p.keyboard.up('KeyJ');
+  console.log('ERRORS', errors.length ? errors.join('\n') : 'none');
+  await b.close();
+})();

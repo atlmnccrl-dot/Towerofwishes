@@ -41,7 +41,7 @@
   BB.newHero = function (opts) {
     opts = opts || {};
     const r = BB.rng(opts.seed || Math.random() * 1e9);
-    const calling = opts.calling || r.pick(BB.CALLING_ORDER);
+    const calling = opts.calling || r.pick(BB.FORGE_CALLINGS || BB.CALLING_ORDER);
     const h = {
       id: BB.uid('h'), name: opts.name || BB.randomName(r), calling,
       level: opts.level || 1, xp: 0, perks: [], pendingPerks: 0,
@@ -53,7 +53,37 @@
     return h;
   };
 
+  // ---- recruits: ready-made heroes from the roster (assets/chars/h/roster.json)
+  const UNLOCK = [[0, ['knight', 'barbarian', 'ranger', 'spearman', 'monk']], [3, ['mage', 'paladin']], [6, ['rogue', 'duelist', 'beastfolk']]];
+  BB.recruitPool = function (save, roster) {
+    const cleared = Object.keys(save.cleared || {}).length;
+    const arch = []; for (const [n, list] of UNLOCK) if (cleared >= n) arch.push(...list);
+    const owned = new Set(save.heroes.filter((h) => h.recruit).map((h) => h.recruit));
+    return (roster || []).filter((c) => c.role === 'hero' && arch.includes(c.arch) && !owned.has(c.key));
+  };
+  BB.recruitPrice = (o) => Math.round(70 + o.level * 25 + (o.stars - 1) * 70);
+  BB.rollOffers = function (save, roster, seed) {
+    const r = BB.rng(seed || (Date.now() & 0xffffff));
+    const pool = BB.recruitPool(save, roster).slice();
+    const n = 3 + (save.buildings.tavern || 0);
+    const lvl = Math.max(1, Math.round(save.heroes.reduce((a, h) => a + h.level, 0) / Math.max(1, save.heroes.length)) - 1);
+    const out = [];
+    while (out.length < n && pool.length) {
+      const c = pool.splice(r.int(pool.length), 1)[0];
+      const x = r();
+      const stars = x < 0.05 + (save.buildings.tavern || 0) * 0.1 ? 3 : x < 0.4 ? 2 : 1;
+      out.push({ key: c.key, calling: c.calling, elem: c.elem, arch: c.arch, color: c.color, stars, level: lvl, name: BB.randomName(r) });
+    }
+    return out;
+  };
+  BB.makeRecruit = function (o) {
+    const h = BB.newHero({ calling: o.calling, level: o.level, name: o.name });
+    h.recruit = o.key; h.stars = o.stars; h.elem = o.elem || null; h.arch = o.arch;
+    return h;
+  };
+
   BB.heroColor = (h) => h.legend ? BB.LEGENDS[h.legend].color : BB.CALLINGS[h.calling].color;
+  BB.heroElem = (h) => h.elem || (h.legend === 'sera' ? 'shadow' : (h.calling === 'arcanist' ? 'fire' : h.calling === 'warpriest' ? 'holy' : null));
   BB.heroTitle = (h) => h.legend ? BB.LEGENDS[h.legend].title : (h.captain ? 'Banner-Captain' : BB.CALLINGS[h.calling].name);
 
   BB.itemScore = function (it) {
@@ -89,7 +119,7 @@
   BB.canEquip = function (hero, item) {
     if (!item) return true;
     if (item.slot === 'weapon') return item.wtype === BB.weaponType(hero.calling);
-    if (item.slot === 'offhand') return !!BB.CALLINGS[hero.calling].offhand;
+    if (item.slot === 'offhand') return !!BB.CALLINGS[hero.calling].offhand && !hero.recruit;
     return true;
   };
 
@@ -105,9 +135,10 @@
       hp: C.base.hp + C.grow.hp * L, atk: C.base.atk + C.grow.atk * L, def: C.base.def + C.grow.def * L,
       spd: C.base.spd, crit: C.base.crit, aspd: C.base.aspd, range: C.range,
       hpPct: 0, atkPct: 0, spdPct: 0, aspdPct: 0, cdPct: 0, leech: 0, thorns: 0, skillDur: 0, skillDmg: 0, skillArea: 0,
-      killCd: 0, lowHpAtk: 0, pierce: 0, burn: 0, shieldHeal: 0, casterAtk: 0, rangedCrit: 0, revive: 0, heal: 0,
+      killCd: 0, lowHpAtk: 0, pierce: 0, burn: 0, shieldHeal: 0, casterAtk: 0, rangedCrit: 0, revive: 0, heal: 0, meleeAtk: 0,
     };
     if (hero.legend) { s.hp *= 1.12; s.atk *= 1.1; s.def += 1; }
+    if (hero.stars) { const k = 1 + (hero.stars - 1) * 0.08; s.hp *= k; s.atk *= k; }
     for (const slot of BB.SLOTS) {
       const it = hero.gear[slot]; if (!it) continue;
       for (const k in it.stats) s[k] = (s[k] || 0) + it.stats[k];
@@ -119,6 +150,7 @@
     if (save && save.buildings) s.heal += (save.buildings.chapel || 0) * 0.1;
     if (C.ranged && hero.calling !== 'warpriest') s.crit += s.rangedCrit;
     if (hero.calling === 'arcanist' || hero.calling === 'warpriest') s.atkPct += s.casterAtk;
+    if (!C.ranged) s.atkPct += s.meleeAtk;
     s.hp = Math.round(s.hp * (1 + s.hpPct));
     s.atk = s.atk * (1 + s.atkPct);
     s.spd = s.spd * (1 + s.spdPct);
@@ -170,7 +202,7 @@
       const hero = r.pick(team);
       const slot = r.pick(BB.SLOTS);
       const rar = BB.rollRarity(r, save.buildings.forge, mission.type === 'boss' ? 0.15 : 0);
-      if (slot === 'offhand' && !BB.CALLINGS[hero.calling].offhand) { items.push(BB.makeItem(r, 'chest', lvl, rar)); continue; }
+      if (slot === 'offhand' && (!BB.CALLINGS[hero.calling].offhand || hero.recruit)) { items.push(BB.makeItem(r, 'chest', lvl, rar)); continue; }
       items.push(BB.makeItem(r, slot, lvl, rar, slot === 'weapon' ? BB.weaponType(hero.calling) : undefined));
     }
     return items;
@@ -181,7 +213,7 @@
   BB.newSave = function () {
     return {
       v: 1, created: Date.now(), gold: 0, banner: { name: 'The Last Banner', color: BB.BANNER_COLORS[0], sigil: 'crown', trim: '#e8c66a' },
-      heroes: [], team: [], inventory: [], cleared: {}, seen: {}, buildings: { barracks: 0, forge: 0, yard: 0, chapel: 0, market: 0 },
+      heroes: [], team: [], inventory: [], cleared: {}, seen: {}, buildings: { barracks: 0, forge: 0, yard: 0, chapel: 0, market: 0, tavern: 0 }, offers: null,
       endlessBest: 0, settings: { music: 0.5, sfx: 0.8, auto: false, shake: true }, stage: 'new', freeHires: 2, stats: { kills: 0, gates: 0 },
     };
   };
@@ -204,7 +236,7 @@
   BB.foeStats = function (kind, level, elite) {
     const F = BB.FOES[kind];
     const g = 1 + (level - 1) * 0.2;
-    const s = { hp: Math.round(F.hp * g * (F.boss ? 5.6 * (1 + (level - 1) * 0.05) : F.gate ? 1.5 : 2.5)), atk: F.atk * (1 + (level - 1) * 0.16) * (F.boss ? 1.6 : 1.7), def: F.def + (level - 1) * 0.6 };
+    const s = { hp: Math.round(F.hp * g * (F.boss ? 2.4 : F.gate ? 1.5 : 2.5)), atk: F.atk * (1 + (level - 1) * 0.16) * (F.boss ? 1.45 : 1.7), def: F.def + (level - 1) * 0.6 };
     if (elite) { s.hp = Math.round(s.hp * elite.hp); s.atk *= elite.atk; }
     return s;
   };

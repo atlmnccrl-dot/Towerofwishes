@@ -73,7 +73,39 @@
       skill: { id: 'sanctuary', name: 'Sanctuary', cd: 12, desc: 'Heal every ally nearby and cleanse their wounds.' },
     },
   };
-  BB.CALLING_ORDER = ['vanguard', 'berserker', 'ranger', 'arcanist', 'warpriest'];
+  BB.CALLINGS.monk = {
+    name: 'Monk', role: 'Striker', color: '#ffa04a', slash: 'sunfire',
+    blurb: 'Fists, feet and an empty mind. Fastest hands in the warband.',
+    weapon: null, offhand: null, basic: ['Attack1', 'Attack2', 'Kick'], range: 1.05, ranged: false,
+    base: { hp: 150, atk: 16, def: 5, spd: 3.7, crit: 0.1, aspd: 1.3 },
+    grow: { hp: 19, atk: 2.3, def: 0.7 },
+    skill: { id: 'whirlwind', name: 'Whirlwind Kick', cd: 8, desc: 'A spinning leap that batters and scatters every foe around.' },
+  };
+  BB.CALLINGS.shadowblade = {
+    name: 'Shadowblade', role: 'Assassin', color: '#7d8bff', slash: 'violet',
+    blurb: 'Two knives and no shadow. Strikes where the enemy is weakest.',
+    weapon: 'sword', offhand: null, basic: ['Attack1', 'Attack2', 'Attack3'], range: 1.1, ranged: false,
+    base: { hp: 128, atk: 19, def: 4, spd: 3.6, crit: 0.18, aspd: 1.15 },
+    grow: { hp: 16, atk: 2.7, def: 0.5 },
+    skill: { id: 'shadowstep', name: 'Shadowstep', cd: 9, desc: 'Vanish, reappear behind the weakest foe and strike for a sure critical.' },
+  };
+  BB.CALLINGS.lancer = {
+    name: 'Lancer', role: 'Skirmisher', color: '#4fd0b0', slash: 'emerald', forge: false,
+    blurb: 'A long spear that skewers the front rank and the one behind it.',
+    weapon: 'spear', offhand: null, basic: ['Attack1', 'Attack2'], range: 1.75, ranged: false, pierce: true,
+    base: { hp: 172, atk: 17, def: 7, spd: 3.25, crit: 0.07, aspd: 0.95 },
+    grow: { hp: 22, atk: 2.4, def: 0.9 },
+    skill: { id: 'impale', name: 'Impaling Charge', cd: 9, desc: 'Charge in a straight line, spearing everything in the way.' },
+  };
+  BB.CALLING_ORDER = ['vanguard', 'berserker', 'ranger', 'arcanist', 'warpriest', 'monk', 'shadowblade', 'lancer'];
+  BB.FORGE_CALLINGS = BB.CALLING_ORDER.filter((c) => BB.CALLINGS[c].forge !== false);
+  // elements carried by mages and wraiths: bolt hue (rotation from the purple bolt) and an on-hit effect
+  BB.ELEMENTS = {
+    fire: { name: 'Fire', hue: 150, effect: 'burn', col: '#ff7a3a' }, frost: { name: 'Frost', hue: -70, effect: 'slow', col: '#8fd4ff' },
+    blood: { name: 'Blood', hue: 110, effect: 'leech', col: '#ff4a5a' }, arcane: { name: 'Arcane', hue: 0, effect: 'crit', col: '#c08bff' },
+    shadow: { name: 'Shadow', hue: 30, effect: 'rend', col: '#9a7aff' }, holy: { name: 'Holy', hue: 190, effect: 'heal', col: '#ffe9a0' },
+    storm: { name: 'Storm', hue: -110, effect: 'chain', col: '#9ff' }, nature: { name: 'Nature', hue: -160, effect: 'heal', col: '#8f8' },
+  };
 
   // ---- legendary heroes: fixed art, join through the story
   BB.LEGENDS = {
@@ -85,6 +117,10 @@
       lore: 'A knife for hire who sold the wrong secret. Fights like a sandstorm.' },
     talia: { name: 'Talia Sunblade', title: 'of the Ninth Banner', art: 'sunblade', calling: 'ranger', color: '#4fd0e0',
       lore: 'The only other banner-captain alive. She brought the last of her company to your fire.' },
+    brenna: { name: 'Brenna Redmane', title: 'the Shieldmaiden', art: 'brenna', calling: 'lancer', color: '#ff6a3a',
+      lore: 'She held the river gate of Aldmere alone for a night and a day. The city fell anyway. She did not.' },
+    reaper: { name: 'Silas Grey', title: 'the Grave-Reaper', art: 'reaper', calling: 'shadowblade', color: '#9fb0c0',
+      lore: 'Gravedigger of the capital. When the dead started walking, he kept digging — with the sickles.' },
   };
 
   // ---- foes. art = atlas, scale = draw size, clips mapped per action
@@ -97,6 +133,21 @@
       atkClips: ['Attack1'], ranged: true, proj: 'curse', summons: true, r: 0.32 },
     ballista: { name: 'Bone Ballista', art: null, hp: 140, atk: 18, def: 5, spd: 0, range: 7.5, aspd: 0.45, xp: 14, gold: 5,
       ranged: true, proj: 'bolt', turret: true, r: 0.45 },
+    skel: { name: 'Skeleton Soldier', pool: 'skel', hp: 95, atk: 12, def: 3, spd: 2.9, range: 1.1, aspd: 1, xp: 11, gold: 4,
+      atkClips: ['Attack1', 'Attack2'], r: 0.33 },
+    skelshield: { name: 'Skeleton Shieldbearer', pool: 'skelshield', hp: 140, atk: 12, def: 7, spd: 2.5, range: 1.1, aspd: 0.85, xp: 15, gold: 5,
+      atkClips: ['Attack1', 'Attack2'], block: 0.55, r: 0.35 },
+    skelarcher: { name: 'Skeleton Archer', pool: 'skelarcher', hp: 70, atk: 12, def: 1, spd: 2.7, range: 5.5, aspd: 0.7, xp: 13, gold: 5,
+      atkClips: ['Attack3'], ranged: true, proj: 'arrow', r: 0.3 },
+    wraith: { name: 'Wraith', pool: 'wraith', hp: 90, atk: 14, def: 2, spd: 3.6, range: 4.4, aspd: 0.8, xp: 17, gold: 6,
+      atkClips: ['Attack5'], ranged: true, proj: 'curse', phase: true, r: 0.3 },
+    warlock: { name: 'Cult Warlock', pool: 'warlock', hp: 110, atk: 15, def: 3, spd: 2.6, range: 5, aspd: 0.7, xp: 20, gold: 8,
+      atkClips: ['Attack5'], ranged: true, proj: 'curse', firering: true, r: 0.32 },
+    beastkin: { name: 'Beastkin Raider', pool: 'beast', hp: 150, atk: 17, def: 4, spd: 3.3, range: 1.15, aspd: 0.95, xp: 18, gold: 7,
+      atkClips: ['Attack1', 'Attack2'], frenzy: true, r: 0.36 },
+    regent: { name: 'The Pale Regent', pool: 'wraith', poolPick: 'wraith_005', boss: true, scale: 2.0, hp: 3300, atk: 28, def: 8,
+      spd: 2.8, range: 5.5, aspd: 1, xp: 480, gold: 380, atkClips: ['Attack5'], ranged: true, proj: 'curse', r: 0.8,
+      moves: ['elements', 'barrage', 'summonw', 'blink', 'firering'] },
     portal: { name: 'Gravegate', art: null, hp: 420, atk: 0, def: 4, spd: 0, range: 0, aspd: 0, xp: 40, gold: 20, gate: true, r: 0.7 },
     // bosses
     ossric: { name: 'Ossric, the Gravewarden', art: 'warden', boss: true, scale: 1.9, tint: 'crimson', hp: 2300, atk: 28, def: 10,
@@ -108,7 +159,7 @@
     kestrelfoe: { name: 'Kestrel, the Dune Shade', art: 'shade', boss: true, scale: 1.25, hp: 1500, atk: 24, def: 6,
       spd: 4.0, range: 1.2, aspd: 1.4, xp: 200, gold: 120, atkClips: ['Attack1', 'Attack2', 'Attack4'], r: 0.4,
       moves: ['dash', 'dash', 'vanish'] },
-    vesh: { name: 'Vesh Morrow, the Bone Cantor', art: 'necro', boss: true, scale: 2.15, tint: 'emerald', hp: 6400, atk: 32, def: 9,
+    vesh: { name: 'Vesh Morrow, the Bone Cantor', art: 'necro', boss: true, scale: 2.15, tint: 'emerald', hp: 4300, atk: 32, def: 9,
       spd: 2.4, range: 6, aspd: 1, xp: 600, gold: 500, atkClips: ['Attack1'], ranged: true, proj: 'curse', r: 0.85,
       moves: ['barrage', 'deathcone', 'gates', 'slam', 'blink'] },
   };
@@ -141,6 +192,8 @@
       { look: 'legsB', names: ['Plate Greaves', 'Bastion Tassets', 'Iron Legguards'], stat: { hp: 18, def: 1.5 } },
     ],
     weapon: {
+      fist: { names: ['Iron Knuckles', 'Tiger Wraps', 'Fists of Dawn'], stat: { atk: 4, crit: 0.02 } },
+      spear: { names: ['Boar Spear', 'Guard Lance', 'Dragonpike'], stat: { atk: 4.5, hp: 8 } },
       sword: { names: ['Arming Sword', 'Banner Blade', 'Oathkeeper'], stat: { atk: 4 } },
       axe: { names: ['War Axe', 'Bonecleaver', 'Headsman'], stat: { atk: 5.5 } },
       bow: { names: ['Hunting Bow', 'Longbow', 'Galeshot'], stat: { atk: 4.5, crit: 0.02 } },
@@ -149,7 +202,7 @@
     offhand: [{ look: 'shield', names: ['Kite Shield', 'Tower Shield', 'Aegis'], stat: { hp: 20, def: 3 } }],
     charm: [{ look: null, names: ['Wolf Fang', 'Saint\'s Ash', 'Bone Dice', 'Gate Shard', 'Banner Pin'], stat: { atk: 1.5, crit: 0.03, hp: 8 } }],
   };
-  BB.weaponType = (calling) => ({ vanguard: 'sword', berserker: 'axe', ranger: 'bow', arcanist: 'focus', warpriest: 'focus' })[calling];
+  BB.weaponType = (calling) => ({ vanguard: 'sword', berserker: 'axe', ranger: 'bow', arcanist: 'focus', warpriest: 'focus', monk: 'fist', shadowblade: 'sword', lancer: 'spear' })[calling];
 
   // ---- perks: picked one of three at each level-up
   BB.PERKS = {
@@ -179,6 +232,18 @@
       { id: 'ignite', name: 'Ignite', desc: 'Bolts set foes burning', mod: { burn: 1 } },
       { id: 'wildfire', name: 'Wildfire', desc: 'Dragonbreath deals +40% damage', mod: { skillDmg: 0.4 } },
     ],
+    monk: [
+      { id: 'flurry', name: 'Flurry', desc: '+15% attack speed', mod: { aspdPct: 0.15 } },
+      { id: 'cyclone', name: 'Cyclone', desc: 'Whirlwind Kick reaches further and hits harder', mod: { skillArea: 0.5, skillDmg: 0.25 } },
+    ],
+    shadowblade: [
+      { id: 'backstab', name: 'Backstab', desc: 'Shadowstep strikes 40% harder', mod: { skillDmg: 0.4 } },
+      { id: 'venom', name: 'Venom', desc: '+8% critical chance', mod: { crit: 0.08 } },
+    ],
+    lancer: [
+      { id: 'phalanx', name: 'Phalanx', desc: '+4 defence', mod: { def: 4 } },
+      { id: 'skewer', name: 'Skewer', desc: 'Impaling Charge goes further and hits harder', mod: { skillArea: 0.5, skillDmg: 0.3 } },
+    ],
     warpriest: [
       { id: 'mercy', name: 'Mercy', desc: 'Sanctuary heals 40% more', mod: { skillDmg: 0.4 } },
       { id: 'aegis', name: 'Aegis of Dawn', desc: 'Sanctuary shields allies too', mod: { shieldHeal: 1 } },
@@ -197,6 +262,10 @@
       test: (cs) => cs.includes('vanguard') && cs.includes('ranger'), mod: { rangedCrit: 0.05 } },
     { id: 'blessed', name: 'Blessed', desc: 'A Warpriest marches with you: the first hero to fall rises again.',
       test: (cs) => cs.includes('warpriest'), mod: { revive: 1 } },
+    { id: 'shadows', name: 'Knives in the Dark', desc: 'A Shadowblade with a Monk or Ranger: +8% crit for all.',
+      test: (cs) => cs.includes('shadowblade') && (cs.includes('monk') || cs.includes('ranger')), mod: { crit: 0.08 } },
+    { id: 'pikewall', name: 'Pike Wall', desc: 'A Lancer beside a Vanguard: +15% attack for melee heroes.',
+      test: (cs) => cs.includes('lancer') && cs.includes('vanguard'), mod: { meleeAtk: 0.15 } },
     { id: 'steel', name: 'Wall of Steel', desc: 'Two or more shields: +3 defence for all.',
       test: (cs) => cs.filter((c) => c === 'vanguard' || c === 'warpriest').length >= 2, mod: { def: 3 } },
   ];
@@ -207,6 +276,7 @@
     forge: { name: 'War Forge', desc: 'Finer gear from every victory.', costs: [0, 150, 400, 900], effect: (l) => '+' + l * 8 + '% rare drops' },
     yard: { name: 'Training Yard', desc: 'Heroes learn faster.', costs: [0, 100, 280, 650], effect: (l) => '+' + l * 15 + '% XP' },
     chapel: { name: 'Chapel of Dawn', desc: 'Faster recovery, stronger heals.', costs: [0, 130, 350, 800], effect: (l) => '+' + l * 10 + '% healing' },
+    tavern: { name: 'Hall of Heroes', desc: 'More wandering heroes come to your fire, and better ones.', costs: [0, 140, 360, 780], effect: (l) => (3 + l) + ' recruits, ' + (l * 10) + '% three-star' },
     market: { name: 'Market', desc: 'More coin, and a merchant with wares.', costs: [0, 110, 300, 720], effect: (l) => '+' + l * 12 + '% gold' },
   };
   BB.HIRE_COST = (n) => 60 + n * 45;
@@ -215,6 +285,7 @@
   BB.REGIONS = [
     { id: 'vale', name: 'Greenvale', biome: 'vale', blurb: 'Farms and forest gone quiet. The Bone Tide came here first.' },
     { id: 'sand', name: 'The Sunscar', biome: 'sand', blurb: 'Palms, ruins and buried temples, and something singing under the dunes.' },
+    { id: 'city', name: 'Aldmere', biome: 'vale', floor: 'cobble', blurb: 'The fallen capital. Wraiths walk its streets and warlocks sing in its halls.' },
     { id: 'gate', name: 'The Cantor\'s Gate', biome: 'vale', night: true, blurb: 'Where the first Gravegate opened. Where it ends.' },
   ];
   // type: rout (clear every wave) | gates (destroy every gate) | defend (keep the ward alive) | boss | duel
@@ -223,37 +294,49 @@
       waves: [['ghoul', 3], ['ghoul', 4], ['ghoul', 3, 'warden', 1]], tutorial: true,
       brief: 'Ashford is burning. Drive the reavers out of the hamlet.', reward: { gold: 60 } },
     { id: 'm2', region: 'vale', name: 'Bones at the Mill', type: 'gates', level: 2, layout: 'mill', gates: 1,
-      waves: [['ghoul', 4], ['ghoul', 3, 'necro', 1]],
+      waves: [['ghoul', 3, 'skel', 1], ['skel', 2, 'skelarcher', 1, 'necro', 1]],
       brief: 'A Gravegate has torn open beside the old mill. Smash it before it spills more dead.', reward: { gold: 80 } },
     { id: 'm3', region: 'vale', name: 'Witch of the Thornwood', type: 'defend', level: 3, layout: 'grove', ward: 'cage', time: 50,
       waves: [['ghoul', 4], ['warden', 2, 'ghoul', 3], ['necro', 2, 'ghoul', 4], ['warden', 2, 'necro', 1]], recruit: 'sera',
       brief: 'The dead want the caged witch. Keep the cage standing until the spell breaks.', reward: { gold: 100 } },
     { id: 'm4', region: 'vale', name: 'The Old Watch', type: 'gates', level: 4, layout: 'ruins', gates: 3, elites: 1,
-      waves: [['ghoul', 4], ['necro', 1, 'ghoul', 3]],
+      waves: [['skel', 3], ['necro', 1, 'skelarcher', 1, 'ghoul', 2]],
       brief: 'Three gates ring the fallen watchtower. Close them all.', reward: { gold: 130 } },
     { id: 'm5', region: 'vale', name: 'Ossric, the Gravewarden', type: 'boss', level: 5, layout: 'courtyard', boss: 'ossric',
       waves: [['ghoul', 3]],
       brief: 'The warden of Greenvale\'s dead stands in the chapel yard. Break him and the vale is free.', reward: { gold: 200 } },
     { id: 'm6', region: 'sand', name: 'Oasis Ambush', type: 'rout', level: 6, layout: 'oasis', elites: 1,
-      waves: [['ghoul', 5], ['warden', 2, 'necro', 2], ['ghoul', 6, 'warden', 1]],
+      waves: [['beastkin', 3, 'ghoul', 2], ['warden', 2, 'necro', 2], ['beastkin', 4, 'skelarcher', 2]],
       brief: 'The last oasis on the road east. Something waits in the palms.', reward: { gold: 150 } },
     { id: 'm7', region: 'sand', name: 'Caravan of the Sun', type: 'defend', level: 7, layout: 'caravan', ward: 'cart', time: 60,
-      waves: [['ghoul', 5], ['ballista', 1, 'ghoul', 4], ['necro', 2, 'warden', 2], ['ghoul', 6, 'necro', 1]], recruit: 'ahmos',
+      waves: [['beastkin', 3, 'ghoul', 2], ['ballista', 1, 'beastkin', 3], ['necro', 2, 'warden', 2], ['beastkin', 4, 'necro', 1]], recruit: 'ahmos',
       brief: 'A Sun Temple caravan is pinned in the dunes. Its guard is one man. Help him.', reward: { gold: 180 } },
     { id: 'm8', region: 'sand', name: 'The Shade in the Dunes', type: 'duel', level: 8, layout: 'dunes', boss: 'kestrelfoe', recruit: 'kestrel',
       waves: [['ghoul', 3]],
       brief: 'A knife for hire has been killing Gravecallers, and now your scouts. Find out why.', reward: { gold: 180 } },
     { id: 'm9', region: 'sand', name: 'Tombs of Glass', type: 'gates', level: 9, layout: 'tombs', gates: 4, elites: 2,
-      waves: [['ballista', 2, 'ghoul', 4], ['warden', 2, 'necro', 2]],
+      waves: [['ballista', 2, 'skel', 4], ['warden', 2, 'wraith', 2]],
       brief: 'Four gates feed the necromancer\'s army from the old tombs.', reward: { gold: 240 } },
     { id: 'm10', region: 'sand', name: 'Sallow, the Dune Necromancer', type: 'boss', level: 10, layout: 'temple', boss: 'sallow',
       waves: [['ghoul', 4], ['necro', 1]],
       brief: 'The singer under the sand. End her chant.', reward: { gold: 320 } },
-    { id: 'm11', region: 'gate', name: 'March of Banners', type: 'rout', level: 11, layout: 'march', elites: 3, recruit: 'talia',
-      waves: [['ghoul', 6, 'warden', 2], ['necro', 3, 'ghoul', 5], ['warden', 4, 'ballista', 1], ['ghoul', 8, 'necro', 2]],
+    { id: 'c1', region: 'city', name: 'The River Gate', type: 'gates', level: 11, layout: 'city', gates: 3, elites: 1, recruit: 'brenna',
+      waves: [['skel', 4, 'skelarcher', 2], ['skelshield', 2, 'wraith', 2]],
+      brief: 'Aldmere\'s river gate is held by one woman and a lot of dead. Break the gates around her.', reward: { gold: 320 } },
+    { id: 'c2', region: 'city', name: 'Streets of Ash', type: 'rout', level: 12, layout: 'city', elites: 2,
+      waves: [['wraith', 3, 'skel', 3], ['skelarcher', 3, 'skelshield', 2], ['warlock', 2, 'wraith', 3], ['skel', 5, 'warlock', 1, 'skelshield', 2]],
+      brief: 'Clear the market streets. Watch the rooftops — the archers have the high ground.', reward: { gold: 340 } },
+    { id: 'c3', region: 'city', name: 'The Warlock Conclave', type: 'defend', level: 13, layout: 'plaza', ward: 'refugees', time: 60, recruit: 'reaper',
+      waves: [['warlock', 2, 'skel', 3], ['wraith', 3, 'skelarcher', 2], ['warlock', 3, 'skelshield', 2], ['wraith', 3, 'warlock', 2, 'skel', 3]],
+      brief: 'The last living people of Aldmere huddle round one fire. The Conclave wants them for the choir.', reward: { gold: 380 } },
+    { id: 'c4', region: 'city', name: 'The Pale Regent', type: 'boss', level: 14, layout: 'throne', boss: 'regent',
+      waves: [['wraith', 2, 'skel', 2], ['warlock', 2]],
+      brief: 'The king of Aldmere died on his throne. He is still sitting on it.', reward: { gold: 450 } },
+    { id: 'm11', region: 'gate', name: 'March of Banners', type: 'rout', level: 15, layout: 'march', elites: 3, recruit: 'talia',
+      waves: [['ghoul', 4, 'skel', 3, 'warden', 2], ['necro', 2, 'wraith', 2, 'beastkin', 3], ['warden', 3, 'skelshield', 2, 'ballista', 1], ['ghoul', 6, 'warlock', 2, 'skelarcher', 2]],
       brief: 'Every banner left in the world rides with you to the Cantor\'s Gate.', reward: { gold: 300 } },
-    { id: 'm12', region: 'gate', name: 'Vesh Morrow, the Bone Cantor', type: 'boss', level: 12, layout: 'gate', boss: 'vesh',
-      waves: [['ghoul', 4], ['warden', 2]],
+    { id: 'm12', region: 'gate', name: 'Vesh Morrow, the Bone Cantor', type: 'boss', level: 16, layout: 'gate', boss: 'vesh',
+      waves: [['ghoul', 3, 'wraith', 1], ['warden', 2, 'warlock', 1]],
       brief: 'He sang the dead awake. Silence him.', reward: { gold: 600 } },
   ];
 
@@ -280,7 +363,14 @@
     m8post: [['kestrel', 'Fine. You\'re worth it. Sallow put a price on my head. I\'d like to put one on hers.'], ['narr', 'Kestrel the Dune Shade joins the warband.']],
     m9post: [['sera', 'The tomb gates were feeding her. She is alone now under the temple.']],
     m10pre: [['narr', 'Sallow, the Dune Necromancer, keeps the Cantor\'s song alive in the south.']],
-    m10post: [['captain', 'The Sunscar is quiet.'], ['narr', 'Riders come in through the night, under a torn blue banner.']],
+    m10post: [['captain', 'The Sunscar is quiet.'], ['sera', 'The song is louder in the north. In Aldmere. The capital is still singing.']],
+    c1pre: [['brenna', 'About time somebody came. I\'ve been holding this gate since the spring. Kill what comes through those portals.']],
+    c1post: [['brenna', 'You fight like you mean it. Aldmere was my city. Let me take it back with you.'], ['narr', 'Brenna Redmane joins the warband.']],
+    c2post: [['brenna', 'Warlocks in the old guildhall. They\'re gathering the living for something.']],
+    c3pre: [['reaper', 'Hold them off the fire. I\'ve buried enough people this year.']],
+    c3post: [['reaper', 'You kept them breathing. Fine work. I\'ll dig for your enemies from now on.'], ['narr', 'Silas Grey, the Grave-Reaper, joins the warband.']],
+    c4pre: [['narr', 'The Pale Regent. Last king of Aldmere, crowned again by the Cantor\'s song.']],
+    c4post: [['captain', 'Aldmere is free.'], ['narr', 'Riders come in through the night, under a torn blue banner.']],
     m11pre: [['talia', 'Talia Sunblade, Ninth Banner. What\'s left of it. We heard there was still a captain. We came to march.'], ['narr', 'Talia Sunblade joins the warband.']],
     m11post: [['talia', 'The gate is open ahead. He\'s singing louder.']],
     m12pre: [['narr', 'Vesh Morrow, the Bone Cantor. The first gate. The last song.']],
