@@ -2,8 +2,8 @@
 // Nothing here is the game's own view: every shot is a built set (a sleeping city, a graveyard, the
 // Black Gate under the bleeding moon, a red void) with the cast as actors, silhouettes and close-ups.
 //   The moon falls on a sleeping city · the First Cut, small against it, leaps and cuts it (impact
-//   frames) · the wound bleeds · a hand bursts from the earth and the dead stand up on a ridge · the
-//   horde at the Black Gate · Vesper's walk, the red eye, the draw · she cuts through the dead · three
+//   frames) · the wound bleeds · a hand bursts from the earth and the dead stand up on a ridge · red eyes
+//   open across a black plain, the horde in the lightning · Vesper's red eye, the draw · she cuts through the dead · three
 //   panels · the First Cut as a god over the Spire, his gaze · his blade comes down, she holds it, throws
 //   it off and points hers at him · the title over the red moon.
 // A tap (or Esc) skips straight to the trial.
@@ -14,38 +14,34 @@
   const W = () => PX.W, H = () => PX.H;
   const K = () => VS.cine.kit;
   // The shots, in seconds.
-  const SHOTS = [
-    ['open', 0, 1.6], ['fall', 1.6, 5.0], ['swordsman', 5.0, 6.4], ['leap', 6.4, 7.6], ['cutmoon', 7.6, 8.7], ['scar', 8.7, 10.8],
-    ['rise', 10.8, 14.4], ['gate', 14.4, 17.6], ['steps', 17.6, 19.2], ['eye', 19.2, 20.6], ['draw', 20.6, 21.6],
-    ['charge', 21.6, 24.2], ['panels', 24.2, 25.6], ['colossus', 25.6, 29.6], ['gaze', 29.6, 31.0], ['strike', 31.0, 32.9],
-    ['defy', 32.9, 34.6], ['title', 34.6, 41.8],
-  ];
+  const DUR = [['open', 1.6], ['fall', 3.4], ['swordsman', 1.4], ['leap', 1.2], ['cutmoon', 1.1], ['scar', 2.1], ['rise', 3.6], ['horde', 3.4],
+    ['eye', 1.4], ['draw', 1.0], ['charge', 2.6], ['panels', 1.4], ['colossus', 4.0], ['gaze', 1.4], ['strike', 1.9], ['defy', 1.7], ['title', 7.2]];
+  const SHOTS = []; { let t = 0; for (const [name, d] of DUR) { SHOTS.push([name, t, t + d]); t += d; } }
   const END = SHOTS[SHOTS.length - 1][2];
+  const AT = (name) => SHOTS.find((x) => x[0] === name)[1];
+  // Captions, timed from the start of their shot: [shot, from, to, text].
   const LINES = [
-    [1.9, 4.8, 'Seven hundred years ago, the moon began to fall.'],
-    [5.2, 7.5, 'A swordsman cut it.'],
-    [8.9, 10.7, 'It stopped. The wound never closed.'],
-    [12.0, 14.2, 'Its red light raises the dead.'],
-    [14.6, 16.0, 'Tonight the wound bleeds out.'],
-    [16.1, 17.5, 'At dawn, the moon falls for good.'],
-    [19.3, 20.5, 'One blade can close it.'],
-    [27.6, 29.5, 'The one who cut it waits at the top of the Spire.'],
-  ];
+    ['fall', 0.3, 3.2, 'Seven hundred years ago, the moon began to fall.'], ['swordsman', 0.2, 2.5, 'A swordsman cut it.'],
+    ['scar', 0.2, 2.0, 'It stopped. The wound never closed.'], ['rise', 1.2, 3.4, 'Its red light raises the dead.'],
+    ['horde', 0.3, 1.75, 'Tonight the wound bleeds out.'], ['horde', 1.85, 3.3, 'At dawn, the moon falls for good.'],
+    ['eye', 0.1, 1.3, 'One blade can close it.'], ['colossus', 2.0, 3.9, 'The one who cut it waits at the top of the Spire.'],
+  ].map(([sh, a, b, text]) => [AT(sh) + a, AT(sh) + b, text]);
   // The charge: when each of the dead reaches her blade (seconds into the shot).
   const CONTACT = [0.3, 0.6, 0.85, 1.1, 1.32, 1.55, 1.78, 2.0];
-  const AT = (name) => SHOTS.find((x) => x[0] === name)[1];
-  // Sounds: [time, name, volume].
+  // Sounds, timed from the start of their shot: [shot, at, name, volume].
   const SFX = [
-    [0.5, 'swish_0', 0.4], [1.0, 'thud', 0.6], [1.7, 'quake', 0.5], [3.4, 'quake', 0.7], [5.0, 'unsheathe_01', 0.8], [5.8, 'charge', 0.7],
-    [6.4, 'whoosh', 1], [7.6, 'blow_big', 1], [7.6, 'slash_2', 1], [7.65, 'quake', 1], [8.7, 'magic', 0.5],
-    [11.2, 'smash', 0.8], [11.25, 'quake', 0.6], [12.1, 'spawn', 0.7], [12.7, 'reinforce', 0.6], [13.3, 'spawn', 0.5],
-    [14.4, 'horn', 0.7], [17.7, 'step_0', 0.7], [18.15, 'step_1', 0.7], [18.6, 'step_2', 0.7], [19.2, 'quake', 0.6], [19.6, 'charge', 0.9],
-    [20.6, 'unsheathe_01', 1], [20.95, 'slash_0', 1], [21.0, 'whoosh', 1], [24.2, 'slash_2', 0.9], [24.55, 'slash_1', 0.9], [24.9, 'blow_big', 0.8],
-    [25.6, 'quake', 1], [25.7, 'horn', 0.8], [26.8, 'quake', 0.9], [27.1, 'bolt', 0.7], [28.0, 'boss', 1], [28.4, 'quake', 1],
-    [29.6, 'charge', 1], [30.2, 'windup', 1], [31.0, 'whoosh', 1], [31.62, 'clang_1', 1], [31.63, 'blow_big', 1], [31.65, 'smash', 1], [31.7, 'quake', 1],
-    [32.9, 'quake', 0.8], [33.8, 'parry', 1], [33.82, 'slash_2', 1], [34.2, 'perfect', 0.8],
-    [35.0, 'allout', 1], [35.02, 'clang_0', 0.7], [36.4, 'level_up', 0.4],
-  ].concat(CONTACT.map((c, i) => [AT('charge') + c, i % 2 ? 'slash_1' : 'slash_2', 0.85]));
+    ['open', 0.5, 'swish_0', 0.4], ['open', 1.0, 'thud', 0.6], ['fall', 0.1, 'quake', 0.5], ['fall', 1.8, 'quake', 0.7], ['swordsman', 0, 'unsheathe_01', 0.8], ['swordsman', 0.8, 'charge', 0.7],
+    ['leap', 0, 'whoosh', 1], ['cutmoon', 0, 'blow_big', 1], ['cutmoon', 0, 'slash_2', 1], ['cutmoon', 0.05, 'quake', 1], ['scar', 0, 'magic', 0.5],
+    ['rise', 0.4, 'smash', 0.8], ['rise', 0.45, 'quake', 0.6], ['rise', 1.3, 'spawn', 0.7], ['rise', 1.9, 'reinforce', 0.6], ['rise', 2.5, 'spawn', 0.5],
+    ['horde', 0, 'horn', 0.7], ['horde', 0.5, 'reinforce', 0.5], ['horde', 1.3, 'bolt', 0.8], ['horde', 1.32, 'quake', 0.8], ['horde', 2.4, 'bolt', 0.6], ['horde', 2.42, 'quake', 0.6],
+    ['eye', 0, 'quake', 0.6], ['eye', 0.4, 'charge', 0.9], ['draw', 0, 'unsheathe_01', 1], ['draw', 0.35, 'slash_0', 1], ['draw', 0.4, 'whoosh', 1],
+    ['panels', 0, 'slash_2', 0.9], ['panels', 0.35, 'slash_1', 0.9], ['panels', 0.7, 'blow_big', 0.8],
+    ['colossus', 0, 'quake', 1], ['colossus', 0.1, 'horn', 0.8], ['colossus', 1.1, 'bolt', 0.7], ['colossus', 1.2, 'quake', 0.9], ['colossus', 2.3, 'boss', 1], ['colossus', 2.6, 'bolt', 0.6], ['colossus', 2.8, 'quake', 1],
+    ['gaze', 0, 'charge', 1], ['gaze', 0.6, 'windup', 1],
+    ['strike', 0, 'whoosh', 1], ['strike', 0.62, 'clang_1', 1], ['strike', 0.63, 'blow_big', 1], ['strike', 0.65, 'smash', 1], ['strike', 0.7, 'quake', 1],
+    ['defy', 0, 'quake', 0.8], ['defy', 0.9, 'parry', 1], ['defy', 0.92, 'slash_2', 1], ['defy', 1.3, 'perfect', 0.8],
+    ['title', 0.4, 'allout', 1], ['title', 0.42, 'clang_0', 0.7], ['title', 1.8, 'level_up', 0.4],
+  ].concat(CONTACT.map((c, i) => ['charge', c, i % 2 ? 'slash_1' : 'slash_2', 0.85])).map(([sh, t, name, v]) => [AT(sh) + t, name, v]);
   const MUSIC_AT = AT('draw');
 
   const cast = () => ({
@@ -112,22 +108,6 @@
       if (hash(i, seed + 3) < 0.4) { ctx.fillRect(x - 1, base - h - 3, Math.max(2, sc * 1.4 | 0), h + 3); ctx.fillRect(x - w / 2, base - h + 1, w, Math.max(1, sc | 0)); }
       else { ctx.fillRect(x - w / 2, base - h, w, h); PX.disc(ctx, x, base - h, Math.round(w / 2), col); }
     }
-  }
-  // The Black Gate: two towers, the wall and battlements, the gate glowing red.
-  function gate(ctx, cx, base, s, col, T) {
-    const tw = 26 * s, th = 96 * s, gw = 34 * s, gh = 46 * s, wall = 64 * s;
-    ctx.fillStyle = col;
-    ctx.fillRect(cx - wall - tw, base - wall, wall * 2 + tw * 2, wall + 2);
-    for (const sx of [-1, 1]) {
-      const x = cx + sx * (gw / 2 + tw * 0.6) - tw / 2;
-      ctx.fillRect(x, base - th, tw, th + 2);
-      ctx.beginPath(); ctx.moveTo(x - 3 * s, base - th); ctx.lineTo(x + tw / 2, base - th - 30 * s); ctx.lineTo(x + tw + 3 * s, base - th); ctx.fill();
-      ctx.fillStyle = `rgba(255,${150 + Math.round(60 * Math.sin(T * 9 + sx))},80,0.9)`; ctx.fillRect(Math.round(x + tw / 2 - 1), Math.round(base - th * 0.62), 2, Math.max(1, Math.round(3 * s))); ctx.fillStyle = col;
-    }
-    for (let x = cx - wall - tw; x < cx + wall + tw; x += 8 * s) ctx.fillRect(x, base - wall - 5 * s, 5 * s, 5 * s);
-    const glow = ctx.createLinearGradient(0, base - gh, 0, base); glow.addColorStop(0, 'rgba(255,42,68,0.0)'); glow.addColorStop(1, 'rgba(255,42,68,0.85)');
-    ctx.fillStyle = glow; ctx.beginPath(); ctx.moveTo(cx - gw / 2, base); ctx.lineTo(cx - gw / 2, base - gh * 0.7); ctx.quadraticCurveTo(cx, base - gh * 1.15, cx + gw / 2, base - gh * 0.7); ctx.lineTo(cx + gw / 2, base); ctx.fill();
-    A.tex(ctx, 'light_01', cx, base - gh * 0.3, gw * 3, gh * 1.6, RED, 0.35 + 0.1 * Math.sin(T * 4), 0, true);
   }
   function rain(ctx, T, n, a, slant) {
     ctx.fillStyle = `rgba(200,210,235,${a})`;
@@ -369,44 +349,38 @@
     ctx.restore();
     if (t < 0.15) fill(ctx, '#000', 1 - t / 0.15);
   };
-  // Tonight: the horde marches on the Black Gate under the bleeding moon.
-  SH.gate = function (ctx, S, k, T) {
-    const pan = Math.round(k * 26);
-    grad(ctx, ['#0c0206', '#3a0a14', '#14040a']);
-    stars(ctx, 40, 0.4, 9, T);
-    ctx.save(); ctx.translate(-pan * 0.3, 0); moon(ctx, W() * 0.5 + 10, H() * 0.36, H() * 0.34, '#ff4a5e', 'rgba(255,40,70,0.55)', 1, T); ctx.restore();
-    const base = Math.round(H() * 0.76);
-    A.tex(ctx, 'light_01', W() / 2, base, W() * 1.8, 50, '#ff3048', 0.5, 0, true);
-    ctx.save(); ctx.translate(-pan * 0.5, 0); gate(ctx, W() * 0.5 + 12, base, 0.8, '#070204', T); ctx.restore();
-    const fl = ctx.createLinearGradient(0, base, 0, H()); fl.addColorStop(0, '#4a0e1a'); fl.addColorStop(1, '#16040a'); ctx.fillStyle = fl; ctx.fillRect(-8, base, W() + 16, H());
-    // Three ranks of the dead, marching on the gate, the nearer the darker and quicker.
-    const ranks = [[0.9, '#2a0810', base + 6, 9, 14], [1.3, '#14040a', base + 16, 7, 20], [2.2, '#040102', base + 34, 5, 30]];
-    ranks.forEach(([sc, col, y, n, sp], ri) => {
+  // Tonight: a black plain under the bleeding moon. Red eyes open in the dark, hundreds of them, in waves
+  // from the middle out; lightning shows the horde they belong to, rank behind rank to the horizon,
+  // marching at us.
+  SH.horde = function (ctx, S, k, T) {
+    const hz = Math.round(H() * 0.66), flash = (T > 1.3 && T < 1.42) || (T > 2.4 && T < 2.47), push = 1 + 0.06 * k;
+    grad(ctx, ['#020103', '#10030a', '#34070f']);
+    stars(ctx, 30, 0.35, 17, T);
+    ctx.save(); ctx.translate(W() / 2, H() * 0.75); ctx.scale(push, push); ctx.translate(-W() / 2, -H() * 0.75);
+    moon(ctx, W() * 0.5, hz + H() * 0.1, H() * 0.44, '#ff3a52', 'rgba(255,40,70,0.55)', 1, T);
+    const fl = ctx.createLinearGradient(0, hz, 0, H()); fl.addColorStop(0, '#4a0c18'); fl.addColorStop(0.5, '#2a060e'); fl.addColorStop(1, '#100206'); ctx.fillStyle = fl; ctx.fillRect(-20, hz, W() + 40, H());
+    A.tex(ctx, 'light_01', W() * 0.5, hz + 8, W() * 0.9, 50, '#ff3048', 0.35, 0, true);   // the moon's light across the plain
+    // Countless far eyes along the horizon, no bodies to see.
+    for (let i = 0; i < 160; i++) { const x = hash(i, 301) * W(), y = hz + 1 + Math.pow(hash(i, 302), 2) * 10, open = 0.15 + Math.abs(x - W() / 2) / W() * 1.1 + hash(i, 303) * 0.3; if (T < open) continue; ctx.fillStyle = `rgba(255,42,68,${Math.min(1, (T - open) * 4) * (0.5 + 0.5 * hash(i, 304))})`; ctx.fillRect(Math.round(x), Math.round(y), 1, 1); ctx.fillRect(Math.round(x) + 2, Math.round(y), 1, 1); }
+    // The ranks, far to near.
+    const ROWS = 6;
+    for (let r = 0; r < ROWS; r++) {
+      const d = r / (ROWS - 1), y0 = hz + 5 + Math.pow(d, 1.4) * (H() - BAR - hz - 4) + T * 3 * d, sc = 0.4 + d * 1.55, sp = 12 + d * 38, n = Math.ceil(W() / sp) + 2, off = (r % 2) * sp * 0.5;
       for (let i = 0; i < n; i++) {
-        const dir = (i + ri) % 2 ? 1 : -1, span = W() + 60, x0 = hash(i, 101 + ri) * span, x = ((x0 + dir * T * sp) % span + span) % span - 30 - pan * (0.6 + ri * 0.3);
-        const ang = dir > 0 ? -Math.PI * 0.15 : -Math.PI * 0.85, set = deadSet(S, i + ri * 3), fr = Math.floor(T * 11 + i * 4) % 15, yy = Math.round(y + (i % 2) * 3);
-        A.actor(ctx, set, 'Walk', fr, ang, Math.round(x), yy, sc, { shade: col });
-        if (ri < 2 && i % 2 === 0) eyes(ctx, set, 'Walk', fr, ang, Math.round(x), yy, sc, 0.8);
+        const x = Math.round(i * sp - off + (hash(r, i + 310) - 0.5) * sp * 0.5), y = Math.round(y0 + (hash(i, r + 311) - 0.5) * 3), set = deadSet(S, i + r * 3), fr = Math.floor(T * 8 + i * 3 + r) % 15;
+        A.actor(ctx, set, 'Walk', fr, Math.PI / 2, x, y, sc, { shade: flash ? '#4a1a24' : '#040102' });
+        const open = 0.1 + Math.abs(x - W() / 2) / W() * 1.2 + (1 - d) * 0.15 + hash(i, r + 312) * 0.15;
+        if (T < open) continue;
+        const b = A.box(set, 'Walk', fr, Math.PI / 2, sc); if (!b) continue;
+        const a = Math.min(1, (T - open) * 5), ex = Math.round(x + b.x + b.w / 2), ey = Math.round(y + b.y + Math.max(2, b.h * 0.13)), pw = Math.max(1, Math.round(sc * 0.7)), gap = Math.max(1, Math.round(sc * 1.1));
+        ctx.globalAlpha = a; ctx.fillStyle = d > 0.6 ? '#ffd0d6' : RED; ctx.fillRect(ex - gap - pw, ey, pw, Math.max(1, pw >> 1)); ctx.fillRect(ex + gap, ey, pw, Math.max(1, pw >> 1));
+        if (sc > 0.9) A.tex(ctx, 'light_01', ex, ey, 10 * sc, 5 * sc, RED, 0.5 * a, 0, true);
+        ctx.globalAlpha = 1;
       }
-    });
-    A.tex(ctx, 'smoke_07', W() * 0.5, base + 6, W() * 1.4, 24, '#ff3048', 0.15, 0, true);
-    say(S, 'card', 'THE BLACK GATE', 10, BAR + 16, { sub: 'TONIGHT', k: T });
-  };
-  // Rain on wet stone; armoured boots walk in. Only her legs and cape fit the frame.
-  SH.steps = function (ctx, S, k, T) {
-    grad(ctx, ['#0a0810', '#1c1220', '#0c0a10']);
-    moon(ctx, W() * 0.72, H() * 0.28, H() * 0.1, '#ff4a5e', 'rgba(255,40,70,0.4)', 1, null);
-    gate(ctx, W() * 0.72, H() * 0.62, 0.35, '#0a0608', T);
-    const gy = Math.round(H() * 0.7);
-    ctx.fillStyle = '#100c14'; ctx.fillRect(-8, gy, W() + 16, H());
-    ctx.fillStyle = 'rgba(255,60,80,0.18)'; ctx.fillRect(Math.round(W() * 0.72 - 8), gy + 2, 16, 30);
-    ctx.fillStyle = 'rgba(160,170,200,0.2)'; for (let i = 0; i < 18; i++) ctx.fillRect(Math.round(hash(i, 111) * W()), gy + 4 + Math.round(hash(i, 112) * (H() - gy)), 6 + Math.round(hash(i, 113) * 20), 1);
-    const set = S.cast.vesper, sc = 3.0, x = Math.round(W() * 0.08 + k * W() * 0.4), y = Math.round(H() * 0.93), fr = Math.floor(T * 11) % 15;
-    ctx.save(); ctx.globalAlpha = 0.25; ctx.translate(0, y * 2); ctx.scale(1, -1); A.actor(ctx, set, 'Walk', fr, 0, x, y, sc, { shade: '#2a1018' }); ctx.restore();
-    A.actor(ctx, set, 'Walk', fr, 0, x, y, sc, {});
-    const st = (T * 11 / 7.5) % 1; if (st < 0.25) for (let i = 0; i < 8; i++) { ctx.fillStyle = 'rgba(210,220,240,0.7)'; ctx.fillRect(Math.round(x + (hash(i, 114) - 0.3) * 40), Math.round(y - 4 - st * 30 * hash(i, 115)), 1, 1); }
-    rain(ctx, T, 110, 0.5, 0.14);
-    say(S, 'card', 'VESPER', 10, BAR + 16, { sub: 'THE MOONBLADE', col: '#ff9aaa', k: T });
+    }
+    ctx.restore();
+    if (flash) { fill(ctx, '#ffe8ee', 0.2); ctx.strokeStyle = '#ffe0e8'; ctx.lineWidth = 1; ctx.beginPath(); let x = W() * (T < 2 ? 0.27 : 0.74), y = 0; ctx.moveTo(x, y); while (y < hz) { x += (hash(Math.floor(T * 10), y | 0) - 0.5) * 16; y += 7; ctx.lineTo(x, y); } ctx.stroke(); kick(S, 3); }
+    if (T < 0.12) fill(ctx, '#000', 1 - T / 0.12);
   };
   // The visor close up; under it an eye opens red and the red cracks run out.
   SH.eye = function (ctx, S, k, T) {
@@ -416,6 +390,7 @@
     const at = closeUp(ctx, S.cast.vesper, 0, sc, Math.round(W() * 0.6 + Math.sin(T * 2) * 2), Math.round(H() * 0.42), [19, 6], open, RED, T);
     if (open > 0) { ctx.globalAlpha = clamp((k - 0.35) * 3); for (let i = 0; i < 6; i++) K().crack(ctx, at.x + (i % 2 ? 6 : -6), at.y + 2, Math.PI / 2 + (i - 2.5) * 0.35, 40 + 50 * ease((k - 0.35) / 0.5), 70 + i, RED, 1); ctx.globalAlpha = 1; }
     rain(ctx, T, 50, 0.25, 0.1);
+    if (T > 0.5) say(S, 'card', 'VESPER', W() - 10, BAR + 16, { align: 'right', sub: 'THE MOONBLADE', col: '#ff9aaa', k: T - 0.5 });
     const cx = Math.round(W() * 0.28); ctx.fillStyle = INK; ctx.fillRect(cx - 3, 0, 6, H()); ctx.fillStyle = '#ffffff'; ctx.fillRect(cx + 3, 0, 1, H());
     if (k > 0.9) fill(ctx, '#ffffff', (k - 0.9) / 0.1);
   };
@@ -668,6 +643,9 @@
     const sh = SHOTS[SHOTS.length - 1], dur = sh[2] - sh[1], out = 0.6 / dur;
     grad(ctx, ['#080206', '#2a0610', '#4a0c18']);
     stars(ctx, 60, 0.5, 11, T);
+    // His shadow over everything, faint, the moon at his heart; his eyes burning above the name.
+    const loom = clamp((T - 0.2) / 1.2);
+    if (loom > 0) { ctx.save(); ctx.globalAlpha = 0.85 * loom; colossus(ctx, S, Math.round(W() / 2), Math.round(H() * 0.09), 8, T, { rim: '#4a0a16', col: '#12030a' }); ctx.restore(); burningEyes(ctx, Math.round(W() / 2), Math.round(H() * 0.09), 8, loom * (0.75 + 0.25 * Math.sin(T * 2)), T); }
     moon(ctx, W() / 2, H() * 0.62, H() * 0.4, '#ff3a52', 'rgba(255,40,70,0.55)', 1, T);
     K().embers(ctx, T, 40, 0, W(), RED);
     const gy = Math.round(H() * 0.86);

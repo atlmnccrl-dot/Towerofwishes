@@ -87,19 +87,20 @@ its own distance (rising or dropping 150 to 300 away, or running in from 300 to 
 sight), never closer than 64 to another, so a wave closes in from around you instead of in one
 clump. Red chevrons at the screen's edge point at every foe out of sight.
 
-**The opening** (`js/intro.js`): about 42 seconds, cut like an anime fight in the style of the moon
+**The opening** (`js/intro.js`): about 40 seconds, cut like an anime fight in the style of the moon
 arts and drawn on the same 180 px pixel buffer, with its words on a sharp full-resolution layer above.
 None of it is the game's own view: every shot is a set built for it. The shots: a red drop in the dark;
 the moon falling on a sleeping city; the First Cut against it, then his leap, a small black figure
 across its vast face; the cut in impact frames; the moon hanging still and bleeding; the earth cracking
 and a hand bursting out, then the dead standing up one by one in a row on a ridge against the moon,
-their eyes lighting; the horde marching on the Black Gate; Vesper's walk in the rain, the red eye, the
-draw; the charge through eight of the dead; three manga panels; then the First Cut as a god over the
+their eyes lighting; red eyes opening in waves across a black plain, hundreds of them, and lightning showing the horde
+they belong to, rank behind rank to the horizon; Vesper's red eye and her name, the draw; the charge through eight of the dead; three manga panels; then the First Cut as a god over the
 Spire (a drawn silhouette: crowned and horned helm, spiked pauldrons, a cape like wings, both hands on
 a sword the size of a tower), the camera tilting from his sword's point past her, small on a rampart,
 up to his burning eyes with the red moon as his halo; his gaze, her eye answering; his blade coming
 down from the sky and her holding it (impact frames, the ground breaking); her throwing it off and
-raising her blade at him; the title over the red moon. Any tap skips it. The older hand-drawn
+raising her blade at him; the title over the red moon, his shadow faint behind it and his eyes
+burning above her name. Any tap skips it. The older hand-drawn
 sequence (`js/opening.js`) stays in the code for the Theatre.
 
 **The opening** (`js/opening.js`): about 23 seconds, cut like an anime transformation and drawn at
