@@ -1361,7 +1361,7 @@
       if (!nums && !t.big) continue;
       const s = P(t.x + t.dx, t.y); const k = t.t / (t.big ? 1.3 : 0.9);
       ctx.globalAlpha = Math.min(1, (1 - k) * 2.5);
-      ctx.font = (t.big === 2 ? 'bold 13px ' : t.big ? 'bold 11px ' : 'bold 9px ') + 'Cinzel, Georgia, serif';
+      ctx.font = (t.big === 2 ? 'bold 13px ' : t.big ? 'bold 11px ' : 'bold 9px ') + 'Outfit, sans-serif';
       ctx.textAlign = 'center'; ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(0,0,0,0.75)';
       const y = s.y - t.z * 28;
       ctx.strokeText(t.txt, s.x, y); ctx.fillStyle = t.col; ctx.fillText(t.txt, s.x, y);
@@ -1479,7 +1479,7 @@
     ctx.fillStyle = col; ctx.fillRect(x, y, w * Math.max(0, e.hp / e.maxhp), 2);
     if (e.shield > 0) { ctx.fillStyle = '#cfe8ff'; ctx.fillRect(x, y - 2, w * Math.min(1, e.shield / e.maxhp), 1.2); }
     if (e.elite || e.gate || e.ward) {
-      ctx.font = 'bold 7px Cinzel, Georgia, serif'; ctx.textAlign = 'center'; ctx.fillStyle = col;
+      ctx.font = 'bold 7px Outfit, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = col;
       ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.lineWidth = 2; ctx.strokeText(e.name, s.x, y - 3); ctx.fillText(e.name, s.x, y - 3);
     }
   };

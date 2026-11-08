@@ -43,7 +43,7 @@ require('fs').mkdirSync(out, { recursive: true });
   await p.waitForFunction(() => document.getElementById('mResults').classList.contains('on'), null, { timeout: 90000 });
   await wait(500); await shot('10-results');
   const res = await p.evaluate(() => document.getElementById('resBody').innerText);
-  if (!/Victory/.test(res)) errs.push('results: no victory: ' + res.slice(0, 120));
+  if (!/victory/i.test(res)) errs.push('results: no victory: ' + res.slice(0, 120));
   // Camp
   await p.click('#resBody .btn.dark');
   for (let i = 0; i < 20 && await p.evaluate(() => document.getElementById('story').classList.contains('on')); i++) await tap('#story');
