@@ -74,16 +74,14 @@ Losing costs nothing: level up, forge, change the formation and fight again.
 
 Settings: music, effects, screen shake, damage numbers, erase save.
 
-**Cutscenes** instead of dialogue (js/cinema.js, skippable, one subtitle line per shot): a ~50 s opening that tells
-how it began (dusk over Ashford under nine banners; night, and a Gravegate tears open; Vesh Morrow walks out and
-sings; the dead rise and march; the banner knights fall one by one with their banners; at grey dawn the Captain
-kneels by the last banner, rises with it and blasts the dead back; BANNERBORN); each boss's entrance the first time (the camera
-sweeps the arena to the boss rising, an extreme pixel close-up, black-and-white impact frames, the name slam, a VS
-split with your lead hero); a fly-over title for each new chapter; and the boss's fall. They never use the game's camera: every
-shot is side-on, like film — painted skies (dusk, night, dawn, desert, crimson, toxic, violet) over parallax ridges
-and land silhouettes (village roofs, pines, dunes and palms, ruins, the great gates), the cast drawn big and in
-profile with distance haze, banners that wave and topple, rain, ash and embers — cut with slanted close-up panels,
-VS splits, impact frames and kinetic titles, plus lightning, shockwaves, sparks, shake and letterbox.
+**Cutscenes** instead of dialogue (js/cinema.js, skippable, one subtitle line per shot). Every shot is close and
+graphic, never from the game camera: slanted close-up panels of faces in coloured light, silhouettes that light up,
+three-face panels, a wall of skull faces, screen-filling gates with lightning and rain, great banners against the
+sky that topple in fire, VS splits, black-and-white impact frames and title slams, with sparks, embers, smoke, shake
+and letterbox. The opening (~55 s) tells how it began: nine banners and their knights; the Gravegates open; Vesh
+Morrow walks out and sings; the dead rise; eight banners fall before dawn; one stands; its bearer, alone, raises it
+and swears to build a new army; BANNERBORN. Bosses get an entrance the first time (gate, rise from shadow, impact,
+name, their horde, the face-off, the clash) and a fall; chapters 2-4 open with your banner and the chapter's name.
 
 ## Code
 
