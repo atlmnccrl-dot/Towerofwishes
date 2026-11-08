@@ -72,8 +72,7 @@
     o = o || {};
     // background: a colour wash, speed lines, a streak of light
     const W = g.canvas.width;
-    const bg = g.createLinearGradient(0, cy - ph, 0, cy + ph); bg.addColorStop(0, col2); bg.addColorStop(0.5, col1); bg.addColorStop(1, col2);
-    g.fillStyle = bg; g.fillRect(-W, cy - ph, W * 3, ph * 2);
+    if (!o.noBg) { const bg = g.createLinearGradient(0, cy - ph, 0, cy + ph); bg.addColorStop(0, col2); bg.addColorStop(0.5, col1); bg.addColorStop(1, col2); g.fillStyle = bg; g.fillRect(-W, cy - ph, W * 3, ph * 2); }
     speedLines(g, cx, cy, W, ph * 2, 70, 'rgba(255,255,255,0.10)', Math.floor(t * 12), 0.15);
     const sx = lerp(-W * 0.2, W * 1.2, (t * 0.7) % 1);
     const st = g.createLinearGradient(sx - 200, 0, sx + 200, 0); st.addColorStop(0, 'rgba(255,255,255,0)'); st.addColorStop(0.5, 'rgba(255,255,255,0.18)'); st.addColorStop(1, 'rgba(255,255,255,0)');
@@ -167,15 +166,21 @@
   // three faces in three slanted panels, sliding in one after another
   function drawTriple(g, W, H, sh, k, t) {
     g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
-    const sl = W * 0.06;
-    for (let i = 0; i < 3; i++) {
-      const x0 = W * i / 3, x1 = W * (i + 1) / 3, kk = clamp01((k - i * 0.12) / 0.9);
+    const n = sh.who.length, sl = W * (n > 3 ? 0.025 : 0.06), stag = n > 3 ? 0.075 : 0.12;
+    for (let i = 0; i < n; i++) {
+      const x0 = W * i / n, x1 = W * (i + 1) / n, kk = clamp01((k - i * stag) / (n > 3 ? 0.45 : 0.9));
       if (kk <= 0) continue;
-      g.save(); g.beginPath(); g.moveTo(x0 + sl, 0); g.lineTo(x1 + sl, 0); g.lineTo(x1 - sl, H); g.lineTo(x0 - sl, H); g.closePath(); g.clip();
+      const drop = (1 - easeOut(clamp01(kk * 2.5))) * H * (i % 2 ? 1 : -1);
+      g.save(); g.translate(0, drop); g.beginPath(); g.moveTo(x0 + sl, 0); g.lineTo(x1 + sl, 0); g.lineTo(x1 - sl, H); g.lineTo(x0 - sl, H); g.closePath(); g.clip();
       const c = sh.cols[i % sh.cols.length];
-      closeupBody(g, sh.who[i], kk, t + i, (x0 + x1) / 2, H * 0.55, H * 0.27, sh.dir === undefined ? 2 : sh.dir, false, c[0], c[1], 0, { rise: true });
+      if (n > 3) { const wb = g.createLinearGradient(0, 0, 0, H); wb.addColorStop(0, c[1]); wb.addColorStop(0.45, c[0]); wb.addColorStop(1, c[1]); g.fillStyle = wb; g.fillRect(x0 - sl, 0, x1 - x0 + sl * 2, H); }
+      closeupBody(g, sh.who[i], kk, t + i, (x0 + x1) / 2, H * (n > 3 ? 0.47 : 0.52), H * (n > 3 ? 0.125 : 0.27), sh.dir === undefined ? 2 : sh.dir, false, c[0], c[1], 0, { rise: n <= 3, noBg: n > 3 });
+      if (sh.banners && C.banners[i] && BB.UI.sigilPath) { // their banner's sigil under each face
+        const b = C.banners[i], cx = (x0 + x1) / 2 - sl * 0.55, cy = H * 0.8, r = Math.min(x1 - x0, H) * 0.16;
+        g.fillStyle = b.trim || '#e8c66a'; g.shadowColor = 'rgba(0,0,0,0.7)'; g.shadowBlur = 8; BB.UI.sigilPath(g, b.sigil, cx, cy, r); g.fill('evenodd'); g.shadowBlur = 0;
+      }
       g.restore();
-      g.strokeStyle = sh.edge || '#ffe7a3'; g.lineWidth = 4; g.beginPath(); g.moveTo(x1 + sl, -4); g.lineTo(x1 - sl, H + 4); g.stroke();
+      g.strokeStyle = sh.edge || '#ffe7a3'; g.lineWidth = n > 3 ? 3 : 4; g.beginPath(); g.moveTo(x1 + sl, -4 + drop); g.lineTo(x1 - sl, H + 4 + drop); g.stroke();
     }
   }
   // ---------------------------------------------------------------- painted sets: the banner field and the Gravegate
@@ -534,6 +539,70 @@
     if (sh.rain) { g.lineWidth = Math.max(1, H * 0.0018); for (const [cc, n0] of [['rgba(170,180,220,0.22)', 0], [rgba(hot, 0.35 * I), 1]]) { g.strokeStyle = cc; g.beginPath(); for (let i = n0; i < 180; i += 2) { const h1 = hr(i + 900), h2 = hr(i + 901), x = ((h1 * (W + 100) - t * 300) % (W + 100) + W + 100) % (W + 100) - 50, y = ((h2 * (H + 60) + t * 1500) % (H + 60)) - 30; if (n0 && Math.abs(x - cx) > W * 0.3) continue; g.moveTo(x, y); g.lineTo(x - 7, y + 22); } g.stroke(); } }
     if (rush > 0) { g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = rgba(hot, Math.min(0.9, rush * 0.4).toFixed(3)); g.fillRect(0, 0, W, H); g.restore(); speedLines(g, W / 2, H / 2, W, H, 90, rgba(hot, 0.35), Math.floor(t * 20), 0.08); }
   }
+  // the tease: more gates on far hills flaring open one after another, a shape standing in each, only its eyes lit
+  function drawGates(g, W, H, sh, k, t) {
+    const zoom = 1 + 0.08 * ease(k);
+    g.save(); g.translate(W / 2, H * 0.6); g.scale(zoom, zoom); g.translate(-W / 2, -H * 0.6);
+    const hy = H * 0.66;
+    const bg = g.createLinearGradient(0, 0, 0, hy); bg.addColorStop(0, '#030308'); bg.addColorStop(1, '#141020'); g.fillStyle = bg; g.fillRect(-W, -H, W * 3, H * 3);
+    clouds(g, W, H, t, 12, H * 0.04, hy - H * 0.25, [6, 6, 12], [34, 28, 48], W * 0.02, 31);
+    const list = sh.gates || [];
+    // pillars of light into the clouds, behind everything
+    list.forEach((G, j) => {
+      const I = clamp01((k - G.at) / 0.06); if (I <= 0) return;
+      const x = W * G.x, base = hy + H * G.dy, c = G.col, pulse = 0.8 + 0.2 * Math.sin(t * 7 + j);
+      g.save(); g.globalCompositeOperation = 'lighter';
+      const pw = H * G.sc * 0.18, pl = g.createLinearGradient(x - pw, 0, x + pw, 0); pl.addColorStop(0, rgba(c, 0)); pl.addColorStop(0.5, rgba(c, 0.35 * I * pulse)); pl.addColorStop(1, rgba(c, 0));
+      g.fillStyle = pl; g.fillRect(x - pw, -H, pw * 2, base + H);
+      const gl = g.createRadialGradient(x, base - H * G.sc * 0.3, 0, x, base - H * G.sc * 0.3, H * 0.7 * G.sc); gl.addColorStop(0, rgba(c, 0.5 * I)); gl.addColorStop(1, rgba(c, 0)); g.fillStyle = gl; g.fillRect(x - H, base - H * 1.2, H * 2, H * 1.6);
+      // the clouds above it lit from below
+      const cl = g.createRadialGradient(x, H * 0.12, 0, x, H * 0.12, H * 0.5 * G.sc + H * 0.1); cl.addColorStop(0, rgba(c, 0.28 * I)); cl.addColorStop(1, rgba(c, 0)); g.fillStyle = cl; g.fillRect(x - H, -H * 0.4, H * 2, H);
+      g.restore();
+    });
+    // hills: each gate stands on its own
+    ridge(g, W, H, hy - H * 0.06, H * 0.05, 13, '#0c0a14', 0);
+    ridge(g, W, H, hy, H * 0.03, 17, '#08070d', 0);
+    const order = list.map((G, j) => [G, j]).sort((a, b) => a[0].sc - b[0].sc);
+    for (const [G, j] of order) {
+      const I = clamp01((k - G.at) / 0.06), x = W * G.x, base = hy + H * G.dy, S = H * G.sc, c = G.col, hot = mix(c, [255, 255, 255], 0.55), pulse = 0.85 + 0.15 * Math.sin(t * 8 + j * 2);
+      const ro = S * 0.3, ri = S * 0.2, ys = base - S * 0.42;
+      // hill under it
+      g.fillStyle = '#060509'; g.beginPath(); g.ellipse(x, base + S * 0.05, S * 0.9, S * 0.1, 0, Math.PI, 0); g.fill(); g.fillRect(x - S * 0.9, base + S * 0.05, S * 1.8, H);
+      // the opening: the vortex
+      g.save(); g.beginPath(); g.moveTo(x - ri, base); g.lineTo(x - ri, ys); g.arc(x, ys, ri, Math.PI, Math.PI * 2); g.lineTo(x + ri, base); g.closePath(); g.clip();
+      g.fillStyle = '#05040a'; g.fillRect(x - ri, ys - ri, ri * 2, base - ys + ri);
+      if (I > 0) {
+        const vy = (ys - ri + base) / 2, R = (base - ys + ri) * 0.6;
+        g.globalCompositeOperation = 'lighter';
+        for (let n = 0; n < 6; n++) { const q = 1 - ((t * 0.6 + n / 6) % 1); g.strokeStyle = rgba(c, (0.6 * q * I).toFixed(3)); g.lineWidth = Math.max(1, R * 0.04 * q); g.beginPath(); g.ellipse(x, vy, ri * q * 1.1, R * q, 0, 0, 7); g.stroke(); }
+        for (let arm = 0; arm < 5; arm++) { g.strokeStyle = rgba(arm % 2 ? hot : c, 0.6 * I); g.lineWidth = Math.max(1, R * 0.025); g.beginPath(); for (let s = 2; s <= 20; s++) { const q = s / 20, an = arm / 5 * 7 + q * 4.5 + t * 2.5; const px = x + Math.cos(an) * ri * (1 - q), py = vy + Math.sin(an) * R * (1 - q); if (s === 2) g.moveTo(px, py); else g.lineTo(px, py); } g.stroke(); }
+        const core = g.createRadialGradient(x, vy, 0, x, vy, R * 0.6); core.addColorStop(0, 'rgba(255,255,255,' + 0.9 * I * pulse + ')'); core.addColorStop(0.3, rgba(hot, 0.6 * I)); core.addColorStop(1, rgba(c, 0)); g.fillStyle = core; g.fillRect(x - ri, ys - ri, ri * 2, base - ys + ri);
+      }
+      g.restore();
+      // the arch itself
+      g.beginPath(); g.moveTo(x - ro, base); g.lineTo(x - ro, ys); g.arc(x, ys, ro, Math.PI, Math.PI * 2); g.lineTo(x + ro, base); g.lineTo(x + ri, base); g.lineTo(x + ri, ys); g.arc(x, ys, ri, Math.PI * 2, Math.PI, true); g.lineTo(x - ri, base); g.closePath();
+      g.fillStyle = '#121219'; g.fill();
+      if (I > 0) { g.save(); g.globalCompositeOperation = 'lighter'; g.strokeStyle = rgba(hot, (0.7 * I * pulse).toFixed(3)); g.shadowColor = rgba(c, 1); g.shadowBlur = 16; g.lineWidth = Math.max(1, S * 0.008); g.beginPath(); g.moveTo(x - ri, base); g.lineTo(x - ri, ys); g.arc(x, ys, ri, Math.PI, Math.PI * 2); g.lineTo(x + ri, base); g.stroke();
+        for (let r = 0; r < 7; r++) { const an = Math.PI + (r + 0.5) / 7 * Math.PI, rr = (ri + ro) / 2, rs = (ro - ri) * 0.18; const rx = x + Math.cos(an) * rr, ry = ys + Math.sin(an) * rr; g.beginPath(); g.moveTo(rx - rs, ry - rs); g.lineTo(rx + rs, ry + rs); g.moveTo(rx + rs, ry - rs); g.lineTo(rx - rs, ry + rs); g.stroke(); }
+        g.restore(); }
+      // the one who waits there: black against the light, only the eyes
+      if (G.who && I > 0) {
+        const q = clamp01((k - G.at - 0.04) / 0.2), sPx = ri * 2.9 / 1.45 * lerp(0.8, 1, easeOut(q)), fx = x, fy = base - S * 0.005;
+        figure(g, G.who, fx, fy, sPx, '#030206', rgba(hot, (0.55 * q).toFixed(3)), j % 2, 'Idle');
+        const SC = 2, m = 3.1 / (128 * SC) * sPx, fr = Math.floor(C.t * 7) % clipLen(G.who, 'Idle'), lift = headLift(G.who, 'Idle', 2, fr);
+        const ey = fy - (lift + 2) * SC * m, ex = fx + (j % 2 ? -1 : 1) * 0.5 * SC * m, d = Math.max(2.5, 2.4 * SC * m), blink = Math.sin(t * 1.3 + j * 4) > 0.97 ? 0.1 : 1;
+        if (q > 0.3) { const ea = blink * clamp01((q - 0.3) * 3); g.save(); g.globalCompositeOperation = 'lighter'; for (const sx of [-1, 1]) { const gx = ex + sx * d * 1.2, gl = g.createRadialGradient(gx, ey, 0, gx, ey, d * 3); gl.addColorStop(0, rgba(c, 0.8 * ea)); gl.addColorStop(1, rgba(c, 0)); g.fillStyle = gl; g.fillRect(gx - d * 3, ey - d * 3, d * 6, d * 6); g.fillStyle = 'rgba(255,255,255,' + ea + ')'; g.beginPath(); g.ellipse(gx, ey, d * 0.6, d * 0.32, sx * 0.25, 0, 7); g.fill(); } g.restore(); }
+      }
+      // the flare as it opens
+      const f = (k - G.at) / 0.1;
+      if (f > 0 && f < 1) { g.save(); g.globalCompositeOperation = 'lighter'; g.strokeStyle = rgba(hot, (1 - f).toFixed(3)); g.lineWidth = S * 0.008 * (1 - f); g.beginPath(); g.ellipse(x, base, S * 1.2 * easeOut(f), S * 0.12 * easeOut(f), 0, 0, 7); g.stroke(); g.fillStyle = rgba(hot, (0.25 * (1 - f) * (1 - f)).toFixed(3)); g.fillRect(-W, -H, W * 3, H * 3); g.restore(); }
+    }
+    // rain
+    g.strokeStyle = 'rgba(170,180,220,0.18)'; g.lineWidth = Math.max(1, H * 0.0016); g.beginPath();
+    for (let i = 0; i < 140; i++) { const x = ((hr(i + 1200) * (W + 100) - t * 300) % (W + 100) + W + 100) % (W + 100) - 50, y = ((hr(i + 1201) * (H + 60) + t * 1400) % (H + 60)) - 30; g.moveTo(x, y); g.lineTo(x - 7, y + 20); }
+    g.stroke();
+    g.restore();
+  }
   // the horde: a wall of small panels, each a dead face, crashing in from the right
   function drawHorde(g, W, H, sh, k, t) {
     g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
@@ -584,6 +653,7 @@
     if (sh.kind === 'banners') drawBanners(g, W, H, sh, k, lt);
     else if (sh.kind === 'triple') drawTriple(g, W, H, sh, k, lt);
     else if (sh.kind === 'gate') drawGate(g, W, H, sh, k, lt);
+    else if (sh.kind === 'gates') drawGates(g, W, H, sh, k, lt);
     else if (sh.kind === 'horde') drawHorde(g, W, H, sh, k, lt);
     else if (sh.kind === 'closeup') drawCloseup(g, W, H, sh, k, lt);
     else if (sh.kind === 'split') drawSplit(g, W, H, sh, k, lt);
@@ -628,11 +698,11 @@
     if (C.flash > 0) { g.globalAlpha = Math.min(1, C.flash); g.fillStyle = C.flashCol; g.fillRect(0, 0, W, H); g.globalAlpha = 1; C.flash = Math.max(0, C.flash - dt * 3); }
     // the subtitle: one line in the lower bar, in and out with its shot
     if (sh.caption) {
-      const c0 = sh.capAt || 0.3, c1 = sh.capEnd || sh.dur - 0.25;
+      const two = sh.cap2 && lt >= sh.cap2[1] - 0.05, c0 = two ? sh.cap2[1] : sh.capAt || 0.3, c1 = two ? sh.cap2[2] : sh.capEnd || sh.dur - 0.25;
       const a = clamp01(Math.min((lt - c0) / 0.45, (c1 - lt) / 0.4));
       if (a > 0) {
         g.globalAlpha = a; g.font = 'italic 500 ' + Math.round(Math.max(14, H * 0.034)) + 'px Inter, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-        g.fillStyle = '#eef1f6'; g.shadowColor = 'rgba(0,0,0,0.9)'; g.shadowBlur = 8; g.fillText(sh.caption, W / 2, H - lb / 2 + (1 - a) * 6); g.shadowBlur = 0; g.globalAlpha = 1;
+        g.fillStyle = '#eef1f6'; g.shadowColor = 'rgba(0,0,0,0.9)'; g.shadowBlur = 8; g.fillText(two ? sh.cap2[0] : sh.caption, W / 2, H - lb / 2 + (1 - a) * 6); g.shadowBlur = 0; g.globalAlpha = 1;
       }
     }
   };
@@ -667,16 +737,21 @@
     // a new game: what the nine banners were, how they fell, and why one is left
     async intro() {
       const capW = { hero: leader() }, vesh = { foe: 'vesh' }, ghoul = { foe: 'ghoul' }, warden = { foe: 'warden' }, skel = { foe: 'necro' };
-      const knights = BB.ROSTER.filter((c) => c.role === 'hero' && (c.arch === 'knight' || c.arch === 'spearman' || c.arch === 'barbarian')).slice(0, 3).map((c) => ({ hero: BB.newHero({ calling: c.calling, recruit: c.key, name: c.name }) }));
-      while (knights.length < 3) knights.push(capW);
-      await cast([capW, vesh, ghoul, warden, skel].concat(knights));
+      // nine knights, one under each banner; the ninth banner is yours, and its knight is the Captain
+      const pool = BB.ROSTER.filter((c) => c.role === 'hero'), knights = [];
+      for (const arch of ['knight', 'paladin', 'spearman', 'barbarian', 'ranger', 'mage', 'monk', 'duelist']) { const c = pool.find((q) => q.arch === arch); if (c) knights.push({ hero: BB.newHero({ calling: c.calling, recruit: c.key, name: c.name }) }); }
+      while (knights.length < 8) knights.push(capW);
+      knights.push(capW);
+      const later = [{ foe: 'ossric' }, { foe: 'sallow' }, { foe: 'regent' }];
+      await cast([capW, vesh, ghoul, warden, skel].concat(knights, later));
       const cols = BB.BANNER_COLORS.concat(['#3a6a8a']);
       for (let i = 0; i < 9; i++) C.banners.push(Object.assign({}, i === 8 ? BB.save.banner : { color: cols[i], sigil: BB.SIGILS[i % BB.SIGILS.length], trim: '#e8c66a' }));
+      const oathCols = C.banners.map((b) => { const c = rgbOf(b.color); return [rgba(mix(c, [255, 230, 190], 0.15), 1), rgba(mix(c, [0, 0, 0], 0.85), 1)]; });
       return { shots: [
         { kind: 'heart', dur: 3.6, cues: [[0.25, BEAT()], [1.3, BEAT()], [2.35, BEAT()], [2.6, SFX('chime')]] },
         { kind: 'title', dur: 2.6, sup: 'GREENVALE', text: 'THREE HUNDRED YEARS AGO', size: 0.06, col: '#c9b48a', bg: '#100c08', cues: [[0, MUSIC('calm')]] },
         { kind: 'banners', dur: 6.5, top: '#1c1430', bot: '#e07a3c', sunHex: '#ffc27a', knights, crane: 0.06, push: 1.12, caption: 'Nine banners stood between the living and the dead.', capAt: 0.8, fadeIn: 0.8, cues: [[0.2, SFX('chime')], [1.5, EMBERS(25, '#ffcf8a')], [3.5, SFX('chime')]] },
-        { kind: 'triple', dur: 4.4, who: knights, cols: [GOLD, STEEL, GOLD], edge: '#ffe7a3', caption: 'Nine knights swore an oath to hold them.', capAt: 0.5, cues: [[0.1, SFX('chime')], [0.6, SFX('chime')], [1.1, SFX('chime')]] },
+        { kind: 'triple', dur: 5.2, who: knights, cols: oathCols, banners: true, edge: '#ffe7a3', caption: 'Nine knights swore an oath to hold them.', capAt: 1.2, cues: [0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => [0.05 + i * 0.39, i === 8 ? () => { BB.sfx('rally'); SHAKE(0.4)(); } : SFX('chime')]).concat([[3.4, SPARKS(90, '#ffe7a3', 0.5, 0.5, 700)]]) },
         { kind: 'closeup', dur: 2.2, who: knights[0], dir: 2, burst: 'rgba(255,220,150,0.09)', col1: 'rgba(220,160,60,1)', col2: 'rgba(30,18,6,1)', edge: '#ffe7a3', from: 0.4, caption: 'For three hundred years, they held.', capAt: 0.3,
           cues: [[0.15, SFX('rally')], [0.2, SPARKS(80, '#ffe7a3', 0.5, 0.5, 600)], [0.25, SHAKE(0.3)]] },
         { kind: 'gate', dur: 6.6, col: [150, 90, 255], rain: true, burstAt: 2.6, figures: [ghoul, warden, skel], caption: 'Then, one night, the Gravegates opened.', capAt: 2.9, capEnd: 5.6, cues: [
@@ -688,9 +763,10 @@
         { kind: 'closeup', dur: 2.6, who: vesh, dir: 2, waves: 'rgba(125,255,176,A)', burst: 'rgba(125,255,176,0.06)', col1: 'rgba(60,170,100,1)', col2: 'rgba(4,20,12,1)', edge: '#7dffb0', from: 0.2, caption: '— and sang.', capAt: 0.3,
           cues: [[0, SFX('boss')], [0.1, RGB(0.6)], [0.2, SHAKE(0.5)], [1.0, RGB(0.5)], [1.0, SHAKE(0.4)], [1.8, RGB(0.6)]] },
         { kind: 'impact', dur: 0.45, who: vesh, clip: 'Attack1', accent: '#7dffb0', cues: [[0, SHAKE(1)], [0, SFX('burst')], [0, FLASH(0.6, '#c8ffe0')], [0, RGB(1)]] },
+        { kind: 'gates', dur: 5.6, caption: 'He was only the first.', capAt: 0.4, capEnd: 2.5, cap2: ['Three more gates opened that night. What stood in them is waiting still.', 2.8, 5.4],
+          gates: [{ x: 0.2, dy: 0.02, sc: 0.42, col: [255, 80, 60], at: 0.3, who: later[0] }, { x: 0.52, dy: -0.04, sc: 0.3, col: [255, 196, 90], at: 0.48, who: later[1] }, { x: 0.82, dy: 0.06, sc: 0.55, col: [190, 150, 255], at: 0.66, who: later[2] }],
+          cues: [[0, SFX('charge')], [1.68, () => { BB.sfx('portal'); SHAKE(0.5)(); }], [2.0, SFX('boss')], [2.69, () => { BB.sfx('portal'); SHAKE(0.4)(); }], [3.7, () => { BB.sfx('portal'); BB.sfx('slam'); SHAKE(0.7)(); RGB(0.6)(); }], [4.3, BOLT()]] },
         { kind: 'horde', dur: 3.2, who: [ghoul, warden, skel, ghoul], caption: 'The dead heard him. Every grave in the vale broke open.', capAt: 0.3, cues: [[0, SFX('slam')], [0.3, SHAKE(0.5)], [0.9, SHAKE(0.4)], [1.6, BOLT()]] },
-        { kind: 'horde', dur: 2.2, who: [warden, ghoul, ghoul, skel, warden, ghoul, skel, ghoul], cues: [[0, SFX('slam')], [0.2, SHAKE(0.6)], [0.2, RGB(0.5)]] },
-        { kind: 'split', dur: 1.3, a: knights[0], b: warden, colA: GOLD, colB: EMBER, cues: [[0, SFX('rally')]] },
         { kind: 'impact', dur: 0.24, who: knights[0], who2: warden, clip: 'Attack1', accent: '#ff7a3a', cues: [[0, SHAKE(1)], [0, SFX('slam')], [0, FLASH(0.6)], [0, RGB(0.8)]] },
         { kind: 'impact', dur: 0.24, who: knights[1], who2: ghoul, clip: 'Attack1', accent: '#ff7a3a', cues: [[0, SHAKE(0.9)], [0, SFX('slam')], [0, FLASH(0.5)]] },
         { kind: 'impact', dur: 0.24, who: ghoul, who2: knights[2], clip: 'Attack1', accent: '#ff3d2a', cues: [[0, SHAKE(1)], [0, SFX('slam')], [0, FLASH(0.6)], [0, RGB(0.8)]] },
