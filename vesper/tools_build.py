@@ -22,7 +22,7 @@ def main():
     shutil.copytree(os.path.join(HERE, 'icons'), os.path.join(OUT, 'icons'))
     A = os.path.join(REPO, 'assets'), os.path.join(OUT, 'assets')
     # Whole folders Vesper loads from.
-    for d in ('fx', 'iso', 'music', 'tiles', 'ui', 'vfx'): shutil.copytree(os.path.join(A[0], d), os.path.join(A[1], d))
+    for d in ('fx', 'cbfx', 'iso', 'music', 'tiles', 'ui', 'vfx'): shutil.copytree(os.path.join(A[0], d), os.path.join(A[1], d))
     os.makedirs(os.path.join(A[1], 'sfx'))
     shutil.copytree(os.path.join(A[0], 'sfx', 'fight'), os.path.join(A[1], 'sfx', 'fight')); shutil.copytree(os.path.join(A[0], 'sfx', 'amb'), os.path.join(A[1], 'sfx', 'amb'))
     for f in re.findall(r"'([a-z_0-9]+)'", open(os.path.join(HERE, 'js', 'audio.js')).read()):

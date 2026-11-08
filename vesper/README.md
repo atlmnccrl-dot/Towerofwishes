@@ -112,6 +112,21 @@ raising her blade at him; the title, THE BLEEDING MOON, over the red moon, his s
 it and his eyes burning above the name. Any tap skips it. The older hand-drawn
 sequence (`js/opening.js`) stays in the code for the Theatre.
 
+**Effects: Crowd Breaker** (PixelHit, `tools_cbfx.py` → `assets/cbfx`): 29 of the pack's hand-drawn skill
+sheets, trimmed and packed into five lossless atlases (13 MB), loaded after the game starts. The old
+effect names play them instead (`A.CBMAP` in `js/assets.js`): light hits are Roaring Blade Nova sparks,
+heavy blows and breaks the Last Stand cross, moon-art hits Crimson Tide, finishers Flashpoint
+Severance, dash cuts Piercing Dash (in the direction of the cut), parries the Sky Rend star, spins
+Earthshaker, landings and rock bursts Quake Stomp, strikes and moonfall Meteor Rain, fire bursts the
+Greater Fireball ring, frost the Frost Curtain, lightning Skyfall Thunder and Storm Orb, heals Inner
+Flow Mending, deaths the Crimson Tide smoke; the god's cut lands with Flashpoint Severance and his
+hand with Quake Stomp. `'cb:<folder>/<role>'` plays any packed sheet by name. Sheets with the pack's
+placeholder ghost or its targeting grid are left out. Projectiles and burning or poisoned ground
+keep their looping effects. The pack's licence allows it inside the game and this private repository,
+never on its own or in a public repository; its THIRD_PARTY_NOTICES sit in `assets/cbfx` and the
+credits name it. The raw pack is not in the repository: rebuild with
+`CB_SRC=/path/to/crowdbreaker python3 -I vesper/tools_cbfx.py`.
+
 **The guardians' entrances** (`js/bossfilms.js`): before each guardian's fight, a short anime film
 in the opening's style, played by the same film player: the Gatewarden leaping from the Black Gate and
 splitting the ground (EARTHSPLITTER); the Hollow Twins waking in the frozen cloister, crossing blades and

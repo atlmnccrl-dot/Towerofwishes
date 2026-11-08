@@ -71,7 +71,7 @@
     const items = [{ label: 'Back', act: o.onBack }];
     U.show('credits', `<div class="panel"><h2>Credits</h2><dl class="credits">
       <dt>Characters</dt><dd>Character Creator 2D Fantasy (SmallScaleInt)</dd>
-      <dt>Effects</dt><dd>Pixel VFX Essentials; KILN FX Free Sampler; Magic Spells VFX Lite by Willosuna; FX packs 6 and 13</dd>
+      <dt>Effects</dt><dd>Crowd Breaker by PixelHit (made with pixelfx: MIT, © 2026 Patch and Hugo Duprez; adapts Sprite Fusion's pixel art VFX, MIT, © 2026 Hugo Duprez); Pixel VFX Essentials; KILN FX Free Sampler; Magic Spells VFX Lite by Willosuna; FX packs 6 and 13</dd>
       <dt>Arenas</dt><dd>2D Desert Fantasy and 2D Isometric Fantasy tile sets, with their characters and animations</dd>
       <dt>Tiles</dt><dd>Pixel Art Top Down - Basic (Cainos); TopDownFantasy Forest; reodesuxz tilesets; EPIC RPG World; Dark World</dd>
       <dt>Fonts</dt><dd>Chakra Petch and Barlow (SIL Open Font License); Adventurer by Brian J Smith (CC BY 3.0)</dd>

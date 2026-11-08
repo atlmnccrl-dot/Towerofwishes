@@ -302,11 +302,11 @@
         case 'wall': FX({ kind: 'star', x: e.x, y: e.y, z: 20, life: 0.25, col: '#ffffff', r: 30 }); sparks(e.x, e.y, 20, 14, '#ffffff', 180, 1.6); R.float('WALL ' + e.dmg, e.x, e.y, 50, '#ffffff', true, true); R.shake = Math.max(R.shake, 6); break;
         case 'phase': if (!e.quiet) { R.flash = 0.6; R.flashCol = '255,40,60'; R.shake = 8; } break;
         // The god: his blade landing along its line, his hand slamming down, his phases, his kneeling, his fall.
-        case 'cut': { FX({ kind: 'gcut', x1: e.x1, y1: e.y1, x2: e.x2, y2: e.y2, w: e.w, life: 0.45 }); R.shake = Math.max(R.shake, 12); R.flash = 0.25; R.flashCol = '255,255,255'; const n = 10; for (let i = 0; i <= n; i++) { const f = i / n; sparks(e.x1 + (e.x2 - e.x1) * f, e.y1 + (e.y2 - e.y1) * f, 4, 3, '#ffd0d6', 160, 1.2); } break; }
+        case 'cut': { PK('cb:107_flashpoint_severance/caster', (e.x1 + e.x2) / 2, (e.y1 + e.y2) / 2, 10, 2.2); for (let i = 1; i <= 3; i++) PK('cb:01_crimson_tide_cleave/target', e.x1 + (e.x2 - e.x1) * i / 4, e.y1 + (e.y2 - e.y1) * i / 4, 4, 1.4); FX({ kind: 'gcut', x1: e.x1, y1: e.y1, x2: e.x2, y2: e.y2, w: e.w, life: 0.45 }); R.shake = Math.max(R.shake, 12); R.flash = 0.25; R.flashCol = '255,255,255'; const n = 10; for (let i = 0; i <= n; i++) { const f = i / n; sparks(e.x1 + (e.x2 - e.x1) * f, e.y1 + (e.y2 - e.y1) * f, 4, 3, '#ffd0d6', 160, 1.2); } break; }
         case 'godMove': R.godPose = { move: e.move, t: 0 }; break;
         case 'godPhase': R.bossArt = { key: 'godCut', name: e.n === 2 ? 'HIS DEAD RISE' : 'HE KNEELS TO KILL', t: 0 }; R.flash = 0.7; R.flashCol = '255,40,60'; R.shake = 14; break;
         case 'godKneel': R.shake = 16; R.flash = 0.4; R.flashCol = '255,255,255'; FX({ kind: 'gring', x: e.x, y: e.y, life: 0.7, col: '#ffffff', r0: 20, r1: 200, w: 4 }); break;
-        case 'godDown': R.flash = 1; R.flashCol = '255,250,252'; R.shake = 24; R.godFall = 0.001; break;
+        case 'godDown': PK('cb:19_recall_beam/caster', s.hero.x, s.hero.y, 0, 3); R.flash = 1; R.flashCol = '255,250,252'; R.shake = 24; R.godFall = 0.001; break;
         case 'skill': {
           const h = s.hero; R.float(e.name.toUpperCase(), h.x, h.y, 64, s.heroDef.color, true, true);
           if (e.kind === 'wave') PK('slash_arc_blood', h.x + Math.cos(e.ang) * 14, h.y + Math.sin(e.ang) * 14, 20, 1.6, { angle: R.screenAng(e.ang) });
@@ -319,7 +319,7 @@
         }
         case 'chain': R.chains.push({ pts: e.pts, t: 0 }); for (const p of e.pts.slice(1)) PK('hit_shock', p[0], p[1], 22, 1.6); R.flash = 0.3; R.flashCol = '255,240,170'; R.shake = Math.max(R.shake, 4); break;
         case 'thunder': PK('thunder', e.x, e.y, 0, 3.2); PK('lightning_holy', e.x, e.y, 0, 2.4); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.5, col: '#fff0a0', r0: 6, r1: e.r * 1.6, w: 4 }); R.impactF = { t: 0, dur: 0.08, x: e.x, y: e.y, big: false }; R.shake = Math.max(R.shake, 9); break;
-        case 'strike': if (e.hand) { R.shake = Math.max(R.shake, 14); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.6, col: '#ffffff', r0: 20, r1: 150, w: 4 }); FX({ kind: 'ghand', x: e.x, y: e.y, life: 0.18 }); } if (!e.quiet) { PK(e.fx || 'blast', e.x, e.y, 6, e.fx === 'poison_cloud' ? 1.6 : 2.2); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.35, col: e.team === 'hero' ? '#ffffff' : '#ff8070', r0: 3, r1: e.r * 1.3, w: 2 }); R.shake = Math.max(R.shake, 3); } else PK(e.fx || 'blast', e.x, e.y, 6, 1.4); break;
+        case 'strike': if (e.hand) { PK('cb:10_quake_stomp/caster', e.x, e.y, 0, 2.4); R.shake = Math.max(R.shake, 14); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.6, col: '#ffffff', r0: 20, r1: 150, w: 4 }); FX({ kind: 'ghand', x: e.x, y: e.y, life: 0.18 }); } if (!e.quiet) { PK(e.fx || 'blast', e.x, e.y, 6, e.fx === 'poison_cloud' ? 1.6 : 2.2); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.35, col: e.team === 'hero' ? '#ffffff' : '#ff8070', r0: 3, r1: e.r * 1.3, w: 2 }); R.shake = Math.max(R.shake, 3); } else PK(e.fx || 'blast', e.x, e.y, 6, 1.4); break;
         case 'tick': R.float(String(e.dmg), e.x, e.y, 30, '#b0ff90', false); break;
         case 'cast': if (u) PK('cast_circle', u.x, u.y, 2, 1.6); break;
         case 'vanish': PK('smoke_dark', e.x, e.y, 10, 1.2); break;
@@ -369,7 +369,7 @@
     R.pfx = R.pfx.filter((e) => {
       e.t += dt; const q = R.P(e.x, e.y, e.z);
       const alive = A.fx(ctx, e.name, e.t, q.x, q.y, e.scale * Sh * 0.55, e.alpha, e.angle, e.flip);
-      return alive && e.t < 3;
+      return alive && e.t < 5;
     });
     R.parts = R.parts.filter((p) => {
       p.t += dt; if (p.t >= p.life) return false;

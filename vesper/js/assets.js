@@ -109,8 +109,51 @@
     return { x: (f[5] - s.anchor[0]) * k, y: (f[6] - s.anchor[1]) * k, w: f[3] * k, h: f[4] * k };
   };
 
+  // Crowd Breaker (PixelHit): the hand-drawn skill effects, packed by tools_cbfx.py into assets/cbfx. Loaded after
+  // the game starts; until then (or without them) the old effects play.
+  let cbData = null, cbP = null;
+  A.loadCB = function () {
+    return cbP || (cbP = loadJSON(A.ROOT + 'cbfx/cb.json').then(async (d) => { d.images = await Promise.all(Array.from({ length: d.pages }, (_, i) => loadImage(A.ROOT + 'cbfx/cb_' + i + '.png'))); cbData = d; }));
+  };
+  A.cbReady = () => !!cbData;
+  // The old effect names, played as Crowd Breaker sheets: [sheet, size against the old effect, options]
+  // (flipAng: mirrored when the blow goes left; directional sheets pick their tag from the angle).
+  A.CBMAP = {
+    hit_slash: ['02_roaring_blade_nova/target', 1.3, { flipAng: true }], hit_big: ['90_last_stand_strike/target', 0.95], hit_crit: ['01_crimson_tide_cleave/target', 0.9],
+    cross_slash: ['107_flashpoint_severance/target', 1.15], katana: ['06_piercing_dash/target', 1.0], parry: ['218_sky_rend_star/target', 1.7],
+    spin_slash: ['113_earthshaker_stance/target', 1.0], shockwave: ['10_quake_stomp/target', 0.9], rock_burst: ['10_quake_stomp/target', 0.7],
+    blast: ['08_meteor_rain/target', 0.75], explosion_fire: ['54_greater_fireball/target', 0.6], fire_burst: ['54_greater_fireball/target', 0.55],
+    explosion_frost: ['183_frost_curtain/caster', 0.7], ice_shatter: ['13_water_orb/target', 0.6], thunder: ['101_skyfall_thunder/target', 0.9],
+    hit_shock: ['15_storm_orb/target', 0.6], spell_zap: ['15_storm_orb/target', 0.6], dissipate: ['01_crimson_tide_cleave/death', 0.9],
+    smoke_dark: ['01_crimson_tide_cleave/death', 1.0], smoke_burst: ['01_crimson_tide_cleave/death', 0.8], holy_light: ['156_inner_flow_mending/caster', 0.8],
+    spell_cast: ['11_ghostfire_hex/caster', 0.8], cast_circle: ['11_ghostfire_hex/caster', 0.7], summon: ['05_phantom_legion/caster', 0.9],
+    teleport: ['175_violet_veil/caster', 0.9], charge_up: ['12_golden_blessing/caster', 1.0], slash_arc_blood: ['01_crimson_tide_cleave/caster', 0.8, { flipAng: true }],
+    arc_white: ['107_flashpoint_severance/target', 1.0],
+  };
+  const DIRL = DIRS.map((d) => '_' + d.toLowerCase());
+  // Play one sheet: its tag for this direction (or its first), t seconds in. False once it has played out.
+  A.cb = function (ctx, key, t, x, y, scale, alpha, angle, flip, o) {
+    const d = cbData && cbData.fx[key]; if (!d) return false;
+    let tag = d.tags[0];
+    if (d.tags.length >= 8 && angle != null) { const suf = DIRL[A.dirIndex(angle)]; tag = d.tags.find((g) => g[0].endsWith(suf)) || tag; }
+    const n = tag[2] - tag[1] + 1; let i = Math.floor(t * d.fps);
+    if (o && o.loop) i = ((i % n) + n) % n; else if (i >= n) return false;
+    if (i < 0) return true;
+    const f = d.frames[tag[1] + i]; if (!f) return true;
+    const k = scale || 1, ga = ctx.globalAlpha; if (alpha != null) ctx.globalAlpha = ga * alpha;
+    const w = Math.round(f[3] * k), h = Math.round(f[4] * k), ox = Math.round(f[5] * k), oy = Math.round(f[6] * k), sm = ctx.imageSmoothingEnabled;
+    ctx.imageSmoothingEnabled = false;
+    if (!flip) ctx.drawImage(cbData.images[f[0]], f[1], f[2], f[3], f[4], Math.round(x) + ox, Math.round(y) + oy, w, h);
+    else { ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.scale(-1, 1); ctx.drawImage(cbData.images[f[0]], f[1], f[2], f[3], f[4], ox, oy, w, h); ctx.restore(); }
+    ctx.imageSmoothingEnabled = sm; ctx.globalAlpha = ga; return true;
+  };
+  A.cbLen = (key) => { const d = cbData && cbData.fx[key]; if (!d) return 0; const g = d.tags[0]; return (g[2] - g[1] + 1) / d.fps; };
   // Effects: name, t seconds since start, centre, scale, alpha, angle, flipX. False once a one-shot ends.
+  // 'cb:<sheet>' plays a Crowd Breaker sheet by name; names in A.CBMAP play their Crowd Breaker sheet once loaded.
   A.fx = function (ctx, name, t, x, y, scale, alpha, angle, flip) {
+    if (name.charCodeAt(0) === 99 && name.startsWith('cb:')) return A.cb(ctx, name.slice(3), t, x, y, scale, alpha, angle, flip);
+    const mp = cbData && A.CBMAP[name];
+    if (mp && cbData.fx[mp[0]]) return A.cb(ctx, mp[0], t, x, y, (scale || 1) * mp[1], alpha, angle, mp[2] && mp[2].flipAng ? (!!flip !== (angle != null && Math.cos(angle) < 0)) : flip, mp[2]);
     const d = fxData && fxData.fx[name]; if (!d) return false;
     let i = Math.floor(t * d.fps); if (d.loop) i %= d.frames.length; else if (i >= d.frames.length) return false;
     if (i < 0) return true;
@@ -124,7 +167,7 @@
     }
     ctx.globalAlpha = ga; return true;
   };
-  A.fxLen = (name) => { const d = fxData && fxData.fx[name]; return d ? d.frames.length / d.fps : 0; };
+  A.fxLen = (name) => { const mp = cbData && A.CBMAP[name]; if (mp && cbData.fx[mp[0]]) return A.cbLen(mp[0]); if (name.startsWith('cb:')) return A.cbLen(name.slice(3)); const d = fxData && fxData.fx[name]; return d ? d.frames.length / d.fps : 0; };
   A.fxLoop = (name) => { const d = fxData && fxData.fx[name]; return !!(d && d.loop); };
 
   // Tiles (top-left) and props (bottom-centre); props can be drawn as a solid silhouette.

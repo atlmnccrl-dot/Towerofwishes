@@ -557,6 +557,7 @@
     await Promise.all([A.load([...ids], (p) => U.loading(p)), A.loadIso(['w', 'a', 'i']).catch(() => {})]);
     try { if (document.fonts) await Promise.race([Promise.all(['20px Adventurer', '700 20px "Chakra Petch"', '500 16px Barlow', '700 16px Barlow'].map((f) => document.fonts.load(f))), new Promise((r) => setTimeout(r, 2500))]); } catch (e) { /* fonts optional */ }
     A.warm(R.ctx); A.isoWarm(R.ctx);
+    A.loadCB().catch(() => {});   // the Crowd Breaker effects stream in after the start
     applyOpts();
     if (params.has('auto')) M.save.opts.auto = true;
     if (params.has('hero') && D.HEROES[params.get('hero')]) M.save.hero = params.get('hero');
