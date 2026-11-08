@@ -31,7 +31,10 @@ A hero-collector RPG: you build the team, the team fights.
 
    Six **legends** join through the story (Sera Nightveil 1-4, Ahmos 2-3, Kestrel 2-5, Brenna Redmane 3-1,
    Silas Grey 3-4, Talia Sunblade 4-1). A recruit steps out of a gate in the reveal.
-3. **Grow them.** Level up with gold (cap 10 + 10 per star), **ascend** ★ with sigils to raise the cap
+3. **Grow them.** The hero screen is a game screen painted on its own canvas: the hero on a lit stage with four
+   gear sockets around them, an Attributes page (stat gains per level, hold-to-repeat Level Up, Ascend) and a
+   **Skill Tree**: three branches (Might, Bulwark, Ultimate) of linked nodes plus two bridge nodes and three
+   capstones (Executioner, Undying, the ultimate's Mastery); one point per level, free reset. Level up with gold (cap 10 + 10 per star), **ascend** ★ with sigils to raise the cap
    (up to 5 stars), gear in four slots (weapon, armour, helm, charm) that the **Forge** upgrades to +10.
    Rarity (Common → Legendary) multiplies every stat.
 4. **Formation.** Up to five heroes: two in the front row (they draw the blows), three behind.
@@ -76,6 +79,7 @@ Settings: music, effects, screen shake, damage numbers, skip story scenes, erase
 | `js/world.js` | isometric projection, procedural maps per layout, painted ground, collisions, A* pathing |
 | `js/battle.js` | the battlefield: formation, hero/foe AI, energy and ultimates, bosses, objectives, rendering, lighting |
 | `js/audio.js` | synthesised sound effects and a procedural war-drum score |
+| `js/heroui.js` | the hero screen: canvas-drawn stage, gear sockets and picker, attributes, skill tree, its own hit-testing |
 | `js/screens.js` | every menu screen: top bar and tabs, camp, campaign, heroes, hero, recruit and reveal, team, forge, shop, goals, results, story |
 | `js/main.js` | boot, loop, input, camp and title scenes, battle HUD, deploy → rewards, saving |
 | `tools/pack.py` | packs the raw asset batches into trimmed atlases |

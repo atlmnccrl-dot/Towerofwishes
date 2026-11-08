@@ -119,12 +119,13 @@
       hp: (C.base.hp + C.grow.hp * L) * k, atk: (C.base.atk + C.grow.atk * L) * k, def: (C.base.def + C.grow.def * L) * k,
       spd: C.base.spd, crit: C.base.crit, aspd: C.base.aspd, range: C.range,
       hpPct: 0, atkPct: 0, spdPct: 0, aspdPct: 0, cdPct: 0, leech: 0, thorns: 0, skillDur: 0, skillDmg: 0, skillArea: 0,
-      killCd: 0, lowHpAtk: 0, pierce: 0, burn: 0, shieldHeal: 0, casterAtk: 0, rangedCrit: 0, revive: 0, heal: 0, meleeAtk: 0,
+      killCd: 0, lowHpAtk: 0, pierce: 0, burn: 0, shieldHeal: 0, casterAtk: 0, rangedCrit: 0, revive: 0, heal: 0, meleeAtk: 0, energyGain: 0, startEnergy: 0,
     };
     for (const slot of BB.SLOTS) {
       const it = hero.gear && hero.gear[slot]; if (!it) continue;
       const st = BB.itemStats(it); for (const q in st) s[q] = (s[q] || 0) + st[q];
     }
+    for (const id in hero.talents || {}) { const n = BB.TREE_BY_ID[id], r = hero.talents[id]; if (n && r) for (const q in n.mod) s[q] = (s[q] || 0) + n.mod[q] * r; }
     if (teamCallings) for (const b of BB.bondsFor(teamCallings)) for (const q in b.mod) s[q] = (s[q] || 0) + b.mod[q];
     if (C.ranged && hero.calling !== 'warpriest') s.crit += s.rangedCrit;
     if (hero.calling === 'arcanist' || hero.calling === 'warpriest') s.atkPct += s.casterAtk;
@@ -139,7 +140,7 @@
   };
   BB.power = function (hero) {
     const s = BB.heroStats(hero, null);
-    return Math.round(s.hp * 0.5 + s.atk * 9 + s.def * 6 + s.crit * 300);
+    return Math.round(s.hp * 0.5 + s.atk * 9 * (1 + s.aspdPct * 0.6 + s.skillDmg * 0.25) + s.def * 6 + s.crit * 300 + s.leech * 900 + (s.revive ? 120 : 0));
   };
   BB.teamPower = (heroes) => heroes.reduce((a, h) => a + BB.power(h), 0);
   // what a stage expects: five common heroes at the stage's level
@@ -226,6 +227,53 @@
     const h = BB.newHero({ legend: id, level: BB.startLevel(save) + 1 }); h.level = Math.min(h.level, BB.levelCap(h));
     save.heroes.push(h); BB.placeHero(save, h.id); return h;
   };
+
+  // ---------------------------------------------------------------- skill tree: three branches of linked nodes, a point per level
+  BB.TREE_BRANCHES = [
+    { id: 'might', name: 'Might', col: '#ff7a59', icon: 'sword' },
+    { id: 'guard', name: 'Bulwark', col: '#5aa8ff', icon: 'shield' },
+    { id: 'art', name: 'Ultimate', col: '#b57cff', icon: 'star' },
+  ];
+  // x: column 0..2 (bridges sit between), y: tier 0..3
+  BB.TREE = [
+    { id: 'm1', b: 0, x: 0, y: 0, name: 'Keen Edge', icon: 'sword', max: 3, mod: { atkPct: 0.06 } },
+    { id: 'm2', b: 0, x: 0, y: 1, req: ['m1'], name: 'Precision', icon: 'eye', max: 2, mod: { crit: 0.04 } },
+    { id: 'm3', b: 0, x: 0, y: 2, req: ['m2'], name: 'Ferocity', icon: 'bolt', max: 2, mod: { aspdPct: 0.08 } },
+    { id: 'm4', b: 0, x: 0, y: 3, req: ['m3'], name: 'Executioner', icon: 'skull', max: 1, cap: true, mod: { lowHpAtk: 0.3, atkPct: 0.05 } },
+    { id: 'g1', b: 1, x: 1, y: 0, name: 'Toughness', icon: 'heart', max: 3, mod: { hpPct: 0.08 } },
+    { id: 'g2', b: 1, x: 1, y: 1, req: ['g1'], name: 'Iron Skin', icon: 'shield', max: 2, mod: { def: 2.5 } },
+    { id: 'g3', b: 1, x: 1, y: 2, req: ['g2'], name: 'Bloodthirst', icon: 'drop', max: 2, mod: { leech: 0.04 } },
+    { id: 'g4', b: 1, x: 1, y: 3, req: ['g3'], name: 'Undying', icon: 'ankh', max: 1, cap: true, mod: { revive: 1, thorns: 0.15 } },
+    { id: 'u1', b: 2, x: 2, y: 0, name: 'Focus', icon: 'star', max: 3, mod: { skillDmg: 0.1 } },
+    { id: 'u2', b: 2, x: 2, y: 1, req: ['u1'], name: 'Surge', icon: 'spark', max: 2, mod: { energyGain: 0.15 } },
+    { id: 'u3', b: 2, x: 2, y: 2, req: ['u2'], name: 'Opening Gambit', icon: 'flag', max: 2, mod: { startEnergy: 20 } },
+    { id: 'u4', b: 2, x: 2, y: 3, req: ['u3'], name: 'Mastery', icon: 'crown', max: 1, cap: true, mod: { skillDmg: 0.35, skillArea: 0.25, skillDur: 0.3 } },
+    { id: 'x1', b: -1, x: 0.5, y: 1.5, req: ['m2', 'g2'], any: true, name: 'Battle-Hardened', icon: 'weave', max: 1, mod: { atkPct: 0.05, hpPct: 0.05 } },
+    { id: 'x2', b: -1, x: 1.5, y: 1.5, req: ['g2', 'u2'], any: true, name: 'Rallying Spirit', icon: 'weave', max: 1, mod: { energyGain: 0.1, heal: 0.15 } },
+  ];
+  BB.TREE_BY_ID = {}; BB.TREE.forEach((n) => (BB.TREE_BY_ID[n.id] = n));
+  const MODTXT = { atkPct: ['% attack', 100], crit: ['% crit chance', 100], aspdPct: ['% attack speed', 100], hpPct: ['% health', 100], def: [' defence', 1],
+    leech: ['% life steal', 100], skillDmg: ['% ultimate damage', 100], energyGain: ['% ultimate charge rate', 100], startEnergy: [' starting charge', 1],
+    lowHpAtk: ['% attack below half health', 100], thorns: ['% damage reflected', 100], skillArea: ['% ultimate area', 100], skillDur: ['% ultimate duration', 100], heal: ['% healing', 100] };
+  BB.talentName = (n, hero) => n.id === 'u4' && hero ? BB.CALLINGS[hero.calling].skill.name + ' Mastery' : n.name;
+  BB.talentDesc = function (n, rank) {
+    const r = Math.max(1, rank);
+    const parts = [];
+    for (const q in n.mod) {
+      if (q === 'revive') { parts.push('the first fallen hero rises once a battle'); continue; }
+      const m = MODTXT[q]; if (!m) continue;
+      parts.push('+' + Math.round(n.mod[q] * r * m[1] * 10) / 10 + m[0]);
+    }
+    return parts.join(', ');
+  };
+  BB.talentPoints = (h) => Math.max(0, h.level - 1);
+  BB.talentSpent = (h) => Object.values(h.talents || {}).reduce((a, r) => a + r, 0);
+  BB.talentFree = (h) => BB.talentPoints(h) - BB.talentSpent(h);
+  BB.talentRank = (h, id) => (h.talents && h.talents[id]) || 0;
+  BB.talentOpen = (h, n) => !n.req || (n.any ? n.req.some((q) => BB.talentRank(h, q) > 0) : n.req.every((q) => BB.talentRank(h, q) > 0));
+  BB.canLearn = (h, id) => { const n = BB.TREE_BY_ID[id]; return !!n && BB.talentFree(h) > 0 && BB.talentRank(h, id) < n.max && BB.talentOpen(h, n); };
+  BB.learn = function (h, id) { if (!BB.canLearn(h, id)) return false; h.talents = h.talents || {}; h.talents[id] = BB.talentRank(h, id) + 1; return true; };
+  BB.resetTalents = function (h) { h.talents = {}; };
 
   // ---------------------------------------------------------------- level up, ascend, forge
   BB.levelUp = function (save, h) {

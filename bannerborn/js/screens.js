@@ -16,7 +16,7 @@
   const MAIN = ['home', 'heroes', 'team', 'forge', 'shop', 'campaign', 'hero', 'recruit'];
   UI.show = function (id) {
     document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('on', s.id === id));
-    UI.current = id;
+    UI.current = id; document.body.dataset.screen = id;
     $('shell').classList.toggle('on', MAIN.includes(id));
     $('tabbar').style.display = ['hero', 'recruit', 'campaign'].includes(id) ? 'none' : '';
     document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('on', t.dataset.tab === id));
@@ -225,6 +225,7 @@
     check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
   };
   UI.si = (n, size) => '<svg class="i" viewBox="0 0 24 24" style="width:' + (size || 14) + 'px;height:' + (size || 14) + 'px;vertical-align:-2px">' + SI[n] + '</svg>';
+  UI.callPath = (calling) => CICON[calling] || CICON.vanguard;
   UI.callIcon = (calling, cls) => '<svg class="ci ' + (cls || '') + '" viewBox="0 0 24 24"><path d="' + (CICON[calling] || CICON.vanguard) + '"/></svg>';
   // a hero standing, crisp pixels: one integer scale, feet near the bottom (cached once the art is in)
   const bodyCache = {};

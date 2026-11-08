@@ -191,7 +191,8 @@ button.hc:active{transform:scale(.97)}
 .sect{font:600 13px var(--head);letter-spacing:.14em;text-transform:uppercase;color:var(--text);display:flex;align-items:baseline;gap:10px;margin-top:4px}
 .sect small{font:500 12px var(--body);letter-spacing:0;text-transform:none;color:var(--mute)}
 
-/* ---- hero detail */
+/* ---- hero detail: a game screen painted on its own canvas (js/heroui.js) */
+#hgCv{position:absolute;left:0;right:0;top:calc(52px + var(--safe-t));bottom:var(--safe-b);width:100%;height:calc(100% - 52px - var(--safe-t) - var(--safe-b));touch-action:none}
 #hero .show{flex:1.05;position:relative;overflow:hidden;padding:0}
 #hrCv{position:absolute;inset:0;width:100%;height:100%;border-radius:17px}
 #hero .show .top{position:absolute;top:18px;left:20px;right:20px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none}
@@ -406,6 +407,7 @@ input[type=range]{accent-color:var(--accent)} input[type=checkbox]{accent-color:
   .offer{padding:12px 10px} .offer .art{width:58px;height:58px;font-size:24px;border-radius:16px}
   #hero .info{padding:12px;gap:8px} .power b{font-size:26px} .stats b{font-size:14px} .stats div{padding:6px 8px}
   #story .card{padding:12px 16px} #story canvas{width:56px;height:56px}
+  body[data-screen=hero] #topbar{display:none} body[data-screen=hero] #hgCv{top:var(--safe-t);height:calc(100% - var(--safe-t) - var(--safe-b))}
 }
 </style>
 </head>
@@ -469,13 +471,7 @@ input[type=range]{accent-color:var(--accent)} input[type=checkbox]{accent-color:
   <div class="list scroll grow" id="heroList"></div>
 </div></div>
 
-<div id="hero" class="screen"><div class="bg"></div><div class="body">
-  <div class="show frame r0" id="hrShow"><canvas id="hrCv"></canvas>
-    <div class="top"><div><div class="rk" id="hrRk"></div><div class="nm" id="hrNm"></div><div class="cl" id="hrCl"></div></div><div class="stars" id="hrStars"></div></div>
-    <button class="nav" id="hrPrev" style="left:10px">‹</button><button class="nav" id="hrNext" style="right:10px">›</button>
-  </div>
-  <div class="info frame scroll" id="hrInfo"></div>
-</div></div>
+<div id="hero" class="screen"><canvas id="hgCv"></canvas></div>
 
 <div id="recruit" class="screen"><div class="bg"></div><div class="body">
   <div class="tiers"><button class="btn dark sm" id="bRecBack" style="align-self:flex-start">‹ Heroes</button><div id="tierTabs" style="display:flex;flex-direction:column;gap:9px"></div></div>
@@ -541,6 +537,7 @@ input[type=range]{accent-color:var(--accent)} input[type=checkbox]{accent-color:
 <script src="js/battle.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/screens.js"></script>
+<script src="js/heroui.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

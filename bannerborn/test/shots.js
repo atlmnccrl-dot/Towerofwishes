@@ -58,11 +58,25 @@ require('fs').mkdirSync(out, { recursive: true });
   await wait(1600); await shot('15-reveal');
   await tap('#rvOk');
   await tap('#bRecBack'); await wait(300);
-  await tap('#heroList .hc'); await wait(700); await shot('16-hero');
-  await p.click('#hrInfo .ups .btn'); await wait(200);
-  await p.click('#hrInfo .gear4 .gs'); await wait(300); await shot('17-pick-gear');
-  await p.evaluate(() => BB.UI.modal('mPick', false));
-  await tap('#hrNext'); await wait(500); await shot('18-hero-next');
+  // the hero screen is painted on a canvas: press its regions by id
+  const region = async (id) => {
+    const pt = await p.evaluate((id) => { const H = BB.UI.hs, R = H.regions.find((r) => r.id === id); if (!R) return null; const rc = document.getElementById('hgCv').getBoundingClientRect(); return { x: rc.left + (H.ox + (R.x + R.w / 2) * H.S) / H.dpr, y: rc.top + (H.oy + (R.y + R.h / 2) * H.S) / H.dpr }; }, id);
+    if (!pt) { errs.push('no hero-screen region ' + id); return; }
+    await p.mouse.click(pt.x, pt.y); await wait(300);
+  };
+  await tap('#heroList .hc'); await wait(900); await shot('16-hero');
+  const lv0 = await p.evaluate(() => BB.UI.hs.id && BB.save.heroes.find((h) => h.id === BB.UI.hs.id).level);
+  await region('lvl'); await wait(250); await shot('16b-hero-levelup');
+  const lv1 = await p.evaluate(() => BB.save.heroes.find((h) => h.id === BB.UI.hs.id).level);
+  if (lv1 !== lv0 + 1) errs.push('level up did not work: ' + lv0 + ' -> ' + lv1);
+  await region('sock-weapon'); await wait(300); await shot('17-pick-gear');
+  await region('item-0'); await wait(300);
+  if (!(await p.evaluate(() => !!BB.save.heroes.find((h) => h.id === BB.UI.hs.id).gear.weapon))) errs.push('equip from the picker did not work');
+  await region('max'); await wait(300);
+  await region('tab-tree'); await wait(400); await shot('17b-tree');
+  await region('node-m1'); await region('learn'); await region('learn'); await region('node-g1'); await region('learn'); await region('node-u1'); await wait(500); await shot('17c-tree-learned');
+  if ((await p.evaluate(() => BB.talentRank(BB.save.heroes.find((h) => h.id === BB.UI.hs.id), 'm1'))) !== 2) errs.push('learning a skill did not work');
+  await region('next'); await wait(500); await shot('18-hero-next');
   await p.evaluate(() => BB.UI.go('team')); await wait(400); await shot('19-team');
   await tap('.tab[data-tab=forge]'); await wait(300); await shot('20-forge');
   await tap('.tab[data-tab=shop]'); await wait(300); await shot('21-shop');

@@ -33,7 +33,7 @@
       const st = BB.heroStats(f.hero, callings, this.save);
       const off = f.row === 'front' ? { a: 1.1, b: (f.slot - 0.5) * 1.5 } : { a: -0.6, b: (f.slot - 1) * 1.4 };
       const e = this.spawnHero(f.hero, st, sp.x + fx * off.a + px * off.b, sp.y + fy * off.a + py * off.b);
-      e.row = f.row; e.fslot = f.slot; e.energy = 25;
+      e.row = f.row; e.fslot = f.slot; e.energy = Math.min(90, 25 + (st.startEnergy || 0));
       if (st.revive) this.revives = 1;
     });
     this.heroList = this.ents.filter((e) => e.side === 'hero');
@@ -321,8 +321,8 @@
     dmg = Math.round(dmg);
     tgt.hp -= dmg; tgt.flash = 0.18;
     if (tgt.side === 'hero' && !tgt.ward) { this.metrics.taken += dmg; this.metrics.minFrac = Math.min(this.metrics.minFrac, Math.max(0, tgt.hp / tgt.maxhp)); } else if (tgt.side === 'foe') this.metrics.dealt += dmg;
-    if (src && src.side === 'hero' && !o.aoe) src.energy = Math.min(100, (src.energy || 0) + (src.ranged ? 9 : 12));
-    if (tgt.side === 'hero' && !tgt.ward) tgt.energy = Math.min(100, (tgt.energy || 0) + dmg / tgt.maxhp * 70);
+    if (src && src.side === 'hero' && !o.aoe) src.energy = Math.min(100, (src.energy || 0) + (src.ranged ? 9 : 12) * (1 + ((src.st && src.st.energyGain) || 0)));
+    if (tgt.side === 'hero' && !tgt.ward) tgt.energy = Math.min(100, (tgt.energy || 0) + dmg / tgt.maxhp * 70 * (1 + ((tgt.st && tgt.st.energyGain) || 0)));
     if (src && src.side === 'hero') { src.dealt = (src.dealt || 0) + dmg; this.addRally(dmg * 0.045); if (src.st && src.st.leech) src.hp = Math.min(src.maxhp, src.hp + dmg * src.st.leech); }
     if (tgt.side === 'hero' && tgt.st && tgt.st.thorns && src && !src.ranged && !o.aoe) this.hit(null, src, 1, { atk: dmg * tgt.st.thorns * 3, aoe: true });
     if (o.burn) { tgt.buffs.burn = 3; tgt.burnAtk = Math.max(tgt.burnAtk || 0, atk); }
@@ -790,7 +790,7 @@
       if (e.hp <= 0) this.kill(e, null);
     }
     if (e.dodgeCd > 0) e.dodgeCd -= dt;
-    if (e.side === 'hero') e.energy = Math.min(100, (e.energy || 0) + dt * 4); // ultimates charge with time, blows and wounds
+    if (e.side === 'hero') e.energy = Math.min(100, (e.energy || 0) + dt * 4 * (1 + ((e.st && e.st.energyGain) || 0))); // ultimates charge with time, blows and wounds
     e.cd = 0;
     e.ct += dt;
     if (e.lock > 0) e.lock -= dt;
