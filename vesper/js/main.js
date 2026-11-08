@@ -161,13 +161,41 @@
     skill2: (H) => ['NEW SKILL · ' + H.skills[1].name.toUpperCase(), `${R.touch ? 'The second skill button' : 'F'} uses it.`],
     art: () => ['NEW ABILITY · MOON ART', `When the moon gauge is full, ${R.touch ? 'tap the moon' : 'press E'} for your ultimate. Use it at low health for the strongest version.`],
   };
+  // ---- the guided trial ----------------------------------------------------------------------------------
+  // One thing at a time, each on its own: the tutorial places the foes for each step itself (the waves
+  // wait), shows where to go and which button to press, counts the step down, and cheers when it is done.
+  // Every step also moves on by itself after a while, so nobody is ever stuck (and the bot can finish it).
+  const key = (pc, touch) => (R.touch ? touch : pc);
+  const ahead = (f, d, side) => { const s = f.s, h = s.hero, A = VS.arenaOf(s), e = VS.exitOf(A), a = Math.atan2(e.y - h.y, e.x - h.x), c = VS.clampTo(A, h.x + Math.cos(a) * d - Math.sin(a) * (side || 0), h.y + Math.sin(a) * d + Math.cos(a) * (side || 0), 30); return { x: c[0], y: c[1] }; };
+  const alive = (f, keys) => (f.tut.units || []).filter((u) => u.alive && (!keys || keys.indexOf(u.key) >= 0));
   const TUT = [
-    { title: 'TRIAL · MOVE', text: () => (R.touch ? 'Drag the left side of the screen to move.' : 'Use WASD to move.') },
-    { title: 'TRIAL · CUT', text: () => (R.touch ? 'Tap the big button to cut, again and again for a combo. Destroy a training husk.' : 'Left click to cut; keep clicking for a combo. Aim with the mouse. Destroy a training husk.') },
-    { title: 'TRIAL · HEAVY', text: () => (R.touch ? 'Tap HEAVY for a heavy blow all around you.' : 'Right click for a heavy blow all around you. It breaks shields.') },
-    { title: 'TRIAL · DODGE', text: () => (R.touch ? 'Tap DASH to dodge. You cannot be hit while dashing.' : 'Press Space to dodge. You cannot be hit while dashing; cut right after for a dash-cut.') },
-    { title: 'TRIAL · FIGHT', text: () => 'The dead are coming. Red flashes cannot be blocked: dodge them. Shields block from the front: use a heavy or get behind. Kill the Blood Husk near the others.' },
+    { title: 'MOVE', text: () => key('Use WASD (or the arrow keys) to walk to the glowing circle.', 'Drag anywhere on the left half of the screen to walk to the glowing circle.'), btn: 'stick',
+      enter: (f) => { f.tut.mark = ahead(f, 230); f.tut.walked = 0; },
+      done: (f) => { const h = f.s.hero, m = f.tut.mark; return Math.hypot(h.x - m.x, h.y - m.y) < 40 || f.tut.walked > 260; }, limit: 25 },
+    { title: 'CUT', text: () => key('Left click (or J) to cut. Aim with the mouse. Cut down both training husks.', 'Tap the big sword button to cut. Cut down both training husks.'), btn: 'atk',
+      enter: (f) => { const a = ahead(f, 90, -38), b = ahead(f, 90, 38); f.tut.units = [SIM.place(f.s, 'dummy', a.x, a.y), SIM.place(f.s, 'dummy', b.x, b.y)]; },
+      prog: (f) => (2 - alive(f).length) + ' / 2', done: (f) => !alive(f).length, limit: 30, leave: (f) => { for (const u of alive(f)) SIM.dismiss(f.s, u); } },
+    { title: 'COMBO', text: () => key('Keep clicking without stopping: each cut chains into the next. Land a 6-hit chain on the post.', 'Keep tapping without stopping: each cut chains into the next. Land a 6-hit chain on the post.'), btn: 'atk',
+      enter: (f) => { const a = ahead(f, 80); f.tut.units = [SIM.place(f.s, 'post', a.x, a.y)]; f.tut.best = 0; },
+      prog: (f) => { f.tut.best = Math.max(f.tut.best, f.s.combo); return Math.min(6, f.tut.best) + ' / 6 hits'; }, done: (f) => f.tut.best >= 6 || !alive(f).length, limit: 30,
+      leave: (f) => { for (const u of alive(f)) SIM.dismiss(f.s, u); } },
+    { title: 'HEAVY', text: () => key('Walk into the group and right click (or K) for a HEAVY blow: it hits everything around you.', 'Walk into the group and tap HEAVY: it hits everything around you.'), btn: 'heavy',
+      enter: (f) => { const c = ahead(f, 120); f.tut.units = [0, 1, 2, 3].map((i) => SIM.place(f.s, 'dummy', c.x + Math.cos(i * 1.57) * 26, c.y + Math.sin(i * 1.57) * 26)); f.tut.heavy = 0; },
+      prog: (f) => (4 - alive(f).length) + ' / 4', done: (f) => !alive(f).length, limit: 30, leave: (f) => { for (const u of alive(f)) SIM.dismiss(f.s, u); } },
+    { title: 'DODGE', text: () => key('The Drill Knight swings slowly. When the RED ring flashes under him, press SPACE to dash through the blow. Dodge 2 swings.', 'The Drill Knight swings slowly. When the RED ring flashes under him, tap DASH to dash through the blow. Dodge 2 swings.'), btn: 'dodge',
+      enter: (f) => { const a = ahead(f, 110); f.tut.units = [SIM.place(f.s, 'drill', a.x, a.y)]; f.tut.dodged = 0; },
+      prog: (f) => Math.min(2, Math.floor(f.tut.dodged)) + ' / 2', done: (f) => f.tut.dodged >= 2, limit: 35 },
+    { title: 'DASH-CUT', text: () => key('Cut right after a dash for a DASH-CUT. The knight is open now: finish him.', 'Tap the sword right after a dash for a DASH-CUT. The knight is open now: finish him.'), btn: 'atk',
+      enter: (f) => { for (const u of alive(f)) { u.hp = u.maxHp = 46; u.maxPoise = u.poise = 0; } f.tut.dash = 0; },
+      prog: (f) => (f.tut.dash ? 'dash-cut ✓' : 'dash-cut ✗'), done: (f) => !alive(f).length, limit: 30, leave: (f) => { for (const u of alive(f)) SIM.dismiss(f.s, u); } },
+    { title: 'BARRELS', text: () => key('Barrels, crates and pots break. Smash the powder barrel to blow up the husks around it.', 'Barrels, crates and pots break. Smash the powder barrel to blow up the husks around it.'), btn: 'atk',
+      enter: (f) => { const c = ahead(f, 120); f.tut.barrel = SIM.addBreak(f.s, 'barrel', c.x, c.y); f.tut.units = [0, 1, 2].map((i) => SIM.place(f.s, 'dummy', c.x + Math.cos(0.6 + i * 2.1) * 30, c.y + Math.sin(0.6 + i * 2.1) * 30)); f.tut.mark = null; f.tut.goal = { x: f.tut.barrel.x, y: f.tut.barrel.y, hit: true }; },
+      done: (f) => !f.tut.barrel || f.tut.barrel.broken, limit: 25, leave: (f) => { for (const u of alive(f)) SIM.dismiss(f.s, u); } },
+    { title: 'FIGHT', text: (f) => f.tut.hint || 'The dead are coming from all sides. Red flashes cannot be blocked: dash through them. Clear them all.', btn: null,
+      enter: (f) => { for (const u of SIM.foes(f.s)) SIM.dismiss(f.s, u); f.tut.units = []; SIM.release(f.s); f.tut.mark = null; }, done: () => false },
   ];
+  // What to say the first time each kind of foe shows up in the trial's fight.
+  const FOE_HINT = { husk: 'BLOOD HUSK: it runs at you and bursts. Kill it near the others to blow them up too.', shield: 'SHIELDBEARER: his shield stops cuts from the front. Use HEAVY, or get behind him.', ghoul: 'GHOULS: weak alone, dangerous in a pack. Keep moving, keep cutting.', raider: 'RAIDER: he hits hard. Dash through his swing, then punish.' };
   // The sets a node's fight needs that are not loaded yet.
   const missingFor = (b) => PR.setsFor(b).filter((id) => !A.hasSet(id));
   // The tile groups an hour's arenas are built from.
@@ -202,7 +230,7 @@
   function startFight(stageIdx, opts) {
     U.hide(); opts = opts || {};
     const p = P(), b = opts.build, kit = opts.theatre ? null : PR.kit(p);
-    const s = SIM.create(stageIdx, { seed: (Date.now() & 0xffff) + 1, boons: opts.theatre ? [] : PR.passives(p), kit, hero: p.hero, node: b ? b.node : null });
+    const s = SIM.create(stageIdx, { seed: (Date.now() & 0xffff) + 1, boons: opts.theatre ? [] : PR.passives(p), kit, hero: p.hero, node: b ? b.node : null, guided: !!(opts.node && opts.node.type === 'trial') });
     M.fight = Object.assign({ s, stage: stageIdx, acc: 0, card: null, cardT: 0, say: null, banner: null }, opts);
     M.paused = false; R.snapCam(s); R.fx = []; R.parts = []; R.floaters = []; R.pfx = []; R.entryDoor = null; R.impactF = null; R.kit = s.mods.can;
     f0 = M.fight; const n = opts.node, AR = VS.arenaOf(s);
@@ -210,7 +238,7 @@
       const bossName = s.hasBoss ? (b && b.champion ? D.FOES[b.champion].name : n.echo ? n.name.replace('Echo: ', '') : n.name) : null;
       s.goal = { reach: n.type === 'trial' ? 'Finish the trial' : n.rule === 'horde' ? 'Survive the horde' : 'Clear every wave', boss: bossName ? 'Defeat ' + bossName : 'Clear every wave' };
       f0.banner = { text: n.name, sub: (n.rule ? PR.RULES[n.rule](n.n).split(':')[0].toUpperCase() + '  ·  ' : '') + AR.name + '  ·  AREA 1 / ' + s.waves.length, t: -0.4, col: '#ffffff' };
-      if (n.type === 'trial') { f0.tut = { step: 0, x0: s.hero.x, y0: s.hero.y, t: 0 }; p.tips.heavy = p.tips.dodge = true; }
+      if (n.type === 'trial') { f0.tut = { step: 0, t: 0, walked: 0, seen: {}, dodged: 0 }; p.tips.heavy = p.tips.dodge = true; s.goal = { reach: 'Finish the trial', boss: 'Finish the trial' }; }
       f0.tips = kit.filter((k) => !p.tips[k]).map((k) => ({ id: k, t: 0 }));
     } else f0.banner = { text: AR.name, sub: 'AREA 1 / ' + s.waves.length, t: -0.4, col: '#ffffff' };
     M.go('fight'); AU.playAmb(null); AU.playMusic('heartfelt_battle');
@@ -237,13 +265,26 @@
   }
   // The trial's steps, checked against the fight as it plays.
   function tutorial(f) {
-    const s = f.s, T = f.tut, h = s.hero, foes = SIM.foes(s);
-    T.t += 1 / 60; const next = () => { T.step++; T.t = 0; AU.sfx('step_2', 0.6); };
-    if (T.step === 0 && Math.hypot(h.x - T.x0, h.y - T.y0) > 60) next();
-    else if (T.step === 1 && foes.filter((u) => u.key === 'dummy').length < 4 && s.wave >= 0) next();
-    else if (T.step === 2 && h.state === 'attack' && h.atk === s.heroDef.heavy) next();
-    else if (T.step === 3 && h.state === 'dodge') next();
-    else if (T.step === 4 && T.t < 0.02) AU.sfx('horn', 0.5);
+    const s = f.s, T = f.tut, h = s.hero, dt = 1 / 60;
+    if (T.step >= TUT.length) return;
+    const st = TUT[T.step];
+    if (!T.entered) { T.entered = true; T.t = 0; T.goal = null; T.units = T.units || []; if (st.enter) st.enter(f); s.marker = T.mark || T.goal || null; }
+    T.t += dt;
+    // Count what the steps watch for.
+    if (T.lx != null) T.walked += Math.hypot(h.x - T.lx, h.y - T.ly) || 0; T.lx = h.x; T.ly = h.y;
+    for (const e of s.events) {
+      if (e.type === 'perfect') T.dodged++;
+      else if (e.type === 'dodge' && st.title === 'DODGE' && SIM.foes(s).some((u) => u.state === 'attack' && Math.hypot(u.x - h.x, u.y - h.y) < 70)) T.dodged += 0.5;
+      else if (e.type === 'dashCut') T.dash = 1;
+      else if (e.type === 'spawn' && st.title === 'FIGHT') { const u = s.units.find((x) => x.id === e.id); if (u && FOE_HINT[u.key] && !T.seen[u.key]) { T.seen[u.key] = 1; T.hint = FOE_HINT[u.key]; T.hintT = 0; } }
+    }
+    if (T.hint) { T.hintT = (T.hintT || 0) + dt; if (T.hintT > 6) T.hint = null; }
+    if (T.cheer > 0) { T.cheer -= dt; if (T.cheer <= 0) { T.step++; T.entered = false; } return; }
+    if (st.done(f) || (st.limit && T.t > st.limit)) {
+      if (st.leave) st.leave(f);
+      T.cheer = 1.0; T.mark = null; s.marker = null; AU.sfx('step_2', 0.8); AU.sfx('allout', 0.35);
+      R.float('✓ ' + st.title, h.x, h.y, 60, '#8ad0ff', true, true);
+    }
   }
   function fight(ctx, dt) {
     const f = M.fight, s = f.s;
@@ -281,7 +322,11 @@
       if (f.card) { f.cardT += dt; if (f.cardT < 1.9) R.bossCard(ctx, s, f.card, f.cardT); else f.card = null; }
       // Coaching: the trial's steps, then a card for each newly learned ability.
       if (f.banner && f.banner.t < 2.2 && !f.banner.low) { /* the coach waits for the banner */ }
-      else if (f.tut && !M.paused) { const st = TUT[Math.min(4, f.tut.step)]; R.coach(ctx, { title: st.title, text: st.text(), t: f.tut.t + 0.3, step: f.tut.step, of: 5, col: '#8ad0ff' }); }
+      else if (f.tut && !M.paused) {
+        const T = f.tut, st = TUT[Math.min(TUT.length - 1, T.step)];
+        R.tutGuide(ctx, s, { mark: T.cheer > 0 ? null : T.mark, targets: T.cheer > 0 ? [] : alive(f), barrel: T.cheer > 0 || !T.barrel || T.barrel.broken ? null : T.barrel, btn: T.cheer > 0 ? null : st.btn, touch: R.touch });
+        R.coach(ctx, { title: 'TRIAL  ·  ' + st.title, text: st.text(f), t: T.cheer > 0 ? 1 : T.t + 0.3, step: T.step, of: TUT.length, col: '#8ad0ff', prog: st.prog && T.cheer <= 0 ? st.prog(f) : null, done: T.cheer > 0 });
+      }
       else if (f.tips && f.tips.length && !M.paused && s.time > 1.2) {
         const tp = f.tips[0], H = s.heroDef, [tt, tx] = TIPS[tp.id](H); tp.t += dt;
         R.coach(ctx, { title: tt, text: tx, t: tp.t, life: 6 });
@@ -357,7 +402,7 @@
   }
 
   async function boot() {
-    R.init(document.getElementById('game'));
+    R.init(document.getElementById('game')); try { R.touch = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches); } catch (e) { /* desktop */ }
     const c = R.canvas;
     c.addEventListener('contextmenu', (e) => e.preventDefault());
     c.addEventListener('pointerdown', onDown); c.addEventListener('pointermove', onMove); c.addEventListener('pointerup', onUp); c.addEventListener('pointercancel', onUp);

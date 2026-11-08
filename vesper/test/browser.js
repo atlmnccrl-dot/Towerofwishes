@@ -25,7 +25,7 @@ fs.mkdirSync(out, { recursive: true });
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => VS.main.state === 'fight' && VS.main.fight.nodeId === 'a0-t');
   await shot('03-trial', 2600);
-  await page.keyboard.down('KeyD'); await page.waitForTimeout(700); await page.keyboard.up('KeyD');
+  await page.keyboard.down('KeyD'); await page.waitForFunction(() => VS.main.fight.tut.step >= 1, null, { timeout: 6000 }).catch(() => {}); await page.keyboard.up('KeyD');
   if ((await page.evaluate(() => VS.main.fight.tut.step)) < 1) errors.push('trial did not advance after moving');
   for (let i = 0; i < 4; i++) { await page.keyboard.press('KeyJ'); await page.waitForTimeout(130); }
   await shot('04-combo', 40);
@@ -35,7 +35,7 @@ fs.mkdirSync(out, { recursive: true });
   if (!(await page.evaluate(() => VS.ui.current === 'pause'))) errors.push('pause menu did not open');
   await button('Resume'); await page.waitForTimeout(200);
   await page.evaluate(() => { VS.main.save.opts.auto = true; });
-  await page.waitForFunction(() => VS.ui.current === 'result', null, { timeout: 90000 });
+  await page.waitForFunction(() => VS.ui.current === 'result', null, { timeout: 180000 });
   await shot('06-trial-result', 900);
   console.log('after trial', await page.evaluate(() => { const p = VS.main.save; return `level ${p.lvl} sp ${p.sp} cleared ${VS.PROG.cleared(p, 'a0-t')}`; }));
   await button('Continue');

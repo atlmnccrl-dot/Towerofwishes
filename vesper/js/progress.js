@@ -230,7 +230,8 @@
     if (n.rule === 'time') rules.time = n.n;
     let waves, boss = false, champion = null, arenas = [ar[idx % ar.length], ar[(idx + 1) % ar.length]];
     switch (n.type) {
-      case 'trial': waves = [['dummy', 'dummy', 'dummy', 'dummy', '+', 'ghoul', 'husk', 'ghoul', '+', 'shield', 'raider']]; arenas = ['court']; break;
+      // The guided trial: the tutorial places each foe itself, then lets this wave loose for the last step.
+      case 'trial': waves = [['ghoul', 'husk', 'ghoul', '+', 'shield', 'raider', 'ghoul']]; arenas = ['court']; break;
       case 'battle': waves = [area(2), area(2)]; break;
       case 'elite': { // the act's champion leads the second area
         const ch = CHAMPS[n.act][P.NODES.filter((x) => x.act === n.act && x.type === 'elite').indexOf(n) % 2];
@@ -255,7 +256,7 @@
     const adj = { 'a1-b': [0.78, 0.8], 'a5-b': [0.9, 0.95], 'a6-2': [0.85, 0.9] }[n.id]; if (adj) { sc.hp *= adj[0]; sc.dmg *= adj[1]; }   // two guardians at once; the finale
     if (n.rule === 'glass') sc.dmg *= 0.75;
     if (n.big) { sc.hp *= 0.85; sc.dmg *= 0.85; } else if (n.rule === 'horde') { sc.hp *= 0.85; sc.dmg *= 0.85; }
-    return { stage: A.stage, champion, node: { waves, boss, arenas, scale: sc, rules, variants } };
+    return { stage: A.stage, champion, node: { waves, boss, arenas, scale: sc, rules, variants, script: n.type === 'trial' } };
   };
   // Every foe key a fight can put on the floor (its waves and what they summon), for loading their sets.
   P.foeKeys = function (b) { const out = new Set(); const add = (k) => { if (out.has(k) || !D().FOES[k]) return; out.add(k); for (const a of D().FOES[k].atks) if (a.summon) add(a.summon.key); };

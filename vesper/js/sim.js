@@ -62,6 +62,9 @@
     // The areas of this fight: one large tile map each, built from the hour's look and the node's layouts.
     const aseed = opts.arenaSeed != null ? opts.arenaSeed : (opts.seed || 1);
     s.arenaList = (st.arenas && st.arenas.length ? st.arenas : ['court']).map((k, i) => AR.build(st.id || 'gate', k, aseed * 7 + i * 131 + stageIdx));
+    // A scripted fight (the guided trial): no waves come on their own; the tutorial places each foe and
+    // lets the waves loose at the end.
+    s.scripted = !!(N && N.script && opts.guided);
     curArena = arenaOf(s);
     const en = VS.entryOf(curArena); s.hero = makeUnit(s, 'hero', H.id, Object.assign({}, H, { hp: M.hp }), en.x, en.y, 0);
     return s;
@@ -484,12 +487,26 @@
   // ---- waves --------------------------------------------------------------------------------
   function spawnPoint(s, A, i) {
     const h = s.hero;
-    if (A.kind === 'grid') return AR.around(A, s.rand, h.x, h.y, 105, 215, 30, true);
+    if (A.kind === 'grid') return spreadPoint(s, A, i, 150, 300, false);
     for (let k = 0; k < 40; k++) {
       const x = (s.rand() * 2 - 1) * 260, y = (s.rand() * 2 - 1) * 260;
       if (VS.inside(A, x, y, 30) && Math.hypot(x - h.x, y - h.y) > 95) return { x, y };
     }
     const c = VS.clampTo(A, -h.x, -h.y, 30); return { x: c[0], y: c[1] };
+  }
+  // On the large maps a group comes from two or three directions at once, each foe at its own distance
+  // and well apart from the others, so a wave closes in from around the hero instead of in one clump.
+  function spreadPoint(s, A, i, lo, hi, sight) {
+    const h = s.hero, G = s.spread || (s.spread = { base: s.rand() * TAU, fronts: 2, taken: [] });
+    const front = i % G.fronts, an0 = G.base + front * TAU / G.fronts;
+    for (let k = 0; k < 36; k++) {
+      const an = an0 + (s.rand() - 0.5) * (k < 18 ? 1.1 : 2.4), d = lo + (hi - lo) * s.rand(), x = h.x + Math.cos(an) * d, y = h.y + Math.sin(an) * d;
+      if (!AR.inside(A, x, y, 26)) continue;
+      if (G.taken.some((p) => Math.hypot(p.x - x, p.y - y) < 64)) continue;
+      if (sight && !AR.los(A, x, y, h.x, h.y, 6)) continue;
+      G.taken.push({ x, y }); return { x, y };
+    }
+    const p = AR.around(A, s.rand, h.x, h.y, lo, hi, 26, false); G.taken.push(p); return p;
   }
   // A wave comes in pulses split by '+': the next pulse charges in when one foe is left standing.
   function groupsOf(list) { const g = [[]]; for (const k of list) { if (k === '+') g.push([]); else g[g.length - 1].push(k); } return g.filter((x) => x.length); }
@@ -503,10 +520,15 @@
   }
   function spawnGroup(s, list, boss, elite) {
     const h = s.hero, A = arenaOf(s), gates = VS.sideGates(A, s).sort((a, b) => Math.hypot(b.x - h.x, b.y - h.y) - Math.hypot(a.x - h.x, a.y - h.y));
+    if (A.kind === 'grid') s.spread = { base: s.rand() * TAU, fronts: list.length >= 5 ? 3 : list.length >= 2 ? 2 : 1, taken: [] };
     list.forEach((key, i) => {
       const def = D.FOES[key], mode = def.boss ? (key === 'umbral' ? 'rift' : 'drop') : A.spawn[i % A.spawn.length];
       let x, y, tx, ty;
-      if (mode === 'side') { const g = gates[i % gates.length]; x = g.x; y = g.y; const c = VS.clampTo(A, g.tx + (s.rand() - 0.5) * 30, g.ty + (s.rand() - 0.5) * 30, 20); tx = c[0]; ty = c[1]; }
+      if (mode === 'side' && A.kind === 'grid') {
+        // Running in from open ground out of sight, along a clear line, to well short of the hero.
+        const p = spreadPoint(s, A, i, 300, 450, true), dx = h.x - p.x, dy = h.y - p.y, d = Math.hypot(dx, dy) || 1, k = Math.max(0, (d - 150) / d), c = AR.clamp(A, p.x + dx * k, p.y + dy * k, 20);
+        x = p.x; y = p.y; tx = c[0]; ty = c[1];
+      } else if (mode === 'side') { const g = gates[i % gates.length]; x = g.x; y = g.y; const c = VS.clampTo(A, g.tx + (s.rand() - 0.5) * 30, g.ty + (s.rand() - 0.5) * 30, 20); tx = c[0]; ty = c[1]; }
       else { const p = def.boss ? bossPoint(s, A) : spawnPoint(s, A, i); x = p.x; y = p.y; }
       const u = makeUnit(s, 'foe', key, def, x, y, 0); lookOf(s, u);
       const sk = s.def.scale || { hp: 1, dmg: 1 }, DF = VS.DIFF; u.hp = u.maxHp = Math.round(def.hp * sk.hp * (def.boss ? DF.bossHp : DF.hp)); u.dmgMul = sk.dmg * DF.dmg;
@@ -517,7 +539,8 @@
       // The entrance: rise from a rift, drop from the sky, or run in through a side gate.
       u.mode = mode; u.from = { x, y }; u.to = mode === 'side' ? { x: tx, y: ty } : { x, y };
       if (mode === 'side') setAng(u, Math.atan2(ty - y, tx - x));
-      setState(u, 'spawn', def.boss ? 1.5 : mode === 'side' ? 1.1 + i * 0.2 : mode === 'drop' ? 0.75 + i * 0.18 : 0.85 + i * 0.22);
+      const run = Math.hypot(u.to.x - x, u.to.y - y);
+      setState(u, 'spawn', def.boss ? 1.5 : mode === 'side' ? Math.max(1.1, run / 230) + i * 0.15 : mode === 'drop' ? 0.75 + i * 0.18 : 0.85 + i * 0.22);
       ev(s, { type: 'spawn', id: u.id, x: u.to.x, y: u.to.y, fx: x, fy: y, boss: !!def.boss, mode, dur: u.dur });
     });
   }
@@ -802,7 +825,7 @@
       s.reinfT = (s.reinfT || 0) + dt;
       if (s.reinfT > 0.5) { s.reinfT = 0; const g = s.reinf.shift(); spawnGroup(s, g, false, s.stage >= 1 || !!s.rules.elites); ev(s, { type: 'reinforce', n: g.length, left: s.reinf.length }); }
     }
-    else if (h.alive && !foes(s).length) {
+    else if (h.alive && !foes(s).length && !s.scripted) {
       if (s.wave >= s.waves.length - 1) { s.endT = 2.2; setState(h, 'win'); ev(s, { type: 'clear' }); }
       else if (s.wave < 0 || s.area > s.wave) { s.waveT -= dt; if (s.waveT <= 0) { spawnWave(s); s.waveT = 1.1; } }
       else if (!s.portal) openPortal(s);
@@ -860,6 +883,11 @@
       const dx = tx - h.x, dy = ty - h.y, d = Math.hypot(dx, dy) || 1; inp.mx = dx / d; inp.my = dy / d; return inp;
     }
     const o = nearestFoe(s, h);
+    if (!o && s.marker) {
+      const m = s.marker, d = Math.hypot(m.x - h.x, m.y - h.y);
+      if (m.hit && d < 26) { inp.aim = Math.atan2(m.y - h.y, m.x - h.x); inp.atk = true; return inp; }
+      const st = VS.steer(arenaOf(s), h.x, h.y, m.x, m.y); inp.mx = st[0]; inp.my = st[1]; return inp;
+    }
     if (!o) return inp;
     if (can.heavy && foes(s).filter((f) => f.state !== 'spawn' && dist(f, h) < 40).length >= 2 && r() < 0.05) { inp.heavy = true; return inp; }
     const H = s.heroDef, d = dist(o, h), want = H.ranged ? 95 : 18 + o.rad;
@@ -869,5 +897,16 @@
     return inp;
   }
 
-  VS.sim = { create, step, bot, rng, foes, startArt, mods, angDiff, makeUnit, CORE };
+  // For the guided trial: place a foe (rising from a rift) or a breakable, and let the waves loose.
+  function place(s, key, x, y) { const c = VS.clampTo(arenaOf(s), x, y, 22); return summonFoe(s, key, c[0], c[1], 'rift'); }
+  function addBreak(s, type, x, y) {
+    const A = arenaOf(s); if (A.kind !== 'grid') return null; const c = AR.clamp(A, x, y, 16), B = AR.BREAK[type];
+    const o = { key: null, anim: B.anim, x: c[0], y: c[1], r: 11, kind: 'break', type, hp: B.hp, solid: true }; A.objs.push(o);
+    const cx = Math.floor((o.x - A.x0) / A.T), cy = Math.floor((o.y - A.y0) / A.T), i = cy * A.w + cx; (A.byCell[i] || (A.byCell[i] = [])).push(o);
+    return o;
+  }
+  function release(s) { s.scripted = false; s.waveT = 0.6; }
+  // A training foe whose part is over leaves in a puff (no kill, no reward).
+  function dismiss(s, u) { if (!u || !u.alive) return; u.alive = false; u.hp = 0; u.atk = null; setState(u, 'dead'); u.deadT = 9; ev(s, { type: 'vanish', id: u.id, x: u.x, y: u.y }); }
+  VS.sim = { create, step, bot, rng, foes, startArt, mods, angDiff, makeUnit, CORE, place, addBreak, release, dismiss };
 })(typeof window !== 'undefined' ? window : globalThis);

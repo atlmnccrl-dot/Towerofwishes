@@ -834,6 +834,7 @@
       ctx.lineWidth = 4 * R.dpr; ctx.strokeStyle = 'rgba(8,4,10,0.85)'; ctx.strokeText(fl.text, q.x, q.y); ctx.fillStyle = fl.col; ctx.fillText(fl.text, q.x, q.y);
       ctx.restore(); return true;
     });
+    if (!s.staged) offscreen(ctx, s);
     R.drawStreak(ctx, dt);
     const h = s.hero;
     if (s.slowT > 0) { ctx.fillStyle = 'rgba(140,230,255,0.07)'; ctx.fillRect(0, 0, R.W, R.H); }
@@ -843,6 +844,19 @@
     transitOverlay(ctx, s);
     R.shake = Math.max(0, R.shake - dt * 22);
   };
+  // Foes out of sight: a red chevron at the screen's edge pointing at each (bigger for bosses), so a
+  // wave closing in from all sides on the large maps is never a surprise.
+  function offscreen(ctx, s) {
+    const m = 26 * R.k, cx = R.W / 2, cy = R.H / 2;
+    for (const u of s.units) {
+      if (u.team !== 'foe' || !u.alive) continue;
+      const q = R.P(u.x, u.y, 20); if (q.x > m && q.x < R.W - m && q.y > m && q.y < R.H - m) continue;
+      const dx = q.x - cx, dy = q.y - cy, k = Math.min((cx - m) / Math.abs(dx || 1e-6), (cy - m) / Math.abs(dy || 1e-6)), x = cx + dx * k, y = cy + dy * k, an = Math.atan2(dy, dx), r = (u.def.boss ? 11 : 7) * R.k;
+      ctx.save(); ctx.translate(x, y); ctx.rotate(an); ctx.globalAlpha = 0.6 + 0.3 * Math.sin(R.t * 6 + u.id);
+      ctx.fillStyle = u.def.boss || u.elite ? '#ff2a44' : '#ff6a7a'; ctx.strokeStyle = 'rgba(8,4,10,0.8)'; ctx.lineWidth = 2 * R.dpr;
+      ctx.beginPath(); ctx.moveTo(r, 0); ctx.lineTo(-r * 0.7, -r * 0.8); ctx.lineTo(-r * 0.3, 0); ctx.lineTo(-r * 0.7, r * 0.8); ctx.closePath(); ctx.stroke(); ctx.fill(); ctx.restore();
+    }
+  }
   function transitOverlay(ctx, s) {
     // Travelling through the way on: rush into the door through speed lines, white out, then arrive
     // through a door that seals behind.
@@ -1119,16 +1133,46 @@
   // A coaching card at the top of the screen: the tutorial's steps and new-ability tips.
   R.coach = function (ctx, o) {
     const k = R.k, a = Math.min(1, o.t * 4, o.life != null ? (o.life - o.t) * 3 : 1); if (a <= 0) return;
-    const w = Math.min(R.W * 0.62, 520 * k), h = 64 * k, x = R.W / 2 - w / 2, y = 70 * k + (1 - a) * -12 * k;
+    const w = Math.min(R.W * 0.62, 520 * k), x = R.W / 2 - w / 2, y = 70 * k + (1 - a) * -12 * k;
     ctx.save(); ctx.globalAlpha = a;
+    ctx.font = R.fb(15 * k, 500);
+    const lines = []; let line = ''; for (const wd of o.text.split(' ')) { if (ctx.measureText(line + ' ' + wd).width > w - 32 * k && line) { lines.push(line); line = wd; } else line = line ? line + ' ' + wd : wd; } lines.push(line);
+    const h = (28 + 18 * lines.length) * k;
     ctx.fillStyle = 'rgba(10,6,12,0.86)'; ctx.fillRect(x, y, w, h); ctx.fillStyle = o.col || '#ffd060'; ctx.fillRect(x, y, 3 * k, h);
     label(ctx, o.title, x + 16 * k, y + 22 * k, 11 * k, o.col || '#ffd060', 'left', 4, 700);
     ctx.font = R.fb(15 * k, 500); ctx.fillStyle = '#f3eef0'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-    const words = o.text.split(' '); let line = '', ly = y + 42 * k;
-    for (const wd of words) { if (ctx.measureText(line + ' ' + wd).width > w - 32 * k && line) { ctx.fillText(line, x + 16 * k, ly); ly += 18 * k; line = wd; } else line = line ? line + ' ' + wd : wd; }
-    ctx.fillText(line, x + 16 * k, ly);
-    if (o.of) for (let i = 0; i < o.of; i++) { ctx.fillStyle = i < o.step ? (o.col || '#ffd060') : i === o.step ? '#ffffff' : 'rgba(255,255,255,0.2)'; ctx.fillRect(x + w - (o.of - i) * 14 * k - 6 * k, y + 14 * k, 9 * k, 3 * k); }
+    lines.forEach((ln, i) => ctx.fillText(ln, x + 16 * k, y + (42 + i * 18) * k));
+    if (o.of) for (let i = 0; i < o.of; i++) { ctx.fillStyle = i < o.step || (i === o.step && o.done) ? (o.col || '#ffd060') : i === o.step ? '#ffffff' : 'rgba(255,255,255,0.2)'; ctx.fillRect(x + w - (o.of - i) * 14 * k - 6 * k, y + 14 * k, 9 * k, 3 * k); }
+    // The step's count (2 / 3) under the pips, and a tick across the card when it is done.
+    if (o.prog) label(ctx, o.prog, x + w - 14 * k, y + 30 * k, 12 * k, '#ffffff', 'right', 1, 700);
+    if (o.done) { ctx.fillStyle = 'rgba(120,220,160,0.16)'; ctx.fillRect(x, y, w, h); label(ctx, '✓  DONE', x + w - 14 * k, y + 30 * k, 13 * k, '#9af0b8', 'right', 2, 700); }
     ctx.restore();
+  };
+  // The trial's guides: a glowing circle on the ground to walk to (with chevrons leading there), a
+  // bouncing arrow over each foe or barrel of the step, and the button to press pulsing on a touch screen.
+  R.tutGuide = function (ctx, s, g) {
+    const Sh = R.Sh(), t = R.t, BLUE = '#8ad0ff', h = s.hero;
+    const arrow = (x, y, z) => { const q = R.P(x, y, z + 6 + Math.sin(t * 6) * 4), a = 7 * Sh; ctx.save(); ctx.fillStyle = BLUE; ctx.strokeStyle = 'rgba(6,10,20,0.85)'; ctx.lineWidth = 2 * R.dpr; ctx.beginPath(); ctx.moveTo(q.x - a, q.y - a * 1.2); ctx.lineTo(q.x + a, q.y - a * 1.2); ctx.lineTo(q.x, q.y); ctx.closePath(); ctx.stroke(); ctx.fill(); ctx.restore(); };
+    if (g.mark) {
+      const q = R.P(g.mark.x, g.mark.y), r = 26 * Sh, p = 0.5 + 0.5 * Math.sin(t * 4);
+      ctx.save(); ctx.translate(q.x, q.y); ctx.scale(1, R.HELI.pitch);
+      ctx.strokeStyle = R.rgba(BLUE, 0.9); ctx.lineWidth = 3 * R.dpr; ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.stroke();
+      ctx.strokeStyle = R.rgba(BLUE, 0.5 * (1 - p)); ctx.beginPath(); ctx.arc(0, 0, r * (1 + p * 0.6), 0, 7); ctx.stroke();
+      ctx.fillStyle = R.rgba(BLUE, 0.16); ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.fill(); ctx.restore();
+      const gr = ctx.createLinearGradient(0, q.y - 120 * Sh, 0, q.y); gr.addColorStop(0, R.rgba(BLUE, 0)); gr.addColorStop(1, R.rgba(BLUE, 0.35)); ctx.fillStyle = gr; ctx.fillRect(q.x - 10 * Sh, q.y - 120 * Sh, 20 * Sh, 120 * Sh);
+      arrow(g.mark.x, g.mark.y, 60);
+      // Chevrons on the ground from the hero toward the circle (round the props).
+      const d = Math.hypot(g.mark.x - h.x, g.mark.y - h.y);
+      if (d > 60) { const w = VS.steer(VS.arenaOf(s), h.x, h.y, g.mark.x, g.mark.y), an = Math.atan2(w[1], w[0]);
+        for (let i = 0; i < 3; i++) { const o = 34 + i * 18 + (t * 40) % 18, px = h.x + Math.cos(an) * o, py = h.y + Math.sin(an) * o, c = R.P(px, py), sa = R.screenAng(an), L = 7 * Sh;
+          ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(sa); ctx.strokeStyle = R.rgba(BLUE, 0.75 - i * 0.2); ctx.lineWidth = 2.5 * R.dpr; ctx.beginPath(); ctx.moveTo(-L * 0.6, -L * 0.6); ctx.lineTo(0, 0); ctx.lineTo(-L * 0.6, L * 0.6); ctx.stroke(); ctx.restore(); } }
+    }
+    for (const u of g.targets || []) if (u.alive && u.state !== 'spawn') arrow(u.x, u.y, 52 * (u.scale || 1));
+    if (g.barrel) arrow(g.barrel.x, g.barrel.y, 40);
+    if (g.btn && g.touch) {
+      const L = R.touchLayout(), b = g.btn === 'stick' ? L.stick : L.buttons.find((x) => x.id === g.btn);
+      if (b) { const p = (t * 1.6) % 1; ctx.save(); ctx.strokeStyle = R.rgba(BLUE, 1 - p); ctx.lineWidth = 3 * R.dpr; ctx.beginPath(); ctx.arc(b.x, b.y, b.r * (1.1 + p * 0.6), 0, 7); ctx.stroke(); ctx.strokeStyle = BLUE; ctx.lineWidth = 2 * R.dpr; ctx.beginPath(); ctx.arc(b.x, b.y, b.r * 1.08, 0, 7); ctx.stroke(); ctx.restore(); }
+    }
   };
   R.hint = function (ctx, text, a) { ctx.save(); ctx.globalAlpha = a; label(ctx, text, R.W / 2, R.H - 20 * R.k, 11 * R.k, '#d8c8d0', 'center', 2, 500); ctx.restore(); };
 

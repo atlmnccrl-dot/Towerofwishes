@@ -56,9 +56,22 @@ defeating any guardian without being hit (the Untouchable challenge is made for 
 level 12, and the First Cut himself by defeating him. The roster shows locked heroes as shadows
 with what it takes and how close you are.
 
-**Tutorial**: the First Steps trial walks you through moving, cutting and chaining a combo,
-the heavy attack and the dodge on training husks, then a real fight, with a coaching card for
-each step.
+**Tutorial**: the First Steps trial is guided, one thing at a time, and nothing attacks until it
+is taught: walk to a glowing circle (chevrons lead the way), cut down two training husks, chain
+a 6-hit combo on a post, clear a ring of four husks with one heavy blow, dash through two slow
+swings of the Drill Knight when the red ring flashes, finish him with a dash-cut, then smash a
+powder barrel to blow up the husks around it. Only then are the dead let loose, with a tip the
+first time each kind shows up (Blood Husk, Shieldbearer, ghouls, raider). The card at the top
+names the keys (or buttons) for the step and counts it down (2 / 4, 5 / 6 hits); arrows bounce over
+the step's targets; on a phone the button to press pulses; a tick and a chime mark each step done.
+Every step moves on by itself after half a minute, so nobody is ever stuck. The game drives it
+(`TUT` in `js/main.js`); the sim holds its waves back while a fight is scripted (`place`,
+`addBreak`, `dismiss`, `release`).
+
+**Spawns**: on the large maps a group arrives from two or three directions at once, each foe at
+its own distance (rising or dropping 150 to 300 away, or running in from 300 to 450 away, out of
+sight), never closer than 64 to another, so a wave closes in from around you instead of in one
+clump. Red chevrons at the screen's edge point at every foe out of sight.
 
 **The opening** (`js/opening.js`): about 23 seconds, cut like an anime transformation and drawn at
 full resolution (painted light, ribbons and grain around crisp scaled-up pixel figures): a flat red

@@ -160,6 +160,10 @@
   D.FOES = {
     // A training dummy for the first trial: stands, takes cuts, never strikes back.
     dummy: { name: 'Training Husk', set: 'thug_a', hp: 26, spd: 0, poise: 0, minion: true, passive: true, color: '#9a8a92', atks: [{ clip: 'Attack1', wind: 9, recover: 1, reach: 1, dmg: 0, kb: 0 }] },
+    // The guided trial's own: a post to chain a combo on, and a knight who swings slowly for you to dodge.
+    post: { name: 'Training Post', set: 'thug_a', hp: 120, spd: 0, poise: 0, minion: true, passive: true, color: '#9a8a92', atks: [{ clip: 'Attack1', wind: 9, recover: 1, reach: 1, dmg: 0, kb: 0 }] },
+    drill: { name: 'Drill Knight', set: 'black_knight', hp: 9999, spd: 40, poise: 400, color: '#c8c0b0', keep: 30,
+      atks: [{ clip: 'Attack4', wind: 1.05, recover: 1.1, reach: 36, arc: 1.8, dmg: 3, kb: 12, unparry: true }] },
     // A shield wall in one man: blocks cuts from the front. A heavy blow, or getting behind him, breaks the guard.
     shield: { name: 'Shieldbearer', set: 'gothic_knight_a', hp: 80, spd: 44, poise: 0, minion: true, color: '#c8c0b0', guard: { arc: 1.15, mul: 0.15 },
       atks: [{ clip: 'Attack1', wind: 0.45, recover: 0.5, reach: 28, dmg: 9, kb: 20 },

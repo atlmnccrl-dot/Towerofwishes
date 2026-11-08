@@ -89,7 +89,7 @@
     } else {
       // A prop standing in front of a fighter turns see-through, so nobody is ever lost behind it.
       const f = A.isoInfo(o.key); let al = null;
-      if (f && o.kind !== 'decor') {
+      if (f) {
         const bx = x + f[5] * Sh, by = y + f[6] * Sh, bw = f[3] * Sh, bh = f[4] * Sh;
         for (const u of s.units) { if (!u.alive && u.state !== 'dead') continue; const p = R.P(u.x, u.y); if (p.d >= q.d) continue; const hy = p.y - 30 * Sh * (u.scale || 1); if (p.x > bx + 4 * Sh && p.x < bx + bw - 4 * Sh && hy > by && hy < by + bh) { al = u === s.hero ? 0.38 : 0.55; if (u === s.hero) break; } }
       }
