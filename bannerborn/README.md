@@ -89,7 +89,16 @@ Settings: music, effects, screen shake, damage numbers, erase save.
 graphic, never from the game camera: slanted close-up panels of faces in coloured light, silhouettes that light up,
 three-face panels, a wall of skull faces, screen-filling gates with lightning and rain, great banners against the
 sky that topple in fire, VS splits, black-and-white impact frames and title slams, with sparks, embers, smoke, shake
-and letterbox. Post effects sell the big beats: the screen cracks on impacts, the colour splits apart, film grain, rim-lit
+and letterbox. Two shots are painted sets rather than panels. **The banner field**: nine great war banners on tall poles recede
+along a ridge at sunset, cloth rippling in the wind with rolling folds and the sun shining through it, their knights
+standing beneath as backlit silhouettes, the spears of their hosts along the horizon, clouds, birds, god rays and a
+lens flare, the camera trucking and pushing in; on cue each banner catches fire, burns from the fringe up and topples
+with sparks and dust; the last one stands alone among the smoking wrecks in falling ash, then the Captain hauls it
+upright into the sunrise. **The Gravegate**: an ancient stone arch in a graveyard under a storm; its runes wake one
+by one, a seam of light splits the arch, the ground cracks, then it tears open with a shockwave: a vortex of spiral
+light and rushing rings, arcs leaping to the stones, debris dragged in, gravestones leaning from the blast, the dead
+taking shape in the light and striding out, and the camera falls into it. Bosses open through their own gate in
+their colour. Post effects sell the big beats: the screen cracks on impacts, the colour splits apart, film grain, rim-lit
 silhouettes, sound rings off a singing mouth, embers that converge on the hero, and a slam zoom into an eye.
 The opening (~72 s) tells how it began: nine banners and their knights swear an oath; the Gravegates open in
 lightning; Vesh Morrow rises out of the dark, opens his eyes and sings; the dead rise in waves and clash with the knights; eight banners fall before dawn; one stands; its bearer, alone, raises it

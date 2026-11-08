@@ -59,6 +59,7 @@
       case 'moon': g.arc(cx, cy, r * 0.9, 0.35 * Math.PI, 1.65 * Math.PI, false); g.arc(cx + r * 0.38, cy, r * 0.72, 1.6 * Math.PI, 0.4 * Math.PI, true); g.closePath(); break;
     }
   }
+  UI.sigilPath = sigilPath;
   UI.drawBanner = function (g, b, w, h, t) {
     t = t || 0;
     g.clearRect(0, 0, w, h);
