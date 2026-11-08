@@ -202,29 +202,38 @@
     const el = U.show('roster', `<div class="boon-wrap"><p class="eyebrow">${p.heroes.length} of ${D.HERO_ORDER.length} heroes</p><h2>Who climbs tonight?</h2><nav class="cards heroes roster">${html}</nav><nav class="menu center"><button class="btn" data-i="${D.HERO_ORDER.length}" type="button"><span class="btn-label">Back</span></button></nav></div>`, items.concat([{ act: o.onBack }]), { back: o.onBack });
     el.querySelectorAll('canvas.hero-fig').forEach((c) => figure(c, c.dataset.set, c.dataset.lock ? { shade: '#05030a' } : {}));
   };
-  // After a fight: stars, experience filling the bar, level-ups, new heroes.
+  // After a fight, on one screen (nothing scrolls): the hero's pose, the verdict and the stars on the
+  // left; the numbers, experience, goals, loot and unlocks in a card on the right; the buttons below it.
   U.result = function (o) {
-    const r = o.r, PR = P(), p = o.p, win = o.win;
+    const r = o.r, PR = P(), p = o.p, win = o.win, LT = VS.LOOT, H = DD().HEROES[p.hero] || DD().HEROES.vesper;
     const goals = r.goals || [], stars = r.stars || [];
-    let body = `<p class="eyebrow">${esc(o.node.name)}</p><h2 class="${win ? 'win' : 'lose'}">${esc(o.title || (win ? 'Victory' : 'You fell'))}</h2>`;
-    if (win && goals.length) body += `<div class="res-stars">${goals.map((g, i) => `<i class="st ${stars[i] ? 'on' : ''} ${r.newStars && r.newStars[i] ? 'new' : ''}" style="animation-delay:${0.15 + i * 0.18}s"></i>`).join('')}</div><ul class="goals">${goals.map((g, i) => `<li class="${stars[i] ? 'on' : ''}"><i class="st"></i>${esc(g.text)}${r.newStars && r.newStars[i] ? ' <b style="color:var(--gold);font-family:var(--f-display);font-size:11px;letter-spacing:.14em">NEW</b>' : ''}</li>`).join('')}</ul>`;
-    if (!win) body += `<p class="quote">“Then fall forward.”</p><p class="tip">${esc(o.tip || 'Nothing is lost. Try again, or learn something new in the skill tree.')}</p>`;
-    if (o.stats) body += `<div class="stats">${o.stats.map(([v, l]) => `<div class="stat"><b>${esc(v)}</b><span>${esc(l)}</span></div>`).join('')}</div>`;
+    let left = `<p class="eyebrow">${esc(o.node.name)}</p><h2 class="${win ? 'win' : 'lose'}">${esc(o.title || (win ? 'Victory' : 'You fell'))}</h2>`;
+    if (win && goals.length) left += `<div class="res-stars">${goals.map((g, i) => `<i class="st ${stars[i] ? 'on' : ''} ${r.newStars && r.newStars[i] ? 'new' : ''}" style="animation-delay:${0.25 + i * 0.18}s"></i>`).join('')}</div>`;
+    if (!win) left += `<p class="quote">“Then fall forward.”</p>`;
+    left += `<canvas class="res-hero" width="160" height="160" data-set="${H.set}"></canvas>`;
+    let right = '';
+    if (o.stats) right += `<div class="stats">${o.stats.map(([v, l]) => `<div class="stat"><b>${esc(v)}</b><span>${esc(l)}</span></div>`).join('')}</div>`;
     const need = PR.need(p.lvl), pct = p.lvl >= PR.MAX_LVL ? 100 : Math.round(p.xp / need * 100);
-    body += `<div class="res-xp"><div class="row"><span>Level ${p.lvl}</span><b>+${r.xp} XP${r.sp ? ` · +${r.sp} SP` : ''}</b></div><div class="xpbar"><i style="width:${r.ups ? 0 : Math.max(0, pct - 20)}%" data-to="${pct}"></i></div></div>`;
-    if (r.ups) body += `<p class="lvlup">Level up! · ${r.ups > 1 ? r.ups + ' levels' : 'level ' + r.lvl} · +${r.ups} skill point${r.ups > 1 ? 's' : ''}</p>`;
-    if (r.loot && (r.loot.gold || r.loot.items.length)) {
-      body += `<div class="res-loot"><span class="gold">+${r.loot.gold} gold</span>${r.loot.items.map((it) => `<div class="loot-it" style="--rc:${VS.LOOT.RARITY[it.rar].col}"><canvas width="40" height="40" data-uid="${it.uid}"></canvas><div><b>${esc(it.name)}</b><span>${VS.LOOT.RARITY[it.rar].name} ${VS.LOOT.SLOT_NAME[it.slot].toLowerCase()} · ${esc(VS.LOOT.lines(it).join(' · '))}</span></div></div>`).join('')}${r.loot.sold && r.loot.sold.length ? `<p class="tip">Your bag was full: ${r.loot.sold.length} find${r.loot.sold.length > 1 ? 's were' : ' was'} sold.</p>` : ''}</div>`;
-    }
-    if (r.mastery) body += `<p class="lvlup" style="color:#9ad0ff">Mastery ${r.mastery} · ${esc(DD().HEROES[p.hero].name)} deals ${r.mastery * 2}% more damage</p>`;
-    for (const a of r.ach || []) body += `<div class="unlock-card ach" style="--hc:var(--gold)"><span class="ach-ic">★</span><div><b>Achievement · ${esc(a.name)}</b><span>${esc(a.desc)}</span></div></div>`;
-    for (const id of r.heroes || []) { const H = DD().HEROES[id]; body += `<div class="unlock-card" style="--hc:${H.color}"><canvas width="64" height="64" data-set="${H.set}"></canvas><div><b>New hero · ${esc(H.name)}</b><span>${esc(H.title)}. Choose them from Heroes on the map.</span></div></div>`; }
+    right += `<div class="res-xp"><div class="row"><span>Level ${p.lvl}${r.ups ? ' <em>· level up!</em>' : ''}</span><b>+${r.xp} XP${r.sp ? ` · +${r.sp} SP` : ''}${r.ups ? ` · +${r.ups} SP` : ''}</b></div><div class="xpbar"><i style="width:${r.ups ? 0 : Math.max(0, pct - 20)}%" data-to="${pct}"></i></div></div>`;
+    if (win && goals.length) right += `<ul class="goals res-goals">${goals.map((g, i) => `<li class="${stars[i] ? 'on' : ''}"><i class="st"></i>${esc(g.text)}${r.newStars && r.newStars[i] ? ' <b class="new">new</b>' : ''}</li>`).join('')}</ul>`;
+    if (!win) right += `<p class="tip">${esc(o.tip || 'Nothing is lost. Try again, or learn something new in the skill tree.')}</p>`;
+    // Loot as tiles: gold, then each item (its name on hover and on the gear screen).
+    const loot = r.loot && (r.loot.gold || r.loot.items.length);
+    if (loot) right += `<div class="res-loot2"><div class="res-gold">${ic('coins')}<b>+${r.loot.gold}</b></div>${r.loot.items.map((it, i) => `<div class="res-item" style="--rc:${LT.RARITY[it.rar].col};animation-delay:${0.4 + i * 0.12}s" title="${esc(it.name + ' · ' + LT.lines(it).join(', '))}"><canvas width="40" height="40" data-uid="${it.uid}"></canvas><span>${esc(it.name)}</span></div>`).join('')}</div>`;
+    // Unlocks: mastery, achievements, new heroes, as small badges.
+    const badges = [];
+    if (r.mastery) badges.push(`<div class="badge2" style="--hc:#9ad0ff">${ic('star', 1)}<span>Mastery ${r.mastery}</span></div>`);
+    for (const a of r.ach || []) badges.push(`<div class="badge2" style="--hc:#ffd060" title="${esc(a.desc)}">${ic('trophy', 1)}<span>${esc(a.name)}</span></div>`);
+    for (const id of r.heroes || []) { const Hx = DD().HEROES[id]; badges.push(`<div class="badge2" style="--hc:${Hx.color}">${ic('helm', 1)}<span>New hero · ${esc(Hx.name)}</span></div>`); }
+    if (badges.length) right += `<div class="badges">${badges.join('')}</div>`;
     const items = (o.buttons || []).map((b, i) => Object.assign({ cls: i === 0 ? 'focus-first' : '' }, b));
-    const el = U.show('result', `<div class="res">${body}${buttons(items, 'center')}</div>`, items, { back: items[items.length - 1] && items[items.length - 1].act });
-    setTimeout(() => { const i = el.querySelector('.xpbar i'); if (i) i.style.width = i.dataset.to + '%'; }, 250);
-    el.querySelectorAll('.unlock-card canvas').forEach((c) => figure(c, c.dataset.set));
-    el.querySelectorAll('.loot-it canvas').forEach((c) => { const it = r.loot.items.find((x) => x.uid === +c.dataset.uid); if (it) U.itemIcon(c, it); });
-    // The payout, heard: gold, a find, a level, an achievement.
+    right += buttons(items, 'res-btns');
+    const el = U.show('result', `<div class="res2 ${win ? 'won' : 'lost'}"><div class="res2-left">${left}</div><div class="res2-right">${right}</div></div>`, items, { back: items[items.length - 1] && items[items.length - 1].act });
+    setTimeout(() => { const i = el.querySelector('.xpbar i'); if (i) i.style.width = i.dataset.to + '%'; }, 300);
+    el.querySelectorAll('.res-item canvas').forEach((c) => { const it = r.loot.items.find((x) => x.uid === +c.dataset.uid); if (it) U.itemIcon(c, it); });
+    // The hero: a victory taunt, or down on one knee.
+    const hc = el.querySelector('.res-hero');
+    if (hc) { const g = hc.getContext('2d'); g.imageSmoothingEnabled = false; let t = 0; const draw = () => { if (!hc.isConnected) return; g.clearRect(0, 0, 160, 160); VS.A.actor(g, H.set, win ? 'Taunt' : 'TakeDamage', win ? Math.floor(t * 9) % 15 : Math.min(14, 6 + Math.floor(t * 2) % 3), Math.PI * 0.25, 80, 154, 3.3, win ? {} : { grey: true }); t += 1 / 30; setTimeout(draw, 33); }; draw(); }
     const au = VS.audio; if (r.loot && r.loot.gold) setTimeout(() => au.sfx('coin_01', 0.6), 350); if (r.loot && r.loot.items.length) setTimeout(() => au.sfx('chest_open', 0.7), 700);
     if (r.ups) setTimeout(() => au.sfx('level_up', 0.8), 1000); if (r.ach && r.ach.length) setTimeout(() => au.sfx('quest_complete', 0.8), 1300);
   };

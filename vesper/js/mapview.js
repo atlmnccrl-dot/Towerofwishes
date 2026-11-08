@@ -135,12 +135,12 @@
       const L = lookOf(Math.min(P.ACTS.length - 1, a - 1));
       for (let i = front ? 0 : 5; i < (front ? 5 : 11); i++) {
         const x = ((hash(a, i) * 1600 + MAP.t * (10 + 8 * hash(i, a)) * (front ? 1.6 : 1)) % 1600) - 800, s = (200 + 120 * hash(i, a + 3)) * F.k * (front ? 1.3 : 1);
-        A.tex(ctx, i % 2 ? 'smoke_07' : 'smoke_04', F.cx + (x - MAP.camX * (front ? 1.2 : 0.8)) * F.k, q.y + (hash(i, a + 9) - 0.5) * 60 * F.k, s * 1.9, s, R.mix(L.fog, '#ffffff', 0.15), front ? 0.28 : 0.45, i, false);
+        A.tex(ctx, i % 2 ? 'smoke_07' : 'smoke_04', F.cx + (x - MAP.camX * (front ? 1.2 : 0.8)) * F.k, q.y + (hash(i, a + 9) - 0.5) * 60 * F.k, s * 1.9, s, R.mix(L.fog, '#ffffff', 0.15), front ? 0.14 : 0.35, i, false);
       }
     }
   }
   function drawMotes(ctx, F) {
-    for (let i = 0; i < 80; i++) {
+    for (let i = 0; i < 40; i++) {
       const wy = MAP.camY + ((hash(i, 5) * 1100 + MAP.t * (14 + 22 * hash(i, 6))) % 1100) - 550, wx = (hash(i, 7) - 0.5) * 1400 + Math.sin(MAP.t + i) * 14;
       const act = actAt(wy), L = lookOf(act), q = MAP.toScreen(wx, wy, F), s = Math.max(2, Math.round(2 * F.k));
       ctx.fillStyle = R.rgba(act === 1 ? '#ffffff' : act === 3 ? '#a09a9a' : L.moonCol, 0.3 + 0.35 * hash(i, 8)); ctx.fillRect(Math.round(q.x), Math.round(q.y), s, s);
@@ -153,6 +153,7 @@
       const N2 = P.node(m), a = nodePos(n, F), b = nodePos(N2, F); if (Math.max(a.y, b.y) < -60 || Math.min(a.y, b.y) > R.H + 60) continue;
       a.y -= bob(n) * F.k; b.y -= bob(N2) * F.k;
       const sa = P.state(MAP.p, n.id), sb = P.state(MAP.p, m), lit = sa === 'cleared' && sb === 'cleared', live = sa === 'cleared' && sb !== 'cleared';
+      if (!lit && !live) continue;   // paths not yet reached stay hidden
       const len = Math.hypot(b.x - a.x, b.y - a.y), steps = Math.max(2, Math.floor(len / (34 * F.k))), r0 = (big(n) ? 120 : 84) * F.k, r1 = (big(N2) ? 120 : 84) * F.k;
       for (let i = 1; i < steps; i++) {
         const f = i / steps, x = a.x + (b.x - a.x) * f, y = a.y + (b.y - a.y) * f + Math.sin(f * Math.PI) * -18 * F.k + Math.sin(MAP.t * 1.5 + i) * 1.5 * F.k;
@@ -178,7 +179,9 @@
   }
   function drawIsland(ctx, F, n) {
     const q = nodePos(n, F); if (q.y < -260 * F.k || q.y > R.H + 160 * F.k || q.x < -260 * F.k || q.x > R.W + 260 * F.k) return;
-    const st = P.state(MAP.p, n.id), sel = MAP.sel === n.id, hov = MAP.hover === n.id, I = island(n, st), s = iscale(F) * (sel ? 1.08 : hov ? 1.04 : 1), y = q.y - bob(n) * F.k, T = P.TYPES[n.type];
+    const st = P.state(MAP.p, n.id), sel = MAP.sel === n.id, hov = MAP.hover === n.id, I = island(n, st), other = n.act !== actAt(MAP.camY - 60);
+    ctx.save(); if (other && !sel) ctx.globalAlpha = 0.5;
+    const s = iscale(F) * (sel ? 1.08 : hov ? 1.04 : 1), y = q.y - bob(n) * F.k, T = P.TYPES[n.type];
     // Under it: the chosen island's rune ring and light; an open one's pulse.
     if (sel) { A.tex(ctx, 'magic_02', q.x, y + 8 * F.k, 230 * s, 115 * s, st === 'locked' ? '#888888' : T.col, 0.75, MAP.t * 0.6, true); A.tex(ctx, 'light_01', q.x, y - 40 * F.k, 260 * s, 300 * s, T.col, 0.25, 0, true); }
     else if (st === 'open') A.tex(ctx, 'light_01', q.x, y, (200 + 20 * Math.sin(MAP.t * 3)) * s, (120 + 12 * Math.sin(MAP.t * 3)) * s, T.col, 0.35, 0, true);
@@ -203,11 +206,12 @@
     }
     // The name over it, the stars under it, a mark on what is new.
     const ly = y - (big(n) ? 150 : 104) * s, col = st === 'locked' ? '#7a6a72' : st === 'open' ? '#ffffff' : '#f0dcb0';
-    if (st !== 'locked' || sel || hov) R.label(ctx, n.name, q.x, ly, (big(n) ? 20 : 15) * F.k, col, 'center', 1);
+    if (st === 'open' || sel || hov || (big(n) && st !== 'locked')) R.label(ctx, n.name, q.x, ly, (big(n) ? 20 : 15) * F.k, col, 'center', 1);
     const goals = P.goals(n).length, got = P.starsOf(MAP.p, n.id);
-    if (goals && st !== 'locked') for (let i = 0; i < goals; i++) star(ctx, q.x + (i - (goals - 1) / 2) * 17 * F.k, y + (big(n) ? 92 : 64) * s, 6.5 * F.k, i < got);
+    if (goals && st !== 'locked' && (sel || hov)) for (let i = 0; i < goals; i++) star(ctx, q.x + (i - (goals - 1) / 2) * 17 * F.k, y + (big(n) ? 92 : 64) * s, 6.5 * F.k, i < got);
     if (st === 'open' && !sel) { const by = ly - 18 * F.k + Math.sin(MAP.t * 4) * 3 * F.k; R.label(ctx, n.type === 'shrine' ? 'CLAIM' : 'NEW', q.x, by, 11 * F.k, RED, 'center', 1); }
     if (st === 'locked' && (sel || hov)) lock(ctx, q.x, y - 40 * s, 14 * F.k);
+    ctx.restore();
   }
   function star(ctx, x, y, r, on) {
     ctx.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.45 : r; ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } ctx.closePath();
@@ -269,7 +273,7 @@
     // Letterbox and vignette: the frame of a film.
     const v = ctx.createRadialGradient(R.W / 2, R.H * 0.45, R.H * 0.3, R.W / 2, R.H * 0.45, R.W * 0.75); v.addColorStop(0, 'rgba(4,2,6,0)'); v.addColorStop(1, 'rgba(4,2,6,0.7)'); ctx.fillStyle = v; ctx.fillRect(0, 0, R.W, R.H);
     const lb = Math.round(R.H * 0.035); ctx.fillStyle = '#050307'; ctx.fillRect(0, 0, R.W, lb);
-    drawActTag(ctx, F); drawActCard(ctx, F, dt);
+    drawActCard(ctx, F, dt);
   };
   MAP.TOTAL = TOTAL;
 })();

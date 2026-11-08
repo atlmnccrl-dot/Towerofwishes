@@ -400,6 +400,36 @@
     .ms-foe { width: 50px; } .ms-foe canvas { width: 34px; height: 34px; border-width: 6px; border-image-width: 6px; } .ms-foe.boss { width: 64px; } .ms-foe.boss canvas { width: 48px; height: 48px; } .ms-foe span { font-size: 10px; }
     .ms-go { min-width: 120px; } .ms-go .big-btn { font-size: 22px !important; }
   }
+  /* ---- The result screen: one screen, no scrolling ---- */
+  .res2 { margin: auto; width: min(1080px, 100%); height: min(100%, 620px); display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 20px; align-items: center; }
+  .res2-left { display: flex; flex-direction: column; align-items: center; text-align: center; justify-content: center; gap: 6px; min-height: 0; }
+  .res2-left h2 { font-size: clamp(48px, 13vh, 96px) !important; line-height: .95; margin: 0; }
+  .res2-left h2.win { color: #ffd060; text-shadow: var(--outline), 0 0 30px rgba(255,208,96,.55); animation: verdict .5s cubic-bezier(.2,1.5,.4,1) both; }
+  .res2-left h2.lose { color: #ff3a54; text-shadow: var(--outline), 0 0 30px rgba(255,42,68,.55); animation: verdict .5s cubic-bezier(.2,1.5,.4,1) both; }
+  @keyframes verdict { from { transform: scale(1.6); opacity: 0; filter: brightness(3); } to { transform: none; opacity: 1; } }
+  .res2-left .eyebrow { font-size: 16px; }
+  .res2 .res-stars .st { width: clamp(34px, 8vh, 52px); height: clamp(34px, 8vh, 52px); }
+  .res-hero { width: clamp(150px, 34vh, 260px); height: clamp(150px, 34vh, 260px); image-rendering: pixelated; filter: drop-shadow(0 0 22px rgba(255,42,68,.35)); margin-top: -6px; }
+  .won .res-hero { filter: drop-shadow(0 0 26px rgba(255,208,96,.45)); }
+  .res2-right { display: flex; flex-direction: column; gap: 10px; min-height: 0; max-height: 100%; overflow: hidden; border: 32px solid transparent; border-image: var(--frame) 16 fill / 32px stretch; padding: 0 6px; animation: missionIn .4s .1s both; }
+  .res2 .stats { justify-content: space-between; margin: 0; }
+  .res2 .res-xp .row em { color: #ffd060; font-style: normal; }
+  .res-goals { gap: 3px !important; } .res-goals li { font-size: 14px; } .res-goals .new { color: #ffd060; font-size: 12px; }
+  .res-loot2 { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .res-gold { display: flex; align-items: center; gap: 4px; font-size: 22px; color: #ffd060; text-shadow: 2px 2px #050307; padding-right: 6px; }
+  .res-item { display: flex; align-items: center; gap: 6px; max-width: 46%; border: 10px solid transparent; border-image: var(--slot) 5 fill / 10px stretch; padding: 0 4px 0 0; animation: lootIn .4s both; }
+  .res-item canvas { width: 36px; height: 36px; flex: none; }
+  .res-item span { color: var(--rc); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 2px 2px #050307; }
+  .badges { display: flex; flex-wrap: wrap; gap: 6px; }
+  .badge2 { display: flex; align-items: center; gap: 6px; border: 10px solid transparent; border-image: var(--slot-hot) 5 fill / 10px stretch; padding: 0 6px 0 0; font-size: 13px; color: var(--hc); text-shadow: 2px 2px #050307; animation: starpop .45s .6s both; }
+  .menu.res-btns { flex-direction: row; gap: 8px; margin-top: auto; }
+  .menu.res-btns .btn { flex: 1; align-items: center; text-align: center; }
+  .res2-right > .menu.res-btns { flex: none; } .res-loot2, .badges { flex-shrink: 1; min-height: 0; overflow: hidden; }
+  @media (max-height: 480px), (max-width: 800px) { .res2 { grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr); gap: 10px; height: 100%; } .res-hero { width: 96px; height: 96px; } .res2-left h2 { font-size: 46px !important; } .res2 .res-stars .st { width: 28px; height: 28px; }
+    .res2-right { border-width: 18px; border-image-width: 18px; gap: 5px; } .res-goals { display: none !important; } .res2 .stat b { font-size: 16px; } .res2 .stat span { font-size: 10px; } .res2 .res-xp .row { font-size: 11px; }
+    .res-item { max-width: none; border-width: 7px; border-image-width: 7px; padding: 0; } .res-item span { display: none; } .res-item canvas { width: 28px; height: 28px; } .res-gold { font-size: 16px; } .res-gold .ic { width: 24px; height: 24px; background-size: 192px 192px; background-position: calc(var(--c) * -24px) calc(var(--r) * -24px); }
+    .badge2 { font-size: 11px; border-width: 7px; border-image-width: 7px; } .badge2 .ic.sm { width: 16px; height: 16px; background-size: 128px 128px; background-position: calc(var(--c) * -16px) calc(var(--r) * -16px); }
+    .menu.res-btns .btn .btn-label { font-size: 15px; } .menu.res-btns .btn { border-width: 9px !important; border-image-width: 9px !important; } }
   ::-webkit-scrollbar { width: 10px; height: 10px; } ::-webkit-scrollbar-track { background: #12080e; } ::-webkit-scrollbar-thumb { background: #4a3a46; border: 2px solid #12080e; }
   #rotate { font-family: var(--f-display); font-size: 22px; }
   @media (max-height: 480px) { .panel, .res, .btn.card, .map-panel { border-width: 20px !important; border-image-width: 20px !important; } .btn .btn-label { font-size: 17px; } .map-panel h2 { font-size: 22px; } .logo h1 { font-size: 64px; } }
@@ -423,6 +453,7 @@
 <script src="js/cine.js"></script>
 <script src="js/opening.js"></script>
 <script src="js/tale.js"></script>
+<script src="js/intro.js"></script>
 <script src="js/mapview.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/ui.js"></script>

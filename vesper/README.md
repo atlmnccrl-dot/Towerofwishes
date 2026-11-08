@@ -86,6 +86,15 @@ its own distance (rising or dropping 150 to 300 away, or running in from 300 to 
 sight), never closer than 64 to another, so a wave closes in from around you instead of in one
 clump. Red chevrons at the screen's edge point at every foe out of sight.
 
+**The opening** (`js/intro.js`) is played in the engine: the moon falling over the night sky and the
+First Cut's leap across it, then a real fight in the Gatehouse at the Black Gate. Vesper walks in, the
+dead rise from rifts around her and she cuts through them with her own kit (the test bot at full
+skill, so every combo, dodge, dash-cut and finisher is the game's), the Gatewarden lands with a shake,
+and the Last Ditch Effort ends it before the title slams in. The camera is directed shot by shot
+(tight as she walks in, wide for the swarm, on the guardian, pulling back for the title), with
+letterbox bars and the story told in short captions. Any tap skips it. The older hand-drawn
+sequence (`js/opening.js`) stays in the code for the Theatre.
+
 **The opening** (`js/opening.js`): about 23 seconds, cut like an anime transformation and drawn at
 full resolution (painted light, ribbons and grain around crisp scaled-up pixel figures): a flat red
 sky with the swordsman as a black silhouette, pushing in, one glint, the cut tearing the sky; ribbons

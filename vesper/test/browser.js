@@ -20,8 +20,9 @@ fs.mkdirSync(out, { recursive: true });
 
   // A new game: the prologue, the trial (guided), its result, the map.
   await button('New game');
-  await page.waitForFunction(() => VS.main.state === 'scene');
-  await shot('02-prologue', 700);
+  await page.waitForFunction(() => VS.main.state === 'intro');
+  await page.waitForFunction(() => VS.INTRO.st && VS.INTRO.st.t > 9, null, { timeout: 60000 });
+  await shot('02-opening', 100);
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => VS.main.state === 'fight' && VS.main.fight.nodeId === 'a0-t');
   await shot('03-trial', 2600);

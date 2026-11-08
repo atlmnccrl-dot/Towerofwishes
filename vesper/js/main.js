@@ -159,11 +159,16 @@
   // The opening's risen dead are turned townsfolk: load them first.
   const OPENING_SETS = ['vh_townsfolk_001', 'vh_townsfolk_004', 'vh_townsfolk_007', 'vh_townsfolk_010', 'vh_townsfolk_013', 'vh_skeleton_002', 'vh_barbarian_002'];
   function newGame() {
-    const play = () => startScene(0, S.PROLOGUE, () => playNode('a0-t', true)), miss = OPENING_SETS.filter((id) => !A.hasSet(id));
+    const play = () => startIntro(() => playNode('a0-t', true)), miss = OPENING_SETS.filter((id) => !A.hasSet(id));
     if (!miss.length) return play();
     M.go('load'); U.loading(0); A.loadSets(miss, (f) => U.loading(f)).then(() => { A.warm(R.ctx); U.hide(); play(); }, () => { U.hide(); play(); });
   }
 
+  // The opening, played in the engine (js/intro.js).
+  function startIntro(then) {
+    U.hide(); if (P().opts.scenes === 'skip') return then();
+    M.go('intro'); VS.INTRO.start(() => { R.hideCine(); then(); });
+  }
   // ---- the map hub -------------------------------------------------------------------------------------
   function map(sel) {
     const p = P(); M.mapSel = sel || M.mapSel || PR.nextNode(p);
@@ -520,6 +525,7 @@
       case 'title': backdrop(ctx, dt, 5, true); break;
       case 'menu': backdrop(ctx, dt, 5, false); ctx.fillStyle = 'rgba(6,3,8,0.62)'; ctx.fillRect(0, 0, R.W, R.H); break;
       case 'scene': scene(ctx, dt); break;
+      case 'intro': VS.INTRO.update(dt, !!(M.pressed.back || M.pressed.tap)); if (M.state === 'intro') VS.INTRO.draw(ctx, dt); break;
       case 'fight': fight(ctx, dt); break;
       case 'map': VS.MAP.draw(ctx, dt); break;
       case 'result': backdrop(ctx, dt, M.result.stage, false); ctx.fillStyle = 'rgba(6,3,8,0.45)'; ctx.fillRect(0, 0, R.W, R.H); break;
@@ -548,6 +554,7 @@
     if (params.has('theatre')) theatre();
     else if (params.has('stage')) startFight(Math.max(0, Math.min(5, +params.get('stage') || 0)));
     else if (params.has('node')) startNode(params.get('node'));
+    else if (params.has('intro')) newGame();
     else if (params.has('scene')) startScene(Math.max(0, Math.min(5, +params.get('scene') || 0)));
     else if (params.has('map')) map();
     else title();
