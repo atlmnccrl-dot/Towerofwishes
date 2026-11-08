@@ -33,18 +33,19 @@ At low health every ultimate hits as hard as the Last Ditch Effort and heals 30 
 
 ## The campaign
 
-**The map** (`js/mapview.js`) is drawn from the same tiles and characters as the fights: every
-mission is a floating isometric island in its act's ground (grass and stone at the Black Gate, frost
-in the cloister, sandstone on the Stair, cracked sand in the Waste, rock in the Throat, red stone in
-the Shadow), with the landmark of its kind (a banner and brazier for a battle, a training dummy for
-the trial, an arch for a challenge, a statue for a shrine, pillars and the statue of a lair for a
-guardian) and whoever waits there: the champion of an elite, the guardian in its lair, your hero on
-the island you stand on. Islands bob in the night, joined by stepping stones that glow gold once
-cleared and pulse red toward what is open; sealed acts sit in the dark. The red moon hangs low
-behind, the Spire stands far off, fog drifts between the acts. The camera glides to the island you
-choose and leans in; an act's title rises like a stage card as you climb into it. The mission card
-along the bottom shows the fight's name, its foes as portraits (the guardian or champion first,
-larger, in the looks they will wear), its goals, the reward and a big Fight plate.
+**The map** (`js/mapview.js`) is built from the fights themselves: every mission's island is a piece
+of the very arena that mission opens in (the guardian's own lair for a guardian), built the way the
+fight builds it, with its ground tiles, walls, props, torches and chests, cut out as an oval round the
+middle and floating in the night over a cliff. Each mission's arena is fixed (`PROG.arenaSeed`), so
+what the map shows is where you will fight. Choosing a mission opens its island out into a wide piece
+of that arena, with the foes it brings standing in it (the guardian or champion in the middle, in the
+looks they will wear, a red ring under each) and your hero at the near edge facing them; the rest of
+the map steps back. Other islands carry the champion or guardian who waits there and your hero on the
+one you stand on. Islands bob, joined by stepping stones that glow gold once cleared and pulse red
+toward what is open; sealed acts sit in the dark. The red moon hangs low behind, the Spire stands far
+off, fog drifts between the acts; an act's title rises like a stage card as you climb into it. The
+mission card along the bottom shows the fight's name, its foes as portraits (the guardian or champion
+first, larger), its goals, the reward and a big Fight plate.
 
 The game is a climb up the Spire on a scrolling map (`js/mapview.js`): seven acts, one per hour
 of the night plus the post-game, each a band in its hour's colours split from the next by cloud.
@@ -335,7 +336,7 @@ Risen Dead (Black Gate), Sun Wardens (Umbral Stair), Dune Reavers, Sand Imps and
 |---|---|
 | `js/data.js` | Hero, Lys, foes and their attacks, stages, boons. Pure |
 | `js/progress.js` | The profile, experience and levels, the skill tree, hero unlocks, the campaign's nodes, their fights, stars and rewards. Pure |
-| `js/mapview.js` | The campaign map: floating isometric islands per mission, stepping-stone paths, champions and guardians, the camera, act title cards, input |
+| `js/mapview.js` | The campaign map: each mission's island cut from its real arena, the chosen one opened out with its foes, stepping-stone paths, the camera, act title cards, input |
 | `js/story.js` | The story: shot lists with captions, each hour's goal, the ending. Pure |
 | `js/arenas.js` | The large tile maps: layouts, themes, walls, props, breakables; walking (clamp, line of sight, flow-field steering). Pure |
 | `js/loot.js` | Gold, items, rarities, affixes, drops, the blacksmith, upgrades, what gear does in a fight. Pure |

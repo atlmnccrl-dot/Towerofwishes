@@ -62,7 +62,7 @@
       heroDef: H, cds: [0, 0], hazards: [], invisT: 0,
       stats: { dealt: 0, taken: 0, parries: 0, perfects: 0, arts: 0, ldx: 0, maxCombo: 0, hitsTaken: 0, bossHits: 0, zoneHits: 0 } };
     // The areas of this fight: one large tile map each, built from the hour's look and the node's layouts.
-    const aseed = opts.arenaSeed != null ? opts.arenaSeed : (opts.seed || 1);
+    const aseed = opts.arenaSeed != null ? opts.arenaSeed : N && N.arenaSeed != null ? N.arenaSeed : (opts.seed || 1);
     s.arenaList = (st.arenas && st.arenas.length ? st.arenas : ['court']).map((k, i) => AR.build(st.id || 'gate', k, aseed * 7 + i * 131 + stageIdx));
     // A scripted fight (the guided trial): no waves come on their own; the tutorial places each foe and
     // lets the waves loose at the end.

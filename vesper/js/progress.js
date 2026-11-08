@@ -226,6 +226,8 @@
   const LAIR = { warden: 'lair_warden', twins: 'lair_twins', umbral: 'lair_umbral', hunger: 'lair_hunger', wing: 'lair_wing', firstCut: 'lair_firstCut' };
   function pick(pool, n, r, early) { const out = []; for (let i = 0; i < n; i++) out.push(pool[Math.floor(Math.pow(r(), early ? 1.6 : 1) * pool.length)]); return out; }
   // The fight a node holds: waves (pulses split by '+'), whether its last wave is a guardian, arenas, rules.
+  // Each mission's ground is fixed (the map shows the very arena the fight opens in).
+  P.arenaSeed = (n) => hashStr(n.id + '|arena') % 99991;
   P.build = function (n) {
     const A = P.ACTS[n.act], st = D().STAGES[A.stage], r = rngOf(hashStr(n.id)), d = P.depth(n), pool = A.pool, ar = st.arenas;
     const per = Math.min(5, 3 + Math.floor(d * 0.4)), early = d < 1.5, idx = P.NODES.indexOf(n);
@@ -261,7 +263,7 @@
     const adj = { 'a1-b': [0.78, 0.8], 'a5-b': [0.9, 0.95], 'a6-2': [0.85, 0.9] }[n.id]; if (adj) { sc.hp *= adj[0]; sc.dmg *= adj[1]; }   // two guardians at once; the finale
     if (n.rule === 'glass') sc.dmg *= 0.75;
     if (n.big) { sc.hp *= 0.85; sc.dmg *= 0.85; } else if (n.rule === 'horde') { sc.hp *= 0.85; sc.dmg *= 0.85; }
-    return { stage: A.stage, champion, node: { waves, boss, arenas, scale: sc, rules, variants, script: n.type === 'trial' } };
+    return { stage: A.stage, champion, node: { waves, boss, arenas, scale: sc, rules, variants, script: n.type === 'trial', arenaSeed: P.arenaSeed(n) } };
   };
   // Every foe key a fight can put on the floor (its waves and what they summon), for loading their sets.
   P.foeKeys = function (b) { const out = new Set(); const add = (k) => { if (out.has(k) || !D().FOES[k]) return; out.add(k); for (const a of D().FOES[k].atks) if (a.summon) add(a.summon.key); };

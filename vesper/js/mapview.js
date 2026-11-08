@@ -42,55 +42,100 @@
   MAP.up = (x, y) => { const d = MAP.drag; MAP.drag = null; if (d && !d.moved) { const id = hit(x, y); if (id && MAP.onSelect) MAP.onSelect(id); } };
   MAP.wheel = (dy) => { MAP.target = clampCam(MAP.target - dy * 0.9 / frame().k * R.dpr); };
   function hit(x, y) {
+    const r = MAP.dioRect; if (MAP.sel && r && x > r.x && x < r.x + r.w && y > r.y && y < r.y + r.h) return MAP.sel;
     const F = frame(); let best = null, bd = 1e9;
     for (const n of P.NODES) { const q = nodePos(n, F), r = (big(n) ? 150 : 110) * F.k, d = Math.hypot(q.x - x, q.y - bob(n) * F.k - 20 * F.k - y); if (d < r && d < bd) { bd = d; best = n.id; } }
     return best;
   }
 
   // ---- the islands -----------------------------------------------------------------------------------
-  // Each mission's island is baked once (per state) from the act's tiles into a small canvas: a few
-  // ground tiles, their cliff falling into the night, overlays, and the landmark of its kind. The
-  // figures on it (champions, guardians, your hero) are drawn live.
-  const islands = new Map(), MAXI = 28;
-  function landmark(n, th, t) {
-    const L = { trial: [[t + ':Misc B15', 0, 0]], battle: [[t + ':Misc B44', -0.35, -0.3], [t + ':Misc C8', 0.4, 0.15, 'fire']], elite: [[t + ':Misc B45', -0.4, -0.35], [t + ':Misc C8', 0.45, 0.2, 'fire']],
-      challenge: [[t + ':Misc C14', 0, -0.2], [t + ':Misc B53', 0.5, 0.35]], shrine: [[th.statue[0], 0, -0.1], [t + ':Misc C8', 0.55, 0.4, 'fire']],
-      boss: [[th.pillar[0], -0.95, -0.7], [th.pillar[0], 0.95, -0.7], [th.statue[0], 0, -1.05], [t + ':Misc C8', -0.9, 0.55, 'fire'], [t + ':Misc C8', 0.9, 0.55, 'fire']],
-      echo: [[t + ':Misc C14', 0, -0.55], [th.pillar[0], -0.9, 0.2], [th.pillar[0], 0.9, 0.2]] };
-    return L[n.type] || [];
+  // Each island is a piece of the very arena its mission opens in (the guardian's lair for a guardian),
+  // built as the fight builds it: its ground tiles, walls, props, torches and chests, cut out around the
+  // middle and floating in the night with a cliff under it. The chosen mission opens out into a larger
+  // piece of that arena with the foes standing in it.
+  const S2 = Math.SQRT1_2, LIP = 16, STACK = 5, mp = (x, y) => [(x + y) * S2, (y - x) * S2 * 0.5];
+  const arenas = new Map();
+  function arenaFor(n) {
+    let a = arenas.get(n.id); if (a) return a;
+    const b = P.build(n), st = D.STAGES[b.stage], kinds = b.node.arenas || st.arenas, i = big(n) || (n.type === 'challenge' && n.echo) ? kinds.length - 1 : 0;
+    a = { Ar: VS.ARENA.build(st.id || 'gate', kinds[i], (b.node.arenaSeed || 1) * 7 + i * 131 + b.stage), b, look: st.look };
+    arenas.set(n.id, a); return a;
   }
-  function bakeIsland(n, state) {
+  // Bake the cells inside an oval (RX by RY tile pixels on screen) round the arena's middle into a canvas.
+  function bakeCrop(Ar, RX, RY, locked) {
     if (!A.isoReady(['w', 'a', 'd', 'i'])) return null;
-    const th = themeOf(n.act), t = th.set === 'i' ? 'i' : 'd', g = big(n) ? 3 : 2, rnd = (k) => hash(hashStr(n.id), k);
-    const W = (g * 2) * 64 + 96, OY = 230, H = OY + (g * 2 - 2) * 32 + 64 + 4 * 16 + 30, OX = W / 2;
-    const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d'); x.imageSmoothingEnabled = false;
-    const cells = []; for (let i = 0; i < g; i++) for (let j = 0; j < g; j++) cells.push([i, j]);
-    cells.sort((a, b) => (a[0] + a[1]) - (b[0] + b[1]));
-    const at = (i, j) => [OX + (i - j) * 64, OY + (i + j) * 32 - (g - 1) * 32];
-    const base = (i, j) => { const b = th.base[Math.floor(rnd(i * 7 + j) * th.base.length)][0], floor = (big(n) || n.type === 'shrine') && th.floor ? th.floor[Math.floor(rnd(30 + i + j) * th.floor.length)] : b; return floor + '_' + ['E', 'N', 'S', 'W'][Math.floor(rnd(50 + i * 3 + j) * 4)]; };
-    // The cliff under the two front edges, darkened.
-    for (const [i, j] of cells) if (i === g - 1 || j === g - 1) { const [px, py] = at(i, j), k0 = base(i, j); for (let s = 4; s >= 1; s--) A.iso(x, k0, px, py + s * 16, 1); }
-    x.globalCompositeOperation = 'source-atop'; const dg = x.createLinearGradient(0, OY, 0, H); dg.addColorStop(0, 'rgba(6,4,10,0.55)'); dg.addColorStop(1, 'rgba(6,4,10,0.95)'); x.fillStyle = dg; x.fillRect(0, 0, W, H); x.globalCompositeOperation = 'source-over';
-    for (const [i, j] of cells) { const [px, py] = at(i, j); A.iso(x, base(i, j), px, py, 1); if (th.over && rnd(90 + i * 5 + j) < 0.35) A.iso(x, th.over[Math.floor(rnd(70 + i + j) * th.over.length)] + '_E', px, py, 1); }
-    // The landmark and a little decor, back to front.
-    const props = landmark(n, th, t).map(([k, ox, oy, kind]) => ({ k, x: OX + (ox - oy) * 64 * (g / 2), y: OY + (ox + oy) * 32 * (g / 2), kind }));
-    if (th.decor && th.decor.length) for (let q = 0; q < 2; q++) { const d = th.decor[Math.floor(rnd(200 + q) * th.decor.length)]; if (!d.endsWith('!')) props.push({ k: d, x: OX + (rnd(210 + q) - 0.5) * 64 * g, y: OY + (rnd(220 + q) - 0.2) * 32 * g * 0.6 }); }
-    props.sort((a, b) => a.y - b.y);
-    for (const pr of props) { const dir = pr.k.startsWith('d:Wall') ? '_N' : '_E'; A.iso(x, pr.k + dir, pr.x, pr.y, 1); }
-    // The hour's light (or the dark of a sealed island), only over the pixels drawn.
-    const tint = state === 'locked' ? '#4a4058' : th.tint, out = document.createElement('canvas'); out.width = W; out.height = H; const o = out.getContext('2d');
-    o.drawImage(c, 0, 0); o.globalCompositeOperation = 'multiply'; o.fillStyle = tint; o.fillRect(0, 0, W, H);
+    const T = Ar.T, w = Ar.w, h = Ar.h, ccx = Math.floor(w / 2), ccy = Math.floor(h / 2), inC = new Uint8Array(w * h), list = [];
+    for (let cy = 0; cy < h; cy++) for (let cx = 0; cx < w; cx++) { const dx = cx - ccx, dy = cy - ccy, sx = (dx + dy) * 64, sy = (dy - dx) * 32; if (Ar.cells[cy * w + cx] && (sx / RX) ** 2 + (sy / RY) ** 2 <= 1) { inC[cy * w + cx] = 1; list.push([cx, cy]); } }
+    if (!list.length) return null;
+    const wx0 = Ar.x0 + (ccx + 0.5) * T, wy0 = Ar.y0 + (ccy + 0.5) * T, [mx0, my0] = mp(wx0, wy0);
+    const W = 2 * RX + 192, OX = W / 2, OY = RY + 250, H = OY + RY + 64 + LIP * STACK + 40;
+    const at = (x, y) => { const q = mp(x, y); return [OX + q[0] - mx0, OY + q[1] - my0]; };
+    const cellOf = (x, y) => { const cx = Math.floor((x - Ar.x0) / T), cy = Math.floor((y - Ar.y0) / T); return cx >= 0 && cy >= 0 && cx < w && cy < h ? cy * w + cx : -1; };
+    const isIn = (cx, cy) => cx >= 0 && cy >= 0 && cx < w && cy < h && inC[cy * w + cx];
+    list.sort((p, q) => (p[1] - p[0]) - (q[1] - q[0]) || (p[0] + p[1]) - (q[0] + q[1]));
+    const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+    // The cliff under the open front edges, darkening down into the night.
+    const cl = document.createElement('canvas'); cl.width = W; cl.height = H; const gc = cl.getContext('2d'); gc.imageSmoothingEnabled = false;
+    for (const [cx, cy] of list) if (!isIn(cx - 1, cy) || !isIn(cx, cy + 1)) { const key = Ar.ground[cy * w + cx]; if (!key) continue; const [x, y] = at(Ar.x0 + (cx + 0.5) * T, Ar.y0 + (cy + 0.5) * T); for (let k = STACK; k >= 1; k--) A.iso(gc, key, x, y + k * LIP, 1); }
+    gc.globalCompositeOperation = 'source-atop'; const dg = gc.createLinearGradient(0, OY - RY, 0, H); dg.addColorStop(0, 'rgba(6,4,10,0.5)'); dg.addColorStop(1, 'rgba(6,4,10,0.97)'); gc.fillStyle = dg; gc.fillRect(0, 0, W, H);
+    g.drawImage(cl, 0, 0);
+    const overBy = {}; for (const o of Ar.over) (overBy[o.cy * w + o.cx] || (overBy[o.cy * w + o.cx] = [])).push(o.key);
+    for (const [cx, cy] of list) { const i = cy * w + cx, key = Ar.ground[i]; if (!key) continue; const [x, y] = at(Ar.x0 + (cx + 0.5) * T, Ar.y0 + (cy + 0.5) * T); A.iso(g, key, x, y, 1); if (overBy[i]) for (const k of overBy[i]) A.iso(g, k, x, y, 1); }
+    // The walls behind, then the props and low walls by depth.
+    const live = [], items = [];
+    for (const wl of Ar.walls) if (inC[wl.cy * w + wl.cx]) { const [x, y] = at(wl.x, wl.y); items.push({ key: wl.key, x, y, d: wl.low ? y - 30 : y - 1e5 }); }
+    for (const o of Ar.objs) {
+      const ci = cellOf(o.x, o.y); if (ci < 0 || !inC[ci]) continue;
+      const [x, y] = at(o.x, o.y); let key = o.key;
+      if (o.kind === 'break' && !key) { const fr = A.isoAnim(o.anim); key = fr && fr[0]; }
+      if (key) items.push({ key, x, y, d: y });
+      if (o.kind === 'light') live.push({ kind: 'fire', x, y }); else if (o.kind === 'torch') live.push({ kind: 'torch', x, y });
+    }
+    items.sort((p, q) => p.d - q.d);
+    for (const it of items) A.iso(g, it.key, Math.round(it.x), Math.round(it.y), 1);
+    // The hour's light over everything drawn (dark when sealed), a warm pool at each fire.
+    const out = document.createElement('canvas'); out.width = W; out.height = H; const o = out.getContext('2d');
+    o.drawImage(c, 0, 0); o.globalCompositeOperation = 'multiply'; o.fillStyle = locked ? '#4a4058' : Ar.tint; o.fillRect(0, 0, W, H);
     o.globalCompositeOperation = 'destination-in'; o.drawImage(c, 0, 0);
-    return { c: out, W, H, OX, OY, g, fires: props.filter((p) => p.kind === 'fire') };
+    if (!locked) {
+      o.globalCompositeOperation = 'source-atop'; if (Ar.frost) { o.fillStyle = 'rgba(225,238,255,0.16)'; o.fillRect(0, 0, W, H); }
+      for (const l of Ar.lights) { const ci = cellOf(l.x, l.y); if (ci < 0 || !inC[ci]) continue; const [lx, ly] = at(l.x, l.y), r = l.r * S2 * 1.4; o.save(); o.translate(lx, ly); o.scale(1, 0.5); const gr = o.createRadialGradient(0, 0, 0, 0, 0, r); gr.addColorStop(0, 'rgba(255,150,70,0.42)'); gr.addColorStop(1, 'rgba(255,120,50,0)'); o.fillStyle = gr; o.fillRect(-r, -r, r * 2, r * 2); o.restore(); }
+    }
+    return { c: out, W, H, OX, OY, live, at, inC, Ar, ccx, ccy, wx0, wy0, cellOf, RY };
   }
   const hashStr = (s) => { let h = 7; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return h >>> 0; };
+  const islands = new Map(), MAXI = 30, dioramas = new Map();
   function island(n, state) {
     const key = n.id + '|' + (state === 'locked' ? 'L' : 'O'); let I = islands.get(key);
-    if (!I) { I = bakeIsland(n, state); if (!I) return null; islands.set(key, I); if (islands.size > MAXI) islands.delete(islands.keys().next().value); }
+    if (!I) { I = bakeCrop(arenaFor(n).Ar, big(n) ? 290 : 210, big(n) ? 145 : 105, state === 'locked'); if (!I) return null; islands.set(key, I); if (islands.size > MAXI) islands.delete(islands.keys().next().value); }
     return I;
   }
+  function diorama(n, state) {
+    const key = n.id + '|' + (state === 'locked' ? 'L' : 'O'); let I = dioramas.get(key);
+    if (!I) { I = bakeCrop(arenaFor(n).Ar, 600, 175, state === 'locked'); if (!I) return null; I.cast = castOf(n, I); MAP.lastDio = I; dioramas.set(key, I); if (dioramas.size > 4) dioramas.delete(dioramas.keys().next().value); }
+    return I;
+  }
+  // Who stands in the chosen arena: the guardian or champion in the middle, the kinds of foe the
+  // mission brings around it (in the looks they will wear), all in open ground.
+  function castOf(n, I) {
+    const { b } = arenaFor(n), Ar = I.Ar, T = Ar.T, seen = new Set(), list = [];
+    for (const wv of b.node.waves) for (const k of wv) if (k !== '+' && !seen.has(k) && D.FOES[k]) { seen.add(k); list.push(k); }
+    list.sort((x, y) => (D.FOES[y].boss ? 1 : 0) - (D.FOES[x].boss ? 1 : 0));
+    const open = (x, y, taken) => { const ci = I.cellOf(x, y); if (ci < 0 || !I.inC[ci] || Ar.solid[ci]) return false; if (Ar.objs.some((o) => o.r > 0 && Math.hypot(o.x - x, o.y - y) < o.r + 26)) return false; return !taken.some((t) => Math.hypot(t.x - x, t.y - y) < 46); };
+    const out = [], rnd = (k) => hash(hashStr(n.id), k);
+    list.slice(0, 6).forEach((k, i) => {
+      const f = D.FOES[k], set = ((b.node.variants || {})[k] || [f.set])[0], lead = i === 0 && f.boss;
+      for (let tries = 0; tries < 24; tries++) {
+        const a = rnd(i * 31 + tries) * Math.PI * 2, d = lead ? tries * 14 : (1.4 + rnd(i * 17 + tries + 5) * 1.6) * T, x = I.wx0 + Math.cos(a) * d + T * 0.6, y = I.wy0 + Math.sin(a) * d;
+        if (open(x, y, out)) { out.push({ k, set, x, y, f, lead }); break; }
+      }
+    });
+    // Your hero at the near edge, facing them.
+    for (let tries = 0; tries < 20; tries++) { const x = I.wx0 - (2.4 + tries * 0.1) * T + (rnd(90 + tries) - 0.5) * T, y = I.wy0 + (rnd(95 + tries) - 0.2) * T; if (open(x, y, out)) { out.push({ hero: true, x, y }); break; } }
+    return out;
+  }
   // Island art is at tile pixels; on the map a tile is drawn this many device px per tile px.
-  const iscale = (F) => F.k * 0.78;
+  const iscale = (F, n) => F.k * (big(n) ? 0.5 : 0.62);
 
   // ---- the sky ----------------------------------------------------------------------------------------
   let starC = null, starKey = '';
@@ -179,9 +224,11 @@
   }
   function drawIsland(ctx, F, n) {
     const q = nodePos(n, F); if (q.y < -260 * F.k || q.y > R.H + 160 * F.k || q.x < -260 * F.k || q.x > R.W + 260 * F.k) return;
-    const st = P.state(MAP.p, n.id), sel = MAP.sel === n.id, hov = MAP.hover === n.id, I = island(n, st), other = n.act !== actAt(MAP.camY - 60);
-    ctx.save(); if (other && !sel) ctx.globalAlpha = 0.5;
-    const s = iscale(F) * (sel ? 1.08 : hov ? 1.04 : 1), y = q.y - bob(n) * F.k, T = P.TYPES[n.type];
+    const st = P.state(MAP.p, n.id), sel = MAP.sel === n.id, hov = MAP.hover === n.id, other = n.act !== actAt(MAP.camY - 60);
+    if (sel && MAP.dio && MAP.dio.k > 0.98) return;   // the chosen one is drawn opened out (drawDiorama)
+    const I = island(n, st);
+    ctx.save(); if (other && !sel) ctx.globalAlpha = 0.5; if (sel && MAP.dio) ctx.globalAlpha *= 1 - MAP.dio.k;
+    const s = iscale(F, n) * (hov ? 1.04 : 1), y = q.y - bob(n) * F.k, T = P.TYPES[n.type], RY = big(n) ? 145 : 105;
     // Under it: the chosen island's rune ring and light; an open one's pulse.
     if (sel) { A.tex(ctx, 'magic_02', q.x, y + 8 * F.k, 230 * s, 115 * s, st === 'locked' ? '#888888' : T.col, 0.75, MAP.t * 0.6, true); A.tex(ctx, 'light_01', q.x, y - 40 * F.k, 260 * s, 300 * s, T.col, 0.25, 0, true); }
     else if (st === 'open') A.tex(ctx, 'light_01', q.x, y, (200 + 20 * Math.sin(MAP.t * 3)) * s, (120 + 12 * Math.sin(MAP.t * 3)) * s, T.col, 0.35, 0, true);
@@ -189,7 +236,7 @@
       const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = s < 0.9;
       ctx.drawImage(I.c, Math.round(q.x - I.OX * s), Math.round(y - I.OY * s), Math.round(I.W * s), Math.round(I.H * s));
       ctx.imageSmoothingEnabled = sm;
-      if (st !== 'locked') { const fire = A.isoAnim('Fire2'); if (fire) for (const f of I.fires) A.iso(ctx, fire[Math.floor(MAP.t * 12 + f.x) % fire.length], Math.round(q.x + (f.x - I.OX) * s), Math.round(y + (f.y - I.OY) * s - 30 * s), s * 0.6); for (const f of I.fires) R.glowAt(ctx, '#ff8a3a', q.x + (f.x - I.OX) * s, y + (f.y - I.OY) * s - 40 * s, 50 * s, 0.25); }
+      if (st !== 'locked') drawLive(ctx, I, q.x, y, s);
     }
     // Who waits there: the champion or the guardian; your hero on the island you stand on.
     const f = figureOf(n);
@@ -205,13 +252,71 @@
       A.actor(ctx, H.set, 'Idle4', Math.floor(MAP.t * 8) % 15, Math.PI * 0.25, Math.round(hx), Math.round(hy), F.k * 1.9, {});
     }
     // The name over it, the stars under it, a mark on what is new.
-    const ly = y - (big(n) ? 150 : 104) * s, col = st === 'locked' ? '#7a6a72' : st === 'open' ? '#ffffff' : '#f0dcb0';
+    const ly = y - (RY + 120) * s, col = st === 'locked' ? '#7a6a72' : st === 'open' ? '#ffffff' : '#f0dcb0';
     if (st === 'open' || sel || hov || (big(n) && st !== 'locked')) R.label(ctx, n.name, q.x, ly, (big(n) ? 20 : 15) * F.k, col, 'center', 1);
     const goals = P.goals(n).length, got = P.starsOf(MAP.p, n.id);
-    if (goals && st !== 'locked' && (sel || hov)) for (let i = 0; i < goals; i++) star(ctx, q.x + (i - (goals - 1) / 2) * 17 * F.k, y + (big(n) ? 92 : 64) * s, 6.5 * F.k, i < got);
+    if (goals && st !== 'locked' && (sel || hov)) for (let i = 0; i < goals; i++) star(ctx, q.x + (i - (goals - 1) / 2) * 17 * F.k, y + (RY + 110) * s, 6.5 * F.k, i < got);
     if (st === 'open' && !sel) { const by = ly - 18 * F.k + Math.sin(MAP.t * 4) * 3 * F.k; R.label(ctx, n.type === 'shrine' ? 'CLAIM' : 'NEW', q.x, by, 11 * F.k, RED, 'center', 1); }
     if (st === 'locked' && (sel || hov)) lock(ctx, q.x, y - 40 * s, 14 * F.k);
     ctx.restore();
+  }
+  // The fires and torches on a baked piece of arena, flickering.
+  function drawLive(ctx, I, x0, y0, s) {
+    const fire = A.isoAnim('Fire2'), torch = A.isoAnim('Torch 1');
+    for (const l of I.live) {
+      const x = Math.round(x0 + (l.x - I.OX) * s), y = Math.round(y0 + (l.y - I.OY) * s);
+      if (l.kind === 'fire' && fire) A.iso(ctx, fire[Math.floor(MAP.t * 12 + l.x) % fire.length], x, Math.round(y - 30 * s), s * 0.6);
+      if (l.kind === 'torch' && torch) A.iso(ctx, torch[Math.floor(MAP.t * 12 + l.x) % torch.length], x, y, s);
+      R.glowAt(ctx, '#ff8a3a', x, y - 40 * s, 50 * s, 0.22);
+    }
+  }
+  // The chosen mission opened out: a larger piece of its arena with the foes standing in it, your hero
+  // at the near edge. It grows out of the island when chosen and fits the space above the card.
+  function drawDiorama(ctx, F, dt) {
+    const n = MAP.sel && P.node(MAP.sel);
+    if (!n) { MAP.dio = null; return; }
+    if (!MAP.dio || MAP.dio.id !== n.id) MAP.dio = { id: n.id, k: 0 };
+    const st = P.state(MAP.p, n.id), I = diorama(n, st); if (!I) return;
+    const D0 = MAP.dio; D0.k = Math.min(1, D0.k + dt * 3.2); const e = 1 - Math.pow(1 - D0.k, 3);
+    const top = 78 * R.dpr, bottom = R.H - MAP.cardH() - 16 * R.dpr, availH = bottom - top, availW = R.W * 0.9;
+    const s1 = Math.min(F.k * 1.1, availW / I.W, availH / (I.H - 170)), s = s1 * (0.55 + 0.45 * e);
+    const q = nodePos(n, F), by = bob(n) * F.k * 0.4;
+    // Centre it on its island, kept inside the space above the card.
+    let x = q.x, y = q.y - by;
+    const halfW = I.W * s1 / 2; x = Math.max(halfW + 8 * R.dpr, Math.min(R.W - halfW - 8 * R.dpr, x));
+    const topY = y - (I.OY - 170) * s1, botY = y + (I.H - I.OY) * s1; if (topY < top) y += top - topY; else if (botY > bottom) y -= botY - bottom;
+    x = q.x + (x - q.x) * e; y = (q.y - by) + (y - (q.y - by)) * e;
+    const T = P.TYPES[n.type], locked = st === 'locked';
+    // The rest of the map steps back.
+    ctx.fillStyle = `rgba(4,2,6,${0.45 * e})`; ctx.fillRect(0, 0, R.W, R.H);
+    ctx.save(); ctx.globalAlpha = e;
+    // The rune ring under it and a light behind.
+    A.tex(ctx, 'light_01', x, y - 40 * s, I.W * s * 0.9, I.H * s * 0.8, locked ? '#777777' : T.col, 0.22, 0, true);
+    A.tex(ctx, 'magic_02', x, y + 10 * s, I.W * s * 0.85, I.W * s * 0.42, locked ? '#888888' : T.col, 0.55, MAP.t * 0.4, true);
+    const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = s < 0.95;
+    ctx.drawImage(I.c, Math.round(x - I.OX * s), Math.round(y - I.OY * s), Math.round(I.W * s), Math.round(I.H * s));
+    ctx.imageSmoothingEnabled = sm;
+    if (!locked) drawLive(ctx, I, x, y, s);
+    // The cast, back to front.
+    const H = D.HEROES[MAP.p.hero] || D.HEROES.vesper, hero = I.cast.find((c) => c.hero), lead = I.cast.find((c) => c.lead) || I.cast.find((c) => !c.hero);
+    const scr = (c) => { const p = I.at(c.x, c.y); return [x + (p[0] - I.OX) * s, y + (p[1] - I.OY) * s]; };
+    const order = I.cast.slice().sort((a, b) => scr(a)[1] - scr(b)[1]);
+    for (const c of order) {
+      const [cx, cy] = scr(c), set = c.hero ? H.set : A.hasSet(c.set) ? c.set : c.f.set; if (!A.hasSet(set)) continue;
+      const other = c.hero ? lead : hero, [ox, oy] = other ? scr(other) : [cx + 10, cy], ang = Math.atan2(oy - cy, ox - cx);
+      const sc = s * 1.75 * (c.hero ? 1 : Math.min(1.5, c.f.scale || 1)) * (c.lead ? 1.1 : 1);   // a little larger than life, to read at map size
+      ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.beginPath(); ctx.ellipse(cx, cy + 1, 15 * sc, 5.5 * sc, 0, 0, 7); ctx.fill();
+      if (!c.hero) { ctx.strokeStyle = c.lead ? 'rgba(255,60,80,0.8)' : 'rgba(255,60,80,0.45)'; ctx.lineWidth = Math.max(1, sc * 1.2); ctx.beginPath(); ctx.ellipse(cx, cy + 1, 15 * sc, 5.5 * sc, 0, 0, 7); ctx.stroke(); }
+      if (c.lead) A.tex(ctx, 'light_01', cx, cy - 30 * sc, 110 * sc, 110 * sc, c.f.color || RED, 0.3, 0, true);
+      if (c.hero) A.tex(ctx, 'light_01', cx, cy - 24 * sc, 80 * sc, 80 * sc, H.color, 0.3, 0, true);
+      const fr = Math.floor(MAP.t * 8 + (c.x + c.y) * 0.01) % 15, opts = st === 'cleared' && !c.hero ? { grey: true } : {};
+      A.actor(ctx, set, 'Idle4', fr, ang, Math.round(cx), Math.round(cy), sc, opts);
+    }
+    // Its name over it, the stars under it.
+    const goals = P.goals(n).length, got = P.starsOf(MAP.p, n.id);
+    if (goals && !locked) for (let i = 0; i < goals; i++) star(ctx, x + (i - (goals - 1) / 2) * 20 * F.k, Math.min(bottom - 6 * R.dpr, y + (I.RY + 110) * s), 7.5 * F.k, i < got);
+    ctx.restore();
+    MAP.dioRect = { x: x - I.W * s / 2, y: y - (I.OY - 120) * s, w: I.W * s, h: (I.H - 120) * s };
   }
   function star(ctx, x, y, r, on) {
     ctx.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.45 : r; ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } ctx.closePath();
@@ -269,6 +374,7 @@
     drawPaths(ctx, F);
     const vis = P.NODES.slice().sort((a, b) => wyOf(b) - wyOf(a));
     for (const n of vis) drawIsland(ctx, F, n);
+    drawDiorama(ctx, F, dt);
     drawMotes(ctx, F); drawClouds(ctx, F, true); drawSeals(ctx, F);
     // Letterbox and vignette: the frame of a film.
     const v = ctx.createRadialGradient(R.W / 2, R.H * 0.45, R.H * 0.3, R.W / 2, R.H * 0.45, R.W * 0.75); v.addColorStop(0, 'rgba(4,2,6,0)'); v.addColorStop(1, 'rgba(4,2,6,0.7)'); ctx.fillStyle = v; ctx.fillRect(0, 0, R.W, R.H);
