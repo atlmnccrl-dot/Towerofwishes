@@ -332,7 +332,7 @@
       const sp = 0.6 + hash(i, 1) * 1.4, ph = (hash(i, 2) + T * sp * 0.9) % 1, x = -40 + ph * (W() + 80), y = hash(i, 3) * H() + Math.sin(T * 4 + i) * 8 - ph * 30, sz = 1 + (i % 3);
       ctx.fillStyle = i % 5 ? (i % 2 ? '#ff7aa0' : '#ffb8d0') : '#ffffff'; ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.rotate(T * 6 + i); ctx.fillRect(-sz, -sz / 2, sz * 2, sz); ctx.restore();
     }
-    for (let j = 0; j < 4; j++) { const kk = (k * 4 - j); if (kk < 0 || kk > 1) continue; const yy = H() * (0.3 + j * 0.15); ctx.globalAlpha = 1 - kk; line(ctx, 0, yy + 20, W(), yy - 20, 2, '#ffffff'); ctx.globalAlpha = 1; if (kk < 0.15) PX.shake = 3; }
+    for (let j = 0; j < 4; j++) { const kk = (k * 4 - j); if (kk < 0 || kk > 1) continue; const yy = H() * (0.3 + j * 0.15); ctx.globalAlpha = 1 - kk; line(ctx, 0, yy + 20, W(), yy - 20, 2, '#ffffff'); ctx.globalAlpha = 1; if (kk < 0.15) R.shake = 3; }
   };
   // The spear raised in a thunderstorm (Kestrel).
   B.charge = function (ctx, s, c, k, T) {
@@ -352,7 +352,7 @@
       for (const [col, ww] of [['rgba(255,208,96,0.45)', w * 3], ['#ffffff', w]]) { ctx.strokeStyle = col; ctx.lineWidth = ww; ctx.beginPath(); ctx.moveTo(cx, 0); let x = cx; for (let y = 0; y <= H() * 0.9; y += 10) { x = cx + (hash(Math.floor(T * 20), y) - 0.5) * 18; ctx.lineTo(x, y); } ctx.stroke(); }
       ctx.fillStyle = 'rgba(255,240,180,0.35)'; ctx.beginPath(); ctx.ellipse(cx, H() * 0.9, 80, 14, 0, 0, 7); ctx.fill();
     }
-    if (white || dark) { ctx.strokeStyle = white ? '#000' : '#ffd060'; ctx.lineWidth = 1; ctx.beginPath(); for (let i = 0; i < 50; i++) { const a = hash(i, 9) * 6.28, r0 = 30 + hash(i, 8) * 30; ctx.moveTo(W() / 2 + Math.cos(a) * r0, H() * 0.6 + Math.sin(a) * r0); ctx.lineTo(W() / 2 + Math.cos(a) * (r0 + 200), H() * 0.6 + Math.sin(a) * (r0 + 200)); } ctx.stroke(); PX.shake = 7; }
+    if (white || dark) { ctx.strokeStyle = white ? '#000' : '#ffd060'; ctx.lineWidth = 1; ctx.beginPath(); for (let i = 0; i < 50; i++) { const a = hash(i, 9) * 6.28, r0 = 30 + hash(i, 8) * 30; ctx.moveTo(W() / 2 + Math.cos(a) * r0, H() * 0.6 + Math.sin(a) * r0); ctx.lineTo(W() / 2 + Math.cos(a) * (r0 + 200), H() * 0.6 + Math.sin(a) * (r0 + 200)); } ctx.stroke(); R.shake = 7; }
   };
   B.thunderrain = function (ctx, s, c, k, T) {
     fill(ctx, '#07070f'); silhouettes(ctx, s, c, k, T, '#000000', true);
@@ -370,7 +370,7 @@
     for (let i = 0; i < n; i++) { const age = (k * 60 - i) / 60, a = hash(i, 5) * Math.PI, cx = W() * (0.3 + hash(i, 6) * 0.4), cy = H() * (0.45 + hash(i, 7) * 0.4), L = 60 + hash(i, 8) * 80; if (age > 0.25) continue; ctx.globalAlpha = 1 - age / 0.25; line(ctx, cx - Math.cos(a) * L, cy - Math.sin(a) * L, cx + Math.cos(a) * L, cy + Math.sin(a) * L, age < 0.03 ? 2 : 1, i % 4 ? '#ffffff' : '#c9a0ff'); }
     ctx.globalAlpha = 1;
     const j = Math.floor(T * 14); A.actor(ctx, h.set, ['Attack1', 'Attack2', 'Attack6', 'Kick'][j % 4], 8, j % 2 ? 0 : Math.PI, Math.round(W() * (0.2 + hash(j, 1) * 0.6)), Math.round(H() * (0.5 + hash(j, 2) * 0.35)), 1.6, { shade: '#c9a0ff' });
-    if (Math.floor(T * 14) % 4 === 0) PX.shake = 2;
+    if (Math.floor(T * 14) % 4 === 0) R.shake = 2;
   };
   // The last frame: the art's colour, the foes falling in black, its name.
   B.finale = function (ctx, s, c, k, T) {

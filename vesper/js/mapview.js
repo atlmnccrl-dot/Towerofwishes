@@ -6,7 +6,6 @@
   const VS = window.VS, D = VS.DATA, A = VS.A, R = VS.R, P = VS.PROG;
   const MAP = VS.MAP = { camY: 0, target: 0, sel: null, hover: null, drag: null, t: 0 };
   const AH = 760, BOTTOM = 160, TOP = 520, XS = 380, RED = '#ff2a44';
-  const ease = (k) => 1 - Math.pow(1 - Math.max(0, Math.min(1, k)), 3);
   const hash = (a, b) => { let h = (a * 374761393 + b * 668265263) | 0; h = (h ^ (h >>> 13)) * 1274126177; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
   const ECHO_LOOK = { sky: ['#120e1c', '#2e2238', '#5a3e52'], moonCol: '#f4f0ec', fog: '#2e2234' };
   const lookOf = (a) => (P.ACTS[a].echoes ? ECHO_LOOK : D.STAGES[P.ACTS[a].stage].look);

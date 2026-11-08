@@ -113,15 +113,19 @@
   .xpbar { height: 4px; background: rgba(255,255,255,.1); border-radius: 2px; overflow: hidden; }
   .xpbar i { display: block; height: 100%; background: linear-gradient(90deg, var(--red), #ff8a9a); border-radius: 2px; transition: width .8s cubic-bezier(.2,.8,.2,1); }
   .lvl-info small { font-size: 10px; color: var(--dim); letter-spacing: .08em; }
+  /* Phones: the map bar on one row, small chips (the star count is on the map's act panel too). */
+  @media (max-height: 480px) { .map-bar { gap: 5px; flex-wrap: nowrap; } .map-bar .chip { padding: 7px 8px; font-size: 10px; letter-spacing: .1em; gap: 5px; } .map-bar .lvl { padding: 3px 8px 3px 3px; gap: 6px; } .map-bar .lvl-num { width: 26px; height: 26px; font-size: 12px; } .map-bar .lvl-info { min-width: 70px; } .map-bar .lvl-info b { font-size: 9px; letter-spacing: .1em; } .map-bar .lvl-info small { display: none; } .map-bar .chip.stars { display: none; } }
   .chip { appearance: none; font: 600 12px var(--f-display); letter-spacing: .16em; text-transform: uppercase; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: border-color .15s, background .15s, transform .15s; }
   .chip:hover, .chip:focus-visible { border-color: var(--red); background: rgba(40,8,16,.85); outline: none; transform: translateY(-1px); }
   .chip .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--hc, var(--red)); box-shadow: 0 0 8px var(--hc, var(--red)); }
   .chip.hot { border-color: var(--gold); color: var(--gold); animation: pulse 1.6s ease-in-out infinite; }
   .chip .badge { background: var(--gold); color: #1a1006; border-radius: 10px; padding: 1px 7px; font-size: 11px; letter-spacing: .04em; }
   .chip.icon { padding: 10px 12px; }
+  .chip { white-space: nowrap; }
   .gold { color: var(--gold); font-family: var(--f-display); font-weight: 700; letter-spacing: .06em; }
   .gold.big { font-size: 18px; }
   .chip.on { border-color: var(--red); color: #fff; }
+  .hero-mast { font: 600 10px var(--f-display); letter-spacing: .16em; text-transform: uppercase; color: #9ad0ff; margin-top: 4px; }
   .set-h { margin: 14px 0 2px; } .set-h:first-of-type { margin-top: 4px; }
   .chip.off { opacity: .45; }
   .chip.danger { border-color: var(--red); color: var(--red-soft); }

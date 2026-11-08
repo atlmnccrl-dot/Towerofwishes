@@ -8,7 +8,7 @@
   const FD = '"Chakra Petch", "Barlow Condensed", "Arial Narrow", system-ui, sans-serif', FB = '"Barlow", "Segoe UI", system-ui, sans-serif';
   R.fd = (px, w) => `${w || 700} ${Math.round(px)}px ${FD}`;
   R.fb = (px, w) => `${w || 600} ${Math.round(px)}px ${FB}`;
-  const RED = '#ff2a44', INK = '#07060a';
+  const RED = '#ff2a44';
   const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
   const hash = (a, b) => { let h = (a * 374761393 + b * 668265263) | 0; h = (h ^ (h >>> 13)) * 1274126177; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
   const hex = (c) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
@@ -217,7 +217,17 @@
   R.spawns = {};
   const P = (o) => R.parts.push(Object.assign({ t: 0, vx: 0, vy: 0, vz: 0, g: 0, z: 0, size: 2, col: '#fff', shape: 'sq', life: 0.4 }, o));
   const FX = (o) => R.fx.push(Object.assign({ t: 0 }, o));
-  R.float = function (text, x, y, z, col, big, label) { if (R.noNumbers && !label && /^\d+$/.test(text)) return; R.floaters.push({ text, x, y, z, t: 0, col, big, label }); };
+  R.float = function (text, x, y, z, col, big, label) {
+    if (R.noNumbers && !label && /^\d+$/.test(text)) return;
+    // Labels near each other stack upward instead of printing over one another (at most three).
+    if (label) {
+      const near = R.floaters.filter((f) => f.label && f.t < 0.7 && Math.hypot(f.x - x, f.y - y) < 60);
+      if (near.some((f) => f.text === text)) return;
+      if (near.length >= 3) near[0].t = 99;
+      z += 20 * Math.min(2, near.filter((f) => f.t < 99).length);
+    } else { const near = R.floaters.filter((f) => !f.label && f.t < 0.25 && Math.hypot(f.x - x, f.y - y) < 30).length; x += (near % 3 - 1) * 12 * Math.min(1, near); z += 8 * Math.min(3, near); }
+    R.floaters.push({ text, x, y, z, t: 0, col, big, label });
+  };
   function sparks(x, y, z, n, col, speed, size) {
     for (let i = 0; i < n; i++) { const a = Math.random() * Math.PI * 2, e = (Math.random() - 0.3) * 1.2, v = speed * (0.4 + Math.random()); P({ x, y, z, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.6, vz: Math.sin(e) * v, life: 0.18 + Math.random() * 0.15, size: size || 1.2, col, shape: 'line' }); }
   }
@@ -810,7 +820,7 @@
     });
     { const G = s.goal || (VS.STORY && VS.STORY.GOALS && VS.STORY.GOALS[s.stage]), gx = W - m - (opts.touch ? 44 * k : 0), last = s.hasBoss && s.area >= s.waves.length - 1;
       if (G) { label(ctx, 'GOAL', gx, m + 10 * k, 9 * k, RED, 'right', 3, 700); label(ctx, (s.portal && !s.transit ? 'Go through the door' : last ? G.boss : G.reach).toUpperCase(), gx, m + 25 * k, 12 * k, '#f3eef0', 'right', 2, 700); }
-      if (!bosses.length) label(ctx, `AREA ${(s.area || 0) + 1} / ${s.waves.length}`, gx, m + 40 * k, 9 * k, '#a99aa2', 'right', 3);
+      if (!bosses.length) label(ctx, s.endlessNext ? `WAVE ${Math.max(1, s.wave + 1)}` : `AREA ${(s.area || 0) + 1} / ${s.waves.length}`, gx, m + 40 * k, (s.endlessNext ? 12 : 9) * k, s.endlessNext ? '#ffd060' : '#a99aa2', 'right', 3);
       // Challenge rules: the clock, or a reminder that one hit ends it.
       if (s.rules && s.rules.time) { const left = Math.max(0, s.rules.time - s.time), urgent = left < 15; label(ctx, `${Math.floor(left / 60)}:${String(Math.floor(left % 60)).padStart(2, '0')}`, gx, m + 66 * k, 22 * k, urgent && Math.sin(R.t * 10) > 0 ? RED : '#ffffff', 'right', 2, 700); }
       if (s.rules && s.rules.nohit) label(ctx, 'UNTOUCHABLE', gx, m + 58 * k, 11 * k, '#c9a0ff', 'right', 4, 700);
@@ -891,7 +901,7 @@
     ctx.restore();
   }
   R.drawTouch = function (ctx, s, st) {
-    const L = R.touchLayout(), k = R.k;
+    const L = R.touchLayout();
     ctx.save();
     ctx.strokeStyle = 'rgba(255,255,255,0.22)'; ctx.lineWidth = 1.5 * R.dpr; ctx.fillStyle = 'rgba(10,6,12,0.28)';
     ctx.beginPath(); ctx.arc(L.stick.x, L.stick.y, L.stick.r, 0, 7); ctx.fill(); ctx.stroke();

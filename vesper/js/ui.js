@@ -108,7 +108,6 @@
 
   // ---- the campaign hub ------------------------------------------------------------------------------
   const P = () => VS.PROG, DD = () => VS.DATA;
-  const starsHtml = (n, of, cls) => Array.from({ length: of }, (_, i) => `<i class="st ${i < n ? 'on' : ''} ${cls || ''}"></i>`).join('');
   function figure(c, set, opts) {
     const g = c.getContext('2d'); g.imageSmoothingEnabled = false; let t = 0; const W = c.width, H = c.height;
     const draw = () => { if (!c.isConnected) return; g.clearRect(0, 0, W, H); VS.A.actor(g, set, 'Idle4', Math.floor(t * 8) % 15, Math.PI * 0.25, W / 2, H - 8, W / 56, opts || {}); t += 1 / 30; setTimeout(draw, 33); }; draw();
@@ -122,7 +121,7 @@
       <button class="chip" data-act="heroes" type="button" style="--hc:${H.color}"><span class="dot"></span>${esc(H.name)}</button>
       <button class="chip" data-act="gear" type="button">Gear · <span class="gold">${p.gold || 0} g</span></button>
       <button class="chip" data-act="modes" type="button">Modes${p.ng ? ' · NG+' + p.ng : ''}</button>
-      <span class="chip" style="cursor:default">★ ${PR.totalStars(p)} / ${PR.maxStars()}</span>
+      <span class="chip stars" style="cursor:default">★ ${PR.totalStars(p)} / ${PR.maxStars()}</span>
       <button class="chip icon" data-act="menu" type="button" aria-label="Menu">☰</button></div>`;
     const n = o.sel && PR.node(o.sel);
     let panel;
@@ -154,6 +153,13 @@
     const go = el.querySelector('[data-act="go"]'); if (go) go.focus({ preventScroll: true });
     return el;
   };
+  // Ability descriptions name the keyboard; on a touch screen or a gamepad, that device's buttons instead.
+  const devKeys = (t) => {
+    const pad = VS.main && VS.main.padUsed, touch = VS.R && VS.R.touch; if (!pad && !touch) return t;
+    const M = pad ? { 'Right click': 'X', Space: 'B', 'Q:': 'Y:', 'R:': 'LB:', 'F:': 'RB:', 'E when': 'A trigger when' } : { 'Right click': 'HEAVY', Space: 'DASH', 'Q:': 'PARRY:', 'R:': 'The first skill button:', 'F:': 'The second skill button:', 'E when': 'The moon button when' };
+    for (const k in M) if (t.startsWith(k)) return M[k] + t.slice(k.length);
+    return t;
+  };
   // The skill tree: three branches, bought with skill points from the level shown.
   U.skills = function (o) {
     const p = o.p, PR = P(), H = DD().HEROES[p.hero], heroName = (k) => (k.hero != null && H.skills ? ' · ' + H.skills[k.hero].name : k.id === 'art' ? ' · ' + VS.ART[H.art === 'moon' ? 'moon' : H.art].name : '');
@@ -161,7 +167,7 @@
       PR.SKILLS.filter((k) => k.br === b.id).map((k) => {
         const c = PR.canBuy(p, k.id), cls = c.owned ? 'owned' : c.ok ? 'can' : 'locked';
         return `<button class="sk ${cls}${k.core ? ' core' : ''}${o.flash === k.id ? ' flash' : ''}" data-id="${k.id}" type="button"><span class="sk-ic">${k.core ? '◆' : k.cost}</span><span class="sk-name">${esc(k.name)}<small style="color:var(--dim);letter-spacing:.04em;text-transform:none;font-family:var(--f-body)">${esc(heroName(k))}</small></span>
-          <span class="sk-cost">${c.owned ? 'LEARNED' : c.ok ? k.cost + ' SP' : esc(c.why)}</span><span class="sk-desc">${esc(k.desc)}</span></button>`;
+          <span class="sk-cost">${c.owned ? 'LEARNED' : c.ok ? k.cost + ' SP' : esc(c.why)}</span><span class="sk-desc">${esc(devKeys(k.desc))}</span></button>`;
       }).join('') + '</div>').join('');
     const el = U.show('skills', `<div class="tree-wrap"><div class="tree-head"><div><p class="eyebrow">Level ${p.lvl}</p><h2>Skill tree</h2></div>
       <span class="sp"><b>${p.sp}</b>skill point${p.sp === 1 ? '' : 's'} · ${PR.spent(p)} spent</span>
@@ -181,7 +187,7 @@
       const kit = H.skills.map((k, j) => `<b>${j ? 'F' : 'R'}</b> ${esc(k.name)}`).join('<br>') + `<br><b>E</b> ${esc(VS.ART[H.art === 'moon' ? 'moon' : H.art].name)}`;
       return `<button class="btn card hero${ok ? '' : ' locked'}${id === p.hero ? ' focus-first' : ''}" data-i="${i}" type="button" style="--hc:${H.color}"><canvas class="hero-fig" width="96" height="96" data-set="${H.set}" data-lock="${ok ? '' : 1}"></canvas>
         <span class="btn-label">${ok ? esc(H.name) : '???'}</span><span class="hero-title">${ok ? esc(H.title) + ' · ' + esc(H.weapon) : 'Locked'}</span>
-        ${ok ? `<span class="btn-sub">${esc(H.blurb)}</span><span class="hero-kit">${kit}</span>${id === p.hero ? '<span class="hero-cur">Climbing now</span>' : ''}` : `<span class="lockreq">${esc(g.text)}</span><span class="lockbar"><i style="width:${Math.round(g.now / g.of * 100)}%"></i></span><span class="btn-sub">${g.of > 1 ? g.now + ' / ' + g.of : ''}</span>`}</button>`;
+        ${ok ? `<span class="btn-sub">${esc(H.blurb)}</span><span class="hero-kit">${kit}</span><span class="hero-mast">Mastery ${VS.MODES.masteryLvl((p.mastery || {})[id])} / 10</span>${id === p.hero ? '<span class="hero-cur">Climbing now</span>' : ''}` : `<span class="lockreq">${esc(g.text)}</span><span class="lockbar"><i style="width:${Math.round(g.now / g.of * 100)}%"></i></span><span class="btn-sub">${g.of > 1 ? g.now + ' / ' + g.of : ''}</span>`}</button>`;
     }).join('');
     const items = D.HERO_ORDER.map((id) => ({ act: () => { if (PR.heroOk(p, id)) o.pick(id); else VS.audio.sfx('thud', 0.5); } }));
     const el = U.show('roster', `<div class="boon-wrap"><p class="eyebrow">${p.heroes.length} of ${D.HERO_ORDER.length} heroes</p><h2>Who climbs tonight?</h2><nav class="cards heroes roster">${html}</nav><nav class="menu center"><button class="btn" data-i="${D.HERO_ORDER.length}" type="button"><span class="btn-label">Back</span></button></nav></div>`, items.concat([{ act: o.onBack }]), { back: o.onBack });
@@ -262,7 +268,7 @@
     const rc = (it) => LT.RARITY[it.rar].col, worn = (it) => LT.wornBy(p, it.uid);
     const tile = (it, act, extra) => `<button class="gi${o.sel === act ? ' sel' : ''}" data-sel="${act}" type="button" style="--rc:${rc(it)}"><canvas width="40" height="40" data-k="${act}"></canvas><span class="gi-name">${esc(it.name)}</span><span class="gi-sub">${esc(extra || LT.SLOT_NAME[it.slot] + ' · lv ' + it.ilvl)}</span></button>`;
     const M = LT.mods(p, o.hero), sum = [['+' + Math.round((M.dmg - 1) * 100) + '%', 'damage'], ['+' + M.hp, 'health'], [Math.round(M.armor * 100) + '%', 'armour'], ['+' + Math.round((M.gain - 1) * 100) + '%', 'moon']];
-    let left = '', mid = '', sel = null, selAct = '';
+    let left = '', mid = '', sel = null;
     if (tab === 'gear') {
       left = LT.SLOTS.map((sl) => { const it = LT.equipped(p, o.hero, sl); return it ? tile(it, 'u' + it.uid, LT.SLOT_NAME[sl] + ' · equipped') : `<div class="gi empty"><span class="gi-name">${LT.SLOT_NAME[sl]}</span><span class="gi-sub">Empty</span></div>`; }).join('');
       const bag = p.bag.slice().sort((a, b) => LT.SLOTS.indexOf(a.slot) - LT.SLOTS.indexOf(b.slot) || LT.score(b) - LT.score(a));

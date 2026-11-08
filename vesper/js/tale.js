@@ -20,7 +20,6 @@
   }
   function ridge(ctx, base, amp, col, seed, wave) { ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(0, R.H); for (let x = 0; x <= R.W + wave; x += wave) ctx.lineTo(x, base - amp * hash((x / wave) | 0, seed)); ctx.lineTo(R.W, R.H); ctx.closePath(); ctx.fill(); }
   function figure(ctx, who, clip, frame, face, x, y, scale, opts) { const s = sp(who); if (!s) return; A.actor(ctx, s.set, clip, frame, face > 0 ? 0 : Math.PI, Math.round(x), Math.round(y), scale * (s.scale || 1), opts || {}); }
-  function shadow(ctx, x, y, w) { const g = ctx.createRadialGradient(x, y, 0, x, y, w); g.addColorStop(0, 'rgba(0,0,0,0.5)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.save(); ctx.translate(x, y); ctx.scale(1, 0.22); ctx.translate(-x, -y); ctx.fillStyle = g; ctx.fillRect(x - w, y - w, w * 2, w * 2); ctx.restore(); }
   // The caption: a small red eyebrow, one clean line, on a soft dark band at the bottom.
   function caption(ctx, sh, t) {
     if (!sh.say && !sh.eyebrow) return;

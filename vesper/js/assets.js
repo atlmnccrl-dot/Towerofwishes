@@ -1,7 +1,7 @@
 // VESPER — asset engine. Loads the packed pixel cast, the effects and tile atlases from ../assets
 // and draws them on the pixel buffer: plain, flashed white, as a solid silhouette, or in grey.
 (function () {
-  const VS = window.VS; const D = VS.DATA;
+  const VS = window.VS;
   const A = VS.A = { ROOT: '../assets/' };
   const DIRS = ['E', 'SE', 'S', 'SW', 'W', 'NW', 'N', 'NE'];
   const sets = {}, tex = {}; let fxData = null, tileData = null;
@@ -85,7 +85,10 @@
     const s = sets[setId]; if (!s) return null;
     const an = s.anims[clip] || s.anims[CLIP_FB[clip]] || s.anims.Idle4 || s.anims.Idle; if (!an) return null;
     const frames = an[DIRS[A.dirIndex(angle)]] || an.E; if (!frames || !frames.length) return null;
-    return { s, f: frames[Math.max(0, Math.min(frames.length - 1, frame | 0))] };
+    // An empty cell in a sheet is stored as null: use the nearest frame that has pixels.
+    let i = Math.max(0, Math.min(frames.length - 1, frame | 0)), f = frames[i];
+    for (let d = 1; !f && d < frames.length; d++) f = frames[i - d] || frames[i + d];
+    return f ? { s, f } : null;
   }
   // Draw an actor with its feet at (x, y). opts: flash (0..1 white), shade (solid colour), grey, alpha.
   A.actor = function (ctx, setId, clip, frame, angle, x, y, scale, opts) {
