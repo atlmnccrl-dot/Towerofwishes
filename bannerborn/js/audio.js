@@ -1,4 +1,4 @@
-// Bannerborn — synthesised sound effects and a procedural war-drum score (no audio files needed).
+// Bannerborn — synthesised sound effects, a procedural war-drum score, and recorded monster voices (assets/sfx).
 (function () {
   const BB = window.BB;
   let ac = null, master, sfxBus, musBus, noiseBuf;
@@ -14,7 +14,37 @@
     BB.setVolumes();
     return ac;
   }
-  BB.audioUnlock = function () { init(); if (ac && ac.state === 'suspended') ac.resume(); };
+  BB.audioUnlock = function () { init(); if (ac && ac.state === 'suspended') ac.resume(); if (ac && !preloaded) { preloaded = true; for (const n of VOICES) loadV(n); } };
+  // ---- recorded monster voices (assets/sfx, from Ririsaurus' Fantasy Monsters, Dinosaurs and Abyssal Horror packs)
+  const VOICES = ['warg_growl', 'warg_snarl', 'warg_big', 'hiss', 'hob_growl', 'hob_babble', 'hob_chant', 'giant_attack', 'giant_grunt', 'giant_grunt2', 'giant_pain', 'giant_pain2', 'giant_laugh', 'giant_dizzy',
+    'jelly', 'river', 'boggart', 'deep_growl', 'deep_growl2', 'deep_growl3', 'deep_grunt', 'deep_grunt2', 'deep_froth', 'deep_groan', 'deep_roar', 'rumble', 'descent', 'dino_bellow', 'dino_bellow2', 'dino_growl', 'dino_horde', 'dino_grunt', 'dino_soft'];
+  const vbuf = {}, vload = {}; let preloaded = false, active = 0;
+  function loadV(n) { if (vbuf[n] || vload[n] || !ac) return; vload[n] = fetch('assets/sfx/' + n + '.mp3').then((r) => r.arrayBuffer()).then((a) => new Promise((res, rej) => ac.decodeAudioData(a, res, rej))).then((b) => { vbuf[n] = b; }).catch(() => {}); }
+  BB.voice = function (name, vol, rate) {
+    if (!ac || ac.state !== 'running' || !name) return;
+    const now = ac.currentTime; if (last['v' + name] && now - last['v' + name] < 0.3) return;
+    const b = vbuf[name]; if (!b) { loadV(name); return; }
+    if (active >= 5) return; last['v' + name] = now; active++;
+    const src = ac.createBufferSource(); src.buffer = b; src.playbackRate.value = rate || (0.9 + Math.random() * 0.2);
+    const g = ac.createGain(); g.gain.value = vol === undefined ? 0.85 : vol; src.connect(g); g.connect(sfxBus); src.onended = () => { active--; }; src.start();
+  };
+  // who sounds like what
+  const FV = {
+    ghoul: { atk: ['hob_growl', 'boggart'], die: ['jelly'] }, beastkin: { atk: ['warg_growl', 'warg_snarl'], die: ['warg_big'], pounce: ['warg_big'] },
+    stalker: { atk: ['hiss'], die: ['hiss'], pounce: ['hiss'] }, warden: { atk: ['giant_attack', 'giant_grunt'], hurt: ['giant_pain2'], die: ['giant_pain'] },
+    necro: { cast: ['hob_chant'], atk: ['hob_babble'], die: ['deep_grunt2'] }, warlock: { cast: ['hob_chant'], atk: ['hob_babble'], die: ['deep_grunt'] },
+    wraith: { atk: ['deep_growl3', 'deep_growl2'], die: ['deep_growl'] }, kestrelfoe: { atk: ['hiss'], die: ['hiss'] },
+    ossric: { atk: ['giant_attack', 'giant_grunt', 'giant_grunt2'], hurt: ['giant_pain2'], enrage: ['dino_bellow'], brk: ['giant_dizzy'], die: ['giant_pain'], taunt: ['giant_laugh'] },
+    sallow: { atk: ['deep_froth', 'deep_grunt'], cast: ['hob_chant'], enrage: ['dino_bellow2'], brk: ['deep_groan'], die: ['deep_groan'], taunt: ['deep_froth'] },
+    regent: { atk: ['deep_growl', 'deep_growl2'], enrage: ['deep_roar'], brk: ['deep_grunt'], die: ['deep_groan'], taunt: ['deep_roar'] },
+    vesh: { atk: ['deep_growl2', 'deep_growl3'], cast: ['deep_froth'], enrage: ['deep_roar'], brk: ['deep_groan'], die: ['descent'], taunt: ['deep_roar'] },
+  };
+  BB.foeVoice = function (e, what, chance) {
+    if (!e || !ac) return; const set = FV[e.kind]; if (!set || !set[what]) return;
+    if (chance !== undefined && Math.random() > chance) return;
+    const now = ac.currentTime; if (!e.boss && last.foeAny && now - last.foeAny < 0.35) return; last.foeAny = now;
+    const list = set[what]; BB.voice(list[Math.floor(Math.random() * list.length)], e.boss ? 0.95 : 0.6, e.boss ? 0.85 + Math.random() * 0.1 : undefined);
+  };
   BB.setVolumes = function () {
     if (!ac) return;
     const s = (BB.save && BB.save.settings) || { sfx: 0.8, music: 0.5 };

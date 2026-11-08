@@ -43,6 +43,16 @@ A hero-collector RPG: you build the team, the team fights.
    carry an **enchant** (fire embers, frost, storm arcs, shadow wisps, holy light) that swirls around the hero and
    makes their blows elemental; forging a plain weapon to +5 awakens one; capstones add a mark (Undying's halo,
    Mastery's rune circle, Executioner's embers), and 4★ heroes sparkle. The same look follows them into battle.
+3b. **Every hero is someone.** Each hero has a **class** — Guardian, Warrior, Assassin, Marksman, Mage or Healer —
+   and each of the 102 recruits is dealt a mix nobody else has (js/identity.js): an **entrance** (walks out of smoke,
+   drops out of the sky in a slam, a teleport strike, a lightning bolt, a pillar of fire, a pool of shadow, a war
+   charge, a column of light, a block of ice, a leafstorm) played on the summoning and at the start of every battle;
+   a **temperament**, their combat brain (Reckless, Cunning, Protector, Hunter, Duelist, Skirmisher, Brawler, Steady:
+   who they go for and which moves they reach for); and a **signature move** that comes round every ten seconds or
+   so (js/signatures.js): Whirlwind, Ground Pound, Blink Strike, War Cry, Shield Toss, Multishot, Snare, Chain
+   Lightning, Meteor, Smite, Blood Rush, Pole Vault, Decoy, Flurry, Barrier. The legends and the Captain are written
+   by hand. Their card and the hero screen describe all of it; the team screen shows which classes you have and what
+   the team is missing.
 4. **Formation.** Up to five heroes: two in the front row (they draw the blows), three behind.
    **Bonds** reward mixed callings. *Auto-fill* puts the strongest five in place.
 5. **Battle.** Heroes march as a column between fights and fight by role: the **tank** holds the front and
@@ -70,7 +80,8 @@ A hero-collector RPG: you build the team, the team fights.
    stalkers **pounce** from range; nimble fighters **roll** out of blows (*DODGE*) and the back line tumbles away from
    anyone on top of it. Blocks jar both fighters back a step; a parry throws the attacker back reeling.
    Four to six waves a stage, reinforcements arriving mid-fight, bosses calling adds as they weaken. Each charges an **ultimate** by fighting and taking hits;
-   tap the glowing card (or 1–5) to unleash it with a cut-in, or turn on **AUTO**. 1×/2× speed, pause.
+   tap the glowing card (or 1–5) to unleash it with a cut-in, or turn on **AUTO**. 1×/2×/3× speed, pause.
+   Maps keep the middle and the lanes between spawns open; fights run about 20–70 s at 1×.
 6. **Campaign.** Four chapters, thirty stages (Greenvale, the Sunscar, Aldmere, the Cantor's Gate):
    rout waves, destroy Gravegates, defend a ward against the clock, a duel and four bosses with
    telegraphed moves and enrage phases. Each stage shows the recommended power next to yours.
@@ -93,21 +104,22 @@ Losing costs nothing: level up, forge, change the formation and fight again.
 
 Settings: music, effects, screen shake, damage numbers, erase save.
 
+Sound: monster voices from Ririsaurus' *Fantasy Monsters*, *Dinosaurs* and *Abyssal Horror SFX Vol.1* packs
+(assets/sfx, trimmed and compressed; credited in Settings): wargs for beastkin, a serpent's hiss for stalkers,
+giants for the Bonewardens and Ossric, deep ones for wraiths, Sallow, the Regent and Vesh, dinosaur bellows for
+enraged bosses, abyssal rumbles for the Gravegates. Everything else is synthesised.
+
 **Cutscenes** instead of dialogue (js/cinema.js, skippable, one subtitle line per shot). Every shot is close and
 graphic, never from the game camera: slanted close-up panels of faces in coloured light, silhouettes that light up,
 three-face panels, a wall of skull faces, screen-filling gates with lightning and rain, great banners against the
 sky that topple in fire, VS splits, black-and-white impact frames and title slams, with sparks, embers, smoke, shake
-and letterbox. Two places are painted sets rather than panels. **The banner field**: nine war banners recede along a ridge at a
-dark dusk under a gathering storm, cloth rippling with rolling folds and backlight, a knight beneath each, light beams
-cutting between them. The fall plays as fast cuts: an extreme close-up of a banner streaming across the frame as fire
-eats through its sigil, black-and-white impact frames of poles snapping in two with splinters, then the ridge at night
-as they burn and come down one after another. After it, the last banner stands scorched and torn on a field of broken
-spears, shields and banners trampled into the mud, ash falling; the Captain hauls it upright as the storm splits open
-to dawn, and in close-up it unrolls from its crossbar in gold light, the crown upright: *and swore to build a new army.*
-**The Gravegate**: an ancient stone arch in a graveyard under a storm; its runes wake one
-by one, a seam of light splits the arch, the ground cracks, then it tears open with a shockwave: a vortex of spiral
-light and rushing rings, arcs leaping to the stones, debris dragged in, gravestones leaning from the blast, the dead
-taking shape in the light and striding out, and the camera falls into it. Bosses open through their own gate in
+and letterbox. The opening is told in close panels: nine knights slam in under their banners and swear the oath; the
+Gravegate tears open in a storm-lit graveyard (a painted set: runes, a seam of light, a shockwave, the vortex, the dead
+striding out, the camera falling in); Vesh rises and sings; *he was only the first* — three more gates flare on far
+hills, and three panels show what stands in them, black and rim-lit with burning eyes, named only by their land; the
+dead rise; then the nine oath panels return and eight crack, drain to grey as their knight falls, and drop away; the
+Captain's panel stands alone in the ash; it blazes gold, and eight empty frames light up around it, waiting for the
+new army. Bosses open through their own gate in
 their colour. Post effects sell the big beats: the screen cracks on impacts, the colour splits apart, film grain, rim-lit
 silhouettes, sound rings off a singing mouth, embers that converge on the hero, and a slam zoom into an eye.
 The opening (~75 s) tells how it began: nine knights swear the oath, one slanted panel each in their banner's colour

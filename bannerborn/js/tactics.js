@@ -263,7 +263,7 @@
         const f = m.tgt; if (!f || f.dead) return done();
         if (m.phase === 0) {
           m.phase = 1; this.face(e, f.x, f.y); e.state = 'attack'; e.lock = 0.3; e.atkDur = 0.3; e.hitAt = 99; e.hitDone = true; this.setClip(e, has(this, e, 'Taunt') ? 'Taunt' : 'Idle', true);
-          this.text(e.x, e.y + 0.3, '!', '#ff5a3a', 1);
+          this.text(e.x, e.y + 0.3, '!', '#ff5a3a', 1); if (BB.foeVoice) { BB.foeVoice(e, 'pounce'); BB.foeVoice(e, 'atk'); }
           return true;
         }
         if (m.phase === 1) {

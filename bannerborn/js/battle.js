@@ -392,6 +392,8 @@
     if (e.dead) return;
     e.dead = true; e.hp = 0; e.deadT = 0; e.state = 'dead';
     if (e.ward) { this.addFx('x_wood', e.x, e.y - 0.2, { sc: 0.8 }); return; }
+    if (e.side === 'foe' && BB.foeVoice) BB.foeVoice(e, 'die', e.boss ? 1 : 0.45);
+    if (e.gate && BB.voice) BB.voice('rumble', 0.55);
     if (e.side === 'hero') {
       if (this.revives > 0) {
         this.revives--; e.reviveT = 2.2; this.text(e.x, e.y, 'Blessed!', '#ffe27a', 1);
@@ -948,7 +950,7 @@
     e.poise -= amt; e.poiseT = 2.2;
     if (e.poise <= 0) {
       e.poise = e.maxPoise; e.brokenT = e.boss ? 3.5 : 2.2; this.stun(e, e.boss ? 2.4 : 1.5);
-      this.text(e.x, e.y, 'BREAK!', '#ffb347', 2); this.addFx('aoe', e.x, e.y, { sc: e.boss ? 0.8 : 0.5, ground: true, add: true, hue: 20, fps: 30 });
+      this.text(e.x, e.y, 'BREAK!', '#ffb347', 2); if (BB.foeVoice) BB.foeVoice(e, e.boss ? 'brk' : 'hurt'); this.addFx('aoe', e.x, e.y, { sc: e.boss ? 0.8 : 0.5, ground: true, add: true, hue: 20, fps: 30 });
       this.shake = Math.max(this.shake, e.boss ? 0.7 : 0.35); this.hitstop = Math.max(this.hitstop, 0.08); BB.sfx && BB.sfx('slam');
       if (e.boss) { this.banner(e.F.name.split(',')[0] + ' is broken!', 1.4, 'small'); this.zoomPulse(1.08, 0.6); }
       for (const h of this.heroesAlive()) if (hyp(h.x - e.x, h.y - e.y) < 6) h.energy = Math.min(100, (h.energy || 0) + 12);
@@ -1383,7 +1385,7 @@
         e.spawnCd = (8.5 + this.r() * 2.5) / Math.sqrt(this.waveK);
         if (e.budget !== undefined) e.budget--;
         const k = this.r.pick(this.obj.pool);
-        this.spawnFoe(k, e.x + this.r.range(0.6, 1.2), e.y + this.r.range(0.6, 1.2), { rise: true });
+        this.spawnFoe(k, e.x + this.r.range(0.6, 1.2), e.y + this.r.range(0.6, 1.2), { rise: true }); if (BB.voice && this.r() < 0.5) BB.voice('deep_grunt2', 0.4);
       }
       return;
     }
@@ -1396,7 +1398,7 @@
       e.summonCd -= dt;
       if (e.summonCd <= 0 && this.foesAlive().length < 14) {
         e.summonCd = 11 + this.r() * 5; e.state = 'attack'; e.lock = 0.8; e.atkDur = 0.8; e.hitAt = 0.5; e.hitDone = true;
-        this.setClip(e, 'Special1', true);
+        this.setClip(e, 'Special1', true); if (BB.foeVoice) BB.foeVoice(e, 'cast');
         for (let i = 0; i < 2; i++) this.spawnFoe('ghoul', e.x + this.r.range(-1.2, 1.2), e.y + this.r.range(-1.2, 1.2), { rise: true });
         return;
       }
@@ -1430,6 +1432,7 @@
     if (!e.ranged && t && !t.ward) e.atkTgt = t = this.readBlow(e, t, e.hitAt);
     e.cd = (1 / e.aspd) * (0.9 + this.r() * 0.5);
     this.face(e, t.x, t.y); this.setClip(e, clip || clips[this.r.int(clips.length)], true);
+    if (BB.foeVoice && !this.sim) BB.foeVoice(e, 'atk', e.boss ? 0.45 : 0.2);
   };
   Battle.prototype.resolveFoeAttack = function (e) {
     const t = e.atkTgt; if (!t) return;
@@ -1445,7 +1448,7 @@
   Battle.prototype.bossAI = function (e, t, dt) {
     e.cd -= dt; e.moveCd -= dt;
     if (!e.enraged && e.hp < e.maxhp * 0.5) {
-      e.enraged = true; e.aspd *= 1.3; e.spd *= 1.15; this.banner(e.F.name.split(',')[0] + ' is enraged!', 1.8, 'boss');
+      e.enraged = true; e.aspd *= 1.3; e.spd *= 1.15; if (BB.foeVoice) BB.foeVoice(e, 'enrage'); this.banner(e.F.name.split(',')[0] + ' is enraged!', 1.8, 'boss');
       this.addFx('buff9', e.x, e.y, { sc: 1.3, add: true, hue: -60 }); this.shake = 0.5; BB.sfx && BB.sfx('boss');
       if (e.kind === 'vesh') this.bossMove(e, t, 'gates');
     }

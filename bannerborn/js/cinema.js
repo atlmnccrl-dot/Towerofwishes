@@ -921,6 +921,7 @@
     for (let b = 0; b < 7; b++) { let a = b / 7 * Math.PI * 2 + Math.random() * 0.5, px = x, py = y; const pts = []; for (let i = 0; i < 9; i++) { a += (Math.random() - 0.5) * 0.7; const st = 0.025 + Math.random() * 0.04; px += Math.cos(a) * st; py += Math.sin(a) * st * 1.6; pts.push([px, py]); } br.push(pts); }
     C.cracks.push({ x, y, br, t: 0, col }); BB.sfx('slam');
   };
+  const VOICE = (n, v) => () => BB.voice && BB.voice(n, v === undefined ? 1 : v, 0.9);
   const BEAT = () => () => { BB.sfx('herodie'); C.shake = Math.max(C.shake, 0.12); };
 
   // load the art a cutscene needs
@@ -955,21 +956,21 @@
         { kind: 'closeup', dur: 2.2, who: knights[0], dir: 2, burst: 'rgba(255,220,150,0.09)', col1: 'rgba(220,160,60,1)', col2: 'rgba(30,18,6,1)', edge: '#ffe7a3', from: 0.4, caption: 'For three hundred years, they held.', capAt: 0.3,
           cues: [[0.15, SFX('rally')], [0.2, SPARKS(80, '#ffe7a3', 0.5, 0.5, 600)], [0.25, SHAKE(0.3)]] },
         { kind: 'gate', dur: 6.6, col: [150, 90, 255], rain: true, burstAt: 2.6, figures: [ghoul, warden, skel], caption: 'Then, one night, the Gravegates opened.', capAt: 2.9, capEnd: 5.6, cues: [
-          [0, MUSIC('boss')], [0.1, SFX('charge')], [0.5, BOLT()], [1.2, SFX('charge')], [1.6, SHAKE(0.2)], [2.1, SHAKE(0.35)], [2.6, () => { SHAKE(1)(); BB.sfx('portal'); BB.sfx('burst'); BB.sfx('slam'); FLASH(0.9, '#e0d0ff')(); RGB(1)(); }],
+          [0, MUSIC('boss')], [0.1, SFX('charge')], [0.5, BOLT()], [1.2, SFX('charge')], [1.6, SHAKE(0.2)], [2.1, SHAKE(0.35)], [2.6, () => { SHAKE(1)(); BB.sfx('portal'); BB.sfx('burst'); BB.sfx('slam'); FLASH(0.9, '#e0d0ff')(); RGB(1)(); }], [0.6, VOICE('rumble', 0.8)], [3.2, VOICE('descent', 0.8)],
           [2.62, SPARKS(220, '#c9a8ff', 0.5, 0.5, 1200)], [3.6, BOLT()], [4.4, SFX('boss')], [4.5, SHAKE(0.4)], [5.2, BOLT()], [5.8, SFX('charge')], [6.2, RGB(0.8)]] },
         { kind: 'closeup', dur: 3.6, who: vesh, dir: 2, rise: true, sil: [0.25, 0.6], rim: '#7dffb0', col1: 'rgba(40,120,70,1)', col2: 'rgba(4,16,10,1)', edge: '#7dffb0', label: 'VESH MORROW · THE BONE CANTOR',
-          caption: 'Out of the first one walked Vesh Morrow.', capAt: 0.5, cues: [[0, SFX('charge')], [0.3, EMBERS(50, '#7dffb0')], [1.4, SHAKE(0.3)]] },
+          caption: 'Out of the first one walked Vesh Morrow.', capAt: 0.5, cues: [[0, SFX('charge')], [0.4, VOICE('deep_groan', 0.9)], [0.3, EMBERS(50, '#7dffb0')], [1.4, SHAKE(0.3)]] },
         { kind: 'closeup', dur: 1.8, who: vesh, dir: 2, zoom: 2.3, dy: 0.35, col1: 'rgba(30,90,55,1)', col2: 'rgba(2,10,6,1)', edge: '#7dffb0', from: 0.05, caption: 'He opened his mouth —', capAt: 0.2, cues: [[0, SFX('charge')], [1.2, SHAKE(0.3)]] },
         { kind: 'closeup', dur: 2.6, who: vesh, dir: 2, waves: 'rgba(125,255,176,A)', burst: 'rgba(125,255,176,0.06)', col1: 'rgba(60,170,100,1)', col2: 'rgba(4,20,12,1)', edge: '#7dffb0', from: 0.2, caption: '— and sang.', capAt: 0.3,
-          cues: [[0, SFX('boss')], [0.1, RGB(0.6)], [0.2, SHAKE(0.5)], [1.0, RGB(0.5)], [1.0, SHAKE(0.4)], [1.8, RGB(0.6)]] },
+          cues: [[0, SFX('boss')], [0, VOICE('deep_roar', 1)], [0.1, RGB(0.6)], [0.2, SHAKE(0.5)], [1.0, RGB(0.5)], [1.0, SHAKE(0.4)], [1.8, RGB(0.6)]] },
         { kind: 'impact', dur: 0.45, who: vesh, clip: 'Attack1', accent: '#7dffb0', cues: [[0, SHAKE(1)], [0, SFX('burst')], [0, FLASH(0.6, '#c8ffe0')], [0, RGB(1)]] },
         { kind: 'gates', dur: 3.6, caption: 'He was only the first.', capAt: 0.4, capEnd: 3.4,
           gates: [{ x: 0.2, dy: 0.02, sc: 0.42, col: [255, 80, 60], at: 0.3, who: later[0] }, { x: 0.52, dy: -0.04, sc: 0.3, col: [255, 196, 90], at: 0.48, who: later[1] }, { x: 0.82, dy: 0.06, sc: 0.55, col: [190, 150, 255], at: 0.66, who: later[2] }],
-          cues: [[0, SFX('charge')], [1.08, () => { BB.sfx('portal'); SHAKE(0.5)(); }], [1.73, () => { BB.sfx('portal'); SHAKE(0.4)(); }], [2.38, () => { BB.sfx('portal'); BB.sfx('slam'); SHAKE(0.7)(); RGB(0.6)(); }], [3.0, BOLT()]] },
+          cues: [[0, SFX('charge')], [1.08, () => { BB.sfx('portal'); SHAKE(0.5)(); }], [1.73, () => { BB.sfx('portal'); SHAKE(0.4)(); }], [2.38, () => { BB.sfx('portal'); BB.sfx('slam'); SHAKE(0.7)(); RGB(0.6)(); }], [3.0, BOLT()], [2.5, VOICE('dino_bellow2', 0.8)]] },
         { kind: 'tease', dur: 4.6, caption: 'Three more gates opened that night. What stood in them is waiting still.', capAt: 0.5, capEnd: 4.4,
           gates: [{ land: 'GREENVALE', col: [255, 80, 60], who: later[0] }, { land: 'THE SUNSCAR', col: [255, 196, 90], who: later[1] }, { land: 'ALDMERE', col: [190, 150, 255], who: later[2] }],
-          cues: [[0, () => { BB.sfx('portal'); SHAKE(0.4)(); }], [1.0, () => { BB.sfx('portal'); SHAKE(0.4)(); }], [2.0, () => { BB.sfx('portal'); SHAKE(0.5)(); }], [0.75, SFX('charge')], [1.75, SFX('charge')], [2.75, () => { BB.sfx('boss'); RGB(0.6)(); }]] },
-        { kind: 'horde', dur: 3.2, who: [ghoul, warden, skel, ghoul], caption: 'The dead heard him. Every grave in the vale broke open.', capAt: 0.3, cues: [[0, SFX('slam')], [0.3, SHAKE(0.5)], [0.9, SHAKE(0.4)], [1.6, BOLT()]] },
+          cues: [[0, () => { BB.sfx('portal'); SHAKE(0.4)(); }], [1.0, () => { BB.sfx('portal'); SHAKE(0.4)(); }], [2.0, () => { BB.sfx('portal'); SHAKE(0.5)(); }], [0.75, VOICE('giant_laugh', 0.9)], [1.75, VOICE('deep_froth', 0.9)], [2.75, () => { BB.sfx('boss'); RGB(0.6)(); BB.voice && BB.voice('deep_roar', 1, 0.8); }]] },
+        { kind: 'horde', dur: 3.2, who: [ghoul, warden, skel, ghoul], caption: 'The dead heard him. Every grave in the vale broke open.', capAt: 0.3, cues: [[0, SFX('slam')], [0.1, VOICE('dino_horde', 0.8)], [0.3, SHAKE(0.5)], [0.9, SHAKE(0.4)], [1.6, BOLT()]] },
         { kind: 'impact', dur: 0.24, who: knights[0], who2: warden, clip: 'Attack1', accent: '#ff7a3a', cues: [[0, SHAKE(1)], [0, SFX('slam')], [0, FLASH(0.6)], [0, RGB(0.8)]] },
         { kind: 'impact', dur: 0.24, who: knights[1], who2: ghoul, clip: 'Attack1', accent: '#ff7a3a', cues: [[0, SHAKE(0.9)], [0, SFX('slam')], [0, FLASH(0.5)]] },
         { kind: 'impact', dur: 0.24, who: ghoul, who2: knights[2], clip: 'Attack1', accent: '#ff3d2a', cues: [[0, SHAKE(1)], [0, SFX('slam')], [0, FLASH(0.6)], [0, RGB(0.8)]] },
@@ -999,9 +1000,9 @@
       const name = F.name.split(',')[0].toUpperCase(), epi = (F.name.split(',')[1] || '').trim().toUpperCase();
       return { shots: [
         { kind: 'gate', dur: 3.4, col: red[3], burstAt: 1.3, rain: M.boss !== 'sallow', figures: [grunt, bossW, grunt], cues: [[0, SFX('charge')], [0.4, BOLT()], [1.3, () => { SHAKE(0.9)(); BB.sfx('portal'); BB.sfx('burst'); FLASH(0.7, '#ffffff')(); RGB(0.8)(); }], [1.32, SPARKS(150, red[2], 0.5, 0.5, 1000)], [2.3, BOLT()]] },
-        { kind: 'closeup', dur: 2.6, who: bossW, dir: 3, rise: true, sil: [0.3, 0.75], rim: red[2], col1: red[0], col2: red[1], edge: red[2], cues: [[0, SFX('boss')], [0.3, SHAKE(0.4)], [0.2, EMBERS(40, red[2])]] },
+        { kind: 'closeup', dur: 2.6, who: bossW, dir: 3, rise: true, sil: [0.3, 0.75], rim: red[2], col1: red[0], col2: red[1], edge: red[2], cues: [[0, SFX('boss')], [0.5, () => BB.foeVoice && BB.foeVoice({ kind: M.boss, boss: true }, 'taunt')], [0.3, SHAKE(0.4)], [0.2, EMBERS(40, red[2])]] },
         { kind: 'closeup', dur: 1.3, who: bossW, dir: 3, zoom: 2.2, dy: 0.35, col1: red[0], col2: red[1], edge: red[2], from: 0.05, cues: [[0, SFX('charge')], [0.8, SHAKE(0.4)], [0.8, RGB(0.5)]] },
-        { kind: 'impact', dur: 0.4, who: bossW, clip: F.atkClips ? F.atkClips[0] : 'Attack1', dir: 3, accent: red[2], cues: [[0, SHAKE(0.9)], [0, SFX('burst')], [0, FLASH(0.6)], [0, RGB(1)]] },
+        { kind: 'impact', dur: 0.4, who: bossW, clip: F.atkClips ? F.atkClips[0] : 'Attack1', dir: 3, accent: red[2], cues: [[0, () => BB.foeVoice && BB.foeVoice({ kind: M.boss, boss: true }, 'enrage')], [0, SHAKE(0.9)], [0, SFX('burst')], [0, FLASH(0.6)], [0, RGB(1)]] },
         { kind: 'title', dur: 2.3, text: name, sup: 'STAGE ' + M.code, sub: epi, size: 0.11, col: red[2], bg: red[1], cues: [[0, SFX('slam')], [0, SHAKE(0.6)], [0, CRACK(0.5, 0.5, red[2])], [0, RGB(0.7)], [0.02, SPARKS(110, red[2], 0.5, 0.5, 750)]] },
         { kind: 'horde', dur: 1.6, who: [grunt, grunt, bossW, grunt], cues: [[0, SFX('slam')], [0.3, SHAKE(0.4)]] },
         { kind: 'split', dur: 1.7, a: heroW, b: bossW, colA: GOLD, colB: [red[0], red[1]], cues: [[0, SFX('rally')], [0.5, SHAKE(0.3)]] },
@@ -1026,7 +1027,7 @@
       const M = o.stage, F = BB.FOES[M.boss], boss = { foe: M.boss };
       const art = actorArt(boss); if (art.key) await BB.loadChar(art.key).catch(() => null);
       return { shots: [
-        { kind: 'impact', dur: 0.5, who: boss, clip: 'TakeDamage', dir: 3, accent: '#ffffff', cues: [[0, SHAKE(1)], [0, SFX('burst')], [0, FLASH(1)]] },
+        { kind: 'impact', dur: 0.5, who: boss, clip: 'TakeDamage', dir: 3, accent: '#ffffff', cues: [[0, () => BB.foeVoice && BB.foeVoice({ kind: M.boss, boss: true }, 'die')], [0, SHAKE(1)], [0, SFX('burst')], [0, FLASH(1)]] },
         { kind: 'closeup', dur: 1.3, who: boss, dir: 3, col1: 'rgba(120,120,130,1)', col2: 'rgba(8,8,10,1)', edge: '#ffffff', cues: [[0.2, SPARKS(120, '#e8e8f0', 0.5, 0.5, 400)], [0.2, SFX('slam')], [0.6, SHAKE(0.4)]] },
         { kind: 'title', dur: 2.0, text: F.name.split(',')[0].toUpperCase() + ' FALLS', sub: 'STAGE ' + M.code + ' CLEARED', size: 0.09, col: '#ffbe55', bg: '#140d05', cues: [[0, SFX('burst')], [0, SHAKE(0.5)], [0.02, SPARKS(100, '#ffcf7a', 0.5, 0.5, 650)], [0.05, EMBERS(50, '#ffb347')]] },
       ] };
