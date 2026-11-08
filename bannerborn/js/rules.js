@@ -256,6 +256,8 @@
   };
   // fewer foes for a small team: a lone captain can win the first stage
   BB.waveScale = (n) => Math.min(1, Math.max(0.35, (n + 1) / 6));
+  // how crowded a stage is: the hordes grow chapter by chapter
+  BB.crowd = (stage) => [1, stage.code && +stage.code.split('-')[1] >= 5 ? 1.15 : 1, 1.35, 1.5, 1.6][stage.chapter] || 1;
 
   // ---------------------------------------------------------------- idle spoils: the camp gathers while you are away
   BB.IDLE_CAP = 12 * 3600 * 1000;
@@ -350,7 +352,7 @@
   BB.foeStats = function (kind, level, elite) {
     const F = BB.FOES[kind];
     const g = 1 + (level - 1) * 0.2;
-    const s = { hp: Math.round(F.hp * g * (F.boss ? 3.2 : F.gate ? 1.7 : 3.1)), atk: F.atk * (1 + (level - 1) * 0.16) * (F.boss ? 1.45 : 1.7), def: F.def + (level - 1) * 0.6 };
+    const s = { hp: Math.round(F.hp * g * (F.boss ? 4.2 : F.gate ? 1.9 : 3.1)), atk: F.atk * (1 + (level - 1) * 0.16) * (F.boss ? 1.45 : 1.7), def: F.def + (level - 1) * 0.6 };
     if (elite) { s.hp = Math.round(s.hp * elite.hp); s.atk *= elite.atk; }
     return s;
   };

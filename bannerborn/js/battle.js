@@ -21,6 +21,7 @@
     this.save = opts.save;
     this.revives = 0;
     this.waveK = BB.waveScale ? BB.waveScale((opts.heroes || []).length) : 1;
+    if (opts.mission && opts.mission.chapter) this.waveK *= BB.crowd(opts.mission); // bigger hordes deeper in
     this.metrics = { taken: 0, dealt: 0, healed: 0, minFrac: 1 };
     // formation: front row (2) ahead, back row (3) behind, facing the map's centre
     const form = opts.formation || (opts.heroes || []).map((h, i) => ({ hero: h, row: i < 2 ? 'front' : 'back', slot: i < 2 ? i : i - 2 }));
@@ -134,17 +135,35 @@
   };
 
   Battle.prototype.spawnWave = function (w, spots) {
-    spots = spots || this.map.foeSpawns;
-    let k = 0;
+    spots = spots && spots.length ? spots : this.map.foeSpawns;
     const eliteN = this.mission && this.mission.elites ? this.mission.elites : 0;
-    for (let i = 0; i < w.length; i += 2) {
-      for (let n = 0; n < Math.max(1, Math.round(w[i + 1] * this.waveK)); n++) {
-        const s = spots[(k++) % spots.length];
-        const a = this.r() * TAU, d = this.r() * 1.4;
-        let elite = null;
-        if (eliteN && this.r() < 0.12 * eliteN && !BB.FOES[w[i]].turret) elite = this.r.pick(BB.ELITES);
-        this.spawnFoe(w[i], s.x + Math.cos(a) * d, s.y + Math.sin(a) * d, { rise: true, elite });
+    // pick the spawn closest to the heroes' far side, then lay the wave out facing them
+    const groups = []; let total = 0;
+    for (let i = 0; i < w.length; i += 2) { const n = Math.max(1, Math.round(w[i + 1] * this.waveK)); groups.push([w[i], n]); total += n; }
+    const parts = spots.length > 1 && total > 6 ? 2 : 1; // a big wave splits between two spawns
+    for (let part = 0; part < parts; part++) {
+      const s0 = spots[(this.waveIdx + part) % spots.length];
+      const hc = this.warCenter || this.map.heroSpawn;
+      let fx = hc.x - s0.x, fy = hc.y - s0.y; const fl = hyp(fx, fy) || 1; fx /= fl; fy /= fl;
+      const px = -fy, py = fx;
+      const rows = { tank: [], grunt: [], ranged: [], assassin: [], turret: [] };
+      for (const [kind, n] of groups) {
+        const F = BB.FOES[kind], role = F.turret ? 'turret' : F.role || (F.ranged ? 'ranged' : 'grunt');
+        const take = parts === 1 ? n : (part === 0 ? Math.ceil(n / 2) : Math.floor(n / 2));
+        for (let k = 0; k < take; k++) (rows[role] || rows.grunt).push(kind);
       }
+      const place = (list, fwd, spread) => list.map((kind, k) => {
+        const off = (k - (list.length - 1) / 2) * spread;
+        let x = s0.x + fx * fwd + px * off + this.r.range(-0.25, 0.25), y = s0.y + fy * fwd + py * off + this.r.range(-0.25, 0.25);
+        const f = BB.freeSpot(this.map, x, y, 0.3); x = f.x; y = f.y;
+        let elite = null;
+        if (eliteN && this.r() < 0.12 * eliteN && !BB.FOES[kind].turret) elite = this.r.pick(BB.ELITES);
+        const e = this.spawnFoe(kind, x, y, { rise: true, elite });
+        if (e) e.home = { x, y };
+        return e;
+      });
+      place(rows.tank, 1.3, 1.1); place(rows.grunt, 0.4, 0.9); place(rows.ranged, -1.0, 1.1); place(rows.turret, -1.4, 1.5);
+      rows.assassin.forEach((kind, k) => { const sg = k % 2 ? -1 : 1; const e = place([kind], 0.2 + 0.3 * k, 0)[0]; if (e) { e.x += px * sg * 2.4; e.y += py * sg * 2.4; const f = BB.freeSpot(this.map, e.x, e.y, 0.3); e.x = f.x; e.y = f.y; e.flankSide = sg; e.stealth = true; } });
     }
     this.waveIdx++;
     BB.sfx && BB.sfx('portal');
@@ -155,8 +174,10 @@
     const foes = this.foesAlive().filter((f) => !f.gate);
     if (o.type === 'rout') {
       o.nextWaveT -= dt;
-      if (o.waves.length && (foes.length <= 1 || o.nextWaveT < -25) && o.nextWaveT <= 0) {
-        this.spawnWave(o.waves.shift()); o.nextWaveT = 3;
+      // reinforcements arrive while the last wave is still fighting: once it is mostly down, or after a while
+      const lastN = o.lastWaveN || 1;
+      if (o.waves.length && o.nextWaveT <= 0 && (foes.length <= Math.max(1, Math.floor(lastN * 0.35)) || o.nextWaveT < -16)) {
+        const w = o.waves.shift(); this.spawnWave(w); o.nextWaveT = 4; o.lastWaveN = this.foesAlive().filter((f) => !f.gate).length;
         this.banner('Wave ' + this.waveIdx + ' / ' + this.mission.waves.length, 1.3, 'small');
       }
       if (!o.waves.length && !foes.length) this.win();
@@ -201,11 +222,14 @@
           this.banner(this.boss.F.name, 2.6, 'boss'); this.camFocus = { x: s.x, y: s.y, t: 2.2 }; this.zoomPulse(1.18, 2.2);
           this.shake = 0.6; BB.sfx && BB.sfx('boss');
           if (this.mission.waves[0]) this.spawnWave(this.mission.waves[0]);
-          this.obj.extra = this.mission.waves.slice(1);
+          this.obj.extra = this.mission.waves.slice(1); this.obj.extraN = this.obj.extra.length;
         }
       } else if (this.boss) {
         if (this.boss.dead) { this.crumbleAll(); this.win(); }
-        else if (this.obj.extra && this.obj.extra.length && this.boss.hp < this.boss.maxhp * 0.6) this.spawnWave(this.obj.extra.shift());
+        else if (this.obj.extra && this.obj.extra.length) { // adds at even steps of the boss's health
+          const done = this.obj.extraN - this.obj.extra.length, at = 1 - (done + 1) / (this.obj.extraN + 1);
+          if (this.boss.hp < this.boss.maxhp * at) { this.spawnWave(this.obj.extra.shift()); this.banner('Reinforcements!', 1.2, 'small'); }
+        }
       }
     }
     if (!this.heroesAlive().length) this.lose('The warband has fallen');
@@ -275,6 +299,14 @@
     if (src && src.buffs.rally > 0) atk *= 1.5;
     if (src && src.buffs.combo > 0) atk *= 1.25;
     if (src && src.side === 'hero' && src.st && src.st.lowHpAtk && src.hp < src.maxhp / 2) atk *= 1 + src.st.lowHpAtk;
+    if (src && src.stealth && !o.aoe) { // out of the shadows: a backstab
+      mult = (mult || 1) * 1.8; o.sureCrit = true; src.stealth = false;
+      this.text(tgt.x, tgt.y, 'BACKSTAB', '#ff7ad9', 1); this.addFx('hit2', tgt.x, tgt.y - 0.3, { sc: 0.6, add: true, hue: -60 });
+    } else if (src && !o.aoe && this.roleOf(src) === 'assassin') { // from behind: harder
+      const fd = BB.dirFromVec(src.x - tgt.x, src.y - tgt.y);
+      if (fd !== null && Math.min((fd - tgt.dir + 8) % 8, (tgt.dir - fd + 8) % 8) >= 3) mult = (mult || 1) * 1.3;
+    }
+    if (tgt.stealth) tgt.stealth = false;
     let dmg = BB.damage(atk, tgt.def || 0, mult);
     let crit = false;
     if (src && (o.sureCrit || this.r() < (src.crit || 0) + (o.elem === 'arcane' ? 0.1 : 0))) { dmg *= src.st && src.st.rangedCrit ? 1.9 : 1.75; crit = true; }
@@ -684,6 +716,7 @@
       }
       this.advTarget = best;
       this.updateMarch(dt);
+      this.readField();
       if (this.order.focus && (this.order.focus.dead || this.order.focus.hidden)) this.order.focus = null;
     }
     for (const e of this.ents) this.updateEnt(e, dt, input);
@@ -807,6 +840,127 @@
     if (e.side === 'hero') {
       this.heroAI(e, dt);
     } else this.foeAI(e, dt);
+  };
+
+  // ---------------------------------------------------------------- roles: who holds the line, who flanks, who stays back
+  const HERO_ROLE = { vanguard: 'tank', lancer: 'bruiser', berserker: 'bruiser', monk: 'bruiser', shadowblade: 'assassin', ranger: 'ranged', arcanist: 'ranged', warpriest: 'healer' };
+  Battle.prototype.roleOf = function (e) {
+    if (!e || e.ward) return 'ward';
+    if (e.side === 'hero') return HERO_ROLE[e.calling] || 'bruiser';
+    if (e.boss) return 'boss';
+    return (e.F && e.F.role) || (e.ranged ? 'ranged' : 'grunt');
+  };
+  const isBack = (r) => r === 'ranged' || r === 'healer';
+  // read the field once a frame: where the fight is, where each side's shields stand, whether the lines have met
+  Battle.prototype.readField = function () {
+    const heroes = this.heroesAlive(), foes = this.foesAlive().filter((f) => !f.gate && !f.turret);
+    const hc = this.warCenter;
+    let fx = 0, fy = 0, fn = 0;
+    for (const f of foes) if (hyp(f.x - hc.x, f.y - hc.y) < 11) { fx += f.x; fy += f.y; fn++; }
+    const fc = fn ? { x: fx / fn, y: fy / fn } : (this.advTarget ? { x: this.advTarget.x, y: this.advTarget.y } : null);
+    if (fc) { let dx = fc.x - hc.x, dy = fc.y - hc.y; const l = hyp(dx, dy); if (l > 0.3) { dx /= l; dy /= l; this.fdir = { x: dx, y: dy }; } }
+    if (!this.fdir) this.fdir = this.march ? { x: this.march.hx, y: this.march.hy } : { x: 1, y: 0 };
+    this.foeCenter = fc;
+    const avg = (list) => { if (!list.length) return null; let x = 0, y = 0; for (const q of list) { x += q.x; y += q.y; } return { x: x / list.length, y: y / list.length }; };
+    const tanks = heroes.filter((h) => this.roleOf(h) === 'tank');
+    const front = tanks.length ? tanks : heroes.filter((h) => !isBack(this.roleOf(h)) && this.roleOf(h) !== 'assassin');
+    this.heroTanks = tanks; this.heroFront = front;
+    this.tankAnchor = avg(front);
+    this.foeTanks = foes.filter((f) => this.roleOf(f) === 'tank');
+    // the lines have met once a foe is close to someone in front
+    this.frontEngaged = front.some((h) => foes.some((f) => hyp(f.x - h.x, f.y - h.y) < 2.8)) || heroes.some((h) => foes.some((f) => hyp(f.x - h.x, f.y - h.y) < 1.8));
+  };
+  // a safe place behind a friendly shield, away from the enemy
+  Battle.prototype.behindLine = function (e, dist, spread) {
+    const own = e.side === 'hero' ? this.tankAnchor : this.foeShield(e);
+    const awayX = e.side === 'hero' ? -this.fdir.x : this.fdir.x, awayY = e.side === 'hero' ? -this.fdir.y : this.fdir.y;
+    const base = own || (e.side === 'hero' ? this.warCenter : { x: e.x, y: e.y });
+    let x = base.x + awayX * dist - awayY * (spread || 0), y = base.y + awayY * dist + awayX * (spread || 0);
+    x = clamp(x, 3, this.map.w - 3); y = clamp(y, 3, this.map.h - 3);
+    if (BB.blocked(this.map, x, y)) { const f = BB.freeSpot(this.map, x, y, 0.3); x = f.x; y = f.y; }
+    return { x, y, own };
+  };
+  Battle.prototype.foeShield = function (e) { // the nearest enemy shield-bearer to hide behind
+    let best = null, bd = 6;
+    for (const t of this.foeTanks || []) if (t !== e && !t.dead) { const d = hyp(t.x - e.x, t.y - e.y); if (d < bd) { bd = d; best = t; } }
+    return best;
+  };
+  // ranged and healers: hold a line behind the shields, shoot what threatens the team, fall back behind a shield when caught
+  Battle.prototype.backline = function (e, t, dt) {
+    const role = this.roleOf(e), foeSide = e.side === 'hero' ? 'foe' : 'hero';
+    let threat = null, td = 2.3;
+    for (const o of this.ents) if (o.side === foeSide && !o.dead && !o.ranged && !o.ward && !o.gate && !o.stealth) { const d = hyp(o.x - e.x, o.y - e.y) - (o.r || 0.3); if (d < td) { td = d; threat = o; } }
+    if (threat && (e.fleeT || 0) < 2.2) {
+      e.fleeT = (e.fleeT || 0) + dt;
+      const safe = this.behindLine(e, 2.4, ((e.fslot || 1) - 1) * 1.1);
+      const ds = hyp(safe.x - e.x, safe.y - e.y);
+      if (safe.own && ds > 0.7 && hyp(safe.x - threat.x, safe.y - threat.y) > 1.5) { this.moveToward(e, safe.x, safe.y, dt, 1.1); if (!e.retreatSaid) { e.retreatSaid = true; } return false; }
+      // no shield to hide behind: step straight away from the threat
+      const ux = (e.x - threat.x) / (td + 0.3 || 1), uy = (e.y - threat.y) / (td + 0.3 || 1);
+      const fx = e.x + ux * 1.6, fy = e.y + uy * 1.6;
+      if (!BB.blocked(this.map, fx, fy)) { this.moveToward(e, fx, fy, dt, 1.05, true); return false; }
+    } else if (!threat) { e.fleeT = Math.max(0, (e.fleeT || 0) - dt * 2); e.retreatSaid = false; }
+    if (!t) return false;
+    const d = hyp(t.x - e.x, t.y - e.y) - (t.r || 0);
+    if (d <= e.range + (e.engaged === t ? 0.5 : 0)) {
+      // in range: still drift back toward the line if far ahead of the shields
+      const home = this.behindLine(e, role === 'healer' ? 2.6 : 2.0, ((e.fslot || 1) - 1) * 1.2);
+      if (home.own && hyp(home.x - e.x, home.y - e.y) > 3.2 && hyp(home.x - t.x, home.y - t.y) - (t.r || 0) < e.range) { e.engaged = null; this.moveToward(e, home.x, home.y, dt); return false; }
+      e.engaged = t; return true;
+    }
+    e.engaged = null;
+    // close the distance only as far as needed, approaching from our own side of the fight
+    const home = this.behindLine(e, 1.6, ((e.fslot || 1) - 1) * 1.2);
+    let ux = home.x - t.x, uy = home.y - t.y; const l = hyp(ux, uy) || 1; ux /= l; uy /= l;
+    const R = (t.r || 0) + e.range * 0.85;
+    this.moveToward(e, t.x + ux * R, t.y + uy * R, dt);
+    return false;
+  };
+  // assassins: wait unseen behind the shield, slip round the side once the lines meet, strike the soft targets from behind
+  Battle.prototype.assassin = function (e, dt) {
+    const foeSide = e.side === 'hero' ? 'foe' : 'hero';
+    const center = e.side === 'hero' ? this.warCenter : (this.foeCenter || { x: e.x, y: e.y });
+    if (e.retreatT > 0) {
+      e.retreatT -= dt;
+      const sp = e.side === 'hero' ? this.behindLine(e, 1.4, 0.8) : { x: e.home ? e.home.x : e.x, y: e.home ? e.home.y : e.y };
+      if (hyp(sp.x - e.x, sp.y - e.y) > 0.3) this.moveToward(e, sp.x, sp.y, dt, 1.15); else this.halt(e);
+      if (e.retreatT <= 0 || e.hp > e.maxhp * 0.7) { e.retreatT = 0; e.stealth = true; }
+      return;
+    }
+    if (e.hp < e.maxhp * 0.3 && !e.fledOnce && e.side === 'hero') { e.fledOnce = true; e.retreatT = 3.5; e.prey = null; this.text(e.x, e.y, 'fall back', '#bfc6d4'); return; }
+    const engaged = e.side === 'hero' ? this.frontEngaged : true;
+    if (!engaged && !e.prey) {
+      e.stealth = true;
+      const sp = this.behindLine(e, 1.1, 0.9 * (e.flankSide || 1));
+      if (hyp(sp.x - e.x, sp.y - e.y) > (e.state === 'run' ? 0.15 : 0.5)) this.moveToward(e, sp.x, sp.y, dt); else { this.halt(e); this.faceVel(e, this.fdir.x, this.fdir.y, dt); }
+      return;
+    }
+    // choose prey: casters, archers and healers first, then the weakest
+    const valid = (o) => o && !o.dead && !o.hidden && o.side === foeSide && !o.gate && !o.ward && !o.turret && hyp(o.x - center.x, o.y - center.y) < 12;
+    if (!valid(e.prey) || (e.preyT = (e.preyT || 0) - dt) <= 0) {
+      e.preyT = 1.2;
+      let best = null, bs = 1e9;
+      for (const o of this.ents) if (valid(o)) {
+        const r = this.roleOf(o);
+        const sc = hyp(o.x - e.x, o.y - e.y) * 0.6 + (o.hp / o.maxhp) * 4 - (isBack(r) ? 5 : 0) - (r === 'assassin' ? 1 : 0) + (r === 'tank' ? 4 : 0) + (o.boss ? 6 : 0);
+        if (sc < bs) { bs = sc; best = o; }
+      }
+      if (best !== e.prey) { e.prey = best; e.flankStage = 0; e.slotT = null; }
+    }
+    const t = e.prey; e.tgt = t;
+    if (!t) { e.stealth = true; const sp = this.behindLine(e, 1.1, 0.9); this.moveToward(e, sp.x, sp.y, dt); return; }
+    const d = hyp(t.x - e.x, t.y - e.y) - (t.r || 0);
+    if (d <= e.range + (e.engaged === t ? 0.3 : 0)) { e.engaged = t; this.halt(e); if (e.side === 'hero') this.basicAttack(e, t); else if (e.cd <= 0) this.foeAttack(e, t); else this.face(e, t.x, t.y); return; }
+    e.engaged = null;
+    // the far side of the prey, seen from the fight
+    let ax = t.x - center.x, ay = t.y - center.y; const al = hyp(ax, ay) || 1; ax /= al; ay /= al;
+    if (!e.flankSide) e.flankSide = this.r() < 0.5 ? 1 : -1;
+    const behind = { x: t.x + ax * ((t.r || 0.3) + 0.55), y: t.y + ay * ((t.r || 0.3) + 0.55) };
+    const side = { x: t.x - ay * 2.4 * e.flankSide + ax * 0.6, y: t.y + ax * 2.4 * e.flankSide + ay * 0.6 };
+    if (e.flankStage !== 1 && d > 2.2 && !BB.blocked(this.map, side.x, side.y)) {
+      if (hyp(side.x - e.x, side.y - e.y) < 0.9) e.flankStage = 1;
+      this.moveToward(e, side.x, side.y, dt, 1.15);
+    } else { e.flankStage = 1; this.moveToward(e, behind.x, behind.y, dt, 1.2); }
   };
 
   // ---------------------------------------------------------------- movement: paths, steering, attack slots
@@ -1024,6 +1178,7 @@
     }
     // 3. skills
     if (this.wantSkill(e, t)) { this.useSkill(e, false); return; }
+    if (this.roleOf(e) === 'assassin' && (t || e.prey || this.frontEngaged)) { this.assassin(e, dt); return; }
     // 4. no target in reach: march in formation toward the next foe
     if (!t) {
       const sp = this.marchSpot(e), dd = hyp(sp.x - e.x, sp.y - e.y), moving = this.march && this.march.movingT > 0;
@@ -1032,19 +1187,28 @@
       else { this.halt(e); if (this.march) this.faceVel(e, this.march.hx, this.march.hy, dt); }
       return;
     }
-    const ok = C.ranged ? this.keepRange(e, t, dt) : this.closeIn(e, t, dt);
+    const role = this.roleOf(e);
+    const ok = isBack(role) ? this.backline(e, t, dt) : C.ranged ? this.keepRange(e, t, dt) : this.closeIn(e, t, dt);
     if (ok) { this.halt(e); this.basicAttack(e, t); }
   };
   // a sticky target: re-chosen a few times a second, switched only for a clearly better one;
   // melee fighters spread across foes instead of all piling onto one
   Battle.prototype.pickTarget = function (e, side, filter, dt) {
-    const valid = (o) => o && !o.dead && !o.hidden && o.side === side && (!filter || filter(o));
+    const valid = (o) => o && !o.dead && !o.hidden && o.side === side && !(o.stealth && hyp(o.x - e.x, o.y - e.y) > 1.6) && (!filter || filter(o));
     const melee = !e.ranged;
     const cost = (o) => {
       let c = hyp(o.x - e.x, o.y - e.y) - (o.r || 0);
       if (melee) for (const q of this.ents) if (q !== e && !q.dead && q.tgt === o && !q.ranged) c += 0.7;
       if (side === 'hero' && o.row === 'front') c -= 1.6; // the front row draws the blows
       if (o.gate) c += 2.5;
+      if (o.stealth) c += 6;
+      const myRole = this.roleOf(e), r = this.roleOf(o);
+      // shields peel for their soft allies: whoever is attacking a back-liner is the shield's business
+      if (myRole === 'tank' && o.tgt && isBack(this.roleOf(o.tgt))) c -= 3;
+      if (myRole === 'tank' && r === 'assassin') c -= 2;
+      // archers shoot what is hitting their team
+      if (isBack(myRole) && o.tgt && o.tgt.side === e.side) c -= 1.5;
+      if (side === 'hero' && r === 'tank' && isBack(myRole)) c += 1;
       return c;
     };
     if (!valid(e.tgt)) { e.tgt = null; e.retT = 0; }
@@ -1099,7 +1263,14 @@
       if (d < e.range && e.cd <= 0) { e.cd = 1 / e.aspd; this.shoot(e, t.x, t.y, 'bolt', 1, { hue: 0 }); }
       return;
     }
-    const ok = t.ward ? (d <= e.range || (this.moveToward(e, t.x, t.y, dt), false)) : e.ranged ? this.keepRange(e, t, dt) : this.closeIn(e, t, dt);
+    const role = this.roleOf(e);
+    if (role === 'assassin' && !t.ward) { this.assassin(e, dt); return; }
+    let tt = t;
+    if (role === 'tank' && !t.ward) { // body-block: stop a hero who is going for one of our archers
+      for (const h of this.heroList) if (!h.dead && h.tgt && h.tgt.side === 'foe' && isBack(this.roleOf(h.tgt)) && !h.ranged && hyp(h.x - e.x, h.y - e.y) < 5) { tt = h; e.tgt = h; break; }
+    }
+    const ok = tt.ward ? (d <= e.range || (this.moveToward(e, tt.x, tt.y, dt), false)) : role === 'ranged' ? this.backline(e, tt, dt) : e.ranged ? this.keepRange(e, tt, dt) : this.closeIn(e, tt, dt);
+    if (ok && tt !== t) { this.halt(e); if (e.cd > 0) { this.face(e, tt.x, tt.y); return; } this.foeAttack(e, tt); return; }
     if (!ok) return;
     this.halt(e);
     if (e.cd > 0) { this.face(e, t.x, t.y); return; }
@@ -1408,6 +1579,7 @@
     if (e.dead && e.side === 'foe') alpha = Math.max(0, 1 - (e.deadT - 1.4) / 1);
     if (e.spawnT > 0) alpha = 1 - e.spawnT / 0.6;
     if (e.invuln > 0 && e.dodging) alpha = 0.6;
+    if (e.stealth && !e.dead) alpha = Math.min(alpha, 0.38 + Math.sin(this.time * 6 + (e.x * 3)) * 0.06);
     ctx.globalAlpha = alpha;
     const fl = e.flash > 0 ? Math.min(0.9, e.flash * 5) : 0;
     if (e.side === 'hero') BB.drawLayers(ctx, e.layers, e.clip, e.dir, fr, s.x, y, e.sc, { flash: fl });
