@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0d0a08">
+<title>Bannerborn</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800;900&family=Alegreya+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0d0a08; --ink2:#17110c; --panel:rgba(22,16,11,.92); --panel2:rgba(34,25,17,.95);
+  --gold:#e8c66a; --gold2:#b8913f; --goldd:#6b5223; --text:#efe6d2; --mute:#a8997c; --red:#d8473a; --green:#6fdc7b; --blue:#5aa9ff;
+  --line:rgba(232,198,106,.28);
+  --safe-l:env(safe-area-inset-left,0px); --safe-r:env(safe-area-inset-right,0px); --safe-b:env(safe-area-inset-bottom,0px); --safe-t:env(safe-area-inset-top,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+html,body{margin:0;height:100%;background:var(--ink);color:var(--text);font-family:'Alegreya Sans',system-ui,sans-serif;overflow:hidden;touch-action:none;overscroll-behavior:none}
+canvas#game{position:fixed;inset:0;width:100%;height:100%;display:block}
+.screen{position:fixed;inset:0;display:none;z-index:5}
+.screen.on{display:block}
+h1,h2,h3,.cz{font-family:'Cinzel',Georgia,serif;letter-spacing:.04em;margin:0}
+button{font-family:'Cinzel',Georgia,serif;font-weight:800;letter-spacing:.06em;color:var(--text);cursor:pointer;border:0;background:none}
+.btn{position:relative;padding:.62em 1.3em;min-height:42px;font-size:15px;border-radius:6px;color:#2a1d0c;
+  background:linear-gradient(#f5dd92,#d4ab50 55%,#b38935);box-shadow:0 2px 0 #6b5223,0 0 0 1px #3a2a12,inset 0 1px 0 rgba(255,255,255,.6);text-shadow:0 1px 0 rgba(255,255,255,.4)}
+.btn:active{transform:translateY(1px);box-shadow:0 1px 0 #6b5223,0 0 0 1px #3a2a12}
+.btn.dark{color:var(--text);background:linear-gradient(#3a2c1d,#241a11);box-shadow:0 2px 0 #000,0 0 0 1px var(--goldd),inset 0 1px 0 rgba(255,255,255,.08);text-shadow:none}
+.btn.red{color:#fff;background:linear-gradient(#e0574a,#a32a20);box-shadow:0 2px 0 #4a120d,0 0 0 1px #2a0805;text-shadow:0 1px 0 rgba(0,0,0,.4)}
+.btn:disabled{filter:grayscale(1) brightness(.6);pointer-events:none}
+.btn.sm{min-height:32px;padding:.4em .8em;font-size:12px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 40px rgba(0,0,0,.6),inset 0 0 0 1px rgba(0,0,0,.6)}
+.gold{color:var(--gold)}
+.mute{color:var(--mute)}
+.row{display:flex;gap:10px;align-items:center}
+.col{display:flex;flex-direction:column;gap:8px}
+.grow{flex:1}
+.scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y}
+.coin::before{content:'';display:inline-block;width:.8em;height:.8em;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff3b0,#e8b32e 50%,#8a6214);margin-right:.3em;vertical-align:-.05em;box-shadow:0 0 0 1px #5a400e}
+
+/* boot */
+#boot.on{display:flex}
+#boot{align-items:center;justify-content:center;flex-direction:column;gap:18px;background:radial-gradient(ellipse at center,#2a1d10,#0d0a08 70%)}
+#boot .bar{width:min(420px,70vw);height:6px;border-radius:3px;background:#2a2016;overflow:hidden;box-shadow:0 0 0 1px var(--goldd)}
+#boot .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#b8913f,#f5dd92)}
+.logo{font-family:'Cinzel',serif;font-weight:900;font-size:clamp(36px,8vw,84px);letter-spacing:.08em;line-height:1;
+  background:linear-gradient(#fff4c4,#e8c66a 45%,#9b7428 80%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 3px 0 #2a1d0c) drop-shadow(0 0 24px rgba(232,198,106,.35))}
+.tag{font-family:'Cinzel',serif;font-weight:600;letter-spacing:.3em;font-size:clamp(10px,1.6vw,14px);color:var(--mute);text-transform:uppercase}
+
+/* title */
+#title{background:linear-gradient(90deg,rgba(8,6,4,.88) 0%,rgba(8,6,4,.55) 38%,rgba(8,6,4,0) 65%)}
+#title .wrap{position:absolute;left:calc(5vw + var(--safe-l));top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+#title .menu{display:flex;flex-direction:column;gap:10px;margin-top:22px;width:min(300px,40vw)}
+#title .menu .btn{width:100%;font-size:16px}
+#title .ver{position:absolute;right:calc(14px + var(--safe-r));bottom:calc(10px + var(--safe-b));font-size:12px;color:var(--mute)}
+
+/* story */
+#story{background:rgba(0,0,0,.45);z-index:15}
+#story .card{position:absolute;left:50%;bottom:calc(18px + var(--safe-b));transform:translateX(-50%);width:min(760px,92vw);display:flex;gap:16px;padding:16px 20px;align-items:center}
+#story canvas{width:78px;height:78px;border-radius:8px;background:radial-gradient(#3a2c1d,#140e09);box-shadow:0 0 0 1px var(--goldd);image-rendering:pixelated;flex:none}
+#story .who{font-family:'Cinzel',serif;font-weight:800;color:var(--gold);font-size:15px;margin-bottom:4px}
+#story .say{font-size:clamp(16px,2.2vw,20px);line-height:1.35}
+#story .say.narr{font-style:italic;color:#e6dcc4}
+#story .next{position:absolute;right:14px;bottom:8px;font-size:11px;color:var(--mute);letter-spacing:.2em}
+
+/* generic full screens */
+.full{position:absolute;inset:0;padding:calc(12px + var(--safe-t)) calc(14px + var(--safe-r)) calc(12px + var(--safe-b)) calc(14px + var(--safe-l));display:flex;flex-direction:column;gap:10px;background:radial-gradient(ellipse at 30% 20%,rgba(40,28,16,.95),rgba(10,8,6,.97) 70%)}
+.topbar{display:flex;align-items:center;gap:12px;min-height:40px}
+.topbar h2{font-size:clamp(18px,2.6vw,26px);color:var(--gold)}
+.topbar .sp{flex:1}
+.pill{padding:6px 12px;border-radius:999px;background:rgba(0,0,0,.45);box-shadow:0 0 0 1px var(--line);font-weight:800;font-size:14px;white-space:nowrap}
+
+/* forge */
+#forge .body{flex:1;display:flex;gap:12px;min-height:0}
+#forge .stage{flex:1.05;position:relative;display:flex;flex-direction:column;min-width:0}
+#forge .stage canvas{flex:1;width:100%;min-height:0;border-radius:10px;background:radial-gradient(ellipse at 50% 75%,#3d2d1b,#120d09 70%);box-shadow:inset 0 0 0 1px var(--line)}
+#forge .stage .ctl{position:absolute;bottom:10px;left:10px;right:10px;display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+#forge .opts{flex:1.25;display:flex;flex-direction:column;min-width:0;gap:8px}
+.tabs{display:flex;gap:6px}
+.tabs button{flex:1;padding:8px 4px;font-size:12px;border-radius:6px;background:rgba(0,0,0,.35);box-shadow:0 0 0 1px var(--line);color:var(--mute)}
+.tabs button.on{color:#2a1d0c;background:linear-gradient(#f5dd92,#c99e45)}
+.optbox{flex:1;padding:10px;min-height:0}
+.lbl{font-family:'Cinzel',serif;font-size:11px;letter-spacing:.18em;color:var(--mute);text-transform:uppercase;margin:6px 0 5px}
+.sw{display:flex;gap:7px;flex-wrap:wrap}
+.sw button{width:32px;height:32px;border-radius:50%;box-shadow:0 0 0 2px #000,0 0 0 3px var(--goldd)}
+.sw button.on{box-shadow:0 0 0 2px #000,0 0 0 4px var(--gold),0 0 12px var(--gold)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chips button{padding:7px 12px;border-radius:6px;font-size:12px;background:rgba(0,0,0,.4);box-shadow:0 0 0 1px var(--line);color:var(--text)}
+.chips button.on{background:linear-gradient(#f5dd92,#c99e45);color:#2a1d0c}
+.callings{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.callcard{text-align:left;padding:10px;border-radius:8px;background:rgba(0,0,0,.4);box-shadow:0 0 0 1px var(--line);font-family:'Alegreya Sans',sans-serif;letter-spacing:0;font-weight:500}
+.callcard.on{box-shadow:0 0 0 2px var(--gold),0 0 18px rgba(232,198,106,.25);background:rgba(60,44,22,.6)}
+.callcard b{font-family:'Cinzel',serif;font-size:15px;display:block}
+.callcard i{font-style:normal;font-size:11px;letter-spacing:.15em;text-transform:uppercase}
+.callcard p{margin:5px 0 0;font-size:13px;color:#d8ccb0;line-height:1.25}
+.callcard .sk{margin-top:6px;font-size:12px;color:var(--gold)}
+input.name{width:100%;font:700 18px 'Cinzel',serif;color:var(--text);background:rgba(0,0,0,.5);border:1px solid var(--line);border-radius:6px;padding:9px 12px;outline:none;user-select:text;-webkit-user-select:text}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;font-size:13px}
+.stats div{background:rgba(0,0,0,.35);border-radius:6px;padding:5px 8px;box-shadow:0 0 0 1px rgba(232,198,106,.12)}
+.stats b{color:var(--gold);float:right}
+
+/* camp hub */
+#camp .top{position:absolute;top:calc(10px + var(--safe-t));left:calc(12px + var(--safe-l));right:calc(12px + var(--safe-r));display:flex;gap:10px;align-items:center;pointer-events:none}
+#camp .top > *{pointer-events:auto}
+#camp .bannerchip{display:flex;align-items:center;gap:10px;padding:6px 14px 6px 6px;border-radius:999px;background:rgba(0,0,0,.55);box-shadow:0 0 0 1px var(--line)}
+#camp .bannerchip canvas{width:34px;height:46px}
+#camp .nav{position:absolute;right:calc(12px + var(--safe-r));bottom:calc(12px + var(--safe-b));display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;max-width:70vw}
+#camp .nav .btn{font-size:14px}
+#camp .nav .btn.big{font-size:17px;padding:.7em 1.6em}
+#camp .hint{position:absolute;left:calc(14px + var(--safe-l));bottom:calc(14px + var(--safe-b));max-width:40vw;font-size:14px;color:#e8dcc0;text-shadow:0 1px 3px #000}
+.badge{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--red);color:#fff;font:800 11px/18px 'Alegreya Sans';box-shadow:0 0 0 2px #1a0c08}
+
+/* warband */
+#warband .body{flex:1;display:flex;gap:12px;min-height:0}
+#warband .left{flex:1.1;display:flex;flex-direction:column;gap:8px;min-width:0}
+#warband .right{flex:1.3;display:flex;flex-direction:column;gap:8px;min-width:0;padding:10px}
+.teamslots{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.slot{position:relative;aspect-ratio:1/1.1;border-radius:8px;background:rgba(0,0,0,.45);box-shadow:inset 0 0 0 1px var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px;overflow:hidden}
+.slot canvas{width:70%;image-rendering:pixelated}
+.slot .n{font-size:11px;font-weight:800;text-align:center;line-height:1.05;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.slot.sel{box-shadow:inset 0 0 0 2px var(--gold),0 0 14px rgba(232,198,106,.3)}
+.slot .lv{position:absolute;top:3px;left:5px;font:800 11px 'Alegreya Sans';color:var(--gold)}
+.slot .cap{position:absolute;top:3px;right:5px;font-size:12px}
+.roster{display:grid;grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:8px;padding:2px}
+.bonds{display:flex;gap:6px;flex-wrap:wrap;font-size:12px}
+.bond{padding:4px 8px;border-radius:5px;background:rgba(232,198,106,.12);box-shadow:0 0 0 1px var(--line);color:var(--gold)}
+.bond.off{color:var(--mute);background:rgba(0,0,0,.3);box-shadow:0 0 0 1px rgba(255,255,255,.06)}
+.gearrow{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.gslot{min-height:46px;padding:5px 8px;border-radius:6px;background:rgba(0,0,0,.4);box-shadow:inset 0 0 0 1px var(--line);font-size:12px;line-height:1.15;text-align:left;font-family:'Alegreya Sans';font-weight:700;letter-spacing:0;color:var(--text)}
+.gslot small{display:block;font-size:10px;color:var(--mute);letter-spacing:.12em;text-transform:uppercase;font-weight:700}
+.inv{display:flex;flex-direction:column;gap:5px}
+.item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;background:rgba(0,0,0,.35);box-shadow:inset 0 0 0 1px rgba(232,198,106,.12);font-size:13px;text-align:left;font-family:'Alegreya Sans';letter-spacing:0;font-weight:700;color:var(--text);width:100%}
+.item .st{font-weight:500;color:var(--mute);font-size:12px}
+.item .up{color:var(--green);font-size:12px}
+.item .dn{color:var(--red);font-size:12px}
+.ico{width:30px;height:30px;flex:none;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:17px;background:rgba(0,0,0,.4)}
+
+/* map */
+#map .body{flex:1;display:flex;gap:12px;min-height:0}
+#mapCv{flex:1.6;width:100%;min-width:0;border-radius:10px;box-shadow:0 0 0 1px var(--line),0 10px 30px rgba(0,0,0,.5)}
+#map .brief{flex:1;padding:14px;display:flex;flex-direction:column;gap:8px;min-width:0}
+#map .brief h3{font-size:19px;color:var(--gold)}
+#map .brief p{margin:0;font-size:15px;line-height:1.35;color:#e2d6bc}
+.foes{display:flex;gap:6px;flex-wrap:wrap}
+.foes canvas{width:42px;height:42px;border-radius:6px;background:rgba(0,0,0,.4);box-shadow:0 0 0 1px var(--line);image-rendering:pixelated}
+
+/* hud */
+#hud{pointer-events:none}
+#hud > *{pointer-events:auto}
+#hud .party{position:absolute;top:calc(8px + var(--safe-t));left:calc(10px + var(--safe-l));display:flex;gap:6px}
+.pchip{position:relative;width:54px;height:62px;border-radius:8px;background:rgba(10,8,6,.7);box-shadow:inset 0 0 0 1px var(--line);overflow:hidden;padding:0}
+.pchip canvas{width:54px;height:42px;image-rendering:pixelated;display:block}
+.pchip .hp{position:absolute;left:4px;right:4px;bottom:10px;height:5px;background:#200;border-radius:2px;overflow:hidden}
+.pchip .hp i{display:block;height:100%;background:var(--green)}
+.pchip .cd{position:absolute;left:4px;right:4px;bottom:4px;height:3px;background:#221;border-radius:2px;overflow:hidden}
+.pchip .cd i{display:block;height:100%;background:var(--gold)}
+.pchip.on{box-shadow:inset 0 0 0 2px var(--gold),0 0 12px rgba(232,198,106,.4)}
+.pchip.dead{filter:grayscale(1) brightness(.5)}
+.pchip .k{position:absolute;top:2px;left:4px;font:800 10px 'Alegreya Sans';color:var(--mute)}
+#hud .obj{position:absolute;top:calc(10px + var(--safe-t));left:50%;transform:translateX(-50%);padding:6px 16px;border-radius:999px;background:rgba(10,8,6,.7);box-shadow:0 0 0 1px var(--line);font-family:'Cinzel',serif;font-weight:800;font-size:clamp(11px,1.6vw,14px);white-space:nowrap;pointer-events:none}
+#hud .bossbar{position:absolute;top:calc(44px + var(--safe-t));left:50%;transform:translateX(-50%);width:min(520px,52vw);display:none;pointer-events:none}
+#hud .bossbar .nm{font-family:'Cinzel',serif;font-weight:900;font-size:13px;text-align:center;color:#ffd0c0;text-shadow:0 1px 3px #000;margin-bottom:3px}
+#hud .bossbar .b{height:10px;border-radius:5px;background:rgba(0,0,0,.7);box-shadow:0 0 0 1px #6a2a20;overflow:hidden}
+#hud .bossbar .b i{display:block;height:100%;background:linear-gradient(#ff6a50,#b0221a);transition:width .15s}
+#hud .topr{position:absolute;top:calc(8px + var(--safe-t));right:calc(10px + var(--safe-r));display:flex;gap:6px;align-items:center}
+.rbtn{width:46px;height:46px;border-radius:50%;background:rgba(10,8,6,.7);box-shadow:inset 0 0 0 1px var(--line);font-size:18px;color:var(--text);display:flex;align-items:center;justify-content:center}
+#hud .acts{position:absolute;right:calc(14px + var(--safe-r));bottom:calc(14px + var(--safe-b));width:230px;height:200px}
+.act{position:absolute;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column;font-family:'Cinzel',serif;font-weight:900;color:#fff;text-shadow:0 1px 2px #000;background:radial-gradient(circle at 40% 30%,rgba(90,70,45,.95),rgba(25,18,12,.95));box-shadow:0 0 0 2px var(--goldd),0 4px 14px rgba(0,0,0,.6);overflow:hidden;touch-action:none}
+.act span{position:relative;z-index:2;font-size:10px;letter-spacing:.1em}
+.act b{position:relative;z-index:2;font-size:20px;line-height:1}
+.act .cdm{position:absolute;inset:0;background:conic-gradient(rgba(0,0,0,.7) var(--p,0%),transparent 0);z-index:1}
+.act.atk{width:92px;height:92px;right:0;bottom:0;background:radial-gradient(circle at 40% 30%,#c8573f,#5a1a10)}
+.act.skl{width:66px;height:66px;right:100px;bottom:6px}
+.act.dge{width:56px;height:56px;right:18px;bottom:104px}
+.act.rly{width:62px;height:62px;right:96px;bottom:90px;background:radial-gradient(circle at 40% 30%,#4a3a20,#1a120a)}
+.act.rly.ready{background:radial-gradient(circle at 40% 30%,#ffe9a0,#c08a22);color:#2a1a05;text-shadow:none;animation:pulse .9s infinite}
+.act.rly .fill{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(rgba(232,198,106,.0),rgba(232,198,106,.55));z-index:1}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 2px var(--gold),0 0 10px var(--gold)}50%{box-shadow:0 0 0 3px #fff,0 0 28px var(--gold)}}
+#joy{position:absolute;left:0;bottom:0;width:45%;height:65%;touch-action:none}
+#joy .base{position:absolute;width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%;background:radial-gradient(rgba(255,255,255,.06),rgba(255,255,255,.02));box-shadow:0 0 0 2px rgba(232,198,106,.35);display:none}
+#joy .knob{position:absolute;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#f5dd92,#9b7428);box-shadow:0 2px 8px rgba(0,0,0,.6);display:none}
+#hud .bnr{position:absolute;left:0;right:0;top:32%;text-align:center;pointer-events:none}
+#hud .bnr div{display:inline-block;font-family:'Cinzel',serif;font-weight:900;font-size:clamp(26px,5.5vw,58px);letter-spacing:.08em;padding:4px 40px;
+  background:linear-gradient(90deg,transparent,rgba(0,0,0,.7) 20%,rgba(0,0,0,.7) 80%,transparent);color:var(--gold);text-shadow:0 3px 0 #2a1a05,0 0 20px rgba(232,198,106,.5)}
+#hud .bnr div.boss{color:#ffb4a0;font-size:clamp(20px,3.6vw,38px)}
+#hud .bnr div.lose{color:#ff7a6a}
+#hud .bnr div.small{font-size:clamp(16px,2.6vw,26px)}
+.keys{position:absolute;left:calc(12px + var(--safe-l));bottom:calc(10px + var(--safe-b));font-size:12px;color:rgba(232,220,192,.7);pointer-events:none;text-shadow:0 1px 2px #000}
+.tut{position:absolute;left:50%;top:20%;transform:translateX(-50%);padding:10px 18px;border-radius:8px;background:rgba(10,8,6,.82);box-shadow:0 0 0 1px var(--gold);font-size:16px;max-width:80vw;text-align:center;pointer-events:none;display:none}
+
+/* results & modals */
+.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:20;background:rgba(0,0,0,.6)}
+.modal.on{display:flex}
+.modal .panel{width:min(820px,94vw);max-height:92vh;display:flex;flex-direction:column;gap:10px;padding:16px 18px}
+.resgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.reshero{text-align:center;padding:8px;border-radius:8px;background:rgba(0,0,0,.35);box-shadow:inset 0 0 0 1px var(--line);font-size:12px}
+.reshero canvas{width:56px;height:56px;image-rendering:pixelated}
+.xpbar{height:6px;border-radius:3px;background:#221a10;overflow:hidden;margin-top:4px}
+.xpbar i{display:block;height:100%;background:linear-gradient(90deg,#8a6a2a,#f5dd92)}
+.lvup{color:var(--green);font-weight:800}
+.perkpick{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.perkpick button{padding:12px 10px;border-radius:8px;text-align:left;background:rgba(0,0,0,.45);box-shadow:inset 0 0 0 1px var(--line);font-family:'Alegreya Sans';letter-spacing:0;font-weight:500;color:var(--text)}
+.perkpick button b{display:block;font-family:'Cinzel',serif;color:var(--gold);font-size:15px;margin-bottom:4px}
+.bld{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.bcard{padding:12px;border-radius:8px;background:rgba(0,0,0,.4);box-shadow:inset 0 0 0 1px var(--line);display:flex;flex-direction:column;gap:6px}
+.bcard h3{font-size:15px;color:var(--gold)}
+.lvl{display:flex;gap:4px}
+.lvl i{width:22px;height:6px;border-radius:3px;background:#2a2016}
+.lvl i.on{background:var(--gold)}
+.toast{position:fixed;left:50%;top:14%;transform:translateX(-50%);z-index:40;padding:10px 18px;border-radius:8px;background:rgba(15,10,6,.92);box-shadow:0 0 0 1px var(--gold);font-weight:700;pointer-events:none;opacity:0;transition:opacity .25s}
+.toast.on{opacity:1}
+#rotate{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;background:var(--ink);text-align:center;padding:20px}
+@media (orientation:portrait) and (max-width:760px){#rotate{display:flex}}
+@media (max-height:430px){
+  .full{gap:6px}
+  #forge .opts .optbox{padding:8px}
+  .callcard p{display:none}
+  .btn{min-height:36px;font-size:13px}
+  #hud .acts{transform:scale(.88);transform-origin:bottom right}
+  #forge .stage .ctl{gap:4px;bottom:6px;left:6px;right:6px;flex-wrap:nowrap}
+  #forge .stage .ctl .btn{min-height:28px;padding:.3em .55em;font-size:10px}
+}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="boot" class="screen on">
+  <div class="logo">BANNERBORN</div>
+  <div class="bar"><i></i></div>
+  <div class="tag" id="bootmsg">Forging the warband…</div>
+</div>
+
+<div id="title" class="screen">
+  <div class="wrap">
+    <div class="logo">BANNERBORN</div>
+    <div class="tag">Forge your heroes · Raise your banner · Shut the Gravegates</div>
+    <div class="menu">
+      <button class="btn" id="bContinue">Continue</button>
+      <button class="btn dark" id="bNew">New Warband</button>
+      <button class="btn dark" id="bSettings1">Settings</button>
+    </div>
+  </div>
+  <div class="ver">v0.1 · batch 1 of 4</div>
+</div>
+
+<div id="story" class="screen">
+  <div class="card panel"><canvas width="78" height="78"></canvas><div class="grow"><div class="who"></div><div class="say"></div></div><div class="next">TAP ▸</div></div>
+</div>
+
+<div id="bannerEdit" class="screen"><div class="full">
+  <div class="topbar"><h2>Raise Your Banner</h2><div class="sp"></div></div>
+  <div class="row grow" style="min-height:0;align-items:stretch">
+    <div class="panel" style="flex:0 0 auto;display:flex;align-items:center;justify-content:center;padding:14px"><canvas id="bannerPrev" width="200" height="270" style="width:150px;height:202px"></canvas></div>
+    <div class="panel col grow scroll" style="padding:14px">
+      <div class="lbl">Warband name</div><input class="name" id="bandName" maxlength="24">
+      <div class="lbl">Field colour</div><div class="sw" id="bandColors"></div>
+      <div class="lbl">Sigil</div><div class="chips" id="bandSigils"></div>
+      <div class="lbl">Trim</div><div class="sw" id="bandTrims"></div>
+      <div class="row" style="margin-top:auto;justify-content:flex-end"><button class="btn" id="bBannerOk">Raise the Banner</button></div>
+    </div>
+  </div>
+</div></div>
+
+<div id="forge" class="screen"><div class="full">
+  <div class="topbar"><button class="btn dark sm" id="bForgeBack">‹ Back</button><h2 id="forgeTitle">Forge a Hero</h2><div class="sp"></div><span class="pill coin" id="forgeGold"></span></div>
+  <div class="body">
+    <div class="stage"><canvas id="forgeCv"></canvas>
+      <div class="ctl"><button class="btn dark sm" id="fRotL">⟲</button><button class="btn dark sm" data-anim="Idle">Idle</button><button class="btn dark sm" data-anim="Run">Run</button><button class="btn dark sm" data-anim="attack">Attack</button><button class="btn dark sm" data-anim="Special1">Skill</button><button class="btn dark sm" data-anim="Taunt">Cheer</button><button class="btn dark sm" id="fRotR">⟳</button></div>
+    </div>
+    <div class="opts">
+      <div class="tabs"><button data-tab="calling" class="on">Calling</button><button data-tab="look">Look</button><button data-tab="name">Name</button></div>
+      <div class="panel optbox scroll" id="forgeOpts"></div>
+      <div class="row"><button class="btn dark sm" id="fRandom">🎲 Randomise</button><div class="grow"></div><button class="btn" id="fConfirm">Forge Hero</button></div>
+    </div>
+  </div>
+</div></div>
+
+<div id="camp" class="screen">
+  <div class="top"><div class="bannerchip"><canvas id="campBanner" width="68" height="92"></canvas><div><div class="cz gold" id="campName" style="font-size:16px;font-weight:800"></div><div class="mute" id="campSub" style="font-size:12px"></div></div></div><div style="flex:1"></div><span class="pill coin" id="campGold"></span><button class="rbtn" id="bSettings2">⚙</button></div>
+  <div class="hint" id="campHint"></div>
+  <div class="nav">
+    <button class="btn dark" id="bStronghold">Stronghold</button>
+    <button class="btn dark" id="bHire">Forge Hero</button>
+    <button class="btn dark" id="bWarband">Warband</button>
+    <button class="btn big" id="bWarMap">War Map ▸</button>
+  </div>
+</div>
+
+<div id="warband" class="screen"><div class="full">
+  <div class="topbar"><button class="btn dark sm" id="bWbBack">‹ Camp</button><h2>The Warband</h2><div class="sp"></div><span class="pill" id="wbCount"></span><span class="pill coin" id="wbGold"></span></div>
+  <div class="body">
+    <div class="left">
+      <div class="lbl" style="margin:0">Marching four — tap a slot, then a hero</div>
+      <div class="teamslots" id="teamSlots"></div>
+      <div class="bonds" id="bonds"></div>
+      <div class="lbl" style="margin:4px 0 0">Roster</div>
+      <div class="roster scroll grow" id="roster"></div>
+    </div>
+    <div class="right panel scroll" id="heroDetail"></div>
+  </div>
+</div></div>
+
+<div id="stronghold" class="screen"><div class="full">
+  <div class="topbar"><button class="btn dark sm" id="bShBack">‹ Camp</button><h2>The Stronghold</h2><div class="sp"></div><span class="pill coin" id="shGold"></span></div>
+  <div class="bld scroll grow" id="buildings"></div>
+</div></div>
+
+<div id="map" class="screen"><div class="full">
+  <div class="topbar"><button class="btn dark sm" id="bMapBack">‹ Camp</button><h2>The War Map</h2><div class="sp"></div><span class="pill coin" id="mapGold"></span></div>
+  <div class="body"><canvas id="mapCv"></canvas><div class="brief panel scroll" id="brief"></div></div>
+</div></div>
+
+<div id="hud" class="screen">
+  <div id="joy"><div class="base"></div><div class="knob"></div></div>
+  <div class="party" id="party"></div>
+  <div class="obj" id="objText"></div>
+  <div class="bossbar" id="bossbar"><div class="nm"></div><div class="b"><i></i></div></div>
+  <div class="topr"><button class="rbtn" id="bAuto" title="Auto">A</button><button class="rbtn" id="bPause">❚❚</button></div>
+  <div class="bnr" id="bnr"></div>
+  <div class="tut" id="tut"></div>
+  <div class="keys" id="keys">WASD move · J attack · K skill · Space dodge · R banner · 1-4 swap</div>
+  <div class="acts">
+    <button class="act rly" id="aRally"><div class="fill"></div><b>⚑</b><span>BANNER</span></button>
+    <button class="act dge" id="aDodge"><b>»</b><span>DODGE</span></button>
+    <button class="act skl" id="aSkill"><div class="cdm"></div><b>✦</b><span id="aSkillName">SKILL</span></button>
+    <button class="act atk" id="aAtk"><b>⚔</b><span>ATTACK</span></button>
+  </div>
+</div>
+
+<div id="mResults" class="modal"><div class="panel scroll" id="resBody"></div></div>
+<div id="mPause" class="modal"><div class="panel" style="width:min(380px,90vw);align-items:stretch">
+  <h2 class="gold" style="text-align:center">Paused</h2>
+  <button class="btn" id="bResume">Resume</button>
+  <button class="btn dark" id="bSettings3">Settings</button>
+  <button class="btn red" id="bRetreat">Retreat to Camp</button>
+</div></div>
+<div id="mSettings" class="modal"><div class="panel" style="width:min(440px,92vw)">
+  <h2 class="gold">Settings</h2>
+  <label class="row">Music <input type="range" id="sMusic" min="0" max="1" step="0.05" class="grow"></label>
+  <label class="row">Effects <input type="range" id="sSfx" min="0" max="1" step="0.05" class="grow"></label>
+  <label class="row"><input type="checkbox" id="sShake"> Screen shake</label>
+  <label class="row"><input type="checkbox" id="sAuto"> Full auto battles (the controlled hero fights by itself)</label>
+  <div class="mute" style="font-size:12px">Art: “Fantasy tileset – 2D Isometric” and “2D Desert Fantasy” packs supplied by the author. Sound and music synthesised in the browser.</div>
+  <div class="row"><button class="btn red sm" id="bWipe">Erase save</button><div class="grow"></div><button class="btn" id="bSetClose">Done</button></div>
+</div></div>
+<div id="mPerk" class="modal"><div class="panel" id="perkBody"></div></div>
+<div id="mConfirm" class="modal"><div class="panel" style="width:min(420px,90vw)"><div id="confText" style="font-size:16px"></div><div class="row" style="justify-content:flex-end"><button class="btn dark" id="confNo">Cancel</button><button class="btn" id="confYes">Yes</button></div></div></div>
+<div class="toast" id="toast"></div>
+<div id="rotate"><div class="logo" style="font-size:40px">BANNERBORN</div><div>Turn your device sideways to march.</div></div>
+
+<script src="js/data.js"></script>
+<script src="js/rules.js"></script>
+<script src="js/assets.js"></script>
+<script src="js/world.js"></script>
+<script src="js/battle.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
