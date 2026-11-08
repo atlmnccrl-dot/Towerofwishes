@@ -14,24 +14,24 @@
   const W = () => PX.W, H = () => PX.H;
   const K = () => VS.cine.kit;
   // The shots, in seconds.
-  const DUR = [['open', 1.6], ['fall', 3.4], ['swordsman', 1.4], ['leap', 1.2], ['cutmoon', 1.1], ['scar', 2.1], ['rise', 3.6], ['horde', 3.4],
+  const DUR = [['open', 1.6], ['fall', 3.0], ['godrise', 3.2], ['godcut', 2.6], ['scar', 2.1], ['rise', 3.6], ['horde', 3.4],
     ['eye', 1.4], ['draw', 1.0], ['charge', 2.6], ['panels', 1.4], ['colossus', 4.0], ['gaze', 1.4], ['strike', 1.9], ['defy', 1.7], ['title', 7.2]];
   const SHOTS = []; { let t = 0; for (const [name, d] of DUR) { SHOTS.push([name, t, t + d]); t += d; } }
   const END = SHOTS[SHOTS.length - 1][2];
   const AT = (name) => SHOTS.find((x) => x[0] === name)[1];
   // Captions, timed from the start of their shot: [shot, from, to, text].
   const LINES = [
-    ['fall', 0.3, 3.2, 'Seven hundred years ago, the moon began to fall.'], ['swordsman', 0.2, 2.5, 'A swordsman cut it.'],
-    ['scar', 0.2, 2.0, 'It stopped. The wound never closed.'], ['rise', 1.2, 3.4, 'Its red light raises the dead.'],
-    ['horde', 0.3, 1.75, 'Tonight the wound bleeds out.'], ['horde', 1.85, 3.3, 'At dawn, the moon falls for good.'],
-    ['eye', 0.1, 1.3, 'One blade can close it.'], ['colossus', 2.0, 3.9, 'The one who cut it waits at the top of the Spire.'],
+    ['fall', 0.3, 2.7, 'Seven hundred years ago, a swordsman climbed the Spire.'], ['godrise', 0.3, 2.9, 'He wanted an army that would never die.'],
+    ['godcut', 1.1, 2.5, 'So he cut the moon.'], ['scar', 0.2, 2.0, 'Its wound has bled ever since.'], ['rise', 1.2, 3.4, 'By its red light, his dead rise.'],
+    ['horde', 0.3, 1.75, 'Tonight the wound bleeds out.'], ['horde', 1.85, 3.3, 'At dawn, the moon falls and his dead take everything.'],
+    ['eye', 0.1, 1.3, 'One blade can stop him.'], ['colossus', 2.0, 3.9, 'He waits at the top of the Spire.'],
   ].map(([sh, a, b, text]) => [AT(sh) + a, AT(sh) + b, text]);
   // The charge: when each of the dead reaches her blade (seconds into the shot).
   const CONTACT = [0.3, 0.6, 0.85, 1.1, 1.32, 1.55, 1.78, 2.0];
   // Sounds, timed from the start of their shot: [shot, at, name, volume].
   const SFX = [
-    ['open', 0.5, 'swish_0', 0.4], ['open', 1.0, 'thud', 0.6], ['fall', 0.1, 'quake', 0.5], ['fall', 1.8, 'quake', 0.7], ['swordsman', 0, 'unsheathe_01', 0.8], ['swordsman', 0.8, 'charge', 0.7],
-    ['leap', 0, 'whoosh', 1], ['cutmoon', 0, 'blow_big', 1], ['cutmoon', 0, 'slash_2', 1], ['cutmoon', 0.05, 'quake', 1], ['scar', 0, 'magic', 0.5],
+    ['open', 0.5, 'swish_0', 0.4], ['open', 1.0, 'thud', 0.6], ['godrise', 0, 'quake', 0.8], ['godrise', 0.1, 'horn', 0.6], ['godrise', 0.75, 'charge', 0.9], ['godrise', 1.5, 'unsheathe_01', 1], ['godrise', 1.52, 'whoosh', 1],
+    ['godcut', 0, 'swish_2', 1], ['godcut', 0.47, 'slash_2', 1], ['godcut', 0.48, 'blow_big', 1], ['godcut', 0.5, 'quake', 1], ['godcut', 1.05, 'smash', 0.9], ['godcut', 1.1, 'quake', 0.8], ['scar', 0, 'magic', 0.5],
     ['rise', 0.4, 'smash', 0.8], ['rise', 0.45, 'quake', 0.6], ['rise', 1.3, 'spawn', 0.7], ['rise', 1.9, 'reinforce', 0.6], ['rise', 2.5, 'spawn', 0.5],
     ['horde', 0, 'horn', 0.7], ['horde', 0.5, 'reinforce', 0.5], ['horde', 1.3, 'bolt', 0.8], ['horde', 1.32, 'quake', 0.8], ['horde', 2.4, 'bolt', 0.6], ['horde', 2.42, 'quake', 0.6],
     ['eye', 0, 'quake', 0.6], ['eye', 0.4, 'charge', 0.9], ['draw', 0, 'unsheathe_01', 1], ['draw', 0.35, 'slash_0', 1], ['draw', 0.4, 'whoosh', 1],
@@ -203,72 +203,70 @@
   };
   // The moon falls on a sleeping city; the people in the street look up.
   SH.fall = function (ctx, S, k, T) {
-    const e = ease(k);
-    grad(ctx, ['#05040c', '#120a1c', '#3a1220']);
+    grad(ctx, ['#05040c', '#120a1c', '#2a1424']);
     stars(ctx, 90, 0.9, 3, T);
-    const r = H() * (0.22 + 0.2 * e), mx = W() * (0.6 - 0.06 * e), my = H() * (0.02 + 0.3 * e);
-    // Its trail: streaks of fire behind it.
-    for (let i = 0; i < 26; i++) { const a = -2.2 + (hash(i, 31) - 0.5) * 0.5, L = 30 + hash(i, 32) * 90, ox = (hash(i, 33) - 0.5) * r * 1.4; ctx.strokeStyle = i % 3 ? 'rgba(255,170,140,0.25)' : 'rgba(255,255,255,0.35)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(mx + ox, my - r * 0.3); ctx.lineTo(mx + ox + Math.cos(a) * L, my - r * 0.3 + Math.sin(a) * L); ctx.stroke(); }
-    moon(ctx, mx, my, r, '#efd8cc', `rgba(255,${Math.round(150 - 90 * e)},120,0.4)`, 0);
-    K().hStreaks(ctx, 18, 'rgba(255,220,220,0.12)', 5, T, 500);
-    const base = Math.round(H() * 0.8);
+    const r = H() * 0.2, mx = W() * 0.62, my = H() * 0.24 + k * 3;
+    moon(ctx, mx, my, r, '#f4ece6', 'rgba(255,240,230,0.25)', 0);
+    const base = Math.round(H() * 0.8), sx = Math.round(W() * 0.38);
+    // The Spire, a black needle over the roofs.
+    ctx.fillStyle = '#0c0610'; ctx.beginPath(); ctx.moveTo(sx - 16, base + 10); ctx.lineTo(sx - 3, H() * 0.12); ctx.lineTo(sx, H() * 0.04); ctx.lineTo(sx + 3, H() * 0.12); ctx.lineTo(sx + 16, base + 10); ctx.fill();
+    for (let i = 0; i < 9; i++) { const y = H() * (0.2 + i * 0.065); ctx.fillStyle = `rgba(255,200,120,${0.4 + 0.3 * Math.sin(T * 3 + i)})`; ctx.fillRect(sx + (i % 2 ? 1 : -2), Math.round(y), 1, 2); }
     city(ctx, base + 4, 7, '#1a0c16', 0, 1.2);
     city(ctx, base + 14, 13, '#0a0508', 0.35, 1.0);
-    const st = ctx.createLinearGradient(0, base + 12, 0, H()); st.addColorStop(0, '#3a1a1a'); st.addColorStop(1, '#120808'); ctx.fillStyle = st; ctx.fillRect(-8, base + 12, W() + 16, H());
-    // Townsfolk in the street, backs to us, looking up.
+    const st = ctx.createLinearGradient(0, base + 12, 0, H()); st.addColorStop(0, '#2a1820'); st.addColorStop(1, '#100808'); ctx.fillStyle = st; ctx.fillRect(-8, base + 12, W() + 16, H());
+    // Townsfolk in the street, backs to us, looking up at the Spire.
     for (let i = 0; i < 7; i++) {
       const set = deadSet(S, i), x = Math.round(W() * (0.1 + i * 0.13) + (i % 2 ? 6 : -4)), y = Math.round(H() * 0.95 + (i % 3) * 3);
       A.actor(ctx, set, 'Idle', Math.floor(T * 8 + i * 4) % 15, -Math.PI / 2 + (i - 3) * 0.12, x, y, 1.35 + (i % 3) * 0.15, { shade: '#040205' });
     }
-    kick(S, 0.4 + 1.6 * e);
-    if (k > 0.9) fill(ctx, '#ffffff', (k - 0.9) / 0.1 * 0.5);
+    if (k > 0.85) fill(ctx, '#000', (k - 0.85) / 0.15);
   };
-  // The swordsman close up against the moon: grey, wind, the blade drawn.
-  SH.swordsman = function (ctx, S, k, T) {
-    grad(ctx, ['#100816', '#2a1018']);
-    moon(ctx, W() * 0.78, H() * 0.3, H() * 0.7, '#f2dccc', 'rgba(255,120,110,0.35)', 0);
-    K().hStreaks(ctx, 36, 'rgba(255,255,255,0.18)', 9, T, 1100);
-    const set = S.cast.first, sc = 4.0, fr = Math.floor(T * 7) % 15, draw = k > 0.45;
-    const x = Math.round(W() * 0.36 + (1 - ease(k * 2)) * -14), y = Math.round(H() * 1.24);
-    const clip = 'Idle';
-    A.actor(ctx, set, clip, fr, 0, x + 2, y - 1, sc, { shade: '#fff2ec' });   // the moon's rim light
-    A.actor(ctx, set, clip, fr, 0, x - 1, y, sc, { shade: '#7a1424' });
-    A.actor(ctx, set, clip, fr, 0, x, y, sc, { shade: '#07040a' });
-    if (draw && k > 0.62) { const gx = W() * (0.3 + (k - 0.62) * 1.6); K().line(ctx, gx - 40, H() * 0.45, gx + 30, H() * 0.36, 1, '#ffffff'); A.tex(ctx, 'star_06', gx, H() * 0.41, 30, 30, '#ffffff', 0.9, T * 3, true); }
-    say(S, 'card', 'THE FIRST CUT', W() - 10, BAR + 16, { align: 'right', sub: 'WHO WOUNDED THE MOON', k: T });
-    if (k > 0.92) fill(ctx, '#ffffff', (k - 0.92) / 0.08);
+  // The First Cut on top of the Spire, a god against the white moon: the camera pushes in, his eyes ignite,
+  // and he raises a sword the size of a tower at the moon.
+  SH.godrise = function (ctx, S, k, T) {
+    const push = 1 + 0.08 * ease(k), raise = T > 1.5;
+    grad(ctx, ['#04030a', '#100a1c', '#24101c']);
+    stars(ctx, 80, 0.8, 19, T);
+    ctx.save(); ctx.translate(W() / 2, H() * 0.6); ctx.scale(push, push); ctx.translate(-W() / 2, -H() * 0.6);
+    const mx = W() * 0.5, my = H() * 0.2;
+    moon(ctx, mx, my, H() * 0.17, '#f4ece6', 'rgba(255,240,230,0.3)', 0);
+    const sx = W() * 0.5, top = H() * 0.82;
+    ctx.fillStyle = '#060308'; ctx.beginPath(); ctx.moveTo(sx - 40, H() + 10); ctx.lineTo(sx - 9, top); ctx.lineTo(sx + 9, top); ctx.lineTo(sx + 40, H() + 10); ctx.fill();
+    colossus(ctx, S, Math.round(sx), Math.round(H() * 0.55), 3.2, T, { pose: raise ? 'raise' : 'plant', rim: '#e8dcf0', col: '#050306' });
+    burningEyes(ctx, Math.round(sx), Math.round(H() * 0.55), 3.2, ease(clamp((T - 0.7) / 0.3)), T);
+    if (raise && T < 1.62) { fill(ctx, '#ffffff', 0.5); kick(S, 4); }
+    if (raise) for (let i = 0; i < 14; i++) { const x = sx + (hash(i, 401) - 0.5) * 30, y = H() * 0.5 - ((T * 600 + hash(i, 402) * 200) % 160); ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.fillRect(Math.round(x), Math.round(y), 1, 10); }
+    for (let i = 0; i < 4; i++) A.tex(ctx, 'smoke_07', W() * (hash(i, 403) * 1.4 - 0.2) + T * 8, H() * (0.86 + i * 0.04), W() * 0.8, 30, '#2a1828', 0.6, 0, false);
+    ctx.restore();
+    if (T > 0.9 && T < 1.0) kick(S, 3);
+    if (k > 0.9) fill(ctx, '#ffffff', (k - 0.9) / 0.1);
   };
-  // He leaps at the falling moon: a small black figure against its vast face, with afterimages and speed lines.
-  SH.leap = function (ctx, S, k, T) {
-    const mx = W() * 0.56, my = H() * 0.52, r = H() * 0.62;
-    grad(ctx, ['#1a0812', '#3a1420']);
-    K().speedLines(ctx, mx, my, 70, 'rgba(255,240,240,0.35)', 21, T, r * 0.95);
-    moon(ctx, mx, my, r, '#f2d6c8', 'rgba(255,90,90,0.45)', 0);
-    const set = S.cast.first, e = ease(k), px = W() * 0.04 + (mx + r * 0.1 - W() * 0.04) * e, py = H() * 1.04 - (H() * 1.04 - (my - r * 0.12)) * Math.sin(e * Math.PI / 2), sc = 0.7 + 0.25 * e;
-    const fr = Math.min(14, Math.floor(k * 12));
-    for (let i = 4; i >= 1; i--) A.actor(ctx, set, 'Attack4', Math.max(0, fr - i), 0, Math.round(px - i * 7), Math.round(py + i * 4), sc, { shade: RED, alpha: 0.14 * (5 - i) });
-    A.actor(ctx, set, 'Attack4', fr, 0, Math.round(px), Math.round(py), sc, { shade: '#050307' });
-    city(ctx, H() * 1.02, 13, '#080406', 0, 1.3);
-    kick(S, 1.2);
-  };
-  // Impact frames: white, the inverted moon with the tiny swordsman across it, then the wound torn across it.
-  SH.cutmoon = function (ctx, S, k, T) {
-    const mx = W() * 0.55, my = H() * 0.5, r = H() * 0.6, set = S.cast.first, kx = Math.round(mx + r * 0.18), ky = Math.round(my - r * 0.02);
-    const cutLine = (col) => K().line(ctx, mx - r * 1.3, my + r * 0.46, mx + r * 1.3, my - r * 0.46, 2, col);
-    if (k < 0.07) { fill(ctx, '#ffffff'); kick(S, 6); return; }
-    if (k < 0.24) {
-      fill(ctx, '#000'); burst(ctx, kx, ky - 16, '#ffffff', 70, 41, 22);
-      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(mx, my, r, 0, 7); ctx.stroke();
-      cutLine('#ffffff'); A.actor(ctx, set, 'Attack4', 14, 0, kx, ky, 0.95, { shade: '#ffffff' }); return;
+  // The cut, in impact frames: the blade across the moon's vast face; white; inverted; black on white; then
+  // colour, the wound torn open and red light bursting out of it across the whole sky.
+  SH.godcut = function (ctx, S, k, T) {
+    const mx = W() * 0.5, my = H() * 0.48, r = H() * 0.62;
+    const blade = (col, f) => { const L = W() * 1.6 * f; ctx.save(); ctx.translate(mx, my); ctx.rotate(-0.34); ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(-W() * 0.8, -9); ctx.lineTo(-W() * 0.8 + L, -6); ctx.lineTo(-W() * 0.8 + L + 14, 0); ctx.lineTo(-W() * 0.8 + L, 6); ctx.lineTo(-W() * 0.8, 9); ctx.closePath(); ctx.fill(); ctx.restore(); };
+    if (k < 0.18) {
+      const f = ease(k / 0.18);
+      grad(ctx, ['#0e0a18', '#24101c']); moon(ctx, mx, my, r, '#f4ece6', 'rgba(255,240,230,0.3)', 0);
+      K().speedLines(ctx, mx, my, 80, 'rgba(255,255,255,0.45)', 411, T, r * 0.9);
+      for (let i = 1; i <= 3; i++) { ctx.globalAlpha = 0.18 * (4 - i); blade('#ff8a9a', Math.max(0, f - i * 0.08)); } ctx.globalAlpha = 1;
+      blade('#0a0608', f); kick(S, 3); return;
     }
-    if (k < 0.34) { fill(ctx, '#ffffff'); PX.disc(ctx, mx, my, Math.round(r), '#000'); cutLine('#ffffff'); A.actor(ctx, set, 'Attack4', 14, 0, kx, ky, 0.95, { shade: '#ffffff' }); return; }
-    const kk = (k - 0.34) / 0.66;
-    grad(ctx, ['#14060c', '#3a0e18']);
-    stars(ctx, 60, 0.7, 5, T);
-    moon(ctx, mx + Math.sin(T * 60) * 2 * (1 - kk), my, r, '#f0d0c4', 'rgba(255,60,80,0.5)', Math.min(1, 0.4 + kk * 3), null);
-    sparks(ctx, kx, ky - 14, T, 80, 51, 6.2);
-    A.actor(ctx, set, 'TakeDamage', Math.min(14, Math.floor(kk * 14)), 0, Math.round(kx + kk * 26), Math.round(ky + kk * 60), 0.9 - kk * 0.25, { shade: '#050307' });
-    kick(S, 3 * (1 - kk));
+    if (k < 0.23) { fill(ctx, '#ffffff'); kick(S, 9); return; }
+    if (k < 0.32) { fill(ctx, '#000'); burst(ctx, mx, my, '#ffffff', 90, 413, r * 0.3); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(mx, my, r, 0, 7); ctx.stroke(); blade('#ffffff', 1); return; }
+    if (k < 0.4) { fill(ctx, '#ffffff'); PX.disc(ctx, mx, my, Math.round(r), '#000'); blade('#ffffff', 1); K().line(ctx, mx - r * 1.4, my + r * 0.5, mx + r * 1.4, my - r * 0.5, 1, '#000'); return; }
+    const e = (k - 0.4) / 0.6;
+    grad(ctx, ['#14040a', '#4a0c18', '#20060c']);
+    // Red light bursting from the wound across the sky.
+    ctx.save(); ctx.translate(mx, my); ctx.rotate(-0.34);
+    for (let i = 0; i < 26; i++) { const x = (hash(i, 415) - 0.5) * r * 1.8, L = (60 + hash(i, 416) * 140) * ease(e * 1.5), sgn = i % 2 ? 1 : -1; ctx.fillStyle = `rgba(255,${60 + Math.round(hash(i, 417) * 120)},90,${0.5 * (1 - e * 0.6)})`; ctx.fillRect(Math.round(x), sgn > 0 ? 0 : -L, 2, L); }
+    ctx.restore();
+    moon(ctx, mx + Math.sin(T * 70) * 3 * (1 - e), my, r, '#f2d0c8', 'rgba(255,40,70,0.6)', 1, T);
+    A.tex(ctx, 'light_01', mx, my, r * 3.4, r * 0.9, RED, 0.7 * (1 - e * 0.4), -0.34, true);
+    for (let i = 0; i < 3; i++) { const rk = ease(e * 1.6 - i * 0.18); if (rk <= 0 || rk >= 1) continue; ctx.strokeStyle = `rgba(255,200,210,${1 - rk})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(mx, my, r * (1 + rk * 1.2), r * (0.4 + rk * 0.5), -0.34, 0, 7); ctx.stroke(); }
+    sparks(ctx, mx, my, T, 110, 419, 6.2);
+    kick(S, 5 * (1 - e));
   };
   // The moon hangs still, the wound bleeding red light; the sky turns red.
   SH.scar = function (ctx, S, k, T) {
@@ -323,6 +321,7 @@
     }
     const t = T - 1.1, push = 1 + 0.05 * clamp(t / 2.3);
     grad(ctx, ['#12030a', '#3a0812', '#7a1424']);
+    { const lo = clamp(t / 0.8); ctx.save(); ctx.globalAlpha = 0.8 * lo; colossus(ctx, S, Math.round(W() / 2), Math.round(H() * 0.12), 6, T, { rim: '#4a0a16', col: '#16030a' }); ctx.restore(); burningEyes(ctx, Math.round(W() / 2), Math.round(H() * 0.12), 6, lo, T); }   // he watches his dead rise
     ctx.save(); ctx.translate(W() / 2, H() * 0.7); ctx.scale(push, push); ctx.translate(-W() / 2, -H() * 0.7);
     moon(ctx, W() * 0.5, H() * 0.66, H() * 0.5, '#ff4a5e', 'rgba(255,40,70,0.55)', 1, T);
     const ridge = (x) => H() * 0.76 - Math.sin((x / W()) * Math.PI) * 10;
@@ -488,7 +487,7 @@
   // The god-shape of the First Cut, drawn as one silhouette round his eyes (u = the size of one unit):
   // a crowned and horned helm, a gorget, vast spiked pauldrons, a tattered cape spread like wings, both
   // hands on the hilt of a sword the size of a tower planted point-down before him.
-  function deity(ctx, ex, ey, u, col, T) {
+  function deity(ctx, ex, ey, u, col, T, pose) {
     const P = (pts) => { ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(ex + x * u, ey + y * u) : ctx.moveTo(ex + x * u, ey + y * u))); ctx.closePath(); ctx.fill(); };
     const sway = Math.sin(T * 1.3) * 0.6;
     ctx.fillStyle = col;
@@ -496,9 +495,10 @@
     for (const sx of [-1, 1]) { const pts = [[sx * 6, 7], [sx * 13, 8]]; for (let i = 0; i <= 8; i++) { const yy = 20 + i * 6, xx = sx * (14 + i * 2.6 + Math.sin(T * 1.6 + i) * 0.8); pts.push([xx, yy]); } for (let i = 8; i >= 0; i--) pts.push([sx * (3 + i * 1.2), 70 + (i % 2 ? 6 : -2) + sway]); P(pts); }
     // Horns, sweeping out and up.
     for (const sx of [-1, 1]) P([[sx * 2.4, -3.5], [sx * 6, -7], [sx * 9.5, -12], [sx * 9, -18], [sx * 8, -13], [sx * 5, -8.5], [sx * 2.8, -6]]);
-    // The sword: the blade (long, tapering to the point far below), the guard, the grip, the pommel.
-    P([[-2.2, 30], [2.2, 30], [1.6, 95], [0, 102], [-1.6, 95]]);
-    P([[-8, 28], [8, 28], [9, 30.5], [-9, 30.5]]); P([[-1, 19], [1, 19], [1, 28], [-1, 28]]); P([[-1.8, 17], [1.8, 17], [1.4, 19.5], [-1.4, 19.5]]);
+    // The sword: the blade (long, tapering to the point far below, or far above when raised), the guard, the grip, the pommel.
+    const up = pose === 'raise';
+    if (up) { P([[-2.2, -23.5], [2.2, -23.5], [1.6, -88], [0, -95], [-1.6, -88]]); P([[-8, -21], [8, -21], [9, -23.5], [-9, -23.5]]); P([[-1, -21], [1, -21], [1, -13], [-1, -13]]); P([[-1.8, -13], [1.8, -13], [1.4, -10.5], [-1.4, -10.5]]); }
+    else { P([[-2.2, 30], [2.2, 30], [1.6, 95], [0, 102], [-1.6, 95]]); P([[-8, 28], [8, 28], [9, 30.5], [-9, 30.5]]); P([[-1, 19], [1, 19], [1, 28], [-1, 28]]); P([[-1.8, 17], [1.8, 17], [1.4, 19.5], [-1.4, 19.5]]); }
     // The body: gorget, breastplate, waist.
     P([[-3, 4.5], [3, 4.5], [5.5, 8], [-5.5, 8]]);
     P([[-7.5, 8], [7.5, 8], [8.5, 18], [6, 32], [-6, 32], [-8.5, 18]]);
@@ -506,8 +506,8 @@
     for (const sx of [-1, 1]) { P([[sx * 4, 7], [sx * 11, 5.5], [sx * 15, 8.5], [sx * 15.5, 13], [sx * 11, 15], [sx * 5.5, 12]]); for (let i = 0; i < 3; i++) P([[sx * (8 + i * 2.6), 6.2 - i * 0.2], [sx * (9.2 + i * 2.6), -0.5 - i * 1.2], [sx * (10.4 + i * 2.6), 6.5]]); }
     // The arms down to the hilt, the gauntlets on the grip.
     ctx.strokeStyle = col; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    for (const sx of [-1, 1]) { ctx.lineWidth = 4.2 * u; ctx.beginPath(); ctx.moveTo(ex + sx * 12 * u, ey + 11 * u); ctx.lineTo(ex + sx * 12.5 * u, ey + 19 * u); ctx.lineTo(ex + sx * 2.6 * u, ey + 23.5 * u); ctx.stroke(); }
-    P([[-3.4, 21], [3.4, 21], [3.4, 26.5], [-3.4, 26.5]]);
+    for (const sx of [-1, 1]) { ctx.lineWidth = 4.2 * u; ctx.beginPath(); ctx.moveTo(ex + sx * 12 * u, ey + 11 * u); if (up) { ctx.lineTo(ex + sx * 13 * u, ey - 2 * u); ctx.lineTo(ex + sx * 2.6 * u, ey - 16.5 * u); } else { ctx.lineTo(ex + sx * 12.5 * u, ey + 19 * u); ctx.lineTo(ex + sx * 2.6 * u, ey + 23.5 * u); } ctx.stroke(); }
+    if (up) P([[-3.4, -19.5], [3.4, -19.5], [3.4, -14], [-3.4, -14]]); else P([[-3.4, 21], [3.4, 21], [3.4, 26.5], [-3.4, 26.5]]);
     // The helm: tall, crowned with five spikes, narrowing to the jaw.
     P([[-3.4, -5], [3.4, -5], [3.2, 2], [2.4, 4.6], [0, 6], [-2.4, 4.6], [-3.2, 2]]);
     const crown = [[-3.4, -5]]; for (let i = 0; i <= 8; i++) crown.push([-3.4 + i * 0.85, i % 2 ? -6.2 : (i === 4 ? -11.5 : -8.6)]); crown.push([3.4, -5]); P(crown);
@@ -515,12 +515,13 @@
   function colossus(ctx, S, ex, ey, sc, T, o) {
     const u = sc / 2;   // sc as the old sprite scale: eyes ±1.5·sc apart become ±3u... keep the eyes inside the visor
     ctx.save();
-    deity(ctx, ex + Math.max(1, u * 0.35), ey - Math.max(1, u * 0.25), u, o.rim || '#ff5a6a', T);   // the moon's rim light
-    deity(ctx, ex - Math.max(1, u * 0.2), ey, u, '#5a0a1a', T);
-    deity(ctx, ex, ey, u, o.col || '#050204', T);
+    deity(ctx, ex + Math.max(1, u * 0.35), ey - Math.max(1, u * 0.25), u, o.rim || '#ff5a6a', T, o.pose);   // the moon's rim light
+    deity(ctx, ex - Math.max(1, u * 0.2), ey, u, '#5a0a1a', T, o.pose);
+    deity(ctx, ex, ey, u, o.col || '#050204', T, o.pose);
     // A rune burning down the blade's edge.
-    ctx.strokeStyle = 'rgba(255,42,68,0.85)'; ctx.lineWidth = Math.max(1, u * 0.3); ctx.beginPath(); ctx.moveTo(ex, ey + 31 * u); ctx.lineTo(ex, ey + 94 * u); ctx.stroke();
-    A.tex(ctx, 'light_01', ex, ey + 60 * u, 8 * u, 70 * u, RED, 0.25, 0, true);
+    const y0 = o.pose === 'raise' ? -24 : 31, y1 = o.pose === 'raise' ? -87 : 94;
+    ctx.strokeStyle = 'rgba(255,42,68,0.85)'; ctx.lineWidth = Math.max(1, u * 0.3); ctx.beginPath(); ctx.moveTo(ex, ey + y0 * u); ctx.lineTo(ex, ey + y1 * u); ctx.stroke();
+    A.tex(ctx, 'light_01', ex, ey + (y0 + y1) / 2 * u, 8 * u, 70 * u, RED, 0.25, 0, true);
     ctx.restore();
   }
   function burningEyes(ctx, ex, ey, sc, open, T) {
@@ -661,7 +662,7 @@
       const dv = R.uiImg && R.uiImg('divider');
       if (dv && tk > 0.3) { ctx.globalAlpha = clamp((tk - 0.3) * 3); ctx.drawImage(dv, Math.round(W() / 2 - dv.naturalWidth / 2), y + 20); ctx.globalAlpha = 1; }
       if (tk > 1.0) say(S, 'line', 'A LAST DITCH EFFORT', W() / 2, y + 38, { size: 18, col: '#ffc8d2', a: clamp((tk - 1.0) * 2), spacing: 3 });
-      if (tk > 2.0) say(S, 'line', 'Six guardians. One night. Close the wound before dawn.', W() / 2, H() - 10, { size: 17, col: '#ffffff', a: clamp((tk - 2.0) * 2) });
+      if (tk > 2.0) say(S, 'line', 'Six guardians. One night. Stop him before dawn.', W() / 2, H() - 10, { size: 17, col: '#ffffff', a: clamp((tk - 2.0) * 2) });
     }
     if (k > 1 - out) fill(ctx, '#000', (k - (1 - out)) / out);
   };
@@ -680,7 +681,7 @@
     c.restore();
     S.shake = Math.max(0, S.shake - (dt || 0.016) * 18);
     // Letterbox (none on the impact frames; the title lets it go), the captions in the lower bar, the skip hint.
-    const impact = NO_BARS[sh[0]] || (sh[0] === 'cutmoon' && k < 0.34);
+    const impact = NO_BARS[sh[0]] || (sh[0] === 'godcut' && k >= 0.18 && k < 0.4);
     const bars = sh[0] === 'title' ? Math.round(BAR * Math.max(0, 1 - T * 1.5)) : impact ? 0 : BAR;
     if (bars) { c.fillStyle = '#000'; c.fillRect(0, 0, W(), bars); c.fillRect(0, H() - bars, W(), bars); }
     // The words, on the sharp layer above.

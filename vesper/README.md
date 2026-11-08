@@ -89,11 +89,15 @@ clump. Red chevrons at the screen's edge point at every foe out of sight.
 
 **The opening** (`js/intro.js`): about 40 seconds, cut like an anime fight in the style of the moon
 arts and drawn on the same 180 px pixel buffer, with its words on a sharp full-resolution layer above.
-None of it is the game's own view: every shot is a set built for it. The shots: a red drop in the dark;
-the moon falling on a sleeping city; the First Cut against it, then his leap, a small black figure
-across its vast face; the cut in impact frames; the moon hanging still and bleeding; the earth cracking
+None of it is the game's own view: every shot is a set built for it. The plot: seven hundred years ago the First Cut climbed the Spire
+and cut the moon to raise an army that would never die; by its red light his dead rise; tonight the
+wound bleeds out, and Vesper's blade is the one that can stop him. The shots: a red drop in the dark;
+a calm white moon over a sleeping city and the Spire; the First Cut on top of the Spire as a god, his
+eyes igniting, raising a sword the size of a tower into the moon; the cut in impact frames (the blade
+across the moon's face, white, inverted, black on white) and red light bursting from the wound; the
+moon hanging still and bleeding; the earth cracking
 and a hand bursting out, then the dead standing up one by one in a row on a ridge against the moon,
-their eyes lighting; red eyes opening in waves across a black plain, hundreds of them, and lightning showing the horde
+their eyes lighting, his eyes watching from the sky; red eyes opening in waves across a black plain, hundreds of them, and lightning showing the horde
 they belong to, rank behind rank to the horizon; Vesper's red eye and her name, the draw; the charge through eight of the dead; three manga panels; then the First Cut as a god over the
 Spire (a drawn silhouette: crowned and horned helm, spiked pauldrons, a cape like wings, both hands on
 a sword the size of a tower), the camera tilting from his sword's point past her, small on a rampart,
