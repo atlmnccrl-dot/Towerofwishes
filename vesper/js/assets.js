@@ -78,9 +78,12 @@
   A.cacheSize = () => cache.size;
 
   A.dirIndex = (angle) => { let d = Math.round(angle / (Math.PI / 4)); return ((d % 8) + 8) % 8; };
+  // Sets exported without some clips (the tile packs' own characters have no roll, slide or kick):
+  // the nearest clip they do have.
+  const CLIP_FB = { Rolling: 'Run', Slide: 'TakeDamage', Kick: 'Attack2', Attack6: 'Attack3', RunBackwards: 'Walk', Idle2: 'Idle', Idle3: 'Idle', CrouchIdle: 'Idle4' };
   function frameOf(setId, clip, frame, angle) {
     const s = sets[setId]; if (!s) return null;
-    const an = s.anims[clip] || s.anims.Idle4 || s.anims.Idle; if (!an) return null;
+    const an = s.anims[clip] || s.anims[CLIP_FB[clip]] || s.anims.Idle4 || s.anims.Idle; if (!an) return null;
     const frames = an[DIRS[A.dirIndex(angle)]] || an.E; if (!frames || !frames.length) return null;
     return { s, f: frames[Math.max(0, Math.min(frames.length - 1, frame | 0))] };
   }
@@ -148,6 +151,39 @@
     ctx.save(); if (add) ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha *= alpha == null ? 1 : alpha; ctx.imageSmoothingEnabled = true;
     ctx.translate(x, y); if (rot) ctx.rotate(rot); ctx.drawImage(c, -w / 2, -h / 2, w, h); ctx.restore(); return true;
   };
+  // ---- the isometric arena tiles (assets/iso): pages loaded by group as arenas need them ----------
+  // Groups: w walls and rocks, d desert, i iso, a animations. Each tile is drawn with its ground
+  // anchor on a point; tinted copies of a page (the hour's light) are made once per tint.
+  let isoData = null, isoP = null; const isoPages = {}, isoPend = {}, isoTint = {};
+  A.isoReady = (groups) => !!isoData && groups.every((g) => { for (let i = 0; i < (isoData.pages[g] || 0); i++) if (!isoPages[g + i]) return false; return true; });
+  A.loadIso = async function (groups) {
+    if (!isoData) isoData = await (isoP || (isoP = loadJSON(A.ROOT + 'iso/tiles.json')));
+    const jobs = [];
+    for (const g of groups) for (let i = 0; i < (isoData.pages[g] || 0); i++) { const k = g + i; if (isoPages[k]) continue; jobs.push(isoPend[k] || (isoPend[k] = loadImage(A.ROOT + 'iso/tiles_' + k + '.png').then((im) => { isoPages[k] = im; }))); }
+    await Promise.all(jobs);
+  };
+  function isoPage(p, tint) {
+    const im = isoPages[p]; if (!im || !tint) return im;
+    const k = p + tint; if (isoTint[k]) return isoTint[k];
+    const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const g = c.getContext('2d');
+    g.drawImage(im, 0, 0); g.globalCompositeOperation = 'multiply'; g.fillStyle = tint; g.fillRect(0, 0, c.width, c.height);
+    g.globalCompositeOperation = 'destination-in'; g.drawImage(im, 0, 0);
+    // Keep only the tints in use: one hour at a time.
+    for (const o in isoTint) if (!o.endsWith(tint)) delete isoTint[o];
+    return (isoTint[k] = c);
+  }
+  A.isoHas = (key) => !!(isoData && isoData.tiles[key] && isoPages[isoData.tiles[key][0]]);
+  A.isoInfo = (key) => isoData && isoData.tiles[key];
+  A.isoAnim = (name) => isoData && isoData.anims[name];
+  // Draw a tile with its anchor (the ground diamond's centre) at x, y, scaled; tint: a multiply colour.
+  A.iso = function (ctx, key, x, y, scale, tint, alpha) {
+    const f = isoData && isoData.tiles[key]; if (!f) return false;
+    const pg = isoPage(f[0], tint); if (!pg) return false;
+    if (alpha != null) { const ga = ctx.globalAlpha; ctx.globalAlpha = ga * alpha; ctx.drawImage(pg, f[1], f[2], f[3], f[4], x + f[5] * scale, y + f[6] * scale, f[3] * scale, f[4] * scale); ctx.globalAlpha = ga; }
+    else ctx.drawImage(pg, f[1], f[2], f[3], f[4], x + f[5] * scale, y + f[6] * scale, f[3] * scale, f[4] * scale);
+    return true;
+  };
+  A.isoWarm = function (ctx) { for (const k in isoPages) ctx.drawImage(isoPages[k], 0, 0, 1, 1, 0, 0, 1, 1); ctx.clearRect(0, 0, 2, 2); };
   A.hasTex = (name) => !!tex[name];
   A.hasTile = (name) => !!(tileData && tileData.sprites[name]);
   A.hasFx = (name) => !!(fxData && fxData.fx[name]);

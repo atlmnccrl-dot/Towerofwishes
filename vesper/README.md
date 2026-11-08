@@ -139,11 +139,23 @@ while they wind up, so stepping aside makes them miss.
   strafe as they circle; bosses taunt as they land and as their second phase begins.
 - **Impact frames**: parries, finishers that kill, boss poise breaks, boss landings and boss deaths
   flash white with black silhouettes, then black with white ones, as in the moon arts.
-- **Arenas**: each hour is a chain of two or three arenas of different shapes: a round ring, a
-  square courtyard, a long bridge, a ring around a bottomless pit, a crossroads. Foes arrive by the
-  arena's rules: rising out of rifts in the floor, dropping from the sky onto a marked spot, or
-  running in through glowing side gates. Bosses drop in (the Umbral rises from a rift).
-- **The way on**: clearing an arena opens a portal at its far end while the camera turns to it, and
+- **Arenas**: each hour is a chain of two or three large isometric maps (`js/arenas.js`), built
+  from the 2D Desert Fantasy and 2D Isometric Fantasy tile sets: a walled courtyard (13 x 11 tiles),
+  a causeway over water or the abyss (16 x 7), a round ruin (13 x 13), a ring around a pit or a
+  pool (14 x 14) and a crossroads (15 x 15). A tile is about three fighters tall, so a map is four
+  to five times the old ring across. Tall walls (with torches, vines and a gate) stand only along
+  the two back edges, where they can never hide a fighter; the front edges fall away as cliffs.
+  Props and ruins to fight around (statues, carts, tents, towers, wells, ribcages, a dragon skull,
+  rock spires) never block the plaza, the way in or the way on, and the map always stays connected.
+  Props in front of a fighter turn see-through. Pillars, statues and rocks stop bolts: they are cover.
+  Foes find their way round walls and props (a flow field per target cell); so does the bot.
+  Foes arrive by the map's rules: rising out of rifts, dropping from the sky, or running in from
+  open ground just out of sight. Bosses land ahead of you, toward the way on.
+- **Breakables**: barrels, crates, pots and bone piles break under your blows and play the tile
+  pack's own explosions. A powder barrel blasts the foes around it, a green barrel leaves a poison
+  cloud that hurts only them, a water barrel mends you a little, and every smash feeds the moon.
+- **The way on**: clearing an area opens a portal by the gate in its far wall while the camera turns to it
+  (you run 75% faster while the way is open, and a trail of arrows leads round the props), and
   the goal in the corner changes to "Go through the door". The portal is made only from the soft
   vfx textures in `assets/vfx`: two rune rings turning against each other on the floor, smoke
   gathering and churning around a ring of light, a dark core with three layers of swirl turning
@@ -162,10 +174,13 @@ while they wind up, so stepping aside makes them miss.
   across the night, 50 to 100% per hour) and fights last 60 to 105 seconds. Losing costs nothing:
   retry the hour. Knobs: `VS.DIFF` (foe health and damage) and `VS.POWER` (hero) in `js/sim.js`,
   `pow` per hero in `js/data.js`.
-- **Arena art**: each arena is a floating stone platform on cliffs, with flagstones, cracks, inlaid
-  runes and marks for each hour (moss, snow, gold inlay, ash, wind streaks, blood pools), brazier
-  light on the floor, drifting fog, and props: pillars, braziers, banners, knight statues, broken
-  walls, lantern posts, trees, crystals, rock needles.
+- **Arena art**: each hour has its own tiles and light (`VS.ARENA.THEMES`): the Black Gate a grass
+  courtyard in stone-and-timber walls, the Cloister frosted flagstones and white plaster, the Umbral
+  Stair a sandstone temple with columns, sphinxes and red ivy, the Ashen Waste cracked sand with
+  ribcages, dead roots and craters, the Wind's Throat ledges lined with rock spires, the Moon's
+  Shadow a red-lit hall. The ground is baked once per map (tiles, overlays, cliff faces, the hour's
+  tint, the moon's glow, brazier and torch light); walls, props and fighters are drawn over it at
+  the same pixel scale, with animated torches, fires and water ripples.
 - **Readability**: a red ring under the knight, white rings under foes; pack effects only on the
   blows that matter (finishers, dash-cuts, spins, parries, breaks, deaths); damage numbers only for
   heavy blows; impact frames only for boss moments.
@@ -207,12 +222,22 @@ on, Esc skips. Shot lists and goals in `js/story.js`.
 
 ## Look
 
-The game is drawn at the screen's full resolution. Fights: a glossy ring with the red moon in its
-floor and a line of red light at its rim, props around it per hour (pillars, braziers, dead trees,
-ice crystals, rock needles), crisp pixel characters turned to the camera with their reflections,
-effects drawn in code. Title, menus and scenes are shot side-on with layered silhouettes under the
+The game is drawn at the screen's full resolution. Fights: a true isometric view (2:1 tiles) of
+large tile maps under the red moon, crisp pixel characters at the tiles' own pixel scale, effects
+drawn in code. Title, menus and scenes are shot side-on with layered silhouettes under the
 moon. A slim HUD and menus as real buttons (Chakra Petch and Barlow from Google Fonts). The moon arts keep their pixel
 style: they are drawn on a 180 px buffer laid over the game and scaled up without smoothing.
+
+## Tiles
+
+`assets/iso/` holds the tile atlases packed by `vesper/tools_iso.py` from the extracted packs
+(`ISO_SRC=/path/to/packs python3 -I vesper/tools_iso.py`): every chosen tile trimmed, with its
+offset from the ground anchor (128, 208), in four groups loaded per hour: `w` walls, doors, rocks
+and trees; `d` desert ground and props; `i` isometric ground and props; `a` the animations
+(torches, fires, barrels breaking, explosions, ripples). 256-colour pages, about 2.6 MB in all.
+The packs' own characters are packed with the rest of the cast (`vh_sand_*`, `vh_iso_*`): the
+Risen Dead (Black Gate), Sun Wardens (Umbral Stair), Dune Reavers, Sand Imps and Dune Brutes
+(Ashen Waste, Wind's Throat), and new looks for shield skeletons, cultists, duelists and townsfolk.
 
 ## Code
 
@@ -222,9 +247,11 @@ style: they are drawn on a 180 px buffer laid over the game and scaled up withou
 | `js/progress.js` | The profile, experience and levels, the skill tree, hero unlocks, the campaign's nodes, their fights, stars and rewards. Pure |
 | `js/mapview.js` | The campaign map: the Spire, act bands, paths, nodes, guardians, input |
 | `js/story.js` | The story: shot lists with captions, each hour's goal, the ending. Pure |
-| `js/sim.js` | The fight simulation on a round 2D ring (cones and circles, waves, parry, dodge, dash-cut, poise, the moon arts) and a bot. Pure, runs in Node |
+| `js/arenas.js` | The large tile maps: layouts, themes, walls, props, breakables; walking (clamp, line of sight, flow-field steering). Pure |
+| `js/sim.js` | The fight simulation on the tile maps (cones and circles, waves, parry, dodge, dash-cut, poise, breakables, the moon arts) and a bot. Pure, runs in Node |
 | `js/assets.js` | Loads and draws the cast (plain, flashed, silhouette, hard grey), effects and tiles |
-| `js/view.js` | The full-resolution game: the helicopter view for fights (projection, ring, props, floor danger, fighters, effects), the side-on stage for menus and scenes, HUD, touch controls, dialogue, boss card |
+| `js/isoview.js` | Draws the tile maps: the baked ground, the walls behind, props, torches and breakables sorted with the fighters |
+| `js/view.js` | The full-resolution game: the isometric view for fights (projection, ring, props, floor danger, fighters, effects), the side-on stage for menus and scenes, HUD, touch controls, dialogue, boss card |
 | `js/px.js`, `js/cine.js` | The pixel buffer and the moon arts drawn on it |
 | `js/tale.js` | The story scenes, drawn at full resolution with captions |
 | `js/ui.js` | Menus as buttons: title, settings, credits, boon pick, defeat, pause |

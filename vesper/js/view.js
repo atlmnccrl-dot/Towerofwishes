@@ -158,10 +158,11 @@
   // ---- the helicopter view (fights) ---------------------------------------------------------------
   // High above and a little to the side at one fixed angle: the ground is rotated by HELI.ang and
   // flattened by HELI.pitch; fighters and props stand upright on it. No perspective shrinking.
-  const HELI = R.HELI = { ang: -0.3, pitch: 0.72 };
+  // A true isometric view: the large tile maps' own angle (a ground tile is a 2:1 diamond).
+  const HELI = R.HELI = { ang: -Math.PI / 4, pitch: 0.5 };
   const hc = Math.cos(HELI.ang), hs = Math.sin(HELI.ang);
   R.hcam = { x: 0, y: 0 };
-  R.Sh = () => R.H / 215;
+  R.Sh = () => R.H / 340;
   R.P = function (x, y, z) {
     const dx = x - R.hcam.x, dy = y - R.hcam.y, Sh = R.Sh();
     const rx = dx * hc - dy * hs, ry = dx * hs + dy * hc;
@@ -745,7 +746,8 @@
   function guide(ctx, s) {
     const p = s.portal, h = s.hero; if (!p || s.transit) return;
     const dx = p.x - h.x, dy = p.y - h.y, d = Math.hypot(dx, dy); if (d < 30) return;
-    ground(ctx); ctx.save(); ctx.translate(h.x, h.y); ctx.rotate(Math.atan2(dy, dx));
+    const w = VS.steer(VS.arenaOf(s), h.x, h.y, p.x, p.y);
+    ground(ctx); ctx.save(); ctx.translate(h.x, h.y); ctx.rotate(Math.atan2(w[1], w[0]));
     for (let i = 0; i < 3; i++) { const o = 26 + i * 14 + (R.t * 30) % 14, a = 0.55 - i * 0.15; ctx.strokeStyle = rgba('#ffffff', a); ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(o - 5, -6); ctx.lineTo(o, 0); ctx.lineTo(o - 5, 6); ctx.stroke(); }
     ctx.restore(); unground(ctx);
   }
@@ -765,20 +767,21 @@
     let tx = h.x, ty = h.y;
     if (f && Math.hypot(f.x - h.x, f.y - h.y) < 180) { tx = h.x * 0.65 + f.x * 0.35; ty = h.y * 0.65 + f.y * 0.35; }
     // While a door opens the camera turns to it, then keeps it in view as the hero walks over.
-    const A = VS.arenaOf(s); let lx = A.shape === 'rect' ? A.hw * 0.62 : A.shape === 'cross' ? A.arm * 0.6 : A.r * 0.45, ly = A.shape === 'rect' ? A.hh * 0.55 : lx;
-    tx = clamp(tx, -lx, lx); ty = clamp(ty, -ly, ly);
+    const A = VS.arenaOf(s);
+    if (A.kind === 'grid') { const B = A.bounds, m = A.T * 0.9; tx = clamp(tx, B.x0 + m, B.x1 - m); ty = clamp(ty, B.y0 + m, B.y1 - m); }
+    else { const lx = A.shape === 'rect' ? A.hw * 0.62 : A.shape === 'cross' ? A.arm * 0.6 : A.r * 0.45, ly = A.shape === 'rect' ? A.hh * 0.55 : lx; tx = clamp(tx, -lx, lx); ty = clamp(ty, -ly, ly); }
     // The door stands tall: aim a little above its foot (screen up) so the whole of it is in frame.
     if (s.portal) { const P0 = s.portal, k = Math.min(1, P0.t / 1.2), w = P0.t < 1.9 ? 0.95 * k : 0.5, up = 70; tx += (P0.x - hs * up - tx) * w; ty += (P0.y - hc * up - ty) * w; }
     const k = Math.min(1, dt * 4); R.hcam.x += (tx - R.hcam.x) * k; R.hcam.y += (ty - R.hcam.y) * k;
   };
-  R.snapCam = function (s) { R.hcam.x = s.hero.x * 0.6; R.hcam.y = s.hero.y * 0.6; };
+  R.snapCam = function (s) { const k = VS.arenaOf(s).kind === 'grid' ? 1 : 0.6; R.hcam.x = s.hero.x * k; R.hcam.y = s.hero.y * k; };
   R.drawFight = function (ctx, s, dt) {
     const st = s.def;
     if (!s.staged) R.follow(s, dt);
     // Inside the warp tunnel nothing of the arena shows: draw only the tunnel.
     if (s.transit && s.transit.t > VS.TRANSIT.into + 0.05 && s.transit.t < VS.TRANSIT.swap) { transitOverlay(ctx, s); R.shake = Math.max(0, R.shake - dt * 22); return; }
     // Arriving: the door he came through seals behind him.
-    if (s.entry && s.entry !== R.entrySeen) { R.entrySeen = s.entry; const en = s.entry, n = Math.hypot(en.x, en.y) || 1; R.entryDoor = { x: en.x + en.x / n * 26, y: en.y + en.y / n * 26, t: 0, kind: s.entry.kind === 'stairs' ? 'gate' : s.entry.kind, closing: true }; }
+    if (s.entry && s.entry !== R.entrySeen) { R.entrySeen = s.entry; const en = s.entry, gr = VS.arenaOf(s).kind === 'grid', n = Math.hypot(en.x, en.y) || 1; R.entryDoor = { x: gr ? en.x - 26 : en.x + en.x / n * 26, y: gr ? en.y : en.y + en.y / n * 26, t: 0, kind: s.entry.kind === 'stairs' ? 'gate' : s.entry.kind, closing: true }; }
     if (R.entryDoor) { R.entryDoor.t += dt; if (R.entryDoor.t > 1.8) R.entryDoor = null; }
     const zoomIn = s.transit && s.transit.t < VS.TRANSIT.swap && s.transit.p ? Math.pow(Math.min(1, s.transit.t / VS.TRANSIT.swap), 2) * 0.7 : 0;
     ctx.save();
@@ -790,9 +793,10 @@
     R.baseT = ctx.getTransform();
     // The sky and the moon behind the platform, drifting a little with the camera.
     const sky = heliSky(st); ctx.drawImage(sky, -40 - Math.round(R.hcam.x * 0.06 * R.dpr), 0);
-    // The platform.
-    const area = s.area || 0, AR = VS.arenaOf(s), last = area === s.waves.length - 1, pl = platform(st, area, last, AR), o = R.P(0, 0);
-    ctx.drawImage(pl.c, Math.round(o.x - pl.pw / 2), Math.round(o.y - pl.cy));
+    // The arena: a large tile map (its ground and the walls behind), or the old round platform.
+    const area = s.area || 0, AR = VS.arenaOf(s), last = area === s.waves.length - 1, grid = AR.kind === 'grid';
+    if (grid) R.isoGround(ctx, s, AR);
+    else { const pl = platform(st, area, last, AR), o = R.P(0, 0); ctx.drawImage(pl.c, Math.round(o.x - pl.pw / 2), Math.round(o.y - pl.cy)); }
     // Warm light from the braziers on the floor, and fog drifting across it.
     fog(ctx, st);
     hazards(ctx, s);
@@ -800,12 +804,13 @@
     guide(ctx, s);
     // Reflections in the glossy floor, then everything upright sorted by depth.
     const units = s.units.slice();
-    for (const u of units) if (u.state !== 'spawn') drawUnit(ctx, s, u, 'reflect');
-    const items = units.map((u) => ({ d: R.P(u.x, u.y).d, u })).concat(propsOf(st, area, AR).map((p) => ({ d: R.P(p.x, p.y).d, p })));
+    if (!grid) for (const u of units) if (u.state !== 'spawn') drawUnit(ctx, s, u, 'reflect');
+    const items = units.map((u) => ({ d: R.P(u.x, u.y).d, u })).concat(grid ? R.isoItems(s, AR) : propsOf(st, area, AR).map((p) => ({ d: R.P(p.x, p.y).d, p })));
     if (s.portal) items.push({ d: R.P(s.portal.x, s.portal.y).d - 1, portal: s.portal });
     if (R.entryDoor) items.push({ d: R.P(R.entryDoor.x, R.entryDoor.y).d - 1, portal: R.entryDoor });
     items.sort((a, b) => a.d - b.d);
-    for (const it of items) { if (it.u) drawUnit(ctx, s, it.u); else if (it.portal) drawPortal(ctx, st, it.portal); else drawProp(ctx, st, it.p); }
+    for (const it of items) { if (it.u) drawUnit(ctx, s, it.u); else if (it.portal) drawPortal(ctx, st, it.portal); else if (it.iso) R.isoDraw(ctx, s, AR, it); else drawProp(ctx, st, it.p); }
+    if (grid) R.isoLights(ctx, s, AR);
     // Bolts: a glowing orb with a tail.
     for (const b of s.bolts) {
       const q = R.P(b.x, b.y, 16), t = R.P(b.x - b.vx * 0.12, b.y - b.vy * 0.12, 16);

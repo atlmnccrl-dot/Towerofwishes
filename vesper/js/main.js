@@ -143,7 +143,7 @@
       U.result({ p, node: n, win: true, r: Object.assign({ goals: [], stars: [] }, r), stats: null, buttons: [{ label: 'Continue', act: () => map(PR.nextNode(p)) }] });
       return;
     }
-    A.loadSets(missingFor(PR.build(n))).catch(() => {});   // start loading the army while the scene plays
+    A.loadSets(missingFor(PR.build(n))).catch(() => {}); A.loadIso(isoFor(PR.build(n).stage)).catch(() => {});   // start loading the army and the tiles while the scene plays
     const Ac = S.ACTS[n.act] || {}, scenes = [], bd = PR.build(n);
     // The act's intro casts a few of the army this fight will bring (in the looks it will wear).
     const army = PR.foeKeys(bd).filter((k) => !D.FOES[k].boss && D.FOES[k].set.startsWith('vh_')).slice(0, 3).map((k) => ({ key: k, set: ((bd.node.variants || {})[k] || [D.FOES[k].set])[0] }));
@@ -170,12 +170,14 @@
   ];
   // The sets a node's fight needs that are not loaded yet.
   const missingFor = (b) => PR.setsFor(b).filter((id) => !A.hasSet(id));
+  // The tile groups an hour's arenas are built from.
+  const isoFor = (stageIdx) => { const th = VS.ARENA.THEMES[D.STAGES[stageIdx].id]; return ['w', 'a', th && th.set === 'i' ? 'i' : 'd']; };
   function startNode(id) {
-    const n = PR.node(id), b = PR.build(n), miss = missingFor(b);
+    const n = PR.node(id), b = PR.build(n), miss = missingFor(b), iso = isoFor(b.stage);
     const go = () => startFight(b.stage, { nodeId: id, node: n, build: b });
-    if (!miss.length) return go();
+    if (!miss.length && A.isoReady(iso)) return go();
     M.go('load'); U.loading(0);
-    A.loadSets(miss, (f) => U.loading(f)).then(() => { A.warm(R.ctx); U.hide(); go(); }, () => { U.hide(); go(); });
+    Promise.all([A.loadSets(miss, (f) => U.loading(f)), A.loadIso(iso)]).then(() => { A.warm(R.ctx); A.isoWarm(R.ctx); U.hide(); go(); }, () => { U.hide(); go(); });
   }
 
   // ---- scenes -------------------------------------------------------------------------------------------
@@ -363,9 +365,9 @@
     U.loading(0);
     // At start: every hero and the original foes. The act armies (vh_*) load when a fight needs them.
     const ids = new Set([D.HERO.set, D.LYS.set, D.CLONE.set]); for (const k in D.FOES) if (!D.FOES[k].set.startsWith('vh_')) ids.add(D.FOES[k].set); for (const k in D.HEROES) ids.add(D.HEROES[k].set);
-    await A.load([...ids], (p) => U.loading(p));
+    await Promise.all([A.load([...ids], (p) => U.loading(p)), A.loadIso(['w', 'a', 'i']).catch(() => {})]);
     try { if (document.fonts) await Promise.race([Promise.all(['700 20px "Chakra Petch"', '600 16px "Chakra Petch"', '500 16px Barlow', '700 16px Barlow'].map((f) => document.fonts.load(f))), new Promise((r) => setTimeout(r, 2500))]); } catch (e) { /* fonts optional */ }
-    A.warm(R.ctx);
+    A.warm(R.ctx); A.isoWarm(R.ctx);
     applyOpts();
     if (params.has('auto')) M.save.opts.auto = true;
     if (params.has('hero') && D.HEROES[params.get('hero')]) M.save.hero = params.get('hero');

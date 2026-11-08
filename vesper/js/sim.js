@@ -4,6 +4,8 @@
 // and the two moon arts (Red Moon; the Last Ditch Effort at low health) played as cinematics.
 (function (root) {
   const VS = root.VS = root.VS || {}; const D = VS.DATA;
+  if (!VS.ARENA && typeof require === 'function') require('./arenas.js');
+  const AR = VS.ARENA;
   const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
   const TAU = Math.PI * 2;
   const angDiff = (a, b) => { let d = (a - b) % TAU; if (d > Math.PI) d -= TAU; if (d < -Math.PI) d += TAU; return d; };
@@ -57,8 +59,11 @@
       result: null, endT: 0, moon: M.moonStart, mods: M, boons, combo: 0, comboT: 0, serial: 0, bossIds: [],
       heroDef: H, cds: [0, 0], hazards: [], invisT: 0,
       stats: { dealt: 0, taken: 0, parries: 0, perfects: 0, arts: 0, ldx: 0, maxCombo: 0, hitsTaken: 0, bossHits: 0, zoneHits: 0 } };
+    // The areas of this fight: one large tile map each, built from the hour's look and the node's layouts.
+    const aseed = opts.arenaSeed != null ? opts.arenaSeed : (opts.seed || 1);
+    s.arenaList = (st.arenas && st.arenas.length ? st.arenas : ['court']).map((k, i) => AR.build(st.id || 'gate', k, aseed * 7 + i * 131 + stageIdx));
     curArena = arenaOf(s);
-    const en = VS.entryOf(curArena); s.hero = makeUnit(s, 'hero', H.id, Object.assign({}, H, { hp: M.hp }), en.x * 0.6, en.y * 0.6, Math.atan2(-en.y, -en.x));
+    const en = VS.entryOf(curArena); s.hero = makeUnit(s, 'hero', H.id, Object.assign({}, H, { hp: M.hp }), en.x, en.y, 0);
     return s;
   }
 
@@ -196,6 +201,7 @@
       if (o.team === a.team || !o.alive || a.hits.indexOf(o.id) >= 0) continue;
       if (inReach(a, k, o)) { a.hits.push(o.id); hit(s, a, o, k); }
     }
+    if (a.team === 'hero') smashAt(s, 0, 0, 0, (o) => inReach(a, k, { x: o.x, y: o.y, rad: o.r }));
     if (a === s.hero && !k.bolt) ev(s, { type: 'swing', id: a.id, clip: k.clip });
     if (k.explode && a.alive) { a.hp = 0; kill(s, a); return; }
     if (k.aoe) { const c = VS.aoeAt(a, k); ev(s, { type: a.team === 'hero' ? 'spin' : 'slam', x: c.x, y: c.y, r: c.r, id: a.id }); }
@@ -221,6 +227,31 @@
   }
   function areaHit(s, a, x, y, r, k) {
     for (const o of foes(s)) if (o.state !== 'spawn' && Math.hypot(o.x - x, o.y - y) <= r + o.rad) hit(s, a, o, k);
+    if (a.team === 'hero') smashAt(s, x, y, r, null);
+  }
+  // ---- breakables on the large maps: barrels, crates and pots the hero's blows smash ---------------
+  function smashAt(s, x, y, r, test) {
+    const A = curArena; if (!A || A.kind !== 'grid') return;
+    for (const o of A.objs) if (o.kind === 'break' && !o.broken && (test ? test(o) : Math.hypot(o.x - x, o.y - y) <= r + o.r)) smash(s, o);
+  }
+  function smash(s, o) {
+    o.hp -= 1; if (o.hp > 0) { ev(s, { type: 'knock', x: o.x, y: o.y }); return; }
+    o.broken = true; o.brokeT = s.time; gainMoon(s, 3);
+    ev(s, { type: 'smash', x: o.x, y: o.y, kind: o.type, anim: o.anim });
+    if (o.type === 'barrel') {
+      // Black powder: a blast that throws the foes around it.
+      for (const f of foes(s)) if (f.state !== 'spawn' && Math.hypot(f.x - o.x, f.y - o.y) <= 62 + f.rad) { directDamage(s, f, 24); if (f.alive && f.def.minion) { setState(f, 'hurt', 0.45); push(f, o, 120); } }
+      s.hitstop = Math.max(s.hitstop, 0.05); ev(s, { type: 'impact', size: 'big', x: o.x, y: o.y });
+    } else if (o.type === 'poison') addHazard(s, { kind: 'zone', team: 'hero', x: o.x, y: o.y, r: 60, dur: 5, dps: 14, slow: 0.6, fx: 'poison_cloud' });
+    else if (o.type === 'water') { const h = s.hero; if (Math.hypot(h.x - o.x, h.y - o.y) < 130) { h.hp = Math.min(h.maxHp, h.hp + h.maxHp * 0.08); ev(s, { type: 'mend', x: h.x, y: h.y }); } }
+  }
+  // A bolt stops at the map's edge and at the tall props (pillars, statues and rocks are cover).
+  function boltBlocked(A, b) {
+    const cx = Math.floor((b.x - A.x0) / A.T), cy = Math.floor((b.y - A.y0) / A.T);
+    if (cx < -1 || cy < -1 || cx > A.w || cy > A.h) return true;
+    const list = cx >= 0 && cy >= 0 && cx < A.w && cy < A.h ? A.byCell[cy * A.w + cx] : null;
+    if (list) for (const o of list) if (!o.broken && o.kind !== 'break' && o.r >= 14 && Math.hypot(b.x - o.x, b.y - o.y) < o.r) return true;
+    return false;
   }
   function doSkill(s, h, sk) {
     const p0 = sk.kind === 'wave' || sk.kind === 'blink' || sk.kind === 'clones' || sk.kind === 'smoke' ? null : aimPoint(s, h, sk.range || 120);
@@ -414,10 +445,11 @@
 
   // ---- arenas -------------------------------------------------------------------------------
   // The shape of the current area: circle, rect, donut (a ring around a pit) or cross.
-  const arenaOf = (s) => D.ARENAS[(s.def.arenas || [])[s.area]] || D.ARENAS.ring;
+  const arenaOf = (s) => (s.arenaList && (s.arenaList[s.area] || s.arenaList[s.arenaList.length - 1])) || D.ARENAS[(s.def.arenas || [])[s.area]] || D.ARENAS.ring;
   VS.arenaOf = arenaOf;
   function clampRect(x, y, hw, hh, m) { return [clamp(x, -hw + m, hw - m), clamp(y, -hh + m, hh - m)]; }
   VS.clampTo = function (A, x, y, m) {
+    if (A.kind === 'grid') return AR.clamp(A, x, y, m);
     if (A.shape === 'rect') return clampRect(x, y, A.hw, A.hh, m);
     if (A.shape === 'cross') {
       const inH = Math.abs(x) <= A.arm - m && Math.abs(y) <= A.hw - m, inV = Math.abs(x) <= A.hw - m && Math.abs(y) <= A.arm - m;
@@ -432,10 +464,17 @@
   };
   VS.inside = (A, x, y, m) => { const c = VS.clampTo(A, x, y, m || 0); return Math.abs(c[0] - x) < 0.01 && Math.abs(c[1] - y) < 0.01; };
   // Where the way on opens and where the hero arrives.
-  VS.exitOf = (A) => A.shape === 'rect' ? (A.hw > A.hh * 2 ? { x: A.hw - 34, y: 0 } : { x: 0, y: -A.hh + 30 }) : A.shape === 'cross' ? { x: 0, y: -A.arm + 34 } : { x: 0, y: -A.r + 34 };
-  VS.entryOf = (A) => A.shape === 'rect' ? (A.hw > A.hh * 2 ? { x: -A.hw + 34, y: 0 } : { x: 0, y: A.hh - 34 }) : A.shape === 'cross' ? { x: 0, y: A.arm - 40 } : { x: 0, y: A.r - 40 };
-  // Side gates the foes run in through.
-  VS.sideGates = function (A) {
+  VS.exitOf = (A) => A.kind === 'grid' ? { x: A.exit.x, y: A.exit.y } : A.shape === 'rect' ? (A.hw > A.hh * 2 ? { x: A.hw - 34, y: 0 } : { x: 0, y: -A.hh + 30 }) : A.shape === 'cross' ? { x: 0, y: -A.arm + 34 } : { x: 0, y: -A.r + 34 };
+  VS.entryOf = (A) => A.kind === 'grid' ? { x: A.entry.x, y: A.entry.y } : A.shape === 'rect' ? (A.hw > A.hh * 2 ? { x: -A.hw + 34, y: 0 } : { x: 0, y: A.hh - 34 }) : A.shape === 'cross' ? { x: 0, y: A.arm - 40 } : { x: 0, y: A.r - 40 };
+  // Which way to walk from one point toward another, round walls, holes and props.
+  VS.steer = (A, x, y, tx, ty) => { if (A.kind === 'grid') return AR.steer(A, x, y, tx, ty); const dx = tx - x, dy = ty - y, d = Math.hypot(dx, dy) || 1; return [dx / d, dy / d]; };
+  // Side gates the foes run in through: on a large map, open ground just out of sight of the hero.
+  VS.sideGates = function (A, s) {
+    if (A.kind === 'grid') {
+      const h = s ? s.hero : { x: 0, y: 0 }, out = [];
+      for (let i = 0; i < 5; i++) { const p = AR.around(A, s ? s.rand : Math.random, h.x, h.y, 250, 330, 24, true), dx = h.x - p.x, dy = h.y - p.y, d = Math.hypot(dx, dy) || 1, k = Math.min(0.55, (d - 90) / d), c = AR.clamp(A, p.x + dx * k, p.y + dy * k, 20); out.push({ x: p.x, y: p.y, tx: c[0], ty: c[1] }); }
+      return out;
+    }
     if (A.shape === 'rect') return A.hw > A.hh * 2 ? [{ x: A.hw + 30, y: 0, tx: A.hw - 50, ty: 0 }, { x: -A.hw - 30, y: 0, tx: -A.hw + 50, ty: 0 }] : [{ x: -A.hw - 30, y: 0, tx: -A.hw + 50, ty: 0 }, { x: A.hw + 30, y: 0, tx: A.hw - 50, ty: 0 }, { x: 0, y: -A.hh - 30, tx: 0, ty: -A.hh + 50 }];
     if (A.shape === 'cross') return [{ x: -A.arm - 30, y: 0, tx: -A.arm + 50, ty: 0 }, { x: A.arm + 30, y: 0, tx: A.arm - 50, ty: 0 }, { x: 0, y: -A.arm - 30, tx: 0, ty: -A.arm + 50 }];
     return [0, 1, 2, 3, 4].map((i) => { const a = -Math.PI / 2 + (i - 2) * 0.9; return { x: Math.cos(a) * (A.r + 30), y: Math.sin(a) * (A.r + 30), tx: Math.cos(a) * (A.r - 50), ty: Math.sin(a) * (A.r - 50) }; });
@@ -445,6 +484,7 @@
   // ---- waves --------------------------------------------------------------------------------
   function spawnPoint(s, A, i) {
     const h = s.hero;
+    if (A.kind === 'grid') return AR.around(A, s.rand, h.x, h.y, 105, 215, 30, true);
     for (let k = 0; k < 40; k++) {
       const x = (s.rand() * 2 - 1) * 260, y = (s.rand() * 2 - 1) * 260;
       if (VS.inside(A, x, y, 30) && Math.hypot(x - h.x, y - h.y) > 95) return { x, y };
@@ -462,12 +502,12 @@
     else ev(s, { type: 'wave', n: s.wave + 1, of: s.waves.length - 1 });
   }
   function spawnGroup(s, list, boss, elite) {
-    const h = s.hero, A = arenaOf(s), gates = VS.sideGates(A).sort((a, b) => Math.hypot(b.x - h.x, b.y - h.y) - Math.hypot(a.x - h.x, a.y - h.y));
+    const h = s.hero, A = arenaOf(s), gates = VS.sideGates(A, s).sort((a, b) => Math.hypot(b.x - h.x, b.y - h.y) - Math.hypot(a.x - h.x, a.y - h.y));
     list.forEach((key, i) => {
       const def = D.FOES[key], mode = def.boss ? (key === 'umbral' ? 'rift' : 'drop') : A.spawn[i % A.spawn.length];
       let x, y, tx, ty;
       if (mode === 'side') { const g = gates[i % gates.length]; x = g.x; y = g.y; const c = VS.clampTo(A, g.tx + (s.rand() - 0.5) * 30, g.ty + (s.rand() - 0.5) * 30, 20); tx = c[0]; ty = c[1]; }
-      else { const p = def.boss ? (() => { const c = VS.clampTo(A, -h.x * 0.6, -h.y * 0.6 - 40, 40); return { x: c[0], y: c[1] }; })() : spawnPoint(s, A, i); x = p.x; y = p.y; }
+      else { const p = def.boss ? bossPoint(s, A) : spawnPoint(s, A, i); x = p.x; y = p.y; }
       const u = makeUnit(s, 'foe', key, def, x, y, 0); lookOf(s, u);
       const sk = s.def.scale || { hp: 1, dmg: 1 }, DF = VS.DIFF; u.hp = u.maxHp = Math.round(def.hp * sk.hp * (def.boss ? DF.bossHp : DF.hp)); u.dmgMul = sk.dmg * DF.dmg;
       setAng(u, Math.atan2(h.y - u.y, h.x - u.x)); u.orbit = (s.rand() < 0.5 ? -1 : 1); u.cd = 0.4 + i * 0.3 + (def.boss ? 0.6 : 0);
@@ -480,6 +520,12 @@
       setState(u, 'spawn', def.boss ? 1.5 : mode === 'side' ? 1.1 + i * 0.2 : mode === 'drop' ? 0.75 + i * 0.18 : 0.85 + i * 0.22);
       ev(s, { type: 'spawn', id: u.id, x: u.to.x, y: u.to.y, fx: x, fy: y, boss: !!def.boss, mode, dur: u.dur });
     });
+  }
+  // The guardian lands ahead of the hero, toward the way on (the old rings: across the ring).
+  function bossPoint(s, A) {
+    const h = s.hero;
+    if (A.kind === 'grid') { const e = A.exit, dx = e.x - h.x, dy = e.y - h.y, d = Math.hypot(dx, dy) || 1, c = AR.clamp(A, h.x + dx / d * Math.min(170, d * 0.6), h.y + dy / d * Math.min(170, d * 0.6), 40); return { x: c[0], y: c[1] }; }
+    const c = VS.clampTo(A, -h.x * 0.6, -h.y * 0.6 - 40, 40); return { x: c[0], y: c[1] };
   }
   // A cleared area opens the way on: a gate, a stairway or a rift at the back of the ring.
   function openPortal(s) {
@@ -494,7 +540,7 @@
     if (tr.t < T.into) { const dx = p.x - h.x, dy = p.y - h.y, d = Math.hypot(dx, dy); if (d > 1) { setAng(h, Math.atan2(dy, dx)); h.x += dx / d * Math.min(d, 90 * dt); h.y += dy / d * Math.min(d, 90 * dt); } if (h.state !== 'move') setState(h, 'move'); }
     if (prev < T.swap && tr.t >= T.swap) {
       s.area++; s.units = s.units.filter((u) => u === h || u.alive); s.bolts = []; s.portal = null;
-      curArena = arenaOf(s); const en = VS.entryOf(curArena); h.x = en.x; h.y = en.y; setAng(h, Math.atan2(-en.y, -en.x)); h.kvx = h.kvy = 0; h.iframes = 0; setState(h, 'move'); s.entry = { x: en.x, y: en.y, t: 0, kind: s.def.portal || 'rift' };
+      curArena = arenaOf(s); const en = VS.entryOf(curArena); h.x = en.x; h.y = en.y; setAng(h, curArena.kind === 'grid' ? 0 : Math.atan2(-en.y, -en.x)); h.kvx = h.kvy = 0; h.iframes = 0; setState(h, 'move'); s.entry = { x: en.x, y: en.y, t: 0, kind: s.def.portal || 'rift' };
       ev(s, { type: 'area', n: s.area });
     }
     if (tr.t >= T.swap) { const d = dir(h.ang); h.x += d[0] * 46 * dt; h.y += d[1] * 46 * dt; }
@@ -548,7 +594,9 @@
     if (u.key === 'umbral') want = 110;
     if (u.def.keep) want = u.def.keep;
     if (u.def.minion && busy >= 3) want = 62 + (u.id % 3) * 12;
-    const nx = d > 0 ? dx / d : 1, ny = d > 0 ? dy / d : 0;
+    let nx = d > 0 ? dx / d : 1, ny = d > 0 ? dy / d : 0;
+    // Round the walls and props: the way to the hero, when the straight line is blocked.
+    if (curArena.kind === 'grid' && d > want + 5) { const st = AR.steer(curArena, u.x, u.y, h.x, h.y); nx = st[0]; ny = st[1]; }
     let vx = 0, vy = 0;
     if (Math.abs(d - want) > 5) { const k = d > want ? 1 : -0.7; vx += nx * k; vy += ny * k; }
     if (u.cd > 0 || (u.def.minion && busy >= 3)) { vx += -ny * u.orbit * 0.45; vy += nx * u.orbit * 0.45; }
@@ -610,7 +658,9 @@
     if (free && h.bufAtk > 0) { h.bufAtk = 0; h.combo = h.comboWin > 0 ? (h.combo + 1) % M.combo : 0; startAttack(s, h, H.combo[h.combo]); return; }
     if (free) {
       const back = s.aim != null && mn > 0.2 && Math.cos(angDiff(Math.atan2(my, mx), s.aim)) < -0.55;
-      const sp = H.spd * (back ? 0.8 : 1) * (h.slowT > 0 ? 0.6 : 1); h.x += mx * sp * dt; h.y += my * sp * dt;
+      // On the large maps the hero runs faster between fights, when the way on is open.
+      const sprint = s.portal && !foes(s).length ? 1.75 : 1;
+      const sp = H.spd * sprint * (back ? 0.8 : 1) * (h.slowT > 0 ? 0.6 : 1); h.x += mx * sp * dt; h.y += my * sp * dt;
       if (s.aim != null) { setAng(h, s.aim); if (mn > 0.2) moveDir(h, mx, my); } else if (mn > 0.2) { setAng(h, Math.atan2(my, mx)); h.mdir = 'f'; }
       if (mn > 0.2) { if (h.state !== 'move') setState(h, 'move'); } else if (h.state !== 'idle') setState(h, 'idle');
     }
@@ -684,7 +734,7 @@
         if (k.lunge) {
           const a = w - 0.1, b = w + 0.14, d = dir(u.ang);
           if (u.st > a && prev < b) { const f = Math.min(u.st, b) - Math.max(prev, a); u.x += d[0] * k.lunge / 0.24 * f; u.y += d[1] * k.lunge / 0.24 * f; }
-          if (u.st >= w - 0.04 && prev < b) for (const o of s.units) if (o.team !== u.team && o.alive && u.hits.indexOf(o.id) < 0 && inReach(u, k, o)) { u.hits.push(o.id); hit(s, u, o, k); }
+          if (u.st >= w - 0.04 && prev < b) { for (const o of s.units) if (o.team !== u.team && o.alive && u.hits.indexOf(o.id) < 0 && inReach(u, k, o)) { u.hits.push(o.id); hit(s, u, o, k); } if (u.team === 'hero') smashAt(s, 0, 0, 0, (o) => inReach(u, k, { x: o.x, y: o.y, rad: o.r })); }
           if (prev < w && u.st >= w && u === s.hero) ev(s, { type: 'swing', id: u.id, clip: k.clip });
         } else if (prev < w && u.st >= w) {
           if (k.step && u === s.hero) { const d = dir(u.ang); u.x += d[0] * k.step; u.y += d[1] * k.step; }
@@ -728,7 +778,7 @@
     // Bolts.
     for (const b of s.bolts) {
       b.t += dt; b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
-      if (Math.hypot(b.x, b.y) > 420) b.life = 0;
+      if (Math.hypot(b.x - h.x, b.y - h.y) > 620) b.life = 0;
       if (b.life <= 0) continue;
       for (const o of s.units) {
         if (o.team === b.team || !o.alive || o.state === 'spawn' || (b.hitIds && b.hitIds.indexOf(o.id) >= 0) || Math.hypot(o.x - b.x, o.y - b.y) > (b.r || 6) + o.rad) continue;
@@ -740,7 +790,8 @@
         if (b.ground) addHazard(s, { kind: 'zone', team: b.team, x: b.x, y: b.y, r: b.ground.r, dur: b.ground.dur, dps: b.ground.dps, fx: b.ground.fx });
         if (!b.pierce) { b.life = 0; ev(s, { type: 'boltHit', x: b.x, y: b.y, fx: b.fx, burst: b.burst, burstFx: b.burstFx }); break; }
       }
-      if (b.life > 0 && b.t > 0.05 && !VS.inside(curArena, b.x, b.y, -20)) { b.life = 0; if (b.ground) addHazard(s, { kind: 'zone', team: b.team, x: b.x, y: b.y, r: b.ground.r, dur: b.ground.dur, dps: b.ground.dps, fx: b.ground.fx }); }
+      if (b.life > 0 && b.team === 'hero' && curArena.kind === 'grid') for (const o of curArena.objs) if (o.kind === 'break' && !o.broken && Math.hypot(o.x - b.x, o.y - b.y) <= (b.r || 6) + o.r) { smash(s, o); if (!b.pierce) { b.life = 0; ev(s, { type: 'boltHit', x: b.x, y: b.y, fx: b.fx }); } break; }
+      if (b.life > 0 && b.t > 0.05 && (curArena.kind === 'grid' ? boltBlocked(curArena, b) : !VS.inside(curArena, b.x, b.y, -20))) { b.life = 0; if (b.ground) addHazard(s, { kind: 'zone', team: b.team, x: b.x, y: b.y, r: b.ground.r, dur: b.ground.dur, dps: b.ground.dps, fx: b.ground.fx }); }
     }
     s.bolts = s.bolts.filter((b) => b.life > 0);
 
@@ -800,6 +851,7 @@
     }
     if (s.portal && !s.transit) {
       let tx = s.portal.x, ty = s.portal.y; const A = arenaOf(s);
+      if (A.kind === 'grid') { const st = AR.steer(A, h.x, h.y, tx, ty); inp.mx = st[0]; inp.my = st[1]; return inp; }
       // Around the pit's hole, not into it: aim at a point further round the ring.
       if (A.shape === 'donut') {
         const sx = tx - h.x, sy = ty - h.y, L2 = sx * sx + sy * sy || 1, k = Math.max(0, Math.min(1, -(h.x * sx + h.y * sy) / L2)), cx = h.x + sx * k, cy = h.y + sy * k;
@@ -812,7 +864,7 @@
     if (can.heavy && foes(s).filter((f) => f.state !== 'spawn' && dist(f, h) < 40).length >= 2 && r() < 0.05) { inp.heavy = true; return inp; }
     const H = s.heroDef, d = dist(o, h), want = H.ranged ? 95 : 18 + o.rad;
     if (H.skills) for (let i = 0; i < 2; i++) if (can['skill' + (i + 1)] && s.cds[i] <= 0 && d < 130 && r() < 0.03) { inp['s' + (i + 1)] = true; return inp; }
-    if (d > want + 4) { inp.mx = (o.x - h.x) / d; inp.my = (o.y - h.y) / d; } else if (H.ranged && d < want - 25) { inp.mx = -(o.x - h.x) / d; inp.my = -(o.y - h.y) / d; }
+    if (d > want + 4) { const st = VS.steer(arenaOf(s), h.x, h.y, o.x, o.y); inp.mx = st[0]; inp.my = st[1]; } else if (H.ranged && d < want - 25) { inp.mx = -(o.x - h.x) / d; inp.my = -(o.y - h.y) / d; }
     if (H.ranged ? d <= 230 : d <= 26 + o.rad) { if (!H.ranged) { inp.mx = 0; inp.my = 0; } else inp.aim = Math.atan2(o.y - h.y, o.x - h.x); inp.atk = true; }
     return inp;
   }

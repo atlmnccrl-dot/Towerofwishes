@@ -146,7 +146,7 @@
   // A shot stages its cast on a stage's arena (entering from rifts or dropping from the sky, walking,
   // standing), moves the camera from one point to another and pushes the zoom, then draws it with
   // the fight renderer. Positions are world units on the arena floor.
-  const TOWARD_CAM = Math.atan2(Math.cos(-0.3), Math.sin(-0.3));
+  const TOWARD_CAM = Math.atan2(Math.cos(VS.R.HELI.ang), Math.sin(VS.R.HELI.ang));
   function nameCard(ctx, who, also, a) {
     const f = D.FOES[who], name = also ? 'THE HOLLOW TWINS' : f.name.toUpperCase(), sub = also ? 'THE LEFT HAND AND THE RIGHT' : f.title.toUpperCase();
     ctx.save(); ctx.globalAlpha = a; ctx.font = R.fd(44 * R.k, 700); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = '#ffffff'; if ('letterSpacing' in ctx) ctx.letterSpacing = 3 * R.dpr + 'px';
@@ -196,8 +196,8 @@
     const cam = sh.cam || {}, at = cam.at || [0, 0], c2 = lerp2(at, cam.to || at, ease(k));
     if (cam.follow) { const h = F.cast.find((m) => m.c.who === cam.follow); if (h) { c2[0] = h.u.x + (cam.off ? cam.off[0] : 0); c2[1] = h.u.y + (cam.off ? cam.off[1] : 0); } }
     // Aim at chest height, not the feet: shift the camera toward the viewer by the lift.
-    const lift = cam.lift == null ? 6 : cam.lift, hs = Math.sin(-0.3), hc = Math.cos(-0.3);
-    R.hcam.x = c2[0] - hs * lift / 0.72; R.hcam.y = c2[1] - hc * lift / 0.72;
+    const lift = cam.lift == null ? 6 : cam.lift, hs = Math.sin(R.HELI.ang), hc = Math.cos(R.HELI.ang);
+    R.hcam.x = c2[0] - hs * lift / R.HELI.pitch; R.hcam.y = c2[1] - hc * lift / R.HELI.pitch;
     const z = cam.zoom || [1.3, 1.5]; s.zoom = z[0] + (z[1] - z[0]) * ease(k);
     s.t += dt; R.t = R.t || 0;
     ctx.save(); if (R.shake > 0.5) ctx.translate((Math.random() - 0.5) * R.shake * R.dpr, (Math.random() - 0.5) * R.shake * R.dpr); R.drawFight(ctx, s, dt); ctx.restore();
