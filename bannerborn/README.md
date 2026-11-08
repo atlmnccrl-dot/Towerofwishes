@@ -30,13 +30,19 @@ A hero-collector RPG: you build the team, the team fights.
    | Legendary | chapter 3 (Aldmere) cleared | ◆ 1000 |
 
    Six **legends** join through the story (Sera Nightveil 1-4, Ahmos 2-3, Kestrel 2-5, Brenna Redmane 3-1,
-   Silas Grey 3-4, Talia Sunblade 4-1). A recruit steps out of a gate in the reveal.
+   Silas Grey 3-4, Talia Sunblade 4-1). Recruiting plays a summoning: energy gathers into a gate, the gate climbs
+   through the rarity colours (blue, purple, gold) with flashes and shockwaves, bursts, and the hero steps out of the
+   light as a silhouette that fills with colour; stars land one by one. Tap to skip to the burst.
 3. **Grow them.** The hero screen is a game screen painted on its own canvas: the hero on a lit stage with four
    gear sockets around them, an Attributes page (stat gains per level, hold-to-repeat Level Up, Ascend) and a
    **Skill Tree**: three branches (Might, Bulwark, Ultimate) of linked nodes plus two bridge nodes and three
    capstones (Executioner, Undying, the ultimate's Mastery); one point per level, free reset. Level up with gold (cap 10 + 10 per star), **ascend** ★ with sigils to raise the cap
    (up to 5 stars), gear in four slots (weapon, armour, helm, charm) that the **Forge** upgrades to +10.
-   Rarity (Common → Legendary) multiplies every stat.
+   Rarity (Common → Legendary) multiplies every stat. **What a hero wears shows on them:** the Captain's armour and
+   helm change their sprite; every hero glows in the colour of their best gear (brighter with forging); good weapons
+   carry an **enchant** (fire embers, frost, storm arcs, shadow wisps, holy light) that swirls around the hero and
+   makes their blows elemental; forging a plain weapon to +5 awakens one; capstones add a mark (Undying's halo,
+   Mastery's rune circle, Executioner's embers), and 4★ heroes sparkle. The same look follows them into battle.
 4. **Formation.** Up to five heroes: two in the front row (they draw the blows), three behind.
    **Bonds** reward mixed callings. *Auto-fill* puts the strongest five in place.
 5. **Battle.** Heroes march as a column between fights and fight by role: the **tank** holds the front and
@@ -79,6 +85,7 @@ Settings: music, effects, screen shake, damage numbers, skip story scenes, erase
 | `js/world.js` | isometric projection, procedural maps per layout, painted ground, collisions, A* pathing |
 | `js/battle.js` | the battlefield: formation, hero/foe AI, energy and ultimates, bosses, objectives, rendering, lighting |
 | `js/audio.js` | synthesised sound effects and a procedural war-drum score |
+| `js/aura.js` | what gear and skills look like on a hero: gear glow, enchant particles, capstone marks (stateless) |
 | `js/heroui.js` | the hero screen: canvas-drawn stage, gear sockets and picker, attributes, skill tree, its own hit-testing |
 | `js/screens.js` | every menu screen: top bar and tabs, camp, campaign, heroes, hero, recruit and reveal, team, forge, shop, goals, results, story |
 | `js/main.js` | boot, loop, input, camp and title scenes, battle HUD, deploy → rewards, saving |

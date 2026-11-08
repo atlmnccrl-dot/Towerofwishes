@@ -55,7 +55,7 @@ require('fs').mkdirSync(out, { recursive: true });
   await tap('#bRecruit'); await wait(800); await shot('13-recruit');
   await tap('#altarInfo .btn.xl');
   await wait(600); await shot('14-reveal-open');
-  await wait(1600); await shot('15-reveal');
+  await wait(3800); await shot('15-reveal');
   await tap('#rvOk');
   await tap('#bRecBack'); await wait(300);
   // the hero screen is painted on a canvas: press its regions by id

@@ -68,12 +68,26 @@
       const add = { atk: 2 * mult, hp: 14 * mult, crit: 0.02 * rarity, def: 1.2 * mult }[extra];
       stats[extra] = Math.round(((stats[extra] || 0) + add) * (extra === 'crit' ? 1000 : 10)) / (extra === 'crit' ? 1000 : 10);
     }
+    // good weapons carry an enchant: an element in every blow, and a visible aura on the hero
+    let ench = null;
+    if (slot === 'weapon' && (rarity >= 2 || (rarity === 1 && r() < 0.3))) ench = r.pick(BB.ENCHANTS);
+    if (ench) stats[BB.ENCH[ench].stat] = Math.round(((stats[BB.ENCH[ench].stat] || 0) + BB.ENCH[ench].amt * BB.RARITY[rarity].mult) * 1000) / 1000;
     const nameIdx = Math.min(base.names.length - 1, Math.max(0, rarity - (r() < 0.5 ? 1 : 0)));
     const tint = rarity === 0 ? 'natural' : r.pick(BB.TINTS.slice(1)).id;
-    return { id: BB.uid('i'), slot, wtype: slot === 'weapon' ? wtype : undefined, look, tint, rarity, level, plus: 0,
-      name: (rarity === 3 ? 'Legendary ' : '') + base.names[nameIdx], stats };
+    return { id: BB.uid('i'), slot, wtype: slot === 'weapon' ? wtype : undefined, look, tint, rarity, level, plus: 0, ench,
+      name: (ench ? BB.ENCH[ench].prefix + ' ' : rarity === 3 ? 'Legendary ' : '') + base.names[nameIdx], stats };
   };
   BB.MAX_PLUS = 10;
+  BB.ENCHANTS = ['fire', 'frost', 'storm', 'shadow', 'holy'];
+  BB.ENCH = {
+    fire: { prefix: 'Blazing', stat: 'atk', amt: 1.5, desc: 'Blows set foes alight' },
+    frost: { prefix: 'Frostbitten', stat: 'def', amt: 1.2, desc: 'Blows slow foes' },
+    storm: { prefix: 'Stormcalled', stat: 'crit', amt: 0.02, desc: 'Blows arc to a second foe' },
+    shadow: { prefix: 'Shadowed', stat: 'atk', amt: 1.2, desc: 'Blows rend for 20% more' },
+    holy: { prefix: 'Hallowed', stat: 'hp', amt: 10, desc: 'Blows heal the weakest ally' },
+  };
+  BB.AWAKEN_AT = 5; // forging a plain weapon to +5 awakens an enchant
+  BB.heroEnch = (h) => (h.gear && h.gear.weapon && h.gear.weapon.ench) || null;
   BB.itemStats = function (it) {
     const k = 1 + (it.plus || 0) * 0.12, out = {};
     for (const s in it.stats) out[s] = (s === 'crit' || s === 'spd') ? Math.round(it.stats[s] * k * 1000) / 1000 : Math.round(it.stats[s] * k * 10) / 10;
@@ -289,7 +303,14 @@
   BB.upgradeItem = function (save, it) {
     if ((it.plus || 0) >= BB.MAX_PLUS) return false;
     const c = BB.upgradeCost(it); if (save.gold < c) return false;
-    save.gold -= c; it.plus = (it.plus || 0) + 1; return true;
+    save.gold -= c; it.plus = (it.plus || 0) + 1;
+    if (it.slot === 'weapon' && !it.ench && it.plus >= BB.AWAKEN_AT) { // the forge awakens it
+      it.ench = BB.ENCHANTS[BB.hashStr(it.id) % BB.ENCHANTS.length];
+      const E = BB.ENCH[it.ench]; it.stats[E.stat] = Math.round(((it.stats[E.stat] || 0) + E.amt * BB.RARITY[it.rarity].mult) * 1000) / 1000;
+      it.name = E.prefix + ' ' + it.name.replace(/^Legendary /, '');
+      return 'awakened';
+    }
+    return true;
   };
 
   // ---------------------------------------------------------------- stages

@@ -61,6 +61,7 @@
       hp: st.hp, maxhp: st.hp, st, atk: st.atk, def: st.def, spd: st.spd, crit: st.crit, aspd: st.aspd, range: st.range,
       ranged: C.ranged, proj: C.proj, layers: BB.heroLayers(h), sc: 1, dir: 7, clip: 'Idle', ct: 0, state: 'idle', lock: 0,
       cd: st.cd * 0.35, cdMax: st.cd, dodgeCd: 0, buffs: {}, flash: 0, combo: 0, color: BB.heroColor(h), z: 0,
+      aura: BB.auraOf ? BB.auraOf(h) : null, ench: BB.heroEnch ? BB.heroEnch(h) : null,
     };
     this.ents.push(e); return e;
   };
@@ -476,7 +477,8 @@
         const ally = this.lowestAlly(e, 4); if (ally && ally.hp < ally.maxhp) this.heal(e, ally, e.atk * 0.45 * (1 + e.st.heal));
       } else {
         const el = C.proj === 'bolt' ? BB.heroElem(e.hero) : null;
-        this.shoot(e, tx, ty, C.proj, 1, { burn: e.st.burn > 0, elem: el, hue: el ? BB.ELEMENTS[el].hue : undefined });
+        const ee = e.ench || el;
+        this.shoot(e, tx, ty, C.proj, 1, { burn: e.st.burn > 0, elem: ee, hue: ee ? BB.ELEMENTS[ee].hue : undefined });
       }
       return;
     }
@@ -491,7 +493,8 @@
       const dot = (dx * v.x + dy * v.y) / (d || 1);
       if (dot < (C.cleave ? -0.1 : 0.25) && d > 0.5) continue;
       if (C.pierce && Math.abs(dx * v.y - dy * v.x) > 0.55) continue; // spear: a narrow line
-      this.hit(e, o, e.combo % 3 === 0 ? 1.25 : 1); hitAny = true;
+      this.hit(e, o, e.combo % 3 === 0 ? 1.25 : 1, e.ench ? { elem: e.ench } : undefined); hitAny = true;
+      if (e.ench) this.addFx('hit2', o.x, o.y - 0.3, { sc: 0.5, add: true, hue: BB.ELEMENTS[e.ench].hue });
       if (!C.cleave && !C.pierce && t && o !== t && !o.barrel) break;
     }
     if (hitAny) BB.sfx && BB.sfx('slash');
@@ -1582,7 +1585,7 @@
     if (e.stealth && !e.dead) alpha = Math.min(alpha, 0.38 + Math.sin(this.time * 6 + (e.x * 3)) * 0.06);
     ctx.globalAlpha = alpha;
     const fl = e.flash > 0 ? Math.min(0.9, e.flash * 5) : 0;
-    if (e.side === 'hero') BB.drawLayers(ctx, e.layers, e.clip, e.dir, fr, s.x, y, e.sc, { flash: fl });
+    if (e.side === 'hero') { if (e.dead) BB.drawLayers(ctx, e.layers, e.clip, e.dir, fr, s.x, y, e.sc, { flash: fl }); else BB.drawHeroDressed(ctx, e.hero, e.aura, e.clip, e.dir, fr, s.x, y, e.sc, this.time, { flash: fl, layers: e.layers }); }
     else BB.drawChar(ctx, key, e.tint, e.clip, e.dir, fr, s.x, y, e.sc, fl);
     ctx.globalAlpha = 1;
     ctx.imageSmoothingEnabled = true;

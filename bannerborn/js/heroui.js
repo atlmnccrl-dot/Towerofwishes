@@ -140,7 +140,7 @@
     const S = HS.S, dev = { x: HS.ox + cx * S, y: HS.oy + cy * S };
     const sc = Math.max(2, Math.round(230 * S / 62));
     g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.imageSmoothingEnabled = false;
-    BB.drawLayers(g, layers, clip, 1, fr, dev.x, dev.y, sc, { noSlash: clip === 'Idle', flash: HS.flash });
+    BB.drawHeroDressed(g, h, BB.auraOf(h), clip, 1, fr, dev.x, dev.y, sc, HS.t, { noSlash: clip === 'Idle', flash: HS.flash, layers });
     g.restore();
     // name block
     text(g, (R.name + (h.legend ? ' · Legend' : h.captain ? ' · Banner-Captain' : '')).toUpperCase(), 24, 32, 11, { w: 700, col, ls: 2.5 });
@@ -331,10 +331,12 @@
       text(g, (diff >= 0 ? '▲ ' : '▼ ') + Math.abs(diff), cx + 134, cy + 24, 13, { w: 800, align: 'right', col: diff >= 0 ? '#4ade80' : '#ff6b6b' });
       const nm = it.name.length > 17 ? it.name.slice(0, 16) + '…' : it.name;
       text(g, nm, cx + 12, cy + 76, 12, { w: 600, col });
-      text(g, UI.statLine(BB.itemStats(it)).split(' · ').slice(0, 2).join(' · '), cx + 12, cy + 91, 10, { body: true, w: 500, col: '#7b8494' });
+      text(g, it.ench ? '✦ ' + BB.ELEMENTS[it.ench].name + ' · ' + BB.ENCH[it.ench].desc.toLowerCase() : UI.statLine(BB.itemStats(it)).split(' · ').slice(0, 2).join(' · '), cx + 12, cy + 91, 10, { body: true, w: 500, col: it.ench ? BB.ECOL[it.ench][1] : '#7b8494' });
       region(id, cx, cy, 146, 98, () => {
         S0.inventory.splice(S0.inventory.indexOf(it), 1); if (cur) S0.inventory.push(cur); h.gear[slot] = it;
-        BB.sfx('forge'); burst(215, 280, col, 24, 160); float(215, 230, it.name, col); HS.pick = null; save();
+        if (it.ench) { const ec = BB.ECOL[it.ench]; BB.sfx('enchant'); burst(215, 300, ec[1], 50, 230); burst(215, 260, ec[0], 30, 140); float(215, 220, BB.ELEMENTS[it.ench].name.toUpperCase() + ' ENCHANT', ec[0]); HS.flash = 0.6; }
+        else BB.sfx('forge');
+        burst(215, 280, col, 24, 160); float(215, it.ench ? 255 : 230, it.name, col); HS.pick = null; save();
       });
     });
     if (cur) button(g, 'unequip', x + 24, y + hh - 58, 140, 40, 'TAKE OFF', { kind: 'ghost', fn: () => { S0.inventory.push(cur); h.gear[slot] = null; HS.pick = null; save(); } });

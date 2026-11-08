@@ -90,12 +90,13 @@
   const tintHex = (id) => { const t = BB.TINTS.find((q) => q.id === id); return t && t.col ? 'hsl(' + t.col.h + ',' + Math.round(t.col.s * 100) + '%,48%)' : null; };
   UI.itemIcon = function (it, size) {
     size = size || 30;
-    const key = it.slot + (it.look || it.wtype) + it.tint + it.rarity + size;
+    const key = it.slot + (it.look || it.wtype) + it.tint + it.rarity + (it.ench || '') + size;
     if (iconCache[key]) return copyCanvas(iconCache[key]); // a fresh node each time: one canvas can't sit in two tiles
     const c = document.createElement('canvas'); c.width = c.height = size;
     const g = c.getContext('2d');
     const col = BB.RARITY[it.rarity].color, dye = tintHex(it.tint) || col;
-    g.shadowColor = 'rgba(0,0,0,0.7)'; g.shadowBlur = size / 12; g.shadowOffsetY = size / 30;
+    if (it.ench && BB.ECOL) { g.shadowColor = BB.ECOL[it.ench][1]; g.shadowBlur = size / 6; g.shadowOffsetY = 0; }
+    else { g.shadowColor = 'rgba(0,0,0,0.7)'; g.shadowBlur = size / 12; g.shadowOffsetY = size / 30; }
     if (it.slot === 'weapon') drawWeapon(g, it.wtype, size, col);
     else drawGear(g, it.slot, it.look, size, dye, col);
     iconCache[key] = c; return copyCanvas(c);
@@ -333,7 +334,7 @@
     const sc = Math.max(2, Math.round(h / 100));
     const cx = w / 2, cy = h * 0.9;
     UI.podium(g, cx, cy, Math.min(w * 0.42, 30 * sc), RGBA[hero.rarity || 0], H.t);
-    BB.drawLayers(g, layers, clip, 1, fr, cx, cy, sc, { noSlash: clip === 'Idle' });
+    BB.drawHeroDressed(g, hero, BB.auraOf(hero), clip, 1, fr, cx, cy, sc, H.t, { noSlash: clip === 'Idle', layers });
   };
 
   // ---------------------------------------------------------------- campaign
@@ -696,38 +697,120 @@
       for (let i = 0; i < 18; i++) { const k = (RC.t * 0.25 + i / 18) % 1, a = i * 2.4 + RC.t * 0.3; g.fillStyle = col.replace('A', String((1 - k) * 0.8)); g.fillRect(cx + Math.cos(a) * (20 + k * 60) * s, cy + 30 * s - k * 90 * s, 2 * s, 2 * s); }
     } else BB.drawFx(g, 'portal', 0, cx, cy, s * 0.95, { alpha: 0.25 });
   };
-  // the reveal: a gate tears open, light pours down, the hero steps out
+  // ---------------------------------------------------------------- the summoning: energy gathers into a gate, the gate climbs
+  // through the rarity colours, bursts, and the hero steps out of the light as a silhouette that fills with colour
   const RV = UI.rv = { on: false };
+  const RCOL = ['#d9e0ea', '#4da3ff', '#b57cff', '#ffae2b'], RHUE = [150, 170, 30, -160];
   UI.reveal = function (h, done) {
-    RV.on = true; RV.t = 0; RV.h = h; RV.done = done;
-    const R = BB.HERO_RARITY[h.rarity];
-    $('reveal').style.setProperty('--rc', R.color);
-    $('rvRk').textContent = '★'.repeat(h.stars) + ' ' + R.name + (h.legend ? ' Legend' : '');
+    Object.assign(RV, { on: true, t: 0, h, done, parts: [], rings: [], shake: 0, flash: 0, step: -1, burst: false, stars: 0, sil: null });
+    RV.steps = (h.rarity || 0) + 1;
+    RV.tB = 1.4 + RV.steps * 0.6; RV.tS = RV.tB + 0.3; RV.tC = RV.tS + 1.3;
+    // energy motes rush in from the edges
+    for (let i = 0; i < 70; i++) { const a = Math.random() * Math.PI * 2, d = 0.65 + Math.random() * 0.5; RV.parts.push({ kind: 'in', a, d, delay: Math.random() * 1.1, sp: 0.5 + Math.random() * 0.6 }); }
+    const R = BB.HERO_RARITY[h.rarity || 0];
+    $('reveal').style.setProperty('--rc', RCOL[h.rarity || 0]);
+    $('rvRk').textContent = R.name + (h.legend ? ' · Legend' : '');
     $('rvNm').textContent = h.name; $('rvCl').textContent = BB.CALLINGS[h.calling].name + ' · ' + BB.CALLINGS[h.calling].role;
     $('reveal').classList.remove('done'); $('reveal').classList.add('on');
-    BB.sfx('portal'); setTimeout(() => BB.sfx(h.rarity >= 2 ? 'rally' : 'levelup'), 900);
+    BB.sfx('portal'); BB.sfx('charge');
   };
-  click($('rvOk'), () => { RV.on = false; $('reveal').classList.remove('on'); RV.done && RV.done(); });
+  click($('rvOk'), (ev) => { ev.stopPropagation(); RV.on = false; $('reveal').classList.remove('on'); RV.done && RV.done(); });
+  $('reveal').addEventListener('click', () => { if (RV.on && RV.t < RV.tB) RV.t = RV.tB - 0.01; }); // tap to skip to the burst
+  const sil = (layers, clip, dir, fr, sc) => { // the hero as a black cut-out, for the backlit moment
+    const c = RV.sil || (RV.sil = document.createElement('canvas')); const S = 128 * sc; if (c.width !== S) { c.width = S; c.height = S; }
+    const x = c.getContext('2d'); x.clearRect(0, 0, S, S); x.imageSmoothingEnabled = false; x.globalCompositeOperation = 'source-over';
+    BB.drawLayers(x, layers, clip, dir, fr, S / 2, 90 * sc, sc, { noSlash: true });
+    x.globalCompositeOperation = 'source-in'; x.fillStyle = '#05060a'; x.fillRect(0, 0, S, S); return c;
+  };
   UI.revealRender = function (dt) {
     if (!RV.on) return;
-    RV.t += dt;
+    const prevT = RV.t; RV.t += dt; const T = RV.t;
     const c = $('revealCv'), dpr = Math.min(2, window.devicePixelRatio || 1);
     const w = Math.round(c.clientWidth * dpr), h = Math.round(c.clientHeight * dpr); if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
-    const g = c.getContext('2d'); g.clearRect(0, 0, w, h); g.imageSmoothingEnabled = false;
-    const cx = w / 2, cy = h * 0.54, hue = [0, 170, 30, -160][RV.h.rarity || 0];
-    const k = Math.min(1, RV.t / 0.9);
-    BB.drawFx(g, k < 1 ? 'portalopen' : 'portal', Math.floor(RV.t * 14) % (BB.fxLen(k < 1 ? 'portalopen' : 'portal') || 1), cx, cy - h * 0.16, h / 200 * (0.6 + k * 0.6), { add: true, hue });
-    if (RV.t > 0.7) {
-      const a = Math.min(1, (RV.t - 0.7) * 2);
-      for (let i = -3; i <= 3; i++) BB.drawOther(g, 'GodRay', cx + i * 40 * dpr, cy - h * 0.45, h / 600 * 1.2, { add: true, alpha: a * (0.5 - Math.abs(i) * 0.06), sx: 3, rot: i * 0.1 });
-      const layers = BB.heroLayers(RV.h), key = layers[0].key, clip = RV.t < 2.2 ? (BB.hasClip(key, 'Taunt') ? 'Taunt' : 'Special1') : 'Idle';
-      const n = BB.clipLen(key, clip) || 15, fr = clip === 'Idle' ? Math.floor(RV.t * 9) % n : Math.min(n - 1, Math.floor((RV.t - 0.9) * 12));
-      g.globalAlpha = a;
-      g.fillStyle = 'rgba(0,0,0,' + 0.5 * a + ')'; g.beginPath(); g.ellipse(cx, cy, h * 0.07, h * 0.022, 0, 0, 7); g.fill();
-      BB.drawLayers(g, layers, clip, 2, fr, cx, cy, Math.max(2, Math.round(h / 165)), { flash: Math.max(0, 1 - (RV.t - 0.7) * 1.5) });
-      g.globalAlpha = 1;
+    const g = c.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, w, h); g.imageSmoothingEnabled = false;
+    const rar = RV.h.rarity || 0, u = Math.min(w, h) / 600;
+    // which colour step we are on (it climbs: silver → blue → purple → gold)
+    const step = T < 1.4 ? -1 : Math.min(RV.steps - 1, Math.floor((T - 1.4) / 0.6));
+    if (step > RV.step) { RV.step = step; RV.flash = Math.max(RV.flash, 0.35 + step * 0.1); RV.shake = 0.25 + step * 0.15; RV.rings.push({ t: 0, col: RCOL[step], big: false }); BB.sfx('chime'); }
+    if (!RV.burst && T >= RV.tB) { RV.burst = true; RV.flash = 1; RV.shake = 0.6 + rar * 0.2; RV.rings.push({ t: 0, col: RCOL[rar], big: true }); BB.sfx('burst');
+      for (let i = 0; i < 90 + rar * 40; i++) { const a = Math.random() * Math.PI * 2, v = (250 + Math.random() * 500) * u; RV.parts.push({ kind: 'out', x: 0, y: 0, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 120 * u, t: 0, life: 0.9 + Math.random() * 0.9, col: Math.random() < 0.7 ? RCOL[rar] : '#ffffff', r: (1.5 + Math.random() * 3) * u }); } }
+    const col = step < 0 ? '#9aa6b8' : RCOL[step];
+    // shake
+    if (RV.shake > 0) { RV.shake = Math.max(0, RV.shake - dt * 1.4); g.translate((Math.random() - 0.5) * RV.shake * 26 * u, (Math.random() - 0.5) * RV.shake * 26 * u); }
+    const txt = document.querySelector('#reveal .txt'), cardTop = txt ? txt.offsetTop * dpr : h * 0.7;
+    const fy = Math.min(h * 0.56, cardTop - 64 * u), cx = w / 2, cy = fy * 0.6;
+    // the dark, tinted by the gate's colour
+    const glow = T < 1.4 ? T / 1.4 * 0.25 : 0.35 + Math.min(0.3, step * 0.1);
+    const bg = g.createRadialGradient(cx, cy, 0, cx, cy, Math.max(w, h) * 0.7); bg.addColorStop(0, col + Math.round(glow * 255).toString(16).padStart(2, '0')); bg.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = bg; g.fillRect(-50, -50, w + 100, h + 100);
+    // gather: motes stream into the gate
+    for (const p of RV.parts) if (p.kind === 'in') {
+      const k = Math.max(0, Math.min(1, (T - p.delay) * p.sp)); if (k <= 0 || k >= 1) continue;
+      const e = k * k, R = Math.max(w, h) * p.d * (1 - e), x = cx + Math.cos(p.a + e * 1.2) * R, y = cy + Math.sin(p.a + e * 1.2) * R * 0.75;
+      const tail = 18 * u * (1 - e) + 4 * u;
+      g.strokeStyle = col; g.globalAlpha = Math.sin(k * Math.PI); g.lineWidth = 2 * u; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(p.a) * tail, y + Math.sin(p.a) * tail * 0.75); g.stroke();
     }
-    if (RV.t > 1.3) $('reveal').classList.add('done');
+    g.globalAlpha = 1;
+    // a column of light pours into the gate once it starts to climb
+    if (T > 1.2) {
+      const bw = (40 + Math.min(1, (T - 1.2) / 1.2) * 70 + (RV.burst ? 40 : 0)) * u * (1 + Math.sin(T * 9) * 0.04);
+      const fade = T > RV.tC ? Math.max(0.25, 1 - (T - RV.tC) * 0.5) : 1;
+      g.save(); g.globalCompositeOperation = 'lighter';
+      const floorY = fy;
+      for (let q = 0; q < 8; q++) { const wk = 1 - q * 0.11, al = 0.05; // nested shafts, each fading out toward the floor
+        const vg = g.createLinearGradient(0, 0, 0, floorY); vg.addColorStop(0, col + Math.round(al * 255 * fade).toString(16).padStart(2, '0')); vg.addColorStop(0.75, col + Math.round(al * 200 * fade).toString(16).padStart(2, '0')); vg.addColorStop(1, col + '00');
+        g.fillStyle = vg; g.fillRect(cx - bw * wk, 0, bw * 2 * wk, floorY);
+      }
+      for (let i = -3; i <= 3; i++) BB.drawOther(g, 'GodRay', cx + i * 36 * u, cy - 260 * u, u * 1.3, { add: true, alpha: (RV.burst ? 0.4 : 0.18) * fade * (1 - Math.abs(i) * 0.12), sx: 3, rot: i * 0.09 });
+      g.restore();
+    }
+    // the gate: grows while it gathers, burns brighter with each colour, tears wide on the burst
+    const gs = (T < 1.4 ? 0.35 + T / 1.4 * 0.5 : 0.85 + step * 0.08) * (RV.burst ? 1 + Math.min(0.6, (T - RV.tB) * 2) : 1) * u * 2.2;
+    const ga = RV.burst ? Math.max(0, 1 - (T - RV.tB) * 0.9) : 1;
+    if (ga > 0) { g.save(); g.globalAlpha = ga; BB.drawFx(g, T < 1 ? 'portalopen' : 'portal', Math.floor(T * 14) % (BB.fxLen(T < 1 ? 'portalopen' : 'portal') || 1), cx, cy, gs, { add: true, hue: step < 0 ? 170 : RHUE[step] }); g.restore(); }
+    // floor rings
+    g.save(); g.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 3; i++) { g.strokeStyle = col; g.globalAlpha = 0.5 - i * 0.14; g.lineWidth = 1.5 * u; g.beginPath(); g.ellipse(cx, fy, (90 + i * 40) * u, (22 + i * 10) * u, 0, 0, 7); g.stroke(); }
+    g.setLineDash([10 * u, 8 * u]); g.lineDashOffset = -T * 40 * u; g.globalAlpha = 0.6; g.beginPath(); g.ellipse(cx, fy, 150 * u, 36 * u, 0, 0, 7); g.stroke(); g.setLineDash([]);
+    // shockwave rings
+    for (const r of RV.rings) { r.t += dt; const k = r.t / (r.big ? 1.1 : 0.7); if (k >= 1) continue; g.globalAlpha = 1 - k; g.strokeStyle = r.col; g.lineWidth = (r.big ? 10 : 5) * u * (1 - k); g.beginPath(); g.ellipse(cx, cy, k * (r.big ? 700 : 300) * u, k * (r.big ? 520 : 220) * u, 0, 0, 7); g.stroke(); }
+    g.restore(); g.globalAlpha = 1;
+    // the hero steps out: black against the light, then colour floods in
+    if (T >= RV.tS) {
+      const k = T - RV.tS, layers = BB.heroLayers(RV.h), key = layers[0].key;
+      const clip = k < 1.6 ? (BB.hasClip(key, 'Taunt') ? 'Taunt' : 'Special1') : 'Idle';
+      const n = BB.clipLen(key, clip) || 15, fr = clip === 'Idle' ? Math.floor(T * 9) % n : Math.min(n - 1, Math.floor(k * 11));
+      const sc = Math.max(2, Math.round(h / 165)), rise = Math.max(0, 1 - k * 3) * 40 * u;
+      g.globalAlpha = Math.min(1, k * 3);
+      g.fillStyle = 'rgba(0,0,0,0.55)'; g.beginPath(); g.ellipse(cx, fy, 34 * sc, 10 * sc, 0, 0, 7); g.fill();
+      const reveal = Math.min(1, Math.max(0, (k - 0.45) / 0.7));
+      if (reveal < 1) { const sv = sil(layers, clip, 2, fr, sc); g.drawImage(sv, cx - 64 * sc, fy - 90 * sc + rise); }
+      if (reveal > 0) { g.globalAlpha = reveal; BB.drawLayers(g, layers, clip, 2, fr, cx, fy + rise, sc, { noSlash: true, flash: Math.max(0, 1 - reveal) * 0.8 }); }
+      g.globalAlpha = 1;
+      // rim light on the silhouette
+      if (reveal < 1) { g.save(); g.globalCompositeOperation = 'lighter'; const rl = g.createRadialGradient(cx, fy - 45 * sc, 0, cx, fy - 45 * sc, 60 * sc); rl.addColorStop(0, col + '55'); rl.addColorStop(1, col + '00'); g.fillStyle = rl; g.fillRect(cx - 70 * sc, fy - 110 * sc, 140 * sc, 120 * sc); g.restore(); }
+    }
+    // burst sparks
+    g.save(); g.globalCompositeOperation = 'lighter';
+    for (const p of RV.parts) if (p.kind === 'out') { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 300 * u * dt; p.vx *= 0.985; const a = Math.max(0, 1 - p.t / p.life); if (a <= 0) continue; g.globalAlpha = a; g.fillStyle = p.col; g.beginPath(); g.arc(cx + p.x, cy + p.y, p.r, 0, 7); g.fill(); }
+    g.restore(); g.globalAlpha = 1;
+    // stars pop in one by one under the name
+    if (T >= RV.tC) {
+      const want = Math.min(RV.h.stars || 1, Math.floor((T - RV.tC) / 0.22) + 1);
+      if (want > RV.stars) { RV.stars = want; BB.sfx('coin'); }
+      const sy = cardTop - 16 * u, sp = 30 * u;
+      for (let i = 0; i < (RV.h.stars || 1); i++) {
+        const k = Math.min(1, (T - RV.tC - i * 0.22) / 0.25); if (k <= 0) continue;
+        const sx = cx + (i - ((RV.h.stars || 1) - 1) / 2) * sp, r = 11 * u * (k < 1 ? 1 + (1 - k) * 1.2 : 1);
+        g.save(); g.shadowColor = RCOL[rar]; g.shadowBlur = 14 * u; g.fillStyle = '#ffd36b'; g.beginPath();
+        for (let j = 0; j < 10; j++) { const a = -Math.PI / 2 + j * Math.PI / 5, q = j % 2 ? r * 0.45 : r; g.lineTo(sx + Math.cos(a) * q, sy + Math.sin(a) * q); }
+        g.closePath(); g.fill(); g.restore();
+      }
+      $('reveal').classList.add('done');
+    }
+    // white flashes
+    if (RV.flash > 0) { g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = 'rgba(255,255,255,' + Math.min(1, RV.flash) * 0.85 + ')'; g.fillRect(0, 0, w, h); RV.flash = Math.max(0, RV.flash - dt * 2.2); }
+    void prevT;
   };
 
   // ---------------------------------------------------------------- team: a field with five places; heroes stand where they will fight
@@ -767,7 +850,7 @@
       if (sel) { g.strokeStyle = 'rgba(255,190,85,' + (0.55 + Math.sin(T.t * 6) * 0.4) + ')'; g.lineWidth = 2 * dpr; g.setLineDash([6 * dpr, 5 * dpr]); g.lineDashOffset = -T.t * 20 * dpr; g.beginPath(); g.ellipse(sp.x, sp.y, rw * 1.22, rw * 0.46, 0, 0, 7); g.stroke(); g.setLineDash([]); }
       if (!hero) { g.strokeStyle = 'rgba(255,255,255,' + (sel ? 0.9 : 0.3) + ')'; g.lineWidth = 2 * dpr; const q = 6 * dpr; g.beginPath(); g.moveTo(sp.x - q, sp.y); g.lineTo(sp.x + q, sp.y); g.moveTo(sp.x, sp.y - q); g.lineTo(sp.x, sp.y + q); g.stroke(); continue; }
       const layers = BB.heroLayers(hero), n = BB.clipLen(layers[0].key, 'Idle') || 15;
-      BB.drawLayers(g, layers, 'Idle', 1, Math.floor(T.t * 9 + sp.i * 3) % n, sp.x, sp.y + rw * 0.05, sc, { noSlash: true });
+      BB.drawHeroDressed(g, hero, BB.auraOf(hero), 'Idle', 1, Math.floor(T.t * 9 + sp.i * 3) % n, sp.x, sp.y + rw * 0.05, sc, T.t + sp.i, { noSlash: true, layers });
       g.textAlign = 'center';
       g.font = '600 ' + Math.round(12 * dpr) + 'px Outfit, sans-serif'; g.fillStyle = '#fff'; g.fillText(BB.shortName(hero), sp.x, sp.y + rw * 0.5 + 13 * dpr);
       g.font = '500 ' + Math.round(10.5 * dpr) + 'px Inter, sans-serif'; g.fillStyle = col.replace('A', '1'); g.fillText('Lv ' + hero.level + ' · ' + BB.CALLINGS[hero.calling].name, sp.x, sp.y + rw * 0.5 + 27 * dpr);
@@ -851,13 +934,15 @@
     const row = el('div', 'row'); const ic = el('div', 'it'); ic.style.cssText = 'width:64px;--ic:' + BB.RARITY[it.rarity].color; ic.appendChild(UI.itemIcon(it, 48)); row.appendChild(ic);
     row.appendChild(el('div', 'grow', '<div class="bigname" style="font-size:18px;color:' + BB.RARITY[it.rarity].color + '">' + esc(it.name) + (it.plus ? ' +' + it.plus : '') + '</div><div class="mute" style="font-size:13px">' + BB.RARITY[it.rarity].name + ' ' + BB.SLOT_NAME[it.slot] + ' · item level ' + it.level + (by ? ' · on ' + esc(BB.shortName(by)) : '') + '</div>'));
     det.appendChild(row);
+    if (it.ench) det.appendChild(el('div', 'ench', '<span style="color:' + BB.ECOL[it.ench][1] + '">✦ ' + BB.ELEMENTS[it.ench].name + ' enchant</span> · ' + BB.ENCH[it.ench].desc + '. The wearer glows with it.'));
+    else if (it.slot === 'weapon') det.appendChild(el('div', 'ench mute', 'Forge to +' + BB.AWAKEN_AT + ' to awaken an enchant.'));
     const cur = BB.itemStats(it), next = BB.itemStats(Object.assign({}, it, { plus: (it.plus || 0) + 1 }));
     det.appendChild(el('div', 'statl', Object.keys(cur).map((k) => '<div><span>' + ({ atk: 'Attack', hp: 'Health', def: 'Defence', crit: 'Crit', spd: 'Speed' }[k] || k) + '</span><b>' + UI.num(k, cur[k]) + ((it.plus || 0) < BB.MAX_PLUS ? ' <i>→ ' + UI.num(k, next[k]) + '</i>' : '') + '</b></div>').join('')));
     const ups = el('div', 'ups'); ups.style.marginTop = 'auto';
     const maxed = (it.plus || 0) >= BB.MAX_PLUS;
     const up = el('button', 'btn', maxed ? 'Fully forged' : 'Forge +' + ((it.plus || 0) + 1) + '<span class="cost">● ' + fmt(BB.upgradeCost(it)) + '</span>');
     up.disabled = maxed || S.gold < BB.upgradeCost(it);
-    click(up, () => { if (BB.upgradeItem(S, it)) { BB.sfx('forge'); BB.persist(); UI.renderForge(); UI.refreshTop(); } });
+    click(up, () => { const r = BB.upgradeItem(S, it); if (r) { BB.sfx(r === 'awakened' ? 'enchant' : 'forge'); BB.persist(); UI.renderForge(); UI.refreshTop(); if (r === 'awakened') UI.toast('The forge awakens it: ' + it.name + ' · ' + BB.ENCH[it.ench].desc); } });
     ups.appendChild(up);
     if (!by) {
       const sv = el('button', 'btn dark', 'Salvage<span class="cost">+● ' + BB.salvageValue(it) + '</span>');

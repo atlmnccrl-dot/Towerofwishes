@@ -63,6 +63,10 @@
     levelup: (t) => { [523, 659, 784, 1046, 1318].forEach((f, i) => tone(t + i * 0.08, 0.6, f, 0, 'triangle', 0.12)); },
     coin: (t) => { tone(t, 0.08, 1800, 0, 'square', 0.05); tone(t + 0.07, 0.15, 2400, 0, 'square', 0.05); },
     forge: (t) => { tone(t, 0.3, 1400, 1200, 'triangle', 0.15); noise(t, 0.05, 5000, 3000, 5, 0.3); },
+    charge: (t) => { tone(t, 1.3, 90, 420, 'sawtooth', 0.05); noise(t, 1.3, 300, 2600, 3, 0.1); },
+    chime: (t) => { [880, 1320, 1760].forEach((f, i) => tone(t + i * 0.05, 0.5, f, 0, 'triangle', 0.09)); },
+    burst: (t) => { tone(t, 0.9, 240, 40, 'sawtooth', 0.16); noise(t, 0.7, 3200, 180, 4, 0.4); [523, 784, 1046, 1318].forEach((f, i) => tone(t + 0.12 + i * 0.07, 1, f, 0, 'triangle', 0.1)); },
+    enchant: (t) => { [660, 990, 1320, 1760].forEach((f, i) => tone(t + i * 0.05, 0.45, f, 0, 'sine', 0.08)); noise(t, 0.35, 6000, 2000, 2, 0.14); },
   };
   BB.sfx = function (name) {
     if (!ac || ac.state !== 'running') return;
