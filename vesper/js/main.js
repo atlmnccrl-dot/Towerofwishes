@@ -169,6 +169,14 @@
     U.hide(); if (P().opts.scenes === 'skip') return then();
     M.go('intro'); VS.INTRO.start(() => { R.hideCine(); then(); });
   }
+  // A guardian's entrance film: in full the first time, a tap skips it after that.
+  function startFilm(key, then) {
+    const p = P(), seen = !!(p.seen && p.seen['film_' + key]);
+    if (seen && p.opts.scenes === 'skip') return then();
+    U.hide(); M.go('intro');
+    VS.INTRO.play(VS.FILMS[key], () => { p.seen = p.seen || {}; p.seen['film_' + key] = true; M.write(); R.hideCine(); then(); }, { skippable: seen });
+  }
+  M.startFilm = startFilm;
   // ---- the map hub -------------------------------------------------------------------------------------
   function map(sel) {
     const p = P(); M.mapSel = sel || M.mapSel || PR.nextNode(p);
@@ -237,9 +245,10 @@
     // The act's intro casts a few of the army this fight will bring (in the looks it will wear).
     const army = PR.foeKeys(bd).filter((k) => !D.FOES[k].boss && D.FOES[k].set.startsWith('vh_')).slice(0, 3).map((k) => ({ key: k, set: ((bd.node.variants || {})[k] || [D.FOES[k].set])[0] }));
     if (!skipIntro && Ac.intro && !p.seen['act' + n.act]) { scenes.push(Object.assign({}, Ac.intro, { army })); p.seen['act' + n.act] = true; }
-    if (n.type === 'boss' && Ac.boss) scenes.push(Ac.boss);
+    const film = VS.FILM_FOR && VS.FILM_FOR[n.id] && VS.FILMS[VS.FILM_FOR[n.id]] ? VS.FILM_FOR[n.id] : null;   // a guardian's entrance (js/bossfilms.js)
+    if (n.type === 'boss' && Ac.boss && !film) scenes.push(Ac.boss);
     M.write();
-    const run = () => { if (!scenes.length) return startNode(id); startScene(PR.ACTS[n.act].stage, scenes.shift(), run); };
+    const run = () => { if (!scenes.length) return film ? startFilm(film, () => startNode(id)) : startNode(id); startScene(PR.ACTS[n.act].stage, scenes.shift(), run); };
     run();
   }
   const TIPS = {
@@ -555,6 +564,7 @@
     else if (params.has('stage')) startFight(Math.max(0, Math.min(5, +params.get('stage') || 0)));
     else if (params.has('node')) startNode(params.get('node'));
     else if (params.has('intro')) newGame();
+    else if (params.has('film')) startFilm(params.get('film'), () => title());
     else if (params.has('scene')) startScene(Math.max(0, Math.min(5, +params.get('scene') || 0)));
     else if (params.has('map')) map();
     else title();

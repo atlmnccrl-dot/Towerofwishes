@@ -13,19 +13,16 @@
   const RED = '#ff2a44', INK = '#050507', BAR = 16;
   const W = () => PX.W, H = () => PX.H;
   const K = () => VS.cine.kit;
-  // The shots, in seconds.
+  // The opening as a film: its shots (seconds), captions and sounds, timed from the start of their shot.
   const DUR = [['open', 1.4], ['city', 3.2], ['godrise', 2.6], ['godcut', 4.4], ['scar', 1.8], ['rise', 3.6], ['horde', 3.4],
     ['eye', 1.4], ['draw', 1.0], ['charge', 2.6], ['panels', 1.4], ['colossus', 4.0], ['gaze', 1.4], ['strike', 1.9], ['defy', 1.7], ['title', 6.6]];
-  const SHOTS = []; { let t = 0; for (const [name, d] of DUR) { SHOTS.push([name, t, t + d]); t += d; } }
-  const END = SHOTS[SHOTS.length - 1][2];
-  const AT = (name) => SHOTS.find((x) => x[0] === name)[1];
   // Captions, timed from the start of their shot: [shot, from, to, text].
   const LINES = [
     ['city', 0.4, 3.0, 'Seven hundred years ago, he rose over the Spire.'], ['godrise', 0.2, 2.5, 'He wanted an army that would never die.'],
     ['godcut', 2.1, 4.3, 'So he cut the moon.'], ['scar', 0.2, 2.0, 'Its wound has bled ever since.'], ['rise', 1.2, 3.4, 'By its red light, his dead rise.'],
     ['horde', 0.3, 1.75, 'Tonight the wound bleeds out.'], ['horde', 1.85, 3.3, 'At dawn, the moon falls and his dead take everything.'],
     ['eye', 0.1, 1.3, 'One blade can stop him.'], ['colossus', 2.0, 3.9, 'He waits at the top of the Spire.'],
-  ].map(([sh, a, b, text]) => [AT(sh) + a, AT(sh) + b, text]);
+  ];
   // The charge: when each of the dead reaches her blade (seconds into the shot).
   const CONTACT = [0.3, 0.6, 0.85, 1.1, 1.32, 1.55, 1.78, 2.0];
   // Sounds, timed from the start of their shot: [shot, at, name, volume].
@@ -44,26 +41,40 @@
     ['strike', 0, 'whoosh', 1], ['strike', 0.62, 'clang_1', 1], ['strike', 0.63, 'blow_big', 1], ['strike', 0.65, 'smash', 1], ['strike', 0.7, 'quake', 1],
     ['defy', 0, 'quake', 0.8], ['defy', 0.9, 'parry', 1], ['defy', 0.92, 'slash_2', 1], ['defy', 1.3, 'perfect', 0.8],
     ['title', 0.4, 'allout', 1], ['title', 0.42, 'clang_0', 0.7], ['title', 1.8, 'level_up', 0.4],
-  ].concat(CONTACT.map((c, i) => ['charge', c, i % 2 ? 'slash_1' : 'slash_2', 0.85])).map(([sh, t, name, v]) => [AT(sh) + t, name, v]);
-  const MUSIC_AT = AT('draw');
+  ].concat(CONTACT.map((c, i) => ['charge', c, i % 2 ? 'slash_1' : 'slash_2', 0.85]));
 
   const cast = () => ({
     vesper: (D.HEROES.vesper || D.HERO).set, first: D.FOES.firstCut.set, warden: D.FOES.warden.set,
     dead: ['vh_townsfolk_001', 'vh_townsfolk_004', 'vh_townsfolk_007', 'vh_townsfolk_010', 'vh_townsfolk_013', 'vh_skeleton_002', 'vh_barbarian_002', D.FOES.ghoul.set, D.FOES.ghast.set, D.FOES.raider.set].filter((id) => A.hasSet(id)),
   });
 
-  I.start = function (then) {
-    I.st = { t: 0, then, done: false, shake: 0, music: false, cast: cast() };
+  // A film: { shots: [[name, seconds]], lines: [[shot, from, to, text]], sfx: [[shot, at, name, vol]], draw: { shot: fn(ctx, S, k, T) },
+  // music: [shot, cue], amb, noBars: { shot: 1 }, impact(shot, T) for frames without bars, titleShot (lets the bars go) }.
+  function compile(f) {
+    const shots = []; let t = 0; for (const [name, d] of f.shots) { shots.push([name, t, t + d]); t += d; }
+    const at = (name) => (shots.find((x) => x[0] === name) || [0, 0])[1];
+    return Object.assign({}, f, { SHOTS: shots, END: t, AT: at,
+      LINES: (f.lines || []).map(([sh, a, b, text]) => [at(sh) + a, at(sh) + b, text]),
+      SFX: (f.sfx || []).map(([sh, tt, name, v]) => [at(sh) + tt, name, v]),
+      MUSIC_AT: f.music ? at(f.music[0]) + (f.music[2] || 0) : null });
+  }
+  I.compile = compile;
+  // Play a film; then() when it ends or is skipped. opts.skippable: a tap or Esc ends it.
+  I.play = function (film, then, opts) {
+    opts = opts || {};
+    const F = film.SHOTS ? film : compile(film);
+    I.st = { t: 0, then, done: false, shake: 0, music: false, cast: cast(), f: F, skippable: opts.skippable !== false };
     if (!I.st.cast.dead.length) I.st.cast.dead = [D.FOES.ghoul.set];
-    VS.audio.playMusic(null); VS.audio.playAmb('wind');
+    VS.audio.playMusic(null); VS.audio.playAmb(F.amb || 'wind');
   };
+  I.start = (then) => I.play(OPENING, then, { skippable: true });
   I.update = function (dt, skip) {
     const S = I.st; if (!S || S.done) return;
-    if (skip) { finish(); return; }
-    const t0 = S.t; S.t += Math.min(dt, 0.1);
-    for (const [at, name, v] of SFX) if (t0 < at && at <= S.t) VS.audio.sfx(name, v);
-    if (!S.music && S.t >= MUSIC_AT) { S.music = true; VS.audio.cue('act0'); }
-    if (S.t >= END) finish();
+    if (skip && S.skippable) { finish(); return; }
+    const F = S.f, t0 = S.t; S.t += Math.min(dt, 0.1);
+    for (const [at, name, v] of F.SFX) if (t0 < at && at <= S.t) VS.audio.sfx(name, v);
+    if (F.MUSIC_AT != null && !S.music && S.t >= F.MUSIC_AT) { S.music = true; VS.audio.cue(F.music[1]); }
+    if (S.t >= F.END) finish();
   };
   function finish() { const S = I.st; if (!S || S.done) return; S.done = true; R.hideCine(); VS.audio.duck(false); S.then(); }
 
@@ -120,11 +131,11 @@
   // An actor rotated about its feet.
   function spun(ctx, set, clip, fr, ang, x, y, sc, o, rot) { ctx.save(); ctx.translate(Math.round(x), Math.round(y)); ctx.rotate(rot); A.actor(ctx, set, clip, fr, ang, 0, 0, sc, o); ctx.restore(); }
   // A pair of red eyes on a figure in silhouette.
-  function eyes(ctx, set, clip, fr, ang, x, y, sc, a) {
+  function eyes(ctx, set, clip, fr, ang, x, y, sc, a, col) {
     const b = A.box(set, clip, fr, ang, sc); if (!b) return;
     const al = a == null ? 1 : clamp(a), dir = Math.cos(ang) >= 0 ? 1 : -1, ex = Math.round(x + b.x + b.w / 2 + dir * sc), ey = Math.round(y + b.y + Math.max(3, b.h * 0.13));
-    ctx.globalAlpha = al; ctx.fillStyle = RED; const pw = Math.max(1, Math.round(sc * 0.6)); ctx.fillRect(ex, ey, pw, 1); ctx.fillRect(ex - Math.max(2, Math.round(sc)), ey, pw, 1);
-    A.tex(ctx, 'light_01', ex, ey, 6 * sc, 4 * sc, RED, 0.4 * al, 0, true); ctx.globalAlpha = 1;
+    ctx.globalAlpha = al; ctx.fillStyle = col || RED; const pw = Math.max(1, Math.round(sc * 0.6)); ctx.fillRect(ex, ey, pw, 1); ctx.fillRect(ex - Math.max(2, Math.round(sc)), ey, pw, 1);
+    A.tex(ctx, 'light_01', ex, ey, 6 * sc, 4 * sc, col || RED, 0.4 * al, 0, true); ctx.globalAlpha = 1;
   }
   // A face close-up; the eye opens (col). head: the eye's place in the frame at scale 1, from the frame's top left.
   function closeUp(ctx, set, ang, sc, cx, cy, head, open, col, T, opts) {
@@ -702,7 +713,7 @@
   };
   // The red moon; she stands on the rampart, her back to us; VESPER.
   SH.title = function (ctx, S, k, T) {
-    const sh = SHOTS[SHOTS.length - 1], dur = sh[2] - sh[1], out = 0.6 / dur;
+    const sh = S.f.SHOTS[S.f.SHOTS.length - 1], dur = sh[2] - sh[1], out = 0.6 / dur;
     grad(ctx, ['#080206', '#2a0610', '#4a0c18']);
     stars(ctx, 60, 0.5, 11, T);
     // His shadow over everything, faint, the moon at his heart; his eyes burning above the name.
@@ -728,25 +739,31 @@
   };
 
   // ---- the frame -------------------------------------------------------------------------------------
-  function shotAt(t) { for (const s of SHOTS) if (t < s[2]) return s; return SHOTS[SHOTS.length - 1]; }
-  I.shotAt = (t) => shotAt(t)[0];
-  const NO_BARS = { panels: 1, gaze: 1, defy: 1 };
+  function shotAt(F, t) { for (const x of F.SHOTS) if (t < x[2]) return x; return F.SHOTS[F.SHOTS.length - 1]; }
+  I.shotAt = (t) => shotAt(I.st.f, t)[0];
   I.draw = function (ctx, dt) {
     const S = I.st; if (!S) return;
+    const F = S.f;
     ctx.fillStyle = '#000'; ctx.fillRect(0, 0, R.W, R.H);
-    const c = R.pxBegin(), sh = shotAt(S.t), T = S.t - sh[1], k = clamp(T / (sh[2] - sh[1]));
+    const c = R.pxBegin(), sh = shotAt(F, S.t), T = S.t - sh[1], k = clamp(T / (sh[2] - sh[1]));
     c.save();
     if (S.shake > 0.3) c.translate(Math.round((Math.random() - 0.5) * S.shake), Math.round((Math.random() - 0.5) * S.shake));
-    SH[sh[0]](c, S, k, T);
+    F.draw[sh[0]](c, S, k, T);
     c.restore();
     S.shake = Math.max(0, S.shake - (dt || 0.016) * 18);
     // Letterbox (none on the impact frames; the title lets it go), the captions in the lower bar, the skip hint.
-    const impact = NO_BARS[sh[0]] || (sh[0] === 'godcut' && T >= 1.35 && T < 1.9);
-    const bars = sh[0] === 'title' ? Math.round(BAR * Math.max(0, 1 - T * 1.5)) : impact ? 0 : BAR;
+    const impact = (F.noBars && F.noBars[sh[0]]) || (F.impact && F.impact(sh[0], T));
+    const bars = sh[0] === F.titleShot ? Math.round(BAR * Math.max(0, 1 - T * 1.5)) : impact ? 0 : BAR;
     if (bars) { c.fillStyle = '#000'; c.fillRect(0, 0, W(), bars); c.fillRect(0, H() - bars, W(), bars); }
     // The words, on the sharp layer above.
-    for (const [a, b, text] of LINES) if (S.t >= a && S.t <= b) say(S, 'line', text, W() / 2, H() - BAR / 2 + 1, { size: 17, col: '#ffffff', a: Math.min(1, (S.t - a) * 4, (b - S.t) * 4), mid: true });
-    say(S, 'line', R.touch ? 'Tap to skip' : 'Esc to skip', W() - 6, BAR / 2 + 1, { size: 11, col: 'rgba(240,230,234,0.6)', align: 'right', mid: true });
+    for (const [a, b, text] of F.LINES) if (S.t >= a && S.t <= b) say(S, 'line', text, W() / 2, H() - BAR / 2 + 1, { size: 17, col: '#ffffff', a: Math.min(1, (S.t - a) * 4, (b - S.t) * 4), mid: true });
+    if (S.skippable) say(S, 'line', R.touch ? 'Tap to skip' : 'Esc to skip', W() - 6, BAR / 2 + 1, { size: 11, col: 'rgba(240,230,234,0.6)', align: 'right', mid: true });
     words(S);
   };
+  // The opening itself, and the drawing kit the other films (js/bossfilms.js) are made with.
+  const OPENING = compile({ shots: DUR, lines: LINES, sfx: SFX, draw: SH, music: ['draw', 'act0'], amb: 'wind', noBars: { panels: 1, gaze: 1, defy: 1 },
+    impact: (name, T) => name === 'godcut' && T >= 1.35 && T < 1.9, titleShot: 'title' });
+  I.OPENING = OPENING;
+  I.kit = { RED, INK, BAR, W, H, K, hash, ease, clamp, fill, grad, stars, moon, city, graves, rain, spun, eyes, closeUp, burst, sparks, deadSet, kick, say,
+    deity, colossus, burningEyes, bigBlade, hand };
 })();
