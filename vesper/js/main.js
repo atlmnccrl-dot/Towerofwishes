@@ -9,7 +9,7 @@
   // ---- save -----------------------------------------------------------------------------------
   // The profile (progress.js) plus the options. Saves from before the campaign keep their options.
   const PR = VS.PROG, KEY = 'vesper.save.v2', OLD = 'vesper.save.v1';
-  const defOpts = () => ({ music: 1, sfx: 1, shake: 1, auto: false });
+  const defOpts = () => ({ music: 1, sfx: 1, shake: 1, auto: false, text: 1, safe: false, diff: 'normal' });
   const fresh = (opts) => Object.assign(PR.fresh(), { opts: opts || defOpts(), seenLdx: false });
   function load() {
     try { const j = JSON.parse(localStorage.getItem(KEY)); if (j && j.v === 2) return VS.LOOT.migrate(Object.assign(fresh(), j, { opts: Object.assign(defOpts(), j.opts) })); } catch (e) { /* storage blocked */ }
@@ -18,7 +18,9 @@
   }
   M.write = () => { try { localStorage.setItem(KEY, JSON.stringify(M.save)); } catch (e) { /* storage blocked */ } };
   M.save = load();
-  const applyOpts = () => { AU.sfxVol = M.save.opts.sfx; AU.setVolume(M.save.opts.music); };
+  // Options: sound, the size of all menu text, and the colour-safe cues (blue and orange for the parry
+  // and dodge flashes instead of white and red).
+  const applyOpts = () => { const o = M.save.opts; AU.sfxVol = o.sfx; AU.setVolume(o.music); document.documentElement.style.setProperty('--ui-scale', o.text || 1); R.safe = !!o.safe; if (R.kScale !== (o.text || 1)) { R.kScale = o.text || 1; if (R.canvas) R.resize(); } };
 
   // ---- input --------------------------------------------------------------------------------------
   // PC: left mouse cuts, right mouse is the heavy, the mouse aims. Keys: J cut, K heavy, Q/Shift/L parry, Space dash, E/R moon.
@@ -66,6 +68,37 @@
     delete pointers[e.pointerId];
   }
 
+  // ---- the gamepad -----------------------------------------------------------------------------------
+  // Standard mapping: left stick or d-pad moves, right stick aims; A cuts, X heavy, B dash, Y parry,
+  // LB / RB the skills, either trigger the moon art, Start pauses. In menus the d-pad moves between
+  // buttons, A presses and B goes back.
+  const PAD = { 0: 'atk', 1: 'dodge', 2: 'heavy', 3: 'parry', 4: 's1', 5: 's2', 6: 'art', 7: 'art', 9: 'back' };
+  let padPrev = [], padNav = { t: 0, dir: null };
+  M.pad = null;
+  function pollPad(dt) {
+    const pads = navigator.getGamepads ? navigator.getGamepads() : []; let g = null; for (const x of pads || []) if (x && x.connected) { g = x; break; }
+    if (!g) { M.pad = null; return; }
+    const btn = (i) => !!(g.buttons[i] && (g.buttons[i].pressed || g.buttons[i].value > 0.5)), down = (i) => btn(i) && !padPrev[i];
+    const ax = (i) => (Math.abs(g.axes[i] || 0) > 0.22 ? g.axes[i] : 0);
+    let mx = ax(0) + (btn(15) ? 1 : 0) - (btn(14) ? 1 : 0), my = ax(1) + (btn(13) ? 1 : 0) - (btn(12) ? 1 : 0);
+    const used = g.buttons.some((b) => b.pressed) || Math.abs(mx) + Math.abs(my) > 0.3;
+    if (used) { if (!M.padUsed) { M.padUsed = true; R.touch = false; } AU.unlock(); }
+    const ui = U.current && U.current !== 'loading';
+    if (M.state === 'fight' && !ui && !M.paused) {
+      M.pad = { mx, my, aim: Math.hypot(ax(2), ax(3)) > 0.4 ? { x: ax(2), y: ax(3) } : null };
+      for (const i in PAD) if (down(+i)) { M.pressed[PAD[i]] = true; if (PAD[i] === 'atk') M.pressed.confirm = true; }
+    } else {
+      M.pad = null;
+      const nav = (code) => { const e = { code, preventDefault() {} }; if (M.state === 'map' && !(U.current && U.current !== 'map')) { if (mapKey(e)) return; } U.key(e); };
+      const dir = Math.abs(mx) > 0.6 || Math.abs(my) > 0.6 ? (Math.abs(mx) > Math.abs(my) ? (mx > 0 ? 'ArrowRight' : 'ArrowLeft') : (my > 0 ? 'ArrowDown' : 'ArrowUp')) : null;
+      if (dir && (dir !== padNav.dir || (padNav.t -= dt) <= 0)) { padNav.t = padNav.dir === dir ? 0.14 : 0.38; padNav.dir = dir; nav(dir); } else if (!dir) padNav.dir = null;
+      if (down(0)) { const a = document.activeElement; if (ui && a && a.click && a !== document.body) a.click(); else if (M.state === 'map') { const go = document.querySelector('[data-act="go"]'); if (go) go.click(); } else { M.pressed.tap = true; M.pressed.confirm = true; } }
+      if (down(1) || down(9)) { if (ui && U.back) U.back(); else M.pressed.back = true; }
+      if (M.state === 'map' && down(2)) gear(); if (M.state === 'map' && down(3)) skills();
+    }
+    padPrev = g.buttons.map((b) => b.pressed || b.value > 0.5);
+  }
+
   M.go = function (state) { M.state = state; M.t = 0; M.pressed = {}; if (R.hideCine) R.hideCine(); };
 
   // ---- menus -----------------------------------------------------------------------------------------
@@ -81,9 +114,14 @@
   }
   function settings(focus, confirmReset, back) {
     M.go('menu'); back = back || title;
-    U.settings({ opts: P().opts, focus, confirmReset, onBack: () => { M.write(); back(); },
+    const toast = M.toast; M.toast = null;
+    U.settings({ opts: P().opts, focus, confirmReset, toast, onBack: () => { M.write(); back(); },
       set: (k) => {
-        const o = P().opts, idx = { music: 0, sfx: 1, shake: 2, auto: 3, reset: 4 }[k];
+        const o = P().opts, idx = { music: 0, sfx: 1, shake: 2, auto: 3, text: 4, safe: 5, export: 6, import: 7, reset: 8 }[k];
+        if (k === 'text') o.text = o.text >= 1.3 ? 0.9 : o.text >= 1.15 ? 1.3 : o.text >= 1 ? 1.15 : 1;
+        if (k === 'safe') o.safe = !o.safe;
+        if (k === 'export') { exportSave(); return settings(idx, false, back); }
+        if (k === 'import') { importSave(() => settings(idx, false, back)); return; }
         if (k === 'music') o.music = o.music === 1 ? 0.5 : o.music === 0.5 ? 0 : 1;
         if (k === 'sfx') o.sfx = o.sfx ? 0 : 1;
         if (k === 'shake') o.shake = o.shake ? 0 : 1;
@@ -91,6 +129,25 @@
         if (k === 'reset') { if (!confirmReset) return settings(idx, true, back); M.save = fresh(o); M.write(); return title(); }
         applyOpts(); M.write(); settings(idx, false, back);
       } });
+  }
+  // Saves out of the browser: a file to download (or a code on the clipboard), and back in.
+  function exportSave() {
+    const txt = 'VESPER1:' + btoa(unescape(encodeURIComponent(JSON.stringify(M.save))));
+    try { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: 'text/plain' })); a.download = 'vesper-save-' + new Date().toISOString().slice(0, 10) + '.txt'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); } catch (e) { /* no downloads */ }
+    try { navigator.clipboard && navigator.clipboard.writeText(txt); } catch (e) { /* no clipboard */ }
+    M.toast = 'Save exported: a file was downloaded and the code copied.';
+  }
+  M.readSave = function (txt) {
+    txt = String(txt || '').trim(); if (!txt.startsWith('VESPER1:')) return null;
+    try { const j = JSON.parse(decodeURIComponent(escape(atob(txt.slice(8))))); if (!j || j.v !== 2 || !j.nodes) return null; return VS.LOOT.migrate(Object.assign(fresh(), j, { opts: Object.assign(defOpts(), j.opts) })); } catch (e) { return null; }
+  };
+  function importSave(done) {
+    const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.txt,text/plain';
+    const take = (txt) => { const p = M.readSave(txt); if (p) { M.save = p; M.write(); applyOpts(); M.toast = 'Save loaded: level ' + p.lvl + '.'; } else M.toast = 'That is not a Vesper save.'; done(); };
+    inp.onchange = () => { const f = inp.files && inp.files[0]; if (!f) return done(); const r = new FileReader(); r.onload = () => take(r.result); r.readAsText(f); };
+    // No file picker (some phones): paste the code instead.
+    inp.oncancel = () => done();
+    try { inp.click(); } catch (e) { const t = prompt('Paste your Vesper save code'); take(t); }
   }
   // A new game: the prologue, then the first trial.
   // The opening's risen dead are turned townsfolk: load them first.
@@ -182,27 +239,27 @@
   // One thing at a time, each on its own: the tutorial places the foes for each step itself (the waves
   // wait), shows where to go and which button to press, counts the step down, and cheers when it is done.
   // Every step also moves on by itself after a while, so nobody is ever stuck (and the bot can finish it).
-  const key = (pc, touch) => (R.touch ? touch : pc);
+  const key = (pc, touch, pad) => (M.padUsed && pad ? pad : R.touch ? touch : pc);
   const ahead = (f, d, side) => { const s = f.s, h = s.hero, A = VS.arenaOf(s), e = VS.exitOf(A), a = Math.atan2(e.y - h.y, e.x - h.x), c = VS.clampTo(A, h.x + Math.cos(a) * d - Math.sin(a) * (side || 0), h.y + Math.sin(a) * d + Math.cos(a) * (side || 0), 30); return { x: c[0], y: c[1] }; };
   const alive = (f, keys) => (f.tut.units || []).filter((u) => u.alive && (!keys || keys.indexOf(u.key) >= 0));
   const TUT = [
-    { title: 'MOVE', text: () => key('Use WASD (or the arrow keys) to walk to the glowing circle.', 'Drag anywhere on the left half of the screen to walk to the glowing circle.'), btn: 'stick',
+    { title: 'MOVE', text: () => key('Use WASD (or the arrow keys) to walk to the glowing circle.', 'Drag anywhere on the left half of the screen to walk to the glowing circle.', 'Use the left stick to walk to the glowing circle.'), btn: 'stick',
       enter: (f) => { f.tut.mark = ahead(f, 230); f.tut.walked = 0; },
       done: (f) => { const h = f.s.hero, m = f.tut.mark; return Math.hypot(h.x - m.x, h.y - m.y) < 40 || f.tut.walked > 260; }, limit: 25 },
-    { title: 'CUT', text: () => key('Left click (or J) to cut. Aim with the mouse. Cut down both training husks.', 'Tap the big sword button to cut. Cut down both training husks.'), btn: 'atk',
+    { title: 'CUT', text: () => key('Left click (or J) to cut. Aim with the mouse. Cut down both training husks.', 'Tap the big sword button to cut. Cut down both training husks.', 'Press A to cut (aim with the right stick). Cut down both training husks.'), btn: 'atk',
       enter: (f) => { const a = ahead(f, 90, -38), b = ahead(f, 90, 38); f.tut.units = [SIM.place(f.s, 'dummy', a.x, a.y), SIM.place(f.s, 'dummy', b.x, b.y)]; },
       prog: (f) => (2 - alive(f).length) + ' / 2', done: (f) => !alive(f).length, limit: 30, leave: (f) => { for (const u of alive(f)) SIM.dismiss(f.s, u); } },
-    { title: 'COMBO', text: () => key('Keep clicking without stopping: each cut chains into the next. Land a 6-hit chain on the post.', 'Keep tapping without stopping: each cut chains into the next. Land a 6-hit chain on the post.'), btn: 'atk',
+    { title: 'COMBO', text: () => key('Keep clicking without stopping: each cut chains into the next. Land a 6-hit chain on the post.', 'Keep tapping without stopping: each cut chains into the next. Land a 6-hit chain on the post.', 'Keep pressing A without stopping: each cut chains into the next. Land a 6-hit chain on the post.'), btn: 'atk',
       enter: (f) => { const a = ahead(f, 80); f.tut.units = [SIM.place(f.s, 'post', a.x, a.y)]; f.tut.best = 0; },
       prog: (f) => { f.tut.best = Math.max(f.tut.best, f.s.combo); return Math.min(6, f.tut.best) + ' / 6 hits'; }, done: (f) => f.tut.best >= 6 || !alive(f).length, limit: 30,
       leave: (f) => { for (const u of alive(f)) SIM.dismiss(f.s, u); } },
-    { title: 'HEAVY', text: () => key('Walk into the group and right click (or K) for a HEAVY blow: it hits everything around you.', 'Walk into the group and tap HEAVY: it hits everything around you.'), btn: 'heavy',
+    { title: 'HEAVY', text: () => key('Walk into the group and right click (or K) for a HEAVY blow: it hits everything around you.', 'Walk into the group and tap HEAVY: it hits everything around you.', 'Walk into the group and press X for a HEAVY blow: it hits everything around you.'), btn: 'heavy',
       enter: (f) => { const c = ahead(f, 120); f.tut.units = [0, 1, 2, 3].map((i) => SIM.place(f.s, 'dummy', c.x + Math.cos(i * 1.57) * 26, c.y + Math.sin(i * 1.57) * 26)); f.tut.heavy = 0; },
       prog: (f) => (4 - alive(f).length) + ' / 4', done: (f) => !alive(f).length, limit: 30, leave: (f) => { for (const u of alive(f)) SIM.dismiss(f.s, u); } },
-    { title: 'DODGE', text: () => key('The Drill Knight swings slowly. When the RED ring flashes under him, press SPACE to dash through the blow. Dodge 2 swings.', 'The Drill Knight swings slowly. When the RED ring flashes under him, tap DASH to dash through the blow. Dodge 2 swings.'), btn: 'dodge',
+    { title: 'DODGE', text: () => key('The Drill Knight swings slowly. When the RED ring flashes under him, press SPACE to dash through the blow. Dodge 2 swings.', 'The Drill Knight swings slowly. When the RED ring flashes under him, tap DASH to dash through the blow. Dodge 2 swings.', 'The Drill Knight swings slowly. When the RED ring flashes under him, press B to dash through the blow. Dodge 2 swings.'), btn: 'dodge',
       enter: (f) => { const a = ahead(f, 110); f.tut.units = [SIM.place(f.s, 'drill', a.x, a.y)]; f.tut.dodged = 0; },
       prog: (f) => Math.min(2, Math.floor(f.tut.dodged)) + ' / 2', done: (f) => f.tut.dodged >= 2, limit: 35 },
-    { title: 'DASH-CUT', text: () => key('Cut right after a dash for a DASH-CUT. The knight is open now: finish him.', 'Tap the sword right after a dash for a DASH-CUT. The knight is open now: finish him.'), btn: 'atk',
+    { title: 'DASH-CUT', text: () => key('Cut right after a dash for a DASH-CUT. The knight is open now: finish him.', 'Tap the sword right after a dash for a DASH-CUT. The knight is open now: finish him.', 'Press A right after a dash (B) for a DASH-CUT. The knight is open now: finish him.'), btn: 'atk',
       enter: (f) => { for (const u of alive(f)) { u.hp = u.maxHp = 46; u.maxPoise = u.poise = 0; } f.tut.dash = 0; },
       prog: (f) => (f.tut.dash ? 'dash-cut ✓' : 'dash-cut ✗'), done: (f) => !alive(f).length, limit: 30, leave: (f) => { for (const u of alive(f)) SIM.dismiss(f.s, u); } },
     { title: 'BARRELS', text: () => key('Barrels, crates and pots break. Smash the powder barrel to blow up the husks around it.', 'Barrels, crates and pots break. Smash the powder barrel to blow up the husks around it.'), btn: 'atk',
@@ -266,6 +323,8 @@
     if (M.mouseAim && M.mouse && !R.touch && s.hero.alive) { const q = R.P(s.hero.x, s.hero.y, 20), g = R.screenToGround(M.mouse.x - q.x, M.mouse.y - q.y); if (Math.hypot(g.x, g.y) > 0.01) inp.aim = Math.atan2(g.y, g.x); }
     if (M.held.left) inp.mx -= 1; if (M.held.right) inp.mx += 1; if (M.held.up) inp.my -= 1; if (M.held.down) inp.my += 1;
     if (M.stick && Math.hypot(M.stick.dx, M.stick.dy) > 0.25) { inp.mx = M.stick.dx; inp.my = M.stick.dy; }
+    if (M.pad && Math.hypot(M.pad.mx, M.pad.my) > 0.25) { inp.mx = M.pad.mx; inp.my = M.pad.my; }
+    if (M.pad && M.pad.aim && s.hero.alive) { const g = R.screenToGround(M.pad.aim.x, M.pad.aim.y); inp.aim = Math.atan2(g.y, g.x); }
     if (inp.mx || inp.my) { const g = R.screenToGround(inp.mx, inp.my); inp.mx = g.x; inp.my = g.y; }
     if (P().opts.auto || f.auto) {
       const b = SIM.bot(s, 0.7);
@@ -398,6 +457,7 @@
   }
   function frame(now) {
     const dt = Math.min(0.05, (now - (last || now)) / 1000); last = now; M.t += dt; R.t += dt; R.realDt = dt;
+    try { pollPad(dt); } catch (e) { /* no gamepad API */ }
     R.canvas.style.cursor = M.state === 'fight' && !M.paused && !R.touch ? 'none' : '';
     const ctx = R.ctx;
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.imageSmoothingEnabled = false;

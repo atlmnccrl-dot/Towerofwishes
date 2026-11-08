@@ -23,6 +23,7 @@
   #ui canvas { display: block; position: static; }
   #ui { position: fixed; inset: 0; z-index: 5; padding: max(18px, env(safe-area-inset-top, 0px)) max(22px, env(safe-area-inset-right, 0px)) max(18px, env(safe-area-inset-bottom, 0px)) max(22px, env(safe-area-inset-left, 0px)); box-sizing: border-box; display: flex; }
   #ui[hidden] { display: none !important; }
+  #ui > .screen { zoom: var(--ui-scale, 1); }
   .screen { flex: 1; display: flex; opacity: 0; transform: translateY(6px); transition: opacity .25s ease, transform .25s ease; min-height: 0; }
   .screen.in { opacity: 1; transform: none; }
   .screen.dim { background: rgba(4, 3, 6, 0.62); margin: calc(-1 * max(18px, env(safe-area-inset-top, 0px))) calc(-1 * max(22px, env(safe-area-inset-right, 0px))) calc(-1 * max(18px, env(safe-area-inset-bottom, 0px))) calc(-1 * max(22px, env(safe-area-inset-left, 0px))); padding: inherit; }

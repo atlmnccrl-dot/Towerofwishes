@@ -53,9 +53,13 @@
       { label: 'Sound effects', sub: v.sfx ? 'On' : 'Off', act: () => o.set('sfx') },
       { label: 'Screen shake', sub: v.shake ? 'On' : 'Off', act: () => o.set('shake') },
       { label: 'Auto battle', sub: v.auto ? 'On' : 'Off', act: () => o.set('auto') },
+      { label: 'Text size', sub: Math.round((v.text || 1) * 100) + '%', act: () => o.set('text') },
+      { label: 'Colour-safe cues', sub: v.safe ? 'On · blue parry, orange dodge' : 'Off', act: () => o.set('safe') },
+      { label: 'Export save', sub: 'Download a file and copy the code', act: () => o.set('export') },
+      { label: 'Import save', sub: 'Load a save file', act: () => o.set('import') },
       { label: 'Reset progress', sub: o.confirmReset ? 'Press again to erase your climb' : 'Erase levels, skills and the map', act: () => o.set('reset'), cls: o.confirmReset ? 'danger' : '' },
       { label: 'Back', act: o.onBack }];
-    const el = U.show('settings', `<div class="panel"><h2>Settings</h2>${buttons(items, 'rows')}<p class="note">Auto battle lets your hero fight alone; any button you press still works.</p></div>`, items, { back: o.onBack });
+    const el = U.show('settings', `<div class="panel"><h2>Settings</h2>${buttons(items, 'rows')}<p class="note">Auto battle lets your hero fight alone; any button you press still works. Saves live in this browser: export one to keep it safe or move it to another device. A gamepad works everywhere: A cut, X heavy, B dash, Y parry, LB/RB skills, triggers moon art.</p>${o.toast ? `<p class="note" style="color:var(--gold)">${esc(o.toast)}</p>` : ''}</div>`, items, { back: o.onBack });
     if (o.focus != null) { const b = el.querySelectorAll('.btn')[o.focus]; if (b) b.focus({ preventScroll: true }); }
   };
   U.credits = function (o) {

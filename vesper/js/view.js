@@ -29,7 +29,7 @@
     R.canvas.style.width = w + 'px'; R.canvas.style.height = h + 'px';
     R.W = R.canvas.width; R.H = R.canvas.height; R.dpr = dpr;
     R.S = R.H / 150;                                   // device px per world px: the fighters are ~30% of the height
-    R.k = dpr * clamp(h / 420, 0.85, 1.5);              // UI unit
+    R.k = dpr * clamp(h / 420, 0.85, 1.5) * (R.kScale || 1);   // UI unit (scaled by the text size option)
     R.floorY = Math.round(R.H * 0.8);
     R.ctx.imageSmoothingEnabled = false;
     for (const k in cache) delete cache[k];
@@ -563,7 +563,7 @@
     for (const u of s.units) {
       if (u.team !== 'foe' || u.state !== 'attack' || u.atk.blink || u.atk.bolt || u.atk.zone || u.atk.rain || u.atk.quake || u.atk.summon || u.atk.clones || u.atk.tornado) continue;
       const k = u.atk, w = k.wind * u.windMul; if (u.st >= w + 0.05) continue;
-      const t = Math.min(1, u.st / w), col = k.unparry ? '#ff2a44' : '#ffffff';
+      const t = Math.min(1, u.st / w), col = k.unparry ? (R.safe ? '#ff9a1a' : '#ff2a44') : (R.safe ? '#3aa0ff' : '#ffffff');
       ctx.save();
       if (k.aoe) { const c = VS.aoeAt(u, k); ctx.fillStyle = rgba(col, 0.1 + 0.18 * t); ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, 7); ctx.fill(); ctx.fillStyle = rgba(col, 0.25); ctx.beginPath(); ctx.arc(c.x, c.y, c.r * t, 0, 7); ctx.fill(); ctx.strokeStyle = rgba(col, 0.75); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, 7); ctx.stroke(); }
       else if (k.lunge) { const L = k.lunge + k.reach * u.scale, hw = (u.rad + 6); ctx.translate(u.x, u.y); ctx.rotate(u.ang); ctx.fillStyle = rgba(col, 0.08 + 0.16 * t); ctx.fillRect(0, -hw, L, hw * 2); ctx.fillStyle = rgba(col, 0.28); ctx.fillRect(0, -hw, L * t, hw * 2); ctx.strokeStyle = rgba(col, 0.6); ctx.lineWidth = 1.2; ctx.strokeRect(0, -hw, L, hw * 2); }
@@ -601,12 +601,12 @@
     if (u.ally) { opts.alpha = alpha * 0.82; opts.flash = Math.max(opts.flash || 0, 0.35); opts.flashCol = '#a070ff'; }
     if (u.def.clone) { opts.flash = Math.max(opts.flash || 0, 0.45); opts.flashCol = '#20081a'; }
     if (u === s.hero && s.invisT > 0) opts.alpha = 0.35;
-    if (winding && u.atk.unparry) { opts.flash = 0.3 + 0.25 * Math.sin(R.t * 30); opts.flashCol = '#ff2040'; }
+    if (winding && u.atk.unparry) { opts.flash = 0.3 + 0.25 * Math.sin(R.t * 30); opts.flashCol = R.safe ? '#ff9a1a' : '#ff2040'; }
     if (u.team === 'hero' && u.iframes > 0 && u.state !== 'dodge' && u.state !== 'hurt' && Math.floor(R.t * 20) % 2) opts.alpha = 0.55;
     if (u.state === 'dodge') for (let i = 1; i <= 4; i++) { const g = R.P(u.x - u.dodgeDir[0] * i * 10, u.y - u.dodgeDir[1] * i * 10); A.actor(ctx, u.set, u.clip, Math.max(0, u.frame - i * 2), sa, g.x, g.y, sc, { shade: RED, alpha: 0.32 - i * 0.07 }); }
     A.actor(ctx, u.set, u.clip, u.frame, sa, x, y, sc, opts);
     if (winding) {
-      const k = Math.min(1, u.st / (u.atk.wind * u.windMul)), hy = y - (48 * u.scale + 10) * Sh, col = u.atk.unparry ? RED : '#ffffff';
+      const k = Math.min(1, u.st / (u.atk.wind * u.windMul)), hy = y - (48 * u.scale + 10) * Sh, col = u.atk.unparry ? (R.safe ? '#ff9a1a' : RED) : (R.safe ? '#3aa0ff' : '#ffffff');
       ctx.save(); ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 2 * R.dpr; ctx.globalAlpha = 0.35 + 0.65 * k;
       ctx.beginPath(); ctx.arc(x, hy, (4 + 12 * (1 - k)) * Sh * 0.5, 0, 7); ctx.stroke();
       ctx.beginPath(); ctx.arc(x, hy, 1.6 * R.dpr * (1 + k), 0, 7); ctx.fill();
