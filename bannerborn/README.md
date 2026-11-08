@@ -74,8 +74,10 @@ Losing costs nothing: level up, forge, change the formation and fight again.
 
 Settings: music, effects, screen shake, damage numbers, erase save.
 
-**Cutscenes** instead of dialogue (js/cinema.js, skippable): an opening (the Gravegate tears open, the dead rise,
-a close-up of Vesh Morrow, the Captain answers, BANNERBORN slams in); each boss's entrance the first time (the camera
+**Cutscenes** instead of dialogue (js/cinema.js, skippable, one subtitle line per shot): a ~50 s opening that tells
+how it began (dusk over Ashford under nine banners; night, and a Gravegate tears open; Vesh Morrow walks out and
+sings; the dead rise and march; the banner knights fall one by one with their banners; at grey dawn the Captain
+kneels by the last banner, rises with it and blasts the dead back; BANNERBORN); each boss's entrance the first time (the camera
 sweeps the arena to the boss rising, an extreme pixel close-up, black-and-white impact frames, the name slam, a VS
 split with your lead hero); a fly-over title for each new chapter; and the boss's fall. They are built from shots:
 real map fly-throughs with scripted actors, slanted close-up panels with speed lines and light streaks, impact
