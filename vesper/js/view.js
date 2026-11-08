@@ -162,7 +162,7 @@
   const HELI = R.HELI = { ang: -Math.PI / 4, pitch: 0.5 };
   const hc = Math.cos(HELI.ang), hs = Math.sin(HELI.ang);
   R.hcam = { x: 0, y: 0 };
-  R.Sh = () => R.H / 340;
+  R.Sh = () => R.H / (340 * (R.camK || 1));   // the camera distance option scales the view
   R.P = function (x, y, z) {
     const dx = x - R.hcam.x, dy = y - R.hcam.y, Sh = R.Sh();
     const rx = dx * hc - dy * hs, ry = dx * hs + dy * hc;
@@ -199,84 +199,6 @@
     for (let i = 0; i < 9; i++) { const cx = hash(i, 31) * W, cy = H * (0.55 + hash(i, 32) * 0.4), rw = R.H * (0.3 + hash(i, 33) * 0.4); g.save(); g.translate(cx, cy); g.scale(1, 0.22); const cg = g.createRadialGradient(0, 0, 0, 0, 0, rw); cg.addColorStop(0, rgba(L.fog, 0.35)); cg.addColorStop(1, rgba(L.fog, 0)); g.fillStyle = cg; g.fillRect(-rw, -rw, rw * 2, rw * 2); g.restore(); }
     return (cache[key] = c);
   }
-  // The arena's outline as a path in ground coordinates, grown outward by g.
-  const extOf = (A) => A.shape === 'rect' ? Math.max(A.hw, A.hh) : A.shape === 'cross' ? A.arm : A.r;
-  function shapePath(g, A, grow) {
-    g.beginPath();
-    if (A.shape === 'rect') { const w = A.hw + grow, h = A.hh + grow, r = Math.min(14 + grow * 0.5, h); g.moveTo(-w + r, -h); g.arcTo(w, -h, w, h, r); g.arcTo(w, h, -w, h, r); g.arcTo(-w, h, -w, -h, r); g.arcTo(-w, -h, w, -h, r); g.closePath(); }
-    else if (A.shape === 'cross') { const a = A.arm + grow, w = A.hw + grow; const pts = [[-w, -a], [w, -a], [w, -w], [a, -w], [a, w], [w, w], [w, a], [-w, a], [-w, w], [-a, w], [-a, -w], [-w, -w]]; pts.forEach((q, i) => (i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]))); g.closePath(); }
-    else g.arc(0, 0, A.r + grow, 0, Math.PI * 2);
-  }
-  // The arena in ground coordinates, projected once per area to screen pixels (only its position
-  // changes with the camera, so each frame is a plain copy).
-  function platform(st, area, last, A) {
-    const key = 'plat' + st.id + '|' + area + (last ? 'L' : ''); if (cache[key]) return cache[key];
-    for (const k in cache) if (k.startsWith('plat')) delete cache[k];   // one arena in memory at a time
-    const L = st.look, X = extOf(A), E = X + 80, res = Math.min(2048 / (E * 2), R.Sh()), size = Math.ceil(E * 2 * res);
-    const c = document.createElement('canvas'); c.width = c.height = size; const g = c.getContext('2d');
-    g.translate(size / 2, size / 2); g.scale(res, res);
-    const stone = mix(L.sky[2], '#000000', 0.42), deep = mix(L.sky[0], '#000000', 0.4);
-    // The apron, falling away into the night in two steps.
-    g.fillStyle = mix(stone, '#000000', 0.35); shapePath(g, A, 34); g.fill();
-    g.strokeStyle = 'rgba(255,255,255,0.05)'; g.lineWidth = 1; shapePath(g, A, 34); g.stroke();
-    // The floor: lighter at the centre so the fighters stand out against it.
-    let gr = g.createRadialGradient(0, -X * 0.15, 0, 0, 0, X * 1.1); gr.addColorStop(0, mix(stone, '#ffffff', 0.12)); gr.addColorStop(1, mix(stone, '#000000', 0.15));
-    g.fillStyle = gr; shapePath(g, A, 0); g.fill();
-    g.save(); shapePath(g, A, 0); g.clip();
-    // The moon in the floor.
-    const mx = X * 0.22, my = -X * 0.4;
-    gr = g.createRadialGradient(mx, my, 0, mx, my, X * 0.7); gr.addColorStop(0, rgba(L.moonCol, last ? 0.42 : 0.24)); gr.addColorStop(0.4, rgba(L.moonCol, last ? 0.16 : 0.09)); gr.addColorStop(1, rgba(L.moonCol, 0));
-    g.fillStyle = gr; g.fillRect(-E, -E, E * 2, E * 2);
-    // Faint seams: rings and spokes on round floors, a grid of flagstones elsewhere.
-    g.strokeStyle = 'rgba(255,255,255,0.045)'; g.lineWidth = 1;
-    if (A.shape === 'circle' || A.shape === 'donut') {
-      const rot = area * 0.37;
-      for (const f of [0.34, 0.68]) { g.beginPath(); g.arc(0, 0, A.r * f, 0, 7); g.stroke(); }
-      for (let i = 0; i < 16; i++) { const a = rot + i / 16 * Math.PI * 2; g.beginPath(); g.moveTo(Math.cos(a) * A.r * 0.34, Math.sin(a) * A.r * 0.34); g.lineTo(Math.cos(a) * A.r, Math.sin(a) * A.r); g.stroke(); }
-    } else { g.beginPath(); for (let x = -E; x <= E; x += 40) { g.moveTo(x, -E); g.lineTo(x, E); } for (let y = -E; y <= E; y += 40) { g.moveTo(-E, y + (Math.abs(y / 40) % 2) * 0); g.lineTo(E, y); } g.stroke(); }
-    // Flagstones a shade lighter or darker each, cracks, a few rune circles, and the hour's own marks.
-    const rnd = (i, j) => hash(i + area * 13 + st.id.length * 7, j);
-    if (A.shape === 'circle' || A.shape === 'donut') {
-      for (let ring = 0; ring < 3; ring++) for (let i = 0; i < 16; i++) { const a0 = area * 0.37 + i / 16 * Math.PI * 2, r0 = A.r * [0, 0.34, 0.68][ring], r1 = A.r * [0.34, 0.68, 1][ring]; g.fillStyle = rnd(i, ring) < 0.5 ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.06)'; g.beginPath(); g.arc(0, 0, r1, a0, a0 + Math.PI / 8); g.arc(0, 0, r0, a0 + Math.PI / 8, a0, true); g.fill(); }
-    } else for (let x = -E; x < E; x += 40) for (let y = -E; y < E; y += 40) { const v = rnd(x, y); if (v < 0.3) { g.fillStyle = 'rgba(255,255,255,0.03)'; g.fillRect(x + 1, y + 1, 38, 38); } else if (v > 0.75) { g.fillStyle = 'rgba(0,0,0,0.07)'; g.fillRect(x + 1, y + 1, 38, 38); } }
-    g.strokeStyle = 'rgba(0,0,0,0.35)'; g.lineWidth = 1;
-    for (let i = 0; i < 16; i++) { let x = (rnd(i, 51) - 0.5) * X * 1.8, y = (rnd(i, 52) - 0.5) * X * 1.8, a = rnd(i, 53) * 6.28; g.beginPath(); g.moveTo(x, y); for (let j = 0; j < 6; j++) { a += (rnd(i, 60 + j) - 0.5) * 1.4; x += Math.cos(a) * 9; y += Math.sin(a) * 9; g.lineTo(x, y); } g.stroke(); }
-    for (let i = 0; i < 3; i++) { const x = (rnd(i, 71) - 0.5) * X * 1.3, y = (rnd(i, 72) - 0.5) * X * 1.3; if (!VS.inside(A, x, y, 30)) continue; g.strokeStyle = rgba(L.moonCol, 0.16); g.lineWidth = 1; g.beginPath(); g.arc(x, y, 16, 0, 7); g.stroke(); for (let k = 0; k < 8; k++) { const a = k / 8 * 6.28; g.beginPath(); g.moveTo(x + Math.cos(a) * 16, y + Math.sin(a) * 16); g.lineTo(x + Math.cos(a) * 21, y + Math.sin(a) * 21); g.stroke(); } }
-    const blob = (col, n, size, edge) => { for (let i = 0; i < n; i++) { let x = (rnd(i, 81) - 0.5) * X * 2, y = (rnd(i, 82) - 0.5) * X * 2; if (edge) { const c = VS.clampTo(A, x * 3, y * 3, 6); x = c[0]; y = c[1]; } const r = size * (0.6 + rnd(i, 83)); const bg = g.createRadialGradient(x, y, 0, x, y, r); bg.addColorStop(0, col); bg.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = bg; g.beginPath(); g.ellipse(x, y, r * 1.4, r, rnd(i, 84) * 3, 0, 7); g.fill(); } };
-    ({ gate: () => blob('rgba(90,110,80,0.18)', 9, 22, true), cloister: () => blob('rgba(235,242,255,0.3)', 16, 26, true), stair: () => { g.strokeStyle = 'rgba(230,190,110,0.18)'; g.lineWidth = 1.5; for (const f of [0.5, 0.82]) { g.beginPath(); g.arc(0, 0, X * f, 0, 7); g.stroke(); } },
-      waste: () => { blob('rgba(150,140,140,0.22)', 12, 24, false); blob('rgba(0,0,0,0.3)', 5, 18, false); }, throat: () => { g.strokeStyle = 'rgba(220,230,255,0.08)'; g.lineWidth = 1.2; for (let i = 0; i < 12; i++) { const y = (rnd(i, 91) - 0.5) * X * 1.8, x = (rnd(i, 92) - 0.5) * X; g.beginPath(); g.moveTo(x - 50, y); g.quadraticCurveTo(x, y - 8, x + 60, y + 4); g.stroke(); } },
-      shadow: () => blob('rgba(120,0,16,0.35)', 8, 22, false) })[st.id]();
-    // An emblem at the centre: two thin rings of red.
-    g.strokeStyle = rgba(L.moonCol, 0.2); g.lineWidth = 1.2; g.beginPath(); g.arc(0, 0, 36, 0, 7); g.stroke(); g.beginPath(); g.arc(0, 0, 22, 0, 7); g.stroke();
-    g.restore();
-    // The pit: a hole into the night with a lit lip.
-    if (A.shape === 'donut') {
-      gr = g.createRadialGradient(0, 0, 0, 0, 0, A.inner); gr.addColorStop(0, '#000000'); gr.addColorStop(0.8, '#05030a'); gr.addColorStop(1, mix(deep, '#000000', 0.3));
-      g.fillStyle = gr; g.beginPath(); g.arc(0, 0, A.inner, 0, 7); g.fill();
-      g.strokeStyle = rgba(L.moonCol, 0.75); g.lineWidth = 2; g.beginPath(); g.arc(0, 0, A.inner, 0, 7); g.stroke();
-      g.strokeStyle = rgba(L.moonCol, 0.15); g.lineWidth = 8; g.beginPath(); g.arc(0, 0, A.inner + 3, 0, 7); g.stroke();
-    }
-    // Warm light from the braziers and lanterns, baked into the floor.
-    for (const pr of propsOf(st, area, A)) if (pr.kind === 'brazier' || pr.kind === 'lantern') { const lg = g.createRadialGradient(pr.x, pr.y, 0, pr.x, pr.y, 75); lg.addColorStop(0, 'rgba(255,130,50,0.22)'); lg.addColorStop(1, 'rgba(255,130,50,0)'); g.fillStyle = lg; g.beginPath(); g.arc(pr.x, pr.y, 75, 0, 7); g.fill(); }
-    // The rim: a line of red light.
-    g.strokeStyle = rgba(L.moonCol, 0.16); g.lineWidth = 9; shapePath(g, A, 0); g.stroke();
-    g.strokeStyle = rgba(L.moonCol, last ? 0.95 : 0.75); g.lineWidth = last ? 3 : 2; shapePath(g, A, 0); g.stroke();
-    // Project it once.
-    // Project it once, standing on cliffs: the outline extruded downward, darkening into the night.
-    const Sh = R.Sh(), p = HELI.pitch, pw = Math.ceil(2 * E * Sh * (Math.abs(hc) + Math.abs(hs))) + 4, top = Math.ceil(2 * E * Sh * p * (Math.abs(hs) + Math.abs(hc))) + 4, depth = Math.round(64 * Sh), ph = top + depth;
-    const out = document.createElement('canvas'); out.width = pw; out.height = ph; const o = out.getContext('2d');
-    const rock = mix(L.sky[0], '#000000', 0.35), step = Math.max(2, Math.round(R.dpr * 3));
-    for (let d = depth; d >= 0; d -= step) {
-      const f = d / depth; o.setTransform(Sh * hc, Sh * p * hs, -Sh * hs, Sh * p * hc, pw / 2, top / 2 + d);
-      o.fillStyle = rgba(mix(rock, '#000000', 0.15 + 0.6 * f), Math.max(0, 1 - f * f * 0.9)); shapePath(o, A, 34); o.fill();
-      if (d % (step * 10) === 0) { o.strokeStyle = 'rgba(255,255,255,0.025)'; o.lineWidth = 1 / Sh; o.stroke(); }
-    }
-    o.setTransform(Sh * hc, Sh * p * hs, -Sh * hs, Sh * p * hc, pw / 2, top / 2 + 2);
-    o.strokeStyle = rgba(L.moonCol, 0.35); o.lineWidth = 2 / Sh * R.dpr; shapePath(o, A, 34); o.stroke();
-    o.imageSmoothingEnabled = true; o.setTransform(Sh * hc, Sh * p * hs, -Sh * hs, Sh * p * hc, pw / 2, top / 2);
-    o.drawImage(c, -E, -E, E * 2, E * 2);
-    return (cache[key] = { c: out, E, pw, ph, cy: top / 2 });
-  }
   function fogImg() {
     if (cache.fog) return cache.fog;
     const c = document.createElement('canvas'); c.width = 256; c.height = 64; const g = c.getContext('2d'); g.scale(1, 0.25);
@@ -288,87 +210,6 @@
     for (let i = 0; i < 3; i++) { const x = ((R.t * (6 + i * 2) + hash(i, 5) * 900) % 900) - 450, y = (hash(i, 6) - 0.5) * 380, q = R.P(x, y); ctx.drawImage(img, q.x - 160 * Sh, q.y - 30 * Sh, 320 * Sh, 60 * Sh); }
     ctx.restore();
   }
-  // Props around the ring, drawn upright and sorted with the fighters.
-  const PROPS = {
-    gate: ['pillar', 'banner', 'brazier', 'wall', 'statue', 'tree', 'pillar', 'brazier'], cloister: ['crystal', 'statue', 'pine', 'crystal', 'banner', 'lantern', 'crystal', 'pillar'],
-    stair: ['broken', 'statue', 'brazier', 'wall', 'pillar', 'banner', 'brazier', 'broken'], waste: ['rock', 'tree', 'wall', 'rock', 'lantern', 'tree', 'rock', 'broken'],
-    throat: ['needle', 'rock', 'banner', 'needle', 'rock', 'needle', 'wall', 'needle'], shadow: ['broken', 'brazier', 'statue', 'banner', 'brazier', 'wall', 'pillar', 'statue'],
-  };
-  function propsOf(st, area, A) {
-    const key = 'props' + st.id + '|' + area; if (cache[key]) return cache[key];
-    const list = PROPS[st.id] || PROPS.gate, out = [], X = extOf(A);
-    for (let i = 0; i < 18; i++) {
-      // A point just outside the outline, found by walking out from the centre.
-      const a = i / 18 * Math.PI * 2 + hash(i + area * 7, 41) * 0.2 + area * 0.21; let rr = 0;
-      while (rr < 420 && !VS.inside(A, Math.cos(a) * rr, Math.sin(a) * rr, 0)) rr += 6;   // out of a pit first
-      while (rr < 420 && VS.inside(A, Math.cos(a) * rr, Math.sin(a) * rr, 0)) rr += 6;
-      rr += 22 + hash(i + area * 7, 42) * 26;
-      const x = Math.cos(a) * rr, y = Math.sin(a) * rr, ry = x * hs + y * hc;
-      if (ry > X * 0.35) continue;   // keep the near side clear: nothing stands between the camera and the fight
-      out.push({ kind: list[(i + area * 2) % list.length], x, y, h: 0.8 + hash(i + area * 7, 43) * 0.5, seed: i + area * 7 });
-    }
-    return (cache[key] = out);
-  }
-  function drawProp(ctx, st, p) {
-    const L = st.look, q = R.P(p.x, p.y), Sh = R.Sh(), k = Sh * p.h, dark = mix(L.sky[0], '#000000', 0.55), rim = rgba(L.moonCol, 0.55);
-    ctx.save(); ctx.translate(q.x, q.y);
-    const shadow = () => { ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.ellipse(0, 0, 14 * k, 14 * k * HELI.pitch * 0.5, 0, 0, 7); ctx.fill(); };
-    if (p.kind === 'pillar' || p.kind === 'broken') {
-      shadow(); const w = 11 * k, h = (p.kind === 'pillar' ? 70 : 44) * k;
-      const gr = ctx.createLinearGradient(-w, 0, w, 0); gr.addColorStop(0, mix(dark, '#ffffff', 0.08)); gr.addColorStop(0.6, dark); gr.addColorStop(1, mix(dark, '#000000', 0.4));
-      ctx.fillStyle = gr; ctx.fillRect(-w, -h, w * 2, h);
-      ctx.fillStyle = mix(dark, '#ffffff', 0.12); ctx.beginPath(); ctx.ellipse(0, -h, w * 1.15, w * 0.45, 0, 0, 7); ctx.fill();
-      if (p.kind === 'broken') { ctx.fillStyle = dark; ctx.beginPath(); ctx.moveTo(-w, -h); ctx.lineTo(-w * 0.2, -h - 10 * k); ctx.lineTo(w * 0.4, -h - 3 * k); ctx.lineTo(w, -h - 7 * k); ctx.lineTo(w, -h); ctx.fill(); }
-      ctx.fillStyle = rim; ctx.fillRect(w - 1.5 * R.dpr, -h, 1.5 * R.dpr, h);
-    } else if (p.kind === 'brazier') {
-      shadow(); const t = R.t * 9 + p.seed;
-      R.glowAt(ctx, '#ff5a30', 0, -26 * k, 60 * k, 0.28 + 0.05 * Math.sin(t));
-      ctx.fillStyle = dark; ctx.fillRect(-2 * k, -18 * k, 4 * k, 18 * k);
-      ctx.beginPath(); ctx.moveTo(-9 * k, -22 * k); ctx.lineTo(9 * k, -22 * k); ctx.lineTo(6 * k, -16 * k); ctx.lineTo(-6 * k, -16 * k); ctx.fill();
-      for (let i = 0; i < 3; i++) { const fh = (10 + 4 * Math.sin(t + i * 2)) * k; ctx.fillStyle = i === 2 ? '#ffe0a0' : i ? '#ff8a40' : '#ff3a30'; ctx.beginPath(); ctx.moveTo((-6 + i * 2) * k, -22 * k); ctx.quadraticCurveTo(0, -22 * k - fh * 1.6 * (1 - i * 0.25), (6 - i * 2) * k, -22 * k); ctx.fill(); }
-    } else if (p.kind === 'tree' || p.kind === 'pine') {
-      shadow(); ctx.fillStyle = dark; ctx.strokeStyle = dark;
-      if (p.kind === 'pine') SH.pine(ctx, 0, 0, 34 * k, 70 * k); else SH.deadTree(ctx, 0, 0, 52 * k, 72 * k, p.seed);
-    } else if (p.kind === 'rock' || p.kind === 'needle') {
-      shadow(); ctx.fillStyle = dark;
-      if (p.kind === 'needle') SH.needle(ctx, 0, 0, 22 * k, 80 * k, p.seed); else SH.rock(ctx, 0, 2 * k, 40 * k, 26 * k, p.seed);
-      ctx.fillStyle = rim; ctx.globalAlpha = 0.5; if (p.kind === 'needle') ctx.fillRect(2 * k, -70 * k, 1.5 * R.dpr, 66 * k); ctx.globalAlpha = 1;
-    } else if (p.kind === 'banner') {
-      shadow(); const h = 84 * k, w = 18 * k, t = R.t * 2 + p.seed;
-      ctx.fillStyle = dark; ctx.fillRect(-1.5 * k, -h, 3 * k, h); ctx.fillRect(-w * 0.6, -h, w * 1.2, 2.5 * k);
-      ctx.fillStyle = mix(L.moonCol, '#000000', 0.25); ctx.beginPath(); ctx.moveTo(-w * 0.5, -h + 2 * k);
-      for (let i = 0; i <= 6; i++) { const yy = -h + 2 * k + i / 6 * h * 0.62; ctx.lineTo(w * 0.5 + Math.sin(t + i * 0.8) * 2.5 * k, yy); }
-      ctx.lineTo(0, -h + h * 0.72); ctx.lineTo(-w * 0.5 + Math.sin(t + 5) * 2.5 * k, -h + h * 0.64); ctx.closePath(); ctx.fill();
-      ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(-w * 0.5, -h + 6 * k, w, 1.5 * k);
-      ctx.strokeStyle = 'rgba(255,220,120,0.6)'; ctx.lineWidth = R.dpr; ctx.beginPath(); ctx.arc(0, -h + h * 0.32, 4 * k, 0, 7); ctx.stroke();
-    } else if (p.kind === 'statue') {
-      shadow(); const ph = 16 * k, stoneC = mix(dark, '#ffffff', 0.12);
-      ctx.fillStyle = mix(dark, '#ffffff', 0.05); ctx.fillRect(-14 * k, -ph, 28 * k, ph); ctx.fillStyle = mix(dark, '#ffffff', 0.15); ctx.fillRect(-15 * k, -ph - 2 * k, 30 * k, 3 * k);
-      A.actor(ctx, ['master_knight', 'black_knight', 'frost_knight_a'][p.seed % 3], 'Idle4', 0, Math.PI * 0.5, 0, -ph, k * 1.25, { shade: stoneC });
-      ctx.fillStyle = rim; ctx.fillRect(13 * k, -ph, 1.5 * R.dpr, ph);
-    } else if (p.kind === 'wall') {
-      shadow(); const w = 34 * k, h = 40 * k;
-      const gr = ctx.createLinearGradient(-w, 0, w, 0); gr.addColorStop(0, mix(dark, '#ffffff', 0.07)); gr.addColorStop(1, mix(dark, '#000000', 0.3));
-      ctx.fillStyle = gr; ctx.beginPath(); ctx.moveTo(-w, 0); ctx.lineTo(-w, -h * 0.7); ctx.lineTo(-w * 0.5, -h); ctx.lineTo(-w * 0.1, -h * 0.82); ctx.lineTo(w * 0.3, -h * 0.95); ctx.lineTo(w * 0.6, -h * 0.55); ctx.lineTo(w, -h * 0.4); ctx.lineTo(w, 0); ctx.fill();
-      ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = R.dpr; for (let r = 1; r < 4; r++) { ctx.beginPath(); ctx.moveTo(-w, -h * r * 0.2); ctx.lineTo(w, -h * r * 0.2); ctx.stroke(); }
-      ctx.fillStyle = rim; ctx.globalAlpha = 0.6; ctx.fillRect(-w, -h * 0.7, w * 0.5, 1.5 * R.dpr); ctx.globalAlpha = 1;
-    } else if (p.kind === 'lantern') {
-      shadow(); const h = 64 * k, t = R.t * 6 + p.seed;
-      ctx.fillStyle = dark; ctx.fillRect(-1.5 * k, -h, 3 * k, h); ctx.fillRect(0, -h, 12 * k, 2 * k);
-      R.glowAt(ctx, '#ffb060', 11 * k, -h + 10 * k, 30 * k, 0.5 + 0.08 * Math.sin(t));
-      ctx.fillStyle = '#ffd890'; ctx.fillRect(8 * k, -h + 5 * k, 6 * k, 8 * k); ctx.fillStyle = dark; ctx.fillRect(7.5 * k, -h + 4 * k, 7 * k, 1.5 * k);
-    } else if (p.kind === 'crystal') {
-      shadow();
-      for (let i = 0; i < 3; i++) {
-        const ox = (i - 1) * 7 * k, h = (40 + 18 * hash(p.seed, i)) * k * (i === 1 ? 1.3 : 1);
-        ctx.fillStyle = 'rgba(170,210,255,0.28)'; ctx.beginPath(); ctx.moveTo(ox - 5 * k, 0); ctx.lineTo(ox, -h); ctx.lineTo(ox + 5 * k, 0); ctx.fill();
-        ctx.strokeStyle = 'rgba(220,240,255,0.7)'; ctx.lineWidth = R.dpr; ctx.beginPath(); ctx.moveTo(ox, -h); ctx.lineTo(ox + 5 * k, 0); ctx.stroke();
-      }
-      R.glowAt(ctx, '#a8d8ff', 0, -30 * k, 40 * k, 0.15);
-    }
-    ctx.restore();
-  }
-
   // ---- effects (fights) -----------------------------------------------------------------------------
   R.pfx = []; R.chains = [];
   // A pack effect (the pixel effect atlas) at a point in the world, height z.
@@ -376,7 +217,7 @@
   R.spawns = {};
   const P = (o) => R.parts.push(Object.assign({ t: 0, vx: 0, vy: 0, vz: 0, g: 0, z: 0, size: 2, col: '#fff', shape: 'sq', life: 0.4 }, o));
   const FX = (o) => R.fx.push(Object.assign({ t: 0 }, o));
-  R.float = function (text, x, y, z, col, big, label) { R.floaters.push({ text, x, y, z, t: 0, col, big, label }); };
+  R.float = function (text, x, y, z, col, big, label) { if (R.noNumbers && !label && /^\d+$/.test(text)) return; R.floaters.push({ text, x, y, z, t: 0, col, big, label }); };
   function sparks(x, y, z, n, col, speed, size) {
     for (let i = 0; i < n; i++) { const a = Math.random() * Math.PI * 2, e = (Math.random() - 0.3) * 1.2, v = speed * (0.4 + Math.random()); P({ x, y, z, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.6, vz: Math.sin(e) * v, life: 0.18 + Math.random() * 0.15, size: size || 1.2, col, shape: 'line' }); }
   }
@@ -753,6 +594,7 @@
   }
   // An impact frame, as in the moon arts: white with black silhouettes, then black with white ones.
   function impactFrame(ctx, s, dt) {
+    if (R.calm) { R.impactF = null; return; }   // reduce flashing: no black-and-white frames
     const f = R.impactF; if (!f) return; f.t += dt; if (f.t >= f.dur) { R.impactF = null; return; }
     const first = f.t < f.dur * 0.6, bg = first ? '#ffffff' : '#050307', fg = first ? '#000000' : '#ffffff';
     ctx.fillStyle = bg; ctx.fillRect(0, 0, R.W, R.H);
@@ -794,9 +636,8 @@
     // The sky and the moon behind the platform, drifting a little with the camera.
     const sky = heliSky(st); ctx.drawImage(sky, -40 - Math.round(R.hcam.x * 0.06 * R.dpr), 0);
     // The arena: a large tile map (its ground and the walls behind), or the old round platform.
-    const area = s.area || 0, AR = VS.arenaOf(s), last = area === s.waves.length - 1, grid = AR.kind === 'grid';
-    if (grid) R.isoGround(ctx, s, AR);
-    else { const pl = platform(st, area, last, AR), o = R.P(0, 0); ctx.drawImage(pl.c, Math.round(o.x - pl.pw / 2), Math.round(o.y - pl.cy)); }
+    const AR = VS.arenaOf(s);
+    R.isoGround(ctx, s, AR);
     // Warm light from the braziers on the floor, and fog drifting across it.
     fog(ctx, st);
     hazards(ctx, s);
@@ -804,13 +645,12 @@
     guide(ctx, s);
     // Reflections in the glossy floor, then everything upright sorted by depth.
     const units = s.units.slice();
-    if (!grid) for (const u of units) if (u.state !== 'spawn') drawUnit(ctx, s, u, 'reflect');
-    const items = units.map((u) => ({ d: R.P(u.x, u.y).d, u })).concat(grid ? R.isoItems(s, AR) : propsOf(st, area, AR).map((p) => ({ d: R.P(p.x, p.y).d, p })));
+    const items = units.map((u) => ({ d: R.P(u.x, u.y).d, u })).concat(R.isoItems(s, AR));
     if (s.portal) items.push({ d: R.P(s.portal.x, s.portal.y).d - 1, portal: s.portal });
     if (R.entryDoor) items.push({ d: R.P(R.entryDoor.x, R.entryDoor.y).d - 1, portal: R.entryDoor });
     items.sort((a, b) => a.d - b.d);
-    for (const it of items) { if (it.u) drawUnit(ctx, s, it.u); else if (it.portal) drawPortal(ctx, st, it.portal); else if (it.iso) R.isoDraw(ctx, s, AR, it); else drawProp(ctx, st, it.p); }
-    if (grid) R.isoLights(ctx, s, AR);
+    for (const it of items) { if (it.u) drawUnit(ctx, s, it.u); else if (it.portal) drawPortal(ctx, st, it.portal); else if (it.iso) R.isoDraw(ctx, s, AR, it); }
+    R.isoLights(ctx, s, AR);
     // Bolts: a glowing orb with a tail.
     for (const b of s.bolts) {
       const q = R.P(b.x, b.y, 16), t = R.P(b.x - b.vx * 0.12, b.y - b.vy * 0.12, 16);
@@ -839,6 +679,7 @@
     const h = s.hero;
     if (s.slowT > 0) { ctx.fillStyle = 'rgba(140,230,255,0.07)'; ctx.fillRect(0, 0, R.W, R.H); }
     if (h.alive && h.hp / h.maxHp <= s.mods.ldx) vignette(ctx, 0.35 + 0.15 * Math.sin(R.t * 5));
+    if (R.calm) R.flash = Math.min(R.flash, 0.25);
     if (R.flash > 0) { ctx.fillStyle = `rgba(${R.flashCol},${R.flash * 0.45})`; ctx.fillRect(0, 0, R.W, R.H); R.flash = Math.max(0, R.flash - dt * 2.8); }
     impactFrame(ctx, s, R.realDt || dt);
     transitOverlay(ctx, s);

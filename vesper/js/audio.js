@@ -8,6 +8,18 @@
   // music and ambience stream from media elements routed through gain nodes.
   const SFX = ['allout', 'blow_0', 'blow_1', 'blow_2', 'blow_big', 'bolt', 'charge', 'clang_0', 'clang_1', 'horn', 'ko', 'magic', 'quake',
     'slash_0', 'slash_1', 'slash_2', 'step_0', 'step_1', 'step_2', 'swish_0', 'swish_1', 'swish_2', 'thud', 'whoosh'];
+  // Interface sounds (the shared UI pack in assets/sfx): chests, gold, the forge, equipping, level-ups.
+  const UI_SFX = ['chest_open', 'coin_01', 'anvil_01', 'equip_armor_01', 'level_up', 'quest_complete', 'unsheathe_01', 'error_01', 'notify_01'];
+  // Music: each moment asks for its cue; the first track of the cue that is in TRACKS plays. Only
+  // Heartfelt Battle is here now; drop more files into assets/music and list them in TRACKS to give
+  // the title, the map, each act and the guardians their own music (see the README).
+  A.TRACKS = ['heartfelt_battle'];
+  A.CUES = {
+    title: ['vesper_title'], map: ['vesper_map'], scene: ['vesper_story'],
+    act0: ['vesper_act1', 'heartfelt_battle'], act1: ['vesper_act2', 'heartfelt_battle'], act2: ['vesper_act3', 'heartfelt_battle'], act3: ['vesper_act4', 'heartfelt_battle'], act4: ['vesper_act5', 'heartfelt_battle'], act5: ['vesper_act6', 'heartfelt_battle'],
+    boss: ['vesper_boss', 'heartfelt_battle'], endless: ['vesper_endless', 'heartfelt_battle'], daily: ['vesper_daily', 'heartfelt_battle'], result: ['vesper_result'],
+  };
+  A.cue = function (name) { const list = A.CUES[name] || []; A.playMusic(list.find((t) => A.TRACKS.indexOf(t) >= 0) || null); };
   let ac = null, sfxGain = null, musicGain = null, ambGain = null; const buf = {}, live = {};
   function media(src, gain) {
     const a = new Audio(src); a.loop = true; a.preload = 'auto'; a.crossOrigin = 'anonymous';
@@ -24,6 +36,7 @@
     A.setVolume(A.vol);
     // A silent tick unlocks iOS output.
     try { const b = ac.createBuffer(1, 1, 22050), src = ac.createBufferSource(); src.buffer = b; src.connect(ac.destination); src.start(0); } catch (e) { /* fine */ }
+    for (const n of UI_SFX) fetch(ROOT() + 'sfx/' + n + '.mp3').then((r) => r.arrayBuffer()).then((d) => new Promise((ok, no) => ac.decodeAudioData(d, ok, no))).then((b) => { buf[n] = b; }).catch(() => {});
     for (const n of SFX) fetch(ROOT() + 'sfx/fight/' + n + '.mp3').then((r) => r.arrayBuffer()).then((d) => new Promise((ok, no) => ac.decodeAudioData(d, ok, no))).then((b) => { buf[n] = b; }).catch(() => {});
     if (A.pendingMusic) { const m = A.pendingMusic; A.pendingMusic = null; A.playMusic(m); }
     if (A.pendingAmb) { const m = A.pendingAmb; A.pendingAmb = null; A.playAmb(m); }
@@ -87,6 +100,9 @@
         case 'reinforce': A.sfx('horn', 0.7); A.sfx('quake', 0.5); break;
         case 'finisher': A.sfx('blow_big', 1); A.sfx('clang_1', 0.7); break;
         case 'transit': A.sfx('whoosh', 0.9); break;
+        case 'chest': A.sfx('chest_open', 0.8); A.sfx('coin_01', 0.5); break;
+        case 'smash': A.sfx(e.kind === 'barrel' ? 'blow_big' : 'thud', 0.7); break;
+        case 'endlessWave': A.sfx('horn', 0.6); break;
       }
     }
   };

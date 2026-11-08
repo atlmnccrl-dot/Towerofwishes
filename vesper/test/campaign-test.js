@@ -27,7 +27,15 @@ for (const n of P.NODES) {
   const b = P.build(n); let w = 0, T = 0, best = null;
   for (let i = 0; i < runs; i++) {
     const s = S.create(b.stage, { seed: 11 + i * 97, hero, node: b.node, kit: P.kit(p), boons: P.passives(p), gear: useGear ? VS.LOOT.mods(p, hero) : null }); let t = 0;
-    while (!s.result && t < 400) { S.step(s, DT, S.bot(s, skill)); t += DT; }
+    let pt = 0, idle = 0, dealt = 0;
+    while (!s.result && t < 400) {
+      S.step(s, DT, S.bot(s, skill)); t += DT;
+      // Stuck checks: the way on open for 30 s, or foes standing for 30 s without a blow landing on them.
+      if (s.portal && !s.transit) { if ((pt += DT) > 30) { bad(`${n.id} stuck before the portal (seed ${11 + i * 97})`); break; } } else pt = 0;
+      const live = S.foes(s).filter((u) => u.state !== 'spawn').length;
+      if (live && s.stats.dealt === dealt && !s.cine) { if ((idle += DT) > 30) { bad(`${n.id} no blow landed for 30 s with ${live} foes up (seed ${11 + i * 97}) at ${S.foes(s).map((u) => u.key + '@' + Math.round(u.x) + ',' + Math.round(u.y)).join(' ')}`); break; } } else { idle = 0; dealt = s.stats.dealt; }
+    }
+    if (!s.result && t >= 400) bad(`${n.id} timed out (seed ${11 + i * 97})`);
     const r = { win: s.result === 'win', time: s.time, hpFrac: s.hero.hp / s.hero.maxHp, bossHits: s.stats.bossHits, maxCombo: s.stats.maxCombo, kills: 0 };
     if (r.win) { w++; if (!best) best = r; } T += s.time;
   }

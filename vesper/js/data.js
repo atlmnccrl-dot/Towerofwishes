@@ -414,22 +414,22 @@
   D.STAGES = [
     { id: 'gate', arenas: ['court', 'bridge', 'ring'], portal: 'gate', scale: { hp: 1, dmg: 1 }, hour: 'DUSK', name: 'The Black Gate', boss: 'warden',
       waves: [['raider', 'ghoul', 'raider', 'ghoul', '+', 'ghoul', 'raider', 'ghast'], ['ghoul', 'archer', 'ghast', 'archer', 'raider', '+', 'raider', 'ghoul', 'spearman', 'ghoul']], bossWave: ['warden', '+', 'raider', 'raider', 'ghoul'],
-      look: { sky: ['#140d1c', '#3a1622', '#6a2a2a'], moon: 22, moonCol: '#e8a0a0', ground: ['g_flagstone_dark', 'g_flagstone_2', 'g_cobble'], props: ['cdw_gate_arch', 'ruin_pillar', 'fv_tree_dead', 'cdw_pillar', 'monolith_b'], fog: '#3a1a24' } },
+      look: { sky: ['#140d1c', '#3a1622', '#6a2a2a'], moon: 22, moonCol: '#e8a0a0', fog: '#3a1a24' } },
     { id: 'cloister', arenas: ['cross', 'court', 'pit'], portal: 'gate', scale: { hp: 1.1, dmg: 1.1 }, hour: 'THE FIRST HOUR', name: 'Cloister of Frost', boss: 'twins',
       waves: [['knife', 'spearman', 'knife', 'archer', 'raider', '+', 'knife', 'knife', 'hexer', 'spearman'], ['hexer', 'raider', 'spearman', 'raider', 'archer', '+', 'golem', 'knife', 'knife']], bossWave: ['twinA', 'twinB', '+', 'knife', 'knife', 'spearman'],
-      look: { sky: ['#0a1020', '#18283c', '#30485c'], moon: 26, moonCol: '#f0b0b0', ground: ['g_marble_white', 'g_flagstone_1', 'g_stone_floor'], props: ['fv_tree_pine_snow', 'cdw_arched_window', 'statue', 'cd_statue_knight', 'pillar'], fog: '#1a2a3a', snow: true } },
+      look: { sky: ['#0a1020', '#18283c', '#30485c'], moon: 26, moonCol: '#f0b0b0', fog: '#1a2a3a', snow: true } },
     { id: 'stair', arenas: ['bridge', 'cross', 'ring'], portal: 'stairs', scale: { hp: 1.25, dmg: 1.25 }, hour: 'THE SECOND HOUR', name: 'The Umbral Stair', boss: 'umbral',
       waves: [['bone', 'poacher', 'raider', 'bone', '+', 'knife', 'knife', 'poacher', 'archer', 'raider'], ['golem', 'archer', 'hexer', 'raider', '+', 'bone', 'bone', 'spearman', 'hexer']], bossWave: ['umbral', '+', 'knife', 'knife', 'hexer', 'knife'],
-      look: { sky: ['#0c0814', '#221430', '#3a1c40'], moon: 30, moonCol: '#ff8a8a', ground: ['g_flagstone_dark', 'g_slab_0_0', 'g_floor_grate'], props: ['temple', 'shrine_b', 'monolith_a', 'cdw_stained_glass', 'cd_candelabra'], fog: '#2a1430' } },
+      look: { sky: ['#0c0814', '#221430', '#3a1c40'], moon: 30, moonCol: '#ff8a8a', fog: '#2a1430' } },
     { id: 'waste', arenas: ['court', 'pit', 'ring'], portal: 'rift', scale: { hp: 1.3, dmg: 1.25 }, hour: 'THE THIRD HOUR', name: 'The Ashen Waste', boss: 'hunger',
       waves: [['pyre', 'ghast', 'raider', 'pyre', 'ghoul', '+', 'bone', 'golem', 'ghast', 'ghoul', 'ghoul'], ['golem', 'hexer', 'bone', 'raider', '+', 'pyre', 'pyre', 'archer', 'spearman', 'bone']], bossWave: ['hunger', '+', 'ghoul', 'ghoul', 'ghast', 'ghoul'],
-      look: { sky: ['#0e0c10', '#24202a', '#4a3a40'], moon: 34, moonCol: '#ff6060', ground: ['g_dirt_dark', 'g_gravel', 'g_trampled_dirt'], props: ['fv_tree_dead', 'rock_big', 'ruin_stone_a', 'fv_boulder', 'grave_cross'], fog: '#2a2228', ash: true } },
+      look: { sky: ['#0e0c10', '#24202a', '#4a3a40'], moon: 34, moonCol: '#ff6060', fog: '#2a2228', ash: true } },
     { id: 'throat', arenas: ['bridge', 'cross', 'pit'], portal: 'rift', scale: { hp: 1.35, dmg: 1.3 }, hour: 'THE FOURTH HOUR', name: "The Wind's Throat", boss: 'wing',
       waves: [['poacher', 'knife', 'spearman', 'poacher', 'archer', '+', 'knife', 'knife', 'bone', 'golem'], ['golem', 'pyre', 'archer', 'bone', 'spearman', '+', 'hexer', 'poacher', 'raider', 'raider', 'archer']], bossWave: ['wing', '+', 'archer', 'archer', 'poacher'],
-      look: { sky: ['#06080e', '#141c2c', '#2c3448'], moon: 40, moonCol: '#ff4a50', ground: ['g_stone_floor', 'g_gravel', 'g_slab_1_1'], props: ['rock_m1', 'monolith_c', 'ruin_wall', 'rock_dark', 'stone_circle'], fog: '#1a2030', wind: true } },
+      look: { sky: ['#06080e', '#141c2c', '#2c3448'], moon: 40, moonCol: '#ff4a50', fog: '#1a2030', wind: true } },
     { id: 'shadow', arenas: ['bridge', 'ring'], portal: 'stairs', scale: { hp: 1.2, dmg: 1.25 }, hour: 'THE LAST HOUR', name: "The Moon's Shadow", boss: 'firstCut',
       waves: [['golem', 'hexer', 'pyre', 'spearman', 'archer', '+', 'golem', 'knife', 'knife', 'bone', 'hexer', '+', 'pyre', 'archer', 'spearman', 'raider']], bossWave: ['firstCut', '+', 'golem', 'hexer', 'knife', 'knife'],
-      look: { sky: ['#040306', '#0e0610', '#200a14'], moon: 58, moonCol: '#ff2a44', ground: ['g_marble_checker', 'g_flagstone_dark', 'g_slab_0_1'], props: ['altar', 'cd_throne', 'ruin_pillar', 'pillar_broken', 'cdw_pillar'], fog: '#200810', embers: true } },
+      look: { sky: ['#040306', '#0e0610', '#200a14'], moon: 58, moonCol: '#ff2a44', fog: '#200810', embers: true } },
   ];
 
   // ---- Boons: one of three after each won hour ------------------------------------------

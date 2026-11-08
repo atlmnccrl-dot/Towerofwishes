@@ -9,7 +9,7 @@
   // ---- save -----------------------------------------------------------------------------------
   // The profile (progress.js) plus the options. Saves from before the campaign keep their options.
   const PR = VS.PROG, KEY = 'vesper.save.v2', OLD = 'vesper.save.v1';
-  const defOpts = () => ({ music: 1, sfx: 1, shake: 1, auto: false, text: 1, safe: false, diff: 'normal' });
+  const defOpts = () => ({ music: 1, sfx: 1, shake: 1, auto: false, text: 1, safe: false, diff: 'normal', cam: 'normal', nums: true, calm: false, vibe: true, scenes: 'play' });
   const fresh = (opts) => Object.assign(PR.fresh(), { opts: opts || defOpts(), seenLdx: false });
   function load() {
     try { const j = JSON.parse(localStorage.getItem(KEY)); if (j && j.v === 2) return VS.LOOT.migrate(Object.assign(fresh(), j, { opts: Object.assign(defOpts(), j.opts) })); } catch (e) { /* storage blocked */ }
@@ -20,7 +20,7 @@
   M.save = load();
   // Options: sound, the size of all menu text, and the colour-safe cues (blue and orange for the parry
   // and dodge flashes instead of white and red).
-  const applyOpts = () => { const o = M.save.opts; AU.sfxVol = o.sfx; AU.setVolume(o.music); document.documentElement.style.setProperty('--ui-scale', o.text || 1); R.safe = !!o.safe; if (R.kScale !== (o.text || 1)) { R.kScale = o.text || 1; if (R.canvas) R.resize(); } };
+  const applyOpts = () => { const o = M.save.opts; AU.sfxVol = o.sfx; AU.setVolume(o.music); document.documentElement.style.setProperty('--ui-scale', o.text || 1); R.safe = !!o.safe; R.camK = { near: 0.82, far: 1.22 }[o.cam] || 1; R.noNumbers = o.nums === false; R.calm = !!o.calm; if (R.kScale !== (o.text || 1)) { R.kScale = o.text || 1; if (R.canvas) R.resize(); } };
 
   // ---- input --------------------------------------------------------------------------------------
   // PC: left mouse cuts, right mouse is the heavy, the mouse aims. Keys: J cut, K heavy, Q/Shift/L parry, Space dash, E/R moon.
@@ -105,7 +105,7 @@
   const P = () => M.save;
   const hasProgress = () => Object.keys(P().nodes).length > 0;
   function title(confirmNew) {
-    M.go('title'); AU.playMusic(null); AU.playAmb('night');
+    M.go('title'); AU.cue('title'); AU.playAmb('night');
     const p = P(), n = PR.node(PR.nextNode(p));
     U.title({ cont: hasProgress() ? `Level ${p.lvl} · Act ${PR.ACTS[n.act].num}, ${PR.ACTS[n.act].name}` : null, confirmNew,
       onContinue: () => map(),
@@ -117,18 +117,23 @@
     const toast = M.toast; M.toast = null;
     U.settings({ opts: P().opts, focus, confirmReset, toast, onBack: () => { M.write(); back(); },
       set: (k) => {
-        const o = P().opts, idx = { diff: 0, music: 1, sfx: 2, shake: 3, auto: 4, text: 5, safe: 6, export: 7, import: 8, reset: 9 }[k];
-        if (k === 'diff') { const D0 = VS.MODES.DIFF_ORDER; o.diff = D0[(D0.indexOf(o.diff || 'normal') + 1) % D0.length]; }
+        const o = P().opts, cyc = (list, v) => list[(list.indexOf(v) + 1) % list.length];
+        if (k === 'diff') o.diff = cyc(VS.MODES.DIFF_ORDER, o.diff || 'normal');
         if (k === 'text') o.text = o.text >= 1.3 ? 0.9 : o.text >= 1.15 ? 1.3 : o.text >= 1 ? 1.15 : 1;
+        if (k === 'cam') o.cam = cyc(['near', 'normal', 'far'], o.cam || 'normal');
+        if (k === 'scenes') o.scenes = o.scenes === 'skip' ? 'play' : 'skip';
+        if (k === 'nums') o.nums = o.nums === false;
+        if (k === 'calm') o.calm = !o.calm;
+        if (k === 'vibe') o.vibe = o.vibe === false;
         if (k === 'safe') o.safe = !o.safe;
-        if (k === 'export') { exportSave(); return settings(idx, false, back); }
-        if (k === 'import') { importSave(() => settings(idx, false, back)); return; }
+        if (k === 'export') { exportSave(); return settings(k, false, back); }
+        if (k === 'import') { importSave(() => settings(k, false, back)); return; }
         if (k === 'music') o.music = o.music === 1 ? 0.5 : o.music === 0.5 ? 0 : 1;
         if (k === 'sfx') o.sfx = o.sfx ? 0 : 1;
         if (k === 'shake') o.shake = o.shake ? 0 : 1;
         if (k === 'auto') o.auto = !o.auto;
-        if (k === 'reset') { if (!confirmReset) return settings(idx, true, back); M.save = fresh(o); M.write(); return title(); }
-        applyOpts(); M.write(); settings(idx, false, back);
+        if (k === 'reset') { if (!confirmReset) return settings(k, true, back); M.save = fresh(o); M.write(); return title(); }
+        applyOpts(); M.write(); settings(k, false, back);
       } });
   }
   // Saves out of the browser: a file to download (or a code on the clipboard), and back in.
@@ -162,7 +167,7 @@
   // ---- the map hub -------------------------------------------------------------------------------------
   function map(sel) {
     const p = P(); M.mapSel = sel || M.mapSel || PR.nextNode(p);
-    if (M.state !== 'map') { M.go('map'); VS.MAP.open(p, M.mapSel); AU.playMusic(null); AU.playAmb('wind');
+    if (M.state !== 'map') { M.go('map'); VS.MAP.open(p, M.mapSel); AU.cue('map'); AU.playAmb('wind');
       A.loadSets(PR.CHAMPS.flat().map((k) => D.FOES[k].set).filter((id) => !A.hasSet(id))).catch(() => {}); }   // the champions shown on the map
     VS.MAP.sel = M.mapSel; VS.MAP.p = p;
     VS.MAP.onSelect = (id) => { AU.sfx('step_0', 0.5); map(id); };
@@ -187,11 +192,11 @@
       onBack: () => map(), onTab: (t) => gear(t), onSelect: (k) => gear(tab, k),
       onAct: (a, it) => {
         if (a === 'best') { LT.autoEquip(p, p.hero); AU.sfx('clang_1', 0.5); }
-        else if (a === 'equip' && it) { LT.equip(p, p.hero, it.uid); AU.sfx('clang_1', 0.6); }
+        else if (a === 'equip' && it) { LT.equip(p, p.hero, it.uid); AU.sfx('equip_armor_01', 0.7); }
         else if (a === 'unequip' && it) { LT.unequip(p, p.hero, it.slot); AU.sfx('step_1', 0.5); }
-        else if (a === 'upgrade' && it) { if (LT.upgrade(p, it.uid)) AU.sfx('allout', 0.5); else AU.sfx('thud', 0.5); }
-        else if (a === 'salvage' && it) { if (!confirm) return gear(tab, sel, true); LT.salvage(p, it.uid); AU.sfx('clang_0', 0.6); M.write(); return gear(tab); }
-        else if (a === 'buy' && it) { const got = LT.buy(p, act, it.offer); if (got) { AU.sfx('allout', 0.5); M.write(); return gear('gear', 'u' + got.uid); } AU.sfx('thud', 0.5); }
+        else if (a === 'upgrade' && it) { if (LT.upgrade(p, it.uid)) AU.sfx('anvil_01', 0.8); else AU.sfx('error_01', 0.6); }
+        else if (a === 'salvage' && it) { if (!confirm) return gear(tab, sel, true); LT.salvage(p, it.uid); AU.sfx('coin_01', 0.7); M.write(); return gear(tab); }
+        else if (a === 'buy' && it) { const got = LT.buy(p, act, it.offer); if (got) { AU.sfx('coin_01', 0.7); M.write(); return gear('gear', 'u' + got.uid); } AU.sfx('thud', 0.5); }
         M.write(); gear(tab, sel);
       } });
   }
@@ -286,9 +291,11 @@
   // ---- scenes -------------------------------------------------------------------------------------------
   function startScene(stageIdx, def, then) {
     U.hide();
+    // Story scenes off (Settings): straight on to what follows.
+    if (P().opts.scenes === 'skip' && then) return then();
     S.heroKey = P().hero || 'vesper';
     M.scene = { sc: VS.TALE.start(def || S.BEFORE[stageIdx]), stage: stageIdx, then: then || (() => startFight(stageIdx)) };
-    M.go('scene'); AU.playMusic(null); AU.playAmb(stageIdx === 3 || stageIdx === 4 ? 'wind' : 'night');
+    M.go('scene'); AU.cue('scene'); AU.playAmb(stageIdx === 3 || stageIdx === 4 ? 'wind' : 'night');
   }
   function scene(ctx, dt) {
     const m = M.scene;
@@ -322,7 +329,7 @@
     } else if (opts.mode === 'endless') { s.goal = { reach: 'Survive as long as you can', boss: 'Survive as long as you can' }; f0.banner = { text: 'ENDLESS', sub: AR.name + '  ·  BEST WAVE ' + ((p.endless && p.endless.best) || 0), t: -0.4, col: '#ffffff' }; }
     else if (opts.mode === 'daily') { s.goal = { reach: 'Win the daily challenge', boss: 'Win the daily challenge' }; f0.banner = { text: b.name.toUpperCase(), sub: b.twists.map((t) => t.toUpperCase()).join('  ·  ') + '  ·  ' + AR.name, t: -0.4, col: '#ffd060' }; }
     else f0.banner = { text: AR.name, sub: 'AREA 1 / ' + s.waves.length, t: -0.4, col: '#ffffff' };
-    M.go('fight'); AU.playAmb(null); AU.playMusic('heartfelt_battle');
+    M.go('fight'); AU.playAmb(null); AU.cue(opts.mode || (n && (n.type === 'boss' || n.type === 'echo') ? 'boss' : 'act' + stageIdx));
   }
   function gather(f) {
     const s = f.s, p = M.pressed;
@@ -384,6 +391,7 @@
         R.consume(s); AU.events(s.events);
         for (const e of s.events) {
           if (e.type === 'boss') { f.card = e.keys; f.cardT = 0; }
+          if (P().opts.vibe !== false && navigator.vibrate) { const v = e.type === 'hurt' ? (e.big ? 60 : 30) : e.type === 'kill' && e.boss ? 160 : e.type === 'parry' ? 18 : e.type === 'phase' || e.type === 'landed' && e.boss ? 90 : 0; if (v) try { navigator.vibrate(v); } catch (x) { /* not allowed */ } }
           if (e.type === 'art') { AU.duck(true); if (e.kind === 'ldx') P().seenLdx = true; }
           if (e.type === 'artEnd') { AU.duck(false); if (f.theatre) f.theatreEnd = 2.2; }
           if (e.type === 'portal') f.banner = { text: 'THE WAY OPENS', sub: 'GO THROUGH THE PORTAL', t: 0, col: '#ffffff', low: true };
@@ -432,7 +440,7 @@
     const res = PR.finish(p, n.id, r); afterFight(p, s, win, res); M.write();
     const stats = [[s.time.toFixed(1) + 's', 'Time'], [s.stats.maxCombo, 'Best combo'], [s.kills || 0, 'Kills'], [s.stats.parries, 'Parries']];
     const showResult = () => {
-      M.go('result'); M.result = { stage: f.stage }; AU.playMusic(null); AU.playAmb('night');
+      M.go('result'); M.result = { stage: f.stage }; AU.cue('result'); AU.playAmb('night');
       const next = PR.nextNode(p);
       const btns = win ? [{ label: 'Continue', sub: n.type === 'trial' && p.sp ? 'Then open Skills: you have a skill point' : '', act: () => map(next) }, { label: 'Fight again', act: () => startNode(n.id) }]
         : [{ label: 'Try again', act: () => startNode(n.id) }].concat(p.sp ? [{ label: 'Skill tree', sub: p.sp + ' skill point' + (p.sp > 1 ? 's' : '') + ' to spend', act: () => skills() }] : [], [{ label: 'Back to the map', act: () => map(n.id) }]);
@@ -466,7 +474,7 @@
     if (f.mode === 'endless') { const cleared = Math.max(0, s.wave + (VS.sim.foes(s).length ? 0 : 1)); res = MD.finishEndless(p, cleared, Math.random); name = 'Endless · wave ' + cleared + (res.best ? ' · new best' : ' · best ' + p.endless.best); }
     else { res = MD.finishDaily(p, f.build, { win, time: s.time }, Math.random); name = f.build.name; if (!win) tip = 'Twists today: ' + f.build.twists.map((t) => MD.TWIST_TEXT[t]).join('; ') + '.'; else if (!res.first) tip = 'Already won today: no second reward, but your best time is kept.'; }
     afterFight(p, s, win || f.mode === 'endless', res); M.write();
-    M.go('result'); M.result = { stage: f.stage }; AU.playMusic(null); AU.playAmb('night');
+    M.go('result'); M.result = { stage: f.stage }; AU.cue('result'); AU.playAmb('night');
     const stats = [[s.time.toFixed(1) + 's', 'Time'], [s.stats.maxCombo, 'Best combo'], [s.kills || 0, 'Kills'], [s.stats.parries, 'Parries']];
     U.result({ p, node: { name }, title: f.mode === 'endless' ? 'Run over' : null, win: f.mode === 'endless' ? true : win, r: res, stats, tip, buttons: [{ label: f.mode === 'endless' ? 'Go again' : 'Try again', act: () => startMode(f.mode) }, { label: 'Back to the map', act: () => map() }] });
   }

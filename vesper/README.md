@@ -92,6 +92,56 @@ order). With the bot at a good player's skill: Act I about 100%, the middle acts
 the last acts 50 to 90%, the post-game harder; about 80% overall for every hero. The First Cut:
 50 to 88% depending on the hero. Knobs: `P.TUNE` and the per-node adjustments in `progress.js`.
 
+## Loot and gear
+
+Gold and items (`js/loot.js`). Three slots per hero (weapon, armour, charm), four rarities (common,
+magic, rare, legendary with a name and fixed affixes), item level from the node's depth. Main stats:
+damage (weapon), health (armour), moon gain (charm); affixes: armour, life steal, cooldowns, dodge
+distance, parry window, kill healing, gold find. Each hero wears their own set; it feeds the fight's
+numbers. Drops: gold from every win (more for the first, elites and guardians, plus a little per
+barrel or crate smashed), an item from every guardian, often from elites and challenges, sometimes
+from battles, one per chest opened (chests sit off the way through, glinting; iron and gold ones hold
+better), and another for two new stars. The Gear screen (map bar, or G) compares an item against
+what is worn, equips the best, upgrades to +5 at the forge and salvages for gold; the Blacksmith
+sells four pieces that restock after each win. A full bag (48) sells new finds.
+
+## Guardians' lairs
+
+Each guardian fights in a hand-built lair (`lair_*` in `js/arenas.js`) with hazards that strike on a
+rhythm and hurt foes as well: the Gatehouse (fire vents between pillars, in turn), the Twin Nave
+(frost pools that slow, ice bursts), the Umbral Dais (four voids cut into a round dais, shadow
+strikes), the Maw (a ring round the Hunger's pool, poison pools, rock bursts), the Eyrie (wind vents
+turning round a cross among the spires) and the Moon's Altar (a ring of fire vents round the altar,
+sweeping faster in the First Cut's second phase). Orange rings warn of lair hazards.
+
+## After the story
+
+`js/modes.js`, from the Modes button on the map:
+- **Difficulty** (Settings): Story, Normal, Hard (+30% foes, +25% rewards), Nightmare (+60%, elites
+  lead every wave, +50% rewards).
+- **New Game+** after the ending: the climb again from the first battle with level, skills, heroes,
+  gear and gold kept; foes +35% health and +30% damage per level, gear 10 item levels better.
+- **Endless**: waves on one large map from your two highest acts, a champion every fifth and a
+  guardian every tenth, 15% health back between waves; gold and experience per wave, an item every five.
+- **Daily challenge**: the same fight for everyone on a day (an act, two twists from glass, elites,
+  no healing, a time limit or no moon art, three areas and a champion); the first win of the day pays
+  gold and a rare item.
+- **Achievements** (26) and **mastery**: every win adds to the hero's mastery, up to 10 (+2% damage each).
+
+## Controls and options
+
+Keyboard and mouse, touch, or a gamepad (sticks move and aim; A cut, X heavy, B dash, Y parry, LB/RB
+skills, triggers the moon art, Start pauses; the d-pad and A/B work every menu and the map).
+Settings: difficulty, music, sound, screen shake, auto battle, text size (90–130%), colour-safe cues
+(blue parry and orange dodge warnings instead of white and red), save export (a file and a copied
+code) and import.
+
+## Release
+
+`python3 -I vesper/tools_build.py` builds `dist/vesper-web` (a static site that installs as an app)
+and a zip for itch.io. What is left before selling it (licences, music, store pages, playtesting) is
+in [RELEASE.md](RELEASE.md).
+
 ## The armies
 
 Every one of the 200 random-cast characters (Fantasy Character Creator parts, 19 batches, sets
@@ -261,6 +311,8 @@ Risen Dead (Black Gate), Sun Wardens (Umbral Stair), Dune Reavers, Sand Imps and
 | `js/mapview.js` | The campaign map: the Spire, act bands, paths, nodes, guardians, input |
 | `js/story.js` | The story: shot lists with captions, each hour's goal, the ending. Pure |
 | `js/arenas.js` | The large tile maps: layouts, themes, walls, props, breakables; walking (clamp, line of sight, flow-field steering). Pure |
+| `js/loot.js` | Gold, items, rarities, affixes, drops, the blacksmith, upgrades, what gear does in a fight. Pure |
+| `js/modes.js` | Difficulty, New Game+, the endless survival, the daily challenge, achievements, mastery. Pure |
 | `js/sim.js` | The fight simulation on the tile maps (cones and circles, waves, parry, dodge, dash-cut, poise, breakables, the moon arts) and a bot. Pure, runs in Node |
 | `js/assets.js` | Loads and draws the cast (plain, flashed, silhouette, hard grey), effects and tiles |
 | `js/isoview.js` | Draws the tile maps: the baked ground, the walls behind, props, torches and breakables sorted with the fighters |

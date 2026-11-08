@@ -19,8 +19,6 @@ for (const [k, f] of Object.entries(D.FOES)) {
   for (const a of f.atks) { if (a.bolt && !fx[a.bolt.fx]) bad(`${k} bolt fx ${a.bolt.fx}`); if (a.bolt && a.bolt.burstFx && !fx[a.bolt.burstFx]) bad(`${k} burst fx`); for (const z of [a.zone, a.rain, a.quake]) if (z && z.fx && !fx[z.fx]) bad(`${k} fx ${z.fx}`); if (a.summon && !D.FOES[a.summon.key]) bad(`${k} summons nothing`); if (a.next != null && !f.atks[a.next]) bad(`${k} chains to nothing`); }
 }
 for (const st of D.STAGES) {
-  for (const t of st.look.ground) if (!tiles[t]) bad(`${st.id} ground ${t}`);
-  for (const t of st.look.props) if (!tiles[t]) bad(`${st.id} prop ${t}`);
   for (const w of st.waves.concat([st.bossWave])) for (const k of w) if (k !== '+' && !D.FOES[k]) bad(`${st.id} foe ${k}`);
   if (!D.FOES[st.bossWave[0]].boss) bad(`${st.id} boss wave does not open with its boss`);
 }

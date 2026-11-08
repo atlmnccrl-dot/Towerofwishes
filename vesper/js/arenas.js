@@ -268,6 +268,8 @@
   }
 
   // ---- walking ---------------------------------------------------------------------------------
+  // What stands in the way: unbroken props, and chests even once opened.
+  const blocks = (o) => !o.broken || o.kind === 'chest';
   const ok = (A, cx, cy) => cx >= 0 && cy >= 0 && cx < A.w && cy < A.h && A.cells[cy * A.w + cx] === FLOOR;
   // The nearest point to (x, y) at least m inside the floor and m clear of the solid props.
   function clamp(A, x, y, m) {
@@ -303,7 +305,7 @@
     }
     const list = A.byCell[cy * A.w + cx];
     if (list) for (const o of list) {
-      if (o.broken && o.kind !== 'chest') continue;
+      if (!blocks(o)) continue;
       const dx = x - o.x, dy = y - o.y, d = Math.hypot(dx, dy), rr = o.r + Math.max(0, m);
       if (d < rr) { if (d < 0.01) { x = o.x + rr; } else { x = o.x + dx / d * rr; y = o.y + dy / d * rr; } }
     }
@@ -316,7 +318,7 @@
     for (let i = 1; i < n; i++) {
       const x = ax + (bx - ax) * i / n, y = ay + (by - ay) * i / n, cx = Math.floor((x - A.x0) / T), cy = Math.floor((y - A.y0) / T);
       if (!ok(A, cx, cy)) return false;
-      const list = A.byCell[cy * A.w + cx]; if (list) for (const o of list) if (!o.broken && Math.hypot(x - o.x, y - o.y) < o.r + pad) return false;
+      const list = A.byCell[cy * A.w + cx]; if (list) for (const o of list) if (blocks(o) && Math.hypot(x - o.x, y - o.y) < o.r + pad) return false;
     }
     return true;
   }
@@ -336,7 +338,20 @@
     return (A._flow[tc] = dist);
   }
   // Which way to go from (x, y) to reach (tx, ty): straight when the way is clear, else round by the field.
+  // Which way to go, then slid round any prop right in front (so nobody pushes into a barrel or a chest).
   function steer(A, x, y, tx, ty) {
+    let [vx, vy] = route(A, x, y, tx, ty);
+    const cx = Math.floor((x - A.x0) / T), cy = Math.floor((y - A.y0) / T), list = cx >= 0 && cy >= 0 && cx < A.w && cy < A.h ? A.byCell[cy * A.w + cx] : null;
+    if (list) for (const o of list) {
+      if (!blocks(o) || Math.hypot(o.x - tx, o.y - ty) < o.r + 4) continue;
+      const ox = o.x - x, oy = o.y - y, od = Math.hypot(ox, oy) || 1, reach = o.r + 26;
+      if (od > reach || (ox * vx + oy * vy) <= 0) continue;
+      const nx = ox / od, ny = oy / od, side = (vx * -ny + vy * nx) >= 0 ? 1 : -1, k = (reach - od) / reach;
+      vx = vx - nx * k * 1.2 + -ny * side * k * 1.4; vy = vy - ny * k * 1.2 + nx * side * k * 1.4;
+    }
+    const n = Math.hypot(vx, vy) || 1; return [vx / n, vy / n];
+  }
+  function route(A, x, y, tx, ty) {
     const dx = tx - x, dy = ty - y, d = Math.hypot(dx, dy) || 1;
     if (d < 30 || los(A, x, y, tx, ty, 10)) return [dx / d, dy / d];
     const tcx = Math.floor((tx - A.x0) / T), tcy = Math.floor((ty - A.y0) / T), cx = Math.floor((x - A.x0) / T), cy = Math.floor((y - A.y0) / T);

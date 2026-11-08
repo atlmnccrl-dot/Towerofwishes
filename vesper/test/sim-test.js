@@ -19,6 +19,8 @@ function play(stage, skill, seed, boons) {
       if (u.state !== 'spawn' && !s.transit && !(VS.arenaOf(s).kind === 'grid' ? VS.ARENA.onFloor(VS.arenaOf(s), u.x, u.y) : VS.inside(VS.arenaOf(s), u.x, u.y, -0.5))) { bad(`out of arena stage ${stage} area ${s.area} ${u.key} ${u.x.toFixed(1)},${u.y.toFixed(1)}`); return { result: 'out', t }; }
     }
     if (!isFinite(s.moon) || s.moon < 0 || s.moon > 100) bad('moon ' + s.moon);
+    // Stuck: the way on open for 30 s without the hero getting through.
+    if (s.portal && !s.transit) { s.__pt = (s.__pt || 0) + DT; if (s.__pt > 30) { bad(`stuck before the portal stage ${stage} area ${s.area} seed ${seed} hero ${s.hero.x.toFixed(0)},${s.hero.y.toFixed(0)}`); return { result: 'stuck', t }; } } else s.__pt = 0;
   }
   if (!s.result) bad(`timeout stage ${stage} skill ${skill} seed ${seed}`);
   return { result: s.result || 'timeout', t, st: s.stats, hp: s.hero.hp / s.hero.maxHp };

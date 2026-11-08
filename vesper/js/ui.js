@@ -46,33 +46,32 @@
     const el = U.show('title', `<div class="title-col"><header class="logo"><h1>VESPER</h1><p>A last ditch effort</p></header>${buttons(items)}</div>`, items);
     if (o.confirmNew) { const b = el.querySelectorAll('.btn')[o.cont ? 1 : 0]; if (b) b.focus({ preventScroll: true }); }
   };
+  // Settings in four groups; the focused row stays focused after a change (o.focus is its key).
   U.settings = function (o) {
-    const v = o.opts;
-    const DF = VS.MODES.DIFF[v.diff || 'normal'];
-    const items = [
-      { label: 'Difficulty', sub: DF.name, act: () => o.set('diff') },
-      { label: 'Music', sub: v.music ? (v.music < 1 ? 'Low' : 'On') : 'Off', act: () => o.set('music') },
-      { label: 'Sound effects', sub: v.sfx ? 'On' : 'Off', act: () => o.set('sfx') },
-      { label: 'Screen shake', sub: v.shake ? 'On' : 'Off', act: () => o.set('shake') },
-      { label: 'Auto battle', sub: v.auto ? 'On' : 'Off', act: () => o.set('auto') },
-      { label: 'Text size', sub: Math.round((v.text || 1) * 100) + '%', act: () => o.set('text') },
-      { label: 'Colour-safe cues', sub: v.safe ? 'On · blue parry, orange dodge' : 'Off', act: () => o.set('safe') },
-      { label: 'Export save', sub: 'Download a file and copy the code', act: () => o.set('export') },
-      { label: 'Import save', sub: 'Load a save file', act: () => o.set('import') },
-      { label: 'Reset progress', sub: o.confirmReset ? 'Press again to erase your climb' : 'Erase levels, skills and the map', act: () => o.set('reset'), cls: o.confirmReset ? 'danger' : '' },
-      { label: 'Back', act: o.onBack }];
-    const el = U.show('settings', `<div class="panel"><h2>Settings</h2>${buttons(items, 'rows')}<p class="note">${esc(DF.name)}: ${esc(DF.desc)} Auto battle lets your hero fight alone; any button you press still works. Saves live in this browser: export one to keep it safe or move it to another device. A gamepad works everywhere: A cut, X heavy, B dash, Y parry, LB/RB skills, triggers moon art.</p>${o.toast ? `<p class="note" style="color:var(--gold)">${esc(o.toast)}</p>` : ''}</div>`, items, { back: o.onBack });
-    if (o.focus != null) { const b = el.querySelectorAll('.btn')[o.focus]; if (b) b.focus({ preventScroll: true }); }
+    const v = o.opts, DF = VS.MODES.DIFF[v.diff || 'normal'], onoff = (x) => (x ? 'On' : 'Off');
+    const groups = [
+      ['Game', [['diff', 'Difficulty', DF.name], ['auto', 'Auto battle', onoff(v.auto)], ['scenes', 'Story scenes', v.scenes === 'skip' ? 'Skip' : 'Play']]],
+      ['Display', [['cam', 'Camera', { near: 'Near', far: 'Far' }[v.cam] || 'Normal'], ['text', 'Text size', Math.round((v.text || 1) * 100) + '%'], ['nums', 'Damage numbers', onoff(v.nums !== false)],
+        ['shake', 'Screen shake', onoff(v.shake)], ['calm', 'Reduce flashing', v.calm ? 'On · no impact frames or white flashes' : 'Off'], ['safe', 'Colour-safe cues', v.safe ? 'On · blue parry, orange dodge' : 'Off']]],
+      ['Sound', [['music', 'Music', v.music ? (v.music < 1 ? 'Low' : 'On') : 'Off'], ['sfx', 'Sound effects', onoff(v.sfx)], ['vibe', 'Vibration', v.vibe === false ? 'Off' : 'On · phones that support it']]],
+      ['Save', [['export', 'Export save', 'Download a file and copy the code'], ['import', 'Import save', 'Load a save file'], ['reset', 'Reset progress', o.confirmReset ? 'Press again to erase your climb' : 'Erase levels, skills, gear and the map']]]];
+    let i = 0; const keys = [];
+    const html = groups.map(([g, rows]) => `<p class="np-h set-h">${g}</p><nav class="menu rows">` + rows.map(([k, label, sub]) => { keys.push(k); return `<button class="btn${k === 'reset' && o.confirmReset ? ' danger' : ''}" data-i="${i++}" type="button"><span class="btn-label">${esc(label)}</span><span class="btn-sub">${esc(sub)}</span></button>`; }).join('') + '</nav>').join('')
+      + `<nav class="menu rows"><button class="btn" data-i="${i}" type="button"><span class="btn-label">Back</span></button></nav>`;
+    const items = keys.map((k) => ({ act: () => o.set(k) })).concat([{ act: o.onBack }]);
+    const el = U.show('settings', `<div class="panel"><h2>Settings</h2>${html}<p class="note">${esc(DF.name)}: ${esc(DF.desc)} Saves live in this browser: export one to keep it safe or move it to another device. A gamepad works everywhere: A cut, X heavy, B dash, Y parry, LB/RB skills, triggers moon art.</p>${o.toast ? `<p class="note" style="color:var(--gold)">${esc(o.toast)}</p>` : ''}</div>`, items, { back: o.onBack });
+    if (o.focus != null) { const b = el.querySelectorAll('.btn')[keys.indexOf(o.focus)]; if (b) b.focus({ preventScroll: true }); }
   };
   U.credits = function (o) {
     const items = [{ label: 'Back', act: o.onBack }];
     U.show('credits', `<div class="panel"><h2>Credits</h2><dl class="credits">
       <dt>Characters</dt><dd>Character Creator 2D Fantasy (SmallScaleInt)</dd>
       <dt>Effects</dt><dd>Pixel VFX Essentials; KILN FX Free Sampler; Magic Spells VFX Lite by Willosuna; FX packs 6 and 13</dd>
+      <dt>Arenas</dt><dd>2D Desert Fantasy and 2D Isometric Fantasy tile sets, with their characters and animations</dd>
       <dt>Tiles</dt><dd>Pixel Art Top Down - Basic (Cainos); TopDownFantasy Forest; reodesuxz tilesets; EPIC RPG World; Dark World</dd>
       <dt>Fonts</dt><dd>Chakra Petch and Barlow (SIL Open Font License); Adventurer by Brian J Smith (CC BY 3.0)</dd>
       <dt>Music</dt><dd>"Heartfelt Battle", OpenGameArt.org (CC0)</dd>
-      <dt>Sound</dt><dd>Fight sounds and ambience synthesised for these games</dd></dl>${buttons(items)}</div>`, items, { back: o.onBack });
+      <dt>Sound</dt><dd>Fight sounds and ambience synthesised for these games; interface sounds from the shared UI pack</dd></dl>${buttons(items)}</div>`, items, { back: o.onBack });
   };
   U.boon = function (o) {
     const st = o.stats, items = o.boons.map((b) => ({ label: b.name, sub: b.desc, act: () => o.pick(b) }));
@@ -210,6 +209,9 @@
     setTimeout(() => { const i = el.querySelector('.xpbar i'); if (i) i.style.width = i.dataset.to + '%'; }, 250);
     el.querySelectorAll('.unlock-card canvas').forEach((c) => figure(c, c.dataset.set));
     el.querySelectorAll('.loot-it canvas').forEach((c) => { const it = r.loot.items.find((x) => x.uid === +c.dataset.uid); if (it) U.itemIcon(c, it); });
+    // The payout, heard: gold, a find, a level, an achievement.
+    const au = VS.audio; if (r.loot && r.loot.gold) setTimeout(() => au.sfx('coin_01', 0.6), 350); if (r.loot && r.loot.items.length) setTimeout(() => au.sfx('chest_open', 0.7), 700);
+    if (r.ups) setTimeout(() => au.sfx('level_up', 0.8), 1000); if (r.ach && r.ach.length) setTimeout(() => au.sfx('quest_complete', 0.8), 1300);
   };
   // ---- modes ---------------------------------------------------------------------------------------------
   U.modes = function (o) {

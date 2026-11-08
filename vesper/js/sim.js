@@ -920,7 +920,9 @@
     if (can.heavy && foes(s).filter((f) => f.state !== 'spawn' && dist(f, h) < 40).length >= 2 && r() < 0.05) { inp.heavy = true; return inp; }
     const H = s.heroDef, d = dist(o, h), want = H.ranged ? 95 : 18 + o.rad;
     if (H.skills) for (let i = 0; i < 2; i++) if (can['skill' + (i + 1)] && s.cds[i] <= 0 && d < 130 && r() < 0.03) { inp['s' + (i + 1)] = true; return inp; }
-    if (d > want + 4) { const st = VS.steer(arenaOf(s), h.x, h.y, o.x, o.y); inp.mx = st[0]; inp.my = st[1]; } else if (H.ranged && d < want - 25) { inp.mx = -(o.x - h.x) / d; inp.my = -(o.y - h.y) / d; }
+    // A ranged hero with a pillar or a rock in the way walks round it instead of shooting the stone.
+    const A0 = arenaOf(s), clear = !H.ranged || A0.kind !== 'grid' || AR.los(A0, h.x, h.y, o.x, o.y, 4);
+    if (d > want + 4 || !clear) { const st = VS.steer(A0, h.x, h.y, o.x, o.y); inp.mx = st[0]; inp.my = st[1]; if (!clear) return inp; } else if (H.ranged && d < want - 25) { inp.mx = -(o.x - h.x) / d; inp.my = -(o.y - h.y) / d; }
     if (H.ranged ? d <= 230 : d <= 26 + o.rad) { if (!H.ranged) { inp.mx = 0; inp.my = 0; } else inp.aim = Math.atan2(o.y - h.y, o.x - h.x); inp.atk = true; }
     return inp;
   }
