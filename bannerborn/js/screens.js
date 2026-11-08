@@ -1,4 +1,4 @@
-// Bannerborn — every menu screen: shell, camp, campaign, heroes, hero, recruit, team, forge, shop, results, story.
+// Bannerborn — every menu screen: shell, camp, campaign, heroes, hero, recruit, team, forge, shop, results.
 (function () {
   const BB = window.BB;
   const UI = BB.UI = {};
@@ -174,36 +174,7 @@
   };
 
 
-  UI.story = function (lines, done) {
-    if (!lines || !lines.length || (BB.save && BB.save.settings.skipStory)) { done && done(); return; }
-    let i = 0;
-    const card = document.querySelector('#story .card');
-    const cv = document.querySelector('#story canvas'), g = cv.getContext('2d');
-    const prev = UI.current;
-    const show = () => {
-      const [who, text] = lines[i];
-      g.clearRect(0, 0, 78, 78);
-      let name = '', col = '#e8c66a';
-      if (who === 'narr') { cv.style.display = 'none'; }
-      else {
-        cv.style.display = '';
-        let hero = null;
-        if (who === 'captain') hero = BB.save.heroes.find((h) => h.captain);
-        else if (BB.LEGENDS[who]) hero = BB.save.heroes.find((h) => h.legend === who) || BB.newHero({ legend: who });
-        if (hero) { g.drawImage(BB.portrait(hero, 78), 0, 0); name = hero.name; col = BB.heroColor(hero); }
-      }
-      card.querySelector('.who').textContent = name; card.querySelector('.who').style.color = col;
-      const say = card.querySelector('.say'); say.textContent = text; say.classList.toggle('narr', who === 'narr');
-    };
-    show();
-    document.querySelectorAll('.screen').forEach((s) => { if (s.id === 'story') s.classList.add('on'); });
-    const s = $('story');
-    s.onclick = () => {
-      BB.audioUnlock(); BB.sfx('click');
-      i++;
-      if (i >= lines.length) { s.classList.remove('on'); s.onclick = null; done && done(); } else show();
-    };
-  };
+
 
 
   // ---------------------------------------------------------------- hero cards, calling icons, full-body art
@@ -517,7 +488,7 @@
     }
     const leg = Object.keys(BB.LEGENDS).filter((id) => !S.heroes.some((h) => h.legend === id) && ok(BB.LEGENDS[id].calling));
     if (leg.length) {
-      box.appendChild(el('div', 'sect', '<span style="color:var(--r3)">Legends</span> <small>join through the story</small>'));
+      box.appendChild(el('div', 'sect', '<span style="color:var(--r3)">Legends</span> <small>join as you clear their stages</small>'));
       const g = el('div', 'hcards');
       for (const id of leg) {
         const st = BB.MISSIONS.find((m) => m.legend === id);

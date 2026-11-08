@@ -438,7 +438,7 @@
       banner: { name: 'The Last Banner', color: BB.BANNER_COLORS[0], sigil: 'crown', trim: '#e8c66a' },
       heroes: [cap], formation: { front: [cap.id, null], back: [null, null, null] }, inventory: [],
       cleared: {}, seen: {}, idleT: now, shop: null, leader: cap.id,
-      settings: { music: 0.5, sfx: 0.8, shake: true, speed: 1, auto: false, dmgNums: true, skipStory: false }, stats: { kills: 0, gates: 0 }, quests: {},
+      settings: { music: 0.5, sfx: 0.8, shake: true, speed: 1, auto: false, dmgNums: true }, stats: { kills: 0, gates: 0 }, quests: {},
     };
   };
 

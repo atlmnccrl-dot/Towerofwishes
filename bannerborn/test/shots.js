@@ -1,4 +1,4 @@
-// Headless playthrough: title → new game → story → camp → campaign → team → battle (ultimate, auto) → results
+// Headless playthrough: title → new game → camp → campaign → team → battle (ultimate, auto) → results
 // → heroes → hero → recruit (reveal) → team → forge → shop → settings. Fails on console errors.
 // usage: NODE_PATH=$(npm root -g) node test/shots.js /tmp/bb-shots [width height]
 const { chromium } = require('playwright');
@@ -21,14 +21,12 @@ require('fs').mkdirSync(out, { recursive: true });
   await p.waitForFunction(() => window.BB && BB.UI && BB.UI.current === 'title', null, { timeout: 30000 });
   await wait(1200); await shot('01-title');
   await tap('#bPlay');
-  await wait(400); await shot('02-story');
-  for (let i = 0; i < 20 && await p.evaluate(() => document.getElementById('story').classList.contains('on')); i++) await tap('#story');
+  await wait(400);
   await p.waitForFunction(() => BB.UI.current === 'home', null, { timeout: 15000 });
   await wait(1500); await shot('03-camp');
   await tap('#bContinue'); await wait(500); await shot('04-campaign');
   await tap('#stageCard .btn.xl'); await wait(400); await shot('05-team-prebattle');
   await p.click('#teamTop .btn.xl');
-  for (let i = 0; i < 20 && await p.evaluate(() => document.getElementById('story').classList.contains('on')); i++) await tap('#story');
   await p.waitForFunction(() => BB.UI.current === 'hud', null, { timeout: 20000 });
   await wait(600); await shot('06-battle-intro');
   await wait(3500); await shot('07-battle');
@@ -46,7 +44,6 @@ require('fs').mkdirSync(out, { recursive: true });
   if (!/victory/i.test(res)) errs.push('results: no victory: ' + res.slice(0, 120));
   // Camp
   await p.click('#resBody .btn.dark');
-  for (let i = 0; i < 20 && await p.evaluate(() => document.getElementById('story').classList.contains('on')); i++) await tap('#story');
   await p.waitForFunction(() => BB.UI.current === 'home', null, { timeout: 15000 });
   // give resources so every screen shows its buttons
   await p.evaluate(() => { const S = BB.save; S.gold += 20000; S.crystals += 2000; S.sigils += 20; for (let i = 0; i < 6; i++) S.inventory.push(BB.makeItem(BB.rng(i + 1), BB.SLOTS[i % 4], 3, i % 4, i % 4 === 0 ? 'sword' : undefined)); BB.UI.refreshTop(); BB.UI.renderHome(); });
@@ -87,7 +84,6 @@ require('fs').mkdirSync(out, { recursive: true });
   await tap('#bSpoils'); await wait(300);
   // a defeat: results offer a retry
   await p.evaluate(() => BB.deploy(1));
-  for (let i = 0; i < 20 && await p.evaluate(() => document.getElementById('story').classList.contains('on')); i++) await tap('#story');
   await p.waitForFunction(() => BB.UI.current === 'hud', null, { timeout: 20000 });
   await wait(3500);
   await tap('#bPause'); await shot('23-pause');

@@ -29,7 +29,7 @@ A hero-collector RPG: you build the team, the team fights.
    | Epic | chapter 2 (the Sunscar) cleared | ◆ 600 |
    | Legendary | chapter 3 (Aldmere) cleared | ◆ 1000 |
 
-   Six **legends** join through the story (Sera Nightveil 1-4, Ahmos 2-3, Kestrel 2-5, Brenna Redmane 3-1,
+   Six **legends** join the first time you clear their stage (Sera Nightveil 1-4, Ahmos 2-3, Kestrel 2-5, Brenna Redmane 3-1,
    Silas Grey 3-4, Talia Sunblade 4-1). Recruiting plays a summoning: energy gathers into a gate, the gate climbs
    through the rarity colours (blue, purple, gold) with flashes and shockwaves, bursts, and the hero steps out of the
    light as a silhouette that fills with colour; stars land one by one. Tap to skip to the burst.
@@ -72,14 +72,17 @@ Losing costs nothing: level up, forge, change the formation and fight again.
 | Shadowblade | Assassin | **Shadowstep** — reappear behind a foe, sure critical |
 | Lancer | Skirmisher | **Impaling Charge** — spear everything in a line |
 
-Settings: music, effects, screen shake, damage numbers, skip story scenes, erase save.
+Settings: music, effects, screen shake, damage numbers, erase save.
+
+There are no dialogue scenes: the title leads straight to camp and a stage straight into battle (each battle opens
+with a short cinematic stage title).
 
 ## Code
 
 | File | Role |
 |---|---|
 | `index.html` | page, styles, all screens and HUD markup |
-| `js/data.js` | callings, legends, foes, gear, perks, bonds, buildings, missions, story. Pure |
+| `js/data.js` | callings, legends, foes, gear, bonds, chapters and stages. Pure |
 | `js/rules.js` | heroes, stats, levels and stars, gear and forge, formation, tiers and recruiting, rewards, spoils, shop, goals, save. Pure (runs in Node) |
 | `js/assets.js` | atlas loading, recolouring (dyes, skin, effect hues), paper-doll drawing, portraits |
 | `js/world.js` | isometric projection, procedural maps per layout, painted ground, collisions, A* pathing |
@@ -87,7 +90,7 @@ Settings: music, effects, screen shake, damage numbers, skip story scenes, erase
 | `js/audio.js` | synthesised sound effects and a procedural war-drum score |
 | `js/aura.js` | what gear and skills look like on a hero: gear glow, enchant particles, capstone marks (stateless) |
 | `js/heroui.js` | the hero screen: canvas-drawn stage, gear sockets and picker, attributes, skill tree, its own hit-testing |
-| `js/screens.js` | every menu screen: top bar and tabs, camp, campaign, heroes, hero, recruit and reveal, team, forge, shop, goals, results, story |
+| `js/screens.js` | every menu screen: top bar and tabs, camp, campaign, heroes, hero, recruit and reveal, team, forge, shop, goals, results |
 | `js/main.js` | boot, loop, input, camp and title scenes, battle HUD, deploy → rewards, saving |
 | `tools/pack.py` | packs the raw asset batches into trimmed atlases |
 | `test/` | Node tests and headless-browser screenshot runs |
@@ -122,7 +125,7 @@ LAG=4 node test/sim-node.js all 2          # same, heroes four levels below the 
 NOULT=1 node test/sim-node.js all 4        # same, nobody casts ultimates
 node test/path-metrics.js                  # movement quality: running in place, stuck units, facing flicker, march spread
 node test/teamwork.js                      # team roles: archers behind shields, flanks and backstabs, stalkers on the back line, peeling
-NODE_PATH=$(npm root -g) node test/shots.js /tmp/bb-shots            # title → story → camp → campaign → team → battle → results → every tab
+NODE_PATH=$(npm root -g) node test/shots.js /tmp/bb-shots            # title → camp → campaign → team → battle → results → every tab
 NODE_PATH=$(npm root -g) node test/shots.js /tmp/bb-phone 844 390    # the same on a phone-sized touch screen
 NODE_PATH=$(npm root -g) node test/scenes.js /tmp/bb-scenes 4,7,15,23,29   # stages mid-fight with a five-hero team
 ```

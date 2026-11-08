@@ -161,8 +161,7 @@
     BB.save = BB.newSave(now());
     BB.persist();
     BB.music('calm');
-    UI.show('cine');
-    UI.story(BB.STORY.intro, () => goCamp());
+    goCamp();
   }
 
   // ---------------------------------------------------------------- deploy and finish
@@ -173,9 +172,7 @@
     if (!BB.stageUnlocked(S, idx)) { UI.toast('Clear the stage before it first.'); return; }
     const stage = BB.MISSIONS[idx];
     current = { stage, idx };
-    const pre = BB.STORY[stage.id + 'pre'];
-    if (pre && !S.seen[stage.id + 'pre']) { S.seen[stage.id + 'pre'] = 1; BB.persist(); UI.story(pre, startBattle); }
-    else startBattle();
+    startBattle();
   };
   async function startBattle() {
     const S = BB.save, M = current.stage;
@@ -241,9 +238,7 @@
     BB.persist();
 
     const after = (then) => {
-      const post = first ? BB.STORY[M.id + 'post'] : null;
-      const go = () => (res.legend ? BB.loadHeroes([res.legend]).then(() => UI.reveal(res.legend, then)) : then());
-      if (post) UI.story(post, go); else go();
+      if (res.legend) BB.loadHeroes([res.legend]).then(() => UI.reveal(res.legend, then)); else then();
     };
     const actions = [];
     if (win) {
@@ -403,11 +398,11 @@
   UI.click($('bRetreat'), () => { UI.modal('mPause', false); scene.paused = false; scene.lose('Retreated'); });
   UI.click($('bSettings'), () => {
     const s = BB.save.settings;
-    $('sMusic').value = s.music; $('sSfx').value = s.sfx; $('sShake').checked = s.shake !== false; $('sDmg').checked = s.dmgNums !== false; $('sSkip').checked = !!s.skipStory;
+    $('sMusic').value = s.music; $('sSfx').value = s.sfx; $('sShake').checked = s.shake !== false; $('sDmg').checked = s.dmgNums !== false;
     UI.modal('mSettings');
   });
   UI.click($('bSetClose'), () => {
-    const s = BB.save.settings; s.music = +$('sMusic').value; s.sfx = +$('sSfx').value; s.shake = $('sShake').checked; s.dmgNums = $('sDmg').checked; s.skipStory = $('sSkip').checked;
+    const s = BB.save.settings; s.music = +$('sMusic').value; s.sfx = +$('sSfx').value; s.shake = $('sShake').checked; s.dmgNums = $('sDmg').checked;
     BB.setVolumes(); BB.persist(); UI.modal('mSettings', false);
   });
   ['sMusic', 'sSfx'].forEach((id) => $(id).addEventListener('input', () => { BB.save.settings.music = +$('sMusic').value; BB.save.settings.sfx = +$('sSfx').value; BB.setVolumes(); }));

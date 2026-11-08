@@ -107,7 +107,7 @@
     storm: { name: 'Storm', hue: -110, effect: 'chain', col: '#9ff' }, nature: { name: 'Nature', hue: -160, effect: 'heal', col: '#8f8' },
   };
 
-  // ---- legendary heroes: fixed art, join through the story
+  // ---- legendary heroes: fixed art, join when their stage is first cleared
   BB.LEGENDS = {
     sera: { name: 'Sera Nightveil', title: 'the Thorn Witch', art: 'witch', calling: 'arcanist', color: '#b06cff',
       lore: 'Exiled for speaking with the dead, she is the only one who can hear the Cantor sing.' },
@@ -280,42 +280,7 @@
   }));
   BB.REGIONS = BB.CHAPTERS.map((ch) => ({ id: 'c' + ch.id, name: ch.name, biome: ch.biome, night: ch.night, floor: ch.floor, blurb: ch.blurb }));
 
-  // story cards: before (pre) and after (post) a stage. speaker: 'captain', a legend id, or 'narr'
-  BB.STORY = {
-    intro: [
-      ['narr', 'Nine banners once stood between the living and the dead.'],
-      ['narr', 'Then the Gravegates opened, and Vesh Morrow began to sing. The dead got up to listen.'],
-      ['narr', 'Eight banners fell. One is left, carried by a captain with no army.'],
-      ['narr', 'So build one.'],
-    ],
-    's1-1pre': [['captain', 'Smoke over Ashford. Banner up. We start here.']],
-    's1-2post': [['captain', 'First blood for the banner. They came through a gate somewhere north. We find it.']],
-    's1-3post': [['captain', 'A gate dies like anything else: hit it until it stops.'], ['narr', 'A scout rides in: a witch caged in the Thornwood, and the dead closing on her.']],
-    's1-4pre': [['sera', 'You took your time. Keep them off this cage and I will make it worth your while.']],
-    's1-4post': [['sera', 'The Cantor sings and they rise. I can hear where the song comes from.'], ['captain', 'Then you march with us.']],
-    's1-6post': [['sera', 'The watchtower stones are cold. Something huge walks the chapel yard beyond.']],
-    's1-8pre': [['narr', 'Ossric the Gravewarden. Once a knight of the Third Banner. Now he guards the dead of the whole vale.']],
-    's1-8post': [['captain', 'Greenvale is free. Raise the banner over Ashford.'], ['sera', 'The song is coming from the south. From under the Sunscar.']],
-    's2-1post': [['captain', 'The oasis holds. East, there\'s smoke. A caravan.']],
-    's2-3pre': [['ahmos', 'Strangers with a banner. Good. Take the left flank. I have the right. I have always had the right.']],
-    's2-3post': [['ahmos', 'Nineteen years, no caravan lost. You kept the count. My shield is yours.']],
-    's2-5pre': [['kestrel', 'You\'re the banner everyone talks about. Let\'s see if you\'re worth the trouble.']],
-    's2-5post': [['kestrel', 'Fine. You\'re worth it. Sallow put a price on my head. I\'d like to put one on hers.']],
-    's2-6post': [['sera', 'The tomb gates were feeding her. She is alone now under the temple.']],
-    's2-8pre': [['narr', 'Sallow, the Dune Necromancer, keeps the Cantor\'s song alive in the south.']],
-    's2-8post': [['captain', 'The Sunscar is quiet.'], ['sera', 'The song is louder in the north. In Aldmere. The capital is still singing.']],
-    's3-1pre': [['brenna', 'About time somebody came. I\'ve held this gate since the spring. Break those portals.']],
-    's3-1post': [['brenna', 'You fight like you mean it. Aldmere was my city. Let me take it back with you.']],
-    's3-2post': [['brenna', 'Warlocks in the old guildhall. They\'re gathering the living for something.']],
-    's3-4pre': [['reaper', 'Hold them off the fire. I\'ve buried enough people this year.']],
-    's3-4post': [['reaper', 'You kept them breathing. I\'ll dig for your enemies from now on.']],
-    's3-8pre': [['narr', 'The Pale Regent. Last king of Aldmere, crowned again by the Cantor\'s song.']],
-    's3-8post': [['captain', 'Aldmere is free.'], ['narr', 'Riders come in through the night, under a torn blue banner.']],
-    's4-1pre': [['talia', 'Talia Sunblade, Ninth Banner. What\'s left of it. We heard there was still a captain. We came to march.']],
-    's4-1post': [['talia', 'The gate is open ahead. He\'s singing louder.']],
-    's4-6pre': [['narr', 'Vesh Morrow, the Bone Cantor. The first gate. The last song.']],
-    's4-6post': [['captain', 'Silence.'], ['narr', 'The dead lie down. Nine banners are carried home under one. Yours.']],
-  };
+
 
   BB.NAMES = {
     first: ['Aldric', 'Brynn', 'Cassia', 'Dain', 'Edda', 'Faolan', 'Greta', 'Hale', 'Isolde', 'Joren', 'Kaia', 'Lucan', 'Mira',

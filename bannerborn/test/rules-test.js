@@ -126,7 +126,6 @@ ok(BB.MISSIONS.every((m) => BB.recPower(m) > 0), 'recommended power for every st
 const boss = BB.MISSIONS.find((m) => m.type === 'boss'), norm = BB.MISSIONS[1];
 const fb = BB.stageRewards(boss, true), fn = BB.stageRewards(norm, true), rn = BB.stageRewards(norm, false);
 ok(fb.crystals > fn.crystals && fb.sigils > fn.sigils && rn.gold < fn.gold && rn.crystals === 0, 'first victories pay more, bosses most');
-ok(Object.keys(BB.STORY).every((k) => k === 'intro' || BB.MISSIONS.some((m) => k === m.id + 'pre' || k === m.id + 'post')), 'story keys match stages');
 ok(BB.waveScale(1) < BB.waveScale(5) && BB.waveScale(5) === 1, 'fewer foes for a small team');
 
 // economy: the first chapter pays for a handful of recruits and levels
