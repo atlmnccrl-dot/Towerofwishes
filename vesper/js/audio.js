@@ -41,7 +41,11 @@
     if (A.pendingMusic) { const m = A.pendingMusic; A.pendingMusic = null; A.playMusic(m); }
     if (A.pendingAmb) { const m = A.pendingAmb; A.pendingAmb = null; A.playAmb(m); }
   };
+  // Names the films and events use that have no file of their own: the nearest sound that does.
+  const ALIAS = { smash: 'blow_big', spawn: 'magic', reinforce: 'horn', boss: 'horn', landed: 'quake', windup: 'charge', parry: 'clang_0', perfect: 'whoosh',
+    dodge: 'swish_1', break: 'clang_1', hit: 'slash_1', phase: 'quake', blink: 'magic', land: 'thud' };
   A.sfx = function (name, vol) {
+    name = ALIAS[name] || name;
     if (!A.unlocked || A.sfxVol <= 0 || !buf[name]) return;
     if ((live[name] || 0) >= 3) return;
     const src = ac.createBufferSource(), g = ac.createGain();
