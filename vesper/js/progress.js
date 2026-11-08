@@ -6,6 +6,7 @@
   const P = VS.PROG = {};
   const D = () => VS.DATA;
   if (!VS.LOOT && typeof require === 'function') require('./loot.js');
+  if (!VS.MODES && typeof require === 'function') require('./modes.js');
   const LT = () => VS.LOOT;
 
   // ---- levels -------------------------------------------------------------------------------
@@ -264,7 +265,7 @@
   };
   // Every foe key a fight can put on the floor (its waves and what they summon), for loading their sets.
   P.foeKeys = function (b) { const out = new Set(); const add = (k) => { if (out.has(k) || !D().FOES[k]) return; out.add(k); for (const a of D().FOES[k].atks) if (a.summon) add(a.summon.key); };
-    for (const w of b.node.waves) for (const k of w) if (k !== '+') add(k); return [...out]; };
+    for (const w of b.node.waves) for (const k of w) if (k !== '+') add(k); for (const k of b.node.preload || []) add(k); return [...out]; };
   P.setsFor = function (b) { const out = new Set(); for (const k of P.foeKeys(b)) { out.add(D().FOES[k].set); for (const v of (b.node.variants && b.node.variants[k]) || []) out.add(v); } return [...out]; };
   P.foeCount = (b) => b.node.waves.reduce((n, w) => n + w.filter((k) => k !== '+').length, 0);
   // Three stars: win, then two goals that depend on the kind of node.
@@ -292,6 +293,7 @@
     const n = P.node(id), rec = p.nodes[id] = p.nodes[id] || { wins: 0, stars: [], best: null };
     const first = r.win && !rec.wins, stars = P.judge(n, r), base = P.baseXp(n);
     let xp = 0, sp = 0; const newStars = stars.map((s, i) => s && !rec.stars[i]);
+    const RM = r.reward || 1;
     if (r.win) {
       xp += first ? base : Math.round(base * 0.3);
       xp += newStars.filter(Boolean).length * Math.round(base * 0.25) - (first && newStars[0] ? Math.round(base * 0.25) : 0);
@@ -302,12 +304,13 @@
       p.last = id;
     } else xp += Math.round(base * 0.15 * Math.min(1, r.progress || 0));     // a little for trying
     p.stats.kills += r.kills || 0;
+    xp = Math.round(xp * RM);
     const lv0 = p.lvl; p.sp += sp; const ups = P.addXp(p, xp);
     const heroes = P.checkHeroes(p);
     p.stats.stars = P.totalStars(p);
     // Loot: gold, and items from the fight, its chests and its guardian. A full bag turns spare finds into gold.
     LT().migrate(p);
-    const g = LT().mods(p, p.hero), drop = LT().drops(r.rand || Math.random, { type: n.type, depth: P.depth(n), first, win: r.win, progress: r.progress, stars: newStars.filter(Boolean).length, chests: r.win ? r.chests || [] : [], smashed: r.smashed || 0, goldMul: g.gold });
+    const g = LT().mods(p, p.hero), drop = LT().drops(r.rand || Math.random, { type: n.type, depth: P.depth(n) + (r.ilvl || 0) / 0.65, first, win: r.win, progress: r.progress, stars: newStars.filter(Boolean).length, chests: r.win ? r.chests || [] : [], smashed: r.smashed || 0, goldMul: g.gold * RM });
     const got = [], sold = [];
     for (const it of drop.items) { if (p.bag.length < LT().BAG_MAX) got.push(LT().give(p, it)); else { const v = LT().sellPrice(it); drop.gold += v; sold.push(it); } }
     p.gold += drop.gold; if (r.win) LT().restock(p);

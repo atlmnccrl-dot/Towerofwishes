@@ -48,7 +48,9 @@
   };
   U.settings = function (o) {
     const v = o.opts;
+    const DF = VS.MODES.DIFF[v.diff || 'normal'];
     const items = [
+      { label: 'Difficulty', sub: DF.name, act: () => o.set('diff') },
       { label: 'Music', sub: v.music ? (v.music < 1 ? 'Low' : 'On') : 'Off', act: () => o.set('music') },
       { label: 'Sound effects', sub: v.sfx ? 'On' : 'Off', act: () => o.set('sfx') },
       { label: 'Screen shake', sub: v.shake ? 'On' : 'Off', act: () => o.set('shake') },
@@ -59,7 +61,7 @@
       { label: 'Import save', sub: 'Load a save file', act: () => o.set('import') },
       { label: 'Reset progress', sub: o.confirmReset ? 'Press again to erase your climb' : 'Erase levels, skills and the map', act: () => o.set('reset'), cls: o.confirmReset ? 'danger' : '' },
       { label: 'Back', act: o.onBack }];
-    const el = U.show('settings', `<div class="panel"><h2>Settings</h2>${buttons(items, 'rows')}<p class="note">Auto battle lets your hero fight alone; any button you press still works. Saves live in this browser: export one to keep it safe or move it to another device. A gamepad works everywhere: A cut, X heavy, B dash, Y parry, LB/RB skills, triggers moon art.</p>${o.toast ? `<p class="note" style="color:var(--gold)">${esc(o.toast)}</p>` : ''}</div>`, items, { back: o.onBack });
+    const el = U.show('settings', `<div class="panel"><h2>Settings</h2>${buttons(items, 'rows')}<p class="note">${esc(DF.name)}: ${esc(DF.desc)} Auto battle lets your hero fight alone; any button you press still works. Saves live in this browser: export one to keep it safe or move it to another device. A gamepad works everywhere: A cut, X heavy, B dash, Y parry, LB/RB skills, triggers moon art.</p>${o.toast ? `<p class="note" style="color:var(--gold)">${esc(o.toast)}</p>` : ''}</div>`, items, { back: o.onBack });
     if (o.focus != null) { const b = el.querySelectorAll('.btn')[o.focus]; if (b) b.focus({ preventScroll: true }); }
   };
   U.credits = function (o) {
@@ -120,6 +122,7 @@
       <button class="chip ${p.sp ? 'hot' : ''}" data-act="skills" type="button">Skills ${p.sp ? `<span class="badge">${p.sp}</span>` : ''}</button>
       <button class="chip" data-act="heroes" type="button" style="--hc:${H.color}"><span class="dot"></span>${esc(H.name)}</button>
       <button class="chip" data-act="gear" type="button">Gear · <span class="gold">${p.gold || 0} g</span></button>
+      <button class="chip" data-act="modes" type="button">Modes${p.ng ? ' · NG+' + p.ng : ''}</button>
       <span class="chip" style="cursor:default">★ ${PR.totalStars(p)} / ${PR.maxStars()}</span>
       <button class="chip icon" data-act="menu" type="button" aria-label="Menu">☰</button></div>`;
     const n = o.sel && PR.node(o.sel);
@@ -148,7 +151,7 @@
       panel = body + `<div class="np-go">${go}</div>`;
     }
     const el = U.show('map', bar + `<aside class="map-panel">${panel}</aside>`, null, { back: o.onMenu });
-    el.querySelectorAll('[data-act]').forEach((b) => b.addEventListener('click', () => { VS.audio.unlock(); VS.audio.sfx('clang_0', 0.4); ({ skills: o.onSkills, heroes: o.onHeroes, menu: o.onMenu, go: o.onGo, gear: o.onGear })[b.dataset.act](); }));
+    el.querySelectorAll('[data-act]').forEach((b) => b.addEventListener('click', () => { VS.audio.unlock(); VS.audio.sfx('clang_0', 0.4); ({ skills: o.onSkills, heroes: o.onHeroes, menu: o.onMenu, go: o.onGo, gear: o.onGear, modes: o.onModes })[b.dataset.act](); }));
     const go = el.querySelector('[data-act="go"]'); if (go) go.focus({ preventScroll: true });
     return el;
   };
@@ -189,7 +192,7 @@
   U.result = function (o) {
     const r = o.r, PR = P(), p = o.p, win = o.win;
     const goals = r.goals || [], stars = r.stars || [];
-    let body = `<p class="eyebrow">${esc(o.node.name)}</p><h2 class="${win ? 'win' : 'lose'}">${win ? 'Victory' : 'You fell'}</h2>`;
+    let body = `<p class="eyebrow">${esc(o.node.name)}</p><h2 class="${win ? 'win' : 'lose'}">${esc(o.title || (win ? 'Victory' : 'You fell'))}</h2>`;
     if (win && goals.length) body += `<div class="res-stars">${goals.map((g, i) => `<i class="st ${stars[i] ? 'on' : ''} ${r.newStars && r.newStars[i] ? 'new' : ''}" style="animation-delay:${0.15 + i * 0.18}s"></i>`).join('')}</div><ul class="goals">${goals.map((g, i) => `<li class="${stars[i] ? 'on' : ''}"><i class="st"></i>${esc(g.text)}${r.newStars && r.newStars[i] ? ' <b style="color:var(--gold);font-family:var(--f-display);font-size:11px;letter-spacing:.14em">NEW</b>' : ''}</li>`).join('')}</ul>`;
     if (!win) body += `<p class="quote">“Then fall forward.”</p><p class="tip">${esc(o.tip || 'Nothing is lost. Try again, or learn something new in the skill tree.')}</p>`;
     if (o.stats) body += `<div class="stats">${o.stats.map(([v, l]) => `<div class="stat"><b>${esc(v)}</b><span>${esc(l)}</span></div>`).join('')}</div>`;
@@ -199,12 +202,35 @@
     if (r.loot && (r.loot.gold || r.loot.items.length)) {
       body += `<div class="res-loot"><span class="gold">+${r.loot.gold} gold</span>${r.loot.items.map((it) => `<div class="loot-it" style="--rc:${VS.LOOT.RARITY[it.rar].col}"><canvas width="40" height="40" data-uid="${it.uid}"></canvas><div><b>${esc(it.name)}</b><span>${VS.LOOT.RARITY[it.rar].name} ${VS.LOOT.SLOT_NAME[it.slot].toLowerCase()} · ${esc(VS.LOOT.lines(it).join(' · '))}</span></div></div>`).join('')}${r.loot.sold && r.loot.sold.length ? `<p class="tip">Your bag was full: ${r.loot.sold.length} find${r.loot.sold.length > 1 ? 's were' : ' was'} sold.</p>` : ''}</div>`;
     }
+    if (r.mastery) body += `<p class="lvlup" style="color:#9ad0ff">Mastery ${r.mastery} · ${esc(DD().HEROES[p.hero].name)} deals ${r.mastery * 2}% more damage</p>`;
+    for (const a of r.ach || []) body += `<div class="unlock-card ach" style="--hc:var(--gold)"><span class="ach-ic">★</span><div><b>Achievement · ${esc(a.name)}</b><span>${esc(a.desc)}</span></div></div>`;
     for (const id of r.heroes || []) { const H = DD().HEROES[id]; body += `<div class="unlock-card" style="--hc:${H.color}"><canvas width="64" height="64" data-set="${H.set}"></canvas><div><b>New hero · ${esc(H.name)}</b><span>${esc(H.title)}. Choose them from Heroes on the map.</span></div></div>`; }
     const items = (o.buttons || []).map((b, i) => Object.assign({ cls: i === 0 ? 'focus-first' : '' }, b));
     const el = U.show('result', `<div class="res">${body}${buttons(items, 'center')}</div>`, items, { back: items[items.length - 1] && items[items.length - 1].act });
     setTimeout(() => { const i = el.querySelector('.xpbar i'); if (i) i.style.width = i.dataset.to + '%'; }, 250);
     el.querySelectorAll('.unlock-card canvas').forEach((c) => figure(c, c.dataset.set));
     el.querySelectorAll('.loot-it canvas').forEach((c) => { const it = r.loot.items.find((x) => x.uid === +c.dataset.uid); if (it) U.itemIcon(c, it); });
+  };
+  // ---- modes ---------------------------------------------------------------------------------------------
+  U.modes = function (o) {
+    const p = o.p, MD = VS.MODES, d = o.daily, rec = p.daily && p.daily.date === d.date ? p.daily : null, got = Object.keys(p.ach || {}).length;
+    const card = (act, title, sub, body, cls) => `<button class="btn card mode ${cls || ''}" data-act="${act}" type="button"><span class="btn-label">${esc(title)}</span><span class="hero-title">${esc(sub)}</span><span class="btn-sub">${body}</span></button>`;
+    const html = `<div class="boon-wrap"><p class="eyebrow">Beyond the climb</p><h2>Modes</h2><nav class="cards modes">
+      ${card('endless', 'Endless', 'Best wave ' + ((p.endless && p.endless.best) || 0), 'Wave after wave on one map, from your two highest acts. A champion every fifth wave, a guardian every tenth. Gold and experience for every wave, an item every five.')}
+      ${card('daily', 'Daily challenge', d.date + (rec && rec.done ? ' · won' + (rec.best ? ' in ' + rec.best + 's' : '') : rec ? ' · ' + rec.tries + ' tries' : ''), esc(d.name) + '. ' + d.twists.map((t) => esc(MD.TWIST_TEXT[t])).join('. ') + '. Win once today for gold and a rare item.')}
+      ${card('ach', 'Achievements', got + ' of ' + MD.ACH.length, 'Feats of the climb: guardians, combos, perfect dodges, treasure, the long night.')}
+      ${card('ng', 'New Game+' + (p.ng ? ' ' + (p.ng + 1) : ''), MD.canNg(p) ? (o.confirmNg ? 'Press again to begin' : 'Ready') : 'Defeat the First Cut first', 'Climb again with everything you have earned. Foes are far stronger; their gear is far better.', MD.canNg(p) ? (o.confirmNg ? 'danger' : '') : 'locked')}
+      </nav><nav class="menu center"><button class="btn" data-act="back" type="button"><span class="btn-label">Back</span></button></nav></div>`;
+    const el = U.show('modes', html, null, { back: o.onBack });
+    el.querySelectorAll('[data-act]').forEach((b) => b.addEventListener('click', () => { VS.audio.unlock(); VS.audio.sfx('clang_0', 0.4); ({ endless: o.onEndless, daily: o.onDaily, ach: o.onAch, ng: o.onNg, back: o.onBack })[b.dataset.act](); }));
+    const f = el.querySelector('.card'); if (f) f.focus({ preventScroll: true });
+  };
+  U.achievements = function (o) {
+    const p = o.p, A = p.ach || {}, MD = VS.MODES;
+    const html = `<div class="panel wide"><p class="eyebrow">${Object.keys(A).length} of ${MD.ACH.length}</p><h2>Achievements</h2><ul class="ach-list">${MD.ACH.map((a) => `<li class="${A[a.id] ? 'on' : ''}"><span class="ach-ic">${A[a.id] ? '★' : '☆'}</span><div><b>${esc(a.name)}</b><span>${esc(a.desc)}</span></div></li>`).join('')}</ul>
+      <p class="np-h">Mastery</p><ul class="ach-list">${p.heroes.map((id) => { const H = DD().HEROES[id], x = (p.mastery || {})[id] || 0, l = MD.masteryLvl(x), nx = MD.masteryNext(l); return `<li class="${l ? 'on' : ''}" style="--hc:${H.color}"><span class="ach-ic" style="color:${H.color}">${l}</span><div><b>${esc(H.name)}</b><span>Mastery ${l} / 10 · +${l * 2}% damage${nx ? ' · ' + x + ' / ' + nx + ' XP' : ''}</span></div></li>`; }).join('')}</ul>
+      <nav class="menu center"><button class="btn" data-i="0" type="button"><span class="btn-label">Back</span></button></nav></div>`;
+    U.show('ach', html, [{ act: o.onBack }], { back: o.onBack });
   };
   // ---- gear ------------------------------------------------------------------------------------------
   // An item's icon, drawn: its shape by base, in its rarity's colour, on a dark tile.

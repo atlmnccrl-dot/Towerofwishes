@@ -145,6 +145,17 @@
   .gd-lines li:first-child { color: #fff; font-weight: 600; }
   .gd-cmp { font: 600 13px var(--f-display); margin: 4px 0 8px; } .gd-cmp.up { color: #9af0b8; } .gd-cmp.down { color: var(--red-soft); }
   .gd-acts { display: flex; gap: 6px; flex-wrap: wrap; }
+  .cards.modes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: min(820px, 100%); }
+  .btn.card.mode { min-height: 120px; }
+  .btn.card.mode.locked { opacity: .5; }
+  .panel.wide { width: min(760px, 100%); }
+  .ach-list { list-style: none; padding: 0; margin: 8px 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  .ach-list li { display: flex; gap: 10px; align-items: center; background: rgba(0,0,0,.3); border-radius: 4px; padding: 6px 8px; opacity: .55; }
+  .ach-list li.on { opacity: 1; border-left: 3px solid var(--gold); }
+  .ach-list b { display: block; font-size: 14px; } .ach-list span { font-size: 12px; color: var(--dim); }
+  .ach-ic { font: 700 20px var(--f-display); color: var(--gold); width: 26px; text-align: center; flex: none; }
+  .unlock-card.ach { align-items: center; }
+  @media (max-width: 760px), (max-height: 480px) { .ach-list { grid-template-columns: 1fr; } .cards.modes { grid-template-columns: 1fr 1fr; } .btn.card.mode { min-height: 0; } }
   .res-loot { margin: 10px 0; display: flex; flex-direction: column; gap: 6px; }
   .loot-it { display: flex; gap: 8px; align-items: center; border-left: 3px solid var(--rc); background: rgba(0,0,0,.3); padding: 5px 8px; border-radius: 4px; animation: lootIn .5s ease-out both; }
   .loot-it b { color: var(--rc); font-size: 14px; display: block; } .loot-it span { font-size: 12px; color: var(--dim); }
@@ -254,6 +265,7 @@
 <script src="js/story.js"></script>
 <script src="js/loot.js"></script>
 <script src="js/progress.js"></script>
+<script src="js/modes.js"></script>
 <script src="js/arenas.js"></script>
 <script src="js/sim.js"></script>
 <script src="js/assets.js"></script>

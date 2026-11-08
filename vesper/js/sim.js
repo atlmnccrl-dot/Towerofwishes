@@ -67,6 +67,8 @@
     // A scripted fight (the guided trial): no waves come on their own; the tutorial places each foe and
     // lets the waves loose at the end.
     s.scripted = !!(N && N.script && opts.guided);
+    // The endless survival: when the last wave falls, the next is asked for (js/modes.js).
+    s.endlessNext = opts.endlessNext || null;
     curArena = arenaOf(s); lairHazards(s);
     const en = VS.entryOf(curArena); s.hero = makeUnit(s, 'hero', H.id, Object.assign({}, H, { hp: M.hp }), en.x, en.y, 0);
     return s;
@@ -848,7 +850,11 @@
       if (s.reinfT > 0.5) { s.reinfT = 0; const g = s.reinf.shift(); spawnGroup(s, g, false, s.stage >= 1 || !!s.rules.elites); ev(s, { type: 'reinforce', n: g.length, left: s.reinf.length }); }
     }
     else if (h.alive && !foes(s).length && !s.scripted) {
-      if (s.wave >= s.waves.length - 1) { s.endT = 2.2; setState(h, 'win'); ev(s, { type: 'clear' }); }
+      if (s.wave >= s.waves.length - 1 && s.endlessNext) {
+        const w = s.endlessNext(s.waves.length); s.waves.push(w.wave); s.def = Object.assign({}, s.def, { scale: w.scale }); s.area++; s.waveT = 2.2;
+        h.hp = Math.min(h.maxHp, h.hp + h.maxHp * 0.15); ev(s, { type: 'endlessWave', n: s.waves.length });
+      }
+      else if (s.wave >= s.waves.length - 1) { s.endT = 2.2; setState(h, 'win'); ev(s, { type: 'clear' }); }
       else if (s.wave < 0 || s.area > s.wave) { s.waveT -= dt; if (s.waveT <= 0) { spawnWave(s); s.waveT = 1.1; } }
       else if (!s.portal) openPortal(s);
       else { s.portal.t += dt; if (s.portal.t > 1.15 && Math.hypot(h.x - s.portal.x, h.y - s.portal.y) < 22 && (h.state === 'idle' || h.state === 'move')) { s.transit = { t: 0, p: s.portal }; ev(s, { type: 'transit', kind: s.portal.kind }); } }

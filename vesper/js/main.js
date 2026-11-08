@@ -117,7 +117,8 @@
     const toast = M.toast; M.toast = null;
     U.settings({ opts: P().opts, focus, confirmReset, toast, onBack: () => { M.write(); back(); },
       set: (k) => {
-        const o = P().opts, idx = { music: 0, sfx: 1, shake: 2, auto: 3, text: 4, safe: 5, export: 6, import: 7, reset: 8 }[k];
+        const o = P().opts, idx = { diff: 0, music: 1, sfx: 2, shake: 3, auto: 4, text: 5, safe: 6, export: 7, import: 8, reset: 9 }[k];
+        if (k === 'diff') { const D0 = VS.MODES.DIFF_ORDER; o.diff = D0[(D0.indexOf(o.diff || 'normal') + 1) % D0.length]; }
         if (k === 'text') o.text = o.text >= 1.3 ? 0.9 : o.text >= 1.15 ? 1.3 : o.text >= 1 ? 1.15 : 1;
         if (k === 'safe') o.safe = !o.safe;
         if (k === 'export') { exportSave(); return settings(idx, false, back); }
@@ -165,7 +166,7 @@
       A.loadSets(PR.CHAMPS.flat().map((k) => D.FOES[k].set).filter((id) => !A.hasSet(id))).catch(() => {}); }   // the champions shown on the map
     VS.MAP.sel = M.mapSel; VS.MAP.p = p;
     VS.MAP.onSelect = (id) => { AU.sfx('step_0', 0.5); map(id); };
-    U.map({ p, sel: M.mapSel, onGo: () => playNode(M.mapSel), onSkills: () => skills(), onHeroes: () => roster(() => map()), onGear: () => gear(),
+    U.map({ p, sel: M.mapSel, onGo: () => playNode(M.mapSel), onSkills: () => skills(), onHeroes: () => roster(() => map()), onGear: () => gear(), onModes: () => modes(),
       onMenu: () => { M.go('menu'); U.menu({ onBack: () => map(), onSettings: () => settings(null, false, () => map()), onTitle: () => title() }); } });
   }
   function mapKey(e) {
@@ -303,8 +304,12 @@
   let f0;
   function startFight(stageIdx, opts) {
     U.hide(); opts = opts || {};
-    const p = P(), b = opts.build, kit = opts.theatre ? null : PR.kit(p);
-    const s = SIM.create(stageIdx, { seed: (Date.now() & 0xffff) + 1, boons: opts.theatre ? [] : PR.passives(p), kit, hero: p.hero, node: b ? b.node : null, gear: opts.theatre ? null : VS.LOOT.mods(p, p.hero), guided: !!(opts.node && opts.node.type === 'trial') });
+    const p = P(), b = opts.build, kit = opts.theatre ? null : PR.kit(p), MD = VS.MODES;
+    // The difficulty and New Game+ scale the foes; mastery adds to the hero's damage on top of the gear.
+    let node = b ? b.node : null;
+    if (node && !opts.theatre) { const S = MD.scale(p); node = Object.assign({}, node, { scale: { hp: (node.scale ? node.scale.hp : 1) * S.hp, dmg: (node.scale ? node.scale.dmg : 1) * S.dmg }, rules: Object.assign({}, node.rules, S.elites ? { elites: true } : {}) }); }
+    const gear = opts.theatre ? null : Object.assign({}, VS.LOOT.mods(p, p.hero)); if (gear) gear.dmg *= MD.masteryDmg(p, p.hero);
+    const s = SIM.create(stageIdx, { seed: (Date.now() & 0xffff) + 1, boons: opts.theatre ? [] : PR.passives(p), kit, hero: p.hero, node, gear, endlessNext: b && b.next, guided: !!(opts.node && opts.node.type === 'trial') });
     M.fight = Object.assign({ s, stage: stageIdx, acc: 0, card: null, cardT: 0, say: null, banner: null }, opts);
     M.paused = false; R.snapCam(s); R.fx = []; R.parts = []; R.floaters = []; R.pfx = []; R.entryDoor = null; R.impactF = null; R.kit = s.mods.can;
     f0 = M.fight; const n = opts.node, AR = VS.arenaOf(s);
@@ -314,7 +319,9 @@
       f0.banner = { text: n.name, sub: (n.rule ? PR.RULES[n.rule](n.n).split(':')[0].toUpperCase() + '  ·  ' : '') + AR.name + '  ·  AREA 1 / ' + s.waves.length, t: -0.4, col: '#ffffff' };
       if (n.type === 'trial') { f0.tut = { step: 0, t: 0, walked: 0, seen: {}, dodged: 0 }; p.tips.heavy = p.tips.dodge = true; s.goal = { reach: 'Finish the trial', boss: 'Finish the trial' }; }
       f0.tips = kit.filter((k) => !p.tips[k]).map((k) => ({ id: k, t: 0 }));
-    } else f0.banner = { text: AR.name, sub: 'AREA 1 / ' + s.waves.length, t: -0.4, col: '#ffffff' };
+    } else if (opts.mode === 'endless') { s.goal = { reach: 'Survive as long as you can', boss: 'Survive as long as you can' }; f0.banner = { text: 'ENDLESS', sub: AR.name + '  ·  BEST WAVE ' + ((p.endless && p.endless.best) || 0), t: -0.4, col: '#ffffff' }; }
+    else if (opts.mode === 'daily') { s.goal = { reach: 'Win the daily challenge', boss: 'Win the daily challenge' }; f0.banner = { text: b.name.toUpperCase(), sub: b.twists.map((t) => t.toUpperCase()).join('  ·  ') + '  ·  ' + AR.name, t: -0.4, col: '#ffd060' }; }
+    else f0.banner = { text: AR.name, sub: 'AREA 1 / ' + s.waves.length, t: -0.4, col: '#ffffff' };
     M.go('fight'); AU.playAmb(null); AU.playMusic('heartfelt_battle');
   }
   function gather(f) {
@@ -381,6 +388,7 @@
           if (e.type === 'artEnd') { AU.duck(false); if (f.theatre) f.theatreEnd = 2.2; }
           if (e.type === 'portal') f.banner = { text: 'THE WAY OPENS', sub: 'GO THROUGH THE PORTAL', t: 0, col: '#ffffff', low: true };
           if (e.type === 'area') { const last = s.hasBoss && e.n === s.waves.length - 1; f.banner = { text: last && s.goal ? s.goal.boss : VS.arenaOf(s).name, sub: last ? VS.arenaOf(s).name.toUpperCase() + '  ·  THE GUARDIAN' : 'AREA ' + (e.n + 1) + ' / ' + s.waves.length, t: 0, col: last ? '#ff2a44' : '#ffffff' }; }
+          if (e.type === 'endlessWave') f.banner = { text: 'WAVE ' + e.n, sub: e.n % 10 === 0 ? 'A GUARDIAN COMES' : e.n % 5 === 0 ? 'A CHAMPION COMES' : 'THEY KEEP COMING', t: 0, col: e.n % 5 === 0 ? '#ff2a44' : '#ffffff' };
           if (e.type === 'reinforce') f.banner = { text: 'REINFORCEMENTS', sub: e.left ? 'MORE ARE COMING' : 'THE LAST OF THEM', t: 0, col: '#ff2a44' };
           if (e.type === 'timeout') f.banner = { text: 'OUT OF TIME', t: 0, col: '#ff2a44' };
           if (e.type === 'clear' && !f.theatre) f.banner = { text: 'VICTORY', t: 0, col: '#ffd060' };
@@ -417,10 +425,11 @@
   function endFight(result) {
     const f = M.fight, s = f.s, p = P();
     AU.duck(false);
+    if (f.mode) return endMode(result);
     if (f.theatre || !f.nodeId) { title(); return; }
     const n = f.node, win = result === 'win', groups = s.waves.length;
-    const r = { win, time: s.time, hpFrac: s.hero.hp / s.hero.maxHp, bossHits: s.stats.bossHits, maxCombo: s.stats.maxCombo, kills: s.kills || 0, progress: (s.area + (win ? 1 : 0)) / groups, chests: s.chests || [], smashed: s.smashed || 0, rand: Math.random };
-    const res = PR.finish(p, n.id, r); M.write();
+    const r = { win, time: s.time, hpFrac: s.hero.hp / s.hero.maxHp, bossHits: s.stats.bossHits, maxCombo: s.stats.maxCombo, kills: s.kills || 0, progress: (s.area + (win ? 1 : 0)) / groups, chests: s.chests || [], smashed: s.smashed || 0, rand: Math.random, reward: VS.MODES.scale(p).reward, ilvl: VS.MODES.scale(p).ilvl };
+    const res = PR.finish(p, n.id, r); afterFight(p, s, win, res); M.write();
     const stats = [[s.time.toFixed(1) + 's', 'Time'], [s.stats.maxCombo, 'Best combo'], [s.kills || 0, 'Kills'], [s.stats.parries, 'Parries']];
     const showResult = () => {
       M.go('result'); M.result = { stage: f.stage }; AU.playMusic(null); AU.playAmb('night');
@@ -435,6 +444,37 @@
     showResult();
   }
 
+  // After any fight: the numbers on the profile, the hero's mastery, achievements.
+  function afterFight(p, s, win, res) {
+    const MD = VS.MODES; MD.track(p, s, win);
+    if (win) res.mastery = MD.addMastery(p, p.hero, res.xp || 0) ? MD.masteryLvl(p.mastery[p.hero]) : 0;
+    res.ach = MD.checkAch(p);
+  }
+  // ---- the endless survival and the daily challenge ---------------------------------------------------
+  function startMode(mode) {
+    const p = P(), MD = VS.MODES;
+    const b = mode === 'endless' ? MD.endless(p, (Date.now() & 0xffff) + 1) : MD.daily(MD.today());
+    const miss = missingFor(b), iso = isoFor(b.stage);
+    const go = () => startFight(b.stage, { mode, build: b, node: null });
+    if (!miss.length && A.isoReady(iso)) return go();
+    M.go('load'); U.loading(0);
+    Promise.all([A.loadSets(miss, (f) => U.loading(f)), A.loadIso(iso)]).then(() => { A.warm(R.ctx); A.isoWarm(R.ctx); U.hide(); go(); }, () => { U.hide(); go(); });
+  }
+  function endMode(result) {
+    const f = M.fight, s = f.s, p = P(), MD = VS.MODES, win = result === 'win';
+    let res, name, tip = null;
+    if (f.mode === 'endless') { const cleared = Math.max(0, s.wave + (VS.sim.foes(s).length ? 0 : 1)); res = MD.finishEndless(p, cleared, Math.random); name = 'Endless · wave ' + cleared + (res.best ? ' · new best' : ' · best ' + p.endless.best); }
+    else { res = MD.finishDaily(p, f.build, { win, time: s.time }, Math.random); name = f.build.name; if (!win) tip = 'Twists today: ' + f.build.twists.map((t) => MD.TWIST_TEXT[t]).join('; ') + '.'; else if (!res.first) tip = 'Already won today: no second reward, but your best time is kept.'; }
+    afterFight(p, s, win || f.mode === 'endless', res); M.write();
+    M.go('result'); M.result = { stage: f.stage }; AU.playMusic(null); AU.playAmb('night');
+    const stats = [[s.time.toFixed(1) + 's', 'Time'], [s.stats.maxCombo, 'Best combo'], [s.kills || 0, 'Kills'], [s.stats.parries, 'Parries']];
+    U.result({ p, node: { name }, title: f.mode === 'endless' ? 'Run over' : null, win: f.mode === 'endless' ? true : win, r: res, stats, tip, buttons: [{ label: f.mode === 'endless' ? 'Go again' : 'Try again', act: () => startMode(f.mode) }, { label: 'Back to the map', act: () => map() }] });
+  }
+  function modes(confirmNg) {
+    M.go('menu'); const p = P(), MD = VS.MODES;
+    U.modes({ p, daily: MD.daily(MD.today()), confirmNg, onBack: () => map(), onEndless: () => startMode('endless'), onDaily: () => startMode('daily'), onAch: () => { M.go('menu'); U.achievements({ p, onBack: () => modes() }); },
+      onNg: () => { if (!MD.canNg(p)) return AU.sfx('thud', 0.5); if (!confirmNg) return modes(true); MD.newGamePlus(p); MD.checkAch(p); M.write(); AU.sfx('allout', 0.7); map('a0-1'); } });
+  }
   // The theatre: the last hour, the First Cut alone, the knight at a quarter health, the moon full.
   function theatre() {
     startFight(5, { theatre: true });
