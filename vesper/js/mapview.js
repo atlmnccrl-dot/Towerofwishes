@@ -237,7 +237,7 @@
     const a = actAt(MAP.camY - 60);
     if (a !== MAP.act) { MAP.act = a; MAP.card = { a, t: 0 }; }
     const c = MAP.card; if (!c) return; c.t += dt; const life = 3.2; if (c.t > life) return;
-    const Ac = P.ACTS[c.a], L = lookOf(c.a), al = Math.min(1, c.t * 2.5, (life - c.t) * 1.6), rise = (1 - Math.min(1, c.t * 2)) * 14 * R.k, x = R.W / 2, y = R.H * 0.2 + rise, k = R.k;
+    const Ac = P.ACTS[c.a], L = lookOf(c.a), al = Math.min(1, c.t * 2.5, (life - c.t) * 1.6), rise = (1 - Math.min(1, c.t * 2)) * 14 * R.k, x = R.W / 2, y = Math.max(R.H * 0.22, 118 * R.dpr) + rise, k = R.k;
     ctx.save(); ctx.globalAlpha = al;
     const bw = Math.min(R.W * 0.7, 560 * k); const gr = ctx.createLinearGradient(x - bw, 0, x + bw, 0); gr.addColorStop(0, 'rgba(5,3,7,0)'); gr.addColorStop(0.5, 'rgba(5,3,7,0.65)'); gr.addColorStop(1, 'rgba(5,3,7,0)'); ctx.fillStyle = gr; ctx.fillRect(x - bw, y - 46 * k, bw * 2, 96 * k);
     R.label(ctx, 'Act ' + Ac.num + '  ·  ' + Ac.hour.toLowerCase().replace(/(^|\s)\S/g, (m) => m.toUpperCase()), x, y - 20 * k, 14 * k, L.moonCol, 'center', 1);

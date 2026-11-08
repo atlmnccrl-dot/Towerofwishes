@@ -142,7 +142,7 @@
         const b = PR.build(n), seen = new Set(), list = [];
         for (const w of b.node.waves) for (const k of w) if (k !== '+' && !seen.has(k)) { seen.add(k); const f = DD().FOES[k]; list.push({ k, f, set: ((b.node.variants || {})[k] || [f.set])[0] }); }
         list.sort((a, c) => (c.f.boss ? 1 : 0) - (a.f.boss ? 1 : 0));
-        foes = list.slice(0, 5).map((x) => `<div class="ms-foe${x.f.boss ? ' boss' : ''}"><canvas width="${x.f.boss ? 96 : 64}" height="${x.f.boss ? 96 : 64}" data-set="${x.set}"></canvas><span>${esc(x.f.name)}</span></div>`).join('') + (list.length > 5 ? `<div class="ms-foe more"><span>+${list.length - 5}</span></div>` : '') ;
+        foes = list.slice(0, 3).map((x) => `<div class="ms-foe${x.f.boss ? ' boss' : ''}"><canvas width="${x.f.boss ? 96 : 64}" height="${x.f.boss ? 96 : 64}" data-set="${x.set}"></canvas><span>${esc(x.f.name)}</span></div>`).join('') + (list.length > 3 ? `<div class="ms-foe more"><span>+${list.length - 3} more</span></div>` : '') ;
         mid = `<p class="np-h">Foes</p><div class="ms-row">${foes}</div>`;
       }
       let right = '';

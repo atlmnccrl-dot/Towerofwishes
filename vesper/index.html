@@ -374,31 +374,55 @@
   /* ---- The mission card: a framed strip along the bottom of the campaign map ---- */
   .map-bar { max-width: 100% !important; }
   .mission { position: absolute; left: calc(-1 * max(22px, env(safe-area-inset-left, 0px)) + 8px); right: calc(-1 * max(22px, env(safe-area-inset-right, 0px)) + 8px); bottom: calc(-1 * max(18px, env(safe-area-inset-bottom, 0px)) + 8px);
-    display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.6fr) minmax(0, 1fr) auto; gap: 18px; align-items: center; max-height: 38vh; box-sizing: border-box;
-    border: 32px solid transparent; border-image: var(--frame) 16 fill / 32px stretch; image-rendering: pixelated; padding: 0 8px; animation: missionIn .35s cubic-bezier(.2,.9,.3,1) both; }
+    display: grid; grid-template-columns: minmax(0, 1.25fr) auto minmax(0, 1fr) auto; gap: 0; align-items: stretch; max-height: 40vh; box-sizing: border-box;
+    border: 32px solid transparent; border-image: var(--frame) 16 fill / 32px stretch; image-rendering: pixelated; padding: 4px 6px; animation: missionIn .35s cubic-bezier(.2,.9,.3,1) both; }
   .mission:not(.has) { display: flex; justify-content: center; }
   @keyframes missionIn { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
-  .mission h2 { font-size: clamp(24px, 5vh, 36px) !important; line-height: 1; margin: 6px 0 2px; text-transform: none; }
-  .mission .np-sub { margin: 0; color: #c8b8c0; font-style: normal; }
-  .ms-act { margin: 4px 0 0; font-size: 14px; color: #ff8a9a; text-shadow: 2px 2px #050307; }
-  .mission .np-rule { margin-top: 6px; font-size: 13px; }
-  .ms-left, .ms-mid, .ms-right { min-width: 0; display: flex; flex-direction: column; gap: 4px; } .ms-mid { overflow: hidden; }
-  .ms-row { display: flex; gap: 6px; align-items: flex-end; flex-wrap: nowrap; }
-  .ms-foe { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 74px; }
+  .ms-left, .ms-mid, .ms-right, .ms-go { min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 6px; padding: 0 24px; }
+  .ms-left { padding-left: 8px; }
+  .ms-mid, .ms-right, .ms-go { border-left: 2px solid rgba(255,90,110,.16); }
+  .ms-go { padding-right: 8px; align-items: stretch; min-width: 170px; gap: 10px; }
+  .mission .np-type { align-self: flex-start; }
+  .mission h2 { font-size: clamp(24px, 4.6vh, 34px) !important; line-height: 1.05; margin: 2px 0 0; text-transform: none; }
+  .mission .np-sub { margin: 0; color: #c8b8c0; font-style: normal; font-size: 15px; }
+  .ms-act { margin: 2px 0 0; font-size: 14px; color: #ff8a9a; text-shadow: 2px 2px #050307; }
+  .mission .np-rule { margin-top: 4px; font-size: 14px; line-height: 1.3; }
+  .mission .np-h { margin: 0 0 4px !important; font-size: 13px !important; letter-spacing: .25em; text-transform: uppercase; color: #a8909a; }
+  .ms-row { display: flex; gap: 14px; align-items: flex-end; flex-wrap: nowrap; }
+  .ms-foe { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 78px; flex: none; }
   .ms-foe canvas { width: 56px; height: 56px; image-rendering: pixelated; border: 8px solid transparent; border-image: var(--slot) 5 fill / 8px stretch; box-sizing: content-box; }
-  .ms-foe.boss { width: 100px; } .ms-foe.boss canvas { width: 84px; height: 84px; border-image: var(--slot-hot) 5 fill / 8px stretch; }
-  .ms-foe span { font-size: 12px; text-align: center; line-height: 1.05; color: #e8dce0; text-shadow: 2px 2px #050307; margin-top: 2px; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ms-foe.boss { width: 100px; } .ms-foe.boss canvas { width: 80px; height: 80px; border-image: var(--slot-hot) 5 fill / 8px stretch; }
+  .ms-foe span { font-size: 13px; text-align: center; line-height: 1.15; color: #e8dce0; text-shadow: 2px 2px #050307; max-width: 100%; white-space: normal; overflow-wrap: anywhere; min-height: 2.3em; }
   .ms-foe.boss span { color: #ffb8c4; font-size: 14px; }
-  .ms-foe.more { width: auto; justify-content: center; align-self: center; } .ms-foe.more span { margin: 0; font-size: 15px; color: #c8b8c0; } .ms-foe.elite span { color: #ff8a9a; }
-  .ms-go { display: flex; flex-direction: column; align-items: stretch; gap: 6px; min-width: 170px; }
-  .ms-go .big-btn { font-size: 30px !important; padding: 6px 18px !important; }
-  .mission .goals li { font-size: 14px; }
-  .mission .np-reward { font-size: 14px; margin-top: 4px; }
+  .ms-foe.more { width: auto; justify-content: center; align-self: center; } .ms-foe.more span { margin: 0; min-height: 0; font-size: 16px; color: #c8b8c0; padding: 4px 10px; border: 2px solid rgba(255,255,255,.12); }
+  .ms-foe.elite span { color: #ff8a9a; }
+  .ms-go .big-btn { font-size: 30px !important; padding: 8px 18px !important; }
+  .ms-go .np-as { margin: 0; text-align: center; font-size: 14px; }
+  .mission .goals { margin: 0; display: flex; flex-direction: column; gap: 7px; }
+  .mission .goals li { font-size: 15px; line-height: 1.25; }
+  .mission .np-reward { font-size: 15px; margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px 14px; }
+  .mission .np-unlock { margin-top: 4px; }
+  @media (min-height: 900px) and (min-width: 1300px) {
+    .mission { max-height: 36vh; } .ms-left, .ms-mid, .ms-right, .ms-go { padding: 0 32px; gap: 8px; } .ms-left { padding-left: 12px; } .ms-go { min-width: 230px; padding-right: 12px; }
+    .mission h2 { font-size: 46px !important; } .mission .np-sub, .ms-act { font-size: 19px; } .mission .np-rule { font-size: 17px; } .mission .np-h { font-size: 16px !important; }
+    .ms-row { gap: 18px; } .ms-foe { width: 100px; } .ms-foe canvas { width: 76px; height: 76px; } .ms-foe.boss { width: 128px; } .ms-foe.boss canvas { width: 104px; height: 104px; }
+    .ms-foe span { font-size: 16px; } .ms-foe.boss span { font-size: 18px; } .ms-foe.more span { font-size: 19px; }
+    .mission .goals { gap: 10px; } .mission .goals li, .mission .np-reward { font-size: 19px; } .ms-go .big-btn { font-size: 38px !important; } .ms-go .np-as { font-size: 17px; }
+  }
+  @media (max-width: 1180px) and (min-width: 901px) and (min-height: 481px) {
+    .ms-left, .ms-mid, .ms-right, .ms-go { padding: 0 16px; } .ms-go { min-width: 150px; } .mission .np-sub { display: none; }
+    .ms-row { gap: 10px; } .ms-foe { width: auto; } .ms-foe span { display: none; } .ms-foe.boss { width: auto; }
+    .mission .goals li { font-size: 14px; } .ms-foe.more span { display: block; font-size: 12px; padding: 2px 6px; } .mission h2 { font-size: 26px !important; }
+    .ms-foe canvas { width: 40px; height: 40px; border-width: 6px; border-image-width: 6px; } .ms-foe.boss canvas { width: 56px; height: 56px; } .ms-row { gap: 8px; }
+  }
   @media (max-height: 480px), (max-width: 900px) {
-    .mission { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) auto; gap: 10px; border-width: 20px; border-image-width: 20px; max-height: 44vh; }
-    .ms-right { display: none; } .mission h2 { font-size: 22px !important; } .mission .np-sub, .mission .np-rule { display: none; }
-    .ms-foe { width: 50px; } .ms-foe canvas { width: 34px; height: 34px; border-width: 6px; border-image-width: 6px; } .ms-foe.boss { width: 64px; } .ms-foe.boss canvas { width: 48px; height: 48px; } .ms-foe span { font-size: 10px; }
-    .ms-go { min-width: 120px; } .ms-go .big-btn { font-size: 22px !important; }
+    .mission { grid-template-columns: minmax(0, 1fr) auto auto; border-width: 18px; border-image-width: 18px; max-height: 46vh; padding: 0 2px; }
+    .ms-right { display: none; } .ms-left, .ms-mid, .ms-go { padding: 0 14px; gap: 4px; } .ms-left { padding-left: 4px; } .ms-go { padding-right: 4px; min-width: 128px; }
+    .mission h2 { font-size: 22px !important; } .mission .np-sub, .mission .np-rule { display: none; } .ms-act { font-size: 12px; }
+    .mission .np-h { font-size: 11px !important; margin: 0 0 2px !important; }
+    .ms-row { gap: 8px; } .ms-foe { width: auto; } .ms-foe span { display: none; } .ms-foe canvas { width: 36px; height: 36px; border-width: 6px; border-image-width: 6px; }
+    .ms-foe.boss { width: auto; } .ms-foe.boss canvas { width: 48px; height: 48px; } .ms-foe.more span { display: block; font-size: 13px; padding: 2px 6px; }
+    .ms-go .big-btn { font-size: 22px !important; padding: 4px 12px !important; } .ms-go .np-as { font-size: 11px; }
   }
   /* ---- The result screen: one screen, no scrolling ---- */
   .res2 { margin: auto; width: min(1080px, 100%); height: min(100%, 620px); display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 20px; align-items: center; }

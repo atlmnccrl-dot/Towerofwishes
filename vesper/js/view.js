@@ -771,7 +771,19 @@
     VS.cine.draw(c, s);
     if (PX.shake > 0) { R.shake = Math.max(R.shake, PX.shake * 1.5); PX.shake = 0; }
   };
-  R.hideCine = function () { if (PX.buf.parentNode && PX.buf.style.display !== 'none') PX.buf.style.display = 'none'; };
+  // A full-resolution layer above the pixel buffer for the words in a cinematic, so they stay sharp.
+  const txt = document.createElement('canvas');
+  R.pxText = function () {
+    if (!txt.parentNode) { txt.id = 'cine-text'; Object.assign(txt.style, { position: 'fixed', left: '0', top: '0', width: '100%', height: '100%', zIndex: '5', pointerEvents: 'none', display: 'none' }); document.body.appendChild(txt); }
+    if (txt.width !== R.W || txt.height !== R.H) { txt.width = R.W; txt.height = R.H; }
+    const c = txt.getContext('2d'); c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, R.W, R.H); c.globalAlpha = 1;
+    if (txt.style.display !== 'block') txt.style.display = 'block';
+    return c;
+  };
+  R.hideCine = function () {
+    if (PX.buf.parentNode && PX.buf.style.display !== 'none') PX.buf.style.display = 'none';
+    if (txt.parentNode && txt.style.display !== 'none') txt.style.display = 'none';
+  };
   R.cineCovers = (s) => s.cine && VS.cine.beatAt(s.cine)[0] !== 'snap';
 
   // ---- HUD --------------------------------------------------------------------------------------------

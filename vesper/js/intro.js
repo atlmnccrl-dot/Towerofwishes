@@ -9,7 +9,7 @@
 (function () {
   const VS = window.VS, D = VS.DATA, A = VS.A, R = VS.R, PX = VS.PX;
   const I = VS.INTRO = {};
-  const RED = '#ff2a44', INK = '#050507', BAR = 14;
+  const RED = '#ff2a44', INK = '#050507', BAR = 16;
   const W = () => PX.W, H = () => PX.H;
   const K = () => VS.cine.kit;
   // The shots, in seconds.
@@ -167,6 +167,45 @@
   function deadSet(S, i) { const d = S.cast.dead; return d[i % d.length]; }
   function kick(S, v) { S.shake = Math.max(S.shake, v); }
 
+  // ---- the words: queued in pixel-buffer coordinates, drawn at full resolution after the shot ------------
+  function say(S, kind, text, x, y, o) { (S.words || (S.words = [])).push(Object.assign({ kind, text, x, y }, o || {})); }
+  function words(S) {
+    const c = R.pxText(), sx = R.W / W(), sy = R.H / H(), u = R.H / 720, list = S.words || []; S.words = [];
+    for (const w of list) {
+      const x = Math.round(w.x * sx), y = Math.round(w.y * sy), al = w.a == null ? 1 : w.a;
+      c.save(); c.globalAlpha = al; c.textAlign = w.align || (w.kind === 'card' ? 'left' : 'center');
+      if (w.kind === 'line') {
+        const sz = Math.round(w.size * 1.9 * u); c.font = `${sz}px Adventurer, sans-serif`; c.textBaseline = w.mid ? 'middle' : 'alphabetic';
+        if ('letterSpacing' in c) c.letterSpacing = Math.round((w.spacing || 0.6) * u * 1.6) + 'px';
+        c.lineJoin = 'round'; c.lineWidth = Math.max(3, sz * 0.18); c.strokeStyle = 'rgba(5,3,7,0.95)'; c.strokeText(w.text, x, y);
+        c.fillStyle = w.col || '#fff'; c.fillText(w.text, x, y);
+      } else if (w.kind === 'card') {
+        // A name card: a red bar slides in, the name over it, the title under it.
+        const kk = clamp((w.k || 0) * 3), sz = Math.round(36 * u), ss = Math.round(20 * u), right = c.textAlign === 'right';
+        c.textBaseline = 'alphabetic';
+        let subW = 0; if (w.sub) { c.font = `${ss}px Adventurer, sans-serif`; if ('letterSpacing' in c) c.letterSpacing = Math.round(3 * u) + 'px'; subW = c.measureText(w.sub).width; if ('letterSpacing' in c) c.letterSpacing = '0px'; }
+        c.font = `${sz}px Adventurer, sans-serif`;
+        const tw = Math.max(c.measureText(w.text).width, subW), bw = Math.round((tw + 40 * u) * ease(kk)), bx = right ? x - bw + Math.round(8 * u) : x - Math.round(8 * u);
+        c.fillStyle = 'rgba(5,3,7,0.7)'; c.fillRect(bx, y - sz - 4 * u, bw, sz + ss + 26 * u);
+        c.fillStyle = RED; c.fillRect(right ? bx + bw - 4 * u : bx, y - sz - 4 * u, Math.round(4 * u), sz + ss + 26 * u);
+        c.globalAlpha = al * clamp(kk * 2 - 0.4);
+        const tx = right ? x - Math.round(6 * u) : x + Math.round(6 * u);
+        c.lineJoin = 'round'; c.lineWidth = Math.max(3, sz * 0.16); c.strokeStyle = '#050307'; c.strokeText(w.text, tx, y); c.fillStyle = w.col || '#ffffff'; c.fillText(w.text, tx, y);
+        if (w.sub) { c.font = `${ss}px Adventurer, sans-serif`; if ('letterSpacing' in c) c.letterSpacing = Math.round(3 * u) + 'px'; c.lineWidth = Math.max(2, ss * 0.2); c.strokeText(w.sub, tx, y + ss + 10 * u); c.fillStyle = '#ffb8c4'; c.fillText(w.sub, tx, y + ss + 10 * u); }
+      } else {
+        // A big title: slams in from larger with a white flash and a brief colour split, then holds crisp.
+        const k = w.k || 0, punch = k < 0.15 ? 1 + (0.15 - k) * 4 : 1, sz = Math.round(w.size * 1.6 * u * punch);
+        c.font = `${sz}px Adventurer, sans-serif`; c.textBaseline = 'middle'; c.textAlign = 'center';
+        if ('letterSpacing' in c) c.letterSpacing = Math.round(sz * 0.04) + 'px';
+        if (k < 0.3) { const o = Math.round((0.3 - k) * 40 * u); c.globalAlpha = al * 0.6; c.fillStyle = '#00e0ff'; c.fillText(w.text, x - o, y); c.fillStyle = '#ff0040'; c.fillText(w.text, x + o, y); c.globalAlpha = al; }
+        c.lineJoin = 'round'; c.lineWidth = Math.max(4, sz * 0.12); c.strokeStyle = '#050307'; c.strokeText(w.text, x, y + Math.round(sz * 0.05)); c.strokeText(w.text, x, y);
+        const g = c.createLinearGradient(0, y - sz / 2, 0, y + sz / 2); g.addColorStop(0, '#ffb0bc'); g.addColorStop(0.5, '#ff2a44'); g.addColorStop(1, '#8a1022');
+        c.fillStyle = k < 0.06 ? '#ffffff' : g; c.fillText(w.text, x, y);
+      }
+      c.restore();
+    }
+  }
+
   // ---- the shots -------------------------------------------------------------------------------------
   const SH = {};
   // Black; a red drop falls and rings out.
@@ -211,7 +250,7 @@
     A.actor(ctx, set, clip, fr, 0, x - 1, y, sc, { shade: '#7a1424' });
     A.actor(ctx, set, clip, fr, 0, x, y, sc, { shade: '#07040a' });
     if (draw && k > 0.62) { const gx = W() * (0.3 + (k - 0.62) * 1.6); K().line(ctx, gx - 40, H() * 0.45, gx + 30, H() * 0.36, 1, '#ffffff'); A.tex(ctx, 'star_06', gx, H() * 0.41, 30, 30, '#ffffff', 0.9, T * 3, true); }
-    PX.text(ctx, 'THE FIRST CUT', W() - 10, BAR + 12, 7, '#f0e6ea', 'right');
+    say(S, 'card', 'THE FIRST CUT', W() - 10, BAR + 16, { align: 'right', sub: 'WHO WOUNDED THE MOON', k: T });
     if (k > 0.92) fill(ctx, '#ffffff', (k - 0.92) / 0.08);
   };
   // He leaps at the falling moon, a black shape with its afterimages and speed lines.
@@ -310,7 +349,7 @@
       }
     });
     A.tex(ctx, 'smoke_07', W() * 0.5, base + 6, W() * 1.4, 24, '#ff3048', 0.15, 0, true);
-    PX.text(ctx, 'THE BLACK GATE', 10, BAR + 12, 7, '#f0d0d6');
+    say(S, 'card', 'THE BLACK GATE', 10, BAR + 16, { sub: 'TONIGHT', k: T });
   };
   // Rain on wet stone; armoured boots walk in. Only her legs and cape fit the frame.
   SH.steps = function (ctx, S, k, T) {
@@ -326,8 +365,7 @@
     A.actor(ctx, set, 'Walk', fr, 0, x, y, sc, {});
     const st = (T * 11 / 7.5) % 1; if (st < 0.25) for (let i = 0; i < 8; i++) { ctx.fillStyle = 'rgba(210,220,240,0.7)'; ctx.fillRect(Math.round(x + (hash(i, 114) - 0.3) * 40), Math.round(y - 4 - st * 30 * hash(i, 115)), 1, 1); }
     rain(ctx, T, 110, 0.5, 0.14);
-    PX.text(ctx, 'VESPER', 10, BAR + 12, 8, '#ff9aaa');
-    PX.text(ctx, 'THE MOONBLADE', 10, BAR + 22, 6, '#e8d8dc');
+    say(S, 'card', 'VESPER', 10, BAR + 16, { sub: 'THE MOONBLADE', col: '#ff9aaa', k: T });
   };
   // The visor close up; under it an eye opens red and the red cracks run out.
   SH.eye = function (ctx, S, k, T) {
@@ -459,9 +497,9 @@
     if (kd < 0.5) kick(S, 3 * (1 - kd * 2));
     if (kd > 0.15) {   // the name card
       const nk = kd - 0.15, nx = W() * 0.28, ny = H() * 0.22;
-      K().title(ctx, 'THE GATEWARDEN', nx, ny, 18, nk, T);
+      say(S, 'big', 'THE GATEWARDEN', nx, ny, { size: 34, k: nk });
       if (nk > 0.18) { ctx.fillStyle = '#ffffff'; ctx.fillRect(Math.round(nx - 60 * ease(nk * 3)), Math.round(ny + 11), Math.round(120 * ease(nk * 3)), 1); }
-      if (nk > 0.12) PX.text(ctx, 'KEEPER OF THE BLACK GATE', nx, ny + 21, 6, '#e8d8dc', 'center');
+      if (nk > 0.12) say(S, 'line', 'KEEPER OF THE BLACK GATE', nx, ny + 23, { size: 13, col: '#f0e0e4', a: clamp((nk - 0.12) * 4) });
     }
   };
   // Split screen: her red eye above, his violet eye below.
@@ -547,11 +585,11 @@
       const y = Math.round(H() * 0.24);
       const band = ctx.createLinearGradient(0, y - 34, 0, y + 50); band.addColorStop(0, 'rgba(5,2,4,0)'); band.addColorStop(0.35, 'rgba(5,2,4,0.6)'); band.addColorStop(0.7, 'rgba(5,2,4,0.6)'); band.addColorStop(1, 'rgba(5,2,4,0)');
       ctx.globalAlpha = clamp(tk * 4); ctx.fillStyle = band; ctx.fillRect(-8, y - 34, W() + 16, 84); ctx.globalAlpha = 1;
-      K().title(ctx, 'VESPER', W() / 2, y, Math.min(44, Math.round(W() / 6.5)), Math.min(1, tk), T);
+      say(S, 'big', 'VESPER', W() / 2, y, { size: 78, k: tk });
       const dv = R.uiImg && R.uiImg('divider');
       if (dv && tk > 0.3) { ctx.globalAlpha = clamp((tk - 0.3) * 3); ctx.drawImage(dv, Math.round(W() / 2 - dv.naturalWidth / 2), y + 20); ctx.globalAlpha = 1; }
-      if (tk > 1.0) { ctx.globalAlpha = clamp((tk - 1.0) * 2); PX.text(ctx, 'A LAST DITCH EFFORT', W() / 2, y + 36, 8, '#ffb8c4', 'center'); ctx.globalAlpha = 1; }
-      if (tk > 2.0) { ctx.globalAlpha = clamp((tk - 2.0) * 2); PX.text(ctx, 'Six guardians. One night. Close the wound before dawn.', W() / 2, H() - 8, 7, '#f6eef0', 'center'); ctx.globalAlpha = 1; }
+      if (tk > 1.0) say(S, 'line', 'A LAST DITCH EFFORT', W() / 2, y + 38, { size: 18, col: '#ffc8d2', a: clamp((tk - 1.0) * 2), spacing: 3 });
+      if (tk > 2.0) say(S, 'line', 'Six guardians. One night. Close the wound before dawn.', W() / 2, H() - 10, { size: 17, col: '#ffffff', a: clamp((tk - 2.0) * 2) });
     }
     if (k > 1 - out) fill(ctx, '#000', (k - (1 - out)) / out);
   };
@@ -573,12 +611,9 @@
     const impact = NO_BARS[sh[0]] || (sh[0] === 'cutmoon' && k < 0.34);
     const bars = sh[0] === 'title' ? Math.round(BAR * Math.max(0, 1 - T * 1.5)) : impact ? 0 : BAR;
     if (bars) { c.fillStyle = '#000'; c.fillRect(0, 0, W(), bars); c.fillRect(0, H() - bars, W(), bars); }
-    for (const [a, b, text] of LINES) {
-      if (S.t < a || S.t > b) continue;
-      c.globalAlpha = Math.min(1, (S.t - a) * 4, (b - S.t) * 4);
-      PX.text(c, text, W() / 2, H() - 4, 8, '#f6eef0', 'center');
-      c.globalAlpha = 1;
-    }
-    PX.text(c, R.touch ? 'tap to skip' : 'esc to skip', W() - 6, 10, 6, 'rgba(230,220,224,0.5)', 'right', { shadow: false });
+    // The words, on the sharp layer above.
+    for (const [a, b, text] of LINES) if (S.t >= a && S.t <= b) say(S, 'line', text, W() / 2, H() - BAR / 2 + 1, { size: 17, col: '#ffffff', a: Math.min(1, (S.t - a) * 4, (b - S.t) * 4), mid: true });
+    say(S, 'line', R.touch ? 'Tap to skip' : 'Esc to skip', W() - 6, BAR / 2 + 1, { size: 11, col: 'rgba(240,230,234,0.6)', align: 'right', mid: true });
+    words(S);
   };
 })();
