@@ -116,11 +116,13 @@ dotted line between them counting the height); his gaze, her eye answering; his 
 down from the sky and her holding it (impact frames, the ground breaking, AND YET); her throwing it off
 (I STAND) and raising her blade at him; the title, THE BLEEDING MOON, over the red moon, his shadow faint behind
 it and his eyes burning above the name, its letters drawing together over drifting red lights. Every
-film is graded: grain on every frame and a vignette on the ordinary ones. The opening is cut by `js/openfilm.js` with the edit system: the built shots above re-cut faster, a
-glitch and a giant red ONE behind THERE WAS in the cold open, the god in ink a frame at a time, the risen
-one by one each in its own colour world, and a real fight in place of the old charge (she cuts through
-the dead, spins in a fisheye ring, flings them outward, slides under a brute and throws him into the
-moon), with the First Cut's "Kneel." at his gaze. Any tap skips it. The older hand-drawn
+film is graded: grain on every frame and a vignette on the ordinary ones. The opening is told in clear beats by `js/openfilm.js`: each built shot above held long enough to read,
+and one fight in the middle told shot by shot in the characters' own colours (the dead in grey): they
+come at her, she cuts the first down, throws off two more with a spin, slides under the brute and fells
+him, and stands among them; the First Cut's "Kneel." at his gaze. The undead have no glowing eyes.
+**The First Cut is his own character** (the master knight sprite) wherever he appears: drawn giant at a
+whole-number scale behind the Spire, with his sword raised to the moon (Taunt), on the summit, in his
+film, on the map and over the arena in the final fight (`colossus()` in `js/intro.js`). Any tap skips it. The older hand-drawn
 sequence (`js/opening.js`) stays in the code for the Theatre.
 
 **Effects: Crowd Breaker** (PixelHit, `tools_cbfx.py` → `assets/cbfx`): 29 of the pack's hand-drawn skill

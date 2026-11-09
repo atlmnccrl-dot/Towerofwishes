@@ -314,14 +314,14 @@
         const g = ctx.createLinearGradient(0, 0, 0, H()); g.addColorStop(0, '#2a2a2a'); g.addColorStop(1, '#f0f0f0'); ctx.fillStyle = g; ctx.fillRect(-W(), -H(), W() * 3, H() * 3);
         const rise = ease(clamp((T - 0.1) / 1.4)), ey = Math.round(H() * (1.3 - 0.95 * rise));
         A.tex(ctx, 'light_01', W() / 2, ey + 30, W() * 1.4, H() * 1.4, '#ffffff', 0.6 * rise, 0, true);
-        colossus(ctx, S, Math.round(W() / 2), ey, 6, T, { flat: true, col: '#000' });
+        colossus(ctx, S, Math.round(W() / 2), ey, 6, T, { dark: 0.25 });
         A.actor(ctx, S.cast.vesper, 'Idle4', Math.floor(T * 7) % 15, BACK, Math.round(W() / 2), Math.round(H() * 0.98), 1.6, { shade: '#000' });
       }, post(ctx, S, k, T) {
         const rise = ease(clamp((T - 0.1) / 1.4)), ey = Math.round(H() * (1.3 - 0.95 * rise));
         burningEyes(ctx, Math.round(W() / 2), ey, 6, ease(clamp((T - 1.3) / 0.25)), T);
         if (T > 0.3) say(S, 'track', null, W() / 2, H() * 0.98 - 14, { w: 12, h: 24, k: T - 0.3, col: '#ffe0e6' });
         if (T > 1.35) { say(S, 'track', null, W() / 2, ey, { w: 34, h: 12, k: T - 1.35, col: '#ffffff', sub: 'TARGET' }); say(S, 'link', null, W() / 2, H() * 0.98 - 26, { x2: W() / 2, y2: ey + 9, k: (T - 1.45) * 4, col: 'rgba(255,224,230,0.8)', label: 'ALT ' + Math.round(430 * rise) }); }
-      } }, { ...G, cam: { z: [1.0, 1.06] }, shake: 1.5, sfx: [[0.1, 'quake', 0.9], [0.8, 'quake', 1], [1.3, 'boss', 1], [1.32, 'blow_big', 1]], line: 'Seven hundred years... and they send one blade.', lineAt: 0.4, lineDur: 2.2, lineCol: '#ffd0d8' }),
+      } }, { cam: { z: [1.0, 1.06] }, shake: 1.5, sfx: [[0.1, 'quake', 0.9], [0.8, 'quake', 1], [1.3, 'boss', 1], [1.32, 'blow_big', 1]], line: 'Seven hundred years... and they send one blade.', lineAt: 0.4, lineDur: 2.2, lineCol: '#ffd0d8' }),
       cut(0.8, E.eyes({ at: 0.35, sc: 4.2 }), { bars: false, cam: { z: [1.0, 1.14] }, sfx: [[0.3, 'clang_0', 0.6]], line: 'One is enough.', lineAt: 0.25, lineDur: 1.0, lineCol: VCOL }),
       cut(0.5, { draw(ctx, S, k, T) {
         const g = ctx.createLinearGradient(0, 0, 0, H()); g.addColorStop(0, '#3a3a3a'); g.addColorStop(1, '#e8e8e8'); ctx.fillStyle = g; ctx.fillRect(-W(), -H(), W() * 3, H() * 3);

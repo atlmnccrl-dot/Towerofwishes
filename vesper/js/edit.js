@@ -98,6 +98,7 @@
   // An actor: { who, clip, fr: n | [from, to] | null (plays at fps), ang, x, y, to: [x, y], arc, sc: n | [from, to],
   // ease, t0, t1 (the part of the cut it moves in), smear (afterimages), smearCol, rot (spins), shade, grey, alpha, eyes }.
   function actor(ctx, S, a, k, T) {
+    if (a.show && (k < a.show[0] || k > a.show[1])) return null;
     const set = who(S, a.who), span = (a.t1 == null ? 1 : a.t1) - (a.t0 || 0), f = EZ[a.ease || 'out'];
     const kk = (q) => clamp((q - (a.t0 || 0)) / span), e = f(kk(k));
     const x0 = a.x * W(), y0 = a.y * H(), x1 = (a.to ? a.to[0] : a.x) * W(), y1 = (a.to ? a.to[1] : a.y) * H();

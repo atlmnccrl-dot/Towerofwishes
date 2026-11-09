@@ -367,8 +367,7 @@
       const t = T - 4.6, sc = 14 + t * 5, ex = Math.round(W() / 2), ey = Math.round(H() * 0.5);
       fill(ctx, '#ffffff');
       { const g = ctx.createRadialGradient(ex, ey, 4, ex, ey, W() * 0.6); g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#c8c2c4'); ctx.fillStyle = g; ctx.fillRect(-8, -8, W() + 16, H() + 16); }
-      colossus(ctx, S, ex, ey, sc, T, { flat: true, col: '#000' });
-      burningEyes(ctx, ex, ey, sc, 1, T);
+      colossus(ctx, S, ex, ey, sc * 0.7, T, { sil: true, col: '#000' });
       kick(S, t < 0.1 ? 8 : 2);
       return;
     }
@@ -570,9 +569,6 @@
       ctx.save(); ctx.beginPath(); ctx.rect(-20, -20, W() + 40, y + 20); ctx.clip();
       A.actor(ctx, set, clip, fr, ang, x + shakeX, y + Math.round((1 - ease(p)) * 64), sc, { shade: '#050203' });
       ctx.restore();
-      if (p > 0.85) {   // the eyes light
-        const b = A.box(set, 'Idle', 0, ang, sc); if (b) { const ex = Math.round(x + b.x + b.w / 2), ey = Math.round(y + b.y + Math.max(3, b.h * 0.13)), a = clamp((p - 0.85) * 7); ctx.globalAlpha = a; ctx.fillStyle = '#ffd0d6'; ctx.fillRect(ex - 3, ey, 2, 1); ctx.fillRect(ex + 1, ey, 2, 1); A.tex(ctx, 'light_01', ex, ey, 18, 10, RED, 0.7 * a, 0, true); ctx.globalAlpha = 1; }
-      }
       if (p > 0 && p < 0.4) for (let j = 0; j < 8; j++) { ctx.fillStyle = '#1a0608'; ctx.fillRect(Math.round(x + (hash(i, j) - 0.5) * 18), Math.round(y - p * 26 * hash(j, i + 7)), 2, 2); }
     }
     A.tex(ctx, 'smoke_07', W() * 0.5, H() * 0.8, W() * 1.6, 26, '#ff3048', 0.18, 0, true);
@@ -590,34 +586,17 @@
     moon(ctx, W() * 0.5, hz + H() * 0.1, H() * 0.44, '#ff3a52', 'rgba(255,40,70,0.55)', 1, T);
     const fl = ctx.createLinearGradient(0, hz, 0, H()); fl.addColorStop(0, '#4a0c18'); fl.addColorStop(0.5, '#2a060e'); fl.addColorStop(1, '#100206'); ctx.fillStyle = fl; ctx.fillRect(-20, hz, W() + 40, H());
     A.tex(ctx, 'light_01', W() * 0.5, hz + 8, W() * 0.9, 50, '#ff3048', 0.35, 0, true);   // the moon's light across the plain
-    // Countless far eyes along the horizon, no bodies to see.
-    for (let i = 0; i < 160; i++) { const x = hash(i, 301) * W(), y = hz + 1 + Math.pow(hash(i, 302), 2) * 10, open = 0.15 + Math.abs(x - W() / 2) / W() * 1.1 + hash(i, 303) * 0.3; if (T < open) continue; ctx.fillStyle = `rgba(255,42,68,${Math.min(1, (T - open) * 4) * (0.5 + 0.5 * hash(i, 304))})`; ctx.fillRect(Math.round(x), Math.round(y), 1, 1); ctx.fillRect(Math.round(x) + 2, Math.round(y), 1, 1); }
     // The ranks, far to near.
-    const ROWS = 6, tracked = [];
+    const ROWS = 6;
     for (let r = 0; r < ROWS; r++) {
       const d = r / (ROWS - 1), y0 = hz + 5 + Math.pow(d, 1.4) * (H() - BAR - hz - 4) + T * 3 * d, sc = 0.4 + d * 1.55, sp = 12 + d * 38, n = Math.ceil(W() / sp) + 2, off = (r % 2) * sp * 0.5;
       for (let i = 0; i < n; i++) {
         const x = Math.round(i * sp - off + (hash(r, i + 310) - 0.5) * sp * 0.5), y = Math.round(y0 + (hash(i, r + 311) - 0.5) * 3), set = deadSet(S, i + r * 3), fr = Math.floor(T * 8 + i * 3 + r) % 15;
         A.actor(ctx, set, 'Walk', fr, Math.PI / 2, x, y, sc, { shade: flash ? '#4a1a24' : '#040102' });
-        const open = 0.1 + Math.abs(x - W() / 2) / W() * 1.2 + (1 - d) * 0.15 + hash(i, r + 312) * 0.15;
-        if (T < open) continue;
-        const b = A.box(set, 'Walk', fr, Math.PI / 2, sc); if (!b) continue;
-        const a = Math.min(1, (T - open) * 5), ex = Math.round(x + b.x + b.w / 2), ey = Math.round(y + b.y + Math.max(2, b.h * 0.13)), pw = Math.max(1, Math.round(sc * 0.7)), gap = Math.max(1, Math.round(sc * 1.1));
-        ctx.globalAlpha = a; ctx.fillStyle = d > 0.6 ? '#ffd0d6' : RED; ctx.fillRect(ex - gap - pw, ey, pw, Math.max(1, pw >> 1)); ctx.fillRect(ex + gap, ey, pw, Math.max(1, pw >> 1));
-        if (sc > 0.9) A.tex(ctx, 'light_01', ex, ey, 10 * sc, 5 * sc, RED, 0.5 * a, 0, true);
-        ctx.globalAlpha = 1;
-        if (r === ROWS - 1 && x > W() * 0.12 && x < W() * 0.88 && hash(i, 997) < 0.34) tracked.push([x + b.x + b.w / 2, y + b.y + b.h * 0.45, b.w, b.h]);
       }
     }
     ctx.restore();
-    // The lightning shows them; the boxes lock on, one after another, linked.
-    const P2 = ([x, y, w, h]) => [W() / 2 + (x - W() / 2) * push, H() * 0.75 + (y - H() * 0.75) * push, w * push, h * push];
-    tracked.slice(0, 4).map(P2).forEach((q, i, all) => {
-      const t0 = 1.42 + i * 0.16; if (T < t0) return;
-      say(S, 'track', null, q[0], q[1], { w: q[2] + 6, h: q[3] + 4, k: T - t0, col: '#ffe0e6', sub: i === 0 ? 'RISEN' : null });
-      if (i) say(S, 'link', null, all[i - 1][0], all[i - 1][1], { x2: q[0], y2: q[1], k: (T - t0) * 5, col: 'rgba(255,224,230,0.8)' });
-    });
-    if (flash) { fill(ctx, '#ffe8ee', 0.2); ctx.strokeStyle = '#ffe0e8'; ctx.lineWidth = 1; ctx.beginPath(); let x = W() * (T < 2 ? 0.27 : 0.74), y = 0; ctx.moveTo(x, y); while (y < hz) { x += (hash(Math.floor(T * 10), y | 0) - 0.5) * 16; y += 7; ctx.lineTo(x, y); } ctx.stroke(); kick(S, 3); }
+    if (flash) { fill(ctx, '#ffe8ee', 0.25); kick(S, 3); }   // the lightning: a flash that shows the ranks
     if (T < 0.12) fill(ctx, '#000', 1 - T / 0.12);
   };
   // A manga panel: one thin box on black, her eyes in ink; the eye opens red; rings close round it.
@@ -662,7 +641,7 @@
     for (let i = 4; i >= 1; i--) A.actor(ctx, set, 'Run', fr, 0, hx - i * 12, gy, sc, { shade: '#ff8090', alpha: 0.1 * (5 - i) });
     A.actor(ctx, set, 'Run', fr, 0, hx, gy, sc, { shade: '#050102' });
     const cover = 1 - clamp((k - 0.72) / 0.2);
-    if (cover > 0) say(S, 'knock', 'VESPER', W() / 2, H() / 2, { size: 1.0, repeat: true, scroll: (T - 0.45) * 520, a: cover, col: '#000' });
+    if (cover > 0) say(S, 'knock', 'VESPER', W() / 2, H() / 2, { size: 0.8, sx: 0.7, a: cover, col: '#000' });
     if (k > 0.94) fill(ctx, '#ffffff', (k - 0.94) / 0.06);
   };
   // She runs through the dead: the world streaks past, each one cut and thrown.
@@ -762,20 +741,28 @@
     P([[-3.4, -5], [3.4, -5], [3.2, 2], [2.4, 4.6], [0, 6], [-2.4, 4.6], [-3.2, 2]]);
     const crown = [[-3.4, -5]]; for (let i = 0; i <= 8; i++) crown.push([-3.4 + i * 0.85, i % 2 ? -6.2 : (i === 4 ? -11.5 : -8.6)]); crown.push([3.4, -5]); P(crown);
   }
+  // The First Cut as his own character (the master knight), drawn giant: his eyes at (ex, ey), sized from sc
+  // (the old silhouette's unit). pose 'raise': the sword held up (Taunt, frame 10); otherwise he stands
+  // (Idle, or o.clip / o.fr). Whole-number scales keep the pixels square. o.dark: a tint laid over him to
+  // sit him in the scene's light (o.tint); o.sil: one solid colour (o.col), for the ink frames.
   function colossus(ctx, S, ex, ey, sc, T, o) {
-    const u = sc / 2;
-    ctx.save();
-    if (o.flat) { deity(ctx, ex, ey, u, o.col || '#050204', T, o.pose); ctx.restore(); return; }   // one solid shape, no edge lines
-    deity(ctx, ex + Math.max(1, u * 0.35), ey - Math.max(1, u * 0.25), u, o.rim || '#ff5a6a', T, o.pose);   // the moon's rim light
-    deity(ctx, ex - Math.max(1, u * 0.2), ey, u, '#5a0a1a', T, o.pose);
-    deity(ctx, ex, ey, u, o.col || '#050204', T, o.pose);
-    // A rune burning down the blade's edge.
-    const y0 = o.pose === 'raise' ? -24 : 31, y1 = o.pose === 'raise' ? -87 : 94;
-    ctx.strokeStyle = 'rgba(255,42,68,0.85)'; ctx.lineWidth = Math.max(1, u * 0.3); ctx.beginPath(); ctx.moveTo(ex, ey + y0 * u); ctx.lineTo(ex, ey + y1 * u); ctx.stroke();
-    A.tex(ctx, 'light_01', ex, ey + (y0 + y1) / 2 * u, 8 * u, 70 * u, RED, 0.25, 0, true);
-    ctx.restore();
+    o = o || {};
+    const set = D.FOES.firstCut.set, ang = Math.PI / 2, raise = o.pose === 'raise';
+    const clip = raise ? 'Taunt' : (o.clip || 'Idle4'), fr = raise ? 10 : (o.fr != null ? o.fr : Math.floor(T * 7) % 15);
+    let k = sc * 0.68; k = k >= 2 ? Math.round(k) : Math.max(1, Math.round(k * 2) / 2);
+    const b = A.box(set, 'Idle4', 0, ang, k); if (!b) return;
+    const x = Math.round(ex - (b.x + b.w * 0.55)), y = Math.round(ey - (b.y + b.h * 0.1));
+    const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
+    if (o.sil) A.actor(ctx, set, clip, fr, ang, x, y, k, { shade: o.col || '#000' });
+    else {
+      A.actor(ctx, set, clip, fr, ang, x, y, k, {});
+      const d = o.dark == null ? 0.28 : o.dark; if (d > 0) A.actor(ctx, set, clip, fr, ang, x, y, k, { shade: o.tint || '#14040a', alpha: d });
+    }
+    ctx.imageSmoothingEnabled = sm;
   }
-  function burningEyes(ctx, ex, ey, sc, open, T) {
+  // (His eyes are his own now: the glow that used to sit on the silhouette is gone.)
+  function burningEyes() {}
+  function burningEyesOld(ctx, ex, ey, sc, open, T) {
     if (open <= 0) return;
     const d = 0.9 * sc, w = Math.max(2, Math.round(sc * 0.5 * open)), h = Math.max(1, Math.round(sc * 0.2 * open)), fl = 0.85 + 0.15 * Math.sin(T * 30);
     A.tex(ctx, 'light_01', ex, ey, sc * 7 * open, sc * 3.5 * open, RED, 0.8 * fl, 0, true);
@@ -795,8 +782,8 @@
     moon(ctx, ex, at(eyW), Hh * 0.38, '#ff3a52', 'rgba(255,40,70,0.6)', 1, T);
     A.tex(ctx, 'light_01', ex, at(eyW + Hh * 0.6), W() * 1.4, Hh * 1.8, '#5a0a2a', 0.5, 0, true);
     const bolt = (T > 1.1 && T < 1.22) || (T > 2.6 && T < 2.7);
-    if (bolt) { fill(ctx, 'rgba(255,220,230,0.18)'); ctx.strokeStyle = '#ffd8e0'; ctx.lineWidth = 1; ctx.beginPath(); let x = W() * (T < 2 ? 0.2 : 0.8), y = 0; ctx.moveTo(x, y); while (y < Hh) { x += (hash(Math.floor(T * 10), y | 0) - 0.5) * 18; y += 8; ctx.lineTo(x, y); } ctx.stroke(); }
-    colossus(ctx, S, ex, at(eyW), sc, T, { rim: bolt ? '#ffffff' : '#ff5a6a', col: bolt ? '#1a0a12' : '#050204' });
+    if (bolt) fill(ctx, 'rgba(255,220,230,0.18)');
+    colossus(ctx, S, ex, at(eyW), sc, T, { dark: bolt ? 0 : 0.3 });
     burningEyes(ctx, ex, at(eyW), sc, ease(clamp((T - 2.3) / 0.35)), T);
     if (T > 2.3 && T < 2.4) kick(S, 6);
     // Clouds across his chest and waist, stones rising past him.
@@ -808,8 +795,6 @@
     for (let x = -10; x < W(); x += 18) if (hash(x, 226) > 0.3) ctx.fillRect(x, ry - 4, 10, 6);
     A.actor(ctx, S.cast.vesper, 'Idle4', Math.floor(T * 7) % 15, -Math.PI / 2, Math.round(W() * 0.42), ry + 1, 1.1, { shade: '#030102' });
     A.tex(ctx, 'light_01', W() * 0.42, ry - 14, 16, 22, RED, 0.35, 0, true);
-    { const vy = ry - 12, ey2 = at(eyW), on = T > 0.3; if (on) say(S, 'track', null, W() * 0.42, Math.min(vy, H() - BAR - 8), { w: 12, h: 24, k: T - 0.3, col: '#ffe0e6' });
-      if (T > 2.35) { say(S, 'track', null, ex, ey2, { w: 40, h: 14, k: T - 2.35, col: '#ffffff', sub: 'TARGET' }); say(S, 'link', null, W() * 0.42, Math.min(vy, H() - BAR - 8), { x2: ex, y2: ey2 + 10, k: (T - 2.35) * 4, col: 'rgba(255,224,230,0.8)', label: 'ALT ' + Math.round(430 * pan) }); } }
     if (T > 2.6) say(S, 'card', 'THE FIRST CUT', 10, BAR + 16, { sub: 'WHO WOUNDED THE MOON', k: T - 2.6, col: '#ffffff' });
     kick(S, 1 + (T > 2.3 ? 1.2 : 0));
   };
@@ -818,10 +803,9 @@
     const split = Math.round(H() * 0.66);
     ctx.save(); ctx.beginPath(); ctx.rect(-8, -8, W() + 16, split + 7); ctx.clip();
     fill(ctx, '#2a0610'); moon(ctx, W() / 2, H() * 0.3, H() * 0.75, '#ff3a52', 'rgba(255,40,70,0.6)', 0);
-    const sc = 30 + 4 * ease(k), ex = Math.round(W() / 2), ey = Math.round(H() * 0.36);
-    colossus(ctx, S, ex, ey, sc, T, { rimA: 0.7 });
+    const sc = 11 + 1 * ease(k), ex = Math.round(W() / 2), ey = Math.round(H() * 0.3);
+    colossus(ctx, S, ex, ey, sc, T, { dark: 0.2 });
     burningEyes(ctx, ex, ey, sc * 0.95, 1, T);
-    for (let i = 0; i < 14; i++) { const a = (hash(i, 231) - 0.5) * 0.9, L = 30 + hash(i, 232) * 80; ctx.strokeStyle = 'rgba(255,200,200,0.35)'; ctx.lineWidth = 1; for (const sx of [-1, 1]) { ctx.beginPath(); ctx.moveTo(ex + sx * 1.3 * sc, ey); ctx.lineTo(ex + sx * (1.3 * sc + L), ey + Math.tan(a) * L); ctx.stroke(); } }
     ctx.restore();
     ctx.save(); ctx.beginPath(); ctx.rect(-8, split + 1, W() + 16, H()); ctx.clip();
     fill(ctx, '#140608'); K().hStreaks(ctx, 20, 'rgba(255,90,110,0.4)', 233, T, 900);
@@ -879,7 +863,7 @@
       const a = throwK * 0.7, cx = tipX, cy = tipY, rot = (x, y) => [cx + (x - cx) * Math.cos(a) - (y - cy) * Math.sin(a), cy + (x - cx) * Math.sin(a) + (y - cy) * Math.cos(a)];
       const [fx, fy] = rot(fromX, fromY); bigBlade(ctx, fx, fy, tipX - throwK * 60, tipY + throwK * 20, 26, '#000');
       A.actor(ctx, vs, 'Special1', throwK > 0 ? 12 : 8, -Math.PI * 0.25, gx + Math.round(Math.sin(T * 50) * (throwK ? 0 : 1.5)), gy, 1.7, { shade: '#000' });
-      if (throwK > 0) { K().line(ctx, tipX - 80, tipY + 40, tipX + 120, tipY - 70, 2, '#ffffff'); kick(S, 5); say(S, 'punch', 'I STAND', W() / 2, H() * 0.3, { size: 40, k: T - 0.85 }); }
+      if (throwK > 0) { K().line(ctx, tipX - 80, tipY + 40, tipX + 120, tipY - 70, 2, '#ffffff'); kick(S, 5); say(S, 'punch', 'I STAND', W() / 2, H() * 0.42, { size: 40, k: T - 0.85 }); }
       else kick(S, 1.5);
     } else {
       // His eyes in the dark above; her small shape below, the blade raised at him.
@@ -891,7 +875,7 @@
       ctx.fillStyle = '#000'; ctx.fillRect(-8, gy, W() + 16, H());
       A.actor(ctx, vs, 'Special1', 14, -Math.PI * 0.5, gx, gy, 1.9, { shade: '#e8203c' });   // solid red against his black
       K().line(ctx, gx + 2, gy - 34, gx + 2 + (W() * 0.5 - gx) * 0.25 * ease(e * 2), gy - 34 - 60 * ease(e * 2), 1, '#ffffff');
-      if (k < 0.8) say(S, 'punch', 'I STAND', W() / 2, H() * 0.3, { size: 40, k: T - 0.85, a: clamp((0.8 - k) * 12) });
+      if (k < 0.8) say(S, 'punch', 'I STAND', W() / 2, H() * 0.42, { size: 40, k: T - 0.85, a: clamp((0.8 - k) * 12) });
       if (k > 0.9) fill(ctx, '#ffffff', (k - 0.9) / 0.1);
     }
   };

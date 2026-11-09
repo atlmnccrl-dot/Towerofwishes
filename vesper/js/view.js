@@ -457,14 +457,14 @@
     const g = s.god, P = R.godPose; if (P) { P.t += dt; if (P.t > 1.6) R.godPose = null; }
     const kneel = s.units.some((u) => u.alive && u.part === 'head'), fall = R.godFall ? (R.godFall += dt) : 0;
     R.godKneel = (R.godKneel || 0) + ((kneel ? 1 : 0) - (R.godKneel || 0)) * Math.min(1, dt * 3);
-    const u = R.H / 56, ex = Math.round(R.W * 0.52 - R.hcam.x * 0.03 * R.dpr), ey = Math.round(R.H * (0.25 + 0.2 * R.godKneel + fall * 0.6) + Math.sin(R.t * 0.8) * 3 * R.dpr);
+    const u = R.H / 56, ex = Math.round(R.W * 0.52 - R.hcam.x * 0.03 * R.dpr), ey = Math.round(R.H * (0.18 + 0.2 * R.godKneel + fall * 0.6) + Math.sin(R.t * 0.8) * 3 * R.dpr);
     const a = fall ? Math.max(0, 1 - fall / 1.6) : 1; if (a <= 0) return;
     let L = R.godLayer; if (!L || L.width !== R.W || L.height !== R.H) { L = R.godLayer = document.createElement('canvas'); L.width = R.W; L.height = R.H; }
     const c = L.getContext('2d'); c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, R.W, R.H); c.globalCompositeOperation = 'source-over';
     A.tex(c, 'light_01', ex, ey + 6 * u, R.W * 1.1, R.H * 1.1, '#ff3048', 0.45, 0, true);
     const raise = P && (P.move === 'blade' || P.move === 'sweep') && P.t < 1.3;
-    K.colossus(c, null, ex, ey, u * 2, R.t, { flat: true, col: g.flash > 0 ? '#3a0a14' : '#0a0306', pose: raise ? 'raise' : 'plant' });
-    K.burningEyes(c, ex, ey, u * 2, 1, R.t);
+    c.imageSmoothingEnabled = false;
+    K.colossus(c, null, ex, ey, u * 1.05, R.t, { dark: g.flash > 0 ? 0.45 : 0.3, tint: g.flash > 0 ? '#ff8090' : null, pose: raise ? 'raise' : 'plant' });
     // He fades into the floor below the middle of the screen, so the fight stays clear.
     const mk = c.createLinearGradient(0, 0, 0, R.H); mk.addColorStop(0, 'rgba(0,0,0,1)'); mk.addColorStop(0.46, 'rgba(0,0,0,0.92)'); mk.addColorStop(0.68, 'rgba(0,0,0,0)'); mk.addColorStop(1, 'rgba(0,0,0,0)');
     c.globalCompositeOperation = 'destination-in'; c.fillStyle = mk; c.fillRect(0, 0, R.W, R.H); c.globalCompositeOperation = 'source-over';
@@ -498,8 +498,7 @@
       const hu = 7 * Sh, hy = y - 8 * Sh;
       ctx.save(); ctx.beginPath(); ctx.rect(0, 0, R.W, y + 4 * Sh); ctx.clip();
       A.tex(ctx, 'light_01', x, hy, 160 * Sh, 120 * Sh, '#ff3048', 0.45, 0, true);
-      K.colossus(ctx, null, x, hy, hu * 2, R.t, { flat: true, col: flash ? '#3a0a14' : '#0a0306' });
-      K.burningEyes(ctx, x, hy, hu * 2, 1, R.t);
+      K.colossus(ctx, null, x, hy, hu * 2, R.t, { dark: flash ? 0.55 : 0.2, tint: flash ? '#ffffff' : null });
       ctx.restore();
     }
     // The place to strike: a ring pulsing on the floor, brighter on his head.
