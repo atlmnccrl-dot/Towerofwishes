@@ -102,7 +102,9 @@ Losing costs nothing: level up, forge, change the formation and fight again.
 | Shadowblade | Assassin | **Shadowstep** — reappear behind a foe, sure critical |
 | Lancer | Skirmisher | **Impaling Charge** — spear everything in a line |
 
-Settings: music, effects, screen shake, damage numbers, erase save.
+Settings: music, effects, screen shake, damage numbers, erase save, and the **Theater**: every cutscene in the game
+(the opening, the four chapter openers, each boss's entrance and fall, a summoning for every entrance), unlocked,
+to watch again without playing through.
 
 Sound: monster voices from Ririsaurus' *Fantasy Monsters*, *Dinosaurs* and *Abyssal Horror SFX Vol.1* packs
 (assets/sfx, trimmed and compressed; credited in Settings): wargs for beastkin, a serpent's hiss for stalkers,

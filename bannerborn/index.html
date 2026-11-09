@@ -257,6 +257,12 @@ button.hc:active{transform:scale(.97)}
 #reveal .rk{font:700 12px var(--head);letter-spacing:.32em;text-transform:uppercase;color:var(--rc)}
 #reveal .nm{font:800 clamp(30px,4.6vw,48px) var(--head);margin:6px 0 2px;text-shadow:0 0 40px color-mix(in srgb,var(--rc) 60%,transparent)}
 .clsrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}.clsrow .cls{font:600 11px var(--body);padding:3px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.1);color:#6b7383}.clsrow .cls.on{color:#fff;border-color:var(--cc);background:color-mix(in srgb,var(--cc) 22%,transparent)}.clsrow .clstip{font:500 12px var(--body);color:#ffb35a;margin-left:4px}.clsrow .clstip.good{color:#4ade80}
+.th-group{font:700 11px var(--head);letter-spacing:.28em;text-transform:uppercase;color:var(--mute);margin:16px 0 8px}
+.th-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+.th-tile{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:3px;padding:12px 14px;border-radius:12px;background:linear-gradient(160deg,rgba(255,255,255,.06),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);transition:transform .15s,border-color .15s,background .15s;position:relative;overflow:hidden}
+.th-tile:hover,.th-tile:focus-visible{transform:translateY(-2px);border-color:var(--tc,#ffbe55);background:linear-gradient(160deg,color-mix(in srgb,var(--tc,#ffbe55) 18%,transparent),rgba(255,255,255,.02))}
+.th-tile b{font:700 14px var(--head);color:#f3f5f9;padding-right:16px}.th-tile span{font:500 12px var(--body);color:#8f98a8}
+.th-tile::after{content:'▶';position:absolute;right:12px;top:12px;font-size:11px;color:var(--tc,#ffbe55);opacity:.8}
 #reveal .cl{font:500 14px var(--body);color:var(--mute);margin-bottom:8px}
 #reveal .cl .sig{color:#ffe7a3;font-weight:700}
 #reveal .ds{font:400 13px/1.45 var(--body);color:#c8cfdb;max-width:min(560px,88vw);margin:0 auto 14px}
@@ -526,7 +532,14 @@ input[type=range]{accent-color:var(--accent)} input[type=checkbox]{accent-color:
   <label class="row"><input type="checkbox" id="sShake"> Screen shake</label>
   <label class="row"><input type="checkbox" id="sDmg"> Damage numbers</label>
   <div class="mute" style="font-size:12px">Art: “Fantasy tileset – 2D Isometric”, “2D Desert Fantasy” and the Fantasy Character Creator cast, supplied by the author. Monster voices: “Fantasy Monsters”, “Dinosaurs” and “Abyssal Horror SFX Vol.1” by Riria / Ririsaurus. Other sound and the music are synthesised in the browser.</div>
+  <button class="btn dark" id="bTheater">🎬 Theater — watch every cutscene</button>
   <div class="row"><button class="btn dark sm" id="bWipe">Erase save</button><div class="grow"></div><button class="btn" id="bSetClose">Done</button></div>
+</div></div>
+<div id="mTheater" class="modal"><div class="frame scroll" style="width:min(760px,94vw);max-height:88vh">
+  <h2 class="gold">Theater</h2>
+  <div class="mute" style="font-size:13px;margin-top:-6px">Every cutscene in the game, unlocked. Tap one to watch it; Skip brings you back here.</div>
+  <div id="theaterList"></div>
+  <div class="row"><div class="grow"></div><button class="btn" id="bTheaterClose">Close</button></div>
 </div></div>
 <div id="mPick" class="modal"><div class="frame" id="pickBody" style="width:min(560px,94vw)"></div></div>
 <div id="mConfirm" class="modal"><div class="frame" style="width:min(420px,90vw)"><div id="confText" style="font-size:16px"></div><div class="row" style="justify-content:flex-end"><button class="btn dark" id="confNo">Cancel</button><button class="btn" id="confYes">Yes</button></div></div></div>

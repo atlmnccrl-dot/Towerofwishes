@@ -412,6 +412,43 @@
     BB.setVolumes(); BB.persist(); UI.modal('mSettings', false);
   });
   ['sMusic', 'sSfx'].forEach((id) => $(id).addEventListener('input', () => { BB.save.settings.music = +$('sMusic').value; BB.save.settings.sfx = +$('sSfx').value; BB.setVolumes(); }));
+  // ---- the theater: every cutscene, unlocked, for watching again
+  function theaterList() {
+    const list = [{ group: 'The story', items: [{ t: 'The Opening', s: 'Nine banners, the Gravegates', c: '#ffbe55', play: ['intro', {}] }] }];
+    list.push({ group: 'Chapter openers', items: BB.CHAPTERS.map((ch, i) => ({ t: 'Chapter ' + ['I', 'II', 'III', 'IV'][i] + ' · ' + ch.name, s: ch.blurb.length > 46 ? ch.blurb.slice(0, 45) + '…' : ch.blurb, c: '#ffcf7a', play: ['chapter', { chapter: ch, music: 'calm' }] })) });
+    const bosses = BB.MISSIONS.filter((m) => m.boss);
+    const tint = (m) => ({ vesh: '#7dffb0', regent: '#c9a8ff', sallow: '#ffd27a' }[m.boss] || '#ff7a6a');
+    list.push({ group: 'Boss entrances', items: bosses.map((m) => ({ t: BB.FOES[m.boss].name.split(',')[0], s: 'Stage ' + m.code + ' · ' + m.name, c: tint(m), play: ['boss', { stage: m }] })) });
+    list.push({ group: 'Boss falls', items: bosses.map((m) => ({ t: BB.FOES[m.boss].name.split(',')[0] + ' falls', s: 'Stage ' + m.code, c: tint(m), play: ['bossDown', { stage: m, music: 'calm' }] })) });
+    if (BB.ENTRANCES && BB.identityAll) list.push({ group: 'Summoning — every entrance', items: Object.keys(BB.ENTRANCES).map((k) => ({ t: BB.ENTRANCES[k].name, s: BB.ENTRANCES[k].line, c: '#86ccff', reveal: k })) });
+    return list;
+  }
+  function openTheater() {
+    const box = $('theaterList'); box.innerHTML = '';
+    for (const G of theaterList()) {
+      const h = document.createElement('div'); h.className = 'th-group'; h.textContent = G.group; box.appendChild(h);
+      const grid = document.createElement('div'); grid.className = 'th-grid'; box.appendChild(grid);
+      for (const it of G.items) {
+        const b = document.createElement('button'); b.className = 'th-tile'; b.style.setProperty('--tc', it.c);
+        b.innerHTML = '<b></b><span></span>'; b.querySelector('b').textContent = it.t; b.querySelector('span').textContent = it.s;
+        b.addEventListener('click', () => watch(it)); grid.appendChild(b);
+      }
+    }
+    UI.modal('mSettings', false); UI.modal('mTheater');
+  }
+  function watch(it) {
+    BB.sfx('click'); UI.modal('mTheater', false);
+    const back = () => { BB.music(mode === 'battle' ? 'battle' : 'calm'); UI.modal('mTheater'); };
+    if (it.reveal) { // a summoning with that entrance, played on a hero who has it
+      const tab = BB.identityAll(), c = BB.ROSTER.find((r) => r.role === 'hero' && tab[r.key] && tab[r.key].entrance === it.reveal); if (!c) { back(); return; }
+      const h = BB.heroFromEntry(BB.save, Object.assign({}, c, { rarity: 2 }));
+      BB.loadChar('h/' + h.recruit).then(() => UI.reveal(h, back));
+      return;
+    }
+    BB.Cinema.play(it.play[0], it.play[1], back);
+  }
+  UI.click($('bTheater'), () => { const s = BB.save.settings; s.music = +$('sMusic').value; s.sfx = +$('sSfx').value; s.shake = $('sShake').checked; s.dmgNums = $('sDmg').checked; BB.setVolumes(); BB.persist(); openTheater(); });
+  UI.click($('bTheaterClose'), () => { UI.modal('mTheater', false); });
   UI.click($('bWipe'), () => UI.confirm('Erase all progress for good?', () => { try { localStorage.removeItem(KEY); } catch (e) { /* blocked */ } location.reload(); }));
 
   // ---------------------------------------------------------------- loop
