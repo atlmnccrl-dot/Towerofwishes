@@ -910,9 +910,239 @@
     const x = tmp.getContext('2d'); x.globalCompositeOperation = 'copy'; x.drawImage(cv, 0, 0);
     g.save(); g.setTransform(1, 0, 0, 1, 0, 0);
     if ('filter' in g) { g.filter = grade === 'manga' ? 'grayscale(1) contrast(6) brightness(1.2)' : 'grayscale(1) contrast(2.4) brightness(1.15)'; g.globalCompositeOperation = 'copy'; g.drawImage(tmp, 0, 0); g.filter = 'none'; }
+    if (grade === 'sepia' && 'filter' in g) { g.filter = 'sepia(0.75) contrast(1.35) saturate(0.8) brightness(0.95)'; g.globalCompositeOperation = 'copy'; g.drawImage(tmp, 0, 0); g.filter = 'none'; g.restore(); return; }
     const col = { red: '#ff2b2b', green: '#62ff92', blue: '#5aa8ff', gold: '#ffb54a', violet: '#b48cff' }[grade];
     if (col) { g.globalCompositeOperation = 'multiply'; g.fillStyle = col; g.fillRect(0, 0, W, H); }
     g.restore();
+  }
+  // ================================================================ six more ways to shoot a scene, one per reference
+  // a sprite drawn at a chosen height, feet at (x, y)
+  function actorAt(g, a, clip, dir, fr, x, y, h, o) {
+    const S = h / 42; g.save(); g.imageSmoothingEnabled = false; if (o && o.alpha !== undefined) g.globalAlpha *= o.alpha;
+    if (o && o.flip) { g.translate(x * 2, 0); g.scale(-1, 1); }
+    drawActor(g, a, clip, dir, fr, x, y, S, o && o.flash ? { flash: o.flash } : undefined); g.restore();
+  }
+  function silAt(g, a, clip, dir, fr, x, y, h, col, rim, flip) {
+    const SC = 2, m = h / (42 * SC), sv = silhouette(a, clip, dir, fr, SC, col);
+    g.save(); g.translate(x, y); if (flip) g.scale(-1, 1); g.imageSmoothingEnabled = false;
+    if (rim) { const rv = silhouette(a, clip, dir, fr, SC, rim); for (const [dx, dy] of [[-1.5, 0], [1.5, 0], [0, -1.5]]) g.drawImage(rv, -64 * SC * m + dx, -90 * SC * m + dy, 128 * SC * m, 128 * SC * m); }
+    g.drawImage(sv, -64 * SC * m, -90 * SC * m, 128 * SC * m, 128 * SC * m); g.restore();
+  }
+  const frOf = (a, clip, t, fps) => Math.floor(t * (fps || 8)) % clipLen(a, clip);
+  // the pixels of a sprite, for breaking it apart
+  const pixCache = {};
+  function pixelsOf(a, clip, dir, fr) {
+    const art = a._art || (a._art = actorArt(a)), key = (art.key || 'hero') + clip + dir + fr; if (pixCache[key]) return pixCache[key];
+    const SC = 1, S = 128, c = document.createElement('canvas'); c.width = c.height = S; const x = c.getContext('2d'); x.imageSmoothingEnabled = false;
+    drawActor(x, a, clip, dir, fr, S / 2, 90, SC); let d; try { d = x.getImageData(0, 0, S, S).data; } catch (e) { return (pixCache[key] = []); }
+    const pts = []; for (let yy = 0; yy < S; yy++) for (let xx = 0; xx < S; xx++) { const i = (yy * S + xx) * 4; if (d[i + 3] > 90) pts.push({ x: xx - S / 2, y: yy - 90, c: 'rgb(' + d[i] + ',' + d[i + 1] + ',' + d[i + 2] + ')', r: hr(xx * 131 + yy) }); }
+    let top = 0; for (const p of pts) top = Math.min(top, p.y); for (const p of pts) p.v = (p.y - top) / Math.max(1, -top); // 0 at the head, 1 at the feet
+    return (pixCache[key] = pts);
+  }
+  // break a sprite apart: 'shatter' (stone falling), 'dust' (rising motes), 'sand' (blown away), 'glitch' (slices and static), 'ink' (drowned)
+  function breakApart(g, a, x, y, h, mode, k, t, col) {
+    const pts = pixelsOf(a, 'Idle', 2, 0), s = h / 42;
+    g.save(); g.imageSmoothingEnabled = false;
+    for (const p of pts) {
+      let px = x + p.x * s, py = y + p.y * s, al = 1, c = p.c;
+      if (mode === 'shatter') { const q = clamp01((k - p.r * 0.25) / 0.7); px += (p.x * 0.02 + (p.r - 0.5)) * q * h * 0.9; py += (q * q * h * 1.4) - Math.sin(q * 3) * h * 0.2 * (1 - p.v); al = 1 - clamp01((q - 0.75) * 4); if (q > 0.05) c = '#8a7d70'; }
+      else if (mode === 'dust') { const q = clamp01((k - (1 - p.v) * 0.4) / 0.6); px += Math.sin(p.r * 20 + t * 2) * q * h * 0.25; py -= q * h * (0.6 + p.r); al = 1 - q; if (q > 0) c = q > 0.3 ? (col || '#ffd27a') : p.c; }
+      else if (mode === 'sand') { const q = clamp01((k - (p.x / 60 + 0.5) * 0.45 - p.r * 0.1) / 0.55); px += q * q * h * (1.6 + p.r); py -= Math.sin(q * 3 + p.r * 5) * h * 0.15 * q; al = 1 - clamp01((q - 0.6) * 2.5); if (q > 0) c = q > 0.2 ? '#d8b070' : p.c; }
+      else if (mode === 'glitch') { const band = Math.floor((p.y + 90) / 6), off = (hr(band * 13 + Math.floor(t * 18)) - 0.5) * h * 0.6 * k; px += off; al = 1 - clamp01((k - 0.5 - hr(band) * 0.3) * 3); if (hr(band + Math.floor(t * 30)) < 0.15 * k) c = hr(band) < 0.5 ? '#ff3df0' : '#3dfcff'; }
+      else if (mode === 'ink') { const q = clamp01((k - p.v * 0.3) / 0.7); px += (p.r - 0.5) * q * h * 0.3; py += q * h * 0.3 * p.r; c = q > 0.2 ? '#000' : p.c; al = 1; }
+      if (al <= 0) continue; g.globalAlpha = al; g.fillStyle = c; g.fillRect(px, py, s + 0.6, s + 0.6);
+    }
+    g.restore();
+  }
+
+  // ---- ARENA (the chanting crowd): a torch-lit crypt hall, rows of the dead chanting on the beat, the champion on his dais
+  function drawArena(g, W, H, sh, k, t) {
+    const beat = (t * (sh.bpm || 100) / 60), pulse = Math.pow(1 - (beat % 1), 3), on = Math.floor(beat);
+    const z = 1 + (sh.push || 0.08) * ease(k); g.save(); g.translate(W / 2, H * 0.6); g.scale(z, z); g.translate(-W / 2 + (sh.pan ? lerp(-W * 0.08, W * 0.08, k) : 0), -H * 0.6);
+    const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#1a0e08'); bg.addColorStop(0.6, '#4a2814'); bg.addColorStop(1, '#2a160c'); g.fillStyle = bg; g.fillRect(-W, -H, W * 3, H * 3);
+    // the hall: pillars and arches, light shafts, torches
+    for (let i = -1; i < 8; i++) { const x = i * W / 6; g.fillStyle = '#080503'; g.fillRect(x - W * 0.02, 0, W * 0.04, H * 0.7); g.strokeStyle = 'rgba(255,150,70,0.12)'; g.lineWidth = 2; g.beginPath(); g.arc(x + W / 12, H * 0.3, W / 12, Math.PI, 0); g.stroke(); }
+    g.save(); g.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 4; i++) { const x = W * (0.15 + i * 0.24), gr = g.createLinearGradient(x, 0, x + W * 0.08, H); gr.addColorStop(0, 'rgba(255,190,120,0.28)'); gr.addColorStop(1, 'rgba(255,190,120,0)'); g.fillStyle = gr; g.beginPath(); g.moveTo(x - W * 0.02, 0); g.lineTo(x + W * 0.03, 0); g.lineTo(x + W * 0.14, H); g.lineTo(x + W * 0.02, H); g.closePath(); g.fill(); }
+    for (let i = 0; i < 6; i++) { const x = W * (0.08 + i * 0.17), y = H * 0.36, f = 0.75 + 0.25 * Math.sin(t * 13 + i * 3); const gl = g.createRadialGradient(x, y, 0, x, y, H * 0.12 * f); gl.addColorStop(0, 'rgba(255,170,60,0.75)'); gl.addColorStop(1, 'rgba(255,90,20,0)'); g.fillStyle = gl; g.fillRect(x - H * 0.15, y - H * 0.15, H * 0.3, H * 0.3); g.fillStyle = 'rgba(255,230,160,' + f + ')'; g.beginPath(); g.ellipse(x, y, H * 0.008, H * 0.018 * f, 0, 0, TAU); g.fill(); }
+    for (let i = 0; i < 70; i++) { const x = (hr(i + 4000) * W + t * 10) % W, y = (hr(i + 4001) * H * 0.8 + Math.sin(t + i) * 10); g.fillStyle = 'rgba(255,210,150,' + (0.25 + 0.25 * Math.sin(t * 2 + i)) + ')'; g.fillRect(x, y, 1.6, 1.6); }
+    g.restore();
+    // the dais and the champion
+    if (sh.boss) {
+      const bx = W / 2, by = H * (sh.close ? 1.02 : 0.66), bh = H * (sh.close ? 0.8 : 0.4);
+      if (!sh.close) { g.save(); g.globalCompositeOperation = 'lighter'; const sp = g.createRadialGradient(bx, by - bh * 0.5, 0, bx, by - bh * 0.5, bh * 0.9); sp.addColorStop(0, 'rgba(255,170,90,0.35)'); sp.addColorStop(1, 'rgba(255,120,40,0)'); g.fillStyle = sp; g.fillRect(bx - bh, by - bh * 1.4, bh * 2, bh * 1.6); g.restore(); }
+      if (!sh.close) { g.fillStyle = '#120a06'; g.beginPath(); g.ellipse(bx, by + H * 0.01, W * 0.16, H * 0.04, 0, 0, TAU); g.fill(); g.fillRect(bx - W * 0.16, by + H * 0.01, W * 0.32, H * 0.1); }
+      const clip = sh.roar && k > 0.3 ? 'Special1' : 'Taunt', fr = sh.roar && k > 0.3 ? Math.min(clipLen(sh.boss, clip) - 1, Math.floor((k - 0.3) * 30)) : frOf(sh.boss, clip, t, 9);
+      actorAt(g, sh.boss, clip, 2, fr, bx, by, bh);
+      if (sh.roar && k > 0.3) { g.save(); g.globalCompositeOperation = 'lighter'; const rr = (k - 0.3) * W; g.strokeStyle = 'rgba(255,200,140,' + Math.max(0, 0.6 - (k - 0.3)) + ')'; g.lineWidth = H * 0.01; g.beginPath(); g.ellipse(bx, by - bh * 0.5, rr, rr * 0.5, 0, 0, TAU); g.stroke(); g.restore(); }
+    }
+    // the crowd: three rows of the dead, chanting, arms up on the beat
+    const rows = sh.close ? [] : sh.crowdClose ? [[1.0, 0.6, 5]] : [[0.78, 0.16, 14], [0.9, 0.23, 11], [1.04, 0.33, 8]];
+    rows.forEach(([ry, rh, n], ri) => {
+      for (let i = 0; i < n; i++) {
+        const a = sh.crowd[(i + ri * 3) % sh.crowd.length], x = (i + 0.5) / n * W * 1.1 - W * 0.05 + (ri % 2 ? W / n / 2 : 0), jump = pulse * H * 0.02 * (1 + ri * 0.5) * (hr(i + ri * 30) * 0.6 + 0.6);
+        const up = (on + i) % 2 === 0 && pulse > 0.3, clip = up ? 'Attack1' : 'Idle', fr = up ? Math.min(clipLen(a, clip) - 1, 3) : frOf(a, 'Idle', t + i, 8);
+        silAt(g, a, clip, i % 2 ? 1 : 3, fr, x, H * ry - jump, H * rh, '#070403', ri === 2 || sh.crowdClose ? 'rgba(255,180,100,0.85)' : 'rgba(255,170,90,0.5)', i % 2);
+      }
+    });
+    g.restore();
+    // the chant
+    if (sh.chant) { const word = sh.chant[on % sh.chant.length]; g.save(); g.globalAlpha = 0.35 + pulse * 0.6; g.font = '800 ' + Math.round(H * 0.24 * (1 + pulse * 0.08)) + 'px ' + SERIF; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#ffd7a8'; g.shadowColor = '#ff7a2a'; g.shadowBlur = H * 0.05 * pulse; g.fillText(word, W / 2, H * 0.3); g.restore();
+      if (sh._on !== on) { sh._on = on; if (BB.score) BB.score('boom', 0.9); C.shake = Math.max(C.shake, 0.18); } }
+  }
+
+  // ---- DUST (the awakening): darkness full of golden motes, one spotlight, a red stage, a violet point of light
+  function drawDust(g, W, H, sh, k, t) {
+    const mode = sh.mode;
+    g.fillStyle = mode === 'stage' ? '#0a0203' : '#030203'; g.fillRect(0, 0, W, H);
+    g.save(); g.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 90; i++) { const d = hr(i + 4100), r = H * (0.003 + d * d * 0.03), x = ((hr(i + 4101) * W + t * (10 + d * 30)) % (W + r * 2)) - r, y = (hr(i + 4102) * H - t * (6 + d * 20) + H * 2) % H; const a = (0.15 + 0.35 * (1 - d)) * (0.6 + 0.4 * Math.sin(t * 2 + i));
+      const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, mode === 'stage' ? 'rgba(255,120,90,' + a + ')' : 'rgba(255,205,120,' + a + ')'); gr.addColorStop(1, 'rgba(255,160,80,0)'); g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2); }
+    g.restore();
+    const a = sh.who, cx = W / 2;
+    if (mode === 'spot') {
+      const fy = H * 0.86, h = H * 0.44; g.save(); g.globalCompositeOperation = 'lighter'; const cone = g.createLinearGradient(cx, 0, cx, fy); cone.addColorStop(0, 'rgba(255,220,170,0.25)'); cone.addColorStop(1, 'rgba(255,220,170,0.03)'); g.fillStyle = cone; g.beginPath(); g.moveTo(cx - W * 0.03, 0); g.lineTo(cx + W * 0.03, 0); g.lineTo(cx + W * 0.16, fy); g.lineTo(cx - W * 0.16, fy); g.closePath(); g.fill(); g.restore();
+      g.fillStyle = 'rgba(255,220,170,0.12)'; g.beginPath(); g.ellipse(cx, fy, W * 0.16, H * 0.035, 0, 0, TAU); g.fill();
+      actorAt(g, a, 'Idle', 2, frOf(a, 'Idle', t, 6), cx, fy, h * (1 + k * 0.05));
+      const mask = g.createRadialGradient(cx, fy - h * 0.75, h * 0.15, cx, fy - h * 0.4, h * 0.9); mask.addColorStop(0, 'rgba(3,2,3,0)'); mask.addColorStop(1, 'rgba(3,2,3,0.85)'); g.fillStyle = mask; g.fillRect(0, 0, W, H);
+    } else if (mode === 'stage') {
+      const fy = H * 0.84; g.save(); g.globalCompositeOperation = 'lighter'; const floor = g.createRadialGradient(cx, fy, 0, cx, fy, W * 0.5); floor.addColorStop(0, 'rgba(255,40,40,0.55)'); floor.addColorStop(1, 'rgba(120,0,0,0)'); g.fillStyle = floor; g.save(); g.translate(cx, fy); g.scale(1, 0.18); g.translate(-cx, -fy); g.fillRect(0, fy - W * 0.5, W, W); g.restore();
+        const cone = g.createLinearGradient(0, 0, 0, fy); cone.addColorStop(0, 'rgba(255,30,30,0.3)'); cone.addColorStop(1, 'rgba(255,30,30,0.05)'); g.fillStyle = cone; g.beginPath(); g.moveTo(cx - W * 0.05, 0); g.lineTo(cx + W * 0.05, 0); g.lineTo(cx + W * 0.3, fy); g.lineTo(cx - W * 0.3, fy); g.closePath(); g.fill(); g.restore();
+      const n = clipLen(a, 'Attack1'), fr = Math.min(n - 1, Math.floor(k * n * 1.2)), x = lerp(W * 0.25, W * 0.72, easeOut(k)), z = Math.sin(clamp01(k * 1.2) * Math.PI) * H * 0.18;
+      for (let i = 4; i >= 1; i--) silAt(g, a, 'Attack1', 1, fr, x - i * W * 0.04, fy - z, H * 0.42, 'rgba(255,40,40,' + (0.12 * (5 - i) / 4) + ')');
+      actorAt(g, a, 'Attack1', 1, fr, x, fy - z, H * 0.42); g.fillStyle = 'rgba(255,0,0,0.25)'; g.globalCompositeOperation = 'multiply'; g.fillRect(0, 0, W, H); g.globalCompositeOperation = 'source-over';
+    } else if (mode === 'glow') {
+      closeupBody(g, a, k, t, cx, H * 0.55, H * 0.24, 2, false, 'rgba(10,6,14,1)', 'rgba(0,0,0,1)', 0, { zoom: 1.0 + k * 0.25 });
+      g.fillStyle = 'rgba(0,0,0,0.55)'; g.fillRect(0, 0, W, H);
+      const px = cx + H * 0.16, py = H * 0.52, gk = easeOut(clamp01(k * 1.4)), col = sh.col || [180, 90, 255];
+      g.save(); g.globalCompositeOperation = 'lighter';
+      const lit = g.createRadialGradient(px, py, 0, px, py, H * 0.55 * gk); lit.addColorStop(0, rgba(col, 0.55)); lit.addColorStop(1, rgba(col, 0)); g.fillStyle = lit; g.fillRect(0, 0, W, H);
+      const core = g.createRadialGradient(px, py, 0, px, py, H * 0.05 * (0.5 + gk)); core.addColorStop(0, 'rgba(255,255,255,1)'); core.addColorStop(0.4, rgba(col, 0.9)); core.addColorStop(1, rgba(col, 0)); g.fillStyle = core; g.fillRect(px - H * 0.1, py - H * 0.1, H * 0.2, H * 0.2);
+      g.fillStyle = rgba(col, 0.5 * gk); g.fillRect(0, py - H * 0.003, W, H * 0.006); g.fillStyle = 'rgba(255,255,255,' + 0.7 * gk + ')'; g.fillRect(px - W * 0.15 * gk, py - 1, W * 0.3 * gk, 2);
+      g.restore();
+      if (k > 0.9) { g.fillStyle = 'rgba(255,255,255,' + ((k - 0.9) * 10) + ')'; g.fillRect(0, 0, W, H); }
+    }
+  }
+
+  // ---- JOURNEY (one unbroken take): a body dissolving into sand, dunes rushing below, the storm, an eye, the stars, the tomb
+  function drawJourney(g, W, H, sh, k, t) {
+    if (sh.span) k = sh.span[0] + k * (sh.span[1] - sh.span[0]);
+    const a = sh.who, gold = sh.col || [255, 200, 110], ph = (a0, a1) => clamp01((k - a0) / (a1 - a0));
+    const p0 = 1 - ph(0.18, 0.26), p1 = ph(0.18, 0.26) * (1 - ph(0.46, 0.52)), p2 = ph(0.46, 0.52) * (1 - ph(0.64, 0.68)), p3 = ph(0.64, 0.68) * (1 - ph(0.86, 0.9)), p4 = ph(0.86, 0.9);
+    g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
+    if (p0 > 0) { g.save(); g.globalAlpha = p0; const bg = g.createRadialGradient(W / 2, H * 0.5, 0, W / 2, H * 0.5, W * 0.6); bg.addColorStop(0, '#3a2a14'); bg.addColorStop(1, '#0a0602'); g.fillStyle = bg; g.fillRect(0, 0, W, H); breakApart(g, a, W * 0.45, H * 0.86, H * 0.6, 'sand', ph(0.02, 0.24), t); g.restore(); }
+    if (p1 > 0) { // dunes rushing toward the camera
+      g.save(); g.globalAlpha = p1; const sky = g.createLinearGradient(0, 0, 0, H * 0.5); sky.addColorStop(0, '#3a2412'); sky.addColorStop(1, '#f0b060'); g.fillStyle = sky; g.fillRect(0, 0, W, H);
+      g.fillStyle = 'rgba(255,240,200,0.9)'; g.beginPath(); g.arc(W * 0.62, H * 0.42, H * 0.07, 0, TAU); g.fill();
+      for (let L = 0; L < 7; L++) { const d = (L + (t * 1.2 % 1)) / 7, y = H * (0.45 + d * d * 0.6), amp = H * 0.04 * (0.4 + d * 2), off = t * (0.3 + d * 2.5);
+        g.fillStyle = rgba(mix([200, 140, 70], [60, 34, 14], d), 1); g.beginPath(); g.moveTo(0, H); for (let i = 0; i <= 40; i++) { const x = i / 40 * W; g.lineTo(x, y - amp * Math.sin(x / W * 4 + off + L) - amp * 0.4 * Math.sin(x / W * 9 + L)); } g.lineTo(W, H); g.closePath(); g.fill(); }
+      g.strokeStyle = 'rgba(255,220,160,0.35)'; g.lineWidth = 1.5; g.beginPath(); for (let i = 0; i < 70; i++) { const y = hr(i + 4200) * H * 0.9, x = ((hr(i + 4201) * W + t * W * 1.5) % (W + 100)) - 50; g.moveTo(x, y); g.lineTo(x + 40, y + 4); } g.stroke(); g.restore(); }
+    if (p2 > 0) { // the storm opens an eye
+      g.save(); g.globalAlpha = p2; g.fillStyle = '#2a1a0c'; g.fillRect(0, 0, W, H); clouds(g, W, H, t * 3, 14, H * 0.05, H * 0.95, [40, 26, 12], [190, 130, 60], W * 0.15, 61);
+      const ek = ph(0.5, 0.64), ew = W * 0.42, eh = H * 0.22 * easeOut(ek);
+      g.save(); g.beginPath(); g.moveTo(W / 2 - ew, H / 2); g.quadraticCurveTo(W / 2, H / 2 - eh * 2, W / 2 + ew, H / 2); g.quadraticCurveTo(W / 2, H / 2 + eh * 2, W / 2 - ew, H / 2); g.closePath(); g.fillStyle = '#0a0602'; g.fill(); g.clip();
+      g.globalCompositeOperation = 'lighter'; for (let r = 0; r < 8; r++) { g.strokeStyle = rgba(gold, 0.7 - r * 0.08); g.lineWidth = H * 0.008; g.beginPath(); g.arc(W / 2, H / 2, H * (0.06 + r * 0.025) * (1 + ph(0.6, 0.68) * 4), 0, TAU); g.stroke(); }
+      const core = g.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, H * 0.06); core.addColorStop(0, 'rgba(255,255,230,1)'); core.addColorStop(1, rgba(gold, 0)); g.fillStyle = core; g.fillRect(0, 0, W, H); g.restore(); g.restore(); }
+    if (p3 > 0) { // through the pupil: a rush of gold stars
+      g.save(); g.globalAlpha = p3; g.fillStyle = '#05030a'; g.fillRect(0, 0, W, H);
+      const neb = g.createRadialGradient(W * 0.6, H * 0.4, 0, W * 0.6, H * 0.4, W * 0.6); neb.addColorStop(0, 'rgba(160,90,40,0.5)'); neb.addColorStop(1, 'rgba(20,10,30,0)'); g.fillStyle = neb; g.fillRect(0, 0, W, H);
+      g.save(); g.globalCompositeOperation = 'lighter'; for (let i = 0; i < 160; i++) { const an = hr(i + 4300) * TAU, d0 = hr(i + 4301), q = (d0 + t * 0.6) % 1, r = q * q * W * 0.8; const x = W / 2 + Math.cos(an) * r, y = H / 2 + Math.sin(an) * r; g.strokeStyle = 'rgba(255,220,160,' + q + ')'; g.lineWidth = 1 + q * 2; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(an) * r * 0.1, y + Math.sin(an) * r * 0.1); g.stroke(); } g.restore(); g.restore(); }
+    if (p4 > 0) { // the tomb at dusk, and him
+      g.save(); g.globalAlpha = p4; const sky = g.createLinearGradient(0, 0, 0, H); sky.addColorStop(0, '#120a14'); sky.addColorStop(0.7, '#a8582a'); sky.addColorStop(1, '#2a140a'); g.fillStyle = sky; g.fillRect(0, 0, W, H);
+      g.fillStyle = '#0a0503'; g.beginPath(); g.moveTo(W * 0.3, H * 0.82); g.lineTo(W * 0.5, H * 0.3); g.lineTo(W * 0.7, H * 0.82); g.closePath(); g.fill(); g.fillRect(0, H * 0.82, W, H * 0.2);
+      g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = rgba(gold, 0.6); g.fillRect(W * 0.48, H * 0.62, W * 0.04, H * 0.2); g.restore();
+      silAt(g, a, 'Idle', 2, frOf(a, 'Idle', t, 6), W / 2, H * 0.82, H * 0.3 * (0.7 + ph(0.88, 1) * 0.3), '#050302', rgba(gold, 1));
+      g.restore(); }
+  }
+
+  // ---- NEON (the dreamy edit): violet and cyan, a HUD scanning, glitch slices, a pale moon with spaced letters, a fall through stars
+  function drawNeon(g, W, H, sh, k, t) {
+    const a = sh.who, mode = sh.mode, cy = [80, 240, 255], mg = [255, 70, 220];
+    const bg = g.createLinearGradient(0, 0, W, H); bg.addColorStop(0, '#0a0620'); bg.addColorStop(1, '#1a0a2e'); g.fillStyle = bg; g.fillRect(0, 0, W, H);
+    if (mode === 'scan') {
+      const fy = H * 0.87, h = H * 0.6, x = W * 0.5, fr = frOf(a, 'Idle', t, 7);
+      silAt(g, a, 'Idle', 2, fr, x - H * 0.008, fy, h, rgba(cy, 0.85)); silAt(g, a, 'Idle', 2, fr, x + H * 0.008, fy, h, rgba(mg, 0.85)); actorAt(g, a, 'Idle', 2, fr, x, fy, h, { alpha: 0.85 });
+      g.strokeStyle = rgba(cy, 0.9); g.lineWidth = 2; const bx0 = x - h * 0.4, by0 = fy - h * 1.02, bw = h * 0.8, bh = h * 1.05, L = h * 0.08;
+      for (const [px, py, dx, dy] of [[bx0, by0, 1, 1], [bx0 + bw, by0, -1, 1], [bx0, by0 + bh, 1, -1], [bx0 + bw, by0 + bh, -1, -1]]) { g.beginPath(); g.moveTo(px + dx * L, py); g.lineTo(px, py); g.lineTo(px, py + dy * L); g.stroke(); }
+      const sy = by0 + ((t * 0.6) % 1) * bh; g.fillStyle = rgba(cy, 0.35); g.fillRect(bx0, sy, bw, 2);
+      g.font = '600 ' + Math.round(H * 0.022) + 'px monospace'; g.fillStyle = rgba(cy, 0.8); g.textAlign = 'left';
+      for (let i = 0; i < 9; i++) g.fillText(['ID', 'SOUL', 'GATE', 'CROWN', 'BOUND', 'AGE', 'KIN', 'WILL', 'THREAT'][i] + '  ' + Math.floor(hr(i + Math.floor(t * 6)) * 99999).toString(16).toUpperCase(), bx0 + bw + H * 0.03, by0 + H * 0.05 + i * H * 0.035);
+      g.fillStyle = rgba(mg, 0.85); g.fillText('▲ THREAT: ABSOLUTE', bx0, by0 - H * 0.02);
+    } else if (mode === 'moon') {
+      const R = H * 0.6, mx = W / 2, my = H * 1.05; const glow = g.createRadialGradient(mx, my, R * 0.9, mx, my, R * 1.6); glow.addColorStop(0, 'rgba(210,190,255,0.35)'); glow.addColorStop(1, 'rgba(210,190,255,0)'); g.fillStyle = glow; g.fillRect(0, 0, W, H);
+      const md = g.createRadialGradient(mx - R * 0.3, my - R * 0.4, R * 0.1, mx, my, R); md.addColorStop(0, '#f4eefe'); md.addColorStop(1, '#9a8cc0'); g.fillStyle = md; g.beginPath(); g.arc(mx, my, R, 0, TAU); g.fill();
+      g.save(); g.beginPath(); g.arc(mx, my, R, 0, TAU); g.clip(); for (let i = 0; i < 20; i++) { g.fillStyle = 'rgba(120,100,170,' + (0.08 + hr(i + 4400) * 0.1) + ')'; g.beginPath(); g.arc(mx + (hr(i + 4401) - 0.5) * R * 1.8, my - hr(i + 4402) * R, R * (0.02 + hr(i + 4403) * 0.05), 0, TAU); g.fill(); } g.restore();
+      silAt(g, a, 'Idle', 2, frOf(a, 'Idle', t, 6), W * 0.5, H * 0.5 + Math.sin(t * 1.5) * H * 0.01, H * 0.12, '#0a0620', rgba(cy, 0.9));
+    } else if (mode === 'fall') {
+      g.save(); g.globalCompositeOperation = 'lighter'; for (let i = 0; i < 120; i++) { const x = hr(i + 4500) * W, y = ((hr(i + 4501) * H - t * H * (0.6 + hr(i) * 1.5)) % H + H) % H, l = H * (0.02 + hr(i + 4502) * 0.08); g.strokeStyle = i % 3 ? rgba(cy, 0.5) : rgba(mg, 0.5); g.lineWidth = 1.2; g.beginPath(); g.moveTo(x, y); g.lineTo(x, y + l); g.stroke(); } g.restore();
+      const x = W / 2 + Math.sin(t * 0.8) * W * 0.04, y = H * 0.7; g.save(); g.translate(x, y - H * 0.18); g.rotate(Math.sin(t * 0.7) * 0.4 + k * 0.6); g.translate(-x, -(y - H * 0.18));
+      silAt(g, a, 'TakeDamage', 2, 1, x, y, H * 0.32, rgba(mg, 0.9)); actorAt(g, a, 'TakeDamage', 2, 1, x + 2, y, H * 0.32, { alpha: 0.9 }); g.restore();
+    }
+    // HUD frame, scanlines, glitch slices
+    g.fillStyle = 'rgba(0,0,0,0.18)'; for (let y = 0; y < H; y += 3) g.fillRect(0, y, W, 1);
+    if (hr(Math.floor(t * 14)) < 0.35) { const cv = g.canvas, n = 4; for (let i = 0; i < n; i++) { const y = hr(i + Math.floor(t * 14) * 7) * H, hh = H * (0.01 + hr(i + 9) * 0.05), dx = (hr(i + 3 + Math.floor(t * 14)) - 0.5) * W * 0.08; g.drawImage(cv, 0, y, cv.width, hh, dx, y, cv.width, hh); } }
+    if (sh.text) { const L = sh.text, sz = Math.round(H * 0.075), sp = H * lerp(0.02, 0.09, ease(k)); g.font = '700 ' + sz + 'px Outfit, sans-serif'; g.textBaseline = 'middle'; const ws = L.split('').map((c) => g.measureText(c).width), tot = ws.reduce((p, q) => p + q, 0) + sp * (L.length - 1); let x = W / 2 - tot / 2;
+      L.split('').forEach((c, i) => { const ap = clamp01((k - i * 0.04) * 4); g.globalAlpha = ap; g.fillStyle = '#ffffff'; g.shadowColor = rgba(cy, 1); g.shadowBlur = sz * 0.4; g.fillText(c, x, H * (sh.textY || 0.42)); x += ws[i] + sp; }); g.globalAlpha = 1; g.shadowBlur = 0; }
+  }
+
+  // ---- INK (the psychic abstract): white ink morphing on black, scattered letters, eyes in the dark, the white void
+  function drawInk(g, W, H, sh, k, t) {
+    const mode = sh.mode;
+    g.fillStyle = mode === 'void' ? '#000' : '#000'; g.fillRect(0, 0, W, H);
+    if (mode === 'blots') {
+      const tmp = C.inkCv || (C.inkCv = document.createElement('canvas')); const w2 = Math.ceil(W / 4), h2 = Math.ceil(H / 4); if (tmp.width !== w2) { tmp.width = w2; tmp.height = h2; }
+      const x = tmp.getContext('2d'); x.fillStyle = '#000'; x.fillRect(0, 0, w2, h2); x.fillStyle = '#fff';
+      for (let i = 0; i < 14; i++) { const an = hr(i + 4600) * TAU + t * (0.4 + hr(i + 4601)), d = (0.1 + hr(i + 4602) * 0.35) * w2 * (0.6 + 0.4 * Math.sin(t * 0.8 + i)); x.beginPath(); x.arc(w2 / 2 + Math.cos(an) * d, h2 / 2 + Math.sin(an) * d * 0.6, h2 * (0.06 + hr(i + 4603) * 0.12) * (0.5 + k), 0, TAU); x.fill(); }
+      g.save(); g.imageSmoothingEnabled = true; if ('filter' in g) g.filter = 'blur(' + Math.round(H * 0.02) + 'px) contrast(30)'; g.drawImage(tmp, 0, 0, W, H); g.filter = 'none'; g.restore();
+    }
+    if (mode === 'eyes') {
+      for (let i = 0; i < (sh.pairs || 1); i++) { const ex = W * (sh.pairs > 1 ? 0.2 + hr(i + 4700) * 0.6 : 0.5), ey = H * (sh.pairs > 1 ? 0.25 + hr(i + 4701) * 0.5 : 0.48), s = H * (sh.pairs > 1 ? 0.012 : 0.04), op = Math.sin(t * 1.3 + i * 2) > 0.95 ? 0.1 : clamp01((k - i * 0.05) * 4);
+        g.save(); g.globalCompositeOperation = 'lighter'; for (const sx of [-1, 1]) { const gx = ex + sx * s * 2.2, gl = g.createRadialGradient(gx, ey, 0, gx, ey, s * 4); gl.addColorStop(0, 'rgba(255,255,255,' + 0.5 * op + ')'); gl.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gl; g.fillRect(gx - s * 4, ey - s * 4, s * 8, s * 8); g.fillStyle = 'rgba(255,255,255,' + op + ')'; g.beginPath(); g.ellipse(gx, ey, s, s * 0.45, sx * 0.2, 0, TAU); g.fill(); } g.restore(); }
+    }
+    if (mode === 'void') {
+      const R = H * (0.3 + ease(k) * 0.12); g.fillStyle = '#f2f0ea'; g.beginPath(); for (let i = 0; i <= 60; i++) { const an = i / 60 * TAU, rr = R * (1 + Math.sin(an * 7 + t * 3) * 0.01); g.lineTo(W / 2 + Math.cos(an) * rr, H / 2 + Math.sin(an) * rr); } g.closePath(); g.fill();
+      if (sh.who) silAt(g, sh.who, 'Idle', 2, frOf(sh.who, 'Idle', t, 6), W / 2, H / 2 + R * 0.25 + Math.sin(t * 1.4) * H * 0.01, H * 0.14, '#000');
+      g.fillStyle = '#000'; for (let i = 0; i < 18; i++) { const an = hr(i + 4800) * TAU, d = R * (1.05 + hr(i + 4801) * 0.6), r = H * (0.004 + hr(i + 4802) * 0.02); g.beginPath(); g.arc(W / 2 + Math.cos(an) * d, H / 2 + Math.sin(an) * d, r, 0, TAU); g.fillStyle = '#f2f0ea'; g.fill(); }
+    }
+    if (sh.letters) { // scattered letters, each in its own place
+      const L = sh.letters.split(''); g.font = '500 ' + Math.round(H * 0.05) + 'px Outfit, sans-serif'; g.textBaseline = 'middle';
+      L.forEach((c, i) => { if (c === ' ') return; const ap = clamp01((k - i * 0.06) * 5) * (hr(i + Math.floor(t * 8)) < 0.1 ? 0.3 : 1); g.globalAlpha = ap; g.fillStyle = '#fff'; g.fillText(c, W * (0.18 + i / L.length * 0.64) + (hr(i + 4900) - 0.5) * W * 0.03, H * (0.2 + (hr(i + 4901) - 0.5) * 0.08)); });
+      g.globalAlpha = 1; g.strokeStyle = 'rgba(255,255,255,0.6)'; g.lineWidth = 1; g.beginPath(); g.moveTo(W * 0.15, H * 0.25); g.lineTo(W * 0.15 + W * 0.7 * clamp01(k * 2), H * 0.25); g.stroke();
+    }
+    if (sh.data) { g.font = '600 ' + Math.round(H * 0.018) + 'px monospace'; g.fillStyle = '#ff3b3b'; for (let i = 0; i < 6; i++) g.fillText('x ' + Math.floor(hr(i + Math.floor(t * 10)) * 9999) + '  y ' + Math.floor(hr(i + 3 + Math.floor(t * 10)) * 9999), W * (0.1 + hr(i + 5000) * 0.75), H * (0.6 + hr(i + 5001) * 0.3)); }
+  }
+
+  // ---- RAIN (the underdog): night rain, the hero down on one knee, words over the picture, the name roaring behind him as he rises
+  function drawRain(g, W, H, sh, k, t) {
+    const a = sh.who, col = sh.col || [90, 110, 220];
+    const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#0a0c22'); bg.addColorStop(1, '#1c1840'); g.fillStyle = bg; g.fillRect(0, 0, W, H);
+    if (sh.giant) { const sz = Math.round(H * 0.42); g.save(); g.font = '800 ' + sz + 'px ' + SERIF; g.textBaseline = 'middle'; g.fillStyle = 'rgba(200,210,255,' + (0.25 + 0.15 * clamp01(k * 3)) + ')'; const w = g.measureText(sh.giant + ' ').width, off = (t * W * 0.05) % w; for (let x = -off; x < W; x += w) g.fillText(sh.giant, x, H * 0.45); g.restore(); }
+    if (sh.crowd) { const n = sh.crowd.length; sh.crowd.forEach((p, i) => { const x = (i + 0.5) / n * W, j = Math.abs(Math.sin(t * 6 + i)) * H * 0.02; g.save(); g.beginPath(); g.rect(i / n * W + 2, H * 0.12, W / n - 4, H * 0.76); g.clip(); g.fillStyle = rgba(mix(col, [255, 230, 200], 0.3), 0.25); g.fillRect(i / n * W, 0, W / n, H); actorAt(g, p, i % 2 ? 'Attack1' : 'Taunt', 2, frOf(p, i % 2 ? 'Attack1' : 'Taunt', t + i, 9), x, H * 1.12 - j, H * 0.8); g.restore(); }); }
+    if (a) {
+      const kneel = sh.kneel && !(sh.rise && k > 0.45), clip = kneel ? 'TakeDamage' : (sh.roar ? 'Taunt' : 'Idle'), fr = kneel ? Math.min(clipLen(a, clip) - 1, 2) : frOf(a, clip, t, sh.roar ? 10 : 7);
+      const h = H * (sh.close ? 0.95 : 0.52) * (kneel ? 0.92 : 1) * (sh.rise ? 1 + easeOut(clamp01((k - 0.4) / 0.4)) * 0.08 : 1);
+      actorAt(g, a, clip, 2, fr, W / 2, H * (sh.close ? 1.22 : 0.87), h);
+      g.fillStyle = rgba(col, 0.28); g.globalCompositeOperation = 'multiply'; g.fillRect(0, 0, W, H); g.globalCompositeOperation = 'source-over';
+    }
+    g.strokeStyle = 'rgba(190,200,255,0.35)'; g.lineWidth = Math.max(1, H * 0.0018); g.beginPath(); for (let i = 0; i < 220; i++) { const x = ((hr(i + 5100) * (W + 100) - t * 220) % (W + 100) + W + 100) % (W + 100) - 50, y = ((hr(i + 5101) * (H + 60) + t * 1700) % (H + 60)) - 30; g.moveTo(x, y); g.lineTo(x - 5, y + 24); } g.stroke();
+    if (sh.words) sh.words.forEach((w, i) => { const ap = clamp01((t - w.at) * 6) * (w.out && t > w.out ? clamp01(1 - (t - w.out) * 5) : 1); if (ap <= 0) return; g.save(); g.globalAlpha = ap; g.font = '800 ' + Math.round(H * (w.size || 0.07)) + 'px Outfit, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#fff'; g.shadowColor = 'rgba(0,0,0,0.8)'; g.shadowBlur = 12; g.fillText(w.text, W / 2, H * (w.y || 0.5)); g.restore(); });
+  }
+  // ---- CITY (the refugees): a ruined skyline at dusk, smoke, a lantern-lit crowd looking up
+  function drawCity(g, W, H, sh, k, t) {
+    const sky = g.createLinearGradient(0, 0, 0, H); sky.addColorStop(0, '#140c1e'); sky.addColorStop(0.65, '#7a3a3a'); sky.addColorStop(1, '#1a0e10'); g.fillStyle = sky; g.fillRect(0, 0, W, H);
+    smoke(g, W, H, t, 'rgba(40,24,30,A)', 12);
+    const z = 1 + ease(k) * 0.06; g.save(); g.translate(W / 2, H); g.scale(z, z); g.translate(-W / 2, -H);
+    for (let L = 0; L < 3; L++) { g.fillStyle = ['#2a1820', '#1a0e14', '#0a0508'][L]; let x = -20; while (x < W + 20) { const bw = W * (0.04 + hr(x * 7 + L) * 0.06), bh = H * (0.15 + hr(x * 3 + L * 5) * 0.3) * (1 - L * 0.15), y = H * (0.75 + L * 0.06); g.fillRect(x, y - bh, bw, bh + H); if (hr(x + L) < 0.4) { g.beginPath(); g.moveTo(x, y - bh); g.lineTo(x + bw / 2, y - bh - H * 0.06); g.lineTo(x + bw, y - bh); g.fill(); } if (L === 2) for (let w = 0; w < 3; w++) if (hr(x * 5 + w) < 0.3) { g.fillStyle = 'rgba(255,170,80,' + (0.5 + 0.3 * Math.sin(t * 4 + x)) + ')'; g.fillRect(x + bw * 0.3, y - bh + H * 0.03 + w * H * 0.05, bw * 0.15, H * 0.02); g.fillStyle = '#0a0508'; } x += bw + W * 0.005; } }
+    g.restore();
+    if (sh.crowd) sh.crowd.forEach((p, i) => { const x = W * (0.1 + i / (sh.crowd.length - 1) * 0.8), y = H * (0.98 + (i % 2) * 0.03); silAt(g, p, 'Idle', i % 2 ? 1 : 3, frOf(p, 'Idle', t + i, 6), x, y, H * 0.24, '#060305', 'rgba(255,170,90,0.6)', i % 2); });
+  }
+  // ---- a boss's death: the body comes apart its own way
+  function drawBreak(g, W, H, sh, k, t) {
+    const bgc = { shatter: ['#1a0e08', '#3a1a10'], dust: ['#050304', '#1a1206'], sand: ['#2a1a0a', '#6a4220'], glitch: ['#0a0620', '#1a0a2e'], ink: ['#f2f0ea', '#d8d4cc'] }[sh.mode];
+    const bg = g.createRadialGradient(W / 2, H * 0.5, 0, W / 2, H * 0.5, W * 0.7); bg.addColorStop(0, bgc[1]); bg.addColorStop(1, bgc[0]); g.fillStyle = bg; g.fillRect(0, 0, W, H);
+    if (sh.mode === 'ink') { const R = H * 2 * easeOut(clamp01((k - 0.35) / 0.6)); g.fillStyle = '#000'; g.beginPath(); for (let i = 0; i <= 50; i++) { const an = i / 50 * TAU, rr = R * (1 + Math.sin(an * 9 + t * 4) * 0.08); g.lineTo(W / 2 + Math.cos(an) * rr, H * 0.55 + Math.sin(an) * rr); } g.closePath(); g.fill(); }
+    breakApart(g, sh.who, W / 2, H * 0.86, H * 0.58, sh.mode, k, t, sh.col);
+    if (sh.mode === 'glitch') { g.fillStyle = 'rgba(0,0,0,0.2)'; for (let y = 0; y < H; y += 3) g.fillRect(0, y, W, 1); }
   }
   // the horde: a wall of small panels, each a dead face, crashing in from the right
   function drawHorde(g, W, H, sh, k, t) {
@@ -969,6 +1199,14 @@
     else if (sh.kind === 'gates') drawGates(g, W, H, sh, k, lt);
     else if (sh.kind === 'oath') drawOath(g, W, H, sh, k, lt);
     else if (sh.kind === 'type') drawType(g, W, H, sh, k, lt);
+    else if (sh.kind === 'arena') drawArena(g, W, H, sh, k, lt);
+    else if (sh.kind === 'dust') drawDust(g, W, H, sh, k, lt);
+    else if (sh.kind === 'journey') drawJourney(g, W, H, sh, k, lt);
+    else if (sh.kind === 'neon') drawNeon(g, W, H, sh, k, lt);
+    else if (sh.kind === 'ink') drawInk(g, W, H, sh, k, lt);
+    else if (sh.kind === 'rain') drawRain(g, W, H, sh, k, lt);
+    else if (sh.kind === 'city') drawCity(g, W, H, sh, k, lt);
+    else if (sh.kind === 'break') drawBreak(g, W, H, sh, k, lt);
     else if (sh.kind === 'moon') drawMoon(g, W, H, sh, k, lt);
     else if (sh.kind === 'iris') drawIris(g, W, H, sh, k, lt);
     else if (sh.kind === 'montage') drawMontage(g, W, H, sh, k, lt);
@@ -1123,44 +1361,81 @@
           cues: [[0, SCORE('riser', 0.85)], [0.95, SPARKS(200, '#ffcf7a', 0.5, 0.5, 1000)], [1.0, EMBERS(80, '#ffb347')], [1.0, CRACK(0.5, 0.5, '#ffbe55')], [4.2, SCORE('drone', false)]] },
       ] };
     },
-    // before a boss: the gate, the boss rising out of shadow, impact, the name, the face-off, the clash
+    // before a boss: each one is shot in its own style
     async boss(o) {
-      const M = o.stage, F = BB.FOES[M.boss];
-      const bossW = { foe: M.boss }, heroW = { hero: leader() }, grunt = { foe: M.waves && M.waves[0] ? M.waves[0][0] : 'ghoul' };
-      await cast([bossW, heroW, grunt]);
-      const red = M.boss === 'vesh' ? ['rgba(40,130,80,1)', 'rgba(4,16,10,1)', '#7dffb0', [100, 255, 170]] : M.boss === 'regent' ? ['rgba(90,70,160,1)', 'rgba(10,6,22,1)', '#c9a8ff', [180, 140, 255]] : M.boss === 'sallow' ? ['rgba(170,120,40,1)', 'rgba(24,14,4,1)', '#ffd27a', [255, 200, 110]] : ['rgba(160,30,24,1)', 'rgba(20,4,4,1)', '#ff7a6a', [255, 90, 70]];
-      const name = F.name.split(',')[0].toUpperCase(), epi = (F.name.split(',')[1] || '').trim().toUpperCase();
-      return { shots: [
-        { kind: 'gate', dur: 3.4, col: red[3], burstAt: 1.3, rain: M.boss !== 'sallow', figures: [grunt, bossW, grunt], cues: [[0, SFX('charge')], [0.4, BOLT()], [1.3, () => { SHAKE(0.9)(); BB.sfx('portal'); BB.sfx('burst'); FLASH(0.7, '#ffffff')(); RGB(0.8)(); }], [1.32, SPARKS(150, red[2], 0.5, 0.5, 1000)], [2.3, BOLT()]] },
-        { kind: 'closeup', dur: 2.6, who: bossW, dir: 3, rise: true, sil: [0.3, 0.75], rim: red[2], col1: red[0], col2: red[1], edge: red[2], grade: { vesh: 'green', regent: 'violet', sallow: 'gold' }[M.boss] || 'red', bigword: name.split(' ')[name.split(' ').length > 1 && name.startsWith('THE') ? 1 : 0], bigcol: 'rgba(255,255,255,0.14)', cues: [[0, SCORE('riser', 2.4)], [0, SFX('boss')], [0.5, () => BB.foeVoice && BB.foeVoice({ kind: M.boss, boss: true }, 'taunt')], [0.3, SHAKE(0.4)], [0.2, EMBERS(40, red[2])]] },
-        { kind: 'closeup', dur: 1.3, who: bossW, dir: 3, zoom: 2.2, dy: 0.35, col1: red[0], col2: red[1], edge: red[2], from: 0.05, cues: [[0, SFX('charge')], [0.8, SHAKE(0.4)], [0.8, RGB(0.5)]] },
-        { kind: 'impact', dur: 0.4, who: bossW, clip: F.atkClips ? F.atkClips[0] : 'Attack1', dir: 3, accent: red[2], cues: [[0, SCORE('braam', 1.2)], [0, () => BB.foeVoice && BB.foeVoice({ kind: M.boss, boss: true }, 'enrage')], [0, SHAKE(0.9)], [0, SFX('burst')], [0, FLASH(0.6)], [0, RGB(1)]] },
-        { kind: 'type', dur: 2.6, lines: [{ text: 'STAGE ' + M.code, at: 0.05, size: 0.035, y: 0.36, spread: 0.6, col: red[2] }, { text: name, at: 0.1, size: name.length > 12 ? 0.11 : 0.14, w: 800, fly: true, col: red[2], glow: red[2] }, { text: epi, at: 1.0, size: 0.04, y: 0.64, font: 2, gap: 0.12 }], cues: [[0.02, SPARKS(110, red[2], 0.5, 0.5, 750)]] },
-        { kind: 'montage', dur: 1.5, frames: [{ d: 0.3, who: grunt, bg: '#000', ink: '#000', rim: red[2], eyes: red[2] }, { d: 0.26, who: grunt, bg: red[0], ink: '#000', flip: true, eyes: '#fff' }, { d: 0.26, word: name.split(' ').pop(), wsize: 0.32, wcol: red[2], bg: '#000', lines: false, hit: true }, { d: 0.68, who: bossW, bg: red[1], ink: '#000', rim: red[2], eyes: red[2], size: 0.95 }] },
-        { kind: 'split', dur: 1.7, a: heroW, b: bossW, colA: GOLD, colB: [red[0], red[1]], cues: [[0, SFX('rally')], [0.5, SHAKE(0.3)]] },
-        { kind: 'impact', dur: 0.4, who: heroW, who2: bossW, clip: 'Attack1', accent: '#ffffff', cues: [[0, SCORE('braam', 1)], [0, SHAKE(1)], [0, SFX('slam')], [0, FLASH(0.9)]] },
-      ] };
+      const M = o.stage, F = BB.FOES[M.boss], b = M.boss;
+      const bossW = { foe: b }, heroW = { hero: leader() };
+      const name = F.name.split(',')[0].toUpperCase(), epi = (F.name.split(',')[1] || '').trim();
+      const skels = ['h/skeleton_001', 'h/skeleton_003', 'h/skeleton_010', 'h/skeleton_011', 'h/skeleton_014'].map((k) => ({ npcKey: k }));
+      await cast([bossW, heroW, { foe: 'ghoul' }, { foe: 'necro' }].concat(skels));
+      const clash = (col) => ({ kind: 'impact', dur: 0.45, who: heroW, who2: bossW, clip: 'Attack1', accent: col, cues: [[0, SCORE('braam', 1)], [0, SHAKE(1)], [0, SFX('slam')], [0, FLASH(0.9)]] });
+      if (b === 'ossric') return { music: null, shots: [ // the arena: a crypt full of the dead chanting his name
+        { kind: 'arena', dur: 3.4, boss: bossW, crowd: skels.concat([{ foe: 'ghoul' }]), bpm: 104, push: 0.1, grade: 'sepia', fadeIn: 0.4, cues: [[0, SCORE('drone')], [0.3, VOICE('dino_horde', 0.5)]] },
+        { kind: 'arena', dur: 2.0, crowd: skels.concat([{ foe: 'ghoul' }]), crowdClose: true, pan: true, bpm: 104, chant: ['OSS', 'RIC'], grade: 'sepia', push: 0.04 },
+        { kind: 'arena', dur: 1.7, boss: bossW, close: true, crowd: skels, bpm: 104, grade: 'sepia', cues: [[0.2, () => BB.foeVoice && BB.foeVoice({ kind: 'ossric', boss: true }, 'taunt')]] },
+        { kind: 'arena', dur: 2.2, boss: bossW, roar: true, crowd: skels.concat([{ foe: 'ghoul' }]), bpm: 104, push: 0.16, grade: 'sepia', cues: [[0.6, SCORE('braam', 1.2)], [0.6, SHAKE(0.9)], [0.6, () => BB.foeVoice && BB.foeVoice({ kind: 'ossric', boss: true }, 'enrage')], [0.62, SPARKS(160, '#ffb070', 0.5, 0.4, 900)]] },
+        { kind: 'type', dur: 2.4, lines: [{ text: name, at: 0.05, size: 0.18, w: 800, fly: true, col: '#ffcf9a', glow: '#ff5a2a' }, { text: epi.toUpperCase(), at: 1.0, size: 0.04, y: 0.66, spread: 0.6, col: '#ffb080' }], cues: [[2.2, SCORE('drone', false)]] },
+        clash('#ff7a3a')] };
+      if (b === 'kestrelfoe') return { music: null, shots: [ // the awakening: dust, a spotlight, a red stage, a violet light
+        { kind: 'dust', mode: 'spot', dur: 3.2, who: bossW, fadeIn: 0.6, cues: [[0.2, SCORE('shimmer')], [1.6, SCORE('tick')], [2.2, SCORE('tick')], [2.6, SCORE('riser', 0.6)]] },
+        { kind: 'dust', mode: 'stage', dur: 1.1, who: bossW, cues: [[0, SCORE('hit', 1)], [0, SHAKE(0.6)], [0, VOICE('hiss', 0.8)], [0, RGB(0.6)]] },
+        { kind: 'dust', mode: 'glow', dur: 2.4, who: bossW, col: [255, 200, 110], cues: [[0, SCORE('riser', 2.2)], [2.2, SCORE('braam', 1.1)]] },
+        { kind: 'type', dur: 2.2, lines: [{ text: 'KESTREL', at: 0.1, size: 0.05, spread: 1.4, col: '#ffd27a' }, { text: epi, at: 0.7, size: 0.035, y: 0.6, font: 2 }] },
+        clash('#ffd27a')] };
+      if (b === 'sallow') return { music: null, shots: [ // one unbroken take: sand, dunes, the storm's eye, the stars, the tomb
+        { kind: 'journey', dur: 8.0, who: bossW, col: [255, 200, 110], fadeIn: 0.5, cues: [[0, SCORE('drone')], [0.3, VOICE('deep_froth', 0.7)], [1.6, SCORE('boom', 0.6)], [3.8, SCORE('riser', 1.4)], [5.2, VOICE('deep_groan', 0.8)], [5.4, SCORE('riser', 1.6)], [7.0, SCORE('braam', 1.2)]] },
+        { kind: 'type', dur: 2.6, lines: [{ text: name, at: 0.05, size: 0.15, w: 800, fly: true, col: '#ffd27a', glow: '#ff9a2a' }, { text: epi, at: 1.0, size: 0.04, y: 0.66, font: 2, gap: 0.12 }], cues: [[2.4, SCORE('drone', false)]] },
+        clash('#ffd27a')] };
+      if (b === 'regent') return { music: null, shots: [ // the neon dream: a scan, a pale moon, a fall through the stars
+        { kind: 'neon', mode: 'scan', dur: 3.0, who: bossW, fadeIn: 0.3, cues: [[0, SCORE('drone')], [0.4, SCORE('tick')], [0.8, SCORE('tick')], [1.2, SCORE('tick')], [1.8, () => BB.foeVoice && BB.foeVoice({ kind: 'regent', boss: true }, 'taunt')], [0, RGB(0.4)]] },
+        { kind: 'neon', mode: 'moon', dur: 3.4, who: bossW, text: 'THE PALE REGENT', textY: 0.3, cues: [[0, SCORE('shimmer')], [1.6, SCORE('riser', 1.6)]] },
+        { kind: 'neon', mode: 'fall', dur: 1.8, who: bossW, cues: [[0, SCORE('braam', 1.1)], [0, RGB(1)], [0, SHAKE(0.6)]] },
+        { kind: 'type', dur: 2.0, lines: [{ text: 'R E G E N T', at: 0.05, size: 0.09, w: 800, col: '#c9a8ff', glow: '#ff46dc', gap: 0.08 }], cues: [[1.8, SCORE('drone', false)]] },
+        clash('#c9a8ff')] };
+      return { music: null, shots: [ // Vesh: ink, scattered letters, eyes in the dark, the white void
+        { kind: 'ink', mode: 'blots', dur: 3.0, letters: 'v  e  s  h     m  o  r  r  o  w', fadeIn: 0.3, cues: [[0, SCORE('drone')], [0.5, SCORE('tick')], [1.1, SCORE('tick')], [1.7, SCORE('tick')], [2.4, SCORE('riser', 0.6)]] },
+        { kind: 'ink', mode: 'eyes', dur: 1.8, pairs: 1, cues: [[0, SCORE('hit', 1)], [0.3, VOICE('deep_groan', 0.9)]] },
+        { kind: 'ink', mode: 'eyes', dur: 1.2, pairs: 9, data: true, cues: [[0, SCORE('boom')], [0.6, SCORE('boom')]] },
+        { kind: 'ink', mode: 'void', dur: 2.8, who: bossW, data: true, cues: [[0, SCORE('riser', 2.4)], [0.5, VOICE('deep_roar', 1)], [2.6, SCORE('braam', 1.2)], [2.6, FLASH(1)]] },
+        { kind: 'montage', dur: 1.3, frames: [{ d: 0.3, who: bossW, bg: '#f2f0ea', ink: '#000', size: 1 }, { d: 0.25, word: 'VESH', wsize: 0.5, wcol: '#000', bg: '#f2f0ea', lines: false, hit: true }, { d: 0.75, who: bossW, bg: '#000', ink: '#000', rim: '#fff', eyes: '#fff', size: 0.9 }] },
+        { kind: 'type', dur: 2.2, lines: [{ text: 'THE BONE CANTOR', at: 0.05, size: 0.06, spread: 0.6, col: '#f2f0ea' }], cues: [[2.0, SCORE('drone', false)]] },
+        clash('#ffffff')] };
     },
-    // a new chapter: your banner, the land's colours, its name
+    // a new chapter: each land opens its own way
     async chapter(o) {
-      const ch = o.chapter, heroW = { hero: leader() };
-      await cast([heroW]);
-      C.banners.push(Object.assign({}, BB.save.banner));
-      const sky = [null, ['#2a4a70', '#cfe3f0'], ['#6a3a2a', '#f6c880'], ['#2a1b3d', '#c8643a'], ['#06070f', '#2a2350']][ch.id];
-      const roman = ['', 'I', 'II', 'III', 'IV'][ch.id];
-      return { shots: [
-        { kind: 'moon', dur: 3.0, who: heroW, banner: true, fig: 0.12, fadeIn: 0.5, moon: [[0, 0, 0], [220, 230, 245], [255, 200, 130], [255, 150, 110], [180, 160, 255]][ch.id], cues: [[0, SCORE('drone')], [0.3, BEAT()], [1.4, BEAT()], [1.6, SCORE('riser', 1.4)]] },
-        { kind: 'type', dur: 3.4, lines: [{ text: 'CHAPTER ' + roman, at: 0.05, size: 0.035, y: 0.36, spread: 0.7, col: '#ffbe55' }, { text: ch.name.toUpperCase(), at: 0.1, size: ch.name.length > 14 ? 0.1 : 0.13, w: 800, fly: true, col: '#ffcf7a', glow: '#ff9a2a' }, { text: ch.blurb, at: 1.1, size: 0.036, y: 0.65, font: 2, gap: 0.08 }], cues: [[0.9, SPARKS(80, '#ffcf7a', 0.5, 0.5, 600)], [3.0, SCORE('drone', false)]] },
-      ] };
+      const ch = o.chapter, heroW = { hero: leader() }, roman = ['', 'I', 'II', 'III', 'IV'][ch.id];
+      const folk = ['h/townsfolk_001', 'h/townsfolk_003', 'h/townsfolk_009', 'h/townsfolk_011', 'h/townsfolk_012', 'h/townsfolk_002'].map((k) => ({ npcKey: k }));
+      await cast([heroW].concat(folk));
+      const card = (col) => ({ kind: 'type', dur: 3.2, lines: [{ text: 'CHAPTER ' + roman, at: 0.05, size: 0.035, y: 0.36, spread: 0.7, col }, { text: ch.name.toUpperCase(), at: 0.1, size: ch.name.length > 14 ? 0.1 : 0.13, w: 800, fly: true, col, glow: col }, { text: ch.blurb, at: 1.1, size: 0.036, y: 0.65, font: 2, gap: 0.08 }], cues: [[2.9, SCORE('drone', false)]] });
+      if (ch.id === 1) return { music: null, shots: [ // and yet, I must try
+        { kind: 'rain', dur: 2.0, who: heroW, kneel: true, fadeIn: 0.5, words: [{ text: 'AND YET', at: 0.6 }], cues: [[0, SCORE('drone')], [0.6, SCORE('boom', 0.7)]] },
+        { kind: 'rain', dur: 1.8, who: heroW, kneel: true, close: true, words: [{ text: 'I MUST TRY', at: 0.3 }], cues: [[0.3, SCORE('boom', 0.9)], [1.0, SCORE('riser', 0.8)]] },
+        { kind: 'rain', dur: 2.4, who: heroW, kneel: true, rise: true, giant: 'GREENVALE', cues: [[0.9, SCORE('braam', 1.1)], [0.9, SHAKE(0.7)]] },
+        { kind: 'rain', dur: 1.2, who: heroW, roar: true, close: true, cues: [[0, SFX('rally')], [0, RGB(0.5)]] },
+        { kind: 'rain', dur: 1.4, crowd: folk.slice(0, 4), cues: [[0, SCORE('hit', 0.8)]] },
+        card('#a8c8ff')] };
+      if (ch.id === 2) return { music: null, shots: [
+        { kind: 'journey', dur: 3.4, who: heroW, col: [255, 200, 110], fadeIn: 0.4, span: [0.24, 0.45], cues: [[0, SCORE('drone')], [2.4, SCORE('riser', 1.0)]] },
+        card('#ffd27a')] };
+      if (ch.id === 3) return { music: null, shots: [
+        { kind: 'city', dur: 3.6, crowd: folk, fadeIn: 0.5, cues: [[0, SCORE('drone')], [1.0, SCORE('shimmer')], [2.6, SCORE('riser', 1.0)]] },
+        { kind: 'montage', dur: 1.4, frames: folk.slice(0, 4).map((p, i) => ({ d: 0.35, who: p, bg: ['#3a1a20', '#000', '#7a3a3a', '#000'][i], ink: '#000', rim: '#ffb070', size: 0.9 })) },
+        card('#ffb070')] };
+      return { music: null, shots: [
+        { kind: 'ink', mode: 'void', dur: 3.2, who: heroW, letters: 't h e    c a n t o r \' s    g a t e', fadeIn: 0.5, cues: [[0, SCORE('drone')], [1.2, SCORE('tick')], [1.8, SCORE('tick')], [2.6, SCORE('riser', 0.6)]] },
+        { kind: 'ink', mode: 'eyes', dur: 1.4, pairs: 12, cues: [[0, SCORE('hit', 1)]] },
+        card('#c9a8ff')] };
     },
-    // a boss falls
+    // a boss falls: the body comes apart its own way
     async bossDown(o) {
       const M = o.stage, F = BB.FOES[M.boss], boss = { foe: M.boss };
       const art = actorArt(boss); if (art.key) await BB.loadChar(art.key).catch(() => null);
-      return { shots: [
-        { kind: 'impact', dur: 0.5, who: boss, clip: 'TakeDamage', dir: 3, accent: '#ffffff', cues: [[0, () => BB.foeVoice && BB.foeVoice({ kind: M.boss, boss: true }, 'die')], [0, SHAKE(1)], [0, SFX('burst')], [0, FLASH(1)]] },
-        { kind: 'closeup', dur: 1.3, who: boss, dir: 3, grade: 'manga', col1: 'rgba(120,120,130,1)', col2: 'rgba(8,8,10,1)', edge: '#ffffff', cues: [[0.2, SPARKS(120, '#e8e8f0', 0.5, 0.5, 400)], [0.2, SFX('slam')], [0.6, SHAKE(0.4)]] },
-        { kind: 'type', dur: 2.6, lines: [{ text: F.name.split(',')[0].toUpperCase(), at: 0.05, size: 0.12, w: 800, fly: true, col: '#ffcf7a', glow: '#ff9a2a' }, { text: 'HAS FALLEN', at: 0.9, size: 0.05, y: 0.62, spread: 0.5, col: '#ece9e2' }, { text: 'Stage ' + M.code + ' cleared', at: 1.4, size: 0.03, y: 0.72, font: 2 }], cues: [[0.9, SPARKS(100, '#ffcf7a', 0.5, 0.5, 650)], [0.9, EMBERS(50, '#ffb347')]] },
+      const mode = { ossric: 'shatter', kestrelfoe: 'dust', sallow: 'sand', regent: 'glitch', vesh: 'ink' }[M.boss] || 'dust';
+      const col = { ossric: '#ffb070', kestrelfoe: '#ffd27a', sallow: '#ffd27a', regent: '#c9a8ff', vesh: '#000000' }[M.boss] || '#ffcf7a';
+      return { music: null, shots: [
+        { kind: 'impact', dur: 0.5, who: boss, clip: 'TakeDamage', dir: 3, accent: '#ffffff', cues: [[0, () => BB.foeVoice && BB.foeVoice({ kind: M.boss, boss: true }, 'die')], [0, SCORE('hit', 1.1)], [0, SHAKE(1)], [0, FLASH(1)]] },
+        { kind: 'break', dur: 2.8, who: boss, mode, col: { kestrelfoe: '#ffd27a', sallow: '#d8b070' }[M.boss], cues: [[0, SCORE(mode === 'ink' ? 'riser' : 'boom', mode === 'ink' ? 2.4 : 1)], [0.2, SFX(mode === 'shatter' ? 'slam' : mode === 'glitch' ? 'cast' : 'flame')], [0, RGB(mode === 'glitch' ? 1 : 0)]] },
+        { kind: 'type', dur: 2.6, lines: [{ text: F.name.split(',')[0].toUpperCase(), at: 0.05, size: 0.12, w: 800, fly: true, col: mode === 'ink' ? '#f2f0ea' : col, glow: col }, { text: 'HAS FALLEN', at: 0.9, size: 0.05, y: 0.62, spread: 0.5, col: '#ece9e2' }, { text: 'Stage ' + M.code + ' cleared', at: 1.4, size: 0.03, y: 0.72, font: 2 }], cues: [[0.9, SPARKS(100, col === '#000000' ? '#ffffff' : col, 0.5, 0.5, 650)]] },
       ] };
     },
   };

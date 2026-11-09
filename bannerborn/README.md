@@ -125,7 +125,17 @@ striding out, the camera falling in); Vesh rises and sings; *he was only the fir
 hills, and three panels show what stands in them, black and rim-lit with burning eyes, named only by their land; the
 dead rise; then the nine oath panels return and eight crack, drain to grey as their knight falls, and drop away; the
 Captain's panel stands alone in the ash; it blazes gold, and eight empty frames light up around it, waiting for the
-new army. Bosses open through their own gate in
+new army. Every other cutscene is shot in its own style, one per reference the author sent: **Ossric** in a torch-lit crypt
+arena, a crowd of the dead chanting his name on the beat until he roars; **Kestrel** in darkness full of golden dust —
+a single spotlight, a red-lit leap with motion smears, a face lit by one violet point of light; **Sallow** in one
+unbroken take — his body blowing away as sand, dunes rushing below, a storm that opens an eye, a tunnel of gold
+stars, his tomb at dusk; **the Pale Regent** as a neon dream — a HUD threat scan with glitch slices, his name spaced
+across a pale moon, a fall through streaking stars; **Vesh** in black and white ink — morphing blots, scattered
+letters, eyes in the dark, a white void. Chapter openers differ too: the Captain on one knee in the rain (*AND YET —
+I MUST TRY*) rising with GREENVALE roaring behind him; a dune flyover for the Sunscar; Aldmere's burning skyline and
+its refugees; an ink-black approach to the Cantor's Gate. Each boss dies its own way: Ossric shatters to stone,
+Kestrel scatters as gold dust, Sallow blows away as sand, the Regent glitches out, Vesh drowns in ink.
+Bosses open through their own gate in
 their colour. Post effects sell the big beats: the screen cracks on impacts, the colour splits apart, film grain, rim-lit
 silhouettes, sound rings off a singing mouth, embers that converge on the hero, and a slam zoom into an eye.
 The opening (~75 s) tells how it began: nine knights swear the oath, one slanted panel each in their banner's colour
