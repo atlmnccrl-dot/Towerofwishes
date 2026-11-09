@@ -45,7 +45,7 @@
     const items = [];
     if (o.cont) items.push({ label: 'Continue', sub: o.cont, act: o.onContinue, cls: 'focus-first', ic: 'sword' });
     items.push({ label: 'New game', sub: o.confirmNew ? 'Press again: this erases your climb' : o.cont ? 'Start the climb over' : 'Climb the Spire before dawn', act: o.onNew, cls: o.confirmNew ? 'danger' : (o.cont ? '' : 'focus-first'), ic: 'castle' });
-    items.push({ label: 'Theatre', sub: 'Watch an ultimate', act: o.onTheatre, ic: 'orb' });
+    items.push({ label: 'Theatre', sub: 'Every cutscene and moon art', act: o.onTheatre, ic: 'orb' });
     items.push({ label: 'Settings', act: o.onSettings, ic: 'gear' });
     items.push({ label: 'Credits', act: o.onCredits, ic: 'quill' });
     const el = U.show('title', `<div class="title-col"><header class="logo"><h1><span class="the">THE</span>BLEEDING<br>MOON</h1></header>${buttons(items)}</div>`, items);
@@ -55,7 +55,7 @@
   U.settings = function (o) {
     const v = o.opts, DF = VS.MODES.DIFF[v.diff || 'normal'], onoff = (x) => (x ? 'On' : 'Off');
     const groups = [
-      ['Game', [['diff', 'Difficulty', DF.name], ['auto', 'Auto battle', onoff(v.auto)], ['scenes', 'Story scenes', v.scenes === 'skip' ? 'Skip' : 'Play']]],
+      ['Game', [['diff', 'Difficulty', DF.name], ['auto', 'Auto battle', onoff(v.auto)], ['scenes', 'Story scenes', v.scenes === 'skip' ? 'Skip' : 'Play'], ['theatre', 'Theatre', 'Watch every cutscene and moon art']]],
       ['Display', [['cam', 'Camera', { near: 'Near', far: 'Far' }[v.cam] || 'Normal'], ['text', 'Text size', Math.round((v.text || 1) * 100) + '%'], ['nums', 'Damage numbers', onoff(v.nums !== false)],
         ['shake', 'Screen shake', onoff(v.shake)], ['calm', 'Reduce flashing', v.calm ? 'On · no impact frames or white flashes' : 'Off'], ['safe', 'Colour-safe cues', v.safe ? 'On · blue parry, orange dodge' : 'Off']]],
       ['Sound', [['music', 'Music', v.music ? (v.music < 1 ? 'Low' : 'On') : 'Off'], ['sfx', 'Sound effects', onoff(v.sfx)], ['vibe', 'Vibration', v.vibe === false ? 'Off' : 'On · phones that support it']]],
@@ -66,6 +66,15 @@
     const items = keys.map((k) => ({ act: () => o.set(k) })).concat([{ act: o.onBack }]);
     const el = U.show('settings', `<div class="panel"><h2>Settings</h2>${html}<p class="note">${esc(DF.name)}: ${esc(DF.desc)} Saves live in this browser: export one to keep it safe or move it to another device. A gamepad works everywhere: A cut, X heavy, B dash, Y parry, LB/RB skills, triggers moon art.</p>${o.toast ? `<p class="note" style="color:var(--gold)">${esc(o.toast)}</p>` : ''}</div>`, items, { back: o.onBack });
     if (o.focus != null) { const b = el.querySelectorAll('.btn')[keys.indexOf(o.focus)]; if (b) b.focus({ preventScroll: true }); }
+  };
+  // The theatre: every cutscene in groups, each a row; o.focus is the row to come back to.
+  U.theatre = function (o) {
+    let i = 0; const items = [];
+    const html = o.groups.map(([g, rows]) => `<p class="np-h set-h">${esc(g)}</p><nav class="menu rows">` + rows.map((r) => { items.push({ act: r.act, key: r.key }); return `<button class="btn" data-i="${i++}" type="button"><span class="btn-label">${esc(r.label)}</span><span class="btn-sub">${esc(r.sub || '')}</span></button>`; }).join('') + '</nav>').join('')
+      + `<nav class="menu rows"><button class="btn" data-i="${i}" type="button"><span class="btn-label">Back</span></button></nav>`;
+    items.push({ act: o.onBack, key: 'back' });
+    const el = U.show('settings', `<div class="panel"><h2>Theatre</h2>${html}<p class="note">Everything plays here whether or not you have reached it. A tap (or Esc) ends a cutscene and brings you back.</p></div>`, items, { back: o.onBack });
+    if (o.focus) { const j = items.findIndex((it) => it.key === o.focus), b = el.querySelectorAll('.btn')[j]; if (b) { b.scrollIntoView({ block: 'center' }); b.focus({ preventScroll: true }); } }
   };
   U.credits = function (o) {
     const items = [{ label: 'Back', act: o.onBack }];

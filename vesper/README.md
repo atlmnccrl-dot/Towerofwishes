@@ -15,7 +15,9 @@ from `../assets/`.
 
 Play: serve the repository root and open `vesper/index.html` (for example
 `python3 -m http.server` then <http://localhost:8000/vesper/>). Landscape; keyboard or touch.
-*Theatre* on the title screen plays the Last Ditch Effort on demand.
+*Theatre* (Settings, or the title screen) plays every cutscene on demand, reached or not: the opening,
+each act's intro, the ending, the six guardian films and every hero's moon art (Vesper's Last Ditch Effort
+and Red Moon); a tap or Esc brings you back to the list (`?cutscenes` opens it).
 
 ## Heroes
 

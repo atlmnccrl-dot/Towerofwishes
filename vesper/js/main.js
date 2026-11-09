@@ -110,7 +110,7 @@
     U.title({ cont: hasProgress() ? `Level ${p.lvl} · Act ${PR.ACTS[n.act].num}, ${PR.ACTS[n.act].name}` : null, confirmNew,
       onContinue: () => map(),
       onNew: () => { if (hasProgress() && !confirmNew) return title(true); const o = P().opts; M.save = fresh(o); M.write(); newGame(); },
-      onTheatre: () => theatre(), onSettings: () => settings(null, false, title), onCredits: () => { M.go('menu'); U.credits({ onBack: () => title() }); } });
+      onTheatre: () => cutscenes(title), onSettings: () => settings(null, false, title), onCredits: () => { M.go('menu'); U.credits({ onBack: () => title() }); } });
   }
   function settings(focus, confirmReset, back) {
     M.go('menu'); back = back || title;
@@ -133,6 +133,7 @@
         if (k === 'shake') o.shake = o.shake ? 0 : 1;
         if (k === 'auto') o.auto = !o.auto;
         if (k === 'reset') { if (!confirmReset) return settings(k, true, back); M.save = fresh(o); M.write(); return title(); }
+        if (k === 'theatre') { M.write(); return cutscenes(() => settings('theatre', false, back)); }
         applyOpts(); M.write(); settings(k, false, back);
       } });
   }
@@ -307,10 +308,10 @@
   }
 
   // ---- scenes -------------------------------------------------------------------------------------------
-  function startScene(stageIdx, def, then) {
+  function startScene(stageIdx, def, then, force) {
     U.hide();
-    // Story scenes off (Settings): straight on to what follows.
-    if (P().opts.scenes === 'skip' && then) return then();
+    // Story scenes off (Settings): straight on to what follows (the theatre forces them on).
+    if (!force && P().opts.scenes === 'skip' && then) return then();
     S.heroKey = P().hero || 'vesper';
     M.scene = { sc: VS.TALE.start(def || S.BEFORE[stageIdx]), stage: stageIdx, then: then || (() => startFight(stageIdx)) };
     M.go('scene'); AU.cue('scene'); AU.playAmb(stageIdx === 3 || stageIdx === 4 ? 'wind' : 'night');
@@ -368,8 +369,8 @@
     M.paused = on;
     if (!on) { U.hide(); return; }
     const f = M.fight;
-    U.pause({ auto: P().opts.auto, onResume: () => pause(false), onRestart: () => (f.nodeId ? startNode(f.nodeId) : startFight(f.stage, { theatre: f.theatre })),
-      onAuto: () => { P().opts.auto = !P().opts.auto; M.write(); pause(true); }, onQuit: () => { M.paused = false; if (f.theatre) title(); else map(f.nodeId); } });
+    U.pause({ auto: P().opts.auto, onResume: () => pause(false), onRestart: () => (f.theatre ? theatre(f.theatreHero, f.theatreFull, f.theatreBack) : f.nodeId ? startNode(f.nodeId) : startFight(f.stage)),
+      onAuto: () => { P().opts.auto = !P().opts.auto; M.write(); pause(true); }, onQuit: () => { M.paused = false; if (f.theatre) (f.theatreBack || title)(); else map(f.nodeId); } });
   }
   // The trial's steps, checked against the fight as it plays.
   function tutorial(f) {
@@ -396,6 +397,7 @@
   }
   function fight(ctx, dt) {
     const f = M.fight, s = f.s;
+    if (f.theatre && !M.paused && (M.pressed.back || M.pressed.tap)) { AU.duck(false); (f.theatreBack || title)(); return; }   // the theatre: a tap or Esc leaves the moon art
     if (M.pressed.back && !s.cine && !M.paused) { pause(true); M.pressed.back = false; }
     if (!M.paused && !M.hold) {
       f.acc += dt;
@@ -445,14 +447,15 @@
       if (R.touch && !M.paused) R.drawTouch(ctx, s, { stick: M.stick, held: M.touchHeld });
       if (!R.touch && M.mouseAim && M.mouse && !M.paused) R.drawReticle(ctx, M.mouse.x, M.mouse.y);
     }
-    if (f.theatreEnd > 0 && !M.paused) { f.theatreEnd -= dt; if (f.theatreEnd <= 0) { title(); return; } }
+    if (f.theatreEnd > 0 && !M.paused) { f.theatreEnd -= dt; if (f.theatreEnd <= 0) { (f.theatreBack || title)(); return; } }
     if (s.result && !M.paused) endFight(s.result);
   }
   function endFight(result) {
     const f = M.fight, s = f.s, p = P();
     AU.duck(false);
     if (f.mode) return endMode(result);
-    if (f.theatre || !f.nodeId) { title(); return; }
+    if (f.theatre) { (f.theatreBack || title)(); return; }
+    if (!f.nodeId) { title(); return; }
     const n = f.node, win = result === 'win', groups = s.waves.length;
     const r = { win, time: s.time, hpFrac: s.hero.hp / s.hero.maxHp, bossHits: s.stats.bossHits, maxCombo: s.stats.maxCombo, kills: s.kills || 0, progress: (s.area + (win ? 1 : 0)) / groups, chests: s.chests || [], smashed: s.smashed || 0, rand: Math.random, reward: VS.MODES.scale(p).reward, ilvl: VS.MODES.scale(p).ilvl };
     const res = PR.finish(p, n.id, r); afterFight(p, s, win, res); M.write();
@@ -501,18 +504,62 @@
     U.modes({ p, daily: MD.daily(MD.today()), confirmNg, onBack: () => map(), onEndless: () => startMode('endless'), onDaily: () => startMode('daily'), onAch: () => { M.go('menu'); U.achievements({ p, onBack: () => modes() }); },
       onNg: () => { if (!MD.canNg(p)) return AU.sfx('thud', 0.5); if (!confirmNg) return modes(true); MD.newGamePlus(p); MD.checkAch(p); M.write(); AU.sfx('allout', 0.7); map('a0-1'); } });
   }
-  // The theatre: the last hour, the First Cut alone, the knight at a quarter health, the moon full.
-  function theatre() {
+  // A moon art on demand: the last hour, the First Cut alone, the hero (heroKey, else the one being played)
+  // at a quarter health (full: at full health, for the art's ordinary form), the moon full. back: where to go after.
+  function theatre(heroKey, full, back) {
+    const p = P(), was = p.hero; if (heroKey && D.HEROES[heroKey]) p.hero = heroKey;
     startFight(5, { theatre: true });
+    p.hero = was;   // the fight has its hero; the save keeps the one being played
+    Object.assign(M.fight, { theatreHero: heroKey, theatreFull: !!full, theatreBack: back || title });
     const s = M.fight.s;
     s.wave = s.waves.length - 2; s.area = s.waves.length - 1; s.waveT = 0;
     SIM.step(s, STEP, {}); s.freeze = 0; M.fight.card = null;
     for (const u of SIM.foes(s)) { u.state = 'idle'; u.st = 0; }
     const boss = SIM.foes(s)[0]; if (boss) { boss.x = s.hero.x + 70; boss.face = -1; }
-    s.hero.hp = Math.round(s.hero.maxHp * 0.25); s.moon = 100;
+    s.hero.hp = Math.round(s.hero.maxHp * (full ? 1 : 0.25)); s.moon = 100;
     R.snapCam(s);
     M.fight.theatreT = 0.6;
   }
+
+  // ---- the theatre: every cutscene on demand (Settings, or the title screen), nothing to beat first ----------
+  const FILM_NAMES = { warden: 'The Gatewarden', twins: 'The Hollow Twins', umbral: 'The Umbral', hunger: 'The Hunger', wing: 'The Pale Wing', firstCut: 'The First Cut' };
+  function cutscenes(back, focus) {
+    M.go('menu'); AU.cue('title');
+    const again = (k) => () => { R.hideCine(); cutscenes(back, k); };
+    // Load what a piece needs (its cast, its hour's tiles), then play it.
+    const watch = (sets, iso, play) => {
+      U.hide(); const miss = sets.filter((id) => id && !A.hasSet(id));
+      if (!miss.length && (!iso || A.isoReady(iso))) return play();
+      M.go('load'); U.loading(0);
+      Promise.all([A.loadSets(miss, (f) => U.loading(f)), iso ? A.loadIso(iso) : null]).then(() => { A.warm(R.ctx); if (iso) A.isoWarm(R.ctx); U.hide(); play(); }, () => { U.hide(); play(); });
+    };
+    const actName = (i) => (PR.ACTS[i] ? `Act ${PR.ACTS[i].num} · ${PR.ACTS[i].name}` : 'After dawn');
+    const story = [{ key: 'opening', label: 'The opening', sub: 'The First Cut wounds the moon',
+      act: () => watch(OPENING_SETS, null, () => { M.go('intro'); VS.INTRO.start(again('opening')); }) }];
+    S.ACTS.forEach((Ac, i) => {
+      if (!Ac.intro) return;
+      const n = PR.NODES.find((x) => x.act === i && x.type !== 'shrine'), stage = PR.ACTS[i] ? PR.ACTS[i].stage : 5;
+      story.push({ key: 'act' + i, label: actName(i), sub: (PR.ACTS[i] && PR.ACTS[i].hour) || 'The echoes', act: () => {
+        const bd = n ? PR.build(n) : null, army = bd ? PR.foeKeys(bd).filter((k) => !D.FOES[k].boss && D.FOES[k].set.startsWith('vh_')).slice(0, 3).map((k) => ({ key: k, set: ((bd.node.variants || {})[k] || [D.FOES[k].set])[0] })) : [];
+        watch(army.map((a) => a.set), isoFor(stage), () => startScene(stage, Object.assign({}, Ac.intro, { army }), again('act' + i), true));
+      } });
+    });
+    story.push({ key: 'ending', label: 'The ending', sub: 'Dawn', act: () => watch([], isoFor(5), () => startScene(5, S.ENDING, again('ending'), true)) });
+    const films = Object.keys(VS.FILM_FOR || {}).filter((id) => VS.FILMS[VS.FILM_FOR[id]]).map((id) => {
+      const k = VS.FILM_FOR[id], n = PR.node(id);
+      return { key: 'film_' + k, label: FILM_NAMES[k] || k, sub: n ? actName(n.act) : '', act: () => watch(OPENING_SETS, null, () => { M.go('intro'); VS.INTRO.play(VS.FILMS[k], again('film_' + k), { skippable: true }); }) };
+    });
+    const arts = [];
+    for (const k of Object.keys(D.HEROES)) {
+      const H = D.HEROES[k];
+      if (k === 'vesper') {
+        arts.push({ key: 'art_vesper', label: 'Vesper · Last Ditch Effort', sub: 'Her moon art at a quarter health', act: () => theatre('vesper', false, again('art_vesper')) });
+        arts.push({ key: 'art_vesper_full', label: 'Vesper · Red Moon', sub: 'Her moon art at full health', act: () => theatre('vesper', true, again('art_vesper_full')) });
+      } else arts.push({ key: 'art_' + k, label: H.name + ' · Moon art', sub: H.title, act: () => theatre(k, false, again('art_' + k)) });
+    }
+    U.theatre({ groups: [['Story', story], ['Guardians', films], ['Moon arts', arts]], focus, onBack: () => { AU.cue('title'); back(); } });
+  }
+  M.cutscenes = cutscenes;
 
   // ---- loop ------------------------------------------------------------------------------------------------
   let last = 0;
@@ -562,6 +609,7 @@
     if (params.has('auto')) M.save.opts.auto = true;
     if (params.has('hero') && D.HEROES[params.get('hero')]) M.save.hero = params.get('hero');
     if (params.has('theatre')) theatre();
+    else if (params.has('cutscenes')) cutscenes(title);
     else if (params.has('stage')) startFight(Math.max(0, Math.min(5, +params.get('stage') || 0)));
     else if (params.has('node')) startNode(params.get('node'));
     else if (params.has('intro')) newGame();
