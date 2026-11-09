@@ -120,9 +120,10 @@ film is graded: grain on every frame and a vignette on the ordinary ones. The op
 and one fight in the middle told shot by shot in the characters' own colours (the dead in grey): they
 come at her, she cuts the first down, throws off two more with a spin, slides under the brute and fells
 him, and stands among them; the First Cut's "Kneel." at his gaze. The undead have no glowing eyes.
-**The First Cut is his own character** (the master knight sprite) wherever he appears: drawn giant at a
-whole-number scale behind the Spire, with his sword raised to the moon (Taunt), on the summit, in his
-film, on the map and over the arena in the final fight (`colossus()` in `js/intro.js`). Any tap skips it. The older hand-drawn
+**The First Cut is the drawn god** (the author's pick, 2026-11-09, over his knight sprite blown up
+giant): one solid silhouette (crowned and horned helm, spiked pauldrons, cape, the tower-sized sword),
+with no glowing eyes, in the opening, his film, on the map and over the final fight (`colossus()` in
+`js/intro.js`). Any tap skips it. The older hand-drawn
 sequence (`js/opening.js`) stays in the code for the Theatre.
 
 **Effects: Crowd Breaker** (PixelHit, `tools_cbfx.py` → `assets/cbfx`): 29 of the pack's hand-drawn skill

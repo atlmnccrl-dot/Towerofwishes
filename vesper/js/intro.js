@@ -367,7 +367,7 @@
       const t = T - 4.6, sc = 14 + t * 5, ex = Math.round(W() / 2), ey = Math.round(H() * 0.5);
       fill(ctx, '#ffffff');
       { const g = ctx.createRadialGradient(ex, ey, 4, ex, ey, W() * 0.6); g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#c8c2c4'); ctx.fillStyle = g; ctx.fillRect(-8, -8, W() + 16, H() + 16); }
-      colossus(ctx, S, ex, ey, sc * 0.7, T, { sil: true, col: '#000' });
+      colossus(ctx, S, ex, ey, sc, T, { col: '#000' });
       kick(S, t < 0.1 ? 8 : 2);
       return;
     }
@@ -745,33 +745,26 @@
   // (the old silhouette's unit). pose 'raise': the sword held up (Taunt, frame 10); otherwise he stands
   // (Idle, or o.clip / o.fr). Whole-number scales keep the pixels square. o.dark: a tint laid over him to
   // sit him in the scene's light (o.tint); o.sil: one solid colour (o.col), for the ink frames.
+  function colossusDrawn(ctx, S, ex, ey, sc, T, o) {
+    const u = sc / 2;
+    ctx.save();
+    if (o.flat) { deity(ctx, ex, ey, u, o.col || '#050204', T, o.pose); ctx.restore(); return; }   // one solid shape, no edge lines
+    deity(ctx, ex + Math.max(1, u * 0.35), ey - Math.max(1, u * 0.25), u, o.rim || '#ff5a6a', T, o.pose);   // the moon's rim light
+    deity(ctx, ex - Math.max(1, u * 0.2), ey, u, '#5a0a1a', T, o.pose);
+    deity(ctx, ex, ey, u, o.col || '#050204', T, o.pose);
+    // A rune burning down the blade's edge.
+    const y0 = o.pose === 'raise' ? -24 : 31, y1 = o.pose === 'raise' ? -87 : 94;
+    ctx.strokeStyle = 'rgba(255,42,68,0.85)'; ctx.lineWidth = Math.max(1, u * 0.3); ctx.beginPath(); ctx.moveTo(ex, ey + y0 * u); ctx.lineTo(ex, ey + y1 * u); ctx.stroke();
+    A.tex(ctx, 'light_01', ex, ey + (y0 + y1) / 2 * u, 8 * u, 70 * u, RED, 0.25, 0, true);
+    ctx.restore();
+  }
+  // The First Cut: the drawn god, one solid shape (o.col; o.tint marks a hit, o.sil the ink frames).
   function colossus(ctx, S, ex, ey, sc, T, o) {
     o = o || {};
-    const set = D.FOES.firstCut.set, ang = Math.PI / 2, raise = o.pose === 'raise';
-    const clip = raise ? 'Taunt' : (o.clip || 'Idle4'), fr = raise ? 10 : (o.fr != null ? o.fr : Math.floor(T * 7) % 15);
-    let k = sc * 0.68; k = k >= 2 ? Math.round(k) : Math.max(1, Math.round(k * 2) / 2);
-    const b = A.box(set, 'Idle4', 0, ang, k); if (!b) return;
-    const x = Math.round(ex - (b.x + b.w * 0.55)), y = Math.round(ey - (b.y + b.h * 0.1));
-    const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
-    if (o.sil) A.actor(ctx, set, clip, fr, ang, x, y, k, { shade: o.col || '#000' });
-    else {
-      A.actor(ctx, set, clip, fr, ang, x, y, k, {});
-      const d = o.dark == null ? 0.28 : o.dark; if (d > 0) A.actor(ctx, set, clip, fr, ang, x, y, k, { shade: o.tint || '#14040a', alpha: d });
-    }
-    ctx.imageSmoothingEnabled = sm;
+    colossusDrawn(ctx, S, ex, ey, sc, T, { flat: true, pose: o.pose, col: o.tint ? '#3a0a14' : (o.col || '#050204') });
   }
-  // (His eyes are his own now: the glow that used to sit on the silhouette is gone.)
+  // No glowing eyes on him (the author, 2026-11-09).
   function burningEyes() {}
-  function burningEyesOld(ctx, ex, ey, sc, open, T) {
-    if (open <= 0) return;
-    const d = 0.9 * sc, w = Math.max(2, Math.round(sc * 0.5 * open)), h = Math.max(1, Math.round(sc * 0.2 * open)), fl = 0.85 + 0.15 * Math.sin(T * 30);
-    A.tex(ctx, 'light_01', ex, ey, sc * 7 * open, sc * 3.5 * open, RED, 0.8 * fl, 0, true);
-    for (const sx of [-1, 1]) {
-      const x = Math.round(ex + sx * d);
-      A.tex(ctx, 'light_01', x, ey, sc * 2.4, sc * 1.4, '#ffffff', 0.6 * open, 0, true);
-      ctx.fillStyle = RED; ctx.fillRect(x - w, ey - h, w * 2, h * 2); ctx.fillStyle = '#ffffff'; ctx.fillRect(x - Math.round(w * 0.6), ey - Math.max(1, h >> 1), Math.round(w * 1.2), Math.max(1, h));
-    }
-  }
   SH.colossus = function (ctx, S, k, T) {
     const pan = ease(clamp((T - 0.4) / 2.2)), Hh = H();   // the world is about two screens tall; the camera tilts from the bottom to the top
     grad(ctx, ['#020103', '#14030a', '#3a0812']);
@@ -803,8 +796,8 @@
     const split = Math.round(H() * 0.66);
     ctx.save(); ctx.beginPath(); ctx.rect(-8, -8, W() + 16, split + 7); ctx.clip();
     fill(ctx, '#2a0610'); moon(ctx, W() / 2, H() * 0.3, H() * 0.75, '#ff3a52', 'rgba(255,40,70,0.6)', 0);
-    const sc = 11 + 1 * ease(k), ex = Math.round(W() / 2), ey = Math.round(H() * 0.3);
-    colossus(ctx, S, ex, ey, sc, T, { dark: 0.2 });
+    const sc = 11 + 1.5 * ease(k), ex = Math.round(W() / 2), ey = Math.round(H() * 0.44);
+    colossus(ctx, S, ex, ey, sc, T, {});
     burningEyes(ctx, ex, ey, sc * 0.95, 1, T);
     ctx.restore();
     ctx.save(); ctx.beginPath(); ctx.rect(-8, split + 1, W() + 16, H()); ctx.clip();
