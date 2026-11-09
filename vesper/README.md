@@ -116,7 +116,11 @@ dotted line between them counting the height); his gaze, her eye answering; his 
 down from the sky and her holding it (impact frames, the ground breaking, AND YET); her throwing it off
 (I STAND) and raising her blade at him; the title, THE BLEEDING MOON, over the red moon, his shadow faint behind
 it and his eyes burning above the name, its letters drawing together over drifting red lights. Every
-film is graded: grain on every frame and a vignette on the ordinary ones. Any tap skips it. The older hand-drawn
+film is graded: grain on every frame and a vignette on the ordinary ones. The opening is cut by `js/openfilm.js` with the edit system: the built shots above re-cut faster, a
+glitch and a giant red ONE behind THERE WAS in the cold open, the god in ink a frame at a time, the risen
+one by one each in its own colour world, and a real fight in place of the old charge (she cuts through
+the dead, spins in a fisheye ring, flings them outward, slides under a brute and throws him into the
+moon), with the First Cut's "Kneel." at his gaze. Any tap skips it. The older hand-drawn
 sequence (`js/opening.js`) stays in the code for the Theatre.
 
 **Effects: Crowd Breaker** (PixelHit, `tools_cbfx.py` → `assets/cbfx`): 29 of the pack's hand-drawn skill
@@ -134,21 +138,29 @@ never on its own or in a public repository; its THIRD_PARTY_NOTICES sit in `asse
 credits name it. The raw pack is not in the repository: rebuild with
 `CB_SRC=/path/to/crowdbreaker python3 -I vesper/tools_cbfx.py`.
 
-**The guardians' entrances** (`js/bossfilms.js`): before each guardian's fight, a short anime film
-in the opening's style, played by the same film player: the Gatewarden leaping from the Black Gate and
-splitting the ground (EARTHSPLITTER); the Hollow Twins waking in the frozen cloister, crossing blades and
-raining ice; the Umbral rising out of Vesper's own shadow with his court of shadows; the Hunger eating
-the last light of the Ashen Waste and lunging; the Pale Wing diving out of the storm onto the cliff;
-and the First Cut rising over the summit with the echoes of the fallen beside him. Each begins with title cards (NO ONE PASSES THE BLACK GATE ·
-THEY DIED TOGETHER · DO NOT LOOK BEHIND YOU · FIRST THE LIGHTS GO OUT · LISTEN TO THE WIND · SEVEN HUNDRED
-YEARS / SIX GUARDIANS / ONE NIGHT) and has a signature: the Gatewarden's landing in ink and his name with
-the slam seen through it; tracking boxes finding both Twins and an ink frame on their crossed blades; a
-manga panel of Vesper's eyes when the Umbral rises behind her; the Hunger's roar landing in flat frames
-and HUNGER cut out of the dark; the Pale Wing's landing in ink and its name drawing together over the
-storm; the HUD measuring the First Cut and THIS ENDS TONIGHT on his blade. The kit (`js/intro.js`):
-`poster` (ink), `eyePanel`, `bokeh`, `grain`, `vignette`, and the word kinds `serif`, `spaced`, `knock`,
-`punch`, `track`, `link` and `rings`. Each plays in full
-the first time and can be skipped after that (`?film=warden|twins|umbral|hunger|wing|firstCut`).
+**The guardians' entrances** (`js/bossfilms.js`, built with `js/edit.js`): before each guardian's fight, a
+short duel cut like the reference edits: most cuts under half a second, the camera always pushing, tilting
+or drifting, black figures against bright fields, and each film in its own colour world (a gradient map over
+everything drawn; Vesper's red stays red). Each opens on title cards, shows the place, the guardian and a line,
+her eyes and her answer, then a real exchange of blows: the leap, the hit as an inverted silhouette, the
+fisheye ring, the body thrown along a trail, the stutter frame, the grey aftermath; then the name. The
+Gatewarden is violet ("Turn back, little blade." / "Open the gate."), leaps from the gate and throws her; the
+Hollow Twins are ice, on a split screen with tracking boxes ("We are two blades." / "I only need one."), and
+cross blades where she stood; the Umbral is black-and-white ink, flickering behind her ("Behind you." / "Too
+slow."), with his court of shadows; the Hunger is ember: the lights go out, HUNGRY flashes, it lunges out of
+the dark ("Come on, then."); the Pale Wing is storm, two tiny figures in a vast sky ("The wind takes
+everything." / "Not me."); the First Cut is blood: the fallen guardians one frame each in their own colours,
+the colossus rising with the HUD measuring him ("Seven hundred years... and they send one blade." / "One is
+enough."), and his blade falling on her: THIS ENDS TONIGHT. Each plays in full the first time and can be
+skipped after that (`?film=warden|twins|umbral|hunger|wing|firstCut`).
+
+**The edit** (`js/edit.js`): a film is a list of cuts, `E.film(cuts)`. A cut has a duration, a camera (`cam`:
+zoom, tilt, drift), an optional colour world (`grade`: blood, violet, ice, ink, ember, storm, toxic, gold,
+grey, dusk) and a template: `E.scene` (a set; actors that move, arc, spin and smear; speed fields, trails,
+rings, debris, effects; `sil` turns every figure into a black silhouette), `E.inv` (the inverted impact
+frame), `E.ring` (the fisheye hit), `E.face` (a chest-up mid shot), `E.eyes` (her eyes full frame inside
+focus lines), `E.card`, `E.flash`, `E.glitch`, `E.blink()` and `E.hold(cut, k)` (a stutter). Dialogue lines
+ride on cuts in the speaker's colour; only the newest shows.
 
 **How the guardians fight**: besides their signature moves, every guardian has a delayed blow (the
 wind-up stops one frame short of the strike and hangs there with a glint, so the blow comes late),

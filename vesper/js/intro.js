@@ -56,7 +56,7 @@
     const shots = []; let t = 0; for (const [name, d] of f.shots) { shots.push([name, t, t + d]); t += d; }
     const at = (name) => (shots.find((x) => x[0] === name) || [0, 0])[1];
     return Object.assign({}, f, { SHOTS: shots, END: t, AT: at,
-      LINES: (f.lines || []).map(([sh, a, b, text]) => [at(sh) + a, at(sh) + b, text]),
+      LINES: (f.lines || []).map(([sh, a, b, text, col]) => [at(sh) + a, at(sh) + b, text, col]),
       SFX: (f.sfx || []).map(([sh, tt, name, v]) => [at(sh) + tt, name, v]),
       MUSIC_AT: f.music ? at(f.music[0]) + (f.music[2] || 0) : null });
   }
@@ -69,7 +69,7 @@
     if (!I.st.cast.dead.length) I.st.cast.dead = [D.FOES.ghoul.set];
     VS.audio.playMusic(null); VS.audio.playAmb(F.amb || 'wind');
   };
-  I.start = (then) => I.play(OPENING, then, { skippable: true });
+  I.start = (then) => I.play(I.OPENING, then, { skippable: true });
   I.update = function (dt, skip) {
     const S = I.st; if (!S || S.done) return;
     if (skip && S.skippable) { finish(); return; }
@@ -350,7 +350,7 @@
   const SH = {};
   // The cold open: title cards cut hard between paper and black, the way a trailer begins. Then one
   // white frame in ink: his crowned head, close, and two red eyes.
-  const COLD = [[0, 'BEFORE THE MOON BLED', 0], [1.15, 'BEFORE THE DEAD WOKE', 1], [2.3, 'AND BEFORE THE LAST NIGHT FELL', 0], [3.45, 'THERE WAS ONE', 1]];
+  const COLD = [[0, 'BEFORE THE MOON BLED', 0], [1.15, 'BEFORE THE DEAD WOKE', 1], [2.3, 'AND BEFORE THE LAST NIGHT FELL', 0], [3.45, 'THERE WAS', 1]];
   SH.cold = function (ctx, S, k, T) {
     if (T < 4.6) {
       let c = COLD[0]; for (const x of COLD) if (T >= x[0]) c = x;
@@ -358,7 +358,8 @@
       fill(ctx, paper ? '#ebe6e3' : '#000');
       if (paper) { vignette(ctx, 0.22, '#5a5052'); for (let i = 0; i < 6; i++) { ctx.fillStyle = 'rgba(40,30,34,0.25)'; ctx.fillRect(Math.round(hash(i, 970 + c[0] * 10) * W()), Math.round(hash(i, 971) * H()), 1, 1 + (i % 2)); } }   // dust on the paper
       else K().embers(ctx, T, last ? 14 : 0, 0, W(), RED);
-      say(S, 'serif', c[1], W() / 2, H() * 0.5, { size: last ? 20 : 13, col: paper ? '#141012' : '#f4eef0', a: clamp(t * 7), spacing: last ? 0.16 : 0.12 });
+      if (last) { const j = t < 0.4 ? Math.round((Math.random() - 0.5) * 4) : 0; say(S, 'serif', 'ONE', W() / 2 + j, H() * 0.5, { size: 92, col: '#b0102a', a: clamp(t * 5) * (0.75 + 0.25 * Math.sin(T * 40)), spacing: 0.04 }); }   // the giant red word behind
+      say(S, 'serif', c[1], W() / 2, H() * 0.5, { size: last ? 16 : 13, col: paper ? '#141012' : '#f4eef0', a: clamp(t * 7), spacing: last ? 0.16 : 0.12 });
       return;
     }
     if (T < 5.2) {
@@ -943,14 +944,15 @@
     const bars = sh[0] === F.titleShot ? Math.round(BAR * Math.max(0, 1 - T * 1.5)) : impact ? 0 : BAR;
     if (bars) { c.fillStyle = '#000'; c.fillRect(0, 0, W(), bars); c.fillRect(0, H() - bars, W(), bars); }
     // The words, on the sharp layer above.
-    for (const [a, b, text] of F.LINES) if (S.t >= a && S.t <= b) say(S, 'line', text, W() / 2, H() - BAR / 2 + 1, { size: 17, col: '#ffffff', a: Math.min(1, (S.t - a) * 4, (b - S.t) * 4), mid: true });
+    { let L = null; for (const x of F.LINES) if (S.t >= x[0] && S.t <= x[1] && (!L || x[0] > L[0])) L = x;   // one line at a time: the newest
+      if (L) { const [a, b, text, col] = L; say(S, 'line', text, W() / 2, H() - BAR / 2 + 1, { size: 17, col: col || '#ffffff', a: Math.min(1, (S.t - a) * 4, (b - S.t) * 4), mid: true }); } }
     if (S.skippable) say(S, 'line', R.touch ? 'Tap to skip' : 'Esc to skip', W() - 6, BAR / 2 + 1, { size: 11, col: 'rgba(240,230,234,0.6)', align: 'right', mid: true });
     words(S);
   };
   // The opening itself, and the drawing kit the other films (js/bossfilms.js) are made with.
   const OPENING = compile({ shots: DUR, lines: LINES, sfx: SFX, draw: SH, music: ['draw', 'act0'], amb: 'wind', noBars: { cold: 1, eye: 1, name: 1, panels: 1, gaze: 1, defy: 1 }, flat: { cold: 1 },
     impact: (name, T) => name === 'godcut' && T >= 1.35 && T < 1.9, titleShot: 'title' });
-  I.OPENING = OPENING;
+  I.OPENING = OPENING; I.OPEN_SFX = SFX;
   I.kit = { RED, INK, BAR, W, H, K, hash, ease, clamp, fill, grad, stars, moon, city, graves, rain, spun, eyes, closeUp, burst, sparks, deadSet, kick, say,
-    deity, colossus, burningEyes, bigBlade, hand, poster, grain, vignette, bokeh, eyePanel };
+    deity, colossus, burningEyes, bigBlade, hand, poster, grain, vignette, bokeh, eyePanel, mangaEyesDraw: mangaEyes, SH };
 })();

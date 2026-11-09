@@ -1,64 +1,23 @@
-// THE BLEEDING MOON — the guardians' entrances: one short anime film per guardian, played by the opening's
-// film player (js/intro.js) on the pixel buffer, before the guardian's fight. The first time it plays in
-// full; after that a tap skips it. Each: the place, the arrival, the reveal, a signature move in impact
-// frames, the name, and the cut into the fight.
+// THE BLEEDING MOON — the guardians' entrances, cut like the reference edits (js/edit.js): each one a
+// short duel in its own colour world, cut fast. The title cards; the place; the guardian's face and a
+// line; her eyes and her answer; then the exchange (the leap, the hit as an inverted silhouette, the ring,
+// the body thrown along a trail, the stutter); the name. Played by the film player (js/intro.js) before
+// the guardian's fight: in full the first time, skippable after that.
 (function () {
-  const VS = window.VS, D = VS.DATA, A = VS.A, R = VS.R, PX = VS.PX;
-  const K0 = VS.INTRO.kit, { RED, BAR, W, H, K, hash, ease, clamp, fill, grad, stars, moon, rain, spun, eyes, closeUp, burst, sparks, kick, say, colossus, burningEyes, bigBlade, poster, vignette, eyePanel } = K0;
+  const VS = window.VS, D = VS.DATA, A = VS.A, PX = VS.PX;
+  const K0 = VS.INTRO.kit, E = VS.EDIT, { RED, W, H, K, hash, ease, clamp, fill, grad, stars, moon, rain, kick, say, colossus, burningEyes, bigBlade } = K0;
   const F = VS.FILMS = {};
-  const vs = (S) => S.cast.vesper, set = (k) => D.FOES[k].set;
+  const PI = Math.PI, RIGHT = 0, LEFT = PI, FRONT = PI / 2, BACK = -PI / 2;
+  const V = 'vesper', VCOL = '#ff9aaa';
+  const sc = E.scene, cut = (d, tpl, o) => Object.assign({ d }, tpl, o || {});
+  const card = (d, text, paper, o) => cut(d, E.card({ text, bg: paper ? '#ebe6e3' : '#000', col: paper ? '#141012' : '#f4eef0', opts: o }), { bars: false, flat: true, sfx: [[0.02, 'thud', 0.6]] });
+  const word = (d, text, col) => cut(d, E.card({ text, col: col || '#ff3048', opts: { size: 24, spacing: 0.08 } }), { bars: false, flat: true, sfx: [[0, 'blow_0', 0.6]] });
+  const nameCut = (d, name, sub, tpl, o) => cut(d, tpl, Object.assign({ text: [{ kind: 'big', text: name, y: 0.22, o: { size: 30 } }, { kind: 'line', at: 0.3, text: sub, y: 0.34, o: { size: 14, col: '#f0e6ea', spacing: 3, a: 1 } }], sfx: [[0.02, 'boss', 1]] }, o));
+  const EZ_IN = (k) => k * k * k;
   const fr = (T, n) => Math.floor(T * (n || 8)) % 15;
-  // The name card every film ends on: the name slammed in, the title under it.
-  function nameCard(S, T, name, sub, y) {
-    const yy = y || H() * 0.36;
-    say(S, 'big', name, W() / 2, yy, { size: 30, k: T });
-    if (T > 0.25) say(S, 'line', sub, W() / 2, yy + 22, { size: 14, col: '#f0e0e6', a: clamp((T - 0.25) * 4), spacing: 3 });
-  }
-  function rings(ctx, x, y, e, n, rx, ry, col) { for (let i = 0; i < n; i++) { const rk = ease(e * 1.5 - i * 0.15); if (rk <= 0 || rk >= 1) continue; ctx.strokeStyle = col.replace('A', String(1 - rk)); ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(x, y, 6 + rk * rx, 2 + rk * ry, 0, 0, 7); ctx.stroke(); } }
-  // Impact frames: white, then the shapes inverted, then black on white. With scene (the shot as it is
-  // drawn), the middle frames are that shot in ink instead: black and white, then the same reversed.
-  function impactFrames(ctx, S, k, draw, scene) {
-    kick(S, 8);
-    if (k < (scene ? 0.25 : 0.33)) { fill(ctx, '#ffffff'); return; }
-    if (scene && k < 0.5) { scene(); poster(ctx, '#000000', '#ffffff', 0.3); return; }
-    if (scene && k < 0.75) { scene(); poster(ctx, '#ffffff', '#000000', 0.3); return; }
-    if (!scene && k < 0.66) { fill(ctx, '#000'); draw('#ffffff'); return; }
-    fill(ctx, '#ffffff'); draw('#000');
-  }
-  // The cold open of a film: serif title cards cut between paper and black. cards: [[at, text, paper, size]].
-  function epigraph(cards) {
-    return function (ctx, S, k, T) {
-      let c = cards[0]; for (const x of cards) if (T >= x[0]) c = x;
-      const t = T - c[0], paper = !!c[2];
-      fill(ctx, paper ? '#ebe6e3' : '#000');
-      if (paper) vignette(ctx, 0.22, '#5a5052'); else K().embers(ctx, T, 10, 0, W(), RED);
-      say(S, 'serif', c[1], W() / 2, H() * 0.5, { size: c[3] || 13, col: paper ? '#141012' : '#f4eef0', a: clamp(t * 7) * clamp((1 - k) * 14) });
-    };
-  }
-  const epiSfx = (cards) => cards.map((c, i) => ['epi', c[0] + 0.02, 'thud', 0.5 + i * 0.12]);
-  // Tracking boxes on the pixel buffer's coordinates (the HUD drawn at full resolution).
-  function track(S, x, y, w, h, t, o) { if (t > 0) say(S, 'track', null, x, y, Object.assign({ w, h, k: t, col: '#ffffff' }, o || {})); }
-  function link(S, a, b, t, label) { if (t > 0) say(S, 'link', null, a[0], a[1], { x2: b[0], y2: b[1], k: t * 4, col: 'rgba(255,255,255,0.75)', label }); }
-  // Two faces on a split screen: hers above, the guardian's below.
-  function faceOff(ctx, S, k, T, key, col, bg) {
-    const mid = Math.round(H() / 2), slide = Math.round((1 - ease(k * 5)) * 60);
-    ctx.save(); ctx.beginPath(); ctx.rect(-8, -8, W() + 16, mid + 7); ctx.clip();
-    fill(ctx, '#3a1018'); K().hStreaks(ctx, 24, 'rgba(255,90,110,0.4)', 701, T, 900);
-    closeUp(ctx, vs(S), 0, 4.4, Math.round(W() * 0.4 - slide), Math.round(mid * 0.45), [19, 6], 1, RED, T, {});
-    ctx.restore();
-    ctx.save(); ctx.beginPath(); ctx.rect(-8, mid + 1, W() + 16, H()); ctx.clip();
-    fill(ctx, bg); K().hStreaks(ctx, 24, 'rgba(255,255,255,0.3)', 703, T, 900);
-    const sc = 4.2 * Math.min(1.3, D.FOES[key].scale || 1), x = Math.round(W() * 0.62 + slide), y = Math.round(H() * 1.55);
-    A.actor(ctx, set(key), 'Idle4', 0, Math.PI, x, y, sc, {});
-    eyes(ctx, set(key), 'Idle4', 0, Math.PI, x, y, sc, 1, col);
-    ctx.restore();
-    ctx.fillStyle = '#ffffff'; ctx.fillRect(-8, mid - 1, W() + 16, 2);
-    if (k > 0.88) fill(ctx, '#ffffff', (k - 0.88) / 0.12);
-  }
-  function vesperSmall(ctx, S, x, y, sc, T, ang, shade) { A.actor(ctx, vs(S), 'Walk', fr(T, 10), ang == null ? -Math.PI / 2 : ang, Math.round(x), Math.round(y), sc || 1.2, { shade: shade || '#050306' }); }
-  const common = { amb: 'wind', impact: () => false };
+  function vesperSmall(ctx, S, x, y, s, T, ang) { A.actor(ctx, S.cast.vesper, 'Walk', fr(T, 10), ang == null ? BACK : ang, Math.round(x), Math.round(y), s || 1.2, {}); }
 
-  // ---- The Gatewarden: the Black Gate opens; he leaps from its top; the ground splits under him ---------
+  // ---- the places ------------------------------------------------------------------------------------
   function blackGate(ctx, T, open) {
     const cx = W() / 2, base = Math.round(H() * 0.84), gw = 70, gh = 100;
     ctx.fillStyle = '#060204';
@@ -75,72 +34,6 @@
     for (const sx of [-1, 1]) { ctx.fillStyle = `rgba(255,${150 + Math.round(60 * Math.sin(T * 9 + sx))},80,0.9)`; ctx.fillRect(Math.round(cx + sx * (gw / 2 + 30)) - 1, base - 110, 2, 4); }
     return base;
   }
-  const EPI_WARDEN = [[0, 'NO ONE PASSES THE BLACK GATE', 1], [1.2, 'NO ONE EVER HAS', 0]];
-  F.warden = { ...common, music: ['quake', 'boss'], shots: [['epi', 2.3], ['gate', 2.6], ['leap', 1.4], ['land', 1.6], ['rise', 1.8], ['quake', 2.4], ['face', 1.4]],
-    noBars: { epi: 1, face: 1 }, flat: { epi: 1 }, impact: (n, T) => (n === 'land' && T < 0.2) || (n === 'quake' && T > 0.76 && T < 1.5),
-    sfx: [...epiSfx(EPI_WARDEN), ['gate', 0.2, 'horn', 0.7], ['gate', 0.8, 'quake', 0.6], ['gate', 1.6, 'quake', 0.7], ['leap', 0, 'whoosh', 1], ['land', 0, 'smash', 1], ['land', 0.02, 'quake', 1], ['land', 0.05, 'blow_big', 1],
-      ['rise', 0.4, 'charge', 0.8], ['quake', 0.2, 'windup', 1], ['quake', 0.7, 'smash', 1], ['quake', 0.72, 'quake', 1], ['quake', 0.95, 'boss', 1], ['quake', 1.0, 'blow_big', 0.8], ['face', 0, 'charge', 1]],
-    draw: {
-      epi: epigraph(EPI_WARDEN),
-      gate(ctx, S, k, T) {
-        grad(ctx, ['#0c0206', '#3a0a14', '#5a1020']); stars(ctx, 40, 0.4, 711, T);
-        moon(ctx, W() / 2, H() * 0.2, H() * 0.16, '#ff4a5e', 'rgba(255,40,70,0.5)', 1, T);
-        const base = blackGate(ctx, T, ease(clamp((T - 0.6) / 1.6)));
-        ctx.fillStyle = '#0a0306'; ctx.fillRect(-8, base, W() + 16, H());
-        vesperSmall(ctx, S, W() / 2, H() + 4 - T * 6, 1.6, T);
-        K().embers(ctx, T, 30, 0, W(), RED);
-        say(S, 'card', 'THE BLACK GATE', 10, BAR + 16, { sub: 'DUSK', k: T });
-        kick(S, T > 0.6 ? 1 : 0);
-      },
-      leap(ctx, S, k, T) {
-        grad(ctx, ['#14030a', '#4a0c18']);
-        for (let i = 0; i < 50; i++) { const x = hash(i, 721) * W(), y = ((hash(i, 722) * H() + T * 700) % (H() + 30)) - 15; ctx.fillStyle = 'rgba(255,220,230,0.35)'; ctx.fillRect(Math.round(x), Math.round(y), 1, 12); }
-        const e = ease(k), sc = 0.9 + 1.6 * e, y = -30 + (H() * 0.92 + 30) * e;
-        ctx.fillStyle = `rgba(0,0,0,${0.3 + 0.5 * e})`; ctx.beginPath(); ctx.ellipse(W() / 2, H() * 0.93, 10 + 50 * e, 3 + 10 * e, 0, 0, 7); ctx.fill();
-        for (let i = 3; i >= 1; i--) A.actor(ctx, set('warden'), 'Attack4', Math.min(10, 2 + Math.floor(k * 8)), Math.PI / 2, W() / 2, Math.round(y - i * 16), sc, { shade: '#4a3a7a', alpha: 0.18 * (4 - i) });
-        A.actor(ctx, set('warden'), 'Attack4', Math.min(10, 2 + Math.floor(k * 8)), Math.PI / 2, W() / 2, Math.round(y), sc, { shade: '#050306' });
-        kick(S, 2);
-      },
-      land(ctx, S, k, T) {
-        const gy = Math.round(H() * 0.88), x = W() / 2;
-        if (T < 0.2) { impactFrames(ctx, S, T / 0.2, (c) => { burst(ctx, x, gy - 30, c, 90, 731, 20); A.actor(ctx, set('warden'), 'Special1', 14, Math.PI / 2, x, gy, 2.8, { shade: c }); }, () => { F.warden.draw.land(ctx, S, 0.15, 0.25); burst(ctx, x, gy - 30, '#ffffff', 70, 733, 26); }); return; }
-        const e = (T - 0.2) / 1.4;
-        grad(ctx, ['#14030a', '#3a0812', '#20060c']);
-        ctx.fillStyle = '#0a0306'; ctx.fillRect(-8, gy, W() + 16, H());
-        { const L = Math.round(W() * 0.7 * ease(e * 2)); ctx.fillStyle = '#9a8cff'; ctx.fillRect(x - L, gy, L * 2, 2); ctx.fillStyle = '#ffffff'; ctx.fillRect(x - (L >> 1), gy, L, 1); A.tex(ctx, 'light_01', x, gy, L * 2.2, 22, '#9a8cff', 0.6, 0, true); }
-        rings(ctx, x, gy, e, 3, 220, 26, 'rgba(220,210,255,A)');
-        for (let i = 0; i < 24; i++) { const life = clamp(e * 2 - hash(i, 732) * 0.3); if (life <= 0 || life >= 1) continue; ctx.fillStyle = '#2a1820'; ctx.fillRect(Math.round(x + (hash(i, 733) - 0.5) * 2 * 140 * life), Math.round(gy - 90 * life + 160 * life * life), 3, 2); }
-        A.tex(ctx, 'light_01', x, gy - 40, 140, 140, '#9a8cff', 0.35, 0, true);
-        A.actor(ctx, set('warden'), 'Special1', 14, Math.PI / 2, x, gy, 2.8, {});
-        eyes(ctx, set('warden'), 'Special1', 14, Math.PI / 2, x, gy, 2.8, 1, '#c8b8ff');
-        kick(S, 6 * (1 - e));
-      },
-      rise(ctx, S, k, T) {
-        grad(ctx, ['#08020a', '#20081a', '#14040c']);
-        A.tex(ctx, 'light_01', W() / 2, H() * 0.5, W(), H(), '#5a3aa0', 0.35, 0, true);
-        const sc = 2.8 + 0.3 * ease(k), x = Math.round(W() / 2), y = Math.round(H() * 0.97 - ease(k) * 6);
-        A.tex(ctx, 'light_01', x, H() * 0.42, 220, 220, '#8a6ae0', 0.5, 0, true);
-        A.actor(ctx, set('warden'), 'Idle4', 0, Math.PI / 2, x, y, sc, { shade: '#06040c' });
-        eyes(ctx, set('warden'), 'Idle4', 0, Math.PI / 2, x, y, sc, ease(clamp((T - 0.5) / 0.4)), '#c8b8ff');
-        K().embers(ctx, T, 24, 0, W(), '#9a8cff');
-      },
-      quake(ctx, S, k, T) {
-        const gy = Math.round(H() * 0.84), x = Math.round(W() / 2), slam = 0.7;
-        grad(ctx, ['#0c0206', '#3a0a14', '#2a0610']);
-        moon(ctx, W() * 0.5, H() * 0.36, H() * 0.32, '#ff4a5e', 'rgba(255,40,70,0.5)', 1, T);
-        ctx.fillStyle = '#0a0306'; ctx.fillRect(-8, gy, W() + 16, H());
-        if (T > slam && T < slam + 0.06) { fill(ctx, '#ffffff'); kick(S, 9); return; }
-        const fr2 = T < slam ? Math.min(9, Math.floor(T / slam * 10)) : Math.min(14, 10 + Math.floor((T - slam) * 10));
-        if (T > slam) { const e = (T - slam) / 1.7; for (let i = 0; i < 4; i++) { const rk = clamp(e * 2 - i * 0.22); if (rk <= 0 || rk >= 1) continue; ctx.strokeStyle = `rgba(200,190,255,${1 - rk})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(x, gy, 20 + rk * 260, 4 + rk * 30, 0, 0, 7); ctx.stroke(); } kick(S, 4 * (1 - e)); }
-        A.actor(ctx, set('warden'), 'Special1', fr2, Math.PI / 2, x, gy, 2.6, { shade: '#050306' });
-        eyes(ctx, set('warden'), 'Special1', fr2, Math.PI / 2, x, gy, 2.6, 1, '#c8b8ff');
-        if (T > slam + 0.06 && T < 1.5) say(S, 'knock', 'GATEWARDEN', W() / 2, H() / 2, { size: 0.85, sx: 0.58, a: clamp((1.5 - T) * 5), col: '#000' });
-        if (T > 1.4) nameCard(S, T - 1.4, 'THE GATEWARDEN', 'KEEPER OF THE BLACK GATE', H() * 0.26);
-      },
-      face(ctx, S, k, T) { faceOff(ctx, S, k, T, 'warden', '#c8b8ff', '#2a2448'); },
-    } };
-
-  // ---- The Hollow Twins: two frozen knights wake in the cloister, cross blades, and rain ice -------------
   function cloister(ctx, T, snow) {
     grad(ctx, ['#060a14', '#14223a', '#24344c']);
     const vp = W() / 2;
@@ -149,149 +42,6 @@
     for (let i = 0; i < snow; i++) { const x = (hash(i, 741) * W() + Math.sin(T + i) * 6), y = ((hash(i, 742) * H() + T * (16 + hash(i, 743) * 20)) % H()); ctx.fillStyle = 'rgba(230,240,255,0.7)'; ctx.fillRect(Math.round(x), Math.round(y), 1, 1); }
     return gy;
   }
-  const EPI_TWINS = [[0, 'THEY DIED TOGETHER', 0], [1.15, 'THEY WAKE TOGETHER', 1]];
-  F.twins = { ...common, amb: 'night', music: ['cross', 'boss'], shots: [['epi', 2.3], ['cloister', 2.4], ['wake', 2.0], ['cross', 2.0], ['name', 2.4], ['lances', 1.6]],
-    noBars: { epi: 1, name: 1 }, flat: { epi: 1 }, impact: (n, T) => n === 'cross' && T > 0.7 && T < 0.9,
-    sfx: [...epiSfx(EPI_TWINS), ['wake', 1.05, 'blink', 0.6], ['wake', 1.25, 'blink', 0.6], ['cloister', 0.2, 'magic', 0.5], ['wake', 0.2, 'break', 0.9], ['wake', 0.25, 'quake', 0.6], ['wake', 1.0, 'charge', 0.8], ['cross', 0.1, 'whoosh', 1], ['cross', 0.7, 'clang_1', 1], ['cross', 0.72, 'blow_big', 1],
-      ['cross', 0.8, 'quake', 0.9], ['name', 0.1, 'boss', 1], ['lances', 0.4, 'quake', 0.6], ['lances', 0.6, 'smash', 0.7], ['lances', 0.9, 'smash', 0.7], ['lances', 1.2, 'dodge', 0.9]],
-    draw: {
-      epi: epigraph(EPI_TWINS),
-      cloister(ctx, S, k, T) {
-        const gy = cloister(ctx, T, 70);
-        for (const [key, sx, ang] of [['twinA', -1, 0], ['twinB', 1, Math.PI]]) A.actor(ctx, set(key), 'CrouchIdle', 0, ang, Math.round(W() / 2 + sx * 40), gy - 2, 1.3, { shade: '#7a98b8' });
-        vesperSmall(ctx, S, W() * 0.3, H() + 6 - T * 8, 1.7, T);
-        say(S, 'card', 'THE FROZEN CLOISTER', 10, BAR + 16, { sub: 'THE FIRST HOUR', k: T });
-      },
-      wake(ctx, S, k, T) {
-        const gy = cloister(ctx, T, 40), crack = clamp(T / 0.3);
-        for (const [key, sx, ang] of [['twinA', -1, 0], ['twinB', 1, Math.PI]]) {
-          const x = Math.round(W() / 2 + sx * 70), up = T > 0.5, sc = 2.2;
-          A.actor(ctx, set(key), up ? 'Idle4' : 'CrouchIdle', up ? fr(T) : 0, ang, x, gy, sc, { shade: '#9ab8d8', alpha: 1 - clamp((T - 0.3) / 0.5) });
-          A.actor(ctx, set(key), up ? 'Idle4' : 'CrouchIdle', up ? fr(T) : 0, ang, x, gy, sc, { alpha: clamp((T - 0.3) / 0.5) });
-          if (T > 1.0) eyes(ctx, set(key), 'Idle4', fr(T), ang, x, gy, sc, clamp((T - 1.0) * 4), '#a8e8ff');
-          if (crack > 0 && T < 0.9) for (let i = 0; i < 20; i++) { const a = hash(i + sx * 50, 744) * 6.28, d = (T - 0.2) * (40 + hash(i, 745) * 60); if (d < 0) continue; ctx.fillStyle = i % 3 ? '#e8f4ff' : '#a8d8ff'; ctx.fillRect(Math.round(x + Math.cos(a) * d), Math.round(gy - 40 + Math.sin(a) * d * 0.7 + d * d * 0.01), 2, 2); }
-        }
-        if (T > 0.2 && T < 0.3) kick(S, 3);
-        // The eyes light; the boxes find them both, and the line between them.
-        const a = [Math.round(W() / 2 - 70), gy - 34], b = [Math.round(W() / 2 + 70), gy - 34];
-        track(S, a[0], a[1], 30, 46, T - 1.05, { col: '#d8f4ff', sub: 'LEFT HAND' }); track(S, b[0], b[1], 30, 46, T - 1.25, { col: '#d8f4ff', sub: 'RIGHT HAND' });
-        link(S, a, b, T - 1.35, 'ONE BLADE');
-      },
-      cross(ctx, S, k, T) {
-        const gy = cloister(ctx, T, 30), hit = 0.7, cx = W() / 2;
-        if (T > hit && T < hit + 0.2) { impactFrames(ctx, S, (T - hit) / 0.2, (c) => { burst(ctx, cx, gy - 50, c, 80, 751, 14); A.actor(ctx, set('twinA'), 'Attack1', 8, 0, cx - 30, gy, 2.3, { shade: c }); A.actor(ctx, set('twinB'), 'Attack2', 8, Math.PI, cx + 30, gy, 2.3, { shade: c }); },
-          () => { cloister(ctx, T, 30); burst(ctx, cx, gy - 50, '#ffffff', 70, 753, 16); A.actor(ctx, set('twinA'), 'Attack1', 8, 0, cx - 30, gy, 2.3, {}); A.actor(ctx, set('twinB'), 'Attack2', 8, Math.PI, cx + 30, gy, 2.3, {}); }); return; }
-        const f = ease(clamp(T / hit)), ax = cx - 30 - (1 - f) * 120, bx = cx + 30 + (1 - f) * 120;
-        if (T < hit) { for (let i = 3; i >= 1; i--) { A.actor(ctx, set('twinA'), 'Run', fr(T, 16), 0, Math.round(ax - i * 12), gy, 2.3, { shade: '#4a6a8a', alpha: 0.15 * (4 - i) }); A.actor(ctx, set('twinB'), 'Run', fr(T, 16), Math.PI, Math.round(bx + i * 12), gy, 2.3, { shade: '#4a6a8a', alpha: 0.15 * (4 - i) }); } A.actor(ctx, set('twinA'), 'Run', fr(T, 16), 0, Math.round(ax), gy, 2.3, {}); A.actor(ctx, set('twinB'), 'Run', fr(T, 16), Math.PI, Math.round(bx), gy, 2.3, {}); return; }
-        const e = (T - hit - 0.2) / 1.1;
-        rings(ctx, cx, gy - 40, e, 3, 200, 120, 'rgba(200,235,255,A)');
-        A.fx(ctx, 'ice_shatter', e * 1.1, cx, gy - 40, 3, 0.9);
-        for (let i = 0; i < 40; i++) { const a = hash(i, 752) * 6.28, d = e * (60 + hash(i, 753) * 140); ctx.fillStyle = i % 3 ? '#e8f4ff' : '#88c8ff'; ctx.fillRect(Math.round(cx + Math.cos(a) * d), Math.round(gy - 40 + Math.sin(a) * d * 0.6), 2, 1); }
-        A.actor(ctx, set('twinA'), 'Attack1', 8, 0, cx - 30, gy, 2.3, {}); A.actor(ctx, set('twinB'), 'Attack2', 8, Math.PI, cx + 30, gy, 2.3, {});
-        A.tex(ctx, 'light_01', cx, gy - 50, 50, 50, '#ffffff', 0.7, 0, true);
-        kick(S, 3 * (1 - e));
-      },
-      name(ctx, S, k, T) {
-        const mid = Math.round(W() / 2), slide = Math.round((1 - ease(k * 4)) * 50);
-        ctx.save(); ctx.beginPath(); ctx.rect(-8, -8, mid + 7, H() + 16); ctx.clip(); fill(ctx, '#1a3a5a'); K().speedLines(ctx, W() * 0.25, H() * 0.6, 40, 'rgba(255,255,255,0.25)', 761, T, 30);
-        A.actor(ctx, set('twinA'), 'Idle4', 0, 0, Math.round(W() * 0.26 - slide), Math.round(H() * 1.3), 4.4, {}); eyes(ctx, set('twinA'), 'Idle4', 0, 0, Math.round(W() * 0.26 - slide), Math.round(H() * 1.3), 4.4, 1, '#a8e8ff'); ctx.restore();
-        ctx.save(); ctx.beginPath(); ctx.rect(mid + 1, -8, W(), H() + 16); ctx.clip(); fill(ctx, '#2a4a6a'); K().speedLines(ctx, W() * 0.75, H() * 0.6, 40, 'rgba(255,255,255,0.25)', 763, T, 30);
-        A.actor(ctx, set('twinB'), 'Idle4', 0, Math.PI, Math.round(W() * 0.74 + slide), Math.round(H() * 1.3), 4.4, {}); eyes(ctx, set('twinB'), 'Idle4', 0, Math.PI, Math.round(W() * 0.74 + slide), Math.round(H() * 1.3), 4.4, 1, '#a8e8ff'); ctx.restore();
-        ctx.fillStyle = '#ffffff'; ctx.fillRect(mid - 1, -8, 2, H() + 16);
-        if (T > 0.3) { say(S, 'line', 'THE LEFT HAND', W() * 0.25, H() * 0.86, { size: 13, col: '#e8f4ff', spacing: 3, a: clamp((T - 0.3) * 4) }); say(S, 'line', 'THE RIGHT HAND', W() * 0.75, H() * 0.86, { size: 13, col: '#e8f4ff', spacing: 3, a: clamp((T - 0.3) * 4) }); }
-        if (T > 0.5) say(S, 'big', 'THE HOLLOW TWINS', W() / 2, H() * 0.2, { size: 30, k: T - 0.5 });
-      },
-      lances(ctx, S, k, T) {
-        const gy = cloister(ctx, T, 30), vx = W() / 2, vy = gy + 8;
-        const spots = [[-50, 0, 0.2], [40, -6, 0.35], [-10, 10, 0.5], [60, 12, 0.65], [-70, 14, 0.8], [0, -2, 0.95]];
-        for (const [dx, dy, t0] of spots) {
-          const x = vx + dx, y = vy + dy, a = T - t0;
-          if (a < 0) continue;
-          if (a < 0.4) { ctx.strokeStyle = `rgba(168,232,255,${0.4 + a})`; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(x, y, 16, 5, 0, 0, 7); ctx.stroke(); const ly = y - 200 + 200 * (a / 0.4); ctx.fillStyle = '#e8f4ff'; ctx.fillRect(Math.round(x) - 1, Math.round(ly - 20), 3, 20); }
-          else A.fx(ctx, 'ice_shatter', a - 0.4, x, y - 4, 1.6, 0.9);
-        }
-        const dash = T > 1.15, dx = dash ? (T - 1.15) * 400 : 0;
-        A.actor(ctx, vs(S), dash ? 'Rolling' : 'Idle4', fr(T, 14), dash ? 0 : -Math.PI / 2, Math.round(vx + dx), vy, 1.6, {});
-        if (k > 0.85) fill(ctx, '#ffffff', (k - 0.85) / 0.15);
-      },
-    } };
-
-  // ---- The Umbral: darkness; eyes; something rises out of her own shadow; the court of shadows ------------
-  const EPI_UMBRAL = [[0, 'DO NOT LOOK BEHIND YOU', 0, 14]];
-  F.umbral = { ...common, amb: 'night', music: ['court', 'boss'], shots: [['epi', 1.8], ['dark', 2.2], ['eyes', 2.0], ['behind', 2.4], ['panel', 1.3], ['court', 2.0], ['name', 2.2]],
-    noBars: { epi: 1, panel: 1 }, flat: { epi: 1 }, impact: (n, T) => n === 'name' && T < 0.25,
-    sfx: [...epiSfx(EPI_UMBRAL), ['panel', 0.35, 'blink', 0.9], ['panel', 0.37, 'clang_0', 0.5], ['dark', 0.3, 'magic', 0.4], ['eyes', 0.2, 'spawn', 0.5], ['eyes', 1.7, 'blink', 0.8], ['behind', 0.6, 'charge', 0.9], ['behind', 1.4, 'windup', 0.9], ['court', 0.2, 'spawn', 0.8], ['court', 0.6, 'spawn', 0.8],
-      ['court', 1.3, 'unsheathe_01', 1], ['name', 0, 'slash_2', 1], ['name', 0.02, 'blow_big', 1], ['name', 0.3, 'boss', 1]],
-    draw: {
-      epi: epigraph(EPI_UMBRAL),
-      dark(ctx, S, k, T) {
-        fill(ctx, '#020103');
-        const x = W() / 2, y = Math.round(H() * 0.74);
-        const g = ctx.createRadialGradient(x, y - 20, 4, x, y - 20, 70); g.addColorStop(0, 'rgba(255,42,68,0.35)'); g.addColorStop(1, 'rgba(255,42,68,0)'); ctx.fillStyle = g; ctx.fillRect(-8, -8, W() + 16, H() + 16);
-        // Her shadow, stretching out behind her far longer than it should.
-        const L = 0.5 + 1.2 * ease(k);
-        ctx.save(); ctx.translate(x, y); ctx.scale(1, -0.35 * L); ctx.globalAlpha = 0.9; A.actor(ctx, vs(S), 'Idle4', fr(T), -Math.PI / 2, 0, 0, 1.6, { shade: '#000000' }); ctx.restore();
-        A.actor(ctx, vs(S), 'Idle4', fr(T), -Math.PI / 2, x, y, 1.6, {});
-        say(S, 'card', 'THE UMBRAL STAIR', 10, BAR + 16, { sub: 'THE SECOND HOUR', k: T });
-      },
-      eyes(ctx, S, k, T) {
-        fill(ctx, '#020103');
-        const x = W() / 2, y = Math.round(H() * 0.74);
-        const g = ctx.createRadialGradient(x, y - 20, 4, x, y - 20, 60); g.addColorStop(0, 'rgba(255,42,68,0.3)'); g.addColorStop(1, 'rgba(255,42,68,0)'); ctx.fillStyle = g; ctx.fillRect(-8, -8, W() + 16, H() + 16);
-        A.actor(ctx, vs(S), 'Idle4', fr(T), -Math.PI / 2, x, y, 1.6, {});
-        const blink = T > 1.65 && T < 1.8;
-        for (let i = 0; i < 26; i++) {
-          const t0 = 0.1 + hash(i, 771) * 1.2; if (T < t0 || blink) continue;
-          const ex = hash(i, 772) * W(), ey = BAR + 6 + hash(i, 773) * (H() * 0.7), a = clamp((T - t0) * 5), s2 = 1 + Math.floor(hash(i, 774) * 2);
-          ctx.globalAlpha = a; ctx.fillStyle = '#d8a0ff'; ctx.fillRect(Math.round(ex - 3 * s2), Math.round(ey), 2 * s2, s2); ctx.fillRect(Math.round(ex + s2), Math.round(ey), 2 * s2, s2); A.tex(ctx, 'light_01', ex, ey, 14 * s2, 6 * s2, '#c070ff', 0.4 * a, 0, true); ctx.globalAlpha = 1;
-        }
-      },
-      behind(ctx, S, k, T) {
-        fill(ctx, '#040208');
-        const rise = ease(clamp((T - 0.4) / 1.2));
-        // Him, towering out of her shadow behind her.
-        const ux = Math.round(W() * 0.66), uy = Math.round(H() * 1.5 - rise * H() * 0.3), sc = 4.6;
-        A.tex(ctx, 'light_01', ux, uy - 110, 260, 260, '#9a40e0', 0.6 * rise, 0, true);
-        A.actor(ctx, set('umbral'), 'Idle4', 0, Math.PI, ux, uy, sc, { shade: '#050208', alpha: rise });
-        if (T > 1.4) eyes(ctx, set('umbral'), 'Idle4', 0, Math.PI, ux, uy, sc, clamp((T - 1.4) * 4), '#e0b0ff');
-        // Her face, close, her eye going wide.
-        closeUp(ctx, vs(S), 0, 4.2, Math.round(W() * 0.3), Math.round(H() * 0.48), [19, 6], T > 1.4 ? 1 : 0.35, RED, T);
-        if (T > 1.4 && T < 1.5) kick(S, 4);
-      },
-      panel(ctx, S, k, T) {
-        const open = ease(clamp((T - 0.35) / 0.15)), e = eyePanel(ctx, S, vs(S), k, T, open, RED);
-        if (open > 0) say(S, 'rings', null, e[1].x, e[1].y, { r: 9, T, col: 'rgba(200,16,40,0.8)', a: open });
-        K().embers(ctx, T, 14, 0, W(), '#c070ff');
-        if (k > 0.9) fill(ctx, '#ffffff', (k - 0.9) / 0.1);
-      },
-      court(ctx, S, k, T) {
-        grad(ctx, ['#0a0614', '#3a1a5a', '#24123a']);
-        const cx = W() / 2, cy = Math.round(H() * 0.72), n = 6;
-        A.actor(ctx, vs(S), 'Idle4', fr(T), Math.PI / 2, cx, cy, 1.8, {});
-        for (let i = 0; i < n; i++) {
-          const t0 = 0.15 + i * 0.12, a = i / n * Math.PI * 2 + 0.3, x = cx + Math.cos(a) * W() * 0.32, y = cy + Math.sin(a) * 26 - 6; if (T < t0) continue;
-          if (T - t0 < 0.5) { const pk = (T - t0) / 0.5, rg = ctx.createRadialGradient(x, y - 14, 1, x, y - 14, 30 * pk + 4); rg.addColorStop(0, `rgba(10,4,20,${1 - pk})`); rg.addColorStop(1, 'rgba(10,4,20,0)'); ctx.fillStyle = rg; ctx.fillRect(x - 40, y - 54, 80, 80); }
-          const raised = T > 1.3, fr2 = raised ? Math.min(6, Math.floor((T - 1.3) * 20)) : fr(T + i);
-          const ang = Math.atan2(cy - y, cx - x);
-          A.actor(ctx, set('umbral'), raised ? 'Attack1' : 'Idle4', fr2, ang, Math.round(x), Math.round(y), 1.9, { shade: '#05020a', alpha: clamp((T - t0) * 3) });
-          eyes(ctx, set('umbral'), 'Idle4', 0, ang, Math.round(x), Math.round(y), 1.9, clamp((T - t0) * 3), '#e0b0ff');
-        }
-        say(S, 'line', 'SHADOW COURT', W() / 2, BAR + 18, { size: 14, col: '#e0b0ff', spacing: 4, a: clamp((T - 0.4) * 3) });
-      },
-      name(ctx, S, k, T) {
-        const cx = W() / 2, cy = Math.round(H() * 0.72);
-        const ring = (c) => { for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2 + 0.3; A.actor(ctx, set('umbral'), 'Attack1', 9, a + Math.PI, Math.round(cx + Math.cos(a) * 30), Math.round(cy + Math.sin(a) * 10), 1.9, c ? { shade: c } : {}); } };
-        if (T < 0.25) { impactFrames(ctx, S, T / 0.25, (c) => { burst(ctx, cx, cy - 30, c, 90, 781, 12); ring(c); }, () => { grad(ctx, ['#0a0614', '#6a3a9a', '#24123a']); burst(ctx, cx, cy - 30, '#ffffff', 70, 785, 14); A.actor(ctx, vs(S), 'Special1', 9, Math.PI / 2, cx, cy, 1.8, {}); ring(null); }); return; }
-        grad(ctx, ['#0a0414', '#2a1048', '#0a0614']);
-        K().speedLines(ctx, cx, H() * 0.55, 60, 'rgba(224,176,255,0.3)', 783, T, 40);
-        A.actor(ctx, set('umbral'), 'Taunt', fr(T), Math.PI / 2, cx, Math.round(H() * 0.95), 3.2, {});
-        eyes(ctx, set('umbral'), 'Taunt', fr(T), Math.PI / 2, cx, Math.round(H() * 0.95), 3.2, 1, '#e0b0ff');
-        nameCard(S, T - 0.25, 'THE UMBRAL', 'WHO WALKS BEHIND', H() * 0.24);
-        if (k > 0.88) fill(ctx, '#ffffff', (k - 0.88) / 0.12);
-      },
-    } };
-
-  // ---- The Hunger: the lights of the Waste go out one by one; something vast crawls in and eats the last ---
   function waste(ctx, T, lightsOut) {
     grad(ctx, ['#0c0806', '#2a1c16', '#3a2a20']);
     for (let i = 0; i < 60; i++) { const x = (hash(i, 791) * W() + T * 10) % W(), y = (hash(i, 792) * H() + T * (8 + hash(i, 793) * 10)) % H(); ctx.fillStyle = 'rgba(160,150,140,0.5)'; ctx.fillRect(Math.round(x), Math.round(y), 1, 1); }
@@ -302,63 +52,6 @@
     for (let i = 0; i < 6; i++) { if (i < lightsOut) continue; const x = W() * (0.1 + i * 0.16), y = gy - 4, f = 0.6 + 0.4 * Math.sin(T * 9 + i); ctx.fillStyle = '#ffb060'; ctx.fillRect(Math.round(x), y, 2, 2); A.tex(ctx, 'light_01', x, y, 30, 20, '#ff9a40', 0.5 * f, 0, true); }
     return gy;
   }
-  const EPI_HUNGER = [[0, 'FIRST THE LIGHTS GO OUT', 1], [1.2, 'THEN IT COMES', 0]];
-  F.hunger = { ...common, music: ['roar', 'boss'], shots: [['epi', 2.3], ['waste', 2.4], ['crawl', 2.2], ['roar', 2.0], ['name', 2.2], ['lunge', 1.4]],
-    noBars: { epi: 1 }, flat: { epi: 1 }, impact: (n, T) => n === 'roar' && T > 0.15 && T < 1.5,
-    sfx: [...epiSfx(EPI_HUNGER), ['waste', 0.6, 'thud', 0.5], ['waste', 1.2, 'thud', 0.6], ['waste', 1.8, 'thud', 0.7], ['crawl', 0.2, 'quake', 0.7], ['crawl', 0.9, 'quake', 0.8], ['crawl', 1.6, 'quake', 0.9], ['crawl', 1.9, 'magic', 0.6],
-      ['roar', 0.2, 'horn', 1], ['roar', 0.25, 'quake', 1], ['roar', 0.3, 'blow_big', 0.8], ['name', 0.1, 'boss', 1], ['lunge', 0.2, 'whoosh', 1], ['lunge', 0.9, 'smash', 1]],
-    draw: {
-      epi: epigraph(EPI_HUNGER),
-      waste(ctx, S, k, T) {
-        const gy = waste(ctx, T, Math.floor(clamp((T - 0.5) / 1.6) * 5));
-        vesperSmall(ctx, S, W() * 0.5, gy + 14, 1.6, T);
-        say(S, 'card', 'THE ASHEN WASTE', 10, BAR + 16, { sub: 'THE THIRD HOUR', k: T });
-      },
-      crawl(ctx, S, k, T) {
-        const gy = waste(ctx, T, 5), e = ease(k), sc = 1.6 + 1.6 * e, x = W() / 2, y = gy + 6 + e * 30;
-        A.tex(ctx, 'light_01', x, gy - 30, W() * 0.9, H() * 0.9, '#a03020', 0.45, 0, true);
-        // The last light, in the foreground, and the thing coming for it.
-        const orb = 1 - clamp((T - 1.6) / 0.5), ox = W() * 0.5, oy = H() * 0.9;
-        A.actor(ctx, set('hunger'), 'Walk', fr(T, 6), Math.PI / 2, Math.round(x), Math.round(y), sc, { shade: '#050302' });
-        eyes(ctx, set('hunger'), 'Walk', fr(T, 6), Math.PI / 2, Math.round(x), Math.round(y), sc, 1, '#ff6a5a');
-        if (orb > 0) { const ry = oy - (1 - orb) * 40; ctx.fillStyle = '#ffd080'; ctx.fillRect(Math.round(ox) - 1, Math.round(ry) - 1, 3, 3); A.tex(ctx, 'light_01', ox, ry, 70 * orb, 50 * orb, '#ffa040', 0.7 * orb, 0, true); }
-        else fill(ctx, '#000', 0.4);
-        kick(S, 1 + 2 * e);
-      },
-      roar(ctx, S, k, T) {
-        grad(ctx, ['#1a0806', '#5a1a10', '#2a0c08']);
-        A.tex(ctx, 'light_01', W() / 2, H() * 0.5, W() * 1.2, H() * 1.2, '#ff6a3a', 0.45, 0, true);
-        K().speedLines(ctx, W() / 2, H() * 0.45, 80, 'rgba(255,200,170,0.35)', 801, T, 30);
-        rings(ctx, W() / 2, H() * 0.45, k, 3, 260, 160, 'rgba(255,190,160,A)');
-        const sc = 3.4, x = Math.round(W() / 2), y = Math.round(H() * 1.02);
-        A.actor(ctx, set('hunger'), 'Taunt', Math.min(14, 4 + Math.floor(T * 8)), Math.PI / 2, x, y, sc, { shade: '#050302' });
-        eyes(ctx, set('hunger'), 'Taunt', Math.min(14, 4 + Math.floor(T * 8)), Math.PI / 2, x, y, sc, 1, '#ff6a5a');
-        K().hStreaks(ctx, 40, 'rgba(160,150,140,0.5)', 803, T, 1400);
-        if (T > 0.15 && T < 0.3) { fill(ctx, T < 0.22 ? '#ff7a4a' : '#ffffff'); burst(ctx, x, H() * 0.45, '#000', 90, 805, 30); A.actor(ctx, set('hunger'), 'Taunt', 6, Math.PI / 2, x, y, sc, { shade: '#000' }); }   // the roar lands: two flat frames
-        if (T > 0.3 && T < 1.5) say(S, 'knock', 'HUNGER', W() / 2, H() / 2, { size: 0.9, sx: 0.62, a: clamp((1.5 - T) * 4) * clamp((T - 0.3) * 10), col: '#050202' });
-        kick(S, 5 * (1 - k * 0.6));
-      },
-      name(ctx, S, k, T) {
-        grad(ctx, ['#140806', '#4a1a10', '#2a0e08']);
-        const x = Math.round(W() / 2), y = Math.round(H() * 0.95);
-        A.tex(ctx, 'light_01', x, H() * 0.6, W(), H(), '#ff6a3a', 0.35, 0, true);
-        A.actor(ctx, set('hunger'), 'Idle4', fr(T, 6), Math.PI / 2, x, y, 3.0, { shade: '#050302' });
-        eyes(ctx, set('hunger'), 'Idle4', fr(T, 6), Math.PI / 2, x, y, 3.0, 1, '#ff6a5a');
-        // The dark closing in from the edges: it is eating the light.
-        const g = ctx.createRadialGradient(W() / 2, H() / 2, H() * (0.7 - 0.45 * k), W() / 2, H() / 2, H() * (1.1 - 0.4 * k)); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,1)'); ctx.fillStyle = g; ctx.fillRect(-8, -8, W() + 16, H() + 16);
-        nameCard(S, T, 'THE HUNGER', 'IT EATS THE LIGHT', H() * 0.26);
-      },
-      lunge(ctx, S, k, T) {
-        grad(ctx, ['#1a0806', '#5a1a10', '#2a0c08']);
-        const e = Math.pow(clamp(T / 0.9), 2.2), sc = 2 + 10 * e;
-        A.actor(ctx, set('hunger'), 'Attack4', Math.min(14, Math.floor(T * 12)), Math.PI / 2, Math.round(W() / 2), Math.round(H() * (0.9 + e * 0.8)), sc, { shade: '#000000' });
-        eyes(ctx, set('hunger'), 'Attack4', Math.min(14, Math.floor(T * 12)), Math.PI / 2, Math.round(W() / 2), Math.round(H() * (0.9 + e * 0.8)), sc, 1, '#ff6a5a');
-        if (T > 0.9) fill(ctx, '#ffffff', clamp((T - 0.9) / 0.15));
-        kick(S, 3 * e);
-      },
-    } };
-
-  // ---- The Pale Wing: a storm on the cliff path; a shadow passes; it dives out of the clouds -------------
   function storm(ctx, T, gyF) {
     grad(ctx, ['#0a0c14', '#1c2232', '#2a3242']);
     const flash = (T % 1.7) < 0.08;
@@ -370,58 +63,6 @@
     rain(ctx, T, 80, 0.35, -0.3);
     return gy;
   }
-  const EPI_WING = [[0, 'LISTEN TO THE WIND', 1], [1.15, 'IT IS NOT THE WIND', 0]];
-  F.wing = { ...common, music: ['dive', 'boss'], shots: [['epi', 2.3], ['throat', 2.4], ['shadow', 1.6], ['dive', 2.2], ['land', 1.8], ['name', 2.4]],
-    noBars: { epi: 1 }, flat: { epi: 1 }, impact: (n, T) => n === 'land' && T < 0.2,
-    sfx: [...epiSfx(EPI_WING), ['throat', 0.3, 'bolt', 0.6], ['throat', 1.7, 'bolt', 0.5], ['shadow', 0.1, 'whoosh', 1], ['dive', 0.2, 'horn', 0.9], ['dive', 0.8, 'whoosh', 1], ['dive', 1.5, 'whoosh', 1], ['land', 0, 'smash', 1], ['land', 0.02, 'quake', 1],
-      ['land', 0.05, 'blow_big', 1], ['land', 0.5, 'whoosh', 0.8], ['name', 0.1, 'boss', 1], ['name', 0.6, 'whoosh', 0.8]],
-    draw: {
-      epi: epigraph(EPI_WING),
-      throat(ctx, S, k, T) {
-        const gy = storm(ctx, T);
-        A.actor(ctx, vs(S), 'Walk', fr(T, 8), 0, Math.round(W() * (0.2 + k * 0.15)), gy + 6, 1.7, { shade: '#050608' });
-        say(S, 'card', "THE WIND'S THROAT", 10, BAR + 16, { sub: 'THE FOURTH HOUR', k: T });
-      },
-      shadow(ctx, S, k, T) {
-        const gy = storm(ctx, T);
-        const sx = W() * 1.4 - k * W() * 1.8; ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.beginPath(); ctx.ellipse(sx, gy + 4, 160, 30, 0, 0, 7); ctx.fill(); ctx.beginPath(); ctx.ellipse(sx, H() * 0.3, 200, 50, 0, 0, 7); ctx.fill();
-        A.actor(ctx, vs(S), 'Idle4', fr(T), -Math.PI / 2, Math.round(W() * 0.35), gy + 6, 1.7, { shade: '#050608' });
-        for (let i = 0; i < 16; i++) { const t0 = 0.3 + hash(i, 821) * 0.8, a = T - t0; if (a < 0) continue; const x = W() * (0.1 + hash(i, 822) * 0.8) + Math.sin(a * 4 + i) * 10, y = BAR + a * (50 + hash(i, 823) * 30); ctx.fillStyle = '#f0f4ff'; ctx.fillRect(Math.round(x), Math.round(y), 2, 1); }
-      },
-      dive(ctx, S, k, T) {
-        grad(ctx, ['#0a0c14', '#1c2232', '#3a4252']);
-        if (T > 0.9 && T < 1.0) fill(ctx, '#ffffff', 0.5);
-        K().speedLines(ctx, W() / 2, H() * 0.5, 80, 'rgba(230,240,255,0.4)', 831, T, 30);
-        const e = ease(k), sc = 1.0 + 2.2 * e, x = W() * (0.85 - 0.35 * e), y = H() * (0.15 + 0.8 * e);
-        for (let i = 3; i >= 1; i--) A.actor(ctx, set('wing'), 'Special1', Math.min(14, Math.floor(k * 14)), Math.PI * 0.75, Math.round(x + i * 18 * e), Math.round(y - i * 18 * e), sc, { shade: '#5a6478', alpha: 0.18 * (4 - i) });
-        A.actor(ctx, set('wing'), 'Special1', Math.min(14, Math.floor(k * 14)), Math.PI * 0.75, Math.round(x), Math.round(y), sc, {});
-        kick(S, 2 * e);
-      },
-      land(ctx, S, k, T) {
-        const gy = Math.round(H() * 0.86), x = W() / 2;
-        if (T < 0.2) { impactFrames(ctx, S, T / 0.2, (c) => { burst(ctx, x, gy - 40, c, 90, 841, 20); A.actor(ctx, set('wing'), 'Special1', 14, Math.PI / 2, x, gy, 2.4, { shade: c }); }, () => { storm(ctx, 0.5, 0.86); burst(ctx, x, gy - 40, '#ffffff', 70, 845, 24); A.actor(ctx, set('wing'), 'Special1', 14, Math.PI / 2, x, gy, 2.4, {}); }); return; }
-        const e = (T - 0.2) / 1.6;
-        storm(ctx, T, 0.86);
-        rings(ctx, x, gy - 30, e, 3, 240, 90, 'rgba(230,240,255,A)');
-        for (let i = 0; i < 50; i++) { const a = hash(i, 842) * 6.28 + T * 3, d = 40 + e * (60 + hash(i, 843) * 120); ctx.fillStyle = '#f0f4ff'; ctx.fillRect(Math.round(x + Math.cos(a) * d), Math.round(gy - 40 + Math.sin(a) * d * 0.5), 2, 1); }
-        A.actor(ctx, set('wing'), 'Taunt', fr(T, 10), Math.PI / 2, x, gy, 2.4, {});
-        eyes(ctx, set('wing'), 'Taunt', fr(T, 10), Math.PI / 2, x, gy, 2.4, 1, '#ffffff');
-        kick(S, 5 * (1 - e));
-      },
-      name(ctx, S, k, T) {
-        const gy = storm(ctx, T, 0.86), x = W() / 2;
-        // Two tornadoes rising at the sides.
-        for (const sx of [-1, 1]) { const tx = x + sx * W() * 0.34; for (let i = 0; i < 14; i++) { const y = gy - i * 9 * ease(k * 1.5), r = 4 + i * 2.2, o = Math.sin(T * 6 + i * 0.7) * (2 + i * 0.6); ctx.fillStyle = `rgba(200,212,235,${0.16 - i * 0.006})`; ctx.beginPath(); ctx.ellipse(tx + o, y, r, r * 0.5, 0, 0, 7); ctx.fill(); } A.tex(ctx, 'light_01', tx, gy - 60 * ease(k * 1.5), 60, 140, '#c8d4ea', 0.25, 0, true); }
-        A.tex(ctx, 'light_01', x, gy - 60, 220, 200, '#c8d4ea', 0.35, 0, true);
-        A.actor(ctx, set('wing'), 'Idle4', fr(T), Math.PI / 2, x, gy, 2.4, { shade: '#06080c' });
-        eyes(ctx, set('wing'), 'Idle4', fr(T), Math.PI / 2, x, gy, 2.4, 1, '#ffffff');
-        say(S, 'spaced', 'THE PALE WING', W() / 2, H() * 0.22, { size: 26, k: T, col: '#ffffff', glow: '#a8c8ff', dur: 1.3, from: 1.4, to: 0.18 });
-        if (T > 1.0) say(S, 'line', 'THROAT OF THE WIND', W() / 2, H() * 0.22 + 24, { size: 14, col: '#e8eeff', a: clamp((T - 1.0) * 4), spacing: 3 });
-        if (k > 0.88) fill(ctx, '#ffffff', (k - 0.88) / 0.12);
-      },
-    } };
-
-  // ---- The First Cut: the summit above the clouds; he rises; the echoes of the fallen stand with him -------
   function summit(ctx, T, gyF) {
     grad(ctx, ['#0c0206', '#3a0812', '#6a1020']);
     stars(ctx, 40, 0.4, 851, T);
@@ -432,68 +73,276 @@
     for (let x = W() / 2 - 80; x < W() / 2 + 80; x += 14) ctx.fillRect(Math.round(x), gy - 5, 8, 5);
     return gy;
   }
-  const EPI_FIRST = [[0, 'SEVEN HUNDRED YEARS', 1], [1.05, 'SIX GUARDIANS', 0], [2.1, 'ONE NIGHT', 1], [3.15, 'THE TOP OF THE SPIRE', 0, 19]];
-  F.firstCut = { ...common, music: ['rise', 'boss', 1.6], shots: [['epi', 4.4], ['summit', 2.0], ['rise', 2.8], ['blade', 2.0], ['host', 2.6], ['strike', 1.6]],
-    noBars: { epi: 1 }, flat: { epi: 1 }, impact: (n, T) => n === 'strike' && T > 0.5,
-    sfx: [...epiSfx(EPI_FIRST), ['epi', 3.2, 'charge', 0.8], ['rise', 1.95, 'blink', 0.7], ['summit', 0.2, 'horn', 0.6], ['rise', 0.2, 'quake', 0.9], ['rise', 1.0, 'quake', 1], ['rise', 1.9, 'boss', 1], ['rise', 1.92, 'blow_big', 1], ['blade', 0.2, 'unsheathe_01', 1], ['blade', 0.6, 'charge', 1],
-      ['host', 0.2, 'spawn', 0.9], ['host', 0.6, 'reinforce', 0.8], ['host', 1.0, 'spawn', 0.9], ['strike', 0, 'whoosh', 1], ['strike', 0.5, 'smash', 1], ['strike', 0.52, 'blow_big', 1], ['strike', 0.55, 'quake', 1]],
-    draw: {
-      epi: epigraph(EPI_FIRST),
-      summit(ctx, S, k, T) { const gy = summit(ctx, T); vesperSmall(ctx, S, W() / 2, gy + 26 - k * 22, 1.6, T); },
-      rise(ctx, S, k, T) {
-        grad(ctx, ['#0c0206', '#3a0812', '#6a1020']);
-        const rise = ease(clamp((T - 0.2) / 1.8)), ey = Math.round(H() * (1.3 - 0.95 * rise));
-        A.tex(ctx, 'light_01', W() / 2, ey + 30, W() * 1.4, H() * 1.4, '#ff3048', 0.5 * rise, 0, true);
-        colossus(ctx, S, Math.round(W() / 2), ey, 6, T, { flat: true, col: '#030104' });
-        burningEyes(ctx, Math.round(W() / 2), ey, 6, ease(clamp((T - 1.9) / 0.3)), T);
-        const gy = Math.round(H() * 0.9); ctx.fillStyle = '#050203'; ctx.fillRect(-8, gy, W() + 16, H());
-        vesperSmall(ctx, S, W() / 2, gy + 2, 1.4, T, -Math.PI / 2);
-        track(S, W() / 2, gy - 10, 12, 22, T - 0.3, { col: '#ffe0e6' });
-        if (T > 1.95) { track(S, W() / 2, ey, 34, 12, T - 1.95, { sub: 'TARGET' }); link(S, [W() / 2, gy - 22], [W() / 2, ey + 9], T - 2.05, 'ALT ' + Math.round(430 * rise)); }
-        if (T > 1.9 && T < 1.97) { fill(ctx, '#ffffff', 0.5); kick(S, 6); }
-        kick(S, 1.5 * rise);
-      },
-      blade(ctx, S, k, T) {
-        grad(ctx, ['#0c0206', '#3a0812', '#20060c']);
-        moon(ctx, W() / 2, H() * 0.24, H() * 0.3, '#ff3a52', 'rgba(255,40,70,0.6)', 1, T);
-        const tip = Math.round(H() * (1.2 - 1.0 * ease(k)));
-        A.tex(ctx, 'light_01', W() / 2, tip + 80, 70, H() * 1.2, RED, 0.45, 0, true);
-        bigBlade(ctx, W() / 2, H() + 300, W() / 2, tip, 26, '#0a0608', '#ffb0bc');
-        const run = clamp((T - 0.5) / 1.2); ctx.fillStyle = '#ff5a6a'; ctx.fillRect(Math.round(W() / 2) - 1, Math.round(H() - (H() - tip) * run), 2, Math.round((H() - tip) * run));
-        for (let i = 0; i < 6; i++) A.tex(ctx, 'smoke_04', ((hash(i, 861) * W() * 1.4 + T * 10) % (W() * 1.4)) - W() * 0.2, H() * 0.88, W() * 0.7, 40, '#2a0610', 0.8, 0, false);
-        sparks(ctx, W() / 2, tip + 10, T, 40, 863, 6.2);
-        kick(S, 1.2);
-      },
-      host(ctx, S, k, T) {
-        const gy = summit(ctx, T, 0.9);
-        A.tex(ctx, 'light_01', W() / 2, H() * 0.2, W(), H(), '#ff3048', 0.25, 0, true);
-        colossus(ctx, S, Math.round(W() / 2), Math.round(H() * 0.06), 7, T, { flat: true, col: '#12030a' });
-        burningEyes(ctx, Math.round(W() / 2), Math.round(H() * 0.06), 7, 1, T);
-        const echoes = ['warden', 'twinA', 'umbral', 'hunger', 'wing'];
-        echoes.forEach((key, i) => {
-          const t0 = 0.2 + i * 0.2, sx = (i % 2 ? 1 : -1) * (1 + Math.floor(i / 2)), x = Math.round(W() / 2 + sx * 46), sc = Math.min(2.4, 1.5 * (D.FOES[key].scale || 1)); if (T < t0) return;
-          const a = clamp((T - t0) * 3);
-          A.actor(ctx, set(key), 'Idle4', fr(T + i), Math.PI / 2, x, gy + 4 + Math.round((1 - ease(a)) * 30), sc, { shade: '#050203', alpha: a });
-          eyes(ctx, set(key), 'Idle4', fr(T + i), Math.PI / 2, x, gy + 4, sc, a, D.FOES[key].color);
-        });
-        vesperSmall(ctx, S, W() / 2, H() + 8, 1.9, T, -Math.PI / 2, '#050203');
-        if (T > 0.9) nameCard(S, T - 0.9, 'THE FIRST CUT', 'WHO WOUNDED THE MOON', H() * 0.42);
-      },
-      strike(ctx, S, k, T) {
-        const gx = Math.round(W() * 0.46), gy = Math.round(H() * 0.86), tipX = gx + 4, tipY = gy - 30, fromX = W() * 1.25, fromY = -H() * 0.6;
-        if (T < 0.5) {
-          const f = ease(T / 0.5);
-          grad(ctx, ['#12030a', '#4a0c18', '#1a0408']); ctx.fillStyle = '#080204'; ctx.fillRect(-8, gy, W() + 16, H());
-          bigBlade(ctx, fromX, fromY, fromX + (tipX - fromX) * f, fromY + (tipY - fromY) * f, 26, '#1a1418', '#ffffff');
-          A.actor(ctx, vs(S), 'Idle4', fr(T, 10), -Math.PI * 0.25, gx, gy, 1.7, {});
-          return;
-        }
-        if (T < 0.56) { fill(ctx, '#ffffff'); kick(S, 9); return; }
-        fill(ctx, '#000'); burst(ctx, tipX, tipY, '#ffffff', 90, 871, 10); bigBlade(ctx, fromX, fromY, tipX, tipY, 26, '#ffffff'); A.actor(ctx, vs(S), 'Special1', 8, -Math.PI * 0.25, gx, gy, 1.7, { shade: '#ffffff' });
-        if (T > 0.62) say(S, 'punch', 'THIS ENDS TONIGHT', W() / 2, H() * 0.24, { size: 30, k: T - 0.62 });
-        if (T > 1.3) fill(ctx, '#ffffff', (T - 1.3) / 0.3);
-      },
-    } };
+
+  // Bright fields and black figures: the look of the reference fights. A plane under a pale sky.
+  const brightPlane = (hz, sky, floor) => ({ kind: 'plane', sky: sky || ['#8a8494', '#f0ecf4'], floor: floor || ['#a8a2b0', '#3a3640'], hz: hz == null ? 0.62 : hz });
+  const brightGlow = (at, col, base) => ({ kind: 'glow', col: col || '#ffffff', base: base || '#5a5664', at: at || [0.5, 0.45], r: 0.75 });
+  const INK = '#050407';
+
+  // ---- The Gatewarden: violet. "Turn back." He leaps from the gate; the ground breaks; she cuts in and is thrown.
+  {
+    const gate = (ctx, S, k, T) => { grad(ctx, ['#0c0a10', '#3a3440', '#5a5460']); moon(ctx, W() / 2, H() * 0.2, H() * 0.16, '#f4f0f0', 'rgba(255,255,255,0.3)', 0); blackGate(ctx, T, ease(clamp(k * 1.4))); ctx.fillStyle = '#0a0a0c'; ctx.fillRect(-W(), H() * 0.84, W() * 3, H()); };
+    const EYE = '#e0d8ff', G = { grade: 'violet', keepRed: true };
+    const hit = { d: 0.3, cam: { z: [1.2, 1.42], ease: 'out' }, ...G, sfx: [[0.12, 'slash_2', 1], [0.14, 'blow_1', 1]],
+      ...sc({ bg: brightGlow([0.55, 0.5]), sil: INK, speed: { ang: 0.2, col: 'rgba(255,255,255,0.7)', n: 60, v: 1600 },
+        actors: [{ who: 'warden', clip: 'TakeDamage', fr: [0, 8], ang: LEFT, x: 0.68, y: 0.98, sc: 3.2, to: [0.76, 0.98], t0: 0.4, eyes: EYE },
+          { who: V, clip: 'Attack2', fr: [3, 11], ang: RIGHT, x: 0.16, y: 0.98, to: [0.42, 0.98], sc: 3.2, smear: 4, smearCol: '#ffffff', ease: 'snap', t1: 0.5 }],
+        fx: [{ key: 'hit_big', x: 0.58, y: 0.55, sc: 2.2, t0: 0.42 }] }) };
+    const thrown = { d: 0.6, cam: { z: [1.0, 1.0], x: [0.1, -0.15], ease: 'out' }, ...G, sfx: [[0, 'blow_big', 1], [0.05, 'whoosh', 1]],
+      ...sc({ bg: brightPlane(0.66), sil: INK, speed: { ang: 0, col: 'rgba(255,255,255,0.5)', n: 30, v: 1200 },
+        actors: [{ who: 'warden', clip: 'Special1', fr: [8, 14], ang: LEFT, x: 0.82, y: 0.72, sc: 1.6, eyes: EYE },
+          { who: V, clip: 'TakeDamage', fr: [2, 12], ang: RIGHT, x: 0.72, y: 0.7, to: [0.08, 0.76], arc: 0.12, sc: 1.2, smear: 4, smearCol: '#6a5aa0', rot: -6 }],
+        trails: [{ from: [0.74, 0.64], to: [0.06, 0.72], w: 3, col: '#ffffff', t0: 0.05, t1: 0.8, fade: 0.7 }] }) };
+    F.warden = E.film([
+      card(1.3, 'NO ONE PASSES THE BLACK GATE', true),
+      E.blink(),
+      cut(1.5, sc({ bg: gate, actors: [{ who: 'warden', clip: 'Idle4', ang: FRONT, x: 0.5, y: 0.18, sc: 1.1, eyes: EYE }, { who: V, clip: 'Walk', fps: 10, ang: BACK, x: 0.5, y: 1.04, to: [0.5, 0.97], sc: 1.5, ease: 'lin' }],
+        over: (ctx, S, k, T) => say(S, 'card', 'THE BLACK GATE', 10, 32, { sub: 'DUSK', k: T }) }), { cam: { z: [1.0, 1.14] }, ...G, sfx: [[0.1, 'horn', 0.7], [0.6, 'quake', 0.7]] }),
+      cut(0.9, E.face({ who: 'warden', sc: 3.2, cy: 0.36, shade: INK, eyes: EYE, eyesAt: 0.25, bg: brightGlow([0.5, 0.4], '#ffffff', '#4a4654') }),
+        { cam: { z: [1.0, 1.16] }, ...G, sfx: [[0.2, 'charge', 0.9], [0.25, 'blink', 0.6]], line: 'Turn back, little blade.', lineDur: 1.3, lineCol: '#d8ccff' }),
+      cut(0.75, E.eyes({ at: 0.4, sc: 4 }), { cam: { z: [1.0, 1.12], ease: 'out' }, bars: false, sfx: [[0.3, 'clang_0', 0.6]], line: 'Open the gate.', lineAt: 0.3, lineDur: 0.9, lineCol: VCOL }),
+      E.blink(0.03),
+      cut(0.55, sc({ bg: brightPlane(0.7), sil: INK, speed: { ang: -1.1, col: 'rgba(255,255,255,0.6)', n: 40, v: 1400 },
+        actors: [{ who: V, clip: 'Idle4', ang: -PI / 4, x: 0.24, y: 0.92, sc: 1.4 },
+          { who: 'warden', clip: 'Attack4', fr: [2, 9], ang: FRONT, x: 0.84, y: 0.1, to: [0.56, 0.9], sc: [1.2, 3.0], smear: 3, smearCol: '#8a80a0', ease: 'in', eyes: EYE }] }),
+        { cam: { r: [-0.14, -0.06], z: [1.0, 1.1] }, ...G, sfx: [[0, 'whoosh', 1], [0.3, 'swish_2', 1]] }),
+      cut(0.06, E.inv({ actors: [{ who: 'warden', clip: 'Special1', fr: 14, ang: FRONT, x: 0.5, y: 0.98, sc: 3 }], cy: 0.62 }), { bars: false, sfx: [[0, 'smash', 1], [0.01, 'quake', 1]] }),
+      cut(0.05, E.inv({ bg: '#fff', fg: '#000', actors: [{ who: 'warden', clip: 'Special1', fr: 14, ang: FRONT, x: 0.5, y: 0.98, sc: 3 }], cy: 0.62, seed: 3 }), { bars: false }),
+      cut(0.7, sc({ bg: brightPlane(0.6), sil: INK, actors: [{ who: 'warden', clip: 'Special1', fr: 14, ang: FRONT, x: 0.5, y: 0.82, sc: 2.6, eyes: EYE },
+        { who: V, clip: 'TakeDamage', fr: [0, 10], ang: RIGHT, x: 0.36, y: 0.84, to: [0.1, 0.9], arc: 0.18, sc: 1.6, rot: -3, smear: 2, smearCol: '#8a80a0' }],
+        rings: [{ x: 0.5, y: 0.82, t0: 0, dur: 0.7, rx: 0.8, ry: 0.1, w: 2, col: '#ffffff' }, { x: 0.5, y: 0.82, t0: 0.12, dur: 0.7, rx: 0.6, ry: 0.07, col: '#ffffff' }],
+        debris: [{ x: 0.5, y: 0.82, t0: 0, n: 40, col: ['#14121a', '#3a3640'], v: 1.3, s: 3 }], glows: [{ x: 0.5, y: 0.8, w: 0.9, h: 0.3, col: '#c8b8ff', a: 0.6 }] }),
+        { cam: { z: [1.15, 1.0], ease: 'out' }, shake: 7, shakeOut: true, ...G, sfx: [[0, 'blow_big', 1]] }),
+      cut(0.45, sc({ bg: brightPlane(0.52, ['#6a6474', '#d8d4e0']), sil: INK, speed: { ang: 0, col: 'rgba(255,255,255,0.6)', n: 36, v: -1300 },
+        actors: [{ who: V, clip: 'Slide', fps: 12, ang: LEFT, x: 0.75, y: 0.95, to: [0.35, 0.95], sc: 3.0, ease: 'out' }], debris: [{ x: 0.4, y: 0.95, t0: 0.3, n: 20, col: '#3a3640', spread: 1.2 }] }),
+        { cam: { r: [0.08, 0.04] }, ...G, sfx: [[0, 'step_1', 1], [0.1, 'swish_0', 0.8]] }),
+      cut(0.35, sc({ bg: brightPlane(0.6), sil: INK, speed: { ang: 0, col: 'rgba(255,255,255,0.7)', n: 50, v: 2000 },
+        actors: [{ who: 'warden', clip: 'Idle4', ang: LEFT, x: 0.85, y: 0.86, sc: 2.2, eyes: EYE }, { who: V, clip: 'Run', fps: 18, ang: RIGHT, x: 0.1, y: 0.88, to: [0.6, 0.88], sc: 2.2, smear: 5, smearCol: '#ff4a5e', ease: 'in' }] }),
+        { cam: { r: [0.16, 0.12] }, ...G, sfx: [[0, 'dodge', 1]] }),
+      hit,
+      cut(0.06, E.inv({ lines: 'level', actors: [{ who: V, clip: 'Attack2', fr: 10, ang: RIGHT, x: 0.45, y: 0.95, sc: 3.4 }], cy: 0.55 }), { bars: false, sfx: [[0, 'blow_big', 0.9]] }),
+      E.hold(hit, 0.6, 0.06),
+      cut(0.4, sc({ bg: brightGlow([0.5, 0.5]), sil: INK, actors: [{ who: V, clip: 'Attack2', fr: 10, ang: RIGHT, x: 0.36, y: 1.0, sc: 3.0, to: [0.33, 1.0] }, { who: 'warden', clip: 'Attack1', fr: [6, 4], ang: LEFT, x: 0.66, y: 1.0, sc: 3.0, to: [0.63, 1.0], eyes: EYE }],
+        sparks: [{ x: 0.5, y: 0.5, t0: 0, n: 90, seed: 41 }], glows: [{ x: 0.5, y: 0.5, w: 0.3, col: '#ffffff', a: 0.9 }] }),
+        { cam: { z: [1.3, 1.36] }, shake: 3, ...G, sfx: [[0, 'clang_1', 1], [0.02, 'parry', 0.8]], line: 'Heavy...', lineAt: 0.1, lineDur: 0.7, lineCol: VCOL }),
+      thrown,
+      E.hold(thrown, 0.3, 0.06),
+      cut(0.6, sc({ bg: brightPlane(0.66, ['#6a6a70', '#c8c8cc'], ['#8a8a90', '#2a2a30']), sil: INK, actors: [{ who: V, clip: 'CrouchIdle', fps: 8, ang: RIGHT, x: 0.3, y: 0.86, sc: 2.0 }],
+        debris: [{ x: 0.3, y: 0.86, t0: 0, n: 16, col: '#3a3a40', v: 0.4, spread: 3 }] }), { grade: 'grey', cam: { z: [1.0, 1.06] }, sfx: [[0, 'thud', 0.8]] }),
+      cut(1.0, sc({ bg: brightGlow([0.5, 0.35], '#ffffff', '#8a84a0'), sil: INK, actors: [{ who: 'warden', clip: 'Taunt', fps: 10, ang: FRONT, x: 0.5, y: 1.15, sc: 3.6, eyes: EYE }] }),
+        { ...G, cam: { z: [1.0, 1.1], r: [0, 0.04] }, shake: 2, sfx: [[0, 'quake', 1], [0.1, 'horn', 0.8]], text: { kind: 'knock', text: 'GATEWARDEN', at: 0.05, o: { size: 0.85, sx: 0.58, col: '#000' } } }),
+      nameCut(1.2, 'THE GATEWARDEN', 'KEEPER OF THE BLACK GATE', sc({ bg: brightGlow([0.5, 0.75], '#c8c0d8', '#0a090c'), sil: INK, actors: [{ who: 'warden', clip: 'Idle4', fps: 8, ang: FRONT, x: 0.5, y: 1.25, sc: 3.4, eyes: EYE }] }),
+        { ...G, cam: { z: [1.08, 1.0] }, whiteOut: 0.15 }),
+    ], { music: ['c6', 'boss'] });
+  }
+
+  // Two scenes side by side (a split screen), with a white seam.
+  const split = (left, right, vertical) => ({
+    draw(ctx, S, k, T, c) {
+      for (const [tpl, a] of [[left, 0], [right, 1]]) { ctx.save(); ctx.beginPath(); if (vertical) ctx.rect(-W(), a ? H() / 2 + 1 : -H(), W() * 3, a ? H() * 2 : H() * 1.5 - 1); else ctx.rect(a ? W() / 2 + 1 : -W(), -H(), a ? W() * 2 : W() * 1.5 - 1, H() * 3); ctx.clip(); tpl.draw(ctx, S, k, T, c); ctx.restore(); }
+    },
+    post(ctx, S, k, T, c) {
+      for (const [tpl, a] of [[left, 0], [right, 1]]) if (tpl.post) { ctx.save(); ctx.beginPath(); if (vertical) ctx.rect(-W(), a ? H() / 2 + 1 : -H(), W() * 3, a ? H() * 2 : H() * 1.5 - 1); else ctx.rect(a ? W() / 2 + 1 : -W(), -H(), a ? W() * 2 : W() * 1.5 - 1, H() * 3); ctx.clip(); tpl.post(ctx, S, k, T, c); ctx.restore(); }
+      ctx.fillStyle = '#ffffff'; if (vertical) ctx.fillRect(-W(), Math.round(H() / 2) - 1, W() * 3, 2); else ctx.fillRect(Math.round(W() / 2) - 1, -H(), 2, H() * 3);
+    },
+  });
+
+  // ---- The Hollow Twins: ice. Mirrored halves; they wake as one, cross blades through where she stood. ----
+  {
+    const EYE = '#bff0ff', G = { grade: 'ice', keepRed: true }, TCOL = '#bfe8ff';
+    const cold = (ctx, S, k, T) => { cloister(ctx, T, 60); };
+    const half = (who, ang, x) => sc({ bg: brightGlow([x, 0.4], '#ffffff', '#3a5a70'), sil: INK, actors: [{ who, clip: 'Idle4', fr: 0, ang, x, y: 1.1, sc: 3.3, eyes: EYE, eyesA: 1 }] });
+    const cross = { d: 0.42, ...G, cam: { z: [1.05, 1.25], ease: 'out' }, sfx: [[0, 'whoosh', 1], [0.25, 'slash_2', 1]],
+      ...sc({ bg: brightPlane(0.62, ['#6a8aa0', '#f0f8ff'], ['#a8c8d8', '#2a3a48']), sil: INK, speed: { ang: 0, col: 'rgba(255,255,255,0.6)', n: 40, v: 1500 },
+        actors: [{ who: 'twinA', clip: 'Attack1', fr: [2, 9], ang: RIGHT, x: 0.08, y: 0.9, to: [0.42, 0.9], sc: 2.6, smear: 4, smearCol: '#9ac8e8', ease: 'snap', eyes: EYE },
+          { who: 'twinB', clip: 'Attack2', fr: [2, 9], ang: LEFT, x: 0.92, y: 0.9, to: [0.58, 0.9], sc: 2.6, smear: 4, smearCol: '#9ac8e8', ease: 'snap', eyes: EYE },
+          { who: V, clip: 'Rolling', fps: 30, ang: FRONT, x: 0.5, y: 0.9, to: [0.5, 1.4], sc: 2.2, t0: 0.15, ease: 'in' }],
+        fx: [{ key: 'cross_slash', x: 0.5, y: 0.55, sc: 2.4, t0: 0.55 }] }) };
+    const counter = { d: 0.5, ...G, cam: { r: [0.1, 0.06], x: [0, -0.1] }, sfx: [[0.05, 'slash_1', 1], [0.08, 'blow_2', 1]],
+      ...sc({ bg: brightPlane(0.58, ['#6a8aa0', '#f0f8ff'], ['#a8c8d8', '#2a3a48']), sil: INK,
+        actors: [{ who: V, clip: 'Attack3', fr: [3, 12], ang: RIGHT, x: 0.32, y: 0.88, sc: 2.4 },
+          { who: 'twinA', clip: 'TakeDamage', fr: [0, 12], ang: LEFT, x: 0.46, y: 0.88, to: [1.1, 0.7], arc: 0.08, sc: 2.4, rot: 5, smear: 3, smearCol: '#9ac8e8', t0: 0.15, eyes: EYE }],
+        trails: [{ from: [0.46, 0.7], to: [1.1, 0.58], w: 3, col: '#ffffff', t0: 0.15, t1: 0.9 }], fx: [{ key: 'ice_shatter', x: 0.46, y: 0.68, sc: 1.6, t0: 0.12 }] }) };
+    F.twins = E.film([
+      card(1.0, 'THEY DIED TOGETHER', false), card(1.0, 'THEY WAKE TOGETHER', true),
+      cut(1.3, sc({ bg: cold, actors: [{ who: 'twinA', clip: 'CrouchIdle', fr: 0, ang: RIGHT, x: 0.36, y: 0.79, sc: 1.4 }, { who: 'twinB', clip: 'CrouchIdle', fr: 0, ang: LEFT, x: 0.64, y: 0.79, sc: 1.4 },
+        { who: V, clip: 'Walk', fps: 10, ang: BACK, x: 0.5, y: 1.06, to: [0.5, 0.96], sc: 1.7, ease: 'lin' }], over: (ctx, S, k, T) => say(S, 'card', 'THE FROZEN CLOISTER', 10, 32, { sub: 'THE FIRST HOUR', k: T }) }),
+        { ...G, cam: { z: [1.0, 1.12] }, sfx: [[0.2, 'magic', 0.5]] }),
+      cut(0.08, E.flash('#ffffff'), { bars: false, sfx: [[0, 'break', 1]] }),
+      cut(1.0, split(half('twinA', PI * 0.25, 0.3), half('twinB', PI * 0.75, 0.7)), { ...G, cam: { z: [1.12, 1.0], ease: 'out' }, sfx: [[0.15, 'blink', 0.7], [0.3, 'charge', 0.8]], line: 'We are two blades.', lineDur: 1.1, lineCol: TCOL,
+        over: (ctx, S, k, T) => { if (T > 0.3) { say(S, 'track', null, W() * 0.3, H() * 0.42, { w: 34, h: 20, k: T - 0.3, col: '#ffffff', sub: 'LEFT HAND' }); say(S, 'track', null, W() * 0.7, H() * 0.42, { w: 34, h: 20, k: T - 0.42, col: '#ffffff', sub: 'RIGHT HAND' }); } } }),
+      cut(0.7, E.eyes({ at: 0.35, sc: 4 }), { bars: false, cam: { z: [1.0, 1.1] }, sfx: [[0.3, 'clang_0', 0.6]], line: 'I only need one.', lineAt: 0.25, lineDur: 0.9, lineCol: VCOL }),
+      E.blink(0.03),
+      cut(0.45, sc({ bg: brightPlane(0.6, ['#6a8aa0', '#f0f8ff'], ['#a8c8d8', '#2a3a48']), sil: INK, speed: { ang: 0, col: 'rgba(255,255,255,0.6)', n: 50, v: 1800 },
+        actors: [{ who: 'twinA', clip: 'Run', fps: 18, ang: RIGHT, x: -0.05, y: 0.82, to: [0.3, 0.82], sc: 1.5, smear: 4, smearCol: '#9ac8e8' }, { who: 'twinB', clip: 'Run', fps: 18, ang: LEFT, x: 1.05, y: 0.82, to: [0.7, 0.82], sc: 1.5, smear: 4, smearCol: '#9ac8e8' },
+          { who: V, clip: 'Idle4', ang: FRONT, x: 0.5, y: 0.84, sc: 1.5 }] }), { ...G, cam: { r: [-0.1, -0.04], z: [1.0, 1.15] }, sfx: [[0, 'dodge', 1], [0.1, 'dodge', 1]] }),
+      cross,
+      cut(0.06, E.inv({ actors: [{ who: 'twinA', clip: 'Attack1', fr: 9, ang: RIGHT, x: 0.4, y: 0.98, sc: 2.8 }, { who: 'twinB', clip: 'Attack2', fr: 9, ang: LEFT, x: 0.6, y: 0.98, sc: 2.8 }], cy: 0.55 }), { bars: false, sfx: [[0, 'clang_1', 1], [0.01, 'blow_big', 1]] }),
+      E.hold(cross, 0.75, 0.05),
+      cut(0.6, sc({ bg: brightGlow([0.5, 0.5], '#ffffff', '#4a6a80'), sil: INK, actors: [{ who: V, clip: 'Rolling', fps: 30, ang: LEFT, x: 0.62, y: 0.92, to: [0.3, 0.92], sc: 2.0, smear: 3, smearCol: '#ff4a5e' }],
+        debris: [{ x: 0.5, y: 0.5, t0: 0, n: 50, col: ['#ffffff', '#bfe8ff'], spread: 6.2, v: 1.4 }], rings: [{ x: 0.5, y: 0.5, t0: 0, dur: 0.6, rx: 0.5, ry: 0.5, w: 2 }], fx: [{ key: 'ice_shatter', x: 0.5, y: 0.5, sc: 3, t0: 0 }] }),
+        { ...G, cam: { z: [1.2, 1.05], ease: 'out' }, shake: 5, shakeOut: true, sfx: [[0, 'break', 1], [0.02, 'quake', 0.8]] }),
+      counter,
+      E.hold(counter, 0.5, 0.05),
+      cut(0.6, sc({ bg: cold, sil: INK, actors: [{ who: 'twinB', clip: 'Special1', fr: [4, 14], ang: FRONT, x: 0.5, y: 0.8, sc: 1.6, eyes: EYE }, { who: V, clip: 'Rolling', fps: 30, ang: RIGHT, x: 0.15, y: 0.88, to: [0.85, 0.88], sc: 1.6, smear: 4, smearCol: '#ff4a5e' }],
+        under: (ctx, S, k, T) => { for (let i = 0; i < 6; i++) { const x = W() * (0.18 + i * 0.13), t = k * 1.6 - i * 0.12; if (t < 0) continue; const ly = Math.min(H() * 0.88, -20 + t * H() * 2.2); ctx.fillStyle = '#ffffff'; ctx.fillRect(Math.round(x) - 1, Math.round(ly - 24), 3, 24); if (ly >= H() * 0.88) A.fx(ctx, 'ice_shatter', t - 0.45, x, H() * 0.87, 1.2, 1); } } }),
+        { ...G, cam: { r: [0.05, -0.05] }, sfx: [[0.1, 'smash', 0.7], [0.25, 'smash', 0.7], [0.4, 'smash', 0.7]] }),
+      cut(0.06, E.inv({ lines: 'level', actors: [{ who: V, clip: 'Attack6', fr: 8, ang: RIGHT, x: 0.5, y: 0.95, sc: 3.2 }], cy: 0.55 }), { bars: false, sfx: [[0, 'slash_2', 1]] }),
+      nameCut(1.3, 'THE HOLLOW TWINS', 'THE LEFT HAND · THE RIGHT HAND', split(half('twinA', 0, 0.26), half('twinB', PI, 0.74)), { ...G, cam: { z: [1.0, 1.06] }, whiteOut: 0.15 }),
+    ], { amb: 'night', music: ['c8', 'boss'] });
+  }
+
+  // ---- The Umbral: ink, nothing but black and white. "Behind you." The court of shadows closes on her. ----
+  {
+    const EYE = '#d8a0ff', G = { grade: 'ink' }, UCOL = '#d8b0ff';
+    const pool = { kind: 'glow', col: '#ffffff', base: '#000000', at: [0.5, 0.8], r: 0.35 };
+    const flick = (white, d) => cut(d || 0.05, sc({ bg: { kind: 'flat', col: white ? '#ffffff' : '#000000' }, actors: [{ who: 'umbral', clip: 'Idle4', fr: 0, ang: PI * 0.75, x: 0.6, y: 0.96, sc: 2.6, shade: white ? '#000' : '#fff' }, { who: V, clip: 'Idle4', fr: 0, ang: FRONT, x: 0.42, y: 0.96, sc: 1.8, shade: white ? '#000' : '#fff' }] }), { bars: false });
+    const strike = { d: 0.35, ...G, cam: { z: [1.1, 1.3], r: [0, -0.08], ease: 'out' }, sfx: [[0, 'whoosh', 1], [0.18, 'slash_2', 1], [0.2, 'blow_1', 1]],
+      ...sc({ bg: { kind: 'glow', col: '#ffffff', base: '#202020', at: [0.4, 0.5] }, sil: INK, speed: { ang: PI, col: 'rgba(255,255,255,0.8)', n: 60, v: 1800 },
+        actors: [{ who: 'umbral', clip: 'Attack1', fr: [2, 10], ang: LEFT, x: 0.95, y: 0.98, to: [0.55, 0.98], sc: 3, smear: 5, smearCol: '#808080', ease: 'snap', eyes: EYE },
+          { who: V, clip: 'TakeDamage', fr: [0, 10], ang: RIGHT, x: 0.35, y: 0.98, to: [0.1, 0.98], sc: 3, t0: 0.5 }] }) };
+    F.umbral = E.film([
+      card(1.4, 'DO NOT LOOK BEHIND YOU', false, { size: 14 }),
+      cut(1.2, sc({ bg: pool, sil: INK, actors: [{ who: V, clip: 'Idle4', fps: 7, ang: FRONT, x: 0.5, y: 0.82, sc: 1.8 }],
+        over: (ctx, S, k, T) => say(S, 'card', 'THE UMBRAL STAIR', 10, 32, { sub: 'THE SECOND HOUR', k: T }) }), { ...G, cam: { z: [1.0, 1.1] }, sfx: [[0.3, 'magic', 0.4]] }),
+      flick(true), flick(false), flick(true), flick(false, 0.08), flick(true), E.blink(0.06),
+      cut(0.7, E.face({ who: V, sc: 3.2, cy: 0.36, eyes: '#ff3048', eyesAt: 0.15, ang: FRONT, shade: '#ffffff', bg: { kind: 'flat', col: '#000' } }), { ...G, cam: { z: [1.0, 1.2] }, sfx: [[0.05, 'blink', 0.6]], line: 'Behind you.', lineDur: 0.9, lineCol: UCOL }),
+      cut(0.45, sc({ bg: { kind: 'glow', col: '#ffffff', base: '#101010' }, sil: INK, actors: [{ who: V, clip: 'Attack6', fr: [2, 12], ang: LEFT, x: 0.5, y: 0.95, sc: 2.8, smear: 3, smearCol: '#808080' }],
+        fx: [{ key: 'spin_slash', x: 0.5, y: 0.6, sc: 2, t0: 0.2 }, { key: 'smoke_dark', x: 0.25, y: 0.6, sc: 2.4, t0: 0.4 }] }),
+        { ...G, cam: { r: [-0.2, 0.08], z: [1.2, 1.3] }, sfx: [[0, 'swish_2', 1], [0.2, 'slash_0', 1]] }),
+      cut(0.06, E.inv({ lines: 'level', actors: [{ who: V, clip: 'Attack6', fr: 9, ang: LEFT, x: 0.5, y: 0.95, sc: 3 }], cy: 0.55 }), { bars: false }),
+      cut(0.8, E.face({ who: 'umbral', sc: 3.2, cx: 0.62, cy: 0.36, ang: PI * 0.75, shade: '#000', eyes: EYE, eyesAt: 0.2, bg: { kind: 'glow', col: '#ffffff', base: '#000', at: [0.62, 0.4], r: 0.5 },
+        under: (ctx, S, k, T) => A.actor(ctx, S.cast.vesper, 'Idle4', 0, BACK, Math.round(W() * 0.24), Math.round(H() * 1.35), 5, { shade: '#000' }) }),
+        { ...G, cam: { z: [1.0, 1.12] }, sfx: [[0.2, 'charge', 0.9]], line: 'Too slow.', lineAt: 0.25, lineDur: 0.8, lineCol: UCOL }),
+      strike,
+      cut(0.32, E.ring({ x: 0.5, y: 0.5, r: 0.42, inside: '#303030', actors: [{ who: V, clip: 'TakeDamage', fr: [3, 12], ang: RIGHT, x: 0.5, y: 0.78, sc: 2.6, shade: '#ffffff', rot: -1 }] }), { bars: false, shake: 6, sfx: [[0, 'blow_big', 1]] }),
+      cut(0.9, sc({ bg: pool, sil: INK, actors: [{ who: V, clip: 'CrouchIdle', fps: 8, ang: FRONT, x: 0.5, y: 0.82, sc: 1.7 }].concat([0, 1, 2, 3, 4, 5].map((i) => {
+        const a = i / 6 * PI * 2 + 0.3; return { who: 'umbral', clip: 'Idle4', fps: 8, ph: i * 2, ang: Math.atan2(-Math.sin(a), -Math.cos(a)), x: 0.5 + Math.cos(a) * 0.36, y: 0.82 + Math.sin(a) * 0.12, sc: 1.8, eyes: EYE, alpha: 1 }; })) }),
+        { ...G, cam: { z: [1.15, 1.0], ease: 'out' }, sfx: [[0.1, 'spawn', 0.8], [0.4, 'spawn', 0.8], [0.6, 'unsheathe_01', 1]] }),
+      cut(0.06, E.inv({ actors: [0, 1, 2, 3, 4, 5].map((i) => { const a = i / 6 * PI * 2 + 0.3; return { who: 'umbral', clip: 'Attack1', fr: 9, ang: Math.atan2(-Math.sin(a), -Math.cos(a)), x: 0.5 + Math.cos(a) * 0.16, y: 0.8 + Math.sin(a) * 0.06, sc: 1.9 }; }), cy: 0.6 }), { bars: false, sfx: [[0, 'slash_2', 1], [0.01, 'blow_big', 1]] }),
+      cut(0.05, E.flash('#000'), { bars: false }),
+      cut(0.45, sc({ bg: { kind: 'glow', col: '#ffffff', base: '#202020' }, sil: INK, speed: { ang: 0.4, col: 'rgba(0,0,0,0.6)', n: 50, v: 1600 },
+        actors: [{ who: V, clip: 'Rolling', fps: 30, ang: PI * 0.25, x: 0.3, y: 0.7, to: [0.8, 0.95], sc: 2.2, smear: 5, smearCol: '#808080' }] }), { ...G, cam: { r: [0.15, 0.1] }, sfx: [[0, 'dodge', 1]] }),
+      nameCut(1.3, 'THE UMBRAL', 'WHO WALKS BEHIND', sc({ bg: { kind: 'glow', col: '#ffffff', base: '#000', at: [0.5, 0.8] }, sil: INK, actors: [{ who: 'umbral', clip: 'Taunt', fps: 10, ang: FRONT, x: 0.5, y: 1.15, sc: 3.4, eyes: EYE }] }), { ...G, cam: { z: [1.06, 1.0] }, whiteOut: 0.15 }),
+    ], { amb: 'night', music: ['c8', 'boss'] });
+  }
+
+  // ---- The Hunger: ember. The lights go out one by one; it lunges out of the dark; HUNGER. ---------------
+  {
+    const EYE = '#ffb060', G = { grade: 'ember', keepRed: true };
+    const lights = (n) => cut(0.42, sc({ bg: (ctx, S, k, T) => { waste(ctx, T, n); }, actors: [{ who: V, clip: 'Idle4', fps: 7, ang: BACK, x: 0.5, y: 0.86, sc: 1.4 }],
+      over: n === 1 ? (ctx, S, k, T) => say(S, 'card', 'THE ASHEN WASTE', 10, 32, { sub: 'THE THIRD HOUR', k: T + 1 }) : null }), { ...G, lift: 1.7, sfx: [[0.02, 'thud', 0.5 + n * 0.08]] });
+    const lunge = { d: 0.45, ...G, sfx: [[0, 'horn', 1], [0.05, 'whoosh', 1]], cam: { z: [1, 1.1] },
+      ...sc({ bg: brightGlow([0.5, 0.45], '#fff0c0', '#4a1a08'), sil: INK, speed: { ang: 0, col: 'rgba(255,240,200,0.5)', n: 0 },
+        actors: [{ who: 'hunger', clip: 'Attack4', fr: [0, 12], ang: FRONT, x: 0.5, y: 0.9, to: [0.5, 2.2], sc: [2, 10], ease: 'in', eyes: EYE }],
+        under: (ctx, S, k, T) => K().speedLines(ctx, W() / 2, H() * 0.45, 90, 'rgba(60,20,5,0.6)', 1401, T, 20) }) };
+    F.hunger = E.film([
+      card(1.1, 'FIRST THE LIGHTS GO OUT', true), card(1.0, 'THEN IT COMES', false),
+      lights(1), E.blink(0.05), lights(3), E.blink(0.05), lights(5), E.blink(0.12),
+      word(0.07, 'HUNGRY'), E.blink(0.1), word(0.06, 'HUNGRY'),
+      cut(0.8, sc({ bg: { kind: 'flat', col: '#000' }, actors: [{ who: 'hunger', clip: 'Idle4', fps: 6, ang: FRONT, x: 0.5, y: 1.6, sc: 6, shade: '#0a0503', eyes: EYE }] }), { ...G, cam: { z: [1.0, 1.25] }, sfx: [[0.1, 'quake', 0.9], [0.4, 'magic', 0.6]] }),
+      cut(0.7, E.face({ who: V, sc: 3.2, cy: 0.36, eyes: '#ff3048', eyesAt: 0.15, ang: PI * 0.25, shade: INK, bg: brightGlow([0.4, 0.4], '#ffd890', '#2a0a04') }), { ...G, cam: { z: [1.0, 1.1] }, line: 'Come on, then.', lineDur: 0.9, lineCol: VCOL, sfx: [[0.1, 'unsheathe_01', 1]] }),
+      lunge,
+      cut(0.06, E.inv({ bg: '#ff8a3a', fg: '#000', actors: [{ who: 'hunger', clip: 'Attack4', fr: 10, ang: FRONT, x: 0.5, y: 1.6, sc: 6 }], cy: 0.5 }), { bars: false, sfx: [[0, 'smash', 1]] }),
+      cut(0.42, sc({ bg: brightPlane(0.5, ['#a04a18', '#ffd890'], ['#c86a28', '#2a0a04']), sil: INK, speed: { ang: 0, col: 'rgba(255,240,200,0.5)', n: 40, v: -1500 },
+        actors: [{ who: 'hunger', clip: 'Attack4', fr: 12, ang: RIGHT, x: 1.2, y: 0.55, to: [-0.4, 0.55], sc: 7, ease: 'lin' }, { who: V, clip: 'Rolling', fps: 30, ang: LEFT, x: 0.75, y: 0.98, to: [0.3, 0.98], sc: 2.6, smear: 3, smearCol: '#ff4a5e' }] }),
+        { ...G, cam: { r: [0.06, 0.02] }, sfx: [[0, 'dodge', 1]] }),
+      cut(0.6, sc({ bg: brightPlane(0.6, ['#a04a18', '#ffd890'], ['#c86a28', '#2a0a04']), sil: INK, actors: [{ who: 'hunger', clip: 'Special1', fr: [6, 14], ang: FRONT, x: 0.55, y: 0.86, sc: 2.8, eyes: EYE }, { who: V, clip: 'TakeDamage', fr: [0, 10], ang: RIGHT, x: 0.3, y: 0.88, to: [0.12, 0.9], arc: 0.12, sc: 1.6, smear: 2, smearCol: '#ff4a5e' }],
+        rings: [{ x: 0.55, y: 0.86, t0: 0.1, dur: 0.6, rx: 0.8, ry: 0.1, w: 2 }], debris: [{ x: 0.55, y: 0.86, t0: 0.1, n: 40, col: ['#1a0804', '#ffb060'], v: 1.3, s: 3 }], fx: [{ key: 'explosion_fire', x: 0.55, y: 0.8, sc: 2.4, t0: 0.1 }] }),
+        { ...G, shake: 7, shakeOut: true, cam: { z: [1.15, 1.0], ease: 'out' }, sfx: [[0.1, 'blow_big', 1], [0.12, 'quake', 1]] }),
+      cut(0.3, sc({ bg: brightGlow([0.5, 0.4], '#ffffff', '#6a2a08'), sil: INK, speed: { ang: -1.2, col: 'rgba(255,255,255,0.7)', n: 50, v: 1800 },
+        actors: [{ who: V, clip: 'Attack3', fr: [2, 12], ang: -PI / 4, x: 0.35, y: 1.0, to: [0.45, 0.9], sc: 3, smear: 3, smearCol: '#ffffff', ease: 'snap' }], fx: [{ key: 'hit_crit', x: 0.55, y: 0.45, sc: 2.2, t0: 0.4 }] }),
+        { ...G, cam: { z: [1.2, 1.35], r: [-0.1, -0.14] }, sfx: [[0.1, 'slash_2', 1], [0.12, 'blow_2', 1]] }),
+      cut(0.05, E.flash('#ffffff'), { bars: false }),
+      cut(1.0, sc({ bg: brightGlow([0.5, 0.45], '#fff0c0', '#7a2a08'), sil: INK, actors: [{ who: 'hunger', clip: 'Taunt', fr: [4, 14], ang: FRONT, x: 0.5, y: 1.1, sc: 3.6, eyes: EYE }],
+        under: (ctx, S, k, T) => K().speedLines(ctx, W() / 2, H() * 0.45, 70, 'rgba(255,255,255,0.4)', 1403, T, 30) }),
+        { ...G, shake: 5, sfx: [[0, 'horn', 1], [0.02, 'quake', 1], [0.05, 'blow_big', 0.8]], text: { kind: 'knock', text: 'HUNGER', at: 0.1, o: { size: 0.9, sx: 0.62, col: '#050202' } } }),
+      nameCut(1.2, 'THE HUNGER', 'IT EATS THE LIGHT', sc({ bg: brightGlow([0.5, 0.8], '#ffb060', '#000'), sil: INK, actors: [{ who: 'hunger', clip: 'Idle4', fps: 6, ang: FRONT, x: 0.5, y: 1.2, sc: 3.2, eyes: EYE }],
+        mid: (ctx, S, k) => { const g = ctx.createRadialGradient(W() / 2, H() / 2, H() * (0.7 - 0.5 * k), W() / 2, H() / 2, H() * (1.1 - 0.45 * k)); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,1)'); ctx.fillStyle = g; ctx.fillRect(-W(), -H(), W() * 3, H() * 3); } }),
+        { ...G, blackOut: 0.12 }),
+    ], { music: ['c12', 'boss'] });
+  }
+
+  // ---- The Pale Wing: storm. A vast pale sky and two tiny figures; it dives; she leaps at it. ------------
+  {
+    const EYE = '#ffffff', G = { grade: 'storm', keepRed: true }, WCOL = '#e0e8ff';
+    const sky = brightPlane(0.85, ['#5a6474', '#f4f6fa'], ['#8a94a4', '#2a3038']);
+    const leap = { d: 0.6, ...G, cam: { x: [-0.05, 0.08], r: [0.06, 0.12] }, sfx: [[0, 'whoosh', 1], [0.1, 'swish_2', 1]],
+      ...sc({ bg: sky, sil: INK, speed: { ang: -0.9, col: 'rgba(255,255,255,0.6)', n: 40, v: 1600 },
+        actors: [{ who: 'wing', clip: 'Idle4', fps: 10, ang: LEFT, x: 0.78, y: 0.3, sc: 1.6, eyes: EYE }, { who: V, clip: 'Attack2', fr: [1, 9], ang: -PI / 4, x: 0.15, y: 0.95, to: [0.66, 0.36], sc: 1.2, smear: 5, smearCol: '#ff4a5e' }],
+        trails: [{ from: [0.15, 0.9], to: [0.66, 0.32], w: 2, col: '#ff4a5e', t0: 0, t1: 0.9 }] }) };
+    F.wing = E.film([
+      card(1.0, 'LISTEN TO THE WIND', true), card(1.0, 'IT IS NOT THE WIND', false),
+      cut(1.2, sc({ bg: (ctx, S, k, T) => storm(ctx, T), actors: [{ who: V, clip: 'Walk', fps: 9, ang: RIGHT, x: 0.2, y: 0.84, to: [0.34, 0.84], sc: 1.5, ease: 'lin' }],
+        over: (ctx, S, k, T) => say(S, 'card', "THE WIND'S THROAT", 10, 32, { sub: 'THE FOURTH HOUR', k: T }) }), { ...G, sfx: [[0.3, 'bolt', 0.6]] }),
+      cut(0.9, sc({ bg: sky, sil: INK, actors: [{ who: 'wing', clip: 'Special1', fps: 10, ang: LEFT, x: 1.1, y: 0.25, to: [-0.1, 0.32], sc: 0.9, ease: 'lin' }],
+        under: (ctx, S, k, T) => { for (let i = 0; i < 5; i++) A.tex(ctx, 'smoke_07', ((hash(i, 1411) * W() * 1.6 - T * 30) % (W() * 1.6)) - W() * 0.3, H() * (0.45 + i * 0.08), W(), 40, '#ffffff', 0.7, 0, false); } }),
+        { ...G, cam: { x: [0.05, -0.05] }, sfx: [[0.1, 'whoosh', 0.8]], line: 'The wind takes everything.', lineDur: 1.4, lineCol: WCOL }),
+      cut(0.6, E.face({ who: V, sc: 3.2, cy: 0.36, eyes: '#ff3048', eyesAt: 0.15, ang: PI * 0.25, shade: INK, bg: brightGlow([0.45, 0.35], '#ffffff', '#3a4250'),
+        under: (ctx, S, k, T) => rain(ctx, T, 80, 0.5, -0.3) }), { ...G, cam: { z: [1.05, 1.15] }, line: 'Not me.', lineAt: 0.15, lineDur: 0.8, lineCol: VCOL }),
+      cut(0.5, sc({ bg: { kind: 'glow', col: '#ffffff', base: '#4a5262' }, sil: INK, actors: [{ who: 'wing', clip: 'Special1', fr: [2, 14], ang: PI * 0.75, x: 0.82, y: 0.15, to: [0.42, 1.0], sc: [0.8, 3.4], smear: 4, smearCol: '#a8b4c8', ease: 'in', eyes: EYE }],
+        under: (ctx, S, k, T) => K().speedLines(ctx, W() / 2, H() / 2, 90, 'rgba(255,255,255,0.7)', 1413, T, 20) }), { ...G, sfx: [[0, 'horn', 0.9], [0.2, 'whoosh', 1]] }),
+      cut(0.04, E.flash('#ffffff'), { bars: false, sfx: [[0, 'bolt', 1]] }),
+      cut(0.06, E.inv({ bg: '#fff', fg: '#000', actors: [{ who: 'wing', clip: 'Special1', fr: 14, ang: FRONT, x: 0.5, y: 1.0, sc: 2.6 }], cy: 0.6 }), { bars: false, sfx: [[0, 'smash', 1], [0.01, 'quake', 1]] }),
+      cut(0.6, sc({ bg: brightPlane(0.62, ['#6a7484', '#f4f6fa'], ['#a0a8b4', '#2a3038']), sil: INK, actors: [{ who: 'wing', clip: 'Taunt', fps: 10, ang: FRONT, x: 0.5, y: 0.84, sc: 2.4, eyes: EYE }, { who: V, clip: 'TakeDamage', fr: [0, 12], ang: RIGHT, x: 0.36, y: 0.86, to: [0.06, 0.9], arc: 0.2, sc: 1.4, rot: -4, smear: 3, smearCol: '#ff4a5e' }],
+        rings: [{ x: 0.5, y: 0.84, t0: 0, dur: 0.6, rx: 0.8, ry: 0.12, w: 2 }], debris: [{ x: 0.5, y: 0.84, t0: 0, n: 50, col: ['#ffffff', '#c8d0dc'], v: 1.4, s: 2 }] }),
+        { ...G, shake: 7, shakeOut: true, sfx: [[0, 'blow_big', 1]] }),
+      cut(0.55, sc({ bg: brightPlane(0.66, ['#6a6a70', '#d0d0d4'], ['#9a9aa0', '#2a2a30']), sil: INK, actors: [{ who: V, clip: 'CrouchIdle', fps: 8, ang: RIGHT, x: 0.2, y: 0.88, sc: 1.6 }, { who: 'wing', clip: 'Idle4', fps: 8, ang: LEFT, x: 0.7, y: 0.84, sc: 2.2, eyes: EYE }] }),
+        { grade: 'grey', cam: { z: [1.0, 1.06] }, sfx: [[0, 'thud', 0.7]] }),
+      leap,
+      cut(0.3, E.ring({ x: 0.5, y: 0.5, r: 0.42, inside: '#5a6474', actors: [{ who: 'wing', clip: 'TakeDamage', fr: [2, 12], ang: LEFT, x: 0.5, y: 0.8, sc: 2.4, shade: '#000' }] }), { bars: false, shake: 6, sfx: [[0, 'blow_big', 1], [0.02, 'slash_2', 1]] }),
+      E.hold(leap, 0.92, 0.05),
+      cut(0.5, sc({ bg: sky, sil: INK, speed: { ang: 0.3, col: 'rgba(255,255,255,0.6)', n: 40, v: 1400 },
+        actors: [{ who: 'wing', clip: 'TakeDamage', fr: [4, 12], ang: LEFT, x: 0.6, y: 0.32, to: [0.95, 0.15], sc: 1.6, rot: 2, eyes: EYE }, { who: V, clip: 'Rolling', fps: 30, ang: LEFT, x: 0.5, y: 0.36, to: [0.2, 0.9], sc: 1.2, smear: 3, smearCol: '#ff4a5e' }] }),
+        { ...G, cam: { r: [-0.08, -0.04] }, sfx: [[0, 'whoosh', 0.9]] }),
+      cut(1.4, sc({ bg: (ctx, S, k, T) => storm(ctx, T, 0.86), sil: INK, actors: [{ who: 'wing', clip: 'Idle4', fps: 8, ang: FRONT, x: 0.5, y: 0.86, sc: 2.4, eyes: EYE }] }),
+        { ...G, cam: { z: [1.0, 1.08] }, whiteOut: 0.12, sfx: [[0.05, 'boss', 1]],
+          text: [{ kind: 'spaced', text: 'THE PALE WING', y: 0.22, o: { size: 26, col: '#ffffff', glow: '#a8c8ff', dur: 1.2, from: 1.4, to: 0.18 } }, { kind: 'line', at: 0.9, text: 'THROAT OF THE WIND', y: 0.34, o: { size: 14, col: '#e8eeff', spacing: 3 } }] }),
+    ], { music: ['c6', 'boss'] });
+  }
+
+  // ---- The First Cut: blood and gold. The fallen, one frame each; he rises; "one blade"; the blade falls. --
+  {
+    const G = { grade: 'blood', keepRed: true };
+    const echo = (who, pal, ang) => cut(0.26, E.face({ who, sc: 3.2, cy: 0.36, ang: ang == null ? FRONT : ang, shade: '#000', eyes: '#ffffff', bg: brightGlow([0.5, 0.42], '#ffffff', '#202020') }), { grade: pal, cam: { z: [1.12, 1.0], ease: 'out' }, sfx: [[0, 'blow_1', 0.7]] });
+    const gx = 0.46, gy = 0.86;
+    F.firstCut = E.film([
+      card(0.9, 'SEVEN HUNDRED YEARS', true), card(0.9, 'SIX GUARDIANS', false), card(0.9, 'ONE NIGHT', true), cut(1.1, E.card({ text: 'THE TOP OF THE SPIRE', opts: { size: 19 } }), { bars: false, flat: true, sfx: [[0, 'thud', 0.8], [0.2, 'charge', 0.8]] }),
+      cut(1.2, sc({ bg: (ctx, S, k, T) => summit(ctx, T), actors: [{ who: V, clip: 'Walk', fps: 10, ang: BACK, x: 0.5, y: 1.0, to: [0.5, 0.88], sc: 1.6, ease: 'lin' }] }), { ...G, cam: { z: [1.0, 1.1] }, sfx: [[0.2, 'horn', 0.6]] }),
+      echo('warden', 'violet'), E.blink(0.03), echo('twinA', 'ice', PI * 0.25), E.blink(0.03), echo('umbral', 'ink'), E.blink(0.03), echo('hunger', 'ember'), E.blink(0.03), echo('wing', 'storm'), E.blink(0.06),
+      cut(2.2, { draw(ctx, S, k, T) {
+        const g = ctx.createLinearGradient(0, 0, 0, H()); g.addColorStop(0, '#2a2a2a'); g.addColorStop(1, '#f0f0f0'); ctx.fillStyle = g; ctx.fillRect(-W(), -H(), W() * 3, H() * 3);
+        const rise = ease(clamp((T - 0.1) / 1.4)), ey = Math.round(H() * (1.3 - 0.95 * rise));
+        A.tex(ctx, 'light_01', W() / 2, ey + 30, W() * 1.4, H() * 1.4, '#ffffff', 0.6 * rise, 0, true);
+        colossus(ctx, S, Math.round(W() / 2), ey, 6, T, { flat: true, col: '#000' });
+        A.actor(ctx, S.cast.vesper, 'Idle4', Math.floor(T * 7) % 15, BACK, Math.round(W() / 2), Math.round(H() * 0.98), 1.6, { shade: '#000' });
+      }, post(ctx, S, k, T) {
+        const rise = ease(clamp((T - 0.1) / 1.4)), ey = Math.round(H() * (1.3 - 0.95 * rise));
+        burningEyes(ctx, Math.round(W() / 2), ey, 6, ease(clamp((T - 1.3) / 0.25)), T);
+        if (T > 0.3) say(S, 'track', null, W() / 2, H() * 0.98 - 14, { w: 12, h: 24, k: T - 0.3, col: '#ffe0e6' });
+        if (T > 1.35) { say(S, 'track', null, W() / 2, ey, { w: 34, h: 12, k: T - 1.35, col: '#ffffff', sub: 'TARGET' }); say(S, 'link', null, W() / 2, H() * 0.98 - 26, { x2: W() / 2, y2: ey + 9, k: (T - 1.45) * 4, col: 'rgba(255,224,230,0.8)', label: 'ALT ' + Math.round(430 * rise) }); }
+      } }, { ...G, cam: { z: [1.0, 1.06] }, shake: 1.5, sfx: [[0.1, 'quake', 0.9], [0.8, 'quake', 1], [1.3, 'boss', 1], [1.32, 'blow_big', 1]], line: 'Seven hundred years... and they send one blade.', lineAt: 0.4, lineDur: 2.2, lineCol: '#ffd0d8' }),
+      cut(0.8, E.eyes({ at: 0.35, sc: 4.2 }), { bars: false, cam: { z: [1.0, 1.14] }, sfx: [[0.3, 'clang_0', 0.6]], line: 'One is enough.', lineAt: 0.25, lineDur: 1.0, lineCol: VCOL }),
+      cut(0.5, { draw(ctx, S, k, T) {
+        const g = ctx.createLinearGradient(0, 0, 0, H()); g.addColorStop(0, '#3a3a3a'); g.addColorStop(1, '#e8e8e8'); ctx.fillStyle = g; ctx.fillRect(-W(), -H(), W() * 3, H() * 3);
+        const f = EZ_IN(k), X = gx * W(), Y = gy * H(), fx = W() * 1.25, fy = -H() * 0.6;
+        ctx.fillStyle = '#000'; ctx.fillRect(-W(), Y, W() * 3, H());
+        bigBlade(ctx, fx, fy, fx + (X + 4 - fx) * f, fy + (Y - 30 - fy) * f, 26, '#000');
+        A.actor(ctx, S.cast.vesper, 'Idle4', Math.floor(T * 10) % 15, -PI * 0.25, Math.round(X), Math.round(Y), 1.7, { shade: '#000' });
+        K().speedLines(ctx, X, Y - 30, 60, 'rgba(255,255,255,0.6)', 1421, T, 30);
+      } }, { ...G, sfx: [[0, 'whoosh', 1]] }),
+      cut(0.04, E.flash('#ffffff'), { bars: false, sfx: [[0, 'clang_1', 1], [0.01, 'blow_big', 1], [0.02, 'smash', 1]] }),
+      cut(0.06, { draw(ctx, S) { fill(ctx, '#000'); K0.burst(ctx, gx * W() + 4, gy * H() - 30, '#fff', 100, 1423, 10); bigBlade(ctx, W() * 1.25, -H() * 0.6, gx * W() + 4, gy * H() - 30, 26, '#fff'); A.actor(ctx, S.cast.vesper, 'Special1', 8, -PI * 0.25, Math.round(gx * W()), Math.round(gy * H()), 1.7, { shade: '#fff' }); } }, { bars: false }),
+      cut(0.04, E.flash(RED), { bars: false }),
+      cut(1.4, { draw(ctx, S, k, T) {
+        fill(ctx, RED); ctx.fillStyle = '#000'; ctx.fillRect(-W(), gy * H(), W() * 3, H());
+        const push = Math.round(Math.sin(T * 50) * 1.5);
+        bigBlade(ctx, W() * 1.25, -H() * 0.6, gx * W() + 4 + push, gy * H() - 30, 26, '#000');
+        A.actor(ctx, S.cast.vesper, 'Special1', 8, -PI * 0.25, Math.round(gx * W()) + push, Math.round(gy * H()), 1.7, { shade: '#000' });
+        K0.sparks(ctx, gx * W() + 4, gy * H() - 30, T, 90, 1425, 5.5);
+      } }, { bars: false, shake: 2, whiteOut: 0.2, sfx: [[0.1, 'quake', 1]], text: { kind: 'punch', text: 'THIS ENDS TONIGHT', at: 0.15, y: 0.24, o: { size: 30 } } }),
+    ], { music: ['c4', 'boss', 0.5] });
+  }
 
   // Which film opens which guardian's fight.
   VS.FILM_FOR = { 'a0-b': 'warden', 'a1-b': 'twins', 'a2-b': 'umbral', 'a3-b': 'hunger', 'a4-b': 'wing', 'a5-b': 'firstCut' };
