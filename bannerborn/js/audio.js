@@ -146,6 +146,45 @@
       step++; nextT += beat / 2;
     }
   }
+  // ---- the trailer score for cutscenes: braams, risers, sub hits, clock ticks, a drone, a shimmer — on the music bus
+  let droneNodes = null;
+  function curve(k) { const n = 256, c = new Float32Array(n); for (let i = 0; i < n; i++) { const x = i / (n - 1) * 2 - 1; c[i] = Math.tanh(x * k); } return c; }
+  BB.score = function (what, a) {
+    if (!init() || ac.state !== 'running') return;
+    const t = ac.currentTime + 0.01;
+    if (what === 'braam') { // the big low brass blast
+      const out = ac.createGain(); out.gain.setValueAtTime(0.0001, t); out.gain.exponentialRampToValueAtTime(0.5 * (a || 1), t + 0.05); out.gain.exponentialRampToValueAtTime(0.0001, t + 3.2);
+      const ws = ac.createWaveShaper(); ws.curve = curve(3);
+      const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 6; lp.frequency.setValueAtTime(180, t); lp.frequency.exponentialRampToValueAtTime(1600, t + 0.18); lp.frequency.exponentialRampToValueAtTime(300, t + 2.8);
+      lp.connect(ws); ws.connect(out); out.connect(musBus);
+      for (const f of [41.2, 55, 82.4, 110]) for (const d of [-9, 0, 9]) { const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = d; const g = ac.createGain(); g.gain.value = f < 50 ? 0.18 : 0.09; o.connect(g); g.connect(lp); o.start(t); o.stop(t + 3.3); }
+      const sub = ac.createOscillator(); sub.frequency.setValueAtTime(55, t); sub.frequency.exponentialRampToValueAtTime(32, t + 2); const sg = ac.createGain(); sg.gain.setValueAtTime(0.6 * (a || 1), t); sg.gain.exponentialRampToValueAtTime(0.0001, t + 2.4); sub.connect(sg); sg.connect(musBus); sub.start(t); sub.stop(t + 2.5);
+      noise(t, 0.5, 900, 120, 1, 0.25, 'lowpass');
+    } else if (what === 'riser') { // a rising sweep into the next hit
+      const d = a || 1.6, src = ac.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
+      const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 4; bp.frequency.setValueAtTime(250, t); bp.frequency.exponentialRampToValueAtTime(7000, t + d);
+      const g = ac.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.35, t + d * 0.95); g.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.05);
+      src.connect(bp); bp.connect(g); g.connect(musBus); src.start(t); src.stop(t + d + 0.1);
+      const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(110, t); o.frequency.exponentialRampToValueAtTime(880, t + d);
+      const og = ac.createGain(); og.gain.setValueAtTime(0.0001, t); og.gain.exponentialRampToValueAtTime(0.06, t + d * 0.9); og.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.05);
+      const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2500; o.connect(lp); lp.connect(og); og.connect(musBus); o.start(t); o.stop(t + d + 0.1);
+    } else if (what === 'hit') { // a sub drop with a crack on top
+      const o = ac.createOscillator(); o.frequency.setValueAtTime(90, t); o.frequency.exponentialRampToValueAtTime(28, t + 0.7);
+      const g = ac.createGain(); g.gain.setValueAtTime(0.9 * (a || 1), t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.9); o.connect(g); g.connect(musBus); o.start(t); o.stop(t + 1);
+      noise(t, 0.25, 4000, 300, 1, 0.35 * (a || 1), 'lowpass'); noise(t, 0.8, 600, 80, 2, 0.2 * (a || 1));
+    } else if (what === 'tick') { tone(t, 0.03, 1900, 1500, 'square', 0.05 * (a || 1), musBus); tone(t, 0.06, 180, 90, 'sine', 0.12 * (a || 1), musBus); }
+    else if (what === 'boom') { const o = ac.createOscillator(); o.frequency.setValueAtTime(130, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.4); const g = ac.createGain(); g.gain.setValueAtTime(0.7 * (a || 1), t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.55); o.connect(g); g.connect(musBus); o.start(t); o.stop(t + 0.6); noise(t, 0.12, 1800, 200, 1, 0.3 * (a || 1), 'lowpass'); }
+    else if (what === 'shimmer') { [880, 1318.5, 1760, 2637].forEach((f, i) => tone(t + i * 0.06, 2.6, f, 0, 'sine', 0.035, musBus)); }
+    else if (what === 'drone') {
+      if (droneNodes) { const old = droneNodes; droneNodes = null; old.g.gain.cancelScheduledValues(t); old.g.gain.setValueAtTime(old.g.gain.value, t); old.g.gain.exponentialRampToValueAtTime(0.0001, t + 1.2); old.os.forEach((o) => o.stop(t + 1.3)); }
+      if (a === false) return;
+      const g = ac.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.16, t + 2.5);
+      const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 260; lp.Q.value = 3;
+      const lfo = ac.createOscillator(); lfo.frequency.value = 0.12; const lg = ac.createGain(); lg.gain.value = 120; lfo.connect(lg); lg.connect(lp.frequency);
+      const os = [lfo]; for (const f of [36.7, 55, 73.4]) for (const d of [-6, 6]) { const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = d; o.connect(lp); o.start(t); os.push(o); }
+      lfo.start(t); lp.connect(g); g.connect(musBus); droneNodes = { g, os };
+    }
+  };
   BB.music = function (m) {
     if (!init()) return;
     if (m === mood) return;

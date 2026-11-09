@@ -79,6 +79,7 @@
     const st = g.createLinearGradient(sx - 200, 0, sx + 200, 0); st.addColorStop(0, 'rgba(255,255,255,0)'); st.addColorStop(0.5, 'rgba(255,255,255,0.18)'); st.addColorStop(1, 'rgba(255,255,255,0)');
     g.fillStyle = st; g.fillRect(sx - 200, cy - ph, 400, ph * 2);
     if (o.burst) rays(g, cx, cy, W, ph * 2, o.burst, t, 18);
+    if (o.bigword) { g.save(); g.font = '800 ' + Math.round(ph * 1.5) + 'px Cinzel, Georgia, serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = o.bigcol || 'rgba(255,255,255,0.16)'; if (g.letterSpacing !== undefined) g.letterSpacing = Math.round(ph * 0.08) + 'px'; g.translate(cx, cy - ph * 0.05); g.scale(1 + k * 0.08, 1 + k * 0.08); g.fillText(o.bigword, 0, 0); if (g.letterSpacing !== undefined) g.letterSpacing = '0px'; g.restore(); }
     if (o.waves) { g.save(); g.globalCompositeOperation = 'lighter'; for (let i = 0; i < 7; i++) { const q = (t * 0.9 + i / 7) % 1; g.strokeStyle = o.waves.replace('A', String((1 - q) * 0.7)); g.lineWidth = ph * 0.02 * (1 - q) + 1; g.beginPath(); g.ellipse(cx, cy - ph * 0.15, q * W * 0.7, q * ph * 1.3, 0, 0, 7); g.stroke(); } g.restore(); }
     // the face: a whole-number scale so the pixels stay square; the head sits on the focal point
     const S = Math.max(4, Math.round(ph * 1.15 / 14 * (o.zoom || 1))), slide = (1 - easeOut(clamp01(k * 3))) * fromX;
@@ -98,7 +99,7 @@
     g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
     g.save(); panelPath(g, -40, cy - ph, W + 40, cy + ph, W * 0.03); g.clip();
     const silA = sh.sil === undefined ? 0 : typeof sh.sil === 'number' ? sh.sil : clamp01(1 - (k - sh.sil[0]) / (sh.sil[1] - sh.sil[0]));
-    closeupBody(g, sh.who, k, t, W * (sh.x || 0.5), cy + (sh.dy || 0) * ph, ph, sh.dir === undefined ? 2 : sh.dir, false, sh.col1, sh.col2, sh.rise ? 0 : W * 0.3 * (sh.from || 1), { rise: sh.rise, sil: silA, rim: sh.rim, burst: sh.burst, waves: sh.waves, zoom: sh.zoom });
+    closeupBody(g, sh.who, k, t, W * (sh.x || 0.5), cy + (sh.dy || 0) * ph, ph, sh.dir === undefined ? 2 : sh.dir, false, sh.col1, sh.col2, sh.rise ? 0 : W * 0.3 * (sh.from || 1), { rise: sh.rise, sil: silA, rim: sh.rim, burst: sh.burst, waves: sh.waves, zoom: sh.zoom, bigword: sh.bigword, bigcol: sh.bigcol });
     if (sh.converge && k < 0.95) for (let i = 0; i < 3; i++) { const a = Math.random() * Math.PI * 2, R = Math.max(W, H) * 0.6; C.parts.push({ x: W / 2 + Math.cos(a) * R, y: cy + Math.sin(a) * R * 0.6, vx: -Math.cos(a) * R * 1.1, vy: -Math.sin(a) * R * 0.66, t: 0, life: 0.85, col: sh.converge, r: 1.5 + Math.random() * 2, drift: true, nograv: true }); }
     g.restore();
     g.strokeStyle = sh.edge || 'rgba(255,255,255,0.85)'; g.lineWidth = 3; panelPath(g, -40, cy - ph, W + 40, cy + ph, W * 0.03); g.stroke();
@@ -728,7 +729,7 @@
     g.beginPath(); g.moveTo(x0 + sl, 0); g.lineTo(x1 + sl, 0); g.lineTo(x1 - sl, H); g.lineTo(x0 - sl, H); g.closePath(); g.save(); g.clip();
     const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, rgba(mix(c, [0, 0, 0], 0.85), 1)); bg.addColorStop(0.45, rgba(mix(c, [255, 230, 190], o.glow ? 0.3 : 0.12), 1)); bg.addColorStop(1, rgba(mix(c, [0, 0, 0], 0.85), 1)); g.fillStyle = bg; g.fillRect(x0 - sl, 0, x1 - x0 + sl * 2, H);
     if (o.glow) rays(g, (x0 + x1) / 2, H * 0.45, W, H, 'rgba(255,220,150,' + (0.06 * o.glow) + ')', o.t, 16);
-    if (o.who) closeupBody(g, o.who, 1, o.t + i, (x0 + x1) / 2, H * 0.47, H * (o.ph || 0.125), 2, false, 'rgba(0,0,0,0)', 'rgba(0,0,0,0)', 0, { noBg: true, clip: o.clip, fr: o.fr, sil: o.sil, rim: o.rim });
+    if (o.who) { g.save(); g.globalAlpha *= o.bodyAlpha === undefined ? 1 : o.bodyAlpha; closeupBody(g, o.who, 1, o.t + i, (x0 + x1) / 2, H * 0.47, H * (o.ph || 0.125), 2, false, 'rgba(0,0,0,0)', 'rgba(0,0,0,0)', 0, { noBg: true, clip: o.clip, fr: o.fr, sil: o.sil, rim: o.rim }); g.restore(); }
     if (o.empty) { // an empty place: a "?" in the dark
       g.fillStyle = 'rgba(255,231,163,' + 0.5 * o.empty + ')'; g.font = '800 ' + Math.round(H * 0.16) + 'px Outfit, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('?', (x0 + x1) / 2, H * 0.46);
     }
@@ -751,6 +752,8 @@
         if (ft >= 0) {
           o.flash = Math.max(0, 0.9 - ft * 8); o.crack = ft; o.grey = Math.min(1, ft * 2.5);
           o.clip = 'Die'; o.fr = Math.min(clipLen(who[i], 'Die') - 1, Math.floor(ft * 12));
+          o.bodyAlpha = 1 - clamp01((ft - 0.1) / 0.45);
+          if (ft > 0.05 && ft < 0.6) for (let q = 0; q < 5; q++) C.parts.push({ x: pw * i + Math.random() * pw, y: H * (0.2 + Math.random() * 0.55), vx: 40 + Math.random() * 120, vy: -40 - Math.random() * 90, t: 0, life: 1 + Math.random() * 0.8, col: Math.random() < 0.3 ? '#ff8a3a' : '#9a9590', r: 1 + Math.random() * 2.2, drift: true });
           const d = Math.max(0, ft - 0.45); o.dy = d * d * H * 2.2; o.rot = d * d * (i % 2 ? 0.5 : -0.5); o.alpha = Math.max(0, 1 - d * 1.4);
         }
         if (o.alpha === 0) continue;
@@ -800,6 +803,117 @@
       if (kk > 0.5) { g.save(); g.globalAlpha = clamp01((kk - 0.5) * 3); const lg = g.createLinearGradient(0, H * 0.7, 0, H * 0.9); lg.addColorStop(0, 'rgba(0,0,0,0)'); lg.addColorStop(0.4, 'rgba(0,0,0,0.75)'); lg.addColorStop(1, 'rgba(0,0,0,0.75)'); g.fillStyle = lg; g.fillRect(x0 - sl, H * 0.7 + drop, x1 - x0, H * 0.2); g.textAlign = 'center'; g.font = '700 ' + Math.round(H * 0.024) + 'px Outfit, sans-serif'; g.fillStyle = rgba(hot, 1); if (g.letterSpacing !== undefined) g.letterSpacing = '4px'; g.fillText(G.land, mx - sl * 0.4, H * 0.84 + drop); g.font = '800 ' + Math.round(H * 0.05) + 'px Outfit, sans-serif'; g.fillStyle = '#e8e8f0'; g.fillText('? ? ?', mx - sl * 0.5, H * 0.79 + drop); if (g.letterSpacing !== undefined) g.letterSpacing = '0px'; g.restore(); }
     });
   }
+  // ---------------------------------------------------------------- trailer language: kinetic type, the moon, the iris, the montage
+  const SERIF = 'Cinzel, "Cormorant Garamond", Georgia, serif', SERIF2 = '"Cormorant Garamond", Cinzel, Georgia, serif';
+  // words land one at a time on black or paper-white; one word can burn red; a line can spread its letters or fly them in
+  function drawType(g, W, H, sh, k, t) {
+    const white = sh.bg === 'white', ink = white ? '#141210' : '#ecebe6';
+    g.fillStyle = white ? '#e9e5dc' : '#000'; g.fillRect(0, 0, W, H);
+    if (white) { g.fillStyle = 'rgba(0,0,0,0.05)'; for (let i = 0; i < 70; i++) g.fillRect(hr(i + 3000) * W, hr(i + 3001) * H, 1 + hr(i + 3002) * 3, 1 + hr(i + 3003) * 3); }
+    sh._seen = sh._seen || {};
+    if (sh.giant) { // a word too big for the frame, behind everything
+      const gk = clamp01((t - (sh.giant.at || 0)) / 0.25); if (gk > 0) { g.save(); g.globalAlpha = gk * (sh.giant.alpha || 0.9); g.font = '800 ' + Math.round(H * (sh.giant.size || 0.42)) + 'px ' + SERIF; g.textAlign = 'center'; g.textBaseline = 'middle';
+        const gr = g.createLinearGradient(0, H * 0.2, 0, H * 0.8); gr.addColorStop(0, sh.giant.col || '#f3e9e9'); gr.addColorStop(1, sh.giant.col2 || '#8a2a2a'); g.fillStyle = gr; g.translate(W / 2, H / 2); g.scale(1 + (1 - gk) * 0.3 + t * 0.01, 1 + (1 - gk) * 0.3 + t * 0.01); g.fillText(sh.giant.text, 0, 0); g.restore(); } }
+    sh.lines.forEach((L, li) => {
+      const size = Math.round(H * (L.size || 0.045)), y = H * (L.y || 0.5), font = (L.w || 600) + ' ' + size + 'px ' + (L.font === 2 ? SERIF2 : SERIF);
+      const out = L.out !== undefined && t > L.out ? clamp01(1 - (t - L.out) / 0.3) : 1; if (out <= 0) return;
+      g.font = font; g.textBaseline = 'middle';
+      if (L.spread || L.fly) { // letter by letter
+        const letters = L.text.split(''), sp = L.spread ? size * lerp(0.1, L.spread, ease(clamp01((t - L.at) / 1.2))) : size * 0.08;
+        const widths = letters.map((c) => g.measureText(c).width), total = widths.reduce((a, b) => a + b, 0) + sp * (letters.length - 1);
+        let x = W / 2 - total / 2;
+        letters.forEach((c, i) => {
+          const lt = t - L.at - (L.fly ? i * 0.035 : 0), a = clamp01(lt / (L.fly ? 0.5 : 0.25)); if (a <= 0) { x += widths[i] + sp; return; }
+          let dx = 0, dy = 0, rot = 0, sc = 1;
+          if (L.fly) { const e = 1 - easeOut(a), sd = hr(i * 7 + li); dx = (sd - 0.5) * W * 1.2 * e; dy = (hr(i * 11 + li) - 0.5) * H * 1.4 * e; rot = (sd - 0.5) * 6 * e; sc = 1 + e * 2; if (a >= 1 && !sh._seen['f' + li + i]) { sh._seen['f' + li + i] = 1; if (i === letters.length - 1) { BB.score && BB.score('braam', 1.1); C.flash = 0.8; C.flashCol = '#fff'; C.shake = Math.max(C.shake, 0.9); C.rgb = 1; } } }
+          g.save(); g.translate(x + widths[i] / 2 + dx, y + dy); g.rotate(rot); g.scale(sc, sc); g.globalAlpha = out * Math.min(1, a * 2);
+          if (L.col) { g.shadowColor = L.glow || L.col; g.shadowBlur = size * 0.5; }
+          g.fillStyle = L.col || ink; g.textAlign = 'center'; g.fillText(c, 0, 0); g.restore();
+          x += widths[i] + sp;
+        });
+        return;
+      }
+      const words = L.text.split(' '), sw = g.measureText(' ').width, ws = words.map((w) => g.measureText(w).width), total = ws.reduce((a, b) => a + b, 0) + sw * (words.length - 1);
+      let x = W / 2 - total / 2;
+      words.forEach((w, i) => {
+        const wt = t - L.at - i * (L.gap || 0.2), a = clamp01(wt / 0.1); if (a <= 0) { x += ws[i] + sw; return; }
+        const hi = L.hi && w.replace(/[^\w]/g, '').toUpperCase() === L.hi;
+        if (!sh._seen[li + ':' + i]) { sh._seen[li + ':' + i] = 1; if (BB.score) BB.score(hi ? 'boom' : 'tick', hi ? 1 : 0.8); if (hi) C.shake = Math.max(C.shake, 0.35); }
+        const pop = 1 + (1 - easeOut(clamp01(wt / 0.18))) * 0.25;
+        g.save(); g.translate(x + ws[i] / 2, y); g.scale(pop, pop); g.globalAlpha = out * a; g.textAlign = 'center';
+        if (hi) { const j = Math.sin(t * 40) * size * 0.015; g.translate(j, -j); g.shadowColor = L.hiCol || '#ff2a2a'; g.shadowBlur = size * 1.2; g.fillStyle = L.hiCol || '#ff3030'; g.fillText(w, 0, 0); g.shadowBlur = size * 0.4; g.fillText(w, 0, 0); }
+        else { g.fillStyle = ink; g.fillText(w, 0, 0); }
+        g.restore(); x += ws[i] + sw;
+      });
+    });
+  }
+  // a tiny figure on a hill of wreckage against an enormous moon
+  function drawMoon(g, W, H, sh, k, t) {
+    const z = 1 + ease(k) * (sh.push || 0.08), cx = W / 2, cy = H * 0.5;
+    g.save(); g.translate(cx, cy); g.scale(z, z); g.translate(-cx, -cy);
+    const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#05060c'); bg.addColorStop(1, '#141826'); g.fillStyle = bg; g.fillRect(-W, -H, W * 3, H * 3);
+    g.fillStyle = '#d8dce8'; for (let i = 0; i < 120; i++) { const a = 0.3 + 0.7 * Math.abs(Math.sin(t * 2 + i)); g.globalAlpha = a * 0.7; g.fillRect(hr(i + 3100) * W, hr(i + 3101) * H * 0.7, 1.5, 1.5); } g.globalAlpha = 1;
+    const mc = sh.moon || [236, 232, 222], R = H * 0.44, my = H * 0.56;
+    const glow = g.createRadialGradient(cx, my, R * 0.9, cx, my, R * 1.8); glow.addColorStop(0, rgba(mc, 0.35)); glow.addColorStop(1, rgba(mc, 0)); g.fillStyle = glow; g.fillRect(-W, -H, W * 3, H * 3);
+    const md = g.createRadialGradient(cx - R * 0.3, my - R * 0.3, R * 0.1, cx, my, R); md.addColorStop(0, rgba(mix(mc, [255, 255, 255], 0.3), 1)); md.addColorStop(1, rgba(mix(mc, [120, 120, 130], 0.35), 1));
+    g.fillStyle = md; g.beginPath(); g.arc(cx, my, R, 0, TAU); g.fill();
+    g.save(); g.beginPath(); g.arc(cx, my, R, 0, TAU); g.clip(); for (let i = 0; i < 14; i++) { const a = hr(i + 3200) * TAU, d = hr(i + 3201) * R * 0.85, r = R * (0.02 + hr(i + 3202) * 0.06); g.fillStyle = 'rgba(110,110,120,' + (0.06 + hr(i + 3203) * 0.08) + ')'; g.beginPath(); g.arc(cx + Math.cos(a) * d, my + Math.sin(a) * d, r, 0, TAU); g.fill(); }
+      for (let i = 0; i < 5; i++) { const x = ((hr(i + 3300) * 1.6 + t * 0.03 * (1 + i * 0.3)) % 1.6 - 0.3) * W, y = my + (hr(i + 3301) - 0.5) * R * 1.4; g.fillStyle = 'rgba(10,12,20,0.55)'; g.beginPath(); g.ellipse(x, y, R * 0.9, R * 0.06, 0, 0, TAU); g.fill(); } g.restore();
+    // the hill, the wreckage, the figure with the banner
+    const hy = H * 0.84; g.fillStyle = '#020204'; g.beginPath(); g.moveTo(-10, H + 10); g.lineTo(-10, hy + H * 0.04); g.quadraticCurveTo(cx - W * 0.1, hy - H * 0.02, cx, hy - H * 0.035); g.quadraticCurveTo(cx + W * 0.12, hy - H * 0.02, W + 10, hy + H * 0.05); g.lineTo(W + 10, H + 10); g.closePath(); g.fill();
+    g.strokeStyle = '#020204'; g.lineWidth = Math.max(2, H * 0.004); g.lineCap = 'round';
+    for (let i = 0; i < 14; i++) { const x = cx + (hr(i + 3400) - 0.5) * W * 0.8, base = hy + Math.abs(x - cx) / W * H * 0.06 - H * 0.02, a = -Math.PI / 2 + (hr(i + 3401) - 0.5) * 1.1, l = H * (0.05 + hr(i + 3402) * 0.08); g.beginPath(); g.moveTo(x, base); g.lineTo(x + Math.cos(a) * l, base + Math.sin(a) * l); g.stroke(); }
+    if (sh.who) {
+      const SC = 2, fr = Math.floor(t * 6) % clipLen(sh.who, 'Idle'), sv = silhouette(sh.who, 'Idle', sh.dir === undefined ? 2 : sh.dir, fr, SC, '#020204'), hgt = H * (sh.fig || 0.13), m = hgt / (60 * SC);
+      const fx = cx, fy = hy - H * 0.032;
+      g.drawImage(sv, fx - 64 * SC * m, fy - 90 * SC * m, 128 * SC * m, 128 * SC * m);
+      if (sh.banner) { const px = fx + hgt * 0.32, top = fy - hgt * 1.9; g.lineWidth = Math.max(2, H * 0.005); g.beginPath(); g.moveTo(px, fy); g.lineTo(px, top); g.stroke();
+        g.fillStyle = '#020204'; g.beginPath(); g.moveTo(px, top + hgt * 0.05); for (let i = 0; i <= 10; i++) { const u = i / 10; g.lineTo(px + u * hgt * 0.9, top + hgt * 0.05 + Math.sin(t * 3 + u * 5) * hgt * 0.06 * u); } for (let i = 10; i >= 0; i--) { const u = i / 10; g.lineTo(px + u * hgt * 0.9 - (i % 3 === 0 ? hgt * 0.05 : 0), top + hgt * 0.55 + Math.sin(t * 3 + u * 5 + 0.6) * hgt * 0.08 * u); } g.closePath(); g.fill(); }
+    }
+    g.fillStyle = 'rgba(200,200,210,0.5)'; for (let i = 0; i < 60; i++) { const x = ((hr(i + 3500) * W + t * 18 + Math.sin(t + i) * 20) % W + W) % W, y = (hr(i + 3501) * H + t * H * 0.04) % H; g.fillRect(x, y, 1.6, 1.6); }
+    g.restore();
+  }
+  // an eye fills the frame and rings open out of it into the next world
+  function drawIris(g, W, H, sh, k, t) {
+    g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
+    const c = sh.col || [125, 255, 176], cx = W / 2, cy = H * 0.5;
+    if (sh.who && k < 0.55) { g.save(); g.globalAlpha = 1 - clamp01((k - 0.35) / 0.2); closeupBody(g, sh.who, 1, t, cx, cy + H * 0.22, H * 0.3, 2, false, rgba(mix(c, [0, 0, 0], 0.6), 1), 'rgba(0,0,0,1)', 0, { zoom: 1.5 + k * 1.2 }); g.restore(); }
+    g.save(); g.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 9; i++) { const q = (k * 1.6 + i / 9) % 1, r = Math.pow(q, 2.2) * Math.max(W, H) * 0.9; g.strokeStyle = rgba(c, (0.9 * (1 - q) * clamp01(k * 4)).toFixed(3)); g.lineWidth = Math.max(1.5, H * 0.012 * (1 - q)); g.beginPath(); g.arc(cx, cy, r, 0, TAU); g.stroke(); }
+    const core = g.createRadialGradient(cx, cy, 0, cx, cy, H * 0.25 * (0.3 + k)); core.addColorStop(0, rgba(mix(c, [255, 255, 255], 0.6), clamp01(k * 2))); core.addColorStop(1, rgba(c, 0)); g.fillStyle = core; g.fillRect(0, 0, W, H);
+    g.restore();
+    if (k > 0.6) speedLines(g, cx, cy, W, H, 90, rgba(c, (0.4 * (k - 0.6) / 0.4).toFixed(3)), Math.floor(t * 24), 0.06);
+    if (k > 0.85) { g.fillStyle = 'rgba(255,255,255,' + ((k - 0.85) / 0.15) + ')'; g.fillRect(0, 0, W, H); }
+  }
+  // flash cuts: a burst of frames, each one held for a beat, white between
+  function drawMontage(g, W, H, sh, k, t) {
+    let acc = 0, fi = 0; for (; fi < sh.frames.length - 1; fi++) { if (t < acc + sh.frames[fi].d) break; acc += sh.frames[fi].d; }
+    const F = sh.frames[fi], lt = t - acc, fk = clamp01(lt / F.d);
+    if (sh._fi !== fi) { sh._fi = fi; if (BB.score) BB.score(F.hit ? 'hit' : 'boom', F.hit ? 1 : 0.8); C.shake = Math.max(C.shake, F.hit ? 0.8 : 0.4); if (F.sfx) BB.sfx(F.sfx); if (F.voice && BB.voice) BB.voice(F.voice, 0.8); }
+    const bgc = F.bg || '#000'; g.fillStyle = bgc; g.fillRect(0, 0, W, H);
+    if (F.word) { g.save(); g.font = '800 ' + Math.round(H * (F.wsize || 0.5)) + 'px ' + SERIF; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = F.wcol || 'rgba(255,255,255,0.9)'; g.translate(W / 2, H / 2); g.scale(1.05 + fk * 0.06, 1.05 + fk * 0.06); g.fillText(F.word, 0, 0); g.restore(); }
+    if (F.who) {
+      const z = 1.18 - easeOut(fk) * 0.18, S = Math.max(4, Math.round(H * (F.size || 0.85) / 60)), clip = F.clip || 'Idle', n = clipLen(F.who, clip), fr = F.clip ? Math.min(n - 1, Math.floor(fk * n)) : Math.floor(t * 8) % n;
+      const sv = silhouette(F.who, clip, F.dir === undefined ? 2 : F.dir, fr, S, F.ink || '#000');
+      g.save(); g.translate(W * (F.x || 0.5), H * (F.y || 0.95)); g.scale(z * (F.flip ? -1 : 1), z);
+      if (F.rim) { const rv = silhouette(F.who, clip, F.dir === undefined ? 2 : F.dir, fr, S, F.rim); for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1]]) g.drawImage(rv, -64 * S + dx * S * 0.6, -90 * S + dy * S * 0.6); }
+      g.drawImage(sv, -64 * S, -90 * S);
+      if (F.eyes) { const lift = headLift(F.who, clip, F.dir === undefined ? 2 : F.dir, fr); g.globalCompositeOperation = 'lighter'; g.fillStyle = F.eyes; g.shadowColor = F.eyes; g.shadowBlur = S * 3; g.fillRect(-2.2 * S, -(lift + 1) * S, 1.4 * S, 0.8 * S); g.fillRect(0.8 * S, -(lift + 1) * S, 1.4 * S, 0.8 * S); }
+      g.restore();
+    }
+    if (F.lines !== false) speedLines(g, W / 2, H / 2, W, H, 60, F.lcol || 'rgba(255,255,255,0.12)', Math.floor(t * 20), 0.2);
+    if (lt < 0.05 && fi > 0) { g.fillStyle = 'rgba(255,255,255,0.9)'; g.fillRect(0, 0, W, H); }
+  }
+  // grading: the shot pushed to black and white, or one colour against black
+  function applyGrade(g, cv, W, H, grade) {
+    const tmp = C.gtmp || (C.gtmp = document.createElement('canvas')); if (tmp.width !== W || tmp.height !== H) { tmp.width = W; tmp.height = H; }
+    const x = tmp.getContext('2d'); x.globalCompositeOperation = 'copy'; x.drawImage(cv, 0, 0);
+    g.save(); g.setTransform(1, 0, 0, 1, 0, 0);
+    if ('filter' in g) { g.filter = grade === 'manga' ? 'grayscale(1) contrast(6) brightness(1.2)' : 'grayscale(1) contrast(2.4) brightness(1.15)'; g.globalCompositeOperation = 'copy'; g.drawImage(tmp, 0, 0); g.filter = 'none'; }
+    const col = { red: '#ff2b2b', green: '#62ff92', blue: '#5aa8ff', gold: '#ffb54a', violet: '#b48cff' }[grade];
+    if (col) { g.globalCompositeOperation = 'multiply'; g.fillStyle = col; g.fillRect(0, 0, W, H); }
+    g.restore();
+  }
   // the horde: a wall of small panels, each a dead face, crashing in from the right
   function drawHorde(g, W, H, sh, k, t) {
     g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
@@ -820,13 +934,15 @@
     const build = SCENES[name]; if (!build) { done && done(); return; }
     const el = document.getElementById('cine'); el.classList.add('on');
     Object.assign(C, { on: true, loading: true, t: 0, done, parts: [], shake: 0, flash: 0, flashCol: '#fff', bolts: [], cued: {}, shots: [], banners: [], fall: {}, cracks: [], crackShot: -1, rgb: 0 });
-    try { const def = await build(opts || {}); C.shots = def.shots; C.total = C.shots.reduce((a, s) => a + s.dur, 0); }
+    let def = null;
+    try { def = await build(opts || {}); C.shots = def.shots; C.total = C.shots.reduce((a, s) => a + s.dur, 0); }
     catch (e) { console.warn('cutscene skipped', e); C.end(); return; }
     C.loading = false;
-    BB.music(opts.music || 'boss');
+    BB.music(def.music !== undefined ? def.music : (opts.music || 'boss'));
   };
   C.end = function () {
     if (!C.on) return;
+    if (BB.score) BB.score('drone', false);
     C.on = false; document.getElementById('cine').classList.remove('on');
     const d = C.done; C.done = null; d && d();
   };
@@ -852,6 +968,10 @@
     else if (sh.kind === 'gate') drawGate(g, W, H, sh, k, lt);
     else if (sh.kind === 'gates') drawGates(g, W, H, sh, k, lt);
     else if (sh.kind === 'oath') drawOath(g, W, H, sh, k, lt);
+    else if (sh.kind === 'type') drawType(g, W, H, sh, k, lt);
+    else if (sh.kind === 'moon') drawMoon(g, W, H, sh, k, lt);
+    else if (sh.kind === 'iris') drawIris(g, W, H, sh, k, lt);
+    else if (sh.kind === 'montage') drawMontage(g, W, H, sh, k, lt);
     else if (sh.kind === 'tease') drawTease(g, W, H, sh, k, lt);
     else if (sh.kind === 'cloth') drawClothClose(g, W, H, sh, k, lt);
     else if (sh.kind === 'snap') drawSnap(g, W, H, sh, k, lt);
@@ -878,6 +998,7 @@
       for (const br of c.br) { g.beginPath(); g.moveTo(c.x * W, c.y * H); const n = Math.max(1, Math.floor(br.length * grow)); for (let i = 0; i < n; i++) g.lineTo(br[i][0] * W, br[i][1] * H); g.stroke(); }
       g.restore();
     }
+    if (sh.grade) applyGrade(g, cv, W, H, sh.grade);
     // a colour split on the hardest moments
     if (C.rgb > 0) {
       const off = Math.round(C.rgb * 14 * dpr), tmp = C.tmp || (C.tmp = document.createElement('canvas'));
@@ -922,6 +1043,7 @@
     C.cracks.push({ x, y, br, t: 0, col }); BB.sfx('slam');
   };
   const VOICE = (n, v) => () => BB.voice && BB.voice(n, v === undefined ? 1 : v, 0.9);
+  const SCORE = (n, a) => () => BB.score && BB.score(n, a);
   const BEAT = () => () => { BB.sfx('herodie'); C.shake = Math.max(C.shake, 0.12); };
 
   // load the art a cutscene needs
@@ -949,46 +1071,56 @@
       const cols = BB.BANNER_COLORS.concat(['#3a6a8a']);
       for (let i = 0; i < 9; i++) C.banners.push(Object.assign({}, i === 8 ? BB.save.banner : { color: cols[i], sigil: BB.SIGILS[i % BB.SIGILS.length], trim: '#e8c66a' }));
       const oathCols = C.banners.map((b) => { const c = rgbOf(b.color); return [rgba(mix(c, [255, 230, 190], 0.15), 1), rgba(mix(c, [0, 0, 0], 0.85), 1)]; });
-      return { shots: [
-        { kind: 'heart', dur: 3.6, cues: [[0.25, BEAT()], [1.3, BEAT()], [2.35, BEAT()], [2.6, SFX('chime')]] },
-        { kind: 'title', dur: 2.6, sup: 'GREENVALE', text: 'THREE HUNDRED YEARS AGO', size: 0.06, col: '#c9b48a', bg: '#100c08', cues: [[0, MUSIC('calm')]] },
-        { kind: 'triple', dur: 6.6, who: knights, cols: oathCols, banners: true, edge: '#ffe7a3', fadeIn: 0.5, caption: 'Nine banners stood between the living and the dead.', capAt: 0.6, capEnd: 3.2, cap2: ['Nine knights swore an oath to hold them.', 3.4, 6.4], cues: [0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => [0.05 + i * 0.495, i === 8 ? () => { BB.sfx('rally'); SHAKE(0.4)(); } : SFX('chime')]).concat([[4.1, SPARKS(90, '#ffe7a3', 0.5, 0.5, 700)]]) },
-        { kind: 'closeup', dur: 2.2, who: knights[0], dir: 2, burst: 'rgba(255,220,150,0.09)', col1: 'rgba(220,160,60,1)', col2: 'rgba(30,18,6,1)', edge: '#ffe7a3', from: 0.4, caption: 'For three hundred years, they held.', capAt: 0.3,
+      return { music: null, shots: [
+        { kind: 'heart', dur: 3.0, cues: [[0, SCORE('drone')], [0.25, BEAT()], [1.2, BEAT()], [2.15, BEAT()]] },
+        { kind: 'type', dur: 3.2, bg: 'white', lines: [{ text: 'THREE HUNDRED YEARS AGO', at: 0.3, size: 0.075, gap: 0.24 }, { text: 'Greenvale', at: 1.7, size: 0.042, y: 0.61, font: 2, w: 600 }] },
+        { kind: 'type', dur: 4.0, lines: [{ text: 'NINE BANNERS STOOD', at: 0.3, size: 0.085, y: 0.42, gap: 0.26 }, { text: 'BETWEEN THE LIVING AND THE DEAD', at: 1.4, size: 0.055, y: 0.58, gap: 0.18, hi: 'DEAD' }] },
+        { kind: 'triple', dur: 5.6, who: knights, cols: oathCols, banners: true, edge: '#ffe7a3', caption: 'Nine knights swore an oath to hold them.', capAt: 1.4, capEnd: 5.4, cues: [0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => [0.05 + i * 0.075 * 5.6, i === 8 ? () => { BB.sfx('rally'); SHAKE(0.4)(); BB.score && BB.score('hit', 0.9); } : SFX('chime')]).concat([[4.0, SPARKS(90, '#ffe7a3', 0.5, 0.5, 700)], [4.0, SCORE('shimmer')]]) },
+        { kind: 'closeup', dur: 2.4, grade: 'gold', bigword: 'OATH', bigcol: 'rgba(255,230,180,0.18)', who: knights[0], dir: 2, burst: 'rgba(255,220,150,0.09)', col1: 'rgba(220,160,60,1)', col2: 'rgba(30,18,6,1)', edge: '#ffe7a3', from: 0.4, caption: 'For three hundred years, they held.', capAt: 0.3,
           cues: [[0.15, SFX('rally')], [0.2, SPARKS(80, '#ffe7a3', 0.5, 0.5, 600)], [0.25, SHAKE(0.3)]] },
+        { kind: 'type', dur: 2.4, lines: [{ text: 'THEN, ONE NIGHT', at: 0.25, size: 0.095, gap: 0.32 }], cues: [[0.6, SCORE('riser', 1.8)]] },
         { kind: 'gate', dur: 6.6, col: [150, 90, 255], rain: true, burstAt: 2.6, figures: [ghoul, warden, skel], caption: 'Then, one night, the Gravegates opened.', capAt: 2.9, capEnd: 5.6, cues: [
-          [0, MUSIC('boss')], [0.1, SFX('charge')], [0.5, BOLT()], [1.2, SFX('charge')], [1.6, SHAKE(0.2)], [2.1, SHAKE(0.35)], [2.6, () => { SHAKE(1)(); BB.sfx('portal'); BB.sfx('burst'); BB.sfx('slam'); FLASH(0.9, '#e0d0ff')(); RGB(1)(); }], [0.6, VOICE('rumble', 0.8)], [3.2, VOICE('descent', 0.8)],
-          [2.62, SPARKS(220, '#c9a8ff', 0.5, 0.5, 1200)], [3.6, BOLT()], [4.4, SFX('boss')], [4.5, SHAKE(0.4)], [5.2, BOLT()], [5.8, SFX('charge')], [6.2, RGB(0.8)]] },
-        { kind: 'closeup', dur: 3.6, who: vesh, dir: 2, rise: true, sil: [0.25, 0.6], rim: '#7dffb0', col1: 'rgba(40,120,70,1)', col2: 'rgba(4,16,10,1)', edge: '#7dffb0', label: 'VESH MORROW · THE BONE CANTOR',
+          [0, SCORE('drone')], [0.9, SCORE('riser', 1.7)], [0.1, SFX('charge')], [0.5, BOLT()], [1.2, SFX('charge')], [1.6, SHAKE(0.2)], [2.1, SHAKE(0.35)], [2.6, () => { SHAKE(1)(); BB.sfx('portal'); BB.sfx('burst'); BB.sfx('slam'); FLASH(0.9, '#e0d0ff')(); RGB(1)(); }], [0.6, VOICE('rumble', 0.8)], [3.2, VOICE('descent', 0.8)],
+          [2.6, SCORE('braam', 1.2)], [2.62, SPARKS(220, '#c9a8ff', 0.5, 0.5, 1200)], [3.6, BOLT()], [4.4, SFX('boss')], [4.5, SHAKE(0.4)], [5.2, BOLT()], [5.8, SFX('charge')], [6.2, RGB(0.8)]] },
+        { kind: 'closeup', dur: 3.6, who: vesh, dir: 2, rise: true, sil: [0.25, 0.6], rim: '#7dffb0', col1: 'rgba(40,120,70,1)', col2: 'rgba(4,16,10,1)', edge: '#7dffb0', label: 'VESH MORROW · THE BONE CANTOR', grade: 'green', bigword: 'VESH', bigcol: 'rgba(160,255,190,0.2)',
           caption: 'Out of the first one walked Vesh Morrow.', capAt: 0.5, cues: [[0, SFX('charge')], [0.4, VOICE('deep_groan', 0.9)], [0.3, EMBERS(50, '#7dffb0')], [1.4, SHAKE(0.3)]] },
-        { kind: 'closeup', dur: 1.8, who: vesh, dir: 2, zoom: 2.3, dy: 0.35, col1: 'rgba(30,90,55,1)', col2: 'rgba(2,10,6,1)', edge: '#7dffb0', from: 0.05, caption: 'He opened his mouth —', capAt: 0.2, cues: [[0, SFX('charge')], [1.2, SHAKE(0.3)]] },
+        { kind: 'closeup', dur: 1.6, grade: 'manga', who: vesh, dir: 2, zoom: 2.3, dy: 0.35, col1: 'rgba(30,90,55,1)', col2: 'rgba(2,10,6,1)', edge: '#7dffb0', from: 0.05, caption: 'He opened his mouth —', capAt: 0.2, cues: [[0, SFX('charge')], [1.2, SHAKE(0.3)]] },
         { kind: 'closeup', dur: 2.6, who: vesh, dir: 2, waves: 'rgba(125,255,176,A)', burst: 'rgba(125,255,176,0.06)', col1: 'rgba(60,170,100,1)', col2: 'rgba(4,20,12,1)', edge: '#7dffb0', from: 0.2, caption: '— and sang.', capAt: 0.3,
-          cues: [[0, SFX('boss')], [0, VOICE('deep_roar', 1)], [0.1, RGB(0.6)], [0.2, SHAKE(0.5)], [1.0, RGB(0.5)], [1.0, SHAKE(0.4)], [1.8, RGB(0.6)]] },
+          grade: 'green', cues: [[0, SCORE('braam', 1.2)], [0, SFX('boss')], [0, VOICE('deep_roar', 1)], [0.1, RGB(0.6)], [0.2, SHAKE(0.5)], [1.0, RGB(0.5)], [1.0, SHAKE(0.4)], [1.8, RGB(0.6)]] },
         { kind: 'impact', dur: 0.45, who: vesh, clip: 'Attack1', accent: '#7dffb0', cues: [[0, SHAKE(1)], [0, SFX('burst')], [0, FLASH(0.6, '#c8ffe0')], [0, RGB(1)]] },
+        { kind: 'iris', dur: 1.4, who: vesh, col: [125, 255, 176], cues: [[0, SCORE('riser', 1.3)], [0, SFX('charge')]] },
         { kind: 'gates', dur: 3.6, caption: 'He was only the first.', capAt: 0.4, capEnd: 3.4,
           gates: [{ x: 0.2, dy: 0.02, sc: 0.42, col: [255, 80, 60], at: 0.3, who: later[0] }, { x: 0.52, dy: -0.04, sc: 0.3, col: [255, 196, 90], at: 0.48, who: later[1] }, { x: 0.82, dy: 0.06, sc: 0.55, col: [190, 150, 255], at: 0.66, who: later[2] }],
-          cues: [[0, SFX('charge')], [1.08, () => { BB.sfx('portal'); SHAKE(0.5)(); }], [1.73, () => { BB.sfx('portal'); SHAKE(0.4)(); }], [2.38, () => { BB.sfx('portal'); BB.sfx('slam'); SHAKE(0.7)(); RGB(0.6)(); }], [3.0, BOLT()], [2.5, VOICE('dino_bellow2', 0.8)]] },
+          cues: [[0, SFX('charge')], [1.08, SCORE('hit', 0.7)], [1.73, SCORE('hit', 0.8)], [2.38, SCORE('hit', 1)], [1.08, () => { BB.sfx('portal'); SHAKE(0.5)(); }], [1.73, () => { BB.sfx('portal'); SHAKE(0.4)(); }], [2.38, () => { BB.sfx('portal'); BB.sfx('slam'); SHAKE(0.7)(); RGB(0.6)(); }], [3.0, BOLT()], [2.5, VOICE('dino_bellow2', 0.8)]] },
         { kind: 'tease', dur: 4.6, caption: 'Three more gates opened that night. What stood in them is waiting still.', capAt: 0.5, capEnd: 4.4,
           gates: [{ land: 'GREENVALE', col: [255, 80, 60], who: later[0] }, { land: 'THE SUNSCAR', col: [255, 196, 90], who: later[1] }, { land: 'ALDMERE', col: [190, 150, 255], who: later[2] }],
-          cues: [[0, () => { BB.sfx('portal'); SHAKE(0.4)(); }], [1.0, () => { BB.sfx('portal'); SHAKE(0.4)(); }], [2.0, () => { BB.sfx('portal'); SHAKE(0.5)(); }], [0.75, VOICE('giant_laugh', 0.9)], [1.75, VOICE('deep_froth', 0.9)], [2.75, () => { BB.sfx('boss'); RGB(0.6)(); BB.voice && BB.voice('deep_roar', 1, 0.8); }]] },
-        { kind: 'horde', dur: 3.2, who: [ghoul, warden, skel, ghoul], caption: 'The dead heard him. Every grave in the vale broke open.', capAt: 0.3, cues: [[0, SFX('slam')], [0.1, VOICE('dino_horde', 0.8)], [0.3, SHAKE(0.5)], [0.9, SHAKE(0.4)], [1.6, BOLT()]] },
-        { kind: 'impact', dur: 0.24, who: knights[0], who2: warden, clip: 'Attack1', accent: '#ff7a3a', cues: [[0, SHAKE(1)], [0, SFX('slam')], [0, FLASH(0.6)], [0, RGB(0.8)]] },
-        { kind: 'impact', dur: 0.24, who: knights[1], who2: ghoul, clip: 'Attack1', accent: '#ff7a3a', cues: [[0, SHAKE(0.9)], [0, SFX('slam')], [0, FLASH(0.5)]] },
-        { kind: 'impact', dur: 0.24, who: ghoul, who2: knights[2], clip: 'Attack1', accent: '#ff3d2a', cues: [[0, SHAKE(1)], [0, SFX('slam')], [0, FLASH(0.6)], [0, RGB(0.8)]] },
-        { kind: 'closeup', dur: 1.6, who: knights[2], dir: 2, sil: [0.4, 0], rim: '#ff5a3a', col1: 'rgba(120,20,15,1)', col2: 'rgba(14,2,2,1)', edge: '#ff5a3a', from: 0.1, cues: [[0.5, SFX('herodie')], [0.5, SHAKE(0.4)]] },
+          cues: [[0, () => { BB.sfx('portal'); SHAKE(0.4)(); }], [0, SCORE('boom')], [1.0, SCORE('boom')], [2.0, SCORE('boom')], [2.75, SCORE('braam', 1.1)], [1.0, () => { BB.sfx('portal'); SHAKE(0.4)(); }], [2.0, () => { BB.sfx('portal'); SHAKE(0.5)(); }], [0.75, VOICE('giant_laugh', 0.9)], [1.75, VOICE('deep_froth', 0.9)], [2.75, () => { BB.sfx('boss'); RGB(0.6)(); BB.voice && BB.voice('deep_roar', 1, 0.8); }]] },
+        { kind: 'montage', dur: 3.4, caption: 'The dead heard him. Every grave in the vale broke open.', capAt: 0.2, capEnd: 3.3, frames: [
+          { d: 0.32, who: ghoul, bg: '#9a0e0e', ink: '#000', eyes: '#ffe14a', voice: 'dino_horde' }, { d: 0.26, who: warden, bg: '#000', ink: '#000', rim: '#ff3b2b', eyes: '#ff3b2b', flip: true },
+          { d: 0.26, word: 'RISE', wcol: '#ff2a2a', bg: '#000', lines: false }, { d: 0.26, who: skel, bg: '#e9e5dc', ink: '#000', size: 0.95 },
+          { d: 0.26, who: ghoul, bg: '#0b3a14', ink: '#000', rim: '#62ff92', eyes: '#62ff92', flip: true }, { d: 0.26, who: warden, bg: '#9a0e0e', ink: '#000', size: 1.05, eyes: '#ffe14a' },
+          { d: 0.26, who: skel, bg: '#000', ink: '#000', rim: '#c9a8ff', eyes: '#c9a8ff' }, { d: 0.3, word: 'THE DEAD', wsize: 0.3, wcol: '#ece9e2', bg: '#9a0e0e', lines: false, hit: true },
+          { d: 1.22, who: vesh, bg: '#000', ink: '#000', rim: '#7dffb0', eyes: '#7dffb0', size: 0.9, voice: 'deep_roar' }] },
+        { kind: 'montage', dur: 1.9, frames: [
+          { d: 0.26, who: knights[0], clip: 'Attack1', bg: '#e9e5dc', ink: '#000', x: 0.38, dir: 1, sfx: 'slam', hit: true }, { d: 0.24, who: warden, clip: 'Attack1', bg: '#000', ink: '#fff', x: 0.62, dir: 3, sfx: 'slam' },
+          { d: 0.24, who: knights[1], clip: 'Attack1', bg: '#9a0e0e', ink: '#000', x: 0.4, dir: 1, sfx: 'slam' }, { d: 0.24, who: ghoul, clip: 'Attack1', bg: '#e9e5dc', ink: '#000', x: 0.6, dir: 3, sfx: 'slam', hit: true },
+          { d: 0.24, who: knights[3], clip: 'Attack1', bg: '#000', ink: '#fff', x: 0.4, dir: 1, sfx: 'slam' }, { d: 0.24, who: skel, clip: 'Attack1', bg: '#9a0e0e', ink: '#000', x: 0.6, dir: 3, sfx: 'slam' },
+          { d: 0.44, who: ghoul, clip: 'Attack1', bg: '#000', ink: '#000', rim: '#ff3b2b', x: 0.5, dir: 2, size: 1.0, sfx: 'burst', hit: true }] },
+        { kind: 'closeup', dur: 1.6, grade: 'red', who: knights[2], dir: 2, sil: [0.4, 0], rim: '#ff5a3a', col1: 'rgba(120,20,15,1)', col2: 'rgba(14,2,2,1)', edge: '#ff5a3a', from: 0.1, cues: [[0.5, SFX('herodie')], [0.5, SHAKE(0.4)]] },
         { kind: 'oath', mode: 'fall', dur: 5.4, who: knights, fallAt: [0.55, 1.0, 1.4, 1.75, 2.05, 2.32, 2.56, 2.78], caption: 'Eight banners fell before dawn.', capAt: 3.3, capEnd: 5.2,
-          cues: [[0, SFX('flame')], [0.55, () => { BB.sfx('snap'); SHAKE(0.35)(); }], [1.0, () => { BB.sfx('snap'); SHAKE(0.35)(); }], [1.4, () => { BB.sfx('snap'); SHAKE(0.35)(); }], [1.75, () => { BB.sfx('snap'); SHAKE(0.35)(); }], [2.05, () => { BB.sfx('snap'); SHAKE(0.35)(); }], [2.32, () => { BB.sfx('snap'); SHAKE(0.35)(); }], [2.56, () => { BB.sfx('snap'); SHAKE(0.35)(); }], [2.78, () => { BB.sfx('snap'); SHAKE(0.6)(); }], [2.85, RGB(0.6)], [3.0, EMBERS(50, '#ff8a3a')], [4.3, SFX('chime')]] },
-        { kind: 'oath', mode: 'lone', dur: 4.4, who: knights, caption: 'One banner still stood.', capAt: 0.9, cues: [[0, MUSIC('calm')], [0.5, SFX('chime')]] },
-        { kind: 'closeup', dur: 3.4, who: capW, dir: 2, sil: 1, rim: '#ffbe55', col1: 'rgba(110,70,40,1)', col2: 'rgba(14,8,4,1)', edge: '#ffbe55', from: -0.3, caption: 'Its bearer had no army left.', capAt: 0.5, cues: [[0.6, BEAT()], [1.7, BEAT()], [2.8, BEAT()]] },
+          cues: [[0, SFX('flame')], [0.55, () => { BB.sfx('snap'); SHAKE(0.35)(); }], [1.0, () => { BB.sfx('snap'); SHAKE(0.35)(); }], [1.4, () => { BB.sfx('snap'); SHAKE(0.35)(); }], [1.75, () => { BB.sfx('snap'); SHAKE(0.35)(); }], [2.05, () => { BB.sfx('snap'); SHAKE(0.35)(); }], [2.32, () => { BB.sfx('snap'); SHAKE(0.35)(); }], [2.56, () => { BB.sfx('snap'); SHAKE(0.35)(); }], [2.78, () => { BB.sfx('snap'); SHAKE(0.6)(); }], [2.78, SCORE('hit', 1.1)], [2.85, RGB(0.6)], [3.0, EMBERS(50, '#ff8a3a')], [4.3, SFX('chime')]] },
+        { kind: 'oath', mode: 'lone', dur: 4.4, who: knights, caption: 'One banner still stood.', capAt: 0.9, cues: [[0.5, SFX('chime')]] },
+        { kind: 'moon', dur: 4.4, who: capW, banner: true, fig: 0.12, caption: 'Its bearer had no army left.', capAt: 0.6, cues: [[0.2, SCORE('drone')], [0.9, BEAT()], [2.1, BEAT()], [3.3, BEAT()]] },
         { kind: 'closeup', dur: 2.8, who: capW, dir: 2, sil: 1, rim: '#ffd27a', converge: '#ffcf7a', burst: 'rgba(255,190,85,0.05)', col1: 'rgba(150,90,40,1)', col2: 'rgba(20,10,4,1)', edge: '#ffbe55', from: 0, caption: 'But a banner remembers every oath sworn under it.', capAt: 0.3,
-          cues: [[0, SFX('charge')], [0.5, BEAT()], [1.2, BEAT()], [1.8, BEAT()], [2.2, BEAT()], [2.5, RGB(0.4)]] },
+          bigword: 'OATH', bigcol: 'rgba(255,220,150,0.14)', cues: [[0, SFX('charge')], [0.2, SCORE('riser', 2.5)], [0.5, BEAT()], [1.2, BEAT()], [1.8, BEAT()], [2.2, BEAT()], [2.5, RGB(0.4)]] },
         { kind: 'closeup', dur: 2.6, who: capW, dir: 2, zoom: 1.2, sil: [0.05, 0.35], rim: '#ffbe55', burst: 'rgba(255,190,85,0.1)', col1: 'rgba(230,140,40,1)', col2: 'rgba(30,12,4,1)', edge: '#ffbe55', from: 0.15,
-          cues: [[0, SFX('rally')], [0.05, () => { FLASH(0.8, '#ffe2a0')(); RGB(0.8)(); SHAKE(0.6)(); }], [0.1, SPARKS(160, '#ffcf7a', 0.5, 0.5, 900)], [0.3, EMBERS(80, '#ffb347')]] },
+          cues: [[0, SCORE('braam', 1.2)], [0, SFX('rally')], [0.05, () => { FLASH(0.8, '#ffe2a0')(); RGB(0.8)(); SHAKE(0.6)(); }], [0.1, SPARKS(160, '#ffcf7a', 0.5, 0.5, 900)], [0.3, EMBERS(80, '#ffb347')]] },
         { kind: 'impact', dur: 0.5, who: capW, clip: 'Taunt', accent: '#ffbe55', cues: [[0, SHAKE(1)], [0, SFX('burst')], [0, FLASH(1)], [0, RGB(1)], [0.05, CRACK(0.5, 0.5, '#ffbe55')]] },
         { kind: 'oath', mode: 'renew', dur: 5.4, who: knights, caption: 'So the Captain raised it, and swore to build a new army.', capAt: 0.5, capEnd: 5.2,
-          cues: [[0, () => { BB.sfx('rally'); BB.sfx('burst'); FLASH(0.6, '#ffe8b0')(); SHAKE(0.6)(); }], [0.05, SPARKS(160, '#ffcf7a', 0.5, 0.45, 900)], [0.3, EMBERS(70, '#ffcf7a')]].concat([0, 1, 2, 3, 4, 5, 6, 7].map((j) => [(0.18 + j * 0.07) * 5.4 + 0.1, SFX('chime')])).concat([[4.3, EMBERS(40, '#ffe0a0')]]) },
-        { kind: 'heart', dur: 1.2, cues: [[0.2, BEAT()]] },
-        { kind: 'title', dur: 4.8, text: 'BANNERBORN', sub: 'Raise your banner. Earn your heroes. Shut the Gravegates.', size: 0.14, col: '#ffbe55', bg: '#1d1206', fadeOut: 0.7,
-          cues: [[0, SFX('burst')], [0, SHAKE(0.8)], [0, RGB(1)], [0, CRACK(0.5, 0.5, '#ffbe55')], [0.02, SPARKS(200, '#ffcf7a', 0.5, 0.5, 1000)], [0.05, EMBERS(80, '#ffb347')], [0.3, MUSIC('calm')], [1.6, EMBERS(40, '#ffcf7a')]] },
+          cues: [[0.4, SCORE('shimmer')], [0, () => { BB.sfx('rally'); BB.sfx('burst'); FLASH(0.6, '#ffe8b0')(); SHAKE(0.6)(); }], [0.05, SPARKS(160, '#ffcf7a', 0.5, 0.45, 900)], [0.3, EMBERS(70, '#ffcf7a')]].concat([0, 1, 2, 3, 4, 5, 6, 7].map((j) => [(0.18 + j * 0.07) * 5.4 + 0.1, SFX('chime')])).concat([[4.3, EMBERS(40, '#ffe0a0')]]) },
+        { kind: 'type', dur: 2.6, lines: [{ text: 'RAISE YOUR BANNER', at: 0.25, size: 0.095, gap: 0.34, hi: 'BANNER', hiCol: '#ffbe55' }] },
+        { kind: 'type', dur: 5.0, fadeOut: 0.8, lines: [{ text: 'BANNERBORN', at: 0.15, size: 0.16, w: 800, fly: true, col: '#ffcf7a', glow: '#ff9a2a' }, { text: 'Earn your heroes. Shut the Gravegates.', at: 1.6, size: 0.045, y: 0.66, font: 2, w: 600, gap: 0.12 }],
+          cues: [[0, SCORE('riser', 0.85)], [0.95, SPARKS(200, '#ffcf7a', 0.5, 0.5, 1000)], [1.0, EMBERS(80, '#ffb347')], [1.0, CRACK(0.5, 0.5, '#ffbe55')], [4.2, SCORE('drone', false)]] },
       ] };
     },
     // before a boss: the gate, the boss rising out of shadow, impact, the name, the face-off, the clash
@@ -1000,13 +1132,13 @@
       const name = F.name.split(',')[0].toUpperCase(), epi = (F.name.split(',')[1] || '').trim().toUpperCase();
       return { shots: [
         { kind: 'gate', dur: 3.4, col: red[3], burstAt: 1.3, rain: M.boss !== 'sallow', figures: [grunt, bossW, grunt], cues: [[0, SFX('charge')], [0.4, BOLT()], [1.3, () => { SHAKE(0.9)(); BB.sfx('portal'); BB.sfx('burst'); FLASH(0.7, '#ffffff')(); RGB(0.8)(); }], [1.32, SPARKS(150, red[2], 0.5, 0.5, 1000)], [2.3, BOLT()]] },
-        { kind: 'closeup', dur: 2.6, who: bossW, dir: 3, rise: true, sil: [0.3, 0.75], rim: red[2], col1: red[0], col2: red[1], edge: red[2], cues: [[0, SFX('boss')], [0.5, () => BB.foeVoice && BB.foeVoice({ kind: M.boss, boss: true }, 'taunt')], [0.3, SHAKE(0.4)], [0.2, EMBERS(40, red[2])]] },
+        { kind: 'closeup', dur: 2.6, who: bossW, dir: 3, rise: true, sil: [0.3, 0.75], rim: red[2], col1: red[0], col2: red[1], edge: red[2], grade: { vesh: 'green', regent: 'violet', sallow: 'gold' }[M.boss] || 'red', bigword: name.split(' ')[name.split(' ').length > 1 && name.startsWith('THE') ? 1 : 0], bigcol: 'rgba(255,255,255,0.14)', cues: [[0, SCORE('riser', 2.4)], [0, SFX('boss')], [0.5, () => BB.foeVoice && BB.foeVoice({ kind: M.boss, boss: true }, 'taunt')], [0.3, SHAKE(0.4)], [0.2, EMBERS(40, red[2])]] },
         { kind: 'closeup', dur: 1.3, who: bossW, dir: 3, zoom: 2.2, dy: 0.35, col1: red[0], col2: red[1], edge: red[2], from: 0.05, cues: [[0, SFX('charge')], [0.8, SHAKE(0.4)], [0.8, RGB(0.5)]] },
-        { kind: 'impact', dur: 0.4, who: bossW, clip: F.atkClips ? F.atkClips[0] : 'Attack1', dir: 3, accent: red[2], cues: [[0, () => BB.foeVoice && BB.foeVoice({ kind: M.boss, boss: true }, 'enrage')], [0, SHAKE(0.9)], [0, SFX('burst')], [0, FLASH(0.6)], [0, RGB(1)]] },
-        { kind: 'title', dur: 2.3, text: name, sup: 'STAGE ' + M.code, sub: epi, size: 0.11, col: red[2], bg: red[1], cues: [[0, SFX('slam')], [0, SHAKE(0.6)], [0, CRACK(0.5, 0.5, red[2])], [0, RGB(0.7)], [0.02, SPARKS(110, red[2], 0.5, 0.5, 750)]] },
-        { kind: 'horde', dur: 1.6, who: [grunt, grunt, bossW, grunt], cues: [[0, SFX('slam')], [0.3, SHAKE(0.4)]] },
+        { kind: 'impact', dur: 0.4, who: bossW, clip: F.atkClips ? F.atkClips[0] : 'Attack1', dir: 3, accent: red[2], cues: [[0, SCORE('braam', 1.2)], [0, () => BB.foeVoice && BB.foeVoice({ kind: M.boss, boss: true }, 'enrage')], [0, SHAKE(0.9)], [0, SFX('burst')], [0, FLASH(0.6)], [0, RGB(1)]] },
+        { kind: 'type', dur: 2.6, lines: [{ text: 'STAGE ' + M.code, at: 0.05, size: 0.035, y: 0.36, spread: 0.6, col: red[2] }, { text: name, at: 0.1, size: name.length > 12 ? 0.11 : 0.14, w: 800, fly: true, col: red[2], glow: red[2] }, { text: epi, at: 1.0, size: 0.04, y: 0.64, font: 2, gap: 0.12 }], cues: [[0.02, SPARKS(110, red[2], 0.5, 0.5, 750)]] },
+        { kind: 'montage', dur: 1.5, frames: [{ d: 0.3, who: grunt, bg: '#000', ink: '#000', rim: red[2], eyes: red[2] }, { d: 0.26, who: grunt, bg: red[0], ink: '#000', flip: true, eyes: '#fff' }, { d: 0.26, word: name.split(' ').pop(), wsize: 0.32, wcol: red[2], bg: '#000', lines: false, hit: true }, { d: 0.68, who: bossW, bg: red[1], ink: '#000', rim: red[2], eyes: red[2], size: 0.95 }] },
         { kind: 'split', dur: 1.7, a: heroW, b: bossW, colA: GOLD, colB: [red[0], red[1]], cues: [[0, SFX('rally')], [0.5, SHAKE(0.3)]] },
-        { kind: 'impact', dur: 0.34, who: heroW, who2: bossW, clip: 'Attack1', accent: '#ffffff', cues: [[0, SHAKE(1)], [0, SFX('slam')], [0, FLASH(0.9)]] },
+        { kind: 'impact', dur: 0.4, who: heroW, who2: bossW, clip: 'Attack1', accent: '#ffffff', cues: [[0, SCORE('braam', 1)], [0, SHAKE(1)], [0, SFX('slam')], [0, FLASH(0.9)]] },
       ] };
     },
     // a new chapter: your banner, the land's colours, its name
@@ -1017,9 +1149,8 @@
       const sky = [null, ['#2a4a70', '#cfe3f0'], ['#6a3a2a', '#f6c880'], ['#2a1b3d', '#c8643a'], ['#06070f', '#2a2350']][ch.id];
       const roman = ['', 'I', 'II', 'III', 'IV'][ch.id];
       return { shots: [
-        { kind: 'banners', dur: 3.2, only: 0, bearer: heroW, top: sky[0], bot: sky[1], fadeIn: 0.6, push: 1.15, wind: 0.5, cues: [[0, SFX('charge')], [0.4, EMBERS(30, '#ffe0a0')]] },
-        { kind: 'closeup', dur: 2.0, who: heroW, dir: 1, col1: 'rgba(200,120,40,1)', col2: 'rgba(30,14,4,1)', edge: '#ffbe55', from: -1 },
-        { kind: 'title', dur: 2.8, sup: 'CHAPTER ' + roman, text: ch.name.toUpperCase(), sub: ch.blurb, size: 0.1, col: '#ffbe55', bg: '#140d05', cues: [[0, SFX('burst')], [0, SHAKE(0.4)], [0.02, SPARKS(70, '#ffcf7a', 0.5, 0.5, 550)]] },
+        { kind: 'moon', dur: 3.0, who: heroW, banner: true, fig: 0.12, fadeIn: 0.5, moon: [[0, 0, 0], [220, 230, 245], [255, 200, 130], [255, 150, 110], [180, 160, 255]][ch.id], cues: [[0, SCORE('drone')], [0.3, BEAT()], [1.4, BEAT()], [1.6, SCORE('riser', 1.4)]] },
+        { kind: 'type', dur: 3.4, lines: [{ text: 'CHAPTER ' + roman, at: 0.05, size: 0.035, y: 0.36, spread: 0.7, col: '#ffbe55' }, { text: ch.name.toUpperCase(), at: 0.1, size: ch.name.length > 14 ? 0.1 : 0.13, w: 800, fly: true, col: '#ffcf7a', glow: '#ff9a2a' }, { text: ch.blurb, at: 1.1, size: 0.036, y: 0.65, font: 2, gap: 0.08 }], cues: [[0.9, SPARKS(80, '#ffcf7a', 0.5, 0.5, 600)], [3.0, SCORE('drone', false)]] },
       ] };
     },
     // a boss falls
@@ -1028,8 +1159,8 @@
       const art = actorArt(boss); if (art.key) await BB.loadChar(art.key).catch(() => null);
       return { shots: [
         { kind: 'impact', dur: 0.5, who: boss, clip: 'TakeDamage', dir: 3, accent: '#ffffff', cues: [[0, () => BB.foeVoice && BB.foeVoice({ kind: M.boss, boss: true }, 'die')], [0, SHAKE(1)], [0, SFX('burst')], [0, FLASH(1)]] },
-        { kind: 'closeup', dur: 1.3, who: boss, dir: 3, col1: 'rgba(120,120,130,1)', col2: 'rgba(8,8,10,1)', edge: '#ffffff', cues: [[0.2, SPARKS(120, '#e8e8f0', 0.5, 0.5, 400)], [0.2, SFX('slam')], [0.6, SHAKE(0.4)]] },
-        { kind: 'title', dur: 2.0, text: F.name.split(',')[0].toUpperCase() + ' FALLS', sub: 'STAGE ' + M.code + ' CLEARED', size: 0.09, col: '#ffbe55', bg: '#140d05', cues: [[0, SFX('burst')], [0, SHAKE(0.5)], [0.02, SPARKS(100, '#ffcf7a', 0.5, 0.5, 650)], [0.05, EMBERS(50, '#ffb347')]] },
+        { kind: 'closeup', dur: 1.3, who: boss, dir: 3, grade: 'manga', col1: 'rgba(120,120,130,1)', col2: 'rgba(8,8,10,1)', edge: '#ffffff', cues: [[0.2, SPARKS(120, '#e8e8f0', 0.5, 0.5, 400)], [0.2, SFX('slam')], [0.6, SHAKE(0.4)]] },
+        { kind: 'type', dur: 2.6, lines: [{ text: F.name.split(',')[0].toUpperCase(), at: 0.05, size: 0.12, w: 800, fly: true, col: '#ffcf7a', glow: '#ff9a2a' }, { text: 'HAS FALLEN', at: 0.9, size: 0.05, y: 0.62, spread: 0.5, col: '#ece9e2' }, { text: 'Stage ' + M.code + ' cleared', at: 1.4, size: 0.03, y: 0.72, font: 2 }], cues: [[0.9, SPARKS(100, '#ffcf7a', 0.5, 0.5, 650)], [0.9, EMBERS(50, '#ffb347')]] },
       ] };
     },
   };

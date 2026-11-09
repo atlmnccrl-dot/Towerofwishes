@@ -113,7 +113,11 @@ enraged bosses, abyssal rumbles for the Gravegates. Everything else is synthesis
 graphic, never from the game camera: slanted close-up panels of faces in coloured light, silhouettes that light up,
 three-face panels, a wall of skull faces, screen-filling gates with lightning and rain, great banners against the
 sky that topple in fire, VS splits, black-and-white impact frames and title slams, with sparks, embers, smoke, shake
-and letterbox. The opening is told in close panels: nine knights slam in under their banners and swear the oath; the
+and letterbox. Cutscenes are cut like a trailer: serif kinetic type that lands word by word (a key word burning red), shots graded to
+black-and-white manga contrast or one colour against black, giant words behind the characters, flash-cut montages
+with glowing eyes, a tiny figure against an enormous moon, an eye that opens into rings, knights crumbling to ash, a
+title whose letters fly together and slam — over a synthesised trailer score (a low drone, risers, braams, sub hits,
+clock ticks under the words). The opening is told in close panels: nine knights slam in under their banners and swear the oath; the
 Gravegate tears open in a storm-lit graveyard (a painted set: runes, a seam of light, a shockwave, the vortex, the dead
 striding out, the camera falling in); Vesh rises and sings; *he was only the first* — three more gates flare on far
 hills, and three panels show what stands in them, black and rim-lit with burning eyes, named only by their land; the
