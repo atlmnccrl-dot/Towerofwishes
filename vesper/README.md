@@ -93,23 +93,28 @@ clump. Red chevrons at the screen's edge point at every foe out of sight.
 arts and drawn on the same 180 px pixel buffer, with its words on a sharp full-resolution layer above.
 None of it is the game's own view: every shot is a set built for it. The plot: seven hundred years ago the First Cut climbed the Spire
 and cut the moon to raise an army that would never die; by its red light his dead rise; tonight the
-wound bleeds out, and Vesper's blade is the one that can stop him. The shots: a red drop in the dark;
-a city under the white moon with the Spire over its roofs, the ground shaking, birds bursting off the
+wound bleeds out, and Vesper's blade is the one that can stop him. The shots: a cold open of title cards cut hard between paper and black (BEFORE THE MOON BLED /
+BEFORE THE DEAD WOKE / AND BEFORE THE LAST NIGHT FELL / THERE WAS ONE) and one white frame of his crowned
+head in ink with red eyes; a city under the white moon with the Spire over its roofs, the ground shaking, birds bursting off the
 roofs and people running in the streets as the First Cut rises behind the Spire, a black shape against a
 swelling red glow, until his eyes ignite; the god towering over the Spire against the moon, raising his
 sword into it; the cut: the tower-sized blade drinking
 the moon's light, the swing across its face, a storm of impact frames, then the moon splitting along
 the cut, white-hot, with red light pouring out of the gap onto the world, rings of force across a sky
 turning to blood, and his crowned head rising beneath it; the moon hanging still and bleeding; the earth cracking
-and a hand bursting out, then the dead standing up one by one in a row on a ridge against the moon,
+and a hand bursting out (two frames of red ink), then the dead standing up one by one in a row on a ridge against the moon,
 their eyes lighting, his eyes watching from the sky; red eyes opening in waves across a black plain, hundreds of them, and lightning showing the horde
-they belong to, rank behind rank to the horizon; Vesper's red eye and her name, the draw; the charge through eight of the dead; three manga panels; then the First Cut as a god over the
+they belong to, rank behind rank to the horizon, tracking boxes locking onto the front rank; a manga panel of her eyes behind
+the visor slit, the irises turning red with rings closing round one, and her name; the draw; VESPER in
+letters the height of the screen with her run seen through them; the charge through eight of the dead; three manga panels; then the First Cut as a god over the
 Spire (a drawn silhouette: crowned and horned helm, spiked pauldrons, a cape like wings, both hands on
 a sword the size of a tower), the camera tilting from his sword's point past her, small on a rampart,
-up to his burning eyes with the red moon as his halo; his gaze, her eye answering; his blade coming
-down from the sky and her holding it (impact frames, the ground breaking); her throwing it off and
-raising her blade at him; the title, THE BLEEDING MOON, over the red moon, his shadow faint behind
-it and his eyes burning above the name. Any tap skips it. The older hand-drawn
+up to his burning eyes with the red moon as his halo (a tracking box on her, another on his eyes, a
+dotted line between them counting the height); his gaze, her eye answering; his blade coming
+down from the sky and her holding it (impact frames, the ground breaking, AND YET); her throwing it off
+(I STAND) and raising her blade at him; the title, THE BLEEDING MOON, over the red moon, his shadow faint behind
+it and his eyes burning above the name, its letters drawing together over drifting red lights. Every
+film is graded: grain on every frame and a vignette on the ordinary ones. Any tap skips it. The older hand-drawn
 sequence (`js/opening.js`) stays in the code for the Theatre.
 
 **Effects: Crowd Breaker** (PixelHit, `tools_cbfx.py` → `assets/cbfx`): 29 of the pack's hand-drawn skill
@@ -132,7 +137,15 @@ in the opening's style, played by the same film player: the Gatewarden leaping f
 splitting the ground (EARTHSPLITTER); the Hollow Twins waking in the frozen cloister, crossing blades and
 raining ice; the Umbral rising out of Vesper's own shadow with his court of shadows; the Hunger eating
 the last light of the Ashen Waste and lunging; the Pale Wing diving out of the storm onto the cliff;
-and the First Cut rising over the summit with the echoes of the fallen beside him. Each plays in full
+and the First Cut rising over the summit with the echoes of the fallen beside him. Each begins with title cards (NO ONE PASSES THE BLACK GATE ·
+THEY DIED TOGETHER · DO NOT LOOK BEHIND YOU · FIRST THE LIGHTS GO OUT · LISTEN TO THE WIND · SEVEN HUNDRED
+YEARS / SIX GUARDIANS / ONE NIGHT) and has a signature: the Gatewarden's landing in ink and his name with
+the slam seen through it; tracking boxes finding both Twins and an ink frame on their crossed blades; a
+manga panel of Vesper's eyes when the Umbral rises behind her; the Hunger's roar landing in flat frames
+and HUNGER cut out of the dark; the Pale Wing's landing in ink and its name drawing together over the
+storm; the HUD measuring the First Cut and THIS ENDS TONIGHT on his blade. The kit (`js/intro.js`):
+`poster` (ink), `eyePanel`, `bokeh`, `grain`, `vignette`, and the word kinds `serif`, `spaced`, `knock`,
+`punch`, `track`, `link` and `rings`. Each plays in full
 the first time and can be skipped after that (`?film=warden|twins|umbral|hunger|wing|firstCut`).
 
 **How the guardians fight**: besides their signature moves, every guardian has a delayed blow (the
