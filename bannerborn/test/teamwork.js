@@ -8,7 +8,7 @@ BB.fxLen = () => 16; BB.clipLen = () => 15; BB.hasClip = () => true; BB.heroLaye
 BB.envRect = () => null; BB.drawFx = () => {}; BB.drawEnv = () => {}; BB.drawOther = () => {};
 BB.ROSTER = []; BB.poolKeys = () => []; BB.npcKeys = () => [];
 BB.dirFromVec = function (dx, dy) { const sx = dx - dy, sy = (dx + dy) / 2; if (Math.abs(sx) + Math.abs(sy) < 1e-6) return null; const a = Math.atan2(sy, sx) * 180 / Math.PI; return ((Math.round(a / 45) % 8) + 8) % 8; };
-require('../js/world.js'); require('../js/battle.js'); require('../js/identity.js'); require('../js/tactics.js'); require('../js/signatures.js');
+require('../js/world.js'); require('../js/battle.js'); require('../js/identity.js'); require('../js/tactics.js'); require('../js/signatures.js'); require('../js/epic.js');
 const stages = (process.argv[2] || '6,9,14,18,21,26').split(',').map(Number), runs = +(process.argv[3] || 2);
 const T = { backFrames: 0, backBehind: 0, stabs: 0, asnHits: 0, asnBackHits: 0, stalkHits: 0, stalkBackHits: 0, foeFlee: 0, foeRangedFrames: 0, peel: 0, peelChances: 0, time: 0, wins: 0, n: 0 };
 const comp = ['vanguard', 'shadowblade', 'ranger', 'warpriest', 'arcanist'];

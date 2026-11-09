@@ -181,7 +181,7 @@
       // reinforcements arrive while the last wave is still fighting: once it is mostly down, or after a while
       const lastN = o.lastWaveN || 1;
       if (o.waves.length && o.nextWaveT <= 0 && (foes.length <= Math.max(1, Math.floor(lastN * 0.45)) || o.nextWaveT < -11)) {
-        const w = o.waves.shift(); this.spawnWave(w); o.nextWaveT = 4; o.lastWaveN = this.foesAlive().filter((f) => !f.gate).length;
+        const w = o.waves.shift(); this.spawnWave(w); if (this.onWave) this.onWave(); o.nextWaveT = 4; o.lastWaveN = this.foesAlive().filter((f) => !f.gate).length;
         this.banner('Wave ' + this.waveIdx + ' / ' + this.mission.waves.length, 1.3, 'small');
       }
       if (!o.waves.length && !foes.length) this.win();
@@ -223,7 +223,8 @@
           o.bossT = undefined;
           const s = this.map.bossSpot;
           this.boss = this.spawnFoe(this.mission.boss, s.x, s.y, { rise: true });
-          this.banner(this.boss.F.name, 2.6, 'boss'); this.camFocus = { x: s.x, y: s.y, t: 2.2 }; this.zoomPulse(1.18, 2.2);
+          if (this.onBoss) this.onBoss(this.boss); else this.banner(this.boss.F.name, 2.6, 'boss');
+          this.camFocus = { x: s.x, y: s.y, t: 2.2 }; this.zoomPulse(1.18, 2.2);
           this.shake = 0.6; BB.sfx && BB.sfx('boss');
           if (this.mission.waves[0]) this.spawnWave(this.mission.waves[0]);
           this.obj.extra = this.mission.waves.slice(1); this.obj.extraN = this.obj.extra.length;
@@ -374,6 +375,7 @@
     const col = tgt.side === 'hero' ? '#ff6b5e' : crit ? '#ffd23a' : '#fff';
     if (!tgt.ward || dmg > 5) this.text(tgt.x, tgt.y, dmg + (crit ? '!' : ''), col, crit ? 1 : 0);
     if (crit || (o.heavy)) { this.hitstop = Math.max(this.hitstop, 0.05); this.shake = Math.max(this.shake, 0.15); }
+    if (this.onHit) this.onHit(src, tgt, dmg, crit, o);
     if (tgt.side === 'foe' && !tgt.boss && !tgt.gate && !tgt.turret && tgt.hp > 0 && tgt.state !== 'attack' && this.r() < 0.5) {
       tgt.state = 'hurt'; tgt.lock = 0.25; this.setClip(tgt, 'TakeDamage', true);
       if (src) { const d = hyp(tgt.x - src.x, tgt.y - src.y) || 1; tgt.x += (tgt.x - src.x) / d * 0.12; tgt.y += (tgt.y - src.y) / d * 0.12; }
@@ -418,6 +420,7 @@
     if (e.boss) { this.slow = 1.6; this.shake = 0.8; this.addFx('bones', e.x, e.y - 0.2, { sc: 1.6 }); }
     else if (!e.turret && this.r() < 0.35) this.addFx('bones', e.x, e.y - 0.1, { sc: 0.7 });
     BB.sfx && BB.sfx(quiet ? 'crumble' : 'kill');
+    if (this.onKill && !quiet) this.onKill(e, src);
   };
   Battle.prototype.explodeBarrel = function (b) {
     if (b.dead) return;
@@ -549,7 +552,7 @@
     e.readyT = 0;
     const say = (t, c) => { if (!manual) this.text(e.x, e.y, t, c, 1); };
     if (!this.peaceful) {
-      if (manual) { this.cutins.push({ hero: e.hero, name: BB.CALLINGS[e.calling].skill.name, color: e.color, t: 0 }); this.slow = Math.max(this.slow, 0.32); this.zoomPulse(1.07, 0.6); }
+      if (manual) { this.cutins.push({ hero: e.hero, name: BB.CALLINGS[e.calling].skill.name, color: e.color, t: 0 }); this.slow = Math.max(this.slow, 0.32); this.zoomPulse(1.07, 0.6); if (this.onUlt) this.onUlt(e); }
       const L = this.lastSkill;
       if (L && L.e !== e && this.time - L.t < 2.6) {
         this.combo++;
@@ -733,6 +736,7 @@
     if (this.hitstop > 0) { this.hitstop -= dtReal; dtReal *= 0.05; }
     let ts = 1;
     if (this.slow > 0) { this.slow -= dtReal; ts = 0.35; }
+    if (this.freeze > 0) { this.freeze -= dtReal; ts = 0.04; } // an ultimate stops time for a beat
     if (this.paused) return;
     const dt = Math.min(0.05, dtReal) * ts * PACE; // the fight runs a touch quicker than the clock
     this.time += dt; this.dt = dt;
@@ -774,6 +778,7 @@
     for (const e of movers) BB.collide(this.map, e);
     this.updateProjs(dt);
     if (this.updateTactics) this.updateTactics(dt);
+    if (this.updateEpic) this.updateEpic(dtReal, dt);
     if (this.ents.length > 60) this.ents = this.ents.filter((e) => !(e.dead && e.side === 'foe' && e.deadT > 3));
     for (const c of this.clouds) {
       c.t += dt;
@@ -814,6 +819,7 @@
     if (e.ward) return;
     if (e.dead) {
       e.deadT += dt; e.ct += dt;
+      if (e.launch && this.updateLaunch) this.updateLaunch(e, dt);
       if (e.reviveT !== undefined) {
         e.reviveT -= dt;
         if (e.reviveT <= 0) {
@@ -1631,6 +1637,7 @@
       if (e.buffs && e.buffs.rally > 0) { ctx.strokeStyle = 'rgba(255,210,90,0.8)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(s.x, s.y, 13 + Math.sin(this.time * 8) * 2, 6.5, 0, 0, TAU); ctx.stroke(); }
     }
     if (this.drawPebbles) this.drawPebbles(ctx);
+    if (this.drawGroundLights) this.drawGroundLights(ctx);
     // depth sorted world
     const list = [];
     // cull to the view (in world pixels) with a margin for tall sprites
@@ -1671,6 +1678,7 @@
     // projectiles
     for (const p of this.projs) this.drawProj(ctx, p);
     if (this.drawRocks) this.drawRocks(ctx);
+    if (this.drawWorldEpic) this.drawWorldEpic(ctx);
     for (const r of this.rays || []) {
       const s = P(r.x, r.y), a = Math.min(1, r.t * 4, (r.dur - r.t) * 1.5);
       if (r.god) { for (let i = -2; i <= 2; i++) BB.drawOther(ctx, 'GodRay', s.x + i * 22, s.y - 120, 0.5, { add: true, alpha: a * (0.55 - Math.abs(i) * 0.08), sx: 2.4, rot: i * 0.12 }); continue; }
@@ -1686,7 +1694,8 @@
       if (!nums && !t.big) continue;
       const s = P(t.x + t.dx, t.y); const k = t.t / (t.big ? 1.3 : 0.9);
       ctx.globalAlpha = Math.min(1, (1 - k) * 2.5);
-      ctx.font = (t.big === 2 ? 'bold 13px ' : t.big ? 'bold 11px ' : 'bold 9px ') + 'Outfit, sans-serif';
+      const critN = !t.big && /!$/.test(t.txt), pop = critN ? 1 + Math.max(0, 0.15 - t.t) * 5 : 1;
+      ctx.font = (t.big === 2 ? 'bold 13px ' : t.big ? 'bold 11px ' : critN ? '800 ' + Math.round(13 * pop) + 'px ' : 'bold 9px ') + 'Outfit, sans-serif';
       ctx.textAlign = 'center'; ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(0,0,0,0.75)';
       const y = s.y - t.z * 28;
       ctx.strokeText(t.txt, s.x, y); ctx.fillStyle = t.col; ctx.fillText(t.txt, s.x, y);
@@ -1694,6 +1703,7 @@
     }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     if (this.flash > 0) { ctx.fillStyle = 'rgba(255,230,160,' + this.flash * 0.5 + ')'; ctx.fillRect(0, 0, W, H); }
+    if (this.drawEpic && !this.peaceful) this.drawEpic(ctx, W, H, dpr);
   };
 
   Battle.prototype.drawEnt = function (ctx, e) {
@@ -1737,8 +1747,10 @@
     if (e.stealth && !e.dead) alpha = Math.min(alpha, 0.38 + Math.sin(this.time * 6 + (e.x * 3)) * 0.06);
     ctx.globalAlpha = alpha;
     const fl = e.flash > 0 ? Math.min(0.9, e.flash * 5) : 0;
+    const spun = e.spin && e.dead; if (spun) { ctx.save(); ctx.translate(s.x, y - 14 * (e.sc || 1)); ctx.rotate(e.spin); ctx.translate(-s.x, -(y - 14 * (e.sc || 1))); }
     if (e.side === 'hero') { if (e.dead) BB.drawLayers(ctx, e.layers, e.clip, e.dir, fr, s.x, y, e.sc, { flash: fl }); else BB.drawHeroDressed(ctx, e.hero, e.aura, e.clip, e.dir, fr, s.x, y, e.sc, this.time, { flash: fl, layers: e.layers }); }
     else BB.drawChar(ctx, key, e.tint, e.clip, e.dir, fr, s.x, y, e.sc, fl);
+    if (spun) ctx.restore();
     ctx.globalAlpha = 1;
     ctx.imageSmoothingEnabled = true;
     if (!e.dead && !this.peaceful) {

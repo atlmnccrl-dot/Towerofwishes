@@ -79,6 +79,13 @@ A hero-collector RPG: you build the team, the team fights.
    berserkers, monks, lancers and assassins **spring back, wind up and charge through**; reavers, beastkin and
    stalkers **pounce** from range; nimble fighters **roll** out of blows (*DODGE*) and the back line tumbles away from
    anyone on top of it. Blocks jar both fighters back a step; a parry throws the attacker back reeling.
+   **Spectacle** (js/epic.js): slain enemies are launched spinning, bounce and burst into bone shards and dust; every
+   melee hit cuts a crescent in the attacker's colour; heavy hits and crits freeze a beat and light the ground; tapping
+   an ultimate stops time while a slanted band sweeps across with the hero and the skill's name slams in, then a
+   shockwave; the last kill of a wave goes to slow motion (*WAVE CLEARED*); the next wave arrives with a war horn and
+   the screen edge flaring red from its side (*THE TIDE RISES*); a boss arrives under letterbox bars with its name
+   slammed in serif; chain kills call *CARNAGE*, *SLAUGHTER*, *MASSACRE*; embers, ash or blowing sand by land; a red
+   heartbeat at the edges when a hero is near death.
    Four to six waves a stage, reinforcements arriving mid-fight, bosses calling adds as they weaken. Each charges an **ultimate** by fighting and taking hits;
    tap the glowing card (or 1–5) to unleash it with a cut-in, or turn on **AUTO**. 1×/2×/3× speed, pause.
    Maps keep the middle and the lanes between spawns open; fights run about 20–70 s at 1×.

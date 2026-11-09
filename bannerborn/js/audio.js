@@ -174,6 +174,11 @@
       noise(t, 0.25, 4000, 300, 1, 0.35 * (a || 1), 'lowpass'); noise(t, 0.8, 600, 80, 2, 0.2 * (a || 1));
     } else if (what === 'tick') { tone(t, 0.03, 1900, 1500, 'square', 0.05 * (a || 1), musBus); tone(t, 0.06, 180, 90, 'sine', 0.12 * (a || 1), musBus); }
     else if (what === 'boom') { const o = ac.createOscillator(); o.frequency.setValueAtTime(130, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.4); const g = ac.createGain(); g.gain.setValueAtTime(0.7 * (a || 1), t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.55); o.connect(g); g.connect(musBus); o.start(t); o.stop(t + 0.6); noise(t, 0.12, 1800, 200, 1, 0.3 * (a || 1), 'lowpass'); }
+    else if (what === 'horn') { // a war horn across the field
+      const out = ac.createGain(); out.gain.setValueAtTime(0.0001, t); out.gain.exponentialRampToValueAtTime(0.32, t + 0.25); out.gain.setValueAtTime(0.32, t + 1.1); out.gain.exponentialRampToValueAtTime(0.0001, t + 1.9);
+      const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(300, t); lp.frequency.linearRampToValueAtTime(1300, t + 0.3); lp.frequency.linearRampToValueAtTime(700, t + 1.8); lp.Q.value = 4; lp.connect(out); out.connect(musBus);
+      for (const [f, d] of [[110, 0], [110, 7], [165, -5], [220, 3]]) { const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(f * 0.94, t); o.frequency.linearRampToValueAtTime(f, t + 0.2); o.detune.value = d; o.connect(lp); o.start(t); o.stop(t + 2); }
+    }
     else if (what === 'shimmer') { [880, 1318.5, 1760, 2637].forEach((f, i) => tone(t + i * 0.06, 2.6, f, 0, 'sine', 0.035, musBus)); }
     else if (what === 'drone') {
       if (droneNodes) { const old = droneNodes; droneNodes = null; old.g.gain.cancelScheduledValues(t); old.g.gain.setValueAtTime(old.g.gain.value, t); old.g.gain.exponentialRampToValueAtTime(0.0001, t + 1.2); old.os.forEach((o) => o.stop(t + 1.3)); }
