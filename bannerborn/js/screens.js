@@ -606,7 +606,7 @@
   };
 
   // ---------------------------------------------------------------- recruit: one great gate, a tab per tier
-  const RC = UI.rec = { t: 0, tier: 0 };
+  const RC = UI.rec = { t: 0, tier: 0, loaded: {}, pool: [], feat: 0, featT: 0 };
   UI.openRecruit = async function (tierIdx) {
     await BB.loadPortraits();
     const S = BB.save;
@@ -629,9 +629,9 @@
     const info = $('altarInfo'); info.innerHTML = '';
     info.appendChild(el('h2', '', tier.name + ' Gate'));
     info.appendChild(el('div', 'mute', open ? (tier.rarity ? BB.HERO_RARITY[tier.rarity].name + ' heroes: ×' + BB.HERO_RARITY[tier.rarity].mult + ' to every stat. ' : 'Steady recruits to fill your ranks. ') + 'You get a hero you don\'t have yet.' : 'Clear chapter ' + tier.chapter + ' · ' + esc(BB.CHAPTERS[tier.chapter - 1].name) + ' to open this gate.'));
-    const faces = el('div', 'faces' + (open ? '' : ' locked'));
-    for (const e of (left.length ? left : heroes).slice(0, 10)) { const f = UI.thumb(e.key, 44); f.title = open ? e.name : '???'; faces.appendChild(f); }
-    info.appendChild(faces);
+    info.appendChild(el('div', 'lbl', heroes.length + ' heroes answer this gate · ' + left.length + ' not yet with you'));
+    RC.pool = (left.length ? left : heroes).slice(0, 7); RC.open = open; RC.feat = 0; RC.featT = 0;
+    for (const e of RC.pool) if (!RC.loaded[e.key]) { RC.loaded[e.key] = 'loading'; BB.loadChar('h/' + e.key).then(() => { RC.loaded[e.key] = 1; }).catch(() => {}); }
     const row = el('div', 'row');
     const b = el('button', 'btn xl', !open ? UI.si('lock', 16) + ' Locked' : !left.length ? 'All recruited' : 'Recruit <span class="cost">◆ ' + tier.cost + '</span>');
     b.disabled = !open || !left.length || S.crystals < tier.cost;
@@ -650,25 +650,63 @@
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const w = Math.round(c.clientWidth * dpr), h = Math.round(c.clientHeight * dpr); if (!w || !h) return;
     if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
-    const g = c.getContext('2d');
-    const T = BB.TIERS[RC.tier], open = BB.tierOpen(BB.save, T), col = T.rarity ? RGBA[T.rarity] : 'rgba(120,190,255,A)';
-    const bg = g.createRadialGradient(w / 2, h * 0.4, 0, w / 2, h * 0.45, Math.max(w, h) * 0.7);
-    bg.addColorStop(0, open ? col.replace('A', T.rarity ? '0.26' : '0.14') : 'rgba(120,130,150,0.08)'); bg.addColorStop(0.6, '#10131b'); bg.addColorStop(1, '#090b10');
-    g.fillStyle = bg; g.fillRect(0, 0, w, h);
-    const infoH = ($('altarInfo').offsetHeight || 0) * dpr, room = Math.max(h * 0.3, h - infoH); // the gate fills the space above the text
-    const s = Math.min(w / 200, room / 125), cx = w / 2, cy = room * 0.5 - 6 * s;
-    // standing stones either side of the gate
-    g.lineWidth = Math.max(1, s * 0.6);
-    for (const [k, al] of [[1, 0.5], [1.35, 0.25], [1.75, 0.12]]) { g.strokeStyle = (open ? col : 'rgba(255,255,255,A)').replace('A', String(al)); g.beginPath(); g.ellipse(cx, cy + 46 * s, 56 * s * k, 12 * s * k, 0, 0, 7); g.stroke(); }
-    g.setLineDash([6 * s, 5 * s]); g.lineDashOffset = -RC.t * 10 * s; g.strokeStyle = (open ? col : 'rgba(255,255,255,A)').replace('A', '0.35'); g.beginPath(); g.ellipse(cx, cy + 46 * s, 66 * s, 14 * s, 0, 0, 7); g.stroke(); g.setLineDash([]);
-    if (open) {
-      g.save(); g.globalCompositeOperation = 'lighter';
-      for (let i = -1; i <= 1; i++) BB.drawOther(g, 'GodRay', cx + i * 18 * s, cy - 70 * s, s * 0.45, { add: true, alpha: 0.05 + 0.03 * Math.sin(RC.t * 2 + i), sx: 2, rot: i * 0.08 });
+    const g = c.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0);
+    const T = BB.TIERS[RC.tier], open = BB.tierOpen(BB.save, T), col = T.rarity ? RGBA[T.rarity] : 'rgba(150,200,255,A)', C = (a) => (open ? col : 'rgba(150,160,175,A)').replace('A', String(a));
+    const bg = g.createRadialGradient(w / 2, h * 0.35, 0, w / 2, h * 0.4, Math.max(w, h) * 0.75);
+    bg.addColorStop(0, C(open ? 0.22 : 0.06)); bg.addColorStop(0.55, '#0e1119'); bg.addColorStop(1, '#07080c'); g.fillStyle = bg; g.fillRect(0, 0, w, h);
+    const infoH = ($('altarInfo').offsetHeight || 0) * dpr, room = Math.max(h * 0.42, h - infoH);
+    const base = room * 0.76, gh = Math.min(room * 0.64, w * 0.3), cx = w / 2, ro = gh * 0.42, ri = ro * 0.7, ys = base - gh + ro;
+    // light from above and motes rising
+    if (open) { g.save(); g.globalCompositeOperation = 'lighter'; for (let i = -2; i <= 2; i++) { const x = cx + i * ro * 0.5, gr = g.createLinearGradient(x, 0, x, base); gr.addColorStop(0, C(0.1)); gr.addColorStop(1, C(0)); g.fillStyle = gr; g.beginPath(); g.moveTo(x - ro * 0.1, 0); g.lineTo(x + ro * 0.1, 0); g.lineTo(x + ro * 0.35 + i * ro * 0.1, base); g.lineTo(x - ro * 0.35 + i * ro * 0.1, base); g.closePath(); g.fill(); }
+      for (let i = 0; i < 30; i++) { const k = (RC.t * 0.18 + i / 30) % 1, a = i * 2.4; g.fillStyle = C((1 - k) * 0.8); g.fillRect(cx + Math.cos(a) * ro * (0.4 + k * 1.6), base - k * gh * 1.1, 2 * dpr, 2 * dpr); } g.restore(); }
+    // the platform
+    for (const [k, al] of [[1, 0.6], [1.3, 0.3], [1.65, 0.14]]) { g.strokeStyle = C(al); g.lineWidth = Math.max(1, dpr * 1.2); g.beginPath(); g.ellipse(cx, base, ro * 1.6 * k, ro * 0.32 * k, 0, 0, 7); g.stroke(); }
+    g.setLineDash([8 * dpr, 6 * dpr]); g.lineDashOffset = -RC.t * 20 * dpr; g.strokeStyle = C(0.4); g.beginPath(); g.ellipse(cx, base, ro * 1.9, ro * 0.38, 0, 0, 7); g.stroke(); g.setLineDash([]);
+    // those waiting at the sides: silhouettes, rim-lit by the gate
+    const pool = RC.pool || [], feat = pool.length ? pool[RC.feat % pool.length] : null, ready = (e) => RC.loaded[e.key] === 1;
+    const S = Math.max(2, Math.round(gh * 0.55 / 42)), waiting = pool.filter((e) => e !== feat).slice(0, 6);
+    waiting.forEach((e, i) => { if (!ready(e)) return; const side = i % 2 ? 1 : -1, n = Math.floor(i / 2), x = cx + side * (ro * 1.55 + n * ro * 0.85), y = base - ro * 0.18 - n * ro * 0.08, sc = Math.max(1, S - 1 - Math.floor(n / 2));
+      const fr = Math.floor(RC.t * 6 + i) % (BB.clipLen('h/' + e.key, 'Idle') || 15); silhouetteChar(g, 'h/' + e.key, fr, x, y, sc, side < 0 ? 3 : 1, C(open ? 0.85 : 0.3)); });
+    // the gate: a vortex in the arch
+    const opening = () => { g.beginPath(); g.moveTo(cx - ri, base); g.lineTo(cx - ri, ys); g.arc(cx, ys, ri, Math.PI, Math.PI * 2); g.lineTo(cx + ri, base); g.closePath(); };
+    g.save(); opening(); g.clip(); g.fillStyle = '#05060a'; g.fillRect(cx - ri, ys - ri, ri * 2, base - ys + ri);
+    if (open) { const vy = (ys - ri + base) / 2, R = (base - ys + ri) * 0.62; g.globalCompositeOperation = 'lighter';
+      for (let n = 0; n < 7; n++) { const q = 1 - ((RC.t * 0.45 + n / 7) % 1); g.strokeStyle = C((0.55 * q).toFixed(3)); g.lineWidth = Math.max(1, R * 0.03 * q); g.beginPath(); g.ellipse(cx, vy, ri * q * 1.05, R * q, 0, 0, 7); g.stroke(); }
+      for (let a = 0; a < 6; a++) { g.strokeStyle = a % 2 ? 'rgba(255,255,255,0.35)' : C(0.55); g.lineWidth = Math.max(1, R * 0.018); g.beginPath(); for (let st = 2; st <= 26; st++) { const q = st / 26, an = a / 6 * 6.28 + q * 4.6 + RC.t * 1.8, px = cx + Math.cos(an) * ri * (1 - q), py = vy + Math.sin(an) * R * (1 - q); st === 2 ? g.moveTo(px, py) : g.lineTo(px, py); } g.stroke(); }
+      const core = g.createRadialGradient(cx, vy, 0, cx, vy, R * 0.6); core.addColorStop(0, 'rgba(255,255,255,0.85)'); core.addColorStop(0.35, C(0.6)); core.addColorStop(1, C(0)); g.fillStyle = core; g.fillRect(cx - ri, ys - ri, ri * 2, base - ys + ri); }
+    g.restore();
+    // the arch stones and their runes
+    g.beginPath(); g.moveTo(cx - ro, base); g.lineTo(cx - ro, ys); g.arc(cx, ys, ro, Math.PI, Math.PI * 2); g.lineTo(cx + ro, base); g.lineTo(cx + ri, base); g.lineTo(cx + ri, ys); g.arc(cx, ys, ri, Math.PI * 2, Math.PI, true); g.lineTo(cx - ri, base); g.closePath();
+    const sg = g.createLinearGradient(cx - ro, 0, cx + ro, 0); sg.addColorStop(0, '#1a1c26'); sg.addColorStop(0.5, '#2c2f3c'); sg.addColorStop(1, '#16171f'); g.fillStyle = sg; g.fill(); g.strokeStyle = '#05060a'; g.lineWidth = dpr; g.stroke();
+    g.save(); g.globalCompositeOperation = 'lighter'; g.strokeStyle = C(open ? 0.7 + 0.25 * Math.sin(RC.t * 3) : 0.15); g.shadowColor = C(1); g.shadowBlur = open ? 12 * dpr : 0; g.lineWidth = Math.max(1.2, dpr * 1.4);
+    for (let r = 0; r < 9; r++) { const an = Math.PI + (r + 0.5) / 9 * Math.PI, rr = (ri + ro) / 2, rs = (ro - ri) * 0.18, rx = cx + Math.cos(an) * rr, ry = ys + Math.sin(an) * rr; g.beginPath(); if (r % 3 === 0) { g.moveTo(rx, ry - rs); g.lineTo(rx, ry + rs); g.moveTo(rx - rs * 0.6, ry); g.lineTo(rx + rs * 0.6, ry); } else if (r % 3 === 1) { g.arc(rx, ry, rs * 0.6, 0, 7); } else { g.moveTo(rx - rs * 0.6, ry + rs); g.lineTo(rx, ry - rs); g.lineTo(rx + rs * 0.6, ry + rs); } g.stroke(); }
+    for (const sx of [-1, 1]) for (let r = 0; r < 4; r++) { const x = cx + sx * (ro + ri) / 2, y = ys + (r + 0.6) * (base - ys) / 4.4, rs = (ro - ri) * 0.15; g.beginPath(); g.moveTo(x - rs, y - rs); g.lineTo(x + rs, y + rs); g.moveTo(x + rs, y - rs); g.lineTo(x - rs, y + rs); g.stroke(); }
+    if (open) { g.shadowBlur = 20 * dpr; opening(); g.stroke(); }
+    g.restore();
+    // the featured hero steps into the light, fully seen; a new one every few seconds
+    if (feat && ready(feat) && open) {
+      RC.featT += dt; if (RC.featT > 3.2) { RC.featT = 0; RC.feat = (RC.feat + 1) % pool.length; }
+      const k = Math.min(1, RC.featT / 0.5), out = RC.featT > 2.9 ? (RC.featT - 2.9) / 0.3 : 0, key = 'h/' + feat.key, fr = Math.floor(RC.t * 8) % (BB.clipLen(key, 'Idle') || 15), fy = base + ro * 0.06;
+      g.save(); g.globalCompositeOperation = 'lighter'; const sp = g.createRadialGradient(cx, fy, 0, cx, fy, ro * 1.1); sp.addColorStop(0, C(0.35)); sp.addColorStop(1, C(0)); g.fillStyle = sp; g.beginPath(); g.ellipse(cx, fy, ro * 1.1, ro * 0.3, 0, 0, 7); g.fill(); g.restore();
+      g.fillStyle = 'rgba(0,0,0,0.5)'; g.beginPath(); g.ellipse(cx, fy, S * 12, S * 3.5, 0, 0, 7); g.fill();
+      g.save(); g.globalAlpha = Math.max(0, 1 - out); g.imageSmoothingEnabled = false;
+      if (k < 1) silhouetteChar(g, key, fr, cx, fy, S, 2, C(1));
+      g.globalAlpha = k * Math.max(0, 1 - out); BB.drawChar(g, key, '', 'Idle', 2, fr, cx, fy, S, k < 1 ? (1 - k) * 0.8 : 0); g.restore();
+      const I = BB.identityOf ? BB.identityOf({ recruit: feat.key, calling: feat.calling, name: feat.name }) : null;
+      g.save(); g.globalAlpha = k * Math.max(0, 1 - out); g.textAlign = 'center'; g.font = '700 ' + Math.round(14 * dpr) + 'px Outfit, sans-serif'; g.fillStyle = '#fff'; g.shadowColor = 'rgba(0,0,0,0.9)'; g.shadowBlur = 8; g.fillText(feat.name, cx, fy + 22 * dpr);
+      if (I) { g.font = '600 ' + Math.round(11 * dpr) + 'px Outfit, sans-serif'; g.fillStyle = BB.CLASSES[I.cls].col; g.fillText(BB.CLASSES[I.cls].name.toUpperCase() + ' · ' + BB.SIGNATURES[I.sig].name.toUpperCase(), cx, fy + 36 * dpr); }
       g.restore();
-      BB.drawFx(g, 'portal', Math.floor(RC.t * 12) % (BB.fxLen('portal') || 1), cx, cy, s * 0.95, { add: true, hue: [150, 170, 30, -160][T.rarity] });
-      for (let i = 0; i < 18; i++) { const k = (RC.t * 0.25 + i / 18) % 1, a = i * 2.4 + RC.t * 0.3; g.fillStyle = col.replace('A', String((1 - k) * 0.8)); g.fillRect(cx + Math.cos(a) * (20 + k * 60) * s, cy + 30 * s - k * 90 * s, 2 * s, 2 * s); }
-    } else BB.drawFx(g, 'portal', 0, cx, cy, s * 0.95, { alpha: 0.25 });
+    }
+    if (!open) { g.save(); g.fillStyle = 'rgba(255,255,255,0.55)'; g.font = '700 ' + Math.round(13 * dpr) + 'px Outfit, sans-serif'; g.textAlign = 'center'; g.fillText('SEALED', cx, (ys + base) / 2); g.restore(); }
   };
+  const silCv = document.createElement('canvas');
+  function silhouetteChar(g, key, fr, x, y, sc, dir, rim) { // a recruit as a dark shape with a rim of light
+    const S = Math.ceil(128 * sc); if (silCv.width !== S) { silCv.width = S; silCv.height = S; }
+    const x2 = silCv.getContext('2d'); x2.globalCompositeOperation = 'source-over'; x2.clearRect(0, 0, S, S); x2.imageSmoothingEnabled = false;
+    BB.drawChar(x2, key, '', 'Idle', dir, fr, S / 2, 90 * sc, sc); x2.globalCompositeOperation = 'source-in'; x2.fillStyle = rim; x2.fillRect(0, 0, S, S);
+    g.save(); g.imageSmoothingEnabled = false; for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1]]) g.drawImage(silCv, x - S / 2 + dx * sc, y - 90 * sc + dy * sc);
+    x2.fillStyle = '#05060a'; x2.fillRect(0, 0, S, S); g.drawImage(silCv, x - S / 2, y - 90 * sc); g.restore();
+  }
   // ---------------------------------------------------------------- the summoning: energy gathers into a gate, the gate climbs
   // through the rarity colours, bursts, and the hero steps out of the light as a silhouette that fills with colour
   const RV = UI.rv = { on: false };

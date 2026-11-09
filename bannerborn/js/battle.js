@@ -263,7 +263,10 @@
     const f = Object.assign({ key, x, y, t: 0, fps: 20, sc: 1 }, o || {});
     f.n = BB.fxLen(key); this.fx.push(f); return f;
   };
+  // the duel's own words stay off screen: blocks, parries, counters, feints, openings, links, covers and dodges still happen, felt not spelled out
+  const QUIET = new Set(['PARRY!', 'BLOCK', 'block', 'COUNTER', 'FEINT', 'OPEN!', 'LINK', 'COVER!', 'DODGE', 'PERFECT']);
   Battle.prototype.text = function (x, y, txt, col, big) {
+    if (QUIET.has(txt)) return;
     let z = 1.2; // stack above recent words nearby so call-outs (PARRY!, COUNTER) never print over each other
     if (big) for (let k = 0; k < 3; k++) { if (!this.texts.some((o) => o.big && o.t < 0.6 && Math.abs(o.z - z) < 0.45 && hyp(o.x - x, o.y - y) < 1.1)) break; z += 0.5; }
     this.texts.push({ x, y, z, txt: String(txt), col: col || '#fff', t: 0, big: big || 0, dx: (this.r() - 0.5) * 0.4 });
@@ -1755,11 +1758,6 @@
     ctx.imageSmoothingEnabled = true;
     if (!e.dead && !this.peaceful) {
       const hh = 44 * (e.sc || 1);
-      if (e.guardUntil > this.time) { // a raised guard: a shield arc toward the attacker
-        const v = dirVec(e.dir), sv = BB.iso(v.x, v.y), a = Math.atan2(sv.y, sv.x), par = e.parryAt > 0;
-        ctx.save(); ctx.strokeStyle = par ? 'rgba(255,255,255,0.95)' : 'rgba(150,200,255,0.85)'; ctx.lineWidth = par ? 2.2 : 1.6; ctx.shadowColor = par ? '#fff' : '#7cc8ff'; ctx.shadowBlur = 6;
-        ctx.beginPath(); ctx.arc(s.x, y - hh * 0.45, 14 * (e.sc || 1), a - 0.9, a + 0.9); ctx.stroke(); ctx.restore();
-      }
       if (e.stunT > 0) { // dazed: stars circling the head
         ctx.save(); ctx.fillStyle = '#ffe27a';
         for (let i = 0; i < 3; i++) { const q = this.time * 5 + i * 2.09; ctx.beginPath(); ctx.arc(s.x + Math.cos(q) * 8 * (e.sc || 1), y - hh - 4 + Math.sin(q) * 2.5, 1.6, 0, 7); ctx.fill(); }
@@ -1767,7 +1765,6 @@
       }
       if (e.brokenT > 0) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; const gl = ctx.createRadialGradient(s.x, y - hh * 0.5, 0, s.x, y - hh * 0.5, 22 * (e.sc || 1)); gl.addColorStop(0, 'rgba(255,170,60,0.35)'); gl.addColorStop(1, 'rgba(255,170,60,0)'); ctx.fillStyle = gl; ctx.fillRect(s.x - 30, y - hh - 10, 60, hh + 20); ctx.restore(); }
       if (this.drawTac) this.drawTac(ctx, e, s.x, y);
-      if (e.openT > 0) { ctx.save(); ctx.strokeStyle = 'rgba(255,90,90,0.8)'; ctx.lineWidth = 1.2; ctx.setLineDash([2, 2]); ctx.beginPath(); ctx.ellipse(s.x, s.y, 12 * (e.sc || 1), 4 * (e.sc || 1), 0, 0, 7); ctx.stroke(); ctx.restore(); }
     }
   };
 

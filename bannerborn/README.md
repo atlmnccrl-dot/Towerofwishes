@@ -19,7 +19,9 @@ began to sing, and the dead got up to listen. One banner is left, carried by a c
 A hero-collector RPG: you build the team, the team fights.
 
 1. **Start alone.** The Captain is your only hero. Stages pay gold, crystals ◆, sigils ✧ and gear.
-2. **Recruit.** Crystals buy a random hero you don't own yet from an open **tier**; each tier holds ten
+2. **Recruit.** The recruit screen shows the tier's gate — a stone arch with a vortex in its colour — with the heroes
+   who answer it: one steps into the light every few seconds with its name and class, the rest wait as silhouettes.
+   Crystals buy a random hero you don't own yet from an open **tier**; each tier holds ten
    heroes from the horde cast and opens when a chapter is cleared:
 
    | Tier | Opens | Cost |
@@ -64,6 +66,8 @@ A hero-collector RPG: you build the team, the team fights.
    most of the hit glances off, tanks sometimes strike back) or **parries** (a white flash: no damage, the attacker
    staggers with stars over their head, and a sure-critical **counter** lands). Bosses, elites, assassins, berserkers
    and monks **feint**: a fake swing baits the guard, then the real blow lands in the opening (**OPEN!**, extra damage).
+   (The duel plays out without words on screen: no BLOCK, PARRY, COUNTER, FEINT or DODGE pop-ups, just the stagger,
+   the knockback and the counter-strike.)
    Every foe has **poise** (the thin gold bar under its health, and under the boss bar); hits wear it down, parries
    and counters tear it, and at zero the foe is **BROKEN**: stunned, glowing, taking extra damage, and the heroes
    near it gain ultimate energy. **Teamwork:** a tank **covers** a soft ally by stepping into the blow; two heroes

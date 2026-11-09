@@ -241,6 +241,7 @@ button.hc:active{transform:scale(.97)}
 #recruit .altar2 .info{position:relative;margin-top:auto;padding:20px 24px 24px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
 #recruit .altar2 h2{font:700 clamp(24px,3vw,32px) var(--head)}
 #recruit .altar2 .mute{max-width:460px;line-height:1.45}
+@media (max-height:500px){#recruit .altar2 .info{padding:10px 16px 12px;gap:6px}#recruit .altar2 .info .mute{display:none}#recruit .altar2 h2{font-size:20px}}
 .faces{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
 .faces canvas{width:40px;height:40px;border-radius:10px;background:var(--fill);border:1px solid var(--line);image-rendering:pixelated}
 .faces.locked canvas{filter:brightness(0) opacity(.5)}
