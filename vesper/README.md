@@ -173,8 +173,8 @@ the horde.** **Stage 3, the First Cut**: his film, then him in the colossus aren
 summit trembling and red lightning splitting the sky; the moon art; and when he falls below 55% (or after a while)
 he raises his sword: THE FIRST CUT, a one-shot that kills her (`F.oneShot`). **The Moon** (a hooded woman of pale
 light, `moonGod()` in `js/bossfilms.js`) sees her corpse, says "Not yet." and raises her in a beam of moonlight; it
-turns the night back to dusk and she wakes with nothing but her blade (`F.rise`): the campaign begins, and the first
-trial's fight tells her to fight her way back to him. Each lesson opens with a message that pauses the game until OK;
+turns the night back to dusk and she wakes with nothing but her blade (`F.rise`): the campaign begins. Its first node, **Where She Woke**, is
+a plain fight (no lessons; it teaches the basics itself only on a save that never played the last hour). Each lesson opens with a message that pauses the game until OK;
 she cannot fall before his one-shot; Esc skips to the Moon raising her. Both films are in the Theatre.
 
 **The heavy and the skills are automatic** (`autoMove()` in `js/sim.js`): while you keep attacking, the next swing

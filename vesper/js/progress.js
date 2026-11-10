@@ -122,7 +122,7 @@
   // [id, type, name, x, y, next, extra]. x: -1..1 across the map; y: 0..1 up the act.
   const L = [
     // Act I: dusk at the Black Gate. The trial teaches the basics.
-    [0, 'a0-t', 'trial', 'First Steps', 0, 0.04, ['a0-1'], { sub: 'Learn to move and fight' }],
+    [0, 'a0-t', 'trial', 'Where She Woke', 0, 0.04, ['a0-1'], { sub: 'Dusk. Fight your way back up the Spire' }],
     [0, 'a0-1', 'battle', 'The Outer Court', 0, 0.16, ['a0-2', 'a0-s'], { sub: 'The dead stir in the courtyard' }],
     [0, 'a0-2', 'battle', 'Ghoul Pits', -0.56, 0.3, ['a0-3'], { sub: 'Where the risen crawl out' }],
     [0, 'a0-s', 'shrine', 'Shrine of Dusk', 0.56, 0.29, ['a0-3']],
@@ -279,7 +279,7 @@
   // Three stars: win, then two goals that depend on the kind of node.
   P.goals = function (n) {
     if (n.type === 'shrine') return [];
-    if (n.type === 'trial') return [{ id: 'win', text: 'Finish the trial' }];
+    if (n.type === 'trial') return [{ id: 'win', text: 'Clear the dead' }];
     const b = P.build(n), par = Math.round(25 + P.foeCount(b) * 4.2 + (b.node.boss ? 40 : 0));
     const win = { id: 'win', text: n.type === 'boss' || n.type === 'echo' ? 'Defeat the guardian' : 'Win the fight' };
     if (n.rule === 'nohit') return [win, { id: 'hp50', text: 'Finish above half health' }, { id: 'time', n: par, text: 'Win within ' + par + ' seconds' }];

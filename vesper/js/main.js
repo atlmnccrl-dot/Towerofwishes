@@ -334,15 +334,19 @@
     let node = b ? b.node : null;
     if (node && !opts.theatre) { const S = MD.scale(p); node = Object.assign({}, node, { scale: { hp: (node.scale ? node.scale.hp : 1) * S.hp, dmg: (node.scale ? node.scale.dmg : 1) * S.dmg }, rules: Object.assign({}, node.rules, S.elites ? { elites: true } : {}) }); }
     const gear = opts.gear || (opts.theatre ? null : Object.assign({}, VS.LOOT.mods(p, p.hero))); if (gear && !opts.gear) gear.dmg *= MD.masteryDmg(p, p.hero);
-    const s = SIM.create(stageIdx, { seed: (Date.now() & 0xffff) + 1, boons: opts.boons || (opts.theatre ? [] : PR.passives(p)), kit, hero: p.hero, node, gear, endlessNext: b && b.next, guided: !!(opts.guided || (opts.node && opts.node.type === 'trial')) });
+    // The first node teaches only when the last hour (the tutorial) was never played; after it, it is a plain fight.
+    const trialTut = !!(opts.node && opts.node.type === 'trial' && !(p.seen && p.seen.lastHour));
+    const s = SIM.create(stageIdx, { seed: (Date.now() & 0xffff) + 1, boons: opts.boons || (opts.theatre ? [] : PR.passives(p)), kit, hero: p.hero, node, gear, endlessNext: b && b.next, guided: !!(opts.guided || trialTut) });
     M.fight = Object.assign({ s, stage: stageIdx, acc: 0, card: null, cardT: 0, say: null, banner: null }, opts); M.hold = false;
     M.paused = false; R.snapCam(s); R.fx = []; R.parts = []; R.floaters = []; R.pfx = []; R.entryDoor = null; R.impactF = null; R.kit = s.mods.can;
     f0 = M.fight; const n = opts.node, AR = VS.arenaOf(s);
     if (n) {
       const bossName = s.hasBoss ? (b && b.champion ? D.FOES[b.champion].name : n.echo ? n.name.replace('Echo: ', '') : n.name) : null;
-      s.goal = { reach: n.type === 'trial' ? 'Finish the trial' : n.rule === 'horde' ? 'Survive the horde' : 'Clear every wave', boss: bossName ? 'Defeat ' + bossName : 'Clear every wave' };
+      s.goal = { reach: trialTut ? 'Finish the trial' : n.type === 'trial' ? 'Clear the dead' : n.rule === 'horde' ? 'Survive the horde' : 'Clear every wave', boss: bossName ? 'Defeat ' + bossName : 'Clear every wave' };
       f0.banner = { text: n.name, sub: (n.rule ? PR.RULES[n.rule](n.n).split(':')[0].toUpperCase() + '  ·  ' : '') + AR.name + '  ·  AREA 1 / ' + s.waves.length, t: -0.4, col: '#ffffff' };
-      if (n.type === 'trial') { f0.tut = { step: p.seen && p.seen.lastHour ? TUT.length - 1 : 0, t: 0, walked: 0, seen: {}, dodged: 0 }; p.tips.heavy = p.tips.dodge = true; s.goal = { reach: 'Finish the trial', boss: 'Finish the trial' }; }
+      if (trialTut) { f0.tut = { step: 0, t: 0, walked: 0, seen: {}, dodged: 0 }; s.goal = { reach: 'Finish the trial', boss: 'Finish the trial' }; }
+      else if (n.type === 'trial') s.goal = { reach: 'Clear the dead', boss: 'Clear the dead' };
+      if (n.type === 'trial') p.tips.heavy = p.tips.dodge = true;   // taught already (the last hour or the trial)
       f0.tips = kit.filter((k) => !p.tips[k]).map((k) => ({ id: k, t: 0 }));
     } else if (opts.mode === 'endless') { s.goal = { reach: 'Survive as long as you can', boss: 'Survive as long as you can' }; f0.banner = { text: 'ENDLESS', sub: AR.name + '  ·  BEST WAVE ' + ((p.endless && p.endless.best) || 0), t: -0.4, col: '#ffffff' }; }
     else if (opts.mode === 'daily') { s.goal = { reach: 'Win the daily challenge', boss: 'Win the daily challenge' }; f0.banner = { text: b.name.toUpperCase(), sub: b.twists.map((t) => t.toUpperCase()).join('  ·  ') + '  ·  ' + AR.name, t: -0.4, col: '#ffd060' }; }
@@ -459,7 +463,7 @@
   }
   // The end of the last hour: the cut that kills her (when it got that far), then the Moon raising her, then the campaign.
   function endShowcase(f, cut) {
-    if (f.showEnd) return; f.showEnd = f.showDone = true; AU.duck(false); M.hold = false; M.write();
+    if (f.showEnd) return; f.showEnd = f.showDone = true; AU.duck(false); M.hold = false; P().seen.lastHour = true; M.write();
     U.hide(); M.go('intro');
     const rise = () => VS.INTRO.play(VS.FILMS.rise, () => { R.hideCine(); f.then(); }, { skippable: true });
     if (cut) VS.INTRO.play(VS.FILMS.oneShot, rise, { skippable: true }); else rise();

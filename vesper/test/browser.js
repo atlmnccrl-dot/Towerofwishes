@@ -32,14 +32,14 @@ fs.mkdirSync(out, { recursive: true });
   await page.waitForFunction(() => VS.main.state === 'intro' && VS.INTRO.st && VS.INTRO.st.f === VS.FILMS.rise); await shot('02c-rise', 1500); await page.keyboard.press('Escape');
   await page.waitForFunction(() => VS.main.state === 'fight' && VS.main.fight.nodeId === 'a0-t');
   await shot('03-trial', 2600);
-  // Each lesson opens with a message that holds the game until OK.
-  const okCard = async () => { if (await page.locator('#ui .ls-ok').count()) { await shot('03b-lesson', 50); await page.click('#ui .ls-ok'); await page.waitForTimeout(200); } };
-  await page.waitForSelector('#ui .ls-ok', { timeout: 6000 }).catch(() => {});   // the first lesson waits for the trial's title
-  await okCard();
-  if (await page.evaluate(() => VS.main.hold)) errors.push('the lesson message did not let the game go');
-  await page.keyboard.down('KeyD'); await page.waitForFunction(() => VS.main.fight.tut.step >= 1, null, { timeout: 6000 }).catch(() => {}); await page.keyboard.up('KeyD');
-  if ((await page.evaluate(() => VS.main.fight.tut.step)) < 1) errors.push('trial did not advance after moving');
-  await page.waitForTimeout(1300); await okCard();
+  // After the last hour (the tutorial), the first node is a plain fight: no lessons, no messages, the dead come on their own.
+  await page.waitForTimeout(1500);
+  if (await page.locator('#ui .ls-ok').count()) errors.push('the first fight after the tutorial opened a lesson');
+  if (await page.evaluate(() => !!VS.main.fight.tut || VS.main.fight.s.scripted)) errors.push('the first fight after the tutorial is still a tutorial');
+  const x0 = await page.evaluate(() => VS.main.fight.s.hero.x);
+  await page.keyboard.down('KeyD'); await page.waitForTimeout(600); await page.keyboard.up('KeyD');
+  if ((await page.evaluate(() => VS.main.fight.s.hero.x)) <= x0 + 5) errors.push('moving did not work in the first fight');
+  const okCard = async () => {};
   for (let i = 0; i < 4; i++) { await page.keyboard.press('KeyJ'); await page.waitForTimeout(130); }
   await shot('04-combo', 40);
   await okCard(); await page.keyboard.press('Space'); await page.waitForTimeout(120);
