@@ -26,7 +26,7 @@ a heavy (right click), two skills on cooldown (R and F) and an ultimate with its
 
 | Hero | Style | Skills | Ultimate |
 |---|---|---|---|
-| Vesper, the Moonblade | Sword: combos, parries | Crescent Wave (a piercing wave), Phantom Step (blink behind a foe and cut) | Red Moon; the Last Ditch Effort at low health |
+| Vesper, the Moonblade | Sword: combos, dashes | Crescent Wave (a piercing wave), Phantom Step (blink behind a foe and cut) | Red Moon; the Last Ditch Effort at low health |
 | Lys, the Bloom Witch | Spells from range: bolts, a frost nova that slows | Blight Bloom (a poison zone), Petal Blink (teleport, petals burst where she was) | Thousand Petals |
 | Kestrel, the Stormlancer | Spear: long reach, stuns, a lunging heavy | Chain Lightning (jumps through five foes), Thunder Drop (leap and slam with lightning) | Heaven's Spear |
 | Wisp, the Shadow | Daggers: fast, a fan of knives | Shadow Clones (two clones fight for 6 s), Smoke Veil (stuns around her, foes lose her) | Hundred Cuts |
@@ -64,8 +64,8 @@ time you climb into it, each guardian's intro before its fight, the ending after
 
 **Levels and the skill tree** (`js/progress.js`): fights give experience (more the first time,
 more per new star, a little for trying); every level gives a skill point, so do shrines and
-guardians. You start with the light-attack combo, the heavy attack and dodge. Parry, both skills
-and the ultimate are learned in the skill tree's three branches (Blade, Shadow, Moon) alongside passives (more damage, health, a wider parry window, a faster moon, an
+guardians. You start with the light-attack combo, the heavy attack and dodge. Both skills
+and the ultimate are learned in the skill tree's three branches (Blade, Shadow, Moon) alongside passives (more damage, health, less damage taken, healing on a perfect dodge, a faster moon, an
 executioner bonus, quicker skills). Refunding the whole tree is free. A new ability gets a short
 tip card the first time you fight with it.
 
@@ -165,16 +165,19 @@ frame), `E.ring` (the fisheye hit), `E.face` (a chest-up mid shot), `E.eyes` (he
 focus lines), `E.card`, `E.flash`, `E.glitch`, `E.blink()` and `E.hold(cut, k)` (a stutter). Dialogue lines
 ride on cuts in the speaker's colour; only the newest shows.
 
-**The last hour** (`showcase()` in `js/main.js`, `?showcase`): a new game plays the opening, then a glimpse of
-the end before the first trial: Vesper at full power on the summit (every ability, the moon art, end-game gear
-and passives) against the end-game horde of the Gatewarden's echo, told step by step (cut through them, the
-Crescent Wave, the Phantom Step, the heavy blow, the Gatewarden's echo, the Last Ditch Effort). Each step moves
-on by itself, she cannot fall, and Esc skips it; then SEVEN HOURS EARLIER and the guided trial.
+**The last hour** (`showcase()` in `js/main.js`, `?showcase`): the tutorial. After the opening, Vesper at full
+power on the summit, seven hours from now (every ability, end-game gear and passives), learns the game one
+lesson at a time on practice targets, on the trial's lesson engine: move, cut, combo, heavy, dash through a red
+swing, dash-cut, the Crescent Wave, the Phantom Step; then all of it against the end-game horde, an echo of the
+Gatewarden, and the moon art (the Last Ditch Effort). Each lesson waits for the move (with its key or button
+lit), moves on by itself after a while, and ends with time slowing, a gold ring breaking out from her and a gold
+flash. She cannot fall here; Esc skips it. Then SEVEN HOURS EARLIER, and the first trial goes straight to its
+fight (it teaches the basics itself only when the last hour was skipped early).
 
 **Skills page**: the three branches as rows of round icons read left to right (gold and pulsing when ready, lit
 in the branch colour when learned, grey with the level when locked); the chosen skill is shown large in a card
 on the right in plain type (what it does, what it needs, ticked off) with one Learn button. **Touch controls**:
-solid glass discs with a coloured ring and a name each (CUT red, HEAVY orange, DASH blue, PARRY gold, MOON red
+solid glass discs with a coloured ring and a name each (CUT red, HEAVY orange, DASH blue, MOON red
 with a ring that fills as the moon does), a cooldown sweep with the seconds left on the skills, and a stick whose
 knob lights red and points the way you are going. **Effects**: the Crowd Breaker sheets are drawn at 62% of their
 old size on attacks (`A.CB_SCALE`). **Pacing**: the guardian films play with `pace: 1.4` (action cuts stretched
@@ -219,7 +222,7 @@ the last acts 50 to 90%, the post-game harder; about 80% overall for every hero.
 Gold and items (`js/loot.js`). Three slots per hero (weapon, armour, charm), four rarities (common,
 magic, rare, legendary with a name and fixed affixes), item level from the node's depth. Main stats:
 damage (weapon), health (armour), moon gain (charm); affixes: armour, life steal, cooldowns, dodge
-distance, parry window, kill healing, gold find. Each hero wears their own set; it feeds the fight's
+distance, kill healing, gold find. Each hero wears their own set; it feeds the fight's
 numbers. Drops: gold from every win (more for the first, elites and guardians, plus a little per
 barrel or crate smashed), an item from every guardian, often from elites and challenges, sometimes
 from battles, one per chest opened (chests sit off the way through, glinting; iron and gold ones hold
@@ -252,10 +255,10 @@ sweeping faster in the First Cut's second phase). Orange rings warn of lair haza
 
 ## Controls and options
 
-Keyboard and mouse, touch, or a gamepad (sticks move and aim; A cut, X heavy, B dash, Y parry, LB/RB
+Keyboard and mouse, touch, or a gamepad (sticks move and aim; A cut, X heavy, B dash, Y heavy, LB/RB
 skills, triggers the moon art, Start pauses; the d-pad and A/B work every menu and the map).
 Settings: difficulty, music, sound, screen shake, auto battle, text size (90–130%), colour-safe cues
-(blue parry and orange dodge warnings instead of white and red), save export (a file and a copied
+(blue and orange attack warnings instead of white and red), save export (a file and a copied
 code) and import.
 
 ## Release
@@ -310,13 +313,13 @@ while they wind up, so stepping aside makes them miss.
 
 - **PC**: WASD to move, the mouse aims. **Left click** attacks (the hero's combo; a fifth hit with
   the Fifth Cut boon), **right click** is the heavy, **R** and **F** the skills, **Space** dashes,
-  **Q** or Shift parries, **E** plays the ultimate. Keys only: J attack, K heavy, L parry, 1 and 2
-  skills. Touch: a stick, attack, heavy, dash, parry, two skill buttons and the ultimate.
+  Shift dashes too, **E** plays the ultimate. Keys only: J attack, K heavy, 1 and 2
+  skills. Touch: a stick, attack, heavy, dash, two skill buttons and the ultimate.
 - **Danger on the floor**: during a wind-up the floor shows where the blow will land: the circle
   of a slam, the strip of a lunge, the cone of a swing. A ring also closes over the foe's head.
-  **White** can be parried; a parry staggers the attacker and reflects bolts. **Red** can only be
-  dashed out of or through. Dash at the last moment for a perfect dodge; cut during or right after
-  a dash for a lunging dash-cut.
+  **White** is an ordinary blow, **red** a heavy one; there is no parry (taken out on 2026-11-10): dash
+  out of or through both. Dash at the last moment for a perfect dodge (it slows time, fills the moon,
+  arms Counter Cut and heals with Second Wind); cut during or right after a dash for a lunging dash-cut.
 - **Launches and walls**: finishers, the heavy spin and dash-cuts throw minions into the air; hits
   keep them up (a juggle) until they crash down. Anything thrown hard into an arena's edge bounces
   off it and takes a knock. Bodies fly back when they die.
@@ -369,7 +372,7 @@ while they wind up, so stepping aside makes them miss.
 - **Readability**: a red ring under the knight, white rings under foes; pack effects only on the
   blows that matter (finishers, dash-cuts, spins, parries, breaks, deaths); damage numbers only for
   heavy blows; impact frames only for boss moments.
-- **Moon**: the gauge fills from cuts, parries, perfect dodges and taking hits. Full, it plays the
+- **Moon**: the gauge fills from cuts, perfect dodges and taking hits. Full, it plays the
   **Red Moon** (3.4 s). At 30 % health or less it plays the **Last Ditch Effort** instead (6.4 s,
   more than twice the damage, heals 30 %). Tap or any key skips to the final frame.
 - Bosses have poise (the gold line under their bar): break it to knock them down. At half health
@@ -435,7 +438,7 @@ Risen Dead (Black Gate), Sun Wardens (Umbral Stair), Dune Reavers, Sand Imps and
 | `js/arenas.js` | The large tile maps: layouts, themes, walls, props, breakables; walking (clamp, line of sight, flow-field steering). Pure |
 | `js/loot.js` | Gold, items, rarities, affixes, drops, the blacksmith, upgrades, what gear does in a fight. Pure |
 | `js/modes.js` | Difficulty, New Game+, the endless survival, the daily challenge, achievements, mastery. Pure |
-| `js/sim.js` | The fight simulation on the tile maps (cones and circles, waves, parry, dodge, dash-cut, poise, breakables, the moon arts) and a bot. Pure, runs in Node |
+| `js/sim.js` | The fight simulation on the tile maps (cones and circles, waves, dodge, dash-cut, poise, breakables, the moon arts) and a bot. Pure, runs in Node |
 | `js/assets.js` | Loads and draws the cast (plain, flashed, silhouette, hard grey), effects and tiles |
 | `js/isoview.js` | Draws the tile maps: the baked ground, the walls behind, props, torches and breakables sorted with the fighters |
 | `js/view.js` | The full-resolution game: the isometric view for fights (projection, ring, props, floor danger, fighters, effects), the side-on stage for menus and scenes, HUD, touch controls, dialogue, boss card |

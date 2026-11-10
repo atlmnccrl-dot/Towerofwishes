@@ -23,7 +23,7 @@
   };
 
   // ---- the skill tree -----------------------------------------------------------------------------
-  // Three branches. The base kit is only the light-attack combo: dodge, parry, the heavy, both
+  // Three branches. The base kit is the light-attack combo, the dash and the heavy; both
   // skills and the ultimate are bought here with skill points, from the level shown.
   P.BRANCHES = [
     { id: 'blade', name: 'Blade', desc: 'Strikes and damage', col: '#ff3048' },
@@ -33,16 +33,16 @@
     { id: 'heavy', br: 'blade', core: true, base: true, name: 'Heavy Attack', desc: 'Right click: a heavy blow that hits all around and breaks shields.', cost: 0, lvl: 1, req: [] },
     { id: 'fourth', br: 'blade', name: 'Fifth Cut', desc: 'Your combo gains a fifth, heavier cut.', cost: 1, lvl: 4, req: ['heavy'] },
     { id: 'edge', br: 'blade', name: 'Whetted Edge', desc: 'Deal 20% more damage.', cost: 2, lvl: 6, req: ['fourth'] },
-    { id: 'riposte', br: 'blade', name: 'Riposte', desc: 'After a parry, your next cut deals triple damage.', cost: 2, lvl: 9, req: ['edge', 'parry'] },
+    { id: 'riposte', br: 'blade', name: 'Counter Cut', desc: 'After a perfect dodge, your next cut deals triple damage.', cost: 2, lvl: 9, req: ['edge', 'ghost'] },
     { id: 'edge2', br: 'blade', name: 'Keen Edge', desc: 'Deal 15% more damage again.', cost: 3, lvl: 12, req: ['edge'] },
     { id: 'exec', br: 'blade', name: 'Executioner', desc: 'Deal 50% more damage to foes under a quarter health.', cost: 3, lvl: 15, req: ['edge2'] },
     { id: 'dodge', br: 'shadow', core: true, base: true, name: 'Dodge', desc: 'Space: dash through danger, untouchable for a moment. Cut right after for a dash-cut.', cost: 0, lvl: 1, req: [] },
-    { id: 'parry', br: 'shadow', core: true, name: 'Parry', desc: 'Q: turn aside white attacks. A clean parry staggers the foe and fills the moon.', cost: 1, lvl: 2, req: ['dodge'] },
+    { id: 'iron', br: 'shadow', name: 'Iron Skin', desc: 'Take 15% less damage.', cost: 1, lvl: 2, req: ['dodge'] },
     { id: 'ghost', br: 'shadow', name: 'Ghoststep', desc: 'Dodges go farther; the perfect dodge is easier.', cost: 1, lvl: 5, req: ['dodge'] },
-    { id: 'guard', br: 'shadow', name: 'Steady Hand', desc: 'The parry window is 60% wider.', cost: 2, lvl: 7, req: ['parry'] },
+    { id: 'wind', br: 'shadow', name: 'Second Wind', desc: 'A perfect dodge heals 8 health.', cost: 2, lvl: 7, req: ['ghost'] },
     { id: 'vigor', br: 'shadow', name: 'Second Heart', desc: '30 more health.', cost: 2, lvl: 8, req: ['ghost'] },
     { id: 'vigor2', br: 'shadow', name: 'Third Heart', desc: '30 more health again.', cost: 3, lvl: 11, req: ['vigor'] },
-    { id: 'thirst', br: 'shadow', name: 'Red Thirst', desc: 'Heal 5% of the damage you deal.', cost: 3, lvl: 14, req: ['vigor2', 'guard'] },
+    { id: 'thirst', br: 'shadow', name: 'Red Thirst', desc: 'Heal 5% of the damage you deal.', cost: 3, lvl: 14, req: ['vigor2', 'wind'] },
     { id: 'skill1', br: 'moon', core: true, hero: 0, name: 'First Skill', desc: 'R: your hero\'s first skill.', cost: 1, lvl: 2, req: [] },
     { id: 'art', br: 'moon', core: true, name: 'Moon Art', desc: 'E when the moon is full: your hero\'s ultimate, a cinematic strike.', cost: 2, lvl: 3, req: ['skill1'] },
     { id: 'skill2', br: 'moon', core: true, hero: 1, name: 'Second Skill', desc: 'F: your hero\'s second skill.', cost: 1, lvl: 5, req: ['skill1'] },
@@ -52,6 +52,8 @@
     { id: 'quick', br: 'moon', name: 'Quick Hands', desc: 'Skills recharge 30% faster.', cost: 3, lvl: 16, req: ['skill2', 'rising'] },
   ];
   P.skill = (id) => P.SKILLS.find((k) => k.id === id);
+  // Parry was taken out of the game (the author, 2026-11-10): a save that learned it, or Steady Hand, gets the points back.
+  P.dropParry = function (p) { if (!p || !p.skills) return p; for (const [id, c] of [['parry', 1], ['guard', 2]]) { const i = p.skills.indexOf(id); if (i >= 0) { p.skills.splice(i, 1); p.sp = (p.sp || 0) + c; } } return p; };
   P.has = (p, id) => p.skills.indexOf(id) >= 0;
   P.canBuy = function (p, id) {
     const k = P.skill(id); if (!k) return { ok: false, why: 'Unknown' };

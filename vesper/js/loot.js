@@ -34,11 +34,11 @@
     gold: { name: 'gold find', fmt: (v) => '+' + v + '% gold found', v: (i) => 8 + i * 0.8, pre: 'Gilded', suf: 'of Fortune' },
   };
   const MAIN = { weapon: 'dmg', armour: 'hp', charm: 'gain' };
-  const POOL = { weapon: ['dmg', 'thirst', 'cd', 'heal', 'gold', 'gain'], armour: ['hp', 'armor', 'dodge', 'parry', 'heal', 'gold'], charm: ['cd', 'thirst', 'dodge', 'parry', 'armor', 'gold', 'dmg', 'hp'] };
+  const POOL = { weapon: ['dmg', 'thirst', 'cd', 'heal', 'gold', 'gain'], armour: ['hp', 'armor', 'dodge', 'heal', 'gold'], charm: ['cd', 'thirst', 'dodge', 'armor', 'gold', 'dmg', 'hp'] };
   // Legendaries carry a name and a fixed pair of affixes on top of the rolled ones.
   const UNIQUES = {
     weapon: [{ name: 'Dawnbreaker', fixed: ['dmg', 'gain'] }, { name: 'The Last Ember', fixed: ['thirst', 'heal'] }, { name: 'Widow Moon', fixed: ['dmg', 'cd'] }],
-    armour: [{ name: 'Mantle of the Gate', fixed: ['hp', 'armor'] }, { name: 'Shroud of Ash', fixed: ['dodge', 'armor'] }, { name: 'The Hollow Crown', fixed: ['parry', 'hp'] }],
+    armour: [{ name: 'Mantle of the Gate', fixed: ['hp', 'armor'] }, { name: 'Shroud of Ash', fixed: ['dodge', 'armor'] }, { name: 'The Hollow Crown', fixed: ['dodge', 'hp'] }],
     charm: [{ name: 'Tear of the Moon', fixed: ['gain', 'cd'] }, { name: 'Wolf-Tooth of Hrolf', fixed: ['dmg', 'thirst'] }, { name: 'The Gilded Saint', fixed: ['gold', 'heal'] }],
   };
   const r1 = (v) => Math.round(v * 10) / 10;
@@ -76,6 +76,8 @@
   L.migrate = function (p) {
     if (p.gold == null) p.gold = 0; if (!p.bag) p.bag = []; if (!p.equip) p.equip = {}; if (p.uid == null) p.uid = 1;
     if (!p.shop) p.shop = { seed: 1, bought: [] }; if (!p.loot) p.loot = { found: 0, legends: 0 };
+    for (const it of p.bag) if (it.stats && it.stats.parry != null) { it.stats.dodge = (it.stats.dodge || 0) + it.stats.parry; delete it.stats.parry; }   // parry is gone: its rolls become dodge
+    if (VS.PROG && VS.PROG.dropParry) VS.PROG.dropParry(p);
     if (!p.bag.length && !p.gearInit) { p.gearInit = true; const it = L.give(p, Object.assign({}, L.STARTER, { stats: Object.assign({}, L.STARTER.stats) })); L.equip(p, p.hero || 'vesper', it.uid); }
     return p;
   };

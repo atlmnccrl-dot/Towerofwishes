@@ -386,7 +386,7 @@
 
   // ---- fighters (fights) ----------------------------------------------------------------------------
   // Danger on the floor during a wind-up: the circle an area blow will hit, the path of a lunge,
-  // the cone of a swing. White can be parried, red must be dodged.
+  // the cone of a swing. White is an ordinary blow, red a heavy one: dash through both.
   function hazards(ctx, s) {
     const Sh = R.Sh();
     for (const z of s.hazards) {
@@ -1005,14 +1005,13 @@
     if (el.style.display !== 'block') el.style.display = 'block';
     return true;
   };
-  // Touch controls: a stick bottom left; CUT, DASH, PARRY and MOON bottom right; pause top right.
+  // Touch controls: a stick bottom left; CUT, DASH, HEAVY, MOON and the two skills bottom right; pause top right.
   R.touchLayout = function () {
     const k = R.k, m = 18 * k, W = R.W, H = R.H;
     return { stick: { x: m + 64 * k, y: H - m - 60 * k, r: 50 * k },
       buttons: [{ id: 'atk', x: W - m - 58 * k, y: H - m - 56 * k, r: 42 * k }, { id: 'dodge', x: W - m - 146 * k, y: H - m - 30 * k, r: 28 * k },
-        { id: 'parry', x: W - m - 136 * k, y: H - m - 110 * k, r: 28 * k }, { id: 'heavy', x: W - m - 48 * k, y: H - m - 150 * k, r: 28 * k },
-        { id: 'art', x: W - m - 128 * k, y: H - m - 186 * k, r: 26 * k },
-        { id: 's1', x: W - m - 226 * k, y: H - m - 34 * k, r: 26 * k }, { id: 's2', x: W - m - 216 * k, y: H - m - 112 * k, r: 26 * k },
+        { id: 'heavy', x: W - m - 134 * k, y: H - m - 112 * k, r: 28 * k }, { id: 'art', x: W - m - 52 * k, y: H - m - 156 * k, r: 28 * k },
+        { id: 's1', x: W - m - 230 * k, y: H - m - 36 * k, r: 26 * k }, { id: 's2', x: W - m - 216 * k, y: H - m - 120 * k, r: 26 * k },
         { id: 'pause', x: W - m - 18 * k, y: m + 18 * k, r: 18 * k }].filter((b) => !R.kit || R.kit[{ dodge: 'dodge', parry: 'parry', heavy: 'heavy', art: 'art', s1: 'skill1', s2: 'skill2' }[b.id]] !== false) };
   };
   function icon(ctx, id, x, y, r, col) {
@@ -1027,7 +1026,7 @@
     ctx.restore();
   }
   // Each control's colour and name.
-  const PAD = { atk: ['#ff2a44', 'CUT'], heavy: ['#ff8a3a', 'HEAVY'], dodge: ['#7ad8ff', 'DASH'], parry: ['#ffd060', 'PARRY'], art: ['#ff2a44', 'MOON'], s1: ['#c9a0ff', ''], s2: ['#c9a0ff', ''], pause: ['#ffffff', ''] };
+  const PAD = { atk: ['#ff2a44', 'CUT'], heavy: ['#ff8a3a', 'HEAVY'], dodge: ['#7ad8ff', 'DASH'], art: ['#ff2a44', 'MOON'], s1: ['#c9a0ff', ''], s2: ['#c9a0ff', ''], pause: ['#ffffff', ''] };
   // A control: a dark glass disc, a coloured ring, a soft inner light, the icon; pressed, it sinks and lights up.
   function padDisc(ctx, x, y, r, col, held, lit) {
     const k = held ? 0.92 : 1, rr = r * k;

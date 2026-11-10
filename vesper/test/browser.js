@@ -25,7 +25,7 @@ fs.mkdirSync(out, { recursive: true });
   await shot('02-opening', 100);
   await page.keyboard.press('Escape');
   // The last hour (the end-game glimpse): it plays, then Esc skips it, then the title card.
-  await page.waitForFunction(() => VS.main.state === 'fight' && VS.main.fight.show, null, { timeout: 60000 });
+  await page.waitForFunction(() => VS.main.state === 'fight' && VS.main.fight.showcase, null, { timeout: 60000 });
   await shot('02b-last-hour', 2500);
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => VS.main.state === 'scene'); await page.waitForTimeout(400); await page.keyboard.press('Escape');

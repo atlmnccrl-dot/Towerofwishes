@@ -27,10 +27,11 @@
     // Gear (js/loot.js): multipliers and additions on top of the kit and the skill tree.
     const G = Object.assign({ dmg: 1, hp: 0, armor: 0, gain: 1, thirst: 0, cd: 1, dodge: 1, parry: 1, heal: 1 }, gear || {});
     const can = {}; for (const k of CORE) can[k] = !kit || kit.indexOf(k) >= 0;
+    can.parry = false;   // there is no parry (the author, 2026-11-10)
     if (rules.nomoon) can.art = false;
     const glass = rules.glass ? 2 : 1;
     return {
-      can, rules, quick: (has('quick') ? 0.7 : 1) * G.cd, exec: has('exec'), armor: G.armor,
+      can, rules, quick: (has('quick') ? 0.7 : 1) * G.cd, exec: has('exec'), armor: Math.min(0.8, G.armor + (has('iron') ? 0.15 : 0)), wind: has('wind'),
       // The hero hits harder and lasts longer than the base kit, to match the bigger waves; kills heal.
       dmg: VS.POWER.dmg * (H.pow || 1) * (has('edge') ? 1.2 : 1) * (has('edge2') ? 1.15 : 1) * glass * G.dmg, hp: Math.round((Math.round(H.hp * VS.POWER.hp) + (has('vigor') ? 30 : 0) + (has('vigor2') ? 30 : 0) + G.hp) / glass), parryWin: H.parry.win * (has('guard') ? 1.6 : 1) * G.parry,
       gain: VS.POWER.gain * (has('moonblood') ? 1.4 : 1) * G.gain, killHeal: rules.noheal ? 0 : VS.POWER.killHeal * G.heal, thirst: (has('thirst') ? 0.05 : 0) + G.thirst, combo: Math.min(H.combo.length, has('fourth') ? 5 : 4),
@@ -317,7 +318,7 @@
     const M = s.mods;
     if (o.team === 'hero') {
       if (o.state === 'dodge' && o.iframes > 0) {
-        if (o.st <= M.perfect && !o.perfectDone) { o.perfectDone = true; s.slow = 0.3; s.slowT = 0.55; s.stats.perfects++; gainMoon(s, 15); ev(s, { type: 'perfect', x: o.x, y: o.y }); }
+        if (o.st <= M.perfect && !o.perfectDone) { o.perfectDone = true; s.slow = 0.3; s.slowT = 0.55; s.stats.perfects++; gainMoon(s, 15); ev(s, { type: 'perfect', x: o.x, y: o.y }); if (M.riposte) o.riposte = true; if (M.wind && o.alive) { o.hp = Math.min(o.maxHp, o.hp + 8); ev(s, { type: 'heal', id: o.id, n: 8, x: o.x, y: o.y }); } }
         return;
       }
       if (o.iframes > 0) return;

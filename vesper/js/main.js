@@ -23,8 +23,8 @@
   const applyOpts = () => { const o = M.save.opts; AU.sfxVol = o.sfx; AU.setVolume(o.music); document.documentElement.style.setProperty('--ui-scale', o.text || 1); R.safe = !!o.safe; R.camK = { near: 0.82, far: 1.22 }[o.cam] || 1; R.noNumbers = o.nums === false; R.calm = !!o.calm; if (R.kScale !== (o.text || 1)) { R.kScale = o.text || 1; if (R.canvas) R.resize(); } };
 
   // ---- input --------------------------------------------------------------------------------------
-  // PC: left mouse cuts, right mouse is the heavy, the mouse aims. Keys: J cut, K heavy, Q/Shift/L parry, Space dash, E/R moon.
-  const KEYS = { KeyJ: 'atk', KeyZ: 'atk', KeyK: 'heavy', KeyX: 'heavy', KeyQ: 'parry', ShiftLeft: 'parry', ShiftRight: 'parry', KeyL: 'parry', Space: 'dodge', KeyC: 'dodge', KeyE: 'art', KeyV: 'art', KeyR: 's1', KeyF: 's2', Digit1: 's1', Digit2: 's2',
+  // PC: left mouse cuts, right mouse is the heavy, the mouse aims. Keys: J cut, K heavy, Space/Shift dash, E moon, R/F skills.
+  const KEYS = { KeyJ: 'atk', KeyZ: 'atk', KeyK: 'heavy', KeyX: 'heavy', ShiftLeft: 'dodge', ShiftRight: 'dodge', Space: 'dodge', KeyC: 'dodge', KeyE: 'art', KeyV: 'art', KeyR: 's1', KeyF: 's2', Digit1: 's1', Digit2: 's2',
     Enter: 'confirm', Escape: 'back', KeyP: 'back', ArrowLeft: 'left', ArrowRight: 'right', KeyA: 'left', KeyD: 'right', ArrowUp: 'up', ArrowDown: 'down', KeyW: 'up', KeyS: 'down' };
   addEventListener('keydown', (e) => {
     AU.unlock();
@@ -69,10 +69,10 @@
   }
 
   // ---- the gamepad -----------------------------------------------------------------------------------
-  // Standard mapping: left stick or d-pad moves, right stick aims; A cuts, X heavy, B dash, Y parry,
+  // Standard mapping: left stick or d-pad moves, right stick aims; A cuts, X or Y heavy, B dash,
   // LB / RB the skills, either trigger the moon art, Start pauses. In menus the d-pad moves between
   // buttons, A presses and B goes back.
-  const PAD = { 0: 'atk', 1: 'dodge', 2: 'heavy', 3: 'parry', 4: 's1', 5: 's2', 6: 'art', 7: 'art', 9: 'back' };
+  const PAD = { 0: 'atk', 1: 'dodge', 2: 'heavy', 3: 'heavy', 4: 's1', 5: 's2', 6: 'art', 7: 'art', 9: 'back' };
   let padPrev = [], padNav = { t: 0, dir: null };
   M.pad = null;
   function pollPad(dt) {
@@ -255,7 +255,6 @@
   const TIPS = {
     heavy: (H) => ['NEW ABILITY · HEAVY ATTACK', `${R.touch ? 'Tap HEAVY' : 'Right click'}: ${H.heavy && H.heavy.bolt ? 'a fan of blades' : 'a heavy blow all around you'}. It breaks guards and staggers.`],
     dodge: () => ['NEW ABILITY · DODGE', `${R.touch ? 'Tap DASH' : 'Space'} to dash through danger. Cut right after a dodge for a dash-cut.`],
-    parry: () => ['NEW ABILITY · PARRY', `${R.touch ? 'Tap PARRY' : 'Q'} as a white flash lands to turn the blow aside. Red attacks cannot be parried: dodge those.`],
     skill1: (H) => ['NEW SKILL · ' + H.skills[0].name.toUpperCase(), `${R.touch ? 'The first skill button' : 'R'} uses it. It recharges after each use.`],
     skill2: (H) => ['NEW SKILL · ' + H.skills[1].name.toUpperCase(), `${R.touch ? 'The second skill button' : 'F'} uses it.`],
     art: () => ['NEW ABILITY · MOON ART', `When the moon gauge is full, ${R.touch ? 'tap the moon' : 'press E'} for your ultimate. Use it at low health for the strongest version.`],
@@ -290,7 +289,7 @@
     { title: 'BARRELS', text: () => key('Barrels, crates and pots break. Smash the powder barrel to blow up the husks around it.', 'Barrels, crates and pots break. Smash the powder barrel to blow up the husks around it.'), btn: 'atk',
       enter: (f) => { const c = ahead(f, 120); f.tut.barrel = SIM.addBreak(f.s, 'barrel', c.x, c.y); f.tut.units = [0, 1, 2].map((i) => SIM.place(f.s, 'dummy', c.x + Math.cos(0.6 + i * 2.1) * 30, c.y + Math.sin(0.6 + i * 2.1) * 30)); f.tut.mark = null; f.tut.goal = { x: f.tut.barrel.x, y: f.tut.barrel.y, hit: true }; },
       done: (f) => !f.tut.barrel || f.tut.barrel.broken, limit: 25, leave: (f) => { for (const u of alive(f)) SIM.dismiss(f.s, u); } },
-    { title: 'FIGHT', text: (f) => f.tut.hint || 'The dead are coming from all sides. Red flashes cannot be blocked: dash through them. Clear them all.', btn: null,
+    { title: 'FIGHT', text: (f) => f.tut.hint || 'The dead are coming from all sides. Dash through their swings and cut them down. Clear them all.', btn: null,
       enter: (f) => { for (const u of SIM.foes(f.s)) SIM.dismiss(f.s, u); f.tut.units = []; SIM.release(f.s); f.tut.mark = null; }, done: () => false },
   ];
   // What to say the first time each kind of foe shows up in the trial's fight.
@@ -335,7 +334,7 @@
     let node = b ? b.node : null;
     if (node && !opts.theatre) { const S = MD.scale(p); node = Object.assign({}, node, { scale: { hp: (node.scale ? node.scale.hp : 1) * S.hp, dmg: (node.scale ? node.scale.dmg : 1) * S.dmg }, rules: Object.assign({}, node.rules, S.elites ? { elites: true } : {}) }); }
     const gear = opts.gear || (opts.theatre ? null : Object.assign({}, VS.LOOT.mods(p, p.hero))); if (gear && !opts.gear) gear.dmg *= MD.masteryDmg(p, p.hero);
-    const s = SIM.create(stageIdx, { seed: (Date.now() & 0xffff) + 1, boons: opts.boons || (opts.theatre ? [] : PR.passives(p)), kit, hero: p.hero, node, gear, endlessNext: b && b.next, guided: !!(opts.node && opts.node.type === 'trial') });
+    const s = SIM.create(stageIdx, { seed: (Date.now() & 0xffff) + 1, boons: opts.boons || (opts.theatre ? [] : PR.passives(p)), kit, hero: p.hero, node, gear, endlessNext: b && b.next, guided: !!(opts.guided || (opts.node && opts.node.type === 'trial')) });
     M.fight = Object.assign({ s, stage: stageIdx, acc: 0, card: null, cardT: 0, say: null, banner: null }, opts);
     M.paused = false; R.snapCam(s); R.fx = []; R.parts = []; R.floaters = []; R.pfx = []; R.entryDoor = null; R.impactF = null; R.kit = s.mods.can;
     f0 = M.fight; const n = opts.node, AR = VS.arenaOf(s);
@@ -343,11 +342,11 @@
       const bossName = s.hasBoss ? (b && b.champion ? D.FOES[b.champion].name : n.echo ? n.name.replace('Echo: ', '') : n.name) : null;
       s.goal = { reach: n.type === 'trial' ? 'Finish the trial' : n.rule === 'horde' ? 'Survive the horde' : 'Clear every wave', boss: bossName ? 'Defeat ' + bossName : 'Clear every wave' };
       f0.banner = { text: n.name, sub: (n.rule ? PR.RULES[n.rule](n.n).split(':')[0].toUpperCase() + '  ·  ' : '') + AR.name + '  ·  AREA 1 / ' + s.waves.length, t: -0.4, col: '#ffffff' };
-      if (n.type === 'trial') { f0.tut = { step: 0, t: 0, walked: 0, seen: {}, dodged: 0 }; p.tips.heavy = p.tips.dodge = true; s.goal = { reach: 'Finish the trial', boss: 'Finish the trial' }; }
+      if (n.type === 'trial') { f0.tut = { step: p.seen && p.seen.lastHour ? TUT.length - 1 : 0, t: 0, walked: 0, seen: {}, dodged: 0 }; p.tips.heavy = p.tips.dodge = true; s.goal = { reach: 'Finish the trial', boss: 'Finish the trial' }; }
       f0.tips = kit.filter((k) => !p.tips[k]).map((k) => ({ id: k, t: 0 }));
     } else if (opts.mode === 'endless') { s.goal = { reach: 'Survive as long as you can', boss: 'Survive as long as you can' }; f0.banner = { text: 'ENDLESS', sub: AR.name + '  ·  BEST WAVE ' + ((p.endless && p.endless.best) || 0), t: -0.4, col: '#ffffff' }; }
     else if (opts.mode === 'daily') { s.goal = { reach: 'Win the daily challenge', boss: 'Win the daily challenge' }; f0.banner = { text: b.name.toUpperCase(), sub: b.twists.map((t) => t.toUpperCase()).join('  ·  ') + '  ·  ' + AR.name, t: -0.4, col: '#ffd060' }; }
-    else if (opts.showcase) { s.goal = { reach: 'The last hour', boss: 'The last hour' }; f0.banner = { text: 'THE LAST HOUR', sub: 'SEVEN HOURS FROM NOW  ·  THE TOP OF THE SPIRE', t: -0.6, col: '#ffd060' }; f0.show = { step: 0, t: 0 }; }
+    else if (opts.showcase) { s.goal = { reach: 'The last hour', boss: 'The last hour' }; f0.banner = { text: 'THE LAST HOUR', sub: 'SEVEN HOURS FROM NOW  ·  THE TOP OF THE SPIRE', t: -0.6, col: '#ffd060' }; f0.steps = LAST; f0.tut = { step: 0, t: 0, walked: 0, seen: {}, dodged: 0, kills: 0 }; }
     else f0.banner = { text: AR.name, sub: 'AREA 1 / ' + s.waves.length, t: -0.4, col: '#ffffff' };
     M.go('fight'); AU.playAmb(null); AU.cue(opts.mode || (n && (n.type === 'boss' || n.type === 'echo') ? 'boss' : 'act' + stageIdx));
   }
@@ -373,71 +372,77 @@
     U.pause({ auto: P().opts.auto, onResume: () => pause(false), onRestart: () => (f.theatre ? theatre(f.theatreHero, f.theatreFull, f.theatreBack) : f.nodeId ? startNode(f.nodeId) : startFight(f.stage)),
       onAuto: () => { P().opts.auto = !P().opts.auto; M.write(); pause(true); }, onQuit: () => { M.paused = false; if (f.theatre) (f.theatreBack || title)(); else map(f.nodeId); } });
   }
-  // ---- the last hour: a glimpse of the end before the first trial -------------------------------------------
-  // Vesper at full power on the summit, every ability and the moon art, against an end-game horde and an echo
-  // of the Gatewarden. Each step shows off one thing and moves on by itself; she cannot fall. It ends on the
-  // Last Ditch Effort, then "Seven hours earlier" and the real first trial.
+  // ---- the last hour: the tutorial, at the top of the Spire, seven hours from now ----------------------------
+  // Vesper at full power (every ability, end-game gear) learns the game one move at a time on practice targets,
+  // then puts it together against the end-game horde and an echo of the Gatewarden, and ends on the Last Ditch
+  // Effort. Each lesson waits for the move, moves on by itself after a while, and finishes with a flourish; she
+  // cannot fall here. Esc skips it. Then SEVEN HOURS EARLIER and the first fight.
   const SHOW_NODE = 'a6-1';
-  const SHOW = [
-    { title: 'FULL POWER', text: () => key('This is Vesper seven hours from now. Cut through them: WASD to move, click to cut.', 'This is Vesper seven hours from now. Cut through them: the stick moves, the red button cuts.', 'This is Vesper seven hours from now. Cut through them: left stick, A to cut.'),
-      done: (f) => f.show.kills >= 5, limit: 13 },
-    { title: 'CRESCENT WAVE', text: () => key('Press R: a wave of red steel through the whole line.', 'Tap the first skill: a wave of red steel through the whole line.', 'Press LB: a wave of red steel through the whole line.'),
-      enter: (f) => { f.s.cds[0] = 0; }, done: (f) => f.show.used[0], limit: 7 },
-    { title: 'PHANTOM STEP', text: () => key('Press F: vanish and strike from behind.', 'Tap the second skill: vanish and strike from behind.', 'Press RB: vanish and strike from behind.'),
-      enter: (f) => { f.s.cds[1] = 0; }, done: (f) => f.show.used[1], limit: 7 },
-    { title: 'HEAVY', text: () => key('Right click in the middle of them: one blow that throws them all back.', 'Tap HEAVY in the middle of them: one blow that throws them all back.', 'Press X in the middle of them: one blow that throws them all back.'),
-      done: (f) => f.show.heavy, limit: 6 },
-    { title: 'THE GUARDIAN', text: () => 'An echo of the Gatewarden. Break him: dash through the red, cut when he is open.',
-      enter: (f) => { const s = f.s; for (const u of SIM.foes(s)) SIM.dismiss(s, u); s.wave = s.waves.length - 2; s.area = s.waves.length - 1; s.waveT = 0; SIM.step(s, STEP, {}); R.snapCam(s); R.shake = 8; AU.sfx('horn', 0.9); AU.sfx('quake', 1); },
-      done: (f) => { const b = SIM.foes(f.s).find((u) => D.FOES[u.key] && D.FOES[u.key].boss); return !b || b.hp < b.maxHp * 0.5; }, limit: 14 },
-    { title: 'THE LAST DITCH EFFORT', text: () => key('At the edge of death the moon answers. Press E.', 'At the edge of death the moon answers. Tap the moon.', 'At the edge of death the moon answers. Pull a trigger.'),
-      enter: (f) => { const h = f.s.hero; f.s.moon = 100; h.hp = Math.round(h.maxHp * 0.24); AU.sfx('charge', 1); }, done: (f) => !!f.s.cine || f.show.art, limit: 6, auto: (f) => { if (!f.s.cine) SIM.startArt(f.s); } },
-    { title: '', text: () => '', done: (f) => f.show.ended > 1.6, limit: 14 },
+  const lineOf = (f, n, gap, dx) => { const a = ahead(f, 110); return Array.from({ length: n }, (_, i) => ({ x: a.x + (i - (n - 1) / 2) * gap * (dx || 1), y: a.y + (i - (n - 1) / 2) * gap * 0.25 })); };
+  const LAST = [
+    TUT[0], TUT[1], TUT[2], TUT[3],
+    { title: 'DODGE', text: () => key('The knight swings slowly. When the RED ring flashes under him, press SPACE and dash right through the blow. Dash through 2 swings.', 'The knight swings slowly. When the RED ring flashes under him, tap DASH and dash right through the blow. Dash through 2 swings.', 'The knight swings slowly. When the RED ring flashes under him, press B and dash right through the blow. Dash through 2 swings.'), btn: 'dodge',
+      enter: TUT[4].enter, prog: TUT[4].prog, done: TUT[4].done, limit: 35 },
+    TUT[5],
+    { title: 'CRESCENT WAVE', text: () => key('Your first skill. Press R: a wave of red steel down the whole line.', 'Your first skill: tap it to send a wave of red steel down the whole line.', 'Your first skill. Press LB: a wave of red steel down the whole line.'), btn: 's1',
+      enter: (f) => { f.s.cds[0] = 0; f.tut.units = lineOf(f, 4, 26).map((p) => SIM.place(f.s, 'dummy', p.x, p.y)); },
+      prog: (f) => (4 - alive(f).length) + ' / 4', done: (f) => !alive(f).length, limit: 20, leave: (f) => { for (const u of alive(f)) SIM.dismiss(f.s, u); } },
+    { title: 'PHANTOM STEP', text: () => key('Your second skill. Press F: vanish and strike the husk from behind.', 'Your second skill: tap it to vanish and strike the husk from behind.', 'Your second skill. Press RB: vanish and strike the husk from behind.'), btn: 's2',
+      enter: (f) => { f.s.cds[1] = 0; const a = ahead(f, 130); f.tut.units = [SIM.place(f.s, 'dummy', a.x, a.y)]; f.tut.used2 = false; },
+      done: (f) => f.tut.used2 || !alive(f).length, limit: 18, leave: (f) => { for (const u of alive(f)) SIM.dismiss(f.s, u); } },
+    { title: 'THE HORDE', text: () => 'Now all of it. The dead of the last hour: cut, heavy, dash, and both skills. Cut down 12.', btn: null,
+      enter: (f) => { const s = f.s; for (const u of SIM.foes(s)) SIM.dismiss(s, u); f.tut.units = []; f.tut.mark = null; f.tut.kills = 0; SIM.release(s); f.s.cds[0] = f.s.cds[1] = 0; P().seen.lastHour = true; AU.cue('boss'); R.flash = 0.5; R.flashCol = '255,40,70'; R.shake = 8; AU.sfx('horn', 0.9); },
+      prog: (f) => Math.min(12, f.tut.kills) + ' / 12', done: (f) => f.tut.kills >= 12, limit: 40 },
+    { title: 'THE GUARDIAN', text: () => 'An echo of the Gatewarden. Watch for the red rings, dash through his blows, cut him when he is open.', btn: null,
+      enter: (f) => { const s = f.s; for (const u of SIM.foes(s)) SIM.dismiss(s, u); s.wave = s.waves.length - 2; s.area = s.waves.length - 1; s.waveT = 0; SIM.step(s, STEP, {}); R.snapCam(s); R.shake = 10; AU.sfx('quake', 1); },
+      prog: (f) => { const b = SIM.foes(f.s).find((u) => D.FOES[u.key] && D.FOES[u.key].boss); return b ? Math.round(100 * b.hp / b.maxHp) + '%' : ''; },
+      done: (f) => { const b = SIM.foes(f.s).find((u) => D.FOES[u.key] && D.FOES[u.key].boss); return !b || b.hp < b.maxHp * 0.5; }, limit: 30 },
+    { title: 'THE MOON ART', text: () => key('At the edge of death the moon answers: the Last Ditch Effort. Press E.', 'At the edge of death the moon answers: the Last Ditch Effort. Tap the moon.', 'At the edge of death the moon answers: the Last Ditch Effort. Pull a trigger.'), btn: 'art',
+      enter: (f) => { const h = f.s.hero; f.s.moon = 100; h.hp = Math.round(h.maxHp * 0.24); AU.sfx('charge', 1); R.flash = 0.5; R.flashCol = '255,40,70'; },
+      done: (f) => !!f.s.cine || f.tut.art, limit: 8, auto: (f) => { if (!f.s.cine) SIM.startArt(f.s); } },
+    { title: '', text: () => '', done: (f) => f.tut.ended > 1.6, limit: 16 },
   ];
   function showcase(then) {
-    const n = PR.node(SHOW_NODE), b = PR.build(n), miss = missingFor(b), iso = isoFor(b.stage);
-    const all = ['heavy', 'dodge', 'parry', 'skill1', 'skill2', 'art'], boons = ['fourth', 'edge', 'edge2', 'ghost', 'guard', 'vigor', 'vigor2', 'moonblood', 'quick', 'thirst'];
-    const gear = { dmg: 2.4, hp: 160, armor: 0.3, gain: 1.6, thirst: 0.08, cd: 0.5, dodge: 1.3, parry: 1.4, heal: 1, gold: 1 };
-    const go = () => { startFight(b.stage, { build: b, showcase: true, kit: all, boons, gear, then }); const f = M.fight; f.show.kills = 0; f.show.used = [false, false]; f.show.heavy = false; f.show.art = false; f.show.ended = 0; };
+    const n = PR.node(SHOW_NODE), b0 = PR.build(n), b = Object.assign({}, b0, { node: Object.assign({}, b0.node, { script: true }) }), miss = missingFor(b), iso = isoFor(b.stage);   // scripted: the waves wait for the horde lesson
+    const all = ['heavy', 'dodge', 'skill1', 'skill2', 'art'], boons = ['fourth', 'edge', 'edge2', 'ghost', 'iron', 'wind', 'vigor', 'vigor2', 'moonblood', 'quick', 'thirst', 'riposte'];
+    const gear = { dmg: 2.4, hp: 160, armor: 0.3, gain: 1.6, thirst: 0.08, cd: 0.5, dodge: 1.3, parry: 1, heal: 1, gold: 1 };
+    const go = () => { startFight(b.stage, { build: b, showcase: true, guided: true, kit: all, boons, gear, then }); };
     if (!miss.length && A.isoReady(iso)) return go();
     M.go('load'); U.loading(0);
     Promise.all([A.loadSets(miss, (x) => U.loading(x)), A.loadIso(iso)]).then(() => { A.warm(R.ctx); A.isoWarm(R.ctx); U.hide(); go(); }, () => { U.hide(); go(); });
   }
   M.showcase = showcase;
-  function showStep(f) {
-    const s = f.s, T = f.show, h = s.hero;
+  // The last hour's extras on top of the lesson engine: what it counts, the floor under her health, the end.
+  function showWatch(f) {
+    const s = f.s, T = f.tut, h = s.hero;
     for (const e of s.events) {
-      if (e.type === 'kill') T.kills++;
-      if (e.type === 'skill') { const i = (s.heroDef.skills || []).findIndex((k) => k.name === e.name); if (i >= 0) T.used[i] = true; }
-      if (e.type === 'smash' || e.type === 'slam' || e.type === 'knock') T.heavy = true;
+      if (e.type === 'kill') T.kills = (T.kills || 0) + 1;
+      if (e.type === 'skill' && (s.heroDef.skills || [])[1] && e.name === s.heroDef.skills[1].name) T.used2 = true;
       if (e.type === 'art') T.art = true;
       if (e.type === 'artEnd') T.ended = 0.01;
     }
     if (T.ended > 0) T.ended += STEP;
-    // She cannot fall in the last hour.
-    if (h.alive && T.step < 5) h.hp = Math.max(h.hp, Math.round(h.maxHp * 0.35));
-    if (h.alive && T.step >= 5) h.hp = Math.max(h.hp, Math.round(h.maxHp * 0.15));
-    if (T.step >= SHOW.length) return;
-    const st = SHOW[T.step];
-    if (!T.entered) { T.entered = true; T.t = 0; if (st.enter) st.enter(f); }
-    T.t += STEP;
-    if (T.cheer > 0) { T.cheer -= STEP; if (T.cheer <= 0) { T.step++; T.entered = false; } return; }
-    if (st.done(f) || (st.limit && T.t > st.limit)) {
-      if (!st.done(f) && st.auto) { st.auto(f); return; }
-      if (T.step === SHOW.length - 1) { endShowcase(f); return; }
-      T.cheer = st.title ? 0.7 : 0.01; if (st.title) { AU.sfx('step_2', 0.8); R.float('✓ ' + st.title, h.x, h.y, 60, '#ffd060', true, true); }
-    }
+    const moonStep = LAST.length - 2;
+    if (h.alive) h.hp = Math.max(h.hp, Math.round(h.maxHp * (T.step < moonStep ? 0.35 : 0.15)));
+    if (T.step >= LAST.length - 1 && T.ended > 1.6) endShowcase(f);
+  }
+  // A lesson learned: time slows, a gold ring breaks out from her, the screen flashes gold.
+  function lessonFlourish(f, title) {
+    const s = f.s, h = s.hero; if (!title) return;
+    s.slow = 0.3; s.slowT = 0.5; R.shake = Math.max(R.shake || 0, 6); R.flash = 0.45; R.flashCol = '255,208,96';
+    R.fx.push({ t: 0, kind: 'gring', x: h.x, y: h.y, life: 0.7, col: '#ffd060', r0: 8, r1: 150, w: 5 }, { t: 0, kind: 'ring', x: h.x, y: h.y, z: 22, life: 0.45, col: '#ffffff', r0: 6, r1: 70, w: 3 });
+    AU.sfx('level_up', 0.5);
   }
   function endShowcase(f) {
-    if (f.showDone) return; f.showDone = true; AU.duck(false);
+    if (f.showDone) return; f.showDone = true; AU.duck(false); M.write();
     startScene(0, { shots: [{ k: 'title', top: 'THE BLACK GATE', title: 'SEVEN HOURS EARLIER', sub: 'Dusk. The night has only begun.', d: 3.0 }] }, f.then, true);
   }
 
   // The trial's steps, checked against the fight as it plays.
   function tutorial(f) {
-    const s = f.s, T = f.tut, h = s.hero, dt = 1 / 60;
-    if (T.step >= TUT.length) return;
-    const st = TUT[T.step];
+    const s = f.s, T = f.tut, h = s.hero, dt = 1 / 60, STEPS = f.steps || TUT;
+    if (T.step >= STEPS.length) return;
+    const st = STEPS[T.step];
     if (!T.entered) { T.entered = true; T.t = 0; T.goal = null; T.units = T.units || []; if (st.enter) st.enter(f); s.marker = T.mark || T.goal || null; }
     T.t += dt;
     // Count what the steps watch for.
@@ -451,15 +456,18 @@
     if (T.hint) { T.hintT = (T.hintT || 0) + dt; if (T.hintT > 6) T.hint = null; }
     if (T.cheer > 0) { T.cheer -= dt; if (T.cheer <= 0) { T.step++; T.entered = false; } return; }
     if (st.done(f) || (st.limit && T.t > st.limit)) {
+      if (!st.done(f) && st.auto) { st.auto(f); return; }
       if (st.leave) st.leave(f);
+      if (!st.title) { T.step++; T.entered = false; return; }
       T.cheer = 1.0; T.mark = null; s.marker = null; AU.sfx('step_2', 0.8); AU.sfx('allout', 0.35);
-      R.float('✓ ' + st.title, h.x, h.y, 60, '#8ad0ff', true, true);
+      R.float('✓ ' + st.title, h.x, h.y, 60, f.showcase ? '#ffd060' : '#8ad0ff', true, true);
+      if (f.showcase) lessonFlourish(f, st.title);
     }
   }
   function fight(ctx, dt) {
     const f = M.fight, s = f.s;
     if (f.theatre && !M.paused && (M.pressed.back || M.pressed.tap)) { AU.duck(false); (f.theatreBack || title)(); return; }   // the theatre: a tap or Esc leaves the moon art
-    if (f.show && M.pressed.back && !M.paused) { M.pressed.back = false; endShowcase(f); return; }   // Esc skips the last hour
+    if (f.showcase && M.pressed.back && !M.paused) { M.pressed.back = false; endShowcase(f); return; }   // Esc skips the last hour
     if (M.pressed.back && !s.cine && !M.paused) { pause(true); M.pressed.back = false; }
     if (!M.paused && !M.hold) {
       f.acc += dt;
@@ -469,7 +477,7 @@
         const c0 = s.cine ? s.cine.t : null, inp = Object.assign({ mx: live.mx, my: live.my, aim: live.aim }, f.pend); f.pend = {};
         SIM.step(s, STEP, inp); f.acc -= STEP;
         if (f.tut) tutorial(f);
-        if (f.show) { showStep(f); if (f.showDone) return; }
+        if (f.showcase) { showWatch(f); if (f.showDone) return; }
         if (s.cine && c0 != null) for (const [n, v] of VS.cine.cues(s.cine, c0, s.cine.t)) AU.sfx(n, v);
         R.consume(s); AU.events(s.events);
         for (const e of s.events) {
@@ -497,14 +505,10 @@
       if (f.card) { f.cardT += dt; if (f.cardT < 1.9) R.bossCard(ctx, s, f.card, f.cardT); else f.card = null; }
       // Coaching: the trial's steps, then a card for each newly learned ability.
       if (f.banner && f.banner.t < 2.2 && !f.banner.low) { /* the coach waits for the banner */ }
-      else if (f.show && !M.paused && f.show.step < SHOW.length && SHOW[f.show.step].title) {
-        const T = f.show, st = SHOW[T.step];
-        R.coach(ctx, { title: 'THE LAST HOUR  ·  ' + st.title, text: st.text(f), t: T.cheer > 0 ? 1 : T.t + 0.3, step: T.step, of: SHOW.length - 1, col: '#ffd060', done: T.cheer > 0 });
-      }
-      else if (f.tut && !M.paused) {
-        const T = f.tut, st = TUT[Math.min(TUT.length - 1, T.step)];
+      else if (f.tut && !M.paused && (f.steps || TUT)[Math.min((f.steps || TUT).length - 1, f.tut.step)].title) {
+        const STEPS = f.steps || TUT, T = f.tut, st = STEPS[Math.min(STEPS.length - 1, T.step)];
         R.tutGuide(ctx, s, { mark: T.cheer > 0 ? null : T.mark, targets: T.cheer > 0 ? [] : alive(f), barrel: T.cheer > 0 || !T.barrel || T.barrel.broken ? null : T.barrel, btn: T.cheer > 0 ? null : st.btn, touch: R.touch });
-        R.coach(ctx, { title: 'TRIAL  ·  ' + st.title, text: st.text(f), t: T.cheer > 0 ? 1 : T.t + 0.3, step: T.step, of: TUT.length, col: '#8ad0ff', prog: st.prog && T.cheer <= 0 ? st.prog(f) : null, done: T.cheer > 0 });
+        R.coach(ctx, { title: (f.showcase ? 'THE LAST HOUR  ·  LESSON ' + (T.step + 1) + '  ·  ' : 'TRIAL  ·  ') + st.title, text: st.text(f), t: T.cheer > 0 ? 1 : T.t + 0.3, step: T.step, of: f.showcase ? STEPS.length - 1 : STEPS.length, col: f.showcase ? '#ffd060' : '#8ad0ff', prog: st.prog && T.cheer <= 0 ? st.prog(f) : null, done: T.cheer > 0 });
       }
       else if (f.tips && f.tips.length && !M.paused && s.time > 1.2) {
         const tp = f.tips[0], H = s.heroDef, [tt, tx] = TIPS[tp.id](H); tp.t += dt;
@@ -527,13 +531,13 @@
     const n = f.node, win = result === 'win', groups = s.waves.length;
     const r = { win, time: s.time, hpFrac: s.hero.hp / s.hero.maxHp, bossHits: s.stats.bossHits, maxCombo: s.stats.maxCombo, kills: s.kills || 0, progress: (s.area + (win ? 1 : 0)) / groups, chests: s.chests || [], smashed: s.smashed || 0, rand: Math.random, reward: VS.MODES.scale(p).reward, ilvl: VS.MODES.scale(p).ilvl };
     const res = PR.finish(p, n.id, r); afterFight(p, s, win, res); M.write();
-    const stats = [[s.time.toFixed(1) + 's', 'Time'], [s.stats.maxCombo, 'Best combo'], [s.kills || 0, 'Kills'], [s.stats.parries, 'Parries']];
+    const stats = [[s.time.toFixed(1) + 's', 'Time'], [s.stats.maxCombo, 'Best combo'], [s.kills || 0, 'Kills'], [s.stats.perfects, 'Perfect dodges']];
     const showResult = () => {
       M.go('result'); M.result = { stage: f.stage }; AU.cue('result'); AU.playAmb('night');
       const next = PR.nextNode(p);
       const btns = win ? [{ label: 'Continue', sub: n.type === 'trial' && p.sp ? 'Then open Skills: you have a skill point' : '', act: () => map(next) }, { label: 'Fight again', act: () => startNode(n.id) }]
         : [{ label: 'Try again', act: () => startNode(n.id) }].concat(p.sp ? [{ label: 'Skill tree', sub: p.sp + ' skill point' + (p.sp > 1 ? 's' : '') + ' to spend', act: () => skills() }] : [], [{ label: 'Back to the map', act: () => map(n.id) }]);
-      const tip = !win ? (s.rules.time && s.time >= s.rules.time ? 'The clock ran out. Kill faster: heavy attacks and skills clear crowds.' : p.sp ? 'You have skill points to spend. New abilities make a big difference.' : !PR.kit(p).includes('dodge') ? 'Step out of reach when a foe flashes white, then strike back.' : 'Dodge through red attacks, parry the white ones. Clear easier nodes for experience.') : null;
+      const tip = !win ? (s.rules.time && s.time >= s.rules.time ? 'The clock ran out. Kill faster: heavy attacks and skills clear crowds.' : p.sp ? 'You have skill points to spend. New abilities make a big difference.' : !PR.kit(p).includes('dodge') ? 'Dash through a swing when a foe flashes, then strike back.' : 'Dash through their swings, then punish. Clear easier nodes for experience.') : null;
       U.result({ p, node: n, win, r: res, stats, tip, buttons: btns });
     };
     // The First Cut falls: the ending plays first.
@@ -564,7 +568,7 @@
     else { res = MD.finishDaily(p, f.build, { win, time: s.time }, Math.random); name = f.build.name; if (!win) tip = 'Twists today: ' + f.build.twists.map((t) => MD.TWIST_TEXT[t]).join('; ') + '.'; else if (!res.first) tip = 'Already won today: no second reward, but your best time is kept.'; }
     afterFight(p, s, win || f.mode === 'endless', res); M.write();
     M.go('result'); M.result = { stage: f.stage }; AU.cue('result'); AU.playAmb('night');
-    const stats = [[s.time.toFixed(1) + 's', 'Time'], [s.stats.maxCombo, 'Best combo'], [s.kills || 0, 'Kills'], [s.stats.parries, 'Parries']];
+    const stats = [[s.time.toFixed(1) + 's', 'Time'], [s.stats.maxCombo, 'Best combo'], [s.kills || 0, 'Kills'], [s.stats.perfects, 'Perfect dodges']];
     U.result({ p, node: { name }, title: f.mode === 'endless' ? 'Run over' : null, win: f.mode === 'endless' ? true : win, r: res, stats, tip, buttons: [{ label: f.mode === 'endless' ? 'Go again' : 'Try again', act: () => startMode(f.mode) }, { label: 'Back to the map', act: () => map() }] });
   }
   function modes(confirmNg) {

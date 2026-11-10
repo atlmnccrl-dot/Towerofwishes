@@ -48,7 +48,7 @@
   const base = D.HERO;
   D.HEROES = {
     vesper: Object.assign({}, base, { id: 'vesper', pow: 1.12, name: 'Vesper', title: 'The Moonblade', weapon: 'Sword', color: '#ff3048', art: 'moon',
-      blurb: 'A knight in a red hood. Combos, parries, and the moon itself.',
+      blurb: 'A knight in a red hood. Combos, dashes, and the moon itself.',
       skills: [
         { name: 'Crescent Wave', kind: 'wave', cd: 6, clip: 'Attack3', dmg: 14, speed: 300, r: 16, fx: 'dark_slash', poise: 14 },
         { name: 'Phantom Step', kind: 'blinkStrike', cd: 7, clip: 'Attack6', dmg: 18, range: 150, r: 34, poise: 20 }] }),
@@ -450,12 +450,12 @@
   D.BOONS = [
     { id: 'edge', name: 'Whetted Edge', desc: 'Your cuts deal 20% more damage.' },
     { id: 'vigor', name: 'Second Heart', desc: '+30 health, and you heal to full.' },
-    { id: 'guard', name: 'Steady Hand', desc: 'The parry window is 60% wider.' },
+    { id: 'iron', name: 'Iron Skin', desc: 'Take 15% less damage.' },
     { id: 'moonblood', name: 'Moonblood', desc: 'The moon fills 40% faster.' },
     { id: 'thirst', name: 'Red Thirst', desc: 'Heal 5% of the damage you deal.' },
     { id: 'fourth', name: 'Fifth Cut', desc: 'Your combo gains a fifth, heavier cut.' },
     { id: 'ghost', name: 'Ghoststep', desc: 'Dodges go farther; the perfect dodge is easier.' },
-    { id: 'riposte', name: 'Riposte', desc: 'After a parry, your next cut deals triple damage.' },
+    { id: 'riposte', name: 'Counter Cut', desc: 'After a perfect dodge, your next cut deals triple damage.' },
     { id: 'breath', name: 'Last Breath', desc: 'The Last Ditch Effort opens at 45% health.' },
     { id: 'rising', name: 'Rising Moon', desc: 'Start every fight with the moon half full.' },
   ];

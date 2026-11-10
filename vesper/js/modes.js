@@ -105,7 +105,7 @@
     { id: 'kills1000', name: 'Thousand Cuts', desc: 'Defeat 1,000 foes.', test: (p) => st(p, 'kills') >= 1000 },
     { id: 'combo50', name: 'Unbroken', desc: 'Land a 50-hit combo.', test: (p) => st(p, 'maxCombo') >= 50 },
     { id: 'perfect25', name: 'Ghost', desc: 'Make 25 perfect dodges.', test: (p) => st(p, 'perfects') >= 25 },
-    { id: 'parry50', name: 'Turned Aside', desc: 'Parry 50 blows.', test: (p) => st(p, 'parries') >= 50 },
+    { id: 'parry50', name: 'Untouchable', desc: 'Make 100 perfect dodges.', test: (p) => st(p, 'perfects') >= 100 },
     { id: 'untouch', name: 'Untouchable', desc: 'Defeat a guardian without being hit.', test: (p) => !!(p.flags && p.flags.untouchable) },
     { id: 'stars100', name: 'Constellation', desc: 'Earn 100 stars.', test: (p) => P().totalStars(p) >= 100 },
     { id: 'heroes', name: 'Full Company', desc: 'Unlock every hero.', test: (p) => p.heroes.length >= D().HERO_ORDER.length },

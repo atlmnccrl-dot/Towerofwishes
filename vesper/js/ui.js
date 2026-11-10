@@ -57,14 +57,14 @@
     const groups = [
       ['Game', [['diff', 'Difficulty', DF.name], ['auto', 'Auto battle', onoff(v.auto)], ['scenes', 'Story scenes', v.scenes === 'skip' ? 'Skip' : 'Play'], ['theatre', 'Theatre', 'Watch every cutscene and moon art']]],
       ['Display', [['cam', 'Camera', { near: 'Near', far: 'Far' }[v.cam] || 'Normal'], ['text', 'Text size', Math.round((v.text || 1) * 100) + '%'], ['nums', 'Damage numbers', onoff(v.nums !== false)],
-        ['shake', 'Screen shake', onoff(v.shake)], ['calm', 'Reduce flashing', v.calm ? 'On · no impact frames or white flashes' : 'Off'], ['safe', 'Colour-safe cues', v.safe ? 'On · blue parry, orange dodge' : 'Off']]],
+        ['shake', 'Screen shake', onoff(v.shake)], ['calm', 'Reduce flashing', v.calm ? 'On · no impact frames or white flashes' : 'Off'], ['safe', 'Colour-safe cues', v.safe ? 'On · blue and orange attack warnings' : 'Off']]],
       ['Sound', [['music', 'Music', v.music ? (v.music < 1 ? 'Low' : 'On') : 'Off'], ['sfx', 'Sound effects', onoff(v.sfx)], ['vibe', 'Vibration', v.vibe === false ? 'Off' : 'On · phones that support it']]],
       ['Save', [['export', 'Export save', 'Download a file and copy the code'], ['import', 'Import save', 'Load a save file'], ['reset', 'Reset progress', o.confirmReset ? 'Press again to erase your climb' : 'Erase levels, skills, gear and the map']]]];
     let i = 0; const keys = [];
     const html = groups.map(([g, rows]) => `<p class="np-h set-h">${g}</p><nav class="menu rows">` + rows.map(([k, label, sub]) => { keys.push(k); return `<button class="btn${k === 'reset' && o.confirmReset ? ' danger' : ''}" data-i="${i++}" type="button"><span class="btn-label">${esc(label)}</span><span class="btn-sub">${esc(sub)}</span></button>`; }).join('') + '</nav>').join('')
       + `<nav class="menu rows"><button class="btn" data-i="${i}" type="button"><span class="btn-label">Back</span></button></nav>`;
     const items = keys.map((k) => ({ act: () => o.set(k) })).concat([{ act: o.onBack }]);
-    const el = U.show('settings', `<div class="panel"><h2>Settings</h2>${html}<p class="note">${esc(DF.name)}: ${esc(DF.desc)} Saves live in this browser: export one to keep it safe or move it to another device. A gamepad works everywhere: A cut, X heavy, B dash, Y parry, LB/RB skills, triggers moon art.</p>${o.toast ? `<p class="note" style="color:var(--gold)">${esc(o.toast)}</p>` : ''}</div>`, items, { back: o.onBack });
+    const el = U.show('settings', `<div class="panel"><h2>Settings</h2>${html}<p class="note">${esc(DF.name)}: ${esc(DF.desc)} Saves live in this browser: export one to keep it safe or move it to another device. A gamepad works everywhere: A cut, X heavy, B dash, LB/RB skills, triggers moon art.</p>${o.toast ? `<p class="note" style="color:var(--gold)">${esc(o.toast)}</p>` : ''}</div>`, items, { back: o.onBack });
     if (o.focus != null) { const b = el.querySelectorAll('.btn')[keys.indexOf(o.focus)]; if (b) b.focus({ preventScroll: true }); }
   };
   // The theatre: every cutscene in groups, each a row; o.focus is the row to come back to.
@@ -92,7 +92,7 @@
     const stat = (n, l) => `<div class="stat"><b>${esc(n)}</b><span>${esc(l)}</span></div>`;
     const cards = `<nav class="cards">` + items.map((it, i) => `<button class="btn card" data-i="${i}" type="button"><span class="card-moon"></span><span class="btn-label">${esc(it.label)}</span><span class="btn-sub">${esc(it.sub)}</span></button>`).join('') + '</nav>';
     U.show('boon', `<div class="boon-wrap"><p class="eyebrow">${esc(o.hour)}</p><h2>Hour cleared</h2>
-      <div class="stats">${stat(o.time.toFixed(1) + 's', 'Time')}${stat(st.maxCombo, 'Best combo')}${stat(st.parries, 'Parries')}${stat(st.perfects, 'Perfect dodges')}${stat(st.arts, 'Moon arts')}</div>
+      <div class="stats">${stat(o.time.toFixed(1) + 's', 'Time')}${stat(st.maxCombo, 'Best combo')}${stat(st.perfects, 'Perfect dodges')}${stat(st.arts, 'Moon arts')}</div>
       <p class="lead">The moon offers you one of these.</p>${cards}
       ${o.carried.length ? `<p class="carried">Carried: ${o.carried.map(esc).join(' · ')}</p>` : ''}</div>`, items);
   };
@@ -182,7 +182,7 @@
   // The skill tree: three branches as rows of round icons, read left to right; the chosen skill is shown
   // large in a panel on the right (its name, what it does, what it needs) with one button to learn it.
   const SK_IC = { heavy: 'anvil', fourth: 'sword', edge: 'gem', riposte: 'shield', edge2: 'gem', exec: 'skull', dodge: 'door', parry: 'shield', ghost: 'hourglass',
-    guard: 'helm', vigor: 'heart', vigor2: 'heart', thirst: 'fire', skill1: 'star', art: 'orb', skill2: 'star', moonblood: 'gem', rising: 'crown', breath: 'dragon', quick: 'hourglass' };
+    iron: 'helm', wind: 'heart', vigor: 'heart', vigor2: 'heart', thirst: 'fire', skill1: 'star', art: 'orb', skill2: 'star', moonblood: 'gem', rising: 'crown', breath: 'dragon', quick: 'hourglass' };
   U.skills = function (o) {
     const p = o.p, PR = P(), H = DD().HEROES[p.hero];
     const heroName = (k) => (k.hero != null && H.skills ? H.skills[k.hero].name : k.id === 'art' ? VS.ART[H.art === 'moon' ? 'moon' : H.art].name : '');
