@@ -1,0 +1,1 @@
+{"name": "c13_boss", "url": "?node=a1-b", "state": "fight", "setup": "const f = VS.main.fight; f.tips = []; f.auto = true; const h = f.s.hero; h.maxHp *= 6; h.hp = h.maxHp; VS.R.camK = 0.72;", "parts": [{"skip": 6, "dur": 3.2}]}

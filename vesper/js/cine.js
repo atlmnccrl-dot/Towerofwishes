@@ -389,7 +389,7 @@
     B[b[0]](ctx, s, c, k, T, d);
     // Letterbox and the skip hint.
     if (b[0] !== 'snap') { ctx.fillStyle = '#000000'; ctx.fillRect(0, 0, W(), 12); ctx.fillRect(0, H() - 12, W(), 12); }
-    if (c.t > 0.6 && b[0] !== 'red') R.text(ctx, 'tap to skip', 6, H() - 3, 6, 'rgba(230,220,224,0.55)', 'left', { shadow: false });
+    if (c.t > 0.6 && b[0] !== 'red' && !VS.R.noSkipHint) R.text(ctx, 'tap to skip', 6, H() - 3, 6, 'rgba(230,220,224,0.55)', 'left', { shadow: false });
   };
 
 })();

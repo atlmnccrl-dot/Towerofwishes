@@ -1,0 +1,1 @@
+{"name": "c14_g3", "url": "?node=a3-5", "state": "fight", "setup": "const f = VS.main.fight; f.tips = []; f.auto = true; const h = f.s.hero; h.maxHp *= 6; h.hp = h.maxHp; VS.R.camK = 0.72;", "parts": [{"skip": 6, "dur": 2.6}]}
