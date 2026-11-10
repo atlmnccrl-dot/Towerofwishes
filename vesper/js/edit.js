@@ -268,8 +268,17 @@
     if (c.text) for (const w of [].concat(c.text)) if (T >= (w.at || 0)) say(S, w.kind || 'punch', w.text, W() * (w.x == null ? 0.5 : w.x), H() * (w.y == null ? 0.5 : w.y), Object.assign({ size: 30, k: T - (w.at || 0) }, w.o || {}));
   }
   E.run = run;
+  // opts.pace slows a film down so it can be followed (the author, 2026-11-09: "a bit confusing and rapid"):
+  // action cuts stretch the most, cards and long shots a little, impact frames stay a few frames long, and
+  // the stutter holds are dropped. Motion is tied to each cut's progress, so stretched cuts play slower.
   E.film = function (cuts, opts) {
-    const shots = [], draw = {}, sfx = [], lines = [], noBars = {}, flat = {};
+    const shots = [], draw = {}, sfx = [], lines = [], noBars = {}, flat = {}, pace = (opts && opts.pace) || 1;
+    cuts = cuts.map((c, i) => (c && !c.name ? Object.assign({}, c, { name: 'c' + i }) : c));   // names from the written order, so music cues keep their cut
+    if (pace !== 1) cuts = cuts.filter((c) => c && c.freeze == null).map((c) => {
+      const f = c.d < 0.12 ? 1 : c.d < 0.7 ? 1 + (pace - 1) * 1.9 : pace;
+      return Object.assign({}, c, { d: c.d * f, sfx: (c.sfx || []).map(([a, n, v]) => [a * f, n, v]), lineAt: c.lineAt != null ? c.lineAt * f : c.lineAt, lineDur: c.lineDur != null ? c.lineDur * f : c.lineDur,
+        lines: (c.lines || []).map(([a, d2, t, col]) => [a * f, d2 * f, t, col]), text: c.text ? [].concat(c.text).map((w) => Object.assign({}, w, { at: (w.at || 0) * f })) : c.text });
+    });
     cuts.filter(Boolean).forEach((c, i) => {
       const name = c.name || 'c' + i; shots.push([name, c.d]);
       draw[name] = (ctx, S, k, T) => run(c, ctx, S, k, T);

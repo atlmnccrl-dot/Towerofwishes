@@ -133,7 +133,7 @@
         { ...G, cam: { z: [1.0, 1.1], r: [0, 0.04] }, shake: 2, sfx: [[0, 'quake', 1], [0.1, 'horn', 0.8]], text: { kind: 'knock', text: 'GATEWARDEN', at: 0.05, o: { size: 0.85, sx: 0.58, col: '#000' } } }),
       nameCut(1.2, 'THE GATEWARDEN', 'KEEPER OF THE BLACK GATE', sc({ bg: brightGlow([0.5, 0.75], '#c8c0d8', '#0a090c'), sil: INK, actors: [{ who: 'warden', clip: 'Idle4', fps: 8, ang: FRONT, x: 0.5, y: 1.25, sc: 3.4, eyes: EYE }] }),
         { ...G, cam: { z: [1.08, 1.0] }, whiteOut: 0.15 }),
-    ], { music: ['c6', 'boss'] });
+    ], { music: ['c6', 'boss'] , pace: 1.4 });
   }
 
   // Two scenes side by side (a split screen), with a white seam.
@@ -189,7 +189,7 @@
         { ...G, cam: { r: [0.05, -0.05] }, sfx: [[0.1, 'smash', 0.7], [0.25, 'smash', 0.7], [0.4, 'smash', 0.7]] }),
       cut(0.06, E.inv({ lines: 'level', actors: [{ who: V, clip: 'Attack6', fr: 8, ang: RIGHT, x: 0.5, y: 0.95, sc: 3.2 }], cy: 0.55 }), { bars: false, sfx: [[0, 'slash_2', 1]] }),
       nameCut(1.3, 'THE HOLLOW TWINS', 'THE LEFT HAND · THE RIGHT HAND', split(half('twinA', 0, 0.26), half('twinB', PI, 0.74)), { ...G, cam: { z: [1.0, 1.06] }, whiteOut: 0.15 }),
-    ], { amb: 'night', music: ['c8', 'boss'] });
+    ], { amb: 'night', music: ['c8', 'boss'] , pace: 1.4 });
   }
 
   // ---- The Umbral: ink, nothing but black and white. "Behind you." The court of shadows closes on her. ----
@@ -205,7 +205,7 @@
       card(1.4, 'DO NOT LOOK BEHIND YOU', false, { size: 14 }),
       cut(1.2, sc({ bg: pool, sil: INK, actors: [{ who: V, clip: 'Idle4', fps: 7, ang: FRONT, x: 0.5, y: 0.82, sc: 1.8 }],
         over: (ctx, S, k, T) => say(S, 'card', 'THE UMBRAL STAIR', 10, 32, { sub: 'THE SECOND HOUR', k: T }) }), { ...G, cam: { z: [1.0, 1.1] }, sfx: [[0.3, 'magic', 0.4]] }),
-      flick(true), flick(false), flick(true), flick(false, 0.08), flick(true), E.blink(0.06),
+      flick(true, 0.08), flick(false, 0.08), flick(true, 0.12), E.blink(0.08),
       cut(0.7, E.face({ who: V, sc: 3.2, cy: 0.36, eyes: '#ff3048', eyesAt: 0.15, ang: FRONT, shade: '#ffffff', bg: { kind: 'flat', col: '#000' } }), { ...G, cam: { z: [1.0, 1.2] }, sfx: [[0.05, 'blink', 0.6]], line: 'Behind you.', lineDur: 0.9, lineCol: UCOL }),
       cut(0.45, sc({ bg: { kind: 'glow', col: '#ffffff', base: '#101010' }, sil: INK, actors: [{ who: V, clip: 'Attack6', fr: [2, 12], ang: LEFT, x: 0.5, y: 0.95, sc: 2.8, smear: 3, smearCol: '#808080' }],
         fx: [{ key: 'spin_slash', x: 0.5, y: 0.6, sc: 2, t0: 0.2 }, { key: 'smoke_dark', x: 0.25, y: 0.6, sc: 2.4, t0: 0.4 }] }),
@@ -224,7 +224,7 @@
       cut(0.45, sc({ bg: { kind: 'glow', col: '#ffffff', base: '#202020' }, sil: INK, speed: { ang: 0.4, col: 'rgba(0,0,0,0.6)', n: 50, v: 1600 },
         actors: [{ who: V, clip: 'Rolling', fps: 30, ang: PI * 0.25, x: 0.3, y: 0.7, to: [0.8, 0.95], sc: 2.2, smear: 5, smearCol: '#808080' }] }), { ...G, cam: { r: [0.15, 0.1] }, sfx: [[0, 'dodge', 1]] }),
       nameCut(1.3, 'THE UMBRAL', 'WHO WALKS BEHIND', sc({ bg: { kind: 'glow', col: '#ffffff', base: '#000', at: [0.5, 0.8] }, sil: INK, actors: [{ who: 'umbral', clip: 'Taunt', fps: 10, ang: FRONT, x: 0.5, y: 1.15, sc: 3.4, eyes: EYE }] }), { ...G, cam: { z: [1.06, 1.0] }, whiteOut: 0.15 }),
-    ], { amb: 'night', music: ['c8', 'boss'] });
+    ], { amb: 'night', music: ['c8', 'boss'] , pace: 1.4 });
   }
 
   // ---- The Hunger: ember. The lights go out one by one; it lunges out of the dark; HUNGER. ---------------
@@ -260,7 +260,7 @@
       nameCut(1.2, 'THE HUNGER', 'IT EATS THE LIGHT', sc({ bg: brightGlow([0.5, 0.8], '#ffb060', '#000'), sil: INK, actors: [{ who: 'hunger', clip: 'Idle4', fps: 6, ang: FRONT, x: 0.5, y: 1.2, sc: 3.2, eyes: EYE }],
         mid: (ctx, S, k) => { const g = ctx.createRadialGradient(W() / 2, H() / 2, H() * (0.7 - 0.5 * k), W() / 2, H() / 2, H() * (1.1 - 0.45 * k)); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,1)'); ctx.fillStyle = g; ctx.fillRect(-W(), -H(), W() * 3, H() * 3); } }),
         { ...G, blackOut: 0.12 }),
-    ], { music: ['c12', 'boss'] });
+    ], { music: ['c12', 'boss'] , pace: 1.4 });
   }
 
   // ---- The Pale Wing: storm. A vast pale sky and two tiny figures; it dives; she leaps at it. ------------
@@ -298,7 +298,7 @@
       cut(1.4, sc({ bg: (ctx, S, k, T) => storm(ctx, T, 0.86), sil: INK, actors: [{ who: 'wing', clip: 'Idle4', fps: 8, ang: FRONT, x: 0.5, y: 0.86, sc: 2.4, eyes: EYE }] }),
         { ...G, cam: { z: [1.0, 1.08] }, whiteOut: 0.12, sfx: [[0.05, 'boss', 1]],
           text: [{ kind: 'spaced', text: 'THE PALE WING', y: 0.22, o: { size: 26, col: '#ffffff', glow: '#a8c8ff', dur: 1.2, from: 1.4, to: 0.18 } }, { kind: 'line', at: 0.9, text: 'THROAT OF THE WIND', y: 0.34, o: { size: 14, col: '#e8eeff', spacing: 3 } }] }),
-    ], { music: ['c6', 'boss'] });
+    ], { music: ['c6', 'boss'] , pace: 1.4 });
   }
 
   // ---- The First Cut: blood and gold. The fallen, one frame each; he rises; "one blade"; the blade falls. --
@@ -341,7 +341,7 @@
         A.actor(ctx, S.cast.vesper, 'Special1', 8, -PI * 0.25, Math.round(gx * W()) + push, Math.round(gy * H()), 1.7, { shade: '#000' });
         K0.sparks(ctx, gx * W() + 4, gy * H() - 30, T, 90, 1425, 5.5);
       } }, { bars: false, shake: 2, whiteOut: 0.2, sfx: [[0.1, 'quake', 1]], text: { kind: 'punch', text: 'THIS ENDS TONIGHT', at: 0.15, y: 0.24, o: { size: 30 } } }),
-    ], { music: ['c4', 'boss', 0.5] });
+    ], { music: ['c4', 'boss', 0.5] , pace: 1.4 });
   }
 
   // Which film opens which guardian's fight.

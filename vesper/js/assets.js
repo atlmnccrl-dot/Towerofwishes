@@ -118,6 +118,8 @@
   A.cbReady = () => !!cbData;
   // The old effect names, played as Crowd Breaker sheets: [sheet, size against the old effect, options]
   // (flipAng: mirrored when the blow goes left; directional sheets pick their tag from the angle).
+  // The pack's sheets are drawn big; every mapped effect is scaled down by this (the author, 2026-11-09: "effects are a bit too large on attacks").
+  A.CB_SCALE = 0.62;
   A.CBMAP = {
     hit_slash: ['02_roaring_blade_nova/target', 1.3, { flipAng: true }], hit_big: ['90_last_stand_strike/target', 0.95], hit_crit: ['01_crimson_tide_cleave/target', 0.9],
     cross_slash: ['107_flashpoint_severance/target', 1.15], katana: ['06_piercing_dash/target', 1.0], parry: ['218_sky_rend_star/target', 1.7],
@@ -153,7 +155,7 @@
   A.fx = function (ctx, name, t, x, y, scale, alpha, angle, flip) {
     if (name.charCodeAt(0) === 99 && name.startsWith('cb:')) return A.cb(ctx, name.slice(3), t, x, y, scale, alpha, angle, flip);
     const mp = cbData && A.CBMAP[name];
-    if (mp && cbData.fx[mp[0]]) return A.cb(ctx, mp[0], t, x, y, (scale || 1) * mp[1], alpha, angle, mp[2] && mp[2].flipAng ? (!!flip !== (angle != null && Math.cos(angle) < 0)) : flip, mp[2]);
+    if (mp && cbData.fx[mp[0]]) return A.cb(ctx, mp[0], t, x, y, (scale || 1) * mp[1] * A.CB_SCALE, alpha, angle, mp[2] && mp[2].flipAng ? (!!flip !== (angle != null && Math.cos(angle) < 0)) : flip, mp[2]);
     const d = fxData && fxData.fx[name]; if (!d) return false;
     let i = Math.floor(t * d.fps); if (d.loop) i %= d.frames.length; else if (i >= d.frames.length) return false;
     if (i < 0) return true;

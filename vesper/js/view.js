@@ -1026,24 +1026,55 @@
     else if (id === 'pause') { ctx.fillRect(-q * 0.5, -q * 0.6, q * 0.32, q * 1.2); ctx.fillRect(q * 0.18, -q * 0.6, q * 0.32, q * 1.2); }
     ctx.restore();
   }
-  R.drawTouch = function (ctx, s, st) {
-    const L = R.touchLayout();
+  // Each control's colour and name.
+  const PAD = { atk: ['#ff2a44', 'CUT'], heavy: ['#ff8a3a', 'HEAVY'], dodge: ['#7ad8ff', 'DASH'], parry: ['#ffd060', 'PARRY'], art: ['#ff2a44', 'MOON'], s1: ['#c9a0ff', ''], s2: ['#c9a0ff', ''], pause: ['#ffffff', ''] };
+  // A control: a dark glass disc, a coloured ring, a soft inner light, the icon; pressed, it sinks and lights up.
+  function padDisc(ctx, x, y, r, col, held, lit) {
+    const k = held ? 0.92 : 1, rr = r * k;
     ctx.save();
-    ctx.strokeStyle = 'rgba(255,255,255,0.22)'; ctx.lineWidth = 1.5 * R.dpr; ctx.fillStyle = 'rgba(10,6,12,0.28)';
-    ctx.beginPath(); ctx.arc(L.stick.x, L.stick.y, L.stick.r, 0, 7); ctx.fill(); ctx.stroke();
-    const kx = st.stick ? st.stick.dx * L.stick.r * 0.6 : 0, ky = st.stick ? st.stick.dy * L.stick.r * 0.6 : 0;
-    ctx.fillStyle = 'rgba(255,255,255,0.28)'; ctx.beginPath(); ctx.arc(L.stick.x + kx, L.stick.y + ky, L.stick.r * 0.42, 0, 7); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.arc(x, y + r * 0.08, rr, 0, 7); ctx.fill();   // its shadow
+    const g = ctx.createRadialGradient(x, y - rr * 0.45, rr * 0.1, x, y, rr);
+    g.addColorStop(0, held || lit ? R.mix(col, '#ffffff', 0.25) + 'cc' : 'rgba(58,44,56,0.82)'); g.addColorStop(1, held || lit ? col + '99' : 'rgba(14,9,14,0.82)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, rr, 0, 7); ctx.fill();
+    ctx.lineWidth = Math.max(2, r * 0.09); ctx.strokeStyle = col; ctx.globalAlpha = held || lit ? 1 : 0.85; ctx.beginPath(); ctx.arc(x, y, rr - ctx.lineWidth / 2, 0, 7); ctx.stroke();
+    ctx.globalAlpha = 0.25; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(1, r * 0.04); ctx.beginPath(); ctx.arc(x, y, rr * 0.78, -2.6, -0.55); ctx.stroke();   // a glint along the top
+    ctx.restore();
+  }
+  // A cooldown: the disc darkened by a sweep that shrinks as it recharges, the seconds in the middle.
+  function padCooldown(ctx, x, y, r, f) {
+    if (f <= 0) return;
+    ctx.save(); ctx.fillStyle = 'rgba(5,3,7,0.62)'; ctx.beginPath(); ctx.moveTo(x, y); ctx.arc(x, y, r * 0.96, -Math.PI / 2, -Math.PI / 2 + f * Math.PI * 2); ctx.closePath(); ctx.fill(); ctx.restore();
+  }
+  R.drawTouch = function (ctx, s, st) {
+    const L = R.touchLayout(), k = R.k;
+    ctx.save();
+    // The stick: a ring with four ticks, the knob red and lit, an arrow showing where you are going.
+    const S = L.stick, kx = st.stick ? st.stick.dx * S.r * 0.6 : 0, ky = st.stick ? st.stick.dy * S.r * 0.6 : 0, on = !!st.stick && Math.hypot(kx, ky) > 2;
+    { const g = ctx.createRadialGradient(S.x, S.y, S.r * 0.2, S.x, S.y, S.r); g.addColorStop(0, 'rgba(30,20,28,0.45)'); g.addColorStop(1, 'rgba(10,6,10,0.7)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(S.x, S.y, S.r, 0, 7); ctx.fill(); }
+    ctx.strokeStyle = on ? 'rgba(255,90,110,0.7)' : 'rgba(255,255,255,0.22)'; ctx.lineWidth = Math.max(2, 2 * R.dpr); ctx.beginPath(); ctx.arc(S.x, S.y, S.r - R.dpr, 0, 7); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.35)'; for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2; ctx.save(); ctx.translate(S.x + Math.cos(a) * S.r * 0.8, S.y + Math.sin(a) * S.r * 0.8); ctx.rotate(a); ctx.beginPath(); ctx.moveTo(S.r * 0.08, 0); ctx.lineTo(-S.r * 0.04, -S.r * 0.07); ctx.lineTo(-S.r * 0.04, S.r * 0.07); ctx.closePath(); ctx.fill(); ctx.restore(); }
+    if (on) { const a = Math.atan2(ky, kx); ctx.strokeStyle = '#ff5a6e'; ctx.lineWidth = Math.max(3, 4 * R.dpr); ctx.beginPath(); ctx.arc(S.x, S.y, S.r - R.dpr * 2, a - 0.5, a + 0.5); ctx.stroke(); }
+    { const kr = S.r * 0.44, x = S.x + kx, y = S.y + ky, g = ctx.createRadialGradient(x, y - kr * 0.4, kr * 0.1, x, y, kr);
+      g.addColorStop(0, on ? '#ff8a9a' : '#5a4652'); g.addColorStop(1, on ? '#a0102a' : '#241820'); ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.arc(x, y + kr * 0.12, kr, 0, 7); ctx.fill();
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, kr, 0, 7); ctx.fill(); ctx.strokeStyle = on ? '#ffd0d8' : 'rgba(255,255,255,0.3)'; ctx.lineWidth = Math.max(1.5, 1.5 * R.dpr); ctx.stroke(); }
+    // The buttons.
     for (const b of L.buttons) {
       const si = b.id === 's1' ? 0 : b.id === 's2' ? 1 : -1;
       if (si >= 0 && !(s.heroDef.skills && s.heroDef.skills[si])) continue;
-      const ready = (b.id !== 'art' || s.moon >= 100) && (si < 0 || s.cds[si] <= 0), held = st.held[b.id];
-      ctx.globalAlpha = ready ? 1 : 0.4;
-      if (b.id === 'art' && ready) R.glowAt(ctx, RED, b.x, b.y, b.r * 2.2, 0.5 + 0.2 * Math.sin(R.t * 6));
-      ctx.fillStyle = held ? 'rgba(255,42,68,0.45)' : b.id === 'art' && ready ? 'rgba(255,42,68,0.3)' : 'rgba(10,6,12,0.35)';
-      ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 7); ctx.fill();
-      ctx.strokeStyle = b.id === 'art' && ready ? RED : 'rgba(255,255,255,0.3)'; ctx.lineWidth = 1.5 * R.dpr; ctx.stroke();
-      if (si >= 0) { skillIcon(ctx, s.heroDef.skills[si].kind, b.x, b.y, b.r * 0.5, '#ffffff'); if (!ready) label(ctx, Math.ceil(s.cds[si]) + '', b.x, b.y + b.r * 0.9, 10 * R.k, '#ffffff', 'center', 0, 700); }
-      else icon(ctx, b.id, b.x, b.y, b.r, b.id === 'art' ? (ready ? '#ffffff' : RED) : 'rgba(255,255,255,0.9)');
+      const [col, name] = PAD[b.id] || ['#ffffff', ''], held = st.held[b.id], moonFull = s.moon >= 100;
+      const ready = (b.id !== 'art' || moonFull) && (si < 0 || s.cds[si] <= 0);
+      if (b.id === 'art' && moonFull) R.glowAt(ctx, RED, b.x, b.y, b.r * 2.4, 0.55 + 0.25 * Math.sin(R.t * 6));
+      ctx.globalAlpha = b.id === 'pause' ? 0.85 : 1;
+      padDisc(ctx, b.x, b.y, b.r, col, held, b.id === 'art' && moonFull);
+      if (b.id === 'art' && !moonFull) { ctx.save(); ctx.strokeStyle = RED; ctx.lineWidth = Math.max(3, b.r * 0.14); ctx.beginPath(); ctx.arc(b.x, b.y, b.r * 0.78, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.min(1, s.moon / 100)); ctx.stroke(); ctx.restore(); }   // the moon filling
+      if (si >= 0) {
+        skillIcon(ctx, s.heroDef.skills[si].kind, b.x, b.y, b.r * 0.5, '#ffffff');
+        const cd = s.cds[si], full = (s.heroDef.skills[si].cd || 6);
+        if (cd > 0) { padCooldown(ctx, b.x, b.y, b.r, Math.min(1, cd / full)); label(ctx, Math.ceil(cd) + '', b.x, b.y + b.r * 0.22, 15 * k, '#ffffff', 'center', 0, 700); }
+      } else icon(ctx, b.id, b.x, b.y, b.r, b.id === 'pause' ? 'rgba(255,255,255,0.9)' : '#ffffff');
+      if (!ready && si < 0 && b.id !== 'art') { ctx.fillStyle = 'rgba(5,3,7,0.5)'; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 7); ctx.fill(); }
+      if (name && b.r > 20 * k) label(ctx, name, b.x, b.y + b.r + 11 * k, 9 * k, col, 'center', 2, 700);
+      ctx.globalAlpha = 1;
     }
     ctx.restore();
   };

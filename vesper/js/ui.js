@@ -179,22 +179,39 @@
     return t;
   };
   // The skill tree: three branches, bought with skill points from the level shown.
+  // The skill tree: three branches as rows of round icons, read left to right; the chosen skill is shown
+  // large in a panel on the right (its name, what it does, what it needs) with one button to learn it.
+  const SK_IC = { heavy: 'anvil', fourth: 'sword', edge: 'gem', riposte: 'shield', edge2: 'gem', exec: 'skull', dodge: 'door', parry: 'shield', ghost: 'hourglass',
+    guard: 'helm', vigor: 'heart', vigor2: 'heart', thirst: 'fire', skill1: 'star', art: 'orb', skill2: 'star', moonblood: 'gem', rising: 'crown', breath: 'dragon', quick: 'hourglass' };
   U.skills = function (o) {
-    const p = o.p, PR = P(), H = DD().HEROES[p.hero], heroName = (k) => (k.hero != null && H.skills ? ' · ' + H.skills[k.hero].name : k.id === 'art' ? ' · ' + VS.ART[H.art === 'moon' ? 'moon' : H.art].name : '');
-    const cols = PR.BRANCHES.map((b) => `<div class="branch" style="--bc:${b.col}"><div class="branch-h"><b>${esc(b.name)}</b><span>${esc(b.desc)}</span></div>` +
-      PR.SKILLS.filter((k) => k.br === b.id).map((k) => {
-        const c = PR.canBuy(p, k.id), cls = c.owned ? 'owned' : c.ok ? 'can' : 'locked';
-        return `<button class="sk ${cls}${k.core ? ' core' : ''}${o.flash === k.id ? ' flash' : ''}" data-id="${k.id}" type="button"><span class="sk-ic">${k.core ? '◆' : k.cost}</span><span class="sk-name">${esc(k.name)}<small style="color:var(--dim);letter-spacing:.04em;text-transform:none;font-family:var(--f-body)">${esc(heroName(k))}</small></span>
-          <span class="sk-cost">${c.owned ? 'LEARNED' : c.ok ? k.cost + ' SP' : esc(c.why)}</span><span class="sk-desc">${esc(devKeys(k.desc))}</span></button>`;
-      }).join('') + '</div>').join('');
-    const el = U.show('skills', `<div class="tree-wrap"><div class="tree-head"><div><p class="eyebrow">Level ${p.lvl}</p><h2>Skill tree</h2></div>
-      <span class="sp"><b>${p.sp}</b>skill point${p.sp === 1 ? '' : 's'} · ${PR.spent(p)} spent</span>
-      <div class="tree-actions"><button class="chip" data-act="respec" type="button">${o.confirm ? 'Press again to refund all' : 'Refund all'}</button><button class="chip" data-act="back" type="button">Back to map</button></div></div>
-      <div class="tree">${cols}</div><p class="tip">Every level gives a skill point; shrines and guardians give more. ◆ marks the abilities: start with dodge and the heavy attack.</p></div>`, null, { back: o.onBack });
-    el.querySelectorAll('.sk').forEach((b) => b.addEventListener('click', () => { VS.audio.unlock(); o.onBuy(b.dataset.id); }));
+    const p = o.p, PR = P(), H = DD().HEROES[p.hero];
+    const heroName = (k) => (k.hero != null && H.skills ? H.skills[k.hero].name : k.id === 'art' ? VS.ART[H.art === 'moon' ? 'moon' : H.art].name : '');
+    const state = (k) => { const c = PR.canBuy(p, k.id); return { c, cls: c.owned ? 'owned' : c.ok ? 'can' : 'locked' }; };
+    let sel = o.sel || o.flash || (PR.SKILLS.find((k) => state(k).cls === 'can') || PR.SKILLS[0]).id;
+    const rows = PR.BRANCHES.map((b) => `<div class="sk2-row" style="--bc:${b.col}"><div class="sk2-lane"><b>${esc(b.name)}</b><span>${esc(b.desc)}</span></div><div class="sk2-nodes">` +
+      PR.SKILLS.filter((k) => k.br === b.id).map((k) => { const st = state(k), lv = !st.c.owned && p.lvl < k.lvl;
+        return `<button class="btn sk2-node ${st.cls}${o.flash === k.id ? ' flash' : ''}" data-id="${k.id}" type="button" aria-label="${esc(k.name)}"><span class="sk2-orb">${ic(SK_IC[k.id] || 'star')}${k.core ? '<i class="sk2-core"></i>' : ''}</span><span class="sk2-name">${esc(k.name)}</span>${lv ? `<span class="sk2-lv">Lv ${k.lvl}</span>` : st.cls === 'can' ? `<span class="sk2-lv can">${k.cost} SP</span>` : ''}</button>`; }).join('') + '</div></div>').join('');
+    const el = U.show('skills', `<div class="sk2"><header class="sk2-head"><div><p class="eyebrow">Level ${p.lvl} · ${esc(H.name)}</p><h2>Skills</h2></div>
+      <div class="sk2-sp"><b>${p.sp}</b><span>skill point${p.sp === 1 ? '' : 's'} to spend</span></div>
+      <div class="sk2-actions"><button class="btn chip" data-act="respec" type="button">${o.confirm ? 'Press again to refund' : 'Refund all'}</button><button class="btn chip" data-act="back" type="button">Back to map</button></div></header>
+      <div class="sk2-body"><div class="sk2-tree">${rows}</div><aside class="sk2-card"></aside></div></div>`, null, { back: o.onBack });
+    const card = el.querySelector('.sk2-card');
+    const show = (id) => {
+      sel = id; const k = PR.skill(id), b = PR.BRANCHES.find((x) => x.id === k.br), st = state(k), hn = heroName(k);
+      el.querySelectorAll('.sk2-node').forEach((n) => n.classList.toggle('sel', n.dataset.id === id));
+      const needs = k.req.map((r) => `<li class="${PR.has(p, r) ? 'ok' : ''}">${PR.has(p, r) ? '✓' : '·'} ${esc(PR.skill(r).name)}</li>`).join('') + (k.lvl > 1 ? `<li class="${p.lvl >= k.lvl ? 'ok' : ''}">${p.lvl >= k.lvl ? '✓' : '·'} Level ${k.lvl}</li>` : '');
+      card.style.setProperty('--bc', b.col);
+      card.innerHTML = `<div class="sk2-big ${st.cls}">${ic(SK_IC[k.id] || 'star')}</div>
+        <p class="sk2-kind">${esc(b.name)} · ${k.core ? 'Ability' : 'Passive'}</p><h3>${esc(k.name)}</h3>${hn ? `<p class="sk2-hero">${esc(H.name)}: ${esc(hn)}</p>` : ''}
+        <p class="sk2-desc">${esc(devKeys(k.desc))}</p>${needs ? `<ul class="sk2-needs">${needs}</ul>` : ''}
+        ${st.c.owned ? '<p class="sk2-done">Learned</p>' : `<button class="btn sk2-learn${st.c.ok ? '' : ' off'}" data-act="learn" type="button">${st.c.ok ? 'Learn · ' + k.cost + ' SP' : esc(st.c.why)}</button>`}`;
+      const L = card.querySelector('[data-act="learn"]'); if (L) L.addEventListener('click', () => { VS.audio.unlock(); if (st.c.ok) o.onBuy(id); else VS.audio.sfx('thud', 0.4); });
+    };
+    el.querySelectorAll('.sk2-node').forEach((n) => { n.addEventListener('click', () => { VS.audio.sfx('step_0', 0.4); if (sel === n.dataset.id && state(PR.skill(sel)).cls === 'can') o.onBuy(sel); else show(n.dataset.id); }); n.addEventListener('focus', () => show(n.dataset.id)); });
     el.querySelector('[data-act="back"]').addEventListener('click', () => { VS.audio.sfx('clang_0', 0.4); o.onBack(); });
     el.querySelector('[data-act="respec"]').addEventListener('click', () => o.onRespec());
-    const f = el.querySelector('.sk.can') || el.querySelector('[data-act="back"]'); if (f) f.focus({ preventScroll: true });
+    show(sel);
+    const f = el.querySelector(`.sk2-node[data-id="${sel}"]`); if (f) f.focus({ preventScroll: true });
     return el;
   };
   // The roster: every hero, locked ones as silhouettes with what it takes to earn them.

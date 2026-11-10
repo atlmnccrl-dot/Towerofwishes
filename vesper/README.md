@@ -165,6 +165,21 @@ frame), `E.ring` (the fisheye hit), `E.face` (a chest-up mid shot), `E.eyes` (he
 focus lines), `E.card`, `E.flash`, `E.glitch`, `E.blink()` and `E.hold(cut, k)` (a stutter). Dialogue lines
 ride on cuts in the speaker's colour; only the newest shows.
 
+**The last hour** (`showcase()` in `js/main.js`, `?showcase`): a new game plays the opening, then a glimpse of
+the end before the first trial: Vesper at full power on the summit (every ability, the moon art, end-game gear
+and passives) against the end-game horde of the Gatewarden's echo, told step by step (cut through them, the
+Crescent Wave, the Phantom Step, the heavy blow, the Gatewarden's echo, the Last Ditch Effort). Each step moves
+on by itself, she cannot fall, and Esc skips it; then SEVEN HOURS EARLIER and the guided trial.
+
+**Skills page**: the three branches as rows of round icons read left to right (gold and pulsing when ready, lit
+in the branch colour when learned, grey with the level when locked); the chosen skill is shown large in a card
+on the right in plain type (what it does, what it needs, ticked off) with one Learn button. **Touch controls**:
+solid glass discs with a coloured ring and a name each (CUT red, HEAVY orange, DASH blue, PARRY gold, MOON red
+with a ring that fills as the moon does), a cooldown sweep with the seconds left on the skills, and a stick whose
+knob lights red and points the way you are going. **Effects**: the Crowd Breaker sheets are drawn at 62% of their
+old size on attacks (`A.CB_SCALE`). **Pacing**: the guardian films play with `pace: 1.4` (action cuts stretched
+the most, the stutter holds dropped), 12 to 17 seconds each.
+
 **How the guardians fight**: besides their signature moves, every guardian has a delayed blow (the
 wind-up stops one frame short of the strike and hangs there with a glint, so the blow comes late),
 and the Gatewarden, a Hollow Twin, the Hunger and the Pale Wing have leaping slams (up from where they

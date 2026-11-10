@@ -458,6 +458,56 @@
   ::-webkit-scrollbar { width: 10px; height: 10px; } ::-webkit-scrollbar-track { background: #12080e; } ::-webkit-scrollbar-thumb { background: #4a3a46; border: 2px solid #12080e; }
   #rotate { font-family: var(--f-display); font-size: 22px; }
   @media (max-height: 480px) { .panel, .res, .btn.card, .map-panel { border-width: 20px !important; border-image-width: 20px !important; } .btn .btn-label { font-size: 17px; } .map-panel h2 { font-size: 22px; } .logo h1 { font-size: 36px; } .logo h1::after { width: 200px; background-size: 200px 12px; height: 12px; } }
+
+  /* ---- the skill tree (rows of icons + a detail card) ---- */
+  #ui .sk2 { margin: auto; width: min(1180px, 100%); height: 100%; display: flex; flex-direction: column; gap: clamp(6px, 2vh, 18px); min-height: 0; }
+  #ui .sk2-head { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+  #ui .sk2-head h2 { font-size: clamp(24px, 6vh, 40px); letter-spacing: .1em; text-transform: uppercase; }
+  #ui .sk2-sp { display: flex; align-items: center; gap: 10px; margin-left: auto; padding: 6px 14px 6px 8px; border-radius: 999px; background: rgba(255,208,96,.08); border: 1px solid rgba(255,208,96,.35); }
+  #ui .sk2-sp b { display: grid; place-items: center; min-width: 34px; height: 34px; border-radius: 50%; background: var(--gold); color: #1a1006; font: 22px "Adventurer", sans-serif; }
+  #ui .sk2-sp span { font: 600 15px "Barlow", system-ui, sans-serif; color: #ffe6a6; }
+  #ui .sk2-actions { display: flex; gap: 8px; }
+  #ui .sk2-actions .chip { padding: 8px 14px; }
+  #ui .sk2-body { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) clamp(240px, 30vw, 360px); gap: clamp(10px, 2vw, 24px); min-height: 0; }
+  #ui .sk2-tree { display: flex; flex-direction: column; justify-content: space-around; gap: clamp(4px, 1.4vh, 14px); min-height: 0; }
+  #ui .sk2-row { display: grid; grid-template-columns: clamp(64px, 9vw, 110px) 1fr; align-items: center; gap: 8px; }
+  #ui .sk2-lane b { display: block; font: 22px "Adventurer", sans-serif; letter-spacing: .08em; color: var(--bc); text-transform: uppercase; }
+  #ui .sk2-lane span { display: block; font: 500 12px/1.25 "Barlow", system-ui, sans-serif; color: var(--dim); }
+  #ui .sk2-nodes { position: relative; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); align-items: start; }
+  #ui .sk2-nodes::before { content: ""; position: absolute; left: 7%; right: 7%; top: calc(clamp(40px, 8.5vh, 60px) / 2); height: 2px; background: linear-gradient(90deg, color-mix(in srgb, var(--bc) 70%, transparent), rgba(255,255,255,.08)); }
+  #ui .btn.sk2-node { border: 0 !important; border-image: none !important; background: none !important; transform: none !important; min-height: 0 !important; color: inherit !important; padding: 2px 2px 4px !important; position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; padding: 2px 2px 4px; border-radius: 10px; min-width: 0; }
+  #ui .sk2-orb { position: relative; display: grid; place-items: center; width: clamp(40px, 8.5vh, 60px); height: clamp(40px, 8.5vh, 60px); border-radius: 50%; background: radial-gradient(circle at 50% 35%, #2a2028, #0e0a10 70%); border: 2px solid rgba(255,255,255,.14); transition: transform .15s, box-shadow .15s, border-color .15s; }
+  #ui .sk2-orb .ic { width: 28px; height: 28px; background-size: 224px 224px; background-position: calc(var(--c) * -28px) calc(var(--r) * -28px); }
+  #ui .sk2-core { position: absolute; top: -3px; right: -3px; width: 12px; height: 12px; transform: rotate(45deg); background: var(--bc); border: 2px solid #0e0a10; }
+  #ui .sk2-name { font: 600 clamp(11px, 2.1vh, 13px)/1.15 "Barlow", system-ui, sans-serif; color: var(--text); text-align: center; max-width: 100%; }
+  #ui .sk2-lv { font: 600 11px "Barlow", system-ui, sans-serif; color: var(--dim); padding: 0 6px; border-radius: 999px; background: rgba(255,255,255,.06); }
+  #ui .sk2-lv.can { color: #1a1006; background: var(--gold); }
+  #ui .sk2-node.owned .sk2-orb { border-color: var(--bc); background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--bc) 45%, #1a1018), #120a10 75%); box-shadow: 0 0 14px color-mix(in srgb, var(--bc) 40%, transparent); }
+  #ui .sk2-node.can .sk2-orb { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(255,208,96,.18), 0 0 18px rgba(255,208,96,.35); animation: skpulse 1.6s ease-in-out infinite; }
+  #ui .sk2-node.locked .sk2-orb { filter: grayscale(1) brightness(.6); }
+  #ui .sk2-node.locked .sk2-name { color: var(--dim); }
+  #ui .sk2-node.sel .sk2-orb, #ui .sk2-node:focus-visible .sk2-orb, #ui .sk2-node:hover .sk2-orb { transform: scale(1.12); border-color: #ffffff; }
+  #ui .sk2-node.sel .sk2-name { color: #ffffff; }
+  #ui .sk2-node.flash .sk2-orb { animation: learned .6s ease-out; }
+  @keyframes skpulse { 50% { box-shadow: 0 0 0 5px rgba(255,208,96,.08), 0 0 26px rgba(255,208,96,.5); } }
+  #ui .sk2-card { align-self: stretch; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: clamp(12px, 2.4vh, 22px); border-radius: 14px; background: linear-gradient(180deg, color-mix(in srgb, var(--bc) 12%, rgba(14,10,16,.92)), rgba(10,7,12,.94)); border: 1px solid color-mix(in srgb, var(--bc) 45%, transparent); overflow-y: auto; min-height: 0; }
+  #ui .sk2-big { display: grid; place-items: center; width: clamp(52px, 11vh, 76px); height: clamp(52px, 11vh, 76px); border-radius: 50%; border: 2px solid var(--bc); background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--bc) 35%, #1a1018), #0e0a10 75%); }
+  #ui .sk2-big .ic { width: 40px; height: 40px; background-size: 320px 320px; background-position: calc(var(--c) * -40px) calc(var(--r) * -40px); }
+  #ui .sk2-big.locked { filter: grayscale(.8) brightness(.75); }
+  #ui .sk2-kind { margin: 4px 0 0; font: 600 12px "Barlow", system-ui, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--bc); }
+  #ui .sk2-card h3 { margin: 0; font: clamp(22px, 4.6vh, 30px) "Adventurer", sans-serif; letter-spacing: .04em; color: #ffffff; }
+  #ui .sk2-hero { margin: 0; font: 600 14px "Barlow", system-ui, sans-serif; color: var(--gold); }
+  #ui .sk2-desc { margin: 2px 0 0; font: 500 clamp(14px, 2.7vh, 17px)/1.45 "Barlow", system-ui, sans-serif; color: #efe6ea; }
+  #ui .sk2-needs { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+  #ui .sk2-needs li { font: 600 12px "Barlow", system-ui, sans-serif; color: var(--dim); padding: 3px 9px; border-radius: 999px; background: rgba(255,255,255,.06); }
+  #ui .sk2-needs li.ok { color: #c8f0c8; background: rgba(120,220,140,.12); }
+  #ui .btn.sk2-learn { border: 0 !important; border-image: none !important; background: linear-gradient(180deg, #ffe08a, #ffb830) !important; color: #1a1006 !important; min-height: 0 !important; display: block; margin-top: auto; align-self: stretch; text-align: center; cursor: pointer; padding: 12px 14px !important; border-radius: 10px !important; font: 20px "Adventurer", sans-serif; letter-spacing: .08em; color: #1a1006; background: linear-gradient(180deg, #ffe08a, #ffb830); box-shadow: 0 4px 0 #8a5a10, 0 0 22px rgba(255,208,96,.35); }
+  #ui .btn.sk2-learn:hover, #ui .btn.sk2-learn:focus-visible { filter: brightness(1.1); border-image: none !important; }
+  #ui .btn.sk2-learn.off { background: rgba(255,255,255,.06) !important; color: var(--dim) !important; color: var(--dim); background: rgba(255,255,255,.06); box-shadow: none; cursor: default; font: 600 15px "Barlow", system-ui, sans-serif; }
+  #ui .sk2-done { margin-top: auto; align-self: stretch; text-align: center; padding: 10px; border-radius: 10px; font: 18px "Adventurer", sans-serif; color: var(--bc); border: 1px solid color-mix(in srgb, var(--bc) 50%, transparent); }
+  @media (max-height: 460px) { #ui .sk2-lane span, #ui .sk2-head .eyebrow, #ui .sk2-big { display: none; } #ui .sk2-head h2 { font-size: 22px; } #ui .sk2-lane b { font-size: 15px; } #ui .sk2-row { grid-template-columns: 58px 1fr; }
+    #ui .sk2-orb { width: 34px; height: 34px; } #ui .sk2-orb .ic { width: 22px; height: 22px; background-size: 176px 176px; background-position: calc(var(--c) * -22px) calc(var(--r) * -22px); } #ui .sk2-nodes::before { top: 17px; }
+    #ui .sk2-name { font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } #ui .sk2-lv { font-size: 9px; } #ui .sk2-card { gap: 4px; } #ui .sk2-desc { font-size: 13px; } #ui .sk2-sp b { min-width: 26px; height: 26px; font-size: 17px; } #ui .sk2-sp span { font-size: 12px; } }
 </style>
 </head>
 <body>

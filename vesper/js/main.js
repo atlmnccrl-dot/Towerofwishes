@@ -160,7 +160,7 @@
   // The opening's risen dead are turned townsfolk: load them first.
   const OPENING_SETS = ['vh_townsfolk_001', 'vh_townsfolk_004', 'vh_townsfolk_007', 'vh_townsfolk_010', 'vh_townsfolk_013', 'vh_skeleton_002', 'vh_barbarian_002'];
   function newGame() {
-    const play = () => startIntro(() => playNode('a0-t', true)), miss = OPENING_SETS.filter((id) => !A.hasSet(id));
+    const play = () => startIntro(() => showcase(() => playNode('a0-t', true))), miss = OPENING_SETS.filter((id) => !A.hasSet(id));
     if (!miss.length) return play();
     M.go('load'); U.loading(0); A.loadSets(miss, (f) => U.loading(f)).then(() => { A.warm(R.ctx); U.hide(); play(); }, () => { U.hide(); play(); });
   }
@@ -330,12 +330,12 @@
   let f0;
   function startFight(stageIdx, opts) {
     U.hide(); opts = opts || {};
-    const p = P(), b = opts.build, kit = opts.theatre ? null : PR.kit(p), MD = VS.MODES;
+    const p = P(), b = opts.build, kit = opts.kit || (opts.theatre ? null : PR.kit(p)), MD = VS.MODES;
     // The difficulty and New Game+ scale the foes; mastery adds to the hero's damage on top of the gear.
     let node = b ? b.node : null;
     if (node && !opts.theatre) { const S = MD.scale(p); node = Object.assign({}, node, { scale: { hp: (node.scale ? node.scale.hp : 1) * S.hp, dmg: (node.scale ? node.scale.dmg : 1) * S.dmg }, rules: Object.assign({}, node.rules, S.elites ? { elites: true } : {}) }); }
-    const gear = opts.theatre ? null : Object.assign({}, VS.LOOT.mods(p, p.hero)); if (gear) gear.dmg *= MD.masteryDmg(p, p.hero);
-    const s = SIM.create(stageIdx, { seed: (Date.now() & 0xffff) + 1, boons: opts.theatre ? [] : PR.passives(p), kit, hero: p.hero, node, gear, endlessNext: b && b.next, guided: !!(opts.node && opts.node.type === 'trial') });
+    const gear = opts.gear || (opts.theatre ? null : Object.assign({}, VS.LOOT.mods(p, p.hero))); if (gear && !opts.gear) gear.dmg *= MD.masteryDmg(p, p.hero);
+    const s = SIM.create(stageIdx, { seed: (Date.now() & 0xffff) + 1, boons: opts.boons || (opts.theatre ? [] : PR.passives(p)), kit, hero: p.hero, node, gear, endlessNext: b && b.next, guided: !!(opts.node && opts.node.type === 'trial') });
     M.fight = Object.assign({ s, stage: stageIdx, acc: 0, card: null, cardT: 0, say: null, banner: null }, opts);
     M.paused = false; R.snapCam(s); R.fx = []; R.parts = []; R.floaters = []; R.pfx = []; R.entryDoor = null; R.impactF = null; R.kit = s.mods.can;
     f0 = M.fight; const n = opts.node, AR = VS.arenaOf(s);
@@ -347,6 +347,7 @@
       f0.tips = kit.filter((k) => !p.tips[k]).map((k) => ({ id: k, t: 0 }));
     } else if (opts.mode === 'endless') { s.goal = { reach: 'Survive as long as you can', boss: 'Survive as long as you can' }; f0.banner = { text: 'ENDLESS', sub: AR.name + '  ·  BEST WAVE ' + ((p.endless && p.endless.best) || 0), t: -0.4, col: '#ffffff' }; }
     else if (opts.mode === 'daily') { s.goal = { reach: 'Win the daily challenge', boss: 'Win the daily challenge' }; f0.banner = { text: b.name.toUpperCase(), sub: b.twists.map((t) => t.toUpperCase()).join('  ·  ') + '  ·  ' + AR.name, t: -0.4, col: '#ffd060' }; }
+    else if (opts.showcase) { s.goal = { reach: 'The last hour', boss: 'The last hour' }; f0.banner = { text: 'THE LAST HOUR', sub: 'SEVEN HOURS FROM NOW  ·  THE TOP OF THE SPIRE', t: -0.6, col: '#ffd060' }; f0.show = { step: 0, t: 0 }; }
     else f0.banner = { text: AR.name, sub: 'AREA 1 / ' + s.waves.length, t: -0.4, col: '#ffffff' };
     M.go('fight'); AU.playAmb(null); AU.cue(opts.mode || (n && (n.type === 'boss' || n.type === 'echo') ? 'boss' : 'act' + stageIdx));
   }
@@ -372,6 +373,66 @@
     U.pause({ auto: P().opts.auto, onResume: () => pause(false), onRestart: () => (f.theatre ? theatre(f.theatreHero, f.theatreFull, f.theatreBack) : f.nodeId ? startNode(f.nodeId) : startFight(f.stage)),
       onAuto: () => { P().opts.auto = !P().opts.auto; M.write(); pause(true); }, onQuit: () => { M.paused = false; if (f.theatre) (f.theatreBack || title)(); else map(f.nodeId); } });
   }
+  // ---- the last hour: a glimpse of the end before the first trial -------------------------------------------
+  // Vesper at full power on the summit, every ability and the moon art, against an end-game horde and an echo
+  // of the Gatewarden. Each step shows off one thing and moves on by itself; she cannot fall. It ends on the
+  // Last Ditch Effort, then "Seven hours earlier" and the real first trial.
+  const SHOW_NODE = 'a6-1';
+  const SHOW = [
+    { title: 'FULL POWER', text: () => key('This is Vesper seven hours from now. Cut through them: WASD to move, click to cut.', 'This is Vesper seven hours from now. Cut through them: the stick moves, the red button cuts.', 'This is Vesper seven hours from now. Cut through them: left stick, A to cut.'),
+      done: (f) => f.show.kills >= 5, limit: 13 },
+    { title: 'CRESCENT WAVE', text: () => key('Press R: a wave of red steel through the whole line.', 'Tap the first skill: a wave of red steel through the whole line.', 'Press LB: a wave of red steel through the whole line.'),
+      enter: (f) => { f.s.cds[0] = 0; }, done: (f) => f.show.used[0], limit: 7 },
+    { title: 'PHANTOM STEP', text: () => key('Press F: vanish and strike from behind.', 'Tap the second skill: vanish and strike from behind.', 'Press RB: vanish and strike from behind.'),
+      enter: (f) => { f.s.cds[1] = 0; }, done: (f) => f.show.used[1], limit: 7 },
+    { title: 'HEAVY', text: () => key('Right click in the middle of them: one blow that throws them all back.', 'Tap HEAVY in the middle of them: one blow that throws them all back.', 'Press X in the middle of them: one blow that throws them all back.'),
+      done: (f) => f.show.heavy, limit: 6 },
+    { title: 'THE GUARDIAN', text: () => 'An echo of the Gatewarden. Break him: dash through the red, cut when he is open.',
+      enter: (f) => { const s = f.s; for (const u of SIM.foes(s)) SIM.dismiss(s, u); s.wave = s.waves.length - 2; s.area = s.waves.length - 1; s.waveT = 0; SIM.step(s, STEP, {}); R.snapCam(s); R.shake = 8; AU.sfx('horn', 0.9); AU.sfx('quake', 1); },
+      done: (f) => { const b = SIM.foes(f.s).find((u) => D.FOES[u.key] && D.FOES[u.key].boss); return !b || b.hp < b.maxHp * 0.5; }, limit: 14 },
+    { title: 'THE LAST DITCH EFFORT', text: () => key('At the edge of death the moon answers. Press E.', 'At the edge of death the moon answers. Tap the moon.', 'At the edge of death the moon answers. Pull a trigger.'),
+      enter: (f) => { const h = f.s.hero; f.s.moon = 100; h.hp = Math.round(h.maxHp * 0.24); AU.sfx('charge', 1); }, done: (f) => !!f.s.cine || f.show.art, limit: 6, auto: (f) => { if (!f.s.cine) SIM.startArt(f.s); } },
+    { title: '', text: () => '', done: (f) => f.show.ended > 1.6, limit: 14 },
+  ];
+  function showcase(then) {
+    const n = PR.node(SHOW_NODE), b = PR.build(n), miss = missingFor(b), iso = isoFor(b.stage);
+    const all = ['heavy', 'dodge', 'parry', 'skill1', 'skill2', 'art'], boons = ['fourth', 'edge', 'edge2', 'ghost', 'guard', 'vigor', 'vigor2', 'moonblood', 'quick', 'thirst'];
+    const gear = { dmg: 2.4, hp: 160, armor: 0.3, gain: 1.6, thirst: 0.08, cd: 0.5, dodge: 1.3, parry: 1.4, heal: 1, gold: 1 };
+    const go = () => { startFight(b.stage, { build: b, showcase: true, kit: all, boons, gear, then }); const f = M.fight; f.show.kills = 0; f.show.used = [false, false]; f.show.heavy = false; f.show.art = false; f.show.ended = 0; };
+    if (!miss.length && A.isoReady(iso)) return go();
+    M.go('load'); U.loading(0);
+    Promise.all([A.loadSets(miss, (x) => U.loading(x)), A.loadIso(iso)]).then(() => { A.warm(R.ctx); A.isoWarm(R.ctx); U.hide(); go(); }, () => { U.hide(); go(); });
+  }
+  M.showcase = showcase;
+  function showStep(f) {
+    const s = f.s, T = f.show, h = s.hero;
+    for (const e of s.events) {
+      if (e.type === 'kill') T.kills++;
+      if (e.type === 'skill') { const i = (s.heroDef.skills || []).findIndex((k) => k.name === e.name); if (i >= 0) T.used[i] = true; }
+      if (e.type === 'smash' || e.type === 'slam' || e.type === 'knock') T.heavy = true;
+      if (e.type === 'art') T.art = true;
+      if (e.type === 'artEnd') T.ended = 0.01;
+    }
+    if (T.ended > 0) T.ended += STEP;
+    // She cannot fall in the last hour.
+    if (h.alive && T.step < 5) h.hp = Math.max(h.hp, Math.round(h.maxHp * 0.35));
+    if (h.alive && T.step >= 5) h.hp = Math.max(h.hp, Math.round(h.maxHp * 0.15));
+    if (T.step >= SHOW.length) return;
+    const st = SHOW[T.step];
+    if (!T.entered) { T.entered = true; T.t = 0; if (st.enter) st.enter(f); }
+    T.t += STEP;
+    if (T.cheer > 0) { T.cheer -= STEP; if (T.cheer <= 0) { T.step++; T.entered = false; } return; }
+    if (st.done(f) || (st.limit && T.t > st.limit)) {
+      if (!st.done(f) && st.auto) { st.auto(f); return; }
+      if (T.step === SHOW.length - 1) { endShowcase(f); return; }
+      T.cheer = st.title ? 0.7 : 0.01; if (st.title) { AU.sfx('step_2', 0.8); R.float('✓ ' + st.title, h.x, h.y, 60, '#ffd060', true, true); }
+    }
+  }
+  function endShowcase(f) {
+    if (f.showDone) return; f.showDone = true; AU.duck(false);
+    startScene(0, { shots: [{ k: 'title', top: 'THE BLACK GATE', title: 'SEVEN HOURS EARLIER', sub: 'Dusk. The night has only begun.', d: 3.0 }] }, f.then, true);
+  }
+
   // The trial's steps, checked against the fight as it plays.
   function tutorial(f) {
     const s = f.s, T = f.tut, h = s.hero, dt = 1 / 60;
@@ -398,6 +459,7 @@
   function fight(ctx, dt) {
     const f = M.fight, s = f.s;
     if (f.theatre && !M.paused && (M.pressed.back || M.pressed.tap)) { AU.duck(false); (f.theatreBack || title)(); return; }   // the theatre: a tap or Esc leaves the moon art
+    if (f.show && M.pressed.back && !M.paused) { M.pressed.back = false; endShowcase(f); return; }   // Esc skips the last hour
     if (M.pressed.back && !s.cine && !M.paused) { pause(true); M.pressed.back = false; }
     if (!M.paused && !M.hold) {
       f.acc += dt;
@@ -407,6 +469,7 @@
         const c0 = s.cine ? s.cine.t : null, inp = Object.assign({ mx: live.mx, my: live.my, aim: live.aim }, f.pend); f.pend = {};
         SIM.step(s, STEP, inp); f.acc -= STEP;
         if (f.tut) tutorial(f);
+        if (f.show) { showStep(f); if (f.showDone) return; }
         if (s.cine && c0 != null) for (const [n, v] of VS.cine.cues(s.cine, c0, s.cine.t)) AU.sfx(n, v);
         R.consume(s); AU.events(s.events);
         for (const e of s.events) {
@@ -434,6 +497,10 @@
       if (f.card) { f.cardT += dt; if (f.cardT < 1.9) R.bossCard(ctx, s, f.card, f.cardT); else f.card = null; }
       // Coaching: the trial's steps, then a card for each newly learned ability.
       if (f.banner && f.banner.t < 2.2 && !f.banner.low) { /* the coach waits for the banner */ }
+      else if (f.show && !M.paused && f.show.step < SHOW.length && SHOW[f.show.step].title) {
+        const T = f.show, st = SHOW[T.step];
+        R.coach(ctx, { title: 'THE LAST HOUR  ·  ' + st.title, text: st.text(f), t: T.cheer > 0 ? 1 : T.t + 0.3, step: T.step, of: SHOW.length - 1, col: '#ffd060', done: T.cheer > 0 });
+      }
       else if (f.tut && !M.paused) {
         const T = f.tut, st = TUT[Math.min(TUT.length - 1, T.step)];
         R.tutGuide(ctx, s, { mark: T.cheer > 0 ? null : T.mark, targets: T.cheer > 0 ? [] : alive(f), barrel: T.cheer > 0 || !T.barrel || T.barrel.broken ? null : T.barrel, btn: T.cheer > 0 ? null : st.btn, touch: R.touch });
@@ -454,6 +521,7 @@
     const f = M.fight, s = f.s, p = P();
     AU.duck(false);
     if (f.mode) return endMode(result);
+    if (f.showcase) { endShowcase(f); return; }
     if (f.theatre) { (f.theatreBack || title)(); return; }
     if (!f.nodeId) { title(); return; }
     const n = f.node, win = result === 'win', groups = s.waves.length;
@@ -610,6 +678,7 @@
     if (params.has('hero') && D.HEROES[params.get('hero')]) M.save.hero = params.get('hero');
     if (params.has('theatre')) theatre();
     else if (params.has('cutscenes')) cutscenes(title);
+    else if (params.has('showcase')) showcase(() => title());
     else if (params.has('stage')) startFight(Math.max(0, Math.min(5, +params.get('stage') || 0)));
     else if (params.has('node')) startNode(params.get('node'));
     else if (params.has('intro')) newGame();

@@ -24,6 +24,11 @@ fs.mkdirSync(out, { recursive: true });
   await page.waitForFunction(() => VS.INTRO.st && VS.INTRO.st.t > 9, null, { timeout: 60000 });
   await shot('02-opening', 100);
   await page.keyboard.press('Escape');
+  // The last hour (the end-game glimpse): it plays, then Esc skips it, then the title card.
+  await page.waitForFunction(() => VS.main.state === 'fight' && VS.main.fight.show, null, { timeout: 60000 });
+  await shot('02b-last-hour', 2500);
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => VS.main.state === 'scene'); await page.waitForTimeout(400); await page.keyboard.press('Escape');
   await page.waitForFunction(() => VS.main.state === 'fight' && VS.main.fight.nodeId === 'a0-t');
   await shot('03-trial', 2600);
   await page.keyboard.down('KeyD'); await page.waitForFunction(() => VS.main.fight.tut.step >= 1, null, { timeout: 6000 }).catch(() => {}); await page.keyboard.up('KeyD');
@@ -44,7 +49,11 @@ fs.mkdirSync(out, { recursive: true });
   // Learn dodge in the skill tree, then fight the next node.
   await page.locator('#ui .chip', { hasText: 'Skills' }).click();
   await page.waitForFunction(() => VS.ui.current === 'skills'); await shot('08-skills', 400);
-  await page.locator('#ui .sk.can').first().click(); await page.waitForTimeout(200);
+  // A ready skill is selected first; a click on the selected one (or Learn) learns it.
+  const n0 = await page.evaluate(() => VS.main.save.skills.length);
+  await page.locator('#ui .sk2-node.can').first().click(); await page.waitForTimeout(200);
+  if ((await page.evaluate(() => VS.main.save.skills.length)) === n0 && await page.locator('#ui [data-act="learn"]:not(.off)').count()) await page.locator('#ui [data-act="learn"]').click();
+  await page.waitForTimeout(200);
   console.log('skills', await page.evaluate(() => VS.main.save.skills.join(',')));
   await page.locator('#ui .chip', { hasText: 'Back to map' }).click();
   await page.waitForFunction(() => VS.main.state === 'map');
