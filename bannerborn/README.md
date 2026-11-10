@@ -34,16 +34,27 @@ A hero-collector RPG: you build the team, the team fights.
    Six **legends** join the first time you clear their stage (Sera Nightveil 1-4, Ahmos 2-3, Kestrel 2-5, Brenna Redmane 3-1,
    Silas Grey 3-4, Talia Sunblade 4-1). Recruiting plays a summoning: energy gathers into a gate, the gate climbs
    through the rarity colours (blue, purple, gold) with flashes and shockwaves, bursts, and the hero steps out of the
-   light as a silhouette that fills with colour; stars land one by one. Tap to skip to the burst.
+   light as a silhouette that fills with colour. Then the camera pushes in, the gate falls back, and the new hero
+   shows off their **signature move** with its own effect (a ground-pound shockwave, a meteor, chain lightning across
+   the screen, a five-cut flurry, a pillar of light, a barrier dome, ...). The card after it is small: rarity, name,
+   class and one line for the signature. Tap to skip ahead.
 3. **Grow them.** The hero screen is a game screen painted on its own canvas: the hero on a lit stage with four
-   gear sockets around them, an Attributes page (stat gains per level, hold-to-repeat Level Up, Ascend) and a
+   gear sockets around them, an Attributes page (stat gains per level, the experience bar, Ascend) and a
    **Skill Tree**: three branches (Might, Bulwark, Ultimate) of linked nodes plus two bridge nodes and three
-   capstones (Executioner, Undying, the ultimate's Mastery); one point per level, free reset. Level up with gold (cap 10 + 10 per star), **ascend** ★ with sigils to raise the cap
+   capstones (Executioner, Undying, the ultimate's Mastery); one point per level, free reset. **Heroes level by fighting, not gold:** everyone who fights earns experience by their
+   share of the work (damage, healing, blows taken), more on harder stages, some on a loss, faster when below the
+   stage's level; the results show each hero's bar and level-ups (cap 10 + 10 per star; at the cap experience waits for
+   the next star). Gold forges gear and buys chests; crystals ◆ recruit heroes and buy a Smith's Masterwork weapon.
+   **Ascend** ★ with sigils to raise the cap
    (up to 5 stars), gear in four slots (weapon, armour, helm, charm) that the **Forge** upgrades to +10.
    Rarity (Common → Legendary) multiplies every stat. **What a hero wears shows on them:** the Captain's armour and
    helm change their sprite; every hero glows in the colour of their best gear (brighter with forging); good weapons
-   carry an **enchant** (fire embers, frost, storm arcs, shadow wisps, holy light) that swirls around the hero and
-   makes their blows elemental; forging a plain weapon to +5 awakens one; capstones add a mark (Undying's halo,
+   carry an **enchant** (fire embers, frost, storm arcs, shadow wisps, holy light, dripping venom) that swirls around
+   the hero and makes their blows elemental. **You see the trait in battle** (js/traits.js): every swing leaves a crescent
+   in its colours and every blow lands its own impact (a flame bloom, ice spikes from the ground, a bolt from the sky,
+   a dark cross-cut, a pillar of light, a venom splash); storm chains arc to the next foe, holy heals send motes to the
+   ally; burning, frosted, poisoned and rent foes show it on the body; enchanted shots trail their element. Venomous
+   weapons poison, stacking three deep and ignoring armour; forging a plain weapon to +5 awakens one; capstones add a mark (Undying's halo,
    Mastery's rune circle, Executioner's embers), and 4★ heroes sparkle. The same look follows them into battle.
 3b. **Every hero is someone.** Each hero has a **class** — Guardian, Warrior, Assassin, Marksman, Mage or Healer —
    and each of the 102 recruits is dealt a mix nobody else has (js/identity.js): an **entrance** (walks out of smoke,
@@ -55,7 +66,10 @@ A hero-collector RPG: you build the team, the team fights.
    Lightning, Meteor, Smite, Blood Rush, Pole Vault, Decoy, Flurry, Barrier. The legends and the Captain are written
    by hand. Their card and the hero screen describe all of it; the team screen shows which classes you have and what
    the team is missing.
-4. **Formation.** Up to five heroes: two in the front row (they draw the blows), three behind.
+4. **Formation.** Up to five heroes: two in the front row (they draw the blows), three behind. The team screen
+   opens onto the land the campaign is in (the next stage's region) and the formation's heroes live on it
+   (js/drill.js): each keeps to their place, and between rests they train on straw dummies, spar in pairs, wander
+   over to chat, stretch, and try out their signature.
    **Bonds** reward mixed callings. *Auto-fill* puts the strongest five in place.
 5. **Battle.** Heroes march as a column between fights and fight by role: the **tank** holds the front and
    peels foes off the back line; **assassins** wait unseen behind the tank, slip round the flank once the lines meet
@@ -100,7 +114,7 @@ A hero-collector RPG: you build the team, the team fights.
    market as the campaign goes on. **Spoils** gather while you are away (up to 12 h). **Goals**
    (seventeen milestones) pay crystals, gold and sigils. The **Shop** has a few offers a day.
 
-Losing costs nothing: level up, forge, change the formation and fight again.
+Losing costs nothing (and still teaches your heroes): forge, change the formation and fight again.
 
 | Callings | Role | Ultimate |
 |---|---|---|
@@ -169,6 +183,8 @@ name, their horde, the face-off, the clash) and a fall; chapters 2-4 open with y
 | `js/battle.js` | the battlefield: formation, hero/foe AI, energy and ultimates, bosses, objectives, rendering, lighting |
 | `js/audio.js` | synthesised sound effects and a procedural war-drum score |
 | `js/aura.js` | what gear and skills look like on a hero: gear glow, enchant particles, capstone marks (stateless) |
+| `js/traits.js` | weapon traits you can see: swing crescents, element impacts, chain and heal links, status on foes |
+| `js/drill.js` | the team field: the current region with the formation's heroes training, sparring and chatting |
 | `js/tactics.js` | battlefield tactics: potions, rescues, hands-on heals, stones to throw, kicks, charges, pounces, dodge rolls |
 | `js/cinema.js` | cutscenes: shot sequencer (scene fly-throughs, close-ups, splits, impact frames, titles) and the four scripts |
 | `js/heroui.js` | the hero screen: canvas-drawn stage, gear sockets and picker, attributes, skill tree, its own hit-testing |

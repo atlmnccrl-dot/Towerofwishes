@@ -270,6 +270,18 @@ button.hc:active{transform:scale(.97)}
 #reveal .ds{font:400 12px/1.4 var(--body);color:#aab3c2;max-width:min(460px,86vw);margin:0 auto 10px}
 #reveal .ds .sig{color:#ffe7a3;font-weight:700}
 
+/* ---- heroes: the gates still to recruit from, one strip each */
+.tstrips{display:flex;flex-direction:column;gap:8px}
+.tstrip{display:flex;align-items:center;gap:14px;padding:9px 14px;border-radius:14px;background:rgba(255,255,255,.035);border:1px solid var(--line);color:var(--text);text-align:left;cursor:pointer}
+.tstrip:hover{background:rgba(255,255,255,.06)}
+.tstrip .tl{display:flex;flex-direction:column;min-width:110px}.tstrip .tl b{font:700 13px var(--head);letter-spacing:.08em;text-transform:uppercase}.tstrip .tl small{font:500 11px var(--body);color:var(--mute)}
+.tstrip .av{flex:1;display:flex;align-items:center;gap:4px;min-width:0;overflow:hidden}
+.tstrip .av canvas{width:34px;height:34px;border-radius:9px;background:rgba(0,0,0,.35);filter:brightness(0) opacity(.55);image-rendering:pixelated}
+.tstrip .more{font:600 11px var(--head);color:var(--mute);padding:0 6px}
+.tstrip .go{font:700 12px var(--head);color:var(--accent);white-space:nowrap}
+.tstrip.shut{opacity:.6;cursor:default}
+@media (max-height:500px){.tstrip{padding:6px 10px}.tstrip .av canvas{width:26px;height:26px}}
+
 /* ---- team */
 #team .board{flex:1.35;position:relative;min-width:0;padding:0;overflow:hidden}
 #team.live > .bg{background:linear-gradient(90deg,rgba(8,10,15,.12) 0%,rgba(8,10,15,.1) 50%,rgba(8,10,15,.78) 62%);-webkit-backdrop-filter:none;backdrop-filter:none}

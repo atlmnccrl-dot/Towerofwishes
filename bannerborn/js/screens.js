@@ -471,36 +471,28 @@
     for (const h of sortHeroes(S.heroes)) if (ok(h.calling)) own.appendChild(UI.heroCard(h, { inteam: team.includes(h.id), onClick: () => UI.openHero(h.id) }));
     if (!own.children.length) own.appendChild(el('div', 'mute', 'No heroes of this calling yet.'));
     box.appendChild(own);
+    // the ones still to find: one compact strip per gate instead of a wall of silhouettes
+    const strips = [];
     for (const { tier, heroes } of tiers) {
       const missing = heroes.filter((e) => !S.heroes.some((h) => h.recruit === e.key) && ok(e.calling));
       if (!missing.length) continue;
       const open = BB.tierOpen(S, tier);
-      box.appendChild(el('div', 'sect', '<span style="color:var(--r' + tier.rarity + ')">' + tier.name + '</span> <small>' + (open ? missing.length + ' to recruit · ◆ ' + tier.cost : UI.si('lock', 12) + ' clear chapter ' + tier.chapter + ' to open') + '</small>'));
-      const g = el('div', 'hcards');
-      for (const e of missing) {
-        const c = el('button', 'hc locked ' + RCLS(tier.rarity));
-        c.appendChild(UI.thumb(e.key, 64)); c.querySelector('canvas').style.bottom = '30%'; c.querySelector('canvas').style.width = '80%';
-        c.appendChild(el('div', 'cic', UI.callIcon(e.calling)));
-        c.appendChild(el('div', 'plate', '<div class="nm">' + (open ? esc(e.name.split(' ')[0]) : '???') + '</div><div class="pw" style="color:var(--mute)">' + (open ? BB.CALLINGS[e.calling].name : 'Locked') + '</div>'));
-        click(c, () => UI.openRecruit(BB.TIERS.indexOf(tier)));
-        g.appendChild(c);
-      }
-      box.appendChild(g);
+      const st = el('button', 'tstrip' + (open ? '' : ' shut'));
+      st.appendChild(el('div', 'tl', '<b style="color:var(--r' + tier.rarity + ')">' + tier.name + '</b><small>' + (open ? missing.length + ' to recruit' : 'Clear chapter ' + tier.chapter) + '</small>'));
+      const av = el('div', 'av'); for (const e of missing.slice(0, 7)) { const t = UI.thumb(e.key, 40); av.appendChild(t); }
+      if (missing.length > 7) av.appendChild(el('span', 'more', '+' + (missing.length - 7)));
+      st.appendChild(av); st.appendChild(el('span', 'go', open ? '◆ ' + tier.cost + ' ›' : UI.si('lock', 13)));
+      click(st, () => UI.openRecruit(BB.TIERS.indexOf(tier)));
+      strips.push(st);
     }
     const leg = Object.keys(BB.LEGENDS).filter((id) => !S.heroes.some((h) => h.legend === id) && ok(BB.LEGENDS[id].calling));
     if (leg.length) {
-      box.appendChild(el('div', 'sect', '<span style="color:var(--r3)">Legends</span> <small>join as you clear their stages</small>'));
-      const g = el('div', 'hcards');
-      for (const id of leg) {
-        const st = BB.MISSIONS.find((m) => m.legend === id);
-        const c = el('div', 'hc locked r3');
-        c.appendChild(copyCanvas(UI.body(BB.newHero({ legend: id }))));
-        c.appendChild(el('div', 'cic', UI.callIcon(BB.LEGENDS[id].calling)));
-        c.appendChild(el('div', 'plate', '<div class="nm">???</div><div class="pw" style="color:var(--mute)">Stage ' + (st ? st.code : '?') + '</div>'));
-        g.appendChild(c);
-      }
-      box.appendChild(g);
+      const st = el('div', 'tstrip shut');
+      st.appendChild(el('div', 'tl', '<b style="color:var(--r3)">Legends</b><small>join as you clear their stages</small>'));
+      const av = el('div', 'av'); for (const id of leg) { const m = BB.MISSIONS.find((x) => x.legend === id); av.appendChild(el('span', 'more', m ? m.code : '?')); }
+      st.appendChild(av); strips.push(st);
     }
+    if (strips.length) { box.appendChild(el('div', 'sect', 'Still to find')); const w = el('div', 'tstrips'); strips.forEach((x) => w.appendChild(x)); box.appendChild(w); }
   };
 
   // ---------------------------------------------------------------- hero detail
@@ -625,7 +617,7 @@
     const info = $('altarInfo'); info.innerHTML = '';
     info.appendChild(el('h2', '', tier.name + ' Gate'));
     info.appendChild(el('div', 'mute', open ? (tier.rarity ? BB.HERO_RARITY[tier.rarity].name + ' heroes: ×' + BB.HERO_RARITY[tier.rarity].mult + ' to every stat. ' : 'Steady recruits to fill your ranks. ') + 'You get a hero you don\'t have yet.' : 'Clear chapter ' + tier.chapter + ' · ' + esc(BB.CHAPTERS[tier.chapter - 1].name) + ' to open this gate.'));
-    info.appendChild(el('div', 'lbl', heroes.length + ' heroes answer this gate · ' + left.length + ' not yet with you'));
+    info.appendChild(el('div', 'lbl', left.length + ' of ' + heroes.length + ' still to find'));
     RC.pool = (left.length ? left : heroes).slice(0, 7); RC.open = open; RC.feat = 0; RC.featT = 0;
     for (const e of RC.pool) if (!RC.loaded[e.key]) { RC.loaded[e.key] = 'loading'; BB.loadChar('h/' + e.key).then(() => { RC.loaded[e.key] = 1; }).catch(() => {}); }
     const row = el('div', 'row');
@@ -665,7 +657,7 @@
       g.globalAlpha = k * Math.max(0, 1 - out); BB.drawChar(g, key, '', 'Idle', 2, fr, cx, fy, S, k < 1 ? (1 - k) * 0.8 : 0); g.restore();
       const I = BB.identityOf ? BB.identityOf({ recruit: feat.key, calling: feat.calling, name: feat.name }) : null;
       g.save(); g.globalAlpha = k * Math.max(0, 1 - out); g.textAlign = 'center'; g.font = '700 ' + Math.round(14 * dpr) + 'px Outfit, sans-serif'; g.fillStyle = '#fff'; g.shadowColor = 'rgba(0,0,0,0.9)'; g.shadowBlur = 8; g.fillText(feat.name, cx, fy + 22 * dpr);
-      if (I) { g.font = '600 ' + Math.round(11 * dpr) + 'px Outfit, sans-serif'; g.fillStyle = BB.CLASSES[I.cls].col; g.fillText(BB.CLASSES[I.cls].name.toUpperCase() + ' · ' + BB.SIGNATURES[I.sig].name.toUpperCase(), cx, fy + 36 * dpr); }
+      if (I && h > 520 * dpr) { g.font = '600 ' + Math.round(11 * dpr) + 'px Outfit, sans-serif'; g.fillStyle = BB.CLASSES[I.cls].col; g.fillText(BB.CLASSES[I.cls].name.toUpperCase() + ' · ' + BB.SIGNATURES[I.sig].name.toUpperCase(), cx, fy + 36 * dpr); }
       g.restore();
     }
     if (!open) { g.save(); g.fillStyle = 'rgba(255,255,255,0.55)'; g.font = '700 ' + Math.round(13 * dpr) + 'px Outfit, sans-serif'; g.textAlign = 'center'; g.fillText('SEALED', cx, (ys + base) / 2); g.restore(); }
@@ -1020,9 +1012,9 @@
       top.appendChild(el('div', 'powcmp', '<div class="' + (tp >= rp ? 'ok' : 'lo') + '"><span class="lbl">Team</span><b>⚔ ' + fmt(tp) + '</b></div><div><span class="lbl">Recommended</span><b>⚔ ' + fmt(rp) + '</b></div>'));
       const vs = el('div', 'vs'); vs.appendChild(el('span', 'lbl', 'Foes')); vs.appendChild(UI.foeIcons(st, 40)); top.appendChild(vs);
     } else top.appendChild(el('div', 'power', '<span class="ico pow">⚔</span><b>' + fmt(tp) + '</b><span class="mute">' + team.length + ' / 5 heroes</span>'));
-    top.appendChild(el('div', 'bondrow', bonds.length ? bonds.map((b) => '<span class="bond" title="' + esc(b.desc) + '">✦ ' + b.name + '</span>').join('') : '<span class="mute" style="font-size:13px">Mix callings to unlock team bonds.</span>'));
+    if (bonds.length) top.appendChild(el('div', 'bondrow', bonds.map((b) => '<span class="bond" title="' + esc(b.desc) + '">✦ ' + b.name + '</span>').join('')));
     if (BB.teamBalance) { // the team at a glance: one chip per class, and what it is missing
-      const bal = BB.teamBalance(team), chips = Object.keys(BB.CLASSES).map((k) => { const n = bal.counts[k] || 0; return '<span class="cls' + (n ? ' on' : '') + '" style="--cc:' + BB.CLASSES[k].col + '" title="' + esc(BB.CLASSES[k].job) + '">' + BB.CLASSES[k].name + (n > 1 ? ' ×' + n : '') + '</span>'; }).join('');
+      const bal = BB.teamBalance(team), chips = Object.keys(BB.CLASSES).filter((k) => bal.counts[k]).map((k) => { const n = bal.counts[k] || 0; return '<span class="cls' + (n ? ' on' : '') + '" style="--cc:' + BB.CLASSES[k].col + '" title="' + esc(BB.CLASSES[k].job) + '">' + BB.CLASSES[k].name + (n > 1 ? ' ×' + n : '') + '</span>'; }).join('');
       top.appendChild(el('div', 'clsrow', chips + (team.length ? '<span class="clstip' + (bal.balanced ? ' good' : '') + '">' + (bal.balanced ? '✓ Balanced team' : esc(bal.tips[0] || '')) + '</span>' : '')));
     }
     const row = el('div', 'row');
