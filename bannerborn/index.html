@@ -253,10 +253,10 @@ button.hc:active{transform:scale(.97)}
 #reveal{position:fixed;inset:0;z-index:30;display:none;background:radial-gradient(ellipse at 50% 40%,#0e111a,#040508 75%)}
 #reveal.on{display:block}
 #reveal canvas{position:absolute;inset:0;width:100%;height:100%}
-#reveal .txt{position:absolute;left:0;right:0;bottom:calc(6% + var(--safe-b));text-align:center;opacity:0;transform:translateY(10px);transition:opacity .5s,transform .5s}
+#reveal .txt{position:absolute;left:0;right:0;bottom:calc(3.5% + var(--safe-b));text-align:center;opacity:0;transform:translateY(10px);transition:opacity .5s,transform .5s}
 #reveal.done .txt{opacity:1;transform:none}
-#reveal .rk{font:700 12px var(--head);letter-spacing:.32em;text-transform:uppercase;color:var(--rc)}
-#reveal .nm{font:800 clamp(30px,4.6vw,48px) var(--head);margin:6px 0 2px;text-shadow:0 0 40px color-mix(in srgb,var(--rc) 60%,transparent)}
+#reveal .rk{font:700 10.5px var(--head);letter-spacing:.32em;text-transform:uppercase;color:var(--rc)}
+#reveal .nm{font:800 clamp(22px,3vw,32px) var(--head);margin:3px 0 1px;text-shadow:0 0 40px color-mix(in srgb,var(--rc) 60%,transparent)}
 .clsrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}.clsrow .cls{font:600 11px var(--body);padding:3px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.1);color:#6b7383}.clsrow .cls.on{color:#fff;border-color:var(--cc);background:color-mix(in srgb,var(--cc) 22%,transparent)}.clsrow .clstip{font:500 12px var(--body);color:#ffb35a;margin-left:4px}.clsrow .clstip.good{color:#4ade80}
 .th-group{font:700 11px var(--head);letter-spacing:.28em;text-transform:uppercase;color:var(--mute);margin:16px 0 8px}
 .th-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
@@ -265,9 +265,10 @@ button.hc:active{transform:scale(.97)}
 .th-tile b{font:700 14px var(--head);color:#f3f5f9;padding-right:16px}.th-tile span{font:500 12px var(--body);color:#8f98a8}
 .th-tile::after{content:'▶';position:absolute;right:12px;top:12px;font-size:11px;color:var(--tc,#ffbe55);opacity:.8}
 #cutin{display:none!important}
-#reveal .cl{font:500 14px var(--body);color:var(--mute);margin-bottom:8px}
+#reveal .cl{font:500 12px var(--body);color:var(--mute);margin-bottom:4px}
 #reveal .cl .sig{color:#ffe7a3;font-weight:700}
-#reveal .ds{font:400 13px/1.45 var(--body);color:#c8cfdb;max-width:min(560px,88vw);margin:0 auto 14px}
+#reveal .ds{font:400 12px/1.4 var(--body);color:#aab3c2;max-width:min(460px,86vw);margin:0 auto 10px}
+#reveal .ds .sig{color:#ffe7a3;font-weight:700}
 
 /* ---- team */
 #team .board{flex:1.35;position:relative;min-width:0;padding:0;overflow:hidden}
@@ -525,7 +526,7 @@ input[type=range]{accent-color:var(--accent)} input[type=checkbox]{accent-color:
 </div>
 
 <div id="cine"><canvas id="cineCv"></canvas><button id="cineSkip">SKIP ▸▸</button></div>
-<div id="reveal"><canvas id="revealCv"></canvas><div class="txt"><div class="rk" id="rvRk"></div><div class="nm" id="rvNm"></div><div class="cl" id="rvCl"></div><div class="ds" id="rvDs"></div><button class="btn" id="rvOk">Welcome</button></div></div>
+<div id="reveal"><canvas id="revealCv"></canvas><div class="txt"><div class="rk" id="rvRk"></div><div class="nm" id="rvNm"></div><div class="cl" id="rvCl"></div><div class="ds" id="rvDs"></div><button class="btn sm" id="rvOk">Welcome</button></div></div>
 <div id="mResults" class="modal"><div class="frame scroll" id="resBody"></div></div>
 <div id="mPause" class="modal"><div class="frame" style="width:min(380px,90vw)">
   <h2 class="gold" style="text-align:center">Paused</h2>

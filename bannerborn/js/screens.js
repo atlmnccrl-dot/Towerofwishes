@@ -720,27 +720,99 @@
   UI.reveal = function (h, done) {
     Object.assign(RV, { on: true, t: 0, h, done, parts: [], rings: [], shake: 0, flash: 0, step: -1, burst: false, stars: 0, sil: null });
     RV.steps = (h.rarity || 0) + 1;
-    RV.tB = 1.4 + RV.steps * 0.6; RV.tS = RV.tB + 0.3; RV.tC = RV.tS + 1.3;
+    RV.tB = 1.4 + RV.steps * 0.6; RV.tS = RV.tB + 0.3; RV.tG = RV.tS + 1.5; RV.tC = RV.tG + 1.7;
     // energy motes rush in from the edges
     for (let i = 0; i < 70; i++) { const a = Math.random() * Math.PI * 2, d = 0.65 + Math.random() * 0.5; RV.parts.push({ kind: 'in', a, d, delay: Math.random() * 1.1, sp: 0.5 + Math.random() * 0.6 }); }
     const R = BB.HERO_RARITY[h.rarity || 0];
     $('reveal').style.setProperty('--rc', RCOL[h.rarity || 0]);
     $('rvRk').textContent = R.name + (h.legend ? ' · Legend' : '');
-    const I = BB.identityOf ? BB.identityOf(h) : null; RV.ent = I ? I.entrance : 'stride'; RV.landed = false;
+    const I = BB.identityOf ? BB.identityOf(h) : null; RV.ent = I ? I.entrance : 'stride'; RV.sig = I ? I.sig : null; RV.landed = false; RV.sigHit = false; RV.sparks = [];
     $('rvNm').textContent = h.name;
-    $('rvCl').innerHTML = I ? '<b style="color:' + BB.CLASSES[I.cls].col + '">' + BB.CLASSES[I.cls].name + '</b> · ' + BB.TEMPERS[I.temper].name + ' · <span class="sig">' + BB.SIGNATURES[I.sig].name + '</span>' : BB.CALLINGS[h.calling].name;
-    if ($('rvDs')) $('rvDs').textContent = BB.heroDesc ? BB.heroDesc(h) : '';
+    $('rvCl').innerHTML = I ? '<b style="color:' + BB.CLASSES[I.cls].col + '">' + BB.CLASSES[I.cls].name + '</b> · ' + BB.TEMPERS[I.temper].name : BB.CALLINGS[h.calling].name;
+    if ($('rvDs')) $('rvDs').innerHTML = I ? '<span class="sig">' + BB.SIGNATURES[I.sig].name + '</span> — ' + esc(BB.SIGNATURES[I.sig].line) : '';
     $('reveal').classList.remove('done'); $('reveal').classList.add('on');
     BB.sfx('portal'); BB.sfx('charge');
   };
   click($('rvOk'), (ev) => { ev.stopPropagation(); RV.on = false; $('reveal').classList.remove('on'); RV.done && RV.done(); });
-  $('reveal').addEventListener('click', () => { if (RV.on && RV.t < RV.tB) RV.t = RV.tB - 0.01; }); // tap to skip to the burst
+  $('reveal').addEventListener('click', () => { if (!RV.on) return; if (RV.t < RV.tB) RV.t = RV.tB - 0.01; else if (RV.t > RV.tS + 0.8 && RV.t < RV.tC) RV.t = RV.tC; }); // tap to skip ahead
   const sil = (layers, clip, dir, fr, sc) => { // the hero as a black cut-out, for the backlit moment
     const c = RV.sil || (RV.sil = document.createElement('canvas')); const S = 128 * sc; if (c.width !== S) { c.width = S; c.height = S; }
     const x = c.getContext('2d'); x.clearRect(0, 0, S, S); x.imageSmoothingEnabled = false; x.globalCompositeOperation = 'source-over';
     BB.drawLayers(x, layers, clip, dir, fr, S / 2, 90 * sc, sc, { noSlash: true });
     x.globalCompositeOperation = 'source-in'; x.fillStyle = '#05060a'; x.fillRect(0, 0, S, S); return c;
   };
+  // ---- the signature showcase: after arriving, the new hero shows what they do best
+  const cl01 = (v) => Math.max(0, Math.min(1, v)), eio = (k) => k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+  const SIG_HIT = { whirlwind: [0.1, 'slash'], groundpound: [0.5, 'slam'], blinkstrike: [0.45, 'blink'], warcry: [0.12, 'rally'], shieldtoss: [0.2, 'swing'], multishot: [0.3, 'bow'],
+    snare: [0.3, 'bow'], chainbolt: [0.3, 'cast'], meteor: [0.62, 'boom'], smite: [0.35, 'burst'], bloodrush: [0.1, 'charge'], vault: [0.72, 'slam'], decoy: [0.2, 'blink'], flurry: [0.1, 'slash'], barrier: [0.2, 'guard'] };
+  function sigPose(sig, k) { // how the hero moves during their showcase: clip, offset in sprite pixels, visibility
+    const P = { clip: 'Special1', dx: 0, dy: 0, vis: 1, flip: 0 };
+    if (sig === 'groundpound') { P.clip = 'Attack4'; P.dy = k < 0.35 ? -Math.sin(k / 0.35 * Math.PI / 2) * 34 : k < 0.5 ? -34 * (1 - (k - 0.35) / 0.15) : 0; }
+    else if (sig === 'blinkstrike') { P.clip = 'Attack1'; P.vis = k > 0.15 && k < 0.45 ? 0 : 1; P.dx = k >= 0.45 ? 0 : 0; }
+    else if (sig === 'warcry') P.clip = 'Taunt';
+    else if (sig === 'shieldtoss' || sig === 'multishot' || sig === 'snare') P.clip = 'Attack1';
+    else if (sig === 'vault') { const q = cl01((k - 0.1) / 0.62); P.clip = 'AttackRun'; P.dy = -Math.sin(q * Math.PI) * 34; P.dx = Math.sin(q * Math.PI * 2) * 6; }
+    else if (sig === 'decoy') { P.vis = k > 0.2 && k < 0.9 ? 0.35 : 1; P.dx = k > 0.2 ? 18 * eio(cl01((k - 0.2) / 0.5)) * (1 - cl01((k - 1.0) / 0.4)) : 0; }
+    else if (sig === 'flurry') P.clip = k < 0.7 ? 'Attack1' : 'Attack4';
+    return P;
+  }
+  function sigFx(g, sig, k, o) { // and the effect that goes with it
+    const { cx, fy, sc, u, w, h } = o, hy = fy - 22 * sc, top = fy - 48 * sc;
+    const al = Math.max(0, 1 - cl01((k - 1.1) / 0.4));
+    g.save(); g.globalCompositeOperation = 'lighter'; g.lineCap = 'round';
+    const ring = (x, y, r, col, lw, a) => { g.globalAlpha = a; g.strokeStyle = col; g.lineWidth = lw; g.beginPath(); g.ellipse(x, y, r, r * 0.34, 0, 0, 7); g.stroke(); };
+    const slash = (x, y, len, ang, col, lw, a) => { g.globalAlpha = a; g.strokeStyle = col; g.lineWidth = lw; g.beginPath(); g.moveTo(x - Math.cos(ang) * len, y - Math.sin(ang) * len); g.lineTo(x + Math.cos(ang) * len, y + Math.sin(ang) * len); g.stroke(); g.lineWidth = lw * 0.35; g.strokeStyle = '#fff'; g.stroke(); };
+    const bolt = (x0, y0, x1, y1, seed, lw, a) => { g.globalAlpha = a; g.beginPath(); g.moveTo(x0, y0); for (let i = 1; i < 8; i++) { const q = i / 8; g.lineTo(x0 + (x1 - x0) * q + Math.sin(seed * 7 + i * 13.7) * 18 * u, y0 + (y1 - y0) * q + Math.cos(seed * 5 + i * 9.1) * 10 * u); } g.lineTo(x1, y1);
+      g.strokeStyle = '#7fd8ff'; g.lineWidth = lw * 2.4; g.shadowColor = '#4cc9ff'; g.shadowBlur = 20 * u; g.stroke(); g.strokeStyle = '#fff'; g.lineWidth = lw; g.stroke(); g.shadowBlur = 0; };
+    switch (sig) {
+      case 'whirlwind': {
+        for (let i = 0; i < 4; i++) { const a0 = k * 16 + i * Math.PI / 2, r = (34 + i * 7) * sc * (0.6 + cl01(k * 3) * 0.4);
+          g.globalAlpha = al * (0.9 - i * 0.15); g.strokeStyle = i % 2 ? '#ffffff' : '#bfe9ff'; g.lineWidth = (5 - i) * u * 1.4; g.beginPath(); g.ellipse(cx, hy + 6 * sc, r, r * 0.32, 0, a0, a0 + 1.6); g.stroke(); }
+        break;
+      }
+      case 'groundpound': if (k > 0.5) { const q = (k - 0.5) / 0.9; for (let i = 0; i < 3; i++) ring(cx, fy, (q * 120 + i * 18) * sc * 0.9, i ? '#ffcf8a' : '#fff', (8 - i * 2) * u * (1 - q), al * (1 - q)); } break;
+      case 'blinkstrike': {
+        if (k > 0.1 && k < 0.6) { const a = 1 - cl01((k - 0.1) / 0.5); g.globalAlpha = a * 0.5; g.fillStyle = '#9fd0ff'; g.beginPath(); g.ellipse(cx, hy, 14 * sc * (1 + (k - 0.1) * 3), 30 * sc * (1 - (k - 0.1)), 0, 0, 7); g.fill(); }
+        if (k > 0.45) { const q = cl01((k - 0.45) / 0.18), a = al * (1 - cl01((k - 0.7) / 0.6)); slash(cx + 16 * sc, hy, 46 * sc * q, -0.7, '#7fc8ff', 7 * u, a); slash(cx + 16 * sc, hy, 46 * sc * q, 0.7, '#7fc8ff', 7 * u, a); }
+        break;
+      }
+      case 'warcry': for (let i = 0; i < 4; i++) { const q = cl01((k - 0.1 - i * 0.18) / 0.8); if (q <= 0 || q >= 1) continue; g.globalAlpha = (1 - q) * al; g.strokeStyle = i % 2 ? '#ff7a4a' : '#ffd27a'; g.lineWidth = 6 * u * (1 - q); g.beginPath(); g.arc(cx, top + 6 * sc, q * 90 * sc, 0, 7); g.stroke(); }
+        for (let i = 0; i < 12; i++) { const a = i / 12 * 7, q = cl01((k - 0.1) / 0.5); g.globalAlpha = al * 0.7 * (1 - q * 0.5); g.strokeStyle = '#ffd27a'; g.lineWidth = 2.5 * u; g.beginPath(); g.moveTo(cx + Math.cos(a) * 40 * sc * q, top + 6 * sc + Math.sin(a) * 40 * sc * q); g.lineTo(cx + Math.cos(a) * (40 * q + 16) * sc, top + 6 * sc + Math.sin(a) * (40 * q + 16) * sc); g.stroke(); }
+        break;
+      case 'shieldtoss': if (k > 0.2 && k < 1.3) { const q = (k - 0.2) / 1.1; for (let j = 0; j < 6; j++) { const qq = Math.max(0, q - j * 0.025), a = qq * Math.PI * 2, x = cx + Math.sin(a) * 90 * sc, y = hy - Math.sin(a * 2) * 16 * sc + (1 - Math.cos(a)) * 6 * sc;
+          g.globalAlpha = al * (j ? 0.25 : 1); g.fillStyle = j ? '#9fd0ff' : '#e8f2ff'; g.beginPath(); g.ellipse(x, y, 8 * sc, 5 * sc, a * 3, 0, 7); g.fill(); } } break;
+      case 'multishot': if (k > 0.3) { const q = cl01((k - 0.3) / 0.5); for (let i = 0; i < 5; i++) { const a = -0.55 + i * 0.27, d = q * w * 0.55, x = cx + 14 * sc + Math.cos(a) * d, y = hy + Math.sin(a) * d * 0.6;
+          g.globalAlpha = al; g.strokeStyle = '#fff3c4'; g.lineWidth = 3 * u; g.beginPath(); g.moveTo(x, y); g.lineTo(x - Math.cos(a) * 60 * u, y - Math.sin(a) * 36 * u); g.stroke(); } } break;
+      case 'snare': if (k > 0.3) { const q = cl01((k - 0.3) / 0.45), x = cx + q * 150 * sc, y = hy - Math.sin(q * Math.PI) * 40 * sc + q * 20 * sc, r = (6 + q * 30) * sc;
+          g.globalCompositeOperation = 'source-over'; g.globalAlpha = al; g.strokeStyle = '#d8c79a'; g.lineWidth = 2 * u;
+          for (let i = -3; i <= 3; i++) { g.beginPath(); g.moveTo(x + i * r / 3, y - r * 0.6); g.lineTo(x + i * r / 3, y + r * 0.6); g.stroke(); g.beginPath(); g.moveTo(x - r, y + i * r / 5); g.lineTo(x + r, y + i * r / 5); g.stroke(); } } break;
+      case 'chainbolt': if (k > 0.3 && k < 1.3) { const pts = [[cx + 10 * sc, hy - 10 * sc], [w * 0.78, h * 0.3], [w * 0.88, h * 0.55], [w * 0.2, h * 0.28], [w * 0.1, h * 0.58]];
+          for (let i = 0; i < 4; i++) { const t0 = 0.3 + i * 0.12; if (k < t0) break; const fl = Math.floor(k * 30) % 3 ? 1 : 0.4; bolt(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], i + Math.floor(k * 20), 2.5 * u, fl * al * (1 - cl01((k - t0 - 0.4) / 0.4)));
+            g.globalAlpha = al; const gl = g.createRadialGradient(pts[i + 1][0], pts[i + 1][1], 0, pts[i + 1][0], pts[i + 1][1], 40 * u); gl.addColorStop(0, 'rgba(200,245,255,0.8)'); gl.addColorStop(1, 'rgba(80,200,255,0)'); g.fillStyle = gl; g.fillRect(pts[i + 1][0] - 40 * u, pts[i + 1][1] - 40 * u, 80 * u, 80 * u); } } break;
+      case 'meteor': { const tx = cx + w * 0.16, ty = fy + 4 * sc;
+        if (k > 0.1 && k < 0.62) { const q = (k - 0.1) / 0.52, x = tx + (1 - q) * w * 0.35, y = ty - (1 - q) * h * 0.9;
+          const gl = g.createRadialGradient(x, y, 0, x, y, 26 * u); gl.addColorStop(0, '#fff6c0'); gl.addColorStop(0.4, '#ff9a3a'); gl.addColorStop(1, 'rgba(255,60,10,0)'); g.globalAlpha = 1; g.fillStyle = gl; g.beginPath(); g.arc(x, y, 26 * u, 0, 7); g.fill();
+          g.strokeStyle = 'rgba(255,140,40,0.6)'; g.lineWidth = 16 * u; g.beginPath(); g.moveTo(x, y); g.lineTo(x + w * 0.12, y - h * 0.3); g.stroke(); }
+        if (k > 0.62) { const q = cl01((k - 0.62) / 0.7); const R0 = (70 + q * 180) * u, gl = g.createRadialGradient(tx, ty - 30 * u, 0, tx, ty - 30 * u, R0); gl.addColorStop(0, 'rgba(255,250,210,' + (1 - q * 0.8) + ')'); gl.addColorStop(0.35, 'rgba(255,150,40,' + 0.85 * (1 - q) + ')'); gl.addColorStop(1, 'rgba(255,60,10,0)');
+          g.globalAlpha = 1; g.fillStyle = gl; g.beginPath(); g.arc(tx, ty - 30 * u, R0, 0, 7); g.fill(); ring(tx, ty, q * 260 * u, '#ffb060', 10 * u * (1 - q), 1 - q);
+          for (let i = 0; i < 14; i++) { const qq = (k * 1.4 + i / 14) % 1; g.globalAlpha = (1 - qq) * (1 - q * 0.6); g.fillStyle = i % 2 ? '#ff9a3a' : '#ffd27a'; g.beginPath(); g.arc(tx + Math.sin(i * 2.7) * 50 * u, ty - qq * 120 * u, (3 + (1 - qq) * 6) * u, 0, 7); g.fill(); } }
+        break; }
+      case 'smite': if (k > 0.2) { const q = cl01((k - 0.2) / 0.15), a = al * (1 - cl01((k - 0.6) / 0.8)), bw = 26 * sc * q;
+          const gl = g.createLinearGradient(0, 0, 0, fy); gl.addColorStop(0, 'rgba(255,240,180,0)'); gl.addColorStop(0.6, 'rgba(255,230,140,' + 0.5 * a + ')'); gl.addColorStop(1, 'rgba(255,255,230,' + 0.9 * a + ')');
+          g.fillStyle = gl; for (const [f, al2] of [[1, 0.3], [0.62, 0.45], [0.3, 0.8]]) { g.globalAlpha = al2; g.fillRect(cx - bw * f, 0, bw * 2 * f, fy); }
+          g.globalAlpha = 1; g.fillStyle = 'rgba(255,255,240,' + 0.7 * a + ')'; g.fillRect(cx - bw * 0.1, 0, bw * 0.2, fy); ring(cx, fy, 40 * sc * (0.6 + q * 0.6), '#ffe48a', 5 * u, a); } break;
+      case 'bloodrush': { const p = 0.5 + Math.sin(k * 18) * 0.5; const gl = g.createRadialGradient(cx, hy, 0, cx, hy, 60 * sc); gl.addColorStop(0, 'rgba(255,40,50,' + 0.4 * al * p + ')'); gl.addColorStop(1, 'rgba(255,0,20,0)'); g.globalAlpha = 1; g.fillStyle = gl; g.fillRect(cx - 60 * sc, hy - 60 * sc, 120 * sc, 120 * sc);
+        for (let i = 0; i < 16; i++) { const q = (k * 1.2 + i / 16) % 1; g.globalAlpha = (1 - q) * al; g.fillStyle = i % 2 ? '#ff3a4a' : '#ff8a8a'; g.beginPath(); g.arc(cx + Math.sin(i * 2.9 + k * 4) * 26 * sc, fy - q * 70 * sc, (2 + (1 - q) * 3) * u, 0, 7); g.fill(); } break; }
+      case 'vault': if (k > 0.72) { const q = cl01((k - 0.72) / 0.6); ring(cx, fy, q * 80 * sc, '#e8d8b0', 6 * u * (1 - q), al * (1 - q)); } break;
+      case 'decoy': if (k > 0.2 && k < 1.2) { g.globalCompositeOperation = 'source-over'; for (let i = 0; i < 10; i++) { const q = cl01((k - 0.9) / 0.3); g.globalAlpha = 0.35 * (1 - q) * al; g.fillStyle = '#2a1840'; g.beginPath(); g.arc(cx - 20 * sc + Math.sin(i * 3.1) * 12 * sc, fy - (8 + i * 5) * sc, (5 + q * 10) * sc, 0, 7); g.fill(); } } break;
+      case 'flurry': for (let i = 0; i < 5; i++) { const t0 = 0.1 + i * 0.12, q = cl01((k - t0) / 0.1); if (q <= 0) continue; const a = al * (1 - cl01((k - t0 - 0.15) / 0.3)); slash(cx + 18 * sc + (i % 2 ? 6 : -4) * sc, hy + ((i * 7) % 11 - 5) * sc, (i === 4 ? 52 : 34) * sc * q, [-0.6, 0.5, -0.2, 0.8, -0.9][i], i === 4 ? '#ffd27a' : '#ffffff', (i === 4 ? 8 : 5) * u, a); } break;
+      case 'barrier': { const q = eio(cl01((k - 0.2) / 0.4)), r = 40 * sc * q, sh = 0.6 + Math.sin(k * 10) * 0.2;
+        g.globalAlpha = al * 0.25 * q; g.fillStyle = '#9fd8ff'; g.beginPath(); g.ellipse(cx, fy - 22 * sc, r * 0.8, r, 0, 0, 7); g.fill();
+        g.globalAlpha = al * sh * q; g.strokeStyle = '#d8f2ff'; g.lineWidth = 2.5 * u; g.beginPath(); g.ellipse(cx, fy - 22 * sc, r * 0.8, r, 0, 0, 7); g.stroke();
+        for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2 + k; g.beginPath(); g.moveTo(cx, fy - 22 * sc - r); g.quadraticCurveTo(cx + Math.cos(a) * r * 0.8, fy - 22 * sc, cx + Math.cos(a) * r * 0.5, fy); g.globalAlpha = al * 0.25 * q; g.stroke(); } break; }
+    }
+    g.restore(); g.globalAlpha = 1;
+  }
   UI.revealRender = function (dt) {
     if (!RV.on) return;
     const prevT = RV.t; RV.t += dt; const T = RV.t;
@@ -773,7 +845,9 @@
     g.globalAlpha = 1;
     // the gate: its runes light as it gathers, the vortex spins up through the rarity colours and tears wide on the burst
     const pw = T < 1.4 ? 0.15 + T / 1.4 * 0.45 : RV.burst ? Math.max(1, 1.6 - (T - RV.tB) * 0.8) : 0.6 + step * 0.18;
+    const back = cl01((T - RV.tG + 0.3) / 0.7); g.globalAlpha = 1 - back * 0.6;
     gateArch(g, { cx, base: fy, gh, C, t: T * (1 + step * 0.3), open: true, dpr, power: pw, runes: Math.min(1, T / Math.max(0.5, RV.tB - 0.3)) });
+    g.globalAlpha = 1;
     g.save(); g.globalCompositeOperation = 'lighter';
     // shockwave rings
     for (const r of RV.rings) { r.t += dt; const k = r.t / (r.big ? 1.1 : 0.7); if (k >= 1) continue; g.globalAlpha = 1 - k; g.strokeStyle = r.col; g.lineWidth = (r.big ? 10 : 5) * u * (1 - k); g.beginPath(); g.ellipse(cx, cy, k * (r.big ? 700 : 300) * u, k * (r.big ? 520 : 220) * u, 0, 0, 7); g.stroke(); }
@@ -781,11 +855,19 @@
     // the hero steps out: black against the light, then colour floods in
     if (T >= RV.tS) {
       const k = T - RV.tS, layers = BB.heroLayers(RV.h), key = layers[0].key;
-      const clip = k < 1.6 ? (BB.hasClip(key, 'Taunt') ? 'Taunt' : 'Special1') : 'Idle';
-      const n = BB.clipLen(key, clip) || 15, fr = clip === 'Idle' ? Math.floor(T * 9) % n : Math.min(n - 1, Math.floor(k * 11));
-      const sc = Math.max(2, Math.round(gh * 0.8 / 42));
+      const ks = T - RV.tG, SP = ks >= 0 && ks < 1.6 && RV.sig ? sigPose(RV.sig, ks) : null;
+      let clip = SP ? SP.clip : k < 1.3 ? (BB.hasClip(key, 'Taunt') ? 'Taunt' : 'Special1') : 'Idle';
+      if (!BB.hasClip(key, clip)) clip = BB.hasClip(key, 'Special1') ? 'Special1' : 'Idle';
+      const n = BB.clipLen(key, clip) || 15, fr = clip === 'Idle' ? Math.floor(T * 9) % n : SP ? (RV.sig === 'whirlwind' ? Math.floor(ks * 18) % n : Math.min(n - 1, Math.floor(ks * 13))) : Math.min(n - 1, Math.floor(k * 11));
+      // the camera pushes in as the showcase begins: the hero fills the frame and the gate falls back
+      const push = eio(cl01((T - RV.tG + 0.3) / 0.7)), sc = Math.max(2, Math.round(gh * 0.8 / 42)) * (1 + push * 0.3);
+      if (SP && RV.sig && !RV.sigHit && ks >= SIG_HIT[RV.sig][0]) { RV.sigHit = true; BB.sfx(SIG_HIT[RV.sig][1]);
+        if (/groundpound|meteor|vault|smite/.test(RV.sig)) { RV.shake = RV.sig === 'meteor' ? 0.9 : 0.6; RV.flash = RV.sig === 'smite' ? 0.6 : 0.35; }
+        if (/groundpound|meteor|vault/.test(RV.sig)) for (let i = 0; i < 40; i++) { const a = Math.PI + Math.random() * Math.PI, v = (150 + Math.random() * 300) * u, ox2 = RV.sig === 'meteor' ? w * 0.22 : 0;
+          RV.parts.push({ kind: 'out', x: ox2 + Math.cos(a) * 20 * u, y: fy - cy, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 180 * u, t: 0, life: 0.6 + Math.random() * 0.6, col: RV.sig === 'meteor' ? '#ffb060' : '#d8c6a0', r: (2 + Math.random() * 3) * u }); }
+        if (/chainbolt|blinkstrike/.test(RV.sig)) RV.flash = 0.45; }
       // each hero arrives their own way
-      const ent = RV.ent, cl01 = (v) => Math.max(0, Math.min(1, v));
+      const ent = RV.ent;
       let rise = Math.max(0, 1 - k * 3) * 40 * u, ox = 0, vis = Math.min(1, k * 3);
       if (ent === 'slam') { const q = cl01(k / 0.32); rise = -(1 - q) * (1 - q) * 520 * u; vis = 1; if (q >= 1 && !RV.landed) { RV.landed = true; RV.shake = 0.9; RV.flash = 0.5; RV.rings.push({ t: 0, col: '#ffd9a0', big: true }); BB.sfx('slam'); } }
       else if (ent === 'charge') { const q = cl01(k / 0.38); ox = -(1 - q) * (1 - q) * w * 0.7; rise = 0; vis = 1; if (q >= 1 && !RV.landed) { RV.landed = true; RV.shake = 0.4; BB.sfx('dodge'); } }
@@ -793,8 +875,10 @@
       else if (ent === 'shadow') { const q = cl01(k / 0.7); rise = (1 - q) * 70 * sc; vis = 1; }
       else if (ent === 'blink' || ent === 'lightning' || ent === 'flame' || ent === 'frost' || ent === 'leaves') { vis = k < 0.18 ? 0 : 1; rise = 0; if (k >= 0.18 && !RV.landed) { RV.landed = true; RV.flash = ent === 'lightning' ? 0.9 : 0.45; RV.shake = ent === 'lightning' ? 0.6 : 0.3; BB.sfx(ent === 'lightning' ? 'slam' : ent === 'flame' ? 'burst' : ent === 'frost' ? 'guard' : ent === 'blink' ? 'slash' : 'enchant'); } }
       else if (ent === 'stride') { const q = cl01(k / 1.0); rise = 0; vis = q; }
+      if (SP) { ox += SP.dx * sc; rise += SP.dy * sc; vis *= SP.vis; }
+      g.globalAlpha = 1; g.fillStyle = 'rgba(0,0,0,0.55)'; g.beginPath(); g.ellipse(cx, fy, 34 * sc * (SP && SP.dy < 0 ? 0.7 : 1), 10 * sc, 0, 0, 7); g.fill();
+      if (SP && RV.sig === 'barrier') sigFx(g, RV.sig, ks, { cx, fy, sc, u, w, h });
       g.globalAlpha = vis;
-      g.fillStyle = 'rgba(0,0,0,0.55)'; g.beginPath(); g.ellipse(cx, fy, 34 * sc, 10 * sc, 0, 0, 7); g.fill();
       const reveal = Math.min(1, Math.max(0, (k - (ent === 'stride' ? 0.7 : 0.45)) / 0.7));
       g.save(); if (ent === 'shadow') { g.beginPath(); g.rect(0, 0, w, fy + 2 * sc); g.clip(); }
       if (reveal < 1) { const sv = sil(layers, clip, 2, fr, sc); g.drawImage(sv, cx + ox - 64 * sc, fy - 90 * sc + rise); }
@@ -815,8 +899,12 @@
 }
       if (ent === 'slam' && RV.landed && k < 1.0) { g.globalCompositeOperation = 'source-over'; for (let i = 0; i < 16; i++) { const an = Math.PI + i / 15 * Math.PI, d = (k - 0.32) * 500 * u, yy = fy + Math.sin(an) * d * 0.25 - Math.sin((k - 0.32) * 4) * 40 * u * (i % 3 + 1); g.fillStyle = 'rgba(60,50,40,' + Math.max(0, 1 - k) + ')'; g.fillRect(cx + Math.cos(an) * d, yy, 7 * u, 5 * u); } }
       g.restore();
+      if (SP && RV.sig !== 'barrier') sigFx(g, RV.sig, ks, { cx: cx + ox, fy, sc, u, w, h });
+      // the signature's name, slammed in as it plays
+      if (ks > 0.05 && ks < 2.2 && RV.sig) { const q = cl01((ks - 0.05) / 0.2), a = Math.min(q, cl01((2.2 - ks) / 0.4)); g.save(); g.globalAlpha = a; g.font = '700 ' + Math.round(26 * u * (1 + (1 - q) * 0.6)) + 'px Cinzel, Outfit, serif'; g.textAlign = 'center'; g.letterSpacing = Math.round(6 * u) + 'px';
+        g.fillStyle = '#ffe7a3'; g.shadowColor = 'rgba(0,0,0,0.95)'; g.shadowBlur = 14 * u; g.fillText(BB.SIGNATURES[RV.sig].name.toUpperCase(), cx, Math.max(40 * u, fy - 112 * sc)); g.restore(); }
       // the entrance's name under the hero
-      if (k > 0.35 && k < 2.6) { g.save(); g.globalAlpha = Math.min(1, (k - 0.35) * 3) * Math.min(1, (2.6 - k) * 2); g.font = '700 ' + Math.round(14 * u) + 'px Outfit, sans-serif'; g.textAlign = 'center'; g.fillStyle = '#ffe7a3'; g.shadowColor = 'rgba(0,0,0,0.9)'; g.shadowBlur = 8; g.fillText((BB.ENTRANCES[ent] ? BB.ENTRANCES[ent].name : '').toUpperCase(), cx, fy + 26 * u); g.restore(); }
+      if (k > 0.35 && k < 1.5) { g.save(); g.globalAlpha = Math.min(1, (k - 0.35) * 3) * Math.min(1, (1.5 - k) * 3); g.font = '700 ' + Math.round(14 * u) + 'px Outfit, sans-serif'; g.textAlign = 'center'; g.fillStyle = '#ffe7a3'; g.shadowColor = 'rgba(0,0,0,0.9)'; g.shadowBlur = 8; g.fillText((BB.ENTRANCES[ent] ? BB.ENTRANCES[ent].name : '').toUpperCase(), cx, fy + 26 * u); g.restore(); }
       // rim light on the silhouette
       if (reveal < 1) { g.save(); g.globalCompositeOperation = 'lighter'; const rl = g.createRadialGradient(cx, fy - 45 * sc, 0, cx, fy - 45 * sc, 60 * sc); rl.addColorStop(0, col + '55'); rl.addColorStop(1, col + '00'); g.fillStyle = rl; g.fillRect(cx - 70 * sc, fy - 110 * sc, 140 * sc, 120 * sc); g.restore(); }
     }
