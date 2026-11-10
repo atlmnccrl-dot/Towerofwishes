@@ -775,9 +775,13 @@
     ctx.restore();
   }
   // The First Cut: the drawn god, one solid shape (o.col; o.tint marks a hit, o.sil the ink frames).
+  // The forge's sprite (tools_boss.py) when it has loaded, else the polygons. A black or white col asks for a pure
+  // silhouette (the ink frames); any other darkens him toward it, keeping his armour, runes and the moon's rim.
   function colossus(ctx, S, ex, ey, sc, T, o) {
     o = o || {};
-    colossusDrawn(ctx, S, ex, ey, sc, T, { flat: true, pose: o.pose, col: o.tint ? '#3a0a14' : (o.col || '#050204') });
+    const col = o.tint ? '#3a0a14' : (o.col || '#050204'), ink = o.ink || /^#(000|000000|fff|ffffff)$/i.test(col);
+    if (A.bossReady && A.bossReady() && A.boss(ctx, o.pose === 'raise' || o.pose === 'side' ? o.pose : 'plant', Math.floor((T || 0) * 3), ex, ey, sc / 2, col, ink ? 1 : (o.amt != null ? o.amt : o.tint ? 0.5 : 0.3))) return;
+    colossusDrawn(ctx, S, ex, ey, sc, T, { flat: true, pose: o.pose, col });
   }
   // No glowing eyes on him (the author, 2026-11-09).
   function burningEyes() {}

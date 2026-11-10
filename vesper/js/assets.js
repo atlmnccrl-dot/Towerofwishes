@@ -240,6 +240,26 @@
     return true;
   };
   A.isoWarm = function (ctx) { for (const k in isoPages) ctx.drawImage(isoPages[k], 0, 0, 1, 1, 0, 0, 1, 1); ctx.clearRect(0, 0, 2, 2); };
+  // The First Cut as a sprite (tools_boss.py): three poses x four frames, at 3 and 6 pixels per unit. Drawn with
+  // its eyes at (x, y), u screen pixels per unit; tint/amt darken or colour it toward a colour (amt 1: a silhouette).
+  let boss = null, bossP = null; const bossScratch = document.createElement('canvas');
+  A.loadBoss = () => bossP || (bossP = loadJSON(A.ROOT + 'forge/firstcut.json').then(async (d) => { d.images = await Promise.all(d.pages.map((p) => loadImage(A.ROOT + 'forge/' + p))); boss = d; }).catch(() => {}));
+  A.bossReady = () => !!boss;
+  A.boss = function (ctx, pose, fr, x, y, u, tint, amt) {
+    if (!boss) return false;
+    const P = u >= 4.2 ? 6 : 3, f = boss.frames[pose + '/' + P + '/' + (fr % 4)] || boss.frames['plant/' + P + '/' + (fr % 4)]; if (!f) return false;
+    const img = boss.images[f[0]], k = u / P, w = f[3], h = f[4];
+    let src = img, sx = f[1], sy = f[2];
+    if (tint && amt > 0) {
+      if (bossScratch.width < w || bossScratch.height < h) { bossScratch.width = Math.max(bossScratch.width, w); bossScratch.height = Math.max(bossScratch.height, h); }
+      const g = bossScratch.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1; g.clearRect(0, 0, w, h);
+      g.drawImage(img, f[1], f[2], w, h, 0, 0, w, h); g.globalCompositeOperation = 'source-atop'; g.globalAlpha = Math.min(1, amt); g.fillStyle = tint; g.fillRect(0, 0, w, h);
+      g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1; src = bossScratch; sx = 0; sy = 0;
+    }
+    const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(src, sx, sy, w, h, Math.round(x - f[5] * k), Math.round(y - f[6] * k), Math.round(w * k), Math.round(h * k));
+    ctx.imageSmoothingEnabled = sm; return true;
+  };
   A.hasTex = (name) => !!tex[name];
   A.hasTile = (name) => !!(tileData && tileData.sprites[name]);
   A.hasFx = (name) => !!(fxData && fxData.fx[name]);

@@ -165,8 +165,8 @@
   const OPENING_SETS = ['vh_townsfolk_001', 'vh_townsfolk_004', 'vh_townsfolk_007', 'vh_townsfolk_010', 'vh_townsfolk_013', 'vh_skeleton_002', 'vh_barbarian_002'];
   function newGame() {
     const play = () => startIntro(() => showcase(() => playNode('a0-t', true))), miss = OPENING_SETS.filter((id) => !A.hasSet(id));
-    if (!miss.length) return play();
-    M.go('load'); U.loading(0); A.loadSets(miss, (f) => U.loading(f)).then(() => { A.warm(R.ctx); U.hide(); play(); }, () => { U.hide(); play(); });
+    if (!miss.length && A.bossReady()) return play();
+    M.go('load'); U.loading(0); Promise.all([A.loadSets(miss, (f) => U.loading(f)), A.loadBoss()]).then(() => { A.warm(R.ctx); U.hide(); play(); }, () => { U.hide(); play(); });
   }
 
   // The opening, played in the engine (js/intro.js).
@@ -760,7 +760,7 @@
     const mine = (D.HEROES[M.save.hero] || D.HERO).set, first = [...new Set([D.HERO.set, mine])];
     const ids = new Set([D.HERO.set, D.LYS.set, D.CLONE.set]); for (const k in D.FOES) if (!D.FOES[k].set.startsWith('vh_')) ids.add(D.FOES[k].set); for (const k in D.HEROES) ids.add(D.HEROES[k].set);
     await A.load(first, (p) => U.loading(p));
-    M.bgLoad = new Promise((res) => setTimeout(res, 300)).then(() => Promise.all([A.loadSets([...ids].filter((id) => !A.hasSet(id))), A.loadIso(['w', 'a', 'v', 'i']).catch(() => {})]))
+    M.bgLoad = new Promise((res) => setTimeout(res, 300)).then(() => Promise.all([A.loadSets([...ids].filter((id) => !A.hasSet(id))), A.loadIso(['w', 'a', 'v', 'i']).catch(() => {}), A.loadBoss()]))
       .then(() => { M.bgDone = true; A.warm(R.ctx); A.isoWarm(R.ctx); }, () => { M.bgDone = true; });
     try { if (document.fonts) await Promise.race([Promise.all(['20px Adventurer', '700 20px "Chakra Petch"', '500 16px Barlow', '700 16px Barlow'].map((f) => document.fonts.load(f))), new Promise((r) => setTimeout(r, 2500))]); } catch (e) { /* fonts optional */ }
     A.warm(R.ctx); A.isoWarm(R.ctx);
