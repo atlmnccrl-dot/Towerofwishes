@@ -304,9 +304,10 @@
         case 'wall': sparks(e.x, e.y, 20, 14, '#ffffff', 180, 1.6); R.float('WALL', e.x, e.y, 50, '#ffffff', true, true); R.shake = Math.max(R.shake, 6); break;
         case 'phase': if (!e.quiet) { R.flash = 0.6; R.flashCol = '255,40,60'; R.shake = 8; } break;
         // The god: his blade landing along its line, his hand slamming down, his phases, his kneeling, his fall.
-        case 'cut': { PK('cb:01_crimson_tide_cleave/caster', (e.x1 + e.x2) / 2, (e.y1 + e.y2) / 2, 4, 1.8);   // (not flashpoint severance's caster: two of its frames are a hard white box)
+        case 'cut': { PK('cb:01_crimson_tide_cleave/caster', (e.x1 + e.x2) / 2, (e.y1 + e.y2) / 2, 4, 1.8); if (e.god) { R.shake = Math.max(R.shake, 12); R.flash = Math.max(R.flash, 0.35); R.flashCol = '255,60,80'; R.punch = Math.max(R.punch || 0, 0.05); }   // (not flashpoint severance's caster: two of its frames are a hard white box)
           for (let i = 1; i <= 3; i++) PK('cb:01_crimson_tide_cleave/target', e.x1 + (e.x2 - e.x1) * i / 4, e.y1 + (e.y2 - e.y1) * i / 4, 4, 1.4); FX({ kind: 'gcut', x1: e.x1, y1: e.y1, x2: e.x2, y2: e.y2, w: e.w, life: 0.45 }); R.shake = Math.max(R.shake, 12); R.flash = 0.25; R.flashCol = '255,255,255'; const n = 10; for (let i = 0; i <= n; i++) { const f = i / n; sparks(e.x1 + (e.x2 - e.x1) * f, e.y1 + (e.y2 - e.y1) * f, 4, 3, '#ffd0d6', 160, 1.2); } break; }
-        case 'godMove': R.godPose = { move: e.move, t: 0 }; break;
+        case 'godMove': R.godPose = { move: e.move, t: 0 }; if (e.move === 'last') { R.bossArt = { key: 'godCut', name: 'THE LAST CUT', t: 0 }; R.flash = 0.6; R.flashCol = '255,30,50'; R.shake = 16; } break;
+        case 'doom': { R.flash = 1; R.flashCol = '255,255,255'; R.shake = 28; R.punch = 0.1; const AR = VS.arenaOf(s), rr = AR.godR || 300; for (let i = 0; i < 9; i++) { const a = i / 9 * Math.PI * 2; PK('cb:01_crimson_tide_cleave/caster', Math.cos(a) * rr * 0.6, Math.sin(a) * rr * 0.6, 4, 2); } FX({ kind: 'gring', x: e.x, y: e.y, life: 0.8, col: '#cfe0ff', r0: e.r, r1: e.r * 3, w: 5 }); break; }
         case 'godPhase': R.bossArt = { key: 'godCut', name: e.n === 2 ? 'HIS DEAD RISE' : 'HE KNEELS TO KILL', t: 0 }; R.flash = 0.7; R.flashCol = '255,40,60'; R.shake = 14; break;
         case 'godKneel': R.shake = 16; R.flash = 0.4; R.flashCol = '255,255,255'; FX({ kind: 'gring', x: e.x, y: e.y, life: 0.7, col: '#ffffff', r0: 20, r1: 200, w: 4 }); break;
         case 'godDown': PK('cb:19_recall_beam/caster', s.hero.x, s.hero.y, 0, 3); R.flash = 1; R.flashCol = '255,250,252'; R.shake = 24; R.godFall = 0.001; break;
@@ -394,8 +395,31 @@
     const Sh = R.Sh();
     for (const z of s.hazards) {
       const foe = z.team === 'foe', col = foe ? '#ff2a44' : z.team === 'arena' ? '#ffa040' : '#ffffff';
+      if (z.kind === 'wave') {
+        // A shockwave: a band of red light rolling out over the floor.
+        const rr = z.t < z.delay ? 0 : (z.rr || z.r0); if (!rr) continue;
+        ctx.save(); ground(ctx); ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = rgba('#ff2a44', 0.45); ctx.lineWidth = z.w * 1.6; ctx.beginPath(); ctx.arc(z.x, z.y, rr, 0, 7); ctx.stroke();
+        ctx.strokeStyle = rgba('#ffd0d6', 0.6); ctx.lineWidth = z.w * 0.5; ctx.beginPath(); ctx.arc(z.x, z.y, rr, 0, 7); ctx.stroke();
+        ctx.restore(); continue;
+      }
+      if (z.kind === 'doom') {
+        // The Last Cut coming: the whole summit pulses red, but for one pool of moonlight.
+        const k = z.t / z.delay, pulse = 0.5 + 0.5 * Math.sin(R.t * (6 + 10 * k)), big = 2000;
+        ctx.save(); ground(ctx); ctx.fillStyle = rgba('#ff1a34', 0.12 + 0.22 * k + 0.08 * pulse); ctx.beginPath(); ctx.rect(-big, -big, big * 2, big * 2); ctx.arc(z.sx, z.sy, z.sr, 0, 7, true); ctx.fill('evenodd');
+        const gr = ctx.createRadialGradient(z.sx, z.sy, 0, z.sx, z.sy, z.sr); gr.addColorStop(0, 'rgba(230,240,255,0.55)'); gr.addColorStop(1, 'rgba(200,220,255,0.15)'); ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(z.sx, z.sy, z.sr, 0, 7); ctx.fill();
+        ctx.restore();
+        const q = R.P(z.sx, z.sy, 0); A.tex(ctx, 'light_01', q.x, q.y - R.H * 0.3, 70 * Sh, R.H * 0.9, '#cfe0ff', 0.55 + 0.25 * pulse, 0, true);
+        label(ctx, 'REACH THE LIGHT', R.W / 2, R.H * 0.3, 22 * R.k, pulse > 0.5 ? '#ffffff' : '#cfe0ff', 'center', 4, 700);
+        continue;
+      }
       if (z.kind === 'cut') {
         if (z.t >= z.delay) continue;
+        if (z.god && z.delay - z.t < 0.5) {   // his blade coming down out of the sky onto the line
+          const mx = (z.x1 + z.x2) / 2, my = (z.y1 + z.y2) / 2, q = R.P(mx, my, 0), kk = 1 - (z.delay - z.t) / 0.5, top = q.y * (1 - kk);
+          A.tex(ctx, 'light_01', q.x, (top + q.y) / 2 - 10, 50 * Sh, Math.max(10, q.y - top + 40), '#ff2a44', 0.75, 0, true);
+          A.tex(ctx, 'light_01', q.x, (top + q.y) / 2 - 10, 16 * Sh, Math.max(10, q.y - top + 40), '#ffffff', 0.7 * kk, 0, true);
+        }
         const k = z.t / z.delay, a = Math.atan2(z.y2 - z.y1, z.x2 - z.x1), L = Math.hypot(z.x2 - z.x1, z.y2 - z.y1);
         ctx.save(); ground(ctx); ctx.translate(z.x1, z.y1); ctx.rotate(a);
         ctx.fillStyle = rgba('#ff2a44', 0.1 + 0.16 * k); ctx.fillRect(0, -z.w, L, z.w * 2);
@@ -475,6 +499,24 @@
     c.globalCompositeOperation = 'destination-in'; c.fillStyle = mk; c.fillRect(0, 0, R.W, R.H);
     c.globalCompositeOperation = 'destination-out'; R.isoMask(c, VS.arenaOf(s)); c.globalCompositeOperation = 'source-over';
     ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = a; ctx.drawImage(L, 0, 0); ctx.restore();
+  }
+  // The summit while he lives (2026-11-10, "far more intense"): glowing cracks that spread with each phase, red
+  // lightning across the sky, embers rising, and in his last phase a ground that never stops trembling.
+  function godAmbience(ctx, s, dt) {
+    const g = s.god; if (!g || !g.alive) return;
+    const ph = g.gPhase || 1, AR = VS.arenaOf(s), rr = AR.godR || 300;
+    if (ph >= 2) {
+      ctx.save(); ground(ctx); ctx.globalCompositeOperation = 'lighter';
+      const n = ph === 2 ? 5 : 9, pulse = 0.55 + 0.45 * Math.sin(R.t * 3);
+      for (let i = 0; i < n; i++) { const a = hash(i, 901) * 6.283, L = rr * (0.55 + hash(i, 902) * 0.5) * (ph === 2 ? 0.7 : 1), x0 = Math.cos(a) * 20, y0 = Math.sin(a) * 20, x1 = Math.cos(a) * L, y1 = Math.sin(a) * L;
+        ctx.strokeStyle = rgba('#ff2a44', 0.35 * pulse); ctx.lineWidth = 7; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+        ctx.strokeStyle = rgba('#ffb0bc', 0.5 * pulse); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); }
+      ctx.restore();
+    }
+    if (ph === 3) R.shake = Math.max(R.shake, 1.4);
+    R.godStorm = (R.godStorm == null ? 3 : R.godStorm) - dt;
+    if (R.godStorm <= 0) { R.godStorm = (ph === 3 ? 1.8 : ph === 2 ? 2.8 : 4) + Math.random() * 2; R.flash = Math.max(R.flash, 0.45); R.flashCol = '255,40,70'; R.shake = Math.max(R.shake, 4); if (VS.audio) { VS.audio.sfx('bolt', 0.5); VS.audio.sfx('quake', 0.35); } }
+    if (Math.random() < 0.5 + ph * 0.2) { const a = Math.random() * 6.283, d = Math.random() * rr; P({ x: Math.cos(a) * d, y: Math.sin(a) * d, z: 0, vx: (Math.random() - 0.5) * 10, vy: (Math.random() - 0.5) * 6, vz: 30 + Math.random() * 50, g: -6, life: 1.4 + Math.random(), size: 1.4, col: Math.random() < 0.7 ? '#ff4a5e' : '#ffd0a0', shape: 'sq' }); }
   }
   // A giant gauntlet, fingers spread, lying on the floor (its wrist rising out of the frame toward him).
   function godHand(ctx, x, y, k, a) {
@@ -762,7 +804,7 @@
     R.isoGround(ctx, s, AR);
     // Warm light from the braziers on the floor, and fog drifting across it.
     fog(ctx, st);
-    if (s.god) drawGod(ctx, s, dt);   // the god towers over the far edge of the summit
+    if (s.god) { drawGod(ctx, s, dt); godAmbience(ctx, s, dt); }   // the god towers over the far edge of the summit
     hazards(ctx, s);
     telegraphs(ctx, s);
     guide(ctx, s);

@@ -226,6 +226,14 @@ crosses the summit one after another (stand in a gap or roll). Where his blade o
 stays in the floor for a few seconds, ringed: cut it and he bleeds. At two thirds his dead pour in;
 at one third the echoes of the guardians you beat rise one by one, and he kneels, lowering his head
 to the summit's edge, where it takes double damage. The moon arts take a fixed share of him.
+**Intensity** (2026-11-10, "far more intense and epic"): two more attacks join him, the **cross** (two blades
+in an X through you, a beat apart) and the **quake** (his fist on the summit, then shockwave rings rolling out:
+dash through each one); his attack pool turns harsher with each phase and he strikes faster. Below 15% he
+makes **the Last Cut** once: the whole summit pulses red but for one pool of moonlight, REACH THE LIGHT,
+then a cut over everything outside it. His blade is seen coming down out of the sky onto each line it cuts;
+glowing cracks spread over the summit with the phases; red lightning, embers and (in the last phase) a ground
+that never stops trembling run through every First Cut fight. The bot's win rate is unchanged (about 63% at
+skill 0.55, 65% at 0.8, 40 fights each); the fight runs about 40 s instead of 30.
 He stands outside the map (the author, 2026-11-10): the Moon's Altar is a small open summit (no walls,
 statue, pillars or barrels, three braziers), the camera pulls back (`GOD_ZOOM` in `js/view.js`) and sets
 the whole floor low in the frame, and he rises in the void past its far edge, head and shoulders over it,

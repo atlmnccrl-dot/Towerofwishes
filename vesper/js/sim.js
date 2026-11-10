@@ -465,14 +465,21 @@
     if (g.gPhase === 3) { g.kneelCd -= dt; if (g.kneelCd <= 0 && !s.units.some((u) => u.alive && u.part === 'head')) { g.kneelCd = 17; godKneel(s); } }
     g.summonT = (g.summonT || 0) + dt;
     if (g.gPhase >= 2 && g.summonT > 16 && foes(s).filter((u) => !u.def.god && !u.def.part).length < 3) { g.summonT = 0; if (g.gPhase === 3 && g.echoes.length && s.rand() < 0.5) godEcho(s); else godSummon(s, 3 + g.gPhase); }
+    // The Last Cut (2026-11-10): once, below 15%, a cut over the whole summit; only a pool of moonlight is safe.
+    if (!g.lastCut && f < 0.15 && !s.units.some((u) => u.alive && u.part === 'head')) {
+      g.lastCut = true; const a = s.rand() * Math.PI * 2, c = onFloor(s, h.x + Math.cos(a) * 150, h.y + Math.sin(a) * 150, 50);
+      addHazard(s, { kind: 'doom', team: 'foe', x: c[0], y: c[1], sx: c[0], sy: c[1], sr: 46, r: 0, delay: 3.0, dmg: Math.round(55 * (g.dmgMul || 1)) });
+      s.freeze = Math.max(s.freeze, 0.5); ev(s, { type: 'godMove', move: 'last', x: c[0], y: c[1] }); g.cd = 4.2; return;
+    }
     g.cd -= dt; if (g.cd > 0) return;
-    const pool = g.gPhase === 1 ? ['blade', 'hand', 'blade', 'rain'] : g.gPhase === 2 ? ['blade', 'hand', 'rain', 'sweep', 'hand'] : ['blade', 'sweep', 'hand', 'rain', 'blade'];
+    // Harder as he bleeds: the cross and the quake join, and he chains them faster.
+    const pool = g.gPhase === 1 ? ['blade', 'hand', 'blade', 'rain', 'quake'] : g.gPhase === 2 ? ['blade', 'cross', 'hand', 'rain', 'sweep', 'quake'] : ['cross', 'sweep', 'quake', 'blade', 'rain', 'cross'];
     let pick = pool[Math.floor(s.rand() * pool.length)]; if (pick === g.lastMove && s.rand() < 0.7) pick = pool[(pool.indexOf(pick) + 1) % pool.length]; g.lastMove = pick;
-    const quick = (g.gPhase === 3 ? 0.8 : g.gPhase === 2 ? 0.9 : 1) * (s.godPace || 1), dmg = (n) => Math.round(n * (g.dmgMul || 1));   // godPace: the last hour's First Cut strikes faster
+    const quick = (g.gPhase === 3 ? 0.78 : g.gPhase === 2 ? 0.88 : 1) * (s.godPace || 1), dmg = (n) => Math.round(n * (g.dmgMul || 1));   // godPace: the last hour's First Cut strikes faster
     if (pick === 'blade') {
       // The blade comes down along a line through where you stand, from his side of the summit.
       const a = Math.atan2(h.y - g.y, h.x - g.x) + (s.rand() - 0.5) * 0.5, L = godRadius(s) * 2.6, dx = Math.cos(a), dy = Math.sin(a);
-      addHazard(s, { kind: 'cut', team: 'foe', x1: h.x - dx * L * 0.6, y1: h.y - dy * L * 0.6, x2: h.x + dx * L * 0.4, y2: h.y + dy * L * 0.4, w: 24, delay: 1.35 * quick, dmg: dmg(26), r: 0, x: h.x, y: h.y,
+      addHazard(s, { kind: 'cut', team: 'foe', x1: h.x - dx * L * 0.6, y1: h.y - dy * L * 0.6, x2: h.x + dx * L * 0.4, y2: h.y + dy * L * 0.4, w: 24, delay: 1.35 * quick, dmg: dmg(26), r: 0, x: h.x, y: h.y, god: true,
         part: { kind: 'blade', x: h.x, y: h.y, life: 3.8, weak: 1, rad: 24, line: { ang: a } } });
       ev(s, { type: 'godMove', move: 'blade', x: h.x, y: h.y, ang: a }); g.cd = 3.4 * quick;
     } else if (pick === 'hand') {
@@ -483,6 +490,17 @@
       const n = 8 + g.gPhase * 2;
       for (let i = 0; i < n; i++) { const an = s.rand() * Math.PI * 2, rr = 20 + s.rand() * 140, c = onFloor(s, h.x + Math.cos(an) * rr, h.y + Math.sin(an) * rr, 14); addHazard(s, { kind: 'strike', team: 'foe', x: c[0], y: c[1], r: 26, delay: (0.8 + i * 0.1) * quick, dmg: dmg(14), fx: 'blast' }); }
       ev(s, { type: 'godMove', move: 'rain', x: h.x, y: h.y }); g.cd = 2.8 * quick;
+    } else if (pick === 'cross') {
+      // Two blades in an X through where you stand, one a beat after the other.
+      const a = s.rand() * Math.PI, L = godRadius(s) * 2.6;
+      for (const [k, an] of [[0, a], [1, a + Math.PI / 2]]) { const dx = Math.cos(an), dy = Math.sin(an); addHazard(s, { kind: 'cut', team: 'foe', x1: h.x - dx * L / 2, y1: h.y - dy * L / 2, x2: h.x + dx * L / 2, y2: h.y + dy * L / 2, w: 22, delay: (1.25 + k * 0.4) * quick, dmg: dmg(22), r: 0, x: h.x, y: h.y, god: true }); }
+      ev(s, { type: 'godMove', move: 'blade', x: h.x, y: h.y }); g.cd = 3.6 * quick;
+    } else if (pick === 'quake') {
+      // His fist comes down on the summit and the shock rolls out in rings: dash through each one.
+      const c = onFloor(s, h.x * 0.4, h.y * 0.4, 40), n = g.gPhase === 3 ? 3 : 2;
+      addHazard(s, { kind: 'strike', team: 'foe', x: c[0], y: c[1], r: 46, delay: 1.1 * quick, dmg: dmg(24), fx: 'rock_burst', part: { kind: 'hand', life: 2.6, weak: 1.25, rad: 30 } });
+      for (let i = 0; i < n; i++) addHazard(s, { kind: 'wave', team: 'foe', x: c[0], y: c[1], r0: 30, r1: godRadius(s) * 2.2, speed: 230, w: 16, delay: (1.1 + i * 0.55) * quick, dmg: dmg(12) });
+      ev(s, { type: 'godMove', move: 'hand', x: c[0], y: c[1] }); g.cd = 4.0 * quick;
     } else if (pick === 'sweep') {
       // A row of cuts, one after another, across the summit: stand in a gap or roll through.
       const a = s.rand() * Math.PI, dx = Math.cos(a), dy = Math.sin(a), nx = -dy, ny = dx, L = godRadius(s) * 2.6;
@@ -875,7 +893,7 @@
       z.t += dt; if (z.t < z.delay) continue;
       const victims = s.units.filter((o) => o.alive && o.team !== z.team && o.state !== 'spawn' && Math.hypot(o.x - z.x, o.y - z.y) <= z.r + o.rad);
       if (z.kind === 'cut' && !z.done) {
-        z.done = true; ev(s, { type: 'cut', x1: z.x1, y1: z.y1, x2: z.x2, y2: z.y2, w: z.w });
+        z.done = true; ev(s, { type: 'cut', x1: z.x1, y1: z.y1, x2: z.x2, y2: z.y2, w: z.w, god: !!z.god });
         for (const o of s.units) if (o.alive && o.team !== z.team && o.state !== 'spawn' && segDist(o.x, o.y, z.x1, z.y1, z.x2, z.y2) <= z.w + o.rad) hit(s, { team: z.team, x: o.x - (z.y2 - z.y1) * 0.01, y: o.y + (z.x2 - z.x1) * 0.01, ang: 0, phase: 1, def: {}, dmgMul: 1, face: 1 }, o, { dmg: z.dmg, kb: 22, poise: 20, unparry: true });
         if (z.part) godPart(s, z.part.x, z.part.y, z.part);
         continue;
@@ -885,6 +903,15 @@
         if (z.part) godPart(s, z.x, z.y, z.part);
         for (const o of victims) hit(s, { team: z.team, x: z.x, y: z.y, ang: 0, phase: 1, def: {}, dmgMul: 1, face: 1 }, o, { dmg: z.dmg, kb: 16, poise: 12, slow: z.slow, unparry: true });
         if (z.then) addHazard(s, Object.assign({ team: z.team, x: z.x, y: z.y }, z.then));
+      } else if (z.kind === 'wave') {
+        // A shockwave rolling out over the floor: it catches whoever its band crosses, once (dash through it).
+        const rr = z.r0 + z.speed * (z.t - z.delay); z.rr = rr; z.hitIds = z.hitIds || [];
+        for (const o of s.units) if (o.alive && o.team !== z.team && o.state !== 'spawn' && z.hitIds.indexOf(o.id) < 0 && Math.abs(Math.hypot(o.x - z.x, o.y - z.y) - rr) <= z.w / 2 + o.rad) { z.hitIds.push(o.id); hit(s, { team: z.team, x: z.x, y: z.y, ang: 0, phase: 1, def: {}, dmgMul: 1, face: 1 }, o, { dmg: z.dmg, kb: 22, poise: 14, unparry: true }); }
+        if (rr > z.r1) z.done = true;
+      } else if (z.kind === 'doom' && !z.done) {
+        // The Last Cut: everything on the summit outside the moonlight is cut.
+        z.done = true; ev(s, { type: 'doom', x: z.sx, y: z.sy, r: z.sr });
+        for (const o of s.units) if (o.alive && o.team !== z.team && o.state !== 'spawn' && Math.hypot(o.x - z.sx, o.y - z.sy) > z.sr + o.rad) { if (o === s.hero) { o.iframes = 0; directDamage(s, o, z.dmg); } else if (!o.def.part) directDamage(s, o, z.dmg); }
       } else if (z.kind === 'zone') {
         z.tick -= dt; if (z.tick <= 0) { z.tick = 0.5; for (const o of victims) { directDamage(s, o, z.dps * 0.5); if (z.slow) o.slowT = Math.max(o.slowT, z.slow); } }
       } else if (z.kind === 'tornado') {
@@ -893,7 +920,7 @@
         z.tick -= dt; if (z.tick <= 0 && victims.length) { z.tick = 0.6; for (const o of victims) hit(s, { team: z.team, x: z.x, y: z.y, ang: 0, phase: 1, def: {}, dmgMul: 1, face: 1 }, o, { dmg: z.dmg, kb: 30, poise: 10, unparry: true }); }
       }
     }
-    s.hazards = s.hazards.filter((z) => (z.kind === 'strike' || z.kind === 'cut' ? !z.done : z.t < z.delay + z.dur));
+    s.hazards = s.hazards.filter((z) => (z.kind === 'strike' || z.kind === 'cut' || z.kind === 'wave' || z.kind === 'doom' ? !z.done : z.t < z.delay + z.dur));
 
     for (const u of s.units) {
       u.st += dt; u.iframes = Math.max(0, u.iframes - dt); u.flash = Math.max(0, u.flash - dt * 5);
@@ -1027,9 +1054,12 @@
     }
     const can = s.mods.can;
     if (can.art && s.moon >= 100 && foes(s).some((u) => u.state !== 'spawn') && (VS.ldxReady(s) || s.units.some((u) => u.alive && u.def.boss))) { inp.art = true; return inp; }
+    // The Last Cut first: get into the moonlight and stay there.
+    { const z = s.hazards.find((q) => q.kind === 'doom' && !q.done); if (z) { const dx = z.sx - h.x, dy = z.sy - h.y, dd = Math.hypot(dx, dy) || 1; if (dd > z.sr * 0.5) { inp.mx = dx / dd; inp.my = dy / dd; if (dd > 120 && can.dodge && r() < 0.3) inp.dodge = true; return inp; } inp.mx = 0; inp.my = 0; return inp; } }
     // Step out of danger on the floor: a strike about to land, a burning or poisoned zone, a tornado.
     for (const z of s.hazards) {
       if (z.team === 'hero') continue;
+      if (z.kind === 'wave') { if (z.t < z.delay) continue; const d = Math.hypot(h.x - z.x, h.y - z.y), gap = d - (z.rr || z.r0); if (gap > 0 && gap < 34 && (z.hitIds || []).indexOf(h.id) < 0 && r() < skill && can.dodge) { inp.dodge = true; inp.mx = (z.x - h.x) / (d || 1); inp.my = (z.y - h.y) / (d || 1); return inp; } continue; }
       if (z.kind === 'cut') {
         if (z.delay - z.t > 0.75 || segDist(h.x, h.y, z.x1, z.y1, z.x2, z.y2) > z.w + h.rad + 8) continue;
         const lx = z.x2 - z.x1, ly = z.y2 - z.y1, L = Math.hypot(lx, ly) || 1, side = ((h.x - z.x1) * -ly + (h.y - z.y1) * lx) >= 0 ? 1 : -1;

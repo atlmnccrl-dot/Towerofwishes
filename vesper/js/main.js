@@ -594,8 +594,7 @@
     }
     // The last hour's First Cut: he strikes faster, the summit trembles and red lightning splits the sky.
     if (f.showcase === 'boss' && !M.paused && !M.hold && !s.cine) {
-      s.godPace = 0.65; R.shake = Math.max(R.shake || 0, 1.2); f.storm = (f.storm || 2.5) - dt;
-      if (f.storm <= 0) { f.storm = 2.6 + Math.random() * 2.4; R.flash = 0.5; R.flashCol = '255,40,70'; R.shake = Math.max(R.shake, 5); AU.sfx('bolt', 0.55); AU.sfx('quake', 0.4); }
+      s.godPace = 0.65; R.shake = Math.max(R.shake || 0, 1.2);   // (the storm itself now runs in every First Cut fight: godAmbience in view.js)
     }
     if (f.oneShot > 0 && !M.paused) { f.oneShot -= dt; if (f.oneShot <= 0) { endShowcase(f, true); return; } }
     if (f.theatreEnd > 0 && !M.paused) { f.theatreEnd -= dt; if (f.theatreEnd <= 0) { (f.theatreBack || title)(); return; } }
