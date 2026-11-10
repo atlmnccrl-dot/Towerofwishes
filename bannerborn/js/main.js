@@ -18,6 +18,7 @@
         const out = Object.assign(d, s);
         out.settings = Object.assign(BB.newSave().settings, s.settings || {});
         out.stats = Object.assign({ kills: 0, gates: 0 }, s.stats || {});
+        out.rank = s.rank || 0;
         out.formation = s.formation && s.formation.front && s.formation.back ? s.formation : d.formation;
         out.place = s.place || {}; BB.fixFormation(out);
         // drop formation ids of heroes that no longer exist
@@ -163,6 +164,7 @@
     UI.show('title');
     BB.music('calm');
   }
+  let guideDue = false;
   let campBuilt = null; // the camp is rebuilt only when it changes (new heroes, new stages)
   let campScene = null, drillScene = null;
   BB.liveScene = () => scene;
@@ -190,6 +192,7 @@
     BB.music('calm'); BB.ambience(null);
     BB.persist();
     if (wasDev) openTheater();
+    if (guideDue) { guideDue = false; UI.modal('mGuide'); }
   }
   BB.goCamp = goCamp;
   function drawTopBanner() { const bc = $('tbBanner'); UI.drawBanner(bc.getContext('2d'), BB.save.banner, bc.width, bc.height, 0); }
@@ -257,6 +260,7 @@
   }
 
   function finishBattle() {
+    if (current.stage.type === 'endless') return finishEndless();
     const S = BB.save, B = scene, M = current.stage, win = !!B.result.win;
     const first = win && !S.cleared[M.id];
     const heroes = B.heroList.map((e) => e.hero);
@@ -273,9 +277,12 @@
       const rw = BB.stageRewards(M, first);
       res.gold += rw.gold; res.crystals = rw.crystals; res.sigils = rw.sigils;
       res.items.push(...BB.rollLoot(BB.rng(now() & 0xffffff), M.level, S.heroes, rw.items));
+      let relic = null; if (first && BB.RELICS[M.boss]) { relic = BB.makeRelic(M.boss, M.level); res.items.push(relic); }
       const chBefore = BB.TIERS.filter((t) => BB.tierOpen(S, t)).length;
       S.cleared[M.id] = (S.cleared[M.id] || 0) + 1;
+      if (first && current.idx === 0 && !devReal) guideDue = true; // after the very first victory: how the rest works, once
       const notes = [];
+      if (relic) notes.push('✦ A relic: ' + relic.name);
       if (first && M.legend) {
         const L = BB.joinLegend(S, M.legend);
         if (L) { res.legend = L; notes.push('★ ' + L.name + ' joins your banner!'); }
@@ -305,9 +312,47 @@
       actions.push(['Heroes', 'dark', () => { goCamp().then(() => UI.go('heroes')); }]);
     }
     if (devReal) { const o = devOpts; actions.length = 0; actions.push(['Development', '', () => after(goCamp)]); actions.push(['Watch again', 'dark', () => { devExit(); devBattle(o); }]); }
-    if (win && M.boss && first) BB.Cinema.play('bossDown', { stage: M, music: 'calm' }, () => { BB.music(M.type === 'boss' ? 'calm' : 'battle'); UI.results(res, actions); BB.sfx('levelup'); });
+    if (win && M.boss && first) {
+      const show = () => { BB.music(M.type === 'boss' ? 'calm' : 'battle'); UI.results(res, actions); BB.sfx('levelup'); };
+      const coda = devReal ? null : BB.campaignDone(S) ? 'ending' : M.boss === 'vesh' ? 'bridge' : null; // after the Cantor, the road on; after the last gate, the end
+      BB.Cinema.play('bossDown', { stage: M, music: 'calm' }, () => (coda ? BB.Cinema.play(coda, { music: 'calm' }, show) : show()));
+    }
     else { UI.results(res, actions); BB.sfx(win ? 'levelup' : 'click'); }
   }
+
+  // ---- the Endless Gate: outside the campaign, at the level of the team that goes in. It ends when the banner falls;
+  // what it pays is counted in waves held
+  BB.deployEndless = function () {
+    const S = BB.save, team = BB.teamHeroes(S);
+    if (!team.length) { UI.toast('Place at least one hero in the formation.'); return; }
+    const lv = Math.max(3, Math.round(team.reduce((a, h) => a + h.level, 0) / team.length));
+    current = { stage: Object.assign({}, BB.ENDLESS, { level: lv }), idx: -1 };
+    startBattle();
+  };
+  function finishEndless() {
+    const S = BB.save, B = scene, M = current.stage, waves = (B.obj && B.obj.endlessWave) || 0, best = S.stats.endless || 0;
+    const heroes = B.heroList.map((e) => e.hero);
+    let mvp = null; for (const e of B.heroList) if (!mvp || (e.dealt || 0) > (mvp.dealt || 0)) mvp = e;
+    const res = { win: waves > 0, head: waves ? 'Wave ' + waves : 'Overrun', code: M.code, title: M.name + (waves > best ? ' · a new best' : best ? ' · best ' + best : ''), heroes, mvp: mvp && mvp.hero, kills: B.kills, gold: 0, crystals: 0, sigils: 0, items: [] };
+    const work = (e) => (e.dealt || 0) + (e.mended || 0) * 1.2 + (e.soaked || 0) * 0.6, allWork = B.heroList.reduce((a, e) => a + work(e), 0) || 1;
+    const lvl = Object.assign({}, M, { level: M.level + (waves >> 1) }); // the gate grew stronger as it went: so does what it teaches
+    res.xp = B.heroList.map((e) => { const before = e.hero.level, got = Math.round(BB.battleXp(lvl, waves >= 3, work(e) / allWork * B.heroList.length / 2.5, e === mvp, e.hero.level) * (1 + Math.min(waves, 20) * 0.08)); return { hero: e.hero, xp: got, levels: BB.gainXp(e.hero, got), from: before }; });
+    res.gold = Math.round(B.goldGot + waves * (30 + M.level * 6));
+    res.sigils = Math.floor(waves / 5);
+    res.crystals = waves > best ? (waves - best) * 10 : 0; // crystals only for ground never held before
+    if (B.loot && B.loot.length) res.items.push(...B.loot);
+    if (waves >= 4) res.items.push(...BB.rollLoot(BB.rng(now() & 0xffffff), M.level + (waves >> 1), S.heroes, Math.min(3, waves >> 2)));
+    S.stats.endless = Math.max(best, waves);
+    S.gold += res.gold; S.crystals += res.crystals; S.sigils += res.sigils; S.inventory.push(...res.items); S.stats.kills += B.kills;
+    BB.persist();
+    UI.results(res, [['Again', '', () => { UI.modal('mResults', false); BB.deployEndless(); }], ['Camp', 'dark', () => goCamp()]]); BB.sfx(waves ? 'levelup' : 'click');
+  }
+  // ---- a save as a code: copy it somewhere safe, paste it on another device
+  BB.saveCode = () => 'BB1.' + btoa(unescape(encodeURIComponent(JSON.stringify(devReal || BB.save))));
+  BB.readCode = function (code) {
+    try { const m = String(code).trim().match(/^BB1\.([A-Za-z0-9+/=]+)$/); if (!m) return null; const s = JSON.parse(decodeURIComponent(escape(atob(m[1])))); return s && s.v === BB.SAVE_V && Array.isArray(s.heroes) && s.heroes.length ? s : null; } catch (e) { return null; }
+  };
+  BB.restoreCode = function (code) { const s = BB.readCode(code); if (!s) return false; try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) { return false; } return true; };
 
   // ---------------------------------------------------------------- the battle HUD: heroes fight on their own, you call the ultimates
   let tutorial = -1, tutT = 0;
@@ -431,6 +476,13 @@
   // ---------------------------------------------------------------- buttons
   UI.click($('bPlay'), () => { if (BB.save) goCamp(); else newGame(); });
   UI.click($('bTrailer'), () => playTrailer());
+  UI.click($('bEndless'), () => UI.openTeam ? BB.deployEndless() : null);
+  UI.click($('bGuide'), () => { UI.modal('mSettings', false); UI.modal('mGuide'); });
+  UI.click($('bGuideClose'), () => UI.modal('mGuide', false));
+  UI.click($('bBackup'), () => { UI.modal('mSettings', false); $('bkCode').value = BB.saveCode(); $('bkMsg').textContent = 'This code is your whole save. Keep it somewhere safe, or paste it on another device.'; UI.modal('mBackup'); });
+  UI.click($('bkCopy'), () => { const t = $('bkCode'); t.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (e) { /* not allowed */ } if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t.value).then(() => { $('bkMsg').textContent = 'Copied.'; }, () => { $('bkMsg').textContent = ok ? 'Copied.' : 'Select the code and copy it by hand.'; }); else $('bkMsg').textContent = ok ? 'Copied.' : 'Select the code and copy it by hand.'; });
+  UI.click($('bkRestore'), () => { const code = $('bkCode').value; if (!BB.readCode(code)) { $('bkMsg').textContent = 'That is not a Bannerborn save code.'; return; } UI.confirm('Replace this device\'s save with the one in the code? What is here now will be lost.', () => { devExit(); if (BB.restoreCode(code)) location.reload(); else $('bkMsg').textContent = 'Could not store the save on this device.'; }); });
+  UI.click($('bkClose'), () => UI.modal('mBackup', false));
   UI.click($('bContinue'), () => UI.openCampaign());
   UI.click($('bCampBack'), () => goCamp());
   UI.click($('bRecruitH'), () => UI.openRecruit());
@@ -610,7 +662,7 @@
       { t: 'A fight on the edge', s: 'Under-levelled: heartbeat, rescues, last stands', c: '#ff4a5a', battle: { idx: ix('3-7'), over: -3 } },
     ].filter((x) => x.battle.idx >= 0) });
     list.push({ group: 'The trailer', items: [{ t: 'Bannerborn — the trailer', s: 'Under a minute: the gates, the banner, the fights', c: '#ffbe55', trailer: true }] });
-    list.push({ group: 'The story', items: [{ t: 'The Opening', s: 'Nine banners, the Gravegates', c: '#ffbe55', play: ['intro', {}] }]
+    list.push({ group: 'The story', items: [{ t: 'The Opening', s: 'Nine banners, the Gravegates', c: '#ffbe55', play: ['intro', {}] }, { t: 'The Far Marches', s: 'After the Cantor falls', c: '#cfe4ff', play: ['bridge', {}] }, { t: 'The Ending', s: 'The last gate is shut', c: '#ffe7a3', play: ['ending', {}] }]
       .concat(BB.CHAPTERS.map((ch, i) => ({ t: 'Chapter ' + BB.roman(i + 1) + ' · ' + ch.name, s: ch.blurb.length > 46 ? ch.blurb.slice(0, 45) + '…' : ch.blurb, c: '#ffcf7a', play: ['chapter', { chapter: ch, music: 'calm' }] }))) });
     list.push({ group: 'Boss entrances (cutscene only)', items: bosses.map((m) => ({ t: bn(m), s: 'Stage ' + m.code + ' · ' + m.name, c: tint(m), play: ['boss', { stage: m }] })) });
     list.push({ group: 'Boss falls (cutscene only)', items: bosses.map((m) => ({ t: bn(m) + ' falls', s: 'Stage ' + m.code, c: tint(m), play: ['bossDown', { stage: m, music: 'calm' }] })) });

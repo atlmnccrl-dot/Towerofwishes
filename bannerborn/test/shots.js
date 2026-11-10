@@ -48,6 +48,8 @@ require('fs').mkdirSync(out, { recursive: true });
   // Camp
   await p.click('#resBody .btn.dark');
   await p.waitForFunction(() => BB.UI.current === 'home', null, { timeout: 15000 });
+  // the guide opens once, after the first victory
+  await wait(400); if (!(await p.isVisible('#mGuide.on'))) errs.push('the guide did not open after the first victory'); else { await shot('10b-guide'); await tap('#bGuideClose'); }
   // give resources so every screen shows its buttons
   await p.evaluate(() => { const S = BB.save; S.gold += 20000; S.crystals += 2000; S.sigils += 20; for (let i = 0; i < 6; i++) S.inventory.push(BB.makeItem(BB.rng(i + 1), BB.SLOTS[i % 4], 3, i % 4, i % 4 === 0 ? 'sword' : undefined)); BB.UI.refreshTop(); BB.UI.renderHome(); });
   await wait(600); await shot('11-camp-rich');

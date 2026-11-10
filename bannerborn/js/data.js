@@ -340,6 +340,8 @@
     BB.MISSIONS.push(Object.assign({ id: 's' + ch.id + '-' + (n + 1), code: ch.id + '-' + (n + 1), chapter: ch.id, region: 'c' + ch.id,
       level: 1 + Math.round(i * 0.8) + [0, 0, 1, 2, 2, 3, 3, 4, 4][ch.id], elites: ch.elites || 0 }, st));
   }));
+  // outside the campaign: the Endless Gate. Waves without end, each a little stronger; it ends when the banner falls
+  BB.ENDLESS = { id: 'endless', code: '∞', name: 'The Endless Gate', type: 'endless', layout: 'endless', chapter: 4, region: 'c4', elites: 2, level: 1, waves: [['ghoul', 3, 'skel', 2]] };
   BB.REGIONS = BB.CHAPTERS.map((ch) => ({ id: 'c' + ch.id, name: ch.name, biome: ch.biome, skin: ch.skin, night: ch.night, floor: ch.floor, blurb: ch.blurb }));
 
 

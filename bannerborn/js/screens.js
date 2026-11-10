@@ -283,6 +283,7 @@
     const open = BB.heroTiers(BB.ROSTER).filter(({ tier }) => BB.tierOpen(S, tier));
     const cheapest = open.length ? Math.min(...open.map(({ tier }) => tier.cost)) : 0;
     $('recruitT').textContent = '◆ ' + cheapest + ' · you have ' + fmt(S.crystals);
+    $('bEndless').style.display = BB.chapterCleared(S, 1) ? '' : 'none'; $('endlessT').textContent = S.stats.endless ? 'Best: wave ' + S.stats.endless : 'How long can you hold?';
     $('bRecruitH').classList.toggle('glow', S.crystals >= cheapest);
     const qn = BB.questsReady(S); $('questT').textContent = qn ? qn + ' to claim' : BB.QUESTS.filter((q) => BB.questState(S, q) === 'claimed').length + ' / ' + BB.QUESTS.length + ' done';
     $('bQuests').classList.toggle('glow', qn > 0);
@@ -611,7 +612,7 @@
     const boss = st.boss && BB.FOES[st.boss];
     $('vsFoeLbl').textContent = boss ? boss.name : st.type === 'gates' ? 'The Gravegates' : 'The horde';
     $('vsPow').innerHTML = '⚔ ' + fmt(BB.teamPower(team)) + '<small>' + team.length + (team.length === 1 ? ' hero' : ' heroes') + '</small>';
-    $('vsRec').innerHTML = '<small style="margin:0 8px 0 0">needs</small>⚔ ' + fmt(BB.recPower(st));
+    $('vsRec').innerHTML = st.type === 'endless' ? '<small style="margin:0">enemy level ' + st.level + ', and rising</small>' : '<small style="margin:0 8px 0 0">needs</small>⚔ ' + fmt(BB.recPower(st));
     $('vsCode').textContent = 'STAGE ' + st.code; $('vsName').textContent = st.name;
     $('vsObj').textContent = TYPE[st.type] + (st.type === 'defend' ? ' for ' + st.time + ' s' : '');
     v.classList.remove('out'); v.classList.add('on');
@@ -624,7 +625,7 @@
     v.classList.add('out'); BB.sfx('swing');
     setTimeout(() => v.classList.remove('on', 'out'), 460);
   };
-  const TYPE = { rout: 'Rout every wave', gates: 'Destroy the Gravegates', defend: 'Hold out', boss: 'Boss', duel: 'Duel' };
+  const TYPE = { rout: 'Rout every wave', gates: 'Destroy the Gravegates', defend: 'Hold out', boss: 'Boss', duel: 'Duel', endless: 'Hold as long as you can' };
   UI.renderStageCard = function () {
     const S = BB.save, st = BB.MISSIONS[C.sel], box = $('stageCard'); box.innerHTML = '';
     const open = BB.stageUnlocked(S, C.sel), first = !S.cleared[st.id];
@@ -1398,6 +1399,17 @@
       arms: () => UI.itemIcon(shopBlade || (shopBlade = Object.assign(BB.makeItem(BB.rng(7), 'weapon', 1, 3, 'sword'), { ench: 'fire' })), 68),
       chest: () => { const c = document.createElement('canvas'); c.width = c.height = 68; const E = BB.A.env && BB.A.env.ground; const r = E && E.meta.f['Chest B1_S']; if (r) { const g = c.getContext('2d'), k = 60 / Math.max(r[2], r[3]); g.imageSmoothingEnabled = false; g.drawImage(E.img, r[0], r[1], r[2], r[3], (68 - r[2] * k) / 2, (68 - r[3] * k) / 2, r[2] * k, r[3] * k); } else if (!E) BB.loadEnv('ground').then(() => UI.current === 'shop' && UI.renderShop()).catch(() => null); return c; },
     };
+    { // the war chest: where gold goes once the table is bought out
+      const rank = S.rank || 0, maxed = rank >= BB.RANK_MAX, cost = BB.rankCost(rank), pc = (v) => Math.round(v * BB.RANK_STEP * 1000) / 10;
+      const c = el('div', 'offer frame chest'); c.style.setProperty('--oc', '#ffbe55');
+      const a = el('div', 'art'); a.appendChild(UI.bannerCanvas(S.banner, 44, 62)); c.appendChild(a);
+      c.appendChild(el('h3', '', 'War Chest · rank ' + rank));
+      c.appendChild(el('p', '', 'All heroes: +' + pc(rank) + '% attack and health.' + (maxed ? '' : ' Next rank: +' + pc(rank + 1) + '%.')));
+      c.appendChild(el('div', 'left', maxed ? 'Full' : 'Rank ' + (rank + 1) + ' of ' + BB.RANK_MAX));
+      const b = el('button', 'btn sm', maxed ? 'Full' : '● ' + fmt(cost)); b.id = 'bRank'; b.disabled = maxed || S.gold < cost;
+      click(b, () => { if (!BB.raiseRank(S)) return; BB.sfx('levelup'); BB.persist(); UI.renderShop(); UI.refreshTop(); UI.toast('The banner rises: rank ' + S.rank); });
+      c.appendChild(b); box.appendChild(c);
+    }
     for (const o of BB.SHOP) {
       const left = BB.shopLeft(S, o, now());
       const c = el('div', 'offer frame' + (left > 0 ? '' : ' sold')); c.style.setProperty('--oc', col[o.id] || '#ffbe55');
@@ -1490,8 +1502,8 @@
   // ---------------------------------------------------------------- results
   UI.results = function (res, actions) {
     const body = $('resBody'); body.innerHTML = '';
-    body.appendChild(el('div', 'res-h ' + (res.win ? 'win' : 'lose'), '<h2>' + (res.win ? 'Victory' : 'Defeat') + '</h2><div class="mute">Stage ' + res.code + ' · ' + esc(res.title) + '</div>'));
-    if (!res.win) body.appendChild(el('div', 'mute', '<div style="text-align:center;font-size:14px">Nothing is lost, and every hero still learned from it. Change your gear, try another formation, and fight again.</div>'));
+    body.appendChild(el('div', 'res-h ' + (res.win ? 'win' : 'lose'), '<h2>' + (res.head || (res.win ? 'Victory' : 'Defeat')) + '</h2><div class="mute">' + (res.head ? '' : 'Stage ' + res.code + ' · ') + esc(res.title) + '</div>'));
+    if (!res.win && !res.head) body.appendChild(el('div', 'mute', '<div style="text-align:center;font-size:14px">Nothing is lost, and every hero still learned from it. Change your gear, try another formation, and fight again.</div>'));
     const hs = el('div', 'res-heroes');
     for (const h of res.heroes) {
       const c = UI.heroCard(h, { tag: 'div' }); if (res.mvp === h) c.appendChild(el('div', 'mvp', 'MVP'));

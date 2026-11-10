@@ -154,6 +154,7 @@
     if (C.ranged && hero.calling !== 'warpriest') s.crit += s.rangedCrit;
     if (hero.calling === 'arcanist' || hero.calling === 'warpriest') s.atkPct += s.casterAtk;
     if (!C.ranged) s.atkPct += s.meleeAtk;
+    { const wr = (BB.save && BB.save.rank) || 0; s.hpPct += wr * BB.RANK_STEP; s.atkPct += wr * BB.RANK_STEP; } // the war chest: every rank lifts the whole banner
     s.hp = Math.round(s.hp * (1 + s.hpPct));
     s.atk = s.atk * (1 + s.atkPct);
     s.spd = s.spd * (1 + s.spdPct);
@@ -348,10 +349,29 @@
   BB.stageUnlocked = (save, idx) => idx === 0 || !!save.cleared[BB.MISSIONS[idx - 1].id];
   BB.nextStageIdx = (save) => { const i = BB.MISSIONS.findIndex((m) => !save.cleared[m.id]); return i < 0 ? BB.MISSIONS.length - 1 : i; };
   BB.campaignDone = (save) => BB.MISSIONS.every((m) => save.cleared[m.id]);
+  // ---- the war chest: gold raises the banner's rank, and every rank is a little more attack and health for every
+  // hero under it. It is where gold goes once the shop is bought out.
+  BB.RANK_MAX = 30; BB.RANK_STEP = 0.015;
+  BB.rankCost = (rank) => Math.round(300 * Math.pow(rank + 1, 1.6) / 10) * 10;
+  BB.raiseRank = function (save) {
+    const r = save.rank || 0; if (r >= BB.RANK_MAX) return false;
+    const c = BB.rankCost(r); if (save.gold < c) return false;
+    save.gold -= c; save.rank = r + 1; return true;
+  };
+  // ---- relics: what the lords of the far marches leave behind. One each, on the first victory: a Legendary charm
+  // half again as strong as any that drops, under its own name
+  BB.RELICS = { hroald: "The Rime Jarl's Crown", maelis: "The Cinder Witch's Ember", morwen: "The Fen Mother's Lantern", aurelian: "The Hollow King's Seal" };
+  BB.makeRelic = function (boss, level) {
+    const it = BB.makeItem(BB.rng(BB.hashStr('relic' + boss)), 'charm', level, 3);
+    it.name = BB.RELICS[boss]; it.relic = boss;
+    for (const k in it.stats) it.stats[k] = Math.round(it.stats[k] * 1.5 * 1000) / 1000;
+    return it;
+  };
   BB.stageRewards = function (stage, first) {
     const boss = stage.type === 'boss' || stage.type === 'duel';
     const gold = Math.round((100 + stage.level * 55) * (boss ? 1.8 : 1) * (first ? 1 : 0.4));
-    return { gold, crystals: first ? (boss ? 250 : 90) : 0, sigils: boss ? (first ? 8 : 2) : (first ? 1 : 0), items: boss ? 2 : 1 };
+    const far = stage.chapter > 4; // the far marches pay more sigils: their dead are stronger, and heroes need the stars
+    return { gold, crystals: first ? (boss ? 250 : 90) : 0, sigils: boss ? (first ? (far ? 12 : 8) : 2) : (first ? (far ? 2 : 1) : 0), items: boss ? 2 : 1 };
   };
   // fewer foes for a small team: a lone captain can win the first stage
   BB.waveScale = (n) => Math.min(1, Math.max(0.35, (n + 1) / 6));

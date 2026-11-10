@@ -59,6 +59,18 @@ const chest = BB.makeItem(r, 'chest', 5, 2);
 const g0 = BB.heroStats(h).hp; h.gear.chest = chest; ok(BB.heroStats(h).hp > g0, 'gear raises health');
 ok(BB.upgradeItem === undefined && BB.upgradeCost === undefined, 'there is no forging');
 S.gold = 1e6;
+{ // the war chest and the relics
+  const S2 = BB.newSave(1), h2 = S2.heroes[0]; BB.save = S2; const p0 = BB.power(h2);
+  ok(!BB.raiseRank(S2), 'no gold, no rank'); S2.gold = 1e7;
+  ok(BB.raiseRank(S2) && S2.rank === 1 && BB.power(h2) > p0, 'a rank makes every hero stronger');
+  for (let i = 0; i < 60; i++) BB.raiseRank(S2);
+  ok(S2.rank === BB.RANK_MAX && BB.rankCost(5) > BB.rankCost(1), 'ranks stop at the top and cost more as they rise');
+  BB.save = undefined;
+  const rel = BB.makeRelic('hroald', 32), plain = BB.makeItem(BB.rng(BB.hashStr('relichroald')), 'charm', 32, 3);
+  ok(rel.name === BB.RELICS.hroald && BB.itemScore(rel) > BB.itemScore(plain) * 1.3, 'a relic is a named charm, stronger than any that drops');
+  const far = BB.MISSIONS.find((m) => m.chapter === 5 && m.type === 'rout'), near = BB.MISSIONS.find((m) => m.chapter === 1 && m.type === 'rout');
+  ok(BB.stageRewards(far, true).sigils > BB.stageRewards(near, true).sigils, 'the far marches pay more sigils');
+}
 const team3 = ['vanguard', 'ranger', 'arcanist'].map((c) => BB.newHero({ calling: c, level: 4 }));
 const loot = BB.rollLoot(BB.rng(3), 5, team3, 40);
 ok(loot.length === 40 && loot.every((it) => it.slot !== 'weapon' || team3.some((t) => BB.weaponType(t.calling) === it.wtype)), 'loot weapons fit the team');

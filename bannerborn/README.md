@@ -148,6 +148,22 @@ A hero-collector RPG: you build the team, the team fights.
 
 Losing costs nothing (and still teaches your heroes): change gear or the formation and fight again.
 
+**After and around the campaign**
+- **The War Chest** (first on the shop's table): gold raises the banner's rank, thirty ranks, each +1.5% attack and
+  health for every hero. It is where gold goes once the day's offers are bought.
+- **Relics**: each lord of the far marches leaves one on the first victory, a named Legendary charm half again as
+  strong as any that drops. The far marches also pay more sigils.
+- **The Endless Gate** (at the camp once chapter 1 is won): waves without end at the team's own level, a boss every
+  fifth. It ends when the banner falls and pays by waves held: gold, experience, a sigil every five waves, gear,
+  and crystals for ground never held before. The best wave is kept.
+- **The story's two codas**: after the Cantor, *the far marches* (why the war goes on); after the last gate, the
+  ending. Both are in Development.
+- **How to play** (Settings, and once after the first victory): nine short paragraphs.
+- **Back up or move a save** (Settings): the whole save as a code to copy somewhere safe or paste on another
+  device. Restoring asks first.
+- **On a home screen**: a manifest and icons (`manifest.webmanifest`, `assets/icon-*.png`), so a hosted copy can be
+  added to a phone's home screen and open full-screen in landscape. There is no offline cache yet.
+
 | Callings | Role | Ultimate |
 |---|---|---|
 | Vanguard | Tank | **Shield Wall** — taunt, halve damage |

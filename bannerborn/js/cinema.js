@@ -1042,17 +1042,21 @@
   }
 
   // ---- JOURNEY (one unbroken take): a body dissolving into sand, dunes rushing below, the storm, an eye, the stars, the tomb
+  // the far marches' country, for the journey shot: sky top and horizon, hills near and far
+  const FARLAND = { frost: { sky: ['#1c2c40', '#b9d4ea'], hill: [[232, 240, 250], [70, 90, 120]] }, ash: { sky: ['#120606', '#c2501a'], hill: [[92, 82, 78], [20, 14, 14]] },
+    mire: { sky: ['#0c1612', '#7f9a6a'], hill: [[86, 110, 70], [14, 26, 20]] }, blight: { sky: ['#120a1c', '#a880c0'], hill: [[150, 128, 170], [34, 24, 48]] } };
   function drawJourney(g, W, H, sh, k, t) {
     if (sh.span) k = sh.span[0] + k * (sh.span[1] - sh.span[0]);
+    const LD = sh.land || { sky: ['#3a2412', '#f0b060'], hill: [[200, 140, 70], [60, 34, 14]] }; // the country crossed: sand unless told otherwise
     const a = sh.who, gold = sh.col || [255, 200, 110], ph = (a0, a1) => clamp01((k - a0) / (a1 - a0));
     const p0 = 1 - ph(0.18, 0.26), p1 = ph(0.18, 0.26) * (1 - ph(0.46, 0.52)), p2 = ph(0.46, 0.52) * (1 - ph(0.64, 0.68)), p3 = ph(0.64, 0.68) * (1 - ph(0.86, 0.9)), p4 = ph(0.86, 0.9);
     g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
     if (p0 > 0) { g.save(); g.globalAlpha = p0; const bg = g.createRadialGradient(W / 2, H * 0.5, 0, W / 2, H * 0.5, W * 0.6); bg.addColorStop(0, '#3a2a14'); bg.addColorStop(1, '#0a0602'); g.fillStyle = bg; g.fillRect(0, 0, W, H); breakApart(g, a, W * 0.45, H * 0.86, H * 0.6, 'sand', ph(0.02, 0.24), t); g.restore(); }
     if (p1 > 0) { // dunes rushing toward the camera
-      g.save(); g.globalAlpha = p1; const sky = g.createLinearGradient(0, 0, 0, H * 0.5); sky.addColorStop(0, '#3a2412'); sky.addColorStop(1, '#f0b060'); g.fillStyle = sky; g.fillRect(0, 0, W, H);
+      g.save(); g.globalAlpha = p1; const sky = g.createLinearGradient(0, 0, 0, H * 0.5); sky.addColorStop(0, LD.sky[0]); sky.addColorStop(1, LD.sky[1]); g.fillStyle = sky; g.fillRect(0, 0, W, H);
       g.fillStyle = 'rgba(255,240,200,0.9)'; g.beginPath(); g.arc(W * 0.62, H * 0.42, H * 0.07, 0, TAU); g.fill();
       for (let L = 0; L < 7; L++) { const d = (L + (t * 1.2 % 1)) / 7, y = H * (0.45 + d * d * 0.6), amp = H * 0.04 * (0.4 + d * 2), off = t * (0.3 + d * 2.5);
-        g.fillStyle = rgba(mix([200, 140, 70], [60, 34, 14], d), 1); g.beginPath(); g.moveTo(0, H); for (let i = 0; i <= 40; i++) { const x = i / 40 * W; g.lineTo(x, y - amp * Math.sin(x / W * 4 + off + L) - amp * 0.4 * Math.sin(x / W * 9 + L)); } g.lineTo(W, H); g.closePath(); g.fill(); }
+        g.fillStyle = rgba(mix(LD.hill[0], LD.hill[1], d), 1); g.beginPath(); g.moveTo(0, H); for (let i = 0; i <= 40; i++) { const x = i / 40 * W; g.lineTo(x, y - amp * Math.sin(x / W * 4 + off + L) - amp * 0.4 * Math.sin(x / W * 9 + L)); } g.lineTo(W, H); g.closePath(); g.fill(); }
       g.strokeStyle = 'rgba(255,220,160,0.35)'; g.lineWidth = 1.5; g.beginPath(); for (let i = 0; i < 70; i++) { const y = hr(i + 4200) * H * 0.9, x = ((hr(i + 4201) * W + t * W * 1.5) % (W + 100)) - 50; g.moveTo(x, y); g.lineTo(x + 40, y + 4); } g.stroke(); g.restore(); }
     if (p2 > 0) { // the storm opens an eye
       g.save(); g.globalAlpha = p2; g.fillStyle = '#2a1a0c'; g.fillRect(0, 0, W, H); clouds(g, W, H, t * 3, 14, H * 0.05, H * 0.95, [40, 26, 12], [190, 130, 60], W * 0.15, 61);
@@ -1462,8 +1466,8 @@
       await cast([heroW].concat(folk));
       const card = (col) => ({ kind: 'type', dur: 3.2, lines: [{ text: 'CHAPTER ' + roman, at: 0.05, size: 0.035, y: 0.36, spread: 0.7, col }, { text: ch.name.toUpperCase(), at: 0.1, size: ch.name.length > 14 ? 0.1 : 0.13, w: 800, fly: true, col, glow: col }, { text: ch.blurb, at: 1.1, size: 0.036, y: 0.65, font: 2, gap: 0.08 }], cues: [[2.9, SCORE('drone', false)]] });
       if (ch.id > 4) { // the far marches: the road there, in the land's own light
-        const col = { frost: [170, 210, 255], ash: [255, 130, 60], mire: [150, 220, 120], blight: [214, 150, 255] }[ch.skin] || [255, 220, 150];
-        return { music: null, shots: [{ kind: 'journey', dur: 3.4, who: heroW, col, fadeIn: 0.4, span: [0.24, 0.45], cues: [[0, SCORE('drone')], [2.4, SCORE('riser', 1.0)]] }, card('rgb(' + col.join(',') + ')')] };
+        const col = { frost: [170, 210, 255], ash: [255, 130, 60], mire: [150, 220, 120], blight: [214, 150, 255] }[ch.skin] || [255, 220, 150], land = FARLAND[ch.skin];
+        return { music: null, shots: [{ kind: 'journey', dur: 3.4, who: heroW, col, land, fadeIn: 0.4, span: [0.24, 0.45], cues: [[0, SCORE('drone')], [2.4, SCORE('riser', 1.0)]] }, card('rgb(' + col.join(',') + ')')] };
       }
       if (ch.id === 1) return { music: null, shots: [ // and yet, I must try
         { kind: 'rain', dur: 2.0, who: heroW, kneel: true, fadeIn: 0.5, words: [{ text: 'AND YET', at: 0.6 }], cues: [[0, SCORE('drone')], [0.6, SCORE('boom', 0.7)]] },
@@ -1483,6 +1487,28 @@
         { kind: 'ink', mode: 'void', dur: 3.2, who: heroW, letters: 't h e    c a n t o r \' s    g a t e', fadeIn: 0.5, cues: [[0, SCORE('drone')], [1.2, SCORE('tick')], [1.8, SCORE('tick')], [2.6, SCORE('riser', 0.6)]] },
         { kind: 'ink', mode: 'eyes', dur: 1.4, pairs: 12, cues: [[0, SCORE('hit', 1)]] },
         card('#c9a8ff')] };
+    },
+    // after the Cantor: the war is not over
+    async bridge() {
+      const heroW = { hero: leader() }; await cast([heroW]);
+      const T = (text, size, col, y, at) => ({ text, at: at || 0.05, size: size || 0.04, y, spread: 0.5, col: col || '#f1ead8' });
+      return { music: null, shots: [
+        { kind: 'type', dur: 3.0, lines: [T('THE CANTOR IS SILENT', 0.05, '#ffe7a3')], cues: [[0, SCORE('drone')], [0.2, SCORE('shimmer')]] },
+        { kind: 'type', dur: 3.6, lines: [T('BUT HIS CHOIR SANG OTHER GATES OPEN', 0.03, '#f1ead8', 0.44), T('AT THE EDGES OF THE WORLD', 0.03, '#c9a8ff', 0.56, 0.9)], cues: [[0.9, SCORE('tick')], [2.4, SCORE('riser', 1.1)]] },
+        { kind: 'journey', dur: 3.4, who: heroW, col: [170, 210, 255], land: FARLAND.frost, span: [0.24, 0.45], cues: [[0, SCORE('hit', 0.8)]] },
+        { kind: 'type', dur: 3.2, lines: [T('THE FAR MARCHES', 0.07, '#cfe4ff')], cues: [[0, SCORE('braam', 1)], [2.8, SCORE('drone', false)]] }] };
+    },
+    // the last gate is shut
+    async ending() {
+      const heroW = { hero: leader() }, folk = ['h/townsfolk_001', 'h/townsfolk_003', 'h/townsfolk_009', 'h/townsfolk_011', 'h/townsfolk_012', 'h/townsfolk_002'].map((k) => ({ npcKey: k }));
+      await cast([heroW].concat(folk));
+      const T = (text, size, col, y, at) => ({ text, at: at || 0.05, size: size || 0.04, y, spread: 0.5, col: col || '#f1ead8' });
+      return { music: null, shots: [
+        { kind: 'type', dur: 3.2, lines: [T('THE LAST GATE IS SHUT', 0.055, '#ffe7a3')], cues: [[0, SCORE('drone')], [0.2, SCORE('shimmer')]] },
+        { kind: 'city', dur: 3.8, crowd: folk, fadeIn: 0.5, cues: [[1.0, SCORE('shimmer')]] },
+        { kind: 'closeup', dur: 3.4, grade: 'gold', who: heroW, dir: 2, burst: 'rgba(255,220,150,0.09)', col1: 'rgba(220,160,60,1)', col2: 'rgba(30,18,6,1)', edge: '#ffe7a3', caption: 'Eight lands. One banner, still standing.', capAt: 0.5, capEnd: 3.2, cues: [[0, SFX('rally')]] },
+        { kind: 'type', dur: 3.4, lines: [T('THE DEAD SLEEP', 0.035, '#f1ead8', 0.44), T('THE ROADS ARE OPEN', 0.035, '#f1ead8', 0.56, 0.8)], cues: [[2.4, SCORE('riser', 1.0)]] },
+        { kind: 'type', dur: 4.6, lines: [{ text: 'BANNERBORN', at: 0.05, size: 0.09, w: 800, col: '#ffe7a3' }, { text: 'THANK YOU FOR PLAYING', at: 0.9, size: 0.026, y: 0.63, spread: 0.6, col: '#d9c9a3' }], cues: [[0, SCORE('braam', 1.1)], [0, SCORE('shimmer')], [4.0, SCORE('drone', false)]] }] };
     },
     // a boss falls: the body comes apart its own way
     async bossDown(o) {
