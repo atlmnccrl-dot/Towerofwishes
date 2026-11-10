@@ -366,8 +366,11 @@
       if (E.effect === 'burn') { tgt.buffs.burn = 3; tgt.burnAtk = Math.max(tgt.burnAtk || 0, atk); }
       else if (E.effect === 'slow') tgt.buffs.slow = 2;
       else if (E.effect === 'leech') src.hp = Math.min(src.maxhp, src.hp + dmg * 0.25);
-      else if (E.effect === 'heal') { const a = this.lowestAlly(src, 6); if (a) this.heal(src, a, dmg * 0.2); }
-      else if (E.effect === 'chain' && !o.chained) { const n = this.nearest(tgt, 'foe', 3); if (n) { this.later(0.1, () => this.hit(src, n, 0.6, { aoe: true, chained: true })); this.addFx('buff3', n.x, n.y, { sc: 0.4, add: true, hue: -110 }); } }
+      else if (E.effect === 'heal') { const a = this.lowestAlly(src, 6); if (a) { this.heal(src, a, dmg * 0.2); if (this.traitLink && a.hp < a.maxhp + 1) this.traitLink('holy', tgt, a); } }
+      else if (E.effect === 'chain' && !o.chained) { const n = this.nearest(tgt, 'foe', 3); if (n) { this.later(0.1, () => this.hit(src, n, 0.6, { aoe: true, chained: true })); this.addFx('buff3', n.x, n.y, { sc: 0.4, add: true, hue: -110 }); if (this.traitLink) this.traitLink('storm', tgt, n); } }
+      else if (E.effect === 'poison') { tgt.buffs.poison = 4; tgt.poisonN = Math.min(3, (tgt.poisonN || 0) + 1); tgt.poisonAtk = Math.max(tgt.poisonAtk || 0, atk); }
+      if (E.effect === 'rend') tgt.buffs.rend = 1.2;
+      if (this.onTrait && !o.chained) this.onTrait(src, tgt, o.elem, dmg, crit);
     }
     if (tgt.F && tgt.F.phase && tgt.hp > 0 && this.r() < 0.18 && !tgt.boss) { // wraiths flicker away
       const a = this.r() * TAU; this.addFx('buff9', tgt.x, tgt.y, { sc: 0.5, add: true, hue: 200 });
@@ -533,10 +536,11 @@
       if (dot < (C.cleave ? -0.1 : 0.25) && d > 0.5) continue;
       if (C.pierce && Math.abs(dx * v.y - dy * v.x) > 0.55) continue; // spear: a narrow line
       this.hit(e, o, (e.combo % 3 === 0 ? 1.25 : 1) * (e.punish ? 1.4 : 1), e.ench ? { elem: e.ench } : undefined); hitAny = true;
-      if (e.ench) this.addFx('hit2', o.x, o.y - 0.3, { sc: 0.5, add: true, hue: BB.ELEMENTS[e.ench].hue });
+      if (e.ench && !this.onTrait) this.addFx('hit2', o.x, o.y - 0.3, { sc: 0.5, add: true, hue: BB.ELEMENTS[e.ench].hue });
       if (!C.cleave && !C.pierce && t && o !== t && !o.barrel) break;
     }
     if (hitAny) BB.sfx && BB.sfx('slash');
+    if (e.ench) { e.swingT = 0.28; e.swingN = (e.swingN || 0) + 1; }
     e.punish = false;
   };
   Battle.prototype.lowestAlly = function (e, rad) {
@@ -782,6 +786,7 @@
     this.updateProjs(dt);
     if (this.updateTactics) this.updateTactics(dt);
     if (this.updateEpic) this.updateEpic(dtReal, dt);
+    if (this.updateTraits) this.updateTraits(dt);
     if (this.ents.length > 60) this.ents = this.ents.filter((e) => !(e.dead && e.side === 'foe' && e.deadT > 3));
     for (const c of this.clouds) {
       c.t += dt;
@@ -840,6 +845,10 @@
       const b = Math.max(1, Math.round((e.burnAtk || 20) * 0.22 * (100 / (100 + (e.def || 0) * 3)))); e.hp -= b; this.text(e.x, e.y, b, '#ff9a3a');
       if (e.hp <= 0) this.kill(e, null);
     }
+    if (e.buffs.poison > 0 && Math.floor(this.time * 1.5) !== Math.floor((this.time - dt) * 1.5)) { // venom: stacks up to three, ignores armour
+      const b = Math.max(1, Math.round((e.poisonAtk || 20) * 0.12 * (e.poisonN || 1))); e.hp -= b; this.text(e.x, e.y, b, '#a6f04a');
+      if (e.hp <= 0) this.kill(e, null);
+    } else if (!(e.buffs.poison > 0)) e.poisonN = 0;
     if (e.dodgeCd > 0) e.dodgeCd -= dt;
     if (e.blinkCd > 0) e.blinkCd -= dt;
     if (e.dashCd > 0) e.dashCd -= dt;
@@ -1682,6 +1691,7 @@
     for (const p of this.projs) this.drawProj(ctx, p);
     if (this.drawRocks) this.drawRocks(ctx);
     if (this.drawWorldEpic) this.drawWorldEpic(ctx);
+    if (this.drawTraitWorld) this.drawTraitWorld(ctx);
     for (const r of this.rays || []) {
       const s = P(r.x, r.y), a = Math.min(1, r.t * 4, (r.dur - r.t) * 1.5);
       if (r.god) { for (let i = -2; i <= 2; i++) BB.drawOther(ctx, 'GodRay', s.x + i * 22, s.y - 120, 0.5, { add: true, alpha: a * (0.55 - Math.abs(i) * 0.08), sx: 2.4, rot: i * 0.12 }); continue; }
@@ -1751,6 +1761,7 @@
     ctx.globalAlpha = alpha;
     const fl = e.flash > 0 ? Math.min(0.9, e.flash * 5) : 0;
     const spun = e.spin && e.dead; if (spun) { ctx.save(); ctx.translate(s.x, y - 14 * (e.sc || 1)); ctx.rotate(e.spin); ctx.translate(-s.x, -(y - 14 * (e.sc || 1))); }
+    if (this.drawTraitBack && !e.dead) this.drawTraitBack(ctx, e, s.x, y);
     if (e.side === 'hero') { if (e.dead) BB.drawLayers(ctx, e.layers, e.clip, e.dir, fr, s.x, y, e.sc, { flash: fl }); else BB.drawHeroDressed(ctx, e.hero, e.aura, e.clip, e.dir, fr, s.x, y, e.sc, this.time, { flash: fl, layers: e.layers }); }
     else BB.drawChar(ctx, key, e.tint, e.clip, e.dir, fr, s.x, y, e.sc, fl);
     if (spun) ctx.restore();
@@ -1765,6 +1776,7 @@
       }
       if (e.brokenT > 0) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; const gl = ctx.createRadialGradient(s.x, y - hh * 0.5, 0, s.x, y - hh * 0.5, 22 * (e.sc || 1)); gl.addColorStop(0, 'rgba(255,170,60,0.35)'); gl.addColorStop(1, 'rgba(255,170,60,0)'); ctx.fillStyle = gl; ctx.fillRect(s.x - 30, y - hh - 10, 60, hh + 20); ctx.restore(); }
       if (this.drawTac) this.drawTac(ctx, e, s.x, y);
+      if (this.drawTrait) this.drawTrait(ctx, e, s.x, y);
     }
   };
 

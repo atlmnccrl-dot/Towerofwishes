@@ -3,7 +3,7 @@
 // so the same hero looks the same in the camp, the hero screen, the team field and battle.
 (function () {
   const BB = window.BB;
-  const ECOL = { fire: ['#ffb347', '#ff5a1f'], frost: ['#dff6ff', '#7cc8ff'], storm: ['#e8ffff', '#5cd3ff'], shadow: ['#c9a8ff', '#5a2fa8'], holy: ['#fff5c4', '#ffcf5a'] };
+  const ECOL = { fire: ['#ffb347', '#ff5a1f'], frost: ['#dff6ff', '#7cc8ff'], storm: ['#e8ffff', '#5cd3ff'], shadow: ['#c9a8ff', '#5a2fa8'], holy: ['#fff5c4', '#ffcf5a'], poison: ['#d6ff8a', '#5fbf2a'] };
   BB.ECOL = ECOL;
   BB.auraOf = function (h) {
     const A = { glow: null, glowK: 0, ench: null, halo: false, runes: false, embers: false, stars: h.stars || 1, seed: (h.id || 'x').length * 7 };
@@ -70,6 +70,13 @@
         g.globalAlpha = (1 - p) * 0.55; g.fillStyle = i % 3 ? '#3a1a70' : '#6a3ac8'; g.beginPath(); g.arc(px, py, r, 0, 7); g.fill(); }
       g.globalCompositeOperation = 'lighter';
       for (let i = 0; i < 5; i++) { const p = fr(t * 0.7 + rnd(i * 5 + s)); g.globalAlpha = (1 - p) * 0.8; g.fillStyle = '#c9a8ff'; g.fillRect(x + (rnd(i * 9) - 0.5) * 24 * sc, y - p * 50 * sc, 1.3 * sc, 1.3 * sc); }
+    } else if (A.ench === 'poison') { // venom: green drips off the body, bubbles rising and popping
+      g.globalCompositeOperation = 'source-over';
+      for (let i = 0; i < 8; i++) { const p = fr(t * 0.8 + rnd(i + s)), px = x + (rnd(i * 4 + s) - 0.5) * 18 * sc, py = y - (40 - p * 38) * sc;
+        g.globalAlpha = (1 - p) * 0.85; g.fillStyle = i % 2 ? '#7ad43a' : '#b8f060'; g.beginPath(); g.ellipse(px, py, 1 * sc, (1.2 + p * 1.6) * sc, 0, 0, 7); g.fill(); }
+      g.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < 7; i++) { const p = fr(t * 0.55 + rnd(i * 7 + s)), px = x + Math.sin(i * 3.7 + t * 2) * 12 * sc, py = y - 6 * sc - p * 44 * sc, r = (0.8 + p * 1.8) * sc;
+        g.globalAlpha = p > 0.85 ? (1 - p) * 4 : 0.6; g.strokeStyle = '#c6ff7a'; g.lineWidth = Math.max(0.8, 0.5 * sc); g.beginPath(); g.arc(px, py, r, 0, 7); g.stroke(); }
     } else if (A.ench === 'holy') {
       for (let i = 0; i < 12; i++) { const p = fr(t * 0.5 + rnd(i + s)), px = x + Math.sin(i * 5.1 + t) * 13 * sc, py = y - p * 56 * sc;
         g.globalAlpha = Math.sin(p * Math.PI) * 0.9; g.fillStyle = '#ffe9a0'; g.beginPath(); g.arc(px, py, 1.1 * sc, 0, 7); g.fill(); }

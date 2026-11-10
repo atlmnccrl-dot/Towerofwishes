@@ -16,7 +16,7 @@
     const E = epic(this);
     if (!src.ranged && !o.aoe && !o.counter) { // a crescent where the blade went through
       const a = Math.atan2(tgt.y - src.y, tgt.x - src.x), s = BB.iso(Math.cos(a), Math.sin(a));
-      E.arcs.push({ x: tgt.x, y: tgt.y, a: Math.atan2(s.y, s.x), t: 0, col: src.side === 'hero' ? (src.color || '#ffe7a3') : '#ff6a5a', big: crit || o.heavy, flip: this.r() < 0.5 });
+      E.arcs.push({ x: tgt.x, y: tgt.y, a: Math.atan2(s.y, s.x), t: 0, col: src.side === 'hero' ? (src.ench && BB.TRAIT_COL && BB.TRAIT_COL[src.ench] ? BB.TRAIT_COL[src.ench][1] : (src.color || '#ffe7a3')) : '#ff6a5a', big: crit || o.heavy, flip: this.r() < 0.5 });
     }
     if (crit || o.heavy) { E.lights.push({ x: tgt.x, y: tgt.y, t: 0, dur: 0.35, col: crit ? '255,220,140' : '255,160,90', r: crit ? 1.6 : 1.2 }); tgt.flash = Math.max(tgt.flash || 0, 0.25); }
     if (crit && src.side === 'hero') { this.hitstop = Math.max(this.hitstop, 0.07); for (let i = 0; i < 6; i++) E.debris.push(spark(tgt, '#ffe7a3', 3.5)); }

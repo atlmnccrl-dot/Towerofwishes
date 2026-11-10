@@ -90,13 +90,14 @@
       name: (ench ? BB.ENCH[ench].prefix + ' ' : rarity === 3 ? 'Legendary ' : '') + base.names[nameIdx], stats };
   };
   BB.MAX_PLUS = 10;
-  BB.ENCHANTS = ['fire', 'frost', 'storm', 'shadow', 'holy'];
+  BB.ENCHANTS = ['fire', 'frost', 'storm', 'shadow', 'holy', 'poison'];
   BB.ENCH = {
     fire: { prefix: 'Blazing', stat: 'atk', amt: 1.5, desc: 'Blows set foes alight' },
     frost: { prefix: 'Frostbitten', stat: 'def', amt: 1.2, desc: 'Blows slow foes' },
     storm: { prefix: 'Stormcalled', stat: 'crit', amt: 0.02, desc: 'Blows arc to a second foe' },
     shadow: { prefix: 'Shadowed', stat: 'atk', amt: 1.2, desc: 'Blows rend for 20% more' },
     holy: { prefix: 'Hallowed', stat: 'hp', amt: 10, desc: 'Blows heal the weakest ally' },
+    poison: { prefix: 'Venomous', stat: 'atk', amt: 1.0, desc: 'Blows poison foes; the venom stacks three deep' },
   };
   BB.AWAKEN_AT = 5; // forging a plain weapon to +5 awakens an enchant
   BB.heroEnch = (h) => (h.gear && h.gear.weapon && h.gear.weapon.ench) || null;

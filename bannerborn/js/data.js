@@ -104,7 +104,7 @@
     fire: { name: 'Fire', hue: 150, effect: 'burn', col: '#ff7a3a' }, frost: { name: 'Frost', hue: -70, effect: 'slow', col: '#8fd4ff' },
     blood: { name: 'Blood', hue: 110, effect: 'leech', col: '#ff4a5a' }, arcane: { name: 'Arcane', hue: 0, effect: 'crit', col: '#c08bff' },
     shadow: { name: 'Shadow', hue: 30, effect: 'rend', col: '#9a7aff' }, holy: { name: 'Holy', hue: 190, effect: 'heal', col: '#ffe9a0' },
-    storm: { name: 'Storm', hue: -110, effect: 'chain', col: '#9ff' }, nature: { name: 'Nature', hue: -160, effect: 'heal', col: '#8f8' },
+    storm: { name: 'Storm', hue: -110, effect: 'chain', col: '#9ff' }, poison: { name: 'Poison', hue: -150, effect: 'poison', col: '#a6f04a' }, nature: { name: 'Nature', hue: -160, effect: 'heal', col: '#8f8' },
   };
 
   // ---- legendary heroes: fixed art, join when their stage is first cleared
