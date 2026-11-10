@@ -20,14 +20,19 @@
     'jelly', 'river', 'boggart', 'deep_growl', 'deep_growl2', 'deep_growl3', 'deep_grunt', 'deep_grunt2', 'deep_froth', 'deep_groan', 'deep_roar', 'rumble', 'descent', 'dino_bellow', 'dino_bellow2', 'dino_growl', 'dino_horde', 'dino_grunt', 'dino_soft'];
   const vbuf = {}, vload = {}; let preloaded = false, active = 0;
   function loadV(n) { if (vbuf[n] || vload[n] || !ac) return; vload[n] = fetch('assets/sfx/' + n + '.mp3').then((r) => r.arrayBuffer()).then((a) => new Promise((res, rej) => ac.decodeAudioData(a, res, rej))).then((b) => { vbuf[n] = b; }).catch(() => {}); }
+  function playV(t, name, vol, rate) {
+    const src = ac.createBufferSource(); src.buffer = vbuf[name]; src.playbackRate.value = rate;
+    const g = ac.createGain(); g.gain.value = vol; src.connect(g); g.connect(sfxBus); src.start(t); return src;
+  }
   BB.voice = function (name, vol, rate) {
-    if (BB.sfxMute) return;
-    if (!ac || ac.state !== 'running' || !name) return;
+    if (BB.sfxMute || !name) return;
+    rate = rate || (0.9 + Math.random() * 0.2); vol = vol === undefined ? 0.85 : vol;
+    if (BB.audioClock) { const now = BB.audioClock(); if (last['v' + name] && Math.abs(now - last['v' + name]) < 0.3) return; last['v' + name] = now; tape.push([now, 'voice', name, vol, rate]); return; }
+    if (!ac || ac.state !== 'running') return;
     const now = ac.currentTime; if (last['v' + name] && now - last['v' + name] < 0.3) return;
-    const b = vbuf[name]; if (!b) { loadV(name); return; }
+    if (!vbuf[name]) { loadV(name); return; }
     if (active >= 5) return; last['v' + name] = now; active++;
-    const src = ac.createBufferSource(); src.buffer = b; src.playbackRate.value = rate || (0.9 + Math.random() * 0.2);
-    const g = ac.createGain(); g.gain.value = vol === undefined ? 0.85 : vol; src.connect(g); g.connect(sfxBus); src.onended = () => { active--; }; src.start();
+    playV(now, name, vol, rate).onended = () => { active--; };
   };
   // who sounds like what
   const FV = {
@@ -41,9 +46,9 @@
     vesh: { atk: ['deep_growl2', 'deep_growl3'], cast: ['deep_froth'], enrage: ['deep_roar'], brk: ['deep_groan'], die: ['descent'], taunt: ['deep_roar'] },
   };
   BB.foeVoice = function (e, what, chance) {
-    if (!e || !ac) return; const set = FV[e.kind]; if (!set || !set[what]) return;
+    if (!e || (!ac && !BB.audioClock)) return; const set = FV[e.kind]; if (!set || !set[what]) return;
     if (chance !== undefined && Math.random() > chance) return;
-    const now = ac.currentTime; if (!e.boss && last.foeAny && now - last.foeAny < 0.35) return; last.foeAny = now;
+    const now = BB.audioClock ? BB.audioClock() : ac.currentTime; if (!e.boss && last.foeAny && Math.abs(now - last.foeAny) < 0.35) return; last.foeAny = now;
     const list = set[what]; BB.voice(list[Math.floor(Math.random() * list.length)], e.boss ? 0.95 : 0.6, e.boss ? 0.85 + Math.random() * 0.1 : undefined);
   };
   BB.setVolumes = function () {
@@ -104,14 +109,16 @@
   let sfxWin = 0, sfxCount = 0;
   const LOUD = { victory: 1, defeat: 1, boss: 1, burst: 1, portal: 1, rally: 1, herodie: 1, levelup: 1, slam: 1, boom: 1, click: 1 };
   BB.sfx = function (name) {
-    if (!ac || ac.state !== 'running' || BB.sfxMute) return;
-    const now = ac.currentTime;
-    if (last[name] && now - last[name] < 0.07) return;
+    const rec = BB.audioClock;
+    if (BB.sfxMute || (!rec && (!ac || ac.state !== 'running'))) return;
+    const now = rec ? rec() : ac.currentTime;
+    if (last[name] && Math.abs(now - last[name]) < 0.07) return;
     // a crowd fight asks for dozens of sounds a second; the ear hears a handful. No more than six in any tenth of a
     // second (the loud ones always get through)
-    if (now - sfxWin > 0.1) { sfxWin = now; sfxCount = 0; }
+    if (Math.abs(now - sfxWin) > 0.1) { sfxWin = now; sfxCount = 0; }
     if (++sfxCount > 6 && !LOUD[name]) return;
     last[name] = now;
+    if (rec) { tape.push([now, 'sfx', name]); return; }
     const f = SFX[name]; if (f) f(now);
   };
 
@@ -135,11 +142,11 @@
       }
     }
   }
-  function schedule() {
+  function schedule(until) {
     if (!ac) return;
     const bpm = mood === 'calm' ? 70 : mood === 'boss' ? 118 : 104;
     const beat = 60 / bpm;
-    while (nextT < ac.currentTime + 0.4) {
+    while (nextT < (until === undefined ? ac.currentTime + 0.4 : until)) {
       const bar = Math.floor(step / 8), b = step % 8;
       const ch = CH[mood][bar % 4];
       if (b === 0) pad(nextT, ch, beat * 8, mood === 'calm' ? 0.03 : 0.025);
@@ -158,8 +165,11 @@
   function curve(k) { const n = 256, c = new Float32Array(n); for (let i = 0; i < n; i++) { const x = i / (n - 1) * 2 - 1; c[i] = Math.tanh(x * k); } return c; }
   BB.score = function (what, a) {
     if (BB.sfxMute) return;
+    if (BB.audioClock) { tape.push([BB.audioClock(), 'score', what, a]); return; }
     if (!init() || ac.state !== 'running') return;
-    const t = ac.currentTime + 0.01;
+    scoreAt(ac.currentTime + 0.01, what, a);
+  };
+  function scoreAt(t, what, a) {
     if (what === 'braam') { // the big low brass blast
       const out = ac.createGain(); out.gain.setValueAtTime(0.0001, t); out.gain.exponentialRampToValueAtTime(0.5 * (a || 1), t + 0.05); out.gain.exponentialRampToValueAtTime(0.0001, t + 3.2);
       const ws = ac.createWaveShaper(); ws.curve = curve(3);
@@ -197,12 +207,45 @@
       const os = [lfo]; for (const f of [36.7, 55, 73.4]) for (const d of [-6, 6]) { const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = d; o.connect(lp); o.start(t); os.push(o); }
       lfo.start(t); lp.connect(g); g.connect(musBus); droneNodes = { g, os };
     }
-  };
+  }
   BB.music = function (m) {
+    if (BB.audioClock) { tape.push([BB.audioClock(), 'music', m || null]); return; }
     if (!init()) return;
     if (m === mood) return;
     mood = m; step = 0; nextT = ac.currentTime + 0.1;
     if (!musTimer) musTimer = setInterval(() => { if (mood) schedule(); }, 120);
     if (!m) { clearInterval(musTimer); musTimer = null; }
+  };
+
+  // ---- sound for a recording (the trailer's video). While BB.audioClock is set, nothing plays: every sound asked for
+  // is written on a tape with the film's own time. BB.audioRender then plays the tape into an offline context, exactly
+  // on those times, and hands back a WAV file.
+  let tape = [];
+  BB.audioTape = () => tape;
+  BB.audioRender = async function (dur) {
+    init(); if (!ac) throw new Error('no audio');
+    for (const n of VOICES) loadV(n);
+    await Promise.all(Object.values(vload));
+    const live = { ac, master, sfxBus, musBus, mood, step, nextT, droneNodes };
+    const off = new OfflineAudioContext(2, Math.ceil(dur * 44100), 44100);
+    ac = off; master = off.createGain(); const lim = off.createDynamicsCompressor(); lim.threshold.value = -8; lim.ratio.value = 6; master.connect(lim); lim.connect(off.destination);
+    sfxBus = off.createGain(); sfxBus.connect(master); musBus = off.createGain(); musBus.connect(master);
+    sfxBus.gain.value = 0.8 * 0.55; musBus.gain.value = 0.7 * 0.32; master.gain.value = 0.9; droneNodes = null;
+    const list = tape.slice().sort((a, b) => a[0] - b[0]);
+    list.forEach((e, k) => {
+      const t = Math.max(0, e[0]);
+      if (e[1] === 'sfx') { if (SFX[e[2]]) SFX[e[2]](t); }
+      else if (e[1] === 'voice') { if (vbuf[e[2]]) playV(t, e[2], e[3], e[4]); }
+      else if (e[1] === 'score') scoreAt(t + 0.01, e[2], e[3]);
+      else if (e[1] === 'music' && e[2]) { const nx = list.slice(k + 1).find((q) => q[1] === 'music'); mood = e[2]; step = 0; nextT = t + 0.1; schedule(nx ? nx[0] : dur); }
+    });
+    const buf = await off.startRendering();
+    ({ ac, master, sfxBus, musBus, mood, step, nextT, droneNodes } = live);
+    const n = buf.length, L = buf.getChannelData(0), R = buf.getChannelData(1), out = new DataView(new ArrayBuffer(44 + n * 4));
+    const str = (o, x) => { for (let i = 0; i < x.length; i++) out.setUint8(o + i, x.charCodeAt(i)); };
+    str(0, 'RIFF'); out.setUint32(4, 36 + n * 4, true); str(8, 'WAVEfmt '); out.setUint32(16, 16, true); out.setUint16(20, 1, true); out.setUint16(22, 2, true);
+    out.setUint32(24, 44100, true); out.setUint32(28, 44100 * 4, true); out.setUint16(32, 4, true); out.setUint16(34, 16, true); str(36, 'data'); out.setUint32(40, n * 4, true);
+    for (let i = 0; i < n; i++) { out.setInt16(44 + i * 4, Math.max(-1, Math.min(1, L[i])) * 32767, true); out.setInt16(46 + i * 4, Math.max(-1, Math.min(1, R[i])) * 32767, true); }
+    return new Uint8Array(out.buffer);
   };
 })();

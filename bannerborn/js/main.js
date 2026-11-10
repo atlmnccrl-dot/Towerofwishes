@@ -430,6 +430,7 @@
 
   // ---------------------------------------------------------------- buttons
   UI.click($('bPlay'), () => { if (BB.save) goCamp(); else newGame(); });
+  UI.click($('bTrailer'), () => playTrailer());
   UI.click($('bContinue'), () => UI.openCampaign());
   UI.click($('bCampBack'), () => goCamp());
   UI.click($('bRecruitH'), () => UI.openRecruit());
@@ -502,6 +503,39 @@
     sturdy: (sc) => { for (const e of sc.heroList) if (!e.dead && e.hp < e.maxhp * 0.5) e.hp = e.maxhp * 0.5; },
   };
   function devBattle(o) { devEnter(o); BB.deploy(o.idx); }
+  // A stage as a scene on its own, outside the campaign's flow (the trailer cuts several together): a full-strength
+  // team already fighting. o.warm seconds are played unseen and unheard first (o.until 'boss': until the boss is on
+  // the field); the fight cannot end, so a clip never lands on a victory screen.
+  BB.titleCamp = () => buildCampScene(true);
+  BB.stageScene = async function (o) {
+    const keep = devReal; let S;
+    if (!devReal) { const t = BB.save || BB.newSave(now()); devReal = { settings: t.settings, banner: t.banner }; }
+    try { S = devSave(o); } finally { devReal = keep; }
+    const M = BB.MISSIONS[o.idx], team = BB.teamHeroes(S), region = BB.REGIONS.find((r) => r.id === M.region) || BB.REGIONS[0], biome = region.biome;
+    const arts = ['ghoul', 'warden', 'necro'], pools = new Set();
+    const addFoe = (k) => { const F = BB.FOES[k]; if (!F) return; if (F.art) arts.push(F.art); if (F.pool) pools.add(F.pool); if (F.poolPick) arts.push('h/' + F.poolPick); };
+    M.waves.forEach((w) => { for (let i = 0; i < w.length; i += 2) addFoe(w[i]); }); if (M.boss) addFoe(M.boss); if (M.boss === 'regent') pools.add('skel');
+    const rr = BB.rng(o.idx * 7 + 3);
+    await Promise.all([BB.loadEnv(biome), BB.loadEnv('vale'), BB.loadEnv('ground'), BB.loadOther(), BB.loadHeroes(team)]
+      .concat([...new Set(arts)].map((a) => BB.loadChar(a).catch(() => null)), [...pools].map((p) => pickLoad(BB.poolKeys(p), 4, rr))));
+    const seed = BB.hashStr(M.id) % 9000 + 1, map = BB.buildMap(M.layout, biome, seed, { night: !!region.night, floor: region.floor });
+    BB.renderGround(map);
+    const sc = new BB.Battle({ map, mission: M, formation: BB.formationList(S), heroes: team, level: BB.foeLevel(M), save: S, seed });
+    sc.autoSkills = true; sc.win = function () {}; sc.lose = function () {};
+    const ticks = (o.tick || []).map((k) => DEV_TICK[k]); sc.tick = (dt) => ticks.forEach((f) => f(sc, dt));
+    const mute = BB.sfxMute; BB.sfxMute = true;
+    try {
+      const st = 1 / 30; let t = 0; const lim = o.until === 'boss' ? 150 : (o.warm || 0);
+      while (t < lim) { sc.tick(st); sc.update(st, null); t += st; if (o.until === 'boss' && sc.ents.some((e) => e.boss && !e.dead && e.side === 'foe')) { for (let i = 0; i < 30 * (o.warm || 0); i++) { sc.tick(st); sc.update(st, null); } break; } }
+    } finally { BB.sfxMute = mute; }
+    return sc;
+  };
+  function playTrailer(back, opts) {
+    const prev = UI.current; ['mTheater', 'mSettings'].forEach((m) => UI.modal(m, false));
+    BB.audioUnlock(); BB.music(null);
+    BB.Trailer.play(() => { UI.show(prev); BB.music(mode === 'battle' ? 'battle' : 'calm'); back && back(); }, opts);
+  }
+  BB.playTrailer = playTrailer;
   // frame-rate readout (Development battles only): what the device is doing right now
   let fpsT = 0, fpsF = 0;
   function fpsReadout(real) {
@@ -575,6 +609,7 @@
       { t: 'Gravegates', s: 'Stage 4-2 · gates pouring out the dead', c: '#b57cff', battle: { idx: ix('4-2'), over: 2 } },
       { t: 'A fight on the edge', s: 'Under-levelled: heartbeat, rescues, last stands', c: '#ff4a5a', battle: { idx: ix('3-7'), over: -3 } },
     ].filter((x) => x.battle.idx >= 0) });
+    list.push({ group: 'The trailer', items: [{ t: 'Bannerborn — the trailer', s: 'Under a minute: the gates, the banner, the fights', c: '#ffbe55', trailer: true }] });
     list.push({ group: 'The story', items: [{ t: 'The Opening', s: 'Nine banners, the Gravegates', c: '#ffbe55', play: ['intro', {}] }]
       .concat(BB.CHAPTERS.map((ch, i) => ({ t: 'Chapter ' + ['I', 'II', 'III', 'IV'][i] + ' · ' + ch.name, s: ch.blurb.length > 46 ? ch.blurb.slice(0, 45) + '…' : ch.blurb, c: '#ffcf7a', play: ['chapter', { chapter: ch, music: 'calm' }] }))) });
     list.push({ group: 'Boss entrances (cutscene only)', items: bosses.map((m) => ({ t: bn(m), s: 'Stage ' + m.code + ' · ' + m.name, c: tint(m), play: ['boss', { stage: m }] })) });
@@ -605,6 +640,7 @@
     if ((it.battle || it.field) && mode === 'battle' && !devReal) { UI.toast('Finish or leave this battle first.'); return; }
     UI.modal('mTheater', false);
     const back = () => { BB.music(mode === 'battle' ? 'battle' : 'calm'); UI.modal('mTheater'); };
+    if (it.trailer) { playTrailer(() => UI.modal('mTheater')); return; }
     if (it.battle) { devBattle(it.battle); return; }
     if (it.field) { devEnter(it.field); BB.loadHeroes(BB.save.heroes).then(() => UI.openTeam(it.field.idx)); return; }
     if (it.reveal) { // a summoning, played on a hero who fits; nobody joins the save
@@ -657,6 +693,7 @@
     // a cutscene owns the screen. It runs on the real clock (within reason), so that when a frame is late the picture
     // catches up with the sound instead of drifting behind it
     if (BB.Cinema && BB.Cinema.on) { BB.Cinema.render(Math.min(0.3, real)); requestAnimationFrame(frame); return; }
+    if (BB.Trailer && BB.Trailer.on) { BB.Trailer.frame(dt, ctx, W, H, DPR, camZoom()); requestAnimationFrame(frame); return; }
     if (bench) { bench.step(real); requestAnimationFrame(frame); return; } // the performance check owns the frame
     fpsReadout(real);
     const visible = SCENE_UNDER.includes(UI.current);

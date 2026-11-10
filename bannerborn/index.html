@@ -250,6 +250,12 @@ button.hc:active{transform:scale(.97)}
 #cineCv{position:absolute;inset:0;width:100%;height:100%}
 #cineSkip{position:absolute;right:calc(18px + var(--safe-r));top:calc(14px + var(--safe-t));z-index:2;padding:8px 14px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:#fff;font:700 11px var(--head);letter-spacing:.2em}
 #cineSkip:hover{background:rgba(255,255,255,.16)}
+/* the trailer: its text and letterbox are drawn on a canvas over everything (the summoning included) */
+#trailerCv{position:fixed;inset:0;width:100%;height:100%;z-index:62;display:none;pointer-events:none}
+#trailerCv.on{display:block}
+#trailerSkip{position:fixed;right:calc(18px + var(--safe-r));top:calc(14px + var(--safe-t));z-index:63;display:none;padding:8px 14px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:#fff;font:700 11px var(--head);letter-spacing:.2em}
+#trailerSkip.on{display:block}
+body[data-screen=trailer] #reveal .pip,body[data-screen=trailer] #reveal .txt{visibility:hidden} /* kept in the layout: the summoning measures itself against them */
 #reveal{position:fixed;inset:0;z-index:30;display:none;background:radial-gradient(ellipse at 50% 40%,#0e111a,#040508 75%)}
 #reveal.on{display:block}
 #reveal canvas{position:absolute;inset:0;width:100%;height:100%}
@@ -662,6 +668,7 @@ input[type=range]{accent-color:var(--accent)} input[type=checkbox]{accent-color:
     <div class="menu">
       <button class="btn xl" id="bPlay">Play</button>
       <div class="cont" id="tCont"></div>
+      <button class="btn dark sm" id="bTrailer" style="align-self:center;margin-top:6px">▶ Watch the trailer</button>
     </div>
   </div>
   <div class="ver">v0.5</div>
@@ -746,6 +753,7 @@ input[type=range]{accent-color:var(--accent)} input[type=checkbox]{accent-color:
 </div>
 
 <div id="versus"><div class="vl"><div class="vin"><div class="vlbl">Your banner</div><div class="vrow" id="vsHeroes"></div><div class="vpw" id="vsPow"></div></div></div><div class="vr"><div class="vin"><div class="vlbl" id="vsFoeLbl">The horde</div><div class="vrow" id="vsFoes"></div><div class="vpw" id="vsRec"></div></div></div><div class="seam"></div><div class="vc"><div class="code" id="vsCode"></div><div class="vsw">VS</div><div class="vnm" id="vsName"></div><div class="vob" id="vsObj"></div></div></div>
+<canvas id="trailerCv"></canvas><button id="trailerSkip">SKIP ▸▸</button>
 <div id="cine"><canvas id="cineCv"></canvas><button id="cineSkip">SKIP ▸▸</button></div>
 <div id="reveal"><canvas id="revealCv"></canvas><div class="pip"><canvas id="pipCv"></canvas><div class="tag">In battle</div><div class="cap" id="pipCap"></div></div><div class="txt"><div class="rk" id="rvRk"></div><div class="nm" id="rvNm"></div><div class="cl" id="rvCl"></div><div class="ds" id="rvDs"></div><button class="btn sm" id="rvOk">Welcome</button></div></div>
 <div id="mResults" class="modal"><div class="frame scroll" id="resBody"></div></div>
@@ -795,6 +803,7 @@ input[type=range]{accent-color:var(--accent)} input[type=checkbox]{accent-color:
 <script src="js/screens.js"></script>
 <script src="js/heroui.js"></script>
 <script src="js/cinema.js"></script>
+<script src="js/trailer.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

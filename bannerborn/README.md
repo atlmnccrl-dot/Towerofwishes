@@ -146,6 +146,15 @@ Losing costs nothing (and still teaches your heroes): change gear or the formati
 | Shadowblade | Assassin | **Shadowstep** — reappear behind a foe, sure critical |
 | Lancer | Skirmisher | **Impaling Charge** — spear everything in a line |
 
+**The trailer** (js/trailer.js; *Watch the trailer* on the title, and first in Development): under a minute, cut
+from the game itself on the beat of the boss drums. A Gravegate in the dark, the camp, a Legendary summoning, three
+live battles (a full-strength team already in the thick of it: Greenvale, the Sunscar, the Cantor's Gate at night),
+the first land from above, the Pale Regent, a run of one-beat cuts, the name. Every line of text, the letterbox and
+the cuts are drawn from the trailer's own clock, so it can be stepped a frame at a time: `tools/record-trailer.js`
+records it to an mp4 (1280×720, 30 frames a second) with its sound, which is not captured but rendered: while
+recording, every sound the game asks for is written on a tape with the film's time and played into an offline
+audio context afterwards (`BB.audioClock`, `BB.audioRender` in js/audio.js).
+
 **Menus.** The title is the logo carved in gold over the night camp (rays, embers, one button: *Raise the Banner*
 or *Continue*, with where you left off beneath it). **Heroes**: the chosen hero stands large on a podium of their
 rarity's light beside the collection; tap a card to bring that hero forward, tap again (or *Open*) for their screen.
@@ -222,6 +231,7 @@ name, their horde, the face-off, the clash) and a fall; chapters 2-4 open with y
 | `js/cinema.js` | cutscenes: shot sequencer (scene fly-throughs, close-ups, splits, impact frames, titles) and the four scripts |
 | `js/heroui.js` | the hero screen: canvas-drawn stage, gear sockets and picker, attributes, skill tree, its own hit-testing |
 | `js/screens.js` | every menu screen: top bar and tabs, camp, campaign, heroes, hero, recruit and reveal, team, shop, goals, results |
+| `js/trailer.js` | the trailer: the cut list, its scenes (built and warmed before the first frame), text and letterbox on their own canvas |
 | `js/main.js` | boot, loop, input, camp and title scenes, battle HUD, deploy → rewards, saving |
 | `tools/pack.py` | packs the raw asset batches into trimmed atlases |
 | `test/` | Node tests and headless-browser screenshot runs |
@@ -294,6 +304,7 @@ node test/teamwork.js                      # team roles: archers behind shields,
 NODE_PATH=$(npm root -g) node test/shots.js /tmp/bb-shots            # title → camp → campaign → team → battle → results → every tab
 NODE_PATH=$(npm root -g) node test/shots.js /tmp/bb-phone 844 390    # the same on a phone-sized touch screen
 NODE_PATH=$(npm root -g) node test/scenes.js /tmp/bb-scenes 4,7,15,23,29   # stages mid-fight with a five-hero team
+NODE_PATH=$(npm root -g) node tools/record-trailer.js /tmp/bb-trailer   # the trailer as an mp4 with sound (needs ffmpeg); --every 24 for a contact sheet only
 ```
 The browser tests expect a static server on port 8123 at `bannerborn/`
 (`npx http-server -p 8123 bannerborn`) and fail on any console error.
