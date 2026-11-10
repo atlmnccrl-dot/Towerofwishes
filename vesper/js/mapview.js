@@ -294,7 +294,7 @@
     // The rune ring under it and a light behind.
     A.tex(ctx, 'light_01', x, y - 40 * s, I.W * s * 0.9, I.H * s * 0.8, locked ? '#777777' : T.col, 0.22, 0, true);
     // The last summit: the god himself looms behind it.
-    if (arenaFor(n).b.node.waves.some((w) => w.indexOf('godCut') >= 0) && VS.INTRO && VS.INTRO.kit) { const K = VS.INTRO.kit, gu = 4.5 * R.dpr * e, gy = Math.max(top + 30 * R.dpr, y - (I.RY + 40) * s); A.tex(ctx, 'light_01', x, gy + 20 * gu, I.W * s, I.H * s * 1.2, '#ff3048', 0.35, 0, true); K.colossus(ctx, null, x, gy, gu * 2, MAP.t, { col: '#0a0306' }); }
+    if (arenaFor(n).b.node.waves.some((w) => w.indexOf('godCut') >= 0) && VS.INTRO && VS.INTRO.kit) { const K = VS.INTRO.kit, gu = 4.5 * R.dpr * e, gy = Math.max(top + 30 * R.dpr, y - (I.RY + 40) * s); A.tex(ctx, 'light_01', x, gy + 20 * gu, I.W * s, I.H * s * 1.2, '#ff3048', 0.35, 0, true); K.godAt(ctx, null, x, Math.round(gy + 26 * gu), Math.max(1, Math.round(gu * 0.6)), MAP.t, { col: '#0a0306', amt: 0.2 }); }   // the knight himself on the last summit
     A.tex(ctx, 'magic_02', x, y + 10 * s, I.W * s * 0.85, I.W * s * 0.42, locked ? '#888888' : T.col, 0.55, MAP.t * 0.4, true);
     const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = s < 0.95;
     ctx.drawImage(I.c, Math.round(x - I.OX * s), Math.round(y - I.OY * s), Math.round(I.W * s), Math.round(I.H * s));

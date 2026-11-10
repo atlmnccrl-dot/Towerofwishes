@@ -486,19 +486,22 @@
     const g = s.god, P = R.godPose; if (P) { P.t += dt; if (P.t > 1.6) R.godPose = null; }
     const kneel = s.units.some((u) => u.alive && u.part === 'head'), fall = R.godFall ? (R.godFall += dt) : 0;
     R.godKneel = (R.godKneel || 0) + ((kneel ? 1 : 0) - (R.godKneel || 0)) * Math.min(1, dt * 3);
-    // He stands in the void past the summit's far edge (the top of the screen), his head and shoulders over it.
-    const AR = VS.arenaOf(s), top = AR.godR ? godTop(AR).r : 0, edge = R.P(-hs * top, -hc * top), edgeY = AR.godR ? edge.y : R.H * 0.2;
-    const u = R.H / 80, ex = Math.round(AR.godR ? edge.x : R.W * 0.52), ey = Math.round(edgeY - 9 * u + R.H * (0.16 * R.godKneel + fall * 0.6) + Math.sin(R.t * 0.8) * 2 * R.dpr);
-    const a = fall ? Math.max(0, 1 - fall / 1.6) : 1; if (a <= 0) return;
+    // He stands outside the map (the author, 2026-11-10), the real knight on a broken pillar of stone in the void past the
+    // summit's far edge, about twice a man's size and crisp (a whole-number scale), looking in. When he kneels he has
+    // come down onto the summit itself (drawGodPart, 'head'); when he dies he falls away.
+    const AR = VS.arenaOf(s), top = AR.godR ? godTop(AR).r : 0, far = top + 26, edge = R.P(-hs * far, -hc * far), edgeY = AR.godR ? edge.y : R.H * 0.25;
+    const k = Math.max(2, Math.round(R.Sh() * 1.8)), ex = Math.round(AR.godR ? edge.x : R.W * 0.52), fy = Math.round(edgeY + R.H * 0.05 + fall * R.H * 0.8);   // his feet just behind the rim
+    const a = (fall ? Math.max(0, 1 - fall / 1.6) : 1) * (1 - R.godKneel); if (a <= 0.02) return;
     let L = R.godLayer; if (!L || L.width !== R.W || L.height !== R.H) { L = R.godLayer = document.createElement('canvas'); L.width = R.W; L.height = R.H; }
     const c = L.getContext('2d'); c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, R.W, R.H); c.globalCompositeOperation = 'source-over';
-    A.tex(c, 'light_01', ex, ey + 6 * u, R.W * 0.9, R.H * 0.7, '#ff3048', 0.4, 0, true);
-    const raise = P && (P.move === 'blade' || P.move === 'sweep') && P.t < 1.3;
-    K.colossus(c, null, ex, ey, u * 2, R.t, { col: g.flash > 0 ? '#3a0a14' : '#0a0306', pose: raise ? 'raise' : 'plant' });
-    // He stands outside the map, at the top looking in (the author, 2026-11-10): wherever the floor is, he is cut
-    // away, so he shows only in the void around and beyond the summit, and he fades out toward the bottom.
-    const fy = Math.max(0.05, Math.min(0.9, edgeY / R.H)), mk = c.createLinearGradient(0, 0, 0, R.H); mk.addColorStop(0, 'rgba(0,0,0,1)'); mk.addColorStop(fy, 'rgba(0,0,0,1)'); mk.addColorStop(Math.min(1, fy + 0.22), 'rgba(0,0,0,0)'); mk.addColorStop(1, 'rgba(0,0,0,0)');
-    c.globalCompositeOperation = 'destination-in'; c.fillStyle = mk; c.fillRect(0, 0, R.W, R.H);
+    A.tex(c, 'light_01', ex, fy - 30 * k, 120 * k, 110 * k, '#ff3048', 0.45, 0, true);
+    // The pillar he stands on, falling away into the dark below.
+    const pw = 15 * k; c.fillStyle = '#120a10'; c.beginPath(); c.moveTo(ex - pw, fy); c.lineTo(ex + pw, fy); c.lineTo(ex + pw * 0.8, fy + R.H * 0.5); c.lineTo(ex - pw * 0.8, fy + R.H * 0.5); c.fill();
+    c.fillStyle = '#2a1c24'; c.beginPath(); c.moveTo(ex - pw, fy); c.lineTo(ex, fy - pw * 0.35); c.lineTo(ex + pw, fy); c.lineTo(ex, fy + pw * 0.35); c.fill();
+    c.fillStyle = 'rgba(255,48,72,0.35)'; c.fillRect(ex - pw, fy + 1, 2 * pw, Math.max(1, k));
+    const raise = P && (P.move === 'blade' || P.move === 'sweep') && P.t < 1.3, slam = P && (P.move === 'hand' || P.move === 'rain' || P.move === 'last') && P.t < 1.3;
+    K.godAt(c, null, ex, fy, k, R.t, { col: g.flash > 0 ? '#ff3048' : '#0a0306', amt: g.flash > 0 ? 0.45 : 0.15, pose: raise ? 'raise' : slam ? 'raise' : null, ft: raise || slam ? Math.min(1, P.t / 1.35) : null });
+    // Wherever the floor is, he is cut away, so the pillar sinks behind the summit's edge.
     c.globalCompositeOperation = 'destination-out'; R.isoMask(c, VS.arenaOf(s)); c.globalCompositeOperation = 'source-over';
     ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = a; ctx.drawImage(L, 0, 0); ctx.restore();
   }
@@ -544,12 +547,9 @@
       godHand(ctx, x, y, Sh * 1.0, 1);
       if (flash) { ctx.globalAlpha = fade * 0.5; godHand(ctx, x, y, Sh * 1.0, 0.4); }
     } else if (u.part === 'head' && K) {
-      // His head lowered to the summit's edge: the crowned helm, the eyes burning.
-      const hu = 7 * Sh, hy = y - 8 * Sh;
-      ctx.save(); ctx.beginPath(); ctx.rect(0, 0, R.W, y + 4 * Sh); ctx.clip();
-      A.tex(ctx, 'light_01', x, hy, 160 * Sh, 120 * Sh, '#ff3048', 0.45, 0, true);
-      K.colossus(ctx, null, x, hy, hu * 2, R.t, { col: flash ? '#3a0a14' : '#0a0306' });
-      ctx.restore();
+      // He has come down onto the summit: the knight on one knee where the ring is, open (the real character).
+      A.tex(ctx, 'light_01', x, y - 30 * Sh, 120 * Sh, 100 * Sh, '#ff3048', 0.4, 0, true);
+      K.godAt(ctx, null, x, y, Math.max(2, Math.round(Sh * 2.2)), R.t, { pose: 'kneel', col: flash ? '#ff3048' : '#0a0306', amt: flash ? 0.45 : 0.12 });
     }
     // The place to strike: a ring pulsing on the floor, brighter on his head.
     const pr = (u.rad + 6) * Sh * 0.75, pk = 0.5 + 0.5 * Math.sin(R.t * 8);

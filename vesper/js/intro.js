@@ -369,7 +369,7 @@
       const t = T - 4.6, sc = 14 + t * 5, ex = Math.round(W() / 2), ey = Math.round(H() * 0.5);
       fill(ctx, '#ffffff');
       { const g = ctx.createRadialGradient(ex, ey, 4, ex, ey, W() * 0.6); g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#c8c2c4'); ctx.fillStyle = g; ctx.fillRect(-8, -8, W() + 16, H() + 16); }
-      colossus(ctx, S, ex, ey, sc, T, { col: '#000' });
+      godAt(ctx, S, ex, Math.round(H() * 0.94), 3, T, { col: '#000', pose: 'raise' });   // his whole figure in ink, the sword up
       kick(S, t < 0.1 ? 8 : 2);
       return;
     }
@@ -391,10 +391,11 @@
     moon(ctx, W() * 0.8 - pan * 0.05, H() * 0.18, H() * 0.14, '#f4ece6', 'rgba(255,240,230,0.28)', 0);
     // Him, rising behind everything, against a red glow that swells with him.
     if (rise > 0) {
-      A.tex(ctx, 'light_01', sx, ey + 30, W() * 1.2 * (0.5 + rise), H() * 1.4, '#a01838', 0.6 * rise, 0, true);
-      colossus(ctx, S, sx, ey, 6, T, { flat: true, col: '#030104' });
-      // Dust and stone falling off his shoulders as he comes up.
-      if (rise < 1) for (let i = 0; i < 24; i++) { const ph = (T * 1.4 + hash(i, 611)) % 1, px = sx + (hash(i, 612) - 0.5) * 100, py = ey + 20 + ph * 70; ctx.fillStyle = `rgba(30,12,20,${0.8 * (1 - ph)})`; ctx.fillRect(Math.round(px), Math.round(py), 2, 2); }
+      // He rises out of the city behind the roofs and comes to stand on the Spire's tip (the real knight, crisp).
+      const fy = Math.round(H() * 1.15 + (spTip + 1 - H() * 1.15) * rise);
+      A.tex(ctx, 'light_01', sx, fy - 40, W() * 0.9 * (0.5 + rise), H() * 1.2, '#a01838', 0.6 * rise, 0, true);
+      godAt(ctx, S, sx, fy, 2, T, { col: '#140409', amt: 0.35, pose: rise >= 1 && T > 2.3 ? 'raise' : null });
+      if (rise < 1) for (let i = 0; i < 16; i++) { const ph = (T * 1.4 + hash(i, 611)) % 1, px = sx + (hash(i, 612) - 0.5) * 40, py = fy - 10 + ph * 40; ctx.fillStyle = `rgba(30,12,20,${0.8 * (1 - ph)})`; ctx.fillRect(Math.round(px), Math.round(py), 1, 1); }
     }
     // The city: its windows going dark as the ground shakes.
     city(ctx, H() * 0.7, 7, '#1c1222', 0.25 * (1 - 0.7 * rise), 1.1, pan * 0.5);
@@ -432,14 +433,10 @@
     ctx.save(); ctx.translate(mx, H() * 0.6); ctx.scale(push, push); ctx.translate(-mx, -H() * 0.6);
     moon(ctx, mx + (raise ? Math.sin(T * 60) * 1.5 : 0), H() * 0.34, H() * 0.34, '#f4ece6', 'rgba(255,240,230,0.3)', 0);
     { const rg = ctx.createRadialGradient(mx, H() * 0.7, 4, mx, H() * 0.7, W() * 0.5); rg.addColorStop(0, 'rgba(30,0,8,0.8)'); rg.addColorStop(1, 'rgba(30,0,8,0)'); ctx.fillStyle = rg; ctx.fillRect(-8, -8, W() + 16, H() + 16); }
-    const ey = Math.round(H() * 0.42);
-    colossus(ctx, S, Math.round(mx), ey, 6.6, T, { pose: raise ? 'side' : 'plant', rim: '#e8dcf0', col: '#050306' });
-    burningEyes(ctx, Math.round(mx), ey, 6.6, 1, T);
-    if (raise) {   // moonlight running down the flat of the blade, so it reads against the dark
-      const u = 3.3, ca = Math.cos(Math.PI - 0.34), sa = Math.sin(Math.PI - 0.34), hx = mx - 15 * u, hy = ey + 15 * u, gl = clamp((T - 1.2) / 0.4);
-      A.tex(ctx, 'light_01', hx + ca * 45 * u, hy + sa * 45 * u, 90 * u, 14, '#e8dcf0', 0.35 * gl, -0.34, true);
-      K().line(ctx, hx + ca * 10 * u, hy + sa * 10 * u - 1, hx + ca * 84 * u, hy + sa * 84 * u - 1, 1, `rgba(232,220,240,${0.8 * gl})`);
-    }
+    // Him on the Spire's tip against the moon, close: the real knight at 3x; he draws his sword back.
+    A.tex(ctx, 'light_01', mx, H() * 0.55, 140, 150, '#a01838', 0.35, 0, true);
+    godAt(ctx, S, mx, Math.round(H() * 0.88), 3, T, { pose: raise ? 'side' : null, col: '#0a0408', amt: 0.3 });
+    if (raise) A.tex(ctx, 'light_01', mx - 30, H() * 0.6, 50, 50, '#ffffff', 0.25 * clamp((T - 1.2) / 0.4), 0, true);   // the moon on his blade
     // The tip of the Spire beneath his feet.
     ctx.fillStyle = '#030204'; ctx.beginPath(); ctx.moveTo(mx - 30, H() + 10); ctx.lineTo(mx - 4, H() * 0.88); ctx.lineTo(mx + 4, H() * 0.88); ctx.lineTo(mx + 30, H() + 10); ctx.fill();
     ctx.restore();
@@ -471,11 +468,11 @@
       A.tex(ctx, 'light_01', x0 + ca * WL / 2, y0 + sa * WL / 2, WL * 1.6, r * 0.5, split < 0.25 ? '#ffffff' : RED, 0.8, ang, true);
     }
     // The land: the Spire, the god behind it, the city.
-    const hz = Math.round(H() * 0.86), gx = Math.round(mx + W() * 0.07), gy = Math.round(H() * 0.4), gu = 2;   // in front of the moon, so his shape and the blade read
+    const hz = Math.round(H() * 0.86), gx = Math.round(mx), gy = Math.round(H() * 0.46);   // he stands on the Spire's tip, in front of the moon
     if (red > 0) A.tex(ctx, 'light_01', mx, hz, W() * 1.3, 60, RED, 0.6 * red, 0, true);
-    A.tex(ctx, 'light_01', gx, gy, 120, 120, red > 0 ? '#ff3a52' : '#a0a0c0', 0.25, 0, true);
-    colossus(ctx, S, gx, gy, gu * 2, T, { pose: T < 1.15 ? 'side' : 'plant', col: '#030104' });
-    if (T < 1.15) { const c = clamp(T / 1.1), hx = gx - 15 * gu, hy = gy + 15 * gu, tx = hx - 87 * gu * 0.94, ty = hy + 87 * gu * 0.33; A.tex(ctx, 'light_01', (hx + tx) / 2, (hy + ty) / 2, 140, 8 + 10 * c, '#ffffff', 0.3 + 0.6 * c, ang, true); A.tex(ctx, 'light_01', tx, ty, 20 + 40 * c, 20 + 40 * c, '#ffffff', 0.4 + 0.5 * c, 0, true); }   // light gathering on the blade
+    A.tex(ctx, 'light_01', gx, gy - 40, 110, 110, red > 0 ? '#ff3a52' : '#a0a0c0', 0.25, 0, true);
+    godAt(ctx, S, gx, gy, 2, T, { pose: T < 1.55 ? 'side' : null, ft: T < 1.15 ? null : clamp((T - 1.15) / 0.4), col: '#0a0408', amt: 0.3 });
+    if (T < 1.15) { const c = clamp(T / 1.1); A.tex(ctx, 'light_01', gx - 30, gy - 30, 30 + 40 * c, 30 + 40 * c, '#ffffff', 0.4 + 0.5 * c, 0, true); }   // light gathering on his blade
     ctx.fillStyle = '#0c0610'; ctx.beginPath(); ctx.moveTo(mx - 9, hz + 4); ctx.lineTo(mx - 2, H() * 0.5); ctx.lineTo(mx, H() * 0.46); ctx.lineTo(mx + 2, H() * 0.5); ctx.lineTo(mx + 9, hz + 4); ctx.fill();
     city(ctx, H() * 0.84, 7, '#1c1222', 0.3 * (1 - red), 1.0, 0);
     city(ctx, H() * 0.92, 13, '#0c0810', 0.4 * (1 - red), 0.9, 0);
@@ -775,12 +772,46 @@
     ctx.restore();
   }
   // The First Cut: the drawn god, one solid shape (o.col; o.tint marks a hit, o.sil the ink frames).
-  // The forge's sprite (tools_boss.py) when it has loaded, else the polygons. A black or white col asks for a pure
-  // silhouette (the ink frames); any other darkens him toward it, keeping his armour, runes and the moon's rim.
+  // The First Cut is the Master Knight (the set his duel form and the hero use), drawn from the real character at a
+  // whole-number scale so his pixels stay sharp, its eyes at (ex, ey): standing guard (Idle4), the sword raised (Taunt,
+  // or the overhead cut of Attack4 played through o.ft 0..1), drawn back for the moon cut (Attack6). A black or white
+  // col asks for a pure silhouette (the ink frames); any other darkens him toward it. Until the set has loaded: the
+  // polygons (or nothing, with o.optional).
+  const GOD_SET = 'master_knight', godRef = {};
+  // The First Cut standing with his feet at (fx, fy), k (a whole number) pixels per sprite pixel, in a pose: guard
+  // (Idle4), raise (Taunt, or the overhead cut of Attack4 through o.ft 0..1), side (drawn back: Attack6, or the swing
+  // through o.ft), kneel (the end of his overhead cut, down on one knee). Shading as colossus().
+  function godAt(ctx, S, fx, fy, k, T, o) {
+    o = o || {}; k = Math.max(1, Math.round(k));
+    const col = o.col || '#050204', ink = o.ink || /^#(000|000000|fff|ffffff)$/i.test(col), ang = o.ang == null ? Math.PI / 2 : o.ang;
+    let clip = 'Idle4', fr = Math.floor((T || 0) * 7) % 15;
+    if (o.pose === 'raise') { if (o.ft != null) { clip = 'Attack4'; fr = Math.min(14, Math.floor(o.ft * 15)); } else { clip = 'Taunt'; fr = 12; } }
+    else if (o.pose === 'side') { clip = 'Attack6'; fr = o.ft != null ? Math.min(14, 1 + Math.floor(o.ft * 10)) : 1; }
+    else if (o.pose === 'kneel') { clip = 'Attack4'; fr = 13; }
+    if (!A.hasSet(GOD_SET)) { if (!o.optional) colossusDrawn(ctx, S, fx, fy - 38 * k, k, T, { flat: true, pose: o.pose === 'side' ? 'side' : o.pose === 'raise' ? 'raise' : 'plant', col }); return false; }
+    const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
+    const ref = godRef['f' + k] || (godRef['f' + k] = A.box(GOD_SET, 'Idle4', 0, ang, k));   // his feet (the sprite's anchor sits higher)
+    const y = ref ? fy - (ref.y + ref.h) : fy;
+    A.actor(ctx, GOD_SET, clip, fr, ang, Math.round(fx), Math.round(y), k, ink ? { shade: col } : { flash: o.amt != null ? o.amt : 0.28, flashCol: col });
+    ctx.imageSmoothingEnabled = sm; return true;
+  }
   function colossus(ctx, S, ex, ey, sc, T, o) {
     o = o || {};
     const col = o.tint ? '#3a0a14' : (o.col || '#050204'), ink = o.ink || /^#(000|000000|fff|ffffff)$/i.test(col);
-    if (A.bossReady && A.bossReady() && A.boss(ctx, o.pose === 'raise' || o.pose === 'side' ? o.pose : 'plant', Math.floor((T || 0) * 3), ex, ey, sc / 2, col, ink ? 1 : (o.amt != null ? o.amt : o.tint ? 0.5 : 0.3))) return;
+    if (A.hasSet(GOD_SET)) {
+      const k = Math.max(1, Math.round(sc)), ang = Math.PI / 2;
+      let clip = 'Idle4', fr = Math.floor((T || 0) * 7) % 15;
+      if (o.pose === 'raise') { if (o.ft != null) { clip = 'Attack4'; fr = Math.min(14, Math.floor(o.ft * 15)); } else { clip = 'Taunt'; fr = 12; } }
+      else if (o.pose === 'side') { clip = 'Attack6'; fr = 1; }
+      const ref = godRef[k] || (godRef[k] = A.box(GOD_SET, 'Idle4', 0, ang, k));
+      if (ref) {
+        const x = Math.round(ex - (ref.x + ref.w * 0.5)), y = Math.round(ey - (ref.y + ref.h * 0.15));
+        const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
+        A.actor(ctx, GOD_SET, clip, fr, ang, x, y, k, ink ? { shade: col } : { flash: o.amt != null ? o.amt : o.tint ? 0.5 : 0.28, flashCol: col });
+        ctx.imageSmoothingEnabled = sm; return;
+      }
+    }
+    if (o.optional) return;
     colossusDrawn(ctx, S, ex, ey, sc, T, { flat: true, pose: o.pose, col });
   }
   // No glowing eyes on him (the author, 2026-11-09).
@@ -796,8 +827,8 @@
     A.tex(ctx, 'light_01', ex, at(eyW + Hh * 0.6), W() * 1.4, Hh * 1.8, '#5a0a2a', 0.5, 0, true);
     const bolt = (T > 1.1 && T < 1.22) || (T > 2.6 && T < 2.7);
     if (bolt) fill(ctx, 'rgba(255,220,230,0.18)');
-    colossus(ctx, S, ex, at(eyW), sc, T, { dark: bolt ? 0 : 0.3 });
-    burningEyes(ctx, ex, at(eyW), sc, ease(clamp((T - 2.3) / 0.35)), T);
+    { const py = Hh * 0.8; ctx.fillStyle = '#030102'; ctx.beginPath(); ctx.moveTo(ex - 60, at(Hh * 1.4)); ctx.lineTo(ex - 14, at(py + 6)); ctx.lineTo(ex - 6, at(py)); ctx.lineTo(ex + 8, at(py)); ctx.lineTo(ex + 16, at(py + 8)); ctx.lineTo(ex + 64, at(Hh * 1.4)); ctx.fill();   // the pinnacle
+      godAt(ctx, S, ex, at(py) + 1, 3, T, { col: bolt ? '#3a0c18' : '#0a0408', amt: bolt ? 0.15 : 0.3, pose: T > 2.3 ? 'raise' : null }); }
     if (T > 2.3 && T < 2.4) kick(S, 6);
     // Clouds across his chest and waist, stones rising past him.
     for (let i = 0; i < 6; i++) A.tex(ctx, i % 2 ? 'smoke_07' : 'smoke_04', ((hash(i, 221) * W() * 1.6 + T * 12 * (i % 2 ? 1 : -1)) % (W() * 1.6)) - W() * 0.3, at(Hh * (0.85 + i * 0.17)), W() * 0.9, 50, '#3a0a14', 0.55, 0, false);
@@ -820,9 +851,9 @@
     ctx.save(); ctx.translate(W() / 2, gy); ctx.scale(push, push); ctx.translate(-W() / 2, -gy);
     moon(ctx, W() * 0.5, H() * 0.3, H() * 0.24, '#ff3a52', 'rgba(255,40,70,0.6)', 1, T);
     A.tex(ctx, 'light_01', W() * 0.5, H() * 0.4, W() * 0.8, H() * 0.7, '#7a1028', 0.5, 0, true);
-    colossus(ctx, S, Math.round(W() * 0.5), Math.round(H() * 0.34), 5, T, { pose: 'plant', col: '#0a0306' });
+    godAt(ctx, S, Math.round(W() * 0.5), Math.round(H() * 0.62) + 1, 2, T, { col: '#0a0306', amt: 0.3 });
     city(ctx, gy - 18, 29, '#14040a', 0, 0.7, 0);
-    ctx.fillStyle = '#0c0206'; ctx.beginPath(); ctx.moveTo(W() * 0.5 - 6, gy - 16); ctx.lineTo(W() * 0.5, H() * 0.5); ctx.lineTo(W() * 0.5 + 6, gy - 16); ctx.fill();   // the Spire
+    ctx.fillStyle = '#0c0206'; ctx.beginPath(); ctx.moveTo(W() * 0.5 - 6, gy - 16); ctx.lineTo(W() * 0.5 - 1, H() * 0.62); ctx.lineTo(W() * 0.5 + 1, H() * 0.62); ctx.lineTo(W() * 0.5 + 6, gy - 16); ctx.fill();   // the Spire (he stands on it)
     for (let i = 0; i < 3; i++) A.tex(ctx, 'smoke_04', ((hash(i, 741) * W() * 1.4 + T * (6 + i * 3)) % (W() * 1.4)) - W() * 0.2, gy - 16 + i * 4, W() * 0.8, 22, '#4a0c18', 0.5, 0, false);
     // The rampart and her on it, her back to us.
     ctx.fillStyle = '#050102'; ctx.fillRect(-8, gy, W() + 16, H()); for (let x = -8; x < W() + 8; x += 16) ctx.fillRect(x, gy - 6, 10, 6);
@@ -878,7 +909,7 @@
       const e = clamp((k - 0.65) / 0.35);
       ctx.fillStyle = '#0a0204'; ctx.fillRect(-8, -8, W() + 16, gy + 8);
       { const rg = ctx.createRadialGradient(W() * 0.5, H() * 0.24, 4, W() * 0.5, H() * 0.3, W() * 0.6); rg.addColorStop(0, '#7a1424'); rg.addColorStop(1, '#14030a'); ctx.fillStyle = rg; ctx.fillRect(-8, -8, W() + 16, H() + 16); }
-      colossus(ctx, S, Math.round(W() * 0.5), Math.round(H() * 0.24), 9, T, { flat: true, col: '#030102' });
+      godAt(ctx, S, Math.round(W() * 0.5), Math.round(H() * 0.62), 2, T, { col: '#030102', amt: 0.5 });
       burningEyes(ctx, Math.round(W() * 0.5), Math.round(H() * 0.24), 9, 1, T);
       ctx.fillStyle = '#000'; ctx.fillRect(-8, gy, W() + 16, H());
       A.actor(ctx, vs, 'Special1', 14, -Math.PI * 0.5, gx, gy, 1.9, { shade: '#e8203c' });   // solid red against his black
@@ -894,7 +925,7 @@
     stars(ctx, 60, 0.5, 11, T);
     // His shadow over everything, faint, the moon at his heart; his eyes burning above the name.
     const loom = clamp((T - 0.2) / 1.2);
-    if (loom > 0) { ctx.save(); ctx.globalAlpha = 0.85 * loom; colossus(ctx, S, Math.round(W() / 2), Math.round(H() * 0.09), 8, T, { flat: true, col: '#12030a' }); ctx.restore(); burningEyes(ctx, Math.round(W() / 2), Math.round(H() * 0.09), 8, loom * (0.75 + 0.25 * Math.sin(T * 2)), T); }
+    // (No looming giant behind the title: he is a man-sized knight now, at the top of the Spire.)
     moon(ctx, W() / 2, H() * 0.62, H() * 0.4, '#ff3a52', 'rgba(255,40,70,0.55)', 1, T);
     bokeh(ctx, T, '#ff4a5e', 18, 981, 0.75 * clamp(T - 0.3));
     K().embers(ctx, T, 40, 0, W(), RED);
@@ -960,11 +991,10 @@
     grad(ctx, ['#040108', bolt ? '#5a0e22' : '#22040e', bolt ? '#a01a30' : '#5a0c1a']);
     stars(ctx, 70, 0.6, 41, T);
     ctx.save(); ctx.translate(Math.round(drift * 0.3), 0);
-    // Him, vast and faint behind the moon: crowned and horned, the moon at his heart.
+    // The moon's glow (he himself stands on the Spire, below).
     const gx = Math.round(w * 0.66), gy = Math.round(h * 0.17 + Math.sin(T * 0.5) * 1.5);
     A.tex(ctx, 'light_01', gx, gy + 30, w * 0.9, h * 1.1, '#7a1028', 0.45, 0, true);
     A.tex(ctx, 'light_01', gx, gy - 6, 90, 60, '#ff3a52', 0.35, 0, true);   // a red glow round his crowned head
-    colossus(ctx, S, gx, gy, 7, T, { flat: true, col: bolt ? '#3a0c18' : '#0c0206' });
     const mx = gx, my = Math.round(h * 0.47), mr = Math.round(h * 0.2);
     moon(ctx, mx, my, mr, '#ff3a52', 'rgba(255,40,70,0.6)', 0);
     { const x0 = mx - mr * 0.95, y0 = my + mr * 0.34, ang = -0.34, L = mr * 2.02, cx = x0 + Math.cos(ang) * L / 2, cy = y0 + Math.sin(ang) * L / 2;
@@ -980,9 +1010,10 @@
     ctx.save(); ctx.translate(Math.round(drift * 0.6), 0);
     A.tex(ctx, 'light_01', mx, hz, w * 1.1, 30, '#ff2a44', 0.5, 0, true);
     city(ctx, hz + 2, 23, '#120308', 0.12, 0.55, 0);
-    { const sp = Math.round(w * 0.47); ctx.fillStyle = '#5a1a2a'; ctx.beginPath(); ctx.moveTo(sp - 10, hz + 4); ctx.lineTo(sp - 2, h * 0.2 + 8); ctx.lineTo(sp, h * 0.2); ctx.lineTo(sp + 2, h * 0.2 + 8); ctx.lineTo(sp + 10, hz + 4); ctx.fill();
-      ctx.fillStyle = '#0c0206'; ctx.beginPath(); ctx.moveTo(sp - 9, hz + 4); ctx.lineTo(sp - 1, h * 0.2 + 9); ctx.lineTo(sp + 1, h * 0.2 + 9); ctx.lineTo(sp + 9, hz + 4); ctx.fill();
-      ctx.fillStyle = '#ff5a6a'; ctx.fillRect(sp, Math.round(h * 0.2) + 2, 1, 2); }   // a red light at the top of the Spire
+    { const sp = Math.round(w * 0.47), tp = Math.round(h * 0.44); ctx.fillStyle = '#5a1a2a'; ctx.beginPath(); ctx.moveTo(sp - 10, hz + 4); ctx.lineTo(sp - 2, tp + 8); ctx.lineTo(sp - 2, tp); ctx.lineTo(sp + 2, tp); ctx.lineTo(sp + 2, tp + 8); ctx.lineTo(sp + 10, hz + 4); ctx.fill();
+      ctx.fillStyle = '#0c0206'; ctx.beginPath(); ctx.moveTo(sp - 9, hz + 4); ctx.lineTo(sp - 1, tp + 9); ctx.lineTo(sp + 1, tp + 9); ctx.lineTo(sp + 9, hz + 4); ctx.fill();
+      A.tex(ctx, 'light_01', sp, tp - 20, 50, 60, '#ff3a52', 0.4, 0, true);
+      godAt(ctx, S, sp, tp + 1, 1, T, { col: bolt ? '#3a0c18' : '#0c0206', amt: 0.25, optional: true }); }   // he waits at the top of the Spire
     ctx.fillStyle = '#0a0205'; ctx.fillRect(-20, hz + 2, w + 40, h);
     for (let i = 0; i < 34; i++) { const x = ((i * 11 + T * -6 + hash(i, 821) * 8) % (w + 40) + w + 40) % (w + 40) - 20; A.actor(ctx, deadSet(S, i), 'Walk', Math.floor(T * 7 + i * 3) % 15, Math.PI, Math.round(x), hz + 3 + (i % 3), 0.32, { shade: bolt ? '#4a1a24' : '#16040a' }); }
     ctx.restore();
@@ -999,5 +1030,5 @@
     vignette(ctx, 0.6); grain(ctx, 0.06);
   };
   I.kit = { RED, INK, BAR, W, H, K, hash, ease, clamp, fill, grad, stars, moon, city, graves, rain, spun, eyes, closeUp, burst, sparks, deadSet, kick, say,
-    deity, colossus, burningEyes, bigBlade, hand, poster, grain, vignette, bokeh, eyePanel, mangaEyesDraw: mangaEyes, SH };
+    deity, colossus, godAt, burningEyes, bigBlade, hand, poster, grain, vignette, bokeh, eyePanel, mangaEyesDraw: mangaEyes, SH };
 })();

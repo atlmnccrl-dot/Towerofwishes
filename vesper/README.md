@@ -31,14 +31,13 @@ writes `assets/iso/tiles_v0.png` + `assets/iso/forge.json` (the `v` tile group) 
   circle at its centre, braziers, candles, skulls, crystals); the Umbral Stair, the Wind's Throat and the Moon's Shadow
   mix the forge's props into theirs.
 
-**The First Cut's sprite** (`tools_boss.py`, 2026-11-10): the god drawn as pixel art in code, replacing the polygon
-silhouette wherever he appears (the menu, the opening, the films, the boss fight). A crowned and horned helm with a dark
-visor slit (no glowing eyes), banded spiked pauldrons, a breastplate with burning runes, a gold belt, a crimson tabard
-with the cut moon, armoured legs, a torn cape and a tower of a sword with a rune down its fuller; lit from the top left,
-banded into material ramps, the moon's red light on his rim, a dark pixel outline. Three poses (`plant`, `raise`, `side`)
-x four frames (the cape stirring, the runes pulsing), at 3 and 6 pixels per unit (`assets/forge/firstcut_*.png` +
-`firstcut.json`, about 600 KB, loaded behind the menu). `A.boss` draws it; `colossus()` in `js/intro.js` uses it once it
-has loaded (a black or white colour still asks for a pure silhouette) and the polygons until then.
+**The First Cut is a real character** (2026-11-10, the author: "I'd rather u use a real character"): the Master Knight
+set from the character packs, drawn at whole-number scales so his pixels stay sharp (`godAt` in `js/intro.js`), instead of
+the polygon god or the drawn sprite (`tools_boss.py` and `assets/forge/firstcut*` are kept, unused). In the opening he
+rises out of the city onto the Spire's tip, draws his blade back against the moon and swings (his Attack6 played through),
+waits on a pinnacle at the top of the world and on the Spire for "Kneel."; the menu shows him small on the Spire's tip.
+In the final fight he stands on a broken pillar in the void past the summit's far edge, about twice a man's size, his
+overhead cut (Attack4) played as each blade comes down; when he kneels he is on the summit itself, on one knee, open.
 
 **Loading** (`boot()` in `js/main.js`, 2026-11-10): only her sheet and the small shared effect pages load before
 the title (about 1 MB; it was every hero and foe, about 23 MB, ten seconds even on a fast link). The rest streams in

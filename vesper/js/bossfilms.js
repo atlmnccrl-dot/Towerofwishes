@@ -5,7 +5,7 @@
 // the guardian's fight: in full the first time, skippable after that.
 (function () {
   const VS = window.VS, D = VS.DATA, A = VS.A, PX = VS.PX;
-  const K0 = VS.INTRO.kit, E = VS.EDIT, { RED, W, H, K, hash, ease, clamp, fill, grad, stars, moon, rain, kick, say, colossus, burningEyes, bigBlade } = K0;
+  const K0 = VS.INTRO.kit, E = VS.EDIT, { RED, W, H, K, hash, ease, clamp, fill, grad, stars, moon, rain, kick, say, colossus, godAt, burningEyes, bigBlade } = K0;
   const F = VS.FILMS = {};
   const PI = Math.PI, RIGHT = 0, LEFT = PI, FRONT = PI / 2, BACK = -PI / 2;
   const V = 'vesper', VCOL = '#ff9aaa';
@@ -314,7 +314,7 @@
         const g = ctx.createLinearGradient(0, 0, 0, H()); g.addColorStop(0, '#2a2a2a'); g.addColorStop(1, '#f0f0f0'); ctx.fillStyle = g; ctx.fillRect(-W(), -H(), W() * 3, H() * 3);
         const rise = ease(clamp((T - 0.1) / 1.4)), ey = Math.round(H() * (1.3 - 0.95 * rise));
         A.tex(ctx, 'light_01', W() / 2, ey + 30, W() * 1.4, H() * 1.4, '#ffffff', 0.6 * rise, 0, true);
-        colossus(ctx, S, Math.round(W() / 2), ey, 6, T, { col: '#000' });
+        godAt(ctx, S, Math.round(W() / 2), Math.round(H() * (1.4 - 0.78 * rise)), 3, T, { col: '#000', pose: T > 1.3 ? 'raise' : null });   // the knight himself, rising into the light
         A.actor(ctx, S.cast.vesper, 'Idle4', Math.floor(T * 7) % 15, BACK, Math.round(W() / 2), Math.round(H() * 0.98), 1.6, { shade: '#000' });
       }, post(ctx, S, k, T) {
         const rise = ease(clamp((T - 0.1) / 1.4)), ey = Math.round(H() * (1.3 - 0.95 * rise));
@@ -378,7 +378,7 @@
       moon(ctx, W() / 2, H() * 0.32, H() * 0.26, '#ff3a52', 'rgba(255,40,70,0.6)', 1, T);
       const up = E.EZ.out(clamp(T / 1.2)), gy = Math.round(H() * 0.8), ey = Math.round(H() * (0.62 - 0.22 * up));
       A.tex(ctx, 'light_01', W() / 2, ey, W() * 0.8, H() * 0.8, '#7a1028', 0.5, 0, true);
-      colossus(ctx, S, Math.round(W() / 2), ey, 8, T, { pose: 'plant', col: '#0a0306' });
+      godAt(ctx, S, Math.round(W() / 2), gy - 1, 3, T, { col: '#0a0306', amt: 0.25, pose: T > 1.1 ? 'raise' : null });   // on the summit's far end, facing her
       if (T > 1.1) A.tex(ctx, 'light_01', W() / 2, 0, 90, H() * 0.9 * E.EZ.out(clamp((T - 1.1) / 0.6)), RED, 0.7, 0, true);   // the blade going up above the frame, burning
       for (let i = 0; i < 4; i++) A.tex(ctx, 'smoke_04', ((hash(i, 852) * W() * 1.4 + T * (8 + i * 3)) % (W() * 1.4)) - W() * 0.2, gy - 6 + i * 3, W() * 0.8, 30, '#3a0a14', 0.7, 0, false);
       ledge(ctx, gy);
