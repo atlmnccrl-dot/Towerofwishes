@@ -4,7 +4,7 @@ const fs = require('fs'), path = require('path');
 require('../js/data.js'); require('../js/story.js');
 const VS = globalThis.VS, D = VS.DATA, S = VS.STORY;
 const root = path.join(__dirname, '../../assets');
-const fx = JSON.parse(fs.readFileSync(root + '/fx/fx.json')).fx, tiles = JSON.parse(fs.readFileSync(root + '/tiles/tiles.json')).sprites;
+const fx = Object.assign(JSON.parse(fs.readFileSync(root + '/fx/fx.json')).fx, JSON.parse(fs.readFileSync(root + '/fx/forge.json')).fx), tiles = JSON.parse(fs.readFileSync(root + '/tiles/tiles.json')).sprites;
 let fail = 0; const bad = (m) => { fail++; console.log('FAIL', m); };
 const clipsOf = (set) => { const f = root + '/pixel/' + set + '.json'; if (!fs.existsSync(f)) { bad('no set ' + set); return {}; } return JSON.parse(fs.readFileSync(f)).anims; };
 const need = ['Idle', 'Idle4', 'Walk', 'Run', 'TakeDamage', 'Slide', 'Die', 'Rolling', 'Special1', 'Taunt', 'StrafeLeft', 'StrafeRight', 'RunBackwards'];
@@ -23,7 +23,7 @@ for (const st of D.STAGES) {
   if (!D.FOES[st.bossWave[0]].boss) bad(`${st.id} boss wave does not open with its boss`);
 }
 // Effect names used in the code (keep in step with view.js and cine.js).
-const used = new Set(['holy_light', 'frost_nova', 'explosion_fire', 'slash_arc_blood', 'hit_crit', 'katana', 'parry', 'dissipate', 'smoke_dark', 'blast', 'teleport', 'shockwave', 'spin_slash', 'smoke_burst', 'portal', 'hit_shock', 'thunder', 'lightning_holy', 'explosion_frost', 'frost_nova', 'spell_cast', 'summon', 'spell_zap', 'charge_up', 'cast_circle', 'wind_gust']);
+const used = new Set(['holy_light', 'frost_nova', 'explosion_fire', 'slash_arc_blood', 'hit_crit', 'parry', 'v_slash', 'v_impact', 'v_blood', 'v_soul', 'v_pillar', 'v_crack', 'v_shock', 'v_blast', 'dissipate', 'smoke_dark', 'blast', 'teleport', 'shockwave', 'spin_slash', 'smoke_burst', 'portal', 'hit_shock', 'thunder', 'lightning_holy', 'explosion_frost', 'frost_nova', 'spell_cast', 'summon', 'spell_zap', 'charge_up', 'cast_circle', 'wind_gust']);
 const src = ['view.js', 'cine.js'].map((f) => fs.readFileSync(path.join(__dirname, '../js', f), 'utf8')).join('\n');
 for (const n of used) { if (!fx[n]) bad('fx ' + n); if (src.indexOf("'" + n + "'") < 0) bad('fx listed but unused ' + n); }
 // Scenes: known shot kinds, known speakers, one scene per stage.
@@ -45,3 +45,10 @@ for (const k of Object.keys(S.PHASE)) if (!D.FOES[k]) bad('phase line for unknow
 console.log(`${Object.keys(D.FOES).length} foes, ${D.STAGES.length} stages, ${used.size} effects named, ${scenes.length} scenes`);
 console.log(fail ? `${fail} failures` : 'all assets found');
 process.exit(fail ? 1 : 0);
+// The forge's tiles (tools_forge.py): every 'v:' key a theme or layout names exists, in each direction it is drawn in.
+{
+  const forge = JSON.parse(fs.readFileSync(root + '/iso/forge.json')).tiles, src = fs.readFileSync(path.join(__dirname, '../js/arenas.js'), 'utf8');
+  const keys = new Set((src.match(/'v:[A-Za-z]+(?: [A-Z]\d+)?!?'/g) || []).map((k) => k.slice(1, -1).replace('!', '')));
+  let bad2 = 0; for (const k of keys) if (!forge[k + '_E']) { bad2++; console.log('FAIL forge tile missing', k); }
+  if (bad2) process.exitCode = 1; else console.log(`forge: ${keys.size} tiles named by the arenas, all present`);
+}

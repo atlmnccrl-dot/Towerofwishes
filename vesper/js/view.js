@@ -255,10 +255,10 @@
           // Pack effects only on the blows that matter; light cuts get clean sparks alone.
           // Every blow lands: a slash mark in its direction, sparks, a number; heavier blows punch the camera.
           // No cross-shaped sparkles on the blows (the author, 2026-11-10): a slash on the dash-cut, a burst on the arts.
-          if (e.fx === 'finisher') R.punch = Math.max(R.punch || 0, 0.06);
-          else if (e.fx === 'dash') PK('katana', e.x, e.y, z, 1.7, { angle: sa });
+          if (e.fx === 'finisher') { R.punch = Math.max(R.punch || 0, 0.06); PK('v_impact', e.x, e.y, z, 1.7); PK('v_blood', e.x, e.y, z - 6, 1.3); }   // the forge's burst (tools_forge.py)
+          else if (e.fx === 'dash') PK('v_slash', e.x, e.y, z, 1.4, { angle: sa });   // the forge's crescent (the pack's katana opens on a cross flare)
           else if (e.art) PK('hit_crit', e.x, e.y, z, 2);
-          else if (e.heavy) R.punch = Math.max(R.punch || 0, 0.035);
+          else if (e.heavy) { R.punch = Math.max(R.punch || 0, 0.035); PK('v_impact', e.x, e.y, z, 1.25); }
           FX({ kind: 'spark', x: e.x, y: e.y, z, life: 0.22, col: e.art ? RED : '#ffffff', r: e.finisher ? 36 : e.heavy ? 28 : 20 });
           sparks(e.x, e.y, z, e.finisher ? 18 : e.heavy ? 13 : 8, e.heavy ? '#ffd9a0' : '#ffffff', e.heavy ? 190 : 130);
           R.float(String(e.dmg), e.x, e.y, z + 14, e.art ? RED : e.heavy || e.finisher ? '#ffd9a0' : '#ffffff', e.heavy || e.finisher || e.art);
@@ -282,7 +282,7 @@
           if (!e.hero && !e.boss && u && !u.ally) { R.streak = R.streakT > 0 ? R.streak + 1 : 1; R.streakT = 2.4; const nm = streakName(R.streak); if (nm) R.streakShow = { text: nm, n: R.streak, t: 0 }; if (u.elite) { R.float('ELITE DOWN', e.x, e.y, 64, RED, true, true); R.shake = Math.max(R.shake, 8); } }
           const col = (u && u.def.color) || '#ffffff';
           for (let i = 0; i < (e.boss ? 60 : 22); i++) P({ x: e.x + (Math.random() - 0.5) * 16 * sc, y: e.y + (Math.random() - 0.5) * 8 * sc, z: Math.random() * 36 * sc, vx: (Math.random() - 0.5) * 30, vy: (Math.random() - 0.5) * 16, vz: 20 + Math.random() * 60, g: 10, life: 0.7 + Math.random() * 0.6, size: 1.5 + Math.random() * 1.5, col, shape: 'sq' });
-          PK(e.hero ? 'smoke_dark' : 'dissipate', e.x, e.y, 16 * sc, 1.3 * sc);
+          if (e.hero) PK('smoke_dark', e.x, e.y, 16 * sc, 1.3 * sc); else PK(A.hasFx('v_soul') ? 'v_soul' : 'dissipate', e.x, e.y, 4 * sc, 1.5 * sc);   // his dead give up a red soul
           if (e.boss) { R.flash = 0.9; R.flashCol = '255,255,255'; R.shake = 12; PK('blast', e.x, e.y, 20 * sc, 3); PK('smoke_dark', e.x, e.y, 10, 3); }
           break;
         }
@@ -304,12 +304,12 @@
         case 'wall': sparks(e.x, e.y, 20, 14, '#ffffff', 180, 1.6); R.float('WALL', e.x, e.y, 50, '#ffffff', true, true); R.shake = Math.max(R.shake, 6); break;
         case 'phase': if (!e.quiet) { R.flash = 0.6; R.flashCol = '255,40,60'; R.shake = 8; } break;
         // The god: his blade landing along its line, his hand slamming down, his phases, his kneeling, his fall.
-        case 'cut': { PK('cb:01_crimson_tide_cleave/caster', (e.x1 + e.x2) / 2, (e.y1 + e.y2) / 2, 4, 1.8); if (e.god) { R.shake = Math.max(R.shake, 12); R.flash = Math.max(R.flash, 0.35); R.flashCol = '255,60,80'; R.punch = Math.max(R.punch || 0, 0.05); }   // (not flashpoint severance's caster: two of its frames are a hard white box)
+        case 'cut': { PK('cb:01_crimson_tide_cleave/caster', (e.x1 + e.x2) / 2, (e.y1 + e.y2) / 2, 4, 1.8); if (e.god) { PK('v_pillar', (e.x1 + e.x2) / 2, (e.y1 + e.y2) / 2, 0, 2.2); PK('v_crack', (e.x1 + e.x2) / 2, (e.y1 + e.y2) / 2, 0, 2.2); R.shake = Math.max(R.shake, 12); R.flash = Math.max(R.flash, 0.35); R.flashCol = '255,60,80'; R.punch = Math.max(R.punch || 0, 0.05); }   // (not flashpoint severance's caster: two of its frames are a hard white box)
           for (let i = 1; i <= 3; i++) PK('cb:01_crimson_tide_cleave/target', e.x1 + (e.x2 - e.x1) * i / 4, e.y1 + (e.y2 - e.y1) * i / 4, 4, 1.4); FX({ kind: 'gcut', x1: e.x1, y1: e.y1, x2: e.x2, y2: e.y2, w: e.w, life: 0.45 }); R.shake = Math.max(R.shake, 12); R.flash = 0.25; R.flashCol = '255,255,255'; const n = 10; for (let i = 0; i <= n; i++) { const f = i / n; sparks(e.x1 + (e.x2 - e.x1) * f, e.y1 + (e.y2 - e.y1) * f, 4, 3, '#ffd0d6', 160, 1.2); } break; }
         case 'gateSpawn': FX({ kind: 'gring', x: e.x, y: e.y, life: 0.5, col: '#ff5a6a', r0: 10, r1: 70, w: 3 }); R.shake = Math.max(R.shake, 3); break;
-        case 'gateDown': PK('blast', e.x, e.y, 30, 3); PK('smoke_dark', e.x, e.y, 20, 3); PK('cb:01_crimson_tide_cleave/caster', e.x, e.y, 4, 2); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.7, col: '#ffffff', r0: 20, r1: 180, w: 5 }); R.float('GATE DESTROYED', e.x, e.y, 90, '#ffd0d6', true, true); R.shake = Math.max(R.shake, 14); R.flash = Math.max(R.flash, 0.5); R.flashCol = '255,80,100'; R.punch = Math.max(R.punch || 0, 0.06); break;
+        case 'gateDown': PK('v_blast', e.x, e.y, 10, 2.4); PK('v_shock', e.x, e.y, 0, 2.4); PK('blast', e.x, e.y, 30, 3); PK('smoke_dark', e.x, e.y, 20, 3); PK('cb:01_crimson_tide_cleave/caster', e.x, e.y, 4, 2); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.7, col: '#ffffff', r0: 20, r1: 180, w: 5 }); R.float('GATE DESTROYED', e.x, e.y, 90, '#ffd0d6', true, true); R.shake = Math.max(R.shake, 14); R.flash = Math.max(R.flash, 0.5); R.flashCol = '255,80,100'; R.punch = Math.max(R.punch || 0, 0.06); break;
         case 'godMove': R.godPose = { move: e.move, t: 0 }; if (e.move === 'last') { R.bossArt = { key: 'godCut', name: 'THE LAST CUT', t: 0 }; R.flash = 0.6; R.flashCol = '255,30,50'; R.shake = 16; } break;
-        case 'doom': { R.flash = 1; R.flashCol = '255,255,255'; R.shake = 28; R.punch = 0.1; const AR = VS.arenaOf(s), rr = AR.godR || 300; for (let i = 0; i < 9; i++) { const a = i / 9 * Math.PI * 2; PK('cb:01_crimson_tide_cleave/caster', Math.cos(a) * rr * 0.6, Math.sin(a) * rr * 0.6, 4, 2); } FX({ kind: 'gring', x: e.x, y: e.y, life: 0.8, col: '#cfe0ff', r0: e.r, r1: e.r * 3, w: 5 }); break; }
+        case 'doom': { R.flash = 1; R.flashCol = '255,255,255'; R.shake = 28; R.punch = 0.1; const AR = VS.arenaOf(s), rr = AR.godR || 300; for (let i = 0; i < 9; i++) { const a = i / 9 * Math.PI * 2, x = Math.cos(a) * rr * 0.6, y = Math.sin(a) * rr * 0.6; PK('cb:01_crimson_tide_cleave/caster', x, y, 4, 2); PK('v_pillar', x, y, 0, 2); PK('v_crack', x, y, 0, 1.6); } FX({ kind: 'gring', x: e.x, y: e.y, life: 0.8, col: '#cfe0ff', r0: e.r, r1: e.r * 3, w: 5 }); break; }
         case 'godPhase': R.bossArt = { key: 'godCut', name: e.n === 2 ? 'HIS DEAD RISE' : 'HE KNEELS TO KILL', t: 0 }; R.flash = 0.7; R.flashCol = '255,40,60'; R.shake = 14; break;
         case 'godKneel': R.shake = 16; R.flash = 0.4; R.flashCol = '255,255,255'; FX({ kind: 'gring', x: e.x, y: e.y, life: 0.7, col: '#ffffff', r0: 20, r1: 200, w: 4 }); break;
         case 'godDown': PK('cb:19_recall_beam/caster', s.hero.x, s.hero.y, 0, 3); R.flash = 1; R.flashCol = '255,250,252'; R.shake = 24; R.godFall = 0.001; break;
@@ -325,7 +325,7 @@
         }
         case 'chain': R.chains.push({ pts: e.pts, t: 0 }); for (const p of e.pts.slice(1)) PK('hit_shock', p[0], p[1], 22, 1.6); R.flash = 0.3; R.flashCol = '255,240,170'; R.shake = Math.max(R.shake, 4); break;
         case 'thunder': PK('thunder', e.x, e.y, 0, 3.2); PK('lightning_holy', e.x, e.y, 0, 2.4); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.5, col: '#fff0a0', r0: 6, r1: e.r * 1.6, w: 4 }); R.impactF = { t: 0, dur: 0.08, x: e.x, y: e.y, big: false }; R.shake = Math.max(R.shake, 9); break;
-        case 'strike': if (e.hand) { PK('cb:10_quake_stomp/caster', e.x, e.y, 0, 2.4); R.shake = Math.max(R.shake, 14); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.6, col: '#ffffff', r0: 20, r1: 150, w: 4 }); FX({ kind: 'ghand', x: e.x, y: e.y, life: 0.18 }); } if (!e.quiet) { PK(e.fx || 'blast', e.x, e.y, 6, e.fx === 'poison_cloud' ? 1.6 : 2.2); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.35, col: e.team === 'hero' ? '#ffffff' : '#ff8070', r0: 3, r1: e.r * 1.3, w: 2 }); R.shake = Math.max(R.shake, 3); } else PK(e.fx || 'blast', e.x, e.y, 6, 1.4); break;
+        case 'strike': if (e.hand) { PK('v_shock', e.x, e.y, 0, 2.6); PK('v_crack', e.x, e.y, 0, 1.8); PK('cb:10_quake_stomp/caster', e.x, e.y, 0, 2.4); R.shake = Math.max(R.shake, 14); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.6, col: '#ffffff', r0: 20, r1: 150, w: 4 }); FX({ kind: 'ghand', x: e.x, y: e.y, life: 0.18 }); } if (!e.quiet) { PK(e.fx || 'blast', e.x, e.y, 6, e.fx === 'poison_cloud' ? 1.6 : 2.2); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.35, col: e.team === 'hero' ? '#ffffff' : '#ff8070', r0: 3, r1: e.r * 1.3, w: 2 }); R.shake = Math.max(R.shake, 3); } else PK(e.fx || 'blast', e.x, e.y, 6, 1.4); break;
         case 'tick': R.float(String(e.dmg), e.x, e.y, 30, '#b0ff90', false); break;
         case 'cast': if (u) PK('cast_circle', u.x, u.y, 2, 1.6); break;
         case 'vanish': PK('smoke_dark', e.x, e.y, 10, 1.2); break;

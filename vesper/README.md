@@ -15,6 +15,22 @@ from `../assets/`.
 
 Play: serve the repository root and open `vesper/index.html` (for example
 `python3 -m http.server` then <http://localhost:8000/vesper/>). Landscape; keyboard or touch.
+**The forge** (`tools_forge.py`, 2026-11-10): the game's own art, drawn in code (numpy + PIL, no outside art), in the
+packs' formats so the engine draws it like any other tile or effect. `python3 vesper/tools_forge.py [preview.png]`
+writes `assets/iso/tiles_v0.png` + `assets/iso/forge.json` (the `v` tile group) and `assets/fx/fx_forge.png` +
+`assets/fx/forge.json`; `js/assets.js` merges both over the packs at load.
+- **Ground blocks** (128 x 64 diamonds, 16 px thick, four rotations): blood-stained flagstones (`v:Flag A1-A4`), obsidian
+  with burning red fissures (`v:Obsidian B1-B3`), bone-strewn earth (`v:Bone C1-C2`), the rune circle (`v:Rune D1`), ash.
+- **Overlays** (flat decals): blood pools, glowing cracks, ash drifts, scattered bones.
+- **Props** (lit from the top left, banded ramps, a dark pixel edge): a rune obelisk, a broken pillar, a skull pile, a bone
+  spire, blood crystals, a crimson banner with the cut moon, candles, an iron brazier, the altar, gravestones.
+- **Effects** (frame animations, no cross-shaped sparkles): `v_impact` (heavy blows, finishers), `v_slash` (dash-cuts),
+  `v_blood`, `v_soul` (his dead give up a red soul when they fall), `v_pillar` and `v_crack` (his blade landing, the Last
+  Cut), `v_shock` (his fist, a gate falling), `v_blast` (a gate destroyed), `v_rift`, `v_embers`.
+- **Where they are used**: the Moon's Altar has its own theme (`altar` in `js/arenas.js`: obsidian and flagstones, the rune
+  circle at its centre, braziers, candles, skulls, crystals); the Umbral Stair, the Wind's Throat and the Moon's Shadow
+  mix the forge's props into theirs.
+
 **Loading** (`boot()` in `js/main.js`, 2026-11-10): only her sheet and the small shared effect pages load before
 the title (about 1 MB; it was every hero and foe, about 23 MB, ten seconds even on a fast link). The rest streams in
 behind the menu (`M.bgLoad`); a fight, story scene or the map waits for it if it is not done yet (`needAll`).

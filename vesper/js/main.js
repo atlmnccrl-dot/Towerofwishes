@@ -302,7 +302,7 @@
   // The sets a node's fight needs that are not loaded yet.
   const missingFor = (b) => PR.setsFor(b).filter((id) => !A.hasSet(id));
   // The tile groups an hour's arenas are built from.
-  const isoFor = (stageIdx) => { const th = VS.ARENA.THEMES[D.STAGES[stageIdx].id]; return ['w', 'a', th && th.set === 'i' ? 'i' : 'd']; };
+  const isoFor = (stageIdx) => { const th = VS.ARENA.THEMES[D.STAGES[stageIdx].id]; return ['w', 'a', 'v', th && th.set === 'i' ? 'i' : 'd']; };
   function startNode(id) {
     const n = PR.node(id), b = PR.build(n), miss = missingFor(b), iso = isoFor(b.stage);
     const go = () => startFight(b.stage, { nodeId: id, node: n, build: b });
@@ -760,7 +760,7 @@
     const mine = (D.HEROES[M.save.hero] || D.HERO).set, first = [...new Set([D.HERO.set, mine])];
     const ids = new Set([D.HERO.set, D.LYS.set, D.CLONE.set]); for (const k in D.FOES) if (!D.FOES[k].set.startsWith('vh_')) ids.add(D.FOES[k].set); for (const k in D.HEROES) ids.add(D.HEROES[k].set);
     await A.load(first, (p) => U.loading(p));
-    M.bgLoad = new Promise((res) => setTimeout(res, 300)).then(() => Promise.all([A.loadSets([...ids].filter((id) => !A.hasSet(id))), A.loadIso(['w', 'a', 'i']).catch(() => {})]))
+    M.bgLoad = new Promise((res) => setTimeout(res, 300)).then(() => Promise.all([A.loadSets([...ids].filter((id) => !A.hasSet(id))), A.loadIso(['w', 'a', 'v', 'i']).catch(() => {})]))
       .then(() => { M.bgDone = true; A.warm(R.ctx); A.isoWarm(R.ctx); }, () => { M.bgDone = true; });
     try { if (document.fonts) await Promise.race([Promise.all(['20px Adventurer', '700 20px "Chakra Petch"', '500 16px Barlow', '700 16px Barlow'].map((f) => document.fonts.load(f))), new Promise((r) => setTimeout(r, 2500))]); } catch (e) { /* fonts optional */ }
     A.warm(R.ctx); A.isoWarm(R.ctx);

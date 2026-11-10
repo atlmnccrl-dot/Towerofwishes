@@ -30,7 +30,11 @@
   A.load = async function (ids, onProgress) {
     let n = 0; const total = ids.length + 3; const tick = () => { n++; if (onProgress) onProgress(n / total); };
     const jobs = ids.map((id) => loadSet(id).then(tick));
-    jobs.push(loadJSON(A.ROOT + 'fx/fx.json').then(async (d) => { d.images = await Promise.all(d.pages.map((p) => loadImage(A.ROOT + 'fx/' + p))); fxData = d; tick(); }));
+    // The effect pack, and the forge's effects (tools_forge.py: v_*) merged in after it (their page indices shifted).
+    jobs.push(Promise.all([loadJSON(A.ROOT + 'fx/fx.json'), loadJSON(A.ROOT + 'fx/forge.json').catch(() => null)]).then(async ([d, f]) => {
+      if (f) { const off = d.pages.length; d.pages = d.pages.concat(f.pages); for (const k in f.fx) { const e = f.fx[k]; e.frames = e.frames.map((fr) => [fr[0] + off].concat(fr.slice(1))); d.fx[k] = e; } }
+      d.images = await Promise.all(d.pages.map((p) => loadImage(A.ROOT + 'fx/' + p))); fxData = d; tick();
+    }));
     jobs.push(loadJSON(A.ROOT + 'tiles/tiles.json').then(async (d) => { d.images = await Promise.all(d.pages.map((p) => loadImage(A.ROOT + 'tiles/' + p))); tileData = d; tick(); }));
     jobs.push(Promise.all(A.TEX.map((t) => loadImage(A.ROOT + 'vfx/' + t + '.png').then((im) => { tex[t] = im; }).catch(() => {}))).then(tick));
     await Promise.all(jobs);
@@ -205,7 +209,11 @@
   let isoData = null, isoP = null; const isoPages = {}, isoPend = {}, isoTint = {};
   A.isoReady = (groups) => !!isoData && groups.every((g) => { for (let i = 0; i < (isoData.pages[g] || 0); i++) if (!isoPages[g + i]) return false; return true; });
   A.loadIso = async function (groups) {
-    if (!isoData) isoData = await (isoP || (isoP = loadJSON(A.ROOT + 'iso/tiles.json')));
+    // The packs' tiles, and the forge's (tools_forge.py: the 'v' group) merged over them.
+    if (!isoData) isoData = await (isoP || (isoP = Promise.all([loadJSON(A.ROOT + 'iso/tiles.json'), loadJSON(A.ROOT + 'iso/forge.json').catch(() => null)]).then(([d, f]) => {
+      if (f) { Object.assign(d.pages, f.pages); Object.assign(d.tiles, f.tiles); Object.assign(d.anims, f.anims || {}); }
+      return d;
+    })));
     const jobs = [];
     for (const g of groups) for (let i = 0; i < (isoData.pages[g] || 0); i++) { const k = g + i; if (isoPages[k]) continue; jobs.push(isoPend[k] || (isoPend[k] = loadImage(A.ROOT + 'iso/tiles_' + k + '.png').then((im) => { isoPages[k] = im; }))); }
     await Promise.all(jobs);

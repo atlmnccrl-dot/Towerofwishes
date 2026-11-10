@@ -8,7 +8,7 @@
   const dark = {};
   // Map pixels (one tile pixel at scale 1) of a world point.
   const mp = (x, y) => [(x + y) * S2, (y - x) * S2 * 0.5];
-  R.isoGroups = (Ar) => Ar && Ar.kind === 'grid' ? ['w', 'a', Ar.set === 'i' ? 'i' : 'd'] : [];
+  R.isoGroups = (Ar) => Ar && Ar.kind === 'grid' ? ['w', 'a', 'v', Ar.set === 'i' ? 'i' : 'd'] : [];   // v: the forge's tiles
 
   // A tile copy darkened for the cliff faces under the map's front edges.
   function darkTile(key, k) {

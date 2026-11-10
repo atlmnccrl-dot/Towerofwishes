@@ -38,9 +38,9 @@
       base: [['d:Ground D1', 5], ['d:Ground H1', 2], ['d:Ground H4', 2], ['d:Ground A1', 1]], floor: ['d:Ground H1', 'd:Ground H4'],
       over: [...R('d:Ground E', 1, 9), ...R('d:Ground E', 10, 15), 'd:Ground A25', 'd:Ground A26'], floorOver: R('d:Ground E', 10, 13),
       wall: ['d:Wall A1', 'd:Wall A1', 'd:Wall A4', 'd:Wall A5', 'd:Wall A15', 'd:Wall A16'], corner: 'd:Wall A2', low: ['d:Wall A10', 'd:Wall A3'], door: 'd:Door A1', vines: R('d:WallFlora A', 1, 7),
-      props: [['d:Wall A6', 16], ['d:Wall J11', 14], ['d:Wall A19', 10], ['d:Stone A23', 30], ['d:Stone A24', 14], ['d:Misc C5', 18], ['d:Misc C6', 16], ['d:Misc C7', 16], ['d:Misc C14', 26],
+      props: [['v:Obelisk', 20], ['v:Banner', 6], ['v:Bonespire', 16], ['v:Skulls', 14], ['v:Crystal', 14], ['v:Gravecross', 8], ['d:Wall A6', 16], ['d:Wall J11', 14], ['d:Wall A19', 10], ['d:Stone A23', 30], ['d:Stone A24', 14], ['d:Misc C5', 18], ['d:Misc C6', 16], ['d:Misc C7', 16], ['d:Misc C14', 26],
         ['d:Misc C8', 18, 'light'], ['d:Wall J1', 32], ['d:Wall J6', 34], ['d:Misc C1', 20], ['d:Stone A21', 16], ['d:Stone A22', 16]],
-      decor: ['d:Ground A25!', 'd:Ground A26!', 'd:Stone B4'], breaks: [['barrel', 'd:Misc A8'], ['pot', 'd:Misc A2'], ['pot', 'd:Misc A3'], ['pot', 'd:Misc A4'], ['poison', null]] },
+      decor: ['v:Candles', 'v:Blood F1!', 'v:Bones I2!', 'v:Grave', 'd:Ground A25!', 'd:Ground A26!', 'd:Stone B4'], breaks: [['barrel', 'd:Misc A8'], ['pot', 'd:Misc A2'], ['pot', 'd:Misc A3'], ['pot', 'd:Misc A4'], ['poison', null]] },
     waste: { pillar: ['d:Misc D3', 26], statue: ['d:Misc A1', 40], brazier: ['d:Misc C8', 18], rock: ['d:Stone B5', 30], name: 'The Ashen Waste', set: 'd', tint: '#a48c8c', walls: 0.55,
       base: [['d:Ground B1', 2], ['d:Ground B2', 2], ['d:Ground B4', 2], ['d:Ground B5', 1], ['d:Ground C4', 1], ['d:Ground A1', 1]], floor: ['d:Ground B3', 'd:Ground B6'],
       over: [...R('d:Ground K', 1, 3), ...R('d:Ground J', 11, 13), ...R('d:Ground E', 10, 15), 'd:Ground A25', 'd:Ground A26', ...R('d:Ground A', 22, 24)], floorOver: R('d:Ground K', 1, 3),
@@ -52,14 +52,21 @@
       base: [['d:Ground C1', 2], ['d:Ground C2', 2], ['d:Ground I2', 2], ['d:Ground I5', 1], ['d:Ground C5', 1]], floor: ['d:Ground D1', 'd:Ground H1'],
       over: [...R('d:Ground E', 1, 15), 'd:Ground A25', 'd:Ground A26', ...R('d:Ground K', 1, 3)], floorOver: R('d:Ground E', 10, 13),
       wall: null, corner: null, low: ['d:Wall A10'], door: null, edge: [['d:Stone B7', 22], ['d:Stone B8', 18], ['d:Stone B1', 24], ['d:Stone B3', 22], ['d:Stone B9', 26]],
-      props: [['d:Stone B7', 22], ['d:Stone B8', 18], ['d:Stone B1', 24], ['d:Stone B3', 22], ['d:Stone A1', 26], ['d:Stone A2', 34], ['d:Stone A3', 22], ['d:Stone B9', 26], ['d:Misc B44', 6], ['d:Misc B45', 6], ['d:Misc C14', 26], ['d:Misc C8', 18, 'light']],
-      decor: ['d:Stone B4', 'd:Ground A25!', 'd:Ground A26!', 'd:Stone B2', 'd:Stone B6'], breaks: [['barrel', 'd:Misc A8'], ['crate', 'd:Misc B1'], ['pot', 'd:Misc A2']] },
+      props: [['v:Obelisk', 20], ['v:Banner', 6], ['v:Bonespire', 16], ['v:Skulls', 14], ['v:Crystal', 14], ['v:Gravecross', 8], ['d:Stone B7', 22], ['d:Stone B8', 18], ['d:Stone B1', 24], ['d:Stone B3', 22], ['d:Stone A1', 26], ['d:Stone A2', 34], ['d:Stone A3', 22], ['d:Stone B9', 26], ['d:Misc B44', 6], ['d:Misc B45', 6], ['d:Misc C14', 26], ['d:Misc C8', 18, 'light']],
+      decor: ['v:Candles', 'v:Blood F1!', 'v:Bones I2!', 'v:Grave', 'd:Stone B4', 'd:Ground A25!', 'd:Ground A26!', 'd:Stone B2', 'd:Stone B6'], breaks: [['barrel', 'd:Misc A8'], ['crate', 'd:Misc B1'], ['pot', 'd:Misc A2']] },
+    // The Moon's Altar (the forge's tiles, tools_forge.py): obsidian with burning seams, blood-soaked flagstones, the
+    // rune circle at its heart, iron braziers, candles and skulls.
+    altar: { pillar: ['v:Pillar', 14], statue: ['v:Altar', 40], brazier: ['v:Brazier', 18], rock: ['v:Obelisk', 22], name: "The Moon's Altar", set: 'd', tint: '#f4ecee',
+      base: [['v:Obsidian B1', 3], ['v:Obsidian B2', 2], ['v:Obsidian B3', 1], ['v:Flag A2', 2]], floor: ['v:Flag A1', 'v:Flag A3', 'v:Obsidian B2', 'v:Flag A4', 'v:Obsidian B3', 'v:Flag A2'],
+      over: ['v:Crack G1', 'v:Crack G2', 'v:Ashdrift H1', 'v:Blood F1'], floorOver: ['v:Blood F1', 'v:Blood F2', 'v:Blood F3', 'v:Crack G3', 'v:Crack G1'],
+      wall: ['d:Wall D1', 'd:Wall D3'], corner: 'd:Wall D2', low: ['d:Wall D5'], door: 'd:Door A1',
+      props: [['v:Obelisk', 22], ['v:Crystal', 14], ['v:Skulls', 14]], decor: ['v:Candles', 'v:Skulls', 'v:Bones I1!', 'v:Ashdrift H2!', 'v:Blood F2!'], breaks: [['barrel', 'd:Misc A8'], ['pot', 'd:Misc A2']] },
     shadow: { pillar: ['d:Wall A6', 16], statue: ['d:Stone A23', 30], brazier: ['d:Misc C8', 18], rock: ['d:Wall J16', 34], name: "The Moon's Shadow", set: 'd', tint: '#b87478',
       base: [['d:Ground D1', 4], ['d:Ground H4', 2], ['d:Ground H1', 2]], floor: ['d:Ground H1', 'd:Ground H4'],
       over: R('d:Ground E', 1, 13), floorOver: R('d:Ground E', 10, 13),
       wall: ['d:Wall D1', 'd:Wall D3', 'd:Wall D4', 'd:Wall D7', 'd:Wall D8', 'd:Wall D9'], corner: 'd:Wall D2', low: ['d:Wall D5', 'd:Wall A10'], door: 'd:Door A1', vines: R('d:WallFlora A', 8, 14),
-      props: [['d:Misc C1', 20], ['d:Misc C7', 16], ['d:Wall A6', 16], ['d:Stone A21', 16], ['d:Stone A8', 30], ['d:Misc C8', 18, 'light'], ['d:Misc B44', 6], ['d:Misc B45', 6], ['d:Wall J16', 34], ['d:Wall J17', 34], ['d:Stone A23', 30], ['d:Wall J11', 14]],
-      decor: ['d:Misc D7', 'd:Misc D8', 'd:Stone B4'], breaks: [['barrel', 'd:Misc A8'], ['pot', 'd:Misc A2'], ['poison', null], ['crate', 'd:Misc B1']] },
+      props: [['v:Obelisk', 20], ['v:Banner', 6], ['v:Bonespire', 16], ['v:Skulls', 14], ['v:Crystal', 14], ['v:Gravecross', 8], ['d:Misc C1', 20], ['d:Misc C7', 16], ['d:Wall A6', 16], ['d:Stone A21', 16], ['d:Stone A8', 30], ['d:Misc C8', 18, 'light'], ['d:Misc B44', 6], ['d:Misc B45', 6], ['d:Wall J16', 34], ['d:Wall J17', 34], ['d:Stone A23', 30], ['d:Wall J11', 14]],
+      decor: ['v:Candles', 'v:Blood F1!', 'v:Bones I2!', 'v:Grave', 'd:Misc D7', 'd:Misc D8', 'd:Stone B4'], breaks: [['barrel', 'd:Misc A8'], ['pot', 'd:Misc A2'], ['poison', null], ['crate', 'd:Misc B1']] },
   };
   const NAMES = { court: 'THE COURTYARD', bridge: 'THE CAUSEWAY', ring: 'THE RING', pit: 'THE PIT', cross: 'THE CROSSROADS',
     lair_warden: 'THE GATEHOUSE', lair_twins: 'THE TWIN NAVE', lair_umbral: 'THE UMBRAL DAIS', lair_hunger: 'THE MAW', lair_wing: 'THE EYRIE', lair_firstCut: "THE MOON'S ALTAR" };
@@ -120,7 +127,8 @@
       hz: { vents: { every: 3.4, pattern: 'seq', dmg: 15, r: 40, delay: 1.1, fx: 'wind_gust', ring: { r: 3.4, n: 8 } } } },
     // The Moon's Altar: a small summit, the whole of it in view, with the god standing in the void beyond its
     // far edge, looking in (the author, 2026-11-10). godR: how far from the centre he strikes, in tiles.
-    lair_firstCut: { lair: true, open: true, w: 9, h: 9, godR: 3.2, map: (x, y) => { const d = Math.hypot(x, y); if (d > 3.6) return '.';
+    lair_firstCut: { lair: true, open: true, theme: 'altar', centerTile: 'v:Rune D1', w: 9, h: 9, godR: 3.2,
+      extras: [['v:Candles', 1.2, 0.4], ['v:Candles', -0.5, 1.2], ['v:Candles', -1.1, -0.6], ['v:Skulls', 2.4, 1.6], ['v:Skulls', -1.8, 2.3], ['v:Crystal', -2.6, -1.2, 12], ['v:Crystal', 1.4, 2.7, 12]], map: (x, y) => { const d = Math.hypot(x, y); if (d > 3.6) return '.';
       if (Math.abs(d - 3) < 0.4 && (Math.abs(x) < 0.6 || Math.abs(y) < 0.6) && x > -2) return 'B'; return '#'; },
       hz: { vents: { every: 2.8, pattern: 'seq', dmg: 17, r: 36, delay: 1.0, fx: 'fire_burst', ring: { r: 2.4, n: 6 } } } },
   };
@@ -132,7 +140,7 @@
   }
 
   function build(stageId, kind, seed) {
-    const th = THEMES[stageId] || THEMES.gate, L = LAYOUTS[kind] || LAYOUTS.court, r = rngOf(hashStr(stageId + '|' + kind + '|' + (seed || 0)));
+    const L = LAYOUTS[kind] || LAYOUTS.court, th = THEMES[L.theme] || THEMES[stageId] || THEMES.gate, r = rngOf(hashStr(stageId + '|' + kind + '|' + (seed || 0)));   // a layout may bring its own theme (the Moon's Altar)
     const rows = L.lair ? lairRows(L) : null;
     const w = rows ? rows[0].length : L.w, h = rows ? rows.length : L.h, x0 = -w * T / 2, y0 = -h * T / 2, N = w * h;
     const A = { kind: 'grid', id: stageId + '|' + kind + '|' + (seed || 0), layout: kind, name: NAMES[kind] || 'THE FIELD', theme: stageId, tint: th.tint, frost: !!th.frost, set: th.set,
@@ -163,7 +171,7 @@
       if (A.cells[i] === WATER) { A.ground[i] = 'd:Ground W4_' + pick(D4, r); if (r() < 0.35) A.ripples.push(ctr(cx, cy).concat([r() * 3])); continue; }
       if (A.cells[i] !== FLOOR) continue;
       const paved = L.lair ? Math.hypot(px, py) < 3.2 || r() < 0.25 : L.plaza(px, py);
-      A.ground[i] = (paved ? pick(th.floor, r) : baseOf()) + '_' + pick(D4, r);
+      A.ground[i] = (L.centerTile && Math.abs(px) < 0.6 && Math.abs(py) < 0.6 ? L.centerTile : paved ? pick(th.floor, r) : baseOf()) + '_' + pick(D4, r);
       const ov = paved ? th.floorOver : th.over;
       if (ov && r() < (paved ? 0.12 : 0.3)) A.over.push({ key: pick(ov, r) + '_' + pick(D2, r), cx, cy });
     }
@@ -251,6 +259,8 @@
         A.lights.push({ x, y, r: 60 });
       }
     }
+    // A layout's own set dressing: [key, x, y (in cells from the centre), radius, kind].
+    for (const [key, ex, ey, rad, kind] of L.extras || []) { A.objs.push({ key: key + '_' + pick(['E', 'S'], r), x: ex * T, y: ey * T, r: rad || 0, kind: kind || (rad ? 'prop' : 'decor'), solid: !!rad }); if (kind === 'light') A.lights.push({ x: ex * T, y: ey * T, r: 120 }); }
     // Plants and small things underfoot (walk-through).
     for (let k = 0; k < Math.round(floors * (rows ? 0.03 : 0.1)); k++) {
       const [cx, cy] = pick(cellsList, r), [x, y] = ctr(cx, cy), d = pick(th.decor, r), flat = d.endsWith('!');
