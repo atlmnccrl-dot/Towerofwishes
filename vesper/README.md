@@ -99,9 +99,10 @@ wound bleeds out, and Vesper's blade is the one that can stop him. The shots: a 
 BEFORE THE DEAD WOKE / AND BEFORE THE LAST NIGHT FELL / THERE WAS ONE) and one white frame of his crowned
 head in ink with red eyes; a city under the white moon with the Spire over its roofs, the ground shaking, birds bursting off the
 roofs and people running in the streets as the First Cut rises behind the Spire, a black shape against a
-swelling red glow, until his eyes ignite; the god towering over the Spire against the moon, raising his
-sword into it; the cut: the tower-sized blade drinking
-the moon's light, the swing across its face, a storm of impact frames, then the moon splitting along
+swelling red glow; the god towering over the Spire against the moon, drawing his sword back flat along
+the line the cut will take; the cut: the tower-sized blade held level beside the moon, its point at the
+moon's edge, drinking its light, the swing sideways across its face, along the wound (the author,
+2026-11-10: the moon's wound runs across it, so he cuts across, not down), a storm of impact frames, then the moon splitting along
 the cut, white-hot, with red light pouring out of the gap onto the world, rings of force across a sky
 turning to blood, and his crowned head rising beneath it; the moon hanging still and bleeding; the earth cracking
 and a hand bursting out (two frames of red ink), then the dead standing up one by one in a row on a ridge against the moon,
@@ -128,9 +129,9 @@ sequence (`js/opening.js`) stays in the code for the Theatre.
 
 **Effects: Crowd Breaker** (PixelHit, `tools_cbfx.py` → `assets/cbfx`): 29 of the pack's hand-drawn skill
 sheets, trimmed and packed into five lossless atlases (13 MB), loaded after the game starts. The old
-effect names play them instead (`A.CBMAP` in `js/assets.js`): light hits are Roaring Blade Nova sparks,
-heavy blows and breaks the Last Stand cross, moon-art hits Crimson Tide, finishers Flashpoint
-Severance, dash cuts Piercing Dash (in the direction of the cut), parries the Sky Rend star, spins
+effect names play them instead (`A.CBMAP` in `js/assets.js`): moon-art hits Crimson Tide, dash cuts
+Piercing Dash (in the direction of the cut); light and heavy blows, finishers, breaks and parries play
+no pack effect (their cross-shaped sparkles were removed, 2026-11-10); spins
 Earthshaker, landings and rock bursts Quake Stomp, strikes and moonfall Meteor Rain, fire bursts the
 Greater Fireball ring, frost the Frost Curtain, lightning Skyfall Thunder and Storm Orb, heals Inner
 Flow Mending, deaths the Crimson Tide smoke; the god's cut lands with Flashpoint Severance and his
@@ -205,6 +206,10 @@ crosses the summit one after another (stand in a gap or roll). Where his blade o
 stays in the floor for a few seconds, ringed: cut it and he bleeds. At two thirds his dead pour in;
 at one third the echoes of the guardians you beat rise one by one, and he kneels, lowering his head
 to the summit's edge, where it takes double damage. The moon arts take a fixed share of him.
+He stands outside the map (the author, 2026-11-10): the Moon's Altar is a small open summit (no walls,
+statue, pillars or barrels, three braziers), the camera pulls back (`GOD_ZOOM` in `js/view.js`) and sets
+the whole floor low in the frame, and he rises in the void past its far edge, head and shoulders over it,
+looking in. Wherever the floor is, he is cut away (`R.isoMask`), so he never covers the fight.
 
 **The opening** (`js/opening.js`): about 23 seconds, cut like an anime transformation and drawn at
 full resolution (painted light, ribbons and grain around crisp scaled-up pixel figures): a flat red
@@ -244,7 +249,7 @@ Each guardian fights in a hand-built lair (`lair_*` in `js/arenas.js`) with haza
 rhythm and hurt foes as well: the Gatehouse (fire vents between pillars, in turn), the Twin Nave
 (frost pools that slow, ice bursts), the Umbral Dais (four voids cut into a round dais, shadow
 strikes), the Maw (a ring round the Hunger's pool, poison pools, rock bursts), the Eyrie (wind vents
-turning round a cross among the spires) and the Moon's Altar (a ring of fire vents round the altar,
+turning round a cross among the spires) and the Moon's Altar (a ring of fire vents round its centre,
 sweeping faster in the First Cut's second phase). Orange rings warn of lair hazards.
 
 ## After the story
@@ -377,9 +382,11 @@ while they wind up, so stepping aside makes them miss.
   Shadow a red-lit hall. The ground is baked once per map (tiles, overlays, cliff faces, the hour's
   tint, the moon's glow, brazier and torch light); walls, props and fighters are drawn over it at
   the same pixel scale, with animated torches, fires and water ripples.
-- **Readability**: a red ring under the knight, white rings under foes; pack effects only on the
-  blows that matter (finishers, dash-cuts, spins, parries, breaks, deaths); damage numbers only for
-  heavy blows; impact frames only for boss moments.
+- **Readability**: a red ring under the knight, white rings under foes; a soft glow and sparks where
+  a blow lands, a slash on dash-cuts, a burst on the arts. No cross-shaped hit sparkles, no hit
+  counter, no crosshair following the mouse, and no damage numbers unless Settings → Damage numbers
+  turns them on (off by default; older saves were switched off once) (the author, 2026-11-10).
+  Impact frames only for boss moments.
 - **Moon**: the gauge fills from cuts, perfect dodges and taking hits. Full, it plays the
   **Red Moon** (3.4 s). At 30 % health or less it plays the **Last Ditch Effort** instead (6.4 s,
   more than twice the damage, heals 30 %). Tap or any key skips to the final frame.

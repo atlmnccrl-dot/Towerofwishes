@@ -9,11 +9,13 @@
   // ---- save -----------------------------------------------------------------------------------
   // The profile (progress.js) plus the options. Saves from before the campaign keep their options.
   const PR = VS.PROG, KEY = 'vesper.save.v2', OLD = 'vesper.save.v1';
-  const defOpts = () => ({ music: 1, sfx: 1, shake: 1, auto: false, text: 1, safe: false, diff: 'normal', cam: 'normal', nums: true, calm: false, vibe: true, scenes: 'play' });
+  const defOpts = () => ({ music: 1, sfx: 1, shake: 1, auto: false, text: 1, safe: false, diff: 'normal', cam: 'normal', nums: false, nums2: true, calm: false, vibe: true, scenes: 'play' });
+  // Damage numbers went off by default (the author, 2026-11-10): older saves switch them off once.
+  const fixOpts = (o) => { if (!o.nums2) { o.nums = false; o.nums2 = true; } return o; };
   const fresh = (opts) => Object.assign(PR.fresh(), { opts: opts || defOpts(), seenLdx: false });
   function load() {
-    try { const j = JSON.parse(localStorage.getItem(KEY)); if (j && j.v === 2) return VS.LOOT.migrate(Object.assign(fresh(), j, { opts: Object.assign(defOpts(), j.opts) })); } catch (e) { /* storage blocked */ }
-    try { const o = JSON.parse(localStorage.getItem(OLD)); if (o && o.opts) return fresh(Object.assign(defOpts(), o.opts)); } catch (e) { /* none */ }
+    try { const j = JSON.parse(localStorage.getItem(KEY)); if (j && j.v === 2) return VS.LOOT.migrate(Object.assign(fresh(), j, { opts: Object.assign(defOpts(), fixOpts(j.opts || {})) })); } catch (e) { /* storage blocked */ }
+    try { const o = JSON.parse(localStorage.getItem(OLD)); if (o && o.opts) return fresh(Object.assign(defOpts(), fixOpts(o.opts))); } catch (e) { /* none */ }
     return fresh();
   }
   M.write = () => { try { localStorage.setItem(KEY, JSON.stringify(M.save)); } catch (e) { /* storage blocked */ } };
@@ -146,7 +148,7 @@
   }
   M.readSave = function (txt) {
     txt = String(txt || '').trim(); if (!txt.startsWith('VESPER1:')) return null;
-    try { const j = JSON.parse(decodeURIComponent(escape(atob(txt.slice(8))))); if (!j || j.v !== 2 || !j.nodes) return null; return VS.LOOT.migrate(Object.assign(fresh(), j, { opts: Object.assign(defOpts(), j.opts) })); } catch (e) { return null; }
+    try { const j = JSON.parse(decodeURIComponent(escape(atob(txt.slice(8))))); if (!j || j.v !== 2 || !j.nodes) return null; return VS.LOOT.migrate(Object.assign(fresh(), j, { opts: Object.assign(defOpts(), fixOpts(j.opts || {})) })); } catch (e) { return null; }
   };
   function importSave(done) {
     const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.txt,text/plain';
@@ -561,7 +563,7 @@
         if (tp.t > 6) { P().tips[tp.id] = true; M.write(); f.tips.shift(); }
       }
       if (R.touch && !M.paused) R.drawTouch(ctx, s, { stick: M.stick, held: M.touchHeld });
-      if (!R.touch && M.mouseAim && M.mouse && !M.paused) R.drawReticle(ctx, M.mouse.x, M.mouse.y);
+      // No crosshair following the mouse (the author, 2026-11-10): the system cursor is enough.
     }
     // The last hour's First Cut: he strikes faster, the summit trembles and red lightning splits the sky.
     if (f.showcase === 'boss' && !M.paused && !M.hold && !s.cine) {

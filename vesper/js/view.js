@@ -163,7 +163,7 @@
   const HELI = R.HELI = { ang: -Math.PI / 4, pitch: 0.5 };
   const hc = Math.cos(HELI.ang), hs = Math.sin(HELI.ang);
   R.hcam = { x: 0, y: 0 };
-  R.Sh = () => R.H / (340 * (R.camK || 1));   // the camera distance option scales the view
+  R.Sh = () => R.H / (340 * (R.camFix || R.camK || 1));   // the camera distance option scales the view (camFix: a fight that sets its own)
   R.P = function (x, y, z) {
     const dx = x - R.hcam.x, dy = y - R.hcam.y, Sh = R.Sh();
     const rx = dx * hc - dy * hs, ry = dx * hs + dy * hc;
@@ -219,7 +219,7 @@
   const P = (o) => R.parts.push(Object.assign({ t: 0, vx: 0, vy: 0, vz: 0, g: 0, z: 0, size: 2, col: '#fff', shape: 'sq', life: 0.4 }, o));
   const FX = (o) => R.fx.push(Object.assign({ t: 0 }, o));
   R.float = function (text, x, y, z, col, big, label) {
-    if (R.noNumbers && !label && /^\d+$/.test(text)) return;
+    if (R.noNumbers && /^[+-]?\d+$/.test(text)) return;   // damage and heal numbers (off unless asked for)
     // Labels near each other stack upward instead of printing over one another (at most three).
     if (label) {
       const near = R.floaters.filter((f) => f.label && f.t < 0.7 && Math.hypot(f.x - x, f.y - y) < 60);
@@ -254,11 +254,11 @@
           const z = 22 * sc, sa = R.screenAng(e.ang || 0);
           // Pack effects only on the blows that matter; light cuts get clean sparks alone.
           // Every blow lands: a slash mark in its direction, sparks, a number; heavier blows punch the camera.
-          if (e.fx === 'finisher') { PK('cross_slash', e.x, e.y, z, 1.7); PK('hit_big', e.x, e.y, z, 1.6); R.punch = Math.max(R.punch || 0, 0.06); }
+          // No cross-shaped sparkles on the blows (the author, 2026-11-10): a slash on the dash-cut, a burst on the arts.
+          if (e.fx === 'finisher') R.punch = Math.max(R.punch || 0, 0.06);
           else if (e.fx === 'dash') PK('katana', e.x, e.y, z, 1.7, { angle: sa });
           else if (e.art) PK('hit_crit', e.x, e.y, z, 2);
-          else if (e.heavy) { PK('hit_big', e.x, e.y, z, 1.5); R.punch = Math.max(R.punch || 0, 0.035); }
-          else PK('hit_slash', e.x, e.y, z, 1.2, { angle: sa });
+          else if (e.heavy) R.punch = Math.max(R.punch || 0, 0.035);
           FX({ kind: 'spark', x: e.x, y: e.y, z, life: 0.22, col: e.art ? RED : '#ffffff', r: e.finisher ? 36 : e.heavy ? 28 : 20 });
           sparks(e.x, e.y, z, e.finisher ? 18 : e.heavy ? 13 : 8, e.heavy ? '#ffd9a0' : '#ffffff', e.heavy ? 190 : 130);
           R.float(String(e.dmg), e.x, e.y, z + 14, e.art ? RED : e.heavy || e.finisher ? '#ffd9a0' : '#ffffff', e.heavy || e.finisher || e.art);
@@ -266,14 +266,14 @@
           break;
         }
         case 'hurt': sparks(e.x, e.y, 22, 9, RED, 130, 1.6); R.float(String(e.dmg), e.x, e.y, 38, '#ff5a6e', e.big); R.flash = 0.35; R.flashCol = '255,30,50'; R.shake = Math.max(R.shake, e.big ? 6 : 4); break;
-        case 'parry': PK('parry', e.x, e.y, 22, 1.5); FX({ kind: 'ring', x: e.x, y: e.y, z: 22, life: 0.35, col: '#cfeeff', r0: 4, r1: 46, w: 3 }); FX({ kind: 'star', x: e.x, y: e.y, z: 22, life: 0.28, col: '#ffffff', r: 34 }); sparks(e.x, e.y, 22, 14, '#cfeeff', 200, 1.6); R.float('PARRY', e.x, e.y, 50, '#cfeeff', true, true); R.flash = 0.45; R.flashCol = '210,235,255'; R.shake = 5; break;
+        case 'parry': FX({ kind: 'ring', x: e.x, y: e.y, z: 22, life: 0.35, col: '#cfeeff', r0: 4, r1: 46, w: 3 }); sparks(e.x, e.y, 22, 14, '#cfeeff', 200, 1.6); R.float('PARRY', e.x, e.y, 50, '#cfeeff', true, true); R.flash = 0.45; R.flashCol = '210,235,255'; R.shake = 5; break;
         case 'perfect': R.float('PERFECT', e.x, e.y, 56, '#8ef0ff', true, true); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.5, col: '#8ef0ff', r0: 6, r1: 60, w: 2 }); break;
         case 'riposte': R.float('RIPOSTE', e.x, e.y, 64, '#ff9aa8', true, true); break;
-        case 'break': { PK('hit_big', e.x, e.y, 24 * sc, 1.8); FX({ kind: 'ring', x: e.x, y: e.y, z: 24 * sc, life: 0.45, col: '#ffd060', r0: 6, r1: 60, w: 3 }); for (let i = 0; i < 14; i++) { const a = Math.random() * Math.PI * 2, v = 90 + Math.random() * 120; P({ x: e.x, y: e.y, z: 24 * sc, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.6, vz: 60 + Math.random() * 80, g: -380, life: 0.6, size: 3, col: '#ffd060', shape: 'tri', rot: Math.random() * 6 }); } R.float('BREAK', e.x, e.y, 56 * sc, '#ffd060', true, true); R.shake = 7; break; }
-        case 'counter': PK('parry', e.x, e.y, 22, 1.4); R.float('COUNTER', e.x, e.y, 58, '#5ac8b0', true, true); sparks(e.x, e.y, 22, 10, '#c8fff0', 160); R.shake = Math.max(R.shake, 4); break;
+        case 'break': { FX({ kind: 'ring', x: e.x, y: e.y, z: 24 * sc, life: 0.45, col: '#ffd060', r0: 6, r1: 60, w: 3 }); for (let i = 0; i < 14; i++) { const a = Math.random() * Math.PI * 2, v = 90 + Math.random() * 120; P({ x: e.x, y: e.y, z: 24 * sc, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.6, vz: 60 + Math.random() * 80, g: -380, life: 0.6, size: 3, col: '#ffd060', shape: 'tri', rot: Math.random() * 6 }); } R.float('BREAK', e.x, e.y, 56 * sc, '#ffd060', true, true); R.shake = 7; break; }
+        case 'counter': R.float('COUNTER', e.x, e.y, 58, '#5ac8b0', true, true); sparks(e.x, e.y, 22, 10, '#c8fff0', 160); R.shake = Math.max(R.shake, 4); break;
         case 'healpulse': FX({ kind: 'gring', x: e.x, y: e.y, life: 0.7, col: '#ffe08a', r0: 8, r1: e.r, w: 3 }); PK('holy_light', e.x, e.y, 0, 1.6); if (e.n) R.float('+HEAL', e.x, e.y, 64, '#ffe08a', false, true); break;
-        case 'block': PK('parry', e.x, e.y, 22, 1.1); R.float('BLOCK', e.x, e.y, 54, '#c8c0b0', false, true); sparks(e.x, e.y, 22, 6, '#e8e0c8', 120); break;
-        case 'guardbreak': PK('hit_big', e.x, e.y, 22, 2); FX({ kind: 'ring', x: e.x, y: e.y, z: 22, life: 0.4, col: '#ffd060', r0: 6, r1: 56, w: 3 }); R.float('GUARD BREAK', e.x, e.y, 60, '#ffd060', true, true); R.shake = Math.max(R.shake, 8); R.punch = Math.max(R.punch || 0, 0.05); break;
+        case 'block': R.float('BLOCK', e.x, e.y, 54, '#c8c0b0', false, true); sparks(e.x, e.y, 22, 6, '#e8e0c8', 120); break;
+        case 'guardbreak': FX({ kind: 'ring', x: e.x, y: e.y, z: 22, life: 0.4, col: '#ffd060', r0: 6, r1: 56, w: 3 }); R.float('GUARD BREAK', e.x, e.y, 60, '#ffd060', true, true); R.shake = Math.max(R.shake, 8); R.punch = Math.max(R.punch || 0, 0.05); break;
         case 'explode': PK('blast', e.x, e.y, 10, 3.2); PK('smoke_burst', e.x, e.y, 8, 2.2); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.5, col: '#ff6a5a', r0: 6, r1: e.r * 1.4, w: 4 }); sparks(e.x, e.y, 14, 24, '#ff8a6a', 260); R.flash = 0.4; R.flashCol = '255,90,60'; R.shake = Math.max(R.shake, 10); break;
         case 'reinforce': R.flash = 0.35; R.flashCol = '255,40,70'; R.shake = Math.max(R.shake, 7); break;
         case 'heal': R.float('+' + e.n, e.x, e.y, 58, '#7dffb0'); break;
@@ -299,7 +299,7 @@
         case 'launch': { const z = 20 * sc; FX({ kind: 'gring', x: e.x, y: e.y, life: 0.35, col: '#ffffff', r0: 4, r1: 36, w: 2 }); for (let i = 0; i < 8; i++) P({ x: e.x, y: e.y, z: 2, vx: (Math.random() - 0.5) * 30, vy: (Math.random() - 0.5) * 20, vz: 160 + Math.random() * 120, life: 0.35, size: 1.4, col: '#ffffff', shape: 'line' }); R.float('LAUNCH', e.x, e.y, z + 40, '#ffd060', true, true); R.shake = Math.max(R.shake, 4); break; }
         case 'juggle': sparks(e.x, e.y, (u ? u.z : 0) + 22, 6, '#ffd9a0', 120); break;
         case 'land': FX({ kind: 'gring', x: e.x, y: e.y, life: 0.4, col: 'rgba(220,210,220,0.8)', r0: 6, r1: 40, w: 2 }); for (let i = 0; i < 10; i++) { const a = Math.random() * 6.28; P({ x: e.x, y: e.y, z: 1, vx: Math.cos(a) * 50, vy: Math.sin(a) * 30, vz: 20 + Math.random() * 30, g: -120, life: 0.45, size: 2.2, col: 'rgba(200,190,200,0.5)', shape: 'circle' }); } R.shake = Math.max(R.shake, 3.5); break;
-        case 'wall': FX({ kind: 'star', x: e.x, y: e.y, z: 20, life: 0.25, col: '#ffffff', r: 30 }); sparks(e.x, e.y, 20, 14, '#ffffff', 180, 1.6); R.float('WALL ' + e.dmg, e.x, e.y, 50, '#ffffff', true, true); R.shake = Math.max(R.shake, 6); break;
+        case 'wall': sparks(e.x, e.y, 20, 14, '#ffffff', 180, 1.6); R.float('WALL', e.x, e.y, 50, '#ffffff', true, true); R.shake = Math.max(R.shake, 6); break;
         case 'phase': if (!e.quiet) { R.flash = 0.6; R.flashCol = '255,40,60'; R.shake = 8; } break;
         // The god: his blade landing along its line, his hand slamming down, his phases, his kneeling, his fall.
         case 'cut': { PK('cb:107_flashpoint_severance/caster', (e.x1 + e.x2) / 2, (e.y1 + e.y2) / 2, 10, 2.2); for (let i = 1; i <= 3; i++) PK('cb:01_crimson_tide_cleave/target', e.x1 + (e.x2 - e.x1) * i / 4, e.y1 + (e.y2 - e.y1) * i / 4, 4, 1.4); FX({ kind: 'gcut', x1: e.x1, y1: e.y1, x2: e.x2, y2: e.y2, w: e.w, life: 0.45 }); R.shake = Math.max(R.shake, 12); R.flash = 0.25; R.flashCol = '255,255,255'; const n = 10; for (let i = 0; i <= n; i++) { const f = i / n; sparks(e.x1 + (e.x2 - e.x1) * f, e.y1 + (e.y2 - e.y1) * f, 4, 3, '#ffd0d6', 160, 1.2); } break; }
@@ -325,7 +325,7 @@
         case 'vanish': PK('smoke_dark', e.x, e.y, 10, 1.2); break;
         case 'bossArt': R.bossArt = { key: e.key, name: e.name, t: 0 }; break;
         // The tell before a delayed blow: a hard glint on the weapon, held.
-        case 'glint': { const c = e.unparry ? '#ff5a6a' : '#ffffff'; FX({ kind: 'star', x: e.x, y: e.y, z: e.z, life: 0.45, col: c, r: 46 }); FX({ kind: 'ring', x: e.x, y: e.y, z: e.z, life: 0.4, col: c, r0: 4, r1: 40, w: 2 }); break; }
+        case 'glint': { const c = e.unparry ? '#ff5a6a' : '#ffffff'; FX({ kind: 'ring', x: e.x, y: e.y, z: e.z, life: 0.4, col: c, r0: 4, r1: 40, w: 2 }); break; }
         case 'artEnd': R.flash = 1; R.flashCol = '255,255,255'; R.shake = 12; break;
       }
     }
@@ -348,7 +348,7 @@
       }
       const q = R.P(f.x, f.y, f.z || 0), x = q.x, y = q.y;
       if (f.kind === 'ring') { ctx.globalAlpha = 1 - k; ctx.strokeStyle = f.col; ctx.lineWidth = f.w * R.dpr * (1 - k * 0.5); ctx.beginPath(); ctx.arc(x, y, (f.r0 + (f.r1 - f.r0) * (1 - Math.pow(1 - k, 2))) * Sh * 0.5, 0, 7); ctx.stroke(); }
-      else if (f.kind === 'spark') { ctx.globalAlpha = 1 - k; R.glowAt(ctx, f.col, x, y, f.r * Sh * 0.6 * (0.6 + k), 0.9); ctx.fillStyle = '#ffffff'; const r = f.r * Sh * 0.18 * (1 - k); ctx.beginPath(); ctx.moveTo(x - r * 3, y); ctx.lineTo(x, y - r * 0.4); ctx.lineTo(x + r * 3, y); ctx.lineTo(x, y + r * 0.4); ctx.fill(); ctx.beginPath(); ctx.moveTo(x, y - r * 3); ctx.lineTo(x + r * 0.4, y); ctx.lineTo(x, y + r * 3); ctx.lineTo(x - r * 0.4, y); ctx.fill(); }
+      else if (f.kind === 'spark') { ctx.globalAlpha = 1 - k; R.glowAt(ctx, f.col, x, y, f.r * Sh * 0.6 * (0.6 + k), 0.9); }   // a soft glow where the blow lands (no cross-shaped star: the author, 2026-11-10)
       else if (f.kind === 'spin') { const c0 = R.P(f.x, f.y, 18), r = 40 * Sh; ctx.globalAlpha = (1 - k); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 5 * R.dpr * (1 - k); ctx.beginPath(); ctx.ellipse(c0.x, c0.y, r, r * 0.5, 0, k * 6, k * 6 + Math.PI * 1.6); ctx.stroke(); ctx.strokeStyle = RED; ctx.lineWidth = 2 * R.dpr; ctx.beginPath(); ctx.ellipse(c0.x, c0.y, r * 1.06, r * 0.53, 0, k * 6, k * 6 + Math.PI * 1.6); ctx.stroke(); }
       else if (f.kind === 'star') { ctx.globalAlpha = 1 - k; ctx.fillStyle = f.col; const r = f.r * Sh * 0.5 * (0.4 + k); ctx.beginPath(); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4, rr = i % 2 ? r * 0.18 : r; ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } ctx.fill(); }
       else if (f.kind === 'slash') {
@@ -457,16 +457,20 @@
     const g = s.god, P = R.godPose; if (P) { P.t += dt; if (P.t > 1.6) R.godPose = null; }
     const kneel = s.units.some((u) => u.alive && u.part === 'head'), fall = R.godFall ? (R.godFall += dt) : 0;
     R.godKneel = (R.godKneel || 0) + ((kneel ? 1 : 0) - (R.godKneel || 0)) * Math.min(1, dt * 3);
-    const u = R.H / 56, ex = Math.round(R.W * 0.52 - R.hcam.x * 0.03 * R.dpr), ey = Math.round(R.H * (0.25 + 0.2 * R.godKneel + fall * 0.6) + Math.sin(R.t * 0.8) * 3 * R.dpr);
+    // He stands in the void past the summit's far edge (the top of the screen), his head and shoulders over it.
+    const AR = VS.arenaOf(s), top = AR.godR ? godTop(AR).r : 0, edge = R.P(-hs * top, -hc * top), edgeY = AR.godR ? edge.y : R.H * 0.2;
+    const u = R.H / 80, ex = Math.round(AR.godR ? edge.x : R.W * 0.52), ey = Math.round(edgeY - 9 * u + R.H * (0.16 * R.godKneel + fall * 0.6) + Math.sin(R.t * 0.8) * 2 * R.dpr);
     const a = fall ? Math.max(0, 1 - fall / 1.6) : 1; if (a <= 0) return;
     let L = R.godLayer; if (!L || L.width !== R.W || L.height !== R.H) { L = R.godLayer = document.createElement('canvas'); L.width = R.W; L.height = R.H; }
     const c = L.getContext('2d'); c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, R.W, R.H); c.globalCompositeOperation = 'source-over';
-    A.tex(c, 'light_01', ex, ey + 6 * u, R.W * 1.1, R.H * 1.1, '#ff3048', 0.45, 0, true);
+    A.tex(c, 'light_01', ex, ey + 6 * u, R.W * 0.9, R.H * 0.7, '#ff3048', 0.4, 0, true);
     const raise = P && (P.move === 'blade' || P.move === 'sweep') && P.t < 1.3;
     K.colossus(c, null, ex, ey, u * 2, R.t, { col: g.flash > 0 ? '#3a0a14' : '#0a0306', pose: raise ? 'raise' : 'plant' });
-    // He fades into the floor below the middle of the screen, so the fight stays clear.
-    const mk = c.createLinearGradient(0, 0, 0, R.H); mk.addColorStop(0, 'rgba(0,0,0,1)'); mk.addColorStop(0.46, 'rgba(0,0,0,0.92)'); mk.addColorStop(0.68, 'rgba(0,0,0,0)'); mk.addColorStop(1, 'rgba(0,0,0,0)');
-    c.globalCompositeOperation = 'destination-in'; c.fillStyle = mk; c.fillRect(0, 0, R.W, R.H); c.globalCompositeOperation = 'source-over';
+    // He stands outside the map, at the top looking in (the author, 2026-11-10): wherever the floor is, he is cut
+    // away, so he shows only in the void around and beyond the summit, and he fades out toward the bottom.
+    const fy = Math.max(0.05, Math.min(0.9, edgeY / R.H)), mk = c.createLinearGradient(0, 0, 0, R.H); mk.addColorStop(0, 'rgba(0,0,0,1)'); mk.addColorStop(fy, 'rgba(0,0,0,1)'); mk.addColorStop(Math.min(1, fy + 0.22), 'rgba(0,0,0,0)'); mk.addColorStop(1, 'rgba(0,0,0,0)');
+    c.globalCompositeOperation = 'destination-in'; c.fillStyle = mk; c.fillRect(0, 0, R.W, R.H);
+    c.globalCompositeOperation = 'destination-out'; R.isoMask(c, VS.arenaOf(s)); c.globalCompositeOperation = 'source-over';
     ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = a; ctx.drawImage(L, 0, 0); ctx.restore();
   }
   // A giant gauntlet, fingers spread, lying on the floor (its wrist rising out of the frame toward him).
@@ -699,7 +703,23 @@
     for (const u of s.units) { if (u.state === 'dead' && u.deadT > 0.5) continue; const q = R.P(u.x, u.y, u.z || 0); A.actor(ctx, u.set, u.clip, u.frame, R.screenAng(u.ang), Math.round(q.x), Math.round(q.y), R.Sh() * u.scale, { shade: fg }); }
     if (f.big) { ctx.strokeStyle = fg; ctx.lineWidth = 3 * R.dpr; ctx.beginPath(); ctx.moveTo(c.x - R.W * 0.6, c.y + R.H * 0.3); ctx.lineTo(c.x + R.W * 0.6, c.y - R.H * 0.3); ctx.stroke(); }
   }
+  // The god's summit: the whole floor in view, set low in the frame so the void above it, where he stands,
+  // shows; the camera only slides sideways when the screen is too narrow for the floor.
+  const GOD_ZOOM = 1.3;
+  function godCam(s) {
+    const A = VS.arenaOf(s), Sh = R.Sh(), half = godTop(A).r, h = s.hero;
+    const rxH = (h.x * hc - h.y * hs), m = Math.max(0, (half * Sh + 40 * R.dpr - R.W / 2) / Sh), rx = clamp(rxH, -m, m), ry = -0.06 * R.H / (Sh * HELI.pitch);
+    return { x: rx * hc + ry * hs, y: -rx * hs + ry * hc };
+  }
+  // How far the floor reaches toward the top of the screen (in ground units along the screen's up), cached.
+  function godTop(A) {
+    if (A._top) return A._top;
+    let r = 0; for (let cy = 0; cy < A.h; cy++) for (let cx = 0; cx < A.w; cx++) if (A.cells[cy * A.w + cx]) for (const [ox, oy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) { const x = A.x0 + (cx + ox) * A.T, y = A.y0 + (cy + oy) * A.T; r = Math.max(r, Math.abs(x * hs + y * hc), Math.abs(x * hc - y * hs)); }
+    return (A._top = { r });
+  }
   R.follow = function (s, dt) {
+    R.camFix = s.god && VS.arenaOf(s).godR ? GOD_ZOOM : 0;
+    if (R.camFix) { const c = godCam(s), k = Math.min(1, dt * 4); R.hcam.x += (c.x - R.hcam.x) * k; R.hcam.y += (c.y - R.hcam.y) * k; return; }
     const h = s.hero, f = VS.sim.foes(s).sort((a, b) => Math.hypot(a.x - h.x, a.y - h.y) - Math.hypot(b.x - h.x, b.y - h.y))[0];
     let tx = h.x, ty = h.y;
     if (f && Math.hypot(f.x - h.x, f.y - h.y) < 180) { tx = h.x * 0.65 + f.x * 0.35; ty = h.y * 0.65 + f.y * 0.35; }
@@ -711,7 +731,11 @@
     if (s.portal) { const P0 = s.portal, k = Math.min(1, P0.t / 1.2), w = P0.t < 1.9 ? 0.95 * k : 0.5, up = 70; tx += (P0.x - hs * up - tx) * w; ty += (P0.y - hc * up - ty) * w; }
     const k = Math.min(1, dt * 4); R.hcam.x += (tx - R.hcam.x) * k; R.hcam.y += (ty - R.hcam.y) * k;
   };
-  R.snapCam = function (s) { const k = VS.arenaOf(s).kind === 'grid' ? 1 : 0.6; R.hcam.x = s.hero.x * k; R.hcam.y = s.hero.y * k; };
+  R.snapCam = function (s) {
+    R.camFix = s.god && VS.arenaOf(s).godR ? GOD_ZOOM : 0;
+    if (R.camFix) { const c = godCam(s); R.hcam.x = c.x; R.hcam.y = c.y; return; }
+    const k = VS.arenaOf(s).kind === 'grid' ? 1 : 0.6; R.hcam.x = s.hero.x * k; R.hcam.y = s.hero.y * k;
+  };
   R.drawFight = function (ctx, s, dt) {
     const st = s.def;
     if (!s.staged) R.follow(s, dt);
@@ -951,12 +975,6 @@
       if (s.rules && s.rules.time) { const left = Math.max(0, s.rules.time - s.time), urgent = left < 15; label(ctx, `${Math.floor(left / 60)}:${String(Math.floor(left % 60)).padStart(2, '0')}`, gx, m + 66 * k, 22 * k, urgent && Math.sin(R.t * 10) > 0 ? RED : '#ffffff', 'right', 2, 700); }
       if (s.rules && s.rules.nohit) label(ctx, 'UNTOUCHABLE', gx, m + 58 * k, 11 * k, '#c9a0ff', 'right', 4, 700);
       if (s.rules && s.rules.glass) label(ctx, 'GLASS BLADE', gx, m + 58 * k, 11 * k, '#c9a0ff', 'right', 4, 700); }
-    if (s.combo >= 3) {
-      const c = s.combo, x = W - m - (opts.touch ? 6 * k : 0), y = R.H * 0.36;
-      ctx.save(); ctx.font = R.fd((30 + Math.min(14, c * 0.4)) * k, 700); ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic';
-      ctx.lineWidth = 4 * R.dpr; ctx.strokeStyle = 'rgba(8,4,10,0.8)'; ctx.strokeText(String(c), x, y); ctx.fillStyle = c >= 20 ? RED : '#ffffff'; ctx.fillText(String(c), x, y); ctx.restore();
-      label(ctx, 'HITS', x, y + 14 * k, 10 * k, '#ff8a9a', 'right', 3);
-    }
     if (opts.auto) label(ctx, 'AUTO', W - m - (opts.touch ? 44 * k : 0), m + 56 * k, 10 * k, '#ff8a9a', 'right', 3);
   };
 
@@ -1067,12 +1085,6 @@
     ctx.restore();
   };
 
-  R.drawReticle = function (ctx, x, y) {
-    const r = 9 * R.k; ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 1.5 * R.dpr;
-    ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.stroke(); ctx.fillStyle = RED; ctx.beginPath(); ctx.arc(x, y, 2 * R.dpr, 0, 7); ctx.fill();
-    for (const a of [0, Math.PI / 2, Math.PI, Math.PI * 1.5]) { ctx.beginPath(); ctx.moveTo(x + Math.cos(a) * r * 1.3, y + Math.sin(a) * r * 1.3); ctx.lineTo(x + Math.cos(a) * r * 1.9, y + Math.sin(a) * r * 1.9); ctx.stroke(); }
-    ctx.restore();
-  };
   // ---- story overlays ------------------------------------------------------------------------------------
   // A line beside the speaker: their name above, a thin bar in their colour; shouts are larger.
   R.say = function (ctx, x, y, who, col, text, t, o) {

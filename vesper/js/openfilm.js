@@ -40,7 +40,7 @@
       { who: 'dead:1', grey: true, clip: 'TakeDamage', fr: [0, 12], ang: LEFT, x: 0.62, y: 0.92, to: [0.7, 0.92], sc: 2.4, t0: 0.34, t1: 0.62, show: [0.34, 0.62] },
       { who: 'dead:1', grey: true, clip: 'Die', fr: [0, 14], ang: LEFT, x: 0.7, y: 0.92, sc: 2.4, t0: 0.62, frRate: 1.6, show: [0.62, 1] },
       { who: V, clip: 'Attack1', fr: [0, 14], ang: RIGHT, x: 0.34, y: 0.92, to: [0.44, 0.92], sc: 2.4, t0: 0.12, t1: 0.6 }],
-      fx: [{ key: 'hit_slash', x: 0.6, y: 0.62, sc: 1.8, t0: 0.34 }] }),
+      fx: [{ key: 'katana', x: 0.6, y: 0.62, sc: 1.8, t0: 0.34 }] }),
       { cam: { z: [1.0, 1.05] }, sfx: [[0.3, 'slash_1', 1], [0.36, 'blow_1', 0.9], [0.75, 'thud', 0.6]] }),
     cut(1.3, sc({ bg: field(0.55), moon, actors: [
       { who: V, clip: 'Idle4', fps: 8, ang: FRONT, x: 0.5, y: 0.92, sc: 2.2, show: [0, 0.3] },

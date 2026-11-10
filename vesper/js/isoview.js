@@ -49,6 +49,14 @@
     return { id: Ar.id, c, OX, OY, W, H };
   }
   // The ground and the walls behind: everything the fighters always stand in front of.
+  // The arena's floor (and walls) as a stencil: drawn onto another canvas exactly where it lands on screen, so a
+  // layer can be cut away wherever the map is (the First Cut stands outside it, beyond its edge).
+  R.isoMask = function (c, Ar) {
+    if (!G || G.id !== Ar.id) return false;
+    const Sh = R.Sh(), P0 = R.P(0, 0), ox = P0.x - G.OX * Sh, oy = P0.y - G.OY * Sh;
+    c.save(); c.setTransform(R.baseT || new DOMMatrix()); c.imageSmoothingEnabled = false; c.drawImage(G.c, Math.round(ox), Math.round(oy), Math.round(G.W * Sh), Math.round(G.H * Sh)); c.restore();
+    return true;
+  };
   R.isoGround = function (ctx, s, Ar) {
     if (!A.isoReady(R.isoGroups(Ar))) { A.loadIso(R.isoGroups(Ar)); return false; }
     if (!G || G.id !== Ar.id) G = bake(Ar, s.def);

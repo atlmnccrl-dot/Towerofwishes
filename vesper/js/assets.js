@@ -121,8 +121,8 @@
   // The pack's sheets are drawn big; every mapped effect is scaled down by this (the author, 2026-11-09: "effects are a bit too large on attacks").
   A.CB_SCALE = 0.62;
   A.CBMAP = {
-    hit_slash: ['02_roaring_blade_nova/target', 1.3, { flipAng: true }], hit_big: ['90_last_stand_strike/target', 0.95], hit_crit: ['01_crimson_tide_cleave/target', 0.9],
-    cross_slash: ['107_flashpoint_severance/target', 1.15], katana: ['06_piercing_dash/target', 1.0], parry: ['218_sky_rend_star/target', 1.7],
+    hit_slash: ['02_roaring_blade_nova/target', 1.3, { flipAng: true }], hit_crit: ['01_crimson_tide_cleave/target', 0.9],
+    katana: ['06_piercing_dash/target', 1.0], parry: ['218_sky_rend_star/target', 1.7],
     spin_slash: ['113_earthshaker_stance/target', 1.0], shockwave: ['10_quake_stomp/target', 0.9], rock_burst: ['10_quake_stomp/target', 0.7],
     blast: ['08_meteor_rain/target', 0.75], explosion_fire: ['54_greater_fireball/target', 0.6], fire_burst: ['54_greater_fireball/target', 0.55],
     explosion_frost: ['183_frost_curtain/caster', 0.7], ice_shatter: ['13_water_orb/target', 0.6], thunder: ['101_skyfall_thunder/target', 0.9],

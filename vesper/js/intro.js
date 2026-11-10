@@ -414,7 +414,8 @@
     if (T < 0.35) fill(ctx, '#000', 1 - T / 0.35);
     if (k > 0.9) fill(ctx, '#000', (k - 0.9) / 0.1);
   };
-  // He towers over the Spire against the white moon, darkness pouring off him; the sword goes up into the moon.
+  // He towers over the Spire against the white moon, darkness pouring off him; he draws the sword back flat,
+  // along the line the cut will take across the moon.
   SH.godrise = function (ctx, S, k, T) {
     const push = 1 + 0.06 * ease(k), raise = T > 1.2, mx = W() / 2;
     grad(ctx, ['#04030a', '#120a1c', '#20101c']);
@@ -423,35 +424,40 @@
     moon(ctx, mx + (raise ? Math.sin(T * 60) * 1.5 : 0), H() * 0.34, H() * 0.34, '#f4ece6', 'rgba(255,240,230,0.3)', 0);
     { const rg = ctx.createRadialGradient(mx, H() * 0.7, 4, mx, H() * 0.7, W() * 0.5); rg.addColorStop(0, 'rgba(30,0,8,0.8)'); rg.addColorStop(1, 'rgba(30,0,8,0)'); ctx.fillStyle = rg; ctx.fillRect(-8, -8, W() + 16, H() + 16); }
     const ey = Math.round(H() * 0.42);
-    colossus(ctx, S, Math.round(mx), ey, 6.6, T, { pose: raise ? 'raise' : 'plant', rim: '#e8dcf0', col: '#050306' });
+    colossus(ctx, S, Math.round(mx), ey, 6.6, T, { pose: raise ? 'side' : 'plant', rim: '#e8dcf0', col: '#050306' });
     burningEyes(ctx, Math.round(mx), ey, 6.6, 1, T);
+    if (raise) {   // moonlight running down the flat of the blade, so it reads against the dark
+      const u = 3.3, ca = Math.cos(Math.PI - 0.34), sa = Math.sin(Math.PI - 0.34), hx = mx - 15 * u, hy = ey + 15 * u, gl = clamp((T - 1.2) / 0.4);
+      A.tex(ctx, 'light_01', hx + ca * 45 * u, hy + sa * 45 * u, 90 * u, 14, '#e8dcf0', 0.35 * gl, -0.34, true);
+      K().line(ctx, hx + ca * 10 * u, hy + sa * 10 * u - 1, hx + ca * 84 * u, hy + sa * 84 * u - 1, 1, `rgba(232,220,240,${0.8 * gl})`);
+    }
     // The tip of the Spire beneath his feet.
     ctx.fillStyle = '#030204'; ctx.beginPath(); ctx.moveTo(mx - 30, H() + 10); ctx.lineTo(mx - 4, H() * 0.88); ctx.lineTo(mx + 4, H() * 0.88); ctx.lineTo(mx + 30, H() + 10); ctx.fill();
-    if (raise) for (let i = 0; i < 14; i++) { const x = mx + (hash(i, 611) - 0.5) * 40, y = H() * 0.4 - ((T * 600 + hash(i, 612) * 200) % 160); ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.fillRect(Math.round(x), Math.round(y), 1, 10); }
     ctx.restore();
     K().hStreaks(ctx, 20, 'rgba(255,255,255,0.15)', 613, T, 900);
     if (raise && T < 1.3) { fill(ctx, '#ffffff', 0.5); kick(S, 6); }
     kick(S, 0.8);
     if (k > 0.92) fill(ctx, '#ffffff', (k - 0.92) / 0.08);
   };
-  // The cut. He gathers the night into the raised blade (the moon shakes, the sky goes dark, light pours
+  // The cut. He gathers the night into the blade held back along the cut (the moon shakes, the sky goes dark, light pours
   // inward along the steel); the swing across the moon's face; a storm of impact frames; then the moon
   // splits along the cut, white-hot, its halves pushed apart, red light falling out of the gap onto the
   // world; rings of force across the sky; and the wound left bleeding over his crowned head.
   SH.godcut = function (ctx, S, k, T) {
     const mx = W() * 0.5;
-    if (T < 1.0) {   // the charge: the blade towers into the moon and drinks its light
-      const c = T / 1.0, my = H() * 0.22, tipY = Math.round(H() * 0.3), shake = Math.sin(T * 50) * 2 * c;
+    if (T < 1.0) {   // the charge: the blade held back flat along the line of the cut, its point at the moon's edge, drinking its light
+      const c = T / 1.0, my = H() * 0.22, mr = H() * 0.34, shake = Math.sin(T * 50) * 2 * c, ang = -0.34;
+      const tipX = Math.round(mx - mr * 0.95), tipY = Math.round(my + mr * 0.34), L = W() * 0.95, tx = tipX - Math.cos(ang) * L, ty = tipY - Math.sin(ang) * L;
       grad(ctx, ['#0a0612', '#1a0e22', '#24101c']); fill(ctx, '#000', 0.55 * c);
-      moon(ctx, mx + shake, my, H() * 0.34, R.mix('#f4ece6', '#ffd0d8', c), 'rgba(255,240,230,0.35)', 0);
-      // Moonlight drawn down into the point: rays converging on it.
-      for (let i = 0; i < 26; i++) { const a = -Math.PI / 2 + (hash(i, 551) - 0.5) * 2.6, ph = (T * 1.5 + hash(i, 552)) % 1, r0 = 120 * (1 - ph); ctx.strokeStyle = `rgba(255,240,245,${0.6 * ph})`; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(mx + Math.cos(a) * r0, tipY + Math.sin(a) * r0); ctx.lineTo(mx + Math.cos(a) * (r0 + 18), tipY + Math.sin(a) * (r0 + 18)); ctx.stroke(); }
-      for (let i = 0; i < 3; i++) { const rk = (T * 1.8 + i / 3) % 1, rr = 70 * (1 - rk); ctx.strokeStyle = `rgba(255,${150 + i * 40},170,${rk})`; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(mx, tipY, rr, rr * 0.45, 0, 0, 7); ctx.stroke(); }
-      // The blade itself: dark steel the height of the sky, its rune burning brighter.
-      A.tex(ctx, 'light_01', mx, tipY + 60, 70, H() * 1.3, RED, 0.25 + 0.4 * c, 0, true);
-      bigBlade(ctx, mx, H() + 30, mx, tipY, 24, '#0a0608', '#e8dcf0');
-      ctx.fillStyle = `rgba(255,${60 + Math.round(150 * c)},${80 + Math.round(150 * c)},${0.6 + 0.4 * c})`; ctx.fillRect(Math.round(mx) - 1, tipY + 12, 2, H());
-      A.tex(ctx, 'light_01', mx, tipY, 50 + 60 * c, 50 + 60 * c, '#ffffff', 0.5 + 0.4 * c, 0, true);
+      moon(ctx, mx + shake, my, mr, R.mix('#f4ece6', '#ffd0d8', c), 'rgba(255,240,230,0.35)', 0);
+      // Moonlight drawn into the point: rays converging on it.
+      for (let i = 0; i < 26; i++) { const a = hash(i, 551) * 6.28, ph = (T * 1.5 + hash(i, 552)) % 1, r0 = 120 * (1 - ph); ctx.strokeStyle = `rgba(255,240,245,${0.6 * ph})`; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(tipX + Math.cos(a) * r0, tipY + Math.sin(a) * r0); ctx.lineTo(tipX + Math.cos(a) * (r0 + 18), tipY + Math.sin(a) * (r0 + 18)); ctx.stroke(); }
+      for (let i = 0; i < 3; i++) { const rk = (T * 1.8 + i / 3) % 1, rr = 70 * (1 - rk); ctx.strokeStyle = `rgba(255,${150 + i * 40},170,${rk})`; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(tipX, tipY, rr, rr * 0.45, ang, 0, 7); ctx.stroke(); }
+      // The blade itself: dark steel the width of the sky, lying along the cut, its rune burning brighter.
+      A.tex(ctx, 'light_01', (tipX + tx) / 2, (tipY + ty) / 2, L * 1.2, 60, RED, 0.25 + 0.4 * c, ang, true);
+      bigBlade(ctx, tx, ty, tipX, tipY, 24, '#0a0608', '#e8dcf0');
+      K().line(ctx, tx, ty, tipX - Math.cos(ang) * 12, tipY - Math.sin(ang) * 12, 2, `rgba(255,${60 + Math.round(150 * c)},${80 + Math.round(150 * c)},${0.6 + 0.4 * c})`);
+      A.tex(ctx, 'light_01', tipX, tipY, 50 + 60 * c, 50 + 60 * c, '#ffffff', 0.5 + 0.4 * c, 0, true);
       kick(S, 1 + 3 * c);
       if (T > 0.92) fill(ctx, '#ffffff', (T - 0.92) / 0.08);
       return;
@@ -602,7 +608,7 @@
   // A manga panel: one thin box on black, her eyes in ink; the eye opens red; rings close round it.
   SH.eye = function (ctx, S, k, T) {
     const open = ease(clamp((T - 0.7) / 0.18)), eyes = eyePanel(ctx, S, S.cast.vesper, k, T, open, RED), at = eyes[1];
-    if (open > 0) say(S, 'rings', null, at.x, at.y, { r: 8 + 3 * ease(clamp((T - 0.7) * 2)), T, col: 'rgba(200,16,40,0.8)', a: open });
+
     if (T > 0.7 && T < 0.76) { fill(ctx, '#ffffff', 0.5); kick(S, 4); }
     K().embers(ctx, T, 18, 0, W(), RED);
     if (T > 0.9) say(S, 'card', 'VESPER', W() - 10, BAR + 16, { align: 'right', sub: 'THE MOONBLADE', col: '#ff9aaa', k: T - 0.9 });
@@ -725,8 +731,13 @@
     // Horns, sweeping out and up.
     for (const sx of [-1, 1]) P([[sx * 2.4, -3.5], [sx * 6, -7], [sx * 9.5, -12], [sx * 9, -18], [sx * 8, -13], [sx * 5, -8.5], [sx * 2.8, -6]]);
     // The sword: the blade (long, tapering to the point far below, or far above when raised), the guard, the grip, the pommel.
-    const up = pose === 'raise';
-    if (up) { P([[-2.2, -23.5], [2.2, -23.5], [1.6, -88], [0, -95], [-1.6, -88]]); P([[-8, -21], [8, -21], [9, -23.5], [-9, -23.5]]); P([[-1, -21], [1, -21], [1, -13], [-1, -13]]); P([[-1.8, -13], [1.8, -13], [1.4, -10.5], [-1.4, -10.5]]); }
+    const up = pose === 'raise', side = pose === 'side';
+    // pose 'side': drawn back to his right, the blade held flat along the line of the cut (rising to the
+    // right at the wound's angle), ready to sweep across the moon's face.
+    const HX = -15, HY = 15, ca = Math.cos(Math.PI - 0.34), sa = Math.sin(Math.PI - 0.34);
+    const R2 = (pts) => P(pts.map(([t, n]) => [HX + t * ca - n * sa, HY + t * sa + n * ca]));
+    if (side) { R2([[8.5, -2.2], [8.5, 2.2], [80, 1.6], [87, 0], [80, -1.6]]); R2([[6, -8], [6, 8], [8.5, 9], [8.5, -9]]); R2([[-2, -1], [-2, 1], [6, 1], [6, -1]]); R2([[-4.5, -1.8], [-4.5, 1.8], [-2, 1.4], [-2, -1.4]]); }
+    else if (up) { P([[-2.2, -23.5], [2.2, -23.5], [1.6, -88], [0, -95], [-1.6, -88]]); P([[-8, -21], [8, -21], [9, -23.5], [-9, -23.5]]); P([[-1, -21], [1, -21], [1, -13], [-1, -13]]); P([[-1.8, -13], [1.8, -13], [1.4, -10.5], [-1.4, -10.5]]); }
     else { P([[-2.2, 30], [2.2, 30], [1.6, 95], [0, 102], [-1.6, 95]]); P([[-8, 28], [8, 28], [9, 30.5], [-9, 30.5]]); P([[-1, 19], [1, 19], [1, 28], [-1, 28]]); P([[-1.8, 17], [1.8, 17], [1.4, 19.5], [-1.4, 19.5]]); }
     // The body: gorget, breastplate, waist.
     P([[-3, 4.5], [3, 4.5], [5.5, 8], [-5.5, 8]]);
@@ -735,8 +746,8 @@
     for (const sx of [-1, 1]) { P([[sx * 4, 7], [sx * 11, 5.5], [sx * 15, 8.5], [sx * 15.5, 13], [sx * 11, 15], [sx * 5.5, 12]]); for (let i = 0; i < 3; i++) P([[sx * (8 + i * 2.6), 6.2 - i * 0.2], [sx * (9.2 + i * 2.6), -0.5 - i * 1.2], [sx * (10.4 + i * 2.6), 6.5]]); }
     // The arms down to the hilt, the gauntlets on the grip.
     ctx.strokeStyle = col; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    for (const sx of [-1, 1]) { ctx.lineWidth = 4.2 * u; ctx.beginPath(); ctx.moveTo(ex + sx * 12 * u, ey + 11 * u); if (up) { ctx.lineTo(ex + sx * 13 * u, ey - 2 * u); ctx.lineTo(ex + sx * 2.6 * u, ey - 16.5 * u); } else { ctx.lineTo(ex + sx * 12.5 * u, ey + 19 * u); ctx.lineTo(ex + sx * 2.6 * u, ey + 23.5 * u); } ctx.stroke(); }
-    if (up) P([[-3.4, -19.5], [3.4, -19.5], [3.4, -14], [-3.4, -14]]); else P([[-3.4, 21], [3.4, 21], [3.4, 26.5], [-3.4, 26.5]]);
+    for (const sx of [-1, 1]) { ctx.lineWidth = 4.2 * u; ctx.beginPath(); ctx.moveTo(ex + sx * 12 * u, ey + 11 * u); if (side) { ctx.lineTo(ex + (sx < 0 ? -15 : 4) * u, ey + (sx < 0 ? 17 : 20) * u); ctx.lineTo(ex + HX * u, ey + HY * u); } else if (up) { ctx.lineTo(ex + sx * 13 * u, ey - 2 * u); ctx.lineTo(ex + sx * 2.6 * u, ey - 16.5 * u); } else { ctx.lineTo(ex + sx * 12.5 * u, ey + 19 * u); ctx.lineTo(ex + sx * 2.6 * u, ey + 23.5 * u); } ctx.stroke(); }
+    if (side) R2([[-1, -3.4], [-1, 3.4], [4.5, 3.4], [4.5, -3.4]]); else if (up) P([[-3.4, -19.5], [3.4, -19.5], [3.4, -14], [-3.4, -14]]); else P([[-3.4, 21], [3.4, 21], [3.4, 26.5], [-3.4, 26.5]]);
     // The helm: tall, crowned with five spikes, narrowing to the jaw.
     P([[-3.4, -5], [3.4, -5], [3.2, 2], [2.4, 4.6], [0, 6], [-2.4, 4.6], [-3.2, 2]]);
     const crown = [[-3.4, -5]]; for (let i = 0; i <= 8; i++) crown.push([-3.4 + i * 0.85, i % 2 ? -6.2 : (i === 4 ? -11.5 : -8.6)]); crown.push([3.4, -5]); P(crown);

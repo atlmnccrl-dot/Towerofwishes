@@ -435,7 +435,7 @@
     u.cd = 3.2; u.gPhase = 1; u.echoes = ['warden', 'twinA', 'umbral', 'hunger', 'wing']; u.kneelCd = 6; setState(u, 'idle');
     s.god = u; s.bossIds.push(u.id);
   }
-  function godRadius(s) { const A = arenaOf(s); return A.kind === 'grid' ? Math.min(A.w, A.h) * A.T * 0.42 : (A.r || 300); }
+  function godRadius(s) { const A = arenaOf(s); return A.godR ? A.godR : A.kind === 'grid' ? Math.min(A.w, A.h) * A.T * 0.42 : (A.r || 300); }
   // Where he can strike: the summit's floor, kept inside.
   const onFloor = (s, x, y, m) => VS.clampTo(arenaOf(s), x, y, m || 20);
   function godPart(s, x, y, P) {

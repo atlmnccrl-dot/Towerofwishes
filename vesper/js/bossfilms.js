@@ -87,7 +87,7 @@
       ...sc({ bg: brightGlow([0.55, 0.5]), sil: INK, speed: { ang: 0.2, col: 'rgba(255,255,255,0.7)', n: 60, v: 1600 },
         actors: [{ who: 'warden', clip: 'TakeDamage', fr: [0, 8], ang: LEFT, x: 0.68, y: 0.98, sc: 3.2, to: [0.76, 0.98], t0: 0.4, eyes: EYE },
           { who: V, clip: 'Attack2', fr: [3, 11], ang: RIGHT, x: 0.16, y: 0.98, to: [0.42, 0.98], sc: 3.2, smear: 4, smearCol: '#ffffff', ease: 'snap', t1: 0.5 }],
-        fx: [{ key: 'hit_big', x: 0.58, y: 0.55, sc: 2.2, t0: 0.42 }] }) };
+        fx: [{ key: 'katana', x: 0.58, y: 0.55, sc: 2.2, t0: 0.42 }] }) };
     const thrown = { d: 0.6, cam: { z: [1.0, 1.0], x: [0.1, -0.15], ease: 'out' }, ...G, sfx: [[0, 'blow_big', 1], [0.05, 'whoosh', 1]],
       ...sc({ bg: brightPlane(0.66), sil: INK, speed: { ang: 0, col: 'rgba(255,255,255,0.5)', n: 30, v: 1200 },
         actors: [{ who: 'warden', clip: 'Special1', fr: [8, 14], ang: LEFT, x: 0.82, y: 0.72, sc: 1.6, eyes: EYE },
@@ -157,7 +157,7 @@
         actors: [{ who: 'twinA', clip: 'Attack1', fr: [2, 9], ang: RIGHT, x: 0.08, y: 0.9, to: [0.42, 0.9], sc: 2.6, smear: 4, smearCol: '#9ac8e8', ease: 'snap', eyes: EYE },
           { who: 'twinB', clip: 'Attack2', fr: [2, 9], ang: LEFT, x: 0.92, y: 0.9, to: [0.58, 0.9], sc: 2.6, smear: 4, smearCol: '#9ac8e8', ease: 'snap', eyes: EYE },
           { who: V, clip: 'Rolling', fps: 30, ang: FRONT, x: 0.5, y: 0.9, to: [0.5, 1.4], sc: 2.2, t0: 0.15, ease: 'in' }],
-        fx: [{ key: 'cross_slash', x: 0.5, y: 0.55, sc: 2.4, t0: 0.55 }] }) };
+        fx: [{ key: 'katana', x: 0.5, y: 0.55, sc: 2.4, t0: 0.55 }] }) };
     const counter = { d: 0.5, ...G, cam: { r: [0.1, 0.06], x: [0, -0.1] }, sfx: [[0.05, 'slash_1', 1], [0.08, 'blow_2', 1]],
       ...sc({ bg: brightPlane(0.58, ['#6a8aa0', '#f0f8ff'], ['#a8c8d8', '#2a3a48']), sil: INK,
         actors: [{ who: V, clip: 'Attack3', fr: [3, 12], ang: RIGHT, x: 0.32, y: 0.88, sc: 2.4 },
@@ -170,7 +170,7 @@
         { ...G, cam: { z: [1.0, 1.12] }, sfx: [[0.2, 'magic', 0.5]] }),
       cut(0.08, E.flash('#ffffff'), { bars: false, sfx: [[0, 'break', 1]] }),
       cut(1.0, split(half('twinA', PI * 0.25, 0.3), half('twinB', PI * 0.75, 0.7)), { ...G, cam: { z: [1.12, 1.0], ease: 'out' }, sfx: [[0.15, 'blink', 0.7], [0.3, 'charge', 0.8]], line: 'We are two blades.', lineDur: 1.1, lineCol: TCOL,
-        over: (ctx, S, k, T) => { if (T > 0.3) { say(S, 'track', null, W() * 0.3, H() * 0.42, { w: 34, h: 20, k: T - 0.3, col: '#ffffff', sub: 'LEFT HAND' }); say(S, 'track', null, W() * 0.7, H() * 0.42, { w: 34, h: 20, k: T - 0.42, col: '#ffffff', sub: 'RIGHT HAND' }); } } }),
+      }),
       cut(0.7, E.eyes({ at: 0.35, sc: 4 }), { bars: false, cam: { z: [1.0, 1.1] }, sfx: [[0.3, 'clang_0', 0.6]], line: 'I only need one.', lineAt: 0.25, lineDur: 0.9, lineCol: VCOL }),
       E.blink(0.03),
       cut(0.45, sc({ bg: brightPlane(0.6, ['#6a8aa0', '#f0f8ff'], ['#a8c8d8', '#2a3a48']), sil: INK, speed: { ang: 0, col: 'rgba(255,255,255,0.6)', n: 50, v: 1800 },
@@ -319,8 +319,6 @@
       }, post(ctx, S, k, T) {
         const rise = ease(clamp((T - 0.1) / 1.4)), ey = Math.round(H() * (1.3 - 0.95 * rise));
         burningEyes(ctx, Math.round(W() / 2), ey, 6, ease(clamp((T - 1.3) / 0.25)), T);
-        if (T > 0.3) say(S, 'track', null, W() / 2, H() * 0.98 - 14, { w: 12, h: 24, k: T - 0.3, col: '#ffe0e6' });
-        if (T > 1.35) { say(S, 'track', null, W() / 2, ey, { w: 34, h: 12, k: T - 1.35, col: '#ffffff', sub: 'TARGET' }); say(S, 'link', null, W() / 2, H() * 0.98 - 26, { x2: W() / 2, y2: ey + 9, k: (T - 1.45) * 4, col: 'rgba(255,224,230,0.8)', label: 'ALT ' + Math.round(430 * rise) }); }
       } }, { ...G, cam: { z: [1.0, 1.06] }, shake: 1.5, sfx: [[0.1, 'quake', 0.9], [0.8, 'quake', 1], [1.3, 'boss', 1], [1.32, 'blow_big', 1]], line: 'Seven hundred years... and they send one blade.', lineAt: 0.4, lineDur: 2.2, lineCol: '#ffd0d8' }),
       cut(0.8, E.eyes({ at: 0.35, sc: 4.2 }), { bars: false, cam: { z: [1.0, 1.14] }, sfx: [[0.3, 'clang_0', 0.6]], line: 'One is enough.', lineAt: 0.25, lineDur: 1.0, lineCol: VCOL }),
       cut(0.5, { draw(ctx, S, k, T) {

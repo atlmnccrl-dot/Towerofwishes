@@ -118,9 +118,11 @@
     lair_wing: { lair: true, w: 15, h: 15, map: (x, y) => { const d = Math.hypot(x, y); if (!(Math.abs(x) <= 2.5 || Math.abs(y) <= 2.5 || d <= 4.3)) return '.';
       if (Math.abs(Math.abs(x) - 3) < 0.6 && Math.abs(Math.abs(y) - 3) < 0.6) return 'P'; if ((Math.abs(x) < 0.6 && Math.abs(Math.abs(y) - 5.5) < 0.6) || (Math.abs(y) < 0.6 && Math.abs(Math.abs(x) - 5.5) < 0.6 && x > 0)) return 'V'; return '#'; },
       hz: { vents: { every: 3.4, pattern: 'seq', dmg: 15, r: 40, delay: 1.1, fx: 'wind_gust', ring: { r: 3.4, n: 8 } } } },
-    lair_firstCut: { lair: true, w: 15, h: 15, map: (x, y) => { const d = Math.hypot(x, y); if (d > 7.2) return '.'; if (d < 0.6) return 'S';
-      if (Math.abs(Math.abs(x) - 2.5) < 0.6 && Math.abs(Math.abs(y) - 2.5) < 0.6) return 'P'; if (Math.abs(d - 6.3) < 0.5 && (Math.abs(x) < 0.6 || Math.abs(y) < 0.6) && x > -5) return 'B'; return '#'; },
-      hz: { vents: { every: 2.8, pattern: 'seq', dmg: 17, r: 36, delay: 1.0, fx: 'fire_burst', ring: { r: 4.6, n: 8 } } } },
+    // The Moon's Altar: a small summit, the whole of it in view, with the god standing in the void beyond its
+    // far edge, looking in (the author, 2026-11-10). godR: how far from the centre he strikes, in tiles.
+    lair_firstCut: { lair: true, open: true, w: 9, h: 9, godR: 3.2, map: (x, y) => { const d = Math.hypot(x, y); if (d > 3.6) return '.';
+      if (Math.abs(d - 3) < 0.4 && (Math.abs(x) < 0.6 || Math.abs(y) < 0.6) && x > -2) return 'B'; return '#'; },
+      hz: { vents: { every: 2.8, pattern: 'seq', dmg: 17, r: 36, delay: 1.0, fx: 'fire_burst', ring: { r: 2.4, n: 6 } } } },
   };
   // A lair's map as rows of characters.
   function lairRows(L) {
@@ -134,7 +136,7 @@
     const rows = L.lair ? lairRows(L) : null;
     const w = rows ? rows[0].length : L.w, h = rows ? rows.length : L.h, x0 = -w * T / 2, y0 = -h * T / 2, N = w * h;
     const A = { kind: 'grid', id: stageId + '|' + kind + '|' + (seed || 0), layout: kind, name: NAMES[kind] || 'THE FIELD', theme: stageId, tint: th.tint, frost: !!th.frost, set: th.set,
-      w, h, T, x0, y0, cells: new Uint8Array(N), solid: new Uint8Array(N), ground: new Array(N), over: [], walls: [], objs: [], lights: [], ripples: [], spawn: SPAWN[kind] || ['side', 'drop'] };
+      w, h, T, x0, y0, cells: new Uint8Array(N), solid: new Uint8Array(N), ground: new Array(N), over: [], walls: [], objs: [], lights: [], ripples: [], spawn: SPAWN[kind] || ['side', 'drop'], godR: L.godR ? L.godR * T : 0 };
     const idx = (cx, cy) => cy * w + cx, inb = (cx, cy) => cx >= 0 && cy >= 0 && cx < w && cy < h;
     // Cell coordinates relative to the centre, in cells.
     const rel = (cx, cy) => [cx + 0.5 - w / 2, cy + 0.5 - h / 2];
@@ -177,7 +179,7 @@
       const n = !inb(cx + 1, cy) || !A.cells[idx(cx + 1, cy)], wv = !inb(cx, cy - 1) || !A.cells[idx(cx, cy - 1)];
       const okN = n && behindClear(cx, cy, 'N'), okW = wv && behindClear(cx, cy, 'W');
       const isExit = cx === A.exit.cx && cy === A.exit.cy;
-      if (th.wall && (okN || okW) && (th.walls == null || r() < th.walls || isExit)) {
+      if (!L.open && th.wall && (okN || okW) && (th.walls == null || r() < th.walls || isExit)) {
         run++;
         if (isExit && okN && th.door) wallAt(cx, cy, 'N', th.door);
         else if (okN && okW) wallAt(cx, cy, 'W', th.corner || pick(th.wall, r));
@@ -186,7 +188,7 @@
         if (th.vines && r() < 0.18) A.walls.push({ key: pick(th.vines, r) + '_' + last.side, x: last.x, y: last.y, side: last.side, cx, cy, over: true });
         // A torch every few panels, on the wall's face.
         if (run % 3 === 1 && !isExit) { const [x, y] = ctr(cx, cy), side = last.side, tx = side === 'N' ? x + T / 2 - 6 : x, ty = side === 'N' ? y : y - T / 2 + 6; A.objs.push({ key: side === 'N' ? 'd:Torch West' : 'd:Torch East', x: tx, y: ty, r: 0, kind: 'torch', z: 0, back: true }); A.lights.push({ x: tx, y: ty, r: 120 }); }
-      } else if (th.edge && (okN || okW) && r() < 0.8 && !isExit) {
+      } else if (!L.open && th.edge && (okN || okW) && r() < 0.8 && !isExit) {
         // An open edge lined with rock spires instead of walls.
         const [x, y] = ctr(cx, cy), [k, rad] = pick(th.edge, r);
         A.objs.push({ key: k + '_' + pick(['E', 'S'], r), x: x + (okN ? T * 0.3 : 0), y: y - (okW ? T * 0.3 : 0), r: rad, kind: 'prop', solid: true });
@@ -229,7 +231,7 @@
       placed++;
     }
     // Breakables in small clusters near the props and the walls.
-    for (let c = 0, tries = 0; c < (rows ? 3 : 7) && tries < 80; tries++) {
+    for (let c = 0, tries = 0; c < (L.open ? 0 : rows ? 3 : 7) && tries < 80; tries++) {
       const [cx, cy] = pick(cellsList, r), [bx, by] = ctr(cx, cy);
       if (clear(bx, by, 30)) continue;
       const [type, key] = pick(th.breaks, r), n = 1 + Math.floor(r() * 3), B = BREAK[type];
