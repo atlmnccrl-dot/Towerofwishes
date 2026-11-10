@@ -22,14 +22,15 @@
     const map = BB.buildMap(M.layout, region.biome, BB.hashStr(M.id) % 9000 + 1, { night: !!region.night, floor: region.floor });
     BB.renderGround(map);
     const sc = new BB.Battle({ map, heroes: [], peaceful: true, save: S, seed: 5 });
-    sc.drill = { stage: M, region, centre: { x: map.w / 2, y: map.h / 2 }, cleared: false, dummies: [], lastIds: '' };
+    sc.drill = { stage: M, region, centre: { x: map.w / 2, y: map.h / 2 }, cleared: '', dummies: [], lastIds: '', dragId: null };
     sc.cam = { x: map.w / 2, y: map.h / 2, zoom: 1 };
     sc.npcs = [];
     return sc;
   };
 
-  // place the camera so the field's centre sits in the middle of the board, and work out where each place is on the ground
-  B.drillLayout = function (board, W, H, dpr, spots, dummies) {
+  // place the camera so the field's centre sits in the middle of the board, and work out where each hero's place is on
+  // the ground. places: [{ id, fx, fy }] in fractions of the board; clear: points of the board nothing may grow on
+  B.drillLayout = function (board, W, H, dpr, places, dummies, clear) {
     const D = this.drill; if (!D || !board) return;
     const z = this.cam.zoom * dpr, cs = BB.iso(D.centre.x, D.centre.y);
     const bx = board.x + board.w * 0.5, by = board.y + board.h * 0.52;
@@ -37,38 +38,48 @@
     const c = BB.unIso(want.x, want.y); this.cam.x = c.x; this.cam.y = c.y;
     const ox = W / 2 - want.x * z, oy = H / 2 - want.y * z - 20 * z;
     const toW = (px, py) => BB.unIso((px - ox) / z, (py - oy) / z);
-    D.spots = spots.map((s) => Object.assign(toW(board.x + s.fx * board.w, board.y + s.fy * board.h), { row: s.row, i: s.i }));
+    D.spots = places.map((s) => Object.assign(toW(board.x + s.fx * board.w, board.y + s.fy * board.h), { id: s.id }));
     D.dummyAt = dummies.map((s) => toW(board.x + s.fx * board.w, board.y + s.fy * board.h));
-    if (!D.dummies.length) D.dummies = D.dummyAt.map((p) => ({ x: p.x, y: p.y, wob: 0, wv: 0, flash: 0 }));
+    if (!D.dummies.length) D.dummies = D.dummyAt.map((p) => ({ x: p.x, y: p.y, wob: 0, wv: 0, flash: 0, buffs: {} }));
     else D.dummies.forEach((d, i) => { d.x = D.dummyAt[i].x; d.y = D.dummyAt[i].y; });
-    if (!D.cleared) { // nothing grows where the heroes train
-      D.cleared = true;
-      const pts = D.spots.concat(D.dummyAt);
-      this.map.props = this.map.props.filter((p) => !pts.some((q) => hyp(p.x - q.x, p.y - q.y) < 2.2 + (p.r || 0)));
-      this.map.anims = this.map.anims.filter((a) => !pts.some((q) => hyp(a.x - q.x, a.y - q.y) < 2));
+    const key = Math.round(board.w) + 'x' + Math.round(board.h) + '@' + z.toFixed(2);
+    if (D.cleared !== key) { // nothing grows where the heroes train
+      D.cleared = key;
+      const pts = (clear || []).map((s) => toW(board.x + s.fx * board.w, board.y + s.fy * board.h)).concat(D.dummyAt);
+      this.map.props = this.map.props.filter((p) => !pts.some((q) => hyp(p.x - q.x, p.y - q.y) < 1.5 + (p.r || 0)));
+      this.map.anims = this.map.anims.filter((a) => !pts.some((q) => hyp(a.x - q.x, a.y - q.y) < 1.6));
     }
   };
 
-  // keep the scene's heroes in step with the formation
+  // keep the scene's heroes in step with the team: who is on the field, and where each one's place is
   B.drillSync = function (S) {
     const D = this.drill; if (!D || !D.spots) return;
-    const want = D.spots.map((sp) => ({ sp, id: S.formation[sp.row][sp.i] })).filter((q) => q.id);
-    const key = want.map((q) => q.id + '@' + q.sp.row + q.sp.i).join(',');
-    for (const q of want) { const e = this.heroList.find((x) => x.hero.id === q.id); if (e) e.home = { x: q.sp.x, y: q.sp.y }; }
+    const want = D.spots.filter((q) => q.id);
+    for (const q of want) {
+      const e = this.heroList.find((x) => x.hero.id === q.id); if (!e) continue;
+      e.home = { x: q.x, y: q.y };
+      if (D.dragId === q.id) { e.x = q.x; e.y = q.y; e.act = null; e.wander = null; e.drillT = 1.5; if (e.state !== 'attack') { e.state = 'idle'; this.setClip(e, 'Idle'); } } // carried by the finger
+    }
+    const key = want.map((q) => q.id).join(',');
     if (key === D.lastIds) return;
     // heroes taken out leave; new ones step in at their place
-    for (const e of this.heroList.slice()) if (!want.some((q) => q.id === e.hero.id)) { this.ents.splice(this.ents.indexOf(e), 1); this.heroList.splice(this.heroList.indexOf(e), 1); }
+    for (const e of this.heroList.slice()) if (!want.some((q) => q.id === e.hero.id)) { this.ents.splice(this.ents.indexOf(e), 1); this.heroList.splice(this.heroList.indexOf(e), 1); for (const o of this.heroList) if (o.act && o.act.with === e) o.act = null; }
     let missing = false;
     for (const q of want) {
       if (this.heroList.some((x) => x.hero.id === q.id)) continue;
       const h = S.heroes.find((x) => x.id === q.id); if (!h) continue;
       if (!BB.heroLayers(h).every((l) => BB.A.chars[l.key])) { missing = true; if (!D.loading) { D.loading = true; BB.loadHeroes([h]).then(() => { D.loading = false; D.lastIds = ''; }); } continue; }
-      const e = this.spawnHero(h, BB.heroStats(h), q.sp.x, q.sp.y);
+      const e = this.spawnHero(h, BB.heroStats(h), q.x, q.y);
       if (!this.ents.includes(e)) this.ents.push(e); if (!this.heroList.includes(e)) this.heroList.push(e);
-      e.home = { x: q.sp.x, y: q.sp.y }; e.drillT = 0.5 + R() * 2; e.dir = 1; e.spawnT = 0.4;
+      e.home = { x: q.x, y: q.y }; e.drillT = 0.5 + R() * 2; e.dir = 1; e.spawnT = 0.4;
       this.addFx('buff3', e.x, e.y, { sc: 0.5, add: true });
     }
     if (!missing) D.lastIds = key;
+  };
+  // where a hero stands on the screen right now, in main-canvas pixels (for picking them up)
+  B.drillScreen = function (id) {
+    const e = this.heroList.find((x) => x.hero.id === id), v = this.view; if (!e || !v) return null;
+    const s = BB.iso(e.x, e.y); return { x: s.x * v.z + v.ox, y: s.y * v.z + v.oy, sc: (e.sc || 1) * v.z };
   };
 
   // ---------------------------------------------------------------- what the heroes do between battles

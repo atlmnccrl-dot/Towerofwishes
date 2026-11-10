@@ -87,6 +87,18 @@ BB.autoFill(F);
 const fl = BB.formationList(F);
 ok(fl.length === 5 && fl.filter((x) => x.row === 'front').every((x) => !BB.CALLINGS[x.hero.calling].ranged), 'auto-fill: five heroes, fighters in front');
 ok(BB.teamPower(BB.teamHeroes(F)) > 0, 'team power');
+// free placement: anywhere on the field; the half a hero stands in decides their line
+const mover = fl.find((x) => x.row === 'back').hero;
+ok(BB.setPlace(F, mover.id, 0.9, 0.1) && BB.rowOf(F, mover.id) === 'front' && BB.teamIds(F).length === 5, 'dragging a hero forward puts them in the front line');
+ok(BB.formationList(F).filter((x) => x.row === 'front').length === 3, 'the front line can hold more than two');
+const pm = BB.placeOf(F, mover.id); ok(pm.u === 0.9 && pm.v === 0.1, 'the place is kept');
+ok(BB.setPlace(F, mover.id, -3, 7) && BB.placeOf(F, mover.id).u === 0 && BB.placeOf(F, mover.id).v === 1 && BB.rowOf(F, mover.id) === 'back', 'places stay on the field');
+const flp = BB.formationList(F); ok(flp.length === 5 && flp.every((x) => x.u >= 0 && x.u <= 1 && x.v >= 0 && x.v <= 1 && x.slot >= 0), 'every hero in the list has a place');
+const bench = F.heroes.find((x) => !BB.teamIds(F).includes(x.id)); ok(bench && !BB.setPlace(F, bench.id, 0.5, 0.5), 'a sixth hero cannot be dropped on a full field');
+BB.removeHero(F, mover.id); ok(!F.place[mover.id] && BB.teamIds(F).length === 4, 'taking a hero out clears their place');
+ok(BB.placeHero(F, bench.id) && BB.teamIds(F).length === 5, 'a tap brings a hero onto a free place');
+const old = { heroes: F.heroes, formation: { front: [F.heroes[0].id, null], back: [null, F.heroes[1].id, null] } }; BB.fixFormation(old);
+ok(old.formation.front.length === 5 && old.formation.back.length === 5 && BB.teamIds(old).length === 2 && BB.formationList(old).length === 2, 'an older save\'s formation still loads');
 
 // tiers and recruiting
 let roster;

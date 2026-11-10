@@ -1,4 +1,5 @@
 // Runs every campaign stage in Node with stubbed art. usage: node test/sim-node.js [stageIdx|all] [runs]
+//   PLACED=1  heroes stand at the game's default places (free placement) instead of the old fixed slots
 //   LAG=n   heroes are n levels below the stage (default 1)      NOULT=1  nobody casts ultimates (Auto off, no taps)
 global.window = globalThis;
 const BB = require('../js/rules.js');
@@ -29,6 +30,7 @@ for (const idx of list) {
       return h;
     });
     const formation = heroes.map((h, i) => ({ hero: h, row: i < 2 ? 'front' : 'back', slot: i < 2 ? i : i - 2 }));
+    if (process.env.PLACED) { const D = { front: [[0.74, 0.36], [0.78, 0.64]], back: [[0.24, 0.24], [0.28, 0.5], [0.32, 0.76]] }; formation.forEach((f) => { f.u = D[f.row][f.slot][0]; f.v = D[f.row][f.slot][1]; }); } // as the game places them
     const map = BB.buildMap(M.layout, BB.CHAPTERS[M.chapter - 1].biome, 1000 + idx * 10 + k, {});
     const B = new BB.Battle({ map, mission: M, formation, level: M.level, save, seed: k + 1 });
     let t = 0;

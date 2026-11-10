@@ -66,10 +66,13 @@ A hero-collector RPG: you build the team, the team fights.
    Lightning, Meteor, Smite, Blood Rush, Pole Vault, Decoy, Flurry, Barrier. The legends and the Captain are written
    by hand. Their card and the hero screen describe all of it; the team screen shows which classes you have and what
    the team is missing.
-4. **Formation.** Up to five heroes: two in the front row (they draw the blows), three behind. The team screen
-   opens onto the land the campaign is in (the next stage's region) and the formation's heroes live on it
-   (js/drill.js): each keeps to their place, and between rests they train on straw dummies, spar in pairs, wander
-   over to chat, stretch, and try out their signature.
+4. **Formation.** Up to five heroes, **placed anywhere on the field**: press a hero (or the ring at their place)
+   and drag. Heroes right of the dashed line fight in the front line (they draw the blows), the rest behind it,
+   and the team marches and starts each battle in the shape you set. Tap a hero to select them and take them out;
+   tap a roster card to bring one on or send one back. The team screen opens onto the land the campaign is in
+   (the next stage's region) and the team's heroes live on it (js/drill.js): each keeps to their place, and between
+   rests they train on straw dummies, spar in pairs, wander over to chat, stretch, and try out their signature.
+   On a phone the roster is a strip along the top of the side panel.
    **Bonds** reward mixed callings. *Auto-fill* puts the strongest five in place.
 5. **Battle.** Heroes march as a column between fights and fight by role: the **tank** holds the front and
    peels foes off the back line; **assassins** wait unseen behind the tank, slip round the flank once the lines meet
@@ -127,9 +130,12 @@ Losing costs nothing (and still teaches your heroes): forge, change the formatio
 | Shadowblade | Assassin | **Shadowstep** — reappear behind a foe, sure critical |
 | Lancer | Skirmisher | **Impaling Charge** — spear everything in a line |
 
-Settings: music, effects, screen shake, damage numbers, erase save, and the **Theater**: every cutscene in the game
-(the opening, the four chapter openers, each boss's entrance and fall, a summoning for every entrance), unlocked,
-to watch again without playing through.
+Settings: music, effects, screen shake, damage numbers, erase save, and **Development** (temporary, for building
+the game): watch any moment without playing to it. *Live* tiles play the real game with a full-strength team in a
+sandbox (a throwaway save that is never stored; leaving a battle returns to the list): each boss fight from entrance
+to fall, ultimates back to back, signature moves non-stop, weapon traits, the last horde, a fight on the edge, and
+each land's team field. The rest are cutscenes (the opening, chapter openers, boss entrances and falls) and
+summonings (every rarity, every legend, every signature move, every entrance).
 
 Sound: monster voices from Ririsaurus' *Fantasy Monsters*, *Dinosaurs* and *Abyssal Horror SFX Vol.1* packs
 (assets/sfx, trimmed and compressed; credited in Settings): wargs for beastkin, a serpent's hiss for stalkers,

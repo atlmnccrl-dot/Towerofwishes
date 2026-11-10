@@ -923,19 +923,28 @@
     void prevT;
   };
 
-  // ---------------------------------------------------------------- team: a field with five places; heroes stand where they will fight
-  const T = UI.tm = { sel: null, stage: null, t: 0, spots: [] };
-  UI.openTeam = function (stageIdx) { T.stage = stageIdx === undefined ? null : stageIdx; T.sel = null; UI.renderTeam(); UI.show('team'); $('tabbar').style.display = T.stage !== null ? 'none' : ''; if (BB.openDrill) BB.openDrill(T.stage); };
-  const SPOTS = [['front', 0, 0.63, 0.36], ['front', 1, 0.68, 0.64], ['back', 0, 0.3, 0.24], ['back', 1, 0.35, 0.5], ['back', 2, 0.4, 0.76]];
-  const DUMMIES = [{ fx: 0.86, fy: 0.3 }, { fx: 0.9, fy: 0.62 }];
-  // the living field: the main scene's camera frames the board and the heroes keep to these places on the ground
+  // ---------------------------------------------------------------- team: an open field; heroes are placed anywhere on it by dragging
+  const T = UI.tm = { sel: null, stage: null, t: 0, drag: null, marks: [] };
+  UI.openTeam = function (stageIdx) {
+    T.stage = stageIdx === undefined ? null : stageIdx; T.sel = null; T.drag = null; BB.fixFormation(BB.save);
+    UI.renderTeam(); UI.show('team'); $('tabbar').style.display = T.stage !== null ? 'none' : ''; $('team').classList.toggle('pre', T.stage !== null);
+    if (BB.openDrill) BB.openDrill(T.stage);
+  };
+  // the part of the board heroes can stand on, in fractions of it: u runs left (rear) to right (the enemy), v top to bottom
+  const ZONE = { x0: 0.1, x1: 0.76, y0: 0.24, y1: 0.84 };
+  const zx = (u) => ZONE.x0 + u * (ZONE.x1 - ZONE.x0), zy = (v) => ZONE.y0 + v * (ZONE.y1 - ZONE.y0);
+  const DUMMIES = [{ fx: 0.88, fy: 0.34 }, { fx: 0.92, fy: 0.66 }];
+  const CLEAR = []; for (let i = 0; i <= 6; i++) for (let j = 0; j <= 5; j++) CLEAR.push({ fx: zx(i / 6), fy: zy(j / 5) });
+  const teamPlaces = (S) => BB.teamIds(S).map((id) => { const p = BB.placeOf(S, id); return { id, u: p.u, v: p.v, fx: zx(p.u), fy: zy(p.v) }; });
+  // the living field: the main scene's camera frames the board and each hero's place is a point on its ground
   UI.teamLayout = function (scene, W, H, dpr) {
     const c = $('boardCv'); if (!c) return; const rc = c.getBoundingClientRect(); if (!rc.width) return;
     const board = { x: rc.left * dpr, y: rc.top * dpr, w: rc.width * dpr, h: rc.height * dpr };
-    scene.drillLayout(board, W, H, dpr, SPOTS.map(([row, i, fx, fy]) => ({ row, i, fx, fy })), DUMMIES);
+    scene.drill.dragId = T.drag && T.drag.moved ? T.drag.id : null;
+    scene.drillLayout(board, W, H, dpr, teamPlaces(BB.save), DUMMIES, CLEAR);
     scene.drillSync(BB.save);
   };
-  const drillOn = () => { const s = BB.liveScene && BB.liveScene(); return !!(s && s.drill && s.drill.spots); };
+  const liveScene = () => { const s = BB.liveScene && BB.liveScene(); return s && s.drill && s.drill.spots ? s : null; };
   UI.teamRender = function (dt) {
     const c = $('boardCv'); if (!c || !BB.save) return;
     const S = BB.save, dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -943,65 +952,92 @@
     if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
     const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
     T.t += dt;
-    const live = drillOn();
+    const scene = liveScene(), live = !!scene;
     $('team').classList.toggle('live', live);
     if (live) g.clearRect(0, 0, w, h);
-    else {
-    // the field: dark slate, a fine diamond grid, the foe's side warmer
-    const bg = g.createLinearGradient(0, 0, w, h);
-    bg.addColorStop(0, '#121722'); bg.addColorStop(1, '#0b0e15'); g.fillStyle = bg; g.fillRect(0, 0, w, h);
-    const fg = g.createLinearGradient(w * 0.72, 0, w, 0); fg.addColorStop(0, 'rgba(255,90,80,0)'); fg.addColorStop(1, 'rgba(255,90,80,0.12)'); g.fillStyle = fg; g.fillRect(w * 0.72, 0, w * 0.28, h);
-    g.strokeStyle = 'rgba(255,255,255,0.045)'; g.lineWidth = 1;
-    const step = 42 * dpr;
-    for (let x = -h; x < w + h; x += step) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x + h * 2, h); g.stroke(); g.beginPath(); g.moveTo(x, h); g.lineTo(x + h * 2, 0); g.stroke(); }
-    g.strokeStyle = 'rgba(255,255,255,0.08)'; g.setLineDash([4 * dpr, 6 * dpr]); g.beginPath(); g.moveTo(w * 0.52, 34 * dpr); g.lineTo(w * 0.52, h - 40 * dpr); g.stroke(); g.setLineDash([]);
+    else { const bg = g.createLinearGradient(0, 0, w, h); bg.addColorStop(0, '#121722'); bg.addColorStop(1, '#0b0e15'); g.fillStyle = bg; g.fillRect(0, 0, w, h); }
+    // a soft shade at the top so the labels read over the ground; the line that splits rear from front
+    const sh = g.createLinearGradient(0, 0, 0, 56 * dpr); sh.addColorStop(0, 'rgba(6,8,12,0.6)'); sh.addColorStop(1, 'rgba(6,8,12,0)'); g.fillStyle = sh; g.fillRect(0, 0, w, 56 * dpr);
+    const mid = zx(0.5) * w, dragging = T.drag && T.drag.moved;
+    g.strokeStyle = 'rgba(255,255,255,' + (dragging ? 0.4 : 0.16) + ')'; g.lineWidth = 1 * dpr; g.setLineDash([5 * dpr, 7 * dpr]);
+    g.beginPath(); g.moveTo(mid, zy(-0.12) * h); g.lineTo(mid, zy(1.08) * h); g.stroke(); g.setLineDash([]);
+    if (dragging) { // the edge of the field shows while a hero is being moved
+      g.strokeStyle = 'rgba(255,255,255,0.22)'; g.setLineDash([3 * dpr, 6 * dpr]); g.strokeRect(zx(0) * w - 26 * dpr, zy(0) * h - 30 * dpr, (zx(1) - zx(0)) * w + 52 * dpr, (zy(1) - zy(0)) * h + 48 * dpr); g.setLineDash([]);
     }
-    g.font = '600 ' + Math.round(11 * dpr) + 'px Outfit, sans-serif'; g.textAlign = 'center'; g.fillStyle = live ? 'rgba(235,240,248,0.85)' : 'rgba(160,170,185,0.8)';
-    const tl = (txt, x) => { g.save(); g.letterSpacing = (2 * dpr) + 'px'; if (live) { g.shadowColor = 'rgba(0,0,0,0.9)'; g.shadowBlur = 6 * dpr; } g.fillText(txt, x, 24 * dpr); g.restore(); };
-    if (live) { // a soft shade at the top so the labels read over the ground
-      const sh = g.createLinearGradient(0, 0, 0, 60 * dpr); sh.addColorStop(0, 'rgba(6,8,12,0.55)'); sh.addColorStop(1, 'rgba(6,8,12,0)'); g.fillStyle = sh; g.fillRect(0, 0, w, 60 * dpr); g.fillStyle = 'rgba(235,240,248,0.85)'; }
-    tl('BACK ROW', w * 0.35); tl('FRONT ROW', w * 0.655);
-    g.fillStyle = 'rgba(255,120,110,0.85)'; g.textAlign = 'right'; g.save(); g.letterSpacing = (2 * dpr) + 'px'; g.fillText('ENEMY  →', w - 16 * dpr, 24 * dpr); g.restore();
-    const sc = Math.max(1, Math.round(h / (250 * dpr))) * dpr;
-    const rw = Math.min(w * 0.08, 34 * sc);
-    T.spots = SPOTS.map(([row, i, fx, fy]) => ({ row, i, x: fx * w, y: fy * h, r: rw * 1.25 }));
-    const list = T.spots.map((sp) => ({ sp, h: S.heroes.find((x) => x.id === S.formation[sp.row][sp.i]) })).sort((a, b) => a.sp.y - b.sp.y);
-    for (const { sp, h: hero } of list) {
-      const sel = T.sel && T.sel.row === sp.row && T.sel.i === sp.i;
-      const col = hero ? UI.rgba[hero.rarity || 0] : 'rgba(255,255,255,A)';
-      const gl = g.createRadialGradient(sp.x, sp.y, 0, sp.x, sp.y, rw * 1.2);
-      gl.addColorStop(0, col.replace('A', hero ? (live ? '0.16' : '0.28') : '0.06')); gl.addColorStop(1, col.replace('A', '0'));
-      g.fillStyle = gl; g.beginPath(); g.ellipse(sp.x, sp.y, rw * 1.2, rw * 0.44, 0, 0, 7); g.fill();
-      g.lineWidth = 1.5 * dpr; g.strokeStyle = col.replace('A', hero ? (live ? '0.55' : '0.9') : live ? '0.35' : '0.22'); g.beginPath(); g.ellipse(sp.x, sp.y, rw, rw * 0.36, 0, 0, 7); g.stroke();
-      if (sel) { g.strokeStyle = 'rgba(255,190,85,' + (0.55 + Math.sin(T.t * 6) * 0.4) + ')'; g.lineWidth = 2 * dpr; g.setLineDash([6 * dpr, 5 * dpr]); g.lineDashOffset = -T.t * 20 * dpr; g.beginPath(); g.ellipse(sp.x, sp.y, rw * 1.22, rw * 0.46, 0, 0, 7); g.stroke(); g.setLineDash([]); }
-      if (!hero) { g.strokeStyle = 'rgba(255,255,255,' + (sel ? 0.9 : 0.3) + ')'; g.lineWidth = 2 * dpr; const q = 6 * dpr; g.beginPath(); g.moveTo(sp.x - q, sp.y); g.lineTo(sp.x + q, sp.y); g.moveTo(sp.x, sp.y - q); g.lineTo(sp.x, sp.y + q); g.stroke(); continue; }
+    g.font = '600 ' + Math.round(11 * dpr) + 'px Outfit, sans-serif'; g.textAlign = 'center';
+    const tl = (txt, x, col) => { g.save(); g.letterSpacing = (2 * dpr) + 'px'; g.shadowColor = 'rgba(0,0,0,0.9)'; g.shadowBlur = 6 * dpr; g.fillStyle = col; g.fillText(txt, x, 24 * dpr); g.restore(); };
+    tl('REAR', (zx(0) + zx(0.5)) / 2 * w, 'rgba(235,240,248,0.8)'); tl('FRONT LINE', (zx(0.5) + zx(1)) / 2 * w, 'rgba(235,240,248,0.8)');
+    g.textAlign = 'right'; tl('ENEMY  →', w - 16 * dpr, 'rgba(255,130,120,0.9)'); g.textAlign = 'center';
+    const sc = Math.max(1, Math.round(h / (250 * dpr))) * dpr, rw = Math.min(w * 0.07, 30 * sc);
+    const rc = c.getBoundingClientRect();
+    T.marks = teamPlaces(S).map((p) => {
+      const m = { id: p.id, x: p.fx * w, y: p.fy * h, r: rw, hx: p.fx * w, hy: p.fy * h };
+      if (scene) { const q = scene.drillScreen(p.id); if (q) { m.hx = q.x - rc.left * dpr; m.hy = q.y - rc.top * dpr; } } // where the hero really is right now
+      return m;
+    }).sort((a, b) => a.y - b.y);
+    for (const m of T.marks) {
+      const hero = S.heroes.find((x) => x.id === m.id); if (!hero) continue;
+      const held = T.drag && T.drag.id === m.id && T.drag.moved, sel = T.sel === m.id;
+      const col = UI.rgba[hero.rarity || 0];
+      const gl = g.createRadialGradient(m.x, m.y, 0, m.x, m.y, rw * 1.2);
+      gl.addColorStop(0, col.replace('A', held ? '0.4' : live ? '0.16' : '0.28')); gl.addColorStop(1, col.replace('A', '0'));
+      g.fillStyle = gl; g.beginPath(); g.ellipse(m.x, m.y, rw * 1.2, rw * 0.44, 0, 0, 7); g.fill();
+      g.lineWidth = (held || sel ? 2.2 : 1.5) * dpr; g.strokeStyle = col.replace('A', held || sel ? '1' : live ? '0.55' : '0.9'); g.beginPath(); g.ellipse(m.x, m.y, rw, rw * 0.36, 0, 0, 7); g.stroke();
+      if (sel && !held) { g.strokeStyle = 'rgba(255,190,85,' + (0.55 + Math.sin(T.t * 6) * 0.4) + ')'; g.lineWidth = 2 * dpr; g.setLineDash([6 * dpr, 5 * dpr]); g.lineDashOffset = -T.t * 20 * dpr; g.beginPath(); g.ellipse(m.x, m.y, rw * 1.22, rw * 0.46, 0, 0, 7); g.stroke(); g.setLineDash([]); }
       if (!live) { const layers = BB.heroLayers(hero), n = BB.clipLen(layers[0].key, 'Idle') || 15;
-        BB.drawHeroDressed(g, hero, BB.auraOf(hero), 'Idle', 1, Math.floor(T.t * 9 + sp.i * 3) % n, sp.x, sp.y + rw * 0.05, sc, T.t + sp.i, { noSlash: true, layers }); }
-      g.textAlign = 'center'; if (live) { g.shadowColor = 'rgba(0,0,0,0.95)'; g.shadowBlur = 5 * dpr; }
-      g.font = '600 ' + Math.round(12 * dpr) + 'px Outfit, sans-serif'; g.fillStyle = '#fff'; g.fillText(BB.shortName(hero), sp.x, sp.y + rw * 0.5 + 13 * dpr);
-      if (!live) { g.font = '500 ' + Math.round(10.5 * dpr) + 'px Inter, sans-serif'; g.fillStyle = col.replace('A', '1'); g.fillText('Lv ' + hero.level + ' · ' + BB.CALLINGS[hero.calling].name, sp.x, sp.y + rw * 0.5 + 27 * dpr); }
-      g.shadowBlur = 0;
+        BB.drawHeroDressed(g, hero, BB.auraOf(hero), 'Idle', 1, Math.floor(T.t * 9) % n, m.x, m.y + rw * 0.05, sc, T.t, { noSlash: true, layers }); }
+      g.save(); g.textAlign = 'center'; g.shadowColor = 'rgba(0,0,0,0.95)'; g.shadowBlur = 5 * dpr;
+      g.font = '600 ' + Math.round(12 * dpr) + 'px Outfit, sans-serif'; g.fillStyle = '#fff'; g.fillText(BB.shortName(hero), m.x, m.y + rw * 0.5 + 13 * dpr);
+      g.restore();
+      if (sel && !held) { // the chosen hero can be sent back to the roster
+        const bw = 84 * dpr, bh = 24 * dpr, bx = Math.max(4 * dpr, Math.min(w - bw - 4 * dpr, m.x - bw / 2)), by = Math.max(30 * dpr, m.y - rw * 2.9 - bh);
+        m.out = { x: bx, y: by, w: bw, h: bh };
+        g.fillStyle = 'rgba(14,16,24,0.92)'; g.beginPath(); g.roundRect ? g.roundRect(bx, by, bw, bh, bh / 2) : g.rect(bx, by, bw, bh); g.fill();
+        g.strokeStyle = 'rgba(255,120,110,0.8)'; g.lineWidth = 1.2 * dpr; g.stroke();
+        g.font = '700 ' + Math.round(11 * dpr) + 'px Outfit, sans-serif'; g.textAlign = 'center'; g.fillStyle = '#ffb0a6'; g.fillText('✕  TAKE OUT', bx + bw / 2, by + bh * 0.68);
+      }
     }
   };
-  UI.boardClick = function (ev) {
-    const c = $('boardCv'), rc = c.getBoundingClientRect(), d = c.width / rc.width;
-    const x = (ev.clientX - rc.left) * d, y = (ev.clientY - rc.top) * d;
+  // ---- picking heroes up: press one (the hero, or the ring at their place), drag anywhere on the field, let go
+  const boardPt = (ev) => { const c = $('boardCv'), rc = c.getBoundingClientRect(), d = c.width / rc.width; return { x: (ev.clientX - rc.left) * d, y: (ev.clientY - rc.top) * d, d, w: c.width, h: c.height }; };
+  const markAt = (p) => {
     let best = null, bd = 1e9;
-    for (const sp of T.spots) {
-      const dx = Math.abs(x - sp.x), top = sp.y - sp.r * 2.6, bot = sp.y + sp.r * 0.9;
-      if (dx > sp.r * 1.1 || y < top || y > bot) continue;
-      const q = dx + Math.abs(y - (sp.y - sp.r * 0.6)) * 0.5; if (q < bd) { bd = q; best = sp; }
+    for (const m of T.marks) for (const [x, y] of [[m.hx, m.hy], [m.x, m.y]]) {
+      const dx = Math.abs(p.x - x), top = y - m.r * 2.8, bot = y + m.r * 0.9;
+      if (dx > m.r * 1.15 || p.y < top || p.y > bot) continue;
+      const q = dx + Math.abs(p.y - (y - m.r * 0.7)) * 0.5; if (q < bd) { bd = q; best = m; }
     }
-    if (!best) { if (T.sel) { T.sel = null; UI.renderTeam(); } return; }
-    const S = BB.save, id = S.formation[best.row][best.i];
-    BB.audioUnlock(); BB.sfx('click');
-    if (id) { BB.removeHero(S, id); BB.persist(); T.sel = { row: best.row, i: best.i }; }
-    else T.sel = T.sel && T.sel.row === best.row && T.sel.i === best.i ? null : { row: best.row, i: best.i };
+    return best;
+  };
+  UI.boardDown = function (ev) {
+    const p = boardPt(ev), S = BB.save;
+    BB.audioUnlock();
+    const selM = T.marks.find((m) => m.id === T.sel && m.out);
+    if (selM && p.x >= selM.out.x && p.x <= selM.out.x + selM.out.w && p.y >= selM.out.y && p.y <= selM.out.y + selM.out.h) { // TAKE OUT
+      BB.removeHero(S, T.sel); T.sel = null; BB.sfx('click'); BB.persist(); UI.renderTeam(); UI.refreshTop(); return;
+    }
+    const m = markAt(p);
+    if (!m) { if (T.sel) { T.sel = null; UI.renderTeam(); } return; }
+    T.drag = { id: m.id, sx: p.x, sy: p.y, moved: false, ox: m.x - p.x, oy: m.y - p.y, grabHero: Math.hypot(p.x - m.hx, p.y - m.hy) < Math.hypot(p.x - m.x, p.y - m.y) };
+    try { $('boardCv').setPointerCapture(ev.pointerId); } catch (e) { /* not a real pointer */ }
+  };
+  UI.boardMove = function (ev) {
+    const D = T.drag; if (!D) return;
+    const p = boardPt(ev), S = BB.save;
+    if (!D.moved) { if (Math.hypot(p.x - D.sx, p.y - D.sy) < 7 * p.d) return; D.moved = true; T.sel = null; if (D.grabHero) { D.ox = 0; D.oy = 10 * p.d; } BB.sfx('click'); }
+    const u = ((p.x + D.ox) / p.w - ZONE.x0) / (ZONE.x1 - ZONE.x0), v = ((p.y + D.oy) / p.h - ZONE.y0) / (ZONE.y1 - ZONE.y0);
+    BB.setPlace(S, D.id, u, v);
+  };
+  UI.boardUp = function () {
+    const D = T.drag; if (!D) return; T.drag = null;
+    if (D.moved) { BB.sfx('guard'); BB.persist(); } else { T.sel = T.sel === D.id ? null : D.id; BB.sfx('click'); }
     UI.renderTeam(); UI.refreshTop();
   };
+  UI.boardClick = UI.boardDown;
+  (function () { const c = $('boardCv'); if (!c) return; c.addEventListener('pointermove', (e) => UI.boardMove(e)); c.addEventListener('pointerup', () => UI.boardUp()); c.addEventListener('pointercancel', () => UI.boardUp()); })();
   UI.renderTeam = function () {
     const S = BB.save, ids = BB.teamIds(S);
-    $('boardHint').textContent = T.sel ? 'Now tap a hero in the roster to place them here' : ids.length ? 'Tap a hero on the field to take them out · the front row draws the blows' : 'Tap a place, then a hero';
+    $('boardHint').textContent = !ids.length ? 'Tap a hero in the roster to bring them onto the field' : T.sel ? 'Drag to move them · or take them out' : 'Drag heroes anywhere · right of the line they fight in front';
     const top = $('teamTop'); top.innerHTML = '';
     const team = BB.teamHeroes(S), tp = BB.teamPower(team);
     const bonds = BB.bondsFor(team.map((h) => h.calling));
@@ -1022,7 +1058,7 @@
     click(af, () => { BB.autoFill(S); T.sel = null; BB.persist(); UI.renderTeam(); UI.refreshTop(); });
     row.appendChild(af);
     if (T.stage !== null) {
-      const back = el('button', 'btn dark sm', '‹ Map'); click(back, () => UI.openCampaign(T.stage)); row.appendChild(back);
+      const back = el('button', 'btn dark sm', BB.dev ? '‹ Development' : '‹ Map'); click(back, () => (BB.dev ? BB.goCamp() : UI.openCampaign(T.stage))); row.appendChild(back);
       row.appendChild(el('div', 'grow'));
       const go = el('button', 'btn xl', 'Fight ▸'); go.disabled = !team.length; click(go, () => BB.deploy(T.stage)); row.appendChild(go);
     }
@@ -1032,8 +1068,7 @@
       const inT = ids.includes(h.id);
       ro.appendChild(UI.heroCard(h, { inteam: inT, onClick: () => {
         if (inT) BB.removeHero(S, h.id);
-        else if (T.sel) BB.placeHero(S, h.id, T.sel.row, T.sel.i);
-        else if (!BB.placeHero(S, h.id)) { UI.toast('The field is full. Tap a hero on the field to make room.'); return; }
+        else if (!BB.placeHero(S, h.id)) { UI.toast('Five heroes at most. Take one out to make room.'); return; }
         T.sel = null; BB.persist(); UI.renderTeam(); UI.refreshTop();
       } }));
     }

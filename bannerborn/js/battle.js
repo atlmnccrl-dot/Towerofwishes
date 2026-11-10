@@ -31,9 +31,10 @@
     const px = -fy, py = fx;
     form.forEach((f) => {
       const st = BB.heroStats(f.hero, callings, this.save);
-      const off = f.row === 'front' ? { a: 1.1, b: (f.slot - 0.5) * 1.5 } : { a: -0.6, b: (f.slot - 1) * 1.4 };
+      // a hero placed by hand stands where they were put: u is how far forward, v where across the line
+      const off = f.u !== undefined ? { a: -1.3 + f.u * 3, b: (f.v - 0.5) * 4.4 } : f.row === 'front' ? { a: 1.1, b: (f.slot - 0.5) * 1.5 } : { a: -0.6, b: (f.slot - 1) * 1.4 };
       const e = this.spawnHero(f.hero, st, sp.x + fx * off.a + px * off.b, sp.y + fy * off.a + py * off.b);
-      e.row = f.row; e.fslot = f.slot; e.energy = Math.min(90, 25 + (st.startEnergy || 0));
+      e.row = f.row; e.fslot = Math.min(2, f.slot); if (f.u !== undefined) { e.fu = f.u; e.fv = f.v; } e.energy = Math.min(90, 25 + (st.startEnergy || 0));
       if (st.revive) this.revives = 1;
     });
     this.heroList = this.ents.filter((e) => e.side === 'hero');
@@ -1273,7 +1274,7 @@
   Battle.prototype.marchSpot = function (e) {
     const M = this.march; if (!M) return { x: e.x, y: e.y };
     const front = e.row === 'front', s = e.fslot || 0;
-    const f = front ? 0.6 : -0.8, side = front ? (s - 0.5) * 1.3 : (s - 1) * 1.25;
+    const placed = e.fu !== undefined, f = placed ? (e.fu - 0.5) * 2.6 : front ? 0.6 : -0.8, side = placed ? (e.fv - 0.5) * 3.6 : front ? (s - 0.5) * 1.3 : (s - 1) * 1.25;
     let x = M.x + M.hx * f - M.hy * side, y = M.y + M.hy * f + M.hx * side;
     if (BB.blocked(this.map, x, y)) { x = M.x; y = M.y; }
     return { x, y };

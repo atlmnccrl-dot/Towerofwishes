@@ -179,26 +179,63 @@
     return Math.round(p * 0.9);
   };
 
-  // ---------------------------------------------------------------- formation (front row 2, back row 3)
-  BB.FRONT = 2; BB.BACK = 3;
+  // ---------------------------------------------------------------- formation: up to five heroes, placed freely on the field
+  // Each hero has a place (u, v): u runs from the rear (0) to the enemy's side (1), v across the line (0..1). A hero
+  // placed in the front half fights in the front line (they draw the blows); the rest fight behind it.
+  BB.FRONT = 2; BB.BACK = 3; BB.TEAM_MAX = 5;
+  const DEF_PLACE = { front: [[0.74, 0.36], [0.78, 0.64], [0.66, 0.5], [0.84, 0.2], [0.86, 0.82]], back: [[0.24, 0.24], [0.28, 0.5], [0.32, 0.76], [0.12, 0.4], [0.14, 0.66]] };
+  BB.fixFormation = function (save) { // older saves had two front places and three back
+    const f = save.formation || (save.formation = { front: [], back: [] });
+    for (const r of ['front', 'back']) { f[r] = (f[r] || []).slice(0, BB.TEAM_MAX); while (f[r].length < BB.TEAM_MAX) f[r].push(null); }
+    if (!save.place) save.place = {};
+    const ids = BB.teamIds(save); for (const id in save.place) if (!ids.includes(id)) delete save.place[id];
+    return save;
+  };
   BB.teamIds = (save) => save.formation.front.concat(save.formation.back).filter(Boolean);
   BB.teamHeroes = (save) => BB.teamIds(save).map((id) => save.heroes.find((h) => h.id === id)).filter(Boolean);
+  BB.rowOf = (save, id) => (save.formation.front.includes(id) ? 'front' : save.formation.back.includes(id) ? 'back' : null);
+  BB.placeOf = function (save, id) {
+    if (save.place && save.place[id]) return save.place[id];
+    const row = BB.rowOf(save, id); if (!row) return null;
+    const d = DEF_PLACE[row][Math.min(DEF_PLACE[row].length - 1, save.formation[row].indexOf(id))];
+    return { u: d[0], v: d[1] };
+  };
   BB.formationList = function (save) {
     const out = [];
-    save.formation.front.forEach((id, i) => { const h = id && save.heroes.find((x) => x.id === id); if (h) out.push({ hero: h, row: 'front', slot: i }); });
-    save.formation.back.forEach((id, i) => { const h = id && save.heroes.find((x) => x.id === id); if (h) out.push({ hero: h, row: 'back', slot: i }); });
+    for (const row of ['front', 'back']) {
+      const line = save.formation[row].map((id) => id && save.heroes.find((x) => x.id === id)).filter(Boolean)
+        .map((h) => Object.assign({ hero: h, row }, BB.placeOf(save, h.id))).sort((a, b) => a.v - b.v);
+      line.forEach((f, i) => { f.slot = i; out.push(f); });
+    }
     return out;
   };
-  BB.placeHero = function (save, id, row, slot) { // a free slot (melee prefer the front), or the slot asked for
+  // put a hero at a place on the field (dragging); the half they stand in decides their line
+  BB.setPlace = function (save, id, u, v) {
+    BB.fixFormation(save);
     const h = save.heroes.find((x) => x.id === id); if (!h) return false;
-    if (row !== undefined) { BB.removeHero(save, id); const old = save.formation[row][slot]; save.formation[row][slot] = id; return old || true; }
-    if (BB.teamIds(save).includes(id)) return false;
-    const rows = BB.CALLINGS[h.calling].ranged ? ['back', 'front'] : ['front', 'back'];
-    for (const r of rows) { const i = save.formation[r].indexOf(null); if (i >= 0) { save.formation[r][i] = id; return true; } }
-    return false;
+    const inTeam = BB.teamIds(save).includes(id);
+    if (!inTeam && BB.teamIds(save).length >= BB.TEAM_MAX) return false;
+    u = Math.max(0, Math.min(1, u)); v = Math.max(0, Math.min(1, v));
+    const row = u >= 0.5 ? 'front' : 'back';
+    if (BB.rowOf(save, id) !== row) { for (const r of ['front', 'back']) { const i = save.formation[r].indexOf(id); if (i >= 0) save.formation[r][i] = null; } save.formation[row][save.formation[row].indexOf(null)] = id; }
+    save.place[id] = { u, v };
+    return true;
+  };
+  BB.placeHero = function (save, id, row, slot) { // a free place (melee prefer the front), or the slot asked for
+    BB.fixFormation(save);
+    const h = save.heroes.find((x) => x.id === id); if (!h) return false;
+    if (row !== undefined) { const old = save.formation[row][slot]; if (!old && !BB.teamIds(save).includes(id) && BB.teamIds(save).length >= BB.TEAM_MAX) return false;
+      BB.removeHero(save, id); if (old) delete save.place[old]; save.formation[row][slot] = id; return old || true; }
+    if (BB.teamIds(save).includes(id) || BB.teamIds(save).length >= BB.TEAM_MAX) return false;
+    const r = BB.CALLINGS[h.calling].ranged || h.calling === 'warpriest' ? 'back' : 'front';
+    // the first usual place in that line nobody stands near
+    const taken = BB.teamIds(save).map((x) => BB.placeOf(save, x));
+    const spot = DEF_PLACE[r].find((d) => !taken.some((t) => Math.hypot(t.u - d[0], t.v - d[1]) < 0.17)) || DEF_PLACE[r][0];
+    return BB.setPlace(save, id, spot[0], spot[1]);
   };
   BB.removeHero = function (save, id) {
     for (const r of ['front', 'back']) { const i = save.formation[r].indexOf(id); if (i >= 0) save.formation[r][i] = null; }
+    if (save.place) delete save.place[id];
   };
 
   // ---------------------------------------------------------------- hero tiers and recruiting
@@ -423,7 +460,7 @@
     const best = save.heroes.slice().sort((a, b) => BB.power(b) - BB.power(a)).slice(0, BB.FRONT + BB.BACK);
     const melee = (h) => !BB.CALLINGS[h.calling].ranged && h.calling !== 'warpriest';
     best.sort((a, b) => (melee(b) - melee(a)) || (BB.CALLINGS[a.calling].role === 'Tank' ? -1 : 0) - (BB.CALLINGS[b.calling].role === 'Tank' ? -1 : 0) || BB.power(b) - BB.power(a));
-    save.formation = { front: [null, null], back: [null, null, null] };
+    save.formation = { front: [], back: [] }; save.place = {}; BB.fixFormation(save);
     const front = best.filter(melee).slice(0, BB.FRONT), rest = best.filter((h) => !front.includes(h));
     front.forEach((h, i) => (save.formation.front[i] = h.id));
     rest.forEach((h, i) => { if (i < BB.BACK) save.formation.back[i] = h.id; else { const j = save.formation.front.indexOf(null); if (j >= 0) save.formation.front[j] = h.id; } });
@@ -448,7 +485,7 @@
     return {
       v: BB.SAVE_V, created: now, gold: 0, crystals: 0, sigils: 0,
       banner: { name: 'The Last Banner', color: BB.BANNER_COLORS[0], sigil: 'crown', trim: '#e8c66a' },
-      heroes: [cap], formation: { front: [cap.id, null], back: [null, null, null] }, inventory: [],
+      heroes: [cap], formation: { front: [cap.id, null, null, null, null], back: [null, null, null, null, null] }, place: {}, inventory: [],
       cleared: {}, seen: {}, idleT: now, shop: null, leader: cap.id,
       settings: { music: 0.5, sfx: 0.8, shake: true, speed: 1, auto: false, dmgNums: true }, stats: { kills: 0, gates: 0 }, quests: {},
     };

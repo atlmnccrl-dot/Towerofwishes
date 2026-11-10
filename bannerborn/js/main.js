@@ -19,8 +19,10 @@
         out.settings = Object.assign(BB.newSave().settings, s.settings || {});
         out.stats = Object.assign({ kills: 0, gates: 0 }, s.stats || {});
         out.formation = s.formation && s.formation.front && s.formation.back ? s.formation : d.formation;
+        out.place = s.place || {}; BB.fixFormation(out);
         // drop formation ids of heroes that no longer exist
         for (const row of ['front', 'back']) out.formation[row] = out.formation[row].map((id) => (id && out.heroes.some((h) => h.id === id) ? id : null));
+        BB.fixFormation(out);
         if (!BB.teamIds(out).length) BB.placeHero(out, out.heroes[0].id);
         return out;
       }
@@ -156,6 +158,7 @@
   };
   function campKey() { const S = BB.save; return S.leader + '|' + campHeroes().map((h) => h.id).join(',') + '|' + Object.keys(S.cleared).length; }
   async function goCamp() {
+    const wasDev = devExit(); // leaving a Development battle: back to the real save, and to the list
     const S = BB.save;
     mode = 'camp';
     await BB.loadHeroes(S.heroes);
@@ -166,6 +169,7 @@
     UI.show('home');
     BB.music('calm');
     BB.persist();
+    if (wasDev) openTheater();
   }
   BB.goCamp = goCamp;
   function drawTopBanner() { const bc = $('tbBanner'); UI.drawBanner(bc.getContext('2d'), BB.save.banner, bc.width, bc.height, 0); }
@@ -216,6 +220,7 @@
     BB.renderGround(map);
     scene = new BB.Battle({ map, mission: M, formation: BB.formationList(S), heroes: team, level: BB.foeLevel(M), save: S, seed, intro: true });
     scene.cam.zoom = 1;
+    if (devReal && devOpts && devOpts.tick) { const ticks = devOpts.tick.map((k) => DEV_TICK[k]); scene.devTick = (sc, dt) => ticks.forEach((f) => f(sc, dt)); }
     campBuilt = null;
     mode = 'battle';
     buildHud();
@@ -272,6 +277,7 @@
       actions.push(['Retry', '', () => UI.openTeam(current.idx)]);
       actions.push(['Heroes', 'dark', () => { goCamp().then(() => UI.go('heroes')); }]);
     }
+    if (devReal) { const o = devOpts; actions.length = 0; actions.push(['Development', '', () => after(goCamp)]); actions.push(['Watch again', 'dark', () => { devExit(); devBattle(o); }]); }
     if (win && M.boss && first) BB.Cinema.play('bossDown', { stage: M, music: 'calm' }, () => { BB.music(M.type === 'boss' ? 'calm' : 'battle'); UI.results(res, actions); BB.sfx('levelup'); });
     else { UI.results(res, actions); BB.sfx(win ? 'levelup' : 'click'); }
   }
@@ -430,36 +436,100 @@
   });
   ['sMusic', 'sSfx'].forEach((id) => $(id).addEventListener('input', () => { BB.save.settings.music = +$('sMusic').value; BB.save.settings.sfx = +$('sSfx').value; BB.setVolumes(); }));
   // ---- the theater: every cutscene, unlocked, for watching again
-  function theaterList() {
-    const list = [{ group: 'The story', items: [{ t: 'The Opening', s: 'Nine banners, the Gravegates', c: '#ffbe55', play: ['intro', {}] }] }];
-    list.push({ group: 'Chapter openers', items: BB.CHAPTERS.map((ch, i) => ({ t: 'Chapter ' + ['I', 'II', 'III', 'IV'][i] + ' · ' + ch.name, s: ch.blurb.length > 46 ? ch.blurb.slice(0, 45) + '…' : ch.blurb, c: '#ffcf7a', play: ['chapter', { chapter: ch, music: 'calm' }] })) });
-    const bosses = BB.MISSIONS.filter((m) => m.boss);
+  // ---------------------------------------------------------------- Development (temporary, for building the game)
+  // Everything worth reviewing without playing to it: every cutscene, every boss fight and late-game battle played
+  // live by a full-strength team, the battle spectacle on demand (ultimates back to back, signatures, weapon traits),
+  // every summoning, and each land's team field. Battles run in a sandbox: a throwaway save that is never stored.
+  let devReal = null, devOpts = null;
+  const realPersist = BB.persist;
+  BB.persist = function () { if (!devReal) realPersist(); };
+  function devSave(o) {
+    const S = BB.newSave(now()), st = BB.MISSIONS[o.idx];
+    S.settings = Object.assign({}, devReal.settings, { auto: true, speed: 1 }); S.banner = devReal.banner; S.seen.tutorial = 1;
+    BB.MISSIONS.slice(0, o.idx).forEach((m) => (S.cleared[m.id] = 1));
+    BB.MISSIONS.forEach((m) => { if (!(o.cine && m === st)) S.seen['cine_' + m.id] = 1; }); [2, 3, 4].forEach((c) => (S.seen['cine_ch' + c] = 1));
+    const all = [].concat(...BB.heroTiers(BB.ROSTER).map((t) => t.heroes));
+    const used = new Set();
+    for (const arch of o.archs || ['knight', 'barbarian', 'mage', 'ranger', 'paladin']) {
+      const e = all.find((c) => c.arch === arch && !used.has(c.key)); if (!e) continue; used.add(e.key);
+      S.heroes.push(BB.heroFromEntry(S, Object.assign({}, e, { rarity: 3 })));
+    }
+    const r = BB.rng(o.idx * 31 + 7), ench = o.ench || [];
+    S.heroes.forEach((h, i) => {
+      h.stars = 5; h.level = Math.min(BB.levelCap(h), st.level + (o.over === undefined ? 3 : o.over));
+      for (const slot of BB.SLOTS) { const it = BB.makeItem(r, slot, st.level, 3, slot === 'weapon' ? BB.weaponType(h.calling) : undefined); it.plus = 5; if (slot === 'weapon' && ench.length) it.ench = ench[i % ench.length]; h.gear[slot] = it; }
+    });
+    BB.autoFill(S);
+    return S;
+  }
+  function devEnter(o) { if (!devReal) devReal = BB.save; devOpts = o; BB.save = devSave(o); BB.dev = true; campBuilt = null; drillScene = null; document.body.classList.add('dev'); UI.refreshTop(); }
+  function devExit() { if (!devReal) return false; BB.save = devReal; devReal = null; devOpts = null; BB.dev = false; campBuilt = null; drillScene = null; document.body.classList.remove('dev'); UI.refreshTop(); return true; }
+  // what keeps a showcase battle showing its subject
+  const DEV_TICK = {
+    ults: (sc, dt) => { sc.devT = (sc.devT || 1.5) - dt; if (sc.devT > 0 || (sc.ep && sc.ep.ult)) return; sc.devT = 3.4; const hs = sc.heroesAlive(); if (!hs.length) return; const h = hs[(sc.devN = (sc.devN || 0) + 1) % hs.length]; h.energy = 100; sc.useSkill(h, true); },
+    sigs: (sc) => { for (const e of sc.heroList) if (!e.dead && e.sigCd > 1.6) e.sigCd = 1.6; },
+    sturdy: (sc) => { for (const e of sc.heroList) if (!e.dead && e.hp < e.maxhp * 0.5) e.hp = e.maxhp * 0.5; },
+  };
+  function devBattle(o) { devEnter(o); BB.deploy(o.idx); }
+  function devList() {
+    const bosses = BB.MISSIONS.filter((m) => m.boss), idxOf = (m) => BB.MISSIONS.indexOf(m);
     const tint = (m) => ({ vesh: '#7dffb0', regent: '#c9a8ff', sallow: '#ffd27a' }[m.boss] || '#ff7a6a');
-    list.push({ group: 'Boss entrances', items: bosses.map((m) => ({ t: BB.FOES[m.boss].name.split(',')[0], s: 'Stage ' + m.code + ' · ' + m.name, c: tint(m), play: ['boss', { stage: m }] })) });
-    list.push({ group: 'Boss falls', items: bosses.map((m) => ({ t: BB.FOES[m.boss].name.split(',')[0] + ' falls', s: 'Stage ' + m.code, c: tint(m), play: ['bossDown', { stage: m, music: 'calm' }] })) });
-    if (BB.ENTRANCES && BB.identityAll) list.push({ group: 'Summoning — every entrance', items: Object.keys(BB.ENTRANCES).map((k) => ({ t: BB.ENTRANCES[k].name, s: BB.ENTRANCES[k].line, c: '#86ccff', reveal: k })) });
+    const bn = (m) => BB.FOES[m.boss].name.split(',')[0];
+    const ix = (code) => BB.MISSIONS.findIndex((m) => m.code === code);
+    const list = [];
+    list.push({ group: 'Boss fights — played live by a full-strength team (entrance, the fight, the fall)', items: bosses.map((m) => ({ t: bn(m), s: 'Stage ' + m.code + ' · ' + m.name, c: tint(m), battle: { idx: idxOf(m), cine: true, over: 2 } })) });
+    list.push({ group: 'Battle spectacle', items: [
+      { t: 'Ultimates, back to back', s: 'Every hero\'s ultimate in turn, with its cut-in', c: '#d9b8ff', battle: { idx: ix('4-4'), tick: ['ults', 'sturdy'], archs: ['knight', 'mage', 'ranger', 'paladin', 'rogue'] } },
+      { t: 'Signature moves', s: 'Whirlwinds, meteors, chain lightning — non-stop', c: '#ffd27a', battle: { idx: ix('4-4'), tick: ['sigs', 'sturdy'], archs: ['barbarian', 'mage', 'duelist', 'spearman', 'paladin'] } },
+      { t: 'Weapon traits I', s: 'Fire, frost, storm, shadow, poison blades', c: '#ff8a4a', battle: { idx: ix('3-4'), tick: ['sturdy'], ench: ['holy', 'fire', 'frost', 'storm', 'shadow', 'poison'], archs: ['barbarian', 'duelist', 'spearman', 'monk', 'knight'] } },
+      { t: 'Weapon traits II', s: 'Holy, poison and storm on archers and casters', c: '#a6f04a', battle: { idx: ix('2-3'), tick: ['sturdy'], ench: ['holy', 'poison', 'storm', 'holy', 'fire', 'frost'], archs: ['ranger', 'mage', 'ranger', 'knight', 'rogue'] } },
+      { t: 'The last horde', s: 'Stage 4-5 · the biggest waves in the game', c: '#ff7a6a', battle: { idx: ix('4-5'), over: 2 } },
+      { t: 'Gravegates', s: 'Stage 4-2 · gates pouring out the dead', c: '#b57cff', battle: { idx: ix('4-2'), over: 2 } },
+      { t: 'A fight on the edge', s: 'Under-levelled: heartbeat, rescues, last stands', c: '#ff4a5a', battle: { idx: ix('3-7'), over: -3 } },
+    ].filter((x) => x.battle.idx >= 0) });
+    list.push({ group: 'The story', items: [{ t: 'The Opening', s: 'Nine banners, the Gravegates', c: '#ffbe55', play: ['intro', {}] }]
+      .concat(BB.CHAPTERS.map((ch, i) => ({ t: 'Chapter ' + ['I', 'II', 'III', 'IV'][i] + ' · ' + ch.name, s: ch.blurb.length > 46 ? ch.blurb.slice(0, 45) + '…' : ch.blurb, c: '#ffcf7a', play: ['chapter', { chapter: ch, music: 'calm' }] }))) });
+    list.push({ group: 'Boss entrances (cutscene only)', items: bosses.map((m) => ({ t: bn(m), s: 'Stage ' + m.code + ' · ' + m.name, c: tint(m), play: ['boss', { stage: m }] })) });
+    list.push({ group: 'Boss falls (cutscene only)', items: bosses.map((m) => ({ t: bn(m) + ' falls', s: 'Stage ' + m.code, c: tint(m), play: ['bossDown', { stage: m, music: 'calm' }] })) });
+    list.push({ group: 'Summoning — by rarity', items: BB.TIERS.map((t) => ({ t: t.name + ' summon', s: 'The gate climbs to ' + t.name.toLowerCase(), c: ['#c4ccd8', '#4da3ff', '#b57cff', '#ffae2b'][t.rarity], reveal: { rarity: t.rarity } }))
+      .concat(Object.keys(BB.LEGENDS).map((id) => ({ t: BB.LEGENDS[id].name, s: 'Legend · ' + BB.LEGENDS[id].title, c: BB.LEGENDS[id].color || '#ffae2b', reveal: { legend: id } }))) });
+    if (BB.SIGNATURES && BB.identityAll) list.push({ group: 'Summoning — every signature move', items: Object.keys(BB.SIGNATURES).map((k) => ({ t: BB.SIGNATURES[k].name, s: BB.SIGNATURES[k].line, c: '#ffd27a', reveal: { sig: k } })) });
+    if (BB.ENTRANCES && BB.identityAll) list.push({ group: 'Summoning — every entrance', items: Object.keys(BB.ENTRANCES).map((k) => ({ t: BB.ENTRANCES[k].name, s: BB.ENTRANCES[k].line, c: '#86ccff', reveal: { entrance: k } })) });
+    list.push({ group: 'Lands — the team field in each chapter', items: BB.CHAPTERS.map((ch, i) => ({ t: ch.name, s: 'A full team training there', c: '#8fd88a', field: { idx: BB.MISSIONS.findIndex((m) => m.chapter === i + 1) + 2, ench: ['fire', 'frost', 'storm', 'shadow', 'poison', 'holy'] } })) });
     return list;
   }
   function openTheater() {
     const box = $('theaterList'); box.innerHTML = '';
-    for (const G of theaterList()) {
+    for (const G of devList()) {
       const h = document.createElement('div'); h.className = 'th-group'; h.textContent = G.group; box.appendChild(h);
       const grid = document.createElement('div'); grid.className = 'th-grid'; box.appendChild(grid);
       for (const it of G.items) {
-        const b = document.createElement('button'); b.className = 'th-tile'; b.style.setProperty('--tc', it.c);
+        const b = document.createElement('button'); b.className = 'th-tile' + (it.battle || it.field ? ' live' : ''); b.style.setProperty('--tc', it.c);
         b.innerHTML = '<b></b><span></span>'; b.querySelector('b').textContent = it.t; b.querySelector('span').textContent = it.s;
         b.addEventListener('click', () => watch(it)); grid.appendChild(b);
       }
     }
     UI.modal('mSettings', false); UI.modal('mTheater');
   }
+  BB.openDev = openTheater;
   function watch(it) {
-    BB.sfx('click'); UI.modal('mTheater', false);
+    BB.sfx('click');
+    if ((it.battle || it.field) && mode === 'battle' && !devReal) { UI.toast('Finish or leave this battle first.'); return; }
+    UI.modal('mTheater', false);
     const back = () => { BB.music(mode === 'battle' ? 'battle' : 'calm'); UI.modal('mTheater'); };
-    if (it.reveal) { // a summoning with that entrance, played on a hero who has it
-      const tab = BB.identityAll(), c = BB.ROSTER.find((r) => r.role === 'hero' && tab[r.key] && tab[r.key].entrance === it.reveal); if (!c) { back(); return; }
-      const h = BB.heroFromEntry(BB.save, Object.assign({}, c, { rarity: 2 }));
-      BB.loadChar('h/' + h.recruit).then(() => UI.reveal(h, back));
+    if (it.battle) { devBattle(it.battle); return; }
+    if (it.field) { devEnter(it.field); BB.loadHeroes(BB.save.heroes).then(() => UI.openTeam(it.field.idx)); return; }
+    if (it.reveal) { // a summoning, played on a hero who fits; nobody joins the save
+      const R = it.reveal, tab = BB.identityAll ? BB.identityAll() : {}; let h = null;
+      if (R.legend) { h = BB.newHero({ legend: R.legend }); h.stars = 5; }
+      else {
+        const pool = BB.ROSTER.filter((r) => r.role === 'hero');
+        const c = R.sig ? pool.find((r) => tab[r.key] && tab[r.key].sig === R.sig) : R.entrance ? pool.find((r) => tab[r.key] && tab[r.key].entrance === R.entrance)
+          : (BB.heroTiers(BB.ROSTER).find((t) => t.tier.rarity === R.rarity) || { heroes: pool }).heroes[0];
+        if (!c) { back(); return; }
+        h = BB.heroFromEntry(BB.save, Object.assign({}, c, { rarity: R.rarity === undefined ? 2 : R.rarity })); h.stars = R.rarity === 3 ? 5 : (R.rarity || 0) + 1;
+      }
+      BB.loadHeroes([h]).then(() => UI.reveal(h, back));
       return;
     }
     BB.Cinema.play(it.play[0], it.play[1], back);
@@ -482,6 +552,7 @@
       else if (scene.drill) { if (UI.current === 'team' && UI.teamLayout) UI.teamLayout(scene, W, H, DPR); }
       else if (scene.peaceful) { scene.cam.x = scene.map.w / 2 - 1.8 + Math.sin(t / 14000) * 0.4; scene.cam.y = scene.map.h / 2 + 1.6; }
       const reps = mode === 'battle' && !scene.intro && !scene.result ? Math.min(3, Math.max(1, BB.save.settings.speed || 1)) : 1;
+      if (scene.devTick && mode === 'battle' && !scene.intro && !scene.result && !scene.paused) scene.devTick(scene, dt);
       for (let i = 0; i < reps; i++) scene.update(dt, null);
       if (visible) scene.render(ctx, W, H, DPR);
       if (mode === 'battle' && UI.current === 'hud') {
