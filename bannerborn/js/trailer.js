@@ -18,7 +18,7 @@
     { b: 8, k: 'scene', s: 'a', z: [1.02, 1.18], cap: 'They fight on their own', flash: 1, drums: 1 },
     { b: 8, k: 'scene', s: 'b', z: [1.2, 1.04], cap: 'You call the ultimates' },
     { b: 6, k: 'scene', s: 'c', z: [1.08, 1.26], cap: 'Every blade leaves its mark' },
-    { b: 6, k: 'land', z: [0.86, 0.98], cap: 'Four lands · thirty stages' },
+    { b: 6, k: 'land', z: [0.86, 0.98], cap: 'Eight lands · fifty-four stages' },
     { b: 2, k: 'scene', s: 'a', z: [1.5, 1.62] }, { b: 2, k: 'scene', s: 'c', z: [1.62, 1.5] }, { b: 2, k: 'scene', s: 'b', z: [1.45, 1.6] }, { b: 2, k: 'scene', s: 'a', z: [1.7, 1.52] },
     { b: 5, k: 'black', big: 'And at the end of every road' },
     { b: 12, k: 'scene', s: 'boss', z: [1.0, 1.32], name: 'The Pale Regent', sub: 'waits', flash: 1, drums: 1, roar: 1 },
@@ -42,7 +42,7 @@
     await step(0.3);
     S.a = await BB.stageScene({ idx: 4, over: 0, warm: 7, tick: ['sigs', 'sturdy'] }); await step(0.45);
     S.b = await BB.stageScene({ idx: 13, over: 0, archs: ['knight', 'monk', 'mage', 'ranger', 'spearman'], ench: ['holy', 'storm', 'fire', 'frost', 'shadow'], warm: 8, tick: ['ults', 'sigs', 'sturdy'] }); await step(0.6);
-    S.c = await BB.stageScene({ idx: 24, over: 0, archs: ['paladin', 'rogue', 'mage', 'ranger', 'barbarian'], ench: ['fire', 'poison', 'storm', 'frost', 'shadow'], warm: 8, tick: ['sigs', 'sturdy'] }); await step(0.75);
+    S.c = await BB.stageScene({ idx: 33, over: 0, archs: ['paladin', 'rogue', 'mage', 'ranger', 'barbarian'], ench: ['fire', 'poison', 'storm', 'frost', 'shadow'], warm: 8, tick: ['sigs', 'sturdy'] }); await step(0.75);
     S.boss = await BB.stageScene({ idx: 23, over: 1, until: 'boss', warm: 3.2, tick: ['sigs', 'sturdy'] }); await step(0.9);
     const boss = S.boss.ents.find((e) => e.boss && e.side === 'foe');
     if (boss) { const tk = S.boss.tick; S.boss.tick = (dt) => { tk(dt); if (boss.hp < boss.maxhp * 0.45) boss.hp = boss.maxhp * 0.45; }; } // the Regent is still standing at the cut

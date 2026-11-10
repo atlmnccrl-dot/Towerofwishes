@@ -164,6 +164,19 @@
     vesh: { name: 'Vesh Morrow, the Bone Cantor', art: 'necro', boss: true, scale: 2.15, tint: 'emerald', hp: 4300, atk: 32, def: 9,
       spd: 2.4, range: 6, aspd: 1, xp: 600, gold: 500, atkClips: ['Attack1'], ranged: true, proj: 'curse', r: 0.85,
       moves: ['barrage', 'deathcone', 'gates', 'slam', 'blink'] },
+    // the far marches. `voice` and `cine` say whose voice and whose kind of entrance each one borrows
+    hroald: { name: 'Hroald, the Rime Jarl', art: 'warden', boss: true, scale: 2.05, tint: 'azure', elem: 'frost', hp: 4900, atk: 35, def: 12,
+      spd: 2.3, range: 1.9, aspd: 0.7, xp: 680, gold: 560, atkClips: ['Attack4', 'Attack1', 'Attack2'], r: 0.78, voice: 'ossric', cine: 'ossric',
+      moves: ['slam', 'charge', 'summon', 'slam'] },
+    maelis: { name: 'Maelis, the Cinder Witch', art: 'necro', boss: true, scale: 1.9, tint: 'crimson', elem: 'fire', hp: 5300, atk: 35, def: 9,
+      spd: 2.6, range: 5.8, aspd: 0.95, xp: 740, gold: 620, atkClips: ['Attack1'], ranged: true, proj: 'curse', r: 0.74, voice: 'sallow', cine: 'sallow',
+      moves: ['barrage', 'firering', 'blink', 'summon', 'elements'] },
+    morwen: { name: 'Old Morwen, the Fen Mother', pool: 'warlock', poolPick: 'warlock_005', boss: true, scale: 2.0, elem: 'poison', hp: 5700, atk: 36, def: 10,
+      spd: 2.5, range: 5.6, aspd: 0.95, xp: 800, gold: 680, atkClips: ['Attack5'], ranged: true, proj: 'curse', r: 0.78, voice: 'sallow', cine: 'vesh',
+      moves: ['gas', 'summon', 'barrage', 'deathcone', 'blink'] },
+    aurelian: { name: 'Aurelian, the Hollow King', pool: 'wraith', poolPick: 'wraith_010', boss: true, scale: 2.25, elem: 'shadow', hp: 6400, atk: 38, def: 11,
+      spd: 2.7, range: 5.8, aspd: 1, xp: 900, gold: 800, atkClips: ['Attack5'], ranged: true, proj: 'curse', r: 0.86, voice: 'regent', cine: 'regent',
+      moves: ['elements', 'barrage', 'summonw', 'slam', 'blink', 'firering'] },
   };
   BB.ELITES = [
     { id: 'blood', name: 'Bloodbound', tint: 'crimson', hp: 1.8, atk: 1.5, scale: 1.2 },
@@ -270,15 +283,50 @@
       { name: 'Choir of Bones', type: 'rout', layout: 'gate', waves: [['ghoul', 6, 'warlock', 2], ['warden', 3, 'wraith', 3], ['stalker', 3, 'skelarcher', 3], ['skelshield', 3, 'necro', 2, 'skelarcher', 3], ['beastkin', 3, 'warlock', 2, 'stalker', 3]] },
       { name: 'Vesh Morrow, the Bone Cantor', type: 'boss', layout: 'gate', boss: 'vesh', waves: [['ghoul', 3, 'wraith', 1], ['warden', 2, 'warlock', 1], ['stalker', 2, 'skelarcher', 2], ['skelshield', 2, 'wraith', 2]] },
     ] },
+    // ---- the far marches: the gates the Cantor's choir opened at the edges of the world. Each land is the vale kit
+    // in another skin (BB.LANDSKINS in js/assets.js): the same maps and buildings, under snow, ash, moss or blight
+    { id: 5, name: 'The Frostmarch', biome: 'vale', skin: 'frost', elites: 3, blurb: 'The north road, under snow since the gates opened. Something walks the ice in a dead jarl\'s mail.', stages: [
+      { name: 'The White Road', type: 'rout', layout: 'village', waves: [['skel', 4, 'ghoul', 3], ['skelshield', 3, 'skelarcher', 3], ['stalker', 3, 'beastkin', 2], ['warden', 2, 'wraith', 3], ['beastkin', 3, 'skelarcher', 3, 'stalker', 2]] },
+      { name: 'The Frozen Mill', type: 'gates', layout: 'mill', gates: 2, waves: [['skel', 4, 'warden', 2], ['wraith', 3, 'skelarcher', 3], ['stalker', 3, 'skelshield', 2], ['necro', 2, 'beastkin', 3]] },
+      { name: 'Hearth of the Lost', type: 'defend', layout: 'plaza', ward: 'refugees', time: 80, waves: [['beastkin', 3, 'skel', 4], ['wraith', 3, 'skelarcher', 3], ['stalker', 3, 'warden', 2], ['warlock', 2, 'skelshield', 3], ['beastkin', 4, 'necro', 2], ['stalker', 3, 'wraith', 3]] },
+      { name: 'The Rime Wood', type: 'rout', layout: 'grove', waves: [['beastkin', 4, 'skelarcher', 3], ['warden', 3, 'wraith', 3], ['stalker', 4, 'skel', 3], ['skelshield', 3, 'warlock', 2, 'skelarcher', 2], ['beastkin', 4, 'warden', 2, 'stalker', 2]] },
+      { name: 'Icebound Watch', type: 'gates', layout: 'ruins', gates: 3, waves: [['skelshield', 3, 'skelarcher', 4], ['warden', 3, 'necro', 2], ['stalker', 3, 'wraith', 3], ['beastkin', 4, 'warlock', 2]] },
+      { name: 'Hroald, the Rime Jarl', type: 'boss', layout: 'courtyard', boss: 'hroald', waves: [['skel', 4, 'beastkin', 2], ['skelshield', 2, 'skelarcher', 3], ['stalker', 2, 'warden', 2], ['beastkin', 3, 'wraith', 2]] },
+    ] },
+    { id: 6, name: 'The Cinderfields', biome: 'vale', skin: 'ash', elites: 3, blurb: 'Burnt farmland under a red sky. The roads still glow, and a witch keeps the fires fed.', stages: [
+      { name: 'Ember Road', type: 'rout', layout: 'march', waves: [['ghoul', 5, 'skel', 4], ['warlock', 3, 'skelshield', 3], ['stalker', 4, 'skelarcher', 3], ['warden', 3, 'necro', 2], ['beastkin', 4, 'warlock', 2, 'stalker', 2]] },
+      { name: 'The Burnt Village', type: 'rout', layout: 'village', waves: [['skel', 5, 'warlock', 2], ['wraith', 4, 'skelarcher', 3], ['stalker', 4, 'beastkin', 2], ['skelshield', 4, 'warlock', 3], ['warden', 3, 'wraith', 3, 'stalker', 2]] },
+      { name: 'Ashen Gates', type: 'gates', layout: 'endless', gates: 3, waves: [['skel', 5, 'warden', 2], ['warlock', 3, 'wraith', 3], ['stalker', 4, 'skelarcher', 3], ['skelshield', 3, 'necro', 3]] },
+      { name: 'The Last Granary', type: 'defend', layout: 'grove', ward: 'cage', time: 85, waves: [['warlock', 3, 'skel', 4], ['beastkin', 4, 'skelarcher', 3], ['stalker', 4, 'warden', 2], ['wraith', 4, 'skelshield', 3], ['warlock', 3, 'beastkin', 3], ['stalker', 3, 'necro', 3]] },
+      { name: 'The Slag Court', type: 'rout', layout: 'courtyard', waves: [['warden', 4, 'skelarcher', 4], ['warlock', 4, 'skelshield', 3], ['stalker', 4, 'wraith', 3], ['beastkin', 5, 'necro', 2], ['warden', 3, 'warlock', 3, 'stalker', 3]] },
+      { name: 'Maelis, the Cinder Witch', type: 'boss', layout: 'throne', boss: 'maelis', waves: [['warlock', 2, 'skel', 4], ['skelshield', 3, 'wraith', 2], ['stalker', 3, 'skelarcher', 3], ['warden', 2, 'warlock', 2]] },
+    ] },
+    { id: 7, name: 'Mirefen', biome: 'vale', skin: 'mire', elites: 4, blurb: 'Drowned villages and black water. The fen keeps what it takes, and its mother counts every one.', stages: [
+      { name: 'The Drowned Road', type: 'rout', layout: 'village', waves: [['ghoul', 6, 'stalker', 3], ['wraith', 4, 'skelshield', 3], ['beastkin', 4, 'skelarcher', 4], ['necro', 3, 'warden', 3], ['stalker', 4, 'wraith', 3, 'warlock', 2]] },
+      { name: 'Rotwood', type: 'rout', layout: 'grove', waves: [['beastkin', 5, 'ghoul', 4], ['stalker', 5, 'skelarcher', 3], ['warden', 3, 'necro', 3], ['wraith', 4, 'warlock', 3], ['beastkin', 4, 'stalker', 4, 'necro', 2]] },
+      { name: 'The Sunken Stones', type: 'gates', layout: 'ruins', gates: 3, waves: [['skel', 5, 'necro', 3], ['wraith', 4, 'skelshield', 3], ['stalker', 5, 'skelarcher', 3], ['warden', 3, 'warlock', 3]] },
+      { name: 'The Lantern Keepers', type: 'defend', layout: 'grove', ward: 'cage', time: 90, waves: [['stalker', 4, 'ghoul', 5], ['wraith', 4, 'skelarcher', 4], ['beastkin', 5, 'necro', 2], ['warlock', 4, 'skelshield', 3], ['stalker', 5, 'warden', 2], ['wraith', 4, 'beastkin', 4]] },
+      { name: 'Gates in the Reeds', type: 'gates', layout: 'endless', gates: 4, waves: [['skelshield', 4, 'skelarcher', 4], ['necro', 3, 'wraith', 4], ['stalker', 5, 'beastkin', 3], ['warden', 4, 'warlock', 3]] },
+      { name: 'Old Morwen, the Fen Mother', type: 'boss', layout: 'gate', boss: 'morwen', waves: [['ghoul', 5, 'stalker', 2], ['necro', 2, 'wraith', 3], ['beastkin', 3, 'skelarcher', 3], ['warden', 2, 'warlock', 3]] },
+    ] },
+    { id: 8, name: 'The Hollow', biome: 'vale', skin: 'blight', elites: 4, blurb: 'Pale fields where nothing grows green. The last gates stand here, and a king with no kingdom guards them.', stages: [
+      { name: 'The Pale Fields', type: 'rout', layout: 'march', waves: [['wraith', 5, 'skel', 5], ['warlock', 4, 'skelshield', 4], ['stalker', 5, 'skelarcher', 4], ['warden', 4, 'necro', 3], ['wraith', 4, 'warlock', 3, 'stalker', 3]] },
+      { name: 'Gravebloom', type: 'gates', layout: 'endless', gates: 4, waves: [['skel', 6, 'warden', 3], ['wraith', 5, 'warlock', 3], ['stalker', 5, 'skelarcher', 4], ['skelshield', 4, 'necro', 3]] },
+      { name: 'The Hollow City', type: 'rout', layout: 'city', waves: [['wraith', 5, 'skelshield', 4], ['warlock', 4, 'skel', 5], ['stalker', 5, 'beastkin', 3], ['warden', 4, 'wraith', 4], ['skelshield', 4, 'warlock', 4, 'stalker', 3]] },
+      { name: 'The Last Hearth', type: 'defend', layout: 'plaza', ward: 'refugees', time: 95, waves: [['wraith', 5, 'skel', 5], ['warlock', 4, 'warden', 3], ['stalker', 5, 'beastkin', 3], ['beastkin', 5, 'necro', 3], ['skelshield', 4, 'skelarcher', 5], ['wraith', 5, 'warlock', 4, 'stalker', 3]] },
+      { name: 'Throne Road', type: 'rout', layout: 'throne', waves: [['wraith', 6, 'skelshield', 4], ['warlock', 5, 'skel', 4], ['stalker', 5, 'skelarcher', 4], ['warden', 4, 'wraith', 4], ['skelshield', 4, 'warlock', 4, 'stalker', 4]] },
+      { name: 'Aurelian, the Hollow King', type: 'boss', layout: 'gate', boss: 'aurelian', waves: [['wraith', 4, 'skel', 3], ['warlock', 3, 'skelshield', 2], ['stalker', 3, 'skelarcher', 3], ['warden', 3, 'wraith', 3]] },
+    ] },
   ];
+  BB.roman = (n) => ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][n] || String(n);
   // the flat list of stages (the battle engine reads these as missions)
   BB.MISSIONS = [];
   BB.CHAPTERS.forEach((ch) => ch.stages.forEach((st, n) => {
     const i = BB.MISSIONS.length;
     BB.MISSIONS.push(Object.assign({ id: 's' + ch.id + '-' + (n + 1), code: ch.id + '-' + (n + 1), chapter: ch.id, region: 'c' + ch.id,
-      level: 1 + Math.round(i * 0.8) + [0, 0, 1, 2, 2][ch.id], elites: ch.elites || 0 }, st));
+      level: 1 + Math.round(i * 0.8) + [0, 0, 1, 2, 2, 3, 3, 4, 4][ch.id], elites: ch.elites || 0 }, st));
   }));
-  BB.REGIONS = BB.CHAPTERS.map((ch) => ({ id: 'c' + ch.id, name: ch.name, biome: ch.biome, night: ch.night, floor: ch.floor, blurb: ch.blurb }));
+  BB.REGIONS = BB.CHAPTERS.map((ch) => ({ id: 'c' + ch.id, name: ch.name, biome: ch.biome, skin: ch.skin, night: ch.night, floor: ch.floor, blurb: ch.blurb }));
 
 
 

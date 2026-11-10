@@ -232,16 +232,16 @@
     const addFoe = (k) => { const F = BB.FOES[k]; if (!F) return; if (F.art) arts.push(F.art); if (F.pool) pools.add(F.pool); if (F.poolPick) arts.push('h/' + F.poolPick); };
     M.waves.forEach((w) => { for (let i = 0; i < w.length; i += 2) addFoe(w[i]); });
     if (M.boss) addFoe(M.boss);
-    if (M.boss === 'regent') pools.add('skel');
+    if (M.boss && (BB.FOES[M.boss].moves || []).includes('summonw')) { pools.add('skel'); pools.add('wraith'); }
     const rr = BB.rng(now() & 0xffff);
     try {
-      await Promise.all([BB.loadEnv(biome), BB.loadEnv('vale'), BB.loadEnv('ground'), BB.loadOther(), BB.loadHeroes(team)]
+      await Promise.all([BB.loadLand(region), BB.loadOther(), BB.loadHeroes(team)]
         .concat([...new Set(arts)].map((a) => BB.loadChar(a).catch(() => null)), [...pools].map((p) => pickLoad(BB.poolKeys(p), 4, rr))));
     } catch (e) { UI.versusOut(true); UI.toast('Could not load the battlefield.'); goCamp(); return; }
     UI.versusFoes(M); // their faces are loaded now
     await held;
     const seed = BB.hashStr(M.id) % 9000 + (S.cleared[M.id] ? Math.floor(Math.random() * 999) : 1);
-    const map = BB.buildMap(M.layout, biome, seed, { night: !!region.night, floor: region.floor });
+    const map = BB.buildMap(M.layout, biome, seed, { night: !!region.night, floor: region.floor, skin: region.skin });
     BB.renderGround(map);
     scene = new BB.Battle({ map, mission: M, formation: BB.formationList(S), heroes: team, level: BB.foeLevel(M), save: S, seed, intro: true });
     scene.cam.zoom = 1;
@@ -478,7 +478,7 @@
     const S = BB.newSave(now()), st = BB.MISSIONS[o.idx];
     S.settings = Object.assign({}, devReal.settings, { auto: true, speed: 1 }); S.banner = devReal.banner; S.seen.tutorial = 1;
     BB.MISSIONS.slice(0, o.idx).forEach((m) => (S.cleared[m.id] = 1));
-    BB.MISSIONS.forEach((m) => { if (!(o.cine && m === st)) S.seen['cine_' + m.id] = 1; }); [2, 3, 4].forEach((c) => (S.seen['cine_ch' + c] = 1));
+    BB.MISSIONS.forEach((m) => { if (!(o.cine && m === st)) S.seen['cine_' + m.id] = 1; }); BB.CHAPTERS.forEach((c) => (S.seen['cine_ch' + c.id] = 1));
     const all = [].concat(...BB.heroTiers(BB.ROSTER).map((t) => t.heroes));
     const used = new Set();
     for (const arch of o.archs || ['knight', 'barbarian', 'mage', 'ranger', 'paladin']) {
@@ -514,11 +514,11 @@
     const M = BB.MISSIONS[o.idx], team = BB.teamHeroes(S), region = BB.REGIONS.find((r) => r.id === M.region) || BB.REGIONS[0], biome = region.biome;
     const arts = ['ghoul', 'warden', 'necro'], pools = new Set();
     const addFoe = (k) => { const F = BB.FOES[k]; if (!F) return; if (F.art) arts.push(F.art); if (F.pool) pools.add(F.pool); if (F.poolPick) arts.push('h/' + F.poolPick); };
-    M.waves.forEach((w) => { for (let i = 0; i < w.length; i += 2) addFoe(w[i]); }); if (M.boss) addFoe(M.boss); if (M.boss === 'regent') pools.add('skel');
+    M.waves.forEach((w) => { for (let i = 0; i < w.length; i += 2) addFoe(w[i]); }); if (M.boss) addFoe(M.boss); if (M.boss && (BB.FOES[M.boss].moves || []).includes('summonw')) { pools.add('skel'); pools.add('wraith'); }
     const rr = BB.rng(o.idx * 7 + 3);
-    await Promise.all([BB.loadEnv(biome), BB.loadEnv('vale'), BB.loadEnv('ground'), BB.loadOther(), BB.loadHeroes(team)]
+    await Promise.all([BB.loadLand(region), BB.loadOther(), BB.loadHeroes(team)]
       .concat([...new Set(arts)].map((a) => BB.loadChar(a).catch(() => null)), [...pools].map((p) => pickLoad(BB.poolKeys(p), 4, rr))));
-    const seed = BB.hashStr(M.id) % 9000 + 1, map = BB.buildMap(M.layout, biome, seed, { night: !!region.night, floor: region.floor });
+    const seed = BB.hashStr(M.id) % 9000 + 1, map = BB.buildMap(M.layout, biome, seed, { night: !!region.night, floor: region.floor, skin: region.skin });
     BB.renderGround(map);
     const sc = new BB.Battle({ map, mission: M, formation: BB.formationList(S), heroes: team, level: BB.foeLevel(M), save: S, seed });
     sc.autoSkills = true; sc.win = function () {}; sc.lose = function () {};
@@ -611,7 +611,7 @@
     ].filter((x) => x.battle.idx >= 0) });
     list.push({ group: 'The trailer', items: [{ t: 'Bannerborn — the trailer', s: 'Under a minute: the gates, the banner, the fights', c: '#ffbe55', trailer: true }] });
     list.push({ group: 'The story', items: [{ t: 'The Opening', s: 'Nine banners, the Gravegates', c: '#ffbe55', play: ['intro', {}] }]
-      .concat(BB.CHAPTERS.map((ch, i) => ({ t: 'Chapter ' + ['I', 'II', 'III', 'IV'][i] + ' · ' + ch.name, s: ch.blurb.length > 46 ? ch.blurb.slice(0, 45) + '…' : ch.blurb, c: '#ffcf7a', play: ['chapter', { chapter: ch, music: 'calm' }] }))) });
+      .concat(BB.CHAPTERS.map((ch, i) => ({ t: 'Chapter ' + BB.roman(i + 1) + ' · ' + ch.name, s: ch.blurb.length > 46 ? ch.blurb.slice(0, 45) + '…' : ch.blurb, c: '#ffcf7a', play: ['chapter', { chapter: ch, music: 'calm' }] }))) });
     list.push({ group: 'Boss entrances (cutscene only)', items: bosses.map((m) => ({ t: bn(m), s: 'Stage ' + m.code + ' · ' + m.name, c: tint(m), play: ['boss', { stage: m }] })) });
     list.push({ group: 'Boss falls (cutscene only)', items: bosses.map((m) => ({ t: bn(m) + ' falls', s: 'Stage ' + m.code, c: tint(m), play: ['bossDown', { stage: m, music: 'calm' }] })) });
     list.push({ group: 'Summoning — by rarity', items: BB.TIERS.map((t) => ({ t: t.name + ' summon', s: 'The gate climbs to ' + t.name.toLowerCase(), c: ['#c4ccd8', '#4da3ff', '#b57cff', '#ffae2b'][t.rarity], reveal: { rarity: t.rarity } }))

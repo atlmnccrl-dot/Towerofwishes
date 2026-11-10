@@ -126,8 +126,12 @@ A hero-collector RPG: you build the team, the team fights.
    outlying sites, and past the last stage it runs to a **ring** that leads on to the next land (shut until this one
    is won). The enemy waits at the stages not yet won; your banner flies where you have won; your team stands at
    the chosen stage and walks the road when you choose another. Drag to look along the road, tap a stage to choose it.
-   Four chapters, thirty stages (Greenvale, the Sunscar, Aldmere, the Cantor's Gate):
-   rout waves, destroy Gravegates, defend a ward against the clock, a duel and four bosses with
+   Eight chapters, fifty-four stages. The first four (Greenvale, the Sunscar, Aldmere, the Cantor's Gate) are the
+   war against the Cantor. The last four are **the far marches**, the gates his choir opened at the edges of the
+   world: **the Frostmarch** (snow; Hroald, the Rime Jarl), **the Cinderfields** (burnt land, roads that still glow;
+   Maelis, the Cinder Witch), **Mirefen** (drowned fen; Old Morwen, the Fen Mother) and **the Hollow** (blighted,
+   violet; Aurelian, the Hollow King). Six stages each, enemy levels 28 to 47, each with its own weather. Stage kinds:
+   rout waves, destroy Gravegates, defend a ward against the clock, a duel and eight bosses with
    telegraphed moves and enrage phases. Each stage shows the recommended power next to yours.
 7. **Camp.** Your chosen hero stands by the fire; the camp grows tents, a forge, a shrine and a
    market as the campaign goes on. **Spoils** gather while you are away (up to 12 h). **Goals**
@@ -148,7 +152,7 @@ Losing costs nothing (and still teaches your heroes): change gear or the formati
 
 **The trailer** (js/trailer.js; *Watch the trailer* on the title, and first in Development): under a minute, cut
 from the game itself on the beat of the boss drums. A Gravegate in the dark, the camp, a Legendary summoning, three
-live battles (a full-strength team already in the thick of it: Greenvale, the Sunscar, the Cantor's Gate at night),
+live battles (a full-strength team already in the thick of it: Greenvale, the Sunscar, the Frostmarch under snow),
 the first land from above, the Pale Regent, a run of one-beat cuts, the name. Every line of text, the letterbox and
 the cuts are drawn from the trailer's own clock, so it can be stepped a frame at a time: `tools/record-trailer.js`
 records it to an mp4 (1280×720, 30 frames a second) with its sound, which is not captured but rendered: while
@@ -220,6 +224,7 @@ name, their horde, the face-off, the clash) and a fall; chapters 2-4 open with y
 | `js/data.js` | callings, legends, foes, gear, bonds, chapters and stages. Pure |
 | `js/rules.js` | heroes, stats, levels and stars, gear, formation, tiers and recruiting, rewards, spoils, shop, goals, save. Pure (runs in Node) |
 | `js/assets.js` | atlas loading, recolouring (dyes, skin, effect hues), paper-doll drawing, portraits |
+| land skins (`BB.LANDSKINS`, `BB.loadLand` in `js/assets.js`) | the far marches have no art files of their own. A skin is the vale kit and the ground kit re-coloured sprite by sprite when the land is first entered (about half a second): snow, ash or moss laid on whatever faces the sky, tree crowns turned, stone cooled or charred, the ground's texture kept in new colours, cracks between paving stones lit. Every sprite keeps its name, so every map layout, building and journey of the vale works in a skinned land. The two lands most lately entered keep their art in memory |
 | `js/world.js` | isometric projection, procedural maps per layout, painted ground, collisions, A* pathing |
 | `js/battle.js` | the battlefield: formation, hero/foe AI, energy and ultimates, bosses, objectives, rendering, lighting |
 | `js/audio.js` | synthesised sound effects and a procedural war-drum score |

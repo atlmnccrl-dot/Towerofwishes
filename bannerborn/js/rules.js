@@ -429,7 +429,11 @@
     { id: 'ch3', name: 'Aldmere Freed', desc: 'Clear chapter 3', test: (s) => BB.chapterCleared(s, 3), reward: { crystals: 500 } },
     { id: 'star4', name: 'Paragon', desc: 'Ascend a hero to 4 stars', test: (s) => s.heroes.some((h) => h.stars >= 4), reward: { crystals: 400 } },
     { id: 'heroes20', name: 'Hall of Heroes', desc: 'Have 20 heroes', test: (s) => s.heroes.length >= 20, reward: { crystals: 600 } },
-    { id: 'ch4', name: 'The Cantor Silenced', desc: 'Clear the campaign', test: (s) => BB.campaignDone(s), reward: { crystals: 1000, sigils: 10 } },
+    { id: 'ch4', name: 'The Cantor Silenced', desc: 'Clear chapter 4', test: (s) => BB.chapterCleared(s, 4), reward: { crystals: 1000, sigils: 10 } },
+    { id: 'ch5', name: 'The Thaw', desc: 'Clear chapter 5, the Frostmarch', test: (s) => BB.chapterCleared(s, 5), reward: { crystals: 600, sigils: 6 } },
+    { id: 'ch6', name: 'Cold Ashes', desc: 'Clear chapter 6, the Cinderfields', test: (s) => BB.chapterCleared(s, 6), reward: { crystals: 700, sigils: 8 } },
+    { id: 'ch7', name: 'Dry Land', desc: 'Clear chapter 7, Mirefen', test: (s) => BB.chapterCleared(s, 7), reward: { crystals: 800, sigils: 10 } },
+    { id: 'ch8', name: 'Every Gate Shut', desc: 'Clear the campaign', test: (s) => BB.campaignDone(s), reward: { crystals: 1500, sigils: 15 } },
   ];
   BB.questState = (s, q) => (s.quests && s.quests[q.id] ? 'claimed' : q.test(s) ? 'ready' : 'open');
   BB.questsReady = (s) => BB.QUESTS.filter((q) => BB.questState(s, q) === 'ready').length;

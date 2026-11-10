@@ -26,11 +26,121 @@
     if (!pending[key]) pending[key] = loadAtlas('assets/chars/' + key).then((a) => (A.chars[key] = a));
     return pending[key];
   };
+  // ---------------------------------------------------------------- lands made from the same art
+  // A skin is the vale kit and the ground kit re-coloured sprite by sprite when a land is first entered: snow laid on
+  // whatever faces the sky, crowns of trees turned, stone cooled or charred, the ground's own texture kept in new
+  // colours. Nothing is downloaded: 'frost' is built from 'vale', 'frost.ground' from 'ground'. Every sprite keeps its
+  // name, so every map, building and journey that works in the vale works in a skinned land.
+  const c01 = (x) => Math.max(0, Math.min(1, x));
+  const lumOf = (p, i) => (p[i] * 0.3 + p[i + 1] * 0.59 + p[i + 2] * 0.11) / 255;
+  const hash = (x, y) => { const s = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453; return s - Math.floor(s); };
+  const setc = (p, i, c) => { p[i] = c[0]; p[i + 1] = c[1]; p[i + 2] = c[2]; };
+  const mixc = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+  function each(p, W, r, fn) { for (let y = r[1]; y < r[1] + r[3]; y++) for (let x = r[0], i = (y * W + x) * 4; x < r[0] + r[2]; x++, i += 4) if (p[i + 3] > 40) fn(i, x - r[0], y - r[1], x, y); }
+  function pct(p, W, r, mask, lo, hi) { // the brightness at two percentiles of a sprite's (masked) pixels
+    const h = new Uint32Array(256); let n = 0; each(p, W, r, (i, x, y) => { if (!mask || mask(i, x, y)) { h[Math.round(lumOf(p, i) * 255)]++; n++; } });
+    if (!n) return null; let a = 0, vlo = -1, vhi = 255;
+    for (let v = 0; v < 256; v++) { a += h[v]; if (vlo < 0 && a >= n * lo) vlo = v; if (a >= n * hi) { vhi = v; break; } }
+    return [vlo / 255, Math.max(vhi, vlo + 2) / 255];
+  }
+  const SK = {
+    // the same texture in new colours: darkest pixels to lo, lightest to hi
+    ramp(p, W, r, lo, hi) { const q = pct(p, W, r, null, 0.04, 0.97); if (q) each(p, W, r, (i) => setc(p, i, mixc(lo, hi, c01((lumOf(p, i) - q[0]) / (q[1] - q[0]))))); },
+    // toward grey, then each channel scaled: stone cooled, wood charred
+    tint(p, W, r, grey, mul) { each(p, W, r, (i) => { const g = lumOf(p, i) * 255; for (let c = 0; c < 3; c++) p[i + c] = Math.min(255, (p[i + c] * (1 - grey) + g * grey) * mul[c]); }); },
+    // a tree: the lit clumps of its crown take the top colours, its shade the dark ones; the trunk is left alone
+    crown(p, W, r, dark, lo, hi, cut) {
+      const H = r[3], leaf = (i, x, y) => { const R = p[i], G = p[i + 1], B = p[i + 2], mx = Math.max(R, G, B), mn = Math.min(R, G, B); return mx > 0 && (mx - mn) / mx > 0.25 && y < H * 0.8 && !(R > G * 1.25 && lumOf(p, i) < 0.3 && y > H * 0.6); };
+      const q = pct(p, W, r, leaf, cut, 0.93); if (!q) return;
+      each(p, W, r, (i, x, y) => { if (!leaf(i, x, y)) return; const l = lumOf(p, i), t = (l - q[0]) / (q[1] - q[0]); setc(p, i, t > 0.02 ? mixc(lo, hi, c01(t)) : mixc(dark[0], dark[1], c01(l * 2.2))); });
+    },
+    // something lying on whatever faces the sky: the top few pixels of every column
+    cap(p, W, r, d0, d1, lo, hi) {
+      for (let x = r[0]; x < r[0] + r[2]; x++) {
+        const yEnd = r[1] + r[3]; let y = r[1]; while (y < yEnd && p[(y * W + x) * 4 + 3] <= 40) y++; if (y >= yEnd) continue;
+        let e = y; while (e + 1 < yEnd && p[((e + 1) * W + x) * 4 + 3] > 40) e++;
+        const d = Math.min(d0 + Math.floor(hash(x, r[1]) * (d1 - d0 + 1)), Math.max(1, Math.floor((e - y) / 3)));
+        for (let k = 0; k < d; k++) { const i = ((y + k) * W + x) * 4; setc(p, i, mixc(hi, lo, d > 1 ? k / (d - 1) * 0.6 : 0)); p[i + 3] = 255; }
+      }
+    },
+    // a dusting: the lightest part of a sprite goes toward a colour
+    dust(p, W, r, from, amount, col) { const q = pct(p, W, r, null, from, 0.97); if (q) each(p, W, r, (i) => { const t = c01((lumOf(p, i) - q[0]) / (q[1] - q[0])) * amount; if (t > 0) setc(p, i, mixc([p[i], p[i + 1], p[i + 2]], col, c01(t))); }); },
+    // the darkest part (the gaps between stones) glows
+    cracks(p, W, r, upTo, lo, hi) { const q = pct(p, W, r, null, 0.01, upTo); if (q) each(p, W, r, (i) => { const l = lumOf(p, i); if (l <= q[1]) setc(p, i, mixc(hi, lo, c01((l - q[0]) / (q[1] - q[0])))); }); },
+    // a scatter of single pixels: embers in a burnt crown, spores on a stone
+    specks(p, W, r, chance, col, minL) { each(p, W, r, (i, x, y, ax, ay) => { if (hash(ax, ay) < chance && lumOf(p, i) >= (minL || 0)) setc(p, i, col); }); },
+  };
+  const kindOf = (n) => /^Tree Shadow|^Torch|^Chest|^Door|^FirePlace|^Misc D/.test(n) ? 'keep' : /^TreeTrunk|^Stone/.test(n) ? 'stone' : /^Tree/.test(n) ? 'tree' : /^Flora/.test(n) ? 'flora'
+    : /^Roof/.test(n) ? 'roof' : /^Wall/.test(n) ? 'wall' : /^Ground A1_/.test(n) ? 'dirt' : /^Ground A/.test(n) ? 'grass' : /^Ground [DEH]/.test(n) ? 'paved' : /^Ground/.test(n) ? 'earth' : 'misc';
+  BB.LANDSKINS = {
+    frost: { bg: '#3b4658', haze: 'rgba(40,70,120,0.08)', weather: 'snow',
+      pal: { base: [214, 224, 238], alt: [226, 234, 246], path: [150, 160, 176], water: [130, 178, 208], floor: [150, 156, 170], dark: [150, 170, 200], light: [250, 252, 255] },
+      apply(p, W, r, k) {
+        if (k === 'tree') SK.crown(p, W, r, [[18, 40, 44], [60, 96, 100]], [150, 176, 204], [250, 252, 255], 0.48);
+        else if (k === 'flora') SK.ramp(p, W, r, [112, 142, 172], [246, 250, 255]);
+        else if (k === 'dirt' || k === 'earth') SK.ramp(p, W, r, [150, 170, 200], [234, 241, 252]);
+        else if (k === 'grass') SK.ramp(p, W, r, [156, 178, 208], [250, 252, 255]);
+        else if (k === 'paved') { SK.tint(p, W, r, 0.7, [0.94, 1, 1.1]); SK.dust(p, W, r, 0.6, 0.8, [240, 246, 255]); }
+        else { SK.tint(p, W, r, k === 'misc' ? 0.25 : 0.4, [0.94, 1, 1.08]); if (k === 'roof') SK.dust(p, W, r, 0.35, 0.85, [238, 244, 255]); SK.cap(p, W, r, k === 'misc' ? 1 : 3, k === 'wall' ? 6 : k === 'misc' ? 3 : 5, [200, 216, 238], [250, 252, 255]); }
+      } },
+    ash: { bg: '#171212', haze: 'rgba(120,30,0,0.10)', weather: 'cinders',
+      pal: { base: [70, 64, 62], alt: [84, 78, 74], path: [52, 48, 48], water: [214, 92, 24], floor: [70, 68, 70], dark: [28, 24, 24], light: [170, 110, 70] },
+      apply(p, W, r, k) {
+        if (k === 'tree') { SK.crown(p, W, r, [[14, 12, 12], [44, 38, 36]], [50, 44, 42], [112, 100, 92], 0.4); SK.specks(p, W, r, 0.03, [255, 150, 40], 0.12); }
+        else if (k === 'flora') SK.ramp(p, W, r, [30, 26, 24], [128, 112, 96]);
+        else if (k === 'dirt' || k === 'earth') SK.ramp(p, W, r, [28, 26, 28], [92, 86, 86]);
+        else if (k === 'grass') { SK.ramp(p, W, r, [40, 38, 40], [124, 118, 116]); SK.specks(p, W, r, 0.006, [255, 140, 40]); }
+        else if (k === 'paved') { SK.tint(p, W, r, 0.75, [0.62, 0.58, 0.58]); SK.cracks(p, W, r, 0.2, [150, 40, 8], [255, 170, 50]); }
+        else { SK.tint(p, W, r, k === 'roof' ? 0.7 : 0.5, k === 'roof' ? [0.5, 0.45, 0.44] : [0.8, 0.72, 0.68]); if (k !== 'misc') SK.cap(p, W, r, 1, 2, [120, 114, 108], [176, 170, 162]); if (k === 'roof') SK.specks(p, W, r, 0.012, [255, 130, 30]); }
+      } },
+    mire: { bg: '#121a13', haze: 'rgba(20,60,30,0.12)', weather: 'spores',
+      pal: { base: [52, 62, 44], alt: [62, 72, 46], path: [62, 56, 42], water: [30, 58, 56], floor: [78, 84, 76], dark: [18, 30, 28], light: [104, 124, 70] },
+      apply(p, W, r, k) {
+        if (k === 'tree') SK.crown(p, W, r, [[8, 20, 22], [22, 46, 44]], [34, 72, 62], [104, 134, 84], 0.3);
+        else if (k === 'flora') SK.ramp(p, W, r, [24, 46, 34], [150, 170, 84]);
+        else if (k === 'dirt' || k === 'earth') SK.ramp(p, W, r, [34, 30, 24], [92, 82, 58]);
+        else if (k === 'grass') SK.ramp(p, W, r, [28, 42, 36], [98, 108, 60]);
+        else if (k === 'paved') { SK.tint(p, W, r, 0.5, [0.7, 0.82, 0.7]); SK.dust(p, W, r, 0.7, 0.5, [112, 140, 70]); }
+        else { SK.tint(p, W, r, 0.35, [0.8, 0.94, 0.8]); if (k !== 'misc') SK.cap(p, W, r, 2, 4, [58, 96, 44], [128, 158, 72]); }
+      } },
+    blight: { bg: '#181222', haze: 'rgba(90,30,140,0.10)', weather: 'motes',
+      pal: { base: [92, 78, 104], alt: [108, 92, 120], path: [76, 66, 86], water: [84, 44, 130], floor: [96, 90, 108], dark: [40, 30, 54], light: [196, 166, 216] },
+      apply(p, W, r, k) {
+        if (k === 'tree') { SK.crown(p, W, r, [[26, 18, 36], [70, 52, 90]], [150, 124, 170], [240, 226, 246], 0.42); SK.specks(p, W, r, 0.012, [224, 130, 255], 0.2); }
+        else if (k === 'flora') SK.ramp(p, W, r, [50, 36, 66], [220, 196, 232]);
+        else if (k === 'dirt' || k === 'earth') SK.ramp(p, W, r, [44, 36, 52], [124, 108, 130]);
+        else if (k === 'grass') SK.ramp(p, W, r, [56, 44, 70], [148, 128, 162]);
+        else if (k === 'paved') SK.tint(p, W, r, 0.7, [0.86, 0.8, 0.98]);
+        else { SK.tint(p, W, r, k === 'roof' ? 0.7 : 0.55, k === 'roof' ? [0.62, 0.5, 0.74] : [0.94, 0.86, 1.06]); if (k === 'stone' || k === 'wall') SK.specks(p, W, r, 0.008, [214, 130, 255], 0.25); }
+      } },
+  };
+  function skinAtlas(a, S) {
+    const c = document.createElement('canvas'); c.width = a.img.width; c.height = a.img.height;
+    const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(a.img, 0, 0);
+    const d = x.getImageData(0, 0, c.width, c.height), p = d.data, done = new Set();
+    for (const n in a.meta.f) { const r = a.meta.f[n], key = r[0] + ',' + r[1]; if (done.has(key) || r[2] < 2) continue; done.add(key); const k = kindOf(n); if (k !== 'keep') S.apply(p, c.width, r, k); }
+    x.putImageData(d, 0, 0);
+    const out = (img) => ({ img, meta: a.meta });
+    return window.createImageBitmap ? createImageBitmap(c).then(out, () => out(c)) : out(c);
+  }
+  let skinOrder = []; // the two lands most lately entered keep their art; an older one is built again if it is visited
   BB.loadEnv = function (biome) {
     if (A.env[biome]) return Promise.resolve(A.env[biome]);
-    if (!pending['env' + biome]) pending['env' + biome] = loadAtlas('assets/env/' + biome).then((a) => (A.env[biome] = a));
+    const dot = biome.indexOf('.'), sk = BB.LANDSKINS[dot < 0 ? biome : biome.slice(0, dot)];
+    if (!pending['env' + biome]) pending['env' + biome] = (sk ? BB.loadEnv(dot < 0 ? 'vale' : 'ground').then((a) => skinAtlas(a, sk)) : loadAtlas('assets/env/' + biome)).then((a) => (A.env[biome] = a));
     return pending['env' + biome];
   };
+  // everything a land's maps draw from: its kit, the vale kit and the ground kit, and its skin if it has one
+  BB.loadLand = function (region) {
+    const list = [BB.loadEnv(region.biome || 'vale'), BB.loadEnv('vale'), BB.loadEnv('ground')], s = region.skin;
+    if (s) {
+      list.push(BB.loadEnv(s), BB.loadEnv(s + '.ground'));
+      skinOrder = skinOrder.filter((k) => k !== s); skinOrder.push(s);
+      while (skinOrder.length > 2) { const old = skinOrder.shift(); for (const k of [old, old + '.ground']) { delete A.env[k]; delete pending['env' + k]; } }
+    }
+    return Promise.all(list);
+  };
+  BB.landReady = (region) => !region.skin || !!(A.env[region.skin] && A.env[region.skin + '.ground']);
   BB.loadFx = function () {
     if (A.fx) return Promise.resolve(A.fx);
     if (!pending.fx) pending.fx = loadAtlas('assets/fx/fx').then((a) => (A.fx = a));

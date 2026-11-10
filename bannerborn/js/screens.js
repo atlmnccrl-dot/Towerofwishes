@@ -339,11 +339,15 @@
     2: { sky: ['#3a1c14', '#c8703a', '#ffd9a0'], sun: ['255,225,160', 0.3, 0.15], far: ['#b9864c', '#96683a'], ground: ['#dcb574', '#b0854c', '#6a4a28'], road: ['#f0d9aa', '#b8935e'], speck: '255,240,200' },
     3: { sky: ['#120c1e', '#4a2a40', '#b8604e'], sun: ['240,236,255', 0.76, 0.1], far: ['#241a2a', '#17101c'], ground: ['#63605a', '#3f3d39', '#1e1d1b'], road: ['#9a958a', '#5e5a52'], speck: '255,255,255' },
     4: { sky: ['#07060c', '#1a1030', '#4a2a6a'], sun: ['125,255,176', 0.86, 0.17], far: ['#181028', '#0e0a18'], ground: ['#45355a', '#281c3a', '#100a18'], road: ['#7a6896', '#44365a'], speck: '200,180,255' },
+    5: { sky: ['#24384e', '#8fb4cc', '#eef4fa'], sun: ['255,255,255', 0.7, 0.12], far: ['#9fb4c8', '#7c94ac'], ground: ['#e6eef8', '#b8c8dc', '#7f93ab'], road: ['#aab6c6', '#7f8b9d'], speck: '255,255,255' },
+    6: { sky: ['#140808', '#5a1c10', '#e0662a'], sun: ['255,150,70', 0.5, 0.16], far: ['#2a1a18', '#1a100e'], ground: ['#4a4442', '#2e2a28', '#141110'], road: ['#7a4a30', '#3e2a22'], speck: '255,150,60' },
+    7: { sky: ['#0e1a16', '#2f4a3a', '#9ab07a'], sun: ['220,240,190', 0.3, 0.1], far: ['#1e3428', '#14241c'], ground: ['#4a5e36', '#2c3c24', '#141e12'], road: ['#6a6244', '#3c3828'], speck: '170,230,120' },
+    8: { sky: ['#100a1a', '#3a2450', '#a880c0'], sun: ['230,200,255', 0.78, 0.13], far: ['#2a2038', '#1a1426'], ground: ['#6a5a7a', '#42364e', '#1e1826'], road: ['#8a7a9a', '#4e4258'], speck: '220,150,255' },
   };
   const HZ = 0.2; // the horizon: this much of the picture is sky
   const depthK = (y, h) => 0.55 + 0.75 * Math.max(0, (y / h - HZ) / (1 - HZ)); // how big things are drawn, by how far down (near) they stand
   function chapterNodes(ch, w, h) {
-    const ms = BB.MISSIONS.map((m, i) => [m, i]).filter(([m]) => m.chapter === ch.id), R = ROADS[ch.id];
+    const ms = BB.MISSIONS.map((m, i) => [m, i]).filter(([m]) => m.chapter === ch.id), R = ROADS[ch.id] || ROADS[1];
     return ms.map(([m, i], k) => { const u = (k + 0.5) / ms.length; return { i, m, x: (0.07 + u * 0.84) * w, y: h * (R[0] + Math.sin(u * Math.PI * R[2] + 0.6) * R[1]) }; });
   }
   function roadPoints(nodes, w, h) { // the road as a smooth run of points through the stages, in from the left edge
@@ -358,7 +362,7 @@
   function chapterBackdrop(ch, w, h, dpr) {
     const key = ch.id + '|' + w + 'x' + h;
     if (mapCache[key]) return mapCache[key];
-    const biome = ch.biome || 'vale', L = LAND[ch.id] || LAND[1];
+    const biome = (ch.skin && BB.A.env[ch.skin]) ? ch.skin : ch.biome || 'vale', L = LAND[ch.id] || LAND[1];
     if (!BB.A.env[biome]) { BB.loadEnv(biome).then(() => { for (const k in mapCache) if (k.startsWith(ch.id + '|')) delete mapCache[k]; }); }
     const c = document.createElement('canvas'); c.width = w; c.height = h;
     const g = c.getContext('2d'), r = BB.rng(ch.id * 77), hz = h * HZ;
@@ -398,7 +402,7 @@
       const pick = { 1: ['Tree A1_S', 'Tree A2_S', 'Tree A3_S', 'Tree B4_S', 'Tree B5_S', 'Tree D1_S', 'Tree D3_S', 'Tree E1_S', 'Stone A1_S', 'Stone A9_S'],
         2: ['Tree A1_S', 'Tree A2_S', 'Tree A4_S', 'Tree E1_S', 'Tree E2_S', 'Stone B1_S', 'Stone B5_S', 'Stone A23_S', 'Stone B7_S', 'Stone A2_S'],
         3: ['Stone A14_S', 'Stone A15_S', 'Stone A6_S', 'Stone A10_S', 'Tree D2_S', 'Tree B4_S', 'Stone A2_S', 'Stone A21_S', 'TreeTrunkBroken'],
-        4: ['TreeTrunkBroken', 'Stone A14_S', 'Stone A15_S', 'Stone A4_S', 'Stone A13_S', 'Stone A6_S', 'Stone A10_S', 'TreeTrunkBroken'] }[ch.id];
+        4: ['TreeTrunkBroken', 'Stone A14_S', 'Stone A15_S', 'Stone A4_S', 'Stone A13_S', 'Stone A6_S', 'Stone A10_S', 'TreeTrunkBroken'] }[ch.id > 4 ? 1 : ch.id];
       const near = (x, y, d) => pts.some((q) => Math.hypot(q.x - x, (q.y - y) * 1.5) < d);
       const props = [];
       const U = Math.max(0.5, Math.min(1, h / (520 * dpr))); // a small panel (a phone) gets smaller scenery, not a road buried in trees
@@ -420,12 +424,13 @@
   const J = UI.journey = { scenes: {}, loading: {}, cam: null, free: false, drag: null, ch: 0 };
   const PARTY_AT = [[0.1, 0.5], [-0.8, 0.9], [0.8, 0.9], [-0.3, 1.6], [0.9, 1.7]];
   function journeyOf(ch) {
-    const E = J.scenes[ch.id]; if (E) return E;
+    const E = J.scenes[ch.id]; if (E && BB.landReady(ch)) return E;
+    if (E) delete J.scenes[ch.id]; // its skin's art was let go while another land was visited: build it again
     if (!J.loading[ch.id]) { J.loading[ch.id] = true;
       (async () => {
         const stages = BB.MISSIONS.filter((m) => m.chapter === ch.id), biome = ch.biome || 'vale';
-        await Promise.all([BB.loadEnv(biome), BB.loadEnv('vale'), BB.loadEnv('ground')]);
-        const map = BB.buildJourney(stages, biome, 100 + ch.id, { night: !!ch.night });
+        await BB.loadLand(ch);
+        const map = BB.buildJourney(stages, biome, 100 + ch.id, { night: !!ch.night, skin: ch.skin });
         BB.renderGround(map, 1);
         const sc = new BB.Battle({ map, heroes: [], peaceful: true, save: BB.save, seed: 9 }); sc.journey = true; sc.npcs = [];
         map.baseAnims = map.anims.slice(); map.baseLights = map.lights.slice();
@@ -543,7 +548,7 @@
     // the land's name, set over a shade at the top; an arrow at an edge when the next fight is out of sight
     const sh = g.createLinearGradient(0, 0, 0, 70 * dpr); sh.addColorStop(0, 'rgba(4,5,9,0.7)'); sh.addColorStop(1, 'rgba(4,5,9,0)'); g.fillStyle = sh; g.fillRect(0, 0, w, 70 * dpr);
     g.textBaseline = 'alphabetic'; g.textAlign = 'left';
-    g.font = '700 ' + Math.round(10 * dpr) + 'px Outfit, sans-serif'; g.fillStyle = 'rgba(255,255,255,0.65)'; if (g.letterSpacing !== undefined) g.letterSpacing = (3 * dpr) + 'px'; g.fillText('CHAPTER ' + ['I', 'II', 'III', 'IV'][ch.id - 1], 18 * dpr, 22 * dpr);
+    g.font = '700 ' + Math.round(10 * dpr) + 'px Outfit, sans-serif'; g.fillStyle = 'rgba(255,255,255,0.65)'; if (g.letterSpacing !== undefined) g.letterSpacing = (3 * dpr) + 'px'; g.fillText('CHAPTER ' + BB.roman(ch.id), 18 * dpr, 22 * dpr);
     g.font = '700 ' + Math.round(22 * dpr) + 'px Cinzel, Georgia, serif'; g.fillStyle = '#f4ead2'; if (g.letterSpacing !== undefined) g.letterSpacing = (2 * dpr) + 'px'; g.fillText(ch.name.toUpperCase(), 18 * dpr, 46 * dpr);
     if (g.letterSpacing !== undefined) g.letterSpacing = '0px';
     if (cur) { const p = P2(cur.x, cur.y), off = p.x < 20 * dpr ? -1 : p.x > w - 20 * dpr ? 1 : 0;

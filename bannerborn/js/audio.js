@@ -46,7 +46,7 @@
     vesh: { atk: ['deep_growl2', 'deep_growl3'], cast: ['deep_froth'], enrage: ['deep_roar'], brk: ['deep_groan'], die: ['descent'], taunt: ['deep_roar'] },
   };
   BB.foeVoice = function (e, what, chance) {
-    if (!e || (!ac && !BB.audioClock)) return; const set = FV[e.kind]; if (!set || !set[what]) return;
+    if (!e || (!ac && !BB.audioClock)) return; const set = FV[(BB.FOES[e.kind] && BB.FOES[e.kind].voice) || e.kind]; if (!set || !set[what]) return;
     if (chance !== undefined && Math.random() > chance) return;
     const now = BB.audioClock ? BB.audioClock() : ac.currentTime; if (!e.boss && last.foeAny && Math.abs(now - last.foeAny) < 0.35) return; last.foeAny = now;
     const list = set[what]; BB.voice(list[Math.floor(Math.random() * list.length)], e.boss ? 0.95 : 0.6, e.boss ? 0.85 + Math.random() * 0.1 : undefined);

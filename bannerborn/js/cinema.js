@@ -1416,9 +1416,10 @@
     },
     // before a boss: each one is shot in its own style
     async boss(o) {
-      const M = o.stage, F = BB.FOES[M.boss], b = M.boss;
+      const M = o.stage, F = BB.FOES[M.boss], b = F.cine || M.boss;
       const bossW = { foe: b }, heroW = { hero: leader() };
       const name = F.name.split(',')[0].toUpperCase(), epi = (F.name.split(',')[1] || '').trim();
+      const short = M.boss === 'vesh' ? 'VESH' : name.split(' ').pop(), title = (epi || F.name).toUpperCase(), letters = F.name.split(',')[0].toLowerCase().split('').join('  ');
       const skels = ['h/skeleton_001', 'h/skeleton_003', 'h/skeleton_010', 'h/skeleton_011', 'h/skeleton_014'].map((k) => ({ npcKey: k }));
       await cast([bossW, heroW, { foe: 'ghoul' }, { foe: 'necro' }].concat(skels));
       const clash = (col) => ({ kind: 'impact', dur: 0.45, who: heroW, who2: bossW, clip: 'Attack1', accent: col, cues: [[0, SCORE('braam', 1)], [0, SHAKE(1)], [0, SFX('slam')], [0, FLASH(0.9)]] });
@@ -1441,25 +1442,29 @@
         clash('#ffd27a')] };
       if (b === 'regent') return { music: null, shots: [ // the neon dream: a scan, a pale moon, a fall through the stars
         { kind: 'neon', mode: 'scan', dur: 3.0, who: bossW, fadeIn: 0.3, cues: [[0, SCORE('drone')], [0.4, SCORE('tick')], [0.8, SCORE('tick')], [1.2, SCORE('tick')], [1.8, () => BB.foeVoice && BB.foeVoice({ kind: 'regent', boss: true }, 'taunt')], [0, RGB(0.4)]] },
-        { kind: 'neon', mode: 'moon', dur: 3.4, who: bossW, text: 'THE PALE REGENT', textY: 0.3, cues: [[0, SCORE('shimmer')], [1.6, SCORE('riser', 1.6)]] },
+        { kind: 'neon', mode: 'moon', dur: 3.4, who: bossW, text: title, textY: 0.3, cues: [[0, SCORE('shimmer')], [1.6, SCORE('riser', 1.6)]] },
         { kind: 'neon', mode: 'fall', dur: 1.8, who: bossW, cues: [[0, SCORE('braam', 1.1)], [0, RGB(1)], [0, SHAKE(0.6)]] },
-        { kind: 'type', dur: 2.0, lines: [{ text: 'R E G E N T', at: 0.05, size: 0.09, w: 800, col: '#c9a8ff', glow: '#ff46dc', gap: 0.08 }], cues: [[1.8, SCORE('drone', false)]] },
+        { kind: 'type', dur: 2.0, lines: [{ text: short.split('').join(' '), at: 0.05, size: 0.09, w: 800, col: '#c9a8ff', glow: '#ff46dc', gap: 0.08 }], cues: [[1.8, SCORE('drone', false)]] },
         clash('#c9a8ff')] };
       return { music: null, shots: [ // Vesh: ink, scattered letters, eyes in the dark, the white void
-        { kind: 'ink', mode: 'blots', dur: 3.0, letters: 'v  e  s  h     m  o  r  r  o  w', fadeIn: 0.3, cues: [[0, SCORE('drone')], [0.5, SCORE('tick')], [1.1, SCORE('tick')], [1.7, SCORE('tick')], [2.4, SCORE('riser', 0.6)]] },
+        { kind: 'ink', mode: 'blots', dur: 3.0, letters: letters, fadeIn: 0.3, cues: [[0, SCORE('drone')], [0.5, SCORE('tick')], [1.1, SCORE('tick')], [1.7, SCORE('tick')], [2.4, SCORE('riser', 0.6)]] },
         { kind: 'ink', mode: 'eyes', dur: 1.8, pairs: 1, cues: [[0, SCORE('hit', 1)], [0.3, VOICE('deep_groan', 0.9)]] },
         { kind: 'ink', mode: 'eyes', dur: 1.2, pairs: 9, cues: [[0, SCORE('boom')], [0.6, SCORE('boom')]] },
         { kind: 'ink', mode: 'void', dur: 2.8, who: bossW, cues: [[0, SCORE('riser', 2.4)], [0.5, VOICE('deep_roar', 1)], [2.6, SCORE('braam', 1.2)], [2.6, FLASH(1)]] },
-        { kind: 'montage', dur: 1.3, frames: [{ d: 0.3, who: bossW, bg: '#f2f0ea', ink: '#000', size: 1 }, { d: 0.25, word: 'VESH', wsize: 0.5, wcol: '#000', bg: '#f2f0ea', lines: false, hit: true }, { d: 0.75, who: bossW, bg: '#000', ink: '#000', rim: '#fff', eyes: '#fff', size: 0.9 }] },
-        { kind: 'type', dur: 2.2, lines: [{ text: 'THE BONE CANTOR', at: 0.05, size: 0.06, spread: 0.6, col: '#f2f0ea' }], cues: [[2.0, SCORE('drone', false)]] },
+        { kind: 'montage', dur: 1.3, frames: [{ d: 0.3, who: bossW, bg: '#f2f0ea', ink: '#000', size: 1 }, { d: 0.25, word: short, wsize: 0.5, wcol: '#000', bg: '#f2f0ea', lines: false, hit: true }, { d: 0.75, who: bossW, bg: '#000', ink: '#000', rim: '#fff', eyes: '#fff', size: 0.9 }] },
+        { kind: 'type', dur: 2.2, lines: [{ text: title, at: 0.05, size: 0.06, spread: 0.6, col: '#f2f0ea' }], cues: [[2.0, SCORE('drone', false)]] },
         clash('#ffffff')] };
     },
     // a new chapter: each land opens its own way
     async chapter(o) {
-      const ch = o.chapter, heroW = { hero: leader() }, roman = ['', 'I', 'II', 'III', 'IV'][ch.id];
+      const ch = o.chapter, heroW = { hero: leader() }, roman = BB.roman(ch.id);
       const folk = ['h/townsfolk_001', 'h/townsfolk_003', 'h/townsfolk_009', 'h/townsfolk_011', 'h/townsfolk_012', 'h/townsfolk_002'].map((k) => ({ npcKey: k }));
       await cast([heroW].concat(folk));
       const card = (col) => ({ kind: 'type', dur: 3.2, lines: [{ text: 'CHAPTER ' + roman, at: 0.05, size: 0.035, y: 0.36, spread: 0.7, col }, { text: ch.name.toUpperCase(), at: 0.1, size: ch.name.length > 14 ? 0.1 : 0.13, w: 800, fly: true, col, glow: col }, { text: ch.blurb, at: 1.1, size: 0.036, y: 0.65, font: 2, gap: 0.08 }], cues: [[2.9, SCORE('drone', false)]] });
+      if (ch.id > 4) { // the far marches: the road there, in the land's own light
+        const col = { frost: [170, 210, 255], ash: [255, 130, 60], mire: [150, 220, 120], blight: [214, 150, 255] }[ch.skin] || [255, 220, 150];
+        return { music: null, shots: [{ kind: 'journey', dur: 3.4, who: heroW, col, fadeIn: 0.4, span: [0.24, 0.45], cues: [[0, SCORE('drone')], [2.4, SCORE('riser', 1.0)]] }, card('rgb(' + col.join(',') + ')')] };
+      }
       if (ch.id === 1) return { music: null, shots: [ // and yet, I must try
         { kind: 'rain', dur: 2.0, who: heroW, kneel: true, fadeIn: 0.5, words: [{ text: 'AND YET', at: 0.6 }], cues: [[0, SCORE('drone')], [0.6, SCORE('boom', 0.7)]] },
         { kind: 'rain', dur: 1.8, who: heroW, kneel: true, close: true, words: [{ text: 'I MUST TRY', at: 0.3 }], cues: [[0.3, SCORE('boom', 0.9)], [1.0, SCORE('riser', 0.8)]] },

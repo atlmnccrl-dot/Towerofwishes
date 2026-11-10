@@ -43,6 +43,7 @@
   Map.prototype.add = function (name, x, y, opts) {
     opts = opts || {};
     const p = Object.assign({ name, x, y, r: opts.r !== undefined ? opts.r : R(name), biome: opts.biome || this.biome, sc: 1 }, opts);
+    if (this.skin) p.biome = p.biome === 'vale' ? this.skin : p.biome === 'ground' && !/^Chest|^Door|^FirePlace/.test(name) ? this.skin + '.ground' : p.biome; // a skinned land draws the same props from its own art
     p.solid = p.r > 0.05;
     this.props.push(p); return p;
   };
@@ -149,7 +150,7 @@
   BB.buildMap = function (layout, biome, seed, opts) {
     opts = opts || {};
     const big = { courtyard: 22, temple: 22, gate: 24, dunes: 22, camp: 20, title: 22 }[layout] || 26;
-    const m = new Map(big, big, biome, seed);
+    const m = new Map(big, big, biome, seed); m.skin = (opts && opts.skin) || null;
     const r = m.r, set = BB.SET(biome);
     const W = m.w, H = m.h, c = W / 2;
     m.layout = layout; m.night = !!opts.night;
@@ -422,7 +423,7 @@
   // the way on to the next land. Screen-right is (+x, -y), so the road runs along the map's other diagonal.
   BB.buildJourney = function (stages, biome, seed, opts) {
     opts = opts || {};
-    const N = 46, m = new Map(N, N, biome, seed), r = m.r, set = BB.SET(biome), sand = biome === 'sand';
+    const N = 46, m = new Map(N, N, biome, seed), r = (m.skin = (opts && opts.skin) || null, m.r), set = BB.SET(biome), sand = biome === 'sand';
     m.layout = 'journey'; m.night = !!opts.night;
     for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (r() < 0.18) m.set(x, y, 1);
     const n = stages.length, Q = Math.SQRT1_2, span = N - 13, sway = [2.3, 1.9, 2.7, 2.1][(seed | 0) % 4], ph = (seed % 7) * 0.9;
@@ -626,10 +627,11 @@
   // ground from the tile kit: a dirt block per tile, then an overlay (grass, dry grass, cobbles, flagstones, tiles)
   let sandAtlas = null;
   function drawTiles(m, g, r, MG) {
-    const G = BB.A.env.ground, f = G.meta.f, k = BB.ENV_DRAW;
+    const G0 = BB.A.env.ground, f = G0.meta.f, k = BB.ENV_DRAW, SG = m.skin && BB.A.env[m.skin + '.ground'];
+    const G = { img: SG ? SG.img : G0.img }; // a skinned land has its own ground kit, under the same names
     if (m.biome === 'sand' && !sandAtlas) {
-      const c = document.createElement('canvas'); c.width = G.img.width; c.height = G.img.height;
-      const x = c.getContext('2d'); x.filter = 'none'; x.drawImage(G.img, 0, 0);
+      const c = document.createElement('canvas'); c.width = G0.img.width; c.height = G0.img.height;
+      const x = c.getContext('2d'); x.filter = 'none'; x.drawImage(G0.img, 0, 0);
       const d = x.getImageData(0, 0, c.width, c.height), p = d.data;
       for (let i = 0; i < p.length; i += 4) { // warm, light sand from the brown dirt
         const l = (p[i] * 0.3 + p[i + 1] * 0.55 + p[i + 2] * 0.15) / 255;
@@ -680,7 +682,7 @@
   }
   BB.renderGround = function (m, scale) {
     scale = scale || 1.5;
-    const P = PAL[m.biome];
+    const P = (m.skin && BB.LANDSKINS[m.skin].pal) || PAL[m.biome];
     const MG = MARGIN;
     const minX = -(m.h + MG) * TW / 2 - MG * TW / 2, maxX = (m.w + MG) * TW / 2 + MG * TW / 2, minY = -MG * TH, maxY = (m.w + m.h + MG) * TH / 2 + MG * TH / 2;
     const c = document.createElement('canvas');

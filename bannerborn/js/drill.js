@@ -18,8 +18,8 @@
   // ---------------------------------------------------------------- build
   BB.buildDrillScene = async function (S, idx) {
     const M = BB.drillStage(S, idx), region = BB.REGIONS.find((r) => r.id === M.region) || BB.REGIONS[0];
-    await Promise.all([BB.loadEnv(region.biome), BB.loadEnv('vale'), BB.loadEnv('ground')]);
-    const map = BB.buildMap(M.layout, region.biome, BB.hashStr(M.id) % 9000 + 1, { night: !!region.night, floor: region.floor });
+    await BB.loadLand(region);
+    const map = BB.buildMap(M.layout, region.biome, BB.hashStr(M.id) % 9000 + 1, { night: !!region.night, floor: region.floor, skin: region.skin });
     BB.renderGround(map);
     const sc = new BB.Battle({ map, heroes: [], peaceful: true, save: S, seed: 5 });
     sc.drill = { stage: M, region, centre: { x: map.w / 2, y: map.h / 2 }, cleared: '', dummies: [], lastIds: '', dragId: null };

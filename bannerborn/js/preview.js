@@ -10,9 +10,9 @@
   async function fieldFor(S) { // a clear patch of the land the campaign is in, built once and kept
     const M = BB.drillStage ? BB.drillStage(S, null) : BB.MISSIONS[0], region = BB.REGIONS.find((r) => r.id === M.region) || BB.REGIONS[0];
     const key = region.id;
-    if (P.map && P.mapKey === key) return P.map;
-    await Promise.all([BB.loadEnv(region.biome), BB.loadEnv('vale'), BB.loadEnv('ground'), BB.loadChar('ghoul').catch(() => null)]);
-    const m = BB.buildMap('camp', region.biome, 77, { night: false, floor: region.floor }), c = m.w / 2;
+    if (P.map && P.mapKey === key && BB.landReady(region)) return P.map;
+    await Promise.all([BB.loadLand(region), BB.loadChar('ghoul').catch(() => null)]);
+    const m = BB.buildMap('camp', region.biome, 77, { night: false, floor: region.floor, skin: region.skin }), c = m.w / 2;
     m.props = m.props.filter((p) => hyp(p.x - c, p.y - c) > 4.2); m.anims = []; m.lights = [];
     for (const p of m.props) { const s = BB.iso(p.x, p.y); p.depth = p.x + p.y; p.sx = s.x; p.sy = s.y; }
     if (BB.rebuildGrid) BB.rebuildGrid(m);

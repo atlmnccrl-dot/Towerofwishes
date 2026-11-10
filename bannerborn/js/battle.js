@@ -87,6 +87,7 @@
     if (e.gate) { e.spawnCd = 2.5; e.sc = 1; }
     e.maxPoise = e.gate || e.turret ? 0 : F.boss ? 320 : F.role === 'tank' ? 95 : elite ? 100 : 60; e.poise = e.maxPoise;
     if (F.pool && e.art) { const rc = BB.ROSTER.find((c) => 'h/' + c.key === e.art); e.elem = rc && rc.elem; }
+    if (F.elem) e.elem = F.elem;
     if (F.firering) e.ringCd = 4 + this.r() * 3;
     this.ents.push(e);
     if (opts.rise) this.addFx('portalopen', x, y - 0.1, { sc: 0.55, fps: 18, add: true });
@@ -1631,7 +1632,7 @@
     const ox = W / 2 - cs.x * z + shx * dpr, oy = H / 2 - cs.y * z + shy * dpr - 20 * z;
     this.view = { ox, oy, z };
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = m.biome === 'sand' ? '#6b5434' : '#22301a'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = m.skin ? BB.LANDSKINS[m.skin].bg : m.biome === 'sand' ? '#6b5434' : '#22301a'; ctx.fillRect(0, 0, W, H);
     ctx.setTransform(z, 0, 0, z, ox, oy);
     // ground
     if (m.groundCanvas) {
@@ -1879,7 +1880,7 @@
     if (!this.vig || this.vig.w !== W || this.vig.h !== H) {
       const c = document.createElement('canvas'); c.width = Math.ceil(W / 6); c.height = Math.ceil(H / 6);
       const vg = c.getContext('2d'), cw = c.width, ch = c.height;
-      if (!night) { vg.fillStyle = m.biome === 'sand' ? 'rgba(60,30,0,0.06)' : 'rgba(10,20,30,0.08)'; vg.fillRect(0, 0, cw, ch); }
+      if (!night) { vg.fillStyle = m.skin ? BB.LANDSKINS[m.skin].haze : m.biome === 'sand' ? 'rgba(60,30,0,0.06)' : 'rgba(10,20,30,0.08)'; vg.fillRect(0, 0, cw, ch); }
       const v = vg.createRadialGradient(cw / 2, ch / 2, Math.min(cw, ch) * 0.35, cw / 2, ch / 2, Math.max(cw, ch) * 0.75);
       v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.55)'); vg.fillStyle = v; vg.fillRect(0, 0, cw, ch);
       this.vig = { c, w: W, h: H };

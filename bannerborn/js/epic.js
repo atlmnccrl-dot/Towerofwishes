@@ -110,11 +110,14 @@
   B.drawEpic = function (ctx, W, H, dpr) {
     const E = epic(this), u = H / 720;
     // weather by land
-    if (!E.weather) E.weather = this.map.biome === 'sand' ? 'sand' : /gate|tombs|march|throne/.test(this.mission && this.mission.layout || '') ? 'ash' : 'embers';
+    if (!E.weather) E.weather = this.map.skin ? BB.LANDSKINS[this.map.skin].weather : this.map.biome === 'sand' ? 'sand' : /gate|tombs|march|throne/.test(this.mission && this.mission.layout || '') ? 'ash' : 'embers';
     const t = this.time;
     ctx.save();
     for (let i = 0, nW = BB.lowFx ? 14 : 30; i < nW; i++) { const h1 = Math.abs(Math.sin(i * 91.7)) % 1, h2 = Math.abs(Math.sin(i * 37.3)) % 1;
       if (E.weather === 'sand') { const x = ((h1 * W + t * W * 0.35) % (W + 60)) - 30, y = (h2 * H + Math.sin(t * 2 + i) * 10); ctx.fillStyle = 'rgba(240,210,150,0.35)'; ctx.fillRect(x, y, 6 * u, 1.2 * u); }
+      else if (E.weather === 'snow') { const x = ((h1 * W - t * 26 * u * (0.6 + h2) + Math.sin(t * 0.9 + i) * 24 * u) % W + W) % W, y = (h2 * H + t * (34 + h1 * 40) * u) % H, sz = (1.6 + (i % 3)) * u; ctx.fillStyle = 'rgba(255,255,255,' + (0.5 + 0.3 * h1) + ')'; ctx.fillRect(x, y, sz, sz); }
+      else if (E.weather === 'cinders') { if (i % 2) { const x = ((h1 * W + Math.sin(t * 0.7 + i) * 30) % W + W) % W, y = (h2 * H + t * 26 * u) % H; ctx.fillStyle = 'rgba(190,186,182,0.45)'; ctx.fillRect(x, y, 2 * u, 2 * u); } else { const x = ((h1 * W + Math.sin(t + i) * 26) % W + W) % W, y = H - ((h2 * H + t * 52 * u) % H); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = 'rgba(255,130,40,' + (0.35 + 0.3 * Math.sin(t * 4 + i)) + ')'; ctx.fillRect(x, y, 2.4 * u, 2.4 * u); ctx.globalCompositeOperation = 'source-over'; } }
+      else if (E.weather === 'spores' || E.weather === 'motes') { const x = ((h1 * W + Math.sin(t * 0.5 + i * 1.7) * 36 * u) % W + W) % W, y = H - ((h2 * H + t * 14 * u * (0.5 + h1)) % H); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = (E.weather === 'spores' ? 'rgba(150,220,110,' : 'rgba(214,130,255,') + (0.22 + 0.2 * Math.sin(t * 1.6 + i)) + ')'; ctx.fillRect(x, y, 2.4 * u, 2.4 * u); ctx.globalCompositeOperation = 'source-over'; }
       else if (E.weather === 'ash') { const x = ((h1 * W + Math.sin(t * 0.7 + i) * 30) % W + W) % W, y = (h2 * H + t * 30 * u) % H; ctx.fillStyle = 'rgba(200,200,205,0.4)'; ctx.fillRect(x, y, 2 * u, 2 * u); }
       else { const x = ((h1 * W + Math.sin(t + i) * 20) % W + W) % W, y = H - ((h2 * H + t * 40 * u) % H); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = 'rgba(255,170,80,' + (0.25 + 0.25 * Math.sin(t * 3 + i)) + ')'; ctx.fillRect(x, y, 2 * u, 2 * u); ctx.globalCompositeOperation = 'source-over'; } }
     // the next wave's direction flares red at the screen edge
