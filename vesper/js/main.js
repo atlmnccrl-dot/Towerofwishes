@@ -289,7 +289,7 @@
     { title: 'BARRELS', text: () => key('Barrels, crates and pots break. Smash the powder barrel to blow up the husks around it.', 'Barrels, crates and pots break. Smash the powder barrel to blow up the husks around it.'), btn: 'atk',
       enter: (f) => { const c = ahead(f, 120); f.tut.barrel = SIM.addBreak(f.s, 'barrel', c.x, c.y); f.tut.units = [0, 1, 2].map((i) => SIM.place(f.s, 'dummy', c.x + Math.cos(0.6 + i * 2.1) * 30, c.y + Math.sin(0.6 + i * 2.1) * 30)); f.tut.mark = null; f.tut.goal = { x: f.tut.barrel.x, y: f.tut.barrel.y, hit: true }; },
       done: (f) => !f.tut.barrel || f.tut.barrel.broken, limit: 25, leave: (f) => { for (const u of alive(f)) SIM.dismiss(f.s, u); } },
-    { title: 'FIGHT', text: (f) => f.tut.hint || 'The dead are coming from all sides. Dash through their swings and cut them down. Clear them all.', btn: null,
+    { title: 'FIGHT', text: (f) => f.tut.hint || (P().seen.lastHour ? 'You woke with nothing: no skills, no moon art, only your blade and the dash. The dead are coming. Fight your way back to him.' : 'The dead are coming from all sides. Dash through their swings and cut them down. Clear them all.'), btn: null,
       enter: (f) => { for (const u of SIM.foes(f.s)) SIM.dismiss(f.s, u); f.tut.units = []; SIM.release(f.s); f.tut.mark = null; }, done: () => false },
   ];
   // What to say the first time each kind of foe shows up in the trial's fight.
@@ -346,7 +346,11 @@
       f0.tips = kit.filter((k) => !p.tips[k]).map((k) => ({ id: k, t: 0 }));
     } else if (opts.mode === 'endless') { s.goal = { reach: 'Survive as long as you can', boss: 'Survive as long as you can' }; f0.banner = { text: 'ENDLESS', sub: AR.name + '  ·  BEST WAVE ' + ((p.endless && p.endless.best) || 0), t: -0.4, col: '#ffffff' }; }
     else if (opts.mode === 'daily') { s.goal = { reach: 'Win the daily challenge', boss: 'Win the daily challenge' }; f0.banner = { text: b.name.toUpperCase(), sub: b.twists.map((t) => t.toUpperCase()).join('  ·  ') + '  ·  ' + AR.name, t: -0.4, col: '#ffd060' }; }
-    else if (opts.showcase) { s.goal = { reach: 'The last hour', boss: 'The last hour' }; f0.banner = { text: 'THE LAST HOUR', sub: 'SEVEN HOURS FROM NOW  ·  THE TOP OF THE SPIRE', t: -0.6, col: '#ffd060' }; f0.steps = LAST; f0.tut = { step: 0, t: 0, walked: 0, seen: {}, dodged: 0, kills: 0 }; }
+    else if (opts.showcase) {
+      const boss = opts.showcase === 'boss'; s.goal = { reach: 'The last hour', boss: boss ? 'Defeat the First Cut' : 'The last hour' };
+      f0.banner = boss ? { text: 'THE FIRST CUT', sub: 'THE LAST HOUR  ·  THE TOP OF THE SPIRE', t: -0.6, col: '#ff2a44' } : { text: 'THE LAST HOUR', sub: 'DAWN IS CLOSE  ·  THE SPIRE', t: -0.6, col: '#ffd060' };
+      f0.steps = boss ? BOSS : LAST; f0.tut = { step: 0, t: 0, walked: 0, seen: {}, dodged: 0, kills: 0 };
+    }
     else f0.banner = { text: AR.name, sub: 'AREA 1 / ' + s.waves.length, t: -0.4, col: '#ffffff' };
     M.go('fight'); AU.playAmb(null); AU.cue(opts.mode || (n && (n.type === 'boss' || n.type === 'echo') ? 'boss' : 'act' + stageIdx));
   }
@@ -372,56 +376,80 @@
     U.pause({ auto: P().opts.auto, onResume: () => pause(false), onRestart: () => (f.theatre ? theatre(f.theatreHero, f.theatreFull, f.theatreBack) : f.nodeId ? startNode(f.nodeId) : startFight(f.stage)),
       onAuto: () => { P().opts.auto = !P().opts.auto; M.write(); pause(true); }, onQuit: () => { M.paused = false; if (f.theatre) (f.theatreBack || title)(); else map(f.nodeId); } });
   }
-  // ---- the last hour: the tutorial, at the top of the Spire, seven hours from now ----------------------------
-  // Vesper at full power (every ability, end-game gear) learns the game one move at a time on practice targets,
-  // then puts it together against the end-game horde and an echo of the Gatewarden, and ends on the Last Ditch
-  // Effort. Each lesson waits for the move, moves on by itself after a while, and finishes with a flourish; she
-  // cannot fall here. Esc skips it. Then SEVEN HOURS EARLIER and the first fight.
-  const SHOW_NODE = 'a6-1';
+  // ---- the last hour: the tutorial, and how the night first ended -----------------------------------------
+  // Vesper at full power (every ability, end-game gear) at the top of the Spire, in three stages. Stage 1: the
+  // lessons on practice targets (move; attack, with the combo and the heavy blow, the same button; dash; dash-cut;
+  // the automatic skills, explained). Stage 2: the end-game horde. Stage 3: his film, then the First Cut himself in
+  // the colossus arena: the moon art, and past a threshold of his health (or after a while) his one-shot, THE
+  // FIRST CUT, which kills her. The Moon sees her corpse and raises her; it turns the night back to dusk and she
+  // wakes at the Black Gate with nothing: the campaign. Each lesson opens with a message that pauses the game; she
+  // cannot fall before the one-shot; Esc skips to the Moon raising her.
+  const SHOW_NODE = 'a6-1', BOSS_NODE = 'a5-b', ONE_SHOT_AT = 0.55;
+  const SHOW_KIT = ['heavy', 'dodge', 'skill1', 'skill2', 'art'], SHOW_BOONS = ['fourth', 'edge', 'edge2', 'ghost', 'iron', 'wind', 'vigor', 'vigor2', 'moonblood', 'quick', 'thirst', 'riposte'];
+  const SHOW_GEAR = { dmg: 2.4, hp: 160, armor: 0.3, gain: 1.6, thirst: 0.08, cd: 0.5, dodge: 1.3, parry: 1, heal: 1, gold: 1 };
   const lineOf = (f, n, gap, dx) => { const a = ahead(f, 110); return Array.from({ length: n }, (_, i) => ({ x: a.x + (i - (n - 1) / 2) * gap * (dx || 1), y: a.y + (i - (n - 1) / 2) * gap * 0.25 })); };
+  const bossOf = (s) => s.god || SIM.foes(s).find((u) => D.FOES[u.key] && D.FOES[u.key].boss);
   const LAST = [
-    TUT[0], TUT[1], TUT[2], TUT[3], TUT[4], TUT[5],
-    { title: 'SKILLS', text: () => 'Your two skills, the Crescent Wave and the Phantom Step, join your combo by themselves whenever they are ready. The marks above your attack turn gold when they are. Keep attacking the line.', btn: 'atk',
+    Object.assign({}, TUT[0], { stage: 1 }),
+    { stage: 1, title: 'ATTACK', btn: 'atk', text: () => key('Click (or J) to attack. Keep attacking and your cuts chain into a combo. When three or more crowd you, the same button ends the combo with a HEAVY blow that throws them all back. Cut down all four.', 'Tap CUT to attack. Keep tapping and your cuts chain into a combo. When three or more crowd you, the same button ends the combo with a HEAVY blow that throws them all back. Cut down all four.', 'Press A to attack. Keep pressing and your cuts chain into a combo. When three or more crowd you, the same button ends the combo with a HEAVY blow that throws them all back. Cut down all four.'),
+      enter: (f) => { const c = ahead(f, 110); f.tut.units = [0, 1, 2, 3].map((i) => SIM.place(f.s, 'dummy', c.x + Math.cos(i * 1.57) * 22, c.y + Math.sin(i * 1.57) * 22)); },
+      prog: (f) => (4 - alive(f).length) + ' / 4', done: (f) => !alive(f).length, limit: 60, leave: (f) => { for (const u of alive(f)) SIM.dismiss(f.s, u); } },
+    Object.assign({}, TUT[4], { stage: 1 }), Object.assign({}, TUT[5], { stage: 1 }),
+    { stage: 1, title: 'AUTO SKILLS', btn: 'atk', text: () => 'Your attack does the rest by itself. When a skill is ready it joins the combo: the CRESCENT WAVE sends a wave of red steel through a whole line, and the PHANTOM STEP vanishes and strikes the nearest foe from behind. The HEAVY blow comes the same way when you are crowded or a shield is in your way. The marks above your attack turn gold when each is ready. Keep attacking the line.',
       enter: (f) => { f.s.cds[0] = f.s.cds[1] = 0; f.tut.used = [false, false]; f.tut.units = lineOf(f, 5, 24).map((p) => SIM.place(f.s, 'dummy', p.x, p.y)); },
       prog: (f) => { const u = f.tut.used || []; return (u[0] ? 1 : 0) + (u[1] ? 1 : 0) + ' / 2 skills'; }, done: (f) => { const u = f.tut.used || []; return (u[0] && u[1]) || !alive(f).length; }, limit: 45, leave: (f) => { for (const u of alive(f)) SIM.dismiss(f.s, u); } },
-    { title: 'THE HORDE', text: () => 'Now all of it, against the dead of the last hour. Keep attacking, dash through the red swings, and let the heavy blow and your skills come. Cut down 12.', btn: null,
+    { stage: 2, title: 'THE HORDE', btn: null, text: () => 'The dead of the last hour stand between you and him. Keep attacking, dash through the red swings, and let the heavy blow and your skills come. Cut down 12.',
       enter: (f) => { const s = f.s; for (const u of SIM.foes(s)) SIM.dismiss(s, u); f.tut.units = []; f.tut.mark = null; f.tut.kills = 0; SIM.release(s); P().seen.lastHour = true; AU.cue('boss'); },
       prog: (f) => Math.min(12, f.tut.kills) + ' / 12', done: (f) => f.tut.kills >= 12, limit: 60 },
-    { title: 'THE GUARDIAN', text: () => 'An echo of the Gatewarden. Watch for the red rings under him, dash through his blows, then cut him while he recovers. Break him to half.', btn: null,
-      enter: (f) => { const s = f.s; for (const u of SIM.foes(s)) SIM.dismiss(s, u); s.wave = s.waves.length - 2; s.area = s.waves.length - 1; s.waveT = 0; SIM.step(s, STEP, {}); R.snapCam(s); R.shake = 10; AU.sfx('quake', 1); },
-      prog: (f) => { const b = SIM.foes(f.s).find((u) => D.FOES[u.key] && D.FOES[u.key].boss); return b ? Math.round(100 * b.hp / b.maxHp) + '%' : ''; },
-      done: (f) => { const b = SIM.foes(f.s).find((u) => D.FOES[u.key] && D.FOES[u.key].boss); return !b || b.hp < b.maxHp * 0.5; }, limit: 60 },
-    { title: 'THE MOON ART', text: () => key('The moon is full and you are near death: the moon answers with the Last Ditch Effort. Press E.', 'The moon is full and you are near death: the moon answers with the Last Ditch Effort. Tap the moon.', 'The moon is full and you are near death: the moon answers with the Last Ditch Effort. Pull a trigger.'), btn: 'art',
-      enter: (f) => { const h = f.s.hero; f.s.moon = 100; h.hp = Math.round(h.maxHp * 0.24); AU.sfx('charge', 1); },
-      done: (f) => !!f.s.cine || f.tut.art, limit: 20, auto: (f) => { if (!f.s.cine) SIM.startArt(f.s); } },
-    { title: '', text: () => '', done: (f) => f.tut.ended > 1.6, limit: 16 },
+    { title: '', text: () => '', done: () => true },   // on to the top of the Spire
   ];
+  const BOSS = [
+    { stage: 3, title: 'THE FIRST CUT', btn: null, text: () => 'He wounded the moon, and he waits at the top of the Spire. He is far too big to reach. His sword and his hands fall where the red marks are: get out of them, then cut the blade and the hands while they lie on the ground.',
+      prog: (f) => { const g = bossOf(f.s); return g ? Math.round(100 * g.hp / g.maxHp) + '%' : ''; }, done: (f) => { const g = bossOf(f.s); return !g || g.hp < g.maxHp * 0.85; }, limit: 50 },
+    { stage: 3, title: 'THE MOON ART', btn: 'art', text: () => key('The moon is full. Press E: your ultimate strikes him wherever he stands.', 'The moon is full. Tap the moon: your ultimate strikes him wherever he stands.', 'The moon is full. Pull a trigger: your ultimate strikes him wherever he stands.'),
+      enter: (f) => { f.s.moon = 100; AU.sfx('charge', 1); }, done: (f) => !!f.s.cine || f.tut.art, limit: 20, auto: (f) => { if (!f.s.cine) SIM.startArt(f.s); } },
+    { title: '', text: () => '', done: (f) => { const g = bossOf(f.s); return !g || g.hp < g.maxHp * ONE_SHOT_AT; }, limit: 35 },
+    { title: '', text: () => '', done: () => false },   // his answer (see showWatch)
+  ];
+  const STAGE_NAME = { 1: 'stage 1  ·  the lessons', 2: 'stage 2  ·  the horde', 3: 'stage 3  ·  the top of the spire' };
   // The short goal under each lesson once it is under way.
-  const GOAL = { MOVE: 'Walk to the glowing circle', CUT: 'Cut down both husks', COMBO: 'Land a 6-hit chain', HEAVY: 'Keep attacking in the crowd', DODGE: 'Dash through 2 red swings', 'DASH-CUT': 'Attack right after a dash', BARRELS: 'Smash the powder barrel',
-    FIGHT: 'Clear them all', SKILLS: 'Keep attacking: both skills will come', 'THE HORDE': 'Cut down 12', 'THE GUARDIAN': 'Break him to half', 'THE MOON ART': 'Use the moon art' };
+  const GOAL = { MOVE: 'Walk to the glowing circle', ATTACK: 'Cut down all four', CUT: 'Cut down both husks', COMBO: 'Land a 6-hit chain', HEAVY: 'Keep attacking in the crowd', DODGE: 'Dash through 2 red swings', 'DASH-CUT': 'Attack right after a dash', BARRELS: 'Smash the powder barrel',
+    FIGHT: 'Clear them all', 'AUTO SKILLS': 'Keep attacking: both skills will come', 'THE HORDE': 'Cut down 12', 'THE FIRST CUT': 'Break him', 'THE MOON ART': 'Use the moon art' };
+  // Stages 1 and 2: the end-game map, its waves held back for the horde.
   function showcase(then) {
-    const n = PR.node(SHOW_NODE), b0 = PR.build(n), b = Object.assign({}, b0, { node: Object.assign({}, b0.node, { script: true }) }), miss = missingFor(b), iso = isoFor(b.stage);   // scripted: the waves wait for the horde lesson
-    const all = ['heavy', 'dodge', 'skill1', 'skill2', 'art'], boons = ['fourth', 'edge', 'edge2', 'ghost', 'iron', 'wind', 'vigor', 'vigor2', 'moonblood', 'quick', 'thirst', 'riposte'];
-    const gear = { dmg: 2.4, hp: 160, armor: 0.3, gain: 1.6, thirst: 0.08, cd: 0.5, dodge: 1.3, parry: 1, heal: 1, gold: 1 };
-    const go = () => { startFight(b.stage, { build: b, showcase: true, guided: true, kit: all, boons, gear, then }); };
+    const n = PR.node(SHOW_NODE), b0 = PR.build(n), b = Object.assign({}, b0, { node: Object.assign({}, b0.node, { script: true }) }), miss = missingFor(b), iso = isoFor(b.stage);
+    const go = () => { startFight(b.stage, { build: b, showcase: 'lessons', guided: true, kit: SHOW_KIT, boons: SHOW_BOONS, gear: SHOW_GEAR, then }); };
+    loadThen(miss, iso, go);
+  }
+  M.showcase = showcase;
+  // Stage 3: the First Cut's film, then him.
+  function showcaseBoss(then) {
+    const n = PR.node(BOSS_NODE), b = PR.build(n), miss = missingFor(b), iso = isoFor(b.stage);
+    const fight = () => loadThen(miss, iso, () => startFight(b.stage, { build: b, showcase: 'boss', kit: SHOW_KIT, boons: SHOW_BOONS, gear: SHOW_GEAR, then }));
+    U.hide(); M.go('intro'); VS.INTRO.play(VS.FILMS.firstCut, () => { R.hideCine(); fight(); }, { skippable: true });
+  }
+  M.showcaseBoss = showcaseBoss;
+  function loadThen(miss, iso, go) {
     if (!miss.length && A.isoReady(iso)) return go();
     M.go('load'); U.loading(0);
     Promise.all([A.loadSets(miss, (x) => U.loading(x)), A.loadIso(iso)]).then(() => { A.warm(R.ctx); A.isoWarm(R.ctx); U.hide(); go(); }, () => { U.hide(); go(); });
   }
-  M.showcase = showcase;
-  // The last hour's extras on top of the lesson engine: what it counts, the floor under her health, the end.
+  // The last hour's extras on top of the lesson engine: what it counts, the floor under her health, the stages.
   function showWatch(f) {
     const s = f.s, T = f.tut, h = s.hero;
     for (const e of s.events) {
       if (e.type === 'kill') T.kills = (T.kills || 0) + 1;
       if (e.type === 'skill') { const i = (s.heroDef.skills || []).findIndex((k) => k.name === e.name); if (i >= 0 && T.used) T.used[i] = true; }
       if (e.type === 'art') T.art = true;
-      if (e.type === 'artEnd') T.ended = 0.01;
     }
-    if (T.ended > 0) T.ended += STEP;
-    const moonStep = LAST.length - 2;
-    if (h.alive) h.hp = Math.max(h.hp, Math.round(h.maxHp * (T.step < moonStep ? 0.35 : 0.15)));
-    if (T.step >= LAST.length - 1 && T.ended > 1.6) endShowcase(f);
+    if (h.alive) h.hp = Math.max(h.hp, Math.round(h.maxHp * 0.35));   // she cannot fall before his answer
+    const STEPS = f.steps;
+    if (f.showcase === 'lessons' && T.step >= STEPS.length - 1 && !f.showDone) { f.showDone = true; M.hold = false; showcaseBoss(f.then); return; }
+    if (f.showcase === 'boss' && T.step >= STEPS.length - 1 && !s.cine && !f.oneShot) {
+      // He has had enough: the sword goes up, the sky goes dark, and a moment later the film of the cut.
+      f.oneShot = 1.6; R.godPose = { move: 'blade', t: 0 }; R.shake = 10; R.flash = 0.5; R.flashCol = '255,30,50';
+      f.banner = { text: 'THE FIRST CUT', sub: 'HE RAISES HIS SWORD', t: 0, col: '#ff2a44' }; AU.sfx('horn', 1); AU.sfx('windup', 1);
+    }
   }
   // A lesson learned: a gold ring breaks out from her.
   function lessonFlourish(f, title) {
@@ -429,9 +457,12 @@
     R.fx.push({ t: 0, kind: 'gring', x: h.x, y: h.y, life: 0.7, col: '#ffd060', r0: 8, r1: 150, w: 5 }, { t: 0, kind: 'ring', x: h.x, y: h.y, z: 22, life: 0.45, col: '#ffffff', r0: 6, r1: 70, w: 3 });
     AU.sfx('level_up', 0.5);
   }
-  function endShowcase(f) {
-    if (f.showDone) return; f.showDone = true; AU.duck(false); M.hold = false; M.write();
-    startScene(0, { shots: [{ k: 'title', top: 'THE BLACK GATE', title: 'SEVEN HOURS EARLIER', sub: 'Dusk. The night has only begun.', d: 3.0 }] }, f.then, true);
+  // The end of the last hour: the cut that kills her (when it got that far), then the Moon raising her, then the campaign.
+  function endShowcase(f, cut) {
+    if (f.showEnd) return; f.showEnd = f.showDone = true; AU.duck(false); M.hold = false; M.write();
+    U.hide(); M.go('intro');
+    const rise = () => VS.INTRO.play(VS.FILMS.rise, () => { R.hideCine(); f.then(); }, { skippable: true });
+    if (cut) VS.INTRO.play(VS.FILMS.oneShot, rise, { skippable: true }); else rise();
   }
 
   // The trial's steps, checked against the fight as it plays.
@@ -447,8 +478,8 @@
         T.awaitOk = true; M.hold = true; M.stick = null; M.held = {};
         const n = STEPS.filter((x) => x.title).length, i = STEPS.slice(0, T.step).filter((x) => x.title).length + 1;
         const ok = () => { if (!T.awaitOk) return; U.hide(); T.awaitOk = false; M.hold = false; f.acc = 0; AU.sfx('step_1', 0.6); };
-        U.lesson({ eyebrow: (f.showcase ? 'The last hour  ·  lesson ' : 'Trial  ·  step ') + i + ' of ' + n, title: st.title, text: st.text(f), onOk: ok,
-          onBack: f.showcase ? () => { U.hide(); T.awaitOk = false; M.hold = false; endShowcase(f); } : ok });
+        U.lesson({ eyebrow: f.showcase ? 'The last hour  ·  ' + (STAGE_NAME[st.stage] || '') : P().seen.lastHour && st.title === 'FIGHT' ? 'Dusk  ·  the Black Gate' : 'Trial  ·  step ' + i + ' of ' + n, title: st.title, text: st.text(f), onOk: ok,
+          onBack: f.showcase ? () => { U.hide(); T.awaitOk = false; M.hold = false; endShowcase(f, f.showcase === 'boss'); } : ok });
         AU.sfx('notify_01', 0.6);
         return;
       }
@@ -476,7 +507,7 @@
   function fight(ctx, dt) {
     const f = M.fight, s = f.s;
     if (f.theatre && !M.paused && (M.pressed.back || M.pressed.tap)) { AU.duck(false); (f.theatreBack || title)(); return; }   // the theatre: a tap or Esc leaves the moon art
-    if (f.showcase && M.pressed.back && !M.paused) { M.pressed.back = false; endShowcase(f); return; }   // Esc skips the last hour
+    if (f.showcase && M.pressed.back && !M.paused) { M.pressed.back = false; endShowcase(f, f.showcase === 'boss'); return; }   // Esc skips to how the night ended
     if (M.pressed.back && !s.cine && !M.paused) { pause(true); M.pressed.back = false; }
     if (!M.paused && !M.hold) {
       f.acc += dt;
@@ -518,7 +549,7 @@
       else if (f.tut && !M.paused && !f.tut.awaitOk && (f.steps || TUT)[Math.min((f.steps || TUT).length - 1, f.tut.step)].title) {
         const STEPS = f.steps || TUT, T = f.tut, st = STEPS[Math.min(STEPS.length - 1, T.step)];
         R.tutGuide(ctx, s, { mark: T.cheer > 0 ? null : T.mark, targets: T.cheer > 0 ? [] : alive(f), barrel: T.cheer > 0 || !T.barrel || T.barrel.broken ? null : T.barrel, btn: T.cheer > 0 ? null : st.btn, touch: R.touch });
-        R.coach(ctx, { title: (f.showcase ? 'THE LAST HOUR  ·  LESSON ' + (T.step + 1) + '  ·  ' : 'TRIAL  ·  ') + st.title, text: GOAL[st.title] || st.text(f), t: T.cheer > 0 ? 1 : T.t + 0.3, step: T.step, of: f.showcase ? STEPS.length - 1 : STEPS.length, col: f.showcase ? '#ffd060' : '#8ad0ff', prog: st.prog && T.cheer <= 0 ? st.prog(f) : null, done: T.cheer > 0 });
+        R.coach(ctx, { title: (f.showcase ? 'THE LAST HOUR  ·  STAGE ' + (st.stage || '') + '  ·  ' : 'TRIAL  ·  ') + st.title, text: GOAL[st.title] || st.text(f), t: T.cheer > 0 ? 1 : T.t + 0.3, step: T.step, of: f.showcase ? STEPS.length - 1 : STEPS.length, col: f.showcase ? '#ffd060' : '#8ad0ff', prog: st.prog && T.cheer <= 0 ? st.prog(f) : null, done: T.cheer > 0 });
       }
       else if (f.tips && f.tips.length && !M.paused && s.time > 1.2) {
         const tp = f.tips[0], H = s.heroDef, [tt, tx] = TIPS[tp.id](H); tp.t += dt;
@@ -528,6 +559,12 @@
       if (R.touch && !M.paused) R.drawTouch(ctx, s, { stick: M.stick, held: M.touchHeld });
       if (!R.touch && M.mouseAim && M.mouse && !M.paused) R.drawReticle(ctx, M.mouse.x, M.mouse.y);
     }
+    // The last hour's First Cut: he strikes faster, the summit trembles and red lightning splits the sky.
+    if (f.showcase === 'boss' && !M.paused && !M.hold && !s.cine) {
+      s.godPace = 0.65; R.shake = Math.max(R.shake || 0, 1.2); f.storm = (f.storm || 2.5) - dt;
+      if (f.storm <= 0) { f.storm = 2.6 + Math.random() * 2.4; R.flash = 0.5; R.flashCol = '255,40,70'; R.shake = Math.max(R.shake, 5); AU.sfx('bolt', 0.55); AU.sfx('quake', 0.4); }
+    }
+    if (f.oneShot > 0 && !M.paused) { f.oneShot -= dt; if (f.oneShot <= 0) { endShowcase(f, true); return; } }
     if (f.theatreEnd > 0 && !M.paused) { f.theatreEnd -= dt; if (f.theatreEnd <= 0) { (f.theatreBack || title)(); return; } }
     if (s.result && !M.paused) endFight(s.result);
   }
@@ -535,7 +572,7 @@
     const f = M.fight, s = f.s, p = P();
     AU.duck(false);
     if (f.mode) return endMode(result);
-    if (f.showcase) { endShowcase(f); return; }
+    if (f.showcase) { endShowcase(f, f.showcase === 'boss'); return; }
     if (f.theatre) { (f.theatreBack || title)(); return; }
     if (!f.nodeId) { title(); return; }
     const n = f.node, win = result === 'win', groups = s.waves.length;
@@ -626,6 +663,9 @@
         watch(army.map((a) => a.set), isoFor(stage), () => startScene(stage, Object.assign({}, Ac.intro, { army }), again('act' + i), true));
       } });
     });
+    const film = (k) => () => watch(OPENING_SETS, null, () => { M.go('intro'); VS.INTRO.play(VS.FILMS[k], again(k), { skippable: true }); });
+    story.push({ key: 'oneShot', label: 'The last hour: his one-shot', sub: 'The First Cut strikes her down', act: film('oneShot') });
+    story.push({ key: 'rise', label: 'The Moon raises her', sub: 'The night turned back to dusk', act: film('rise') });
     story.push({ key: 'ending', label: 'The ending', sub: 'Dawn', act: () => watch([], isoFor(5), () => startScene(5, S.ENDING, again('ending'), true)) });
     const films = Object.keys(VS.FILM_FOR || {}).filter((id) => VS.FILMS[VS.FILM_FOR[id]]).map((id) => {
       const k = VS.FILM_FOR[id], n = PR.node(id);

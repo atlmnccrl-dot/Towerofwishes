@@ -28,11 +28,13 @@ fs.mkdirSync(out, { recursive: true });
   await page.waitForFunction(() => VS.main.state === 'fight' && VS.main.fight.showcase, null, { timeout: 60000 });
   await shot('02b-last-hour', 2500);
   await page.keyboard.press('Escape');
-  await page.waitForFunction(() => VS.main.state === 'scene'); await page.waitForTimeout(400); await page.keyboard.press('Escape');
+  // Skipping goes to the Moon raising her (a film, skippable too), then the first trial.
+  await page.waitForFunction(() => VS.main.state === 'intro' && VS.INTRO.st && VS.INTRO.st.f === VS.FILMS.rise); await shot('02c-rise', 1500); await page.keyboard.press('Escape');
   await page.waitForFunction(() => VS.main.state === 'fight' && VS.main.fight.nodeId === 'a0-t');
   await shot('03-trial', 2600);
   // Each lesson opens with a message that holds the game until OK.
   const okCard = async () => { if (await page.locator('#ui .ls-ok').count()) { await shot('03b-lesson', 50); await page.click('#ui .ls-ok'); await page.waitForTimeout(200); } };
+  await page.waitForSelector('#ui .ls-ok', { timeout: 6000 }).catch(() => {});   // the first lesson waits for the trial's title
   await okCard();
   if (await page.evaluate(() => VS.main.hold)) errors.push('the lesson message did not let the game go');
   await page.keyboard.down('KeyD'); await page.waitForFunction(() => VS.main.fight.tut.step >= 1, null, { timeout: 6000 }).catch(() => {}); await page.keyboard.up('KeyD');

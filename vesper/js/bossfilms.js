@@ -344,6 +344,75 @@
     ], { music: ['c4', 'boss', 0.5] , pace: 1.4 });
   }
 
+  // ---- The last hour's end: the First Cut's one-shot, and the Moon raising her ----------------------------
+  // The Moon, drawn as a hooded woman of pale light, her eyes closed until she answers (open 0..1); u: one unit.
+  function moonGod(ctx, cx, cy, u, open, a) {
+    const P = (pts) => { ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(cx + x * u, cy + y * u) : ctx.moveTo(cx + x * u, cy + y * u))); ctx.closePath(); ctx.fill(); };
+    ctx.save(); ctx.globalAlpha = a == null ? 1 : a;
+    A.tex(ctx, 'light_01', cx, cy + u * 14, u * 70, u * 80, '#9ab8ff', 0.55, 0, true);
+    ctx.fillStyle = 'rgba(214,228,255,0.9)';
+    P([[-5, 6], [5, 6], [16, 30], [22, 64], [-22, 64], [-16, 30]]);   // the robe falling from her shoulders
+    P([[0, -13], [6, -10], [8.5, -2], [7.5, 6], [4, 9.5], [-4, 9.5], [-7.5, 6], [-8.5, -2], [-6, -10]]);   // the hood
+    ctx.fillStyle = 'rgba(36,46,86,0.9)'; P([[0, -7], [4.2, -3.5], [4.8, 2], [2.6, 6.5], [-2.6, 6.5], [-4.8, 2], [-4.2, -3.5]]);   // the face in its shadow
+    for (const sx of [-1, 1]) {   // the eyes: closed lines, then light
+      const x = cx + sx * 2 * u, y = cy - 0.5 * u;
+      if (open > 0) { A.tex(ctx, 'light_01', x, y, u * 5 * open, u * 3 * open, '#dce8ff', 0.9, 0, true); ctx.fillStyle = '#ffffff'; ctx.fillRect(Math.round(x - u * 0.8), Math.round(y - u * 0.25 * open), Math.max(1, Math.round(u * 1.6)), Math.max(1, Math.round(u * 0.5 * open))); }
+      else { ctx.fillStyle = 'rgba(214,228,255,0.8)'; ctx.fillRect(Math.round(x - u * 0.9), Math.round(y), Math.max(1, Math.round(u * 1.8)), 1); }
+    }
+    ctx.restore();
+  }
+  const ashFall = (ctx, T, n, col) => { for (let i = 0; i < n; i++) { const x = (hash(i, 1501) * W() + Math.sin(T * 0.7 + i) * 8) % W(), y = (hash(i, 1502) * H() + T * (10 + hash(i, 1503) * 14)) % H(); ctx.fillStyle = col || 'rgba(200,190,200,0.6)'; ctx.fillRect(Math.round(x), Math.round(y), 1, 1); } };
+  const LX = 0.5, LY = 0.82, BX = 0.45;   // where she falls and lies; where the Moon's light lands on her body
+  // He has had enough: the sword goes up into the dark, THE FIRST CUT, and it comes down on all of it.
+  F.oneShot = E.film([
+    cut(1.8, { draw(ctx, S, k, T) {
+      summit(ctx, T, 0.9); fill(ctx, '#000', 0.35 * k);
+      colossus(ctx, S, Math.round(W() / 2), Math.round(H() * 0.5), 7, T, { pose: 'raise', col: '#050204' });
+      A.actor(ctx, S.cast.vesper, 'Idle4', fr(T, 7), BACK, Math.round(W() / 2), Math.round(H() * 0.97), 1.6, { shade: '#050204' });
+    } }, { cam: { z: [1.0, 1.08] }, shake: 1.5, sfx: [[0.1, 'charge', 1], [0.5, 'quake', 0.9]], line: 'Enough.', lineAt: 0.5, lineDur: 1.3, lineCol: '#ffd0d8' }),
+    cut(1.3, { draw(ctx, S, k, T) {
+      fill(ctx, '#000'); A.tex(ctx, 'light_01', W() / 2, H() * 0.05, 80, H() * 1.2, RED, 0.5 + 0.4 * k, 0, true);
+      const ey = Math.round(H() * 0.55); colossus(ctx, S, Math.round(W() / 2), ey, 7, T, { pose: 'raise', col: '#000' });
+      ctx.fillStyle = `rgba(255,${80 + Math.round(150 * k)},${100 + Math.round(120 * k)},0.95)`; ctx.fillRect(Math.round(W() / 2) - 1, 0, 2, Math.max(0, ey - Math.round(23.5 * 3.5)));   // the blade drinking the light
+    } }, { bars: false, shake: 3, sfx: [[0.05, 'windup', 1], [0.4, 'horn', 1]], text: { kind: 'spaced', text: 'THE FIRST CUT', y: 0.84, o: { size: 24, col: '#ff3048', glow: '#ff3048', dur: 0.9, from: 1.2, to: 0.2 } } }),
+    cut(0.5, { draw(ctx, S, k, T) {
+      grad(ctx, ['#3a0610', '#a01830', '#3a0610']); K().speedLines(ctx, W() / 2, H() / 2, 90, 'rgba(255,220,225,0.55)', 1511, T, 20);
+      const f = E.EZ.out(k); bigBlade(ctx, W() * 1.2, -H() * 0.5, W() * (1.0 - 0.9 * f), H() * (0.1 + 0.75 * f), 34, '#000', '#ffb0bc');
+      A.actor(ctx, S.cast.vesper, 'Idle4', 0, -PI / 4, Math.round(W() * LX), Math.round(H() * LY), 1.8, { shade: '#000' });
+    } }, { bars: false, shake: 4, sfx: [[0, 'whoosh', 1], [0.35, 'slash_2', 1]] }),
+    cut(0.05, E.flash('#ffffff'), { bars: false, sfx: [[0, 'blow_big', 1], [0.01, 'smash', 1], [0.02, 'quake', 1]] }),
+    cut(0.08, E.inv({ actors: [{ who: V, clip: 'TakeDamage', fr: 6, ang: -PI / 4, x: LX, y: 0.95, sc: 2.6 }], cy: 0.55 }), { bars: false }),
+    cut(0.05, E.flash(RED), { bars: false }),
+    cut(2.6, sc({ bg: { kind: 'grad', cols: ['#000000', '#2a0408', '#5a0a14'] }, actors: [{ who: V, clip: 'Die', fr: [0, 14], ang: -PI / 4, x: LX, y: LY, sc: 2.2, t1: 0.6, shade: '#050204' }],
+      under: (ctx, S, k, T) => { A.tex(ctx, 'light_01', W() * LX, H() * LY, W() * 0.8, 50, RED, 0.5, 0, true); ashFall(ctx, T, 60, 'rgba(255,90,110,0.6)'); } }),
+      { cam: { z: [1.05, 1.15] }, blackOut: 0.3, sfx: [[0.2, 'ko', 1], [1.0, 'thud', 0.8]] }),
+  ], { amb: 'night' });
+  // She lies in the ash; the Moon opens her eyes and says not yet; a beam of moonlight; her eye opens; she
+  // rises; the night is turned back to dusk, and she wakes with nothing but her blade.
+  F.rise = E.film([
+    card(2.0, 'SHE FELL IN THE LAST HOUR', false),
+    cut(2.6, sc({ bg: (ctx, S, k, T) => { summit(ctx, T, 0.9); fill(ctx, '#000', 0.35); }, actors: [{ who: V, clip: 'Die', fr: 14, ang: RIGHT, x: LX, y: 0.9, sc: 2.4, lit: true }],
+      under: (ctx, S, k, T) => { A.tex(ctx, 'light_01', W() * BX, H() * 0.88, 140, 34, '#ff6a7a', 0.45, 0, true); ashFall(ctx, T, 70); } }), { cam: { z: [1.0, 1.1], at: [LX, 0.85] }, sfx: [[0.2, 'magic', 0.25]] }),
+    cut(3.2, { draw(ctx, S, k, T) {
+      grad(ctx, ['#03040c', '#0c1430', '#141c3a']); stars(ctx, 60, 0.7, 1521, T);
+      moon(ctx, W() / 2, H() * 0.42, H() * 0.4, '#e8eeff', 'rgba(200,220,255,0.35)', 1, null);
+      moonGod(ctx, Math.round(W() / 2), Math.round(H() * 0.36), 2.4, E.EZ.out(clamp((T - 1.3) / 0.5)), clamp(T / 0.8));
+    } }, { cam: { z: [1.0, 1.06] }, sfx: [[0.3, 'magic', 0.6], [1.3, 'blink', 0.8]], line: 'Not yet.', lineAt: 1.5, lineDur: 1.6, lineCol: '#d8e8ff' }),
+    cut(2.4, sc({ bg: (ctx, S, k, T) => { summit(ctx, T, 0.9); fill(ctx, '#000', 0.4); }, actors: [{ who: V, clip: 'Die', fr: 14, ang: RIGHT, x: LX, y: 0.9, sc: 2.2, lit: true }],
+      under: (ctx, S, k, T) => { const a = E.EZ.out(clamp(k * 1.6)); A.tex(ctx, 'light_01', W() * BX, H() * 0.45, 60 * a, H() * 1.4, '#bcd4ff', 0.75 * a, 0, true); ctx.fillStyle = `rgba(230,240,255,${0.5 * a})`; ctx.fillRect(Math.round(W() * BX) - 6, 0, 12, Math.round(H() * 0.92)); for (let i = 0; i < 40; i++) { const y = H() * 0.92 - ((T * (20 + hash(i, 1531) * 30) + hash(i, 1532) * H()) % H()); ctx.fillStyle = 'rgba(220,235,255,0.8)'; ctx.fillRect(Math.round(W() * BX + (hash(i, 1533) - 0.5) * 30), Math.round(y), 1, 2); } } }),
+      { cam: { z: [1.08, 1.0] }, sfx: [[0.1, 'charge', 0.8], [1.2, 'magic', 0.7]] }),
+    cut(1.3, E.eyes({ at: 0.45, sc: 4 }), { bars: false, sfx: [[0.55, 'clang_0', 0.7]] }),
+    cut(2.4, sc({ bg: (ctx, S, k, T) => { summit(ctx, T, 0.9); fill(ctx, '#000', 0.35); }, actors: [
+      { who: V, clip: 'Die', fr: [14, 0], ang: RIGHT, x: LX, y: 0.9, sc: 1.8, t1: 0.6, show: [0, 0.6], lit: true },
+      { who: V, clip: 'Idle4', fps: 8, ang: FRONT, x: LX, y: 0.92, sc: 1.8, show: [0.6, 1], lit: true }],
+      under: (ctx, S, k, T) => { A.tex(ctx, 'light_01', W() * BX, H() * 0.5, 70, H() * 1.4, '#bcd4ff', 0.6, 0, true); },
+      rings: [{ x: LX, y: 0.92, t0: 0.6, dur: 0.5, rx: 0.6, ry: 0.08, w: 2, col: '#dce8ff' }] }),
+      { cam: { z: [1.0, 1.12] }, flashAt: [0.6], sfx: [[0.1, 'step_1', 0.7], [0.6, 'allout', 0.9], [0.62, 'unsheathe_01', 0.9]] }),
+    card(2.4, 'THE MOON TURNED THE NIGHT BACK TO DUSK', true),
+    card(2.3, 'SHE WOKE WITH NOTHING BUT HER BLADE', false),
+    cut(2.3, E.card({ text: 'FIGHT YOUR WAY BACK TO HIM', opts: { size: 18 } }), { bars: false, flat: true, sfx: [[0, 'thud', 0.8]] }),
+  ], { amb: 'night' });
+
   // Which film opens which guardian's fight.
   VS.FILM_FOR = { 'a0-b': 'warden', 'a1-b': 'twins', 'a2-b': 'umbral', 'a3-b': 'hunger', 'a4-b': 'wing', 'a5-b': 'firstCut' };
 })();

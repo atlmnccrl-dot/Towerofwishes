@@ -468,7 +468,7 @@
     g.cd -= dt; if (g.cd > 0) return;
     const pool = g.gPhase === 1 ? ['blade', 'hand', 'blade', 'rain'] : g.gPhase === 2 ? ['blade', 'hand', 'rain', 'sweep', 'hand'] : ['blade', 'sweep', 'hand', 'rain', 'blade'];
     let pick = pool[Math.floor(s.rand() * pool.length)]; if (pick === g.lastMove && s.rand() < 0.7) pick = pool[(pool.indexOf(pick) + 1) % pool.length]; g.lastMove = pick;
-    const quick = g.gPhase === 3 ? 0.8 : g.gPhase === 2 ? 0.9 : 1, dmg = (n) => Math.round(n * (g.dmgMul || 1));
+    const quick = (g.gPhase === 3 ? 0.8 : g.gPhase === 2 ? 0.9 : 1) * (s.godPace || 1), dmg = (n) => Math.round(n * (g.dmgMul || 1));   // godPace: the last hour's First Cut strikes faster
     if (pick === 'blade') {
       // The blade comes down along a line through where you stand, from his side of the summit.
       const a = Math.atan2(h.y - g.y, h.x - g.x) + (s.rand() - 0.5) * 0.5, L = godRadius(s) * 2.6, dx = Math.cos(a), dy = Math.sin(a);

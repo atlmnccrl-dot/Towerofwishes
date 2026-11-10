@@ -165,14 +165,17 @@ frame), `E.ring` (the fisheye hit), `E.face` (a chest-up mid shot), `E.eyes` (he
 focus lines), `E.card`, `E.flash`, `E.glitch`, `E.blink()` and `E.hold(cut, k)` (a stutter). Dialogue lines
 ride on cuts in the speaker's colour; only the newest shows.
 
-**The last hour** (`showcase()` in `js/main.js`, `?showcase`): the tutorial. After the opening, Vesper at full
-power on the summit, seven hours from now, learns the game one lesson at a time on practice targets: move, cut,
-combo, heavy (keep attacking in a crowd), dash through a red swing, dash-cut, skills (keep attacking: they come);
-then the end-game horde, an echo of the Gatewarden, and the moon art (the Last Ditch Effort). **Each lesson opens
-with a message that pauses the game** (the lesson's number, its name, what to do and how on your device, and an
-OK button); OK resumes play with a short goal and a counter at the top, the control to use lit, and a gold ring
-when it is done. With auto battle on, the messages are skipped. She cannot fall here; Esc skips it. Then SEVEN
-HOURS EARLIER, and the first trial (which uses the same messages) goes straight to its fight.
+**The last hour** (`showcase()` and `showcaseBoss()` in `js/main.js`, `?showcase`): the tutorial, and how the night
+first ended. After the opening, Vesper at full power at the top of the Spire, in three stages. **Stage 1, the
+lessons** on practice targets: move; attack (the combo and the heavy blow together: the same button); dash through a
+red swing; dash-cut; and the automatic skills, with a message explaining what each automatic move does. **Stage 2,
+the horde.** **Stage 3, the First Cut**: his film, then him in the colossus arena, faster than in the campaign, the
+summit trembling and red lightning splitting the sky; the moon art; and when he falls below 55% (or after a while)
+he raises his sword: THE FIRST CUT, a one-shot that kills her (`F.oneShot`). **The Moon** (a hooded woman of pale
+light, `moonGod()` in `js/bossfilms.js`) sees her corpse, says "Not yet." and raises her in a beam of moonlight; it
+turns the night back to dusk and she wakes with nothing but her blade (`F.rise`): the campaign begins, and the first
+trial's fight tells her to fight her way back to him. Each lesson opens with a message that pauses the game until OK;
+she cannot fall before his one-shot; Esc skips to the Moon raising her. Both films are in the Theatre.
 
 **The heavy and the skills are automatic** (`autoMove()` in `js/sim.js`): while you keep attacking, the next swing
 is a skill whenever one is ready and a foe is in its reach (from the second cut of a combo on, the two taking
