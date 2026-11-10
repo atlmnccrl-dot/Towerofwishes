@@ -76,6 +76,9 @@
   A.events = function (evs) {
     for (const e of evs) {
       switch (e.type) {
+        case 'gatesOpen': A.sfx('horn', 0.9); A.sfx('quake', 0.6); break;
+        case 'gateSpawn': A.sfx('magic', 0.45); break;
+        case 'gateDown': A.sfx('blow_big', 1); A.sfx('quake', 0.8); A.sfx('clang_1', 0.5); break;
         case 'hit': if (!e.art) { A.pick(e.heavy ? ['slash_2', 'blow_big'] : ['slash_0', 'slash_1'], e.heavy ? 0.7 : 0.5); if (e.heavy) A.pick(['blow_0', 'blow_1', 'blow_2'], 0.5); } break;
         case 'hurt': A.pick(['blow_0', 'blow_1', 'blow_2'], 0.7); break;
         case 'parry': A.sfx('clang_0', 0.9); A.sfx('clang_1', 0.5); break;

@@ -562,6 +562,7 @@
           if (e.type === 'portal') f.banner = { text: 'THE WAY OPENS', sub: 'GO THROUGH THE PORTAL', t: 0, col: '#ffffff', low: true };
           if (e.type === 'area') { const last = s.hasBoss && e.n === s.waves.length - 1; f.banner = { text: last && s.goal ? s.goal.boss : VS.arenaOf(s).name, sub: last ? VS.arenaOf(s).name.toUpperCase() + '  ·  THE GUARDIAN' : 'AREA ' + (e.n + 1) + ' / ' + s.waves.length, t: 0, col: last ? '#ff2a44' : '#ffffff' }; }
           if (e.type === 'endlessWave') f.banner = { text: 'WAVE ' + e.n, sub: e.n % 10 === 0 ? 'A GUARDIAN COMES' : e.n % 5 === 0 ? 'A CHAMPION COMES' : 'THEY KEEP COMING', t: 0, col: e.n % 5 === 0 ? '#ff2a44' : '#ffffff' };
+          if (e.type === 'gatesOpen') f.banner = { text: 'THE GATES OPEN', sub: 'CUT THEM DOWN TO WOUND HIM', t: 0, col: '#ff2a44' };
           if (e.type === 'reinforce') f.banner = { text: 'REINFORCEMENTS', sub: e.left ? 'MORE ARE COMING' : 'THE LAST OF THEM', t: 0, col: '#ff2a44' };
           if (e.type === 'timeout') f.banner = { text: 'OUT OF TIME', t: 0, col: '#ff2a44' };
           if (e.type === 'clear' && !f.theatre) f.banner = { text: 'VICTORY', t: 0, col: '#ffd060' };
@@ -594,7 +595,7 @@
     }
     // The last hour's First Cut: he strikes faster, the summit trembles and red lightning splits the sky.
     if (f.showcase === 'boss' && !M.paused && !M.hold && !s.cine) {
-      s.godPace = 0.65; R.shake = Math.max(R.shake || 0, 1.2);   // (the storm itself now runs in every First Cut fight: godAmbience in view.js)
+      s.godPace = 0.65; s.noGates = true; R.shake = Math.max(R.shake || 0, 1.2);   // (the storm itself now runs in every First Cut fight: godAmbience in view.js)
     }
     if (f.oneShot > 0 && !M.paused) { f.oneShot -= dt; if (f.oneShot <= 0) { endShowcase(f, true); return; } }
     if (f.theatreEnd > 0 && !M.paused) { f.theatreEnd -= dt; if (f.theatreEnd <= 0) { (f.theatreBack || title)(); return; } }

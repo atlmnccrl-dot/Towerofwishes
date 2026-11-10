@@ -234,6 +234,14 @@ then a cut over everything outside it. His blade is seen coming down out of the 
 glowing cracks spread over the summit with the phases; red lightning, embers and (in the last phase) a ground
 that never stops trembling run through every First Cut fight. The bot's win rate is unchanged (about 63% at
 skill 0.55, 65% at 0.8, 40 fights each); the fight runs about 40 s instead of 30.
+**The gates** (2026-11-10, "unit spawn gates... make it an epic battle"): rift gates open on the summit's rim
+(`godGates` in `js/sim.js`, the `godGate` foe): two soon after he rises, two more at his second phase, and in his
+last every fallen gate opens again with more health. Each pours his dead in, a few at a time (two, three, then four
+a group; elites from the second phase), up to 9 / 12 / 15 on the summit at once. Cutting a gate down wounds him
+(3% of his health) and blows it apart. He has 1800 health (was 1150) and the moon arts take 4% / 8% of him a hit
+(was 6% / 12%), since the gates' dead fill the moon fast; the bot wins about 64% (40 fights each at skill 0.55 and
+0.8), the fight runs about 45 s, and about seven gates fall in one. The last hour's First Cut (the tutorial) has no
+gates (`s.noGates`).
 He stands outside the map (the author, 2026-11-10): the Moon's Altar is a small open summit (no walls,
 statue, pillars or barrels, three braziers), the camera pulls back (`GOD_ZOOM` in `js/view.js`) and sets
 the whole floor low in the frame, and he rises in the void past its far edge, head and shoulders over it,

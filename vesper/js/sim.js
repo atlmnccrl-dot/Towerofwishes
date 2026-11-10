@@ -459,12 +459,30 @@
     const f = g.hp / g.maxHp, want = f > 0.66 ? 1 : f > 0.33 ? 2 : 3;
     if (want > g.gPhase) {
       g.gPhase = want; s.freeze = Math.max(s.freeze, 1.3); ev(s, { type: 'godPhase', n: want });
-      if (want === 2) godSummon(s, 5);
-      if (want === 3) { godEcho(s); g.kneelCd = 2.5; }
+      if (want === 2) { godSummon(s, 4); godGates(s, [1, 3]); }
+      if (want === 3) { godEcho(s); g.kneelCd = 2.5; godGates(s, [0, 1, 2, 3]); }
     }
     if (g.gPhase === 3) { g.kneelCd -= dt; if (g.kneelCd <= 0 && !s.units.some((u) => u.alive && u.part === 'head')) { g.kneelCd = 17; godKneel(s); } }
-    g.summonT = (g.summonT || 0) + dt;
-    if (g.gPhase >= 2 && g.summonT > 16 && foes(s).filter((u) => !u.def.god && !u.def.part).length < 3) { g.summonT = 0; if (g.gPhase === 3 && g.echoes.length && s.rand() < 0.5) godEcho(s); else godSummon(s, 3 + g.gPhase); }
+    // The rift gates (2026-11-10, "unit spawn gates... make it an epic battle"): two open soon after he rises,
+    // two more at his second phase, and in his last every fallen gate opens again, stronger. Each pours his dead
+    // in, a few at a time; cutting one down wounds him.
+    g.gateT = (g.gateT == null ? 4 : g.gateT) - dt; if (g.gateT <= 0 && !g.gatesOpened) { g.gatesOpened = true; godGates(s, [0, 2]); }
+    const mobs = foes(s).filter((u) => !u.def.god && !u.def.part && !u.def.gate).length, cap = 6 + g.gPhase * 3;
+    for (const gt of s.units) {
+      if (!gt.def.gate) continue;
+      if (!gt.alive) { if (!gt.counted) { gt.counted = true; ev(s, { type: 'gateDown', x: gt.x, y: gt.y, id: gt.id }); godHurt(s, gt, Math.round(g.maxHp * 0.03), false, true); } continue; }
+      if (gt.state === 'spawn') continue;
+      gt.spawnT -= dt; if (gt.spawnT > 0 || mobs >= cap) continue;
+      gt.spawnT = 6.4 - g.gPhase * 0.9 + s.rand();
+      const keys = g.gPhase === 1 ? ['ghoul', 'raider', 'woundblade', 'ghoul'] : g.gPhase === 2 ? ['woundblade', 'woundknight', 'raider', 'redwraith', 'ghoul'] : ['woundknight', 'redwraith', 'woundblade', 'woundknight', 'husk'];
+      const n = 1 + g.gPhase, d = Math.hypot(gt.x, gt.y) || 1;
+      for (let i = 0; i < n; i++) {
+        const c = onFloor(s, gt.x - gt.x / d * (26 + i * 10) + (s.rand() - 0.5) * 30, gt.y - gt.y / d * (26 + i * 10) + (s.rand() - 0.5) * 30, 20), k = keys[Math.floor(s.rand() * keys.length)];
+        if (!D.FOES[k]) continue; const u = summonFoe(s, k, c[0], c[1], 'rift');
+        if (g.gPhase >= 2 && i === 0 && s.rand() < (g.gPhase === 3 ? 0.4 : 0.2)) { u.elite = true; u.hp = u.maxHp = Math.round(u.maxHp * 2.2); u.dmgMul *= 1.25; u.scale *= 1.18; u.rad *= 1.18; }
+      }
+      ev(s, { type: 'gateSpawn', x: gt.x, y: gt.y, id: gt.id });
+    }
     // The Last Cut (2026-11-10): once, below 15%, a cut over the whole summit; only a pool of moonlight is safe.
     if (!g.lastCut && f < 0.15 && !s.units.some((u) => u.alive && u.part === 'head')) {
       g.lastCut = true; const a = s.rand() * Math.PI * 2, c = onFloor(s, h.x + Math.cos(a) * 150, h.y + Math.sin(a) * 150, 50);
@@ -508,6 +526,18 @@
       ev(s, { type: 'godMove', move: 'sweep', x: h.x, y: h.y }); g.cd = 4.2 * quick;
     }
   }
+  // Open rift gates in the given rim slots (a slot whose gate still stands stays as it is).
+  function godGates(s, slots) {
+    if (s.noGates) return;   // (the last hour's First Cut, in the tutorial, has none)
+    const g = s.god, R0 = godRadius(s), sk = s.def.scale || { hp: 1 }, base = Math.atan2(g.y, g.x);
+    for (const k of slots) {
+      if (s.units.some((u) => u.def.gate && u.alive && u.slot === k)) continue;
+      const a = base + Math.PI * 0.5 + k * Math.PI * 0.5 + Math.PI * 0.25, c = onFloor(s, Math.cos(a) * R0 * 0.82, Math.sin(a) * R0 * 0.82, 30);
+      const u = summonFoe(s, 'godGate', c[0], c[1], 'rift'); u.slot = k; u.gate = true; u.rad = 22;
+      u.hp = u.maxHp = Math.round(D.FOES.godGate.hp * (sk.hp || 1) * (g.gPhase === 3 ? 1.4 : 1)); u.spawnT = 1.6 + k * 0.4;
+    }
+    ev(s, { type: 'gatesOpen', n: slots.length });
+  }
   function godSummon(s, n) {
     const keys = ['woundknight', 'woundblade', 'husk', 'redwraith', 'ghoul', 'raider'].filter((k) => D.FOES[k]), h = s.hero;
     for (let i = 0; i < n; i++) { const an = s.rand() * Math.PI * 2, c = onFloor(s, h.x + Math.cos(an) * (120 + s.rand() * 80), h.y + Math.sin(an) * (120 + s.rand() * 80), 26); summonFoe(s, keys[Math.floor(s.rand() * keys.length)], c[0], c[1], 'rift'); }
@@ -547,7 +577,7 @@
   VS.artDamage = function (s, kind, o) {
     if (o.def.minion) return 9999;
     if (o.def.part) return 0;
-    if (o.def.god) return Math.round(o.maxHp * (kind === 'ldx' || (s.cine && s.cine.last) ? 0.12 : 0.06));
+    if (o.def.god) return Math.round(o.maxHp * (kind === 'ldx' || (s.cine && s.cine.last) ? 0.08 : 0.04));   // trimmed 2026-11-10: the gates' dead fill the moon fast
     const big = kind === 'ldx' || (kind !== 'moon' && s.cine && s.cine.last);
     return Math.round((big ? 60 + 0.32 * o.maxHp : (26 + 0.15 * o.maxHp) * (kind === 'moon' ? 1 : 1.25)) * s.mods.dmg);
   };
@@ -790,7 +820,7 @@
   const HEAVY_CD = 3.2;
   function autoMove(s, h, last) {
     const M = s.mods, H = s.heroDef, can = M.can;
-    const fs = foes(s).filter((o) => o.alive && o.state !== 'spawn' && !(o.def && (o.def.passive || o.def.god))), near = (r) => fs.filter((o) => Math.hypot(o.x - h.x, o.y - h.y) < r);
+    const fs = foes(s).filter((o) => o.alive && o.state !== 'spawn' && !(o.def && ((o.def.passive && !o.def.gate) || o.def.god))), near = (r) => fs.filter((o) => Math.hypot(o.x - h.x, o.y - h.y) < r);
     if (h.combo >= 1 && H.skills) for (let n = 0; n < 2; n++) {
       const i = ((s.autoNext || 0) + n) % 2, sk = H.skills[i];
       if (!sk || !can['skill' + (i + 1)] || s.cds[i] > 0) continue;

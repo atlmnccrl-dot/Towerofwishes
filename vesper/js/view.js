@@ -306,6 +306,8 @@
         // The god: his blade landing along its line, his hand slamming down, his phases, his kneeling, his fall.
         case 'cut': { PK('cb:01_crimson_tide_cleave/caster', (e.x1 + e.x2) / 2, (e.y1 + e.y2) / 2, 4, 1.8); if (e.god) { R.shake = Math.max(R.shake, 12); R.flash = Math.max(R.flash, 0.35); R.flashCol = '255,60,80'; R.punch = Math.max(R.punch || 0, 0.05); }   // (not flashpoint severance's caster: two of its frames are a hard white box)
           for (let i = 1; i <= 3; i++) PK('cb:01_crimson_tide_cleave/target', e.x1 + (e.x2 - e.x1) * i / 4, e.y1 + (e.y2 - e.y1) * i / 4, 4, 1.4); FX({ kind: 'gcut', x1: e.x1, y1: e.y1, x2: e.x2, y2: e.y2, w: e.w, life: 0.45 }); R.shake = Math.max(R.shake, 12); R.flash = 0.25; R.flashCol = '255,255,255'; const n = 10; for (let i = 0; i <= n; i++) { const f = i / n; sparks(e.x1 + (e.x2 - e.x1) * f, e.y1 + (e.y2 - e.y1) * f, 4, 3, '#ffd0d6', 160, 1.2); } break; }
+        case 'gateSpawn': FX({ kind: 'gring', x: e.x, y: e.y, life: 0.5, col: '#ff5a6a', r0: 10, r1: 70, w: 3 }); R.shake = Math.max(R.shake, 3); break;
+        case 'gateDown': PK('blast', e.x, e.y, 30, 3); PK('smoke_dark', e.x, e.y, 20, 3); PK('cb:01_crimson_tide_cleave/caster', e.x, e.y, 4, 2); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.7, col: '#ffffff', r0: 20, r1: 180, w: 5 }); R.float('GATE DESTROYED', e.x, e.y, 90, '#ffd0d6', true, true); R.shake = Math.max(R.shake, 14); R.flash = Math.max(R.flash, 0.5); R.flashCol = '255,80,100'; R.punch = Math.max(R.punch || 0, 0.06); break;
         case 'godMove': R.godPose = { move: e.move, t: 0 }; if (e.move === 'last') { R.bossArt = { key: 'godCut', name: 'THE LAST CUT', t: 0 }; R.flash = 0.6; R.flashCol = '255,30,50'; R.shake = 16; } break;
         case 'doom': { R.flash = 1; R.flashCol = '255,255,255'; R.shake = 28; R.punch = 0.1; const AR = VS.arenaOf(s), rr = AR.godR || 300; for (let i = 0; i < 9; i++) { const a = i / 9 * Math.PI * 2; PK('cb:01_crimson_tide_cleave/caster', Math.cos(a) * rr * 0.6, Math.sin(a) * rr * 0.6, 4, 2); } FX({ kind: 'gring', x: e.x, y: e.y, life: 0.8, col: '#cfe0ff', r0: e.r, r1: e.r * 3, w: 5 }); break; }
         case 'godPhase': R.bossArt = { key: 'godCut', name: e.n === 2 ? 'HIS DEAD RISE' : 'HE KNEELS TO KILL', t: 0 }; R.flash = 0.7; R.flashCol = '255,40,60'; R.shake = 14; break;
@@ -555,8 +557,23 @@
     ctx.beginPath(); ctx.ellipse(x, y, pr, pr * 0.5, 0, 0, 7); ctx.stroke();
     ctx.restore();
   }
+  // A rift gate on the summit's rim (the god's gates): a red portal at 0.7 size with its health over it,
+  // flashing when struck, collapsing in smoke when it falls.
+  function drawGate(ctx, s, u) {
+    if (!u.alive && u.deadT > 1.2) return;
+    const Sh = R.Sh(), q = R.P(u.x, u.y), age = (u.bornT == null ? (u.bornT = R.t) : u.bornT, R.t - u.bornT), sc = Sh * 0.7, col = '#ff2a44';
+    const rise = u.alive ? Math.min(1, age / 0.8) : Math.max(0, 1 - u.deadT / 0.8), open = u.alive ? Math.max(0, Math.min(1, (age - 0.4) / 0.6)) : Math.max(0, 1 - u.deadT / 0.4);
+    vfxPortal(ctx, q.x, q.y, sc, col, rise, open, R.t, 1);
+    if (u.flash > 0) A.tex(ctx, 'light_01', q.x, q.y - 40 * sc, 110 * sc, 140 * sc, '#ffffff', 0.6 * u.flash, 0, true);
+    if (u.alive && open > 0.5) {
+      const w = 54 * Sh, y = Math.round(q.y - 100 * sc), f = Math.max(0, u.hp / u.maxHp);
+      ctx.fillStyle = 'rgba(8,4,10,0.85)'; ctx.fillRect(Math.round(q.x - w / 2) - 1, y - 1, Math.round(w) + 2, Math.max(4, Math.round(4 * R.dpr)) + 2);
+      ctx.fillStyle = '#ff2a44'; ctx.fillRect(Math.round(q.x - w / 2), y, Math.round(w * f), Math.max(4, Math.round(4 * R.dpr)));
+    }
+  }
   function drawUnit(ctx, s, u, pass) {
     if (u.def.god) return;
+    if (u.def.gate) { if (pass !== 'reflect') drawGate(ctx, s, u); return; }
     if (u.def.part) { if (pass !== 'reflect' && (u.alive || u.deadT < 0.4)) drawGodPart(ctx, s, u); return; }
     const Sh = R.Sh(), sc = Sh * u.scale, q = R.P(u.x, u.y), x = Math.round(q.x), y0 = Math.round(q.y), lift = Math.round((u.z || 0) * Sh), y = y0 - lift, sa = R.screenAng(u.ang);
     let alpha = 1;
