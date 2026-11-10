@@ -15,6 +15,11 @@ from `../assets/`.
 
 Play: serve the repository root and open `vesper/index.html` (for example
 `python3 -m http.server` then <http://localhost:8000/vesper/>). Landscape; keyboard or touch.
+**The main menu** (`I.menu` in `js/intro.js`, 2026-11-10): a filmed scene behind the menu, the First Cut towering
+behind the bleeding moon with the moon at his heart, red light streaming from its wound to the horizon, the Spire and a
+ruined city with his dead marching along it, Vesper on a crag before it all, red sheet lightning, mist, ash and embers;
+the menu as big lettering with a red blade of light on the focused line and the logo slowly bleeding.
+
 *Theatre* (Settings, or the title screen) plays every cutscene on demand, reached or not: the opening,
 each act's intro, the ending, the six guardian films and every hero's moon art (Vesper's Last Ditch Effort
 and Red Moon); a tap or Esc brings you back to the list (`?cutscenes` opens it).
@@ -99,14 +104,15 @@ wound bleeds out, and Vesper's blade is the one that can stop him. The shots: a 
 BEFORE THE DEAD WOKE / AND BEFORE THE LAST NIGHT FELL / THERE WAS, then ONE landing large and red beneath it, two lines that
 never overlap) and one white frame of his crowned
 head in ink with red eyes; a city under the white moon with the Spire over its roofs, the ground shaking, birds bursting off the
-roofs and people running in the streets as the First Cut rises behind the Spire, a black shape against a
-swelling red glow; the god towering over the Spire against the moon, drawing his sword back flat along
+people in the street scattering away from him, small and clear under lamps on posts, as the First Cut rises
+behind the Spire until his crowned head stands far above its tip, the camera pushing in, the city's windows
+going dark (reworked 2026-11-10); the god towering over the Spire against the moon, drawing his sword back flat along
 the line the cut will take; the cut: the tower-sized blade held level beside the moon, its point at the
 moon's edge, drinking its light, the swing sideways across its face, along the wound (the author,
 2026-11-10: the moon's wound runs across it, so he cuts across, not down), a storm of impact frames, then the moon splitting along
 the cut, white-hot, with red light pouring out of the gap onto the world, rings of force across a sky
 turning to blood, and his crowned head rising beneath it; the moon hanging still and bleeding; the earth cracking
-and a hand bursting out (two frames of red ink), then the dead standing up one by one in a row on a ridge against the moon,
+and one of the dead clawing up out of a grave on the horizon against the red sky, then the dead standing up one by one in a row on a ridge against the moon and starting to walk,
 their eyes lighting; tonight, in two beats (rebuilt 2026-11-10): the moon enormous over the horizon, its
 wound opening wider and pouring red light down onto the land in falling streams, then, from high above,
 his dead, small and spaced so each shape reads, marching rank behind rank toward the last lit city, its
@@ -173,7 +179,8 @@ ride on cuts in the speaker's colour; only the newest shows.
 first ended. After the opening, Vesper at full power at the top of the Spire, in three stages. **Stage 1, the
 lessons** on practice targets: move; attack (the combo and the heavy blow together: the same button); dash through a
 red swing; dash-cut; and the automatic skills, with a message explaining what each automatic move does. **Stage 2,
-the horde.** **Stage 3, the First Cut**: his film, then him in the colossus arena, faster than in the campaign, the
+the horde**: the dead come a few at a time, two or three of the weaker ones, never more than three
+standing, eight in all (it was twelve at once from the Act VI waves; too much, 2026-11-10). **Stage 3, the First Cut**: his film, then him in the colossus arena, faster than in the campaign, the
 summit trembling and red lightning splitting the sky; the moon art; and when he falls below 55% (or after a while)
 he raises his sword: THE FIRST CUT, a one-shot that kills her (`F.oneShot`). **The Moon** (a hooded woman of pale
 light, `moonGod()` in `js/bossfilms.js`) sees her corpse, says "Not yet." and raises her in a beam of moonlight; it

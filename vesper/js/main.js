@@ -392,7 +392,7 @@
   // FIRST CUT, which kills her. The Moon sees her corpse and raises her; it turns the night back to dusk and she
   // wakes at the Black Gate with nothing: the campaign. Each lesson opens with a message that pauses the game; she
   // cannot fall before the one-shot; Esc skips to the Moon raising her.
-  const SHOW_NODE = 'a6-1', BOSS_NODE = 'a5-b', ONE_SHOT_AT = 0.55;
+  const SHOW_NODE = 'a6-1', BOSS_NODE = 'a5-b', ONE_SHOT_AT = 0.55, HORDE_N = 8, HORDE_KEYS = ['ghoul', 'raider', 'ghoul', 'woundblade', 'raider'];
   const SHOW_KIT = ['heavy', 'dodge', 'skill1', 'skill2', 'art'], SHOW_BOONS = ['fourth', 'edge', 'edge2', 'ghost', 'iron', 'wind', 'vigor', 'vigor2', 'moonblood', 'quick', 'thirst', 'riposte'];
   const SHOW_GEAR = { dmg: 2.4, hp: 160, armor: 0.3, gain: 1.6, thirst: 0.08, cd: 0.5, dodge: 1.3, parry: 1, heal: 1, gold: 1 };
   const lineOf = (f, n, gap, dx) => { const a = ahead(f, 110); return Array.from({ length: n }, (_, i) => ({ x: a.x + (i - (n - 1) / 2) * gap * (dx || 1), y: a.y + (i - (n - 1) / 2) * gap * 0.25 })); };
@@ -406,9 +406,11 @@
     { stage: 1, title: 'AUTO SKILLS', btn: 'atk', text: () => 'Your attack does the rest by itself. When a skill is ready it joins the combo: the CRESCENT WAVE sends a wave of red steel through a whole line, and the PHANTOM STEP vanishes and strikes the nearest foe from behind. The HEAVY blow comes the same way when you are crowded or a shield is in your way. The marks above your attack turn gold when each is ready. Keep attacking the line.',
       enter: (f) => { f.s.cds[0] = f.s.cds[1] = 0; f.tut.used = [false, false]; f.tut.units = lineOf(f, 5, 24).map((p) => SIM.place(f.s, 'dummy', p.x, p.y)); },
       prog: (f) => { const u = f.tut.used || []; return (u[0] ? 1 : 0) + (u[1] ? 1 : 0) + ' / 2 skills'; }, done: (f) => { const u = f.tut.used || []; return (u[0] && u[1]) || !alive(f).length; }, limit: 45, leave: (f) => { for (const u of alive(f)) SIM.dismiss(f.s, u); } },
-    { stage: 2, title: 'THE HORDE', btn: null, text: () => 'The dead of the last hour stand between you and him. Keep attacking, dash through the red swings, and let the heavy blow and your skills come. Cut down 12.',
-      enter: (f) => { const s = f.s; for (const u of SIM.foes(s)) SIM.dismiss(s, u); f.tut.units = []; f.tut.mark = null; f.tut.kills = 0; SIM.release(s); P().seen.lastHour = true; AU.cue('boss'); },
-      prog: (f) => Math.min(12, f.tut.kills) + ' / 12', done: (f) => f.tut.kills >= 12, limit: 60 },
+    // The horde comes a few at a time (the author, 2026-11-10: "cut down 12" was too much at once): groups of two
+    // or three of the weaker dead, never more than three standing, eight in all (see showWatch).
+    { stage: 2, title: 'THE HORDE', btn: null, text: () => 'The dead of the last hour stand between you and him. Keep attacking, dash through the red swings, and let the heavy blow and your skills come. Cut down 8.',
+      enter: (f) => { const s = f.s; for (const u of SIM.foes(s)) SIM.dismiss(s, u); f.tut.units = []; f.tut.mark = null; f.tut.kills = 0; f.tut.horde = { sent: 0, next: s.time + 0.4 }; P().seen.lastHour = true; AU.cue('boss'); },
+      prog: (f) => Math.min(HORDE_N, f.tut.kills) + ' / ' + HORDE_N, done: (f) => f.tut.kills >= HORDE_N, limit: 75 },
     { title: '', text: () => '', done: () => true },   // on to the top of the Spire
   ];
   const BOSS = [
@@ -422,7 +424,7 @@
   const STAGE_NAME = { 1: 'stage 1  ·  the lessons', 2: 'stage 2  ·  the horde', 3: 'stage 3  ·  the top of the spire' };
   // The short goal under each lesson once it is under way.
   const GOAL = { MOVE: 'Walk to the glowing circle', ATTACK: 'Cut down all four', CUT: 'Cut down both husks', COMBO: 'Land a 6-hit chain', HEAVY: 'Keep attacking in the crowd', DODGE: 'Dash through 2 red swings', 'DASH-CUT': 'Attack right after a dash', BARRELS: 'Smash the powder barrel',
-    FIGHT: 'Clear them all', 'AUTO SKILLS': 'Keep attacking: both skills will come', 'THE HORDE': 'Cut down 12', 'THE FIRST CUT': 'Break him', 'THE MOON ART': 'Use the moon art' };
+    FIGHT: 'Clear them all', 'AUTO SKILLS': 'Keep attacking: both skills will come', 'THE HORDE': 'Cut down 8', 'THE FIRST CUT': 'Break him', 'THE MOON ART': 'Use the moon art' };
   // Stages 1 and 2: the end-game map, its waves held back for the horde.
   function showcase(then) {
     const n = PR.node(SHOW_NODE), b0 = PR.build(n), b = Object.assign({}, b0, { node: Object.assign({}, b0.node, { script: true }) }), miss = missingFor(b), iso = isoFor(b.stage);
@@ -451,6 +453,19 @@
       if (e.type === 'art') T.art = true;
     }
     if (h.alive) h.hp = Math.max(h.hp, Math.round(h.maxHp * 0.35));   // she cannot fall before his answer
+    // The horde, a few at a time: a new group of two or three when fewer than two stand, weaker than in the campaign.
+    const HZ = T.horde;
+    if (HZ && f.steps[T.step] && f.steps[T.step].title === 'THE HORDE' && HZ.sent < HORDE_N && s.time >= HZ.next) {
+      const up = SIM.foes(s).filter((u) => u.alive && !u.def.part).length;
+      if (up < 2) {
+        const n = Math.min(HORDE_N - HZ.sent, up === 0 ? 3 : 2), a0 = Math.random() * Math.PI * 2;
+        for (let i = 0; i < n; i++) {
+          const a = a0 + (i - (n - 1) / 2) * 0.5, u = SIM.place(s, HORDE_KEYS[(HZ.sent + i) % HORDE_KEYS.length], h.x + Math.cos(a) * 150, h.y + Math.sin(a) * 150);
+          if (u) { u.hp = u.maxHp = Math.max(8, Math.round(u.maxHp * 0.6)); u.dmgMul = (u.dmgMul || 1) * 0.55; u.cd = Math.max(u.cd || 0, 1 + i * 0.4); }
+        }
+        HZ.sent += n; HZ.next = s.time + 1.4;
+      }
+    }
     const STEPS = f.steps;
     if (f.showcase === 'lessons' && T.step >= STEPS.length - 1 && !f.showDone) { f.showDone = true; M.hold = false; showcaseBoss(f.then); return; }
     if (f.showcase === 'boss' && T.step >= STEPS.length - 1 && !s.cine && !f.oneShot) {
@@ -701,14 +716,14 @@
   function frame(now) {
     const dt = Math.min(0.05, (now - (last || now)) / 1000); last = now; M.t += dt; R.t += dt; R.realDt = dt;
     try { pollPad(dt); } catch (e) { /* no gamepad API */ }
-    R.canvas.style.cursor = M.state === 'fight' && !M.paused && !R.touch ? 'none' : '';
+    // The normal cursor stays visible in fights (the crosshair that replaced it was removed, 2026-11-10).
     const ctx = R.ctx;
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.imageSmoothingEnabled = false;
     if (M.state === 'fight' && M.fight.theatreT > 0) { M.fight.theatreT -= dt; if (M.fight.theatreT <= 0) SIM.startArt(M.fight.s); }
     try {
     switch (M.state) {
       case 'load': ctx.fillStyle = '#07060a'; ctx.fillRect(0, 0, R.W, R.H); break;
-      case 'title': backdrop(ctx, dt, 5, true); break;
+      case 'title': ctx.fillStyle = '#05020a'; ctx.fillRect(0, 0, R.W, R.H); if (VS.INTRO && VS.INTRO.menu) VS.INTRO.menu(dt); else backdrop(ctx, dt, 5, true); break;   // the menu's scene (js/intro.js)
       case 'menu': backdrop(ctx, dt, 5, false); ctx.fillStyle = 'rgba(6,3,8,0.62)'; ctx.fillRect(0, 0, R.W, R.H); break;
       case 'scene': scene(ctx, dt); break;
       case 'intro': VS.INTRO.update(dt, !!(M.pressed.back || M.pressed.tap)); if (M.state === 'intro') VS.INTRO.draw(ctx, dt); break;

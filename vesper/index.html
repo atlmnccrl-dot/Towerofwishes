@@ -519,6 +519,22 @@
   #ui .btn.ls-ok { border: 0 !important; border-image: none !important; display: block; margin: 0 auto; min-width: 160px; padding: 10px 26px !important; border-radius: 10px !important; text-align: center; font: 22px "Adventurer", sans-serif; letter-spacing: .1em; color: #1a1006 !important; background: linear-gradient(180deg, #ffe08a, #ffb830) !important; box-shadow: 0 4px 0 #8a5a10, 0 0 22px rgba(255,208,96,.35); }
   #ui .btn.ls-ok:hover, #ui .btn.ls-ok:focus-visible { filter: brightness(1.1); border-image: none !important; }
   @media (max-height: 460px) { #ui .ls-card { padding: 12px 16px; } #ui .ls-title { font-size: 24px; margin-bottom: 4px; } #ui .ls-text { font-size: 14px; margin-bottom: 6px; } #ui .ls-how { margin-bottom: 8px; } }
+  /* The main menu (the author, 2026-11-10: "far more badass and epic"): no plates; big lettering over the
+     filmed backdrop, a red blade of light under the focused line, the logo bleeding slowly. */
+  #ui .screen-title .title-col { background: linear-gradient(90deg, rgba(4,1,6,.88), rgba(4,1,6,.55) 65%, rgba(4,1,6,0)); }
+  #ui .screen-title .logo h1 { animation: tw-bleed 3.6s ease-in-out infinite; }
+  @keyframes tw-bleed { 0%, 100% { filter: drop-shadow(3px 0 #050307) drop-shadow(-3px 0 #050307) drop-shadow(0 3px #050307) drop-shadow(0 -3px #050307) drop-shadow(0 0 14px rgba(255,42,68,.35)); }
+    50% { filter: drop-shadow(3px 0 #050307) drop-shadow(-3px 0 #050307) drop-shadow(0 3px #050307) drop-shadow(0 -3px #050307) drop-shadow(0 0 34px rgba(255,42,68,.85)); } }
+  #ui .screen-title .menu { gap: clamp(2px, 1vh, 8px); }
+  #ui .screen-title .btn { border: 0 !important; border-image: none !important; background: none !important; padding: clamp(4px, 1.2vh, 9px) 18px clamp(4px, 1.2vh, 9px) 22px !important; position: relative; transition: padding .18s, background .18s !important; }
+  #ui .screen-title .btn .ic { display: none; }
+  #ui .screen-title .btn-label { font-size: clamp(20px, 4.6vh, 32px) !important; letter-spacing: .14em !important; text-transform: uppercase; color: #cdbfc4; text-shadow: 2px 2px #050307; }
+  #ui .screen-title .btn-sub { font-size: clamp(11px, 2vh, 14px) !important; color: rgba(255,184,196,.5) !important; letter-spacing: .08em !important; }
+  #ui .screen-title .btn:hover, #ui .screen-title .btn:focus, #ui .screen-title .btn:focus-visible { background: linear-gradient(90deg, rgba(255,42,68,.32), rgba(255,42,68,.08) 55%, rgba(255,42,68,0)) !important; padding-left: 32px !important; }
+  #ui .screen-title .btn:hover .btn-label, #ui .screen-title .btn:focus .btn-label { color: #ffffff; text-shadow: 2px 2px #050307, 0 0 18px rgba(255,60,90,.7); }
+  #ui .screen-title .btn:hover .btn-sub, #ui .screen-title .btn:focus .btn-sub { color: #ffc0cb !important; }
+  #ui .screen-title .menu .btn:focus::after, #ui .screen-title .menu .btn:hover::after { content: ""; position: absolute; left: 0; top: 12%; bottom: 12%; width: 4px; height: auto; margin: 0; background: linear-gradient(180deg, #ff8a9a, #ff2a44 50%, #8a1022); box-shadow: 0 0 14px rgba(255,42,68,.9); border: 0; transform: none; }
+  #ui .screen-title .btn.danger .btn-label { color: #ff8a9a; }
 </style>
 </head>
 <body>
