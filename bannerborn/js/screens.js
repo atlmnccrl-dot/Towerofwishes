@@ -314,7 +314,7 @@
   UI.openCampaign = function (idx) {
     const S = BB.save;
     C.sel = idx !== undefined ? idx : BB.nextStageIdx(S);
-    C.ch = BB.MISSIONS[C.sel].chapter;
+    C.ch = BB.MISSIONS[C.sel].chapter; J.free = false;
     UI.renderCampaign(); UI.show('campaign');
   };
   UI.renderCampaign = function () {
@@ -412,79 +412,152 @@
     return c;
   }
   const BOSS_COL = { vesh: '#7dffb0', regent: '#c9a8ff', sallow: '#ffd27a' };
-  UI.pathRender = function () {
+  // ---- the chapter as a built land (the same engine, tiles and props as the battlefields): the road runs through it,
+  // every stage is a place on the road, the enemy waits at the ones not yet won, and your team walks from stage to
+  // stage as you choose them. Drag to look around; the view returns to the stage you pick.
+  const J = UI.journey = { scenes: {}, loading: {}, cam: null, free: false, drag: null, ch: 0 };
+  const PARTY_AT = [[0.1, 0.5], [-0.8, 0.9], [0.8, 0.9], [-0.3, 1.6], [0.9, 1.7]];
+  function journeyOf(ch) {
+    const E = J.scenes[ch.id]; if (E) return E;
+    if (!J.loading[ch.id]) { J.loading[ch.id] = true;
+      (async () => {
+        const stages = BB.MISSIONS.filter((m) => m.chapter === ch.id), biome = ch.biome || 'vale';
+        await Promise.all([BB.loadEnv(biome), BB.loadEnv('vale'), BB.loadEnv('ground')]);
+        const map = BB.buildJourney(stages, biome, 100 + ch.id, { night: !!ch.night });
+        BB.renderGround(map, 1);
+        const sc = new BB.Battle({ map, heroes: [], peaceful: true, save: BB.save, seed: 9 }); sc.journey = true; sc.npcs = [];
+        map.baseAnims = map.anims.slice(); map.baseLights = map.lights.slice();
+        J.scenes[ch.id] = { sc, map, party: null, state: null, at: -1 };
+      })().catch(() => {}).then(() => { J.loading[ch.id] = false; });
+    }
+    return null;
+  }
+  function journeySync(E, ch) {
+    const S = BB.save, sc = E.sc, map = E.map, stops = map.stops;
+    sc.save = S;
+    // what the land shows depends on what has been won: open Gravegates, and who is waiting where
+    const state = stops.map((st) => (S.cleared[st.m.id] ? 1 : 0)).join('') + '|' + Object.keys(BB.A.chars).length;
+    if (state !== E.state) {
+      E.state = state;
+      const openGates = map.gates.filter((q) => !S.cleared[stops[q.k].m.id]);
+      map.anims = map.baseAnims.concat(openGates.map((q) => ({ key: 'portal', x: q.x, y: q.y, sc: 0.55, t: 0, fps: 12 })));
+      map.lights = map.baseLights.concat(openGates.map((q) => ({ x: q.x, y: q.y, rad: 2.6, col: '170,90,255' })));
+      const npcs = [];
+      stops.forEach((st, k) => {
+        if (S.cleared[st.m.id]) return;
+        const M = st.m, kinds = []; M.waves.forEach((wv) => { for (let i = 0; i < wv.length; i += 2) if (!kinds.includes(wv[i])) kinds.push(wv[i]); });
+        const artOf = (kind) => { const F = BB.FOES[kind]; if (!F || F.turret || F.gate) return null; const a = F.art || (F.poolPick ? 'h/' + F.poolPick : null) || (F.pool ? BB.poolKeys(F.pool).find((q) => BB.A.chars[q]) : null); return a && BB.A.chars[a] ? a : null; };
+        const arts = kinds.map(artOf).filter(Boolean); if (!arts.length) arts.push('ghoul');
+        st.foeAt.forEach((q, i) => { const art = arts[i % arts.length]; if (BB.A.chars[art]) npcs.push({ x: q.x, y: q.y, home: { x: q.x, y: q.y }, art, clip: 'Idle', dir: [2, 1, 3][i % 3], ct: i * 0.7 + k, walker: false, wait: 9e9 }); });
+        if (M.boss && st.bossAt) { const F = BB.FOES[M.boss], art = F.art || (F.poolPick ? 'h/' + F.poolPick : null);
+          if (art && BB.A.chars[art]) npcs.push({ x: st.bossAt.x, y: st.bossAt.y, home: st.bossAt, art, clip: 'Idle', dir: 2, ct: 0, walker: false, wait: 9e9, boss: true });
+          else if (art && !E['ld' + art]) { E['ld' + art] = 1; BB.loadChar(art).then(() => { E.state = null; }).catch(() => {}); } }
+      });
+      sc.npcs = npcs;
+    }
+    // your team, standing at the chosen stage; when another is chosen they walk the road to it
+    const team = BB.teamHeroes(S), pk = team.map((x) => x.id).join(',');
+    if (pk !== E.party) {
+      if (team.every((x) => BB.heroLayers(x).every((l) => BB.A.chars[l.key]))) {
+        E.party = pk; sc.ents = sc.ents.filter((e) => e.side !== 'hero'); sc.heroList = []; E.at = -1;
+        team.forEach((x) => { const e = sc.spawnHero(x, BB.heroStats(x), 0, 0); if (!sc.ents.includes(e)) sc.ents.push(e); sc.heroList.push(e); });
+      } else if (!E.ldParty) { E.ldParty = true; BB.loadHeroes(team).then(() => { E.ldParty = false; }); }
+    }
+    const k = Math.max(0, stops.findIndex((st) => BB.MISSIONS[C.sel] === st.m));
+    if (k !== E.at && sc.heroList.length) {
+      const st = stops[k], from = E.at < 0 ? null : stops[E.at];
+      sc.heroList.forEach((e, i) => {
+        const o = PARTY_AT[i % PARTY_AT.length], hx = st.x + o[0], hy = st.y + o[1];
+        e.home = { x: hx, y: hy }; e.lookAt = st.site; e.wander = null;
+        if (!from) { e.x = hx; e.y = hy; e.route = null; sc.face(e, st.site.x, st.site.y); }
+        else { const u0 = from.u, u1 = st.u, lo = Math.min(u0, u1), hi = Math.max(u0, u1), pts = map.road.filter((q) => q.u > lo && q.u < hi).map((q) => ({ x: q.x + o[0] * 0.5, y: q.y + o[1] * 0.5 })); if (u1 < u0) pts.reverse();
+          e.route = pts.filter((q, j) => j % 3 === 0).concat([{ x: hx, y: hy }]); e.routeSp = 1.5 + Math.min(1.5, pts.length / 40); }
+      });
+      E.at = k;
+    }
+  }
+  UI.pathRender = function (dt) {
     const c = $('pathCv'); if (!c) return;
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    dt = Math.min(0.1, dt || 0.016);
+    const dpr = Math.min(2, window.devicePixelRatio || 1) * (BB.lowFx ? 0.75 : 1);
     const w = Math.round(c.clientWidth * dpr), h = Math.round(c.clientHeight * dpr); if (!w || !h) return;
     if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
     const g = c.getContext('2d'), S = BB.save, t = performance.now() / 1000;
-    const ch = BB.CHAPTERS.find((x) => x.id === C.ch), L = LAND[ch.id] || LAND[1];
-    g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; g.imageSmoothingEnabled = true;
-    g.drawImage(chapterBackdrop(ch, w, h, dpr), 0, 0);
-    C.nodes = chapterNodes(ch, w, h);
-    const pts = roadPoints(C.nodes, w, h);
-    // the road already travelled glows faintly gold, up to the stage to fight
-    const cur = C.nodes.find((n) => BB.stageUnlocked(S, n.i) && !S.cleared[n.m.id]) || null, upto = cur ? C.nodes.indexOf(cur) : C.nodes.length;
-    g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = 'rgba(255,200,110,0.5)';
-    for (let i = 0; i < pts.length; i += 2) { const p = pts[i]; if (p.k > upto) break; const k = depthK(p.y, h), q = 0.5 + 0.5 * Math.sin(t * 2.2 - i * 0.35); g.globalAlpha = 0.25 + q * 0.4; g.fillRect(p.x - 1.4 * dpr * k, p.y - 0.8 * dpr * k, 2.8 * dpr * k, 1.6 * dpr * k); }
-    // a little weather over the land
-    for (let i = 0; i < 26; i++) { const q = (t * (0.03 + (i % 5) * 0.008) + i * 0.137) % 1, x = (Math.sin(i * 12.9) * 0.5 + 0.5) * w + Math.sin(t * 0.5 + i) * 12 * dpr, y = h * (ch.id === 2 ? 0.25 + ((i * 0.37) % 0.7) : 1.02 - q * 0.85); g.globalAlpha = Math.sin(q * Math.PI) * 0.5; g.fillStyle = 'rgb(' + L.speck + ')'; g.fillRect(ch.id === 2 ? (x + t * 60 * dpr) % w : x, y, (ch.id === 2 ? 5 : 1.6) * dpr, 1.4 * dpr); }
-    g.restore(); g.globalAlpha = 1;
-    // your banner, kept small and reused for every stage won
+    const ch = BB.CHAPTERS.find((x) => x.id === C.ch);
+    g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+    const E = journeyOf(ch);
+    if (!E) { // while the land is being built: the painted map
+      g.imageSmoothingEnabled = true; g.drawImage(chapterBackdrop(ch, w, h, dpr), 0, 0); C.nodes = chapterNodes(ch, w, h);
+      g.font = '600 ' + Math.round(12 * dpr) + 'px Outfit, sans-serif'; g.fillStyle = 'rgba(255,255,255,0.7)'; g.textAlign = 'center'; g.fillText('Raising the land…', w / 2, h - 16 * dpr); return;
+    }
+    journeySync(E, ch);
+    const sc = E.sc, map = E.map, stops = map.stops, selK = Math.max(0, stops.findIndex((st) => BB.MISSIONS[C.sel] === st.m)), sel = stops[selK];
+    // the camera rests a little above the chosen stage (its site is up the screen), unless you have dragged it away
+    const want = { x: sel.x - 1.7, y: sel.y - 1.7 };
+    if (!J.cam || J.ch !== ch.id) { J.cam = { x: want.x, y: want.y }; J.ch = ch.id; J.free = false; }
+    if (!J.free && !J.drag) { const q = Math.min(1, dt * 3.2); J.cam.x += (want.x - J.cam.x) * q; J.cam.y += (want.y - J.cam.y) * q; }
+    sc.cam.x = J.cam.x; sc.cam.y = J.cam.y; sc.cam.zoom = Math.max(0.6, Math.min(0.95, c.clientHeight / 420));
+    sc.update(dt, null);
+    sc.render(g, w, h, dpr);
+    g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+    const v = sc.view, P2 = (x, y) => { const q = BB.iso(x, y); return { x: q.x * v.z + v.ox, y: q.y * v.z + v.oy }; }, k = v.z;
+    // what is written over the land: your banner where you have won, each stage's plate, the next fight marked
     if (!C.flag) { C.flag = document.createElement('canvas'); C.flag.width = 60; C.flag.height = 84; }
     UI.drawBanner(C.flag.getContext('2d'), S.banner, 60, 84, t);
-    const lead = S.heroes.find((x) => x.id === S.leader) || S.heroes[0];
-    const order = C.nodes.slice().sort((a, b2) => a.y - b2.y);
-    for (const n of order) {
-      const open = BB.stageUnlocked(S, n.i), done = !!S.cleared[n.m.id], boss = n.m.type === 'boss' || n.m.type === 'duel', sel = C.sel === n.i, next = n === cur;
-      const k = depthK(n.y, h) * dpr * 1.4, x = n.x, y = n.y; // markers stand a little larger than the land's own scale, to be read and tapped
-      if (BB.drawGlow) BB.drawGlow(g, '0,0,0', x, y, 20 * k, 7 * k, 0.55);
-      if (sel) { g.strokeStyle = 'rgba(255,190,85,0.95)'; g.lineWidth = 2 * dpr; g.setLineDash([5 * dpr, 4 * dpr]); g.lineDashOffset = -t * 14 * dpr; g.beginPath(); g.ellipse(x, y, 24 * k, 9 * k, 0, 0, 7); g.stroke(); g.setLineDash([]); }
-      if (boss) { // the gate at the end of the road, in its master's colour; broken and under your banner once it has fallen
-        const col = BOSS_COL[n.m.boss] || '#ff7a6a', gw = 15 * k, gh2 = 40 * k, pulse = 0.6 + 0.4 * Math.sin(t * 3);
-        if (!done) { g.save(); g.globalCompositeOperation = 'lighter'; if (BB.drawGlow) { BB.drawGlow(g, col, x, y - gh2 * 0.5, gw * 3.2, gh2 * 1.5, open ? 0.5 * pulse : 0.2); BB.drawGlow(g, col, x, y, gw * 3, gw * 0.9, open ? 0.5 : 0.2); } g.restore(); }
-        g.fillStyle = '#15121c'; g.beginPath(); g.moveTo(x - gw, y); g.lineTo(x - gw, y - gh2 * 0.6); g.arc(x, y - gh2 * 0.6, gw, Math.PI, 0); g.lineTo(x + gw, y); g.lineTo(x + gw * 0.62, y); g.lineTo(x + gw * 0.62, y - gh2 * 0.6); g.arc(x, y - gh2 * 0.6, gw * 0.62, 0, Math.PI, true); g.lineTo(x - gw * 0.62, y); g.closePath(); g.fill();
-        g.strokeStyle = done ? 'rgba(255,255,255,0.18)' : col; g.lineWidth = 1.2 * dpr; g.stroke();
-        if (!done) { g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = col; g.globalAlpha = open ? 0.35 + 0.2 * pulse : 0.15; g.beginPath(); g.moveTo(x - gw * 0.62, y); g.lineTo(x - gw * 0.62, y - gh2 * 0.6); g.arc(x, y - gh2 * 0.6, gw * 0.62, Math.PI, 0); g.lineTo(x + gw * 0.62, y); g.closePath(); g.fill();
-          if (open) for (let i = 0; i < 3; i++) { const q = (t * 0.8 + i / 3) % 1; g.globalAlpha = (1 - q) * 0.7; g.strokeStyle = col; g.lineWidth = 1.2 * dpr; g.beginPath(); g.ellipse(x, y - gh2 * 0.45, gw * 0.5 * q, gh2 * 0.4 * q, 0, 0, 7); g.stroke(); } g.restore(); }
-        else g.drawImage(C.flag, x - 9 * k, y - gh2 - 20 * k, 18 * k, 25 * k);
-      } else if (done) { // won: your banner stands here
-        g.fillStyle = '#3a2c1c'; g.fillRect(x - 1 * k, y - 34 * k, 2 * k, 34 * k);
-        g.drawImage(C.flag, x + 0.5 * k, y - 35 * k, 15 * k, 21 * k);
-        g.fillStyle = '#ffbe55'; g.fillRect(x - 3.5 * k, y - 2 * k, 7 * k, 2.4 * k);
-      } else if (open && !next) { // open to fight again or out of turn: a lit brazier
-        g.fillStyle = '#2a2622'; g.fillRect(x - 3 * k, y - 9 * k, 6 * k, 9 * k); if (BB.fxLen('fire')) BB.drawFx(g, 'fire', Math.floor(t * 12 + n.i) % BB.fxLen('fire'), x, y - 16 * k, 0.26 * k, { add: true });
-      } else if (!open) { // not yet: a waymark of stacked stones
-        g.fillStyle = '#2b2a30'; g.fillRect(x - 6 * k, y - 6 * k, 12 * k, 6 * k); g.fillStyle = '#3a3940'; g.fillRect(x - 4.5 * k, y - 12 * k, 9 * k, 6 * k); g.fillStyle = '#4a4850'; g.fillRect(x - 3 * k, y - 17 * k, 6 * k, 5 * k);
-        g.strokeStyle = 'rgba(255,255,255,0.4)'; g.lineWidth = 1.2 * dpr; const u = 2.6 * k; g.beginPath(); g.arc(x, y - 24 * k, u * 0.8, Math.PI, 0); g.stroke(); g.fillStyle = 'rgba(255,255,255,0.4)'; g.fillRect(x - u, y - 24 * k, u * 2, u * 1.5);
-      }
-      if (next) { // the stage to fight: a fire, and your hero waiting by it
-        g.save(); g.globalCompositeOperation = 'lighter'; if (BB.drawGlow) BB.drawGlow(g, boss ? (BOSS_COL[n.m.boss] || '#ff7a6a') : '255,190,110', x, y - 4 * k, 34 * k, 13 * k, 0.5 + Math.sin(t * 3) * 0.15); g.restore();
-        if (!boss && BB.fxLen('fire')) BB.drawFx(g, 'fire', Math.floor(t * 12) % BB.fxLen('fire'), x + 11 * k, y - 8 * k, 0.24 * k, { add: true });
-        if (lead) { const layers = BB.heroLayers(lead); if (layers.every((l2) => BB.A.chars[l2.key])) { const nI = BB.clipLen(layers[0].key, 'Idle') || 15; g.imageSmoothingEnabled = false; BB.drawLayers(g, layers, 'Idle', 1, Math.floor(t * 9) % nI, x - (boss ? 24 : 4) * k, y + 1 * k, 0.72 * k, { noSlash: true }); g.imageSmoothingEnabled = true; } else BB.loadHeroes([lead]); }
-        const by = y - (boss ? 62 : 46) * k + Math.sin(t * 4) * 3 * dpr; g.fillStyle = '#ffbe55'; g.beginPath(); g.moveTo(x - 6 * dpr, by - 6 * dpr); g.lineTo(x + 6 * dpr, by - 6 * dpr); g.lineTo(x, by + 2 * dpr); g.closePath(); g.fill();
-      }
-      // the stage's number on a small plate under it
-      const label = boss ? BB.FOES[n.m.boss].name.split(',')[0].replace(/^The /, '').toUpperCase() : n.m.code, fs = Math.round((boss ? 10 : 10.5) * dpr);
+    const cur = stops.find((st) => BB.stageUnlocked(S, BB.MISSIONS.indexOf(st.m)) && !S.cleared[st.m.id]) || null;
+    C.nodes = [];
+    stops.forEach((st, i) => {
+      const idx = BB.MISSIONS.indexOf(st.m), open = BB.stageUnlocked(S, idx), done = !!S.cleared[st.m.id], boss = st.m.type === 'boss' || st.m.type === 'duel', p = P2(st.x, st.y), ps = P2(st.site.x, st.site.y);
+      C.nodes.push({ i: idx, m: st.m, x: p.x, y: p.y, x2: ps.x, y2: ps.y });
+      if (p.x < -80 * dpr || p.x > w + 80 * dpr) return;
+      if (i === selK) { g.strokeStyle = 'rgba(255,190,85,0.95)'; g.lineWidth = 2 * dpr; g.setLineDash([6 * dpr, 5 * dpr]); g.lineDashOffset = -t * 16 * dpr; g.beginPath(); g.ellipse(p.x, p.y + 10 * k, 46 * k, 23 * k, 0, 0, 7); g.stroke(); g.setLineDash([]); }
+      if (done) { g.fillStyle = '#3a2c1c'; g.fillRect(ps.x - 1.2 * k, ps.y - 58 * k, 2.4 * k, 58 * k); g.drawImage(C.flag, ps.x + 1 * k, ps.y - 60 * k, 24 * k, 34 * k); }
+      if (st === cur) { const by = p.y - 66 * k + Math.sin(t * 4) * 3 * dpr; g.fillStyle = '#ffbe55'; g.beginPath(); g.moveTo(p.x - 7 * dpr, by - 7 * dpr); g.lineTo(p.x + 7 * dpr, by - 7 * dpr); g.lineTo(p.x, by + 3 * dpr); g.closePath(); g.fill(); g.strokeStyle = 'rgba(0,0,0,0.5)'; g.lineWidth = dpr; g.stroke(); }
+      const label = boss ? BB.FOES[st.m.boss].name.split(',')[0].replace(/^The /, '').toUpperCase() : st.m.code, fs = Math.round(11 * dpr);
       g.font = '700 ' + fs + 'px Outfit, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-      const tw = g.measureText(label).width + 10 * dpr, ty = y + 12 * k + 4 * dpr;
-      g.fillStyle = done ? 'rgba(60,44,12,0.9)' : 'rgba(10,12,18,0.82)'; g.beginPath(); g.roundRect ? g.roundRect(x - tw / 2, ty - fs * 0.75, tw, fs * 1.5, fs * 0.75) : g.rect(x - tw / 2, ty - fs * 0.75, tw, fs * 1.5); g.fill();
-      g.fillStyle = !open ? 'rgba(255,255,255,0.4)' : done ? '#ffd27a' : boss ? (BOSS_COL[n.m.boss] || '#ff9a8a') : '#fff'; g.fillText(label, x, ty + dpr * 0.5);
-      if (n.m.legend && !done) { const sx2 = x + 13 * k, sy2 = y - 30 * k + Math.sin(t * 2 + n.i) * 2 * dpr; g.fillStyle = '#5cd3ff'; g.beginPath(); for (let j = 0; j < 10; j++) { const a = -Math.PI / 2 + j * Math.PI / 5, q = (j % 2 ? 2.2 : 5) * dpr; g.lineTo(sx2 + Math.cos(a) * q, sy2 + Math.sin(a) * q); } g.closePath(); g.fill(); }
-    }
-    // the land's name, set in the sky
+      const lock = !open, tw = g.measureText(label).width + (lock ? 22 : 12) * dpr, ty = p.y + 40 * k;
+      g.fillStyle = done ? 'rgba(60,44,12,0.92)' : 'rgba(10,12,18,0.86)'; g.beginPath(); g.roundRect ? g.roundRect(p.x - tw / 2, ty - fs * 0.8, tw, fs * 1.6, fs * 0.8) : g.rect(p.x - tw / 2, ty - fs * 0.8, tw, fs * 1.6); g.fill();
+      g.strokeStyle = i === selK ? 'rgba(255,190,85,0.9)' : done ? 'rgba(255,210,122,0.5)' : boss ? (BOSS_COL[st.m.boss] || '#ff9a8a') : 'rgba(255,255,255,0.18)'; g.lineWidth = 1 * dpr; g.stroke();
+      g.fillStyle = lock ? 'rgba(255,255,255,0.45)' : done ? '#ffd27a' : boss ? (BOSS_COL[st.m.boss] || '#ff9a8a') : '#fff'; g.fillText(label, p.x + (lock ? 5 * dpr : 0), ty + dpr * 0.5);
+      if (lock) { const lx = p.x - tw / 2 + 9 * dpr, u = 2.6 * dpr; g.strokeStyle = 'rgba(255,255,255,0.45)'; g.lineWidth = 1.2 * dpr; g.beginPath(); g.arc(lx, ty - u * 0.5, u * 0.8, Math.PI, 0); g.stroke(); g.fillStyle = 'rgba(255,255,255,0.45)'; g.fillRect(lx - u, ty - u * 0.5, u * 2, u * 1.5); }
+      if (st.m.legend && !done) { const sx2 = p.x + tw / 2 + 8 * dpr, sy2 = ty; g.fillStyle = '#5cd3ff'; g.beginPath(); for (let j = 0; j < 10; j++) { const a = -Math.PI / 2 + j * Math.PI / 5, q = (j % 2 ? 2.2 : 5) * dpr; g.lineTo(sx2 + Math.cos(a) * q, sy2 + Math.sin(a) * q); } g.closePath(); g.fill(); }
+    });
+    // the land's name, set over a shade at the top; an arrow at an edge when the next fight is out of sight
+    const sh = g.createLinearGradient(0, 0, 0, 70 * dpr); sh.addColorStop(0, 'rgba(4,5,9,0.7)'); sh.addColorStop(1, 'rgba(4,5,9,0)'); g.fillStyle = sh; g.fillRect(0, 0, w, 70 * dpr);
     g.textBaseline = 'alphabetic'; g.textAlign = 'left';
-    g.font = '700 ' + Math.round(10 * dpr) + 'px Outfit, sans-serif'; g.fillStyle = 'rgba(255,255,255,0.6)'; if (g.letterSpacing !== undefined) g.letterSpacing = (3 * dpr) + 'px'; g.fillText('CHAPTER ' + ['I', 'II', 'III', 'IV'][ch.id - 1], 18 * dpr, 22 * dpr);
+    g.font = '700 ' + Math.round(10 * dpr) + 'px Outfit, sans-serif'; g.fillStyle = 'rgba(255,255,255,0.65)'; if (g.letterSpacing !== undefined) g.letterSpacing = (3 * dpr) + 'px'; g.fillText('CHAPTER ' + ['I', 'II', 'III', 'IV'][ch.id - 1], 18 * dpr, 22 * dpr);
     g.font = '700 ' + Math.round(22 * dpr) + 'px Cinzel, Georgia, serif'; g.fillStyle = '#f4ead2'; if (g.letterSpacing !== undefined) g.letterSpacing = (2 * dpr) + 'px'; g.fillText(ch.name.toUpperCase(), 18 * dpr, 46 * dpr);
     if (g.letterSpacing !== undefined) g.letterSpacing = '0px';
+    if (cur) { const p = P2(cur.x, cur.y), off = p.x < 20 * dpr ? -1 : p.x > w - 20 * dpr ? 1 : 0;
+      if (off) { const ax = off < 0 ? 18 * dpr : w - 18 * dpr, ay = h / 2, a = 0.6 + 0.4 * Math.sin(t * 5); g.fillStyle = 'rgba(255,190,85,' + a + ')'; g.beginPath(); g.moveTo(ax + off * 8 * dpr, ay); g.lineTo(ax - off * 5 * dpr, ay - 9 * dpr); g.lineTo(ax - off * 5 * dpr, ay + 9 * dpr); g.closePath(); g.fill(); } }
   };
+  // press and drag to look along the road; a tap chooses the stage under it
   UI.pathClick = function (ev) {
     const c = $('pathCv'), rc = c.getBoundingClientRect(), d = c.width / rc.width;
-    const x = (ev.clientX - rc.left) * d, y = (ev.clientY - rc.top) * d;
-    let best = null, bd = 44 * d;
-    for (const n of C.nodes) { const q = Math.min(Math.hypot(n.x - x, n.y - y), Math.hypot(n.x - x, n.y - 22 * d - y)); if (q < bd) { bd = q; best = n; } }
-    if (best) { C.sel = best.i; BB.sfx('click'); UI.renderStageCard(); }
+    J.drag = { x: ev.clientX, y: ev.clientY, moved: false, d, px: (ev.clientX - rc.left) * d, py: (ev.clientY - rc.top) * d };
+    try { c.setPointerCapture(ev.pointerId); } catch (e) { /* not a real pointer */ }
   };
+  UI.pathMove = function (ev) {
+    const D = J.drag; if (!D) return;
+    const dx = ev.clientX - D.x, dy = ev.clientY - D.y;
+    if (!D.moved && Math.hypot(dx, dy) < 7) return;
+    D.moved = true; D.x = ev.clientX; D.y = ev.clientY;
+    const E = J.scenes[C.ch]; if (!E || !E.sc.view || !J.cam) return;
+    const q = BB.unIso(-dx * D.d / E.sc.view.z, -dy * D.d / E.sc.view.z); J.free = true;
+    let nx = J.cam.x + q.x, ny = J.cam.y + q.y;
+    // the view stays with the road
+    let best = null, bd = 1e9; for (const r of E.map.road) { const dd = Math.hypot(r.x - nx, r.y - ny); if (dd < bd) { bd = dd; best = r; } }
+    if (bd > 5.5) { nx = best.x + (nx - best.x) * 5.5 / bd; ny = best.y + (ny - best.y) * 5.5 / bd; }
+    J.cam.x = nx; J.cam.y = ny;
+  };
+  UI.pathUp = function () {
+    const D = J.drag; if (!D) return; J.drag = null;
+    if (D.moved) return;
+    let best = null, bd = 52 * D.d;
+    for (const n of C.nodes) { const q = Math.min(Math.hypot(n.x - D.px, n.y - D.py), n.x2 !== undefined ? Math.hypot(n.x2 - D.px, n.y2 - D.py) : 1e9, Math.hypot(n.x - D.px, n.y - 22 * D.d - D.py)); if (q < bd) { bd = q; best = n; } }
+    if (best) { C.sel = best.i; J.free = false; BB.sfx('click'); UI.renderStageCard(); }
+  };
+  (function () { const c = $('pathCv'); if (!c) return; c.addEventListener('pointermove', (e) => UI.pathMove(e)); c.addEventListener('pointerup', () => UI.pathUp()); c.addEventListener('pointercancel', () => { J.drag = null; }); c.style.touchAction = 'none'; })();
   UI.foeIcons = function (stage, size) {
     const kinds = []; if (stage.boss) kinds.push(stage.boss);
     stage.waves.forEach((w) => { for (let i = 0; i < w.length; i += 2) if (!kinds.includes(w[i])) kinds.push(w[i]); });

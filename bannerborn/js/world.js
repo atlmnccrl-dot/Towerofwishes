@@ -374,6 +374,76 @@
     return m;
   };
 
+  // ---- the campaign's land: one long built stretch of country per chapter, in the same tiles and props as the
+  // battlefields. A road winds across it from the first stage to the last; every stage is a real place on the road
+  // (a camp, a hamlet, a ring of ruins with a Gravegate, a ward to defend, the boss's court at the end).
+  // Screen-right is (+x, -y), so the road runs along the map's other diagonal.
+  BB.buildJourney = function (stages, biome, seed, opts) {
+    opts = opts || {};
+    const N = 44, m = new Map(N, N, biome, seed), r = m.r, set = BB.SET(biome), sand = biome === 'sand';
+    m.layout = 'journey'; m.night = !!opts.night;
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (r() < 0.18) m.set(x, y, 1);
+    const n = stages.length, Q = Math.SQRT1_2, span = N - 12, sway = [2.2, 1.7, 2.6, 1.9][(seed | 0) % 4];
+    const at = (u) => { const off = Math.sin(u * Math.PI * sway + 0.6) * 4.2; return { x: 6 + span * u + off * Q, y: N - 6 - span * u + off * Q }; };
+    m.stops = stages.map((M, k) => Object.assign(at((k + 0.5) / n), { m: M, u: (k + 0.5) / n }));
+    // the road, through every stop and off both ends
+    m.road = []; for (let i = 0; i <= 160; i++) { const u = -0.06 + 1.12 * i / 160; m.road.push(Object.assign(at(u), { u })); }
+    path(m, m.road.map((q) => [q.x, q.y]), 1);
+    // each stage's place
+    const pieces = ['Misc B17', 'Misc B18', 'Misc B14', 'Misc B3', 'Misc A4', 'Misc A9', 'Misc B28', 'Misc B11', 'Misc A3', 'Misc B5', 'Misc E3', 'Misc E2'];
+    m.gates = [];
+    m.stops.forEach((st, k) => {
+      const M = st.m, x = st.x, y = st.y, boss = M.type === 'boss' || M.type === 'duel';
+      // the site sits just off the road, on the far side (up the screen), so the road and whoever stands on it stay clear
+      const sx = x - 2.3, sy = y - 2.3;
+      st.site = { x: sx, y: sy };
+      if (boss) {
+        blob(m, sx - 0.6, sy - 0.6, 3.8, 4); path(m, [[x, y], [sx, sy]], 1, 4);
+        ruins(m, sx - 0.6, sy - 0.6, 4.4, sand);
+        for (const [dx, dy] of [[-2.6, 1.4], [1.4, -2.6], [-3.4, -0.6], [-0.6, -3.4]]) { const tx = sx + dx, ty = sy + dy; m.add('Torch2', tx, ty, { biome: 'vale', r: 0.1 }); m.anim('torch', tx + 0.02, ty + 0.02, { sc: 0.7, fps: 14, pole: 1 }); m.lights.push({ x: tx, y: ty, rad: 2.6, col: '255,170,80' }); }
+        if (!sand) graves(m, sx - 3.4, sy + 2.6, 5);
+        st.bossAt = { x: sx - 0.8, y: sy - 0.8 };
+      } else if (M.type === 'gates') {
+        blob(m, sx, sy, 2.4, 4); ruins(m, sx, sy, 3.2, sand);
+        m.gates.push({ x: sx - 0.3, y: sy - 0.3, k });
+      } else if (M.type === 'defend') {
+        blob(m, sx, sy, 2.2, 1);
+        m.add(M.ward === 'cart' ? 'Misc B6_E' : M.ward === 'cage' ? 'Misc C12_S' : 'Misc B42_S', sx, sy, { biome: 'vale', r: 0.7 });
+        m.tryAdd('Misc B3_S', sx + 1.5, sy + 0.4, { biome: 'vale' }, 0.5); m.tryAdd('Misc B11_E', sx - 1.4, sy + 0.9, { biome: 'vale' }, 0.5);
+        for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2 + 0.3; m.tryAdd(nm(r.pick(set.rocks), r), sx + Math.cos(a) * 3, sy + Math.sin(a) * 3, {}, 0.4); }
+      } else if (/village|mill|caravan|city|plaza|march/.test(M.layout || '')) {
+        for (let i = 0; i < 7; i++) { const a = -2.4 + i / 6 * 3.4, d = r.range(1.6, 3.2); m.tryAdd(nm(r.pick(pieces), r), sx + Math.cos(a) * d, sy + Math.sin(a) * d, { biome: 'vale' }, 0.55); }
+        m.tryAdd(nm(r.pick(['Misc B12', 'Misc B19']), r), sx - 0.4, sy - 0.4, { biome: 'vale' }, 0.6);
+      } else if (/ruins|courtyard|tombs|temple|throne|gate/.test(M.layout || '')) { blob(m, sx, sy, 2.2, 4); ruins(m, sx, sy, 3, sand); }
+      else camp(m, sx, sy, true);
+      st.foeAt = [{ x: sx + 0.7, y: sy + 1.3 }, { x: sx + 1.5, y: sy + 0.4 }, { x: sx - 0.3, y: sy + 1.7 }];
+    });
+    // the country around the road: open near it, closing into woods and rock further off (the arena's walls)
+    const keep = /Torch|Misc B6_E|Misc C12|Misc B42|Wall|Misc B12|Misc B19|Misc B46|Misc B43|Misc B8/;
+    const offRoad = (x, y) => { let d = 99; for (let i = 0; i < m.road.length; i += 2) { const q = m.road[i]; d = Math.min(d, Math.hypot(q.x - x, q.y - y)); } return d; };
+    for (let i = 0; i < 2600; i++) {
+      const u = r.range(-0.08, 1.08), b = at(u), o = r.range(-17, 17), x = b.x + o * Q, y = b.y + o * Q; if (x < 1 || y < 1 || x > N - 1 || y > N - 1) continue;
+      const d = offRoad(x, y); if (d < 2.6) continue;
+      // open ground beside the road, thickening into woods and rock well away from it; on the near side (down the
+      // screen, o > 0) nothing tall stands close, so the road and whoever is on it are never hidden
+      const dense = d > 13 ? 0.95 : d > 9 ? 0.5 : d > 6 ? 0.2 : 0.1; if (r() > dense) continue;
+      const low = o > 0 && d < 8;
+      const list = low ? (r() < 0.6 ? set.small : set.rocks) : d > 9 ? (r() < 0.75 ? set.trees : set.rocks) : r() < 0.5 ? set.small : r() < 0.55 ? set.trees : set.rocks;
+      m.tryAdd(nm(r.pick(list), r), x, y, { sc: r.range(0.85, 1.12) });
+    }
+    if (biome === 'vale') for (let i = 0; i < 380; i++) { const u = r.range(0, 1), b = at(u), o = r.range(-9, 9), x = b.x + o * Q, y = b.y + o * Q; if (m.at(x, y) <= 1 && m.free(x, y, 0.3)) m.add('Flora ' + r.pick(['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'B3', 'B5']) + '_' + r.pick(DIRS), x, y, { biome: 'ground', r: 0 }); }
+    // nothing stands on the road or where a party waits by a stage
+    m.props = m.props.filter((p) => keep.test(p.name) ? offRoad(p.x, p.y) > 1.2 : (offRoad(p.x, p.y) > 1.7 + (p.r || 0) && !m.stops.some((st) => Math.hypot(p.x - st.x, p.y - st.y - 0.6) < 2.1)));
+    edgeForest(m, set, 2);
+    for (const p of m.props) { const q = BB.iso(p.x, p.y); p.depth = p.x + p.y; p.sx = q.x; p.sy = q.y; }
+    m.props.sort((a, b) => a.depth - b.depth);
+    m.grid = []; for (let i = 0; i < N * N; i++) m.grid.push([]);
+    for (const p of m.props) { if (!p.solid) continue; const rr = Math.ceil(p.r + 0.5); for (let y = Math.floor(p.y) - rr; y <= Math.floor(p.y) + rr; y++) for (let x = Math.floor(p.x) - rr; x <= Math.floor(p.x) + rr; x++) if (x >= 0 && y >= 0 && x < N && y < N) m.grid[y * N + x].push(p); }
+    BB.buildBlock(m);
+    m.heroSpawn = { x: m.stops[0].x, y: m.stops[0].y }; m.foeSpawns = [{ x: m.stops[n - 1].x, y: m.stops[n - 1].y }]; m.bossSpot = m.foeSpawns[0];
+    return m;
+  };
+
   // ---- walkability grid + A* (used when the straight line to a target is blocked)
   BB.buildBlock = function (m) {
     const W = m.w, H = m.h, b = new Uint8Array(W * H);

@@ -117,10 +117,11 @@ A hero-collector RPG: you build the team, the team fights.
    Four to six waves a stage, reinforcements arriving mid-fight, bosses calling adds as they weaken. Each charges an **ultimate** by fighting and taking hits;
    tap the glowing card (or 1–5) to unleash it with a cut-in, or turn on **AUTO**. 1×/2×/3× speed, pause.
    Maps keep the middle and the lanes between spawns open; fights run about 20–70 s at 1×.
-6. **Campaign.** Each chapter's map is a painted land seen from a hill (its own sky, far ridges and scenery: green
-   hills at dawn, dunes and pyramids, a ruined skyline at dusk, a violet waste under a green glow) with a road that
-   narrows into the distance. On the road: your banner where you have won, your hero by a fire at the stage to
-   fight, stone waymarks ahead, and the boss's gate in its master's colour at the end.
+6. **Campaign.** Each chapter is one long built stretch of land in the same engine, tiles and props as the
+   battlefields (`BB.buildJourney` in js/world.js): a road winds across it and every stage is a real place on the
+   road (an enemy camp, a hamlet, a ring of ruins with an open Gravegate, a ward to defend, the boss's torchlit court
+   at the end). The enemy waits at the stages not yet won; your banner flies where you have won; your team stands at
+   the chosen stage and walks the road when you choose another. Drag to look along the road, tap a stage to choose it.
    Four chapters, thirty stages (Greenvale, the Sunscar, Aldmere, the Cantor's Gate):
    rout waves, destroy Gravegates, defend a ward against the clock, a duel and four bosses with
    telegraphed moves and enrage phases. Each stage shows the recommended power next to yours.

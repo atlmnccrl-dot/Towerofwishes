@@ -663,7 +663,7 @@
       }
     } else { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#0d0a08'; ctx.fillRect(0, 0, W, H); }
     if (UI.current === 'home') { UI.homeRender(dt); spoilT += dt; if (spoilT > 20) { spoilT = 0; UI.updateSpoils(); } }
-    if (UI.current === 'campaign') UI.pathRender();
+    if (UI.current === 'campaign') UI.pathRender(dt);
     if (UI.current === 'hero') UI.heroRender(dt);
     if (UI.current === 'recruit') UI.recruitRender(dt);
     if (UI.current === 'team') UI.teamRender(dt);

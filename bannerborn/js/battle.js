@@ -1599,6 +1599,7 @@
   // ---------------------------------------------------------------- peaceful (title / camp)
   Battle.prototype.peacefulAI = function (e, dt) {
     if (this.drill && e.home && this.drillAI) { this.drillAI(e, dt); return; }
+    if (e.route && e.route.length) { const q = e.route[0]; if (this.moveToward(e, q.x, q.y, dt, e.routeSp || 1.5, true) || Math.hypot(q.x - e.x, q.y - e.y) < 0.35) e.route.shift(); if (!e.route.length) { e.wander = null; e.idleT = 1.5 + this.r() * 3; } return; } // walking a road, point by point
     if (!e.idleT) e.idleT = 2 + this.r() * 6;
     e.idleT -= dt;
     if (e.wander) {
