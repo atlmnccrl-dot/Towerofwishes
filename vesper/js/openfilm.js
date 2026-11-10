@@ -1,7 +1,7 @@
 // THE BLEEDING MOON — the opening, told in clear beats. The built shots of js/intro.js carry the story (the
 // title cards; the city and the First Cut rising behind the Spire; his sword raised to the moon; the cut;
 // the wound; the dead rising; the horde; her eyes; the draw; her name; him waiting at the top of the
-// Spire; his gaze; the strike; I STAND; the title), each held long enough to read, with one fight in the
+// Spire; his gaze; the strike; the title; the I STAND shot was cut, the author 2026-11-10), each held long enough to read, with one fight in the
 // middle told shot by shot in the characters' own colours: they come at her, she cuts the first down,
 // throws off two more with a spin, slides under the brute and fells him, and stands among them.
 (function () {
@@ -68,7 +68,6 @@
     built('colossus', null, 0, { line: 'He waits at the top of the Spire.', lineAt: 2.0, lineDur: 1.9 }),
     built('gaze', null, 0, { bars: false, line: 'Kneel.', lineAt: 0.4, lineDur: 1.0, lineCol: '#ffd0d8' }),
     built('strike'),
-    built('defy', null, 0, { bars: false }),
     built('title'),
   ], { music: ['draw', 'act0'], amb: 'wind', titleShot: 'title' });
 })();

@@ -27,7 +27,7 @@
   const CONTACT = [0.3, 0.6, 0.85, 1.1, 1.32, 1.55, 1.78, 2.0];
   // Sounds, timed from the start of their shot: [shot, at, name, volume].
   const SFX = [
-    ['cold', 0.05, 'thud', 0.5], ['cold', 1.15, 'thud', 0.6], ['cold', 2.3, 'thud', 0.7], ['cold', 3.45, 'thud', 0.8], ['cold', 3.6, 'charge', 0.9],
+    ['cold', 0.05, 'thud', 0.5], ['cold', 1.15, 'thud', 0.6], ['cold', 2.3, 'thud', 0.7], ['cold', 3.45, 'thud', 0.8], ['cold', 3.6, 'charge', 0.9], ['cold', 3.95, 'blow_big', 0.8],
     ['cold', 4.6, 'blow_big', 1], ['cold', 4.61, 'clang_1', 0.9], ['cold', 4.63, 'quake', 1],
     ['city', 0.4, 'quake', 0.8], ['city', 0.6, 'horn', 0.6], ['city', 1.3, 'quake', 0.9], ['city', 2.2, 'quake', 1], ['city', 2.3, 'boss', 1], ['city', 2.32, 'blow_big', 0.9],
     ['godrise', 0, 'charge', 0.7], ['godrise', 1.2, 'unsheathe_01', 1], ['godrise', 1.22, 'whoosh', 1], ['godrise', 1.25, 'quake', 0.9],
@@ -358,8 +358,10 @@
       fill(ctx, paper ? '#ebe6e3' : '#000');
       if (paper) { vignette(ctx, 0.22, '#5a5052'); for (let i = 0; i < 6; i++) { ctx.fillStyle = 'rgba(40,30,34,0.25)'; ctx.fillRect(Math.round(hash(i, 970 + c[0] * 10) * W()), Math.round(hash(i, 971) * H()), 1, 1 + (i % 2)); } }   // dust on the paper
       else K().embers(ctx, T, last ? 14 : 0, 0, W(), RED);
-      if (last) { const j = t < 0.4 ? Math.round((Math.random() - 0.5) * 4) : 0; say(S, 'serif', 'ONE', W() / 2 + j, H() * 0.5, { size: 92, col: '#b0102a', a: clamp(t * 5) * (0.75 + 0.25 * Math.sin(T * 40)), spacing: 0.04 }); }   // the giant red word behind
-      say(S, 'serif', c[1], W() / 2, H() * 0.5, { size: last ? 16 : 13, col: paper ? '#141012' : '#f4eef0', a: clamp(t * 7), spacing: last ? 0.16 : 0.12 });
+      // THERE WAS alone, then it steps up and ONE lands under it, large and red: two lines, never one over the other.
+      const one = last && t >= 0.5, up = one ? ease(clamp((t - 0.5) / 0.12)) : 0;
+      say(S, 'serif', c[1], W() / 2, H() * (0.5 - 0.14 * up), { size: last ? 16 - 3 * up : 13, col: paper ? '#141012' : '#f4eef0', a: clamp(t * 7), spacing: last ? 0.16 : 0.12 });
+      if (one) { const j = t < 0.6 ? Math.round((Math.random() - 0.5) * 3) : 0; say(S, 'serif', 'ONE', W() / 2 + j, H() * 0.55, { size: 72, col: '#d8162e', a: clamp((t - 0.5) * 12), spacing: 0.06 }); if (t < 0.56) kick(S, 4); }
       return;
     }
     if (T < 5.2) {
@@ -581,29 +583,67 @@
     ctx.restore();
     if (t < 0.15) fill(ctx, '#000', 1 - t / 0.15);
   };
-  // Tonight: a black plain under the bleeding moon. Red eyes open in the dark, hundreds of them, in waves
-  // from the middle out; lightning shows the horde they belong to, rank behind rank to the horizon,
-  // marching at us.
+  // Tonight. Two beats (the author, 2026-11-10: "could be far better"). First the moon, enormous over the
+  // horizon, its wound opening wider and pouring red light down onto the land in falling streams. Then,
+  // from high above, his dead: thousands of small shapes marching across the plain toward the last lit
+  // city, rank behind rank, while the moon sinks toward the horizon behind them.
   SH.horde = function (ctx, S, k, T) {
-    const hz = Math.round(H() * 0.66), flash = (T > 1.3 && T < 1.42) || (T > 2.4 && T < 2.47), push = 1 + 0.06 * k;
-    grad(ctx, ['#020103', '#10030a', '#34070f']);
-    stars(ctx, 30, 0.35, 17, T);
-    ctx.save(); ctx.translate(W() / 2, H() * 0.75); ctx.scale(push, push); ctx.translate(-W() / 2, -H() * 0.75);
-    moon(ctx, W() * 0.5, hz + H() * 0.1, H() * 0.44, '#ff3a52', 'rgba(255,40,70,0.55)', 1, T);
-    const fl = ctx.createLinearGradient(0, hz, 0, H()); fl.addColorStop(0, '#4a0c18'); fl.addColorStop(0.5, '#2a060e'); fl.addColorStop(1, '#100206'); ctx.fillStyle = fl; ctx.fillRect(-20, hz, W() + 40, H());
-    A.tex(ctx, 'light_01', W() * 0.5, hz + 8, W() * 0.9, 50, '#ff3048', 0.35, 0, true);   // the moon's light across the plain
-    // The ranks, far to near.
-    const ROWS = 6;
+    if (T < 1.7) {
+      const t = T / 1.7, mx = W() / 2, my = H() * (0.5 - 0.04 * ease(t)), mr = H() * 0.45, hz = Math.round(H() * 0.82), open = 0.6 + 0.4 * ease(t);
+      grad(ctx, ['#060104', '#2a0610', '#5a0c1a']);
+      stars(ctx, 30, 0.35, 17, T);
+      ctx.save(); ctx.translate(mx, hz); const z = 1 + 0.06 * t; ctx.scale(z, z); ctx.translate(-mx, -hz);
+      moon(ctx, mx, my, mr, R.mix('#ff5a6a', '#ff2a44', t), 'rgba(255,40,70,0.6)', 0);   // its wound drawn below, straight
+      // The wound: wider and hotter as the night runs out.
+      const x0 = mx - mr * 0.95, y0 = my + mr * 0.34, ang = -0.34, L = mr * 2.02, cx = x0 + Math.cos(ang) * L / 2, cy = y0 + Math.sin(ang) * L / 2;
+      A.tex(ctx, 'light_01', cx, cy, L * 1.3, mr * 0.5 * open, '#ff2a44', 0.7, ang, true);
+      ctx.save(); ctx.translate(cx, cy); ctx.rotate(ang); const gw = Math.max(2, Math.round(mr * 0.07 * open)); ctx.fillStyle = '#2a0006'; ctx.fillRect(-L / 2, -gw / 2 - 1, L, gw + 2); ctx.fillStyle = '#ff1a34'; ctx.fillRect(-L / 2, -gw / 2, L, gw); ctx.fillStyle = '#ffd0d6'; ctx.fillRect(-L / 2 + 6, -0.5, L - 12, 1); ctx.restore();
+      // It bleeds: streams of red light running off the wound down to the land, thickening.
+      for (let i = 0; i < 22; i++) {
+        const u = 0.08 + hash(i, 701) * 0.84, sx = x0 + Math.cos(ang) * L * u, sy = y0 + Math.sin(ang) * L * u, len = (hz - sy) * clamp(t * 1.6 - hash(i, 702) * 0.5), w = 1 + Math.round(hash(i, 703) * 2 * open);
+        if (len <= 0) continue;
+        ctx.fillStyle = `rgba(255,${40 + Math.round(hash(i, 704) * 60)},70,${0.45 + 0.3 * hash(i, 705)})`; ctx.fillRect(Math.round(sx - w / 2), Math.round(sy), w, Math.round(len));
+        for (let d = 0; d < 3; d++) { const ph = (T * (0.9 + hash(i, 706 + d) * 0.6) + hash(i, 709 + d)) % 1; ctx.fillStyle = d ? '#ff6a7a' : '#ffd0d6'; ctx.fillRect(Math.round(sx), Math.round(sy + (hz - sy) * ph), 1, 3); }
+      }
+      // Where it lands, the land glows.
+      A.tex(ctx, 'light_01', mx, hz, W() * 1.2, 40, '#ff2a44', 0.45 + 0.3 * t, 0, true);
+      // The land: low and black, the broken Spire far off on the left, dead trees.
+      ctx.fillStyle = '#040102'; ctx.beginPath(); ctx.moveTo(-20, H() + 20); for (let x = -20; x <= W() + 20; x += 6) ctx.lineTo(x, hz - Math.sin(x * 0.02) * 2 - Math.sin(x * 0.07) * 1); ctx.lineTo(W() + 20, H() + 20); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); const sp = Math.round(W() * 0.16); ctx.moveTo(sp - 7, hz); ctx.lineTo(sp - 3, hz - 46); ctx.lineTo(sp, hz - 54); ctx.lineTo(sp + 3, hz - 46); ctx.lineTo(sp + 7, hz); ctx.fill();
+      for (const tx of [0.62, 0.71, 0.88]) { const x = Math.round(W() * tx); ctx.fillRect(x, hz - 14, 2, 15); ctx.fillRect(x - 4, hz - 10, 4, 1); ctx.fillRect(x + 2, hz - 8, 4, 1); }
+      ctx.restore();
+      K().embers(ctx, T, 24, 0, W(), RED);
+      kick(S, 0.6 + t);
+      if (T < 0.15) fill(ctx, '#000', 1 - T / 0.15);
+      if (T > 1.62) fill(ctx, '#ffffff', (T - 1.62) / 0.08 * 0.8);   // lightning into the next beat
+      return;
+    }
+    // From high above: the plain, the marching dead, the last city, the moon going down behind them.
+    const t = T - 1.7, e = clamp(t / 1.7), hz = Math.round(H() * 0.3), flash = (t < 0.08) || (t > 0.75 && t < 0.83);
+    grad(ctx, ['#14030a', '#4a0c18', '#7a1828']);
+    moon(ctx, W() * 0.5, hz + H() * 0.02 + H() * 0.12 * ease(e), H() * 0.26, '#ff3a52', 'rgba(255,40,70,0.6)', 1, T);
+    const fl = ctx.createLinearGradient(0, hz, 0, H()); fl.addColorStop(0, '#5a1420'); fl.addColorStop(0.35, '#2a0810'); fl.addColorStop(1, '#0c0205'); ctx.fillStyle = fl; ctx.fillRect(-20, hz, W() + 40, H());
+    A.tex(ctx, 'light_01', W() * 0.5, hz + 4, W() * 1.1, 34, '#ff3048', 0.5, 0, true);
+    // The ranks: small, spaced, darker as they come closer, all marching toward us.
+    const ROWS = 9, cityY = Math.round(H() * 0.9);
     for (let r = 0; r < ROWS; r++) {
-      const d = r / (ROWS - 1), y0 = hz + 5 + Math.pow(d, 1.4) * (H() - BAR - hz - 4) + T * 3 * d, sc = 0.4 + d * 1.55, sp = 12 + d * 38, n = Math.ceil(W() / sp) + 2, off = (r % 2) * sp * 0.5;
+      const d = r / (ROWS - 1), y = Math.round(hz + 4 + Math.pow(d, 1.25) * (cityY - hz - 52) + t * (4 + d * 10)), sc = 0.28 + d * 0.5, sp = 9 + d * 15, n = Math.ceil(W() / sp) + 2, off = (r % 2) * sp * 0.5;
+      const col = flash ? R.mix('#ffd0d8', '#5a2a32', d) : R.mix('#3a0a12', '#050102', d);
       for (let i = 0; i < n; i++) {
-        const x = Math.round(i * sp - off + (hash(r, i + 310) - 0.5) * sp * 0.5), y = Math.round(y0 + (hash(i, r + 311) - 0.5) * 3), set = deadSet(S, i + r * 3), fr = Math.floor(T * 8 + i * 3 + r) % 15;
-        A.actor(ctx, set, 'Walk', fr, Math.PI / 2, x, y, sc, { shade: flash ? '#4a1a24' : '#040102' });
+        if (hash(i, r + 720) < 0.12) continue;   // gaps in the ranks, so each shape reads
+        const x = Math.round(i * sp - off + (hash(r, i + 721) - 0.5) * sp * 0.4), fr = Math.floor(T * 8 + i * 3 + r) % 15;
+        A.actor(ctx, deadSet(S, i + r * 3), 'Walk', fr, Math.PI / 2, x, y, sc, { shade: col });
       }
     }
-    ctx.restore();
-    if (flash) { fill(ctx, '#ffe8ee', 0.25); kick(S, 3); }   // the lightning: a flash that shows the ranks
-    if (T < 0.12) fill(ctx, '#000', 1 - T / 0.12);
+    // The last city at the bottom of the frame, lit from inside: its wall, towers with lit windows, torches
+    // along the parapet going out one by one as the dead come on.
+    A.tex(ctx, 'light_01', W() * 0.5, cityY + 6, W() * 1.3, 60, '#ffb050', 0.3 * (1 - 0.6 * e), 0, true);
+    ctx.fillStyle = '#0c0407'; ctx.fillRect(-8, cityY, W() + 16, H());
+    for (let x = -8; x < W() + 8; x += 10) ctx.fillRect(x, cityY - 5, 6, 5);
+    for (const tw of [0.12, 0.38, 0.62, 0.88]) { const x = Math.round(W() * tw); ctx.fillStyle = '#0c0407'; ctx.fillRect(x - 6, cityY - 18, 12, 18); ctx.fillRect(x - 7, cityY - 21, 3, 3); ctx.fillRect(x - 1, cityY - 21, 3, 3); ctx.fillRect(x + 5, cityY - 21, 3, 3); ctx.fillStyle = '#ffb050'; ctx.fillRect(x - 1, cityY - 13, 2, 3); }
+    for (let i = 0; i < 12; i++) { if (hash(i, 730) < e * 0.85) continue; const x = Math.round((i + 0.5) / 12 * W()), y = cityY - 7; ctx.fillStyle = '#ffd080'; ctx.fillRect(x, y, 1, 2); ctx.fillStyle = 'rgba(255,176,80,0.25)'; ctx.fillRect(x - 1, y - 1, 3, 4); }
+    if (flash) { fill(ctx, '#ffe8ee', 0.18); kick(S, 3); }
+    kick(S, 0.8);
   };
   // A manga panel: one thin box on black, her eyes in ink; the eye opens red; rings close round it.
   SH.eye = function (ctx, S, k, T) {

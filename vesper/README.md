@@ -96,7 +96,8 @@ arts and drawn on the same 180 px pixel buffer, with its words on a sharp full-r
 None of it is the game's own view: every shot is a set built for it. The plot: seven hundred years ago the First Cut climbed the Spire
 and cut the moon to raise an army that would never die; by its red light his dead rise; tonight the
 wound bleeds out, and Vesper's blade is the one that can stop him. The shots: a cold open of title cards cut hard between paper and black (BEFORE THE MOON BLED /
-BEFORE THE DEAD WOKE / AND BEFORE THE LAST NIGHT FELL / THERE WAS ONE) and one white frame of his crowned
+BEFORE THE DEAD WOKE / AND BEFORE THE LAST NIGHT FELL / THERE WAS, then ONE landing large and red beneath it, two lines that
+never overlap) and one white frame of his crowned
 head in ink with red eyes; a city under the white moon with the Spire over its roofs, the ground shaking, birds bursting off the
 roofs and people running in the streets as the First Cut rises behind the Spire, a black shape against a
 swelling red glow; the god towering over the Spire against the moon, drawing his sword back flat along
@@ -106,16 +107,18 @@ moon's edge, drinking its light, the swing sideways across its face, along the w
 the cut, white-hot, with red light pouring out of the gap onto the world, rings of force across a sky
 turning to blood, and his crowned head rising beneath it; the moon hanging still and bleeding; the earth cracking
 and a hand bursting out (two frames of red ink), then the dead standing up one by one in a row on a ridge against the moon,
-their eyes lighting, his eyes watching from the sky; red eyes opening in waves across a black plain, hundreds of them, and lightning showing the horde
-they belong to, rank behind rank to the horizon, tracking boxes locking onto the front rank; a manga panel of her eyes behind
+their eyes lighting; tonight, in two beats (rebuilt 2026-11-10): the moon enormous over the horizon, its
+wound opening wider and pouring red light down onto the land in falling streams, then, from high above,
+his dead, small and spaced so each shape reads, marching rank behind rank toward the last lit city, its
+torches going out one by one while the moon sinks behind them; a manga panel of her eyes behind
 the visor slit, the irises turning red with rings closing round one, and her name; the draw; VESPER in
 letters the height of the screen with her run seen through them; the charge through eight of the dead; three manga panels; then the First Cut as a god over the
 Spire (a drawn silhouette: crowned and horned helm, spiked pauldrons, a cape like wings, both hands on
 a sword the size of a tower), the camera tilting from his sword's point past her, small on a rampart,
 up to his burning eyes with the red moon as his halo (a tracking box on her, another on his eyes, a
 dotted line between them counting the height); his gaze, her eye answering; his blade coming
-down from the sky and her holding it (impact frames, the ground breaking, AND YET); her throwing it off
-(I STAND) and raising her blade at him; the title, THE BLEEDING MOON, over the red moon, his shadow faint behind
+down from the sky and her holding it (impact frames, the ground breaking, AND YET); then the title (the I STAND shot was cut,
+2026-11-10), THE BLEEDING MOON, over the red moon, his shadow faint behind
 it and his eyes burning above the name, its letters drawing together over drifting red lights. Every
 film is graded: grain on every frame and a vignette on the ordinary ones. The opening is told in clear beats by `js/openfilm.js`: each built shot above held long enough to read,
 and one fight in the middle told shot by shot in the characters' own colours (the dead in grey): they
@@ -270,7 +273,8 @@ sweeping faster in the First Cut's second phase). Orange rings warn of lair haza
 
 Keyboard and mouse, touch, or a gamepad (sticks move and aim; A cut, X heavy, B dash, Y heavy, LB/RB
 skills, triggers the moon art, Start pauses; the d-pad and A/B work every menu and the map).
-Settings: difficulty, music, sound, screen shake, auto battle, text size (90–130%), colour-safe cues
+Settings: difficulty, music, sound, screen shake, auto battle (off by default; older saves were
+switched off once; `?auto` turns the bot on for one visit and is never saved), text size (90–130%), colour-safe cues
 (blue and orange attack warnings instead of white and red), save export (a file and a copied
 code) and import.
 

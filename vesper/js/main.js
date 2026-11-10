@@ -9,9 +9,11 @@
   // ---- save -----------------------------------------------------------------------------------
   // The profile (progress.js) plus the options. Saves from before the campaign keep their options.
   const PR = VS.PROG, KEY = 'vesper.save.v2', OLD = 'vesper.save.v1';
-  const defOpts = () => ({ music: 1, sfx: 1, shake: 1, auto: false, text: 1, safe: false, diff: 'normal', cam: 'normal', nums: false, nums2: true, calm: false, vibe: true, scenes: 'play' });
+  const defOpts = () => ({ music: 1, sfx: 1, shake: 1, auto: false, text: 1, safe: false, diff: 'normal', cam: 'normal', nums: false, nums2: true, auto2: true, calm: false, vibe: true, scenes: 'play' });
   // Damage numbers went off by default (the author, 2026-11-10): older saves switch them off once.
-  const fixOpts = (o) => { if (!o.nums2) { o.nums = false; o.nums2 = true; } return o; };
+  // ?auto (for the tests) turns the bot on for this visit only; it is never saved.
+  const autoOn = () => !!(P().opts.auto || M.autoUrl);
+  const fixOpts = (o) => { if (!o.nums2) { o.nums = false; o.nums2 = true; } if (!o.auto2) { o.auto = false; o.auto2 = true; } return o; };   // and auto battle starts off for everyone (2026-11-10)
   const fresh = (opts) => Object.assign(PR.fresh(), { opts: opts || defOpts(), seenLdx: false });
   function load() {
     try { const j = JSON.parse(localStorage.getItem(KEY)); if (j && j.v === 2) return VS.LOOT.migrate(Object.assign(fresh(), j, { opts: Object.assign(defOpts(), fixOpts(j.opts || {})) })); } catch (e) { /* storage blocked */ }
@@ -369,7 +371,7 @@
     if (M.pad && Math.hypot(M.pad.mx, M.pad.my) > 0.25) { inp.mx = M.pad.mx; inp.my = M.pad.my; }
     if (M.pad && M.pad.aim && s.hero.alive) { const g = R.screenToGround(M.pad.aim.x, M.pad.aim.y); inp.aim = Math.atan2(g.y, g.x); }
     if (inp.mx || inp.my) { const g = R.screenToGround(inp.mx, inp.my); inp.mx = g.x; inp.my = g.y; }
-    if (P().opts.auto || f.auto) {
+    if (autoOn() || f.auto) {
       const b = SIM.bot(s, 0.7);
       if (!inp.mx && !inp.my && !inp.atk && !inp.heavy && !inp.dodge && !inp.parry && !inp.s1 && !inp.s2) Object.assign(inp, b, { skip: inp.skip, aim: b.aim });
     }
@@ -480,7 +482,7 @@
     if (!T.entered) {
       T.entered = true; T.t = 0; T.goal = null; T.units = T.units || []; if (st.enter) st.enter(f); s.marker = T.mark || T.goal || null;
       // The lesson's message: the game waits behind it until OK.
-      if (st.title && !f.noLessonCards && !P().opts.auto) {   // (auto battle plays on without them)
+      if (st.title && !f.noLessonCards && !autoOn()) {   // (auto battle plays on without them)
         T.awaitOk = true; M.hold = true; M.stick = null; M.held = {};
         const n = STEPS.filter((x) => x.title).length, i = STEPS.slice(0, T.step).filter((x) => x.title).length + 1;
         const ok = () => { if (!T.awaitOk) return; U.hide(); T.awaitOk = false; M.hold = false; f.acc = 0; AU.sfx('step_1', 0.6); };
@@ -547,7 +549,7 @@
     if (s.cine) R.drawCine(ctx, s);
     else {
       if (!R.drawBossArt(s, dt)) R.hideCine();
-      if (!M.paused) { R.drawHud(ctx, s, dt, { touch: R.touch, auto: P().opts.auto }); R.drawSkills(ctx, s, R.touch); }
+      if (!M.paused) { R.drawHud(ctx, s, dt, { touch: R.touch, auto: autoOn() }); R.drawSkills(ctx, s, R.touch); }
       if (f.banner) { f.banner.t += dt; if (f.banner.t < 2.2) R.banner(ctx, f.banner.text, f.banner.t, f.banner.col, f.banner.sub, f.banner.low); else f.banner = null; }
       if (f.card) { f.cardT += dt; if (f.cardT < 1.9) R.bossCard(ctx, s, f.card, f.cardT); else f.card = null; }
       // Coaching: the trial's steps, then a card for each newly learned ability.
@@ -734,7 +736,7 @@
     A.warm(R.ctx); A.isoWarm(R.ctx);
     A.loadCB().catch(() => {});   // the Crowd Breaker effects stream in after the start
     applyOpts();
-    if (params.has('auto')) M.save.opts.auto = true;
+    if (params.has('auto')) M.autoUrl = true;
     if (params.has('hero') && D.HEROES[params.get('hero')]) M.save.hero = params.get('hero');
     if (params.has('theatre')) theatre();
     else if (params.has('cutscenes')) cutscenes(title);
