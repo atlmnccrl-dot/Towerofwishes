@@ -152,8 +152,13 @@
   // ---------------------------------------------------------------- flows
   async function goTitle() {
     mode = 'title';
-    $('bPlay').textContent = BB.save ? 'Continue' : 'Play';
-    $('bNew').style.display = BB.save ? '' : 'none';
+    const S = BB.save;
+    $('bPlay').textContent = S ? 'Continue' : 'Raise the Banner';
+    $('bTitleSet').style.display = S ? '' : 'none'; // settings (and a new game) need a save to belong to
+    if (S) { const st = BB.MISSIONS[BB.nextStageIdx(S)]; $('tCont').innerHTML = (BB.campaignDone(S) ? '<b>Campaign won</b>' : 'Stage <b>' + st.code + '</b> · ' + UI.esc(st.name)) + ' · <b>' + S.heroes.length + '</b> hero' + (S.heroes.length === 1 ? '' : 'es'); }
+    else $('tCont').textContent = 'A new banner, a first captain, a road to the Gravegates';
+    const em = $('tEmbers');
+    if (!em.children.length) for (let i = 0; i < 16; i++) { const e = document.createElement('i'); e.style.left = (4 + Math.random() * 92) + '%'; e.style.setProperty('--dx', Math.round(Math.random() * 120 - 60) + 'px'); e.style.animationDuration = (6 + Math.random() * 7).toFixed(1) + 's'; e.style.animationDelay = (-Math.random() * 12).toFixed(1) + 's'; if (i % 3 === 0) { e.style.width = e.style.height = '2px'; } em.appendChild(e); }
     scene = await buildCampScene(true);
     UI.show('title');
     BB.music('calm');
@@ -191,6 +196,7 @@
 
   function newGame() {
     BB.save = BB.newSave(now());
+    campBuilt = null; campScene = null; drillScene = null;
     BB.persist();
     BB.Cinema.play('intro', { music: 'boss' }, () => goCamp());
   }
@@ -218,6 +224,7 @@
     const team = BB.teamHeroes(S);
     UI.show('boot'); $('bootmsg').textContent = 'Stage ' + M.code + ' · ' + M.name;
     document.querySelector('#boot .bar i').style.width = '100%';
+    const held = UI.versus(M, team); // who marches against whom, for as long as the field takes to load (and a breath more)
     const region = BB.REGIONS.find((r) => r.id === M.region) || BB.REGIONS[0];
     const biome = region.biome;
     const arts = ['ghoul', 'warden', 'necro'];
@@ -230,7 +237,9 @@
     try {
       await Promise.all([BB.loadEnv(biome), BB.loadEnv('vale'), BB.loadEnv('ground'), BB.loadOther(), BB.loadHeroes(team)]
         .concat([...new Set(arts)].map((a) => BB.loadChar(a).catch(() => null)), [...pools].map((p) => pickLoad(BB.poolKeys(p), 4, rr))));
-    } catch (e) { UI.toast('Could not load the battlefield.'); goCamp(); return; }
+    } catch (e) { UI.versusOut(true); UI.toast('Could not load the battlefield.'); goCamp(); return; }
+    UI.versusFoes(M); // their faces are loaded now
+    await held;
     const seed = BB.hashStr(M.id) % 9000 + (S.cleared[M.id] ? Math.floor(Math.random() * 999) : 1);
     const map = BB.buildMap(M.layout, biome, seed, { night: !!region.night, floor: region.floor });
     BB.renderGround(map);
@@ -242,6 +251,7 @@
     mode = 'battle';
     buildHud();
     UI.show('hud');
+    UI.versusOut();
     BB.music(M.type === 'boss' || M.type === 'duel' ? 'boss' : 'battle');
     tutorial = M.tutorial && !S.seen.tutorial ? 0 : -1; tutT = 0;
   }
@@ -420,7 +430,6 @@
 
   // ---------------------------------------------------------------- buttons
   UI.click($('bPlay'), () => { if (BB.save) goCamp(); else newGame(); });
-  UI.click($('bNew'), () => UI.confirm('Start a new game? Your heroes and progress will be erased.', () => { try { localStorage.removeItem(KEY); } catch (e) { /* blocked */ } newGame(); }));
   UI.click($('bContinue'), () => UI.openCampaign());
   UI.click($('bCampBack'), () => goCamp());
   UI.click($('bRecruitH'), () => UI.openRecruit());
@@ -443,11 +452,13 @@
   UI.click($('bSpeed'), toggleSpeed);
   UI.click($('bAuto'), toggleAuto);
   UI.click($('bRetreat'), () => { UI.modal('mPause', false); scene.paused = false; scene.lose('Retreated'); });
-  UI.click($('bSettings'), () => {
+  const openSettings = () => {
     const s = BB.save.settings;
     $('sMusic').value = s.music; $('sSfx').value = s.sfx; $('sShake').checked = s.shake !== false; $('sDmg').checked = !!s.numbers; $('sGfx').value = s.gfx || 'auto';
     UI.modal('mSettings');
-  });
+  };
+  UI.click($('bSettings'), openSettings);
+  UI.click($('bTitleSet'), () => { if (BB.save) openSettings(); });
   UI.click($('bSetClose'), () => {
     const s = BB.save.settings; s.music = +$('sMusic').value; s.sfx = +$('sSfx').value; s.shake = $('sShake').checked; s.numbers = $('sDmg').checked; s.gfx = $('sGfx').value;
     if (s.gfx !== 'auto') { autoScale = 0; try { localStorage.removeItem(GFX_KEY); } catch (e) { /* blocked */ } }
@@ -612,7 +623,12 @@
   }
   UI.click($('bTheater'), () => { const s = BB.save.settings; s.music = +$('sMusic').value; s.sfx = +$('sSfx').value; s.shake = $('sShake').checked; s.numbers = $('sDmg').checked; s.gfx = $('sGfx').value; BB.setVolumes(); BB.persist(); applyGfx(); openTheater(); });
   UI.click($('bTheaterClose'), () => { UI.modal('mTheater', false); });
-  UI.click($('bWipe'), () => UI.confirm('Erase all progress for good?', () => { try { localStorage.removeItem(KEY); } catch (e) { /* blocked */ } location.reload(); }));
+  // a new game lives in Settings, behind a question: it erases the banner and everything won under it
+  UI.click($('bNew'), () => UI.confirm('Start a new game? Your heroes and all progress will be erased for good.', () => {
+    devExit(); UI.modal('mSettings', false);
+    try { localStorage.removeItem(KEY); } catch (e) { /* blocked */ }
+    newGame();
+  }));
 
   // ---------------------------------------------------------------- loop
   let lastT = performance.now(), spoilT = 0;
@@ -664,6 +680,7 @@
     } else { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#0d0a08'; ctx.fillRect(0, 0, W, H); }
     if (UI.current === 'home') { UI.homeRender(dt); spoilT += dt; if (spoilT > 20) { spoilT = 0; UI.updateSpoils(); } }
     if (UI.current === 'campaign') UI.pathRender(dt);
+    if (UI.current === 'heroes') UI.heroesRender(dt);
     if (UI.current === 'hero') UI.heroRender(dt);
     if (UI.current === 'recruit') UI.recruitRender(dt);
     if (UI.current === 'team') UI.teamRender(dt);

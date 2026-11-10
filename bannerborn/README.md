@@ -119,8 +119,10 @@ A hero-collector RPG: you build the team, the team fights.
    Maps keep the middle and the lanes between spawns open; fights run about 20–70 s at 1×.
 6. **Campaign.** Each chapter is one long built stretch of land in the same engine, tiles and props as the
    battlefields (`BB.buildJourney` in js/world.js): a road winds across it and every stage is a real place on the
-   road (an enemy camp, a hamlet, a ring of ruins with an open Gravegate, a ward to defend, the boss's torchlit court
-   at the end). The enemy waits at the stages not yet won; your banner flies where you have won; your team stands at
+   road, built from the wall and roof kit: a hamlet of houses, a stockade, a ruined hall, a shrine ring with an open
+   Gravegate, a fenced chapel to defend, the boss's keep at the end. The road twists, side routes branch off to
+   outlying sites, and past the last stage it runs to a **ring** that leads on to the next land (shut until this one
+   is won). The enemy waits at the stages not yet won; your banner flies where you have won; your team stands at
    the chosen stage and walks the road when you choose another. Drag to look along the road, tap a stage to choose it.
    Four chapters, thirty stages (Greenvale, the Sunscar, Aldmere, the Cantor's Gate):
    rout waves, destroy Gravegates, defend a ward against the clock, a duel and four bosses with
@@ -142,7 +144,18 @@ Losing costs nothing (and still teaches your heroes): forge, change the formatio
 | Shadowblade | Assassin | **Shadowstep** — reappear behind a foe, sure critical |
 | Lancer | Skirmisher | **Impaling Charge** — spear everything in a line |
 
-Settings: music, effects, screen shake, damage numbers, erase save, and **Development** (temporary, for building
+**Menus.** The title is the logo carved in gold over the night camp (rays, embers, one button: *Raise the Banner*
+or *Continue*, with where you left off beneath it). **Heroes**: the chosen hero stands large on a podium of their
+rarity's light beside the collection; tap a card to bring that hero forward, tap again (or *Open*) for their screen.
+**Forge**: the selected piece sits in a rune ring with a pip for every forging (the blue pip is where a plain weapon
+awakens) and flashes when struck. **Shop**: each offer is a relic on its own light (gems, the chest, a blade, a
+sigil). **Battle start**: while the field loads, a *versus* card slams in (your heroes and power on the blue side,
+the enemy's faces and the power needed on the red, the stage's name and objective), then parts down the middle
+onto the fight. Menu animation is transform/opacity only, and the small glass pieces no longer blur what is behind
+them.
+
+Settings: music, effects, screen shake, damage numbers, graphics, **Start a new game** (asks first; it erases the
+save), and **Development** (temporary, for building
 the game): watch any moment without playing to it. *Live* tiles play the real game with a full-strength team in a
 sandbox (a throwaway save that is never stored; leaving a battle returns to the list): each boss fight from entrance
 to fall, ultimates back to back, signature moves non-stop, weapon traits, the last horde, a fight on the edge, and

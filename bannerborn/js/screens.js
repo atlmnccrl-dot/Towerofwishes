@@ -16,6 +16,7 @@
   const MAIN = ['home', 'heroes', 'team', 'forge', 'shop', 'campaign', 'hero', 'recruit'];
   UI.show = function (id) {
     document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('on', s.id === id));
+    if (UI.current !== id && MAIN.includes(id)) { const sc = $(id); sc.classList.remove('enter'); void sc.offsetWidth; sc.classList.add('enter'); } // the panels rise into place
     UI.current = id; document.body.dataset.screen = id;
     $('shell').classList.toggle('on', MAIN.includes(id));
     $('tabbar').style.display = ['hero', 'recruit', 'campaign'].includes(id) ? 'none' : '';
@@ -220,6 +221,7 @@
     c.appendChild(el('div', 'lv', String(h.level)));
     c.appendChild(el('div', 'cic', UI.callIcon(h.calling)));
     c.appendChild(el('div', 'st', '★'.repeat(h.stars || 1)));
+    if (h.rarity >= 3) c.appendChild(el('i', 'shine'));
     c.appendChild(el('div', 'plate', '<div class="nm">' + esc(BB.shortName(h)) + '</div>' + (opts.noPower ? '<div class="pw" style="color:var(--mute)">' + BB.CALLINGS[h.calling].name + '</div>' : '<div class="pw">⚔ ' + fmt(BB.power(h)) + '</div>')));
     c.title = h.name + ' · ' + BB.HERO_RARITY[h.rarity].name + ' ' + BB.CALLINGS[h.calling].name;
     if (opts.onClick) click(c, opts.onClick);
@@ -595,6 +597,28 @@
     }
     return box;
   };
+  // ---- the versus card: shown while a battlefield is made ready, then it parts down the middle onto the fight
+  UI.versusFoes = function (st) { const b = $('vsFoes'); b.innerHTML = ''; b.appendChild(UI.foeIcons(st, 84)); };
+  UI.versus = function (st, team) {
+    const v = $('versus'), hb = $('vsHeroes'); hb.innerHTML = '';
+    for (const h of team) { const c = copyCanvas(BB.portrait(h, 84)); c.style.setProperty('--rc', BB.HERO_RARITY[h.rarity || 0].color); c.title = h.name; hb.appendChild(c); }
+    UI.versusFoes(st);
+    const boss = st.boss && BB.FOES[st.boss];
+    $('vsFoeLbl').textContent = boss ? boss.name : st.type === 'gates' ? 'The Gravegates' : 'The horde';
+    $('vsPow').innerHTML = '⚔ ' + fmt(BB.teamPower(team)) + '<small>' + team.length + (team.length === 1 ? ' hero' : ' heroes') + '</small>';
+    $('vsRec').innerHTML = '<small style="margin:0 8px 0 0">needs</small>⚔ ' + fmt(BB.recPower(st));
+    $('vsCode').textContent = 'STAGE ' + st.code; $('vsName').textContent = st.name;
+    $('vsObj').textContent = TYPE[st.type] + (st.type === 'defend' ? ' for ' + st.time + ' s' : '');
+    v.classList.remove('out'); v.classList.add('on');
+    BB.sfx('slam');
+    return new Promise((res) => setTimeout(res, 1500));
+  };
+  UI.versusOut = function (now) {
+    const v = $('versus'); if (!v.classList.contains('on')) return;
+    if (now) { v.classList.remove('on', 'out'); return; }
+    v.classList.add('out'); BB.sfx('swing');
+    setTimeout(() => v.classList.remove('on', 'out'), 460);
+  };
   const TYPE = { rout: 'Rout every wave', gates: 'Destroy the Gravegates', defend: 'Hold out', boss: 'Boss', duel: 'Duel' };
   UI.renderStageCard = function () {
     const S = BB.save, st = BB.MISSIONS[C.sel], box = $('stageCard'); box.innerHTML = '';
@@ -634,10 +658,22 @@
       click(b, () => { HF.f = id; UI.renderHeroes(); }); fb.appendChild(b);
     }
     const ok = (c) => HF.f === 'all' || c === HF.f;
-    box.appendChild(el('div', 'sect', 'Your heroes <small>tap a hero to ascend, equip and learn skills</small>'));
+    box.appendChild(el('div', 'sect', 'Your heroes <small>tap to bring one forward · tap again to open</small>'));
     const own = el('div', 'hcards');
     const team = BB.teamIds(S);
-    for (const h of sortHeroes(S.heroes)) if (ok(h.calling)) own.appendChild(UI.heroCard(h, { inteam: team.includes(h.id), onClick: () => UI.openHero(h.id) }));
+    const shown = sortHeroes(S.heroes).filter((h) => ok(h.calling));
+    if (!shown.some((h) => h.id === HF.sel)) HF.sel = shown[0] ? shown[0].id : null;
+    for (const h of shown) {
+      const card = UI.heroCard(h, { inteam: team.includes(h.id), onClick: () => {
+        if (HF.sel === h.id) { UI.openHero(h.id); return; } // the hero already standing in the light: open them
+        HF.sel = h.id;
+        own.querySelectorAll('.hc.sel').forEach((x) => x.classList.remove('sel')); card.classList.add('sel');
+        UI.heroSpot();
+      } });
+      if (h.id === HF.sel) card.classList.add('sel');
+      own.appendChild(card);
+    }
+    UI.heroSpot();
     if (!own.children.length) own.appendChild(el('div', 'mute', 'No heroes of this calling yet.'));
     box.appendChild(own);
     // the ones still to find: one compact strip per gate instead of a wall of silhouettes
@@ -662,6 +698,41 @@
       st.appendChild(av); strips.push(st);
     }
     if (strips.length) { box.appendChild(el('div', 'sect', 'Still to find')); const w = el('div', 'tstrips'); strips.forEach((x) => w.appendChild(x)); box.appendChild(w); }
+  };
+
+  // the chosen hero, large, on a podium of their rarity's light
+  UI.heroSpot = function () {
+    const S = BB.save, h = S.heroes.find((x) => x.id === HF.sel), box = $('hsSpot');
+    box.style.visibility = h ? '' : 'hidden'; if (!h) return;
+    const Cl = BB.CALLINGS[h.calling], R = BB.HERO_RARITY[h.rarity];
+    box.className = 'spot frame ' + RCLS(h.rarity);
+    $('hsRk').textContent = R.name + (h.legend ? ' · Legend' : h.captain ? ' · Captain' : '');
+    $('hsLv').textContent = h.level;
+    $('hsStars').textContent = '★'.repeat(h.stars || 1);
+    $('hsNm').textContent = h.name;
+    $('hsCl').textContent = Cl.name + ' · ' + Cl.role;
+    $('hsPw').textContent = '⚔ ' + fmt(BB.power(h));
+    HF.t = 0;
+  };
+  click($('hsSpot'), () => { if (HF.sel) UI.openHero(HF.sel); });
+  UI.heroesRender = function (dt) {
+    const c = $('hsCv'), S = BB.save; if (!c || !S) return;
+    const hero = S.heroes.find((x) => x.id === HF.sel); if (!hero) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = Math.round(c.clientWidth * dpr), h = Math.round(c.clientHeight * dpr); if (!w || !h) return;
+    if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+    const g = c.getContext('2d'); g.clearRect(0, 0, w, h); g.imageSmoothingEnabled = false;
+    HF.t = (HF.t || 0) + dt;
+    const layers = BB.heroLayers(hero), key = layers[0].key;
+    if (!layers.every((L) => BB.A.chars[L.key])) return;
+    // they step forward with a flourish, then stand easy; every so often, the flourish again
+    const cyc = (HF.t + 7.6) % 9, clip = cyc > 7.2 ? (BB.hasClip(key, 'Taunt') ? 'Taunt' : 'Special1') : 'Idle';
+    const n = BB.clipLen(key, clip) || 15;
+    const fr = clip === 'Idle' ? Math.floor(HF.t * 9) % n : Math.min(n - 1, Math.floor((cyc - 7.2) * 12));
+    const sc = Math.max(2, Math.min(Math.round(h / 125), Math.round(w / 84)));
+    const cx = w / 2, cy = h * 0.62;
+    UI.podium(g, cx, cy, Math.min(w * 0.4, 34 * sc), RGBA[hero.rarity || 0], HF.t);
+    BB.drawHeroDressed(g, hero, BB.auraOf(hero), clip, 1, fr, cx, cy, sc, HF.t, { noSlash: clip === 'Idle', layers });
   };
 
   // ---------------------------------------------------------------- hero detail
@@ -1325,21 +1396,25 @@
       click(b, () => { F.sel = x.it; UI.renderForge(); });
       grid.appendChild(b);
     }
-    const det = $('forgeDet'); det.innerHTML = '';
+    let det = $('forgeDet'); det.innerHTML = '';
     const it = F.sel; if (!it) { det.appendChild(el('div', 'mute', 'Select a piece of gear.')); return; }
     const by = (all.find((x) => x.it === it) || {}).by;
-    const row = el('div', 'row'); const ic = el('div', 'it'); ic.style.cssText = 'width:64px;--ic:' + BB.RARITY[it.rarity].color; ic.appendChild(UI.itemIcon(it, 48)); row.appendChild(ic);
-    row.appendChild(el('div', 'grow', '<div class="bigname" style="font-size:18px;color:' + BB.RARITY[it.rarity].color + '">' + esc(it.name) + (it.plus ? ' +' + it.plus : '') + '</div><div class="mute" style="font-size:13px">' + BB.RARITY[it.rarity].name + ' ' + BB.SLOT_NAME[it.slot] + ' · item level ' + it.level + (by ? ' · on ' + esc(BB.shortName(by)) : '') + '</div>'));
-    det.appendChild(row);
+    // the piece on the anvil: large, ringed in its rarity, a pip for every forging (the blue pip is where a plain weapon awakens)
+    const show = el('div', 'fshow' + (F.hit === it ? ' hit' : '')); show.style.setProperty('--ic', BB.RARITY[it.rarity].color); F.hit = null;
+    const big = el('div', 'big'); big.appendChild(UI.itemIcon(it, 64)); show.appendChild(big);
+    let pips = ''; for (let i = 1; i <= BB.MAX_PLUS; i++) pips += '<i class="' + (i <= (it.plus || 0) ? 'on' : '') + (it.slot === 'weapon' && i === BB.AWAKEN_AT ? ' aw' : '') + '"></i>';
+    show.appendChild(el('div', 'ftxt', '<div class="fn">' + esc(it.name) + (it.plus ? ' +' + it.plus : '') + '</div><div class="fm">' + BB.RARITY[it.rarity].name + ' ' + BB.SLOT_NAME[it.slot] + ' · item level ' + it.level + (by ? ' · worn by ' + esc(BB.shortName(by)) : '') + '</div><div class="pips">' + pips + '</div>'));
+    det.appendChild(show);
+    const panel = det; det = el('div', 'fbody'); panel.appendChild(det);
     if (it.ench) det.appendChild(el('div', 'ench', '<span style="color:' + BB.ECOL[it.ench][1] + '">✦ ' + BB.ELEMENTS[it.ench].name + ' enchant</span> · ' + BB.ENCH[it.ench].desc + '. The wearer glows with it.'));
     else if (it.slot === 'weapon') det.appendChild(el('div', 'ench mute', 'Forge to +' + BB.AWAKEN_AT + ' to awaken an enchant.'));
     const cur = BB.itemStats(it), next = BB.itemStats(Object.assign({}, it, { plus: (it.plus || 0) + 1 }));
     det.appendChild(el('div', 'statl', Object.keys(cur).map((k) => '<div><span>' + ({ atk: 'Attack', hp: 'Health', def: 'Defence', crit: 'Crit', spd: 'Speed' }[k] || k) + '</span><b>' + UI.num(k, cur[k]) + ((it.plus || 0) < BB.MAX_PLUS ? ' <i>→ ' + UI.num(k, next[k]) + '</i>' : '') + '</b></div>').join('')));
-    const ups = el('div', 'ups'); ups.style.marginTop = 'auto';
+    const ups = el('div', 'ups');
     const maxed = (it.plus || 0) >= BB.MAX_PLUS;
     const up = el('button', 'btn', maxed ? 'Fully forged' : 'Forge +' + ((it.plus || 0) + 1) + '<span class="cost">● ' + fmt(BB.upgradeCost(it)) + '</span>');
     up.disabled = maxed || S.gold < BB.upgradeCost(it);
-    click(up, () => { const r = BB.upgradeItem(S, it); if (r) { BB.sfx(r === 'awakened' ? 'enchant' : 'forge'); BB.persist(); UI.renderForge(); UI.refreshTop(); if (r === 'awakened') UI.toast('The forge awakens it: ' + it.name + ' · ' + BB.ENCH[it.ench].desc); } });
+    click(up, () => { const r = BB.upgradeItem(S, it); if (r) { F.hit = it; BB.sfx(r === 'awakened' ? 'enchant' : 'forge'); BB.persist(); UI.renderForge(); UI.refreshTop(); if (r === 'awakened') UI.toast('The forge awakens it: ' + it.name + ' · ' + BB.ENCH[it.ench].desc); } });
     ups.appendChild(up);
     if (!by) {
       const sv = el('button', 'btn dark', 'Salvage<span class="cost">+● ' + BB.salvageValue(it) + '</span>');
@@ -1350,15 +1425,26 @@
   };
 
   // ---------------------------------------------------------------- shop
+  let shopBlade = null;
   UI.renderShop = function () {
     const S = BB.save, box = $('offers'); box.innerHTML = '';
     const d = new Date(), mid = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1), left = mid - now();
-    $('shopReset').textContent = 'New offers in ' + Math.floor(left / 3600000) + 'h ' + Math.floor(left / 60000) % 60 + 'm';
-    const art = { free: ['◆', 'linear-gradient(160deg,#8fd2ff,#2c63d8)'], chest: ['<svg class="i" viewBox="0 0 24 24" style="width:40px;height:40px;color:#fff">' + SI.gift + '</svg>', 'linear-gradient(160deg,#ffd27e,#e0802a)'], sigils: ['✧', 'linear-gradient(160deg,#d8b0ff,#7a3fd6)'], crystals: ['◆', 'linear-gradient(160deg,#a6ecff,#2a86d6)'], arms: ['⚔', 'linear-gradient(160deg,#ff9a6a,#a3311c)'] };
+    $('shopReset').textContent = 'Restocks in ' + Math.floor(left / 3600000) + 'h ' + Math.floor(left / 60000) % 60 + 'm';
+    // each offer is a relic on the table: its own light, and the thing itself rather than a glyph
+    const col = { free: '#5cb8ff', chest: '#ffb648', sigils: '#b57cff', crystals: '#63d6ff', arms: '#ff7a4d' };
+    const gem = '<span class="gem"></span>';
+    const art = {
+      free: () => gem,
+      crystals: () => '<span class="gems">' + gem + gem + gem + '</span>',
+      sigils: () => '<svg viewBox="0 0 24 24"><path d="M12 2l2.6 6.6L21 11l-6.4 2.4L12 20l-2.6-6.6L3 11l6.4-2.4z"/><circle cx="12" cy="11" r="1.6"/></svg>',
+      arms: () => UI.itemIcon(shopBlade || (shopBlade = Object.assign(BB.makeItem(BB.rng(7), 'weapon', 1, 3, 'sword'), { ench: 'fire' })), 68),
+      chest: () => { const c = document.createElement('canvas'); c.width = c.height = 68; const E = BB.A.env && BB.A.env.ground; const r = E && E.meta.f['Chest B1_S']; if (r) { const g = c.getContext('2d'), k = 60 / Math.max(r[2], r[3]); g.imageSmoothingEnabled = false; g.drawImage(E.img, r[0], r[1], r[2], r[3], (68 - r[2] * k) / 2, (68 - r[3] * k) / 2, r[2] * k, r[3] * k); } else if (!E) BB.loadEnv('ground').then(() => UI.current === 'shop' && UI.renderShop()).catch(() => null); return c; },
+    };
     for (const o of BB.SHOP) {
       const left = BB.shopLeft(S, o, now());
-      const c = el('div', 'offer frame');
-      c.appendChild(el('div', 'art', art[o.id][0])); c.querySelector('.art').style.background = art[o.id][1];
+      const c = el('div', 'offer frame' + (left > 0 ? '' : ' sold')); c.style.setProperty('--oc', col[o.id] || '#ffbe55');
+      const a = el('div', 'art'), pic = (art[o.id] || art.free)(); if (typeof pic === 'string') a.innerHTML = pic; else a.appendChild(pic);
+      c.appendChild(a);
       c.appendChild(el('h3', '', o.name)); c.appendChild(el('p', '', o.desc));
       c.appendChild(el('div', 'left', left > 0 ? left + ' left today' : 'Sold out · back tomorrow'));
       const b = el('button', 'btn sm', !o.cost ? 'Claim' : o.cost.crystals ? '◆ ' + fmt(o.cost.crystals) : '● ' + fmt(o.cost.gold)); b.disabled = left <= 0 || (o.cost && (S.gold < (o.cost.gold || 0) || S.crystals < (o.cost.crystals || 0)));
