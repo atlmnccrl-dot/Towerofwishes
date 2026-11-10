@@ -436,12 +436,14 @@
     const S = BB.save, sc = E.sc, map = E.map, stops = map.stops;
     sc.save = S;
     // what the land shows depends on what has been won: open Gravegates, and who is waiting where
-    const state = stops.map((st) => (S.cleared[st.m.id] ? 1 : 0)).join('') + '|' + Object.keys(BB.A.chars).length;
+    const wayOpen = BB.chapterCleared(S, ch.id);
+    const state = stops.map((st) => (S.cleared[st.m.id] ? 1 : 0)).join('') + '|' + Object.keys(BB.A.chars).length + (wayOpen ? '|open' : '');
     if (state !== E.state) {
       E.state = state;
       const openGates = map.gates.filter((q) => !S.cleared[stops[q.k].m.id]);
-      map.anims = map.baseAnims.concat(openGates.map((q) => ({ key: 'portal', x: q.x, y: q.y, sc: 0.55, t: 0, fps: 12 })));
+      map.anims = map.baseAnims.concat(openGates.map((q) => ({ key: 'portal', x: q.x, y: q.y, sc: 0.5, t: 0, fps: 12 })));
       map.lights = map.baseLights.concat(openGates.map((q) => ({ x: q.x, y: q.y, rad: 2.6, col: '170,90,255' })));
+      if (wayOpen && map.exit) { map.anims.push({ key: 'portal', x: map.exit.ring.x, y: map.exit.ring.y, sc: 0.72, t: 0, fps: 12, hueWay: 1 }); map.lights.push({ x: map.exit.x, y: map.exit.y, rad: 4, col: '120,220,255' }); }
       const npcs = [];
       stops.forEach((st, k) => {
         if (S.cleared[st.m.id]) return;
@@ -522,6 +524,20 @@
       if (lock) { const lx = p.x - tw / 2 + 9 * dpr, u = 2.6 * dpr; g.strokeStyle = 'rgba(255,255,255,0.45)'; g.lineWidth = 1.2 * dpr; g.beginPath(); g.arc(lx, ty - u * 0.5, u * 0.8, Math.PI, 0); g.stroke(); g.fillStyle = 'rgba(255,255,255,0.45)'; g.fillRect(lx - u, ty - u * 0.5, u * 2, u * 1.5); }
       if (st.m.legend && !done) { const sx2 = p.x + tw / 2 + 8 * dpr, sy2 = ty; g.fillStyle = '#5cd3ff'; g.beginPath(); for (let j = 0; j < 10; j++) { const a = -Math.PI / 2 + j * Math.PI / 5, q = (j % 2 ? 2.2 : 5) * dpr; g.lineTo(sx2 + Math.cos(a) * q, sy2 + Math.sin(a) * q); } g.closePath(); g.fill(); }
     });
+    if (map.exit) { // the way on, at the end of the road
+      const nextCh = BB.CHAPTERS.find((x) => x.id === ch.id + 1), open = BB.chapterCleared(S, ch.id), p = P2(map.exit.x, map.exit.y), pr = P2(map.exit.ring.x, map.exit.ring.y);
+      C.nodes.push({ exit: true, x: p.x, y: p.y, x2: pr.x, y2: pr.y - 30 * k });
+      if (p.x > -120 * dpr && p.x < w + 120 * dpr) {
+        if (open) { g.save(); g.globalCompositeOperation = 'lighter'; if (BB.drawGlow) BB.drawGlow(g, '120,220,255', pr.x, pr.y - 26 * k, 60 * k, 60 * k, 0.35 + 0.15 * Math.sin(t * 3)); g.restore(); }
+        const label = nextCh ? (open ? 'TO ' + nextCh.name.toUpperCase() + '  ▸' : 'THE WAY ON') : (open ? 'THE ROAD ENDS HERE' : 'THE LAST GATE'), fs = Math.round(11 * dpr);
+        g.font = '700 ' + fs + 'px Outfit, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        const tw = g.measureText(label).width + (open ? 14 : 24) * dpr, ty = p.y + 40 * k;
+        g.fillStyle = open ? 'rgba(10,34,44,0.92)' : 'rgba(10,12,18,0.86)'; g.beginPath(); g.roundRect ? g.roundRect(p.x - tw / 2, ty - fs * 0.8, tw, fs * 1.6, fs * 0.8) : g.rect(p.x - tw / 2, ty - fs * 0.8, tw, fs * 1.6); g.fill();
+        g.strokeStyle = open ? 'rgba(120,220,255,0.9)' : 'rgba(255,255,255,0.18)'; g.lineWidth = dpr; g.stroke();
+        g.fillStyle = open ? '#bdeeff' : 'rgba(255,255,255,0.45)'; g.fillText(label, p.x + (open ? 0 : 5 * dpr), ty + dpr * 0.5);
+        if (!open) { const lx = p.x - tw / 2 + 9 * dpr, u2 = 2.6 * dpr; g.strokeStyle = 'rgba(255,255,255,0.45)'; g.lineWidth = 1.2 * dpr; g.beginPath(); g.arc(lx, ty - u2 * 0.5, u2 * 0.8, Math.PI, 0); g.stroke(); g.fillStyle = 'rgba(255,255,255,0.45)'; g.fillRect(lx - u2, ty - u2 * 0.5, u2 * 2, u2 * 1.5); }
+      }
+    }
     // the land's name, set over a shade at the top; an arrow at an edge when the next fight is out of sight
     const sh = g.createLinearGradient(0, 0, 0, 70 * dpr); sh.addColorStop(0, 'rgba(4,5,9,0.7)'); sh.addColorStop(1, 'rgba(4,5,9,0)'); g.fillStyle = sh; g.fillRect(0, 0, w, 70 * dpr);
     g.textBaseline = 'alphabetic'; g.textAlign = 'left';
@@ -555,6 +571,13 @@
     if (D.moved) return;
     let best = null, bd = 52 * D.d;
     for (const n of C.nodes) { const q = Math.min(Math.hypot(n.x - D.px, n.y - D.py), n.x2 !== undefined ? Math.hypot(n.x2 - D.px, n.y2 - D.py) : 1e9, Math.hypot(n.x - D.px, n.y - 22 * D.d - D.py)); if (q < bd) { bd = q; best = n; } }
+    if (best && best.exit) { // through the ring, to the next land
+      const S = BB.save, ch = BB.CHAPTERS.find((x) => x.id === C.ch), nextCh = BB.CHAPTERS.find((x) => x.id === C.ch + 1);
+      if (!BB.chapterCleared(S, ch.id)) { BB.sfx('click'); UI.toast('The way is shut until this land is won.'); return; }
+      if (!nextCh) { UI.toast('The road ends here. The campaign is won.'); return; }
+      const ms = BB.MISSIONS.map((m, i) => [m, i]).filter(([m]) => m.chapter === nextCh.id), nx = ms.find(([m, i]) => !S.cleared[m.id] && BB.stageUnlocked(S, i));
+      BB.sfx('portal'); C.ch = nextCh.id; C.sel = (nx || ms[0])[1]; J.free = false; UI.renderCampaign(); return;
+    }
     if (best) { C.sel = best.i; J.free = false; BB.sfx('click'); UI.renderStageCard(); }
   };
   (function () { const c = $('pathCv'); if (!c) return; c.addEventListener('pointermove', (e) => UI.pathMove(e)); c.addEventListener('pointerup', () => UI.pathUp()); c.addEventListener('pointercancel', () => { J.drag = null; }); c.style.touchAction = 'none'; })();

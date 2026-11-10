@@ -374,68 +374,143 @@
     return m;
   };
 
+  // ---- buildings, put together from the wall and roof kit. A wall piece stands on one edge of its tile (_S the
+  // front-left edge, _E the front-right, _N and _W the two behind); a roof piece covers its tile at wall height.
+  // Only the two faces the camera sees are walled. Pieces keep their tile's depth, roofs drawn just after walls.
+  const ROOF_LIFT = 23.5, STOREY = 49.5; // world pixels: how far a roof is raised to sit on the wall tops; one storey
+  const KIT = { biome: 'vale' };
+  const piece = (m, name, tx, ty, o) => m.add(name, tx + 0.5, ty + 0.5, Object.assign({ biome: KIT.biome, r: 0.45, built: 1 }, o || {}));
+  // style: { wall: [names], door, roof: 'C' | 'D' | 'A' | 'E', form: 'gableX' | 'gableY' | 'hip' | 'hut' | 'spire' | 'lean' }
+  function house(m, x0, y0, w, d, st) {
+    let k = (x0 * 7 + y0 * 3) | 0; const lift = st.lift || 0;
+    for (let x = x0; x < x0 + w; x++) piece(m, (st.door && x === x0 + (w >> 1) && !lift ? st.door : st.wall[k++ % st.wall.length]) + '_S', x, y0 + d - 1, { dz: 0.1 + lift * 0.001, lift });
+    for (let y = y0; y < y0 + d; y++) piece(m, st.wall[k++ % st.wall.length] + '_E', x0 + w - 1, y, { dz: 0.1 + lift * 0.001, lift });
+    if (st.form === 'none') return;
+    const R = 'Roof ' + (st.roof || 'C'), rl = lift + ROOF_LIFT;
+    for (let x = x0; x < x0 + w; x++) for (let y = y0; y < y0 + d; y++) {
+      const fx = x === x0 + w - 1, fy = y === y0 + d - 1, bx = x === x0, by = y === y0; let q;
+      if (st.form === 'hut' || (w === 1 && d === 1 && st.form !== 'spire')) q = '7_S';
+      else if (st.form === 'spire') q = '6_E';
+      else if (st.form === 'lean') q = '1_S';
+      else if (st.form === 'gableY') q = x >= x0 + w / 2 ? '1_E' : '1_W';
+      else if (st.form === 'hip' && w === 2 && d === 2) q = by && bx ? '6_W' : fy && bx ? '6_S' : by && fx ? '6_N' : '6_E';
+      else q = y >= y0 + d / 2 ? '1_S' : '1_N';
+      piece(m, R + q, x, y, { dz: 0.5 + lift * 0.001, lift: rl, r: 0 });
+    }
+  }
+  function tower(m, x, y, roof) { // two storeys of stone under a spire
+    for (let L = 0; L < 2; L++) { piece(m, 'Wall A1_S', x, y, { dz: 0.1 + L * 0.05, lift: L * STOREY }); piece(m, 'Wall A1_E', x, y, { dz: 0.1 + L * 0.05, lift: L * STOREY }); }
+    piece(m, 'Roof ' + (roof || 'D') + '6_E', x, y, { dz: 0.6, lift: STOREY + ROOF_LIFT, r: 0 });
+  }
+  function palisade(m, x0, y0, w, d) { // a stockade with its gate towards the camera
+    const r = m.r, pal = () => 'Wall ' + (r() < 0.5 ? 'B1' : 'B2');
+    for (let x = x0; x < x0 + w; x++) { piece(m, pal() + '_W', x, y0, { dz: -0.3 }); if (x !== x0 + (w >> 1)) piece(m, pal() + '_S', x, y0 + d - 1, { dz: 0.1 }); }
+    for (let y = y0; y < y0 + d; y++) { piece(m, pal() + '_N', x0, y, { dz: -0.3 }); if (y !== y0 + (d >> 1)) piece(m, pal() + '_E', x0 + w - 1, y, { dz: 0.1 }); }
+  }
+  const STYLES = [
+    { wall: ['Wall D1', 'Wall D7', 'Wall D1', 'Wall D16'], door: 'Wall G4', roof: 'C', form: 'gableX' },
+    { wall: ['Wall F1', 'Wall F7', 'Wall F1', 'Wall F16'], door: 'Wall G4', roof: 'D', form: 'gableY' },
+    { wall: ['Wall D1', 'Wall D16', 'Wall D7'], door: 'Wall G4', roof: 'C', form: 'hip' },
+    { wall: ['Wall C1', 'Wall C4', 'Wall C1', 'Wall C3'], door: 'Wall C3', roof: 'A', form: 'gableX' },
+    { wall: ['Wall F1', 'Wall F16'], door: 'Wall G4', roof: 'E', form: 'gableY' },
+  ];
+
   // ---- the campaign's land: one long built stretch of country per chapter, in the same tiles and props as the
-  // battlefields. A road winds across it from the first stage to the last; every stage is a real place on the road
-  // (a camp, a hamlet, a ring of ruins with a Gravegate, a ward to defend, the boss's court at the end).
-  // Screen-right is (+x, -y), so the road runs along the map's other diagonal.
+  // battlefields. A road twists across it from the first stage to the last, with side routes that leave it and come
+  // back; every stage is a built place on the road (a stockade, a hamlet of real houses, a shrine around an open
+  // Gravegate, a chapel to defend, the boss's keep), and past the last one the road runs through a great stone ring:
+  // the way on to the next land. Screen-right is (+x, -y), so the road runs along the map's other diagonal.
   BB.buildJourney = function (stages, biome, seed, opts) {
     opts = opts || {};
-    const N = 44, m = new Map(N, N, biome, seed), r = m.r, set = BB.SET(biome), sand = biome === 'sand';
+    const N = 46, m = new Map(N, N, biome, seed), r = m.r, set = BB.SET(biome), sand = biome === 'sand';
     m.layout = 'journey'; m.night = !!opts.night;
     for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (r() < 0.18) m.set(x, y, 1);
-    const n = stages.length, Q = Math.SQRT1_2, span = N - 12, sway = [2.2, 1.7, 2.6, 1.9][(seed | 0) % 4];
-    const at = (u) => { const off = Math.sin(u * Math.PI * sway + 0.6) * 4.2; return { x: 6 + span * u + off * Q, y: N - 6 - span * u + off * Q }; };
+    const n = stages.length, Q = Math.SQRT1_2, span = N - 13, sway = [2.3, 1.9, 2.7, 2.1][(seed | 0) % 4], ph = (seed % 7) * 0.9;
+    // the road's line: a long swing with a tighter twist on top of it, and a wander along its own length
+    const at = (u) => { const off = Math.sin(u * Math.PI * sway + 0.6 + ph) * 4.4 + Math.sin(u * Math.PI * sway * 2.9 + 1.7 + ph) * 2.0, al = span * u + Math.sin(u * Math.PI * 4.6 + ph) * 1.3; return { x: 6 + al + off * Q, y: N - 7 - al + off * Q }; };
     m.stops = stages.map((M, k) => Object.assign(at((k + 0.5) / n), { m: M, u: (k + 0.5) / n }));
-    // the road, through every stop and off both ends
-    m.road = []; for (let i = 0; i <= 160; i++) { const u = -0.06 + 1.12 * i / 160; m.road.push(Object.assign(at(u), { u })); }
+    m.road = []; for (let i = 0; i <= 180; i++) { const u = -0.07 + 1.16 * i / 180; m.road.push(Object.assign(at(u), { u })); }
     path(m, m.road.map((q) => [q.x, q.y]), 1);
-    // each stage's place
-    const pieces = ['Misc B17', 'Misc B18', 'Misc B14', 'Misc B3', 'Misc A4', 'Misc A9', 'Misc B28', 'Misc B11', 'Misc A3', 'Misc B5', 'Misc E3', 'Misc E2'];
+    // side routes: a back road behind the sites and a low road on the near side, each leaving the main road and rejoining it
+    const route = (ua, ub, bow) => { const pts = []; for (let i = 0; i <= 24; i++) { const t = i / 24, u = ua + (ub - ua) * t, b = at(u), o = Math.sin(t * Math.PI) * bow; pts.push([b.x + o * Q, b.y + o * Q]); } path(m, pts, 0); return pts; };
+    m.routes = [route(m.stops[0].u, m.stops[Math.min(n - 1, 3)].u, -7.5)];
+    if (n > 5) m.routes.push(route(m.stops[2].u, m.stops[5].u, 6.5));
+    if (n > 6) m.routes.push(route(m.stops[4].u, m.stops[n - 1].u, -8));
+    // each stage's place, built just off the road on the far side (up the screen), its gate or door towards the road
     m.gates = [];
+    const flag = (x, y) => m.add('Misc D' + (1 + (r.int(5))) + '_S', x, y, { biome: 'vale', r: 0.1 });
+    const brazier = (x, y) => { m.add('Misc C7_S', x, y, { biome: 'vale', r: 0.3 }); m.anim('fire', x, y - 0.25, { sc: 0.42, fps: 14 }); m.lights.push({ x, y, rad: 2.6, col: '255,160,70' }); };
     m.stops.forEach((st, k) => {
       const M = st.m, x = st.x, y = st.y, boss = M.type === 'boss' || M.type === 'duel';
-      // the site sits just off the road, on the far side (up the screen), so the road and whoever stands on it stay clear
-      const sx = x - 2.3, sy = y - 2.3;
-      st.site = { x: sx, y: sy };
-      if (boss) {
-        blob(m, sx - 0.6, sy - 0.6, 3.8, 4); path(m, [[x, y], [sx, sy]], 1, 4);
-        ruins(m, sx - 0.6, sy - 0.6, 4.4, sand);
-        for (const [dx, dy] of [[-2.6, 1.4], [1.4, -2.6], [-3.4, -0.6], [-0.6, -3.4]]) { const tx = sx + dx, ty = sy + dy; m.add('Torch2', tx, ty, { biome: 'vale', r: 0.1 }); m.anim('torch', tx + 0.02, ty + 0.02, { sc: 0.7, fps: 14, pole: 1 }); m.lights.push({ x: tx, y: ty, rad: 2.6, col: '255,170,80' }); }
-        if (!sand) graves(m, sx - 3.4, sy + 2.6, 5);
-        st.bossAt = { x: sx - 0.8, y: sy - 0.8 };
-      } else if (M.type === 'gates') {
-        blob(m, sx, sy, 2.4, 4); ruins(m, sx, sy, 3.2, sand);
-        m.gates.push({ x: sx - 0.3, y: sy - 0.3, k });
-      } else if (M.type === 'defend') {
-        blob(m, sx, sy, 2.2, 1);
-        m.add(M.ward === 'cart' ? 'Misc B6_E' : M.ward === 'cage' ? 'Misc C12_S' : 'Misc B42_S', sx, sy, { biome: 'vale', r: 0.7 });
-        m.tryAdd('Misc B3_S', sx + 1.5, sy + 0.4, { biome: 'vale' }, 0.5); m.tryAdd('Misc B11_E', sx - 1.4, sy + 0.9, { biome: 'vale' }, 0.5);
-        for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2 + 0.3; m.tryAdd(nm(r.pick(set.rocks), r), sx + Math.cos(a) * 3, sy + Math.sin(a) * 3, {}, 0.4); }
-      } else if (/village|mill|caravan|city|plaza|march/.test(M.layout || '')) {
-        for (let i = 0; i < 7; i++) { const a = -2.4 + i / 6 * 3.4, d = r.range(1.6, 3.2); m.tryAdd(nm(r.pick(pieces), r), sx + Math.cos(a) * d, sy + Math.sin(a) * d, { biome: 'vale' }, 0.55); }
-        m.tryAdd(nm(r.pick(['Misc B12', 'Misc B19']), r), sx - 0.4, sy - 0.4, { biome: 'vale' }, 0.6);
-      } else if (/ruins|courtyard|tombs|temple|throne|gate/.test(M.layout || '')) { blob(m, sx, sy, 2.2, 4); ruins(m, sx, sy, 3, sand); }
-      else camp(m, sx, sy, true);
-      st.foeAt = [{ x: sx + 0.7, y: sy + 1.3 }, { x: sx + 1.5, y: sy + 0.4 }, { x: sx - 0.3, y: sy + 1.7 }];
+      const bx = Math.round(x - 3.6), by = Math.round(y - 3.6); // the building tile nearest the road
+      st.site = { x: bx + 0.5, y: by + 0.5 };
+      path(m, [[x, y], [bx + 1, by + 1]], 0); // a spur from the road to the door
+      if (boss) { // a keep: stone curtain wall at the back, towers at its corners, a court open to the road
+        blob(m, bx - 0.5, by - 0.5, 4.2, 4);
+        for (let i = -3; i <= 1; i++) { piece(m, 'Wall A2_W', bx + i, by - 3, { dz: -0.3 }); piece(m, 'Wall A2_N', bx - 3, by + i, { dz: -0.3 }); }
+        tower(m, bx - 3, by - 3, 'D'); tower(m, bx + 2, by - 3, 'D'); tower(m, bx - 3, by + 2, 'D');
+        piece(m, 'Wall A13_S', bx - 1, by - 2, { r: 0.6 });
+        m.add('Misc C4_S', bx + 1.5, by - 1.4, { biome: 'vale', r: 0.4 }); m.add('Misc C5_S', bx - 1.4, by + 1.5, { biome: 'vale', r: 0.4 });
+        brazier(bx + 1.6, by + 0.6); brazier(bx + 0.6, by + 1.6); flag(bx - 2.4, by - 0.5); flag(bx - 0.5, by - 2.4);
+        st.bossAt = { x: bx - 0.6, y: by - 0.6 }; st.site = { x: bx - 0.5, y: by - 0.5 };
+      } else if (M.type === 'gates') { // a shrine in ruins around a ring of stone, the Gravegate burning in it until it is closed
+        blob(m, bx, by, 2.8, 4);
+        m.add('Misc C14_S', bx, by, { biome: 'vale', r: 0.7, sc: 1.25 });
+        for (const [dx, dy, nm2] of [[-2, -2, 'Wall A6_S'], [2, -2, 'Wall A6_S'], [-2, 2, 'Wall A6_S'], [-3, 0, 'Wall A7_W'], [0, -3, 'Wall A8_S'], [-2, -1, 'Wall A9_N'], [1, -3, 'Wall A1_W'], [-3, 1, 'Wall A2_N']]) piece(m, nm2, bx + dx, by + dy, { dz: -0.2 });
+        graves(m, bx - 2.5, by + 2.5, 4);
+        m.gates.push({ x: bx, y: by - 0.2, k }); st.site = { x: bx, y: by };
+      } else if (M.type === 'defend') { // what is being defended, a chapel beside it, a fence round the yard
+        house(m, bx - 2, by - 3, 2, 2, STYLES[2]); tower(m, bx - 3, by - 1, 'C');
+        m.add(M.ward === 'cart' ? 'Misc B6_E' : M.ward === 'cage' ? 'Misc C12_S' : 'Misc B42_S', bx + 0.6, by + 0.6, { biome: 'vale', r: 0.7 });
+        for (let i = -2; i <= 2; i++) { piece(m, 'Wall B8_S', bx + i, by + 2, { dz: 0.1, r: 0.2 }); if (i !== 0) piece(m, 'Wall B8_E', bx + 2, by + i, { dz: 0.1, r: 0.2 }); }
+        m.tryAdd('Misc B3_S', bx + 1.6, by - 0.8, { biome: 'vale' }, 0.5); m.tryAdd('Misc E1_S', bx - 0.8, by + 1.4, { biome: 'vale' }, 0.4);
+        st.site = { x: bx + 0.6, y: by + 0.6 };
+      } else if (/village|mill|caravan|city|plaza|march|oasis/.test(M.layout || '')) { // a hamlet: real houses round a well
+        house(m, bx - 3, by - 3, 2, 2, STYLES[(k) % 5]); house(m, bx, by - 3, 2, 2, STYLES[(k + 1) % 5]); house(m, bx - 3, by, 2, 2, STYLES[(k + 3) % 5]);
+        house(m, bx + 2, by - 1, 1, 1, { wall: ['Wall C1'], roof: 'A', form: 'hut' });
+        m.add('Misc B42_S', bx + 0.4, by + 0.4, { biome: 'vale', r: 0.6 });
+        m.tryAdd(nm(r.pick(['Misc B14', 'Misc B17', 'Misc B18']), r), bx + 2.2, by + 1.2, { biome: 'vale' }, 0.6); m.tryAdd('Misc B52_S', bx + 1.6, by + 2.2, { biome: 'vale' }, 0.2); m.tryAdd('Misc E3_S', bx - 1.2, by + 2.1, { biome: 'vale' }, 0.5);
+        st.site = { x: bx + 0.4, y: by + 0.4 };
+      } else if (/ruins|courtyard|tombs|temple|throne|gate/.test(M.layout || '')) { // an old hall, its roof gone, held by the dead
+        blob(m, bx - 0.5, by - 0.5, 2.6, 4);
+        house(m, bx - 3, by - 3, 3, 3, { wall: ['Wall A1', 'Wall A2', 'Wall A7', 'Wall A20'], form: 'none' });
+        for (const [dx, dy] of [[-3, 1], [1, -3], [1, 1]]) piece(m, 'Wall A6_S', bx + dx, by + dy);
+        tower(m, bx - 4, by - 4, 'D'); ruins(m, bx - 0.5, by - 0.5, 4.3, sand); brazier(bx + 0.9, by + 0.9);
+      } else { // a stockade: palisade, a gate, tents and a watchtower
+        blob(m, bx - 0.5, by - 0.5, 2.4, 1);
+        palisade(m, bx - 3, by - 3, 5, 5);
+        m.add(nm(r.pick(['Misc B46', 'Misc B43', 'Misc B12']), r), bx - 1.2, by - 1.2, { biome: 'vale', r: 0.9 });
+        m.add('Misc B8_S', bx + 0.3, by + 0.3, { biome: 'vale', r: 0.3 }); m.anim('fire', bx + 0.33, by + 0.33, { sc: 0.6, fps: 14 }); m.lights.push({ x: bx + 0.3, y: by + 0.3, rad: 3.4, col: '255,170,80' });
+        m.add(nm('Misc B5' + (5 + r.int(2)), r), bx + 2.6, by - 3.2, { biome: 'vale', r: 0.6 }); m.tryAdd('Misc B53_S', bx - 1.6, by + 0.8, { biome: 'vale' }, 0.3); flag(bx + 1.2, by + 2.6);
+        st.site = { x: bx + 0.3, y: by + 0.3 };
+      }
+      st.foeAt = [{ x: st.site.x + 1.1, y: st.site.y + 1.9 }, { x: st.site.x + 2.0, y: st.site.y + 1.0 }, { x: st.site.x + 0.2, y: st.site.y + 2.4 }];
     });
+    // the way on: past the last stage the road runs through a great ring of stone
+    { const e = at(1.045); m.exit = { x: e.x, y: e.y, u: 1.045 }; blob(m, e.x, e.y, 2.3, 4);
+      m.add('Misc C14_S', e.x - 0.5, e.y - 0.5, { biome: 'vale', r: 0.8, sc: 1.7 });
+      for (const [dx, dy] of [[-2.2, 0.6], [0.6, -2.2]]) { m.add('Misc C6_S', e.x + dx, e.y + dy, { biome: 'vale', r: 0.3 }); }
+      m.exit.ring = { x: e.x - 0.5, y: e.y - 0.75 }; }
     // the country around the road: open near it, closing into woods and rock further off (the arena's walls)
-    const keep = /Torch|Misc B6_E|Misc C12|Misc B42|Wall|Misc B12|Misc B19|Misc B46|Misc B43|Misc B8/;
     const offRoad = (x, y) => { let d = 99; for (let i = 0; i < m.road.length; i += 2) { const q = m.road[i]; d = Math.min(d, Math.hypot(q.x - x, q.y - y)); } return d; };
-    for (let i = 0; i < 2600; i++) {
-      const u = r.range(-0.08, 1.08), b = at(u), o = r.range(-17, 17), x = b.x + o * Q, y = b.y + o * Q; if (x < 1 || y < 1 || x > N - 1 || y > N - 1) continue;
+    const nearBuilt = (x, y, d) => m.props.some((p) => p.built && Math.hypot(p.x - x, p.y - y) < d);
+    for (let i = 0; i < 2900; i++) {
+      const u = r.range(-0.08, 1.1), b = at(u), o = r.range(-18, 18), x = b.x + o * Q, y = b.y + o * Q; if (x < 1 || y < 1 || x > N - 1 || y > N - 1) continue;
+      const tl = m.at(x, y); if (tl === 2 || tl === 4) continue; // never on a road or a floor
       const d = offRoad(x, y); if (d < 2.6) continue;
       // open ground beside the road, thickening into woods and rock well away from it; on the near side (down the
       // screen, o > 0) nothing tall stands close, so the road and whoever is on it are never hidden
       const dense = d > 13 ? 0.95 : d > 9 ? 0.5 : d > 6 ? 0.2 : 0.1; if (r() > dense) continue;
+      if (nearBuilt(x, y, 1.6)) continue;
       const low = o > 0 && d < 8;
       const list = low ? (r() < 0.6 ? set.small : set.rocks) : d > 9 ? (r() < 0.75 ? set.trees : set.rocks) : r() < 0.5 ? set.small : r() < 0.55 ? set.trees : set.rocks;
       m.tryAdd(nm(r.pick(list), r), x, y, { sc: r.range(0.85, 1.12) });
     }
     if (biome === 'vale') for (let i = 0; i < 380; i++) { const u = r.range(0, 1), b = at(u), o = r.range(-9, 9), x = b.x + o * Q, y = b.y + o * Q; if (m.at(x, y) <= 1 && m.free(x, y, 0.3)) m.add('Flora ' + r.pick(['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'B3', 'B5']) + '_' + r.pick(DIRS), x, y, { biome: 'ground', r: 0 }); }
-    // nothing stands on the road or where a party waits by a stage
-    m.props = m.props.filter((p) => keep.test(p.name) ? offRoad(p.x, p.y) > 1.2 : (offRoad(p.x, p.y) > 1.7 + (p.r || 0) && !m.stops.some((st) => Math.hypot(p.x - st.x, p.y - st.y - 0.6) < 2.1)));
+    // nothing loose stands on the road, or where a party waits by a stage (what was built stays)
+    m.props = m.props.filter((p) => p.built || /Misc C14|Misc C7|Misc C4|Misc C5|Misc C6|Misc B42|Misc B6_E|Misc C12|Misc B8|Misc B4[36]|Misc B12|Misc B5[56]|Misc D/.test(p.name) || (offRoad(p.x, p.y) > 1.7 + (p.r || 0) && !m.stops.some((st) => Math.hypot(p.x - st.x, p.y - st.y - 0.6) < 2.1)));
     edgeForest(m, set, 2);
-    for (const p of m.props) { const q = BB.iso(p.x, p.y); p.depth = p.x + p.y; p.sx = q.x; p.sy = q.y; }
+    for (const p of m.props) { const q = BB.iso(p.x, p.y); p.depth = p.x + p.y + (p.dz || 0); p.sx = q.x; p.sy = q.y - (p.lift || 0); }
     m.props.sort((a, b) => a.depth - b.depth);
     m.grid = []; for (let i = 0; i < N * N; i++) m.grid.push([]);
     for (const p of m.props) { if (!p.solid) continue; const rr = Math.ceil(p.r + 0.5); for (let y = Math.floor(p.y) - rr; y <= Math.floor(p.y) + rr; y++) for (let x = Math.floor(p.x) - rr; x <= Math.floor(p.x) + rr; x++) if (x >= 0 && y >= 0 && x < N && y < N) m.grid[y * N + x].push(p); }
