@@ -638,7 +638,7 @@
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const w = Math.round(c.clientWidth * dpr), h = Math.round(c.clientHeight * dpr); if (!w || !h) return;
     if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
-    const g = c.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0);
+    const g = c.getContext('2d'); if (BB.softGlow) BB.softGlow(g); g.setTransform(1, 0, 0, 1, 0, 0);
     const T = BB.TIERS[RC.tier], open = BB.tierOpen(BB.save, T), col = T.rarity ? RGBA[T.rarity] : 'rgba(150,200,255,A)', C = (a) => (open ? col : 'rgba(150,160,175,A)').replace('A', String(a));
     const bg = g.createRadialGradient(w / 2, h * 0.35, 0, w / 2, h * 0.4, Math.max(w, h) * 0.75);
     bg.addColorStop(0, C(open ? 0.22 : 0.06)); bg.addColorStop(0.55, '#0e1119'); bg.addColorStop(1, '#07080c'); g.fillStyle = bg; g.fillRect(0, 0, w, h);
@@ -727,10 +727,10 @@
   };
   click($('rvOk'), (ev) => { ev.stopPropagation(); RV.on = false; $('reveal').classList.remove('on'); RV.done && RV.done(); });
   $('reveal').addEventListener('click', () => { if (!RV.on) return; if (RV.t < RV.tB) RV.t = RV.tB - 0.01; else if (RV.t > RV.tS + 0.8 && RV.t < RV.tC) RV.t = RV.tC; }); // tap to skip ahead
-  const sil = (layers, clip, dir, fr, sc) => { // the hero as a black cut-out, for the backlit moment
-    const c = RV.sil || (RV.sil = document.createElement('canvas')); const S = 128 * sc; if (c.width !== S) { c.width = S; c.height = S; }
-    const x = c.getContext('2d'); x.clearRect(0, 0, S, S); x.imageSmoothingEnabled = false; x.globalCompositeOperation = 'source-over';
-    BB.drawLayers(x, layers, clip, dir, fr, S / 2, 90 * sc, sc, { noSlash: true });
+  const sil = (layers, clip, dir, fr) => { // the hero as a black cut-out, for the backlit moment: made at sprite size, stretched when drawn
+    const S = 128, c = RV.sil || (RV.sil = document.createElement('canvas')); if (c.width !== S) { c.width = S; c.height = S; }
+    const x = c.getContext('2d'); x.globalCompositeOperation = 'source-over'; x.clearRect(0, 0, S, S); x.imageSmoothingEnabled = false;
+    BB.drawLayers(x, layers, clip, dir, fr, S / 2, 90, 1, { noSlash: true });
     x.globalCompositeOperation = 'source-in'; x.fillStyle = '#05060a'; x.fillRect(0, 0, S, S); return c;
   };
   // ---- the signature showcase: after arriving, the new hero shows what they do best
@@ -810,7 +810,7 @@
     const prevT = RV.t; RV.t += dt; const T = RV.t;
     const c = $('revealCv'), dpr = Math.min(2, window.devicePixelRatio || 1);
     const w = Math.round(c.clientWidth * dpr), h = Math.round(c.clientHeight * dpr); if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
-    const g = c.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, w, h); g.imageSmoothingEnabled = false;
+    const g = c.getContext('2d'); if (BB.softGlow) BB.softGlow(g); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, w, h); g.imageSmoothingEnabled = false;
     const rar = RV.h.rarity || 0, u = Math.min(w, h) / 600;
     // which colour step we are on (it climbs: silver → blue → purple → gold)
     const step = T < 1.4 ? -1 : Math.min(RV.steps - 1, Math.floor((T - 1.4) / 0.6));
@@ -873,7 +873,7 @@
       g.globalAlpha = vis;
       const reveal = Math.min(1, Math.max(0, (k - (ent === 'stride' ? 0.7 : 0.45)) / 0.7));
       g.save(); if (ent === 'shadow') { g.beginPath(); g.rect(0, 0, w, fy + 2 * sc); g.clip(); }
-      if (reveal < 1) { const sv = sil(layers, clip, 2, fr, sc); g.drawImage(sv, cx + ox - 64 * sc, fy - 90 * sc + rise); }
+      if (reveal < 1) { const sv = sil(layers, clip, 2, fr); g.drawImage(sv, cx + ox - 64 * sc, fy - 90 * sc + rise, 128 * sc, 128 * sc); }
       if (reveal > 0) { g.globalAlpha = reveal * vis; BB.drawLayers(g, layers, clip, 2, fr, cx + ox, fy + rise, sc, { noSlash: true, flash: Math.max(0, 1 - reveal) * 0.8 }); }
       g.restore(); g.globalAlpha = 1;
       // and what comes with them
@@ -884,7 +884,7 @@
       if (ent === 'frost' && k < 0.9) { const a = k < 0.18 ? 1 : Math.max(0, 1 - (k - 0.18) / 0.5); g.globalCompositeOperation = 'source-over'; g.fillStyle = 'rgba(170,220,255,' + 0.45 * a + ')'; g.strokeStyle = 'rgba(230,248,255,' + a + ')'; g.lineWidth = 2 * u; g.beginPath(); g.moveTo(cx - 34 * sc, fy); g.lineTo(cx - 38 * sc, top + 10 * sc); g.lineTo(cx, top - 6 * sc); g.lineTo(cx + 38 * sc, top + 10 * sc); g.lineTo(cx + 34 * sc, fy); g.closePath(); if (k < 0.18) { g.fill(); g.stroke(); }
         if (k >= 0.18) { for (let i = 0; i < 26; i++) { const an = i / 26 * 7, d = (k - 0.18) * 900 * u; g.fillStyle = 'rgba(220,245,255,' + a + ')'; g.fillRect(cx + Math.cos(an) * d, fy - 50 * sc + Math.sin(an) * d * 0.7, 6 * u, 6 * u); } } }
       if (ent === 'leaves' && k < 1.4) { const a = Math.max(0, 1 - k / 1.4); for (let i = 0; i < 40; i++) { const an = i / 40 * 7 + T * 5, r = (40 + (i % 5) * 12) * sc * (0.4 + a * 0.6); g.fillStyle = i % 3 ? 'rgba(140,220,90,' + a + ')' : 'rgba(230,200,90,' + a + ')'; g.beginPath(); g.ellipse(cx + Math.cos(an) * r, fy - 45 * sc + Math.sin(an) * r * 0.45 - (1 - a) * 60 * u, 6 * u, 3 * u, an, 0, 7); g.fill(); } }
-      if (ent === 'blink' && k < 0.6) { const a = Math.max(0, 1 - k / 0.6); g.strokeStyle = 'rgba(160,220,255,' + a + ')'; g.lineWidth = 10 * u * a; g.beginPath(); g.moveTo(cx - 260 * u, fy - 140 * sc * 0.4); g.lineTo(cx + 260 * u, fy - 20 * sc); g.stroke(); for (let i = 1; i <= 3; i++) { g.globalAlpha = a * 0.3 / i; const sv = sil(layers, clip, 2, fr, sc); g.drawImage(sv, cx - 64 * sc - i * 40 * u, fy - 90 * sc); } g.globalAlpha = 1; }
+      if (ent === 'blink' && k < 0.6) { const a = Math.max(0, 1 - k / 0.6); g.strokeStyle = 'rgba(160,220,255,' + a + ')'; g.lineWidth = 10 * u * a; g.beginPath(); g.moveTo(cx - 260 * u, fy - 140 * sc * 0.4); g.lineTo(cx + 260 * u, fy - 20 * sc); g.stroke(); for (let i = 1; i <= 3; i++) { g.globalAlpha = a * 0.3 / i; const sv = sil(layers, clip, 2, fr); g.drawImage(sv, cx - 64 * sc - i * 40 * u, fy - 90 * sc, 128 * sc, 128 * sc); } g.globalAlpha = 1; }
       if (ent === 'charge' && k < 0.5) { const a = Math.max(0, 1 - k / 0.5); g.strokeStyle = 'rgba(255,255,255,' + 0.5 * a + ')'; g.lineWidth = 3 * u; for (let i = 0; i < 9; i++) { const yy = fy - (10 + i * 12) * sc * 0.9; g.beginPath(); g.moveTo(cx + ox - 30 * sc, yy); g.lineTo(cx + ox - (120 + i * 30) * sc, yy); g.stroke(); } }
       if (ent === 'shadow' && k < 1.0) { g.globalCompositeOperation = 'source-over'; g.fillStyle = 'rgba(20,0,30,' + 0.7 * Math.max(0, 1 - k) + ')'; g.beginPath(); g.ellipse(cx, fy, 60 * sc, 16 * sc, 0, 0, 7); g.fill(); }
       if (ent === 'stride') { g.globalCompositeOperation = 'source-over'; for (let i = 0; i < 12; i++) { const q = (T * 0.25 + i / 12) % 1; g.fillStyle = 'rgba(70,64,72,' + 0.35 * (1 - q) * Math.max(0, 1 - k / 2.4) + ')'; g.beginPath(); g.arc(cx + (i - 6) * 26 * sc * 0.4, fy - q * 70 * sc, (16 + q * 30) * sc * 0.5, 0, 7); g.fill(); }

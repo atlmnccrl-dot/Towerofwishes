@@ -90,17 +90,17 @@
   B.drawGroundLights = function (ctx) {
     const E = epic(this); if (!E.lights.length) return;
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
-    for (const l of E.lights) { const s = BB.iso(l.x, l.y), k = 1 - l.t / l.dur, r = l.r * 26 * (1 + (1 - k) * 0.5); const gr = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, r); gr.addColorStop(0, 'rgba(' + l.col + ',' + 0.55 * k + ')'); gr.addColorStop(1, 'rgba(' + l.col + ',0)'); ctx.fillStyle = gr; ctx.beginPath(); ctx.ellipse(s.x, s.y, r, r * 0.5, 0, 0, TAU); ctx.fill(); }
+    for (const l of E.lights) { const s = BB.iso(l.x, l.y), k = 1 - l.t / l.dur, r = l.r * 26 * (1 + (1 - k) * 0.5); BB.drawGlow(ctx, l.col, s.x, s.y, r, r * 0.5, 0.7 * k); }
     ctx.restore();
   };
   // in the world, over everyone: shards, slash arcs, shock rings
   B.drawWorldEpic = function (ctx) {
     const E = epic(this);
-    for (const d of E.debris) { const s = BB.iso(d.x, d.y), y = s.y - d.z * 24, a = Math.min(1, (d.life - d.t) * 3); ctx.globalAlpha = a; if (d.glow) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = d.col; ctx.fillRect(s.x - 1, y - 1, 2.2, 2.2); ctx.restore(); } else { ctx.fillStyle = d.col; ctx.fillRect(s.x - d.s / 2, y - d.s / 2, d.s, d.s * 0.7); } }
+    for (const d of E.debris) { const s = BB.iso(d.x, d.y), y = s.y - d.z * 24, a = Math.min(1, (d.life - d.t) * 3); ctx.globalAlpha = a; if (d.glow) { ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = d.col; ctx.fillRect(s.x - 1, y - 1, 2.2, 2.2); ctx.globalCompositeOperation = 'source-over'; } else { ctx.fillStyle = d.col; ctx.fillRect(s.x - d.s / 2, y - d.s / 2, d.s, d.s * 0.7); } }
     ctx.globalAlpha = 1;
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
     for (const a of E.arcs) { const s = BB.iso(a.x, a.y), k = a.t / 0.22, r = (a.big ? 20 : 14) * (0.7 + k * 0.5); ctx.save(); ctx.translate(s.x, s.y - 18); ctx.rotate(a.a + (a.flip ? 1.2 : -1.2)); ctx.scale(1, 0.55);
-      ctx.strokeStyle = a.col; ctx.globalAlpha = 1 - k; ctx.lineWidth = (a.big ? 4 : 2.6) * (1 - k * 0.6); ctx.shadowColor = a.col; ctx.shadowBlur = 8; ctx.beginPath(); ctx.arc(0, 0, r, -1.1 + k * 0.6, 1.1 + k * 0.6); ctx.stroke();
+      ctx.strokeStyle = a.col; ctx.beginPath(); ctx.arc(0, 0, r, -1.1 + k * 0.6, 1.1 + k * 0.6); ctx.globalAlpha = (1 - k) * 0.3; ctx.lineWidth = (a.big ? 9 : 6.5) * (1 - k * 0.6); ctx.stroke(); ctx.globalAlpha = 1 - k; ctx.lineWidth = (a.big ? 4 : 2.6) * (1 - k * 0.6); ctx.stroke();
       ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(0, 0, r, -0.8 + k * 0.6, 0.8 + k * 0.6); ctx.stroke(); ctx.restore(); }
     for (const r of E.rings || []) { const s = BB.iso(r.x, r.y), k = r.t / 0.7; ctx.strokeStyle = 'rgba(255,230,170,' + (1 - k) + ')'; ctx.lineWidth = 6 * (1 - k); ctx.beginPath(); ctx.ellipse(s.x, s.y, k * 160, k * 80, 0, 0, TAU); ctx.stroke(); ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(s.x, s.y, k * 110, k * 55, 0, 0, TAU); ctx.stroke(); }
     ctx.restore(); ctx.globalAlpha = 1;

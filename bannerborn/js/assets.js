@@ -13,7 +13,12 @@
   }
   async function loadAtlas(path) {
     const [img, meta] = await Promise.all([loadImg(path + '.webp'), fetch(path + '.json').then((r) => r.json())]);
-    return { img, meta };
+    // Decode now, while a loading screen is up. A browser otherwise unpacks a sheet the first time something is drawn
+    // from it: in the middle of a fight, the frame a new kind of foe walks in.
+    let bmp = null;
+    if (window.createImageBitmap) bmp = await createImageBitmap(img).catch(() => null);
+    else if (img.decode) await img.decode().catch(() => null);
+    return { img: bmp || img, meta };
   }
   const pending = {};
   BB.loadChar = function (key) {
@@ -79,11 +84,11 @@
   BB.hsl2rgb = hsl2rgb;
 
   // spec: {mode:'rot'|'col'|'skin', rot, col:{h,s}, l, h, s}
-  function recolor(img, spec) {
+  function recolor(img, spec, pal) { // pal: a colour table to keep between calls for the same recolouring (pixel art repeats its colours)
     const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
     const x = c.getContext('2d'); x.drawImage(img, 0, 0);
     const d = x.getImageData(0, 0, c.width, c.height), p = d.data;
-    const cache = new Map();
+    const cache = pal || new Map();
     for (let i = 0; i < p.length; i += 4) {
       if (p[i + 3] === 0) continue;
       const key = (p[i] << 16) | (p[i + 1] << 8) | p[i + 2];
@@ -135,13 +140,36 @@
     const a = A.chars[key]; return a && a.meta.clips[BB.resolveClip(key, clip)] || 0;
   };
   BB.hasClip = (key, clip) => !!(A.chars[key] && A.chars[key].meta.clips[clip]);
-  function drawFrame(ctx, key, img, clip, dir, frame, x, y, sc) {
+  // Tinted art is recoloured in small pieces, and only what is drawn: one strip per clip and facing for characters,
+  // one frame at a time for effects. (Recolouring a whole atlas froze the frame for a moment the first time a tinted
+  // foe or effect appeared, and kept megabytes for each tint.)
+  const strips = {}, pals = {};
+  // a few milliseconds of recolouring per frame at most: a wave of new tinted foes is spread over the frames in which
+  // they fade in, drawn in their plain colours until their strip is ready
+  let tintEpoch = 0, tintSpent = 0;
+  const TINT_BUDGET = 3;
+  function tintBusy() { if (!BB.tintLazy) return performance.now(); /* menus draw a picture once: it must be right */ const now = performance.now(), ep = Math.floor(now / 16); if (ep !== tintEpoch) { tintEpoch = ep; tintSpent = 0; } return tintSpent > TINT_BUDGET ? -1 : now; }
+  function stripFor(a, key, sk, spec, clip, dir, n) {
+    const ck = key + '|' + sk + '|' + clip + '|' + dir; let S = strips[ck];
+    if (S) return S;
+    const t0 = tintBusy(); if (t0 < 0) return null;
+    const rects = a.meta.f[clip], xs = []; let w = 0, h = 1;
+    for (let i = 0; i < n; i++) { const q = rects[dir * n + i]; xs.push(w); if (q && q[2] > 1) { w += q[2] + 1; h = Math.max(h, q[3]); } }
+    const c = document.createElement('canvas'); c.width = Math.max(1, w); c.height = h;
+    const x = c.getContext('2d');
+    for (let i = 0; i < n; i++) { const q = rects[dir * n + i]; if (q && q[2] > 1) x.drawImage(a.img, q[0], q[1], q[2], q[3], xs[i], 0, q[2], q[3]); }
+    const pk = key + '|' + sk; S = strips[ck] = { c: recolor(c, spec, pals[pk] || (pals[pk] = new Map())), xs };
+    tintSpent += performance.now() - t0;
+    return S;
+  }
+  function drawFrame(ctx, key, img, clip, dir, frame, x, y, sc, spec, sk) {
     const a = A.chars[key]; if (!a) return;
     clip = BB.resolveClip(key, clip);
     const n = a.meta.clips[clip]; if (!n) return;
-    const r = a.meta.f[clip][dir * n + (Math.max(0, Math.min(n - 1, frame | 0)))];
+    const f = Math.max(0, Math.min(n - 1, frame | 0)), r = a.meta.f[clip][dir * n + f];
     if (!r || r[2] <= 1) return;
-    ctx.drawImage(img, r[0], r[1], r[2], r[3], x + (r[4] - FOOT_X) * sc, y + (r[5] - FOOT_Y) * sc, r[2] * sc, r[3] * sc);
+    if (spec) { const S = stripFor(a, key, sk, spec, clip, dir, n); if (S) { ctx.drawImage(S.c, S.xs[f], 0, r[2], r[3], x + (r[4] - FOOT_X) * sc, y + (r[5] - FOOT_Y) * sc, r[2] * sc, r[3] * sc); return; } }
+    ctx.drawImage(img || a.img, r[0], r[1], r[2], r[3], x + (r[4] - FOOT_X) * sc, y + (r[5] - FOOT_Y) * sc, r[2] * sc, r[3] * sc);
   }
   BB.drawFrame = drawFrame;
 
@@ -191,29 +219,25 @@
     opts = opts || {};
     for (const L of layers) {
       if (L.slash && (opts.noSlash || !BB.hasClip('slash', clip))) continue;
-      const img = BB.atlasImg(L.key, L.spec, L.sk);
-      if (!img) continue;
-      if (L.slash && !BB.hasClip('slash', clip)) continue;
-      drawFrame(ctx, L.key, img, clip, dir, frame, x, y, sc);
+      if (!A.chars[L.key]) continue;
+      drawFrame(ctx, L.key, null, clip, dir, frame, x, y, sc, L.spec, L.sk);
     }
     if (opts.flash) {
       ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = opts.flash;
       for (const L of layers) {
-        if (L.slash) continue;
-        const img = BB.atlasImg(L.key, L.spec, L.sk); if (!img) continue;
-        drawFrame(ctx, L.key, img, clip, dir, frame, x, y, sc);
+        if (L.slash || !A.chars[L.key]) continue;
+        drawFrame(ctx, L.key, null, clip, dir, frame, x, y, sc, L.spec, L.sk);
       }
       ctx.restore();
     }
   };
   BB.drawChar = function (ctx, key, tintId, clip, dir, frame, x, y, sc, flash) {
+    if (!A.chars[key]) return;
     const spec = BB.tintSpec(key, tintId);
-    const img = BB.atlasImg(key, spec, tintId || '');
-    if (!img) return;
-    drawFrame(ctx, key, img, clip, dir, frame, x, y, sc);
+    drawFrame(ctx, key, null, clip, dir, frame, x, y, sc, spec, tintId || '');
     if (flash) {
-      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = flash;
-      drawFrame(ctx, key, img, clip, dir, frame, x, y, sc); ctx.restore();
+      const ga = ctx.globalAlpha, gc = ctx.globalCompositeOperation; ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = flash;
+      drawFrame(ctx, key, null, clip, dir, frame, x, y, sc, spec, tintId || ''); ctx.globalAlpha = ga; ctx.globalCompositeOperation = gc;
     }
   };
 
@@ -238,8 +262,9 @@
     ctx.translate(x, y); if (o.rot) ctx.rotate(o.rot);
     const sx = o.sx || 1, sy = o.sy || 1;
     let img = a.img;
-    if (o.hue !== undefined) { const ck = 'o' + o.hue; if (!fxTint[ck]) fxTint[ck] = recolor(a.img, { mode: 'flat', h: o.hue, s: 0.85, l: 1 }); img = fxTint[ck]; }
-    ctx.drawImage(img, r[0], r[1], r[2], r[3], r[4] * sc * sx, r[5] * sc * sy, r[2] * sc * sx, r[3] * sc * sy);
+    let rx = r[0], ry = r[1];
+    if (o.hue !== undefined) { const ck = 'o|' + name + '|' + o.hue; if (!fxTint[ck]) fxTint[ck] = recolor(cut(a.img, r), { mode: 'flat', h: o.hue, s: 0.85, l: 1 }); img = fxTint[ck]; rx = 0; ry = 0; }
+    ctx.drawImage(img, rx, ry, r[2], r[3], r[4] * sc * sx, r[5] * sc * sy, r[2] * sc * sx, r[3] * sc * sy);
     ctx.restore();
   };
   BB.envRect = function (biome, name) { const a = A.env[biome]; return a && a.meta.f[name]; };
@@ -248,30 +273,33 @@
   // ---- effects: anchor = sprite centre. tinted variants cached per hue
   BB.fxLen = (key) => (A.fx && A.fx.meta.n[key]) || 0;
   const fxTint = {};
+  function cut(img, r) { const c = document.createElement('canvas'); c.width = r[2]; c.height = r[3]; c.getContext('2d').drawImage(img, r[0], r[1], r[2], r[3], 0, 0, r[2], r[3]); return c; }
   BB.drawFx = function (ctx, key, frame, x, y, sc, opts) {
     const a = A.fx; if (!a) return;
     const n = a.meta.n[key]; if (!n) return;
-    const r = a.meta.f[key][Math.max(0, Math.min(n - 1, frame | 0))];
+    const fi = Math.max(0, Math.min(n - 1, frame | 0)), r = a.meta.f[key][fi];
     if (!r || r[2] <= 1) return;
-    let img = a.img;
+    let img = a.img, rx = r[0], ry = r[1];
     opts = opts || {};
-    if (opts.hue !== undefined) {
-      const ck = opts.hue + '|' + (opts.sat || 1);
-      if (!fxTint[ck]) fxTint[ck] = recolor(a.img, opts.flat ? { mode: 'flat', h: opts.hue, s: opts.sat || 0.9, l: opts.l || 1 } : { mode: 'rot', rot: opts.hue, l: 1, sat: opts.sat });
-      img = fxTint[ck];
+    if (opts.hue !== undefined) { // this frame in this hue, recoloured the first time it is drawn
+      const ck = key + '|' + fi + '|' + opts.hue + '|' + (opts.sat || 1) + (opts.flat ? '|f' + (opts.l || 1) : '');
+      if (!fxTint[ck]) { const t0 = tintBusy(); if (t0 >= 0) { const pk = 'fx|' + key + '|' + opts.hue + '|' + (opts.sat || 1) + (opts.flat ? 'f' : ''); fxTint[ck] = recolor(cut(a.img, r), opts.flat ? { mode: 'flat', h: opts.hue, s: opts.sat || 0.9, l: opts.l || 1 } : { mode: 'rot', rot: opts.hue, l: 1, sat: opts.sat }, pals[pk] || (pals[pk] = new Map())); tintSpent += performance.now() - t0; } }
+      if (fxTint[ck]) { img = fxTint[ck]; rx = 0; ry = 0; }
     }
     sc = sc || 1;
     const sy = opts.squash || 1;
-    ctx.save();
+    // no save/restore here: this runs for every spark on the field
+    const ga = ctx.globalAlpha, gc = ctx.globalCompositeOperation;
     if (opts.alpha !== undefined) ctx.globalAlpha = opts.alpha;
     if (opts.add) ctx.globalCompositeOperation = 'lighter';
     if (opts.rot) {
-      ctx.translate(x, y); ctx.rotate(opts.rot);
-      ctx.drawImage(img, r[0], r[1], r[2], r[3], r[4] * sc, r[5] * sc * sy, r[2] * sc, r[3] * sc * sy);
+      ctx.save(); ctx.translate(x, y); ctx.rotate(opts.rot);
+      ctx.drawImage(img, rx, ry, r[2], r[3], r[4] * sc, r[5] * sc * sy, r[2] * sc, r[3] * sc * sy);
+      ctx.restore();
     } else {
-      ctx.drawImage(img, r[0], r[1], r[2], r[3], x + r[4] * sc, y + r[5] * sc * sy, r[2] * sc, r[3] * sc * sy);
+      ctx.drawImage(img, rx, ry, r[2], r[3], x + r[4] * sc, y + r[5] * sc * sy, r[2] * sc, r[3] * sc * sy);
     }
-    ctx.restore();
+    ctx.globalAlpha = ga; ctx.globalCompositeOperation = gc;
   };
 
   // ---- a portrait canvas for a hero (head and shoulders, facing the camera)

@@ -206,7 +206,7 @@
     const keep = this.rocks; this.rocks = (keep || []).filter((r) => !r.kind); baseRocks.call(this, ctx); this.rocks = keep;
     // lightning between foes
     for (const z of this.zaps || []) {
-      const a = BB.iso(z.x1, z.y1), b = BB.iso(z.x2, z.y2); ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = 'rgba(190,230,255,' + (1 - z.t / 0.3) + ')'; ctx.lineWidth = 2.2; ctx.shadowColor = '#7cc8ff'; ctx.shadowBlur = 10;
+      const a = BB.iso(z.x1, z.y1), b = BB.iso(z.x2, z.y2); ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = 'rgba(190,230,255,' + (1 - z.t / 0.3) + ')'; ctx.lineWidth = 2.2;
       ctx.beginPath(); ctx.moveTo(a.x, a.y - 22); for (let i = 1; i < 7; i++) { const k = i / 7; ctx.lineTo(a.x + (b.x - a.x) * k + Math.sin(z.seed + i * 7.3) * 6, a.y - 22 + (b.y - a.y) * k + Math.cos(z.seed + i * 5.1) * 6); } ctx.lineTo(b.x, b.y - 22); ctx.stroke(); ctx.restore();
     }
     // a meteor on its way down
@@ -229,8 +229,8 @@
   B.drawTac = function (ctx, e, x, y) {
     baseTac.call(this, ctx, e, x, y);
     const hh = 44 * (e.sc || 1);
-    if (e.rushT > 0) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; const gl = ctx.createRadialGradient(x, y - hh * 0.5, 0, x, y - hh * 0.5, 26); gl.addColorStop(0, 'rgba(255,40,40,' + (0.25 + Math.sin(this.time * 12) * 0.08) + ')'); gl.addColorStop(1, 'rgba(255,40,40,0)'); ctx.fillStyle = gl; ctx.fillRect(x - 30, y - hh - 10, 60, hh + 20); ctx.restore(); }
-    if (e.barrierT > 0) { ctx.save(); ctx.strokeStyle = 'rgba(160,220,255,' + Math.min(0.8, e.barrierT) + ')'; ctx.lineWidth = 1.6; ctx.shadowColor = '#9fdcff'; ctx.shadowBlur = 8; ctx.beginPath(); ctx.ellipse(x, y - hh * 0.45, 16, hh * 0.62, 0, 0, TAU); ctx.stroke(); ctx.globalAlpha = 0.12; ctx.fillStyle = '#9fdcff'; ctx.fill(); ctx.restore(); }
+    if (e.rushT > 0) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; BB.drawGlow(ctx, '255,40,40', x, y - hh * 0.5, 28, 28, 0.34 + Math.sin(this.time * 12) * 0.1); ctx.restore(); }
+    if (e.barrierT > 0) { ctx.save(); ctx.strokeStyle = 'rgba(160,220,255,' + Math.min(0.8, e.barrierT) + ')'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.ellipse(x, y - hh * 0.45, 16, hh * 0.62, 0, 0, TAU); ctx.stroke(); ctx.globalAlpha = 0.12; ctx.fillStyle = '#9fdcff'; ctx.fill(); ctx.restore(); }
     if (e.netT > 0) { ctx.save(); ctx.strokeStyle = 'rgba(216,200,168,0.9)'; ctx.lineWidth = 1; for (let i = -3; i <= 3; i++) { ctx.beginPath(); ctx.moveTo(x + i * 3.5, y - hh * 0.8); ctx.lineTo(x + i * 3.5 * 1.3, y); ctx.stroke(); } for (let j = 0; j < 4; j++) { const yy = y - hh * 0.8 + j * hh * 0.22; ctx.beginPath(); ctx.moveTo(x - 11, yy); ctx.lineTo(x + 11, yy); ctx.stroke(); } ctx.restore(); }
     if (e.spinT > 0 || e.flurryT > 0) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = e.flurryT > 0 ? 'rgba(255,220,120,0.6)' : 'rgba(200,230,255,0.55)'; ctx.lineWidth = 2; for (let i = 0; i < 3; i++) { const a = this.time * 18 + i * 2.1; ctx.beginPath(); ctx.ellipse(x, y - hh * 0.4, 18, 7, 0, a, a + 1.6); ctx.stroke(); } ctx.restore(); }
   };
@@ -306,7 +306,7 @@
     const E = e.ent; if (!E || E.done || E.t < 0) return;
     const k = Math.min(1, E.t / E.dur), hh = 44 * (e.sc || 1), s = BB.iso(E.hx, E.hy);
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
-    if (E.k === 'lightning' && k < 0.45) { ctx.strokeStyle = 'rgba(200,230,255,' + (1 - k * 2) + ')'; ctx.lineWidth = 3; ctx.shadowColor = '#9fdcff'; ctx.shadowBlur = 14; ctx.beginPath(); let px = s.x, py = s.y - 400; ctx.moveTo(px, py); for (let i = 1; i <= 10; i++) { px = s.x + (i < 10 ? Math.sin(i * 12.3 + E.hx) * 14 : 0); py = s.y - 400 + i * 40; ctx.lineTo(px, py); } ctx.stroke(); }
+    if (E.k === 'lightning' && k < 0.45) { ctx.strokeStyle = 'rgba(200,230,255,' + (1 - k * 2) + ')'; ctx.lineWidth = 3; ctx.beginPath(); let px = s.x, py = s.y - 400; ctx.moveTo(px, py); for (let i = 1; i <= 10; i++) { px = s.x + (i < 10 ? Math.sin(i * 12.3 + E.hx) * 14 : 0); py = s.y - 400 + i * 40; ctx.lineTo(px, py); } ctx.stroke(); }
     if (E.k === 'flame') { const gr = ctx.createLinearGradient(0, s.y - 90, 0, s.y); gr.addColorStop(0, 'rgba(255,90,20,0)'); gr.addColorStop(1, 'rgba(255,140,40,' + (0.7 * (1 - k)) + ')'); ctx.fillStyle = gr; ctx.fillRect(s.x - 14, s.y - 90, 28, 90); }
     if (E.k === 'shadow') { ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = 'rgba(20,0,30,' + (0.6 * (1 - k)) + ')'; ctx.beginPath(); ctx.ellipse(s.x, s.y, 20, 8, 0, 0, TAU); ctx.fill(); }
     if (E.k === 'frost' && k < 0.6) { ctx.fillStyle = 'rgba(170,220,255,' + (0.35 * (1 - k / 0.6)) + ')'; ctx.strokeStyle = 'rgba(220,245,255,0.8)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(s.x - 12, s.y); ctx.lineTo(s.x - 14, s.y - hh); ctx.lineTo(s.x, s.y - hh - 8); ctx.lineTo(s.x + 14, s.y - hh); ctx.lineTo(s.x + 12, s.y); ctx.closePath(); ctx.fill(); ctx.stroke();

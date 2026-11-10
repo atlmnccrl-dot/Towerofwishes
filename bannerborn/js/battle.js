@@ -1604,6 +1604,10 @@
 
   // ================================================================ render
   Battle.prototype.render = function (ctx, W, H, dpr) {
+    BB.tintLazy = true; // while the field is drawn, recolouring is rationed (see assets.js)
+    try { this.renderField(ctx, W, H, dpr); } finally { BB.tintLazy = false; }
+  };
+  Battle.prototype.renderField = function (ctx, W, H, dpr) {
     const m = this.map, cam = this.cam;
     const z = cam.zoom * dpr;
     let shx = 0, shy = 0;
@@ -1682,13 +1686,13 @@
           }
         }
         BB.drawEnv(ctx, p.biome, p.name, p.sx, p.sy, p.sc, al);
-        if (p.glow) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; const gr = ctx.createRadialGradient(p.sx, p.sy - 8, 0, p.sx, p.sy - 8, 18); gr.addColorStop(0, 'rgba(200,120,255,' + (0.35 + Math.sin(this.time * 3 + p.x) * 0.15) + ')'); gr.addColorStop(1, 'rgba(200,120,255,0)'); ctx.fillStyle = gr; ctx.fillRect(p.sx - 20, p.sy - 28, 40, 40); ctx.restore(); }
+        if (p.glow) { ctx.globalCompositeOperation = 'lighter'; BB.drawGlow(ctx, '200,120,255', p.sx, p.sy - 8, 20, 20, 0.45 + Math.sin(this.time * 3 + p.x) * 0.18); ctx.globalCompositeOperation = 'source-over'; }
       } else if (it.e) this.drawEnt(ctx, it.e);
       else if (it.a) { const a = it.a, s = P(a.x, a.y); let yy = s.y; if (a.pole) { const r = BB.envRect('vale', 'Torch2'); yy += r ? r[5] * BB.ENV_DRAW + 3 : -40; } BB.drawFx(ctx, a.key, Math.floor(a.t * a.fps) % BB.fxLen(a.key), s.x, yy, a.sc, { add: a.add }); }
       else if (it.f) this.drawFxObj(ctx, it.f);
       else if (it.dm) this.drawDummy(ctx, it.dm);
       else if (it.c) { const s = P(it.c.x, it.c.y); BB.drawEnv(ctx, 'ground', 'Chest ' + (it.c.gold ? (it.c.opened ? 'B2' : 'B1') : (it.c.opened ? 'A2' : 'A1')) + '_S', s.x, s.y, 1);
-        if (!it.c.opened) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; const gr = ctx.createRadialGradient(s.x, s.y - 6, 0, s.x, s.y - 6, 16); gr.addColorStop(0, 'rgba(255,220,120,' + (0.25 + Math.sin(this.time * 4) * 0.12) + ')'); gr.addColorStop(1, 'rgba(255,220,120,0)'); ctx.fillStyle = gr; ctx.fillRect(s.x - 18, s.y - 24, 36, 36); ctx.restore(); } }
+        if (!it.c.opened) { ctx.globalCompositeOperation = 'lighter'; BB.drawGlow(ctx, '255,220,120', s.x, s.y - 6, 18, 18, 0.32 + Math.sin(this.time * 4) * 0.14); ctx.globalCompositeOperation = 'source-over'; } }
       else if (it.n) { const s = P(it.n.x, it.n.y); ctx.imageSmoothingEnabled = false; ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.ellipse(s.x, s.y, 9, 4, 0, 0, TAU); ctx.fill();
         BB.drawChar(ctx, it.n.art, null, it.n.clip, it.n.dir, Math.floor(it.n.ct * 8) % (BB.clipLen(it.n.art, it.n.clip) || 15), s.x, s.y, 1); ctx.imageSmoothingEnabled = true; }
     }
@@ -1735,9 +1739,7 @@
       const n = BB.fxLen('portal');
       const sc = 0.8 + Math.sin(this.time * 2) * 0.03;
       if (e.dead) return;
-      ctx.save(); ctx.globalCompositeOperation = 'lighter';
-      const gr = ctx.createRadialGradient(s.x, s.y - 18, 0, s.x, s.y - 18, 46);
-      gr.addColorStop(0, 'rgba(170,80,255,0.45)'); gr.addColorStop(1, 'rgba(170,80,255,0)'); ctx.fillStyle = gr; ctx.fillRect(s.x - 50, s.y - 70, 100, 100); ctx.restore();
+      ctx.globalCompositeOperation = 'lighter'; BB.drawGlow(ctx, '170,80,255', s.x, s.y - 18, 50, 50, 0.55); ctx.globalCompositeOperation = 'source-over';
       BB.drawFx(ctx, 'portal', Math.floor(this.time * 12) % n, s.x, s.y - 20, sc, { add: e.flash > 0 });
       return;
     }
@@ -1780,7 +1782,7 @@
         for (let i = 0; i < 3; i++) { const q = this.time * 5 + i * 2.09; ctx.beginPath(); ctx.arc(s.x + Math.cos(q) * 8 * (e.sc || 1), y - hh - 4 + Math.sin(q) * 2.5, 1.6, 0, 7); ctx.fill(); }
         ctx.restore();
       }
-      if (e.brokenT > 0) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; const gl = ctx.createRadialGradient(s.x, y - hh * 0.5, 0, s.x, y - hh * 0.5, 22 * (e.sc || 1)); gl.addColorStop(0, 'rgba(255,170,60,0.35)'); gl.addColorStop(1, 'rgba(255,170,60,0)'); ctx.fillStyle = gl; ctx.fillRect(s.x - 30, y - hh - 10, 60, hh + 20); ctx.restore(); }
+      if (e.brokenT > 0) { ctx.globalCompositeOperation = 'lighter'; BB.drawGlow(ctx, '255,170,60', s.x, y - hh * 0.5, 24 * (e.sc || 1), 24 * (e.sc || 1), 0.45); ctx.globalCompositeOperation = 'source-over'; }
       if (this.drawTac) this.drawTac(ctx, e, s.x, y);
       if (this.drawTrait) this.drawTrait(ctx, e, s.x, y);
     }
@@ -1855,48 +1857,41 @@
     }
   };
 
+  // Lighting: one pass over the picture. The vignette (and by day the land's faint tint) is painted once, small; by
+  // night the darkness is drawn at half size with holes where the lights are, the vignette goes into it, and the lot is
+  // stretched over the screen in a single draw.
   Battle.prototype.drawLight = function (ctx, W, H, z, ox, oy) {
-    const m = this.map;
-    if (!this.lightCanvas || this.lightCanvas.width !== W || this.lightCanvas.height !== H) {
-      this.lightCanvas = document.createElement('canvas'); this.lightCanvas.width = W; this.lightCanvas.height = H;
+    const m = this.map, night = m.night;
+    if (!this.vig || this.vig.w !== W || this.vig.h !== H) {
+      const c = document.createElement('canvas'); c.width = Math.ceil(W / 6); c.height = Math.ceil(H / 6);
+      const vg = c.getContext('2d'), cw = c.width, ch = c.height;
+      if (!night) { vg.fillStyle = m.biome === 'sand' ? 'rgba(60,30,0,0.06)' : 'rgba(10,20,30,0.08)'; vg.fillRect(0, 0, cw, ch); }
+      const v = vg.createRadialGradient(cw / 2, ch / 2, Math.min(cw, ch) * 0.35, cw / 2, ch / 2, Math.max(cw, ch) * 0.75);
+      v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.55)'); vg.fillStyle = v; vg.fillRect(0, 0, cw, ch);
+      this.vig = { c, w: W, h: H };
     }
-    const night = m.night;
-    const lc = this.lightCanvas, g = lc.getContext('2d');
-    g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over';
-    g.clearRect(0, 0, W, H);
-    g.fillStyle = night ? 'rgba(10,8,30,0.62)' : m.biome === 'sand' ? 'rgba(60,30,0,0.06)' : 'rgba(10,20,30,0.08)';
-    g.fillRect(0, 0, W, H);
-    g.globalCompositeOperation = 'destination-out';
-    g.setTransform(z, 0, 0, z, ox, oy);
-    const hole = (x, y, rad, a) => {
-      const s = BB.iso(x, y); const R = rad * BB.TW * 0.7;
-      const gr = g.createRadialGradient(s.x, s.y - 10, 0, s.x, s.y - 10, R);
-      gr.addColorStop(0, 'rgba(0,0,0,' + a + ')'); gr.addColorStop(1, 'rgba(0,0,0,0)');
-      g.fillStyle = gr; g.beginPath(); g.ellipse(s.x, s.y - 10, R, R * 0.6, 0, 0, TAU); g.fill();
-    };
-    if (night) {
-      for (const L of m.lights) hole(L.x, L.y, L.rad, 0.95);
-      for (const e of this.ents) if (e.side === 'hero' && !e.dead && !e.ward) hole(e.x, e.y, 3.2, 0.7);
-      for (const e of this.ents) if (e.gate && !e.dead) hole(e.x, e.y, 3, 0.8);
-    }
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.drawImage(lc, 0, 0);
-    // additive glows
+    // additive glows of the fires and torches
     ctx.setTransform(z, 0, 0, z, ox, oy);
-    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    ctx.globalCompositeOperation = 'lighter';
     for (const L of m.lights) {
       const s = BB.iso(L.x, L.y); const R = L.rad * BB.TW * 0.45 * (1 + Math.sin(this.time * 9 + L.x) * 0.04);
-      const gr = ctx.createRadialGradient(s.x, s.y - 8, 0, s.x, s.y - 8, R);
-      gr.addColorStop(0, 'rgba(' + L.col + ',' + (night ? 0.35 : 0.18) + ')'); gr.addColorStop(1, 'rgba(' + L.col + ',0)');
-      ctx.fillStyle = gr; ctx.beginPath(); ctx.ellipse(s.x, s.y - 8, R, R * 0.65, 0, 0, TAU); ctx.fill();
+      BB.drawGlow(ctx, L.col, s.x, s.y - 8, R, R * 0.65, night ? 0.5 : 0.24);
     }
-    ctx.restore();
-    // vignette
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    if (!this.vig || this.vig.w !== W || this.vig.h !== H) {
-      const v = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75);
-      v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.55)'); this.vig = { g: v, w: W, h: H };
-    }
-    ctx.fillStyle = this.vig.g; ctx.fillRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.imageSmoothingEnabled = true;
+    if (!night) { ctx.drawImage(this.vig.c, 0, 0, W, H); return; }
+    const lw = Math.ceil(W / 2), lh = Math.ceil(H / 2);
+    if (!this.lightCanvas || this.lightCanvas.width !== lw || this.lightCanvas.height !== lh) { this.lightCanvas = document.createElement('canvas'); this.lightCanvas.width = lw; this.lightCanvas.height = lh; }
+    const lc = this.lightCanvas, g = lc.getContext('2d');
+    g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'copy'; g.globalAlpha = 1;
+    g.fillStyle = 'rgba(10,8,30,0.62)'; g.fillRect(0, 0, lw, lh);
+    g.globalCompositeOperation = 'destination-out';
+    g.setTransform(z / 2, 0, 0, z / 2, ox / 2, oy / 2);
+    const hole = (x, y, rad, a) => { const s = BB.iso(x, y), R = rad * BB.TW * 0.7; BB.drawGlow(g, '0,0,0', s.x, s.y - 10, R, R * 0.6, a * 1.25); };
+    for (const L of m.lights) hole(L.x, L.y, L.rad, 0.95);
+    for (const e of this.ents) if (e.side === 'hero' && !e.dead && !e.ward) hole(e.x, e.y, 3.2, 0.7);
+    for (const e of this.ents) if (e.gate && !e.dead) hole(e.x, e.y, 3, 0.8);
+    g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.imageSmoothingEnabled = true; g.drawImage(this.vig.c, 0, 0, lw, lh);
+    ctx.drawImage(lc, 0, 0, lw, lh, 0, 0, W, H);
   };
 })();

@@ -285,6 +285,11 @@ body.dev::after{content:'DEVELOPMENT SANDBOX · NOTHING IS SAVED';position:fixed
 .tstrip.shut{opacity:.6;cursor:default}
 @media (max-height:500px){.tstrip{padding:6px 10px}.tstrip .av canvas{width:26px;height:26px}}
 
+/* Blurring what is behind a panel means re-blurring the battlefield every frame, for every panel: the heaviest thing a
+   phone can be asked to do. During a battle nothing is glass. */
+#hud *,#hud{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+#hud .stg,#hud .rbtn{background-color:rgba(12,14,21,.82)}
+
 /* ---- team */
 #team .board{flex:1.35;position:relative;min-width:0;padding:0;overflow:hidden}
 #team.live > .bg{background:linear-gradient(90deg,rgba(8,10,15,.12) 0%,rgba(8,10,15,.1) 50%,rgba(8,10,15,.78) 62%);-webkit-backdrop-filter:none;backdrop-filter:none}

@@ -542,18 +542,26 @@
   let lastT = performance.now(), spoilT = 0;
   // the camp keeps living behind every menu (dimmed by each screen's backdrop)
   const SCENE_UNDER = ['title', 'home', 'hud', 'cine', 'heroes', 'hero', 'team', 'forge', 'shop', 'campaign', 'recruit'];
+  const DIMMED = ['heroes', 'hero', 'forge', 'shop', 'campaign', 'recruit']; let dimAcc = 0, dimN = 0;
   function frame(t) {
-    const dt = Math.min(0.1, (t - lastT) / 1000); lastT = t;
-    if (BB.Cinema && BB.Cinema.on) { BB.Cinema.render(dt); requestAnimationFrame(frame); return; } // a cutscene owns the screen
+    const real = (t - lastT) / 1000, dt = Math.min(0.1, real); lastT = t;
+    // a cutscene owns the screen. It runs on the real clock (within reason), so that when a frame is late the picture
+    // catches up with the sound instead of drifting behind it
+    if (BB.Cinema && BB.Cinema.on) { BB.Cinema.render(Math.min(0.3, real)); requestAnimationFrame(frame); return; }
     const visible = SCENE_UNDER.includes(UI.current);
-    if (scene && (visible || mode === 'battle')) {
+    // behind a menu the camp is dim and blurred: draw it a few times a second, not sixty (a phone re-blurs the
+    // whole screen each time the picture under the glass changes)
+    let sdt = dt, skip = false;
+    if (mode !== 'battle' && DIMMED.includes(UI.current)) { dimAcc += dt; if (++dimN % 8) skip = true; else { sdt = Math.min(0.25, dimAcc); dimAcc = 0; } } else { dimAcc = 0; dimN = 0; }
+    if (skip) { /* keep the last picture */ }
+    else if (scene && (visible || mode === 'battle')) {
       scene.cam.zoom = camZoom() * (scene.zoomK || 1);
       if (scene.isTitle) { scene.cam.x = scene.map.w / 2 + Math.sin(t / 9000) * 1.6 - 1.2; scene.cam.y = scene.map.h / 2 + Math.cos(t / 11000) * 0.8 + 0.4; }
       else if (scene.drill) { if (UI.current === 'team' && UI.teamLayout) UI.teamLayout(scene, W, H, DPR); }
       else if (scene.peaceful) { scene.cam.x = scene.map.w / 2 - 1.8 + Math.sin(t / 14000) * 0.4; scene.cam.y = scene.map.h / 2 + 1.6; }
       const reps = mode === 'battle' && !scene.intro && !scene.result ? Math.min(3, Math.max(1, BB.save.settings.speed || 1)) : 1;
       if (scene.devTick && mode === 'battle' && !scene.intro && !scene.result && !scene.paused) scene.devTick(scene, dt);
-      for (let i = 0; i < reps; i++) scene.update(dt, null);
+      for (let i = 0; i < reps; i++) scene.update(sdt, null);
       if (visible) scene.render(ctx, W, H, DPR);
       if (mode === 'battle' && UI.current === 'hud') {
         updateHud(dt);

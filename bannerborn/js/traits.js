@@ -109,8 +109,7 @@
     const sc = e.sc || 1, h = 40 * sc * (e.boss ? 1.25 : 1), t = this.time, s = (e.id ? e.id.length : 3) * 3.7 + (e.x * 7 | 0);
     g.save(); g.globalCompositeOperation = 'lighter';
     if (e.buffs.burn > 0) { // flames licking up the body
-      const gl = g.createRadialGradient(x, y - h * 0.4, 0, x, y - h * 0.4, h * 0.6); gl.addColorStop(0, 'rgba(255,140,40,0.35)'); gl.addColorStop(1, 'rgba(255,90,20,0)');
-      g.fillStyle = gl; g.fillRect(x - h, y - h, h * 2, h * 1.2);
+      BB.drawGlow(g, '255,130,40', x, y - h * 0.4, h * 0.65, h * 0.65, 0.45);
       for (let i = 0; i < 7; i++) {
         const p = fr(t * 1.8 + rnd(i + s)), px = x + Math.sin(i * 2.3 + s) * 7 * sc, py = y - 4 * sc - p * h * 0.85, w = (1 - p) * 3.2 * sc, hh = (4 + (1 - p) * 6) * sc;
         g.globalAlpha = (1 - p) * 0.9; g.fillStyle = p < 0.35 ? COL.fire[0] : p < 0.65 ? COL.fire[1] : COL.fire[2];
@@ -129,8 +128,7 @@
       g.globalCompositeOperation = 'lighter'; g.globalAlpha = 1;
     }
     if (e.buffs.poison > 0) { // venom: a sick green glow and its stacks over the head
-      const n = e.poisonN || 1, gl = g.createRadialGradient(x, y - h * 0.4, 0, x, y - h * 0.4, h * 0.55);
-      gl.addColorStop(0, 'rgba(140,230,60,' + (0.12 + n * 0.08) + ')'); gl.addColorStop(1, 'rgba(120,220,40,0)'); g.fillStyle = gl; g.fillRect(x - h, y - h, h * 2, h * 1.2);
+      const n = e.poisonN || 1; BB.drawGlow(g, '135,228,55', x, y - h * 0.4, h * 0.6, h * 0.6, 0.16 + n * 0.1);
       g.globalCompositeOperation = 'source-over';
       for (let i = 0; i < n; i++) { const px = x + (i - (n - 1) / 2) * 5 * sc, py = y - h - 6 * sc; g.fillStyle = '#1d3a0a'; g.beginPath(); g.arc(px, py, 2.2 * sc, 0, TAU); g.fill(); g.fillStyle = COL.poison[1]; g.beginPath(); g.arc(px, py, 1.5 * sc, 0, TAU); g.fill(); }
       g.globalCompositeOperation = 'lighter';
@@ -193,19 +191,18 @@
       }
       case 'strike': { // a bolt out of the sky
         const flick = rnd(Math.floor(f.t * 40) + f.seed) > 0.25 ? 1 : 0.3;
-        g.shadowColor = '#4cc9ff'; g.shadowBlur = 10;
+        g.globalAlpha = a * flick * 0.3; g.strokeStyle = '#4cc9ff'; g.lineWidth = 8 * q; bolt(g, s.x + 10, s.y - 150, s.x, s.y - 16, f.seed + Math.floor(f.t * 30), 7, 22);
         g.globalAlpha = a * flick; g.strokeStyle = C[1]; g.lineWidth = 3 * q; bolt(g, s.x + 10, s.y - 150, s.x, s.y - 16, f.seed + Math.floor(f.t * 30), 7, 22);
         g.strokeStyle = '#ffffff'; g.lineWidth = 1.2 * q; bolt(g, s.x + 10, s.y - 150, s.x, s.y - 16, f.seed + Math.floor(f.t * 30), 7, 22);
-        g.shadowBlur = 0;
         const gl = g.createRadialGradient(s.x, s.y - 10, 0, s.x, s.y - 10, 30 * q); gl.addColorStop(0, 'rgba(200,250,255,' + a * 0.6 + ')'); gl.addColorStop(1, 'rgba(80,200,255,0)');
         g.fillStyle = gl; g.beginPath(); g.ellipse(s.x, s.y - 6, 30 * q, 16 * q, 0, 0, TAU); g.fill(); break;
       }
       case 'chain': { // lightning leaps to the next foe
         const b = iso(f.x2, f.y2), flick = rnd(Math.floor(f.t * 40) + f.seed) > 0.2 ? 1 : 0.35;
-        g.shadowColor = '#4cc9ff'; g.shadowBlur = 8; g.globalAlpha = a * flick;
-        g.strokeStyle = C[1]; g.lineWidth = 2.4; bolt(g, s.x, s.y - 20, b.x, b.y - 20, f.seed + Math.floor(f.t * 30), 6, 16);
+        g.globalAlpha = a * flick * 0.3; g.strokeStyle = '#4cc9ff'; g.lineWidth = 6.5; bolt(g, s.x, s.y - 20, b.x, b.y - 20, f.seed + Math.floor(f.t * 30), 6, 16);
+        g.globalAlpha = a * flick; g.strokeStyle = C[1]; g.lineWidth = 2.4; bolt(g, s.x, s.y - 20, b.x, b.y - 20, f.seed + Math.floor(f.t * 30), 6, 16);
         g.strokeStyle = '#fff'; g.lineWidth = 0.9; bolt(g, s.x, s.y - 20, b.x, b.y - 20, f.seed + Math.floor(f.t * 30), 6, 16);
-        g.shadowBlur = 0; break;
+        break;
       }
       case 'cross': { // shadow: two dark cuts crossing the foe, rimmed in violet
         const grow = Math.min(1, k * 6), len = 22 * q * grow;

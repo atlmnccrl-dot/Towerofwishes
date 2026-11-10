@@ -199,6 +199,25 @@ name, their horde, the face-off, the clash) and a fall; chapters 2-4 open with y
 | `tools/pack.py` | packs the raw asset batches into trimmed atlases |
 | `test/` | Node tests and headless-browser screenshot runs |
 
+### Keeping it smooth (phones)
+
+What the frame may and may not do, learned from profiling late-game fights and the cutscenes:
+
+- **No canvas blur.** `shadowBlur` repaints the whole bounding box of whatever glows. Glows are a soft round sprite
+  painted once per colour (`BB.glowSprite` / `BB.drawGlow` in js/aura.js) or a line over two wide faint strokes.
+  Cutscene, summoning and recruit canvases go through `BB.softGlow` (js/cinema.js), which turns the shots' glow
+  requests into that; only text keeps a real, small shadow.
+- **No whole-sheet recolouring.** Tinted foes and hued effects are recoloured a strip (one clip, one facing) or a
+  frame at a time, the first time each is drawn, a few milliseconds per frame at most (js/assets.js). Sheets are
+  decoded to bitmaps when they load, during the loading screen, not on first draw mid-fight.
+- **One lighting pass.** Day: a small cached vignette stretched over the picture. Night: darkness at half size with
+  sprite holes for the lights, the vignette folded in, one draw (js/battle.js `drawLight`).
+- **No glass over the battlefield.** `backdrop-filter` is off for everything in the battle HUD; behind menus the
+  camp is drawn a few times a second.
+- **Cutscenes** are painted at about 0.75 megapixel and stretched; silhouettes are made at sprite size (128 px),
+  kept per pose, and scaled when drawn; grading uses blend modes (no canvas filters); the timeline follows the real
+  clock so the picture stays with the sound.
+
 ### Assets
 
 The raw packs are not committed (≈300 MB). `tools/pack.py <raw_dir> assets` rebuilds `assets/`
