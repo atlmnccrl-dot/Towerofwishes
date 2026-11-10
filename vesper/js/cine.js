@@ -270,7 +270,7 @@
       const spot = (j) => ({ x: tx + (j % 2 ? 1 : -1) * (40 + hash(j, 1) * 50), y: ty - 10 - hash(j, 2) * 80, f: j % 2 ? Math.PI : 0 });
       const p = spot(i), q = i > 0 ? spot(i - 1) : { x: -20, y: ty - 60, f: 0 };
       for (let j = 1; j <= 4; j++) { const a = Math.max(0, sub * 3 - j * 0.3); if (a <= 0) continue; const ix = q.x + (p.x - q.x) * Math.min(1, j / 4), iy = q.y + (p.y - q.y) * Math.min(1, j / 4); A.actor(ctx, h.set, 'Rolling', 6, p.f, ix, iy, 1.7, { shade: RED, alpha: 0.25 }); }
-      const clips = ['Attack1', 'Attack2', 'Attack3', 'Attack6', 'Attack4', 'Special1'];
+      const clips = ['Attack1', 'Attack2', 'Attack5', 'Attack6', 'Attack4', 'Special1'];   // no Attack3: it reads as a bow or a cast
       A.actor(ctx, h.set, clips[i], Math.min(14, 5 + Math.floor(sub * 9)), p.f, p.x, p.y, 1.7, { shade: RED });
       // The arcs so far, fading; the newest bright.
       for (let j = 0; j <= i; j++) {

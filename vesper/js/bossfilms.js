@@ -160,7 +160,7 @@
         fx: [{ key: 'katana', x: 0.5, y: 0.55, sc: 2.4, t0: 0.55 }] }) };
     const counter = { d: 0.5, ...G, cam: { r: [0.1, 0.06], x: [0, -0.1] }, sfx: [[0.05, 'slash_1', 1], [0.08, 'blow_2', 1]],
       ...sc({ bg: brightPlane(0.58, ['#6a8aa0', '#f0f8ff'], ['#a8c8d8', '#2a3a48']), sil: INK,
-        actors: [{ who: V, clip: 'Attack3', fr: [3, 12], ang: RIGHT, x: 0.32, y: 0.88, sc: 2.4 },
+        actors: [{ who: V, clip: 'Attack4', fr: [5, 13], ang: RIGHT, x: 0.32, y: 0.88, sc: 2.4 },
           { who: 'twinA', clip: 'TakeDamage', fr: [0, 12], ang: LEFT, x: 0.46, y: 0.88, to: [1.1, 0.7], arc: 0.08, sc: 2.4, rot: 5, smear: 3, smearCol: '#9ac8e8', t0: 0.15, eyes: EYE }],
         trails: [{ from: [0.46, 0.7], to: [1.1, 0.58], w: 3, col: '#ffffff', t0: 0.15, t1: 0.9 }], fx: [{ key: 'ice_shatter', x: 0.46, y: 0.68, sc: 1.6, t0: 0.12 }] }) };
     F.twins = E.film([
@@ -251,7 +251,7 @@
         rings: [{ x: 0.55, y: 0.86, t0: 0.1, dur: 0.6, rx: 0.8, ry: 0.1, w: 2 }], debris: [{ x: 0.55, y: 0.86, t0: 0.1, n: 40, col: ['#1a0804', '#ffb060'], v: 1.3, s: 3 }], fx: [{ key: 'explosion_fire', x: 0.55, y: 0.8, sc: 2.4, t0: 0.1 }] }),
         { ...G, shake: 7, shakeOut: true, cam: { z: [1.15, 1.0], ease: 'out' }, sfx: [[0.1, 'blow_big', 1], [0.12, 'quake', 1]] }),
       cut(0.3, sc({ bg: brightGlow([0.5, 0.4], '#ffffff', '#6a2a08'), sil: INK, speed: { ang: -1.2, col: 'rgba(255,255,255,0.7)', n: 50, v: 1800 },
-        actors: [{ who: V, clip: 'Attack3', fr: [2, 12], ang: -PI / 4, x: 0.35, y: 1.0, to: [0.45, 0.9], sc: 3, smear: 3, smearCol: '#ffffff', ease: 'snap' }], fx: [{ key: 'hit_crit', x: 0.55, y: 0.45, sc: 2.2, t0: 0.4 }] }),
+        actors: [{ who: V, clip: 'Attack4', fr: [5, 13], ang: -PI / 4, x: 0.35, y: 1.0, to: [0.45, 0.9], sc: 3, smear: 3, smearCol: '#ffffff', ease: 'snap' }], fx: [{ key: 'hit_crit', x: 0.55, y: 0.45, sc: 2.2, t0: 0.4 }] }),
         { ...G, cam: { z: [1.2, 1.35], r: [-0.1, -0.14] }, sfx: [[0.1, 'slash_2', 1], [0.12, 'blow_2', 1]] }),
       cut(0.05, E.flash('#ffffff'), { bars: false }),
       cut(1.0, sc({ bg: brightGlow([0.5, 0.45], '#fff0c0', '#7a2a08'), sil: INK, actors: [{ who: 'hunger', clip: 'Taunt', fr: [4, 14], ang: FRONT, x: 0.5, y: 1.1, sc: 3.6, eyes: EYE }],

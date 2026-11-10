@@ -28,7 +28,9 @@
     built('scar', null, 0, { line: 'Its wound has bled ever since.', lineAt: 0.2, lineDur: 1.6 }),
     built('rise', null, 0, { line: 'By its red light, his dead rise.', lineAt: 1.2, lineDur: 2.3 }),
     built('horde', null, 0, { lines: [[0.3, 1.45, 'Tonight the wound bleeds out.'], [1.85, 1.5, 'At dawn, the moon falls and his dead take everything.']] }),
-    built('eye', null, 0, { bars: false, line: 'One blade can stop him.', lineAt: 0.2, lineDur: 1.5 }),
+    // Her, in pixel art (the drawn manga eyes were cut, 2026-11-10), then her name card.
+    cut(1.8, E.eyes({ at: 0.4, sc: 4, over: (ctx, S, k, T) => { if (T > 0.9) K0.say(S, 'card', 'VESPER', K0.W() - 10, K0.BAR + 16, { align: 'right', sub: 'THE MOONBLADE', col: '#ff9aaa', k: T - 0.9 }); } }),
+      { bars: false, line: 'One blade can stop him.', lineAt: 0.2, lineDur: 1.5, sfx: [[0, 'quake', 0.6], [0.4, 'charge', 0.9], [0.72, 'clang_0', 0.6]] }),
     built('draw'),
     built('name', null, 0, { bars: false }),
     // The fight, shot by shot.

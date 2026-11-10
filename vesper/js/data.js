@@ -32,12 +32,12 @@
       { clip: 'Attack1', wind: 0.1, recover: 0.18, reach: 30, dmg: 6, poise: 6, kb: 4, step: 7, fx: 'slash' },
       { clip: 'Attack2', wind: 0.1, recover: 0.2, reach: 30, dmg: 6, poise: 6, kb: 4, step: 7, fx: 'slash' },
       { clip: 'Kick', wind: 0.12, recover: 0.22, reach: 26, dmg: 7, poise: 10, kb: 16, step: 6, fx: 'kick' },
-      { clip: 'Attack3', wind: 0.16, recover: 0.3, reach: 34, dmg: 11, poise: 13, kb: 18, step: 10, fx: 'finisher', finisher: true },
+      { clip: 'Attack4', wind: 0.18, recover: 0.3, reach: 34, dmg: 11, poise: 13, kb: 18, step: 10, fx: 'finisher', finisher: true },   // the overhead slam (Attack3 read as drawing a bow, 2026-11-10)
       { clip: 'Attack6', wind: 0.15, recover: 0.34, reach: 38, dmg: 15, poise: 16, kb: 24, step: 12, fx: 'finisher', finisher: true }],
     // The heavy: a spinning cut all around him (right mouse button, or K).
     heavy: { clip: 'Special1', wind: 0.28, recover: 0.4, aoe: 36, at: 0, dmg: 14, poise: 22, kb: 26, fx: 'spin' },
     // The dash-cut: cut during or just after a dash.
-    dashCut: { clip: 'Attack4', wind: 0.1, recover: 0.3, reach: 30, dmg: 11, poise: 16, kb: 20, lunge: 56, fx: 'dash' },
+    dashCut: { clip: 'Attack5', wind: 0.1, recover: 0.3, reach: 30, dmg: 11, poise: 16, kb: 20, lunge: 56, fx: 'dash' },
     dodge: { dur: 0.34, dist: 96, iframes: [0.02, 0.3], perfect: 0.16, cd: 0.12 },
     parry: { win: 0.2, dur: 0.42 },
     lastDitch: 0.3, // the Last Ditch Effort opens at or below this share of health
@@ -50,8 +50,8 @@
     vesper: Object.assign({}, base, { id: 'vesper', pow: 1.12, name: 'Vesper', title: 'The Moonblade', weapon: 'Sword', color: '#ff3048', art: 'moon',
       blurb: 'A knight in a red hood. Combos, dashes, and the moon itself.',
       skills: [
-        { name: 'Crescent Wave', kind: 'wave', cd: 6, clip: 'Attack3', dmg: 14, speed: 300, r: 16, fx: 'dark_slash', poise: 14 },
-        { name: 'Phantom Step', kind: 'blinkStrike', cd: 7, clip: 'Attack6', dmg: 18, range: 150, r: 34, poise: 20 }] }),
+        { name: 'Crescent Wave', kind: 'wave', cd: 6, clip: 'Attack6', dmg: 14, speed: 300, r: 16, fx: 'dark_slash', poise: 14 },
+        { name: 'Phantom Step', kind: 'blinkStrike', cd: 7, clip: 'Attack5', dmg: 18, range: 150, r: 34, poise: 20 }] }),
     lys: Object.assign({}, base, { id: 'lys', pow: 1.32, name: 'Lys', title: 'The Bloom Witch', weapon: 'Spells', color: '#ff7aa0', set: 'lyra', art: 'petals', hp: 135, spd: 116, ranged: true, dodge: { dur: 0.34, dist: 128, iframes: [0.02, 0.34], perfect: 0.18, cd: 0.12 },
       blurb: 'Fights from range with bolts, frost and blight. Fragile up close.',
       combo: [
@@ -70,7 +70,7 @@
         { clip: 'Attack1', wind: 0.12, recover: 0.2, reach: 44, arc: 0.8, dmg: 7, poise: 7, kb: 6, step: 9, fx: 'slash' },
         { clip: 'Attack2', wind: 0.12, recover: 0.22, reach: 44, arc: 0.8, dmg: 7, poise: 7, kb: 6, step: 9, fx: 'slash' },
         { clip: 'Attack6', wind: 0.14, recover: 0.24, reach: 40, dmg: 8, poise: 10, kb: 14, step: 8, fx: 'kick', stun: 0.25 },
-        { clip: 'Attack3', wind: 0.18, recover: 0.32, reach: 50, arc: 0.7, dmg: 12, poise: 14, kb: 22, step: 12, fx: 'finisher', finisher: true, stun: 0.4 },
+        { clip: 'Attack4', wind: 0.18, recover: 0.32, reach: 50, arc: 0.7, dmg: 12, poise: 14, kb: 22, step: 12, fx: 'finisher', finisher: true, stun: 0.4 },
         { clip: 'Attack6', wind: 0.16, recover: 0.34, reach: 50, dmg: 15, poise: 16, kb: 24, step: 12, fx: 'finisher', finisher: true }],
       heavy: { clip: 'Attack4', wind: 0.22, recover: 0.38, reach: 34, dmg: 14, poise: 22, kb: 26, lunge: 90, fx: 'dash', stun: 0.6 },
       skills: [
@@ -83,7 +83,7 @@
         { clip: 'Attack2', wind: 0.07, recover: 0.12, reach: 26, dmg: 4, poise: 4, kb: 3, step: 8, fx: 'slash' },
         { clip: 'Attack6', wind: 0.07, recover: 0.14, reach: 26, dmg: 5, poise: 5, kb: 4, step: 8, fx: 'slash' },
         { clip: 'Kick', wind: 0.1, recover: 0.2, reach: 26, dmg: 7, poise: 10, kb: 16, step: 6, fx: 'kick' },
-        { clip: 'Attack3', wind: 0.12, recover: 0.26, reach: 30, dmg: 11, poise: 14, kb: 20, step: 12, fx: 'finisher', finisher: true }],
+        { clip: 'Attack4', wind: 0.12, recover: 0.26, reach: 30, dmg: 11, poise: 14, kb: 20, step: 12, fx: 'finisher', finisher: true }],
       heavy: { clip: 'Attack5', wind: 0.16, recover: 0.3, dmg: 6, poise: 6, kb: 8, bolt: { fx: 'dagger', speed: 360, fan: 5 } },
       skills: [
         { name: 'Shadow Clones', kind: 'clones', cd: 10, clip: 'Taunt', n: 2, dur: 6 },
@@ -95,7 +95,7 @@
         { clip: 'Attack1', wind: 0.08, recover: 0.14, reach: 28, dmg: 5, poise: 5, kb: 4, step: 8, fx: 'slash' },
         { clip: 'Attack2', wind: 0.08, recover: 0.14, reach: 28, dmg: 5, poise: 5, kb: 4, step: 8, fx: 'slash' },
         { clip: 'Attack6', wind: 0.1, recover: 0.18, reach: 28, dmg: 7, poise: 8, kb: 8, step: 8, fx: 'slash', slow: 1.5 },
-        { clip: 'Attack3', wind: 0.14, recover: 0.28, reach: 32, dmg: 12, poise: 14, kb: 20, step: 10, fx: 'finisher', finisher: true, slow: 2.5 },
+        { clip: 'Attack4', wind: 0.14, recover: 0.28, reach: 32, dmg: 12, poise: 14, kb: 20, step: 10, fx: 'finisher', finisher: true, slow: 2.5 },
         { clip: 'Attack5', wind: 0.14, recover: 0.3, reach: 34, dmg: 14, poise: 16, kb: 22, step: 12, fx: 'finisher', finisher: true, slow: 3 }],
       heavy: { clip: 'Special1', wind: 0.24, recover: 0.36, aoe: 46, at: 0, dmg: 13, poise: 20, kb: 28, fx: 'frost', slow: 3 },
       skills: [

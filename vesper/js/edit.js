@@ -216,14 +216,25 @@
     }
   }
   E.focusLines = focusLines;
-  // Her eyes filling the frame on paper, focus lines closing in; the irises turn (col) at `at`.
+  // Her resolve, in the game's own pixel art (2026-11-10: the drawn manga eyes did not fit the style): Vesper
+  // herself, close, in full colour against the bleeding moon, pushing in; at `at` the moon's light flashes
+  // across the frame and embers rush past. (Kept the name: every film that showed her eyes shows this now.)
   E.eyes = function (o) {
     return {
       draw(ctx, S, k, T) {
-        fill(ctx, o.paper || '#ece6e8');
-        const open = o.at == null ? 1 : EZ.snap(clamp((k - o.at) / 0.12));
-        K0.mangaEyesDraw(ctx, W() / 2, H() * 0.5, o.sc || 4, open, o.col || RED, T);
-        focusLines(ctx, W() / 2, H() / 2, H() * (o.r0 || 0.36), o.n || 90, o.ink || '#0a0608', 1341, T);
+        const g = ctx.createLinearGradient(0, 0, 0, H()); g.addColorStop(0, '#070208'); g.addColorStop(0.6, '#2a0610'); g.addColorStop(1, '#4a0c18'); ctx.fillStyle = g; ctx.fillRect(-8, -8, W() + 16, H() + 16);
+        const push = 1 + 0.06 * EZ.out(k), at = o.at == null ? 0.4 : o.at, lit = clamp((k - at) / 0.1), gy = Math.round(H() * 0.84), vx = Math.round(W() * 0.42);
+        ctx.save(); ctx.translate(vx, gy); ctx.scale(push, push); ctx.translate(-vx, -gy);
+        K0.moon(ctx, W() * 0.5, H() * 0.46, H() * 0.36, '#ff3a52', 'rgba(255,40,70,0.55)', 1, T);
+        // The Spire far off on the right, the land, and the crag she stands on.
+        ctx.fillStyle = '#12030a'; ctx.beginPath(); ctx.moveTo(W() * 0.8 - 8, gy + 4); ctx.lineTo(W() * 0.8, H() * 0.22); ctx.lineTo(W() * 0.8 + 8, gy + 4); ctx.fill();
+        ctx.fillStyle = '#0a0205'; ctx.fillRect(-8, gy - 2, W() + 16, H());
+        ctx.fillStyle = '#050103'; ctx.beginPath(); ctx.moveTo(vx - 60, H() + 4); ctx.lineTo(vx - 26, gy - 4); ctx.lineTo(vx + 20, gy - 6); ctx.lineTo(vx + 54, gy + 2); ctx.lineTo(vx + 90, H() + 4); ctx.fill();
+        A.tex(ctx, 'light_01', vx, gy - 20, 60, 60, '#ff3a52', 0.25, 0, true);
+        A.actor(ctx, S.cast.vesper, 'Idle4', Math.floor(T * 6) % 15, -Math.PI * 0.3, vx, gy - 5, 1.3, {});   // in her own colours, facing the Spire
+        ctx.restore();
+        if (lit > 0 && lit < 1) { A.tex(ctx, 'light_01', W() / 2, H() * 0.5, W() * 1.6, 18 + 30 * (1 - lit), '#ffffff', 0.8 * (1 - lit), -0.12, true); if (lit < 0.3) fill(ctx, '#ffffff', 0.25 * (1 - lit / 0.3)); }
+        K0.K().embers(ctx, T, 26, 0, W(), RED);
       },
       post(ctx, S, k, T) { if (o.over) o.over(ctx, S, k, T); },
     };
