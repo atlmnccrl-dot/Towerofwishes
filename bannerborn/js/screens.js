@@ -656,33 +656,8 @@
     bg.addColorStop(0, C(open ? 0.22 : 0.06)); bg.addColorStop(0.55, '#0e1119'); bg.addColorStop(1, '#07080c'); g.fillStyle = bg; g.fillRect(0, 0, w, h);
     const infoH = ($('altarInfo').offsetHeight || 0) * dpr, room = Math.max(h * 0.42, h - infoH);
     const base = room * 0.76, gh = Math.min(room * 0.64, w * 0.3), cx = w / 2, ro = gh * 0.42, ri = ro * 0.7, ys = base - gh + ro;
-    // light from above and motes rising
-    if (open) { g.save(); g.globalCompositeOperation = 'lighter'; for (let i = -2; i <= 2; i++) { const x = cx + i * ro * 0.5, gr = g.createLinearGradient(x, 0, x, base); gr.addColorStop(0, C(0.1)); gr.addColorStop(1, C(0)); g.fillStyle = gr; g.beginPath(); g.moveTo(x - ro * 0.1, 0); g.lineTo(x + ro * 0.1, 0); g.lineTo(x + ro * 0.35 + i * ro * 0.1, base); g.lineTo(x - ro * 0.35 + i * ro * 0.1, base); g.closePath(); g.fill(); }
-      for (let i = 0; i < 30; i++) { const k = (RC.t * 0.18 + i / 30) % 1, a = i * 2.4; g.fillStyle = C((1 - k) * 0.8); g.fillRect(cx + Math.cos(a) * ro * (0.4 + k * 1.6), base - k * gh * 1.1, 2 * dpr, 2 * dpr); } g.restore(); }
-    // the platform
-    for (const [k, al] of [[1, 0.6], [1.3, 0.3], [1.65, 0.14]]) { g.strokeStyle = C(al); g.lineWidth = Math.max(1, dpr * 1.2); g.beginPath(); g.ellipse(cx, base, ro * 1.6 * k, ro * 0.32 * k, 0, 0, 7); g.stroke(); }
-    g.setLineDash([8 * dpr, 6 * dpr]); g.lineDashOffset = -RC.t * 20 * dpr; g.strokeStyle = C(0.4); g.beginPath(); g.ellipse(cx, base, ro * 1.9, ro * 0.38, 0, 0, 7); g.stroke(); g.setLineDash([]);
-    // those waiting at the sides: silhouettes, rim-lit by the gate
-    const pool = RC.pool || [], feat = pool.length ? pool[RC.feat % pool.length] : null, ready = (e) => RC.loaded[e.key] === 1;
-    const S = Math.max(2, Math.round(gh * 0.55 / 42)), waiting = pool.filter((e) => e !== feat).slice(0, 6);
-    waiting.forEach((e, i) => { if (!ready(e)) return; const side = i % 2 ? 1 : -1, n = Math.floor(i / 2), x = cx + side * (ro * 1.55 + n * ro * 0.85), y = base - ro * 0.18 - n * ro * 0.08, sc = Math.max(1, S - 1 - Math.floor(n / 2));
-      const fr = Math.floor(RC.t * 6 + i) % (BB.clipLen('h/' + e.key, 'Idle') || 15); silhouetteChar(g, 'h/' + e.key, fr, x, y, sc, side < 0 ? 3 : 1, C(open ? 0.85 : 0.3)); });
-    // the gate: a vortex in the arch
-    const opening = () => { g.beginPath(); g.moveTo(cx - ri, base); g.lineTo(cx - ri, ys); g.arc(cx, ys, ri, Math.PI, Math.PI * 2); g.lineTo(cx + ri, base); g.closePath(); };
-    g.save(); opening(); g.clip(); g.fillStyle = '#05060a'; g.fillRect(cx - ri, ys - ri, ri * 2, base - ys + ri);
-    if (open) { const vy = (ys - ri + base) / 2, R = (base - ys + ri) * 0.62; g.globalCompositeOperation = 'lighter';
-      for (let n = 0; n < 7; n++) { const q = 1 - ((RC.t * 0.45 + n / 7) % 1); g.strokeStyle = C((0.55 * q).toFixed(3)); g.lineWidth = Math.max(1, R * 0.03 * q); g.beginPath(); g.ellipse(cx, vy, ri * q * 1.05, R * q, 0, 0, 7); g.stroke(); }
-      for (let a = 0; a < 6; a++) { g.strokeStyle = a % 2 ? 'rgba(255,255,255,0.35)' : C(0.55); g.lineWidth = Math.max(1, R * 0.018); g.beginPath(); for (let st = 2; st <= 26; st++) { const q = st / 26, an = a / 6 * 6.28 + q * 4.6 + RC.t * 1.8, px = cx + Math.cos(an) * ri * (1 - q), py = vy + Math.sin(an) * R * (1 - q); st === 2 ? g.moveTo(px, py) : g.lineTo(px, py); } g.stroke(); }
-      const core = g.createRadialGradient(cx, vy, 0, cx, vy, R * 0.6); core.addColorStop(0, 'rgba(255,255,255,0.85)'); core.addColorStop(0.35, C(0.6)); core.addColorStop(1, C(0)); g.fillStyle = core; g.fillRect(cx - ri, ys - ri, ri * 2, base - ys + ri); }
-    g.restore();
-    // the arch stones and their runes
-    g.beginPath(); g.moveTo(cx - ro, base); g.lineTo(cx - ro, ys); g.arc(cx, ys, ro, Math.PI, Math.PI * 2); g.lineTo(cx + ro, base); g.lineTo(cx + ri, base); g.lineTo(cx + ri, ys); g.arc(cx, ys, ri, Math.PI * 2, Math.PI, true); g.lineTo(cx - ri, base); g.closePath();
-    const sg = g.createLinearGradient(cx - ro, 0, cx + ro, 0); sg.addColorStop(0, '#1a1c26'); sg.addColorStop(0.5, '#2c2f3c'); sg.addColorStop(1, '#16171f'); g.fillStyle = sg; g.fill(); g.strokeStyle = '#05060a'; g.lineWidth = dpr; g.stroke();
-    g.save(); g.globalCompositeOperation = 'lighter'; g.strokeStyle = C(open ? 0.7 + 0.25 * Math.sin(RC.t * 3) : 0.15); g.shadowColor = C(1); g.shadowBlur = open ? 12 * dpr : 0; g.lineWidth = Math.max(1.2, dpr * 1.4);
-    for (let r = 0; r < 9; r++) { const an = Math.PI + (r + 0.5) / 9 * Math.PI, rr = (ri + ro) / 2, rs = (ro - ri) * 0.18, rx = cx + Math.cos(an) * rr, ry = ys + Math.sin(an) * rr; g.beginPath(); if (r % 3 === 0) { g.moveTo(rx, ry - rs); g.lineTo(rx, ry + rs); g.moveTo(rx - rs * 0.6, ry); g.lineTo(rx + rs * 0.6, ry); } else if (r % 3 === 1) { g.arc(rx, ry, rs * 0.6, 0, 7); } else { g.moveTo(rx - rs * 0.6, ry + rs); g.lineTo(rx, ry - rs); g.lineTo(rx + rs * 0.6, ry + rs); } g.stroke(); }
-    for (const sx of [-1, 1]) for (let r = 0; r < 4; r++) { const x = cx + sx * (ro + ri) / 2, y = ys + (r + 0.6) * (base - ys) / 4.4, rs = (ro - ri) * 0.15; g.beginPath(); g.moveTo(x - rs, y - rs); g.lineTo(x + rs, y + rs); g.moveTo(x + rs, y - rs); g.lineTo(x - rs, y + rs); g.stroke(); }
-    if (open) { g.shadowBlur = 20 * dpr; opening(); g.stroke(); }
-    g.restore();
+    gateArch(g, { cx, base, gh, C, t: RC.t, open, dpr, power: 1, runes: 1, side: (RC.pool || []), feat: RC.pool && RC.pool.length ? RC.pool[RC.feat % RC.pool.length] : null });
+    const pool = RC.pool || [], feat = pool.length ? pool[RC.feat % pool.length] : null, ready = (e) => RC.loaded[e.key] === 1, S = Math.max(2, Math.round(gh * 0.55 / 42));
     // the featured hero steps into the light, fully seen; a new one every few seconds
     if (feat && ready(feat) && open) {
       RC.featT += dt; if (RC.featT > 3.2) { RC.featT = 0; RC.feat = (RC.feat + 1) % pool.length; }
@@ -699,6 +674,41 @@
     }
     if (!open) { g.save(); g.fillStyle = 'rgba(255,255,255,0.55)'; g.font = '700 ' + Math.round(13 * dpr) + 'px Outfit, sans-serif'; g.textAlign = 'center'; g.fillText('SEALED', cx, (ys + base) / 2); g.restore(); }
   };
+  // the gate, shared by the recruit screen and the summoning: a stone arch on its platform, a vortex in the tier's colour,
+  // runes that light in turn (o.runes 0..1), a vortex that grows with o.power, recruits waiting at its sides (o.side)
+  function gateArch(g, o) {
+    const { cx, base, gh, C, t, open, dpr } = o, ro = gh * 0.42, ri = ro * 0.7, ys = base - gh + ro, pw = o.power === undefined ? 1 : o.power;
+    const RC = { t, loaded: UI.rec.loaded };
+    const RCt = t;
+    // light from above and motes rising
+    if (open) { g.save(); g.globalCompositeOperation = 'lighter'; for (let i = -2; i <= 2; i++) { const x = cx + i * ro * 0.5, gr = g.createLinearGradient(x, 0, x, base); gr.addColorStop(0, C(0.1)); gr.addColorStop(1, C(0)); g.fillStyle = gr; g.beginPath(); g.moveTo(x - ro * 0.1, 0); g.lineTo(x + ro * 0.1, 0); g.lineTo(x + ro * 0.35 + i * ro * 0.1, base); g.lineTo(x - ro * 0.35 + i * ro * 0.1, base); g.closePath(); g.fill(); }
+      for (let i = 0; i < 30; i++) { const k = (RCt * 0.18 + i / 30) % 1, a = i * 2.4; g.fillStyle = C((1 - k) * 0.8); g.fillRect(cx + Math.cos(a) * ro * (0.4 + k * 1.6), base - k * gh * 1.1, 2 * dpr, 2 * dpr); } g.restore(); }
+    // the platform
+    for (const [k, al] of [[1, 0.6], [1.3, 0.3], [1.65, 0.14]]) { g.strokeStyle = C(al); g.lineWidth = Math.max(1, dpr * 1.2); g.beginPath(); g.ellipse(cx, base, ro * 1.6 * k, ro * 0.32 * k, 0, 0, 7); g.stroke(); }
+    g.setLineDash([8 * dpr, 6 * dpr]); g.lineDashOffset = -RCt * 20 * dpr; g.strokeStyle = C(0.4); g.beginPath(); g.ellipse(cx, base, ro * 1.9, ro * 0.38, 0, 0, 7); g.stroke(); g.setLineDash([]);
+    // those waiting at the sides: silhouettes, rim-lit by the gate
+    const pool = o.side || [], feat = o.feat, ready = (e) => RC.loaded[e.key] === 1;
+    const S = Math.max(2, Math.round(gh * 0.55 / 42)), waiting = pool.filter((e) => e !== feat).slice(0, 6);
+    waiting.forEach((e, i) => { if (!ready(e)) return; const side = i % 2 ? 1 : -1, n = Math.floor(i / 2), x = cx + side * (ro * 1.55 + n * ro * 0.85), y = base - ro * 0.18 - n * ro * 0.08, sc = Math.max(1, S - 1 - Math.floor(n / 2));
+      const fr = Math.floor(RCt * 6 + i) % (BB.clipLen('h/' + e.key, 'Idle') || 15); silhouetteChar(g, 'h/' + e.key, fr, x, y, sc, side < 0 ? 3 : 1, C(open ? 0.85 : 0.3)); });
+    // the gate: a vortex in the arch
+    const opening = () => { g.beginPath(); g.moveTo(cx - ri, base); g.lineTo(cx - ri, ys); g.arc(cx, ys, ri, Math.PI, Math.PI * 2); g.lineTo(cx + ri, base); g.closePath(); };
+    g.save(); opening(); g.clip(); g.fillStyle = '#05060a'; g.fillRect(cx - ri, ys - ri, ri * 2, base - ys + ri);
+    if (open && pw > 0) { const vy = (ys - ri + base) / 2, R = (base - ys + ri) * 0.62 * Math.min(1.25, 0.25 + pw * 0.75); g.globalCompositeOperation = 'lighter'; g.globalAlpha = Math.min(1, pw);
+      for (let n = 0; n < 7; n++) { const q = 1 - ((RCt * 0.45 + n / 7) % 1); g.strokeStyle = C((0.55 * q).toFixed(3)); g.lineWidth = Math.max(1, R * 0.03 * q); g.beginPath(); g.ellipse(cx, vy, ri * q * 1.05, R * q, 0, 0, 7); g.stroke(); }
+      for (let a = 0; a < 6; a++) { g.strokeStyle = a % 2 ? 'rgba(255,255,255,0.35)' : C(0.55); g.lineWidth = Math.max(1, R * 0.018); g.beginPath(); for (let st = 2; st <= 26; st++) { const q = st / 26, an = a / 6 * 6.28 + q * 4.6 + RCt * 1.8, px = cx + Math.cos(an) * ri * (1 - q), py = vy + Math.sin(an) * R * (1 - q); st === 2 ? g.moveTo(px, py) : g.lineTo(px, py); } g.stroke(); }
+      const core = g.createRadialGradient(cx, vy, 0, cx, vy, R * 0.6); core.addColorStop(0, 'rgba(255,255,255,0.85)'); core.addColorStop(0.35, C(0.6)); core.addColorStop(1, C(0)); g.fillStyle = core; g.fillRect(cx - ri, ys - ri, ri * 2, base - ys + ri); }
+    g.restore();
+    // the arch stones and their runes
+    g.beginPath(); g.moveTo(cx - ro, base); g.lineTo(cx - ro, ys); g.arc(cx, ys, ro, Math.PI, Math.PI * 2); g.lineTo(cx + ro, base); g.lineTo(cx + ri, base); g.lineTo(cx + ri, ys); g.arc(cx, ys, ri, Math.PI * 2, Math.PI, true); g.lineTo(cx - ri, base); g.closePath();
+    const sg = g.createLinearGradient(cx - ro, 0, cx + ro, 0); sg.addColorStop(0, '#1a1c26'); sg.addColorStop(0.5, '#2c2f3c'); sg.addColorStop(1, '#16171f'); g.fillStyle = sg; g.fill(); g.strokeStyle = '#05060a'; g.lineWidth = dpr; g.stroke();
+    g.save(); g.globalCompositeOperation = 'lighter'; g.strokeStyle = C(open ? 0.7 + 0.25 * Math.sin(RCt * 3) : 0.15); g.shadowColor = C(1); g.shadowBlur = open ? 12 * dpr : 0; g.lineWidth = Math.max(1.2, dpr * 1.4);
+    for (let r = 0; r < 9; r++) { if (r / 9 >= (o.runes === undefined ? 1 : o.runes)) continue; const an = Math.PI + (r + 0.5) / 9 * Math.PI, rr = (ri + ro) / 2, rs = (ro - ri) * 0.18, rx = cx + Math.cos(an) * rr, ry = ys + Math.sin(an) * rr; g.beginPath(); if (r % 3 === 0) { g.moveTo(rx, ry - rs); g.lineTo(rx, ry + rs); g.moveTo(rx - rs * 0.6, ry); g.lineTo(rx + rs * 0.6, ry); } else if (r % 3 === 1) { g.arc(rx, ry, rs * 0.6, 0, 7); } else { g.moveTo(rx - rs * 0.6, ry + rs); g.lineTo(rx, ry - rs); g.lineTo(rx + rs * 0.6, ry + rs); } g.stroke(); }
+    for (const sx of [-1, 1]) for (let r = 0; r < 4; r++) { if ((r + 0.5) / 4 >= (o.runes === undefined ? 1 : o.runes)) continue; const x = cx + sx * (ro + ri) / 2, y = ys + (r + 0.6) * (base - ys) / 4.4, rs = (ro - ri) * 0.15; g.beginPath(); g.moveTo(x - rs, y - rs); g.lineTo(x + rs, y + rs); g.moveTo(x + rs, y - rs); g.lineTo(x - rs, y + rs); g.stroke(); }
+    if (open) { g.shadowBlur = 20 * dpr; opening(); g.stroke(); }
+    g.restore();
+    return { ro, ri, ys, vy: (ys - ri + base) / 2 };
+  }
   const silCv = document.createElement('canvas');
   function silhouetteChar(g, key, fr, x, y, sc, dir, rim) { // a recruit as a dark shape with a rim of light
     const S = Math.ceil(128 * sc); if (silCv.width !== S) { silCv.width = S; silCv.height = S; }
@@ -751,7 +761,8 @@
     // shake
     if (RV.shake > 0) { RV.shake = Math.max(0, RV.shake - dt * 1.4); g.translate((Math.random() - 0.5) * RV.shake * 26 * u, (Math.random() - 0.5) * RV.shake * 26 * u); }
     const txt = document.querySelector('#reveal .txt'), cardTop = txt ? txt.offsetTop * dpr : h * 0.7;
-    const fy = Math.min(h * 0.56, cardTop - 64 * u), cx = w / 2, cy = fy * 0.6;
+    const fy = Math.min(h * 0.62, cardTop - 46 * u), cx = w / 2, gh = Math.min(fy * 0.74, w * 0.3), gro = gh * 0.42, cy = (fy - gh + gro - gro * 0.7 + fy) / 2;
+    const hx = (c) => { const n = parseInt(c.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; }, cc = hx(col), C = (a) => 'rgba(' + cc[0] + ',' + cc[1] + ',' + cc[2] + ',' + a + ')';
     // the dark, tinted by the gate's colour
     const glow = T < 1.4 ? T / 1.4 * 0.25 : 0.35 + Math.min(0.3, step * 0.1);
     const bg = g.createRadialGradient(cx, cy, 0, cx, cy, Math.max(w, h) * 0.7); bg.addColorStop(0, col + Math.round(glow * 255).toString(16).padStart(2, '0')); bg.addColorStop(1, 'rgba(0,0,0,0)');
@@ -764,27 +775,10 @@
       g.strokeStyle = col; g.globalAlpha = Math.sin(k * Math.PI); g.lineWidth = 2 * u; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(p.a) * tail, y + Math.sin(p.a) * tail * 0.75); g.stroke();
     }
     g.globalAlpha = 1;
-    // a column of light pours into the gate once it starts to climb
-    if (T > 1.2) {
-      const bw = (40 + Math.min(1, (T - 1.2) / 1.2) * 70 + (RV.burst ? 40 : 0)) * u * (1 + Math.sin(T * 9) * 0.04);
-      const fade = T > RV.tC ? Math.max(0.25, 1 - (T - RV.tC) * 0.5) : 1;
-      g.save(); g.globalCompositeOperation = 'lighter';
-      const floorY = fy;
-      for (let q = 0; q < 8; q++) { const wk = 1 - q * 0.11, al = 0.05; // nested shafts, each fading out toward the floor
-        const vg = g.createLinearGradient(0, 0, 0, floorY); vg.addColorStop(0, col + Math.round(al * 255 * fade).toString(16).padStart(2, '0')); vg.addColorStop(0.75, col + Math.round(al * 200 * fade).toString(16).padStart(2, '0')); vg.addColorStop(1, col + '00');
-        g.fillStyle = vg; g.fillRect(cx - bw * wk, 0, bw * 2 * wk, floorY);
-      }
-      for (let i = -3; i <= 3; i++) BB.drawOther(g, 'GodRay', cx + i * 36 * u, cy - 260 * u, u * 1.3, { add: true, alpha: (RV.burst ? 0.4 : 0.18) * fade * (1 - Math.abs(i) * 0.12), sx: 3, rot: i * 0.09 });
-      g.restore();
-    }
-    // the gate: grows while it gathers, burns brighter with each colour, tears wide on the burst
-    const gs = (T < 1.4 ? 0.35 + T / 1.4 * 0.5 : 0.85 + step * 0.08) * (RV.burst ? 1 + Math.min(0.6, (T - RV.tB) * 2) : 1) * u * 2.2;
-    const ga = RV.burst ? Math.max(0, 1 - (T - RV.tB) * 0.9) : 1;
-    if (ga > 0) { g.save(); g.globalAlpha = ga; BB.drawFx(g, T < 1 ? 'portalopen' : 'portal', Math.floor(T * 14) % (BB.fxLen(T < 1 ? 'portalopen' : 'portal') || 1), cx, cy, gs, { add: true, hue: step < 0 ? 170 : RHUE[step] }); g.restore(); }
-    // floor rings
+    // the gate: its runes light as it gathers, the vortex spins up through the rarity colours and tears wide on the burst
+    const pw = T < 1.4 ? 0.15 + T / 1.4 * 0.45 : RV.burst ? Math.max(1, 1.6 - (T - RV.tB) * 0.8) : 0.6 + step * 0.18;
+    gateArch(g, { cx, base: fy, gh, C, t: T * (1 + step * 0.3), open: true, dpr, power: pw, runes: Math.min(1, T / Math.max(0.5, RV.tB - 0.3)) });
     g.save(); g.globalCompositeOperation = 'lighter';
-    for (let i = 0; i < 3; i++) { g.strokeStyle = col; g.globalAlpha = 0.5 - i * 0.14; g.lineWidth = 1.5 * u; g.beginPath(); g.ellipse(cx, fy, (90 + i * 40) * u, (22 + i * 10) * u, 0, 0, 7); g.stroke(); }
-    g.setLineDash([10 * u, 8 * u]); g.lineDashOffset = -T * 40 * u; g.globalAlpha = 0.6; g.beginPath(); g.ellipse(cx, fy, 150 * u, 36 * u, 0, 0, 7); g.stroke(); g.setLineDash([]);
     // shockwave rings
     for (const r of RV.rings) { r.t += dt; const k = r.t / (r.big ? 1.1 : 0.7); if (k >= 1) continue; g.globalAlpha = 1 - k; g.strokeStyle = r.col; g.lineWidth = (r.big ? 10 : 5) * u * (1 - k); g.beginPath(); g.ellipse(cx, cy, k * (r.big ? 700 : 300) * u, k * (r.big ? 520 : 220) * u, 0, 0, 7); g.stroke(); }
     g.restore(); g.globalAlpha = 1;
@@ -793,7 +787,7 @@
       const k = T - RV.tS, layers = BB.heroLayers(RV.h), key = layers[0].key;
       const clip = k < 1.6 ? (BB.hasClip(key, 'Taunt') ? 'Taunt' : 'Special1') : 'Idle';
       const n = BB.clipLen(key, clip) || 15, fr = clip === 'Idle' ? Math.floor(T * 9) % n : Math.min(n - 1, Math.floor(k * 11));
-      const sc = Math.max(2, Math.round(h / 165));
+      const sc = Math.max(2, Math.round(gh * 0.8 / 42));
       // each hero arrives their own way
       const ent = RV.ent, cl01 = (v) => Math.max(0, Math.min(1, v));
       let rise = Math.max(0, 1 - k * 3) * 40 * u, ox = 0, vis = Math.min(1, k * 3);
