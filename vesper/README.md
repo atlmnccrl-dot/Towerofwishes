@@ -15,6 +15,10 @@ from `../assets/`.
 
 Play: serve the repository root and open `vesper/index.html` (for example
 `python3 -m http.server` then <http://localhost:8000/vesper/>). Landscape; keyboard or touch.
+**Loading** (`boot()` in `js/main.js`, 2026-11-10): only her sheet and the small shared effect pages load before
+the title (about 1 MB; it was every hero and foe, about 23 MB, ten seconds even on a fast link). The rest streams in
+behind the menu (`M.bgLoad`); a fight, story scene or the map waits for it if it is not done yet (`needAll`).
+
 **The main menu** (`I.menu` in `js/intro.js`, 2026-11-10): a filmed scene behind the menu, the First Cut towering
 behind the bleeding moon with the moon at his heart, red light streaming from its wound to the horizon, the Spire and a
 ruined city with his dead marching along it, Vesper on a crag before it all, red sheet lightning, mist, ash and embers;

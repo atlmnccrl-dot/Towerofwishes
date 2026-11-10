@@ -996,6 +996,7 @@
   let MS = null;
   I.menu = function (dt) {
     if (!MS) MS = { cast: cast(), words: [], shake: 0, t: 0, f: {} };
+    if (!MS.full && VS.main && VS.main.bgDone) { MS.cast = cast(); MS.full = true; }   // the marching dead join once the background load is done
     MS.t += dt || 0.016; const T = MS.t, S = MS, ctx = R.pxBegin(), w = W(), h = H();
     const drift = Math.sin(T * 0.07) * 6, hz = Math.round(h * 0.72);
     const bolt = ((T % 7.3) > 6.9 && (T % 7.3) < 7.0) || ((T % 7.3) > 7.08 && (T % 7.3) < 7.14), bl = bolt ? 1 : 0;

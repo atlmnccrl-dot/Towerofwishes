@@ -184,6 +184,7 @@
   M.startFilm = startFilm;
   // ---- the map hub -------------------------------------------------------------------------------------
   function map(sel) {
+    if (!M.bgDone && M.bgLoad) return needAll(() => map(sel));   // the map shows the guardians
     const p = P(); M.mapSel = sel || M.mapSel || PR.nextNode(p);
     if (M.state !== 'map') { M.go('map'); VS.MAP.open(p, M.mapSel); AU.cue('map'); AU.playAmb('wind');
       A.loadSets(PR.CHAMPS.flat().map((k) => D.FOES[k].set).filter((id) => !A.hasSet(id))).catch(() => {}); }   // the champions shown on the map
@@ -312,6 +313,7 @@
 
   // ---- scenes -------------------------------------------------------------------------------------------
   function startScene(stageIdx, def, then, force) {
+    if (!M.bgDone && M.bgLoad) return needAll(() => startScene(stageIdx, def, then, force));
     U.hide();
     // Story scenes off (Settings): straight on to what follows (the theatre forces them on).
     if (!force && P().opts.scenes === 'skip' && then) return then();
@@ -331,7 +333,15 @@
 
   // ---- fights --------------------------------------------------------------------------------------------
   let f0;
+  // Wait for the background load (the whole cast) before something that may draw any of it.
+  function needAll(go) {
+    if (M.bgDone || !M.bgLoad) return go();
+    M.go('load'); U.loading(0.5);
+    M.bgLoad.then(() => { U.hide(); go(); });
+  }
+  M.needAll = needAll;
   function startFight(stageIdx, opts) {
+    if (!M.bgDone && M.bgLoad) return needAll(() => startFight(stageIdx, opts));
     U.hide(); opts = opts || {};
     const p = P(), b = opts.build, kit = opts.kit || (opts.theatre ? null : PR.kit(p)), MD = VS.MODES;
     // The difficulty and New Game+ scale the foes; mastery adds to the hero's damage on top of the gear.
@@ -744,9 +754,14 @@
     c.addEventListener('pointerdown', onDown); c.addEventListener('pointermove', onMove); c.addEventListener('pointerup', onUp); c.addEventListener('pointercancel', onUp);
     requestAnimationFrame(frame);
     U.loading(0);
-    // At start: every hero and the original foes. The act armies (vh_*) load when a fight needs them.
+    // At start only what the title needs: her sheet and the small shared effect pages (2026-11-10: loading
+    // every hero and foe first was about 23 MB before the title). The rest streams in behind the menu
+    // (M.bgLoad); anything that needs the whole cast waits for it (needAll).
+    const mine = (D.HEROES[M.save.hero] || D.HERO).set, first = [...new Set([D.HERO.set, mine])];
     const ids = new Set([D.HERO.set, D.LYS.set, D.CLONE.set]); for (const k in D.FOES) if (!D.FOES[k].set.startsWith('vh_')) ids.add(D.FOES[k].set); for (const k in D.HEROES) ids.add(D.HEROES[k].set);
-    await Promise.all([A.load([...ids], (p) => U.loading(p)), A.loadIso(['w', 'a', 'i']).catch(() => {})]);
+    await A.load(first, (p) => U.loading(p));
+    M.bgLoad = new Promise((res) => setTimeout(res, 300)).then(() => Promise.all([A.loadSets([...ids].filter((id) => !A.hasSet(id))), A.loadIso(['w', 'a', 'i']).catch(() => {})]))
+      .then(() => { M.bgDone = true; A.warm(R.ctx); A.isoWarm(R.ctx); }, () => { M.bgDone = true; });
     try { if (document.fonts) await Promise.race([Promise.all(['20px Adventurer', '700 20px "Chakra Petch"', '500 16px Barlow', '700 16px Barlow'].map((f) => document.fonts.load(f))), new Promise((r) => setTimeout(r, 2500))]); } catch (e) { /* fonts optional */ }
     A.warm(R.ctx); A.isoWarm(R.ctx);
     A.loadCB().catch(() => {});   // the Crowd Breaker effects stream in after the start
