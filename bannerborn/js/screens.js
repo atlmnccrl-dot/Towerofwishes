@@ -933,8 +933,17 @@
 
   // ---------------------------------------------------------------- team: a field with five places; heroes stand where they will fight
   const T = UI.tm = { sel: null, stage: null, t: 0, spots: [] };
-  UI.openTeam = function (stageIdx) { T.stage = stageIdx === undefined ? null : stageIdx; T.sel = null; UI.renderTeam(); UI.show('team'); $('tabbar').style.display = T.stage !== null ? 'none' : ''; };
+  UI.openTeam = function (stageIdx) { T.stage = stageIdx === undefined ? null : stageIdx; T.sel = null; UI.renderTeam(); UI.show('team'); $('tabbar').style.display = T.stage !== null ? 'none' : ''; if (BB.openDrill) BB.openDrill(T.stage); };
   const SPOTS = [['front', 0, 0.63, 0.36], ['front', 1, 0.68, 0.64], ['back', 0, 0.3, 0.24], ['back', 1, 0.35, 0.5], ['back', 2, 0.4, 0.76]];
+  const DUMMIES = [{ fx: 0.86, fy: 0.3 }, { fx: 0.9, fy: 0.62 }];
+  // the living field: the main scene's camera frames the board and the heroes keep to these places on the ground
+  UI.teamLayout = function (scene, W, H, dpr) {
+    const c = $('boardCv'); if (!c) return; const rc = c.getBoundingClientRect(); if (!rc.width) return;
+    const board = { x: rc.left * dpr, y: rc.top * dpr, w: rc.width * dpr, h: rc.height * dpr };
+    scene.drillLayout(board, W, H, dpr, SPOTS.map(([row, i, fx, fy]) => ({ row, i, fx, fy })), DUMMIES);
+    scene.drillSync(BB.save);
+  };
+  const drillOn = () => { const s = BB.liveScene && BB.liveScene(); return !!(s && s.drill && s.drill.spots); };
   UI.teamRender = function (dt) {
     const c = $('boardCv'); if (!c || !BB.save) return;
     const S = BB.save, dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -942,6 +951,10 @@
     if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
     const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
     T.t += dt;
+    const live = drillOn();
+    $('team').classList.toggle('live', live);
+    if (live) g.clearRect(0, 0, w, h);
+    else {
     // the field: dark slate, a fine diamond grid, the foe's side warmer
     const bg = g.createLinearGradient(0, 0, w, h);
     bg.addColorStop(0, '#121722'); bg.addColorStop(1, '#0b0e15'); g.fillStyle = bg; g.fillRect(0, 0, w, h);
@@ -950,8 +963,11 @@
     const step = 42 * dpr;
     for (let x = -h; x < w + h; x += step) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x + h * 2, h); g.stroke(); g.beginPath(); g.moveTo(x, h); g.lineTo(x + h * 2, 0); g.stroke(); }
     g.strokeStyle = 'rgba(255,255,255,0.08)'; g.setLineDash([4 * dpr, 6 * dpr]); g.beginPath(); g.moveTo(w * 0.52, 34 * dpr); g.lineTo(w * 0.52, h - 40 * dpr); g.stroke(); g.setLineDash([]);
-    g.font = '600 ' + Math.round(11 * dpr) + 'px Outfit, sans-serif'; g.textAlign = 'center'; g.fillStyle = 'rgba(160,170,185,0.8)';
-    const tl = (txt, x) => { g.save(); g.letterSpacing = (2 * dpr) + 'px'; g.fillText(txt, x, 24 * dpr); g.restore(); };
+    }
+    g.font = '600 ' + Math.round(11 * dpr) + 'px Outfit, sans-serif'; g.textAlign = 'center'; g.fillStyle = live ? 'rgba(235,240,248,0.85)' : 'rgba(160,170,185,0.8)';
+    const tl = (txt, x) => { g.save(); g.letterSpacing = (2 * dpr) + 'px'; if (live) { g.shadowColor = 'rgba(0,0,0,0.9)'; g.shadowBlur = 6 * dpr; } g.fillText(txt, x, 24 * dpr); g.restore(); };
+    if (live) { // a soft shade at the top so the labels read over the ground
+      const sh = g.createLinearGradient(0, 0, 0, 60 * dpr); sh.addColorStop(0, 'rgba(6,8,12,0.55)'); sh.addColorStop(1, 'rgba(6,8,12,0)'); g.fillStyle = sh; g.fillRect(0, 0, w, 60 * dpr); g.fillStyle = 'rgba(235,240,248,0.85)'; }
     tl('BACK ROW', w * 0.35); tl('FRONT ROW', w * 0.655);
     g.fillStyle = 'rgba(255,120,110,0.85)'; g.textAlign = 'right'; g.save(); g.letterSpacing = (2 * dpr) + 'px'; g.fillText('ENEMY  →', w - 16 * dpr, 24 * dpr); g.restore();
     const sc = Math.max(1, Math.round(h / (250 * dpr))) * dpr;
@@ -962,16 +978,17 @@
       const sel = T.sel && T.sel.row === sp.row && T.sel.i === sp.i;
       const col = hero ? UI.rgba[hero.rarity || 0] : 'rgba(255,255,255,A)';
       const gl = g.createRadialGradient(sp.x, sp.y, 0, sp.x, sp.y, rw * 1.2);
-      gl.addColorStop(0, col.replace('A', hero ? '0.28' : '0.06')); gl.addColorStop(1, col.replace('A', '0'));
+      gl.addColorStop(0, col.replace('A', hero ? (live ? '0.16' : '0.28') : '0.06')); gl.addColorStop(1, col.replace('A', '0'));
       g.fillStyle = gl; g.beginPath(); g.ellipse(sp.x, sp.y, rw * 1.2, rw * 0.44, 0, 0, 7); g.fill();
-      g.lineWidth = 1.5 * dpr; g.strokeStyle = col.replace('A', hero ? '0.9' : '0.22'); g.beginPath(); g.ellipse(sp.x, sp.y, rw, rw * 0.36, 0, 0, 7); g.stroke();
+      g.lineWidth = 1.5 * dpr; g.strokeStyle = col.replace('A', hero ? (live ? '0.55' : '0.9') : live ? '0.35' : '0.22'); g.beginPath(); g.ellipse(sp.x, sp.y, rw, rw * 0.36, 0, 0, 7); g.stroke();
       if (sel) { g.strokeStyle = 'rgba(255,190,85,' + (0.55 + Math.sin(T.t * 6) * 0.4) + ')'; g.lineWidth = 2 * dpr; g.setLineDash([6 * dpr, 5 * dpr]); g.lineDashOffset = -T.t * 20 * dpr; g.beginPath(); g.ellipse(sp.x, sp.y, rw * 1.22, rw * 0.46, 0, 0, 7); g.stroke(); g.setLineDash([]); }
       if (!hero) { g.strokeStyle = 'rgba(255,255,255,' + (sel ? 0.9 : 0.3) + ')'; g.lineWidth = 2 * dpr; const q = 6 * dpr; g.beginPath(); g.moveTo(sp.x - q, sp.y); g.lineTo(sp.x + q, sp.y); g.moveTo(sp.x, sp.y - q); g.lineTo(sp.x, sp.y + q); g.stroke(); continue; }
-      const layers = BB.heroLayers(hero), n = BB.clipLen(layers[0].key, 'Idle') || 15;
-      BB.drawHeroDressed(g, hero, BB.auraOf(hero), 'Idle', 1, Math.floor(T.t * 9 + sp.i * 3) % n, sp.x, sp.y + rw * 0.05, sc, T.t + sp.i, { noSlash: true, layers });
-      g.textAlign = 'center';
+      if (!live) { const layers = BB.heroLayers(hero), n = BB.clipLen(layers[0].key, 'Idle') || 15;
+        BB.drawHeroDressed(g, hero, BB.auraOf(hero), 'Idle', 1, Math.floor(T.t * 9 + sp.i * 3) % n, sp.x, sp.y + rw * 0.05, sc, T.t + sp.i, { noSlash: true, layers }); }
+      g.textAlign = 'center'; if (live) { g.shadowColor = 'rgba(0,0,0,0.95)'; g.shadowBlur = 5 * dpr; }
       g.font = '600 ' + Math.round(12 * dpr) + 'px Outfit, sans-serif'; g.fillStyle = '#fff'; g.fillText(BB.shortName(hero), sp.x, sp.y + rw * 0.5 + 13 * dpr);
-      g.font = '500 ' + Math.round(10.5 * dpr) + 'px Inter, sans-serif'; g.fillStyle = col.replace('A', '1'); g.fillText('Lv ' + hero.level + ' · ' + BB.CALLINGS[hero.calling].name, sp.x, sp.y + rw * 0.5 + 27 * dpr);
+      if (!live) { g.font = '500 ' + Math.round(10.5 * dpr) + 'px Inter, sans-serif'; g.fillStyle = col.replace('A', '1'); g.fillText('Lv ' + hero.level + ' · ' + BB.CALLINGS[hero.calling].name, sp.x, sp.y + rw * 0.5 + 27 * dpr); }
+      g.shadowBlur = 0;
     }
   };
   UI.boardClick = function (ev) {

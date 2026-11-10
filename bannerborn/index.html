@@ -272,6 +272,9 @@ button.hc:active{transform:scale(.97)}
 
 /* ---- team */
 #team .board{flex:1.35;position:relative;min-width:0;padding:0;overflow:hidden}
+#team.live > .bg{background:linear-gradient(90deg,rgba(8,10,15,.12) 0%,rgba(8,10,15,.1) 50%,rgba(8,10,15,.78) 62%);-webkit-backdrop-filter:none;backdrop-filter:none}
+#team.live .board{background:transparent;border-color:rgba(255,255,255,.07);box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
+#team.live .board .hint{color:#dfe5ee;text-shadow:0 1px 4px #000}
 #boardCv{position:absolute;inset:0;width:100%;height:100%;border-radius:17px;touch-action:none}
 #team .board .hint{position:absolute;left:0;right:0;bottom:14px;text-align:center;font:500 12px var(--body);color:var(--mute);pointer-events:none}
 #team .side{flex:1;display:flex;flex-direction:column;gap:12px;min-width:0}
@@ -566,6 +569,7 @@ input[type=range]{accent-color:var(--accent)} input[type=checkbox]{accent-color:
 <script src="js/signatures.js"></script>
 <script src="js/epic.js"></script>
 <script src="js/traits.js"></script>
+<script src="js/drill.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/screens.js"></script>
 <script src="js/heroui.js"></script>

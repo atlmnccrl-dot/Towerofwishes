@@ -787,6 +787,7 @@
     if (this.updateTactics) this.updateTactics(dt);
     if (this.updateEpic) this.updateEpic(dtReal, dt);
     if (this.updateTraits) this.updateTraits(dt);
+    if (this.drill && this.updateDrill) this.updateDrill(dt);
     if (this.ents.length > 60) this.ents = this.ents.filter((e) => !(e.dead && e.side === 'foe' && e.deadT > 3));
     for (const c of this.clouds) {
       c.t += dt;
@@ -1582,6 +1583,7 @@
 
   // ---------------------------------------------------------------- peaceful (title / camp)
   Battle.prototype.peacefulAI = function (e, dt) {
+    if (this.drill && e.home && this.drillAI) { this.drillAI(e, dt); return; }
     if (!e.idleT) e.idleT = 2 + this.r() * 6;
     e.idleT -= dt;
     if (e.wander) {
@@ -1664,6 +1666,7 @@
     for (const a of m.anims) if (!a.ground) list.push({ d: a.x + a.y + 0.02, a });
     for (const c of this.chests || []) list.push({ d: c.x + c.y, c });
     for (const n of this.npcs || []) if (n.art) list.push({ d: n.x + n.y, n });
+    if (this.drill) for (const dm of this.drill.dummies) list.push({ d: dm.x + dm.y, dm });
     for (const f of this.fx) if (!f.ground) list.push({ d: f.x + f.y + 0.6, f });
     list.sort((a, b) => a.d - b.d);
     const focus = this.ents.filter((e) => e.side === 'hero' && !e.dead && !e.ward);
@@ -1682,6 +1685,7 @@
       } else if (it.e) this.drawEnt(ctx, it.e);
       else if (it.a) { const a = it.a, s = P(a.x, a.y); let yy = s.y; if (a.pole) { const r = BB.envRect('vale', 'Torch2'); yy += r ? r[5] * BB.ENV_DRAW + 3 : -40; } BB.drawFx(ctx, a.key, Math.floor(a.t * a.fps) % BB.fxLen(a.key), s.x, yy, a.sc, { add: a.add }); }
       else if (it.f) this.drawFxObj(ctx, it.f);
+      else if (it.dm) this.drawDummy(ctx, it.dm);
       else if (it.c) { const s = P(it.c.x, it.c.y); BB.drawEnv(ctx, 'ground', 'Chest ' + (it.c.gold ? (it.c.opened ? 'B2' : 'B1') : (it.c.opened ? 'A2' : 'A1')) + '_S', s.x, s.y, 1);
         if (!it.c.opened) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; const gr = ctx.createRadialGradient(s.x, s.y - 6, 0, s.x, s.y - 6, 16); gr.addColorStop(0, 'rgba(255,220,120,' + (0.25 + Math.sin(this.time * 4) * 0.12) + ')'); gr.addColorStop(1, 'rgba(255,220,120,0)'); ctx.fillStyle = gr; ctx.fillRect(s.x - 18, s.y - 24, 36, 36); ctx.restore(); } }
       else if (it.n) { const s = P(it.n.x, it.n.y); ctx.imageSmoothingEnabled = false; ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.ellipse(s.x, s.y, 9, 4, 0, 0, TAU); ctx.fill();
@@ -1714,6 +1718,7 @@
       ctx.strokeText(t.txt, s.x, y); ctx.fillStyle = t.col; ctx.fillText(t.txt, s.x, y);
       ctx.globalAlpha = 1;
     }
+    if (this.drill && this.drawDrillEmotes) this.drawDrillEmotes(ctx);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     if (this.flash > 0) { ctx.fillStyle = 'rgba(255,230,160,' + this.flash * 0.5 + ')'; ctx.fillRect(0, 0, W, H); }
     if (this.drawEpic && !this.peaceful) this.drawEpic(ctx, W, H, dpr);

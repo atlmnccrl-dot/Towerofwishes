@@ -25,7 +25,7 @@
 
   // ---------------------------------------------------------------- hooks from battle.js
   B.onTrait = function (src, tgt, elem, dmg, crit) {
-    if (this.peaceful || !COL[elem] || !tgt) return;
+    if ((this.peaceful && !this.drill) || !COL[elem] || !tgt) return;
     const F = T(this), C = COL[elem], big = !(tgt.trCd > this.time) || crit;
     if (big) tgt.trCd = this.time + 0.22;
     const k = crit ? 1.5 : 1;

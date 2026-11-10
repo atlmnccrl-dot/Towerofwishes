@@ -142,12 +142,25 @@
     BB.music('calm');
   }
   let campBuilt = null; // the camp is rebuilt only when it changes (new heroes, new stages)
+  let campScene = null, drillScene = null;
+  BB.liveScene = () => scene;
+  // the team screen opens onto the land the campaign is in, the formation's heroes living on it
+  BB.openDrill = async function (idx) {
+    const S = BB.save, M = BB.drillStage(S, idx);
+    if (scene && scene.drill && scene.drill.stage.id === M.id) return;
+    if (!(drillScene && drillScene.drill.stage.id === M.id)) {
+      try { drillScene = await BB.buildDrillScene(S, idx); } catch (e) { return; }
+      await BB.loadHeroes(BB.teamHeroes(S));
+    }
+    if (UI.current === 'team') { scene = drillScene; mode = 'camp'; }
+  };
   function campKey() { const S = BB.save; return S.leader + '|' + campHeroes().map((h) => h.id).join(',') + '|' + Object.keys(S.cleared).length; }
   async function goCamp() {
     const S = BB.save;
     mode = 'camp';
     await BB.loadHeroes(S.heroes);
-    if (!scene || !scene.peaceful || scene.isTitle || campBuilt !== campKey()) { scene = await buildCampScene(false); campBuilt = campKey(); }
+    if (campScene && campBuilt === campKey()) scene = campScene;
+    else { scene = campScene = await buildCampScene(false); campBuilt = campKey(); }
     drawTopBanner();
     UI.renderHome();
     UI.show('home');
@@ -466,6 +479,7 @@
     if (scene && (visible || mode === 'battle')) {
       scene.cam.zoom = camZoom() * (scene.zoomK || 1);
       if (scene.isTitle) { scene.cam.x = scene.map.w / 2 + Math.sin(t / 9000) * 1.6 - 1.2; scene.cam.y = scene.map.h / 2 + Math.cos(t / 11000) * 0.8 + 0.4; }
+      else if (scene.drill) { if (UI.current === 'team' && UI.teamLayout) UI.teamLayout(scene, W, H, DPR); }
       else if (scene.peaceful) { scene.cam.x = scene.map.w / 2 - 1.8 + Math.sin(t / 14000) * 0.4; scene.cam.y = scene.map.h / 2 + 1.6; }
       const reps = mode === 'battle' && !scene.intro && !scene.result ? Math.min(3, Math.max(1, BB.save.settings.speed || 1)) : 1;
       for (let i = 0; i < reps; i++) scene.update(dt, null);
