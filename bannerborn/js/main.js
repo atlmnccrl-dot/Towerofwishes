@@ -187,7 +187,7 @@
     drawTopBanner();
     UI.renderHome();
     UI.show('home');
-    BB.music('calm');
+    BB.music('calm'); BB.ambience(null);
     BB.persist();
     if (wasDev) openTheater();
   }
@@ -252,7 +252,7 @@
     buildHud();
     UI.show('hud');
     UI.versusOut();
-    BB.music(M.type === 'boss' || M.type === 'duel' ? 'boss' : 'battle');
+    BB.music(M.type === 'boss' || M.type === 'duel' ? 'boss' : region.skin || 'battle'); BB.ambience(region.skin || null); // a far march has its own score, and its own air under it
     tutorial = M.tutorial && !S.seen.tutorial ? 0 : -1; tutT = 0;
   }
 

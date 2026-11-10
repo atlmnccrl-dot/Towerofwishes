@@ -371,6 +371,8 @@
     if (src && src.side === 'hero') { src.dealt = (src.dealt || 0) + dmg; this.addRally(dmg * 0.045); if (src.st && src.st.leech) src.hp = Math.min(src.maxhp, src.hp + dmg * src.st.leech); }
     if (tgt.side === 'hero' && tgt.st && tgt.st.thorns && src && !src.ranged && !o.aoe) this.hit(null, src, 1, { atk: dmg * tgt.st.thorns * 3, aoe: true });
     if (o.burn) { tgt.buffs.burn = 3; tgt.burnAtk = Math.max(tgt.burnAtk || 0, atk); }
+    if (o.venom) { tgt.buffs.poison = 3; tgt.poisonN = Math.max(tgt.poisonN || 0, 1); tgt.poisonAtk = Math.max(tgt.poisonAtk || 0, atk * 0.5); } // a foe's venom: one stack, half strength
+    if (o.drain && src && !src.dead) { src.hp = Math.min(src.maxhp, src.hp + dmg * 0.3); if (this.r() < 0.5) this.addFx('buff3', src.x, src.y, { sc: 0.35, add: true, hue: 230 }); } // the Hollow's dead feed on what they wound
     if (o.elem && src && tgt.side === 'foe') {
       const E = BB.ELEMENTS[o.elem];
       if (E.effect === 'burn') { tgt.buffs.burn = 3; tgt.burnAtk = Math.max(tgt.burnAtk || 0, atk); }
@@ -994,7 +996,7 @@
   // vanish and reappear somewhere better; high-level heroes and some foes can
   Battle.prototype.canBlink = function (e) {
     if (e.side === 'hero') { const h = e.hero; return (h.level >= 15 || (h.stars || 1) >= 3 || !!h.legend) && ['shadowblade', 'arcanist', 'ranger', 'monk', 'warpriest'].includes(e.calling); }
-    return e.kind === 'stalker' || (e.F && e.F.phase);
+    return e.kind === 'stalker' || (e.F && (e.F.phase || e.F.blinks));
   };
   Battle.prototype.blink = function (e, x, y) {
     if (!((e.blinkCd || 0) <= 0) || e.dead) return false;
@@ -1476,7 +1478,7 @@
       const eh = e.elem && BB.ELEMENTS[e.elem] ? BB.ELEMENTS[e.elem].hue : (e.kind === 'sallow' ? 160 : 0);
       this.shoot(e, t.x, t.y, e.proj || 'curse', 1, { hue: eh, slow: (e.elite && e.elite.slow) || e.elem === 'frost', burn: e.elem === 'fire' }); return;
     }
-    if (hyp(t.x - e.x, t.y - e.y) - (t.r || 0) <= e.range + 0.45) this.hit(e, t, e.punish ? 1.4 : 1, { slow: e.elite && e.elite.slow, heavy: e.boss });
+    if (hyp(t.x - e.x, t.y - e.y) - (t.r || 0) <= e.range + 0.45) this.hit(e, t, e.punish ? 1.4 : 1, { slow: (e.elite && e.elite.slow) || e.F.touch === 'slow', burn: e.F.touch === 'burn', venom: e.F.touch === 'poison', drain: e.F.touch === 'leech', heavy: e.boss });
     e.punish = false;
   };
 

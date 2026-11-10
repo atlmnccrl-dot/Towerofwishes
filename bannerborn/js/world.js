@@ -680,6 +680,33 @@
     }
     m.tiled = true;
   }
+  // what a land leaves on its ground, painted once with the ground: drifts and bare ice, scorch and fissures that
+  // still glow, black pools, rings of pale caps
+  function landMarks(m, g, r) {
+    const n = Math.round(m.w * m.h * 0.035);
+    const spot = () => { for (let i = 0; i < 8; i++) { const x = r.range(1, m.w - 1), y = r.range(1, m.h - 1), t = m.at(x, y); if (t !== 3 && t !== 2) return BB.iso(x, y); } return null; };
+    const blot = (s, rx, ry, c0, c1) => { const gr = g.createRadialGradient(s.x, s.y, 0, s.x, s.y, rx); gr.addColorStop(0, c0); gr.addColorStop(1, c1); g.save(); g.translate(s.x, s.y); g.scale(1, ry / rx); g.translate(-s.x, -s.y); g.fillStyle = gr; g.beginPath(); g.arc(s.x, s.y, rx, 0, 7); g.fill(); g.restore(); };
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    for (let i = 0; i < n; i++) {
+      const s = spot(); if (!s) continue; const k = r.range(0.7, 1.5);
+      if (m.skin === 'frost') {
+        if (r() < 0.6) blot(s, 26 * k, 11 * k, 'rgba(255,255,255,0.55)', 'rgba(255,255,255,0)'); // a drift
+        else { blot(s, 22 * k, 9 * k, 'rgba(140,196,235,0.55)', 'rgba(140,196,235,0)'); g.strokeStyle = 'rgba(255,255,255,0.75)'; g.lineWidth = 1; g.beginPath(); g.moveTo(s.x - 8 * k, s.y + 1); g.lineTo(s.x - 1, s.y - 2 * k); g.moveTo(s.x + 2, s.y + 2 * k); g.lineTo(s.x + 9 * k, s.y - 1); g.stroke(); } // bare ice, the light on it
+      } else if (m.skin === 'ash') {
+        if (r() < 0.55) blot(s, 28 * k, 12 * k, 'rgba(8,6,6,0.5)', 'rgba(8,6,6,0)'); // scorch
+        else { // a fissure
+          blot(s, 24 * k, 9 * k, 'rgba(255,110,30,0.22)', 'rgba(255,110,30,0)');
+          let x = s.x - 16 * k, y = s.y + r.range(-3, 3); const pts = [[x, y]]; for (let q = 0; q < 5; q++) { x += r.range(5, 9) * k; y += r.range(-3.5, 3.5) * k; pts.push([x, y]); }
+          for (const [w, c] of [[3.2, 'rgba(120,30,6,0.9)'], [1.4, 'rgba(255,170,60,0.95)']]) { g.strokeStyle = c; g.lineWidth = w; g.beginPath(); pts.forEach((q, j) => (j ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]))); g.stroke(); }
+        }
+      } else if (m.skin === 'mire') { // black water standing in the low ground
+        blot(s, 24 * k, 10 * k, 'rgba(10,26,28,0.78)', 'rgba(10,26,28,0)'); g.strokeStyle = 'rgba(150,200,170,0.35)'; g.lineWidth = 1; g.beginPath(); g.ellipse(s.x + 2 * k, s.y - 1, 9 * k, 2.6 * k, 0, 3.4, 5.6); g.stroke();
+      } else if (m.skin === 'blight') {
+        if (r() < 0.5) blot(s, 30 * k, 12 * k, 'rgba(190,110,255,0.16)', 'rgba(190,110,255,0)');
+        else { const nn = 7 + r.int(4), rad = r.range(9, 15) * k; for (let q = 0; q < nn; q++) { const a = q / nn * 6.283 + r.range(-0.2, 0.2), x = s.x + Math.cos(a) * rad, y = s.y + Math.sin(a) * rad * 0.5; g.fillStyle = 'rgba(50,34,70,0.6)'; g.fillRect(x - 1, y + 1, 2, 1); g.fillStyle = r() < 0.3 ? 'rgba(226,150,255,0.95)' : 'rgba(236,224,244,0.92)'; g.fillRect(x - 1, y - 1, 2, 2); } } // a ring of pale caps
+      }
+    }
+  }
   BB.renderGround = function (m, scale) {
     scale = scale || 1.5;
     const P = (m.skin && BB.LANDSKINS[m.skin].pal) || PAL[m.biome];
@@ -735,6 +762,7 @@
       if (r() < 0.4) { g.strokeStyle = 'rgba(200,230,255,0.25)'; g.lineWidth = 0.8; g.beginPath(); g.ellipse(s.x + r.range(-8, 8), s.y + r.range(-4, 4), 5, 1.6, 0, 0, 7); g.stroke(); }
     }
     if (BB.A.env.ground) drawTiles(m, g, r, MG);
+    if (m.skin) landMarks(m, g, BB.rng(m.seed + 91));
     // grass tufts / sand ripples
     if (m.tiled) { // soft light and shade over the tiles so the grid does not read too strongly
       for (let i = 0; i < (m.w + MG * 2) * (m.h + MG * 2) * 0.25; i++) {

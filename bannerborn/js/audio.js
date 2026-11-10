@@ -126,7 +126,17 @@
   let musTimer = null, mood = null, step = 0, nextT = 0;
   const CH = { calm: [[146.8, 220, 293.7], [116.5, 174.6, 233.1], [130.8, 196, 261.6], [110, 164.8, 220]],
     battle: [[146.8, 220, 293.7], [174.6, 261.6, 349.2], [130.8, 196, 261.6], [116.5, 174.6, 233.1]],
-    boss: [[146.8, 207.7, 293.7], [138.6, 207.7, 277.2], [155.6, 233.1, 311.1], [130.8, 196, 261.6]] };
+    boss: [[146.8, 207.7, 293.7], [138.6, 207.7, 277.2], [155.6, 233.1, 311.1], [130.8, 196, 261.6]],
+    frost: [[146.8, 220, 293.7], [116.5, 174.6, 233.1], [174.6, 220, 261.6], [130.8, 196, 261.6]],
+    ash: [[146.8, 220, 293.7], [155.6, 233.1, 311.1], [146.8, 220, 293.7], [130.8, 196, 261.6]],
+    mire: [[110, 164.8, 220], [103.8, 155.6, 207.7], [110, 164.8, 220], [98, 146.8, 196]],
+    blight: [[146.8, 174.6, 207.7], [138.6, 164.8, 196], [155.6, 185, 220], [146.8, 174.6, 207.7]] };
+  // how each mood is played: its pace, where the drum falls in the bar of eight, what carries the tune
+  const STYLE = { calm: { bpm: 70 }, battle: { bpm: 104 }, boss: { bpm: 118 },
+    frost: { bpm: 92, drums: [0, 4], bell: true, arp: 'sine', oct: 4 },      // slow, high and thin: bells over snow
+    ash: { bpm: 112, drums: [0, 2, 3, 4, 6], low: true },                    // heavy and driving
+    mire: { bpm: 84, drums: [0, 5], arp: 'sine', oct: 1, wobble: true },     // sparse, with something low moving under it
+    blight: { bpm: 98, drums: [0, 3, 6], arp: 'square', oct: 2 } };          // a wrong chord, a hollow voice
   function drum(t, f, vol) {
     const o = ac.createOscillator(); o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f * 0.4, t + 0.3);
     const g = ac.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
@@ -144,16 +154,19 @@
   }
   function schedule(until) {
     if (!ac) return;
-    const bpm = mood === 'calm' ? 70 : mood === 'boss' ? 118 : 104;
+    const S = STYLE[mood] || STYLE.battle, bpm = S.bpm;
     const beat = 60 / bpm;
     while (nextT < (until === undefined ? ac.currentTime + 0.4 : until)) {
       const bar = Math.floor(step / 8), b = step % 8;
       const ch = CH[mood][bar % 4];
       if (b === 0) pad(nextT, ch, beat * 8, mood === 'calm' ? 0.03 : 0.025);
       if (mood !== 'calm') {
-        if (b === 0 || b === 3 || b === 4 || (mood === 'boss' && b === 6)) drum(nextT, 70, 0.6);
-        if (b === 2 || b === 6) { const s = ac.createBufferSource(); s.buffer = noiseBuf; const f = ac.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 1500; const g = ac.createGain(); g.gain.setValueAtTime(0.12, nextT); g.gain.exponentialRampToValueAtTime(0.001, nextT + 0.12); s.connect(f); f.connect(g); g.connect(musBus); s.start(nextT); s.stop(nextT + 0.15); }
-        if (b % 2 === 1) tone(nextT, beat * 0.9, ch[0] * 2 * [1, 1.2, 1.5, 1.33][(step >> 1) % 4], 0, 'triangle', 0.035, musBus);
+        if (S.drums ? S.drums.includes(b) : (b === 0 || b === 3 || b === 4 || (mood === 'boss' && b === 6))) drum(nextT, S.low ? 55 : 70, 0.6);
+        if (S.low && b === 4) drum(nextT + beat * 0.25, 46, 0.45);
+        if (S.bell && (b === 2 || b === 5)) tone(nextT, beat * 2.5, ch[2] * 4, 0, 'sine', 0.03, musBus);
+        if (S.wobble && b === 0) tone(nextT, beat * 3.5, ch[0] * 0.5, ch[0] * 0.47, 'sawtooth', 0.05, musBus);
+        if (!S.bell && (b === 2 || b === 6)) { const s = ac.createBufferSource(); s.buffer = noiseBuf; const f = ac.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 1500; const g = ac.createGain(); g.gain.setValueAtTime(0.12, nextT); g.gain.exponentialRampToValueAtTime(0.001, nextT + 0.12); s.connect(f); f.connect(g); g.connect(musBus); s.start(nextT); s.stop(nextT + 0.15); }
+        if (b % 2 === 1) tone(nextT, beat * 0.9, ch[0] * (S.oct || 2) * [1, 1.2, 1.5, 1.33][(step >> 1) % 4], 0, S.arp || 'triangle', S.arp === 'square' ? 0.016 : 0.035, musBus);
       } else if (b === 0 || b === 4) {
         tone(nextT, beat * 3, ch[2] * 2, 0, 'sine', 0.03, musBus);
       }
@@ -215,6 +228,29 @@
     mood = m; step = 0; nextT = ac.currentTime + 0.1;
     if (!musTimer) musTimer = setInterval(() => { if (mood) schedule(); }, 120);
     if (!m) { clearInterval(musTimer); musTimer = null; }
+  };
+
+  // ---- a land's air, under its music: wind over snow, a burnt land's fires, the fen at night, the Hollow's hum
+  let amb = null;
+  BB.ambience = function (kind) {
+    if (BB.audioClock) return;
+    if (amb && amb.kind === kind) return;
+    if (amb) { const a = amb; amb = null; clearInterval(a.timer); const t = ac.currentTime; a.g.gain.cancelScheduledValues(t); a.g.gain.setValueAtTime(a.g.gain.value, t); a.g.gain.linearRampToValueAtTime(0.0001, t + 0.8); a.stop.forEach((n) => { try { n.stop(t + 0.9); } catch (e) { /* already stopped */ } }); }
+    if (!kind || !init()) return;
+    const t = ac.currentTime, g = ac.createGain(), stop = []; let timer = null;
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(1, t + 2); g.connect(musBus);
+    const wind = (f, q, vol, rate, depth) => { const src = ac.createBufferSource(); src.buffer = noiseBuf; src.loop = true; const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = q; bp.frequency.value = f;
+      const lfo = ac.createOscillator(); lfo.frequency.value = rate; const lg = ac.createGain(); lg.gain.value = depth; lfo.connect(lg); lg.connect(bp.frequency);
+      const vg = ac.createGain(); vg.gain.value = vol; src.connect(bp); bp.connect(vg); vg.connect(g); src.start(t); lfo.start(t); stop.push(src, lfo); };
+    const hum = (freqs, vol) => { for (const f of freqs) { const o = ac.createOscillator(); o.frequency.value = f; const vg = ac.createGain(); vg.gain.value = vol; o.connect(vg); vg.connect(g); o.start(t); stop.push(o); } };
+    const blip = (type, f0, f1, vol, dur, hp) => { if (ac.state !== 'running') return; const tt = ac.currentTime + Math.random() * 0.4, cg = ac.createGain(); cg.gain.setValueAtTime(vol, tt); cg.gain.exponentialRampToValueAtTime(0.001, tt + dur); cg.connect(g);
+      if (type === 'noise') { const n = ac.createBufferSource(); n.buffer = noiseBuf; const f = ac.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = hp; n.connect(f); f.connect(cg); n.start(tt, Math.random()); n.stop(tt + dur + 0.05); }
+      else { const o = ac.createOscillator(); o.type = type; o.frequency.setValueAtTime(f0, tt); o.frequency.exponentialRampToValueAtTime(f1, tt + dur * 0.8); o.connect(cg); o.start(tt); o.stop(tt + dur + 0.05); } };
+    if (kind === 'frost') { wind(520, 1.2, 0.5, 0.11, 260); wind(1500, 3, 0.16, 0.23, 500); }
+    else if (kind === 'ash') { wind(180, 0.8, 0.5, 0.07, 60); timer = setInterval(() => { for (let i = 0; i < 3; i++) if (Math.random() < 0.6) blip('noise', 0, 0, 0.25 + Math.random() * 0.3, 0.03 + Math.random() * 0.05, 2500 + Math.random() * 3000); }, 400); } // embers cracking
+    else if (kind === 'mire') { wind(300, 0.7, 0.3, 0.05, 80); hum([55, 55.6], 0.12); timer = setInterval(() => { const q = Math.random(); if (q < 0.25) blip('sine', 900 + Math.random() * 500, 560, 0.12, 0.18); else if (q < 0.45) blip('square', 150 + Math.random() * 60, 200, 0.05, 0.14); }, 900); } // a drip, a croak
+    else if (kind === 'blight') { wind(240, 2, 0.25, 0.04, 90); hum([73.4, 77.8, 110.4, 147.2], 0.07); }
+    amb = { kind, g, stop, timer };
   };
 
   // ---- sound for a recording (the trailer's video). While BB.audioClock is set, nothing plays: every sound asked for

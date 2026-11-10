@@ -130,7 +130,16 @@ A hero-collector RPG: you build the team, the team fights.
    war against the Cantor. The last four are **the far marches**, the gates his choir opened at the edges of the
    world: **the Frostmarch** (snow; Hroald, the Rime Jarl), **the Cinderfields** (burnt land, roads that still glow;
    Maelis, the Cinder Witch), **Mirefen** (drowned fen; Old Morwen, the Fen Mother) and **the Hollow** (blighted,
-   violet; Aurelian, the Hollow King). Six stages each, enemy levels 28 to 47, each with its own weather. Stage kinds:
+   violet; Aurelian, the Hollow King). Six stages each, enemy levels 28 to 47. Each land is its own place:
+   - **its own dead**, the old kinds in the land's colour with the land's touch on every blow: Rime Reavers,
+     Frostbound Wardens and Ice Seers *slow*; Ember Reavers, Cinder Wardens and Ashcallers *burn*; Bog Reavers,
+     Fen Lurkers and Mossback Wardens *poison* (one stack, half strength); Hollow Reavers, Pale Stalkers and
+     Blighted Wardens *feed on what they wound*;
+   - **its own score and air** (js/audio.js `STYLE`, `BB.ambience`): bells and wind over the snow, heavy drums and
+     cracking embers, a sparse line over a low wobble with drips and croaks, a wrong chord over a hum;
+   - **its own ground**, painted with the tiles: drifts and bare ice, scorch and fissures that still glow, black
+     pools, rings of pale caps; and its own weather (snow, cinders, spores, motes).
+   Stage kinds:
    rout waves, destroy Gravegates, defend a ward against the clock, a duel and eight bosses with
    telegraphed moves and enrage phases. Each stage shows the recommended power next to yours.
 7. **Camp.** Your chosen hero stands by the fire; the camp grows tents, a forge, a shrine and a
