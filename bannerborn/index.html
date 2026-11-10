@@ -469,6 +469,7 @@ input[type=range]{accent-color:var(--accent)} input[type=checkbox]{accent-color:
 </head>
 <body>
 <canvas id="game"></canvas>
+<div id="fps" style="display:none;position:fixed;left:50%;bottom:calc(4px + var(--safe-b));transform:translateX(-50%);z-index:61;padding:2px 10px;border-radius:999px;background:rgba(10,14,12,.8);color:#8fd88a;font:600 10px ui-monospace,Menlo,monospace;pointer-events:none;white-space:nowrap"></div>
 
 <div id="boot" class="screen on"><div class="logo">BANNERBORN</div><div class="bar"><i></i></div><div class="tag" id="bootmsg">Raising the banner…</div></div>
 
@@ -585,6 +586,7 @@ input[type=range]{accent-color:var(--accent)} input[type=checkbox]{accent-color:
 <div id="mTheater" class="modal"><div class="frame scroll" style="width:min(760px,94vw);max-height:88vh">
   <h2 class="gold">Development</h2>
   <div class="mute" style="font-size:13px;margin-top:-6px">Temporary, for building the game. Watch any moment without playing to it: <b style="color:#8fd88a">live</b> tiles play the real game with a full-strength team in a sandbox (nothing is saved, your progress is untouched); the rest are cutscenes and summonings. Leaving a battle brings you back here.</div>
+  <pre id="perfOut" style="display:none;white-space:pre-wrap;user-select:text;-webkit-user-select:text;font:500 11.5px/1.5 ui-monospace,Menlo,monospace;color:#cfe8cf;background:rgba(20,40,22,.5);border:1px solid rgba(143,216,138,.35);border-radius:12px;padding:12px 14px;margin:0"></pre>
   <div id="theaterList"></div>
   <div class="row"><div class="grow"></div><button class="btn" id="bTheaterClose">Close</button></div>
 </div></div>

@@ -327,89 +327,162 @@
     }
     UI.renderStageCard();
   };
-  // the chapter map: painted ground, a road between the stages, the region's trees, rocks and ruins
+  // ---- the chapter map: a painted land seen from a hill. A strip of sky and far ridges at the top, the country below
+  // it, a road that narrows as it runs away, and on the road the stages: your banner where you have won, your hero
+  // by a fire at the stage to fight, stone waymarks ahead, and at the end of the road the boss's gate.
   const mapCache = {};
-  const ROADS = { 1: [0.5, 0.26, 2.2], 2: [0.55, 0.3, 1.6], 3: [0.48, 0.28, 2.6], 4: [0.5, 0.24, 1.9] };
+  const ROADS = { 1: [0.56, 0.2, 2.2], 2: [0.6, 0.2, 1.6], 3: [0.55, 0.21, 2.6], 4: [0.57, 0.19, 1.9] };
+  const LAND = {
+    1: { sky: ['#2a4e72', '#7fb0c2', '#f4e2ac'], sun: ['255,244,200', 0.8, 0.13], far: ['#2f5a48', '#234636'], ground: ['#4d7a34', '#2f5220', '#182c12'], road: ['#a08a5e', '#6e5c3c'], speck: '255,255,220' },
+    2: { sky: ['#3a1c14', '#c8703a', '#ffd9a0'], sun: ['255,225,160', 0.3, 0.15], far: ['#b9864c', '#96683a'], ground: ['#dcb574', '#b0854c', '#6a4a28'], road: ['#f0d9aa', '#b8935e'], speck: '255,240,200' },
+    3: { sky: ['#120c1e', '#4a2a40', '#b8604e'], sun: ['240,236,255', 0.76, 0.1], far: ['#241a2a', '#17101c'], ground: ['#63605a', '#3f3d39', '#1e1d1b'], road: ['#9a958a', '#5e5a52'], speck: '255,255,255' },
+    4: { sky: ['#07060c', '#1a1030', '#4a2a6a'], sun: ['125,255,176', 0.86, 0.17], far: ['#181028', '#0e0a18'], ground: ['#45355a', '#281c3a', '#100a18'], road: ['#7a6896', '#44365a'], speck: '200,180,255' },
+  };
+  const HZ = 0.2; // the horizon: this much of the picture is sky
+  const depthK = (y, h) => 0.55 + 0.75 * Math.max(0, (y / h - HZ) / (1 - HZ)); // how big things are drawn, by how far down (near) they stand
   function chapterNodes(ch, w, h) {
     const ms = BB.MISSIONS.map((m, i) => [m, i]).filter(([m]) => m.chapter === ch.id), R = ROADS[ch.id];
-    return ms.map(([m, i], k) => { const u = (k + 0.5) / ms.length; return { i, m, x: (0.07 + u * 0.86) * w, y: h * (R[0] + Math.sin(u * Math.PI * R[2] + 0.6) * R[1]) }; });
+    return ms.map(([m, i], k) => { const u = (k + 0.5) / ms.length; return { i, m, x: (0.07 + u * 0.84) * w, y: h * (R[0] + Math.sin(u * Math.PI * R[2] + 0.6) * R[1]) }; });
+  }
+  function roadPoints(nodes, w, h) { // the road as a smooth run of points through the stages, in from the left edge
+    const pts = [], P = [{ x: -40, y: nodes[0].y + h * 0.06 }].concat(nodes);
+    for (let k = 0; k < P.length - 1; k++) { const p0 = P[Math.max(0, k - 1)], p1 = P[k], p2 = P[k + 1], p3 = P[Math.min(P.length - 1, k + 2)];
+      for (let j = 0; j < 12; j++) { const t = j / 12, t2 = t * t, t3 = t2 * t; // Catmull-Rom
+        pts.push({ x: 0.5 * (2 * p1.x + (-p0.x + p2.x) * t + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 + (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3),
+          y: 0.5 * (2 * p1.y + (-p0.y + p2.y) * t + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3), k }); } }
+    pts.push({ x: P[P.length - 1].x, y: P[P.length - 1].y, k: P.length - 2 });
+    return pts;
   }
   function chapterBackdrop(ch, w, h, dpr) {
     const key = ch.id + '|' + w + 'x' + h;
     if (mapCache[key]) return mapCache[key];
-    const biome = ch.biome || 'vale';
+    const biome = ch.biome || 'vale', L = LAND[ch.id] || LAND[1];
     if (!BB.A.env[biome]) { BB.loadEnv(biome).then(() => { for (const k in mapCache) if (k.startsWith(ch.id + '|')) delete mapCache[k]; }); }
     const c = document.createElement('canvas'); c.width = w; c.height = h;
-    const g = c.getContext('2d');
-    const tone = { 1: ['#4a6a2e', '#2a3e1a', '#1a2810'], 2: ['#c8a36a', '#9a7a48', '#5e4526'], 3: ['#5a5a54', '#3a3a36', '#222220'], 4: ['#3e3050', '#261c36', '#130d1c'] }[ch.id];
-    const bg = g.createRadialGradient(w * 0.5, h * 0.45, 0, w * 0.5, h * 0.5, Math.max(w, h) * 0.75);
-    bg.addColorStop(0, tone[0]); bg.addColorStop(0.6, tone[1]); bg.addColorStop(1, tone[2]); g.fillStyle = bg; g.fillRect(0, 0, w, h);
-    const r = BB.rng(ch.id * 77);
-    for (let i = 0; i < 260; i++) { // grass and grit
-      g.fillStyle = r() < 0.5 ? 'rgba(255,255,255,' + r.range(0.015, 0.05) + ')' : 'rgba(0,0,0,' + r.range(0.03, 0.09) + ')';
-      const x = r() * w, y = r() * h, s = r.range(3, 16) * dpr; g.beginPath(); g.ellipse(x, y, s, s * 0.5, 0, 0, 7); g.fill();
-    }
-    const nodes = chapterNodes(ch, w, h);
-    // the road
-    const road = (wd, col) => { g.strokeStyle = col; g.lineWidth = wd; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); g.moveTo(nodes[0].x - 60 * dpr, nodes[0].y + 10 * dpr);
-      for (let k = 0; k < nodes.length; k++) { const a = nodes[k], b = nodes[k + 1]; if (!b) { g.lineTo(a.x, a.y); break; } g.quadraticCurveTo(a.x, a.y, (a.x + b.x) / 2, (a.y + b.y) / 2); } g.stroke(); };
-    road(18 * dpr, 'rgba(0,0,0,0.3)'); road(12 * dpr, ch.id === 2 ? '#cdb084' : ch.id === 3 ? '#78746b' : '#7d6646');
-    // props, kept off the road, drawn back to front
+    const g = c.getContext('2d'), r = BB.rng(ch.id * 77), hz = h * HZ;
+    // sky, its light, clouds
+    const sky = g.createLinearGradient(0, 0, 0, hz * 1.15); sky.addColorStop(0, L.sky[0]); sky.addColorStop(0.6, L.sky[1]); sky.addColorStop(1, L.sky[2]); g.fillStyle = sky; g.fillRect(0, 0, w, hz * 1.2);
+    if (ch.id >= 3) for (let i = 0; i < 70; i++) { g.fillStyle = 'rgba(255,255,255,' + r.range(0.2, 0.8) + ')'; g.fillRect(r() * w, r() * hz * 0.8, dpr, dpr); }
+    const sx = w * L.sun[1], sy = hz * (ch.id === 2 ? 0.55 : 0.5), sr = h * L.sun[2] * 0.45;
+    g.save(); g.globalCompositeOperation = 'lighter'; if (BB.drawGlow) { BB.drawGlow(g, L.sun[0], sx, sy, sr * 5, sr * 3.2, 0.5); BB.drawGlow(g, L.sun[0], sx, sy, sr * 2, sr * 2, 0.7); } g.restore();
+    if (ch.id !== 4) { g.fillStyle = 'rgb(' + L.sun[0] + ')'; g.beginPath(); g.arc(sx, sy, sr, 0, 7); g.fill(); }
+    if (BB.drawGlow) for (let i = 0; i < 7; i++) BB.drawGlow(g, ch.id === 2 ? '255,200,150' : ch.id === 1 ? '255,255,255' : '90,70,110', r() * w, r.range(0.1, 0.75) * hz, w * r.range(0.08, 0.18), hz * r.range(0.12, 0.22), ch.id <= 2 ? 0.28 : 0.4);
+    // the far country: two ridges, each land's own
+    const ridge = (y0, amp, seed, col, fn) => { g.fillStyle = col; g.beginPath(); g.moveTo(-10, hz * 1.3);
+      for (let i = 0; i <= 80; i++) { const x = i / 80 * (w + 20) - 10, u = x / w; g.lineTo(x, y0 - amp * fn(u, seed)); } g.lineTo(w + 10, hz * 1.3); g.closePath(); g.fill(); };
+    const hills = (u, s2) => Math.sin(u * 5.3 + s2) * 0.5 + Math.sin(u * 13.1 + s2 * 2) * 0.3 + Math.sin(u * 31 + s2) * 0.12 + 0.6;
+    const peaks = (u, s2) => Math.abs(Math.sin(u * 9 + s2)) * 0.9 + Math.abs(Math.sin(u * 23 + s2 * 3)) * 0.4;
+    const dunes = (u, s2) => Math.sin(u * 3.1 + s2) * 0.6 + Math.sin(u * 7.3 + s2 * 2) * 0.25 + 0.7;
+    const fn = ch.id === 2 ? dunes : ch.id === 4 ? peaks : hills;
+    ridge(hz * 0.98, hz * 0.34, ch.id * 3.1, L.far[0], fn); ridge(hz * 1.04, hz * 0.22, ch.id * 5.7 + 2, L.far[1], fn);
+    if (ch.id === 1) { g.fillStyle = '#1a3426'; for (let i = 0; i < 90; i++) { const x = r() * w, y = hz * (0.98 + r() * 0.08), s2 = hz * r.range(0.05, 0.1); g.beginPath(); g.moveTo(x - s2 * 0.45, y); g.lineTo(x, y - s2 * 1.6); g.lineTo(x + s2 * 0.45, y); g.closePath(); g.fill(); } }
+    if (ch.id === 2) { g.fillStyle = '#7a5630'; for (const [px, ps] of [[0.62, 1], [0.7, 0.62], [0.16, 0.5]]) { const x = w * px, s2 = hz * 0.42 * ps, y = hz * 1.02; g.beginPath(); g.moveTo(x - s2, y); g.lineTo(x, y - s2 * 0.95); g.lineTo(x + s2, y); g.closePath(); g.fill(); g.fillStyle = '#93693c'; g.beginPath(); g.moveTo(x, y - s2 * 0.95); g.lineTo(x + s2, y); g.lineTo(x + s2 * 0.25, y); g.closePath(); g.fill(); g.fillStyle = '#7a5630'; } }
+    if (ch.id === 3) { let x = -10; while (x < w + 10) { const bw = w * r.range(0.018, 0.045), bh = hz * r.range(0.18, 0.62); g.fillStyle = '#0e0912'; g.fillRect(x, hz * 1.04 - bh, bw, bh + 4); if (r() < 0.35) { g.beginPath(); g.moveTo(x, hz * 1.04 - bh); g.lineTo(x + bw / 2, hz * 1.04 - bh - hz * 0.14); g.lineTo(x + bw, hz * 1.04 - bh); g.fill(); }
+        for (let q = 0; q < 3; q++) if (r() < 0.4) { g.fillStyle = 'rgba(255,190,110,0.8)'; g.fillRect(x + bw * r.range(0.15, 0.7), hz * 1.04 - bh * r.range(0.2, 0.85), 1.6 * dpr, 2.2 * dpr); } x += bw + r.range(0, 3) * dpr; } }
+    if (ch.id === 4) { g.strokeStyle = '#06040a'; g.lineCap = 'round'; for (let i = 0; i < 9; i++) { const x = r() * w, y = hz * 1.06, s2 = hz * r.range(0.2, 0.42); g.lineWidth = Math.max(1, s2 * 0.07); g.beginPath(); g.moveTo(x, y); g.lineTo(x + s2 * 0.08, y - s2); g.moveTo(x + s2 * 0.04, y - s2 * 0.5); g.lineTo(x - s2 * 0.3, y - s2 * 0.85); g.moveTo(x + s2 * 0.06, y - s2 * 0.7); g.lineTo(x + s2 * 0.34, y - s2 * 0.98); g.stroke(); } }
+    // the land itself, lit from the horizon, darker towards the eye
+    const gd = g.createLinearGradient(0, hz, 0, h); gd.addColorStop(0, L.ground[0]); gd.addColorStop(0.45, L.ground[1]); gd.addColorStop(1, L.ground[2]); g.fillStyle = gd; g.fillRect(0, hz * 1.02, w, h);
+    const hazeC = L.sky[2], haze = g.createLinearGradient(0, hz * 0.95, 0, hz * 1.9); haze.addColorStop(0, hazeC + '70'); haze.addColorStop(1, hazeC + '00'); g.fillStyle = haze; g.fillRect(0, hz * 0.95, w, hz);
+    for (let i = 0; i < 420; i++) { // the grain of the ground: small near the horizon, larger close by
+      const y = hz * 1.05 + Math.pow(r(), 0.8) * (h - hz), k = depthK(y, h), x = r() * w, s2 = r.range(2, 9) * dpr * k;
+      g.fillStyle = r() < 0.5 ? 'rgba(' + L.speck + ',' + r.range(0.02, 0.07) + ')' : 'rgba(0,0,0,' + r.range(0.04, 0.11) + ')'; g.fillRect(x - s2, y - s2 * 0.22, s2 * 2, s2 * 0.44); }
+    // the road: wider as it comes near, a dark verge, a worn centre
+    const nodes = chapterNodes(ch, w, h), pts = roadPoints(nodes, w, h);
+    const band = (wd, col, dash) => { g.fillStyle = col; for (let i = 0; i < pts.length - 1; i++) { if (dash && i % 3 !== 0) continue; const a = pts[i], b2 = pts[i + 1], ka = depthK(a.y, h) * wd * dpr, kb = depthK(b2.y, h) * wd * dpr, dx = b2.x - a.x, dy = b2.y - a.y, l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l;
+      g.beginPath(); g.moveTo(a.x + nx * ka, a.y + ny * ka * 0.6); g.lineTo(b2.x + nx * kb, b2.y + ny * kb * 0.6); g.lineTo(b2.x - nx * kb, b2.y - ny * kb * 0.6); g.lineTo(a.x - nx * ka, a.y - ny * ka * 0.6); g.closePath(); g.fill(); g.beginPath(); g.ellipse(a.x, a.y, ka, ka * 0.6, 0, 0, 7); g.fill(); } };
+    band(13, 'rgba(0,0,0,0.32)'); band(10.5, L.road[1]); band(8, L.road[0]); band(1.1, 'rgba(255,255,255,0.13)', true);
+    // what grows and stands there, kept off the road, sized by distance, nearest last
     if (BB.A.env[biome]) {
       const pick = { 1: ['Tree A1_S', 'Tree A2_S', 'Tree A3_S', 'Tree B4_S', 'Tree B5_S', 'Tree D1_S', 'Tree D3_S', 'Tree E1_S', 'Stone A1_S', 'Stone A9_S'],
         2: ['Tree A1_S', 'Tree A2_S', 'Tree A4_S', 'Tree E1_S', 'Tree E2_S', 'Stone B1_S', 'Stone B5_S', 'Stone A23_S', 'Stone B7_S', 'Stone A2_S'],
         3: ['Stone A14_S', 'Stone A15_S', 'Stone A6_S', 'Stone A10_S', 'Tree D2_S', 'Tree B4_S', 'Stone A2_S', 'Stone A21_S', 'TreeTrunkBroken'],
-        4: ['Tree D1_S', 'Tree D3_S', 'Stone A14_S', 'Stone A15_S', 'Stone A4_S', 'Stone A13_S', 'TreeTrunkBroken', 'Tree B4_S'] }[ch.id];
-      const near = (x, y) => { for (let k = 0; k < nodes.length - 1; k++) { const a = nodes[k], b = nodes[k + 1]; for (let t = 0; t <= 1; t += 0.1) if (Math.hypot(a.x + (b.x - a.x) * t - x, a.y + (b.y - a.y) * t - y) < 46 * dpr) return true; } return false; };
+        4: ['TreeTrunkBroken', 'Stone A14_S', 'Stone A15_S', 'Stone A4_S', 'Stone A13_S', 'Stone A6_S', 'Stone A10_S', 'TreeTrunkBroken'] }[ch.id];
+      const near = (x, y, d) => pts.some((q) => Math.hypot(q.x - x, (q.y - y) * 1.5) < d);
       const props = [];
-      for (let i = 0; i < 220 && props.length < 70; i++) { const x = r() * w, y = r.range(0.08, 1.05) * h; if (!near(x, y)) props.push({ x, y, n: r.pick(pick), s: r.range(0.55, 0.9) * dpr }); }
-      props.sort((a, b) => a.y - b.y);
-      for (const p of props) { g.fillStyle = 'rgba(0,0,0,0.25)'; g.beginPath(); g.ellipse(p.x, p.y, 16 * p.s, 6 * p.s, 0, 0, 7); g.fill(); BB.drawEnv(g, biome, p.n, p.x, p.y, p.s); }
+      const U = Math.max(0.5, Math.min(1, h / (520 * dpr))); // a small panel (a phone) gets smaller scenery, not a road buried in trees
+      for (let i = 0; i < 500 && props.length < 64; i++) { const y = hz * 1.12 + Math.pow(r(), 0.75) * (h * 1.04 - hz * 1.12), x = r() * w, k = depthK(y, h) * U; if (!near(x, y, 46 * dpr * k / Math.sqrt(U)) && !props.some((p) => Math.hypot(p.x - x, (p.y - y) * 2) < 24 * dpr * k)) props.push({ x, y, n: r.pick(pick), s: r.range(0.5, 0.72) * dpr * k }); }
+      props.sort((p, q) => p.y - q.y);
+      for (const p of props) { if (BB.drawGlow) BB.drawGlow(g, '0,0,0', p.x, p.y, 20 * p.s, 7 * p.s, 0.45); BB.drawEnv(g, biome, p.n, p.x, p.y, p.s); }
     }
-    const vg = g.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.35, w / 2, h / 2, Math.max(w, h) * 0.7);
-    vg.addColorStop(0, 'rgba(0,0,0,0.12)'); vg.addColorStop(1, 'rgba(6,8,12,0.7)'); g.fillStyle = vg; g.fillRect(0, 0, w, h);
+    // the eye is drawn down the road: dark at the corners and the near edge
+    const vg = g.createRadialGradient(w / 2, h * 0.5, Math.min(w, h) * 0.38, w / 2, h * 0.55, Math.max(w, h) * 0.72);
+    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(4,5,9,0.72)'); g.fillStyle = vg; g.fillRect(0, 0, w, h);
+    const top = g.createLinearGradient(0, 0, 0, hz * 0.9); top.addColorStop(0, 'rgba(4,5,9,0.4)'); top.addColorStop(1, 'rgba(4,5,9,0)'); g.fillStyle = top; g.fillRect(0, 0, w, hz * 0.9);
     if (BB.A.env[biome]) mapCache[key] = c;
     return c;
   }
+  const BOSS_COL = { vesh: '#7dffb0', regent: '#c9a8ff', sallow: '#ffd27a' };
   UI.pathRender = function () {
     const c = $('pathCv'); if (!c) return;
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const w = Math.round(c.clientWidth * dpr), h = Math.round(c.clientHeight * dpr); if (!w || !h) return;
     if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
     const g = c.getContext('2d'), S = BB.save, t = performance.now() / 1000;
-    const ch = BB.CHAPTERS.find((x) => x.id === C.ch);
+    const ch = BB.CHAPTERS.find((x) => x.id === C.ch), L = LAND[ch.id] || LAND[1];
+    g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; g.imageSmoothingEnabled = true;
     g.drawImage(chapterBackdrop(ch, w, h, dpr), 0, 0);
-    g.font = '800 ' + Math.round(28 * dpr) + 'px Outfit, sans-serif'; g.fillStyle = 'rgba(255,255,255,0.14)'; g.textAlign = 'left'; g.textBaseline = 'alphabetic';
-    g.fillText(ch.name.toUpperCase(), 18 * dpr, h - 18 * dpr);
     C.nodes = chapterNodes(ch, w, h);
-    for (const n of C.nodes) {
-      const open = BB.stageUnlocked(S, n.i), done = S.cleared[n.m.id], boss = n.m.type === 'boss' || n.m.type === 'duel', sel = C.sel === n.i;
-      const next = open && !done;
-      const R = (boss ? 22 : 17) * dpr;
-      const ring = !open ? 'rgba(255,255,255,0.18)' : done ? '#ffbe55' : boss ? '#ff6b6b' : '#ffffff';
-      if (next) { const gl = g.createRadialGradient(n.x, n.y, R * 0.5, n.x, n.y, R * 2.4); gl.addColorStop(0, (boss ? 'rgba(255,107,107,' : 'rgba(255,255,255,') + (0.28 + Math.sin(t * 3) * 0.1) + ')'); gl.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gl; g.beginPath(); g.arc(n.x, n.y, R * 2.4, 0, 7); g.fill(); }
-      if (sel) { g.strokeStyle = 'rgba(255,190,85,0.9)'; g.lineWidth = 2 * dpr; g.setLineDash([5 * dpr, 4 * dpr]); g.lineDashOffset = -t * 14 * dpr; g.beginPath(); g.arc(n.x, n.y, R + 7 * dpr, 0, 7); g.stroke(); g.setLineDash([]); }
-      g.fillStyle = done ? '#ffbe55' : 'rgba(12,14,21,0.92)'; g.beginPath(); g.arc(n.x, n.y, R, 0, 7); g.fill();
-      g.strokeStyle = ring; g.lineWidth = 2 * dpr; g.stroke();
-      g.textAlign = 'center'; g.textBaseline = 'middle';
-      if (!open) { // a small padlock
-        g.strokeStyle = 'rgba(255,255,255,0.45)'; g.lineWidth = 1.6 * dpr; const u = R * 0.28;
-        g.beginPath(); g.arc(n.x, n.y - u * 0.4, u * 0.8, Math.PI, 0); g.stroke(); g.fillStyle = 'rgba(255,255,255,0.45)'; g.fillRect(n.x - u, n.y - u * 0.4, u * 2, u * 1.6);
-      } else {
-        g.fillStyle = done ? '#1b1206' : boss ? '#ff8f8f' : '#fff';
-        g.font = '700 ' + Math.round((boss ? 13 : 11.5) * dpr) + 'px Outfit, sans-serif';
-        g.fillText(boss ? 'BOSS' : n.m.code, n.x, n.y + dpr);
+    const pts = roadPoints(C.nodes, w, h);
+    // the road already travelled glows faintly gold, up to the stage to fight
+    const cur = C.nodes.find((n) => BB.stageUnlocked(S, n.i) && !S.cleared[n.m.id]) || null, upto = cur ? C.nodes.indexOf(cur) : C.nodes.length;
+    g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = 'rgba(255,200,110,0.5)';
+    for (let i = 0; i < pts.length; i += 2) { const p = pts[i]; if (p.k > upto) break; const k = depthK(p.y, h), q = 0.5 + 0.5 * Math.sin(t * 2.2 - i * 0.35); g.globalAlpha = 0.25 + q * 0.4; g.fillRect(p.x - 1.4 * dpr * k, p.y - 0.8 * dpr * k, 2.8 * dpr * k, 1.6 * dpr * k); }
+    // a little weather over the land
+    for (let i = 0; i < 26; i++) { const q = (t * (0.03 + (i % 5) * 0.008) + i * 0.137) % 1, x = (Math.sin(i * 12.9) * 0.5 + 0.5) * w + Math.sin(t * 0.5 + i) * 12 * dpr, y = h * (ch.id === 2 ? 0.25 + ((i * 0.37) % 0.7) : 1.02 - q * 0.85); g.globalAlpha = Math.sin(q * Math.PI) * 0.5; g.fillStyle = 'rgb(' + L.speck + ')'; g.fillRect(ch.id === 2 ? (x + t * 60 * dpr) % w : x, y, (ch.id === 2 ? 5 : 1.6) * dpr, 1.4 * dpr); }
+    g.restore(); g.globalAlpha = 1;
+    // your banner, kept small and reused for every stage won
+    if (!C.flag) { C.flag = document.createElement('canvas'); C.flag.width = 60; C.flag.height = 84; }
+    UI.drawBanner(C.flag.getContext('2d'), S.banner, 60, 84, t);
+    const lead = S.heroes.find((x) => x.id === S.leader) || S.heroes[0];
+    const order = C.nodes.slice().sort((a, b2) => a.y - b2.y);
+    for (const n of order) {
+      const open = BB.stageUnlocked(S, n.i), done = !!S.cleared[n.m.id], boss = n.m.type === 'boss' || n.m.type === 'duel', sel = C.sel === n.i, next = n === cur;
+      const k = depthK(n.y, h) * dpr * 1.4, x = n.x, y = n.y; // markers stand a little larger than the land's own scale, to be read and tapped
+      if (BB.drawGlow) BB.drawGlow(g, '0,0,0', x, y, 20 * k, 7 * k, 0.55);
+      if (sel) { g.strokeStyle = 'rgba(255,190,85,0.95)'; g.lineWidth = 2 * dpr; g.setLineDash([5 * dpr, 4 * dpr]); g.lineDashOffset = -t * 14 * dpr; g.beginPath(); g.ellipse(x, y, 24 * k, 9 * k, 0, 0, 7); g.stroke(); g.setLineDash([]); }
+      if (boss) { // the gate at the end of the road, in its master's colour; broken and under your banner once it has fallen
+        const col = BOSS_COL[n.m.boss] || '#ff7a6a', gw = 15 * k, gh2 = 40 * k, pulse = 0.6 + 0.4 * Math.sin(t * 3);
+        if (!done) { g.save(); g.globalCompositeOperation = 'lighter'; if (BB.drawGlow) { BB.drawGlow(g, col, x, y - gh2 * 0.5, gw * 3.2, gh2 * 1.5, open ? 0.5 * pulse : 0.2); BB.drawGlow(g, col, x, y, gw * 3, gw * 0.9, open ? 0.5 : 0.2); } g.restore(); }
+        g.fillStyle = '#15121c'; g.beginPath(); g.moveTo(x - gw, y); g.lineTo(x - gw, y - gh2 * 0.6); g.arc(x, y - gh2 * 0.6, gw, Math.PI, 0); g.lineTo(x + gw, y); g.lineTo(x + gw * 0.62, y); g.lineTo(x + gw * 0.62, y - gh2 * 0.6); g.arc(x, y - gh2 * 0.6, gw * 0.62, 0, Math.PI, true); g.lineTo(x - gw * 0.62, y); g.closePath(); g.fill();
+        g.strokeStyle = done ? 'rgba(255,255,255,0.18)' : col; g.lineWidth = 1.2 * dpr; g.stroke();
+        if (!done) { g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = col; g.globalAlpha = open ? 0.35 + 0.2 * pulse : 0.15; g.beginPath(); g.moveTo(x - gw * 0.62, y); g.lineTo(x - gw * 0.62, y - gh2 * 0.6); g.arc(x, y - gh2 * 0.6, gw * 0.62, Math.PI, 0); g.lineTo(x + gw * 0.62, y); g.closePath(); g.fill();
+          if (open) for (let i = 0; i < 3; i++) { const q = (t * 0.8 + i / 3) % 1; g.globalAlpha = (1 - q) * 0.7; g.strokeStyle = col; g.lineWidth = 1.2 * dpr; g.beginPath(); g.ellipse(x, y - gh2 * 0.45, gw * 0.5 * q, gh2 * 0.4 * q, 0, 0, 7); g.stroke(); } g.restore(); }
+        else g.drawImage(C.flag, x - 9 * k, y - gh2 - 20 * k, 18 * k, 25 * k);
+      } else if (done) { // won: your banner stands here
+        g.fillStyle = '#3a2c1c'; g.fillRect(x - 1 * k, y - 34 * k, 2 * k, 34 * k);
+        g.drawImage(C.flag, x + 0.5 * k, y - 35 * k, 15 * k, 21 * k);
+        g.fillStyle = '#ffbe55'; g.fillRect(x - 3.5 * k, y - 2 * k, 7 * k, 2.4 * k);
+      } else if (open && !next) { // open to fight again or out of turn: a lit brazier
+        g.fillStyle = '#2a2622'; g.fillRect(x - 3 * k, y - 9 * k, 6 * k, 9 * k); if (BB.fxLen('fire')) BB.drawFx(g, 'fire', Math.floor(t * 12 + n.i) % BB.fxLen('fire'), x, y - 16 * k, 0.26 * k, { add: true });
+      } else if (!open) { // not yet: a waymark of stacked stones
+        g.fillStyle = '#2b2a30'; g.fillRect(x - 6 * k, y - 6 * k, 12 * k, 6 * k); g.fillStyle = '#3a3940'; g.fillRect(x - 4.5 * k, y - 12 * k, 9 * k, 6 * k); g.fillStyle = '#4a4850'; g.fillRect(x - 3 * k, y - 17 * k, 6 * k, 5 * k);
+        g.strokeStyle = 'rgba(255,255,255,0.4)'; g.lineWidth = 1.2 * dpr; const u = 2.6 * k; g.beginPath(); g.arc(x, y - 24 * k, u * 0.8, Math.PI, 0); g.stroke(); g.fillStyle = 'rgba(255,255,255,0.4)'; g.fillRect(x - u, y - 24 * k, u * 2, u * 1.5);
       }
-      if (n.m.legend && !done) { g.fillStyle = '#5cd3ff'; g.beginPath(); g.arc(n.x + R * 0.8, n.y - R * 0.8, 4.5 * dpr, 0, 7); g.fill(); g.strokeStyle = 'rgba(12,14,21,0.9)'; g.lineWidth = 2 * dpr; g.stroke(); }
-      if (next) { const by = n.y - R - 14 * dpr + Math.sin(t * 4) * 3 * dpr; g.fillStyle = '#ffbe55'; g.beginPath(); g.moveTo(n.x - 6 * dpr, by - 6 * dpr); g.lineTo(n.x + 6 * dpr, by - 6 * dpr); g.lineTo(n.x, by + 2 * dpr); g.closePath(); g.fill(); }
+      if (next) { // the stage to fight: a fire, and your hero waiting by it
+        g.save(); g.globalCompositeOperation = 'lighter'; if (BB.drawGlow) BB.drawGlow(g, boss ? (BOSS_COL[n.m.boss] || '#ff7a6a') : '255,190,110', x, y - 4 * k, 34 * k, 13 * k, 0.5 + Math.sin(t * 3) * 0.15); g.restore();
+        if (!boss && BB.fxLen('fire')) BB.drawFx(g, 'fire', Math.floor(t * 12) % BB.fxLen('fire'), x + 11 * k, y - 8 * k, 0.24 * k, { add: true });
+        if (lead) { const layers = BB.heroLayers(lead); if (layers.every((l2) => BB.A.chars[l2.key])) { const nI = BB.clipLen(layers[0].key, 'Idle') || 15; g.imageSmoothingEnabled = false; BB.drawLayers(g, layers, 'Idle', 1, Math.floor(t * 9) % nI, x - (boss ? 24 : 4) * k, y + 1 * k, 0.72 * k, { noSlash: true }); g.imageSmoothingEnabled = true; } else BB.loadHeroes([lead]); }
+        const by = y - (boss ? 62 : 46) * k + Math.sin(t * 4) * 3 * dpr; g.fillStyle = '#ffbe55'; g.beginPath(); g.moveTo(x - 6 * dpr, by - 6 * dpr); g.lineTo(x + 6 * dpr, by - 6 * dpr); g.lineTo(x, by + 2 * dpr); g.closePath(); g.fill();
+      }
+      // the stage's number on a small plate under it
+      const label = boss ? BB.FOES[n.m.boss].name.split(',')[0].replace(/^The /, '').toUpperCase() : n.m.code, fs = Math.round((boss ? 10 : 10.5) * dpr);
+      g.font = '700 ' + fs + 'px Outfit, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      const tw = g.measureText(label).width + 10 * dpr, ty = y + 12 * k + 4 * dpr;
+      g.fillStyle = done ? 'rgba(60,44,12,0.9)' : 'rgba(10,12,18,0.82)'; g.beginPath(); g.roundRect ? g.roundRect(x - tw / 2, ty - fs * 0.75, tw, fs * 1.5, fs * 0.75) : g.rect(x - tw / 2, ty - fs * 0.75, tw, fs * 1.5); g.fill();
+      g.fillStyle = !open ? 'rgba(255,255,255,0.4)' : done ? '#ffd27a' : boss ? (BOSS_COL[n.m.boss] || '#ff9a8a') : '#fff'; g.fillText(label, x, ty + dpr * 0.5);
+      if (n.m.legend && !done) { const sx2 = x + 13 * k, sy2 = y - 30 * k + Math.sin(t * 2 + n.i) * 2 * dpr; g.fillStyle = '#5cd3ff'; g.beginPath(); for (let j = 0; j < 10; j++) { const a = -Math.PI / 2 + j * Math.PI / 5, q = (j % 2 ? 2.2 : 5) * dpr; g.lineTo(sx2 + Math.cos(a) * q, sy2 + Math.sin(a) * q); } g.closePath(); g.fill(); }
     }
-    g.textBaseline = 'alphabetic';
+    // the land's name, set in the sky
+    g.textBaseline = 'alphabetic'; g.textAlign = 'left';
+    g.font = '700 ' + Math.round(10 * dpr) + 'px Outfit, sans-serif'; g.fillStyle = 'rgba(255,255,255,0.6)'; if (g.letterSpacing !== undefined) g.letterSpacing = (3 * dpr) + 'px'; g.fillText('CHAPTER ' + ['I', 'II', 'III', 'IV'][ch.id - 1], 18 * dpr, 22 * dpr);
+    g.font = '700 ' + Math.round(22 * dpr) + 'px Cinzel, Georgia, serif'; g.fillStyle = '#f4ead2'; if (g.letterSpacing !== undefined) g.letterSpacing = (2 * dpr) + 'px'; g.fillText(ch.name.toUpperCase(), 18 * dpr, 46 * dpr);
+    if (g.letterSpacing !== undefined) g.letterSpacing = '0px';
   };
   UI.pathClick = function (ev) {
     const c = $('pathCv'), rc = c.getBoundingClientRect(), d = c.width / rc.width;
     const x = (ev.clientX - rc.left) * d, y = (ev.clientY - rc.top) * d;
     let best = null, bd = 44 * d;
-    for (const n of C.nodes) { const q = Math.hypot(n.x - x, n.y - y); if (q < bd) { bd = q; best = n; } }
+    for (const n of C.nodes) { const q = Math.min(Math.hypot(n.x - x, n.y - y), Math.hypot(n.x - x, n.y - 22 * d - y)); if (q < bd) { bd = q; best = n; } }
     if (best) { C.sel = best.i; BB.sfx('click'); UI.renderStageCard(); }
   };
   UI.foeIcons = function (stage, size) {

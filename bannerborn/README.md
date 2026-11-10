@@ -117,7 +117,11 @@ A hero-collector RPG: you build the team, the team fights.
    Four to six waves a stage, reinforcements arriving mid-fight, bosses calling adds as they weaken. Each charges an **ultimate** by fighting and taking hits;
    tap the glowing card (or 1–5) to unleash it with a cut-in, or turn on **AUTO**. 1×/2×/3× speed, pause.
    Maps keep the middle and the lanes between spawns open; fights run about 20–70 s at 1×.
-6. **Campaign.** Four chapters, thirty stages (Greenvale, the Sunscar, Aldmere, the Cantor's Gate):
+6. **Campaign.** Each chapter's map is a painted land seen from a hill (its own sky, far ridges and scenery: green
+   hills at dawn, dunes and pyramids, a ruined skyline at dusk, a violet waste under a green glow) with a road that
+   narrows into the distance. On the road: your banner where you have won, your hero by a fire at the stage to
+   fight, stone waymarks ahead, and the boss's gate in its master's colour at the end.
+   Four chapters, thirty stages (Greenvale, the Sunscar, Aldmere, the Cantor's Gate):
    rout waves, destroy Gravegates, defend a ward against the clock, a duel and four bosses with
    telegraphed moves and enrage phases. Each stage shows the recommended power next to yours.
 7. **Camp.** Your chosen hero stands by the fire; the camp grows tents, a forge, a shrine and a
@@ -230,6 +234,14 @@ What the frame may and may not do, learned from profiling late-game fights and t
 - **Words are for the big moments.** No floating words or numbers in a fight (numbers are a setting, off by
   default); what is written out: a wave cleared, a boss arriving, enraging or breaking, an ultimate's name, loot,
   victory and defeat. No more than six sounds start in any tenth of a second.
+- **The fight does not stop for small things.** No hit-stop on ordinary critical hits or heavy blows (it is kept for
+  the rare great blow: a blink, at most once every four seconds); an ultimate holds time for a fifth of a second at
+  most once every nine; a cleared wave slows for a moment, not a second. Screen shake is about half what it was. In
+  a crowd, those pauses stacked up and read as lag.
+- **A ceiling on effects.** At most 26 effect sprites and 180 loose particles at once (fewer when the device is
+  struggling); weapon-trait impacts are half as dense; enchant motes around heroes are halved.
+- **Development → Performance check** freezes a busy fight and draws it with one part switched off at a time, on the
+  device in hand, and reports what each part costs there. Development battles also show a frame-rate readout.
 - **Cutscenes** are painted at about 0.75 megapixel and stretched; silhouettes are made at sprite size (128 px),
   kept per pose, and scaled when drawn; grading uses blend modes (no canvas filters); the timeline follows the real
   clock so the picture stays with the sound.

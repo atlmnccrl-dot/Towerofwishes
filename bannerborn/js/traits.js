@@ -14,8 +14,8 @@
   const R = Math.random, fr = (x) => x - Math.floor(x);
   const rnd = (n) => fr(Math.sin(n * 127.1 + 311.7) * 43758.5453);
   function T(b) { return b.tr || (b.tr = { parts: [], fx: [] }); }
-  const MAXP = 420;
-  function part(b, o) { const P = T(b).parts; if (P.length < (BB.lowFx ? (BB.lowFx > 1 ? 90 : 200) : MAXP)) P.push(Object.assign({ z: 0.9, vx: 0, vy: 0, vz: 0, t: 0, life: 0.6, s: 1.4, grav: 0, add: true, kind: 'dot' }, o)); }
+  const MAXP = 180;
+  function part(b, o) { const P = T(b).parts; if (P.length < (BB.lowFx ? (BB.lowFx > 1 ? 60 : 110) : MAXP)) P.push(Object.assign({ z: 0.9, vx: 0, vy: 0, vz: 0, t: 0, life: 0.6, s: 1.4, grav: 0, add: true, kind: 'dot' }, o)); }
   function burst(b, e, n, o) {
     for (let i = 0; i < n; i++) {
       const a = R() * TAU, sp = (o.sp || 2.5) * (0.35 + R());
@@ -26,32 +26,32 @@
   // ---------------------------------------------------------------- hooks from battle.js
   B.onTrait = function (src, tgt, elem, dmg, crit) {
     if ((this.peaceful && !this.drill) || !COL[elem] || !tgt) return;
-    const F = T(this), C = COL[elem], big = !(tgt.trCd > this.time) || crit;
-    if (big) tgt.trCd = this.time + 0.22;
+    const F = T(this), C = COL[elem]; let big = !(tgt.trCd > this.time) && F.fx.length < (BB.lowFx ? 3 : 6);
+    if (big) tgt.trCd = this.time + 0.5;
     const k = crit ? 1.5 : 1;
     switch (elem) {
       case 'fire':
-        burst(this, tgt, big ? 12 : 4, { cols: C, sp: 1.6 * k, up: 3.2, life: 0.7, s: 1.8, kind: 'ember', grav: -1.5 });
+        burst(this, tgt, big ? 6 : 1, { cols: C, sp: 1.6 * k, up: 3.2, life: 0.7, s: 1.8, kind: 'ember', grav: -1.5 });
         if (big) F.fx.push({ kind: 'flare', x: tgt.x, y: tgt.y, t: 0, dur: 0.32, k, col: C });
         break;
       case 'frost':
-        burst(this, tgt, big ? 9 : 3, { cols: C, sp: 3.2 * k, up: 2.5, life: 0.55, s: 1.6, kind: 'shard', grav: 9 });
+        burst(this, tgt, big ? 4 : 1, { cols: C, sp: 3.2 * k, up: 2.5, life: 0.55, s: 1.6, kind: 'shard', grav: 9 });
         if (big) F.fx.push({ kind: 'spikes', x: tgt.x, y: tgt.y, t: 0, dur: 0.5, k, rot: R() * TAU, col: C });
         break;
       case 'storm':
-        burst(this, tgt, big ? 8 : 3, { cols: C, sp: 4 * k, up: 2, life: 0.3, s: 1.2, kind: 'spark' });
+        burst(this, tgt, big ? 4 : 1, { cols: C, sp: 4 * k, up: 2, life: 0.3, s: 1.2, kind: 'spark' });
         if (big) F.fx.push({ kind: 'strike', x: tgt.x, y: tgt.y, t: 0, dur: 0.24, k, seed: R() * 99, col: C });
         break;
       case 'shadow':
-        burst(this, tgt, big ? 8 : 3, { cols: [C[1], C[2], C[2]], sp: 1.2, up: 1.6, life: 0.8, s: 2.6, kind: 'wisp', add: false, grav: -1 });
+        burst(this, tgt, big ? 4 : 1, { cols: [C[1], C[2], C[2]], sp: 1.2, up: 1.6, life: 0.8, s: 2.6, kind: 'wisp', add: false, grav: -1 });
         if (big) F.fx.push({ kind: 'cross', x: tgt.x, y: tgt.y, t: 0, dur: 0.3, k, rot: (R() - 0.5) * 0.6, col: C });
         break;
       case 'holy':
-        burst(this, tgt, big ? 10 : 3, { cols: C, sp: 1.2, up: 3.5, life: 0.8, s: 1.3, kind: 'mote', grav: -2 });
+        burst(this, tgt, big ? 5 : 1, { cols: C, sp: 1.2, up: 3.5, life: 0.8, s: 1.3, kind: 'mote', grav: -2 });
         if (big) F.fx.push({ kind: 'pillar', x: tgt.x, y: tgt.y, t: 0, dur: 0.45, k, col: C });
         break;
       case 'poison':
-        burst(this, tgt, big ? 11 : 4, { cols: C, sp: 2.4 * k, up: 3, life: 0.65, s: 1.7, kind: 'drop', grav: 8, add: false });
+        burst(this, tgt, big ? 5 : 1, { cols: C, sp: 2.4 * k, up: 3, life: 0.65, s: 1.7, kind: 'drop', grav: 8, add: false });
         if (big) F.fx.push({ kind: 'cloud', x: tgt.x, y: tgt.y, t: 0, dur: 0.7, k, col: C });
         break;
     }
@@ -72,13 +72,13 @@
     F.fx = F.fx.filter((f) => f.t < f.dur);
     if (this.peaceful) return;
     // enchanted shots leave a trail of their element
-    for (const p of this.projs) if (p.elem && COL[p.elem] && p.side !== 'foe' && R() < dt * 40)
+    for (const p of this.projs) if (p.elem && COL[p.elem] && p.side !== 'foe' && R() < dt * 18)
       part(this, { x: p.x, y: p.y, z: p.z || 0.9, vz: 0.3, life: 0.35, s: 1.5, col: COL[p.elem][R() < 0.5 ? 1 : 0], kind: p.elem === 'poison' ? 'drop' : p.elem === 'shadow' ? 'wisp' : 'dot', add: p.elem !== 'shadow' && p.elem !== 'poison', grav: p.elem === 'poison' ? 6 : 0 });
     // burning, frozen, poisoned foes shed their state
     for (const e of this.ents) {
       if (e.dead || !e.buffs) continue;
-      if (e.buffs.burn > 0 && R() < dt * 9) part(this, { x: e.x + (R() - 0.5) * 0.3, y: e.y + (R() - 0.5) * 0.3, z: 0.4 + R() * 0.8, vz: 1.4 + R(), life: 0.6, s: 1.5, col: COL.fire[R() < 0.5 ? 1 : 2], kind: 'ember', grav: -1 });
-      if (e.buffs.poison > 0 && R() < dt * 4 * (e.poisonN || 1)) part(this, { x: e.x + (R() - 0.5) * 0.35, y: e.y + (R() - 0.5) * 0.35, z: 0.3 + R() * 0.9, vz: 0.6, life: 0.9, s: 1.6, col: COL.poison[1], kind: 'bubble', grav: -0.4 });
+      if (e.buffs.burn > 0 && R() < dt * 4) part(this, { x: e.x + (R() - 0.5) * 0.3, y: e.y + (R() - 0.5) * 0.3, z: 0.4 + R() * 0.8, vz: 1.4 + R(), life: 0.6, s: 1.5, col: COL.fire[R() < 0.5 ? 1 : 2], kind: 'ember', grav: -1 });
+      if (e.buffs.poison > 0 && R() < dt * 2 * (e.poisonN || 1)) part(this, { x: e.x + (R() - 0.5) * 0.35, y: e.y + (R() - 0.5) * 0.35, z: 0.3 + R() * 0.9, vz: 0.6, life: 0.9, s: 1.6, col: COL.poison[1], kind: 'bubble', grav: -0.4 });
       if (e.buffs.slow > 0 && R() < dt * 3) part(this, { x: e.x + (R() - 0.5) * 0.5, y: e.y + (R() - 0.5) * 0.5, z: 1.6, vz: -0.6, life: 1, s: 1.2, col: '#e8f8ff', kind: 'flake' });
     }
   };

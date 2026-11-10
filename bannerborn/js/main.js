@@ -237,6 +237,7 @@
     scene = new BB.Battle({ map, mission: M, formation: BB.formationList(S), heroes: team, level: BB.foeLevel(M), save: S, seed, intro: true });
     scene.cam.zoom = 1;
     if (devReal && devOpts && devOpts.tick) { const ticks = devOpts.tick.map((k) => DEV_TICK[k]); scene.devTick = (sc, dt) => ticks.forEach((f) => f(sc, dt)); }
+    if (devReal && devOpts && devOpts.bench) { const sc0 = scene; scene.benchAt = 9; const tk = scene.devTick; scene.devTick = (sc, dt) => { tk && tk(sc, dt); if (sc === sc0 && sc.benchAt && sc.time > sc.benchAt) { sc.benchAt = 0; benchStart(); } }; }
     campBuilt = null;
     mode = 'battle';
     buildHud();
@@ -489,6 +490,62 @@
     sturdy: (sc) => { for (const e of sc.heroList) if (!e.dead && e.hp < e.maxhp * 0.5) e.hp = e.maxhp * 0.5; },
   };
   function devBattle(o) { devEnter(o); BB.deploy(o.idx); }
+  // frame-rate readout (Development battles only): what the device is doing right now
+  let fpsT = 0, fpsF = 0;
+  function fpsReadout(real) {
+    const el = $('fps'); if (!el) return;
+    if (!devReal || mode !== 'battle' || !scene) { if (el.style.display !== 'none') el.style.display = 'none'; return; }
+    fpsT += real; fpsF++;
+    if (fpsT < 0.5) return;
+    el.style.display = 'block';
+    el.textContent = Math.round(fpsF / fpsT) + ' fps · ' + W + '×' + H + ' · ' + scene.ents.filter((e) => !e.dead && e.side !== 'none').length + ' units · ' + scene.fx.length + ' fx · ' + ((scene.tr ? scene.tr.parts.length : 0) + (scene.ep ? scene.ep.debris.length : 0)) + ' bits';
+    fpsT = 0; fpsF = 0;
+  }
+  // Performance check: a busy fight is frozen and drawn again and again with one part switched off at a time, on this
+  // device, to see what each part costs here. The numbers are milliseconds per frame drawn (16 is the budget).
+  let bench = null;
+  function benchStart() {
+    const sc = scene, P = BB.Battle.prototype, K = 4, out = [];
+    sc.paused = true;
+    const stub = (obj, names) => { const old = names.map((n) => obj[n]); names.forEach((n) => (obj[n] = function () {})); return () => names.forEach((n, i) => (obj[n] = old[i])); };
+    const tests = [
+      ['The whole frame', () => () => {}],
+      ['without particles and impacts', () => stub(P, ['drawTraitWorld', 'drawWorldEpic', 'drawGroundLights'])],
+      ['without auras and status effects', () => { const a = stub(BB, ['drawAuraFront', 'drawAuraBack', 'auraGlow']), b = stub(P, ['drawTrait', 'drawTraitBack']); return () => { a(); b(); }; }],
+      ['without effect sprites', () => stub(BB, ['drawFx'])],
+      ['without glows', () => stub(BB, ['drawGlow'])],
+      ['without the lighting pass', () => stub(P, ['drawLight'])],
+      ['without the screen layer (weather, bands)', () => stub(P, ['drawEpic'])],
+      ['without units and their bars', () => stub(P, ['drawEnt', 'drawBars'])],
+      ['without scenery (trees, rocks)', () => stub(BB, ['drawEnv'])],
+      ['without the ground', () => { const g = sc.map.groundCanvas; sc.map.groundCanvas = null; return () => { sc.map.groundCanvas = g; }; }],
+      ['with no additive blending', () => { Object.defineProperty(ctx, 'globalCompositeOperation', { configurable: true, get: () => 'source-over', set: () => {} }); return () => { delete ctx.globalCompositeOperation; }; }],
+      ['at half resolution', () => { const r = rScale; rScale = 0.5; resize(); return () => { rScale = r; resize(); }; }],
+      ['drawing nothing at all', () => stub(P, ['renderField'])],
+    ];
+    bench = { i: 0, n: 0, acc: [], undo: null, step(real) {
+      if (this.i >= tests.length) { bench = null; benchDone(out, sc); return; }
+      if (!this.undo) { this.undo = tests[this.i][1](); this.n = 0; this.acc = []; }
+      for (let k = 0; k < K; k++) sc.render(ctx, W, H, DPR);
+      if (++this.n > 8) this.acc.push(real * 1000);
+      if (this.n >= 44) { this.undo(); this.undo = null; const a = this.acc.sort((x, y) => x - y), med = a[Math.floor(a.length / 2)]; out.push([tests[this.i][0], med / K]); this.i++; }
+    } };
+    $('fps').style.display = 'block'; $('fps').textContent = 'Measuring… about 20 seconds';
+  }
+  function benchDone(out, sc) {
+    // the fight itself (no drawing): how long one step of the simulation takes
+    sc.paused = false; let t0 = performance.now(), n = 0; while (n < 60 && !sc.result) { sc.update(1 / 60, null); n++; } const sim = (performance.now() - t0) / Math.max(1, n);
+    const base = out[0][1], floor = 1000 / 60 / 4;
+    const fmt = (v) => (v <= floor * 1.08 ? '≤ ' + floor.toFixed(1) : v.toFixed(1)) + ' ms';
+    const lines = ['PERFORMANCE CHECK — ' + new Date().toISOString().slice(0, 16).replace('T', ' '), 'Screen ' + Math.round(W / DPR) + '×' + Math.round(H / DPR) + ' points, pixel ratio ' + (window.devicePixelRatio || 1) + ', canvas ' + W + '×' + H,
+      'Units ' + sc.ents.filter((e) => !e.dead && e.side !== 'none').length + ', effect sprites ' + sc.fx.length + ', bits ' + ((sc.tr ? sc.tr.parts.length : 0) + (sc.ep ? sc.ep.debris.length : 0)), '',
+      'One frame drawn (budget 16.7 ms):'];
+    out.forEach(([name, v], i) => lines.push('  ' + fmt(v).padStart(10) + '  ' + name + (i && v < base * 0.93 ? '   (saves ' + (base - v).toFixed(1) + ')' : '')));
+    lines.push('', 'One step of the fight itself: ' + sim.toFixed(2) + ' ms', '', (navigator.userAgent || '').slice(0, 120));
+    $('perfOut').textContent = lines.join('\n'); $('perfOut').style.display = 'block';
+    goCamp();
+  }
+  BB.benchResult = () => $('perfOut').textContent;
   function devList() {
     const bosses = BB.MISSIONS.filter((m) => m.boss), idxOf = (m) => BB.MISSIONS.indexOf(m);
     const tint = (m) => ({ vesh: '#7dffb0', regent: '#c9a8ff', sallow: '#ffd27a' }[m.boss] || '#ff7a6a');
@@ -496,6 +553,7 @@
     const ix = (code) => BB.MISSIONS.findIndex((m) => m.code === code);
     const list = [];
     list.push({ group: 'Boss fights — played live by a full-strength team (entrance, the fight, the fall)', items: bosses.map((m) => ({ t: bn(m), s: 'Stage ' + m.code + ' · ' + m.name, c: tint(m), battle: { idx: idxOf(m), cine: true, over: 2 } })) });
+    list.push({ group: 'Diagnostics', items: [{ t: 'Performance check', s: 'Measures this device: what each part of a busy fight costs. Takes about 30 seconds; send me the result', c: '#8fd88a', battle: { idx: ix('4-5'), over: 2, tick: ['sturdy'], bench: true } }] });
     list.push({ group: 'Battle spectacle', items: [
       { t: 'Ultimates, back to back', s: 'Every hero\'s ultimate in turn, with its cut-in', c: '#d9b8ff', battle: { idx: ix('4-4'), tick: ['ults', 'sturdy'], archs: ['knight', 'mage', 'ranger', 'paladin', 'rogue'] } },
       { t: 'Signature moves', s: 'Whirlwinds, meteors, chain lightning — non-stop', c: '#ffd27a', battle: { idx: ix('4-4'), tick: ['sigs', 'sturdy'], archs: ['barbarian', 'mage', 'duelist', 'spearman', 'paladin'] } },
@@ -582,6 +640,8 @@
     // a cutscene owns the screen. It runs on the real clock (within reason), so that when a frame is late the picture
     // catches up with the sound instead of drifting behind it
     if (BB.Cinema && BB.Cinema.on) { BB.Cinema.render(Math.min(0.3, real)); requestAnimationFrame(frame); return; }
+    if (bench) { bench.step(real); requestAnimationFrame(frame); return; } // the performance check owns the frame
+    fpsReadout(real);
     const visible = SCENE_UNDER.includes(UI.current);
     // behind a menu the camp is dim and blurred: draw it a few times a second, not sixty (a phone re-blurs the
     // whole screen each time the picture under the glass changes)

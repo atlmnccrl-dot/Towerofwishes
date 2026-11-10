@@ -64,10 +64,10 @@
     g.save(); g.globalCompositeOperation = 'lighter';
     const s = A.seed;
     if (A.ench === 'fire') {
-      for (let i = 0; i < 14; i++) { const p = fr(t * 0.9 + rnd(i + s)), px = x + Math.sin(i * 12.9 + t * 3) * 11 * sc, py = y - 4 * sc - p * 52 * sc, r = (1 - p) * 2.2 * sc + 0.4 * sc;
+      for (let i = 0; i < 7; i++) { const p = fr(t * 0.9 + rnd(i + s)), px = x + Math.sin(i * 12.9 + t * 3) * 11 * sc, py = y - 4 * sc - p * 52 * sc, r = (1 - p) * 2.2 * sc + 0.4 * sc;
         g.fillStyle = p < 0.4 ? '#ffd27a' : p < 0.7 ? '#ff8a2a' : '#ff3d1a'; g.globalAlpha = (1 - p) * 0.9; { const q_ = r; g.fillRect(px - q_, py - q_, q_ * 2, q_ * 2); } }
     } else if (A.ench === 'frost') {
-      for (let i = 0; i < 10; i++) { const a = t * 1.1 + i * Math.PI * 0.2, px = x + Math.cos(a) * 15 * sc, py = y - 24 * sc + Math.sin(a) * 6 * sc + Math.sin(t * 2 + i) * 6 * sc;
+      for (let i = 0; i < 5; i++) { const a = t * 1.1 + i * Math.PI * 0.2, px = x + Math.cos(a) * 15 * sc, py = y - 24 * sc + Math.sin(a) * 6 * sc + Math.sin(t * 2 + i) * 6 * sc;
         g.globalAlpha = 0.55 + Math.sin(t * 5 + i) * 0.35; g.strokeStyle = '#dff6ff'; g.lineWidth = Math.max(1, 0.6 * sc);
         const q = 1.6 * sc, w = Math.max(1, 0.6 * sc); g.fillStyle = '#dff6ff'; g.fillRect(px - q, py - w / 2, q * 2, w); g.fillRect(px - w / 2, py - q, w, q * 2); }
       for (let i = 0; i < 6; i++) { const p = fr(t * 0.35 + rnd(i + s)); g.globalAlpha = (1 - p) * 0.8; g.fillStyle = '#9fdcff'; g.fillRect(x + (rnd(i * 3 + s) - 0.5) * 30 * sc, y - 56 * sc + p * 52 * sc, 1.2 * sc, 1.2 * sc); }
@@ -84,19 +84,19 @@
       for (let i = 0; i < 5; i++) { const a = t * 3 + i * 1.26; g.globalAlpha = 0.7; g.fillStyle = '#9ff'; { const q_ = 0.9 * sc; g.fillRect(x + Math.cos(a) * 13 * sc - q_, y - 26 * sc + Math.sin(a * 1.3) * 16 * sc - q_, q_ * 2, q_ * 2); } }
     } else if (A.ench === 'shadow') {
       g.globalCompositeOperation = 'source-over';
-      for (let i = 0; i < 10; i++) { const p = fr(t * 0.45 + rnd(i + s)), px = x + Math.sin(i * 7.3 + t * 1.5) * 12 * sc, py = y - 2 * sc - p * 46 * sc, r = (2 + p * 4) * sc;
+      for (let i = 0; i < 5; i++) { const p = fr(t * 0.45 + rnd(i + s)), px = x + Math.sin(i * 7.3 + t * 1.5) * 12 * sc, py = y - 2 * sc - p * 46 * sc, r = (2 + p * 4) * sc;
         g.globalAlpha = (1 - p) * 0.55; g.fillStyle = i % 3 ? '#3a1a70' : '#6a3ac8'; { const q_ = r; g.fillRect(px - q_, py - q_, q_ * 2, q_ * 2); } }
       g.globalCompositeOperation = 'lighter';
       for (let i = 0; i < 5; i++) { const p = fr(t * 0.7 + rnd(i * 5 + s)); g.globalAlpha = (1 - p) * 0.8; g.fillStyle = '#c9a8ff'; g.fillRect(x + (rnd(i * 9) - 0.5) * 24 * sc, y - p * 50 * sc, 1.3 * sc, 1.3 * sc); }
     } else if (A.ench === 'poison') { // venom: green drips off the body, bubbles rising and popping
       g.globalCompositeOperation = 'source-over';
-      for (let i = 0; i < 8; i++) { const p = fr(t * 0.8 + rnd(i + s)), px = x + (rnd(i * 4 + s) - 0.5) * 18 * sc, py = y - (40 - p * 38) * sc;
+      for (let i = 0; i < 4; i++) { const p = fr(t * 0.8 + rnd(i + s)), px = x + (rnd(i * 4 + s) - 0.5) * 18 * sc, py = y - (40 - p * 38) * sc;
         g.globalAlpha = (1 - p) * 0.85; g.fillStyle = i % 2 ? '#7ad43a' : '#b8f060'; g.fillRect(px - sc, py - (1.2 + p * 1.6) * sc, 2 * sc, (2.4 + p * 3.2) * sc); }
       g.globalCompositeOperation = 'lighter';
-      for (let i = 0; i < 7; i++) { const p = fr(t * 0.55 + rnd(i * 7 + s)), px = x + Math.sin(i * 3.7 + t * 2) * 12 * sc, py = y - 6 * sc - p * 44 * sc, r = (0.8 + p * 1.8) * sc;
+      for (let i = 0; i < 4; i++) { const p = fr(t * 0.55 + rnd(i * 7 + s)), px = x + Math.sin(i * 3.7 + t * 2) * 12 * sc, py = y - 6 * sc - p * 44 * sc, r = (0.8 + p * 1.8) * sc;
         g.globalAlpha = p > 0.85 ? (1 - p) * 4 : 0.6; g.strokeStyle = '#c6ff7a'; g.lineWidth = Math.max(0.8, 0.5 * sc); g.strokeRect(px - r, py - r, r * 2, r * 2); }
     } else if (A.ench === 'holy') {
-      for (let i = 0; i < 12; i++) { const p = fr(t * 0.5 + rnd(i + s)), px = x + Math.sin(i * 5.1 + t) * 13 * sc, py = y - p * 56 * sc;
+      for (let i = 0; i < 6; i++) { const p = fr(t * 0.5 + rnd(i + s)), px = x + Math.sin(i * 5.1 + t) * 13 * sc, py = y - p * 56 * sc;
         g.globalAlpha = Math.sin(p * Math.PI) * 0.9; g.fillStyle = '#ffe9a0'; { const q_ = 1.1 * sc; g.fillRect(px - q_, py - q_, q_ * 2, q_ * 2); } }
       g.globalAlpha = 1; BB.drawGlow(g, '255,230,150', x, y - 26 * sc, 20 * sc, 32 * sc, 0.2);
     }

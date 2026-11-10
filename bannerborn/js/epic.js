@@ -18,8 +18,8 @@
       const a = Math.atan2(tgt.y - src.y, tgt.x - src.x), s = BB.iso(Math.cos(a), Math.sin(a));
       E.arcs.push({ x: tgt.x, y: tgt.y, a: Math.atan2(s.y, s.x), t: 0, col: src.side === 'hero' ? (src.ench && BB.TRAIT_COL && BB.TRAIT_COL[src.ench] ? BB.TRAIT_COL[src.ench][1] : (src.color || '#ffe7a3')) : '#ff6a5a', big: crit || o.heavy, flip: this.r() < 0.5 });
     }
-    if (crit || o.heavy) { E.lights.push({ x: tgt.x, y: tgt.y, t: 0, dur: 0.35, col: crit ? '255,220,140' : '255,160,90', r: crit ? 1.6 : 1.2 }); tgt.flash = Math.max(tgt.flash || 0, 0.25); }
-    if (crit && src.side === 'hero') { this.hitstop = Math.max(this.hitstop, 0.07); for (let i = 0; i < 6; i++) E.debris.push(spark(tgt, '#ffe7a3', 3.5)); }
+    if ((crit || o.heavy) && E.lights.length < 5) { E.lights.push({ x: tgt.x, y: tgt.y, t: 0, dur: 0.35, col: crit ? '255,220,140' : '255,160,90', r: crit ? 1.6 : 1.2 }); tgt.flash = Math.max(tgt.flash || 0, 0.25); }
+    if (crit && src.side === 'hero' && E.debris.length < 90) for (let i = 0; i < 3; i++) E.debris.push(spark(tgt, '#ffe7a3', 3.5));
   };
   function spark(e, col, sp) { const a = Math.random() * TAU; return { x: e.x, y: e.y, z: 0.9, vx: Math.cos(a) * sp * (0.4 + Math.random()), vy: Math.sin(a) * sp * (0.4 + Math.random()), vz: 1 + Math.random() * 3, t: 0, life: 0.4 + Math.random() * 0.3, col, s: 1.5, glow: true }; }
   B.onKill = function (e, src) {
@@ -32,7 +32,7 @@
     }
     // shards and dust
     const bony = /skel|warden|ghoul|necro/.test(e.art || '') || /skel/.test(e.kind || '');
-    for (let i = 0; i < (e.boss ? 40 : 14); i++) { const a = this.r() * TAU, sp = 1.5 + this.r() * 4; E.debris.push({ x: e.x, y: e.y, z: 0.6 + this.r() * 0.6, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: 2 + this.r() * 4, t: 0, life: 0.8 + this.r() * 0.8, col: bony ? (this.r() < 0.6 ? '#e8e2d2' : '#9a907e') : (this.r() < 0.5 ? '#c8a070' : '#6a5040'), s: 1.5 + this.r() * 2.5, bounce: true }); }
+    for (let i = 0, nD = E.debris.length > 80 ? 3 : e.boss ? 30 : 7; i < nD; i++) { const a = this.r() * TAU, sp = 1.5 + this.r() * 4; E.debris.push({ x: e.x, y: e.y, z: 0.6 + this.r() * 0.6, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, vz: 2 + this.r() * 4, t: 0, life: 0.8 + this.r() * 0.8, col: bony ? (this.r() < 0.6 ? '#e8e2d2' : '#9a907e') : (this.r() < 0.5 ? '#c8a070' : '#6a5040'), s: 1.5 + this.r() * 2.5, bounce: true }); }
     E.lights.push({ x: e.x, y: e.y, t: 0, dur: 0.5, col: '255,190,120', r: e.boss ? 3 : 1.4 });
     // chain kills: carnage
     E.kills = E.kills.filter((k) => this.time - k < 2.2); E.kills.push(this.time);
@@ -40,14 +40,15 @@
     if (n < 3) E.lastCall = 0;
     // the field is clear: slow motion on the last one
     if (!e.boss && !this.result && this.foesAlive().filter((o) => !o.gate && !o.turret).length === 0) {
-      this.slow = Math.max(this.slow, 1.1); this.zoomPulse(1.2, 1.2); this.camFocus = { x: e.x, y: e.y, t: 0.9 };
+      this.slow = Math.max(this.slow, 0.4); this.zoomPulse(1.1, 0.8); this.camFocus = { x: e.x, y: e.y, t: 0.6 };
       E.calls.push({ text: 'WAVE CLEARED', t: 0, big: true }); BB.score && BB.score('braam', 0.8); this.flash = Math.max(this.flash, 0.35);
     }
   };
   B.onUlt = function (e) {
     const E = epic(this);
-    E.ult = { e, t: 0, dur: 1.15, name: BB.CALLINGS[e.calling].skill.name, col: e.color || '#ffbe55' };
-    this.freeze = 0.55; BB.score && BB.score('hit', 1); BB.score && BB.score('riser', 0.5);
+    E.ult = { e, t: 0, dur: 0.95, name: BB.CALLINGS[e.calling].skill.name, col: e.color || '#ffbe55' };
+    if (this.time - (E.lastFreeze === undefined ? -99 : E.lastFreeze) > 9) { E.lastFreeze = this.time; this.freeze = 0.2; }
+    BB.score && BB.score('hit', 1); BB.score && BB.score('riser', 0.5);
   };
   B.onWave = function (spots) {
     if (this.waveIdx <= 1) return;
@@ -112,7 +113,7 @@
     if (!E.weather) E.weather = this.map.biome === 'sand' ? 'sand' : /gate|tombs|march|throne/.test(this.mission && this.mission.layout || '') ? 'ash' : 'embers';
     const t = this.time;
     ctx.save();
-    for (let i = 0; i < 60; i++) { const h1 = Math.abs(Math.sin(i * 91.7)) % 1, h2 = Math.abs(Math.sin(i * 37.3)) % 1;
+    for (let i = 0, nW = BB.lowFx ? 14 : 30; i < nW; i++) { const h1 = Math.abs(Math.sin(i * 91.7)) % 1, h2 = Math.abs(Math.sin(i * 37.3)) % 1;
       if (E.weather === 'sand') { const x = ((h1 * W + t * W * 0.35) % (W + 60)) - 30, y = (h2 * H + Math.sin(t * 2 + i) * 10); ctx.fillStyle = 'rgba(240,210,150,0.35)'; ctx.fillRect(x, y, 6 * u, 1.2 * u); }
       else if (E.weather === 'ash') { const x = ((h1 * W + Math.sin(t * 0.7 + i) * 30) % W + W) % W, y = (h2 * H + t * 30 * u) % H; ctx.fillStyle = 'rgba(200,200,205,0.4)'; ctx.fillRect(x, y, 2 * u, 2 * u); }
       else { const x = ((h1 * W + Math.sin(t + i) * 20) % W + W) % W, y = H - ((h2 * H + t * 40 * u) % H); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = 'rgba(255,170,80,' + (0.25 + 0.25 * Math.sin(t * 3 + i)) + ')'; ctx.fillRect(x, y, 2 * u, 2 * u); ctx.globalCompositeOperation = 'source-over'; } }

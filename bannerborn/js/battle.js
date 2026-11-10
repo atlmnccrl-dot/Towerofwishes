@@ -262,7 +262,11 @@
   Battle.prototype.banner = function (text, dur, kind) { if (kind === 'small' || kind === 'combo') return; /* minor notices are not written across the screen */ this.banners.push({ text, t: 0, dur: dur || 2, kind: kind || '' }); };
   Battle.prototype.addFx = function (key, x, y, o) {
     const f = Object.assign({ key, x, y, t: 0, fps: 20, sc: 1 }, o || {});
-    f.n = BB.fxLen(key); this.fx.push(f); return f;
+    f.n = BB.fxLen(key);
+    // a couple of dozen effect sprites at once is a battle; more is noise (and slow). Past that, new small ones are skipped
+    const cap = BB.lowFx ? (BB.lowFx > 1 ? 12 : 18) : 26;
+    if (this.fx.length >= cap && !f.loop && !f.ring && !f.must) { f.t = 1e9; return f; }
+    this.fx.push(f); return f;
   };
   // the duel's own words stay off screen: blocks, parries, counters, feints, openings, links, covers and dodges still happen, felt not spelled out
   const QUIET = new Set(['PARRY!', 'BLOCK', 'block', 'COUNTER', 'FEINT', 'OPEN!', 'LINK', 'COVER!', 'DODGE', 'PERFECT']);
@@ -385,7 +389,7 @@
     if (o.slow) tgt.buffs.slow = 2;
     const col = tgt.side === 'hero' ? '#ff6b5e' : crit ? '#ffd23a' : '#fff';
     if (!tgt.ward || dmg > 5) this.text(tgt.x, tgt.y, dmg + (crit ? '!' : ''), col, crit ? 1 : 0);
-    if (crit || (o.heavy)) { this.hitstop = Math.max(this.hitstop, 0.05); this.shake = Math.max(this.shake, 0.15); }
+    if (o.heavy) this.shake = Math.max(this.shake, 0.12); // a critical hit is seen (the spark, the flash), it does not stop the fight
     if (this.onHit) this.onHit(src, tgt, dmg, crit, o);
     if (tgt.side === 'foe' && !tgt.boss && !tgt.gate && !tgt.turret && tgt.hp > 0 && tgt.state !== 'attack' && this.r() < 0.5) {
       tgt.state = 'hurt'; tgt.lock = 0.25; this.setClip(tgt, 'TakeDamage', true);
@@ -745,7 +749,13 @@
       if (I.t >= I.dur) { if (this.endEntrances) this.endEntrances(); this.intro = null; this.banner('FOR THE BANNER — ADVANCE!', 1.4, 'small'); }
       return;
     }
-    if (this.hitstop > 0) { this.hitstop -= dtReal; dtReal *= 0.05; }
+    // Hit-stop is for the rare great blow: a blink, at most once every few seconds. (A pause on every critical hit
+    // and every heavy blow, in a crowd, reads as the game stuttering.)
+    this.hsCd = Math.max(0, (this.hsCd || 0) - dtReal);
+    if (this.hitstop > 0) {
+      if (!this.hsLive) { if (this.hsCd > 0) this.hitstop = 0; else { this.hsLive = true; this.hitstop = Math.min(this.hitstop, 0.055); } }
+      if (this.hitstop > 0) { this.hitstop -= dtReal; dtReal *= 0.05; if (this.hitstop <= 0) { this.hsLive = false; this.hsCd = 4; } }
+    }
     let ts = 1;
     if (this.slow > 0) { this.slow -= dtReal; ts = 0.35; }
     if (this.freeze > 0) { this.freeze -= dtReal; ts = 0.04; } // an ultimate stops time for a beat
@@ -1615,7 +1625,7 @@
     const m = this.map, cam = this.cam;
     const z = cam.zoom * dpr;
     let shx = 0, shy = 0;
-    if (this.shake > 0 && (!this.save || this.save.settings.shake)) { shx = (Math.random() - 0.5) * this.shake * 14; shy = (Math.random() - 0.5) * this.shake * 10; }
+    if (this.shake > 0 && (!this.save || this.save.settings.shake)) { shx = (Math.random() - 0.5) * Math.min(1, this.shake) * 8; shy = (Math.random() - 0.5) * Math.min(1, this.shake) * 6; }
     const cs = BB.iso(cam.x, cam.y);
     const ox = W / 2 - cs.x * z + shx * dpr, oy = H / 2 - cs.y * z + shy * dpr - 20 * z;
     this.view = { ox, oy, z };
@@ -1883,13 +1893,13 @@
     ctx.globalCompositeOperation = 'source-over';
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.imageSmoothingEnabled = true;
     if (!night) { ctx.drawImage(this.vig.c, 0, 0, W, H); return; }
-    const lw = Math.ceil(W / 2), lh = Math.ceil(H / 2);
+    const LD = BB.lowFx ? 6 : 4, lw = Math.ceil(W / LD), lh = Math.ceil(H / LD); // the darkness is all soft light: a small canvas, stretched
     if (!this.lightCanvas || this.lightCanvas.width !== lw || this.lightCanvas.height !== lh) { this.lightCanvas = document.createElement('canvas'); this.lightCanvas.width = lw; this.lightCanvas.height = lh; }
     const lc = this.lightCanvas, g = lc.getContext('2d');
     g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'copy'; g.globalAlpha = 1;
     g.fillStyle = 'rgba(10,8,30,0.62)'; g.fillRect(0, 0, lw, lh);
     g.globalCompositeOperation = 'destination-out';
-    g.setTransform(z / 2, 0, 0, z / 2, ox / 2, oy / 2);
+    g.setTransform(z / LD, 0, 0, z / LD, ox / LD, oy / LD);
     const hole = (x, y, rad, a) => { const s = BB.iso(x, y), R = rad * BB.TW * 0.7; BB.drawGlow(g, '0,0,0', s.x, s.y - 10, R, R * 0.6, a * 1.25); };
     for (const L of m.lights) hole(L.x, L.y, L.rad, 0.95);
     for (const e of this.ents) if (e.side === 'hero' && !e.dead && !e.ward) hole(e.x, e.y, 3.2, 0.7);
