@@ -1,4 +1,4 @@
-// Bannerborn — every menu screen: shell, camp, campaign, heroes, hero, recruit, team, forge, shop, results.
+// Bannerborn — every menu screen: shell, camp, campaign, heroes, hero, recruit, team, shop, results.
 (function () {
   const BB = window.BB;
   const UI = BB.UI = {};
@@ -13,7 +13,7 @@
   UI.copyCanvas = copyCanvas;
 
   // ---------------------------------------------------------------- screens, modals, toast
-  const MAIN = ['home', 'heroes', 'team', 'forge', 'shop', 'campaign', 'hero', 'recruit'];
+  const MAIN = ['home', 'heroes', 'team', 'shop', 'campaign', 'hero', 'recruit'];
   UI.show = function (id) {
     document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('on', s.id === id));
     if (UI.current !== id && MAIN.includes(id)) { const sc = $(id); sc.classList.remove('enter'); void sc.offsetWidth; sc.classList.add('enter'); } // the panels rise into place
@@ -21,7 +21,7 @@
     $('shell').classList.toggle('on', MAIN.includes(id));
     $('tabbar').style.display = ['hero', 'recruit', 'campaign'].includes(id) ? 'none' : '';
     document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('on', t.dataset.tab === id));
-    $('tbTitle').textContent = { home: 'Camp', heroes: 'Heroes', team: 'Team', forge: 'Forge', shop: 'Shop', campaign: 'Campaign', hero: 'Hero', recruit: 'Recruit' }[id] || '';
+    $('tbTitle').textContent = { home: 'Camp', heroes: 'Heroes', team: 'Team', shop: 'Shop', campaign: 'Campaign', hero: 'Hero', recruit: 'Recruit' }[id] || '';
     UI.refreshTop();
   };
   UI.modal = (id, on) => $(id).classList.toggle('on', on !== false);
@@ -1376,59 +1376,12 @@
     }
   };
 
-  // ---------------------------------------------------------------- forge
-  const F = UI.fg = { filter: 'all', sel: null };
-  UI.renderForge = function () {
-    const S = BB.save;
-    const all = S.inventory.map((it) => ({ it, by: null })).concat(...S.heroes.map((h) => BB.SLOTS.filter((s) => h.gear[s]).map((s) => ({ it: h.gear[s], by: h }))));
-    const fb = $('forgeFilter'); fb.innerHTML = '';
-    for (const [id, nm] of [['all', 'All']].concat(BB.SLOTS.map((s) => [s, BB.SLOT_NAME[s]]))) {
-      const b = el('button', 'chip' + (F.filter === id ? ' on' : ''), nm); click(b, () => { F.filter = id; UI.renderForge(); }); fb.appendChild(b);
-    }
-    const list = all.filter((x) => F.filter === 'all' || x.it.slot === F.filter).sort((a, b) => b.it.rarity - a.it.rarity || BB.itemScore(b.it) - BB.itemScore(a.it));
-    const grid = $('forgeGrid'); grid.innerHTML = '';
-    if (!list.length) grid.appendChild(el('div', 'mute', 'No gear yet. Stages drop it, chests hold it, the shop sells it.'));
-    if (!F.sel || !all.some((x) => x.it === F.sel)) F.sel = list[0] ? list[0].it : null;
-    for (const x of list) {
-      const b = el('button', 'it' + (x.it === F.sel ? ' sel' : '')); b.style.setProperty('--ic', BB.RARITY[x.it.rarity].color);
-      b.appendChild(UI.itemIcon(x.it, 40)); if (x.it.plus) b.appendChild(el('span', 'plus', '+' + x.it.plus));
-      if (x.by) b.appendChild(el('span', 'eq', esc(BB.shortName(x.by))));
-      click(b, () => { F.sel = x.it; UI.renderForge(); });
-      grid.appendChild(b);
-    }
-    let det = $('forgeDet'); det.innerHTML = '';
-    const it = F.sel; if (!it) { det.appendChild(el('div', 'mute', 'Select a piece of gear.')); return; }
-    const by = (all.find((x) => x.it === it) || {}).by;
-    // the piece on the anvil: large, ringed in its rarity, a pip for every forging (the blue pip is where a plain weapon awakens)
-    const show = el('div', 'fshow' + (F.hit === it ? ' hit' : '')); show.style.setProperty('--ic', BB.RARITY[it.rarity].color); F.hit = null;
-    const big = el('div', 'big'); big.appendChild(UI.itemIcon(it, 64)); show.appendChild(big);
-    let pips = ''; for (let i = 1; i <= BB.MAX_PLUS; i++) pips += '<i class="' + (i <= (it.plus || 0) ? 'on' : '') + (it.slot === 'weapon' && i === BB.AWAKEN_AT ? ' aw' : '') + '"></i>';
-    show.appendChild(el('div', 'ftxt', '<div class="fn">' + esc(it.name) + (it.plus ? ' +' + it.plus : '') + '</div><div class="fm">' + BB.RARITY[it.rarity].name + ' ' + BB.SLOT_NAME[it.slot] + ' · item level ' + it.level + (by ? ' · worn by ' + esc(BB.shortName(by)) : '') + '</div><div class="pips">' + pips + '</div>'));
-    det.appendChild(show);
-    const panel = det; det = el('div', 'fbody'); panel.appendChild(det);
-    if (it.ench) det.appendChild(el('div', 'ench', '<span style="color:' + BB.ECOL[it.ench][1] + '">✦ ' + BB.ELEMENTS[it.ench].name + ' enchant</span> · ' + BB.ENCH[it.ench].desc + '. The wearer glows with it.'));
-    else if (it.slot === 'weapon') det.appendChild(el('div', 'ench mute', 'Forge to +' + BB.AWAKEN_AT + ' to awaken an enchant.'));
-    const cur = BB.itemStats(it), next = BB.itemStats(Object.assign({}, it, { plus: (it.plus || 0) + 1 }));
-    det.appendChild(el('div', 'statl', Object.keys(cur).map((k) => '<div><span>' + ({ atk: 'Attack', hp: 'Health', def: 'Defence', crit: 'Crit', spd: 'Speed' }[k] || k) + '</span><b>' + UI.num(k, cur[k]) + ((it.plus || 0) < BB.MAX_PLUS ? ' <i>→ ' + UI.num(k, next[k]) + '</i>' : '') + '</b></div>').join('')));
-    const ups = el('div', 'ups');
-    const maxed = (it.plus || 0) >= BB.MAX_PLUS;
-    const up = el('button', 'btn', maxed ? 'Fully forged' : 'Forge +' + ((it.plus || 0) + 1) + '<span class="cost">● ' + fmt(BB.upgradeCost(it)) + '</span>');
-    up.disabled = maxed || S.gold < BB.upgradeCost(it);
-    click(up, () => { const r = BB.upgradeItem(S, it); if (r) { F.hit = it; BB.sfx(r === 'awakened' ? 'enchant' : 'forge'); BB.persist(); UI.renderForge(); UI.refreshTop(); if (r === 'awakened') UI.toast('The forge awakens it: ' + it.name + ' · ' + BB.ENCH[it.ench].desc); } });
-    ups.appendChild(up);
-    if (!by) {
-      const sv = el('button', 'btn dark', 'Salvage<span class="cost">+● ' + BB.salvageValue(it) + '</span>');
-      click(sv, () => UI.confirm('Salvage <b>' + esc(it.name) + '</b> for ' + BB.salvageValue(it) + ' gold?', () => { S.inventory.splice(S.inventory.indexOf(it), 1); S.gold += BB.salvageValue(it); F.sel = null; BB.sfx('coin'); BB.persist(); UI.renderForge(); UI.refreshTop(); }));
-      ups.appendChild(sv);
-    }
-    det.appendChild(ups);
-  };
-
   // ---------------------------------------------------------------- shop
   let shopBlade = null;
   UI.renderShop = function () {
     const S = BB.save, box = $('offers'); box.innerHTML = '';
     const d = new Date(), mid = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1), left = mid - now();
+    const sell = $('bSellGear'); sell.style.display = S.inventory.length ? '' : 'none'; sell.textContent = 'Sell spare gear · ' + S.inventory.length;
     $('shopReset').textContent = 'Restocks in ' + Math.floor(left / 3600000) + 'h ' + Math.floor(left / 60000) % 60 + 'm';
     // each offer is a relic on the table: its own light, and the thing itself rather than a glyph
     const col = { free: '#5cb8ff', chest: '#ffb648', sigils: '#b57cff', crystals: '#63d6ff', arms: '#ff7a4d' };
@@ -1457,6 +1410,36 @@
       box.appendChild(c);
     }
   };
+
+  // the quartermaster buys what nobody carries: one piece at a time, or every plain Common piece at once
+  UI.openSell = function () {
+    const S = BB.save, body = $('pickBody'); body.innerHTML = '';
+    const again = () => { BB.sfx('coin'); BB.persist(); UI.refreshTop(); UI.renderShop(); if (S.inventory.length) UI.openSell(); else UI.modal('mPick', false); };
+    body.appendChild(el('h3', 'gold', 'Sell spare gear'));
+    body.appendChild(el('div', 'mute', '<span style="font-size:13px">Only what is in the bag. Gear your heroes carry is never listed.</span>'));
+    const list = el('div', 'pick scroll');
+    for (const it of S.inventory.slice().sort((a, b) => a.rarity - b.rarity || BB.itemScore(a) - BB.itemScore(b))) {
+      const row = el('div', 'prow');
+      const ic = el('div', 'it'); ic.style.setProperty('--ic', BB.RARITY[it.rarity].color); ic.appendChild(UI.itemIcon(it, 40)); row.appendChild(ic);
+      row.appendChild(el('div', 'grow', '<b style="color:' + BB.RARITY[it.rarity].color + '">' + esc(it.name) + (it.plus ? ' +' + it.plus : '') + '</b><small>' + BB.RARITY[it.rarity].name + ' ' + BB.SLOT_NAME[it.slot] + ' · ' + UI.statLine(BB.itemStats(it)) + '</small>'));
+      const b = el('button', 'btn dark sm', '● ' + fmt(BB.salvageValue(it)));
+      click(b, () => { S.inventory.splice(S.inventory.indexOf(it), 1); S.gold += BB.salvageValue(it); again(); });
+      row.appendChild(b); list.appendChild(row);
+    }
+    body.appendChild(list);
+    const row = el('div', 'row'); row.style.justifyContent = 'flex-end';
+    const plain = S.inventory.filter((it) => it.rarity === 0);
+    if (plain.length > 1) {
+      const worth = plain.reduce((a, it) => a + BB.salvageValue(it), 0);
+      const all = el('button', 'btn dark sm', 'Sell all Common · ● ' + fmt(worth)); all.id = 'bSellCommon';
+      click(all, () => { S.inventory = S.inventory.filter((it) => it.rarity !== 0); S.gold += worth; again(); });
+      row.appendChild(all);
+    }
+    const x = el('button', 'btn sm', 'Close'); click(x, () => UI.modal('mPick', false)); row.appendChild(x);
+    body.appendChild(row);
+    UI.modal('mPick');
+  };
+  click($('bSellGear'), () => UI.openSell());
 
   // ---------------------------------------------------------------- milestones
   UI.openQuests = function () {
@@ -1494,7 +1477,6 @@
     if (tab === 'home') { BB.goCamp(); return; }
     if (tab === 'heroes') UI.renderHeroes();
     if (tab === 'team') { UI.openTeam(); return; }
-    if (tab === 'forge') UI.renderForge();
     if (tab === 'shop') UI.renderShop();
     UI.show(tab);
   };
@@ -1504,7 +1486,7 @@
   UI.results = function (res, actions) {
     const body = $('resBody'); body.innerHTML = '';
     body.appendChild(el('div', 'res-h ' + (res.win ? 'win' : 'lose'), '<h2>' + (res.win ? 'Victory' : 'Defeat') + '</h2><div class="mute">Stage ' + res.code + ' · ' + esc(res.title) + '</div>'));
-    if (!res.win) body.appendChild(el('div', 'mute', '<div style="text-align:center;font-size:14px">Nothing is lost, and every hero still learned from it. Forge gear, try another formation, and fight again.</div>'));
+    if (!res.win) body.appendChild(el('div', 'mute', '<div style="text-align:center;font-size:14px">Nothing is lost, and every hero still learned from it. Change your gear, try another formation, and fight again.</div>'));
     const hs = el('div', 'res-heroes');
     for (const h of res.heroes) {
       const c = UI.heroCard(h, { tag: 'div' }); if (res.mvp === h) c.appendChild(el('div', 'mvp', 'MVP'));

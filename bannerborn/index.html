@@ -314,21 +314,12 @@ body.dev::after{content:'DEVELOPMENT SANDBOX · NOTHING IS SAVED';position:fixed
 .bond{padding:5px 10px;border-radius:999px;background:var(--acc-soft);color:var(--accent);font:600 12px var(--head)}
 .vs{display:flex;align-items:center;gap:10px}
 
-/* ---- forge */
-#forge .inv{flex:1.4;min-width:0;display:flex;flex-direction:column;gap:12px}
-#forge .igrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(68px,1fr));gap:8px;align-content:start;padding:2px 6px 10px 2px}
+/* ---- gear tiles (results, pickers, the shop's buy-back list) */
 .it{position:relative;aspect-ratio:1;border-radius:14px;display:flex;align-items:center;justify-content:center;border:1px solid color-mix(in srgb,var(--ic) 40%,transparent);
   background:radial-gradient(80% 80% at 50% 65%,color-mix(in srgb,var(--ic) 26%,transparent),transparent),rgba(12,14,21,.6);transition:transform .12s,border-color .12s}
 .it:hover{transform:translateY(-2px)}
 .it canvas{width:66%;height:66%}
 .it .plus{position:absolute;top:5px;right:7px;font:700 11px var(--head);color:var(--accent)}
-.it .eq{position:absolute;bottom:4px;left:6px;right:6px;font:600 9px var(--head);color:var(--green);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left}
-.it.sel{border-color:#fff;box-shadow:0 0 0 1px #fff,0 0 20px -2px var(--ic)}
-#forge .det{flex:1;padding:22px;display:flex;flex-direction:column;gap:14px;min-width:0}
-.ench{font:500 13px var(--body);padding:9px 12px;border-radius:12px;background:var(--fill);border:1px solid var(--line)}
-.statl{display:flex;flex-direction:column;gap:6px;font-size:14px}
-.statl div{display:flex;justify-content:space-between;padding:10px 12px;border-radius:12px;background:var(--fill);border:1px solid var(--line);color:var(--mute)}
-.statl b{color:var(--text);font:600 14px var(--head);font-variant-numeric:tabular-nums} .statl i{font-style:normal;color:var(--green)}
 
 /* ---- shop */
 #shop .head{display:flex;align-items:center}
@@ -576,33 +567,12 @@ input[type=range]{accent-color:var(--accent)} input[type=checkbox]{accent-color:
 #heroes .head{gap:10px}
 #heroes .coll{min-width:200px}
 
-/* ---- forge: the piece on the anvil */
 .it{border-radius:12px;background:radial-gradient(80% 70% at 50% 62%,color-mix(in srgb,var(--ic) 32%,transparent),transparent 75%),linear-gradient(180deg,rgba(32,36,52,.92),rgba(12,14,21,.94));
   box-shadow:inset 0 1px 0 rgba(255,255,255,.1),inset 0 -2px 0 color-mix(in srgb,var(--ic) 60%,transparent)}
-.it.sel{border-color:var(--gold-hi);transform:translateY(-2px);box-shadow:0 0 0 1px var(--gold-hi),0 0 22px -2px var(--ic)}
-#forge .det{padding:0;gap:0;overflow:hidden}
-.fshow{position:relative;isolation:isolate;display:flex;flex-direction:column;align-items:center;gap:5px;padding:20px 18px 14px;text-align:center;border-bottom:1px solid var(--line);
   background:radial-gradient(70% 95% at 50% 28%,color-mix(in srgb,var(--ic) 28%,transparent),transparent 72%)}
-.fshow .big{position:relative;width:108px;height:108px;display:flex;align-items:center;justify-content:center;flex:none}
-.fshow .big::before{content:'';position:absolute;inset:0;border-radius:50%;border:1px dashed color-mix(in srgb,var(--ic) 75%,transparent);animation:spin 26s linear infinite}
-.fshow .big::after{content:'';position:absolute;inset:11px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--ic) 42%,transparent),rgba(5,6,10,.35) 72%);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ic) 45%,transparent)}
-.fshow .big canvas{position:relative;z-index:1;width:64px;height:64px;filter:drop-shadow(0 6px 10px rgba(0,0,0,.6))}
-.fshow.hit .big canvas{animation:fhit .5s cubic-bezier(.2,1.6,.4,1)}
-.fshow.hit .big::after{animation:fring .6s ease-out}
-@keyframes fhit{0%{transform:scale(1.55);filter:brightness(3)}}
-@keyframes fring{0%{transform:scale(.7);box-shadow:0 0 0 4px #fff,0 0 40px 10px var(--ic)}100%{transform:scale(1.5);opacity:0}}
-.fshow .fn{font:800 16px var(--disp);letter-spacing:.06em;text-transform:uppercase;color:var(--ic);line-height:1.15}
-.fshow .fm{font:500 12px var(--body);color:var(--mute)}
-.pips{display:flex;gap:5px;margin-top:7px;justify-content:center}
-.pips i{width:9px;height:9px;transform:rotate(45deg);background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(255,255,255,.16)}
-.pips i.on{background:linear-gradient(135deg,#ffe9b0,#f09a2a);box-shadow:0 0 8px rgba(255,180,70,.85)}
-.pips i.aw{box-shadow:inset 0 0 0 1px var(--cyan)} .pips i.aw.on{background:linear-gradient(135deg,#dff6ff,#5cd3ff);box-shadow:0 0 8px rgba(92,211,255,.9)}
-.fbody{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px;padding:14px 18px 18px;overflow-y:auto}
-.fbody .ups{margin-top:auto}
-.statl div{padding:8px 12px}
 
 /* ---- shop: relics on the quartermaster's table */
-#shop .head{gap:12px}
+#shop .head{gap:12px} #shop .head .sect small{margin-right:8px}
 .timer{padding:5px 12px;border-radius:999px;background:rgba(5,6,10,.6);border:1px solid var(--line);font:600 11px var(--head);letter-spacing:.12em;text-transform:uppercase;color:var(--mute);white-space:nowrap}
 .offer{overflow:hidden;isolation:isolate;padding:22px 14px 16px;--oc:#ffbe55;border-color:color-mix(in srgb,var(--oc) 32%,rgba(255,255,255,.06));
   background:radial-gradient(95% 55% at 50% 0%,color-mix(in srgb,var(--oc) 28%,transparent),transparent 70%),linear-gradient(180deg,rgba(26,30,43,.82),rgba(10,12,18,.88))}
@@ -666,8 +636,6 @@ input[type=range]{accent-color:var(--accent)} input[type=checkbox]{accent-color:
   #heroes .col{gap:8px} #heroes .coll{min-width:0} #heroes .coll .bar{display:none} #heroes .head{flex-wrap:nowrap;gap:8px} .fbtn{width:28px;padding:6px}
   .hc .nm{font-size:10.5px;line-height:1.1} .hc .pw{font-size:10px;line-height:1.1} .hc .lv{font-size:10px;padding:1px 5px} .hc .cic{width:19px;height:19px}
   #mSettings .frame{gap:8px} #mSettings label{font-size:13.5px}
-  .fshow{flex-direction:row;text-align:left;padding:10px 14px;gap:12px;align-items:center} .fshow .big{width:60px;height:60px} .fshow .big::after{inset:5px} .fshow .big canvas{width:40px;height:40px} .fshow .fn{font-size:13.5px}
-  .fshow .ftxt{display:flex;flex-direction:column;gap:2px;min-width:0} .pips{justify-content:flex-start;margin-top:4px} .fbody{padding:8px 14px 10px;gap:6px} .statl{gap:4px;font-size:13px} .statl div{padding:5px 10px} .ench{padding:6px 10px;font-size:12px}
   .offer{padding:12px 8px 10px} .offer .art{width:58px;height:58px;margin:2px 0 6px} .offer .art::before{inset:-22px} .offer .art canvas{width:40px;height:40px} .offer .art svg{width:28px;height:28px} .gem{width:24px;height:32px} .gems .gem:nth-child(1),.gems .gem:nth-child(3){width:15px;height:20px} .offer h3{font-size:11.5px}
   #versus .vin{gap:7px}
   #home .plate{bottom:calc(70px + var(--safe-b))} #home .plate .nm{font-size:17px}
@@ -712,7 +680,6 @@ input[type=range]{accent-color:var(--accent)} input[type=checkbox]{accent-color:
     <button class="tab" data-tab="home"><svg class="i" viewBox="0 0 24 24"><path d="M3 20h18M5 20L12 5l7 15M12 5v15"/><path d="M9.5 20l2.5-5 2.5 5"/></svg>Camp</button>
     <button class="tab" data-tab="heroes"><svg class="i" viewBox="0 0 24 24"><path d="M6 10a6 6 0 0 1 12 0v4l-2 3H8l-2-3z"/><path d="M9 12h6M12 4v4"/></svg>Heroes</button>
     <button class="tab" data-tab="team"><svg class="i" viewBox="0 0 24 24"><path d="M12 2.5l7.5 3v6c0 4.8-3.3 8.6-7.5 10.5C7.8 20.1 4.5 16.3 4.5 11.5v-6z"/><path d="M12 7v9M8.5 10.5h7"/></svg>Team</button>
-    <button class="tab" data-tab="forge"><svg class="i" viewBox="0 0 24 24"><path d="M3 8h12.5c0 2.2 2 3.5 5 3.5V14h-7l2 5H8.5l2-5H7C4.5 14 3 11.5 3 8z"/></svg>Forge</button>
     <button class="tab" data-tab="shop"><svg class="i" viewBox="0 0 24 24"><path d="M6 8h12l-1 12H7z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>Shop</button>
   </nav>
 </div>
@@ -764,12 +731,7 @@ input[type=range]{accent-color:var(--accent)} input[type=checkbox]{accent-color:
   </div>
 </div></div>
 
-<div id="forge" class="screen"><div class="bg"></div><div class="body">
-  <div class="inv"><div class="chapters" id="forgeFilter"></div><div class="igrid scroll grow" id="forgeGrid"></div></div>
-  <div class="det frame" id="forgeDet"></div>
-</div></div>
-
-<div id="shop" class="screen"><div class="bg"></div><div class="body" style="flex-direction:column"><div class="head"><div class="sect grow">The Quartermaster <small>today's offers</small></div><span class="timer" id="shopReset"></span></div><div class="offers scroll" id="offers"></div></div></div>
+<div id="shop" class="screen"><div class="bg"></div><div class="body" style="flex-direction:column"><div class="head"><div class="sect grow">The Quartermaster <small>today's offers</small></div><button class="btn dark sm" id="bSellGear" style="display:none"></button><span class="timer" id="shopReset"></span></div><div class="offers scroll" id="offers"></div></div></div>
 
 <div id="hud" class="screen">
   <div class="lb top"></div>

@@ -1,5 +1,5 @@
 // Headless playthrough: title → new game → camp → campaign → team → battle (ultimate, auto) → results
-// → heroes → hero → recruit (reveal) → team → forge → shop → settings. Fails on console errors.
+// → heroes → hero → recruit (reveal) → team → shop → settings. Fails on console errors.
 // usage: NODE_PATH=$(npm root -g) node test/shots.js /tmp/bb-shots [width height]
 const { chromium } = require('playwright');
 const out = process.argv[2] || '/tmp/bb-shots';
@@ -79,7 +79,7 @@ require('fs').mkdirSync(out, { recursive: true });
   if ((await p.evaluate(() => BB.talentRank(BB.save.heroes.find((h) => h.id === BB.UI.hs.id), 'm1'))) !== 2) errs.push('learning a skill did not work');
   await region('next'); await wait(500); await shot('18-hero-next');
   await p.evaluate(() => BB.UI.go('team')); await wait(400); await shot('19-team');
-  await tap('.tab[data-tab=forge]'); await wait(300); await shot('20-forge');
+  if (await p.$('.tab[data-tab=forge]')) errs.push('the Forge tab is still there');
   await tap('.tab[data-tab=shop]'); await wait(300); await shot('21-shop');
   await tap('#offers .btn'); await wait(200);
   await tap('#bSettings'); await wait(300); await shot('22-settings');

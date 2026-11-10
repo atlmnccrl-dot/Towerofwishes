@@ -485,9 +485,10 @@
       S.heroes.push(BB.heroFromEntry(S, Object.assign({}, e, { rarity: 3 })));
     }
     const r = BB.rng(o.idx * 31 + 7), ench = o.ench || [];
+    const gearLv = Math.round(1 + (1.6 * (1 + (st.level - 1) * 0.14) - 1) / 0.14); // gear a good way above the stage, as a late-game team's would be
     S.heroes.forEach((h, i) => {
       h.stars = 5; h.level = Math.min(BB.levelCap(h), st.level + (o.over === undefined ? 3 : o.over));
-      for (const slot of BB.SLOTS) { const it = BB.makeItem(r, slot, st.level, 3, slot === 'weapon' ? BB.weaponType(h.calling) : undefined); it.plus = 5; if (slot === 'weapon' && ench.length) it.ench = ench[i % ench.length]; h.gear[slot] = it; }
+      for (const slot of BB.SLOTS) { const it = BB.makeItem(r, slot, gearLv, 3, slot === 'weapon' ? BB.weaponType(h.calling) : undefined); if (slot === 'weapon' && ench.length) it.ench = ench[i % ench.length]; h.gear[slot] = it; }
     });
     BB.autoFill(S);
     return S;
@@ -633,8 +634,8 @@
   // ---------------------------------------------------------------- loop
   let lastT = performance.now(), spoilT = 0;
   // the camp keeps living behind every menu (dimmed by each screen's backdrop)
-  const SCENE_UNDER = ['title', 'home', 'hud', 'cine', 'heroes', 'hero', 'team', 'forge', 'shop', 'campaign', 'recruit'];
-  const DIMMED = ['heroes', 'hero', 'forge', 'shop', 'campaign', 'recruit']; let dimAcc = 0, dimN = 0;
+  const SCENE_UNDER = ['title', 'home', 'hud', 'cine', 'heroes', 'hero', 'team', 'shop', 'campaign', 'recruit'];
+  const DIMMED = ['heroes', 'hero', 'shop', 'campaign', 'recruit']; let dimAcc = 0, dimN = 0;
   // frame-rate watch for 'auto' graphics: the average of the last stretch of battle frames
   let fpsAcc = 0, fpsN = 0, fpsHold = 0;
   function watchFrames(real) {

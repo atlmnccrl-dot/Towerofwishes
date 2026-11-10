@@ -48,9 +48,11 @@ A hero-collector RPG: you build the team, the team fights.
    capstones (Executioner, Undying, the ultimate's Mastery); one point per level, free reset. **Heroes level by fighting, not gold:** everyone who fights earns experience by their
    share of the work (damage, healing, blows taken), more on harder stages, some on a loss, faster when below the
    stage's level; the results show each hero's bar and level-ups (cap 10 + 10 per star; at the cap experience waits for
-   the next star). Gold forges gear and buys chests; crystals ◆ recruit heroes and buy a Smith's Masterwork weapon.
+   the next star). Gold buys chests and sigils at the shop; crystals ◆ recruit heroes and buy a Smith's Masterwork weapon.
    **Ascend** ★ with sigils to raise the cap
-   (up to 5 stars), gear in four slots (weapon, armour, helm, charm) that the **Forge** upgrades to +10.
+   (up to 5 stars), gear in four slots (weapon, armour, helm, charm), found in stages and chests or bought at the shop, and changed
+   on the hero's own screen. There is no forge: a piece is as strong as it drops (pieces forged in older saves keep
+   their +N). Spare gear is sold at the shop.
    Rarity (Common → Legendary) multiplies every stat. **What a hero wears shows on them:** the Captain's armour and
    helm change their sprite; every hero glows in the colour of their best gear (brighter with forging); good weapons
    carry an **enchant** (fire embers, frost, storm arcs, shadow wisps, holy light, dripping venom) that swirls around
@@ -58,7 +60,7 @@ A hero-collector RPG: you build the team, the team fights.
    in its colours and every blow lands its own impact (a flame bloom, ice spikes from the ground, a bolt from the sky,
    a dark cross-cut, a pillar of light, a venom splash); storm chains arc to the next foe, holy heals send motes to the
    ally; burning, frosted, poisoned and rent foes show it on the body; enchanted shots trail their element. Venomous
-   weapons poison, stacking three deep and ignoring armour; forging a plain weapon to +5 awakens one; capstones add a mark (Undying's halo,
+   weapons poison, stacking three deep and ignoring armour; capstones add a mark (Undying's halo,
    Mastery's rune circle, Executioner's embers), and 4★ heroes sparkle. The same look follows them into battle.
 3b. **Every hero is someone.** Each hero has a **class** — Guardian, Warrior, Assassin, Marksman, Mage or Healer —
    and each of the 102 recruits is dealt a mix nobody else has (js/identity.js): an **entrance** (walks out of smoke,
@@ -131,7 +133,7 @@ A hero-collector RPG: you build the team, the team fights.
    market as the campaign goes on. **Spoils** gather while you are away (up to 12 h). **Goals**
    (seventeen milestones) pay crystals, gold and sigils. The **Shop** has a few offers a day.
 
-Losing costs nothing (and still teaches your heroes): forge, change the formation and fight again.
+Losing costs nothing (and still teaches your heroes): change gear or the formation and fight again.
 
 | Callings | Role | Ultimate |
 |---|---|---|
@@ -147,9 +149,8 @@ Losing costs nothing (and still teaches your heroes): forge, change the formatio
 **Menus.** The title is the logo carved in gold over the night camp (rays, embers, one button: *Raise the Banner*
 or *Continue*, with where you left off beneath it). **Heroes**: the chosen hero stands large on a podium of their
 rarity's light beside the collection; tap a card to bring that hero forward, tap again (or *Open*) for their screen.
-**Forge**: the selected piece sits in a rune ring with a pip for every forging (the blue pip is where a plain weapon
-awakens) and flashes when struck. **Shop**: each offer is a relic on its own light (gems, the chest, a blade, a
-sigil). **Battle start**: while the field loads, a *versus* card slams in (your heroes and power on the blue side,
+**Shop**: each offer is a relic on its own light (gems, the chest, a blade, a
+sigil), and *Sell spare gear* buys what is in the bag, a piece at a time or every Common piece at once. **Battle start**: while the field loads, a *versus* card slams in (your heroes and power on the blue side,
 the enemy's faces and the power needed on the red, the stage's name and objective), then parts down the middle
 onto the fight. Menu animation is transform/opacity only, and the small glass pieces no longer blur what is behind
 them.
@@ -208,7 +209,7 @@ name, their horde, the face-off, the clash) and a fall; chapters 2-4 open with y
 |---|---|
 | `index.html` | page, styles, all screens and HUD markup |
 | `js/data.js` | callings, legends, foes, gear, bonds, chapters and stages. Pure |
-| `js/rules.js` | heroes, stats, levels and stars, gear and forge, formation, tiers and recruiting, rewards, spoils, shop, goals, save. Pure (runs in Node) |
+| `js/rules.js` | heroes, stats, levels and stars, gear, formation, tiers and recruiting, rewards, spoils, shop, goals, save. Pure (runs in Node) |
 | `js/assets.js` | atlas loading, recolouring (dyes, skin, effect hues), paper-doll drawing, portraits |
 | `js/world.js` | isometric projection, procedural maps per layout, painted ground, collisions, A* pathing |
 | `js/battle.js` | the battlefield: formation, hero/foe AI, energy and ultimates, bosses, objectives, rendering, lighting |
@@ -220,7 +221,7 @@ name, their horde, the face-off, the clash) and a fall; chapters 2-4 open with y
 | `js/tactics.js` | battlefield tactics: potions, rescues, hands-on heals, stones to throw, kicks, charges, pounces, dodge rolls |
 | `js/cinema.js` | cutscenes: shot sequencer (scene fly-throughs, close-ups, splits, impact frames, titles) and the four scripts |
 | `js/heroui.js` | the hero screen: canvas-drawn stage, gear sockets and picker, attributes, skill tree, its own hit-testing |
-| `js/screens.js` | every menu screen: top bar and tabs, camp, campaign, heroes, hero, recruit and reveal, team, forge, shop, goals, results |
+| `js/screens.js` | every menu screen: top bar and tabs, camp, campaign, heroes, hero, recruit and reveal, team, shop, goals, results |
 | `js/main.js` | boot, loop, input, camp and title scenes, battle HUD, deploy → rewards, saving |
 | `tools/pack.py` | packs the raw asset batches into trimmed atlases |
 | `test/` | Node tests and headless-browser screenshot runs |

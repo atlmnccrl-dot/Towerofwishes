@@ -89,7 +89,6 @@
     return { id: BB.uid('i'), slot, wtype: slot === 'weapon' ? wtype : undefined, look, tint, rarity, level, plus: 0, ench,
       name: (ench ? BB.ENCH[ench].prefix + ' ' : rarity === 3 ? 'Legendary ' : '') + base.names[nameIdx], stats };
   };
-  BB.MAX_PLUS = 10;
   BB.ENCHANTS = ['fire', 'frost', 'storm', 'shadow', 'holy', 'poison'];
   BB.ENCH = {
     fire: { prefix: 'Blazing', stat: 'atk', amt: 1.5, desc: 'Blows set foes alight' },
@@ -99,7 +98,6 @@
     holy: { prefix: 'Hallowed', stat: 'hp', amt: 10, desc: 'Blows heal the weakest ally' },
     poison: { prefix: 'Venomous', stat: 'atk', amt: 1.0, desc: 'Blows poison foes; the venom stacks three deep' },
   };
-  BB.AWAKEN_AT = 5; // forging a plain weapon to +5 awakens an enchant
   BB.heroEnch = (h) => (h.gear && h.gear.weapon && h.gear.weapon.ench) || null;
   BB.itemStats = function (it) {
     const k = 1 + (it.plus || 0) * 0.12, out = {};
@@ -111,7 +109,6 @@
     const s = BB.itemStats(it);
     return Math.round((s.hp || 0) * 0.5 + (s.atk || 0) * 5 + (s.def || 0) * 4 + (s.crit || 0) * 300 + (s.spd || 0) * 60);
   };
-  BB.upgradeCost = (it) => Math.round((40 + it.level * 8) * ((it.plus || 0) + 1) * (1 + it.rarity * 0.5));
   BB.salvageValue = (it) => Math.round((10 + it.level * 4) * (1 + it.rarity) * (1 + (it.plus || 0) * 0.4));
   BB.canEquip = function (hero, item) {
     if (!item) return true;
@@ -339,23 +336,11 @@
   BB.learn = function (h, id) { if (!BB.canLearn(h, id)) return false; h.talents = h.talents || {}; h.talents[id] = BB.talentRank(h, id) + 1; return true; };
   BB.resetTalents = function (h) { h.talents = {}; };
 
-  // ---------------------------------------------------------------- ascend, forge
+  // ---------------------------------------------------------------- ascend
   BB.ascend = function (save, h) {
     if (h.stars >= BB.MAX_STARS) return false;
     const c = BB.ascendCost(h); if (save.sigils < c) return false;
     save.sigils -= c; h.stars++; BB.ascendWaitingXp(h); return true;
-  };
-  BB.upgradeItem = function (save, it) {
-    if ((it.plus || 0) >= BB.MAX_PLUS) return false;
-    const c = BB.upgradeCost(it); if (save.gold < c) return false;
-    save.gold -= c; it.plus = (it.plus || 0) + 1;
-    if (it.slot === 'weapon' && !it.ench && it.plus >= BB.AWAKEN_AT) { // the forge awakens it
-      it.ench = BB.ENCHANTS[BB.hashStr(it.id) % BB.ENCHANTS.length];
-      const E = BB.ENCH[it.ench]; it.stats[E.stat] = Math.round(((it.stats[E.stat] || 0) + E.amt * BB.RARITY[it.rarity].mult) * 1000) / 1000;
-      it.name = E.prefix + ' ' + it.name.replace(/^Legendary /, '');
-      return 'awakened';
-    }
-    return true;
   };
 
   // ---------------------------------------------------------------- stages
@@ -427,7 +412,6 @@
   };
 
   // ---------------------------------------------------------------- milestones: one-time goals that pay crystals, gold and sigils
-  const allItems = (s) => s.inventory.concat(...s.heroes.map((h) => BB.SLOTS.map((k) => h.gear[k]).filter(Boolean)));
   BB.QUESTS = [
     { id: 'clear3', name: 'First Blood', desc: 'Clear stage 1-3', test: (s) => !!s.cleared['s1-3'], reward: { crystals: 100 } },
     { id: 'heroes3', name: 'A Warband', desc: 'Have 3 heroes', test: (s) => s.heroes.length >= 3, reward: { crystals: 150 } },
@@ -436,7 +420,7 @@
     { id: 'ch1', name: 'Greenvale Freed', desc: 'Clear chapter 1', test: (s) => BB.chapterCleared(s, 1), reward: { crystals: 300 } },
     { id: 'team5', name: 'Full Formation', desc: 'Field five heroes at once', test: (s) => BB.teamIds(s).length >= 5, reward: { crystals: 200 } },
     { id: 'star2', name: 'Ascendant', desc: 'Ascend a hero to 2 stars', test: (s) => s.heroes.some((h) => h.stars >= 2), reward: { crystals: 150 } },
-    { id: 'forge5', name: 'Smith', desc: 'Forge a piece of gear to +5', test: (s) => allItems(s).some((it) => (it.plus || 0) >= 5), reward: { sigils: 4 } },
+    { id: 'epicgear', name: 'Well Armed', desc: 'Have a hero carry a piece of Epic gear or better', test: (s) => s.heroes.some((h) => BB.SLOTS.some((k) => h.gear[k] && h.gear[k].rarity >= 2)), reward: { sigils: 4 } },
     { id: 'heroes8', name: 'A Growing Banner', desc: 'Have 8 heroes', test: (s) => s.heroes.length >= 8, reward: { crystals: 300 } },
     { id: 'ch2', name: 'The Sunscar Quiet', desc: 'Clear chapter 2', test: (s) => BB.chapterCleared(s, 2), reward: { crystals: 400 } },
     { id: 'kills500', name: 'Bone Breaker', desc: 'Defeat 500 foes', test: (s) => (s.stats.kills || 0) >= 500, reward: { sigils: 6 } },

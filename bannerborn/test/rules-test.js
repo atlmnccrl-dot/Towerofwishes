@@ -1,4 +1,4 @@
-// Pure rules: heroes, stats, levels, stars, gear and forge, formation, tiers and recruiting, stages and rewards,
+// Pure rules: heroes, stats, levels, stars, gear, formation, tiers and recruiting, stages and rewards,
 // idle spoils, shop, milestones, save. usage: node test/rules-test.js
 global.window = global.window || {};
 require('../js/data.js');
@@ -45,22 +45,20 @@ for (let i = 0; i < 9; i++) BB.ascend(S, h);
 ok(h.stars === BB.MAX_STARS, 'stars stop at the max');
 ok(BB.xpNeed({ level: 30 }) > BB.xpNeed({ level: 5 }) * 5, 'levels take longer');
 
-// gear and forge
+// gear
 const r = BB.rng(9);
 for (let i = 0; i < 300; i++) {
   const slot = r.pick(BB.SLOTS), rar = r.int(4);
   const it = BB.makeItem(r, slot, 1 + r.int(30), rar, slot === 'weapon' ? r.pick(['sword', 'axe', 'bow', 'focus', 'fist', 'spear']) : undefined);
   ok(it.name && it.stats && Object.values(it.stats).every(Number.isFinite), 'item ' + it.name + ' finite stats');
-  ok(BB.itemScore(it) > 0 && BB.upgradeCost(it) > 0 && BB.salvageValue(it) > 0, 'item scores and prices positive');
+  ok(BB.itemScore(it) > 0 && BB.salvageValue(it) > 0, 'item scores and prices positive');
 }
 const bow = BB.makeItem(r, 'weapon', 3, 1, 'bow');
 ok(BB.canEquip(BB.newHero({ calling: 'ranger' }), bow) && !BB.canEquip(BB.newHero({ calling: 'vanguard' }), bow), 'weapon types follow calling');
 const chest = BB.makeItem(r, 'chest', 5, 2);
 const g0 = BB.heroStats(h).hp; h.gear.chest = chest; ok(BB.heroStats(h).hp > g0, 'gear raises health');
+ok(BB.upgradeItem === undefined && BB.upgradeCost === undefined, 'there is no forging');
 S.gold = 1e6;
-const sc0 = BB.itemScore(chest); ok(BB.upgradeItem(S, chest) && chest.plus === 1 && BB.itemScore(chest) > sc0, 'forging raises the item');
-for (let i = 0; i < 20; i++) BB.upgradeItem(S, chest);
-ok(chest.plus === BB.MAX_PLUS, 'forging stops at +' + BB.MAX_PLUS);
 const team3 = ['vanguard', 'ranger', 'arcanist'].map((c) => BB.newHero({ calling: c, level: 4 }));
 const loot = BB.rollLoot(BB.rng(3), 5, team3, 40);
 ok(loot.length === 40 && loot.every((it) => it.slot !== 'weapon' || team3.some((t) => BB.weaponType(t.calling) === it.wtype)), 'loot weapons fit the team');
