@@ -76,6 +76,14 @@
     const el = U.show('settings', `<div class="panel"><h2>Theatre</h2>${html}<p class="note">Everything plays here whether or not you have reached it. A tap (or Esc) ends a cutscene and brings you back.</p></div>`, items, { back: o.onBack });
     if (o.focus) { const j = items.findIndex((it) => it.key === o.focus), b = el.querySelectorAll('.btn')[j]; if (b) { b.scrollIntoView({ block: 'center' }); b.focus({ preventScroll: true }); } }
   };
+  // A lesson of the tutorial: the game waits behind it until the player presses OK.
+  U.lesson = function (o) {
+    const items = [{ act: o.onOk }];
+    const el = U.show('lesson', `<div class="ls-card"><p class="ls-eyebrow">${esc(o.eyebrow || '')}</p><h2 class="ls-title">${esc(o.title)}</h2>
+      <p class="ls-text">${esc(o.text)}</p>${o.how ? `<p class="ls-how">${esc(o.how)}</p>` : ''}
+      <button class="btn ls-ok focus-first" data-i="0" type="button">${esc(o.ok || 'OK')}</button></div>`, items, { cls: 'dim', back: o.onBack || o.onOk });
+    return el;
+  };
   U.credits = function (o) {
     const items = [{ label: 'Back', act: o.onBack }];
     U.show('credits', `<div class="panel"><h2>Credits</h2><dl class="credits">

@@ -99,7 +99,7 @@
     padPrev = g.buttons.map((b) => b.pressed || b.value > 0.5);
   }
 
-  M.go = function (state) { M.state = state; M.t = 0; M.pressed = {}; if (R.hideCine) R.hideCine(); };
+  M.go = function (state) { M.state = state; M.t = 0; M.pressed = {}; M.hold = false; if (R.hideCine) R.hideCine(); };
 
   // ---- menus -----------------------------------------------------------------------------------------
   const P = () => M.save;
@@ -253,10 +253,10 @@
     run();
   }
   const TIPS = {
-    heavy: (H) => ['NEW ABILITY · HEAVY ATTACK', `${R.touch ? 'Tap HEAVY' : 'Right click'}: ${H.heavy && H.heavy.bolt ? 'a fan of blades' : 'a heavy blow all around you'}. It breaks guards and staggers.`],
-    dodge: () => ['NEW ABILITY · DODGE', `${R.touch ? 'Tap DASH' : 'Space'} to dash through danger. Cut right after a dodge for a dash-cut.`],
-    skill1: (H) => ['NEW SKILL · ' + H.skills[0].name.toUpperCase(), `${R.touch ? 'The first skill button' : 'R'} uses it. It recharges after each use.`],
-    skill2: (H) => ['NEW SKILL · ' + H.skills[1].name.toUpperCase(), `${R.touch ? 'The second skill button' : 'F'} uses it.`],
+    heavy: () => ['NEW · HEAVY BLOW', 'It comes on its own: when three or more crowd you, a shield stands in your way, or a combo runs its full length, your attack becomes a heavy blow.'],
+    dodge: () => ['NEW ABILITY · DODGE', `${R.touch ? 'Tap DASH' : 'Space'} to dash through danger. Attack right after a dodge for a dash-cut.`],
+    skill1: (H) => ['NEW SKILL · ' + H.skills[0].name.toUpperCase(), 'It joins your combo by itself whenever it is ready: keep attacking. Its mark above the attack turns gold when it is ready.'],
+    skill2: (H) => ['NEW SKILL · ' + H.skills[1].name.toUpperCase(), 'It joins your combo by itself whenever it is ready: keep attacking.'],
     art: () => ['NEW ABILITY · MOON ART', `When the moon gauge is full, ${R.touch ? 'tap the moon' : 'press E'} for your ultimate. Use it at low health for the strongest version.`],
   };
   // ---- the guided trial ----------------------------------------------------------------------------------
@@ -277,7 +277,7 @@
       enter: (f) => { const a = ahead(f, 80); f.tut.units = [SIM.place(f.s, 'post', a.x, a.y)]; f.tut.best = 0; },
       prog: (f) => { f.tut.best = Math.max(f.tut.best, f.s.combo); return Math.min(6, f.tut.best) + ' / 6 hits'; }, done: (f) => f.tut.best >= 6 || !alive(f).length, limit: 30,
       leave: (f) => { for (const u of alive(f)) SIM.dismiss(f.s, u); } },
-    { title: 'HEAVY', text: () => key('Walk into the group and right click (or K) for a HEAVY blow: it hits everything around you.', 'Walk into the group and tap HEAVY: it hits everything around you.', 'Walk into the group and press X for a HEAVY blow: it hits everything around you.'), btn: 'heavy',
+    { title: 'HEAVY', text: () => key('Walk into the group and keep clicking. When three or more crowd you, your combo turns into a HEAVY blow on its own and throws them all back.', 'Walk into the group and keep tapping CUT. When three or more crowd you, your combo turns into a HEAVY blow on its own and throws them all back.', 'Walk into the group and keep pressing A. When three or more crowd you, your combo turns into a HEAVY blow on its own and throws them all back.'), btn: 'atk',
       enter: (f) => { const c = ahead(f, 120); f.tut.units = [0, 1, 2, 3].map((i) => SIM.place(f.s, 'dummy', c.x + Math.cos(i * 1.57) * 26, c.y + Math.sin(i * 1.57) * 26)); f.tut.heavy = 0; },
       prog: (f) => (4 - alive(f).length) + ' / 4', done: (f) => !alive(f).length, limit: 30, leave: (f) => { for (const u of alive(f)) SIM.dismiss(f.s, u); } },
     { title: 'DODGE', text: () => key('The Drill Knight swings slowly. When the RED ring flashes under him, press SPACE to dash through the blow. Dodge 2 swings.', 'The Drill Knight swings slowly. When the RED ring flashes under him, tap DASH to dash through the blow. Dodge 2 swings.', 'The Drill Knight swings slowly. When the RED ring flashes under him, press B to dash through the blow. Dodge 2 swings.'), btn: 'dodge',
@@ -335,7 +335,7 @@
     if (node && !opts.theatre) { const S = MD.scale(p); node = Object.assign({}, node, { scale: { hp: (node.scale ? node.scale.hp : 1) * S.hp, dmg: (node.scale ? node.scale.dmg : 1) * S.dmg }, rules: Object.assign({}, node.rules, S.elites ? { elites: true } : {}) }); }
     const gear = opts.gear || (opts.theatre ? null : Object.assign({}, VS.LOOT.mods(p, p.hero))); if (gear && !opts.gear) gear.dmg *= MD.masteryDmg(p, p.hero);
     const s = SIM.create(stageIdx, { seed: (Date.now() & 0xffff) + 1, boons: opts.boons || (opts.theatre ? [] : PR.passives(p)), kit, hero: p.hero, node, gear, endlessNext: b && b.next, guided: !!(opts.guided || (opts.node && opts.node.type === 'trial')) });
-    M.fight = Object.assign({ s, stage: stageIdx, acc: 0, card: null, cardT: 0, say: null, banner: null }, opts);
+    M.fight = Object.assign({ s, stage: stageIdx, acc: 0, card: null, cardT: 0, say: null, banner: null }, opts); M.hold = false;
     M.paused = false; R.snapCam(s); R.fx = []; R.parts = []; R.floaters = []; R.pfx = []; R.entryDoor = null; R.impactF = null; R.kit = s.mods.can;
     f0 = M.fight; const n = opts.node, AR = VS.arenaOf(s);
     if (n) {
@@ -380,28 +380,25 @@
   const SHOW_NODE = 'a6-1';
   const lineOf = (f, n, gap, dx) => { const a = ahead(f, 110); return Array.from({ length: n }, (_, i) => ({ x: a.x + (i - (n - 1) / 2) * gap * (dx || 1), y: a.y + (i - (n - 1) / 2) * gap * 0.25 })); };
   const LAST = [
-    TUT[0], TUT[1], TUT[2], TUT[3],
-    { title: 'DODGE', text: () => key('The knight swings slowly. When the RED ring flashes under him, press SPACE and dash right through the blow. Dash through 2 swings.', 'The knight swings slowly. When the RED ring flashes under him, tap DASH and dash right through the blow. Dash through 2 swings.', 'The knight swings slowly. When the RED ring flashes under him, press B and dash right through the blow. Dash through 2 swings.'), btn: 'dodge',
-      enter: TUT[4].enter, prog: TUT[4].prog, done: TUT[4].done, limit: 35 },
-    TUT[5],
-    { title: 'CRESCENT WAVE', text: () => key('Your first skill. Press R: a wave of red steel down the whole line.', 'Your first skill: tap it to send a wave of red steel down the whole line.', 'Your first skill. Press LB: a wave of red steel down the whole line.'), btn: 's1',
-      enter: (f) => { f.s.cds[0] = 0; f.tut.units = lineOf(f, 4, 26).map((p) => SIM.place(f.s, 'dummy', p.x, p.y)); },
-      prog: (f) => (4 - alive(f).length) + ' / 4', done: (f) => !alive(f).length, limit: 20, leave: (f) => { for (const u of alive(f)) SIM.dismiss(f.s, u); } },
-    { title: 'PHANTOM STEP', text: () => key('Your second skill. Press F: vanish and strike the husk from behind.', 'Your second skill: tap it to vanish and strike the husk from behind.', 'Your second skill. Press RB: vanish and strike the husk from behind.'), btn: 's2',
-      enter: (f) => { f.s.cds[1] = 0; const a = ahead(f, 130); f.tut.units = [SIM.place(f.s, 'dummy', a.x, a.y)]; f.tut.used2 = false; },
-      done: (f) => f.tut.used2 || !alive(f).length, limit: 18, leave: (f) => { for (const u of alive(f)) SIM.dismiss(f.s, u); } },
-    { title: 'THE HORDE', text: () => 'Now all of it. The dead of the last hour: cut, heavy, dash, and both skills. Cut down 12.', btn: null,
-      enter: (f) => { const s = f.s; for (const u of SIM.foes(s)) SIM.dismiss(s, u); f.tut.units = []; f.tut.mark = null; f.tut.kills = 0; SIM.release(s); f.s.cds[0] = f.s.cds[1] = 0; P().seen.lastHour = true; AU.cue('boss'); R.flash = 0.5; R.flashCol = '255,40,70'; R.shake = 8; AU.sfx('horn', 0.9); },
-      prog: (f) => Math.min(12, f.tut.kills) + ' / 12', done: (f) => f.tut.kills >= 12, limit: 40 },
-    { title: 'THE GUARDIAN', text: () => 'An echo of the Gatewarden. Watch for the red rings, dash through his blows, cut him when he is open.', btn: null,
+    TUT[0], TUT[1], TUT[2], TUT[3], TUT[4], TUT[5],
+    { title: 'SKILLS', text: () => 'Your two skills, the Crescent Wave and the Phantom Step, join your combo by themselves whenever they are ready. The marks above your attack turn gold when they are. Keep attacking the line.', btn: 'atk',
+      enter: (f) => { f.s.cds[0] = f.s.cds[1] = 0; f.tut.used = [false, false]; f.tut.units = lineOf(f, 5, 24).map((p) => SIM.place(f.s, 'dummy', p.x, p.y)); },
+      prog: (f) => { const u = f.tut.used || []; return (u[0] ? 1 : 0) + (u[1] ? 1 : 0) + ' / 2 skills'; }, done: (f) => { const u = f.tut.used || []; return (u[0] && u[1]) || !alive(f).length; }, limit: 45, leave: (f) => { for (const u of alive(f)) SIM.dismiss(f.s, u); } },
+    { title: 'THE HORDE', text: () => 'Now all of it, against the dead of the last hour. Keep attacking, dash through the red swings, and let the heavy blow and your skills come. Cut down 12.', btn: null,
+      enter: (f) => { const s = f.s; for (const u of SIM.foes(s)) SIM.dismiss(s, u); f.tut.units = []; f.tut.mark = null; f.tut.kills = 0; SIM.release(s); P().seen.lastHour = true; AU.cue('boss'); },
+      prog: (f) => Math.min(12, f.tut.kills) + ' / 12', done: (f) => f.tut.kills >= 12, limit: 60 },
+    { title: 'THE GUARDIAN', text: () => 'An echo of the Gatewarden. Watch for the red rings under him, dash through his blows, then cut him while he recovers. Break him to half.', btn: null,
       enter: (f) => { const s = f.s; for (const u of SIM.foes(s)) SIM.dismiss(s, u); s.wave = s.waves.length - 2; s.area = s.waves.length - 1; s.waveT = 0; SIM.step(s, STEP, {}); R.snapCam(s); R.shake = 10; AU.sfx('quake', 1); },
       prog: (f) => { const b = SIM.foes(f.s).find((u) => D.FOES[u.key] && D.FOES[u.key].boss); return b ? Math.round(100 * b.hp / b.maxHp) + '%' : ''; },
-      done: (f) => { const b = SIM.foes(f.s).find((u) => D.FOES[u.key] && D.FOES[u.key].boss); return !b || b.hp < b.maxHp * 0.5; }, limit: 30 },
-    { title: 'THE MOON ART', text: () => key('At the edge of death the moon answers: the Last Ditch Effort. Press E.', 'At the edge of death the moon answers: the Last Ditch Effort. Tap the moon.', 'At the edge of death the moon answers: the Last Ditch Effort. Pull a trigger.'), btn: 'art',
-      enter: (f) => { const h = f.s.hero; f.s.moon = 100; h.hp = Math.round(h.maxHp * 0.24); AU.sfx('charge', 1); R.flash = 0.5; R.flashCol = '255,40,70'; },
-      done: (f) => !!f.s.cine || f.tut.art, limit: 8, auto: (f) => { if (!f.s.cine) SIM.startArt(f.s); } },
+      done: (f) => { const b = SIM.foes(f.s).find((u) => D.FOES[u.key] && D.FOES[u.key].boss); return !b || b.hp < b.maxHp * 0.5; }, limit: 60 },
+    { title: 'THE MOON ART', text: () => key('The moon is full and you are near death: the moon answers with the Last Ditch Effort. Press E.', 'The moon is full and you are near death: the moon answers with the Last Ditch Effort. Tap the moon.', 'The moon is full and you are near death: the moon answers with the Last Ditch Effort. Pull a trigger.'), btn: 'art',
+      enter: (f) => { const h = f.s.hero; f.s.moon = 100; h.hp = Math.round(h.maxHp * 0.24); AU.sfx('charge', 1); },
+      done: (f) => !!f.s.cine || f.tut.art, limit: 20, auto: (f) => { if (!f.s.cine) SIM.startArt(f.s); } },
     { title: '', text: () => '', done: (f) => f.tut.ended > 1.6, limit: 16 },
   ];
+  // The short goal under each lesson once it is under way.
+  const GOAL = { MOVE: 'Walk to the glowing circle', CUT: 'Cut down both husks', COMBO: 'Land a 6-hit chain', HEAVY: 'Keep attacking in the crowd', DODGE: 'Dash through 2 red swings', 'DASH-CUT': 'Attack right after a dash', BARRELS: 'Smash the powder barrel',
+    FIGHT: 'Clear them all', SKILLS: 'Keep attacking: both skills will come', 'THE HORDE': 'Cut down 12', 'THE GUARDIAN': 'Break him to half', 'THE MOON ART': 'Use the moon art' };
   function showcase(then) {
     const n = PR.node(SHOW_NODE), b0 = PR.build(n), b = Object.assign({}, b0, { node: Object.assign({}, b0.node, { script: true }) }), miss = missingFor(b), iso = isoFor(b.stage);   // scripted: the waves wait for the horde lesson
     const all = ['heavy', 'dodge', 'skill1', 'skill2', 'art'], boons = ['fourth', 'edge', 'edge2', 'ghost', 'iron', 'wind', 'vigor', 'vigor2', 'moonblood', 'quick', 'thirst', 'riposte'];
@@ -417,7 +414,7 @@
     const s = f.s, T = f.tut, h = s.hero;
     for (const e of s.events) {
       if (e.type === 'kill') T.kills = (T.kills || 0) + 1;
-      if (e.type === 'skill' && (s.heroDef.skills || [])[1] && e.name === s.heroDef.skills[1].name) T.used2 = true;
+      if (e.type === 'skill') { const i = (s.heroDef.skills || []).findIndex((k) => k.name === e.name); if (i >= 0 && T.used) T.used[i] = true; }
       if (e.type === 'art') T.art = true;
       if (e.type === 'artEnd') T.ended = 0.01;
     }
@@ -426,15 +423,14 @@
     if (h.alive) h.hp = Math.max(h.hp, Math.round(h.maxHp * (T.step < moonStep ? 0.35 : 0.15)));
     if (T.step >= LAST.length - 1 && T.ended > 1.6) endShowcase(f);
   }
-  // A lesson learned: time slows, a gold ring breaks out from her, the screen flashes gold.
+  // A lesson learned: a gold ring breaks out from her.
   function lessonFlourish(f, title) {
     const s = f.s, h = s.hero; if (!title) return;
-    s.slow = 0.3; s.slowT = 0.5; R.shake = Math.max(R.shake || 0, 6); R.flash = 0.45; R.flashCol = '255,208,96';
     R.fx.push({ t: 0, kind: 'gring', x: h.x, y: h.y, life: 0.7, col: '#ffd060', r0: 8, r1: 150, w: 5 }, { t: 0, kind: 'ring', x: h.x, y: h.y, z: 22, life: 0.45, col: '#ffffff', r0: 6, r1: 70, w: 3 });
     AU.sfx('level_up', 0.5);
   }
   function endShowcase(f) {
-    if (f.showDone) return; f.showDone = true; AU.duck(false); M.write();
+    if (f.showDone) return; f.showDone = true; AU.duck(false); M.hold = false; M.write();
     startScene(0, { shots: [{ k: 'title', top: 'THE BLACK GATE', title: 'SEVEN HOURS EARLIER', sub: 'Dusk. The night has only begun.', d: 3.0 }] }, f.then, true);
   }
 
@@ -443,7 +439,20 @@
     const s = f.s, T = f.tut, h = s.hero, dt = 1 / 60, STEPS = f.steps || TUT;
     if (T.step >= STEPS.length) return;
     const st = STEPS[T.step];
-    if (!T.entered) { T.entered = true; T.t = 0; T.goal = null; T.units = T.units || []; if (st.enter) st.enter(f); s.marker = T.mark || T.goal || null; }
+    if (!T.entered && f.banner && !f.banner.low && f.banner.t < 2.2) return;   // the first lesson waits for the title
+    if (!T.entered) {
+      T.entered = true; T.t = 0; T.goal = null; T.units = T.units || []; if (st.enter) st.enter(f); s.marker = T.mark || T.goal || null;
+      // The lesson's message: the game waits behind it until OK.
+      if (st.title && !f.noLessonCards && !P().opts.auto) {   // (auto battle plays on without them)
+        T.awaitOk = true; M.hold = true; M.stick = null; M.held = {};
+        const n = STEPS.filter((x) => x.title).length, i = STEPS.slice(0, T.step).filter((x) => x.title).length + 1;
+        const ok = () => { if (!T.awaitOk) return; U.hide(); T.awaitOk = false; M.hold = false; f.acc = 0; AU.sfx('step_1', 0.6); };
+        U.lesson({ eyebrow: (f.showcase ? 'The last hour  ·  lesson ' : 'Trial  ·  step ') + i + ' of ' + n, title: st.title, text: st.text(f), onOk: ok,
+          onBack: f.showcase ? () => { U.hide(); T.awaitOk = false; M.hold = false; endShowcase(f); } : ok });
+        AU.sfx('notify_01', 0.6);
+        return;
+      }
+    }
     T.t += dt;
     // Count what the steps watch for.
     if (T.lx != null) T.walked += Math.hypot(h.x - T.lx, h.y - T.ly) || 0; T.lx = h.x; T.ly = h.y;
@@ -477,6 +486,7 @@
         const c0 = s.cine ? s.cine.t : null, inp = Object.assign({ mx: live.mx, my: live.my, aim: live.aim }, f.pend); f.pend = {};
         SIM.step(s, STEP, inp); f.acc -= STEP;
         if (f.tut) tutorial(f);
+        if (M.hold) break;   // a lesson's message is up
         if (f.showcase) { showWatch(f); if (f.showDone) return; }
         if (s.cine && c0 != null) for (const [n, v] of VS.cine.cues(s.cine, c0, s.cine.t)) AU.sfx(n, v);
         R.consume(s); AU.events(s.events);
@@ -505,10 +515,10 @@
       if (f.card) { f.cardT += dt; if (f.cardT < 1.9) R.bossCard(ctx, s, f.card, f.cardT); else f.card = null; }
       // Coaching: the trial's steps, then a card for each newly learned ability.
       if (f.banner && f.banner.t < 2.2 && !f.banner.low) { /* the coach waits for the banner */ }
-      else if (f.tut && !M.paused && (f.steps || TUT)[Math.min((f.steps || TUT).length - 1, f.tut.step)].title) {
+      else if (f.tut && !M.paused && !f.tut.awaitOk && (f.steps || TUT)[Math.min((f.steps || TUT).length - 1, f.tut.step)].title) {
         const STEPS = f.steps || TUT, T = f.tut, st = STEPS[Math.min(STEPS.length - 1, T.step)];
         R.tutGuide(ctx, s, { mark: T.cheer > 0 ? null : T.mark, targets: T.cheer > 0 ? [] : alive(f), barrel: T.cheer > 0 || !T.barrel || T.barrel.broken ? null : T.barrel, btn: T.cheer > 0 ? null : st.btn, touch: R.touch });
-        R.coach(ctx, { title: (f.showcase ? 'THE LAST HOUR  ·  LESSON ' + (T.step + 1) + '  ·  ' : 'TRIAL  ·  ') + st.title, text: st.text(f), t: T.cheer > 0 ? 1 : T.t + 0.3, step: T.step, of: f.showcase ? STEPS.length - 1 : STEPS.length, col: f.showcase ? '#ffd060' : '#8ad0ff', prog: st.prog && T.cheer <= 0 ? st.prog(f) : null, done: T.cheer > 0 });
+        R.coach(ctx, { title: (f.showcase ? 'THE LAST HOUR  ·  LESSON ' + (T.step + 1) + '  ·  ' : 'TRIAL  ·  ') + st.title, text: GOAL[st.title] || st.text(f), t: T.cheer > 0 ? 1 : T.t + 0.3, step: T.step, of: f.showcase ? STEPS.length - 1 : STEPS.length, col: f.showcase ? '#ffd060' : '#8ad0ff', prog: st.prog && T.cheer <= 0 ? st.prog(f) : null, done: T.cheer > 0 });
       }
       else if (f.tips && f.tips.length && !M.paused && s.time > 1.2) {
         const tp = f.tips[0], H = s.heroDef, [tt, tx] = TIPS[tp.id](H); tp.t += dt;

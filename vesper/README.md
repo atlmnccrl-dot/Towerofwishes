@@ -166,20 +166,25 @@ focus lines), `E.card`, `E.flash`, `E.glitch`, `E.blink()` and `E.hold(cut, k)` 
 ride on cuts in the speaker's colour; only the newest shows.
 
 **The last hour** (`showcase()` in `js/main.js`, `?showcase`): the tutorial. After the opening, Vesper at full
-power on the summit, seven hours from now (every ability, end-game gear and passives), learns the game one
-lesson at a time on practice targets, on the trial's lesson engine: move, cut, combo, heavy, dash through a red
-swing, dash-cut, the Crescent Wave, the Phantom Step; then all of it against the end-game horde, an echo of the
-Gatewarden, and the moon art (the Last Ditch Effort). Each lesson waits for the move (with its key or button
-lit), moves on by itself after a while, and ends with time slowing, a gold ring breaking out from her and a gold
-flash. She cannot fall here; Esc skips it. Then SEVEN HOURS EARLIER, and the first trial goes straight to its
-fight (it teaches the basics itself only when the last hour was skipped early).
+power on the summit, seven hours from now, learns the game one lesson at a time on practice targets: move, cut,
+combo, heavy (keep attacking in a crowd), dash through a red swing, dash-cut, skills (keep attacking: they come);
+then the end-game horde, an echo of the Gatewarden, and the moon art (the Last Ditch Effort). **Each lesson opens
+with a message that pauses the game** (the lesson's number, its name, what to do and how on your device, and an
+OK button); OK resumes play with a short goal and a counter at the top, the control to use lit, and a gold ring
+when it is done. With auto battle on, the messages are skipped. She cannot fall here; Esc skips it. Then SEVEN
+HOURS EARLIER, and the first trial (which uses the same messages) goes straight to its fight.
+
+**The heavy and the skills are automatic** (`autoMove()` in `js/sim.js`): while you keep attacking, the next swing
+is a skill whenever one is ready and a foe is in its reach (from the second cut of a combo on, the two taking
+turns), or the heavy blow when three or more crowd you, a shield stands in front of you, or a combo has run its
+full length (the heavy has a 3.2 s cooldown). The keys still work for anyone who wants them, but nothing asks for
+them. **Touch controls** (minimal, the author's pick): soft dark discs with big white icons and no outlines: CUT,
+DASH and MOON (its disc fills as the moon does), a stick, pause; a small row above CUT shows the heavy and the two
+skills, gold when ready, with a sweep while they recharge.
 
 **Skills page**: the three branches as rows of round icons read left to right (gold and pulsing when ready, lit
 in the branch colour when learned, grey with the level when locked); the chosen skill is shown large in a card
-on the right in plain type (what it does, what it needs, ticked off) with one Learn button. **Touch controls**:
-solid glass discs with a coloured ring and a name each (CUT red, HEAVY orange, DASH blue, MOON red
-with a ring that fills as the moon does), a cooldown sweep with the seconds left on the skills, and a stick whose
-knob lights red and points the way you are going. **Effects**: the Crowd Breaker sheets are drawn at 62% of their
+on the right in plain type (what it does, what it needs, ticked off) with one Learn button. **Effects**: the Crowd Breaker sheets are drawn at 62% of their
 old size on attacks (`A.CB_SCALE`). **Pacing**: the guardian films play with `pace: 1.4` (action cuts stretched
 the most, the stutter holds dropped), 12 to 17 seconds each.
 

@@ -765,6 +765,27 @@
     if (d > 20 + o.rad) { u.x += dx / d * u.def.spd * dt; u.y += dy / d * u.def.spd * dt; u.mdir = 'f'; if (u.state !== 'move') setState(u, 'move'); }
   }
   // ---- the hero -----------------------------------------------------------------------------
+  // The heavy and both skills are part of the attack (the author, 2026-11-10): while you keep attacking, the
+  // next swing is a skill when one is ready and a foe is in its reach (from the second cut of a combo on), or
+  // the heavy blow when three or more crowd you, a shield stands in front of you, or the combo has run its
+  // full length (the heavy has a short cooldown of its own). Returns true when it started one.
+  const HEAVY_CD = 3.2;
+  function autoMove(s, h, last) {
+    const M = s.mods, H = s.heroDef, can = M.can;
+    const fs = foes(s).filter((o) => o.alive && o.state !== 'spawn' && !(o.def && (o.def.passive || o.def.god))), near = (r) => fs.filter((o) => Math.hypot(o.x - h.x, o.y - h.y) < r);
+    if (h.combo >= 1 && H.skills) for (let n = 0; n < 2; n++) {
+      const i = ((s.autoNext || 0) + n) % 2, sk = H.skills[i];
+      if (!sk || !can['skill' + (i + 1)] || s.cds[i] > 0) continue;
+      if (!near(sk.range || (sk.kind === 'wave' ? 230 : 150)).length) continue;
+      s.cds[i] = sk.cd * M.quick; s.autoNext = i + 1; h.combo = 0; h.queued = false;
+      startAttack(s, h, { clip: sk.clip, wind: sk.kind === 'smoke' || sk.kind === 'blink' ? 0.04 : 0.12, recover: sk.kind === 'leapSlam' ? 0.05 : 0.22, skill: sk });
+      return true;
+    }
+    if (can.heavy && (s.heavyCd || 0) <= 0 && fs.length && (near(75).length >= 3 || near(60).some((o) => o.def && o.def.guard) || (last && near(90).length))) {
+      s.heavyCd = HEAVY_CD; h.combo = 0; h.comboWin = 0; h.queued = false; startAttack(s, h, H.heavy); return true;
+    }
+    return false;
+  }
   function heroStep(s, h, dt, inp) {
     const M = s.mods, H = s.heroDef;
     if (!h.alive || h.leap) return;
@@ -799,7 +820,7 @@
       return;
     }
     if (free && h.bufHeavy > 0) { h.bufHeavy = 0; h.combo = 0; h.comboWin = 0; startAttack(s, h, H.heavy); return; }
-    if (free && h.bufAtk > 0) { h.bufAtk = 0; h.combo = h.comboWin > 0 ? (h.combo + 1) % M.combo : 0; startAttack(s, h, H.combo[h.combo]); return; }
+    if (free && h.bufAtk > 0) { h.bufAtk = 0; if (autoMove(s, h, false)) return; h.combo = h.comboWin > 0 ? (h.combo + 1) % M.combo : 0; startAttack(s, h, H.combo[h.combo]); return; }
     if (free) {
       const back = s.aim != null && mn > 0.2 && Math.cos(angDiff(Math.atan2(my, mx), s.aim)) < -0.55;
       // On the large maps the hero runs faster between fights, when the way on is open.
@@ -835,7 +856,7 @@
     if (s.transit) { transit(s, dtReal); return s; }
 
     heroStep(s, h, dt, inp);
-    s.cds[0] = Math.max(0, s.cds[0] - dt); s.cds[1] = Math.max(0, s.cds[1] - dt); if (s.invisT > 0) s.invisT -= dt;
+    s.cds[0] = Math.max(0, s.cds[0] - dt); s.cds[1] = Math.max(0, s.cds[1] - dt); s.heavyCd = Math.max(0, (s.heavyCd || 0) - dt); if (s.invisT > 0) s.invisT -= dt;
     // Thunder Drop: the leap, then the slam where he lands.
     if (h.leap) {
       const L = h.leap; L.t += dt; const k = Math.min(1, L.t / L.dur); h.x = L.fx + (L.tx - L.fx) * k; h.y = L.fy + (L.ty - L.fy) * k; h.z = Math.sin(k * Math.PI) * 70;
@@ -901,7 +922,8 @@
         }
         if (u.state === 'attack' && u.st >= w + k.recover * u.windMul) {
           if (u === s.hero) {
-            if (u.queued && u.combo + 1 < s.mods.combo) { u.queued = false; u.combo++; startAttack(s, u, s.heroDef.combo[u.combo]); }
+            if (u.queued && autoMove(s, u, u.combo + 1 >= s.mods.combo)) u.queued = false;
+            else if (u.queued && u.combo + 1 < s.mods.combo) { u.queued = false; u.combo++; startAttack(s, u, s.heroDef.combo[u.combo]); }
             else { u.queued = false; setState(u, 'idle'); u.comboWin = 0.32; u.atk = null; }
           } else if (u.ally) { setState(u, 'idle'); u.atk = null; }
           else {

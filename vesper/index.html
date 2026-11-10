@@ -508,6 +508,17 @@
   @media (max-height: 460px) { #ui .sk2-lane span, #ui .sk2-head .eyebrow, #ui .sk2-big { display: none; } #ui .sk2-head h2 { font-size: 22px; } #ui .sk2-lane b { font-size: 15px; } #ui .sk2-row { grid-template-columns: 58px 1fr; }
     #ui .sk2-orb { width: 34px; height: 34px; } #ui .sk2-orb .ic { width: 22px; height: 22px; background-size: 176px 176px; background-position: calc(var(--c) * -22px) calc(var(--r) * -22px); } #ui .sk2-nodes::before { top: 17px; }
     #ui .sk2-name { font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } #ui .sk2-lv { font-size: 9px; } #ui .sk2-card { gap: 4px; } #ui .sk2-desc { font-size: 13px; } #ui .sk2-sp b { min-width: 26px; height: 26px; font-size: 17px; } #ui .sk2-sp span { font-size: 12px; } }
+
+  /* ---- a tutorial lesson: a card in the middle, the fight frozen behind it ---- */
+  #ui .screen-lesson { display: grid; place-items: center; background: rgba(5,3,8,.55); }
+  #ui .ls-card { width: min(520px, 86vw); padding: clamp(14px, 3.4vh, 28px) clamp(16px, 3vw, 30px); border-radius: 16px; background: linear-gradient(180deg, rgba(40,26,20,.96), rgba(14,9,14,.97)); border: 1px solid rgba(255,208,96,.45); box-shadow: 0 18px 60px rgba(0,0,0,.6), 0 0 40px rgba(255,208,96,.12); text-align: center; }
+  #ui .ls-eyebrow { margin: 0 0 4px; font: 600 12px "Barlow", system-ui, sans-serif; letter-spacing: .2em; text-transform: uppercase; color: #ffd060; }
+  #ui .ls-title { margin: 0 0 8px; font: clamp(26px, 6vh, 40px) "Adventurer", sans-serif; letter-spacing: .06em; color: #ffffff; }
+  #ui .ls-text { margin: 0 auto 10px; max-width: 44ch; font: 500 clamp(15px, 3vh, 18px)/1.5 "Barlow", system-ui, sans-serif; color: #f2eaee; }
+  #ui .ls-how { display: inline-block; margin: 0 0 14px; padding: 6px 12px; border-radius: 999px; background: rgba(255,255,255,.07); font: 600 clamp(13px, 2.6vh, 15px) "Barlow", system-ui, sans-serif; color: #ffe6a6; }
+  #ui .btn.ls-ok { border: 0 !important; border-image: none !important; display: block; margin: 0 auto; min-width: 160px; padding: 10px 26px !important; border-radius: 10px !important; text-align: center; font: 22px "Adventurer", sans-serif; letter-spacing: .1em; color: #1a1006 !important; background: linear-gradient(180deg, #ffe08a, #ffb830) !important; box-shadow: 0 4px 0 #8a5a10, 0 0 22px rgba(255,208,96,.35); }
+  #ui .btn.ls-ok:hover, #ui .btn.ls-ok:focus-visible { filter: brightness(1.1); border-image: none !important; }
+  @media (max-height: 460px) { #ui .ls-card { padding: 12px 16px; } #ui .ls-title { font-size: 24px; margin-bottom: 4px; } #ui .ls-text { font-size: 14px; margin-bottom: 6px; } #ui .ls-how { margin-bottom: 8px; } }
 </style>
 </head>
 <body>

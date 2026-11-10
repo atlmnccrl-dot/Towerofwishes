@@ -31,13 +31,18 @@ fs.mkdirSync(out, { recursive: true });
   await page.waitForFunction(() => VS.main.state === 'scene'); await page.waitForTimeout(400); await page.keyboard.press('Escape');
   await page.waitForFunction(() => VS.main.state === 'fight' && VS.main.fight.nodeId === 'a0-t');
   await shot('03-trial', 2600);
+  // Each lesson opens with a message that holds the game until OK.
+  const okCard = async () => { if (await page.locator('#ui .ls-ok').count()) { await shot('03b-lesson', 50); await page.click('#ui .ls-ok'); await page.waitForTimeout(200); } };
+  await okCard();
+  if (await page.evaluate(() => VS.main.hold)) errors.push('the lesson message did not let the game go');
   await page.keyboard.down('KeyD'); await page.waitForFunction(() => VS.main.fight.tut.step >= 1, null, { timeout: 6000 }).catch(() => {}); await page.keyboard.up('KeyD');
   if ((await page.evaluate(() => VS.main.fight.tut.step)) < 1) errors.push('trial did not advance after moving');
+  await page.waitForTimeout(1300); await okCard();
   for (let i = 0; i < 4; i++) { await page.keyboard.press('KeyJ'); await page.waitForTimeout(130); }
   await shot('04-combo', 40);
-  await page.keyboard.press('Space'); await page.waitForTimeout(120);
+  await okCard(); await page.keyboard.press('Space'); await page.waitForTimeout(120);
   if (!(await page.evaluate(() => VS.main.fight.s.hero.state === 'dodge'))) errors.push('dodge did not work from the start');
-  await page.keyboard.press('Escape'); await shot('05-pause', 400);
+  await okCard(); await page.keyboard.press('Escape'); await shot('05-pause', 400);
   if (!(await page.evaluate(() => VS.ui.current === 'pause'))) errors.push('pause menu did not open');
   await button('Resume'); await page.waitForTimeout(200);
   await page.evaluate(() => { VS.main.save.opts.auto = true; });
