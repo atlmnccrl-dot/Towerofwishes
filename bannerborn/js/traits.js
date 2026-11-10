@@ -15,7 +15,7 @@
   const rnd = (n) => fr(Math.sin(n * 127.1 + 311.7) * 43758.5453);
   function T(b) { return b.tr || (b.tr = { parts: [], fx: [] }); }
   const MAXP = 420;
-  function part(b, o) { const P = T(b).parts; if (P.length < MAXP) P.push(Object.assign({ z: 0.9, vx: 0, vy: 0, vz: 0, t: 0, life: 0.6, s: 1.4, grav: 0, add: true, kind: 'dot' }, o)); }
+  function part(b, o) { const P = T(b).parts; if (P.length < (BB.lowFx ? (BB.lowFx > 1 ? 90 : 200) : MAXP)) P.push(Object.assign({ z: 0.9, vx: 0, vy: 0, vz: 0, t: 0, life: 0.6, s: 1.4, grav: 0, add: true, kind: 'dot' }, o)); }
   function burst(b, e, n, o) {
     for (let i = 0; i < n; i++) {
       const a = R() * TAU, sp = (o.sp || 2.5) * (0.35 + R());
@@ -104,62 +104,68 @@
     g.restore();
   };
   // on the body: what the trait left on this one
+  // Everything here is squares and sprites: a phone's canvas draws those by the thousand, and curves by the dozen.
   B.drawTrait = function (g, e, x, y) {
     if (!e.buffs || this.peaceful) return;
+    const B = e.buffs; if (!(B.burn > 0 || B.slow > 0 || B.poison > 0 || B.rend > 0)) return;
     const sc = e.sc || 1, h = 40 * sc * (e.boss ? 1.25 : 1), t = this.time, s = (e.id ? e.id.length : 3) * 3.7 + (e.x * 7 | 0);
-    g.save(); g.globalCompositeOperation = 'lighter';
-    if (e.buffs.burn > 0) { // flames licking up the body
+    const gc = g.globalCompositeOperation, ga = g.globalAlpha;
+    g.globalCompositeOperation = 'lighter';
+    if (B.burn > 0) { // on fire: the flame sprite over the body, embers shed by updateTraits
       BB.drawGlow(g, '255,130,40', x, y - h * 0.4, h * 0.65, h * 0.65, 0.45);
-      for (let i = 0; i < 7; i++) {
-        const p = fr(t * 1.8 + rnd(i + s)), px = x + Math.sin(i * 2.3 + s) * 7 * sc, py = y - 4 * sc - p * h * 0.85, w = (1 - p) * 3.2 * sc, hh = (4 + (1 - p) * 6) * sc;
-        g.globalAlpha = (1 - p) * 0.9; g.fillStyle = p < 0.35 ? COL.fire[0] : p < 0.65 ? COL.fire[1] : COL.fire[2];
-        g.beginPath(); g.moveTo(px - w, py); g.quadraticCurveTo(px - w * 0.4, py - hh * 0.6, px + Math.sin(t * 9 + i) * w * 0.6, py - hh); g.quadraticCurveTo(px + w * 0.4, py - hh * 0.6, px + w, py); g.closePath(); g.fill();
-      }
-      g.globalAlpha = 1;
+      const n = BB.fxLen('fire'); if (n) BB.drawFx(g, 'fire', Math.floor(t * 14 + s) % n, x, y - h * 0.42, 0.42 * sc * (e.boss ? 1.3 : 1), { add: true, alpha: 0.9 });
     }
-    if (e.buffs.slow > 0) { // frost: a pale sheen and a crust of ice at the feet
-      g.globalAlpha = 0.28 + Math.sin(t * 4 + s) * 0.06; const gl = g.createLinearGradient(0, y - h, 0, y);
-      gl.addColorStop(0, 'rgba(180,230,255,0)'); gl.addColorStop(1, 'rgba(160,220,255,0.9)'); g.fillStyle = gl; g.beginPath(); g.ellipse(x, y - h * 0.4, 9 * sc, h * 0.55, 0, 0, TAU); g.fill();
+    if (B.slow > 0) { // frost: a pale sheen and a crust of ice at the feet
+      BB.drawGlow(g, '170,225,255', x, y - h * 0.35, 11 * sc, h * 0.55, 0.3 + Math.sin(t * 4 + s) * 0.06);
       g.globalCompositeOperation = 'source-over'; g.globalAlpha = 0.9;
-      for (let i = 0; i < 6; i++) {
-        const a = (i / 6) * TAU + s, px = x + Math.cos(a) * 7 * sc, py = y + Math.sin(a) * 2.5 * sc, hh = (4 + rnd(i + s) * 6) * sc;
-        g.fillStyle = i % 2 ? '#e6f7ff' : '#8fd0ff'; g.beginPath(); g.moveTo(px - 1.8 * sc, py); g.lineTo(px + Math.cos(a) * 1.5 * sc, py - hh); g.lineTo(px + 1.8 * sc, py); g.closePath(); g.fill();
-      }
+      for (let i = 0; i < 5; i++) { const px = x + (i - 2) * 3.4 * sc, hh = (3 + rnd(i + s) * 5) * sc; g.fillStyle = i % 2 ? '#e6f7ff' : '#8fd0ff'; g.fillRect(px - 1.1 * sc, y - hh + Math.abs(i - 2) * 0.8 * sc, 2.2 * sc, hh); }
       g.globalCompositeOperation = 'lighter'; g.globalAlpha = 1;
     }
-    if (e.buffs.poison > 0) { // venom: a sick green glow and its stacks over the head
+    if (B.poison > 0) { // venom: a sick green glow and its stacks over the head
       const n = e.poisonN || 1; BB.drawGlow(g, '135,228,55', x, y - h * 0.4, h * 0.6, h * 0.6, 0.16 + n * 0.1);
       g.globalCompositeOperation = 'source-over';
-      for (let i = 0; i < n; i++) { const px = x + (i - (n - 1) / 2) * 5 * sc, py = y - h - 6 * sc; g.fillStyle = '#1d3a0a'; g.beginPath(); g.arc(px, py, 2.2 * sc, 0, TAU); g.fill(); g.fillStyle = COL.poison[1]; g.beginPath(); g.arc(px, py, 1.5 * sc, 0, TAU); g.fill(); }
-      g.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < n; i++) { const px = x + (i - (n - 1) / 2) * 5 * sc, py = y - h - 6 * sc; g.fillStyle = '#1d3a0a'; g.fillRect(px - 2 * sc, py - 2 * sc, 4 * sc, 4 * sc); g.fillStyle = COL.poison[1]; g.fillRect(px - 1.2 * sc, py - 1.2 * sc, 2.4 * sc, 2.4 * sc); }
     }
-    if (e.buffs.rend > 0) { // shadow: the wound stays open, dark smoke curling off it
+    if (B.rend > 0) { // shadow: the wound stays open, dark smoke curling off it
       g.globalCompositeOperation = 'source-over';
-      for (let i = 0; i < 5; i++) { const p = fr(t * 0.9 + rnd(i * 3 + s)); g.globalAlpha = (1 - p) * 0.55 * Math.min(1, e.buffs.rend * 2); g.fillStyle = i % 2 ? '#2a0f55' : '#5a2fa8';
-        g.beginPath(); g.arc(x + Math.sin(i * 4 + t * 2) * 6 * sc, y - h * 0.45 - p * h * 0.6, (2 + p * 3.5) * sc, 0, TAU); g.fill(); }
+      for (let i = 0; i < 4; i++) { const p = fr(t * 0.9 + rnd(i * 3 + s)), r = (2 + p * 3) * sc; g.globalAlpha = (1 - p) * 0.55 * Math.min(1, B.rend * 2); g.fillStyle = i % 2 ? '#2a0f55' : '#5a2fa8';
+        g.fillRect(x + Math.sin(i * 4 + t * 2) * 6 * sc - r, y - h * 0.45 - p * h * 0.6 - r, r * 2, r * 2); }
     }
-    g.restore();
+    g.globalCompositeOperation = gc; g.globalAlpha = ga;
   };
-  // in the world: impacts, links and loose particles
+  // in the world: impacts, links and loose particles (drawn as squares, the glowing ones first, in two passes so the
+  // blend mode changes twice a frame, not once a particle)
   B.drawTraitWorld = function (g) {
     const F = this.tr; if (!F) return;
     g.save();
     for (const f of F.fx) drawFx(g, f);
-    for (const p of F.parts) {
-      const s = iso(p.x, p.y), y = s.y - p.z * 24, k = p.t / p.life, a = Math.max(0, 1 - k);
-      g.globalCompositeOperation = p.add ? 'lighter' : 'source-over'; g.globalAlpha = a; g.fillStyle = p.col; g.strokeStyle = p.col;
-      switch (p.kind) {
-        case 'shard': { const r = p.s * 1.6; g.save(); g.translate(s.x, y); g.rotate(p.t * 14 + p.x); g.beginPath(); g.moveTo(0, -r * 1.6); g.lineTo(r * 0.6, 0); g.lineTo(0, r * 1.6); g.lineTo(-r * 0.6, 0); g.closePath(); g.fill(); g.restore(); break; }
-        case 'spark': g.lineWidth = 1; g.beginPath(); g.moveTo(s.x, y); g.lineTo(s.x - p.vx * 3, y - p.vy * 1.5 + p.vz * 2); g.stroke(); break;
-        case 'wisp': g.globalAlpha = a * 0.6; g.beginPath(); g.arc(s.x, y, p.s * (1 + k * 1.5), 0, TAU); g.fill(); break;
-        case 'bubble': g.lineWidth = 0.8; g.globalAlpha = k > 0.85 ? (1 - k) * 5 : 0.8; g.beginPath(); g.arc(s.x, y, p.s * (0.6 + k), 0, TAU); g.stroke(); break;
-        case 'drop': g.beginPath(); g.ellipse(s.x, y, p.s * 0.8, p.s * 1.2, 0, 0, TAU); g.fill(); break;
-        case 'flake': g.lineWidth = 0.7; g.beginPath(); g.moveTo(s.x - 1.5, y); g.lineTo(s.x + 1.5, y); g.moveTo(s.x, y - 1.5); g.lineTo(s.x, y + 1.5); g.stroke(); break;
-        case 'ember': g.beginPath(); g.arc(s.x, y, p.s * (1 - k * 0.6), 0, TAU); g.fill(); break;
-        default: g.beginPath(); g.arc(s.x, y, p.s, 0, TAU); g.fill();
+    for (let pass = 0; pass < 2; pass++) {
+      g.globalCompositeOperation = pass ? 'source-over' : 'lighter';
+      for (const p of F.parts) {
+        if (!!p.add === !!pass) continue;
+        const s = iso(p.x, p.y), y = s.y - p.z * 24, k = p.t / p.life, a = Math.max(0, 1 - k);
+        let r = p.s, w = 0, hh = 0;
+        switch (p.kind) {
+          case 'shard': w = r * 1.1; hh = r * 2.6; break;
+          case 'spark': w = r * 2.4; hh = r * 0.8; break;
+          case 'wisp': r = p.s * (1 + k * 1.5); g.globalAlpha = a * 0.6; g.fillStyle = p.col; g.fillRect(s.x - r, y - r, r * 2, r * 2); continue;
+          case 'bubble': r = p.s * (0.6 + k); g.globalAlpha = k > 0.85 ? (1 - k) * 5 : 0.8; g.strokeStyle = p.col; g.lineWidth = 0.8; g.strokeRect(s.x - r, y - r, r * 2, r * 2); continue;
+          case 'drop': w = r * 1.4; hh = r * 2.2; break;
+          case 'flake': w = hh = 1.6; break;
+          case 'ember': w = hh = r * 2 * (1 - k * 0.6); break;
+          default: w = hh = r * 2;
+        }
+        g.globalAlpha = a; g.fillStyle = p.col; g.fillRect(s.x - w / 2, y - hh / 2, w, hh);
       }
     }
     g.restore();
+  };
+  // a heal you can see: green motes rising off the one mended
+  B.onHeal = function (tgt, a) {
+    if (this.peaceful && !this.drill) return;
+    if (tgt.healFxT > this.time) return; tgt.healFxT = this.time + 0.25;
+    for (let i = 0; i < 5; i++) part(this, { x: tgt.x + (R() - 0.5) * 0.5, y: tgt.y + (R() - 0.5) * 0.5, z: 0.3 + R() * 0.8, vz: 1.2 + R(), life: 0.7, s: 1.5, col: i % 2 ? '#9dffb0' : '#5fe07a', kind: 'ember', grav: -0.5 });
+    T(this).fx.push({ kind: 'mend', x: tgt.x, y: tgt.y, t: 0, dur: 0.4, k: 1, col: COL.holy });
   };
   function bolt(g, x0, y0, x1, y1, seed, segs, jag) {
     g.beginPath(); g.moveTo(x0, y0);
@@ -233,10 +239,10 @@
         if (k > 0.55) { const gr = g.createRadialGradient(b.x, b.y - 18, 0, b.x, b.y - 18, 18); gr.addColorStop(0, 'rgba(255,240,170,' + a * 0.7 + ')'); gr.addColorStop(1, 'rgba(255,240,170,0)'); g.globalAlpha = 1; g.fillStyle = gr; g.beginPath(); g.arc(b.x, b.y - 18, 18, 0, TAU); g.fill(); }
         break;
       }
+      case 'mend': BB.drawGlow(g, '120,255,150', s.x, s.y - 16, 16 + k * 10, 20 + k * 10, a * 0.5); break;
       case 'cloud': { // poison: a green puff that hangs a moment
         g.globalCompositeOperation = 'source-over';
-        for (let i = 0; i < 5; i++) { const an = i * 1.3 + f.x, r = (6 + k * 10 + i) * q; g.globalAlpha = a * 0.22; g.fillStyle = i % 2 ? '#6fc23a' : '#a6f04a';
-          g.beginPath(); g.arc(s.x + Math.cos(an) * 8 * q * (0.5 + k), s.y - 12 - k * 8 + Math.sin(an) * 4 * q, r, 0, TAU); g.fill(); }
+        for (let i = 0; i < 3; i++) { const an = i * 2.1 + f.x, r = (9 + k * 12 + i * 2) * q; BB.drawGlow(g, i % 2 ? '111,194,58' : '166,240,74', s.x + Math.cos(an) * 8 * q * (0.5 + k), s.y - 12 - k * 8 + Math.sin(an) * 4 * q, r, r, a * 0.4); }
         break;
       }
     }

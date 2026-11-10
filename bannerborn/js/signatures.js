@@ -8,7 +8,7 @@
   const basic = (e, i) => BB.CALLINGS[e.calling].basic[(i || 0) % BB.CALLINGS[e.calling].basic.length];
   const isBack = (r) => r === 'ranged' || r === 'healer';
   const busy = (b, e, dur, clip) => { e.state = 'attack'; e.lock = dur; e.atkDur = dur; e.hitAt = 99; e.hitDone = true; if (clip) b.setClip(e, clip, true); };
-  const callout = (b, e, txt, col) => b.text(e.x, e.y + 0.35, txt, col || '#ffe7a3', 2);
+  const callout = () => {}; // a signature is seen, not announced
 
   // when a hero's signature is ready, and whether it has something to use it on
   B.sigOption = function (e, t) {

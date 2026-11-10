@@ -644,6 +644,22 @@
     bg.addColorStop(0, C(open ? 0.22 : 0.06)); bg.addColorStop(0.55, '#0e1119'); bg.addColorStop(1, '#07080c'); g.fillStyle = bg; g.fillRect(0, 0, w, h);
     const infoH = ($('altarInfo').offsetHeight || 0) * dpr, room = Math.max(h * 0.42, h - infoH);
     const base = room * 0.76, gh = Math.min(room * 0.64, w * 0.3), cx = w / 2, ro = gh * 0.42, ri = ro * 0.7, ys = base - gh + ro;
+    if (open) { // an open gate is alive: rays turn behind it, the ground is split at its foot, embers rise, lightning finds it
+      const t = RC.t, R = Math.max(w, h) * 0.8, gy = base - gh * 0.45, u = dpr;
+      g.save(); g.globalCompositeOperation = 'lighter'; g.translate(cx, gy);
+      for (let i = 0; i < 10; i++) { const a = t * 0.12 + i / 10 * Math.PI * 2, wd = 0.05 + 0.03 * Math.sin(i * 3.1 + 1); g.fillStyle = C((0.05 + 0.035 * Math.sin(i * 5.3 + t * 1.3)).toFixed(3));
+        g.beginPath(); g.moveTo(0, 0); g.lineTo(Math.cos(a - wd) * R, Math.sin(a - wd) * R); g.lineTo(Math.cos(a + wd) * R, Math.sin(a + wd) * R); g.closePath(); g.fill(); }
+      g.restore();
+      g.save(); g.globalCompositeOperation = 'lighter'; g.strokeStyle = C((0.3 + 0.12 * Math.sin(t * 2.2)).toFixed(3)); g.lineWidth = Math.max(1.2, 1.6 * u); g.lineCap = 'round';
+      for (let i = 0; i < 7; i++) { const a = Math.PI * (0.08 + i / 6 * 0.84), len = (60 + ((i * 53) % 50)) * u * (gh / (260 * u)); let px = cx + (i - 3) * 7 * u, py = base + 3 * u; g.beginPath(); g.moveTo(px, py);
+        for (let q = 1; q <= 5; q++) { px += Math.cos(a) * len / 5 * 1.7 + Math.sin(i * 7 + q * 3.3) * 4 * u; py += Math.sin(a) * len / 5 * 0.3 + Math.cos(i * 5 + q * 2.1) * 1.5 * u; g.lineTo(px, py); } g.stroke(); }
+      for (let i = 0; i < 22; i++) { const q = (t * (0.1 + (i % 5) * 0.025) + i * 0.137) % 1, ex = cx + Math.sin(i * 12.9) * w * 0.4 + Math.sin(t * 0.8 + i) * 10 * u, ey = base * (1.04 - q * 1.05), r = (1 + (i % 3) * 0.7) * u;
+        g.globalAlpha = Math.sin(q * Math.PI) * 0.7; g.fillStyle = C(1); g.fillRect(ex - r, ey - r, r * 2, r * 2); }
+      const bt = t % 4.3; if (bt < 0.22) { const a = (1 - bt / 0.22) * (Math.floor(bt * 40) % 3 ? 1 : 0.4), seed = Math.floor(t / 4.3) * 7.7, off = Math.sin(seed) * gh * 0.9;
+        g.beginPath(); g.moveTo(cx + off, -10); const ty = base - gh * 0.98; for (let q = 1; q <= 8; q++) g.lineTo(cx + off * (1 - q / 8) + (q < 8 ? Math.sin(seed + q * 4.7 + Math.floor(bt * 30)) * 12 * u : 0), -10 + (ty + 10) * q / 8);
+        g.globalAlpha = a * 0.3; g.strokeStyle = C(1); g.lineWidth = 9 * u; g.stroke(); g.globalAlpha = a; g.strokeStyle = '#fff'; g.lineWidth = 2.2 * u; g.stroke(); }
+      g.restore();
+    }
     gateArch(g, { cx, base, gh, C, t: RC.t, open, dpr, power: 1, runes: 1, side: (RC.pool || []), feat: RC.pool && RC.pool.length ? RC.pool[RC.feat % RC.pool.length] : null });
     const pool = RC.pool || [], feat = pool.length ? pool[RC.feat % pool.length] : null, ready = (e) => RC.loaded[e.key] === 1, S = Math.max(2, Math.round(gh * 0.55 / 42));
     // the featured hero steps into the light, fully seen; a new one every few seconds
@@ -710,7 +726,8 @@
   const RV = UI.rv = { on: false };
   const RCOL = ['#d9e0ea', '#4da3ff', '#b57cff', '#ffae2b'], RHUE = [150, 170, 30, -160];
   UI.reveal = function (h, done) {
-    Object.assign(RV, { on: true, t: 0, h, done, parts: [], rings: [], shake: 0, flash: 0, step: -1, burst: false, stars: 0, sil: null });
+    Object.assign(RV, { on: true, t: 0, h, done, parts: [], rings: [], bolts: [], shake: 0, flash: 0, step: -1, burst: false, stars: 0, sil: null, pip: false });
+    if (BB.Preview) BB.Preview.stop(); $('reveal').classList.remove('pip');
     RV.steps = (h.rarity || 0) + 1;
     RV.tB = 1.4 + RV.steps * 0.6; RV.tS = RV.tB + 0.3; RV.tG = RV.tS + 1.5; RV.tC = RV.tG + 1.7;
     // energy motes rush in from the edges
@@ -725,7 +742,7 @@
     $('reveal').classList.remove('done'); $('reveal').classList.add('on');
     BB.sfx('portal'); BB.sfx('charge');
   };
-  click($('rvOk'), (ev) => { ev.stopPropagation(); RV.on = false; $('reveal').classList.remove('on'); RV.done && RV.done(); });
+  click($('rvOk'), (ev) => { ev.stopPropagation(); RV.on = false; if (BB.Preview) BB.Preview.stop(); $('reveal').classList.remove('on', 'pip'); RV.done && RV.done(); });
   $('reveal').addEventListener('click', () => { if (!RV.on) return; if (RV.t < RV.tB) RV.t = RV.tB - 0.01; else if (RV.t > RV.tS + 0.8 && RV.t < RV.tC) RV.t = RV.tC; }); // tap to skip ahead
   const sil = (layers, clip, dir, fr) => { // the hero as a black cut-out, for the backlit moment: made at sprite size, stretched when drawn
     const S = 128, c = RV.sil || (RV.sil = document.createElement('canvas')); if (c.width !== S) { c.width = S; c.height = S; }
@@ -814,7 +831,8 @@
     const rar = RV.h.rarity || 0, u = Math.min(w, h) / 600;
     // which colour step we are on (it climbs: silver → blue → purple → gold)
     const step = T < 1.4 ? -1 : Math.min(RV.steps - 1, Math.floor((T - 1.4) / 0.6));
-    if (step > RV.step) { RV.step = step; RV.flash = Math.max(RV.flash, 0.35 + step * 0.1); RV.shake = 0.25 + step * 0.15; RV.rings.push({ t: 0, col: RCOL[step], big: false }); BB.sfx('chime'); }
+    if (step > RV.step) { RV.step = step; RV.flash = Math.max(RV.flash, 0.35 + step * 0.1); RV.shake = 0.25 + step * 0.15; RV.rings.push({ t: 0, col: RCOL[step], big: false }); BB.sfx('chime');
+      for (let i = 0; i <= step; i++) RV.bolts.push({ t: -i * 0.07, x: (Math.random() - 0.5) * 0.5, seed: Math.random() * 99, col: RCOL[step] }); if (step > 0) BB.sfx('slam'); }
     if (!RV.burst && T >= RV.tB) { RV.burst = true; RV.flash = 1; RV.shake = 0.6 + rar * 0.2; RV.rings.push({ t: 0, col: RCOL[rar], big: true }); BB.sfx('burst');
       for (let i = 0; i < 90 + rar * 40; i++) { const a = Math.random() * Math.PI * 2, v = (250 + Math.random() * 500) * u; RV.parts.push({ kind: 'out', x: 0, y: 0, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 120 * u, t: 0, life: 0.9 + Math.random() * 0.9, col: Math.random() < 0.7 ? RCOL[rar] : '#ffffff', r: (1.5 + Math.random() * 3) * u }); } }
     const col = step < 0 ? '#9aa6b8' : RCOL[step];
@@ -827,6 +845,23 @@
     const glow = T < 1.4 ? T / 1.4 * 0.25 : 0.35 + Math.min(0.3, step * 0.1);
     const bg = g.createRadialGradient(cx, cy, 0, cx, cy, Math.max(w, h) * 0.7); bg.addColorStop(0, col + Math.round(glow * 255).toString(16).padStart(2, '0')); bg.addColorStop(1, 'rgba(0,0,0,0)');
     g.fillStyle = bg; g.fillRect(-50, -50, w + 100, h + 100);
+    { // rays turning behind the gate: a whisper while it gathers, blazing from the burst on
+      const since = T - RV.tB, rayA = since < 0 ? 0.03 + 0.07 * Math.min(1, T / RV.tB) : Math.max(0.1, 0.34 - since * 0.07), R = Math.max(w, h) * 0.9;
+      g.save(); g.globalCompositeOperation = 'lighter'; g.translate(cx, cy);
+      for (let i = 0; i < 12; i++) { const a = T * 0.22 + i / 12 * Math.PI * 2, wd = 0.05 + 0.035 * Math.sin(i * 3.1 + 1); g.fillStyle = C((rayA * (0.55 + 0.45 * Math.sin(i * 5.3 + T * 1.7))).toFixed(3));
+        g.beginPath(); g.moveTo(0, 0); g.lineTo(Math.cos(a - wd) * R, Math.sin(a - wd) * R); g.lineTo(Math.cos(a + wd) * R, Math.sin(a + wd) * R); g.closePath(); g.fill(); }
+      g.restore();
+      // the ground splits from the gate's foot as the power builds
+      const grow = Math.min(1, T / Math.max(0.6, RV.tB)) * (since > 0 ? 1.25 : 1), hot = since > 0 ? Math.max(0.25, 1 - since * 0.5) : 0.35 + 0.4 * Math.min(1, T / RV.tB);
+      g.save(); g.globalCompositeOperation = 'lighter'; g.strokeStyle = C(hot.toFixed(3)); g.shadowColor = col; g.shadowBlur = 10 * u; g.lineWidth = Math.max(1.5, 2.2 * u); g.lineCap = 'round';
+      for (let i = 0; i < 9; i++) { const a = Math.PI * (0.06 + i / 8 * 0.88), len = (120 + ((i * 53) % 90)) * u * grow; let px = cx + (i - 4) * 9 * u, py = fy + 4 * u; g.beginPath(); g.moveTo(px, py);
+        for (let q = 1; q <= 6; q++) { px += Math.cos(a) * len / 6 * 1.7 + Math.sin(i * 7 + q * 3.3) * 6 * u; py += Math.sin(a) * len / 6 * 0.3 + Math.cos(i * 5 + q * 2.1) * 2 * u; g.lineTo(px, py); } g.stroke(); }
+      g.restore();
+      // the beam: for a moment after the burst a column of light joins the gate to the sky
+      if (since > 0 && since < 0.9) { const a = 1 - since / 0.9, bw = gh * (0.34 - since * 0.22); g.save(); g.globalCompositeOperation = 'lighter';
+        const bm = g.createLinearGradient(cx - bw, 0, cx + bw, 0); bm.addColorStop(0, C(0)); bm.addColorStop(0.35, C((0.5 * a).toFixed(3))); bm.addColorStop(0.5, 'rgba(255,255,255,' + (0.85 * a).toFixed(3) + ')'); bm.addColorStop(0.65, C((0.5 * a).toFixed(3))); bm.addColorStop(1, C(0));
+        g.fillStyle = bm; g.fillRect(cx - bw, -20, bw * 2, fy + 20); g.restore(); }
+    }
     // gather: motes stream into the gate
     for (const p of RV.parts) if (p.kind === 'in') {
       const k = Math.max(0, Math.min(1, (T - p.delay) * p.sp)); if (k <= 0 || k >= 1) continue;
@@ -840,6 +875,19 @@
     const back = cl01((T - RV.tG + 0.3) / 0.7); g.globalAlpha = 1 - back * 0.6;
     gateArch(g, { cx, base: fy, gh, C, t: T * (1 + step * 0.3), open: true, dpr, power: pw, runes: Math.min(1, T / Math.max(0.5, RV.tB - 0.3)) });
     g.globalAlpha = 1;
+    // lightning: one bolt per colour the gate has climbed through
+    g.save(); g.globalCompositeOperation = 'lighter'; g.lineCap = 'round';
+    for (const b of RV.bolts) { b.t += dt; if (b.t < 0 || b.t > 0.3) continue; const a = (1 - b.t / 0.3) * (Math.floor(b.t * 40) % 3 ? 1 : 0.4), bx = cx + b.x * gh;
+      g.beginPath(); let px = bx + (b.x * 2.2) * gh, py = -10; g.moveTo(px, py); const ty = fy - gh * 0.98; for (let q = 1; q <= 9; q++) { px = bx + (b.x * 2.2) * gh * (1 - q / 9) + Math.sin(b.seed + q * 4.7 + Math.floor(b.t * 30)) * 16 * u * (q < 9 ? 1 : 0); py = -10 + (ty + 10) * q / 9; g.lineTo(px, py); }
+      g.globalAlpha = a * 0.3; g.strokeStyle = b.col; g.lineWidth = 12 * u; g.stroke(); g.globalAlpha = a; g.strokeStyle = '#fff'; g.lineWidth = 3 * u; g.stroke(); }
+    g.globalAlpha = 1;
+    if (T > RV.tB) { // embers rising in the gate's colour from here on
+      const since = T - RV.tB, n = 26 + rar * 10;
+      for (let i = 0; i < n; i++) { const q = (since * (0.16 + (i % 5) * 0.035) + i * 0.137) % 1, ex = cx + Math.sin(i * 12.9) * w * 0.42 + Math.sin(since * 0.9 + i) * 14 * u, ey = h * (1.02 - q * 1.05), r = (1.2 + (i % 3)) * u;
+        g.globalAlpha = Math.sin(q * Math.PI) * Math.min(1, since * 2) * 0.8; g.fillStyle = i % 4 ? RCOL[rar] : '#ffffff'; g.fillRect(ex - r, ey - r, r * 2, r * 2); }
+      g.globalAlpha = 1;
+    }
+    g.restore();
     g.save(); g.globalCompositeOperation = 'lighter';
     // shockwave rings
     for (const r of RV.rings) { r.t += dt; const k = r.t / (r.big ? 1.1 : 0.7); if (k >= 1) continue; g.globalAlpha = 1 - k; g.strokeStyle = r.col; g.lineWidth = (r.big ? 10 : 5) * u * (1 - k); g.beginPath(); g.ellipse(cx, cy, k * (r.big ? 700 : 300) * u, k * (r.big ? 520 : 220) * u, 0, 0, 7); g.stroke(); }
@@ -868,6 +916,12 @@
       else if (ent === 'blink' || ent === 'lightning' || ent === 'flame' || ent === 'frost' || ent === 'leaves') { vis = k < 0.18 ? 0 : 1; rise = 0; if (k >= 0.18 && !RV.landed) { RV.landed = true; RV.flash = ent === 'lightning' ? 0.9 : 0.45; RV.shake = ent === 'lightning' ? 0.6 : 0.3; BB.sfx(ent === 'lightning' ? 'slam' : ent === 'flame' ? 'burst' : ent === 'frost' ? 'guard' : ent === 'blink' ? 'slash' : 'enchant'); } }
       else if (ent === 'stride') { const q = cl01(k / 1.0); rise = 0; vis = q; }
       if (SP) { ox += SP.dx * sc; rise += SP.dy * sc; vis *= SP.vis; }
+      if (k > 0.3 && BB.drawGlow) { // their rarity burning at their feet
+        const fa = Math.min(1, (k - 0.3) * 2); g.save(); g.globalCompositeOperation = 'lighter';
+        BB.drawGlow(g, RCOL[rar], cx + ox, fy - 4 * sc, 46 * sc, 16 * sc, 0.5 * fa);
+        for (let i = 0; i < 9; i++) { const q = (T * (0.7 + (i % 3) * 0.2) + i * 0.31) % 1, fx2 = cx + ox + Math.sin(i * 2.4 + T * 1.3) * 26 * sc; BB.drawGlow(g, i % 3 ? RCOL[rar] : '#ffffff', fx2, fy - q * 46 * sc, (7 - q * 5) * sc, (12 - q * 8) * sc, (1 - q) * 0.5 * fa); }
+        g.restore();
+      }
       g.globalAlpha = 1; g.fillStyle = 'rgba(0,0,0,0.55)'; g.beginPath(); g.ellipse(cx, fy, 34 * sc * (SP && SP.dy < 0 ? 0.7 : 1), 10 * sc, 0, 0, 7); g.fill();
       if (SP && RV.sig === 'barrier') sigFx(g, RV.sig, ks, { cx, fy, sc, u, w, h });
       g.globalAlpha = vis;
@@ -918,6 +972,8 @@
       }
       $('reveal').classList.add('done');
     }
+    if (!RV.pip && T >= RV.tS + 0.9 && BB.Preview) { RV.pip = true; $('reveal').classList.add('pip'); BB.Preview.start(RV.h, $('pipCv'), $('pipCap')); }
+    if (BB.Preview && BB.Preview.on) BB.Preview.render(dt);
     // white flashes
     if (RV.flash > 0) { g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = 'rgba(255,255,255,' + Math.min(1, RV.flash) * 0.85 + ')'; g.fillRect(0, 0, w, h); RV.flash = Math.max(0, RV.flash - dt * 2.2); }
     void prevT;
@@ -934,6 +990,7 @@
   const ZONE = { x0: 0.1, x1: 0.76, y0: 0.24, y1: 0.84 };
   const zx = (u) => ZONE.x0 + u * (ZONE.x1 - ZONE.x0), zy = (v) => ZONE.y0 + v * (ZONE.y1 - ZONE.y0);
   const DUMMIES = [{ fx: 0.88, fy: 0.34 }, { fx: 0.92, fy: 0.66 }];
+  const CAMP = { fire: { fx: 0.045, fy: 0.6 }, banner: { fx: 0.03, fy: 0.3 } }; // the team's fire and banner, behind the rear line
   const CLEAR = []; for (let i = 0; i <= 6; i++) for (let j = 0; j <= 5; j++) CLEAR.push({ fx: zx(i / 6), fy: zy(j / 5) });
   const teamPlaces = (S) => BB.teamIds(S).map((id) => { const p = BB.placeOf(S, id); return { id, u: p.u, v: p.v, fx: zx(p.u), fy: zy(p.v) }; });
   // the living field: the main scene's camera frames the board and each hero's place is a point on its ground
@@ -941,7 +998,7 @@
     const c = $('boardCv'); if (!c) return; const rc = c.getBoundingClientRect(); if (!rc.width) return;
     const board = { x: rc.left * dpr, y: rc.top * dpr, w: rc.width * dpr, h: rc.height * dpr };
     scene.drill.dragId = T.drag && T.drag.moved ? T.drag.id : null;
-    scene.drillLayout(board, W, H, dpr, teamPlaces(BB.save), DUMMIES, CLEAR);
+    scene.drillLayout(board, W, H, dpr, teamPlaces(BB.save), DUMMIES, CLEAR, CAMP);
     scene.drillSync(BB.save);
   };
   const liveScene = () => { const s = BB.liveScene && BB.liveScene(); return s && s.drill && s.drill.spots ? s : null; };
@@ -965,7 +1022,7 @@
       g.strokeStyle = 'rgba(255,255,255,0.22)'; g.setLineDash([3 * dpr, 6 * dpr]); g.strokeRect(zx(0) * w - 26 * dpr, zy(0) * h - 30 * dpr, (zx(1) - zx(0)) * w + 52 * dpr, (zy(1) - zy(0)) * h + 48 * dpr); g.setLineDash([]);
     }
     g.font = '600 ' + Math.round(11 * dpr) + 'px Outfit, sans-serif'; g.textAlign = 'center';
-    const tl = (txt, x, col) => { g.save(); g.letterSpacing = (2 * dpr) + 'px'; g.shadowColor = 'rgba(0,0,0,0.9)'; g.shadowBlur = 6 * dpr; g.fillStyle = col; g.fillText(txt, x, 24 * dpr); g.restore(); };
+    const tl = (txt, x, col) => { g.save(); g.letterSpacing = (2 * dpr) + 'px'; g.fillStyle = col; g.fillText(txt, x, 24 * dpr); g.restore(); };
     tl('REAR', (zx(0) + zx(0.5)) / 2 * w, 'rgba(235,240,248,0.8)'); tl('FRONT LINE', (zx(0.5) + zx(1)) / 2 * w, 'rgba(235,240,248,0.8)');
     g.textAlign = 'right'; tl('ENEMY  →', w - 16 * dpr, 'rgba(255,130,120,0.9)'); g.textAlign = 'center';
     const sc = Math.max(1, Math.round(h / (250 * dpr))) * dpr, rw = Math.min(w * 0.07, 30 * sc);
@@ -979,15 +1036,20 @@
       const hero = S.heroes.find((x) => x.id === m.id); if (!hero) continue;
       const held = T.drag && T.drag.id === m.id && T.drag.moved, sel = T.sel === m.id;
       const col = UI.rgba[hero.rarity || 0];
-      const gl = g.createRadialGradient(m.x, m.y, 0, m.x, m.y, rw * 1.2);
-      gl.addColorStop(0, col.replace('A', held ? '0.4' : live ? '0.16' : '0.28')); gl.addColorStop(1, col.replace('A', '0'));
-      g.fillStyle = gl; g.beginPath(); g.ellipse(m.x, m.y, rw * 1.2, rw * 0.44, 0, 0, 7); g.fill();
-      g.lineWidth = (held || sel ? 2.2 : 1.5) * dpr; g.strokeStyle = col.replace('A', held || sel ? '1' : live ? '0.55' : '0.9'); g.beginPath(); g.ellipse(m.x, m.y, rw, rw * 0.36, 0, 0, 7); g.stroke();
-      if (sel && !held) { g.strokeStyle = 'rgba(255,190,85,' + (0.55 + Math.sin(T.t * 6) * 0.4) + ')'; g.lineWidth = 2 * dpr; g.setLineDash([6 * dpr, 5 * dpr]); g.lineDashOffset = -T.t * 20 * dpr; g.beginPath(); g.ellipse(m.x, m.y, rw * 1.22, rw * 0.46, 0, 0, 7); g.stroke(); g.setLineDash([]); }
+      // nothing is left on the ground where a hero stands: a ring shows only under the one being carried or chosen
+      if (held || sel || !live) {
+        const gl = g.createRadialGradient(m.x, m.y, 0, m.x, m.y, rw * 1.2);
+        gl.addColorStop(0, col.replace('A', held ? '0.4' : '0.22')); gl.addColorStop(1, col.replace('A', '0'));
+        g.fillStyle = gl; g.beginPath(); g.ellipse(m.x, m.y, rw * 1.2, rw * 0.44, 0, 0, 7); g.fill();
+        if (held || !live) { g.lineWidth = (held ? 2.2 : 1.5) * dpr; g.strokeStyle = col.replace('A', held ? '1' : '0.9'); g.beginPath(); g.ellipse(m.x, m.y, rw, rw * 0.36, 0, 0, 7); g.stroke(); }
+        if (sel && !held) { g.strokeStyle = 'rgba(255,190,85,' + (0.55 + Math.sin(T.t * 6) * 0.4) + ')'; g.lineWidth = 2 * dpr; g.setLineDash([6 * dpr, 5 * dpr]); g.lineDashOffset = -T.t * 20 * dpr; g.beginPath(); g.ellipse(m.x, m.y, rw * 1.1, rw * 0.42, 0, 0, 7); g.stroke(); g.setLineDash([]); }
+      }
       if (!live) { const layers = BB.heroLayers(hero), n = BB.clipLen(layers[0].key, 'Idle') || 15;
         BB.drawHeroDressed(g, hero, BB.auraOf(hero), 'Idle', 1, Math.floor(T.t * 9) % n, m.x, m.y + rw * 0.05, sc, T.t, { noSlash: true, layers }); }
-      g.save(); g.textAlign = 'center'; g.shadowColor = 'rgba(0,0,0,0.95)'; g.shadowBlur = 5 * dpr;
-      g.font = '600 ' + Math.round(12 * dpr) + 'px Outfit, sans-serif'; g.fillStyle = '#fff'; g.fillText(BB.shortName(hero), m.x, m.y + rw * 0.5 + 13 * dpr);
+      // the name goes with the hero, wherever on the field they are
+      const nx = live ? m.hx : m.x, ny = (live ? m.hy : m.y) + 13 * dpr;
+      g.save(); g.textAlign = 'center'; g.font = '600 ' + Math.round(11 * dpr) + 'px Outfit, sans-serif';
+      g.lineWidth = 3 * dpr; g.strokeStyle = 'rgba(0,0,0,0.7)'; g.strokeText(BB.shortName(hero), nx, ny); g.fillStyle = sel || held ? '#ffe7a3' : col.replace('A', '1'); g.fillText(BB.shortName(hero), nx, ny);
       g.restore();
       if (sel && !held) { // the chosen hero can be sent back to the roster
         const bw = 84 * dpr, bh = 24 * dpr, bx = Math.max(4 * dpr, Math.min(w - bw - 4 * dpr, m.x - bw / 2)), by = Math.max(30 * dpr, m.y - rw * 2.9 - bh);

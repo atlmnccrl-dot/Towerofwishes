@@ -37,7 +37,11 @@ A hero-collector RPG: you build the team, the team fights.
    light as a silhouette that fills with colour. Then the camera pushes in, the gate falls back, and the new hero
    shows off their **signature move** with its own effect (a ground-pound shockwave, a meteor, chain lightning across
    the screen, a five-cut flurry, a pillar of light, a barrier dome, ...). The card after it is small: rarity, name,
-   class and one line for the signature. Tap to skip ahead.
+   class and one line for the signature. Tap to skip ahead. The summoning is staged: rays turn behind the gate, the
+   ground splits at its foot, lightning strikes once for each colour it climbs through, a beam joins it to the sky at
+   the burst, embers rise and the hero's rarity burns at their feet. Beside it a small window (js/preview.js) shows
+   the new hero **alone against one enemy in the real battle engine**: basic attacks, then the signature, then the
+   ultimate finishes it, on a loop.
 3. **Grow them.** The hero screen is a game screen painted on its own canvas: the hero on a lit stage with four
    gear sockets around them, an Attributes page (stat gains per level, the experience bar, Ascend) and a
    **Skill Tree**: three branches (Might, Bulwark, Ultimate) of linked nodes plus two bridge nodes and three
@@ -72,6 +76,9 @@ A hero-collector RPG: you build the team, the team fights.
    tap a roster card to bring one on or send one back. The team screen opens onto the land the campaign is in
    (the next stage's region) and the team's heroes live on it (js/drill.js): each keeps to their place, and between
    rests they train on straw dummies, spar in pairs, wander over to chat, stretch, and try out their signature.
+   Nothing is drawn on the ground where a hero stands (a ring shows only under the one being carried or chosen);
+   each hero's name follows them. The field has the team's fire and banner at the rear: archers and casters practise
+   on the dummies from where they stand, healers mend, everyone takes a turn by the fire.
    On a phone the roster is a strip along the top of the side panel.
    **Bonds** reward mixed callings. *Auto-fill* puts the strongest five in place.
 5. **Battle.** Heroes march as a column between fights and fight by role: the **tank** holds the front and
@@ -191,6 +198,7 @@ name, their horde, the face-off, the clash) and a fall; chapters 2-4 open with y
 | `js/aura.js` | what gear and skills look like on a hero: gear glow, enchant particles, capstone marks (stateless) |
 | `js/traits.js` | weapon traits you can see: swing crescents, element impacts, chain and heal links, status on foes |
 | `js/drill.js` | the team field: the current region with the formation's heroes training, sparring and chatting |
+| `js/preview.js` | the duel preview beside a summoning: one hero, one enemy, basic attacks → signature → ultimate, looped |
 | `js/tactics.js` | battlefield tactics: potions, rescues, hands-on heals, stones to throw, kicks, charges, pounces, dodge rolls |
 | `js/cinema.js` | cutscenes: shot sequencer (scene fly-throughs, close-ups, splits, impact frames, titles) and the four scripts |
 | `js/heroui.js` | the hero screen: canvas-drawn stage, gear sockets and picker, attributes, skill tree, its own hit-testing |
@@ -214,6 +222,14 @@ What the frame may and may not do, learned from profiling late-game fights and t
   sprite holes for the lights, the vignette folded in, one draw (js/battle.js `drawLight`).
 - **No glass over the battlefield.** `backdrop-filter` is off for everything in the battle HUD; behind menus the
   camp is drawn a few times a second.
+- **Squares and sprites, not curves.** Particles, status effects and shadows are `fillRect` and `drawImage`; a
+  phone's canvas draws those by the thousand and arcs by the dozen.
+- **Graphics: Auto / Sharp / Fast** (Settings). Auto starts at the screen's own pixels and steps the battlefield's
+  resolution down (and thins particles, `BB.lowFx`) for good whenever a fight averages under about 37 frames a
+  second; Fast is one canvas pixel per screen point. The loop also runs at sixty frames a second on 120 Hz screens.
+- **Words are for the big moments.** No floating words or numbers in a fight (numbers are a setting, off by
+  default); what is written out: a wave cleared, a boss arriving, enraging or breaking, an ultimate's name, loot,
+  victory and defeat. No more than six sounds start in any tenth of a second.
 - **Cutscenes** are painted at about 0.75 megapixel and stretched; silhouettes are made at sprite size (128 px),
   kept per pose, and scaled when drawn; grading uses blend modes (no canvas filters); the timeline follows the real
   clock so the picture stays with the sound.

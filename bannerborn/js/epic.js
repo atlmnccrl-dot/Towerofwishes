@@ -36,7 +36,7 @@
     E.lights.push({ x: e.x, y: e.y, t: 0, dur: 0.5, col: '255,190,120', r: e.boss ? 3 : 1.4 });
     // chain kills: carnage
     E.kills = E.kills.filter((k) => this.time - k < 2.2); E.kills.push(this.time);
-    const n = E.kills.length; if (n >= 4 && n > (E.lastCall || 0)) { E.lastCall = n; const word = n >= 8 ? 'MASSACRE' : n >= 6 ? 'SLAUGHTER' : 'CARNAGE'; E.calls.push({ text: word + ' ×' + n, t: 0 }); BB.score && BB.score('boom', 1); this.shake = Math.max(this.shake, 0.4); }
+    const n = E.kills.length; if (n >= 8 && n > (E.lastCall || 0)) { E.lastCall = n; E.lastCall = 99; E.calls.push({ text: 'MASSACRE', t: 0 }); BB.score && BB.score('boom', 1); this.shake = Math.max(this.shake, 0.4); }
     if (n < 3) E.lastCall = 0;
     // the field is clear: slow motion on the last one
     if (!e.boss && !this.result && this.foesAlive().filter((o) => !o.gate && !o.turret).length === 0) {
@@ -53,7 +53,7 @@
     if (this.waveIdx <= 1) return;
     const E = epic(this), c = this.warCenter || this.map.heroSpawn, s = (spots && spots[0]) || this.map.foeSpawns[0];
     E.edge = { a: Math.atan2(BB.iso(s.x - c.x, s.y - c.y).y, BB.iso(s.x - c.x, s.y - c.y).x), t: 0 };
-    E.calls.push({ text: 'THE TIDE RISES', t: 0, small: true }); BB.score && BB.score('horn'); this.shake = Math.max(this.shake, 0.25);
+    BB.score && BB.score('horn'); // the horn and the red edge say it; no words this.shake = Math.max(this.shake, 0.25);
   };
   B.onBoss = function (boss) {
     const E = epic(this), n = boss.F.name.split(','); E.cine = { t: 0, dur: 2.6, title: n[0].toUpperCase(), sub: (n[1] || '').trim() };

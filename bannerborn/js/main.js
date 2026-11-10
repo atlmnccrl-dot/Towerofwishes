@@ -31,8 +31,22 @@
   }
 
   // ---------------------------------------------------------------- canvas
+  // How sharp the battlefield is drawn. 'sharp' is the screen's own pixels (two per point at most); 'fast' is one per
+  // point; 'auto' starts sharp and steps down, for good, whenever a fight cannot hold its frame rate: on a phone the
+  // number of pixels painted is what a big fight costs.
+  let rScale = 1, autoScale = 0;
+  const GFX_KEY = 'bannerborn.gfx.scale';
+  function gfxMode() { return (BB.save && BB.save.settings && BB.save.settings.gfx) || 'auto'; }
+  function applyGfx() {
+    const m = gfxMode();
+    if (m === 'sharp') rScale = 1; else if (m === 'fast') rScale = 0.5;
+    else { let v = autoScale; if (!v) { try { v = +localStorage.getItem(GFX_KEY) || 1; } catch (e) { v = 1; } } autoScale = rScale = Math.max(0.5, Math.min(1, v)); } // what this device settled on, remembered
+    BB.lowFx = m === 'fast' ? 2 : rScale <= 0.62 ? 2 : rScale <= 0.82 ? 1 : 0;
+    resize();
+  }
+  BB.applyGfx = applyGfx;
   function resize() {
-    DPR = Math.min(2, window.devicePixelRatio || 1);
+    DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1) * rScale);
     W = Math.round(window.innerWidth * DPR); H = Math.round(window.innerHeight * DPR);
     cv.width = W; cv.height = H;
   }
@@ -108,6 +122,7 @@
     sc.isTitle = isTitle;
     return sc;
   }
+  BB.rebuildGrid = (m) => rebuildGrid(m);
   function rebuildGrid(m) {
     m.grid = []; for (let i = 0; i < m.w * m.h; i++) m.grid.push([]);
     for (const p of m.props) {
@@ -199,6 +214,7 @@
   };
   async function startBattle() {
     const S = BB.save, M = current.stage;
+    applyGfx();
     const team = BB.teamHeroes(S);
     UI.show('boot'); $('bootmsg').textContent = 'Stage ' + M.code + ' · ' + M.name;
     document.querySelector('#boot .bar i').style.width = '100%';
@@ -326,11 +342,12 @@
     for (const e of B.heroList) {
       const c = e.chip; if (!c) continue;
       const ready = !e.dead && (e.energy || 0) >= 100;
-      c.classList.toggle('dead', !!e.dead); c.classList.toggle('ready', ready && !B.result);
-      e.chipHp.style.width = Math.max(0, e.hp / e.maxhp * 100) + '%';
-      e.chipEn.style.width = Math.min(100, e.energy || 0) + '%';
+      const st = (e.dead ? 1 : 0) + (ready && !B.result ? 2 : 0), hp = Math.round(Math.max(0, e.hp / e.maxhp * 100)), en = Math.round(Math.min(100, e.energy || 0));
+      if (e.chipSt !== st) { e.chipSt = st; c.classList.toggle('dead', !!e.dead); c.classList.toggle('ready', ready && !B.result); }
+      if (e.chipHpV !== hp) { e.chipHpV = hp; e.chipHp.style.width = hp + '%'; }
+      if (e.chipEnV !== en) { e.chipEnV = en; e.chipEn.style.width = en + '%'; }
     }
-    $('hudObj').textContent = B.obj ? objText(B) : '';
+    const ot = B.obj ? objText(B) : ''; if (B.hudObjT !== ot) { B.hudObjT = ot; $('hudObj').textContent = ot; }
     const boss = B.ents.find((e) => e.boss && !e.dead);
     const bb = $('bossbar');
     if (boss && !B.intro) { bb.style.display = 'block'; bb.querySelector('.nm').textContent = boss.F.name + (boss.brokenT > 0 ? ' — BROKEN' : boss.enraged ? ' — enraged' : ''); bb.querySelector('.b i').style.width = Math.max(0, boss.hp / boss.maxhp * 100) + '%'; bb.querySelector('.p i').style.width = (boss.brokenT > 0 ? 100 : Math.max(0, boss.poise / boss.maxPoise * 100)) + '%'; bb.classList.toggle('broken', boss.brokenT > 0); }
@@ -427,12 +444,13 @@
   UI.click($('bRetreat'), () => { UI.modal('mPause', false); scene.paused = false; scene.lose('Retreated'); });
   UI.click($('bSettings'), () => {
     const s = BB.save.settings;
-    $('sMusic').value = s.music; $('sSfx').value = s.sfx; $('sShake').checked = s.shake !== false; $('sDmg').checked = s.dmgNums !== false;
+    $('sMusic').value = s.music; $('sSfx').value = s.sfx; $('sShake').checked = s.shake !== false; $('sDmg').checked = !!s.numbers; $('sGfx').value = s.gfx || 'auto';
     UI.modal('mSettings');
   });
   UI.click($('bSetClose'), () => {
-    const s = BB.save.settings; s.music = +$('sMusic').value; s.sfx = +$('sSfx').value; s.shake = $('sShake').checked; s.dmgNums = $('sDmg').checked;
-    BB.setVolumes(); BB.persist(); UI.modal('mSettings', false);
+    const s = BB.save.settings; s.music = +$('sMusic').value; s.sfx = +$('sSfx').value; s.shake = $('sShake').checked; s.numbers = $('sDmg').checked; s.gfx = $('sGfx').value;
+    if (s.gfx !== 'auto') { autoScale = 0; try { localStorage.removeItem(GFX_KEY); } catch (e) { /* blocked */ } }
+    BB.setVolumes(); BB.persist(); applyGfx(); UI.modal('mSettings', false);
   });
   ['sMusic', 'sSfx'].forEach((id) => $(id).addEventListener('input', () => { BB.save.settings.music = +$('sMusic').value; BB.save.settings.sfx = +$('sSfx').value; BB.setVolumes(); }));
   // ---- the theater: every cutscene, unlocked, for watching again
@@ -534,7 +552,7 @@
     }
     BB.Cinema.play(it.play[0], it.play[1], back);
   }
-  UI.click($('bTheater'), () => { const s = BB.save.settings; s.music = +$('sMusic').value; s.sfx = +$('sSfx').value; s.shake = $('sShake').checked; s.dmgNums = $('sDmg').checked; BB.setVolumes(); BB.persist(); openTheater(); });
+  UI.click($('bTheater'), () => { const s = BB.save.settings; s.music = +$('sMusic').value; s.sfx = +$('sSfx').value; s.shake = $('sShake').checked; s.numbers = $('sDmg').checked; s.gfx = $('sGfx').value; BB.setVolumes(); BB.persist(); applyGfx(); openTheater(); });
   UI.click($('bTheaterClose'), () => { UI.modal('mTheater', false); });
   UI.click($('bWipe'), () => UI.confirm('Erase all progress for good?', () => { try { localStorage.removeItem(KEY); } catch (e) { /* blocked */ } location.reload(); }));
 
@@ -543,8 +561,24 @@
   // the camp keeps living behind every menu (dimmed by each screen's backdrop)
   const SCENE_UNDER = ['title', 'home', 'hud', 'cine', 'heroes', 'hero', 'team', 'forge', 'shop', 'campaign', 'recruit'];
   const DIMMED = ['heroes', 'hero', 'forge', 'shop', 'campaign', 'recruit']; let dimAcc = 0, dimN = 0;
+  // frame-rate watch for 'auto' graphics: the average of the last stretch of battle frames
+  let fpsAcc = 0, fpsN = 0, fpsHold = 0;
+  function watchFrames(real) {
+    if (mode !== 'battle' || !scene || scene.intro || scene.result || scene.paused || gfxMode() !== 'auto' || real > 0.5) { fpsAcc = 0; fpsN = 0; return; }
+    if (fpsHold > 0) { fpsHold -= real; return; }
+    fpsAcc += real; fpsN++;
+    if (fpsN < 50 && fpsAcc < 1.2) return; // about a second of fighting at a time
+    const avg = fpsAcc / fpsN; fpsAcc = 0; fpsN = 0;
+    if (avg > 0.027 && rScale > 0.5) { // under about 37 frames a second: draw fewer pixels, thin the particles
+      rScale = Math.max(0.5, rScale * (avg > 0.05 ? 0.64 : 0.8)); // badly behind: two steps at once
+      autoScale = rScale; try { localStorage.setItem(GFX_KEY, String(rScale)); } catch (e) { /* blocked */ }
+      applyGfx(); fpsHold = 1.5;
+    }
+  }
   function frame(t) {
+    if (t - lastT < 12) { requestAnimationFrame(frame); return; } // 120 Hz screens: sixty frames a second is the game's pace
     const real = (t - lastT) / 1000, dt = Math.min(0.1, real); lastT = t;
+    watchFrames(real);
     // a cutscene owns the screen. It runs on the real clock (within reason), so that when a frame is late the picture
     // catches up with the sound instead of drifting behind it
     if (BB.Cinema && BB.Cinema.on) { BB.Cinema.render(Math.min(0.3, real)); requestAnimationFrame(frame); return; }
@@ -585,6 +619,7 @@
       await BB.loadPortraits();
     } catch (e) { $('bootmsg').textContent = 'Could not load the art: ' + e.message; throw e; }
     if (BB.save) BB.setVolumes();
+    applyGfx();
     requestAnimationFrame(frame);
     ['ghoul', 'warden', 'necro'].forEach((k) => BB.loadChar(k).catch(() => null));
     const q = new URLSearchParams(location.search);

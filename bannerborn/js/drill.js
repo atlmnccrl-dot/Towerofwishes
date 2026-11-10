@@ -30,7 +30,7 @@
 
   // place the camera so the field's centre sits in the middle of the board, and work out where each hero's place is on
   // the ground. places: [{ id, fx, fy }] in fractions of the board; clear: points of the board nothing may grow on
-  B.drillLayout = function (board, W, H, dpr, places, dummies, clear) {
+  B.drillLayout = function (board, W, H, dpr, places, dummies, clear, camp) {
     const D = this.drill; if (!D || !board) return;
     const z = this.cam.zoom * dpr, cs = BB.iso(D.centre.x, D.centre.y);
     const bx = board.x + board.w * 0.5, by = board.y + board.h * 0.52;
@@ -46,8 +46,21 @@
     if (D.cleared !== key) { // nothing grows where the heroes train
       D.cleared = key;
       const pts = (clear || []).map((s) => toW(board.x + s.fx * board.w, board.y + s.fy * board.h)).concat(D.dummyAt);
-      this.map.props = this.map.props.filter((p) => !pts.some((q) => hyp(p.x - q.x, p.y - q.y) < 1.5 + (p.r || 0)));
-      this.map.anims = this.map.anims.filter((a) => !pts.some((q) => hyp(a.x - q.x, a.y - q.y) < 1.6));
+      if (camp) { // the team's fire and banner at the rear of the field
+        const f = toW(board.x + camp.fire.fx * board.w, board.y + camp.fire.fy * board.h), bn = toW(board.x + camp.banner.fx * board.w, board.y + camp.banner.fy * board.h);
+        pts.push(f, bn);
+        if (!D.fire) {
+          D.fire = { x: f.x, y: f.y };
+          D.fireAnim = { key: 'fire', x: f.x + 0.03, y: f.y + 0.03, sc: 0.7, t: 0, fps: 14 }; this.map.anims.push(D.fireAnim);
+          D.fireLight = { x: f.x, y: f.y, rad: 3.4, col: '255,160,70' }; this.map.lights.push(D.fireLight);
+          if (BB.envHas && BB.envHas('vale', 'Misc B8_S')) { D.fireProp = { name: 'Misc B8_S', biome: 'vale', x: f.x, y: f.y, r: 0.3, sc: 1 }; this.map.props.push(D.fireProp); }
+          this.map.bannerProp = { x: bn.x, y: bn.y, banner: (this.save && this.save.banner) || { color: '#b3242c', sigil: 'crown', trim: '#e8c66a' } };
+        }
+        D.fire.x = f.x; D.fire.y = f.y; D.fireAnim.x = f.x + 0.03; D.fireAnim.y = f.y + 0.03; D.fireLight.x = f.x; D.fireLight.y = f.y; this.map.bannerProp.x = bn.x; this.map.bannerProp.y = bn.y;
+        if (D.fireProp) { const sp = BB.iso(f.x, f.y); Object.assign(D.fireProp, { x: f.x, y: f.y, depth: f.x + f.y, sx: sp.x, sy: sp.y }); this.map.props.sort((a, b) => a.depth - b.depth); }
+      }
+      this.map.props = this.map.props.filter((p) => p === D.fireProp || !pts.some((q) => hyp(p.x - q.x, p.y - q.y) < 1.5 + (p.r || 0)));
+      this.map.anims = this.map.anims.filter((a) => a === D.fireAnim || !pts.some((q) => hyp(a.x - q.x, a.y - q.y) < 1.6));
     }
   };
 
@@ -58,7 +71,8 @@
     for (const q of want) {
       const e = this.heroList.find((x) => x.hero.id === q.id); if (!e) continue;
       e.home = { x: q.x, y: q.y };
-      if (D.dragId === q.id) { e.x = q.x; e.y = q.y; e.act = null; e.wander = null; e.drillT = 1.5; if (e.state !== 'attack') { e.state = 'idle'; this.setClip(e, 'Idle'); } } // carried by the finger
+      if (D.dragId === q.id) { e.x = q.x; e.y = q.y; e.z = 0.32; e.held = true; if (e.act && e.act.with) e.act.with.act = null; e.act = null; e.wander = null; e.drillT = 1.5; if (e.state !== 'attack') { e.state = 'idle'; this.setClip(e, 'Idle'); } } // carried by the finger
+      else if (e.held) { e.held = false; e.z = 0; this.addFx('buff3', e.x, e.y, { sc: 0.4, add: true }); for (const d of D.dummies) d.wv += 1.5; }
     }
     const key = want.map((q) => q.id).join(',');
     if (key === D.lastIds) return;
@@ -83,8 +97,8 @@
   };
 
   // ---------------------------------------------------------------- what the heroes do between battles
-  const ACTS = ['rest', 'rest', 'train', 'train', 'spar', 'chat', 'show', 'wander', 'stretch'];
-  const EMO = ['…', '!', '?', '♪', 'ha!', '★', '♥', 'hm'];
+  const ACTS = ['rest', 'train', 'train', 'spar', 'chat', 'show', 'wander', 'stretch', 'fire', 'fire', 'mend'];
+  const EMO = ['…', '!', '?', '♪', '★', '♥']; // signs, not words
   function play(b, e, clip, slow) {
     const key = b.artKey(e); if (!BB.hasClip(key, clip)) clip = BB.hasClip(key, 'Attack1') ? 'Attack1' : 'Idle';
     e.state = 'attack'; e.lock = b.clipLen(e, clip) / (slow ? 11 : 16); e.atkDur = e.lock; e.hitAt = 99; e.hitDone = true; b.setClip(e, clip, true);
@@ -105,8 +119,25 @@
         if (A.hits < A.max) { A.hits++; const C = BB.CALLINGS[e.calling], basic = C.basic || ['Attack1']; play(this, e, basic[A.hits % basic.length]);
           this.later(0.16, () => { d.wv += (R() < 0.5 ? -1 : 1) * 7; d.flash = 0.2; if (e.ench && this.onTrait) this.onTrait(e, d, e.ench, 10, A.hits === A.max); e.swingT = e.ench ? 0.28 : 0; e.swingN = A.hits; e.atkTgt = d; BB.sfx && BB.save && UI_on() && BB.sfx('hit'); });
           return; }
-        if (R() < 0.5) say(e, pick(['hm', '!', '★']), 1.2);
+        if (R() < 0.5) say(e, pick(['!', '★', '♪']), 1.2);
         e.act = null; return;
+      }
+      if (A.kind === 'shoot') { // practise from where they stand: a shot at the dummy, the dummy rocks when it lands
+        const d = A.dummy; this.face(e, d.x, d.y);
+        if ((A.next = (A.next === undefined ? 0.2 : A.next) - dt) > 0) return;
+        if (A.hits >= A.max) { e.act = null; return; }
+        A.hits++; A.next = 1.25; const C = BB.CALLINGS[e.calling]; play(this, e, (C.basic || ['Attack1'])[0]);
+        this.later(0.22, () => { if (!this.ents.includes(e)) return; const dist = hyp(d.x - e.x, d.y - e.y), sp = { arrow: 13, bolt: 9, light: 10 }[C.proj] || 9, el = e.ench || (C.proj === 'bolt' ? BB.heroElem(e.hero) : null);
+          this.shoot(e, d.x, d.y, C.proj || 'bolt', 1, { life: dist / sp, elem: el, hue: el ? BB.ELEMENTS[el].hue : undefined });
+          this.later(dist / sp, () => { d.wv += (R() < 0.5 ? -1 : 1) * 6; d.flash = 0.2; if (el && this.onTrait) this.onTrait(e, d, el, 10, A.hits === A.max); else this.addFx('buff9', d.x, d.y, { sc: 0.22, add: true }); }); });
+        return;
+      }
+      if (A.kind === 'fire') { // a while by the fire
+        if (!A.there) { if (this.moveToward(e, A.x, A.y, dt, 0.5)) { A.there = true; A.t = 0; } else if (A.t > 6) e.act = null; return; }
+        this.face(e, D.fire.x, D.fire.y); e.state = 'idle'; this.setClip(e, 'Idle');
+        if ((A.next = (A.next || 1.2) - dt) <= 0) { A.next = 2 + R() * 2; if (R() < 0.5) say(e, pick(['♪', '…', '♥']), 1.4); }
+        if (A.t > A.dur) e.act = null;
+        return;
       }
       if (A.kind === 'spar' || A.kind === 'chat') {
         if (!tgt) { e.act = null; return; }
@@ -130,18 +161,26 @@
     e.drillT = 2.5 + R() * 4;
     const mates = this.heroList.filter((x) => x !== e && !x.act && !x.dead);
     let k = pick(ACTS);
+    const C0 = BB.CALLINGS[e.calling], ranged = !!C0.ranged, healer = e.calling === 'warpriest';
+    if (k === 'mend' && (!healer || !mates.length)) k = healer ? 'show' : 'train';
+    if (k === 'fire' && !D.fire) k = 'wander';
     if ((k === 'spar' || k === 'chat') && !mates.length) k = 'train';
-    if (k === 'train' && !D.dummies.length) k = 'show';
+    if (k === 'spar' && ranged) k = 'shoot';
+    if (k === 'train' && ranged) k = 'shoot';
+    if ((k === 'train' || k === 'shoot') && !D.dummies.length) k = 'show';
     if (k === 'train') { const dm = D.dummies.reduce((a, d) => (hyp(d.x - e.x, d.y - e.y) < hyp(a.x - e.x, a.y - e.y) ? d : a)); e.act = { kind: 'train', dummy: dm, hits: 0, max: 3 + Math.floor(R() * 3), t: 0 }; }
     else if (k === 'spar' || k === 'chat') { const m = pick(mates); const dur = k === 'spar' ? 4 + R() * 2 : 3.5 + R() * 2; e.act = { kind: k, with: m, lead: true, t: 0, dur }; m.act = { kind: k, with: e, lead: false, t: 0, dur }; }
     else if (k === 'wander') { const a = R() * TAU; e.act = { kind: 'wander', x: e.home.x + Math.cos(a) * 1.4, y: e.home.y + Math.sin(a) * 1.4, t: 0 }; }
     else if (k === 'stretch') play(this, e, 'Taunt', true);
+    else if (k === 'shoot') { const dm = D.dummies.reduce((a, d) => (hyp(d.x - e.x, d.y - e.y) < hyp(a.x - e.x, a.y - e.y) ? d : a)); e.act = { kind: 'shoot', dummy: dm, hits: 0, max: 3 + Math.floor(R() * 2), t: 0 }; }
+    else if (k === 'fire') { const a = R() * TAU; e.act = { kind: 'fire', x: D.fire.x + Math.cos(a) * 0.95, y: D.fire.y + Math.sin(a) * 0.95, t: 0, dur: 3.5 + R() * 3.5 }; }
+    else if (k === 'mend') { const m = pick(mates); this.face(e, m.x, m.y); play(this, e, 'Special1', true); this.later(0.3, () => { if (this.ents.includes(m) && this.onHeal) { m.healFxT = 0; this.onHeal(m, 1); this.addFx('buff1', m.x, m.y, { sc: 0.45, add: true, hue: -160 }); } }); }
     else if (k === 'show') { // try out the signature: its clip, and a burst of its colour
       play(this, e, 'Special1', true);
       const I = BB.identityOf ? BB.identityOf(e.hero) : null, cls = I ? BB.CLASSES[I.cls] : null;
       this.later(0.16, () => { if (!this.ents.includes(e)) return; this.addFx(pick(['buff3', 'buff1', 'buff10', 'levelup']), e.x, e.y, { sc: 0.6, add: true });
         if (e.ench && this.onTrait) this.onTrait(e, { x: e.x + 0.6, y: e.y - 0.6, buffs: {} }, e.ench, 10, true);
-        if (I && R() < 0.6) say(e, BB.SIGNATURES[I.sig].name, 1.4); void cls; });
+        if (R() < 0.4) say(e, '★', 1.2); void I; void cls; });
     }
   };
   const UI_on = () => BB.UI && BB.UI.current === 'team';

@@ -272,6 +272,14 @@ body.dev::after{content:'DEVELOPMENT SANDBOX · NOTHING IS SAVED';position:fixed
 #reveal .cl .sig{color:#ffe7a3;font-weight:700}
 #reveal .ds{font:400 12px/1.4 var(--body);color:#aab3c2;max-width:min(460px,86vw);margin:0 auto 10px}
 #reveal .ds .sig{color:#ffe7a3;font-weight:700}
+/* the duel preview: the new hero alone against one enemy, live */
+#reveal .pip{position:absolute;right:calc(18px + var(--safe-r));top:46%;width:min(30vw,360px);aspect-ratio:16/10;transform:translate(40px,-50%);opacity:0;transition:opacity .5s,transform .5s cubic-bezier(.2,.9,.3,1);border-radius:14px;overflow:hidden;background:#0b0d14;
+  border:1px solid color-mix(in srgb,var(--rc) 65%,transparent);box-shadow:0 20px 50px -10px #000,0 0 34px -8px var(--rc);pointer-events:none}
+#reveal.pip .pip{opacity:1;transform:translate(0,-50%)}
+#reveal .pip .tag{position:absolute;left:10px;top:7px;font:700 9px var(--head);letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.7);text-shadow:0 1px 3px #000}
+#reveal .pip .cap{position:absolute;left:0;right:0;bottom:0;padding:14px 10px 6px;font:600 11px var(--head);letter-spacing:.08em;text-transform:uppercase;color:#dfe5ee;background:linear-gradient(0deg,rgba(0,0,0,.8),transparent);text-align:left}
+#reveal .pip .cap b{color:var(--accent);margin-right:6px} #reveal .pip .cap.ult b{color:#d9b8ff} #reveal .pip .cap.sig b{color:#ffe7a3}
+@media (max-height:460px){#reveal .pip{width:min(29vw,250px);top:42%}}
 
 /* ---- heroes: the gates still to recruit from, one strip each */
 .tstrips{display:flex;flex-direction:column;gap:8px}
@@ -555,7 +563,7 @@ input[type=range]{accent-color:var(--accent)} input[type=checkbox]{accent-color:
 </div>
 
 <div id="cine"><canvas id="cineCv"></canvas><button id="cineSkip">SKIP ▸▸</button></div>
-<div id="reveal"><canvas id="revealCv"></canvas><div class="txt"><div class="rk" id="rvRk"></div><div class="nm" id="rvNm"></div><div class="cl" id="rvCl"></div><div class="ds" id="rvDs"></div><button class="btn sm" id="rvOk">Welcome</button></div></div>
+<div id="reveal"><canvas id="revealCv"></canvas><div class="pip"><canvas id="pipCv"></canvas><div class="tag">In battle</div><div class="cap" id="pipCap"></div></div><div class="txt"><div class="rk" id="rvRk"></div><div class="nm" id="rvNm"></div><div class="cl" id="rvCl"></div><div class="ds" id="rvDs"></div><button class="btn sm" id="rvOk">Welcome</button></div></div>
 <div id="mResults" class="modal"><div class="frame scroll" id="resBody"></div></div>
 <div id="mPause" class="modal"><div class="frame" style="width:min(380px,90vw)">
   <h2 class="gold" style="text-align:center">Paused</h2>
@@ -569,6 +577,7 @@ input[type=range]{accent-color:var(--accent)} input[type=checkbox]{accent-color:
   <label class="row">Effects <input type="range" id="sSfx" min="0" max="1" step="0.05" class="grow"></label>
   <label class="row"><input type="checkbox" id="sShake"> Screen shake</label>
   <label class="row"><input type="checkbox" id="sDmg"> Damage numbers</label>
+  <label class="row">Graphics <select id="sGfx" class="grow" style="background:#151a26;color:#f3f5f9;border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:8px 10px;font:500 14px var(--body)"><option value="auto">Auto — sharp, and lighter if a fight slows down</option><option value="sharp">Sharp — always full detail</option><option value="fast">Fast — smoothest, softer picture</option></select></label>
   <div class="mute" style="font-size:12px">Art: “Fantasy tileset – 2D Isometric”, “2D Desert Fantasy” and the Fantasy Character Creator cast, supplied by the author. Monster voices: “Fantasy Monsters”, “Dinosaurs” and “Abyssal Horror SFX Vol.1” by Riria / Ririsaurus. Other sound and the music are synthesised in the browser.</div>
   <button class="btn dark" id="bTheater">🛠 Development — watch any moment in the game</button>
   <div class="row"><button class="btn dark sm" id="bWipe">Erase save</button><div class="grow"></div><button class="btn" id="bSetClose">Done</button></div>
@@ -596,6 +605,7 @@ input[type=range]{accent-color:var(--accent)} input[type=checkbox]{accent-color:
 <script src="js/epic.js"></script>
 <script src="js/traits.js"></script>
 <script src="js/drill.js"></script>
+<script src="js/preview.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/screens.js"></script>
 <script src="js/heroui.js"></script>

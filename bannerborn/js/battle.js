@@ -259,7 +259,7 @@
 
   // ---------------------------------------------------------------- helpers
   Battle.prototype.later = function (delay, fn) { this.timers.push({ t: delay, fn }); };
-  Battle.prototype.banner = function (text, dur, kind) { this.banners.push({ text, t: 0, dur: dur || 2, kind: kind || '' }); };
+  Battle.prototype.banner = function (text, dur, kind) { if (kind === 'small' || kind === 'combo') return; /* minor notices are not written across the screen */ this.banners.push({ text, t: 0, dur: dur || 2, kind: kind || '' }); };
   Battle.prototype.addFx = function (key, x, y, o) {
     const f = Object.assign({ key, x, y, t: 0, fps: 20, sc: 1 }, o || {});
     f.n = BB.fxLen(key); this.fx.push(f); return f;
@@ -267,7 +267,11 @@
   // the duel's own words stay off screen: blocks, parries, counters, feints, openings, links, covers and dodges still happen, felt not spelled out
   const QUIET = new Set(['PARRY!', 'BLOCK', 'block', 'COUNTER', 'FEINT', 'OPEN!', 'LINK', 'COVER!', 'DODGE', 'PERFECT']);
   Battle.prototype.text = function (x, y, txt, col, big) {
+    // Only the big moments are written out (a boss breaking, a gate shattering, a piece of loot). Everything else is
+    // shown, not said: the blow, the spark, the glow. Damage numbers are a setting, off unless asked for.
     if (QUIET.has(txt)) return;
+    if (/^\+?\d+!?$/.test(String(txt))) { if (!(this.save && this.save.settings && this.save.settings.numbers)) return; }
+    else if (big !== 2) return;
     let z = 1.2; // stack above recent words nearby so call-outs (PARRY!, COUNTER) never print over each other
     if (big) for (let k = 0; k < 3; k++) { if (!this.texts.some((o) => o.big && o.t < 0.6 && Math.abs(o.z - z) < 0.45 && hyp(o.x - x, o.y - y) < 1.1)) break; z += 0.5; }
     this.texts.push({ x, y, z, txt: String(txt), col: col || '#fff', t: 0, big: big || 0, dx: (this.r() - 0.5) * 0.4 });
@@ -394,7 +398,7 @@
   Battle.prototype.heal = function (src, tgt, amt) {
     if (!tgt || tgt.dead) return;
     const a = Math.round(Math.min(tgt.maxhp - tgt.hp, amt));
-    tgt.hp += a; this.metrics.healed += a; if (src && src.side === 'hero') src.mended = (src.mended || 0) + a; if (a > 0) this.text(tgt.x, tgt.y, '+' + a, '#7dff8a');
+    tgt.hp += a; this.metrics.healed += a; if (a > 0 && this.onHeal) this.onHeal(tgt, a); if (src && src.side === 'hero') src.mended = (src.mended || 0) + a; if (a > 0) this.text(tgt.x, tgt.y, '+' + a, '#7dff8a');
   };
   Battle.prototype.addRally = function (v) { if (this.rallyT > 0) return; this.rally = clamp(this.rally + v, 0, 100); };
   Battle.prototype.kill = function (e, src, quiet) {
@@ -970,7 +974,7 @@
     e.poise -= amt; e.poiseT = 2.2;
     if (e.poise <= 0) {
       e.poise = e.maxPoise; e.brokenT = e.boss ? 3.5 : 2.2; this.stun(e, e.boss ? 2.4 : 1.5);
-      this.text(e.x, e.y, 'BREAK!', '#ffb347', 2); if (BB.foeVoice) BB.foeVoice(e, e.boss ? 'brk' : 'hurt'); this.addFx('aoe', e.x, e.y, { sc: e.boss ? 0.8 : 0.5, ground: true, add: true, hue: 20, fps: 30 });
+      if (e.boss) this.text(e.x, e.y, 'BREAK!', '#ffb347', 2); if (BB.foeVoice) BB.foeVoice(e, e.boss ? 'brk' : 'hurt'); this.addFx('aoe', e.x, e.y, { sc: e.boss ? 0.8 : 0.5, ground: true, add: true, hue: 20, fps: 30 });
       this.shake = Math.max(this.shake, e.boss ? 0.7 : 0.35); this.hitstop = Math.max(this.hitstop, 0.08); BB.sfx && BB.sfx('slam');
       if (e.boss) { this.banner(e.F.name.split(',')[0] + ' is broken!', 1.4, 'small'); this.zoomPulse(1.08, 0.6); }
       for (const h of this.heroesAlive()) if (hyp(h.x - e.x, h.y - e.y) < 6) h.energy = Math.min(100, (h.energy || 0) + 12);
@@ -1557,7 +1561,7 @@
     } else if (mv === 'elements') {
       const el = ['fire', 'frost', 'shadow'][(e.elemStep = ((e.elemStep || 0) + 1) % 3)];
       e.state = 'attack'; e.lock = 1.4; e.atkDur = 1.4; e.hitAt = 99; e.hitDone = true; this.setClip(e, 'Special1', true);
-      this.banner(BB.ELEMENTS[el].name + ' tide', 1.2, 'boss');
+      this.banner(BB.ELEMENTS[el].name + ' tide', 1.2, 'small');
       if (el === 'fire') { for (let i = 0; i < 4; i++) { const a = i / 4 * TAU + this.r(); this.fireRing(e, e.x + Math.cos(a) * 3, e.y + Math.sin(a) * 3, 1.6, 1.2); } }
       else if (el === 'frost') {
         this.tele.push({ kind: 'circle', x: e.x, y: e.y, rad: 3.6, t: 0, dur: 1.2, col: '140,210,255', onEnd() {
@@ -1645,8 +1649,7 @@
       if (e.prop && !e.ward && !e.barrel) continue;
       const s = P(e.x, e.y);
       if (e.gate || e.ward) continue;
-      ctx.fillStyle = 'rgba(0,0,0,0.28)';
-      ctx.beginPath(); ctx.ellipse(s.x, s.y, 11 * (e.sc || 1) * (e.boss ? 1.1 : 1), 5 * (e.sc || 1), 0, 0, TAU); ctx.fill();
+      BB.drawGlow(ctx, '0,0,0', s.x, s.y, 14 * (e.sc || 1) * (e.boss ? 1.1 : 1), 6.5 * (e.sc || 1), 0.5);
       if (this.order && this.order.focus === e && !e.dead) {
         const rr = 16 * (e.sc || 1) * (e.boss ? 1.2 : 1), p = 0.6 + Math.sin(this.time * 7) * 0.3;
         ctx.strokeStyle = 'rgba(255,90,60,' + p + ')'; ctx.lineWidth = 1.6; ctx.setLineDash([4, 3]); ctx.lineDashOffset = -this.time * 12;
@@ -1711,7 +1714,7 @@
     ctx.setTransform(z, 0, 0, z, ox, oy);
     // bars and texts
     if (!this.noBars) for (const e of this.ents) this.drawBars(ctx, e);
-    const nums = !this.save || this.save.settings.dmgNums !== false;
+    const nums = !!(this.save && this.save.settings.numbers);
     for (const t of this.texts) {
       if (!nums && !t.big) continue;
       const s = P(t.x + t.dx, t.y); const k = t.t / (t.big ? 1.3 : 0.9);

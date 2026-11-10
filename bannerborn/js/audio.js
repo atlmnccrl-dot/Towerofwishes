@@ -21,6 +21,7 @@
   const vbuf = {}, vload = {}; let preloaded = false, active = 0;
   function loadV(n) { if (vbuf[n] || vload[n] || !ac) return; vload[n] = fetch('assets/sfx/' + n + '.mp3').then((r) => r.arrayBuffer()).then((a) => new Promise((res, rej) => ac.decodeAudioData(a, res, rej))).then((b) => { vbuf[n] = b; }).catch(() => {}); }
   BB.voice = function (name, vol, rate) {
+    if (BB.sfxMute) return;
     if (!ac || ac.state !== 'running' || !name) return;
     const now = ac.currentTime; if (last['v' + name] && now - last['v' + name] < 0.3) return;
     const b = vbuf[name]; if (!b) { loadV(name); return; }
@@ -100,10 +101,16 @@
     snap: (t) => { noise(t, 0.08, 6000, 2500, 8, 0.45); tone(t, 0.25, 180, 60, 'square', 0.12); noise(t + 0.05, 0.4, 900, 200, 3, 0.2); },
     enchant: (t) => { [660, 990, 1320, 1760].forEach((f, i) => tone(t + i * 0.05, 0.45, f, 0, 'sine', 0.08)); noise(t, 0.35, 6000, 2000, 2, 0.14); },
   };
+  let sfxWin = 0, sfxCount = 0;
+  const LOUD = { victory: 1, defeat: 1, boss: 1, burst: 1, portal: 1, rally: 1, herodie: 1, levelup: 1, slam: 1, boom: 1, click: 1 };
   BB.sfx = function (name) {
-    if (!ac || ac.state !== 'running') return;
+    if (!ac || ac.state !== 'running' || BB.sfxMute) return;
     const now = ac.currentTime;
-    if (last[name] && now - last[name] < 0.045) return;
+    if (last[name] && now - last[name] < 0.07) return;
+    // a crowd fight asks for dozens of sounds a second; the ear hears a handful. No more than six in any tenth of a
+    // second (the loud ones always get through)
+    if (now - sfxWin > 0.1) { sfxWin = now; sfxCount = 0; }
+    if (++sfxCount > 6 && !LOUD[name]) return;
     last[name] = now;
     const f = SFX[name]; if (f) f(now);
   };
@@ -150,6 +157,7 @@
   let droneNodes = null;
   function curve(k) { const n = 256, c = new Float32Array(n); for (let i = 0; i < n; i++) { const x = i / (n - 1) * 2 - 1; c[i] = Math.tanh(x * k); } return c; }
   BB.score = function (what, a) {
+    if (BB.sfxMute) return;
     if (!init() || ac.state !== 'running') return;
     const t = ac.currentTime + 0.01;
     if (what === 'braam') { // the big low brass blast
