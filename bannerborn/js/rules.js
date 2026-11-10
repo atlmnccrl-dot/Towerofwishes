@@ -28,7 +28,19 @@
   // ---------------------------------------------------------------- heroes
   BB.MAX_STARS = 5;
   BB.levelCap = (h) => 10 + (h.stars || 1) * 10;
-  BB.levelCost = (h) => Math.round(6 * Math.pow(h.level, 1.45) + 10);
+  // heroes grow by fighting: experience from battles, not gold
+  BB.xpNeed = (h) => Math.round(25 * Math.pow(h.level || 1, 1.1) + 35);
+  BB.gainXp = function (h, n) { // returns how many levels were gained; at the cap, experience waits (up to one level's worth) for an ascension
+    h.xp = (h.xp || 0) + Math.max(0, Math.round(n)); let up = 0;
+    while (h.level < BB.levelCap(h) && h.xp >= BB.xpNeed(h)) { h.xp -= BB.xpNeed(h); h.level++; up++; }
+    if (h.level >= BB.levelCap(h)) h.xp = Math.min(h.xp, BB.xpNeed(h));
+    return up;
+  };
+  BB.ascendWaitingXp = (h) => { if (h.level < BB.levelCap(h)) BB.gainXp(h, 0); };
+  // what a battle teaches each hero who fought: more for harder stages, a share for the work done, a little for losing;
+  // a hero below the stage's level learns faster, so new recruits catch up by fighting
+  BB.battleXp = (M, win, share, mvp, lvl) => Math.round((40 + M.level * 20) * (win ? 1 : 0.4) * (0.75 + Math.min(1, share || 0) * 1.25) * (mvp ? 1.2 : 1) *
+    (lvl && lvl < M.level ? Math.min(3, 1 + (M.level - lvl) * 0.2) : 1));
   BB.ascendCost = (h) => (h.stars || 1) * 4;
 
   // hero: { id, name, calling, level, stars, rarity (0-3), gear, recruit | legend | captain, look (captain only) }
@@ -36,7 +48,7 @@
     o = o || {};
     const h = {
       id: BB.uid('h'), name: o.name || BB.randomName(BB.rng(o.seed || Math.random() * 1e9)), calling: o.calling || 'vanguard',
-      level: o.level || 1, stars: o.stars || 1, rarity: o.rarity || 0,
+      level: o.level || 1, xp: 0, stars: o.stars || 1, rarity: o.rarity || 0,
       gear: { weapon: null, chest: null, head: null, charm: null },
       recruit: o.recruit || null, legend: o.legend || null, captain: !!o.captain, look: o.look || null, elem: o.elem || null, arch: o.arch || null,
     };
@@ -289,16 +301,11 @@
   BB.learn = function (h, id) { if (!BB.canLearn(h, id)) return false; h.talents = h.talents || {}; h.talents[id] = BB.talentRank(h, id) + 1; return true; };
   BB.resetTalents = function (h) { h.talents = {}; };
 
-  // ---------------------------------------------------------------- level up, ascend, forge
-  BB.levelUp = function (save, h) {
-    if (h.level >= BB.levelCap(h)) return false;
-    const c = BB.levelCost(h); if (save.gold < c) return false;
-    save.gold -= c; h.level++; return true;
-  };
+  // ---------------------------------------------------------------- ascend, forge
   BB.ascend = function (save, h) {
     if (h.stars >= BB.MAX_STARS) return false;
     const c = BB.ascendCost(h); if (save.sigils < c) return false;
-    save.sigils -= c; h.stars++; return true;
+    save.sigils -= c; h.stars++; BB.ascendWaitingXp(h); return true;
   };
   BB.upgradeItem = function (save, it) {
     if ((it.plus || 0) >= BB.MAX_PLUS) return false;
@@ -350,6 +357,7 @@
   BB.SHOP = [
     { id: 'free', name: 'Daily Crystals', desc: 'A gift from the quartermaster.', give: { crystals: 60 }, cost: null, limit: 1 },
     { id: 'chest', name: 'Armory Chest', desc: 'One piece of gear, Rare or better.', give: { chest: 1 }, cost: { gold: 350 }, limit: 3 },
+    { id: 'arms', name: 'Smith\'s Masterwork', desc: 'A weapon for one of your heroes, Epic or better, often enchanted.', give: { weapon: 1 }, cost: { crystals: 160 }, limit: 2 },
     { id: 'sigils', name: 'Sigil Bundle', desc: 'Five sigils for ascension.', give: { sigils: 5 }, cost: { gold: 500 }, limit: 2 },
     { id: 'crystals', name: 'Crystal Purse', desc: '120 crystals for recruiting.', give: { crystals: 120 }, cost: { gold: 800 }, limit: 1 },
   ];
@@ -359,9 +367,9 @@
   };
   BB.buy = function (save, offerId, now, r) {
     const o = BB.SHOP.find((x) => x.id === offerId); if (!o || BB.shopLeft(save, o, now) <= 0) return null;
-    if (o.cost && save.gold < o.cost.gold) return null;
+    if (o.cost && ((o.cost.gold && save.gold < o.cost.gold) || (o.cost.crystals && save.crystals < o.cost.crystals))) return null;
     if (!save.shop || save.shop.day !== BB.dayKey(now)) save.shop = { day: BB.dayKey(now), bought: {} };
-    if (o.cost) save.gold -= o.cost.gold;
+    if (o.cost) { save.gold -= o.cost.gold || 0; save.crystals -= o.cost.crystals || 0; }
     save.shop.bought[o.id] = (save.shop.bought[o.id] || 0) + 1;
     const got = {};
     if (o.give.crystals) { save.crystals += o.give.crystals; got.crystals = o.give.crystals; }
@@ -370,6 +378,11 @@
       r = r || BB.rng(now & 0xffffff);
       const h = r.pick(save.heroes), slot = r.pick(BB.SLOTS);
       const it = BB.makeItem(r, slot, Math.max(1, BB.startLevel(save)), r() < 0.2 ? 2 : 1, slot === 'weapon' ? BB.weaponType(h.calling) : undefined);
+      save.inventory.push(it); got.item = it;
+    }
+    if (o.give.weapon) {
+      r = r || BB.rng(now & 0xffffff);
+      const h = r.pick(save.heroes), it = BB.makeItem(r, 'weapon', Math.max(1, BB.startLevel(save) + 1), r() < 0.25 ? 3 : 2, BB.weaponType(h.calling));
       save.inventory.push(it); got.item = it;
     }
     return got;
@@ -414,8 +427,6 @@
     front.forEach((h, i) => (save.formation.front[i] = h.id));
     rest.forEach((h, i) => { if (i < BB.BACK) save.formation.back[i] = h.id; else { const j = save.formation.front.indexOf(null); if (j >= 0) save.formation.front[j] = h.id; } });
   };
-  // level up as far as gold and the cap allow
-  BB.levelMax = function (save, h) { let n = 0; while (BB.levelUp(save, h)) n++; return n; };
 
   // ---------------------------------------------------------------- foes
   BB.foeStats = function (kind, level, elite) {

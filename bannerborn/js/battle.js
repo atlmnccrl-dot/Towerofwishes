@@ -355,7 +355,7 @@
     if (tgt.shield > 0) { const a = Math.min(tgt.shield, dmg); tgt.shield -= a; dmg -= a; }
     dmg = Math.round(dmg);
     tgt.hp -= dmg; tgt.flash = 0.18;
-    if (tgt.side === 'hero' && !tgt.ward) { this.metrics.taken += dmg; this.metrics.minFrac = Math.min(this.metrics.minFrac, Math.max(0, tgt.hp / tgt.maxhp)); } else if (tgt.side === 'foe') this.metrics.dealt += dmg;
+    if (tgt.side === 'hero' && !tgt.ward) { this.metrics.taken += dmg; tgt.soaked = (tgt.soaked || 0) + dmg; this.metrics.minFrac = Math.min(this.metrics.minFrac, Math.max(0, tgt.hp / tgt.maxhp)); } else if (tgt.side === 'foe') this.metrics.dealt += dmg;
     if (src && src.side === 'hero' && !o.aoe) src.energy = Math.min(100, (src.energy || 0) + (src.ranged ? 9 : 12) * (1 + ((src.st && src.st.energyGain) || 0)));
     if (tgt.side === 'hero' && !tgt.ward) tgt.energy = Math.min(100, (tgt.energy || 0) + dmg / tgt.maxhp * 70 * (1 + ((tgt.st && tgt.st.energyGain) || 0)));
     if (src && src.side === 'hero') { src.dealt = (src.dealt || 0) + dmg; this.addRally(dmg * 0.045); if (src.st && src.st.leech) src.hp = Math.min(src.maxhp, src.hp + dmg * src.st.leech); }
@@ -390,7 +390,7 @@
   Battle.prototype.heal = function (src, tgt, amt) {
     if (!tgt || tgt.dead) return;
     const a = Math.round(Math.min(tgt.maxhp - tgt.hp, amt));
-    tgt.hp += a; this.metrics.healed += a; if (a > 0) this.text(tgt.x, tgt.y, '+' + a, '#7dff8a');
+    tgt.hp += a; this.metrics.healed += a; if (src && src.side === 'hero') src.mended = (src.mended || 0) + a; if (a > 0) this.text(tgt.x, tgt.y, '+' + a, '#7dff8a');
   };
   Battle.prototype.addRally = function (v) { if (this.rallyT > 0) return; this.rally = clamp(this.rally + v, 0, 100); };
   Battle.prototype.kill = function (e, src, quiet) {

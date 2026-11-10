@@ -37,7 +37,7 @@
     $('tbCrys').textContent = fmt(S.crystals); $('tbGold').textContent = fmt(S.gold);
     // a red dot where something is waiting
     const canRecruit = BB.heroTiers(BB.ROSTER).some(({ tier, heroes }) => BB.tierOpen(S, tier) && S.crystals >= tier.cost && heroes.some((e) => !S.heroes.some((h) => h.recruit === e.key)));
-    const canLevel = S.heroes.some((h) => h.level < BB.levelCap(h) && S.gold >= BB.levelCost(h) * 3);
+    const canLevel = S.heroes.some((h) => (h.stars < BB.MAX_STARS && h.level >= BB.levelCap(h) && S.sigils >= BB.ascendCost(h)) || (BB.talentFree && BB.talentFree(h) > 0));
     const set = (tab, on) => { const t = document.querySelector('.tab[data-tab="' + tab + '"]'); let b = t.querySelector('.badge'); if (on && !b) { b = el('span', 'badge', '!'); t.appendChild(b); } if (!on && b) b.remove(); };
     set('heroes', canRecruit || canLevel);
     set('shop', BB.shopLeft(S, BB.SHOP[0], now()) > 0);
@@ -465,7 +465,7 @@
       click(b, () => { HF.f = id; UI.renderHeroes(); }); fb.appendChild(b);
     }
     const ok = (c) => HF.f === 'all' || c === HF.f;
-    box.appendChild(el('div', 'sect', 'Your heroes <small>tap a hero to level up, ascend and equip</small>'));
+    box.appendChild(el('div', 'sect', 'Your heroes <small>tap a hero to ascend, equip and learn skills</small>'));
     const own = el('div', 'hcards');
     const team = BB.teamIds(S);
     for (const h of sortHeroes(S.heroes)) if (ok(h.calling)) own.appendChild(UI.heroCard(h, { inteam: team.includes(h.id), onClick: () => UI.openHero(h.id) }));
@@ -524,16 +524,12 @@
     box.appendChild(el('div', 'ult ' + RCLS(h.rarity), '<div class="gem">' + UI.callIcon(h.calling) + '</div><div><b>Ultimate · ' + Cl.skill.name + '</b><p>' + Cl.skill.desc + '</p></div>'));
     const ups = el('div', 'ups');
     const capped = h.level >= cap;
-    const lv = el('button', 'btn', capped ? 'Level cap' : 'Level up<span class="cost">● ' + fmt(BB.levelCost(h)) + '</span>');
-    lv.disabled = capped || S.gold < BB.levelCost(h);
-    click(lv, () => { if (BB.levelUp(S, h)) { BB.sfx('levelup'); BB.persist(); UI.renderHero(); UI.refreshTop(); D.flash = 0.5; } });
+    const lv = el('div', 'mute', '<span style="font-size:13px">' + (capped ? 'Level cap reached.' : 'Experience ' + (h.xp || 0) + ' / ' + BB.xpNeed(h) + ' — fight with ' + BB.shortName(h) + ' to level up.') + '</span>'); lv.style.flex = '1 1 auto';
     const maxS = h.stars >= BB.MAX_STARS;
     const as = el('button', 'btn blue', maxS ? 'Max stars' : 'Ascend ★<span class="cost">✧ ' + S.sigils + ' / ' + BB.ascendCost(h) + '</span>');
     as.disabled = maxS || S.sigils < BB.ascendCost(h);
     click(as, () => { if (BB.ascend(S, h)) { BB.sfx('rally'); BB.persist(); UI.renderHero(); UI.refreshTop(); D.flash = 1; UI.toast(h.name + ' ascends to ' + h.stars + ' stars! Level cap ' + BB.levelCap(h)); } });
-    const mx = el('button', 'btn dark', 'Max'); mx.style.flex = '0 0 auto'; mx.disabled = lv.disabled; mx.title = 'Level up as far as your gold allows';
-    click(mx, () => { const n = BB.levelMax(S, h); if (n) { BB.sfx('levelup'); BB.persist(); UI.renderHero(); UI.refreshTop(); D.flash = 0.7; UI.toast(h.name + ' +' + n + ' level' + (n > 1 ? 's' : '')); } });
-    ups.appendChild(lv); ups.appendChild(mx); ups.appendChild(as);
+    ups.appendChild(lv); ups.appendChild(as);
     box.appendChild(ups);
     if (capped && !maxS) box.appendChild(el('div', 'mute', '<span style="font-size:13px">Ascend to raise the level cap. Sigils come from bosses, spoils, goals and the shop.</span>'));
     const gh = el('div', 'row'); gh.appendChild(el('div', 'ph grow', 'Gear')); const eb = el('button', 'btn dark sm', 'Equip best'); click(eb, () => { BB.equipBest(S, h); BB.sfx('forge'); BB.persist(); UI.renderHero(); UI.refreshTop(); }); gh.appendChild(eb);
@@ -995,14 +991,14 @@
     const S = BB.save, box = $('offers'); box.innerHTML = '';
     const d = new Date(), mid = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1), left = mid - now();
     $('shopReset').textContent = 'New offers in ' + Math.floor(left / 3600000) + 'h ' + Math.floor(left / 60000) % 60 + 'm';
-    const art = { free: ['◆', 'linear-gradient(160deg,#8fd2ff,#2c63d8)'], chest: ['<svg class="i" viewBox="0 0 24 24" style="width:40px;height:40px;color:#fff">' + SI.gift + '</svg>', 'linear-gradient(160deg,#ffd27e,#e0802a)'], sigils: ['✧', 'linear-gradient(160deg,#d8b0ff,#7a3fd6)'], crystals: ['◆', 'linear-gradient(160deg,#a6ecff,#2a86d6)'] };
+    const art = { free: ['◆', 'linear-gradient(160deg,#8fd2ff,#2c63d8)'], chest: ['<svg class="i" viewBox="0 0 24 24" style="width:40px;height:40px;color:#fff">' + SI.gift + '</svg>', 'linear-gradient(160deg,#ffd27e,#e0802a)'], sigils: ['✧', 'linear-gradient(160deg,#d8b0ff,#7a3fd6)'], crystals: ['◆', 'linear-gradient(160deg,#a6ecff,#2a86d6)'], arms: ['⚔', 'linear-gradient(160deg,#ff9a6a,#a3311c)'] };
     for (const o of BB.SHOP) {
       const left = BB.shopLeft(S, o, now());
       const c = el('div', 'offer frame');
       c.appendChild(el('div', 'art', art[o.id][0])); c.querySelector('.art').style.background = art[o.id][1];
       c.appendChild(el('h3', '', o.name)); c.appendChild(el('p', '', o.desc));
       c.appendChild(el('div', 'left', left > 0 ? left + ' left today' : 'Sold out · back tomorrow'));
-      const b = el('button', 'btn sm', o.cost ? '● ' + fmt(o.cost.gold) : 'Claim'); b.disabled = left <= 0 || (o.cost && S.gold < o.cost.gold);
+      const b = el('button', 'btn sm', !o.cost ? 'Claim' : o.cost.crystals ? '◆ ' + fmt(o.cost.crystals) : '● ' + fmt(o.cost.gold)); b.disabled = left <= 0 || (o.cost && (S.gold < (o.cost.gold || 0) || S.crystals < (o.cost.crystals || 0)));
       click(b, () => {
         const got = BB.buy(S, o.id, now()); if (!got) return;
         BB.sfx('coin'); BB.persist(); UI.renderShop(); UI.refreshTop();
@@ -1059,9 +1055,18 @@
   UI.results = function (res, actions) {
     const body = $('resBody'); body.innerHTML = '';
     body.appendChild(el('div', 'res-h ' + (res.win ? 'win' : 'lose'), '<h2>' + (res.win ? 'Victory' : 'Defeat') + '</h2><div class="mute">Stage ' + res.code + ' · ' + esc(res.title) + '</div>'));
-    if (!res.win) body.appendChild(el('div', 'mute', '<div style="text-align:center;font-size:14px">Nothing is lost. Level up your heroes, forge gear, try another formation, and fight again.</div>'));
+    if (!res.win) body.appendChild(el('div', 'mute', '<div style="text-align:center;font-size:14px">Nothing is lost, and every hero still learned from it. Forge gear, try another formation, and fight again.</div>'));
     const hs = el('div', 'res-heroes');
-    for (const h of res.heroes) { const c = UI.heroCard(h, { tag: 'div' }); if (res.mvp === h) c.appendChild(el('div', 'mvp', 'MVP')); hs.appendChild(c); }
+    for (const h of res.heroes) {
+      const c = UI.heroCard(h, { tag: 'div' }); if (res.mvp === h) c.appendChild(el('div', 'mvp', 'MVP'));
+      const x = res.xp && res.xp.find((q) => q.hero === h);
+      if (x) {
+        const capped = h.level >= BB.levelCap(h), fr = capped ? 1 : Math.min(1, (h.xp || 0) / BB.xpNeed(h));
+        const xb = el('div', 'xpb' + (x.levels ? ' up' : ''), (x.levels ? '<b>LEVEL ' + h.level + '</b>' : '<span>+' + x.xp + ' xp</span>') + '<i><s style="width:0%"></s></i>');
+        const w = el('div', 'res-hero'); w.appendChild(c); w.appendChild(xb); hs.appendChild(w);
+        setTimeout(() => { const s = xb.querySelector('s'); if (s) s.style.width = (fr * 100) + '%'; }, 250);
+      } else hs.appendChild(c);
+    }
     body.appendChild(hs);
     const rw = el('div', 'res-rw');
     if (res.gold) rw.appendChild(el('span', 'rw', '<span class="ico gold" style="width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center">●</span>+' + fmt(res.gold)));

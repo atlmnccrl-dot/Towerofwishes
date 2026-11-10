@@ -66,13 +66,14 @@ require('fs').mkdirSync(out, { recursive: true });
   };
   await tap('#heroList .hc'); await wait(900); await shot('16-hero');
   const lv0 = await p.evaluate(() => BB.UI.hs.id && BB.save.heroes.find((h) => h.id === BB.UI.hs.id).level);
-  await region('lvl'); await wait(250); await shot('16b-hero-levelup');
+  // levels come from fighting: the first battle taught the captain something; grant a few battles' worth here
+  if (!(await p.evaluate(() => BB.save.heroes.find((h) => h.id === BB.UI.hs.id).xp > 0 || BB.save.heroes.find((h) => h.id === BB.UI.hs.id).level > 1))) errs.push('the battle gave no experience');
+  await p.evaluate(() => BB.gainXp(BB.save.heroes.find((h) => h.id === BB.UI.hs.id), 2000)); await wait(250); await shot('16b-hero-xp');
   const lv1 = await p.evaluate(() => BB.save.heroes.find((h) => h.id === BB.UI.hs.id).level);
-  if (lv1 !== lv0 + 1) errs.push('level up did not work: ' + lv0 + ' -> ' + lv1);
+  if (!(lv1 > lv0)) errs.push('experience did not level up: ' + lv0 + ' -> ' + lv1);
   await region('sock-weapon'); await wait(300); await shot('17-pick-gear');
   await region('item-0'); await wait(300);
   if (!(await p.evaluate(() => !!BB.save.heroes.find((h) => h.id === BB.UI.hs.id).gear.weapon))) errs.push('equip from the picker did not work');
-  await region('max'); await wait(300);
   await region('tab-tree'); await wait(400); await shot('17b-tree');
   await region('node-m1'); await region('learn'); await region('learn'); await region('node-g1'); await region('learn'); await region('node-u1'); await wait(500); await shot('17c-tree-learned');
   if ((await p.evaluate(() => BB.talentRank(BB.save.heroes.find((h) => h.id === BB.UI.hs.id), 'm1'))) !== 2) errs.push('learning a skill did not work');

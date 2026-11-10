@@ -217,6 +217,10 @@
     const heroes = B.heroList.map((e) => e.hero);
     let mvp = null; for (const e of B.heroList) if (!mvp || (e.dealt || 0) > (mvp.dealt || 0)) mvp = e;
     const res = { win, code: M.code, title: M.name, heroes, mvp: mvp && mvp.hero, kills: B.kills, gold: 0, crystals: 0, sigils: 0, items: [] };
+    // experience: every hero who fought learns, by the share of the work they did (damage, healing, blows taken)
+    const work = (e) => (e.dealt || 0) + (e.mended || 0) * 1.2 + (e.soaked || 0) * 0.6;
+    const allWork = B.heroList.reduce((a, e) => a + work(e), 0) || 1;
+    res.xp = B.heroList.map((e) => { const before = e.hero.level, got = BB.battleXp(M, win, work(e) / allWork * B.heroList.length / 2.5, e === mvp, e.hero.level); return { hero: e.hero, xp: got, levels: BB.gainXp(e.hero, got), from: before }; });
     // gold picked up on the field is kept even in defeat
     res.gold = Math.round(B.goldGot);
     if (B.loot && B.loot.length) res.items.push(...B.loot);
@@ -253,7 +257,7 @@
       actions.push(['Camp', 'dark', () => after(goCamp)]);
     } else {
       actions.push(['Retry', '', () => UI.openTeam(current.idx)]);
-      actions.push(['Upgrade heroes', 'dark', () => { goCamp().then(() => UI.go('heroes')); }]);
+      actions.push(['Heroes', 'dark', () => { goCamp().then(() => UI.go('heroes')); }]);
     }
     if (win && M.boss && first) BB.Cinema.play('bossDown', { stage: M, music: 'calm' }, () => { BB.music(M.type === 'boss' ? 'calm' : 'battle'); UI.results(res, actions); BB.sfx('levelup'); });
     else { UI.results(res, actions); BB.sfx(win ? 'levelup' : 'click'); }

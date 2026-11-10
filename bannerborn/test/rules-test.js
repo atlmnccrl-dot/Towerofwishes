@@ -28,17 +28,22 @@ ok(cap.captain && BB.heroStats(cap).hp > BB.heroStats(BB.newHero({ calling: 'van
 const S = BB.newSave(1000);
 ok(S.heroes.length === 1 && S.heroes[0].captain && BB.teamIds(S).length === 1, 'a new game starts with the captain alone');
 const h = S.heroes[0];
-ok(!BB.levelUp(S, h), 'levelling needs gold');
-S.gold = 1e6;
-ok(BB.levelUp(S, h) && h.level === 2, 'level up');
-BB.levelMax(S, h);
-ok(h.level === BB.levelCap(h) && !BB.levelUp(S, h), 'level cap holds');
+const gold0 = S.gold;
+ok(BB.gainXp(h, BB.xpNeed(h) - 1) === 0 && h.level === 1, 'not quite a level');
+ok(BB.gainXp(h, 1) === 1 && h.level === 2 && S.gold === gold0, 'levels come from experience, not gold');
+BB.gainXp(h, 1e7);
+ok(h.level === BB.levelCap(h) && h.xp <= BB.xpNeed(h), 'level cap holds; a level of experience waits');
+const M1 = { level: 1 }, M9 = { level: 9 };
+ok(BB.battleXp(M9, true, 0.3) > BB.battleXp(M1, true, 0.3), 'harder stages teach more');
+ok(BB.battleXp(M1, true, 0.6) > BB.battleXp(M1, true, 0.1) && BB.battleXp(M1, false, 0.3) < BB.battleXp(M1, true, 0.3) && BB.battleXp(M1, false, 0) > 0, 'work done and winning count; a loss still teaches');
+ok(BB.battleXp(M9, true, 0.3, false, 2) > BB.battleXp(M9, true, 0.3, false, 9) * 2, 'low-level heroes catch up');
 ok(!BB.ascend(S, h), 'ascending needs sigils');
 S.sigils = 100;
-ok(BB.ascend(S, h) && h.stars === 2 && BB.levelCap(h) > h.level, 'ascend raises the cap');
+ok(BB.ascend(S, h) && h.stars === 2 && BB.levelCap(h) > h.level - 1, 'ascend raises the cap');
+ok(h.level === 21, 'waiting experience flows after ascending');
 for (let i = 0; i < 9; i++) BB.ascend(S, h);
 ok(h.stars === BB.MAX_STARS, 'stars stop at the max');
-ok(BB.levelCost({ level: 30 }) > BB.levelCost({ level: 5 }) * 5, 'levels get dearer');
+ok(BB.xpNeed({ level: 30 }) > BB.xpNeed({ level: 5 }) * 5, 'levels take longer');
 
 // gear and forge
 const r = BB.rng(9);
@@ -52,6 +57,7 @@ const bow = BB.makeItem(r, 'weapon', 3, 1, 'bow');
 ok(BB.canEquip(BB.newHero({ calling: 'ranger' }), bow) && !BB.canEquip(BB.newHero({ calling: 'vanguard' }), bow), 'weapon types follow calling');
 const chest = BB.makeItem(r, 'chest', 5, 2);
 const g0 = BB.heroStats(h).hp; h.gear.chest = chest; ok(BB.heroStats(h).hp > g0, 'gear raises health');
+S.gold = 1e6;
 const sc0 = BB.itemScore(chest); ok(BB.upgradeItem(S, chest) && chest.plus === 1 && BB.itemScore(chest) > sc0, 'forging raises the item');
 for (let i = 0; i < 20; i++) BB.upgradeItem(S, chest);
 ok(chest.plus === BB.MAX_PLUS, 'forging stops at +' + BB.MAX_PLUS);

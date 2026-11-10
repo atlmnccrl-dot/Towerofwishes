@@ -1,5 +1,5 @@
 // Bannerborn — the hero screen, drawn as a game screen on its own canvas: the hero on a stage, gear sockets,
-// attributes with level-up and ascension, and the skill tree. Everything here is painted and hit-tested by hand.
+// attributes with experience and ascension, and the skill tree. Everything here is painted and hit-tested by hand.
 (function () {
   const BB = window.BB, UI = BB.UI;
   const DW = 1000, DH = 560; // design space; scaled to fit the canvas
@@ -237,18 +237,21 @@
       row(uy + 44, 'SIGNATURE · ' + S2.name.toUpperCase(), S2.line.charAt(0).toUpperCase() + S2.line.slice(1) + '. Comes round every 10 s or so.', 'rgba(255,190,85,0.16)', '#ffd27a');
       text(g, T2.name.toUpperCase() + ' — ' + T2.line(BB.shortName(h)), 474, uy + 104, 11.5, { body: true, w: 500, col: '#9aa3b3' });
     }
-    // level up (hold to keep levelling), ascend
-    const capped = h.level >= cap, cost = BB.levelCost(h);
-    button(g, 'lvl', 474, 420, 300, 66, capped ? 'LEVEL CAP' : 'LEVEL UP', { kind: 'gold', sub: capped ? 'Ascend to raise the cap' : '● ' + cost.toLocaleString() + ' gold · hold to repeat', disabled: capped || S0.gold < cost, hold: true, fn: () => {
-      if (BB.levelUp(S0, h)) { BB.sfx('levelup'); HS.flash = 0.7; burst(215, 300, ACC, 22, 170); float(215, 250, '+1 LEVEL', ACC); save(); }
-    } });
+    // experience: heroes grow by fighting; ascend raises the cap
+    const capped = h.level >= cap, need = BB.xpNeed(h), xp = Math.min(h.xp || 0, need);
+    rrect(g, 474, 420, 300, 66, 12); g.fillStyle = 'rgba(255,255,255,0.035)'; g.fill(); g.strokeStyle = 'rgba(255,210,122,0.22)'; g.lineWidth = 1; g.stroke();
+    text(g, capped ? 'LEVEL CAP' : 'EXPERIENCE', 490, 442, 11, { w: 700, col: '#ffd27a', ls: 2 });
+    text(g, capped ? (h.stars >= BB.MAX_STARS ? 'Fully grown' : 'Ascend to keep growing') : xp + ' / ' + need, 758, 442, 11, { body: true, w: 600, col: '#9aa3b3', align: 'right' });
+    rrect(g, 490, 452, 268, 9, 4.5); g.fillStyle = 'rgba(0,0,0,0.45)'; g.fill();
+    const fr = capped ? 1 : xp / need;
+    if (fr > 0) { rrect(g, 490, 452, Math.max(9, 268 * fr), 9, 4.5); const xg = g.createLinearGradient(490, 0, 758, 0); xg.addColorStop(0, '#c98a2b'); xg.addColorStop(1, '#ffe29a'); g.fillStyle = xg; g.fill(); }
+    text(g, capped ? 'Experience waits for the next star' : 'Fight with ' + BB.shortName(h) + ' to level up', 490, 478, 11, { body: true, w: 500, col: '#7d8696' });
     const maxS = h.stars >= BB.MAX_STARS, ac = BB.ascendCost(h);
     button(g, 'asc', 786, 420, 192, 66, maxS ? 'MAX STARS' : 'ASCEND', { kind: 'blue', sub: maxS ? '' : '✧ ' + S0.sigils + ' / ' + ac + ' sigils', disabled: maxS || S0.sigils < ac, fn: () => {
       if (BB.ascend(S0, h)) { BB.sfx('rally'); HS.flash = 1; burst(32 + (h.stars - 1) * 24, 116, ACC, 30, 140); burst(215, 300, '#86ccff', 40, 220); float(215, 240, '★ ' + h.stars + ' STARS', '#86ccff'); save(); }
     } });
     button(g, 'best', 474, 498, 150, 40, 'EQUIP BEST', { kind: 'ghost', fn: () => { BB.equipBest(S0, h); BB.sfx('forge'); burst(215, 260, '#ffffff', 14, 120); save(); } });
     button(g, 'lead', 634, 498, 190, 40, S0.leader === h.id ? '✓ SHOWN AT CAMP' : 'SHOW AT CAMP', { kind: 'ghost', fn: () => { S0.leader = h.id; save(); } });
-    button(g, 'max', 834, 498, 144, 40, 'LEVEL MAX', { kind: 'ghost', disabled: capped || S0.gold < cost, fn: () => { const n = BB.levelMax(S0, h); if (n) { BB.sfx('levelup'); HS.flash = 0.8; burst(215, 300, ACC, 40, 220); float(215, 250, '+' + n + ' LEVELS', ACC); save(); } } });
   }
 
   // ---- the skill tree: three branches of linked nodes, two bridges, capstones at the root
@@ -287,7 +290,7 @@
       button(g, 'learn', 838, 482, 128, 46, r >= sel.max ? 'MASTERED' : !open ? 'LOCKED' : 'LEARN', { kind: 'gold', sub: r < sel.max && open ? '1 point' : '', disabled: !can, fn: () => {
         if (BB.learn(h, sel.id)) { const p = nodePos(sel); BB.sfx('levelup'); burst(p.x, p.y, col, 30, 150); float(p.x, p.y - 30, BB.talentRank(h, sel.id) >= sel.max ? 'MASTERED' : '+1', col); save(); }
       } });
-    } else text(g, free ? 'Tap a glowing node to learn it.' : 'Level up your hero to earn skill points.', 720, 512, 13, { body: true, w: 500, align: 'center', col: '#7b8494' });
+    } else text(g, free ? 'Tap a glowing node to learn it.' : 'Win battles with this hero to earn skill points.', 720, 512, 13, { body: true, w: 500, align: 'center', col: '#7b8494' });
   }
   function drawNode(g, h, n) {
     const p = nodePos(n), r = n.cap ? 30 : n.b < 0 ? 22 : 26, rank = BB.talentRank(h, n.id), open = BB.talentOpen(h, n), can = BB.canLearn(h, n.id);
