@@ -32,7 +32,7 @@
       { clip: 'Attack1', wind: 0.1, recover: 0.18, reach: 30, dmg: 6, poise: 6, kb: 4, step: 7, fx: 'slash' },
       { clip: 'Attack2', wind: 0.1, recover: 0.2, reach: 30, dmg: 6, poise: 6, kb: 4, step: 7, fx: 'slash' },
       { clip: 'Kick', wind: 0.12, recover: 0.22, reach: 26, dmg: 7, poise: 10, kb: 16, step: 6, fx: 'kick' },
-      { clip: 'Attack4', wind: 0.18, recover: 0.3, reach: 34, dmg: 11, poise: 13, kb: 18, step: 10, fx: 'finisher', finisher: true },   // the overhead slam (Attack3 read as drawing a bow, 2026-11-10)
+      { clip: 'Attack4', wind: 0.16, recover: 0.3, reach: 34, dmg: 11, poise: 13, kb: 18, step: 10, fx: 'finisher', finisher: true },   // the overhead slam (Attack3 read as drawing a bow, 2026-11-10)
       { clip: 'Attack6', wind: 0.15, recover: 0.34, reach: 38, dmg: 15, poise: 16, kb: 24, step: 12, fx: 'finisher', finisher: true }],
     // The heavy: a spinning cut all around him (right mouse button, or K).
     heavy: { clip: 'Special1', wind: 0.28, recover: 0.4, aoe: 36, at: 0, dmg: 14, poise: 22, kb: 26, fx: 'spin' },

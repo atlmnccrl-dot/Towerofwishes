@@ -111,23 +111,24 @@ head in ink with red eyes; a city under the white moon with the Spire over its r
 people in the street scattering away from him, small and clear under lamps on posts, as the First Cut rises
 behind the Spire until his crowned head stands far above its tip, the camera pushing in, the city's windows
 going dark (reworked 2026-11-10); the god towering over the Spire against the moon, drawing his sword back flat along
-the line the cut will take; the cut: the tower-sized blade held level beside the moon, its point at the
-moon's edge, drinking its light, the swing sideways across its face, along the wound (the author,
-2026-11-10: the moon's wound runs across it, so he cuts across, not down), a storm of impact frames, then the moon splitting along
-the cut, white-hot, with red light pouring out of the gap onto the world, rings of force across a sky
-turning to blood, and his crowned head rising beneath it; the moon hanging still and bleeding; the earth cracking
-and one of the dead clawing up out of a grave on the horizon against the red sky, then the dead standing up one by one in a row on a ridge against the moon and starting to walk,
-their eyes lighting; tonight, in two beats (rebuilt 2026-11-10): the moon enormous over the horizon, its
+the line the cut will take; the cut (rebuilt 2026-11-10), seen from the city: the god in front of the moon behind
+the Spire, small and sharp, his sword drawn back flat, light gathering on the blade, one burning line sweeping
+across the moon along the wound, a white flash, the moon splitting along the cut and red light pouring out of the
+gap onto the city as its windows go dark; the moon hanging still and bleeding; a graveyard under the red moon
+(rebuilt 2026-11-10), the dead clawing up out of their graves one after another in their own colours under a red
+cast, dirt bursting up around them, and starting to walk; tonight, in two beats (rebuilt 2026-11-10): the moon enormous over the horizon, its
 wound opening wider and pouring red light down onto the land in falling streams, then, from high above,
 his dead, small and spaced so each shape reads, marching rank behind rank toward the last lit city, its
-torches going out one by one while the moon sinks behind them; a manga panel of her eyes behind
-the visor slit, the irises turning red with rings closing round one, and her name; the draw; VESPER in
+torches going out one by one while the moon sinks behind them; her on a crag against the bleeding moon, in her
+own colours, the moon's light flashing across the frame, and her name (the manga eye panels were cut, 2026-11-10:
+they did not fit the pixel art; the guardian films use the same shot); the draw; VESPER in
 letters the height of the screen with her run seen through them; the charge through eight of the dead; three manga panels; then the First Cut as a god over the
 Spire (a drawn silhouette: crowned and horned helm, spiked pauldrons, a cape like wings, both hands on
 a sword the size of a tower), the camera tilting from his sword's point past her, small on a rampart,
 up to his burning eyes with the red moon as his halo (a tracking box on her, another on his eyes, a
-dotted line between them counting the height); his gaze, her eye answering; his blade coming
-down from the sky and her holding it (impact frames, the ground breaking, AND YET); then the title (the I STAND shot was cut,
+dotted line between them counting the height); his gaze, from behind her on the rampart, him far off over the Spire against the moon ("Kneel."); his blade
+coming down from the sky as one burning streak and her holding it, the ground breaking under her feet (the pack's
+impact), AND YET (both rebuilt 2026-11-10); then the title (the I STAND shot was cut,
 2026-11-10), THE BLEEDING MOON, over the red moon, his shadow faint behind
 it and his eyes burning above the name, its letters drawing together over drifting red lights. Every
 film is graded: grain on every frame and a vignette on the ordinary ones. The opening is told in clear beats by `js/openfilm.js`: each built shot above held long enough to read,
@@ -178,6 +179,11 @@ rings, debris, effects; `sil` turns every figure into a black silhouette), `E.in
 frame), `E.ring` (the fisheye hit), `E.face` (a chest-up mid shot), `E.eyes` (her eyes full frame inside
 focus lines), `E.card`, `E.flash`, `E.glitch`, `E.blink()` and `E.hold(cut, k)` (a stutter). Dialogue lines
 ride on cuts in the speaker's colour; only the newest shows.
+
+**Fights** (2026-11-10): the sword heroes' combo finishers play the overhead slam (`Attack4`); `Attack3` reads as
+drawing a bow and is kept only for the caster. The swing's drawn crescent is gone (it never followed the blade).
+The First Cut's one-shot (`F.oneShot`) is rebuilt the same way: him behind the summit's far edge, the light of his
+raised blade pouring on her, the burning streak, the summit breaking, her falling in her own colours.
 
 **The last hour** (`showcase()` and `showcaseBoss()` in `js/main.js`, `?showcase`): the tutorial, and how the night
 first ended. After the opening, Vesper at full power at the top of the Spire, in three stages. **Stage 1, the

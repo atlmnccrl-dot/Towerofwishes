@@ -321,24 +321,26 @@
         burningEyes(ctx, Math.round(W() / 2), ey, 6, ease(clamp((T - 1.3) / 0.25)), T);
       } }, { ...G, cam: { z: [1.0, 1.06] }, shake: 1.5, sfx: [[0.1, 'quake', 0.9], [0.8, 'quake', 1], [1.3, 'boss', 1], [1.32, 'blow_big', 1]], line: 'Seven hundred years... and they send one blade.', lineAt: 0.4, lineDur: 2.2, lineCol: '#ffd0d8' }),
       cut(0.8, E.eyes({ at: 0.35, sc: 4.2 }), { bars: false, cam: { z: [1.0, 1.14] }, sfx: [[0.3, 'clang_0', 0.6]], line: 'One is enough.', lineAt: 0.25, lineDur: 1.0, lineCol: VCOL }),
+      // His blade comes down on her as one burning streak; she meets it and holds (rebuilt 2026-11-10: no flat
+      // blade shape, her in her own colours, the pack's impact at her feet).
       cut(0.5, { draw(ctx, S, k, T) {
-        const g = ctx.createLinearGradient(0, 0, 0, H()); g.addColorStop(0, '#3a3a3a'); g.addColorStop(1, '#e8e8e8'); ctx.fillStyle = g; ctx.fillRect(-W(), -H(), W() * 3, H() * 3);
-        const f = EZ_IN(k), X = gx * W(), Y = gy * H(), fx = W() * 1.25, fy = -H() * 0.6;
-        ctx.fillStyle = '#000'; ctx.fillRect(-W(), Y, W() * 3, H());
-        bigBlade(ctx, fx, fy, fx + (X + 4 - fx) * f, fy + (Y - 30 - fy) * f, 26, '#000');
-        A.actor(ctx, S.cast.vesper, 'Idle4', Math.floor(T * 10) % 15, -PI * 0.25, Math.round(X), Math.round(Y), 1.7, { shade: '#000' });
-        K().speedLines(ctx, X, Y - 30, 60, 'rgba(255,255,255,0.6)', 1421, T, 30);
+        grad(ctx, ['#14020a', '#3a0812', '#14020a']);
+        const X = gx * W(), Y = gy * H(); K().speedLines(ctx, X, Y - 30, 60, 'rgba(255,200,210,0.4)', 1421, T, 30);
+        ctx.fillStyle = '#080204'; ctx.fillRect(-W(), Y, W() * 3, H());
+        burnStreak(ctx, X + 4, Y - 30, 0.2 + 0.8 * k, 1);
+        A.actor(ctx, S.cast.vesper, 'Idle4', Math.floor(T * 10) % 15, -PI * 0.25, Math.round(X), Math.round(Y), 1.7, {});
       } }, { ...G, sfx: [[0, 'whoosh', 1]] }),
-      cut(0.04, E.flash('#ffffff'), { bars: false, sfx: [[0, 'clang_1', 1], [0.01, 'blow_big', 1], [0.02, 'smash', 1]] }),
-      cut(0.06, { draw(ctx, S) { fill(ctx, '#000'); K0.burst(ctx, gx * W() + 4, gy * H() - 30, '#fff', 100, 1423, 10); bigBlade(ctx, W() * 1.25, -H() * 0.6, gx * W() + 4, gy * H() - 30, 26, '#fff'); A.actor(ctx, S.cast.vesper, 'Special1', 8, -PI * 0.25, Math.round(gx * W()), Math.round(gy * H()), 1.7, { shade: '#fff' }); } }, { bars: false }),
-      cut(0.04, E.flash(RED), { bars: false }),
-      cut(1.4, { draw(ctx, S, k, T) {
-        fill(ctx, RED); ctx.fillStyle = '#000'; ctx.fillRect(-W(), gy * H(), W() * 3, H());
-        const push = Math.round(Math.sin(T * 50) * 1.5);
-        bigBlade(ctx, W() * 1.25, -H() * 0.6, gx * W() + 4 + push, gy * H() - 30, 26, '#000');
-        A.actor(ctx, S.cast.vesper, 'Special1', 8, -PI * 0.25, Math.round(gx * W()) + push, Math.round(gy * H()), 1.7, { shade: '#000' });
-        K0.sparks(ctx, gx * W() + 4, gy * H() - 30, T, 90, 1425, 5.5);
-      } }, { bars: false, shake: 2, whiteOut: 0.2, sfx: [[0.1, 'quake', 1]], text: { kind: 'punch', text: 'THIS ENDS TONIGHT', at: 0.15, y: 0.24, o: { size: 30 } } }),
+      cut(0.05, E.flash('#ffffff'), { bars: false, sfx: [[0, 'clang_1', 1], [0.01, 'blow_big', 1], [0.02, 'smash', 1]] }),
+      cut(1.5, { draw(ctx, S, k, T) {
+        grad(ctx, ['#2a0408', '#8a1424', '#2a0408']);
+        const X = gx * W(), Y = gy * H(), push = Math.round(Math.sin(T * 50) * 1.2 * (1 - k));
+        K().speedLines(ctx, X, Y - 30, 70, 'rgba(255,220,200,0.35)', 1425, T, 50);
+        ctx.fillStyle = '#080204'; ctx.fillRect(-W(), Y, W() * 3, H());
+        burnStreak(ctx, X + 4 + push, Y - 30, 1, Math.max(0.4, 1 - k));
+        A.tex(ctx, 'light_01', X, Y, W() * (0.5 + k * 0.5), 40, '#ffb050', 0.7 * (1 - k), 0, true);
+        A.fx(ctx, 'cb:01_crimson_tide_cleave/caster', T * 0.9, X, Y, 2.2, 1, 0);
+        A.actor(ctx, S.cast.vesper, 'Special1', 8, -PI * 0.25, Math.round(X) + push, Math.round(Y), 1.7, {});
+      } }, { bars: false, shake: 2, sfx: [[0.1, 'quake', 1]], text: { kind: 'punch', text: 'THIS ENDS TONIGHT', at: 0.15, y: 0.24, o: { size: 30 } } }),
     ], { music: ['c4', 'boss', 0.5] , pace: 1.4 });
   }
 
@@ -361,28 +363,60 @@
   }
   const ashFall = (ctx, T, n, col) => { for (let i = 0; i < n; i++) { const x = (hash(i, 1501) * W() + Math.sin(T * 0.7 + i) * 8) % W(), y = (hash(i, 1502) * H() + T * (10 + hash(i, 1503) * 14)) % H(); ctx.fillStyle = col || 'rgba(200,190,200,0.6)'; ctx.fillRect(Math.round(x), Math.round(y), 1, 1); } };
   const LX = 0.5, LY = 0.82, BX = 0.45;   // where she falls and lies; where the Moon's light lands on her body
-  // He has had enough: the sword goes up into the dark, THE FIRST CUT, and it comes down on all of it.
+  // He has had enough (rebuilt 2026-11-10). He rises behind the summit's far edge as in the fight, the moon
+  // behind his crown, and the sword goes up; its red light falls on her; the blade comes down as a burning
+  // streak; the summit breaks under it; she falls, in her own colours, in the ash.
+  // His blade as a burning streak from the sky to (tx, ty), f of the way down, at alpha a.
+  function burnStreak(ctx, tx, ty, f, a) {
+    const sx = W() * 1.15, sy = -H() * 0.5, hx = sx + (tx - sx) * f, hy = sy + (ty - sy) * f, ang = Math.atan2(ty - sy, tx - sx), L = Math.hypot(hx - sx, hy - sy) + 30;
+    A.tex(ctx, 'light_01', (sx + hx) / 2, (sy + hy) / 2, L, 60, RED, 0.9 * a, ang, true); A.tex(ctx, 'light_01', (sx + hx) / 2, (sy + hy) / 2, L, 16, '#ffffff', 0.9 * a, ang, true);
+  }
+  const ledge = (ctx, gy) => { ctx.fillStyle = '#050203'; ctx.beginPath(); ctx.moveTo(W() / 2 - 120, H() + 10); ctx.lineTo(W() / 2 - 90, gy); ctx.lineTo(W() / 2 + 90, gy); ctx.lineTo(W() / 2 + 120, H() + 10); ctx.fill(); for (let x = W() / 2 - 90; x < W() / 2 + 90; x += 14) ctx.fillRect(Math.round(x), gy - 5, 8, 5); };
   F.oneShot = E.film([
-    cut(1.8, { draw(ctx, S, k, T) {
-      summit(ctx, T, 0.9); fill(ctx, '#000', 0.35 * k);
-      colossus(ctx, S, Math.round(W() / 2), Math.round(H() * 0.5), 7, T, { pose: 'raise', col: '#050204' });
-      A.actor(ctx, S.cast.vesper, 'Idle4', fr(T, 7), BACK, Math.round(W() / 2), Math.round(H() * 0.97), 1.6, { shade: '#050204' });
-    } }, { cam: { z: [1.0, 1.08] }, shake: 1.5, sfx: [[0.1, 'charge', 1], [0.5, 'quake', 0.9]], line: 'Enough.', lineAt: 0.5, lineDur: 1.3, lineCol: '#ffd0d8' }),
+    cut(2.0, { draw(ctx, S, k, T) {
+      grad(ctx, ['#0c0206', '#3a0812', '#6a1020']); stars(ctx, 40, 0.4, 851, T);
+      moon(ctx, W() / 2, H() * 0.32, H() * 0.26, '#ff3a52', 'rgba(255,40,70,0.6)', 1, T);
+      const up = E.EZ.out(clamp(T / 1.2)), gy = Math.round(H() * 0.8), ey = Math.round(H() * (0.62 - 0.22 * up));
+      A.tex(ctx, 'light_01', W() / 2, ey, W() * 0.8, H() * 0.8, '#7a1028', 0.5, 0, true);
+      colossus(ctx, S, Math.round(W() / 2), ey, 8, T, { pose: 'plant', col: '#0a0306' });
+      if (T > 1.1) A.tex(ctx, 'light_01', W() / 2, 0, 90, H() * 0.9 * E.EZ.out(clamp((T - 1.1) / 0.6)), RED, 0.7, 0, true);   // the blade going up above the frame, burning
+      for (let i = 0; i < 4; i++) A.tex(ctx, 'smoke_04', ((hash(i, 852) * W() * 1.4 + T * (8 + i * 3)) % (W() * 1.4)) - W() * 0.2, gy - 6 + i * 3, W() * 0.8, 30, '#3a0a14', 0.7, 0, false);
+      ledge(ctx, gy);
+      A.actor(ctx, S.cast.vesper, 'Idle4', fr(T, 7), BACK, Math.round(W() / 2), gy + Math.round(H() * 0.12), 1.5, {});
+    } }, { cam: { z: [1.0, 1.06] }, shake: 1.5, sfx: [[0.1, 'charge', 1], [0.5, 'quake', 0.9], [1.1, 'windup', 1]], line: 'Enough.', lineAt: 0.4, lineDur: 1.3, lineCol: '#ffd0d8' }),
     cut(1.3, { draw(ctx, S, k, T) {
-      fill(ctx, '#000'); A.tex(ctx, 'light_01', W() / 2, H() * 0.05, 80, H() * 1.2, RED, 0.5 + 0.4 * k, 0, true);
-      const ey = Math.round(H() * 0.55); colossus(ctx, S, Math.round(W() / 2), ey, 7, T, { pose: 'raise', col: '#000' });
-      ctx.fillStyle = `rgba(255,${80 + Math.round(150 * k)},${100 + Math.round(120 * k)},0.95)`; ctx.fillRect(Math.round(W() / 2) - 1, 0, 2, Math.max(0, ey - Math.round(23.5 * 3.5)));   // the blade drinking the light
-    } }, { bars: false, shake: 3, sfx: [[0.05, 'windup', 1], [0.4, 'horn', 1]], text: { kind: 'spaced', text: 'THE FIRST CUT', y: 0.84, o: { size: 24, col: '#ff3048', glow: '#ff3048', dur: 0.9, from: 1.2, to: 0.2 } } }),
-    cut(0.5, { draw(ctx, S, k, T) {
-      grad(ctx, ['#3a0610', '#a01830', '#3a0610']); K().speedLines(ctx, W() / 2, H() / 2, 90, 'rgba(255,220,225,0.55)', 1511, T, 20);
-      const f = E.EZ.out(k); bigBlade(ctx, W() * 1.2, -H() * 0.5, W() * (1.0 - 0.9 * f), H() * (0.1 + 0.75 * f), 34, '#000', '#ffb0bc');
-      A.actor(ctx, S.cast.vesper, 'Idle4', 0, -PI / 4, Math.round(W() * LX), Math.round(H() * LY), 1.8, { shade: '#000' });
-    } }, { bars: false, shake: 4, sfx: [[0, 'whoosh', 1], [0.35, 'slash_2', 1]] }),
-    cut(0.05, E.flash('#ffffff'), { bars: false, sfx: [[0, 'blow_big', 1], [0.01, 'smash', 1], [0.02, 'quake', 1]] }),
-    cut(0.08, E.inv({ actors: [{ who: V, clip: 'TakeDamage', fr: 6, ang: -PI / 4, x: LX, y: 0.95, sc: 2.6 }], cy: 0.55 }), { bars: false }),
-    cut(0.05, E.flash(RED), { bars: false }),
-    cut(2.6, sc({ bg: { kind: 'grad', cols: ['#000000', '#2a0408', '#5a0a14'] }, actors: [{ who: V, clip: 'Die', fr: [0, 14], ang: -PI / 4, x: LX, y: LY, sc: 2.2, t1: 0.6, shade: '#050204' }],
-      under: (ctx, S, k, T) => { A.tex(ctx, 'light_01', W() * LX, H() * LY, W() * 0.8, 50, RED, 0.5, 0, true); ashFall(ctx, T, 60, 'rgba(255,90,110,0.6)'); } }),
+      // Her, looking up; the red light of the raised blade pouring down on her, brighter and brighter.
+      grad(ctx, ['#000000', '#14020a', '#2a0610']);
+      const gy = Math.round(H() * 0.86), x = Math.round(W() / 2);
+      A.tex(ctx, 'light_01', x, H() * 0.3, 70 + 60 * k, H() * 1.4, RED, 0.35 + 0.5 * k, 0, true);
+      ctx.fillStyle = '#080204'; ctx.fillRect(-8, gy, W() + 16, H());
+      A.tex(ctx, 'light_01', x, gy, 120 + 80 * k, 26, RED, 0.5 + 0.4 * k, 0, true);
+      A.actor(ctx, S.cast.vesper, 'Idle4', fr(T, 6), BACK + 0.3, x, gy + 1, 2, {});
+      for (let i = 0; i < 24; i++) { const ph = (T * 0.9 + hash(i, 1501)) % 1; ctx.fillStyle = i % 3 ? RED : '#ffd0d6'; ctx.fillRect(Math.round(x + (hash(i, 1502) - 0.5) * 120), Math.round(ph * gy), 1, 3); }
+    } }, { bars: false, shake: 2, sfx: [[0.4, 'horn', 1]], text: { kind: 'spaced', text: 'THE FIRST CUT', y: 0.18, o: { size: 24, col: '#ff3048', glow: '#ff3048', dur: 0.9, from: 0.1 } } }),
+    cut(0.45, { draw(ctx, S, k, T) {
+      // The blade comes down: one burning streak from the sky onto her.
+      grad(ctx, ['#2a0610', '#7a1424', '#2a0610']);
+      const tx = W() * LX, ty = H() * LY, f = 0.25 + 0.75 * k, sx = W() * 1.1, sy = -H() * 0.4, hx = sx + (tx - sx) * f, hy = sy + (ty - sy) * f, ang = Math.atan2(ty - sy, tx - sx);
+      K().speedLines(ctx, tx, ty, 80, 'rgba(255,210,220,0.45)', 1511, T, 30);
+      const L = Math.hypot(hx - sx, hy - sy) + 40;
+      A.tex(ctx, 'light_01', (sx + hx) / 2, (sy + hy) / 2, L, 60, RED, 0.9, ang, true);
+      A.tex(ctx, 'light_01', (sx + hx) / 2, (sy + hy) / 2, L, 18, '#ffffff', 0.9, ang, true);
+      ctx.fillStyle = '#0a0204'; ctx.fillRect(-8, Math.round(ty), W() + 16, H());
+      A.actor(ctx, S.cast.vesper, 'Idle4', 0, -PI / 4, Math.round(tx), Math.round(ty), 1.8, {});
+    } }, { bars: false, shake: 4, sfx: [[0, 'whoosh', 1], [0.3, 'slash_2', 1]] }),
+    cut(0.06, E.flash('#ffffff'), { bars: false, sfx: [[0, 'blow_big', 1], [0.01, 'smash', 1], [0.02, 'quake', 1]] }),
+    cut(0.7, { draw(ctx, S, k, T) {
+      // The summit breaks under the blow.
+      grad(ctx, ['#1a0208', '#5a0c1a', '#1a0208']);
+      const tx = W() * LX, ty = H() * LY;
+      ctx.fillStyle = '#0a0204'; ctx.fillRect(-8, Math.round(ty), W() + 16, H());
+      A.tex(ctx, 'light_01', tx, ty, W() * (0.6 + k), 60, RED, 0.8 * (1 - k * 0.5), 0, true);
+      A.fx(ctx, 'cb:01_crimson_tide_cleave/caster', T * 0.9, tx, ty, 2.6, 1, 0);
+      A.actor(ctx, S.cast.vesper, 'TakeDamage', Math.min(14, 4 + Math.floor(k * 10)), -PI / 4, Math.round(tx), Math.round(ty), 1.8, { flash: 0.6 * (1 - k), flashCol: '#ffffff' });
+    } }, { bars: false, shake: 6, shakeOut: true }),
+    cut(2.6, sc({ bg: { kind: 'grad', cols: ['#000000', '#2a0408', '#5a0a14'] }, actors: [{ who: V, clip: 'Die', fr: [0, 14], ang: -PI / 4, x: LX, y: LY, sc: 2, t1: 0.6, lit: true }],
+      under: (ctx, S, k, T) => { ctx.fillStyle = '#0a0204'; ctx.fillRect(-8, Math.round(H() * LY), W() + 16, H()); A.tex(ctx, 'light_01', W() * LX, H() * LY, W() * 0.8, 50, RED, 0.5, 0, true); ashFall(ctx, T, 60, 'rgba(255,90,110,0.6)'); } }),
       { cam: { z: [1.05, 1.15] }, blackOut: 0.3, sfx: [[0.2, 'ko', 1], [1.0, 'thud', 0.8]] }),
   ], { amb: 'night' });
   // She lies in the ash; the Moon opens her eyes and says not yet; a beam of moonlight; her eye opens; she
