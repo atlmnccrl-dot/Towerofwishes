@@ -99,7 +99,7 @@
       <dt>Arenas</dt><dd>2D Desert Fantasy and 2D Isometric Fantasy tile sets, with their characters and animations</dd>
       <dt>Tiles</dt><dd>Pixel Art Top Down - Basic (Cainos); TopDownFantasy Forest; reodesuxz tilesets; EPIC RPG World; Dark World</dd>
       <dt>Fonts</dt><dd>Chakra Petch and Barlow (SIL Open Font License); Adventurer by Brian J Smith (CC BY 3.0)</dd>
-      <dt>Music</dt><dd>"Heartfelt Battle", OpenGameArt.org (CC0)</dd>
+      <dt>Music</dt><dd>Original score composed for the game; "Heartfelt Battle", OpenGameArt.org (CC0)</dd>
       <dt>Sound</dt><dd>Fight sounds and ambience synthesised for these games; interface sounds from the shared UI pack</dd></dl>${buttons(items)}</div>`, items, { back: o.onBack });
   };
   U.boon = function (o) {

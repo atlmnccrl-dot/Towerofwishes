@@ -11,14 +11,14 @@
     'gate_open', 'gate_break', 'god_blade', 'soul', 'v_ice', 'v_fire', 'pickup', 'loot', 'heartbeat', 'rift'];   // the last ten: tools_sfx.py
   // Interface sounds (the shared UI pack in assets/sfx): chests, gold, the forge, equipping, level-ups.
   const UI_SFX = ['chest_open', 'coin_01', 'anvil_01', 'equip_armor_01', 'level_up', 'quest_complete', 'unsheathe_01', 'error_01', 'notify_01'];
-  // Music: each moment asks for its cue; the first track of the cue that is in TRACKS plays. Only
-  // Heartfelt Battle is here now; drop more files into assets/music and list them in TRACKS to give
-  // the title, the map, each act and the guardians their own music (see the README).
-  A.TRACKS = ['heartfelt_battle'];
+  // Music: each moment asks for its cue; the first track of the cue that is in TRACKS plays. Heartfelt Battle (CC0)
+  // plays the first three acts' fights; the rest is the game's own, composed in code (vesper/tools_music.py,
+  // 2026-11-11): the title, the map, the story scenes, the guardians, the late acts' battles and the victory screen.
+  A.TRACKS = ['heartfelt_battle', 'vesper_title', 'vesper_map', 'vesper_story', 'vesper_boss', 'vesper_night', 'vesper_result'];
   A.CUES = {
     title: ['vesper_title'], map: ['vesper_map'], scene: ['vesper_story'],
-    act0: ['vesper_act1', 'heartfelt_battle'], act1: ['vesper_act2', 'heartfelt_battle'], act2: ['vesper_act3', 'heartfelt_battle'], act3: ['vesper_act4', 'heartfelt_battle'], act4: ['vesper_act5', 'heartfelt_battle'], act5: ['vesper_act6', 'heartfelt_battle'],
-    boss: ['vesper_boss', 'heartfelt_battle'], endless: ['vesper_endless', 'heartfelt_battle'], daily: ['vesper_daily', 'heartfelt_battle'], result: ['vesper_result'],
+    act0: ['vesper_act1', 'heartfelt_battle'], act1: ['vesper_act2', 'heartfelt_battle'], act2: ['vesper_act3', 'heartfelt_battle'], act3: ['vesper_act4', 'vesper_night', 'heartfelt_battle'], act4: ['vesper_act5', 'vesper_night', 'heartfelt_battle'], act5: ['vesper_act6', 'vesper_night', 'heartfelt_battle'],
+    boss: ['vesper_boss', 'heartfelt_battle'], endless: ['vesper_endless', 'vesper_night', 'heartfelt_battle'], daily: ['vesper_daily', 'heartfelt_battle'], result: ['vesper_result'], defeat: ['vesper_defeat', 'vesper_story'],
   };
   A.cue = function (name) { const list = A.CUES[name] || []; A.playMusic(list.find((t) => A.TRACKS.indexOf(t) >= 0) || null); };
   let ac = null, sfxGain = null, musicGain = null, ambGain = null; const buf = {}, live = {};

@@ -730,7 +730,7 @@
     const res = PR.finish(p, n.id, r); afterFight(p, s, win, res); M.write();
     const stats = [[s.time.toFixed(1) + 's', 'Time'], [s.stats.maxCombo, 'Best combo'], [s.kills || 0, 'Kills']].concat(s.soul ? [[Math.round((s.stats.soul || 0) / Math.max(1, s.stats.dealt) * 100) + '%', D.SOULS[s.soul.soul.id].name.replace(/^The /, '') + ' dealt']] : [[s.stats.perfects, 'Perfect dodges']]);
     const showResult = () => {
-      M.go('result'); M.result = { stage: f.stage }; AU.cue('result'); AU.playAmb('night');
+      M.go('result'); M.result = { stage: f.stage }; AU.cue(win ? 'result' : 'defeat'); AU.playAmb('night');
       const next = PR.nextNode(p);
       const goOn = () => (res.souls && res.souls.length ? soulBound(res.souls, () => map(next)) : map(next));
       const SH = VS.SHOP, between = (then) => (SH ? SH.betweenFights(p.stats.wins).then(then, then) : then());   // maybe an ad between fights (js/shop.js)
@@ -768,7 +768,7 @@
     if (f.mode === 'endless') { const cleared = Math.max(0, s.wave + (VS.sim.foes(s).length ? 0 : 1)); res = MD.finishEndless(p, cleared, Math.random); name = 'Endless · wave ' + cleared + (res.best ? ' · new best' : ' · best ' + p.endless.best); }
     else { res = MD.finishDaily(p, f.build, { win, time: s.time }, Math.random); name = f.build.name; if (!win) tip = 'Twists today: ' + f.build.twists.map((t) => MD.TWIST_TEXT[t]).join('; ') + '.'; else if (!res.first) tip = 'Already won today: no second reward, but your best time is kept.'; }
     afterFight(p, s, win || f.mode === 'endless', res); M.write();
-    M.go('result'); M.result = { stage: f.stage }; AU.cue('result'); AU.playAmb('night');
+    M.go('result'); M.result = { stage: f.stage }; AU.cue(win || f.mode === 'endless' ? 'result' : 'defeat'); AU.playAmb('night');
     const stats = [[s.time.toFixed(1) + 's', 'Time'], [s.stats.maxCombo, 'Best combo'], [s.kills || 0, 'Kills'], [s.stats.perfects, 'Perfect dodges']];
     U.result({ p, node: { name }, title: f.mode === 'endless' ? 'Run over' : null, win: f.mode === 'endless' ? true : win, r: res, stats, tip, buttons: [{ label: f.mode === 'endless' ? 'Go again' : 'Try again', act: () => startMode(f.mode) }, { label: 'Back to the map', act: () => map() }] });
   }
