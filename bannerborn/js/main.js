@@ -193,8 +193,8 @@
   // the market: an open square at night, a trader at each station under their own light. Places are given as (a, b):
   // a tile-widths to the right of the middle, b tile-heights down the screen.
   const MARKET_AT = { smith: [-3.5, -1.0], quarter: [-1.1, -2.2], gems: [1.7, -2.0], seer: [3.9, -0.6], treasury: [-1.9, 1.5] };
-  async function buildMarket() {
-    const S = BB.save, m = BB.buildMap('camp', 'vale', 61, { night: true }), c = m.w / 2;
+  async function buildMarket(S0) {
+    const S = S0 || BB.save, m = BB.buildMap('camp', 'vale', 61, { night: true }), c = m.w / 2;
     const P = (a, b) => ({ x: c + a + b, y: c - a + b }), AB = (x, y) => [(x - y) / 2, (x + y) / 2 - c];
     m.props = m.props.filter((p) => { const q = AB(p.x, p.y); return Math.abs(q[0]) > 7.4 || Math.abs(q[1]) > 5.2; }); m.anims = []; m.lights = [];
     for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) { const q = AB(x + 0.5, y + 0.5); m.set(x, y, (q[0] / 6.6) ** 2 + (q[1] / 4.5) ** 2 < 1 + Math.sin(x * 1.7 + y * 2.3) * 0.12 ? 2 : m.at(x, y) === 2 ? 0 : m.at(x, y)); }
@@ -258,8 +258,8 @@
     if (UI.marketPlates) UI.marketPlates((id) => { const q = M.at[id], p = BB.iso(q.x, q.y), z = sc.cam.zoom * DPR, cs = BB.iso(sc.cam.x, sc.cam.y); return { x: (W / 2 + (p.x - cs.x) * z + sc.viewOff.x) / DPR, y: (H / 2 + (p.y - cs.y) * z - 20 * z + sc.viewOff.y - 52 * z) / DPR }; }, M.focus);
   }
   const musterKeyOf = () => BB.save.heroes.map((h) => h.id + ':' + BB.layerSig(h)).join(',') + '|' + BB.save.banner.color;
-  async function buildMuster() {
-    const S = BB.save, m = BB.buildMap('camp', 'vale', 53, { night: true }), c = m.w / 2;
+  async function buildMuster(S0) {
+    const S = S0 || BB.save, m = BB.buildMap('camp', 'vale', 53, { night: true }), c = m.w / 2;
     m.anims = []; m.lights = [];
     const list = S.heroes.slice().sort((a, b) => BB.power(b) - BB.power(a)), cols = Math.min(8, Math.max(3, Math.ceil(Math.sqrt(list.length * 1.7)))), rows = Math.ceil(list.length / cols), q = Math.SQRT1_2;
     const GX = 1.2 * q, GY = 1.25 * q, back = c + 0.6 - (rows - 1) * GY, wing = (cols / 2 + 0.5) * GX;
@@ -888,10 +888,16 @@
   // team already fighting. o.warm seconds are played unseen and unheard first (o.until 'boss': until the boss is on
   // the field); the fight cannot end, so a clip never lands on a victory screen.
   BB.titleCamp = () => buildCampScene(true);
-  BB.stageScene = async function (o) {
+  // a showcase save (a full-strength team at a stage), made without touching the player's own
+  BB.showSave = function (o) {
     const keep = devReal; let S;
     if (!devReal) { const t = BB.save || BB.newSave(now()); devReal = { settings: t.settings, banner: t.banner }; }
     try { S = devSave(o); } finally { devReal = keep; }
+    return S;
+  };
+  BB.placeScene = (which, save) => (which === 'market' ? buildMarket(save) : buildMuster(save));
+  BB.stageScene = async function (o) {
+    let S = BB.showSave(o);
     if (o.heroes) { const own = o.heroes(S); if (own && own.length) { S.heroes = own; S.formation = { front: [], back: [] }; S.place = {}; BB.fixFormation(S); BB.autoFill(S); } }
     const M = o.mission ? o.mission(BB.MISSIONS[o.idx]) : BB.MISSIONS[o.idx], team = BB.teamHeroes(S), region = BB.REGIONS.find((r) => r.id === M.region) || BB.REGIONS[0], biome = region.biome;
     const arts = ['ghoul', 'warden', 'necro'], pools = new Set();

@@ -146,11 +146,26 @@ purchases".
 
 ## 8. Known gaps (decide which matter for 1.0)
 
-- Saves are on the device only (plus the device's own backup, and the save code in Settings). No cloud sync.
-- English only.
-- No crash or usage reporting. If you add any, the privacy policy and both questionnaires change.
-- No receipt validation server (see section 4).
-- The Development menu is hidden inside the app (`body.native`), but its code ships. Remove the button's handler
-  for a hard guarantee if you want one.
+Closed since the first audit: the game carries its own fonts and asks for nothing outside itself; the phone's
+back button steps back through the game and asks before closing it; the sound sleeps when the app is out of
+sight; there is a daily muster roll, an opt-in "spoils are full" notification, and a report for support in
+Settings (kept on the device, sent nowhere).
+
+Still open, and why:
+
+- **Saves across devices.** The save lives on the device, mirrored to the app's own storage, and is included in
+  the phone's own backup (Android Auto Backup is on in the manifest; iOS backs up app data to iCloud or a
+  computer). A reinstall on the same account normally brings it back; a move to a *different* phone uses the save
+  code in Settings. True cloud sync (Play Games Saved Games, iCloud) needs those services set up in your store
+  accounts first.
+- **English only.** Every name and line is written into the code; a translation is a project of its own, best
+  started once you know which countries buy.
+- **No remote crash or usage reporting.** That means a service (for example Firebase), your account with it, and
+  new entries in the privacy policy and both store questionnaires. Until then the report in Settings is what a
+  player can send you.
+- **No receipt validation server** (see section 4).
+- **Notifications** ask the phone's permission only when the player turns the switch on in Settings. Nothing is
+  scheduled otherwise. If you add any other kind, declare it in the listing.
+- The Development menu is hidden inside the app (`body.native`), but its code ships.
 - The web build keeps the store in *preview* (purchases give without charging). Do not point players at it once
   the app is on sale, or open it with `?store=off`.

@@ -173,7 +173,7 @@
         await N.cancel({ notifications: [{ id: 1 }] });
         if (!S.settings.notify) return;
         const at = (S.idleT || Date.now()) + BB.IDLE_CAP; if (at < Date.now() + 60000) return;
-        await N.schedule({ notifications: [{ id: 1, title: 'Bannerborn', body: 'The camp has gathered all it can hold. Your spoils are waiting.', schedule: { at: new Date(at), allowWhileIdle: true } }] });
+        await N.schedule({ notifications: [{ id: 1, title: 'Bannerborn', body: 'The camp has gathered all it can hold. Your spoils are waiting.', schedule: { at: new Date(at) } }] }); // to the hour is enough: no exact alarm is asked of the phone
       } catch (e) { /* the phone said no */ }
     },
   };

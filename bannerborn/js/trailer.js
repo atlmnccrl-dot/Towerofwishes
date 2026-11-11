@@ -15,15 +15,18 @@
     { b: 12, k: 'gate', lines: [[0.5, 2.9, 'The Gravegates stand open.'], [3.2, 5.9, 'The dead walk the old roads.']] },
     { b: 8, k: 'scene', s: 'camp', z: [1.0, 1.28], cap: 'Raise your banner', flash: 1, horn: 1 },
     { b: 10, k: 'summon', cap: 'Earn your heroes' },
+    { b: 6, k: 'scene', s: 'muster', z: [0.82, 0.96], cap: 'One by one, a warband' },
     { b: 8, k: 'scene', s: 'a', z: [1.02, 1.18], cap: 'They fight on their own', flash: 1, drums: 1 },
     { b: 8, k: 'scene', s: 'b', z: [1.2, 1.04], cap: 'You call the ultimates' },
-    { b: 6, k: 'scene', s: 'c', z: [1.08, 1.26], cap: 'Every blade leaves its mark' },
+    { b: 6, k: 'scene', s: 'c', z: [1.08, 1.26], cap: 'Break what the dead build' },
+    { b: 6, k: 'scene', s: 'market', z: [0.9, 1.04], cap: 'A camp that is a place' },
     { b: 6, k: 'land', z: [0.86, 0.98], cap: 'Eight lands · fifty-four stages' },
     { b: 2, k: 'scene', s: 'a', z: [1.5, 1.62] }, { b: 2, k: 'scene', s: 'c', z: [1.62, 1.5] }, { b: 2, k: 'scene', s: 'b', z: [1.45, 1.6] }, { b: 2, k: 'scene', s: 'a', z: [1.7, 1.52] },
     { b: 5, k: 'black', big: 'And at the end of every road' },
-    { b: 12, k: 'scene', s: 'boss', z: [1.0, 1.32], name: 'The Pale Regent', sub: 'waits', flash: 1, drums: 1, roar: 1 },
-    { b: 1, k: 'scene', s: 'a', z: [1.6, 1.6], quick: 1 }, { b: 1, k: 'scene', s: 'c', z: [1.5, 1.5], quick: 1 }, { b: 1, k: 'scene', s: 'b', z: [1.6, 1.6], quick: 1 }, { b: 1, k: 'scene', s: 'boss', z: [1.5, 1.5], quick: 1 },
-    { b: 1, k: 'scene', s: 'a', z: [1.4, 1.4], quick: 1 }, { b: 1, k: 'scene', s: 'c', z: [1.7, 1.7], quick: 1 }, { b: 1, k: 'scene', s: 'boss', z: [1.7, 1.7], quick: 1 }, { b: 1, k: 'scene', s: 'b', z: [1.4, 1.4], quick: 1 },
+    { b: 10, k: 'scene', s: 'boss', z: [1.0, 1.32], name: 'The Pale Regent', sub: 'waits', flash: 1, drums: 1, roar: 1 },
+    { b: 8, k: 'scene', s: 'lord', z: [1.0, 1.24], name: 'The Hollow King', sub: 'beyond him', flash: 1, drums: 1 },
+    { b: 1, k: 'scene', s: 'a', z: [1.6, 1.6], quick: 1 }, { b: 1, k: 'scene', s: 'c', z: [1.5, 1.5], quick: 1 }, { b: 1, k: 'scene', s: 'b', z: [1.6, 1.6], quick: 1 }, { b: 1, k: 'scene', s: 'lord', z: [1.5, 1.5], quick: 1 },
+    { b: 1, k: 'scene', s: 'a', z: [1.4, 1.4], quick: 1 }, { b: 1, k: 'scene', s: 'c', z: [1.7, 1.7], quick: 1 }, { b: 1, k: 'scene', s: 'boss', z: [1.7, 1.7], quick: 1 }, { b: 1, k: 'scene', s: 'b', z: [1.5, 1.5], quick: 1 },
     { b: 16, k: 'title' },
   ];
 
@@ -44,6 +47,15 @@
     S.b = await BB.stageScene({ idx: 13, over: 0, archs: ['knight', 'monk', 'mage', 'ranger', 'spearman'], ench: ['holy', 'storm', 'fire', 'frost', 'shadow'], warm: 8, tick: ['ults', 'sigs', 'sturdy'] }); await step(0.6);
     S.c = await BB.stageScene({ idx: 33, over: 0, archs: ['paladin', 'rogue', 'mage', 'ranger', 'barbarian'], ench: ['fire', 'poison', 'storm', 'frost', 'shadow'], warm: 8, tick: ['sigs', 'sturdy'] }); await step(0.75);
     S.boss = await BB.stageScene({ idx: 23, over: 1, until: 'boss', warm: 3.2, tick: ['sigs', 'sturdy'] }); await step(0.9);
+    { // the Hollow King, taking his tithe; and the two places of the camp, for a showcase warband
+      S.lord = await BB.stageScene({ idx: 53, over: 2, until: 'boss', warm: 2.4, tick: ['sigs', 'sturdy'] });
+      const lord = S.lord.ents.find((e) => e.boss && e.side === 'foe');
+      if (lord) { const tk = S.lord.tick; let cd = 0.6; S.lord.tick = (dt) => { tk(dt); if (lord.hp < lord.maxhp * 0.5) lord.hp = lord.maxhp * 0.5; cd -= dt; if (cd <= 0 && !lord.tithe && !lord.dead) { cd = 4.4; const t = S.lord.heroesAlive()[0]; if (t) { lord.moveCd = 3; S.lord.bossMove(lord, t, 'tithe'); } } }; }
+      const SV = BB.showSave({ idx: 40, over: 2 }), tiers = BB.heroTiers(BB.ROSTER);
+      for (const t of tiers) for (const e of t.heroes.slice(0, 4)) if (!SV.heroes.some((h) => h.recruit === e.key)) SV.heroes.push(BB.heroFromEntry(SV, e));
+      S.muster = await BB.placeScene('muster', SV); S.market = await BB.placeScene('market', SV);
+    }
+    await step(0.95);
     const boss = S.boss.ents.find((e) => e.boss && e.side === 'foe');
     if (boss) { const tk = S.boss.tick; S.boss.tick = (dt) => { tk(dt); if (boss.hp < boss.maxhp * 0.45) boss.hp = boss.maxhp * 0.45; }; } // the Regent is still standing at the cut
     // the summoning: a Legendary hero of the roster
@@ -132,7 +144,7 @@
     }
     if (T.prime) { // colour every sprite the battles will need now, not during the first seconds of a clip
       T.prime = false; const lazy = BB.tintLazy;
-      for (const k of ['a', 'b', 'c', 'boss']) { const sc = T.sc[k]; if (!sc) continue; BB.tintLazy = false; sc.cam.zoom = z0; sc.renderField(ctx, W, H, dpr); }
+      for (const k of ['a', 'b', 'c', 'boss', 'lord', 'muster', 'market']) { const sc = T.sc[k]; if (!sc) continue; BB.tintLazy = false; sc.cam.zoom = z0; sc.renderField(ctx, W, H, dpr); }
       BB.tintLazy = lazy; black(); return;
     }
     T.t += dt;
@@ -150,6 +162,7 @@
     if (sc) {
       const z = z0 * lerp(sg.z ? sg.z[0] : 0.92, sg.z ? sg.z[1] : 1.02, sg.k === 'title' ? cl(lt / sg.dur) : k);
       if (sg.k === 'land') { const R = sc.map.road, f = lerp(18, 128, ease(k)), a = R[Math.floor(f)], b = R[Math.min(R.length - 1, Math.floor(f) + 1)], q = f - Math.floor(f); sc.cam.x = lerp(a.x, b.x, q); sc.cam.y = lerp(a.y, b.y, q); sc.cam.zoom = z; }
+      else if (sc.fixCam) { const d = (k - 0.5) * 1.1; sc.cam.x = sc.fixCam.x + d; sc.cam.y = sc.fixCam.y - d; sc.cam.zoom = z; sc.zoomK = sc.zoomTarget = 1; }   // a place of the camp: a slow pan across it
       else if (sc.peaceful) { const c = sc.map.w / 2; sc.cam.x = c - 0.9 + (sg.k === 'title' ? 0.5 + k * 0.5 : k * 1.2); sc.cam.y = c + 0.5; sc.cam.zoom = z; }
       else { sc.cam.zoom = z * (sc.zoomK || 1); if (sc.tick) sc.tick(dt); }
       sc.update(dt, null); sc.render(ctx, W, H, dpr);

@@ -17,6 +17,12 @@ console.log('android');
 edit('android/app/src/main/AndroidManifest.xml', (s) => {
   if (!/screenOrientation/.test(s)) s = s.replace('android:name=".MainActivity"', 'android:name=".MainActivity"\n            android:screenOrientation="sensorLandscape"');
   if (!/gms\.ads\.APPLICATION_ID/.test(s)) s = s.replace('        <provider', '        <!-- The AdMob app id. Google\'s test id until yours is in res/values/strings.xml (admob_app_id). -->\n        <meta-data\n            android:name="com.google.android.gms.ads.APPLICATION_ID"\n            android:value="@string/admob_app_id" />\n\n        <provider');
+  // the one reminder the game schedules does not need to fire to the minute: leave exact alarms out, so Google Play
+  // has nothing to ask about them
+  if (!/SCHEDULE_EXACT_ALARM/.test(s)) {
+    if (!/xmlns:tools/.test(s)) s = s.replace('<manifest xmlns:android="http://schemas.android.com/apk/res/android"', '<manifest xmlns:android="http://schemas.android.com/apk/res/android"\n    xmlns:tools="http://schemas.android.com/tools"');
+    s = s.replace('    <uses-permission android:name="android.permission.INTERNET" />', '    <uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" tools:node="remove" />');
+  }
   return s;
 });
 edit('android/app/src/main/res/values/strings.xml', (s) => (/admob_app_id/.test(s) ? s : s.replace('</resources>', '    <string name="admob_app_id">' + TEST_ANDROID + '</string>\n</resources>')));

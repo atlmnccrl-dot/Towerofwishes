@@ -149,7 +149,7 @@
   // stones of fire down, Old Morwen makes the fen bloom under you, Aurelian takes a tithe of every hero at once.
   // `deco`: a thing standing on the field for a while (ice, a vent, a glowcap), drawn from the crafted art.
   Battle.prototype.addDeco = function (name, x, y, life, o) {
-    const e = Object.assign({ id: BB.uid('d'), side: 'none', prop: true, deco: name, x, y, r: 0, hp: 1, maxhp: 1, def: 0, buffs: {}, born: this.time, life, sc: 1 }, o || {});
+    const e = Object.assign({ id: BB.uid('d'), side: 'none', prop: true, deco: name, kind: 'deco', F: {}, x, y, r: 0, hp: 1, maxhp: 1, def: 0, buffs: {}, born: this.time, life, sc: 1, z: 0, dir: 0, state: 'idle' }, o || {});
     this.ents.push(e); this.later(life, () => { this.ents = this.ents.filter((q) => q !== e); });
     return e;
   };

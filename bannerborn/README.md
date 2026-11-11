@@ -11,6 +11,11 @@ cast), packed into `bannerborn/assets/`. Names, story and balance are proposals 
 (`python3 -m http.server`, then <http://localhost:8000/bannerborn/>). Landscape; touch or keyboard.
 Progress saves in the browser.
 
+**Every day.** The *muster roll* at the camp: a small gift once a day, seven days round (100 crystals a week at
+most; a missed day loses nothing). Inside the app, one notification if the player asks for it in Settings: the
+camp's spoils are full. *Settings → Report for support* shows version, device, frame rate and the last errors,
+kept on the device. The phone's back button (Escape in a browser) steps back through the game.
+
 **Releasing on the stores.** The app is the same game wrapped with Capacitor (`app/`), with Google AdMob and
 store purchases. Money buys time and quiet, never a fight: *Quiet March* (no ads), the *Captain's Chest* (once),
 the *Quartermaster's Writ* (30 days of daily crystals) and five crystal packs, sold by the Treasurer at the
@@ -166,6 +171,13 @@ A hero-collector RPG: you build the team, the team fights.
    - **Brazier** (Cinder Brazier, Rime Brazier, Bog Censer, Blight Censer by land): burns in the land's colour and
      spits a patch under up to three heroes: fire, a slowing frost, a cloud of poison that lingers, or a draining blight.
    - **Bone Cage**: eyes between the bars; it rattles and lets one more out, three in all, unless it is broken first.
+
+   **The lords of the far marches** each have one move nobody else has, and wear their land (a ring of its
+   light, a crown of ice, embers, spores or shards turning about the head): **Hroald** walks a *glacier* out of the
+   ground along a line, a wall of ice that bites, slows and stands a while; **Maelis** calls five *stones of fire*
+   down one after another, each leaving a vent that keeps burning; **Old Morwen** makes the fen *bloom*, caps that
+   swell beside the heroes and burst into her poison; **Aurelian** takes a *tithe*, a thread to every hero in reach
+   that pays him in their blood for three seconds (`farMove`, `drawLord` in js/structures.js).
 
    Chapter 2 has towers (and a mortar later), chapter 3 mortars and towers, chapter 4 obelisks and cages, the
    Frostmarch braziers and towers, the Cinderfields mortars and braziers, Mirefen cages and censers, the Hollow
