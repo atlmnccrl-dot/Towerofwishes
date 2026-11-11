@@ -1,0 +1,52 @@
+# Builds the Bannerborn Android app (a debug APK to install on a phone, and an unsigned release bundle to prove the
+# store build compiles) whenever the app or the game changes. Nothing is signed or uploaded to a store here.
+name: Bannerborn Android
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'bannerborn/app/**'
+      - '!bannerborn/app/ios/**'
+      - '!bannerborn/app/README.md'
+      - '.github/workflows/bannerborn-android.yml'
+
+concurrency:
+  group: bannerborn-android-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: bannerborn/app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: bannerborn/app/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - run: npm ci
+      - name: Put the game into the app
+        run: npm run www && npx cap sync android
+      - name: What is still a placeholder (does not fail the build)
+        run: node scripts/check-release.js || true
+      - name: Build
+        working-directory: bannerborn/app/android
+        run: ./gradlew --no-daemon assembleDebug bundleRelease
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bannerborn-debug-apk
+          path: bannerborn/app/android/app/build/outputs/apk/debug/*.apk
+          retention-days: 14

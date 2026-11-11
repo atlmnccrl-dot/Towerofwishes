@@ -1,0 +1,47 @@
+# Compiles the Bannerborn iOS app for the simulator, unsigned: it proves the iOS project and its plugins build, which
+# cannot be checked without a Mac. It does not make something that can be installed or sent to the App Store.
+# macOS runners are billed at ten times the Linux rate on a private repository, so this runs only when the iOS
+# project or the plugins change, or when started by hand (Actions → Bannerborn iOS → Run workflow).
+name: Bannerborn iOS
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'bannerborn/app/ios/**'
+      - 'bannerborn/app/package-lock.json'
+      - 'bannerborn/app/capacitor.config.json'
+      - '.github/workflows/bannerborn-ios.yml'
+
+concurrency:
+  group: bannerborn-ios-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ios:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: bannerborn/app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: bannerborn/app/package-lock.json
+      - run: xcodebuild -version
+      - run: npm ci
+      - name: Put the game into the app
+        run: npm run www && npx cap sync ios
+      - name: Compile for the simulator (unsigned)
+        working-directory: bannerborn/app/ios/App
+        run: |
+          set -o pipefail
+          xcodebuild -project App.xcodeproj -scheme App -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO build | tail -n 60
