@@ -1735,7 +1735,7 @@
     if (!this.noBars) for (const e of this.ents) this.drawBars(ctx, e);
     const nums = !!(this.save && this.save.settings.numbers);
     for (const t of this.texts) {
-      if (!nums && !t.big) continue;
+      if (this.silent || (!nums && !t.big)) continue; // a fight filmed for the title is shown without its words
       const s = P(t.x + t.dx, t.y); const k = t.t / (t.big ? 1.3 : 0.9);
       ctx.globalAlpha = Math.min(1, (1 - k) * 2.5);
       const critN = !t.big && /!$/.test(t.txt), pop = critN ? 1 + Math.max(0, 0.15 - t.t) * 5 : 1;
@@ -1748,7 +1748,7 @@
     if (this.drill && this.drawDrillEmotes) this.drawDrillEmotes(ctx);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     if (this.flash > 0) { ctx.fillStyle = 'rgba(255,230,160,' + this.flash * 0.5 + ')'; ctx.fillRect(0, 0, W, H); }
-    if (this.drawEpic && !this.peaceful) this.drawEpic(ctx, W, H, dpr);
+    if (this.drawEpic && !this.peaceful && !this.silent) this.drawEpic(ctx, W, H, dpr);
   };
 
   Battle.prototype.drawEnt = function (ctx, e) {

@@ -201,8 +201,13 @@ records it to an mp4 (1280×720, 30 frames a second) with its sound, which is no
 recording, every sound the game asks for is written on a tape with the film's time and played into an offline
 audio context afterwards (`BB.audioClock`, `BB.audioRender` in js/audio.js).
 
-**Menus.** The title is the logo carved in gold over the night camp (rays, embers, one button: *Raise the Banner*
-or *Continue*, with where you left off beneath it). **Heroes** is a place, *the muster*:
+**Menus.** The title is a battle that never ends, in the real engine: a full warband (your own strongest five once
+you have a save, a showcase five before) holds a ring of ruins at night while the Gravegates keep rising and
+breaking, ultimates and signatures going off, with the fight's bars and words left out and its sounds silenced
+under the battle music. It opens from black on a slow pull-back; your banner drops in and sways, the letters of
+the name slam down one after another with a flash, a light keeps passing across them, and the one button (*Raise
+the Banner* or *Continue*, with where you left off beneath it) pulses at the foot of the screen
+(`buildTitleFight` in js/main.js; the fight is held at early waves and a fixed level so it never piles up). **Heroes** is a place, *the muster*:
 every hero you own stands in ranks under your banner at night, between four torches (the strongest in front; the
 ranks and the camera size themselves to the roster and to the open part of the page). The chosen hero steps out in
 front of them into a light of their rarity's colour; tap a hero in the ranks or a card in the list to call them

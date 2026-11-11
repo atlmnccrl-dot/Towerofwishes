@@ -102,8 +102,6 @@ svg.ci{width:100%;height:100%;fill:currentColor;stroke:none}
   background:linear-gradient(180deg,#ffffff 30%,#ffd590 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 6px 30px rgba(255,180,80,.25))}
 .tag{font:500 clamp(10px,1.3vw,12px) var(--head);letter-spacing:.42em;color:var(--mute);text-transform:uppercase}
 #title{background:radial-gradient(ellipse at 50% 50%,rgba(8,10,15,.1),rgba(8,10,15,.82) 75%)}
-#title .wrap{position:absolute;left:0;right:0;top:50%;transform:translateY(-55%);display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center}
-#title .menu{display:flex;flex-direction:column;gap:10px;margin-top:30px;width:min(280px,70vw)}
 #title .ver{position:absolute;right:calc(16px + var(--safe-r));bottom:calc(12px + var(--safe-b));font:500 11px var(--head);letter-spacing:.1em;color:var(--dim)}
 
 /* ---- camp */
@@ -521,25 +519,43 @@ input[type=range]{accent-color:var(--accent)} input[type=checkbox]{accent-color:
 .logo{font-family:var(--disp);letter-spacing:.2em;padding-left:.2em;font-size:clamp(36px,7.6vw,92px);
   background:linear-gradient(180deg,#fffbe8 8%,#ffe1a0 38%,#ffb648 64%,#a8641a 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
   filter:drop-shadow(0 2px 0 rgba(90,45,5,.9)) drop-shadow(0 10px 34px rgba(255,170,60,.45))}
-#title{overflow:hidden;background:radial-gradient(ellipse at 50% 46%,rgba(8,10,15,0) 0%,rgba(8,10,15,.5) 46%,rgba(5,6,10,.94) 86%),linear-gradient(180deg,rgba(5,6,10,.85),transparent 24%,transparent 68%,rgba(5,6,10,.95))}
-#title .rays{position:absolute;left:50%;top:42%;width:120vmax;height:120vmax;margin:-60vmax 0 0 -60vmax;pointer-events:none;
+#title{overflow:hidden;background:none}
+#title .t-shade{position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(5,6,10,.9) 0%,rgba(5,6,10,.5) 20%,rgba(5,6,10,0) 40%,rgba(5,6,10,0) 64%,rgba(5,6,10,.62) 82%,rgba(5,6,10,.95) 100%),radial-gradient(ellipse at 50% 55%,rgba(8,10,15,0) 45%,rgba(5,6,10,.55) 100%)}
+#title .rays{position:absolute;left:50%;top:17%;width:120vmax;height:120vmax;margin:-60vmax 0 0 -60vmax;pointer-events:none;
   background:repeating-conic-gradient(from 4deg,rgba(255,200,110,.1) 0deg 4deg,transparent 4deg 14deg);-webkit-mask-image:radial-gradient(circle,#000 0%,transparent 46%);mask-image:radial-gradient(circle,#000 0%,transparent 46%)}
 #title .embers{position:absolute;inset:0;pointer-events:none}
 #title .embers i{position:absolute;bottom:-8px;width:3px;height:3px;border-radius:50%;background:#ffd08a;box-shadow:0 0 6px 1px rgba(255,150,50,.85);opacity:0;animation:ember linear infinite}
 @keyframes ember{0%{transform:translate(0,0);opacity:0}12%{opacity:.95}100%{transform:translate(var(--dx,20px),-78vh);opacity:0}}
-#title .tset{position:absolute;top:calc(12px + var(--safe-t));right:calc(14px + var(--safe-r));z-index:2}
-#title .wrap{gap:12px;transform:translateY(-52%)}
-#title .crest{display:flex;align-items:center;gap:14px;width:min(560px,72vw);animation:rise .8s .05s backwards}
-#title .crest i{flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(255,206,120,.85))}
-#title .crest i:last-child{transform:scaleX(-1)}
-#title .crest svg{width:32px;height:32px;fill:rgba(255,190,85,.14);stroke:var(--accent);stroke-width:1.3;stroke-linejoin:round;filter:drop-shadow(0 0 8px rgba(255,190,85,.7))}
-#title .crest .cr{fill:var(--accent);stroke:none}
-#title .logo{animation:tlogo 1.1s .1s cubic-bezier(.2,.9,.3,1) backwards}
-@keyframes tlogo{from{opacity:0;transform:scale(1.14)}}
-#title .tag{color:#d9c9a3;animation:rise .8s .45s backwards}
-#title .menu{margin-top:26px;width:min(340px,76vw);align-items:stretch;animation:rise .8s .7s backwards}
-#title .cont{font:500 12px var(--head);letter-spacing:.1em;color:var(--mute);min-height:16px;text-shadow:0 1px 6px #000;white-space:nowrap;align-self:center}
+#title .tset{position:absolute;top:calc(12px + var(--safe-t));right:calc(14px + var(--safe-r));z-index:3}
+#title .ttr{position:absolute;top:calc(14px + var(--safe-t));left:calc(14px + var(--safe-l));z-index:3;animation:rise .8s 2.2s backwards}
+.t-top{position:absolute;left:0;right:0;top:calc(3.2vh + var(--safe-t));display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;pointer-events:none}
+.t-banner{height:74px;animation:tdrop 1s .25s cubic-bezier(.3,1.4,.5,1) backwards}
+.t-banner canvas{width:52px;height:74px;transform-origin:50% 0;animation:tsway 4.4s ease-in-out infinite;filter:drop-shadow(0 8px 14px rgba(0,0,0,.7)) drop-shadow(0 0 18px rgba(255,170,60,.35))}
+@keyframes tdrop{from{opacity:0;transform:translateY(-90px)}}
+@keyframes tsway{0%,100%{transform:rotate(-2.2deg) skewX(1deg)}50%{transform:rotate(2.2deg) skewX(-1deg)}}
+#title .logo{position:relative;display:flex;justify-content:center;background:none;-webkit-background-clip:border-box;background-clip:border-box;filter:none;padding:0;letter-spacing:0;font-size:clamp(34px,7.2vw,92px);line-height:1}
+#title .logo span{display:inline-block;margin:0 .09em;background:linear-gradient(180deg,#fffbe8 8%,#ffe1a0 38%,#ffb648 64%,#a8641a 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:brightness(1) drop-shadow(0 2px 0 rgba(90,45,5,.9)) drop-shadow(0 8px 24px rgba(255,170,60,.5));
+  animation:tslam .62s cubic-bezier(.2,1.35,.4,1) backwards,tglint 7.5s ease-in-out infinite;animation-delay:calc(.7s + var(--i)*.075s),calc(3.4s + var(--i)*.09s)}
+@keyframes tslam{0%{opacity:0;transform:translateY(-70px) scale(2.4) rotate(-6deg)}55%{opacity:1}100%{opacity:1;transform:none}}
+@keyframes tglint{0%,9%,100%{filter:brightness(1) drop-shadow(0 2px 0 rgba(90,45,5,.9)) drop-shadow(0 8px 24px rgba(255,170,60,.5))}4.5%{filter:brightness(1.9) drop-shadow(0 2px 0 rgba(90,45,5,.9)) drop-shadow(0 0 30px rgba(255,220,150,1))}}
+.t-flash{position:absolute;left:50%;top:58%;width:min(120vw,1500px);height:240px;margin:-120px 0 0 min(-60vw,-750px);margin-left:calc(min(120vw,1500px)/-2);pointer-events:none;opacity:0;
+  background:radial-gradient(ellipse at center,rgba(255,236,190,.95),rgba(255,180,80,.45) 30%,transparent 68%);animation:tflash 1.1s 1.5s ease-out backwards}
+@keyframes tflash{0%{opacity:0;transform:scaleX(.2)}18%{opacity:1;transform:scaleX(1)}100%{opacity:0;transform:scaleX(1.25)}}
+.t-rule{display:flex;align-items:center;gap:12px;width:min(620px,74vw);animation:trule .9s 1.55s cubic-bezier(.2,.9,.3,1) backwards}
+.t-rule i{flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(255,206,120,.9))} .t-rule i:last-child{transform:scaleX(-1)}
+.t-rule b{width:9px;height:9px;transform:rotate(45deg);background:var(--accent);box-shadow:0 0 14px rgba(255,190,85,.95)}
+@keyframes trule{from{opacity:0;transform:scaleX(.05)}}
+#title .tag{color:#e6d6ae;text-shadow:0 2px 8px #000;animation:ttag 1.1s 1.75s cubic-bezier(.2,.9,.3,1) backwards}
+@keyframes ttag{from{opacity:0;letter-spacing:.7em}}
+.t-bot{position:absolute;left:0;right:0;bottom:calc(6vh + var(--safe-b));display:flex;flex-direction:column;align-items:center;gap:10px;animation:rise .9s 2.1s backwards}
+.t-play{position:relative;width:min(360px,78vw)} .t-play .btn{width:100%}
+.t-play::before,.t-play::after{content:'';position:absolute;inset:-6px;border-radius:22px;border:1.5px solid rgba(255,200,110,.75);pointer-events:none;animation:tring 2.4s ease-out infinite} .t-play::after{animation-delay:1.2s}
+@keyframes tring{0%{opacity:.8;transform:scale(.97)}100%{opacity:0;transform:scale(1.13,1.5)}}
+#title .cont{font:500 12px var(--head);letter-spacing:.1em;color:#c9cfda;min-height:16px;text-shadow:0 1px 6px #000,0 0 14px #000;white-space:nowrap}
 #title .cont b{color:var(--gold-hi);font-weight:700}
+.t-black{position:absolute;inset:0;background:#05060a;pointer-events:none;animation:tfade 2s .15s ease-out both}
+@keyframes tfade{from{opacity:1}to{opacity:0}}
 
 /* ---- camp */
 #home .plate .nm{font:800 clamp(21px,2.6vw,29px) var(--disp);letter-spacing:.1em;text-transform:uppercase;background:linear-gradient(180deg,#fff6dc 20%,#ffcf7a 80%);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none;filter:drop-shadow(0 3px 8px rgba(0,0,0,.9))}
@@ -786,7 +802,7 @@ button.hx-slot:hover{translate:-3px 0;border-color:var(--ic)}
 
 @media (max-height:460px){
   #topbar .title span{font-size:13.5px}
-  #title .wrap{gap:8px} #title .menu{margin-top:14px} #title .crest svg{width:24px;height:24px}
+  .t-top{top:calc(8px + var(--safe-t));gap:4px} .t-banner,.t-rule{display:none} #title .logo{font-size:clamp(30px,6.6vw,60px)} #title .tag{font-size:10px} .t-bot{bottom:calc(10px + var(--safe-b));gap:6px} .t-play{width:min(300px,60vw)}
   #heroes .spot{flex-basis:27%} .sp-top{top:8px;left:8px;right:8px} .sp-bot{padding:22px 8px 8px;gap:1px} .spot .cl{display:none} .spot .nm{font-size:14px} .spot .stars{font-size:10px} .spot .pw{font-size:13px}
   #heroes .col{gap:8px} #heroes .coll{min-width:0} #heroes .coll .bar{display:none} #heroes .head{flex-wrap:nowrap;gap:8px} .fbtn{width:28px;padding:6px}
   .hc .nm{font-size:10.5px;line-height:1.1} .hc .pw{font-size:10px;line-height:1.1} .hc .lv{font-size:10px;padding:1px 5px} .hc .cic{width:19px;height:19px}
@@ -823,19 +839,23 @@ button.hx-slot:hover{translate:-3px 0;border-color:var(--ic)}
 <div id="boot" class="screen on"><div class="logo">BANNERBORN</div><div class="bar"><i></i></div><div class="tag" id="bootmsg">Raising the banner…</div></div>
 
 <div id="title" class="screen">
+  <div class="t-shade"></div>
   <div class="rays"></div>
   <div class="embers" id="tEmbers"></div>
+  <button class="btn dark sm ttr" id="bTrailer">▶ Trailer</button>
   <button class="rbtn tset" id="bTitleSet" aria-label="Settings"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg></button>
-  <div class="wrap">
-    <div class="crest"><i></i><svg viewBox="0 0 24 24"><path d="M6 3h12v15l-6-4-6 4z"/><path class="cr" d="M8.6 10.6l1-3.4 2.4 2 2.4-2 1 3.4z"/></svg><i></i></div>
-    <div class="logo">BANNERBORN</div>
+  <div class="t-top">
+    <div class="t-banner" id="tBanner"></div>
+    <div class="t-flash"></div>
+    <div class="logo" id="tLogo" aria-label="Bannerborn"></div>
+    <div class="t-rule"><i></i><b></b><i></i></div>
     <div class="tag">Raise your banner · Earn your heroes · Shut the Gravegates</div>
-    <div class="menu">
-      <button class="btn xl" id="bPlay">Play</button>
-      <div class="cont" id="tCont"></div>
-      <button class="btn dark sm" id="bTrailer" style="align-self:center;margin-top:6px">▶ Watch the trailer</button>
-    </div>
   </div>
+  <div class="t-bot">
+    <div class="t-play"><button class="btn xl" id="bPlay">Play</button></div>
+    <div class="cont" id="tCont"></div>
+  </div>
+  <div class="t-black"></div>
   <div class="ver">v0.5</div>
 </div>
 

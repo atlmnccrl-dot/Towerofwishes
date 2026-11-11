@@ -151,6 +151,23 @@
   };
 
   // ---------------------------------------------------------------- flows
+  // The title is a battle that never ends: a full warband (your own strongest five, once you have a save) holding a
+  // ring of ruins at night while the Gravegates keep rising. It is the real engine, so everything in it is alive:
+  // ultimates, signatures, gates breaking and coming back. Nothing is won and nobody falls for good.
+  async function buildTitleFight() {
+    const mine = BB.save ? BB.save.heroes.slice().sort((a, b) => BB.power(b) - BB.power(a)).slice(0, 5) : [];
+    const hold = (sc) => { // the fight is held where it looks best: early waves, a fixed level, never a pile of foes
+      const o = sc.obj; if (o && o.endlessWave > 2) o.endlessWave = 2; sc.level = sc.titleLevel || sc.level;
+      let n = 0; for (const e of sc.ents) if (e.side === 'foe' && !e.dead && !e.gate && ++n > 12) e.hp = Math.min(e.hp, e.maxhp * 0.12);
+      for (const e of sc.heroList) if (e.dead && sc.reviveHero) sc.reviveHero(e);
+    };
+    const sc = await BB.stageScene({ idx: 23, over: 4, night: true, warm: 6, tick: ['ults', 'sigs', 'sturdy', hold],
+      archs: ['knight', 'barbarian', 'mage', 'ranger', 'paladin'], ench: ['holy', 'fire', 'storm', 'frost', 'shadow'],
+      mission: (st) => Object.assign({}, BB.ENDLESS, { level: st.level }),
+      heroes: (S) => mine.length >= 3 ? mine.map((h, i) => { const c = JSON.parse(JSON.stringify(h)), like = S.heroes[i % S.heroes.length]; c.stars = 5; c.level = like.level; return c; }) : null });
+    sc.titleFight = true; sc.titleLevel = sc.level; sc.titleT = 0; sc.noBars = true; sc.silent = true;
+    return sc;
+  }
   async function goTitle() {
     mode = 'title';
     const S = BB.save;
@@ -160,9 +177,11 @@
     else $('tCont').textContent = 'A new banner, a first captain, a road to the Gravegates';
     const em = $('tEmbers');
     if (!em.children.length) for (let i = 0; i < 16; i++) { const e = document.createElement('i'); e.style.left = (4 + Math.random() * 92) + '%'; e.style.setProperty('--dx', Math.round(Math.random() * 120 - 60) + 'px'); e.style.animationDuration = (6 + Math.random() * 7).toFixed(1) + 's'; e.style.animationDelay = (-Math.random() * 12).toFixed(1) + 's'; if (i % 3 === 0) { e.style.width = e.style.height = '2px'; } em.appendChild(e); }
-    scene = await buildCampScene(true);
+    const lg = $('tLogo'); if (!lg.children.length) lg.innerHTML = [...'BANNERBORN'].map((ch, i) => '<span style="--i:' + i + '">' + ch + '</span>').join('');
+    const tb = $('tBanner'); tb.innerHTML = ''; tb.appendChild(UI.bannerCanvas(S ? S.banner : { color: '#b3242c', sigil: 'crown', trim: '#e8c66a' }, 92, 130));
+    try { scene = await buildTitleFight(); } catch (e) { scene = await buildCampScene(true); }
     UI.show('title');
-    BB.music('calm');
+    BB.music('battle');
   }
   let guideDue = false;
   // ---- menus that are places. The shop is the quartermaster's stall at night; the heroes' page is the muster, every
@@ -809,18 +828,19 @@
     const keep = devReal; let S;
     if (!devReal) { const t = BB.save || BB.newSave(now()); devReal = { settings: t.settings, banner: t.banner }; }
     try { S = devSave(o); } finally { devReal = keep; }
-    const M = BB.MISSIONS[o.idx], team = BB.teamHeroes(S), region = BB.REGIONS.find((r) => r.id === M.region) || BB.REGIONS[0], biome = region.biome;
+    if (o.heroes) { const own = o.heroes(S); if (own && own.length) { S.heroes = own; S.formation = { front: [], back: [] }; S.place = {}; BB.fixFormation(S); BB.autoFill(S); } }
+    const M = o.mission ? o.mission(BB.MISSIONS[o.idx]) : BB.MISSIONS[o.idx], team = BB.teamHeroes(S), region = BB.REGIONS.find((r) => r.id === M.region) || BB.REGIONS[0], biome = region.biome;
     const arts = ['ghoul', 'warden', 'necro'], pools = new Set();
     const addFoe = (k) => { const F = BB.FOES[k]; if (!F) return; if (F.art) arts.push(F.art); if (F.pool) pools.add(F.pool); if (F.poolPick) arts.push('h/' + F.poolPick); };
     M.waves.forEach((w) => { for (let i = 0; i < w.length; i += 2) addFoe(w[i]); }); if (M.boss) addFoe(M.boss); if (M.boss && (BB.FOES[M.boss].moves || []).includes('summonw')) { pools.add('skel'); pools.add('wraith'); }
     const rr = BB.rng(o.idx * 7 + 3);
     await Promise.all([BB.loadLand(region), BB.loadOther(), BB.loadHeroes(team)]
       .concat([...new Set(arts)].map((a) => BB.loadChar(a).catch(() => null)), [...pools].map((p) => pickLoad(BB.poolKeys(p), 4, rr))));
-    const seed = BB.hashStr(M.id) % 9000 + 1, map = BB.buildMap(M.layout, biome, seed, { night: !!region.night, floor: region.floor, skin: region.skin });
+    const seed = BB.hashStr(M.id) % 9000 + 1, map = BB.buildMap(M.layout, biome, seed, { night: !!region.night || !!o.night, floor: region.floor, skin: region.skin });
     BB.renderGround(map);
     const sc = new BB.Battle({ map, mission: M, formation: BB.formationList(S), heroes: team, level: BB.foeLevel(M), save: S, seed });
     sc.autoSkills = true; sc.win = function () {}; sc.lose = function () {};
-    const ticks = (o.tick || []).map((k) => DEV_TICK[k]); sc.tick = (dt) => ticks.forEach((f) => f(sc, dt));
+    const ticks = (o.tick || []).map((k) => (typeof k === 'function' ? k : DEV_TICK[k])); sc.tick = (dt) => ticks.forEach((f) => f(sc, dt));
     const mute = BB.sfxMute; BB.sfxMute = true;
     try {
       const st = 1 / 30; let t = 0; const lim = o.until === 'boss' ? 150 : (o.warm || 0);
@@ -1007,6 +1027,8 @@
     if (skip) { /* keep the last picture */ }
     else if (scene && (visible || mode === 'battle')) {
       scene.cam.zoom = camZoom() * (scene.zoomK || 1);
+      const fight = scene.titleFight && mode === 'title', wasMute = BB.sfxMute;
+      if (fight) { scene.titleT += dt; const q = Math.min(1, scene.titleT / 3.6), e = 1 - (1 - q) ** 3; scene.cam.zoom *= (H / DPR < 520 ? 0.95 : 1.1) * (1.5 - 0.5 * e); scene.viewOff = { x: 0, y: H * 0.115 }; if (scene.tick) scene.tick(sdt); BB.sfxMute = true; }
       if (scene.isTitle) { scene.cam.x = scene.map.w / 2 + Math.sin(t / 9000) * 1.6 - 1.2; scene.cam.y = scene.map.h / 2 + Math.cos(t / 11000) * 0.8 + 0.4; }
       else if (scene.drill) { if (UI.current === 'team' && UI.teamLayout) UI.teamLayout(scene, W, H, DPR); }
       else if (scene.fixCam) { { const sw = Math.sin(t / 7000) * 0.1 / Math.max(1, (scene.zoomK || 1) ** 2); scene.cam.x = scene.fixCam.x + sw; scene.cam.y = scene.fixCam.y - sw; } menuScene(scene); }
@@ -1014,6 +1036,7 @@
       const reps = mode === 'battle' && !scene.intro && !scene.result ? Math.min(3, Math.max(1, BB.save.settings.speed || 1)) : 1;
       if (scene.devTick && mode === 'battle' && !scene.intro && !scene.result && !scene.paused) scene.devTick(scene, dt);
       for (let i = 0; i < reps; i++) scene.update(sdt, null);
+      if (fight) BB.sfxMute = wasMute;
       if (visible) scene.render(ctx, W, H, DPR);
       if (mode === 'battle' && UI.current === 'hud') {
         updateHud(dt);
