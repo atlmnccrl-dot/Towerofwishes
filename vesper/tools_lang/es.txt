@@ -1,0 +1,945 @@
+@0
+OBJETIVO
+ACABA CON CADA OLEADA
+EL PRIMER CORTE
+EL MATARREYES
+DERROTA AL PRIMER CORTE
+SUPERA LA PRUEBA
+NUEVO
+GOLPE PESADO
+TOCA PARA SEGUIR
+ESC SALTA
+ALBA
+LANZAMIENTO
+DONDE ELLA DESPERTÓ
+EL CORO DE HECHICEROS
+EL UMBRÍO
+JURAMENTO DEL ESCUDO
+Golpeas la herida con todo lo que tienes.
+AUTO
+Gira el teléfono.
+The Bleeding Moon se juega en horizontal.
+LA ÚLTIMA HORA
+HACE SETECIENTOS AÑOS
+ÚLTIMO ALIENTO DE FURIA
+PULSA E
+OLA CRECIENTE
+PASO FANTASMA
+El Ala Pálida
+CINCO REINOS
+Espera en la cima de la Aguja.
+La Sombra de la Luna
+Acto VI
+La Última Hora
+GRACIAS POR JUGAR
+TOCA PARA AVANZAR
+Escalera de Sangre
+LA CALZADA
+THE BLEEDING MOON
+Atrás
+El Umbrío
+De rodillas.
+Equipo
+HACE SETECIENTOS AÑOS, CAYERON CINCO REYES.
+El Primer Corte
+El Hambre
+Los Gemelos Huecos
+El Guardapuertas
+Los muertos se alzaron. Y desde aquella noche, la luna sangró.
+Donde Ella Despertó
+El Matarreyes
+@49
+Quinto Corte
+Herrero
+Habilidades
+Modos
+La Puerta Negra
+Claustro de Escarcha
+El Páramo de Ceniza
+La Garganta del Viento
+EL REY DE LA PUERTA NEGRA
+No
+Menú
+Enemigos
+Objetivos
+Termina con más de media vida
+Escudero
+Acto I
+Anochecer
+La Escalera Umbría
+Filo Afilado
+Segundo Corazón
+Piel de Hierro
+Sangre Lunar
+Sed Roja
+Tu combo gana un quinto corte, más pesado.
+Paso Espectral
+Contracorte
+Último Aliento
+Luna Creciente
+EL REY DE LA ESCARCHA
+EL REY BAJO LA ESCALERA
+EL REY DE CENIZA
+EL REY DE LA TORMENTA
+Teatro
+Almas
+Regalo de la Luna
+Acto V
+La Cuarta Hora
+Acto IV
+La Tercera Hora
+Acto II
+La Primera Hora
+CIEN CORTES
+La Santa Dorada
+Elige un objeto.
+Sí
+Tiempo
+Mejor combo
+Bajas
+Daño del Juramentado
+El Juramentado
+@99
+Ataque Pesado
+Filo Agudo
+Verdugo
+Esquiva
+Segundo Aire
+Tercer Corazón
+Primera Habilidad
+Arte Lunar
+Segunda Habilidad
+Manos Rápidas
+Intocable
+Legendario
+Hoja de hierro gastada
+Normal
+LA CIMA DE LA AGUJA
+Continuar
+Gana el combate
+The Bleeding Moon
+Prueba
+Anochecer. Vuelve a subir la Aguja luchando
+Necrófago
+Cascarón de Sangre
+Sombra
+Espada
+El Coro de Hechiceros
+Primera Sangre
+Gana tu primer combate.
+A Través de la Puerta
+Derrota al Guardapuertas.
+Ambas Mitades
+Derrota a los Gemelos Huecos.
+Luz en la Oscuridad
+Derrota al Umbrío.
+Saciado
+Derrota al Hambre.
+A Tierra
+Derrota al Ala.
+Cien Cortes
+Mil Cortes
+Derrota a un guardián sin recibir golpes.
+Constelación
+Encuentra un objeto legendario.
+Bolsillos Hondos
+Ajustes
+Acto III
+La Segunda Hora
+Bloqueado
+Pasiva
+✓ Ataque Pesado
+LANZA DEL CIELO
+Vacío
+@150
+La forja
+Mercancía
+Restaurar compras
+Limpia a los muertos
+Una caballera de capucha roja. Combos, impulsos y la propia luna.
+Ola Creciente
+Paso Fantasma
+La Bruja de las Flores
+Lucha a distancia con rayos, escarcha y plaga. Frágil de cerca.
+Flor de Plaga
+Salto de Pétalos
+La Lancera de la Tormenta
+Gran alcance y relámpagos. Encadena rayos entre la multitud y hace caer truenos del cielo.
+Rayo en Cadena
+Caída del Trueno
+La Sombra
+Rápida y frágil. Abanicos de cuchillos, clones de sombra, humo que ciega.
+Clones de Sombra
+Velo de Humo
+La Hoja de Escarcha
+Dos hojas rápidas que hielan. Campos de escarcha, impulsos de hielo, todo se ralentiza a su alrededor.
+Campo de Escarcha
+Paso Glacial
+El Escudo del Alba
+Lento e irrompible. Golpes de maza, tierra sagrada y juicio desde el cielo.
+Tierra Sagrada
+Juicio
+El Monje de Ceniza
+Rápido, cercano e implacable. Cadenas de golpes, una palma ardiente, un paso a través del fuego.
+Palma Ardiente
+Paso a Través del Fuego
+El escudero que defendió la puerta
+Atrae a los muertos hacia su escudo y los retiene allí.
+Juramento del Escudo
+Guardián de la Puerta Negra
+El que Camina Detrás
+Devora la Luz
+Garganta del Viento
+Duelista de la Herida
+Brujo de Sangre
+Golpes y daño
+Evasión y aguante
+Luna
+Habilidades y el definitivo
+Derrota al Primer Corte
+Los escalones están húmedos y rojos
+Batalla
+Guardián
+daño
+vida
+armadura
+luna
+Historia
+Otra vez
+LA PRIMERA HORA
+@205
+LA SEGUNDA HORA
+LA TERCERA HORA
+LA CUARTA HORA
+Cinco reyes. Cinco almas.
+Con sus almas lanzó el hechizo que despierta todas las tumbas.
+TRAS EL ALBA
+una vez
+Sin anuncios
+Sin anuncios entre combates, nunca. Levantarse, recompensas dobles y el Regalo de la Luna llegan al instante, sin anuncio.
+Edición Hoja Lunar
+Bolsa de Fragmentos
+Cofre de Fragmentos
+Tesoro de Fragmentos
+Bolsa de Oro
+Cámara de Oro
+Victoria
+Recompensas dobles
+ver un anuncio
+Luchar otra vez
+Has caído
+“Entonces cae hacia delante.”
+Tienes puntos de habilidad por gastar. Las nuevas habilidades marcan una gran diferencia.
+Reintentar
+Árbol de habilidades
+Volver al mapa
+La Mano Izquierda y la Derecha
+Gemelo Hueco
+Tras una esquiva perfecta, tu siguiente corte hace el triple de daño.
+Empieza cada combate con la luna a medias.
+La Larga Noche
+BLEEDING
+MOON
+Nueva partida
+Empezar la subida de nuevo
+Cada escena y arte lunar
+Créditos
+Luchar
+Derrota al guardián
+Derrota al guardián sin recibir golpes
+punto de habilidad
+Desbloquea a El Primer Corte
+Antes despeja una isla inferior.
+puntos de habilidad por gastar
+Reembolsar todo
+Volver al mapa
+¿Quién sube esta noche?
+La Hoja Lunar
+Espada
+LUNA ROJA
+@254
+Subiendo ahora
+Hechizos
+MIL PÉTALOS
+Lanza
+Dagas
+Puños
+Maza y escudo
+Hojas gemelas
+Almas Ligadas
+fragmentos de alma
+de cada combate
+A su lado
+Liberada por El Primer Corte
+Guardia
+Fatuo
+Ligada
+Ascendida
+Su primera fuerza
+El juramento también aturde a los muertos a su alrededor. Su firma llega antes.
+Equipar lo mejor
+Equipado
+Arma
+equipado
+Armadura
+Amuleto
+Luna Viuda
+Modo de prueba
+no se cobra dinero
+Tienda
+Mejor precio
+Los precios incluyen impuestos donde tu tienda lo exige. Las compras van ligadas a tu cuenta de la tienda y se pueden restaurar en otro dispositivo.
+Más allá de la subida
+Sin fin
+Oleada tras oleada en un mapa, de tus dos actos más altos. Un campeón cada cinco oleadas, un guardián cada diez. Oro y experiencia por cada oleada, un objeto cada cinco.
+Desafío diario
+Diario
+El Páramo de Ceniza. Sin arte lunar. Sin curación por bajas. Gana una vez hoy para oro y un objeto raro.
+Logros
+Hazañas de la subida: guardianes, combos, esquivas perfectas, tesoros, la larga noche.
+Nueva Partida+
+Antes derrota al Primer Corte
+Juego
+Dificultad
+Combate automático
+Escenas de historia
+Ver
+Ver cada escena y arte lunar
+Pantalla
+Cámara
+Tamaño del texto
+Números de daño
+@305
+Temblor de pantalla
+Reducir destellos
+Avisos aptos para daltónicos
+Sonido
+Música
+Efectos de sonido
+Vibración
+teléfonos compatibles
+Compras
+Sin anuncios
+En un dispositivo nuevo o tras reinstalar
+Opciones de privacidad
+Consentimiento de anuncios y seguimiento
+Herramientas
+Ver jugar al bot
+El bot juega la campaña solo. Pulsa una tecla o toca para parar
+Velocidad
+Partida
+Exportar partida
+Descarga un archivo y copia el código
+Importar partida
+Cargar un archivo de partida
+Borrar progreso
+Borra niveles, habilidades, equipo y el mapa
+Las partidas viven en este navegador: exporta una para guardarla o llevarla a otro dispositivo.
+Un mando funciona en todas partes: A corta, X pesado, B impulso, LB/RB habilidades, gatillos arte lunar.
+La introducción
+El Primer Corte mata a cinco reyes
+Acto VII
+Ecos de la Noche
+La última hora: su golpe único
+El Primer Corte la abate
+La Luna la levanta
+La noche volvió al anochecer
+El final
+Alba
+Guardianes
+Artes lunares
+Vesper
+Último Aliento de Furia
+Su arte lunar a un cuarto de vida
+Luna Roja
+Su arte lunar con la vida llena
+Lys
+Arte lunar
+@350
+Kestrel
+Rime
+Halden
+Ember
+Aquí se reproduce todo, lo hayas alcanzado o no. Un toque (o Esc) termina la escena y te devuelve.
+PRUEBA
+MOVERSE
+Usa WASD (o las flechas) para caminar hasta el círculo brillante.
+Empezar
+EL ANILLO
+EL PATIO
+EL PUENTE
+EL FOSO
+LA ENCRUCIJADA
+Espada larga
+El espadachín en persona. Cortes largos y pesados y el arte lunar que inventó.
+Tajo Lunar
+Siete Siglos
+Rompedor
+Tajos lentos y pesados que rompen guardias y aplomo.
+Partetierra
+Golpea el suelo: anillos de piedra estallan a su alrededor, uno tras otro.
+Escarcha
+Hojas de escarcha que ralentizan todo lo que tocan.
+Lluvia de Lanzas de Hielo
+Asesino
+Atraviesa las sombras tras el más débil y lo abate.
+Paso Sombrío
+Desaparece y surge detrás del enemigo más débil cerca de ti, lo corta tres veces y remata a los moribundos.
+Sanguijuela
+Se alimenta de los muertos y te da su vida.
+Devorar
+Se lanza sobre un enemigo y lo desgarra, y la vida que toma te cura.
+Tormenta
+Mantiene la distancia y les suelta el viento.
+Vendaval
+Suelta vendavales que persiguen a los muertos por el suelo.
+La hoja que mató a cinco reyes, ahora corta por ti.
+Un largo corte por el suelo a través del enemigo más cercano.
+Cascarón de Práctica
+Poste de Práctica
+Caballero Instructor
+Bruto de la Tumba
+Saqueador de la Puerta
+Caudillo Saqueador
+Baluarte de Hueso
+@396
+Piquero de Hueso
+Guardia de la Puerta Negra
+Acólito de la Escarcha
+Vidente de Escarcha
+Caballero del Claustro
+Duelista Espejo
+Pica de Escarcha
+Espectro Umbrío
+Sombra Violeta
+Degollador
+Brujo de la Escalera
+Baluarte de Sombra
+Sabueso de Ceniza
+Carnero de Hueso
+Mago de Brasas
+Brujo de Ceniza
+Devastador de Ceniza
+Montaraz de la Garganta
+Francotirador del Vendaval
+Monje del Viento
+Puño de Tormenta
+Piquero de la Cresta
+Arpía del Vendaval
+Paladín de la Herida
+Caballero de la Herida
+Espectro de Sangre
+Siervo
+Guardia de Hueso
+Mago de Plaga
+Acechador
+Lancero de la Puerta
+Muerto Alzado
+Celador del Sol
+Saqueador de Dunas
+Diablillo de Arena
+Bruto de las Dunas
+Hrolf el Rompepuertas
+Campeón de los Saqueadores
+El Capitán de Hueso
+El que Adiestra a los Muertos
+Madre Escarcha
+Abadesa del Claustro Helado
+Sable del Claustro
+Invicta en Siete Siglos
+@440
+El Obispo Hueco
+Pastor de la Escalera
+Viuda de la Noche
+El Espectro que Espera
+El Rey Carroñero
+Señor de las Manadas de Ceniza
+La Madre Ceniza
+La que Prende
+El Maestro Cazador
+Primer Arco de la Garganta
+Gran Maestro Vendaval
+La Tormenta que Camina
+Señor de la Herida
+Primer Caballero de la Luna
+La Última Santa
+La que Reza a la Herida
+Espanto
+Cuchillo Nocturno
+Huesos Dorados
+Saqueador de Hueso
+Lancero de Hueso
+Arquero de Hueso
+Hechicero
+Gólem
+Sacerdote de la Pira
+Furtivo
+la Mano Izquierda
+la Mano Derecha
+Puerta de la Grieta
+Llega solo con tu combo: cuando tres o más te rodean, un escudo se interpone o un combo llega al final, tu ataque se vuelve un golpe pesado que da alrededor y rompe escudos.
+Espacio: atraviesa el peligro con un impulso, intocable un instante. Corta justo después para un corte en impulso.
+La primera habilidad de tu héroe. Se une sola a tu combo cuando está lista.
+E con la luna llena: el definitivo de tu héroe, un golpe cinematográfico.
+La segunda habilidad de tu héroe. Se une sola a tu combo cuando está lista.
+Tu primer héroe
+Derrota al Umbrío
+Derrota a un guardián sin recibir ni un golpe
+Derrota a los Gemelos Huecos
+El Patio Exterior
+Los muertos se agitan en el patio
+Fosos de Necrófagos
+Donde salen arrastrándose los alzados
+Santuario del Anochecer
+El Capitán Saqueador
+Un capitán aún guía a sus muertos
+Arqueros en la Muralla
+Flechas desde las almenas
+Defiende la Puerta
+Antes de que la puerta se selle
+El Puente de la Puerta
+Un solo paso estrecho
+@491
+Escalones Helados
+Hielo sobre sangre vieja
+Sala de Cuchillos
+Hojas en la oscuridad
+Santuario de Escarcha
+Su himno es una maldición
+El eco del Guardapuertas. Que no te golpeen.
+Hoja de Cristal
+Golpea primero, golpea fuerte
+El Campanario
+Las campanas aún doblan por ellos
+Lanzas en la Nieve
+Un muro de escudos de muertos
+Gólem Helado
+Piedra que camina
+El Primer Rellano
+Aquí acaba la luz
+Galería de Huesos
+Esqueletos por millares
+Santuario de Sombra
+El Rey Furtivo
+Caza a quien sube
+Escalera de Ecos
+Pasos que no son tuyos
+Sin Luna
+La luna está oculta. Lucha sin ella.
+Horda del Eclipse
+Bajan en tropel por la escalera
+La Capilla Negra
+Rezos a la nada
+Gólems Gemelos
+Dos, espalda con espalda
+Camino de Brasas
+Ceniza hasta los tobillos
+Señores de la Pira
+Arden y no mueren
+Tumbas de Ceniza
+Todas las tumbas están abiertas
+Santuario de Brasas
+Sin Piedad
+Aquí nada te curará
+El Campo Ardiente
+Fuego por todas partes
+La Madre Espanto
+Su prole la sigue
+Tormenta de Ceniza
+Atraviesa la tormenta antes de que te entierre
+Linde del Páramo
+Algo tiene hambre
+@540
+Escalones del Vendaval
+El viento te quiere fuera de la Aguja
+Cresta de Cazadores
+Trampas en la cresta
+Santuario del Viento
+Los Jinetes de la Tormenta
+Cabalgan el vendaval
+Desafío de Élite
+Los más fuertes, uno tras otro
+El Paso Estrecho
+Una cornisa sobre la nada
+Tormenta de Cristal
+Frágil como el aire
+La Última Guardia
+Nunca han dejado pasar a nadie
+Caballeros de la Herida
+Juramentados al corte
+Santuario de la Luna
+Resiste hasta que dejen de venir
+Salón del Trono
+Un trono vacío bajo la luna
+Última Luz
+El alba no esperará
+La Guardia de la Herida
+Los últimos de sus caballeros
+Bajo la Luna
+Tan cerca que podrías tocarla
+Eco: El Guardapuertas
+Eco: Los Gemelos Huecos
+Eco: El Umbrío
+Eco de Cristal
+Todo lo aprendido, el doble de afilado
+Eco: El Hambre
+Eco: El Ala Pálida
+Eco: El Primer Corte
+El corte más limpio de todos. Que no te golpeen.
+La Noche Sin Fin
+El último y más largo combate
+Élite
+Desafío
+Santuario
+Eco
+Común
+Mágico
+Raro
+robo de vida
+recarga
+esquiva
+parada
+cura por baja
+hallazgo de oro
+Los enemigos golpean más suave y caen antes. Para la historia.
+La subida tal como se creó.
+Difícil
+@594
+Enemigos más duros, golpes más fuertes. Un cuarto más de oro y experiencia.
+Pesadilla
+Cada oleada la dirige una élite. La mitad más de recompensas.
+Antes del Alba
+Derrota al Primer Corte y ve el final.
+Inquebrantable
+Fantasma
+Espectro
+Compañía Completa
+Desbloquea a todos los héroes.
+Maestro Herrero
+Cazatesoros
+Mantener la Línea
+Cada Noche
+Gana un desafío diario.
+Una Semana de Noches
+Gana siete desafíos diarios.
+Empieza una Nueva Partida+.
+Curtido
+Derrota a un guardián en Difícil o Pesadilla.
+Maestría
+Un espadachín
+CAYERON CINCO REYES
+Con las almas de cinco reyes lanzó el hechizo que despierta todas las tumbas.
+LA LUNA ROJA
+Desde aquella noche la luna sangró. A su luz, sus muertos se alzan.
+ESTA NOCHE
+LA LUNA SE DESANGRA
+Al alba, sus muertos lo tomarán todo.
+Solo tu hoja puede detenerlo, en la cima de la Aguja.
+SEIS HORAS PARA EL ALBA
+Seis guardianes se interponen entre tú y la cima.
+El Guardapuertas guarda la Puerta Negra. Supéralo.
+CINCO HORAS PARA EL ALBA
+La puerta está abierta. Empieza la subida.
+La escarcha ha sellado el viejo claustro.
+Los Gemelos Huecos lo guardan. Dos hojas, una voluntad.
+CUATRO HORAS PARA EL ALBA
+Más arriba. El aire se oscurece.
+La Escalera Umbría serpentea en la oscuridad total.
+El Umbrío se esconde en tu propia sombra. Cuida tu espalda.
+TRES HORAS PARA EL ALBA
+A medio camino. La luna sangra más deprisa.
+Nada vive en el Páramo de Ceniza.
+Solo el Hambre, que devora la propia luz.
+DOS HORAS PARA EL ALBA
+Cerca de la cima, el viento se vuelve cuchillas.
+La Garganta del Viento: un paso estrecho hacia la tormenta.
+@642
+El Ala Pálida reina en la tormenta. Nunca ha dejado pasar a nadie.
+La cima de la Aguja. Alguien espera.
+El mismo espadachín. Setecientos años, y vivo.
+La herida lo mantiene vivo. No te dejará cerrarla.
+Un espadachín fue de reino en reino y abatió a cada rey.
+ECOS DE LA NOCHE
+Los guardianes se han ido, pero sus ecos aún recorren la Aguja.
+La herida se cierra. La luna se vuelve blanca y se alza. La noche ha terminado.
+Alijo Inicial
+Camina hasta el círculo brillante
+# / # XP
+# PH
+# de oro
+# de oro para el herrero.
+# de oro.
+# más de vida otra vez.
+# más de vida.
+# de #
+# de # liberadas
+# de # héroes
+# puntos de habilidad por gastar
+# fragmentos de alma para hacer crecer tus almas ligadas.
+# fragmentos de alma.
++# XP
++# oro, +# fragmentos
++# de vida, y te curas por completo.
++# más
++#% armadura
++#% de armadura para ella mientras esté a su lado.
++#% daño
++#% vida
++#% robo de vida
++#% luna
++# vida
+-#% daño recibido
+-#% recarga de habilidades
++#% distancia de esquiva
++#% ventana de parada
++#% curación por bajas
++#% oro hallado
+#% robo de vida
+Una esquiva perfecta cura # de vida.
+ZONA # / #
+nv #
+nivel #
+Nivel #
+Nivel # / #
+Nv #
+Fatuo #
+Mejor #s
+Mejor oleada #
+Bolsa
+Lleva a un héroe a maestría #.
+Haz un #% más de daño otra vez.
+Haz un #% más de daño a enemigos con menos de un cuarto de vida.
+@697
+Haz un #% más de daño.
+Derrota a # enemigos.
+Consigue # estrellas
+Consigue # estrellas.
+Para la primera subida: # de oro, # fragmentos de alma y un arma rara. Solo una vez.
+Cúrate un #% del daño que haces.
+Ten # de oro.
+Haz un combo de # golpes
+Haz un combo de # golpes.
+Aprender
+Los definitivos de vida baja se abren al #% de vida en vez de al #%.
+Haz # esquivas perfectas.
+Maestría # / #
+Sin anuncios, todos los héroes desbloqueados ya, # fragmentos de alma y # de oro. La forma de apoyar el juego.
+Abre # cofres.
+Alza su escudo: todos los enemigos cercanos se vuelven contra él durante # s, golpeados por el impacto, mientras él recibe menos daño.
+Alza su escudo: todos los enemigos cercanos se vuelven contra él durante # s, golpeados por el impacto, mientras él recibe menos daño. Cada # s.
+Alcanza el nivel #
+Alcanza la oleada # en la supervivencia sin fin.
+Habilidades se recargan un #% más rápido
+Las habilidades se recargan un #% más rápido.
+Fortalecer
+# fragmentos
+Recibe un #% menos de daño.
+El Último Aliento de Furia se abre al #% de vida.
+El herrero de la Aguja vende cuatro piezas a la vez, renovadas tras cada victoria. Vende lo que no necesites por oro y mejora lo que ames (hasta +#).
+La luna se llena un #% más rápido.
+paso # de #
+Mejora un objeto a +#.
+Gana en menos de # segundos
+Tus cortes hacen un #% más de daño.
+✓ Nivel #
+#× (combates)
+Sin fin · oleada #
+Oleada #
+Vínculo
+prueba
+Como Vesper
+cambiar
+Fácil
+@737
+ATAQUE
+HABILIDADES AUTOMÁTICAS
+Contrarreloj: despéjalo en menos de # segundos
+Ya es tuyo.
+Ataca justo después de un impulso
+BARRILES
+PLAGA
+Barriles, cajas y vasijas se rompen. Rompe el barril de pólvora para volar a los cascarones de alrededor.
+Detrás de ti.
+Mejor
+Quiébralo
+Cruza la Puerta Negra
+LLAMADA DE LA PUERTA
+COMBO
+CRECIENTE
+Acaba con todos
+Haz clic (o J) para atacar. Sigue atacando y tus cortes se encadenan en un combo. Cuando tres o más te rodean, el mismo botón remata el combo con un golpe PESADO que los lanza a todos hacia atrás. Abate a los cuatro.
+Sube la Escalera Umbría
+Sube la Garganta del Viento
+Venga, pues.
+Cruza el Páramo de Ceniza
+Cruza el claustro helado
+Abate a #
+Corta justo después de un impulso para un CORTE EN IMPULSO. El caballero está expuesto: remátalo.
+Corta dos veces, en cruz
+IMPULSO
+NO MIRES ATRÁS
+DOBLE BAJA
+Derrota al Guardapuertas
+Derrota al Hambre
+Derrota al Ala Pálida
+Devora todo a su alrededor y te cura más
+Arrastra en cualquier punto de la mitad izquierda de la pantalla para caminar hasta el círculo brillante.
+Ocho lanzas, y una flor de escarcha donde caen
+Cada oleada la dirige una élite
+TORMENTA DE PLUMAS
+VUELVE HASTA ÉL LUCHANDO
+FLOR DE ESCARCHA
+PUERTA DESTRUIDA
+GUARDAPUERTAS
+Rendirse
+Hoja de Cristal: mitad de vida, doble de daño
+Otra vez
+SE ARRODILLA PARA MATAR
+ALZA SU ESPADA
+PESADO
+SUS MUERTOS SE ALZAN
+HAMBRE
+NO ES EL VIENTO
+Vuelve mañana.
+Llega solo: cuando tres o más te rodean, un escudo se interpone o un combo llega al final, tu ataque se vuelve un golpe pesado.
+Se une sola a tu combo cuando está lista: sigue atacando.
+Su marca sobre el ataque se vuelve dorada cuando está lista.
+Sigue atacando: llegarán las dos habilidades
+Sigue haciendo clic sin parar: cada corte se encadena con el siguiente. Haz una cadena de # golpes al poste.
+Sigue pulsando A sin parar: cada corte se encadena con el siguiente. Haz una cadena de # golpes al poste.
+Sigue tocando sin parar: cada corte se encadena con el siguiente. Haz una cadena de # golpes al poste.
+ESCUCHA AL VIENTO
+Idioma
+Aprendida
+Clic izquierdo (o J) para cortar. Apunta con el ratón. Abate a los dos cascarones de práctica.
+MASACRE
+ESPEJO DEL PRIMERO
+CAÍDA LUNAR
+Nivel máximo
+Sin luna: sin definitivo
+ANOCHECER
+NADIE CRUZA LA PUERTA NEGRA
+Cerca
+Lejos
+Sin anuncios ya es tuyo. ¡Gracias!
+Sin piedad: las bajas no te curan
+Yo no.
+Todavía no.
+UNA NOCHE
+avisos de ataque en azul y naranja
+sin congelaciones de impacto ni destellos blancos
+Con una basta.
+Abrir Almas
+Abre la puerta.
+Tuyo
+Pega tu código de partida de Vesper
+Esquivas perfectas
+Pulsa A justo después de un impulso (B) para un CORTE EN IMPULSO. El caballero está expuesto: remátalo.
+Pulsa A para atacar. Sigue pulsando y tus cortes se encadenan en un combo. Cuando tres o más te rodean, el mismo botón remata el combo con un golpe PESADO que los lanza a todos hacia atrás. Abate a los cuatro.
+Pulsa A para cortar (apunta con el stick derecho). Abate a los dos cascarones de práctica.
+Pulsa otra vez para borrar tu subida
+Opciones de privacidad actualizadas.
+Las opciones de privacidad no están disponibles ahora.
+Las compras no están disponibles aquí.
+CUÁDRUPLE BAJA
+FURIA
+ALCANZA LA LUZ
+Llega a la cima de la Aguja
+Clic derecho
+Levantarse
+¿Levantarse?
+Arrollar
+SETECIENTOS AÑOS
+CORTE DE SOMBRAS
+DESPERTÓ SIN NADA MÁS QUE SU HOJA
+SEIS GUARDIANES
+Partida cargada: nivel #.
+Eso no es una partida de Vesper.
+Setecientos años... y envían una sola hoja.
+Rompealbas
+La Última Brasa
+Manto de la Puerta
+Sudario de Ceniza
+La Corona Hueca
+Lágrima de la Luna
+Colmillo de Hrolf
+Saltar
+Rompe el barril de pólvora
+Espacio
+Vuelve a levantarte con media vida, una vez en este combate.
+Salta a una segunda víctima
+TOCA LA LUNA
+EL CLAUSTRO HELADO
+LA HORDA
+EL ÚLTIMO CORTE
+EL ARTE LUNAR
+LA LUNA DEVOLVIÓ LA NOCHE AL ANOCHECER
+MURIERON JUNTOS
+DESPIERTAN JUNTOS
+ESTO ACABA ESTA NOCHE
+TRIPLE BAJA
+Toca CORTAR para atacar. Sigue tocando y tus cortes se encadenan en un combo. Cuando tres o más te rodean, el mismo botón remata el combo con un golpe PESADO que los lanza a todos hacia atrás. Abate a los cuatro.
+Toca IMPULSO
+Toca el botón grande de la espada para cortar. Abate a los dos cascarones de práctica.
+Toca la espada justo después de un impulso para un CORTE EN IMPULSO. El caballero está expuesto: remátalo.
+Modo de prueba: el formulario de consentimiento aparece en la app de la tienda.
+El Caballero Instructor golpea despacio. Cuando el anillo ROJO brille bajo él, pulsa B para atravesar el golpe con un impulso. Esquiva # golpes.
+El Caballero Instructor golpea despacio. Cuando el anillo ROJO brille bajo él, pulsa ESPACIO para atravesar el golpe con un impulso. Esquiva # golpes.
+El Caballero Instructor golpea despacio. Cuando el anillo ROJO brille bajo él, toca IMPULSO para atravesar el golpe. Esquiva # golpes.
+La Horda: oleada tras oleada tras oleada
+Los muertos llegan por todos lados. Atraviesa sus golpes con impulsos y abátelos. Acaba con todos.
+Los muertos de la última hora se interponen entre tú y él. Sigue atacando, atraviesa los golpes rojos y deja que lleguen el golpe pesado y tus habilidades. Abate a #.
+Los ecos
+El botón de la primera habilidad:
+El botón de la luna cuando
+La luna está llena. Aprieta un gatillo: tu definitivo lo golpea esté donde esté.
+La luna está llena. Toca la luna: tu definitivo lo golpea esté donde esté.
+El juramento también aturde a los muertos a su alrededor
+El botón de la segunda habilidad:
+El viento se lo lleva todo.
+Luego abre Habilidades: tienes un punto de habilidad
+Tres vendavales que duran más
+Demasiado lenta.
+Vuelve atrás, pequeña hoja.
+Vuelve atrás.
+Giros de hoy
+Desconocido
+Intocable: un solo golpe y caes
+Usa el stick izquierdo para caminar hasta el círculo brillante.
+Usa el arte lunar
+Métete en el grupo y sigue haciendo clic. Cuando tres o más te rodean, tu combo se vuelve solo un golpe PESADO que los lanza a todos hacia atrás.
+Métete en el grupo y sigue pulsando A. Cuando tres o más te rodean, tu combo se vuelve solo un golpe PESADO que los lanza a todos hacia atrás.
+Métete en el grupo y sigue tocando CORTAR. Cuando tres o más te rodean, tu combo se vuelve solo un golpe PESADO que los lanza a todos hacia atrás.
+Somos dos hojas.
+Despertaste sin nada: sin habilidades, sin arte lunar, solo tu hoja y el impulso. Los muertos vienen. Vuelve hasta él luchando.
+Liberada por El Guardapuertas
+Liberada por Los Gemelos Huecos
+Liberada por El Umbrío
+Liberada por El Hambre
+Liberada por El Ala Pálida
+Vuelve a subir con todo lo que has ganado. Los enemigos son mucho más fuertes; su equipo, mucho mejor.
+Requiere
+La última hora
+Pulsa otra vez para empezar
+Listo
+@908
+LLEGA UN CAMPEÓN
+LLEGA UN GUARDIÁN
+BLOQUEO
+ROTURA
+CONTRAATAQUE
+CORTE EN IMPULSO
+ÉLITE ABATIDA
+REMATE
+CRUZA EL PORTAL
+GUARDIA ROTA
+VIENEN MÁS
+SE ACABÓ EL TIEMPO
+PERFECTO
+REFUERZOS
+RÉPLICA
+LAS PUERTAS SE ABREN
+LOS ÚLTIMOS
+EL CAMINO SE ABRE
+SIGUEN LLEGANDO
+MURO

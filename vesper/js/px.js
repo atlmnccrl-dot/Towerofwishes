@@ -33,7 +33,7 @@
   };
   P.wrap = function (ctx, s, size, maxW) {
     ctx.font = P.font(size); const out = []; let cur = '';
-    for (const w of s.split(' ')) { const t = cur ? cur + ' ' + w : w; if (ctx.measureText(t).width > maxW && cur) { out.push(cur); cur = w; } else cur = t; }
+    for (const w of (VS.I18N ? VS.I18N.t(s) : s).split(' ')) { const t = cur ? cur + ' ' + w : w; if (ctx.measureText(t).width > maxW && cur) { out.push(cur); cur = w; } else cur = t; }
     if (cur) out.push(cur); return out;
   };
   P.disc = function (ctx, cx, cy, r, col) {

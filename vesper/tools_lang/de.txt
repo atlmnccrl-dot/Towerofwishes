@@ -1,0 +1,945 @@
+@0
+ZIEL
+BESIEGE JEDE WELLE
+DER ERSTE SCHNITT
+DER KÖNIGSMÖRDER
+BESIEGE DEN ERSTEN SCHNITT
+BESTEHE DIE PRÜFUNG
+NEU
+SCHWERER HIEB
+TIPPEN ZUM FORTFAHREN
+ESC ÜBERSPRINGT
+MORGENGRAUEN
+AUSHEBELN
+WO SIE ERWACHTE
+DER HEXERCHOR
+DER UMBRALE
+SCHILDSCHWUR
+Du triffst die Wunde mit allem, was du hast.
+AUTO
+Dreh dein Handy quer.
+The Bleeding Moon wird im Querformat gespielt.
+DIE LETZTE STUNDE
+VOR SIEBENHUNDERT JAHREN
+LETZTES AUFBÄUMEN
+DRÜCKE E
+SICHELWELLE
+PHANTOMSCHRITT
+Die Bleiche Schwinge
+FÜNF KÖNIGREICHE
+Er wartet auf der Spitze der Nadel.
+Der Schatten des Mondes
+Akt VI
+Die Letzte Stunde
+DANKE FÜRS SPIELEN
+TIPPEN ZUM WEITERSPRINGEN
+Blutstiege
+DER DAMMWEG
+THE BLEEDING MOON
+Zurück
+Der Umbrale
+Knie nieder.
+Ausrüstung
+VOR SIEBENHUNDERT JAHREN FIELEN FÜNF KÖNIGE.
+Der Erste Schnitt
+Der Hunger
+Die Hohlen Zwillinge
+Der Torwächter
+Die Toten erhoben sich. Und seit jener Nacht blutet der Mond.
+Wo Sie Erwachte
+Der Königsmörder
+@49
+Fünfter Schnitt
+Schmied
+Fähigkeiten
+Modi
+Das Schwarze Tor
+Kreuzgang des Frosts
+Die Aschenöde
+Der Windschlund
+DER KÖNIG DES SCHWARZEN TORS
+Aus
+Menü
+Gegner
+Ziele
+Beende mit mehr als halber Gesundheit
+Schildträger
+Akt I
+Dämmerung
+Die Umbrale Stiege
+Geschärfte Schneide
+Zweites Herz
+Eisenhaut
+Mondblut
+Roter Durst
+Deine Kombo erhält einen fünften, schwereren Schnitt.
+Geisterschritt
+Konterschnitt
+Letzter Atem
+Steigender Mond
+DER FROSTKÖNIG
+DER KÖNIG UNTER DER STIEGE
+DER ASCHENKÖNIG
+DER STURMKÖNIG
+Theater
+Seelen
+Gabe des Mondes
+Akt V
+Die Vierte Stunde
+Akt IV
+Die Dritte Stunde
+Akt II
+Die Erste Stunde
+HUNDERT SCHNITTE
+Die Vergoldete Heilige
+Wähle einen Gegenstand.
+An
+Zeit
+Beste Kombo
+Kills
+Schaden des Eidgebundenen
+Der Eidgebundene
+@99
+Schwerer Angriff
+Scharfe Klinge
+Henker
+Ausweichen
+Zweiter Wind
+Drittes Herz
+Erste Fähigkeit
+Mondkunst
+Zweite Fähigkeit
+Flinke Hände
+Unberührbar
+Legendär
+Abgenutzte Eisenklinge
+Normal
+DIE SPITZE DER NADEL
+Weiter
+Gewinne den Kampf
+The Bleeding Moon
+Prüfung
+Dämmerung. Kämpfe dich die Nadel wieder hinauf
+Ghul
+Blutschale
+Schatten
+Klinge
+Der Hexerchor
+Erstes Blut
+Gewinne deinen ersten Kampf.
+Durch das Tor
+Besiege den Torwächter.
+Beide Hälften
+Besiege die Hohlen Zwillinge.
+Licht im Dunkel
+Besiege den Umbralen.
+Satt
+Besiege den Hunger.
+Geerdet
+Besiege die Schwinge.
+Hundert Schnitte
+Tausend Schnitte
+Besiege einen Wächter, ohne getroffen zu werden.
+Sternbild
+Finde einen legendären Gegenstand.
+Tiefe Taschen
+Einstellungen
+Akt III
+Die Zweite Stunde
+Gesperrt
+Passiv
+✓ Schwerer Angriff
+HIMMELSSPEER
+Leer
+@150
+Die Schmiede
+Waren
+Käufe wiederherstellen
+Vernichte die Toten
+Eine Ritterin mit roter Kapuze. Kombos, Sprints und der Mond selbst.
+Sichelwelle
+Phantomschritt
+Die Blütenhexe
+Kämpft aus der Ferne mit Blitzen, Frost und Fäulnis. Zerbrechlich im Nahkampf.
+Fäulnisblüte
+Blütensprung
+Die Sturmlanzerin
+Große Reichweite und Blitze. Kettenblitze durch die Menge, Donner vom Himmel.
+Kettenblitz
+Donnersturz
+Der Schatten
+Schnell und zerbrechlich. Messerfächer, Schattenklone, blendender Rauch.
+Schattenklone
+Rauchschleier
+Die Frostklinge
+Schnelle Zwillingsklingen, die erstarren lassen. Frostfelder, Eissprints, alles um sie herum wird langsamer.
+Frostfeld
+Gletscherschritt
+Der Morgenschild
+Langsam und unzerbrechlich. Schwere Streitkolbenhiebe, heiliger Boden und Urteil vom Himmel.
+Heiliger Boden
+Urteil
+Der Aschenmönch
+Schnell, nah und unerbittlich. Schlagketten, eine brennende Handfläche, ein Schritt durchs Feuer.
+Brennende Handfläche
+Schritt durchs Feuer
+Der Knappe, der das Tor hielt
+Zieht die Toten auf seinen Schild und hält sie dort fest.
+Schildschwur
+Hüter des Schwarzen Tors
+Der hinter dir geht
+Er frisst das Licht
+Schlund des Windes
+Duellant der Wunde
+Bluthexer
+Hiebe und Schaden
+Ausweichen und Ausdauer
+Mond
+Fähigkeiten und Ultimate
+Besiege den Ersten Schnitt
+Die Stufen sind nass und rot
+Kampf
+Wächter
+Schaden
+Gesundheit
+Rüstung
+Mond
+Geschichte
+Nochmal
+DIE ERSTE STUNDE
+@205
+DIE ZWEITE STUNDE
+DIE DRITTE STUNDE
+DIE VIERTE STUNDE
+Fünf Könige. Fünf Seelen.
+Mit ihren Seelen wirkte er den Zauber, der jedes Grab erweckt.
+NACH DEM MORGENGRAUEN
+einmalig
+Keine Werbung
+Nie wieder Werbung zwischen Kämpfen. Wiederaufstehen, doppelte Belohnungen und die Gabe des Mondes gibt es sofort, ohne Werbung.
+Mondklingen-Edition
+Beutel voller Splitter
+Truhe voller Splitter
+Hort voller Splitter
+Geldbeutel
+Goldtresor
+Sieg
+Doppelte Belohnungen
+Werbung ansehen
+Nochmal kämpfen
+Du bist gefallen
+„Dann fall nach vorn.“
+Du hast Fähigkeitspunkte übrig. Neue Fähigkeiten machen einen großen Unterschied.
+Nochmal versuchen
+Fähigkeitenbaum
+Zurück zur Karte
+Die Linke Hand und die Rechte
+Hohler Zwilling
+Nach einem perfekten Ausweichen verursacht dein nächster Schnitt dreifachen Schaden.
+Beginne jeden Kampf mit halbvollem Mond.
+Die Lange Nacht
+BLEEDING
+MOON
+Neues Spiel
+Den Aufstieg neu beginnen
+Jede Zwischensequenz und Mondkunst
+Mitwirkende
+Kämpfen
+Besiege den Wächter
+Besiege den Wächter, ohne getroffen zu werden
+Fähigkeitspunkt
+Schaltet Den Ersten Schnitt frei
+Schließe zuerst eine Insel weiter unten ab.
+Fähigkeitspunkte übrig
+Alles erstatten
+Zurück zur Karte
+Wer steigt heute Nacht auf?
+Die Mondklinge
+Schwert
+ROTER MOND
+@254
+Steigt gerade auf
+Zauber
+TAUSEND BLÜTEN
+Speer
+Dolche
+Fäuste
+Streitkolben und Schild
+Zwillingsklingen
+Gebundene Seelen
+Seelensplitter
+aus jedem Kampf
+An ihrer Seite
+Befreit durch den Ersten Schnitt
+Wache
+Irrlicht
+Gebunden
+Aufgestiegen
+Seine erste Stärke
+Der Schwur betäubt auch die Toten um ihn herum. Seine Signatur kommt schneller.
+Bestes ausrüsten
+Ausgerüstet
+Waffe
+ausgerüstet
+Rüstung
+Talisman
+Witwenmond
+Testmodus
+es wird kein Geld abgebucht
+Laden
+Bestes Angebot
+Die Preise enthalten Steuern, wo dein Store es verlangt. Käufe sind an dein Store-Konto gebunden und lassen sich auf einem neuen Gerät wiederherstellen.
+Jenseits des Aufstiegs
+Endlos
+Welle um Welle auf einer Karte aus deinen zwei höchsten Akten. Jede fünfte Welle ein Champion, jede zehnte ein Wächter. Gold und Erfahrung für jede Welle, alle fünf ein Gegenstand.
+Tägliche Herausforderung
+Täglich
+Die Aschenöde. Keine Mondkunst. Keine Heilung durch Kills. Gewinne heute einmal für Gold und einen seltenen Gegenstand.
+Erfolge
+Taten des Aufstiegs: Wächter, Kombos, perfektes Ausweichen, Schätze, die lange Nacht.
+Neues Spiel+
+Besiege zuerst den Ersten Schnitt
+Spiel
+Schwierigkeit
+Automatischer Kampf
+Story-Szenen
+Abspielen
+Jede Zwischensequenz und Mondkunst ansehen
+Anzeige
+Kamera
+Textgröße
+Schadenszahlen
+@305
+Bildschirmwackeln
+Blitze reduzieren
+Farbsichere Hinweise
+Ton
+Musik
+Soundeffekte
+Vibration
+unterstützte Handys
+Käufe
+Keine Werbung
+Auf einem neuen Gerät oder nach Neuinstallation
+Datenschutzoptionen
+Werbeeinwilligung und Tracking
+Entwicklerwerkzeuge
+Dem Bot zusehen
+Der Bot spielt die Kampagne allein. Drücke eine Taste oder tippe zum Beenden
+Tempo
+Spielstand
+Spielstand exportieren
+Datei herunterladen und Code kopieren
+Spielstand importieren
+Spielstanddatei laden
+Fortschritt zurücksetzen
+Löscht Stufen, Fähigkeiten, Ausrüstung und die Karte
+Spielstände liegen in diesem Browser: Exportiere einen, um ihn zu sichern oder auf ein anderes Gerät zu bringen.
+Ein Controller funktioniert überall: A schneiden, X schwer, B Sprint, LB/RB Fähigkeiten, Trigger Mondkunst.
+Die Eröffnung
+Der Erste Schnitt tötet fünf Könige
+Akt VII
+Echos der Nacht
+Die letzte Stunde: sein einziger Hieb
+Der Erste Schnitt streckt sie nieder
+Der Mond erhebt sie
+Die Nacht wurde wieder zur Dämmerung
+Das Ende
+Morgengrauen
+Wächter
+Mondkünste
+Vesper
+Letztes Aufbäumen
+Ihre Mondkunst bei einem Viertel Gesundheit
+Roter Mond
+Ihre Mondkunst bei voller Gesundheit
+Lys
+Mondkunst
+@350
+Kestrel
+Rime
+Halden
+Ember
+Hier läuft alles, ob du es erreicht hast oder nicht. Ein Tippen (oder Esc) beendet die Szene und bringt dich zurück.
+PRÜFUNG
+BEWEGEN
+Benutze WASD (oder die Pfeiltasten), um zum leuchtenden Kreis zu gehen.
+Los
+DER RING
+DER HOF
+DIE BRÜCKE
+DIE GRUBE
+DIE KREUZUNG
+Langschwert
+Der Schwertkämpfer selbst. Lange, schwere Schnitte und die Mondkunst, die er erfand.
+Mondspalter
+Sieben Jahrhunderte
+Brecher
+Langsame, schwere Hiebe, die Deckung und Standfestigkeit brechen.
+Erdspalter
+Schlägt auf den Boden: Ringe aus Stein brechen um ihn herum hervor, einer nach dem anderen.
+Frost
+Frostklingen, die alles verlangsamen, was sie berühren.
+Eislanzenregen
+Assassine
+Tritt durch den Schatten hinter den Schwächsten und streckt ihn nieder.
+Schattenschritt
+Verschwindet und taucht hinter dem schwächsten Gegner in deiner Nähe auf, schneidet ihn dreimal und erledigt die Sterbenden.
+Blutegel
+Nährt sich von den Toten und gibt dir das Leben.
+Verschlingen
+Springt auf einen Gegner und zerfetzt ihn, und das Leben, das er nimmt, heilt dich.
+Sturm
+Hält Abstand und lässt den Wind auf sie los.
+Bö
+Entfesselt Böen, die die Toten über den Boden jagen.
+Die Klinge, die fünf Könige erschlug, kämpft nun für dich.
+Ein langer Schnitt über den Boden durch den nächsten Gegner.
+Übungsschale
+Übungspfahl
+Ausbilderritter
+Grabschläger
+Torplünderer
+Plündererhäuptling
+Knochenbollwerk
+@396
+Knochenpikenier
+Wache des Schwarzen Tors
+Frostakolyth
+Frostseher
+Kreuzgangritter
+Spiegelduellant
+Frostpike
+Umbraler Geist
+Violetter Schemen
+Halsabschneider
+Stiegenhexer
+Schattenbollwerk
+Aschenhund
+Knochenwidder
+Glutmagier
+Aschenhexer
+Aschenverwüster
+Schlundwaldläufer
+Böenschütze
+Windmönch
+Sturmfaust
+Kammpikenier
+Böenharpyie
+Paladin der Wunde
+Ritter der Wunde
+Blutgeist
+Knecht
+Knochenwache
+Fäulnismagier
+Pirscher
+Torspeerträger
+Erhobener Toter
+Sonnenwächter
+Dünenplünderer
+Sandkobold
+Dünenschläger
+Hrolf der Torbrecher
+Champion der Plünderer
+Der Knochenhauptmann
+Der die Toten drillt
+Mutter Raureif
+Äbtissin des Gefrorenen Kreuzgangs
+Säbel des Kreuzgangs
+Unbesiegt seit sieben Jahrhunderten
+@440
+Der Hohle Bischof
+Hirte der Stiege
+Witwe der Nacht
+Der Geist, der wartet
+Der Aaskönig
+Herr der Aschenrudel
+Die Aschenmutter
+Die Entfachende
+Der Jagdmeister
+Erster Bogen des Schlunds
+Großmeister Bö
+Der Sturm, der geht
+Herr der Wunde
+Erster Ritter des Mondes
+Die Letzte Heilige
+Die zur Wunde betet
+Gespenst
+Nachtmesser
+Goldene Knochen
+Knochenplünderer
+Knochenspeerträger
+Knochenschütze
+Hexer
+Golem
+Scheiterhaufenpriester
+Wilderer
+die Linke Hand
+die Rechte Hand
+Risstor
+Kommt von selbst aus deiner Kombo: Wenn dich drei oder mehr bedrängen, ein Schild im Weg ist oder eine Kombo voll durchläuft, wird dein Angriff zu einem schweren Hieb, der rundum trifft und Schilde bricht.
+Leertaste: Sprinte durch die Gefahr, einen Moment unberührbar. Schneide direkt danach für einen Sprintschnitt.
+Die erste Fähigkeit deines Helden. Sie fügt sich von selbst in deine Kombo ein, sobald sie bereit ist.
+E bei vollem Mond: das Ultimate deines Helden, ein filmreifer Schlag.
+Die zweite Fähigkeit deines Helden. Sie fügt sich von selbst in deine Kombo ein, sobald sie bereit ist.
+Dein erster Held
+Besiege den Umbralen
+Besiege einen Wächter, ohne einen einzigen Treffer einzustecken
+Besiege die Hohlen Zwillinge
+Der Äußere Hof
+Die Toten regen sich im Hof
+Ghulgruben
+Wo die Erhobenen herauskriechen
+Schrein der Dämmerung
+Der Plündererhauptmann
+Ein Hauptmann führt noch seine Toten
+Schützen auf der Mauer
+Pfeile von den Zinnen
+Halte das Tor
+Bevor sich das Tor schließt
+Die Torbrücke
+Ein einziger schmaler Weg hinüber
+@491
+Gefrorene Stufen
+Eis auf altem Blut
+Halle der Messer
+Klingen im Dunkel
+Schrein des Frosts
+Ihre Hymne ist ein Fluch
+Das Echo des Torwächters. Lass dich nicht treffen.
+Gläserne Klinge
+Schlag zuerst, schlag hart
+Der Glockenturm
+Die Glocken läuten noch für sie
+Speere im Schnee
+Ein Schildwall der Toten
+Frostgebundener Golem
+Stein, der geht
+Der Erste Absatz
+Hier endet das Licht
+Knochengalerie
+Skelette zu Tausenden
+Schrein des Schattens
+Der Wildererkönig
+Er jagt, was aufsteigt
+Stiege der Echos
+Schritte, die nicht deine sind
+Mondlos
+Der Mond ist verborgen. Kämpfe ohne ihn.
+Finsternishorde
+Sie strömen die Stiege herab
+Die Schwarze Kapelle
+Gebete an das Nichts
+Zwillingsgolems
+Zwei davon, Rücken an Rücken
+Glutstraße
+Asche bis zu den Knöcheln
+Scheiterhaufenherren
+Sie brennen und sterben nicht
+Aschengräber
+Jedes Grab ist offen
+Schrein der Glut
+Keine Gnade
+Nichts hier wird dich heilen
+Das Brennende Feld
+Feuer auf allen Seiten
+Die Gespenstermutter
+Ihre Brut folgt ihr
+Aschensturm
+Durch den Sturm, bevor er dich begräbt
+Rand der Öde
+Etwas ist hungrig
+@540
+Böenstufen
+Der Wind will dich von der Nadel
+Jägerkamm
+Schlingen auf dem Kamm
+Schrein des Windes
+Die Sturmreiter
+Sie reiten die Bö
+Elite-Spießrutenlauf
+Die Stärksten, einer nach dem anderen
+Der Schmale Pfad
+Ein Sims über dem Nichts
+Gläserner Sturm
+Zerbrechlich wie die Luft
+Die Letzte Wacht
+Sie haben nie jemanden durchgelassen
+Ritter der Wunde
+Dem Schnitt verschworen
+Schrein des Mondes
+Halte stand, bis sie aufhören zu kommen
+Thronsaal
+Ein leerer Thron unter dem Mond
+Letztes Licht
+Das Morgengrauen wartet nicht
+Die Wache der Wunde
+Die letzten seiner Ritter
+Unter dem Mond
+Nah genug, um ihn zu berühren
+Echo: Der Torwächter
+Echo: Die Hohlen Zwillinge
+Echo: Der Umbrale
+Gläsernes Echo
+Alles, was du gelernt hast, doppelt so scharf
+Echo: Der Hunger
+Echo: Die Bleiche Schwinge
+Echo: Der Erste Schnitt
+Der sauberste Schnitt von allen. Lass dich nicht treffen.
+Die Endlose Nacht
+Der letzte und längste Kampf
+Elite
+Herausforderung
+Schrein
+Echo
+Gewöhnlich
+Magisch
+Selten
+Lebensraub
+Abklingzeit
+Ausweichen
+Parieren
+Heilung durch Kills
+Goldfund
+Gegner schlagen sanfter und fallen schneller. Für die Geschichte.
+Der Aufstieg, wie er gemacht wurde.
+Schwer
+@594
+Zähere Gegner, härtere Hiebe. Ein Viertel mehr Gold und Erfahrung.
+Albtraum
+Jede Welle wird von einer Elite angeführt. Anderthalbfache Belohnungen.
+Vor dem Morgengrauen
+Besiege den Ersten Schnitt und sieh das Ende.
+Ungebrochen
+Geist
+Phantom
+Volle Truppe
+Schalte jeden Helden frei.
+Schmiedemeister
+Schatzjäger
+Die Linie halten
+Jede Nacht
+Gewinne eine tägliche Herausforderung.
+Eine Woche voller Nächte
+Gewinne sieben tägliche Herausforderungen.
+Beginne ein Neues Spiel+.
+Abgehärtet
+Besiege einen Wächter auf Schwer oder Albtraum.
+Meisterschaft
+Ein Schwertkämpfer
+FÜNF KÖNIGE FIELEN
+Mit den Seelen von fünf Königen wirkte er den Zauber, der jedes Grab erweckt.
+DER ROTE MOND
+Seit jener Nacht blutet der Mond. In seinem Licht erheben sich seine Toten.
+HEUTE NACHT
+DER MOND BLUTET AUS
+Im Morgengrauen nehmen seine Toten alles.
+Nur deine Klinge kann ihn aufhalten, auf der Spitze der Nadel.
+SECHS STUNDEN BIS ZUM MORGENGRAUEN
+Sechs Wächter stehen zwischen dir und der Spitze.
+Der Torwächter hält das Schwarze Tor. Komm an ihm vorbei.
+FÜNF STUNDEN BIS ZUM MORGENGRAUEN
+Das Tor ist offen. Der Aufstieg beginnt.
+Frost hat den alten Kreuzgang versiegelt.
+Die Hohlen Zwillinge bewachen ihn. Zwei Klingen, ein Wille.
+VIER STUNDEN BIS ZUM MORGENGRAUEN
+Höher. Die Luft wird dunkel.
+Die Umbrale Stiege windet sich durch völlige Finsternis.
+Der Umbrale versteckt sich in deinem eigenen Schatten. Pass auf deinen Rücken auf.
+DREI STUNDEN BIS ZUM MORGENGRAUEN
+Auf halbem Weg. Der Mond blutet schneller.
+Nichts lebt in der Aschenöde.
+Nur der Hunger, der das Licht selbst frisst.
+ZWEI STUNDEN BIS ZUM MORGENGRAUEN
+Nahe der Spitze wird der Wind zu Klingen.
+Der Windschlund: ein schmaler Pfad in den Sturm.
+@642
+Die Bleiche Schwinge beherrscht den Sturm. Sie hat nie jemanden durchgelassen.
+Die Spitze der Nadel. Jemand wartet.
+Derselbe Schwertkämpfer. Siebenhundert Jahre alt, und lebendig.
+Die Wunde hält ihn am Leben. Er lässt dich sie nicht schließen.
+Ein Schwertkämpfer zog von Königreich zu Königreich und streckte jeden König nieder.
+ECHOS DER NACHT
+Die Wächter sind fort, aber ihre Echos wandeln noch durch die Nadel.
+Die Wunde schließt sich. Der Mond wird weiß und steigt. Die Nacht ist vorbei.
+Startpaket
+Geh zum leuchtenden Kreis
+# / # EP
+# FP
+# Gold
+# Gold für den Schmied.
+# Gold.
+Noch einmal # mehr Gesundheit.
+# mehr Gesundheit.
+# von #
+# von # befreit
+# von # Helden
+# Fähigkeitspunkte übrig
+# Seelensplitter, um deine gebundenen Seelen wachsen zu lassen.
+# Seelensplitter.
++# EP
++# Gold, +# Splitter
++# Gesundheit, und du wirst vollständig geheilt.
++# weitere
++#% Rüstung
++#% Rüstung für sie, solange er an ihrer Seite ist.
++#% Schaden
++#% Gesundheit
++#% Lebensraub
++#% Mondgewinn
++# Gesundheit
+-#% erlittener Schaden
+-#% Abklingzeit der Fähigkeiten
++#% Ausweichdistanz
++#% Parierfenster
++#% Heilung durch Kills
++#% gefundenes Gold
+#% Lebensraub
+Ein perfektes Ausweichen heilt # Gesundheit.
+BEREICH # / #
+St. #
+Stufe #
+Stufe #
+Stufe # / #
+St. #
+Irrlicht #
+Bestzeit #s
+Beste Welle #
+Tasche
+Bringe einen Helden auf Meisterschaft #.
+Verursache nochmals #% mehr Schaden.
+Verursache #% mehr Schaden an Gegnern unter einem Viertel Gesundheit.
+@697
+Verursache #% mehr Schaden.
+Besiege # Gegner.
+Sammle # Sterne
+Sammle # Sterne.
+Für den ersten Aufstieg: # Gold, # Seelensplitter und eine seltene Waffe. Nur einmal.
+Heile dich um #% des Schadens, den du verursachst.
+Besitze # Gold.
+Schaffe eine #er-Kombo
+Schaffe eine #er-Kombo.
+Lernen
+Ultimates bei niedriger Gesundheit öffnen sich bei #% statt #%.
+Weiche # Mal perfekt aus.
+Meisterschaft # / #
+Keine Werbung, alle Helden sofort freigeschaltet, # Seelensplitter und # Gold. So unterstützt du das Spiel.
+Öffne # Truhen.
+Hebt seinen Schild: Alle Gegner in der Nähe wenden sich # s lang gegen ihn, getroffen vom Stoß, während er weniger Schaden nimmt.
+Hebt seinen Schild: Alle Gegner in der Nähe wenden sich # s lang gegen ihn, getroffen vom Stoß, während er weniger Schaden nimmt. Alle # s.
+Erreiche Stufe #
+Erreiche Welle # im endlosen Überleben.
+Fähigkeiten laden #% schneller
+Fähigkeiten laden #% schneller.
+Stärken
+# Splitter
+Nimm #% weniger Schaden.
+Das Letzte Aufbäumen öffnet sich bei #% Gesundheit.
+Der Schmied der Nadel verkauft vier Stücke auf einmal, frisch nach jedem Sieg. Verkaufe, was du nicht brauchst, für Gold und verbessere, was du liebst (bis +#).
+Der Mond füllt sich #% schneller.
+Schritt # von #
+Verbessere einen Gegenstand auf +#.
+Gewinne in unter # Sekunden
+Deine Schnitte verursachen #% mehr Schaden.
+✓ Stufe #
+#× (Kämpfe)
+Endlos · Welle #
+Welle #
+Bund
+Test
+Als Vesper
+ändern
+Leicht
+@737
+ANGRIFF
+AUTO-FÄHIGKEITEN
+Gegen die Uhr: schaffe es in unter # Sekunden
+Gehört dir schon.
+Greif direkt nach einem Sprint an
+FÄSSER
+FÄULNIS
+Fässer, Kisten und Töpfe zerbrechen. Zerschlag das Pulverfass, um die Schalen ringsum zu sprengen.
+Hinter dir.
+Bestwert
+Brich ihn
+Durchbrich das Schwarze Tor
+RUF DES TORS
+KOMBO
+SICHEL
+Vernichte sie alle
+Klicke (oder J) zum Angreifen. Greif weiter an, und deine Schnitte verketten sich zu einer Kombo. Wenn dich drei oder mehr bedrängen, beendet dieselbe Taste die Kombo mit einem SCHWEREN Hieb, der alle zurückwirft. Streck alle vier nieder.
+Ersteige die Umbrale Stiege
+Ersteige den Windschlund
+Na komm schon.
+Durchquere die Aschenöde
+Durchquere den gefrorenen Kreuzgang
+Streck # nieder
+Schneide direkt nach einem Sprint für einen SPRINTSCHNITT. Der Ritter ist ungedeckt: erledige ihn.
+Schneidet zweimal, über Kreuz
+SPRINT
+SIEH NICHT HINTER DICH
+DOPPELKILL
+Besiege den Torwächter
+Besiege den Hunger
+Besiege die Bleiche Schwinge
+Verschlingt alles um sich herum und heilt dich stärker
+Ziehe irgendwo auf der linken Bildschirmhälfte, um zum leuchtenden Kreis zu gehen.
+Acht Lanzen, und eine Frostblüte, wo sie einschlagen
+Jede Welle wird von einer Elite angeführt
+FEDERSTURM
+KÄMPF DICH ZU IHM ZURÜCK
+FROSTBLÜTE
+TOR ZERSTÖRT
+TORWÄCHTER
+Aufgeben
+Gläserne Klinge: halbe Gesundheit, doppelter Schaden
+Nochmal
+ER KNIET, UM ZU TÖTEN
+ER HEBT SEIN SCHWERT
+SCHWER
+SEINE TOTEN ERHEBEN SICH
+HUNGER
+ES IST NICHT DER WIND
+Morgen wieder.
+Er kommt von selbst: Wenn dich drei oder mehr bedrängen, ein Schild im Weg ist oder eine Kombo voll durchläuft, wird dein Angriff zu einem schweren Hieb.
+Sie fügt sich von selbst in deine Kombo ein, sobald sie bereit ist: greif weiter an.
+Ihr Zeichen über dem Angriff wird golden, wenn sie bereit ist.
+Greif weiter an: beide Fähigkeiten kommen
+Klicke ohne Pause weiter: Jeder Schnitt kettet sich an den nächsten. Schaffe eine #er-Kette am Pfahl.
+Drücke ohne Pause weiter A: Jeder Schnitt kettet sich an den nächsten. Schaffe eine #er-Kette am Pfahl.
+Tippe ohne Pause weiter: Jeder Schnitt kettet sich an den nächsten. Schaffe eine #er-Kette am Pfahl.
+HÖR AUF DEN WIND
+Sprache
+Gelernt
+Linksklick (oder J) zum Schneiden. Ziele mit der Maus. Streck beide Übungsschalen nieder.
+MASSAKER
+SPIEGEL DES ERSTEN
+MONDSTURZ
+Höchststufe
+Mondlos: kein Ultimate
+NACHTEINBRUCH
+NIEMAND PASSIERT DAS SCHWARZE TOR
+Nah
+Fern
+Keine Werbung gehört dir schon. Danke!
+Keine Gnade: Kills heilen dich nicht
+Ich nicht.
+Noch nicht.
+EINE NACHT
+Angriffswarnungen in Blau und Orange
+keine Trefferstopps oder weißen Blitze
+Einer reicht.
+Seelen öffnen
+Öffne das Tor.
+Gekauft
+Füge deinen Vesper-Spielstandcode ein
+Perfektes Ausweichen
+Drücke A direkt nach einem Sprint (B) für einen SPRINTSCHNITT. Der Ritter ist ungedeckt: erledige ihn.
+Drücke A zum Angreifen. Drück weiter, und deine Schnitte verketten sich zu einer Kombo. Wenn dich drei oder mehr bedrängen, beendet dieselbe Taste die Kombo mit einem SCHWEREN Hieb, der alle zurückwirft. Streck alle vier nieder.
+Drücke A zum Schneiden (ziele mit dem rechten Stick). Streck beide Übungsschalen nieder.
+Erneut drücken, um deinen Aufstieg zu löschen
+Datenschutzeinstellungen aktualisiert.
+Datenschutzoptionen sind gerade nicht verfügbar.
+Käufe sind hier nicht verfügbar.
+VIERFACHKILL
+RASEREI
+ERREICHE DAS LICHT
+Erreiche die Spitze der Nadel
+Rechtsklick
+Wiederaufstehen
+Wiederaufstehen?
+Überrennen
+SIEBENHUNDERT JAHRE
+SCHATTENHOF
+SIE ERWACHTE MIT NICHTS ALS IHRER KLINGE
+SECHS WÄCHTER
+Spielstand geladen: Stufe #.
+Das ist kein Vesper-Spielstand.
+Siebenhundert Jahre... und sie schicken eine einzige Klinge.
+Morgenbrecher
+Die Letzte Glut
+Mantel des Tors
+Leichentuch aus Asche
+Die Hohle Krone
+Träne des Mondes
+Wolfszahn von Hrolf
+Überspringen
+Zerschlag das Pulverfass
+Leertaste
+Steh mit halber Gesundheit wieder auf, einmal in diesem Kampf.
+Springt auf ein zweites Opfer über
+TIPP AUF DEN MOND
+DER GEFRORENE KREUZGANG
+DIE HORDE
+DER LETZTE SCHNITT
+DIE MONDKUNST
+DER MOND MACHTE DIE NACHT WIEDER ZUR DÄMMERUNG
+SIE STARBEN ZUSAMMEN
+SIE ERWACHEN ZUSAMMEN
+HEUTE NACHT ENDET ES
+DREIFACHKILL
+Tippe auf SCHNEIDEN zum Angreifen. Tippe weiter, und deine Schnitte verketten sich zu einer Kombo. Wenn dich drei oder mehr bedrängen, beendet dieselbe Taste die Kombo mit einem SCHWEREN Hieb, der alle zurückwirft. Streck alle vier nieder.
+Tippe auf SPRINT
+Tippe auf die große Schwerttaste zum Schneiden. Streck beide Übungsschalen nieder.
+Tippe direkt nach einem Sprint auf das Schwert für einen SPRINTSCHNITT. Der Ritter ist ungedeckt: erledige ihn.
+Testmodus: Das Einwilligungsformular erscheint in der Store-App.
+Der Ausbilderritter schlägt langsam. Wenn der ROTE Ring unter ihm aufleuchtet, drücke B, um durch den Hieb zu sprinten. Weiche # Hieben aus.
+Der Ausbilderritter schlägt langsam. Wenn der ROTE Ring unter ihm aufleuchtet, drücke die LEERTASTE, um durch den Hieb zu sprinten. Weiche # Hieben aus.
+Der Ausbilderritter schlägt langsam. Wenn der ROTE Ring unter ihm aufleuchtet, tippe auf SPRINT, um durch den Hieb zu sprinten. Weiche # Hieben aus.
+Die Horde: Welle um Welle um Welle
+Die Toten kommen von allen Seiten. Sprinte durch ihre Hiebe und streck sie nieder. Vernichte sie alle.
+Die Toten der letzten Stunde stehen zwischen dir und ihm. Greif weiter an, sprinte durch die roten Hiebe und lass den schweren Hieb und deine Fähigkeiten kommen. Streck # nieder.
+Die Echos
+Die Taste der ersten Fähigkeit:
+Die Mondtaste, wenn
+Der Mond ist voll. Drück einen Trigger: Dein Ultimate trifft ihn, wo immer er steht.
+Der Mond ist voll. Tippe auf den Mond: Dein Ultimate trifft ihn, wo immer er steht.
+Der Schwur betäubt auch die Toten um ihn herum
+Die Taste der zweiten Fähigkeit:
+Der Wind nimmt alles.
+Dann öffne Fähigkeiten: Du hast einen Fähigkeitspunkt
+Drei Böen, die länger anhalten
+Zu langsam.
+Kehr um, kleine Klinge.
+Kehr um.
+Wendungen von heute
+Unbekannt
+Unberührbar: ein einziger Treffer und du fällst
+Benutze den linken Stick, um zum leuchtenden Kreis zu gehen.
+Benutze die Mondkunst
+Geh in die Gruppe und klicke weiter. Wenn dich drei oder mehr bedrängen, wird deine Kombo von selbst zu einem SCHWEREN Hieb, der alle zurückwirft.
+Geh in die Gruppe und drücke weiter A. Wenn dich drei oder mehr bedrängen, wird deine Kombo von selbst zu einem SCHWEREN Hieb, der alle zurückwirft.
+Geh in die Gruppe und tippe weiter auf SCHNEIDEN. Wenn dich drei oder mehr bedrängen, wird deine Kombo von selbst zu einem SCHWEREN Hieb, der alle zurückwirft.
+Wir sind zwei Klingen.
+Du bist mit nichts erwacht: keine Fähigkeiten, keine Mondkunst, nur deine Klinge und der Sprint. Die Toten kommen. Kämpf dich zu ihm zurück.
+Befreit durch den Torwächter
+Befreit durch die Hohlen Zwillinge
+Befreit durch den Umbralen
+Befreit durch den Hunger
+Befreit durch die Bleiche Schwinge
+Steig erneut auf, mit allem, was du verdient hast. Die Gegner sind weit stärker; ihre Ausrüstung weit besser.
+Benötigt
+Die letzte Stunde
+Erneut drücken zum Beginnen
+Bereit
+@908
+EIN CHAMPION NAHT
+EIN WÄCHTER NAHT
+BLOCK
+BRUCH
+KONTER
+SPRINTSCHNITT
+ELITE BESIEGT
+FINISHER
+DURCH DAS PORTAL
+DECKUNG GEBROCHEN
+ES KOMMEN MEHR
+ZEIT ABGELAUFEN
+PERFEKT
+VERSTÄRKUNG
+RIPOSTE
+DIE TORE ÖFFNEN SICH
+DIE LETZTEN
+DER WEG ÖFFNET SICH
+SIE KOMMEN WEITER
+MAUER

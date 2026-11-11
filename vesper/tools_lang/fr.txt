@@ -1,0 +1,945 @@
+@0
+OBJECTIF
+VIENS À BOUT DE CHAQUE VAGUE
+LA PREMIÈRE TAILLE
+LE TUEUR DE ROIS
+VAINCS LA PREMIÈRE TAILLE
+TERMINE L'ÉPREUVE
+NOUVEAU
+COUP LOURD
+TOUCHE POUR CONTINUER
+ÉCHAP PASSE
+AUBE
+PROJECTION
+LÀ OÙ ELLE S'ÉVEILLA
+LE CHŒUR DES SORCIERS
+L'OMBREUX
+SERMENT DU BOUCLIER
+Tu frappes la plaie de toutes tes forces.
+AUTO
+Tourne ton téléphone.
+The Bleeding Moon se joue à l'horizontale.
+LA DERNIÈRE HEURE
+IL Y A SEPT CENTS ANS
+DERNIER SURSAUT
+APPUIE SUR E
+VAGUE CROISSANTE
+PAS FANTÔME
+L'Aile Pâle
+CINQ ROYAUMES
+Il attend au sommet de la Flèche.
+L'Ombre de la Lune
+Acte VI
+La Dernière Heure
+MERCI D'AVOIR JOUÉ
+TOUCHE POUR AVANCER
+Escalier de Sang
+LA CHAUSSÉE
+THE BLEEDING MOON
+Retour
+L'Ombreux
+À genoux.
+Équipement
+IL Y A SEPT CENTS ANS, CINQ ROIS TOMBÈRENT.
+La Première Taille
+La Faim
+Les Jumeaux Creux
+Le Gardien de la Porte
+Les morts se levèrent. Et depuis cette nuit, la lune saigne.
+Là où Elle s'Éveilla
+Le Tueur de Rois
+@49
+Cinquième Taille
+Forgeron
+Compétences
+Modes
+La Porte Noire
+Cloître du Givre
+La Lande de Cendres
+La Gorge du Vent
+LE ROI DE LA PORTE NOIRE
+Non
+Menu
+Ennemis
+Objectifs
+Termine avec plus de la moitié de ta vie
+Porte-bouclier
+Acte I
+Crépuscule
+L'Escalier Ombreux
+Fil Aiguisé
+Second Cœur
+Peau de Fer
+Sang Lunaire
+Soif Rouge
+Ton combo gagne une cinquième taille, plus lourde.
+Pas Spectral
+Contre-taille
+Dernier Souffle
+Lune Montante
+LE ROI DU GIVRE
+LE ROI SOUS L'ESCALIER
+LE ROI DES CENDRES
+LE ROI DE LA TEMPÊTE
+Théâtre
+Âmes
+Don de la Lune
+Acte V
+La Quatrième Heure
+Acte IV
+La Troisième Heure
+Acte II
+La Première Heure
+CENT TAILLES
+La Sainte Dorée
+Choisis un objet.
+Oui
+Temps
+Meilleur combo
+Victimes
+Dégâts du Lié par Serment
+Le Lié par Serment
+@99
+Attaque Lourde
+Fil Tranchant
+Bourreau
+Esquive
+Second Souffle
+Troisième Cœur
+Première Compétence
+Art Lunaire
+Deuxième Compétence
+Mains Vives
+Intouchable
+Légendaire
+Lame de fer usée
+Normal
+LE SOMMET DE LA FLÈCHE
+Continuer
+Gagne le combat
+The Bleeding Moon
+Épreuve
+Crépuscule. Remonte la Flèche en combattant
+Goule
+Coquille de Sang
+Ombre
+Lame
+Le Chœur des Sorciers
+Premier Sang
+Gagne ton premier combat.
+Par la Porte
+Vaincs le Gardien de la Porte.
+Les Deux Moitiés
+Vaincs les Jumeaux Creux.
+Lumière dans le Noir
+Vaincs l'Ombreux.
+Rassasié
+Vaincs la Faim.
+Cloué au Sol
+Vaincs l'Aile.
+Cent Tailles
+Mille Tailles
+Vaincs un gardien sans être touchée.
+Constellation
+Trouve un objet légendaire.
+Poches Profondes
+Options
+Acte III
+La Deuxième Heure
+Verrouillé
+Passive
+✓ Attaque Lourde
+LANCE DU CIEL
+Vide
+@150
+La forge
+Marchandises
+Restaurer les achats
+Viens à bout des morts
+Une chevalière au capuchon rouge. Combos, ruées et la lune elle-même.
+Vague Croissante
+Pas Fantôme
+La Sorcière des Fleurs
+Combat à distance avec éclairs, givre et fléau. Fragile au corps à corps.
+Fleur du Fléau
+Saut de Pétales
+La Lancière de la Tempête
+Grande allonge et foudre. Enchaîne les éclairs dans la foule, fait tomber le tonnerre du ciel.
+Éclair en Chaîne
+Chute du Tonnerre
+L'Ombre
+Rapide et fragile. Éventails de couteaux, clones d'ombre, fumée aveuglante.
+Clones d'Ombre
+Voile de Fumée
+La Lame de Givre
+Deux lames rapides qui glacent. Champs de givre, ruées de glace, tout ralentit autour d'elle.
+Champ de Givre
+Pas Glaciaire
+Le Bouclier de l'Aube
+Lent et inébranlable. Coups de masse, terre sacrée et jugement venu du ciel.
+Terre Sacrée
+Jugement
+Le Moine des Cendres
+Rapide, proche et implacable. Enchaînements de coups, une paume ardente, un pas à travers le feu.
+Paume Ardente
+Pas à Travers le Feu
+L'écuyer qui tint la porte
+Attire les morts sur son bouclier et les y retient.
+Serment du Bouclier
+Gardien de la Porte Noire
+Celui qui Marche Derrière
+Il Dévore la Lumière
+Gorge du Vent
+Duelliste de la Plaie
+Sorcier de Sang
+Coups et dégâts
+Esquive et endurance
+Lune
+Compétences et l'ultime
+Vaincs la Première Taille
+Les marches sont humides et rouges
+Bataille
+Gardien
+dégâts
+vie
+armure
+lune
+Histoire
+Encore
+LA PREMIÈRE HEURE
+@205
+LA DEUXIÈME HEURE
+LA TROISIÈME HEURE
+LA QUATRIÈME HEURE
+Cinq rois. Cinq âmes.
+Avec leurs âmes, il lança le sort qui réveille toutes les tombes.
+APRÈS L'AUBE
+une fois
+Sans pubs
+Aucune pub entre les combats, jamais. Se relever, récompenses doublées et le Don de la Lune arrivent aussitôt, sans pub.
+Édition Lame Lunaire
+Bourse d'Éclats
+Coffre d'Éclats
+Trésor d'Éclats
+Bourse d'Or
+Chambre Forte
+Victoire
+Récompenses doublées
+regarder une pub
+Combattre encore
+Tu es tombée
+« Alors tombe en avant. »
+Tu as des points de compétence à dépenser. De nouvelles compétences font une grande différence.
+Réessayer
+Arbre de compétences
+Retour à la carte
+La Main Gauche et la Droite
+Jumeau Creux
+Après une esquive parfaite, ta prochaine taille inflige le triple de dégâts.
+Commence chaque combat avec la lune à moitié pleine.
+La Longue Nuit
+BLEEDING
+MOON
+Nouvelle partie
+Recommencer l'ascension
+Chaque cinématique et art lunaire
+Crédits
+Combattre
+Vaincs le gardien
+Vaincs le gardien sans être touchée
+point de compétence
+Débloque la Première Taille
+Termine d'abord une île plus bas.
+points de compétence à dépenser
+Tout rembourser
+Retour à la carte
+Qui monte cette nuit ?
+La Lame Lunaire
+Épée
+LUNE ROUGE
+@254
+En ascension
+Sorts
+MILLE PÉTALES
+Lance
+Dagues
+Poings
+Masse et bouclier
+Lames jumelles
+Âmes Liées
+éclats d'âme
+à chaque combat
+À ses côtés
+Libérée par la Première Taille
+Garde
+Feu follet
+Liée
+Ascendée
+Sa première force
+Le serment étourdit aussi les morts autour de lui. Sa signature revient plus vite.
+Équiper le meilleur
+Équipé
+Arme
+équipée
+Armure
+Charme
+Lune Veuve
+Mode test
+aucun argent n'est prélevé
+Boutique
+Meilleure offre
+Les prix incluent les taxes là où ta boutique l'exige. Les achats sont liés à ton compte de boutique et peuvent être restaurés sur un autre appareil.
+Au-delà de l'ascension
+Sans fin
+Vague après vague sur une carte, tirée de tes deux actes les plus hauts. Un champion toutes les cinq vagues, un gardien toutes les dix. De l'or et de l'expérience à chaque vague, un objet toutes les cinq.
+Défi quotidien
+Quotidien
+La Lande de Cendres. Pas d'art lunaire. Pas de soin par victime. Gagne une fois aujourd'hui pour de l'or et un objet rare.
+Succès
+Exploits de l'ascension : gardiens, combos, esquives parfaites, trésors, la longue nuit.
+Nouvelle Partie+
+Vaincs d'abord la Première Taille
+Jeu
+Difficulté
+Combat automatique
+Scènes de l'histoire
+Regarder
+Regarder chaque cinématique et art lunaire
+Affichage
+Caméra
+Taille du texte
+Chiffres de dégâts
+@305
+Secousses de l'écran
+Réduire les flashs
+Repères adaptés aux daltoniens
+Son
+Musique
+Effets sonores
+Vibrations
+téléphones compatibles
+Achats
+Sans pubs
+Sur un nouvel appareil ou après réinstallation
+Options de confidentialité
+Consentement publicitaire et suivi
+Outils
+Regarder le bot jouer
+Le bot joue la campagne tout seul. Appuie sur une touche ou touche l'écran pour arrêter
+Vitesse
+Sauvegarde
+Exporter la sauvegarde
+Télécharge un fichier et copie le code
+Importer une sauvegarde
+Charger un fichier de sauvegarde
+Effacer la progression
+Efface niveaux, compétences, équipement et la carte
+Les sauvegardes vivent dans ce navigateur : exporte-en une pour la garder ou la passer sur un autre appareil.
+Une manette fonctionne partout : A taille, X lourd, B ruée, LB/RB compétences, gâchettes art lunaire.
+L'ouverture
+La Première Taille tue cinq rois
+Acte VII
+Échos de la Nuit
+La dernière heure : son coup unique
+La Première Taille l'abat
+La Lune la relève
+La nuit revenue au crépuscule
+La fin
+Aube
+Gardiens
+Arts lunaires
+Vesper
+Dernier Sursaut
+Son art lunaire à un quart de vie
+Lune Rouge
+Son art lunaire à pleine vie
+Lys
+Art lunaire
+@350
+Kestrel
+Rime
+Halden
+Ember
+Tout se joue ici, que tu l'aies atteint ou non. Une touche (ou Échap) termine la cinématique et te ramène.
+ÉPREUVE
+SE DÉPLACER
+Utilise ZQSD (ou les flèches) pour marcher jusqu'au cercle lumineux.
+Commencer
+L'ANNEAU
+LA COUR
+LE PONT
+LA FOSSE
+LE CARREFOUR
+Épée longue
+Le bretteur en personne. De longues tailles lourdes et l'art lunaire qu'il inventa.
+Fendoir Lunaire
+Sept Siècles
+Briseur
+Des tailles lentes et lourdes qui brisent gardes et équilibre.
+Fend-la-Terre
+Frappe le sol : des anneaux de pierre jaillissent autour de lui, l'un après l'autre.
+Givre
+Des lames de givre qui ralentissent tout ce qu'elles touchent.
+Pluie de Lances de Glace
+Assassin
+Passe par l'ombre derrière le plus faible et l'abat.
+Pas d'Ombre
+Disparaît et surgit derrière l'ennemi le plus faible près de toi, le taille trois fois et achève les mourants.
+Sangsue
+Se nourrit des morts et te donne leur vie.
+Dévorer
+Bondit sur un ennemi et le déchire, et la vie qu'il prend te soigne.
+Tempête
+Garde ses distances et lâche le vent sur eux.
+Bourrasque
+Lâche des bourrasques qui chassent les morts sur le sol.
+La lame qui tua cinq rois, désormais à ton service.
+Une longue taille au sol à travers l'ennemi le plus proche.
+Coquille d'Entraînement
+Poteau d'Entraînement
+Chevalier Instructeur
+Brute des Tombes
+Pillard de la Porte
+Chef Pillard
+Rempart d'Os
+@396
+Piquier d'Os
+Garde de la Porte Noire
+Acolyte du Givre
+Voyant du Givre
+Chevalier du Cloître
+Duelliste Miroir
+Pique de Givre
+Spectre Ombreux
+Ombre Violette
+Égorgeur
+Sorcier de l'Escalier
+Rempart d'Ombre
+Chien des Cendres
+Bélier d'Os
+Mage des Braises
+Sorcier des Cendres
+Ravageur des Cendres
+Rôdeur de la Gorge
+Tireur de la Bourrasque
+Moine du Vent
+Poing de Tempête
+Piquier de la Crête
+Harpie de la Bourrasque
+Paladin de la Plaie
+Chevalier de la Plaie
+Spectre de Sang
+Serf
+Garde d'Os
+Mage du Fléau
+Traqueur
+Lancier de la Porte
+Mort Relevé
+Gardien du Soleil
+Pillard des Dunes
+Diablotin des Sables
+Brute des Dunes
+Hrolf le Brise-Porte
+Champion des Pillards
+Le Capitaine d'Os
+Celui qui Dresse les Morts
+Mère Givre
+Abbesse du Cloître Gelé
+Sabre du Cloître
+Invaincue en Sept Siècles
+@440
+L'Évêque Creux
+Berger de l'Escalier
+Veuve de la Nuit
+Le Spectre qui Attend
+Le Roi Charognard
+Seigneur des Meutes de Cendres
+La Mère des Cendres
+Celle qui Allume
+Le Maître Chasseur
+Premier Arc de la Gorge
+Grand Maître Bourrasque
+La Tempête qui Marche
+Seigneur de la Plaie
+Premier Chevalier de la Lune
+La Dernière Sainte
+Celle qui Prie la Plaie
+Spectre
+Couteau Nocturne
+Os Dorés
+Pillard d'Os
+Lancier d'Os
+Archer d'Os
+Sorcier
+Golem
+Prêtre du Bûcher
+Braconnier
+la Main Gauche
+la Main Droite
+Porte de la Faille
+Vient tout seul de ton combo : quand trois ennemis ou plus t'encerclent, qu'un bouclier te barre la route ou qu'un combo va jusqu'au bout, ton attaque devient un coup lourd qui frappe tout autour et brise les boucliers.
+Espace : traverse le danger d'une ruée, intouchable un instant. Taille juste après pour une taille en ruée.
+La première compétence de ton héros. Elle rejoint ton combo d'elle-même dès qu'elle est prête.
+E quand la lune est pleine : l'ultime de ton héros, une frappe cinématique.
+La deuxième compétence de ton héros. Elle rejoint ton combo d'elle-même dès qu'elle est prête.
+Ton premier héros
+Vaincs l'Ombreux
+Vaincs un gardien sans prendre un seul coup
+Vaincs les Jumeaux Creux
+La Cour Extérieure
+Les morts s'agitent dans la cour
+Fosses aux Goules
+Là où rampent les relevés
+Sanctuaire du Crépuscule
+Le Capitaine Pillard
+Un capitaine mène encore ses morts
+Archers sur le Rempart
+Des flèches depuis les créneaux
+Tiens la Porte
+Avant que la porte se scelle
+Le Pont de la Porte
+Un seul passage étroit
+@491
+Marches Gelées
+De la glace sur du vieux sang
+Salle des Couteaux
+Des lames dans le noir
+Sanctuaire du Givre
+Leur hymne est une malédiction
+L'écho du Gardien de la Porte. Ne te fais pas toucher.
+Lame de Verre
+Frappe la première, frappe fort
+Le Clocher
+Les cloches sonnent encore pour eux
+Lances dans la Neige
+Un mur de boucliers de morts
+Golem Gelé
+La pierre qui marche
+Le Premier Palier
+Ici s'arrête la lumière
+Galerie des Os
+Des squelettes par milliers
+Sanctuaire de l'Ombre
+Le Roi Braconnier
+Il chasse ceux qui montent
+Escalier des Échos
+Des pas qui ne sont pas les tiens
+Sans Lune
+La lune est cachée. Combats sans elle.
+Horde de l'Éclipse
+Ils dévalent l'escalier
+La Chapelle Noire
+Des prières au néant
+Golems Jumeaux
+Deux, dos à dos
+Route des Braises
+De la cendre jusqu'aux chevilles
+Seigneurs du Bûcher
+Ils brûlent et ne meurent pas
+Tombes de Cendres
+Chaque tombe est ouverte
+Sanctuaire des Braises
+Sans Pitié
+Rien ici ne te soignera
+Le Champ Brûlant
+Du feu de tous côtés
+La Mère Spectre
+Sa couvée la suit
+Tempête de Cendres
+Traverse la tempête avant qu'elle t'ensevelisse
+Lisière de la Lande
+Quelque chose a faim
+@540
+Marches de la Bourrasque
+Le vent veut te chasser de la Flèche
+Crête des Chasseurs
+Des pièges sur la crête
+Sanctuaire du Vent
+Les Cavaliers de la Tempête
+Ils chevauchent la bourrasque
+Épreuve d'Élite
+Les plus forts, l'un après l'autre
+Le Chemin Étroit
+Une corniche au-dessus du vide
+Tempête de Verre
+Fragile comme l'air
+La Dernière Veille
+Ils n'ont jamais laissé passer personne
+Chevaliers de la Plaie
+Liés à la taille
+Sanctuaire de la Lune
+Tiens jusqu'à ce qu'ils cessent de venir
+Salle du Trône
+Un trône vide sous la lune
+Dernière Lueur
+L'aube n'attendra pas
+La Garde de la Plaie
+Les derniers de ses chevaliers
+Sous la Lune
+Assez près pour la toucher
+Écho : Le Gardien de la Porte
+Écho : Les Jumeaux Creux
+Écho : L'Ombreux
+Écho de Verre
+Tout ce que tu as appris, deux fois plus tranchant
+Écho : La Faim
+Écho : L'Aile Pâle
+Écho : La Première Taille
+La taille la plus nette de toutes. Ne te fais pas toucher.
+La Nuit Sans Fin
+Le dernier et le plus long combat
+Élite
+Défi
+Sanctuaire
+Écho
+Commun
+Magique
+Rare
+vol de vie
+recharge
+esquive
+parade
+soin par victime
+or trouvé
+Les ennemis frappent moins fort et tombent plus vite. Pour l'histoire.
+L'ascension telle qu'elle a été conçue.
+Difficile
+@594
+Ennemis plus coriaces, coups plus durs. Un quart d'or et d'expérience en plus.
+Cauchemar
+Chaque vague est menée par une élite. Moitié plus de récompenses.
+Avant l'Aube
+Vaincs la Première Taille et vois la fin.
+Inébranlable
+Fantôme
+Spectre
+Compagnie au Complet
+Débloque tous les héros.
+Maître Forgeron
+Chasseur de Trésors
+Tenir la Ligne
+Chaque Nuit
+Gagne un défi quotidien.
+Une Semaine de Nuits
+Gagne sept défis quotidiens.
+Commence une Nouvelle Partie+.
+Aguerri
+Vaincs un gardien en Difficile ou Cauchemar.
+Maîtrise
+Un bretteur
+CINQ ROIS TOMBÈRENT
+Avec les âmes de cinq rois, il lança le sort qui réveille toutes les tombes.
+LA LUNE ROUGE
+Depuis cette nuit, la lune saigne. À sa lumière, ses morts se lèvent.
+CETTE NUIT
+LA LUNE SE VIDE DE SON SANG
+À l'aube, ses morts prendront tout.
+Seule ta lame peut l'arrêter, au sommet de la Flèche.
+SIX HEURES AVANT L'AUBE
+Six gardiens se dressent entre toi et le sommet.
+Le Gardien de la Porte tient la Porte Noire. Passe-le.
+CINQ HEURES AVANT L'AUBE
+La porte est ouverte. L'ascension commence.
+Le givre a scellé le vieux cloître.
+Les Jumeaux Creux le gardent. Deux lames, une volonté.
+QUATRE HEURES AVANT L'AUBE
+Plus haut. L'air s'assombrit.
+L'Escalier Ombreux serpente dans l'obscurité totale.
+L'Ombreux se cache dans ta propre ombre. Surveille tes arrières.
+TROIS HEURES AVANT L'AUBE
+À mi-chemin. La lune saigne plus vite.
+Rien ne vit dans la Lande de Cendres.
+Seulement la Faim, qui dévore la lumière elle-même.
+DEUX HEURES AVANT L'AUBE
+Près du sommet, le vent se fait lames.
+La Gorge du Vent : un chemin étroit dans la tempête.
+@642
+L'Aile Pâle règne sur la tempête. Elle n'a jamais laissé passer personne.
+Le sommet de la Flèche. Quelqu'un attend.
+Le même bretteur. Sept cents ans, et vivant.
+La plaie le garde en vie. Il ne te laissera pas la refermer.
+Un bretteur alla de royaume en royaume et abattit chaque roi.
+ÉCHOS DE LA NUIT
+Les gardiens ne sont plus, mais leurs échos hantent encore la Flèche.
+La plaie se referme. La lune redevient blanche et se lève. La nuit est finie.
+Réserve de Départ
+Marche jusqu'au cercle lumineux
+# / # XP
+# PC
+# or
+# or pour le forgeron.
+# or.
+# de vie en plus, encore.
+# de vie en plus.
+# sur #
+# sur # libérées
+# héros sur #
+# points de compétence à dépenser
+# éclats d'âme pour faire grandir tes âmes liées.
+# éclats d'âme.
++# XP
++# or, +# éclats
++# de vie, et tu te soignes entièrement.
++# de plus
++#% armure
++#% d'armure pour elle tant qu'il est à ses côtés.
++#% dégâts
++#% vie
++#% vol de vie
++#% lune
++# vie
+-#% dégâts subis
+-#% recharge des compétences
++#% distance d'esquive
++#% fenêtre de parade
++#% soin par victime
++#% or trouvé
+#% vol de vie
+Une esquive parfaite soigne # de vie.
+ZONE # / #
+nv #
+niveau #
+Niveau #
+Niveau # / #
+Nv #
+Feu follet #
+Record #s
+Meilleure vague #
+Sac
+Amène un héros à la maîtrise #.
+Inflige encore #% de dégâts en plus.
+Inflige #% de dégâts en plus aux ennemis sous un quart de vie.
+@697
+Inflige #% de dégâts en plus.
+Vaincs # ennemis.
+Gagne # étoiles
+Gagne # étoiles.
+Pour la première ascension : # or, # éclats d'âme et une arme rare. Une seule fois.
+Récupère #% des dégâts que tu infliges.
+Possède # or.
+Réussis un combo de # coups
+Réussis un combo de # coups.
+Apprendre
+Les ultimes de faible vie s'ouvrent à #% de vie au lieu de #%.
+Réussis # esquives parfaites.
+Maîtrise # / #
+Sans pubs, tous les héros débloqués tout de suite, # éclats d'âme et # or. La façon de soutenir le jeu.
+Ouvre # coffres.
+Lève son bouclier : tous les ennemis proches se retournent contre lui pendant # s, frappés par le choc, pendant qu'il subit moins de dégâts.
+Lève son bouclier : tous les ennemis proches se retournent contre lui pendant # s, frappés par le choc, pendant qu'il subit moins de dégâts. Toutes les # s.
+Atteins le niveau #
+Atteins la vague # de la survie sans fin.
+Compétences rechargées #% plus vite
+Les compétences se rechargent #% plus vite.
+Renforcer
+# éclats
+Subis #% de dégâts en moins.
+Le Dernier Sursaut s'ouvre à #% de vie.
+Le forgeron de la Flèche vend quatre pièces à la fois, renouvelées après chaque victoire. Revends ce dont tu n'as pas besoin contre de l'or et améliore ce que tu aimes (jusqu'à +#).
+La lune se remplit #% plus vite.
+étape # sur #
+Améliore un objet jusqu'à +#.
+Gagne en moins de # secondes
+Tes tailles infligent #% de dégâts en plus.
+✓ Niveau #
+#× (combats)
+Sans fin · vague #
+Vague #
+Lien
+test
+En Vesper
+changer
+Facile
+@737
+ATTAQUE
+COMPÉTENCES AUTO
+Contre la montre : termine-le en moins de # secondes
+Déjà à toi.
+Attaque juste après une ruée
+TONNEAUX
+FLÉAU
+Tonneaux, caisses et jarres se brisent. Fais sauter le tonneau de poudre pour faire exploser les coquilles autour.
+Derrière toi.
+Record
+Brise-le
+Franchis la Porte Noire
+L'APPEL DE LA PORTE
+COMBO
+CROISSANT
+Viens à bout de tous
+Clique (ou J) pour attaquer. Continue d'attaquer et tes tailles s'enchaînent en combo. Quand trois ennemis ou plus t'encerclent, le même bouton termine le combo par un coup LOURD qui les repousse tous. Abats-les tous les quatre.
+Gravis l'Escalier Ombreux
+Gravis la Gorge du Vent
+Viens donc.
+Traverse la Lande de Cendres
+Traverse le cloître gelé
+Abats-en #
+Taille juste après une ruée pour une TAILLE EN RUÉE. Le chevalier est à découvert : achève-le.
+Taille deux fois, en croix
+RUÉE
+NE REGARDE PAS DERRIÈRE TOI
+DOUBLE VICTIME
+Vaincs le Gardien de la Porte
+Vaincs la Faim
+Vaincs l'Aile Pâle
+Dévore tout autour de lui et te soigne davantage
+Fais glisser n'importe où sur la moitié gauche de l'écran pour marcher jusqu'au cercle lumineux.
+Huit lances, et une fleur de givre là où elles tombent
+Chaque vague est menée par une élite
+TEMPÊTE DE PLUMES
+REVIENS JUSQU'À LUI EN COMBATTANT
+FLEUR DE GIVRE
+PORTE DÉTRUITE
+GARDIEN DE LA PORTE
+Abandonner
+Lame de Verre : moitié de vie, double dégâts
+Encore
+IL S'AGENOUILLE POUR TUER
+IL LÈVE SON ÉPÉE
+LOURD
+SES MORTS SE LÈVENT
+FAIM
+CE N'EST PAS LE VENT
+Reviens demain.
+Il vient tout seul : quand trois ennemis ou plus t'encerclent, qu'un bouclier te barre la route ou qu'un combo va jusqu'au bout, ton attaque devient un coup lourd.
+Elle rejoint ton combo d'elle-même dès qu'elle est prête : continue d'attaquer.
+Sa marque au-dessus de l'attaque devient dorée quand elle est prête.
+Continue d'attaquer : les deux compétences viendront
+Continue de cliquer sans t'arrêter : chaque taille s'enchaîne à la suivante. Réussis une chaîne de # coups sur le poteau.
+Continue d'appuyer sur A sans t'arrêter : chaque taille s'enchaîne à la suivante. Réussis une chaîne de # coups sur le poteau.
+Continue de toucher sans t'arrêter : chaque taille s'enchaîne à la suivante. Réussis une chaîne de # coups sur le poteau.
+ÉCOUTE LE VENT
+Langue
+Apprise
+Clic gauche (ou J) pour tailler. Vise avec la souris. Abats les deux coquilles d'entraînement.
+MASSACRE
+MIROIR DU PREMIER
+CHUTE LUNAIRE
+Niveau max
+Sans lune : pas d'ultime
+TOMBÉE DE LA NUIT
+NUL NE FRANCHIT LA PORTE NOIRE
+Proche
+Loin
+Sans pubs t'appartient déjà. Merci !
+Sans pitié : les victimes ne te soignent pas
+Pas moi.
+Pas encore.
+UNE NUIT
+alertes d'attaque en bleu et orange
+sans gels d'impact ni flashs blancs
+Un seul suffit.
+Ouvrir les Âmes
+Ouvre la porte.
+Possédé
+Colle ton code de sauvegarde Vesper
+Esquives parfaites
+Appuie sur A juste après une ruée (B) pour une TAILLE EN RUÉE. Le chevalier est à découvert : achève-le.
+Appuie sur A pour attaquer. Continue d'appuyer et tes tailles s'enchaînent en combo. Quand trois ennemis ou plus t'encerclent, le même bouton termine le combo par un coup LOURD qui les repousse tous. Abats-les tous les quatre.
+Appuie sur A pour tailler (vise avec le stick droit). Abats les deux coquilles d'entraînement.
+Appuie encore pour effacer ton ascension
+Options de confidentialité mises à jour.
+Les options de confidentialité ne sont pas disponibles pour le moment.
+Les achats ne sont pas disponibles ici.
+QUADRUPLE VICTIME
+CARNAGE
+ATTEINS LA LUMIÈRE
+Atteins le sommet de la Flèche
+Clic droit
+Se relever
+Se relever ?
+Écraser
+SEPT CENTS ANS
+COUR DES OMBRES
+ELLE S'ÉVEILLA AVEC POUR SEULE ARME SA LAME
+SIX GARDIENS
+Sauvegarde chargée : niveau #.
+Ce n'est pas une sauvegarde Vesper.
+Sept cents ans... et ils envoient une seule lame.
+Brise-Aube
+La Dernière Braise
+Manteau de la Porte
+Linceul de Cendres
+La Couronne Creuse
+Larme de la Lune
+Croc de Hrolf
+Passer
+Fais sauter le tonneau de poudre
+Espace
+Relève-toi avec la moitié de ta vie, une fois dans ce combat.
+Bondit sur une deuxième victime
+TOUCHE LA LUNE
+LE CLOÎTRE GELÉ
+LA HORDE
+LA DERNIÈRE TAILLE
+L'ART LUNAIRE
+LA LUNE A RAMENÉ LA NUIT AU CRÉPUSCULE
+ILS SONT MORTS ENSEMBLE
+ILS S'ÉVEILLENT ENSEMBLE
+TOUT FINIT CETTE NUIT
+TRIPLE VICTIME
+Touche TAILLER pour attaquer. Continue de toucher et tes tailles s'enchaînent en combo. Quand trois ennemis ou plus t'encerclent, le même bouton termine le combo par un coup LOURD qui les repousse tous. Abats-les tous les quatre.
+Touche RUÉE
+Touche le grand bouton épée pour tailler. Abats les deux coquilles d'entraînement.
+Touche l'épée juste après une ruée pour une TAILLE EN RUÉE. Le chevalier est à découvert : achève-le.
+Mode test : le formulaire de consentement apparaît dans l'app de la boutique.
+Le Chevalier Instructeur frappe lentement. Quand l'anneau ROUGE clignote sous lui, appuie sur B pour traverser le coup d'une ruée. Esquive # coups.
+Le Chevalier Instructeur frappe lentement. Quand l'anneau ROUGE clignote sous lui, appuie sur ESPACE pour traverser le coup d'une ruée. Esquive # coups.
+Le Chevalier Instructeur frappe lentement. Quand l'anneau ROUGE clignote sous lui, touche RUÉE pour traverser le coup. Esquive # coups.
+La Horde : vague après vague après vague
+Les morts arrivent de tous côtés. Traverse leurs coups d'une ruée et abats-les. Viens à bout de tous.
+Les morts de la dernière heure se dressent entre toi et lui. Continue d'attaquer, traverse les coups rouges et laisse venir le coup lourd et tes compétences. Abats-en #.
+Les échos
+Le bouton de la première compétence :
+Le bouton de la lune quand
+La lune est pleine. Presse une gâchette : ton ultime le frappe où qu'il soit.
+La lune est pleine. Touche la lune : ton ultime le frappe où qu'il soit.
+Le serment étourdit aussi les morts autour de lui
+Le bouton de la deuxième compétence :
+Le vent emporte tout.
+Puis ouvre Compétences : tu as un point de compétence
+Trois bourrasques qui durent plus longtemps
+Trop lente.
+Fais demi-tour, petite lame.
+Fais demi-tour.
+Variantes du jour
+Inconnu
+Intouchable : un seul coup et tu tombes
+Utilise le stick gauche pour marcher jusqu'au cercle lumineux.
+Utilise l'art lunaire
+Avance dans le groupe et continue de cliquer. Quand trois ennemis ou plus t'encerclent, ton combo devient de lui-même un coup LOURD qui les repousse tous.
+Avance dans le groupe et continue d'appuyer sur A. Quand trois ennemis ou plus t'encerclent, ton combo devient de lui-même un coup LOURD qui les repousse tous.
+Avance dans le groupe et continue de toucher TAILLER. Quand trois ennemis ou plus t'encerclent, ton combo devient de lui-même un coup LOURD qui les repousse tous.
+Nous sommes deux lames.
+Tu t'es éveillée sans rien : ni compétences, ni art lunaire, seulement ta lame et la ruée. Les morts arrivent. Reviens jusqu'à lui en combattant.
+Libérée par le Gardien de la Porte
+Libérée par les Jumeaux Creux
+Libérée par l'Ombreux
+Libérée par la Faim
+Libérée par l'Aile Pâle
+Remonte avec tout ce que tu as gagné. Les ennemis sont bien plus forts ; leur équipement, bien meilleur.
+Requiert
+La dernière heure
+Appuie encore pour commencer
+Prêt
+@908
+UN CHAMPION ARRIVE
+UN GARDIEN ARRIVE
+BLOCAGE
+BRISE
+CONTRE
+TAILLE EN RUÉE
+ÉLITE ABATTUE
+ACHÈVEMENT
+FRANCHIS LE PORTAIL
+GARDE BRISÉE
+D'AUTRES ARRIVENT
+TEMPS ÉCOULÉ
+PARFAIT
+RENFORTS
+RIPOSTE
+LES PORTES S'OUVRENT
+LES DERNIERS
+LA VOIE S'OUVRE
+ILS CONTINUENT D'ARRIVER
+MUR

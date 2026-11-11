@@ -29,7 +29,7 @@
     if (sh.eyebrow) { const eb = sh.eyebrow === 'hero' ? ((sp('hero') || {}).name || '').toUpperCase() : sh.eyebrow; R.label(ctx, eb, R.W / 2, y - 30 * k, 11 * k, RED, 'center', 5, 700); }
     if (sh.say) {
       ctx.font = R.fb(21 * k, 600); ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = '#f6f1f3';
-      const words = sh.say.split(' '), lines = []; let cur = ''; const maxW = Math.min(R.W * 0.8, 900 * k);
+      const words = (VS.I18N ? VS.I18N.t(sh.say) : sh.say).split(' '), lines = []; let cur = ''; const maxW = Math.min(R.W * 0.8, 900 * k);
       for (const w of words) { const tt = cur ? cur + ' ' + w : w; if (ctx.measureText(tt).width > maxW && cur) { lines.push(cur); cur = w; } else cur = tt; }
       if (cur) lines.push(cur);
       lines.forEach((l, i) => ctx.fillText(l, R.W / 2, y + (i - lines.length + 1) * 27 * k));

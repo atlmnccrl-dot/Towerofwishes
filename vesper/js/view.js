@@ -1300,7 +1300,7 @@
   R.say = function (ctx, x, y, who, col, text, t, o) {
     o = o || {}; const k = R.k, size = (o.shout ? 19 : 15) * k, maxW = Math.min(R.W * 0.42, 340 * k);
     ctx.font = R.fb(size, o.shout ? 700 : 500);
-    const words = text.split(' '), lines = []; let cur = '';
+    const words = (VS.I18N ? VS.I18N.t(text) : text).split(' '), lines = []; let cur = '';
     for (const w of words) { const tt = cur ? cur + ' ' + w : w; if (ctx.measureText(tt).width > maxW && cur) { lines.push(cur); cur = w; } else cur = tt; }
     if (cur) lines.push(cur);
     const lh = size * 1.3, left = x > R.W * 0.55, tx = left ? x - 22 * k : x + 22 * k, top = y - lines.length * lh - 4 * k;
@@ -1354,7 +1354,7 @@
     const w = Math.min(R.W * 0.62, 520 * k), x = R.W / 2 - w / 2, y = 70 * k + (1 - a) * -12 * k;
     ctx.save(); ctx.globalAlpha = a;
     ctx.font = R.fb(15 * k, 500);
-    const lines = []; let line = ''; for (const wd of o.text.split(' ')) { if (ctx.measureText(line + ' ' + wd).width > w - 32 * k && line) { lines.push(line); line = wd; } else line = line ? line + ' ' + wd : wd; } lines.push(line);
+    const lines = []; let line = ''; for (const wd of (VS.I18N ? VS.I18N.t(o.text) : o.text).split(' ')) { if (ctx.measureText(line + ' ' + wd).width > w - 32 * k && line) { lines.push(line); line = wd; } else line = line ? line + ' ' + wd : wd; } lines.push(line);
     const h = (34 + 18 * lines.length) * k;
     R.frame9(ctx, o.done ? 'frame_hot' : 'frame_thin', x - 6 * k, y - 6 * k, w + 12 * k, h + 12 * k, o.done ? 16 : 8, o.done ? Math.max(1, Math.round(R.px() / 2)) : R.px());
     label(ctx, o.title, x + 16 * k, y + 22 * k, 11 * k, o.col || '#ffd060', 'left', 4, 700);

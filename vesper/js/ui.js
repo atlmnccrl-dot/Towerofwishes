@@ -53,7 +53,7 @@
     items.push({ label: 'Theatre', sub: 'Every cutscene and moon art', act: o.onTheatre, ic: 'orb' });
     items.push({ label: 'Settings', act: o.onSettings, ic: 'gear' });
     items.push({ label: 'Credits', act: o.onCredits, ic: 'quill' });
-    const el = U.show('title', `<div class="title-col"><header class="logo"><h1><span class="the">THE</span>BLEEDING<br>MOON</h1></header>${buttons(items)}</div>`, items);
+    const el = U.show('title', `<div class="title-col"><header class="logo" translate="no"><h1><span class="the">THE</span>BLEEDING<br>MOON</h1></header>${buttons(items)}</div>`, items);
     if (o.confirmNew) { const b = el.querySelectorAll('.btn')[o.cont ? 1 : 0]; if (b) b.focus({ preventScroll: true }); }
   };
   // Settings in four groups; the focused row stays focused after a change (o.focus is its key).
@@ -61,7 +61,7 @@
     const v = o.opts, DF = VS.MODES.DIFF[v.diff || 'normal'], onoff = (x) => (x ? 'On' : 'Off');
     const groups = [
       ['Game', [['diff', 'Difficulty', DF.name], ['auto', 'Auto battle', onoff(v.auto)], ['scenes', 'Story scenes', v.scenes === 'skip' ? 'Skip' : 'Play'], ['theatre', 'Theatre', 'Watch every cutscene and moon art']]],
-      ['Display', [['cam', 'Camera', { near: 'Near', far: 'Far' }[v.cam] || 'Normal'], ['text', 'Text size', Math.round((v.text || 1) * 100) + '%'], ['nums', 'Damage numbers', onoff(v.nums !== false)],
+      ['Display', [['lang', 'Language', VS.I18N ? VS.I18N.name() : 'English'], ['cam', 'Camera', { near: 'Near', far: 'Far' }[v.cam] || 'Normal'], ['text', 'Text size', Math.round((v.text || 1) * 100) + '%'], ['nums', 'Damage numbers', onoff(v.nums !== false)],
         ['shake', 'Screen shake', onoff(v.shake)], ['calm', 'Reduce flashing', v.calm ? 'On · no impact frames or white flashes' : 'Off'], ['safe', 'Colour-safe cues', v.safe ? 'On · blue and orange attack warnings' : 'Off']]],
       ['Sound', [['music', 'Music', v.music ? (v.music < 1 ? 'Low' : 'On') : 'Off'], ['sfx', 'Sound effects', onoff(v.sfx)], ['vibe', 'Vibration', v.vibe === false ? 'Off' : 'On · phones that support it']]],
       ...(VS.SHOP && VS.SHOP.on() ? [['Purchases', [['noads', 'No ads', VS.SHOP.noAds() ? 'Owned' : VS.SHOP.price('vesper_no_ads')], ['restore', 'Restore purchases', 'On a new device or after reinstalling'], ['privacy', 'Privacy options', 'Ad consent and tracking choices']]]] : []),

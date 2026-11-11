@@ -276,7 +276,7 @@
         // Kinetic letters: they arrive far apart and flickering and draw together (k = seconds in).
         const k = w.k || 0, sz = Math.round(w.size * 1.6 * u), e = ease(clamp(k / (w.dur || 1.2)));
         c.font = `${w.serif ? '600 ' : ''}${sz}px ${w.serif ? '"Times New Roman", Georgia, serif' : 'Adventurer, sans-serif'}`; c.textBaseline = 'middle'; c.textAlign = 'left';
-        const chars = [...w.text], ws = chars.map((ch) => c.measureText(ch).width), gap = sz * ((w.from == null ? 1.2 : w.from) + ((w.to == null ? 0.25 : w.to) - (w.from == null ? 1.2 : w.from)) * e);
+        const chars = [...(VS.I18N ? VS.I18N.t(w.text) : w.text)], ws = chars.map((ch) => c.measureText(ch).width), gap = sz * ((w.from == null ? 1.2 : w.from) + ((w.to == null ? 0.25 : w.to) - (w.from == null ? 1.2 : w.from)) * e);
         let tot = ws.reduce((s, v) => s + v, 0) + gap * (chars.length - 1), px0 = x - tot / 2;
         chars.forEach((ch, i) => {
           const on = k > 0.5 || hash(i, Math.floor(k * 24)) < 0.35 + k * 1.3;

@@ -25,7 +25,7 @@
   M.save = load();
   // Options: sound, the size of all menu text, and the colour-safe cues (blue and orange for the parry
   // and dodge flashes instead of white and red).
-  const applyOpts = () => { const o = M.save.opts; AU.sfxVol = o.sfx; AU.setVolume(o.music); document.documentElement.style.setProperty('--ui-scale', o.text || 1); R.safe = !!o.safe; R.camK = { near: 0.82, far: 1.22 }[o.cam] || 1; R.noNumbers = o.nums === false; R.calm = !!o.calm; if (R.kScale !== (o.text || 1)) { R.kScale = o.text || 1; if (R.canvas) R.resize(); } };
+  const applyOpts = () => { const o = M.save.opts; if (VS.I18N && VS.I18N.lang !== (o.lang || VS.I18N.auto())) VS.I18N.set(o.lang || VS.I18N.auto()); AU.sfxVol = o.sfx; AU.setVolume(o.music); document.documentElement.style.setProperty('--ui-scale', o.text || 1); R.safe = !!o.safe; R.camK = { near: 0.82, far: 1.22 }[o.cam] || 1; R.noNumbers = o.nums === false; R.calm = !!o.calm; if (R.kScale !== (o.text || 1)) { R.kScale = o.text || 1; if (R.canvas) R.resize(); } };
 
   // ---- input --------------------------------------------------------------------------------------
   // PC: left mouse cuts, right mouse is the heavy, the mouse aims. Keys: J cut, K heavy, Space/Shift dash, E moon, R/F skills.
@@ -174,6 +174,7 @@
       set: (k) => {
         const o = P().opts, cyc = (list, v) => list[(list.indexOf(v) + 1) % list.length];
         if (k === 'diff') o.diff = cyc(VS.MODES.DIFF_ORDER, o.diff || 'normal');
+        if (k === 'lang' && VS.I18N) { o.lang = cyc(VS.I18N.LANGS.map((x) => x[0]), o.lang || VS.I18N.lang); VS.I18N.set(o.lang); }
         if (k === 'text') o.text = o.text >= 1.3 ? 0.9 : o.text >= 1.15 ? 1.3 : o.text >= 1 ? 1.15 : 1;
         if (k === 'cam') o.cam = cyc(['near', 'normal', 'far'], o.cam || 'normal');
         if (k === 'scenes') o.scenes = o.scenes === 'skip' ? 'play' : 'skip';
