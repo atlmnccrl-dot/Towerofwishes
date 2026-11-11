@@ -38,6 +38,13 @@ writes `assets/iso/tiles_v0.png` + `assets/iso/forge.json` (the `v` tile group) 
   broken arch, a violet-flame brazier), the Ashen Waste (cinders, scorched earth with glowing seams, embers; a dead tree,
   a ribcage, a lava vent), the Wind's Throat (layered cliff rock, windswept grass, gravel; cairns, a rock spire, a
   wind-torn banner). Each theme in `js/arenas.js` mixes them into its ground, overlays, props and decor.
+- **Matching hours** (2026-11-11, the author: "the ground structures and assets should match"): each act now draws from
+  one set only. The pack's stone walls, corners, low walls, paving, pillars, statues, rocks and stone props are recoloured
+  into each act's palette (`recolors()` in `tools_forge_acts.py`, page `tiles_v2.png`, keys `v:<act><Name> <dir>`, e.g.
+  the Black Gate's basalt, the Cloister's frosted stone, the Stair's violet, the Waste's scorched sandstone, the Throat's
+  cliff grey, the Shadow's obsidian), and laid with that act's forge ground, overlays, props and decor. The desert and
+  grass grounds, the green vines and the sandstone walls no longer appear in the wrong hour; the boss lairs follow their
+  act (the Moon's Altar uses the Shadow's walls). `test/data-test.js` checks every key each theme names.
 - **Animated props** (iso anims, `kind: 'anim'` in `js/isoview.js`; a theme names one as `'@Name'`): the void shards, the
   violet brazier, the lava vent, the wind banner, flickering candles, a rippling blood pool, a pulsing rune stone, fog.
 - **Breakables**: a bone urn and a coffin, each with smash frames (`BREAK.urn`, `BREAK.coffin`).
@@ -357,6 +364,15 @@ Settings: difficulty, music, sound, screen shake, auto battle (off by default; o
 switched off once; `?auto` turns the bot on for one visit and is never saved), text size (90–130%), colour-safe cues
 (blue and orange attack warnings instead of white and red), save export (a file and a copied
 code) and import.
+
+**Dev tools → Watch the bot play** (or `?watch`, `?watch=4` for speed): the bot plays the campaign from wherever
+the save is, hands-free: the films and story scenes advance on their own, every fight is auto battle, results and
+lesson cards are confirmed, and the map picks the next open island. On each map visit it spends skill points
+(dash first, then the heavy, the skills and the moon art) and equips its best gear. After two defeats in a row on
+the same island it grinds a cleared battle first; after six on one island it stops and says which. **Watch speed**
+runs fights at 1×, 2× or 4×. Any key or tap stops it (that press does nothing else). In a test run it cleared 27
+islands in 10 minutes. The bot cannot pass the no-hit echo (Echo: The First Cut); the campaign test reports that
+too.
 
 ## Release
 

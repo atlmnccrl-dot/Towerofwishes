@@ -62,6 +62,7 @@
       ['Display', [['cam', 'Camera', { near: 'Near', far: 'Far' }[v.cam] || 'Normal'], ['text', 'Text size', Math.round((v.text || 1) * 100) + '%'], ['nums', 'Damage numbers', onoff(v.nums !== false)],
         ['shake', 'Screen shake', onoff(v.shake)], ['calm', 'Reduce flashing', v.calm ? 'On · no impact frames or white flashes' : 'Off'], ['safe', 'Colour-safe cues', v.safe ? 'On · blue and orange attack warnings' : 'Off']]],
       ['Sound', [['music', 'Music', v.music ? (v.music < 1 ? 'Low' : 'On') : 'Off'], ['sfx', 'Sound effects', onoff(v.sfx)], ['vibe', 'Vibration', v.vibe === false ? 'Off' : 'On · phones that support it']]],
+      ['Dev tools', [['watch', 'Watch the bot play', 'The bot plays the campaign by itself. Press any key or tap to stop'], ['watchSpeed', 'Watch speed', (v.watchSpeed || 1) + '× (fights)']]],
       ['Save', [['export', 'Export save', 'Download a file and copy the code'], ['import', 'Import save', 'Load a save file'], ['reset', 'Reset progress', o.confirmReset ? 'Press again to erase your climb' : 'Erase levels, skills, gear and the map']]]];
     let i = 0; const keys = [];
     const html = groups.map(([g, rows]) => `<p class="np-h set-h">${g}</p><nav class="menu rows">` + rows.map(([k, label, sub]) => { keys.push(k); return `<button class="btn${k === 'reset' && o.confirmReset ? ' danger' : ''}" data-i="${i++}" type="button"><span class="btn-label">${esc(label)}</span><span class="btn-sub">${esc(sub)}</span></button>`; }).join('') + '</nav>').join('')

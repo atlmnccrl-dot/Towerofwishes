@@ -12,7 +12,7 @@
   const defOpts = () => ({ music: 1, sfx: 1, shake: 1, auto: false, text: 1, safe: false, diff: 'normal', cam: 'normal', nums: false, nums2: true, auto2: true, calm: false, vibe: true, scenes: 'play' });
   // Damage numbers went off by default (the author, 2026-11-10): older saves switch them off once.
   // ?auto (for the tests) turns the bot on for this visit only; it is never saved.
-  const autoOn = () => !!(P().opts.auto || M.autoUrl);
+  const autoOn = () => !!(P().opts.auto || M.autoUrl || M.watch);
   const fixOpts = (o) => { if (!o.nums2) { o.nums = false; o.nums2 = true; } if (!o.auto2) { o.auto = false; o.auto2 = true; } return o; };   // and auto battle starts off for everyone (2026-11-10)
   const fresh = (opts) => Object.assign(PR.fresh(), { opts: opts || defOpts(), seenLdx: false });
   function load() {
@@ -31,6 +31,7 @@
   const KEYS = { KeyJ: 'atk', KeyZ: 'atk', KeyK: 'heavy', KeyX: 'heavy', ShiftLeft: 'dodge', ShiftRight: 'dodge', Space: 'dodge', KeyC: 'dodge', KeyE: 'art', KeyV: 'art', KeyR: 's1', KeyF: 's2', Digit1: 's1', Digit2: 's2',
     Enter: 'confirm', Escape: 'back', KeyP: 'back', ArrowLeft: 'left', ArrowRight: 'right', KeyA: 'left', KeyD: 'right', ArrowUp: 'up', ArrowDown: 'down', KeyW: 'up', KeyS: 'down' };
   addEventListener('keydown', (e) => {
+    if (M.watch && e.isTrusted) { e.preventDefault(); watchStop(); return; }   // any key ends watch mode
     AU.unlock();
     if (M.state === 'map' && mapKey(e)) return;
     if (U.current && U.current !== 'loading') { if (U.key(e)) return; if (e.code === 'Enter' || e.code === 'Space') return; }
@@ -40,6 +41,9 @@
   });
   addEventListener('keyup', (e) => { const a = KEYS[e.code]; if (a) M.held[a] = false; });
   const pointers = {};
+  // A real tap or click anywhere (the canvas or a menu) ends watch mode, and that tap does nothing else.
+  addEventListener('pointerdown', (e) => { if (M.watch && e.isTrusted) { e.stopPropagation(); e.preventDefault(); watchStop(); M.swallowClick = performance.now(); } }, true);
+  addEventListener('click', (e) => { if (M.swallowClick && performance.now() - M.swallowClick < 800 && e.isTrusted) { e.stopPropagation(); e.preventDefault(); M.swallowClick = 0; } }, true);
   function onDown(e) {
     AU.unlock(); if (e.pointerType === 'touch') R.touch = true;
     if (e.pointerType === 'mouse') {
@@ -116,6 +120,42 @@
       onNew: () => { if (hasProgress() && !confirmNew) return title(true); const o = P().opts; M.save = fresh(o); M.write(); newGame(); },
       onTheatre: () => cutscenes(title), onSettings: () => settings(null, false, title), onCredits: () => { M.go('menu'); U.credits({ onBack: () => title() }); } });
   }
+  // ---- Watch mode (Settings → Dev tools, or ?watch): the bot plays the campaign by itself, from wherever the save
+  // is, through the fights, the story scenes, the films, the results and the map. It spends skill points and equips its
+  // best gear on the way, grinds a cleared island after two defeats in a row, and stops at any key or tap.
+  const WATCH_SKILLS = ['dodge', 'heavy', 'skill1', 'art', 'fourth', 'ghost', 'skill2', 'edge', 'moonblood', 'vigor', 'riposte', 'rising', 'vigor2', 'edge2', 'breath', 'thirst', 'exec', 'quick', 'iron', 'wind'];
+  function watchTag(msg) {
+    let el = document.getElementById('watchtag');
+    if (!M.watch && !msg) { if (el) el.remove(); return; }
+    if (!el) { el = document.createElement('div'); el.id = 'watchtag'; Object.assign(el.style, { position: 'fixed', top: '8px', left: '50%', transform: 'translateX(-50%)', zIndex: 9, pointerEvents: 'none', font: '14px Adventurer, sans-serif', letterSpacing: '.12em', color: '#ffd0d6', background: 'rgba(8,4,10,.7)', border: '1px solid rgba(255,42,68,.5)', padding: '4px 12px', borderRadius: '4px' }); document.body.appendChild(el); }
+    el.textContent = msg || `WATCHING THE BOT  ·  ${M.watch.speed}×  ·  ANY KEY OR TAP TO STOP`;
+    if (msg) setTimeout(() => { if (!M.watch && el.textContent === msg) el.remove(); }, 4000);
+  }
+  function watchUpkeep() { const p = P(); for (const id of WATCH_SKILLS) PR.buy(p, id); if (VS.LOOT && VS.LOOT.autoEquip) VS.LOOT.autoEquip(p, p.hero); M.write(); }
+  function watchStart(speed) {
+    M.watch = { t: 0, last: '', speed: speed || 1, losses: 0, fails: {}, node: null }; watchTag(); watchUpkeep();
+    if (!P().seen.lastHour) newGame(); else map();
+  }
+  M.watchStart = watchStart;
+  function watchStop(msg) { if (!M.watch) return; M.watch = null; watchTag((msg || 'Watch mode stopped').toUpperCase()); }
+  // The next island to play: the open one, or after two defeats in a row a cleared battle to grow stronger on first.
+  function watchNext() {
+    const p = P(), W = M.watch, open = PR.nextNode(p);
+    if (W.node) { if (PR.cleared(p, W.node) || PR.node(W.node).type === 'shrine') W.losses = 0; else if (W.node === open) { W.losses++; W.fails[open] = (W.fails[open] || 0) + 1; } }
+    if (W.fails[open] >= 6) { watchStop(`The bot could not clear ${PR.node(open).name} in 6 tries: watch mode stopped`); return null; }
+    if (W.losses >= 2) { const done = PR.NODES.filter((n) => n.type === 'battle' && PR.cleared(p, n.id)); if (done.length) { W.losses = 0; return done[Math.floor(Math.random() * done.length)].id; } }
+    return open;
+  }
+  function watchTick(dt) {
+    const W = M.watch; if (!W) return;
+    const key = M.state + '|' + (U.current || ''); if (key !== W.last) { W.last = key; W.t = 0; } W.t += dt;
+    if (M.state === 'map' && W.t > 1.6) { W.t = -999; watchUpkeep(); const id = watchNext(); if (!id) return; W.node = id; M.mapSel = id; playNode(id); return; }
+    if (M.state === 'scene' && W.t > 2.4) { W.t = 0; M.pressed.tap = true; return; }   // the next line of a story scene
+    const screens = ['title', 'result', 'pause', 'lesson', 'lost', 'boon'];
+    if (U.current && screens.indexOf(U.current) >= 0 && W.t > 2.6) {
+      W.t = 0; const b = document.querySelector('#ui .btn.focus-first') || document.querySelector('#ui .ls-ok') || document.querySelector('#ui .btn'); if (b) b.click();
+    }
+  }
   function settings(focus, confirmReset, back) {
     M.go('menu'); back = back || title;
     const toast = M.toast; M.toast = null;
@@ -136,6 +176,8 @@
         if (k === 'sfx') o.sfx = o.sfx ? 0 : 1;
         if (k === 'shake') o.shake = o.shake ? 0 : 1;
         if (k === 'auto') o.auto = !o.auto;
+        if (k === 'watch') { M.write(); return watchStart(o.watchSpeed || 1); }
+        if (k === 'watchSpeed') o.watchSpeed = { 1: 2, 2: 4, 4: 1 }[o.watchSpeed || 1];
         if (k === 'reset') { if (!confirmReset) return settings(k, true, back); M.save = fresh(o); M.write(); return title(); }
         if (k === 'theatre') { M.write(); return cutscenes(() => settings('theatre', false, back)); }
         applyOpts(); M.write(); settings(k, false, back);
@@ -543,7 +585,7 @@
     if (f.showcase && M.pressed.back && !M.paused) { M.pressed.back = false; endShowcase(f, f.showcase === 'boss'); return; }   // Esc skips to how the night ended
     if (M.pressed.back && !s.cine && !M.paused) { pause(true); M.pressed.back = false; }
     if (!M.paused && !M.hold) {
-      f.acc += dt;
+      f.acc += dt * (M.watch ? M.watch.speed : 1);
       const live = gather(f); f.pend = f.pend || {};
       for (const k of ['atk', 'heavy', 'dodge', 'parry', 'art', 's1', 's2', 'skip']) if (live[k]) f.pend[k] = true;
       while (f.acc >= STEP) {
@@ -733,6 +775,7 @@
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.imageSmoothingEnabled = false;
     if (M.state === 'fight' && M.fight.theatreT > 0) { M.fight.theatreT -= dt; if (M.fight.theatreT <= 0) SIM.startArt(M.fight.s); }
     try {
+    watchTick(dt);
     switch (M.state) {
       case 'load': ctx.fillStyle = '#07060a'; ctx.fillRect(0, 0, R.W, R.H); break;
       case 'title': ctx.fillStyle = '#05020a'; ctx.fillRect(0, 0, R.W, R.H); if (VS.INTRO && VS.INTRO.menu) VS.INTRO.menu(dt); else backdrop(ctx, dt, 5, true); break;   // the menu's scene (js/intro.js)
@@ -769,6 +812,7 @@
     A.loadCB().catch(() => {});   // the Crowd Breaker effects stream in after the start
     applyOpts();
     if (params.has('auto')) M.autoUrl = true;
+    if (params.has('watch')) { setTimeout(() => watchStart(+params.get('watch') || 1), 50); }
     if (params.has('hero') && D.HEROES[params.get('hero')]) M.save.hero = params.get('hero');
     if (params.has('theatre')) theatre();
     else if (params.has('cutscenes')) cutscenes(title);
