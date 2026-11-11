@@ -171,7 +171,7 @@
   // what a stage expects: five common heroes at the stage's level
   // early stages expect a smaller team (you start alone)
   BB.recPower = function (stage) {
-    const idx = BB.stageIdx(stage.id), n = Math.min(5, 1 + Math.floor(Math.max(0, idx) / 1.5));
+    const idx = BB.stageIdx(stage.id), n = BB.slotsAt(Math.max(0, idx)); // as many heroes as there are places by then
     const cs = ['vanguard', 'ranger', 'warpriest', 'berserker', 'arcanist'].slice(0, n);
     let p = 0; for (const c of cs) p += BB.power(BB.newHero({ calling: c, level: Math.max(1, stage.level - 1), rarity: 0, name: 'x' }));
     return Math.round(p * 0.9);
@@ -181,11 +181,28 @@
   // Each hero has a place (u, v): u runs from the rear (0) to the enemy's side (1), v across the line (0..1). A hero
   // placed in the front half fights in the front line (they draw the blows); the rest fight behind it.
   BB.FRONT = 2; BB.BACK = 3; BB.TEAM_MAX = 5;
+  // ---- places in the team are earned. The banner starts with one; a second opens when a fifth of the campaign is
+  // won, a third at two fifths, a fourth at three, the fifth at four. Heroes can be many; who marches is a choice.
+  BB.SLOT_AT = [0, 0.2, 0.4, 0.6, 0.8];
+  BB.slotStage = (k) => Math.ceil(BB.MISSIONS.length * BB.SLOT_AT[k]);            // stages to clear for place k+1
+  BB.slotsAt = (cleared) => { let n = 1; for (let k = 1; k < BB.SLOT_AT.length; k++) if (cleared >= BB.slotStage(k)) n = k + 1; return n; };
+  BB.clearedCount = (save) => (save.cleared ? BB.MISSIONS.filter((m) => save.cleared[m.id]).length : 0);
+  BB.teamMax = (save) => (save.allSlots ? BB.TEAM_MAX : BB.slotsAt(BB.clearedCount(save)));
+  BB.nextSlot = function (save) { // what the next place costs, or null when all five are open
+    const n = BB.teamMax(save); if (n >= BB.TEAM_MAX) return null;
+    const need = BB.slotStage(n), have = BB.clearedCount(save);
+    return { slot: n + 1, need, have, left: need - have, pct: Math.round(BB.SLOT_AT[n] * 100), stage: BB.MISSIONS[need - 1] };
+  };
   const DEF_PLACE = { front: [[0.74, 0.36], [0.78, 0.64], [0.66, 0.5], [0.84, 0.2], [0.86, 0.82]], back: [[0.24, 0.24], [0.28, 0.5], [0.32, 0.76], [0.12, 0.4], [0.14, 0.66]] };
   BB.fixFormation = function (save) { // older saves had two front places and three back
     const f = save.formation || (save.formation = { front: [], back: [] });
     for (const r of ['front', 'back']) { f[r] = (f[r] || []).slice(0, BB.TEAM_MAX); while (f[r].length < BB.TEAM_MAX) f[r].push(null); }
     if (!save.place) save.place = {};
+    { // no more on the field than there are places: the strongest stay
+      const max = BB.teamMax(save), team = BB.teamIds(save);
+      if (team.length > max) { const keep = team.map((id) => save.heroes.find((h) => h.id === id)).filter(Boolean).sort((a, b) => BB.power(b) - BB.power(a)).slice(0, max).map((h) => h.id);
+        for (const r of ['front', 'back']) f[r] = f[r].map((id) => (id && keep.includes(id) ? id : null)); }
+    }
     const ids = BB.teamIds(save); for (const id in save.place) if (!ids.includes(id)) delete save.place[id];
     return save;
   };
@@ -212,7 +229,7 @@
     BB.fixFormation(save);
     const h = save.heroes.find((x) => x.id === id); if (!h) return false;
     const inTeam = BB.teamIds(save).includes(id);
-    if (!inTeam && BB.teamIds(save).length >= BB.TEAM_MAX) return false;
+    if (!inTeam && BB.teamIds(save).length >= BB.teamMax(save)) return false;
     u = Math.max(0, Math.min(1, u)); v = Math.max(0, Math.min(1, v));
     const row = u >= 0.5 ? 'front' : 'back';
     if (BB.rowOf(save, id) !== row) { for (const r of ['front', 'back']) { const i = save.formation[r].indexOf(id); if (i >= 0) save.formation[r][i] = null; } save.formation[row][save.formation[row].indexOf(null)] = id; }
@@ -222,9 +239,9 @@
   BB.placeHero = function (save, id, row, slot) { // a free place (melee prefer the front), or the slot asked for
     BB.fixFormation(save);
     const h = save.heroes.find((x) => x.id === id); if (!h) return false;
-    if (row !== undefined) { const old = save.formation[row][slot]; if (!old && !BB.teamIds(save).includes(id) && BB.teamIds(save).length >= BB.TEAM_MAX) return false;
+    if (row !== undefined) { const old = save.formation[row][slot]; if (!old && !BB.teamIds(save).includes(id) && BB.teamIds(save).length >= BB.teamMax(save)) return false;
       BB.removeHero(save, id); if (old) delete save.place[old]; save.formation[row][slot] = id; return old || true; }
-    if (BB.teamIds(save).includes(id) || BB.teamIds(save).length >= BB.TEAM_MAX) return false;
+    if (BB.teamIds(save).includes(id) || BB.teamIds(save).length >= BB.teamMax(save)) return false;
     const r = BB.CALLINGS[h.calling].ranged || h.calling === 'warpriest' ? 'back' : 'front';
     // the first usual place in that line nobody stands near
     const taken = BB.teamIds(save).map((x) => BB.placeOf(save, x));
@@ -238,8 +255,8 @@
 
   // ---------------------------------------------------------------- hero tiers and recruiting
   BB.TIERS = [
-    { id: 1, name: 'Common', rarity: 0, chapter: 0, cost: 150, arch: ['knight', 'barbarian', 'ranger', 'spearman'], count: 10 },
-    { id: 2, name: 'Rare', rarity: 1, chapter: 1, cost: 300, arch: ['monk', 'paladin', 'knight', 'mage', 'spearman', 'barbarian'], count: 10 },
+    { id: 1, name: 'Common', rarity: 0, chapter: 0, cost: 200, arch: ['knight', 'barbarian', 'ranger', 'spearman'], count: 10 },
+    { id: 2, name: 'Rare', rarity: 1, chapter: 1, cost: 400, arch: ['monk', 'paladin', 'knight', 'mage', 'spearman', 'barbarian'], count: 10 },
     { id: 3, name: 'Epic', rarity: 2, chapter: 2, cost: 600, arch: ['rogue', 'duelist', 'mage', 'beastfolk', 'monk', 'ranger'], count: 10 },
     { id: 4, name: 'Legendary', rarity: 3, chapter: 3, cost: 1000, arch: null, count: 10 },
   ];
@@ -371,10 +388,17 @@
     const boss = stage.type === 'boss' || stage.type === 'duel';
     const gold = Math.round((100 + stage.level * 55) * (boss ? 1.8 : 1) * (first ? 1 : 0.4));
     const far = stage.chapter > 4; // the far marches pay more sigils: their dead are stronger, and heroes need the stars
-    return { gold, crystals: first ? (boss ? 250 : 90) : 0, sigils: boss ? (first ? (far ? 12 : 8) : 2) : (first ? (far ? 2 : 1) : 0), items: boss ? 2 : 1 };
+    return { gold, crystals: first ? (boss ? 120 : 25) : 0, sigils: boss ? (first ? (far ? 12 : 8) : 2) : (first ? (far ? 2 : 1) : 0), items: boss ? 2 : 1 };
   };
   // fewer foes for a small team: a lone captain can win the first stage
-  BB.waveScale = (n) => Math.min(1, Math.max(0.35, (n + 1) / 6));
+  // the horde is sized to the team that meets it: one hero faces a fifth of what five do, and a little less
+  // (a lone hero has no healer and no shield beside them, so their foes also hit softer, and bosses and gates are
+  // cut down further than the crowd is). By team size 0..5: how many come, how hard they hit, a boss's health, a gate's.
+  BB.TEAM_K = { count: [0.2, 0.2, 0.34, 0.52, 0.76, 1], atk: [0.4, 0.4, 0.5, 0.75, 0.9, 1], hp: [0.5, 0.5, 0.6, 0.72, 0.86, 1], boss: [0.1, 0.1, 0.14, 0.36, 0.68, 1], gate: [0.25, 0.25, 0.4, 0.6, 0.8, 1],
+    gates: [0.34, 0.34, 0.5, 0.67, 0.84, 1], cap: [2, 2, 4, 6, 8, 9], elite: [0, 0, 0.3, 0.55, 0.8, 1], // gates: how many of a stage's gates stand; cap: how many a gate keeps on the field; elite: how often one comes
+    crowd: [0, 0, 1, 2, 3, 4], wait: [5, 5, 2.4, 1.6, 1.2, 1] }; // crowd: a new wave waits until this few are left standing; wait: how much longer before it comes anyway
+  BB.teamK = (what, n) => BB.TEAM_K[what][Math.max(0, Math.min(5, n | 0))];
+  BB.waveScale = (n) => BB.teamK('count', n);
   // how crowded a stage is: the hordes grow chapter by chapter
   BB.crowd = (stage) => [1, stage.code && +stage.code.split('-')[1] >= 5 ? 1.15 : 1, 1.35, 1.5, 1.6][stage.chapter] || 1;
 
@@ -398,7 +422,7 @@
   // ---------------------------------------------------------------- shop: a few offers a day
   BB.dayKey = (now) => new Date(now).toISOString().slice(0, 10);
   BB.SHOP = [
-    { id: 'free', name: 'Daily Crystals', desc: 'A gift from the quartermaster.', give: { crystals: 60 }, cost: null, limit: 1 },
+    { id: 'free', name: 'Daily Crystals', desc: 'A gift from the quartermaster.', give: { crystals: 30 }, cost: null, limit: 1 },
     { id: 'chest', name: 'Armory Chest', desc: 'One piece of gear, Rare or better.', give: { chest: 1 }, cost: { gold: 350 }, limit: 3 },
     { id: 'arms', name: 'Smith\'s Masterwork', desc: 'A weapon for one of your heroes, Epic or better, often enchanted.', give: { weapon: 1 }, cost: { crystals: 160 }, limit: 2 },
     { id: 'sigils', name: 'Sigil Bundle', desc: 'Five sigils for ascension.', give: { sigils: 5 }, cost: { gold: 500 }, limit: 2 },
@@ -433,16 +457,16 @@
 
   // ---------------------------------------------------------------- milestones: one-time goals that pay crystals, gold and sigils
   BB.QUESTS = [
-    { id: 'clear3', name: 'First Blood', desc: 'Clear stage 1-3', test: (s) => !!s.cleared['s1-3'], reward: { crystals: 100 } },
-    { id: 'heroes3', name: 'A Warband', desc: 'Have 3 heroes', test: (s) => s.heroes.length >= 3, reward: { crystals: 150 } },
+    { id: 'clear3', name: 'First Blood', desc: 'Clear stage 1-3', test: (s) => !!s.cleared['s1-3'], reward: { crystals: 30 } },
+    { id: 'heroes3', name: 'A Warband', desc: 'Have 3 heroes', test: (s) => s.heroes.length >= 3, reward: { crystals: 50 } },
     { id: 'gear4', name: 'Fully Armed', desc: 'Fill all four gear slots on one hero', test: (s) => s.heroes.some((h) => BB.SLOTS.every((k) => h.gear[k])), reward: { crystals: 100 } },
     { id: 'lv10', name: 'Seasoned', desc: 'Raise a hero to level 10', test: (s) => s.heroes.some((h) => h.level >= 10), reward: { gold: 1500 } },
-    { id: 'ch1', name: 'Greenvale Freed', desc: 'Clear chapter 1', test: (s) => BB.chapterCleared(s, 1), reward: { crystals: 300 } },
-    { id: 'team5', name: 'Full Formation', desc: 'Field five heroes at once', test: (s) => BB.teamIds(s).length >= 5, reward: { crystals: 200 } },
-    { id: 'star2', name: 'Ascendant', desc: 'Ascend a hero to 2 stars', test: (s) => s.heroes.some((h) => h.stars >= 2), reward: { crystals: 150 } },
+    { id: 'ch1', name: 'Greenvale Freed', desc: 'Clear chapter 1', test: (s) => BB.chapterCleared(s, 1), reward: { crystals: 150 } },
+    { id: 'team5', name: 'Full Formation', desc: 'Field five heroes at once', test: (s) => BB.teamIds(s).length >= 5, reward: { crystals: 300 } },
+    { id: 'star2', name: 'Ascendant', desc: 'Ascend a hero to 2 stars', test: (s) => s.heroes.some((h) => h.stars >= 2), reward: { crystals: 80 } },
     { id: 'epicgear', name: 'Well Armed', desc: 'Have a hero carry a piece of Epic gear or better', test: (s) => s.heroes.some((h) => BB.SLOTS.some((k) => h.gear[k] && h.gear[k].rarity >= 2)), reward: { sigils: 4 } },
-    { id: 'heroes8', name: 'A Growing Banner', desc: 'Have 8 heroes', test: (s) => s.heroes.length >= 8, reward: { crystals: 300 } },
-    { id: 'ch2', name: 'The Sunscar Quiet', desc: 'Clear chapter 2', test: (s) => BB.chapterCleared(s, 2), reward: { crystals: 400 } },
+    { id: 'heroes8', name: 'A Growing Banner', desc: 'Have 8 heroes', test: (s) => s.heroes.length >= 8, reward: { crystals: 150 } },
+    { id: 'ch2', name: 'The Sunscar Quiet', desc: 'Clear chapter 2', test: (s) => BB.chapterCleared(s, 2), reward: { crystals: 250 } },
     { id: 'kills500', name: 'Bone Breaker', desc: 'Defeat 500 foes', test: (s) => (s.stats.kills || 0) >= 500, reward: { sigils: 6 } },
     { id: 'legends3', name: 'Legends Walk', desc: 'Three legends under your banner', test: (s) => s.heroes.filter((h) => h.legend).length >= 3, reward: { crystals: 300 } },
     { id: 'lv30', name: 'Veteran', desc: 'Raise a hero to level 30', test: (s) => s.heroes.some((h) => h.level >= 30), reward: { sigils: 8 } },
@@ -465,7 +489,7 @@
   };
   // the strongest five: tanks and bruisers in front, the rest behind
   BB.autoFill = function (save) {
-    const best = save.heroes.slice().sort((a, b) => BB.power(b) - BB.power(a)).slice(0, BB.FRONT + BB.BACK);
+    const best = save.heroes.slice().sort((a, b) => BB.power(b) - BB.power(a)).slice(0, BB.teamMax(save));
     const melee = (h) => !BB.CALLINGS[h.calling].ranged && h.calling !== 'warpriest';
     best.sort((a, b) => (melee(b) - melee(a)) || (BB.CALLINGS[a.calling].role === 'Tank' ? -1 : 0) - (BB.CALLINGS[b.calling].role === 'Tank' ? -1 : 0) || BB.power(b) - BB.power(a));
     save.formation = { front: [], back: [] }; save.place = {}; BB.fixFormation(save);

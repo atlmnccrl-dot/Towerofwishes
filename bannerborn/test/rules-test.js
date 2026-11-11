@@ -86,7 +86,20 @@ const arc = BB.newHero({ calling: 'arcanist', seed: 2 });
 ok(BB.heroStats(arc, ['arcanist', 'vanguard']).atk > BB.heroStats(arc, ['arcanist']).atk, 'Shield & Sorcery boosts casters');
 
 // formation
-const F = BB.newSave(1);
+{ // places in the team are earned with the campaign
+  const P = BB.newSave(1), need = [1, 2, 3, 4].map((k) => BB.slotStage(k));
+  ok(BB.teamMax(P) === 1 && BB.nextSlot(P).slot === 2 && BB.nextSlot(P).left === need[0], 'the banner starts with one place');
+  const two = BB.newHero({ calling: 'ranger', level: 3 }); P.heroes.push(two);
+  ok(!BB.placeHero(P, two.id) && BB.teamIds(P).length === 1, 'a second hero waits for a second place');
+  BB.MISSIONS.slice(0, need[0] - 1).forEach((m) => (P.cleared[m.id] = 1)); ok(BB.teamMax(P) === 1, 'one stage short of a fifth of the campaign: still one');
+  P.cleared[BB.MISSIONS[need[0] - 1].id] = 1; ok(BB.teamMax(P) === 2 && BB.placeHero(P, two.id) && BB.teamIds(P).length === 2, 'a fifth of the campaign opens the second place');
+  ok(need.join() === [0.2, 0.4, 0.6, 0.8].map((q) => Math.ceil(BB.MISSIONS.length * q)).join(), 'places open at a fifth, two fifths, three and four');
+  BB.MISSIONS.forEach((m) => (P.cleared[m.id] = 1)); ok(BB.teamMax(P) === 5 && BB.nextSlot(P) === null, 'the whole campaign: five places');
+  const Q = BB.newSave(1); for (let i = 0; i < 4; i++) { const x = BB.newHero({ calling: 'ranger', level: 9 }); Q.heroes.push(x); Q.formation.back[i] = x.id; }
+  BB.fixFormation(Q); ok(BB.teamIds(Q).length === 1, 'an older save with more on the field than it has places keeps the strongest');
+  ok(BB.teamK('count', 1) < BB.teamK('count', 3) && BB.teamK('count', 5) === 1 && BB.teamK('boss', 1) < BB.teamK('boss', 5), 'the horde is sized to the team');
+}
+const F = BB.newSave(1); F.allSlots = true; // the formation's own rules, with every place open
 const extra = ['ranger', 'berserker', 'arcanist', 'warpriest', 'monk', 'lancer'].map((c) => { const x = BB.newHero({ calling: c, level: 3 }); F.heroes.push(x); return x; });
 for (const x of extra.slice(0, 4)) ok(BB.placeHero(F, x.id), 'place ' + x.calling);
 ok(BB.teamIds(F).length === 5 && !BB.placeHero(F, extra[4].id), 'five heroes at most');
@@ -107,7 +120,7 @@ const flp = BB.formationList(F); ok(flp.length === 5 && flp.every((x) => x.u >= 
 const bench = F.heroes.find((x) => !BB.teamIds(F).includes(x.id)); ok(bench && !BB.setPlace(F, bench.id, 0.5, 0.5), 'a sixth hero cannot be dropped on a full field');
 BB.removeHero(F, mover.id); ok(!F.place[mover.id] && BB.teamIds(F).length === 4, 'taking a hero out clears their place');
 ok(BB.placeHero(F, bench.id) && BB.teamIds(F).length === 5, 'a tap brings a hero onto a free place');
-const old = { heroes: F.heroes, formation: { front: [F.heroes[0].id, null], back: [null, F.heroes[1].id, null] } }; BB.fixFormation(old);
+const old = { allSlots: true, heroes: F.heroes, formation: { front: [F.heroes[0].id, null], back: [null, F.heroes[1].id, null] } }; BB.fixFormation(old);
 ok(old.formation.front.length === 5 && old.formation.back.length === 5 && BB.teamIds(old).length === 2 && BB.formationList(old).length === 2, 'an older save\'s formation still loads');
 
 // tiers and recruiting
@@ -130,7 +143,7 @@ if (roster) {
   const got = new Set();
   for (let i = 0; i < 20; i++) { const x = BB.summon(R, roster, BB.TIERS[0].id, BB.rng(i + 1)); if (x) got.add(x.recruit); }
   ok(got.size === tiers[0].heroes.length && !BB.summon(R, roster, BB.TIERS[0].id), 'every hero of a tier once, then the tier is empty');
-  ok(BB.teamIds(R).length === 5, 'recruits fill the formation');
+  ok(BB.teamIds(R).length === BB.teamMax(R), 'a recruit takes a place only while one is free');
   BB.MISSIONS.filter((m) => m.chapter === 1).forEach((m) => (R.cleared[m.id] = 1));
   ok(BB.tierOpen(R, BB.TIERS[1]) && !BB.tierOpen(R, BB.TIERS[2]), 'clearing chapter 1 opens the second tier');
   const x = BB.summon(R, roster, BB.TIERS[1].id, BB.rng(5));
@@ -159,7 +172,7 @@ ok(BB.waveScale(1) < BB.waveScale(5) && BB.waveScale(5) === 1, 'fewer foes for a
 // economy: the first chapter pays for a handful of recruits and levels
 const ch1 = BB.MISSIONS.filter((m) => m.chapter === 1).map((m) => BB.stageRewards(m, true));
 const crys = ch1.reduce((a, x) => a + x.crystals, 0);
-ok(crys >= BB.TIERS[0].cost * 4, 'chapter 1 crystals buy at least four recruits (' + crys + ')');
+ok(crys >= BB.TIERS[0].cost && crys < BB.TIERS[0].cost * 3, 'chapter 1 stage crystals buy a recruit or two, not a full team (' + crys + ')');
 
 // idle spoils
 const I = BB.newSave(0);
@@ -170,7 +183,7 @@ const got = BB.idleClaim(I, 3600000); ok(got.gold > 0 && I.gold === got.gold && 
 // shop
 const day = Date.UTC(2026, 10, 8, 12);
 const SH = BB.newSave(day);
-ok(BB.buy(SH, 'free', day).crystals === 60 && !BB.buy(SH, 'free', day), 'free crystals once a day');
+ok(BB.buy(SH, 'free', day).crystals === 30 && !BB.buy(SH, 'free', day), 'free crystals once a day');
 ok(!BB.buy(SH, 'chest', day), 'paid offers need gold');
 SH.gold = 1e5; const ch = BB.buy(SH, 'chest', day); ok(ch && ch.item && ch.item.rarity >= 1, 'armory chest gives Rare or better');
 ok(BB.shopLeft(SH, BB.SHOP[0], day + 86400000) === 1, 'offers come back the next day');

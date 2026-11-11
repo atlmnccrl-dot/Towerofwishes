@@ -278,11 +278,12 @@
       res.gold += rw.gold; res.crystals = rw.crystals; res.sigils = rw.sigils;
       res.items.push(...BB.rollLoot(BB.rng(now() & 0xffffff), M.level, S.heroes, rw.items));
       let relic = null; if (first && BB.RELICS[M.boss]) { relic = BB.makeRelic(M.boss, M.level); res.items.push(relic); }
-      const chBefore = BB.TIERS.filter((t) => BB.tierOpen(S, t)).length;
+      const chBefore = BB.TIERS.filter((t) => BB.tierOpen(S, t)).length, slotsBefore = BB.teamMax(S);
       S.cleared[M.id] = (S.cleared[M.id] || 0) + 1;
       if (first && current.idx === 0 && !devReal) guideDue = true; // after the very first victory: how the rest works, once
       const notes = [];
       if (relic) notes.push('✦ A relic: ' + relic.name);
+      if (BB.teamMax(S) > slotsBefore) notes.push('⚑ A new place in the team: ' + BB.teamMax(S) + ' heroes can march now.');
       if (first && M.legend) {
         const L = BB.joinLegend(S, M.legend);
         if (L) { res.legend = L; notes.push('★ ' + L.name + ' joins your banner!'); }
@@ -340,7 +341,7 @@
     res.xp = B.heroList.map((e) => { const before = e.hero.level, got = Math.round(BB.battleXp(lvl, waves >= 3, work(e) / allWork * B.heroList.length / 2.5, e === mvp, e.hero.level) * (1 + Math.min(waves, 20) * 0.08)); return { hero: e.hero, xp: got, levels: BB.gainXp(e.hero, got), from: before }; });
     res.gold = Math.round(B.goldGot + waves * (30 + M.level * 6));
     res.sigils = Math.floor(waves / 5);
-    res.crystals = waves > best ? (waves - best) * 10 : 0; // crystals only for ground never held before
+    res.crystals = waves > best ? (waves - best) * 5 : 0; // crystals only for ground never held before
     if (B.loot && B.loot.length) res.items.push(...B.loot);
     if (waves >= 4) res.items.push(...BB.rollLoot(BB.rng(now() & 0xffffff), M.level + (waves >> 1), S.heroes, Math.min(3, waves >> 2)));
     S.stats.endless = Math.max(best, waves);
@@ -528,7 +529,7 @@
   const realPersist = BB.persist;
   BB.persist = function () { if (!devReal) realPersist(); };
   function devSave(o) {
-    const S = BB.newSave(now()), st = BB.MISSIONS[o.idx];
+    const S = BB.newSave(now()), st = BB.MISSIONS[o.idx]; S.allSlots = true; // a showcase team is always five
     S.settings = Object.assign({}, devReal.settings, { auto: true, speed: 1 }); S.banner = devReal.banner; S.seen.tutorial = 1;
     BB.MISSIONS.slice(0, o.idx).forEach((m) => (S.cleared[m.id] = 1));
     BB.MISSIONS.forEach((m) => { if (!(o.cine && m === st)) S.seen['cine_' + m.id] = 1; }); BB.CHAPTERS.forEach((c) => (S.seen['cine_ch' + c.id] = 1));

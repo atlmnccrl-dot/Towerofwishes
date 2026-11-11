@@ -21,18 +21,18 @@ for (const idx of list) {
   for (let k = 0; k < runs; k++) {
     const r = BB.rng(idx * 100 + k + 1);
     const save = BB.newSave(1); save.settings.auto = !process.env.NOULT;
-    const n = Math.min(5, 1 + Math.floor(idx / 1.5));
+    const n = +process.env.TEAM || BB.slotsAt(idx); // as many heroes as the campaign has opened places for by this stage
     const lvl = Math.max(1, M.level - LAG);
     const heroes = comps[k % 3].slice(0, n).map((c, i) => {
       const h = i === 0 ? BB.newCaptain() : BB.newHero({ calling: c, rarity: Math.min(3, Math.floor(idx / 8)), seed: i + k * 7 });
-      h.level = lvl; h.stars = 1 + Math.floor(idx / 10);
+      h.level = lvl; h.stars = Math.min(5, 1 + Math.floor(idx / 10));
       for (const slot of ['weapon', 'chest']) if (r() < Math.min(0.9, 0.3 + idx * 0.05)) h.gear[slot] = BB.makeItem(r, slot, Math.max(1, lvl - 1), r() < 0.3 ? 1 : 0, slot === 'weapon' ? BB.weaponType(h.calling) : undefined);
       return h;
     });
     const formation = heroes.map((h, i) => ({ hero: h, row: i < 2 ? 'front' : 'back', slot: i < 2 ? i : i - 2 }));
     if (process.env.PLACED) { const D = { front: [[0.74, 0.36], [0.78, 0.64]], back: [[0.24, 0.24], [0.28, 0.5], [0.32, 0.76]] }; formation.forEach((f) => { f.u = D[f.row][f.slot][0]; f.v = D[f.row][f.slot][1]; }); } // as the game places them
     const map = BB.buildMap(M.layout, BB.CHAPTERS[M.chapter - 1].biome, 1000 + idx * 10 + k, {});
-    const B = new BB.Battle({ map, mission: M, formation, level: M.level, save, seed: k + 1 });
+    const B = new BB.Battle({ map, mission: M, formation, heroes, level: M.level, save, seed: k + 1 }); // heroes: the horde is sized to the team, as in the game
     let t = 0;
     while (!B.result && t < 400) {
       B.update(1 / 30, null); t += 1 / 30;
@@ -42,6 +42,6 @@ for (const idx of list) {
     const res = B.result ? (B.result.win ? 'win' : 'loss') : 'timeout';
     agg.n++; if (res === 'win') { agg.w++; agg.t += t; agg.alive += B.heroesAlive().length; } if (res === 'timeout') { agg.to++; bad++; }
   }
-  console.log((M.code + ' ' + M.name).padEnd(36), M.type.padEnd(7), 'L' + String(M.level).padEnd(3), 'team ' + Math.min(5, 1 + Math.floor(idx / 1.5)), 'win ' + agg.w + '/' + agg.n, 'avg ' + (agg.w ? Math.round(agg.t / agg.w) : '-') + 's', agg.to ? 'TIMEOUTS ' + agg.to : '');
+  console.log((M.code + ' ' + M.name).padEnd(36), M.type.padEnd(7), 'L' + String(M.level).padEnd(3), 'team ' + (+process.env.TEAM || BB.slotsAt(idx)), 'win ' + agg.w + '/' + agg.n, 'avg ' + (agg.w ? Math.round(agg.t / agg.w) : '-') + 's', agg.to ? 'TIMEOUTS ' + agg.to : '');
 }
 process.exit(bad ? 1 : 0);

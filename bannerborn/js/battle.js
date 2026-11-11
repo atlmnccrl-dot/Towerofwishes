@@ -20,8 +20,8 @@
     this.level = opts.level || 1;
     this.save = opts.save;
     this.revives = 0;
-    this.waveK = BB.waveScale ? BB.waveScale((opts.heroes || []).length) : 1;
-    if (opts.mission && opts.mission.chapter) this.waveK *= BB.crowd(opts.mission); // bigger hordes deeper in
+    this.teamN = (opts.heroes || []).length || 5; this.crowdK = opts.mission && opts.mission.chapter ? BB.crowd(opts.mission) : 1; // bigger hordes deeper in
+    this.waveK = BB.waveScale(this.teamN) * this.crowdK;
     this.metrics = { taken: 0, dealt: 0, healed: 0, minFrac: 1 };
     // formation: front row (2) ahead, back row (3) behind, facing the map's centre
     const form = opts.formation || (opts.heroes || []).map((h, i) => ({ hero: h, row: i < 2 ? 'front' : 'back', slot: i < 2 ? i : i - 2 }));
@@ -74,7 +74,9 @@
     const F = BB.FOES[kind];
     const elite = opts.elite || null;
     const st = BB.foeStats(kind, opts.level || this.level, elite);
-    if (F.boss || F.gate) st.hp = Math.round(st.hp * (0.5 + 0.5 * this.waveK));
+    if (F.boss || F.gate) st.hp = Math.round(st.hp * (0.5 + 0.5 * this.crowdK) * BB.teamK(F.boss ? 'boss' : 'gate', this.teamN));
+    else st.hp = Math.round(st.hp * BB.teamK('hp', this.teamN));
+    st.atk *= BB.teamK('atk', this.teamN);
     { const fs = BB.freeSpot(this.map, x, y, F.gate ? 0.9 : F.r); x = fs.x; y = fs.y; }
     const e = {
       id: BB.uid('f'), side: 'foe', kind, F, name: (elite ? elite.name + ' ' : '') + F.name, x, y, vx: 0, vy: 0, r: F.r * (elite ? 1.1 : 1),
@@ -109,12 +111,12 @@
     const pool = []; M.waves.forEach((w) => { for (let i = 0; i < w.length; i += 2) if (!BB.FOES[w[i]].turret) pool.push(w[i]); });
     this.obj.pool = pool.length ? pool : ['ghoul'];
     if (M.type === 'gates') {
-      const spots = (m.gateSpots || m.foeSpawns).slice(0, M.gates || 1);
+      const spots = (m.gateSpots || m.foeSpawns).slice(0, Math.max(1, Math.round((M.gates || 1) * BB.teamK('gates', this.teamN))));
       this.obj.gates = spots.map((s) => this.spawnFoe('portal', s.x, s.y));
       this.obj.text = 'Destroy the Gravegates';
     } else if (M.type === 'defend') {
       const w = m.wardSpot;
-      const hp = 1400 + M.level * 420;
+      const hp = Math.round((1400 + M.level * 420) * (M.chapter > 4 ? 1.8 + (M.chapter - 5) * 0.45 : 1)); // the far marches' wards are built to last: their sieges are longer
       this.ward = { id: 'ward', side: 'hero', ward: true, prop: true, x: w.x, y: w.y, r: 0.7, hp, maxhp: hp, def: 4, buffs: {}, name: { cart: 'Caravan', refugees: 'Refugees', cage: 'Witch\'s Cage' }[M.ward] || 'Ward', dir: 0, sc: 1 };
       this.ents.push(this.ward);
       this.obj.timeLeft = M.time; this.obj.text = 'Protect the ' + this.ward.name;
@@ -145,7 +147,9 @@
     const eliteN = this.mission && this.mission.elites ? this.mission.elites : 0;
     // pick the spawn closest to the heroes' far side, then lay the wave out facing them
     const groups = []; let total = 0;
-    for (let i = 0; i < w.length; i += 2) { const n = Math.max(1, Math.round(w[i + 1] * this.waveK)); groups.push([w[i], n]); total += n; }
+    { let carry = 0; // the wave as a whole is scaled to the team: a small team meets the first kinds of it, not one of each
+      for (let i = 0; i < w.length; i += 2) { const raw = w[i + 1] * this.waveK + carry, n = Math.floor(raw + 0.5); carry = raw - n; if (n > 0) { groups.push([w[i], n]); total += n; } }
+      if (!total) { groups.push([w[0], 1]); total = 1; } }
     const parts = spots.length > 1 && total > 6 ? 2 : 1; // a big wave splits between two spawns
     for (let part = 0; part < parts; part++) {
       const s0 = spots[(this.waveIdx + part) % spots.length];
@@ -163,7 +167,7 @@
         let x = s0.x + fx * fwd + px * off + this.r.range(-0.25, 0.25), y = s0.y + fy * fwd + py * off + this.r.range(-0.25, 0.25);
         const f = BB.freeSpot(this.map, x, y, 0.3); x = f.x; y = f.y;
         let elite = null;
-        if (eliteN && this.r() < 0.12 * eliteN && !BB.FOES[kind].turret) elite = this.r.pick(BB.ELITES);
+        if (eliteN && this.r() < 0.12 * eliteN * BB.teamK('elite', this.teamN) && !BB.FOES[kind].turret) elite = this.r.pick(BB.ELITES);
         const e = this.spawnFoe(kind, x, y, { rise: true, elite });
         if (e) e.home = { x, y };
         return e;
@@ -182,7 +186,7 @@
       o.nextWaveT -= dt;
       // reinforcements arrive while the last wave is still fighting: once it is mostly down, or after a while
       const lastN = o.lastWaveN || 1;
-      if (o.waves.length && o.nextWaveT <= 0 && (foes.length <= Math.max(1, Math.floor(lastN * 0.45)) || o.nextWaveT < -11)) {
+      if (o.waves.length && o.nextWaveT <= 0 && (foes.length <= Math.max(Math.min(1, BB.teamK('crowd', this.teamN)), Math.floor(lastN * 0.45 * Math.min(1, this.teamN / 4))) || o.nextWaveT < -11 * BB.teamK('wait', this.teamN))) {
         const w = o.waves.shift(); this.spawnWave(w); if (this.onWave) this.onWave(); o.nextWaveT = 4; o.lastWaveN = this.foesAlive().filter((f) => !f.gate).length;
         this.banner('Wave ' + this.waveIdx + ' / ' + this.mission.waves.length, 1.3, 'small');
       }
@@ -190,7 +194,7 @@
       o.text = 'Rout the Bone Tide — wave ' + Math.max(1, this.waveIdx) + ' of ' + this.mission.waves.length;
     } else if (o.type === 'gates' || o.type === 'endless') {
       o.nextWaveT -= dt;
-      if (o.waves.length && o.nextWaveT <= 0 && foes.length < 4) {
+      if (o.waves.length && o.nextWaveT <= 0 && foes.length <= BB.teamK('crowd', this.teamN)) {
         this.spawnWave(o.waves.shift(), o.gates.filter((g) => !g.dead).map((g) => ({ x: g.x + 0.9, y: g.y + 0.9 })));
         o.nextWaveT = 10;
       }
@@ -1418,8 +1422,8 @@
     if (e.gate) {
       e.spawnCd -= dt;
       const foes = this.foesAlive().length;
-      if (e.spawnCd <= 0 && foes < 9 && (e.budget === undefined || e.budget > 0)) {
-        e.spawnCd = (8.5 + this.r() * 2.5) / Math.sqrt(this.waveK);
+      if (e.spawnCd <= 0 && foes < BB.teamK('cap', this.teamN) && (e.budget === undefined || e.budget > 0)) {
+        e.spawnCd = (8.5 + this.r() * 2.5) / Math.sqrt(this.waveK) * Math.sqrt(BB.teamK('wait', this.teamN));
         if (e.budget !== undefined) e.budget--;
         const k = this.r.pick(this.obj.pool);
         this.spawnFoe(k, e.x + this.r.range(0.6, 1.2), e.y + this.r.range(0.6, 1.2), { rise: true }); if (BB.voice && this.r() < 0.5) BB.voice('deep_grunt2', 0.4);
@@ -1523,7 +1527,7 @@
       } });
     } else if (mv === 'summon') {
       e.state = 'attack'; e.lock = 1; e.atkDur = 1; e.hitAt = 99; e.hitDone = true; this.setClip(e, 'Special1', true);
-      const n = Math.min(4, 2 + (this.level >> 2));
+      const n = Math.max(1, Math.round(Math.min(4, 2 + (this.level >> 2)) * BB.teamK('count', this.teamN)));
       for (let i = 0; i < n; i++) { const a = i / n * TAU; this.spawnFoe(this.r() < 0.7 ? 'ghoul' : 'warden', e.x + Math.cos(a) * 2, e.y + Math.sin(a) * 2, { rise: true }); }
       this.text(e.x, e.y, 'RISE!', '#d9a6ff', 1);
     } else if (mv === 'barrage') {
@@ -1569,7 +1573,7 @@
       this.fireRing(e, t.x, t.y, 2.3, 1.1); this.setClip(e, 'Special1', true); e.state = 'attack'; e.lock = 0.8; e.atkDur = 0.8; e.hitAt = 99; e.hitDone = true;
     } else if (mv === 'summonw') {
       e.state = 'attack'; e.lock = 1; e.atkDur = 1; e.hitAt = 99; e.hitDone = true; this.setClip(e, 'Special1', true);
-      for (let i = 0; i < 2; i++) this.spawnFoe(this.r() < 0.5 ? 'wraith' : 'skel', e.x + this.r.range(-2, 2), e.y + this.r.range(-2, 2), { rise: true });
+      for (let i = 0; i < (this.teamN <= 2 ? 1 : 2); i++) this.spawnFoe(this.r() < 0.5 ? 'wraith' : 'skel', e.x + this.r.range(-2, 2), e.y + this.r.range(-2, 2), { rise: true });
       this.text(e.x, e.y, 'KNEEL!', '#cfe0ff', 1);
     } else if (mv === 'elements') {
       const el = ['fire', 'frost', 'shadow'][(e.elemStep = ((e.elemStep || 0) + 1) % 3)];

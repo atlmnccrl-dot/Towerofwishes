@@ -146,6 +146,18 @@ A hero-collector RPG: you build the team, the team fights.
    market as the campaign goes on. **Spoils** gather while you are away (up to 12 h). **Goals**
    (seventeen milestones) pay crystals, gold and sigils. The **Shop** has a few offers a day.
 
+**Places in the team are earned** (`BB.teamMax`, `BB.nextSlot` in js/rules.js). The banner starts with one place; a
+second opens when 20% of the campaign's stages are won, then 40%, 60% and 80%, up to five (with 54 stages: after 11,
+22, 33 and 44). Heroes can be many; who marches is the choice. Summons come slower to match: fewer crystals from
+stages, goals and the daily gift, and the first two gates cost more.
+
+**The horde is sized to the team** (`BB.TEAM_K`): by the number of heroes who march, how many foes a wave brings,
+how hard they hit, their health, a boss's and a gate's health, how many gates a stage has and how many foes each
+keeps on the field, how often an elite comes, how many adds a boss calls, and how long a wave waits for the last one
+to thin. A lone hero meets a fifth of the crowd, hitting at 40%, and a boss at a tenth of its health. `node
+test/sim-node.js all 3` plays every stage with as many heroes as the campaign has opened places for by then (the
+simulator used to leave the team out, so its hordes were always the smallest; it now passes it, as the game does).
+
 Losing costs nothing (and still teaches your heroes): change gear or the formation and fight again.
 
 **After and around the campaign**

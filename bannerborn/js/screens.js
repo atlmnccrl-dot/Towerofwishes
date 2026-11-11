@@ -1355,14 +1355,19 @@
       top.appendChild(el('div', 'bigname', esc(st.name)));
       top.appendChild(el('div', 'powcmp', '<div class="' + (tp >= rp ? 'ok' : 'lo') + '"><span class="lbl">Team</span><b>⚔ ' + fmt(tp) + '</b></div><div><span class="lbl">Recommended</span><b>⚔ ' + fmt(rp) + '</b></div>'));
       const vs = el('div', 'vs'); vs.appendChild(el('span', 'lbl', 'Foes')); vs.appendChild(UI.foeIcons(st, 40)); top.appendChild(vs);
-    } else top.appendChild(el('div', 'power', '<span class="ico pow">⚔</span><b>' + fmt(tp) + '</b><span class="mute">' + team.length + ' / 5 heroes</span>'));
+    } else top.appendChild(el('div', 'power', '<span class="ico pow">⚔</span><b>' + fmt(tp) + '</b><span class="mute">' + team.length + ' / ' + BB.teamMax(S) + (BB.teamMax(S) === 1 ? ' hero' : ' heroes') + '</span>'));
+    { // the places in the team: taken, free, and those the campaign has yet to open
+      const max = BB.teamMax(S), nx = BB.nextSlot(S); let pips = '';
+      for (let i = 0; i < BB.TEAM_MAX; i++) pips += '<i class="' + (i < team.length ? 'on' : i < max ? 'free' : 'lock') + '">' + (i >= max ? UI.si('lock', 10) : '') + '</i>';
+      top.appendChild(el('div', 'slots', pips + '<span>' + (nx ? 'Place ' + nx.slot + ' opens at ' + nx.pct + '% of the campaign · ' + nx.left + (nx.left === 1 ? ' stage' : ' stages') + ' to go' : 'All five places are open') + '</span>'));
+    }
     if (bonds.length) top.appendChild(el('div', 'bondrow', bonds.map((b) => '<span class="bond" title="' + esc(b.desc) + '">✦ ' + b.name + '</span>').join('')));
     if (BB.teamBalance) { // the team at a glance: one chip per class, and what it is missing
       const bal = BB.teamBalance(team), chips = Object.keys(BB.CLASSES).filter((k) => bal.counts[k]).map((k) => { const n = bal.counts[k] || 0; return '<span class="cls' + (n ? ' on' : '') + '" style="--cc:' + BB.CLASSES[k].col + '" title="' + esc(BB.CLASSES[k].job) + '">' + BB.CLASSES[k].name + (n > 1 ? ' ×' + n : '') + '</span>'; }).join('');
       top.appendChild(el('div', 'clsrow', chips + (team.length ? '<span class="clstip' + (bal.balanced ? ' good' : '') + '">' + (bal.balanced ? '✓ Balanced team' : esc(bal.tips[0] || '')) + '</span>' : '')));
     }
     const row = el('div', 'row');
-    const af = el('button', 'btn dark sm', UI.si('bolt', 14) + ' Auto-fill'); af.title = 'The strongest five: fighters in front, the rest behind';
+    const af = el('button', 'btn dark sm', UI.si('bolt', 14) + ' Auto-fill'); af.title = 'The strongest heroes for the places you have: fighters in front, the rest behind';
     click(af, () => { BB.autoFill(S); T.sel = null; BB.persist(); UI.renderTeam(); UI.refreshTop(); });
     row.appendChild(af);
     if (T.stage !== null) {
@@ -1376,7 +1381,7 @@
       const inT = ids.includes(h.id);
       ro.appendChild(UI.heroCard(h, { inteam: inT, onClick: () => {
         if (inT) BB.removeHero(S, h.id);
-        else if (!BB.placeHero(S, h.id)) { UI.toast('Five heroes at most. Take one out to make room.'); return; }
+        else if (!BB.placeHero(S, h.id)) { UI.toast(BB.nextSlot(S) ? 'Every place is taken. Take a hero out, or win more of the campaign: place ' + BB.nextSlot(S).slot + ' opens at ' + BB.nextSlot(S).pct + '%.' : 'Five heroes at most. Take one out to make room.'); return; }
         T.sel = null; BB.persist(); UI.renderTeam(); UI.refreshTop();
       } }));
     }
