@@ -14,6 +14,8 @@
   const R = (pre, a, b) => { const o = []; for (let i = a; i <= b; i++) o.push(pre + i); return o; };
 
   // Props: [tile, collision radius (0 = walk through), kind]. Breakables: the animation that plays when struck.
+  // A wall tile (drawn in the N/W directions): the packs' 'd:Wall' and the forge's recoloured walls ('v:<Act>Wall').
+  const isWallKey = (k) => /^d:Wall |^v:[A-Za-z]*Wall /.test(k);
   const BREAK = {
     barrel: { anim: 'Barrel 1', hp: 1, fx: 'smoke' }, poison: { anim: 'Barrel 3', hp: 1, fx: 'poison' }, water: { anim: 'Barrel 2', hp: 1, fx: 'splash' },
     crate: { anim: 'wood explosion large', hp: 2, fx: 'wood' }, pot: { anim: 'Clay explosion', hp: 1, fx: 'clay' }, bones: { anim: 'Skeleton explosion', hp: 1, fx: 'bones' },
@@ -133,6 +135,59 @@
       if (Math.abs(d - 3) < 0.4 && (Math.abs(x) < 0.6 || Math.abs(y) < 0.6) && x > -2) return 'B'; return '#'; },
       hz: { vents: { every: 2.8, pattern: 'seq', dmg: 17, r: 36, delay: 1.0, fx: 'fire_burst', ring: { r: 2.4, n: 6 } } } },
   };
+  // Each hour as one place (2026-11-11, the author: "make the ground, structures and assets match"): its own ground and
+  // overlays from the forge, and the packs' walls, paving, columns, statues and rocks recoloured into its palette
+  // (tools_forge_acts.py: GateWall F1 and so on). The packs' beige paving, grass, moss and stray clutter are gone.
+  const RC = (act, keys) => keys.map((k) => { const [g, rest] = k.split(':'), [fam, code] = rest.split(' '); return `v:${act}${fam}${g === 'i' ? 'I' : ''} ${code}`; });
+  const rc = (act, k) => RC(act, [k])[0];
+  Object.assign(THEMES.gate, {
+    base: [['v:Cobble J1', 5], ['v:Cobble J2', 4], ['v:Cobble J3', 3], ['v:Grate K1', 1]], floor: RC('Gate', ['i:Ground H1', 'i:Ground H4', 'i:Ground D1']),
+    over: ['v:Puddle L1', 'v:Puddle L2'], floorOver: ['v:Puddle L1', 'v:Puddle L2'],
+    wall: RC('Gate', ['d:Wall F1', 'd:Wall F1', 'd:Wall F3', 'd:Wall F4', 'd:Wall F7', 'd:Wall F8', 'd:Wall F9']), corner: rc('Gate', 'd:Wall F2'), low: RC('Gate', ['d:Wall F5', 'd:Wall B7', 'd:Wall B8']),
+    pillar: [rc('Gate', 'i:Misc C7'), 16], statue: [rc('Gate', 'i:Misc C5'), 22], brazier: ['v:Brazier', 18], rock: [rc('Gate', 'd:Stone A1'), 26],
+    props: [['v:Lantern', 6, 'light'], ['v:Cage', 8], ['v:Stakes', 14], ['v:Well', 24], ['v:Lantern', 6, 'light'], [rc('Gate', 'i:Misc C5'), 22], [rc('Gate', 'i:Misc C6'), 18], [rc('Gate', 'i:Misc C7'), 16], [rc('Gate', 'd:Stone A1'), 26], [rc('Gate', 'd:Stone A2'), 34], ['v:Brazier', 18, 'light']],
+    decor: ['v:Puddle L2!', 'v:Stakes', rc('Gate', 'd:Stone B4')] });
+  Object.assign(THEMES.cloister, {
+    base: [['v:Frost M1', 4], ['v:Frost M2', 3], ['v:Frost M3', 2], ['v:Ice N1', 2], ['v:Ice N2', 1]], floor: RC('Cloister', ['i:Ground H1', 'i:Ground H4']),
+    over: ['v:Snow O1', 'v:Snow O2'], floorOver: ['v:Snow O1', 'v:Snow O2'],
+    wall: RC('Cloister', ['d:Wall G1', 'd:Wall G1', 'd:Wall G2']), corner: rc('Cloister', 'd:Wall G3'), low: RC('Cloister', ['d:Wall F5', 'd:Wall A10']),
+    pillar: [rc('Cloister', 'i:Misc C7'), 16], statue: [rc('Cloister', 'i:Misc C6'), 18], brazier: ['v:Brazier', 18], rock: [rc('Cloister', 'd:Stone A15'), 12],
+    props: [['v:Icespire', 16], ['v:Snowcairn', 14], ['v:Frozenurn', 8], ['v:Bell', 18], ['v:Icespire', 16], [rc('Cloister', 'i:Misc C5'), 22], [rc('Cloister', 'i:Misc C6'), 18], [rc('Cloister', 'i:Misc C7'), 16],
+      [rc('Cloister', 'd:Stone A13'), 12], [rc('Cloister', 'd:Stone A14'), 12], [rc('Cloister', 'd:Stone A16'), 16], ['v:Brazier', 18, 'light']],
+    decor: ['v:Snow O2!', 'v:Frozenurn', rc('Cloister', 'd:Stone B4'), rc('Cloister', 'd:Stone A4')] });
+  Object.assign(THEMES.stair, {
+    base: [['v:Umbral P1', 4], ['v:Umbral P2', 3], ['v:Umbral P3', 2]], floor: RC('Stair', ['d:Ground H1', 'd:Ground H4']),
+    over: ['v:Void Q1', 'v:Void Q2'], floorOver: ['v:Void Q1'],
+    wall: RC('Stair', ['d:Wall A1', 'd:Wall A1', 'd:Wall A4', 'd:Wall A5', 'd:Wall A15', 'd:Wall A16']), corner: rc('Stair', 'd:Wall A2'), low: RC('Stair', ['d:Wall A10', 'd:Wall A3']), vines: null,
+    pillar: [rc('Stair', 'd:Wall A6'), 16], statue: [rc('Stair', 'd:Stone A23'), 30], brazier: ['v:Brazier', 18], rock: [rc('Stair', 'd:Wall J1'), 32],
+    props: [['v:Arch', 30], ['@Voidshard', 10], ['@Vbrazier', 16, 'light'], ['@Voidshard', 10], [rc('Stair', 'd:Wall A6'), 16], [rc('Stair', 'd:Wall J11'), 14], [rc('Stair', 'd:Wall A19'), 10],
+      [rc('Stair', 'd:Stone A23'), 30], [rc('Stair', 'd:Stone A24'), 14], [rc('Stair', 'd:Wall J1'), 32], [rc('Stair', 'd:Wall J6'), 30], [rc('Stair', 'd:Stone A21'), 16], [rc('Stair', 'd:Stone A22'), 16]],
+    decor: ['v:Void Q1!', '@Candlesfl', rc('Stair', 'd:Stone B4')] });
+  Object.assign(THEMES.waste, {
+    base: [['v:Cinder R1', 4], ['v:Cinder R2', 3], ['v:Scorch S1', 3], ['v:Scorch S2', 2]], floor: RC('Waste', ['d:Ground B3', 'd:Ground B6']),
+    over: ['v:Embers T1', 'v:Embers T2'], floorOver: ['v:Embers T1'],
+    wall: RC('Waste', ['d:Wall A7', 'd:Wall A3', 'd:Wall A9', 'd:Wall A17', 'd:Wall A1', 'd:Wall A8', 'd:Wall A18']), corner: rc('Waste', 'd:Wall A2'), low: RC('Waste', ['d:Wall A3', 'd:Wall A8']),
+    pillar: [rc('Waste', 'd:Misc D3'), 26], statue: ['v:Ribcage', 30], brazier: ['v:Brazier', 18], rock: [rc('Waste', 'd:Stone B5'), 30],
+    props: [['v:Deadtree', 12], ['v:Ribcage', 20], ['@Lavavent', 18, 'light'], ['v:Deadtree', 12], ['@Lavavent', 18, 'light'], [rc('Waste', 'd:Misc D3'), 26], [rc('Waste', 'd:Stone B1'), 24], [rc('Waste', 'd:Stone B3'), 22],
+      [rc('Waste', 'd:Stone B5'), 30], [rc('Waste', 'd:Stone A9'), 18], [rc('Waste', 'd:Stone A10'), 18]],
+    decor: ['v:Embers T2!', 'v:Ribcage'] });
+  Object.assign(THEMES.throat, {
+    base: [['v:Cliff U1', 4], ['v:Cliff U2', 3], ['v:Grass V1', 3], ['v:Grass V2', 2]], floor: RC('Throat', ['d:Ground D1', 'd:Ground H1']),
+    over: ['v:Gravel W1', 'v:Gravel W2'], floorOver: ['v:Gravel W1'], low: RC('Throat', ['d:Wall A10']),
+    pillar: [rc('Throat', 'd:Stone B7'), 22], statue: [rc('Throat', 'd:Stone B8'), 18], brazier: ['v:Brazier', 18], rock: [rc('Throat', 'd:Stone A2'), 34],
+    props: [['v:Cairn', 14], ['v:Rockspire', 20], ['@Windbanner', 6], ['v:Cairn', 14], [rc('Throat', 'd:Stone B7'), 22], [rc('Throat', 'd:Stone B8'), 18], [rc('Throat', 'd:Stone B1'), 24], [rc('Throat', 'd:Stone B3'), 22],
+      [rc('Throat', 'd:Stone A1'), 26], [rc('Throat', 'd:Stone A2'), 34], [rc('Throat', 'd:Stone A3'), 22], [rc('Throat', 'd:Stone B9'), 26]],
+    decor: ['v:Tuft', 'v:Tuft', 'v:Gravel W1!', '@Fog', rc('Throat', 'd:Stone B4'), rc('Throat', 'd:Stone B2'), rc('Throat', 'd:Stone B6')],
+    edge: [[rc('Throat', 'd:Stone B7'), 22], [rc('Throat', 'd:Stone B8'), 18], [rc('Throat', 'd:Stone B1'), 24], [rc('Throat', 'd:Stone B3'), 22], [rc('Throat', 'd:Stone B9'), 26]] });
+  Object.assign(THEMES.shadow, {
+    base: [['v:Flag A1', 4], ['v:Flag A2', 3], ['v:Flag A3', 2], ['v:Bone C1', 1], ['v:Flag A4', 2]], floor: RC('Shadow', ['d:Ground H1', 'd:Ground H4']),
+    over: ['v:Blood F1', 'v:Crack G1', 'v:Bones I1'], floorOver: ['v:Blood F2', 'v:Blood F3'],
+    wall: RC('Shadow', ['d:Wall D1', 'd:Wall D3', 'd:Wall D4', 'd:Wall D7', 'd:Wall D8', 'd:Wall D9']), corner: rc('Shadow', 'd:Wall D2'), low: RC('Shadow', ['d:Wall D5', 'd:Wall A10']), vines: null,
+    pillar: [rc('Shadow', 'd:Wall A6'), 16], statue: [rc('Shadow', 'd:Stone A23'), 30], brazier: ['v:Brazier', 18], rock: [rc('Shadow', 'd:Wall J16'), 34],
+    props: [['@Bloodpool', 0], ['@Runestone', 14, 'light'], ['v:Obelisk', 20], ['v:Banner', 6], ['v:Bonespire', 16], ['v:Skulls', 14], ['v:Crystal', 14], ['v:Gravecross', 8],
+      [rc('Shadow', 'd:Wall A6'), 16], [rc('Shadow', 'd:Stone A21'), 16], [rc('Shadow', 'd:Stone A8'), 30], [rc('Shadow', 'd:Wall J16'), 34], [rc('Shadow', 'd:Wall J17'), 34], [rc('Shadow', 'd:Stone A23'), 30], [rc('Shadow', 'd:Wall J11'), 14], ['v:Brazier', 18, 'light']],
+    decor: ['@Candlesfl', '@Bloodpool', '@Fog', 'v:Candles', 'v:Blood F1!', 'v:Bones I2!', 'v:Grave', rc('Shadow', 'd:Stone B4')] });
+  THEMES.altar.wall = THEMES.shadow.wall; THEMES.altar.corner = THEMES.shadow.corner; THEMES.altar.low = THEMES.shadow.low;
   // A lair's map as rows of characters.
   function lairRows(L) {
     if (Array.isArray(L.map)) return L.map;
@@ -217,7 +272,7 @@
       const hz = L.hz || {}, vents = [], zones = [];
       for (let cy = 0; cy < h; cy++) for (let cx = 0; cx < w; cx++) {
         const ch = rows[cy][cx], [x, y] = ctr(cx, cy), set = { P: th.pillar, S: th.statue, B: th.brazier, R: th.rock }[ch];
-        if (set) { const [key, rad] = set; A.objs.push({ key: key + '_' + (key.startsWith('d:Wall') ? pick(['N', 'W'], r) : pick(['E', 'S'], r)), x, y, r: rad, kind: ch === 'B' ? 'light' : 'prop', solid: true }); if (rad >= 26) A.solid[idx(cx, cy)] = 1; if (ch === 'B') A.lights.push({ x, y, r: 130 }); }
+        if (set) { const [key, rad] = set; A.objs.push({ key: key + '_' + (isWallKey(key) ? pick(['N', 'W'], r) : pick(['E', 'S'], r)), x, y, r: rad, kind: ch === 'B' ? 'light' : 'prop', solid: true }); if (rad >= 26) A.solid[idx(cx, cy)] = 1; if (ch === 'B') A.lights.push({ x, y, r: 130 }); }
         if (ch === 'V') vents.push({ x, y }); if (ch === 'Z') zones.push({ x, y });
       }
       if (hz.vents && hz.vents.ring) for (let k = 0; k < hz.vents.ring.n; k++) { const a = k / hz.vents.ring.n * Math.PI * 2; vents.push({ x: Math.cos(a) * hz.vents.ring.r * T, y: Math.sin(a) * hz.vents.ring.r * T }); }
@@ -236,7 +291,7 @@
       const i = idx(cx, cy), big = rad >= 26;
       if (big) { A.solid[i] = 1; const q = reach(); if (!q.exit || q.n < floors * 0.86) { A.solid[i] = 0; continue; } }
       if (key[0] === '@') A.objs.push({ anim: key.slice(1), x, y, r: rad, kind: 'anim', solid: rad > 0, flip: r() < 0.5, ph: r() });   // an animated prop (the forge's iso anims)
-      else A.objs.push({ key: key + '_' + pick(key.startsWith('d:Wall') ? ['N', 'W'] : ['E', 'S'], r), x, y, r: rad, kind: kind === 'light' ? 'light' : 'prop', solid: rad > 0 });
+      else A.objs.push({ key: key + '_' + pick(isWallKey(key) ? ['N', 'W'] : ['E', 'S'], r), x, y, r: rad, kind: kind === 'light' ? 'light' : 'prop', solid: rad > 0 });
       if (kind === 'light') A.lights.push({ x, y, r: 110 });
       placed++;
     }

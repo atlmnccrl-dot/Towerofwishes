@@ -405,11 +405,15 @@ def build_tiles():
     import tools_forge_acts
     acts, anims = tools_forge_acts.items()
     br, banims = tools_forge_acts.breakables(); acts += br; anims.update(banims)
+    rec = tools_forge_acts.recolors(ISO); print('recoloured:', len(rec))
+    page2, place2 = pack(rec)
+    page2.save(ISO + '/tiles_v2.png', optimize=True)
     where = tools_forge_acts.build_icons(ROOT + '/assets/ui/icons_f.png'); print('icons:', where)
     page1, place1 = pack(acts)
     page1.save(ISO + '/tiles_v1.png', optimize=True)
     tiles.update({k: ['v1', p[0], p[1], p[2], p[3], p[4], p[5]] for k, p in place1.items()})
-    json.dump({'pages': {'v': 2}, 'tiles': tiles, 'anims': anims}, open(ISO + '/forge.json', 'w'))
+    tiles.update({k: ['v2', p[0], p[1], p[2], p[3], p[4], p[5]] for k, p in place2.items()})
+    json.dump({'pages': {'v': 3}, 'tiles': tiles, 'anims': anims}, open(ISO + '/forge.json', 'w'))
     print('tiles:', len(tiles), 'pages', page.size, page1.size, 'anims', len(anims))
     return items + acts
 

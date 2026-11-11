@@ -515,3 +515,46 @@ def build_icons(path):
     for i, name in enumerate(ICON_ORDER):
         r_, c_ = divmod(i, 8); sheet.alpha_composite(_icon(name), (c_ * 32, r_ * 32)); where[name] = (r_, c_)
     sheet.save(path); return where
+
+# ---- the pack's stonework, recoloured into each act's palette (2026-11-11: "the ground structures and assets match") ---
+# The hand-made walls, paving, columns, statues and rocks of the tile packs keep their shapes and shading but take the act's
+# own ramp, so every hour reads as one place. 'd:Wall F1' becomes 'v:GateWall F1' (an 'i:' group key gains an I:
+# 'i:Misc C7' -> 'v:GateMiscI C7'), in every direction the pack has it.
+import json as _json, os as _os, re as _re
+WASTE_STONE = ramp(['#120c0a', '#22170f', '#33241a', '#463326', '#5a4434', '#705744', '#8a6e58'])
+ACT_RAMPS = {'Gate': BASALT, 'Cloister': FROST, 'Stair': UMBRA, 'Waste': WASTE_STONE, 'Throat': CLIFF, 'Shadow': STONE}
+ACT_KEYS = {
+    'Gate': ['d:Wall F1', 'd:Wall F2', 'd:Wall F3', 'd:Wall F4', 'd:Wall F5', 'd:Wall F7', 'd:Wall F8', 'd:Wall F9', 'd:Wall B7', 'd:Wall B8', 'i:Ground H1', 'i:Ground H4', 'i:Ground D1', 'i:Misc C5', 'i:Misc C6', 'i:Misc C7', 'd:Stone A1', 'd:Stone A2', 'd:Stone B4'],
+    'Cloister': ['d:Wall G1', 'd:Wall G2', 'd:Wall G3', 'd:Wall F5', 'd:Wall A10', 'i:Ground H1', 'i:Ground H4', 'i:Misc C5', 'i:Misc C6', 'i:Misc C7', 'd:Stone A4', 'd:Stone A13', 'd:Stone A14', 'd:Stone A15', 'd:Stone A16', 'd:Stone B4'],
+    'Stair': ['d:Wall A1', 'd:Wall A2', 'd:Wall A3', 'd:Wall A4', 'd:Wall A5', 'd:Wall A6', 'd:Wall A10', 'd:Wall A15', 'd:Wall A16', 'd:Wall A19', 'd:Wall J1', 'd:Wall J6', 'd:Wall J11', 'd:Ground H1', 'd:Ground H4', 'd:Stone A21', 'd:Stone A22', 'd:Stone A23', 'd:Stone A24', 'd:Stone B4'],
+    'Waste': ['d:Wall A1', 'd:Wall A2', 'd:Wall A3', 'd:Wall A7', 'd:Wall A8', 'd:Wall A9', 'd:Wall A17', 'd:Wall A18', 'd:Ground B3', 'd:Ground B6', 'd:Stone A9', 'd:Stone A10', 'd:Stone B1', 'd:Stone B3', 'd:Stone B5', 'd:Misc D3'],
+    'Throat': ['d:Wall A10', 'd:Ground D1', 'd:Ground H1', 'd:Stone A1', 'd:Stone A2', 'd:Stone A3', 'd:Stone B1', 'd:Stone B2', 'd:Stone B3', 'd:Stone B4', 'd:Stone B6', 'd:Stone B7', 'd:Stone B8', 'd:Stone B9'],
+    'Shadow': ['d:Wall D1', 'd:Wall D2', 'd:Wall D3', 'd:Wall D4', 'd:Wall D5', 'd:Wall D7', 'd:Wall D8', 'd:Wall D9', 'd:Wall A6', 'd:Wall A10', 'd:Wall J11', 'd:Wall J16', 'd:Wall J17', 'd:Ground H1', 'd:Ground H4', 'd:Stone A8', 'd:Stone A21', 'd:Stone A23', 'd:Stone B4'],
+}
+def recolor_key(act, key):
+    grp, rest = key.split(':', 1); fam, code = rest.split(' '); return f"v:{act}{fam}{'I' if grp == 'i' else ''} {code}"
+
+def _recolor(im, pal, top=0.93):
+    a = np.asarray(im.convert('RGBA'), np.float32); al = a[..., 3] > 0
+    if not al.any(): return im
+    L = a[..., 0] * 0.3 + a[..., 1] * 0.59 + a[..., 2] * 0.11; lo, hi = np.percentile(L[al], 3), np.percentile(L[al], 97)
+    t = np.clip((L - lo) / max(1.0, hi - lo), 0, 0.999) * (top - 0.07) + 0.07   # keep the extremes off pure black and white
+    idx = np.clip((t * len(pal)).astype(int), 0, len(pal) - 1); out = a.copy(); out[..., :3] = np.where(al[..., None], pal[idx], a[..., :3])
+    return Image.fromarray(out.astype(np.uint8), 'RGBA')
+
+def recolors(iso_dir):
+    """Items for every act's recoloured stonework, read from the packs (assets/iso/tiles.json)."""
+    d = _json.load(open(iso_dir + '/tiles.json'))['tiles']; pages = {}; out = []
+    def page(p):
+        if p not in pages: pages[p] = Image.open(f'{iso_dir}/tiles_{p}.png').convert('RGBA')
+        return pages[p]
+    for act, keys in ACT_KEYS.items():
+        pal = ACT_RAMPS[act]
+        for key in keys:
+            found = False
+            for dr in ('N', 'W', 'E', 'S'):
+                t = d.get(f'{key}_{dr}')
+                if not t: continue
+                im = page(t[0]).crop((t[1], t[2], t[1] + t[3], t[2] + t[4])); out.append((f'{recolor_key(act, key)}_{dr}', _recolor(im, pal, 0.74 if act == 'Cloister' else 0.93), (t[5], t[6]))); found = True
+            if not found: print('no such pack tile', key)
+    return out

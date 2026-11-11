@@ -44,11 +44,28 @@ if (!S.GOALS || S.GOALS.length !== D.STAGES.length) bad('one goal per stage');
 for (const k of Object.keys(S.PHASE)) if (!D.FOES[k]) bad('phase line for unknown ' + k);
 console.log(`${Object.keys(D.FOES).length} foes, ${D.STAGES.length} stages, ${used.size} effects named, ${scenes.length} scenes`);
 console.log(fail ? `${fail} failures` : 'all assets found');
-process.exit(fail ? 1 : 0);
+if (fail) process.exitCode = 1;
 // The forge's tiles (tools_forge.py): every 'v:' key a theme or layout names exists, in each direction it is drawn in.
 {
   const forge = JSON.parse(fs.readFileSync(root + '/iso/forge.json')).tiles, src = fs.readFileSync(path.join(__dirname, '../js/arenas.js'), 'utf8');
   const keys = new Set((src.match(/'v:[A-Za-z]+(?: [A-Z]\d+)?!?'/g) || []).map((k) => k.slice(1, -1).replace('!', '')));
   let bad2 = 0; for (const k of keys) if (!forge[k + '_E']) { bad2++; console.log('FAIL forge tile missing', k); }
   if (bad2) process.exitCode = 1; else console.log(`forge: ${keys.size} tiles named by the arenas, all present`);
+}
+// Every tile each hour's theme names (ground, paving, overlays, walls, props, decor, set pieces) exists in the packs or
+// the forge, in every direction the arenas draw it (the recoloured stonework is named in code, so check the themes).
+{
+  require('../js/arenas.js'); const T = VS.ARENA.THEMES;
+  const all = Object.assign({}, JSON.parse(fs.readFileSync(root + '/iso/tiles.json')).tiles, JSON.parse(fs.readFileSync(root + '/iso/forge.json')).tiles);
+  const anims = JSON.parse(fs.readFileSync(root + '/iso/forge.json')).anims; let bad3 = 0, n = 0;
+  const need = (k, dirs) => { if (!k) return; k = k.replace('!', ''); if (k[0] === '@') { n++; if (!anims[k.slice(1)]) { bad3++; console.log('FAIL theme anim missing', k); } return; } for (const d of dirs) { n++; if (!all[k + '_' + d]) { bad3++; console.log('FAIL theme tile missing', k + '_' + d); return; } } };
+  for (const [id, th] of Object.entries(T)) {
+    for (const [k] of th.base || []) need(k, ['E']); for (const k of th.floor || []) need(k, ['E']);
+    for (const k of (th.over || []).concat(th.floorOver || [])) need(k, ['E']);
+    for (const k of (th.wall || []).concat(th.low || [], th.corner ? [th.corner] : [])) need(k, ['N', 'W']);
+    const dirs = (k) => (/^d:Wall |^v:[A-Za-z]*Wall /.test(k) ? ['N'] : ['E']);
+    for (const p of [th.pillar, th.statue, th.brazier, th.rock]) if (p) need(p[0], dirs(p[0]));
+    for (const [k] of (th.props || []).concat(th.edge || [])) need(k, dirs(k)); for (const k of th.decor || []) need(k, k.endsWith('!') ? ['E'] : ['E']);
+  }
+  if (bad3) process.exitCode = 1; else console.log(`themes: ${n} tiles named across ${Object.keys(T).length} hours, all present`);
 }
