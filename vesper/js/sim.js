@@ -822,7 +822,7 @@
   // next swing is a skill when one is ready and a foe is in its reach (from the second cut of a combo on), or
   // the heavy blow when three or more crowd you, a shield stands in front of you, or the combo has run its
   // full length (the heavy has a short cooldown of its own). Returns true when it started one.
-  const HEAVY_CD = 3.2;
+  const HEAVY_CD = 3.2, LATE = ['atk', 'heavy', 'dodge', 'parry', 'art', 's1', 's2'];
   function autoMove(s, h, last) {
     const M = s.mods, H = s.heroDef, can = M.can;
     const fs = foes(s).filter((o) => o.alive && o.state !== 'spawn' && !(o.def && ((o.def.passive && !o.def.gate) || o.def.god))), near = (r) => fs.filter((o) => Math.hypot(o.x - h.x, o.y - h.y) < r);
@@ -890,7 +890,7 @@
   // ---- the step ------------------------------------------------------------------------------
   // input: { mx, my (−1..1), atk, dodge, parry, art, skip (pressed this step) }
   function step(s, dtReal, input) {
-    const inp = input || {};
+    let inp = input || {};
     s.events.length = 0;
     if (s.result) return s;
     if (s.cine) {
@@ -900,6 +900,9 @@
       return s;
     }
     s.t += dtReal;
+    // A button pressed during a hit-stop, a freeze or a portal crossing is kept for 0.3 s and used on the next
+    // live step (it used to be dropped: a dodge pressed just after a blow landed did nothing).
+    if (s.freeze > 0 || s.hitstop > 0 || s.transit) { for (const k of LATE) if (inp[k]) (s.late = s.late || {})[k] = s.t; }
     if (s.freeze > 0) { s.freeze -= dtReal; for (const u of s.units) { if (u.tauntT > 0) u.tauntT -= dtReal; setFrame(s, u); } return s; }
     if (s.hitstop > 0) { s.hitstop -= dtReal; return s; }
     let dt = dtReal;
@@ -911,6 +914,7 @@
     s.aim = inp.aim != null ? inp.aim : null; curArena = arenaOf(s);
     if (s.transit) { transit(s, dtReal); return s; }
 
+    if (s.late) { inp = Object.assign({}, inp); for (const k in s.late) if (s.t - s.late[k] < 0.3) inp[k] = true; s.late = null; }
     heroStep(s, h, dt, inp);
     s.cds[0] = Math.max(0, s.cds[0] - dt); s.cds[1] = Math.max(0, s.cds[1] - dt); s.heavyCd = Math.max(0, (s.heavyCd || 0) - dt); if (s.invisT > 0) s.invisT -= dt;
     // Thunder Drop: the leap, then the slam where he lands.

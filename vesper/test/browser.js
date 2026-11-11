@@ -48,7 +48,7 @@ fs.mkdirSync(out, { recursive: true });
   { let ok = false; await okCard(); await page.keyboard.press('Space');
     for (let i = 0; i < 8 && !ok; i++) { await page.waitForTimeout(40); ok = await page.evaluate(() => VS.main.fight.s.hero.state === 'dodge'); }
     if (!ok && await page.evaluate(() => VS.main.fight.s.hero.state === 'hurt')) { await page.waitForTimeout(400); await page.keyboard.press('Space'); for (let i = 0; i < 8 && !ok; i++) { await page.waitForTimeout(40); ok = await page.evaluate(() => VS.main.fight.s.hero.state === 'dodge'); } }
-    if (!ok) errors.push('dodge did not work from the start'); }
+    if (!ok) errors.push('dodge did not work from the start (' + await page.evaluate(() => { const h = VS.main.fight.s.hero; return 'ui ' + (VS.ui.current || '-') + ' leap ' + !!h.leap + ' can ' + !!VS.main.fight.s.mods.can.dodge + ' held ' + !!VS.main.held.dodge + ' ' + h.state + ' st ' + h.st.toFixed(2) + ' buf ' + (h.bufDodge || 0).toFixed(2) + ' iframes ' + h.iframes + ' cine ' + !!VS.main.fight.s.cine + ' freeze ' + VS.main.fight.s.freeze.toFixed(2) + ' hold ' + VS.main.hold + ' paused ' + VS.main.paused; }) + ')'); }
   await okCard(); await page.keyboard.press('Escape'); await shot('05-pause', 400);
   if (!(await page.evaluate(() => VS.ui.current === 'pause'))) errors.push('pause menu did not open');
   await button('Resume'); await page.waitForTimeout(200);
