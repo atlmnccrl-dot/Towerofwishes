@@ -770,6 +770,7 @@
     if (this.paused) return;
     const dt = Math.min(0.05, dtReal) * ts * PACE; // the fight runs a touch quicker than the clock
     this.time += dt; this.dt = dt;
+    if (this.heroList && this.heroList.length && !this.peaceful) { let h = 0, m = 0; for (const e of this.heroList) { h += Math.max(0, e.hp); m += e.maxhp; } const f = m ? h / m : 1; if (this.lowHp === undefined || f < this.lowHp) this.lowHp = f; }
     if (this.result) this.result.t += dtReal;
     if (this.rallyT > 0) this.rallyT -= dt;
     this.shake = Math.max(0, this.shake - dtReal * 1.5); this.flash = Math.max(0, this.flash - dtReal * 1.5);

@@ -1,0 +1,32 @@
+{
+  "//": "The one place to fill in before a store build. Then: node scripts/apply-release.js  (it writes these everywhere they belong). Nothing here is secret.",
+
+  "appId": "com.bannerborn.game",
+  "appName": "Bannerborn",
+  "version": "1.0.0",
+  "build": 1,
+
+  "studio": "",
+  "contactEmail": "",
+  "lawOf": "",
+
+  "links": {
+    "privacy": "",
+    "terms": "",
+    "support": ""
+  },
+
+  "admob": {
+    "testAds": true,
+    "android": {
+      "appId": "ca-app-pub-3940256099942544~3347511713",
+      "rewarded": "ca-app-pub-3940256099942544/5224354917",
+      "interstitial": "ca-app-pub-3940256099942544/1033173712"
+    },
+    "ios": {
+      "appId": "ca-app-pub-3940256099942544~1458002511",
+      "rewarded": "ca-app-pub-3940256099942544/1712485313",
+      "interstitial": "ca-app-pub-3940256099942544/4411468910"
+    }
+  }
+}

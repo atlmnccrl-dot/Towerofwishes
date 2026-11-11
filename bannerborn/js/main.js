@@ -842,7 +842,7 @@
     BB.lastRes = null; BB.deploy(idx); say('Stage ' + M.code + ' · ' + M.name);
     if (!(await botWait(() => BB.lastRes && $('mResults').classList.contains('on')))) return null; // cutscenes, the versus card, the fight, a boss's fall: all play by themselves
     const res = BB.lastRes, secs = scene && scene.time ? Math.round(scene.time) : 0;
-    note(M.code + ' ' + M.name + ': ' + (res.win ? 'won' : 'LOST') + ' in ' + secs + ' s · ' + team.length + ' heroes, level ' + Math.round(team.reduce((a, h) => a + h.level, 0) / team.length) + ' against ' + M.level + ' · power ' + BB.teamPower(team) + ' of ' + BB.recPower(M) + ' asked');
+    note(M.code + ' ' + M.name + ': ' + (res.win ? 'won' : 'LOST') + ' in ' + secs + ' s · ' + team.length + ' heroes, level ' + Math.round(team.reduce((a, h) => a + h.level, 0) / team.length) + ' against ' + M.level + ' · power ' + BB.teamPower(team) + ' of ' + BB.recPower(M) + ' asked' + ' · lowest ' + Math.round((scene && scene.lowHp !== undefined ? scene.lowHp : 1) * 100) + '% health, ' + (scene ? scene.heroList.filter((e) => e.dead).length : 0) + ' fell' + ' · stars ' + (team.reduce((a, h) => a + h.stars, 0) / team.length).toFixed(1) + ', gear ' + team.reduce((a, h) => a + BB.SLOTS.filter((k) => h.gear[k]).length, 0) + '/' + team.length * 4 + ', chest ' + (S.rank || 0) + ', skills ' + team.reduce((a, h) => a + BB.talentSpent(h), 0));
     say(M.code + ': ' + (res.win ? 'won' : 'lost')); await sleep(P(2800)); UI.modal('mResults', false);
     if (res.legend && !Bot.stop) { note('  ' + res.legend.name + ' joins'); await BB.loadHeroes([res.legend]); await botReveal(res.legend); }
     return res.win;
