@@ -21,6 +21,7 @@
         out.rank = s.rank || 0;
         out.formation = s.formation && s.formation.front && s.formation.back ? s.formation : d.formation;
         out.place = s.place || {}; BB.fixFormation(out);
+        for (const h of out.heroes) if (h.captain && h.look && h.look.head === 'hair' && h.look.chest === 'chestA' && h.look.chestTint === 'natural') h.look = Object.assign({}, BB.CAPTAIN_LOOK); // a Captain from before the opening's knight: the same armour now
         // drop formation ids of heroes that no longer exist
         for (const row of ['front', 'back']) out.formation[row] = out.formation[row].map((id) => (id && out.heroes.some((h) => h.id === id) ? id : null));
         BB.fixFormation(out);

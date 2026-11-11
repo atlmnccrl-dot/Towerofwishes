@@ -303,8 +303,12 @@ their colour. Post effects sell the big beats: the screen cracks on impacts, the
 silhouettes, sound rings off a singing mouth, embers that converge on the hero, and a slam zoom into an eye.
 **The opening** (js/opening.js, ~64 s, skippable) is its own film: eleven shots, each in a different manner, with a
 cast drawn for it. **None of the game's small sprites appear in it**: the art is made for the cutscenes
-(js/cineart.js: nine knights told apart by helm and weapon, the Captain in several poses, three kinds of the dead,
-Vesh Morrow, a skull), drawn at the size each shot needs and lit for it (dusk, moon, gate-light, fire, glass, ink).
+(js/cineart.js: nine knights told apart by helm, weapon, metal and stance, the Captain in several poses, three kinds
+of the dead, Vesh Morrow, a skull), drawn at the size each shot needs and lit for it (dusk, moon, gate-light, fire,
+glass, ink). The knights move: cloaks stream in the wind (drawn live), they breathe, and along the ridge each raises a
+weapon as the camera reaches them, the light catching the point. **The Captain you play is the film's last knight**:
+the ninth banner's knight and the game's Captain wear the same great helm, steel plate and red shield
+(`BB.CAPTAIN_LOOK`; an older save's Captain is given the same armour when it loads).
 1. *The ridge*: nine knights along a ridge at dusk, a banner over each, numbered I–IX; the camera walks the line to
    the ninth, which is yours.
 2. *The oath*: from under the blades: nine swords come in from the edge of the frame and meet over the lens.

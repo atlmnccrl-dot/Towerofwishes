@@ -3,6 +3,8 @@
 // helm and weapon, the Captain, three kinds of the dead, Vesh Morrow), posed from a small skeleton of joints, shaded
 // and edge-lit for the light of the shot, and kept once drawn.
 //   BB.CineArt.draw(g, kind, opts, x, y, height, light, flip)   kind: 'knight' | 'dead' | 'vesh'
+//   BB.CineArt.cape(g, opts, x, y, height, t, light, flip)     a knight's cloak, drawn live so it moves (draw it first,
+//                                                              then the knight with cape: false)
 //   BB.CineArt.skull(g, x, y, size, opts)                      a skull, close
 //   BB.CineArt.eyes(g, kind, opts, x, y, height, rgb, alpha, flip)   the lights in a figure's head, drawn live
 (function () {
@@ -61,18 +63,19 @@
       const d = up ? -1 : 1, y0 = h[1] + d * 0.02; poly(g, [[h[0] - 0.012, y0], [h[0] + 0.02, y0], [h[0] + 0.05, y0 + d * 0.2], [h[0] + 0.03, y0 + d * 0.34], [h[0] - 0.02, y0 + d * 0.3], [h[0] - 0.004, y0 + d * 0.16]], steel); limb(g, [h[0], y0], [h[0], y0 - d * 0.07], 0.01, 0.01, wood);
     }
   }
-  function helm(g, kind, c, pal) { // c: the middle of the head
+  function helm(g, kind, c, pal, crest) { // c: the middle of the head
     const x = c[0], y = c[1], r = 0.058, pl = pal.plate;
     if (kind === 'hood') { poly(g, [[x - 0.085, y + 0.075], [x - 0.07, y - 0.03], [x, y - 0.1], [x + 0.07, y - 0.03], [x + 0.085, y + 0.075], [x + 0.03, y + 0.09], [x - 0.03, y + 0.09]], pal.cloth); blob(g, x, y + 0.005, 0.04, 0.052, '#07070c'); return; }
     if (kind === 'open') { blob(g, x, y, r * 0.86, r * 1.05, pal.skin || '#b98a64'); g.beginPath(); g.arc(x, y - 0.012, r * 1.02, Math.PI * 0.98, TAU + 0.02); g.quadraticCurveTo(x + 0.03, y - 0.03, x - 0.02, y - 0.045); g.quadraticCurveTo(x - 0.05, y - 0.035, x - r * 1.02, y + 0.02); g.closePath(); g.fillStyle = pal.hair || '#5a2e12'; g.fill(); g.stroke(); return; }
     if (kind === 'wings') for (const d of [-1, 1]) poly(g, [[x + d * 0.045, y - 0.01], [x + d * 0.13, y - 0.13], [x + d * 0.105, y - 0.06], [x + d * 0.15, y - 0.075], [x + d * 0.105, y - 0.02], [x + d * 0.13, y - 0.02], [x + d * 0.05, y + 0.03]], pal.trim);
     if (kind === 'horn') for (const d of [-1, 1]) { g.beginPath(); g.moveTo(x + d * 0.045, y - 0.02); g.quadraticCurveTo(x + d * 0.14, y - 0.03, x + d * 0.13, y - 0.15); g.quadraticCurveTo(x + d * 0.09, y - 0.07, x + d * 0.04, y - 0.055); g.closePath(); g.fillStyle = pal.bone || '#d9d2bd'; g.fill(); g.stroke(); }
-    if (kind === 'plume') { g.beginPath(); g.moveTo(x - 0.01, y - 0.06); g.bezierCurveTo(x - 0.02, y - 0.2, x + 0.1, y - 0.2, x + 0.13, y - 0.05); g.bezierCurveTo(x + 0.08, y - 0.12, x + 0.04, y - 0.1, x + 0.02, y - 0.055); g.closePath(); g.fillStyle = pal.clothLit; g.fill(); g.stroke(); }
+    if (kind === 'plume' || crest) { g.beginPath(); g.moveTo(x - 0.01, y - 0.06); g.bezierCurveTo(x - 0.02, y - 0.2, x + 0.1, y - 0.2, x + 0.13, y - 0.05); g.bezierCurveTo(x + 0.08, y - 0.12, x + 0.04, y - 0.1, x + 0.02, y - 0.055); g.closePath(); g.fillStyle = pal.clothLit; g.fill(); g.stroke(); }
     if (kind === 'kettle') { blob(g, x, y - 0.012, 0.062, 0.058, pl); blob(g, x, y - 0.005, 0.1, 0.02, pl); blob(g, x, y + 0.04, 0.04, 0.038, '#07070c'); return; }
     // the helmet itself: a closed bucket with a slit, or a rounder barbute
     if (kind === 'great' || kind === 'crown') poly(g, [[x - 0.058, y - 0.05], [x - 0.04, y - 0.075], [x + 0.04, y - 0.075], [x + 0.058, y - 0.05], [x + 0.062, y + 0.07], [x, y + 0.092], [x - 0.062, y + 0.07]], pl);
     else { g.beginPath(); g.moveTo(x - 0.06, y + 0.07); g.bezierCurveTo(x - 0.075, y - 0.03, x - 0.05, y - 0.085, x, y - 0.085); g.bezierCurveTo(x + 0.05, y - 0.085, x + 0.075, y - 0.03, x + 0.06, y + 0.07); g.lineTo(x + 0.02, y + 0.085); g.lineTo(x, y + 0.03); g.lineTo(x - 0.02, y + 0.085); g.closePath(); g.fillStyle = pl; g.fill(); g.stroke(); }
     g.fillStyle = '#020204'; g.fillRect(x - 0.045, y - 0.012, 0.09, 0.014); g.fillRect(x - 0.004, y - 0.012, 0.008, 0.075);
+    g.save(); g.strokeStyle = 'rgba(255,255,255,0.3)'; g.lineWidth = 0.006; g.lineCap = 'round'; g.beginPath(); g.moveTo(x - 0.04, y - 0.03); g.quadraticCurveTo(x - 0.035, y - 0.065, x - 0.005, y - 0.068); g.stroke(); g.fillStyle = 'rgba(0,0,0,0.5)'; for (const d of [-1, 1]) for (let i = 0; i < 3; i++) g.fillRect(x + d * 0.022 - 0.003, y + 0.02 + i * 0.016, 0.006, 0.006); g.restore(); // a shine on the crown, breaths in the cheek
     if (kind === 'crown') poly(g, [[x - 0.06, y - 0.05], [x - 0.06, y - 0.1], [x - 0.035, y - 0.075], [x - 0.018, y - 0.115], [x, y - 0.08], [x + 0.018, y - 0.115], [x + 0.035, y - 0.075], [x + 0.06, y - 0.1], [x + 0.06, y - 0.05]], pal.trim);
     if (kind === 'crest') poly(g, [[x - 0.012, y - 0.08], [x - 0.012, y - 0.13], [x + 0.012, y - 0.13], [x + 0.012, y - 0.08]], pal.clothLit);
   }
@@ -80,23 +83,29 @@
   // ---------------------------------------------------------------- a knight (and the Captain, who is one)
   function knight(g, o) {
     const P = getPose(o.pose), c = o.color || '#b3242c', heavy = o.heavy ? 1.18 : 1;
-    const pal = { plate: o.plate || '#5b6478', dark: '#2a2f3c', cloth: mix(c, '#000000', 0.25), clothLit: mix(c, '#ffffff', 0.12), trim: o.trim || '#d8b25a', steel: '#c9d2e0', wood: '#4a3424', skin: o.skin, hair: o.hair, bone: '#d9d2bd' };
+    const pal = { plate: o.plate || '#6b7488', dark: mix(o.plate || '#6b7488', '#000000', 0.55), cloth: mix(c, '#000000', 0.25), clothLit: mix(c, '#ffffff', 0.12), trim: o.trim || '#d8b25a', steel: '#c9d2e0', wood: '#4a3424', skin: o.skin, hair: o.hair, bone: '#d9d2bd' };
     g.lineWidth = 0.007; g.strokeStyle = INK; g.lineJoin = 'round';
     if (o.cape !== false) { const w = o.wind || 0; g.beginPath(); g.moveTo(P.shL[0] - 0.01, P.shL[1] - 0.02); g.lineTo(P.shR[0] + 0.01, P.shR[1] - 0.02); g.bezierCurveTo(P.shR[0] + 0.1 + w * 0.3, -0.55, 0.2 + w * 0.6, -0.3, 0.19 + w, -0.07); g.lineTo(0.12 + w * 0.9, -0.1); g.lineTo(0.06 + w * 0.8, -0.05); g.lineTo(-0.02 + w * 0.7, -0.09); g.lineTo(-0.1 + w * 0.6, -0.04); g.lineTo(-0.18 + w * 0.5, -0.08); g.bezierCurveTo(-0.21 + w * 0.3, -0.3, P.shL[0] - 0.09, -0.55, P.shL[0] - 0.01, P.shL[1] - 0.02); g.closePath(); g.fillStyle = mix(c, '#000000', 0.5); g.fill(); g.stroke(); }
     if (o.weapon === 'bow') weapon(g, 'bow', P.haL, pal);
-    for (const s of ['L', 'R']) { const hx = P.hip[0] + (s === 'L' ? -0.05 : 0.05), k = P['kn' + s], f = P['ft' + s]; limb(g, [hx, P.hip[1]], k, 0.058 * heavy, 0.04 * heavy, pal.dark); limb(g, k, f, 0.046 * heavy, 0.03 * heavy, pal.plate); blob(g, k[0], k[1], 0.036 * heavy, 0.036 * heavy, pal.plate); poly(g, [[f[0] - 0.035, f[1] - 0.03], [f[0] + 0.03, f[1] - 0.035], [f[0] + (s === 'L' ? -0.06 : 0.06), f[1]], [f[0] - (s === 'L' ? -0.035 : 0.035), f[1]]], pal.dark); }
+    for (const s of ['L', 'R']) { const d = s === 'L' ? -1 : 1, hx = P.hip[0] + d * 0.05, k = P['kn' + s], f = P['ft' + s]; limb(g, [hx, P.hip[1]], k, 0.058 * heavy, 0.04 * heavy, pal.dark); limb(g, k, f, 0.046 * heavy, 0.03 * heavy, pal.plate);
+      g.save(); g.strokeStyle = 'rgba(255,255,255,0.22)'; g.lineWidth = 0.006; g.lineCap = 'round'; g.beginPath(); g.moveTo(lerp(k[0], f[0], 0.15) - 0.018, lerp(k[1], f[1], 0.15)); g.lineTo(lerp(k[0], f[0], 0.8) - 0.012, lerp(k[1], f[1], 0.8)); g.stroke(); g.restore(); // a line of light down the greave
+      poly(g, [[k[0] - 0.04 * heavy, k[1] - 0.02], [k[0], k[1] - 0.055 * heavy], [k[0] + 0.04 * heavy, k[1] - 0.02], [k[0] + 0.03 * heavy, k[1] + 0.035], [k[0] - 0.03 * heavy, k[1] + 0.035]], pal.plate); // the knee
+      poly(g, [[f[0] - 0.036, f[1] - 0.03], [f[0] + 0.036, f[1] - 0.03], [f[0] + d * 0.075, f[1] - 0.004], [f[0] + d * 0.075, f[1]], [f[0] - d * 0.04, f[1]]], pal.plate); }
     const sl = P.shL, sr = P.shR, hp = P.hip, w = 0.07 * heavy; // the body: plate over mail, a tabard in the banner's colour
     poly(g, [[hp[0] - w, hp[1] - 0.01], [hp[0] + w, hp[1] - 0.01], [hp[0] + w + 0.04, hp[1] + 0.11], [hp[0] + 0.03, hp[1] + 0.09], [hp[0] - 0.03, hp[1] + 0.09], [hp[0] - w - 0.04, hp[1] + 0.11]], pal.dark); // the skirt of plates
     poly(g, [[sl[0] + 0.01, sl[1] - 0.025], [sr[0] - 0.01, sr[1] - 0.025], [sr[0] + 0.01, sr[1] + 0.09], [hp[0] + w, hp[1] - 0.02], [hp[0] + w * 0.95, hp[1] + 0.06], [hp[0] - w * 0.95, hp[1] + 0.06], [hp[0] - w, hp[1] - 0.02], [sl[0] - 0.01, sl[1] + 0.09]], pal.plate);
     poly(g, [[hp[0] - 0.05, sl[1] + 0.035], [hp[0] + 0.05, sr[1] + 0.035], [hp[0] + 0.062, hp[1] + 0.02], [hp[0] + 0.075, hp[1] + 0.2], [hp[0] + 0.02, hp[1] + 0.17], [hp[0], hp[1] + 0.21], [hp[0] - 0.02, hp[1] + 0.17], [hp[0] - 0.075, hp[1] + 0.2], [hp[0] - 0.062, hp[1] + 0.02]], pal.cloth);
-    g.fillStyle = pal.trim; g.fillRect(hp[0] - w, hp[1] - 0.005, w * 2, 0.022); g.beginPath(); g.arc((sl[0] + sr[0]) / 2, sl[1] + 0.12, 0.024, 0, TAU); g.fill();
-    limb(g, sl, P.elL, 0.042 * heavy, 0.036 * heavy, pal.dark); limb(g, P.elL, P.haL, 0.036 * heavy, 0.032 * heavy, pal.plate);
+    for (const d of [-1, 1]) poly(g, [[hp[0] + d * (w + 0.012), hp[1] + 0.005], [hp[0] + d * (w - 0.045), hp[1] + 0.005], [hp[0] + d * (w - 0.04), hp[1] + 0.13], [hp[0] + d * (w + 0.035), hp[1] + 0.115]], pal.plate); // tassets over the thighs
+    g.save(); g.strokeStyle = 'rgba(0,0,0,0.4)'; g.lineWidth = 0.006; for (const d of [-1, 1]) { g.beginPath(); g.moveTo(hp[0] + d * 0.058, sl[1] + 0.03); g.quadraticCurveTo(hp[0] + d * 0.12, sl[1] + 0.12, hp[0] + d * 0.07, hp[1] - 0.03); g.stroke(); } g.strokeStyle = 'rgba(255,255,255,0.2)'; for (const d of [-1, 1]) { g.beginPath(); g.moveTo(hp[0] + d * 0.075, sl[1] + 0.05); g.quadraticCurveTo(hp[0] + d * 0.105, sl[1] + 0.1, hp[0] + d * 0.085, sl[1] + 0.15); g.stroke(); } g.restore();
+    g.fillStyle = pal.trim; g.fillRect(hp[0] - w, hp[1] - 0.005, w * 2, 0.022); g.fillRect(hp[0] - 0.016, hp[1] - 0.012, 0.032, 0.036);
+    poly(g, [[hp[0], sl[1] + 0.09], [hp[0] + 0.026, sl[1] + 0.125], [hp[0], sl[1] + 0.16], [hp[0] - 0.026, sl[1] + 0.125]], pal.trim); // the device on the tabard
+    limb(g, sl, P.elL, 0.042 * heavy, 0.036 * heavy, pal.dark); limb(g, P.elL, P.haL, 0.036 * heavy, 0.032 * heavy, pal.plate); blob(g, P.elL[0], P.elL[1], 0.034 * heavy, 0.034 * heavy, pal.plate);
     for (const [q, d] of [[sl, -1], [sr, 1]]) { blob(g, q[0] + d * 0.03, q[1] + 0.045, 0.05 * heavy, 0.036 * heavy, pal.dark, d * 0.5); blob(g, q[0] + d * 0.012, q[1], 0.074 * heavy, 0.054 * heavy, pal.plate, d * 0.3); g.save(); g.strokeStyle = 'rgba(255,255,255,0.22)'; g.lineWidth = 0.006; g.beginPath(); g.ellipse(q[0] + d * 0.012, q[1], 0.055 * heavy, 0.036 * heavy, d * 0.3, Math.PI * 1.1, Math.PI * 1.8); g.stroke(); g.restore(); }
     poly(g, [[P.neck[0] - 0.05, P.neck[1] + 0.035], [P.neck[0] + 0.05, P.neck[1] + 0.035], [P.neck[0] + 0.035, P.neck[1] - 0.005], [P.neck[0] - 0.035, P.neck[1] - 0.005]], pal.plate); // gorget
-    limb(g, [P.neck[0], P.neck[1] + 0.02], P.head, 0.03, 0.03, pal.dark); helm(g, o.helm || 'great', P.head, pal);
+    limb(g, [P.neck[0], P.neck[1] + 0.02], P.head, 0.03, 0.03, pal.dark); helm(g, o.helm || 'great', P.head, pal, o.crest);
     if (o.shield) { const s = P.haL, e = P.elL, x = (s[0] + e[0]) / 2 - 0.02, y = (s[1] + e[1]) / 2 + 0.02; g.beginPath(); g.moveTo(x - 0.1, y - 0.14); g.lineTo(x + 0.09, y - 0.14); g.bezierCurveTo(x + 0.1, y + 0.05, x + 0.04, y + 0.16, x - 0.005, y + 0.2); g.bezierCurveTo(x - 0.05, y + 0.16, x - 0.11, y + 0.05, x - 0.1, y - 0.14); g.closePath(); g.fillStyle = pal.cloth; g.fill(); g.stroke(); g.save(); g.lineWidth = 0.014; g.strokeStyle = pal.trim; g.stroke(); g.restore(); blob(g, x - 0.005, y - 0.01, 0.028, 0.028, pal.trim); } else blob(g, P.haL[0], P.haL[1], 0.033 * heavy, 0.033 * heavy, pal.dark);
-    if (o.weapon && o.weapon !== 'bow') weapon(g, o.weapon, P.haR, pal, o.pose === 'raise');
-    limb(g, sr, P.elR, 0.042 * heavy, 0.036 * heavy, pal.dark); limb(g, P.elR, P.haR, 0.036 * heavy, 0.032 * heavy, pal.plate); blob(g, P.haR[0], P.haR[1], 0.034 * heavy, 0.034 * heavy, pal.dark);
+    if (o.weapon && o.weapon !== 'bow') weapon(g, o.weapon, P.haR, pal, o.up || o.pose === 'raise');
+    limb(g, sr, P.elR, 0.042 * heavy, 0.036 * heavy, pal.dark); limb(g, P.elR, P.haR, 0.036 * heavy, 0.032 * heavy, pal.plate); blob(g, P.elR[0], P.elR[1], 0.034 * heavy, 0.034 * heavy, pal.plate); blob(g, P.haR[0], P.haR[1], 0.034 * heavy, 0.034 * heavy, pal.dark);
   }
 
   // ---------------------------------------------------------------- the dead: bone, rag, rust
@@ -200,6 +209,22 @@
   A.draw = function (g, kind, o, x, y, h, light, flip, bake) { // bake: draw it once at this height and scale it, for a figure whose size keeps changing
     const c = A.get(kind, o, bake || h, light), m = h / c.h, sm = g.imageSmoothingEnabled; g.imageSmoothingEnabled = true; g.save(); g.translate(x, y); if (flip) g.scale(-1, 1); g.drawImage(c, -c.ax * m, -c.ay * m, c.width * m, c.height * m); g.restore(); g.imageSmoothingEnabled = sm;
   };
+  // A knight's cloak, drawn live so the wind can have it: from the shoulders, streaming to the figure's left of
+  // frame, its hem alive. Draw it, then the knight with cape: false over it.
+  A.cape = function (g, o, x, y, h, t, light, flip, gust) {
+    const P = getPose(o.pose), c = o.color || '#b3242c', Lt = typeof light === 'string' ? LIGHT[light] || LIGHT.plain : light || LIGHT.plain, sd = o.seed || 0;
+    const w = 0.1 + (gust || 0) * 0.16 + Math.sin(t * 1.6 + sd) * 0.035, f = (i) => Math.sin(t * 3.1 + sd + i * 1.3) * (0.014 + i * 0.004), sl = P.shL, sr = P.shR;
+    g.save(); g.translate(x, y); if (flip) g.scale(-1, 1); g.scale(h, h);
+    g.beginPath(); g.moveTo(sl[0] - 0.02, sl[1] - 0.025); g.lineTo(sr[0] + 0.02, sr[1] - 0.025);
+    g.bezierCurveTo(sr[0] + 0.1 + w * 0.5, -0.56, 0.2 + w * 1.3 + f(1), -0.3, 0.2 + w * 2.1 + f(2), -0.07 + f(3));
+    g.lineTo(0.12 + w * 2.0 + f(3), -0.11 + f(4)); g.lineTo(0.05 + w * 1.8 + f(4), -0.045 + f(2)); g.lineTo(-0.03 + w * 1.6 + f(5), -0.1 + f(1)); g.lineTo(-0.11 + w * 1.3 + f(2), -0.04 + f(5)); g.lineTo(-0.19 + w * 1.0 + f(1), -0.09 + f(3));
+    g.bezierCurveTo(-0.23 + w * 0.6, -0.3, sl[0] - 0.1 + w * 0.2, -0.56, sl[0] - 0.02, sl[1] - 0.025); g.closePath();
+    const gr = g.createLinearGradient(0, -0.8, w * 2, 0); gr.addColorStop(0, mix(c, '#000000', 0.3)); gr.addColorStop(1, mix(c, '#000000', 0.62)); g.fillStyle = gr; g.fill();
+    if (Lt.dim) { g.globalAlpha = Lt.dim[1] * 0.8; g.fillStyle = Lt.dim[0]; g.fill(); g.globalAlpha = 1; }
+    g.strokeStyle = 'rgba(0,0,0,0.4)'; g.lineWidth = 0.008; for (let i = 0; i < 3; i++) { const q = -0.1 + i * 0.1; g.beginPath(); g.moveTo(q * 0.6, -0.72); g.quadraticCurveTo(q + w * 0.9, -0.4, q + w * 1.7 + f(i + 1), -0.08); g.stroke(); } // folds
+    const rim = (Lt.rims && Lt.rims[0]) || null; if (rim) { g.strokeStyle = rim[2]; g.lineWidth = 0.011; g.lineJoin = 'round'; g.globalAlpha = Lt.rimA || 0.9; g.beginPath(); g.moveTo(sr[0] + 0.02, sr[1] - 0.025); g.bezierCurveTo(sr[0] + 0.1 + w * 0.5, -0.56, 0.2 + w * 1.3 + f(1), -0.3, 0.2 + w * 2.1 + f(2), -0.07 + f(3)); g.lineTo(0.12 + w * 2.0 + f(3), -0.11 + f(4)); g.lineTo(0.05 + w * 1.8 + f(4), -0.045 + f(2)); g.lineTo(-0.03 + w * 1.6 + f(5), -0.1 + f(1)); g.lineTo(-0.11 + w * 1.3 + f(2), -0.04 + f(5)); g.lineTo(-0.19 + w * 1.0 + f(1), -0.09 + f(3)); g.stroke(); }
+    g.restore();
+  };
   // the same figure seen from below: wide at the feet, narrowing to the head
   A.drawLow = function (g, kind, o, x, y, h, light, taper, bake) {
     const c = A.get(kind, o, bake || h, light), m = h / c.h, N = 24, sh = c.height / N, sm = g.imageSmoothingEnabled; g.imageSmoothingEnabled = true;
@@ -214,8 +239,8 @@
   };
   // nine knights, one to a banner: who they are is how they stand against the light
   A.NINE = [
-    { helm: 'great', weapon: 'great', heavy: true }, { helm: 'wings', weapon: 'spear', shield: true }, { helm: 'hood', weapon: 'bow', cape: false },
-    { helm: 'horn', weapon: 'axe', heavy: true }, { helm: 'crown', weapon: 'sword', shield: true }, { helm: 'kettle', weapon: 'halberd' },
-    { helm: 'hood', weapon: 'staff' }, { helm: 'barbute', weapon: 'hammer', heavy: true }, { helm: 'plume', weapon: 'sword', shield: true },
+    { helm: 'barbute', weapon: 'great', heavy: true, pose: 'hold', plate: '#565d70', crest: true }, { helm: 'wings', weapon: 'spear', shield: true, plate: '#8792a8' }, { helm: 'hood', weapon: 'bow', plate: '#4a5046' },
+    { helm: 'horn', weapon: 'axe', heavy: true, plate: '#4c4a52' }, { helm: 'crown', weapon: 'sword', shield: true, plate: '#8a7448' }, { helm: 'kettle', weapon: 'halberd', plate: '#5e6672' },
+    { helm: 'hood', weapon: 'staff', plate: '#6a6474' }, { helm: 'barbute', weapon: 'hammer', heavy: true, plate: '#7a5a3e' }, { helm: 'great', crest: true, weapon: 'sword', shield: true, plate: '#8e98ac' },
   ];
 })();

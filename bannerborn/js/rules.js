@@ -55,9 +55,10 @@
     if (h.legend) { const L = BB.LEGENDS[h.legend]; h.name = L.name; h.calling = L.calling; h.rarity = 3; }
     return h;
   };
+  // The Captain is the last knight of the opening: the ninth banner's great helm, steel plate, and a shield in the banner's red.
+  BB.CAPTAIN_LOOK = { skin: 'tan', head: 'helm', hair: 'copper', headTint: 'natural', chest: 'chestB', chestTint: 'natural', legs: 'legsB', legsTint: 'natural', shieldTint: 'crimson' };
   BB.newCaptain = function () {
-    return BB.newHero({ calling: 'vanguard', captain: true, name: 'The Captain', rarity: 2,
-      look: { skin: 'tan', head: 'hair', hair: 'copper', headTint: 'natural', chestTint: 'natural', legsTint: 'natural', shieldTint: 'crimson', chest: 'chestA', legs: 'legsA' } });
+    return BB.newHero({ calling: 'vanguard', captain: true, name: 'The Captain', rarity: 2, look: Object.assign({}, BB.CAPTAIN_LOOK) });
   };
   BB.heroColor = (h) => h.legend ? BB.LEGENDS[h.legend].color : BB.CALLINGS[h.calling].color;
   BB.heroTitle = (h) => h.legend ? BB.LEGENDS[h.legend].title : h.captain ? 'Banner-Captain' : BB.CALLINGS[h.calling].name;
