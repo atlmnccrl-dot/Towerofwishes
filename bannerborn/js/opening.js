@@ -1,19 +1,19 @@
-// Bannerborn — the opening, a film of its own. Eleven shots, each in its own manner, none of them the game's camera
-// until the tenth:
-//   1 the tapestry   the old story stitched in thread as the cloth slides by: nine banners, nine knights
-//   2 the oath       the stitched knights from below, a sun of thread turning behind them
-//   3 the tear       the cloth rips from top to bottom and something violet looks through
-//   4 the gate       from the grass, looking up: the Gravegate, too tall for the frame, waking
+// Bannerborn — the opening, a film of its own. Eleven shots, each in its own manner, with a cast drawn for it
+// (js/cineart.js): none of the game's small sprites appear in it.
+//   1 the ridge      nine knights along a ridge at dusk, a banner over each; the camera walks the line
+//   2 the oath       from under the blades: nine swords come in from the edge of the frame and meet over the eye
+//   3 the tear       the picture rips from top to bottom and something violet looks through
+//   4 the gate       from the grass, looking up: the Gravegate, too tall for the frame, waking; the dead run past
 //   5 the cantor     a dolly zoom on Vesh Morrow: the world rushes past him while he does not move
 //   6 the song       the vale from above, as a map: his song rolls out in rings, the graves answer, the banners fall
-//   7 the rising     five cuts: a hand, eyes, marching legs, a shape from below, a ridge under the moon
-//   8 nine to one    nine windows of coloured glass; eight break
-//   9 the ninth      the real game, slowed: your Captain alone as the dead close in, the blow, the frame held
+//   7 the rising     five cuts: a hand, eyes, the ranks coming on, three looking down, a ridge under the moon
+//   8 nine to one    nine windows of coloured glass, a knight in each; eight break
+//   9 the ninth      your Captain alone as the dead close in from both sides; the blow; the frame held
 //  10 raise it       dawn, your banner on the wind, three words
-//  11 the name       cut on a blade's line; the letters are struck; the first shot's thread signs it
+//  11 the name       cut on a blade's line; the letters are struck; a gold thread signs it
 // The cutscene engine (js/cinema.js) plays it: it gives each shot its time, cues, bars, grain and subtitle.
 (function () {
-  const BB = window.BB, C = BB.Cinema; if (!C || !C.kit) return;
+  const BB = window.BB, C = BB.Cinema; if (!C || !C.kit || !BB.CineArt) return;
   const K = C.kit, TAU = Math.PI * 2;
   const lerp = (a, b, k) => a + (b - a) * k, cl = (k) => Math.max(0, Math.min(1, k));
   const ease = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2), easeOut = (k) => 1 - Math.pow(1 - k, 3), easeIn = (k) => k * k * k;
@@ -23,57 +23,13 @@
   const GOLD = '#e8c66a';
   let F = null; // the film's cast and things built once
 
-  // ---------------------------------------------------------------- the cast, as cut-outs
-  // The game's people are small pixel figures (about 42 px tall). The film never blows one up to fill the frame: the
-  // big shapes (the gate, the Cantor's face, the hand) are drawn for it, and the figures stand in them at a size
-  // that keeps them crisp. Foe sheets carry a soft ground shadow; it is cut away here so a figure can stand anywhere.
-  const sprC = new Map(); let sprN = 0;
-  function spr(a, clip, dir, fr, col) {
-    const id = a._oid || (a._oid = ++sprN), key = id + '|' + clip + '|' + dir + '|' + fr + '|' + (col || ''); let c = sprC.get(key); if (c) return c;
-    if (sprC.size > 600) sprC.clear();
-    c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d', { willReadFrequently: true }); x.imageSmoothingEnabled = false;
-    K.drawActor(x, a, clip, dir, fr, 64, 90, 1);
-    try { const im = x.getImageData(0, 0, 128, 128), d = im.data; for (let i = 3; i < d.length; i += 4) d[i] = d[i] < 200 ? 0 : 255; x.putImageData(im, 0, 0); } catch (e) { /* keep it as drawn */ }
-    if (col) { x.globalCompositeOperation = 'source-in'; x.fillStyle = col; x.fillRect(0, 0, 128, 128); }
-    sprC.set(key, c); return c;
-  }
-  const frAt = (a, clip, t, fps) => Math.floor(t * (fps || 8)) % K.clipLen(a, clip);
-  const hold = (a, clip, p) => Math.min(K.clipLen(a, clip) - 1, Math.floor(cl(p) * K.clipLen(a, clip)));
-  function put(g, cv, x, y, h, flip) { const m = h / 42; g.save(); g.translate(x, y); if (flip) g.scale(-1, 1); g.drawImage(cv, -64 * m, -90 * m, 128 * m, 128 * m); g.restore(); }
-  // the same cut-out seen from below: wide at the feet, narrowing to the head
-  function putLow(g, cv, x, y, h, taper) { const m = h / 42; for (let s = 0; s < 16; s++) { const ws = lerp(1 - taper, 1 + taper * 0.35, (s + 0.5) / 16); g.drawImage(cv, 0, s * 8, 128, 8, x - 64 * m * ws, y - 90 * m + s * 8 * m, 128 * m * ws, 8 * m + 1); } }
-  // a figure: its own colours (or one flat colour), an edge light, a wash of shade
-  function fig(g, a, clip, dir, fr, x, y, h, o) {
-    o = o || {}; const d = Math.max(1, h * 0.017), P = o.low ? (cv, xx, yy) => putLow(g, cv, xx, yy, h, o.low) : (cv, xx, yy) => put(g, cv, xx, yy, h, o.flip);
-    if (o.rim) { const r = spr(a, clip, dir, fr, o.rim); P(r, x - d, y); P(r, x + d, y); P(r, x, y - d); }
-    P(spr(a, clip, dir, fr, o.flat), x, y);
-    if (o.shade && !o.flat) { g.save(); g.globalAlpha *= o.shadeA === undefined ? 0.5 : o.shadeA; P(spr(a, clip, dir, fr, o.shade), x, y); g.restore(); }
-  }
-  const eyesOf = (g, a, clip, dir, fr, x, y, h, col, al) => { const m = h / 42, ey = y - K.headLift(a, clip, dir, fr) * m; g.save(); g.globalCompositeOperation = 'lighter'; for (const s of [-1, 1]) { const ex = x + s * m * 2, gl = g.createRadialGradient(ex, ey, 0, ex, ey, m * 4); gl.addColorStop(0, 'rgba(255,255,255,' + al + ')'); gl.addColorStop(0.35, 'rgba(' + col + ',' + al * 0.7 + ')'); gl.addColorStop(1, 'rgba(' + col + ',0)'); g.fillStyle = gl; g.fillRect(ex - m * 4, ey - m * 4, m * 8, m * 8); } g.restore(); };
+  // ---------------------------------------------------------------- the cast: art made for the films (js/cineart.js)
+  const A = BB.CineArt, skull = A.skull;
+  const DEAD = [{ v: 'reaver', weapon: 'cleaver' }, { v: 'warden', weapon: 'spear' }, { v: 'caller', weapon: 'staff' }];
+  const deadO = (i, pose) => Object.assign({ pose }, DEAD[((i % 3) + 3) % 3]);
+  const walk = (i, t) => (Math.floor(t * 3.2 + i * 0.37) % 2 ? 'walkA' : 'walkB'); // two steps of a shamble
 
-  // a figure worked in cross-stitch: a pixel is a stitch. Made once per knight, large, and drawn at any size.
-  function stitchOf(a) {
-    const src = spr(a, 'Idle', 2, 0), c = document.createElement('canvas'); c.width = 768; c.height = 640; const x = c.getContext('2d'); x.imageSmoothingEnabled = false;
-    x.drawImage(src, 16, 20, 96, 80, 0, 0, 768, 640);
-    const cell = (draw) => { const p = document.createElement('canvas'); p.width = p.height = 8; draw(p.getContext('2d')); return x.createPattern(p, 'repeat'); };
-    x.globalCompositeOperation = 'source-atop';
-    x.fillStyle = cell((q) => { q.lineCap = 'round'; q.lineWidth = 1.7; q.strokeStyle = 'rgba(0,0,0,0.2)'; q.beginPath(); q.moveTo(8, 0); q.lineTo(0, 8); q.stroke(); q.strokeStyle = 'rgba(255,255,255,0.3)'; q.beginPath(); q.moveTo(0, 0); q.lineTo(8, 8); q.stroke(); });
-    x.fillRect(0, 0, 768, 640);
-    x.globalCompositeOperation = 'destination-out';
-    x.fillStyle = cell((q) => { q.fillStyle = '#000'; for (const [px, py] of [[4, 0], [4, 8], [0, 4], [8, 4]]) { q.beginPath(); q.moveTo(px, py - 1.5); q.lineTo(px + 1.5, py); q.lineTo(px, py + 1.5); q.lineTo(px - 1.5, py); q.fill(); } });
-    x.fillRect(0, 0, 768, 640);
-    x.globalCompositeOperation = 'destination-over'; x.globalAlpha = 0.55; x.drawImage(spr(a, 'Idle', 2, 0, '#05050c'), 16, 20, 96, 80, 14, 14, 768, 640); // the shadow the raised work throws on the cloth
-    return c;
-  }
-  function putStitch(g, i, x, y, h) { const m = h / 42 / 8, sm = g.imageSmoothingEnabled; g.imageSmoothingEnabled = true; g.drawImage(F.stitch[i], x - 384 * m, y - 560 * m, 768 * m, 640 * m); g.imageSmoothingEnabled = sm; }
-
-  // ---------------------------------------------------------------- thread and cloth
-  let weave = null;
-  function cloth(g, W, H, ox, top, bot) {
-    const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, top); gr.addColorStop(1, bot); g.fillStyle = gr; g.fillRect(0, 0, W, H);
-    if (!weave) { weave = document.createElement('canvas'); weave.width = weave.height = 6; const x = weave.getContext('2d'); x.fillStyle = 'rgba(255,255,255,0.07)'; x.fillRect(0, 0, 6, 1); x.fillStyle = 'rgba(0,0,0,0.22)'; x.fillRect(0, 3, 6, 1); x.fillStyle = 'rgba(255,255,255,0.05)'; x.fillRect(0, 0, 1, 6); x.fillStyle = 'rgba(0,0,0,0.16)'; x.fillRect(3, 0, 1, 6); }
-    g.save(); g.translate(-(ox % 6), 0); g.fillStyle = g.createPattern(weave, 'repeat'); g.fillRect(0, 0, W + 6, H); g.restore();
-  }
+  // ---------------------------------------------------------------- thread, letters, flags
   // a line of stitches from the first point toward the last, as far as k of its length; returns where the needle is
   function thread(g, pts, k, col, w, dash) {
     if (k <= 0) return [pts[0], pts[1]];
@@ -100,33 +56,11 @@
     for (let i = N; i >= 0; i--) { const f = i / N; g.lineTo(x + w * f, y + h + Math.sin(f * 4 - t * sp + ph + 0.6) * A * f); }
     g.closePath();
   };
-  let hatch = null;
-  function stitchedPennant(g, x, y, w, h, t, i, b, u, a, gust) { // its colour, laid in slanting stitches, and a gold edge
-    if (!hatch) { hatch = document.createElement('canvas'); hatch.width = hatch.height = 6; const q = hatch.getContext('2d'); q.strokeStyle = 'rgba(0,0,0,0.3)'; q.lineWidth = 1.2; q.beginPath(); q.moveTo(-1, 5); q.lineTo(5, -1); q.moveTo(2, 8); q.lineTo(8, 2); q.stroke(); q.strokeStyle = 'rgba(255,255,255,0.12)'; q.beginPath(); q.moveTo(-1, 2); q.lineTo(2, -1); q.moveTo(2, 5); q.lineTo(5, 2); q.moveTo(5, 8); q.lineTo(8, 5); q.stroke(); }
-    g.save(); g.globalAlpha *= a; pennant(g, x, y, w, h, t, i, gust); g.fillStyle = b.color; g.fill(); g.fillStyle = g.createPattern(hatch, 'repeat'); g.fill();
-    g.setLineDash([u * 1.1, u * 0.7]); g.strokeStyle = i === 8 ? '#fff0c0' : GOLD; g.lineWidth = u * 0.42; g.stroke(); g.setLineDash([]); g.restore();
+  function flag(g, x, y, w, h, t, i, col, a, gust) { // a pennant in its banner's colour, the light behind it
+    g.save(); g.globalAlpha *= a; pennant(g, x, y, w, h, t, i, gust); const gr = g.createLinearGradient(x, y, x + w, y + h); gr.addColorStop(0, col); gr.addColorStop(1, K.rgba(K.mix(K.rgbOf(col), [0, 0, 0], 0.5), 1)); g.fillStyle = gr; g.fill(); g.strokeStyle = 'rgba(255,225,170,0.75)'; g.lineWidth = Math.max(1, h * 0.025); g.stroke(); g.restore();
   }
 
-  // ---------------------------------------------------------------- a skull, drawn (the gate's keystone, the Cantor's face, what looks back from a broken window)
-  function skull(g, x, y, s, o) {
-    o = o || {}; const jaw = (o.jaw || 0) * 0.46, dark = o.dark || '#020403', G = o.glow || '125,255,176', eye = o.eye === undefined ? 1 : o.eye, lite = o.bone || '#e6fff0';
-    g.save(); g.translate(x, y); g.rotate(o.tilt || 0); g.scale(s, s);
-    const gr = g.createLinearGradient(0, -1.05, 0, 1.4); gr.addColorStop(0, o.shadow || '#12241a'); gr.addColorStop(0.55, o.mid || '#5f8a70'); gr.addColorStop(1, lite);
-    g.save(); g.translate(0, jaw); // the jaw hangs behind the face
-    g.beginPath(); g.moveTo(-0.58, 0.42); g.lineTo(-0.48, 1.08); g.lineTo(-0.2, 1.3); g.lineTo(0.2, 1.3); g.lineTo(0.48, 1.08); g.lineTo(0.58, 0.42); g.lineTo(0.42, 0.6); g.lineTo(0.34, 0.97); g.lineTo(-0.34, 0.97); g.lineTo(-0.42, 0.6); g.closePath(); g.fillStyle = gr; g.fill();
-    g.fillStyle = dark; g.fillRect(-0.33, 0.84, 0.66, 0.14); g.fillStyle = lite; for (let i = 0; i < 7; i++) g.fillRect(-0.31 + i * 0.09, 0.85, 0.068, 0.12);
-    g.restore();
-    if (jaw > 0.02) { g.fillStyle = dark; g.fillRect(-0.34, 0.8, 0.68, jaw + 0.06); if (o.sing) { g.globalCompositeOperation = 'lighter'; const m = g.createRadialGradient(0, 0.84 + jaw * 0.5, 0, 0, 0.84 + jaw * 0.5, 0.5); m.addColorStop(0, 'rgba(' + G + ',' + o.sing + ')'); m.addColorStop(1, 'rgba(' + G + ',0)'); g.fillStyle = m; g.fillRect(-0.5, 0.6, 1, jaw + 0.6); g.globalCompositeOperation = 'source-over'; } }
-    g.beginPath(); g.moveTo(-0.52, 0.5); g.bezierCurveTo(-1.02, 0.32, -0.96, -1.05, 0, -1.05); g.bezierCurveTo(0.96, -1.05, 1.02, 0.32, 0.52, 0.5); g.lineTo(0.38, 0.84); g.lineTo(-0.38, 0.84); g.closePath(); g.fillStyle = gr; g.fill();
-    g.fillStyle = dark;
-    for (const d of [-1, 1]) { g.beginPath(); g.moveTo(d * 0.11, -0.08); g.quadraticCurveTo(d * 0.42, -0.36, d * 0.7, -0.33); g.quadraticCurveTo(d * 0.78, -0.12, d * 0.66, 0.04); g.quadraticCurveTo(d * 0.44, 0.24, d * 0.24, 0.16); g.quadraticCurveTo(d * 0.12, 0.1, d * 0.11, -0.08); g.fill(); // sockets, the brow drawn down
-      g.beginPath(); g.moveTo(d * 0.7, 0.22); g.lineTo(d * 0.5, 0.62); g.lineTo(d * 0.58, 0.3); g.fill(); }
-    g.beginPath(); g.moveTo(0, 0.2); g.lineTo(-0.13, 0.5); g.lineTo(-0.03, 0.45); g.lineTo(0, 0.55); g.lineTo(0.03, 0.45); g.lineTo(0.13, 0.5); g.closePath(); g.fill();
-    g.fillRect(-0.37, 0.67, 0.74, 0.19); g.fillStyle = lite; for (let i = 0; i < 8; i++) g.fillRect(-0.355 + i * 0.09, 0.69, 0.07, 0.15 + (i === 2 || i === 5 ? 0.05 : 0));
-    g.strokeStyle = dark; g.lineWidth = 0.022; g.lineJoin = 'round'; g.beginPath(); g.moveTo(0.22, -1.02); g.lineTo(0.3, -0.8); g.lineTo(0.2, -0.68); g.lineTo(0.32, -0.5); g.moveTo(-0.5, -0.86); g.lineTo(-0.42, -0.7); g.lineTo(-0.5, -0.6); g.stroke();
-    if (eye > 0) { g.globalCompositeOperation = 'lighter'; for (const d of [-1, 1]) { const ex = d * 0.42, ey = -0.08, gl = g.createRadialGradient(ex, ey, 0, ex, ey, 0.62); gl.addColorStop(0, 'rgba(255,255,255,' + eye + ')'); gl.addColorStop(0.16, 'rgba(' + G + ',' + eye * 0.95 + ')'); gl.addColorStop(0.5, 'rgba(' + G + ',' + eye * 0.25 + ')'); gl.addColorStop(1, 'rgba(' + G + ',0)'); g.fillStyle = gl; g.fillRect(ex - 0.62, ey - 0.62, 1.24, 1.24); if (o.streak) { g.fillStyle = 'rgba(' + G + ',' + eye * 0.4 + ')'; g.fillRect(ex - 1.1, ey - 0.014, 2.2, 0.028); } } }
-    g.restore();
-  }
+  // ---------------------------------------------------------------- marks cut in stone
   function rune(g, x, y, r, q) { // a stave and what hangs on it
     g.beginPath(); g.moveTo(x, y - r); g.lineTo(x, y + r);
     if (q === 0) { g.moveTo(x, y - r * 0.6); g.lineTo(x + r * 0.7, y - r); g.moveTo(x, y); g.lineTo(x + r * 0.7, y - r * 0.4); }
@@ -135,64 +69,63 @@
     else { g.moveTo(x - r * 0.7, y - r * 0.2); g.lineTo(x, y - r); g.lineTo(x + r * 0.7, y - r * 0.2); g.moveTo(x - r * 0.5, y + r * 0.6); g.lineTo(x + r * 0.5, y + r * 0.6); }
     g.stroke(); }
 
-  // ================================================================ 1 · the tapestry
-  function drawTapestry(g, W, H, sh, k, t) {
-    const u = H / 100, span = W * 2.12, camX = lerp(0, span - W, ease(cl((t - 0.7) / (sh.dur - 1.5)))), gy = H * 0.8;
-    cloth(g, W, H, camX * 0.6, '#1b1d38', '#0b0c18');
-    g.save(); g.translate(-camX * 0.35, 0); // far hills, sewn in three passes, sliding slower than the cloth in front
-    for (let j = 0; j < 3; j++) { const pts = []; for (let x = -W * 0.1; x < span; x += W * 0.03) pts.push(x, H * (0.58 + j * 0.045) - Math.sin(x * 0.0042 * (1 + j * 0.3) + j * 2) * u * (8 - j * 2) - Math.sin(x * 0.012 + j) * u * 2); thread(g, pts, cl(t / 2.6 - j * 0.12), ['#343a66', '#444a80', '#565b98'][j], u * 0.34, [u * 1.3, u * 1.3]); }
-    { const a = cl((t - (sh.dur - 4.4)) / 1.6), sx = span * 0.62, sy = H * 0.3; if (a > 0) { g.globalAlpha = a; for (let i = 0; i < 28; i++) { const an = i / 28 * TAU + t * 0.1; thread(g, [sx + Math.cos(an) * u * 7, sy + Math.sin(an) * u * 7, sx + Math.cos(an) * u * (11 + (i % 2) * 4), sy + Math.sin(an) * u * (11 + (i % 2) * 4)], 1, GOLD, u * 0.3, [u, u]); } g.beginPath(); g.arc(sx, sy, u * 5.6, 0, TAU); g.setLineDash([u * 1.2, u * 0.8]); g.strokeStyle = GOLD; g.lineWidth = u * 0.5; g.stroke(); g.setLineDash([]); g.globalAlpha = 1; } }
-    g.restore();
-    for (const y of [0.145, 0.855]) { const pts = [], o = camX % (u * 6); for (let x = -u * 6; x < W + u * 6; x += u * 3) pts.push(x - o, H * y + (Math.round(x / (u * 3)) % 2 ? u : -u)); thread(g, pts, 1, 'rgba(232,198,106,0.55)', u * 0.3, [u * 1.2, u * 0.9]); } // the border
+  // ================================================================ 1 · nine on the ridge
+  function drawRidge(g, W, H, sh, k, t) {
+    const u = H / 100, span = W * 3.1, camX = lerp(0, span - W, ease(cl((t - 0.5) / (sh.dur - 1.2)))), gy = H * 0.81;
+    const sky = g.createLinearGradient(0, 0, 0, gy); sky.addColorStop(0, '#0d1030'); sky.addColorStop(0.45, '#5a2a4a'); sky.addColorStop(0.8, '#e0703a'); sky.addColorStop(1, '#ffc878'); g.fillStyle = sky; g.fillRect(0, 0, W, H);
+    const sx = W * 0.72 - camX * 0.07, sy = gy - u * 3; // the sun is far: it hardly moves
+    { g.globalCompositeOperation = 'lighter'; const gl = g.createRadialGradient(sx, sy, 0, sx, sy, H * 0.95); gl.addColorStop(0, 'rgba(255,230,170,0.95)'); gl.addColorStop(0.22, 'rgba(255,160,70,0.45)'); gl.addColorStop(1, 'rgba(255,120,40,0)'); g.fillStyle = gl; g.fillRect(0, 0, W, H); burst(g, sx, sy, W * 1.5, 20, 'rgba(255,205,130,0.07)', 131, 0.05, t * 0.04); g.globalCompositeOperation = 'source-over';
+      g.fillStyle = '#fff3d4'; g.beginPath(); g.arc(sx, sy, H * 0.17, 0, TAU); g.fill(); }
+    for (let i = 0; i < 9; i++) { const x = ((rnd(i, 201) * 1.6 - 0.2) * W - camX * 0.12 + t * u * (1 + rnd(i, 202))) % (W * 1.5) - W * 0.2, y = H * (0.2 + rnd(i, 203) * 0.42); g.fillStyle = 'rgba(' + (i % 2 ? '60,26,58' : '255,170,110') + ',' + (i % 2 ? 0.4 : 0.16) + ')'; g.beginPath(); g.ellipse(x, y, W * (0.12 + rnd(i, 204) * 0.16), u * (1.2 + rnd(i, 205) * 2), 0, 0, TAU); g.fill(); } // bars of cloud
+    for (let j = 0; j < 2; j++) { const par = 0.16 + j * 0.2, ox = camX * par; g.fillStyle = j ? '#2a1830' : '#4a2a48'; g.beginPath(); g.moveTo(0, H); for (let x = 0; x <= W; x += W / 60) { const wx = x + ox; g.lineTo(x, gy - u * (15 - j * 7) - Math.abs(Math.sin(wx * 0.0031 + j)) * u * (15 - j * 5) - Math.sin(wx * 0.011 + j * 2) * u * 2.5); } g.lineTo(W, H); g.closePath(); g.fill(); } // far hills
     g.save(); g.translate(-camX, 0);
-    const gk = cl(t / (sh.dur - 1.3)), head = thread(g, [-W * 0.05, gy, span, gy], gk, GOLD, u * 0.62);
+    const ry = (x) => gy + Math.sin(x * 0.0022) * u * 1.6;
     for (let i = 0; i < 9; i++) {
-      const x = W * (0.42 + i * 0.19), p = cl((t - sh.at[i]) / 0.8); if (p <= 0) continue;
-      const b = F.banners[i], top = gy - H * 0.5, pw = H * 0.14, ph = H * 0.17, mine = i === 8;
-      thread(g, [x, gy, x, top - u * 2], cl(p * 2.2), mine ? '#fff0c0' : '#b9a36a', u * 0.5);
-      const fa = cl(p * 2.4 - 0.8); if (fa > 0) stitchedPennant(g, x, top, pw, ph, t, i, b, u, fa);
-      const ka = cl(p * 3 - 1.7); if (ka > 0) { g.globalAlpha = ka; putStitch(g, i, x + H * 0.1, gy + (1 - easeOut(ka)) * u * 3, H * 0.3); g.globalAlpha = 1; }
-      g.globalAlpha = cl(p * 3 - 1.2) * 0.9; g.font = '600 ' + Math.round(u * 3.2) + 'px ' + DISP; g.textAlign = 'right'; g.fillStyle = mine ? '#fff0c0' : '#a8956a'; g.fillText(ROMAN[i], x - u * 1.6, top + ph * 0.62); g.textAlign = 'center'; g.globalAlpha = 1;
-      if (mine && p >= 1) { g.globalCompositeOperation = 'lighter'; const gl = g.createRadialGradient(x + pw * 0.5, top + ph, 0, x + pw * 0.5, top + ph, H * 0.42); gl.addColorStop(0, 'rgba(255,220,140,' + (0.22 + Math.sin(t * 3) * 0.05) + ')'); gl.addColorStop(1, 'rgba(255,220,140,0)'); g.fillStyle = gl; g.fillRect(x - H * 0.4, top - H * 0.3, H * 0.9, H * 0.9); g.globalCompositeOperation = 'source-over'; }
+      const x = W * (0.92 + i * 0.205), y = ry(x) + u, h = H * 0.45, b = F.banners[i], mine = i === 8, px = x - h * 0.3, top = y - h * 1.4, seen = cl((camX + W * 0.86 - x) / (W * 0.16));
+      if (x < camX - W * 0.2 || x > camX + W * 1.2) continue;
+      if (mine) { g.globalCompositeOperation = 'lighter'; const gl = g.createRadialGradient(x, y - h * 0.7, 0, x, y - h * 0.7, h * 1.1); gl.addColorStop(0, 'rgba(255,225,150,0.5)'); gl.addColorStop(1, 'rgba(255,225,150,0)'); g.fillStyle = gl; g.fillRect(x - h * 1.1, y - h * 1.8, h * 2.2, h * 2.2); g.globalCompositeOperation = 'source-over'; }
+      g.strokeStyle = '#ffcf8a'; g.lineWidth = u * 0.75; g.lineCap = 'round'; g.beginPath(); g.moveTo(px, y); g.lineTo(px, top - u); g.stroke(); g.strokeStyle = '#120a0c'; g.lineWidth = u * 0.5; g.stroke();
+      flag(g, px, top, h * 0.5, h * 0.3, t, i, b.color, 1);
+      A.draw(g, 'knight', F.nine[i], x, y, h, 'dusk');
+      g.globalAlpha = seen * 0.95; g.font = '700 ' + Math.round(u * 4) + 'px ' + DISP; g.textAlign = 'center'; g.fillStyle = mine ? '#fff3c8' : '#f3d9a6'; g.fillText(ROMAN[i], px + h * 0.25, top - u * 3); g.globalAlpha = 1;
     }
-    if (gk < 1) needle(g, head[0], head[1], u, -0.28 + Math.sin(t * 9) * 0.05);
+    g.fillStyle = '#0a0608'; g.beginPath(); g.moveTo(camX - W * 0.1, H * 1.1); for (let x = camX - W * 0.1; x <= camX + W * 1.1; x += W / 40) g.lineTo(x, ry(x) + u * 0.6); g.lineTo(camX + W * 1.1, H * 1.1); g.closePath(); g.fill(); // the ridge they stand on
     g.restore();
-    { // the heading, sewn a letter at a time, then let go
-      const s = 'THREE HUNDRED YEARS AGO', a = cl(Math.min(1, (4.6 - t) / 0.7)); if (a > 0) { g.globalAlpha = a; g.font = '800 ' + Math.round(u * 5.4) + 'px ' + DISP; g.textBaseline = 'middle'; g.fillStyle = '#f3e3b6'; g.strokeStyle = 'rgba(0,0,0,0.6)'; g.lineWidth = u * 0.5; spaced(g, s, W / 2, H * 0.215, u * 1.5, Math.floor(cl((t - 0.3) / 1.3) * s.length), true); g.globalAlpha = 1; g.textBaseline = 'alphabetic'; }
-    }
+    g.save(); g.translate(-(camX * 1.7) % (W / 30), 0); g.fillStyle = '#050304'; g.beginPath(); g.moveTo(-W * 0.1, H); for (let i = -3; i <= 64; i++) { const x = i * W / 60; g.lineTo(x, H * 0.905 + rnd(i & 31, 9) * u * 2); g.lineTo(x + W / 240, H * (0.86 - rnd(i & 31, 8) * 0.035)); g.lineTo(x + W / 120, H * 0.905); } g.lineTo(W * 1.1, H); g.closePath(); g.fill(); g.restore(); // grass by the lens
+    g.globalCompositeOperation = 'lighter'; g.fillStyle = 'rgba(255,220,160,0.7)'; for (let i = 0; i < 40; i++) { const x = ((rnd(i, 211) * W * 1.2 - camX * 0.5 + t * u * 3) % (W * 1.2) + W * 1.2) % (W * 1.2) - W * 0.1, y = H * (0.25 + rnd(i, 212) * 0.6) + Math.sin(t * 1.3 + i) * u * 1.5, r = u * (0.12 + rnd(i, 213) * 0.22); g.fillRect(x, y, r * 2, r * 2); } g.globalCompositeOperation = 'source-over';
+    { const s = 'THREE HUNDRED YEARS AGO', a = cl(Math.min(1, (3.6 - t) / 0.7)); if (a > 0) { g.globalAlpha = a; g.font = '800 ' + Math.round(u * 5.6) + 'px ' + DISP; g.textBaseline = 'middle'; g.fillStyle = '#fff1cf'; g.strokeStyle = 'rgba(20,8,20,0.7)'; g.lineWidth = u * 0.6; spaced(g, s, W / 2, H * 0.2, u * 1.5, Math.floor(cl((t - 0.3) / 1.2) * s.length), true); g.globalAlpha = 1; g.textBaseline = 'alphabetic'; } }
   }
 
-  // ================================================================ 2 · the oath (from below)
-  function wheelCv() {
-    if (F.wheel) return F.wheel; const R = 520, c = F.wheel = document.createElement('canvas'); c.width = c.height = R * 2; const x = c.getContext('2d'); x.translate(R, R);
-    for (let i = 0; i < 72; i++) { const an = i / 72 * TAU, r0 = R * (0.2 + (i % 2) * 0.03), r1 = R * (0.55 + rnd(i) * 0.45), cs = Math.cos(an), sn = Math.sin(an); x.globalAlpha = 0.4 + (i % 3) * 0.15; thread(x, [cs * r0, sn * r0, cs * r1, sn * r1], 1, i % 2 ? '#ffd98a' : '#c9963a', 3.2, [14, 9]); }
-    x.globalAlpha = 1; for (const r of [0.15, 0.18]) { x.beginPath(); x.arc(0, 0, R * r, 0, TAU); x.setLineDash([9, 6]); x.strokeStyle = '#ffe2a0'; x.lineWidth = 3.6; x.stroke(); } x.setLineDash([]);
-    return c;
-  }
+  // ================================================================ 2 · the oath: nine blades, seen from under them
   function drawOath(g, W, H, sh, k, t) {
-    const u = H / 100, cx = W / 2, hy = H * 0.62, gust = cl(1 - Math.abs(t - 2.3) / 0.9);
-    cloth(g, W, H, 0, '#402c14', '#140c06');
-    const push = 1 + 0.12 * ease(k); g.save(); g.translate(cx, H * 0.92); g.scale(push, push); g.translate(-cx, -H * 0.92);
-    { const RR = H * 1.05; g.save(); g.translate(cx, hy); g.rotate(t * 0.1); g.drawImage(wheelCv(), -RR, -RR, RR * 2, RR * 2); g.restore(); }
-    { const gl = g.createRadialGradient(cx, hy, 0, cx, hy, H * 0.6); gl.addColorStop(0, 'rgba(255,214,130,0.55)'); gl.addColorStop(1, 'rgba(255,214,130,0)'); g.globalCompositeOperation = 'lighter'; g.fillStyle = gl; g.fillRect(0, 0, W, H); g.globalCompositeOperation = 'source-over'; }
-    // the ground, the poles and the nine figures never move: they are worked once, and laid on as one piece
-    const spot = (i) => { const d = Math.abs(i - 4), sc = 1.22 - d * 0.14; return { sc, x: cx + (i - 4) * W * 0.113, fy: H * (0.975 - d * 0.068), h: H * 0.37 * sc, lean: -(i - 4) * 0.04 }; };
-    let L = F.oathL; if (!L || L.width !== W || L.height !== H) { L = F.oathL = document.createElement('canvas'); L.width = W; L.height = H; const q = L.getContext('2d');
-      q.fillStyle = '#0d0805'; q.fillRect(0, H * 0.7, W, H);
-      for (let i = -10; i <= 10; i++) thread(q, [cx + i * W * 0.012, H * 0.7, cx + i * W * 0.17, H * 1.1], 1, '#5b4520', u * 0.3, [u * 1.6, u * 1.4]);
-      for (let j = 1; j < 6; j++) { const y = H * 0.7 + H * 0.4 * Math.pow(j / 6, 1.8); thread(q, [0, y, W, y], 1, '#4a3819', u * 0.3, [u * 2, u * 1.6]); }
-      for (const i of [0, 8, 1, 7, 2, 6, 3, 5, 4]) { const S = spot(i), h = S.h; q.save(); q.translate(S.x, S.fy); q.rotate(S.lean); thread(q, [-h * 0.34, 0, -h * 0.34, -h * 1.72], 1, '#caa860', u * 0.42 * S.sc);
-        const gl = q.createRadialGradient(0, -h * 0.5, 0, 0, -h * 0.5, h * 0.7); gl.addColorStop(0, 'rgba(255,226,160,0.3)'); gl.addColorStop(1, 'rgba(255,226,160,0)'); q.fillStyle = gl; q.fillRect(-h * 0.7, -h * 1.2, h * 1.4, h * 1.4);
-        putStitch(q, i, 0, 0, h); q.restore(); } }
-    g.fillStyle = '#0d0805'; g.fillRect(-W * 0.2, H * 0.7, W * 1.4, H); g.drawImage(L, 0, 0);
-    for (let i = 0; i < 9; i++) { const S = spot(i), h = S.h; g.save(); g.translate(S.x, S.fy); g.rotate(S.lean); stitchedPennant(g, -h * 0.34, -h * 1.72 + u, h * 0.42, h * 0.44, t, i, F.banners[i], u * S.sc, 1, gust); g.restore(); } // every upright leans toward a point high over the middle
-    g.restore();
+    const u = H / 100, cx = W / 2, cy = H * 0.5, R = Math.hypot(W, H) / 2, all = cl((t - sh.meetAt) / 0.3), turn = t * 0.035;
+    const sky = g.createRadialGradient(cx, cy, 0, cx, cy, R); sky.addColorStop(0, '#fff3d0'); sky.addColorStop(0.16, '#ffc46a'); sky.addColorStop(0.45, '#b4503e'); sky.addColorStop(0.75, '#4a2450'); sky.addColorStop(1, '#10122e'); g.fillStyle = sky; g.fillRect(0, 0, W, H);
+    g.globalCompositeOperation = 'lighter'; burst(g, cx, cy, R * 1.2, 36, 'rgba(255,220,150,' + (0.06 + all * 0.08) + ')', 61, 0.03, t * 0.12); g.globalCompositeOperation = 'source-over';
+    const BL = Math.min(W, H) * 0.56, bw = u * 3.2;
+    for (let i = 0; i < 9; i++) {
+      const p = easeOut(cl((t - sh.firstAt - i * sh.gap) / 0.26)); if (p <= 0) continue;
+      const b = F.banners[i], r0 = u * 3.2 + (1 - p) * R * 1.1, hx = r0 + BL;
+      g.save(); g.translate(cx, cy); g.rotate(-Math.PI / 2 + i * TAU / 9 + 0.16 + turn + (1 - p) * 0.3);
+      g.fillStyle = '#141826'; g.beginPath(); g.moveTo(hx + u * 8, -u * 4.2); g.lineTo(R * 1.5, -u * 8); g.lineTo(R * 1.5, u * 8); g.lineTo(hx + u * 8, u * 4.2); g.closePath(); g.fill(); // the arm, plate to the elbow, out of frame
+      g.strokeStyle = 'rgba(255,214,150,0.55)'; g.lineWidth = u * 0.35; g.beginPath(); g.moveTo(hx + u * 8, -u * 4.2); g.lineTo(R * 1.5, -u * 8); g.stroke();
+      g.fillStyle = b.color; g.fillRect(hx + u * 13, -u * 5.3, u * 4.5, u * 10.6); g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(hx + u * 13, 0, u * 4.5, u * 5.3); // a band of the banner's colour at the wrist
+      { const gr = g.createLinearGradient(0, -bw, 0, bw); gr.addColorStop(0, '#f6f8ff'); gr.addColorStop(0.46, '#aab4c8'); gr.addColorStop(0.54, '#4a5368'); gr.addColorStop(1, '#232a3a'); g.fillStyle = gr; g.beginPath(); g.moveTo(r0, 0); g.lineTo(r0 + u * 9, -bw * 0.5); g.lineTo(hx, -bw * 0.62); g.lineTo(hx, bw * 0.62); g.lineTo(r0 + u * 9, bw * 0.5); g.closePath(); g.fill(); // the blade
+        g.strokeStyle = 'rgba(255,240,205,0.9)'; g.lineWidth = u * 0.3; g.beginPath(); g.moveTo(r0, 0); g.lineTo(r0 + u * 9, -bw * 0.5); g.lineTo(hx, -bw * 0.62); g.stroke(); g.strokeStyle = 'rgba(10,12,22,0.55)'; g.lineWidth = u * 0.35; g.beginPath(); g.moveTo(r0 + u * 12, 0); g.lineTo(hx - u * 2, 0); g.stroke(); }
+      g.fillStyle = '#8a6a26'; g.fillRect(hx, -u * 7.5, u * 2, u * 15); g.fillStyle = '#e0bd62'; g.fillRect(hx, -u * 7.5, u * 0.7, u * 15); // guard, grip, pommel, and the fist round it
+      g.fillStyle = '#2a1c14'; g.fillRect(hx + u * 2, -u * 1.1, u * 8, u * 2.2); g.fillStyle = '#b8923e'; g.beginPath(); g.arc(hx + u * 11, 0, u * 1.8, 0, TAU); g.fill();
+      g.fillStyle = '#1b2030'; g.beginPath(); g.ellipse(hx + u * 5.6, 0, u * 3.6, u * 4.4, 0, 0, TAU); g.fill(); g.strokeStyle = 'rgba(255,214,150,0.6)'; g.lineWidth = u * 0.3; g.beginPath(); g.ellipse(hx + u * 5.6, 0, u * 3.6, u * 4.4, 0, Math.PI * 0.9, Math.PI * 1.9); g.stroke();
+      g.strokeStyle = 'rgba(8,10,18,0.8)'; g.lineWidth = u * 0.3; for (let f = -1; f <= 1; f++) { g.beginPath(); g.moveTo(hx + u * (4.4 + f * 1.5), -u * 3.9); g.lineTo(hx + u * (4.4 + f * 1.5), u * 3.9); g.stroke(); }
+      g.restore();
+    }
+    if (all > 0) { g.globalCompositeOperation = 'lighter'; const q = t - sh.meetAt, gl = g.createRadialGradient(cx, cy, 0, cx, cy, H * (0.3 + all * 0.25)); gl.addColorStop(0, 'rgba(255,252,240,' + all + ')'); gl.addColorStop(0.3, 'rgba(255,220,150,' + all * 0.6 + ')'); gl.addColorStop(1, 'rgba(255,200,120,0)'); g.fillStyle = gl; g.fillRect(0, 0, W, H);
+      g.fillStyle = 'rgba(255,245,220,' + all * 0.85 + ')'; g.fillRect(cx - W * 0.6, cy - u * 0.3, W * 1.2, u * 0.6); g.fillRect(cx - u * 0.3, cy - H * 0.6, u * 0.6, H * 1.2);
+      const rr = easeOut(cl(q / 0.9)) * R; g.strokeStyle = 'rgba(255,235,190,' + cl(1 - q / 0.9) * 0.8 + ')'; g.lineWidth = u * 1.2; g.beginPath(); g.arc(cx, cy, rr, 0, TAU); g.stroke(); g.globalCompositeOperation = 'source-over'; }
   }
 
   // ================================================================ 3 · the tear
   function drawRip(g, W, H, sh, k, t) {
     const u = H / 100;
-    if (!sh._snap || sh._snap.width !== W || sh._snap.height !== H) { const c = sh._snap = document.createElement('canvas'); c.width = W; c.height = H; drawOath(c.getContext('2d'), W, H, { dur: 4.4 }, 0.98, 4.38); }
+    if (!sh._snap || sh._snap.width !== W || sh._snap.height !== H) { const c = sh._snap = document.createElement('canvas'); c.width = W; c.height = H; drawOath(c.getContext('2d'), W, H, sh.oath, 0.98, sh.oath.dur - 0.02); }
     g.fillStyle = '#05030a'; g.fillRect(0, 0, W, H); // what is behind the cloth
     const tx = W * 0.52, ty = H * 0.5, gl = g.createRadialGradient(tx, ty, 0, tx, ty, H * 0.9); gl.addColorStop(0, 'rgba(190,140,255,0.95)'); gl.addColorStop(0.35, 'rgba(110,60,210,0.55)'); gl.addColorStop(1, 'rgba(20,8,50,0)'); g.fillStyle = gl; g.fillRect(0, 0, W, H);
     g.save(); g.translate(tx, ty); for (let i = 0; i < 7; i++) { g.rotate(t * (0.5 + i * 0.07) * (i % 2 ? 1 : -1)); g.beginPath(); g.ellipse(0, 0, H * (0.08 + i * 0.06), H * (0.16 + i * 0.1), 0, 0, TAU); g.setLineDash([u * 5, u * 3]); g.strokeStyle = 'rgba(225,200,255,' + (0.5 - i * 0.05) + ')'; g.lineWidth = u * 0.5; g.stroke(); } g.setLineDash([]); g.restore();
@@ -246,11 +179,11 @@
     }
     g.fillStyle = '#06040c'; g.beginPath(); g.moveTo(0, H * 1.3); g.lineTo(0, gy + u * 2); for (let x = 0; x <= W; x += W / 24) g.lineTo(x, gy + u * 2 + Math.sin(x * 0.01) * u * 1.2); g.lineTo(W, H * 1.3); g.closePath(); g.fill();
     { const q0 = t - sh.burstAt - 0.2; if (q0 > 0) for (let i = 0; i < 16; i++) { // they come out of it, toward the eye, and past
-      const q = (q0 - i * 0.17) / 1.9; if (q <= 0 || q >= 1) continue; const a = F.dead[i % 3], e = q * q, side = (i % 2 ? 1 : -1) * (0.25 + rnd(i, 55) * 0.75), x = cx + side * lerp(W * 0.05, W * 0.62, e), y = lerp(gy + u, H * 1.34, e), h = lerp(H * 0.055, H * 0.62, e);
-      g.globalAlpha = cl(q * 6) * cl((1 - q) * 5); fig(g, a, 'Run', 2, frAt(a, 'Run', t + i * 0.1, 12), x, y, h, { flat: '#030208', rim: '#c9a8ff' }); eyesOf(g, a, 'Run', 2, 0, x, y, h, '201,168,255', 0.8); g.globalAlpha = 1; } }
-    if (t > sh.veshAt) { const q = cl((t - sh.veshAt) / 1.3), a = F.vesh, fr = frAt(a, 'Idle', t, 5), y = gy + u * 2 - easeOut(q) * H * 0.13, h = H * lerp(0.2, 0.3, easeOut(q)); g.globalAlpha = cl(q * 2); // and then him, walking out on the light
-      g.globalCompositeOperation = 'lighter'; const gl = g.createRadialGradient(cx, y - h * 0.5, 0, cx, y - h * 0.5, h * 1.5); gl.addColorStop(0, 'rgba(125,255,176,0.45)'); gl.addColorStop(1, 'rgba(125,255,176,0)'); g.fillStyle = gl; g.fillRect(cx - h * 1.5, y - h * 2, h * 3, h * 3); g.globalCompositeOperation = 'source-over';
-      fig(g, a, 'Idle', 2, fr, cx, y, h, { flat: '#020503', rim: '#7dffb0' }); eyesOf(g, a, 'Idle', 2, fr, cx, y, h, '125,255,176', 1); g.globalAlpha = 1; }
+      const q = (q0 - i * 0.17) / 1.9; if (q <= 0 || q >= 1) continue; const e = q * q, side = (i % 2 ? 1 : -1) * (0.25 + rnd(i, 55) * 0.75), x = cx + side * lerp(W * 0.05, W * 0.62, e), y = lerp(gy + u, H * 1.34, e), h = lerp(H * 0.06, H * 0.7, e), o = deadO(i, walk(i, t * 1.7));
+      g.globalAlpha = cl(q * 6) * cl((1 - q) * 5); A.draw(g, 'dead', o, x, y, h, 'gate', i % 2 === 0, 288); A.eyes(g, 'dead', o, x, y, h, '201,168,255', 0.9, i % 2 === 0); g.globalAlpha = 1; } }
+    if (t > sh.veshAt) { const q = cl((t - sh.veshAt) / 1.3), y = gy + u * 2 - easeOut(q) * H * 0.1, h = H * lerp(0.26, 0.4, easeOut(q)), o = { pose: 'sing' }; g.globalAlpha = cl(q * 2); // and then him, walking out on the light
+      g.globalCompositeOperation = 'lighter'; const gl = g.createRadialGradient(cx, y - h * 0.5, 0, cx, y - h * 0.5, h * 1.2); gl.addColorStop(0, 'rgba(125,255,176,0.4)'); gl.addColorStop(1, 'rgba(125,255,176,0)'); g.fillStyle = gl; g.fillRect(cx - h * 1.2, y - h * 1.7, h * 2.4, h * 2.4); g.globalCompositeOperation = 'source-over';
+      A.draw(g, 'vesh', o, cx, y, h, 'green', false, 320); A.eyes(g, 'vesh', o, cx, y, h, '125,255,176', 1); g.globalAlpha = 1; }
     // the grass and stones by the lens: they drop away as the head tips back
     g.save(); g.translate(0, (gy - 0.72 * H) * 1.9); g.fillStyle = '#010103';
     g.beginPath(); g.moveTo(0, H * 1.5); for (let x = 0; x <= W; x += W / 70) g.lineTo(x, H * 0.92 - Math.abs(Math.sin(x * 0.045)) * u * 5 - rnd(Math.round(x), 2) * u * 7); g.lineTo(W, H * 1.5); g.closePath(); g.fill();
@@ -356,22 +289,22 @@
       skull(g, W * 0.5 + (pk - 0.5) * u * 3, H * 0.5 + s * 0.08, s, { shadow: '#0a0a0a', mid: '#2c2a24', bone: '#8a8474', dark: '#000', glow: '255,214,64', eye: cl(pk * 5), streak: true });
     } else if (P.k === 'march') {
       g.fillStyle = '#e6e1d6'; g.fillRect(0, 0, W, H); g.fillStyle = '#b00d0d'; g.beginPath(); g.arc(W * 0.7, H * 0.52, H * 0.3, 0, TAU); g.fill();
-      for (const [hh, col, gyf, spd, n] of [[0.2, '#b3aea2', 0.6, 0.45, 10], [0.33, '#6a655c', 0.72, 0.75, 6], [0.52, '#060606', 0.9, 1.2, 4]]) {
+      for (const [hh, col, gyf, n] of [[0.25, '#aaa59a', 0.62, 13], [0.37, '#5a564e', 0.77, 9], [0.58, '#060606', 0.97, 6]]) { // rank on rank, coming straight on
         g.fillStyle = col; g.fillRect(0, H * gyf - 1, W, H);
-        for (let i = 0; i < n; i++) { const a = F.dead[(i + n) % 3], x = (((i / n + t * 0.2 * spd) % 1) * 1.3 - 0.15) * W, h = H * hh; put(g, spr(a, 'Run', 4, frAt(a, 'Run', t + i * 0.11, 14), col), x, H * gyf + u * 0.5, h); if ((i + n) % 2 === 0) { g.fillStyle = col; g.fillRect(x + h * 0.2, H * gyf - h * 1.7, Math.max(1.5, h * 0.022), h * 1.3); g.beginPath(); g.moveTo(x + h * 0.21, H * gyf - h * 1.9); g.lineTo(x + h * 0.27, H * gyf - h * 1.66); g.lineTo(x + h * 0.15, H * gyf - h * 1.66); g.fill(); } }
+        for (let i = 0; i < n; i++) { const x = W * ((i + 0.5) / n) + Math.sin(i * 7 + n) * u * 2, bob = Math.abs(Math.sin(t * 9 + i * 1.3)) * H * hh * 0.03, o = deadO(i + n, walk(i + n, t * 2)); A.draw(g, 'dead', o, x, H * gyf + u * 0.5 - bob, H * hh * (1 + pk * 0.06), { dim: [col, 1], rims: [] }, i % 2 === 1, 320); if (hh > 0.3) A.eyes(g, 'dead', o, x, H * gyf + u * 0.5 - bob, H * hh * (1 + pk * 0.06), '255,70,50', 1, i % 2 === 1); }
       }
       g.fillStyle = 'rgba(230,225,214,0.5)'; for (let i = 0; i < 12; i++) { const x = ((rnd(i, 85) + t * 0.5) % 1.2 - 0.1) * W; g.beginPath(); g.ellipse(x, H * 0.92, u * (6 + rnd(i, 86) * 8), u * (2 + rnd(i, 87) * 3), 0, 0, TAU); g.fill(); }
     } else if (P.k === 'low') { // from the ground: three of them, looking down
       const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, '#6a25b8'); gr.addColorStop(1, '#12041f'); g.fillStyle = gr; g.fillRect(0, 0, W, H);
       burst(g, W * 0.5, H * 0.2, W, 46, 'rgba(255,255,255,0.1)', 91, 0.012, t * 0.3);
-      for (const [fx, hh, n, clip] of [[0.2, 0.7, 2, 'Idle'], [0.8, 0.74, 1, 'Idle'], [0.5, 0.92, 0, 'Idle']]) { const a = F.dead[n], fr = frAt(a, clip, t, 6), x = W * fx + (0.5 - fx) * pk * u * 6, y = H * 1.12, h = H * hh * (1 + pk * 0.06); fig(g, a, clip, 2, fr, x, y, h, { flat: '#040108', rim: '#e7d4ff', low: 0.32 }); eyesOf(g, a, clip, 2, fr, x, y, h, '255,214,64', 1); }
+      for (const [fx, hh, n, ps] of [[0.2, 0.84, 2, 'walkA'], [0.8, 0.88, 1, 'walkB'], [0.5, 1.05, 0, 'reach']]) { const o = deadO(n, ps), x = W * fx + (0.5 - fx) * pk * u * 6, y = H * 1.13, h = H * hh * (1 + pk * 0.06); A.drawLow(g, 'dead', o, x, y, h, 'gate', 0.3, 448); A.eyes(g, 'dead', o, x, y, h, '255,214,64', 1); }
     } else { // the ridge
       const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, '#07060f'); gr.addColorStop(1, '#241238'); g.fillStyle = gr; g.fillRect(0, 0, W, H);
       const mx = W * 0.64, my = H * 0.44, mr = H * 0.31; g.fillStyle = '#efe9da'; g.beginPath(); g.arc(mx, my, mr, 0, TAU); g.fill(); g.fillStyle = 'rgba(120,110,150,0.25)'; for (const [dx, dy, r] of [[-0.3, -0.2, 0.2], [0.25, 0.1, 0.28], [-0.1, 0.4, 0.15]]) { g.beginPath(); g.arc(mx + dx * mr, my + dy * mr, r * mr, 0, TAU); g.fill(); }
       const ry = (x) => H * 0.7 - Math.sin(x / W * 3.1 + 0.4) * H * 0.12 - Math.sin(x / W * 9) * H * 0.02; g.fillStyle = '#030208';
       for (let i = 0; i < 150; i++) { const x = rnd(i, 101) * W, hh = u * (1.6 + rnd(i, 102) * 3.2), over = cl(pk * 1.5 - rnd(i, 103) * 0.5), y = ry(x) + u * 1.5 - over * u * 3 + (1 - over) * u * 6; g.fillRect(x - hh * 0.16, y - hh, hh * 0.32, hh); g.fillRect(x - hh * 0.2, y - hh * 1.25, hh * 0.4, hh * 0.3); if (i % 9 === 0) g.fillRect(x + hh * 0.2, y - hh * 2, hh * 0.08, hh * 1.6); }
       g.beginPath(); g.moveTo(0, H); for (let x = 0; x <= W; x += W / 50) g.lineTo(x, ry(x) + u * 1.5); g.lineTo(W, H); g.closePath(); g.fill();
-      { const a = F.vesh, x = W * 0.3, y = ry(W * 0.3) + u * 2, h = H * 0.3; fig(g, a, 'Idle', 2, frAt(a, 'Idle', t, 5), x, y, h, { flat: '#030208', rim: '#7dffb0' }); eyesOf(g, a, 'Idle', 2, 0, x, y, h, '125,255,176', 1); }
+      { const x = W * 0.3, y = ry(W * 0.3) + u * 2, h = H * 0.36, o = { pose: 'sing' }; A.draw(g, 'vesh', o, x, y, h, 'green'); A.eyes(g, 'vesh', o, x, y, h, '125,255,176', 1); }
     }
     g.restore();
   }
@@ -394,17 +327,17 @@
     const pw = W * 0.098, ph = H * 0.68, y0 = H * 0.17, X0 = (i) => W * 0.5 + (i - 4.5) * W * 0.106 + W * 0.004, held = t > G.end;
     if (held) { g.globalCompositeOperation = 'lighter'; const a = cl((t - G.end) / 0.8), x = X0(4) + pw / 2, gl = g.createRadialGradient(x, cy, 0, x, cy, H * 0.75); gl.addColorStop(0, 'rgba(255,225,150,' + a * 0.75 + ')'); gl.addColorStop(1, 'rgba(255,200,110,0)'); g.fillStyle = gl; g.fillRect(0, 0, W, H); burst(g, x, cy, W, 18, 'rgba(255,225,160,' + a * 0.1 + ')', 5, 0.05, t * 0.25); g.globalCompositeOperation = 'source-over'; }
     for (let i = 0; i < 9; i++) {
-      const x0 = X0(i), bt = G.at[i] === undefined ? Infinity : G.at[i], b = F.banners[i], col = paneColours(b), a = F.knights[i];
+      const x0 = X0(i), bt = G.at[i] === undefined ? Infinity : G.at[i], who = i === 4 ? 8 : i > 4 ? i - 1 : i, b = F.banners[who], col = paneColours(b); // the middle window is the ninth banner's
       if (t < bt) {
         const sh2 = bt - t < 0.14 ? (Math.random() - 0.5) * u * 1.2 : 0; g.save(); g.translate(sh2, 0);
         g.beginPath(); g.moveTo(x0, y0 + ph); g.lineTo(x0, y0 + pw * 0.5); g.quadraticCurveTo(x0, y0, x0 + pw / 2, y0 - pw * 0.28); g.quadraticCurveTo(x0 + pw, y0, x0 + pw, y0 + pw * 0.5); g.lineTo(x0 + pw, y0 + ph); g.closePath(); // a pointed window
         const gr = g.createLinearGradient(0, y0, 0, y0 + ph); gr.addColorStop(0, col[0]); gr.addColorStop(0.45, col[1]); gr.addColorStop(1, col[2]); g.fillStyle = gr; g.fill(); g.save(); g.clip();
         g.strokeStyle = 'rgba(0,0,0,0.5)'; g.lineWidth = u * 0.35; g.beginPath(); for (let q = -ph; q < ph * 2; q += ph / 6) { g.moveTo(x0 - u, y0 + q); g.lineTo(x0 + pw + u, y0 + q + pw * 1.3); g.moveTo(x0 + pw + u, y0 + q); g.lineTo(x0 - u, y0 + q + pw * 1.3); } g.stroke();
         { const hx = x0 + pw / 2, hy = y0 + ph * 0.42, gl = g.createRadialGradient(hx, hy, 0, hx, hy, pw * 1.1); gl.addColorStop(0, 'rgba(255,255,255,0.75)'); gl.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gl; g.fillRect(x0, y0 - pw, pw, ph); }
-        fig(g, a, 'Idle', 2, 0, x0 + pw / 2, y0 + ph * 0.95, ph * 0.46, { rim: '#07050c' });
+        A.draw(g, 'knight', F.nine[who], x0 + pw / 2, y0 + ph * 0.955, ph * 0.5, 'glass');
         g.fillStyle = col[2]; g.fillRect(x0, y0 + ph * 0.945, pw, ph * 0.06);
         const sx = x0 + ((t * 0.35 + i * 0.13) % 1.6 - 0.3) * pw * 1.6; g.fillStyle = 'rgba(255,255,255,0.16)'; g.beginPath(); g.moveTo(sx, y0 - pw); g.lineTo(sx + pw * 0.3, y0 - pw); g.lineTo(sx - pw * 0.3, y0 + ph); g.lineTo(sx - pw * 0.6, y0 + ph); g.closePath(); g.fill();
-        g.font = '700 ' + Math.round(u * 3.2) + 'px ' + DISP; g.textAlign = 'center'; g.fillStyle = 'rgba(255,255,255,0.92)'; g.fillText(ROMAN[i], x0 + pw / 2, y0 + u * 6.5);
+        g.font = '700 ' + Math.round(u * 3.2) + 'px ' + DISP; g.textAlign = 'center'; g.fillStyle = 'rgba(255,255,255,0.92)'; g.fillText(ROMAN[who], x0 + pw / 2, y0 + u * 6.5);
         if (i === 4 && held) { const q = cl((t - G.end - 0.15) / 0.3); g.strokeStyle = 'rgba(255,255,255,0.95)'; g.lineWidth = u * 0.3; for (const pts of G.crack) { g.beginPath(); pts.forEach((p, j) => { if (j > q * (pts.length - 1) + 1) return; const x = x0 + p[0] * pw, y = y0 + p[1] * ph; if (j) g.lineTo(x, y); else g.moveTo(x, y); }); g.stroke(); } }
         g.restore(); g.beginPath(); g.moveTo(x0, y0 + ph); g.lineTo(x0, y0 + pw * 0.5); g.quadraticCurveTo(x0, y0, x0 + pw / 2, y0 - pw * 0.28); g.quadraticCurveTo(x0 + pw, y0, x0 + pw, y0 + pw * 0.5); g.lineTo(x0 + pw, y0 + ph); g.closePath(); g.strokeStyle = '#040308'; g.lineWidth = u * 0.8; g.stroke(); g.restore();
       } else {
@@ -417,38 +350,44 @@
     g.restore();
   }
 
-  // ================================================================ 9 · the ninth: the game itself, slowed, and tipped off its level
-  function drawNinth(g, W, H, sh, k, t, dpr, dt) {
-    const u = H / 100, sc = F.live;
-    if (!sc) { g.fillStyle = '#000'; g.fillRect(0, 0, W, H); return; }
-    const cv = F.liveCv || (F.liveCv = document.createElement('canvas')); if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
-    const z0 = Math.min(W / dpr / (10.5 * BB.TW), H / dpr / (8.5 * BB.TH)), hero = sc.heroList[0], A = sh.pushAt, B = sh.blowAt, Fz = sh.freezeAt, Un = sh.thawAt;
-    let rate, zoom;
-    if (t < A) { zoom = lerp(0.8, 1.05, t / A); rate = 0.5; } else if (t < B) { const q = (t - A) / (B - A); zoom = lerp(1.05, 1.9, easeIn(q)); rate = lerp(0.5, 0.12, q); }
-    else if (t < Fz) { const q = (t - B) / (Fz - B); zoom = lerp(1.9, 1.6, easeOut(q)); rate = lerp(1, 0.35, q); } else if (t < Un) { zoom = 1.6 + (t - Fz) * 0.03; rate = 0; } else { zoom = lerp(1.68, 1.2, easeOut((t - Un) / (sh.dur - Un))); rate = 0.75; }
-    if (rate > 0 && dt > 0 && dt < 0.2) { const mute = BB.sfxMute; BB.sfxMute = true; try { if (sc.tick) sc.tick(dt * rate); sc.update(dt * rate, null); } catch (e) { /* the film goes on */ } finally { BB.sfxMute = mute; } }
-    if (hero) { const up = ((hero.z || 0) * 24 + 20) / BB.TH; sc.cam.x = hero.x - up; sc.cam.y = hero.y - up; } sc.zoomK = sc.zoomTarget = 1; sc.cam.zoom = z0 * zoom; // on the Captain's chest, wherever a leap has taken them
-    { const x = cv.getContext('2d'), lazy = BB.tintLazy; x.setTransform(1, 0, 0, 1, 0, 0); x.imageSmoothingEnabled = false; x.save(); try { sc.renderField(x, W, H, dpr); } catch (e) { /* a frame is missed */ } finally { BB.tintLazy = lazy; } x.restore(); x.setTransform(1, 0, 0, 1, 0, 0); x.globalAlpha = 1; x.globalCompositeOperation = 'source-over'; }
-    const tiltA = lerp(-0.11, 0.06, ease(cl(t / Fz))) + (t > Un ? (t - Un) * 0.02 : 0), cover = Math.abs(Math.cos(tiltA)) + Math.max(W / H, H / W) * Math.abs(Math.sin(tiltA)) + 0.01;
-    g.save(); g.translate(W / 2, H / 2); g.rotate(tiltA); g.scale(cover, cover); g.drawImage(cv, -W / 2, -H / 2); g.restore();
-    // the film's own light on it: dusk above, fire below, a pool of light where the Captain stands
-    { g.globalCompositeOperation = 'multiply'; const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, '#a895d6'); gr.addColorStop(0.5, '#f0d2c0'); gr.addColorStop(1, '#ffd9a6'); g.fillStyle = gr; g.fillRect(0, 0, W, H);
-      const vg = g.createRadialGradient(W / 2, H * 0.5, H * 0.2, W / 2, H * 0.5, Math.max(W, H) * 0.66); vg.addColorStop(0, '#ffffff'); vg.addColorStop(1, '#6a5890'); g.fillStyle = vg; g.fillRect(0, 0, W, H);
-      g.globalCompositeOperation = 'lighter'; const sp = g.createRadialGradient(W / 2, H * 0.5, 0, W / 2, H * 0.5, H * 0.42); sp.addColorStop(0, 'rgba(255,214,150,0.16)'); sp.addColorStop(1, 'rgba(255,200,120,0)'); g.fillStyle = sp; g.fillRect(0, 0, W, H); g.globalCompositeOperation = 'source-over'; }
-    if (t >= B && t < B + 0.9) { // the blow: a ring of light across the ground, and everything thrown back from it
-      const q = (t - B) / 0.9; g.save(); g.translate(W / 2, H * 0.53); g.rotate(tiltA); g.globalCompositeOperation = 'lighter';
-      for (let i = 0; i < 3; i++) { const r = easeOut(cl(q * 1.3 - i * 0.12)) * W * 0.6; g.strokeStyle = 'rgba(255,228,160,' + (1 - q) * (0.9 - i * 0.25) + ')'; g.lineWidth = u * (3.2 - i) * (1 - q * 0.6); g.beginPath(); g.ellipse(0, 0, r, r * 0.5, 0, 0, TAU); g.stroke(); }
-      if (q < 0.35) burst(g, 0, 0, W, 54, 'rgba(255,236,190,' + (0.35 - q) + ')', 17, 0.02);
-      g.restore(); }
-    if (t >= Fz && t < Un) { // the frame held: its colour drained, and a hand writes on it
-      const q = t - Fz, hole = () => { g.beginPath(); g.rect(0, 0, W, H); g.arc(W / 2, H * 0.43, u * 14, 0, TAU); }; // all of it but the Captain
-      g.globalCompositeOperation = 'saturation'; g.fillStyle = 'rgba(128,128,128,' + cl(q / 0.15) * 0.9 + ')'; hole(); g.fill('evenodd'); g.globalCompositeOperation = 'source-over';
-      g.fillStyle = 'rgba(8,6,14,' + cl(q / 0.2) * 0.38 + ')'; hole(); g.fill('evenodd');
-      { const a = cl((q - 0.35) / 0.3); if (a > 0) { g.strokeStyle = 'rgba(255,255,255,' + a + ')'; g.lineWidth = u * 0.45; g.beginPath(); g.arc(W / 2, H * 0.43, u * 14, -2.2, -2.2 + TAU * easeOut(cl((q - 0.35) / 0.5))); g.stroke(); } }
-      const bk = easeOut(cl((q - 0.12) / 0.3)), by = H * 0.755, col = BB.save.banner.color;
-      g.save(); g.translate(0, by); g.rotate(-0.045); g.fillStyle = '#050407'; g.beginPath(); g.moveTo(-W * 0.1, -u * 9); for (let x = 0; x <= 24; x++) g.lineTo(-W * 0.1 + W * 1.2 * bk * x / 24, -u * 9 - rnd(x, 121) * u * 1.6); for (let x = 24; x >= 0; x--) g.lineTo(-W * 0.1 + W * 1.2 * bk * x / 24, u * 9 + rnd(x, 122) * u * 1.6); g.closePath(); g.fill();
-      g.fillStyle = col; g.fillRect(-W * 0.1, u * 9.6, W * 1.2 * bk, u * 0.7);
-      if (bk > 0.6) { const a = cl((bk - 0.6) / 0.4); g.globalAlpha = a; g.textBaseline = 'middle'; g.font = '800 ' + Math.round(u * 11) + 'px ' + DISP; g.fillStyle = '#fff'; spaced(g, 'THE NINTH BANNER', W * 0.5, -u * 1.5, u * 1.3); g.font = '700 ' + Math.round(u * 3.1) + 'px ' + HEAD; g.fillStyle = '#ffe7a3'; spaced(g, 'IS YOURS', W * 0.5, u * 5.6, u * 2.2); g.globalAlpha = 1; g.textBaseline = 'alphabetic'; }
+  // ================================================================ 9 · the ninth: one against all of them
+  function drawNinth(g, W, H, sh, k, t) {
+    const u = H / 100, cx = W / 2, B = sh.blowAt, Fz = sh.freezeAt, Un = sh.thawAt, gy = H * 0.8, fy = gy - H * 0.2, hit = t >= B, since = t - B, white = hit && since < 0.12;
+    const zoom = t < sh.pushAt ? lerp(1, 1.08, t / sh.pushAt) : t < B ? lerp(1.08, 1.5, easeIn((t - sh.pushAt) / (B - sh.pushAt))) : t < Un ? 1.5 + since * 0.012 : lerp(1.53, 0.96, easeOut((t - Un) / (sh.dur - Un)));
+    g.save(); g.translate(cx, fy); g.scale(zoom, zoom); g.rotate(lerp(-0.035, 0.02, cl(t / Fz))); g.translate(-cx, -fy);
+    if (white) { g.fillStyle = '#f4efe4'; g.fillRect(-W, -H, W * 3, H * 3); } // the frame of the blow: white, and everything on it black
+    else { const sky = g.createLinearGradient(0, 0, 0, gy); sky.addColorStop(0, '#04050e'); sky.addColorStop(0.6, '#121733'); sky.addColorStop(1, '#2c2446'); g.fillStyle = sky; g.fillRect(-W, -H, W * 3, H * 3);
+      const mx = W * 0.26, my = H * 0.25, mr = H * 0.085; g.globalCompositeOperation = 'lighter'; const gl = g.createRadialGradient(mx, my, 0, mx, my, mr * 5); gl.addColorStop(0, 'rgba(190,205,255,0.5)'); gl.addColorStop(1, 'rgba(120,140,255,0)'); g.fillStyle = gl; g.fillRect(mx - mr * 5, my - mr * 5, mr * 10, mr * 10); g.globalCompositeOperation = 'source-over'; g.fillStyle = '#e9edfb'; g.beginPath(); g.arc(mx, my, mr, 0, TAU); g.fill();
+      for (let j = 0; j < 2; j++) { g.fillStyle = j ? '#0d0c1a' : '#191a30'; g.beginPath(); g.moveTo(-W, H * 2); for (let x = -W; x <= W * 2; x += W / 40) g.lineTo(x, gy - u * (9 - j * 6) - Math.abs(Math.sin(x * 0.004 + j * 2)) * u * (8 - j * 4)); g.lineTo(W * 2, H * 2); g.closePath(); g.fill(); }
+      const more = t > Un ? cl((t - Un) / 1.0) : 0; g.globalCompositeOperation = 'lighter'; // the dark is full of eyes, and fills
+      for (let i = 0; i < 300; i++) { const born = i < 110 ? rnd(i, 301) * B * 0.8 : Un + rnd(i, 301) * 0.9; if (t < born || (i >= 110 && !more)) continue; const x = (rnd(i, 302) * 2.4 - 0.7) * W, y = gy - u * (1 + rnd(i, 303) * (i < 110 ? 13 : 30)), s = u * (0.22 + rnd(i, 304) * 0.2), a = cl((t - born) * 3) * (0.55 + Math.sin(t * 5 + i) * 0.25); if (Math.abs(x - cx) < W * 0.1 && i < 110) continue; g.fillStyle = 'rgba(201,168,255,' + a + ')'; g.fillRect(x - s * 1.6, y, s, s); g.fillRect(x + s * 0.6, y, s, s); }
+      g.globalCompositeOperation = 'source-over'; }
+    g.fillStyle = white ? '#0a0a0a' : '#07060c'; g.beginPath(); g.moveTo(-W, H * 2); g.lineTo(-W, gy + u * 2); g.quadraticCurveTo(cx - W * 0.25, gy + u * 2, cx - W * 0.1, gy - u * 0.5); g.quadraticCurveTo(cx, gy - u * 2.2, cx + W * 0.1, gy - u * 0.5); g.quadraticCurveTo(cx + W * 0.25, gy + u * 2, W * 2, gy + u * 2); g.lineTo(W * 2, H * 2); g.closePath(); g.fill(); // the rise they stand on
+    const close = cl(t / B), ROWS = [[12, 0.2, -0.5, 'moon', 0.3], [10, 0.3, 3, 'moon', 0.22], [6, 0.48, 10, 'ink', 0.27]];
+    const row = (r) => { const [n, hh, dy, lt, d0] = ROWS[r]; for (let i = 0; i < n; i++) { // the dead, closing from both sides; thrown back by the blow, and held in the air while the frame is held
+      const side = i % 2 ? 1 : -1, h = H * hh * (0.92 + rnd(i, 310 + r) * 0.16); let x = cx + side * W * (d0 + Math.floor(i / 2) * (r === 2 ? 0.16 : 0.085)) * lerp(1.3, 0.62, close), y = gy + u * dy + Math.abs(Math.sin(t * 6 + i * 1.7)) * u * 0.5 * (hit ? 0 : 1), rot = 0, al = 1;
+      if (hit) { const far = 1 - r * 0.22, qq = t >= Fz ? (t < Un ? Fz - B : Fz - B + (t - Un)) : since; x += side * qq * W * 0.42 * far; y -= Math.sin(Math.min(qq * 2.4, Math.PI)) * H * 0.22 * far - Math.max(0, qq - 1.2) * H * 0.3; rot = side * qq * 2.6; al = r === 2 ? cl(1 - qq * 3.2) : cl(1.9 - qq * 1.3); }
+      if (al <= 0) continue; const o = deadO(i + r, hit ? 'reach' : walk(i + r * 3, t)); g.save(); g.globalAlpha = al; g.translate(x, y - h * 0.5); g.rotate(rot); A.draw(g, 'dead', o, 0, h * 0.5, h, white ? 'ink' : lt, side > 0, 288); if (!white) A.eyes(g, 'dead', o, 0, h * 0.5, h, '201,168,255', 0.9, side > 0); g.restore(); } };
+    row(0); row(1);
+    { const px = cx + H * 0.13, top = gy - H * 0.66, bw = H * 0.17, bh = H * 0.27, sway = Math.sin(t * 1.7) * 0.03; // the banner, planted behind the Captain
+      g.strokeStyle = white ? '#0a0a0a' : '#b9c6ee'; g.lineCap = 'round'; g.lineWidth = u * 0.9; g.beginPath(); g.moveTo(px, gy); g.lineTo(px, top); g.moveTo(px - bw * 0.56, top + u * 2); g.lineTo(px + bw * 0.56, top + u * 2); g.stroke(); if (!white) { g.strokeStyle = '#11131f'; g.lineWidth = u * 0.6; g.stroke(); }
+      g.save(); g.translate(px, top + u * 2); g.transform(1, 0, sway, 1, 0, 0); if (white) { g.fillStyle = '#0a0a0a'; g.fillRect(-bw / 2, 0, bw, bh); } else { g.drawImage(F.bannerTex, -bw / 2, 0, bw, bh); g.fillStyle = 'rgba(8,10,30,0.45)'; g.fillRect(-bw / 2, 0, bw, bh * 0.92); } g.restore(); }
+    { const ps = t < sh.pushAt ? 'stand' : !hit ? 'hold' : since < 0.55 || (t >= Fz && t < Un) ? 'slash' : 'hold', h = H * 0.4; A.draw(g, 'knight', Object.assign({}, F.capO, { pose: ps, shield: ps === 'stand' }), cx, gy - u * 1.6, h, white ? 'ink' : hit ? 'fire' : 'moon'); }
+    row(2);
+    if (hit && !white && since < 0.7) { const q = since / 0.7; g.save(); g.translate(cx, fy + H * 0.06); g.globalCompositeOperation = 'lighter'; // the stroke of it, and the ring it throws along the ground
+      for (let i = 0; i < 3; i++) { const r = W * (0.13 + easeOut(q) * (0.2 + i * 0.07)); g.strokeStyle = 'rgba(' + (i ? '255,220,150,' : '255,250,235,') + (1 - q) * (1 - i * 0.25) + ')'; g.lineWidth = u * (4.5 - i * 1.2) * (1 - q * 0.7); g.beginPath(); g.ellipse(0, 0, r, r * 0.42, -0.12, Math.PI * 0.95 - q * 0.5, Math.PI * 2.1 + q * 0.4); g.stroke(); }
+      const rr = easeOut(q) * W * 0.6; g.strokeStyle = 'rgba(255,225,160,' + (1 - q) * 0.7 + ')'; g.lineWidth = u * 1.4 * (1 - q); g.beginPath(); g.ellipse(0, H * 0.13, rr, rr * 0.2, 0, 0, TAU); g.stroke();
+      if (q < 0.4) burst(g, 0, 0, W, 48, 'rgba(255,236,190,' + (0.4 - q) * 0.8 + ')', 17, 0.02); g.restore(); }
+    g.restore();
+    if (t >= Fz && t < Un) { // the frame held: its colour drained from all but the Captain, and a hand writes on it
+      const q = t - Fz, hole = () => { g.beginPath(); g.rect(0, 0, W, H); g.arc(cx, fy - u * 3, u * 21, 0, TAU); };
+      g.globalCompositeOperation = 'saturation'; g.fillStyle = 'rgba(128,128,128,' + cl(q / 0.15) * 0.92 + ')'; hole(); g.fill('evenodd'); g.globalCompositeOperation = 'source-over';
+      g.fillStyle = 'rgba(8,6,14,' + cl(q / 0.2) * 0.4 + ')'; hole(); g.fill('evenodd');
+      { const a = cl((q - 0.3) / 0.3); if (a > 0) { g.strokeStyle = 'rgba(255,255,255,' + a + ')'; g.lineWidth = u * 0.45; g.beginPath(); g.arc(cx, fy - u * 3, u * 21, -2.2, -2.2 + TAU * easeOut(cl((q - 0.3) / 0.5))); g.stroke(); } }
+      const bk = easeOut(cl((q - 0.12) / 0.3)), by = H * 0.785, col = BB.save.banner.color;
+      g.save(); g.translate(0, by); g.rotate(-0.045); g.fillStyle = '#050407'; g.beginPath(); g.moveTo(-W * 0.1, -u * 8); for (let x = 0; x <= 24; x++) g.lineTo(-W * 0.1 + W * 1.2 * bk * x / 24, -u * 8 - rnd(x, 121) * u * 1.6); for (let x = 24; x >= 0; x--) g.lineTo(-W * 0.1 + W * 1.2 * bk * x / 24, u * 8 + rnd(x, 122) * u * 1.6); g.closePath(); g.fill();
+      g.fillStyle = col; g.fillRect(-W * 0.1, u * 8.6, W * 1.2 * bk, u * 0.7);
+      if (bk > 0.6) { const a = cl((bk - 0.6) / 0.4); g.globalAlpha = a; g.textBaseline = 'middle'; g.font = '800 ' + Math.round(u * 10) + 'px ' + DISP; g.fillStyle = '#fff'; spaced(g, 'THE NINTH BANNER', W * 0.5, -u * 1.5, u * 1.3); g.font = '700 ' + Math.round(u * 3) + 'px ' + HEAD; g.fillStyle = '#ffe7a3'; spaced(g, 'IS YOURS', W * 0.5, u * 5, u * 2.2); g.globalAlpha = 1; g.textBaseline = 'alphabetic'; }
       g.restore();
     }
   }
@@ -474,7 +413,7 @@
     g.strokeStyle = '#ffb56a'; g.lineCap = 'round'; g.lineWidth = u * 1.25; g.beginPath(); g.moveTo(px, ky + u); g.lineTo(px, ptop); g.moveTo(px - bw * 0.56, by); g.lineTo(px + bw * 0.56, by); g.stroke(); g.strokeStyle = '#1a0d07'; g.lineWidth = u * 0.85; g.stroke();
     g.drawImage(cv, px - bw / 2 - pad, by);
     g.restore();
-    { const a = F.cap, fr = frAt(a, 'Idle', t, 5), x = px - H * 0.085, y = ky + u * 0.6 + (1 - easeOut(cl((t - 0.1) / 0.5))) * 0, h = H * 0.34; fig(g, a, 'Idle', 2, fr, x, y, h, { rim: '#ffb56a', shade: '#1c0a06', shadeA: 0.42 }); } // the Captain, a hand on the pole
+    { const up = t >= sh.raiseAt, x = px - H * 0.12, y = ky + u * 0.6, h = H * 0.42; A.draw(g, 'knight', Object.assign({}, F.capO, { pose: up ? 'raise' : 'stand', shield: false }), x, y, h, 'dawn'); } // the Captain beside it: the sword goes up with the last word
     g.globalCompositeOperation = 'lighter'; { const fx = sx - SR * 0.72, fy = hz - SR * 0.55, p = 0.75 + Math.sin(t * 7) * 0.12, gl = g.createLinearGradient(fx - W * 0.7, 0, fx + W * 0.7, 0); gl.addColorStop(0, 'rgba(255,200,130,0)'); gl.addColorStop(0.5, 'rgba(255,235,200,' + p + ')'); gl.addColorStop(1, 'rgba(255,200,130,0)'); g.fillStyle = gl; g.fillRect(fx - W * 0.7, fy - u * 0.3, W * 1.4, u * 0.6); const g2 = g.createRadialGradient(fx, fy, 0, fx, fy, u * 14); g2.addColorStop(0, 'rgba(255,245,225,' + p + ')'); g2.addColorStop(1, 'rgba(255,200,130,0)'); g.fillStyle = g2; g.fillRect(fx - u * 14, fy - u * 14, u * 28, u * 28); }
     g.globalCompositeOperation = 'source-over'; g.restore();
     sh.words.forEach(([w, at, y], i) => { const p = cl((t - at) / 0.18); if (p <= 0) return; const s = lerp(2.8, 1, easeOut(p)); g.save(); g.translate(W * 0.055, H * y); g.rotate(-0.05); g.scale(s, s); g.globalAlpha = p; g.font = '800 ' + Math.round(u * (i === 2 ? 18 : 14)) + 'px ' + DISP; g.textAlign = 'left'; g.textBaseline = 'middle'; g.lineWidth = u * 1.1; g.lineJoin = 'round'; g.strokeStyle = '#150a04'; g.strokeText(w, 0, 0); g.fillStyle = i === 2 ? '#ffe7a3' : '#fff'; g.fillText(w, 0, 0); g.restore(); });
@@ -501,34 +440,20 @@
 
   // ---------------------------------------------------------------- the film
   C.SCENES.intro = async function () {
-    const cap = { hero: K.leader() }, vesh = { foe: 'vesh' }, dead = [{ foe: 'ghoul' }, { foe: 'warden' }, { foe: 'necro' }];
-    const pool = BB.ROSTER.filter((c) => c.role === 'hero'), knights = [];
-    for (const arch of ['knight', 'paladin', 'spearman', 'barbarian', 'ranger', 'mage', 'monk', 'duelist']) { const c = pool.find((q) => q.arch === arch); if (c) knights.push({ hero: BB.newHero({ calling: c.calling, recruit: c.key, name: c.name }) }); }
-    while (knights.length < 8) knights.push({ hero: K.leader() }); knights.push(cap);
-    await K.cast([cap, vesh].concat(dead, knights));
     const cols = BB.BANNER_COLORS.concat(['#3a6a8a']), banners = []; for (let i = 0; i < 9; i++) banners.push(Object.assign({}, i === 8 ? BB.save.banner : { color: cols[i], sigil: BB.SIGILS[i % BB.SIGILS.length], trim: '#e8c66a' }));
-    sprC.clear();
-    F = { cap, vesh, dead, knights, banners, map: null, glass: null, live: null, bannerTex: BB.UI.bannerCanvas(BB.save.banner, 160, 250) };
-    F.stitch = knights.map(stitchOf); F.map = buildMap(); F.glass = buildGlass();
-    C.onEnd = () => { F = null; sprC.clear(); }; // the film's canvases and its battlefield go when it does
-    try { // the ninth shot is the game: your Captain, alone, with the dead coming up out of the ground all round
-      const me = K.leader(), holdOn = (sc) => { const o = sc.obj; if (o && o.endlessWave > 1) o.endlessWave = 1; const h = sc.heroList[0]; if (h) { if (h.dead && sc.reviveHero) sc.reviveHero(h); h.hp = Math.max(h.hp, h.maxhp * 0.7); } };
-      const sc = await BB.stageScene({ idx: 2, over: 8, warm: 0.4, tick: [holdOn], mission: (st) => Object.assign({}, BB.ENDLESS, { level: st.level, region: 'c1', chapter: 1 }), heroes: (S) => { const c = JSON.parse(JSON.stringify(me)), like = S.heroes[0]; c.stars = 5; c.level = like.level; return [c]; } });
-      sc.noBars = true; sc.silent = true; F.live = sc;
-    } catch (e) { F.live = null; }
-    const k = K, at = [0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => 1.0 + i * 0.66), G = F.glass, M = F.map;
-    const ring = (n, r0, r1) => () => { const sc = F && F.live, h = sc && sc.heroList[0]; if (!h) return; for (let i = 0; i < n; i++) { const an = i / n * TAU + r0, r = r0 + (i % 3) / 2 * (r1 - r0); try { const e = sc.spawnFoe(['ghoul', 'warden', 'ghoul', 'necro', 'ghoul'][i % 5], h.x + Math.cos(an) * r, h.y + Math.sin(an) * r, { rise: true }); if (e) e._film = true; } catch (e) { /* off the field */ } } };
-    const blow = () => { const sc = F && F.live, h = sc && sc.heroList[0];
-      if (h) { try { if (!h.dead) { h.energy = 100; sc.useSkill(h, true); } } catch (e) { /* no skill */ } for (const e of sc.foesAlive()) if (Math.hypot(e.x - h.x, e.y - h.y) < 7) { try { sc.kill(e, h); } catch (er) { /* it stands */ } } }
-      k.SHAKE(1)(); k.FLASH(0.8, '#fff4d6')(); k.RGB(1)(); BB.sfx('burst'); BB.sfx('slam'); BB.score && BB.score('braam', 1.2); };
+    A.clear();
+    F = { banners, nine: A.NINE.map((o, i) => Object.assign({ color: banners[i].color }, o)), capO: { helm: 'plume', weapon: 'sword', color: banners[8].color }, map: null, glass: null, bannerTex: BB.UI.bannerCanvas(BB.save.banner, 160, 250) };
+    F.map = buildMap(); F.glass = buildGlass();
+    C.onEnd = () => { F = null; A.clear(); }; // what the film drew for itself goes when it does
+    const k = K, G = F.glass, M = F.map, oath = { draw: null, dur: 4.4, firstAt: 0.3, gap: 0.2, meetAt: 2.3 };
     const pinFall = M.pins.slice(0, 8).map((p) => 0.5 + Math.hypot((p[0] - M.gate[0]), (p[1] - M.gate[1]) * 0.5625) / 0.21);
     const hit = (sh, sc) => () => { k.SHAKE(sh)(); BB.score && BB.score('hit', sc); };
     const shots = [
-      { draw: drawTapestry, dur: 8.4, at, fadeIn: 0.8, lb: 0.1, caption: 'Nine banners stood between the living and the dead.', capAt: 2.4, capEnd: 8.1,
-        cues: [[0, k.SCORE('drone')]].concat(at.map((t0, i) => [t0 + 0.3, i === 8 ? () => { BB.sfx('rally'); } : k.SFX('click')])) },
-      { draw: drawOath, dur: 4.4, lb: 0.1, caption: 'Nine knights swore to hold them. For three hundred years, they did.', capAt: 0.3, capEnd: 4.2,
-        cues: [[2.0, k.SFX('rally')], [2.3, k.SPARKS(110, '#ffe7a3', 0.5, 0.5, 760)], [2.3, k.SHAKE(0.35)], [2.3, k.FLASH(0.3, '#ffe7a3')], [2.3, k.SCORE('hit', 0.8)]] },
-      { draw: drawRip, dur: 3.5, lb: 0.1, cues: [[0, k.SCORE('riser', 1.7)], [0.02, k.SFX('charge')], [0.85, () => { BB.sfx('slam'); k.SHAKE(0.7)(); k.RGB(0.7)(); k.FLASH(0.35, '#e0d0ff')(); }], [1.9, k.SCORE('braam', 1)], [1.9, k.SHAKE(0.4)]] },
+      { draw: drawRidge, dur: 8.6, fadeIn: 0.8, lb: 0.1, caption: 'Nine banners stood between the living and the dead.', capAt: 2.4, capEnd: 8.3,
+        cues: [[0, k.SCORE('drone')], [7.3, k.SFX('rally')]] },
+      Object.assign(oath, { draw: drawOath, lb: 0.1, caption: 'Nine knights swore to hold them. For three hundred years, they did.', capAt: 0.3, capEnd: 4.2,
+        cues: [0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => [0.3 + i * 0.2 + 0.2, () => { BB.sfx('parry'); k.SHAKE(0.12)(); k.SPARKS(10, '#fff0c8', 0.5, 0.5, 300)({ W: innerWidth, H: innerHeight, dpr: 1 }); }]).concat([[2.3, k.SFX('rally')], [2.3, k.SPARKS(120, '#ffe7a3', 0.5, 0.5, 820)], [2.3, k.SHAKE(0.45)], [2.3, k.FLASH(0.45, '#fff0c8')], [2.3, k.SCORE('hit', 0.9)]]) }),
+      { draw: drawRip, dur: 3.5, lb: 0.1, oath, cues: [[0, k.SCORE('riser', 1.7)], [0.02, k.SFX('charge')], [0.85, () => { BB.sfx('slam'); k.SHAKE(0.7)(); k.RGB(0.7)(); k.FLASH(0.35, '#e0d0ff')(); }], [1.9, k.SCORE('braam', 1)], [1.9, k.SHAKE(0.4)]] },
       { draw: drawGateUp, dur: 6.8, burstAt: 2.7, veshAt: 4.5, lb: 0.13, caption: 'The Gravegates opened.', capAt: 3.0, capEnd: 6.5,
         cues: [[0, k.SCORE('drone')], [0.4, k.VOICE('rumble', 0.8)], [1.3, k.BOLT()], [1.9, k.SHAKE(0.25)], [2.7, () => { k.SHAKE(1)(); BB.sfx('portal'); BB.sfx('burst'); BB.sfx('slam'); k.FLASH(0.9, '#e0d0ff')(); k.RGB(1)(); }], [2.7, k.SCORE('braam', 1.2)], [2.72, k.SPARKS(200, '#c9a8ff', 0.5, 0.6, 1100)], [3.1, k.VOICE('dino_horde', 0.7)], [3.9, k.BOLT()], [4.5, k.VOICE('deep_groan', 0.9)], [4.6, k.SHAKE(0.35)], [5.8, k.BOLT()], [6.3, k.RGB(0.6)]] },
       { draw: drawCantor, dur: 4.6, eyesAt: 0.9, nameAt: 1.3, singAt: 3.3, lb: 0.13, caption: 'Out of the first one walked Vesh Morrow. He opened his mouth, and sang.', capAt: 0.3, capEnd: 4.4,
@@ -540,10 +465,10 @@
       { draw: drawGlass, dur: G.end + 2.7, lb: 0.08, caption: 'One by one, the banners fell.', capAt: 0.4, capEnd: G.last, cap2: ['All but one.', G.end + 0.3, G.end + 2.5],
         cues: G.order.map((i, n) => [G.at[i], () => { BB.sfx('slam'); BB.sfx('ice'); k.SHAKE(0.3 + n * 0.05)(); BB.score && BB.score('hit', 0.6 + n * 0.06); if (n > 4) k.RGB(0.4)(); }]).concat([[G.end + 0.15, () => { BB.sfx('slam'); k.SHAKE(0.5)(); }], [G.end + 0.5, k.SFX('rally')], [G.end + 0.5, k.SCORE('boom')], [G.end + 0.6, k.EMBERS(50, '#ffe7a3')]]) },
     ];
-    if (F.live) shots.push({ draw: drawNinth, dur: 9.8, pushAt: 2.6, blowAt: 4.8, freezeAt: 5.85, thawAt: 8.3, lb: 0.13, noVig: true, fadeIn: 0.25, caption: 'Three hundred years on, one banner still stands.', capAt: 0.4, capEnd: 4.2,
-      cues: [[0, ring(13, 3.6, 5.6)], [0, k.SCORE('drone')], [0.1, k.VOICE('dino_horde', 0.7)], [1.4, ring(9, 5, 6.4)], [2.6, k.SCORE('riser', 2.2)], [2.6, k.SFX('charge')], [4.8, blow], [5.85, () => { BB.sfx('slam'); k.SHAKE(0.3)(); }], [6.1, k.SFX('rally')], [8.3, () => { hit(0.4, 1)(); ring(16, 6, 8.5)(); }]] });
+    shots.push({ draw: drawNinth, dur: 9.2, pushAt: 2.4, blowAt: 4.6, freezeAt: 5.15, thawAt: 7.6, lb: 0.13, fadeIn: 0.25, caption: 'Three hundred years on, one banner still stands.', capAt: 0.4, capEnd: 4.2,
+      cues: [[0, k.SCORE('drone')], [0.1, k.VOICE('dino_horde', 0.7)], [2.4, k.SCORE('riser', 2.2)], [2.4, k.SFX('charge')], [4.6, () => { k.SHAKE(1)(); k.RGB(1)(); BB.sfx('burst'); BB.sfx('slam'); BB.score && BB.score('braam', 1.2); }], [4.72, k.FLASH(0.5, '#fff4d6')], [4.72, k.SPARKS(160, '#ffe7a3', 0.5, 0.55, 1200)], [5.15, () => { BB.sfx('slam'); k.SHAKE(0.3)(); }], [5.4, k.SFX('rally')], [7.6, () => { hit(0.4, 1)(); BB.voice && BB.voice('dino_horde', 0.8, 0.9); }]] });
     shots.push(
-      { draw: drawRaise, dur: 4.6, lb: 0.1, words: [['RAISE', 0.9, 0.31], ['YOUR', 1.45, 0.47], ['BANNER', 2.0, 0.66]], fadeIn: 0.3,
+      { draw: drawRaise, dur: 4.6, raiseAt: 2.0, lb: 0.1, words: [['RAISE', 0.9, 0.31], ['YOUR', 1.45, 0.47], ['BANNER', 2.0, 0.66]], fadeIn: 0.3,
         cues: [[0, k.MUSIC('boss')], [0, k.EMBERS(70, '#ffb56a')], [0.3, () => { BB.sfx('slam'); k.SHAKE(0.6)(); BB.score && BB.score('boom'); }], [0.9, () => { hit(0.4, 0.8)(); BB.sfx('slam'); }], [1.45, () => { hit(0.45, 0.9)(); BB.sfx('slam'); }], [2.0, () => { hit(0.7, 1)(); BB.sfx('slam'); k.RGB(0.6)(); }], [2.4, k.SFX('rally')], [2.5, k.EMBERS(60, '#ffe7a3')], [4.45, k.FLASH(1, '#fff')]] },
       { draw: drawName, dur: 5.0, lettersAt: 0.5, threadAt: 1.7, lb: 0, noVig: true, fadeOut: 0.8,
         cues: [[0, () => { BB.sfx('slam'); k.SHAKE(0.6)(); BB.score && BB.score('braam', 1.1); }]].concat([0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => [0.5 + i * 0.085, k.SPARKS(14, '#ffd98a', 0.22 + i * 0.062, 0.46, 260)]), [[1.5, k.SCORE('boom')], [1.7, k.SFX('click')]]) });
