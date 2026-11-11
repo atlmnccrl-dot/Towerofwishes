@@ -50,8 +50,9 @@ skins, an "Eclipse" alternate moon theme for the menus, a cosmetic cape for Vesp
 **Subtitle / short description (≤ 80 chars):** One blade. Six guardians. Stop him before dawn.
 
 **Description:**
-> Seven hundred years ago a swordsman climbed to the top of the Spire and cut the moon. Its wound has bled ever since,
-> and by its red light his dead rise. Tonight the wound bleeds out. At dawn the moon falls.
+> Seven hundred years ago a swordsman cut down five kings, and with their souls he cast the spell that wakes every
+> grave. From that night the moon has bled red, and by its light his dead rise. Tonight the moon bleeds out. At dawn
+> his dead take everything.
 >
 > One blade can stop him.
 >

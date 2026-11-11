@@ -164,6 +164,7 @@
       const u = c.who === 'hero' ? s.hero : VS.sim.makeUnit(s, 'foe', c.who, D.FOES[c.who], c.at[0], c.at[1], 0);
       u.x = c.at[0]; u.y = c.at[1]; u.alive = true; u.state = 'idle'; u.aura = !!c.aura; s.units.push(u);
       if (c.set) { u.set = c.set; if (!A.hasSet(c.set)) A.loadSets([c.set]).catch(() => {}); }   // a look of its own (townsfolk, for one)
+      if (c.scale) { u.scale = c.scale; u.rad = 8 * c.scale; }
       return { c, u, landed: !c.enter };
     }).filter(Boolean);
     s.units = cast.map((m) => m.u).filter((u, i, a) => a.indexOf(u) === i);
@@ -186,7 +187,8 @@
         if (u.def.boss) { R.impactF = { t: 0, dur: 0.12, x: u.x, y: u.y, big: true }; R.shake = 12; sc.cues.push(['quake', 1], ['blow_big', 0.9]); }
       }
       u.state = 'idle';
-      const mv = c.to ? ease(Math.max(0, Math.min(1, tt / (c.mdur || sh.d || 2.4)))) : 0, p = c.to ? lerp2(c.at, c.to, mv) : c.at, moving = c.to && mv < 0.98 && tt >= 0;
+      const tm = tt - (c.moveAt || 0);   // moveAt: the move starts later than the entrance
+      const mv = c.to ? ease(Math.max(0, Math.min(1, tm / (c.mdur || sh.d || 2.4)))) : 0, p = c.to ? lerp2(c.at, c.to, mv) : c.at, moving = c.to && mv < 0.98 && tm >= 0;
       u.x = p[0]; u.y = p[1];
       const after = m.landT != null && t - m.landT < 1.4 && c.after;
       // Timed actions (the First Cut's films): [at, clip, seconds, fps, loop].

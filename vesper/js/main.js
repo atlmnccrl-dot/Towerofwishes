@@ -218,10 +218,10 @@
   const OPENING_SETS = ['vh_firstcut', 'vh_townsfolk_001', 'vh_townsfolk_004', 'vh_townsfolk_007', 'vh_townsfolk_010', 'vh_townsfolk_013', 'vh_skeleton_002', 'vh_barbarian_002'];
   function newGame() {
     // The opening's cast, and the summit's tiles for the First Cut's two scenes (js/story.js FC_DEED, FC_WAIT).
-    const extra = [D.FOES.ghoul.set, D.FOES.raider.set, D.FOES.ghast.set, (D.HEROES[P().hero] || D.HEROES.vesper).set];
-    const play = () => startIntro(() => showcase(() => playNode('a0-t', true))), miss = OPENING_SETS.concat(extra).filter((id, i, a) => a.indexOf(id) === i && !A.hasSet(id)), iso = isoFor(5);
-    if (!miss.length && A.isoReady(iso)) return play();
-    M.go('load'); U.loading(0); Promise.all([A.loadSets(miss, (f) => U.loading(f)), A.loadIso(iso)]).then(() => { A.warm(R.ctx); A.isoWarm(R.ctx); U.hide(); play(); }, () => { U.hide(); play(); });
+    const extra = [D.FOES.ghoul.set, D.FOES.raider.set, D.FOES.ghast.set, (D.HEROES[P().hero] || D.HEROES.vesper).set].concat(S.KING_SETS || []);
+    const play = () => startIntro(() => showcase(() => playNode('a0-t', true))), miss = OPENING_SETS.concat(extra).filter((id, i, a) => a.indexOf(id) === i && !A.hasSet(id)), iso = [0, 1, 2, 3, 4, 5].flatMap(isoFor).filter((g, i, a) => a.indexOf(g) === i);   // every kingdom's tiles (the five kings' halls)
+    if (!miss.length && A.isoReady(iso) && A.cbReady()) return play();
+    M.go('load'); U.loading(0); Promise.all([A.loadSets(miss, (f) => U.loading(f)), A.loadIso(iso), A.loadCB().catch(() => {})]).then(() => { A.warm(R.ctx); A.isoWarm(R.ctx); U.hide(); play(); }, () => { U.hide(); play(); });
   }
 
   // The opening, played in the engine (js/intro.js).

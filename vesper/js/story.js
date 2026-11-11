@@ -93,23 +93,54 @@
   // their own (js/openfilm.js). The opening plays: the cold open, FC_DEED, the moon, the dead and her, FC_WAIT, the strike.
   const FOLK = ['vh_townsfolk_001', 'vh_townsfolk_004', 'vh_townsfolk_007', 'vh_townsfolk_010', 'vh_townsfolk_013'];
   const UP = [0, -400];   // toward the moon, over the summit's far edge
+  // The deed (2026-11-11, the author: "the moon kinda feels irrelevant... have the boss use an op spell and epic animation
+  // and effects to raise the dead, maybe he slays 5 kings to do it, one king per region"): he cuts down the king of each of
+  // the five kingdoms the climb passes through, each in his own hall, each a different blow; their souls go into him; on
+  // the summit he spends them on the spell that wakes every grave, and the moon bleeds red from that night on.
+  const KINGS = [
+    { stage: 0, title: 'THE KING OF THE BLACK GATE', set: 'vh_paladin_003', guards: ['vh_knight_006', 'vh_knight_009'] },
+    { stage: 1, title: 'THE FROST KING', set: 'vh_paladin_008', guards: ['vh_knight_012', 'vh_knight_015'] },
+    { stage: 2, title: 'THE KING UNDER THE STAIR', set: 'vh_warlock_009', guards: ['vh_warlock_004', 'vh_warlock_006'] },
+    { stage: 3, title: 'THE ASH KING', set: 'vh_barbarian_004', guards: ['vh_barbarian_009', 'vh_barbarian_013'] },
+    { stage: 4, title: 'THE STORM KING', set: 'vh_paladin_005', guards: ['vh_knight_006', 'vh_knight_012'] },
+  ];
+  S.KINGS = KINGS;
+  S.KING_SETS = KINGS.flatMap((k) => [k.set].concat(k.guards));
+  const FC = 'firstCutFinal', K0 = [0, -30], G1 = [-46, -16], G2 = [46, -22];
+  // One king's fall: the king and two guards; the First Cut comes out of the dark and kills them; the king's soul leaves him
+  // and goes into the First Cut. move: how he comes and strikes; hit: when the blow lands.
+  const kingShot = (k, i, move, say) => {
+    const hit = move.hit, die = (who, at, dt) => Object.assign(who, { acts: [[hit + dt, 'Die', 99, 12]] });
+    const cast = [die({ who: 'ghoul', set: k.set, at: K0, face: move.at, scale: 1.15 }, 0, 0.05), die({ who: 'ghoul', set: k.guards[0], at: G1, face: move.at }, 0, 0), die({ who: 'ghoul', set: k.guards[1], at: G2, face: move.at }, 0, 0.1),
+      Object.assign({ who: FC, at: move.at, face: K0, enter: 'rift', delay: 0.15, edur: 0.7, acts: [[hit - move.wind, move.clip, 1.4, move.fps || 14]] }, move.to ? { to: move.to, mdur: move.mdur, moveAt: hit - move.wind - move.mdur - 0.15 } : {})];
+    const ev = [[0.1, { type: 'pk', name: 'cb:01_crimson_tide_cleave/death', x: move.at[0], y: move.at[1], scale: 1.5 }], [0.1, { type: 'pk', name: 'v_shadow', x: move.at[0], y: move.at[1], scale: 1.6 }], [0.12, { type: 'sfx', name: 'whoosh', v: 0.8 }],
+      [hit, { type: 'pk', name: move.fx, x: K0[0], y: K0[1], scale: move.fxScale || 1.8 }], [hit, { type: 'pk', name: 'v_blood', x: K0[0], y: K0[1], z: 20, scale: 1.6 }], [hit, { type: 'flash', a: 0.45, col: '255,60,80' }],
+      [hit, { type: 'shake', n: 9 }], [hit - 0.02, { type: 'sfx', name: 'slash_2' }], [hit, { type: 'sfx', name: 'blow_big', v: 0.9 }],
+      [hit + 0.55, { type: 'pk', name: 'v_soul', x: K0[0], y: K0[1], scale: 1.6 }], [hit + 1.0, { type: 'pk', name: 'v_soul', x: (move.to || move.at)[0], y: (move.to || move.at)[1], scale: 1.2 }], [hit + 0.55, { type: 'sfx', name: 'soul', v: 0.7 }]];
+    return { k: 'film', stage: k.stage, area: 0, eyebrow: k.title, say, d: hit + 1.5, cast, ev, cam: { at: [0, 0], to: [0, -6], zoom: [2.1, 2.35], lift: 34 } };
+  };
   S.FC_DEED = { shots: [
-    { k: 'title', top: 'SEVEN HUNDRED YEARS AGO', title: 'THE TOP OF THE SPIRE', d: 2.4 },
-    // He climbs onto the summit; the people gathered there scatter from him.
-    { k: 'film', stage: 5, area: 'last', tint: 'past', say: 'A swordsman climbed to the top of the Spire.', d: 4.6,
-      cast: [{ who: 'firstCutFinal', at: [0, 170], to: [0, 30], mdur: 3.8, face: UP }].concat([[-90, -10, -280, -90], [80, -30, 270, -110], [-40, -70, -200, -230], [120, 40, 300, 60], [-130, 50, -320, 120]].map(([x, y, tx, ty], i) =>
-        ({ who: 'ghoul', set: FOLK[i], at: [x, y], to: [tx, ty], delay: 1.0 + i * 0.25, mdur: 2.2, run: true, face: [0, 150] }))),
-      cam: { at: [0, 90], to: [0, 20], zoom: [1.25, 1.6], lift: 34 } },
-    // Close on him, his back to us, the moon ahead: he raises his blade, and the light gathers on it.
-    { k: 'film', stage: 5, area: 'last', tint: 'past', say: 'He wanted an army that would never die.', d: 3.8,
-      cast: [{ who: 'firstCutFinal', at: [0, 30], face: UP, acts: [[0.5, 'C_Raise', 3.4, 7]] }],
-      ev: [[0.9, { type: 'pk', name: 'v_aura', x: 0, y: 30, scale: 2.2 }], [1.4, { type: 'sfx', name: 'charge', v: 0.9 }], [2.4, { type: 'pk', name: 'v_embers', x: 0, y: 30, scale: 2 }]],
-      cam: { at: [0, 30], to: [0, 24], zoom: [2.3, 2.7], lift: 44 } },
-    // The cut: one sweep, the white line across the summit and up at the moon.
-    { k: 'film', stage: 5, area: 'last', tint: 'past', d: 1.7,
-      cast: [{ who: 'firstCutFinal', at: [0, 30], face: UP, acts: [[0.15, 'C_Cut', 1.6, 16]] }],
-      ev: [[0.5, { type: 'cut', x1: -300, y1: -30, x2: 300, y2: -150, w: 22, god: true }], [0.5, { type: 'flash', a: 0.85 }], [0.5, { type: 'shake', n: 16 }], [0.48, { type: 'sfx', name: 'slash_2' }], [0.5, { type: 'sfx', name: 'blow_big' }]],
-      cam: { at: [0, 30], zoom: [1.9, 1.7], lift: 44 } },
+    { k: 'title', top: 'SEVEN HUNDRED YEARS AGO', title: 'FIVE KINGDOMS', d: 2.4 },
+    kingShot(KINGS[0], 0, { at: [-70, 40], clip: 'C_Cut', wind: 0.35, hit: 1.25, fx: 'cb:01_crimson_tide_cleave/target', fps: 16 }, 'A swordsman went from kingdom to kingdom, and cut down every king.'),
+    kingShot(KINGS[1], 1, { at: [-150, 70], to: [-34, 6], mdur: 0.3, clip: 'Attack4', wind: 0.3, hit: 1.0, fx: 'cb:90_last_stand_strike/target', fxScale: 1.6 }),
+    kingShot(KINGS[2], 2, { at: [10, -70], clip: 'Attack3', wind: 0.3, hit: 0.95, fx: 'cb:01_crimson_tide_cleave/target', fxScale: 1.6 }),
+    kingShot(KINGS[3], 3, { at: [-40, 20], clip: 'Special1', wind: 0.45, hit: 1.05, fx: 'cb:10_quake_stomp/caster', fxScale: 1.6 }),
+    kingShot(KINGS[4], 4, { at: [-60, 34], clip: 'Attack6', wind: 0.4, hit: 1.1, fx: 'cb:113_earthshaker_stance/target', fxScale: 2.0 }, 'Five kings. Five souls.'),
+    // The summit: the five souls come to him; he raises his blade and spends them on the spell.
+    { k: 'film', stage: 5, area: 'last', eyebrow: 'THE TOP OF THE SPIRE', say: 'With their souls he cast the spell that wakes every grave.', d: 4.6,
+      cast: [{ who: FC, at: [0, 0], face: 'cam', acts: [[1.1, 'C_Raise', 3.5, 7]] }],
+      ev: [0, 1, 2, 3, 4].map((n) => [0.15 + n * 0.16, { type: 'pk', name: 'v_soul', x: Math.cos(n / 5 * 6.283) * 60, y: Math.sin(n / 5 * 6.283) * 38, scale: 1.4 }]).concat([
+        [0.2, { type: 'sfx', name: 'soul', v: 0.8 }], [1.1, { type: 'sfx', name: 'charge', v: 1 }], [1.2, { type: 'pk', name: 'fc_summon', x: 0, y: 0, scale: 4.2 }],
+        [1.55, { type: 'pk', name: 'cb:54_greater_fireball/target', x: 0, y: 0, scale: 2.2 }], [1.75, { type: 'pk', name: 'v_pillar', x: 0, y: 0, scale: 3 }], [1.8, { type: 'pk', name: 'cb:10_quake_stomp/caster', x: 0, y: 0, scale: 2.2 }],
+        [1.8, { type: 'pk', name: 'fc_shock', x: 0, y: 0, scale: 3.4 }], [1.8, { type: 'flash', a: 0.8, col: '255,40,60' }], [1.8, { type: 'shake', n: 16 }], [1.8, { type: 'sfx', name: 'blow_big' }], [1.82, { type: 'sfx', name: 'quake' }],
+        [2.4, { type: 'pk', name: 'cb:01_crimson_tide_cleave/caster', x: -60, y: 24, scale: 1.4 }], [2.55, { type: 'pk', name: 'cb:01_crimson_tide_cleave/caster', x: 64, y: 8, scale: 1.4 }], [2.9, { type: 'pk', name: 'fc_shock', x: 0, y: 0, scale: 4 }], [3.0, { type: 'pk', name: 'v_embers', x: 0, y: 0, scale: 2.4 }]]),
+      cam: { at: [0, 20], to: [0, 0], zoom: [1.7, 2.2], lift: 40 } },
+    // And the dead rose all around him; the moon has bled red since that night.
+    { k: 'film', stage: 5, area: 'last', tint: 'red', say: 'The dead rose. And from that night, the moon bled red.', d: 4.0,
+      cast: [{ who: FC, at: [0, 0], face: 'cam', clip: 'C_Command', aura: true }].concat([[-110, 30], [100, 20], [-60, 90], [70, 100], [-140, -40], [130, -50], [0, 130], [-30, -90], [40, -100], [-170, 60]].map(([x, y], i) =>
+        ({ who: ['ghoul', 'raider', 'ghast', 'raider', 'ghoul', 'ghast', 'raider', 'ghoul', 'ghast', 'raider'][i], at: [x, y], face: [0, 0], enter: 'rift', delay: 0.3 + i * 0.22, edur: 1.0 }))),
+      ev: [[0.3, { type: 'sfx', name: 'spawn', v: 0.7 }], [1.2, { type: 'sfx', name: 'reinforce', v: 0.7 }], [2.0, { type: 'sfx', name: 'horn', v: 0.6 }]].concat([[-110, 30], [100, 20], [-60, 90], [70, 100], [-140, -40], [130, -50], [0, 130], [-30, -90], [40, -100], [-170, 60]].map(([x, y], i) => [0.3 + i * 0.22, { type: 'pk', name: 'v_spawn', x, y, scale: 1.2 }])),
+      cam: { at: [0, 30], to: [0, 10], zoom: [1.2, 1.4], lift: 36 } },
   ] };
   S.FC_WAIT = { shots: [
     // The summit now: red, the dead kneeling round him, the wind in his cape.

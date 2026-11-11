@@ -1,6 +1,6 @@
 # THE BLEEDING MOON
 
-*Seven hundred years ago a swordsman cut the moon to raise the dead. It has bled ever since.*
+*Seven hundred years ago a swordsman cut down five kings and, with their souls, raised the dead. The moon has bled ever since.*
 
 The hero is Vesper; the code, folder and save keys keep the working name `vesper`.
 
@@ -357,6 +357,18 @@ summit's far rim while you cut floating limbs. Now:
   the title. js/openfilm.js gives the films in three parts (`I.PARTS`), main.js `startIntro` plays the chain (Esc in any
   piece skips the rest). The film engine's shots gained timed actions (`acts`), costume looks (`set`), timed events (`ev`:
   the fight's own effects) and the 'past' tint.
+- **The five kings** (2026-11-11, the author: "the moon kinda feels irrelevant... have the boss character use an op spell and
+  epic animation and effects for the cutscene to raise the dead, maybe he slays 5 kings... one king per region"): `FC_DEED`
+  now opens on *Seven hundred years ago / Five kingdoms*, then one shot per region, filmed in that region's own arena: the
+  King of the Black Gate (Act I), the Frost King (II), the King under the Stair (III), the Ash King (IV), the Storm King (V),
+  each with two guards in that region's colours (`S.KINGS`, `S.KING_SETS`). He arrives in crimson smoke, cuts the king down
+  with a different blow each time (C_Cut, a dash with Attack4, Attack3, Special1, Attack6), blood and a crimson effect on
+  the hit, and the king's soul flies into him. The sixth region, the Spire's summit, is the spell: the five souls circle
+  him, he raises his blade (C_Raise), his rune opens, a ring of fire, a crimson column into the sky, the ground bursts,
+  shockwaves; then the dead rise round him (C_Command) "and from that night, the moon bled red". The moon is no longer
+  cut: it bleeds because of the spell, so the title, the moon arts and the ending stay true. `SH.mooncut` and the
+  moon-splitting shots are out of the opening. Every effect is from the game's crimson and ember palette (no violet,
+  cyan or teal). Tale cast entries gained `scale` and `moveAt` (a move that starts late).
 - **Fixed**: story scenes froze (every act intro, guardian intro and the ending, since the menu scenes update): the menu
   scenes used the same `M.scene` as story scenes and cleared it; they use `M.menuSc` now.
 - **The last fight** (a5-b) is a duel: `D.FOES.firstCutFinal`, the knight himself on the summit at 1.6 times a man's size,
