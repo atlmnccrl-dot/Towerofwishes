@@ -1635,7 +1635,8 @@
     let shx = 0, shy = 0;
     if (this.shake > 0 && (!this.save || this.save.settings.shake)) { shx = (Math.random() - 0.5) * Math.min(1, this.shake) * 8; shy = (Math.random() - 0.5) * Math.min(1, this.shake) * 6; }
     const cs = BB.iso(cam.x, cam.y);
-    const ox = W / 2 - cs.x * z + shx * dpr, oy = H / 2 - cs.y * z + shy * dpr - 20 * z;
+    const vo = this.viewOff; // a menu scene may sit off-centre, in the part of the screen its page leaves open
+    const ox = W / 2 - cs.x * z + shx * dpr + (vo ? vo.x : 0), oy = H / 2 - cs.y * z + shy * dpr - 20 * z + (vo ? vo.y : 0);
     this.view = { ox, oy, z };
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = m.skin ? BB.LANDSKINS[m.skin].bg : m.biome === 'sand' ? '#6b5434' : '#22301a'; ctx.fillRect(0, 0, W, H);

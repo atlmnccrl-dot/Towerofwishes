@@ -611,6 +611,19 @@ input[type=range]{accent-color:var(--accent)} input[type=checkbox]{accent-color:
 .offer .left{color:color-mix(in srgb,var(--oc) 60%,#9aa3b3)}
 .offer.sold{filter:saturate(.25) brightness(.72)} .offer.sold .art::before,.offer.sold .art > *{animation:none}
 
+/* ---- pages that are places: the muster (heroes) and the quartermaster's stall (shop) show the scene itself */
+#heroes > .bg{background:linear-gradient(90deg,rgba(8,10,15,.05) 0%,rgba(8,10,15,.12) 46%,rgba(8,10,15,.9) 60%);-webkit-backdrop-filter:none;backdrop-filter:none}
+#heroes .stage{flex:1;min-width:0;position:relative;cursor:pointer}
+#heroes .spot{position:absolute;left:0;right:0;bottom:0;flex:none;background:none;border:0;box-shadow:none;overflow:visible;pointer-events:none}
+#heroes .spot .sp-bot{position:static;padding:10px 14px 6px;background:radial-gradient(60% 100% at 50% 60%,rgba(5,6,10,.72),transparent 75%)}
+#heroes .spot .sp-bot .btn{pointer-events:auto}
+#heroes .rkrow{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:2px}
+#heroes .col{flex:0 0 min(44%,560px)}
+#shop > .bg{background:linear-gradient(180deg,rgba(8,10,15,.35) 0%,rgba(8,10,15,0) 22%,rgba(8,10,15,.1) 42%,rgba(8,10,15,.86) 70%);-webkit-backdrop-filter:none;backdrop-filter:none}
+#shop .offers{align-content:end;padding-top:46px}
+#shop .offer.frame{background:radial-gradient(80% 36% at 50% 26%,color-mix(in srgb,var(--oc) 24%,transparent),transparent 70%),linear-gradient(180deg,rgba(8,10,15,0) 0%,rgba(8,10,15,.78) 46%);border-color:transparent;background-clip:padding-box;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;overflow:visible}
+#shop .offer.frame::before{display:none}
+#shop .offer h3,#shop .offer p{text-shadow:0 1px 4px #000}
 /* the team's places: taken, free, locked */
 .slots{display:flex;align-items:center;gap:6px;font:500 12px var(--body);color:var(--mute)}
 .slots i{width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-style:normal;flex:none;background:rgba(255,255,255,.05);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);color:var(--dim)}
@@ -669,6 +682,8 @@ input[type=range]{accent-color:var(--accent)} input[type=checkbox]{accent-color:
   #mSettings .frame{gap:8px} #mSettings label{font-size:13.5px}
   .offer{padding:12px 8px 10px} .offer .art{width:58px;height:58px;margin:2px 0 6px} .offer .art::before{inset:-22px} .offer .art canvas{width:40px;height:40px} .offer .art svg{width:28px;height:28px} .gem{width:24px;height:32px} .gems .gem:nth-child(1),.gems .gem:nth-child(3){width:15px;height:20px} .offer h3{font-size:11.5px}
   #versus .vin{gap:7px}
+  #heroes .col{flex-basis:54%} #heroes .spot .sp-bot{padding:2px 8px 0} #heroes .coll .w,#heroes .sect small{display:none} #heroes .spot .stars{display:none} #heroes .spot .nm{font-size:17px}
+  #shop .offers{padding-top:22px} #shop .offer p{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   #shop .offers{display:flex;gap:8px;overflow-x:auto;overflow-y:hidden;touch-action:pan-x;align-items:stretch;align-content:normal} #shop .offers .offer{flex:1 1 0;min-width:122px}
   #bCampBack{white-space:nowrap;flex:none}
   #campaign .chapters{flex-wrap:nowrap;overflow-x:auto;touch-action:pan-x;scrollbar-width:none} #campaign .chapters .chip{flex:none;height:28px;padding:0 10px;font-size:11.5px}
@@ -741,10 +756,9 @@ input[type=range]{accent-color:var(--accent)} input[type=checkbox]{accent-color:
 </div></div>
 
 <div id="heroes" class="screen"><div class="bg"></div><div class="body">
-  <div class="spot frame" id="hsSpot"><canvas id="hsCv"></canvas>
-    <div class="sp-top"><div class="rk" id="hsRk"></div><div class="lvp" id="hsLv"></div></div>
-    <div class="sp-bot"><div class="stars" id="hsStars"></div><div class="nm" id="hsNm"></div><div class="cl" id="hsCl"></div><div class="row" style="justify-content:center;gap:8px"><span class="pw" id="hsPw"></span><button class="btn sm" id="hsOpen">Open ▸</button></div></div>
-  </div>
+  <div class="stage" id="hsStage"><div class="spot" id="hsSpot">
+    <div class="sp-bot"><div class="rkrow"><span class="rk" id="hsRk"></span><span class="lvp" id="hsLv"></span></div><div class="stars" id="hsStars"></div><div class="nm" id="hsNm"></div><div class="cl" id="hsCl"></div><div class="row" style="justify-content:center;gap:8px"><span class="pw" id="hsPw"></span><button class="btn sm" id="hsOpen">Open ▸</button></div></div>
+  </div></div>
   <div class="col">
     <div class="head"><div class="coll"><span class="lbl" id="hrCount"></span><div class="bar"><i id="hrColl"></i></div></div><div class="filters" id="hrFilters"></div><div class="grow"></div><button class="btn sm" id="bRecruit">✦ Recruit</button></div>
     <div class="list scroll grow" id="heroList"></div>

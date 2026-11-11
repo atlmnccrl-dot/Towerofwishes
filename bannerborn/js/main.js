@@ -165,6 +165,87 @@
     BB.music('calm');
   }
   let guideDue = false;
+  // ---- menus that are places. The shop is the quartermaster's stall at night; the heroes' page is the muster, every
+  // hero you have standing in ranks under the banner. Both are small scenes in the battle engine, alive behind the page.
+  let shopScene = null, musterScene = null, musterKey = '';
+  const dress = (m) => { for (const p of m.props) { const q = BB.iso(p.x, p.y); p.depth = p.x + p.y; p.sx = q.x; p.sy = q.y; } m.props.sort((a, b) => a.depth - b.depth); rebuildGrid(m); BB.renderGround(m); };
+  const lamp = (m, x, y) => { m.add('Torch2', x, y, { biome: 'vale' }); m.anim('torch', x + 0.02, y + 0.02, { sc: 0.7, pole: 1 }); m.lights.push({ x, y, rad: 2.6, col: '255,170,80' }); };
+  async function buildShopScene() {
+    const m = BB.buildMap('camp', 'vale', 47, { night: true }), c = m.w / 2;
+    m.props = m.props.filter((p) => Math.hypot(p.x - c, p.y - c) > 4.6); m.anims = []; m.lights = [];
+    m.add('Misc B46_S', c - 1.2, c - 2.8, { biome: 'vale' }); m.add('Misc B12_S', c + 2.9, c - 2.9, { biome: 'vale' });
+    m.add('Misc B6_E', c + 2.7, c - 0.6, { biome: 'vale', r: 0.5 });
+    for (const [n, x, y] of [['Misc B3_S', -2.6, -1.0], ['Misc B28_S', -3.1, 0.1], ['Misc A4_S', -2.0, -0.2], ['Misc B14_S', 1.7, 0.9], ['Misc B17_S', 2.6, 1.5], ['Misc B52_S', 1.2, -2.2], ['Misc E1_S', -0.9, -1.5], ['Misc E2_S', 0.2, -1.7], ['Misc A9_S', 0.9, -1.2], ['Misc B15_S', -3.4, 1.6], ['Misc B57_S', -2.5, 2.2]])
+      if (BB.envHas('vale', n)) m.add(n, c + x, c + y, { biome: 'vale', r: 0.3 });
+    m.add('Misc B8_S', c + 0.3, c + 1.9, { biome: 'vale', r: 0.3 }); m.anim('fire', c + 0.33, c + 1.93, { sc: 0.7, fps: 14 }); m.lights.push({ x: c + 0.3, y: c + 1.9, rad: 4.6, col: '255,160,70' });
+    lamp(m, c - 2.2, c + 0.9); lamp(m, c + 1.6, c - 0.6); lamp(m, c - 0.4, c - 2.0);
+    m.chests = [{ x: c - 0.7, y: c - 0.3, gold: true }, { x: c + 0.5, y: c - 0.5, gold: false }, { x: c - 1.5, y: c + 0.5, gold: false }];
+    dress(m);
+    const keys = BB.npcKeys(); await pickLoad(keys, 3, BB.rng(5));
+    const sc = new BB.Battle({ map: m, heroes: [], peaceful: true, save: BB.save, seed: 4 });
+    const have = keys.filter((k) => BB.A.chars[k]);
+    sc.npcs = [[c - 0.1, c - 1.0, false], [c + 2.0, c + 0.2, true], [c - 2.6, c + 1.4, true]].slice(0, have.length).map(([x, y, walk], i) => ({ x, y, home: { x, y }, art: have[i], clip: 'Idle', dir: 2, ct: 0, walker: walk, wait: 1 + i * 2 }));
+    sc.fixCam = { x: c + 0.1, y: c - 0.7 }; sc.zoomK = sc.zoomTarget = 1.25; sc.stall = true;
+    return sc;
+  }
+  const musterKeyOf = () => BB.save.heroes.map((h) => h.id + ':' + BB.layerSig(h)).join(',') + '|' + BB.save.banner.color;
+  async function buildMuster() {
+    const S = BB.save, m = BB.buildMap('camp', 'vale', 53, { night: true }), c = m.w / 2;
+    m.anims = []; m.lights = [];
+    const list = S.heroes.slice().sort((a, b) => BB.power(b) - BB.power(a)), cols = Math.min(8, Math.max(3, Math.ceil(Math.sqrt(list.length * 1.7)))), rows = Math.ceil(list.length / cols), q = Math.SQRT1_2;
+    const GX = 1.2 * q, GY = 1.25 * q, back = c + 0.6 - (rows - 1) * GY, wing = (cols / 2 + 0.5) * GX;
+    m.props = m.props.filter((p) => Math.hypot(p.x - c, p.y - c) > 4.5 + Math.max(rows * 1.3, cols * 0.9));
+    m.bannerProp = { x: back - 1.5, y: back - 1.5, banner: S.banner };
+    for (const [x, y] of [[c + 1.2 + wing, c + 1.2 - wing], [c + 1.2 - wing, c + 1.2 + wing], [back - 0.9 + wing, back - 0.9 - wing], [back - 0.9 - wing, back - 0.9 + wing]]) lamp(m, x, y);
+    m.lights.push({ x: (c + 0.6 + back) / 2, y: (c + 0.6 + back) / 2, rad: 4 + rows + cols * 0.4, col: '255,190,110' });
+    dress(m);
+    await BB.loadHeroes(S.heroes);
+    const sc = new BB.Battle({ map: m, heroes: [], peaceful: true, save: S, seed: 6 });
+    // ranks across the screen, the strongest in front; one step ahead of them all, the place of the hero chosen
+    sc.muster = { byId: {}, front: { x: c + 2.2, y: c + 2.2 }, sel: null, cols, rows };
+    list.forEach((h, i) => {
+      const row = Math.floor(i / cols), n = Math.min(cols, list.length - row * cols), col = (i % cols) - (n - 1) / 2;
+      const x = c + 0.6 + col * GX - row * GY, y = c + 0.6 - col * GX - row * GY;
+      const e = sc.spawnHero(h, BB.heroStats(h), x, y); e.rank = { x, y }; e.home = { x, y }; e.idleT = 1e9; sc.face(e, x + 1, y + 1);
+      sc.muster.byId[h.id] = e;
+    });
+    const mid = (back - 3.6 + c + 2.55) / 2; sc.fixCam = { x: mid, y: mid }; // half way from the banner's top to the feet of the hero called forward sc.zoomK = sc.zoomTarget = 1.3;
+    return sc;
+  }
+  function menuScene(sc) { // each frame: where the place sits on the screen, and how large
+    if (sc.stall) { sc.viewOff = { x: 0, y: -H * 0.2 }; return; }
+    const M = sc.muster, st = document.getElementById('hsStage'), rc = st && st.getBoundingClientRect(); if (!M || !rc || !rc.width) return;
+    // the ranks are (cols) wide and (rows) deep; above them the banner, below them the place of the hero called forward
+    const small = innerHeight < 520, z1 = camZoom(), needW = ((M.cols + 1) * 0.85 + 0.4) * BB.TW, needH = (M.rows - 1) * 0.884 * BB.TH + 166;
+    const top = small ? 4 : rc.top, roomH = rc.bottom - top - (small ? 96 : 132);
+    const k = Math.max(0.5, Math.min(1.6, rc.width / (needW * z1), roomH / (needH * z1)));
+    sc.zoomK = sc.zoomTarget = k; sc.cam.zoom = z1 * k;
+    sc.viewOff = { x: (rc.left + rc.width / 2) * DPR - W / 2, y: (top + roomH * 0.5 + 20 * z1 * k) * DPR - H / 2 };
+    for (const id in M.byId) { const e = M.byId[id]; e.idleT = 1e9; if (!(e.route && e.route.length)) { const at = id === M.sel ? M.front : e.rank; if (Math.hypot(e.x - at.x, e.y - at.y) > 0.5) { e.route = [{ x: at.x, y: at.y }]; e.routeSp = 3; } else e.dir = BB.dirFromVec(1, 1); } }
+  }
+  // the hero chosen on the page steps out of the ranks into the light; the one before goes back
+  BB.musterSelect = function (id) {
+    const sc = musterScene; if (!sc || !sc.muster) return;
+    const M = sc.muster, was = M.sel && M.byId[M.sel], e = M.byId[id];
+    if (was && was !== e) { was.route = [{ x: was.rank.x, y: was.rank.y }]; was.routeSp = 3; }
+    if (e) { e.route = [{ x: M.front.x, y: M.front.y }]; e.routeSp = 3; M.sel = id; const R = BB.UI.rgba[e.hero.rarity || 0].replace('rgba(', '').replace(',A)', ''); sc.map.lights = sc.map.lights.filter((L) => !L.spot); sc.map.lights.push({ x: M.front.x, y: M.front.y, rad: 2.6, col: R, spot: true }); }
+  };
+  BB.musterAt = function (cx, cy) { // which hero stands under a point of the screen (canvas pixels)
+    const sc = musterScene; if (!sc || scene !== sc || !sc.view) return null;
+    const v = sc.view; let best = null, bd = 46 * DPR * (v.z / DPR);
+    for (const id in sc.muster.byId) { const e = sc.muster.byId[id], p = BB.iso(e.x, e.y), sx = p.x * v.z + v.ox, sy = p.y * v.z + v.oy - 22 * v.z, d = Math.hypot(sx - cx, (sy - cy) * 0.7); if (d < bd) { bd = d; best = id; } }
+    return best;
+  };
+  BB.sceneFor = async function (tab) {
+    if (mode === 'battle' || !BB.save) return;
+    try {
+      if (tab === 'shop') { if (!shopScene) shopScene = await buildShopScene(); if (UI.current === 'shop') { scene = shopScene; mode = 'camp'; } }
+      else if (tab === 'heroes') {
+        const k = musterKeyOf(); if (!musterScene || musterKey !== k) { musterScene = await buildMuster(); musterKey = k; }
+        if (UI.current === 'heroes') { scene = musterScene; mode = 'camp'; for (const id in musterScene.muster.byId) { const e = musterScene.muster.byId[id]; e.idleT = 1e9; } BB.musterSelect(UI.heroSel()); }
+      }
+    } catch (e) { /* the page still works over the camp */ }
+  };
   let campBuilt = null; // the camp is rebuilt only when it changes (new heroes, new stages)
   let campScene = null, drillScene = null;
   BB.liveScene = () => scene;
@@ -199,7 +280,7 @@
 
   function newGame() {
     BB.save = BB.newSave(now());
-    campBuilt = null; campScene = null; drillScene = null;
+    campBuilt = null; campScene = null; drillScene = null; shopScene = null; musterScene = null;
     BB.persist();
     BB.Cinema.play('intro', { music: 'boss' }, () => goCamp());
   }
@@ -548,8 +629,8 @@
     BB.autoFill(S);
     return S;
   }
-  function devEnter(o) { if (!devReal) devReal = BB.save; devOpts = o; BB.save = devSave(o); BB.dev = true; campBuilt = null; drillScene = null; document.body.classList.add('dev'); UI.refreshTop(); }
-  function devExit() { if (!devReal) return false; BB.save = devReal; devReal = null; devOpts = null; BB.dev = false; campBuilt = null; drillScene = null; document.body.classList.remove('dev'); UI.refreshTop(); return true; }
+  function devEnter(o) { if (!devReal) devReal = BB.save; devOpts = o; BB.save = devSave(o); BB.dev = true; campBuilt = null; drillScene = null; musterScene = null; document.body.classList.add('dev'); UI.refreshTop(); }
+  function devExit() { if (!devReal) return false; BB.save = devReal; devReal = null; devOpts = null; BB.dev = false; campBuilt = null; drillScene = null; musterScene = null; document.body.classList.remove('dev'); UI.refreshTop(); return true; }
   // what keeps a showcase battle showing its subject
   const DEV_TICK = {
     ults: (sc, dt) => { sc.devT = (sc.devT || 1.5) - dt; if (sc.devT > 0 || (sc.ep && sc.ep.ult)) return; sc.devT = 3.4; const hs = sc.heroesAlive(); if (!hs.length) return; const h = hs[(sc.devN = (sc.devN || 0) + 1) % hs.length]; h.energy = 100; sc.useSkill(h, true); },
@@ -828,7 +909,7 @@
   let lastT = performance.now(), spoilT = 0;
   // the camp keeps living behind every menu (dimmed by each screen's backdrop)
   const SCENE_UNDER = ['title', 'home', 'hud', 'cine', 'heroes', 'hero', 'team', 'shop', 'campaign', 'recruit'];
-  const DIMMED = ['heroes', 'hero', 'shop', 'campaign', 'recruit']; let dimAcc = 0, dimN = 0;
+  const DIMMED = ['hero', 'campaign', 'recruit']; let dimAcc = 0, dimN = 0;
   // frame-rate watch for 'auto' graphics: the average of the last stretch of battle frames
   let fpsAcc = 0, fpsN = 0, fpsHold = 0;
   function watchFrames(real) {
@@ -863,6 +944,7 @@
       scene.cam.zoom = camZoom() * (scene.zoomK || 1);
       if (scene.isTitle) { scene.cam.x = scene.map.w / 2 + Math.sin(t / 9000) * 1.6 - 1.2; scene.cam.y = scene.map.h / 2 + Math.cos(t / 11000) * 0.8 + 0.4; }
       else if (scene.drill) { if (UI.current === 'team' && UI.teamLayout) UI.teamLayout(scene, W, H, DPR); }
+      else if (scene.fixCam) { { const sw = Math.sin(t / 7000) * 0.1; scene.cam.x = scene.fixCam.x + sw; scene.cam.y = scene.fixCam.y - sw; } menuScene(scene); }
       else if (scene.peaceful) { scene.cam.x = scene.map.w / 2 - 1.8 + Math.sin(t / 14000) * 0.4; scene.cam.y = scene.map.h / 2 + 1.6; }
       const reps = mode === 'battle' && !scene.intro && !scene.result ? Math.min(3, Math.max(1, BB.save.settings.speed || 1)) : 1;
       if (scene.devTick && mode === 'battle' && !scene.intro && !scene.result && !scene.paused) scene.devTick(scene, dt);

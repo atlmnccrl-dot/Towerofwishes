@@ -655,7 +655,7 @@
     const S = BB.save, box = $('heroList'); box.innerHTML = '';
     const tiers = BB.heroTiers(BB.ROSTER);
     const total = tiers.reduce((a, t) => a + t.heroes.length, 0) + Object.keys(BB.LEGENDS).length + 1;
-    $('hrCount').textContent = 'Collection ' + S.heroes.length + ' / ' + total;
+    $('hrCount').innerHTML = '<span class="w">Collection </span>' + S.heroes.length + ' / ' + total;
     $('hrColl').style.width = (S.heroes.length / total * 100) + '%';
     const fb = $('hrFilters'); fb.innerHTML = '';
     for (const id of ['all'].concat(BB.CALLING_ORDER)) {
@@ -664,7 +664,7 @@
       click(b, () => { HF.f = id; UI.renderHeroes(); }); fb.appendChild(b);
     }
     const ok = (c) => HF.f === 'all' || c === HF.f;
-    box.appendChild(el('div', 'sect', 'Your heroes <small>tap to bring one forward · tap again to open</small>'));
+    box.appendChild(el('div', 'sect', 'Your heroes <small>tap one to call them forward · tap again to open</small>'));
     const own = el('div', 'hcards');
     const team = BB.teamIds(S);
     const shown = sortHeroes(S.heroes).filter((h) => ok(h.calling));
@@ -676,7 +676,7 @@
         own.querySelectorAll('.hc.sel').forEach((x) => x.classList.remove('sel')); card.classList.add('sel');
         UI.heroSpot();
       } });
-      if (h.id === HF.sel) card.classList.add('sel');
+      card.dataset.id = h.id; if (h.id === HF.sel) card.classList.add('sel');
       own.appendChild(card);
     }
     UI.heroSpot();
@@ -711,7 +711,7 @@
     const S = BB.save, h = S.heroes.find((x) => x.id === HF.sel), box = $('hsSpot');
     box.style.visibility = h ? '' : 'hidden'; if (!h) return;
     const Cl = BB.CALLINGS[h.calling], R = BB.HERO_RARITY[h.rarity];
-    box.className = 'spot frame ' + RCLS(h.rarity);
+    box.className = 'spot ' + RCLS(h.rarity);
     $('hsRk').textContent = R.name + (h.legend ? ' · Legend' : h.captain ? ' · Captain' : '');
     $('hsLv').textContent = h.level;
     $('hsStars').textContent = '★'.repeat(h.stars || 1);
@@ -719,27 +719,19 @@
     $('hsCl').textContent = Cl.name + ' · ' + Cl.role;
     $('hsPw').textContent = '⚔ ' + fmt(BB.power(h));
     HF.t = 0;
+    if (BB.musterSelect) BB.musterSelect(h.id);
   };
+  UI.heroSel = () => HF.sel;
   click($('hsSpot'), () => { if (HF.sel) UI.openHero(HF.sel); });
-  UI.heroesRender = function (dt) {
-    const c = $('hsCv'), S = BB.save; if (!c || !S) return;
-    const hero = S.heroes.find((x) => x.id === HF.sel); if (!hero) return;
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    const w = Math.round(c.clientWidth * dpr), h = Math.round(c.clientHeight * dpr); if (!w || !h) return;
-    if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
-    const g = c.getContext('2d'); g.clearRect(0, 0, w, h); g.imageSmoothingEnabled = false;
-    HF.t = (HF.t || 0) + dt;
-    const layers = BB.heroLayers(hero), key = layers[0].key;
-    if (!layers.every((L) => BB.A.chars[L.key])) return;
-    // they step forward with a flourish, then stand easy; every so often, the flourish again
-    const cyc = (HF.t + 7.6) % 9, clip = cyc > 7.2 ? (BB.hasClip(key, 'Taunt') ? 'Taunt' : 'Special1') : 'Idle';
-    const n = BB.clipLen(key, clip) || 15;
-    const fr = clip === 'Idle' ? Math.floor(HF.t * 9) % n : Math.min(n - 1, Math.floor((cyc - 7.2) * 12));
-    const sc = Math.max(2, Math.min(Math.round(h / 125), Math.round(w / 84)));
-    const cx = w / 2, cy = h * 0.62;
-    UI.podium(g, cx, cy, Math.min(w * 0.4, 34 * sc), RGBA[hero.rarity || 0], HF.t);
-    BB.drawHeroDressed(g, hero, BB.auraOf(hero), clip, 1, fr, cx, cy, sc, HF.t, { noSlash: clip === 'Idle', layers });
-  };
+  UI.heroesRender = function () {}; // the heroes stand in the scene itself now (main.js: the muster)
+  (function () { const st = $('hsStage'); if (!st) return; st.addEventListener('click', (ev) => {
+    if (ev.target.closest('.btn')) return;
+    const cv = $('game'), rc = cv.getBoundingClientRect(), k = cv.width / rc.width, id = BB.musterAt && BB.musterAt((ev.clientX - rc.left) * k, (ev.clientY - rc.top) * k);
+    if (!id) return; BB.audioUnlock(); BB.sfx('click');
+    if (HF.sel === id) { UI.openHero(id); return; }
+    HF.sel = id; document.querySelectorAll('#heroList .hc.sel').forEach((x) => x.classList.remove('sel')); const card = document.querySelector('#heroList .hc[data-id="' + id + '"]'); if (card) { card.classList.add('sel'); card.scrollIntoView({ block: 'nearest' }); }
+    UI.heroSpot();
+  }); })();
 
   // ---------------------------------------------------------------- hero detail
   const D = UI.hd = { id: null, t: 0 };
@@ -1501,6 +1493,7 @@
     if (tab === 'team') { UI.openTeam(); return; }
     if (tab === 'shop') UI.renderShop();
     UI.show(tab);
+    if (BB.sceneFor) BB.sceneFor(tab); // some pages are places
   };
   document.querySelectorAll('.tab').forEach((t) => click(t, () => UI.go(t.dataset.tab)));
 

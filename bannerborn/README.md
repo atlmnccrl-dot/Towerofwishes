@@ -197,10 +197,15 @@ recording, every sound the game asks for is written on a tape with the film's ti
 audio context afterwards (`BB.audioClock`, `BB.audioRender` in js/audio.js).
 
 **Menus.** The title is the logo carved in gold over the night camp (rays, embers, one button: *Raise the Banner*
-or *Continue*, with where you left off beneath it). **Heroes**: the chosen hero stands large on a podium of their
-rarity's light beside the collection; tap a card to bring that hero forward, tap again (or *Open*) for their screen.
-**Shop**: each offer is a relic on its own light (gems, the chest, a blade, a
-sigil), and *Sell spare gear* buys what is in the bag, a piece at a time or every Common piece at once. **Battle start**: while the field loads, a *versus* card slams in (your heroes and power on the blue side,
+or *Continue*, with where you left off beneath it). **Heroes** is a place, *the muster*:
+every hero you own stands in ranks under your banner at night, between four torches (the strongest in front; the
+ranks and the camera size themselves to the roster and to the open part of the page). The chosen hero steps out in
+front of them into a light of their rarity's colour; tap a hero in the ranks or a card in the list to call them
+forward, tap again (or *Open*) for their screen. **Shop** is a place too, *the quartermaster's stall*: a tent, a
+loaded cart, crates and barrels round a fire, the quartermaster and two hands at work; the offers float over it as
+relics on their own light (gems, the chest, a blade, a sigil), and *Sell spare gear* buys what is in the bag, a
+piece at a time or every Common piece at once. Both are small scenes in the battle engine (`BB.sceneFor(tab)` in
+js/main.js builds them once and swaps them in behind the page; `scene.viewOff` puts a scene off-centre). **Battle start**: while the field loads, a *versus* card slams in (your heroes and power on the blue side,
 the enemy's faces and the power needed on the red, the stage's name and objective), then parts down the middle
 onto the fight. Menu animation is transform/opacity only, and the small glass pieces no longer blur what is behind
 them.
