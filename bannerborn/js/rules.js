@@ -411,12 +411,87 @@
   BB.idlePending = function (save, now) {
     const ms = Math.min(BB.IDLE_CAP, Math.max(0, now - (save.idleT == null ? now : save.idleT)));
     const h = ms / 3600000, r = BB.idleRate(save);
-    return { ms, gold: Math.floor(r.gold * h), sigils: Math.floor(r.sigils * h) };
+    const k = BB.writActive(save, now) ? 2 : 1; // the Quartermaster's Writ
+    return { ms, gold: Math.floor(r.gold * h) * k, sigils: Math.floor(r.sigils * h) * k };
   };
   BB.idleClaim = function (save, now) {
     const p = BB.idlePending(save, now);
     save.gold += p.gold; save.sigils += p.sigils; save.idleT = now;
     return p;
+  };
+
+
+  // ---------------------------------------------------------------- the treasury: what is sold for money, and what an ad is worth
+  // Nothing here sells power directly: no hero, no team place, no stage. Money buys time (crystals, a daily
+  // allowance) and quiet (no ads). `sku` is the product id to create in App Store Connect and Google Play;
+  // `usd` is only the price shown until the store has told the app the real, local one.
+  BB.PRODUCTS = [
+    { id: 'noads', sku: 'bannerborn.noads', kind: 'once', usd: 3.99, name: 'Quiet March', desc: 'No ads between battles, for good. Every bonus that asks you to watch one is yours at a tap.' },
+    { id: 'starter', sku: 'bannerborn.starter', kind: 'once', usd: 4.99, name: 'Captain\'s Chest', give: { crystals: 600, gold: 5000, sigils: 20, weapon: 1 }, desc: 'Once only: 600 crystals, 5,000 gold, 20 sigils and an Epic weapon for your Captain.' },
+    { id: 'writ', sku: 'bannerborn.writ30', kind: 'pass', days: 30, usd: 4.99, name: 'Quartermaster\'s Writ', daily: 40, desc: '40 crystals every day for 30 days (1,200 in all), and the camp gathers double while it lasts.' },
+    { id: 'c1', sku: 'bannerborn.crystals.200', kind: 'pack', usd: 1.99, name: 'Pouch of Crystals', give: { crystals: 200 }, desc: '200 crystals.' },
+    { id: 'c2', sku: 'bannerborn.crystals.550', kind: 'pack', usd: 4.99, name: 'Purse of Crystals', give: { crystals: 550 }, desc: '550 crystals.' },
+    { id: 'c3', sku: 'bannerborn.crystals.1200', kind: 'pack', usd: 9.99, name: 'Coffer of Crystals', give: { crystals: 1200 }, desc: '1,200 crystals.' },
+    { id: 'c4', sku: 'bannerborn.crystals.2600', kind: 'pack', usd: 19.99, name: 'Chest of Crystals', give: { crystals: 2600 }, desc: '2,600 crystals.' },
+    { id: 'c5', sku: 'bannerborn.crystals.7000', kind: 'pack', usd: 49.99, name: 'Hoard of Crystals', give: { crystals: 7000 }, desc: '7,000 crystals.' },
+  ];
+  BB.product = (id) => BB.PRODUCTS.find((p) => p.id === id || p.sku === id);
+  BB.iap = function (save) { // the save's record of what was bought and which ads were watched today
+    if (!save.iap) save.iap = { owned: {}, tx: [], writUntil: 0, writDay: '', adDay: '', adN: {}, spent: 0 };
+    return save.iap;
+  };
+  BB.hasNoAds = (save) => !!(save && save.iap && save.iap.owned.noads);
+  BB.writLeft = (save, now) => (save && save.iap ? Math.max(0, Math.ceil((save.iap.writUntil - now) / 86400000)) : 0);
+  BB.writActive = (save, now) => !!(save && save.iap && save.iap.writUntil > now);
+  // A paid product is given once per transaction (`tx`): the store may tell the app about the same purchase again
+  // (a restore, a second launch before it is finished), and that must give nothing twice. Returns what was given, or null.
+  BB.grantProduct = function (save, id, now, tx) {
+    const P = BB.product(id); if (!P) return null;
+    const I = BB.iap(save), out = { id: P.id, crystals: 0, gold: 0, sigils: 0, item: null };
+    if (tx) { if (I.tx.includes(tx)) return null; I.tx.push(tx); if (I.tx.length > 80) I.tx.shift(); }
+    if (P.kind === 'once') { if (I.owned[P.id]) return null; I.owned[P.id] = now || 1; }
+    if (P.kind === 'pass') { I.writUntil = Math.max(I.writUntil, now) + P.days * 86400000; out.days = P.days; }
+    const g = P.give || {};
+    if (g.crystals) { save.crystals += g.crystals; out.crystals = g.crystals; }
+    if (g.gold) { save.gold += g.gold; out.gold = g.gold; }
+    if (g.sigils) { save.sigils += g.sigils; out.sigils = g.sigils; }
+    if (g.weapon) { const cap = save.heroes.find((h) => h.captain) || save.heroes[0]; out.item = BB.makeItem(BB.rng((now || 1) % 100000 + 17), 'weapon', Math.max(3, cap.level), 2, BB.weaponType(cap.calling)); save.inventory.push(out.item); }
+    I.spent = Math.round((I.spent + P.usd) * 100) / 100;
+    return out;
+  };
+  // the writ's daily crystals: once a calendar day while it runs
+  BB.writClaim = function (save, now) {
+    const I = save.iap, day = BB.dayKey(now); if (!I || !(I.writUntil > now) || I.writDay === day) return 0;
+    const n = BB.product('writ').daily; I.writDay = day; save.crystals += n; return n;
+  };
+  // Ads the player chooses to watch. `cap` a day each; what each gives is small next to playing.
+  BB.AD_SPOTS = {
+    spoils: { cap: 3, name: 'Double the camp\'s spoils' },
+    gems: { cap: 3, crystals: 15, name: 'A crier\'s coin' },
+    chest: { cap: 1, name: 'A chest from the smith' },
+    victory: { cap: 5, name: 'Double the gold of a victory' },
+  };
+  BB.adLeft = function (save, spot, now) {
+    const A = BB.AD_SPOTS[spot]; if (!A) return 0; const I = save.iap;
+    return A.cap - (I && I.adDay === BB.dayKey(now) ? I.adN[spot] || 0 : 0);
+  };
+  BB.adUse = function (save, spot, now) {
+    if (BB.adLeft(save, spot, now) <= 0) return false;
+    const I = BB.iap(save), day = BB.dayKey(now); if (I.adDay !== day) { I.adDay = day; I.adN = {}; }
+    I.adN[spot] = (I.adN[spot] || 0) + 1; return true;
+  };
+  // An ad between battles: never for those who bought their quiet, never in the first hour of the game (the first
+  // road), at most every third battle and never within three minutes of the last ad of any kind.
+  BB.INTERSTITIAL = { afterStages: 8, everyBattles: 3, gapMs: 180000 };
+  BB.interstitialDue = function (save, st, now) {
+    const R = BB.INTERSTITIAL; if (!save || BB.hasNoAds(save)) return false;
+    return BB.clearedCount(save) >= R.afterStages && (st.battles || 0) >= R.everyBattles && now - (st.lastAd || 0) >= R.gapMs;
+  };
+  // what a gate's odds are, said plainly (the stores ask for it where chance is paid for): every hero still behind a
+  // gate is as likely as any other, and nobody comes twice
+  BB.gateOdds = function (save, tier) {
+    const left = BB.heroTiers(BB.ROSTER).find((t) => t.tier.id === tier.id).heroes.filter((e) => !save.heroes.some((h) => h.recruit === e.key)).length;
+    return { left, pct: left ? Math.round(1000 / left) / 10 : 0 };
   };
 
   // ---------------------------------------------------------------- shop: a few offers a day
@@ -432,6 +507,8 @@
     if (!save.shop || save.shop.day !== BB.dayKey(now)) return offer.limit;
     return offer.limit - (save.shop.bought[offer.id] || 0);
   };
+  // a chest as the smith packs it: one piece, Rare or better, for someone you have
+  BB.chestItem = function (save, r) { const h = r.pick(save.heroes), slot = r.pick(BB.SLOTS); return BB.makeItem(r, slot, Math.max(1, BB.startLevel(save)), r() < 0.2 ? 2 : 1, slot === 'weapon' ? BB.weaponType(h.calling) : undefined); };
   BB.buy = function (save, offerId, now, r) {
     const o = BB.SHOP.find((x) => x.id === offerId); if (!o || BB.shopLeft(save, o, now) <= 0) return null;
     if (o.cost && ((o.cost.gold && save.gold < o.cost.gold) || (o.cost.crystals && save.crystals < o.cost.crystals))) return null;
@@ -443,8 +520,7 @@
     if (o.give.sigils) { save.sigils += o.give.sigils; got.sigils = o.give.sigils; }
     if (o.give.chest) {
       r = r || BB.rng(now & 0xffffff);
-      const h = r.pick(save.heroes), slot = r.pick(BB.SLOTS);
-      const it = BB.makeItem(r, slot, Math.max(1, BB.startLevel(save)), r() < 0.2 ? 2 : 1, slot === 'weapon' ? BB.weaponType(h.calling) : undefined);
+      const it = BB.chestItem(save, r);
       save.inventory.push(it); got.item = it;
     }
     if (o.give.weapon) {

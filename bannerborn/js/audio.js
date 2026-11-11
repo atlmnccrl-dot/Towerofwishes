@@ -14,6 +14,7 @@
     BB.setVolumes();
     return ac;
   }
+  BB.audioHush = function (on) { if (master && ac) master.gain.setTargetAtTime(on ? 0 : 0.9, ac.currentTime, 0.05); }; // an ad has the phone's speaker
   BB.audioUnlock = function () { init(); if (ac && ac.state === 'suspended') ac.resume(); if (ac && !preloaded) { preloaded = true; for (const n of VOICES) loadV(n); } };
   // ---- recorded monster voices (assets/sfx, from Ririsaurus' Fantasy Monsters, Dinosaurs and Abyssal Horror packs)
   const VOICES = ['warg_growl', 'warg_snarl', 'warg_big', 'hiss', 'hob_growl', 'hob_babble', 'hob_chant', 'giant_attack', 'giant_grunt', 'giant_grunt2', 'giant_pain', 'giant_pain2', 'giant_laugh', 'giant_dizzy',

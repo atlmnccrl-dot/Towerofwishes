@@ -83,7 +83,7 @@ require('fs').mkdirSync(out, { recursive: true });
   await p.evaluate(() => BB.UI.go('team')); await wait(400); await shot('19-team');
   if (await p.$('.tab[data-tab=forge]')) errs.push('the Forge tab is still there');
   await tap('.tab[data-tab=shop]'); await wait(1800); await shot('21-market');
-  if ((await p.$$('.mk-plate')).length !== 4) errs.push('the market has no four traders');
+  if ((await p.$$('.mk-plate')).length !== 5) errs.push('the market should have five traders (four, and the treasurer)');
   await p.evaluate(() => BB.UI.marketOpen('gems')); await wait(1500); await shot('21b-trader');
   await tap('#offers .btn'); await wait(200);
   await p.evaluate(() => BB.UI.marketOpen(null)); await wait(300);
@@ -91,6 +91,7 @@ require('fs').mkdirSync(out, { recursive: true });
   await tap('#bSetClose');
   await tap('.tab[data-tab=home]'); await wait(800);
   await tap('#bSpoils'); await wait(300);
+  if (await p.isVisible('#mSpoils.on')) { await tap('#spTake'); await wait(200); } // enough gathered to be offered double: take it as it is
   // a defeat: results offer a retry
   await p.evaluate(() => BB.deploy(1));
   await p.waitForFunction(() => BB.UI.current === 'hud', null, { timeout: 20000 });

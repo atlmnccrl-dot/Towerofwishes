@@ -9,7 +9,7 @@
   const now = () => Date.now();
 
   // ---------------------------------------------------------------- save
-  BB.persist = function () { try { localStorage.setItem(KEY, JSON.stringify(BB.save)); } catch (e) { /* storage blocked */ } };
+  BB.persist = function () { const j = JSON.stringify(BB.save); try { localStorage.setItem(KEY, j); } catch (e) { /* storage blocked */ } if (BB.nativeMirror) BB.nativeMirror(j); };
   function loadSave() {
     try {
       const s = JSON.parse(localStorage.getItem(KEY));
@@ -191,7 +191,7 @@
   const lamp = (m, x, y) => { m.add('Torch2', x, y, { biome: 'vale' }); m.anim('torch', x + 0.02, y + 0.02, { sc: 0.7, pole: 1 }); m.lights.push({ x, y, rad: 2.6, col: '255,170,80' }); };
   // the market: an open square at night, a trader at each station under their own light. Places are given as (a, b):
   // a tile-widths to the right of the middle, b tile-heights down the screen.
-  const MARKET_AT = { smith: [-3.5, -1.0], quarter: [-1.1, -2.2], gems: [1.7, -2.0], seer: [3.9, -0.6] };
+  const MARKET_AT = { smith: [-3.5, -1.0], quarter: [-1.1, -2.2], gems: [1.7, -2.0], seer: [3.9, -0.6], treasury: [-1.9, 1.5] };
   async function buildMarket() {
     const S = BB.save, m = BB.buildMap('camp', 'vale', 61, { night: true }), c = m.w / 2;
     const P = (a, b) => ({ x: c + a + b, y: c - a + b }), AB = (x, y) => [(x - y) / 2, (x + y) / 2 - c];
@@ -213,17 +213,20 @@
     put('B12', 4.4, -1.8); put('C14', 5.4, -0.2); put('B61', 3.2, -0.1, 0.1); put('C13', 5.0, -2.2); put('C12', 5.7, 0.7, 0.1);
     { const q = P(5.4, -0.15); m.anim('portal', q.x, q.y, { sc: 0.5, fps: 12, lift: 6, add: true }); } glow(4.4, -0.6, 3.8, '180,110,255');
     // the square itself: the well, stalls of the townsfolk, hay and baskets, a signpost on the way in
-    put('B42', 0.4, 1.2, 0.5); put('B17', -4.2, 2.6); put('B19', 4.6, 2.9); put('E2', -5.6, 1.4); put('E1', -2.6, 3.3, 0.1); put('B20', -3.2, 2.2, 0.1); put('B52', 1.9, 3.3, 0.1); put('B10', 3.0, 2.4); put('A9', 5.4, 1.9, 0.1); put('B27', -1.4, 2.6, 0.1); put('B55', -6.6, -2.6); put('B24', -1.2, 0.6, 0.05);
+    put('B42', 0.6, 1.2, 0.5); put('B19', -4.4, 2.7); put('B10', 4.6, 2.9); put('E2', -5.6, 1.4); put('E1', -2.6, 3.3, 0.1); put('B20', -3.2, 2.2, 0.1); put('B52', 1.9, 3.3, 0.1); put('A9', 5.4, 1.9, 0.1); put('B27', 3.2, 2.2, 0.1); put('B55', -6.6, -2.6);
+    // the treasurer: the stall of fine goods, a strongbox, a lamp of his own (only where something is for sale)
+    const paid = BB.marketStations().some((x) => x.paid);
+    if (paid) { put('B17', -2.6, 0.5); put('B1', -3.1, 1.6, 0.1); glow(-2.0, 1.4, 3.0, '255,225,150'); m.chests = [{ x: P(-1.2, 1.1).x, y: P(-1.2, 1.1).y, gold: true }]; }
     glow(0.4, 1.4, 4.2, '255,180,100'); torch(-1.2, 3.6); torch(2.4, 1.2); torch(-5.0, 0.9); torch(5.6, 3.3); torch(-3.2, -3.4); torch(3.6, -3.6);
     dress(m);
-    const keys = BB.npcKeys(); await pickLoad(keys, 7, BB.rng(5));
+    const keys = BB.npcKeys(); await pickLoad(keys, 8, BB.rng(5));
     const leader = S.heroes.find((h) => h.id === S.leader) || S.heroes[0]; await BB.loadHeroes([leader]);
     const sc = new BB.Battle({ map: m, heroes: [], peaceful: true, save: S, seed: 4 });
     const have = keys.filter((k) => BB.A.chars[k]);
     const M = sc.market = { c, P, at: {}, focus: null, cur: { x: P(0, -1).x, y: P(0, -1).y, k: 1, ox: 0 }, mid: P(0, -1), last: 0 };
     sc.npcs = [];
-    Object.keys(MARKET_AT).forEach((id, i) => { const q = P(MARKET_AT[id][0], MARKET_AT[id][1]); M.at[id] = q; if (have[i]) sc.npcs.push({ x: q.x, y: q.y, home: q, art: have[i], clip: 'Idle', dir: BB.dirFromVec(1, 1), ct: i * 0.4, walker: false, wait: 0, trader: id }); });
-    [[-1.6, 1.8], [2.4, 2.0], [0.6, 3.4]].forEach((ab, i) => { const q = P(ab[0], ab[1]); if (have[4 + i]) sc.npcs.push({ x: q.x, y: q.y, home: q, art: have[4 + i], clip: 'Idle', dir: 2, ct: 0, walker: true, wait: 1 + i * 2 }); });
+    Object.keys(MARKET_AT).filter((id) => id !== 'treasury' || paid).forEach((id, i) => { const q = P(MARKET_AT[id][0], MARKET_AT[id][1]); M.at[id] = q; if (have[i]) sc.npcs.push({ x: q.x, y: q.y, home: q, art: have[i], clip: 'Idle', dir: BB.dirFromVec(1, 1), ct: i * 0.4, walker: false, wait: 0, trader: id }); });
+    [[2.6, 1.6], [3.4, 3.0], [0.6, 3.6]].forEach((ab, i) => { const q = P(ab[0], ab[1]); if (have[5 + i]) sc.npcs.push({ x: q.x, y: q.y, home: q, art: have[4 + i], clip: 'Idle', dir: 2, ct: 0, walker: true, wait: 1 + i * 2 }); });
     // your own hero walks the square, and goes up to whoever you choose to talk to
     { const q = P(0.2, 2.5), e = sc.spawnHero(leader, BB.heroStats(leader), q.x, q.y); e.home = q; e.idleT = 1e9; M.hero = e; M.rest = q; }
     sc.fixCam = { x: M.mid.x, y: M.mid.y }; sc.zoomK = sc.zoomTarget = 1;
@@ -323,7 +326,7 @@
   BB.sceneFor = async function (tab) {
     if (mode === 'battle' || !BB.save) return;
     try {
-      if (tab === 'shop') { const k = (BB.save.leader || '') + '|' + BB.save.banner.color; if (!shopScene || shopScene.marketKey !== k) { shopScene = await buildMarket(); shopScene.marketKey = k; } if (UI.current === 'shop') { scene = shopScene; mode = 'camp'; BB.marketFocus(UI.marketSel ? UI.marketSel() : null); } }
+      if (tab === 'shop') { const k = (BB.save.leader || '') + '|' + BB.save.banner.color + '|' + BB.marketStations().length; if (!shopScene || shopScene.marketKey !== k) { shopScene = await buildMarket(); shopScene.marketKey = k; } if (UI.current === 'shop') { scene = shopScene; mode = 'camp'; BB.marketFocus(UI.marketSel ? UI.marketSel() : null); } }
       else if (tab === 'heroes' || tab === 'hero') {
         const k = musterKeyOf(); if (!musterScene || musterKey !== k) { musterScene = await buildMuster(); musterKey = k; }
         if (UI.current === tab) { if (scene !== musterScene) musterScene.muster.snap = true; scene = musterScene; mode = 'camp'; for (const id in musterScene.muster.byId) { const e = musterScene.muster.byId[id]; e.idleT = 1e9; } BB.musterSelect(UI.heroSel()); }
@@ -358,6 +361,7 @@
     BB.persist();
     if (wasDev) openTheater();
     if (guideDue) { guideDue = false; UI.modal('mGuide'); }
+    if (!devReal) { const n = BB.writClaim(S, now()); if (n) { BB.persist(); UI.refreshTop(); UI.toast('The Quartermaster\'s Writ: +' + n + ' crystals · ' + BB.writLeft(S, now()) + ' days left'); } }
   }
   BB.goCamp = goCamp;
   function drawTopBanner() { const bc = $('tbBanner'); UI.drawBanner(bc.getContext('2d'), BB.save.banner, bc.width, bc.height, 0); }
@@ -430,6 +434,7 @@
     const first = win && !S.cleared[M.id];
     const heroes = B.heroList.map((e) => e.hero);
     let mvp = null; for (const e of B.heroList) if (!mvp || (e.dealt || 0) > (mvp.dealt || 0)) mvp = e;
+    if (BB.Ads && !devReal) BB.Ads.battleDone();
     const res = BB.lastRes = { win, code: M.code, title: M.name, heroes, mvp: mvp && mvp.hero, kills: B.kills, gold: 0, crystals: 0, sigils: 0, items: [] };
     // experience: every hero who fought learns, by the share of the work they did (damage, healing, blows taken)
     const work = (e) => (e.dealt || 0) + (e.mended || 0) * 1.2 + (e.soaked || 0) * 0.6;
@@ -646,6 +651,15 @@
   UI.click($('bEndless'), () => UI.openTeam ? BB.deployEndless() : null);
   UI.click($('bGuide'), () => { UI.modal('mSettings', false); UI.modal('mGuide'); });
   UI.click($('bGuideClose'), () => UI.modal('mGuide', false));
+  UI.click($('bRestore'), async () => { const ok = await BB.IAP.restore(); UI.toast(ok ? 'Purchases checked: anything you own is yours again.' : 'The store could not be reached. Try again later.'); UI.refreshTop(); });
+  UI.click($('bPrivacyAds'), async () => { if (!(await BB.Ads.privacy())) UI.toast('Ad choices are set in the app, where Google asks for them.'); });
+  UI.click($('bPolicy'), () => { if (!BB.openLink(BB.CONFIG.links.privacy)) UI.toast('The privacy policy link is not set yet (js/config.js).'); });
+  UI.click($('bTerms'), () => { if (!BB.openLink(BB.CONFIG.links.terms)) UI.toast('The terms link is not set yet (js/config.js).'); });
+  if (BB.IAP) BB.IAP.onGrant = (out) => { // something bought has arrived
+    const P = BB.product(out.id); BB.sfx('levelup'); UI.refreshTop(); if (UI.current === 'shop') UI.renderShop();
+    UI.toast(P.name + ': ' + [out.crystals && '+' + UI.fmt(out.crystals) + ' crystals', out.gold && '+' + UI.fmt(out.gold) + ' gold', out.sigils && '+' + out.sigils + ' sigils', out.item && out.item.name, out.days && out.days + ' days', P.id === 'noads' && 'no more ads'].filter(Boolean).join(' · '));
+  };
+  UI.click($('tbCrysBtn'), () => { if (BB.marketStations().some((x) => x.paid) && !BB.dev) { UI.go('shop'); setTimeout(() => UI.marketOpen('treasury'), 60); } });
   UI.click($('bBackup'), () => { UI.modal('mSettings', false); $('bkCode').value = BB.saveCode(); $('bkMsg').textContent = 'This code is your whole save. Keep it somewhere safe, or paste it on another device.'; UI.modal('mBackup'); });
   UI.click($('bkCopy'), () => { const t = $('bkCode'); t.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (e) { /* not allowed */ } if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t.value).then(() => { $('bkMsg').textContent = 'Copied.'; }, () => { $('bkMsg').textContent = ok ? 'Copied.' : 'Select the code and copy it by hand.'; }); else $('bkMsg').textContent = ok ? 'Copied.' : 'Select the code and copy it by hand.'; });
   UI.click($('bkRestore'), () => { const code = $('bkCode').value; if (!BB.readCode(code)) { $('bkMsg').textContent = 'That is not a Bannerborn save code.'; return; } UI.confirm('Replace this device\'s save with the one in the code? What is here now will be lost.', () => { devExit(); if (BB.restoreCode(code)) location.reload(); else $('bkMsg').textContent = 'Could not store the save on this device.'; }); });
@@ -663,9 +677,16 @@
   UI.click($('bSpoils'), () => {
     const S = BB.save, p = BB.idlePending(S, now());
     if (p.gold < 1 && p.sigils < 1) { UI.toast('The camp is still gathering. Come back a little later.'); return; }
-    const got = BB.idleClaim(S, now());
-    BB.sfx('coin'); BB.persist(); UI.refreshTop(); UI.updateSpoils(); UI.renderHome();
-    UI.toast('Spoils: +' + UI.fmt(got.gold) + ' gold' + (got.sigils ? ', +' + got.sigils + ' sigils' : ''));
+    const take = (k) => { const got = BB.idleClaim(S, now()); if (k > 1) { S.gold += got.gold; S.sigils += got.sigils; } BB.sfx('coin'); BB.persist(); UI.refreshTop(); UI.updateSpoils(); UI.renderHome(); UI.modal('mSpoils', false);
+      UI.toast('Spoils: +' + UI.fmt(got.gold * k) + ' gold' + (got.sigils ? ', +' + got.sigils * k + ' sigils' : '') + (k > 1 ? ' (doubled)' : '')); };
+    // worth an ad only when there is something to double
+    const can = BB.Ads && BB.Ads.offers() && !BB.dev && BB.adLeft(S, 'spoils', now()) > 0 && p.gold >= 100;
+    if (!can) { take(1); return; }
+    $('spText').innerHTML = '<b>+' + UI.fmt(p.gold) + '</b> gold' + (p.sigils ? ' · <b>+' + p.sigils + '</b> sigils' : '') + (BB.writActive(S, now()) ? '<br><small>The Quartermaster\'s Writ has already doubled it.</small>' : '');
+    $('spDouble').innerHTML = (BB.hasNoAds(S) ? '' : '▶ ') + 'Double it <span class="cost">' + BB.adLeft(S, 'spoils', now()) + ' left today</span>';
+    $('spTake').onclick = () => take(1);
+    $('spDouble').onclick = async () => { if (await BB.Ads.rewarded('spoils') && BB.adUse(S, 'spoils', now())) take(2); };
+    UI.modal('mSpoils');
   });
   UI.click($('bPause'), togglePause);
   UI.click($('bResume'), togglePause);
@@ -1055,6 +1076,7 @@
 
   // ---------------------------------------------------------------- boot
   async function boot() {
+    if (BB.nativeRestore) await BB.nativeRestore(); // inside the app: the save's second copy, if the page's own is gone
     BB.save = loadSave();
     try {
       await BB.loadBase((p) => { document.querySelector('#boot .bar i').style.width = Math.round(p * 100) + '%'; });
@@ -1066,7 +1088,9 @@
     ['ghoul', 'warden', 'necro'].forEach((k) => BB.loadChar(k).catch(() => null));
     const q = new URLSearchParams(location.search);
     if (q.has('test')) BB.testHooks = { goCamp, newGame, scene: () => scene, finish: finishBattle, mode: () => mode, deploy: (i) => BB.deploy(i) };
+    if (BB.BUILD && BB.BUILD.native) document.body.classList.add('native');
     await goTitle();
+    if (BB.storeInit) BB.storeInit().then(() => { if (UI.current === 'shop') UI.renderShop(); }); // ads and the store wake up behind the title
   }
   boot();
 })();

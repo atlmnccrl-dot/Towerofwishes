@@ -27,10 +27,10 @@
   UI.modal = (id, on) => $(id).classList.toggle('on', on !== false);
   let toastT = 0;
   UI.toast = function (msg) { const t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2200); };
-  UI.confirm = function (html, yes) {
+  UI.confirm = function (html, yes, no) {
     $('confText').innerHTML = html; UI.modal('mConfirm');
     $('confYes').onclick = () => { UI.modal('mConfirm', false); yes(); };
-    $('confNo').onclick = () => UI.modal('mConfirm', false);
+    $('confNo').onclick = () => { UI.modal('mConfirm', false); if (no) no(); };
   };
   UI.refreshTop = function () {
     const S = BB.save; if (!S) return;
@@ -759,6 +759,7 @@
     info.appendChild(el('h2', '', tier.name + ' Gate'));
     info.appendChild(el('div', 'mute', open ? (tier.rarity ? BB.HERO_RARITY[tier.rarity].name + ' heroes: ×' + BB.HERO_RARITY[tier.rarity].mult + ' to every stat. ' : 'Steady recruits to fill your ranks. ') + 'You get a hero you don\'t have yet.' : 'Clear chapter ' + tier.chapter + ' · ' + esc(BB.CHAPTERS[tier.chapter - 1].name) + ' to open this gate.'));
     info.appendChild(el('div', 'lbl', left.length + ' of ' + heroes.length + ' still to find'));
+    if (open && left.length) info.appendChild(el('div', 'odds', 'Each of the ' + left.length + ' is as likely as any other (' + BB.gateOdds(S, tier).pct + '% each). Nobody comes twice.'));
     RC.pool = (left.length ? left : heroes).slice(0, 7); RC.open = open; RC.feat = 0; RC.featT = 0;
     for (const e of RC.pool) if (!RC.loaded[e.key]) { RC.loaded[e.key] = 'loading'; BB.loadChar('h/' + e.key).then(() => { RC.loaded[e.key] = 1; }).catch(() => {}); }
     const row = el('div', 'row');
@@ -1287,16 +1288,26 @@
   // ---- the market: four traders at their stations in an open square. Tap one: your hero walks over, the camera
   // closes in, and that trader's wares come up beside them.
   BB.MARKET = [
-    { id: 'smith', name: 'The Smith', tag: 'Chests · masterwork arms', line: 'Hot off the anvil. Take a chest as it comes, or let me make you something with a name.', col: '#ff7a4d', offers: ['chest', 'arms'] },
+    { id: 'smith', name: 'The Smith', tag: 'Chests · masterwork arms', line: 'Hot off the anvil. Take a chest as it comes, or let me make you something with a name.', col: '#ff7a4d', offers: ['chest', 'arms', 'ad:chest'] },
     { id: 'quarter', name: 'The Quartermaster', tag: 'War chest · spare gear', line: 'Gold in the war chest is steel in every hand. And I buy what nobody carries.', col: '#ffbe55', offers: ['rank', 'sell'] },
-    { id: 'gems', name: 'The Gem-Trader', tag: 'Crystals', line: 'Crystals open gates. The first handful of the day is on me.', col: '#63d6ff', offers: ['free', 'crystals'] },
+    { id: 'gems', name: 'The Gem-Trader', tag: 'Crystals', line: 'Crystals open gates. The first handful of the day is on me.', col: '#63d6ff', offers: ['free', 'crystals', 'ad:gems'] },
+    { id: 'treasury', name: 'The Treasurer', tag: 'Crystals · the writ · no ads', line: 'Coin from beyond the camp is welcome here. Nothing I sell wins a fight for you: it buys time, and quiet.', col: '#ffe08a', offers: ['writ', 'starter', 'noads', 'c1', 'c2', 'c3', 'c4', 'c5'], paid: true },
     { id: 'seer', name: 'The Seer', tag: 'Sigils · the gates', line: 'Sigils for those ready to rise. And the gates stand open, if you would call someone new.', col: '#b57cff', offers: ['sigils', 'gates'] },
   ];
   const MK = { sel: null, plates: {} };
+  const adsOn = () => !!(BB.Ads && BB.Ads.offers() && !BB.dev), paidOn = () => !!(BB.IAP && BB.IAP.available() && !BB.dev);
+  BB.marketStations = () => BB.MARKET.filter((st) => !st.paid || paidOn());
+  // a bonus for watching an ad: counted against the day, given at once to those who bought their quiet
+  UI.watchFor = async function (spot, give) {
+    const S = BB.save; if (!adsOn() || BB.adLeft(S, spot, now()) <= 0) return false;
+    const ok = await BB.Ads.rewarded(spot); if (!ok || !BB.adUse(S, spot, now())) return false;
+    give(); BB.sfx('coin'); BB.persist(); UI.refreshTop(); return true;
+  };
+  const watchLabel = () => (BB.hasNoAds(BB.save) ? 'Claim' : '▶ Watch');
   UI.marketSel = () => MK.sel;
   const canPay = (S, o) => !o.cost || (S.gold >= (o.cost.gold || 0) && S.crystals >= (o.cost.crystals || 0));
   // does this trader have something worth the walk: a gift, or something you can pay for right now
-  const stationNews = (S, st) => st.offers.some((id) => id === 'rank' ? (S.rank || 0) < BB.RANK_MAX && S.gold >= BB.rankCost(S.rank || 0) : id === 'free' ? BB.shopLeft(S, BB.SHOP[0], now()) > 0 : false);
+  const stationNews = (S, st) => st.offers.some((id) => id === 'writ' ? false : id.startsWith('ad:') ? adsOn() && BB.adLeft(S, id.slice(3), now()) > 0 : id === 'rank' ? (S.rank || 0) < BB.RANK_MAX && S.gold >= BB.rankCost(S.rank || 0) : id === 'free' ? BB.shopLeft(S, BB.SHOP[0], now()) > 0 : false);
   function offerCard(S, id) {
     const col = { free: '#5cb8ff', chest: '#ffb648', sigils: '#b57cff', crystals: '#63d6ff', arms: '#ff7a4d' };
     const gem = '<span class="gem"></span>';
@@ -1322,6 +1333,20 @@
         () => { if (!BB.raiseRank(S)) return; BB.sfx('levelup'); BB.persist(); UI.renderShop(); UI.refreshTop(); UI.toast('The banner rises: rank ' + S.rank); }, 'bRank');
     }
     if (id === 'sell') return card(S.inventory.length ? '' : 'sold', '#d9c7a0', art.sell(), 'Spare Gear', 'Sell what is in the bag, a piece at a time or every Common piece at once.', S.inventory.length ? S.inventory.length + ' in the bag' : 'The bag is empty', 'Sell', !S.inventory.length, () => UI.openSell(), 'bSellGear');
+    if (id.startsWith('ad:')) { // a bonus for watching (the smith's spare chest, the crier's coin)
+      const spot = id.slice(3), A = BB.AD_SPOTS[spot], left = BB.adLeft(S, spot, now()); if (!adsOn()) return null;
+      if (spot === 'gems') return card(left > 0 ? 'ad' : 'ad sold', '#63d6ff', gem, 'A Crier\'s Coin', 'Hear the crier out and he pays in crystals: ' + A.crystals + ' each time.', left > 0 ? left + ' left today' : 'Back tomorrow', watchLabel(), left <= 0, () => UI.watchFor('gems', () => { S.crystals += A.crystals; UI.toast('+' + A.crystals + ' crystals'); }).then(() => UI.renderShop()), 'bAdGems');
+      return card(left > 0 ? 'ad' : 'ad sold', '#ffb648', art.chest(), 'The Smith\'s Spare', 'One Armory Chest for hearing the crier out. Rare or better.', left > 0 ? left + ' left today' : 'Back tomorrow', watchLabel(), left <= 0, () => UI.watchFor('chest', () => { const it = BB.chestItem(S, BB.rng(now() & 0xffffff)); S.inventory.push(it); UI.toast('Got ' + it.name + ' (' + BB.RARITY[it.rarity].name + ')'); }).then(() => UI.renderShop()), 'bAdChest');
+    }
+    const PR = BB.product(id);
+    if (PR) { // sold for money, at the treasurer's
+      const I = BB.iap(S), own = PR.kind === 'once' && I.owned[PR.id], days = PR.kind === 'pass' ? BB.writLeft(S, now()) : 0;
+      const pic = PR.id === 'noads' ? '<svg viewBox="0 0 24 24"><path d="M4 5h12l4 7-4 7H4z"/><path d="M8 9l6 6M14 9l-6 6"/></svg>' : PR.id === 'starter' ? art.chest() : PR.id === 'writ' ? '<svg viewBox="0 0 24 24"><path d="M6 3h10l3 3v15H6z"/><path d="M9 9h7M9 13h7M9 17h4"/></svg>' : PR.id === 'c1' ? gem : '<span class="gems">' + gem + gem + gem + '</span>';
+      return card('paid' + (own ? ' sold' : '') + (PR.id === 'c5' || PR.id === 'writ' ? ' best' : ''), PR.kind === 'pack' ? '#63d6ff' : '#ffe08a', pic, PR.name, PR.desc, own ? 'Yours' : days ? days + ' days left' : PR.kind === 'once' ? 'Once' : PR.kind === 'pass' ? '30 days' : '◆ ' + fmt(PR.give.crystals), own ? 'Owned' : BB.IAP.price(PR.id), !!own, async () => {
+        const r = await BB.IAP.buy(PR.id); if (r && r.error && !r.cancelled) UI.toast(r.error); if (r && r.pending) UI.toast('The store is still deciding. It will arrive when it does.');
+        UI.renderShop(); UI.refreshTop();
+      }, 'bBuy-' + PR.id);
+    }
     if (id === 'gates') return card('', '#b57cff', art.gates(), 'The Recruiting Gates', 'Spend crystals to call a hero you do not have yet.', '◆ ' + fmt(S.crystals) + ' in hand', 'Go ▸', false, () => UI.openRecruit(), 'bGates');
     const o = BB.SHOP.find((x) => x.id === id), left = BB.shopLeft(S, o, now());
     return card(left > 0 ? '' : 'sold', col[o.id] || '#ffbe55', (art[o.id] || art.free)(), o.name, o.desc, left > 0 ? left + ' left today' : 'Sold out · back tomorrow', !o.cost ? 'Claim' : o.cost.crystals ? '◆ ' + fmt(o.cost.crystals) : '● ' + fmt(o.cost.gold), left <= 0 || !canPay(S, o), () => {
@@ -1331,7 +1356,7 @@
     });
   }
   UI.marketOpen = function (id) {
-    const st = BB.MARKET.find((x) => x.id === id) || null;
+    const st = BB.marketStations().find((x) => x.id === id) || null;
     if (st && MK.sel !== st.id) BB.sfx('click');
     MK.sel = st ? st.id : null; if (BB.marketFocus) BB.marketFocus(MK.sel);
     UI.renderShop();
@@ -1342,21 +1367,24 @@
     $('shopReset').textContent = 'Restocks in ' + Math.floor(left / 3600000) + 'h ' + Math.floor(left / 60000) % 60 + 'm';
     // the name plates over the traders' heads
     const pl = $('mkPlates');
-    if (!pl.children.length) for (const st of BB.MARKET) {
+    if (pl.dataset.n !== String(BB.marketStations().length)) { pl.innerHTML = ''; MK.plates = {}; pl.dataset.n = String(BB.marketStations().length); }
+    if (!pl.children.length) for (const st of BB.marketStations()) {
       const b = el('button', 'mk-plate', '<i></i><b>' + st.name + '</b><small>' + st.tag + '</small>'); b.style.setProperty('--oc', st.col);
       click(b, () => UI.marketOpen(st.id)); pl.appendChild(b); MK.plates[st.id] = b;
     }
-    for (const st of BB.MARKET) MK.plates[st.id].classList.toggle('news', stationNews(S, st));
-    const st = BB.MARKET.find((x) => x.id === MK.sel), shop = $('shop');
+    for (const st of BB.marketStations()) MK.plates[st.id].classList.toggle('news', stationNews(S, st));
+    const st = BB.marketStations().find((x) => x.id === MK.sel), shop = $('shop');
     shop.classList.toggle('talk', !!st); document.body.classList.toggle('mk-talk', !!st);
     if (!st) return;
     shop.style.setProperty('--oc', st.col);
     $('mkName').textContent = st.name; $('mkLine').textContent = '“' + st.line + '”';
-    for (const id of st.offers) box.appendChild(offerCard(S, id));
+    box.classList.toggle('many', st.offers.length > 3);
+    for (const id of st.offers) { const c = offerCard(S, id); if (c) box.appendChild(c); }
+    $('mkFine').style.display = st.paid ? '' : 'none';
   };
   // each frame (main.js): put every plate over its trader
   UI.marketPlates = function (at, focus) {
-    for (const st of BB.MARKET) { const b = MK.plates[st.id]; if (!b) continue; const p = at(st.id); b.style.transform = 'translate(' + Math.round(p.x) + 'px,' + Math.round(p.y) + 'px) translate(-50%,-100%)'; b.classList.toggle('on', focus === st.id); }
+    for (const st of BB.MARKET) { const b = MK.plates[st.id]; if (!b) continue; const p = at(st.id); if (!p) continue; b.style.transform = 'translate(' + Math.round(p.x) + 'px,' + Math.round(p.y) + 'px) translate(-50%,-100%)'; b.classList.toggle('on', focus === st.id); }
   };
   (function () {
     const stage = $('mkStage'); if (!stage) return;
@@ -1469,7 +1497,11 @@
     }
     if (res.unlock) body.appendChild(el('div', 'newhero', res.unlock));
     const bt = el('div', 'res-btns');
-    for (const [label, cls, fn] of actions) { const b = el('button', 'btn ' + (cls || ''), label); click(b, () => { UI.modal('mResults', false); fn(); }); bt.appendChild(b); }
+    if (res.win && res.gold > 0 && !res.head && adsOn() && BB.adLeft(BB.save, 'victory', now()) > 0) {
+      const d = el('button', 'btn dark adbtn', (BB.hasNoAds(BB.save) ? '' : '▶ ') + 'Double the gold <span class="cost">+' + fmt(res.gold) + ' ●</span>'); d.id = 'bAdGold';
+      click(d, () => UI.watchFor('victory', () => { BB.save.gold += res.gold; UI.toast('+' + fmt(res.gold) + ' gold'); }).then((ok) => { if (ok) d.remove(); })); bt.appendChild(d);
+    }
+    for (const [label, cls, fn] of actions) { const b = el('button', 'btn ' + (cls || ''), label); click(b, async () => { UI.modal('mResults', false); if (BB.Ads && !BB.dev) await BB.Ads.between(); fn(); }); bt.appendChild(b); }
     body.appendChild(bt);
     UI.modal('mResults');
   };

@@ -751,6 +751,30 @@ button.hx-slot:hover{translate:-3px 0;border-color:var(--ic)}
 .hx-node{display:flex;align-items:center;gap:14px;min-height:64px;padding:10px 12px 10px 16px;border-radius:14px;--c:#ffbe55;background:linear-gradient(90deg,color-mix(in srgb,var(--c) 15%,transparent),rgba(255,255,255,.02));border:1px solid color-mix(in srgb,var(--c) 30%,transparent)}
 .hx-node b{font:700 16px var(--head);color:color-mix(in srgb,var(--c) 70%,#fff)} .hx-node small{margin-left:10px;font:500 12px var(--body);color:#8d96a6} .hx-node p{margin:3px 0 0;font:500 13px/1.4 var(--body);color:#cfd5df} .hx-node p span{color:#ff9b7b}
 .hx-node .btn{flex:none;min-width:120px}
+/* ---- the till: the treasurer's wares, bonuses for watching, the preview's stand-in for an ad */
+#tbCrysBtn{cursor:pointer;font:inherit;color:inherit} #tbCrysBtn .plus{margin-left:6px;width:16px;height:16px;border-radius:50%;background:var(--accent);color:#1b1206;font:800 13px/16px var(--head);text-align:center}
+body.dev #tbCrysBtn .plus,html[data-store=off] #tbCrysBtn .plus,html[data-store=off] .store-row{display:none}
+/* a long list of wares (the treasurer's): compact rows, two abreast, every price in sight */
+#shop .offers.many{grid-template-columns:1fr 1fr;grid-auto-rows:max-content;align-content:start;gap:8px;padding-top:6px}
+#shop .offers.many .offer{display:grid;grid-template-columns:52px minmax(0,1fr) auto;grid-template-areas:"art title btn" "art desc btn";align-items:center;gap:1px 10px;text-align:left;padding:9px 10px;
+  background:linear-gradient(90deg,color-mix(in srgb,var(--oc) 16%,rgba(13,16,24,.86)),rgba(10,12,18,.84) 70%);border-color:color-mix(in srgb,var(--oc) 30%,transparent);overflow:hidden}
+#shop .offers.many .offer .art{grid-area:art;width:52px;height:52px;margin:0} #shop .offers.many .offer .art::before{inset:-14px} #shop .offers.many .offer .art canvas{width:36px;height:36px} #shop .offers.many .offer .art svg{width:26px;height:26px}
+#shop .offers.many .offer .art .gem{width:20px;height:27px} #shop .offers.many .offer .art .gems .gem:nth-child(1),#shop .offers.many .offer .art .gems .gem:nth-child(3){width:13px;height:17px}
+#shop .offers.many .offer h3{grid-area:title;align-self:end;font-size:11.5px;min-width:0} #shop .offers.many .offer p{grid-area:desc;align-self:start;min-height:0;font-size:11px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+#shop .offers.many .offer .left{display:none} #shop .offers.many .offer .btn{grid-area:btn;width:auto;min-width:70px;margin:0 2px 0 0;padding-left:12px;padding-right:12px;white-space:nowrap}
+#shop .offers.many .offer.best::after{top:auto;bottom:4px;right:auto;left:6px;font-size:8px;padding:2px 6px}
+#shop .offer.paid .btn{background:linear-gradient(180deg,#8ee6a0,#2f9e56);color:#06210f;box-shadow:0 8px 24px -8px rgba(60,200,110,.7),inset 0 1px 0 rgba(255,255,255,.4)}
+#shop .offer.best::after{content:'Best value';position:absolute;top:6px;right:6px;padding:3px 8px;border-radius:999px;background:#ffcf6a;color:#1b1206;font:800 9.5px var(--head);letter-spacing:.1em;text-transform:uppercase}
+#shop .offer.ad .btn{background:linear-gradient(180deg,#9fd0ff,#3f7fe0);color:#fff}
+.mk-panel .fine{flex:none;font:400 11px/1.4 var(--body);color:#8d96a6;text-shadow:0 1px 3px #000}
+.odds{font:500 11.5px var(--body);color:#aab2c0;text-shadow:0 1px 3px #000}
+.btn .cost{font-weight:600}
+.adbtn{border-color:rgba(120,180,255,.5)}
+#adCard{position:fixed;inset:0;z-index:200;display:grid;place-items:center;background:rgba(3,4,7,.94)}
+#adCard .in{width:min(420px,86vw);padding:26px 24px;border-radius:18px;background:linear-gradient(180deg,#1b2233,#0e1119);border:1px solid rgba(255,255,255,.14);display:flex;flex-direction:column;gap:10px;align-items:center;text-align:center}
+#adCard small{font:700 10.5px var(--head);letter-spacing:.2em;text-transform:uppercase;color:#7fb1ff} #adCard b{font:700 20px var(--head)} #adCard p{margin:0;font:400 13px var(--body);color:#9aa3b3}
+#adCard .bar{width:100%;height:6px;border-radius:3px;background:rgba(255,255,255,.1);overflow:hidden} #adCard .bar i{display:block;height:100%;width:0;background:#7fb1ff}
+body.native #bTheater{display:none}
 /* the team's places: taken, free, locked */
 .slots{display:flex;align-items:center;gap:6px;font:500 12px var(--body);color:var(--mute)}
 .slots i{width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-style:normal;flex:none;background:rgba(255,255,255,.05);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);color:var(--dim)}
@@ -819,6 +843,7 @@ button.hx-slot:hover{translate:-3px 0;border-color:var(--ic)}
   .hx-abil{padding:7px 10px 7px 8px} .hx-abil .play{width:36px;height:36px} .hx-abil p{font-size:11.5px} .hx-abil b{font-size:14px}
   .hx-slot{padding:6px 10px 6px 6px;gap:10px} .hx-it{width:50px;height:50px} .hx-it canvas{width:40px;height:40px} .hx-slot .txt b{font-size:14px} .hx-slot .txt span,.hx-slot .txt em{font-size:11px}
   .hx-tree{height:270px} .hx-tree .nd{width:48px;height:48px} .hx-tree .nd.cap{width:56px;height:56px} .hx-tree .nd .face canvas{width:28px;height:28px} .hx-gh .pts b{font-size:26px} .hx-node{min-height:54px;padding:7px 10px 7px 12px} .hx-node p{font-size:12px}
+  #shop .offers.many{grid-template-columns:1fr} .mk-panel .fine{font-size:9.5px} #shop .offers.many .offer p{-webkit-line-clamp:2}
   #heroes .col{flex-basis:54%} #heroes .spot .sp-bot{padding:2px 8px 0} #heroes .coll .w,#heroes .sect small{display:none} #heroes .spot .stars{display:none} #heroes .spot .nm{font-size:17px}
   #shop .offers{padding-top:22px;gap:8px} #shop .offer p{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
   .mk-head{top:calc(50px + var(--safe-t))} .mk-head .sect small{display:none} .mk-panel{top:calc(52px + var(--safe-t));bottom:calc(8px + var(--safe-b));width:50%;gap:2px} .mk-panel .who{flex-direction:row;align-items:center;gap:10px} .mk-panel .line{font-size:11.5px;line-height:1.3}
@@ -864,7 +889,7 @@ button.hx-slot:hover{translate:-3px 0;border-color:var(--ic)}
   <div id="topbar">
     <div class="title"><canvas id="tbBanner" width="52" height="72"></canvas><span id="tbTitle">Camp</span></div>
     <span class="pill"><span class="ico pow">⚔</span><span class="num" id="tbPower">0</span></span>
-    <span class="pill"><span class="ico crys"></span><span class="num" id="tbCrys">0</span></span>
+    <button class="pill" id="tbCrysBtn" aria-label="Crystals"><span class="ico crys"></span><span class="num" id="tbCrys">0</span><span class="plus">+</span></button>
     <span class="pill"><span class="ico gold">●</span><span class="num" id="tbGold">0</span></span>
     <button class="rbtn" id="bSettings" aria-label="Settings"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg></button>
   </div>
@@ -929,7 +954,7 @@ button.hx-slot:hover{translate:-3px 0;border-color:var(--ic)}
 
 <div id="shop" class="screen"><div class="bg"></div><div class="mk-stage" id="mkStage"></div><div class="mk-plates" id="mkPlates"></div>
   <div class="mk-head"><div class="sect grow">The Market <small>tap a trader to see their wares</small></div><span class="timer" id="shopReset"></span></div>
-  <div class="mk-panel" id="mkPanel"><div class="who"><button class="btn dark sm" id="mkBack">‹ Market</button><h2 id="mkName"></h2></div><p class="line" id="mkLine"></p><div class="offers" id="offers"></div></div>
+  <div class="mk-panel" id="mkPanel"><div class="who"><button class="btn dark sm" id="mkBack">‹ Market</button><h2 id="mkName"></h2></div><p class="line" id="mkLine"></p><div class="offers" id="offers"></div><div class="fine" id="mkFine" style="display:none">Purchases are final and stay on this device’s store account. Crystals call heroes through the gates: every hero behind a gate is as likely as any other, and nobody comes twice.</div></div>
 </div>
 
 <div id="hud" class="screen">
@@ -965,6 +990,7 @@ button.hx-slot:hover{translate:-3px 0;border-color:var(--ic)}
   <label class="row">Graphics <select id="sGfx" class="grow" style="background:#151a26;color:#f3f5f9;border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:8px 10px;font:500 14px var(--body)"><option value="auto">Auto — sharp, and lighter if a fight slows down</option><option value="sharp">Sharp — always full detail</option><option value="fast">Fast — smoothest, softer picture</option></select></label>
   <div class="mute" style="font-size:12px">Art: “Fantasy tileset – 2D Isometric”, “2D Desert Fantasy” and the Fantasy Character Creator cast, supplied by the author. Monster voices: “Fantasy Monsters”, “Dinosaurs” and “Abyssal Horror SFX Vol.1” by Riria / Ririsaurus. Other sound and the music are synthesised in the browser.</div>
   <div class="row" style="flex:none"><button class="btn dark sm grow" id="bGuide">How to play</button><button class="btn dark sm grow" id="bBackup">Back up or move save</button></div>
+  <div class="row store-row" style="flex:none;flex-wrap:wrap"><button class="btn dark sm grow" id="bRestore">Restore purchases</button><button class="btn dark sm grow" id="bPrivacyAds">Ad choices</button><button class="btn dark sm grow" id="bPolicy">Privacy policy</button><button class="btn dark sm grow" id="bTerms">Terms</button></div>
   <button class="btn dark" id="bTheater" style="flex:none">🛠 Development</button>
   <div class="row"><button class="btn dark sm" id="bNew">Start a new game</button><div class="grow"></div><button class="btn" id="bSetClose">Done</button></div>
 </div></div>
@@ -998,12 +1024,15 @@ button.hx-slot:hover{translate:-3px 0;border-color:var(--ic)}
   <div class="row"><button class="btn dark sm" id="bkRestore">Restore from this code</button><div class="grow"></div><button class="btn dark sm" id="bkCopy">Copy</button><button class="btn sm" id="bkClose">Done</button></div>
 </div></div>
 <div id="mPick" class="modal"><div class="frame" id="pickBody" style="width:min(560px,94vw)"></div></div>
+<div id="mSpoils" class="modal"><div class="frame" style="width:min(400px,90vw);text-align:center"><h3 class="gold">The camp's spoils</h3><div id="spText" style="font-size:17px"></div><div class="row" style="justify-content:center;flex-wrap:wrap"><button class="btn dark" id="spTake">Take it</button><button class="btn" id="spDouble"></button></div></div></div>
 <div id="mConfirm" class="modal"><div class="frame" style="width:min(420px,90vw)"><div id="confText" style="font-size:16px"></div><div class="row" style="justify-content:flex-end"><button class="btn dark" id="confNo">Cancel</button><button class="btn" id="confYes">Yes</button></div></div></div>
 <div class="toast" id="toast"></div>
 <div id="rotate"><div class="logo" style="font-size:40px">BANNERBORN</div><div>Turn your device sideways to play.</div></div>
 
 <script src="js/data.js"></script>
 <script src="js/rules.js"></script>
+<script src="js/config.js"></script>
+<script src="js/store.js"></script>
 <script src="js/assets.js"></script>
 <script src="js/aura.js"></script>
 <script src="js/world.js"></script>

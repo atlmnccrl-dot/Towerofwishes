@@ -188,6 +188,37 @@ ok(!BB.buy(SH, 'chest', day), 'paid offers need gold');
 SH.gold = 1e5; const ch = BB.buy(SH, 'chest', day); ok(ch && ch.item && ch.item.rarity >= 1, 'armory chest gives Rare or better');
 ok(BB.shopLeft(SH, BB.SHOP[0], day + 86400000) === 1, 'offers come back the next day');
 
+// the treasury: purchases are given once, passes run by the day, ads are capped, odds are plain
+{
+  const d0 = Date.UTC(2026, 10, 8, 12), T = BB.newSave(d0);
+  ok(BB.PRODUCTS.every((p) => /^bannerborn\./.test(p.sku) && p.usd > 0 && p.name && p.desc) && new Set(BB.PRODUCTS.map((p) => p.sku)).size === BB.PRODUCTS.length, 'every product has its own store id, a price and words');
+  ok(!BB.hasNoAds(T) && BB.grantProduct(T, 'noads', d0, 't1') && BB.hasNoAds(T), 'buying Quiet March removes ads');
+  ok(BB.grantProduct(T, 'noads', d0, 't2') === null && BB.grantProduct(T, 'bannerborn.noads', d0, 't1') === null, 'a once-only product is not given twice');
+  const st = BB.grantProduct(T, 'starter', d0, 't3');
+  ok(st && st.crystals === 600 && T.crystals === 600 && T.gold === 5000 && T.sigils === 20 && st.item && st.item.rarity === 2 && BB.canEquip(T.heroes[0], st.item), 'the Captain\'s Chest gives its contents and a weapon the Captain can carry');
+  ok(BB.grantProduct(T, 'starter', d0, 't9') === null && T.crystals === 600, 'and only once');
+  ok(BB.grantProduct(T, 'c3', d0, 't4').crystals === 1200 && BB.grantProduct(T, 'c3', d0, 't4') === null && BB.grantProduct(T, 'c3', d0, 't5') && T.crystals === 3000, 'a pack is given once per transaction, and again for a new one');
+  ok(!BB.writActive(T, d0) && BB.writClaim(T, d0) === 0, 'no writ, no allowance');
+  const g0 = BB.newSave(d0); g0.cleared['s1-1'] = 1; const base = BB.idlePending(g0, d0 + 3600000).gold;
+  BB.grantProduct(g0, 'writ', d0, 'w1');
+  ok(BB.writActive(g0, d0) && BB.writLeft(g0, d0) === 30 && BB.idlePending(g0, d0 + 3600000).gold === base * 2, 'the writ runs thirty days and doubles the camp');
+  const c0 = g0.crystals; ok(BB.writClaim(g0, d0) === 40 && BB.writClaim(g0, d0) === 0 && BB.writClaim(g0, d0 + 86400000) === 40 && g0.crystals === c0 + 80, 'its crystals come once a day');
+  BB.grantProduct(g0, 'writ', d0, 'w2'); ok(BB.writLeft(g0, d0) === 60 && !BB.writActive(g0, d0 + 61 * 86400000) && BB.writClaim(g0, d0 + 61 * 86400000) === 0, 'a second writ adds its days; it ends');
+  ok(Math.abs(BB.iap(T).spent - (3.99 + 4.99 + 9.99 * 2)) < 0.011, 'what was spent is kept');
+  const A = BB.newSave(d0);
+  ok(BB.adLeft(A, 'gems', d0) === 3 && BB.adUse(A, 'gems', d0) && BB.adUse(A, 'gems', d0) && BB.adUse(A, 'gems', d0) && !BB.adUse(A, 'gems', d0) && BB.adLeft(A, 'gems', d0) === 0, 'an ad bonus is capped by the day');
+  ok(BB.adLeft(A, 'chest', d0) === 1 && BB.adLeft(A, 'gems', d0 + 86400000) === 3 && BB.adUse(A, 'gems', d0 + 86400000), 'each has its own count, and the count starts again tomorrow');
+  const N = BB.newSave(d0), due = (st, t) => BB.interstitialDue(N, st, t);
+  ok(!due({ battles: 9, lastAd: 0 }, d0), 'no ad between battles on the first road');
+  BB.MISSIONS.slice(0, 8).forEach((m) => (N.cleared[m.id] = 1));
+  ok(due({ battles: 3, lastAd: 0 }, d0) && !due({ battles: 2, lastAd: 0 }, d0) && !due({ battles: 5, lastAd: d0 - 60000 }, d0), 'after it: every third battle, never within three minutes of another ad');
+  BB.grantProduct(N, 'noads', d0); ok(!due({ battles: 9, lastAd: 0 }, d0), 'never for those who bought their quiet');
+  const O = BB.newSave(d0), T0 = BB.heroTiers(BB.ROSTER)[0], o0 = BB.gateOdds(O, T0.tier), nT = T0.heroes.length;
+  ok(o0.left === nT && (nT === 0 || o0.pct === Math.round(1000 / nT) / 10), 'a gate says its odds: each hero behind it equally likely');
+  if (nT) { O.heroes.push(BB.heroFromEntry(O, T0.heroes[0])); ok(BB.gateOdds(O, T0.tier).left === nT - 1, 'and one fewer once a hero has come through'); }
+  const J2 = JSON.parse(JSON.stringify(T)); ok(BB.hasNoAds(J2) && BB.grantProduct(J2, 'c3', d0, 't5') === null, 'purchases survive the save');
+}
+
 // milestones
 const Q = BB.newSave(1);
 ok(BB.questsReady(Q) === 0, 'no milestones at the start');
