@@ -64,6 +64,7 @@
       ['Display', [['cam', 'Camera', { near: 'Near', far: 'Far' }[v.cam] || 'Normal'], ['text', 'Text size', Math.round((v.text || 1) * 100) + '%'], ['nums', 'Damage numbers', onoff(v.nums !== false)],
         ['shake', 'Screen shake', onoff(v.shake)], ['calm', 'Reduce flashing', v.calm ? 'On · no impact frames or white flashes' : 'Off'], ['safe', 'Colour-safe cues', v.safe ? 'On · blue and orange attack warnings' : 'Off']]],
       ['Sound', [['music', 'Music', v.music ? (v.music < 1 ? 'Low' : 'On') : 'Off'], ['sfx', 'Sound effects', onoff(v.sfx)], ['vibe', 'Vibration', v.vibe === false ? 'Off' : 'On · phones that support it']]],
+      ...(VS.SHOP && VS.SHOP.on() ? [['Purchases', [['noads', 'No ads', VS.SHOP.noAds() ? 'Owned' : VS.SHOP.price('vesper_no_ads')], ['restore', 'Restore purchases', 'On a new device or after reinstalling'], ['privacy', 'Privacy options', 'Ad consent and tracking choices']]]] : []),
       ['Dev tools', [['watch', 'Watch the bot play', 'The bot plays the campaign by itself. Press any key or tap to stop'], ['watchSpeed', 'Watch speed', (v.watchSpeed || 1) + '× (fights)']]],
       ['Save', [['export', 'Export save', 'Download a file and copy the code'], ['import', 'Import save', 'Load a save file'], ['reset', 'Reset progress', o.confirmReset ? 'Press again to erase your climb' : 'Erase levels, skills, gear and the map']]]];
     let i = 0; const keys = [];
@@ -110,6 +111,11 @@
       <p class="lead">The moon offers you one of these.</p>${cards}
       ${o.carried.length ? `<p class="carried">Carried: ${o.carried.map(esc).join(' · ')}</p>` : ''}</div>`, items);
   };
+  // A yes-or-no offer over the fight (Rise again).
+  U.offer = function (o) {
+    const items = [{ label: o.yes, act: o.onYes, cls: 'focus-first gold' }, { label: o.no, act: o.onNo }];
+    U.show('offer', `<div class="panel offer"><p class="eyebrow">${esc(o.eyebrow || '')}</p><h2>${esc(o.title)}</h2><p class="note">${esc(o.text || '')}</p>${buttons(items, 'center')}</div>`, items, { back: o.onNo, cls: 'dim' });
+  };
   U.lost = function (o) {
     const items = [{ label: 'Try the hour again', act: o.onRetry, cls: 'focus-first' }, { label: 'Title', act: o.onTitle }];
     U.show('lost', `<div class="center"><h2 class="big">You fell</h2><p class="quote">“Then fall forward.”</p><p class="note">Nothing is lost. Your boons stay with you.</p>${buttons(items, 'center')}</div>`, items, { back: o.onTitle });
@@ -150,6 +156,8 @@
       <button class="chip" data-act="gear" type="button">${ic('anvil', 1)}<span class="lbl">Gear</span> ${ic('coins', 1)}<span class="gold">${p.gold || 0}</span></button>
       ${Object.keys(p.souls || {}).length ? `<button class="chip ${p.soul && p.souls[p.soul] < PR.SOUL_MAX && p.shards >= PR.soulCost(p.souls[p.soul]) ? 'hot' : ''}" data-act="souls" type="button" style="--hc:${DD().SOULS[p.soul || Object.keys(p.souls)[0]].color}">${ic('souls', 1)}<span class="lbl">Souls</span> ${ic('shard', 1)}<span class="gold" style="color:#bcd8ff">${p.shards || 0}</span></button>` : ''}
       <button class="chip" data-act="modes" type="button">${ic('trophy', 1)}<span class="lbl">Modes${p.ng ? ' · NG+' + p.ng : ''}</span></button>
+      ${VS.SHOP && VS.SHOP.on() ? `<button class="chip" data-act="shop" type="button">${ic('gem', 1)}<span class="lbl">Shop${VS.SHOP.test() ? ' · test' : ''}</span></button>` : ''}
+      ${VS.SHOP && VS.SHOP.giftReady() && p.stats && p.stats.wins >= 3 ? `<button class="chip hot" data-act="gift" type="button">${ic('chest', 1)}<span class="lbl">Moon's Gift</span></button>` : ''}
       <span class="chip stars" style="cursor:default">${ic('star', 1)}${PR.totalStars(p)} / ${PR.maxStars()}</span>
       <button class="chip icon" data-act="menu" type="button" aria-label="Menu">${ic('gear', 1)}</button></div>`;
     const n = o.sel && PR.node(o.sel);
@@ -181,7 +189,7 @@
       card = `<div class="ms-left">${left}</div><div class="ms-mid">${mid}</div><div class="ms-right">${right}</div><div class="ms-go">${go}</div>`;
     }
     const el = U.show('map', bar + `<section class="mission${n ? ' has' : ''}">${card}</section>`, null, { back: o.onMenu });
-    el.querySelectorAll('[data-act]').forEach((b) => b.addEventListener('click', () => { VS.audio.unlock(); VS.audio.sfx('clang_0', 0.4); ({ skills: o.onSkills, heroes: o.onHeroes, menu: o.onMenu, go: o.onGo, gear: o.onGear, modes: o.onModes, souls: o.onSouls })[b.dataset.act](); }));
+    el.querySelectorAll('[data-act]').forEach((b) => b.addEventListener('click', () => { VS.audio.unlock(); VS.audio.sfx('clang_0', 0.4); ({ skills: o.onSkills, heroes: o.onHeroes, menu: o.onMenu, go: o.onGo, gear: o.onGear, modes: o.onModes, souls: o.onSouls, shop: o.onShop, gift: o.onGift })[b.dataset.act](); }));
     el.querySelectorAll('.ms-foe canvas').forEach((c) => figure(c, c.dataset.set));
     const go = el.querySelector('[data-act="go"]'); if (go) go.focus({ preventScroll: true });
     return el;
@@ -279,6 +287,23 @@
     if (hc) { const g = hc.getContext('2d'); g.imageSmoothingEnabled = false; let t = 0; const draw = () => { if (!hc.isConnected) return; g.clearRect(0, 0, 160, 160); VS.A.actor(g, H.set, win ? 'Taunt' : 'TakeDamage', win ? Math.floor(t * 9) % 15 : Math.min(14, 6 + Math.floor(t * 2) % 3), Math.PI * 0.25, 80, 154, 3.3, win ? {} : { grey: true }); t += 1 / 30; setTimeout(draw, 33); }; draw(); }
     const au = VS.audio; if (r.loot && r.loot.gold) setTimeout(() => au.sfx('coin_01', 0.6), 350); if (r.loot && r.loot.items.length) setTimeout(() => au.sfx('chest_open', 0.7), 700);
     if (r.ups) setTimeout(() => au.sfx('level_up', 0.8), 1000); if (r.ach && r.ach.length) setTimeout(() => au.sfx('quest_complete', 0.8), 1300);
+  };
+  // ---- the shop (js/shop.js): what can be bought, at the store's own prices ----------------------------------------
+  U.shop = function (o) {
+    const SH = VS.SHOP, p = o.p, early = !(p.nodes && p.nodes['a3-b'] && p.nodes['a3-b'].wins);
+    const list = SH.PRODUCTS.filter((P) => !(P.early && !early && !SH.owned(P.id)));
+    const card = (P, i) => { const own = P.kind === 'once' && SH.owned(P.id);
+      return `<button class="btn shop-card${P.best ? ' best' : ''}${own ? ' owned' : ''}" data-i="${i}" type="button">${ic(P.icon)}<span class="sc-text"><b>${esc(P.name)}</b><span>${esc(P.text)}</span></span>
+        <em class="sc-price">${own ? 'Owned' : esc(SH.price(P.id))}</em>${P.best && !own ? '<i class="sc-tag">Best value</i>' : ''}</button>`; };
+    const items = list.map((P) => ({ act: () => o.onBuy(P.id) }));
+    const extra = [{ label: 'Restore purchases', act: o.onRestore }, { label: 'Back', act: o.onBack }];
+    const html = `<div class="shop-wrap"><p class="eyebrow">${SH.test() ? 'Test mode · no money is taken' : 'Support the climb'}</p><h2>Shop</h2>
+      ${o.msg ? `<p class="note shop-msg">${esc(o.msg)}</p>` : ''}
+      <div class="shop-wallet">${ic('coins', 1)}<b>${p.gold || 0}</b>${ic('shard', 1)}<b>${p.shards || 0}</b>${SH.noAds() ? `<span class="na">${ic('shield', 1)} No ads</span>` : ''}</div>
+      <nav class="shop-list">${list.map(card).join('')}</nav>
+      <nav class="menu center shop-acts">${extra.map((b, i) => `<button class="btn" data-i="${items.length + i}" type="button"><span class="btn-label">${esc(b.label)}</span></button>`).join('')}</nav>
+      <p class="shop-fine">Prices include tax where your store requires it. Purchases are tied to your ${/iP(hone|ad)/.test(navigator.userAgent) ? 'Apple' : 'store'} account and can be restored on a new device.</p></div>`;
+    U.show('shop', html, items.concat(extra), { back: o.onBack });
   };
   // ---- Bound Souls -----------------------------------------------------------------------------------------
   // A soul drawn as it fights: a ghost in its colour, paler as a wisp, in a cold flame when ascended.

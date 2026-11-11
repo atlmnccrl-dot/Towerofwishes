@@ -19,8 +19,50 @@ already visited work offline). The `dist/` folder is not committed.
 | itch.io (HTML5) | Upload `dist/vesper-web.zip`, kind "HTML", viewport 1280×720, "fullscreen button" on, "mobile friendly" on, landscape. itch.io allows 500 MB and 1,000 files per HTML game: Vesper fits. | Ready to upload |
 | Any web host | Copy `dist/vesper-web/` (HTTPS for the app install and the service worker). | Ready |
 | Install as an app (PWA) | From the browser's menu ("Install" / "Add to Home Screen") on the hosted build. | Ready |
-| iOS / Android stores | Wrap the web build with Capacitor (`npm i @capacitor/core @capacitor/cli`, `npx cap init`, `webDir: dist/vesper-web`, `npx cap add ios` / `android`). iOS needs a Mac with Xcode and an Apple developer account; Android needs Android Studio and a Play developer account. | Not started (needs the author's accounts) |
+| iOS / Android stores | `vesper/app/`: Capacitor 8 with AdMob and in-app purchases (see **The store apps** below). | Project ready; needs the author's accounts, IDs, a Mac for iOS and Android Studio to build |
 | Steam (desktop) | Wrap with Electron or Tauri around the web build; Steamworks for achievements (the achievement list is in `js/modes.js`). | Not started |
+
+## The store apps (iOS, Android)
+
+`vesper/app/` is a Capacitor 8 project around the web game, with Google AdMob (`@capacitor-community/admob`) and the
+App Store / Google Play purchases (`cordova-plugin-purchase`). The game's side of it is `js/shop.js` (see
+`vesper/STORE.md` for the ads, the products and the listing kit; `vesper/PRIVACY.md` for the privacy policy).
+
+```sh
+cd vesper/app
+npm install                 # once
+npm run sync                # builds the web layer into www/ (lossless WebP sheets, ~165 MB), copies it into the
+                            # platforms and applies the native settings (configure.js)
+npx cap open android        # Android Studio: Build → Generate Signed App Bundle (.aab) for Google Play
+npx cap open ios            # Xcode (on a Mac): set the team and signing, Product → Archive → upload to App Store Connect
+                            # (iOS uses CocoaPods, for the purchases plugin: on the Mac, `npm run sync` runs `pod install`)
+```
+
+What is in place: both platforms generated; AdMob app IDs (Google's test IDs until yours), landscape only,
+fullscreen, the billing permission, Apple's tracking text and SKAdNetwork ID (`configure.js`, from `store-ids.json`);
+icons and splash screens for every size (`npm run assets` regenerates them from `assets/`); test ads and test
+purchases in the previews (`?shop=mock`), none in the web build (`window.VESPER_WEB_RELEASE`).
+
+**Only you can do these** (in this order):
+
+1. **Accounts**: Google Play Console ($25 once), Apple Developer Program ($99 a year), AdMob (free), a payments
+   profile in each store; a website (for the privacy policy and `app-ads.txt`).
+2. **App ID**: pick the bundle ID (e.g. `com.yourstudio.bleedingmoon`) and set it in `vesper/app/capacitor.config.json`
+   before the first upload; it can never change after. Set the app name and version there and in the platforms.
+3. **AdMob**: create the apps and the 4 ad units; paste the IDs (`store-ids.json`, `SH.CONFIG.admob`), set
+   `testing: false`; create the consent message (GDPR) and the iOS IDFA message (STORE.md → AdMob setup).
+4. **Products**: create the 8 products in both stores with the IDs in STORE.md; set prices; Apple needs a screenshot
+   and review note per product.
+5. **Legal**: fill in and host `PRIVACY.md`; fill the Data safety form (Google) and App Privacy (Apple) from STORE.md;
+   ratings questionnaires; tax and banking forms.
+6. **Build and sign**: Android: an upload keystore (keep it safe, never commit it), a signed `.aab`; iOS: on a Mac,
+   Xcode signing with your team, archive, upload. Test purchases with Play's licence testers and Apple's Sandbox
+   accounts; test ads with the test IDs or test devices.
+7. **Listing**: screenshots, feature graphic, description (drafts in STORE.md); internal / closed testing first
+   (Google Play requires a closed test with 12 testers for 14 days for new personal developer accounts).
+
+Not done or not testable here: the native builds were generated but not compiled (no Android SDK or Mac in this
+environment); real AdMob ads and real purchases only run in a signed build on a device.
 
 ## Licences — the author must confirm before selling
 
@@ -36,6 +78,8 @@ already visited work offline). The `dist/` folder is not committed.
 | Older tile sets (Cainos Top Down Basic, TopDownFantasy Forest, reodesuxz, EPIC RPG World, Dark World), used by the menus' backdrops | `assets/tiles` | Each pack's licence |
 | Fonts: Chakra Petch, Barlow (Google Fonts); Adventurer by Brian J Smith | loaded from Google / `assets/ui` | OFL; Adventurer is CC BY 3.0 (credit kept in Settings → Credits) |
 | The name "The Bleeding Moon" | — | Search existing games and trademarks before a store listing |
+| Crowd Breaker effects (PixelHit) | `assets/cbfx` | Their terms: use inside the game only, never redistribute the assets on their own, keep THIRD_PARTY_NOTICES with the build: confirm a paid app on the stores counts as "inside the game" |
+| Guardian and boss characters shared with Tower of Wishes (`cassius`, `black_knight`, `frost_knight_a/b`, `nightcrawler`, `sky_beast`, `master_knight` → `vh_firstcut`, `nox`, `lyra`) | `assets/pixel` | Your own creator builds for the other project: decide whether they may also appear in a commercial release of this game |
 
 ## Still to do
 

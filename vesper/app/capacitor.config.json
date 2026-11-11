@@ -1,0 +1,11 @@
+{
+  "appId": "com.yourstudio.bleedingmoon",
+  "appName": "The Bleeding Moon",
+  "webDir": "www",
+  "backgroundColor": "#07040a",
+  "android": { "allowMixedContent": false, "backgroundColor": "#07040a" },
+  "ios": { "contentInset": "never", "backgroundColor": "#07040a", "scrollEnabled": false },
+  "plugins": {
+    "SplashScreen": { "launchShowDuration": 0 }
+  }
+}

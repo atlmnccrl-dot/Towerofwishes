@@ -329,6 +329,7 @@
         case 'guardbreak': FX({ kind: 'ring', x: e.x, y: e.y, z: 22, life: 0.4, col: '#ffd060', r0: 6, r1: 56, w: 3 }); R.float('GUARD BREAK', e.x, e.y, 60, '#ffd060', true, true); R.shake = Math.max(R.shake, 8); R.punch = Math.max(R.punch || 0, 0.05); break;
         case 'explode': PK('blast', e.x, e.y, 10, 3.2); PK('smoke_burst', e.x, e.y, 8, 2.2); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.5, col: '#ff6a5a', r0: 6, r1: e.r * 1.4, w: 4 }); sparks(e.x, e.y, 14, 24, '#ff8a6a', 260); R.flash = 0.4; R.flashCol = '255,90,60'; R.shake = Math.max(R.shake, 10); break;
         case 'reinforce': R.flash = 0.35; R.flashCol = '255,40,70'; R.shake = Math.max(R.shake, 7); break;
+        case 'revive': PK('v_levelup', e.x, e.y, 0, 2); PK('v_pillar', e.x, e.y, 0, 2.2); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.7, col: '#ffffff', r0: 10, r1: 140, w: 5 }); R.flash = 0.6; R.flashCol = '255,240,240'; R.shake = Math.max(R.shake, 8); R.float('RISE AGAIN', e.x, e.y, 80, '#ffd0d6', true, true); break;
         case 'soulRise': PK('v_soul', e.x, e.y, 0, e.first ? 1.2 : 1.6); if (A.hasFx('v_spawn')) PK('v_spawn', e.x, e.y, 0, 0.9); break;
         case 'soulFall': PK('v_soul', e.x, e.y, 0, 1.4); break;
         case 'soulSig': { PK(e.asc ? 'v_aura' : 'v_soul', e.x, e.y, 0, e.asc ? 1.6 : 1.1); const su = s.units.find((x) => x.id === e.id); if (su) R.float(e.name.toUpperCase(), e.x, e.y, 70 * su.scale, e.col); break; }

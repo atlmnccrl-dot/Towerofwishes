@@ -118,7 +118,7 @@
   // the game starts; until then (or without them) the old effects play.
   let cbData = null, cbP = null;
   A.loadCB = function () {
-    return cbP || (cbP = loadJSON(A.ROOT + 'cbfx/cb.json').then(async (d) => { d.images = await Promise.all(Array.from({ length: d.pages }, (_, i) => loadImage(A.ROOT + 'cbfx/cb_' + i + '.png'))); cbData = d; }));
+    return cbP || (cbP = loadJSON(A.ROOT + 'cbfx/cb.json').then(async (d) => { d.images = await Promise.all(Array.from({ length: d.pages }, (_, i) => loadImage(A.ROOT + 'cbfx/cb_' + i + (d.ext || '.png')))); cbData = d; }));   // ext: '.webp' in the store apps (tools_build.py --app)
   };
   A.cbReady = () => !!cbData;
   // The old effect names, played as Crowd Breaker sheets: [sheet, size against the old effect, options]

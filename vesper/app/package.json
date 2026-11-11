@@ -1,0 +1,24 @@
+{
+  "name": "the-bleeding-moon",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The Bleeding Moon - the store apps (iOS, Android): the web game in Capacitor, with AdMob and in-app purchases.",
+  "scripts": {
+    "web": "python3 -I ../tools_build.py --app",
+    "sync": "npm run web && npx cap sync && node configure.js",
+    "android": "npm run sync && npx cap open android",
+    "ios": "npm run sync && npx cap open ios",
+    "assets": "npx @capacitor/assets generate --iconBackgroundColor '#07040a' --splashBackgroundColor '#07040a'"
+  },
+  "dependencies": {
+    "@capacitor-community/admob": "^8.3.0",
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/ios": "^8.6.0",
+    "cordova-plugin-purchase": "^13.20.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^4.0.0",
+    "@capacitor/cli": "^8.6.0"
+  }
+}

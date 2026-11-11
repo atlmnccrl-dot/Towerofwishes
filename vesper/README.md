@@ -376,6 +376,18 @@ summit's far rim while you cut floating limbs. Now:
   shockwave, a red ring, flying debris and a cracked glowing crater follow. The guardians' signature cards and the moon
   art's cutscenes draw the foe at twice its size in colour (they were 3–4x ink blocks).
 
+## Ads and purchases (the store apps)
+
+`js/shop.js`, for the iOS and Android releases (`vesper/app/`, Capacitor): Google AdMob and in-app purchases, with a
+test mode for the previews and nothing at all in the web build. Rewarded ads are always the player's choice: **Rise
+again** when she falls (once a fight, half her health back), **Double rewards** on a victory, the **Moon's Gift** on the
+map once a day. Interstitials only between fights, after Act I, at most one in three fights and one per four minutes.
+No banners. **No Ads** removes the interstitials and makes the rewarded bonuses free. Products: No Ads, Moonblade
+Edition (No Ads, every hero, shards and gold), a Starter Cache, shard and gold packs. Purchases are kept apart from the
+save and restorable. The **Shop** opens from the map bar; Settings → Purchases has No ads, Restore purchases and
+Privacy options (Google's consent form, Apple's tracking prompt). Details, product IDs and the listing kit:
+`STORE.md`; the privacy policy: `PRIVACY.md`; the release steps: `RELEASE.md` → The store apps.
+
 ## Bound Souls
 
 (2026-11-11, the author: "combat feels very hyper focused on us... a pet or partner or summon that we can unlock,

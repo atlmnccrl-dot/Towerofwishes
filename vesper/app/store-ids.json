@@ -1,0 +1,6 @@
+{
+  "_note": "The AdMob APP IDs (one per platform) from your AdMob account. Until then, Google's public test IDs. The ad UNIT IDs go in vesper/js/shop.js (SH.CONFIG.admob). Run `node configure.js` after changing these or regenerating a platform.",
+  "admobAppIdAndroid": "ca-app-pub-3940256099942544~3347511713",
+  "admobAppIdIos": "ca-app-pub-3940256099942544~1458002511",
+  "trackingText": "Your choice here only decides whether ads can be tailored to you. The game itself collects nothing."
+}

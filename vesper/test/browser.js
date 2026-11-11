@@ -94,6 +94,9 @@ fs.mkdirSync(out, { recursive: true });
 
   // Defeat in a campaign fight.
   await page.evaluate(() => { VS.main.startNode('a0-1'); const s = VS.main.fight.s; s.hero.hp = 0; s.result = 'lose'; });
+  // (In the previews Rise again is offered first (js/shop.js, test ads): give up.)
+  await page.waitForFunction(() => VS.ui.current === 'offer' || VS.ui.current === 'result');
+  if (await page.evaluate(() => VS.ui.current === 'offer')) { await shot('12b-rise-again', 200); await button('Give up'); }
   await page.waitForFunction(() => VS.ui.current === 'result'); await shot('13-lost', 400);
   await button('Try again'); await page.waitForFunction(() => VS.main.state === 'fight');
 

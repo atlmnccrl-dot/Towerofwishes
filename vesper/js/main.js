@@ -185,6 +185,9 @@
         if (k === 'shake') o.shake = o.shake ? 0 : 1;
         if (k === 'auto') o.auto = !o.auto;
         if (k === 'watch') { M.write(); return watchStart(o.watchSpeed || 1); }
+        if (k === 'noads') { const SH = VS.SHOP; if (SH.noAds()) { M.toast = 'No Ads is already yours. Thank you!'; return settings(k, false, back); } return SH.buy('vesper_no_ads').then((r) => { M.toast = r.msg; settings(k, false, back); }); }
+        if (k === 'restore') return VS.SHOP.restore().then((r) => { M.toast = r.msg; settings(k, false, back); });
+        if (k === 'privacy') return VS.SHOP.consent(true).then((r) => { M.toast = r.test ? 'Test mode: the consent form appears in the store app.' : r.ok ? 'Privacy choices updated.' : 'Privacy options are not available right now.'; settings(k, false, back); });
         if (k === 'watchSpeed') o.watchSpeed = { 1: 2, 2: 4, 4: 1 }[o.watchSpeed || 1];
         if (k === 'reset') { if (!confirmReset) return settings(k, true, back); M.save = fresh(o); M.write(); return title(); }
         if (k === 'theatre') { M.write(); return cutscenes(() => settings('theatre', false, back)); }
@@ -252,7 +255,7 @@
     if (VS.MAP.sel !== M.mapSel) VS.MAP.focus(M.mapSel);
     VS.MAP.sel = M.mapSel; VS.MAP.p = p;
     VS.MAP.onSelect = (id) => { AU.sfx('step_0', 0.5); map(id); };
-    U.map({ p, sel: M.mapSel, onGo: () => playNode(M.mapSel), onSkills: () => skills(), onHeroes: () => roster(() => map()), onGear: () => gear(), onModes: () => modes(), onSouls: () => souls(),
+    U.map({ p, sel: M.mapSel, onGo: () => playNode(M.mapSel), onSkills: () => skills(), onHeroes: () => roster(() => map()), onGear: () => gear(), onModes: () => modes(), onSouls: () => souls(), onShop: () => shop(), onGift: () => moonGift(),
       onMenu: () => { M.go('menu'); U.menu({ onBack: () => map(), onSettings: () => settings(null, false, () => map()), onTitle: () => title() }); } });
     // The mission card's portraits: one look of each foe of the chosen island (loaded if not yet).
     const sn = PR.node(M.mapSel);
@@ -283,6 +286,26 @@
         else if (a === 'buy' && it) { const got = LT.buy(p, act, it.offer); if (got) { AU.sfx('coin_01', 0.7); M.write(); return gear('gear', 'u' + got.uid); } AU.sfx('thud', 0.5); }
         M.write(); gear(tab, sel);
       } });
+  }
+  // ---- the shop and the Moon's Gift (js/shop.js) -------------------------------------------------------------
+  function shop(msg) {
+    const p = P(), SH = VS.SHOP; if (!SH || !SH.on()) return map();
+    M.go('menu'); menuScene('gear');
+    SH.onChange = () => { if (U.current === 'shop') shop(); };
+    U.shop({ p, msg,
+      onBuy: (id) => SH.buy(id).then((r) => { AU.sfx(r.ok ? 'coin_01' : 'thud', 0.6); shop(r.msg); }),
+      onRestore: () => SH.restore().then((r) => shop(r.msg)),
+      onBack: () => { SH.onChange = null; map(); } });
+  }
+  // Once a day: an ad the player chose (none with No Ads) for shards and gold that grow with her level.
+  function moonGift() {
+    const p = P(), SH = VS.SHOP; if (!SH || !SH.giftReady()) return map();
+    SH.rewarded('gift').then((ok) => {
+      if (!ok) return map();
+      SH.giftTaken(); PR.soulsInit(p); const sh = 20 + p.lvl * 3, gd = 200 + p.lvl * 60; p.shards += sh; p.gold = (p.gold || 0) + gd; M.write(); AU.sfx('chest_open', 0.8);
+      M.go('menu'); menuScene('souls');
+      U.offer({ eyebrow: "The Moon's Gift", title: `+${sh} shards · +${gd} gold`, text: 'It comes again tomorrow.', yes: 'Continue', no: 'Open Souls', onYes: () => map(), onNo: () => souls() });
+    });
   }
   // ---- Bound Souls --------------------------------------------------------------------------------------
   function souls(sel, flash) {
@@ -684,6 +707,14 @@
     if (!M.paused && !s.result && s.hero.alive && s.hero.hp / s.hero.maxHp < 0.25) { f.beat = (f.beat || 0) - dt; if (f.beat <= 0) { f.beat = 0.85; AU.sfx('heartbeat', 0.55); } }
     if (f.oneShot > 0 && !M.paused) { f.oneShot -= dt; if (f.oneShot <= 0) { endShowcase(f, true); return; } }
     if (f.theatreEnd > 0 && !M.paused) { f.theatreEnd -= dt; if (f.theatreEnd <= 0) { (f.theatreBack || title)(); return; } }
+    // Rise again (js/shop.js): once a fight, when she falls, the player may watch an ad to stand back up.
+    if (s.result === 'lose' && !M.paused && !f.revived && !f.tut && !f.showcase && !f.theatre && f.nodeId && VS.SHOP && VS.SHOP.rewardReady() && !M.watch) {
+      f.revived = true; M.paused = true; const SH = VS.SHOP;
+      U.offer({ eyebrow: 'You fell', title: 'Rise again?', text: 'Stand back up with half your health, once this fight.', yes: SH.noAds() ? 'Rise again' : 'Rise again · watch an ad', no: 'Give up',
+        onYes: () => SH.rewarded('revive').then((ok) => { U.hide(); M.paused = false; if (ok) { SIM.revive(s); R.consume(s); s.events.length = 0; AU.sfx('level_up', 0.8); } }),
+        onNo: () => { U.hide(); M.paused = false; endFight('lose'); } });
+      return;
+    }
     if (s.result && !M.paused) endFight(s.result);
   }
   function endFight(result) {
@@ -700,7 +731,11 @@
     const showResult = () => {
       M.go('result'); M.result = { stage: f.stage }; AU.cue('result'); AU.playAmb('night');
       const next = PR.nextNode(p);
-      const btns = win ? [{ label: 'Continue', sub: n.type === 'trial' && p.sp ? 'Then open Skills: you have a skill point' : res.souls && res.souls.length ? 'A soul has been freed' : '', act: () => (res.souls && res.souls.length ? soulBound(res.souls, () => map(next)) : map(next)) }, { label: 'Fight again', act: () => startNode(n.id) }]
+      const goOn = () => (res.souls && res.souls.length ? soulBound(res.souls, () => map(next)) : map(next));
+      const SH = VS.SHOP, between = (then) => (SH ? SH.betweenFights(p.stats.wins).then(then, then) : then());   // maybe an ad between fights (js/shop.js)
+      const dbl = win && SH && SH.rewardReady() && !res.doubled && ((res.loot && res.loot.gold) || res.shards) ? [{ label: SH.noAds() ? 'Double rewards' : 'Double rewards · watch an ad', sub: `+${(res.loot && res.loot.gold) || 0} gold, +${res.shards || 0} shards`, cls: 'gold', act: () => SH.rewarded('double').then((ok) => {
+        if (!ok) return; p.gold += (res.loot && res.loot.gold) || 0; p.shards += res.shards || 0; res.doubled = true; if (res.loot) res.loot.gold *= 2; res.shards *= 2; M.write(); AU.sfx('coin_01', 0.8); showResult(); }) }] : [];
+      const btns = win ? [{ label: 'Continue', sub: n.type === 'trial' && p.sp ? 'Then open Skills: you have a skill point' : res.souls && res.souls.length ? 'A soul has been freed' : '', act: () => between(goOn) }].concat(dbl).concat([ { label: 'Fight again', act: () => between(() => startNode(n.id)) }])
         : [{ label: 'Try again', act: () => startNode(n.id) }].concat(p.sp ? [{ label: 'Skill tree', sub: p.sp + ' skill point' + (p.sp > 1 ? 's' : '') + ' to spend', act: () => skills() }] : [], [{ label: 'Back to the map', act: () => map(n.id) }]);
       const tip = !win ? (s.rules.time && s.time >= s.rules.time ? 'The clock ran out. Kill faster: heavy attacks and skills clear crowds.' : p.sp ? 'You have skill points to spend. New abilities make a big difference.' : !PR.kit(p).includes('dodge') ? 'Dash through a swing when a foe flashes, then strike back.' : 'Dash through their swings, then punish. Clear easier nodes for experience.') : null;
       U.result({ p, node: n, win, r: res, stats, tip, buttons: btns });
@@ -851,6 +886,18 @@
     try { if (document.fonts) await Promise.race([Promise.all(['20px Adventurer', '700 20px "Chakra Petch"', '500 16px Barlow', '700 16px Barlow'].map((f) => document.fonts.load(f))), new Promise((r) => setTimeout(r, 2500))]); } catch (e) { /* fonts optional */ }
     A.warm(R.ctx); A.isoWarm(R.ctx);
     A.loadCB().catch(() => {});   // the Crowd Breaker effects stream in after the start
+    // Ads and purchases (js/shop.js): what a purchase gives goes into the profile; once-only unlocks apply to every save.
+    const SH = VS.SHOP;
+    if (SH) {
+      SH.deliver = (g) => {
+        const p = P(); PR.soulsInit(p); VS.LOOT.migrate(p);
+        if (g.gold) p.gold = (p.gold || 0) + g.gold; if (g.shards) p.shards += g.shards;
+        if (g.heroes) SH.applyOwned(p);
+        if (g.item) { const it = VS.LOOT.roll(Math.random, Math.max(4, p.lvl * 1.2), { slot: 'weapon', rar: g.item === 'rare' ? 2 : 3 }); VS.LOOT.give(p, it); }
+        M.write(); AU.sfx('quest_complete', 0.8);
+      };
+      SH.applyOwned(M.save); SH.init().catch(() => {});
+    }
     applyOpts();
     if (params.has('auto')) M.autoUrl = true;
     if (params.has('watch')) { setTimeout(() => watchStart(+params.get('watch') || 1), 50); }

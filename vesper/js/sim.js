@@ -1321,5 +1321,15 @@
   function release(s) { s.scripted = false; s.waveT = 0.6; }
   // A training foe whose part is over leaves in a puff (no kill, no reward).
   function dismiss(s, u) { if (!u || !u.alive) return; u.alive = false; u.hp = 0; u.atk = null; setState(u, 'dead'); u.deadT = 9; ev(s, { type: 'vanish', id: u.id, x: u.x, y: u.y }); }
-  VS.sim = { create, step, bot, rng, foes, startArt, mods, angDiff, makeUnit, CORE, place, addBreak, release, dismiss, startAttack };
+  // Rise again (js/shop.js, a rewarded ad the player chose): she stands back up with half her health, the dead
+  // near her thrown back, a moment untouchable; the fight goes on.
+  function revive(s) {
+    const h = s.hero; h.alive = true; h.hp = Math.round(h.maxHp * 0.5); h.deadT = 0; h.atk = null; h.kvx = h.kvy = 0; h.z = h.vz = 0; setState(h, 'idle'); h.iframes = 2.5;
+    s.result = null; s.endT = 0; s.moon = Math.max(s.moon, 50);
+    for (const o of foes(s)) { const d = dist(o, h); if (d < 140 && !o.def.boss && !o.def.part && !o.def.passive) { push(o, h, 260); if (o.alive) { setState(o, 'hurt', 0.8); o.atk = null; } } }
+    for (const z of s.hazards) if (z.team === 'foe') z.t = 1e9;
+    for (const b of s.bolts) if (b.team === 'foe') b.life = 0;
+    ev(s, { type: 'revive', x: h.x, y: h.y }); ev(s, { type: 'slam', x: h.x, y: h.y, r: 60, id: h.id });
+  }
+  VS.sim = { create, step, bot, rng, foes, startArt, mods, angDiff, makeUnit, CORE, place, addBreak, release, dismiss, startAttack, revive };
 })(typeof window !== 'undefined' ? window : globalThis);
