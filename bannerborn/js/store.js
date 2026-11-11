@@ -38,6 +38,7 @@
   const Ads = BB.Ads = {
     mode: off ? 'off' : native ? (plug('AdMob') ? 'admob' : 'off') : 'preview', ready: false, state: st,
     async init() {
+      if (native && !off) Ads.mode = plug('AdMob') ? 'admob' : 'off';
       if (Ads.mode !== 'admob') { Ads.ready = Ads.mode === 'preview'; return; }
       const A = plug('AdMob');
       try {
@@ -106,6 +107,7 @@
   const IAP = BB.IAP = {
     mode: off ? 'off' : native ? (window.CdvPurchase ? 'store' : 'off') : 'preview', ready: false, onGrant: null,
     async init() {
+      if (native && !off) IAP.mode = window.CdvPurchase ? 'store' : 'off';
       if (IAP.mode !== 'store') { IAP.ready = IAP.mode === 'preview'; return; }
       const P = window.CdvPurchase, S = P.store, plat = platform === 'ios' ? P.Platform.APPLE_APPSTORE : P.Platform.GOOGLE_PLAY;
       S.register(BB.PRODUCTS.map((p) => ({ id: p.sku, platform: plat, type: p.kind === 'once' ? P.ProductType.NON_CONSUMABLE : P.ProductType.CONSUMABLE })));
@@ -157,5 +159,7 @@
   BB.nativeMirror = function (json) { const P = prefs(); if (native && P) P.set({ key: KEY, value: json }).catch(() => {}); };
   BB.openLink = function (url) { if (!url) return false; const B = plug('Browser'); if (B) B.open({ url }); else window.open(url, '_blank', 'noopener'); return true; };
 
-  BB.storeInit = async function () { await Promise.all([Ads.init(), IAP.init()]); };
+  // inside the app, wait for the plugins to say they are there (or a moment, if they never do)
+  const plugged = () => (native && !window.CdvPurchase ? Promise.race([new Promise((r) => document.addEventListener('deviceready', r, { once: true })), wait(2500)]) : Promise.resolve());
+  BB.storeInit = async function () { await plugged(); await Promise.all([Ads.init(), IAP.init()]); };
 })();

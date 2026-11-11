@@ -8,7 +8,7 @@ is still a placeholder at any time.
 | | State |
 |---|---|
 | Ads and purchases in the game (`js/store.js`, `js/rules.js`) | Built. Tested in a browser in preview mode, and against stand-ins for the native plugins. **Not yet run on a phone against the real SDKs.** |
-| Android project (`app/android/`) | Generated and configured (landscape, full screen, AdMob app id entry, billing, signing from `keystore.properties`). **Not compiled here**: this machine cannot reach Google's servers for the Android SDK. |
+| Android project (`app/android/`) | Generated, configured and **compiled**: a debug APK (80 MB) and an unsigned release bundle build cleanly with Gradle 8.14 and SDK 36. The package carries the billing and advertising-id permissions, the landscape lock and the AdMob app id entry. **Not yet installed on a phone.** |
 | iOS project (`app/ios/`) | Generated and configured (`Info.plist`). **Needs a Mac with Xcode to build.** |
 | Icons, splash, store screenshots, feature graphic | Made (`app/assets/`, `store/`). |
 | Privacy policy, terms, listing text | Drafted (`docs/store/`). Need your name, contact and a public address, and a legal read. |
