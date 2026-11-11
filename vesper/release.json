@@ -1,0 +1,22 @@
+{
+  "_note": "Every value the launch needs, in one place. Fill in the empty ones, then run: python3 vesper/tools_release.py --apply (writes them into the apps, the desktop build, the shop and the website) and python3 vesper/tools_release.py --check (what is still missing). Never put passwords or keystore secrets here.",
+  "appName": "The Bleeding Moon",
+  "appId": "com.yourstudio.bleedingmoon",
+  "version": "1.0.0",
+  "build": 1,
+  "studio": "",
+  "email": "",
+  "website": "",
+  "privacyUrl": "",
+  "admob": {
+    "publisherId": "",
+    "androidApp": "",
+    "androidRewarded": "",
+    "androidInterstitial": "",
+    "iosApp": "",
+    "iosRewarded": "",
+    "iosInterstitial": ""
+  },
+  "steamAppId": 0,
+  "storeLinks": { "appStore": "", "googlePlay": "", "steam": "", "itch": "" }
+}
