@@ -216,7 +216,7 @@
     if (a.team === 'hero') smashAt(s, 0, 0, 0, (o) => inReach(a, k, { x: o.x, y: o.y, rad: o.r }));
     if (a === s.hero && !k.bolt) ev(s, { type: 'swing', id: a.id, clip: k.clip });
     if (k.explode && a.alive) { a.hp = 0; kill(s, a); return; }
-    if (k.aoe) { const c = VS.aoeAt(a, k); ev(s, { type: a.team === 'hero' ? 'spin' : 'slam', x: c.x, y: c.y, r: c.r, id: a.id }); }
+    if (k.aoe) { const c = VS.aoeAt(a, k); ev(s, { type: a.team === 'hero' ? 'spin' : 'slam', x: c.x, y: c.y, r: c.r, id: a.id, frost: k.fx === 'frost' }); }
   }
 
   // ---- summons ------------------------------------------------------------------------------------
@@ -418,6 +418,11 @@
     if (o.team === 'foe') { const h = s.hero; if (h.alive) { const n = Math.max(2, Math.round(h.maxHp * s.mods.killHeal)); h.hp = Math.min(h.maxHp, h.hp + n); ev(s, { type: 'heal', x: h.x, y: h.y, n }); } gainMoon(s, o.def.boss ? 0 : 5); s.kills = (s.kills || 0) + 1; }
     if (o.def.god) { s.slow = 0.2; s.slowT = 1.6; for (const f of foes(s)) dismiss(s, f); s.hazards = s.hazards.filter((z) => z.team !== 'foe'); s.reinf = []; ev(s, { type: 'godDown', x: o.x, y: o.y }); ev(s, { type: 'impact', size: 'big', x: s.hero.x, y: s.hero.y }); }
     else if (o.def.boss) { s.slow = 0.25; s.slowT = 0.9; ev(s, { type: 'impact', size: 'big', x: o.x, y: o.y }); }
+    // Pickups (2026-11-10): the fallen sometimes leave a health orb or a moon shard (elites always leave an orb).
+    if (o.team === 'foe' && !o.def.boss && !o.def.part && !o.def.gate && !o.def.passive && !o.ally) {
+      const roll = s.rand(), kind = o.elite || roll < 0.09 ? 'hp' : roll < 0.17 ? 'moon' : null;
+      if (kind) { (s.drops || (s.drops = [])).push({ x: o.x, y: o.y, kind, t: 0 }); ev(s, { type: 'drop', x: o.x, y: o.y, kind }); }
+    }
     else if (o.team === 'foe' && !(s.reinf && s.reinf.length) && !foes(s).length) { s.slow = 0.22; s.slowT = 0.7; ev(s, { type: 'finisher', x: o.x, y: o.y }); }
   }
 
@@ -844,7 +849,8 @@
     if (!can.skill1) inp.s1 = false; if (!can.skill2) inp.s2 = false;
     h.comboWin -= dt;
     if (inp.atk) { if (h.state === 'attack') h.queued = true; else h.bufAtk = 0.18; }
-    if (inp.dodge) h.bufDodge = 0.16;
+    // A dodge pressed mid-swing or mid-hit is held until she can roll (2026-11-10: it used to expire and be lost).
+    if (inp.dodge) h.bufDodge = 0.16 + Math.min(0.6, h.state === 'attack' && h.atk ? Math.max(0, h.atk.wind * (h.windMul || 1) + 0.04 - h.st) : h.state === 'hurt' ? Math.max(0, h.dur - h.st) : 0);
     if (inp.parry) h.bufParry = 0.12;
     if (inp.heavy) h.bufHeavy = 0.18;
     h.bufHeavy = (h.bufHeavy || 0) - dt;
@@ -854,7 +860,9 @@
       h.bufAtk = 0; h.combo = 0; h.comboWin = 0; startAttack(s, h, H.dashCut); ev(s, { type: 'dashCut', x: h.x, y: h.y }); return;
     }
     const canCancel = h.state === 'attack' && h.st > h.atk.wind + 0.04;
-    if ((free || canCancel) && h.bufDodge > 0) {
+    // The heavy blow comes on its own (from the basic attack), so a dodge may cut its wind-up short (2026-11-10).
+    const heavyWind = h.state === 'attack' && h.atk === H.heavy && h.st <= h.atk.wind * (h.windMul || 1);
+    if ((free || canCancel || heavyWind) && h.bufDodge > 0) {
       h.bufDodge = 0; setState(h, 'dodge', H.dodge.dur); h.atk = null; h.queued = false; h.perfectDone = false;
       if (mn > 0.2) setAng(h, Math.atan2(my, mx)); else if (s.aim != null) setAng(h, s.aim);
       h.dodgeDir = dir(h.ang);
@@ -918,6 +926,19 @@
       if (u.def.clone) { u.life -= dt; if (u.life <= 0) { u.hp = 0; kill(s, u); } }
     }
     lairVents(s, dt);
+    // Pickups drift to her when she is near, and are taken on contact.
+    if (s.drops && s.drops.length) {
+      const h = s.hero;
+      s.drops = s.drops.filter((p) => {
+        p.t += dt; if (p.t > 14 || !h.alive) return p.t <= 14;
+        const dx = h.x - p.x, dy = h.y - p.y, d = Math.hypot(dx, dy) || 1;
+        if (d < 90 && p.t > 0.5) { const v = Math.min(d, 280 * dt); p.x += dx / d * v; p.y += dy / d * v; }
+        if (d > 16 || p.t < 0.5) return true;
+        if (p.kind === 'hp') { const n = Math.max(3, Math.round(h.maxHp * 0.06)); h.hp = Math.min(h.maxHp, h.hp + n); ev(s, { type: 'heal', x: h.x, y: h.y, n }); }
+        else gainMoon(s, 12);
+        ev(s, { type: 'pickup', x: h.x, y: h.y, kind: p.kind }); return false;
+      });
+    }
     // Hazards: zones that tick, strikes that land after their warning, tornadoes that chase.
     for (const z of s.hazards) {
       z.t += dt; if (z.t < z.delay) continue;

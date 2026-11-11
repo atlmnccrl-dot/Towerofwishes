@@ -9,6 +9,9 @@
   // A pixel icon from the UI pack (assets/ui/icons1..3.png: 8 x 8 icons of 32 px). ICONS names the ones used.
   const ICONS = { sword: [3, 1, 0], book: [3, 2, 3], helm: [3, 1, 4], anvil: [3, 4, 5], coins: [3, 0, 3], star: [3, 3, 0], gear: [3, 4, 2], trophy: [1, 6, 4], castle: [3, 7, 5], orb: [3, 2, 4], quill: [3, 7, 1],
     back: [1, 0, 5], skull: [3, 7, 0], chest: [3, 6, 4], map: [3, 4, 4], crown: [3, 7, 6], hourglass: [3, 7, 2], key: [3, 3, 4], scroll: [3, 3, 7], fire: [3, 2, 5], shield: [3, 1, 3], heart: [3, 0, 0], door: [3, 4, 7], dragon: [3, 7, 4], gem: [3, 0, 4], bag: [3, 4, 0] };
+  // The forge's skill icons (tools_forge_acts.py, assets/ui/icons_f.png): one for each skill.
+  ['heavy', 'fourth', 'edge', 'riposte', 'edge2', 'exec', 'dodge', 'iron', 'ghost', 'wind', 'vigor', 'vigor2', 'thirst', 'skill1', 'art', 'skill2', 'moonblood', 'rising', 'breath', 'quick']
+    .forEach((k, i) => { ICONS['sk_' + k] = ['_f', Math.floor(i / 8), i % 8]; });
   const ic = (name, small) => { const d = ICONS[name]; if (!d) return ''; return `<i class="ic${small ? ' sm' : ''}" style="--s:url('${VS.A.ROOT}ui/icons${d[0]}.png');--r:${d[1]};--c:${d[2]}"></i>`; };
   U.ic = ic;
   // items: [{ label, sub, act, cls, ic }]
@@ -189,8 +192,7 @@
   // The skill tree: three branches, bought with skill points from the level shown.
   // The skill tree: three branches as rows of round icons, read left to right; the chosen skill is shown
   // large in a panel on the right (its name, what it does, what it needs) with one button to learn it.
-  const SK_IC = { heavy: 'anvil', fourth: 'sword', edge: 'gem', riposte: 'shield', edge2: 'gem', exec: 'skull', dodge: 'door', parry: 'shield', ghost: 'hourglass',
-    iron: 'helm', wind: 'heart', vigor: 'heart', vigor2: 'heart', thirst: 'fire', skill1: 'star', art: 'orb', skill2: 'star', moonblood: 'gem', rising: 'crown', breath: 'dragon', quick: 'hourglass' };
+  const SK_IC = new Proxy({ parry: 'shield' }, { get: (t, k) => t[k] || (ICONS['sk_' + k] ? 'sk_' + k : undefined) });   // the forge's icon for each skill
   U.skills = function (o) {
     const p = o.p, PR = P(), H = DD().HEROES[p.hero];
     const heroName = (k) => (k.hero != null && H.skills ? H.skills[k.hero].name : k.id === 'art' ? VS.ART[H.art === 'moon' ? 'moon' : H.art].name : '');

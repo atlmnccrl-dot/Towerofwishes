@@ -7,7 +7,8 @@
   // Effects play through Web Audio from decoded buffers (no stalls, real volume on iPhone);
   // music and ambience stream from media elements routed through gain nodes.
   const SFX = ['allout', 'blow_0', 'blow_1', 'blow_2', 'blow_big', 'bolt', 'charge', 'clang_0', 'clang_1', 'horn', 'ko', 'magic', 'quake',
-    'slash_0', 'slash_1', 'slash_2', 'step_0', 'step_1', 'step_2', 'swish_0', 'swish_1', 'swish_2', 'thud', 'whoosh'];
+    'slash_0', 'slash_1', 'slash_2', 'step_0', 'step_1', 'step_2', 'swish_0', 'swish_1', 'swish_2', 'thud', 'whoosh',
+    'gate_open', 'gate_break', 'god_blade', 'soul', 'ice', 'fire', 'pickup', 'loot', 'heartbeat', 'rift'];   // the last ten: tools_sfx.py
   // Interface sounds (the shared UI pack in assets/sfx): chests, gold, the forge, equipping, level-ups.
   const UI_SFX = ['chest_open', 'coin_01', 'anvil_01', 'equip_armor_01', 'level_up', 'quest_complete', 'unsheathe_01', 'error_01', 'notify_01'];
   // Music: each moment asks for its cue; the first track of the cue that is in TRACKS plays. Only
@@ -76,15 +77,15 @@
   A.events = function (evs) {
     for (const e of evs) {
       switch (e.type) {
-        case 'gatesOpen': A.sfx('horn', 0.9); A.sfx('quake', 0.6); break;
-        case 'gateSpawn': A.sfx('magic', 0.45); break;
-        case 'gateDown': A.sfx('blow_big', 1); A.sfx('quake', 0.8); A.sfx('clang_1', 0.5); break;
+        case 'gatesOpen': A.sfx('gate_open', 0.9); A.sfx('quake', 0.5); break;
+        case 'gateSpawn': A.sfx('rift', 0.45); break;
+        case 'gateDown': A.sfx('gate_break', 1); A.sfx('quake', 0.6); break;
         case 'hit': if (!e.art) { A.pick(e.heavy ? ['slash_2', 'blow_big'] : ['slash_0', 'slash_1'], e.heavy ? 0.7 : 0.5); if (e.heavy) A.pick(['blow_0', 'blow_1', 'blow_2'], 0.5); } break;
         case 'hurt': A.pick(['blow_0', 'blow_1', 'blow_2'], 0.7); break;
         case 'parry': A.sfx('clang_0', 0.9); A.sfx('clang_1', 0.5); break;
         case 'perfect': A.sfx('whoosh', 0.8); break;
         case 'break': A.sfx('thud', 0.9); A.sfx('clang_1', 0.7); break;
-        case 'kill': A.sfx(e.boss ? 'horn' : 'ko', e.boss ? 0.9 : 0.5); break;
+        case 'kill': A.sfx(e.boss ? 'horn' : 'ko', e.boss ? 0.9 : 0.5); if (!e.boss && !e.hero && Math.random() < 0.35) A.sfx('soul', 0.3); break;
         case 'dodge': A.pick(['swish_0', 'swish_1'], 0.45); break;
         case 'swing': A.pick(['swish_0', 'swish_1', 'swish_2'], 0.35); break;
         case 'windup': if (e.unparry) A.sfx('charge', 0.35); break;
@@ -99,7 +100,7 @@
         case 'land': A.sfx('thud', 0.8); break;
         case 'wall': A.sfx('clang_1', 0.8); A.sfx('blow_big', 0.7); break;
         case 'impact': A.sfx('blow_big', e.size === 'big' ? 1 : 0.7); if (e.size === 'big') A.sfx('clang_1', 0.6); break;
-        case 'spin': A.sfx('whoosh', 0.7); A.sfx('swish_2', 0.6); break;
+        case 'spin': A.sfx('whoosh', 0.7); A.sfx('swish_2', 0.6); if (e.frost) A.sfx('ice', 0.6); break;
         case 'spawn': A.sfx(e.boss ? 'charge' : 'magic', 0.4); break;
         case 'landed': if (e.boss) { A.sfx('quake', 1); A.sfx('blow_big', 0.8); } break;
         case 'portal': A.sfx('allout', 0.6); break;
@@ -108,7 +109,11 @@
         case 'reinforce': A.sfx('horn', 0.7); A.sfx('quake', 0.5); break;
         case 'finisher': A.sfx('blow_big', 1); A.sfx('clang_1', 0.7); break;
         case 'transit': A.sfx('whoosh', 0.9); break;
-        case 'chest': A.sfx('chest_open', 0.8); A.sfx('coin_01', 0.5); break;
+        case 'chest': A.sfx('chest_open', 0.8); A.sfx('loot', 0.6); break;
+        case 'pickup': A.sfx('pickup', 0.6); break;
+        case 'cut': if (e.god) A.sfx('god_blade', 0.9); break;
+        case 'strike': if (e.fx === 'fire_burst' || e.fx === 'explosion_fire') A.sfx('fire', 0.55); break;
+        case 'doom': A.sfx('god_blade', 1); A.sfx('gate_break', 0.8); break;
         case 'smash': A.sfx(e.kind === 'barrel' ? 'blow_big' : 'thud', 0.7); break;
         case 'endlessWave': A.sfx('horn', 0.6); break;
       }

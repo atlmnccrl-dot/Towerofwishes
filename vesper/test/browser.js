@@ -36,14 +36,19 @@ fs.mkdirSync(out, { recursive: true });
   await page.waitForTimeout(1500);
   if (await page.locator('#ui .ls-ok').count()) errors.push('the first fight after the tutorial opened a lesson');
   if (await page.evaluate(() => !!VS.main.fight.tut || VS.main.fight.s.scripted)) errors.push('the first fight after the tutorial is still a tutorial');
-  const x0 = await page.evaluate(() => VS.main.fight.s.hero.x);
-  await page.keyboard.down('KeyD'); await page.waitForTimeout(600); await page.keyboard.up('KeyD');
-  if ((await page.evaluate(() => VS.main.fight.s.hero.x)) <= x0 + 5) errors.push('moving did not work in the first fight');
+  // Moving: she answers the key (she may be knocked about by the dead meanwhile, so watch for her running or moving).
+  { const x0 = await page.evaluate(() => VS.main.fight.s.hero.x); let ok = false;
+    await page.keyboard.down('KeyD');
+    for (let i = 0; i < 12 && !ok; i++) { await page.waitForTimeout(60); ok = await page.evaluate((x0) => { const h = VS.main.fight.s.hero; return h.state === 'move' || h.x > x0 + 5; }, x0); }
+    await page.keyboard.up('KeyD'); if (!ok) errors.push('moving did not work in the first fight'); }
   const okCard = async () => {};
   for (let i = 0; i < 4; i++) { await page.keyboard.press('KeyJ'); await page.waitForTimeout(130); }
   await shot('04-combo', 40);
-  await okCard(); await page.keyboard.press('Space'); await page.waitForTimeout(120);
-  if (!(await page.evaluate(() => VS.main.fight.s.hero.state === 'dodge'))) errors.push('dodge did not work from the start');
+  // Dodging: within a few frames of the key (unless she is mid-hit), she rolls.
+  { let ok = false; await okCard(); await page.keyboard.press('Space');
+    for (let i = 0; i < 8 && !ok; i++) { await page.waitForTimeout(40); ok = await page.evaluate(() => VS.main.fight.s.hero.state === 'dodge'); }
+    if (!ok && await page.evaluate(() => VS.main.fight.s.hero.state === 'hurt')) { await page.waitForTimeout(400); await page.keyboard.press('Space'); for (let i = 0; i < 8 && !ok; i++) { await page.waitForTimeout(40); ok = await page.evaluate(() => VS.main.fight.s.hero.state === 'dodge'); } }
+    if (!ok) errors.push('dodge did not work from the start'); }
   await okCard(); await page.keyboard.press('Escape'); await shot('05-pause', 400);
   if (!(await page.evaluate(() => VS.ui.current === 'pause'))) errors.push('pause menu did not open');
   await button('Resume'); await page.waitForTimeout(200);

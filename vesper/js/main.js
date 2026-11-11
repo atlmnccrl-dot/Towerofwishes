@@ -597,6 +597,8 @@
     if (f.showcase === 'boss' && !M.paused && !M.hold && !s.cine) {
       s.godPace = 0.65; s.noGates = true; R.shake = Math.max(R.shake || 0, 1.2);   // (the storm itself now runs in every First Cut fight: godAmbience in view.js)
     }
+    // A heartbeat when she is close to death (the forge's sound).
+    if (!M.paused && !s.result && s.hero.alive && s.hero.hp / s.hero.maxHp < 0.25) { f.beat = (f.beat || 0) - dt; if (f.beat <= 0) { f.beat = 0.85; AU.sfx('heartbeat', 0.55); } }
     if (f.oneShot > 0 && !M.paused) { f.oneShot -= dt; if (f.oneShot <= 0) { endShowcase(f, true); return; } }
     if (f.theatreEnd > 0 && !M.paused) { f.theatreEnd -= dt; if (f.theatreEnd <= 0) { (f.theatreBack || title)(); return; } }
     if (s.result && !M.paused) endFight(s.result);

@@ -31,6 +31,29 @@ writes `assets/iso/tiles_v0.png` + `assets/iso/forge.json` (the `v` tile group) 
   circle at its centre, braziers, candles, skulls, crystals); the Umbral Stair, the Wind's Throat and the Moon's Shadow
   mix the forge's props into theirs.
 
+**The asset expansion** (2026-11-10/11, the author: "make all of that"), all drawn or synthesised in code:
+- **A tileset per act** (`tools_forge_acts.py`, page `tiles_v1.png`): the Black Gate (wet basalt cobbles, iron grates,
+  puddles; a lantern post, a gibbet cage, stakes, a well), the Cloister of Frost (frosted flagstones, cracked ice, snow;
+  ice spires, a snow cairn, a frozen urn, a fallen bell), the Umbral Stair (violet stone with void seams; void shards, a
+  broken arch, a violet-flame brazier), the Ashen Waste (cinders, scorched earth with glowing seams, embers; a dead tree,
+  a ribcage, a lava vent), the Wind's Throat (layered cliff rock, windswept grass, gravel; cairns, a rock spire, a
+  wind-torn banner). Each theme in `js/arenas.js` mixes them into its ground, overlays, props and decor.
+- **Animated props** (iso anims, `kind: 'anim'` in `js/isoview.js`; a theme names one as `'@Name'`): the void shards, the
+  violet brazier, the lava vent, the wind banner, flickering candles, a rippling blood pool, a pulsing rune stone, fog.
+- **Breakables**: a bone urn and a coffin, each with smash frames (`BREAK.urn`, `BREAK.coffin`).
+- **Pickups** (`s.drops` in `js/sim.js`): the fallen sometimes leave a health orb (6% health) or a moon shard (+12 moon);
+  elites always leave an orb. They drift to her when she is near.
+- **Effects** (`assets/fx/forge.json`): frost, fire, shadow, lightning, an elite's turning rune ring, the ground tearing
+  open for a rift spawn, loot sparkle (unopened chests), heal motes, a gold column (the moon gauge full, a chest), the
+  two pickup orbs; wired to their events.
+- **Skill icons** (`assets/ui/icons_f.png`): one for each skill on the skills page.
+- **Sounds** (`tools_sfx.py`, `assets/sfx/fight/`): the gates opening, spawning and breaking, the god's blade and the Last
+  Cut, souls, ice, fire, pickups, loot, the rift's hum, and a heartbeat below a quarter of her health.
+- **The far country** (`farCountry` in `js/view.js`): each hour's own silhouettes on the horizon behind the arena (a walled
+  city, snow peaks, floating spires, volcanic ridges, cliff columns, the Spire itself), at a quarter resolution.
+- **Input**: a dodge pressed mid-swing or mid-hit is held until she can roll, and a dodge cuts the automatic heavy's
+  wind-up short (both used to swallow the press).
+
 **The First Cut is a real character** (2026-11-10, the author: "I'd rather u use a real character"): the Master Knight
 set from the character packs, drawn at whole-number scales so his pixels stay sharp (`godAt` in `js/intro.js`), instead of
 the polygon god or the drawn sprite (`tools_boss.py` and `assets/forge/firstcut*` are kept, unused). In the opening he

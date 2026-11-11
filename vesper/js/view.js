@@ -184,6 +184,47 @@
     const B = R.baseT; if (B) ctx.setTransform(B); else ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.transform(Sh * hc, Sh * p * hs, -Sh * hs, Sh * p * hc, R.W / 2 - Sh * (hc * cx - hs * cy), R.H * 0.56 - Sh * p * (hs * cx + hc * cy));
   }
+  function farCountry(g, st, W, H) {
+    const q = 4, w = Math.ceil(W / q), h = Math.ceil(H / q), c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d');
+    const L = st.look, far = mix(L.sky[1], '#000000', 0.45), near = mix(L.sky[0], '#000000', 0.7), hz = Math.round(h * 0.56);
+    const ridge = (base, amp, seed, col, step) => { x.fillStyle = col; x.beginPath(); x.moveTo(0, h); for (let i = 0; i <= w; i += step) x.lineTo(i, base - (hash(i, seed) * 0.6 + Math.sin(i * 0.05 + seed) * 0.4 + 0.4) * amp); x.lineTo(w, h); x.fill(); };
+    const tower = (tx, ty, tw, th, col, spire) => { x.fillStyle = col; x.fillRect(tx, ty - th, tw, th); if (spire) { x.beginPath(); x.moveTo(tx - 1, ty - th); x.lineTo(tx + tw / 2, ty - th - spire); x.lineTo(tx + tw + 1, ty - th); x.fill(); } else for (let k = 0; k < tw; k += 3) x.fillRect(tx + k, ty - th - 2, 2, 2); };
+    const glowAt = (gx, gy, r, col, a) => { const gr = x.createRadialGradient(gx, gy, 0, gx, gy, r); gr.addColorStop(0, rgba(col, a)); gr.addColorStop(1, rgba(col, 0)); x.fillStyle = gr; x.fillRect(gx - r, gy - r, r * 2, r * 2); };
+    switch (st.id) {
+      case 'gate':   // a walled city and its gate towers, lit windows
+        ridge(hz + 6, 10, 61, far, 6);
+        for (let i = 0; i < 9; i++) { const tx = Math.round(w * (0.05 + i * 0.11 + hash(i, 62) * 0.03)), th = 10 + hash(i, 63) * 16; tower(tx, hz + 4, 5 + Math.round(hash(i, 64) * 3), th, near, hash(i, 65) < 0.4 ? 6 : 0); if (hash(i, 66) < 0.6) { x.fillStyle = '#ffb060'; x.fillRect(tx + 2, Math.round(hz - th * 0.6), 1, 1); } }
+        x.fillStyle = near; x.fillRect(0, hz + 2, w, h);
+        break;
+      case 'cloister':   // snow peaks under a pale moon
+        ridge(hz, 34, 71, mix(far, '#8aa0c0', 0.25), 4);
+        x.fillStyle = 'rgba(230,240,255,0.55)'; for (let i = 0; i < w; i += 4) { const y0 = hz - (hash(i, 71) * 0.6 + Math.sin(i * 0.05 + 71) * 0.4 + 0.4) * 34; x.fillRect(i, y0, 3, 3); }
+        ridge(hz + 14, 18, 72, near, 5);
+        break;
+      case 'stair':   // ruined spires floating in a violet haze
+        glowAt(w * 0.3, hz, w * 0.4, '#8a3ae0', 0.25);
+        for (let i = 0; i < 7; i++) { const tx = w * (0.06 + i * 0.14), ty = hz - 10 - hash(i, 81) * 22, th = 14 + hash(i, 82) * 20; tower(Math.round(tx), Math.round(ty), 4, th, near, 7); x.beginPath(); x.moveTo(tx - 2, ty); x.lineTo(tx + 6, ty); x.lineTo(tx + 2, ty + 8 + hash(i, 83) * 8); x.fill(); }
+        ridge(hz + 18, 6, 84, near, 8);
+        break;
+      case 'waste':   // jagged volcanic ridges, ember glow along their feet, smoke
+        glowAt(w * 0.6, hz + 6, w * 0.5, '#ff5a20', 0.3);
+        ridge(hz + 4, 30, 91, mix(far, '#3a0a04', 0.3), 3); ridge(hz + 14, 16, 92, near, 4);
+        x.fillStyle = 'rgba(255,120,40,0.7)'; for (let i = 0; i < w; i += 7) if (hash(i, 93) < 0.3) x.fillRect(i, hz + 12 + hash(i, 94) * 4, 1, 1);
+        break;
+      case 'throat':   // great cliff columns and wind streaks
+        for (let i = 0; i < 6; i++) { const tx = Math.round(w * (0.04 + i * 0.17 + hash(i, 101) * 0.05)), tw = 8 + Math.round(hash(i, 102) * 10), th = 30 + hash(i, 103) * 30; x.fillStyle = i % 2 ? far : near; x.fillRect(tx, hz + 10 - th, tw, th + h); x.fillStyle = mix(far, '#ffffff', 0.1); x.fillRect(tx, hz + 10 - th, 1, th); }
+        x.fillStyle = 'rgba(220,230,240,0.25)'; for (let i = 0; i < 14; i++) x.fillRect(Math.round(hash(i, 104) * w), Math.round(hz - 40 + hash(i, 105) * 50), 10 + Math.round(hash(i, 106) * 20), 1);
+        break;
+      default:   // the Moon's Shadow: the Spire itself, vast on the horizon, a red light at its tip
+        glowAt(w * 0.32, hz - 30, w * 0.25, '#ff2a44', 0.2);
+        x.fillStyle = near; x.beginPath(); x.moveTo(w * 0.32 - 14, h); x.lineTo(w * 0.32 - 3, hz - 60); x.lineTo(w * 0.32, hz - 70); x.lineTo(w * 0.32 + 3, hz - 60); x.lineTo(w * 0.32 + 14, h); x.fill();
+        x.fillStyle = '#ff4a5e'; x.fillRect(Math.round(w * 0.32), hz - 69, 1, 2);
+        ridge(hz + 10, 10, 111, near, 6);
+    }
+    // Fade the country into the dark below.
+    const fd = x.createLinearGradient(0, hz - 20, 0, h); fd.addColorStop(0, 'rgba(0,0,0,0)'); fd.addColorStop(1, 'rgba(0,0,0,0.7)'); x.fillStyle = fd; x.fillRect(0, 0, w, h);
+    const sm = g.imageSmoothingEnabled; g.imageSmoothingEnabled = false; g.drawImage(c, 0, 0, w * q, h * q); g.imageSmoothingEnabled = sm;
+  }
   function heliSky(st) {
     const key = 'hsky' + st.id; if (cache[key]) return cache[key];
     const L = st.look, W = R.W + 80, H = R.H, c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
@@ -196,6 +237,9 @@
     const mg = g.createLinearGradient(mx - mr, my - mr, mx + mr, my + mr); mg.addColorStop(0, mix(L.moonCol, '#ffffff', 0.25)); mg.addColorStop(1, mix(L.moonCol, '#000000', 0.12));
     g.fillStyle = mg; g.beginPath(); g.arc(mx, my, mr, 0, 7); g.fill();
     g.fillStyle = 'rgba(0,0,0,0.06)'; for (let i = 0; i < 6; i++) { g.beginPath(); g.arc(mx + (hash(i, 3) - 0.5) * mr * 1.2, my + (hash(i, 4) - 0.5) * mr * 1.2, mr * (0.08 + hash(i, 5) * 0.14), 0, 7); g.fill(); }
+    // The far country (2026-11-10): each hour's own silhouettes on the horizon, drawn at a quarter of the resolution and
+    // scaled up without smoothing so they share the game's pixel grid; darker toward the bottom, behind the floating arena.
+    farCountry(g, st, W, H);
     // Low clouds drifting past below the platform.
     for (let i = 0; i < 9; i++) { const cx = hash(i, 31) * W, cy = H * (0.55 + hash(i, 32) * 0.4), rw = R.H * (0.3 + hash(i, 33) * 0.4); g.save(); g.translate(cx, cy); g.scale(1, 0.22); const cg = g.createRadialGradient(0, 0, 0, 0, 0, rw); cg.addColorStop(0, rgba(L.fog, 0.35)); cg.addColorStop(1, rgba(L.fog, 0)); g.fillStyle = cg; g.fillRect(-rw, -rw, rw * 2, rw * 2); g.restore(); }
     return (cache[key] = c);
@@ -271,12 +315,12 @@
         case 'riposte': R.float('RIPOSTE', e.x, e.y, 64, '#ff9aa8', true, true); break;
         case 'break': { FX({ kind: 'ring', x: e.x, y: e.y, z: 24 * sc, life: 0.45, col: '#ffd060', r0: 6, r1: 60, w: 3 }); for (let i = 0; i < 14; i++) { const a = Math.random() * Math.PI * 2, v = 90 + Math.random() * 120; P({ x: e.x, y: e.y, z: 24 * sc, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.6, vz: 60 + Math.random() * 80, g: -380, life: 0.6, size: 3, col: '#ffd060', shape: 'tri', rot: Math.random() * 6 }); } R.float('BREAK', e.x, e.y, 56 * sc, '#ffd060', true, true); R.shake = 7; break; }
         case 'counter': R.float('COUNTER', e.x, e.y, 58, '#5ac8b0', true, true); sparks(e.x, e.y, 22, 10, '#c8fff0', 160); R.shake = Math.max(R.shake, 4); break;
-        case 'healpulse': FX({ kind: 'gring', x: e.x, y: e.y, life: 0.7, col: '#ffe08a', r0: 8, r1: e.r, w: 3 }); PK('holy_light', e.x, e.y, 0, 1.6); if (e.n) R.float('+HEAL', e.x, e.y, 64, '#ffe08a', false, true); break;
+        case 'healpulse': PK('v_heal', e.x, e.y, 0, 1.6); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.7, col: '#ffe08a', r0: 8, r1: e.r, w: 3 }); PK('holy_light', e.x, e.y, 0, 1.6); if (e.n) R.float('+HEAL', e.x, e.y, 64, '#ffe08a', false, true); break;
         case 'block': R.float('BLOCK', e.x, e.y, 54, '#c8c0b0', false, true); sparks(e.x, e.y, 22, 6, '#e8e0c8', 120); break;
         case 'guardbreak': FX({ kind: 'ring', x: e.x, y: e.y, z: 22, life: 0.4, col: '#ffd060', r0: 6, r1: 56, w: 3 }); R.float('GUARD BREAK', e.x, e.y, 60, '#ffd060', true, true); R.shake = Math.max(R.shake, 8); R.punch = Math.max(R.punch || 0, 0.05); break;
         case 'explode': PK('blast', e.x, e.y, 10, 3.2); PK('smoke_burst', e.x, e.y, 8, 2.2); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.5, col: '#ff6a5a', r0: 6, r1: e.r * 1.4, w: 4 }); sparks(e.x, e.y, 14, 24, '#ff8a6a', 260); R.flash = 0.4; R.flashCol = '255,90,60'; R.shake = Math.max(R.shake, 10); break;
         case 'reinforce': R.flash = 0.35; R.flashCol = '255,40,70'; R.shake = Math.max(R.shake, 7); break;
-        case 'heal': R.float('+' + e.n, e.x, e.y, 58, '#7dffb0'); break;
+        case 'heal': PK('v_heal', e.x, e.y, 0, 1.1); R.float('+' + e.n, e.x, e.y, 58, '#7dffb0'); break;
         case 'finisher': R.impactF = { t: 0, dur: 0.14, x: e.x, y: e.y, big: true }; R.punch = 0.09; R.shake = Math.max(R.shake, 12); R.float('FINISH', e.x, e.y, 70, '#ffffff', true, true); break;
         case 'kill': {
           if (!e.hero && !e.boss && u && !u.ally) { R.streak = R.streakT > 0 ? R.streak + 1 : 1; R.streakT = 2.4; const nm = streakName(R.streak); if (nm) R.streakShow = { text: nm, n: R.streak, t: 0 }; if (u.elite) { R.float('ELITE DOWN', e.x, e.y, 64, RED, true, true); R.shake = Math.max(R.shake, 8); } }
@@ -286,6 +330,9 @@
           if (e.boss) { R.flash = 0.9; R.flashCol = '255,255,255'; R.shake = 12; PK('blast', e.x, e.y, 20 * sc, 3); PK('smoke_dark', e.x, e.y, 10, 3); }
           break;
         }
+        case 'pickup': PK(e.kind === 'hp' ? 'v_heal' : 'v_levelup', e.x, e.y, 0, 0.8); break;
+        case 'chest': PK('v_loot', e.x, e.y, 0, 1.6); PK('v_levelup', e.x, e.y, 0, 1.0); break;
+        case 'moonFull': { const h = s.hero; PK('v_levelup', h.x, h.y, 0, 1.3); break; }   // the moon gauge full: a gold column
         case 'blink': if (e.petals) { for (let i = 0; i < 14; i++) { const a = Math.random() * 6.28, v = 40 + Math.random() * 80; P({ x: e.x, y: e.y, z: 14 + Math.random() * 20, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.6, vz: 20 + Math.random() * 40, g: -40, life: 0.8, size: 2, col: Math.random() < 0.5 ? '#ff9ab8' : '#ffffff', shape: 'tri', rot: Math.random() * 6 }); } } PK('teleport', e.x, e.y, 0, 1.6); FX({ kind: 'ring', x: e.x, y: e.y, z: 20, life: 0.3, col: '#c070ff', r0: 40, r1: 2, w: 2 }); sparks(e.x, e.y, 20, 10, '#c070ff', 90); break;
         case 'dodge': for (let i = 0; i < 6; i++) P({ x: e.x, y: e.y, z: 1, vx: (Math.random() - 0.5) * 60, vy: (Math.random() - 0.5) * 40, vz: Math.random() * 25, g: -40, life: 0.35, size: 2 + Math.random() * 2, col: 'rgba(200,190,200,0.35)', shape: 'circle' }); break;
         case 'boltHit': if (e.burstFx || e.burst) PK(e.burstFx || 'explosion_fire', e.x, e.y, 10, e.burst ? e.burst / 14 : 1.4); FX({ kind: 'ring', x: e.x, y: e.y, z: 16, life: 0.25, col: '#e0b0ff', r0: 3, r1: 22, w: 2 }); sparks(e.x, e.y, 16, 8, '#e0b0ff', 120); break;
@@ -293,8 +340,8 @@
         // No drawn crescent on the swing (2026-11-10): one generic arc never matched the blade's real path in each
         // clip. The sprite's own sword carries the swing; sparks and a glow mark where it connects.
         case 'swing': break;
-        case 'spin': { const h = s.hero; if (s.heroDef.heavy.fx === 'frost') { PK('explosion_frost', h.x, h.y, 10, 3); PK('frost_nova', h.x, h.y, 4, 2.6); } else PK('spin_slash', h.x, h.y, 18, 2.2); FX({ kind: 'gring', x: h.x, y: h.y, life: 0.35, col: '#ffffff', r0: 8, r1: 46, w: 3 }); FX({ kind: 'spin', x: h.x, y: h.y, life: 0.3 }); R.shake = Math.max(R.shake, 4); break; }
-        case 'spawn': break;
+        case 'spin': { const h = s.hero; if (s.heroDef.heavy.fx === 'frost') { PK('v_frost', h.x, h.y, 0, 2.2); PK('explosion_frost', h.x, h.y, 10, 3); PK('frost_nova', h.x, h.y, 4, 2.6); } else PK('spin_slash', h.x, h.y, 18, 2.2); FX({ kind: 'gring', x: h.x, y: h.y, life: 0.35, col: '#ffffff', r0: 8, r1: 46, w: 3 }); FX({ kind: 'spin', x: h.x, y: h.y, life: 0.3 }); R.shake = Math.max(R.shake, 4); break; }
+        case 'spawn': if (e.mode === 'rift' && !e.boss && A.hasFx('v_spawn')) PK('v_spawn', e.x, e.y, 0, 1.3); break;   // the ground tears open
         case 'landed': if (e.boss) { PK('shockwave', e.x, e.y, 0, 3.2); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.6, col: '#ffffff', r0: 10, r1: 110, w: 4 }); R.shake = 14; } else { const u2 = s.units.find((o) => o.id === e.id); if (u2 && u2.mode === 'drop') { FX({ kind: 'gring', x: e.x, y: e.y, life: 0.4, col: '#ffffff', r0: 4, r1: 34, w: 2 }); R.shake = Math.max(R.shake, 2.5); } else if (u2 && u2.mode === 'rift') PK('smoke_burst', e.x, e.y, 6, 1.0); } break;
         case 'portal': R.flash = 0.4; R.flashCol = '255,220,230'; break;
         case 'impact': R.impactF = { t: 0, dur: e.size === 'big' ? 0.17 : 0.1, x: e.x, y: e.y, big: e.size === 'big' }; R.shake = Math.max(R.shake, e.size === 'big' ? 12 : 6); break;
@@ -324,11 +371,11 @@
           break;
         }
         case 'chain': R.chains.push({ pts: e.pts, t: 0 }); for (const p of e.pts.slice(1)) PK('hit_shock', p[0], p[1], 22, 1.6); R.flash = 0.3; R.flashCol = '255,240,170'; R.shake = Math.max(R.shake, 4); break;
-        case 'thunder': PK('thunder', e.x, e.y, 0, 3.2); PK('lightning_holy', e.x, e.y, 0, 2.4); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.5, col: '#fff0a0', r0: 6, r1: e.r * 1.6, w: 4 }); R.impactF = { t: 0, dur: 0.08, x: e.x, y: e.y, big: false }; R.shake = Math.max(R.shake, 9); break;
-        case 'strike': if (e.hand) { PK('v_shock', e.x, e.y, 0, 2.6); PK('v_crack', e.x, e.y, 0, 1.8); PK('cb:10_quake_stomp/caster', e.x, e.y, 0, 2.4); R.shake = Math.max(R.shake, 14); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.6, col: '#ffffff', r0: 20, r1: 150, w: 4 }); FX({ kind: 'ghand', x: e.x, y: e.y, life: 0.18 }); } if (!e.quiet) { PK(e.fx || 'blast', e.x, e.y, 6, e.fx === 'poison_cloud' ? 1.6 : 2.2); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.35, col: e.team === 'hero' ? '#ffffff' : '#ff8070', r0: 3, r1: e.r * 1.3, w: 2 }); R.shake = Math.max(R.shake, 3); } else PK(e.fx || 'blast', e.x, e.y, 6, 1.4); break;
+        case 'thunder': PK('v_bolt', e.x, e.y, 0, 2.2); PK('thunder', e.x, e.y, 0, 3.2); PK('lightning_holy', e.x, e.y, 0, 2.4); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.5, col: '#fff0a0', r0: 6, r1: e.r * 1.6, w: 4 }); R.impactF = { t: 0, dur: 0.08, x: e.x, y: e.y, big: false }; R.shake = Math.max(R.shake, 9); break;
+        case 'strike': if (e.fx === 'fire_burst' || e.fx === 'explosion_fire') PK('v_fire', e.x, e.y, 0, 1.4); if (e.hand) { PK('v_shock', e.x, e.y, 0, 2.6); PK('v_crack', e.x, e.y, 0, 1.8); PK('cb:10_quake_stomp/caster', e.x, e.y, 0, 2.4); R.shake = Math.max(R.shake, 14); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.6, col: '#ffffff', r0: 20, r1: 150, w: 4 }); FX({ kind: 'ghand', x: e.x, y: e.y, life: 0.18 }); } if (!e.quiet) { PK(e.fx || 'blast', e.x, e.y, 6, e.fx === 'poison_cloud' ? 1.6 : 2.2); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.35, col: e.team === 'hero' ? '#ffffff' : '#ff8070', r0: 3, r1: e.r * 1.3, w: 2 }); R.shake = Math.max(R.shake, 3); } else PK(e.fx || 'blast', e.x, e.y, 6, 1.4); break;
         case 'tick': R.float(String(e.dmg), e.x, e.y, 30, '#b0ff90', false); break;
         case 'cast': if (u) PK('cast_circle', u.x, u.y, 2, 1.6); break;
-        case 'vanish': PK('smoke_dark', e.x, e.y, 10, 1.2); break;
+        case 'vanish': PK('v_shadow', e.x, e.y, 22, 1.4); PK('smoke_dark', e.x, e.y, 10, 1.2); break;
         case 'bossArt': R.bossArt = { key: e.key, name: e.name, t: 0 }; break;
         // The tell before a delayed blow: a hard glint on the weapon, held.
         case 'glint': { const c = e.unparry ? '#ff5a6a' : '#ffffff'; FX({ kind: 'ring', x: e.x, y: e.y, z: e.z, life: 0.4, col: c, r0: 4, r1: 40, w: 2 }); break; }
@@ -586,6 +633,7 @@
       ctx.save(); ground(ctx); ctx.strokeStyle = 'rgba(230,220,200,0.55)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(u.x, u.y, 18 * u.scale, u.ang - u.def.guard.arc, u.ang + u.def.guard.arc); ctx.stroke(); ctx.restore(); unground(ctx);
     }
     if (u.elite && u.alive) {
+      if (A.hasFx('v_aura')) A.fx(ctx, 'v_aura', R.t, x, y0, sc * 0.75, 0.9);   // the forge's turning rune ring
       ctx.save(); ctx.translate(x, y0); ctx.scale(1, HELI.pitch); A.tex(ctx, 'magic_01', 0, 0, 52 * sc, 52 * sc, RED, 0.75, R.t * 1.5, true); ctx.restore();
       A.tex(ctx, 'smoke_07', x, y - 22 * sc, 60 * sc, 70 * sc, RED, 0.35 + 0.1 * Math.sin(R.t * 8), R.t * 2, true);
       A.tex(ctx, 'light_01', x, y - 22 * sc, 70 * sc, 70 * sc, RED, 0.3, 0, true);
@@ -833,6 +881,8 @@
     items.sort((a, b) => a.d - b.d);
     for (const it of items) { if (it.u) drawUnit(ctx, s, it.u); else if (it.portal) drawPortal(ctx, st, it.portal); else if (it.iso) R.isoDraw(ctx, s, AR, it); }
     R.isoLights(ctx, s, AR);
+    // Pickups: a health orb or a moon shard bobbing where they fell (the forge's v_orb_*).
+    for (const p of s.drops || []) { const q = R.P(p.x, p.y), fade = p.t > 12 ? Math.max(0, (14 - p.t) / 2) * (Math.sin(R.t * 20) > 0 ? 1 : 0.4) : Math.min(1, p.t * 4); A.fx(ctx, p.kind === 'hp' ? 'v_orb_hp' : 'v_orb_moon', R.t + p.x * 0.01, q.x, q.y, R.Sh() * 0.7, fade); }
     // Bolts: a glowing orb with a tail.
     for (const b of s.bolts) {
       const q = R.P(b.x, b.y, 16), t = R.P(b.x - b.vx * 0.12, b.y - b.vy * 0.12, 16);

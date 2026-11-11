@@ -4,6 +4,7 @@
 # effects in the format of fx.json). js/assets.js merges both forge.json files over the packs at load.
 # Usage: python3 vesper/tools_forge.py [preview.png]
 import json, math, os, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
@@ -400,9 +401,17 @@ def build_tiles():
     page, place = pack(items)
     page.save(ISO + '/tiles_v0.png', optimize=True)
     tiles = {k: ['v0', p[0], p[1], p[2], p[3], p[4], p[5]] for k, p in place.items()}
-    json.dump({'pages': {'v': 1}, 'tiles': tiles, 'anims': {}}, open(ISO + '/forge.json', 'w'))
-    print('tiles:', len(tiles), 'page', page.size)
-    return items
+    # The act tilesets and the animated props (tools_forge_acts.py) on a second page.
+    import tools_forge_acts
+    acts, anims = tools_forge_acts.items()
+    br, banims = tools_forge_acts.breakables(); acts += br; anims.update(banims)
+    where = tools_forge_acts.build_icons(ROOT + '/assets/ui/icons_f.png'); print('icons:', where)
+    page1, place1 = pack(acts)
+    page1.save(ISO + '/tiles_v1.png', optimize=True)
+    tiles.update({k: ['v1', p[0], p[1], p[2], p[3], p[4], p[5]] for k, p in place1.items()})
+    json.dump({'pages': {'v': 2}, 'tiles': tiles, 'anims': anims}, open(ISO + '/forge.json', 'w'))
+    print('tiles:', len(tiles), 'pages', page.size, page1.size, 'anims', len(anims))
+    return items + acts
 
 
 # ---- effects (frame animations in the fx.json format) -------------------------------------------------
@@ -558,12 +567,162 @@ def fx_blast(seed):
         out.append(f)
     return out, 18, False
 
+ICEP = ramp(['#1a3a5a', '#2e6090', '#4a90c8', '#82c0ec', '#c4e6fa', '#ffffff'])
+VIOL = ramp(['#1a0830', '#3a1060', '#6a20b0', '#9a50f0', '#c8a0ff', '#f0e4ff'])
+HOLY = ramp(['#5a4010', '#a07818', '#e0b030', '#ffd860', '#fff0b0', '#ffffff'])
+HEAL = ramp(['#0a3a1a', '#1a6a30', '#30a050', '#60e080', '#b0ffc0', '#f0fff4'])
+
+def fx_frost(seed):
+    # Ice shards bursting out of the ground, then shattering into glints.
+    r = rng(seed); out = []; shards = [(r.random() * 6.283, 10 + r.random() * 20, 10 + r.random() * 16) for _ in range(9)]
+    for i in range(10):
+        f = frame(96, 80); k = i / 9; grow = min(1, k * 3); brk = max(0, (k - 0.55) / 0.45)
+        blob(f, 48, 60, 30 * min(1, k * 2), ICEP[1], 120 * (1 - k), 0.35)
+        for (a, d, L) in shards:
+            x0, y0 = 48 + math.cos(a) * d, 60 + math.sin(a) * d * 0.4
+            if brk < 1:
+                h = L * grow * (1 - brk); w = 3
+                for yy in range(int(h)):
+                    t = yy / max(1, h); ww = w * (1 - t)
+                    for xx in range(-int(ww) - 1, int(ww) + 1): put(f, x0 + xx, y0 - yy, ICEP[4] if xx < 0 else ICEP[2], 255 * (1 - brk))
+                put(f, x0, y0 - h, ICEP[5], 255 * (1 - brk))
+            if brk > 0:
+                for j in range(3): put(f, x0 + (j - 1) * 6 * brk, y0 - L * 0.6 - 10 * brk * (j + 1), ICEP[5], 255 * (1 - brk))
+        out.append(f)
+    return out, 18, False
+
+def fx_fire(seed):
+    # A pillar of fire licking up, collapsing into embers.
+    r = rng(seed); E = FXPAL['ember']; out = []; tongues = [(r.random() * 40 - 20, r.random()) for _ in range(12)]
+    for i in range(12):
+        f = frame(80, 112); k = i / 11; hgt = 70 * math.sin(min(1, k * 1.6) * math.pi / 2) * (1 - max(0, k - 0.6) * 2.2)
+        blob(f, 40, 100, 22 * (1 - k * 0.5), E[1], 180 * (1 - k), 0.4)
+        for (dx, o) in tongues:
+            h = hgt * (0.5 + o * 0.6); x0 = 40 + dx * (0.6 + 0.4 * k)
+            for yy in range(int(max(0, h))):
+                t = yy / max(1, h); w = 5 * (1 - t) * (0.7 + o * 0.5); xc = x0 + math.sin(t * 5 + i + o * 9) * 3 * t
+                c = E[3] if t < 0.4 else E[2] if t < 0.75 else E[1]
+                for xx in range(-int(w), int(w) + 1): put(f, xc + xx, 100 - yy, E[4] if (abs(xx) < w * 0.35 and t < 0.5) else c, 255 * (1 - k * 0.6))
+        for j in range(8):
+            ph = (k + j / 8) % 1; put(f, 40 + math.sin(j * 2.1) * 20, 100 - ph * 100, E[4], 255 * (1 - ph) * (1 - k * 0.5))
+        out.append(f)
+    return out, 18, False
+
+def fx_shadow(seed):
+    # A swirl of shadow folding in on itself (vanish, blink, umbral strikes).
+    out = []
+    for i in range(10):
+        f = frame(80, 80); k = i / 9
+        for j in range(5):
+            r0 = 30 * (1 - k) + j * 3; a0 = k * 6 + j * 1.2
+            band(f, 40, 44, max(0, r0 - 3), r0, VIOL[1 + (j % 3)], 220 * (1 - k * 0.8), 0.6, a0, a0 + 2.4)
+        blob(f, 40, 44, 10 * (1 - k) + 2, VIOL[0], 255 * (1 - k), 0.6)
+        if k < 0.5: blob(f, 40, 44, 3, VIOL[4], 255)
+        out.append(f)
+    return out, 20, False
+
+def fx_bolt(seed):
+    # A lightning strike from the sky with a ground flash.
+    r = rng(seed); out = []
+    path = [(32 + (r.random() - 0.5) * 18 * (1 - y / 150), y) for y in range(0, 151, 10)]
+    for i in range(8):
+        f = frame(64, 160); k = i / 7
+        if i in (0, 1, 3):
+            for (a, b) in zip(path, path[1:]):
+                for t in np.linspace(0, 1, 12):
+                    x, y = a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t
+                    put(f, x, y, HOLY[5]); put(f, x - 1, y, HOLY[3], 200); put(f, x + 1, y, HOLY[3], 200)
+            for (a, b) in zip(path[4:8], path[5:9]): put(f, a[0] + 6, a[1] + 4, HOLY[4])
+        blob(f, 32, 152, 6 + 16 * k, HOLY[3], 230 * (1 - k), 0.35); blob(f, 32, 152, 3 + 8 * k, HOLY[5], 255 * (1 - k), 0.35)
+        out.append(f)
+    return out, 18, False
+
+def fx_aura(seed):
+    # A looping ring of red runes turning under an elite.
+    out = []
+    for i in range(12):
+        f = frame(96, 48); t = i / 12
+        band(f, 48, 24, 36, 40, FXPAL['red'][2], 200, 0.5); band(f, 48, 24, 38, 39, FXPAL['red'][4], 230, 0.5)
+        for j in range(8):
+            a = t * math.tau / 4 + j / 8 * math.tau; x, y = 48 + math.cos(a) * 32, 24 + math.sin(a) * 16
+            blob(f, x, y, 2, FXPAL['red'][3 + (j % 2)], 255, 0.6)
+        for j in range(4):
+            ph = (t + j / 4) % 1; x = 48 + math.cos(j * 1.7) * 26; put(f, x, 24 - ph * 20, FXPAL['red'][4], 255 * (1 - ph))
+        out.append(f)
+    return out, 12, True
+
+def fx_spawn(seed):
+    # The ground tears open and something climbs out: a rift line, a burst of red smoke and soil.
+    r = rng(seed); D = FXPAL['dust']; P = FXPAL['red']; out = []; clods = [(r.random() * 6.283, 0.4 + r.random()) for _ in range(12)]
+    for i in range(10):
+        f = frame(96, 72); k = i / 9; open_ = min(1, k * 3) * (1 - max(0, k - 0.6) * 2.5)
+        if open_ > 0: band(f, 48, 52, 0, 30 * open_, P[1], 220, 0.3); band(f, 48, 52, 0, 26 * open_, hexc('#120206'), 255, 0.18); band(f, 48, 52, 27 * open_, 30 * open_, P[3], 255, 0.25)
+        for (a, sp) in clods:
+            d = 30 * sp * k; x, y = 48 + math.cos(a) * d, 52 - abs(math.sin(a)) * d * 0.8 + 40 * k * k
+            if k > 0.1 and k < 0.9: put(f, x, y, D[2]); put(f, x + 1, y, D[1])
+        if k > 0.2: blob(f, 48, 46 - k * 10, 10 + 14 * k, D[1], 160 * (1 - k), 0.7)
+        out.append(f)
+    return out, 18, False
+
+def fx_loot(seed):
+    # A looping gold sparkle: motes rising round a soft glow (an unopened chest, a drop).
+    out = []
+    for i in range(12):
+        f = frame(48, 64); t = i / 12
+        blob(f, 24, 50, 9 + 2 * math.sin(t * math.tau), HOLY[3], 60, 0.45); blob(f, 24, 50, 4, HOLY[4], 110, 0.45)
+        for j in range(7):
+            ph = (t + j / 7) % 1; x = 24 + math.cos(j * 2.4 + ph * 3) * 12; y = 54 - ph * 50
+            put(f, x, y, HOLY[5 if ph < 0.3 else 4], 255 * (1 - ph))
+            if ph < 0.25: put(f, x - 1, y, HOLY[3], 200); put(f, x + 1, y, HOLY[3], 200); put(f, x, y - 1, HOLY[3], 200); put(f, x, y + 1, HOLY[3], 200)
+        out.append(f)
+    return out, 10, True
+
+def fx_heal(seed):
+    # Green motes rising and a soft ring opening at the feet.
+    out = []
+    for i in range(12):
+        f = frame(80, 96); k = i / 11
+        band(f, 40, 84, 6 + 30 * k, 9 + 30 * k, HEAL[3], 230 * (1 - k), 0.4)
+        for j in range(10):
+            ph = min(1, k * 1.2 + (j % 3) * 0.1); x = 40 + math.cos(j * 2.1) * (8 + j * 2); y = 84 - ph * 70 - j * 2
+            if ph < 1: put(f, x, y, HEAL[5 if j % 2 else 4], 255 * (1 - ph)); put(f, x, y + 1, HEAL[3], 200 * (1 - ph))
+        out.append(f)
+    return out, 16, False
+
+def fx_levelup(seed):
+    # A gold column and ring: the moon gauge full, a power awakened.
+    out = []
+    for i in range(12):
+        f = frame(96, 128); k = i / 11; w = 14 * (1 - k)
+        if w > 0.5:
+            f[10:116, int(48 - w):int(48 + w) + 1, :3] = HOLY[2]; f[10:116, int(48 - w):int(48 + w) + 1, 3] = 120 * (1 - k)
+            f[10:116, int(48 - w * 0.4):int(48 + w * 0.4) + 1, :3] = HOLY[5]; f[10:116, int(48 - w * 0.4):int(48 + w * 0.4) + 1, 3] = 200 * (1 - k)
+        band(f, 48, 116, 8 + 40 * k, 11 + 40 * k, HOLY[4], 255 * (1 - k), 0.4)
+        for j in range(12):
+            a = j / 12 * math.tau; d = 10 + 34 * k; put(f, 48 + math.cos(a) * d, 116 + math.sin(a) * d * 0.4 - k * 30, HOLY[5], 255 * (1 - k))
+        out.append(f)
+    return out, 16, False
+
+def fx_orb(seed, pal):
+    # A pickup: a glowing orb bobbing over a soft shadow, motes turning round it.
+    out = []
+    for i in range(10):
+        f = frame(32, 40); t = i / 10; bob = math.sin(t * math.tau) * 2
+        blob(f, 16, 36, 6, hexc('#000000'), 90, 0.35)
+        blob(f, 16, 20 + bob, 8, pal[1], 120); blob(f, 16, 20 + bob, 6, pal[2]); blob(f, 16, 20 + bob, 4, pal[3]); blob(f, 14, 18 + bob, 2, pal[5])
+        for j in range(3): a = t * math.tau + j * 2.1; put(f, 16 + math.cos(a) * 10, 20 + bob + math.sin(a) * 4, pal[4])
+        out.append(f)
+    return out, 10, True
+
 def build_fx():
     makers = {'v_impact': fx_impact(1), 'v_slash': fx_slash(2), 'v_blood': fx_blood(3), 'v_shock': fx_shock(4), 'v_soul': fx_soul(5), 'v_crack': fx_crack(6),
-              'v_rift': fx_rift(7), 'v_pillar': fx_pillar(8), 'v_embers': fx_embers(9), 'v_blast': fx_blast(10)}
+              'v_rift': fx_rift(7), 'v_pillar': fx_pillar(8), 'v_embers': fx_embers(9), 'v_blast': fx_blast(10),
+              'v_frost': fx_frost(11), 'v_fire': fx_fire(12), 'v_shadow': fx_shadow(13), 'v_bolt': fx_bolt(14), 'v_aura': fx_aura(15), 'v_spawn': fx_spawn(16),
+              'v_loot': fx_loot(17), 'v_heal': fx_heal(18), 'v_levelup': fx_levelup(19),
+              'v_orb_hp': fx_orb(20, HEAL), 'v_orb_moon': fx_orb(21, FXPAL['red'])}
     items, meta = [], {}
     for name, (frames, fps, loop) in makers.items():
-        h, w = frames[0].shape[:2]; meta[name] = {'fps': fps, 'loop': loop, 'size': [w, h], 'anchor': [w // 2, h // 2] if name not in ('v_pillar', 'v_soul', 'v_rift', 'v_embers') else [w // 2, h - 8 if name != 'v_rift' else h // 2], 'frames': []}
+        h, w = frames[0].shape[:2]; meta[name] = {'fps': fps, 'loop': loop, 'size': [w, h], 'anchor': [w // 2, h // 2] if name not in ('v_pillar', 'v_soul', 'v_rift', 'v_embers', 'v_frost', 'v_fire', 'v_bolt', 'v_spawn', 'v_loot', 'v_heal', 'v_levelup', 'v_orb_hp', 'v_orb_moon') else [w // 2, h - 8 if name != 'v_rift' else h // 2], 'frames': []}
         for i, f in enumerate(frames):
             im = Image.fromarray(np.clip(f, 0, 255).astype(np.uint8), 'RGBA'); bb = im.getbbox() or (0, 0, 1, 1)
             items.append((f'{name}/{i}', im.crop(bb), (bb[0], bb[1])))

@@ -90,11 +90,14 @@
     if (o.kind === 'chest') {
       A.iso(ctx, o.broken ? o.openKey : o.key, x, y, Sh, Ar.tint);
       // Unopened: a soft glint in its tier's colour, so it reads as treasure from across the map.
-      if (!o.broken) { const col = o.tier === 'gold' ? '#ffd060' : o.tier === 'iron' ? '#9ad0ff' : '#ffb070'; R.glowAt(ctx, col, x, y - 10 * Sh, 26 * Sh, 0.22 + 0.12 * Math.sin(R.t * 3 + o.x)); }
+      if (!o.broken) { const col = o.tier === 'gold' ? '#ffd060' : o.tier === 'iron' ? '#9ad0ff' : '#ffb070'; R.glowAt(ctx, col, x, y - 10 * Sh, 26 * Sh, 0.22 + 0.12 * Math.sin(R.t * 3 + o.x)); A.fx(ctx, 'v_loot', R.t + o.x * 0.01, x, y + 4 * Sh, Sh * 0.55, 0.85); }
     } else if (o.kind === 'break') {
       const fr = A.isoAnim(o.anim) || [];
       if (!o.broken) { if (!(o.key && A.iso(ctx, o.key, x, y, Sh, Ar.tint)) && fr.length) A.iso(ctx, fr[0], x, y, Sh, Ar.tint); }
       else if (fr.length) { const k = Math.min(fr.length - 1, Math.max(0, Math.floor((s.time - o.brokeT) * 18))); A.iso(ctx, fr[k], x, y, Sh, k < fr.length - 1 ? null : Ar.tint); }
+    } else if (o.kind === 'anim') {
+      // The forge's animated props: candles, flames, lava, banners, pools, fog (8 frames a second, each its own phase).
+      const fr = A.isoAnim(o.anim); if (fr && fr.length) A.iso(ctx, fr[Math.floor(R.t * 8 + o.ph * fr.length) % fr.length], x, y, Sh, o.anim === 'Fog' ? null : Ar.tint);
     } else if (o.kind === 'torch') {
       A.iso(ctx, o.key, x, y, Sh, Ar.tint);
       const fl = A.isoAnim('Torch 1'); if (fl) A.iso(ctx, fl[Math.floor(R.t * 12 + o.x) % fl.length], x, y, Sh);
