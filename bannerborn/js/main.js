@@ -177,6 +177,7 @@
     else $('tCont').textContent = 'A new banner, a first captain, a road to the Gravegates';
     const em = $('tEmbers');
     if (!em.children.length) for (let i = 0; i < 16; i++) { const e = document.createElement('i'); e.style.left = (4 + Math.random() * 92) + '%'; e.style.setProperty('--dx', Math.round(Math.random() * 120 - 60) + 'px'); e.style.animationDuration = (6 + Math.random() * 7).toFixed(1) + 's'; e.style.animationDelay = (-Math.random() * 12).toFixed(1) + 's'; if (i % 3 === 0) { e.style.width = e.style.height = '2px'; } em.appendChild(e); }
+    { const v = document.querySelector('#title .ver'); if (v && BB.CONFIG) v.textContent = 'v' + BB.CONFIG.version; }
     const lg = $('tLogo'); if (!lg.children.length) lg.innerHTML = [...'BANNERBORN'].map((ch, i) => '<span style="--i:' + i + '">' + ch + '</span>').join('');
     const tb = $('tBanner'); tb.innerHTML = ''; tb.appendChild(UI.bannerCanvas(S ? S.banner : { color: '#b3242c', sigil: 'crown', trim: '#e8c66a' }, 92, 130));
     try { scene = await buildTitleFight(); } catch (e) { scene = await buildCampScene(true); }

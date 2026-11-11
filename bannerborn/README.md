@@ -11,6 +11,12 @@ cast), packed into `bannerborn/assets/`. Names, story and balance are proposals 
 (`python3 -m http.server`, then <http://localhost:8000/bannerborn/>). Landscape; touch or keyboard.
 Progress saves in the browser.
 
+**Releasing on the stores.** The app is the same game wrapped with Capacitor (`app/`), with Google AdMob and
+store purchases. Money buys time and quiet, never a fight: *Quiet March* (no ads), the *Captain's Chest* (once),
+the *Quartermaster's Writ* (30 days of daily crystals) and five crystal packs, sold by the Treasurer at the
+market; ads are optional for small bonuses, with one now and then between battles after the first road. What is
+ready, what is not yet proven on a phone, and everything only the owner can do: [docs/RELEASE.md](docs/RELEASE.md).
+
 ## The game
 
 Nine banners once stood between the living and the dead. Then the Gravegates opened, Vesh Morrow
@@ -307,6 +313,7 @@ name, their horde, the face-off, the clash) and a fall; chapters 2-4 open with y
 | `js/assets.js` | atlas loading, recolouring (dyes, skin, effect hues), paper-doll drawing, portraits |
 | land skins (`BB.LANDSKINS`, `BB.loadLand` in `js/assets.js`) | the far marches have no art files of their own. A skin is the vale kit and the ground kit re-coloured sprite by sprite when the land is first entered (about half a second): snow, ash or moss laid on whatever faces the sky, tree crowns turned, stone cooled or charred, the ground's texture kept in new colours, cracks between paving stones lit. Every sprite keeps its name, so every map layout, building and journey of the vale works in a skinned land. The two lands most lately entered keep their art in memory |
 | `js/world.js` | isometric projection, procedural maps per layout, painted ground, collisions, A* pathing |
+| `js/config.js`, `js/store.js` | the till: what differs between a test build and the release (ad unit ids, links, the test-ads switch), and ads and purchases behind one interface (`BB.Ads`, `BB.IAP`): Google AdMob and the stores inside the app, a labelled preview in a browser, nothing with `?store=off` |
 | `js/structures.js` | what the dead build: the five defences (stats, where they stand, what they do, how they are drawn), the art made for them and for the far marches, and its scatter over a land's maps |
 | `js/battle.js` | the battlefield: formation, hero/foe AI, energy and ultimates, bosses, objectives, rendering, lighting |
 | `js/audio.js` | synthesised sound effects and a procedural war-drum score |

@@ -1497,11 +1497,11 @@
     }
     if (res.unlock) body.appendChild(el('div', 'newhero', res.unlock));
     const bt = el('div', 'res-btns');
+    for (const [label, cls, fn] of actions) { const b = el('button', 'btn ' + (cls || ''), label); click(b, async () => { UI.modal('mResults', false); if (BB.Ads && !BB.dev) await BB.Ads.between(); fn(); }); bt.appendChild(b); }
     if (res.win && res.gold > 0 && !res.head && adsOn() && BB.adLeft(BB.save, 'victory', now()) > 0) {
       const d = el('button', 'btn dark adbtn', (BB.hasNoAds(BB.save) ? '' : '▶ ') + 'Double the gold <span class="cost">+' + fmt(res.gold) + ' ●</span>'); d.id = 'bAdGold';
       click(d, () => UI.watchFor('victory', () => { BB.save.gold += res.gold; UI.toast('+' + fmt(res.gold) + ' gold'); }).then((ok) => { if (ok) d.remove(); })); bt.appendChild(d);
     }
-    for (const [label, cls, fn] of actions) { const b = el('button', 'btn ' + (cls || ''), label); click(b, async () => { UI.modal('mResults', false); if (BB.Ads && !BB.dev) await BB.Ads.between(); fn(); }); bt.appendChild(b); }
     body.appendChild(bt);
     UI.modal('mResults');
   };

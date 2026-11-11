@@ -1,0 +1,30 @@
+{
+  "name": "bannerborn-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Bannerborn for the App Store and Google Play: the web game wrapped with Capacitor, with Google AdMob and store purchases.",
+  "scripts": {
+    "www": "node scripts/build-www.js",
+    "sync": "npm run www && npx cap sync",
+    "assets": "python3 ../tools/make-icons.py && npx capacitor-assets generate --android --ios",
+    "android": "npm run sync && npx cap open android",
+    "ios": "npm run sync && npx cap open ios",
+    "check": "node scripts/check-release.js"
+  },
+  "dependencies": {
+    "@capacitor-community/admob": "^8.0.0",
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/app": "^8.0.0",
+    "@capacitor/browser": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/ios": "^8.0.0",
+    "@capacitor/preferences": "^8.0.0",
+    "@capacitor/splash-screen": "^8.0.0",
+    "@capacitor/status-bar": "^8.0.0",
+    "cordova-plugin-purchase": "^13.12.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.0.0"
+  }
+}

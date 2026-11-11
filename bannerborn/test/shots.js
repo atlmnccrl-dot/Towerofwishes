@@ -46,7 +46,7 @@ require('fs').mkdirSync(out, { recursive: true });
   const res = await p.evaluate(() => document.getElementById('resBody').innerText);
   if (!/victory/i.test(res)) errs.push('results: no victory: ' + res.slice(0, 120));
   // Camp
-  await p.click('#resBody .btn.dark');
+  await p.click('#resBody .btn.dark:not(.adbtn)');
   await p.waitForFunction(() => BB.UI.current === 'home', null, { timeout: 15000 });
   // the guide opens once, after the first victory
   await wait(400); if (!(await p.isVisible('#mGuide.on'))) errs.push('the guide did not open after the first victory'); else { await shot('10b-guide'); await tap('#bGuideClose'); }

@@ -1,0 +1,26 @@
+{
+  "appId": "com.bannerborn.game",
+  "appName": "Bannerborn",
+  "webDir": "www",
+  "backgroundColor": "#0a0c11",
+  "android": {
+    "backgroundColor": "#0a0c11",
+    "allowMixedContent": false
+  },
+  "ios": {
+    "backgroundColor": "#0a0c11",
+    "contentInset": "never",
+    "scrollEnabled": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": true,
+      "launchShowDuration": 1200,
+      "backgroundColor": "#0a0c11",
+      "showSpinner": false,
+      "androidScaleType": "CENTER_CROP",
+      "splashFullScreen": true,
+      "splashImmersive": true
+    }
+  }
+}

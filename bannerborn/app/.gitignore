@@ -1,0 +1,17 @@
+node_modules/
+www/
+# signing: never in the repository
+*.keystore
+*.jks
+keystore.properties
+android/app/release/
+# what the build writes
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/app/src/main/assets/public/
+android/capacitor-cordova-android-plugins/build/
+ios/App/Pods/
+ios/App/App/public/
+ios/DerivedData/
