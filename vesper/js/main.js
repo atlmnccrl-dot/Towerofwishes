@@ -107,12 +107,12 @@
     padPrev = g.buttons.map((b) => b.pressed || b.value > 0.5);
   }
 
-  M.go = function (state) { M.state = state; M.t = 0; M.pressed = {}; M.hold = false; M.scene = null; if (R.hideCine) R.hideCine(); };
+  M.go = function (state) { M.state = state; M.t = 0; M.pressed = {}; M.hold = false; M.menuSc = null; if (R.hideCine) R.hideCine(); };
   // The scene behind a menu page (js/menuscene.js): the page's own place, with her, her heroes and her souls in it.
   function menuScene(kind) {
     const p = P(), D0 = D; PR.soulsInit(p);
-    M.scene = { kind, hero: p.hero, soul: p.soul, souls: Object.keys(p.souls || {}), heroes: p.heroes.slice(), locked: (D0.HERO_ORDER || []).filter((id) => p.heroes.indexOf(id) < 0) };
-    const need = [D0.HEROES[p.hero] && D0.HEROES[p.hero].set].concat(M.scene.heroes.concat(M.scene.locked).map((id) => D0.HEROES[id] && D0.HEROES[id].set), M.scene.souls.map((id) => D0.SOULS[id].set)).filter((id, i, a) => id && a.indexOf(id) === i && !A.hasSet(id));
+    M.menuSc = { kind, hero: p.hero, soul: p.soul, souls: Object.keys(p.souls || {}), heroes: p.heroes.slice(), locked: (D0.HERO_ORDER || []).filter((id) => p.heroes.indexOf(id) < 0) };
+    const need = [D0.HEROES[p.hero] && D0.HEROES[p.hero].set].concat(M.menuSc.heroes.concat(M.menuSc.locked).map((id) => D0.HEROES[id] && D0.HEROES[id].set), M.menuSc.souls.map((id) => D0.SOULS[id].set)).filter((id, i, a) => id && a.indexOf(id) === i && !A.hasSet(id));
     if (need.length) A.loadSets(need).catch(() => {});
     if (VS.MENU && !A.isoReady(VS.MENU.need)) A.loadIso(VS.MENU.need).catch(() => {});
   }
@@ -214,15 +214,24 @@
   // The opening's risen dead are turned townsfolk: load them first.
   const OPENING_SETS = ['vh_firstcut', 'vh_townsfolk_001', 'vh_townsfolk_004', 'vh_townsfolk_007', 'vh_townsfolk_010', 'vh_townsfolk_013', 'vh_skeleton_002', 'vh_barbarian_002'];
   function newGame() {
-    const play = () => startIntro(() => showcase(() => playNode('a0-t', true))), miss = OPENING_SETS.filter((id) => !A.hasSet(id));
-    if (!miss.length) return play();
-    M.go('load'); U.loading(0); A.loadSets(miss, (f) => U.loading(f)).then(() => { A.warm(R.ctx); U.hide(); play(); }, () => { U.hide(); play(); });
+    // The opening's cast, and the summit's tiles for the First Cut's two scenes (js/story.js FC_DEED, FC_WAIT).
+    const extra = [D.FOES.ghoul.set, D.FOES.raider.set, D.FOES.ghast.set, (D.HEROES[P().hero] || D.HEROES.vesper).set];
+    const play = () => startIntro(() => showcase(() => playNode('a0-t', true))), miss = OPENING_SETS.concat(extra).filter((id, i, a) => a.indexOf(id) === i && !A.hasSet(id)), iso = isoFor(5);
+    if (!miss.length && A.isoReady(iso)) return play();
+    M.go('load'); U.loading(0); Promise.all([A.loadSets(miss, (f) => U.loading(f)), A.loadIso(iso)]).then(() => { A.warm(R.ctx); A.isoWarm(R.ctx); U.hide(); play(); }, () => { U.hide(); play(); });
   }
 
   // The opening, played in the engine (js/intro.js).
   function startIntro(then) {
     U.hide(); if (P().opts.scenes === 'skip') return then();
-    M.go('intro'); VS.INTRO.start(() => { R.hideCine(); then(); });
+    const I = VS.INTRO, PT = I.PARTS;
+    if (!PT || !S.FC_DEED) { M.go('intro'); I.start(() => { R.hideCine(); then(); }); return; }
+    // The opening (2026-11-11): three films with the First Cut's two scenes filmed on the summit between them. Esc in any
+    // piece skips the rest of the opening.
+    const done = () => { R.hideCine(); then(); };
+    const film = (f, next) => { M.go('intro'); I.play(f, () => { R.hideCine(); (I.st && I.st.skipped ? done : next)(); }, { skippable: true }); };
+    const tale = (def, next) => startScene(5, def, () => (M.scene && M.scene.sc && M.scene.sc.skipped ? done : next)(), true);
+    film(PT.a, () => tale(S.FC_DEED, () => film(PT.b, () => tale(S.FC_WAIT, () => film(PT.c, done)))));
   }
   // A guardian's entrance film: in full the first time, a tap skips it after that.
   function startFilm(key, then) {
@@ -278,7 +287,7 @@
   // ---- Bound Souls --------------------------------------------------------------------------------------
   function souls(sel, flash) {
     const p = P(); PR.soulsInit(p); if (!Object.keys(p.souls).length) return map();
-    M.go('menu'); menuScene('souls'); if (sel && p.souls[sel]) M.scene.soul = sel;
+    M.go('menu'); menuScene('souls'); if (sel && p.souls[sel]) M.menuSc.soul = sel;
     U.souls({ p, sel, flash,
       onSel: (id) => { AU.sfx('soul', 0.4); souls(id); },
       onBind: (id) => { p.soul = id; M.write(); AU.sfx('allout', 0.5); souls(id, true); },
@@ -289,7 +298,7 @@
   function soulBound(ids, then) {
     const p = P(), list = ids.slice(), next = () => {
       if (!list.length) return then();
-      const id = list.shift(); M.go('menu'); menuScene('souls'); M.scene.soul = id; M.scene.reveal = true;   // the reveal shows the soul itself; the altar keeps the others
+      const id = list.shift(); M.go('menu'); menuScene('souls'); M.menuSc.soul = id; M.menuSc.reveal = true;   // the reveal shows the soul itself; the altar keeps the others
       U.soulBound({ id, first: p.soul === id, onOk: next, onSouls: () => souls(id) });
     };
     next();
@@ -303,7 +312,7 @@
   }
   function roster(back) {
     M.go('menu'); menuScene('roster'); const p = P();
-    U.roster({ p, onBack: back, preview: (id) => { if (M.scene) M.scene.hero = id; }, pick: (id) => { p.hero = id; M.write(); AU.sfx('allout', 0.5); back(); } });
+    U.roster({ p, onBack: back, preview: (id) => { if (M.menuSc) M.menuSc.hero = id; }, pick: (id) => { p.hero = id; M.write(); AU.sfx('allout', 0.5); back(); } });
   }
 
   // ---- playing a node ----------------------------------------------------------------------------------
@@ -811,7 +820,7 @@
     switch (M.state) {
       case 'load': ctx.fillStyle = '#07060a'; ctx.fillRect(0, 0, R.W, R.H); break;
       case 'title': ctx.fillStyle = '#05020a'; ctx.fillRect(0, 0, R.W, R.H); if (VS.INTRO && VS.INTRO.menu) VS.INTRO.menu(dt); else backdrop(ctx, dt, 5, true); break;   // the menu's scene (js/intro.js)
-      case 'menu': if (VS.MENU) { ctx.fillStyle = '#05020a'; ctx.fillRect(0, 0, R.W, R.H); VS.MENU.draw(dt, M.scene); } else { backdrop(ctx, dt, 5, false); ctx.fillStyle = 'rgba(6,3,8,0.62)'; ctx.fillRect(0, 0, R.W, R.H); } break;
+      case 'menu': if (VS.MENU) { ctx.fillStyle = '#05020a'; ctx.fillRect(0, 0, R.W, R.H); VS.MENU.draw(dt, M.menuSc); } else { backdrop(ctx, dt, 5, false); ctx.fillStyle = 'rgba(6,3,8,0.62)'; ctx.fillRect(0, 0, R.W, R.H); } break;
       case 'scene': scene(ctx, dt); break;
       case 'intro': VS.INTRO.update(dt, !!(M.pressed.back || M.pressed.tap)); if (M.state === 'intro') VS.INTRO.draw(ctx, dt); break;
       case 'fight': fight(ctx, dt); break;

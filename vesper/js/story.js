@@ -87,6 +87,43 @@
       clash(5, 'firstCut')] },
   ];
 
+  // ---- The First Cut in the opening (2026-11-11, the author: "those character models just don't stand right in the
+  // cutscenes for the boss... build different cutscenes from scratch"). He is filmed as the game shows him: on the real
+  // summit, through the fight camera, at a man's scale with his own clips and effects; the moon and the city are shot on
+  // their own (js/openfilm.js). The opening plays: the cold open, FC_DEED, the moon, the dead and her, FC_WAIT, the strike.
+  const FOLK = ['vh_townsfolk_001', 'vh_townsfolk_004', 'vh_townsfolk_007', 'vh_townsfolk_010', 'vh_townsfolk_013'];
+  const UP = [0, -400];   // toward the moon, over the summit's far edge
+  S.FC_DEED = { shots: [
+    { k: 'title', top: 'SEVEN HUNDRED YEARS AGO', title: 'THE TOP OF THE SPIRE', d: 2.4 },
+    // He climbs onto the summit; the people gathered there scatter from him.
+    { k: 'film', stage: 5, area: 'last', tint: 'past', say: 'A swordsman climbed to the top of the Spire.', d: 4.6,
+      cast: [{ who: 'firstCutFinal', at: [0, 170], to: [0, 30], mdur: 3.8, face: UP }].concat([[-90, -10, -280, -90], [80, -30, 270, -110], [-40, -70, -200, -230], [120, 40, 300, 60], [-130, 50, -320, 120]].map(([x, y, tx, ty], i) =>
+        ({ who: 'ghoul', set: FOLK[i], at: [x, y], to: [tx, ty], delay: 1.0 + i * 0.25, mdur: 2.2, run: true, face: [0, 150] }))),
+      cam: { at: [0, 90], to: [0, 20], zoom: [1.25, 1.6], lift: 34 } },
+    // Close on him, his back to us, the moon ahead: he raises his blade, and the light gathers on it.
+    { k: 'film', stage: 5, area: 'last', tint: 'past', say: 'He wanted an army that would never die.', d: 3.8,
+      cast: [{ who: 'firstCutFinal', at: [0, 30], face: UP, acts: [[0.5, 'C_Raise', 3.4, 7]] }],
+      ev: [[0.9, { type: 'pk', name: 'v_aura', x: 0, y: 30, scale: 2.2 }], [1.4, { type: 'sfx', name: 'charge', v: 0.9 }], [2.4, { type: 'pk', name: 'v_embers', x: 0, y: 30, scale: 2 }]],
+      cam: { at: [0, 30], to: [0, 24], zoom: [2.3, 2.7], lift: 44 } },
+    // The cut: one sweep, the white line across the summit and up at the moon.
+    { k: 'film', stage: 5, area: 'last', tint: 'past', d: 1.7,
+      cast: [{ who: 'firstCutFinal', at: [0, 30], face: UP, acts: [[0.15, 'C_Cut', 1.6, 16]] }],
+      ev: [[0.5, { type: 'cut', x1: -300, y1: -30, x2: 300, y2: -150, w: 22, god: true }], [0.5, { type: 'flash', a: 0.85 }], [0.5, { type: 'shake', n: 16 }], [0.48, { type: 'sfx', name: 'slash_2' }], [0.5, { type: 'sfx', name: 'blow_big' }]],
+      cam: { at: [0, 30], zoom: [1.9, 1.7], lift: 44 } },
+  ] };
+  S.FC_WAIT = { shots: [
+    // The summit now: red, the dead kneeling round him, the wind in his cape.
+    { k: 'film', stage: 5, area: 'last', tint: 'red', eyebrow: 'THE LAST HOUR', say: 'He waits at the top of the Spire.', d: 4.0,
+      cast: [{ who: 'firstCutFinal', at: [0, -40], face: 'cam', clip: 'C_Stand', aura: true }].concat([[-110, 10], [110, 0], [-60, 70], [70, 80], [0, 110]].map(([x, y], i) =>
+        ({ who: ['ghoul', 'raider', 'ghast', 'ghoul', 'raider'][i], at: [x, y], face: [0, -40], clip: 'CrouchIdle' }))),
+      ev: [[0.3, { type: 'pk', name: 'v_embers', x: 0, y: -40, scale: 2.4 }]],
+      cam: { at: [0, 60], to: [0, -20], zoom: [1.3, 2.0], lift: 40 }, card: { who: 'firstCut', at: 1.6 } },
+    // She comes onto the summit; he points his blade at her.
+    { k: 'film', stage: 5, area: 'last', tint: 'red', eyebrow: 'THE FIRST CUT', say: 'Kneel.', d: 3.0,
+      cast: [{ who: 'hero', at: [-10, 180], to: [-10, 70], mdur: 2.0, face: [0, -40] }, { who: 'firstCutFinal', at: [0, -40], face: [-10, 70], acts: [[1.3, 'Taunt', 1.7, 9]], aura: true }],
+      cam: { at: [0, 40], zoom: [1.55, 1.8], lift: 40 } },
+  ] };
+
   // The campaign plays these pieces: the prologue before the first trial, each act's intro the
   // first time you climb into it, and each guardian's intro before its fight.
   const B = S.BEFORE;

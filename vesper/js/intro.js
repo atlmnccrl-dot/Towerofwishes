@@ -72,7 +72,7 @@
   I.start = (then) => I.play(I.OPENING, then, { skippable: true });
   I.update = function (dt, skip) {
     const S = I.st; if (!S || S.done) return;
-    if (skip && S.skippable) { finish(); return; }
+    if (skip && S.skippable) { S.skipped = true; finish(); return; }
     const F = S.f, t0 = S.t; S.t += Math.min(dt, 0.1);
     for (const [at, name, v] of F.SFX) if (t0 < at && at <= S.t) VS.audio.sfx(name, v);
     if (F.MUSIC_AT != null && !S.music && S.t >= F.MUSIC_AT) { S.music = true; VS.audio.cue(F.music[1]); }
@@ -475,9 +475,9 @@
     const hz = Math.round(H() * 0.86), gx = Math.round(mx), gy = Math.round(H() * 0.64);   // he stands on the Spire's tip, in front of the moon
     if (red > 0) A.tex(ctx, 'light_01', mx, hz, W() * 1.3, 60, RED, 0.6 * red, 0, true);
     A.tex(ctx, 'light_01', gx, gy - 40, 110, 110, red > 0 ? '#ff3a52' : '#a0a0c0', 0.25, 0, true);
-    godAt(ctx, S, gx, gy, 2, T, { pose: 'cut', ft: T < 1.15 ? 0.18 : 0.18 + 0.82 * clamp((T - 1.15) / 0.5), col: '#0a0408', amt: 0.3, crown: true });
+    if (!S.noGod) godAt(ctx, S, gx, gy, 2, T, { pose: 'cut', ft: T < 1.15 ? 0.18 : 0.18 + 0.82 * clamp((T - 1.15) / 0.5), col: '#0a0408', amt: 0.3, crown: true });
     if (T > 1.1 && T < 1.75) A.fx(ctx, 'fc_crescent', T - 1.1, mx, my + r * 0.05, r / 120, 1, ang);   // his cut, a crescent of light across the moon
-    if (T < 1.15) { const c = clamp(T / 1.1); A.tex(ctx, 'light_01', gx - 30, gy - 30, 30 + 40 * c, 30 + 40 * c, '#ffffff', 0.4 + 0.5 * c, 0, true); }   // light gathering on his blade
+    if (T < 1.15 && !S.noGod) { const c = clamp(T / 1.1); A.tex(ctx, 'light_01', gx - 30, gy - 30, 30 + 40 * c, 30 + 40 * c, '#ffffff', 0.4 + 0.5 * c, 0, true); }   // light gathering on his blade
     ctx.fillStyle = '#0c0610'; ctx.beginPath(); ctx.moveTo(mx - 9, hz + 4); ctx.lineTo(mx - 2, H() * 0.68); ctx.lineTo(mx, H() * 0.64); ctx.lineTo(mx + 2, H() * 0.68); ctx.lineTo(mx + 9, hz + 4); ctx.fill();
     city(ctx, H() * 0.84, 7, '#1c1222', 0.3 * (1 - red), 1.0, 0);
     city(ctx, H() * 0.92, 13, '#0c0810', 0.4 * (1 - red), 0.9, 0);
@@ -493,6 +493,9 @@
     if (split > 0) K().embers(ctx, T, 30, 0, W(), RED);
     kick(S, (T > 1.45 && T < 1.9 ? 5 : 0.6));
   };
+  // The cut seen from the city below, without him in the shot (2026-11-11: he is filmed at a man's scale on the summit,
+  // js/story.js FC_DEED): his crescent of light sweeps across the moon, it splits, and the red pours down.
+  SH.mooncut = function (ctx, S, k, T) { S.noGod = true; try { SH.godcut(ctx, S, k, T); } finally { S.noGod = false; } };
   // The moon hangs still, the wound bleeding red light; the sky turns red.
   SH.scar = function (ctx, S, k, T) {
     const e = ease(k);

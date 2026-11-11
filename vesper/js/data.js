@@ -8,7 +8,7 @@
   D.FPS = { Idle: 8, Idle2: 8, Idle3: 8, Idle4: 8, Walk: 12, Run: 16, StrafeLeft: 12, StrafeRight: 12, RunBackwards: 14,
     Rolling: 30, TakeDamage: 22, Slide: 12, Die: 14, Taunt: 10, CrouchIdle: 8, Kick: 14, Special1: 12,
     Attack1: 16, Attack2: 16, Attack3: 16, Attack4: 14, Attack5: 16, Attack6: 16 };
-  D.LOOP = { Idle: 1, Idle2: 1, Idle3: 1, Idle4: 1, Walk: 1, Run: 1, StrafeLeft: 1, StrafeRight: 1, RunBackwards: 1, Taunt: 1, CrouchIdle: 1 };
+  D.LOOP = { Idle: 1, Idle2: 1, Idle3: 1, Idle4: 1, Walk: 1, Run: 1, StrafeLeft: 1, StrafeRight: 1, RunBackwards: 1, Taunt: 1, CrouchIdle: 1, C_Stand: 1, C_Hover: 1 };   // C_*: the First Cut's film clips
   D.STRIKE = { Attack1: 6, Attack2: 7, Attack3: 7, Attack4: 9, Attack5: 3, Attack6: 6, Kick: 7, Special1: 10 };
 
   // The arena: a floor band seen from the side. x across, y is depth (0 = back wall, DEPTH = front).

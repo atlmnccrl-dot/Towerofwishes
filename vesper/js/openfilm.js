@@ -9,7 +9,7 @@
   const { clamp } = K0, SH = K0.SH;
   const PI = Math.PI, RIGHT = 0, LEFT = PI, FRONT = PI / 2, V = 'vesper';
   const sc = E.scene, cut = (d, tpl, o) => Object.assign({ d }, tpl, o || {});
-  const DUR = { cold: 5.6, city: 3.2, godrise: 2.6, godcut: 4.4, scar: 1.8, rise: 3.6, horde: 3.4, eye: 1.8, draw: 1.0, name: 1.3, colossus: 4.0, gaze: 1.4, strike: 1.9, defy: 1.7, title: 6.6 };
+  const DUR = { mooncut: 4.4, cold: 5.6, city: 3.2, godrise: 2.6, godcut: 4.4, scar: 1.8, rise: 3.6, horde: 3.4, eye: 1.8, draw: 1.0, name: 1.3, colossus: 4.0, gaze: 1.4, strike: 1.9, defy: 1.7, title: 6.6 };
   // A built shot of intro.js, played from `from` seconds for d seconds (its own timing kept), with its sounds.
   const built = (name, d, from, o) => {
     from = from || 0; d = d || DUR[name] - from;
@@ -20,11 +20,15 @@
   const field = (hz) => ({ kind: 'plane', sky: ['#1a050c', '#7a2032'], floor: ['#5a1a28', '#160408'], hz: hz == null ? 0.6 : hz, line: '#7a2030' });
   const moon = { x: 0.8, y: 0.2, r: 0.14, col: '#ff6a7a', glow: 'rgba(255,40,70,0.45)', wound: 1 };
 
-  I.OPENING = E.film([
+  // The opening in three films (2026-11-11), with the First Cut's two scenes filmed on the summit between them
+  // (js/story.js FC_DEED, FC_WAIT; main.js startIntro plays the chain): the cold open; the moon cut and what followed,
+  // the dead, her, the fight; the strike and the title.
+  const A_ = [
+
     built('cold', null, 0, { bars: false, flat: true }),
-    built('city', null, 0, { line: 'Seven hundred years ago, he rose over the Spire.', lineAt: 0.4, lineDur: 2.6 }),
-    built('godrise', null, 0, { line: 'He wanted an army that would never die.', lineAt: 0.2, lineDur: 2.3 }),
-    built('godcut', null, 0, { bars: false, line: 'So he cut the moon.', lineAt: 2.1, lineDur: 2.2 }),
+  ];
+  const B_ = [
+    built('mooncut', 3.6, 0.8, { bars: false, line: 'So he cut the moon.', lineAt: 1.3, lineDur: 2.2 }),
     built('scar', null, 0, { line: 'Its wound has bled ever since.', lineAt: 0.2, lineDur: 1.6 }),
     built('rise', null, 0, { line: 'By its red light, his dead rise.', lineAt: 1.2, lineDur: 2.3 }),
     built('horde', null, 0, { lines: [[0.3, 1.45, 'Tonight the wound bleeds out.'], [1.85, 1.5, 'At dawn, the moon falls and his dead take everything.']] }),
@@ -67,9 +71,13 @@
     cut(1.6, sc({ bg: field(), moon, actors: [{ who: V, clip: 'Idle4', fps: 7, ang: FRONT, x: 0.5, y: 0.8, sc: 1.4 },
       ...[[0.26, 0.82, 2], [0.74, 0.84, 3], [0.36, 0.9, 4], [0.66, 0.76, 5], [0.18, 0.74, 0]].map(([x, y, i]) => ({ who: 'dead:' + i, grey: true, clip: 'Die', fr: 14, ang: i % 2 ? LEFT : RIGHT, x, y, sc: 1.2 }))] }),
       { cam: { z: [1.12, 1.0] }, sfx: [[0.1, 'whoosh', 0.4]] }),
-    built('colossus', null, 0, { line: 'He waits at the top of the Spire.', lineAt: 2.0, lineDur: 1.9 }),
-    built('gaze', null, 0, { bars: false, line: 'Kneel.', lineAt: 0.4, lineDur: 1.0, lineCol: '#ffd0d8' }),
+  ];
+  const C_ = [
     built('strike'),
     built('title'),
-  ], { music: ['draw', 'act0'], amb: 'wind', titleShot: 'title' });
+  ];
+  const OPT = { music: ['draw', 'act0'], amb: 'wind', titleShot: 'title' };
+  I.PARTS = { a: E.film(A_, OPT), b: E.film(B_, OPT), c: E.film(C_, Object.assign({}, OPT, { music: ['strike', 'act0'] })) };
+  I.OPENING = E.film(A_.concat(B_, C_), OPT);   // the films alone, in one (the theatre)
+
 })();

@@ -259,6 +259,7 @@
   R.pfx = []; R.chains = [];
   // A pack effect (the pixel effect atlas) at a point in the world, height z.
   const PK = (name, x, y, z, scale, o) => R.pfx.push(Object.assign({ name, x, y, z: z || 0, t: 0, scale: scale || 1 }, o || {}));
+  R.pk = PK;   // (the story films place effects with it)
   R.spawns = {};
   const P = (o) => R.parts.push(Object.assign({ t: 0, vx: 0, vy: 0, vz: 0, g: 0, z: 0, size: 2, col: '#fff', shape: 'sq', life: 0.4 }, o));
   const FX = (o) => R.fx.push(Object.assign({ t: 0 }, o));

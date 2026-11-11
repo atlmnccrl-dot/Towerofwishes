@@ -162,10 +162,12 @@
       // '@armyN': the Nth foe of the army the coming fight brings (given by main.js with its look).
       if (c.who[0] === '@') { const a = (sc.def.army || [])[+c.who.slice(5)]; if (!a) return null; if (!A.hasSet(a.set)) A.loadSets([a.set]).catch(() => {}); const u = VS.sim.makeUnit(s, 'foe', a.key, D.FOES[a.key], c.at[0], c.at[1], 0); u.set = a.set; u.x = c.at[0]; u.y = c.at[1]; u.alive = true; u.state = 'idle'; return { c, u, landed: !c.enter }; }
       const u = c.who === 'hero' ? s.hero : VS.sim.makeUnit(s, 'foe', c.who, D.FOES[c.who], c.at[0], c.at[1], 0);
-      u.x = c.at[0]; u.y = c.at[1]; u.alive = true; u.state = 'idle'; u.aura = !!c.aura; s.units.push(u); return { c, u, landed: !c.enter };
+      u.x = c.at[0]; u.y = c.at[1]; u.alive = true; u.state = 'idle'; u.aura = !!c.aura; s.units.push(u);
+      if (c.set) { u.set = c.set; if (!A.hasSet(c.set)) A.loadSets([c.set]).catch(() => {}); }   // a look of its own (townsfolk, for one)
+      return { c, u, landed: !c.enter };
     }).filter(Boolean);
     s.units = cast.map((m) => m.u).filter((u, i, a) => a.indexOf(u) === i);
-    return (sc.film = { sh, s, cast });
+    return (sc.film = { sh, s, cast, evd: {} });
   }
   const lerp2 = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
   SHOT.film = function (ctx, sh, k, t, sc) {
@@ -184,14 +186,26 @@
         if (u.def.boss) { R.impactF = { t: 0, dur: 0.12, x: u.x, y: u.y, big: true }; R.shake = 12; sc.cues.push(['quake', 1], ['blow_big', 0.9]); }
       }
       u.state = 'idle';
-      const mv = c.to ? ease(Math.max(0, Math.min(1, tt / (c.mdur || sh.d || 2.4)))) : 0, p = c.to ? lerp2(c.at, c.to, mv) : c.at, moving = c.to && mv < 0.98;
+      const mv = c.to ? ease(Math.max(0, Math.min(1, tt / (c.mdur || sh.d || 2.4)))) : 0, p = c.to ? lerp2(c.at, c.to, mv) : c.at, moving = c.to && mv < 0.98 && tt >= 0;
       u.x = p[0]; u.y = p[1];
       const after = m.landT != null && t - m.landT < 1.4 && c.after;
-      const clip = moving ? (c.run ? 'Run' : 'Walk') : after ? c.after : c.clip || 'Idle4';
-      u.clip = clip; u.frame = D.LOOP[clip] ? loop(clip, t + u.id * 0.3) : Math.min(14, Math.floor((t - (m.landT || 0)) * (D.FPS[clip] || 10)));
+      // Timed actions (the First Cut's films): [at, clip, seconds, fps, loop].
+      let act = null; for (const a of c.acts || []) if (tt >= a[0] && tt < a[0] + (a[2] || 1.2)) act = a;
+      const clip = act ? act[1] : moving ? (c.run ? 'Run' : 'Walk') : after ? c.after : c.clip || 'Idle4';
+      u.clip = clip; u.frame = act ? (act[4] ? loop(clip, tt - act[0], act[3]) : Math.floor((tt - act[0]) * (act[3] || 10))) : D.LOOP[clip] ? loop(clip, t + u.id * 0.3) : Math.min(14, Math.floor((t - (m.landT || 0)) * (D.FPS[clip] || 10)));
       const look = c.face === 'cam' ? TOWARD_CAM : Array.isArray(c.face) ? Math.atan2(c.face[1] - u.y, c.face[0] - u.x) : typeof c.face === 'number' ? c.face : moving ? Math.atan2(c.to[1] - c.at[1], c.to[0] - c.at[0]) : TOWARD_CAM;
       u.ang = look; u.face = Math.cos(look) >= 0 ? 1 : -1;
     }
+    // Timed events: [at, event]: the fight's own effects (a 'cut', a 'strike', a 'spawn' from a rift...), or 'pk' (one
+    // effect by name), 'flash', 'shake', 'sfx'.
+    (sh.ev || []).forEach(([et, e], i) => {
+      if (t < et || F.evd[i]) return; F.evd[i] = true;
+      if (e.type === 'pk') R.pk(e.name, e.x, e.y, e.z || 0, e.scale || 1);
+      else if (e.type === 'flash') { R.flash = Math.max(R.flash || 0, e.a || 0.7); R.flashCol = e.col || '255,255,255'; }
+      else if (e.type === 'shake') R.shake = Math.max(R.shake || 0, e.n || 10);
+      else if (e.type === 'sfx') sc.cues.push([e.name, e.v || 1]);
+      else { s.events = [Object.assign({}, e)]; R.consume(s); s.events = []; }
+    });
     const cam = sh.cam || {}, at = cam.at || [0, 0], c2 = lerp2(at, cam.to || at, ease(k));
     if (cam.follow) { const h = F.cast.find((m) => m.c.who === cam.follow); if (h) { c2[0] = h.u.x + (cam.off ? cam.off[0] : 0); c2[1] = h.u.y + (cam.off ? cam.off[1] : 0); } }
     // Aim at chest height, not the feet: shift the camera toward the viewer by the lift.
@@ -200,6 +214,7 @@
     const z = cam.zoom || [1.3, 1.5]; s.zoom = z[0] + (z[1] - z[0]) * ease(k);
     s.t += dt; R.t = R.t || 0;
     ctx.save(); if (R.shake > 0.5) ctx.translate((Math.random() - 0.5) * R.shake * R.dpr, (Math.random() - 0.5) * R.shake * R.dpr); R.drawFight(ctx, s, dt); ctx.restore();
+    if (sh.tint === 'past') { ctx.save(); ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = 'rgb(150,160,200)'; ctx.fillRect(0, 0, R.W, R.H); ctx.restore(); ctx.fillStyle = 'rgba(20,24,48,0.18)'; ctx.fillRect(0, 0, R.W, R.H); }   // seven hundred years ago: a cold memory
     if (sh.tint === 'red') { ctx.fillStyle = R.rgba(RED, 0.1 + 0.06 * Math.sin(t * 3)); ctx.fillRect(0, 0, R.W, R.H); }
     if (sh.tint === 'dawn') {
       // Dawn: the red drains out under a warm wash, and light breaks over the top of the frame.
@@ -219,7 +234,7 @@
   T.start = function (def) { const sc = { def, i: 0, t: 0, done: false, cues: [] }; enter(sc); return sc; };
   function enter(sc) { const sh = sc.def.shots[sc.i]; if (!sh) { sc.done = true; return; } sc.t = 0; sc.cues.push(...(CUE[sh.k] || [])); sc.hitCued = false; }
   T.update = function (sc, dt, inp) {
-    if (sc.done) return; if (inp.back) { sc.done = true; return; }
+    if (sc.done) return; if (inp.back) { sc.done = true; sc.skipped = true; return; }
     const sh = sc.def.shots[sc.i], t0 = sc.t; sc.t += dt; sc.dt = dt; const d = durOf(sh);
     // The anime opening: its own sound cues, and a tap jumps to its next beat rather than past it.
     if (sh.k === 'anime') { sc.cues.push(...VS.OPEN.cues(t0, sc.t)); if (inp.tap && sc.t > 0.35) { sc.t = VS.OPEN.next(sc.t); if (sc.t >= d) { sc.i++; enter(sc); } return; } }

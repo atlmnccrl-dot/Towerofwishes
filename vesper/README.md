@@ -345,11 +345,20 @@ summit's far rim while you cut floating limbs. Now:
   white-hot light his cut leaves across the moon), `fc_aura` (crimson-black flame licking at his feet), `fc_crown` (flames on his
   crown), `fc_glint` (the moon running down his blade), `fc_wind` (ash and torn cloth on the wind), `fc_summon` (his rune opening
   in the ground, motes rising), `fc_shock` (a flat crimson shockwave).
-- **The opening, re-cut for him**: he rises over the city in the updraft (C_Hover, his flames, ash streaming off him) and lands
-  on the Spire's tip (C_Stand); "He wanted an army": arms out (C_Command), his runes opening on the roofs below, then he draws
-  back along the line of the cut, the moon glinting down his blade; "So he cut the moon": the sweep itself (C_Cut) timed with
-  the stroke, the crescent of light across the moon; at the top of the Spire the wind in his cape, flames on his crown, then
-  the blade up (C_Raise); "Kneel" and the title menu: standing in the wind. The flash in the cold open: his raised blade in ink.
+- **The opening, rebuilt from scratch around him** (2026-11-11, the author: "those character models just don't stand right in
+  the cutscenes for the boss... build different cutscenes from scratch"): he is no longer a giant over the city or in front of
+  the moon. He is filmed the way the game shows him, on the real summit through the fight camera at a man's scale, in two
+  story scenes (js/story.js `FC_DEED`, `FC_WAIT`, played by js/tale.js): *Seven hundred years ago, the top of the Spire*: he
+  climbs onto the summit and the townsfolk scatter from him (a cold "memory" tint); close on his back, the moon ahead, he
+  raises his blade and the light gathers (C_Raise, the forge's aura and embers); one sweep (C_Cut) and the white cut across
+  the summit. Then the moon is shot on its own: his crescent of light sweeps across it and it splits (`SH.mooncut`, no
+  figure in it); the dead, her, the fight. Then *He waits at the top of the Spire*: red, the dead crouched round him, the
+  wind in his cape, his name card; she walks onto the summit and he points his blade at her: "Kneel." Then the strike and
+  the title. js/openfilm.js gives the films in three parts (`I.PARTS`), main.js `startIntro` plays the chain (Esc in any
+  piece skips the rest). The film engine's shots gained timed actions (`acts`), costume looks (`set`), timed events (`ev`:
+  the fight's own effects) and the 'past' tint.
+- **Fixed**: story scenes froze (every act intro, guardian intro and the ending, since the menu scenes update): the menu
+  scenes used the same `M.scene` as story scenes and cleared it; they use `M.menuSc` now.
 - **The last fight** (a5-b) is a duel: `D.FOES.firstCutFinal`, the knight himself on the summit at 1.6 times a man's size,
   with his combo, lunges, crescent waves, moonfall and mirror. The god above (js/sim.js, 'the god') is now only the will
   behind him: its health follows his body's; he raises his blade to call the sky blades, crosses, sweeps and quakes (more
