@@ -8,7 +8,7 @@
   // music and ambience stream from media elements routed through gain nodes.
   const SFX = ['allout', 'blow_0', 'blow_1', 'blow_2', 'blow_big', 'bolt', 'charge', 'clang_0', 'clang_1', 'horn', 'ko', 'magic', 'quake',
     'slash_0', 'slash_1', 'slash_2', 'step_0', 'step_1', 'step_2', 'swish_0', 'swish_1', 'swish_2', 'thud', 'whoosh',
-    'gate_open', 'gate_break', 'god_blade', 'soul', 'ice', 'fire', 'pickup', 'loot', 'heartbeat', 'rift'];   // the last ten: tools_sfx.py
+    'gate_open', 'gate_break', 'god_blade', 'soul', 'v_ice', 'v_fire', 'pickup', 'loot', 'heartbeat', 'rift'];   // the last ten: tools_sfx.py
   // Interface sounds (the shared UI pack in assets/sfx): chests, gold, the forge, equipping, level-ups.
   const UI_SFX = ['chest_open', 'coin_01', 'anvil_01', 'equip_armor_01', 'level_up', 'quest_complete', 'unsheathe_01', 'error_01', 'notify_01'];
   // Music: each moment asks for its cue; the first track of the cue that is in TRACKS plays. Only
@@ -100,7 +100,7 @@
         case 'land': A.sfx('thud', 0.8); break;
         case 'wall': A.sfx('clang_1', 0.8); A.sfx('blow_big', 0.7); break;
         case 'impact': A.sfx('blow_big', e.size === 'big' ? 1 : 0.7); if (e.size === 'big') A.sfx('clang_1', 0.6); break;
-        case 'spin': A.sfx('whoosh', 0.7); A.sfx('swish_2', 0.6); if (e.frost) A.sfx('ice', 0.6); break;
+        case 'spin': A.sfx('whoosh', 0.7); A.sfx('swish_2', 0.6); if (e.frost) A.sfx('v_ice', 0.6); break;
         case 'spawn': A.sfx(e.boss ? 'charge' : 'magic', 0.4); break;
         case 'landed': if (e.boss) { A.sfx('quake', 1); A.sfx('blow_big', 0.8); } break;
         case 'portal': A.sfx('allout', 0.6); break;
@@ -112,7 +112,7 @@
         case 'chest': A.sfx('chest_open', 0.8); A.sfx('loot', 0.6); break;
         case 'pickup': A.sfx('pickup', 0.6); break;
         case 'cut': if (e.god) A.sfx('god_blade', 0.9); break;
-        case 'strike': if (e.fx === 'fire_burst' || e.fx === 'explosion_fire') A.sfx('fire', 0.55); break;
+        case 'strike': if (e.fx === 'fire_burst' || e.fx === 'explosion_fire') A.sfx('v_fire', 0.55); break;
         case 'doom': A.sfx('god_blade', 1); A.sfx('gate_break', 0.8); break;
         case 'smash': A.sfx(e.kind === 'barrel' ? 'blow_big' : 'thud', 0.7); break;
         case 'endlessWave': A.sfx('horn', 0.6); break;

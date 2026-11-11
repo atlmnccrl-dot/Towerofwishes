@@ -1,5 +1,5 @@
 # THE BLEEDING MOON - sound effects synthesised in code (numpy, no samples): the rift gates, the god's blade, souls,
-# ice, fire, pickups, loot, a heartbeat and the rift's hum. Writes assets/sfx/fight/<name>.mp3 (via ffmpeg).
+# ice, fire, pickups, loot, a heartbeat and the rift's hum. Writes assets/sfx/fight/<name>.mp3 (via ffmpeg). New names only: that folder is shared, never overwrite a sound that is there.
 # Usage: python3 vesper/tools_sfx.py
 import os, subprocess
 import numpy as np
@@ -53,11 +53,11 @@ d = 0.9; n = int(d * SR); ch = (sine(np.linspace(660, 990, n), d) * 0.6 + sine(n
 S['soul'] = norm(reverb(mix(ch, lowpass(noise(n), 2500) * env(n, 0.1, curve=3) * 0.15), 0.45), 0.6)
 # Ice: glassy pings over a crackle.
 d = 0.7; ice = sum(at(sine(f, 0.3) * env(int(0.3 * SR), 0.001, curve=4), dt, d) for f, dt in ((2637, 0), (3136, 0.04), (3951, 0.09), (2349, 0.13)))
-S['ice'] = norm(reverb(mix(ice, highpass(noise(int(d * SR)), 3000) * env(int(d * SR), 0.002, curve=5) * 0.4), 0.35), 0.7)
+S['v_ice'] = norm(reverb(mix(ice, highpass(noise(int(d * SR)), 3000) * env(int(d * SR), 0.002, curve=5) * 0.4), 0.35), 0.7)
 # Fire: a whoosh catching, then crackles.
 d = 0.9; n = int(d * SR); wh = lowpass(noise(n), np.linspace(300, 2500, n)) * env(n, 0.08, curve=1.6)
 cr = sum(at(highpass(noise(int(0.012 * SR)), 2000) * (0.3 + rng.random() * 0.7), rng.random() * d, d) for _ in range(30))
-S['fire'] = norm(mix(wh, cr * 0.5), 0.75)
+S['v_fire'] = norm(mix(wh, cr * 0.5), 0.75)
 # A pickup: two bright notes.
 d = 0.3; S['pickup'] = norm(reverb(mix(at(sine(988, 0.12) * env(int(0.12 * SR), 0.002, curve=2), 0, d), at(sine(1480, 0.18) * env(int(0.18 * SR), 0.002, curve=2), 0.07, d)), 0.3), 0.55)
 # Loot: a sparkling arpeggio.
@@ -70,7 +70,9 @@ d = 1.3; n = int(d * SR); lfo = 1 + 0.2 * np.sin(2 * np.pi * 5 * t_(d)); hum = (
 S['rift'] = norm(reverb(mix(hum * env(n, 0.2, curve=1.5), highpass(noise(n), 4000) * env(n, 0.3, curve=2) * 0.08), 0.3), 0.6)
 
 os.makedirs(OUT, exist_ok=True)
+MINE = {'gate_open', 'gate_break', 'god_blade', 'soul', 'v_ice', 'v_fire', 'pickup', 'loot', 'heartbeat', 'rift'}   # the only files this script may write
 for name, x in S.items():
+    if os.path.exists(f'{OUT}/{name}.mp3') and name not in MINE: print('skip (exists, not ours):', name); continue
     pcm = (np.clip(x, -1, 1) * 32767).astype('<i2').tobytes()
     subprocess.run(['ffmpeg', '-y', '-v', 'error', '-f', 's16le', '-ar', str(SR), '-ac', '1', '-i', '-', '-b:a', '96k', f'{OUT}/{name}.mp3'], input=pcm, check=True)
     print(name, round(len(x) / SR, 2), 's')
