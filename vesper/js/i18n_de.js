@@ -962,6 +962,18 @@ VS.I18N.add("de", {
 "With the five kings beside you, you strike the wound.": "Mit den fünf Königen an deiner Seite triffst du die Wunde.",
 "The wound closes. The Moon turns white again, and the dead sleep.": "Die Wunde schließt sich. Der Mond wird wieder weiß, und die Toten schlafen.",
 "Five chained kings. One night. Free them before dawn.": "Fünf gekettete Könige. Eine Nacht. Befreie sie vor dem Morgengrauen.",
-"The Kingslayer and the five kings": "Der Königsmörder und die fünf Könige"
+"The Kingslayer and the five kings": "Der Königsmörder und die fünf Könige",
+"THE MOON KEPT THE DEAD ASLEEP": "DER MOND HIELT DIE TOTEN IM SCHLAF",
+"FIVE KINGS KEPT HER PEACE": "FÜNF KÖNIGE WAHRTEN SEINEN FRIEDEN",
+"Then a swordsman climbed the Spire.": "Dann erklomm ein Schwertkämpfer die Nadel.",
+"He spent their souls on one cut.": "Er opferte ihre Seelen für einen Schnitt.",
+"HE CUT THE MOON": "ER SCHNITT DEN MOND",
+"AND THE DEAD WOKE": "UND DIE TOTEN ERWACHTEN",
+"He chained their souls inside five guardians.": "Er kettete ihre Seelen in fünf Wächter.",
+"TONIGHT SHE BLEEDS OUT": "HEUTE NACHT BLUTET ER AUS",
+"At dawn she dies, and the dead never sleep again.": "Im Morgengrauen stirbt er, und die Toten schlafen nie wieder.",
+"THE MOON'S LAST KNIGHT": "DIE LETZTE RITTERIN DES MONDES",
+"FREE THE KINGS": "BEFREIE DIE KÖNIGE",
+"FREE THE FIVE KINGS": "BEFREIE DIE FÜNF KÖNIGE"
 },
   { tier: {"Iron": "Eisen", "Steel": "Stahl", "Moonsteel": "Mondstahl", "Bloodsteel": "Blutstahl", "Bone": "Knochen", "Silver": "Silber", "Moon": "Mond", "Blood": "Blut"}, base: {"Blade": "Klinge", "Saber": "Säbel", "Axe": "Axt", "Spear": "Speer", "Greatsword": "Großschwert", "Coat": "Mantel", "Mail": "Kettenhemd", "Plate": "Plattenpanzer", "Cloak": "Umhang", "Locket": "Medaillon", "Ring": "Ring", "Fang": "Fangzahn", "Talisman": "Talisman"}, suf: {"of Edges": "der Schneiden", "of the Wall": "des Walls", "of Warding": "des Schutzes", "of the Moon": "des Mondes", "of Thirst": "des Durstes", "of Haste": "der Eile", "of Wind": "des Windes", "of Patience": "der Geduld", "of Mending": "der Heilung", "of Fortune": "des Glücks"}, make: (b, t, s) => t + b.toLowerCase() + (s.length ? ' ' + s.join(' und ') : '') });

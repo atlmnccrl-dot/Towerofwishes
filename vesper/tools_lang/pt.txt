@@ -1007,3 +1007,16 @@ Com os cinco reis ao seu lado, você golpeia a ferida.
 A ferida se fecha. A Lua volta a ser branca, e os mortos dormem.
 Cinco reis acorrentados. Uma noite. Liberte-os antes da alvorada.
 O Mata-Reis e os cinco reis
+@989
+A LUA MANTINHA OS MORTOS ADORMECIDOS
+CINCO REIS GUARDAVAM SUA PAZ
+Então um espadachim subiu a Agulha.
+Gastou as almas deles em um só corte.
+ELE CORTOU A LUA
+E OS MORTOS DESPERTARAM
+Acorrentou as almas deles dentro de cinco guardiões.
+ESTA NOITE ELA SE ESVAI EM SANGUE
+Na alvorada ela morre, e os mortos nunca mais dormem.
+A ÚLTIMA CAVALEIRA DA LUA
+LIBERTE OS REIS
+LIBERTE OS CINCO REIS

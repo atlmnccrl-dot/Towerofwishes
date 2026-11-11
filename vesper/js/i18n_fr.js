@@ -961,6 +961,18 @@ VS.I18N.add("fr", {
 "With the five kings beside you, you strike the wound.": "Avec les cinq rois à tes côtés, tu frappes la plaie.",
 "The wound closes. The Moon turns white again, and the dead sleep.": "La plaie se referme. La Lune redevient blanche, et les morts dorment.",
 "Five chained kings. One night. Free them before dawn.": "Cinq rois enchaînés. Une nuit. Libère-les avant l'aube.",
-"The Kingslayer and the five kings": "Le Tueur de Rois et les cinq rois"
+"The Kingslayer and the five kings": "Le Tueur de Rois et les cinq rois",
+"THE MOON KEPT THE DEAD ASLEEP": "LA LUNE GARDAIT LES MORTS ENDORMIS",
+"FIVE KINGS KEPT HER PEACE": "CINQ ROIS VEILLAIENT SUR SA PAIX",
+"Then a swordsman climbed the Spire.": "Puis un bretteur gravit la Flèche.",
+"He spent their souls on one cut.": "Il dépensa leurs âmes en une seule taille.",
+"HE CUT THE MOON": "IL TRANCHA LA LUNE",
+"AND THE DEAD WOKE": "ET LES MORTS S'ÉVEILLÈRENT",
+"He chained their souls inside five guardians.": "Il enchaîna leurs âmes dans cinq gardiens.",
+"TONIGHT SHE BLEEDS OUT": "CETTE NUIT ELLE SE VIDE DE SON SANG",
+"At dawn she dies, and the dead never sleep again.": "À l'aube elle meurt, et les morts ne dorment plus jamais.",
+"THE MOON'S LAST KNIGHT": "LA DERNIÈRE CHEVALIÈRE DE LA LUNE",
+"FREE THE KINGS": "LIBÈRE LES ROIS",
+"FREE THE FIVE KINGS": "LIBÈRE LES CINQ ROIS"
 },
   { tier: {"Iron": "fer", "Steel": "acier", "Moonsteel": "acier lunaire", "Bloodsteel": "acier sanglant", "Bone": "os", "Silver": "argent", "Moon": "lune", "Blood": "sang"}, base: {"Blade": "Lame", "Saber": "Sabre", "Axe": "Hache", "Spear": "Lance", "Greatsword": "Espadon", "Coat": "Veste", "Mail": "Cotte", "Plate": "Cuirasse", "Cloak": "Cape", "Locket": "Médaillon", "Ring": "Anneau", "Fang": "Croc", "Talisman": "Talisman"}, suf: {"of Edges": "des Tranchants", "of the Wall": "du Rempart", "of Warding": "de la Garde", "of the Moon": "de la Lune", "of Thirst": "de la Soif", "of Haste": "de la Hâte", "of Wind": "du Vent", "of Patience": "de la Patience", "of Mending": "de la Guérison", "of Fortune": "de la Fortune"}, make: (b, t, s) => b + (/^[aeiouh]/.test(t) ? " d'" : ' de ') + t + (s.length ? ' ' + s.join(' et ') : '') });

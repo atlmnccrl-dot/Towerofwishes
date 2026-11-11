@@ -219,11 +219,11 @@
   }
   // A new game: the prologue, then the first trial.
   // The opening's risen dead are turned townsfolk: load them first.
-  // Everything the opening films (js/story.js S.OPEN): the Kingslayer, the five kings and their guards, the townsfolk,
-  // the guardians, the dead, the hero; every kingdom's tiles. Loaded before it plays (a new game, the theatre).
+  // Everything the opening film draws (js/openfilm.js): the Kingslayer, the five kings, the guardians, the dead (the
+  // townsfolk and the raiders), the hero. Loaded before it plays (a new game, the theatre).
   const OPENING_SETS = ['vh_firstcut', 'vh_townsfolk_001', 'vh_townsfolk_004', 'vh_townsfolk_007', 'vh_townsfolk_010', 'vh_townsfolk_013'];
   const openingNeeds = () => ({
-    sets: OPENING_SETS.concat(S.KING_SETS || [], ['ghoul', 'raider', 'ghast', 'warden', 'twinA', 'twinB', 'umbral', 'hunger', 'wing', 'firstCutFinal'].map((k) => D.FOES[k].set), [(D.HEROES[P().hero] || D.HEROES.vesper).set])
+    sets: OPENING_SETS.concat((S.KINGS || []).map((k) => k.set), ['vh_skeleton_002', 'vh_barbarian_002'], ['ghoul', 'raider', 'ghast', 'warden', 'twinA', 'twinB', 'umbral', 'hunger', 'wing', 'firstCutFinal'].map((k) => D.FOES[k].set), [(D.HEROES[P().hero] || D.HEROES.vesper).set])
       .filter((id, i, a) => id && a.indexOf(id) === i),
     iso: [0, 1, 2, 3, 4, 5].flatMap(isoFor).filter((g, i, a) => a.indexOf(g) === i) });
   function loadOpening(then) {
@@ -232,20 +232,15 @@
     M.go('load'); U.loading(0); Promise.all([A.loadSets(miss, (f) => U.loading(f)), A.loadIso(N.iso), A.loadCB().catch(() => {})]).then(() => { A.warm(R.ctx); A.isoWarm(R.ctx); U.hide(); then(); }, () => { U.hide(); then(); });
   }
   // A new game: the opening, the last hour (the tutorial at full power, ending in his First Cut and the Moon raising
-  // her), dusk again at the Black Gate, then the first trial.
+  // her: "Free the five kings"), then the first trial at the Black Gate.
   function newGame() {
-    loadOpening(() => startIntro(() => showcase(() => startScene(0, S.WAKE, () => playNode('a0-t', true), true))));
+    loadOpening(() => startIntro(() => showcase(() => playNode('a0-t', true))));
   }
 
-  // The opening (rebuilt from scratch 2026-11-11): the story film (js/story.js S.OPEN, played by tale.js on the game's
-  // own arenas), then the title (js/openfilm.js). Esc skips it all.
+  // The opening: one film in the guardian films' panel style (js/openfilm.js), ending on the title. Esc skips it.
   function startIntro(then) {
     U.hide(); if (P().opts.scenes === 'skip') return then();
-    const done = () => { R.hideCine(); then(); };
-    startScene(5, S.OPEN, () => {
-      if (M.scene && M.scene.sc && M.scene.sc.skipped) return done();
-      M.go('intro'); VS.INTRO.play(VS.INTRO.PARTS.title, () => done(), { skippable: true });
-    }, true);
+    M.go('intro'); VS.INTRO.play(VS.INTRO.PARTS.opening, () => { R.hideCine(); then(); }, { skippable: true });
   }
   // A guardian's entrance film: in full the first time, a tap skips it after that.
   function startFilm(key, then) {

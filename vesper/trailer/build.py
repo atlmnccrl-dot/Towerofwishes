@@ -5,8 +5,8 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 T = os.path.dirname(os.path.abspath(__file__)); REPO = os.path.abspath(os.path.join(T, '..', '..')); FR = T + '/frames'; OUT = T + '/seq'; FPS = 30; SR = 44100
 os.makedirs(OUT, exist_ok=True)
 FONT = REPO + '/assets/ui/adventurer.ttf'
-# 2026-11-11: the story is the five kings (the opening's FC_DEED, filmed on the real arenas), then the fights, then the title.
-EDIT = [('k1_king', 0, 72), ('k2_king', 0, 54), ('k4_king', 0, 48), ('k6_spell', 0, 99), ('k7_rise', 0, 78),
+# 2026-11-11: the story is cut from the opening film (js/openfilm.js): the kings' deaths, the First Cut, the chained guardians, tonight and Vesper, the summit; then the fights; then the title.
+EDIT = [('k1_king', 0, 90), ('k2_king', 0, 132), ('k4_king', 0, 84), ('k6_spell', 0, 117), ('k7_rise', 0, 57),
         ('card', 'ONE NIGHT.', 39), ('c08_g1', 0, 90), ('c09_g2', 15, 90), ('c10_art', 0, 108),
         ('card', 'SIX GUARDIANS', 39), ('c13_boss', 0, 96), ('c14_g3', 0, 78), ('c15_ldx', 0, 138),
         ('card', 'ONE BLADE.', 36), ('c17_god', 0, 108), ('t_title', 0, 75), ('end', 'CLIMB THE SPIRE BEFORE DAWN', 96)]

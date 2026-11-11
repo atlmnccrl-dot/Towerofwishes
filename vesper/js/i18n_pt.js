@@ -967,6 +967,18 @@ VS.I18N.add("pt", {
 "With the five kings beside you, you strike the wound.": "Com os cinco reis ao seu lado, você golpeia a ferida.",
 "The wound closes. The Moon turns white again, and the dead sleep.": "A ferida se fecha. A Lua volta a ser branca, e os mortos dormem.",
 "Five chained kings. One night. Free them before dawn.": "Cinco reis acorrentados. Uma noite. Liberte-os antes da alvorada.",
-"The Kingslayer and the five kings": "O Mata-Reis e os cinco reis"
+"The Kingslayer and the five kings": "O Mata-Reis e os cinco reis",
+"THE MOON KEPT THE DEAD ASLEEP": "A LUA MANTINHA OS MORTOS ADORMECIDOS",
+"FIVE KINGS KEPT HER PEACE": "CINCO REIS GUARDAVAM SUA PAZ",
+"Then a swordsman climbed the Spire.": "Então um espadachim subiu a Agulha.",
+"He spent their souls on one cut.": "Gastou as almas deles em um só corte.",
+"HE CUT THE MOON": "ELE CORTOU A LUA",
+"AND THE DEAD WOKE": "E OS MORTOS DESPERTARAM",
+"He chained their souls inside five guardians.": "Acorrentou as almas deles dentro de cinco guardiões.",
+"TONIGHT SHE BLEEDS OUT": "ESTA NOITE ELA SE ESVAI EM SANGUE",
+"At dawn she dies, and the dead never sleep again.": "Na alvorada ela morre, e os mortos nunca mais dormem.",
+"THE MOON'S LAST KNIGHT": "A ÚLTIMA CAVALEIRA DA LUA",
+"FREE THE KINGS": "LIBERTE OS REIS",
+"FREE THE FIVE KINGS": "LIBERTE OS CINCO REIS"
 },
   { tier: {"Iron": "ferro", "Steel": "aço", "Moonsteel": "aço lunar", "Bloodsteel": "aço sangrento", "Bone": "osso", "Silver": "prata", "Moon": "lua", "Blood": "sangue"}, base: {"Blade": "Lâmina", "Saber": "Sabre", "Axe": "Machado", "Spear": "Lança", "Greatsword": "Montante", "Coat": "Casaco", "Mail": "Cota", "Plate": "Couraça", "Cloak": "Capa", "Locket": "Medalhão", "Ring": "Anel", "Fang": "Presa", "Talisman": "Talismã"}, suf: {"of Edges": "dos Gumes", "of the Wall": "da Muralha", "of Warding": "da Proteção", "of the Moon": "da Lua", "of Thirst": "da Sede", "of Haste": "da Pressa", "of Wind": "do Vento", "of Patience": "da Paciência", "of Mending": "da Cura", "of Fortune": "da Fortuna"}, make: (b, t, s) => b + ' de ' + t + (s.length ? ' ' + s.join(' e ') : '') });

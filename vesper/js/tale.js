@@ -1,6 +1,6 @@
 // VESPER — the story, told in clean full-resolution scenes: the side-on stage under the moon,
 // crisp figures, slow camera moves, and one caption line at a time at the bottom of the screen.
-// Shot kinds: title, moonfall, film (the fight camera on a real arena), spire, kingdoms, wound, clash, seal. A tap moves on, Esc skips.
+// Shot kinds: title, moonfall, film (the fight camera on a real arena), spire, clash, seal. A tap moves on, Esc skips.
 (function () {
   const VS = window.VS, D = VS.DATA, A = VS.A, R = VS.R, S = VS.STORY;
   const T = VS.TALE = {};
@@ -104,54 +104,6 @@
     }
     // The hero climbing toward the current guardian.
     const p = pts[cur], h = sp('hero'); if (h) A.actor(ctx, h.set, 'Walk', loop('Walk', t), 0, Math.round(p.x + (p.x > cx ? -1 : 1) * 22 * R.k), Math.round(p.y + 8 * R.k), R.S * 0.6, {});
-    bars(ctx, 1);
-  };
-  // The Spire and its five kingdoms, one above another, lighting up one by one under the white Moon (the opening's first
-  // shot, laid out like the campaign map: the same climb, the same order). sh.red: the Moon already red.
-  SHOT.kingdoms = function (ctx, sh, k, t) {
-    const red = !!sh.red; sky(ctx, red ? '#0a0206' : '#03050c', red ? '#1a060c' : '#0a1020'); stars(ctx, 80, 1);
-    moon(ctx, R.W * 0.5, R.H * 0.13, R.H * 0.07, red ? '#ff2a44' : '#e8eeff', red ? 0.45 : 0.3);
-    const base = R.H * 0.76, top = R.H * 0.2, cx = R.W * 0.5, wB = R.W * 0.3;   // above the caption band
-    ctx.fillStyle = '#080a12'; ctx.fillRect(0, base, R.W, R.H - base); ctx.beginPath(); ctx.moveTo(cx - wB, base); ctx.lineTo(cx - wB * 0.1, top + 12 * R.k); ctx.lineTo(cx, top); ctx.lineTo(cx + wB * 0.1, top + 12 * R.k); ctx.lineTo(cx + wB, base); ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = red ? 'rgba(255,42,68,0.3)' : 'rgba(200,215,255,0.22)'; ctx.lineWidth = 1.5 * R.dpr; ctx.stroke();
-    const N = 6, names = D.STAGES.map((st, i) => (i === 5 ? "THE MOON'S ALTAR" : st.name.toUpperCase()));
-    const pts = names.map((nm, i) => { const f = i / 5, y = base - (base - top - 22 * R.k) * (0.08 + f * 0.92), side = i % 2 ? 1 : -1, x = cx + side * wB * (1 - f) * 0.42; return { x, y, nm, i }; });
-    const shown = Math.min(N, Math.floor(t / 0.42) + 1);
-    ctx.strokeStyle = 'rgba(255,255,255,0.16)'; ctx.setLineDash([5 * R.dpr, 6 * R.dpr]); ctx.beginPath(); pts.slice(0, shown).forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y))); ctx.stroke(); ctx.setLineDash([]);
-    for (const p of pts.slice(0, shown)) {
-      const a = Math.min(1, (t - p.i * 0.42) / 0.35), summit = p.i === 5, col = summit ? (red ? RED : '#e8eeff') : (red ? '#ff8a9a' : '#ffd890');
-      ctx.globalAlpha = a; R.glowAt(ctx, col, p.x, p.y, 30 * R.k, 0.45);
-      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(p.x, p.y, (summit ? 8 : 6) * R.k, 0, 7); ctx.fill();
-      const left = p.x > cx, tx = p.x + (left ? 1 : -1) * 16 * R.k;
-      R.label(ctx, summit ? 'THE SUMMIT' : 'KINGDOM ' + ['I', 'II', 'III', 'IV', 'V'][p.i], tx, p.y - 5 * R.k, 9 * R.k, red ? '#ff8a9a' : '#a8b4d8', left ? 'left' : 'right', 3, 700);
-      R.label(ctx, p.nm, tx, p.y + 11 * R.k, 13 * R.k, '#ffffff', left ? 'left' : 'right', 2, 700); ctx.globalAlpha = 1;
-    }
-    bars(ctx, 1);
-  };
-  // The First Cut, seen from far below: a line of white fire across the white Moon; she reddens, and her light bleeds
-  // down the sky (the red light that wakes the dead).
-  SHOT.wound = function (ctx, sh, k, t, sc) {
-    const HIT = 1.1, f = Math.max(0, Math.min(1, (t - HIT) / 1.4)), mx = R.W * 0.5, my = R.H * 0.4, r = R.H * 0.24;
-    sky(ctx, R.mix('#03050c', '#1a0208', f), R.mix('#0a1020', '#4a0a16', f)); stars(ctx, 70, 1 - f * 0.6);
-    const col = R.mix('#eef2ff', '#ff2a44', f); moon(ctx, mx, my, r, col, 0.3 + 0.25 * f);
-    // the cut: grows across the face, then glows red and stays
-    const g = Math.max(0, Math.min(1, (t - 0.55) / (HIT - 0.55))), ax = mx - r * 1.15, ay = my + r * 0.55, bx = mx + r * 1.15, by = my - r * 0.6;
-    if (g > 0) {
-      const ex = ax + (bx - ax) * g, ey = ay + (by - ay) * g;
-      ctx.save(); ctx.lineCap = 'round';
-      ctx.strokeStyle = f > 0 ? R.rgba('#ff2a44', 0.9) : 'rgba(255,255,255,0.95)'; ctx.lineWidth = (f > 0 ? 6 : 4) * R.dpr; ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(ex, ey); ctx.stroke();
-      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.6 * R.dpr; ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(ex, ey); ctx.stroke(); ctx.restore();
-      if (g < 1) R.glowAt(ctx, '#ffffff', ex, ey, 40 * R.k, 0.9);
-    }
-    if (t > HIT && !sc.woundHit) { sc.woundHit = true; sc.cues.push(['blow_big', 1], ['quake', 0.8]); }
-    if (t > HIT && t < HIT + 0.18) { ctx.fillStyle = `rgba(255,${Math.round(220 - 160 * f)},${Math.round(230 - 170 * f)},${0.8 * (1 - (t - HIT) / 0.18)})`; ctx.fillRect(0, 0, R.W, R.H); }
-    // her blood: drops falling from the cut, faster and more of them as she reddens
-    if (f > 0) for (let i = 0; i < 70; i++) {
-      const u = hash(i, 71), px = ax + (bx - ax) * u, py0 = ay + (by - ay) * u, sp = 0.25 + hash(i, 72) * 0.5, ph = ((t - HIT) * sp + hash(i, 73)) % 1;
-      if (hash(i, 74) > f) continue;
-      const y = py0 + ph * (R.H - py0), a = (1 - ph) * 0.85; ctx.fillStyle = `rgba(255,${40 + Math.round(hash(i, 75) * 50)},70,${a})`; ctx.fillRect(Math.round(px + Math.sin(ph * 6 + i) * 3), Math.round(y), Math.max(1, R.dpr), Math.round(3 * R.dpr + ph * 6 * R.dpr));
-    }
-    ridge(ctx, R.H * 0.9, R.H * 0.06, '#050208', 7, R.W / 16);
     bars(ctx, 1);
   };
   // The hero and the guardian rush each other and meet on an impact frame.
@@ -278,7 +230,7 @@
   };
 
   // ---- playback ------------------------------------------------------------------------------------
-  const CUE = { kingdoms: [['step_2', 0.4]], wound: [['charge', 0.7]], film: [['magic', 0.4]], title: [['clang_1', 0.6]], moonfall: [['charge', 0.8]], clash: [['whoosh', 0.9]], seal: [['charge', 0.8]], spire: [['step_2', 0.5]] };
+  const CUE = { film: [['magic', 0.4]], title: [['clang_1', 0.6]], moonfall: [['charge', 0.8]], clash: [['whoosh', 0.9]], seal: [['charge', 0.8]], spire: [['step_2', 0.5]] };
   const durOf = (sh) => (sh.k === 'anime' ? VS.OPEN.dur : Math.max(sh.d || 2.4, sh.say ? 1.6 + sh.say.length * 0.05 : 0));
   T.durOf = durOf; T.kinds = () => Object.keys(SHOT).concat(['anime']);
   T.start = function (def) { const sc = { def, i: 0, t: 0, done: false, cues: [] }; enter(sc); return sc; };

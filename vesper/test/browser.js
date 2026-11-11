@@ -20,8 +20,8 @@ fs.mkdirSync(out, { recursive: true });
 
   // A new game: the prologue, the trial (guided), its result, the map.
   await button('New game');
-  // The opening (js/story.js S.OPEN, played as a story scene): the Spire's kingdoms first.
-  await page.waitForFunction(() => VS.main.state === 'scene' && VS.main.scene && VS.main.scene.sc.def === VS.STORY.OPEN && VS.main.scene.sc.t > 2, null, { timeout: 120000 });
+  // The opening film (js/openfilm.js).
+  await page.waitForFunction(() => VS.main.state === 'intro' && VS.INTRO.st && VS.INTRO.st.t > 4, null, { timeout: 120000 });
   await shot('02-opening', 100);
   await page.keyboard.press('Escape');
   // The last hour (the end-game glimpse): it plays, then Esc skips it, then the title card.
@@ -30,8 +30,6 @@ fs.mkdirSync(out, { recursive: true });
   await page.keyboard.press('Escape');
   // Skipping goes to the Moon raising her (a film, skippable too), then the first trial.
   await page.waitForFunction(() => VS.main.state === 'intro' && VS.INTRO.st && VS.INTRO.st.f === VS.FILMS.rise); await shot('02c-rise', 1500); await page.keyboard.press('Escape');
-  // Dusk again at the Black Gate (S.WAKE), then the trial.
-  await page.waitForFunction(() => VS.main.state === 'scene' && VS.main.scene && VS.main.scene.sc.def === VS.STORY.WAKE, null, { timeout: 60000 }); await shot('02d-wake', 1800); await page.keyboard.press('Escape');
   await page.waitForFunction(() => VS.main.state === 'fight' && VS.main.fight.nodeId === 'a0-t');
   await shot('03-trial', 2600);
   // After the last hour (the tutorial), the first node is a plain fight: no lessons, no messages, the dead come on their own.

@@ -971,6 +971,18 @@ VS.I18N.add("es", {
 "With the five kings beside you, you strike the wound.": "Con los cinco reyes a tu lado, golpeas la herida.",
 "The wound closes. The Moon turns white again, and the dead sleep.": "La herida se cierra. La Luna vuelve a ser blanca, y los muertos duermen.",
 "Five chained kings. One night. Free them before dawn.": "Cinco reyes encadenados. Una noche. Libéralos antes del alba.",
-"The Kingslayer and the five kings": "El Matarreyes y los cinco reyes"
+"The Kingslayer and the five kings": "El Matarreyes y los cinco reyes",
+"THE MOON KEPT THE DEAD ASLEEP": "LA LUNA MANTENÍA DORMIDOS A LOS MUERTOS",
+"FIVE KINGS KEPT HER PEACE": "CINCO REYES GUARDABAN SU PAZ",
+"Then a swordsman climbed the Spire.": "Entonces un espadachín subió la Aguja.",
+"He spent their souls on one cut.": "Gastó sus almas en un solo corte.",
+"HE CUT THE MOON": "CORTÓ LA LUNA",
+"AND THE DEAD WOKE": "Y LOS MUERTOS DESPERTARON",
+"He chained their souls inside five guardians.": "Encadenó sus almas dentro de cinco guardianes.",
+"TONIGHT SHE BLEEDS OUT": "ESTA NOCHE SE DESANGRA",
+"At dawn she dies, and the dead never sleep again.": "Al alba muere, y los muertos no vuelven a dormir.",
+"THE MOON'S LAST KNIGHT": "LA ÚLTIMA CABALLERA DE LA LUNA",
+"FREE THE KINGS": "LIBERA A LOS REYES",
+"FREE THE FIVE KINGS": "LIBERA A LOS CINCO REYES"
 },
   { tier: {"Iron": "hierro", "Steel": "acero", "Moonsteel": "acero lunar", "Bloodsteel": "acero sangriento", "Bone": "hueso", "Silver": "plata", "Moon": "luna", "Blood": "sangre"}, base: {"Blade": "Hoja", "Saber": "Sable", "Axe": "Hacha", "Spear": "Lanza", "Greatsword": "Mandoble", "Coat": "Casaca", "Mail": "Cota", "Plate": "Coraza", "Cloak": "Capa", "Locket": "Relicario", "Ring": "Anillo", "Fang": "Colmillo", "Talisman": "Talismán"}, suf: {"of Edges": "de los Filos", "of the Wall": "del Muro", "of Warding": "de la Guarda", "of the Moon": "de la Luna", "of Thirst": "de la Sed", "of Haste": "de la Prisa", "of Wind": "del Viento", "of Patience": "de la Paciencia", "of Mending": "de la Curación", "of Fortune": "de la Fortuna"}, make: (b, t, s) => b + ' de ' + t + (s.length ? ' ' + s.join(' y ') : '') });

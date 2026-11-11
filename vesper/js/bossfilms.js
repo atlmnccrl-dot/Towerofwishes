@@ -440,7 +440,7 @@
       { cam: { z: [1.0, 1.12] }, flashAt: [0.6], sfx: [[0.1, 'step_1', 0.7], [0.6, 'allout', 0.9], [0.62, 'unsheathe_01', 0.9]] }),
     card(2.4, 'THE MOON TURNED THE NIGHT BACK TO DUSK', true),
     card(2.3, 'SHE WOKE WITH NOTHING BUT HER BLADE', false),
-    cut(2.3, E.card({ text: 'FIGHT YOUR WAY BACK TO HIM', opts: { size: 18 } }), { bars: false, flat: true, sfx: [[0, 'thud', 0.8]] }),
+    cut(2.3, E.card({ text: 'FREE THE FIVE KINGS', opts: { size: 18 } }), { bars: false, flat: true, sfx: [[0, 'thud', 0.8]] }),
   ], { amb: 'night' });
 
   // Which film opens which guardian's fight.

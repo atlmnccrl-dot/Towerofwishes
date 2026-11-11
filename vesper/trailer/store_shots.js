@@ -23,10 +23,11 @@ const scene = (def, i, t) => ({ run: async (pg) => {
   await pg.evaluate((d) => VS.main.startScene(5, VS.STORY[d], () => {}, true), def); await ready(pg, 'scene');
   await pg.evaluate(([i, t]) => { const sc = VS.main.scene.sc; sc.i = i; sc.t = t; }, [i, t]); await pg.waitForTimeout(700); } });
 
+const film = (t) => ({ run: async (pg) => { await pg.evaluate((t) => { VS.main.state = 'intro'; VS.INTRO.play(VS.INTRO.PARTS.opening, () => {}, { skippable: false }); VS.INTRO.st.t = t; }, t); await pg.waitForTimeout(300); } });   // a frame of the opening film
 const SHOTS = [
-  ['01_kings', scene('OPEN', 3, 1.0)],
+  ['01_kings', film(6.4)],
   ['02_horde', fight('a3-3', 9000)],
-  ['03_spell', scene('OPEN', 8, 2.0)],
+  ['03_spell', film(15.0)],
   ['04_guardian', fight('a3-b', 12000)],
   ['05_map', { run: async (pg) => { await pg.evaluate(() => VS.main.map(VS.PROG.nextNode(VS.main.save))); await pg.waitForTimeout(2500); } }],
   ['06_souls', { run: async (pg) => { await pg.evaluate(() => VS.main.souls()); await pg.waitForTimeout(2000); } }],
