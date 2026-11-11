@@ -44,13 +44,13 @@
   S.BEFORE = [
     // Dusk: the whole premise, then the first guardian.
     { shots: [
-      { k: 'title', top: 'SEVEN HUNDRED YEARS AGO', title: 'THE MOON WAS CUT', d: 2.2 },
-      { k: 'moonfall', eyebrow: 'THE FIRST CUT', say: 'He rose over the Spire and cut the moon, to raise an army that would never die.', d: 4.6 },
-      { k: 'film', stage: 0, area: 0, tint: 'red', eyebrow: 'THE WOUND', say: 'The wound never healed. By its red light, his dead rise.', d: 3.8,
+      { k: 'title', top: 'SEVEN HUNDRED YEARS AGO', title: 'FIVE KINGS FELL', d: 2.2 },
+      { k: 'title', top: 'THE FIRST CUT', title: 'THE KINGSLAYER', sub: 'With five kings\' souls he cast the spell that wakes every grave.', d: 3.4 },
+      { k: 'film', stage: 0, area: 0, tint: 'red', eyebrow: 'THE RED MOON', say: 'From that night the moon bled red. By its light, his dead rise.', d: 3.8,
         cam: { at: [0, 10], to: [0, -20], zoom: [1.05, 1.35] },
         cast: [{ who: 'ghoul', at: [-110, -50], enter: 'rift', delay: 0.2 }, { who: 'ghast', at: [90, -60], enter: 'rift', delay: 0.5 }, { who: 'raider', at: [-40, 40], enter: 'rift', delay: 0.8 },
           { who: 'archer', at: [130, 30], enter: 'rift', delay: 1.1 }, { who: 'bone', at: [-150, 20], enter: 'rift', delay: 1.4 }, { who: 'ghoul', at: [40, -95], enter: 'rift', delay: 1.7 }] },
-      { k: 'title', top: 'TONIGHT', title: 'THE WOUND BLEEDS OUT', sub: 'At dawn, the moon falls and his dead take everything.', d: 2.8 },
+      { k: 'title', top: 'TONIGHT', title: 'THE MOON BLEEDS OUT', sub: 'At dawn, his dead take everything.', d: 2.8 },
       { k: 'film', stage: 0, area: 'last', eyebrow: 'hero', say: 'Only your blade can stop him, at the top of the Spire.', d: 3.4,
         cast: [{ who: 'hero', at: [0, 20], aura: true, face: 'cam' }], cam: { at: [0, 22], zoom: [2.5, 3.0] } },
       climb(0, 'Six guardians stand between you and the top.'),

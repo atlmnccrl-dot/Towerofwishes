@@ -101,8 +101,8 @@
       skills: [
         { name: 'Frost Field', kind: 'zone', cd: 8, clip: 'Special1', r: 50, dur: 4.5, dps: 9, slow: 1, fx: 'frost_nova', range: 120 },
         { name: 'Glacial Step', kind: 'blinkStrike', cd: 6, clip: 'Attack4', dmg: 16, range: 150, r: 34, poise: 18 }] }),
-    // Unlocked by defeating him: the swordsman who cut the moon, seven hundred years of practice.
-    firstcut: Object.assign({}, base, { id: 'firstcut', pow: 1.0, name: 'The First Cut', title: 'Who Wounded the Moon', weapon: 'Longsword', color: '#ffffff', set: 'vh_firstcut', art: 'moon', hp: 140, spd: 120,
+    // Unlocked by defeating him: the swordsman who cut down five kings, seven hundred years of practice.
+    firstcut: Object.assign({}, base, { id: 'firstcut', pow: 1.0, name: 'The First Cut', title: 'The Kingslayer', weapon: 'Longsword', color: '#ffffff', set: 'vh_firstcut', art: 'moon', hp: 140, spd: 120,
       blurb: 'The swordsman himself. Long, heavy cuts and the moon art he invented.',
       combo: [
         { clip: 'Attack1', wind: 0.11, recover: 0.2, reach: 36, arc: 1.7, dmg: 8, poise: 8, kb: 6, step: 8, fx: 'slash' },
@@ -185,8 +185,8 @@
       atks: [{ clip: 'Attack5', wind: 0.3, recover: 0.5, dmg: 6, poise: 4, kb: 10 }],
       sig: { name: 'Gale', kind: 'tornado', desc: 'Looses gales that chase the dead across the floor.', cd: 11, clip: 'Special1', n: 2, r: 24, dur: 4, speed: 70, dmg: 8, asc: { n: 3, dur: 5 } },
       bond: { hp: 1.1, label: '+10% health' }, asc: 'Three gales that last longer' },
-    first: { name: 'The First Cut', title: 'Who Wounded the Moon', role: 'Blade', set: 'vh_firstcut', color: '#ff4060', unlock: 'a5-b',
-      text: 'The blade that cut the moon, now cutting for you.', hp: 120, spd: 125, armor: 0.25,
+    first: { name: 'The First Cut', title: 'The Kingslayer', role: 'Blade', set: 'vh_firstcut', color: '#ff4060', unlock: 'a5-b',
+      text: 'The blade that slew five kings, now cutting for you.', hp: 120, spd: 125, armor: 0.25,
       atks: [{ clip: 'Attack1', wind: 0.22, recover: 0.28, reach: 32, dmg: 6, poise: 8, kb: 8 }, { clip: 'Attack2', wind: 0.2, recover: 0.28, reach: 32, dmg: 6, poise: 8, kb: 8 }, { clip: 'Attack3', wind: 0.26, recover: 0.42, reach: 36, dmg: 9, poise: 14, kb: 16 }],
       sig: { name: 'The First Cut', kind: 'cut', desc: 'One long cut across the floor through the nearest foe.', cd: 13, clip: 'Attack6', len: 260, w: 16, dmg: 18, asc: { cross: true, dmg: 20 } },
       bond: { dmg: 1.1, label: '+10% damage' }, asc: 'Cuts twice, in a cross' },
@@ -436,14 +436,14 @@
         { sig: 'FEATHERSTORM', clip: 'Attack5', wind: 0.6, recover: 0.9, rain: { n: 10, r: 22, spread: 120, dmg: 11, fx: 'wind_gust', delay: 0.8 }, phase: 2 }] },
     // The final fight: the First Cut as the god of the opening, too vast for the arena. He looms beyond the
     // summit and strikes into it (js/sim.js, 'the god'); where his blade, hand or head comes down, it can be cut.
-    godCut: { name: 'The First Cut', title: 'Who Wounded the Moon', set: 'vh_firstcut', hp: 1800, spd: 0, poise: 0, boss: true, god: true, passive: true, color: '#ff3048',
+    godCut: { name: 'The First Cut', title: 'The Kingslayer', set: 'vh_firstcut', hp: 1800, spd: 0, poise: 0, boss: true, god: true, passive: true, color: '#ff3048',
       atks: [{ clip: 'Idle4', wind: 1, recover: 1, reach: 1, dmg: 0, kb: 0 }] },
     // A rift gate on the summit's rim: it pours his dead in until it is cut down (js/sim.js, the god's gates).
     godGate: { name: 'Rift Gate', set: 'vh_firstcut', hp: 240, spd: 0, poise: 0, passive: true, gate: true, color: '#ff3048',
       atks: [{ clip: 'Idle4', wind: 9, recover: 1, reach: 1, dmg: 0, kb: 0 }] },
     godPart: { name: 'The First Cut', set: 'vh_firstcut', hp: 99999, spd: 0, poise: 0, part: true, passive: true, color: '#ff3048',
       atks: [{ clip: 'Idle4', wind: 1, recover: 1, reach: 1, dmg: 0, kb: 0 }] },
-    firstCut: { name: 'The First Cut', title: 'Who Wounded the Moon', set: 'vh_firstcut', hp: 560, spd: 74, poise: 70, boss: true, color: '#ffffff',
+    firstCut: { name: 'The First Cut', title: 'The Kingslayer', set: 'vh_firstcut', hp: 560, spd: 74, poise: 70, boss: true, color: '#ffffff',
       atks: [{ clip: 'Attack1', wind: 0.4, recover: 0.4, reach: 34, dmg: 12, kb: 10, next: 1 },
         { clip: 'Attack2', wind: 0.24, recover: 0.4, reach: 34, dmg: 12, kb: 10, next: 2, chainOnly: true },
         { clip: 'Attack3', wind: 0.3, recover: 0.7, reach: 38, dmg: 16, kb: 24, chainOnly: true },

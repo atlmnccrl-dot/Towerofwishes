@@ -530,7 +530,7 @@
     { title: '', text: () => '', done: () => true },   // on to the top of the Spire
   ];
   const BOSS = [
-    { stage: 3, title: 'THE FIRST CUT', btn: null, text: () => 'He wounded the moon, and he waits at the top of the Spire. Fight him blade to blade: dash through his red swings, and out of the red marks where he calls his blades down from the sky.',
+    { stage: 3, title: 'THE FIRST CUT', btn: null, text: () => 'He slew five kings to wake the dead, and he waits at the top of the Spire. Fight him blade to blade: dash through his red swings, and out of the red marks where he calls his blades down from the sky.',
       prog: (f) => { const g = bossOf(f.s); return g ? Math.round(100 * g.hp / g.maxHp) + '%' : ''; }, done: (f) => { const g = bossOf(f.s); return !g || g.hp < g.maxHp * 0.85; }, limit: 50 },
     { stage: 3, title: 'THE MOON ART', btn: 'art', text: () => key('The moon is full. Press E: your ultimate strikes him wherever he stands.', 'The moon is full. Tap the moon: your ultimate strikes him wherever he stands.', 'The moon is full. Pull a trigger: your ultimate strikes him wherever he stands.'),
       enter: (f) => { f.s.moon = 100; AU.sfx('charge', 1); }, done: (f) => !!f.s.cine || f.tut.art, limit: 20, auto: (f) => { if (!f.s.cine) SIM.startArt(f.s); } },

@@ -205,7 +205,7 @@
     [5, 'a5-6', 'challenge', 'Last Light', 0.52, 0.52, ['a5-7'], { rule: 'time', n: 120, sub: 'Dawn will not wait' }],
     [5, 'a5-7', 'elite', 'The Wound\'s Guard', 0, 0.67, ['a5-8'], { sub: 'The last of his knights' }],
     [5, 'a5-8', 'battle', 'Under the Moon', 0, 0.79, ['a5-b'], { sub: 'Close enough to touch it' }],
-    [5, 'a5-b', 'boss', 'The First Cut', 0, 0.92, ['a6-1'], { sub: 'Who Wounded the Moon' }],
+    [5, 'a5-b', 'boss', 'The First Cut', 0, 0.92, ['a6-1'], { sub: 'The Kingslayer' }],
     // Act VII (post-game): echoes of every guardian, stronger, and the endless night.
     [6, 'a6-1', 'echo', 'Echo: The Gatewarden', 0, 0.08, ['a6-2', 'a6-3'], { echo: 'warden' }],
     [6, 'a6-2', 'echo', 'Echo: The Hollow Twins', -0.56, 0.22, ['a6-4'], { echo: 'twins' }],
