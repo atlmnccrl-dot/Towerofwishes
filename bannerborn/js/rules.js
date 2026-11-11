@@ -422,7 +422,7 @@
   // ---------------------------------------------------------------- shop: a few offers a day
   BB.dayKey = (now) => new Date(now).toISOString().slice(0, 10);
   BB.SHOP = [
-    { id: 'free', name: 'Daily Crystals', desc: 'A gift from the quartermaster.', give: { crystals: 30 }, cost: null, limit: 1 },
+    { id: 'free', name: 'Daily Crystals', desc: 'The first handful of the day is free.', give: { crystals: 30 }, cost: null, limit: 1 },
     { id: 'chest', name: 'Armory Chest', desc: 'One piece of gear, Rare or better.', give: { chest: 1 }, cost: { gold: 350 }, limit: 3 },
     { id: 'arms', name: 'Smith\'s Masterwork', desc: 'A weapon for one of your heroes, Epic or better, often enchanted.', give: { weapon: 1 }, cost: { crystals: 160 }, limit: 2 },
     { id: 'sigils', name: 'Sigil Bundle', desc: 'Five sigils for ascension.', give: { sigils: 5 }, cost: { gold: 500 }, limit: 2 },

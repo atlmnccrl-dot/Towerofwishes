@@ -341,7 +341,6 @@ body.dev::after{content:'DEVELOPMENT SANDBOX · NOTHING IS SAVED';position:fixed
 .it .plus{position:absolute;top:5px;right:7px;font:700 11px var(--head);color:var(--accent)}
 
 /* ---- shop */
-#shop .head{display:flex;align-items:center}
 #shop .offers{flex:1;min-height:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-content:safe center;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding:2px 2px 8px}
 .offer{padding:24px 16px 18px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
 .offer .art{width:88px;height:88px;border-radius:24px;display:flex;align-items:center;justify-content:center;font-size:34px;margin-bottom:6px;box-shadow:0 16px 30px -12px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.3)}
@@ -588,10 +587,8 @@ input[type=range]{accent-color:var(--accent)} input[type=checkbox]{accent-color:
 
 .it{border-radius:12px;background:radial-gradient(80% 70% at 50% 62%,color-mix(in srgb,var(--ic) 32%,transparent),transparent 75%),linear-gradient(180deg,rgba(32,36,52,.92),rgba(12,14,21,.94));
   box-shadow:inset 0 1px 0 rgba(255,255,255,.1),inset 0 -2px 0 color-mix(in srgb,var(--ic) 60%,transparent)}
-  background:radial-gradient(70% 95% at 50% 28%,color-mix(in srgb,var(--ic) 28%,transparent),transparent 72%)}
 
 /* ---- shop: relics on the quartermaster's table */
-#shop .head{gap:12px} #shop .head .sect small{margin-right:8px}
 .timer{padding:5px 12px;border-radius:999px;background:rgba(5,6,10,.6);border:1px solid var(--line);font:600 11px var(--head);letter-spacing:.12em;text-transform:uppercase;color:var(--mute);white-space:nowrap}
 .offer{overflow:hidden;isolation:isolate;padding:22px 14px 16px;--oc:#ffbe55;border-color:color-mix(in srgb,var(--oc) 32%,rgba(255,255,255,.06));
   background:radial-gradient(95% 55% at 50% 0%,color-mix(in srgb,var(--oc) 28%,transparent),transparent 70%),linear-gradient(180deg,rgba(26,30,43,.82),rgba(10,12,18,.88))}
@@ -619,8 +616,28 @@ input[type=range]{accent-color:var(--accent)} input[type=checkbox]{accent-color:
 #heroes .spot .sp-bot .btn{pointer-events:auto}
 #heroes .rkrow{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:2px}
 #heroes .col{flex:0 0 min(44%,560px)}
-#shop > .bg{background:linear-gradient(180deg,rgba(8,10,15,.35) 0%,rgba(8,10,15,0) 22%,rgba(8,10,15,.1) 42%,rgba(8,10,15,.86) 70%);-webkit-backdrop-filter:none;backdrop-filter:none}
-#shop .offers{align-content:end;padding-top:46px}
+/* the market: the square fills the page; plates float over the traders; a trader's wares come up beside them */
+#shop > .bg{background:radial-gradient(120% 90% at 50% 45%,rgba(8,10,15,0) 55%,rgba(8,10,15,.55) 100%);-webkit-backdrop-filter:none;backdrop-filter:none;transition:background .4s}
+#shop.talk > .bg{background:linear-gradient(90deg,rgba(8,10,15,0) 30%,rgba(8,10,15,.82) 58%)}
+.mk-stage{position:absolute;inset:0;cursor:pointer}
+.mk-plates{position:absolute;left:0;top:0;width:0;height:0;pointer-events:none}
+.mk-plate{position:absolute;left:0;top:0;pointer-events:auto;display:flex;flex-direction:column;align-items:center;gap:1px;padding:7px 14px 8px;border:1px solid color-mix(in srgb,var(--oc) 55%,transparent);border-radius:12px;cursor:pointer;white-space:nowrap;color:#fff;
+  background:linear-gradient(180deg,rgba(14,17,26,.88),rgba(8,10,15,.82));box-shadow:0 10px 26px -10px #000,0 0 22px -6px var(--oc);transition:opacity .25s,scale .18s;will-change:transform}
+.mk-plate::after{content:'';position:absolute;left:50%;bottom:-6px;width:10px;height:10px;margin-left:-5px;transform:rotate(45deg);background:rgba(8,10,15,.86);border-right:1px solid color-mix(in srgb,var(--oc) 55%,transparent);border-bottom:1px solid color-mix(in srgb,var(--oc) 55%,transparent)}
+.mk-plate b{font:800 12.5px var(--disp);letter-spacing:.14em;text-transform:uppercase;color:color-mix(in srgb,var(--oc) 70%,#fff)}
+.mk-plate small{font:500 11px var(--body);color:var(--mute)}
+.mk-plate i{display:none;position:absolute;right:-5px;top:-5px;width:12px;height:12px;border-radius:50%;background:#ff5d5d;box-shadow:0 0 0 2px #0b0d13,0 0 10px #ff5d5d;animation:pulse 1.4s ease-in-out infinite}
+.mk-plate.news i{display:block}
+.mk-plate:hover{scale:1.06}
+#shop.talk .mk-plate{opacity:0;pointer-events:none}
+.mk-head{position:absolute;top:calc(62px + var(--safe-t));left:calc(16px + var(--safe-l));right:calc(16px + var(--safe-r));display:flex;align-items:center;gap:12px;pointer-events:none;transition:opacity .25s}
+#shop.talk .mk-head .sect small{visibility:hidden}
+.mk-panel{position:absolute;top:calc(100px + var(--safe-t));bottom:calc(84px + var(--safe-b));right:calc(16px + var(--safe-r));width:min(46%,560px);display:flex;flex-direction:column;gap:6px;opacity:0;transform:translateX(40px);pointer-events:none;transition:opacity .3s,transform .35s cubic-bezier(.2,.9,.3,1)}
+#shop.talk .mk-panel{opacity:1;transform:none;pointer-events:auto}
+.mk-panel .who{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.mk-panel h2{margin:0;font:800 clamp(20px,2.6vw,30px) var(--disp);letter-spacing:.1em;text-transform:uppercase;color:color-mix(in srgb,var(--oc) 62%,#fff);text-shadow:0 0 26px color-mix(in srgb,var(--oc) 60%,transparent),0 2px 6px #000}
+.mk-panel .line{margin:0 0 4px;font:italic 500 14px/1.45 var(--body);color:#d9dee8;text-shadow:0 1px 4px #000;max-width:46ch}
+#shop .offers{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;gap:12px;align-content:center;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding:40px 2px 8px}
 #shop .offer.frame{background:radial-gradient(80% 36% at 50% 26%,color-mix(in srgb,var(--oc) 24%,transparent),transparent 70%),linear-gradient(180deg,rgba(8,10,15,0) 0%,rgba(8,10,15,.78) 46%);border-color:transparent;background-clip:padding-box;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;overflow:visible}
 #shop .offer.frame::before{display:none}
 #shop .offer h3,#shop .offer p{text-shadow:0 1px 4px #000}
@@ -683,8 +700,9 @@ input[type=range]{accent-color:var(--accent)} input[type=checkbox]{accent-color:
   .offer{padding:12px 8px 10px} .offer .art{width:58px;height:58px;margin:2px 0 6px} .offer .art::before{inset:-22px} .offer .art canvas{width:40px;height:40px} .offer .art svg{width:28px;height:28px} .gem{width:24px;height:32px} .gems .gem:nth-child(1),.gems .gem:nth-child(3){width:15px;height:20px} .offer h3{font-size:11.5px}
   #versus .vin{gap:7px}
   #heroes .col{flex-basis:54%} #heroes .spot .sp-bot{padding:2px 8px 0} #heroes .coll .w,#heroes .sect small{display:none} #heroes .spot .stars{display:none} #heroes .spot .nm{font-size:17px}
-  #shop .offers{padding-top:22px} #shop .offer p{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-  #shop .offers{display:flex;gap:8px;overflow-x:auto;overflow-y:hidden;touch-action:pan-x;align-items:stretch;align-content:normal} #shop .offers .offer{flex:1 1 0;min-width:122px}
+  #shop .offers{padding-top:22px;gap:8px} #shop .offer p{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .mk-head{top:calc(50px + var(--safe-t))} .mk-head .sect small{display:none} .mk-panel{top:calc(52px + var(--safe-t));bottom:calc(8px + var(--safe-b));width:50%;gap:2px} .mk-panel .who{flex-direction:row;align-items:center;gap:10px} .mk-panel .line{font-size:11.5px;line-height:1.3}
+  body.mk-talk[data-screen=shop] #tabbar{display:none !important} #shop.talk .mk-head{opacity:0} .mk-plate{padding:4px 9px 5px} .mk-plate b{font-size:10.5px} .mk-plate small{font-size:9.5px}
   #bCampBack{white-space:nowrap;flex:none}
   #campaign .chapters{flex-wrap:nowrap;overflow-x:auto;touch-action:pan-x;scrollbar-width:none} #campaign .chapters .chip{flex:none;height:28px;padding:0 10px;font-size:11.5px}
   #home .plate{bottom:calc(70px + var(--safe-b))} #home .plate .nm{font-size:17px}
@@ -781,7 +799,10 @@ input[type=range]{accent-color:var(--accent)} input[type=checkbox]{accent-color:
   </div>
 </div></div>
 
-<div id="shop" class="screen"><div class="bg"></div><div class="body" style="flex-direction:column"><div class="head"><div class="sect grow">The Quartermaster <small>today's offers</small></div><button class="btn dark sm" id="bSellGear" style="display:none"></button><span class="timer" id="shopReset"></span></div><div class="offers scroll" id="offers"></div></div></div>
+<div id="shop" class="screen"><div class="bg"></div><div class="mk-stage" id="mkStage"></div><div class="mk-plates" id="mkPlates"></div>
+  <div class="mk-head"><div class="sect grow">The Market <small>tap a trader to see their wares</small></div><span class="timer" id="shopReset"></span></div>
+  <div class="mk-panel" id="mkPanel"><div class="who"><button class="btn dark sm" id="mkBack">‹ Market</button><h2 id="mkName"></h2></div><p class="line" id="mkLine"></p><div class="offers" id="offers"></div></div>
+</div>
 
 <div id="hud" class="screen">
   <div class="lb top"></div>

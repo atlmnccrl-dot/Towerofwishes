@@ -170,23 +170,69 @@
   let shopScene = null, musterScene = null, musterKey = '';
   const dress = (m) => { for (const p of m.props) { const q = BB.iso(p.x, p.y); p.depth = p.x + p.y; p.sx = q.x; p.sy = q.y; } m.props.sort((a, b) => a.depth - b.depth); rebuildGrid(m); BB.renderGround(m); };
   const lamp = (m, x, y) => { m.add('Torch2', x, y, { biome: 'vale' }); m.anim('torch', x + 0.02, y + 0.02, { sc: 0.7, pole: 1 }); m.lights.push({ x, y, rad: 2.6, col: '255,170,80' }); };
-  async function buildShopScene() {
-    const m = BB.buildMap('camp', 'vale', 47, { night: true }), c = m.w / 2;
-    m.props = m.props.filter((p) => Math.hypot(p.x - c, p.y - c) > 4.6); m.anims = []; m.lights = [];
-    m.add('Misc B46_S', c - 1.2, c - 2.8, { biome: 'vale' }); m.add('Misc B12_S', c + 2.9, c - 2.9, { biome: 'vale' });
-    m.add('Misc B6_E', c + 2.7, c - 0.6, { biome: 'vale', r: 0.5 });
-    for (const [n, x, y] of [['Misc B3_S', -2.6, -1.0], ['Misc B28_S', -3.1, 0.1], ['Misc A4_S', -2.0, -0.2], ['Misc B14_S', 1.7, 0.9], ['Misc B17_S', 2.6, 1.5], ['Misc B52_S', 1.2, -2.2], ['Misc E1_S', -0.9, -1.5], ['Misc E2_S', 0.2, -1.7], ['Misc A9_S', 0.9, -1.2], ['Misc B15_S', -3.4, 1.6], ['Misc B57_S', -2.5, 2.2]])
-      if (BB.envHas('vale', n)) m.add(n, c + x, c + y, { biome: 'vale', r: 0.3 });
-    m.add('Misc B8_S', c + 0.3, c + 1.9, { biome: 'vale', r: 0.3 }); m.anim('fire', c + 0.33, c + 1.93, { sc: 0.7, fps: 14 }); m.lights.push({ x: c + 0.3, y: c + 1.9, rad: 4.6, col: '255,160,70' });
-    lamp(m, c - 2.2, c + 0.9); lamp(m, c + 1.6, c - 0.6); lamp(m, c - 0.4, c - 2.0);
-    m.chests = [{ x: c - 0.7, y: c - 0.3, gold: true }, { x: c + 0.5, y: c - 0.5, gold: false }, { x: c - 1.5, y: c + 0.5, gold: false }];
+  // the market: an open square at night, a trader at each station under their own light. Places are given as (a, b):
+  // a tile-widths to the right of the middle, b tile-heights down the screen.
+  const MARKET_AT = { smith: [-3.5, -1.0], quarter: [-1.1, -2.2], gems: [1.7, -2.0], seer: [3.9, -0.6] };
+  async function buildMarket() {
+    const S = BB.save, m = BB.buildMap('camp', 'vale', 61, { night: true }), c = m.w / 2;
+    const P = (a, b) => ({ x: c + a + b, y: c - a + b }), AB = (x, y) => [(x - y) / 2, (x + y) / 2 - c];
+    m.props = m.props.filter((p) => { const q = AB(p.x, p.y); return Math.abs(q[0]) > 7.4 || Math.abs(q[1]) > 5.2; }); m.anims = []; m.lights = [];
+    for (let y = 0; y < m.h; y++) for (let x = 0; x < m.w; x++) { const q = AB(x + 0.5, y + 0.5); m.set(x, y, (q[0] / 6.6) ** 2 + (q[1] / 4.5) ** 2 < 1 + Math.sin(x * 1.7 + y * 2.3) * 0.12 ? 2 : m.at(x, y) === 2 ? 0 : m.at(x, y)); }
+    const put = (n, a, b, r) => { const q = P(a, b), name = /^(Torch|Stone|Tree)/.test(n) ? n : 'Misc ' + n + '_S'; if (BB.envHas('vale', name)) m.add(name, q.x, q.y, { biome: 'vale', r: r == null ? 0.25 : r }); };
+    const glow = (a, b, rad, col) => { const q = P(a, b); m.lights.push({ x: q.x, y: q.y, rad, col }); };
+    const torch = (a, b) => { const q = P(a, b); lamp(m, q.x, q.y); };
+    // the smith: the stall of blades, the anvil, the forge, shields on their stands
+    put('B18', -4.3, -2.3); put('C2', -2.6, -0.7); put('C8', -4.7, -0.5); put('B16', -2.5, -2.0); put('B30', -5.4, -1.5); put('B32', -5.7, -0.3); put('B3', -5.2, -2.9); put('C4', -3.6, 0.2, 0.1);
+    { const q = P(-4.7, -0.45); m.anim('fire', q.x, q.y, { sc: 0.5, fps: 14, lift: 20 }); } glow(-4.2, -0.8, 3.6, '255,120,40');
+    // the quartermaster: the red tent, the banner, crates and barrels of the company's stores
+    put('B46', -1.3, -3.9); put('B45', -2.5, -3.0, 0.1); put('B3', 0.1, -3.4); put('B2', -0.2, -2.6); put('A3', -2.2, -2.2); put('A4', 0.6, -2.9); put('B1', -0.6, -1.9, 0.1);
+    { const q = P(-0.2, -1.5); m.bannerProp = { x: q.x, y: q.y, banner: S.banner }; } glow(-1.1, -2.4, 3.4, '255,190,110'); torch(-2.0, -1.6);
+    // the gem-trader: the blue stall, a handcart, jars
+    put('B14', 2.0, -3.2); put('B11', 3.2, -2.5); put('A2', 0.9, -2.3); put('A6', 2.9, -1.6, 0.1); put('A8', 1.0, -1.7, 0.1); put('B28', 2.6, -3.6);
+    glow(1.8, -2.2, 3.4, '110,190,255'); torch(0.9, -3.0);
+    // the seer: the violet canopy, the standing ring, the table of glass
+    put('B12', 4.4, -1.8); put('C14', 5.4, -0.2); put('B61', 3.2, -0.1, 0.1); put('C13', 5.0, -2.2); put('C12', 5.7, 0.7, 0.1);
+    { const q = P(5.4, -0.15); m.anim('portal', q.x, q.y, { sc: 0.5, fps: 12, lift: 6, add: true }); } glow(4.4, -0.6, 3.8, '180,110,255');
+    // the square itself: the well, stalls of the townsfolk, hay and baskets, a signpost on the way in
+    put('B42', 0.4, 1.2, 0.5); put('B17', -4.2, 2.6); put('B19', 4.6, 2.9); put('E2', -5.6, 1.4); put('E1', -2.6, 3.3, 0.1); put('B20', -3.2, 2.2, 0.1); put('B52', 1.9, 3.3, 0.1); put('B10', 3.0, 2.4); put('A9', 5.4, 1.9, 0.1); put('B27', -1.4, 2.6, 0.1); put('B55', -6.6, -2.6); put('B24', -1.2, 0.6, 0.05);
+    glow(0.4, 1.4, 4.2, '255,180,100'); torch(-1.2, 3.6); torch(2.4, 1.2); torch(-5.0, 0.9); torch(5.6, 3.3); torch(-3.2, -3.4); torch(3.6, -3.6);
     dress(m);
-    const keys = BB.npcKeys(); await pickLoad(keys, 3, BB.rng(5));
-    const sc = new BB.Battle({ map: m, heroes: [], peaceful: true, save: BB.save, seed: 4 });
+    const keys = BB.npcKeys(); await pickLoad(keys, 7, BB.rng(5));
+    const leader = S.heroes.find((h) => h.id === S.leader) || S.heroes[0]; await BB.loadHeroes([leader]);
+    const sc = new BB.Battle({ map: m, heroes: [], peaceful: true, save: S, seed: 4 });
     const have = keys.filter((k) => BB.A.chars[k]);
-    sc.npcs = [[c - 0.1, c - 1.0, false], [c + 2.0, c + 0.2, true], [c - 2.6, c + 1.4, true]].slice(0, have.length).map(([x, y, walk], i) => ({ x, y, home: { x, y }, art: have[i], clip: 'Idle', dir: 2, ct: 0, walker: walk, wait: 1 + i * 2 }));
-    sc.fixCam = { x: c + 0.1, y: c - 0.7 }; sc.zoomK = sc.zoomTarget = 1.25; sc.stall = true;
+    const M = sc.market = { c, P, at: {}, focus: null, cur: { x: P(0, -1).x, y: P(0, -1).y, k: 1, ox: 0 }, mid: P(0, -1), last: 0 };
+    sc.npcs = [];
+    Object.keys(MARKET_AT).forEach((id, i) => { const q = P(MARKET_AT[id][0], MARKET_AT[id][1]); M.at[id] = q; if (have[i]) sc.npcs.push({ x: q.x, y: q.y, home: q, art: have[i], clip: 'Idle', dir: BB.dirFromVec(1, 1), ct: i * 0.4, walker: false, wait: 0, trader: id }); });
+    [[-1.6, 1.8], [2.4, 2.0], [0.6, 3.4]].forEach((ab, i) => { const q = P(ab[0], ab[1]); if (have[4 + i]) sc.npcs.push({ x: q.x, y: q.y, home: q, art: have[4 + i], clip: 'Idle', dir: 2, ct: 0, walker: true, wait: 1 + i * 2 }); });
+    // your own hero walks the square, and goes up to whoever you choose to talk to
+    { const q = P(0.2, 2.5), e = sc.spawnHero(leader, BB.heroStats(leader), q.x, q.y); e.home = q; e.idleT = 1e9; M.hero = e; M.rest = q; }
+    sc.fixCam = { x: M.mid.x, y: M.mid.y }; sc.zoomK = sc.zoomTarget = 1;
     return sc;
+  }
+  // which trader the market looks at (null: the whole square); your hero walks over
+  BB.marketFocus = function (id) {
+    const sc = shopScene; if (!sc || !sc.market) return; const M = sc.market, e = M.hero;
+    M.focus = id && M.at[id] ? id : null;
+    const to = M.focus ? { x: M.at[id].x + 0.25, y: M.at[id].y + 1.05 } : M.rest;
+    if (e) { e.route = [to]; e.routeSp = 3.2; }
+    for (const n of sc.npcs) if (n.trader) { n.clip = n.trader === M.focus && BB.hasClip(n.art, 'Taunt') ? 'Taunt' : 'Idle'; n.ct = 0; }
+  };
+  BB.marketAt = function (cx, cy) { // which trader stands under a point of the screen (canvas pixels)
+    const sc = shopScene; if (!sc || scene !== sc || !sc.view) return null;
+    const v = sc.view; let best = null, bd = 64 * v.z / (sc.cam.zoom || 1) * (sc.zoomK || 1);
+    for (const id in sc.market.at) { const q = sc.market.at[id], p = BB.iso(q.x, q.y), sx = p.x * v.z + v.ox, sy = p.y * v.z + v.oy - 26 * v.z, d = Math.hypot(sx - cx, (sy - cy) * 0.8); if (d < bd) { bd = d; best = id; } }
+    return best;
+  };
+  function marketFrame(sc) { // each frame: the camera glides to the trader in focus, and the name plates follow their traders
+    const M = sc.market, small = innerHeight < 520, f = M.focus && M.at[M.focus], now = performance.now(), dt = Math.min(0.1, (now - (M.last || now)) / 1000); M.last = now;
+    const tk = f ? 1.5 : small ? 0.9 : 1, k = Math.min(1, dt * 4.5), C = M.cur, up = small && !f ? 0.9 : 0; // a phone is short: the square sits lower, under the top bar
+    const tx = f ? f.x - 0.1 : M.mid.x - up, ty = f ? f.y - 0.1 : M.mid.y - up, tox = f ? -0.22 : 0;
+    C.x += (tx - C.x) * k; C.y += (ty - C.y) * k; C.k += (tk - C.k) * k; C.ox += (tox - C.ox) * k;
+    sc.fixCam.x = C.x; sc.fixCam.y = C.y; sc.zoomK = sc.zoomTarget = C.k; sc.cam.zoom = camZoom() * C.k;
+    sc.viewOff = { x: W * C.ox, y: 0 };
+    const e = M.hero; if (e) { e.idleT = 1e9; if (!(e.route && e.route.length) && f) sc.face(e, f.x, f.y); }
+    if (UI.marketPlates) UI.marketPlates((id) => { const q = M.at[id], p = BB.iso(q.x, q.y), z = sc.cam.zoom * DPR, cs = BB.iso(sc.cam.x, sc.cam.y); return { x: (W / 2 + (p.x - cs.x) * z + sc.viewOff.x) / DPR, y: (H / 2 + (p.y - cs.y) * z - 20 * z + sc.viewOff.y - 52 * z) / DPR }; }, M.focus);
   }
   const musterKeyOf = () => BB.save.heroes.map((h) => h.id + ':' + BB.layerSig(h)).join(',') + '|' + BB.save.banner.color;
   async function buildMuster() {
@@ -213,7 +259,7 @@
     return sc;
   }
   function menuScene(sc) { // each frame: where the place sits on the screen, and how large
-    if (sc.stall) { sc.viewOff = { x: 0, y: -H * 0.2 }; return; }
+    if (sc.market) { marketFrame(sc); return; }
     const M = sc.muster, st = document.getElementById('hsStage'), rc = st && st.getBoundingClientRect(); if (!M || !rc || !rc.width) return;
     // the ranks are (cols) wide and (rows) deep; above them the banner, below them the place of the hero called forward
     const small = innerHeight < 520, z1 = camZoom(), needW = ((M.cols + 1) * 0.85 + 0.4) * BB.TW, needH = (M.rows - 1) * 0.884 * BB.TH + 166;
@@ -239,7 +285,7 @@
   BB.sceneFor = async function (tab) {
     if (mode === 'battle' || !BB.save) return;
     try {
-      if (tab === 'shop') { if (!shopScene) shopScene = await buildShopScene(); if (UI.current === 'shop') { scene = shopScene; mode = 'camp'; } }
+      if (tab === 'shop') { const k = (BB.save.leader || '') + '|' + BB.save.banner.color; if (!shopScene || shopScene.marketKey !== k) { shopScene = await buildMarket(); shopScene.marketKey = k; } if (UI.current === 'shop') { scene = shopScene; mode = 'camp'; BB.marketFocus(UI.marketSel ? UI.marketSel() : null); } }
       else if (tab === 'heroes') {
         const k = musterKeyOf(); if (!musterScene || musterKey !== k) { musterScene = await buildMuster(); musterKey = k; }
         if (UI.current === 'heroes') { scene = musterScene; mode = 'camp'; for (const id in musterScene.muster.byId) { const e = musterScene.muster.byId[id]; e.idleT = 1e9; } BB.musterSelect(UI.heroSel()); }

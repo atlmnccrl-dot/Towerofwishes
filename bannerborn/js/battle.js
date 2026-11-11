@@ -1710,7 +1710,7 @@
         BB.drawEnv(ctx, p.biome, p.name, p.sx, p.sy, p.sc, al);
         if (p.glow) { ctx.globalCompositeOperation = 'lighter'; BB.drawGlow(ctx, '200,120,255', p.sx, p.sy - 8, 20, 20, 0.45 + Math.sin(this.time * 3 + p.x) * 0.18); ctx.globalCompositeOperation = 'source-over'; }
       } else if (it.e) this.drawEnt(ctx, it.e);
-      else if (it.a) { const a = it.a, s = P(a.x, a.y); let yy = s.y; if (a.pole) { const r = BB.envRect('vale', 'Torch2'); yy += r ? r[5] * BB.ENV_DRAW + 3 : -40; } BB.drawFx(ctx, a.key, Math.floor(a.t * a.fps) % BB.fxLen(a.key), s.x, yy, a.sc, { add: a.add }); }
+      else if (it.a) { const a = it.a, s = P(a.x, a.y); let yy = s.y; if (a.pole) { const r = BB.envRect('vale', 'Torch2'); yy += r ? r[5] * BB.ENV_DRAW + 3 : -40; } if (a.lift) yy -= a.lift; BB.drawFx(ctx, a.key, Math.floor(a.t * a.fps) % BB.fxLen(a.key), s.x, yy, a.sc, { add: a.add }); }
       else if (it.f) this.drawFxObj(ctx, it.f);
       else if (it.dm) this.drawDummy(ctx, it.dm);
       else if (it.c) { const s = P(it.c.x, it.c.y); BB.drawEnv(ctx, 'ground', 'Chest ' + (it.c.gold ? (it.c.opened ? 'B2' : 'B1') : (it.c.opened ? 'A2' : 'A1')) + '_S', s.x, s.y, 1);

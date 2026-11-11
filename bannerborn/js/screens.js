@@ -1381,49 +1381,89 @@
 
   // ---------------------------------------------------------------- shop
   let shopBlade = null;
-  UI.renderShop = function () {
-    const S = BB.save, box = $('offers'); box.innerHTML = '';
-    const d = new Date(), mid = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1), left = mid - now();
-    const sell = $('bSellGear'); sell.style.display = S.inventory.length ? '' : 'none'; sell.textContent = 'Sell spare gear · ' + S.inventory.length;
-    $('shopReset').textContent = 'Restocks in ' + Math.floor(left / 3600000) + 'h ' + Math.floor(left / 60000) % 60 + 'm';
-    // each offer is a relic on the table: its own light, and the thing itself rather than a glyph
+  // ---- the market: four traders at their stations in an open square. Tap one: your hero walks over, the camera
+  // closes in, and that trader's wares come up beside them.
+  BB.MARKET = [
+    { id: 'smith', name: 'The Smith', tag: 'Chests · masterwork arms', line: 'Hot off the anvil. Take a chest as it comes, or let me make you something with a name.', col: '#ff7a4d', offers: ['chest', 'arms'] },
+    { id: 'quarter', name: 'The Quartermaster', tag: 'War chest · spare gear', line: 'Gold in the war chest is steel in every hand. And I buy what nobody carries.', col: '#ffbe55', offers: ['rank', 'sell'] },
+    { id: 'gems', name: 'The Gem-Trader', tag: 'Crystals', line: 'Crystals open gates. The first handful of the day is on me.', col: '#63d6ff', offers: ['free', 'crystals'] },
+    { id: 'seer', name: 'The Seer', tag: 'Sigils · the gates', line: 'Sigils for those ready to rise. And the gates stand open, if you would call someone new.', col: '#b57cff', offers: ['sigils', 'gates'] },
+  ];
+  const MK = { sel: null, plates: {} };
+  UI.marketSel = () => MK.sel;
+  const canPay = (S, o) => !o.cost || (S.gold >= (o.cost.gold || 0) && S.crystals >= (o.cost.crystals || 0));
+  // does this trader have something worth the walk: a gift, or something you can pay for right now
+  const stationNews = (S, st) => st.offers.some((id) => id === 'rank' ? (S.rank || 0) < BB.RANK_MAX && S.gold >= BB.rankCost(S.rank || 0) : id === 'free' ? BB.shopLeft(S, BB.SHOP[0], now()) > 0 : false);
+  function offerCard(S, id) {
     const col = { free: '#5cb8ff', chest: '#ffb648', sigils: '#b57cff', crystals: '#63d6ff', arms: '#ff7a4d' };
     const gem = '<span class="gem"></span>';
     const art = {
       free: () => gem,
       crystals: () => '<span class="gems">' + gem + gem + gem + '</span>',
       sigils: () => '<svg viewBox="0 0 24 24"><path d="M12 2l2.6 6.6L21 11l-6.4 2.4L12 20l-2.6-6.6L3 11l6.4-2.4z"/><circle cx="12" cy="11" r="1.6"/></svg>',
+      gates: () => '<svg viewBox="0 0 24 24"><path d="M5 21V10a7 7 0 0114 0v11"/><path d="M9 21v-9a3 3 0 016 0v9"/></svg>',
       arms: () => UI.itemIcon(shopBlade || (shopBlade = Object.assign(BB.makeItem(BB.rng(7), 'weapon', 1, 3, 'sword'), { ench: 'fire' })), 68),
-      chest: () => { const c = document.createElement('canvas'); c.width = c.height = 68; const E = BB.A.env && BB.A.env.ground; const r = E && E.meta.f['Chest B1_S']; if (r) { const g = c.getContext('2d'), k = 60 / Math.max(r[2], r[3]); g.imageSmoothingEnabled = false; g.drawImage(E.img, r[0], r[1], r[2], r[3], (68 - r[2] * k) / 2, (68 - r[3] * k) / 2, r[2] * k, r[3] * k); } else if (!E) BB.loadEnv('ground').then(() => UI.current === 'shop' && UI.renderShop()).catch(() => null); return c; },
+      chest: () => { const c = document.createElement('canvas'); c.width = c.height = 68; const E = BB.A.env && BB.A.env.ground; const r = E && E.meta.f['Chest B1_S']; if (r) { const g = c.getContext('2d'), k = 60 / Math.max(r[2], r[3]); g.imageSmoothingEnabled = false; g.drawImage(E.img, r[0], r[1], r[2], r[3], (68 - r[2] * k) / 2, (68 - r[3] * k) / 2, r[2] * k, r[3] * k); } return c; },
+      sell: () => { const it = S.inventory[0]; return it ? UI.itemIcon(it, 68) : art.chest(); },
     };
-    { // the war chest: where gold goes once the table is bought out
+    const card = (cls, oc, pic, title, desc, left, label, off, fn, bid) => {
+      const c = el('div', 'offer frame' + (cls ? ' ' + cls : '')); c.style.setProperty('--oc', oc);
+      const a = el('div', 'art'); if (typeof pic === 'string') a.innerHTML = pic; else a.appendChild(pic); c.appendChild(a);
+      c.appendChild(el('h3', '', title)); c.appendChild(el('p', '', desc)); c.appendChild(el('div', 'left', left));
+      const b = el('button', 'btn sm', label); if (bid) b.id = bid; b.disabled = !!off; click(b, fn); c.appendChild(b);
+      return c;
+    };
+    if (id === 'rank') { // the war chest: where gold goes once the tables are bought out
       const rank = S.rank || 0, maxed = rank >= BB.RANK_MAX, cost = BB.rankCost(rank), pc = (v) => Math.round(v * BB.RANK_STEP * 1000) / 10;
-      const c = el('div', 'offer frame chest'); c.style.setProperty('--oc', '#ffbe55');
-      const a = el('div', 'art'); a.appendChild(UI.bannerCanvas(S.banner, 44, 62)); c.appendChild(a);
-      c.appendChild(el('h3', '', 'War Chest · rank ' + rank));
-      c.appendChild(el('p', '', 'All heroes: +' + pc(rank) + '% attack and health.' + (maxed ? '' : ' Next rank: +' + pc(rank + 1) + '%.')));
-      c.appendChild(el('div', 'left', maxed ? 'Full' : 'Rank ' + (rank + 1) + ' of ' + BB.RANK_MAX));
-      const b = el('button', 'btn sm', maxed ? 'Full' : '● ' + fmt(cost)); b.id = 'bRank'; b.disabled = maxed || S.gold < cost;
-      click(b, () => { if (!BB.raiseRank(S)) return; BB.sfx('levelup'); BB.persist(); UI.renderShop(); UI.refreshTop(); UI.toast('The banner rises: rank ' + S.rank); });
-      c.appendChild(b); box.appendChild(c);
+      return card('chest', '#ffbe55', UI.bannerCanvas(S.banner, 44, 62), 'War Chest · rank ' + rank, 'All heroes: +' + pc(rank) + '% attack and health.' + (maxed ? '' : ' Next rank: +' + pc(rank + 1) + '%.'), maxed ? 'Full' : 'Rank ' + (rank + 1) + ' of ' + BB.RANK_MAX, maxed ? 'Full' : '● ' + fmt(cost), maxed || S.gold < cost,
+        () => { if (!BB.raiseRank(S)) return; BB.sfx('levelup'); BB.persist(); UI.renderShop(); UI.refreshTop(); UI.toast('The banner rises: rank ' + S.rank); }, 'bRank');
     }
-    for (const o of BB.SHOP) {
-      const left = BB.shopLeft(S, o, now());
-      const c = el('div', 'offer frame' + (left > 0 ? '' : ' sold')); c.style.setProperty('--oc', col[o.id] || '#ffbe55');
-      const a = el('div', 'art'), pic = (art[o.id] || art.free)(); if (typeof pic === 'string') a.innerHTML = pic; else a.appendChild(pic);
-      c.appendChild(a);
-      c.appendChild(el('h3', '', o.name)); c.appendChild(el('p', '', o.desc));
-      c.appendChild(el('div', 'left', left > 0 ? left + ' left today' : 'Sold out · back tomorrow'));
-      const b = el('button', 'btn sm', !o.cost ? 'Claim' : o.cost.crystals ? '◆ ' + fmt(o.cost.crystals) : '● ' + fmt(o.cost.gold)); b.disabled = left <= 0 || (o.cost && (S.gold < (o.cost.gold || 0) || S.crystals < (o.cost.crystals || 0)));
-      click(b, () => {
-        const got = BB.buy(S, o.id, now()); if (!got) return;
-        BB.sfx('coin'); BB.persist(); UI.renderShop(); UI.refreshTop();
-        UI.toast(got.item ? 'Got ' + got.item.name + ' (' + BB.RARITY[got.item.rarity].name + ')' : got.crystals ? '+' + got.crystals + ' crystals' : '+' + got.sigils + ' sigils');
-      });
-      c.appendChild(b);
-      box.appendChild(c);
-    }
+    if (id === 'sell') return card(S.inventory.length ? '' : 'sold', '#d9c7a0', art.sell(), 'Spare Gear', 'Sell what is in the bag, a piece at a time or every Common piece at once.', S.inventory.length ? S.inventory.length + ' in the bag' : 'The bag is empty', 'Sell', !S.inventory.length, () => UI.openSell(), 'bSellGear');
+    if (id === 'gates') return card('', '#b57cff', art.gates(), 'The Recruiting Gates', 'Spend crystals to call a hero you do not have yet.', '◆ ' + fmt(S.crystals) + ' in hand', 'Go ▸', false, () => UI.openRecruit(), 'bGates');
+    const o = BB.SHOP.find((x) => x.id === id), left = BB.shopLeft(S, o, now());
+    return card(left > 0 ? '' : 'sold', col[o.id] || '#ffbe55', (art[o.id] || art.free)(), o.name, o.desc, left > 0 ? left + ' left today' : 'Sold out · back tomorrow', !o.cost ? 'Claim' : o.cost.crystals ? '◆ ' + fmt(o.cost.crystals) : '● ' + fmt(o.cost.gold), left <= 0 || !canPay(S, o), () => {
+      const got = BB.buy(S, o.id, now()); if (!got) return;
+      BB.sfx('coin'); BB.persist(); UI.renderShop(); UI.refreshTop();
+      UI.toast(got.item ? 'Got ' + got.item.name + ' (' + BB.RARITY[got.item.rarity].name + ')' : got.crystals ? '+' + got.crystals + ' crystals' : '+' + got.sigils + ' sigils');
+    });
+  }
+  UI.marketOpen = function (id) {
+    const st = BB.MARKET.find((x) => x.id === id) || null;
+    if (st && MK.sel !== st.id) BB.sfx('click');
+    MK.sel = st ? st.id : null; if (BB.marketFocus) BB.marketFocus(MK.sel);
+    UI.renderShop();
   };
+  UI.renderShop = function () {
+    const S = BB.save, box = $('offers'); box.innerHTML = '';
+    const d = new Date(), mid = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1), left = mid - now();
+    $('shopReset').textContent = 'Restocks in ' + Math.floor(left / 3600000) + 'h ' + Math.floor(left / 60000) % 60 + 'm';
+    // the name plates over the traders' heads
+    const pl = $('mkPlates');
+    if (!pl.children.length) for (const st of BB.MARKET) {
+      const b = el('button', 'mk-plate', '<i></i><b>' + st.name + '</b><small>' + st.tag + '</small>'); b.style.setProperty('--oc', st.col);
+      click(b, () => UI.marketOpen(st.id)); pl.appendChild(b); MK.plates[st.id] = b;
+    }
+    for (const st of BB.MARKET) MK.plates[st.id].classList.toggle('news', stationNews(S, st));
+    const st = BB.MARKET.find((x) => x.id === MK.sel), shop = $('shop');
+    shop.classList.toggle('talk', !!st); document.body.classList.toggle('mk-talk', !!st);
+    if (!st) return;
+    shop.style.setProperty('--oc', st.col);
+    $('mkName').textContent = st.name; $('mkLine').textContent = '“' + st.line + '”';
+    for (const id of st.offers) box.appendChild(offerCard(S, id));
+  };
+  // each frame (main.js): put every plate over its trader
+  UI.marketPlates = function (at, focus) {
+    for (const st of BB.MARKET) { const b = MK.plates[st.id]; if (!b) continue; const p = at(st.id); b.style.transform = 'translate(' + Math.round(p.x) + 'px,' + Math.round(p.y) + 'px) translate(-50%,-100%)'; b.classList.toggle('on', focus === st.id); }
+  };
+  (function () {
+    const stage = $('mkStage'); if (!stage) return;
+    stage.addEventListener('click', (ev) => {
+      const cv = $('game'), rc = cv.getBoundingClientRect(), k = cv.width / rc.width, id = BB.marketAt && BB.marketAt((ev.clientX - rc.left) * k, (ev.clientY - rc.top) * k);
+      BB.audioUnlock();
+      if (id && id !== MK.sel) UI.marketOpen(id); else if (!id && MK.sel) UI.marketOpen(null);
+    });
+    click($('mkBack'), () => UI.marketOpen(null));
+  })();
 
   // the quartermaster buys what nobody carries: one piece at a time, or every plain Common piece at once
   UI.openSell = function () {
@@ -1453,7 +1493,6 @@
     body.appendChild(row);
     UI.modal('mPick');
   };
-  click($('bSellGear'), () => UI.openSell());
 
   // ---------------------------------------------------------------- milestones
   UI.openQuests = function () {
@@ -1491,7 +1530,7 @@
     if (tab === 'home') { BB.goCamp(); return; }
     if (tab === 'heroes') UI.renderHeroes();
     if (tab === 'team') { UI.openTeam(); return; }
-    if (tab === 'shop') UI.renderShop();
+    if (tab === 'shop') { MK.sel = null; UI.renderShop(); }
     UI.show(tab);
     if (BB.sceneFor) BB.sceneFor(tab); // some pages are places
   };
