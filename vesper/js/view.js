@@ -296,6 +296,7 @@
       switch (e.type) {
         case 'hit': {
           const z = 22 * sc, sa = R.screenAng(e.ang || 0);
+          if (e.soul) { FX({ kind: 'spark', x: e.x, y: e.y, z, life: 0.2, col: e.col || '#cfe0ff', r: e.heavy ? 22 : 15 }); sparks(e.x, e.y, z, e.heavy ? 9 : 5, e.col || '#cfe0ff', 110); if (e.heavy) PK('v_impact', e.x, e.y, z, 0.9); R.float(String(e.dmg), e.x, e.y, z + 12, e.col || '#cfe0ff'); break; }   // a bound soul's blow: its colour, no shake
           // Pack effects only on the blows that matter; light cuts get clean sparks alone.
           // Every blow lands: a slash mark in its direction, sparks, a number; heavier blows punch the camera.
           // No cross-shaped sparkles on the blows (the author, 2026-11-10): a slash on the dash-cut, a burst on the arts.
@@ -320,6 +321,9 @@
         case 'guardbreak': FX({ kind: 'ring', x: e.x, y: e.y, z: 22, life: 0.4, col: '#ffd060', r0: 6, r1: 56, w: 3 }); R.float('GUARD BREAK', e.x, e.y, 60, '#ffd060', true, true); R.shake = Math.max(R.shake, 8); R.punch = Math.max(R.punch || 0, 0.05); break;
         case 'explode': PK('blast', e.x, e.y, 10, 3.2); PK('smoke_burst', e.x, e.y, 8, 2.2); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.5, col: '#ff6a5a', r0: 6, r1: e.r * 1.4, w: 4 }); sparks(e.x, e.y, 14, 24, '#ff8a6a', 260); R.flash = 0.4; R.flashCol = '255,90,60'; R.shake = Math.max(R.shake, 10); break;
         case 'reinforce': R.flash = 0.35; R.flashCol = '255,40,70'; R.shake = Math.max(R.shake, 7); break;
+        case 'soulRise': PK('v_soul', e.x, e.y, 0, e.first ? 1.2 : 1.6); if (A.hasFx('v_spawn')) PK('v_spawn', e.x, e.y, 0, 0.9); break;
+        case 'soulFall': PK('v_soul', e.x, e.y, 0, 1.4); break;
+        case 'soulSig': { PK(e.asc ? 'v_aura' : 'v_soul', e.x, e.y, 0, e.asc ? 1.6 : 1.1); const su = s.units.find((x) => x.id === e.id); if (su) R.float(e.name.toUpperCase(), e.x, e.y, 70 * su.scale, e.col); break; }
         case 'heal': PK('v_heal', e.x, e.y, 0, 1.1); R.float('+' + e.n, e.x, e.y, 58, '#7dffb0'); break;
         case 'finisher': R.impactF = { t: 0, dur: 0.14, x: e.x, y: e.y, big: true }; R.punch = 0.09; R.shake = Math.max(R.shake, 12); R.float('FINISH', e.x, e.y, 70, '#ffffff', true, true); break;
         case 'kill': {
@@ -443,7 +447,7 @@
   function hazards(ctx, s) {
     const Sh = R.Sh();
     for (const z of s.hazards) {
-      const foe = z.team === 'foe', col = foe ? '#ff2a44' : z.team === 'arena' ? '#ffa040' : '#ffffff';
+      const foe = z.team === 'foe', soulCol = z.soul && s.soul ? s.soul.def.color : null, col = foe ? '#ff2a44' : z.team === 'arena' ? '#ffa040' : soulCol || '#ffffff';
       if (z.kind === 'wave') {
         // A shockwave: a band of red light rolling out over the floor.
         const rr = z.t < z.delay ? 0 : (z.rr || z.r0); if (!rr) continue;
@@ -471,9 +475,10 @@
         }
         const k = z.t / z.delay, a = Math.atan2(z.y2 - z.y1, z.x2 - z.x1), L = Math.hypot(z.x2 - z.x1, z.y2 - z.y1);
         ctx.save(); ground(ctx); ctx.translate(z.x1, z.y1); ctx.rotate(a);
-        ctx.fillStyle = rgba('#ff2a44', 0.1 + 0.16 * k); ctx.fillRect(0, -z.w, L, z.w * 2);
-        ctx.fillStyle = rgba('#ff2a44', 0.32); ctx.fillRect(0, -z.w * k, L, z.w * 2 * k);
-        ctx.strokeStyle = rgba('#ff5a6a', 0.85); ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(0, -z.w); ctx.lineTo(L, -z.w); ctx.moveTo(0, z.w); ctx.lineTo(L, z.w); ctx.stroke();
+        const cc = soulCol || '#ff2a44';
+        ctx.fillStyle = rgba(cc, 0.1 + 0.16 * k); ctx.fillRect(0, -z.w, L, z.w * 2);
+        ctx.fillStyle = rgba(cc, 0.32); ctx.fillRect(0, -z.w * k, L, z.w * 2 * k);
+        ctx.strokeStyle = rgba(soulCol || '#ff5a6a', 0.85); ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(0, -z.w); ctx.lineTo(L, -z.w); ctx.moveTo(0, z.w); ctx.lineTo(L, z.w); ctx.stroke();
         if (z.delay - z.t < 0.3) { ctx.fillStyle = rgba('#ffffff', 0.6 * (1 - (z.delay - z.t) / 0.3)); ctx.fillRect(0, -2, L, 4); }
         ctx.restore(); continue;
       }
@@ -643,12 +648,22 @@
     const sw = 26 * sc * Math.max(0.45, 1 - (u.z || 0) / 160); ctx.globalAlpha = alpha * Math.max(0.35, 1 - (u.z || 0) / 200); ctx.drawImage(shadowImg(), x - sw / 2, y0 - sw * 0.12, sw, sw * 0.25); ctx.globalAlpha = 1;
     R.glowAt(ctx, u.team === 'hero' ? RED : '#c8c0e0', x, y - 22 * sc, 34 * sc, u.team === 'hero' ? 0.16 : 0.07);
     // A ring under each fighter: red for the knight, white for foes, red and white for a boss.
-    if (u.alive && !s.staged) { const rw = 13 * sc, rh = rw * HELI.pitch * 0.9; ctx.save(); ctx.lineWidth = (u.def.boss ? 2.4 : 1.6) * R.dpr; ctx.strokeStyle = u === s.hero ? rgba(s.heroDef.color || '#ff2a44', 0.95) : u.ally ? 'rgba(170,120,255,0.7)' : u.def.boss ? 'rgba(255,120,140,0.8)' : 'rgba(255,255,255,0.45)'; ctx.beginPath(); ctx.ellipse(x, y0, rw, rh, 0, 0, 7); ctx.stroke(); if (u === s.hero) { ctx.fillStyle = rgba(s.heroDef.color || '#ff2a44', 0.12); ctx.fill(); } ctx.restore(); }
+    if (u.alive && !s.staged) { const rw = 13 * sc, rh = rw * HELI.pitch * 0.9; ctx.save(); ctx.lineWidth = (u.def.boss ? 2.4 : 1.6) * R.dpr; ctx.strokeStyle = u === s.hero ? rgba(s.heroDef.color || '#ff2a44', 0.95) : u.soul ? rgba(u.def.color, 0.75) : u.ally ? 'rgba(170,120,255,0.7)' : u.def.boss ? 'rgba(255,120,140,0.8)' : 'rgba(255,255,255,0.45)'; ctx.beginPath(); ctx.ellipse(x, y0, rw, rh, 0, 0, 7); ctx.stroke(); if (u === s.hero) { ctx.fillStyle = rgba(s.heroDef.color || '#ff2a44', 0.12); ctx.fill(); } ctx.restore(); }
     const winding = u.state === 'attack' && u.team === 'foe' && u.st < u.atk.wind * u.windMul;
     const opts = { alpha, flash: u.flash * 0.55 };
     if (u.slowT > 0 && !u.flash) { opts.flash = 0.3; opts.flashCol = '#8fd0ff'; if (Math.random() < 0.15) P({ x: u.x + (Math.random() - 0.5) * 14, y: u.y, z: 10 + Math.random() * 30, vz: 10, life: 0.6, size: 1.4, col: '#d8f0ff', shape: 'sq' }); }
     if (u.def.tint && !opts.flash) { opts.flash = 0.25 + 0.25 * Math.sin(R.t * 12 + u.id); opts.flashCol = u.def.tint; }
-    if (u.ally) { opts.alpha = alpha * 0.82; opts.flash = Math.max(opts.flash || 0, 0.35); opts.flashCol = '#a070ff'; }
+    if (u.soul) {
+      // A bound soul: a pale wisp at first, then solid in its colour, then ascended in a cold flame (D.SOULS).
+      const st = u.soul.stage, sc2 = u.def.color, pulse = 0.5 + 0.5 * Math.sin(R.t * 4 + u.id);
+      opts.alpha = alpha * [0.62, 0.86, 0.95][st]; opts.flash = Math.max(opts.flash || 0, [0.55, 0.32, 0.22][st] + 0.08 * pulse); opts.flashCol = sc2;
+      if (u.alive) {
+        R.glowAt(ctx, sc2, x, y - 22 * sc, (30 + st * 10) * sc, 0.12 + st * 0.06 + 0.05 * pulse);
+        if (st >= 1) { ctx.save(); ctx.translate(x, y0); ctx.scale(1, HELI.pitch); A.tex(ctx, 'magic_01', 0, 0, (34 + st * 8) * sc, (34 + st * 8) * sc, sc2, 0.35 + 0.15 * st, R.t * 1.2, true); ctx.restore(); }
+        if (st === 2) { A.tex(ctx, 'smoke_07', x, y - 24 * sc, 54 * sc, 66 * sc, sc2, 0.3 + 0.1 * pulse, R.t * 2, true); A.tex(ctx, 'light_01', x, y - 24 * sc, 64 * sc, 64 * sc, sc2, 0.22, 0, true); }
+        if (Math.random() < 0.18 + st * 0.12) P({ x: u.x + (Math.random() - 0.5) * 16 * u.scale, y: u.y, z: 6 + Math.random() * 20, vz: 26 + Math.random() * 30, life: 0.9, size: 1.4 + st * 0.3, col: sc2, shape: 'sq' });
+      }
+    } else if (u.ally) { opts.alpha = alpha * 0.82; opts.flash = Math.max(opts.flash || 0, 0.35); opts.flashCol = '#a070ff'; }
     if (u.def.clone) { opts.flash = Math.max(opts.flash || 0, 0.45); opts.flashCol = '#20081a'; }
     if (u === s.hero && s.invisT > 0) opts.alpha = 0.35;
     if (winding && u.atk.unparry) { opts.flash = 0.3 + 0.25 * Math.sin(R.t * 30); opts.flashCol = R.safe ? '#ff9a1a' : '#ff2040'; }
@@ -1066,6 +1081,18 @@
       label(ctx, ldx ? 'LAST DITCH EFFORT' : 'RED MOON', gx + gr + 10 * k, gy + 1 * k, (ldx ? 15 : 13) * k, ldx ? (Math.sin(R.t * 10) > 0 ? RED : '#ffffff') : '#ff8a9a', 'left', 2, 700);
       label(ctx, opts.touch ? 'TAP MOON' : 'PRESS E', gx + gr + 10 * k, gy + 14 * k, 9 * k, '#a99aa2', 'left', 2);
     } else label(ctx, `MOON ${Math.floor(s.moon)}%`, gx + gr + 10 * k, gy + 4 * k, 10 * k, '#a99aa2', 'left', 2);
+    }
+    // The bound soul at her side: its name in its colour, its health, its signature charging (a ring), or re-forming.
+    if (s.soul) {
+      const so = s.soul, S = so.def, sx = m, sy = m + ((!s.mods.can || s.mods.can.art) ? 80 : 50) * k, sw = Math.min(bw * 0.6, 140 * k), cr = 8 * k;
+      const cdk = so.alive ? 1 - Math.max(0, so.soul.sigCd) / (S.sig.cd * (so.soul.asc ? 0.85 : 1)) : 0, ready = so.alive && so.soul.sigCd <= 0;
+      ctx.lineWidth = 2 * k * 0.8; ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.beginPath(); ctx.arc(sx + cr, sy, cr, 0, 7); ctx.stroke();
+      ctx.strokeStyle = S.color; ctx.beginPath(); ctx.arc(sx + cr, sy, cr, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * cdk); ctx.stroke();
+      if (ready) R.glowAt(ctx, S.color, sx + cr, sy, cr * 2.4, 0.3 + 0.15 * Math.sin(R.t * 6));
+      ctx.fillStyle = so.alive ? S.color : 'rgba(255,255,255,0.2)'; ctx.globalAlpha = 0.85; ctx.beginPath(); ctx.arc(sx + cr, sy, cr * 0.42, 0, 7); ctx.fill(); ctx.globalAlpha = 1;
+      label(ctx, S.name.toUpperCase() + '  ·  ' + VS.DATA.SOUL_STAGES[so.soul.stage].toUpperCase() + ' ' + so.soul.lvl, sx + cr * 2 + 8 * k, sy - 3 * k, 9 * k, S.color, 'left', 2, 700);
+      if (so.alive) slantBar(ctx, sx + cr * 2 + 8 * k, sy + 2 * k, sw, 4 * k, so.hp / so.maxHp, trailOf('soul', so.hp / so.maxHp, dt), S.color);
+      else label(ctx, `RE-FORMING ${Math.ceil(so.soul.reform)}`, sx + cr * 2 + 8 * k, sy + 9 * k, 8 * k, '#a99aa2', 'left', 2);
     }
     // Bosses.
     const bosses = s.units.filter((u) => u.def.boss && (u.alive || u.deadT < 1));

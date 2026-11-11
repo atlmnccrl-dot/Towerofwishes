@@ -7,8 +7,8 @@ const runs = +process.argv[2] || 40, DT = 1 / 60;
 let fail = 0;
 const bad = (m) => { fail++; if (fail < 20) console.log('FAIL', m); };
 
-function play(stage, skill, seed, boons) {
-  const s = S.create(stage, { seed, boons });
+function play(stage, skill, seed, boons, soul) {
+  const s = S.create(stage, { seed, boons, soul });
   let t = 0;
   while (!s.result && t < 300) {
     const inp = S.bot(s, skill);
@@ -23,7 +23,7 @@ function play(stage, skill, seed, boons) {
     if (s.portal && !s.transit) { s.__pt = (s.__pt || 0) + DT; if (s.__pt > 30) { bad(`stuck before the portal stage ${stage} area ${s.area} seed ${seed} hero ${s.hero.x.toFixed(0)},${s.hero.y.toFixed(0)}`); return { result: 'stuck', t }; } } else s.__pt = 0;
   }
   if (!s.result) bad(`timeout stage ${stage} skill ${skill} seed ${seed}`);
-  return { result: s.result || 'timeout', t, st: s.stats, hp: s.hero.hp / s.hero.maxHp };
+  return { result: s.result || 'timeout', t, st: s.stats, hp: s.hero.hp / s.hero.maxHp, sigs: s.soul ? s.soul.soul.n : 0 };
 }
 
 const boonSets = { none: [], three: ['edge', 'guard', 'moonblood'] };
@@ -66,6 +66,19 @@ for (let st = 0; st < D.STAGES.length; st++) {
   while (!s.result && t < 300) { S.step(s, DT, S.bot(s, 0.6)); t += DT; for (const e of s.events) { if (e.type === 'portal') portals++; if (e.type === 'area') areas++; } }
   console.log(`The Black Gate: ${portals} portals opened, ${areas} areas entered, result ${s.result}`);
   if (portals !== s.waves.length - 1 || areas !== s.waves.length - 1) bad('portals and areas should match the waves');
+}
+// Bound Souls: each soul at level 1 and 10 fights beside her without breaking anything, uses its signature and
+// does a share of the damage (a soul helps; it does not win the fight for her).
+{
+  const n = Math.max(4, Math.round(runs / 10));
+  console.log('soul          lvl  win%  avg s  soul dmg share');
+  for (const id of D.SOUL_ORDER) for (const lvl of [1, 10]) {
+    let w = 0, T = 0, share = 0, sigs = 0;
+    for (let i = 0; i < n; i++) { const r = play(3, 0.55, 500 + i * 131, [], { id, lvl }); if (r.result === 'win') w++; T += r.t; share += r.st.soul / Math.max(1, r.st.dealt); sigs += r.sigs; }
+    console.log(`${id.padEnd(14)}${String(lvl).padEnd(5)}${String(Math.round(w / n * 100)).padStart(4)}  ${(T / n).toFixed(1).padStart(5)}  ${Math.round(share / n * 100)}%`);
+    if (!sigs) bad(`soul ${id} never used its signature`);
+    if (share / n < 0.04 || share / n > 0.55) bad(`soul ${id} lvl ${lvl} damage share ${Math.round(share / n * 100)}%`);
+  }
 }
 console.log(fail ? `${fail} failures` : 'all invariants hold');
 process.exit(fail ? 1 : 0);

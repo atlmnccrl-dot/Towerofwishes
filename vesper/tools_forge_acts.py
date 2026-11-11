@@ -452,7 +452,8 @@ def breakables():
 
 # ---- skill icons: 32 x 32 on an 8 x 8 sheet (assets/ui/icons_f.png) ------------------------------------------
 ICON_ORDER = ['heavy', 'fourth', 'edge', 'riposte', 'edge2', 'exec', 'dodge', 'iron', 'ghost', 'wind', 'vigor', 'vigor2', 'thirst',
-              'skill1', 'art', 'skill2', 'moonblood', 'rising', 'breath', 'quick']
+              'skill1', 'art', 'skill2', 'moonblood', 'rising', 'breath', 'quick',
+              'shard', 'souls', 'endless', 'daily', 'ach', 'ngplus', 'bond', 'ascend']   # then the souls and the modes (2026-11-11)
 def _icon(name):
     S = 4; img = Image.new('RGBA', (32 * S, 32 * S), (0, 0, 0, 0)); d = ImageDraw.Draw(img); P = lambda pts: [(x * S, y * S) for x, y in pts]
     steel, steelL, red, redL, gold, bone_, dark = (150, 150, 170), (226, 226, 240), (220, 32, 56), (255, 140, 156), (232, 184, 72), (232, 220, 192), (40, 30, 44)
@@ -503,6 +504,32 @@ def _icon(name):
         for i, (r0, c) in enumerate([(12, (220, 235, 250)), (8.5, (170, 200, 230))]): d.arc(P([(16 - r0, 14 - r0), (16 + r0, 14 + r0)]), 120 + i * 60, 400 + i * 60, fill=c, width=2 * S)
         heart(16, 19, 5, red, redL)
     elif name == 'quick': d.polygon(P([(18, 2), (8, 18), (15, 18), (12, 30), (25, 12), (17, 12), (21, 2)]), fill=gold); d.line(P([(18, 3), (10, 17)]), fill=(255, 240, 180), width=S)
+    elif name == 'shard':   # a soul shard: a pale crystal with a wisp inside
+        d.polygon(P([(16, 2), (24, 12), (20, 29), (12, 29), (8, 12)]), fill=(150, 200, 255)); d.polygon(P([(16, 2), (24, 12), (20, 29), (16, 29)]), fill=(100, 150, 230))
+        d.polygon(P([(16, 6), (20, 13), (17, 24), (14, 13)]), fill=(225, 240, 255)); d.ellipse(P([(14, 15), (18, 19)]), fill=(255, 255, 255))
+    elif name == 'souls':   # a spirit rising from its flame
+        d.polygon(P([(16, 2), (23, 10), (25, 19), (21, 27), (16, 30), (11, 27), (7, 19), (9, 10)]), fill=(120, 170, 255)); d.polygon(P([(16, 8), (21, 15), (21, 23), (16, 27), (11, 23), (11, 15)]), fill=(190, 225, 255))
+        for ex in (11, 18): d.polygon(P([(ex, 15), (ex + 3.5, 16.5), (ex + 3, 19.5), (ex + 0.5, 18.5)]), fill=(20, 26, 70))
+        d.polygon(P([(14, 22), (18, 22), (17, 26), (15, 26)]), fill=(20, 26, 70))
+    elif name == 'endless':   # waves without end: a ring of blades
+        for i in range(6): a_ = i / 6 * math.tau; sword(16 + math.cos(a_) * 4, 16 + math.sin(a_) * 4, 16 + math.cos(a_) * 14, 16 + math.sin(a_) * 14, 1.6)
+        d.ellipse(P([(12, 12), (20, 20)]), fill=red); d.ellipse(P([(14, 13), (17, 16)]), fill=redL)
+    elif name == 'daily':   # a sun setting under the moon
+        d.pieslice(P([(5, 13), (27, 35)]), 180, 360, fill=(232, 120, 40)); d.pieslice(P([(9, 17), (23, 31)]), 180, 360, fill=(255, 180, 90)); d.line(P([(2, 24), (30, 24)]), fill=gold, width=2 * S)
+        moon(22, 8, 5, (220, 40, 62), False)
+        for i in range(5): x = 6 + i * 5; d.line(P([(x, 27), (x + 2, 27)]), fill=(255, 190, 110), width=S)
+    elif name == 'ach':   # a laurel round a star
+        for side in (-1, 1):
+            for i in range(5): a_ = math.pi / 2 + side * (0.5 + i * 0.42); x, y = 16 + math.cos(a_) * 11, 17 + math.sin(a_) * 11; d.ellipse(P([(x - 2.4, y - 1.4), (x + 2.4, y + 1.4)]), fill=(120, 170, 70))
+        d.polygon(P([(16, 7), (18.5, 13), (25, 13.5), (20, 17.5), (21.5, 24), (16, 20.5), (10.5, 24), (12, 17.5), (7, 13.5), (13.5, 13)]), fill=gold)
+    elif name == 'ngplus':   # the cut moon with a plus
+        moon(13, 17, 10, (220, 40, 62)); d.rectangle(P([(23, 4), (26, 15)]), fill=gold); d.rectangle(P([(19, 8), (30, 11)]), fill=gold)
+    elif name == 'bond':   # two links, one red, one pale
+        d.ellipse(P([(3, 9), (19, 23)]), outline=red, width=3 * S); d.ellipse(P([(13, 9), (29, 23)]), outline=(150, 200, 255), width=3 * S)
+        d.arc(P([(3, 9), (19, 23)]), 300, 60, fill=red, width=3 * S)
+    elif name == 'ascend':   # a pale flame climbing over a chevron
+        d.polygon(P([(16, 2), (23, 12), (21, 20), (16, 23), (11, 20), (9, 12)]), fill=(150, 200, 255)); d.polygon(P([(16, 7), (19, 13), (16, 19), (13, 13)]), fill=(240, 250, 255))
+        d.polygon(P([(5, 30), (16, 22), (27, 30), (27, 26), (16, 18), (5, 26)]), fill=gold)
     small = img.resize((32, 32), Image.BOX)
     a = np.asarray(small).copy(); a[..., 3] = np.where(a[..., 3] > 90, 255, 0)   # hard edges
     al = a[..., 3] > 0; e = al & ~(np.roll(al, 1, 0) & np.roll(al, -1, 0) & np.roll(al, 1, 1) & np.roll(al, -1, 1))

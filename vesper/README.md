@@ -320,6 +320,52 @@ order). With the bot at a good player's skill: Act I about 100%, the middle acts
 the last acts 50 to 90%, the post-game harder; about 80% overall for every hero. The First Cut:
 50 to 88% depending on the hero. Knobs: `P.TUNE` and the per-node adjustments in `progress.js`.
 
+## Bound Souls
+
+(2026-11-11, the author: "combat feels very hyper focused on us... a pet or partner or summon that we can unlock,
+upgrade and improve and help us in battle".) Each guardian she cuts down leaves its soul; one soul fights at her side.
+`D.SOULS` in `js/data.js`, levels and shards in `js/progress.js`, the soul's brain in `js/sim.js` ('the bound soul').
+
+| Soul | Freed by | Role | Signature | Bond (level 4) |
+|---|---|---|---|---|
+| The Oathbound (`vh_knight_004`) | a0-2, early in Act I | Guard | Shield Oath: foes near him turn on him, struck and held | +6% armour |
+| The Gatewarden | the Gatewarden | Breaker | Earthsplitter: rings of stone | +6% damage |
+| The Hollow Twins | the Hollow Twins | Frost | Ice Lance Rain, slowing | +12% moon gain |
+| The Umbral | the Umbral | Assassin | Shadow Step: behind the weakest, three cuts, finishes the dying | skills 8% faster |
+| The Hunger | the Hunger | Leech | Devour: heals her; its blows feed her too | +2% life steal |
+| The Pale Wing | the Pale Wing | Storm | Gale: tornadoes that chase the dead (it fights at range) | +10% health |
+| The First Cut | the First Cut | Blade | The First Cut: a long line cut (a cross when ascended) | +10% damage |
+
+- **In a fight** it walks at her shoulder, goes after whatever threatens her (never far from her), uses its signature
+  on a cooldown, and when it falls it re-forms beside her 7 s later. Its blows use its own strength (its level, a
+  little of her damage), add a little to the moon, not to her combo, and do not shake the camera. Its hazards are drawn
+  in its colour. The HUD shows it under her bar: name, stage and level, health, the signature charging (a ring).
+  Not in the guided tutorial, the showcase or the theatre.
+- **Growing**: soul shards come from every fight (more for kills, guardians, first wins; a few for a defeat). Levels
+  1–10 (costs 15 → 170, 710 in all; one soul can be grown fully by the end of the climb and a second most of the way).
+  Each level adds 8.5% strength and health. It **changes as it grows**: a pale wisp (1–3), bound (4–7: solid in its
+  colour with a rune ring, and its bond gift for her), ascended (8–10: a cold flame, larger, its signature empowered
+  and 15% faster).
+- **Freed**: a reveal screen as each soul rises (after the result, or on the way to the map for an older save);
+  the result shows the shards and a badge. The **Souls** page (from the map bar): the freed souls in a list, the chosen
+  one at the altar, its stages, level, abilities, *Take into battle* and *Strengthen*.
+- Balance (`test/sim-test.js`, the Ashen Waste, bot skill 0.55): a soul does 13–19% of the damage at level 1 and
+  23–51% at level 10. The campaign walk (`test/campaign-test.js`, souls on; `nosoul` as the 6th argument turns them off)
+  averages 97% win (94% without), the First Cut 75%.
+
+## The menus' scenes
+
+(2026-11-11, the author: "the menus... are all kinda shit, we can do epic animated backgrounds, effects, better
+scenery and icons".) Every menu page now stands over its own animated place, drawn at pixel resolution with the
+title's kit (`js/menuscene.js`), from the game's own cast, iso tiles and light textures; the panels stand to one side:
+the **Gathering** (heroes: the chosen hero on the bridge under the moon, braziers burning, the others behind her and
+the locked ones in shadow; pointing at a hero brings them forward), the **Forge** (gear: a hearth roaring, torches,
+the hero striking the anvil stone, sparks), the **Vigil** (skills: a starfield with three constellations in the
+branches' colours, the hero kneeling in a rune circle), the **Soul Altar** (souls: the freed souls turning round the
+altar in a shaft of light), the **Endless March** (modes: the Spire, lightning, the dead marching), and the Spire at
+rest for settings and the rest. New forge icons (`tools_forge_acts.py`): soul shard, souls, bond, ascend, and the
+modes' emblems (endless, daily, achievements, New Game+).
+
 ## Loot and gear
 
 Gold and items (`js/loot.js`). Three slots per hero (weapon, armour, charm), four rarities (common,

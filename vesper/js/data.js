@@ -148,6 +148,55 @@
   D.CLONE = { name: 'Shadow', set: 'nox', hp: 30, spd: 130, poise: 0, ally: true,
     atks: [{ clip: 'Attack1', wind: 0.12, recover: 0.22, reach: 26, dmg: 5, poise: 5, kb: 6 }, { clip: 'Attack6', wind: 0.12, recover: 0.22, reach: 26, dmg: 5, poise: 5, kb: 6 }] };
 
+  // ---- Bound Souls (2026-11-11, the author: "a pet or partner or summon that we can unlock, upgrade and improve
+  // and help us in battle"): each guardian she cuts down leaves its soul, and one soul fights at her side. They grow
+  // with soul shards (levels 1-10) and change as they grow: a pale wisp (1-3), bound with its bond gift for her (4-7),
+  // ascended with its signature empowered (8-10). js/sim.js runs them ('the bound soul'); js/progress.js levels them.
+  //   atks: its own blows. sig: its signature, on a cooldown (kinds in sim.js soulSig). bond: what it gives her from
+  //   level 4 (multipliers on her mods). unlock: the node whose first win frees it.
+  D.SOULS = {
+    oath: { name: 'The Oathbound', title: 'The squire who held the gate', role: 'Guard', set: 'vh_knight_004', color: '#8ab8ff', unlock: 'a0-2',
+      text: 'Draws the dead onto his shield and holds them there.', hp: 90, spd: 112, armor: 0.35,
+      atks: [{ clip: 'Attack1', wind: 0.22, recover: 0.3, reach: 28, dmg: 5, poise: 6, kb: 8 }, { clip: 'Attack2', wind: 0.22, recover: 0.34, reach: 28, dmg: 6, poise: 8, kb: 10 }],
+      sig: { name: 'Shield Oath', kind: 'taunt', desc: 'Raises his shield: every foe near him turns on him for 3 s, struck by the blow, while he takes less harm.', cd: 10, clip: 'Taunt', r: 95, dur: 3.2, dmg: 8, asc: { r: 130, stun: 1.0 } },
+      bond: { armor: 0.06, label: '+6% armour' }, asc: 'The oath also stuns the dead around him' },
+    warden: { name: 'The Gatewarden', title: 'Keeper of the Black Gate', role: 'Breaker', set: 'black_knight', color: '#9a8cff', unlock: 'a0-b',
+      text: 'Slow, heavy cleaves that break guards and poise.', hp: 110, spd: 92, armor: 0.25,
+      atks: [{ clip: 'Attack1', wind: 0.4, recover: 0.42, reach: 32, dmg: 9, poise: 14, kb: 14 }, { clip: 'Attack3', wind: 0.5, recover: 0.5, reach: 36, dmg: 11, poise: 16, kb: 18 }],
+      sig: { name: 'Earthsplitter', kind: 'quake', desc: 'Slams the ground: rings of stone burst out around him, one after another.', cd: 11, clip: 'Special1', rings: 3, step: 34, dmg: 9, fx: 'rock_burst', asc: { rings: 4, dmg: 11 } },
+      bond: { dmg: 1.06, label: '+6% damage' }, asc: 'A fourth ring, and the rocks hit harder' },
+    twin: { name: 'The Hollow Twins', title: 'The Left Hand and the Right', role: 'Frost', set: 'frost_knight_a', alt: 'frost_knight_b', color: '#a8d8ff', unlock: 'a1-b',
+      text: 'Frost blades that slow whatever they touch.', hp: 80, spd: 118, armor: 0.15,
+      atks: [{ clip: 'Attack1', wind: 0.24, recover: 0.3, reach: 30, dmg: 6, poise: 6, kb: 8, slow: 1.2 }, { clip: 'Attack6', wind: 0.24, recover: 0.32, reach: 32, dmg: 6, poise: 6, kb: 8, slow: 1.2 }],
+      sig: { name: 'Ice Lance Rain', kind: 'rain', desc: 'Calls lances of ice down on the nearest foe and all around it; what they hit is slowed.', cd: 10, clip: 'Attack5', n: 5, r: 24, spread: 60, dmg: 9, fx: 'ice_shatter', slow: 2, asc: { n: 7, bloom: true } },
+      bond: { gain: 1.12, label: '+12% moon gain' }, asc: 'Eight lances, and a frost bloom where they fall' },
+    umbral: { name: 'The Umbral', title: 'Who Walks Behind', role: 'Assassin', set: 'cassius', color: '#c070ff', unlock: 'a2-b',
+      text: 'Steps through shadow behind the weakest and cuts them down.', hp: 70, spd: 130, armor: 0.1,
+      atks: [{ clip: 'Attack1', wind: 0.16, recover: 0.24, reach: 26, dmg: 5, poise: 4, kb: 6 }, { clip: 'Attack2', wind: 0.16, recover: 0.24, reach: 26, dmg: 5, poise: 4, kb: 6 }],
+      sig: { name: 'Shadow Step', kind: 'blink', desc: 'Vanishes and steps out behind the weakest foe near you, cuts it three times and finishes the dying.', cd: 8, clip: 'Attack3', hits: 3, dmg: 8, exec: 0.3, asc: { chain: 1 } },
+      bond: { quick: 0.92, label: 'Skills recharge 8% faster' }, asc: 'Steps on to a second victim' },
+    hunger: { name: 'The Hunger', title: 'It Eats the Light', role: 'Leech', set: 'nightcrawler', scale: 0.9, color: '#ff6a5a', unlock: 'a3-b',
+      text: 'Feeds on the dead and gives the life to you.', hp: 100, spd: 120, armor: 0.15, leech: 0.25,
+      atks: [{ clip: 'Attack1', wind: 0.24, recover: 0.3, reach: 32, dmg: 7, poise: 6, kb: 8 }, { clip: 'Attack2', wind: 0.22, recover: 0.36, reach: 34, dmg: 7, poise: 6, kb: 10 }],
+      sig: { name: 'Devour', kind: 'devour', desc: 'Lunges onto a foe and tears into it, and the life it takes heals you.', cd: 12, clip: 'Attack4', dmg: 22, heal: 0.08, asc: { aoe: 48, heal: 0.14 } },
+      bond: { thirst: 0.02, label: '+2% life steal' }, asc: 'Devours everything around it and heals you more' },
+    wing: { name: 'The Pale Wing', title: 'Throat of the Wind', role: 'Storm', set: 'sky_beast', scale: 0.85, color: '#e8f0ff', unlock: 'a4-b',
+      text: 'Keeps its distance and loosens the wind on them.', hp: 80, spd: 120, armor: 0.1, ranged: { fx: 'wind_gust', speed: 210, range: 190 },
+      atks: [{ clip: 'Attack5', wind: 0.3, recover: 0.5, dmg: 6, poise: 4, kb: 10 }],
+      sig: { name: 'Gale', kind: 'tornado', desc: 'Looses gales that chase the dead across the floor.', cd: 11, clip: 'Special1', n: 2, r: 24, dur: 4, speed: 70, dmg: 8, asc: { n: 3, dur: 5 } },
+      bond: { hp: 1.1, label: '+10% health' }, asc: 'Three gales that last longer' },
+    first: { name: 'The First Cut', title: 'Who Wounded the Moon', role: 'Blade', set: 'master_knight', color: '#ff4060', unlock: 'a5-b',
+      text: 'The blade that cut the moon, now cutting for you.', hp: 120, spd: 125, armor: 0.25,
+      atks: [{ clip: 'Attack1', wind: 0.22, recover: 0.28, reach: 32, dmg: 6, poise: 8, kb: 8 }, { clip: 'Attack2', wind: 0.2, recover: 0.28, reach: 32, dmg: 6, poise: 8, kb: 8 }, { clip: 'Attack3', wind: 0.26, recover: 0.42, reach: 36, dmg: 9, poise: 14, kb: 16 }],
+      sig: { name: 'The First Cut', kind: 'cut', desc: 'One long cut across the floor through the nearest foe.', cd: 13, clip: 'Attack6', len: 260, w: 16, dmg: 18, asc: { cross: true, dmg: 20 } },
+      bond: { dmg: 1.1, label: '+10% damage' }, asc: 'Cuts twice, in a cross' },
+  };
+  D.SOUL_ORDER = ['oath', 'warden', 'twin', 'umbral', 'hunger', 'wing', 'first'];
+  // How a soul grows: its health and blows by level, the stage it has reached.
+  D.soulStage = (lvl) => (lvl >= 8 ? 2 : lvl >= 4 ? 1 : 0);
+  D.SOUL_STAGES = ['Wisp', 'Bound', 'Ascended'];
+  D.soulPow = (lvl) => 1 + 0.085 * (lvl - 1);
+
   // The ally who lends her flower to the Last Ditch Effort (she does not fight).
   D.LYS = { id: 'lys', name: 'Lys', set: 'lyra', color: '#ff7aa0' };
 

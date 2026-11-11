@@ -12,6 +12,8 @@
   // The forge's skill icons (tools_forge_acts.py, assets/ui/icons_f.png): one for each skill.
   ['heavy', 'fourth', 'edge', 'riposte', 'edge2', 'exec', 'dodge', 'iron', 'ghost', 'wind', 'vigor', 'vigor2', 'thirst', 'skill1', 'art', 'skill2', 'moonblood', 'rising', 'breath', 'quick']
     .forEach((k, i) => { ICONS['sk_' + k] = ['_f', Math.floor(i / 8), i % 8]; });
+  // Then the souls' and the modes' (same sheet, same order as tools_forge_acts.ICON_ORDER).
+  ['shard', 'souls', 'endless', 'daily', 'ach', 'ngplus', 'bond', 'ascend'].forEach((k, i) => { ICONS[k] = ['_f', Math.floor((20 + i) / 8), (20 + i) % 8]; });
   const ic = (name, small) => { const d = ICONS[name]; if (!d) return ''; return `<i class="ic${small ? ' sm' : ''}" style="--s:url('${VS.A.ROOT}ui/icons${d[0]}.png');--r:${d[1]};--c:${d[2]}"></i>`; };
   U.ic = ic;
   // items: [{ label, sub, act, cls, ic }]
@@ -146,6 +148,7 @@
       <button class="chip ${p.sp ? 'hot' : ''}" data-act="skills" type="button">${ic('book', 1)}<span class="lbl">Skills</span> ${p.sp ? `<span class="badge">${p.sp}</span>` : ''}</button>
       <button class="chip" data-act="heroes" type="button" style="--hc:${H.color}"><span class="dot"></span><span class="lbl">${esc(H.name)}</span></button>
       <button class="chip" data-act="gear" type="button">${ic('anvil', 1)}<span class="lbl">Gear</span> ${ic('coins', 1)}<span class="gold">${p.gold || 0}</span></button>
+      ${Object.keys(p.souls || {}).length ? `<button class="chip ${p.soul && p.souls[p.soul] < PR.SOUL_MAX && p.shards >= PR.soulCost(p.souls[p.soul]) ? 'hot' : ''}" data-act="souls" type="button" style="--hc:${DD().SOULS[p.soul || Object.keys(p.souls)[0]].color}">${ic('souls', 1)}<span class="lbl">Souls</span> ${ic('shard', 1)}<span class="gold" style="color:#bcd8ff">${p.shards || 0}</span></button>` : ''}
       <button class="chip" data-act="modes" type="button">${ic('trophy', 1)}<span class="lbl">Modes${p.ng ? ' · NG+' + p.ng : ''}</span></button>
       <span class="chip stars" style="cursor:default">${ic('star', 1)}${PR.totalStars(p)} / ${PR.maxStars()}</span>
       <button class="chip icon" data-act="menu" type="button" aria-label="Menu">${ic('gear', 1)}</button></div>`;
@@ -178,7 +181,7 @@
       card = `<div class="ms-left">${left}</div><div class="ms-mid">${mid}</div><div class="ms-right">${right}</div><div class="ms-go">${go}</div>`;
     }
     const el = U.show('map', bar + `<section class="mission${n ? ' has' : ''}">${card}</section>`, null, { back: o.onMenu });
-    el.querySelectorAll('[data-act]').forEach((b) => b.addEventListener('click', () => { VS.audio.unlock(); VS.audio.sfx('clang_0', 0.4); ({ skills: o.onSkills, heroes: o.onHeroes, menu: o.onMenu, go: o.onGo, gear: o.onGear, modes: o.onModes })[b.dataset.act](); }));
+    el.querySelectorAll('[data-act]').forEach((b) => b.addEventListener('click', () => { VS.audio.unlock(); VS.audio.sfx('clang_0', 0.4); ({ skills: o.onSkills, heroes: o.onHeroes, menu: o.onMenu, go: o.onGo, gear: o.onGear, modes: o.onModes, souls: o.onSouls })[b.dataset.act](); }));
     el.querySelectorAll('.ms-foe canvas').forEach((c) => figure(c, c.dataset.set));
     const go = el.querySelector('[data-act="go"]'); if (go) go.focus({ preventScroll: true });
     return el;
@@ -238,6 +241,8 @@
     const items = D.HERO_ORDER.map((id) => ({ act: () => { if (PR.heroOk(p, id)) o.pick(id); else VS.audio.sfx('thud', 0.5); } }));
     const el = U.show('roster', `<div class="boon-wrap"><p class="eyebrow">${p.heroes.length} of ${D.HERO_ORDER.length} heroes</p><h2>Who climbs tonight?</h2><nav class="cards heroes roster">${html}</nav><nav class="menu center"><button class="btn" data-i="${D.HERO_ORDER.length}" type="button"><span class="btn-label">Back</span></button></nav></div>`, items.concat([{ act: o.onBack }]), { back: o.onBack });
     el.querySelectorAll('canvas.hero-fig').forEach((c) => figure(c, c.dataset.set, c.dataset.lock ? { shade: '#05030a' } : {}));
+    // Pointing at a hero brings them forward in the scene behind (js/menuscene.js).
+    if (o.preview) el.querySelectorAll('.card.hero').forEach((b) => { const id = D.HERO_ORDER[+b.dataset.i]; const f = () => { if (PR.heroOk(p, id)) o.preview(id); }; b.addEventListener('mouseenter', f); b.addEventListener('focus', f); });
   };
   // After a fight, on one screen (nothing scrolls): the hero's pose, the verdict and the stars on the
   // left; the numbers, experience, goals, loot and unlocks in a card on the right; the buttons below it.
@@ -256,12 +261,13 @@
     if (!win) right += `<p class="tip">${esc(o.tip || 'Nothing is lost. Try again, or learn something new in the skill tree.')}</p>`;
     // Loot as tiles: gold, then each item (its name on hover and on the gear screen).
     const loot = r.loot && (r.loot.gold || r.loot.items.length);
-    if (loot) right += `<div class="res-loot2"><div class="res-gold">${ic('coins')}<b>+${r.loot.gold}</b></div>${r.loot.items.map((it, i) => `<div class="res-item" style="--rc:${LT.RARITY[it.rar].col};animation-delay:${0.4 + i * 0.12}s" title="${esc(it.name + ' · ' + LT.lines(it).join(', '))}"><canvas width="40" height="40" data-uid="${it.uid}"></canvas><span>${esc(it.name)}</span></div>`).join('')}</div>`;
+    if (loot) right += `<div class="res-loot2"><div class="res-gold">${ic('coins')}<b>+${r.loot.gold}</b></div>${r.shards ? `<div class="res-gold res-shard">${ic('shard')}<b>+${r.shards}</b></div>` : ''}${r.loot.items.map((it, i) => `<div class="res-item" style="--rc:${LT.RARITY[it.rar].col};animation-delay:${0.4 + i * 0.12}s" title="${esc(it.name + ' · ' + LT.lines(it).join(', '))}"><canvas width="40" height="40" data-uid="${it.uid}"></canvas><span>${esc(it.name)}</span></div>`).join('')}</div>`;
     // Unlocks: mastery, achievements, new heroes, as small badges.
     const badges = [];
     if (r.mastery) badges.push(`<div class="badge2" style="--hc:#9ad0ff">${ic('star', 1)}<span>Mastery ${r.mastery}</span></div>`);
     for (const a of r.ach || []) badges.push(`<div class="badge2" style="--hc:#ffd060" title="${esc(a.desc)}">${ic('trophy', 1)}<span>${esc(a.name)}</span></div>`);
     for (const id of r.heroes || []) { const Hx = DD().HEROES[id]; badges.push(`<div class="badge2" style="--hc:${Hx.color}">${ic('helm', 1)}<span>New hero · ${esc(Hx.name)}</span></div>`); }
+    for (const id of r.souls || []) { const Sx = DD().SOULS[id]; badges.push(`<div class="badge2" style="--hc:${Sx.color}">${ic('souls', 1)}<span>Soul freed · ${esc(Sx.name)}</span></div>`); }
     if (badges.length) right += `<div class="badges">${badges.join('')}</div>`;
     const items = (o.buttons || []).map((b, i) => Object.assign({ cls: i === 0 ? 'focus-first' : '' }, b));
     right += buttons(items, 'res-btns');
@@ -274,10 +280,71 @@
     const au = VS.audio; if (r.loot && r.loot.gold) setTimeout(() => au.sfx('coin_01', 0.6), 350); if (r.loot && r.loot.items.length) setTimeout(() => au.sfx('chest_open', 0.7), 700);
     if (r.ups) setTimeout(() => au.sfx('level_up', 0.8), 1000); if (r.ach && r.ach.length) setTimeout(() => au.sfx('quest_complete', 0.8), 1300);
   };
+  // ---- Bound Souls -----------------------------------------------------------------------------------------
+  // A soul drawn as it fights: a ghost in its colour, paler as a wisp, in a cold flame when ascended.
+  function soulFig(c, id, opts) {
+    const S = DD().SOULS[id], g = c.getContext('2d'), Wc = c.width, Hc = c.height, o = opts || {}; g.imageSmoothingEnabled = false; let t = 0;
+    const st = o.lvl ? DD().soulStage(o.lvl) : 1, alpha = [0.65, 0.88, 0.97][st], flash = [0.55, 0.32, 0.22][st];
+    const draw = () => {
+      if (!c.isConnected) return; g.clearRect(0, 0, Wc, Hc); const bob = Math.sin(t * 1.8) * 2;
+      if (!o.shade) { const gr = g.createRadialGradient(Wc / 2, Hc * 0.6, 2, Wc / 2, Hc * 0.6, Wc * 0.5); gr.addColorStop(0, S.color + (st === 2 ? '88' : '44')); gr.addColorStop(1, S.color + '00'); g.fillStyle = gr; g.fillRect(0, 0, Wc, Hc); }
+      // A bust in the list (the upper body, larger), the whole figure on the reveal.
+      const k = o.bust ? 2 : Math.max(1, Math.round(Wc / 56)), fy = o.bust ? Hc + 30 * (S.scale || 1) : Hc - 6;
+      VS.A.actor(g, S.set, 'Idle4', Math.floor(t * 7) % 15, Math.PI * 0.25, Wc / 2, fy + bob, k * (S.scale || 1), o.shade ? { shade: '#05030a' } : { alpha, flash, flashCol: S.color });
+      t += 1 / 30; setTimeout(draw, 33);
+    };
+    draw();
+  }
+  U.souls = function (o) {
+    const p = o.p, PR = P(), D = DD(), sel = o.sel && p.souls[o.sel] ? o.sel : p.soul || Object.keys(p.souls)[0];
+    const tiles = D.SOUL_ORDER.map((id, i) => {
+      const S = D.SOULS[id], lv = p.souls[id], st = lv ? D.soulStage(lv) : 0, un = PR.node(S.unlock);
+      return `<button class="btn soul-tile${lv ? '' : ' locked'}${id === sel ? ' sel focus-first' : ''}" data-i="${i}" type="button" style="--sc:${S.color}">
+        <canvas width="64" height="64" data-soul="${id}" data-lvl="${lv || 0}"></canvas>
+        <span class="st-text"><b>${lv ? esc(S.name) : '???'}</b><span>${lv ? esc(S.role) + ' · ' + D.SOUL_STAGES[st] + ' ' + lv : 'Freed by ' + esc(un ? un.name : '?')}</span></span>
+        ${id === p.soul ? '<em class="st-on">At her side</em>' : ''}</button>`;
+    }).join('');
+    const S = D.SOULS[sel], lv = p.souls[sel], st = D.soulStage(lv), cost = PR.soulCost(lv), max = lv >= PR.SOUL_MAX, pow = Math.round((D.soulPow(lv) - 1) * 100);
+    const pips = Array.from({ length: 10 }, (_, i) => `<i class="${i < lv ? 'on' : ''}${i === 3 || i === 7 ? ' mile' : ''}"></i>`).join('');
+    const stages = D.SOUL_STAGES.map((n, i) => `<span class="${i <= st ? 'on' : ''}">${esc(n)}<small>${['level 1', 'level 4', 'level 8'][i]}</small></span>`).join('<b>›</b>');
+    const detail = `<p class="eyebrow" style="color:${S.color}">${esc(S.role)} · ${D.SOUL_STAGES[st]}</p><h2 style="color:${S.color}">${esc(S.name)}</h2><p class="sd-title">${esc(S.title)}</p>
+      <p class="sd-text">${esc(S.text)}</p>
+      <div class="sd-stages">${stages}</div>
+      <div class="sd-lvl"><span>Level ${lv} / 10</span><div class="sd-pips">${pips}</div><small>${pow ? '+' + pow + '% strength and health' : 'Its first strength'}</small></div>
+      <ul class="sd-abil">
+        <li class="on">${ic('souls', 1)}<div><b>${esc(S.sig.name)}</b><span>${esc(S.sig.desc || '')} Every ${S.sig.cd} s.</span></div></li>
+        <li class="${st >= 1 ? 'on' : ''}">${ic('bond', 1)}<div><b>Bond${st >= 1 ? '' : ' · level 4'}</b><span>${esc(S.bond.label)} for her while it is at her side.</span></div></li>
+        <li class="${st >= 2 ? 'on' : ''}">${ic('ascend', 1)}<div><b>Ascended${st >= 2 ? '' : ' · level 8'}</b><span>${esc(S.asc)}. Its signature comes faster.</span></div></li>
+      </ul>`;
+    const items = D.SOUL_ORDER.map((id) => ({ act: () => { if (p.souls[id]) o.onSel(id); else VS.audio.sfx('thud', 0.5); } }));
+    const acts = [];
+    if (sel !== p.soul) acts.push({ label: 'Take into battle', sub: 'It fights at her side', act: () => o.onBind(sel), cls: 'primary' });
+    acts.push({ label: max ? 'Fully grown' : `Strengthen · ${cost} shards`, sub: max ? 'Level 10' : p.shards >= cost ? 'Level ' + (lv + 1) + (lv + 1 === 4 ? ': its bond awakens' : lv + 1 === 8 ? ': it ascends' : '') : 'You have ' + p.shards, act: () => o.onUp(sel), cls: !max && p.shards >= cost ? 'gold' : 'off' });
+    acts.push({ label: 'Back', act: o.onBack });
+    const base = items.length;
+    const html = `<div class="souls-wrap"><div class="souls-left"><p class="eyebrow">${Object.keys(p.souls).length} of ${D.SOUL_ORDER.length} freed</p><h2>Bound Souls</h2>
+        <div class="shards">${ic('shard')}<b>${p.shards}</b><span>soul shards<br>from every fight</span></div><nav class="soul-list">${tiles}</nav></div>
+      <div class="souls-right" style="--sc:${S.color}">${detail}<nav class="menu sd-acts">${acts.map((b, i) => `<button class="btn ${b.cls || ''}" data-i="${base + i}" type="button"><span class="btn-label">${esc(b.label)}</span>${b.sub ? `<span class="btn-sub">${esc(b.sub)}</span>` : ''}</button>`).join('')}</nav></div></div>`;
+    const el = U.show('souls', html, items.concat(acts), { back: o.onBack });
+    el.querySelectorAll('canvas[data-soul]').forEach((c) => soulFig(c, c.dataset.soul, +c.dataset.lvl ? { lvl: +c.dataset.lvl, bust: true } : { shade: true, bust: true }));
+    if (o.flash) { const t = el.querySelector('.souls-right'); if (t) { t.classList.add('flash'); } }
+  };
+  // A soul freed: it rises before her, with its name and what it does.
+  U.soulBound = function (o) {
+    const D = DD(), S = D.SOULS[o.id];
+    const html = `<div class="sb-wrap" style="--sc:${S.color}"><canvas class="sb-fig" width="200" height="200"></canvas><p class="eyebrow" style="color:${S.color}">A soul is freed</p><h2 style="color:${S.color}">${esc(S.name)}</h2>
+      <p class="sd-title">${esc(S.title)} · ${esc(S.role)}</p><p class="sd-text">${esc(S.text)}</p><p class="sb-sig">${ic('souls', 1)}<b>${esc(S.sig.name)}</b> ${esc(S.sig.desc || '')}</p>
+      <p class="sb-note">${o.first ? 'It will fight at your side from now on. Strengthen it with soul shards on the Souls page.' : 'Choose which soul fights at your side on the Souls page.'}</p>
+      ${buttons([{ label: 'Continue', act: o.onOk, cls: 'focus-first' }, { label: 'Open Souls', act: o.onSouls }], 'center')}</div>`;
+    const el = U.show('soulbound', html, [{ act: o.onOk }, { act: o.onSouls }], { back: o.onOk, cls: 'dim' });
+    soulFig(el.querySelector('.sb-fig'), o.id, { lvl: 1 });
+    VS.audio.sfx('soul', 0.8);
+  };
   // ---- modes ---------------------------------------------------------------------------------------------
   U.modes = function (o) {
     const p = o.p, MD = VS.MODES, d = o.daily, rec = p.daily && p.daily.date === d.date ? p.daily : null, got = Object.keys(p.ach || {}).length;
-    const card = (act, title, sub, body, cls) => `<button class="btn card mode ${cls || ''}" data-act="${act}" type="button"><span class="btn-label">${esc(title)}</span><span class="hero-title">${esc(sub)}</span><span class="btn-sub">${body}</span></button>`;
+    const MIC = { endless: 'endless', daily: 'daily', ach: 'ach', ng: 'ngplus' };
+    const card = (act, title, sub, body, cls) => `<button class="btn card mode ${cls || ''}" data-act="${act}" type="button">${ic(MIC[act])}<span class="btn-label">${esc(title)}</span><span class="hero-title">${esc(sub)}</span><span class="btn-sub">${body}</span></button>`;
     const html = `<div class="boon-wrap"><p class="eyebrow">Beyond the climb</p><h2>Modes</h2><nav class="cards modes">
       ${card('endless', 'Endless', 'Best wave ' + ((p.endless && p.endless.best) || 0), 'Wave after wave on one map, from your two highest acts. A champion every fifth wave, a guardian every tenth. Gold and experience for every wave, an item every five.')}
       ${card('daily', 'Daily challenge', d.date + (rec && rec.done ? ' · won' + (rec.best ? ' in ' + rec.best + 's' : '') : rec ? ' · ' + rec.tries + ' tries' : ''), esc(d.name) + '. ' + d.twists.map((t) => esc(MD.TWIST_TEXT[t])).join('. ') + '. Win once today for gold and a rare item.')}

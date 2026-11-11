@@ -107,7 +107,15 @@
     padPrev = g.buttons.map((b) => b.pressed || b.value > 0.5);
   }
 
-  M.go = function (state) { M.state = state; M.t = 0; M.pressed = {}; M.hold = false; if (R.hideCine) R.hideCine(); };
+  M.go = function (state) { M.state = state; M.t = 0; M.pressed = {}; M.hold = false; M.scene = null; if (R.hideCine) R.hideCine(); };
+  // The scene behind a menu page (js/menuscene.js): the page's own place, with her, her heroes and her souls in it.
+  function menuScene(kind) {
+    const p = P(), D0 = D; PR.soulsInit(p);
+    M.scene = { kind, hero: p.hero, soul: p.soul, souls: Object.keys(p.souls || {}), heroes: p.heroes.slice(), locked: (D0.HERO_ORDER || []).filter((id) => p.heroes.indexOf(id) < 0) };
+    const need = [D0.HEROES[p.hero] && D0.HEROES[p.hero].set].concat(M.scene.heroes.concat(M.scene.locked).map((id) => D0.HEROES[id] && D0.HEROES[id].set), M.scene.souls.map((id) => D0.SOULS[id].set)).filter((id, i, a) => id && a.indexOf(id) === i && !A.hasSet(id));
+    if (need.length) A.loadSets(need).catch(() => {});
+    if (VS.MENU && !A.isoReady(VS.MENU.need)) A.loadIso(VS.MENU.need).catch(() => {});
+  }
 
   // ---- menus -----------------------------------------------------------------------------------------
   const P = () => M.save;
@@ -131,7 +139,7 @@
     el.textContent = msg || `WATCHING THE BOT  ·  ${M.watch.speed}×  ·  ANY KEY OR TAP TO STOP`;
     if (msg) setTimeout(() => { if (!M.watch && el.textContent === msg) el.remove(); }, 4000);
   }
-  function watchUpkeep() { const p = P(); for (const id of WATCH_SKILLS) PR.buy(p, id); if (VS.LOOT && VS.LOOT.autoEquip) VS.LOOT.autoEquip(p, p.hero); M.write(); }
+  function watchUpkeep() { const p = P(); for (const id of WATCH_SKILLS) PR.buy(p, id); PR.checkSouls(p); if (p.soul) while (PR.soulUp(p, p.soul)) { /* every shard into the soul at her side */ } if (VS.LOOT && VS.LOOT.autoEquip) VS.LOOT.autoEquip(p, p.hero); M.write(); }
   function watchStart(speed) {
     M.watch = { t: 0, last: '', speed: speed || 1, losses: 0, fails: {}, node: null }; watchTag(); watchUpkeep();
     if (!P().seen.lastHour) newGame(); else map();
@@ -151,7 +159,7 @@
     const key = M.state + '|' + (U.current || ''); if (key !== W.last) { W.last = key; W.t = 0; } W.t += dt;
     if (M.state === 'map' && W.t > 1.6) { W.t = -999; watchUpkeep(); const id = watchNext(); if (!id) return; W.node = id; M.mapSel = id; playNode(id); return; }
     if (M.state === 'scene' && W.t > 2.4) { W.t = 0; M.pressed.tap = true; return; }   // the next line of a story scene
-    const screens = ['title', 'result', 'pause', 'lesson', 'lost', 'boon'];
+    const screens = ['title', 'result', 'pause', 'lesson', 'lost', 'boon', 'soulbound'];
     if (U.current && screens.indexOf(U.current) >= 0 && W.t > 2.6) {
       W.t = 0; const b = document.querySelector('#ui .btn.focus-first') || document.querySelector('#ui .ls-ok') || document.querySelector('#ui .btn'); if (b) b.click();
     }
@@ -227,13 +235,15 @@
   // ---- the map hub -------------------------------------------------------------------------------------
   function map(sel) {
     if (!M.bgDone && M.bgLoad) return needAll(() => map(sel));   // the map shows the guardians
-    const p = P(); M.mapSel = sel || M.mapSel || PR.nextNode(p);
+    const p = P();
+    { const freed = PR.checkSouls(p); if (freed.length) { M.write(); return soulBound(freed, () => map(sel)); } }   // a save from before the souls: free the ones earned
+    M.mapSel = sel || M.mapSel || PR.nextNode(p);
     if (M.state !== 'map') { M.go('map'); VS.MAP.open(p, M.mapSel); AU.cue('map'); AU.playAmb('wind');
       A.loadSets(PR.CHAMPS.flat().map((k) => D.FOES[k].set).filter((id) => !A.hasSet(id))).catch(() => {}); }   // the champions shown on the map
     if (VS.MAP.sel !== M.mapSel) VS.MAP.focus(M.mapSel);
     VS.MAP.sel = M.mapSel; VS.MAP.p = p;
     VS.MAP.onSelect = (id) => { AU.sfx('step_0', 0.5); map(id); };
-    U.map({ p, sel: M.mapSel, onGo: () => playNode(M.mapSel), onSkills: () => skills(), onHeroes: () => roster(() => map()), onGear: () => gear(), onModes: () => modes(),
+    U.map({ p, sel: M.mapSel, onGo: () => playNode(M.mapSel), onSkills: () => skills(), onHeroes: () => roster(() => map()), onGear: () => gear(), onModes: () => modes(), onSouls: () => souls(),
       onMenu: () => { M.go('menu'); U.menu({ onBack: () => map(), onSettings: () => settings(null, false, () => map()), onTitle: () => title() }); } });
     // The mission card's portraits: one look of each foe of the chosen island (loaded if not yet).
     const sn = PR.node(M.mapSel);
@@ -251,7 +261,7 @@
   }
   // Gear and the blacksmith.
   function gear(tab, sel, confirm) {
-    M.go('menu'); const p = P(), LT = VS.LOOT; LT.migrate(p);
+    M.go('menu'); menuScene('gear'); const p = P(), LT = VS.LOOT; LT.migrate(p);
     const act = Math.max(0, ...PR.NODES.filter((n) => PR.state(p, n.id) !== 'locked').map((n) => n.act));
     U.gear({ p, hero: p.hero, tab: tab || 'gear', sel, confirm, act,
       onBack: () => map(), onTab: (t) => gear(t), onSelect: (k) => gear(tab, k),
@@ -265,16 +275,35 @@
         M.write(); gear(tab, sel);
       } });
   }
+  // ---- Bound Souls --------------------------------------------------------------------------------------
+  function souls(sel, flash) {
+    const p = P(); PR.soulsInit(p); if (!Object.keys(p.souls).length) return map();
+    M.go('menu'); menuScene('souls'); if (sel && p.souls[sel]) M.scene.soul = sel;
+    U.souls({ p, sel, flash,
+      onSel: (id) => { AU.sfx('soul', 0.4); souls(id); },
+      onBind: (id) => { p.soul = id; M.write(); AU.sfx('allout', 0.5); souls(id, true); },
+      onUp: (id) => { if (PR.soulUp(p, id)) { M.write(); AU.sfx(p.souls[id] === 4 || p.souls[id] === 8 || p.souls[id] === PR.SOUL_MAX ? 'level_up' : 'magic', 0.7); souls(id, true); } else AU.sfx('thud', 0.5); },
+      onBack: () => map() });
+  }
+  // Each soul freed rises once, one after another, then on to wherever she was going.
+  function soulBound(ids, then) {
+    const p = P(), list = ids.slice(), next = () => {
+      if (!list.length) return then();
+      const id = list.shift(); M.go('menu'); menuScene('souls'); M.scene.soul = id; M.scene.reveal = true;   // the reveal shows the soul itself; the altar keeps the others
+      U.soulBound({ id, first: p.soul === id, onOk: next, onSouls: () => souls(id) });
+    };
+    next();
+  }
   function skills(flash, confirm) {
-    M.go('menu'); const p = P();
+    M.go('menu'); menuScene('skills'); const p = P();
     U.skills({ p, flash, confirm,
       onBuy: (id) => { if (PR.buy(p, id)) { AU.sfx('allout', 0.5); M.write(); skills(id); } else AU.sfx('thud', 0.5); },
       onRespec: () => { if (!confirm) return skills(null, true); PR.respec(p); M.write(); AU.sfx('magic', 0.5); skills(); },
       onBack: () => map() });
   }
   function roster(back) {
-    M.go('menu'); const p = P();
-    U.roster({ p, onBack: back, pick: (id) => { p.hero = id; M.write(); AU.sfx('allout', 0.5); back(); } });
+    M.go('menu'); menuScene('roster'); const p = P();
+    U.roster({ p, onBack: back, preview: (id) => { if (M.scene) M.scene.hero = id; }, pick: (id) => { p.hero = id; M.write(); AU.sfx('allout', 0.5); back(); } });
   }
 
   // ---- playing a node ----------------------------------------------------------------------------------
@@ -285,7 +314,7 @@
     if (n.type === 'shrine') {
       const r = PR.claimShrine(p, id); if (!r) return; M.write(); AU.sfx('allout', 0.7);
       M.go('result'); M.result = { stage: PR.ACTS[n.act].stage };
-      U.result({ p, node: n, win: true, r: Object.assign({ goals: [], stars: [] }, r), stats: null, buttons: [{ label: 'Continue', act: () => map(PR.nextNode(p)) }] });
+      U.result({ p, node: n, win: true, r: Object.assign({ goals: [], stars: [] }, r), stats: null, buttons: [{ label: 'Continue', act: () => (r.souls && r.souls.length ? soulBound(r.souls, () => map(PR.nextNode(p))) : map(PR.nextNode(p))) }] });
       return;
     }
     A.loadSets(missingFor(PR.build(n))).catch(() => {}); A.loadIso(isoFor(PR.build(n).stage)).catch(() => {});   // start loading the army and the tiles while the scene plays
@@ -342,7 +371,9 @@
   // What to say the first time each kind of foe shows up in the trial's fight.
   const FOE_HINT = { husk: 'BLOOD HUSK: it runs at you and bursts. Kill it near the others to blow them up too.', shield: 'SHIELDBEARER: his shield stops cuts from the front. Use HEAVY, or get behind him.', ghoul: 'GHOULS: weak alone, dangerous in a pack. Keep moving, keep cutting.', raider: 'RAIDER: he hits hard. Dash through his swing, then punish.' };
   // The sets a node's fight needs that are not loaded yet.
-  const missingFor = (b) => PR.setsFor(b).filter((id) => !A.hasSet(id));
+  // The army's looks, and the bound soul's (it fights beside her).
+  const soulSet = () => { const so = PR.soulOf(PR.soulsInit(P())); return so ? [D.SOULS[so.id].set] : []; };
+  const missingFor = (b) => PR.setsFor(b).concat(soulSet()).filter((id, i, a) => a.indexOf(id) === i && !A.hasSet(id));
   // The tile groups an hour's arenas are built from.
   const isoFor = (stageIdx) => { const th = VS.ARENA.THEMES[D.STAGES[stageIdx].id]; return ['w', 'a', 'v', th && th.set === 'i' ? 'i' : 'd']; };
   function startNode(id) {
@@ -392,7 +423,8 @@
     const gear = opts.gear || (opts.theatre ? null : Object.assign({}, VS.LOOT.mods(p, p.hero))); if (gear && !opts.gear) gear.dmg *= MD.masteryDmg(p, p.hero);
     // The first node teaches only when the last hour (the tutorial) was never played; after it, it is a plain fight.
     const trialTut = !!(opts.node && opts.node.type === 'trial' && !(p.seen && p.seen.lastHour));
-    const s = SIM.create(stageIdx, { seed: (Date.now() & 0xffff) + 1, boons: opts.boons || (opts.theatre ? [] : PR.passives(p)), kit, hero: p.hero, node, gear, endlessNext: b && b.next, guided: !!(opts.guided || trialTut) });
+    const s = SIM.create(stageIdx, { seed: (Date.now() & 0xffff) + 1, boons: opts.boons || (opts.theatre ? [] : PR.passives(p)), kit, hero: p.hero, node, gear, endlessNext: b && b.next, guided: !!(opts.guided || trialTut),
+      soul: opts.theatre || opts.showcase || trialTut || opts.noSoul ? null : PR.soulOf(PR.soulsInit(p)) });
     M.fight = Object.assign({ s, stage: stageIdx, acc: 0, card: null, cardT: 0, say: null, banner: null }, opts); M.hold = false;
     M.paused = false; R.snapCam(s); R.fx = []; R.parts = []; R.floaters = []; R.pfx = []; R.entryDoor = null; R.impactF = null; R.kit = s.mods.can;
     f0 = M.fight; const n = opts.node, AR = VS.arenaOf(s);
@@ -655,11 +687,11 @@
     const n = f.node, win = result === 'win', groups = s.waves.length;
     const r = { win, time: s.time, hpFrac: s.hero.hp / s.hero.maxHp, bossHits: s.stats.bossHits, maxCombo: s.stats.maxCombo, kills: s.kills || 0, progress: (s.area + (win ? 1 : 0)) / groups, chests: s.chests || [], smashed: s.smashed || 0, rand: Math.random, reward: VS.MODES.scale(p).reward, ilvl: VS.MODES.scale(p).ilvl };
     const res = PR.finish(p, n.id, r); afterFight(p, s, win, res); M.write();
-    const stats = [[s.time.toFixed(1) + 's', 'Time'], [s.stats.maxCombo, 'Best combo'], [s.kills || 0, 'Kills'], [s.stats.perfects, 'Perfect dodges']];
+    const stats = [[s.time.toFixed(1) + 's', 'Time'], [s.stats.maxCombo, 'Best combo'], [s.kills || 0, 'Kills']].concat(s.soul ? [[Math.round((s.stats.soul || 0) / Math.max(1, s.stats.dealt) * 100) + '%', D.SOULS[s.soul.soul.id].name.replace(/^The /, '') + ' dealt']] : [[s.stats.perfects, 'Perfect dodges']]);
     const showResult = () => {
       M.go('result'); M.result = { stage: f.stage }; AU.cue('result'); AU.playAmb('night');
       const next = PR.nextNode(p);
-      const btns = win ? [{ label: 'Continue', sub: n.type === 'trial' && p.sp ? 'Then open Skills: you have a skill point' : '', act: () => map(next) }, { label: 'Fight again', act: () => startNode(n.id) }]
+      const btns = win ? [{ label: 'Continue', sub: n.type === 'trial' && p.sp ? 'Then open Skills: you have a skill point' : res.souls && res.souls.length ? 'A soul has been freed' : '', act: () => (res.souls && res.souls.length ? soulBound(res.souls, () => map(next)) : map(next)) }, { label: 'Fight again', act: () => startNode(n.id) }]
         : [{ label: 'Try again', act: () => startNode(n.id) }].concat(p.sp ? [{ label: 'Skill tree', sub: p.sp + ' skill point' + (p.sp > 1 ? 's' : '') + ' to spend', act: () => skills() }] : [], [{ label: 'Back to the map', act: () => map(n.id) }]);
       const tip = !win ? (s.rules.time && s.time >= s.rules.time ? 'The clock ran out. Kill faster: heavy attacks and skills clear crowds.' : p.sp ? 'You have skill points to spend. New abilities make a big difference.' : !PR.kit(p).includes('dodge') ? 'Dash through a swing when a foe flashes, then strike back.' : 'Dash through their swings, then punish. Clear easier nodes for experience.') : null;
       U.result({ p, node: n, win, r: res, stats, tip, buttons: btns });
@@ -696,7 +728,7 @@
     U.result({ p, node: { name }, title: f.mode === 'endless' ? 'Run over' : null, win: f.mode === 'endless' ? true : win, r: res, stats, tip, buttons: [{ label: f.mode === 'endless' ? 'Go again' : 'Try again', act: () => startMode(f.mode) }, { label: 'Back to the map', act: () => map() }] });
   }
   function modes(confirmNg) {
-    M.go('menu'); const p = P(), MD = VS.MODES;
+    M.go('menu'); menuScene('modes'); const p = P(), MD = VS.MODES;
     U.modes({ p, daily: MD.daily(MD.today()), confirmNg, onBack: () => map(), onEndless: () => startMode('endless'), onDaily: () => startMode('daily'), onAch: () => { M.go('menu'); U.achievements({ p, onBack: () => modes() }); },
       onNg: () => { if (!MD.canNg(p)) return AU.sfx('thud', 0.5); if (!confirmNg) return modes(true); MD.newGamePlus(p); MD.checkAch(p); M.write(); AU.sfx('allout', 0.7); map('a0-1'); } });
   }
@@ -779,7 +811,7 @@
     switch (M.state) {
       case 'load': ctx.fillStyle = '#07060a'; ctx.fillRect(0, 0, R.W, R.H); break;
       case 'title': ctx.fillStyle = '#05020a'; ctx.fillRect(0, 0, R.W, R.H); if (VS.INTRO && VS.INTRO.menu) VS.INTRO.menu(dt); else backdrop(ctx, dt, 5, true); break;   // the menu's scene (js/intro.js)
-      case 'menu': backdrop(ctx, dt, 5, false); ctx.fillStyle = 'rgba(6,3,8,0.62)'; ctx.fillRect(0, 0, R.W, R.H); break;
+      case 'menu': if (VS.MENU) { ctx.fillStyle = '#05020a'; ctx.fillRect(0, 0, R.W, R.H); VS.MENU.draw(dt, M.scene); } else { backdrop(ctx, dt, 5, false); ctx.fillStyle = 'rgba(6,3,8,0.62)'; ctx.fillRect(0, 0, R.W, R.H); } break;
       case 'scene': scene(ctx, dt); break;
       case 'intro': VS.INTRO.update(dt, !!(M.pressed.back || M.pressed.tap)); if (M.state === 'intro') VS.INTRO.draw(ctx, dt); break;
       case 'fight': fight(ctx, dt); break;

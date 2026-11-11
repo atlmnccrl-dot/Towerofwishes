@@ -82,6 +82,28 @@
     rime: { kind: 'level', n: 12, text: 'Reach level 12' },
     firstcut: { kind: 'boss', node: 'a5-b', text: 'Defeat the First Cut' },
   };
+  // ---- Bound Souls (js/data.js D.SOULS) ------------------------------------------------------------
+  // p.souls: { id: level } for every soul freed; p.soul: the one at her side; p.shards: soul shards to spend.
+  P.SOUL_MAX = 10;
+  P.soulCost = (lvl) => [0, 15, 25, 38, 52, 70, 90, 112, 138, 170][lvl] || 0;       // shards from this level to the next
+  P.soulsInit = function (p) { if (!p.souls) p.souls = {}; if (p.shards == null) p.shards = 0; if (p.soul === undefined) p.soul = null; return p; };
+  // Frees every soul whose guardian has fallen; returns the ids freed now (the first one freed goes to her side).
+  P.checkSouls = function (p) {
+    P.soulsInit(p); const out = [];
+    for (const id of D().SOUL_ORDER) if (!p.souls[id] && P.cleared(p, D().SOULS[id].unlock)) { p.souls[id] = 1; out.push(id); if (!p.soul) p.soul = id; }
+    return out;
+  };
+  P.soulUp = function (p, id) {
+    P.soulsInit(p); const l = p.souls[id], c = P.soulCost(l);
+    if (!l || l >= P.SOUL_MAX || p.shards < c) return false; p.shards -= c; p.souls[id] = l + 1; return true;
+  };
+  P.soulOf = (p) => (p.soul && p.souls && p.souls[p.soul] ? { id: p.soul, lvl: p.souls[p.soul] } : null);
+  // Shards from a fight: a few for any fight, more for kills, guardians and first wins.
+  P.shardsOf = function (n, r, first) {
+    if (!r.win) return Math.min(4, 1 + Math.floor((r.kills || 0) / 10));
+    const bonus = { boss: 22, echo: 16, elite: 8, challenge: 6, trial: 2 }[n.type] || 0;
+    return Math.round((4 + Math.floor((r.kills || 0) / 5) + bonus) * (first ? 1.5 : 1));
+  };
   P.heroOk = (p, id) => p.heroes.indexOf(id) >= 0;
   P.heroGoal = function (p, id) {
     const u = P.UNLOCKS[id] || { kind: 'start', text: '' };
@@ -314,7 +336,7 @@
     p.stats.kills += r.kills || 0;
     xp = Math.round(xp * RM);
     const lv0 = p.lvl; p.sp += sp; const ups = P.addXp(p, xp);
-    const heroes = P.checkHeroes(p);
+    const heroes = P.checkHeroes(p), souls = P.checkSouls(p), shards = Math.round(P.shardsOf(n, r, first) * RM); p.shards += shards;
     p.stats.stars = P.totalStars(p);
     // Loot: gold, and items from the fight, its chests and its guardian. A full bag turns spare finds into gold.
     LT().migrate(p);
@@ -322,13 +344,13 @@
     const got = [], sold = [];
     for (const it of drop.items) { if (p.bag.length < LT().BAG_MAX) got.push(LT().give(p, it)); else { const v = LT().sellPrice(it); drop.gold += v; sold.push(it); } }
     p.gold += drop.gold; if (r.win) LT().restock(p);
-    return { xp, sp, ups, lv0, lvl: p.lvl, stars, newStars, first, heroes, goals: P.goals(n), loot: { gold: drop.gold, items: got, sold } };
+    return { xp, sp, ups, lv0, lvl: p.lvl, stars, newStars, first, heroes, souls, shards, goals: P.goals(n), loot: { gold: drop.gold, items: got, sold } };
   };
   P.claimShrine = function (p, id) {
     const n = P.node(id); if (P.cleared(p, id) || P.state(p, id) !== 'open') return null;
     p.nodes[id] = { wins: 1, stars: [], best: null }; p.last = id;
     const xp = P.baseXp(n), sp = P.spOf(n), lv0 = p.lvl; p.sp += sp; const ups = P.addXp(p, xp);
-    return { xp, sp, ups, lv0, lvl: p.lvl, heroes: P.checkHeroes(p) };
+    return { xp, sp, ups, lv0, lvl: p.lvl, heroes: P.checkHeroes(p), souls: P.checkSouls(p) };
   };
   // The next thing to do: the first open node, in map order.
   P.nextNode = (p) => (P.NODES.find((n) => P.state(p, n.id) === 'open') || P.node(p.last) || P.NODES[0]).id;

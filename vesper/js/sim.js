@@ -57,6 +57,8 @@
     // A campaign node brings its own waves, arenas, difficulty and rules; otherwise the classic hour.
     const N = opts.node, st0 = D.STAGES[stageIdx], st = N ? Object.assign({}, st0, { arenas: N.arenas || st0.arenas, scale: N.scale || st0.scale }) : st0;
     const boons = opts.boons || [], H = (D.HEROES && D.HEROES[opts.hero]) || (D.HEROES ? D.HEROES.vesper : D.HERO), M = mods(boons, H, opts.kit, N && N.rules, opts.gear);
+    const SO = opts.soul && D.SOULS && D.SOULS[opts.soul.id] && !(N && N.script && opts.guided) ? opts.soul : null;
+    if (SO) bondMods(M, D.SOULS[SO.id], SO.lvl);
     const s = { stage: stageIdx, def: st, t: 0, time: 0, rand: rng(opts.seed || 1), units: [], bolts: [], events: [], nextId: 1, rules: M.rules, hasBoss: N ? !!N.boss : true, variants: (N && N.variants) || null,
       waves: N ? N.waves.map((w) => w.slice()) : st.waves.concat([st.bossWave]), wave: -1, waveT: 0.9, area: 0, portal: null, transit: null, freeze: 0, hitstop: 0, slow: 1, slowT: 0, cine: null,
       result: null, endT: 0, moon: M.moonStart, mods: M, boons, combo: 0, comboT: 0, serial: 0, bossIds: [],
@@ -72,6 +74,7 @@
     s.endlessNext = opts.endlessNext || null;
     curArena = arenaOf(s); lairHazards(s);
     const en = VS.entryOf(curArena); s.hero = makeUnit(s, 'hero', H.id, Object.assign({}, H, { hp: M.hp }), en.x, en.y, 0);
+    if (SO) addSoul(s, SO, en.x - 22, en.y + 12);
     return s;
   }
 
@@ -116,6 +119,7 @@
   // he is hidden in smoke. Allies: the nearest foe.
   function targetOf(s, u) {
     if (u.team === 'hero') { let best = null, bd = 1e9; for (const o of foes(s)) { if (o.state === 'spawn' || o.def.god) continue; const d = dist(o, u); if (d < bd) { bd = d; best = o; } } return best; }
+    const so = s.soul; if (so && so.alive && so.soul.tauntT > 0 && dist(so, u) < so.soul.tauntR * 1.5 && !u.def.god) return so;
     const h = s.hero; if (s.invisT > 0 || !h.alive) return null;
     let best = h, bd = dist(h, u) - 25;
     for (const o of s.units) if (o.ally && o.alive) { const d = dist(o, u); if (d < bd) { bd = d; best = o; } }
@@ -160,6 +164,7 @@
   }
   function contact(s, a, k) {
     if (k.skill) { doSkill(s, a, k.skill); return; }
+    if (k.soulSig) { soulSig(s, a); return; }
     const tg = a.team === 'foe' ? (a.target && a.target.alive ? a.target : s.hero) : null;
     if (k.zone) { const z = k.zone; addHazard(s, { kind: 'zone', team: a.team, x: tg.x, y: tg.y, r: z.r, delay: z.delay || 0.5, dur: z.dur, dps: z.dps * (a.dmgMul || 1), slow: z.slow, fx: z.fx }); ev(s, { type: 'cast', id: a.id }); return; }
     if (k.summon) {
@@ -204,7 +209,7 @@
       for (let i = 0; i < n; i++) {
         const an = a.ang + (n > 1 ? (i - (n - 1) / 2) * 0.32 : 0), d = dir(an);
         const B = k.bolt;
-        s.bolts.push({ x: a.x + d[0] * 14 * a.scale, y: a.y + d[1] * 14 * a.scale, vx: d[0] * B.speed, vy: d[1] * B.speed, team: a.team, owner: a.id, dmg: Math.round(k.dmg * (a.dmgMul || 1)), kb: k.kb, fx: B.fx, life: 4, t: 0,
+        s.bolts.push({ x: a.x + d[0] * 14 * a.scale, y: a.y + d[1] * 14 * a.scale, vx: d[0] * B.speed, vy: d[1] * B.speed, team: a.team, owner: a.id, soul: a.soul, dmg: Math.round(k.dmg * (a.dmgMul || 1)), kb: k.kb, fx: B.fx, life: 4, t: 0,
           poise: k.poise || 14, slow: k.slow, stun: k.stun, burst: B.burst, burstFx: B.burstFx, ground: B.ground, pierce: B.pierce, r: B.r || (B.big ? 14 : 6), big: B.big, unparry: k.unparry, hitIds: [] });
       }
       ev(s, { type: 'bolt', id: a.id }); return;
@@ -337,7 +342,8 @@
         setState(o, 'idle'); o.iframes = 0.15;
         return;
       }
-      const dmg = Math.round(k.dmg * (a.dmgMul || 1) * (a.phase === 2 ? 1.15 : 1) * (o === s.hero ? 1 - (M.armor || 0) : 1));
+      const dmg = Math.round(k.dmg * (a.dmgMul || 1) * (a.phase === 2 ? 1.15 : 1) * (o === s.hero ? 1 - (M.armor || 0) : o.soul ? soulArmor(o) : 1));
+      if (o.soul) { o.hp -= dmg; o.flash = 1; push(o, a, (k.kb || 6) * 3); if (o.hp <= 0) { o.hp = 0; kill(s, o); } else if ((k.kb || 0) >= 22 && o.state !== 'attack') { setState(o, 'hurt', 0.3); o.atk = null; } return; }
       if (o !== s.hero) { o.hp -= dmg; o.flash = 1; push(o, a, (k.kb || 6) * 6); if (o.hp <= 0) { o.hp = 0; kill(s, o); } else { setState(o, 'hurt', 0.25); o.atk = null; } return; }
       if (k.slow) o.slowT = Math.max(o.slowT, k.slow);
       o.hp -= dmg; s.stats.taken += dmg; s.stats.hitsTaken++; if (s.units.some((b) => b.alive && b.def.boss)) s.stats.bossHits = (s.stats.bossHits || 0) + 1; s.combo = 0; o.flash = 1; if (s.rules.nohit) o.hp = 0;
@@ -362,6 +368,7 @@
       s.hitstop = Math.max(s.hitstop, 0.07); setAng(o, Math.atan2(src0.y - o.y, src0.x - o.x)); ev(s, { type: 'counter', x: o.x, y: o.y, id: o.id });
       const ck = o.def.atks.find((x) => x.reach && !x.chainOnly) || o.def.atks[0]; startAttack(s, o, ck); o.st = ck.wind * 0.55; return;
     }
+    if (a.soul) { soulStrike(s, a, o, k, src0, bolt); return; }
     let mult = M.dmg * (o.state === 'down' ? 1.5 : 1) * (M.exec && o.hp < o.maxHp * 0.25 ? 1.5 : 1);
     if (!bolt && a.riposte) { mult *= 3; a.riposte = false; ev(s, { type: 'riposte', x: o.x, y: o.y }); }
     const dmg = Math.max(1, Math.round(k.dmg * mult * (0.9 + 0.2 * s.rand())));
@@ -411,6 +418,7 @@
     }
     if (o.state === 'spawn') { const c = VS.clampTo(curArena, o.x, o.y, o.rad * 0.6); o.x = c[0]; o.y = c[1]; }
     o.alive = false; setState(o, 'dead'); o.atk = null;
+    if (o.soul) { o.soul.reform = SOUL_REFORM; o.soul.tauntT = 0; ev(s, { type: 'soulFall', id: o.id, x: o.x, y: o.y, col: o.def.color }); return; }
     if (o.team === 'foe') { const h = s.hero; push(o, h, o.def.boss ? 90 : 210); o.vz = Math.max(o.vz, o.def.boss ? 60 : 150); }
     ev(s, { type: 'kill', id: o.id, x: o.x, y: o.y, boss: !!o.def.boss, hero: o.team === 'hero' });
     if (o.ally) { ev(s, { type: 'vanish', id: o.id, x: o.x, y: o.y }); return; }
@@ -736,8 +744,8 @@
     const prev = tr.t; tr.t += dt;
     if (tr.t < T.into) { const dx = p.x - h.x, dy = p.y - h.y, d = Math.hypot(dx, dy); if (d > 1) { setAng(h, Math.atan2(dy, dx)); h.x += dx / d * Math.min(d, 90 * dt); h.y += dy / d * Math.min(d, 90 * dt); } if (h.state !== 'move') setState(h, 'move'); }
     if (prev < T.swap && tr.t >= T.swap) {
-      s.area++; s.units = s.units.filter((u) => u === h || u.alive); s.bolts = []; s.portal = null;
-      curArena = arenaOf(s); const en = VS.entryOf(curArena); h.x = en.x; h.y = en.y; setAng(h, curArena.kind === 'grid' ? 0 : Math.atan2(-en.y, -en.x)); h.kvx = h.kvy = 0; h.iframes = 0; setState(h, 'move'); s.entry = { x: en.x, y: en.y, t: 0, kind: s.def.portal || 'rift' };
+      s.area++; s.units = s.units.filter((u) => u === h || u.alive || u.soul); s.bolts = []; s.portal = null;
+      curArena = arenaOf(s); const en = VS.entryOf(curArena); h.x = en.x; h.y = en.y; setAng(h, curArena.kind === 'grid' ? 0 : Math.atan2(-en.y, -en.x)); h.kvx = h.kvy = 0; h.iframes = 0; setState(h, 'move'); if (s.soul) { s.soul.x = en.x - 20; s.soul.y = en.y + 12; s.soul.kvx = s.soul.kvy = 0; } s.entry = { x: en.x, y: en.y, t: 0, kind: s.def.portal || 'rift' };
       lairHazards(s); ev(s, { type: 'area', n: s.area });
     }
     if (tr.t >= T.swap) { const d = dir(h.ang); h.x += d[0] * 46 * dt; h.y += d[1] * 46 * dt; }
@@ -808,6 +816,139 @@
   }
 
   // ---- allies (Wisp's clones) --------------------------------------------------------------------
+  // ---- the bound soul (D.SOULS) -----------------------------------------------------------------------
+  // One soul fights beside her: it guards her, goes after what threatens her, uses its signature on a cooldown,
+  // and when it falls it re-forms beside her a few seconds later. Its blows use its own strength (its level), not hers.
+  const SOUL_REFORM = 7;
+  function bondMods(M, S, lvl) {
+    if (lvl < 4 || !S.bond) return; const B = S.bond;
+    if (B.dmg) M.dmg *= B.dmg; if (B.gain) M.gain *= B.gain; if (B.quick) M.quick *= B.quick;
+    if (B.hp) M.hp = Math.round(M.hp * B.hp); if (B.armor) M.armor = Math.min(0.8, M.armor + B.armor); if (B.thirst) M.thirst += B.thirst;
+  }
+  function addSoul(s, cfg, x, y) {
+    const S = D.SOULS[cfg.id], lvl = Math.max(1, Math.min(10, cfg.lvl || 1)), stage = D.soulStage(lvl), pow = D.soulPow(lvl);
+    const c = VS.clampTo(curArena, x, y, 10), def = Object.assign({}, S, { hp: Math.round(S.hp * pow), poise: 0, ally: true, scale: (S.scale || 1) * (stage === 2 ? 1.1 : 1) });
+    const u = makeUnit(s, 'hero', 'soul_' + cfg.id, def, c[0], c[1], 0);
+    u.ally = true; u.life = 1e9; u.cd = 0.5;
+    u.soul = { id: cfg.id, lvl, stage, asc: stage === 2, mul: pow * 1.15 * Math.sqrt(s.mods.dmg), sigCd: 4, reform: 0, tauntT: 0, tauntR: 0, n: 0 };
+    s.soul = u; s.stats.soul = 0; ev(s, { type: 'soulRise', id: u.id, x: u.x, y: u.y, col: S.color, first: true });
+    return u;
+  }
+  const soulArmor = (o) => 1 - Math.min(0.8, (o.def.armor || 0) + (o.soul.tauntT > 0 ? 0.4 : 0));
+  // What the soul may go after: no spawning foes, no god's body, no passive props (but his gates and limbs, yes).
+  const soulTargets = (s) => foes(s).filter((o) => o.state !== 'spawn' && !o.def.god && !(o.def.passive && !o.def.gate && !o.def.part));
+  function soulPick(s, u) {
+    const h = s.hero, fs = soulTargets(s); let best = null, bd = 1e9;
+    for (const o of fs) { const dh = dist(o, h), du = dist(o, u); if (dh > 200 && du > 160) continue; const sc = Math.min(dh, du * 1.2) + (o.target === h && o.state === 'attack' ? -40 : 0); if (sc < bd) { bd = sc; best = o; } }
+    return best;
+  }
+  function soulThink(s, u, dt) {
+    const S = u.def, so = u.soul, h = s.hero;
+    if (!u.alive) {
+      so.reform -= dt; if (so.reform > 0 || !h.alive) return;
+      const an = s.rand() * TAU, c = VS.clampTo(curArena, h.x + Math.cos(an) * 24, h.y + Math.sin(an) * 24, 10);
+      u.x = c[0]; u.y = c[1]; u.alive = true; u.hp = u.maxHp; u.deadT = 0; u.iframes = 1; u.kvx = u.kvy = 0; u.z = u.vz = 0; setState(u, 'idle');
+      if (s.units.indexOf(u) < 0) s.units.push(u);
+      ev(s, { type: 'soulRise', id: u.id, x: u.x, y: u.y, col: S.color }); return;
+    }
+    so.sigCd -= dt; if (so.tauntT > 0) so.tauntT -= dt; u.cd -= dt;
+    if (u.state !== 'idle' && u.state !== 'move') return;
+    const spd = S.spd * (u.slowT > 0 ? 0.6 : 1), dh = dist(u, h);
+    const go = (tx, ty, sp) => { const dx = tx - u.x, dy = ty - u.y, d = Math.hypot(dx, dy) || 1; u.x += dx / d * sp * dt; u.y += dy / d * sp * dt; setAng(u, Math.atan2(dy, dx)); u.mdir = 'f'; if (u.state !== 'move') setState(u, 'move'); };
+    if (dh > 210) { go(h.x, h.y, spd * 1.3); return; }   // too far from her: back to her side first
+    const o = soulPick(s, u);
+    if (o && so.sigCd <= 0 && dist(o, u) < 170) {
+      const sg = S.sig; so.sigCd = sg.cd * (so.asc ? 0.85 : 1); so.n++;
+      startAttack(s, u, { clip: sg.clip, wind: 0.32, recover: 0.42, reach: 0, dmg: 0, soulSig: true }); return;
+    }
+    if (!o) {   // nothing to fight: walk at her shoulder
+      const b = dir(h.ang + 2.4), tx = h.x + b[0] * 26, ty = h.y + b[1] * 26;
+      if (Math.hypot(tx - u.x, ty - u.y) > 14) go(tx, ty, Math.min(spd, Math.max(40, Math.hypot(tx - u.x, ty - u.y) * 3))); else if (u.state !== 'idle') { setState(u, 'idle'); setAng(u, h.ang); }
+      return;
+    }
+    const dx = o.x - u.x, dy = o.y - u.y, d = Math.hypot(dx, dy);
+    if (S.ranged) {
+      const R = S.ranged; setAng(u, Math.atan2(dy, dx));
+      if (d < R.range && d > 40 && u.cd <= 0) { const a = S.atks[0]; startAttack(s, u, Object.assign({}, a, { bolt: { fx: R.fx, speed: R.speed } })); u.cd = 0.55; return; }
+      if (d > R.range * 0.85) go(o.x, o.y, spd); else if (d < 70) go(u.x - dx, u.y - dy, spd * 0.8); else if (u.state !== 'idle') setState(u, 'idle');
+      return;
+    }
+    if (d < 24 + o.rad && u.cd <= 0) { const a = S.atks[so.n++ % S.atks.length]; setAng(u, Math.atan2(dy, dx)); startAttack(s, u, a); u.cd = 0.2; return; }
+    if (d > 18 + o.rad) go(o.x, o.y, spd); else { setAng(u, Math.atan2(dy, dx)); if (u.state !== 'idle') setState(u, 'idle'); }
+  }
+  // A soul's blow landing on a foe: its own strength, a little moon for her, no combo, life for her from the Hunger.
+  function soulStrike(s, a, o, k, src, bolt) {
+    const so = a.soul, own = s.soul, mul = (own && own.soul ? own.soul.mul : 1);
+    const dmg = Math.max(1, Math.round(k.dmg * mul * (o.state === 'down' ? 1.5 : 1) * (0.9 + 0.2 * s.rand())));
+    if (o.def.part) { godHurt(s, o, dmg, false, (k.poise || 0) >= 12, Math.atan2(o.y - src.y, o.x - src.x)); return; }
+    o.hp -= dmg; s.stats.dealt += dmg; s.stats.soul = (s.stats.soul || 0) + dmg; o.flash = 1; o.lastHit = s.time; gainMoon(s, 1);
+    const S = own && own.def; if (S && S.leech && s.hero.alive) s.hero.hp = Math.min(s.hero.maxHp, s.hero.hp + dmg * S.leech * 0.5);
+    ev(s, { type: 'hit', x: o.x, y: o.y, dmg, id: o.id, heavy: (k.poise || 0) >= 12, soul: true, col: S && S.color, ang: Math.atan2(o.y - src.y, o.x - src.x), fx: bolt ? 'bolt' : k.fx });
+    if ((k.poise || 0) >= 14) s.hitstop = Math.max(s.hitstop, 0.03);
+    if (o.hp <= 0) { o.hp = 0; kill(s, o); return; }
+    if (o.def.boss && o.phase === 1 && o.hp <= o.maxHp * 0.5) phaseTwo(s, o);
+    if (k.slow) o.slowT = Math.max(o.slowT, k.slow);
+    if (k.stun && !o.def.boss) { o.stunT = Math.max(o.stunT, k.stun); setState(o, 'hurt', k.stun); o.atk = null; return; }
+    const kb = k.kb || 6;
+    if (o.maxPoise <= 0) { if (o.state !== 'air' && o.state !== 'down') { setState(o, 'hurt', 0.3); o.atk = null; } push(o, src, kb * 10); return; }
+    if (o.state === 'down') return;
+    o.poise -= (k.poise || 6) * 0.8;
+    if (o.poise <= 0) { if (o.def.minion) { setState(o, 'hurt', 0.45); o.atk = null; push(o, src, kb * 10); o.poise = o.maxPoise; } else breakPoise(s, o, src); }
+    else push(o, src, kb * 1.5);
+  }
+  // The signatures (D.SOULS[id].sig.kind). Ascended souls (level 8+) use sig.asc on top.
+  function soulSig(s, u) {
+    const S = u.def, so = u.soul, g = Object.assign({}, S.sig, so.asc ? S.sig.asc : {}), mul = so.mul, me = { team: 'hero', soul: so };
+    const o = soulPick(s, u) || nearestFoe(s, u, 260);
+    ev(s, { type: 'soulSig', id: u.id, kind: g.kind, name: g.name, x: u.x, y: u.y, col: S.color, asc: so.asc });
+    const strike = (x, y, r, dmg, delay, extra) => { if (VS.inside(curArena, x, y, 4)) addHazard(s, Object.assign({ kind: 'strike', team: 'hero', soul: so, x, y, r, delay, dmg: Math.round(dmg * mul), fx: g.fx, slow: g.slow }, extra || {})); };
+    switch (g.kind) {
+      case 'taunt': {
+        so.tauntT = g.dur; so.tauntR = g.r;
+        for (const f of soulTargets(s)) if (dist(f, u) <= g.r + f.rad) { soulStrike(s, Object.assign({}, me, { x: u.x, y: u.y }), f, { dmg: g.dmg, poise: 10, kb: 14, stun: g.stun }, u, false); if (f.alive && f.team === 'foe') f.target = u; }
+        ev(s, { type: 'slam', x: u.x, y: u.y, r: g.r * 0.6, id: u.id }); break;
+      }
+      case 'quake':
+        for (let i = 1; i <= g.rings; i++) { const n = 5 + i * 3; for (let j = 0; j < n; j++) { const an = j / n * TAU + i * 0.4; strike(u.x + Math.cos(an) * g.step * i, u.y + Math.sin(an) * g.step * i, 20, g.dmg, 0.12 + i * 0.2, { quiet: j % 2 }); } }
+        ev(s, { type: 'slam', x: u.x, y: u.y, r: 40, id: u.id }); break;
+      case 'rain': {
+        const c = o || u;
+        for (let i = 0; i < g.n; i++) { const an = s.rand() * TAU, rr = i ? Math.sqrt(s.rand()) * g.spread : 0; strike(c.x + Math.cos(an) * rr, c.y + Math.sin(an) * rr, g.r, g.dmg, 0.45 + i * 0.07); }
+        if (g.bloom) strike(c.x, c.y, 62, g.dmg, 1.0, { fx: 'frost', slow: 2.5 });
+        break;
+      }
+      case 'blink': {
+        let left = 1 + (g.chain || 0); const done = [];
+        while (left-- > 0) {
+          let tg = null, best = 1e9;
+          for (const f of soulTargets(s)) { if (done.indexOf(f) >= 0 || dist(f, u) > 240) continue; const sc = f.hp / f.maxHp + (f.def.boss ? 0.6 : 0); if (sc < best) { best = sc; tg = f; } }
+          if (!tg) break; done.push(tg);
+          ev(s, { type: 'blink', id: u.id, x: u.x, y: u.y });
+          const b = dir(tg.ang + Math.PI), c = VS.clampTo(curArena, tg.x + b[0] * (tg.rad + 10), tg.y + b[1] * (tg.rad + 10), 8); u.x = c[0]; u.y = c[1]; setAng(u, Math.atan2(tg.y - u.y, tg.x - u.x));
+          ev(s, { type: 'blink', id: u.id, x: u.x, y: u.y });
+          for (let i = 0; i < g.hits && tg.alive; i++) soulStrike(s, Object.assign({}, me, { x: u.x, y: u.y }), tg, { dmg: g.dmg, poise: 8, kb: 6 }, u, false);
+          if (tg.alive && !tg.def.boss && tg.hp < tg.maxHp * g.exec) { tg.hp = 0; kill(s, tg); }
+        }
+        break;
+      }
+      case 'devour': {
+        if (o) { const b = dir(Math.atan2(u.y - o.y, u.x - o.x)), c = VS.clampTo(curArena, o.x + b[0] * (o.rad + 12), o.y + b[1] * (o.rad + 12), 8); u.x = c[0]; u.y = c[1]; setAng(u, Math.atan2(o.y - u.y, o.x - u.x)); }
+        const vs = g.aoe ? soulTargets(s).filter((f) => dist(f, u) <= g.aoe + f.rad) : o ? [o] : [];
+        for (const f of vs) soulStrike(s, Object.assign({}, me, { x: u.x, y: u.y }), f, { dmg: g.dmg, poise: 16, kb: 18 }, u, false);
+        const h = s.hero; if (h.alive && vs.length) { const n = Math.round(h.maxHp * g.heal); h.hp = Math.min(h.maxHp, h.hp + n); ev(s, { type: 'heal', x: h.x, y: h.y, n }); }
+        if (g.aoe) ev(s, { type: 'spin', x: u.x, y: u.y, r: g.aoe, id: u.id }); break;
+      }
+      case 'tornado':
+        for (let i = 0; i < g.n; i++) { const an = u.ang + (i - (g.n - 1) / 2) * 0.9; addHazard(s, { kind: 'tornado', team: 'hero', soul: so, x: u.x + Math.cos(an) * 20, y: u.y + Math.sin(an) * 20, ang: an, r: g.r, dur: g.dur, speed: g.speed, dmg: Math.round(g.dmg * mul), tick: 0 }); }
+        break;
+      case 'cut': {
+        const c = o || u, an = o ? Math.atan2(o.y - u.y, o.x - u.x) : u.ang;
+        const line = (a2) => { const d = dir(a2), L = g.len / 2; addHazard(s, { kind: 'cut', team: 'hero', soul: so, x1: c.x - d[0] * L, y1: c.y - d[1] * L, x2: c.x + d[0] * L, y2: c.y + d[1] * L, w: g.w, dmg: Math.round(g.dmg * mul), delay: 0.4 }); };
+        line(an); if (g.cross) line(an + Math.PI / 2);
+        break;
+      }
+    }
+  }
   function allyThink(s, u, dt) {
     u.life -= dt; if (u.life <= 0) { kill(s, u); return; }
     if (u.state !== 'idle' && u.state !== 'move') return;
@@ -922,7 +1063,7 @@
       const L = h.leap; L.t += dt; const k = Math.min(1, L.t / L.dur); h.x = L.fx + (L.tx - L.fx) * k; h.y = L.fy + (L.ty - L.fy) * k; h.z = Math.sin(k * Math.PI) * 70;
       if (k >= 1) { h.z = 0; h.vz = 0; h.leap = null; areaHit(s, h, h.x, h.y, L.sk.r, { dmg: L.sk.dmg, poise: L.sk.poise, kb: 30, stun: L.sk.stun, fx: 'spin' }); ev(s, { type: 'thunder', x: h.x, y: h.y, r: L.sk.r }); s.hitstop = Math.max(s.hitstop, 0.08); setState(h, 'idle'); }
     }
-    for (const u of s.units) if (u.alive && u.team === 'foe') foeThink(s, u, dt); else if (u.alive && u.ally) allyThink(s, u, dt);
+    for (const u of s.units) if (u.alive && u.team === 'foe') foeThink(s, u, dt); else if (u.soul) soulThink(s, u, dt); else if (u.alive && u.ally) allyThink(s, u, dt);
     if (s.god && s.god.alive) godThink(s, dt);
     for (const u of s.units) {
       if (!u.alive) continue;
@@ -949,19 +1090,19 @@
       const victims = s.units.filter((o) => o.alive && o.team !== z.team && o.state !== 'spawn' && Math.hypot(o.x - z.x, o.y - z.y) <= z.r + o.rad);
       if (z.kind === 'cut' && !z.done) {
         z.done = true; ev(s, { type: 'cut', x1: z.x1, y1: z.y1, x2: z.x2, y2: z.y2, w: z.w, god: !!z.god });
-        for (const o of s.units) if (o.alive && o.team !== z.team && o.state !== 'spawn' && segDist(o.x, o.y, z.x1, z.y1, z.x2, z.y2) <= z.w + o.rad) hit(s, { team: z.team, x: o.x - (z.y2 - z.y1) * 0.01, y: o.y + (z.x2 - z.x1) * 0.01, ang: 0, phase: 1, def: {}, dmgMul: 1, face: 1 }, o, { dmg: z.dmg, kb: 22, poise: 20, unparry: true });
+        for (const o of s.units) if (o.alive && o.team !== z.team && o.state !== 'spawn' && segDist(o.x, o.y, z.x1, z.y1, z.x2, z.y2) <= z.w + o.rad) hit(s, { team: z.team, soul: z.soul, x: o.x - (z.y2 - z.y1) * 0.01, y: o.y + (z.x2 - z.x1) * 0.01, ang: 0, phase: 1, def: {}, dmgMul: 1, face: 1 }, o, { dmg: z.dmg, kb: 22, poise: 20, unparry: true });
         if (z.part) godPart(s, z.part.x, z.part.y, z.part);
         continue;
       }
       if (z.kind === 'strike' && !z.done) {
         z.done = true; ev(s, { type: 'strike', x: z.x, y: z.y, r: z.r, fx: z.fx, quiet: z.quiet, team: z.team, hand: !!z.part });
         if (z.part) godPart(s, z.x, z.y, z.part);
-        for (const o of victims) hit(s, { team: z.team, x: z.x, y: z.y, ang: 0, phase: 1, def: {}, dmgMul: 1, face: 1 }, o, { dmg: z.dmg, kb: 16, poise: 12, slow: z.slow, unparry: true });
+        for (const o of victims) hit(s, { team: z.team, soul: z.soul, x: z.x, y: z.y, ang: 0, phase: 1, def: {}, dmgMul: 1, face: 1 }, o, { dmg: z.dmg, kb: 16, poise: 12, slow: z.slow, unparry: true });
         if (z.then) addHazard(s, Object.assign({ team: z.team, x: z.x, y: z.y }, z.then));
       } else if (z.kind === 'wave') {
         // A shockwave rolling out over the floor: it catches whoever its band crosses, once (dash through it).
         const rr = z.r0 + z.speed * (z.t - z.delay); z.rr = rr; z.hitIds = z.hitIds || [];
-        for (const o of s.units) if (o.alive && o.team !== z.team && o.state !== 'spawn' && z.hitIds.indexOf(o.id) < 0 && Math.abs(Math.hypot(o.x - z.x, o.y - z.y) - rr) <= z.w / 2 + o.rad) { z.hitIds.push(o.id); hit(s, { team: z.team, x: z.x, y: z.y, ang: 0, phase: 1, def: {}, dmgMul: 1, face: 1 }, o, { dmg: z.dmg, kb: 22, poise: 14, unparry: true }); }
+        for (const o of s.units) if (o.alive && o.team !== z.team && o.state !== 'spawn' && z.hitIds.indexOf(o.id) < 0 && Math.abs(Math.hypot(o.x - z.x, o.y - z.y) - rr) <= z.w / 2 + o.rad) { z.hitIds.push(o.id); hit(s, { team: z.team, soul: z.soul, x: z.x, y: z.y, ang: 0, phase: 1, def: {}, dmgMul: 1, face: 1 }, o, { dmg: z.dmg, kb: 22, poise: 14, unparry: true }); }
         if (rr > z.r1) z.done = true;
       } else if (z.kind === 'doom' && !z.done) {
         // The Last Cut: everything on the summit outside the moonlight is cut.
@@ -970,9 +1111,9 @@
       } else if (z.kind === 'zone') {
         z.tick -= dt; if (z.tick <= 0) { z.tick = 0.5; for (const o of victims) { directDamage(s, o, z.dps * 0.5); if (z.slow) o.slowT = Math.max(o.slowT, z.slow); } }
       } else if (z.kind === 'tornado') {
-        const tg = s.hero, want = Math.atan2(tg.y - z.y, tg.x - z.x); z.ang += clamp(angDiff(want, z.ang), -1.2 * dt, 1.2 * dt);
+        const tg = z.team === 'hero' ? (nearestFoe(s, z, 400) || z) : s.hero, want = tg === z ? z.ang : Math.atan2(tg.y - z.y, tg.x - z.x); z.ang += clamp(angDiff(want, z.ang), -1.2 * dt, 1.2 * dt);
         z.x += Math.cos(z.ang) * z.speed * dt; z.y += Math.sin(z.ang) * z.speed * dt; const c = VS.clampTo(curArena, z.x, z.y, 8); z.x = c[0]; z.y = c[1];
-        z.tick -= dt; if (z.tick <= 0 && victims.length) { z.tick = 0.6; for (const o of victims) hit(s, { team: z.team, x: z.x, y: z.y, ang: 0, phase: 1, def: {}, dmgMul: 1, face: 1 }, o, { dmg: z.dmg, kb: 30, poise: 10, unparry: true }); }
+        z.tick -= dt; if (z.tick <= 0 && victims.length) { z.tick = 0.6; for (const o of victims) hit(s, { team: z.team, soul: z.soul, x: z.x, y: z.y, ang: 0, phase: 1, def: {}, dmgMul: 1, face: 1 }, o, { dmg: z.dmg, kb: 30, poise: 10, unparry: true }); }
       }
     }
     s.hazards = s.hazards.filter((z) => (z.kind === 'strike' || z.kind === 'cut' || z.kind === 'wave' || z.kind === 'doom' ? !z.done : z.t < z.delay + z.dur));
@@ -1045,7 +1186,7 @@
       if (b.life <= 0) continue;
       for (const o of s.units) {
         if (o.team === b.team || !o.alive || o.state === 'spawn' || (b.hitIds && b.hitIds.indexOf(o.id) >= 0) || Math.hypot(o.x - b.x, o.y - b.y) > (b.r || 6) + o.rad) continue;
-        const r = hit(s, { ang: Math.atan2(b.vy, b.vx), phase: 1, def: {}, riposte: false, x: b.x, y: b.y, team: b.team, dmgMul: 1 }, o, { dmg: b.dmg, kb: b.kb, poise: b.poise || 14, slow: b.slow, stun: b.stun, unparry: b.unparry }, b);
+        const r = hit(s, { ang: Math.atan2(b.vy, b.vx), phase: 1, def: {}, riposte: false, x: b.x, y: b.y, team: b.team, soul: b.soul, dmgMul: 1 }, o, { dmg: b.dmg, kb: b.kb, poise: b.poise || 14, slow: b.slow, stun: b.stun, unparry: b.unparry }, b);
         if (r === 'reflect') break;
         if (o === s.hero && o.state === 'dodge' && o.iframes > 0) continue;
         if (b.hitIds) b.hitIds.push(o.id);
