@@ -25,7 +25,7 @@
     if (window.visualViewport) window.visualViewport.addEventListener('resize', R.resize);
   };
   R.resize = function () {
-    const dpr = Math.min(2, window.devicePixelRatio || 1), w = window.innerWidth, h = window.innerHeight;
+    const dpr = Math.min(R.dprMax || 2, window.devicePixelRatio || 1), w = window.innerWidth, h = window.innerHeight;   // dprMax: lowered on slow devices (js/main.js perfWatch)
     R.canvas.width = Math.round(w * dpr); R.canvas.height = Math.round(h * dpr);
     R.canvas.style.width = w + 'px'; R.canvas.style.height = h + 'px';
     R.W = R.canvas.width; R.H = R.canvas.height; R.dpr = dpr;

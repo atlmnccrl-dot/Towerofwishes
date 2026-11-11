@@ -860,8 +860,19 @@
     R.drawBackdrop(ctx, st, cam, dt);
     if (figure) R.drawFigure(ctx, (D.HEROES[M.save.hero] || D.HERO).set, 'Idle', Math.floor(M.t * 7) % 15, Math.PI, cam + vw * 0.7, 4, 1, {});
   }
+  // Slow devices: when frames stay slow (over 34 ms on average for about two seconds of play), draw at a lower
+  // resolution (2 -> 1.5 -> 1.25 -> 1 device pixels per CSS pixel) and remember it for the next launch (opts.dprMax).
+  const PW = { n: 0, sum: 0 };
+  function perfWatch(raw) {
+    if (raw <= 0 || raw > 0.25 || M.state === 'load' || document.hidden) return;   // loading hitches and hidden tabs do not count
+    PW.n++; PW.sum += raw; if (PW.n < 70) return;
+    const avg = PW.sum / PW.n; PW.n = PW.sum = 0;
+    const steps = [2, 1.5, 1.25, 1], cur = Math.min(R.dprMax || 2, window.devicePixelRatio || 1);
+    if (avg > 0.034 && cur > 1) { R.dprMax = steps.find((x) => x < cur - 0.01) || 1; R.resize(); M.save.opts.dprMax = R.dprMax; M.write(); }
+  }
   function frame(now) {
-    const dt = Math.max(0, Math.min(0.05, (now - (last || now)) / 1000)); last = now;   // never backwards (a clock that jumps back) M.t += dt; R.t += dt; R.realDt = dt;
+    const raw = (now - (last || now)) / 1000, dt = Math.max(0, Math.min(0.05, raw)); last = now;   // never backwards (a clock that jumps back)
+    perfWatch(raw); M.t += dt; R.t += dt; R.realDt = dt;
     try { pollPad(dt); } catch (e) { /* no gamepad API */ }
     // The normal cursor stays visible in fights (the crosshair that replaced it was removed, 2026-11-10).
     const ctx = R.ctx;
@@ -890,7 +901,7 @@
   async function boot() {
     // The store apps keep a native copy of the save (js/vault.js): if it is newer than localStorage's, read it again.
     try { if (VS.VAULT && await VS.VAULT.ready) { M.save = load(); if (VS.SHOP && VS.SHOP.reload) VS.SHOP.reload(); } } catch (e) { /* localStorage alone */ }
-    R.init(document.getElementById('game')); try { R.touch = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches); } catch (e) { /* desktop */ }
+    R.dprMax = M.save.opts.dprMax || 2; R.init(document.getElementById('game')); try { R.touch = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches); } catch (e) { /* desktop */ }
     const c = R.canvas;
     c.addEventListener('contextmenu', (e) => e.preventDefault());
     c.addEventListener('pointerdown', onDown); c.addEventListener('pointermove', onMove); c.addEventListener('pointerup', onUp); c.addEventListener('pointercancel', onUp);

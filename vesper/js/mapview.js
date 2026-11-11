@@ -139,12 +139,14 @@
   const iscale = (F, n) => F.k * (big(n) ? 0.5 : 0.62);
 
   // ---- the sky ----------------------------------------------------------------------------------------
-  let starC = null, starKey = '';
-  function stars() {
-    const key = R.W + 'x' + R.H; if (starC && starKey === key) return starC;
-    starC = document.createElement('canvas'); starC.width = R.W; starC.height = R.H * 2; starKey = key; const g = starC.getContext('2d');
-    for (let i = 0; i < 300; i++) { const a = 0.2 + hash(i, 3) * 0.7; g.fillStyle = `rgba(255,240,244,${a})`; const r = Math.max(1, Math.round((hash(i, 4) < 0.92 ? 1 : 2) * R.dpr)); g.fillRect(Math.round(hash(i, 1) * R.W), Math.round(hash(i, 2) * R.H * 2), r, r); }
-    return starC;
+  // The stars: 300 dots, drawn straight onto the sky each frame and wrapped as the camera climbs (cheaper than
+  // compositing full-screen star layers, which cost about two screens of painting a frame).
+  const STARS = []; for (let i = 0; i < 300; i++) STARS.push([hash(i, 1), hash(i, 2), 0.2 + hash(i, 3) * 0.7, hash(i, 4) < 0.92 ? 1 : 2]);
+  function drawStars(ctx, off) {
+    for (const [sx, sy, a, sz] of STARS) {
+      const r = Math.max(1, Math.round(sz * R.dpr)), y = Math.round((sy * R.H + off) % R.H);
+      ctx.fillStyle = `rgba(255,240,244,${a})`; ctx.fillRect(Math.round(sx * R.W), y, r, r);
+    }
   }
   function skyAt(wy) {
     const f = (wy - BOTTOM) / AH, a = Math.max(0, Math.min(P.ACTS.length - 1, Math.floor(f))), b = Math.min(P.ACTS.length - 1, a + 1), m = Math.max(0, Math.min(1, (f - a - 0.8) / 0.4));
@@ -372,7 +374,7 @@
     const F = frame(), sky = skyAt(MAP.camY), g = ctx.createLinearGradient(0, 0, 0, R.H);
     g.addColorStop(0, sky[0]); g.addColorStop(0.55, sky[1]); g.addColorStop(1, R.mix(sky[2], '#000000', 0.45));
     ctx.fillStyle = g; ctx.fillRect(0, 0, R.W, R.H);
-    const sc = stars(), off = ((MAP.camY * F.k * 0.15) % R.H + R.H) % R.H; ctx.drawImage(sc, 0, off - R.H); ctx.drawImage(sc, 0, off);
+    drawStars(ctx, ((MAP.camY * F.k * 0.15) % R.H + R.H) % R.H);
     drawMoon(ctx, F); drawSpire(ctx, F); drawClouds(ctx, F, false);
     drawPaths(ctx, F);
     const vis = P.NODES.slice().sort((a, b) => wyOf(b) - wyOf(a));
