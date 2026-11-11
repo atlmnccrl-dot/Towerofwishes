@@ -338,6 +338,12 @@ summit's far rim while you cut floating limbs. Now:
   the shots of him on the Spire's tip were lowered so all of him stands in the frame; his rise in the guardian film is in
   colour against the blood-red sky.
 - Balance (bot skill 0.55, late profile): about 55–60% wins, fights of 35–50 s.
+- **His sword and his hand** (2026-11-11, "far more epic and clean"; js/view.js, no drawn shapes): the sword's line charges
+  as a thin light along the floor (only the part over the summit), its blade's edge comes down out of the sky onto it,
+  and it lands as a white-hot slash that thins into a crimson glow and leaves a cooling fissure, sparks and dust along it.
+  The hand: its shadow gathers in a turning crimson rune circle, a column of crimson light slams down onto the mark, and a
+  shockwave, a red ring, flying debris and a cracked glowing crater follow. The guardians' signature cards and the moon
+  art's cutscenes draw the foe at twice its size in colour (they were 3–4x ink blocks).
 
 ## Bound Souls
 

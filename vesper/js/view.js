@@ -262,6 +262,13 @@
   R.spawns = {};
   const P = (o) => R.parts.push(Object.assign({ t: 0, vx: 0, vy: 0, vz: 0, g: 0, z: 0, size: 2, col: '#fff', shape: 'sq', life: 0.4 }, o));
   const FX = (o) => R.fx.push(Object.assign({ t: 0 }, o));
+  // The part of a line that lies over the floor (his cuts run far past the summit's edge): [x1, y1, x2, y2].
+  function overFloor(s, x1, y1, x2, y2) {
+    const AR = VS.arenaOf(s); let a0 = -1, a1 = -1;
+    for (let i = 0; i <= 60; i++) { const f = i / 60; if (VS.inside(AR, x1 + (x2 - x1) * f, y1 + (y2 - y1) * f, 4)) { if (a0 < 0) a0 = f; a1 = f; } }
+    if (a0 < 0) return [x1, y1, x2, y2];
+    return [x1 + (x2 - x1) * a0, y1 + (y2 - y1) * a0, x1 + (x2 - x1) * a1, y1 + (y2 - y1) * a1];
+  }
   R.float = function (text, x, y, z, col, big, label) {
     if (R.noNumbers && /^[+-]?\d+$/.test(text)) return;   // damage and heal numbers (off unless asked for)
     // Labels near each other stack upward instead of printing over one another (at most three).
@@ -355,8 +362,16 @@
         case 'wall': sparks(e.x, e.y, 20, 14, '#ffffff', 180, 1.6); R.float('WALL', e.x, e.y, 50, '#ffffff', true, true); R.shake = Math.max(R.shake, 6); break;
         case 'phase': if (!e.quiet) { R.flash = 0.6; R.flashCol = '255,40,60'; R.shake = 8; } break;
         // The god: his blade landing along its line, his hand slamming down, his phases, his kneeling, his fall.
-        case 'cut': { PK('cb:01_crimson_tide_cleave/caster', (e.x1 + e.x2) / 2, (e.y1 + e.y2) / 2, 4, 1.8); if (e.god) { PK('v_pillar', (e.x1 + e.x2) / 2, (e.y1 + e.y2) / 2, 0, 2.2); PK('v_crack', (e.x1 + e.x2) / 2, (e.y1 + e.y2) / 2, 0, 2.2); R.shake = Math.max(R.shake, 12); R.flash = Math.max(R.flash, 0.35); R.flashCol = '255,60,80'; R.punch = Math.max(R.punch || 0, 0.05); }   // (not flashpoint severance's caster: two of its frames are a hard white box)
-          for (let i = 1; i <= 3; i++) PK('cb:01_crimson_tide_cleave/target', e.x1 + (e.x2 - e.x1) * i / 4, e.y1 + (e.y2 - e.y1) * i / 4, 4, 1.4); FX({ kind: 'gcut', x1: e.x1, y1: e.y1, x2: e.x2, y2: e.y2, w: e.w, life: 0.45 }); R.shake = Math.max(R.shake, 12); R.flash = 0.25; R.flashCol = '255,255,255'; const n = 10; for (let i = 0; i <= n; i++) { const f = i / n; sparks(e.x1 + (e.x2 - e.x1) * f, e.y1 + (e.y2 - e.y1) * f, 4, 3, '#ffd0d6', 160, 1.2); } break; }
+        case 'cut': {
+          // The blade lands: a white-hot slash along the whole line that thins away, its crimson glow after it, a glowing
+          // fissure left in the floor, sparks and dust along it, the camera struck.
+          [e.x1, e.y1, e.x2, e.y2] = overFloor(s, e.x1, e.y1, e.x2, e.y2);
+          const mx = (e.x1 + e.x2) / 2, my = (e.y1 + e.y2) / 2;
+          FX({ kind: 'gslash', x1: e.x1, y1: e.y1, x2: e.x2, y2: e.y2, w: e.w, life: e.god ? 1.8 : 0.9, god: !!e.god });
+          if (e.god) { PK('v_crack', mx, my, 0, 2.4); PK('v_shock', mx, my, 0, 1.6); R.shake = Math.max(R.shake, 13); R.flash = Math.max(R.flash, 0.4); R.flashCol = '255,70,90'; R.punch = Math.max(R.punch || 0, 0.06); }
+          else { R.shake = Math.max(R.shake, 8); R.flash = Math.max(R.flash, 0.2); R.flashCol = '255,255,255'; }
+          const n = 14; for (let i = 0; i <= n; i++) { const f = i / n, x = e.x1 + (e.x2 - e.x1) * f, y = e.y1 + (e.y2 - e.y1) * f; sparks(x, y, 4, i % 2 ? 5 : 3, i % 3 ? '#ffd0d8' : '#ff3048', 170, 1.3); if (i % 3 === 1) PK('smoke_burst', x, y, 2, 0.9); }
+          break; }
         case 'gateSpawn': FX({ kind: 'gring', x: e.x, y: e.y, life: 0.5, col: '#ff5a6a', r0: 10, r1: 70, w: 3 }); R.shake = Math.max(R.shake, 3); break;
         case 'gateDown': PK('v_blast', e.x, e.y, 10, 2.4); PK('v_shock', e.x, e.y, 0, 2.4); PK('blast', e.x, e.y, 30, 3); PK('smoke_dark', e.x, e.y, 20, 3); PK('cb:01_crimson_tide_cleave/caster', e.x, e.y, 4, 2); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.7, col: '#ffffff', r0: 20, r1: 180, w: 5 }); R.float('GATE DESTROYED', e.x, e.y, 90, '#ffd0d6', true, true); R.shake = Math.max(R.shake, 14); R.flash = Math.max(R.flash, 0.5); R.flashCol = '255,80,100'; R.punch = Math.max(R.punch || 0, 0.06); break;
         case 'godMove': R.godPose = { move: e.move, t: 0 }; if (e.move === 'last') { R.bossArt = { key: 'godCut', name: 'THE LAST CUT', t: 0 }; R.flash = 0.6; R.flashCol = '255,30,50'; R.shake = 16; } break;
@@ -376,7 +391,7 @@
         }
         case 'chain': R.chains.push({ pts: e.pts, t: 0 }); for (const p of e.pts.slice(1)) PK('hit_shock', p[0], p[1], 22, 1.6); R.flash = 0.3; R.flashCol = '255,240,170'; R.shake = Math.max(R.shake, 4); break;
         case 'thunder': PK('v_bolt', e.x, e.y, 0, 2.2); PK('thunder', e.x, e.y, 0, 3.2); PK('lightning_holy', e.x, e.y, 0, 2.4); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.5, col: '#fff0a0', r0: 6, r1: e.r * 1.6, w: 4 }); R.impactF = { t: 0, dur: 0.08, x: e.x, y: e.y, big: false }; R.shake = Math.max(R.shake, 9); break;
-        case 'strike': if (e.fx === 'fire_burst' || e.fx === 'explosion_fire') PK('v_fire', e.x, e.y, 0, 1.4); if (e.hand) { PK('v_shock', e.x, e.y, 0, 2.6); PK('v_crack', e.x, e.y, 0, 1.8); PK('cb:10_quake_stomp/caster', e.x, e.y, 0, 2.4); R.shake = Math.max(R.shake, 14); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.6, col: '#ffffff', r0: 20, r1: 150, w: 4 }); FX({ kind: 'ghand', x: e.x, y: e.y, life: 0.18 }); } if (!e.quiet) { PK(e.fx || 'blast', e.x, e.y, 6, e.fx === 'poison_cloud' ? 1.6 : 2.2); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.35, col: e.team === 'hero' ? '#ffffff' : '#ff8070', r0: 3, r1: e.r * 1.3, w: 2 }); R.shake = Math.max(R.shake, 3); } else PK(e.fx || 'blast', e.x, e.y, 6, 1.4); break;
+        case 'strike': if (e.fx === 'fire_burst' || e.fx === 'explosion_fire') PK('v_fire', e.x, e.y, 0, 1.4); if (e.hand) { PK('v_shock', e.x, e.y, 0, 2.6); PK('v_crack', e.x, e.y, 0, 1.8); PK('cb:10_quake_stomp/caster', e.x, e.y, 0, 2.4); R.shake = Math.max(R.shake, 14); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.6, col: '#ffffff', r0: 20, r1: 150, w: 4 }); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.9, col: '#ff3048', r0: 10, r1: 110, w: 6 }); FX({ kind: 'gcrater', x: e.x, y: e.y, r: e.r || 50, life: 1.6 }); R.flash = Math.max(R.flash, 0.35); R.flashCol = '255,60,80'; R.punch = Math.max(R.punch || 0, 0.06); for (let i = 0; i < 18; i++) { const a = i / 18 * 6.28; P({ x: e.x + Math.cos(a) * 10, y: e.y + Math.sin(a) * 10, z: 4, vx: Math.cos(a) * (60 + Math.random() * 90), vy: Math.sin(a) * (60 + Math.random() * 90), vz: 120 + Math.random() * 160, life: 0.9, size: 2 + Math.random() * 2, col: i % 3 ? '#2a1a20' : '#ff5a6a', shape: 'sq', g: -520 }); } } if (!e.quiet) { PK(e.fx || 'blast', e.x, e.y, 6, e.fx === 'poison_cloud' ? 1.6 : 2.2); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.35, col: e.team === 'hero' ? '#ffffff' : '#ff8070', r0: 3, r1: e.r * 1.3, w: 2 }); R.shake = Math.max(R.shake, 3); } else PK(e.fx || 'blast', e.x, e.y, 6, 1.4); break;
         case 'tick': R.float(String(e.dmg), e.x, e.y, 30, '#b0ff90', false); break;
         case 'cast': if (u) PK('cast_circle', u.x, u.y, 2, 1.6); break;
         case 'vanish': PK('v_shadow', e.x, e.y, 22, 1.4); PK('smoke_dark', e.x, e.y, 10, 1.2); break;
@@ -397,7 +412,27 @@
         ctx.globalAlpha = 1 - k; ctx.fillStyle = '#ffffff'; ctx.fillRect(0, -f.w * (1 - k), L, f.w * 2 * (1 - k)); ctx.fillStyle = '#ff2a44'; ctx.fillRect(0, -1, L, 2);
         ctx.restore(); return true;
       }
-      if (f.kind === 'ghand') { const q = R.P(f.x, f.y, 0); godHand(ctx, q.x, q.y - (1 - k) * R.H * 0.6, R.Sh() * (1.4 - k * 0.4), 1); ctx.restore(); return true; }
+      if (f.kind === 'gslash') {
+        // The sword's mark: first a white-hot slash (thinning), then the crimson glow, then a fissure that cools.
+        const a = Math.atan2(f.y2 - f.y1, f.x2 - f.x1), L = Math.hypot(f.x2 - f.x1, f.y2 - f.y1), t = f.t;
+        ctx.save(); ground(ctx); ctx.translate(f.x1, f.y1); ctx.rotate(a);
+        const hot = Math.max(0, 1 - t / 0.25), glow = Math.max(0, 1 - t / 0.8), cool = Math.max(0, 1 - t / f.life);
+        ctx.fillStyle = `rgba(20,4,8,${0.7 * cool})`; ctx.fillRect(0, -2.2, L, 4.4);   // the fissure
+        ctx.fillStyle = `rgba(255,${60 + Math.round(80 * glow)},80,${0.9 * cool * (0.75 + 0.25 * Math.sin(t * 30))})`; ctx.fillRect(0, -0.8, L, 1.6);
+        if (glow > 0) { ctx.fillStyle = `rgba(255,42,68,${0.35 * glow})`; ctx.fillRect(0, -f.w * 0.9 * glow, L, f.w * 1.8 * glow); }
+        if (hot > 0) { ctx.fillStyle = `rgba(255,255,255,${hot})`; ctx.fillRect(0, -f.w * 0.55 * hot, L, f.w * 1.1 * hot); }
+        ctx.restore(); ctx.restore(); return true;
+      }
+      if (f.kind === 'gcrater') {
+        // Where his hand came down: a ring of cracked stone glowing red, cooling.
+        const q = R.P(f.x, f.y, 0), rw = f.r * R.Sh() * 0.75, cool = 1 - k;
+        ctx.translate(q.x, q.y); ctx.scale(1, HELI.pitch);
+        const g = ctx.createRadialGradient(0, 0, rw * 0.2, 0, 0, rw); g.addColorStop(0, `rgba(10,2,4,${0.6 * cool})`); g.addColorStop(0.75, `rgba(40,6,12,${0.5 * cool})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, rw, 0, 7); ctx.fill();
+        ctx.strokeStyle = `rgba(255,60,80,${0.8 * cool})`; ctx.lineWidth = 1.5 * R.dpr;
+        for (let i = 0; i < 9; i++) { const a0 = i / 9 * 6.28 + 0.3, r0 = rw * 0.25, r1 = rw * (0.7 + 0.25 * ((i * 37) % 7) / 7); ctx.beginPath(); ctx.moveTo(Math.cos(a0) * r0, Math.sin(a0) * r0); ctx.lineTo(Math.cos(a0 + 0.12) * (r0 + r1) / 2, Math.sin(a0 + 0.12) * (r0 + r1) / 2); ctx.lineTo(Math.cos(a0 - 0.05) * r1, Math.sin(a0 - 0.05) * r1); ctx.stroke(); }
+        ctx.restore(); return true;
+      }
       if (f.kind === 'gring') {
         ground(ctx); ctx.globalAlpha = 1 - k; ctx.strokeStyle = f.col; ctx.lineWidth = f.w * (1 - k * 0.5);
         ctx.beginPath(); ctx.arc(f.x, f.y, f.r0 + (f.r1 - f.r0) * (1 - Math.pow(1 - k, 2)), 0, 7); ctx.stroke();
@@ -468,28 +503,62 @@
       }
       if (z.kind === 'cut') {
         if (z.t >= z.delay) continue;
-        if (z.god && z.delay - z.t < 0.5) {   // his blade coming down out of the sky onto the line
-          const mx = (z.x1 + z.x2) / 2, my = (z.y1 + z.y2) / 2, q = R.P(mx, my, 0), kk = 1 - (z.delay - z.t) / 0.5, top = q.y * (1 - kk);
-          A.tex(ctx, 'light_01', q.x, (top + q.y) / 2 - 10, 50 * Sh, Math.max(10, q.y - top + 40), '#ff2a44', 0.75, 0, true);
-          A.tex(ctx, 'light_01', q.x, (top + q.y) / 2 - 10, 16 * Sh, Math.max(10, q.y - top + 40), '#ffffff', 0.7 * kk, 0, true);
+        // His sword (2026-11-11, the author: "make the hand and sword far more epic and clean"): a thin line of light charges
+        // along the floor where it will fall, the edges of the danger faint beside it; in the last half second the blade
+        // itself comes down out of the sky onto the line, a wall of white-hot light edged in crimson.
+        // Only the part of the line over the floor is drawn (his cuts run far past the summit's edge).
+        if (!z.vis) { const AR = VS.arenaOf(s); let a0 = -1, a1 = -1; for (let i = 0; i <= 60; i++) { const f = i / 60; if (VS.inside(AR, z.x1 + (z.x2 - z.x1) * f, z.y1 + (z.y2 - z.y1) * f, 4)) { if (a0 < 0) a0 = f; a1 = f; } }
+          z.vis = a0 < 0 ? [0, 1] : [a0, a1]; }
+        const X1 = z.x1 + (z.x2 - z.x1) * z.vis[0], Y1 = z.y1 + (z.y2 - z.y1) * z.vis[0], X2 = z.x1 + (z.x2 - z.x1) * z.vis[1], Y2 = z.y1 + (z.y2 - z.y1) * z.vis[1];
+        const k = z.t / z.delay, cc = soulCol || '#ff2a44', L = Math.hypot(X2 - X1, Y2 - Y1), mx = (X1 + X2) / 2, my = (Y1 + Y2) / 2;
+        const p1 = R.P(X1, Y1, 0), p2 = R.P(X2, Y2, 0), sa = Math.atan2(p2.y - p1.y, p2.x - p1.x), sl = Math.hypot(p2.x - p1.x, p2.y - p1.y), pm = R.P(mx, my, 0);
+        ctx.save(); ground(ctx); ctx.translate(X1, Y1); ctx.rotate(Math.atan2(Y2 - Y1, X2 - X1));
+        ctx.fillStyle = rgba(cc, 0.06 + 0.1 * k); ctx.fillRect(0, -z.w, L, z.w * 2);   // the danger, faint
+        ctx.strokeStyle = rgba(cc, 0.22 + 0.3 * k); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, -z.w); ctx.lineTo(L, -z.w); ctx.moveTo(0, z.w); ctx.lineTo(L, z.w); ctx.stroke();
+        ctx.restore();
+        ctx.save(); ctx.globalCompositeOperation = 'lighter';
+        A.tex(ctx, 'light_01', pm.x, pm.y, sl * 1.05, z.w * Sh * (0.9 + 0.5 * k), cc, 0.2 + 0.35 * k, sa, true);   // its glow
+        const c = 0.5 * Math.min(1, k * 1.25);   // the core line, charging out from the middle to both ends
+        ctx.strokeStyle = rgba('#ffd0d8', 0.5 + 0.5 * k); ctx.lineWidth = Math.max(1, (1 + k) * R.dpr); ctx.beginPath();
+        ctx.moveTo(pm.x + (p1.x - pm.x) * c * 2, pm.y + (p1.y - pm.y) * c * 2); ctx.lineTo(pm.x + (p2.x - pm.x) * c * 2, pm.y + (p2.y - pm.y) * c * 2); ctx.stroke();
+        if (z.god && z.delay - z.t < 0.5) {
+          // The blade's edge coming down fast, a short streak of light above it (not a wall).
+          const f = 1 - (z.delay - z.t) / 0.5, fall = f * f, hb = 300 * (1 - fall), ht = hb + 16 + 40 * f;
+          const b1 = R.P(X1, Y1, hb), b2 = R.P(X2, Y2, hb), t1 = R.P(X1, Y1, ht), t2 = R.P(X2, Y2, ht), bm = R.P(mx, my, hb), tm = R.P(mx, my, ht);
+          const g = ctx.createLinearGradient(bm.x, bm.y, tm.x, tm.y); g.addColorStop(0, 'rgba(255,255,255,0.9)'); g.addColorStop(0.18, rgba(cc, 0.6)); g.addColorStop(1, rgba(cc, 0));
+          ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(b1.x, b1.y); ctx.lineTo(b2.x, b2.y); ctx.lineTo(t2.x, t2.y); ctx.lineTo(t1.x, t1.y); ctx.closePath(); ctx.fill();
+          ctx.strokeStyle = 'rgba(255,255,255,0.95)'; ctx.lineWidth = 2 * R.dpr; ctx.beginPath(); ctx.moveTo(b1.x, b1.y); ctx.lineTo(b2.x, b2.y); ctx.stroke();   // its edge
+          A.tex(ctx, 'light_01', bm.x, bm.y, sl * 1.2, 40 * Sh, cc, 0.5 * f, sa, true);
+          A.tex(ctx, 'light_01', pm.x, pm.y, sl * 1.1, 26 * Sh, '#ffffff', 0.35 * f * f, sa, true);   // the floor lit before it lands
         }
-        const k = z.t / z.delay, a = Math.atan2(z.y2 - z.y1, z.x2 - z.x1), L = Math.hypot(z.x2 - z.x1, z.y2 - z.y1);
-        ctx.save(); ground(ctx); ctx.translate(z.x1, z.y1); ctx.rotate(a);
-        const cc = soulCol || '#ff2a44';
-        ctx.fillStyle = rgba(cc, 0.1 + 0.16 * k); ctx.fillRect(0, -z.w, L, z.w * 2);
-        ctx.fillStyle = rgba(cc, 0.32); ctx.fillRect(0, -z.w * k, L, z.w * 2 * k);
-        ctx.strokeStyle = rgba(soulCol || '#ff5a6a', 0.85); ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(0, -z.w); ctx.lineTo(L, -z.w); ctx.moveTo(0, z.w); ctx.lineTo(L, z.w); ctx.stroke();
-        if (z.delay - z.t < 0.3) { ctx.fillStyle = rgba('#ffffff', 0.6 * (1 - (z.delay - z.t) / 0.3)); ctx.fillRect(0, -2, L, 4); }
         ctx.restore(); continue;
       }
       if (z.t < z.delay) {
         // The warning: a circle filling in until the strike lands.
         const k = z.t / z.delay; ctx.save(); ground(ctx);
-        ctx.fillStyle = rgba(col, 0.08 + 0.12 * k); ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, 7); ctx.fill();
-        ctx.fillStyle = rgba(col, 0.28); ctx.beginPath(); ctx.arc(z.x, z.y, z.r * k, 0, 7); ctx.fill();
+        if (!z.part) { ctx.fillStyle = rgba(col, 0.08 + 0.12 * k); ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, 7); ctx.fill();
+          ctx.fillStyle = rgba(col, 0.28); ctx.beginPath(); ctx.arc(z.x, z.y, z.r * k, 0, 7); ctx.fill(); }
         ctx.strokeStyle = rgba(col, 0.8); ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, 7); ctx.stroke(); ctx.restore();
-        if (z.part) { const q = R.P(z.x, z.y, 0), k2 = z.t / z.delay, Sh2 = R.Sh(); ctx.save(); ctx.globalAlpha = 0.35 + 0.4 * k2; ctx.fillStyle = '#000000'; ctx.beginPath(); ctx.ellipse(q.x, q.y, z.r * Sh2 * 0.7 * (0.5 + 0.5 * k2), z.r * Sh2 * 0.35 * (0.5 + 0.5 * k2), 0, 0, 7); ctx.fill(); ctx.restore(); }
-        if (z.kind === 'strike' && z.delay - z.t < 0.35) { const q = R.P(z.x, z.y, 0), q2 = R.P(z.x, z.y, 200); ctx.strokeStyle = rgba('#ffffff', 0.5 * (1 - (z.delay - z.t) / 0.35)); ctx.lineWidth = 2 * R.dpr; ctx.beginPath(); ctx.moveTo(q.x, q.y); ctx.lineTo(q2.x, q2.y); ctx.stroke(); }
+        if (z.part) {
+          // His hand (2026-11-11, "far more epic and clean"): its shadow gathering, a rune circle turning under it, then a
+          // column of crimson light slamming down out of the sky onto the mark.
+          const q = R.P(z.x, z.y, 0), k2 = z.t / z.delay, Sh2 = R.Sh(), rw = z.r * Sh2 * 0.75;
+          ctx.save();
+          const sg = ctx.createRadialGradient(q.x, q.y, 0, q.x, q.y, rw * (0.4 + 0.6 * k2)); sg.addColorStop(0, `rgba(0,0,0,${0.55 + 0.3 * k2})`); sg.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.translate(q.x, q.y); ctx.scale(1, HELI.pitch); ctx.translate(-q.x, -q.y); ctx.fillStyle = sg; ctx.beginPath(); ctx.arc(q.x, q.y, rw * (0.4 + 0.6 * k2), 0, 7); ctx.fill();
+          ctx.globalCompositeOperation = 'lighter'; A.tex(ctx, 'magic_02', q.x, q.y, rw * 2.3, rw * 2.3, '#ff2a44', 0.25 + 0.5 * k2, R.t * (1 + 2 * k2), true); A.tex(ctx, 'magic_01', q.x, q.y, rw * 1.5, rw * 1.5, '#ffb0bc', 0.15 + 0.35 * k2, -R.t * 2, true);
+          ctx.restore();
+          const left = z.delay - z.t;
+          if (left < 0.45) {
+            const f = 1 - left / 0.45, head = R.P(z.x, z.y, 420 * (1 - f * f)), top = R.P(z.x, z.y, 900);
+            ctx.save(); ctx.globalCompositeOperation = 'lighter';
+            A.tex(ctx, 'light_01', q.x, (top.y + head.y) / 2, rw * (1.6 - 0.6 * f), Math.max(10, head.y - top.y), '#ff2a44', 0.55 + 0.35 * f, 0, true);
+            A.tex(ctx, 'light_01', q.x, (top.y + head.y) / 2, rw * 0.5, Math.max(10, head.y - top.y), '#ffffff', 0.4 + 0.4 * f, 0, true);
+            A.tex(ctx, 'light_01', head.x, head.y, rw * 1.8, rw * 1.2, '#ffd0d8', 0.8, 0, true);
+            ctx.restore();
+          }
+        }
+        if (z.kind === 'strike' && !z.part && z.delay - z.t < 0.35) { const q = R.P(z.x, z.y, 0), q2 = R.P(z.x, z.y, 200); ctx.strokeStyle = rgba('#ffffff', 0.5 * (1 - (z.delay - z.t) / 0.35)); ctx.lineWidth = 2 * R.dpr; ctx.beginPath(); ctx.moveTo(q.x, q.y); ctx.lineTo(q2.x, q2.y); ctx.stroke(); }
         continue;
       }
       if (z.kind === 'zone') {
@@ -590,15 +659,12 @@
     const fade = u.alive ? Math.min(1, u.st * 6, u.life * 2) : Math.max(0, 1 - u.deadT * 3), flash = u.flash > 0;
     ctx.save(); ctx.globalAlpha = fade;
     if (u.part === 'blade') {
-      // His sword stands in the floor, rising out of the frame, its rune burning.
-      const tilt = 0.18, top = -40, bx = x + (y - top) * tilt, w = 9 * Sh;
+      // Where his blade stands in the floor: a shaft of white-crimson light (no drawn shapes, 2026-11-11).
       A.tex(ctx, 'light_01', x, y, 70 * Sh, 30 * Sh, '#ff3048', 0.5, 0, true);
-      ctx.fillStyle = flash ? '#5a3a44' : '#1a1418'; ctx.beginPath(); ctx.moveTo(x - w, y); ctx.lineTo(bx - w * 1.4, top); ctx.lineTo(bx + w * 1.4, top); ctx.lineTo(x + w, y); ctx.lineTo(x, y + 6 * Sh); ctx.closePath(); ctx.fill();
-      ctx.strokeStyle = '#e8dcf0'; ctx.lineWidth = 1.5 * R.dpr; ctx.beginPath(); ctx.moveTo(x + w, y); ctx.lineTo(bx + w * 1.4, top); ctx.stroke();
-      ctx.strokeStyle = '#ff3048'; ctx.lineWidth = 2 * R.dpr; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(bx, top); ctx.stroke();
+      A.tex(ctx, 'light_01', x, y - 60 * Sh, 18 * Sh, 130 * Sh, flash ? '#ffffff' : '#ff3048', 0.8, 0, true); A.tex(ctx, 'light_01', x, y - 60 * Sh, 6 * Sh, 130 * Sh, '#ffffff', 0.7, 0, true);
     } else if (u.part === 'hand') {
-      godHand(ctx, x, y, Sh * 1.0, 1);
-      if (flash) { ctx.globalAlpha = fade * 0.5; godHand(ctx, x, y, Sh * 1.0, 0.4); }
+      // Where his hand came down: a rune circle burning in the floor.
+      ctx.save(); ctx.translate(x, y); ctx.scale(1, HELI.pitch); A.tex(ctx, 'magic_02', 0, 0, 70 * Sh, 70 * Sh, flash ? '#ffffff' : '#ff3048', 0.7, R.t, true); ctx.restore();
     } else if (u.part === 'head' && K) {
       // He has come down onto the summit: the knight on one knee where the ring is, open (the real character).
       A.tex(ctx, 'light_01', x, y - 30 * Sh, 120 * Sh, 100 * Sh, '#ff3048', 0.4, 0, true);
@@ -1156,7 +1222,9 @@
     if (!white) { const gr = c.createLinearGradient(0, 0, W, 0); gr.addColorStop(0, 'rgba(255,42,68,0.35)'); gr.addColorStop(1, 'rgba(255,42,68,0)'); c.fillStyle = gr; c.fillRect(0, 0, W, H); }
     c.strokeStyle = white ? '#000' : 'rgba(255,42,68,0.6)'; c.lineWidth = 1; c.beginPath();
     for (let i = 0; i < 40; i++) { const y = (i * 37 % H), x = W - ((b.t * 900 + i * 53) % (W + 80)); c.moveTo(x, y); c.lineTo(x + 40 + (i % 3) * 20, y); } c.stroke();
-    if (f) A.actor(c, f.set, 'Special1', Math.min(14, Math.floor(k * 18)), 0, Math.round(W * 0.28 + k * 8), Math.round(H * 1.02), 3.2 / Math.max(1, (f.scale || 1) * 0.8), { shade: white ? '#000000' : '#050005' });
+    // The guardian itself, crisp at twice its size and in its own colours, lit red (2026-11-11: no blown-up ink silhouettes).
+    if (f) { if (!white && A.tex) { c.save(); c.globalCompositeOperation = 'lighter'; A.tex(c, 'light_01', Math.round(W * 0.28), Math.round(H * 0.62), W * 0.5, H * 0.9, f.color || '#ff2a44', 0.35, 0, true); c.restore(); }
+      A.actor(c, f.set, 'Special1', Math.min(14, Math.floor(k * 18)), 0, Math.round(W * 0.28 + k * 8), Math.round(H * 0.97), 2, white ? { shade: '#000000' } : { flash: 0.18, flashCol: '#ff2a44' }); }
     if (!white) { c.fillStyle = '#ffffff'; c.fillRect(Math.round(W * 0.5), Math.round(H * 0.52), Math.round(W * 0.46 * Math.min(1, k * 4)), 1); }
     if (!white && VS.cine && VS.cine.kit) { VS.cine.kit.title(c, b.name, Math.round(W * 0.7), Math.round(H * 0.44), Math.min(22, Math.round(W * 0.5 / (b.name.length * 0.62 + 1))), k, b.t); PX.text(c, (f ? f.name : '').toUpperCase(), Math.round(W * 0.7), Math.round(H * 0.62), 7, '#ffd0d8', 'center'); }
     c.fillStyle = '#000'; c.fillRect(0, 0, W, 10); c.fillRect(0, H - 10, W, 10);

@@ -254,7 +254,8 @@
     ctx.fillStyle = '#05040a'; ctx.fillRect(0, H() * 0.86, W(), H() * 0.14);
     const tg = target(s, c), others = c.targets.map((id) => s.units.find((u) => u.id === id)).filter((u) => u && u !== tg);
     others.slice(0, 4).forEach((o, i) => A.actor(ctx, o.set, 'TakeDamage', Math.floor(T * 14 + i * 3) % 15, Math.PI, Math.round(W() * (0.78 + i * 0.06) + Math.sin(T * 9 + i) * 2), Math.round(H() * 0.88), o.scale * 1.6, { shade: '#0c0912' }));
-    const ts = tg ? Math.min(3.6, 2.3 * tg.scale) : 2.3, tx = Math.round(W() * 0.38), ty = Math.round(H() * 0.9);
+    const ts = 2,   // at most twice the sprite (2026-11-11: larger turned the pixels to blocks)
+      tx = Math.round(W() * 0.38), ty = Math.round(H() * 0.9);
     const hitsDone = Math.max(0, Math.min(6, Math.floor((k - 0.3) / 0.7 * 6 + 0.4)));
     const knock = hitsDone * 4 + (hitsDone ? Math.max(0, 6 - ((k - 0.3) / 0.7 * 6 - hitsDone + 1) * 6) : 0);
     if (tg) A.actor(ctx, tg.set, hitsDone ? 'TakeDamage' : 'Idle4', hitsDone ? Math.min(14, Math.floor(((k - 0.3) / 0.7 * 6 % 1) * 10) + 2) : Math.floor(T * 8) % 15, 0, Math.round(tx - knock), ty, ts, { shade: '#000000' });
@@ -296,10 +297,10 @@
   // All red; the foe black; one white cut through everything.
   B.red = function (ctx, s, c, k) {
     fill(ctx, RED);
-    const tg = target(s, c), ts = tg ? Math.min(3.8, 2.6 * tg.scale) : 2.6;
+    const tg = target(s, c), ts = 2;
     if (tg) A.actor(ctx, tg.set, 'Die', Math.min(14, Math.floor(k * 16)), 0, Math.round(W() * 0.4 - k * 10), Math.round(H() * 0.95), ts, { shade: '#000000' });
     const h = hero(s);
-    A.actor(ctx, h.set, k < 0.5 ? 'Special1' : 'Idle4', k < 0.5 ? 14 : Math.floor(k * 10) % 15, Math.PI, Math.round(W() * 0.86), Math.round(H() * 0.95), 1.9, { shade: '#000000' });
+    A.actor(ctx, h.set, k < 0.5 ? 'Special1' : 'Idle4', k < 0.5 ? 14 : Math.floor(k * 10) % 15, Math.PI, Math.round(W() * 0.86), Math.round(H() * 0.95), 2, { shade: '#000000' });
     const kk = ease(k * 2.5);
     line(ctx, W() * 1.05, H() * 0.02, W() * 1.05 - W() * 1.2 * kk, H() * 0.02 + H() * 1.0 * kk, 2, '#ffffff');
     ctx.fillStyle = 'rgba(0,0,0,0.6)'; for (let i = 0; i < 8; i++) ctx.fillRect(Math.round(hash(i, 3) * W()), Math.round(hash(i, 4) * H()), 2, 2);
@@ -376,8 +377,8 @@
   B.finale = function (ctx, s, c, k, T) {
     const col = ART_COL[c.kind] || RED; fill(ctx, col);
     const tg = others(s, c)[0], h = hero(s);
-    if (tg) A.actor(ctx, tg.set, 'Die', Math.min(14, Math.floor(k * 16)), 0, Math.round(W() * 0.4), Math.round(H() * 0.95), Math.min(3.4, 2.4 * tg.scale), { shade: '#000000' });
-    A.actor(ctx, h.set, 'Idle4', Math.floor(T * 8) % 15, Math.PI, Math.round(W() * 0.84), Math.round(H() * 0.95), 1.9, { shade: '#000000' });
+    if (tg) A.actor(ctx, tg.set, 'Die', Math.min(14, Math.floor(k * 16)), 0, Math.round(W() * 0.4), Math.round(H() * 0.95), 2, { shade: '#000000' });
+    A.actor(ctx, h.set, 'Idle4', Math.floor(T * 8) % 15, Math.PI, Math.round(W() * 0.84), Math.round(H() * 0.95), 2, { shade: '#000000' });
     line(ctx, W() * 1.05, H() * 0.05, W() * 1.05 - W() * 1.2 * ease(k * 2.5), H() * 0.05 + H() * ease(k * 2.5), 2, '#ffffff');
     title(ctx, VS.ART[c.kind].name, W() / 2, H() * 0.22, Math.min(20, Math.round(W() / (VS.ART[c.kind].name.length * 0.62 + 2))), k, T);
     if (k > 0.8) fill(ctx, '#ffffff', (k - 0.8) / 0.2 * 0.6);
