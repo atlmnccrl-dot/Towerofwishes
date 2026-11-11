@@ -113,7 +113,7 @@
     const g = ease((k - 0.35) / 0.15) * (1 - ease((k - 0.6) / 0.1));
     if (g > 0) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; A.tex(ctx, 'star_06', e.x, e.y, 140 * R.k * g, 140 * R.k * g, '#ffffff', g, t, true); ctx.restore(); }
     ctx.restore();
-    line(ctx, 'SEVEN HUNDRED YEARS AGO, THE MOON BEGAN TO FALL.', H() * 0.16, (k - 0.15) * 2 * (1 - clamp01((k - 0.7) * 6)), 22);
+    line(ctx, 'SEVEN HUNDRED YEARS AGO, FIVE KINGS FELL.', H() * 0.16, (k - 0.15) * 2 * (1 - clamp01((k - 0.7) * 6)), 22);
     // The cut: a white line tears across the whole sky.
     if (k > 0.9) { const kk = ease((k - 0.9) / 0.08); ctx.save(); ctx.translate(W() / 2, H() * 0.42); ctx.rotate(-0.22); ctx.fillStyle = '#ffffff'; ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 30 * R.dpr; ctx.fillRect(-W() * kk, -3 * R.dpr, W() * 2 * kk, 6 * R.dpr); ctx.restore(); }
     if (k > 0.97) flash(ctx, '#ffffff', (k - 0.97) / 0.03);

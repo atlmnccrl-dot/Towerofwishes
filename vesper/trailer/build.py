@@ -5,12 +5,13 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 T = os.path.dirname(os.path.abspath(__file__)); REPO = os.path.abspath(os.path.join(T, '..', '..')); FR = T + '/frames'; OUT = T + '/seq'; FPS = 30; SR = 44100
 os.makedirs(OUT, exist_ok=True)
 FONT = REPO + '/assets/ui/adventurer.ttf'
-EDIT = [('c01_cold', 0, 126), ('c02_city', 0, 69), ('c03_cut', 0, 99), ('c04_rise', 0, 69), ('c05_horde', 0, 45),
-        ('card', 'ONE NIGHT.', 39), ('c07_name', 0, 28), ('c08_g1', 0, 90), ('c09_g2', 15, 90), ('c10_art', 0, 108),
+# 2026-11-11: the story is the five kings (the opening's FC_DEED, filmed on the real arenas), then the fights, then the title.
+EDIT = [('k1_king', 0, 72), ('k2_king', 0, 54), ('k4_king', 0, 48), ('k6_spell', 0, 99), ('k7_rise', 0, 78),
+        ('card', 'ONE NIGHT.', 39), ('c08_g1', 0, 90), ('c09_g2', 15, 90), ('c10_art', 0, 108),
         ('card', 'SIX GUARDIANS', 39), ('c13_boss', 0, 96), ('c14_g3', 0, 78), ('c15_ldx', 0, 138),
-        ('card', 'ONE BLADE.', 36), ('c17_god', 0, 108), ('c18_strike', 0, 51), ('c19_title', 0, 144), ('end', 'CLIMB THE SPIRE BEFORE DAWN', 96)]
-FILM_FROM = {'c01_cold': 1.0, 'c02_city': 6.3, 'c03_cut': 12.2, 'c04_rise': 18.3, 'c05_horde': 23.05, 'c07_name': 27.5, 'c18_strike': 42.2, 'c19_title': 44.4}
-OPEN_SFX = json.load(open(T + '/opening_sfx.json'))['SFX']
+        ('card', 'ONE BLADE.', 36), ('c17_god', 0, 108), ('t_title', 0, 75), ('end', 'CLIMB THE SPIRE BEFORE DAWN', 96)]
+FILM_FROM = {}   # clips cut from the old vector opening (none now): their sounds came from opening_sfx.json
+OPEN_SFX = json.load(open(T + '/opening_sfx.json'))['SFX'] if os.path.exists(T + '/opening_sfx.json') else []
 ALIAS = dict(re.findall(r"(\w+): '(\w+)'", re.search(r"const ALIAS = \{([^}]*)\}", open(REPO + '/vesper/js/audio.js').read()).group(1)))
 
 def card(text, i, n, end=False):
@@ -58,10 +59,11 @@ def sfx(name, t, v, g=0.55):
     name = ALIAS.get(name, name)
     for p in (f'{REPO}/assets/sfx/fight/{name}.mp3', f'{REPO}/assets/sfx/{name}.mp3'):
         if os.path.exists(p): add(load(p), t, g * v); return
-# Wind under the story, the battle track from the first card to the end.
+# Wind and the story music under the kings, the guardians' theme (the game's own) from the first card to the end.
 wind = load(REPO + '/assets/sfx/amb/wind.mp3'); add(np.tile(wind, (4, 1)), 0, 0.22, 1.0, 1.5, dur=starts[5] / FPS)
-music = load(REPO + '/assets/music/heartfelt_battle.mp3'); m0 = starts[5] / FPS
-add(music, m0, 0.9, 0.05, 2.5, dur=total - m0)
+add(load(REPO + '/assets/music/vesper_story.mp3'), 0, 0.8, 0.5, 0.6, dur=starts[5] / FPS)
+music = load(REPO + '/assets/music/vesper_boss.mp3'); m0 = starts[5] / FPS
+add(np.tile(music, (2, 1)), m0, 1.1, 0.05, 2.5, dur=total - m0)
 for k, e in enumerate(EDIT):
     t0 = starts[k] / FPS
     if e[0] in ('card', 'end'): sfx('blow_big', t0, 0.9); sfx('quake', t0, 0.6); continue

@@ -1,0 +1,1 @@
+{"name": "k4_king", "url": "?map", "state": "map", "setup": "VS.R.noSkipHint = true; VS.main.startScene(5, VS.STORY.FC_DEED, () => {}, true); const sc = VS.main.scene.sc; sc.i = 4; sc.t = 0;", "parts": [{"skip": 0.5, "dur": 1.7}]}

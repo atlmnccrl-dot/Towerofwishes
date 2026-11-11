@@ -53,6 +53,8 @@
     }
     const p = R.toDev(e.clientX, e.clientY); pointers[e.pointerId] = { role: null };
     if (M.state === 'map') { pointers[e.pointerId].role = 'map'; VS.MAP.down(p.x, p.y); return; }
+    // Story scenes on a touchscreen: the corner label's SKIP is a button (Esc's job on a keyboard).
+    if (M.state === 'scene' && R.touch && p.x > R.W - 110 * R.k && p.y < 40 * R.k) { M.pressed.back = true; pointers[e.pointerId].role = 'skip'; return; }
     if (M.state === 'fight' && R.touch && !M.fight.s.cine && !M.paused) {
       const L = R.touchLayout();
       for (const b of L.buttons) if (Math.hypot(p.x - b.x, p.y - b.y) <= b.r * 1.25) {
@@ -807,7 +809,7 @@
       Promise.all([A.loadSets(miss, (f) => U.loading(f)), iso ? A.loadIso(iso) : null]).then(() => { A.warm(R.ctx); if (iso) A.isoWarm(R.ctx); U.hide(); play(); }, () => { U.hide(); play(); });
     };
     const actName = (i) => (PR.ACTS[i] ? `Act ${PR.ACTS[i].num} · ${PR.ACTS[i].name}` : 'After dawn');
-    const story = [{ key: 'opening', label: 'The opening', sub: 'The First Cut wounds the moon',
+    const story = [{ key: 'opening', label: 'The opening', sub: 'The First Cut slays five kings',
       act: () => watch(OPENING_SETS, null, () => { M.go('intro'); VS.INTRO.start(again('opening')); }) }];
     S.ACTS.forEach((Ac, i) => {
       if (!Ac.intro) return;
@@ -845,7 +847,7 @@
     if (figure) R.drawFigure(ctx, (D.HEROES[M.save.hero] || D.HERO).set, 'Idle', Math.floor(M.t * 7) % 15, Math.PI, cam + vw * 0.7, 4, 1, {});
   }
   function frame(now) {
-    const dt = Math.min(0.05, (now - (last || now)) / 1000); last = now; M.t += dt; R.t += dt; R.realDt = dt;
+    const dt = Math.max(0, Math.min(0.05, (now - (last || now)) / 1000)); last = now;   // never backwards (a clock that jumps back) M.t += dt; R.t += dt; R.realDt = dt;
     try { pollPad(dt); } catch (e) { /* no gamepad API */ }
     // The normal cursor stays visible in fights (the crosshair that replaced it was removed, 2026-11-10).
     const ctx = R.ctx;
@@ -917,6 +919,6 @@
     else title();
   }
   addEventListener('wheel', (e) => { if (M.state === 'map' && !e.target.closest('.mission')) { VS.MAP.wheel(e.deltaY); } }, { passive: true });
-  M.startFight = startFight; M.startScene = startScene; M.theatre = theatre; M.title = title; M.endFight = endFight; M.map = map; M.playNode = playNode; M.startNode = startNode; M.skills = skills; M.roster = roster;
+  M.startFight = startFight; M.startScene = startScene; M.theatre = theatre; M.title = title; M.endFight = endFight; M.map = map; M.playNode = playNode; M.startNode = startNode; M.skills = skills; M.souls = souls; M.shop = shop; M.settings = settings; M.gear = gear; M.modes = modes; M.roster = roster;
   boot();
 })();

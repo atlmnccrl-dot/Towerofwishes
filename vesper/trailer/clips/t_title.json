@@ -1,0 +1,1 @@
+{"name": "t_title", "url": "", "state": "title", "setup": "const logo = document.querySelector('.logo'); for (const el of document.querySelectorAll('#ui *')) if (!logo.contains(el) && !el.contains(logo)) el.style.visibility = 'hidden';", "parts": [{"skip": 1.0, "dur": 4.0}]}

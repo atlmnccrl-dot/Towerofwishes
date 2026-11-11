@@ -248,11 +248,11 @@
     const k = Math.min(1, sc.t / durOf(sh));
     if (sh.k === 'anime') {
       VS.OPEN.draw(ctx, sc.t, (sp('hero') || {}).set || 'gothic_knight_b');
-      if (sc.t > 0.6) R.label(ctx, 'CLICK TO SKIP AHEAD  ·  ESC SKIPS', R.W - 18 * R.k, 16 * R.k, 9 * R.k, 'rgba(220,210,214,0.4)', 'right', 2, 500);
+      if (sc.t > 0.6 && !R.noSkipHint) R.label(ctx, R.touch ? 'TAP TO SKIP AHEAD  ·  SKIP ›' : 'CLICK TO SKIP AHEAD  ·  ESC SKIPS', R.W - 18 * R.k, 16 * R.k, 9 * R.k, 'rgba(220,210,214,0.4)', 'right', 2, 500);
       return;
     }
     ctx.save(); ctx.imageSmoothingEnabled = false; SHOT[sh.k](ctx, sh, k, sc.t, sc); ctx.restore();
     caption(ctx, sh, sc.t);
-    if (sc.t > 0.6) R.label(ctx, 'CLICK TO CONTINUE  ·  ESC SKIPS', R.W - 18 * R.k, 16 * R.k, 9 * R.k, 'rgba(220,210,214,0.4)', 'right', 2, 500);
+    if (sc.t > 0.6 && !R.noSkipHint) R.label(ctx, R.touch ? 'TAP TO CONTINUE  ·  SKIP ›' : 'CLICK TO CONTINUE  ·  ESC SKIPS', R.W - 18 * R.k, 16 * R.k, 9 * R.k, 'rgba(220,210,214,0.4)', 'right', 2, 500);
   };
 })();

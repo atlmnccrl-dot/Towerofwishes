@@ -113,7 +113,7 @@
     const hit = move.hit, die = (who, at, dt) => Object.assign(who, { acts: [[hit + dt, 'Die', 99, 12]] });
     const cast = [die({ who: 'ghoul', set: k.set, at: K0, face: move.at, scale: 1.15 }, 0, 0.05), die({ who: 'ghoul', set: k.guards[0], at: G1, face: move.at }, 0, 0), die({ who: 'ghoul', set: k.guards[1], at: G2, face: move.at }, 0, 0.1),
       Object.assign({ who: FC, at: move.at, face: K0, enter: 'rift', delay: 0.15, edur: 0.7, acts: [[hit - move.wind, move.clip, 1.4, move.fps || 14]] }, move.to ? { to: move.to, mdur: move.mdur, moveAt: hit - move.wind - move.mdur - 0.15 } : {})];
-    const ev = [[0.1, { type: 'pk', name: 'cb:01_crimson_tide_cleave/death', x: move.at[0], y: move.at[1], scale: 1.5 }], [0.1, { type: 'pk', name: 'v_shadow', x: move.at[0], y: move.at[1], scale: 1.6 }], [0.12, { type: 'sfx', name: 'whoosh', v: 0.8 }],
+    const ev = [[0.1, { type: 'pk', name: 'cb:01_crimson_tide_cleave/death', x: move.at[0], y: move.at[1], scale: 1.5 }], [0.1, { type: 'pk', name: 'fc_shock', x: move.at[0], y: move.at[1], scale: 1.3 }], [0.12, { type: 'sfx', name: 'whoosh', v: 0.8 }],
       [hit, { type: 'pk', name: move.fx, x: K0[0], y: K0[1], scale: move.fxScale || 1.8 }], [hit, { type: 'pk', name: 'v_blood', x: K0[0], y: K0[1], z: 20, scale: 1.6 }], [hit, { type: 'flash', a: 0.45, col: '255,60,80' }],
       [hit, { type: 'shake', n: 9 }], [hit - 0.02, { type: 'sfx', name: 'slash_2' }], [hit, { type: 'sfx', name: 'blow_big', v: 0.9 }],
       [hit + 0.55, { type: 'pk', name: 'v_soul', x: K0[0], y: K0[1], scale: 1.6 }], [hit + 1.0, { type: 'pk', name: 'v_soul', x: (move.to || move.at)[0], y: (move.to || move.at)[1], scale: 1.2 }], [hit + 0.55, { type: 'sfx', name: 'soul', v: 0.7 }]];
