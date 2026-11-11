@@ -11,8 +11,8 @@ import numpy as np
 from PIL import Image
 
 HERE = os.path.dirname(os.path.abspath(__file__)); REPO = os.path.dirname(HERE)
-APP = '--app' in sys.argv
-OUT = os.path.join(HERE, 'app', 'www') if APP else os.path.join(REPO, 'dist', 'vesper-web')
+APP = '--app' in sys.argv; DESKTOP = '--desktop' in sys.argv   # the store apps; the desktop (Steam) build
+OUT = os.path.join(HERE, 'app', 'www') if APP else os.path.join(HERE, 'desktop', 'www') if DESKTOP else os.path.join(REPO, 'dist', 'vesper-web')
 
 def palettize(path):
     """A sheet of 256 colours or fewer saved as an exact palette PNG (each colour with its own alpha): lossless, and often
@@ -59,7 +59,7 @@ def main():
     html = open(os.path.join(HERE, 'index.html')).read().replace("url('../assets/", "url('assets/")
     if not APP: html = html.replace('<script src="js/data.js">', '<script>window.VESPER_WEB_RELEASE = true;</script>\n<script src="js/data.js">', 1)   # the web build: no ads, no shop
     open(os.path.join(OUT, 'index.html'), 'w').write(html)
-    if not APP:
+    if not APP and not DESKTOP:
         for f in ('manifest.webmanifest', 'sw.js'): shutil.copy(os.path.join(HERE, f), OUT)
     shutil.copytree(os.path.join(HERE, 'icons'), os.path.join(OUT, 'icons'))
     A = os.path.join(REPO, 'assets'), os.path.join(OUT, 'assets')
@@ -87,6 +87,9 @@ def main():
         print(f'webp sheets: {n_webp}')
         size = sum(os.path.getsize(os.path.join(r, f)) for r, _, fs in os.walk(OUT) for f in fs)
         print(f'{OUT}: {n} character files, {size / 1e6:.0f} MB (now: cd vesper/app && npx cap sync)'); return
+    if DESKTOP:
+        size = sum(os.path.getsize(os.path.join(r, f)) for r, _, fs in os.walk(OUT) for f in fs)
+        print(f'{OUT}: {n} character files, {size / 1e6:.0f} MB (now: cd vesper/desktop && npx electron .)'); return
     z = OUT + '.zip'
     with zipfile.ZipFile(z, 'w', zipfile.ZIP_DEFLATED) as zf:
         for root, _, files in os.walk(OUT):

@@ -1,0 +1,31 @@
+{
+  "name": "the-bleeding-moon-desktop",
+  "productName": "The Bleeding Moon",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The Bleeding Moon for Windows, macOS and Linux (Steam): the web game in Electron, no ads, no in-app purchases.",
+  "main": "main.js",
+  "scripts": {
+    "web": "python3 -I ../tools_build.py --desktop",
+    "start": "npm run web && electron .",
+    "dist": "npm run web && electron-builder --win --linux",
+    "dist:mac": "npm run web && electron-builder --mac"
+  },
+  "dependencies": {
+    "steamworks.js": "^0.4.0"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.yourstudio.bleedingmoon",
+    "productName": "The Bleeding Moon",
+    "files": ["main.js", "preload.js", "steam.json", "www/**/*", "node_modules/steamworks.js/**/*"],
+    "asarUnpack": ["node_modules/steamworks.js/**/*"],
+    "directories": { "output": "release", "buildResources": "build" },
+    "win": { "target": "dir", "icon": "../app/assets/icon-only.png" },
+    "linux": { "target": "dir", "icon": "../app/assets/icon-only.png", "category": "Game" },
+    "mac": { "target": "dir", "icon": "../app/assets/icon-only.png", "category": "public.app-category.action-games" }
+  }
+}

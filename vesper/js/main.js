@@ -753,7 +753,7 @@
   function afterFight(p, s, win, res) {
     const MD = VS.MODES; MD.track(p, s, win);
     if (win) res.mastery = MD.addMastery(p, p.hero, res.xp || 0) ? MD.masteryLvl(p.mastery[p.hero]) : 0;
-    res.ach = MD.checkAch(p);
+    res.ach = MD.checkAch(p); platformAch(res.ach.map((a) => a.id));
   }
   // ---- the endless survival and the daily challenge ---------------------------------------------------
   function startMode(mode) {
@@ -872,6 +872,8 @@
     requestAnimationFrame(frame);
   }
 
+  // The desktop build (vesper/desktop) passes achievements on to Steam; elsewhere VESPER_PLATFORM is not there.
+  function platformAch(ids) { const PF = window.VESPER_PLATFORM; if (PF && PF.unlock) for (const id of ids) try { PF.unlock(id); } catch (e) { /* no Steam */ } }
   async function boot() {
     // The store apps keep a native copy of the save (js/vault.js): if it is newer than localStorage's, read it again.
     try { if (VS.VAULT && await VS.VAULT.ready) { M.save = load(); if (VS.SHOP && VS.SHOP.reload) VS.SHOP.reload(); } } catch (e) { /* localStorage alone */ }
@@ -904,7 +906,7 @@
       };
       SH.applyOwned(M.save); SH.init().catch(() => {});
     }
-    applyOpts();
+    applyOpts(); platformAch(Object.keys(M.save.ach || {}));   // ones earned before (or offline) reach Steam too
     if (params.has('auto')) M.autoUrl = true;
     if (params.has('watch')) { setTimeout(() => watchStart(+params.get('watch') || 1), 50); }
     if (params.has('hero') && D.HEROES[params.get('hero')]) M.save.hero = params.get('hero');

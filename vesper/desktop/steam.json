@@ -1,0 +1,5 @@
+{
+  "_note": "Your Steam App ID from Steamworks (0 = Steam off: the game runs without it). Achievement API names in Steamworks must match the game's ids (js/modes.js M.ACH), or map them here.",
+  "appId": 0,
+  "achievements": {}
+}
