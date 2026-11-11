@@ -994,58 +994,59 @@
   const OPENING = compile({ shots: DUR, lines: LINES, sfx: SFX, draw: SH, music: ['draw', 'act0'], amb: 'wind', noBars: { cold: 1, eye: 1, name: 1, panels: 1, gaze: 1, defy: 1 }, flat: { cold: 1 },
     impact: (name, T) => name === 'godcut' && T >= 1.35 && T < 1.9, titleShot: 'title' });
   I.OPENING = OPENING; I.OPEN_SFX = SFX;
-  // ---- the main menu's backdrop (the author, 2026-11-10: "far more badass and epic") ------------------
-  // Drawn on the pixel buffer behind the menu: the First Cut towering behind the bleeding moon, the moon at
-  // his heart pouring red light from its wound; the Spire and a ruined city on the horizon with his dead
-  // marching along it; Vesper on a cliff edge in the foreground, her back to us, facing all of it; red sheet
-  // lightning, mist, ash and embers. The menu column sits on the left, so the scene leans right.
+  // The main menu's scene (rebuilt 2026-11-11, the author: "the main menu screen sucks"; picked: the Vesper hero shot).
+  // Vesper big and in her own colours on the summit ledge on the right, turned toward the Spire, rim-lit by the moon; the
+  // bleeding Moon huge behind her, its wound dripping light; the Spire far off on the left rising toward it, its five
+  // kingdoms tiny warm lights and the Kingslayer a speck at its top; mist, wind-blown ash, embers, rare red lightning; the
+  // camera breathing in slowly. The menu column sits on the left, so the scene leans right.
   let MS = null;
   I.menu = function (dt) {
     if (!MS) MS = { cast: cast(), words: [], shake: 0, t: 0, f: {} };
-    if (!MS.full && VS.main && VS.main.bgDone) { MS.cast = cast(); MS.full = true; }   // the marching dead join once the background load is done
+    if (!MS.full && VS.main && VS.main.bgDone) { MS.cast = cast(); MS.full = true; }
     MS.t += dt || 0.016; const T = MS.t, S = MS, ctx = R.pxBegin(), w = W(), h = H();
-    const drift = Math.sin(T * 0.07) * 6, hz = Math.round(h * 0.72);
-    const bolt = ((T % 7.3) > 6.9 && (T % 7.3) < 7.0) || ((T % 7.3) > 7.08 && (T % 7.3) < 7.14), bl = bolt ? 1 : 0;
-    grad(ctx, ['#040108', bolt ? '#5a0e22' : '#22040e', bolt ? '#a01a30' : '#5a0c1a']);
-    stars(ctx, 70, 0.6, 41, T);
-    ctx.save(); ctx.translate(Math.round(drift * 0.3), 0);
-    // The moon's glow (he himself stands on the Spire, below).
-    const gx = Math.round(w * 0.66), gy = Math.round(h * 0.17 + Math.sin(T * 0.5) * 1.5);
-    A.tex(ctx, 'light_01', gx, gy + 30, w * 0.9, h * 1.1, '#7a1028', 0.45, 0, true);
-    A.tex(ctx, 'light_01', gx, gy - 6, 90, 60, '#ff3a52', 0.35, 0, true);   // a red glow round his crowned head
-    const mx = gx, my = Math.round(h * 0.47), mr = Math.round(h * 0.2);
-    moon(ctx, mx, my, mr, '#ff3a52', 'rgba(255,40,70,0.6)', 0);
-    { const x0 = mx - mr * 0.95, y0 = my + mr * 0.34, ang = -0.34, L = mr * 2.02, cx = x0 + Math.cos(ang) * L / 2, cy = y0 + Math.sin(ang) * L / 2;
-      A.tex(ctx, 'light_01', cx, cy, L * 1.4, mr * 0.45, '#ff2a44', 0.6, ang, true);
-      ctx.save(); ctx.translate(cx, cy); ctx.rotate(ang); ctx.fillStyle = '#2a0006'; ctx.fillRect(-L / 2, -2, L, 4); ctx.fillStyle = '#ff1a34'; ctx.fillRect(-L / 2, -1, L, 2); ctx.fillStyle = '#ffd0d6'; ctx.fillRect(-L / 2 + 4, 0, L - 8, 1); ctx.restore();
-      for (let i = 0; i < 14; i++) { const u = 0.1 + hash(i, 801) * 0.8, sx = x0 + Math.cos(ang) * L * u, sy = y0 + Math.sin(ang) * L * u, ww = 1 + (i % 3 === 0 ? 1 : 0);
-        ctx.fillStyle = `rgba(255,${50 + Math.round(hash(i, 802) * 60)},70,${0.35 + 0.25 * hash(i, 803)})`; ctx.fillRect(Math.round(sx), Math.round(sy), ww, hz - Math.round(sy));
-        const ph = (T * (0.35 + hash(i, 804) * 0.3) + hash(i, 805)) % 1; ctx.fillStyle = '#ffd0d6'; ctx.fillRect(Math.round(sx), Math.round(sy + (hz - sy) * ph), 1, 2); } }
+    const bolt = ((T % 9.1) > 8.75 && (T % 9.1) < 8.82) || ((T % 9.1) > 8.9 && (T % 9.1) < 8.95);
+    // the breathing camera: a slow push toward her and back
+    const z = 1.02 + 0.02 * Math.sin(T * 0.18), fx = w * 0.7, fy = h * 0.7;
+    ctx.save(); ctx.translate(fx, fy); ctx.scale(z, z); ctx.translate(-fx, -fy);
+    grad(ctx, ['#030006', bolt ? '#4a0c1c' : '#1a030a', bolt ? '#8a1628' : '#4a0a16']);
+    stars(ctx, 80, 0.7, 43, T);
+    // the Moon, huge, bleeding
+    const mx = Math.round(w * 0.6), my = Math.round(h * 0.42), mr = Math.round(h * 0.34);
+    A.tex(ctx, 'light_01', mx, my, w * 1.2, h * 1.3, '#8a1430', 0.5, 0, true);
+    moon(ctx, mx, my, mr, '#ff3a52', 'rgba(255,40,70,0.55)', 0);
+    { const x0 = mx - mr * 0.92, y0 = my + mr * 0.32, x1 = mx + mr * 0.92, y1 = my - mr * 0.32, ang = Math.atan2(y1 - y0, x1 - x0), L = Math.hypot(x1 - x0, y1 - y0);   // the cut: a thin glowing seam
+      A.tex(ctx, 'light_01', (x0 + x1) / 2, (y0 + y1) / 2, L * 1.2, mr * 0.22, '#ff8a9a', 0.5, ang, true);
+      ctx.save(); ctx.translate(x0, y0); ctx.rotate(ang); ctx.fillStyle = '#5a0012'; ctx.fillRect(0, -1, L, 2); ctx.fillStyle = '#ffe0e6'; ctx.fillRect(2, 0, L - 4, 1); ctx.restore(); }
+    for (let i = 0; i < 12; i++) {   // long threads of red light running down from the wound
+      const u = 0.1 + hash(i, 861) * 0.8, sx = mx - mr * 0.92 + mr * 1.84 * u, sy = my + mr * 0.32 - mr * 0.64 * u, ph = (T * (0.12 + hash(i, 862) * 0.1) + hash(i, 863)) % 1;
+      ctx.fillStyle = `rgba(255,${60 + Math.round(hash(i, 864) * 50)},80,${0.18 + 0.2 * hash(i, 865)})`; ctx.fillRect(Math.round(sx), Math.round(sy), 1, Math.round(h - sy));
+      ctx.fillStyle = '#ffc0ca'; ctx.fillRect(Math.round(sx), Math.round(sy + (h - sy) * ph), 1, 2);
+    }
+    // far ridges and mist
+    const ridge = (y0, col, seed, amp) => { ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(-10, h + 10); for (let x = -10; x <= w + 10; x += 6) ctx.lineTo(x, y0 - hash(Math.floor(x / 6), seed) * amp - Math.sin(x * 0.02 + seed) * amp * 0.6); ctx.lineTo(w + 10, h + 10); ctx.fill(); };
+    ridge(h * 0.8, '#2a0610', 871, 8);
+    // the Spire, far off on the left, rising toward the Moon; its five kingdoms as warm lights; him a speck at its top
+    { const sx = Math.round(w * 0.43), base = Math.round(h * 0.82), top = Math.round(h * 0.2);   // far off, slender
+      ctx.fillStyle = '#1a040c'; ctx.beginPath(); ctx.moveTo(sx - 9, base); ctx.lineTo(sx - 1, top + 5); ctx.lineTo(sx, top); ctx.lineTo(sx + 1, top + 5); ctx.lineTo(sx + 9, base); ctx.fill();
+      ctx.fillStyle = 'rgba(255,90,110,0.25)'; ctx.fillRect(sx + 1, top + 6, 1, base - top - 6);
+      for (let i = 0; i < 5; i++) { const f = (i + 0.5) / 5.4, y = Math.round(base - (base - top) * f * 0.92), x = Math.round(sx + (i % 2 ? 1 : -1) * (9 * (1 - f * 0.9)) * 0.45), fl = 0.7 + 0.3 * Math.sin(T * 2.3 + i * 1.7);
+        A.tex(ctx, 'light_01', x, y, 6, 6, '#ffb060', 0.55 * fl, 0, true); ctx.fillStyle = '#ffd890'; ctx.fillRect(x, y, 1, 1); }
+      A.tex(ctx, 'light_01', sx, top - 2, 10, 10, '#ff3a52', 0.6, 0, true); ctx.fillStyle = '#050102'; ctx.fillRect(sx, top - 4, 1, 3); }
+    for (let i = 0; i < 5; i++) A.tex(ctx, i % 2 ? 'smoke_07' : 'smoke_04', ((hash(i, 881) * w * 1.6 + T * (4 + i * 2)) % (w * 1.6)) - w * 0.3, h * (0.78 + (i % 3) * 0.03), w * 0.9, 28, '#4a0a18', 0.4, 0, false);
+    ridge(h * 0.88, '#100206', 891, 6);
+    // the summit ledge on the right, and her on it
+    const vx = Math.round(w * 0.74), gy = Math.round(h * 0.88);
+    ctx.fillStyle = '#050102'; ctx.beginPath(); ctx.moveTo(w * 0.48, h + 6); ctx.lineTo(w * 0.53, gy + 4); ctx.lineTo(w * 0.62, gy); ctx.lineTo(w * 0.86, gy - 2); ctx.lineTo(w + 6, gy + 2); ctx.lineTo(w + 6, h + 6); ctx.fill();
+    ctx.fillStyle = '#3a0812'; ctx.fillRect(Math.round(w * 0.62), gy, Math.round(w * 0.24), 1);   // the moon's light along the ledge's edge
+    A.tex(ctx, 'light_01', vx, gy - 26, 90, 90, '#ff3a52', 0.3 + 0.06 * Math.sin(T * 1.3), 0, true);   // the moon behind her: a rim of light
+    A.actor(ctx, S.cast.vesper, 'Idle', Math.floor(T * 6) % 15, Math.PI * 0.75, vx, gy, 1.55, {});   // in her own colours, standing easy, three-quarters toward the Spire
     ctx.restore();
-    // Mist across the middle distance.
-    for (let i = 0; i < 4; i++) A.tex(ctx, i % 2 ? 'smoke_07' : 'smoke_04', ((hash(i, 811) * w * 1.6 + T * (5 + i * 2)) % (w * 1.6)) - w * 0.3, hz - 8 + i * 3, w * 0.8, 26, '#5a0c1c', 0.35, 0, false);
-    // The horizon: the Spire, the ruined city, his dead marching along the ridge.
-    ctx.save(); ctx.translate(Math.round(drift * 0.6), 0);
-    A.tex(ctx, 'light_01', mx, hz, w * 1.1, 30, '#ff2a44', 0.5, 0, true);
-    city(ctx, hz + 2, 23, '#120308', 0.12, 0.55, 0);
-    { const sp = Math.round(w * 0.47), tp = Math.round(h * 0.44); ctx.fillStyle = '#5a1a2a'; ctx.beginPath(); ctx.moveTo(sp - 10, hz + 4); ctx.lineTo(sp - 2, tp + 8); ctx.lineTo(sp - 2, tp); ctx.lineTo(sp + 2, tp); ctx.lineTo(sp + 2, tp + 8); ctx.lineTo(sp + 10, hz + 4); ctx.fill();
-      ctx.fillStyle = '#0c0206'; ctx.beginPath(); ctx.moveTo(sp - 9, hz + 4); ctx.lineTo(sp - 1, tp + 9); ctx.lineTo(sp + 1, tp + 9); ctx.lineTo(sp + 9, hz + 4); ctx.fill();
-      A.tex(ctx, 'light_01', sp, tp - 20, 50, 60, '#ff3a52', 0.4, 0, true);
-      godAt(ctx, S, sp, tp + 1, 1, T, { col: bolt ? '#3a0c18' : '#0c0206', amt: 0.25, optional: true, pose: 'stand' }); }   // he waits at the top of the Spire
-    ctx.fillStyle = '#0a0205'; ctx.fillRect(-20, hz + 2, w + 40, h);
-    for (let i = 0; i < 34; i++) { const x = ((i * 11 + T * -6 + hash(i, 821) * 8) % (w + 40) + w + 40) % (w + 40) - 20; A.actor(ctx, deadSet(S, i), 'Walk', Math.floor(T * 7 + i * 3) % 15, Math.PI, Math.round(x), hz + 3 + (i % 3), 0.32, { shade: bolt ? '#4a1a24' : '#16040a' }); }
-    ctx.restore();
-    // The foreground: a broken cliff on the right, and her on its edge, her back to us, her blade low.
-    const cy0 = Math.round(h * 0.8), vx = Math.round(mx + w * 0.03);   // on a crag in front of the moon's glow, so she stands out
-    ctx.fillStyle = '#030102'; ctx.beginPath(); ctx.moveTo(vx - 70, h + 4); ctx.lineTo(vx - 40, cy0 + 10); ctx.lineTo(vx - 12, cy0 + 1); ctx.lineTo(vx + 14, cy0); ctx.lineTo(vx + 30, cy0 + 6); ctx.lineTo(w + 4, cy0 + 16); ctx.lineTo(w + 4, h + 4); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#0c0306'; ctx.fillRect(-4, Math.round(h * 0.93), w + 8, h);
-    A.tex(ctx, 'light_01', vx, cy0 - 10, 34, 34, '#ff2a44', 0.3 + 0.1 * Math.sin(T * 1.7), 0, true);
-    A.actor(ctx, S.cast.vesper, 'Idle4', Math.floor(T * 7) % 15, -Math.PI / 2, vx, cy0, 1.05, { shade: '#050203' });
-    // Wind-blown ash, embers rising, soft red lights in the air.
-    for (let i = 0; i < 40; i++) { const ph = (T * (0.08 + hash(i, 831) * 0.08) + hash(i, 832)) % 1, x = ((hash(i, 833) * w * 1.3 - ph * w * 0.5) % w + w) % w, y = ph * h; ctx.fillStyle = i % 5 ? 'rgba(40,20,26,0.8)' : 'rgba(200,170,180,0.5)'; ctx.fillRect(Math.round(x), Math.round(y), 1, 1); }
-    K().embers(ctx, T, 30, 0, w, RED);
-    if (bl) fill(ctx, '#ffd0d8', 0.12);
-    vignette(ctx, 0.6); grain(ctx, 0.06);
+    // wind-blown ash across the frame, embers rising, the lightning's flash
+    for (let i = 0; i < 46; i++) { const ph = (T * (0.06 + hash(i, 901) * 0.08) + hash(i, 902)) % 1, x = w * 1.1 - ph * w * 1.3, y = h * (0.15 + hash(i, 903) * 0.8) + Math.sin(T * 1.5 + i) * 3;
+      ctx.fillStyle = i % 4 ? 'rgba(30,14,20,0.85)' : 'rgba(210,180,190,0.55)'; ctx.fillRect(Math.round(x), Math.round(y), i % 3 ? 2 : 1, 1); }
+    K().embers(ctx, T, 34, w * 0.4, w, RED);
+    if (bolt) fill(ctx, '#ffd0d8', 0.14);
+    vignette(ctx, 0.55); grain(ctx, 0.05);
   };
   I.kit = { RED, INK, BAR, W, H, K, hash, ease, clamp, fill, grad, stars, moon, city, graves, rain, spun, eyes, closeUp, burst, sparks, deadSet, kick, say,
     deity, colossus, godAt, burningEyes, bigBlade, hand, poster, grain, vignette, bokeh, eyePanel, mangaEyesDraw: mangaEyes, SH };

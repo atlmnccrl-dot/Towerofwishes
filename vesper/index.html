@@ -546,6 +546,21 @@
   #ui .screen-title .btn:hover .btn-sub, #ui .screen-title .btn:focus .btn-sub { color: #ffc0cb !important; }
   #ui .screen-title .menu .btn:focus::after, #ui .screen-title .menu .btn:hover::after { content: ""; position: absolute; left: 0; top: 12%; bottom: 12%; width: 4px; height: auto; margin: 0; background: linear-gradient(180deg, #ff8a9a, #ff2a44 50%, #8a1022); box-shadow: 0 0 14px rgba(255,42,68,.9); border: 0; transform: none; }
   #ui .screen-title .btn.danger .btn-label { color: #ff8a9a; }
+  /* The menu as plates (2026-11-11, the Vesper hero shot): each line a dark blade-shaped plate with a red edge, wide
+     enough to read at a glance; the chosen one lit red and pushed out, its line of text under it. */
+  #ui .screen-title .title-col { background: linear-gradient(90deg, rgba(3,1,5,.9), rgba(3,1,5,.6) 55%, rgba(3,1,5,0)) !important; padding-left: clamp(18px, 4vw, 56px); }
+  #ui .screen-title .menu { gap: clamp(5px, 1.4vh, 10px) !important; width: min(380px, 42vw); }
+  #ui .screen-title .btn { display: flex !important; flex-direction: column; align-items: flex-start; width: 100%; padding: clamp(6px, 1.4vh, 11px) 26px clamp(6px, 1.4vh, 11px) 20px !important;
+    background: linear-gradient(90deg, rgba(26,8,14,.92), rgba(18,6,10,.72) 70%, rgba(18,6,10,.35)) !important; border-left: 3px solid rgba(255,42,68,.45) !important;
+    clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 50%, calc(100% - 16px) 100%, 0 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.05); transition: transform .16s ease, background .16s ease, border-color .16s ease; }
+  #ui .screen-title .btn-label { font-size: clamp(19px, 4.2vh, 28px) !important; letter-spacing: .16em !important; color: #e6d8dc !important; }
+  #ui .screen-title .btn-sub { display: block !important; font-size: clamp(10px, 1.8vh, 13px) !important; color: rgba(255,190,200,.55) !important; margin-top: 1px; }
+  #ui .screen-title .btn:hover, #ui .screen-title .btn:focus, #ui .screen-title .btn:focus-visible { transform: translateX(10px); padding-left: 20px !important;
+    background: linear-gradient(90deg, rgba(200,24,52,.95), rgba(140,14,36,.8) 65%, rgba(90,8,24,.45)) !important; border-left-color: #ffd0d8 !important; }
+  #ui .screen-title .btn:hover .btn-label, #ui .screen-title .btn:focus .btn-label { color: #ffffff !important; text-shadow: 2px 2px #2a0410 !important; }
+  #ui .screen-title .btn:hover .btn-sub, #ui .screen-title .btn:focus .btn-sub { color: #ffe0e6 !important; }
+  #ui .screen-title .menu .btn:focus::after, #ui .screen-title .menu .btn:hover::after { display: none !important; }
+  @media (max-height: 460px) { #ui .screen-title .menu { width: min(320px, 44vw); } #ui .screen-title .btn { padding: 4px 22px 4px 14px !important; } #ui .screen-title .btn-sub { display: none !important; } }
 
   /* ---- Menu pages over their scenes (js/menuscene.js, 2026-11-11): the panels stand to one side so the place shows. ---- */
   .glass { background: linear-gradient(180deg, rgba(10,6,14,.78), rgba(6,3,9,.86)); border: 1px solid rgba(255,255,255,.1); box-shadow: 0 20px 60px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.06); border-radius: 4px; }
