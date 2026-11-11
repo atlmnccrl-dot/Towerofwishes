@@ -198,7 +198,12 @@ save), and **Development** (temporary, for building
 the game): watch any moment without playing to it. *Live* tiles play the real game with a full-strength team in a
 sandbox (a throwaway save that is never stored; leaving a battle returns to the list): each boss fight from entrance
 to fall, ultimates back to back, signature moves non-stop, weapon traits, the last horde, a fight on the edge, and
-each land's team field. The rest are cutscenes (the opening, chapter openers, boss entrances and falls) and
+each land's team field. **The bot** plays the game by itself in a throwaway save, through the same screens a
+player uses (camp, shop, recruiting gates, heroes, team field, campaign, the fight on AUTO): the whole game at 2×,
+the same at 3× with cutscenes skipped, or the far marches with a full-strength team. A bar shows what it is doing,
+with a speed button and Stop; after two defeats at a stage it trains on the one before, after nine it stops. Its
+log (every stage with time, team level and power against what was asked; every recruit, purchase and goal) is shown
+in Development afterwards, and reads as a balance report. The rest are cutscenes (the opening, chapter openers, boss entrances and falls) and
 summonings (every rarity, every legend, every signature move, every entrance).
 
 Sound: monster voices from Ririsaurus' *Fantasy Monsters*, *Dinosaurs* and *Abyssal Horror SFX Vol.1* packs

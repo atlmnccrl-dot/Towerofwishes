@@ -180,7 +180,7 @@
   };
   function campKey() { const S = BB.save; return S.leader + '|' + campHeroes().map((h) => h.id).join(',') + '|' + Object.keys(S.cleared).length; }
   async function goCamp() {
-    const wasDev = devExit(); // leaving a Development battle: back to the real save, and to the list
+    const wasDev = Bot.on ? false : devExit(); // leaving a Development battle: back to the real save, and to the list (the bot stays in its own)
     const S = BB.save;
     mode = 'camp';
     await BB.loadHeroes(S.heroes);
@@ -265,7 +265,7 @@
     const first = win && !S.cleared[M.id];
     const heroes = B.heroList.map((e) => e.hero);
     let mvp = null; for (const e of B.heroList) if (!mvp || (e.dealt || 0) > (mvp.dealt || 0)) mvp = e;
-    const res = { win, code: M.code, title: M.name, heroes, mvp: mvp && mvp.hero, kills: B.kills, gold: 0, crystals: 0, sigils: 0, items: [] };
+    const res = BB.lastRes = { win, code: M.code, title: M.name, heroes, mvp: mvp && mvp.hero, kills: B.kills, gold: 0, crystals: 0, sigils: 0, items: [] };
     // experience: every hero who fought learns, by the share of the work they did (damage, healing, blows taken)
     const work = (e) => (e.dealt || 0) + (e.mended || 0) * 1.2 + (e.soaked || 0) * 0.6;
     const allWork = B.heroList.reduce((a, e) => a + work(e), 0) || 1;
@@ -311,10 +311,11 @@
       actions.push(['Retry', '', () => UI.openTeam(current.idx)]);
       actions.push(['Heroes', 'dark', () => { goCamp().then(() => UI.go('heroes')); }]);
     }
-    if (devReal) { const o = devOpts; actions.length = 0; actions.push(['Development', '', () => after(goCamp)]); actions.push(['Watch again', 'dark', () => { devExit(); devBattle(o); }]); }
+    if (Bot.on) actions.length = 0; // the bot presses nothing: it reads the result and walks on
+    else if (devReal) { const o = devOpts; actions.length = 0; actions.push(['Development', '', () => after(goCamp)]); actions.push(['Watch again', 'dark', () => { devExit(); devBattle(o); }]); }
     if (win && M.boss && first) {
       const show = () => { BB.music(M.type === 'boss' ? 'calm' : 'battle'); UI.results(res, actions); BB.sfx('levelup'); };
-      const coda = devReal ? null : BB.campaignDone(S) ? 'ending' : M.boss === 'vesh' ? 'bridge' : null; // after the Cantor, the road on; after the last gate, the end
+      const coda = devReal && !Bot.on ? null : BB.campaignDone(S) ? 'ending' : M.boss === 'vesh' ? 'bridge' : null; // after the Cantor, the road on; after the last gate, the end
       BB.Cinema.play('bossDown', { stage: M, music: 'calm' }, () => (coda ? BB.Cinema.play(coda, { music: 'calm' }, show) : show()));
     }
     else { UI.results(res, actions); BB.sfx(win ? 'levelup' : 'click'); }
@@ -555,6 +556,104 @@
     sturdy: (sc) => { for (const e of sc.heroList) if (!e.dead && e.hp < e.maxhp * 0.5) e.hp = e.maxhp * 0.5; },
   };
   function devBattle(o) { devEnter(o); BB.deploy(o.idx); }
+
+  // ---------------------------------------------------------------- the bot
+  // Plays the game by itself, in a throwaway save, through the same screens a player uses: the camp (spoils, goals),
+  // the shop, the recruiting gates, heroes (gear, stars, skills), the team field, the campaign, the fight on AUTO.
+  // After two defeats at a stage it trains once on the stage before and tries again; after nine it stops and says so.
+  // Everything it does is written to a log (Development shows it after), which doubles as a balance report.
+  const Bot = BB.Bot = { on: false, stop: false, log: [], fails: {}, trained: {}, pace: 1 };
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const botWait = async (fn, ms, hard) => { const t = now(); while (!fn()) { if ((Bot.stop && !hard) || now() - t > (ms || 900000)) return false; await sleep(120); } return true; };
+  const P = (ms) => Math.round(ms * Bot.pace);
+  const say = (t) => { $('botSay').textContent = t; };
+  const note = (t) => { Bot.log.push(t); if (Bot.log.length > 500) Bot.log.shift(); };
+  const botReveal = (h) => new Promise((res) => { const R = $('reveal'); UI.reveal(h, res); (async () => { await botWait(() => R.classList.contains('done') || !R.classList.contains('on'), 20000, true); await sleep(P(2200)); if (R.classList.contains('on')) $('rvOk').click(); })(); });
+  async function botManage() {
+    const S = BB.save;
+    say('At the camp: spoils and goals');
+    if (BB.idlePending(S, now()).gold >= 1) BB.idleClaim(S, now());
+    for (const q of BB.QUESTS) if (BB.questState(S, q) === 'ready') { BB.claimQuest(S, q.id); note('  goal: ' + q.name); }
+    UI.refreshTop(); UI.renderHome(); await sleep(P(1500)); if (Bot.stop) return;
+    // the shop: the gift, sigils, a chest, the purse; a weapon when nobody is left to recruit; then the war chest
+    UI.go('shop'); say('At the shop'); await sleep(P(900));
+    const open = () => BB.heroTiers(BB.ROSTER).filter(({ tier, heroes }) => BB.tierOpen(S, tier) && heroes.some((e) => !S.heroes.some((h) => h.recruit === e.key)));
+    const want = { free: () => true, sigils: () => S.gold >= 500, chest: () => S.gold >= 700, crystals: () => S.gold >= 1400, arms: () => S.crystals >= 160 && !open().length };
+    for (const o of BB.SHOP) while (BB.shopLeft(S, o, now()) > 0 && want[o.id] && want[o.id]() && BB.buy(S, o.id, now())) note('  shop: ' + o.name);
+    while ((S.rank || 0) < BB.RANK_MAX && S.gold >= BB.rankCost(S.rank || 0) + 600 && BB.raiseRank(S)) note('  war chest: rank ' + S.rank);
+    UI.renderShop(); UI.refreshTop(); await sleep(P(1300)); if (Bot.stop) return;
+    // the gates: the rarest that can be paid for
+    for (let n = 0; n < 6 && !Bot.stop; n++) {
+      const can = open().filter(({ tier }) => S.crystals >= tier.cost); if (!can.length) break;
+      const T = can[can.length - 1].tier;
+      say('Recruiting at the ' + T.name + ' gate'); UI.openRecruit(BB.TIERS.indexOf(T)); await sleep(P(1100));
+      const h = BB.summon(S, BB.ROSTER, T.id); if (!h) break;
+      note('  recruited ' + h.name + ' (' + BB.HERO_RARITY[h.rarity].name + ' ' + BB.CALLINGS[h.calling].name + ')');
+      await BB.loadHeroes([h]); await botReveal(h);
+    }
+    if (Bot.stop) return;
+    // heroes: the best gear on everyone, the best five on the field, stars for those at their cap, a skill for every point
+    say('Heroes: gear, stars and skills');
+    for (const h of S.heroes) BB.equipBest(S, h);
+    BB.autoFill(S);
+    const team = BB.teamHeroes(S);
+    for (const h of team) while (h.level >= BB.levelCap(h) && BB.ascend(S, h)) note('  ' + BB.shortName(h) + ' ascends to ' + h.stars + ' stars');
+    for (const h of team) for (let k = 0; k < 40 && BB.talentFree(h) > 0; k++) { const nd = BB.TREE.find((q) => BB.canLearn(h, q.id)); if (!nd || !BB.learn(h, nd.id)) break; }
+    await BB.loadHeroes(S.heroes);
+    UI.go('heroes'); await sleep(P(1400)); if (Bot.stop) return;
+    if (team[0]) { UI.openHero(team.slice().sort((a, b) => BB.power(b) - BB.power(a))[0].id); await sleep(P(1700)); if (Bot.stop) return; }
+    say('The team takes the field'); UI.go('team'); await sleep(P(2000));
+  }
+  async function botFight(idx) {
+    const S = BB.save, M = BB.MISSIONS[idx], team = BB.teamHeroes(S);
+    say('Campaign: ' + M.code + ' · ' + M.name); UI.openCampaign(idx); await sleep(P(2400)); if (Bot.stop) return null;
+    UI.openTeam(idx); await sleep(P(1500)); if (Bot.stop) return null;
+    if (Bot.skip) { BB.MISSIONS.forEach((m) => (S.seen['cine_' + m.id] = 1)); BB.CHAPTERS.forEach((c) => (S.seen['cine_ch' + c.id] = 1)); }
+    BB.lastRes = null; BB.deploy(idx); say('Stage ' + M.code + ' · ' + M.name);
+    if (!(await botWait(() => BB.lastRes && $('mResults').classList.contains('on')))) return null; // cutscenes, the versus card, the fight, a boss's fall: all play by themselves
+    const res = BB.lastRes, secs = scene && scene.time ? Math.round(scene.time) : 0;
+    note(M.code + ' ' + M.name + ': ' + (res.win ? 'won' : 'LOST') + ' in ' + secs + ' s · ' + team.length + ' heroes, level ' + Math.round(team.reduce((a, h) => a + h.level, 0) / team.length) + ' against ' + M.level + ' · power ' + BB.teamPower(team) + ' of ' + BB.recPower(M) + ' asked');
+    say(M.code + ': ' + (res.win ? 'won' : 'lost')); await sleep(P(2800)); UI.modal('mResults', false);
+    if (res.legend && !Bot.stop) { note('  ' + res.legend.name + ' joins'); await BB.loadHeroes([res.legend]); await botReveal(res.legend); }
+    return res.win;
+  }
+  async function botRun(o) {
+    if (Bot.on) return;
+    if (mode === 'battle' && !devReal) { UI.toast('Finish or leave this battle first.'); return; }
+    UI.modal('mTheater', false);
+    if (!devReal) devReal = BB.save; devOpts = null; BB.dev = true; document.body.classList.add('dev');
+    let S;
+    if (o.from) { S = devSave({ idx: o.from, over: 1 }); }
+    else { S = BB.newSave(now()); S.settings = Object.assign({}, devReal.settings, { auto: true }); S.banner = devReal.banner; }
+    S.settings.auto = true; S.settings.speed = o.speed || 2; S.seen.tutorial = 1;
+    BB.save = S; campBuilt = null; drillScene = null;
+    Object.assign(Bot, { on: true, stop: false, log: [], fails: {}, trained: {}, pace: o.pace || 1, skip: !!o.skip });
+    $('botBar').classList.add('on'); $('botSpeed').textContent = S.settings.speed + '×';
+    note('The bot starts ' + (o.from ? 'at ' + BB.MISSIONS[o.from].code + ' with a full-strength team' : 'with a new banner') + ', battles at ' + S.settings.speed + '×.');
+    try {
+      await BB.loadHeroes(S.heroes);
+      while (!Bot.stop) {
+        await goCamp(); if (Bot.stop) break;
+        await botManage(); if (Bot.stop) break;
+        if (BB.campaignDone(S)) { note('The campaign is won: ' + BB.MISSIONS.length + ' stages.'); say('The campaign is won'); await sleep(2500); break; }
+        const idx = BB.nextStageIdx(S), f = Bot.fails[idx] || 0;
+        if (f >= 9) { note('Stuck at ' + BB.MISSIONS[idx].code + ' after nine defeats. The bot stops here.'); break; }
+        if (f >= 2 && f % 2 === 0 && idx > 0 && Bot.trained[idx] !== f) { Bot.trained[idx] = f; note('  training on ' + BB.MISSIONS[idx - 1].code + ' before another try'); await botFight(idx - 1); continue; }
+        const win = await botFight(idx);
+        if (win === false) Bot.fails[idx] = f + 1;
+      }
+    } catch (e) { note('The bot hit an error: ' + e.message); console.error(e); }
+    if (Bot.stop) note('Stopped by hand.');
+    // leave cleanly: nothing half-started may carry on into the real save
+    await botWait(() => { if (BB.Cinema && BB.Cinema.on) { $('cineSkip').click(); return false; } return !$('versus').classList.contains('on'); }, 20000, true);
+    UI.modal('mResults', false); if ($('reveal').classList.contains('on')) $('rvOk').click();
+    Bot.on = false; $('botBar').classList.remove('on');
+    const cl = Object.keys(S.cleared).length;
+    $('botOut').style.display = 'block'; $('botOut').textContent = 'BOT LOG · ' + cl + ' of ' + BB.MISSIONS.length + ' stages cleared · ' + S.heroes.length + ' heroes · war chest rank ' + (S.rank || 0) + '\n' + Bot.log.join('\n');
+    await goCamp(); // back to the real save, and to this list
+  }
+  UI.click($('botStop'), () => { Bot.stop = true; say('Stopping…'); });
+  UI.click($('botSpeed'), () => { toggleSpeed(); $('botSpeed').textContent = BB.save.settings.speed + '×'; });
   // A stage as a scene on its own, outside the campaign's flow (the trailer cuts several together): a full-strength
   // team already fighting. o.warm seconds are played unseen and unheard first (o.until 'boss': until the boss is on
   // the field); the fight cannot end, so a clip never lands on a victory screen.
@@ -661,6 +760,10 @@
       { t: 'Gravegates', s: 'Stage 4-2 · gates pouring out the dead', c: '#b57cff', battle: { idx: ix('4-2'), over: 2 } },
       { t: 'A fight on the edge', s: 'Under-levelled: heartbeat, rescues, last stands', c: '#ff4a5a', battle: { idx: ix('3-7'), over: -3 } },
     ].filter((x) => x.battle.idx >= 0) });
+    list.push({ group: 'The bot — plays the game by itself in a throwaway save. Watch; stop it when you like; its log stays here', items: [
+      { t: 'Bot: the whole game', s: 'From a new banner, battles at 2×', c: '#8fd88a', bot: {} },
+      { t: 'Bot: the whole game, fast', s: 'Battles at 3×, cutscenes skipped, short stops', c: '#8fd88a', bot: { speed: 3, skip: true, pace: 0.45 } },
+      { t: 'Bot: the far marches', s: 'A full-strength team, from chapter 5', c: '#cfe4ff', bot: { from: 30 } }] });
     list.push({ group: 'The trailer', items: [{ t: 'Bannerborn — the trailer', s: 'Under a minute: the gates, the banner, the fights', c: '#ffbe55', trailer: true }] });
     list.push({ group: 'The story', items: [{ t: 'The Opening', s: 'Nine banners, the Gravegates', c: '#ffbe55', play: ['intro', {}] }, { t: 'The Far Marches', s: 'After the Cantor falls', c: '#cfe4ff', play: ['bridge', {}] }, { t: 'The Ending', s: 'The last gate is shut', c: '#ffe7a3', play: ['ending', {}] }]
       .concat(BB.CHAPTERS.map((ch, i) => ({ t: 'Chapter ' + BB.roman(i + 1) + ' · ' + ch.name, s: ch.blurb.length > 46 ? ch.blurb.slice(0, 45) + '…' : ch.blurb, c: '#ffcf7a', play: ['chapter', { chapter: ch, music: 'calm' }] }))) });
@@ -693,6 +796,7 @@
     UI.modal('mTheater', false);
     const back = () => { BB.music(mode === 'battle' ? 'battle' : 'calm'); UI.modal('mTheater'); };
     if (it.trailer) { playTrailer(() => UI.modal('mTheater')); return; }
+    if (it.bot) { botRun(it.bot); return; }
     if (it.battle) { devBattle(it.battle); return; }
     if (it.field) { devEnter(it.field); BB.loadHeroes(BB.save.heroes).then(() => UI.openTeam(it.field.idx)); return; }
     if (it.reveal) { // a summoning, played on a hero who fits; nobody joins the save
