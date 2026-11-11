@@ -10,7 +10,7 @@
   const S = VS.STORY = {};
   S.SPEAKERS = {
     vesper: { name: 'Vesper', set: 'gothic_knight_b', color: '#ff3048' },
-    swordsman: { name: 'A swordsman', set: 'master_knight', color: '#ffffff' },
+    swordsman: { name: 'A swordsman', set: 'vh_firstcut', color: '#ffffff' },
   };
 
   // What each hour asks of you, shown when the fight starts and in the corner while it lasts.

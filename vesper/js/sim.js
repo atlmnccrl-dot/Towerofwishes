@@ -164,6 +164,7 @@
   }
   function contact(s, a, k) {
     if (k.skill) { doSkill(s, a, k.skill); return; }
+    if (k.cast) return;   // a gesture: what it calls is placed elsewhere
     if (k.soulSig) { soulSig(s, a); return; }
     const tg = a.team === 'foe' ? (a.target && a.target.alive ? a.target : s.hero) : null;
     if (k.zone) { const z = k.zone; addHazard(s, { kind: 'zone', team: a.team, x: tg.x, y: tg.y, r: z.r, delay: z.delay || 0.5, dur: z.dur, dps: z.dps * (a.dmgMul || 1), slow: z.slow, fx: z.fx }); ev(s, { type: 'cast', id: a.id }); return; }
@@ -418,6 +419,7 @@
     }
     if (o.state === 'spawn') { const c = VS.clampTo(curArena, o.x, o.y, o.rad * 0.6); o.x = c[0]; o.y = c[1]; }
     o.alive = false; setState(o, 'dead'); o.atk = null;
+    if (s.god && o === s.god.body && s.god.alive) { s.god.hp = 0; kill(s, s.god); }   // his body falls: so does the god behind it, at once
     if (o.soul) { o.soul.reform = SOUL_REFORM; o.soul.tauntT = 0; ev(s, { type: 'soulFall', id: o.id, x: o.x, y: o.y, col: o.def.color }); return; }
     if (o.team === 'foe') { const h = s.hero; push(o, h, o.def.boss ? 90 : 210); o.vz = Math.max(o.vz, o.def.boss ? 60 : 150); }
     ev(s, { type: 'kill', id: o.id, x: o.x, y: o.y, boss: !!o.def.boss, hero: o.team === 'hero' });
@@ -447,6 +449,16 @@
     u.hp = u.maxHp = Math.round(def.hp * sk.hp * DF.bossHp); u.dmgMul = sk.dmg * DF.dmg; u.rad = 1;
     u.cd = 3.2; u.gPhase = 1; u.echoes = ['warden', 'twinA', 'umbral', 'hunger', 'wing']; u.kneelCd = 6; setState(u, 'idle');
     s.god = u; s.bossIds.push(u.id);
+    // His body on the summit: the knight you fight. The god above is now only the will behind his sky moves, his gates
+    // and his echoes, and its health follows the body's (godThink); cut the body down and the god falls with it.
+    const bd = D.FOES.firstCutFinal;
+    if (bd && !s.noBody) {
+      const A0 = arenaOf(s), p = bossPoint(s, A0), b = makeUnit(s, 'foe', 'firstCutFinal', bd, p.x, p.y, 0); lookOf(s, b);
+      b.hp = b.maxHp = Math.round(bd.hp * sk.hp * DF.bossHp); b.dmgMul = sk.dmg * DF.dmg * (bd.hitMul || 1); b.cd = 1.4; b.orbit = 1;
+      b.mode = 'drop'; b.from = { x: p.x, y: p.y }; b.to = { x: p.x, y: p.y }; setState(b, 'spawn', 1.5);
+      ev(s, { type: 'spawn', id: b.id, x: p.x, y: p.y, fx: p.x, fy: p.y, boss: true, mode: 'drop', dur: 1.5 });
+      s.bossIds.push(b.id); u.body = b;
+    }
   }
   function godRadius(s) { const A = arenaOf(s); return A.godR ? A.godR : A.kind === 'grid' ? Math.min(A.w, A.h) * A.T * 0.42 : (A.r || 300); }
   // Where he can strike: the summit's floor, kept inside.
@@ -459,6 +471,7 @@
   }
   function godHurt(s, part, dmg, quiet, heavy, ang) {
     const g = s.god; if (!g || !g.alive) return;
+    if (g.body) { const b = g.body; if (!b.alive) return; const d0 = Math.max(1, Math.round(dmg * (part.weak || 1))); b.hp -= d0; s.stats.dealt += d0; b.flash = 1; b.lastHit = s.time; if (b.hp <= 0) { b.hp = 0; kill(s, b); } return; }
     const d = Math.max(1, Math.round(dmg * (part.weak || 1)));
     g.hp -= d; s.stats.dealt += d; part.flash = 1; g.flash = 1; g.lastHit = s.time;
     s.combo++; s.comboT = 1.6; s.stats.maxCombo = Math.max(s.stats.maxCombo, s.combo); gainMoon(s, heavy ? 4 : 2);
@@ -467,6 +480,8 @@
   }
   function godThink(s, dt) {
     const g = s.god, h = s.hero; if (!h.alive || s.cine) return;
+    const B = g.body;
+    if (B) { g.hp = Math.max(0, Math.round(g.maxHp * B.hp / B.maxHp)); if (!B.alive) { g.hp = 0; kill(s, g); return; } if (B.state === 'spawn') return; }
     for (const u of s.units) if (u.alive && u.def.part) { u.life -= dt; if (u.life <= 0) { dismiss(s, u); ev(s, { type: 'godPartGone', id: u.id, x: u.x, y: u.y }); } }
     // His phases: at two thirds his dead pour in; at one third the echoes rise and he begins to kneel.
     const f = g.hp / g.maxHp, want = f > 0.66 ? 1 : f > 0.33 ? 2 : 3;
@@ -475,7 +490,7 @@
       if (want === 2) { godSummon(s, 4); godGates(s, [1, 3]); }
       if (want === 3) { godEcho(s); g.kneelCd = 2.5; godGates(s, [0, 1, 2, 3]); }
     }
-    if (g.gPhase === 3) { g.kneelCd -= dt; if (g.kneelCd <= 0 && !s.units.some((u) => u.alive && u.part === 'head')) { g.kneelCd = 17; godKneel(s); } }
+    if (g.gPhase === 3 && !B) { g.kneelCd -= dt; if (g.kneelCd <= 0 && !s.units.some((u) => u.alive && u.part === 'head')) { g.kneelCd = 17; godKneel(s); } }
     // The rift gates (2026-11-10, "unit spawn gates... make it an epic battle"): two open soon after he rises,
     // two more at his second phase, and in his last every fallen gate opens again, stronger. Each pours his dead
     // in, a few at a time; cutting one down wounds him.
@@ -483,7 +498,7 @@
     const mobs = foes(s).filter((u) => !u.def.god && !u.def.part && !u.def.gate).length, cap = 6 + g.gPhase * 3;
     for (const gt of s.units) {
       if (!gt.def.gate) continue;
-      if (!gt.alive) { if (!gt.counted) { gt.counted = true; ev(s, { type: 'gateDown', x: gt.x, y: gt.y, id: gt.id }); godHurt(s, gt, Math.round(g.maxHp * 0.03), false, true); } continue; }
+      if (!gt.alive) { if (!gt.counted) { gt.counted = true; ev(s, { type: 'gateDown', x: gt.x, y: gt.y, id: gt.id }); godHurt(s, gt, Math.round(g.maxHp * (g.body ? 0.015 : 0.03)), false, true); } continue; }
       if (gt.state === 'spawn') continue;
       gt.spawnT -= dt; if (gt.spawnT > 0 || mobs >= cap) continue;
       gt.spawnT = 6.4 - g.gPhase * 0.9 + s.rand();
@@ -502,7 +517,8 @@
       addHazard(s, { kind: 'doom', team: 'foe', x: c[0], y: c[1], sx: c[0], sy: c[1], sr: 46, r: 0, delay: 3.0, dmg: Math.round(55 * (g.dmgMul || 1)) });
       s.freeze = Math.max(s.freeze, 0.5); ev(s, { type: 'godMove', move: 'last', x: c[0], y: c[1] }); g.cd = 4.2; return;
     }
-    g.cd -= dt; if (g.cd > 0) return;
+    g.cd -= dt * (B ? 0.55 : 1); if (g.cd > 0) return;
+    if (B && B.alive && (B.state === 'idle' || B.state === 'move')) startAttack(s, B, { clip: 'Taunt', wind: 0.45, recover: 0.35, reach: 0, dmg: 0, cast: true });   // he calls it down
     // Harder as he bleeds: the cross and the quake join, and he chains them faster.
     const pool = g.gPhase === 1 ? ['blade', 'hand', 'blade', 'rain', 'quake'] : g.gPhase === 2 ? ['blade', 'cross', 'hand', 'rain', 'sweep', 'quake'] : ['cross', 'sweep', 'quake', 'blade', 'rain', 'cross'];
     let pick = pool[Math.floor(s.rand() * pool.length)]; if (pick === g.lastMove && s.rand() < 0.7) pick = pool[(pool.indexOf(pick) + 1) % pool.length]; g.lastMove = pick;
@@ -590,7 +606,8 @@
   VS.artDamage = function (s, kind, o) {
     if (o.def.minion) return 9999;
     if (o.def.part) return 0;
-    if (o.def.god) return Math.round(o.maxHp * (kind === 'ldx' || (s.cine && s.cine.last) ? 0.08 : 0.04));   // trimmed 2026-11-10: the gates' dead fill the moon fast
+    if (o.def.god) return Math.round(o.maxHp * (kind === 'ldx' || (s.cine && s.cine.last) ? 0.08 : 0.04));
+    if (o.def.final) return Math.round(o.maxHp * (kind === 'ldx' || (s.cine && s.cine.last) ? 0.1 : 0.05));   // the First Cut on the summit: the moon wounds him, it does not end him   // trimmed 2026-11-10: the gates' dead fill the moon fast
     const big = kind === 'ldx' || (kind !== 'moon' && s.cine && s.cine.last);
     return Math.round((big ? 60 + 0.32 * o.maxHp : (26 + 0.15 * o.maxHp) * (kind === 'moon' ? 1 : 1.25)) * s.mods.dmg);
   };
@@ -1091,12 +1108,12 @@
       if (z.kind === 'cut' && !z.done) {
         z.done = true; ev(s, { type: 'cut', x1: z.x1, y1: z.y1, x2: z.x2, y2: z.y2, w: z.w, god: !!z.god });
         for (const o of s.units) if (o.alive && o.team !== z.team && o.state !== 'spawn' && segDist(o.x, o.y, z.x1, z.y1, z.x2, z.y2) <= z.w + o.rad) hit(s, { team: z.team, soul: z.soul, x: o.x - (z.y2 - z.y1) * 0.01, y: o.y + (z.x2 - z.x1) * 0.01, ang: 0, phase: 1, def: {}, dmgMul: 1, face: 1 }, o, { dmg: z.dmg, kb: 22, poise: 20, unparry: true });
-        if (z.part) godPart(s, z.part.x, z.part.y, z.part);
+        if (z.part && !(s.god && s.god.body)) godPart(s, z.part.x, z.part.y, z.part);
         continue;
       }
       if (z.kind === 'strike' && !z.done) {
         z.done = true; ev(s, { type: 'strike', x: z.x, y: z.y, r: z.r, fx: z.fx, quiet: z.quiet, team: z.team, hand: !!z.part });
-        if (z.part) godPart(s, z.x, z.y, z.part);
+        if (z.part && !(s.god && s.god.body)) godPart(s, z.x, z.y, z.part);
         for (const o of victims) hit(s, { team: z.team, soul: z.soul, x: z.x, y: z.y, ang: 0, phase: 1, def: {}, dmgMul: 1, face: 1 }, o, { dmg: z.dmg, kb: 16, poise: 12, slow: z.slow, unparry: true });
         if (z.then) addHazard(s, Object.assign({ team: z.team, x: z.x, y: z.y }, z.then));
       } else if (z.kind === 'wave') {

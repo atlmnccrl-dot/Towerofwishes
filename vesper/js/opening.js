@@ -107,9 +107,9 @@
     ctx.save(); if (k > 0.95) ctx.translate((Math.random() - 0.5) * 30 * R.dpr, (Math.random() - 0.5) * 30 * R.dpr);
     // Ground and the risen dead in the foreground, all black.
     ctx.fillStyle = '#0a0000'; ctx.beginPath(); ctx.moveTo(0, H()); for (let i = 0; i <= 12; i++) ctx.lineTo(i * W() / 12, H() * (0.86 - hash(i, 2) * 0.06)); ctx.lineTo(W(), H()); ctx.fill();
-    fig(ctx, 'master_knight', 'Special1', fr, Math.PI * 0.5, fx, fy, sc, { shade: '#000000' });
+    fig(ctx, 'vh_firstcut', 'Special1', fr, Math.PI * 0.5, fx, fy, sc, { shade: '#000000' });
     // The glint: the only light on him.
-    const e = onFig('master_knight', 'Special1', fr, Math.PI * 0.5, fx, fy, sc, 0.5, 0.2);
+    const e = onFig('vh_firstcut', 'Special1', fr, Math.PI * 0.5, fx, fy, sc, 0.5, 0.2);
     const g = ease((k - 0.35) / 0.15) * (1 - ease((k - 0.6) / 0.1));
     if (g > 0) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; A.tex(ctx, 'star_06', e.x, e.y, 140 * R.k * g, 140 * R.k * g, '#ffffff', g, t, true); ctx.restore(); }
     ctx.restore();

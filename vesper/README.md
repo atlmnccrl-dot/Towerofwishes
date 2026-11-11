@@ -320,6 +320,25 @@ order). With the bot at a good player's skill: Act I about 100%, the middle acts
 the last acts 50 to 90%, the post-game harder; about 80% overall for every hero. The First Cut:
 50 to 88% depending on the hero. Knobs: `P.TUNE` and the per-node adjustments in `progress.js`.
 
+## The First Cut, on the summit
+
+(2026-11-11, the author: "the final boss character looks wrong and horrible, cutscene and match".) He was a small grey knight
+(the same look as the Gatewarden) blown up into black blocks in the films and, in the fight, a figure peeking over the
+summit's far rim while you cut floating limbs. Now:
+- **His own look**: `vh_firstcut`, the knight recoloured to silver-white plate with a red crown and crimson trim
+  (`tools_firstcut.py`; reads `master_knight`, untouched). Used everywhere he appears: both his fights, the echo, the soul,
+  the playable First Cut, the opening, the films.
+- **The last fight** (a5-b) is a duel: `D.FOES.firstCutFinal`, the knight himself on the summit at 1.6 times a man's size,
+  with his combo, lunges, crescent waves, moonfall and mirror. The god above (js/sim.js, 'the god') is now only the will
+  behind him: its health follows his body's; he raises his blade to call the sky blades, crosses, sweeps and quakes (more
+  slowly than before); the rift gates still open and pour his dead in (a fallen gate wounds him 1.5%); the echoes rise
+  and the Last Cut still falls below 15%. No limbs to cut, no kneeling. The moon arts take 5% of his health (10% the
+  stronger ones). One boss bar. The tutorial's last stage fights the same duel.
+- **The films** draw him at most twice the sprite's size (no more blocks), in his white armour (a light tint, not ink);
+  the shots of him on the Spire's tip were lowered so all of him stands in the frame; his rise in the guardian film is in
+  colour against the blood-red sky.
+- Balance (bot skill 0.55, late profile): about 55–60% wins, fights of 35–50 s.
+
 ## Bound Souls
 
 (2026-11-11, the author: "combat feels very hyper focused on us... a pet or partner or summon that we can unlock,

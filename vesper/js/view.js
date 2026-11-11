@@ -535,6 +535,7 @@
   // sword goes up as he readies a cut, his head comes down when he kneels; he falls away when he dies.
   function drawGod(ctx, s, dt) {
     const K = VS.INTRO && VS.INTRO.kit; if (!K) return;
+    if (s.god && s.god.body) return;   // he stands on the summit himself now (D.FOES.firstCutFinal): no giant past the rim
     const g = s.god, P = R.godPose; if (P) { P.t += dt; if (P.t > 1.6) R.godPose = null; }
     const kneel = s.units.some((u) => u.alive && u.part === 'head'), fall = R.godFall ? (R.godFall += dt) : 0;
     R.godKneel = (R.godKneel || 0) + ((kneel ? 1 : 0) - (R.godKneel || 0)) * Math.min(1, dt * 3);
@@ -1095,7 +1096,7 @@
       else label(ctx, `RE-FORMING ${Math.ceil(so.soul.reform)}`, sx + cr * 2 + 8 * k, sy + 9 * k, 8 * k, '#a99aa2', 'left', 2);
     }
     // Bosses.
-    const bosses = s.units.filter((u) => u.def.boss && (u.alive || u.deadT < 1));
+    const bosses = s.units.filter((u) => u.def.boss && (u.alive || u.deadT < 1) && !(u.def.god && u.body));   // the god behind the First Cut's body has no bar of its own
     // Bosses: a long slim bar at the bottom centre, between the stick and the buttons on a phone.
     bosses.forEach((b, i) => {
       const n = bosses.length, span = Math.min(W * (opts.touch ? 0.42 : 0.5), 520 * k), gap = 22 * k, bwid = (span - (n - 1) * gap) / n;

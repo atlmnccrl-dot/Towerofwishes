@@ -383,7 +383,7 @@
     // camera pushes in and tilts up with him; the city shakes and its windows go dark; the people in the
     // street scatter away from him, small and clear; lamps on posts light the street.
     const pan = T * 10, quake = clamp((T - 0.4) / 0.6), rise = ease(clamp((T - 0.5) / 2.1)), push = 1 + 0.07 * ease(k);
-    const sx = Math.round(W() * 0.46 - pan * 0.3), ey = Math.round(H() * (1.3 - 0.98 * rise)), spTip = Math.round(H() * 0.4);
+    const sx = Math.round(W() * 0.46 - pan * 0.3), ey = Math.round(H() * (1.3 - 0.98 * rise)), spTip = Math.round(H() * 0.62);   // low enough that all of him stands in the frame
     const shake = quake * (rise < 1 ? 1 : 0.4), qx = Math.round(Math.sin(T * 37) * shake), qy = Math.round(Math.cos(T * 29) * shake);
     grad(ctx, ['#05040c', R.mix('#141026', '#2a0a18', rise), R.mix('#2a1830', '#4a0c1c', rise)]);
     stars(ctx, 80, 0.8 * (1 - 0.5 * rise), 3, T);
@@ -468,12 +468,12 @@
       A.tex(ctx, 'light_01', x0 + ca * WL / 2, y0 + sa * WL / 2, WL * 1.6, r * 0.5, split < 0.25 ? '#ffffff' : RED, 0.8, ang, true);
     }
     // The land: the Spire, the god behind it, the city.
-    const hz = Math.round(H() * 0.86), gx = Math.round(mx), gy = Math.round(H() * 0.46);   // he stands on the Spire's tip, in front of the moon
+    const hz = Math.round(H() * 0.86), gx = Math.round(mx), gy = Math.round(H() * 0.64);   // he stands on the Spire's tip, in front of the moon
     if (red > 0) A.tex(ctx, 'light_01', mx, hz, W() * 1.3, 60, RED, 0.6 * red, 0, true);
     A.tex(ctx, 'light_01', gx, gy - 40, 110, 110, red > 0 ? '#ff3a52' : '#a0a0c0', 0.25, 0, true);
     godAt(ctx, S, gx, gy, 2, T, { pose: T < 1.55 ? 'side' : null, ft: T < 1.15 ? null : clamp((T - 1.15) / 0.4), col: '#0a0408', amt: 0.3 });
     if (T < 1.15) { const c = clamp(T / 1.1); A.tex(ctx, 'light_01', gx - 30, gy - 30, 30 + 40 * c, 30 + 40 * c, '#ffffff', 0.4 + 0.5 * c, 0, true); }   // light gathering on his blade
-    ctx.fillStyle = '#0c0610'; ctx.beginPath(); ctx.moveTo(mx - 9, hz + 4); ctx.lineTo(mx - 2, H() * 0.5); ctx.lineTo(mx, H() * 0.46); ctx.lineTo(mx + 2, H() * 0.5); ctx.lineTo(mx + 9, hz + 4); ctx.fill();
+    ctx.fillStyle = '#0c0610'; ctx.beginPath(); ctx.moveTo(mx - 9, hz + 4); ctx.lineTo(mx - 2, H() * 0.68); ctx.lineTo(mx, H() * 0.64); ctx.lineTo(mx + 2, H() * 0.68); ctx.lineTo(mx + 9, hz + 4); ctx.fill();
     city(ctx, H() * 0.84, 7, '#1c1222', 0.3 * (1 - red), 1.0, 0);
     city(ctx, H() * 0.92, 13, '#0c0810', 0.4 * (1 - red), 0.9, 0);
     // The stroke: a burning line along the wound, from off the frame across the moon.
@@ -777,12 +777,13 @@
   // or the overhead cut of Attack4 played through o.ft 0..1), drawn back for the moon cut (Attack6). A black or white
   // col asks for a pure silhouette (the ink frames); any other darkens him toward it. Until the set has loaded: the
   // polygons (or nothing, with o.optional).
-  const GOD_SET = 'master_knight', godRef = {};
+  const GOD_SET = 'vh_firstcut', godRef = {};
   // The First Cut standing with his feet at (fx, fy), k (a whole number) pixels per sprite pixel, in a pose: guard
   // (Idle4), raise (Taunt, or the overhead cut of Attack4 through o.ft 0..1), side (drawn back: Attack6, or the swing
   // through o.ft), kneel (the end of his overhead cut, down on one knee). Shading as colossus().
   function godAt(ctx, S, fx, fy, k, T, o) {
-    o = o || {}; k = Math.max(1, Math.round(k));
+    // At most twice the sprite's size (2026-11-11, the author: "looks wrong and horrible"): larger, his pixels turned to blocks.
+    o = o || {}; k = Math.max(1, Math.min(2, Math.round(k)));
     const col = o.col || '#050204', ink = o.ink || /^#(000|000000|fff|ffffff)$/i.test(col), ang = o.ang == null ? Math.PI / 2 : o.ang;
     let clip = 'Idle4', fr = Math.floor((T || 0) * 7) % 15;
     if (o.pose === 'raise') { if (o.ft != null) { clip = 'Attack4'; fr = Math.min(14, Math.floor(o.ft * 15)); } else { clip = 'Taunt'; fr = 12; } }
@@ -792,14 +793,14 @@
     const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
     const ref = godRef['f' + k] || (godRef['f' + k] = A.box(GOD_SET, 'Idle4', 0, ang, k));   // his feet (the sprite's anchor sits higher)
     const y = ref ? fy - (ref.y + ref.h) : fy;
-    A.actor(ctx, GOD_SET, clip, fr, ang, Math.round(fx), Math.round(y), k, ink ? { shade: col } : { flash: o.amt != null ? o.amt : 0.28, flashCol: col });
+    A.actor(ctx, GOD_SET, clip, fr, ang, Math.round(fx), Math.round(y), k, ink ? { shade: col } : { flash: Math.min(0.16, o.amt != null ? o.amt : 0.16), flashCol: col });
     ctx.imageSmoothingEnabled = sm; return true;
   }
   function colossus(ctx, S, ex, ey, sc, T, o) {
     o = o || {};
     const col = o.tint ? '#3a0a14' : (o.col || '#050204'), ink = o.ink || /^#(000|000000|fff|ffffff)$/i.test(col);
     if (A.hasSet(GOD_SET)) {
-      const k = Math.max(1, Math.round(sc)), ang = Math.PI / 2;
+      const k = Math.max(1, Math.min(2, Math.round(sc))), ang = Math.PI / 2;
       let clip = 'Idle4', fr = Math.floor((T || 0) * 7) % 15;
       if (o.pose === 'raise') { if (o.ft != null) { clip = 'Attack4'; fr = Math.min(14, Math.floor(o.ft * 15)); } else { clip = 'Taunt'; fr = 12; } }
       else if (o.pose === 'side') { clip = 'Attack6'; fr = 1; }

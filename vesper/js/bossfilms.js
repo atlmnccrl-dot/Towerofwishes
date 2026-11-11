@@ -304,22 +304,20 @@
   // ---- The First Cut: blood and gold. The fallen, one frame each; he rises; "one blade"; the blade falls. --
   {
     const G = { grade: 'blood', keepRed: true };
-    const echo = (who, pal, ang) => cut(0.26, E.face({ who, sc: 3.2, cy: 0.36, ang: ang == null ? FRONT : ang, shade: '#000', eyes: '#ffffff', bg: brightGlow([0.5, 0.42], '#ffffff', '#202020') }), { grade: pal, cam: { z: [1.12, 1.0], ease: 'out' }, sfx: [[0, 'blow_1', 0.7]] });
+    const echo = (who, pal, ang) => cut(0.26, E.face({ who, sc: 2, cy: 0.3, ang: ang == null ? FRONT : ang, shade: '#000', eyes: '#ffffff', bg: brightGlow([0.5, 0.42], '#ffffff', '#202020') }), { grade: pal, cam: { z: [1.12, 1.0], ease: 'out' }, sfx: [[0, 'blow_1', 0.7]] });
     const gx = 0.46, gy = 0.86;
     F.firstCut = E.film([
       card(0.9, 'SEVEN HUNDRED YEARS', true), card(0.9, 'SIX GUARDIANS', false), card(0.9, 'ONE NIGHT', true), cut(1.1, E.card({ text: 'THE TOP OF THE SPIRE', opts: { size: 19 } }), { bars: false, flat: true, sfx: [[0, 'thud', 0.8], [0.2, 'charge', 0.8]] }),
       cut(1.2, sc({ bg: (ctx, S, k, T) => summit(ctx, T), actors: [{ who: V, clip: 'Walk', fps: 10, ang: BACK, x: 0.5, y: 1.0, to: [0.5, 0.88], sc: 1.6, ease: 'lin' }] }), { ...G, cam: { z: [1.0, 1.1] }, sfx: [[0.2, 'horn', 0.6]] }),
       echo('warden', 'violet'), E.blink(0.03), echo('twinA', 'ice', PI * 0.25), E.blink(0.03), echo('umbral', 'ink'), E.blink(0.03), echo('hunger', 'ember'), E.blink(0.03), echo('wing', 'storm'), E.blink(0.06),
       cut(2.2, { draw(ctx, S, k, T) {
-        const g = ctx.createLinearGradient(0, 0, 0, H()); g.addColorStop(0, '#2a2a2a'); g.addColorStop(1, '#f0f0f0'); ctx.fillStyle = g; ctx.fillRect(-W(), -H(), W() * 3, H() * 3);
-        const rise = ease(clamp((T - 0.1) / 1.4)), ey = Math.round(H() * (1.3 - 0.95 * rise));
-        A.tex(ctx, 'light_01', W() / 2, ey + 30, W() * 1.4, H() * 1.4, '#ffffff', 0.6 * rise, 0, true);
-        godAt(ctx, S, Math.round(W() / 2), Math.round(H() * (1.4 - 0.78 * rise)), 3, T, { col: '#000', pose: T > 1.3 ? 'raise' : null });   // the knight himself, rising into the light
-        A.actor(ctx, S.cast.vesper, 'Idle4', Math.floor(T * 7) % 15, BACK, Math.round(W() / 2), Math.round(H() * 0.98), 1.6, { shade: '#000' });
-      }, post(ctx, S, k, T) {
-        const rise = ease(clamp((T - 0.1) / 1.4)), ey = Math.round(H() * (1.3 - 0.95 * rise));
-        burningEyes(ctx, Math.round(W() / 2), ey, 6, ease(clamp((T - 1.3) / 0.25)), T);
-      } }, { ...G, cam: { z: [1.0, 1.06] }, shake: 1.5, sfx: [[0.1, 'quake', 0.9], [0.8, 'quake', 1], [1.3, 'boss', 1], [1.32, 'blow_big', 1]], line: 'Seven hundred years... and they send one blade.', lineAt: 0.4, lineDur: 2.2, lineCol: '#ffd0d8' }),
+        grad(ctx, ['#0a0206', '#3a0812', '#7a1424']); stars(ctx, 40, 0.4, 1431, T);
+        const rise = ease(clamp((T - 0.1) / 1.4)), fy = Math.round(H() * (1.25 - 0.55 * rise));
+        A.tex(ctx, 'light_01', W() / 2, fy - 44, 120, 130, '#ff3048', 0.35 * rise, 0, true);
+        godAt(ctx, S, Math.round(W() / 2), fy, 2, T, { col: '#2a0610', amt: 0.18, pose: T > 1.3 ? 'raise' : null });   // the knight himself, rising out of the summit, in his white armour
+        ctx.fillStyle = '#080204'; ctx.fillRect(-W(), Math.round(H() * 0.84), W() * 3, H());
+        A.actor(ctx, S.cast.vesper, 'Idle4', Math.floor(T * 7) % 15, BACK, Math.round(W() / 2), Math.round(H() * 0.98), 1, { shade: '#000' });
+      } }, { cam: { z: [1.0, 1.06] }, shake: 1.5, sfx: [[0.1, 'quake', 0.9], [0.8, 'quake', 1], [1.3, 'boss', 1], [1.32, 'blow_big', 1]], line: 'Seven hundred years... and they send one blade.', lineAt: 0.4, lineDur: 2.2, lineCol: '#ffd0d8' }),
       cut(0.8, E.eyes({ at: 0.35, sc: 4.2 }), { bars: false, cam: { z: [1.0, 1.14] }, sfx: [[0.3, 'clang_0', 0.6]], line: 'One is enough.', lineAt: 0.25, lineDur: 1.0, lineCol: VCOL }),
       // His blade comes down on her as one burning streak; she meets it and holds (rebuilt 2026-11-10: no flat
       // blade shape, her in her own colours, the pack's impact at her feet).
