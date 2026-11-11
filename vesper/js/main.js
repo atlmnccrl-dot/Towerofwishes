@@ -16,11 +16,12 @@
   const fixOpts = (o) => { if (!o.nums2) { o.nums = false; o.nums2 = true; } if (!o.auto2) { o.auto = false; o.auto2 = true; } return o; };   // and auto battle starts off for everyone (2026-11-10)
   const fresh = (opts) => Object.assign(PR.fresh(), { opts: opts || defOpts(), seenLdx: false });
   function load() {
-    try { const j = JSON.parse(localStorage.getItem(KEY)); if (j && j.v === 2) return VS.LOOT.migrate(Object.assign(fresh(), j, { opts: Object.assign(defOpts(), fixOpts(j.opts || {})) })); } catch (e) { /* storage blocked */ }
+    const get = (k) => (VS.VAULT ? VS.VAULT.get(k) : localStorage.getItem(k));   // the vault falls back to its last good copy
+    try { const j = JSON.parse(get(KEY)); if (j && j.v === 2) return VS.LOOT.migrate(Object.assign(fresh(), j, { opts: Object.assign(defOpts(), fixOpts(j.opts || {})) })); } catch (e) { /* storage blocked */ }
     try { const o = JSON.parse(localStorage.getItem(OLD)); if (o && o.opts) return fresh(Object.assign(defOpts(), fixOpts(o.opts))); } catch (e) { /* none */ }
     return fresh();
   }
-  M.write = () => { try { localStorage.setItem(KEY, JSON.stringify(M.save)); } catch (e) { /* storage blocked */ } };
+  M.write = () => { const str = JSON.stringify(M.save); try { localStorage.setItem(KEY, str); } catch (e) { /* storage blocked */ } if (VS.VAULT) VS.VAULT.put(KEY, str); };
   M.save = load();
   // Options: sound, the size of all menu text, and the colour-safe cues (blue and orange for the parry
   // and dodge flashes instead of white and red).
@@ -869,6 +870,8 @@
   }
 
   async function boot() {
+    // The store apps keep a native copy of the save (js/vault.js): if it is newer than localStorage's, read it again.
+    try { if (VS.VAULT && await VS.VAULT.ready) { M.save = load(); if (VS.SHOP && VS.SHOP.reload) VS.SHOP.reload(); } } catch (e) { /* localStorage alone */ }
     R.init(document.getElementById('game')); try { R.touch = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches); } catch (e) { /* desktop */ }
     const c = R.canvas;
     c.addEventListener('contextmenu', (e) => e.preventDefault());

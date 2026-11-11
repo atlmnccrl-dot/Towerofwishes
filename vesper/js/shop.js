@@ -51,9 +51,10 @@
   SH.product = (id) => SH.PRODUCTS.find((p) => p.id === id);
 
   // ---- state ---------------------------------------------------------------------------------------------------
-  const load = () => { try { return Object.assign({ owned: {}, done: {}, fights: 0, lastAd: 0, giftAt: 0 }, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { return { owned: {}, done: {}, fights: 0, lastAd: 0, giftAt: 0 }; } };
+  const load = () => { try { return Object.assign({ owned: {}, done: {}, fights: 0, lastAd: 0, giftAt: 0 }, JSON.parse((VS.VAULT ? VS.VAULT.get(KEY) : localStorage.getItem(KEY)) || '{}')); } catch (e) { return { owned: {}, done: {}, fights: 0, lastAd: 0, giftAt: 0 }; } };
   let st = load();
-  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) { /* storage blocked */ } };
+  const save = () => { const str = JSON.stringify(st); try { localStorage.setItem(KEY, str); } catch (e) { /* storage blocked */ } if (VS.VAULT) VS.VAULT.put(KEY, str); };
+  SH.reload = () => { st = load(); };   // after the vault brought back a newer copy (js/vault.js)
   const native = () => !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
   const platform = () => (window.Capacitor && window.Capacitor.getPlatform ? window.Capacitor.getPlatform() : 'web');
   SH.mode = (() => {

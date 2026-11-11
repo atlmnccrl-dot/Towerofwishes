@@ -270,7 +270,9 @@
       case 'boss': waves = [st.waves[st.waves.length - 1].slice(), st.bossWave.slice()]; boss = true; arenas = [ar[ar.length - 2] || ar[0], 'lair_' + st.boss]; break;
       // The last guardian is the god himself, on the summit (the Lamb-style fight in js/sim.js).
       case 'god': waves = [['godCut']]; boss = true; arenas = ['lair_firstCut']; break;
-      case 'echo': waves = [area(2), BOSS[n.echo].concat(['+'], pick(pool, 3, r))]; boss = true; arenas = [ar[0], LAIR[n.echo] || ar[ar.length - 1]]; break;
+      // An untouchable echo is the guardian alone in its lair, like Act II's: one hit from anything ends it, so no army first.
+      case 'echo': if (n.rule === 'nohit') { waves = [BOSS[n.echo].slice()]; boss = true; arenas = [LAIR[n.echo] || ar[ar.length - 1]]; break; }
+        waves = [area(2), BOSS[n.echo].concat(['+'], pick(pool, 3, r))]; boss = true; arenas = [ar[0], LAIR[n.echo] || ar[ar.length - 1]]; break;
       case 'challenge':
         if (n.echo) { waves = [BOSS[n.echo].slice()]; boss = true; arenas = [LAIR[n.echo] || D().STAGES[0].arenas[2]]; }
         else if (n.rule === 'horde') { const k = n.big ? 6 : 4; waves = [area(k)]; arenas = [ar[idx % ar.length]]; if (n.big) { const all = CHAMPS.flat(); waves[0].push('+', all[Math.floor(r() * all.length)], all[Math.floor(r() * all.length)]); } }
