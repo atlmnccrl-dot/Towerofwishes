@@ -42,7 +42,7 @@
     this.autoSkills = !!(this.save && this.save.settings && this.save.settings.auto);
     this.cutins = []; this.combo = 0; this.lastSkill = null; this.zoomK = 1; this.zoomTarget = 1;
     this.warCenter = { x: sp.x, y: sp.y };
-    if (!this.peaceful) this.setupObjective();
+    if (!this.peaceful) { this.setupObjective(); if (this.placeDefences) this.placeDefences(); }
     if (!this.peaceful && opts.intro) {
       const m = this.map, g = (m.gateSpots && m.gateSpots[0]) || (this.mission.boss ? m.bossSpot : m.foeSpawns[0]);
       this.intro = { t: 0, dur: 3.6, from: { x: g.x, y: g.y } };
@@ -322,6 +322,7 @@
     let atk = src ? src.atk : (o.atk || 20);
     if (src && src.buffs.rally > 0) atk *= 1.5;
     if (src && src.buffs.combo > 0) atk *= 1.25;
+    if (src && src.buffs.hex > 0) atk *= 1.2; // under an obelisk's pulse
     if (src && src.side === 'hero' && src.st && src.st.lowHpAtk && src.hp < src.maxhp / 2) atk *= 1 + src.st.lowHpAtk;
     // the exchange: a parried blow staggers the attacker and opens a counter; a blocked blow mostly glances off
     const melee = src && !o.aoe && !src.ranged && !o.counter && !o.chained;
@@ -434,7 +435,7 @@
       return;
     }
     this.setClip(e, e.turret ? 'Idle' : 'Die', true);
-    if (e.turret) this.addFx('x_wood', e.x, e.y - 0.2, { sc: 0.7 });
+    if (e.turret) { this.addFx(e.F.stone ? 'x_stone' : 'x_wood', e.x, e.y - 0.2, { sc: e.F.struct ? 1 : 0.7 }); if (e.F.struct) this.shake = Math.max(this.shake || 0, 0.35); }
     if (!quiet) { this.kills++; this.addRally(3); }
     const gold = Math.round(e.F.gold * (e.elite ? (e.elite.gold || 2) : 1));
     if (!quiet) this.goldGot += gold;
@@ -1449,6 +1450,7 @@
       if (e.ringCd <= 0 && d < 7) { e.ringCd = 6.5 + this.r() * 2; this.fireRing(e, t.x, t.y, 1.7, 1.2); e.state = 'attack'; e.lock = 0.7; e.atkDur = 0.7; e.hitAt = 99; e.hitDone = true; this.setClip(e, 'Special1', true); return; }
     }
     if (e.turret) {
+      if (e.F.struct && this.structAI) { this.structAI(e, t, d, dt); return; }
       if (d < e.range && e.cd <= 0) { e.cd = 1 / e.aspd; this.shoot(e, t.x, t.y, 'bolt', 1, { hue: 0 }); }
       return;
     }
@@ -1765,6 +1767,8 @@
       BB.drawFx(ctx, 'portal', Math.floor(this.time * 12) % n, s.x, s.y - 20, sc, { add: e.flash > 0 });
       return;
     }
+    if (e.turret && e.F.struct && this.drawStruct) { this.drawStruct(ctx, e, s); return; }
+    if (e.side === 'foe' && this.drawHexed && !e.dead) this.drawHexed(ctx, e, s);
     if (e.turret) {
       BB.drawFx(ctx, 'turret', e.dead ? 7 : Math.floor(this.time * 6) % 2, s.x, s.y - 6, 1.1, {});
       if (e.flash > 0) BB.drawFx(ctx, 'turret', 0, s.x, s.y - 6, 1.1, { add: true, alpha: e.flash * 3 });
@@ -1865,15 +1869,15 @@
     if (e.side === 'foe' && e.hp >= e.maxhp && !e.gate && !e.elite) return;
     if (e.boss) return; // boss bar is in the HUD
     const s = BB.iso(e.x, e.y);
-    const h = e.gate ? 62 : e.ward ? 44 : 46 * (e.sc || 1);
-    const w = e.gate || e.ward ? 40 : 22;
+    const h = e.gate ? 62 : e.ward ? 44 : (e.F && e.F.barH) || 46 * (e.sc || 1), built = !!(e.F && e.F.struct);
+    const w = e.gate || e.ward || built ? 40 : 22;
     const x = s.x - w / 2, y = s.y - h - (e.z || 0) * 24;
     ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(x - 1, y - 1, w + 2, 4);
     const col = e.side === 'hero' ? (e.ward ? '#ffd166' : '#5fe07a') : e.gate ? '#b47aff' : e.elite ? '#ff9f2e' : '#e0473c';
     ctx.fillStyle = col; ctx.fillRect(x, y, w * Math.max(0, e.hp / e.maxhp), 2);
     if (e.shield > 0) { ctx.fillStyle = '#cfe8ff'; ctx.fillRect(x, y - 2, w * Math.min(1, e.shield / e.maxhp), 1.2); }
     if (e.side === 'foe' && e.maxPoise && e.poise < e.maxPoise) { ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(x - 1, y + 3, w + 2, 2.4); ctx.fillStyle = e.brokenT > 0 ? '#ffb347' : '#ffe27a'; ctx.fillRect(x, y + 3.4, w * Math.max(0, e.poise / e.maxPoise), 1.4); }
-    if (e.elite || e.gate || e.ward) {
+    if (e.elite || e.gate || e.ward || built) {
       ctx.font = 'bold 7px Outfit, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = col;
       ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.lineWidth = 2; ctx.strokeText(e.name, s.x, y - 3); ctx.fillText(e.name, s.x, y - 3);
     }

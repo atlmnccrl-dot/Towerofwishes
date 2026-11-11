@@ -360,6 +360,7 @@
     const keys = [m.heroSpawn, m.bossSpot].concat(m.foeSpawns || [], m.gateSpots || []);
     m.props = m.props.filter((p) => p.ward || /Misc C14|Misc B42|Misc C12|Misc B6_E/.test(p.name) || !keys.some((k) => Math.hypot(p.x - k.x, p.y - k.y) < 1.6 + (p.r || 0)));
     edgeForest(m, set, 3);
+    if (BB.landDecor) BB.landDecor(m); // what grows only in this land (structures.js)
     for (const p of m.props) { const s = BB.iso(p.x, p.y); p.depth = p.x + p.y; p.sx = s.x; p.sy = s.y; }
     m.props.sort((a, b) => a.depth - b.depth);
     // spatial index for collisions

@@ -144,6 +144,25 @@ A hero-collector RPG: you build the team, the team fights.
      cracking embers, a sparse line over a low wobble with drips and croaks, a wrong chord over a hum;
    - **its own ground**, painted with the tiles: drifts and bare ice, scorch and fissures that still glow, black
      pools, rings of pale caps; and its own weather (snow, cinders, spores, motes).
+   - **its own growth**, made for it: clusters of ice shards, vents of black rock that still glow, tall glowcaps,
+     blight pods, each with its own light (drawn in code, a pixel at a time, into an atlas of their own:
+     `js/structures.js`).
+
+   **What the dead build.** From chapter 2 on, where the horde holds ground (rout, gates and boss stages, not the
+   first stage of a land), it has built: one work for a team of one or two, two for a larger one, set by what they
+   guard with sharpened stakes in front and the banner of the dead behind. All must fall before the field is won.
+   - **Bone Watchtower**: quick arrows from the platform under a violet watch-fire that flares at each shot.
+   - **Grave Mortar**: a slow shell at the thickest knot of heroes; its mark is drawn on the ground and there is
+     time to step out (heroes do); the blast carries the land's touch.
+   - **Hex Obelisk**: a standing shard with a carved rune and splinters turning about it; every few seconds a pulse
+     runs out along threads to the dead near it, mending them and making them hit a fifth harder for a while.
+   - **Brazier** (Cinder Brazier, Rime Brazier, Bog Censer, Blight Censer by land): burns in the land's colour and
+     spits a patch under up to three heroes: fire, a slowing frost, a cloud of poison that lingers, or a draining blight.
+   - **Bone Cage**: eyes between the bars; it rattles and lets one more out, three in all, unless it is broken first.
+
+   Chapter 2 has towers (and a mortar later), chapter 3 mortars and towers, chapter 4 obelisks and cages, the
+   Frostmarch braziers and towers, the Cinderfields mortars and braziers, Mirefen cages and censers, the Hollow
+   obelisks with mortars or cages (`BB.defencesFor`; a stage can name its own with `defs`).
    Stage kinds:
    rout waves, destroy Gravegates, defend a ward against the clock, a duel and eight bosses with
    telegraphed moves and enrage phases. Each stage shows the recommended power next to yours.
@@ -287,6 +306,7 @@ name, their horde, the face-off, the clash) and a fall; chapters 2-4 open with y
 | `js/assets.js` | atlas loading, recolouring (dyes, skin, effect hues), paper-doll drawing, portraits |
 | land skins (`BB.LANDSKINS`, `BB.loadLand` in `js/assets.js`) | the far marches have no art files of their own. A skin is the vale kit and the ground kit re-coloured sprite by sprite when the land is first entered (about half a second): snow, ash or moss laid on whatever faces the sky, tree crowns turned, stone cooled or charred, the ground's texture kept in new colours, cracks between paving stones lit. Every sprite keeps its name, so every map layout, building and journey of the vale works in a skinned land. The two lands most lately entered keep their art in memory |
 | `js/world.js` | isometric projection, procedural maps per layout, painted ground, collisions, A* pathing |
+| `js/structures.js` | what the dead build: the five defences (stats, where they stand, what they do, how they are drawn), the art made for them and for the far marches, and its scatter over a land's maps |
 | `js/battle.js` | the battlefield: formation, hero/foe AI, energy and ultimates, bosses, objectives, rendering, lighting |
 | `js/audio.js` | synthesised sound effects and a procedural war-drum score |
 | `js/aura.js` | what gear and skills look like on a hero: gear glow, enchant particles, capstone marks (stateless) |
