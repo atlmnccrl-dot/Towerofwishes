@@ -394,7 +394,8 @@
       // He rises out of the city behind the roofs and comes to stand on the Spire's tip (the real knight, crisp).
       const fy = Math.round(H() * 1.15 + (spTip + 1 - H() * 1.15) * rise);
       A.tex(ctx, 'light_01', sx, fy - 40, W() * 0.9 * (0.5 + rise), H() * 1.2, '#a01838', 0.6 * rise, 0, true);
-      godAt(ctx, S, sx, fy, 2, T, { col: '#140409', amt: 0.35, pose: rise >= 1 && T > 2.3 ? 'raise' : null });
+      godAt(ctx, S, sx, fy, 2, T, { col: '#140409', amt: 0.35, pose: rise < 1 ? 'hover' : T > 2.3 ? 'raise' : 'stand', aura: 0.5 + 0.4 * rise, crown: rise >= 1 });
+      if (rise > 0.2) A.fx(ctx, 'fc_wind', T, sx, fy - 50, 1.4, 0.7 * rise);   // ash and torn cloth streaming off him
       if (rise < 1) for (let i = 0; i < 16; i++) { const ph = (T * 1.4 + hash(i, 611)) % 1, px = sx + (hash(i, 612) - 0.5) * 40, py = fy - 10 + ph * 40; ctx.fillStyle = `rgba(30,12,20,${0.8 * (1 - ph)})`; ctx.fillRect(Math.round(px), Math.round(py), 1, 1); }
     }
     // The city: its windows going dark as the ground shakes.
@@ -433,10 +434,13 @@
     ctx.save(); ctx.translate(mx, H() * 0.6); ctx.scale(push, push); ctx.translate(-mx, -H() * 0.6);
     moon(ctx, mx + (raise ? Math.sin(T * 60) * 1.5 : 0), H() * 0.34, H() * 0.34, '#f4ece6', 'rgba(255,240,230,0.3)', 0);
     { const rg = ctx.createRadialGradient(mx, H() * 0.7, 4, mx, H() * 0.7, W() * 0.5); rg.addColorStop(0, 'rgba(30,0,8,0.8)'); rg.addColorStop(1, 'rgba(30,0,8,0)'); ctx.fillStyle = rg; ctx.fillRect(-8, -8, W() + 16, H() + 16); }
-    // Him on the Spire's tip against the moon, close: the real knight at 3x; he draws his sword back.
+    // Him on the Spire's tip against the moon: he calls his army (arms out, the fire rising round him, his runes
+    // opening on the roofs far below), then draws his sword back along the line the cut will take, the moon running
+    // down its edge (his animation and effects packs: C_Command, C_Cut, fc_aura, fc_summon, fc_glint).
     A.tex(ctx, 'light_01', mx, H() * 0.55, 140, 150, '#a01838', 0.35, 0, true);
-    godAt(ctx, S, mx, Math.round(H() * 0.88), 3, T, { pose: raise ? 'side' : null, col: '#0a0408', amt: 0.3 });
-    if (raise) A.tex(ctx, 'light_01', mx - 30, H() * 0.6, 50, 50, '#ffffff', 0.25 * clamp((T - 1.2) / 0.4), 0, true);   // the moon on his blade
+    if (!raise) for (let i = 0; i < 4; i++) A.fx(ctx, 'fc_summon', T + i * 0.3, mx + (i - 1.5) * 52, H() * (0.9 + (i % 2) * 0.05), 0.9, clamp(T * 2 - i * 0.25));
+    godAt(ctx, S, mx, Math.round(H() * 0.88), 2, T, { pose: raise ? 'cut' : 'command', ft: raise ? 0.18 * clamp((T - 1.2) / 0.5) : null, col: '#0a0408', amt: 0.3, crown: true });
+    if (raise) A.fx(ctx, 'fc_glint', T - 1.3, mx - 22, H() * 0.6, 1, 1, -1.1);   // the moon running down his blade
     // The tip of the Spire beneath his feet.
     ctx.fillStyle = '#030204'; ctx.beginPath(); ctx.moveTo(mx - 30, H() + 10); ctx.lineTo(mx - 4, H() * 0.88); ctx.lineTo(mx + 4, H() * 0.88); ctx.lineTo(mx + 30, H() + 10); ctx.fill();
     ctx.restore();
@@ -471,7 +475,8 @@
     const hz = Math.round(H() * 0.86), gx = Math.round(mx), gy = Math.round(H() * 0.64);   // he stands on the Spire's tip, in front of the moon
     if (red > 0) A.tex(ctx, 'light_01', mx, hz, W() * 1.3, 60, RED, 0.6 * red, 0, true);
     A.tex(ctx, 'light_01', gx, gy - 40, 110, 110, red > 0 ? '#ff3a52' : '#a0a0c0', 0.25, 0, true);
-    godAt(ctx, S, gx, gy, 2, T, { pose: T < 1.55 ? 'side' : null, ft: T < 1.15 ? null : clamp((T - 1.15) / 0.4), col: '#0a0408', amt: 0.3 });
+    godAt(ctx, S, gx, gy, 2, T, { pose: 'cut', ft: T < 1.15 ? 0.18 : 0.18 + 0.82 * clamp((T - 1.15) / 0.5), col: '#0a0408', amt: 0.3, crown: true });
+    if (T > 1.1 && T < 1.75) A.fx(ctx, 'fc_crescent', T - 1.1, mx, my + r * 0.05, r / 120, 1, ang);   // his cut, a crescent of light across the moon
     if (T < 1.15) { const c = clamp(T / 1.1); A.tex(ctx, 'light_01', gx - 30, gy - 30, 30 + 40 * c, 30 + 40 * c, '#ffffff', 0.4 + 0.5 * c, 0, true); }   // light gathering on his blade
     ctx.fillStyle = '#0c0610'; ctx.beginPath(); ctx.moveTo(mx - 9, hz + 4); ctx.lineTo(mx - 2, H() * 0.68); ctx.lineTo(mx, H() * 0.64); ctx.lineTo(mx + 2, H() * 0.68); ctx.lineTo(mx + 9, hz + 4); ctx.fill();
     city(ctx, H() * 0.84, 7, '#1c1222', 0.3 * (1 - red), 1.0, 0);
@@ -778,6 +783,8 @@
   // col asks for a pure silhouette (the ink frames); any other darkens him toward it. Until the set has loaded: the
   // polygons (or nothing, with o.optional).
   const GOD_SET = 'vh_firstcut', godRef = {};
+  // pose -> [clip, frames, loop from (held poses cycle their last frames), fps]
+  const GOD_FILM = { hover: ['C_Hover', 15], stand: ['C_Stand', 15], raise: ['C_Raise', 12, 4, 6], cut: ['C_Cut', 15], command: ['C_Command', 15, 7, 6] };
   // The First Cut standing with his feet at (fx, fy), k (a whole number) pixels per sprite pixel, in a pose: guard
   // (Idle4), raise (Taunt, or the overhead cut of Attack4 through o.ft 0..1), side (drawn back: Attack6, or the swing
   // through o.ft), kneel (the end of his overhead cut, down on one knee). Shading as colossus().
@@ -786,14 +793,20 @@
     o = o || {}; k = Math.max(1, Math.min(2, Math.round(k)));
     const col = o.col || '#050204', ink = o.ink || /^#(000|000000|fff|ffffff)$/i.test(col), ang = o.ang == null ? Math.PI / 2 : o.ang;
     let clip = 'Idle4', fr = Math.floor((T || 0) * 7) % 15;
-    if (o.pose === 'raise') { if (o.ft != null) { clip = 'Attack4'; fr = Math.min(14, Math.floor(o.ft * 15)); } else { clip = 'Taunt'; fr = 12; } }
+    // His animation pack for the films (tools_firstcut.py: C_*, the cape in the wind): hover, stand, raise, cut, command.
+    const FILM = GOD_FILM[o.pose];
+    if (FILM) { clip = FILM[0]; const n = FILM[1]; fr = o.ft != null ? Math.min(n - 1, Math.floor(o.ft * n)) : FILM[2] != null ? FILM[2] + Math.floor((T || 0) * FILM[3]) % (n - FILM[2]) : Math.floor((T || 0) * 8) % n; }
+    else if (o.pose === 'raise') { if (o.ft != null) { clip = 'Attack4'; fr = Math.min(14, Math.floor(o.ft * 15)); } else { clip = 'Taunt'; fr = 12; } }
     else if (o.pose === 'side') { clip = 'Attack6'; fr = o.ft != null ? Math.min(14, 1 + Math.floor(o.ft * 10)) : 1; }
     else if (o.pose === 'kneel') { clip = 'Attack4'; fr = 13; }
     if (!A.hasSet(GOD_SET)) { if (!o.optional) colossusDrawn(ctx, S, fx, fy - 38 * k, k, T, { flat: true, pose: o.pose === 'side' ? 'side' : o.pose === 'raise' ? 'raise' : 'plant', col }); return false; }
     const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
     const ref = godRef['f' + k] || (godRef['f' + k] = A.box(GOD_SET, 'Idle4', 0, ang, k));   // his feet (the sprite's anchor sits higher)
     const y = ref ? fy - (ref.y + ref.h) : fy;
+    // His effects pack (tools_firstcut_fx.py): the fire rising round him behind, the flames on his crown in front.
+    if (o.aura && !ink) A.fx(ctx, 'fc_aura', T || 0, Math.round(fx), Math.round(fy + 2), k * 0.4, 0.6 * (o.aura === true ? 1 : o.aura));   // low, licking about his feet
     A.actor(ctx, GOD_SET, clip, fr, ang, Math.round(fx), Math.round(y), k, ink ? { shade: col } : { flash: Math.min(0.16, o.amt != null ? o.amt : 0.16), flashCol: col });
+    if (o.crown && !ink && ref) A.fx(ctx, 'fc_crown', T || 0, Math.round(fx), Math.round(y + ref.y + 10 * k), k * 0.8, 0.9);
     ctx.imageSmoothingEnabled = sm; return true;
   }
   function colossus(ctx, S, ex, ey, sc, T, o) {
@@ -829,7 +842,8 @@
     const bolt = (T > 1.1 && T < 1.22) || (T > 2.6 && T < 2.7);
     if (bolt) fill(ctx, 'rgba(255,220,230,0.18)');
     { const py = Hh * 0.8; ctx.fillStyle = '#030102'; ctx.beginPath(); ctx.moveTo(ex - 60, at(Hh * 1.4)); ctx.lineTo(ex - 14, at(py + 6)); ctx.lineTo(ex - 6, at(py)); ctx.lineTo(ex + 8, at(py)); ctx.lineTo(ex + 16, at(py + 8)); ctx.lineTo(ex + 64, at(Hh * 1.4)); ctx.fill();   // the pinnacle
-      godAt(ctx, S, ex, at(py) + 1, 3, T, { col: bolt ? '#3a0c18' : '#0a0408', amt: bolt ? 0.15 : 0.3, pose: T > 2.3 ? 'raise' : null }); }
+      godAt(ctx, S, ex, at(py) + 1, 2, T, { col: bolt ? '#3a0c18' : '#0a0408', amt: bolt ? 0.15 : 0.3, pose: T > 2.3 ? 'raise' : 'stand', aura: true, crown: true });
+      A.fx(ctx, 'fc_wind', T, ex - 10, at(py) - 50, 1.6, 0.8); }
     if (T > 2.3 && T < 2.4) kick(S, 6);
     // Clouds across his chest and waist, stones rising past him.
     for (let i = 0; i < 6; i++) A.tex(ctx, i % 2 ? 'smoke_07' : 'smoke_04', ((hash(i, 221) * W() * 1.6 + T * 12 * (i % 2 ? 1 : -1)) % (W() * 1.6)) - W() * 0.3, at(Hh * (0.85 + i * 0.17)), W() * 0.9, 50, '#3a0a14', 0.55, 0, false);
@@ -852,7 +866,7 @@
     ctx.save(); ctx.translate(W() / 2, gy); ctx.scale(push, push); ctx.translate(-W() / 2, -gy);
     moon(ctx, W() * 0.5, H() * 0.3, H() * 0.24, '#ff3a52', 'rgba(255,40,70,0.6)', 1, T);
     A.tex(ctx, 'light_01', W() * 0.5, H() * 0.4, W() * 0.8, H() * 0.7, '#7a1028', 0.5, 0, true);
-    godAt(ctx, S, Math.round(W() * 0.5), Math.round(H() * 0.62) + 1, 2, T, { col: '#0a0306', amt: 0.3 });
+    godAt(ctx, S, Math.round(W() * 0.5), Math.round(H() * 0.62) + 1, 2, T, { col: '#0a0306', amt: 0.3, pose: 'stand', crown: true });
     city(ctx, gy - 18, 29, '#14040a', 0, 0.7, 0);
     ctx.fillStyle = '#0c0206'; ctx.beginPath(); ctx.moveTo(W() * 0.5 - 6, gy - 16); ctx.lineTo(W() * 0.5 - 1, H() * 0.62); ctx.lineTo(W() * 0.5 + 1, H() * 0.62); ctx.lineTo(W() * 0.5 + 6, gy - 16); ctx.fill();   // the Spire (he stands on it)
     for (let i = 0; i < 3; i++) A.tex(ctx, 'smoke_04', ((hash(i, 741) * W() * 1.4 + T * (6 + i * 3)) % (W() * 1.4)) - W() * 0.2, gy - 16 + i * 4, W() * 0.8, 22, '#4a0c18', 0.5, 0, false);
@@ -910,7 +924,7 @@
       const e = clamp((k - 0.65) / 0.35);
       ctx.fillStyle = '#0a0204'; ctx.fillRect(-8, -8, W() + 16, gy + 8);
       { const rg = ctx.createRadialGradient(W() * 0.5, H() * 0.24, 4, W() * 0.5, H() * 0.3, W() * 0.6); rg.addColorStop(0, '#7a1424'); rg.addColorStop(1, '#14030a'); ctx.fillStyle = rg; ctx.fillRect(-8, -8, W() + 16, H() + 16); }
-      godAt(ctx, S, Math.round(W() * 0.5), Math.round(H() * 0.62), 2, T, { col: '#030102', amt: 0.5 });
+      godAt(ctx, S, Math.round(W() * 0.5), Math.round(H() * 0.62), 2, T, { col: '#030102', amt: 0.5, pose: 'stand' });
       burningEyes(ctx, Math.round(W() * 0.5), Math.round(H() * 0.24), 9, 1, T);
       ctx.fillStyle = '#000'; ctx.fillRect(-8, gy, W() + 16, H());
       A.actor(ctx, vs, 'Special1', 14, -Math.PI * 0.5, gx, gy, 1.9, { shade: '#e8203c' });   // solid red against his black
@@ -1014,7 +1028,7 @@
     { const sp = Math.round(w * 0.47), tp = Math.round(h * 0.44); ctx.fillStyle = '#5a1a2a'; ctx.beginPath(); ctx.moveTo(sp - 10, hz + 4); ctx.lineTo(sp - 2, tp + 8); ctx.lineTo(sp - 2, tp); ctx.lineTo(sp + 2, tp); ctx.lineTo(sp + 2, tp + 8); ctx.lineTo(sp + 10, hz + 4); ctx.fill();
       ctx.fillStyle = '#0c0206'; ctx.beginPath(); ctx.moveTo(sp - 9, hz + 4); ctx.lineTo(sp - 1, tp + 9); ctx.lineTo(sp + 1, tp + 9); ctx.lineTo(sp + 9, hz + 4); ctx.fill();
       A.tex(ctx, 'light_01', sp, tp - 20, 50, 60, '#ff3a52', 0.4, 0, true);
-      godAt(ctx, S, sp, tp + 1, 1, T, { col: bolt ? '#3a0c18' : '#0c0206', amt: 0.25, optional: true }); }   // he waits at the top of the Spire
+      godAt(ctx, S, sp, tp + 1, 1, T, { col: bolt ? '#3a0c18' : '#0c0206', amt: 0.25, optional: true, pose: 'stand' }); }   // he waits at the top of the Spire
     ctx.fillStyle = '#0a0205'; ctx.fillRect(-20, hz + 2, w + 40, h);
     for (let i = 0; i < 34; i++) { const x = ((i * 11 + T * -6 + hash(i, 821) * 8) % (w + 40) + w + 40) % (w + 40) - 20; A.actor(ctx, deadSet(S, i), 'Walk', Math.floor(T * 7 + i * 3) % 15, Math.PI, Math.round(x), hz + 3 + (i % 3), 0.32, { shade: bolt ? '#4a1a24' : '#16040a' }); }
     ctx.restore();

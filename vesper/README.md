@@ -335,6 +335,21 @@ summit's far rim while you cut floating limbs. Now:
   The sheet says `"res": 2` and js/assets.js draws it at half the scale, so he keeps his size and gains the detail.
   Five 2048 pages, about 6 MB. He fights at 1.8 times a man's size. Used everywhere he appears: both his fights, the
   echo, the soul, the playable First Cut, the opening, the films.
+- **His animation pack** (the author: "create an animation and asset pack and change the cutscenes for the opening to work
+  better with his model"): cinematic clips in the same sheet, made from the knight's own frames with the cape answering the
+  wind (`tools_firstcut.py`, directions S, SE, SW, E, W): `C_Hover` (rising, the cape lifted and spread by the updraft),
+  `C_Stand` (the cape streaming out), `C_Raise` (the blade held high, its last frames cycling), `C_Cut` (the wide sweep that
+  cut the moon, the cape whipping against it), `C_Command` (calling his dead, arms out). godAt's poses `hover`, `stand`,
+  `raise`, `cut`, `command` play them.
+- **His effects pack** (`tools_firstcut_fx.py`, `assets/fx/fc_fx.*`, merged by js/assets.js): `fc_crescent` (the crescent of
+  white-hot light his cut leaves across the moon), `fc_aura` (crimson-black flame licking at his feet), `fc_crown` (flames on his
+  crown), `fc_glint` (the moon running down his blade), `fc_wind` (ash and torn cloth on the wind), `fc_summon` (his rune opening
+  in the ground, motes rising), `fc_shock` (a flat crimson shockwave).
+- **The opening, re-cut for him**: he rises over the city in the updraft (C_Hover, his flames, ash streaming off him) and lands
+  on the Spire's tip (C_Stand); "He wanted an army": arms out (C_Command), his runes opening on the roofs below, then he draws
+  back along the line of the cut, the moon glinting down his blade; "So he cut the moon": the sweep itself (C_Cut) timed with
+  the stroke, the crescent of light across the moon; at the top of the Spire the wind in his cape, flames on his crown, then
+  the blade up (C_Raise); "Kneel" and the title menu: standing in the wind. The flash in the cold open: his raised blade in ink.
 - **The last fight** (a5-b) is a duel: `D.FOES.firstCutFinal`, the knight himself on the summit at 1.6 times a man's size,
   with his combo, lunges, crescent waves, moonfall and mirror. The god above (js/sim.js, 'the god') is now only the will
   behind him: its health follows his body's; he raises his blade to call the sky blades, crosses, sweeps and quakes (more

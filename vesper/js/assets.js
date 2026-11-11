@@ -31,8 +31,9 @@
     let n = 0; const total = ids.length + 3; const tick = () => { n++; if (onProgress) onProgress(n / total); };
     const jobs = ids.map((id) => loadSet(id).then(tick));
     // The effect pack, and the forge's effects (tools_forge.py: v_*) merged in after it (their page indices shifted).
-    jobs.push(Promise.all([loadJSON(A.ROOT + 'fx/fx.json'), loadJSON(A.ROOT + 'fx/forge.json').catch(() => null)]).then(async ([d, f]) => {
-      if (f) { const off = d.pages.length; d.pages = d.pages.concat(f.pages); for (const k in f.fx) { const e = f.fx[k]; e.frames = e.frames.map((fr) => [fr[0] + off].concat(fr.slice(1))); d.fx[k] = e; } }
+    // ... and the First Cut's own pack (tools_firstcut_fx.py: fc_*), the same way.
+    jobs.push(Promise.all([loadJSON(A.ROOT + 'fx/fx.json'), loadJSON(A.ROOT + 'fx/forge.json').catch(() => null), loadJSON(A.ROOT + 'fx/fc_fx.json').catch(() => null)]).then(async ([d, f, fc]) => {
+      for (const g of [f, fc]) if (g) { const off = d.pages.length; d.pages = d.pages.concat(g.pages); for (const k in g.fx) { const e = g.fx[k]; e.frames = e.frames.map((fr) => [fr[0] + off].concat(fr.slice(1))); d.fx[k] = e; } }
       d.images = await Promise.all(d.pages.map((p) => loadImage(A.ROOT + 'fx/' + p))); fxData = d; tick();
     }));
     jobs.push(loadJSON(A.ROOT + 'tiles/tiles.json').then(async (d) => { d.images = await Promise.all(d.pages.map((p) => loadImage(A.ROOT + 'tiles/' + p))); tileData = d; tick(); }));

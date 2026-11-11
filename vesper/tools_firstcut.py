@@ -67,7 +67,7 @@ def head_of(a):
     ys, xs = np.nonzero(warm)
     if not len(ys): ys, xs = np.nonzero(a[..., 3] > 0); y0 = ys.min(); sel = ys <= y0 + 4; return xs[sel].mean(), y0 + 4.0
     y0 = ys.min(); sel = ys <= y0 + 5; return xs[sel].mean(), ys[sel].mean()
-def cape(im, d, hx, hy, feet, i, clip, front):
+def cape(im, d, hx, hy, feet, i, clip, front, wind=None):
     """A tattered crimson cape from his shoulders: behind him, or over his back when he faces away."""
     g = ImageDraw.Draw(im); sy = hy + 13; L = max(18, feet - sy - 4)
     side = {'E': -1, 'W': 1, 'SE': -0.5, 'SW': 0.5, 'NE': -0.5, 'NW': 0.5, 'S': 0, 'N': 0}[d]
@@ -75,15 +75,19 @@ def cape(im, d, hx, hy, feet, i, clip, front):
     profile = d in ('E', 'W')
     tw, bw = (9, 20) if profile else (15, 30) if front else (13, 28)
     back = side * (16 if moving else 9) + sway; L = L * (0.82 if moving else 1)
+    lift = 0
+    if wind:   # the cinematic clips: (wx, lift, spread, flutter): blown sideways, lifted and spread by the wind
+        wx, lift, spread, flut = wind; back = side * 4 + wx * L * 0.55 + math.sin(i * 1.3) * flut; bw *= spread
     tl, tr = (hx - tw / 2 + side * 3, sy), (hx + tw / 2 + side * 3, sy)
-    bl, br = (hx - bw / 2 + back, sy + L), (hx + bw / 2 + back, sy + L)
+    by = sy + L * (1 - lift)
+    bl, br = (hx - bw / 2 + back, by), (hx + bw / 2 + back, by)
     hem = [br]; n = 6
     for k in range(1, n):   # the torn hem
-        t = k / n; hem.append((br[0] + (bl[0] - br[0]) * t, br[1] - (7 if k % 2 else 1) - 2 * math.sin(i * 0.9 + k)))
+        t = k / n; amp = 2 if not wind else 2 + wind[3] * 0.8; hem.append((br[0] + (bl[0] - br[0]) * t, br[1] - (7 if k % 2 else 1) - amp * math.sin(i * 0.9 + k * 1.7)))
     hem.append(bl); pts = [tl, tr] + hem
     g.polygon(pts, fill=CAPE + (255,))
     mid = (tl[0] + tr[0]) / 2, (bl[0] + br[0]) / 2   # a fold down its middle and a lit edge
-    g.polygon([(mid[0] - 2, sy + 3), (mid[0] + 2, sy + 3), (mid[1] + 5, sy + L - 5), (mid[1] - 3, sy + L - 3)], fill=CAPE_DK + (255,))
+    g.polygon([(mid[0] - 2, sy + 3), (mid[0] + 2, sy + 3), (mid[1] + 5, by - 5), (mid[1] - 3, by - 3)], fill=CAPE_DK + (255,))
     g.line([tr, br], fill=CAPE_HI + (255,), width=2)
     g.ellipse([hx - tw / 2 - 1, sy - 3, hx + tw / 2 + 1, sy + 4], fill=CAPE_DK + (255,))   # the collar
 def horns(im, d, hx, hy):
@@ -98,15 +102,15 @@ def build():
     d = json.load(open(f'{PX}/{SRC}.json')); pages = [np.asarray(Image.open(f'{PX}/{p}').convert('RGBA')) for p in d['pages']]
     cache, items = {}, []   # unique frames: key -> (image, ox, oy)
     PAD = 14   # room (at 1x) for the cape, the horns and the outline
-    def process(f, clip, dname, i):
+    def process(f, clip, dname, i, wind=None):
         pg = pages[f[0]]; x, y, w, h, ox, oy = f[1:7]
         a = np.zeros((h + 2 * PAD, w + 2 * PAD, 4), np.uint8); a[PAD:PAD + h, PAD:PAD + w] = pg[y:y + h, x:x + w]
         hx, hy = head_of(a); hx, hy = hx * RES, hy * RES; feet = (PAD + h) * RES
         body = Image.fromarray(scale2x(recolour(a))); front = dname in ('N', 'NE', 'NW')
         canvas = Image.new('RGBA', body.size, (0, 0, 0, 0))
-        if clip not in NO_CAPE and not front: cape(canvas, dname, hx, hy, feet, i, clip, False)
+        if clip not in NO_CAPE and not front: cape(canvas, dname, hx, hy, feet, i, clip, False, wind)
         canvas.alpha_composite(body)
-        if clip not in NO_CAPE and front: cape(canvas, dname, hx, hy, feet, i, clip, True)
+        if clip not in NO_CAPE and front: cape(canvas, dname, hx, hy, feet, i, clip, True, wind)
         if clip != 'Die': horns(canvas, dname, hx, hy)
         img = finish(np.asarray(canvas).copy())
         ys, xs = np.nonzero(img[..., 3] > 0); y0, y1, x0, x1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
@@ -118,6 +122,24 @@ def build():
     anims = {}
     for clip, dirs in d['anims'].items():
         anims[clip] = {k: [None if f is None else process(f, clip, k, i) for i, f in enumerate(fr)] for k, fr in dirs.items()}
+    # The animation pack for the films (js/intro.js godAt): the knight's own frames, the cape in the wind.
+    #   C_Hover   rising over the city: the cape lifted and spread by the updraft
+    #   C_Stand   at the top of the Spire: the cape streaming out in the wind
+    #   C_Raise   the blade held high (the Taunt's raised frames), the cape billowing
+    #   C_Cut     the wide sweep that cut the moon (Attack6), the cape whipping against the swing
+    #   C_Command calling his dead up (Special1), the cape flaring
+    FILM_DIRS = ('S', 'SE', 'SW', 'E', 'W')
+    def film(name, src, frames, windf):
+        an = d['anims'][src]; anims[name] = {}
+        for k in FILM_DIRS:
+            fr = an.get(k) or an['S']; seq = [fr[min(len(fr) - 1, j)] for j in frames]
+            anims[name][k] = [None if f is None else process(f, 'Film', k, i, windf(i, len(seq), k)) for i, f in enumerate(seq)]
+    sgn = lambda k: {'E': -1, 'W': 1, 'SE': -1, 'SW': 1, 'S': 1}[k]
+    film('C_Hover', 'Idle4', range(15), lambda i, n, k: (0.15 * math.sin(i * 0.5), 0.42, 1.45, 4))
+    film('C_Stand', 'Idle4', range(15), lambda i, n, k: (0.75 * sgn(k), 0.18, 1.15, 3))
+    film('C_Raise', 'Taunt', [8, 9, 10, 11, 12, 12, 12, 13, 12, 12, 13, 12], lambda i, n, k: (0.5 * sgn(k), 0.3, 1.3, 4))
+    film('C_Cut', 'Attack6', range(15), lambda i, n, k: ((0.9 if i < 6 else -0.9) * sgn(k), 0.25, 1.3, 5))
+    film('C_Command', 'Special1', range(15), lambda i, n, k: (0.3 * sgn(k), 0.35 + 0.15 * min(1, i / 6), 1.5, 4))
     # Shelf-pack the unique frames, tallest first, into PAGE x PAGE sheets.
     order = sorted(range(len(items)), key=lambda i: -items[i][0].shape[0]); place = {}; sheets = []
     cx = cy = row = 0; sheet = None
