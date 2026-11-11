@@ -722,6 +722,7 @@
     if (BB.musterSelect) BB.musterSelect(h.id);
   };
   UI.heroSel = () => HF.sel;
+  UI.heroSelSet = (id) => { HF.sel = id; };
   click($('hsSpot'), () => { if (HF.sel) UI.openHero(HF.sel); });
   UI.heroesRender = function () {}; // the heroes stand in the scene itself now (main.js: the muster)
   (function () { const st = $('hsStage'); if (!st) return; st.addEventListener('click', (ev) => {
@@ -732,104 +733,6 @@
     HF.sel = id; document.querySelectorAll('#heroList .hc.sel').forEach((x) => x.classList.remove('sel')); const card = document.querySelector('#heroList .hc[data-id="' + id + '"]'); if (card) { card.classList.add('sel'); card.scrollIntoView({ block: 'nearest' }); }
     UI.heroSpot();
   }); })();
-
-  // ---------------------------------------------------------------- hero detail
-  const D = UI.hd = { id: null, t: 0 };
-  UI.openHero = function (id) { D.id = id; D.t = 0; UI.renderHero(); UI.show('hero'); };
-  UI.renderHero = function () {
-    const S = BB.save, h = S.heroes.find((x) => x.id === D.id); if (!h) return;
-    const Cl = BB.CALLINGS[h.calling], R = BB.HERO_RARITY[h.rarity];
-    $('hrShow').className = 'show frame ' + RCLS(h.rarity);
-    $('hrRk').textContent = R.name + (h.legend ? ' · Legend' : h.captain ? ' · Banner-Captain' : '');
-    $('hrNm').textContent = h.name;
-    $('hrCl').innerHTML = UI.callIcon(h.calling) + Cl.name + ' · ' + Cl.role + (BB.heroElem(h) && Cl.ranged ? ' · ' + BB.ELEMENTS[BB.heroElem(h)].name : '');
-    $('hrStars').textContent = '★'.repeat(h.stars) + '☆'.repeat(BB.MAX_STARS - h.stars);
-    const team = BB.teamHeroes(S), st = BB.heroStats(h, BB.teamIds(S).includes(h.id) ? team.map((x) => x.calling) : null);
-    const box = $('hrInfo'); box.innerHTML = '';
-    const cap = BB.levelCap(h);
-    box.appendChild(el('div', 'power', '<span class="ico pow">⚔</span><b>' + fmt(BB.power(h)) + '</b><div class="lvbar"><span>Level ' + h.level + ' / ' + cap + '</span><div class="bar"><i style="width:' + (h.level / cap * 100) + '%"></i></div></div>'));
-    const stat = (ic, nm, v) => '<div><i>' + ic + '</i><span>' + nm + '<b>' + v + '</b></span></div>';
-    box.appendChild(el('div', 'stats', stat('♥', 'Health', fmt(st.hp)) + stat('⚔', 'Attack', Math.round(st.atk)) + stat('⛨', 'Defence', Math.round(st.def)) +
-      stat('✦', 'Crit', Math.round(st.crit * 100) + '%') + stat('➶', 'Speed', st.spd.toFixed(1)) + stat('◎', 'Range', Cl.ranged ? 'Far' : 'Melee')));
-    box.appendChild(el('div', 'ult ' + RCLS(h.rarity), '<div class="gem">' + UI.callIcon(h.calling) + '</div><div><b>Ultimate · ' + Cl.skill.name + '</b><p>' + Cl.skill.desc + '</p></div>'));
-    const ups = el('div', 'ups');
-    const capped = h.level >= cap;
-    const lv = el('div', 'mute', '<span style="font-size:13px">' + (capped ? 'Level cap reached.' : 'Experience ' + (h.xp || 0) + ' / ' + BB.xpNeed(h) + ' — fight with ' + BB.shortName(h) + ' to level up.') + '</span>'); lv.style.flex = '1 1 auto';
-    const maxS = h.stars >= BB.MAX_STARS;
-    const as = el('button', 'btn blue', maxS ? 'Max stars' : 'Ascend ★<span class="cost">✧ ' + S.sigils + ' / ' + BB.ascendCost(h) + '</span>');
-    as.disabled = maxS || S.sigils < BB.ascendCost(h);
-    click(as, () => { if (BB.ascend(S, h)) { BB.sfx('rally'); BB.persist(); UI.renderHero(); UI.refreshTop(); D.flash = 1; UI.toast(h.name + ' ascends to ' + h.stars + ' stars! Level cap ' + BB.levelCap(h)); } });
-    ups.appendChild(lv); ups.appendChild(as);
-    box.appendChild(ups);
-    if (capped && !maxS) box.appendChild(el('div', 'mute', '<span style="font-size:13px">Ascend to raise the level cap. Sigils come from bosses, spoils, goals and the shop.</span>'));
-    const gh = el('div', 'row'); gh.appendChild(el('div', 'ph grow', 'Gear')); const eb = el('button', 'btn dark sm', 'Equip best'); click(eb, () => { BB.equipBest(S, h); BB.sfx('forge'); BB.persist(); UI.renderHero(); UI.refreshTop(); }); gh.appendChild(eb);
-    box.appendChild(gh);
-    const g4 = el('div', 'gear4');
-    for (const slot of BB.SLOTS) {
-      const it = h.gear[slot];
-      const b = el('button', 'gs');
-      if (it) { b.style.setProperty('--ic', BB.RARITY[it.rarity].color); b.appendChild(UI.itemIcon(it, 40)); if (it.plus) b.appendChild(el('span', 'plus', '+' + it.plus)); b.title = it.name + ' · ' + UI.statLine(BB.itemStats(it)); }
-      else { b.appendChild(el('span', 'glyph', { weapon: '⚔', chest: '⛨', head: '⛑', charm: '✦' }[slot])); if (S.inventory.some((x) => x.slot === slot && BB.canEquip(h, x))) b.appendChild(el('span', 'new', '+')); }
-      b.appendChild(el('small', '', BB.SLOT_NAME[slot]));
-      click(b, () => UI.pickGear(h, slot));
-      g4.appendChild(b);
-    }
-    box.appendChild(g4);
-    const row = el('div', 'row'); row.style.marginTop = 'auto';
-    const lead = el('button', 'btn dark sm', S.leader === h.id ? UI.si('check', 14) + ' Shown at camp' : 'Show at camp'); click(lead, () => { S.leader = h.id; BB.persist(); UI.renderHero(); }); row.appendChild(lead);
-    row.appendChild(el('div', 'grow'));
-    const back = el('button', 'btn dark sm', '‹ Heroes'); click(back, () => UI.go('heroes')); row.appendChild(back);
-    box.appendChild(row);
-  };
-  UI.heroStep = function (d) {
-    const S = BB.save, list = sortHeroes(S.heroes), i = list.findIndex((x) => x.id === D.id);
-    D.id = list[(i + d + list.length) % list.length].id; D.t = 0; UI.renderHero();
-  };
-  UI.heroRender = function (dt) {
-    const c = $('hrCv'); if (!c) return; const S = BB.save, h = S.heroes.find((x) => x.id === D.id); if (!h) return;
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    const w = Math.round(c.clientWidth * dpr), hh = Math.round(c.clientHeight * dpr); if (!w || !hh) return;
-    if (c.width !== w || c.height !== hh) { c.width = w; c.height = hh; }
-    const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
-    D.t += dt;
-    const col = RGBA[h.rarity || 0];
-    const bg = g.createRadialGradient(w / 2, hh * 0.55, 0, w / 2, hh * 0.55, Math.max(w, hh) * 0.75);
-    bg.addColorStop(0, col.replace('A', '0.2')); bg.addColorStop(0.55, '#111520'); bg.addColorStop(1, '#090b10');
-    g.fillStyle = bg; g.fillRect(0, 0, w, hh);
-    const layers = BB.heroLayers(h), key = layers[0].key, ult = BB.CALLINGS[h.calling];
-    const cyc = D.t % 7, clip = cyc > 5 ? (BB.hasClip(key, 'Special1') ? 'Special1' : 'Taunt') : cyc > 3.4 && cyc < 4.3 ? ult.basic[0] : 'Idle';
-    const n = BB.clipLen(key, clip) || 15;
-    const fr = clip === 'Idle' ? Math.floor(D.t * 9) % n : Math.min(n - 1, Math.floor((cyc - (cyc > 5 ? 5 : 3.4)) * 15));
-    const sc = Math.max(2, Math.round(hh / 105));
-    const cx = w / 2, cy = hh * 0.84;
-    UI.podium(g, cx, cy, Math.min(w * 0.38, 30 * sc), col, D.t);
-    BB.drawLayers(g, layers, clip, Math.floor(D.t / 3) % 2 ? 1 : 2, fr, cx, cy, sc, { noSlash: clip === 'Idle', flash: D.flash > 0 ? D.flash : 0 });
-    if (D.flash > 0) D.flash = Math.max(0, D.flash - dt * 1.5);
-  };
-  UI.pickGear = function (h, slot) {
-    const S = BB.save, body = $('pickBody'); body.innerHTML = '';
-    body.appendChild(el('h3', 'gold', BB.SLOT_NAME[slot] + ' for ' + esc(BB.shortName(h))));
-    const cur = h.gear[slot];
-    if (cur) body.appendChild(el('div', 'mute', 'Equipped: <span style="color:' + BB.RARITY[cur.rarity].color + '">' + esc(cur.name) + (cur.plus ? ' +' + cur.plus : '') + '</span> · ' + UI.statLine(BB.itemStats(cur))));
-    const list = S.inventory.filter((it) => it.slot === slot && BB.canEquip(h, it)).sort((a, b) => BB.itemScore(b) - BB.itemScore(a));
-    const grid = el('div', 'pick scroll');
-    if (!list.length) grid.appendChild(el('div', 'mute', 'Nothing in the armory for this slot yet. Gear drops from stages and chests, and the shop sells it.'));
-    for (const it of list) {
-      const b = el('button', 'prow'); b.style.setProperty('--ic', BB.RARITY[it.rarity].color);
-      const ic = el('div', 'it'); ic.appendChild(UI.itemIcon(it, 40)); if (it.plus) ic.appendChild(el('span', 'plus', '+' + it.plus)); b.appendChild(ic);
-      b.appendChild(el('div', 'grow', '<b style="color:' + BB.RARITY[it.rarity].color + '">' + esc(it.name) + (it.plus ? ' +' + it.plus : '') + '</b><small>' + UI.statLine(BB.itemStats(it)) + '</small>'));
-      const diff = BB.itemScore(it) - BB.itemScore(cur);
-      b.appendChild(el('span', 'delta ' + (diff >= 0 ? 'up' : 'down'), (diff >= 0 ? '▲ ' : '▼ ') + Math.abs(diff)));
-      click(b, () => { S.inventory.splice(S.inventory.indexOf(it), 1); if (cur) S.inventory.push(cur); h.gear[slot] = it; BB.persist(); BB.sfx('forge'); UI.modal('mPick', false); UI.renderHero(); UI.refreshTop(); });
-      grid.appendChild(b);
-    }
-    body.appendChild(grid);
-    const row = el('div', 'row'); row.style.justifyContent = 'flex-end';
-    if (cur) { const u = el('button', 'btn dark sm', 'Take off'); click(u, () => { S.inventory.push(cur); h.gear[slot] = null; BB.persist(); UI.modal('mPick', false); UI.renderHero(); UI.refreshTop(); }); row.appendChild(u); }
-    const x = el('button', 'btn sm', 'Close'); click(x, () => UI.modal('mPick', false)); row.appendChild(x);
-    body.appendChild(row);
-    UI.modal('mPick');
-  };
 
   // ---------------------------------------------------------------- recruit: one great gate, a tab per tier
   const RC = UI.rec = { t: 0, tier: 0, loaded: {}, pool: [], feat: 0, featT: 0 };

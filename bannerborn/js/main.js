@@ -255,26 +255,45 @@
       const e = sc.spawnHero(h, BB.heroStats(h), x, y); e.rank = { x, y }; e.home = { x, y }; e.idleT = 1e9; sc.face(e, x + 1, y + 1);
       sc.muster.byId[h.id] = e;
     });
-    const mid = (back - 3.6 + c + 2.55) / 2; sc.fixCam = { x: mid, y: mid }; // half way from the banner's top to the feet of the hero called forward sc.zoomK = sc.zoomTarget = 1.3;
+    const mid = (back - 3.6 + c + 2.55) / 2; sc.fixCam = { x: mid, y: mid }; sc.muster.mid = mid; // half way from the banner's top to the feet of the hero called forward sc.zoomK = sc.zoomTarget = 1.3;
     return sc;
   }
   function menuScene(sc) { // each frame: where the place sits on the screen, and how large
     if (sc.market) { marketFrame(sc); return; }
-    const M = sc.muster, st = document.getElementById('hsStage'), rc = st && st.getBoundingClientRect(); if (!M || !rc || !rc.width) return;
-    // the ranks are (cols) wide and (rows) deep; above them the banner, below them the place of the hero called forward
-    const small = innerHeight < 520, z1 = camZoom(), needW = ((M.cols + 1) * 0.85 + 0.4) * BB.TW, needH = (M.rows - 1) * 0.884 * BB.TH + 166;
-    const top = small ? 4 : rc.top, roomH = rc.bottom - top - (small ? 96 : 132);
-    const k = Math.max(0.5, Math.min(1.6, rc.width / (needW * z1), roomH / (needH * z1)));
-    sc.zoomK = sc.zoomTarget = k; sc.cam.zoom = z1 * k;
-    sc.viewOff = { x: (rc.left + rc.width / 2) * DPR - W / 2, y: (top + roomH * 0.5 + 20 * z1 * k) * DPR - H / 2 };
-    for (const id in M.byId) { const e = M.byId[id]; e.idleT = 1e9; if (!(e.route && e.route.length)) { const at = id === M.sel ? M.front : e.rank; if (Math.hypot(e.x - at.x, e.y - at.y) > 0.5) { e.route = [{ x: at.x, y: at.y }]; e.routeSp = 3; } else e.dir = BB.dirFromVec(1, 1); } }
+    const M = sc.muster, close = UI.current === 'hero', st = document.getElementById(close ? 'hxStage' : 'hsStage'), rc = st && st.getBoundingClientRect(); if (!M || !rc || !rc.width) return;
+    const small = innerHeight < 520, z1 = camZoom(), T = {};
+    if (close) { // the hero's own page: the camera closes in on whoever stands in front, their feet two thirds of the way down
+      const tall = Math.min(rc.height * (small ? 0.5 : 0.42), rc.width * 0.52); T.k = tall / (46 * z1); // a hero is about 46 world pixels from boots to crest
+      T.x = M.front.x; T.y = M.front.y; T.vx = (rc.left + rc.width / 2) * DPR - W / 2; T.vy = (rc.top + rc.height * (small ? 0.7 : 0.66) + 20 * z1 * T.k) * DPR - H / 2;
+    } else { // the ranks are (cols) wide and (rows) deep; above them the banner, below them the place of the hero called forward
+      const needW = ((M.cols + 1) * 0.85 + 0.4) * BB.TW, needH = (M.rows - 1) * 0.884 * BB.TH + 166, top = small ? 4 : rc.top, roomH = rc.bottom - top - (small ? 96 : 132);
+      T.k = Math.max(0.5, Math.min(1.6, rc.width / (needW * z1), roomH / (needH * z1)));
+      T.x = M.mid; T.y = M.mid; T.vx = (rc.left + rc.width / 2) * DPR - W / 2; T.vy = (top + roomH * 0.5 + 20 * z1 * T.k) * DPR - H / 2;
+    }
+    const now = performance.now(), dt = Math.min(0.1, (now - (M.last || now)) / 1000), C = M.cur || (M.cur = Object.assign({}, T)), a = M.snap ? 1 : Math.min(1, dt * 5); M.last = now; M.snap = false;
+    for (const q in T) C[q] += (T[q] - C[q]) * a;
+    sc.fixCam.x = C.x; sc.fixCam.y = C.y; sc.zoomK = sc.zoomTarget = C.k; sc.cam.zoom = z1 * C.k; sc.viewOff = { x: C.vx, y: C.vy };
+    M.pace = close ? 7 : 3;
+    for (const L of sc.map.lights) if (L.spot) L.rad = close ? 1.7 : 2.6;
+    sc.closeK = (sc.closeK || 0) + ((close ? 1 : 0) - (sc.closeK || 0)) * a; sc.spotEnt = M.byId[M.sel] || null;
+    for (const id in M.byId) { const e = M.byId[id]; e.idleT = 1e9; if (!(e.route && e.route.length)) { const at = id === M.sel ? M.front : e.rank; if (Math.hypot(e.x - at.x, e.y - at.y) > 0.5) { e.route = [{ x: at.x, y: at.y }]; e.routeSp = M.pace; } else if (e.state !== 'attack') e.dir = BB.dirFromVec(1, 1); } }
   }
   // the hero chosen on the page steps out of the ranks into the light; the one before goes back
   BB.musterSelect = function (id) {
     const sc = musterScene; if (!sc || !sc.muster) return;
     const M = sc.muster, was = M.sel && M.byId[M.sel], e = M.byId[id];
-    if (was && was !== e) { was.route = [{ x: was.rank.x, y: was.rank.y }]; was.routeSp = 3; }
-    if (e) { e.route = [{ x: M.front.x, y: M.front.y }]; e.routeSp = 3; M.sel = id; const R = BB.UI.rgba[e.hero.rarity || 0].replace('rgba(', '').replace(',A)', ''); sc.map.lights = sc.map.lights.filter((L) => !L.spot); sc.map.lights.push({ x: M.front.x, y: M.front.y, rad: 2.6, col: R, spot: true }); }
+    if (was && was !== e) { was.route = [{ x: was.rank.x, y: was.rank.y }]; was.routeSp = M.pace || 3; }
+    if (e) { e.route = [{ x: M.front.x, y: M.front.y }]; e.routeSp = M.pace || 3; M.sel = id; const R = BB.UI.rgba[e.hero.rarity || 0].replace('rgba(', '').replace(',A)', ''); sc.map.lights = sc.map.lights.filter((L) => !L.spot); sc.map.lights.push({ x: M.front.x, y: M.front.y, rad: 2.6, col: R, spot: true }); }
+  };
+  BB.musterShow = function (kind, hue) {
+    const sc = musterScene; if (!sc || scene !== sc) return; const M = sc.muster, e = M.byId[M.sel]; if (!e || (e.route && e.route.length)) return;
+    const key = sc.artKey(e), pick = (list) => list.find((c) => BB.hasClip(key, c));
+    const clip = kind === 'ult' ? pick(['Special1', 'Attack3', 'Taunt', 'Attack1']) : kind === 'sig' ? pick(['Taunt', 'Attack2', 'Attack1']) : kind === 'cheer' || kind === 'learn' ? pick(['Taunt', 'Special1', 'Attack1'])
+      : kind === 'flourish' ? pick([['Attack1', 'Attack2', 'Taunt', 'Attack3'][Math.floor(Math.random() * 4)], 'Attack1']) : pick(['Attack1', 'Attack2', 'Taunt']);
+    if (clip) { e.dir = BB.dirFromVec(1, 1); e.state = 'attack'; e.lock = sc.clipLen(e, clip) / 16; e.atkDur = e.lock; e.hitAt = 99; e.hitDone = true; sc.setClip(e, clip, true); }
+    const fx = { ult: ['aoe', 1], sig: ['buff1', 0.8], cheer: ['levelup', 1], equip: ['buff9', 0.8], learn: ['buff3', 0.8] }[kind];
+    if (fx && BB.fxLen(fx[0])) sc.addFx(fx[0], e.x, e.y, { sc: fx[1], add: true, hue });
+    if (kind === 'ult') sc.shake = 0.5;
   };
   BB.musterAt = function (cx, cy) { // which hero stands under a point of the screen (canvas pixels)
     const sc = musterScene; if (!sc || scene !== sc || !sc.view) return null;
@@ -286,9 +305,9 @@
     if (mode === 'battle' || !BB.save) return;
     try {
       if (tab === 'shop') { const k = (BB.save.leader || '') + '|' + BB.save.banner.color; if (!shopScene || shopScene.marketKey !== k) { shopScene = await buildMarket(); shopScene.marketKey = k; } if (UI.current === 'shop') { scene = shopScene; mode = 'camp'; BB.marketFocus(UI.marketSel ? UI.marketSel() : null); } }
-      else if (tab === 'heroes') {
+      else if (tab === 'heroes' || tab === 'hero') {
         const k = musterKeyOf(); if (!musterScene || musterKey !== k) { musterScene = await buildMuster(); musterKey = k; }
-        if (UI.current === 'heroes') { scene = musterScene; mode = 'camp'; for (const id in musterScene.muster.byId) { const e = musterScene.muster.byId[id]; e.idleT = 1e9; } BB.musterSelect(UI.heroSel()); }
+        if (UI.current === tab) { if (scene !== musterScene) musterScene.muster.snap = true; scene = musterScene; mode = 'camp'; for (const id in musterScene.muster.byId) { const e = musterScene.muster.byId[id]; e.idleT = 1e9; } BB.musterSelect(UI.heroSel()); }
       }
     } catch (e) { /* the page still works over the camp */ }
   };
@@ -704,12 +723,12 @@
     for (const q of BB.QUESTS) if (BB.questState(S, q) === 'ready') { BB.claimQuest(S, q.id); note('  goal: ' + q.name); }
     UI.refreshTop(); UI.renderHome(); await sleep(P(1500)); if (Bot.stop) return;
     // the shop: the gift, sigils, a chest, the purse; a weapon when nobody is left to recruit; then the war chest
-    UI.go('shop'); say('At the shop'); await sleep(P(900));
+    UI.go('shop'); say('At the market'); await sleep(P(1100)); UI.marketOpen('smith'); await sleep(P(1100));
     const open = () => BB.heroTiers(BB.ROSTER).filter(({ tier, heroes }) => BB.tierOpen(S, tier) && heroes.some((e) => !S.heroes.some((h) => h.recruit === e.key)));
     const want = { free: () => true, sigils: () => S.gold >= 500, chest: () => S.gold >= 700, crystals: () => S.gold >= 1400, arms: () => S.crystals >= 160 && !open().length };
     for (const o of BB.SHOP) while (BB.shopLeft(S, o, now()) > 0 && want[o.id] && want[o.id]() && BB.buy(S, o.id, now())) note('  shop: ' + o.name);
     while ((S.rank || 0) < BB.RANK_MAX && S.gold >= BB.rankCost(S.rank || 0) + 600 && BB.raiseRank(S)) note('  war chest: rank ' + S.rank);
-    UI.renderShop(); UI.refreshTop(); await sleep(P(1300)); if (Bot.stop) return;
+    UI.marketOpen('quarter'); UI.refreshTop(); await sleep(P(1300)); UI.marketOpen(null); if (Bot.stop) return;
     // the gates: the rarest that can be paid for
     for (let n = 0; n < 6 && !Bot.stop; n++) {
       const can = open().filter(({ tier }) => S.crystals >= tier.cost); if (!can.length) break;
@@ -955,7 +974,7 @@
   let lastT = performance.now(), spoilT = 0;
   // the camp keeps living behind every menu (dimmed by each screen's backdrop)
   const SCENE_UNDER = ['title', 'home', 'hud', 'cine', 'heroes', 'hero', 'team', 'shop', 'campaign', 'recruit'];
-  const DIMMED = ['hero', 'campaign', 'recruit']; let dimAcc = 0, dimN = 0;
+  const DIMMED = ['campaign', 'recruit']; let dimAcc = 0, dimN = 0;
   // frame-rate watch for 'auto' graphics: the average of the last stretch of battle frames
   let fpsAcc = 0, fpsN = 0, fpsHold = 0;
   function watchFrames(real) {
@@ -990,7 +1009,7 @@
       scene.cam.zoom = camZoom() * (scene.zoomK || 1);
       if (scene.isTitle) { scene.cam.x = scene.map.w / 2 + Math.sin(t / 9000) * 1.6 - 1.2; scene.cam.y = scene.map.h / 2 + Math.cos(t / 11000) * 0.8 + 0.4; }
       else if (scene.drill) { if (UI.current === 'team' && UI.teamLayout) UI.teamLayout(scene, W, H, DPR); }
-      else if (scene.fixCam) { { const sw = Math.sin(t / 7000) * 0.1; scene.cam.x = scene.fixCam.x + sw; scene.cam.y = scene.fixCam.y - sw; } menuScene(scene); }
+      else if (scene.fixCam) { { const sw = Math.sin(t / 7000) * 0.1 / Math.max(1, (scene.zoomK || 1) ** 2); scene.cam.x = scene.fixCam.x + sw; scene.cam.y = scene.fixCam.y - sw; } menuScene(scene); }
       else if (scene.peaceful) { scene.cam.x = scene.map.w / 2 - 1.8 + Math.sin(t / 14000) * 0.4; scene.cam.y = scene.map.h / 2 + 1.6; }
       const reps = mode === 'battle' && !scene.intro && !scene.result ? Math.min(3, Math.max(1, BB.save.settings.speed || 1)) : 1;
       if (scene.devTick && mode === 'battle' && !scene.intro && !scene.result && !scene.paused) scene.devTick(scene, dt);

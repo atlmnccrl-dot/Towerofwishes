@@ -1893,11 +1893,12 @@
       this.vig = { c, w: W, h: H };
     }
     // additive glows of the fires and torches
+    const ck = this.closeK || 0; // a close-up on one hero (their own page): every other light sinks, the rest stand in shadow
     ctx.setTransform(z, 0, 0, z, ox, oy);
     ctx.globalCompositeOperation = 'lighter';
     for (const L of m.lights) {
       const s = BB.iso(L.x, L.y); const R = L.rad * BB.TW * 0.45 * (1 + Math.sin(this.time * 9 + L.x) * 0.04);
-      BB.drawGlow(ctx, L.col, s.x, s.y - 8, R, R * 0.65, night ? 0.5 : 0.24);
+      BB.drawGlow(ctx, L.col, s.x, s.y - 8, R, R * 0.65, (night ? 0.5 : 0.24) * (L.spot ? 1 : 1 - 0.85 * ck));
     }
     ctx.globalCompositeOperation = 'source-over';
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.imageSmoothingEnabled = true;
@@ -1906,12 +1907,12 @@
     if (!this.lightCanvas || this.lightCanvas.width !== lw || this.lightCanvas.height !== lh) { this.lightCanvas = document.createElement('canvas'); this.lightCanvas.width = lw; this.lightCanvas.height = lh; }
     const lc = this.lightCanvas, g = lc.getContext('2d');
     g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'copy'; g.globalAlpha = 1;
-    g.fillStyle = 'rgba(10,8,30,0.62)'; g.fillRect(0, 0, lw, lh);
+    g.fillStyle = 'rgba(10,8,30,' + (0.62 + 0.2 * ck) + ')'; g.fillRect(0, 0, lw, lh);
     g.globalCompositeOperation = 'destination-out';
     g.setTransform(z / LD, 0, 0, z / LD, ox / LD, oy / LD);
     const hole = (x, y, rad, a) => { const s = BB.iso(x, y), R = rad * BB.TW * 0.7; BB.drawGlow(g, '0,0,0', s.x, s.y - 10, R, R * 0.6, a * 1.25); };
-    for (const L of m.lights) hole(L.x, L.y, L.rad, 0.95);
-    for (const e of this.ents) if (e.side === 'hero' && !e.dead && !e.ward) hole(e.x, e.y, 3.2, 0.7);
+    for (const L of m.lights) hole(L.x, L.y, L.rad, 0.95 * (L.spot ? 1 : 1 - 0.9 * ck));
+    for (const e of this.ents) if (e.side === 'hero' && !e.dead && !e.ward) { if (e === this.spotEnt) hole(e.x, e.y, 3.2 - 1.5 * ck, 0.7 + 0.25 * ck); else if (ck < 0.98) hole(e.x, e.y, 3.2, 0.7 * (1 - ck)); }
     for (const e of this.ents) if (e.gate && !e.dead) hole(e.x, e.y, 3, 0.8);
     g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.imageSmoothingEnabled = true; g.drawImage(this.vig.c, 0, 0, lw, lh);
     ctx.drawImage(lc, 0, 0, lw, lh, 0, 0, W, H);

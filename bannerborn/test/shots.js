@@ -60,11 +60,11 @@ require('fs').mkdirSync(out, { recursive: true });
   await wait(3800); await shot('15-reveal');
   await tap('#rvOk');
   await tap('#bRecBack'); await wait(300);
-  // the hero screen is painted on a canvas: press its regions by id
+  // the hero's page: every control carries its name in data-r
   const region = async (id) => {
-    const pt = await p.evaluate((id) => { const H = BB.UI.hs, R = H.regions.find((r) => r.id === id); if (!R) return null; const rc = document.getElementById('hgCv').getBoundingClientRect(); return { x: rc.left + (H.ox + (R.x + R.w / 2) * H.S) / H.dpr, y: rc.top + (H.oy + (R.y + R.h / 2) * H.S) / H.dpr }; }, id);
-    if (!pt) { errs.push('no hero-screen region ' + id); return; }
-    await p.mouse.click(pt.x, pt.y); await wait(300);
+    const b = await p.$('[data-r="' + id + '"]');
+    if (!b) { errs.push('no hero-page control ' + id); return; }
+    await b.click(); await wait(300);
   };
   await tap('#heroList .hc'); await wait(900); await shot('16-hero');
   const lv0 = await p.evaluate(() => BB.UI.hs.id && BB.save.heroes.find((h) => h.id === BB.UI.hs.id).level);
@@ -82,8 +82,11 @@ require('fs').mkdirSync(out, { recursive: true });
   await region('next'); await wait(500); await shot('18-hero-next');
   await p.evaluate(() => BB.UI.go('team')); await wait(400); await shot('19-team');
   if (await p.$('.tab[data-tab=forge]')) errs.push('the Forge tab is still there');
-  await tap('.tab[data-tab=shop]'); await wait(300); await shot('21-shop');
+  await tap('.tab[data-tab=shop]'); await wait(1800); await shot('21-market');
+  if ((await p.$$('.mk-plate')).length !== 4) errs.push('the market has no four traders');
+  await p.evaluate(() => BB.UI.marketOpen('gems')); await wait(1500); await shot('21b-trader');
   await tap('#offers .btn'); await wait(200);
+  await p.evaluate(() => BB.UI.marketOpen(null)); await wait(300);
   await tap('#bSettings'); await wait(300); await shot('22-settings');
   await tap('#bSetClose');
   await tap('.tab[data-tab=home]'); await wait(800);

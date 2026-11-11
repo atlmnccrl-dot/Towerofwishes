@@ -42,10 +42,15 @@ A hero-collector RPG: you build the team, the team fights.
    the burst, embers rise and the hero's rarity burns at their feet. Beside it a small window (js/preview.js) shows
    the new hero **alone against one enemy in the real battle engine**: basic attacks, then the signature, then the
    ultimate finishes it, on a loop.
-3. **Grow them.** The hero screen is a game screen painted on its own canvas: the hero on a lit stage with four
-   gear sockets around them, an Attributes page (stat gains per level, the experience bar, Ascend) and a
-   **Skill Tree**: three branches (Might, Bulwark, Ultimate) of linked nodes plus two bridge nodes and three
-   capstones (Executioner, Undying, the ultimate's Mastery); one point per level, free reset. **Heroes level by fighting, not gold:** everyone who fights earns experience by their
+3. **Grow them.** A hero's own page is shot inside the muster: the camera closes in on whoever was called forward,
+   lit in their rarity's colour while the ranks behind stand in shadow, their four pieces of gear on either side of
+   them. Beside them, three leaves. **Growth**: the level in a ring of experience, stars and Ascend, health, attack
+   and defence with what the next level adds, and the ultimate and signature with a ▶ that makes the hero perform
+   them. **Gear**: the four pieces as plates with the real item art; a slot opens the armoury for it, where every
+   piece in the bag that fits shows what it would change, stat by stat, and *Equip best* fills everything. **Skills**:
+   the tree, three branches (Might, Bulwark, Ultimate) of linked nodes plus two bridge nodes and three
+   capstones (Executioner, Undying, the ultimate's Mastery); one point per level, free reset. Equipping, learning and
+   ascending are acted out by the hero in the scene. **Heroes level by fighting, not gold:** everyone who fights earns experience by their
    share of the work (damage, healing, blows taken), more on harder stages, some on a loss, faster when below the
    stage's level; the results show each hero's bar and level-ups (cap 10 + 10 per star; at the cap experience waits for
    the next star). Gold buys chests and sigils at the shop; crystals ◆ recruit heroes and buy a Smith's Masterwork weapon.
@@ -201,11 +206,15 @@ or *Continue*, with where you left off beneath it). **Heroes** is a place, *the 
 every hero you own stands in ranks under your banner at night, between four torches (the strongest in front; the
 ranks and the camera size themselves to the roster and to the open part of the page). The chosen hero steps out in
 front of them into a light of their rarity's colour; tap a hero in the ranks or a card in the list to call them
-forward, tap again (or *Open*) for their screen. **Shop** is a place too, *the quartermaster's stall*: a tent, a
-loaded cart, crates and barrels round a fire, the quartermaster and two hands at work; the offers float over it as
-relics on their own light (gems, the chest, a blade, a sigil), and *Sell spare gear* buys what is in the bag, a
-piece at a time or every Common piece at once. Both are small scenes in the battle engine (`BB.sceneFor(tab)` in
-js/main.js builds them once and swaps them in behind the page; `scene.viewOff` puts a scene off-centre). **Battle start**: while the field loads, a *versus* card slams in (your heroes and power on the blue side,
+forward, tap again (or *Open*) for their screen. **Shop** is a place too, *the market*: an open square at night
+with a trader at each station under their own light. The Smith (anvil, forge, the stall of blades: Armory Chest and
+Smith's Masterwork), the Quartermaster (the red tent and your banner: the War Chest, and *Spare Gear*, which buys
+what is in the bag), the Gem-Trader (the blue stall: the day's free crystals and the Crystal Purse) and the Seer
+(the violet canopy and the standing ring: sigils, and the way to the recruiting gates). A name plate floats over
+each, with a red dot when they hold a gift or something you can pay for. Tap a trader or their plate: your own hero
+walks over, the camera closes in and their wares come up beside them; tap the square to step back. These places
+are scenes in the battle engine (`BB.sceneFor(tab)` in js/main.js builds them once and swaps them in behind the
+page; `scene.viewOff` puts a scene off-centre, `scene.closeK` sinks every light but one hero's). **Battle start**: while the field loads, a *versus* card slams in (your heroes and power on the blue side,
 the enemy's faces and the power needed on the red, the stage's name and objective), then parts down the middle
 onto the fight. Menu animation is transform/opacity only, and the small glass pieces no longer blur what is behind
 them.
@@ -281,7 +290,7 @@ name, their horde, the face-off, the clash) and a fall; chapters 2-4 open with y
 | `js/preview.js` | the duel preview beside a summoning: one hero, one enemy, basic attacks → signature → ultimate, looped |
 | `js/tactics.js` | battlefield tactics: potions, rescues, hands-on heals, stones to throw, kicks, charges, pounces, dodge rolls |
 | `js/cinema.js` | cutscenes: shot sequencer (scene fly-throughs, close-ups, splits, impact frames, titles) and the four scripts |
-| `js/heroui.js` | the hero screen: canvas-drawn stage, gear sockets and picker, attributes, skill tree, its own hit-testing |
+| `js/heroui.js` | the hero's page: who they are, the gear sockets beside them, and the three leaves (Growth, Gear and its armoury, Skills). Every control carries its name in `data-r` |
 | `js/screens.js` | every menu screen: top bar and tabs, camp, campaign, heroes, hero, recruit and reveal, team, shop, goals, results |
 | `js/trailer.js` | the trailer: the cut list, its scenes (built and warmed before the first frame), text and letterbox on their own canvas |
 | `js/main.js` | boot, loop, input, camp and title scenes, battle HUD, deploy → rewards, saving |
