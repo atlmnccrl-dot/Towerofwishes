@@ -149,8 +149,9 @@ A hero-collector RPG: you build the team, the team fights.
      `js/structures.js`).
 
    **What the dead build.** From chapter 2 on, where the horde holds ground (rout, gates and boss stages, not the
-   first stage of a land), it has built: one work for a team of one or two, two for a larger one, set by what they
-   guard with sharpened stakes in front and the banner of the dead behind. All must fall before the field is won.
+   first stage of a land, and not a boss fought by one or two heroes), it has built: one work for a team of one or
+   two, two for a larger one, standing forward of what they guard, where the fight will be (a tower farthest out, a
+   mortar well back), with sharpened stakes in front and the banner of the dead behind. All must fall before the field is won.
    - **Bone Watchtower**: quick arrows from the platform under a violet watch-fire that flares at each shot.
    - **Grave Mortar**: a slow shell at the thickest knot of heroes; its mark is drawn on the ground and there is
      time to step out (heroes do); the blast carries the land's touch.

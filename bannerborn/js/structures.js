@@ -35,6 +35,7 @@
     if (M.defs) return M.defs.slice();
     if (!M || !/^(rout|gates|boss)$/.test(M.type) || !BY_CHAPTER[M.chapter]) return [];
     const n = +String(M.code || '').split('-')[1] || 0; if (n < 2) return []; // the first stage of a land shows the land, not its works
+    if (M.type === 'boss' && (teamN || 5) <= 2) return []; // one or two heroes have the lord of the land to deal with
     const pair = BY_CHAPTER[M.chapter][n % 2];
     return pair.slice(0, M.type === 'boss' || (teamN || 5) <= 2 ? 1 : 2);
   };
@@ -46,7 +47,8 @@
     const L = landOf(this), added = [];
     list.forEach((kind, i) => {
       const a = guard[i % guard.length], dx = from.x - a.x, dy = from.y - a.y, d = hyp(dx, dy) || 1, ux = dx / d, uy = dy / d, flank = (i % 2 ? 1 : -1) * (1.7 + (i >> 1) * 0.8);
-      const out = kind === 'mortar' ? -0.4 : kind === 'obelisk' ? 0.8 : 2.4; // a mortar sits behind what it guards, a tower in front
+      // each stands forward of what it guards, toward the heroes, where the fight will be: a tower farthest out, a mortar well back
+      const out = Math.min(d * { watchtower: 0.36, brazier: 0.32, obelisk: 0.28, cage: 0.24, mortar: 0.12 }[kind], { watchtower: 6.5, brazier: 6, obelisk: 5, cage: 4.5, mortar: 2.4 }[kind] * (M.type === 'boss' ? 0.5 : 1));
       const e = this.spawnFoe(kind, a.x + ux * out - uy * flank, a.y + uy * out + ux * flank, {});
       e.cd = 2.5 + i * 1.3; e.phase = this.r() * TAU; if (kind === 'brazier') e.name = L.brazier; if (kind === 'cage') e.budget = 3;
       // its works around it: stakes toward the heroes, the banner of the dead behind
