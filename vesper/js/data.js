@@ -458,7 +458,7 @@
   // The last fight's First Cut (2026-11-11, the author: "the final boss character looks wrong and horrible"): no longer a
   // giant outside the summit but the knight himself on it, larger than a man, fought blade to blade; his blades from the
   // sky, the rift gates, the echoes and the Last Cut still come (js/sim.js, 'the god', which now follows his health).
-  D.FOES.firstCutFinal = Object.assign({}, D.FOES.firstCut, { scale: 1.6, hp: 2400, poise: 90, spd: 78, final: true, hitMul: 0.62 });
+  D.FOES.firstCutFinal = Object.assign({}, D.FOES.firstCut, { scale: 1.8, hp: 2400, poise: 90, spd: 78, final: true, hitMul: 0.62 });
 
   // ---- Looks: each army foe spawns in one of these looks (the whole random cast has a place) ----
   const V = (pre, nums) => nums.map((n) => `vh_${pre}_${String(n).padStart(3, '0')}`);

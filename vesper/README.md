@@ -325,9 +325,16 @@ the last acts 50 to 90%, the post-game harder; about 80% overall for every hero.
 (2026-11-11, the author: "the final boss character looks wrong and horrible, cutscene and match".) He was a small grey knight
 (the same look as the Gatewarden) blown up into black blocks in the films and, in the fight, a figure peeking over the
 summit's far rim while you cut floating limbs. Now:
-- **His own look**: `vh_firstcut`, the knight recoloured to silver-white plate with a red crown and crimson trim
-  (`tools_firstcut.py`; reads `master_knight`, untouched). Used everywhere he appears: both his fights, the echo, the soul,
-  the playable First Cut, the opening, the films.
+- **His own boss sheet** (the author: "make a proper boss sprite"): `vh_firstcut`, built by `tools_firstcut.py` from the
+  real animations of the knight he was drawn from (`master_knight`, untouched: all 23 clips, 8 directions, 2760 frames).
+  Each frame is recoloured (silver-white plate, crimson trim, violet-black shadows), redrawn at twice the resolution with
+  Scale2x so the edges stay smooth instead of blocky, and given a boss's costume and finish at that resolution: a tattered
+  crimson cape from his shoulders that sways frame to frame (behind him, or over his back when he faces away; shorter and
+  flaring when he runs; none when he rolls or dies), two horns swept back from his crown (placed by the crown's gold,
+  which reads in every frame), a dark outline, moonlight on his upper-right edges and crimson in his armour's seams.
+  The sheet says `"res": 2` and js/assets.js draws it at half the scale, so he keeps his size and gains the detail.
+  Five 2048 pages, about 6 MB. He fights at 1.8 times a man's size. Used everywhere he appears: both his fights, the
+  echo, the soul, the playable First Cut, the opening, the films.
 - **The last fight** (a5-b) is a duel: `D.FOES.firstCutFinal`, the knight himself on the summit at 1.6 times a man's size,
   with his combo, lunges, crescent waves, moonfall and mirror. The god above (js/sim.js, 'the god') is now only the will
   behind him: its health follows his body's; he raises his blade to call the sky blades, crosses, sweeps and quakes (more

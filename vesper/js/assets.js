@@ -97,7 +97,7 @@
   // Draw an actor with its feet at (x, y). opts: flash (0..1 white), shade (solid colour), grey, alpha.
   A.actor = function (ctx, setId, clip, frame, angle, x, y, scale, opts) {
     const r = frameOf(setId, clip, frame, angle); if (!r) return false;
-    const { s, f } = r, k = scale || 1, o = opts || {};
+    const { s, f } = r, k = (scale || 1) / (s.res || 1), o = opts || {};   // res: a sheet drawn at a finer resolution (the First Cut's, 2x)
     const img = s.images[f[0]], key = setId + f[0];
     const dx = Math.round(x + (f[5] - s.anchor[0]) * k), dy = Math.round(y + (f[6] - s.anchor[1]) * k), dw = Math.round(f[3] * k), dh = Math.round(f[4] * k);
     const ga = ctx.globalAlpha; if (o.alpha != null) ctx.globalAlpha = ga * o.alpha;
@@ -109,7 +109,7 @@
   };
   // The frame's box relative to the feet (for framing close-ups).
   A.box = function (setId, clip, frame, angle, scale) {
-    const r = frameOf(setId, clip, frame, angle); if (!r) return null; const { s, f } = r, k = scale || 1;
+    const r = frameOf(setId, clip, frame, angle); if (!r) return null; const { s, f } = r, k = (scale || 1) / (s.res || 1);
     return { x: (f[5] - s.anchor[0]) * k, y: (f[6] - s.anchor[1]) * k, w: f[3] * k, h: f[4] * k };
   };
 
