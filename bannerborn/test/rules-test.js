@@ -219,6 +219,17 @@ ok(BB.shopLeft(SH, BB.SHOP[0], day + 86400000) === 1, 'offers come back the next
   const J2 = JSON.parse(JSON.stringify(T)); ok(BB.hasNoAds(J2) && BB.grantProduct(J2, 'c3', d0, 't5') === null, 'purchases survive the save');
 }
 
+// the muster roll: once a day, seven gifts, round again; a missed day loses nothing
+{
+  const d0 = Date.UTC(2026, 10, 8, 12), D = 86400000, M = BB.newSave(d0);
+  ok(BB.rollState(M, d0).ready && BB.rollState(M, d0).day === 0, 'the roll is ready on the first day');
+  const g1 = BB.rollClaim(M, d0); ok(g1 && g1.gold === 200 && M.gold === 200 && BB.rollClaim(M, d0) === null && !BB.rollState(M, d0 + 3600000).ready, 'it is answered once a day');
+  ok(BB.rollState(M, d0 + 5 * D).ready && BB.rollState(M, d0 + 5 * D).day === 1, 'days missed lose nothing: the next gift is the second');
+  let t = d0, cr = M.crystals; for (let i = 1; i < 7; i++) { t += D; BB.rollClaim(M, t); }
+  ok(M.crystals - cr === 100 && M.sigils === 8 && M.inventory.length === 1 && BB.rollState(M, t + D).day === 0, 'a week gives 100 crystals, 8 sigils, 600 gold and a chest, then starts again');
+  ok(BB.ROLL.reduce((a, g) => a + (g.crystals || 0), 0) <= 120, 'the roll does not out-pay the daily gift');
+}
+
 // milestones
 const Q = BB.newSave(1);
 ok(BB.questsReady(Q) === 0, 'no milestones at the start');

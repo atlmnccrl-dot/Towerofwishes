@@ -285,6 +285,7 @@
     $('recruitT').textContent = '◆ ' + cheapest + ' · you have ' + fmt(S.crystals);
     $('bEndless').style.display = BB.chapterCleared(S, 1) ? '' : 'none'; $('endlessT').textContent = S.stats.endless ? 'Best: wave ' + S.stats.endless : 'How long can you hold?';
     $('bRecruitH').classList.toggle('glow', S.crystals >= cheapest);
+    { const rs = BB.rollState(S, now()), rb = $('bRoll'); rb.style.display = rs.ready && !BB.dev ? '' : 'none'; rb.classList.toggle('glow', rs.ready); $('rollT').textContent = 'Day ' + (rs.day + 1) + ' of 7 · ready'; }
     const qn = BB.questsReady(S); $('questT').textContent = qn ? qn + ' to claim' : BB.QUESTS.filter((q) => BB.questState(S, q) === 'claimed').length + ' / ' + BB.QUESTS.length + ' done';
     $('bQuests').classList.toggle('glow', qn > 0);
   };
@@ -1459,6 +1460,7 @@
   };
   UI.go = function (tab) {
     if (tab === 'home') { BB.goCamp(); return; }
+    if (BB.ambience) BB.ambience(tab === 'shop' ? 'market' : null); // the market has its own air
     if (tab === 'heroes') UI.renderHeroes();
     if (tab === 'team') { UI.openTeam(); return; }
     if (tab === 'shop') { MK.sel = null; UI.renderShop(); }

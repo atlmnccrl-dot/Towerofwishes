@@ -624,7 +624,7 @@
       if (e.code === 'KeyA') toggleAuto();
       if (e.code === 'KeyF') toggleSpeed();
       if (e.code === 'Escape' || e.code === 'KeyP' || e.code === 'Space') { togglePause(); e.preventDefault(); }
-    }
+    } else if (e.code === 'Escape') { if (goBack()) e.preventDefault(); }
   });
   function toggleSpeed() {
     const s = BB.save.settings; s.speed = ((s.speed || 1) % 3) + 1; BB.persist();
@@ -640,8 +640,31 @@
     if (mode !== 'battle' || !scene || scene.result) return;
     scene.paused = !scene.paused; UI.modal('mPause', scene.paused);
   }
+  // Stepping back (Android's back button; Escape outside a battle): close whatever is open on top, then go up one
+  // level. Returns false only at the camp or the title, where there is nothing left to step back from.
+  function goBack() {
+    const on = (id) => { const e = $(id); return !!(e && e.classList.contains('on')); };
+    if (document.getElementById('adCard')) return true;                                   // an ad has the screen
+    if (Bot.on) { $('botStop').click(); return true; }
+    if (BB.Trailer && BB.Trailer.on) { $('trailerSkip').click(); return true; }
+    if (BB.Cinema && BB.Cinema.on) { if (!BB.Cinema.loading) $('cineSkip').click(); return true; }
+    if (on('reveal')) { $('rvOk').click(); return true; }
+    if (on('mConfirm')) { $('confNo').click(); return true; }
+    for (const id of ['mPick', 'mSpoils', 'mRoll', 'mBackup', 'mGuide', 'mTheater', 'mSettings']) if (on(id)) { UI.modal(id, false); return true; }
+    if (on('mResults')) return true;                                                      // a battle's results want an answer, not a way round
+    if (mode === 'battle') { togglePause(); return true; }
+    switch (UI.current) {
+      case 'hero': case 'recruit': UI.go('heroes'); return true;
+      case 'campaign': goCamp(); return true;
+      case 'shop': if (UI.marketSel && UI.marketSel()) UI.marketOpen(null); else UI.go('home'); return true;
+      case 'heroes': case 'team': UI.go('home'); return true;
+    }
+    return false;
+  }
+  BB.goBack = goBack;
   // pause when the page is hidden (a phone call, switching apps)
   document.addEventListener('visibilitychange', () => {
+    if (BB.audioSleep) BB.audioSleep(document.hidden);
     if (document.hidden && mode === 'battle' && scene && !scene.result && !scene.paused) togglePause();
     if (!document.hidden && UI.current === 'home') UI.updateSpoils();
   });
@@ -652,6 +675,23 @@
   UI.click($('bEndless'), () => UI.openTeam ? BB.deployEndless() : null);
   UI.click($('bGuide'), () => { UI.modal('mSettings', false); UI.modal('mGuide'); });
   UI.click($('bGuideClose'), () => UI.modal('mGuide', false));
+  // the muster roll: the week laid out, today's gift lit
+  const rollText = (g) => (g.gold ? '● ' + g.gold : g.sigils ? '✧ ' + g.sigils : '◆ ' + g.crystals) + (g.chest ? '<i>+ a chest</i>' : '');
+  function openRoll() {
+    const S = BB.save, st = BB.rollState(S, now()), box = $('rollDays'); box.innerHTML = '';
+    BB.ROLL.forEach((g, i) => { const d = document.createElement('div'); d.className = 'd' + (i < st.day ? ' done' : i === st.day ? ' now' : '') + (i === 6 ? ' last' : ''); d.innerHTML = '<small>Day ' + (i + 1) + '</small><b>' + rollText(g) + '</b>'; box.appendChild(d); });
+    $('rollClaim').disabled = !st.ready; UI.modal('mRoll');
+  }
+  UI.click($('bRoll'), openRoll);
+  UI.click($('rollClose'), () => UI.modal('mRoll', false));
+  UI.click($('rollClaim'), () => {
+    const S = BB.save, g = BB.rollClaim(S, now()); if (!g) return;
+    BB.sfx('levelup'); BB.persist(); UI.refreshTop(); UI.renderHome(); UI.modal('mRoll', false);
+    UI.toast('Muster roll, day ' + (g.day + 1) + ': ' + [g.gold && '+' + g.gold + ' gold', g.sigils && '+' + g.sigils + ' sigils', g.crystals && '+' + g.crystals + ' crystals', g.item && g.item.name].filter(Boolean).join(' · '));
+  });
+  UI.click($('bDiag'), async () => { UI.modal('mSettings', false); $('diagText').value = 'Measuring…'; UI.modal('mDiag'); $('diagText').value = await BB.diagReport(); });
+  UI.click($('diagClose'), () => UI.modal('mDiag', false));
+  UI.click($('diagCopy'), () => { const t = $('diagText'); t.select(); try { if (navigator.clipboard) navigator.clipboard.writeText(t.value); else document.execCommand('copy'); UI.toast('Copied.'); } catch (e) { UI.toast('Select the text and copy it by hand.'); } });
   UI.click($('bRestore'), async () => { const ok = await BB.IAP.restore(); UI.toast(ok ? 'Purchases checked: anything you own is yours again.' : 'The store could not be reached. Try again later.'); UI.refreshTop(); });
   UI.click($('bPrivacyAds'), async () => { if (!(await BB.Ads.privacy())) UI.toast('Ad choices are set in the app, where Google asks for them.'); });
   UI.click($('bPolicy'), () => { if (!BB.openLink(BB.CONFIG.links.privacy)) UI.toast('The privacy policy link is not set yet (js/config.js).'); });
@@ -678,7 +718,7 @@
   UI.click($('bSpoils'), () => {
     const S = BB.save, p = BB.idlePending(S, now());
     if (p.gold < 1 && p.sigils < 1) { UI.toast('The camp is still gathering. Come back a little later.'); return; }
-    const take = (k) => { const got = BB.idleClaim(S, now()); if (k > 1) { S.gold += got.gold; S.sigils += got.sigils; } BB.sfx('coin'); BB.persist(); UI.refreshTop(); UI.updateSpoils(); UI.renderHome(); UI.modal('mSpoils', false);
+    const take = (k) => { const got = BB.idleClaim(S, now()); if (BB.Notify) BB.Notify.sync(); if (k > 1) { S.gold += got.gold; S.sigils += got.sigils; } BB.sfx('coin'); BB.persist(); UI.refreshTop(); UI.updateSpoils(); UI.renderHome(); UI.modal('mSpoils', false);
       UI.toast('Spoils: +' + UI.fmt(got.gold * k) + ' gold' + (got.sigils ? ', +' + got.sigils * k + ' sigils' : '') + (k > 1 ? ' (doubled)' : '')); };
     // worth an ad only when there is something to double
     const can = BB.Ads && BB.Ads.offers() && !BB.dev && BB.adLeft(S, 'spoils', now()) > 0 && p.gold >= 100;
@@ -697,6 +737,7 @@
   const openSettings = () => {
     const s = BB.save.settings;
     $('sMusic').value = s.music; $('sSfx').value = s.sfx; $('sShake').checked = s.shake !== false; $('sDmg').checked = !!s.numbers; $('sGfx').value = s.gfx || 'auto';
+    $('sNotifyRow').style.display = BB.Notify && BB.Notify.available() ? '' : 'none'; $('sNotify').checked = !!s.notify;
     UI.modal('mSettings');
   };
   UI.click($('bSettings'), openSettings);
@@ -705,6 +746,7 @@
     const s = BB.save.settings; s.music = +$('sMusic').value; s.sfx = +$('sSfx').value; s.shake = $('sShake').checked; s.numbers = $('sDmg').checked; s.gfx = $('sGfx').value;
     if (s.gfx !== 'auto') { autoScale = 0; try { localStorage.removeItem(GFX_KEY); } catch (e) { /* blocked */ } }
     BB.setVolumes(); BB.persist(); applyGfx(); UI.modal('mSettings', false);
+    if (BB.Notify && BB.Notify.available()) { const want = $('sNotify').checked; (want && !s.notify ? BB.Notify.enable() : Promise.resolve(want)).then((ok) => { s.notify = !!(want && ok); BB.persist(); BB.Notify.sync(); if (want && !ok) UI.toast('The phone did not allow notifications. You can change that in its settings.'); }); }
   });
   ['sMusic', 'sSfx'].forEach((id) => $(id).addEventListener('input', () => { BB.save.settings.music = +$('sMusic').value; BB.save.settings.sfx = +$('sSfx').value; BB.setVolumes(); }));
   // ---- the theater: every cutscene, unlocked, for watching again
@@ -1090,6 +1132,7 @@
     const q = new URLSearchParams(location.search);
     if (q.has('test')) BB.testHooks = { goCamp, newGame, scene: () => scene, finish: finishBattle, mode: () => mode, deploy: (i) => BB.deploy(i) };
     if (BB.BUILD && BB.BUILD.native) document.body.classList.add('native');
+    if (document.fonts && document.fonts.load) await Promise.race([Promise.all(['800 20px Cinzel', '600 20px Cinzel', '600 16px Outfit', '800 16px Outfit', '500 14px Inter', 'italic 500 14px Inter', '600 20px "Cormorant Garamond"', 'italic 600 20px "Cormorant Garamond"'].map((f) => document.fonts.load(f).catch(() => null))), new Promise((r) => setTimeout(r, 1500))]);
     await goTitle();
     if (BB.storeInit) BB.storeInit().then(() => { if (UI.current === 'shop') UI.renderShop(); }); // ads and the store wake up behind the title
   }

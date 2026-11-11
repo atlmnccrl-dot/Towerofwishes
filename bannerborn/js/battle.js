@@ -81,7 +81,7 @@
     const e = {
       id: BB.uid('f'), side: 'foe', kind, F, name: (elite ? elite.name + ' ' : '') + F.name, x, y, vx: 0, vy: 0, r: F.r * (elite ? 1.1 : 1),
       hp: st.hp, maxhp: st.hp, atk: st.atk, def: st.def, spd: F.spd * (elite && elite.id === 'blood' ? 1.15 : 1), crit: 0.05,
-      aspd: F.aspd, range: F.range, ranged: !!F.ranged, proj: F.proj, art: F.art || this.poolArt(F), tint: (elite && elite.tint) || F.tint || null,
+      aspd: F.aspd, range: F.range, ranged: !!F.ranged, proj: F.proj, art: F.art || this.poolArt(F), tint: F.tint || (elite && elite.tint) || null,
       sc: (F.scale || 1) * (elite ? elite.scale : 1), dir: 3, clip: 'Idle', ct: 0, state: 'idle', lock: 0, buffs: {}, flash: 0,
       boss: !!F.boss, elite, cd: 2 + this.r() * 2, moveCd: 3, gate: !!F.gate, turret: !!F.turret, z: 0, spawnT: opts.rise ? 0.6 : 0,
       summonCd: 6 + this.r() * 4,
@@ -1489,7 +1489,7 @@
   };
 
   Battle.prototype.bossAI = function (e, t, dt) {
-    e.cd -= dt; e.moveCd -= dt;
+    e.cd -= dt; e.moveCd -= dt; if (this.farTick) this.farTick(e, dt);
     if (!e.enraged && e.hp < e.maxhp * 0.5) {
       e.enraged = true; e.aspd *= 1.3; e.spd *= 1.15; if (BB.foeVoice) BB.foeVoice(e, 'enrage'); this.banner(e.F.name.split(',')[0] + ' is enraged!', 1.8, 'boss');
       this.addFx('buff9', e.x, e.y, { sc: 1.3, add: true, hue: -60 }); this.shake = 0.5; BB.sfx && BB.sfx('boss');
@@ -1506,6 +1506,7 @@
     this.foeAttack(e, t);
   };
   Battle.prototype.bossMove = function (e, t, mv) {
+    if (this.farMove && this.farMove(e, t, mv)) return; // the far marches' lords (structures.js)
     const self = this;
     const power = e.atk;
     if (mv === 'slam') {
@@ -1653,6 +1654,7 @@
     // ground fx: anims flagged ground, clouds, telegraphs, shadows
     for (const a of m.anims) if (a.ground) { const s = P(a.x, a.y); BB.drawFx(ctx, a.key, Math.floor(a.t * a.fps) % BB.fxLen(a.key), s.x, s.y, a.sc, { alpha: 0.7, squash: 0.5 }); }
     for (const c of this.clouds) {
+      if (c.key === 'none') continue; // harm with a picture of its own (a vent left by a stone of fire)
       const s = P(c.x, c.y), n = BB.fxLen('gas');
       const al = Math.min(1, c.t * 3, (c.dur - c.t) * 2);
       BB.drawFx(ctx, 'gas', Math.floor(c.t * 12) % n, s.x, s.y, c.rad * 0.55, { alpha: al * 0.8, hue: c.side === 'hero' ? 0 : 0 });
@@ -1759,6 +1761,7 @@
     if (e.barrel) {
       BB.drawFx(ctx, e.barrel, 0, s.x, s.y - 4, 1.1, {}); return;
     }
+    if (e.deco) { if (this.drawDeco) this.drawDeco(ctx, e, s); return; }
     if (e.gate) {
       const n = BB.fxLen('portal');
       const sc = 0.8 + Math.sin(this.time * 2) * 0.03;
@@ -1795,12 +1798,15 @@
     ctx.globalAlpha = alpha;
     const fl = e.flash > 0 ? Math.min(0.9, e.flash * 5) : 0;
     const spun = e.spin && e.dead; if (spun) { ctx.save(); ctx.translate(s.x, y - 14 * (e.sc || 1)); ctx.rotate(e.spin); ctx.translate(-s.x, -(y - 14 * (e.sc || 1))); }
+    if (e.elite && e.F.tint && !e.dead) { ctx.globalCompositeOperation = 'lighter'; BB.drawGlow(ctx, { crimson: '255,70,70', azure: '110,180,255', sunfire: '255,200,90' }[e.elite.tint] || '255,160,60', s.x, s.y - 2, 20 * (e.sc || 1), 10 * (e.sc || 1), 0.55); ctx.globalCompositeOperation = 'source-over'; }
+    if (e.boss && e.F.lord && this.drawLord && !e.dead) this.drawLord(ctx, e, s, y, false);
     if (this.drawTraitBack && !e.dead) this.drawTraitBack(ctx, e, s.x, y);
     if (e.side === 'hero') { if (e.dead) BB.drawLayers(ctx, e.layers, e.clip, e.dir, fr, s.x, y, e.sc, { flash: fl }); else BB.drawHeroDressed(ctx, e.hero, e.aura, e.clip, e.dir, fr, s.x, y, e.sc, this.time, { flash: fl, layers: e.layers }); }
     else BB.drawChar(ctx, key, e.tint, e.clip, e.dir, fr, s.x, y, e.sc, fl);
     if (spun) ctx.restore();
     ctx.globalAlpha = 1;
     ctx.imageSmoothingEnabled = true;
+    if (e.boss && e.F.lord && this.drawLord && !e.dead) this.drawLord(ctx, e, s, y, true);
     if (!e.dead && !this.peaceful) {
       const hh = 44 * (e.sc || 1);
       if (e.stunT > 0) { // dazed: stars circling the head
@@ -1864,7 +1870,7 @@
   };
 
   Battle.prototype.drawBars = function (ctx, e) {
-    if (e.dead || e.barrel || (e.entAlpha !== undefined && e.entAlpha < 0.5)) return;
+    if (e.dead || e.barrel || e.deco || (e.entAlpha !== undefined && e.entAlpha < 0.5)) return;
     if (this.peaceful) return;
     if (e.side === 'foe' && e.hp >= e.maxhp && !e.gate && !e.elite) return;
     if (e.boss) return; // boss bar is in the HUD
@@ -1916,7 +1922,7 @@
     g.setTransform(z / LD, 0, 0, z / LD, ox / LD, oy / LD);
     const hole = (x, y, rad, a) => { const s = BB.iso(x, y), R = rad * BB.TW * 0.7; BB.drawGlow(g, '0,0,0', s.x, s.y - 10, R, R * 0.6, a * 1.25); };
     for (const L of m.lights) hole(L.x, L.y, L.rad, 0.95 * (L.spot ? 1 : 1 - 0.9 * ck));
-    for (const e of this.ents) if (e.side === 'hero' && !e.dead && !e.ward) { if (e === this.spotEnt) hole(e.x, e.y, 3.2 - 1.5 * ck, 0.7 + 0.25 * ck); else if (ck < 0.98) hole(e.x, e.y, 3.2, 0.7 * (1 - ck)); }
+    for (const e of this.ents) if (e.side === 'hero' && !e.dead && !e.ward) { if (e === this.spotEnt) { hole(e.x, e.y, 3.2 - 1.5 * ck, 0.7 + 0.25 * ck); if (ck > 0.05) hole(e.x - 0.25, e.y - 0.25, 1.15, 0.8 * ck); } else if (ck < 0.98) hole(e.x, e.y, 3.2, 0.7 * (1 - ck)); }
     for (const e of this.ents) if (e.gate && !e.dead) hole(e.x, e.y, 3, 0.8);
     g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.imageSmoothingEnabled = true; g.drawImage(this.vig.c, 0, 0, lw, lh);
     ctx.drawImage(lc, 0, 0, lw, lh, 0, 0, W, H);

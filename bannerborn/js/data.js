@@ -181,16 +181,16 @@
     // the far marches. `voice` and `cine` say whose voice and whose kind of entrance each one borrows
     hroald: { name: 'Hroald, the Rime Jarl', art: 'warden', boss: true, scale: 2.05, tint: 'azure', elem: 'frost', hp: 4900, atk: 35, def: 12,
       spd: 2.3, range: 1.9, aspd: 0.7, xp: 680, gold: 560, atkClips: ['Attack4', 'Attack1', 'Attack2'], r: 0.78, voice: 'ossric', cine: 'ossric',
-      moves: ['slam', 'charge', 'summon', 'slam'] },
+      moves: ['slam', 'glacier', 'charge', 'summon', 'glacier'], lord: 'frost' },
     maelis: { name: 'Maelis, the Cinder Witch', art: 'necro', boss: true, scale: 1.9, tint: 'crimson', elem: 'fire', hp: 5300, atk: 35, def: 9,
       spd: 2.6, range: 5.8, aspd: 0.95, xp: 740, gold: 620, atkClips: ['Attack1'], ranged: true, proj: 'curse', r: 0.74, voice: 'sallow', cine: 'sallow',
-      moves: ['barrage', 'firering', 'blink', 'summon', 'elements'] },
+      moves: ['barrage', 'meteors', 'firering', 'blink', 'summon', 'meteors'], lord: 'ash' },
     morwen: { name: 'Old Morwen, the Fen Mother', pool: 'warlock', poolPick: 'warlock_005', boss: true, scale: 2.0, elem: 'poison', hp: 5700, atk: 36, def: 10,
       spd: 2.5, range: 5.6, aspd: 0.95, xp: 800, gold: 680, atkClips: ['Attack5'], ranged: true, proj: 'curse', r: 0.78, voice: 'sallow', cine: 'vesh',
-      moves: ['gas', 'summon', 'barrage', 'deathcone', 'blink'] },
+      moves: ['gas', 'bloom', 'summon', 'barrage', 'deathcone', 'bloom'], lord: 'mire' },
     aurelian: { name: 'Aurelian, the Hollow King', pool: 'wraith', poolPick: 'wraith_010', boss: true, scale: 2.25, elem: 'shadow', hp: 6400, atk: 38, def: 11,
       spd: 2.7, range: 5.8, aspd: 1, xp: 900, gold: 800, atkClips: ['Attack5'], ranged: true, proj: 'curse', r: 0.86, voice: 'regent', cine: 'regent',
-      moves: ['elements', 'barrage', 'summonw', 'slam', 'blink', 'firering'] },
+      moves: ['elements', 'tithe', 'barrage', 'summonw', 'slam', 'tithe', 'blink'], lord: 'blight' },
   };
   BB.ELITES = [
     { id: 'blood', name: 'Bloodbound', tint: 'crimson', hp: 1.8, atk: 1.5, scale: 1.2 },

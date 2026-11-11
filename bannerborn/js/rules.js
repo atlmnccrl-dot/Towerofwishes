@@ -531,6 +531,18 @@
     return got;
   };
 
+  // ---------------------------------------------------------------- the muster roll: a small gift for the day
+  // Seven days, then round again. It counts days answered, not days in a row: missing one loses nothing.
+  BB.ROLL = [{ gold: 200 }, { sigils: 3 }, { crystals: 20 }, { gold: 400 }, { sigils: 5 }, { crystals: 30 }, { crystals: 50, chest: 1 }];
+  BB.rollState = function (save, now) { const R = save.roll || { n: 0, day: '' }; return { day: R.n % BB.ROLL.length, n: R.n, ready: R.day !== BB.dayKey(now) }; };
+  BB.rollClaim = function (save, now, r) {
+    const st = BB.rollState(save, now); if (!st.ready) return null;
+    const g = BB.ROLL[st.day], out = Object.assign({ day: st.day }, g); save.roll = { n: st.n + 1, day: BB.dayKey(now) };
+    if (g.gold) save.gold += g.gold; if (g.sigils) save.sigils += g.sigils; if (g.crystals) save.crystals += g.crystals;
+    if (g.chest) { out.item = BB.chestItem(save, r || BB.rng(now & 0xffffff)); save.inventory.push(out.item); }
+    return out;
+  };
+
   // ---------------------------------------------------------------- milestones: one-time goals that pay crystals, gold and sigils
   BB.QUESTS = [
     { id: 'clear3', name: 'First Blood', desc: 'Clear stage 1-3', test: (s) => !!s.cleared['s1-3'], reward: { crystals: 30 } },

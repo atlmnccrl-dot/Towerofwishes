@@ -82,19 +82,19 @@
       const in_ = heroes.filter((h) => hyp(h.x - e.x, h.y - e.y) < e.range); if (!in_.length) return;
       let best = in_[0], bn = -1; for (const h of in_) { const n = in_.filter((o) => hyp(o.x - h.x, o.y - h.y) < 1.7).length + (h.ranged ? 0.5 : 0); if (n > bn) { bn = n; best = h; } }
       e.cd = 1 / e.aspd; e.fireT = 0.3; e.shell = { x: best.x, y: best.y, t: 0, dur: 1.35 };
-      this.structBlast(e, best.x, best.y, 1.45, 1.35, 1.25); this.addFx('x_stone', e.x, e.y - 0.3, { sc: 0.35 }); BB.sfx && BB.sfx('cast');
+      this.structBlast(e, best.x, best.y, 1.45, 1.35, 1.25); this.addFx('x_stone', e.x, e.y - 0.3, { sc: 0.35 }); BB.sfx && BB.sfx('mortar');
     } else if (k === 'brazier') { // spits the land's fire: a patch under each of up to three heroes
       const in_ = heroes.filter((h) => hyp(h.x - e.x, h.y - e.y) < e.range); if (!in_.length) return;
-      e.cd = 1 / e.aspd; e.fireT = 0.5;
+      e.cd = 1 / e.aspd; e.fireT = 0.5; BB.sfx && BB.sfx('brazier');
       in_.sort(() => this.r() - 0.5).slice(0, 3).forEach((h, i) => this.later(i * 0.22, () => { if (!e.dead) this.structBlast(e, h.x + this.r.range(-0.3, 0.3), h.y + this.r.range(-0.3, 0.3), 1.15, 1.05, 0.9); }));
     } else if (k === 'obelisk') { // a pulse: every one of the dead near it is mended and hits harder for a while
       const near = this.foesAlive().filter((f) => f !== e && !f.gate && !f.turret && hyp(f.x - e.x, f.y - e.y) < e.range); if (!near.length) return;
       e.cd = 1 / e.aspd; e.pulseT = 0.9; e.links = near.slice(0, 8);
       for (const f of near) { this.heal(e, f, f.maxhp * 0.07); f.buffs.hex = 3.5; }
-      BB.sfx && BB.sfx('cast');
+      BB.sfx && BB.sfx('hex');
     } else if (k === 'cage') { // rattles, then lets one more out, until it is empty or broken
       if (!(e.budget > 0) || this.foesAlive().length >= BB.teamK('cap', this.teamN) + 2) { e.cd = 1.5; return; }
-      e.cd = 1 / e.aspd / Math.sqrt(this.waveK || 1) * 0.9; e.budget--; e.fireT = 0.7;
+      e.cd = 1 / e.aspd / Math.sqrt(this.waveK || 1) * 0.9; e.budget--; e.fireT = 0.7; BB.sfx && BB.sfx('cage');
       this.later(0.6, () => { if (!e.dead) { this.spawnFoe(this.r.pick(this.obj.pool), e.x + this.r.range(0.5, 1), e.y + this.r.range(0.5, 1), { rise: true }); this.addFx('bones', e.x, e.y, { sc: 0.6 }); } });
     }
   };
@@ -143,6 +143,97 @@
   };
   // the dead an obelisk has touched: its colour at their feet while it lasts (and they hit harder: see hit in battle.js)
   Battle.prototype.drawHexed = function (ctx, e, s) { if (!(e.buffs.hex > 0)) return; ctx.globalCompositeOperation = 'lighter'; BB.drawGlow(ctx, landOf(this).col, s.x, s.y - 2, 12, 6, 0.35 + Math.sin(this.time * 6) * 0.1); ctx.globalCompositeOperation = 'source-over'; };
+
+  // ---------------------------------------------------------------- the lords of the far marches
+  // Each has one move nobody else has, and wears his land: Hroald walks a glacier out of the ground, Maelis calls
+  // stones of fire down, Old Morwen makes the fen bloom under you, Aurelian takes a tithe of every hero at once.
+  // `deco`: a thing standing on the field for a while (ice, a vent, a glowcap), drawn from the crafted art.
+  Battle.prototype.addDeco = function (name, x, y, life, o) {
+    const e = Object.assign({ id: BB.uid('d'), side: 'none', prop: true, deco: name, x, y, r: 0, hp: 1, maxhp: 1, def: 0, buffs: {}, born: this.time, life, sc: 1 }, o || {});
+    this.ents.push(e); this.later(life, () => { this.ents = this.ents.filter((q) => q !== e); });
+    return e;
+  };
+  Battle.prototype.drawDeco = function (ctx, e, s) {
+    const age = this.time - e.born, k = Math.min(1, age / 0.25), out = Math.min(1, Math.max(0, (e.life - age) / 0.5));
+    ctx.save(); ctx.translate(s.x, s.y); ctx.scale(e.sc, e.sc * (0.3 + 0.7 * k)); BB.drawEnv(ctx, 'craft', e.deco, 0, 0, 1, out); ctx.restore(); // it rises out of the ground, and fades
+    if (e.glow) { ctx.globalCompositeOperation = 'lighter'; BB.drawGlow(ctx, e.glow, s.x, s.y - 12, 26, 18, 0.45 * out * (e.swell ? 0.6 + 0.4 * Math.sin(age * 9) : 1)); ctx.globalCompositeOperation = 'source-over'; }
+  };
+  Battle.prototype.farMove = function (e, t, mv) {
+    const self = this, cast = (dur, clip) => { e.state = 'attack'; e.lock = dur; e.atkDur = dur; e.hitAt = 99; e.hitDone = true; this.face(e, t.x, t.y); this.setClip(e, BB.hasClip(e.art, clip) ? clip : 'Attack1', true); if (BB.foeVoice) BB.foeVoice(e, 'cast'); };
+    const heroes = this.heroesAlive().filter((h) => !h.ward);
+    if (mv === 'glacier') { // a wall of ice walks out from him along a line: it bites, slows, and stands for a while
+      const dx = t.x - e.x, dy = t.y - e.y, d = hyp(dx, dy) || 1, ux = dx / d, uy = dy / d, len = Math.min(9, d + 3), x2 = e.x + ux * len, y2 = e.y + uy * len;
+      cast(1.25, 'Attack4');
+      this.tele.push({ kind: 'line', x: e.x, y: e.y, x2, y2, w: 1.5, t: 0, dur: 1.05, col: '120,200,255', onEnd() {
+        for (let i = 1.2, n = 0; i < len; i += 1.15, n++) self.later(n * 0.06, () => { const x = e.x + ux * i, y = e.y + uy * i; self.addDeco('Ice Shards', x + self.r.range(-0.2, 0.2), y + self.r.range(-0.2, 0.2), 4.5, { sc: 0.9 + self.r() * 0.4, glow: '120,200,255' }); self.addFx('x_stone', x, y - 0.1, { sc: 0.4 }); });
+        for (const h of heroes) { const px = h.x - e.x, py = h.y - e.y, along = px * ux + py * uy, off = Math.abs(px * uy - py * ux); if (along > 0 && along < len && off < 0.95 + (h.r || 0.3)) { self.hit(e, h, 1.45, { aoe: true, slow: true, heavy: true }); h.buffs.slow = 3.5; } }
+        self.shake = 0.5; BB.sfx && BB.sfx('ice');
+      } });
+      return true;
+    }
+    if (mv === 'meteors') { // five stones of fire, one after another, each on a hero; where one lands the ground keeps burning
+      cast(1.6, 'Special1');
+      const marks = []; for (let i = 0; i < 5 && heroes.length; i++) marks.push(heroes[i % heroes.length]);
+      marks.forEach((h, i) => this.later(i * 0.28, () => {
+        if (e.dead) return; const x = h.x + self.r.range(-0.5, 0.5), y = h.y + self.r.range(-0.5, 0.5), rad = 1.25;
+        (e.falls = e.falls || []).push({ x, y, t0: self.time, dur: 1.15 });
+        self.tele.push({ kind: 'circle', x, y, rad, t: 0, dur: 1.15, col: '255,90,30', onEnd() {
+          self.fx.push({ key: '_ring', x, y, t: 0, fps: 1, n: 0.8, rad, ring: true }); self.addFx('aoe', x, y, { sc: 0.5, add: true, hue: 18 });
+          for (const o of self.inRadius(x, y, rad, 'hero')) if (!o.ward) self.hit(e, o, 1.05, { aoe: true, burn: true });
+          self.addDeco('Lava Vent', x, y, 5, { glow: '255,110,40', swell: true }); self.clouds.push({ x, y, rad: 0.95, t: 0, dur: 5, side: 'hero', dps: e.atk * 0.22, key: 'none' });
+          self.shake = Math.max(self.shake || 0, 0.35); BB.sfx && BB.sfx('meteor');
+        } });
+      }));
+      return true;
+    }
+    if (mv === 'bloom') { // the fen blooms: caps push up by the heroes, swell, and burst into her poison
+      cast(1.2, 'Special1');
+      const spots = heroes.slice().sort(() => this.r() - 0.5).slice(0, 4);
+      spots.forEach((h, i) => { const a = this.r() * TAU, x = h.x + Math.cos(a) * 0.9, y = h.y + Math.sin(a) * 0.9;
+        this.later(i * 0.15, () => { if (e.dead) return; self.addDeco('Glowcaps', x, y, 2.3, { glow: '70,230,190', swell: true });
+          self.tele.push({ kind: 'circle', x, y, rad: 1.6, t: 0, dur: 2.2, col: '110,230,120', onEnd() { self.clouds.push({ x, y, rad: 1.6, t: 0, dur: 4, side: 'hero', dps: e.atk * 0.3, key: 'gas' }); self.addFx('gas', x, y, { sc: 0.9, fps: 12 }); for (const o of self.inRadius(x, y, 1.6, 'hero')) if (!o.ward) self.hit(e, o, 0.5, { aoe: true, venom: true }); BB.sfx && BB.sfx('flame'); } }); }); });
+      return true;
+    }
+    if (mv === 'tithe') { // a thread to every hero in reach: for three seconds each pays him in blood, and he is the better for it
+      cast(1.0, 'Special1'); e.tithe = { t: 0, dur: 3, next: 0.5, who: heroes.filter((h) => hyp(h.x - e.x, h.y - e.y) < 8) };
+      this.addFx('buff9', e.x, e.y, { sc: 1.2, add: true, hue: 275 }); BB.sfx && BB.sfx('hex');
+      return true;
+    }
+    return false;
+  };
+  // what a lord's standing moves do between casts (called each frame from the boss's own turn)
+  Battle.prototype.farTick = function (e, dt) {
+    const T = e.tithe; if (!T) return;
+    T.t += dt; if (T.t >= T.dur || e.dead) { e.tithe = null; return; }
+    if (T.t >= T.next) { T.next += 0.5; for (const h of T.who) if (!h.dead && hyp(h.x - e.x, h.y - e.y) < 9) { const dmg = this.hit(e, h, 0.2, { aoe: true }); if (dmg > 0) this.heal(e, e, dmg * 0.6); } }
+  };
+  const LORD = { frost: '120,200,255', ash: '255,110,40', mire: '90,230,150', blight: '200,140,255' };
+  // how a lord wears his land: light at his feet and something turning about him (`front`: drawn over him, or under)
+  Battle.prototype.drawLord = function (ctx, e, s, y, front) {
+    const k = e.F.lord, col = LORD[k], t = this.time, sc = e.sc || 1; if (!col) return;
+    ctx.globalCompositeOperation = 'lighter';
+    if (!front) {
+      BB.drawGlow(ctx, col, s.x, s.y - 2, 34 * sc, 16 * sc, 0.4 + Math.sin(t * 2) * 0.08);
+      ctx.strokeStyle = 'rgba(' + col + ',0.5)'; ctx.lineWidth = 1.2; ctx.setLineDash([5, 6]); ctx.lineDashOffset = -t * 14; ctx.beginPath(); ctx.ellipse(s.x, s.y, 24 * sc, 12 * sc, 0, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+    }
+    // a crown of the land turning about his head: splinters of ice, embers, spores, shards of the hollow
+    const n = k === 'ash' ? 7 : 5, hy = y - 40 * sc;
+    for (let i = 0; i < n; i++) {
+      const a = t * (k === 'mire' ? 0.7 : 1.3) + i * TAU / n, behind = Math.sin(a) < 0; if (behind === front) continue;
+      const px = s.x + Math.cos(a) * 15 * sc, py = hy + Math.sin(a) * 5 * sc + Math.sin(t * 2.2 + i) * 2;
+      ctx.fillStyle = 'rgba(' + col + ',0.95)';
+      if (k === 'frost' || k === 'blight') ctx.fillRect(Math.round(px) - 1, Math.round(py) - 3, 2, 6); else { ctx.beginPath(); ctx.arc(px, py, k === 'ash' ? 1.6 : 2, 0, TAU); ctx.fill(); }
+      BB.drawGlow(ctx, col, px, py, 6, 6, 0.5);
+    }
+    if (front) {
+      for (const f of e.falls || []) { const q = (t - f.t0) / f.dur; if (q >= 1) continue; const b = BB.iso(f.x, f.y), px = b.x + (1 - q) * 70, py = b.y - (1 - q) * 300; BB.drawGlow(ctx, '255,150,60', px, py, 16, 16, 0.9); for (let i = 1; i < 5; i++) BB.drawGlow(ctx, '255,90,30', px + i * 5, py - i * 21, 9 - i, 9 - i, 0.5 - i * 0.09); }
+      if (e.falls) e.falls = e.falls.filter((f) => t - f.t0 < f.dur);
+      const T = e.tithe; if (T) { const a = Math.min(1, T.t * 3) * Math.min(1, (T.dur - T.t) * 3); ctx.lineWidth = 1.6;
+        for (const h of T.who) { if (h.dead) continue; const b = BB.iso(h.x, h.y), mx = (s.x + b.x) / 2, my = Math.min(y, b.y) - 60, q = (t * 1.6) % 1; ctx.strokeStyle = 'rgba(' + col + ',' + 0.75 * a + ')'; ctx.beginPath(); ctx.moveTo(b.x, b.y - 22); ctx.quadraticCurveTo(mx, my, s.x, y - 30 * sc); ctx.stroke();
+          const u = 1 - q, bx = u * u * b.x + 2 * u * q * mx + q * q * s.x, by = u * u * (b.y - 22) + 2 * u * q * my + q * q * (y - 30 * sc); BB.drawGlow(ctx, col, bx, by, 7, 7, 0.9 * a); } }
+    }
+    ctx.globalCompositeOperation = 'source-over';
+  };
 
   // ---------------------------------------------------------------- the far marches' own growth, scattered over their maps
   const DECOR = { frost: ['Ice Shards', 8, '120,200,255', 1.4], ash: ['Lava Vent', 6, '255,110,40', 1.9], mire: ['Glowcaps', 8, '70,230,190', 1.6], blight: ['Blight Pod', 7, '190,130,255', 1.6] };

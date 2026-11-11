@@ -14,6 +14,9 @@
     BB.setVolumes();
     return ac;
   }
+  // the app is out of sight (switched away, the screen locked): the sound stops with it, and comes back with it
+  let asleep = false;
+  BB.audioSleep = function (on) { if (!ac) return; if (on) { if (ac.state === 'running') { asleep = true; ac.suspend(); } } else if (asleep) { asleep = false; ac.resume(); } };
   BB.audioHush = function (on) { if (master && ac) master.gain.setTargetAtTime(on ? 0 : 0.9, ac.currentTime, 0.05); }; // an ad has the phone's speaker
   BB.audioUnlock = function () { init(); if (ac && ac.state === 'suspended') ac.resume(); if (ac && !preloaded) { preloaded = true; for (const n of VOICES) loadV(n); } };
   // ---- recorded monster voices (assets/sfx, from Ririsaurus' Fantasy Monsters, Dinosaurs and Abyssal Horror packs)
@@ -78,6 +81,12 @@
     hurt: (t) => { noise(t, 0.12, 600, 150, 1, 0.45); tone(t, 0.15, 110, 70, 'sawtooth', 0.08); },
     kill: (t) => { noise(t, 0.3, 1200, 300, 0.6, 0.35); tone(t, 0.25, 300, 90, 'triangle', 0.15); },
     crumble: (t) => noise(t, 0.4, 800, 200, 0.5, 0.15),
+    mortar: (t) => { tone(t, 0.28, 110, 38, 'sine', 0.6); noise(t, 0.22, 700, 120, 0.6, 0.5, 'lowpass'); tone(t + 0.25, 0.9, 900, 280, 'sine', 0.05); },   // the thump, then the shell whistling down
+    hex: (t) => { tone(t, 0.9, 150, 300, 'sine', 0.22); tone(t, 0.9, 226, 452, 'triangle', 0.1); noise(t + 0.1, 0.7, 1800, 600, 4, 0.08); },                    // a rising hum, slightly wrong
+    cage: (t) => { for (let i = 0; i < 5; i++) noise(t + i * 0.07, 0.05, 3200, 1800, 6, 0.22); tone(t + 0.4, 0.16, 180, 90, 'square', 0.12); },                  // bars rattling, a bolt thrown
+    brazier: (t) => { noise(t, 0.7, 300, 2200, 0.6, 0.4, 'lowpass'); tone(t, 0.5, 70, 120, 'sawtooth', 0.08); },                                              // a roar of flame drawing breath
+    ice: (t) => { for (let i = 0; i < 6; i++) { tone(t + i * 0.05, 0.12, 2400 + i * 260, 1500, 'triangle', 0.1); } noise(t, 0.5, 5000, 2500, 3, 0.25); tone(t, 0.4, 120, 50, 'sine', 0.4); }, // ice cracking up out of the ground
+    meteor: (t) => { tone(t, 0.45, 80, 28, 'sine', 0.7); noise(t, 0.6, 900, 100, 0.5, 0.6, 'lowpass'); noise(t + 0.05, 0.3, 3000, 800, 2, 0.2); },             // a stone of fire landing
     bow: (t) => { tone(t, 0.12, 520, 180, 'triangle', 0.18); noise(t, 0.08, 4000, 2000, 3, 0.12); },
     cast: (t) => { tone(t, 0.25, 300, 900, 'sine', 0.12); tone(t, 0.25, 450, 1350, 'sine', 0.06); },
     flame: (t) => { noise(t, 0.6, 400, 1800, 0.5, 0.5, 'lowpass'); tone(t, 0.5, 90, 60, 'sawtooth', 0.1); },
@@ -108,7 +117,7 @@
     enchant: (t) => { [660, 990, 1320, 1760].forEach((f, i) => tone(t + i * 0.05, 0.45, f, 0, 'sine', 0.08)); noise(t, 0.35, 6000, 2000, 2, 0.14); },
   };
   let sfxWin = 0, sfxCount = 0;
-  const LOUD = { victory: 1, defeat: 1, boss: 1, burst: 1, portal: 1, rally: 1, herodie: 1, levelup: 1, slam: 1, boom: 1, click: 1 };
+  const LOUD = { victory: 1, defeat: 1, boss: 1, burst: 1, portal: 1, rally: 1, herodie: 1, levelup: 1, slam: 1, boom: 1, click: 1, mortar: 1, ice: 1, meteor: 1 };
   BB.sfx = function (name) {
     const rec = BB.audioClock;
     if (BB.sfxMute || (!rec && (!ac || ac.state !== 'running'))) return;
@@ -247,7 +256,11 @@
     const blip = (type, f0, f1, vol, dur, hp) => { if (ac.state !== 'running') return; const tt = ac.currentTime + Math.random() * 0.4, cg = ac.createGain(); cg.gain.setValueAtTime(vol, tt); cg.gain.exponentialRampToValueAtTime(0.001, tt + dur); cg.connect(g);
       if (type === 'noise') { const n = ac.createBufferSource(); n.buffer = noiseBuf; const f = ac.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = hp; n.connect(f); f.connect(cg); n.start(tt, Math.random()); n.stop(tt + dur + 0.05); }
       else { const o = ac.createOscillator(); o.type = type; o.frequency.setValueAtTime(f0, tt); o.frequency.exponentialRampToValueAtTime(f1, tt + dur * 0.8); o.connect(cg); o.start(tt); o.stop(tt + dur + 0.05); } };
-    if (kind === 'frost') { wind(520, 1.2, 0.5, 0.11, 260); wind(1500, 3, 0.16, 0.23, 500); }
+    if (kind === 'market') { wind(380, 0.9, 0.16, 0.19, 130); wind(900, 1.4, 0.07, 0.31, 260);
+      timer = setInterval(() => { const q = Math.random(); if (q < 0.5) blip('noise', 0, 0, 0.14 + Math.random() * 0.16, 0.03 + Math.random() * 0.04, 2600 + Math.random() * 2500); // the fire
+        if (q > 0.86) { blip('triangle', 2300, 2100, 0.07, 0.22); setTimeout(() => blip('triangle', 2500, 2250, 0.05, 0.2), 260); }                                             // hammer on the anvil, twice
+        else if (q > 0.8) blip('sine', 420 + Math.random() * 160, 330, 0.04, 0.3); }, 520); }                                                                                 // a voice somewhere
+    else if (kind === 'frost') { wind(520, 1.2, 0.5, 0.11, 260); wind(1500, 3, 0.16, 0.23, 500); }
     else if (kind === 'ash') { wind(180, 0.8, 0.5, 0.07, 60); timer = setInterval(() => { for (let i = 0; i < 3; i++) if (Math.random() < 0.6) blip('noise', 0, 0, 0.25 + Math.random() * 0.3, 0.03 + Math.random() * 0.05, 2500 + Math.random() * 3000); }, 400); } // embers cracking
     else if (kind === 'mire') { wind(300, 0.7, 0.3, 0.05, 80); hum([55, 55.6], 0.12); timer = setInterval(() => { const q = Math.random(); if (q < 0.25) blip('sine', 900 + Math.random() * 500, 560, 0.12, 0.18); else if (q < 0.45) blip('square', 150 + Math.random() * 60, 200, 0.05, 0.14); }, 900); } // a drip, a croak
     else if (kind === 'blight') { wind(240, 2, 0.25, 0.04, 90); hum([73.4, 77.8, 110.4, 147.2], 0.07); }

@@ -161,5 +161,47 @@
 
   // inside the app, wait for the plugins to say they are there (or a moment, if they never do)
   const plugged = () => (native && !window.CdvPurchase ? Promise.race([new Promise((r) => document.addEventListener('deviceready', r, { once: true })), wait(2500)]) : Promise.resolve());
-  BB.storeInit = async function () { await plugged(); await Promise.all([Ads.init(), IAP.init()]); };
+  // ---------------------------------------------------------------- one notification, if asked for: the camp's spoils are full
+  // Off unless the player turns it on in Settings (that is when the phone asks its permission question). There is
+  // only ever one pending, moved each time the spoils are claimed.
+  const Notify = BB.Notify = {
+    available() { return native && !!plug('LocalNotifications'); },
+    async enable() { const N = plug('LocalNotifications'); if (!Notify.available()) return false; try { let st = await N.checkPermissions(); if (st.display !== 'granted') st = await N.requestPermissions(); return st.display === 'granted'; } catch (e) { return false; } },
+    async sync() {
+      const N = plug('LocalNotifications'), S = BB.save; if (!Notify.available() || !S) return;
+      try {
+        await N.cancel({ notifications: [{ id: 1 }] });
+        if (!S.settings.notify) return;
+        const at = (S.idleT || Date.now()) + BB.IDLE_CAP; if (at < Date.now() + 60000) return;
+        await N.schedule({ notifications: [{ id: 1, title: 'Bannerborn', body: 'The camp has gathered all it can hold. Your spoils are waiting.', schedule: { at: new Date(at), allowWhileIdle: true } }] });
+      } catch (e) { /* the phone said no */ }
+    },
+  };
+
+  // ---------------------------------------------------------------- a report for support, kept on the device
+  // Nothing is sent anywhere. The last few errors are remembered; Settings can show them with the facts someone
+  // helping would ask for (version, device, how far the save has got), for the player to copy and send themselves.
+  const DKEY = 'bannerborn.diag', errs = (() => { try { return JSON.parse(localStorage.getItem(DKEY)) || []; } catch (e) { return []; } })();
+  const note = (what) => { errs.push({ t: new Date().toISOString(), v: C.version, at: (BB.UI && BB.UI.current) || 'boot', what: String(what).slice(0, 300) }); while (errs.length > 15) errs.shift(); try { localStorage.setItem(DKEY, JSON.stringify(errs)); } catch (e) { /* full */ } };
+  window.addEventListener('error', (e) => note((e.message || 'error') + (e.filename ? ' @ ' + String(e.filename).split('/').pop() + ':' + e.lineno : '')));
+  window.addEventListener('unhandledrejection', (e) => note('promise: ' + ((e.reason && (e.reason.message || e.reason)) || 'rejected')));
+  BB.diagNote = note;
+  BB.diagReport = async function () {
+    const fps = await new Promise((res) => { let n = 0; const t0 = performance.now(), f = () => { n++; if (performance.now() - t0 >= 1000) res(n); else requestAnimationFrame(f); }; requestAnimationFrame(f); });
+    const S = BB.save, I = S && S.iap;
+    const L = ['Bannerborn ' + C.version + ' · ' + BB.BUILD.mode + ' · ' + platform, 'Device: ' + navigator.userAgent, 'Screen: ' + innerWidth + '×' + innerHeight + ' at ×' + (window.devicePixelRatio || 1) + ' · ' + fps + ' frames a second on ' + ((BB.UI && BB.UI.current) || '?'),
+      'Ads: ' + Ads.mode + (Ads.error ? ' (' + Ads.error + ')' : '') + ' · Store: ' + IAP.mode + (IAP.error ? ' (' + IAP.error + ')' : '')];
+    if (S) L.push('Save: ' + BB.clearedCount(S) + ' of ' + BB.MISSIONS.length + ' stages · ' + S.heroes.length + ' heroes · team of ' + BB.teamIds(S).length + ' · graphics ' + (S.settings.gfx || 'auto') + ' · bought: ' + (I ? Object.keys(I.owned).join(', ') || 'nothing kept' : 'nothing') + (I && I.writUntil > Date.now() ? ' · writ running' : ''));
+    L.push(errs.length ? 'Last errors:' : 'No errors recorded.'); for (const e of errs.slice().reverse()) L.push('  ' + e.t + ' [' + e.v + ', ' + e.at + '] ' + e.what);
+    return L.join('\n');
+  };
+
+  // Inside the app: the phone's back button steps back through the game and asks before leaving it; the sound
+  // sleeps while the app is out of sight.
+  BB.nativeHooks = function () {
+    const App = plug('App'); if (!native || !App || BB.nativeHooks.done) return; BB.nativeHooks.done = true;
+    App.addListener('backButton', () => { if (BB.goBack && BB.goBack()) return; BB.UI.confirm('Close Bannerborn? Your progress is saved.', () => App.exitApp()); });
+    App.addListener('appStateChange', (st) => { if (BB.audioSleep) BB.audioSleep(!st.isActive); });
+  };
+  BB.storeInit = async function () { BB.nativeHooks(); await plugged(); Notify.sync(); await Promise.all([Ads.init(), IAP.init()]); };
 })();
