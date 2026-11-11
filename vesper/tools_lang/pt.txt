@@ -943,3 +943,27 @@ OS ÚLTIMOS
 O CAMINHO SE ABRE
 ELES CONTINUAM VINDO
 MURO
+@928
+Visual
+Original
+Vestir
+Maestria #
+Coleção de Visuais
+Um segundo visual para cada herói: Dourado, Verdejante, Carmesim, Sangue, Jade, Rei Dourado, Obsidiana e Cinzento.
+Sem anúncios, todos os heróis e todos os visuais desbloqueados já, # fragmentos de alma e # de ouro. O jeito de apoiar o jogo.
+Lunar
+Dourado
+Flor de Rosa
+Verdejante
+Prata da Tempestade
+Carmesim
+Cinza
+Sangue
+Brasa
+Jade
+Rei Pálido
+Rei Dourado
+Alvorada
+Obsidiana
+Azul
+Cinzento

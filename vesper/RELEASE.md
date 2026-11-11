@@ -20,7 +20,7 @@ already visited work offline). The `dist/` folder is not committed.
 | Any web host | Copy `dist/vesper-web/` (HTTPS for the app install and the service worker). | Ready |
 | Install as an app (PWA) | From the browser's menu ("Install" / "Add to Home Screen") on the hosted build. | Ready |
 | iOS / Android stores | `vesper/app/`: Capacitor 8 with AdMob and in-app purchases (see **The store apps** below). | Project ready; needs the author's accounts, IDs, a Mac for iOS and Android Studio to build |
-| Steam (desktop) | Wrap with Electron or Tauri around the web build; Steamworks for achievements (the achievement list is in `js/modes.js`). | Not started |
+| Steam (desktop: Windows, macOS, Linux) | `vesper/desktop/`: Electron around the no-ads web build, Steam achievements through steamworks.js (see **The desktop build** below). | Ready to build; needs a Steamworks account and App ID |
 
 ## The store apps (iOS, Android)
 
@@ -64,6 +64,24 @@ purchases in the previews (`?shop=mock`), none in the web build (`window.VESPER_
 Not done or not testable here: the native builds were generated but not compiled (no Android SDK or Mac in this
 environment); real AdMob ads and real purchases only run in a signed build on a device.
 
+## The desktop build (Steam)
+
+```sh
+cd vesper/desktop
+npm install                 # once (Electron, electron-builder, steamworks.js)
+npm start                   # builds the web layer into www/ (tools_build.py --desktop) and runs the game
+npm run dist                # Windows and Linux folders in release/ (npm run dist:mac on a Mac)
+```
+
+The window opens fullscreen (F11 toggles), the game is served from `app://game/` out of `www/`, saves live in the app's
+user-data folder, and there are no ads or purchases (the web release). **Steam:** put your App ID in `desktop/steam.json`
+and create the 26 achievements in Steamworks with the game's ids (`first`, `gate`, `twins`, … listed in `js/modes.js`
+`M.ACH`), or map them in `steam.json`. Achievements earned before Steam was set up are passed on at the next start.
+**Steam Cloud:** turn on Auto-Cloud for the user-data folder (Windows `%APPDATA%/The Bleeding Moon`, macOS
+`~/Library/Application Support/The Bleeding Moon`, Linux `~/.config/The Bleeding Moon`), so saves follow the player.
+Checked here: the dev run and a packaged Linux build reach the title, a fight plays, a save survives a restart. Not
+checked: Windows and macOS builds, Steam itself (needs the Steam client and an App ID).
+
 ## Licences — the author must confirm before selling
 
 | Asset | Where | Check |
@@ -73,6 +91,7 @@ environment); real AdMob ads and real purchases only run in a signed build on a 
 | Interface sounds (chest, coin, anvil, equip, level up, quest) | `assets/sfx/*.mp3` | Shared with the repository's other project: confirm their source and licence, or replace them |
 | Fight sounds and ambience | `assets/sfx/fight`, `assets/sfx/amb` | Synthesised by the repository's own `tools/make_sfx.py`: no licence needed |
 | "Heartfelt Battle" | `assets/music` | OpenGameArt, CC0 (credited in Settings → Credits) |
+| The rest of the score (`vesper_title`, `_map`, `_story`, `_boss`, `_night`, `_result`) | `assets/music` | Composed and synthesised in code by `vesper/tools_music.py`: the game's own, no licence needed |
 | Effect sheets: Pixel VFX Essentials, KILN FX Free Sampler, Magic Spells VFX Lite (Willosuna), FX packs 6 and 13 | `assets/fx` | Each pack's licence allows commercial use |
 | Soft particle textures (glows, swirl, rune ring, smoke) | `assets/vfx` | Confirm their source and licence |
 | Older tile sets (Cainos Top Down Basic, TopDownFantasy Forest, reodesuxz, EPIC RPG World, Dark World), used by the menus' backdrops | `assets/tiles` | Each pack's licence |
@@ -83,23 +102,28 @@ environment); real AdMob ads and real purchases only run in a signed build on a 
 
 ## Still to do
 
-- **Music**: one track plays everywhere. The cue system is ready (`A.CUES` in `js/audio.js`): drop
-  files named `vesper_title`, `vesper_map`, `vesper_story`, `vesper_act1`…`vesper_act6`,
-  `vesper_boss`, `vesper_endless`, `vesper_daily`, `vesper_result` (`.mp3`) into `assets/music` and
-  add each name to `A.TRACKS`. Each falls back to the battle track or silence until then.
+- **Music**: done (2026-11-11): six original loops from `tools_music.py` for the title, the map, the story, the
+  guardians, the late acts' battles and the victory; Heartfelt Battle for the first three acts. A per-act track can
+  still be dropped in (`A.CUES` in `js/audio.js`: `vesper_act1`…`vesper_act6`).
 - **Playtesting**: every balance number comes from the test bot (`vesper/test/campaign-test.js`).
   Play the first two acts on a phone and on a PC; note where it is too hard, too easy or unclear.
 - **Real devices**: check frame rate and memory on an older iPhone (the large maps bake their ground
   once per area; each act's characters load when a fight needs them).
-- **Store page**: icon (`vesper/icons/icon-512.png`), 5+ screenshots (landscape), a 30–60 s
-  trailer (the opening and a guardian fight), a short and a long description.
-- **Privacy**: Vesper collects nothing; saves stay in the browser (`localStorage`). App stores still
-  ask for a privacy policy: one paragraph saying so is enough.
+- **Store page**: `trailer/store_shots.js` captures the 8 screenshots at the iPhone 6.7", iPad 12.9" and Android sizes;
+  `trailer/` builds the 44 s trailer (the five kings, the fights, the title); the feature graphic is the title screen at
+  1024×500. Descriptions in STORE.md (English, Spanish, Portuguese, French, German).
+- **Privacy**: the store apps show AdMob ads, which collect data (see PRIVACY.md and STORE.md). The web and desktop
+  builds collect nothing; saves stay on the device.
+- **Languages**: English, Spanish, Portuguese, French and German (`js/i18n*.js`, built from `tools_lang/`). The
+  translations were written without a native review: have a speaker of each read the game before release.
+  New text: add it to `tools_lang/keys.json` (or re-run `test/strings.js` to harvest it) and to each language file.
 
 ## Before every release
 
 ```sh
 node vesper/test/data-test.js
+node vesper/test/vault-test.js
+node vesper/test/i18n-test.js
 node vesper/test/sim-test.js 200
 node vesper/test/campaign-test.js 8
 NODE_PATH=$(npm root -g) node vesper/test/browser.js /tmp/vesper-shots   # with the repo served on :8765

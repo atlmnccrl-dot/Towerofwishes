@@ -515,4 +515,20 @@
     { id: 'breath', name: 'Last Breath', desc: 'The Last Ditch Effort opens at 45% health.' },
     { id: 'rising', name: 'Rising Moon', desc: 'Start every fight with the moon half full.' },
   ];
+
+  // Looks (2026-11-11): each hero's own sheet recoloured, no new art. The first is earned (mastery 3 with that
+  // hero), the second is in the Skin Collection (the store apps; on the web and the desktop it costs gold).
+  // hue: the hero's signature colour band [from, to] in degrees turned to `to`, its saturation and value scaled;
+  // tint: for a hero drawn in greys, every pixel coloured towards `to`. Drawn by js/assets.js (set "<set>@<hero>.<id>").
+  D.SKINS = {
+    vesper: [{ id: 'moonlit', name: 'Moonlit', band: [330, 20], to: 212, sat: 0.6, val: 2.0, minS: 0.18, minV: 0.05, earn: 3 }, { id: 'gilded', name: 'Gilded', band: [330, 20], to: 44, sat: 1.0, val: 2.4, minS: 0.18, minV: 0.05, premium: true }],
+    lys: [{ id: 'rosebloom', name: 'Rosebloom', band: [15, 60], to: 335, sat: 0.95, val: 1.1, minS: 0.2, earn: 3 }, { id: 'verdant', name: 'Verdant', band: [195, 250], to: 128, sat: 0.9, val: 1.25, minS: 0.2, premium: true }],
+    kestrel: [{ id: 'stormsilver', name: 'Storm Silver', band: [20, 75], to: 210, sat: 0.3, val: 1.05, earn: 3 }, { id: 'crimson', name: 'Crimson', band: [20, 75], to: 354, sat: 1.0, val: 0.9, premium: true }],
+    wisp: [{ id: 'ash', name: 'Ash', tint: true, to: 30, sat: 0.18, earn: 3 }, { id: 'blood', name: 'Blood', tint: true, to: 352, sat: 0.45, premium: true }],
+    rime: [{ id: 'cinder', name: 'Cinder', band: [190, 235], to: 16, sat: 1.0, val: 1.0, earn: 3 }, { id: 'jade', name: 'Jade', band: [190, 235], to: 152, sat: 0.9, val: 0.95, premium: true }],
+    firstcut: [{ id: 'paleking', name: 'Pale King', band: [330, 15], to: 0, sat: 0.08, val: 1.15, earn: 3 }, { id: 'goldking', name: 'Gold King', band: [330, 15], to: 42, sat: 0.95, val: 1.1, premium: true }],
+    halden: [{ id: 'dawn', name: 'Dawn', band: [10, 65], to: 205, sat: 0.8, val: 1.0, earn: 3 }, { id: 'obsidian', name: 'Obsidian', band: [10, 65], to: 30, sat: 0.12, val: 0.45, premium: true }],
+    ember: [{ id: 'azure', name: 'Azure', band: [5, 55], to: 205, sat: 0.95, val: 1.0, earn: 3 }, { id: 'ashen', name: 'Ashen', band: [5, 55], to: 30, sat: 0.12, val: 0.8, premium: true }],
+  };
+  D.SKIN_GOLD = 3000;   // a premium look's price in gold where there is no store (the web and desktop builds)
 })(typeof window !== 'undefined' ? window : globalThis);

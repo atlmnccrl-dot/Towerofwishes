@@ -237,6 +237,11 @@
     return el;
   };
   // The roster: every hero, locked ones as silhouettes with what it takes to earn them.
+  // The current hero's looks under the cards: their own, the earned one, the premium one (js/data.js D.SKINS).
+  function looksRow(o) {
+    if (!o.looks || !o.looks.length) return '';
+    return `<div class="looks"><span class="looks-h">Look</span>${o.looks.map((L) => `<button class="look${L.on ? ' on' : ''}${L.ok ? '' : ' locked'}" data-look="${esc(L.id)}" type="button"><canvas class="look-fig" width="56" height="56" data-set="${esc(L.set)}" data-lock="${L.ok ? '' : 1}"></canvas><b>${esc(L.name)}</b><span>${esc(L.on ? 'Equipped' : L.ok ? 'Wear' : L.need)}</span></button>`).join('')}</div>`;
+  }
   U.roster = function (o) {
     const p = o.p, PR = P(), D = DD();
     const html = D.HERO_ORDER.map((id, i) => {
@@ -247,7 +252,9 @@
         ${ok ? `<span class="btn-sub">${esc(H.blurb)}</span><span class="hero-kit">${kit}</span><span class="hero-mast">Mastery ${VS.MODES.masteryLvl((p.mastery || {})[id])} / 10</span>${id === p.hero ? '<span class="hero-cur">Climbing now</span>' : ''}` : `<span class="lockreq">${esc(g.text)}</span><span class="lockbar"><i style="width:${Math.round(g.now / g.of * 100)}%"></i></span><span class="btn-sub">${g.of > 1 ? g.now + ' / ' + g.of : ''}</span>`}</button>`;
     }).join('');
     const items = D.HERO_ORDER.map((id) => ({ act: () => { if (PR.heroOk(p, id)) o.pick(id); else VS.audio.sfx('thud', 0.5); } }));
-    const el = U.show('roster', `<div class="boon-wrap"><p class="eyebrow">${p.heroes.length} of ${D.HERO_ORDER.length} heroes</p><h2>Who climbs tonight?</h2><nav class="cards heroes roster">${html}</nav><nav class="menu center"><button class="btn" data-i="${D.HERO_ORDER.length}" type="button"><span class="btn-label">Back</span></button></nav></div>`, items.concat([{ act: o.onBack }]), { back: o.onBack });
+    const el = U.show('roster', `<div class="boon-wrap"><p class="eyebrow">${p.heroes.length} of ${D.HERO_ORDER.length} heroes</p><h2>Who climbs tonight?</h2><nav class="cards heroes roster">${html}</nav>${looksRow(o)}<nav class="menu center"><button class="btn" data-i="${D.HERO_ORDER.length}" type="button"><span class="btn-label">Back</span></button></nav></div>`, items.concat([{ act: o.onBack }]), { back: o.onBack });
+    el.querySelectorAll('.look').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); o.onLook(b.dataset.look); }));
+    el.querySelectorAll('canvas.look-fig').forEach((c) => figure(c, c.dataset.set, c.dataset.lock ? { grey: true, alpha: 0.6 } : {}));
     el.querySelectorAll('canvas.hero-fig').forEach((c) => figure(c, c.dataset.set, c.dataset.lock ? { shade: '#05030a' } : {}));
     // Pointing at a hero brings them forward in the scene behind (js/menuscene.js).
     if (o.preview) el.querySelectorAll('.card.hero').forEach((b) => { const id = D.HERO_ORDER[+b.dataset.i]; const f = () => { if (PR.heroOk(p, id)) o.preview(id); }; b.addEventListener('mouseenter', f); b.addEventListener('focus', f); });

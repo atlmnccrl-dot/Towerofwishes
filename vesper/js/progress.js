@@ -287,7 +287,7 @@
     for (const w of waves) for (const k of w) if (k !== '+') want(k);
     const sc = P.scaleOf(n);
     if (n.type === 'echo') { sc.hp *= 1.15; sc.dmg *= 1.05; }
-    if (n.echo && n.rule === 'nohit') { sc.hp *= n.act >= 6 ? 0.45 : 0.6; }
+    if (n.echo && n.rule === 'nohit') { sc.hp *= n.act >= 6 ? 0.34 : 0.6; }   // one hit ends it: a shorter fight
     const adj = { 'a1-b': [0.78, 0.8], 'a5-b': [0.9, 0.95], 'a6-2': [0.85, 0.9] }[n.id]; if (adj) { sc.hp *= adj[0]; sc.dmg *= adj[1]; }   // two guardians at once; the finale
     if (n.rule === 'glass') sc.dmg *= 0.75;
     if (n.big) { sc.hp *= 0.85; sc.dmg *= 0.85; } else if (n.rule === 'horde') { sc.hp *= 0.85; sc.dmg *= 0.85; }

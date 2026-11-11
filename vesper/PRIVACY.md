@@ -9,7 +9,9 @@ information when you play.
 ## What the game itself keeps
 
 - **Your progress** (levels, skills, gear, souls, settings) is saved **only on your device**. We do not run servers,
-  you do not make an account, and we never receive your save.
+  you do not make an account, and we never receive your save. Your device's own backups (iCloud or computer backups on
+  iPhone and iPad, Google's Android backup) may include it, under Apple's or Google's terms, so it can come back on a
+  new device.
 - **Purchases you make** are recorded on your device so the game knows what you own, and by Apple or Google, who
   handle the payment. We never see your card or payment details.
 

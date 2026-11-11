@@ -239,6 +239,17 @@
   .lockreq { font-size: 12px; color: var(--gold); }
   .lockbar { width: 70%; height: 4px; background: rgba(255,255,255,.1); border-radius: 2px; overflow: hidden; }
   .lockbar i { display: block; height: 100%; background: var(--gold); }
+  /* Looks under the hero cards (js/ui.js looksRow). */
+  .looks { display: flex; gap: 10px; justify-content: center; align-items: stretch; margin: 10px 0 4px; }
+  .looks-h { align-self: center; font: 600 11px var(--f-display); letter-spacing: .3em; text-transform: uppercase; color: var(--red-soft); margin-right: 6px; }
+  .look { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 92px; padding: 6px 10px 8px; background: rgba(20, 10, 16, .78); border: 1px solid rgba(255, 60, 90, .25); color: var(--text); cursor: pointer; font: inherit; }
+  .look canvas { width: 56px; height: 56px; image-rendering: pixelated; }
+  .look b { font: 600 12px var(--f-display); letter-spacing: .08em; }
+  .look span { font: 500 10px var(--f-body); color: #b8a8b0; }
+  .look.on { border-color: var(--red); box-shadow: 0 0 0 1px var(--red) inset, 0 0 14px rgba(255, 42, 68, .35); }
+  .look.on span { color: var(--red-soft); }
+  .look.locked b { color: #8a7c84; }
+  .look:hover, .look:focus-visible { border-color: rgba(255, 90, 120, .7); outline: none; }
   .hero-cur { font: 600 10px var(--f-display); letter-spacing: .2em; color: var(--hc); text-transform: uppercase; }
 
   /* ---- Results ---- */

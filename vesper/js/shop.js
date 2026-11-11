@@ -39,7 +39,9 @@
     { id: 'vesper_no_ads', kind: 'once', name: 'No Ads', price: '$3.99', icon: 'shield',
       text: 'No ads between fights, ever. Rise again, double rewards and the Moon\'s Gift come at once, without an ad.', grant: { noAds: true } },
     { id: 'vesper_moonblade', kind: 'once', name: 'Moonblade Edition', price: '$7.99', icon: 'crown', best: true,
-      text: 'No Ads, every hero unlocked now, 600 soul shards and 6,000 gold. The way to support the game.', grant: { noAds: true, heroes: true, shards: 600, gold: 6000 } },
+      text: 'No Ads, every hero and every look unlocked now, 600 soul shards and 6,000 gold. The way to support the game.', grant: { noAds: true, heroes: true, skins: true, shards: 600, gold: 6000 } },
+    { id: 'vesper_skins', kind: 'once', name: 'Skin Collection', price: '$2.99', icon: 'crown',
+      text: 'A second look for every hero: Gilded, Verdant, Crimson, Blood, Jade, Gold King, Obsidian and Ashen.', grant: { skins: true } },
     { id: 'vesper_starter', kind: 'once', name: 'Starter Cache', price: '$1.99', icon: 'chest', early: true,
       text: 'For the first climb: 3,000 gold, 250 soul shards and a rare weapon. Once only.', grant: { gold: 3000, shards: 250, item: 'rare' } },
     { id: 'vesper_shards_s', kind: 'pack', name: 'Pouch of Shards', price: '$0.99', icon: 'shard', text: '150 soul shards to grow your bound souls.', grant: { shards: 150 } },
@@ -66,6 +68,7 @@
   SH.on = () => SH.mode !== 'off';
   SH.test = () => SH.mode === 'mock' || (SH.mode === 'native' && SH.CONFIG.admob.testing);
   SH.owned = (id) => !!st.owned[id];
+  SH.skins = () => SH.PRODUCTS.some((P) => P.grant.skins && st.owned[P.id]);   // the premium looks
   SH.noAds = () => Object.keys(st.owned).some((id) => st.owned[id] && SH.product(id) && SH.product(id).grant.noAds);
   SH.state = () => st;
   // What owning the once-only products means for a profile (heroes unlocked); applied to every save, every launch.

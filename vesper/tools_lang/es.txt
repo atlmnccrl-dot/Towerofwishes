@@ -943,3 +943,27 @@ LOS ÚLTIMOS
 EL CAMINO SE ABRE
 SIGUEN LLEGANDO
 MURO
+@928
+Aspecto
+Original
+Vestir
+Maestría #
+Colección de Aspectos
+Un segundo aspecto para cada héroe: Dorado, Verdor, Carmesí, Sangre, Jade, Rey Dorado, Obsidiana y Ceniciento.
+Sin anuncios, todos los héroes y todos los aspectos desbloqueados ya, # fragmentos de alma y # de oro. La forma de apoyar el juego.
+Lunar
+Dorado
+Flor de Rosa
+Verdor
+Plata de Tormenta
+Carmesí
+Ceniza
+Sangre
+Brasa
+Jade
+Rey Pálido
+Rey Dorado
+Alba
+Obsidiana
+Azur
+Ceniciento

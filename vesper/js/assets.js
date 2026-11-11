@@ -23,10 +23,35 @@
   const vhMap = () => vhMapP || (vhMapP = loadJSON(A.ROOT + 'pixel/vh_map.json').catch(() => ({})));
   async function vhMeta(id) { const m = await vhMap(), b = m[id]; if (b == null) return null; const B = await (bundleP[b] || (bundleP[b] = loadJSON(A.ROOT + 'pixel/vh_b' + b + '.json').catch(() => ({})))); return B[id] ? Object.assign({}, B[id]) : null; }
   async function loadSetNow(id) {
+    if (id.indexOf('@') > 0) return loadSkin(id);
     const d = (id.startsWith('vh_') && await vhMeta(id)) || await loadJSON(A.ROOT + 'pixel/' + id + '.json');
     d.images = await Promise.all(d.pages.map((p) => loadImage(A.ROOT + 'pixel/' + p)));
     sets[id] = d; return d;
   }
+  // A look: "<set>@<hero>.<skin>" is <set> with its pages recoloured (VS.DATA.SKINS), built once on first use.
+  async function loadSkin(id) {
+    const [baseId, rest] = id.split('@'), [hero, sk] = rest.split('.'), base = await loadSet(baseId);
+    const def = ((VS.DATA && VS.DATA.SKINS && VS.DATA.SKINS[hero]) || []).find((x) => x.id === sk);
+    const d = Object.assign({}, base, { images: def ? base.images.map((im) => A.recolour(im, def)) : base.images });
+    sets[id] = d; return d;
+  }
+  A.recolour = function (img, def) {
+    const c = document.createElement('canvas'); c.width = img.width; c.height = img.height; const x = c.getContext('2d'); x.drawImage(img, 0, 0);
+    const id = x.getImageData(0, 0, c.width, c.height), a = id.data, inBand = (h) => { const [lo, hi] = def.band; return lo <= hi ? h >= lo && h <= hi : h >= lo || h <= hi; };
+    const mid = def.band ? (def.band[0] <= def.band[1] ? (def.band[0] + def.band[1]) / 2 : ((def.band[0] + def.band[1] + 360) / 2) % 360) : 0;
+    for (let i = 0; i < a.length; i += 4) {
+      if (!a[i + 3]) continue;
+      const r = a[i] / 255, g = a[i + 1] / 255, b = a[i + 2] / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), dl = mx - mn;
+      let h = 0; if (dl) h = (mx === r ? ((g - b) / dl) % 6 : mx === g ? (b - r) / dl + 2 : (r - g) / dl + 4) * 60; if (h < 0) h += 360;
+      let s = mx ? dl / mx : 0, v = mx;
+      if (def.tint) { if (s > 0.25) continue; h = def.to; s = Math.min(1, s + def.sat * Math.min(1, v * 1.6)); }   // greys take the colour; what already has colour keeps it
+      else { if (s < (def.minS || 0.3) || v < (def.minV || 0.12) || !inBand(h)) continue; let dh = h - mid; if (dh > 180) dh -= 360; if (dh < -180) dh += 360; h = (def.to + dh * 0.6 + 360) % 360; s = Math.min(1, s * def.sat); v = Math.min(1, v * def.val); }
+      const C = v * s, X = C * (1 - Math.abs(((h / 60) % 2) - 1)), m = v - C, k = Math.floor(h / 60) % 6;
+      const [rr, gg, bb] = [[C, X, 0], [X, C, 0], [0, C, X], [0, X, C], [X, 0, C], [C, 0, X]][k];
+      a[i] = Math.round((rr + m) * 255); a[i + 1] = Math.round((gg + m) * 255); a[i + 2] = Math.round((bb + m) * 255);
+    }
+    x.putImageData(id, 0, 0); return c;
+  };
   A.load = async function (ids, onProgress) {
     let n = 0; const total = ids.length + 3; const tick = () => { n++; if (onProgress) onProgress(n / total); };
     const jobs = ids.map((id) => loadSet(id).then(tick));

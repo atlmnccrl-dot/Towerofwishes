@@ -91,6 +91,19 @@
   M.addMastery = (p, hero, xp) => { p.mastery = p.mastery || {}; const l0 = M.masteryLvl(p.mastery[hero]); p.mastery[hero] = (p.mastery[hero] || 0) + Math.round(xp); return M.masteryLvl(p.mastery[hero]) - l0; };
   M.masteryDmg = (p, hero) => 1 + 0.02 * M.masteryLvl((p.mastery || {})[hero]);
 
+  // ---- looks (D.SKINS) ------------------------------------------------------------------------------
+  // Whether a look is open: the earned one at that hero's mastery, a premium one from the Skin Collection (premium:
+  // the store's answer) or bought with gold where there is no store.
+  M.lookOk = (p, hero, sk, premium) => (sk.earn ? M.masteryLvl((p.mastery || {})[hero]) >= sk.earn : !!premium || !!(p.looksBought || {})[hero + '.' + sk.id]);
+  // Each hero's drawn set follows the look chosen for them (p.look[hero]); "" or none is their own.
+  M.applyLooks = function (p, D, premium) {
+    for (const id in D.HEROES) {
+      const H = D.HEROES[id]; H.baseSet = H.baseSet || H.set; const want = (p.look || {})[id];
+      const sk = want && ((D.SKINS || {})[id] || []).find((x) => x.id === want);
+      H.set = sk && M.lookOk(p, id, sk, premium) ? H.baseSet + '@' + id + '.' + sk.id : H.baseSet;
+    }
+  };
+
   // ---- achievements -------------------------------------------------------------------------------
   const st = (p, k) => (p.stats && p.stats[k]) || 0, cl = (p, id) => P().cleared(p, id);
   M.ACH = [

@@ -21,7 +21,8 @@ reward away. Tuning lives in `SH.CONFIG` (`js/shop.js`).
 | Product ID | Type (Apple / Google) | Name | Suggested price | Gives |
 |---|---|---|---|---|
 | `vesper_no_ads` | Non-consumable / One-time | No Ads | $3.99 | No ads between fights; rewarded bonuses without ads |
-| `vesper_moonblade` | Non-consumable / One-time | Moonblade Edition | $7.99 | No Ads + every hero unlocked + 600 shards + 6,000 gold |
+| `vesper_moonblade` | Non-consumable / One-time | Moonblade Edition | $7.99 | No Ads + every hero and every look unlocked + 600 shards + 6,000 gold |
+| `vesper_skins` | Non-consumable / One-time | Skin Collection | $2.99 | The premium look of every hero (8 looks: Gilded, Verdant, Crimson, Blood, Jade, Gold King, Obsidian, Ashen) |
 | `vesper_starter` | Non-consumable / One-time | Starter Cache | $1.99 | 3,000 gold, 250 shards, a rare weapon (shown until Act IV is won) |
 | `vesper_shards_s` | Consumable | Pouch of Shards | $0.99 | 150 soul shards |
 | `vesper_shards_m` | Consumable | Chest of Shards | $2.99 | 500 soul shards |
@@ -30,8 +31,10 @@ reward away. Tuning lives in `SH.CONFIG` (`js/shop.js`).
 | `vesper_gold_l` | Consumable | Vault of Gold | $4.99 | 10,000 gold |
 
 Names, prices and what each gives are in `SH.PRODUCTS` (`js/shop.js`); the stores' own localised prices replace the
-suggested ones on screen. Ideas for later, which need new art: hero skins (palette variants of the heroes), soul
-skins, an "Eclipse" alternate moon theme for the menus, a cosmetic cape for Vesper.
+suggested ones on screen. **Looks** (2026-11-11): each hero has two, recoloured from their own sheet (`D.SKINS` in
+`js/data.js`): the first is earned at mastery 3 with that hero, the second comes with the Skin Collection (in the web and
+desktop builds it costs 3,000 gold). Chosen on the heroes page. Ideas for later: soul looks, an "Eclipse" moon theme
+for the menus.
 
 ## AdMob setup
 
@@ -66,6 +69,26 @@ skins, an "Eclipse" alternate moon theme for the menus, a cosmetic cape for Vesp
 > - Endless mode, a daily challenge, New Game+ and achievements.
 > - Plays fully offline. Optional ads; one purchase removes them.
 
+- In English, Spanish, Portuguese, French and German.
+
+**Other languages** (the game is translated into each; set these as the localised listings):
+
+- **Español** — *Una espada. Seis guardianes. Detenlo antes del alba.* Hace setecientos años un espadachín abatió a
+  cinco reyes y, con sus almas, lanzó el hechizo que despierta todas las tumbas. Desde aquella noche la luna sangra, y
+  a su luz se alzan sus muertos. Esta noche la luna se desangra. Solo tu hoja puede detenerlo, en la cima de la Aguja.
+- **Português** — *Uma lâmina. Seis guardiões. Detenha-o antes da alvorada.* Setecentos anos atrás, um espadachim
+  derrubou cinco reis e, com as almas deles, lançou o feitiço que desperta todos os túmulos. Desde aquela noite a lua
+  sangra, e sob sua luz os mortos se erguem. Esta noite a lua se esvai em sangue. Só a sua lâmina pode detê-lo.
+- **Français** — *Une lame. Six gardiens. Arrête-le avant l'aube.* Il y a sept cents ans, un bretteur abattit cinq rois
+  et, avec leurs âmes, lança le sort qui réveille toutes les tombes. Depuis cette nuit, la lune saigne, et à sa lumière
+  ses morts se lèvent. Cette nuit, la lune se vide de son sang. Seule ta lame peut l'arrêter, au sommet de la Flèche.
+- **Deutsch** — *Eine Klinge. Sechs Wächter. Halte ihn vor dem Morgengrauen auf.* Vor siebenhundert Jahren streckte ein
+  Schwertkämpfer fünf Könige nieder und wirkte mit ihren Seelen den Zauber, der jedes Grab erweckt. Seit jener Nacht
+  blutet der Mond, und in seinem Licht erheben sich seine Toten. Heute Nacht blutet der Mond aus. Nur deine Klinge kann
+  ihn aufhalten.
+
+Have a native speaker read each listing (and the game) before release.
+
 **Keywords (Apple, ≤ 100 chars):** action,pixel,rpg,roguelite,hack and slash,souls,boss,dark fantasy,offline,arcade
 **Category:** Games → Action (secondary: Role-Playing)
 
@@ -96,6 +119,8 @@ skins, an "Eclipse" alternate moon theme for the menus, a cosmetic cape for Vesp
 ## Screenshots and art you need
 
 - Landscape screenshots: iPhone 6.7" (2796×1290), iPad 12.9" (2732×2048), Android phone (1920×1080 or higher), 4–8
-  each. Good moments: a horde fight with a soul, a guardian lair, the summit duel, the map, the Souls page, the opening.
+  each. `node vesper/trailer/store_shots.js <outDir>` (the repository served on :8765) captures eight at all three sizes:
+  the kings, a horde fight with a soul, the spell, a guardian, the map, the Souls page, a late act, the title.
 - Google Play feature graphic 1024×500; app icon 512×512 (Play) / 1024×1024 (Apple): `vesper/app/assets/icon-only.png`.
-- Optional: an App Preview / promo video (the `trailer/` tools record frames from the game).
+- An App Preview / promo video: `vesper/trailer/` (README there) builds a 44 s trailer from the game. Apple's App
+  Preview must be 15–30 s and recorded from the device's screen size: cut it from the trailer.

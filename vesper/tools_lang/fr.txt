@@ -943,3 +943,27 @@ LES DERNIERS
 LA VOIE S'OUVRE
 ILS CONTINUENT D'ARRIVER
 MUR
+@928
+Apparence
+Par défaut
+Porter
+Maîtrise #
+Collection d'Apparences
+Une deuxième apparence pour chaque héros : Doré, Verdoyant, Cramoisi, Sang, Jade, Roi Doré, Obsidienne et Cendré.
+Sans pubs, tous les héros et toutes les apparences débloqués tout de suite, # éclats d'âme et # or. La façon de soutenir le jeu.
+Lunaire
+Doré
+Fleur de Rose
+Verdoyant
+Argent d'Orage
+Cramoisi
+Cendre
+Sang
+Braise
+Jade
+Roi Pâle
+Roi Doré
+Aube
+Obsidienne
+Azur
+Cendré

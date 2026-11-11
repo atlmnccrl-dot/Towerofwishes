@@ -503,8 +503,25 @@ too.
 ## Release
 
 `python3 -I vesper/tools_build.py` builds `dist/vesper-web` (a static site that installs as an app)
-and a zip for itch.io. What is left before selling it (licences, music, store pages, playtesting) is
-in [RELEASE.md](RELEASE.md).
+and a zip for itch.io; `--app` builds the store apps' web layer (`vesper/app`), `--desktop` the Steam build's
+(`vesper/desktop`). What is left before selling it (licences, accounts, playtesting) is in [RELEASE.md](RELEASE.md).
+
+**Release work (2026-11-11, the author: "work on it all")**
+- **Saves that last** (`js/vault.js`): in the store apps a second copy of the save and the purchases record lives in the
+  platform's own storage (@capacitor/preferences: never purged, carried by iCloud / Android backups to a new phone);
+  everywhere a last good copy in localStorage repairs a broken save. The newest copy wins at start. `test/vault-test.js`.
+- **Music**: an original score composed in code (`tools_music.py`, D minor around the moon's motif): the title, the map,
+  the story scenes, the guardians, a darker battle for Acts IV–VI and endless, a victory loop; defeats play the story
+  music. Loudness matched to Heartfelt Battle, which keeps the first three acts.
+- **Languages**: Spanish, Portuguese, French, German (`js/i18n.js` + `js/i18n_<code>.js`, built from `tools_lang/`).
+  Text is translated where it reaches the screen, so no screen's code changed; item names are rebuilt per language;
+  the logo and the heroes' names stay. Settings → Language; the first launch follows the device. `test/i18n-test.js`.
+- **Looks**: two per hero, recoloured from their own sheet at load (`D.SKINS`, `A.recolour`): one earned at mastery 3,
+  one in the **Skin Collection** ($2.99, also in the Moonblade Edition; gold on the web and desktop). The heroes page.
+- **Desktop (Steam)**: `vesper/desktop`, Electron around the web build with Steam achievements (RELEASE.md).
+- **Store media**: `trailer/store_shots.js` (8 screenshots at the three store sizes), the trailer rebuilt on the five kings.
+- **Phones**: story scenes say "tap" on a touchscreen, and their corner SKIP skips the scene.
+- **Balance**: the untouchable echo of the First Cut (a6-7) is him alone in his lair (the bot went from 0% to 47%).
 
 ## The armies
 
@@ -687,11 +704,16 @@ Risen Dead (Black Gate), Sun Wardens (Umbral Stair), Dune Reavers, Sand Imps and
 | `js/tale.js` | The story scenes, drawn at full resolution with captions |
 | `js/ui.js` | Menus as buttons: title, settings, credits, boon pick, defeat, pause |
 | `js/audio.js`, `js/main.js` | Sound; the loop, input, saves and the flow |
+| `js/vault.js` | The save's second copies (native storage in the store apps, a last good copy everywhere) |
+| `js/i18n.js`, `js/i18n_*.js` | Languages: the engine and the generated tables (`tools_lang/build.py`) |
+| `js/shop.js` | Ads and purchases (AdMob, the stores), off in the web and desktop builds |
 
 ## Tests
 
 ```sh
 node vesper/test/data-test.js        # every set, clip, effect and tile named exists; scenes are sound
+node vesper/test/vault-test.js       # the save vault: newest copy wins, broken saves repaired
+node vesper/test/i18n-test.js        # the language tables line up; templates, item names, names kept
 node vesper/test/sim-test.js 20      # every stage with a bot at three skills: win rates, no NaN, no timeouts
 NODE_PATH=$(npm root -g) node vesper/test/browser.js /tmp/vesper-shots   # needs the repo served on :8765
 ```

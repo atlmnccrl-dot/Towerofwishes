@@ -339,7 +339,20 @@
   }
   function roster(back) {
     M.go('menu'); menuScene('roster'); const p = P();
-    U.roster({ p, onBack: back, preview: (id) => { if (M.menuSc) M.menuSc.hero = id; }, pick: (id) => { p.hero = id; M.write(); AU.sfx('allout', 0.5); back(); } });
+    const SHP = VS.SHOP, store = SHP && SHP.mode !== 'off', premium = !!(SHP && SHP.skins && SHP.skins()), H = D.HEROES[p.hero], base = H.baseSet || H.set;
+    const looks = [{ id: '', name: 'Default', set: base, ok: true, on: !(p.look || {})[p.hero] }].concat(((D.SKINS || {})[p.hero] || []).map((sk) => ({ id: sk.id, name: sk.name, set: base + '@' + p.hero + '.' + sk.id,
+      ok: VS.MODES.lookOk(p, p.hero, sk, premium), on: (p.look || {})[p.hero] === sk.id, need: sk.earn ? 'Mastery ' + sk.earn : store ? 'Skin Collection' : D.SKIN_GOLD + ' gold', sk })));
+    U.roster({ p, looks, onBack: back, preview: (id) => { if (M.menuSc) M.menuSc.hero = id; }, pick: (id) => { p.hero = id; M.write(); AU.sfx('allout', 0.5); back(); },
+      onLook: (id) => {
+        const L = looks.find((x) => x.id === id); if (!L) return;
+        if (!L.ok) {
+          if (L.sk.earn) { AU.sfx('thud', 0.5); return; }
+          if (store) { M.go('menu'); return shop(); }   // the Skin Collection is in the shop
+          if ((p.gold || 0) < D.SKIN_GOLD) { AU.sfx('thud', 0.5); return; }
+          p.gold -= D.SKIN_GOLD; p.looksBought = p.looksBought || {}; p.looksBought[p.hero + '.' + id] = 1; AU.sfx('coin_01', 0.7);
+        }
+        p.look = p.look || {}; p.look[p.hero] = id; VS.MODES.applyLooks(p, D, premium); M.write(); AU.sfx('equip_armor_01', 0.6); roster(back);
+      } });
   }
 
   // ---- playing a node ----------------------------------------------------------------------------------
@@ -901,11 +914,13 @@
         const p = P(); PR.soulsInit(p); VS.LOOT.migrate(p);
         if (g.gold) p.gold = (p.gold || 0) + g.gold; if (g.shards) p.shards += g.shards;
         if (g.heroes) SH.applyOwned(p);
+        if (g.skins) VS.MODES.applyLooks(p, D, true);   // the Skin Collection: the looks already chosen take effect
         if (g.item) { const it = VS.LOOT.roll(Math.random, Math.max(4, p.lvl * 1.2), { slot: 'weapon', rar: g.item === 'rare' ? 2 : 3 }); VS.LOOT.give(p, it); }
         M.write(); AU.sfx('quest_complete', 0.8);
       };
       SH.applyOwned(M.save); SH.init().catch(() => {});
     }
+    VS.MODES.applyLooks(M.save, D, !!(VS.SHOP && VS.SHOP.skins && VS.SHOP.skins()));   // each hero drawn in the look chosen for them
     applyOpts(); platformAch(Object.keys(M.save.ach || {}));   // ones earned before (or offline) reach Steam too
     if (params.has('auto')) M.autoUrl = true;
     if (params.has('watch')) { setTimeout(() => watchStart(+params.get('watch') || 1), 50); }

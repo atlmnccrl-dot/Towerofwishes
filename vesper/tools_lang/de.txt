@@ -943,3 +943,27 @@ DIE LETZTEN
 DER WEG ÖFFNET SICH
 SIE KOMMEN WEITER
 MAUER
+@928
+Aussehen
+Standard
+Tragen
+Meisterschaft #
+Skin-Sammlung
+Ein zweites Aussehen für jeden Helden: Vergoldet, Grünend, Karmesin, Blut, Jade, Goldkönig, Obsidian und Aschgrau.
+Keine Werbung, alle Helden und alle Looks sofort freigeschaltet, # Seelensplitter und # Gold. So unterstützt du das Spiel.
+Mondlicht
+Vergoldet
+Rosenblüte
+Grünend
+Sturmsilber
+Karmesin
+Asche
+Blut
+Glut
+Jade
+Bleicher König
+Goldkönig
+Morgengrauen
+Obsidian
+Azur
+Aschgrau
