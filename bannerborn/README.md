@@ -288,13 +288,7 @@ and letterbox. Cutscenes are cut like a trailer: serif kinetic type that lands w
 black-and-white manga contrast or one colour against black, giant words behind the characters, flash-cut montages
 with glowing eyes, a tiny figure against an enormous moon, an eye that opens into rings, knights crumbling to ash, a
 title whose letters fly together and slam — over a synthesised trailer score (a low drone, risers, braams, sub hits,
-clock ticks under the words). The opening is told in close panels: nine knights slam in under their banners and swear the oath; the
-Gravegate tears open in a storm-lit graveyard (a painted set: runes, a seam of light, a shockwave, the vortex, the dead
-striding out, the camera falling in); Vesh rises and sings; *he was only the first* — three more gates flare on far
-hills, and three panels show what stands in them, black and rim-lit with burning eyes, named only by their land; the
-dead rise; then the nine oath panels return and eight crack, drain to grey as their knight falls, and drop away; the
-Captain's panel stands alone in the ash; it blazes gold, and eight empty frames light up around it, waiting for the
-new army. Every other cutscene is shot in its own style, one per reference the author sent: **Ossric** in a torch-lit crypt
+clock ticks under the words). The opening is a film of its own (js/opening.js, below). Every other cutscene is shot in its own style, one per reference the author sent: **Ossric** in a torch-lit crypt
 arena, a crowd of the dead chanting his name on the beat until he roars; **Kestrel** in darkness full of golden dust —
 a single spotlight, a red-lit leap with motion smears, a face lit by one violet point of light; **Sallow** in one
 unbroken take — his body blowing away as sand, dunes rushing below, a storm that opens an eye, a tunnel of gold
@@ -307,12 +301,30 @@ Kestrel scatters as gold dust, Sallow blows away as sand, the Regent glitches ou
 Bosses open through their own gate in
 their colour. Post effects sell the big beats: the screen cracks on impacts, the colour splits apart, film grain, rim-lit
 silhouettes, sound rings off a singing mouth, embers that converge on the hero, and a slam zoom into an eye.
-The opening (~75 s) tells how it began: nine knights swear the oath, one slanted panel each in their banner's colour
-with its sigil (the ninth banner is yours and its knight is the Captain); the Gravegates open in
-lightning; Vesh Morrow rises out of the dark, opens his mouth and sings; *he was only the first*: three more gates flare open
-on far hills (red, gold, violet), a shape standing black in each with only its eyes lit — the bosses still to come,
-unnamed; the dead rise and clash with the knights; eight banners fall before dawn; one stands; its bearer, alone, raises it
-and swears to build a new army; BANNERBORN. Bosses get an entrance the first time (gate, rise from shadow, impact,
+**The opening** (js/opening.js, ~64 s, skippable) is its own film: eleven shots, each in a different manner, painted
+for it rather than assembled from the other cutscenes' shots.
+1. *The tapestry*: the old story sewn in gold thread as the cloth slides by, a needle leading: a horizon, nine poles,
+   nine pennants, nine knights in cross-stitch (a pixel is a stitch), numbered I–IX; the ninth banner is yours.
+2. *The oath*: the stitched knights from below, uprights leaning to a point overhead, a sun of thread turning behind.
+3. *The tear*: the cloth rips top to bottom; violet light, cut threads whipping, and a skull looking back through it.
+4. *The gate*: from the grass, looking up. The head tips back and the pillars lean together; runes light from the
+   ground to a skull keystone; the gate bursts, the dead run out past the lens, and Vesh walks out on the light.
+5. *The Cantor*: a dolly zoom on a drawn portrait (hood, bone crown, rib collar, censer): the world rushes past him,
+   his eyes light, his name is struck across the frame, his jaw drops and he sings.
+6. *The song*: the vale from above as an inked map: staves roll out from the gate, veins spread under the ground,
+   graves light, eight banner pins fall and are crossed out while a count of opened graves runs up; one pin holds.
+7. *The rising*: five smash cuts (a hand of bones, eyes igniting, a march under a red sun, three looking down, a ridge
+   under the moon).
+8. *Nine to one*: nine pointed windows of coloured glass, a knight in each; eight shatter, faster and faster, a skull
+   left in each frame; the middle one cracks and holds.
+9. *The ninth*: the real game, slowed and tipped off its level: your Captain alone as the dead rise in a ring, the
+   push in, the blow, the frame held with only the Captain left in colour: THE NINTH BANNER IS YOURS.
+10. *Raise it*: dawn over the field, your banner driven into the knoll and let go on the wind: RAISE YOUR BANNER.
+11. *The name*: cut on a blade's line; the letters are struck one by one; the first shot's thread signs it.
+The people are small pixel figures, so no shot blows one up to fill the frame: the big shapes are drawn (the gate, the
+skulls, the hand) and the figures stand in them at a size that stays crisp. The film brings its own painters
+(`shot.draw`) and uses the cutscene engine for timing, cues, bars, grain and subtitles. `test`: play it from
+Settings → Development → The Opening. Bosses get an entrance the first time (gate, rise from shadow, impact,
 name, their horde, the face-off, the clash) and a fall; chapters 2-4 open with your banner and the chapter's name.
 
 ## Code
@@ -335,6 +347,7 @@ name, their horde, the face-off, the clash) and a fall; chapters 2-4 open with y
 | `js/preview.js` | the duel preview beside a summoning: one hero, one enemy, basic attacks → signature → ultimate, looped |
 | `js/tactics.js` | battlefield tactics: potions, rescues, hands-on heals, stones to throw, kicks, charges, pounces, dodge rolls |
 | `js/cinema.js` | cutscenes: shot sequencer (scene fly-throughs, close-ups, splits, impact frames, titles) and the four scripts |
+| `js/opening.js` | the opening film: eleven shots with their own painters (thread and cloth, a drawn skull, the gate, the map, the glass, the live shot) |
 | `js/heroui.js` | the hero's page: who they are, the gear sockets beside them, and the three leaves (Growth, Gear and its armoury, Skills). Every control carries its name in `data-r` |
 | `js/screens.js` | every menu screen: top bar and tabs, camp, campaign, heroes, hero, recruit and reveal, team, shop, goals, results |
 | `js/trailer.js` | the trailer: the cut list, its scenes (built and warmed before the first frame), text and letterbox on their own canvas |

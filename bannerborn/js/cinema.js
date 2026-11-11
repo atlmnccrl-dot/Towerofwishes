@@ -152,12 +152,6 @@
     if (!small) { g.shadowBlur = 0; g.strokeStyle = col; g.lineWidth = 2; g.strokeText(s, 0, 0); }
     g.restore();
   }
-  function drawHeart(g, W, H, sh, k, t) { // black, and a heartbeat
-    g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
-    const beat = Math.max(0, Math.sin((t % 1.05) / 1.05 * Math.PI * 2) ** 12);
-    const gl = g.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, H * (0.3 + beat * 0.35)); gl.addColorStop(0, 'rgba(160,20,20,' + (0.12 + beat * 0.35) + ')'); gl.addColorStop(1, 'rgba(160,20,20,0)'); g.fillStyle = gl; g.fillRect(0, 0, W, H);
-    if (k > 0.7) { const lw = W * easeOut(clamp01((k - 0.7) / 0.3)); g.fillStyle = '#ffd27a'; g.shadowColor = '#ffbe55'; g.shadowBlur = 20; g.fillRect(W / 2 - lw / 2, H / 2 - 1, lw, 2); g.shadowBlur = 0; }
-  }
   function drawTitle(g, W, H, sh, k, t) {
     if (!sh.over) { const bg = g.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, W * 0.7); bg.addColorStop(0, sh.bg || '#1a1208'); bg.addColorStop(1, '#000'); g.fillStyle = bg; g.fillRect(0, 0, W, H); }
     else { g.fillStyle = 'rgba(0,0,0,0.45)'; g.fillRect(0, 0, W, H); }
@@ -172,26 +166,6 @@
   // ---------------------------------------------------------------- full-frame panels: every shot is close and graphic
   function smoke(g, W, H, t, col, n) { for (let i = 0; i < n; i++) { const p = ((t * 0.08 + i / n) % 1), x = ((i * 0.618) % 1) * W + Math.sin(t * 0.4 + i) * 40, y = H * (1 - p * 0.9), r = H * (0.08 + p * 0.18); const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, col.replace('A', String(0.22 * (1 - p)))); gr.addColorStop(1, col.replace('A', '0')); g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2); } }
   function rays(g, cx, cy, W, H, col, t, n) { g.save(); g.globalCompositeOperation = 'lighter'; for (let i = 0; i < (n || 14); i++) { const a = i / (n || 14) * Math.PI * 2 + t * 0.15, w = 0.05 + 0.03 * Math.sin(t * 2 + i); const R = Math.max(W, H); g.fillStyle = col; g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + Math.cos(a - w) * R, cy + Math.sin(a - w) * R); g.lineTo(cx + Math.cos(a + w) * R, cy + Math.sin(a + w) * R); g.closePath(); g.fill(); } g.restore(); }
-  // three faces in three slanted panels, sliding in one after another
-  function drawTriple(g, W, H, sh, k, t) {
-    g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
-    const n = sh.who.length, sl = W * (n > 3 ? 0.025 : 0.06), stag = n > 3 ? 0.075 : 0.12;
-    for (let i = 0; i < n; i++) {
-      const x0 = W * i / n, x1 = W * (i + 1) / n, kk = clamp01((k - i * stag) / (n > 3 ? 0.45 : 0.9));
-      if (kk <= 0) continue;
-      const drop = (1 - easeOut(clamp01(kk * 2.5))) * H * (i % 2 ? 1 : -1);
-      g.save(); g.translate(0, drop); g.beginPath(); g.moveTo(x0 + sl, 0); g.lineTo(x1 + sl, 0); g.lineTo(x1 - sl, H); g.lineTo(x0 - sl, H); g.closePath(); g.clip();
-      const c = sh.cols[i % sh.cols.length];
-      if (n > 3) { const wb = g.createLinearGradient(0, 0, 0, H); wb.addColorStop(0, c[1]); wb.addColorStop(0.45, c[0]); wb.addColorStop(1, c[1]); g.fillStyle = wb; g.fillRect(x0 - sl, 0, x1 - x0 + sl * 2, H); }
-      closeupBody(g, sh.who[i], kk, t + i, (x0 + x1) / 2, H * (n > 3 ? 0.47 : 0.52), H * (n > 3 ? 0.125 : 0.27), sh.dir === undefined ? 2 : sh.dir, false, c[0], c[1], 0, { rise: n <= 3, noBg: n > 3 });
-      if (sh.banners && C.banners[i] && BB.UI.sigilPath) { // their banner's sigil under each face
-        const b = C.banners[i], cx = (x0 + x1) / 2 - sl * 0.55, cy = H * 0.8, r = Math.min(x1 - x0, H) * 0.16;
-        g.fillStyle = b.trim || '#e8c66a'; g.shadowColor = 'rgba(0,0,0,0.7)'; g.shadowBlur = 8; BB.UI.sigilPath(g, b.sigil, cx, cy, r); g.fill('evenodd'); g.shadowBlur = 0;
-      }
-      g.restore();
-      g.strokeStyle = sh.edge || '#ffe7a3'; g.lineWidth = n > 3 ? 3 : 4; g.beginPath(); g.moveTo(x1 + sl, -4 + drop); g.lineTo(x1 - sl, H + 4 + drop); g.stroke();
-    }
-  }
   // ---------------------------------------------------------------- painted sets: the banner field and the Gravegate
   const hr = (i) => { const s = Math.sin(i * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
   const rgbOf = (hex) => { if (!hex || hex[0] !== '#') return [128, 128, 128]; let h = hex.slice(1); if (h.length === 3) h = h.split('').map((c) => c + c).join(''); const n = parseInt(h, 16); return [n >> 16, (n >> 8) & 255, n & 255]; };
@@ -530,205 +504,6 @@
     deadTree(g, x2, y2, len * 0.72, ang - 0.35 - hr(seed) * 0.4, depth - 1, w * 0.68, seed * 1.3 + 1);
     deadTree(g, x2, y2, len * 0.66, ang + 0.3 + hr(seed + 2) * 0.45, depth - 1, w * 0.68, seed * 1.7 + 2);
   }
-  function drawGate(g, W, H, sh, k, t) {
-    const col = sh.col || [170, 90, 255], hot = mix(col, [255, 255, 255], 0.55);
-    const kb = sh.burstAt ? sh.burstAt / sh.dur : 0.39, I = k < kb ? 0 : clamp01((k - kb) / 0.08), pulse = 0.85 + 0.15 * Math.sin(t * 9);
-    const seam = clamp01((k - (kb - 0.17)) / 0.17);
-    // the camera: a slow push, then a fall into the gate
-    const cx = W / 2, base = H * 0.86, ro = H * 0.3, ri = H * 0.198, ys = H * 0.47, vcx = cx, vcy = (ys - ri + base) / 2;
-    const rush = k > 0.86 ? Math.pow((k - 0.86) / 0.14, 3) * 3.5 : 0, zoom = 1 + 0.12 * ease(k) + rush;
-    const shakeT = k < kb ? seam * 3 : 0;
-    g.save(); g.translate(vcx + (Math.random() - 0.5) * shakeT, vcy + (Math.random() - 0.5) * shakeT); g.scale(zoom, zoom); g.translate(-vcx, -vcy);
-    // storm sky lit from below by the gate
-    const hy = H * 0.68;
-    const bg = g.createLinearGradient(0, 0, 0, hy); bg.addColorStop(0, '#04040a'); bg.addColorStop(1, rgba(mix([14, 12, 26], col, 0.15 + I * 0.25), 1)); g.fillStyle = bg; g.fillRect(-W, -H, W * 3, H * 3);
-    clouds(g, W, H, t, 12, H * 0.02, hy - H * 0.22, [8, 8, 16], mix([30, 26, 46], col, 0.2 + I * 0.35), W * 0.03, 21);
-    if (I > 0) { const gl = g.createRadialGradient(vcx, vcy, 0, vcx, vcy, H * 1.1); gl.addColorStop(0, rgba(col, 0.38 * I)); gl.addColorStop(0.5, rgba(col, 0.08 * I)); gl.addColorStop(1, rgba(col, 0)); g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = gl; g.fillRect(-W, -H, W * 3, H * 3); g.restore(); }
-    // horizon: dead trees, the far graves
-    g.fillStyle = '#07060c'; ridge(g, W, H, hy, H * 0.025, 9, '#08070e', 0);
-    g.strokeStyle = '#07060c'; g.lineCap = 'round';
-    if (!C.treeCv || C.treeCv.width !== W || C.treeCv.height !== H) { // two hundred strokes, painted once
-      const tc = C.treeCv = document.createElement('canvas'); tc.width = W; tc.height = H; const tg = tc.getContext('2d'); tg.strokeStyle = '#07060c'; tg.lineCap = 'round';
-      deadTree(tg, W * 0.1, hy + H * 0.01, H * 0.12, -Math.PI / 2 - 0.1, 6, H * 0.016, 3);
-      deadTree(tg, W * 0.88, hy + H * 0.005, H * 0.15, -Math.PI / 2 + 0.12, 6, H * 0.02, 7);
-      deadTree(tg, W * 0.24, hy, H * 0.06, -Math.PI / 2, 5, H * 0.008, 11);
-    }
-    g.drawImage(C.treeCv, 0, 0);
-    const ground = g.createLinearGradient(0, hy, 0, H); ground.addColorStop(0, '#0b0a12'); ground.addColorStop(1, '#030305'); g.fillStyle = ground; g.fillRect(-W, hy, W * 3, H * 2);
-    // light pooled on the ground, and the cracks running out from the arch
-    if (seam > 0 || I > 0) {
-      g.save(); g.globalCompositeOperation = 'lighter';
-      const pool = g.createRadialGradient(cx, base, 0, cx, base, H * 0.7); pool.addColorStop(0, rgba(col, 0.55 * Math.max(I * pulse, seam * 0.3))); pool.addColorStop(1, rgba(col, 0));
-      g.save(); g.translate(cx, base); g.scale(1, 0.22); g.translate(-cx, -base); g.fillStyle = pool; g.fillRect(cx - H, base - H, H * 2, H * 2); g.restore();
-      g.strokeStyle = rgba(hot, 0.9 * Math.max(seam, I)); g.shadowColor = rgba(col, 1); g.shadowBlur = 12; g.lineWidth = Math.max(1.5, H * 0.003);
-      for (let c = 0; c < 9; c++) { const a = Math.PI * (0.05 + c / 8 * 0.9), reach = clamp01(seam * 1.2 + I) * H * (0.25 + hr(c + 500) * 0.35); let px = cx + (hr(c + 501) - 0.5) * ri * 1.6, py = base; g.beginPath(); g.moveTo(px, py); for (let s = 1; s <= 8; s++) { const d = reach / 8; px += Math.cos(a) * d * 1.9 * (Math.cos(a) > 0 ? 1 : 1) + (hr(c * 9 + s) - 0.5) * d * 0.8; py += Math.sin(a) * d * 0.45 + (hr(c * 9 + s + 50) - 0.2) * d * 0.25; g.lineTo(px, py); } g.stroke(); }
-      g.restore();
-    }
-    // gravestones: back ones before the arch, near ones after; they lean away from the blast
-    const stones = []; for (let i = 0; i < 16; i++) { const y = lerp(hy + H * 0.02, H * 1.0, hr(i + 600) ** 0.8), xs = hr(i + 601); const x = xs < 0.5 ? lerp(-W * 0.05, cx - ro * 1.25, xs * 2) : lerp(cx + ro * 1.25, W * 1.05, (xs - 0.5) * 2); stones.push({ x, y, s: (y - hy) / (H - hy), type: Math.floor(hr(i + 602) * 3), tilt: (hr(i + 603) - 0.5) * 0.3, i }); }
-    stones.sort((a, b) => a.y - b.y);
-    const drawStone = (st) => {
-      const sz = H * (0.04 + st.s * 0.16), dir = st.x < cx ? -1 : 1, blow = I * dir * 0.18 * st.s * (1 - clamp01((k - kb) * 4) * 0.3);
-      g.save(); g.translate(st.x, st.y); g.rotate(st.tilt + blow);
-      g.beginPath();
-      if (st.type === 0) { g.moveTo(-sz * 0.3, 0); g.lineTo(-sz * 0.3, -sz * 0.7); g.arc(0, -sz * 0.7, sz * 0.3, Math.PI, 0); g.lineTo(sz * 0.3, 0); }
-      else if (st.type === 1) { const w = sz * 0.09; g.rect(-w, -sz, w * 2, sz); g.rect(-sz * 0.32, -sz * 0.78, sz * 0.64, w * 2); }
-      else { g.moveTo(-sz * 0.2, 0); g.lineTo(-sz * 0.14, -sz * 0.9); g.lineTo(0, -sz * 1.05); g.lineTo(sz * 0.14, -sz * 0.9); g.lineTo(sz * 0.2, 0); }
-      g.closePath(); g.fillStyle = '#0a0a10'; g.fill();
-      const lit = Math.max(I * pulse, seam * 0.3, C.flash > 0.2 ? 0.5 : 0);
-      if (lit > 0) { g.strokeStyle = rgba(mix(col, [255, 255, 255], 0.3), (lit * (0.4 + st.s * 0.5)).toFixed(3)); g.lineWidth = Math.max(1, sz * 0.04); g.stroke(); }
-      g.restore();
-    };
-    for (const st of stones) if (st.y < base) drawStone(st);
-    // what's inside the arch: the night behind it, then the seam, then the vortex
-    const opening = () => { g.beginPath(); g.moveTo(cx - ri, base); g.lineTo(cx - ri, ys); g.arc(cx, ys, ri, Math.PI, Math.PI * 2); g.lineTo(cx + ri, base); g.closePath(); };
-    g.save(); opening(); g.clip();
-    if (I > 0) {
-      const R = Math.max(ri, (base - ys + ri) / 2) * 1.4, vs = easeOut(I);
-      g.fillStyle = rgba(mix([6, 2, 12], col, 0.15), 1); g.fillRect(cx - ri, ys - ri, ri * 2, base - ys + ri);
-      g.save(); g.globalCompositeOperation = 'lighter'; g.translate(vcx, vcy); g.scale(vs, vs * 1.35);
-      // rings rushing inward: a tunnel
-      for (let n = 0; n < 9; n++) { const q = 1 - ((t * 0.55 + n / 9) % 1), r = R * q * q; g.strokeStyle = rgba(col, (0.5 * q).toFixed(3)); g.lineWidth = Math.max(1, R * 0.03 * q); g.beginPath(); g.arc(0, 0, r, 0, 7); g.stroke(); }
-      // spiral arms
-      for (let arm = 0; arm < 10; arm++) {
-        const sp = 1.6 + (arm % 3) * 0.7, tw = 4.4 + (arm % 2) * 1.6;
-        for (const [lw, a] of [[0.05, 0.12], [0.018, 0.5], [0.006, 0.9]]) {
-          g.strokeStyle = rgba(arm % 3 ? col : hot, a); g.lineWidth = Math.max(1, R * lw); g.beginPath();
-          for (let s = 2; s <= 34; s++) { const q = s / 34, r = R * (1 - q) ** 1.2, an = arm / 10 * Math.PI * 2 + q * tw + t * sp; if (s === 2) g.moveTo(Math.cos(an) * r, Math.sin(an) * r); else g.lineTo(Math.cos(an) * r, Math.sin(an) * r); }
-          g.stroke();
-        }
-      }
-      for (let i = 0; i < 70; i++) { const q = (t * (0.25 + hr(i + 950) * 0.3) + hr(i + 951)) % 1, r = R * (1 - q), an = hr(i + 952) * 7 + q * 6 + t; g.fillStyle = rgba(hot, (0.9 * q).toFixed(3)); const ps = Math.max(1, R * 0.012 * (1 - q * 0.5)); g.fillRect(Math.cos(an) * r - ps / 2, Math.sin(an) * r - ps / 2, ps, ps); }
-      const core = g.createRadialGradient(0, 0, 0, 0, 0, R * 0.55); core.addColorStop(0, 'rgba(255,255,255,' + 0.95 * pulse + ')'); core.addColorStop(0.25, rgba(hot, 0.7)); core.addColorStop(1, rgba(col, 0)); g.fillStyle = core; g.beginPath(); g.arc(0, 0, R * 0.55, 0, 7); g.fill();
-      g.restore();
-      // the dead taking shape in the light
-      const who = sh.figures || [];
-      who.forEach((a, j) => {
-        const st = kb + 0.12 + j * 0.1, q = clamp01((k - st) / 0.35); if (q <= 0) return;
-        const s = H * lerp(0.04, 0.3, easeOut(q)), off = (j - (who.length - 1) / 2) * ri * 0.7 * q;
-        figure(g, a, vcx + off, vcy + H * 0.1 + H * 0.1 * q, s / 1.45, rgba([4, 2, 8], (0.5 + 0.5 * q).toFixed(3)), rgba(hot, (0.9 * q).toFixed(3)), j % 2, 'Run');
-      });
-    } else if (seam > 0) {
-      g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(cx - ri, ys - ri, ri * 2, base - ys + ri);
-      g.save(); g.globalCompositeOperation = 'lighter';
-      const sw = ri * (0.02 + seam * seam * 0.12), sg = g.createLinearGradient(cx - sw * 4, 0, cx + sw * 4, 0); sg.addColorStop(0, rgba(col, 0)); sg.addColorStop(0.5, rgba(hot, 0.4 + seam * 0.6)); sg.addColorStop(1, rgba(col, 0));
-      g.fillStyle = sg; g.fillRect(cx - sw * 4, ys - ri, sw * 8, base - ys + ri);
-      g.fillStyle = 'rgba(255,255,255,' + seam + ')'; g.fillRect(cx - sw * 0.25, ys - ri * seam, sw * 0.5, (base - ys + ri) * seam);
-      g.restore();
-    }
-    g.restore();
-    // the arch: voussoirs, a keystone, block pillars; runes waking in turn; light from inside on the stone
-    const stoneTop = '#2a2a36', stoneBot = '#121218';
-    const nv = 13;
-    for (let v = 0; v < nv; v++) {
-      const a0 = Math.PI + v / nv * Math.PI, a1 = Math.PI + (v + 1) / nv * Math.PI, key = v === (nv - 1) / 2, rOut = key ? ro * 1.07 : ro;
-      g.beginPath(); g.arc(cx, ys, rOut, a0 + 0.004, a1 - 0.004); g.arc(cx, ys, ri, a1 - 0.004, a0 + 0.004, true); g.closePath();
-      const gr = g.createLinearGradient(0, ys - ro, 0, ys); gr.addColorStop(0, stoneTop); gr.addColorStop(1, stoneBot); g.fillStyle = gr; g.fill();
-      g.strokeStyle = '#050508'; g.lineWidth = Math.max(1, H * 0.003); g.stroke();
-      const on = clamp01((k - 0.04 - v * 0.022) / 0.05), am = (a0 + a1) / 2, rr = (ri + rOut) / 2, rx = cx + Math.cos(am) * rr, ry = ys + Math.sin(am) * rr;
-      if (on > 0) {
-        g.save(); g.translate(rx, ry); g.rotate(am + Math.PI / 2); g.globalCompositeOperation = 'lighter'; g.strokeStyle = rgba(hot, (on * (0.6 + 0.4 * Math.sin(t * 6 + v))).toFixed(3)); g.shadowColor = rgba(col, 1); g.shadowBlur = 14; g.lineWidth = Math.max(1.5, H * 0.004);
-        const rs = (ro - ri) * 0.22; g.beginPath(); const gl = Math.floor(hr(v + 700) * 4);
-        if (gl === 0) { g.moveTo(0, -rs); g.lineTo(0, rs); g.moveTo(-rs * 0.6, -rs * 0.3); g.lineTo(rs * 0.6, rs * 0.3); }
-        else if (gl === 1) { g.moveTo(-rs * 0.6, rs); g.lineTo(0, -rs); g.lineTo(rs * 0.6, rs); g.moveTo(-rs * 0.3, rs * 0.2); g.lineTo(rs * 0.3, rs * 0.2); }
-        else if (gl === 2) { g.arc(0, 0, rs * 0.6, 0, 7); g.moveTo(0, -rs); g.lineTo(0, rs); }
-        else { g.moveTo(-rs * 0.6, -rs); g.lineTo(rs * 0.6, 0); g.lineTo(-rs * 0.6, rs); }
-        g.stroke(); g.restore();
-      }
-    }
-    for (const sx of [-1, 1]) { // pillars
-      const x0 = sx < 0 ? cx - ro : cx + ri, pw = ro - ri, rows = 6, rh = (base - ys) / rows;
-      for (let r = 0; r < rows; r++) { const y0 = ys + r * rh, inset = (r % 2) * pw * 0.04; const gr = g.createLinearGradient(x0, 0, x0 + pw, 0); gr.addColorStop(0, sx < 0 ? '#16161e' : '#24242e'); gr.addColorStop(1, sx < 0 ? '#24242e' : '#16161e'); g.fillStyle = gr; g.fillRect(x0 + inset, y0, pw - inset * 2, rh - H * 0.003); }
-      g.fillStyle = '#0e0e14'; g.fillRect(x0 - pw * 0.12, base - H * 0.025, pw * 1.24, H * 0.03); g.fillRect(x0 - pw * 0.06, ys - H * 0.012, pw * 1.12, H * 0.02);
-      const on = clamp01((k - 0.04 - (sx < 0 ? 0 : 0.3)) / 0.1);
-      if (on > 0) { g.save(); g.globalCompositeOperation = 'lighter'; g.strokeStyle = rgba(hot, (on * 0.7).toFixed(3)); g.shadowColor = rgba(col, 1); g.shadowBlur = 10; g.lineWidth = Math.max(1.2, H * 0.003); g.beginPath(); for (let r = 0; r < 5; r++) { const y = ys + (r + 0.5) * (base - ys) / 5, mx = x0 + (ro - ri) / 2, rs = (ro - ri) * 0.16; g.moveTo(mx - rs, y - rs); g.lineTo(mx + rs, y + rs); g.moveTo(mx + rs, y - rs); g.lineTo(mx - rs, y + rs); } g.stroke(); g.restore(); }
-    }
-    // light spilling onto the inner faces of the arch
-    if (I > 0 || seam > 0) { g.save(); g.globalCompositeOperation = 'lighter'; g.strokeStyle = rgba(hot, (Math.max(I * pulse, seam * 0.5) * 0.8).toFixed(3)); g.shadowColor = rgba(col, 1); g.shadowBlur = 24; g.lineWidth = H * 0.006; opening(); g.stroke(); g.restore(); }
-    // arcs leaping from the gate to the stones
-    if (I > 0 || seam > 0.5) { g.save(); g.globalCompositeOperation = 'lighter'; g.strokeStyle = rgba(hot, 0.85); g.shadowColor = rgba(col, 1); g.shadowBlur = 10; g.lineWidth = Math.max(1, H * 0.0025); const seed = Math.floor(t * 12); for (let a = 0; a < 4; a++) { if (hr(seed + a * 31) < 0.35) continue; const ang = Math.PI + hr(seed + a) * Math.PI, x1 = cx + Math.cos(ang) * ro * 1.02, y1 = ys + Math.sin(ang) * ro * 1.02; let px = vcx, py = vcy; g.beginPath(); g.moveTo(px, py); for (let s = 1; s <= 7; s++) { px = lerp(vcx, x1, s / 7) + (hr(seed + a * 7 + s) - 0.5) * H * 0.05; py = lerp(vcy, y1, s / 7) + (hr(seed + a * 7 + s + 9) - 0.5) * H * 0.05; g.lineTo(px, py); } g.stroke(); } g.restore(); }
-    // the shockwave when it tears open
-    const sk = (k - kb) / 0.18;
-    if (sk > 0 && sk < 1) { g.save(); g.globalCompositeOperation = 'lighter'; g.strokeStyle = rgba(hot, (1 - sk).toFixed(3)); g.lineWidth = H * 0.03 * (1 - sk); g.beginPath(); g.ellipse(cx, base, W * 1.2 * easeOut(sk), H * 0.12 * easeOut(sk), 0, 0, 7); g.stroke(); g.lineWidth = H * 0.02 * (1 - sk); g.beginPath(); g.arc(vcx, vcy, H * 1.2 * easeOut(sk), 0, 7); g.stroke(); g.restore(); }
-    // debris: rising while the gate wakes, then dragged into it
-    g.fillStyle = '#0d0c14';
-    for (let i = 0; i < 34; i++) {
-      const p = (t * 0.45 + hr(i + 800)) % 1, sz = H * (0.004 + hr(i + 801) * 0.01);
-      let x, y;
-      if (I <= 0) { x = cx + (hr(i + 802) - 0.5) * ro * 3.5; y = base + H * 0.04 - p * H * 0.18 * seam; if (seam <= 0) continue; }
-      else { const ang = hr(i + 803) * Math.PI * 2 + p * 5, r = (1 - p) * W * 0.6; x = vcx + Math.cos(ang) * r; y = vcy + Math.sin(ang) * r * 0.6; }
-      g.save(); g.translate(x, y); g.rotate(t * 3 + i); g.fillRect(-sz, -sz * 0.7, sz * 2, sz * 1.4); if (I > 0) { g.globalCompositeOperation = 'lighter'; g.fillStyle = rgba(col, 0.5); g.fillRect(-sz, -sz * 0.7, sz * 2, sz * 0.4); g.fillStyle = '#0d0c14'; } g.restore();
-    }
-    for (const st of stones) if (st.y >= base) drawStone(st);
-    g.restore();
-    // rain, lit near the gate
-    if (sh.rain) { g.lineWidth = Math.max(1, H * 0.0018); for (const [cc, n0] of [['rgba(170,180,220,0.22)', 0], [rgba(hot, 0.35 * I), 1]]) { g.strokeStyle = cc; g.beginPath(); for (let i = n0; i < 180; i += 2) { const h1 = hr(i + 900), h2 = hr(i + 901), x = ((h1 * (W + 100) - t * 300) % (W + 100) + W + 100) % (W + 100) - 50, y = ((h2 * (H + 60) + t * 1500) % (H + 60)) - 30; if (n0 && Math.abs(x - cx) > W * 0.3) continue; g.moveTo(x, y); g.lineTo(x - 7, y + 22); } g.stroke(); } }
-    if (rush > 0) { g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = rgba(hot, Math.min(0.9, rush * 0.4).toFixed(3)); g.fillRect(0, 0, W, H); g.restore(); speedLines(g, W / 2, H / 2, W, H, 90, rgba(hot, 0.35), Math.floor(t * 20), 0.08); }
-  }
-  // the tease: more gates on far hills flaring open one after another, a shape standing in each, only its eyes lit
-  function drawGates(g, W, H, sh, k, t) {
-    const zoom = 1 + 0.08 * ease(k);
-    g.save(); g.translate(W / 2, H * 0.6); g.scale(zoom, zoom); g.translate(-W / 2, -H * 0.6);
-    const hy = H * 0.66;
-    const bg = g.createLinearGradient(0, 0, 0, hy); bg.addColorStop(0, '#030308'); bg.addColorStop(1, '#141020'); g.fillStyle = bg; g.fillRect(-W, -H, W * 3, H * 3);
-    clouds(g, W, H, t, 12, H * 0.04, hy - H * 0.25, [6, 6, 12], [34, 28, 48], W * 0.02, 31);
-    const list = sh.gates || [];
-    // pillars of light into the clouds, behind everything
-    list.forEach((G, j) => {
-      const I = clamp01((k - G.at) / 0.06); if (I <= 0) return;
-      const x = W * G.x, base = hy + H * G.dy, c = G.col, pulse = 0.8 + 0.2 * Math.sin(t * 7 + j);
-      g.save(); g.globalCompositeOperation = 'lighter';
-      const pw = H * G.sc * 0.18, pl = g.createLinearGradient(x - pw, 0, x + pw, 0); pl.addColorStop(0, rgba(c, 0)); pl.addColorStop(0.5, rgba(c, 0.35 * I * pulse)); pl.addColorStop(1, rgba(c, 0));
-      g.fillStyle = pl; g.fillRect(x - pw, -H, pw * 2, base + H);
-      const gl = g.createRadialGradient(x, base - H * G.sc * 0.3, 0, x, base - H * G.sc * 0.3, H * 0.7 * G.sc); gl.addColorStop(0, rgba(c, 0.5 * I)); gl.addColorStop(1, rgba(c, 0)); g.fillStyle = gl; g.fillRect(x - H, base - H * 1.2, H * 2, H * 1.6);
-      // the clouds above it lit from below
-      const cl = g.createRadialGradient(x, H * 0.12, 0, x, H * 0.12, H * 0.5 * G.sc + H * 0.1); cl.addColorStop(0, rgba(c, 0.28 * I)); cl.addColorStop(1, rgba(c, 0)); g.fillStyle = cl; g.fillRect(x - H, -H * 0.4, H * 2, H);
-      g.restore();
-    });
-    // hills: each gate stands on its own
-    ridge(g, W, H, hy - H * 0.06, H * 0.05, 13, '#0c0a14', 0);
-    ridge(g, W, H, hy, H * 0.03, 17, '#08070d', 0);
-    const order = list.map((G, j) => [G, j]).sort((a, b) => a[0].sc - b[0].sc);
-    for (const [G, j] of order) {
-      const I = clamp01((k - G.at) / 0.06), x = W * G.x, base = hy + H * G.dy, S = H * G.sc, c = G.col, hot = mix(c, [255, 255, 255], 0.55), pulse = 0.85 + 0.15 * Math.sin(t * 8 + j * 2);
-      const ro = S * 0.3, ri = S * 0.2, ys = base - S * 0.42;
-      // hill under it
-      g.fillStyle = '#060509'; g.beginPath(); g.ellipse(x, base + S * 0.05, S * 0.9, S * 0.1, 0, Math.PI, 0); g.fill(); g.fillRect(x - S * 0.9, base + S * 0.05, S * 1.8, H);
-      // the opening: the vortex
-      g.save(); g.beginPath(); g.moveTo(x - ri, base); g.lineTo(x - ri, ys); g.arc(x, ys, ri, Math.PI, Math.PI * 2); g.lineTo(x + ri, base); g.closePath(); g.clip();
-      g.fillStyle = '#05040a'; g.fillRect(x - ri, ys - ri, ri * 2, base - ys + ri);
-      if (I > 0) {
-        const vy = (ys - ri + base) / 2, R = (base - ys + ri) * 0.6;
-        g.globalCompositeOperation = 'lighter';
-        for (let n = 0; n < 6; n++) { const q = 1 - ((t * 0.6 + n / 6) % 1); g.strokeStyle = rgba(c, (0.6 * q * I).toFixed(3)); g.lineWidth = Math.max(1, R * 0.04 * q); g.beginPath(); g.ellipse(x, vy, ri * q * 1.1, R * q, 0, 0, 7); g.stroke(); }
-        for (let arm = 0; arm < 5; arm++) { g.strokeStyle = rgba(arm % 2 ? hot : c, 0.6 * I); g.lineWidth = Math.max(1, R * 0.025); g.beginPath(); for (let s = 2; s <= 20; s++) { const q = s / 20, an = arm / 5 * 7 + q * 4.5 + t * 2.5; const px = x + Math.cos(an) * ri * (1 - q), py = vy + Math.sin(an) * R * (1 - q); if (s === 2) g.moveTo(px, py); else g.lineTo(px, py); } g.stroke(); }
-        const core = g.createRadialGradient(x, vy, 0, x, vy, R * 0.6); core.addColorStop(0, 'rgba(255,255,255,' + 0.9 * I * pulse + ')'); core.addColorStop(0.3, rgba(hot, 0.6 * I)); core.addColorStop(1, rgba(c, 0)); g.fillStyle = core; g.fillRect(x - ri, ys - ri, ri * 2, base - ys + ri);
-      }
-      g.restore();
-      // the arch itself
-      g.beginPath(); g.moveTo(x - ro, base); g.lineTo(x - ro, ys); g.arc(x, ys, ro, Math.PI, Math.PI * 2); g.lineTo(x + ro, base); g.lineTo(x + ri, base); g.lineTo(x + ri, ys); g.arc(x, ys, ri, Math.PI * 2, Math.PI, true); g.lineTo(x - ri, base); g.closePath();
-      g.fillStyle = '#121219'; g.fill();
-      if (I > 0) { g.save(); g.globalCompositeOperation = 'lighter'; g.strokeStyle = rgba(hot, (0.7 * I * pulse).toFixed(3)); g.shadowColor = rgba(c, 1); g.shadowBlur = 16; g.lineWidth = Math.max(1, S * 0.008); g.beginPath(); g.moveTo(x - ri, base); g.lineTo(x - ri, ys); g.arc(x, ys, ri, Math.PI, Math.PI * 2); g.lineTo(x + ri, base); g.stroke();
-        for (let r = 0; r < 7; r++) { const an = Math.PI + (r + 0.5) / 7 * Math.PI, rr = (ri + ro) / 2, rs = (ro - ri) * 0.18; const rx = x + Math.cos(an) * rr, ry = ys + Math.sin(an) * rr; g.beginPath(); g.moveTo(rx - rs, ry - rs); g.lineTo(rx + rs, ry + rs); g.moveTo(rx + rs, ry - rs); g.lineTo(rx - rs, ry + rs); g.stroke(); }
-        g.restore(); }
-      // the one who waits there: black against the light, only the eyes
-      if (G.who && I > 0) {
-        const q = clamp01((k - G.at - 0.04) / 0.2), sPx = ri * 2.9 / 1.45 * lerp(0.8, 1, easeOut(q)), fx = x, fy = base - S * 0.005;
-        figure(g, G.who, fx, fy, sPx, '#030206', rgba(hot, (0.55 * q).toFixed(3)), j % 2, 'Idle');
-        const SC = 2, m = 3.1 / (128 * SC) * sPx, fr = Math.floor(C.t * 7) % clipLen(G.who, 'Idle'), lift = headLift(G.who, 'Idle', 2, fr);
-        const ey = fy - (lift + 2) * SC * m, ex = fx + (j % 2 ? -1 : 1) * 0.5 * SC * m, d = Math.max(2.5, 2.4 * SC * m), blink = Math.sin(t * 1.3 + j * 4) > 0.97 ? 0.1 : 1;
-        if (q > 0.3) { const ea = blink * clamp01((q - 0.3) * 3); g.save(); g.globalCompositeOperation = 'lighter'; for (const sx of [-1, 1]) { const gx = ex + sx * d * 1.2, gl = g.createRadialGradient(gx, ey, 0, gx, ey, d * 3); gl.addColorStop(0, rgba(c, 0.8 * ea)); gl.addColorStop(1, rgba(c, 0)); g.fillStyle = gl; g.fillRect(gx - d * 3, ey - d * 3, d * 6, d * 6); g.fillStyle = 'rgba(255,255,255,' + ea + ')'; g.beginPath(); g.ellipse(gx, ey, d * 0.6, d * 0.32, sx * 0.25, 0, 7); g.fill(); } g.restore(); }
-      }
-      // the flare as it opens
-      const f = (k - G.at) / 0.1;
-      if (f > 0 && f < 1) { g.save(); g.globalCompositeOperation = 'lighter'; g.strokeStyle = rgba(hot, (1 - f).toFixed(3)); g.lineWidth = S * 0.008 * (1 - f); g.beginPath(); g.ellipse(x, base, S * 1.2 * easeOut(f), S * 0.12 * easeOut(f), 0, 0, 7); g.stroke(); g.fillStyle = rgba(hot, (0.25 * (1 - f) * (1 - f)).toFixed(3)); g.fillRect(-W, -H, W * 3, H * 3); g.restore(); }
-    }
-    // rain
-    g.strokeStyle = 'rgba(170,180,220,0.18)'; g.lineWidth = Math.max(1, H * 0.0016); g.beginPath();
-    for (let i = 0; i < 140; i++) { const x = ((hr(i + 1200) * (W + 100) - t * 300) % (W + 100) + W + 100) % (W + 100) - 50, y = ((hr(i + 1201) * (H + 60) + t * 1400) % (H + 60)) - 30; g.moveTo(x, y); g.lineTo(x - 7, y + 20); }
-    g.stroke();
-    g.restore();
-  }
   // ---------------------------------------------------------------- the oath panels again: they fall, one stands, the army to come
   // mode 'fall': the nine panels; eight crack, drain to grey as their knight falls, and drop away (sh.fallAt seconds)
   // mode 'lone': the last panel slides to the middle in falling ash, the Captain dim
@@ -752,67 +527,6 @@
     g.strokeStyle = o.edge || '#ffe7a3'; g.lineWidth = o.glow ? 4 : 3; if (o.glow) { g.shadowColor = '#ffd27a'; g.shadowBlur = 16 * o.glow; }
     g.beginPath(); g.moveTo(x0 + sl, 0); g.lineTo(x1 + sl, 0); g.lineTo(x1 - sl, H); g.lineTo(x0 - sl, H); g.closePath(); g.stroke(); g.shadowBlur = 0;
     g.restore();
-  }
-  function drawOath(g, W, H, sh, k, t) {
-    g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
-    const who = sh.who, n = 9, pw = W / n;
-    if (sh.mode === 'fall') {
-      for (let i = 0; i < n; i++) {
-        const ft = sh.fallAt[i] === undefined ? -1 : t - sh.fallAt[i];
-        const o = { t, who: who[i], fr: undefined, clip: undefined };
-        if (ft >= 0) {
-          o.flash = Math.max(0, 0.9 - ft * 8); o.crack = ft; o.grey = Math.min(1, ft * 2.5);
-          o.clip = 'Die'; o.fr = Math.min(clipLen(who[i], 'Die') - 1, Math.floor(ft * 12));
-          o.bodyAlpha = 1 - clamp01((ft - 0.1) / 0.45);
-          if (ft > 0.05 && ft < 0.6) for (let q = 0; q < 5; q++) C.parts.push({ x: pw * i + Math.random() * pw, y: H * (0.2 + Math.random() * 0.55), vx: 40 + Math.random() * 120, vy: -40 - Math.random() * 90, t: 0, life: 1 + Math.random() * 0.8, col: Math.random() < 0.3 ? '#ff8a3a' : '#9a9590', r: 1 + Math.random() * 2.2, drift: true });
-          const d = Math.max(0, ft - 0.45); o.dy = d * d * H * 2.2; o.rot = d * d * (i % 2 ? 0.5 : -0.5); o.alpha = Math.max(0, 1 - d * 1.4);
-        }
-        if (o.alpha === 0) continue;
-        oathPanel(g, W, H, i, pw * i, pw * (i + 1), Object.assign(o, { glow: i === 8 && k > 0.75 ? (k - 0.75) * 4 : 0 }));
-      }
-      return;
-    }
-    if (sh.mode === 'lone') {
-      const q = ease(clamp01(k / 0.45)), x0 = lerp(pw * 8, W * 0.32, q), x1 = lerp(W, W * 0.68, q);
-      oathPanel(g, W, H, 8, x0, x1, { t, who: who[8], ph: lerp(0.125, 0.3, q), grey: 0.55, sl: W * 0.03, glow: 0 });
-      g.fillStyle = 'rgba(210,205,200,0.6)'; for (let i = 0; i < 80; i++) { const x = ((hr(i + 2100) * W + Math.sin(t * 0.8 + i) * 30 + t * 14) % W + W) % W, y = (hr(i + 2101) * H + t * H * 0.06 * (0.5 + hr(i + 2102))) % H, r = (0.6 + hr(i + 2103) * 1.8) * (W / 1280) * 1.5; g.fillRect(x, y, r, r); }
-      return;
-    }
-    if (sh.mode === 'renew') {
-      const cw = W * 0.34, cx0 = W / 2 - cw / 2, side = (W - cw) / 2 / 4;
-      for (let j = 0; j < 8; j++) {
-        const at = 0.18 + j * 0.07, q = clamp01((k - at) / 0.12); if (q <= 0) continue;
-        const slot = j < 4 ? j : j + 1, x0 = slot < 4 ? slot * side : cx0 + cw + (slot - 5) * side;
-        oathPanel(g, W, H, j, x0, x0 + side, { t, empty: q, alpha: q, sl: W * 0.015, edge: 'rgba(255,231,163,' + (0.5 + 0.5 * q) + ')' });
-      }
-      oathPanel(g, W, H, 8, cx0, cx0 + cw, { t, who: who[8], ph: 0.3, glow: 0.5 + 0.5 * clamp01(k * 3), sl: W * 0.03 });
-    }
-  }
-  // the bosses still to come, each in its own gate: a black shape, rim-lit, only the eyes
-  function drawTease(g, W, H, sh, k, t) {
-    g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
-    const n = sh.gates.length, sl = W * 0.05;
-    sh.gates.forEach((G, i) => {
-      const x0 = W * i / n, x1 = W * (i + 1) / n, kk = clamp01((k - i * 0.22) / 0.3); if (kk <= 0) return;
-      const drop = (1 - easeOut(clamp01(kk * 2))) * H * (i % 2 ? 1 : -1), c = G.col, hot = mix(c, [255, 255, 255], 0.55), mx = (x0 + x1) / 2;
-      g.save(); g.translate(0, drop); g.beginPath(); g.moveTo(x0 + sl, 0); g.lineTo(x1 + sl, 0); g.lineTo(x1 - sl, H); g.lineTo(x0 - sl, H); g.closePath(); g.clip();
-      g.fillStyle = rgba(mix(c, [0, 0, 0], 0.88), 1); g.fillRect(x0 - sl, 0, x1 - x0 + sl * 2, H);
-      // the gate's vortex behind it
-      g.save(); g.globalCompositeOperation = 'lighter'; g.translate(mx, H * 0.45);
-      const R = H * 0.55;
-      for (let r = 0; r < 7; r++) { const q = 1 - ((t * 0.5 + r / 7) % 1); g.strokeStyle = rgba(c, (0.45 * q).toFixed(3)); g.lineWidth = Math.max(1, R * 0.025 * q); g.beginPath(); g.ellipse(0, 0, R * q * 0.7, R * q, 0, 0, TAU); g.stroke(); }
-      for (let a = 0; a < 6; a++) { g.strokeStyle = rgba(a % 2 ? hot : c, 0.4); g.lineWidth = Math.max(1, R * 0.012); g.beginPath(); for (let s = 2; s <= 24; s++) { const q = s / 24, an = a / 6 * TAU + q * 4.5 + t * 2; const px = Math.cos(an) * R * 0.7 * (1 - q), py = Math.sin(an) * R * (1 - q); s === 2 ? g.moveTo(px, py) : g.lineTo(px, py); } g.stroke(); }
-      const core = g.createRadialGradient(0, 0, 0, 0, 0, R * 0.5); core.addColorStop(0, rgba(hot, 0.85)); core.addColorStop(1, rgba(c, 0)); g.fillStyle = core; g.beginPath(); g.arc(0, 0, R * 0.5, 0, TAU); g.fill();
-      g.restore();
-      // the shape, black, rim-lit
-      closeupBody(g, G.who, kk, t + i, mx, H * 0.5, H * 0.2, 2, false, 'rgba(0,0,0,0)', 'rgba(0,0,0,0)', 0, { noBg: true, sil: 1, rim: rgba(hot, 1), rise: true });
-      // the eyes light
-      const ea = clamp01((kk - 0.6) * 4) * (Math.sin(t * 1.4 + i * 3) > 0.96 ? 0.1 : 1);
-      if (ea > 0) { const ey = H * (0.5 + (G.eyeY || -0.08)), d = H * 0.009; g.save(); g.globalCompositeOperation = 'lighter'; for (const sx of [-1, 1]) { const gx = mx + sx * d * 1.6 + (G.eyeX || 0) * H, gl = g.createRadialGradient(gx, ey, 0, gx, ey, d * 5); gl.addColorStop(0, rgba(c, 0.9 * ea)); gl.addColorStop(1, rgba(c, 0)); g.fillStyle = gl; g.fillRect(gx - d * 5, ey - d * 5, d * 10, d * 10); g.fillStyle = 'rgba(255,255,255,' + ea + ')'; g.beginPath(); g.ellipse(gx, ey, d, d * 0.5, sx * 0.3, 0, TAU); g.fill(); } g.restore(); }
-      g.restore();
-      g.strokeStyle = rgba(hot, 0.9); g.lineWidth = 3; g.beginPath(); g.moveTo(x1 + sl, -4 + drop); g.lineTo(x1 - sl, H + 4 + drop); g.stroke();
-      if (kk > 0.5) { g.save(); g.globalAlpha = clamp01((kk - 0.5) * 3); const lg = g.createLinearGradient(0, H * 0.7, 0, H * 0.9); lg.addColorStop(0, 'rgba(0,0,0,0)'); lg.addColorStop(0.4, 'rgba(0,0,0,0.75)'); lg.addColorStop(1, 'rgba(0,0,0,0.75)'); g.fillStyle = lg; g.fillRect(x0 - sl, H * 0.7 + drop, x1 - x0, H * 0.2); g.textAlign = 'center'; g.font = '700 ' + Math.round(H * 0.024) + 'px Outfit, sans-serif'; g.fillStyle = rgba(hot, 1); if (g.letterSpacing !== undefined) g.letterSpacing = '4px'; g.fillText(G.land, mx - sl * 0.4, H * 0.84 + drop); g.font = '800 ' + Math.round(H * 0.05) + 'px Outfit, sans-serif'; g.fillStyle = '#e8e8f0'; g.fillText('? ? ?', mx - sl * 0.5, H * 0.79 + drop); if (g.letterSpacing !== undefined) g.letterSpacing = '0px'; g.restore(); }
-    });
   }
   // ---------------------------------------------------------------- trailer language: kinetic type, the moon, the iris, the montage
   const SERIF = 'Cinzel, "Cormorant Garamond", Georgia, serif', SERIF2 = '"Cormorant Garamond", Cinzel, Georgia, serif';
@@ -857,44 +571,6 @@
         g.restore(); x += ws[i] + sw;
       });
     });
-  }
-  // a tiny figure on a hill of wreckage against an enormous moon
-  function drawMoon(g, W, H, sh, k, t) {
-    const z = 1 + ease(k) * (sh.push || 0.08), cx = W / 2, cy = H * 0.5;
-    g.save(); g.translate(cx, cy); g.scale(z, z); g.translate(-cx, -cy);
-    const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#05060c'); bg.addColorStop(1, '#141826'); g.fillStyle = bg; g.fillRect(-W, -H, W * 3, H * 3);
-    g.fillStyle = '#d8dce8'; for (let i = 0; i < 120; i++) { const a = 0.3 + 0.7 * Math.abs(Math.sin(t * 2 + i)); g.globalAlpha = a * 0.7; g.fillRect(hr(i + 3100) * W, hr(i + 3101) * H * 0.7, 1.5, 1.5); } g.globalAlpha = 1;
-    const mc = sh.moon || [236, 232, 222], R = H * 0.44, my = H * 0.56;
-    const glow = g.createRadialGradient(cx, my, R * 0.9, cx, my, R * 1.8); glow.addColorStop(0, rgba(mc, 0.35)); glow.addColorStop(1, rgba(mc, 0)); g.fillStyle = glow; g.fillRect(-W, -H, W * 3, H * 3);
-    const md = g.createRadialGradient(cx - R * 0.3, my - R * 0.3, R * 0.1, cx, my, R); md.addColorStop(0, rgba(mix(mc, [255, 255, 255], 0.3), 1)); md.addColorStop(1, rgba(mix(mc, [120, 120, 130], 0.35), 1));
-    g.fillStyle = md; g.beginPath(); g.arc(cx, my, R, 0, TAU); g.fill();
-    g.save(); g.beginPath(); g.arc(cx, my, R, 0, TAU); g.clip(); for (let i = 0; i < 14; i++) { const a = hr(i + 3200) * TAU, d = hr(i + 3201) * R * 0.85, r = R * (0.02 + hr(i + 3202) * 0.06); g.fillStyle = 'rgba(110,110,120,' + (0.06 + hr(i + 3203) * 0.08) + ')'; g.beginPath(); g.arc(cx + Math.cos(a) * d, my + Math.sin(a) * d, r, 0, TAU); g.fill(); }
-      for (let i = 0; i < 5; i++) { const x = ((hr(i + 3300) * 1.6 + t * 0.03 * (1 + i * 0.3)) % 1.6 - 0.3) * W, y = my + (hr(i + 3301) - 0.5) * R * 1.4; g.fillStyle = 'rgba(10,12,20,0.55)'; g.beginPath(); g.ellipse(x, y, R * 0.9, R * 0.06, 0, 0, TAU); g.fill(); } g.restore();
-    // the hill, the wreckage, the figure with the banner
-    const hy = H * 0.84; g.fillStyle = '#020204'; g.beginPath(); g.moveTo(-10, H + 10); g.lineTo(-10, hy + H * 0.04); g.quadraticCurveTo(cx - W * 0.1, hy - H * 0.02, cx, hy - H * 0.035); g.quadraticCurveTo(cx + W * 0.12, hy - H * 0.02, W + 10, hy + H * 0.05); g.lineTo(W + 10, H + 10); g.closePath(); g.fill();
-    g.strokeStyle = '#020204'; g.lineWidth = Math.max(2, H * 0.004); g.lineCap = 'round';
-    for (let i = 0; i < 14; i++) { const x = cx + (hr(i + 3400) - 0.5) * W * 0.8, base = hy + Math.abs(x - cx) / W * H * 0.06 - H * 0.02, a = -Math.PI / 2 + (hr(i + 3401) - 0.5) * 1.1, l = H * (0.05 + hr(i + 3402) * 0.08); g.beginPath(); g.moveTo(x, base); g.lineTo(x + Math.cos(a) * l, base + Math.sin(a) * l); g.stroke(); }
-    if (sh.who) {
-      const SC = 2, fr = Math.floor(t * 6) % clipLen(sh.who, 'Idle'), sv = silhouette(sh.who, 'Idle', sh.dir === undefined ? 2 : sh.dir, fr, SC, '#020204'), hgt = H * (sh.fig || 0.13), m = hgt / (60 * SC);
-      const fx = cx, fy = hy - H * 0.032;
-      g.drawImage(sv, fx - 64 * SC * m, fy - 90 * SC * m, 128 * SC * m, 128 * SC * m);
-      if (sh.banner) { const px = fx + hgt * 0.32, top = fy - hgt * 1.9; g.lineWidth = Math.max(2, H * 0.005); g.beginPath(); g.moveTo(px, fy); g.lineTo(px, top); g.stroke();
-        g.fillStyle = '#020204'; g.beginPath(); g.moveTo(px, top + hgt * 0.05); for (let i = 0; i <= 10; i++) { const u = i / 10; g.lineTo(px + u * hgt * 0.9, top + hgt * 0.05 + Math.sin(t * 3 + u * 5) * hgt * 0.06 * u); } for (let i = 10; i >= 0; i--) { const u = i / 10; g.lineTo(px + u * hgt * 0.9 - (i % 3 === 0 ? hgt * 0.05 : 0), top + hgt * 0.55 + Math.sin(t * 3 + u * 5 + 0.6) * hgt * 0.08 * u); } g.closePath(); g.fill(); }
-    }
-    g.fillStyle = 'rgba(200,200,210,0.5)'; for (let i = 0; i < 60; i++) { const x = ((hr(i + 3500) * W + t * 18 + Math.sin(t + i) * 20) % W + W) % W, y = (hr(i + 3501) * H + t * H * 0.04) % H; g.fillRect(x, y, 1.6, 1.6); }
-    g.restore();
-  }
-  // an eye fills the frame and rings open out of it into the next world
-  function drawIris(g, W, H, sh, k, t) {
-    g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
-    const c = sh.col || [125, 255, 176], cx = W / 2, cy = H * 0.5;
-    if (sh.who && k < 0.55) { g.save(); g.globalAlpha = 1 - clamp01((k - 0.35) / 0.2); closeupBody(g, sh.who, 1, t, cx, cy + H * 0.22, H * 0.3, 2, false, rgba(mix(c, [0, 0, 0], 0.6), 1), 'rgba(0,0,0,1)', 0, { zoom: 1.5 + k * 1.2 }); g.restore(); }
-    g.save(); g.globalCompositeOperation = 'lighter';
-    for (let i = 0; i < 9; i++) { const q = (k * 1.6 + i / 9) % 1, r = Math.pow(q, 2.2) * Math.max(W, H) * 0.9; g.strokeStyle = rgba(c, (0.9 * (1 - q) * clamp01(k * 4)).toFixed(3)); g.lineWidth = Math.max(1.5, H * 0.012 * (1 - q)); g.beginPath(); g.arc(cx, cy, r, 0, TAU); g.stroke(); }
-    const core = g.createRadialGradient(cx, cy, 0, cx, cy, H * 0.25 * (0.3 + k)); core.addColorStop(0, rgba(mix(c, [255, 255, 255], 0.6), clamp01(k * 2))); core.addColorStop(1, rgba(c, 0)); g.fillStyle = core; g.fillRect(0, 0, W, H);
-    g.restore();
-    if (k > 0.6) speedLines(g, cx, cy, W, H, 90, rgba(c, (0.4 * (k - 0.6) / 0.4).toFixed(3)), Math.floor(t * 24), 0.06);
-    if (k > 0.85) { g.fillStyle = 'rgba(255,255,255,' + ((k - 0.85) / 0.15) + ')'; g.fillRect(0, 0, W, H); }
   }
   // flash cuts: a burst of frames, each one held for a beat, white between
   function drawMontage(g, W, H, sh, k, t) {
@@ -1195,6 +871,7 @@
     if (!C.on) return;
     if (BB.score) BB.score('drone', false);
     C.on = false; document.getElementById('cine').classList.remove('on');
+    if (C.onEnd) { const f = C.onEnd; C.onEnd = null; try { f(); } catch (e) { /* nothing to free */ } }
     const d = C.done; C.done = null; d && d();
   };
   // Glow without blur. The shots ask for glow the usual way (shadowColor and shadowBlur); on this canvas a glowing
@@ -1251,10 +928,6 @@
     if (C.shake > 0) { C.shake = Math.max(0, C.shake - dt * 1.6); g.translate((Math.random() - 0.5) * C.shake * 40 * dpr, (Math.random() - 0.5) * C.shake * 30 * dpr); }
     g.imageSmoothingEnabled = false;
     if (sh.kind === 'banners') drawBanners(g, W, H, sh, k, lt);
-    else if (sh.kind === 'triple') drawTriple(g, W, H, sh, k, lt);
-    else if (sh.kind === 'gate') drawGate(g, W, H, sh, k, lt);
-    else if (sh.kind === 'gates') drawGates(g, W, H, sh, k, lt);
-    else if (sh.kind === 'oath') drawOath(g, W, H, sh, k, lt);
     else if (sh.kind === 'type') drawType(g, W, H, sh, k, lt);
     else if (sh.kind === 'arena') drawArena(g, W, H, sh, k, lt);
     else if (sh.kind === 'dust') drawDust(g, W, H, sh, k, lt);
@@ -1264,10 +937,7 @@
     else if (sh.kind === 'rain') drawRain(g, W, H, sh, k, lt);
     else if (sh.kind === 'city') drawCity(g, W, H, sh, k, lt);
     else if (sh.kind === 'break') drawBreak(g, W, H, sh, k, lt);
-    else if (sh.kind === 'moon') drawMoon(g, W, H, sh, k, lt);
-    else if (sh.kind === 'iris') drawIris(g, W, H, sh, k, lt);
     else if (sh.kind === 'montage') drawMontage(g, W, H, sh, k, lt);
-    else if (sh.kind === 'tease') drawTease(g, W, H, sh, k, lt);
     else if (sh.kind === 'cloth') drawClothClose(g, W, H, sh, k, lt);
     else if (sh.kind === 'snap') drawSnap(g, W, H, sh, k, lt);
     else if (sh.kind === 'horde') drawHorde(g, W, H, sh, k, lt);
@@ -1275,7 +945,7 @@
     else if (sh.kind === 'split') drawSplit(g, W, H, sh, k, lt);
     else if (sh.kind === 'impact') drawImpact(g, W, H, sh, k, lt);
     else if (sh.kind === 'title') drawTitle(g, W, H, sh, k, lt);
-    else if (sh.kind === 'heart') drawHeart(g, W, H, sh, k, lt);
+    else if (sh.draw) sh.draw(g, W, H, sh, k, lt, dpr, dt);
     g.restore();
     g.setTransform(1, 0, 0, 1, 0, 0);
     // lightning
@@ -1305,13 +975,13 @@
       C.rgb = Math.max(0, C.rgb - dt * 2.2);
     }
     // film grain
-    g.fillStyle = 'rgba(255,255,255,0.05)'; for (let i = 0; i < 260; i++) g.fillRect(Math.random() * W, Math.random() * H, dpr, dpr);
+    if (!sh.noGrain) { g.fillStyle = 'rgba(255,255,255,0.05)'; for (let i = 0; i < 260; i++) g.fillRect(Math.random() * W, Math.random() * H, dpr, dpr); }
     // fades from and to black
     if (sh.fadeIn && lt < sh.fadeIn) { g.fillStyle = 'rgba(0,0,0,' + (1 - lt / sh.fadeIn) + ')'; g.fillRect(0, 0, W, H); }
     if (sh.fadeOut && lt > sh.dur - sh.fadeOut) { g.fillStyle = 'rgba(0,0,0,' + clamp01((lt - (sh.dur - sh.fadeOut)) / sh.fadeOut) + ')'; g.fillRect(0, 0, W, H); }
     // vignette, letterbox, flash
-    const vg = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.6)'); g.fillStyle = vg; g.fillRect(0, 0, W, H);
-    const lb = H * 0.11; g.fillStyle = '#000'; g.fillRect(0, 0, W, lb); g.fillRect(0, H - lb, W, lb);
+    if (!sh.noVig) { const vg = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.6)'); g.fillStyle = vg; g.fillRect(0, 0, W, H); }
+    const lb = H * (sh.lb === undefined ? 0.11 : sh.lb); g.fillStyle = '#000'; g.fillRect(0, 0, W, lb); g.fillRect(0, H - lb, W, lb);
     if (C.flash > 0) { g.globalAlpha = Math.min(1, C.flash); g.fillStyle = C.flashCol; g.fillRect(0, 0, W, H); g.globalAlpha = 1; C.flash = Math.max(0, C.flash - dt * 3); }
     // the subtitle: one line in the lower bar, in and out with its shot
     if (sh.caption) {
@@ -1353,71 +1023,7 @@
 
   // ---------------------------------------------------------------- the cutscenes: every shot close, nothing from the game camera
   const SCENES = {
-    // a new game: what the nine banners were, how they fell, and why one is left
-    async intro() {
-      const capW = { hero: leader() }, vesh = { foe: 'vesh' }, ghoul = { foe: 'ghoul' }, warden = { foe: 'warden' }, skel = { foe: 'necro' };
-      // nine knights, one under each banner; the ninth banner is yours, and its knight is the Captain
-      const pool = BB.ROSTER.filter((c) => c.role === 'hero'), knights = [];
-      for (const arch of ['knight', 'paladin', 'spearman', 'barbarian', 'ranger', 'mage', 'monk', 'duelist']) { const c = pool.find((q) => q.arch === arch); if (c) knights.push({ hero: BB.newHero({ calling: c.calling, recruit: c.key, name: c.name }) }); }
-      while (knights.length < 8) knights.push(capW);
-      knights.push(capW);
-      const later = [{ foe: 'ossric' }, { foe: 'sallow' }, { foe: 'regent' }];
-      await cast([capW, vesh, ghoul, warden, skel].concat(knights, later));
-      const cols = BB.BANNER_COLORS.concat(['#3a6a8a']);
-      for (let i = 0; i < 9; i++) C.banners.push(Object.assign({}, i === 8 ? BB.save.banner : { color: cols[i], sigil: BB.SIGILS[i % BB.SIGILS.length], trim: '#e8c66a' }));
-      const oathCols = C.banners.map((b) => { const c = rgbOf(b.color); return [rgba(mix(c, [255, 230, 190], 0.15), 1), rgba(mix(c, [0, 0, 0], 0.85), 1)]; });
-      return { music: null, shots: [
-        { kind: 'heart', dur: 3.0, cues: [[0, SCORE('drone')], [0.25, BEAT()], [1.2, BEAT()], [2.15, BEAT()]] },
-        { kind: 'type', dur: 3.2, bg: 'white', lines: [{ text: 'THREE HUNDRED YEARS AGO', at: 0.3, size: 0.075, gap: 0.24 }, { text: 'Greenvale', at: 1.7, size: 0.042, y: 0.61, font: 2, w: 600 }] },
-        { kind: 'type', dur: 4.0, lines: [{ text: 'NINE BANNERS STOOD', at: 0.3, size: 0.085, y: 0.42, gap: 0.26 }, { text: 'BETWEEN THE LIVING AND THE DEAD', at: 1.4, size: 0.055, y: 0.58, gap: 0.18, hi: 'DEAD' }] },
-        { kind: 'triple', dur: 5.6, who: knights, cols: oathCols, banners: true, edge: '#ffe7a3', caption: 'Nine knights swore an oath to hold them.', capAt: 1.4, capEnd: 5.4, cues: [0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => [0.05 + i * 0.075 * 5.6, i === 8 ? () => { BB.sfx('rally'); SHAKE(0.4)(); BB.score && BB.score('hit', 0.9); } : SFX('chime')]).concat([[4.0, SPARKS(90, '#ffe7a3', 0.5, 0.5, 700)], [4.0, SCORE('shimmer')]]) },
-        { kind: 'closeup', dur: 2.4, grade: 'gold', bigword: 'OATH', bigcol: 'rgba(255,230,180,0.18)', who: knights[0], dir: 2, burst: 'rgba(255,220,150,0.09)', col1: 'rgba(220,160,60,1)', col2: 'rgba(30,18,6,1)', edge: '#ffe7a3', from: 0.4, caption: 'For three hundred years, they held.', capAt: 0.3,
-          cues: [[0.15, SFX('rally')], [0.2, SPARKS(80, '#ffe7a3', 0.5, 0.5, 600)], [0.25, SHAKE(0.3)]] },
-        { kind: 'type', dur: 2.4, lines: [{ text: 'THEN, ONE NIGHT', at: 0.25, size: 0.095, gap: 0.32 }], cues: [[0.6, SCORE('riser', 1.8)]] },
-        { kind: 'gate', dur: 6.6, col: [150, 90, 255], rain: true, burstAt: 2.6, figures: [ghoul, warden, skel], caption: 'Then, one night, the Gravegates opened.', capAt: 2.9, capEnd: 5.6, cues: [
-          [0, SCORE('drone')], [0.9, SCORE('riser', 1.7)], [0.1, SFX('charge')], [0.5, BOLT()], [1.2, SFX('charge')], [1.6, SHAKE(0.2)], [2.1, SHAKE(0.35)], [2.6, () => { SHAKE(1)(); BB.sfx('portal'); BB.sfx('burst'); BB.sfx('slam'); FLASH(0.9, '#e0d0ff')(); RGB(1)(); }], [0.6, VOICE('rumble', 0.8)], [3.2, VOICE('descent', 0.8)],
-          [2.6, SCORE('braam', 1.2)], [2.62, SPARKS(220, '#c9a8ff', 0.5, 0.5, 1200)], [3.6, BOLT()], [4.4, SFX('boss')], [4.5, SHAKE(0.4)], [5.2, BOLT()], [5.8, SFX('charge')], [6.2, RGB(0.8)]] },
-        { kind: 'closeup', dur: 3.6, who: vesh, dir: 2, rise: true, sil: [0.25, 0.6], rim: '#7dffb0', col1: 'rgba(40,120,70,1)', col2: 'rgba(4,16,10,1)', edge: '#7dffb0', label: 'VESH MORROW · THE BONE CANTOR', grade: 'green', bigword: 'VESH', bigcol: 'rgba(160,255,190,0.2)',
-          caption: 'Out of the first one walked Vesh Morrow.', capAt: 0.5, cues: [[0, SFX('charge')], [0.4, VOICE('deep_groan', 0.9)], [0.3, EMBERS(50, '#7dffb0')], [1.4, SHAKE(0.3)]] },
-        { kind: 'closeup', dur: 1.6, grade: 'manga', who: vesh, dir: 2, zoom: 2.3, dy: 0.35, col1: 'rgba(30,90,55,1)', col2: 'rgba(2,10,6,1)', edge: '#7dffb0', from: 0.05, caption: 'He opened his mouth —', capAt: 0.2, cues: [[0, SFX('charge')], [1.2, SHAKE(0.3)]] },
-        { kind: 'closeup', dur: 2.6, who: vesh, dir: 2, waves: 'rgba(125,255,176,A)', burst: 'rgba(125,255,176,0.06)', col1: 'rgba(60,170,100,1)', col2: 'rgba(4,20,12,1)', edge: '#7dffb0', from: 0.2, caption: '— and sang.', capAt: 0.3,
-          grade: 'green', cues: [[0, SCORE('braam', 1.2)], [0, SFX('boss')], [0, VOICE('deep_roar', 1)], [0.1, RGB(0.6)], [0.2, SHAKE(0.5)], [1.0, RGB(0.5)], [1.0, SHAKE(0.4)], [1.8, RGB(0.6)]] },
-        { kind: 'impact', dur: 0.45, who: vesh, clip: 'Attack1', accent: '#7dffb0', cues: [[0, SHAKE(1)], [0, SFX('burst')], [0, FLASH(0.6, '#c8ffe0')], [0, RGB(1)]] },
-        { kind: 'iris', dur: 1.4, who: vesh, col: [125, 255, 176], cues: [[0, SCORE('riser', 1.3)], [0, SFX('charge')]] },
-        { kind: 'gates', dur: 3.6, caption: 'He was only the first.', capAt: 0.4, capEnd: 3.4,
-          gates: [{ x: 0.2, dy: 0.02, sc: 0.42, col: [255, 80, 60], at: 0.3, who: later[0] }, { x: 0.52, dy: -0.04, sc: 0.3, col: [255, 196, 90], at: 0.48, who: later[1] }, { x: 0.82, dy: 0.06, sc: 0.55, col: [190, 150, 255], at: 0.66, who: later[2] }],
-          cues: [[0, SFX('charge')], [1.08, SCORE('hit', 0.7)], [1.73, SCORE('hit', 0.8)], [2.38, SCORE('hit', 1)], [1.08, () => { BB.sfx('portal'); SHAKE(0.5)(); }], [1.73, () => { BB.sfx('portal'); SHAKE(0.4)(); }], [2.38, () => { BB.sfx('portal'); BB.sfx('slam'); SHAKE(0.7)(); RGB(0.6)(); }], [3.0, BOLT()], [2.5, VOICE('dino_bellow2', 0.8)]] },
-        { kind: 'tease', dur: 4.6, caption: 'Three more gates opened that night. What stood in them is waiting still.', capAt: 0.5, capEnd: 4.4,
-          gates: [{ land: 'GREENVALE', col: [255, 80, 60], who: later[0] }, { land: 'THE SUNSCAR', col: [255, 196, 90], who: later[1] }, { land: 'ALDMERE', col: [190, 150, 255], who: later[2] }],
-          cues: [[0, () => { BB.sfx('portal'); SHAKE(0.4)(); }], [0, SCORE('boom')], [1.0, SCORE('boom')], [2.0, SCORE('boom')], [2.75, SCORE('braam', 1.1)], [1.0, () => { BB.sfx('portal'); SHAKE(0.4)(); }], [2.0, () => { BB.sfx('portal'); SHAKE(0.5)(); }], [0.75, VOICE('giant_laugh', 0.9)], [1.75, VOICE('deep_froth', 0.9)], [2.75, () => { BB.sfx('boss'); RGB(0.6)(); BB.voice && BB.voice('deep_roar', 1, 0.8); }]] },
-        { kind: 'montage', dur: 3.4, caption: 'The dead heard him. Every grave in the vale broke open.', capAt: 0.2, capEnd: 3.3, frames: [
-          { d: 0.32, who: ghoul, bg: '#9a0e0e', ink: '#000', eyes: '#ffe14a', voice: 'dino_horde' }, { d: 0.26, who: warden, bg: '#000', ink: '#000', rim: '#ff3b2b', eyes: '#ff3b2b', flip: true },
-          { d: 0.26, word: 'RISE', wcol: '#ff2a2a', bg: '#000', lines: false }, { d: 0.26, who: skel, bg: '#e9e5dc', ink: '#000', size: 0.95 },
-          { d: 0.26, who: ghoul, bg: '#0b3a14', ink: '#000', rim: '#62ff92', eyes: '#62ff92', flip: true }, { d: 0.26, who: warden, bg: '#9a0e0e', ink: '#000', size: 1.05, eyes: '#ffe14a' },
-          { d: 0.26, who: skel, bg: '#000', ink: '#000', rim: '#c9a8ff', eyes: '#c9a8ff' }, { d: 0.3, word: 'THE DEAD', wsize: 0.3, wcol: '#ece9e2', bg: '#9a0e0e', lines: false, hit: true },
-          { d: 1.22, who: vesh, bg: '#000', ink: '#000', rim: '#7dffb0', eyes: '#7dffb0', size: 0.9, voice: 'deep_roar' }] },
-        { kind: 'montage', dur: 1.9, frames: [
-          { d: 0.26, who: knights[0], clip: 'Attack1', bg: '#e9e5dc', ink: '#000', x: 0.38, dir: 1, sfx: 'slam', hit: true }, { d: 0.24, who: warden, clip: 'Attack1', bg: '#000', ink: '#fff', x: 0.62, dir: 3, sfx: 'slam' },
-          { d: 0.24, who: knights[1], clip: 'Attack1', bg: '#9a0e0e', ink: '#000', x: 0.4, dir: 1, sfx: 'slam' }, { d: 0.24, who: ghoul, clip: 'Attack1', bg: '#e9e5dc', ink: '#000', x: 0.6, dir: 3, sfx: 'slam', hit: true },
-          { d: 0.24, who: knights[3], clip: 'Attack1', bg: '#000', ink: '#fff', x: 0.4, dir: 1, sfx: 'slam' }, { d: 0.24, who: skel, clip: 'Attack1', bg: '#9a0e0e', ink: '#000', x: 0.6, dir: 3, sfx: 'slam' },
-          { d: 0.44, who: ghoul, clip: 'Attack1', bg: '#000', ink: '#000', rim: '#ff3b2b', x: 0.5, dir: 2, size: 1.0, sfx: 'burst', hit: true }] },
-        { kind: 'closeup', dur: 1.6, grade: 'red', who: knights[2], dir: 2, sil: [0.4, 0], rim: '#ff5a3a', col1: 'rgba(120,20,15,1)', col2: 'rgba(14,2,2,1)', edge: '#ff5a3a', from: 0.1, cues: [[0.5, SFX('herodie')], [0.5, SHAKE(0.4)]] },
-        { kind: 'oath', mode: 'fall', dur: 5.4, who: knights, fallAt: [0.55, 1.0, 1.4, 1.75, 2.05, 2.32, 2.56, 2.78], caption: 'Eight banners fell before dawn.', capAt: 3.3, capEnd: 5.2,
-          cues: [[0, SFX('flame')], [0.55, () => { BB.sfx('snap'); SHAKE(0.35)(); }], [1.0, () => { BB.sfx('snap'); SHAKE(0.35)(); }], [1.4, () => { BB.sfx('snap'); SHAKE(0.35)(); }], [1.75, () => { BB.sfx('snap'); SHAKE(0.35)(); }], [2.05, () => { BB.sfx('snap'); SHAKE(0.35)(); }], [2.32, () => { BB.sfx('snap'); SHAKE(0.35)(); }], [2.56, () => { BB.sfx('snap'); SHAKE(0.35)(); }], [2.78, () => { BB.sfx('snap'); SHAKE(0.6)(); }], [2.78, SCORE('hit', 1.1)], [2.85, RGB(0.6)], [3.0, EMBERS(50, '#ff8a3a')], [4.3, SFX('chime')]] },
-        { kind: 'oath', mode: 'lone', dur: 4.4, who: knights, caption: 'One banner still stood.', capAt: 0.9, cues: [[0.5, SFX('chime')]] },
-        { kind: 'moon', dur: 4.4, who: capW, banner: true, fig: 0.12, caption: 'Its bearer had no army left.', capAt: 0.6, cues: [[0.2, SCORE('drone')], [0.9, BEAT()], [2.1, BEAT()], [3.3, BEAT()]] },
-        { kind: 'closeup', dur: 2.8, who: capW, dir: 2, sil: 1, rim: '#ffd27a', converge: '#ffcf7a', burst: 'rgba(255,190,85,0.05)', col1: 'rgba(150,90,40,1)', col2: 'rgba(20,10,4,1)', edge: '#ffbe55', from: 0, caption: 'But a banner remembers every oath sworn under it.', capAt: 0.3,
-          bigword: 'OATH', bigcol: 'rgba(255,220,150,0.14)', cues: [[0, SFX('charge')], [0.2, SCORE('riser', 2.5)], [0.5, BEAT()], [1.2, BEAT()], [1.8, BEAT()], [2.2, BEAT()], [2.5, RGB(0.4)]] },
-        { kind: 'closeup', dur: 2.6, who: capW, dir: 2, zoom: 1.2, sil: [0.05, 0.35], rim: '#ffbe55', burst: 'rgba(255,190,85,0.1)', col1: 'rgba(230,140,40,1)', col2: 'rgba(30,12,4,1)', edge: '#ffbe55', from: 0.15,
-          cues: [[0, SCORE('braam', 1.2)], [0, SFX('rally')], [0.05, () => { FLASH(0.8, '#ffe2a0')(); RGB(0.8)(); SHAKE(0.6)(); }], [0.1, SPARKS(160, '#ffcf7a', 0.5, 0.5, 900)], [0.3, EMBERS(80, '#ffb347')]] },
-        { kind: 'impact', dur: 0.5, who: capW, clip: 'Taunt', accent: '#ffbe55', cues: [[0, SHAKE(1)], [0, SFX('burst')], [0, FLASH(1)], [0, RGB(1)], [0.05, CRACK(0.5, 0.5, '#ffbe55')]] },
-        { kind: 'oath', mode: 'renew', dur: 5.4, who: knights, caption: 'So the Captain raised it, and swore to build a new army.', capAt: 0.5, capEnd: 5.2,
-          cues: [[0.4, SCORE('shimmer')], [0, () => { BB.sfx('rally'); BB.sfx('burst'); FLASH(0.6, '#ffe8b0')(); SHAKE(0.6)(); }], [0.05, SPARKS(160, '#ffcf7a', 0.5, 0.45, 900)], [0.3, EMBERS(70, '#ffcf7a')]].concat([0, 1, 2, 3, 4, 5, 6, 7].map((j) => [(0.18 + j * 0.07) * 5.4 + 0.1, SFX('chime')])).concat([[4.3, EMBERS(40, '#ffe0a0')]]) },
-        { kind: 'type', dur: 2.6, lines: [{ text: 'RAISE YOUR BANNER', at: 0.25, size: 0.095, gap: 0.34, hi: 'BANNER', hiCol: '#ffbe55' }] },
-        { kind: 'type', dur: 5.0, fadeOut: 0.8, lines: [{ text: 'BANNERBORN', at: 0.15, size: 0.16, w: 800, fly: true, col: '#ffcf7a', glow: '#ff9a2a' }, { text: 'Earn your heroes. Shut the Gravegates.', at: 1.6, size: 0.045, y: 0.66, font: 2, w: 600, gap: 0.12 }],
-          cues: [[0, SCORE('riser', 0.85)], [0.95, SPARKS(200, '#ffcf7a', 0.5, 0.5, 1000)], [1.0, EMBERS(80, '#ffb347')], [1.0, CRACK(0.5, 0.5, '#ffbe55')], [4.2, SCORE('drone', false)]] },
-      ] };
-    },
+    // (the opening, played on a new game, is a film of its own: js/opening.js)
     // before a boss: each one is shot in its own style
     async boss(o) {
       const M = o.stage, F = BB.FOES[M.boss], b = F.cine || M.boss;
@@ -1524,6 +1130,9 @@
     },
   };
   C.has = (name) => !!SCENES[name];
+  // what a film written elsewhere (js/opening.js) may use
+  C.SCENES = SCENES;
+  C.kit = { silhouette, drawActor, clipLen, headLift, cast, leader, sparks, embers, lightning, rgbOf, rgba, mix, SFX, SHAKE, FLASH, BOLT, SPARKS, EMBERS, RGB, VOICE, SCORE, BEAT, MUSIC };
   const skip = document.getElementById('cineSkip');
   if (skip) skip.addEventListener('click', (e) => { e.stopPropagation(); BB.sfx('click'); C.end(); });
 })();
