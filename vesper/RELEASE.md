@@ -82,29 +82,64 @@ and create the 26 achievements in Steamworks with the game's ids (`first`, `gate
 Checked here: the dev run and a packaged Linux build reach the title, a fight plays, a save survives a restart. Not
 checked: Windows and macOS builds, Steam itself (needs the Steam client and an App ID).
 
-## Licences — the author must confirm before selling
+## Licences (checked 2026-11-11 against the licence files in the repository)
 
-| Asset | Where | Check |
-|---|---|---|
-| Fantasy Character Creator 2D sheets (heroes, the 200 random-cast characters) | `assets/pixel` | The pack's licence allows commercial use in games and redistribution inside a built game |
-| 2D Desert Fantasy and 2D Isometric Fantasy tile sets, their characters and animations | `assets/iso`, `assets/pixel/vh_sand_*`, `vh_iso_*` | Same |
-| Interface sounds (chest, coin, anvil, equip, level up, quest) | `assets/sfx/*.mp3` | Shared with the repository's other project: confirm their source and licence, or replace them |
-| Fight sounds and ambience | `assets/sfx/fight`, `assets/sfx/amb` | Synthesised by the repository's own `tools/make_sfx.py`: no licence needed |
-| "Heartfelt Battle" | `assets/music` | OpenGameArt, CC0 (credited in Settings → Credits) |
-| The rest of the score (`vesper_title`, `_map`, `_story`, `_boss`, `_night`, `_result`) | `assets/music` | Composed and synthesised in code by `vesper/tools_music.py`: the game's own, no licence needed |
-| Effect sheets: Pixel VFX Essentials, KILN FX Free Sampler, Magic Spells VFX Lite (Willosuna), FX packs 6 and 13 | `assets/fx` | Each pack's licence allows commercial use |
-| Soft particle textures (glows, swirl, rune ring, smoke) | `assets/vfx` | Confirm their source and licence |
-| Older tile sets (Cainos Top Down Basic, TopDownFantasy Forest, reodesuxz, EPIC RPG World, Dark World), used by the menus' backdrops | `assets/tiles` | Each pack's licence |
-| Fonts: Chakra Petch, Barlow (Google Fonts); Adventurer by Brian J Smith | loaded from Google / `assets/ui` | OFL; Adventurer is CC BY 3.0 (credit kept in Settings → Credits) |
-| The name "The Bleeding Moon" | — | Search existing games and trademarks before a store listing |
-| Crowd Breaker effects (PixelHit) | `assets/cbfx` | Their terms: use inside the game only, never redistribute the assets on their own, keep THIRD_PARTY_NOTICES with the build: confirm a paid app on the stores counts as "inside the game" |
-| Guardian and boss characters shared with Tower of Wishes (`cassius`, `black_knight`, `frost_knight_a/b`, `nightcrawler`, `sky_beast`, `master_knight` → `vh_firstcut`, `nox`, `lyra`) | `assets/pixel` | Your own creator builds for the other project: decide whether they may also appear in a commercial release of this game |
+**Confirmed from their licence files** (commercial use in a game allowed; none may be resold or shared as loose files):
+
+| Asset | Where | Licence | What it asks |
+|---|---|---|---|
+| Interface sounds: Fantasy UI SFX Free by heyheythere | `assets/sfx/*.mp3`, source `art_source/sfx_fantasy_ui` | CC BY 4.0 | **Credit, required**: in Settings → Credits (done) |
+| Soft particle textures (Kenney, Picster; repackaged by Brackeys) | `assets/vfx` | CC0 | Nothing |
+| KILN FX Free Sampler | `assets/fx` | Own licence | Ship inside the game only; no resale |
+| Magic Spells VFX Lite (Willosuna) | `assets/fx` | Own licence | No resale of the image files |
+| Mixel tiles (with the Adventurer font) | `assets/tiles` | Own licence | Game projects only; no AI training; the font needs its credit (done) |
+| reodesuxz tile sets (castle and dungeon; forest and village) | `assets/tiles` | Own licence | No resale; no AI training |
+| Medieval Fantasy UI by Kibyra (the icons) | `assets/ui/icons*.png` | Free, commercial | Credit appreciated (done) |
+| Crowd Breaker effects (PixelHit, made with pixelfx) | `assets/cbfx` | pixelfx MIT + PixelHit's terms (as you relayed them: use inside the game, never on their own, keep THIRD_PARTY_NOTICES) | A store app ships them inside the game, so it fits those terms; keep the notice file in every build (the build scripts copy it) |
+| "Heartfelt Battle" | `assets/music` | CC0 | Nothing (credited anyway) |
+| The rest of the score, the fight sounds and ambience | `assets/music`, `assets/sfx/fight`, `assets/sfx/amb` | The game's own (synthesised in code) | Nothing |
+| Chakra Petch, Barlow | Google Fonts | OFL | Nothing |
+
+**Still to confirm** (no licence file in the repository: check each pack's store page, or the receipt of the purchase):
+Character Creator 2D Fantasy (SmallScaleInt: the heroes and the 200 random-cast characters); the 2D Desert Fantasy and 2D
+Isometric Fantasy tile sets (`assets/iso`, `vh_sand_*`, `vh_iso_*`); Pixel VFX Essentials, FX pack 13 and the slashes pack 6
+(`art_source/fx`); Cainos Top Down Basic, TopDownFantasy Forest, EPIC RPG World / epic ruins, Dark World, dark castle,
+pixel16, ruins blood and the desert tiles (`art_source/tiles`). For paid packs the purchase licence usually allows use in a
+commercial game; for free ones the page says. Add each licence file next to its source under `art_source/` when you have it.
+
+**Your decision:** the guardians and the final boss reuse your own creator builds made for Tower of Wishes (`cassius`,
+`black_knight`, `frost_knight_a/b`, `nightcrawler`, `sky_beast`, `master_knight` → `vh_firstcut`, `nox`, `lyra`). The creator's
+licence covers them; whether they may appear in this commercial game is yours to say.
+
+**The name.** A search (2026-11-11) found no game called exactly "The Bleeding Moon", but two close ones: *Bleeding Moons*
+(IAN Games / Phoenix Online, 2020, a point-and-click adventure on Steam and GOG) and *Beneath the Bleeding Moon* (Ebi-Hime,
+2025, a visual novel on Steam and itch.io). Different genres, but similar names hurt store search and can draw a complaint.
+Not a legal trademark search: check your country's trademark register (and the US one) before the listing.
+
+## Launch, step by step
+
+1. Fill in `vesper/release.json` (app ID, studio, email, AdMob IDs; Steam App ID for Steam).
+2. `python3 vesper/tools_release.py --apply` writes them everywhere (and turns test ads off once the AdMob IDs are real).
+3. Host `vesper/site/` (privacy policy, support page, app-ads.txt) on your website; put its addresses in `release.json`.
+4. `python3 vesper/tools_release.py --check` until it says READY; then the list it prints for outside the repository.
+5. Build: `cd vesper/app && npm run sync`, then Android Studio (signed .aab) and Xcode (archive) as above.
+
+**Android test builds from a cloud session:** this session's environment blocks `dl.google.com` (the Android SDK), so no APK
+could be built here. Your saved environment "Games (Android builds)" allows it, but a session can only be moved onto an
+environment whose name has letters, digits, spaces, dots, dashes and underscores: rename it (e.g. "Games Android builds")
+in Settings → Environments, or start a new session in it, and an unsigned test APK can be built for phones.
+
+**Slow phones:** the game lowers its own resolution when frames stay slow (`perfWatch` in `js/main.js`, remembered in
+`opts.dprMax`). In an emulated phone at a quarter of its speed the heaviest fight runs at about 45 fps and the story scenes
+about 50; the campaign map is the heaviest screen (about 9 fps there, in a headless browser that paints without a GPU, which
+real phones have). Check the map on a real older phone first.
 
 ## Still to do
 
 - **Music**: done (2026-11-11): six original loops from `tools_music.py` for the title, the map, the story, the
   guardians, the late acts' battles and the victory; Heartfelt Battle for the first three acts. A per-act track can
   still be dropped in (`A.CUES` in `js/audio.js`: `vesper_act1`…`vesper_act6`).
+- **itch.io**: `python3 -I vesper/tools_build.py` makes `dist/vesper-web.zip` (187 MB, 485 files: inside itch's 500 MB and 1,000-file limits); checked served on its own: title, music, a fight, languages, no shop.
 - **Playtesting**: every balance number comes from the test bot (`vesper/test/campaign-test.js`).
   Play the first two acts on a phone and on a PC; note where it is too hard, too easy or unclear.
 - **Real devices**: check frame rate and memory on an older iPhone (the large maps bake their ground

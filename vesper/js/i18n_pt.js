@@ -929,6 +929,7 @@ VS.I18N.add("pt", {
 "Gold King": "Rei Dourado",
 "Obsidian": "Obsidiana",
 "Azure": "Azul",
-"Ashen": "Cinzento"
+"Ashen": "Cinzento",
+"Climb the Spire before dawn": "Suba a Agulha antes da alvorada"
 },
   { tier: {"Iron": "ferro", "Steel": "aço", "Moonsteel": "aço lunar", "Bloodsteel": "aço sangrento", "Bone": "osso", "Silver": "prata", "Moon": "lua", "Blood": "sangue"}, base: {"Blade": "Lâmina", "Saber": "Sabre", "Axe": "Machado", "Spear": "Lança", "Greatsword": "Montante", "Coat": "Casaco", "Mail": "Cota", "Plate": "Couraça", "Cloak": "Capa", "Locket": "Medalhão", "Ring": "Anel", "Fang": "Presa", "Talisman": "Talismã"}, suf: {"of Edges": "dos Gumes", "of the Wall": "da Muralha", "of Warding": "da Proteção", "of the Moon": "da Lua", "of Thirst": "da Sede", "of Haste": "da Pressa", "of Wind": "do Vento", "of Patience": "da Paciência", "of Mending": "da Cura", "of Fortune": "da Fortuna"}, make: (b, t, s) => b + ' de ' + t + (s.length ? ' ' + s.join(' e ') : '') });

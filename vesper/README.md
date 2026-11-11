@@ -522,6 +522,10 @@ and a zip for itch.io; `--app` builds the store apps' web layer (`vesper/app`), 
 - **Store media**: `trailer/store_shots.js` (8 screenshots at the three store sizes), the trailer rebuilt on the five kings.
 - **Phones**: story scenes say "tap" on a touchscreen, and their corner SKIP skips the scene.
 - **Balance**: the untouchable echo of the First Cut (a6-7) is him alone in his lair (the bot went from 0% to 47%).
+- **Launch tooling** (second pass): `release.json` + `tools_release.py` (`--apply` writes the launch values everywhere and
+  builds `site/`: privacy policy, support page, app-ads.txt; `--check` lists what still blocks a launch). Licences checked
+  against the repository's licence files (RELEASE.md); the interface sounds' CC BY credit is in Settings → Credits.
+- **Slow devices**: an automatic resolution step-down (`perfWatch`), remembered between launches; the map's stars are dots.
 
 ## The armies
 
