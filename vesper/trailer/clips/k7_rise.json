@@ -1,1 +1,1 @@
-{"name": "k7_rise", "url": "?map", "state": "map", "setup": "VS.R.noSkipHint = true; VS.main.startScene(5, VS.STORY.FC_DEED, () => {}, true); const sc = VS.main.scene.sc; sc.i = 7; sc.t = 0;", "parts": [{"skip": 0.4, "dur": 2.8}]}
+{"name": "k7_rise", "url": "?map", "state": "map", "setup": "VS.R.noSkipHint = true; VS.main.startScene(5, VS.STORY.OPEN, () => {}, true); const sc = VS.main.scene.sc; sc.i = 10; sc.t = 0;", "parts": [{"skip": 0.4, "dur": 2.8}]}

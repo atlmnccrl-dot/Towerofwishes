@@ -219,26 +219,33 @@
   }
   // A new game: the prologue, then the first trial.
   // The opening's risen dead are turned townsfolk: load them first.
-  const OPENING_SETS = ['vh_firstcut', 'vh_townsfolk_001', 'vh_townsfolk_004', 'vh_townsfolk_007', 'vh_townsfolk_010', 'vh_townsfolk_013', 'vh_skeleton_002', 'vh_barbarian_002'];
+  // Everything the opening films (js/story.js S.OPEN): the Kingslayer, the five kings and their guards, the townsfolk,
+  // the guardians, the dead, the hero; every kingdom's tiles. Loaded before it plays (a new game, the theatre).
+  const OPENING_SETS = ['vh_firstcut', 'vh_townsfolk_001', 'vh_townsfolk_004', 'vh_townsfolk_007', 'vh_townsfolk_010', 'vh_townsfolk_013'];
+  const openingNeeds = () => ({
+    sets: OPENING_SETS.concat(S.KING_SETS || [], ['ghoul', 'raider', 'ghast', 'warden', 'twinA', 'twinB', 'umbral', 'hunger', 'wing', 'firstCutFinal'].map((k) => D.FOES[k].set), [(D.HEROES[P().hero] || D.HEROES.vesper).set])
+      .filter((id, i, a) => id && a.indexOf(id) === i),
+    iso: [0, 1, 2, 3, 4, 5].flatMap(isoFor).filter((g, i, a) => a.indexOf(g) === i) });
+  function loadOpening(then) {
+    const N = openingNeeds(), miss = N.sets.filter((id) => !A.hasSet(id));
+    if (!miss.length && A.isoReady(N.iso) && A.cbReady()) return then();
+    M.go('load'); U.loading(0); Promise.all([A.loadSets(miss, (f) => U.loading(f)), A.loadIso(N.iso), A.loadCB().catch(() => {})]).then(() => { A.warm(R.ctx); A.isoWarm(R.ctx); U.hide(); then(); }, () => { U.hide(); then(); });
+  }
+  // A new game: the opening, the last hour (the tutorial at full power, ending in his First Cut and the Moon raising
+  // her), dusk again at the Black Gate, then the first trial.
   function newGame() {
-    // The opening's cast, and the summit's tiles for the First Cut's two scenes (js/story.js FC_DEED, FC_WAIT).
-    const extra = [D.FOES.ghoul.set, D.FOES.raider.set, D.FOES.ghast.set, (D.HEROES[P().hero] || D.HEROES.vesper).set].concat(S.KING_SETS || []);
-    const play = () => startIntro(() => showcase(() => playNode('a0-t', true))), miss = OPENING_SETS.concat(extra).filter((id, i, a) => a.indexOf(id) === i && !A.hasSet(id)), iso = [0, 1, 2, 3, 4, 5].flatMap(isoFor).filter((g, i, a) => a.indexOf(g) === i);   // every kingdom's tiles (the five kings' halls)
-    if (!miss.length && A.isoReady(iso) && A.cbReady()) return play();
-    M.go('load'); U.loading(0); Promise.all([A.loadSets(miss, (f) => U.loading(f)), A.loadIso(iso), A.loadCB().catch(() => {})]).then(() => { A.warm(R.ctx); A.isoWarm(R.ctx); U.hide(); play(); }, () => { U.hide(); play(); });
+    loadOpening(() => startIntro(() => showcase(() => startScene(0, S.WAKE, () => playNode('a0-t', true), true))));
   }
 
-  // The opening, played in the engine (js/intro.js).
+  // The opening (rebuilt from scratch 2026-11-11): the story film (js/story.js S.OPEN, played by tale.js on the game's
+  // own arenas), then the title (js/openfilm.js). Esc skips it all.
   function startIntro(then) {
     U.hide(); if (P().opts.scenes === 'skip') return then();
-    const I = VS.INTRO, PT = I.PARTS;
-    if (!PT || !S.FC_DEED) { M.go('intro'); I.start(() => { R.hideCine(); then(); }); return; }
-    // The opening (2026-11-11): three films with the First Cut's two scenes filmed on the summit between them. Esc in any
-    // piece skips the rest of the opening.
     const done = () => { R.hideCine(); then(); };
-    const film = (f, next) => { M.go('intro'); I.play(f, () => { R.hideCine(); (I.st && I.st.skipped ? done : next)(); }, { skippable: true }); };
-    const tale = (def, next) => startScene(5, def, () => (M.scene && M.scene.sc && M.scene.sc.skipped ? done : next)(), true);
-    film(PT.a, () => tale(S.FC_DEED, () => film(PT.b, () => tale(S.FC_WAIT, () => film(PT.c, done)))));
+    startScene(5, S.OPEN, () => {
+      if (M.scene && M.scene.sc && M.scene.sc.skipped) return done();
+      M.go('intro'); VS.INTRO.play(VS.INTRO.PARTS.title, () => done(), { skippable: true });
+    }, true);
   }
   // A guardian's entrance film: in full the first time, a tap skips it after that.
   function startFilm(key, then) {
@@ -823,8 +830,8 @@
       Promise.all([A.loadSets(miss, (f) => U.loading(f)), iso ? A.loadIso(iso) : null]).then(() => { A.warm(R.ctx); if (iso) A.isoWarm(R.ctx); U.hide(); play(); }, () => { U.hide(); play(); });
     };
     const actName = (i) => (PR.ACTS[i] ? `Act ${PR.ACTS[i].num} · ${PR.ACTS[i].name}` : 'After dawn');
-    const story = [{ key: 'opening', label: 'The opening', sub: 'The First Cut slays five kings',
-      act: () => watch(OPENING_SETS, null, () => { M.go('intro'); VS.INTRO.start(again('opening')); }) }];
+    const story = [{ key: 'opening', label: 'The opening', sub: 'The Kingslayer and the five kings',
+      act: () => loadOpening(() => startIntro(again('opening'))) }];
     S.ACTS.forEach((Ac, i) => {
       if (!Ac.intro) return;
       const n = PR.NODES.find((x) => x.act === i && x.type !== 'shrine'), stage = PR.ACTS[i] ? PR.ACTS[i].stage : 5;

@@ -1,6 +1,38 @@
 # THE BLEEDING MOON
 
-*Seven hundred years ago a swordsman cut down five kings and, with their souls, raised the dead. The moon has bled ever since.*
+*Seven hundred years ago a swordsman climbed the Spire, cut down its five kings and, with their souls, cut the Moon. Her light
+turned red, and red light wakes the dead. Tonight she bleeds out.*
+
+## The storyline (rebuilt 2026-11-11)
+
+The author: "rebuild the entire opening from scratch, make it make sense with the gameplay and campaign map and storyline;
+you can make a new storyline that fits all the regions better." Every piece of the game now tells one story:
+
+| The story | The game |
+|---|---|
+| **The Spire** is one mountain with five kingdoms on it, one above another, and the Moon's Altar on top | The campaign map's climb: the five regions (Acts I-V) and the summit (Act VI), in that order |
+| The white **Moon** kept their dead asleep; **five kings** kept her peace | The moon over every screen; the five kings named in the opening |
+| **The Kingslayer** climbed the Spire, killed each king, and spent their souls on **the First Cut**: he cut the Moon. Her light turned red; red light wakes the dead; her wound keeps him alive | The final guardian, "The First Cut, the Kingslayer"; the red moon; the hordes of the dead |
+| He **chained each king's soul inside a guardian** at his kingdom's gate | Each region's guardian: the Gatewarden (the King of the Black Gate), the Hollow Twins (the Frost King, torn in two), the Umbral (the King under the Stair), the Hunger (the Ash King), the Pale Wing (the Storm King) |
+| **The last night**: tonight the Moon bleeds out; at dawn she dies | The hours to dawn, one region an hour |
+| **Vesper**, the Moon's last knight, climbed all night and reached him at the last hour; his First Cut killed her | The tutorial: the last hour played at full power, ending in his one-shot |
+| The **Moon** spent her last light turning the night back to dusk and raised her at the Black Gate with nothing | The campaign starts from nothing at the first region; the Moon's gift is the moon art |
+| **Free the five kings**: their souls are the one thing his blade cannot cut | Each guardian beaten frees its king's soul, which fights beside her (the Bound Souls; their titles name the kings) |
+| At dawn, with the five kings beside her, she strikes the wound shut; the Moon turns white; the dead sleep | The final duel and the ending |
+
+**The opening** (`js/story.js` S.OPEN, about 70 seconds, filmed on the game's own arenas through the fight camera with the
+game's own cast, then the title): the Spire and its five kingdoms lighting up one by one under the white Moon (a new
+`kingdoms` shot laid out like the map); the King of the Black Gate and his people at peace; *the Kingslayer*; the five kings
+cut down, each in his own kingdom's arena with a different blow, each soul flying into him; at the Moon's Altar he spends
+them on one cut; the First Cut seen from below (a new `wound` shot: a line of white fire across the white Moon, which
+reddens and bleeds light down the sky); the dead rising round him; each king's soul falling into his guardian's rune at his
+kingdom's gate (the guardians' name cards, the kings' names above the captions); *the last night*; Vesper at the Black Gate
+(her name card); her climb, one hour per kingdom, cutting through the dead; the summit at the last hour, him among his
+kneeling dead; "Kneel."; THE BLEEDING MOON ("Five chained kings. One night. Free them before dawn."). Then the last hour
+is played; after his First Cut and the Moon raising her, `S.WAKE`: *Dusk. The night, again*, and the Moon's charge at the
+Black Gate. The guardians' introductions, the souls and the ending were rewritten to match. The older openings described
+below are history.
+
 
 The hero is Vesper; the code, folder and save keys keep the working name `vesper`.
 

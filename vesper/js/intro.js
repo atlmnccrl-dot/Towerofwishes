@@ -959,7 +959,7 @@
       say(S, 'big', 'THE BLEEDING MOON', W() / 2, y, { size: 44, k: tk, track: true });
       const dv = R.uiImg && R.uiImg('divider');
       if (dv && tk > 0.3) { ctx.globalAlpha = clamp((tk - 0.3) * 3); ctx.drawImage(dv, Math.round(W() / 2 - dv.naturalWidth / 2), y + 20); ctx.globalAlpha = 1; }
-      if (tk > 2.0) say(S, 'line', 'Six guardians. One night. Stop him before dawn.', W() / 2, H() - 10, { size: 17, col: '#ffffff', a: clamp((tk - 2.0) * 2) });
+      if (tk > 2.0) say(S, 'line', 'Five chained kings. One night. Free them before dawn.', W() / 2, H() - 10, { size: 17, col: '#ffffff', a: clamp((tk - 2.0) * 2) });
     }
     if (k > 1 - out) fill(ctx, '#000', (k - (1 - out)) / out);
   };

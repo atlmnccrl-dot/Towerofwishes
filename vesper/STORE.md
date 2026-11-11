@@ -50,12 +50,14 @@ for the menus.
 ## Listing text (draft)
 
 **Name:** The Bleeding Moon
-**Subtitle / short description (≤ 80 chars):** One blade. Six guardians. Stop him before dawn.
+**Subtitle / short description (≤ 80 chars):** Five chained kings. One night. Free them before dawn.
 
 **Description:**
-> Seven hundred years ago a swordsman cut down five kings, and with their souls he cast the spell that wakes every
-> grave. From that night the moon has bled red, and by its light his dead rise. Tonight the moon bleeds out. At dawn
-> his dead take everything.
+> Seven hundred years ago a swordsman climbed the Spire, cut down its five kings, and with their souls he cut the Moon.
+> Her light turned red, and red light wakes the dead. He chained each king's soul inside a guardian to bar the way up.
+> Tonight the Moon bleeds out. At dawn she dies, and the dead will never sleep again.
+>
+> Climb five kingdoms in one night. Free the chained kings. Face the Kingslayer before dawn.
 >
 > One blade can stop him.
 >

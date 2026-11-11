@@ -1,9 +1,17 @@
-// VESPER — the night's story, told in clean scenes (played by tale.js): one caption line per shot,
-// no dialogue. The plot in one breath: seven hundred years ago the First Cut rose over the Spire and cut
-// the moon, to raise an army that would never die; the wound never healed, and by its red light his
-// dead rise. Tonight the wound bleeds out and at dawn the moon falls. Your blade can stop him, at the
-// top of the Spire, past six guardians. The last of them is the swordsman himself: the wound keeps him
-// alive. Pure data; runs in Node.
+// VESPER — the night's story, told in clean scenes (played by tale.js): one caption line per shot, no dialogue
+// but a few words. The storyline (rebuilt 2026-11-11, the author: "rebuild the opening from scratch, make it make sense
+// with the gameplay, the campaign map and the regions"):
+//   The Spire is one mountain with five kingdoms on it, one above another (the campaign's regions, in the map's order):
+//   the Black Gate, the Cloister of Frost, the Umbral Stair, the Ashen Waste, the Wind's Throat; the Moon's Altar on top.
+//   The white Moon kept their dead asleep, and the five kings kept her peace. Seven hundred years ago a swordsman climbed
+//   the Spire and cut down every king; at the summit he spent their souls on one cut, the First Cut, and cut the Moon.
+//   Her light turned red, and red light wakes the dead; her wound keeps him alive. He chained each king's soul inside a
+//   guardian (the regions' guardians), to bar the way up. Tonight the Moon bleeds out: at dawn she dies.
+//   Vesper, the Moon's last knight, climbed all night and reached him in the last hour (the tutorial, at full power);
+//   his First Cut killed her. With the last of her light the Moon turned the night back to dusk and raised her at the
+//   Black Gate with nothing but her blade (the campaign starts): free the five kings, one guardian at a time (each
+//   freed king's soul fights beside you: the Bound Souls), and meet him with them. At dawn, with the kings beside her,
+//   she strikes the wound shut; the Moon turns white again, and the dead sleep. Pure data; runs in Node.
 // Shot kinds: title, moonfall, film, spire, clash, seal. d = seconds.
 (function (root) {
   const VS = root.VS = root.VS || {};
@@ -42,42 +50,33 @@
   const D = () => VS.DATA;
 
   S.BEFORE = [
-    // Dusk: the whole premise, then the first guardian.
+    // Dusk at the Black Gate: the first chained king.
     { shots: [
-      { k: 'title', top: 'SEVEN HUNDRED YEARS AGO', title: 'FIVE KINGS FELL', d: 2.2 },
-      { k: 'title', top: 'THE FIRST CUT', title: 'THE KINGSLAYER', sub: 'With five kings\' souls he cast the spell that wakes every grave.', d: 3.4 },
-      { k: 'film', stage: 0, area: 0, tint: 'red', eyebrow: 'THE RED MOON', say: 'From that night the moon bled red. By its light, his dead rise.', d: 3.8,
-        cam: { at: [0, 10], to: [0, -20], zoom: [1.05, 1.35] },
-        cast: [{ who: 'ghoul', at: [-110, -50], enter: 'rift', delay: 0.2 }, { who: 'ghast', at: [90, -60], enter: 'rift', delay: 0.5 }, { who: 'raider', at: [-40, 40], enter: 'rift', delay: 0.8 },
-          { who: 'archer', at: [130, 30], enter: 'rift', delay: 1.1 }, { who: 'bone', at: [-150, 20], enter: 'rift', delay: 1.4 }, { who: 'ghoul', at: [40, -95], enter: 'rift', delay: 1.7 }] },
-      { k: 'title', top: 'TONIGHT', title: 'THE MOON BLEEDS OUT', sub: 'At dawn, his dead take everything.', d: 2.8 },
-      { k: 'film', stage: 0, area: 'last', eyebrow: 'hero', say: 'Only your blade can stop him, at the top of the Spire.', d: 3.4,
-        cast: [{ who: 'hero', at: [0, 20], aura: true, face: 'cam' }], cam: { at: [0, 22], zoom: [2.5, 3.0] } },
-      climb(0, 'Six guardians stand between you and the top.'),
-      meet(0, 'warden', 'The Gatewarden holds the Black Gate. Get past him.'),
+      climb(0, 'Five chained kings stand between you and him.'),
+      meet(0, 'warden', "The Gatewarden holds the soul of the King of the Black Gate. Free him."),
       clash(0, 'warden')] },
     { shots: [
-      climb(1, 'The gate is open. The climb begins.'),
+      climb(1, 'The first king is free, and he climbs with you.'),
       walk(1, 'Frost has sealed the old cloister.', 'THE FIRST HOUR'),
-      meet(1, 'twinA', 'The Hollow Twins guard it. Two blades, one will.', 'twinB'),
+      meet(1, 'twinA', "The Frost King's soul, torn in two: the Hollow Twins.", 'twinB'),
       clash(1, 'twinB')] },
     { shots: [
-      climb(2, 'Higher. The air grows dark.'),
+      climb(2, 'Higher, into the mountain. The air grows dark.'),
       walk(2, 'The Umbral Stair winds through total darkness.', 'THE SECOND HOUR'),
-      meet(2, 'umbral', 'The Umbral hides in your own shadow. Watch your back.'),
+      meet(2, 'umbral', 'The King under the Stair became the Umbral. He hides in your own shadow.'),
       clash(2, 'umbral')] },
     { shots: [
-      climb(3, 'Halfway up. The moon bleeds faster.'),
+      climb(3, 'Halfway up. The Moon bleeds faster.'),
       walk(3, 'Nothing lives in the Ashen Waste.', 'THE THIRD HOUR'),
-      meet(3, 'hunger', 'Only the Hunger, which eats the light itself.'),
+      meet(3, 'hunger', 'The Ash King burned with his kingdom. What is left is the Hunger.'),
       clash(3, 'hunger')] },
     { shots: [
       climb(4, 'Near the top, the wind turns to blades.'),
       walk(4, "The Wind's Throat: one narrow path into the storm.", 'THE FOURTH HOUR'),
-      meet(4, 'wing', 'The Pale Wing rules the storm. It has never let anyone pass.'),
+      meet(4, 'wing', "The Storm King's soul rides the Pale Wing. It has never let anyone pass."),
       clash(4, 'wing')] },
     { shots: [
-      climb(5, 'The top of the Spire. Someone is waiting.'),
+      climb(5, 'The summit. Five kings climb with you now.'),
       { k: 'film', stage: 5, area: 'last', eyebrow: 'THE LAST HOUR', say: 'The same swordsman. Seven hundred years old, and alive.', d: 3.6,
         cast: [{ who: 'hero', at: [-40, 80], to: [-8, 22], mdur: 2.8 }, { who: 'firstCut', at: [0, -60], aura: true, face: [0, 22] }],
         cam: { at: [0, 30], to: [0, -14], zoom: [1.2, 1.5] } },
@@ -87,16 +86,13 @@
       clash(5, 'firstCut')] },
   ];
 
-  // ---- The First Cut in the opening (2026-11-11, the author: "those character models just don't stand right in the
-  // cutscenes for the boss... build different cutscenes from scratch"). He is filmed as the game shows him: on the real
-  // summit, through the fight camera, at a man's scale with his own clips and effects; the moon and the city are shot on
-  // their own (js/openfilm.js). The opening plays: the cold open, FC_DEED, the moon, the dead and her, FC_WAIT, the strike.
+  // ---- The opening (rebuilt from scratch 2026-11-11): the Spire and its five kingdoms; the white Moon and the five kings;
+  // the Kingslayer kills them kingdom by kingdom, each in his own hall; at the summit he spends their souls on the First
+  // Cut and cuts the Moon; she reddens, and the dead rise; he chains each king's soul inside a guardian; seven hundred
+  // years on, the last night; Vesper climbs it all and reaches him at the last hour. Then the title, and the last hour
+  // is played (main.js showcase): his First Cut kills her; the Moon turns the night back (S.WAKE); the campaign.
+  // Everything is filmed on the game's own arenas through the fight camera, with the game's own cast.
   const FOLK = ['vh_townsfolk_001', 'vh_townsfolk_004', 'vh_townsfolk_007', 'vh_townsfolk_010', 'vh_townsfolk_013'];
-  const UP = [0, -400];   // toward the moon, over the summit's far edge
-  // The deed (2026-11-11, the author: "the moon kinda feels irrelevant... have the boss use an op spell and epic animation
-  // and effects to raise the dead, maybe he slays 5 kings to do it, one king per region"): he cuts down the king of each of
-  // the five kingdoms the climb passes through, each in his own hall, each a different blow; their souls go into him; on
-  // the summit he spends them on the spell that wakes every grave, and the moon bleeds red from that night on.
   const KINGS = [
     { stage: 0, title: 'THE KING OF THE BLACK GATE', set: 'vh_paladin_003', guards: ['vh_knight_006', 'vh_knight_009'] },
     { stage: 1, title: 'THE FROST KING', set: 'vh_paladin_008', guards: ['vh_knight_012', 'vh_knight_015'] },
@@ -119,49 +115,98 @@
       [hit + 0.55, { type: 'pk', name: 'v_soul', x: K0[0], y: K0[1], scale: 1.6 }], [hit + 1.0, { type: 'pk', name: 'v_soul', x: (move.to || move.at)[0], y: (move.to || move.at)[1], scale: 1.2 }], [hit + 0.55, { type: 'sfx', name: 'soul', v: 0.7 }]];
     return { k: 'film', stage: k.stage, area: 0, eyebrow: k.title, say, d: hit + 1.5, cast, ev, cam: { at: [0, 0], to: [0, -6], zoom: [2.1, 2.35], lift: 34 } };
   };
-  S.FC_DEED = { shots: [
-    { k: 'title', top: 'SEVEN HUNDRED YEARS AGO', title: 'FIVE KINGDOMS', d: 2.4 },
-    kingShot(KINGS[0], 0, { at: [-70, 40], clip: 'C_Cut', wind: 0.35, hit: 1.25, fx: 'cb:01_crimson_tide_cleave/target', fps: 16 }, 'A swordsman went from kingdom to kingdom, and cut down every king.'),
+  // The king's soul, chained: his kingdom's guardian stands in a crimson rune at the gate; the soul falls into it; a red
+  // flash, and it wakes.
+  const chained = (stage, who, also, say) => {
+    const big = (D().FOES[who].scale || 1) > 1.2, by = also ? -40 : big ? -95 : -75, k = KINGS[stage], wake = [[1.0, 'Taunt', 1.6, 9]];
+    const cast = also ? [{ who, at: [-36, by + 4], face: 'cam', acts: wake }, { who: also, at: [36, by - 4], face: 'cam', acts: wake }] : [{ who, at: [0, by], face: 'cam', acts: wake }];
+    return { k: 'film', stage, area: also ? 0 : 'last', eyebrow: k.title, say, d: 2.9, cast, card: { who, also, at: 1.1 },   // the twins on the cloister's open floor (their nave's walls hide them)
+      ev: [[0, { type: 'pk', name: 'fc_summon', x: 0, y: by + 4, scale: also ? 3.4 : 2.6 }], [0.05, { type: 'pk', name: 'v_soul', x: 0, y: by - 50, scale: 1.6 }], [0.05, { type: 'sfx', name: 'soul', v: 0.7 }],
+        [0.95, { type: 'pk', name: 'fc_shock', x: 0, y: by, scale: 1.4 }], [0.95, { type: 'flash', a: 0.3, col: '255,60,80' }], [0.95, { type: 'sfx', name: 'blow_big', v: 0.6 }]],
+      cam: also ? { at: [0, by + 30], to: [0, by + 10], zoom: [2.0, 2.4], lift: 30 } : { at: [0, by + 30], to: [0, by + 10], zoom: [2.2, 2.6], lift: big ? 40 : 30 } };   // the twins framed as in their own fight's intro
+  };
+  // Vesper cutting her way up through a kingdom in the night: two of the dead fall as she runs past.
+  const RUNNERS = [['ghoul', 'raider'], ['ghast', 'ghoul'], ['raider', 'ghast'], ['ghoul', 'raider'], ['ghast', 'raider']];
+  const run = (stage, hour, say) => {
+    const [a, b] = RUNNERS[stage];
+    return { k: 'film', stage, area: 0, tint: 'red', eyebrow: hour, say, d: 1.9,
+      cast: [{ who: 'hero', at: [-150, 26], to: [110, -6], mdur: 1.8, run: true, acts: [[0.5, 'Attack1', 0.35, 18], [1.05, 'Attack2', 0.35, 18]] },
+        { who: a, at: [-50, 12], face: [-150, 26], acts: [[0.62, 'Die', 99, 14]] }, { who: b, at: [20, 4], face: [-150, 26], acts: [[1.17, 'Die', 99, 14]] }],
+      ev: [[0.6, { type: 'pk', name: 'v_blood', x: -50, y: 12, z: 18, scale: 1.3 }], [0.58, { type: 'sfx', name: 'slash_1' }], [1.15, { type: 'pk', name: 'v_blood', x: 20, y: 4, z: 18, scale: 1.3 }], [1.13, { type: 'sfx', name: 'slash_2' }]],
+      cam: { follow: 'hero', off: [30, -8], zoom: [1.9, 2.0], lift: 32 } };
+  };
+  const SUMMIT_DEAD = [[-110, 10], [110, 0], [-60, 70], [70, 80], [0, 110]];
+  S.OPEN = { shots: [
+    // The Spire: five kingdoms, one above another, up to the Moon (the campaign map's climb).
+    { k: 'kingdoms', eyebrow: 'THE SPIRE', say: 'Five kingdoms on one mountain, all the way up to the Moon.', d: 3.8 },
+    // Before: the white Moon, the king of the Black Gate and his people.
+    { k: 'film', stage: 0, area: 0, tint: 'past', eyebrow: 'BEFORE THE MOON BLED', say: 'The white Moon kept their dead asleep, and five kings kept her peace.', d: 3.6,
+      cast: [{ who: 'ghoul', set: KINGS[0].set, at: [0, -30], face: 'cam', scale: 1.15 }, { who: 'ghoul', set: KINGS[0].guards[0], at: [-46, -16], face: 'cam' }, { who: 'ghoul', set: KINGS[0].guards[1], at: [46, -22], face: 'cam' }]
+        .concat(FOLK.map((set, i) => ({ who: 'ghoul', set, at: [-170 + i * 70, 70 + (i % 2) * 24], to: [-120 + i * 70, 60 + (i % 2) * 24], mdur: 3.4, face: [0, -30] }))),
+      cam: { at: [0, 30], to: [0, 0], zoom: [1.35, 1.7], lift: 34 } },
+    { k: 'title', top: 'SEVEN HUNDRED YEARS AGO', title: 'THE KINGSLAYER', d: 2.3 },
+    kingShot(KINGS[0], 0, { at: [-70, 40], clip: 'C_Cut', wind: 0.35, hit: 1.25, fx: 'cb:01_crimson_tide_cleave/target', fps: 16 }, 'A swordsman climbed the Spire and cut down every king.'),
     kingShot(KINGS[1], 1, { at: [-150, 70], to: [-34, 6], mdur: 0.3, clip: 'Attack4', wind: 0.3, hit: 1.0, fx: 'cb:90_last_stand_strike/target', fxScale: 1.6 }),
     kingShot(KINGS[2], 2, { at: [10, -70], clip: 'Attack3', wind: 0.3, hit: 0.95, fx: 'cb:01_crimson_tide_cleave/target', fxScale: 1.6 }),
     kingShot(KINGS[3], 3, { at: [-40, 20], clip: 'Special1', wind: 0.45, hit: 1.05, fx: 'cb:10_quake_stomp/caster', fxScale: 1.6 }),
     kingShot(KINGS[4], 4, { at: [-60, 34], clip: 'Attack6', wind: 0.4, hit: 1.1, fx: 'cb:113_earthshaker_stance/target', fxScale: 2.0 }, 'Five kings. Five souls.'),
-    // The summit: the five souls come to him; he raises his blade and spends them on the spell.
-    { k: 'film', stage: 5, area: 'last', eyebrow: 'THE TOP OF THE SPIRE', say: 'With their souls he cast the spell that wakes every grave.', d: 4.6,
-      cast: [{ who: FC, at: [0, 0], face: 'cam', acts: [[1.1, 'C_Raise', 3.5, 7]] }],
+    // The summit: the five souls come to him; he raises his blade and spends them on one cut.
+    { k: 'film', stage: 5, area: 'last', eyebrow: "THE MOON'S ALTAR", say: 'At the summit he spent their souls on a single cut.', d: 4.2,
+      cast: [{ who: FC, at: [0, 0], face: 'cam', acts: [[1.1, 'C_Raise', 2.0, 7], [3.0, 'C_Cut', 1.2, 16]] }],
       ev: [0, 1, 2, 3, 4].map((n) => [0.15 + n * 0.16, { type: 'pk', name: 'v_soul', x: Math.cos(n / 5 * 6.283) * 60, y: Math.sin(n / 5 * 6.283) * 38, scale: 1.4 }]).concat([
         [0.2, { type: 'sfx', name: 'soul', v: 0.8 }], [1.1, { type: 'sfx', name: 'charge', v: 1 }], [1.2, { type: 'pk', name: 'fc_summon', x: 0, y: 0, scale: 4.2 }],
-        [1.55, { type: 'pk', name: 'cb:54_greater_fireball/target', x: 0, y: 0, scale: 2.2 }], [1.75, { type: 'pk', name: 'v_pillar', x: 0, y: 0, scale: 3 }], [1.8, { type: 'pk', name: 'cb:10_quake_stomp/caster', x: 0, y: 0, scale: 2.2 }],
-        [1.8, { type: 'pk', name: 'fc_shock', x: 0, y: 0, scale: 3.4 }], [1.8, { type: 'flash', a: 0.8, col: '255,40,60' }], [1.8, { type: 'shake', n: 16 }], [1.8, { type: 'sfx', name: 'blow_big' }], [1.82, { type: 'sfx', name: 'quake' }],
-        [2.4, { type: 'pk', name: 'cb:01_crimson_tide_cleave/caster', x: -60, y: 24, scale: 1.4 }], [2.55, { type: 'pk', name: 'cb:01_crimson_tide_cleave/caster', x: 64, y: 8, scale: 1.4 }], [2.9, { type: 'pk', name: 'fc_shock', x: 0, y: 0, scale: 4 }], [3.0, { type: 'pk', name: 'v_embers', x: 0, y: 0, scale: 2.4 }]]),
+        [1.55, { type: 'pk', name: 'cb:54_greater_fireball/target', x: 0, y: 0, scale: 2.2 }], [1.75, { type: 'pk', name: 'v_pillar', x: 0, y: 0, scale: 3 }],
+        [3.2, { type: 'pk', name: 'cb:01_crimson_tide_cleave/target', x: 0, y: -20, scale: 2.4 }], [3.2, { type: 'flash', a: 0.7, col: '255,240,240' }], [3.2, { type: 'shake', n: 12 }], [3.18, { type: 'sfx', name: 'god_blade', v: 1 }]]),
       cam: { at: [0, 20], to: [0, 0], zoom: [1.7, 2.2], lift: 40 } },
-    // And the dead rose all around him; the moon has bled red since that night.
-    { k: 'film', stage: 5, area: 'last', tint: 'red', say: 'The dead rose. And from that night, the moon bled red.', d: 4.0,
+    // The First Cut: the Moon cut, reddening, bleeding light.
+    { k: 'wound', eyebrow: 'THE FIRST CUT', say: 'He cut the Moon. Her light turned red, and red light wakes the dead.', d: 4.6 },
+    // The dead rise all around him.
+    { k: 'film', stage: 5, area: 'last', tint: 'red', say: 'The dead rose, and her wound kept him alive.', d: 3.8,
       cast: [{ who: FC, at: [0, 0], face: 'cam', clip: 'C_Command', aura: true }].concat([[-110, 30], [100, 20], [-60, 90], [70, 100], [-140, -40], [130, -50], [0, 130], [-30, -90], [40, -100], [-170, 60]].map(([x, y], i) =>
-        ({ who: ['ghoul', 'raider', 'ghast', 'raider', 'ghoul', 'ghast', 'raider', 'ghoul', 'ghast', 'raider'][i], at: [x, y], face: [0, 0], enter: 'rift', delay: 0.3 + i * 0.22, edur: 1.0 }))),
-      ev: [[0.3, { type: 'sfx', name: 'spawn', v: 0.7 }], [1.2, { type: 'sfx', name: 'reinforce', v: 0.7 }], [2.0, { type: 'sfx', name: 'horn', v: 0.6 }]].concat([[-110, 30], [100, 20], [-60, 90], [70, 100], [-140, -40], [130, -50], [0, 130], [-30, -90], [40, -100], [-170, 60]].map(([x, y], i) => [0.3 + i * 0.22, { type: 'pk', name: 'v_spawn', x, y, scale: 1.2 }])),
+        ({ who: ['ghoul', 'raider', 'ghast', 'raider', 'ghoul', 'ghast', 'raider', 'ghoul', 'ghast', 'raider'][i], at: [x, y], face: [0, 0], enter: 'rift', delay: 0.3 + i * 0.2, edur: 1.0 }))),
+      ev: [[0.3, { type: 'sfx', name: 'spawn', v: 0.7 }], [1.2, { type: 'sfx', name: 'reinforce', v: 0.7 }], [2.0, { type: 'sfx', name: 'horn', v: 0.6 }]].concat([[-110, 30], [100, 20], [-60, 90], [70, 100], [-140, -40], [130, -50], [0, 130], [-30, -90], [40, -100], [-170, 60]].map(([x, y], i) => [0.3 + i * 0.2, { type: 'pk', name: 'v_spawn', x, y, scale: 1 }])),
       cam: { at: [0, 30], to: [0, 10], zoom: [1.2, 1.4], lift: 36 } },
-  ] };
-  S.FC_WAIT = { shots: [
-    // The summit now: red, the dead kneeling round him, the wind in his cape.
-    { k: 'film', stage: 5, area: 'last', tint: 'red', eyebrow: 'THE LAST HOUR', say: 'He waits at the top of the Spire.', d: 4.0,
-      cast: [{ who: 'firstCutFinal', at: [0, -40], face: 'cam', clip: 'C_Stand', aura: true }].concat([[-110, 10], [110, 0], [-60, 70], [70, 80], [0, 110]].map(([x, y], i) =>
+    // The chained kings: each king's soul bound inside his kingdom's guardian.
+    chained(0, 'warden', null, "He chained each king's soul inside a guardian, to bar the way up."),
+    chained(1, 'twinA', 'twinB'),
+    chained(2, 'umbral'),
+    chained(3, 'hunger'),
+    chained(4, 'wing'),
+    // Seven hundred years of red nights; tonight, the last.
+    { k: 'title', top: 'SEVEN HUNDRED YEARS LATER', title: 'THE LAST NIGHT', sub: 'Tonight the Moon bleeds out. At dawn she dies, and the dead will never sleep again.', d: 3.8 },
+    // Vesper at the Black Gate, the Moon's light on her blade.
+    { k: 'film', stage: 0, area: 0, tint: 'red', eyebrow: 'THE MOONBLADE', say: "Vesper, the Moon's last knight, went to stop him.", d: 3.6,
+      cast: [{ who: 'hero', at: [-20, 90], to: [0, 30], mdur: 1.6, face: 'cam', aura: true }], card: { who: 'hero', at: 1.4 },
+      ev: [[0.2, { type: 'pk', name: 'v_embers', x: 0, y: 30, scale: 1.6 }]], cam: { at: [0, 60], to: [0, 30], zoom: [2.0, 2.5], lift: 30 } },
+    // The climb, kingdom by kingdom, hour by hour.
+    run(1, 'THE FIRST HOUR', 'She climbed all night, kingdom by kingdom.'),
+    run(2, 'THE SECOND HOUR'),
+    run(3, 'THE THIRD HOUR'),
+    run(4, 'THE FOURTH HOUR'),
+    // The summit, at the last hour: he waits among his dead; she comes onto the summit; he points his blade at her.
+    { k: 'film', stage: 5, area: 'last', tint: 'red', eyebrow: 'THE LAST HOUR', say: 'He was waiting at the top of the Spire.', d: 3.6,
+      cast: [{ who: FC, at: [0, -40], face: 'cam', clip: 'C_Stand', aura: true }].concat(SUMMIT_DEAD.map(([x, y], i) =>
         ({ who: ['ghoul', 'raider', 'ghast', 'ghoul', 'raider'][i], at: [x, y], face: [0, -40], clip: 'CrouchIdle' }))),
       ev: [[0.3, { type: 'pk', name: 'v_embers', x: 0, y: -40, scale: 2.4 }]],
-      cam: { at: [0, 60], to: [0, -20], zoom: [1.3, 2.0], lift: 40 }, card: { who: 'firstCut', at: 1.6 } },
-    // She comes onto the summit; he points his blade at her.
+      cam: { at: [0, 60], to: [0, -20], zoom: [1.3, 2.0], lift: 40 }, card: { who: 'firstCut', at: 1.4 } },
     { k: 'film', stage: 5, area: 'last', tint: 'red', eyebrow: 'THE FIRST CUT', say: 'Kneel.', d: 3.0,
-      cast: [{ who: 'hero', at: [-10, 180], to: [-10, 70], mdur: 2.0, face: [0, -40] }, { who: 'firstCutFinal', at: [0, -40], face: [-10, 70], acts: [[1.3, 'Taunt', 1.7, 9]], aura: true }],
+      cast: [{ who: 'hero', at: [-10, 180], to: [-10, 70], mdur: 2.0, face: [0, -40] }, { who: FC, at: [0, -40], face: [-10, 70], acts: [[1.3, 'Taunt', 1.7, 9]], aura: true }],
       cam: { at: [0, 40], zoom: [1.55, 1.8], lift: 40 } },
+  ] };
+  // After the last hour (main.js showcase: his First Cut kills her and the Moon raises her): dusk again, at the Black Gate.
+  S.WAKE = { shots: [
+    { k: 'title', top: 'DUSK', title: 'THE NIGHT, AGAIN', sub: 'With the last of her light, the Moon turned the night back.', d: 3.4 },
+    { k: 'film', stage: 0, area: 0, eyebrow: 'THE MOON', say: 'Free the five kings. Their souls are the one thing his blade cannot cut.', d: 4.2,
+      cast: [{ who: 'hero', at: [0, 30], face: [0, -200], acts: [[0, 'Die', 1.3, 60], [1.3, 'Idle4', 3.0, 7]] }],   // she lies in the light, then stands
+      ev: [[0.2, { type: 'pk', name: 'cb:12_golden_blessing/target', x: 0, y: 30, scale: 1.6 }], [0.25, { type: 'sfx', name: 'magic', v: 0.8 }], [1.3, { type: 'pk', name: 'v_soul', x: 0, y: 10, scale: 1.2 }]],
+      cam: { at: [0, 40], to: [0, 30], zoom: [2.4, 2.0], lift: 30 } },
   ] };
 
   // The campaign plays these pieces: the prologue before the first trial, each act's intro the
   // first time you climb into it, and each guardian's intro before its fight.
   const B = S.BEFORE;
-  // The prologue is the anime opening (opening.js), the whole premise in about 23 seconds.
-  S.PROLOGUE = { shots: [{ k: 'anime', seq: 'opening' }] };
   S.ACTS = [
-    { intro: null, boss: { shots: B[0].shots.slice(6) } },
+    { intro: null, boss: { shots: B[0].shots } },
     { intro: { shots: B[1].shots.slice(0, 2) }, boss: { shots: B[1].shots.slice(2) } },
     { intro: { shots: B[2].shots.slice(0, 2) }, boss: { shots: B[2].shots.slice(2) } },
     { intro: { shots: B[3].shots.slice(0, 2) }, boss: { shots: B[3].shots.slice(2) } },
@@ -174,8 +219,8 @@
   S.PHASE = {};
 
   S.ENDING = { shots: [
-    { k: 'seal', eyebrow: 'DAWN', say: 'You strike the wound with everything you have.', d: 4.2 },
-    { k: 'film', stage: 5, area: 'last', tint: 'dawn', say: 'The wound closes. The moon turns white and rises. The night is over.', d: 4.8,
+    { k: 'seal', eyebrow: 'DAWN', say: 'With the five kings beside you, you strike the wound.', d: 4.2 },
+    { k: 'film', stage: 5, area: 'last', tint: 'dawn', say: 'The wound closes. The Moon turns white again, and the dead sleep.', d: 4.8,
       cast: [{ who: 'hero', at: [0, 20], face: 'cam' }], cam: { at: [0, 22], to: [0, 10], zoom: [2.6, 1.4] } },
     { k: 'title', top: 'THANK YOU FOR PLAYING', title: 'THE BLEEDING MOON', d: 3.2 }] };
 
