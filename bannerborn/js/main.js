@@ -419,7 +419,6 @@
     BB.renderGround(map);
     scene = new BB.Battle({ map, mission: M, formation: BB.formationList(S), heroes: team, level: BB.foeLevel(M), save: S, seed, intro: true });
     scene.cam.zoom = 1;
-    if (current.trek) BB.trekCarryIn(scene, current.trek.carry); // the wounds of the last field come along
     if (devReal && devOpts && devOpts.tick) { const ticks = devOpts.tick.map((k) => DEV_TICK[k]); scene.devTick = (sc, dt) => ticks.forEach((f) => f(sc, dt)); }
     if (devReal && devOpts && devOpts.bench) { const sc0 = scene; scene.benchAt = 9; const tk = scene.devTick; scene.devTick = (sc, dt) => { tk && tk(sc, dt); if (sc === sc0 && sc.benchAt && sc.time > sc.benchAt) { sc.benchAt = 0; benchStart(); } }; }
     campBuilt = null;
@@ -432,7 +431,7 @@
   }
 
   function finishBattle() {
-    if (current.trek) return finishTrekLeg();
+    if (current.trek) return finishTrek();
     if (current.stage.type === 'endless') return finishEndless();
     const S = BB.save, B = scene, M = current.stage, win = !!B.result.win;
     const first = win && !S.cleared[M.id];
@@ -505,47 +504,34 @@
     current = { stage: Object.assign({}, BB.ENDLESS, { level: lv }), idx: -1 };
     startBattle();
   };
-  // ---- expeditions (js/modes.js): several fields in a row, a fork after most of them, a way out at the end
+  // ---- expeditions (js/modes.js): one great map, three gates, a choice at each, the land's lord at the way out
   BB.deployTrek = function () {
     const S = BB.save, team = BB.teamHeroes(S);
     if (!team.length) { UI.toast('Place at least one hero in the formation.'); return; }
-    const ch = Math.max(1, BB.CHAPTERS.filter((c) => BB.chapterCleared(S, c.id)).length), lv = Math.max(3, Math.round(team.reduce((a, h) => a + h.level, 0) / team.length));
-    const plan = BB.trekPlan(ch, lv, now() & 0xffffff, team.length);
-    current = { stage: plan.legs[0], idx: -1, trek: { plan, at: 0, side: false, carry: null, done: 0, gold: 0, kills: 0, loot: [], caches: 0, ambushes: 0, work: {} } };
-    trekGo(plan.legs[0], 0);
+    const ch = Math.max(1, BB.CHAPTERS.filter((c) => BB.chapterCleared(S, c.id)).length), lv = Math.max(2, Math.round(team.reduce((a, h) => a + h.level, 0) / team.length) - 1);
+    current = { stage: BB.expedition(ch, lv, now() & 0xffffff), idx: -1, trek: true };
+    startBattle();
   };
-  function trekGo(leg, at) { const T = current.trek; if (at !== undefined) T.at = at; leg.code = BB.roman(T.done + 1); current.stage = leg; startBattle(); }
-  function finishTrekLeg() {
-    const T = current.trek, B = scene, leg = current.stage, P = T.plan;
-    T.kills += B.kills || 0; T.gold += B.goldGot || 0; if (B.loot && B.loot.length) T.loot.push(...B.loot);
-    for (const e of B.heroList) T.work[e.hero.id] = (T.work[e.hero.id] || 0) + (e.dealt || 0) + (e.mended || 0) * 1.2 + (e.soaked || 0) * 0.6;
-    if (!B.result.win) return trekEnd(false);
-    T.done++; T.carry = BB.trekCarryOut(B);
-    if (leg.trek === 'cache') T.caches++;
-    if (leg.trek === 'ambush') T.ambushes++;
-    if (leg.trek === 'shrine') for (const id in T.carry) T.carry[id].f = 1; // the shrine mends everyone, and stands the fallen up
-    if (leg.trek === 'guard') return trekEnd(true);
-    if (T.side) { T.side = false; return trekGo(P.legs[T.at + 1], T.at + 1); } // back from the side road, and on
-    const fork = P.forks[T.at];
-    if (!fork) return trekGo(P.legs[T.at + 1], T.at + 1);
-    const go = (side) => { UI.modal('mTrek', false); BB.sfx('click'); if (side) { T.side = true; trekGo(fork.leg); } else trekGo(P.legs[T.at + 1], T.at + 1); };
-    $('trekHead').textContent = 'The road forks'; $('trekSub').textContent = T.done + ' field' + (T.done > 1 ? 's' : '') + ' behind you. One way leads on; the other does not.';
-    const L = $('trekL'), Rr = $('trekR'); L.querySelector('span').textContent = fork.onLeft ? fork.clueSide : fork.clueWay; Rr.querySelector('span').textContent = fork.onLeft ? fork.clueWay : fork.clueSide;
-    L.onclick = () => go(fork.onLeft); Rr.onclick = () => go(!fork.onLeft);
+  function trekChoice() { // the battle stops; the player decides; it goes on
+    const B = scene, c = B.choice; if (!c || c.shown) return; c.shown = true; B.paused = true;
+    $('trekHead').textContent = c.title; $('trekSub').textContent = c.text;
+    [$('trekL'), $('trekR')].forEach((b, k) => { b.querySelector('b').textContent = c.opts[k].label; b.querySelector('span').textContent = c.opts[k].hint; b.onclick = () => { UI.modal('mTrek', false); BB.sfx('click'); B.paused = false; B.trekChoose(k); }; });
     UI.modal('mTrek');
   }
-  function trekEnd(win) {
-    const S = BB.save, T = current.trek, B = scene, M = T.plan.legs[0], n = T.done, heroes = B.heroList.map((e) => e.hero), first = win && !(S.stats.trekLands || {})[T.plan.chapter];
-    let mvp = null; for (const e of B.heroList) if (!mvp || (T.work[e.hero.id] || 0) > (T.work[mvp.hero.id] || 0)) mvp = e;
-    const all = B.heroList.reduce((a, e) => a + (T.work[e.hero.id] || 0), 0) || 1;
-    const res = { win, head: win ? 'The way out' : n ? n + ' field' + (n > 1 ? 's' : '') + ' crossed' : 'Turned back', code: '', title: 'Expedition · ' + BB.CHAPTERS[T.plan.chapter - 1].name, heroes, mvp: mvp && mvp.hero, kills: T.kills, gold: 0, crystals: 0, sigils: 0, items: [] };
-    res.xp = B.heroList.map((e) => { const before = e.hero.level, got = Math.round(BB.battleXp(M, win, (T.work[e.hero.id] || 0) / all * B.heroList.length / 2.5, e === mvp, e.hero.level) * (0.4 + n * 0.55)); return { hero: e.hero, xp: got, levels: BB.gainXp(e.hero, got), from: before }; });
-    res.gold = Math.round(T.gold + n * (40 + M.level * 8) + T.ambushes * (120 + M.level * 10));
+  function finishTrek() {
+    const S = BB.save, B = scene, M = current.stage, o = B.obj, win = !!B.result.win, gates = o.gatesOpen || 0, mult = BB.trekMult(o), heroes = B.heroList.map((e) => e.hero), first = win && !(S.stats.trekLands || {})[M.chapter];
+    const work = (e) => (e.dealt || 0) + (e.mended || 0) * 1.2 + (e.soaked || 0) * 0.6, all = B.heroList.reduce((a, e) => a + work(e), 0) || 1;
+    let mvp = null; for (const e of B.heroList) if (!mvp || work(e) > work(mvp)) mvp = e;
+    const res = { win, head: win ? 'The way out' : gates ? gates + ' gate' + (gates > 1 ? 's' : '') + ' opened' : 'Turned back', code: '', title: 'Expedition · ' + BB.CHAPTERS[M.chapter - 1].name + (mult > 1 ? ' · spoils ×' + mult.toFixed(2).replace(/0$/, '') : ''), heroes, mvp: mvp && mvp.hero, kills: B.kills, gold: 0, crystals: 0, sigils: 0, items: [] };
+    const part = win ? 1 : 0.2 + gates * 0.2; // a road half walked still teaches, and pays, half
+    res.xp = B.heroList.map((e) => { const before = e.hero.level, got = Math.round(BB.battleXp(M, true, work(e) / all * B.heroList.length / 2.5, e === mvp, e.hero.level) * 3.2 * part); return { hero: e.hero, xp: got, levels: BB.gainXp(e.hero, got), from: before }; });
+    res.gold = Math.round(((B.goldGot || 0) + (160 + M.level * 30) * part) * (win ? mult : 1));
     res.crystals = first ? 60 : win ? 10 : 0; res.sigils = win ? 1 : 0;
-    res.items.push(...T.loot); const rolls = (win ? 2 : 0) + T.caches * 2; if (rolls) res.items.push(...BB.rollLoot(BB.rng(now() & 0xffffff), M.level + 2, S.heroes, rolls));
-    if (win) { S.stats.treks = (S.stats.treks || 0) + 1; S.stats.trekLands = S.stats.trekLands || {}; S.stats.trekLands[T.plan.chapter] = 1; }
-    S.gold += res.gold; S.crystals += res.crystals; S.sigils += res.sigils; S.inventory.push(...res.items); S.stats.kills += T.kills;
-    BB.persist(); current.trek = null;
+    if (B.loot && B.loot.length) res.items.push(...B.loot);
+    const rolls = win ? 2 + (o.caches || 0) * 2 + (o.horn ? 1 : 0) + (o.greed || 0) : 0; if (rolls) res.items.push(...BB.rollLoot(BB.rng(now() & 0xffffff), M.level + 2, S.heroes, rolls)); // a vault is only yours if you walk out with it
+    if (win) { S.stats.treks = (S.stats.treks || 0) + 1; S.stats.trekLands = S.stats.trekLands || {}; S.stats.trekLands[M.chapter] = 1; }
+    S.gold += res.gold; S.crystals += res.crystals; S.sigils += res.sigils; S.inventory.push(...res.items); S.stats.kills += B.kills;
+    BB.persist(); UI.modal('mTrek', false);
     UI.results(res, [['Again', '', () => { UI.modal('mResults', false); BB.deployTrek(); }], ['Camp', 'dark', () => goCamp()]]); BB.sfx(win ? 'levelup' : 'click');
   }
   function finishEndless() {
@@ -1158,6 +1144,7 @@
       if (mode === 'battle' && UI.current === 'hud') {
         updateHud(dt);
         if (scene.result && scene.result.t > 2.6 && !scene.result.shown) { scene.result.shown = true; finishBattle(); }
+        if (scene.choice && !scene.choice.shown && !scene.result) trekChoice();
       }
     } else { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#0d0a08'; ctx.fillRect(0, 0, W, H); }
     if (UI.current === 'home') { UI.homeRender(dt); spoilT += dt; if (spoilT > 20) { spoilT = 0; UI.updateSpoils(); } }

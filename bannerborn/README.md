@@ -205,16 +205,19 @@ simulator used to leave the team out, so its hordes were always the smallest; it
 - **Survive** stages (one in each land: Chapel Road, Temple Steps, The Last Square, The Shattered Wall, The Rime
   Wood, The Slag Court, Rotwood, The Hollow City): no gate to break and no last wave. The dead come from a different
   side each time, more of them and faster as the clock runs down, with a last surge fifteen seconds from the end.
-- **Expeditions** (the home screen, from the third stage on): a long march through five fields or more in a
-  row, in the furthest land you have cleared (the first, until then), at your team's level. The same heroes go from one field to the next
-  with the wounds they took (a little is mended between fields; the fallen come back on their feet at a quarter).
-  After most fields **the road forks** and each way gives a clue: one leads on toward the way out, the other to a
-  side road and back: a **cache** (more loot at the end), a **shrine** (everyone mended), or an **ambush** (a harder
-  fight, more gold). The third field is a timed stand, the last is guarded, and beyond it is the way out. Rewards
-  come at the end, for however far you got; the first way out found in each land pays crystals.
+- **Expeditions** (the camp screen, from the third stage on): one long fight on **one great map** (layout `road`,
+  44 tiles a side, almost three times the ground of any other), in the furthest land you have cleared, at your
+  team's level. A road winds from one corner to the other with water on both sides, cut by **three gates**. The
+  warband marches it on its own and meets what is set along it: an ambush springs when they come near, a Grave Nest
+  or a ballista stands where the road narrows. **A gate opens only when everything on its side of it has fallen.**
+  At each gate the fight stops and **you choose**: rest at a shrine or press on (the dead ahead a level stronger, the
+  spoils a quarter richer); break a sealed vault (its elite guards wake; more loot if you walk out) or leave it; sound
+  the horn at the last gate (its guard a quarter stronger, spoils half again as rich) or go quietly with every
+  ultimate charged. Beyond the third gate **the land's lord** guards the way out. Fall on the road and you keep a
+  part of the gold and experience for the gates you opened, and none of the loot.
 - **Two more works of the dead** (js/structures.js, art drawn there): the **Grave Nest**, which sends one more of
   the dead climbing out for as long as it stands, and the **Bone Ballista**, which puts a heavy bolt into whoever
-  stands farthest back. They guard the fields of an expedition.
+  stands farthest back. They stand along an expedition's road.
 
 **How hard.** A player's heroes grow much faster than the first balance assumed: all four gear slots filled, every
 skill point spent and a level or two over the stage make a team three to four times the strength a stage used to ask
@@ -378,7 +381,7 @@ name, their horde, the face-off, the clash) and a fall; chapters 2-4 open with y
 | `js/drill.js` | the team field: the current region with the formation's heroes training, sparring and chatting |
 | `js/preview.js` | the duel preview beside a summoning: one hero, one enemy, basic attacks → signature → ultimate, looped |
 | `js/tactics.js` | battlefield tactics: potions, rescues, hands-on heals, stones to throw, kicks, charges, pounces, dodge rolls |
-| `js/modes.js` | the survive stage type; expeditions (the plan of fields and forks, what a team carries from one field to the next) |
+| `js/modes.js` | the survive stage type; expeditions (the road's encounters, gates, choices and lord; the map itself is layout `road` in js/world.js) |
 | `js/cinema.js` | cutscenes: shot sequencer (scene fly-throughs, close-ups, splits, impact frames, titles) and the four scripts |
 | `js/cineart.js` | art made for the cutscenes: drawn figures (knights, the Captain, the dead, Vesh) posed from joints, lit per shot and kept once drawn; `BB.CineArt.draw / drawLow / eyes / skull` |
 | `js/opening.js` | the opening film: eleven shots with their own painters (the ridge, the blades, the tear, the gate, the map, the glass, the last stand) |

@@ -1,19 +1,53 @@
 // Bannerborn — more ways to fight. Loaded after structures.js; pure logic (it runs in Node).
 //   survive      a stage type: no gate to break and no last wave. The dead come from every side, faster as the time
 //                runs down, with a last surge; hold out until it ends.
-//   expeditions  a long march through several fields in a row, the same heroes carried from one to the next with the
-//                wounds they took. After a field the road forks and each way gives a clue: one leads on toward the
-//                way out, the other to a side road (a cache, a shrine, or an ambush) and back. The last field is
-//                guarded; beyond it is the way out.
+//   expedition   one long fight on one great map (layout 'road' in world.js): a road that winds from one corner to
+//                the other, cut by three gates. The warband marches the road on its own and meets what is set along
+//                it: an ambush springs when they come near, works of the dead stand where the road narrows. A gate
+//                opens only when everything on its side of it has fallen. At each gate the player chooses (rest or
+//                press on, break a vault or leave it, how to face the last guard): safer, or richer and harder.
+//                Beyond the third gate the land's lord guards the way out.
 (function () {
-  const BB = (typeof window !== 'undefined' ? window : globalThis).BB, Battle = BB.Battle;
+  const BB = (typeof window !== 'undefined' ? window : globalThis).BB, Battle = BB.Battle, hyp = Math.hypot;
 
-  // ---------------------------------------------------------------- survive
   const setup0 = Battle.prototype.setupObjective, update0 = Battle.prototype.updateObjective;
+  const resort = (m) => { for (const p of m.props) if (p.depth === undefined) { const q = BB.iso(p.x, p.y); p.depth = p.x + p.y; p.sx = q.x; p.sy = q.y; } m.props.sort((a, b) => a.depth - b.depth); if (BB.rebuildGrid) BB.rebuildGrid(m); };
   Battle.prototype.setupObjective = function () {
     setup0.call(this);
-    if (this.mission.type === 'survive') { const o = this.obj; o.time = o.timeLeft = this.mission.time || 60; o.nextWaveT = 1.5; o.n = 0; o.text = 'Hold out'; }
+    const M = this.mission, o = this.obj;
+    if (M.type === 'survive') { o.time = o.timeLeft = M.time || 60; o.nextWaveT = 1.5; o.n = 0; o.text = 'Hold out'; }
+    if (M.type === 'expedition' && this.map.trek) {
+      const T = this.map.trek; Object.assign(o, { sec: 0, i: 0, greed: 0, caches: 0, horn: false, opened: false, gatesOpen: 0, lord: null, text: 'The long road' });
+      T.gates.forEach((G, gi) => { for (let x = G.x0; x <= G.x1; x++) this.map.add('Stakes', x + 0.5, G.y, { biome: 'craft', r: 0.55, gate: gi }); if (G.x0 > 2) this.map.add('Dead Banner', G.x0 - 0.2, G.y - 0.4, { biome: 'craft', r: 0.04, gate: gi }); });
+      resort(this.map); this.trekWorks(0);
+    }
   };
+  // what the dead have built in a part of the road stands from the moment the warband enters it
+  Battle.prototype.trekWorks = function (sec) {
+    for (const s of this.map.trek.works) if (s.s === sec && BB.FOES[s.kind]) { const e = this.spawnFoe(s.kind, s.x, s.y, {}); e.cd = 3 + this.r() * 2; e.phase = this.r() * 6.28; if (s.kind === 'cage') e.budget = 3; }
+  };
+  Battle.prototype.openGate = function (gi) {
+    const m = this.map, o = this.obj, gone = m.props.filter((p) => p.gate === gi);
+    m.props = m.props.filter((p) => p.gate !== gi); if (BB.rebuildGrid) BB.rebuildGrid(m);
+    for (const p of gone) this.addFx('x_wood', p.x, p.y - 0.2, { sc: 0.9 });
+    o.gatesOpen++; this.shake = Math.max(this.shake || 0, 0.5); this.banner('THE GATE OPENS', 1.6); if (BB.sfx) BB.sfx('gate');
+    if (this.march) this.march.path = null;
+  };
+  const CHOICES = [
+    (B) => ({ title: 'A wayside shrine', text: 'The first gate is down and the dead beyond it have not yet turned. A shrine stands by the road.', opts: [
+      { label: 'Rest', hint: 'Everyone is mended by two fifths.', fn() { for (const h of B.heroesAlive()) B.heal(null, h, h.maxhp * 0.4); } },
+      { label: 'Press on', hint: 'No rest. The dead ahead are a level stronger, and the spoils a quarter richer.', fn() { B.obj.greed++; B.level++; } }] }),
+    (B) => ({ title: 'A sealed vault', text: 'Cut into the bank beside the second gate: a door of black stone, and a seal of bone on it.', opts: [
+      { label: 'Break the seal', hint: 'Its guards wake. Beat them and what it holds is yours.', fn() { B.obj.caches++; const g = B.map.trek.gates[1], w = B.mission.waves[B.mission.waves.length - 1].slice(); const el = B.mission.elites; B.mission.elites = (el || 0) + 2; B.spawnWave(w, [{ x: (g.x0 + g.x1) / 2 + 0.5, y: g.y - 3 }]); B.mission.elites = el; B.banner('THE VAULT WAKES', 1.4); } },
+      { label: 'Leave it', hint: 'The road is long enough. A short rest instead: everyone mended by a sixth.', fn() { for (const h of B.heroesAlive()) B.heal(null, h, h.maxhp * 0.16); } }] }),
+    (B) => ({ title: 'The last gate', text: 'Beyond it the road ends in a yard, and something waits there that has waited a long time.', opts: [
+      { label: 'Sound the horn', hint: 'Call it out in its fury: it is a quarter stronger, and the spoils half again as rich.', fn() { B.obj.horn = true; if (BB.sfx) BB.sfx('rally'); } },
+      { label: 'Go quietly', hint: 'Every ultimate is charged before it knows you are there.', fn() { for (const h of B.heroesAlive()) h.energy = 100; } }] }),
+  ];
+  Battle.prototype.trekChoose = function (k) { const c = this.choice; if (!c) return; this.choice = null; const o = c.opts[k] || c.opts[0]; o.fn(); };
+  // how rich the spoils of an expedition are, for the choices made on it
+  BB.trekMult = (o) => 1 + (o.greed || 0) * 0.25 + (o.horn ? 0.5 : 0);
+
   Battle.prototype.updateObjective = function (dt) {
     const o = this.obj;
     if (o && !this.result && o.type === 'survive') {
@@ -25,36 +59,28 @@
       o.text = 'Hold out — ' + Math.max(0, Math.ceil(o.timeLeft)) + ' s';
       if (o.timeLeft <= 0) { this.crumbleAll(); this.win(); return; }
     }
+    if (o && !this.result && o.type === 'expedition' && this.map.trek && !this.choice) {
+      const T = this.map.trek, wc = this.warCenter, left = this.foesAlive().filter((f) => !f.prop).length, here = T.enc.filter((e) => e.s === o.sec), e = here[o.i], W = this.mission.waves;
+      this.goal = null;
+      if (e) { // what is set along this part of the road: it springs when they come near
+        if (!e.up) { this.goal = e; if (hyp(wc.x - e.x, wc.y - e.y) < 7.5) { e.up = true; const n = o.sec * 2 + o.i; let w = W[n % W.length].slice(); if (o.sec > 0) w = w.concat(W[(n + 1) % W.length].slice(0, 2)); this.spawnWave(w, [{ x: e.ax, y: e.ay }]); if (this.onWave) this.onWave(); } }
+        else if (!left) o.i++;
+      } else if (!left) {
+        if (o.sec < T.gates.length) { // this side of the gate is clear: it opens, and there is something to decide
+          if (!o.opened) { o.opened = true; this.openGate(o.sec); this.choice = CHOICES[o.sec % CHOICES.length](this); }
+          else { o.sec++; o.i = 0; o.opened = false; this.trekWorks(o.sec); }
+        } else if (!o.lord) { this.goal = T.boss; if (hyp(wc.x - T.boss.x, wc.y - T.boss.y) < 8.5) { const b = o.lord = this.spawnFoe(this.mission.boss, T.boss.x, T.boss.y, { rise: true }); if (o.horn) { b.maxhp = Math.round(b.maxhp * 1.25); b.hp = b.maxhp; b.atk *= 1.12; } this.boss = b; this.shake = 0.6; this.banner(b.F.name, 2.2, 'boss'); if (BB.sfx) BB.sfx('boss'); } }
+        else if (o.lord.dead) { this.crumbleAll(); this.win(); return; }
+      }
+      o.text = o.lord ? 'The way out — bring down its guard' : o.sec >= T.gates.length ? 'The way out lies ahead' : 'The long road — gate ' + (o.sec + 1) + ' of ' + T.gates.length;
+    }
     update0.call(this, dt);
   };
 
-  // ---------------------------------------------------------------- expeditions
-  BB.TREK = {
-    heal: 0.15, carried: 0.25, // what a field's rest mends; what a fallen hero comes back with
-    way: ['A cold draught comes from this way.', 'Old cart ruts run on this way.', 'The birds are flying this way.', 'The ground climbs toward open sky.'],
-    side: { cache: ['Something glints in the dark.', 'A cart lies overturned down there.'], shrine: ['A lantern still burns down there.', 'You can hear running water.'], ambush: ['Fresh tracks. Many of them.', 'It is very quiet this way.'] },
-    name: { road: ['The Long Road', 'The Broken Mile', 'Through the Deadfall'], hold: ['Hold the Crossing'], guard: ['The Way Out'], cache: ['A Buried Cache'], shrine: ['A Wayside Shrine'], ambush: ['Ambush!'] },
-    defs: { road: [['nest'], ['ballista', 'watchtower'], ['cage', 'mortar'], ['nest', 'ballista'], ['obelisk', 'ballista']], guard: [['nest', 'ballista']], ambush: [['nest', 'cage']], cache: [['watchtower']], shrine: [[]], hold: [[]] },
-  };
-  // the plan of one expedition: the fields on the way (the last is guarded), and where the road forks to a side field
-  BB.trekPlan = function (chapter, level, seed, teamN) {
-    const r = BB.rng(seed || 1), T = BB.TREK, pool = BB.MISSIONS.filter((m) => m.chapter === chapter && /^(rout|gates|survive)$/.test(m.type)), ch = BB.CHAPTERS[chapter - 1];
-    const leg = (kind, i) => {
-      const src = r.pick(pool), type = kind === 'hold' ? 'survive' : kind === 'road' && src.type === 'gates' ? 'gates' : 'rout';
-      let waves = src.waves.map((w) => w.slice()); if (kind === 'guard' || kind === 'ambush') waves = waves.concat(r.pick(pool).waves.slice(0, 2).map((w) => w.slice())); if (kind === 'shrine') waves = waves.slice(0, 1); if (kind === 'cache') waves = waves.slice(0, 3);
-      const defs = r.pick(T.defs[kind]).slice(0, (teamN || 5) <= 2 ? 1 : 2);
-      return { id: 'trek', code: '', name: r.pick(T.name[kind]), type, layout: src.layout, waves, gates: type === 'gates' ? src.gates || 1 : undefined, time: 45, chapter, region: 'c' + chapter, level: level + Math.floor(i * 0.7) + (kind === 'ambush' ? 1 : 0), elites: (ch.elites || 0) + (kind === 'guard' || kind === 'ambush' ? 1 : 0), defs, trek: kind };
-    };
-    const kinds = ['road', 'road', 'hold', 'road', 'guard'], legs = kinds.map((k, i) => leg(k, i));
-    const sides = ['cache', 'shrine', 'ambush'], at = [0, 1, 2, 3]; at.splice(r.int(4), 1); // three of the four forks have a side road
-    const forks = {}; at.forEach((i, n) => { const kind = sides[(n + r.int(3)) % 3], onLeft = r() < 0.5; forks[i] = { kind, leg: leg(kind, i), clueWay: r.pick(T.way), clueSide: r.pick(T.side[kind]), onLeft }; });
-    { const seen = {}; for (const i of at) { let f = forks[i], g = 0; while (seen[f.kind] && g++ < 3) { f.kind = sides[(sides.indexOf(f.kind) + 1) % 3]; f.leg = leg(f.kind, i); f.clueSide = r.pick(T.side[f.kind]); } seen[f.kind] = 1; } } // one of each
-    return { chapter, level, legs, forks };
-  };
-  // the team as the last field left it, brought into the next
-  BB.trekCarryOut = function (sc) { const c = {}; for (const e of sc.heroList) c[e.hero.id] = { f: e.dead ? 0 : Math.max(0, e.hp / e.maxhp), en: e.energy || 0 }; return c; };
-  BB.trekCarryIn = function (sc, carry) {
-    if (!carry) return; const T = BB.TREK;
-    for (const e of sc.heroList) { const c = carry[e.hero.id]; if (!c) continue; e.hp = Math.max(1, Math.round(e.maxhp * Math.min(1, (c.f > 0 ? c.f : T.carried) + T.heal))); e.energy = Math.min(100, c.en || 0); }
+  // the mission an expedition is: the land's own dead along the road, its lord at the end
+  BB.expedition = function (chapter, level, seed) {
+    const r = BB.rng(seed || 1), ch = BB.CHAPTERS[chapter - 1], pool = BB.MISSIONS.filter((m) => m.chapter === chapter && /^(rout|gates|survive)$/.test(m.type)), lord = BB.MISSIONS.find((m) => m.chapter === chapter && m.type === 'boss');
+    const waves = []; for (let i = 0; i < 7; i++) { const src = pool[(i + r.int(pool.length)) % pool.length].waves; waves.push(src[Math.min(src.length - 1, 1 + (i % Math.max(1, src.length - 1)))].slice()); }
+    return { id: 'trek', code: '', name: 'The Long Road', type: 'expedition', layout: 'road', waves, boss: lord ? lord.boss : 'ossric', chapter, region: 'c' + chapter, level, elites: ch.elites || 0, trek: true };
   };
 })();

@@ -149,7 +149,7 @@
   // layout -> builder. returns map with .heroSpawn, .foeSpawns, .gateSpots, .wardSpot, .bossSpot
   BB.buildMap = function (layout, biome, seed, opts) {
     opts = opts || {};
-    const big = { courtyard: 22, temple: 22, gate: 24, dunes: 22, camp: 20, title: 22 }[layout] || 26;
+    const big = { courtyard: 22, temple: 22, gate: 24, dunes: 22, camp: 20, title: 22, road: 44 }[layout] || 26;
     const m = new Map(big, big, biome, seed); m.skin = (opts && opts.skin) || null;
     const r = m.r, set = BB.SET(biome);
     const W = m.w, H = m.h, c = W / 2;
@@ -245,6 +245,23 @@
         m.lights.push({ x: c - 2.5, y: c - 3, rad: 3, col: '255,170,80' }, { x: c + 2.5, y: c - 3, rad: 3, col: '255,170,80' });
         m.bossSpot = { x: c + 0.5, y: c - 1.5 }; m.heroSpawn = { x: c - 3, y: c + 5 };
         break;
+      case 'road': { // an expedition's map: almost three times the ground of any other, one long road across it
+        for (let i = 0; i < W * H; i++) m.ground[i] = 3;
+        const P = [[7, 37], [36, 37], [36, 25], [8, 25], [8, 13], [36, 13], [36, 6.5]];
+        path(m, P, 3.6, 0); blob(m, 7, 37, 5, 0); blob(m, 36, 6.5, 5.4, 0); blob(m, 36, 6.5, 3.4, 4); path(m, P, 1.1, 2);
+        for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (m.at(x, y) === 0 && r() < 0.2) m.set(x, y, 1);
+        m.heroSpawn = { x: 7, y: 37 }; m.foeSpawns = [{ x: 18, y: 37 }]; m.bossSpot = { x: 36, y: 6.5 };
+        m.trek = { way: P, boss: { x: 36, y: 6.5 },
+          // what springs where (ax, ay: where they rise, a little ahead of the place that wakes them), by part of the road
+          enc: [{ s: 0, x: 17, y: 37, ax: 21, ay: 37 }, { s: 0, x: 29, y: 37, ax: 33, ay: 36.5 },
+            { s: 1, x: 30, y: 25, ax: 26, ay: 25 }, { s: 1, x: 17, y: 25, ax: 13, ay: 25 },
+            { s: 2, x: 14, y: 13, ax: 18, ay: 13 }, { s: 2, x: 26, y: 13, ax: 30, ay: 13 }],
+          works: [{ s: 0, kind: 'nest', x: 34.5, y: 34.2 }, { s: 1, kind: 'ballista', x: 10, y: 23.2 }, { s: 1, kind: 'watchtower', x: 21.5, y: 22.8 }, { s: 2, kind: 'nest', x: 22, y: 15.4 }, { s: 2, kind: 'ballista', x: 33.5, y: 11.2 }],
+          gates: [{ x0: 32, x1: 39, y: 31 }, { x0: 4, x1: 11, y: 19 }, { x0: 32, x1: 39, y: 10.5 }] };
+        scatter(m, set.small, 46, inner); scatter(m, set.rocks || set.small, 14, inner); scatter(m, set.trees, 10, inner);
+        m.props = m.props.filter((p) => !m.trek.gates.some((g) => Math.abs(p.y - g.y) < 1.3 && p.x > g.x0 - 1 && p.x < g.x1 + 2) && !m.trek.works.some((w) => Math.hypot(p.x - w.x, p.y - w.y) < 1.6) && !m.trek.enc.some((e) => Math.hypot(p.x - e.ax, p.y - e.ay) < 2.2));
+        camp(m, 5.5, 39, true);
+        break; }
       case 'march':
         path(m, [[2, H - 3], [W - 3, 3]], 1.6);
         for (let i = 0; i < 8; i++) m.tryAdd(nm(r.pick(['Misc B44', 'Misc B45', 'Misc D1', 'Misc D2', 'Misc D4']), r), r.range(4, W - 4), r.range(4, H - 4), { biome: 'vale' }, 0.4);
@@ -709,7 +726,7 @@
     }
   }
   BB.renderGround = function (m, scale) {
-    scale = scale || 1.5;
+    scale = scale || (m.w > 30 ? 1.25 : 1.5); // a great map is drawn a little coarser, so its ground is no bigger a picture than any other's
     const P = (m.skin && BB.LANDSKINS[m.skin].pal) || PAL[m.biome];
     const MG = MARGIN;
     const minX = -(m.h + MG) * TW / 2 - MG * TW / 2, maxX = (m.w + MG) * TW / 2 + MG * TW / 2, minY = -MG * TH, maxY = (m.w + m.h + MG) * TH / 2 + MG * TH / 2;

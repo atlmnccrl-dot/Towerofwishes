@@ -283,7 +283,7 @@
     const open = BB.heroTiers(BB.ROSTER).filter(({ tier }) => BB.tierOpen(S, tier));
     const cheapest = open.length ? Math.min(...open.map(({ tier }) => tier.cost)) : 0;
     $('recruitT').textContent = '◆ ' + cheapest + ' · you have ' + fmt(S.crystals);
-    $('bEndless').style.display = BB.chapterCleared(S, 1) ? '' : 'none'; $('bTrek').style.display = S.cleared['s1-2'] ? '' : 'none'; // an expedition is open as soon as the first two fights are won $('trekT').textContent = S.stats.treks ? 'Ways out found: ' + S.stats.treks : 'A long road. Find the way out.'; $('endlessT').textContent = S.stats.endless ? 'Best: wave ' + S.stats.endless : 'How long can you hold?';
+    $('bEndless').style.display = BB.chapterCleared(S, 1) ? '' : 'none'; $('bTrek').style.display = S.cleared['s1-2'] ? '' : 'none'; // an expedition is open as soon as the first two fights are won $('trekT').textContent = S.stats.treks ? 'Ways out found: ' + S.stats.treks : 'One great map. Three gates. A way out.'; $('endlessT').textContent = S.stats.endless ? 'Best: wave ' + S.stats.endless : 'How long can you hold?';
     $('bRecruitH').classList.toggle('glow', S.crystals >= cheapest);
     { const rs = BB.rollState(S, now()), rb = $('bRoll'); rb.style.display = rs.ready && !BB.dev ? '' : 'none'; rb.classList.toggle('glow', rs.ready); $('rollT').textContent = 'Day ' + (rs.day + 1) + ' of 7 · ready'; }
     const qn = BB.questsReady(S); $('questT').textContent = qn ? qn + ' to claim' : BB.QUESTS.filter((q) => BB.questState(S, q) === 'claimed').length + ' / ' + BB.QUESTS.length + ' done';
@@ -615,7 +615,7 @@
     $('vsPow').innerHTML = '⚔ ' + fmt(BB.teamPower(team)) + '<small>' + team.length + (team.length === 1 ? ' hero' : ' heroes') + '</small>';
     $('vsRec').innerHTML = st.type === 'endless' ? '<small style="margin:0">enemy level ' + st.level + ', and rising</small>' : '<small style="margin:0 8px 0 0">needs</small>⚔ ' + fmt(BB.recPower(st));
     $('vsCode').textContent = 'STAGE ' + st.code; $('vsName').textContent = st.name;
-    $('vsObj').textContent = (st.trek ? 'Expedition · ' : '') + TYPE[st.type] + (st.type === 'defend' || st.type === 'survive' ? ' for ' + st.time + ' s' : '');
+    $('vsObj').textContent = TYPE[st.type] + (st.type === 'defend' || st.type === 'survive' ? ' for ' + st.time + ' s' : '');
     v.classList.remove('out'); v.classList.add('on');
     BB.sfx('slam');
     return new Promise((res) => setTimeout(res, 1500));
@@ -626,7 +626,7 @@
     v.classList.add('out'); BB.sfx('swing');
     setTimeout(() => v.classList.remove('on', 'out'), 460);
   };
-  const TYPE = { rout: 'Rout every wave', gates: 'Destroy the Gravegates', defend: 'Hold out', survive: 'Survive', boss: 'Boss', duel: 'Duel', endless: 'Hold as long as you can' };
+  const TYPE = { rout: 'Rout every wave', gates: 'Destroy the Gravegates', defend: 'Hold out', survive: 'Survive', expedition: 'Fight through to the way out', boss: 'Boss', duel: 'Duel', endless: 'Hold as long as you can' };
   UI.renderStageCard = function () {
     const S = BB.save, st = BB.MISSIONS[C.sel], box = $('stageCard'); box.innerHTML = '';
     const open = BB.stageUnlocked(S, C.sel), first = !S.cleared[st.id];

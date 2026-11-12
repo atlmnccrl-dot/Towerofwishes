@@ -787,7 +787,7 @@
         const sc = hyp(o.x - wc.x, o.y - wc.y) - (o.gate && crowd < 3 ? 4 : 0);
         if (sc < bs) { bs = sc; best = o; }
       }
-      this.advTarget = best;
+      this.advTarget = best || this.goal || null; // (an expedition's next place on the road, when nobody is left to fight)
       this.updateMarch(dt);
       this.readField();
       if (this.order.focus && (this.order.focus.dead || this.order.focus.hidden)) this.order.focus = null;
