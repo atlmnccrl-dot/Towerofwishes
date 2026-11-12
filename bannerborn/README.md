@@ -209,8 +209,8 @@ out, so the heroes turn on it and it takes 40% more harm for six seconds), raise
 70% less for a moment; a heavy blow that lands on the wall staggers the one who threw it), or **Rally** (everyone
 mended by a quarter, ultimates charged). Orders cost **command** (three gold bars; it fills with time and with
 kills). AUTO casts ultimates and never gives orders. Keys: W wall, R rally. **How hard:** the dead hit harder and last
-longer than they did (`BB.DIFF`: +15% health, +30% damage easing to +5% by the last land, and more for full teams in
-`BB.TEAM_K`). In the simulator at one level under the stage, a team nobody commands wins about half its fights
+longer than they did (`BB.DIFF`: +30% health, +50% damage easing to +15% by the last land, bosses +12% damage, and more for full teams
+in `BB.TEAM_K`). In the simulator at one level under the stage, a team nobody commands wins about half its fights
 mid-campaign; a player who answers the heavy blows wins nearly all of them, worn to between a third and three
 quarters of its health (`ORDERS=1 node test/sim-node.js`, which now prints how low the team fell).
 

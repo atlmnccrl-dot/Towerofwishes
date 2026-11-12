@@ -590,11 +590,12 @@
   // ---------------------------------------------------------------- foes
   // How hard the dead are, over the base tables: their health, how hard they hit, a boss's health. Raised so a fight
   // is close: the team should be worn down to a third or less at its level, and lose if nobody commands it.
-  BB.DIFF = { hp: 1.15, atk: 1.3, atkLate: 1.05, boss: 1 }; // atk eases toward atkLate by level 46: the last lands were already the tightest
+  BB.DIFF = { hp: 1.3, atk: 1.5, atkLate: 1.15, boss: 1, bossAtk: 1.12 }; // atk eases toward atkLate by level 46: the last lands were already the tightest
   BB.foeStats = function (kind, level, elite) {
+    // (a boss is its own measure: it gets bossAtk, not the crowd's raise)
     const F = BB.FOES[kind];
     const g = 1 + (level - 1) * 0.2;
-    const D = BB.DIFF, s = { hp: Math.round(F.hp * g * (F.boss ? 3.5 * D.boss : F.gate ? 1.6 : 2.5 * D.hp)), atk: F.atk * (1 + (level - 1) * 0.16) * (F.boss ? 2.5 : 2.9) * (D.atkLate === undefined ? D.atk : D.atkLate + (D.atk - D.atkLate) * Math.max(0, Math.min(1, (46 - level) / 26))), def: F.def + (level - 1) * 0.6 };
+    const D = BB.DIFF, s = { hp: Math.round(F.hp * g * (F.boss ? 3.5 * D.boss : F.gate ? 1.6 : 2.5 * D.hp)), atk: F.atk * (1 + (level - 1) * 0.16) * (F.boss ? 2.5 * (D.bossAtk || 1) : 2.9 * (D.atkLate === undefined ? D.atk : D.atkLate + (D.atk - D.atkLate) * Math.max(0, Math.min(1, (46 - level) / 26)))), def: F.def + (level - 1) * 0.6 };
     if (elite) { s.hp = Math.round(s.hp * elite.hp); s.atk *= elite.atk; }
     return s;
   };
