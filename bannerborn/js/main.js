@@ -739,7 +739,7 @@
   UI.click($('bkCopy'), () => { const t = $('bkCode'); t.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (e) { /* not allowed */ } if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t.value).then(() => { $('bkMsg').textContent = 'Copied.'; }, () => { $('bkMsg').textContent = ok ? 'Copied.' : 'Select the code and copy it by hand.'; }); else $('bkMsg').textContent = ok ? 'Copied.' : 'Select the code and copy it by hand.'; });
   UI.click($('bkRestore'), () => { const code = $('bkCode').value; if (!BB.readCode(code)) { $('bkMsg').textContent = 'That is not a Bannerborn save code.'; return; } UI.confirm('Replace this device\'s save with the one in the code? What is here now will be lost.', () => { devExit(); if (BB.restoreCode(code)) location.reload(); else $('bkMsg').textContent = 'Could not store the save on this device.'; }); });
   UI.click($('bkClose'), () => UI.modal('mBackup', false));
-  UI.click($('bContinue'), () => UI.openCampaign());
+  UI.click($('bContinue'), () => (BB.campaignDone(BB.save) ? UI.openCampaign() : UI.openTeam(BB.nextStageIdx(BB.save))));
   UI.click($('bCampBack'), () => goCamp());
   UI.click($('bWorks'), () => UI.openWorks());
   UI.click($('worksClose'), () => UI.modal('mWorks', false));

@@ -281,7 +281,7 @@
     $('hmRec').innerHTML = done ? '' : 'Team <b class="' + (tp >= rp ? '' : 'lo') + '">⚔ ' + fmt(tp) + '</b> · needs ⚔ ' + fmt(rp);
     UI.updateSpoils();
     $('worksT').textContent = '⛭ ' + (S.salvage || 0) + ' salvage' + (BB.relicOf(S) ? ' · ' + BB.relicOf(S).name : ''); $('bWorks').classList.toggle('glow', BB.WORKS.some((w) => BB.canBuild(S, w.id)));
-    { const up = UI.nextUp(); $('hmUpT').textContent = up.text; $('hmUp').onclick = () => { BB.sfx('click'); up.go(); }; }
+    { const up = UI.nextUp(); $('hmUp').style.display = up.stage ? 'none' : ''; $('hmUpT').textContent = up.text; $('hmUp').onclick = () => { BB.sfx('click'); up.go(); }; }
     { const rs = BB.rollState(S, now()), rb = $('bRoll'); rb.style.display = rs.ready && !BB.dev ? '' : 'none'; rb.classList.toggle('glow', rs.ready); $('rollT').textContent = 'Day ' + (rs.day + 1) + ' of 7 · ready'; }
     const qn = BB.questsReady(S); $('questT').textContent = qn ? qn + ' to claim' : BB.QUESTS.filter((q) => BB.questState(S, q) === 'claimed').length + ' / ' + BB.QUESTS.length + ' done';
     $('bQuests').classList.toggle('glow', qn > 0);
@@ -297,7 +297,7 @@
     if (BB.teamIds(S).length < Math.min(5, S.heroes.length, BB.slotsAt ? BB.slotsAt(BB.nextStageIdx(S)) : 5)) return { text: 'A place in the formation is empty.', go: () => UI.openTeam() };
     if (BB.heroTiers(BB.ROSTER).some(({ tier, heroes }) => BB.tierOpen(S, tier) && S.crystals >= tier.cost && heroes.some((e) => !S.heroes.some((h) => h.recruit === e.key)))) return { text: 'You can afford a new hero.', go: () => UI.openRecruit() };
     if (done) return { text: 'The campaign is won. Try an expedition.', go: () => UI.go('play') };
-    return { text: 'Stage ' + st.code + ' · ' + st.name, go: () => UI.openCampaign() };
+    return { stage: true, text: 'Stage ' + st.code + ' · ' + st.name, go: () => UI.openCampaign() };
   };
   // Play: every way to fight, in one place
   UI.renderPlay = function () {
@@ -305,12 +305,12 @@
     const tp = BB.teamPower(BB.teamHeroes(S)), rp = BB.recPower(st), land = Math.max(1, BB.CHAPTERS.filter((c) => BB.chapterCleared(S, c.id)).length), relic = BB.BANNER_RELICS.find((r) => r.chapter === land);
     box.innerHTML = '';
     const card = (cls, k, title, text, status, btn, fn, locked) => { const c = el('div', 'pcard ' + cls + (locked ? ' lock' : ''), '<div class="k">' + k + '</div><h3>' + esc(title) + '</h3><p>' + text + '</p><div class="st">' + status + '</div>'); if (!locked) { const b = el('button', 'btn' + (cls === 'main' ? '' : ' dark'), btn); click(b, fn); c.appendChild(b); } box.appendChild(c); return c; };
-    const c0 = card('main', 'Campaign', done ? 'The campaign is won' : 'Stage ' + st.code + ' · ' + st.name, 'Eight lands, ' + BB.MISSIONS.length + ' stages: routs, gates to break, stands against the clock, and a lord at the end of each land.', done ? 'Replay any stage.' : 'Team ⚔ ' + fmt(tp) + ' · needs ⚔ ' + fmt(rp), done ? 'Open the map' : 'March', () => UI.openCampaign());
+    const c0 = card('main', 'Campaign', done ? 'The campaign is won' : 'Stage ' + st.code + ' · ' + st.name, 'Eight lands, ' + BB.MISSIONS.length + ' stages.', done ? 'Replay any stage.' : 'Team ⚔ ' + fmt(tp) + ' · needs ⚔ ' + fmt(rp), 'Open the map', () => UI.openCampaign());
     c0.insertBefore(el('div', 'bar', '<i style="width:' + (cleared / BB.MISSIONS.length * 100) + '%"></i>'), c0.querySelector('.st'));
     const trekOpen = !!S.cleared['s1-2'];
-    card('', 'Expedition', 'The Long Road', 'One great map in ' + esc(BB.CHAPTERS[land - 1].name) + '. Three gates that open only when their guards fall, a choice at each, and the land\'s lord at the way out. Pays salvage for the camp.', trekOpen ? (relic ? (BB.hasRelic(S, relic.id) ? 'Relic taken: ' + esc(relic.name) : 'Its lord carries a relic: ' + esc(relic.name)) : '') + (S.stats.treks ? ' · ways out found: ' + S.stats.treks : '') : 'Opens after stage 1-2.', 'Set out', () => BB.deployTrek(), !trekOpen);
+    card('', 'Expedition', 'The Long Road', 'One great map in ' + esc(BB.CHAPTERS[land - 1].name) + ': three gates, a choice at each, a lord at the end.', trekOpen ? (relic ? (BB.hasRelic(S, relic.id) ? 'Relic taken: ' + esc(relic.name) : 'Its lord carries a relic: ' + esc(relic.name)) : '') + (S.stats.treks ? ' · ways out found: ' + S.stats.treks : '') : 'Opens after stage 1-2.', 'Set out', () => BB.deployTrek(), !trekOpen);
     const endOpen = BB.chapterCleared(S, 1);
-    card('', 'Endless', 'The Endless Gate', 'Wave after wave, each stronger than the last. How long can the banner hold?', endOpen ? (S.stats.endless ? 'Best: wave ' + S.stats.endless : 'Not yet tried.') : 'Opens when the first land is cleared.', 'Hold the gate', () => BB.deployEndless(), !endOpen);
+    card('', 'Endless', 'The Endless Gate', 'Wave after wave. How long can you hold?', endOpen ? (S.stats.endless ? 'Best: wave ' + S.stats.endless : 'Not yet tried.') : 'Opens when the first land is cleared.', 'Hold the gate', () => BB.deployEndless(), !endOpen);
   };
   // the camp's works and the banner's relic
   UI.openWorks = function () {
@@ -698,7 +698,7 @@
       click(b, () => { HF.f = id; UI.renderHeroes(); }); fb.appendChild(b);
     }
     const ok = (c) => HF.f === 'all' || c === HF.f;
-    box.appendChild(el('div', 'sect', 'Your heroes <small>tap one to call them forward · tap again to open</small>'));
+    box.appendChild(el('div', 'sect', 'Your heroes'));
     const own = el('div', 'hcards');
     const team = BB.teamIds(S);
     const shown = sortHeroes(S.heroes).filter((h) => ok(h.calling));
@@ -1281,20 +1281,19 @@
     const bonds = BB.bondsFor(team.map((h) => h.calling));
     if (T.stage !== null) {
       const st = BB.MISSIONS[T.stage], rp = BB.recPower(st);
-      top.appendChild(el('div', 'code', 'STAGE ' + st.code));
-      top.appendChild(el('div', 'bigname', esc(st.name)));
-      top.appendChild(el('div', 'powcmp', '<div class="' + (tp >= rp ? 'ok' : 'lo') + '"><span class="lbl">Team</span><b>⚔ ' + fmt(tp) + '</b></div><div><span class="lbl">Recommended</span><b>⚔ ' + fmt(rp) + '</b></div>'));
-      const vs = el('div', 'vs'); vs.appendChild(el('span', 'lbl', 'Foes')); vs.appendChild(UI.foeIcons(st, 40)); top.appendChild(vs);
+      top.appendChild(el('div', 'bigname', 'Stage ' + st.code + ' · ' + esc(st.name)));
+      top.appendChild(el('div', 'powline ' + (tp >= rp ? 'ok' : 'lo'), 'Team <b>⚔ ' + fmt(tp) + '</b> · needs ⚔ ' + fmt(rp)));
     } else top.appendChild(el('div', 'power', '<span class="ico pow">⚔</span><b>' + fmt(tp) + '</b><span class="mute">' + team.length + ' / ' + BB.teamMax(S) + (BB.teamMax(S) === 1 ? ' hero' : ' heroes') + '</span>'));
     { // the places in the team: taken, free, and those the campaign has yet to open
       const max = BB.teamMax(S), nx = BB.nextSlot(S); let pips = '';
       for (let i = 0; i < BB.TEAM_MAX; i++) pips += '<i class="' + (i < team.length ? 'on' : i < max ? 'free' : 'lock') + '">' + (i >= max ? UI.si('lock', 10) : '') + '</i>';
-      top.appendChild(el('div', 'slots', pips + '<span>' + (nx ? 'Place ' + nx.slot + ' opens at ' + nx.pct + '% of the campaign · ' + nx.left + (nx.left === 1 ? ' stage' : ' stages') + ' to go' : 'All five places are open') + '</span>'));
+      top.appendChild(el('div', 'slots', pips + '<span>' + (T.stage !== null ? '' : nx ? 'Next place in ' + nx.left + (nx.left === 1 ? ' stage' : ' stages') : '') + '</span>'));
     }
-    if (bonds.length) top.appendChild(el('div', 'bondrow', bonds.map((b) => '<span class="bond" title="' + esc(b.desc) + '">✦ ' + b.name + '</span>').join('')));
+    if (bonds.length && T.stage === null) top.appendChild(el('div', 'bondrow', bonds.map((b) => '<span class="bond" title="' + esc(b.desc) + '">✦ ' + b.name + '</span>').join('')));
     if (BB.teamBalance) { // the team at a glance: one chip per class, and what it is missing
       const bal = BB.teamBalance(team), chips = Object.keys(BB.CLASSES).filter((k) => bal.counts[k]).map((k) => { const n = bal.counts[k] || 0; return '<span class="cls' + (n ? ' on' : '') + '" style="--cc:' + BB.CLASSES[k].col + '" title="' + esc(BB.CLASSES[k].job) + '">' + BB.CLASSES[k].name + (n > 1 ? ' ×' + n : '') + '</span>'; }).join('');
-      top.appendChild(el('div', 'clsrow', chips + (team.length ? '<span class="clstip' + (bal.balanced ? ' good' : '') + '">' + (bal.balanced ? '✓ Balanced team' : esc(bal.tips[0] || '')) + '</span>' : '')));
+      if (T.stage === null) top.appendChild(el('div', 'clsrow', chips + (team.length ? '<span class="clstip' + (bal.balanced ? ' good' : '') + '">' + (bal.balanced ? '✓ Balanced team' : esc(bal.tips[0] || '')) + '</span>' : '')));
+      else if (team.length && !bal.balanced && bal.tips[0]) top.appendChild(el('div', 'clsrow', '<span class="clstip">' + esc(bal.tips[0]) + '</span>'));
     }
     const row = el('div', 'row');
     const af = el('button', 'btn dark sm', UI.si('bolt', 14) + ' Auto-fill'); af.title = 'The strongest heroes for the places you have: fighters in front, the rest behind';
@@ -1303,7 +1302,7 @@
     if (T.stage !== null) {
       const back = el('button', 'btn dark sm', BB.dev ? '‹ Development' : '‹ Map'); click(back, () => (BB.dev ? BB.goCamp() : UI.openCampaign(T.stage))); row.appendChild(back);
       row.appendChild(el('div', 'grow'));
-      const go = el('button', 'btn xl', 'Fight ▸'); go.disabled = !team.length; click(go, () => BB.deploy(T.stage)); row.appendChild(go);
+      const go = el('button', 'btn xl', 'Battle ▸'); go.disabled = !team.length; click(go, () => BB.deploy(T.stage)); row.appendChild(go);
     }
     top.appendChild(row);
     const ro = $('teamRoster'); ro.innerHTML = '';

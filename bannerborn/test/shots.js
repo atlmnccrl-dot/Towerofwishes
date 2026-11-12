@@ -27,8 +27,9 @@ require('fs').mkdirSync(out, { recursive: true });
   await p.click('#cineSkip');
   await p.waitForFunction(() => BB.UI.current === 'home', null, { timeout: 15000 });
   await wait(1500); await shot('03-camp');
-  await tap('#bContinue'); await wait(500); await shot('04-campaign');
-  await tap('#stageCard .btn.xl'); await wait(400); await shot('05-team-prebattle');
+  await tap('.tab[data-tab="play"]'); await wait(500); await shot('04-play');
+  await tap('.tab[data-tab="home"]'); await wait(700);
+  await tap('#bContinue'); await wait(500); await shot('05-team-prebattle'); // the camp's Battle button goes straight to the line-up
   await p.click('#teamTop .btn.xl');
   await p.waitForFunction(() => BB.UI.current === 'hud', null, { timeout: 20000 });
   await wait(600); await shot('06-battle-intro');

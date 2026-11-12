@@ -159,7 +159,16 @@ svg.ci{width:100%;height:100%;fill:currentColor;stroke:none}
 .work .w{flex:1;min-width:0}.work b{display:block;font:700 15px var(--head)}.work small{display:block;font:500 12px/1.4 var(--body);color:var(--mute)}
 .work .pips{display:flex;gap:3px;margin-top:5px}.work .pips i{width:16px;height:5px;border-radius:3px;background:rgba(255,255,255,.14)}.work .pips i.on{background:var(--accent)}
 .work.sel{border-color:var(--accent)}
-#home .rec{font:500 12px var(--body);color:var(--mute);text-shadow:0 1px 6px rgba(0,0,0,.8)}
+#home .rec{display:none}
+#team .powline{font:600 14px var(--body);color:var(--mute)}#team .powline b{color:var(--text)}#team .powline.lo b{color:var(--red)}
+#team .side{overflow:hidden}#team .tp{flex:none}
+#heroes .head{flex-wrap:nowrap}#heroes .head .grow{display:none}#heroes .coll{min-width:0;flex:none}#heroes .coll .bar{display:none}
+#heroes .filters>*{flex:none}
+#play .body{justify-content:flex-start}
+@media (max-height:480px){#play .phead{display:none}#play .body{padding-top:calc(58px + var(--safe-t))}.pcard{padding:12px;gap:6px}.pcard h3{font-size:17px}}
+#heroes #bFormation{order:1;flex:none}#heroes #bRecruit{order:2;flex:none}#heroes .filters{order:3;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}#heroes .filters::-webkit-scrollbar{display:none}
+details.more{flex:none;border-top:1px solid var(--line);padding-top:10px}details.more summary{cursor:pointer;font:600 13px var(--head);letter-spacing:.06em;color:var(--mute);list-style:none}details.more summary::-webkit-details-marker{display:none}details.more summary::after{content:' ▾'}details.more[open] summary::after{content:' ▴'}details.more>*+*{margin-top:10px}
+#home .rec-unused{font:500 12px var(--body);color:var(--mute);text-shadow:0 1px 6px rgba(0,0,0,.8)}
 #home .rec b{color:var(--green);font-weight:700} #home .rec b.lo{color:var(--red)}
 
 /* ---- campaign */
@@ -982,13 +991,13 @@ body.native #bTheater{display:none}
   <div class="board frame"><canvas id="boardCv"></canvas><div class="hint" id="boardHint"></div></div>
   <div class="side">
     <div class="tp frame" id="teamTop"></div>
-    <div class="sect">Roster <small>tap to add or take out</small></div>
+    <div class="sect">Roster</div>
     <div class="roster scroll"><div class="hcards" id="teamRoster"></div></div>
   </div>
 </div></div>
 
 <div id="shop" class="screen"><div class="bg"></div><div class="mk-stage" id="mkStage"></div><div class="mk-plates" id="mkPlates"></div>
-  <div class="mk-head"><div class="sect grow">The Market <small>tap a trader to see their wares</small></div><span class="timer" id="shopReset"></span></div>
+  <div class="mk-head"><div class="sect grow">The Market</div><span class="timer" id="shopReset"></span></div>
   <div class="mk-panel" id="mkPanel"><div class="who"><button class="btn dark sm" id="mkBack">‹ Market</button><h2 id="mkName"></h2></div><p class="line" id="mkLine"></p><div class="offers" id="offers"></div><div class="fine" id="mkFine" style="display:none">Purchases are final and stay on this device’s store account. Crystals call heroes through the gates: every hero behind a gate is as likely as any other, and nobody comes twice.</div></div>
 </div>
 
@@ -1024,9 +1033,13 @@ body.native #bTheater{display:none}
   <label class="row"><input type="checkbox" id="sDmg"> Damage numbers</label>
   <label class="row" id="sNotifyRow" style="display:none"><input type="checkbox" id="sNotify"> Tell me when the camp's spoils are full</label>
   <label class="row">Graphics <select id="sGfx" class="grow" style="background:#151a26;color:#f3f5f9;border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:8px 10px;font:500 14px var(--body)"><option value="auto">Auto — sharp, and lighter if a fight slows down</option><option value="sharp">Sharp — always full detail</option><option value="fast">Fast — smoothest, softer picture</option></select></label>
-  <div class="mute" style="font-size:12px">Art: “Fantasy tileset – 2D Isometric”, “2D Desert Fantasy” and the Fantasy Character Creator cast, supplied by the author. Monster voices: “Fantasy Monsters”, “Dinosaurs” and “Abyssal Horror SFX Vol.1” by Riria / Ririsaurus. Other sound and the music are synthesised in the browser.</div>
-  <div class="row" style="flex:none"><button class="btn dark sm grow" id="bGuide">How to play</button><button class="btn dark sm grow" id="bBackup">Back up or move save</button><button class="btn dark sm grow" id="bDiag">Report for support</button></div>
+  <button class="btn dark sm" id="bGuide" style="flex:none;align-self:flex-start">How to play</button>
+  <details class="more"><summary>Save, support, privacy and credits</summary>
+
+  <div class="row" style="flex:none"><button class="btn dark sm grow" id="bBackup">Back up or move save</button><button class="btn dark sm grow" id="bDiag">Report for support</button></div>
   <div class="row store-row" style="flex:none;flex-wrap:wrap"><button class="btn dark sm grow" id="bRestore">Restore purchases</button><button class="btn dark sm grow" id="bPrivacyAds">Ad choices</button><button class="btn dark sm grow" id="bPolicy">Privacy policy</button><button class="btn dark sm grow" id="bTerms">Terms</button></div>
+  <div class="mute" style="font-size:12px">Art: “Fantasy tileset – 2D Isometric”, “2D Desert Fantasy” and the Fantasy Character Creator cast, supplied by the author. Monster voices: “Fantasy Monsters”, “Dinosaurs” and “Abyssal Horror SFX Vol.1” by Riria / Ririsaurus. Other sound and the music are synthesised in the browser.</div>
+  </details>
   <button class="btn dark" id="bTheater" style="flex:none">🛠 Development</button>
   <div class="row"><button class="btn dark sm" id="bNew">Start a new game</button><div class="grow"></div><button class="btn" id="bSetClose">Done</button></div>
 </div></div>

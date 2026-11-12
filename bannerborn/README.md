@@ -209,6 +209,13 @@ pointer names the one thing most worth doing now (a roll to sign, goals to claim
 skill point to spend, an empty place in the formation, a hero you can afford, otherwise the next stage) and takes you
 there.
 
+**Kept plain.** Each screen says only what you need there. The camp shows one next step, not two (the Next pointer
+appears only when the next step is something other than the next stage) and its Battle button goes straight to the
+line-up for that stage: two taps from camp into a fight. Before a battle the panel is the stage, the team's power
+against what it asks, and the way in. The Heroes header is the count, Formation, Recruit and a strip of class filters
+that scrolls. Settings shows what you change; saving, support, privacy and credits are folded under one line. Helper
+captions that repeated what the screen already shows are gone.
+
 **Systems that feed each other.** Expeditions and stands survived pay **salvage**. Salvage builds the **camp's
 works** (five ranks each): the Forge makes gear from loot a level higher per rank, the Shrine mends the team by 6%
 per rank at every gate opened on an expedition, the Barracks makes heroes learn 6% faster per rank. The lord who
