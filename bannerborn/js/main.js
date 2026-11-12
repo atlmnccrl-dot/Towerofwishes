@@ -532,7 +532,7 @@
   let tutorial = -1, tutT = 0;
   const TUT = [
     ['Your heroes fight on their own. When a card glows, tap it to unleash that hero\'s ultimate.', (b) => b.usedSkill],
-    ['Heroes charge their ultimates by fighting and taking hits. AUTO casts them, but orders are yours to give.', (b) => b.waveIdx >= 2 || b.time > 30],
+    ['Heroes charge their ultimates by fighting and taking hits. AUTO casts them for you.', (b) => b.waveIdx >= 2 || b.time > 30],
   ];
   function buildHud() {
     const box = $('cards'); box.innerHTML = '';
@@ -550,7 +550,6 @@
     });
     $('bSpeed').textContent = (BB.save.settings.speed || 1) + '×';
     $('bAuto').classList.toggle('on', !!scene.autoSkills);
-    $('hvy').classList.remove('on'); scene.hudCmd = -1;
     $('cutin').classList.remove('on');
     $('hudStage').textContent = 'Stage ' + current.stage.code + ' · ' + current.stage.name;
     $('hudObj').textContent = '';
@@ -563,20 +562,6 @@
     if (scene.castSkill(i)) scene.usedSkill = true;
     else { const c = scene.heroList[i] && scene.heroList[i].chip; if (c) { c.classList.add('nope'); setTimeout(() => c.classList.remove('nope'), 250); } }
   }
-  // the commander's orders (js/orders.js): two buttons, and a tap on a foe
-  function order(what, foe) {
-    if (!scene || scene.peaceful || mode !== 'battle' || !scene.orderMark) return;
-    const ok = what === 'brace' ? scene.orderBrace() : what === 'rally' ? scene.orderRally() : scene.orderMark(foe);
-    if (!ok) { const p = $('oPips'); p.classList.add('nope'); setTimeout(() => p.classList.remove('nope'), 250); }
-  }
-  $('oBrace').addEventListener('pointerdown', (ev) => { ev.stopPropagation(); ev.preventDefault(); BB.audioUnlock(); order('brace'); });
-  $('oRally').addEventListener('pointerdown', (ev) => { ev.stopPropagation(); ev.preventDefault(); BB.audioUnlock(); order('rally'); });
-  cv.addEventListener('pointerdown', (ev) => { // a tap on the field: the foe under the finger is called out (and a heavy blow broken off)
-    if (mode !== 'battle' || !scene || scene.peaceful || !scene.view || !scene.foeNear || scene.intro || scene.result) return;
-    const r = cv.getBoundingClientRect(), k = cv.width / r.width, v = scene.view, px = (ev.clientX - r.left) * k, py = (ev.clientY - r.top) * k;
-    let foe = null; for (const dy of [14, 0, 28]) { const w = BB.unIso((px - v.ox) / v.z, (py - v.oy) / v.z + dy); foe = scene.foeNear(w.x, w.y, 1.5); if (foe) break; }
-    if (foe) { BB.audioUnlock(); order('mark', foe); }
-  });
   function letterbox(on, title, sub) {
     $('hud').classList.toggle('cine', on);
     if (title !== undefined) { $('lbTitle').textContent = title || ''; $('lbSub').textContent = sub || ''; }
@@ -591,13 +576,6 @@
       if (e.chipSt !== st) { e.chipSt = st; c.classList.toggle('dead', !!e.dead); c.classList.toggle('ready', ready && !B.result); }
       if (e.chipHpV !== hp) { e.chipHpV = hp; e.chipHp.style.width = hp + '%'; }
       if (e.chipEnV !== en) { e.chipEnV = en; e.chipEn.style.width = en + '%'; }
-    }
-    // the commander's orders: command pips, what can be afforded, and the warning when a heavy blow is winding up
-    if (B.cmd !== undefined) {
-      const c = Math.round(B.cmd * 20) / 20;
-      if (B.hudCmd !== c) { B.hudCmd = c; const pips = $('oPips').children; for (let i = 0; i < pips.length; i++) pips[i].style.setProperty('--f', Math.round(Math.max(0, Math.min(1, c - i)) * 100) + '%'); $('oBrace').classList.toggle('off', c < 1); $('oRally').classList.toggle('off', c < 2); }
-      const hv = B.heavyFoes()[0], on = !!hv && !B.result, hvEl = $('hvy');
-      if (on !== !!B.hudHv) { B.hudHv = on; hvEl.classList.toggle('on', on); $('oBrace').classList.toggle('hot', on); if (on) { const n = (BB.save.seen.heavy = (BB.save.seen.heavy || 0) + 1); hvEl.textContent = n <= 8 ? 'Heavy blow — tap the glowing foe' : 'Heavy blow'; } }
     }
     const ot = B.obj ? objText(B) : ''; if (B.hudObjT !== ot) { B.hudObjT = ot; $('hudObj').textContent = ot; }
     const boss = B.ents.find((e) => e.boss && !e.dead);
@@ -645,8 +623,6 @@
     if (mode === 'battle' && scene && !scene.peaceful) {
       if (/^Digit[1-5]$/.test(e.code)) cast(+e.code.slice(5) - 1);
       if (e.code === 'KeyA') toggleAuto();
-      if (e.code === 'KeyW') order('brace');
-      if (e.code === 'KeyR') order('rally');
       if (e.code === 'KeyF') toggleSpeed();
       if (e.code === 'Escape' || e.code === 'KeyP' || e.code === 'Space') { togglePause(); e.preventDefault(); }
     } else if (e.code === 'Escape') { if (goBack()) e.preventDefault(); }

@@ -175,7 +175,8 @@
     const idx = BB.stageIdx(stage.id), n = BB.slotsAt(Math.max(0, idx)); // as many heroes as there are places by then
     const cs = ['vanguard', 'ranger', 'warpriest', 'berserker', 'arcanist'].slice(0, n);
     let p = 0; for (const c of cs) p += BB.power(BB.newHero({ calling: c, level: Math.max(1, stage.level - 1), rarity: 0, name: 'x' }));
-    return Math.round(p * 0.9);
+    const d = BB.diffAt ? BB.diffAt(stage.level) : { hp: 1, atk: 1 }; // the dead are harder than the base tables: so is what a stage asks
+    return Math.round(p * 0.9 * Math.sqrt(d.hp * d.atk));
   };
 
   // ---------------------------------------------------------------- formation: up to five heroes, placed freely on the field
@@ -588,14 +589,22 @@
   };
 
   // ---------------------------------------------------------------- foes
-  // How hard the dead are, over the base tables: their health, how hard they hit, a boss's health. Raised so a fight
-  // is close: the team should be worn down to a third or less at its level, and lose if nobody commands it.
-  BB.DIFF = { hp: 1.3, atk: 1.5, atkLate: 1.15, boss: 1, bossAtk: 1.12 }; // atk eases toward atkLate by level 46: the last lands were already the tightest
+  // How hard the dead are, over the base tables. A player's heroes grow much faster than the tables assumed (gear in
+  // every slot, every skill point spent): measured that way, a team never fell below four fifths of its health. So the
+  // dead are raised, by how far into the campaign they are: [level, health x, damage x], read between the rows. The
+  // far marches (levels 28 to 40) needed the most; the last land was already the tightest. A boss takes a part of
+  // the raise (bossHp, bossAtk): it is its own measure.
+  BB.DIFF = { knots: [[1, 1.2, 1.5], [4, 1.8, 2.6], [9, 1.7, 2.4], [17, 1.6, 2.2], [24, 2.1, 2.5], [28, 2.9, 2.8], [40, 2.9, 2.8], [44, 2.1, 2.4], [47, 2.0, 2.3]], bossHp: 0.5, bossAtk: 0.4 };
+  BB.diffAt = function (level) {
+    const D = BB.DIFF; if (D.flat) return { hp: D.flat[0], atk: D.flat[1] };
+    const K = D.knots; if (level <= K[0][0]) return { hp: K[0][1], atk: K[0][2] };
+    for (let i = 1; i < K.length; i++) if (level <= K[i][0]) { const a = K[i - 1], b = K[i], k = (level - a[0]) / (b[0] - a[0]); return { hp: a[1] + (b[1] - a[1]) * k, atk: a[2] + (b[2] - a[2]) * k }; }
+    const L = K[K.length - 1]; return { hp: L[1], atk: L[2] };
+  };
   BB.foeStats = function (kind, level, elite) {
-    // (a boss is its own measure: it gets bossAtk, not the crowd's raise)
-    const F = BB.FOES[kind];
-    const g = 1 + (level - 1) * 0.2;
-    const D = BB.DIFF, s = { hp: Math.round(F.hp * g * (F.boss ? 3.5 * D.boss : F.gate ? 1.6 : 2.5 * D.hp)), atk: F.atk * (1 + (level - 1) * 0.16) * (F.boss ? 2.5 * (D.bossAtk || 1) : 2.9 * (D.atkLate === undefined ? D.atk : D.atkLate + (D.atk - D.atkLate) * Math.max(0, Math.min(1, (46 - level) / 26)))), def: F.def + (level - 1) * 0.6 };
+    const F = BB.FOES[kind], g = 1 + (level - 1) * 0.2, d = BB.diffAt(level), D = BB.DIFF;
+    const hpK = F.boss ? 1 + (d.hp - 1) * D.bossHp : F.gate ? 1 : d.hp, atkK = F.boss ? 1 + (d.atk - 1) * D.bossAtk : d.atk;
+    const s = { hp: Math.round(F.hp * g * (F.boss ? 3.5 : F.gate ? 1.6 : 2.5) * hpK), atk: F.atk * (1 + (level - 1) * 0.16) * (F.boss ? 2.5 : 2.9) * atkK, def: F.def + (level - 1) * 0.6 };
     if (elite) { s.hp = Math.round(s.hp * elite.hp); s.atk *= elite.atk; }
     return s;
   };
