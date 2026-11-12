@@ -283,7 +283,7 @@
     const open = BB.heroTiers(BB.ROSTER).filter(({ tier }) => BB.tierOpen(S, tier));
     const cheapest = open.length ? Math.min(...open.map(({ tier }) => tier.cost)) : 0;
     $('recruitT').textContent = '◆ ' + cheapest + ' · you have ' + fmt(S.crystals);
-    $('bEndless').style.display = BB.chapterCleared(S, 1) ? '' : 'none'; $('bTrek').style.display = BB.chapterCleared(S, 1) ? '' : 'none'; $('trekT').textContent = S.stats.treks ? 'Ways out found: ' + S.stats.treks : 'A long road. Find the way out.'; $('endlessT').textContent = S.stats.endless ? 'Best: wave ' + S.stats.endless : 'How long can you hold?';
+    $('bEndless').style.display = BB.chapterCleared(S, 1) ? '' : 'none'; $('bTrek').style.display = S.cleared['s1-2'] ? '' : 'none'; // an expedition is open as soon as the first two fights are won $('trekT').textContent = S.stats.treks ? 'Ways out found: ' + S.stats.treks : 'A long road. Find the way out.'; $('endlessT').textContent = S.stats.endless ? 'Best: wave ' + S.stats.endless : 'How long can you hold?';
     $('bRecruitH').classList.toggle('glow', S.crystals >= cheapest);
     { const rs = BB.rollState(S, now()), rb = $('bRoll'); rb.style.display = rs.ready && !BB.dev ? '' : 'none'; rb.classList.toggle('glow', rs.ready); $('rollT').textContent = 'Day ' + (rs.day + 1) + ' of 7 · ready'; }
     const qn = BB.questsReady(S); $('questT').textContent = qn ? qn + ' to claim' : BB.QUESTS.filter((q) => BB.questState(S, q) === 'claimed').length + ' / ' + BB.QUESTS.length + ' done';

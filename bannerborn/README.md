@@ -205,8 +205,8 @@ simulator used to leave the team out, so its hordes were always the smallest; it
 - **Survive** stages (one in each land: Chapel Road, Temple Steps, The Last Square, The Shattered Wall, The Rime
   Wood, The Slag Court, Rotwood, The Hollow City): no gate to break and no last wave. The dead come from a different
   side each time, more of them and faster as the clock runs down, with a last surge fifteen seconds from the end.
-- **Expeditions** (the home screen, once the first land is cleared): a long march through five fields or more in a
-  row, in the furthest land you have cleared, at your team's level. The same heroes go from one field to the next
+- **Expeditions** (the home screen, from the third stage on): a long march through five fields or more in a
+  row, in the furthest land you have cleared (the first, until then), at your team's level. The same heroes go from one field to the next
   with the wounds they took (a little is mended between fields; the fallen come back on their feet at a quarter).
   After most fields **the road forks** and each way gives a clue: one leads on toward the way out, the other to a
   side road and back: a **cache** (more loot at the end), a **shrine** (everyone mended), or an **ambush** (a harder
