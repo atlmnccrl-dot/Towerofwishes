@@ -33,7 +33,7 @@
     m.props = m.props.filter((p) => p.gate !== gi); if (BB.rebuildGrid) BB.rebuildGrid(m);
     for (const p of gone) this.addFx('x_wood', p.x, p.y - 0.2, { sc: 0.9 });
     o.gatesOpen++; this.shake = Math.max(this.shake || 0, 0.5);
-    { const sr = BB.workRank ? BB.workRank(this.save || BB.save, 'shrine') : 0; if (sr) for (const h of this.heroesAlive()) this.heal(null, h, h.maxhp * 0.06 * sr); } this.banner('THE GATE OPENS', 1.6); if (BB.sfx) BB.sfx('gate');
+    { const sr = BB.workRank ? BB.workRank(this.save || BB.save, 'shrine') : 0, few = [0.35, 0.35, 0.2, 0.1][this.teamN] || 0, k = few + 0.06 * sr; if (k) for (const h of this.heroesAlive()) this.heal(null, h, h.maxhp * k); } // a small warband has no healer: the road itself lets it catch its breath at each gate this.banner('THE GATE OPENS', 1.6); if (BB.sfx) BB.sfx('gate');
     if (this.march) this.march.path = null;
   };
   const CHOICES = [

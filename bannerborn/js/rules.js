@@ -427,6 +427,7 @@
   // cut down further than the crowd is). By team size 0..5: how many come, how hard they hit, a boss's health, a gate's.
   BB.TEAM_K = { count: [0.2, 0.2, 0.34, 0.44, 0.72, 1], atk: [0.5, 0.5, 0.56, 0.62, 0.86, 1.05], hp: [0.5, 0.5, 0.6, 0.72, 0.86, 1], boss: [0.1, 0.1, 0.14, 0.36, 0.68, 1], gate: [0.25, 0.25, 0.4, 0.6, 0.8, 1],
     gates: [0.34, 0.34, 0.5, 0.67, 0.84, 1], cap: [2, 2, 4, 5, 8, 9], elite: [0, 0, 0.3, 0.55, 0.8, 1], // gates: how many of a stage's gates stand; cap: how many a gate keeps on the field; elite: how often one comes
+    trek: [0.62, 0.62, 0.78, 0.92, 1, 1], // an expedition is six fights and a lord without a rest: its dead hit softer for the few
     crowd: [0, 0, 1, 2, 3, 4], wait: [5, 5, 2.4, 1.6, 1.2, 1] }; // crowd: a new wave waits until this few are left standing; wait: how much longer before it comes anyway
   BB.teamK = (what, n) => BB.TEAM_K[what][Math.max(0, Math.min(5, n | 0))];
   BB.waveScale = (n) => BB.teamK('count', n);

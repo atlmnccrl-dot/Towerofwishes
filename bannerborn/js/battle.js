@@ -76,7 +76,7 @@
     const st = BB.foeStats(kind, opts.level || this.level, elite);
     if (F.boss || F.gate) st.hp = Math.round(st.hp * (0.5 + 0.5 * this.crowdK) * BB.teamK(F.boss ? 'boss' : 'gate', this.teamN));
     else st.hp = Math.round(st.hp * BB.teamK('hp', this.teamN));
-    st.atk *= BB.teamK('atk', this.teamN);
+    st.atk *= BB.teamK('atk', this.teamN) * (this.mission && this.mission.trek ? BB.teamK('trek', this.teamN) : 1);
     { const fs = BB.freeSpot(this.map, x, y, F.gate ? 0.9 : F.r); x = fs.x; y = fs.y; }
     const e = {
       id: BB.uid('f'), side: 'foe', kind, F, name: (elite ? elite.name + ' ' : '') + F.name, x, y, vx: 0, vy: 0, r: F.r * (elite ? 1.1 : 1),
@@ -865,6 +865,8 @@
     if (e.spawnT > 0) { e.spawnT -= dt; e.ct += dt; return; }
     if (e.scripted) { e.ct += dt; return; } // a cutscene moves this one
     if (e.kb && this.updateKnock) this.updateKnock(e, dt);
+    // whoever ends up where nobody can walk (thrown, shoved, landed badly) is put back on the nearest ground
+    if (!e.kb && !e.dash && !e.leap && !e.arc && !(e.z > 0) && !e.gate && !e.turret && !e.prop && !e.ward && BB.blocked(this.map, e.x, e.y)) { e.offT = (e.offT || 0) + dt; if (e.offT > 0.8) { e.offT = 0; const f = BB.freeSpot(this.map, e.x, e.y, e.r || 0.3); if (f && (f.x !== e.x || f.y !== e.y)) { e.x = f.x; e.y = f.y; e.path = null; } } } else e.offT = 0;
     if (e.arc && this.updateArc && this.updateArc(e, dt)) return;
     if (e.buffs.burn > 0 && Math.floor(this.time * 2) !== Math.floor((this.time - dt) * 2)) {
       const b = Math.max(1, Math.round((e.burnAtk || 20) * 0.22 * (100 / (100 + (e.def || 0) * 3)))); e.hp -= b; this.text(e.x, e.y, b, '#ff9a3a');
@@ -887,7 +889,7 @@
     if (e.lock > 0) e.lock -= dt;
     // dash / leap motion
     if (e.dash) {
-      e.x += e.dash.vx * dt; e.y += e.dash.vy * dt; e.dash.t -= dt;
+      { const nx = e.x + e.dash.vx * dt, ny = e.y + e.dash.vy * dt; if (BB.blocked(this.map, nx, ny)) e.dash.t = 0; else { e.x = nx; e.y = ny; } } e.dash.t -= dt; // a dash stops at water and walls
       if (e.impaleHit) for (const o of this.inRadius(e.x, e.y, e.r + 0.6, 'foe')) if (!e.impaleHit[o.id]) { e.impaleHit[o.id] = 1; this.hit(e, o, e.impaleMult, { heavy: true, aoe: true }); }
       if (e.chargeHit) for (const o of this.inRadius(e.x, e.y, e.r + 0.45, 'hero')) if (!e.chargeHit[o.id] && !o.ward) { e.chargeHit[o.id] = 1; this.hit(e, o, 1.6, { heavy: true }); }
       if (e.dash.t <= 0) { e.dash = null; e.chargeHit = null; e.impaleHit = null; }

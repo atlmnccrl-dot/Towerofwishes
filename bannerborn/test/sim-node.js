@@ -42,7 +42,7 @@ for (const idx of list) {
     });
     const formation = heroes.map((h, i) => ({ hero: h, row: i < 2 ? 'front' : 'back', slot: i < 2 ? i : i - 2 }));
     if (process.env.PLACED) { const D = { front: [[0.74, 0.36], [0.78, 0.64]], back: [[0.24, 0.24], [0.28, 0.5], [0.32, 0.76]] }; formation.forEach((f) => { f.u = D[f.row][f.slot][0]; f.v = D[f.row][f.slot][1]; }); } // as the game places them
-    if (TREK) M = BB.expedition(TREK, M0.level, 100 + k);
+    if (TREK) M = BB.expedition(TREK, Math.max(1, M0.level - (n <= 1 ? 1 : 0)), 100 + k); // the game sets a lone hero's road a level lower again
     const map = BB.buildMap(M.layout, BB.CHAPTERS[M.chapter - 1].biome, 1000 + idx * 10 + k, {});
     const B = new BB.Battle({ map, mission: M, formation, heroes, level: M.level, save, seed: k + 1 }); // heroes: the horde is sized to the team, as in the game
     let t = 0;
@@ -53,7 +53,9 @@ for (const idx of list) {
       if (B.ents.length > 400 || B.projs.length > 2000 || B.timers.length > 500) { console.log('RUNAWAY', idx); bad++; break; }
     }
     const res = B.result ? (B.result.win ? 'win' : 'loss') : 'timeout';
-    if (process.env.VERBOSE) console.log('  run ' + k, comps[k % 3].slice(0, n).join('+'), res, Math.round(t) + 's', 'low ' + Math.round((B.lowHp === undefined ? 1 : B.lowHp) * 100) + '%', 'left ' + B.heroesAlive().length, 'foes left ' + B.foesAlive().length);
+    if (res === 'timeout' && process.env.DUMP) for (const e of B.ents) if (!e.dead && !e.prop) { const o = {}; for (const q in e) { const v = e[q]; if (v === null || typeof v === 'number' || typeof v === 'string' || typeof v === 'boolean') o[q] = typeof v === 'number' ? Math.round(v * 100) / 100 : v; else if (v && v.id) o[q] = '->' + (v.kind || v.calling || v.id); } console.log('  DUMP ' + JSON.stringify(o)); }
+    if (res === 'timeout' && process.env.VERBOSE) console.log('  stuck: heroes ' + B.heroesAlive().map((h) => (h.calling || h.name) + ' at ' + h.x.toFixed(1) + ',' + h.y.toFixed(1) + ' hp ' + Math.round(h.hp)).join('; ') + ' · foes ' + B.foesAlive().map((f) => f.kind + ' at ' + f.x.toFixed(1) + ',' + f.y.toFixed(1) + ' hp ' + Math.round(f.hp) + '/' + f.maxhp + (f.turret ? ' turret' : '')).join('; ') + ' · goal ' + JSON.stringify(B.goal) + ' obj ' + JSON.stringify({ sec: B.obj.sec, i: B.obj.i, opened: B.obj.opened, gatesOpen: B.obj.gatesOpen }));
+    if (process.env.VERBOSE) console.log('  run ' + k, comps[k % 3].slice(0, n).join('+'), res, Math.round(t) + 's', 'low ' + Math.round((B.lowHp === undefined ? 1 : B.lowHp) * 100) + '%', 'left ' + B.heroesAlive().length, 'foes left ' + B.foesAlive().length + (TREK ? ' · gates ' + (B.obj.gatesOpen || 0) + (B.obj.lord ? ' lord ' + Math.round(100 * (B.foesAlive().find((f) => f.boss) || { hp: 0, maxhp: 1 }).hp / (B.foesAlive().find((f) => f.boss) || { maxhp: 1 }).maxhp) + '%' : '') : ''));
     agg.n++; if (res === 'win') { agg.w++; agg.t += t; agg.alive += B.heroesAlive().length; agg.low += B.lowHp === undefined ? 1 : B.lowHp; } if (res === 'timeout') { agg.to++; bad++; }
   }
   console.log((M.code + ' ' + M.name).padEnd(36), M.type.padEnd(7), 'L' + String(M.level).padEnd(3), 'team ' + (+process.env.TEAM || BB.slotsAt(idx)), 'win ' + agg.w + '/' + agg.n, 'avg ' + (agg.w ? Math.round(agg.t / agg.w) : '-') + 's', 'low ' + (agg.w ? Math.round(agg.low / agg.w * 100) + '%' : '-'), 'left ' + (agg.w ? (agg.alive / agg.w).toFixed(1) : '-'), agg.to ? 'TIMEOUTS ' + agg.to : '');

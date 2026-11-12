@@ -242,15 +242,24 @@ land easier to take.
   the dead climbing out for as long as it stands, and the **Bone Ballista**, which puts a heavy bolt into whoever
   stands farthest back. They stand along an expedition's road.
 
-**How hard.** A player's heroes grow much faster than the first balance assumed: all four gear slots filled, every
-skill point spent and a level or two over the stage make a team three to four times the strength a stage used to ask
-for, and measured that way (by the bot, which plays the real progression) it won every fight with four fifths of its
-health left. The dead are raised to meet that (`BB.DIFF`, `BB.diffAt(level)` in js/rules.js): more health and more
-damage by how far into the campaign they are (gentle for the first three fights, then about 2.5 times the health and
-3.5 to 4.5 times the damage through the first three lands, more in the far marches, a little less in the last
-land), a boss taking a small part of the raise, and what a stage asks (`BB.recPower`, "needs ⚔") raised with it.
-Nothing about how a fight is fought changed. `REAL=1 node test/sim-node.js` plays with heroes as the bot had them and
-prints how low the team's health fell: 25 to 40% through the first three lands now, 45 to 75% after.
+**How hard.** A player's heroes grow much faster than the first balance assumed (all four gear slots filled, every
+skill point spent, a level or two over the stage), so the dead are raised to meet them (`BB.DIFF`,
+`BB.diffAt(level)` in js/rules.js): more health and more damage by how far into the campaign they are, a boss
+taking a small part of the raise, and what a stage asks (`BB.recPower`, "needs ⚔") raised with it. Nothing about
+how a fight is fought changed. The raise is measured two ways:
+- **The bot**, which plays the real progression. Through the first three lands (one hero, then two) it wins with
+  25 to 55% of its health left and loses now and then.
+- **`BOT=1 node test/sim-node.js`**, the warband the bot really had when it got stuck (two stars and Rare recruits in
+  land 3, three stars and Epics later, the newest hero two levels behind). An earlier preset (`REAL=1`: Legendary
+  heroes at five stars by the end) had set lands 4 to 8 far too high: the bot lost nine times running at 3-7, the
+  first stage with three heroes. Against the `BOT` team every stage is now won at least three times in six, most
+  five or six; the stands against the clock and the wards are the hard ones.
+
+The horde is also sized to the team (`BB.TEAM_K`): how many come, how hard they hit, a boss's health. The steps
+at three and four heroes are gentle, because the hero who has just joined is behind the others and a team that
+size often has no healer. A ward's health grows with the team that guards it. On an expedition (six fights and a
+lord without a rest) the dead hit softer for one to three heroes, and each gate opened mends a small team (35%
+alone, 20% for two, 10% for three), on top of what the camp's shrine gives.
 
 Losing costs nothing (and still teaches your heroes): change gear or the formation and fight again.
 

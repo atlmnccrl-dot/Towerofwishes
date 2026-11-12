@@ -51,7 +51,8 @@
   };
   B.updateKnock = function (e, dt) {
     if (!e.kb) return;
-    e.x += e.kb.vx * dt; e.y += e.kb.vy * dt; e.kb.t -= dt; e.kb.vx *= 0.92; e.kb.vy *= 0.92;
+    { const nx = e.x + e.kb.vx * dt, ny = e.y + e.kb.vy * dt; if (BB.blocked(this.map, nx, ny)) { e.kb = null; return; } e.x = nx; e.y = ny; } // nobody is knocked into water or through a wall
+    e.kb.t -= dt; e.kb.vx *= 0.92; e.kb.vy *= 0.92;
     if (Math.floor(this.time * 20) % 3 === 0) this.addFx('x_grass', e.x, e.y, { sc: 0.18 });
     if (e.kb.t <= 0) e.kb = null;
   };
