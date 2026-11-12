@@ -298,6 +298,20 @@
     if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
     label(ctx, sh.n + ' KILLS', 0, 26 * k, 11 * k, '#ff8a9a', 'center', 4, 700); ctx.restore();
   };
+  // soft: an effect drawn through a round feathered mask, so a sheet with a backdrop of its own (the pack's lightning,
+  // the whirlwind) shows no square edge in a story film. e.soft is the mask's size in view units.
+  const softPool = {};
+  function softFx(ctx, e, q, Sh) {
+    const S = Math.max(16, Math.ceil(e.soft * Sh)), c = softPool[S] || (softPool[S] = document.createElement('canvas'));
+    if (c.width !== S) { c.width = S; c.height = S; }
+    const g = c.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.clearRect(0, 0, S, S); g.imageSmoothingEnabled = false;
+    const ok = A.fx(g, e.name, e.t, S / 2, S * 0.72, e.scale * Sh * 0.55, e.alpha, e.angle, e.flip);
+    g.globalCompositeOperation = 'destination-in';
+    const gr = g.createRadialGradient(S / 2, S * 0.56, S * 0.16, S / 2, S * 0.56, S * 0.5); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(0.55, 'rgba(0,0,0,0.85)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, S, S); g.globalCompositeOperation = 'source-over';
+    ctx.drawImage(c, Math.round(q.x - S / 2), Math.round(q.y - S * 0.72));
+    return ok;
+  }
   R.consume = function (s) {
     for (const e of s.events) {
       const u = e.id != null ? s.units.find((o) => o.id === e.id) : null, sc = u ? u.scale : 1;
@@ -318,10 +332,10 @@
           R.shake = Math.max(R.shake, e.art ? 8 : e.finisher ? 7 : e.heavy ? 5 : 2.6);
           break;
         }
-        case 'blow': {   // a blow in a story film: white sparks and blood thrown the way the blade went (no numbers)
-          const z = 22 * sc, a0 = e.ang || 0, n = e.big ? 34 : 20;
-          FX({ kind: 'spark', x: e.x, y: e.y, z, life: 0.2, col: '#ffffff', r: e.big ? 30 : 20 }); sparks(e.x, e.y, z, e.big ? 12 : 7, '#fff4e8', e.big ? 200 : 140);
-          for (let i = 0; i < n; i++) { const a = a0 + (Math.random() - 0.5) * 1.1, v = 60 + Math.random() * (e.big ? 210 : 150); P({ x: e.x, y: e.y, z: z - 4 + Math.random() * 8, vx: Math.cos(a) * v, vy: Math.sin(a) * v, vz: 30 + Math.random() * 110, g: -460, life: 0.5 + Math.random() * 0.4, size: 1.3 + Math.random() * 1.5, col: i % 3 ? '#a8101e' : '#e8203a', shape: 'sq' }); }
+        case 'blow': {   // a blow in a story film: a few sparks and a short spray of blood the way the blade went (no numbers, no starburst)
+          const z = 22 * sc, a0 = e.ang || 0, n = e.big ? 16 : 9;
+          sparks(e.x, e.y, z, e.big ? 6 : 3, '#fff4e8', e.big ? 170 : 120);
+          for (let i = 0; i < n; i++) { const a = a0 + (Math.random() - 0.5) * 0.8, v = 50 + Math.random() * (e.big ? 150 : 110); P({ x: e.x, y: e.y, z: z - 2 + Math.random() * 6, vx: Math.cos(a) * v, vy: Math.sin(a) * v, vz: 20 + Math.random() * 70, g: -520, life: 0.35 + Math.random() * 0.3, size: 1 + Math.random() * 0.9, col: i % 3 ? '#8a0c18' : '#c81830', shape: 'sq' }); }
           break;
         }
         case 'hurt': sparks(e.x, e.y, 22, 9, RED, 130, 1.6); R.float(String(e.dmg), e.x, e.y, 38, '#ff5a6e', e.big); R.flash = 0.35; R.flashCol = '255,30,50'; R.shake = Math.max(R.shake, e.big ? 6 : 4); break;
@@ -468,7 +482,7 @@
     });
     R.pfx = R.pfx.filter((e) => {
       e.t += dt; const q = R.P(e.x, e.y, e.z);
-      const alive = A.fx(ctx, e.name, e.t, q.x, q.y, e.scale * Sh * 0.55, e.alpha, e.angle, e.flip);
+      const alive = e.soft ? softFx(ctx, e, q, Sh) : A.fx(ctx, e.name, e.t, q.x, q.y, e.scale * Sh * 0.55, e.alpha, e.angle, e.flip);
       return alive && e.t < (e.end || 5);   // end: a story film cuts a long effect short
     });
     R.parts = R.parts.filter((p) => {
@@ -977,7 +991,7 @@
     for (const b of s.bolts) {
       const q = R.P(b.x, b.y, 16), t = R.P(b.x - b.vx * 0.12, b.y - b.vy * 0.12, 16);
       const col = b.reflected ? '#ffffff' : ({ wind_gust: '#dfe8ff', dark_slash: RED, fireball: '#ff8040', fireball_big: '#ff8040', explosion_fire: '#ff8040', magic_missile: '#ff9ad0', fireball_arcane: '#d080ff', arcane_orb: '#c070ff', rock: '#d8b060', arrow: '#ffffff', dart: '#c0e0a0', dagger: '#e0d0ff' })[b.fx] || '#c070ff';
-      ctx.save(); ctx.strokeStyle = rgba(col, 0.45); ctx.lineWidth = (b.big ? 7 : 3.5) * R.Sh() * 0.5; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(q.x, q.y); ctx.stroke(); ctx.restore();
+      if (!b.clean) { ctx.save(); ctx.strokeStyle = rgba(col, 0.45); ctx.lineWidth = (b.big ? 7 : 3.5) * R.Sh() * 0.5; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(q.x, q.y); ctx.stroke(); ctx.restore(); }   // clean: a story film's bolt, no drawn tail
       R.glowAt(ctx, col, q.x, q.y, (b.big ? 22 : 12) * R.Sh(), 0.8);
       const sa = Math.atan2(q.y - t.y, q.x - t.x), info = A.hasFx(b.fx);
       if (info) A.fx(ctx, b.fx, b.t, q.x, q.y, R.Sh() * (b.big ? 1.3 : 0.75), 1, sa);

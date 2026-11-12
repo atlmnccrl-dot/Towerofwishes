@@ -244,7 +244,7 @@
       const on = e.on ? byId(e.on) : null; if (on) e = Object.assign({}, e, { x: on.u.x + (e.dx || 0), y: on.u.y + (e.dy || 0), id: on.u.id });
       const by = e.by ? byId(e.by) : null; if (by && on) e.ang = Math.atan2(on.u.y - by.u.y, on.u.x - by.u.x);   // which way a blow travels
       // pk: one effect by name; from: seconds into it to start (skips a slow build-up), end: when to cut it, by: turn it the way a blow goes.
-      if (e.type === 'pk') R.pk(e.name, e.x, e.y, e.z || 0, e.scale || 1, { t: e.from || 0, end: e.end, angle: e.ang != null && e.turn ? R.screenAng(e.ang) : undefined });
+      if (e.type === 'pk') R.pk(e.name, e.x, e.y, e.z || 0, e.scale || 1, { t: e.from || 0, end: e.end, soft: e.soft, angle: e.ang != null && e.turn ? R.screenAng(e.ang) : undefined });
       else if (e.type === 'punch') R.punch = Math.max(R.punch || 0, e.n || 0.12);
       else if (e.type === 'hurt') { if (on) on.u.flash = 1; }
       else if (e.type === 'impact') F.impact = { at: t0, dur: e.dur || 0.16, x: e.x, y: e.y };   // an anime impact frame (real seconds)
@@ -275,7 +275,7 @@
     for (const b of sh.bolts || []) {
       const f = (t - b.at) / (b.dur || 0.3); if (f < 0 || f > 1) continue;
       const pa = typeof b.from === 'string' ? byId(b.from).u : { x: b.from[0], y: b.from[1] }, pb = typeof b.to === 'string' ? byId(b.to).u : { x: b.to[0], y: b.to[1] };
-      const d = b.dur || 0.3; s.bolts.push({ x: pa.x + (pb.x - pa.x) * f, y: pa.y + (pb.y - pa.y) * f, vx: (pb.x - pa.x) / d, vy: (pb.y - pa.y) / d, t: f * d, fx: b.fx || 'fireball_arcane', big: !!b.big, reflected: !!b.reflected });
+      const d = b.dur || 0.3; s.bolts.push({ x: pa.x + (pb.x - pa.x) * f, y: pa.y + (pb.y - pa.y) * f, vx: (pb.x - pa.x) / d, vy: (pb.y - pa.y) / d, t: f * d, fx: b.fx || 'fireball_arcane', big: !!b.big, reflected: !!b.reflected, clean: true });
     }
     s.t += dt; R.t = R.t || 0;
     ctx.save(); if (R.shake > 0.5) ctx.translate((Math.random() - 0.5) * R.shake * R.dpr, (Math.random() - 0.5) * R.shake * R.dpr); R.drawFight(ctx, s, dt); ctx.restore();

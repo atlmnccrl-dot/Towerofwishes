@@ -134,7 +134,7 @@
       [t, { type: 'sfx', name: o.sfx || 'blow_big', v: 1 }], [t, { type: 'sfx', name: 'slash_1', v: 0.8 }]];
     for (const id of ids) {
       ev.push([t, { type: 'hurt', on: id }], [t, { type: 'blow', on: id, by: o.by || 'fc', big: !!o.big }]);
-      if (o.pk) ev.push([t, { type: 'pk', name: o.pk, on: id, by: o.by || 'fc', turn: true, z: 22, scale: o.scale || 1.5 }]);
+      if (o.pk) ev.push([t, { type: 'pk', name: o.pk, on: id, by: o.by || 'fc', turn: true, z: 22, scale: o.scale || (o.big ? 1.25 : 1.1) }]);
     }
     return ev;
   };
@@ -143,7 +143,7 @@
   const big = (t, on, o) => [[t, { type: 'impact', dur: (o && o.dur) || 0.18, on }], [t, { type: 'sfx', name: 'quake', v: 0.7 }]];
   const cb = (name, t, where, scale, z, o) => [t, Object.assign({ type: 'pk', name: 'cb:' + name, z: z || 0, scale: scale || 1 }, typeof where === 'string' ? { on: where } : { x: where[0], y: where[1] }, o || {})];
   // The pack's effects, started where the action is (from: skips a slow build-up) and cut before they linger (end).
-  const THUNDER = { from: 0.66, end: 1.55 }, STOMP = { from: 0.5, end: 1.5 }, FIRE = { from: 0.72, end: 1.9 }, FROST = { from: 0.75, end: 1.9 }, CLEAVE = { from: 0.28, end: 0.95 };
+  const THUNDER = { from: 0.66, end: 1.55, soft: 170 }, STOMP = { from: 0.5, end: 1.5 }, FIRE = { from: 0.72, end: 1.9 }, FROST = { from: 0.75, end: 1.9 }, CLEAVE = { from: 0.28, end: 0.95 };
   // Shot A: the armies. The five kings watch from the far side while their guards close on him from every side. He
   // turns once, and seven of them are thrown back dead; he cuts the last three down in three dashes, then points his
   // sword at the kings.
@@ -167,7 +167,7 @@
       big(1.25), [cb('01_crimson_tide_cleave/target', 1.25, 'fc', 1.7, 8, CLEAVE), cb('10_quake_stomp/target', 1.26, 'fc', 1.0, 0, STOMP)],
       hit(1.27, RING.map((_, i) => 'g' + i).filter((_, i) => !LATE[i]), { flash: 0.8, punch: 0.1, shake: 18, big: true }),
       [[1.75, { type: 'sfx', name: 'whoosh', v: 0.9 }], [2.1, { type: 'sfx', name: 'whoosh', v: 0.9 }], [2.42, { type: 'sfx', name: 'whoosh', v: 1 }]],
-      hit(1.95, ['g0'], { shake: 8, pk: 'cleave' }), hit(2.28, ['g2'], { shake: 8, pk: 'cleave' }), hit(2.62, ['g4'], { flash: 0.7, shake: 13, pk: 'cleave', scale: 1.8, big: true }), big(2.62, 'g4', { dur: 0.12 }),
+      hit(1.95, ['g0'], { shake: 8, pk: 'slash_r' }), hit(2.28, ['g2'], { shake: 8, pk: 'slash_l' }), hit(2.62, ['g4'], { flash: 0.7, shake: 13, pk: 'double_slash', big: true }), big(2.62, 'g4', { dur: 0.12 }),
       [[3.25, { type: 'sfx', name: 'unsheathe_01', v: 0.6 }], [3.3, { type: 'pk', name: 'fc_glint', on: 'fc', z: 40 }]]),
     cam: { follow: 'fc', off: G(0, -24), zoom: [2.0, 2.45], lift: 22, lag: 3 }, light: { on: [0.5, 0.5], r: 0.85, dark: 0.5 } };
 
@@ -189,17 +189,17 @@
       { who: 'ghoul', id: 'k2', set: KINGS[2].set, at: KB.k2, face: 'fc', die: 4.77, linger: 2, path: [[0, ...KB.k2], [4.77, ...KB.k2], [5.1, ...P(86, 8)]], acts: [[3.95, 'Attack3', 0.5, 14]] },
       { who: 'ghoul', id: 'k3', set: KINGS[3].set, at: KB.k3, face: 'fc', die: 3.78, linger: 2, path: [[0, ...KB.k3], [2.8, ...KB.k3], [3.25, ...ASH], [3.78, ...ASH], [4.1, ...P(30, 222)]], hop: [[2.8, 3.25, 46]], acts: [[2.75, 'Attack4', 0.6, 14], [3.6, 'TakeDamage', 0.3, 16]] },
       { who: 'ghoul', id: 'k4', set: KINGS[4].set, at: KB.k4, face: 'fc', acts: [[0.95, 'Attack3', 0.9, 12]] }],
-    bolts: [{ at: 2.12, from: 'fc', to: P(170, 200), dur: 0.36, fx: 'dark_slash', big: true }, { at: 4.22, from: 'k2', to: 'fc', dur: 0.3, fx: 'fireball_arcane', big: true }, { at: 4.55, from: 'fc', to: 'k2', dur: 0.22, fx: 'fireball_arcane', big: true, reflected: true }],
+    bolts: [{ at: 2.12, from: 'fc', to: P(170, 200), dur: 0.36, fx: 'dark_slash', big: true }, { at: 4.22, from: 'k2', to: 'fc', dur: 0.3, fx: 'energy_bolt', big: true }, { at: 4.55, from: 'fc', to: 'k2', dur: 0.22, fx: 'energy_bolt', big: true, reflected: true }],
     ev: [].concat(
       [cb('13_water_orb/target', 0.5, [0, 0], 1.5, 0, FROST), [0.5, { type: 'pk', name: 'v_frost', x: 0, y: 0, scale: 2.2 }], [0.5, { type: 'flash', a: 0.5, col: '210,235,255' }], [0.5, { type: 'sfx', name: 'v_ice', v: 1 }], [0.5, { type: 'shake', n: 8 }], [0.45, { type: 'sfx', name: 'whoosh', v: 0.8 }]],
       [[1.22, D1], [1.52, D2], [1.82, D3]].flatMap(([t, p]) => [cb('101_skyfall_thunder/target', t, p, 1.3, 0, THUNDER), [t, { type: 'flash', a: 0.6, col: '200,220,255' }], [t, { type: 'shake', n: 11 }], [t, { type: 'sfx', name: 'bolt', v: 1 }], [t - 0.15, { type: 'sfx', name: 'whoosh', v: 0.7 }]]),
       [[2.05, { type: 'sfx', name: 'swish_2', v: 1 }]],
-      hit(2.3, ['k1'], { flash: 0.7, shake: 14, big: true }), hit(2.38, ['k0'], { shake: 10, big: true }), big(2.3, 'k1'),
+      hit(2.3, ['k1'], { flash: 0.7, shake: 14, big: true, pk: 'slash_r' }), hit(2.38, ['k0'], { shake: 10, big: true, pk: 'slash_r' }), big(2.3, 'k1'),
       [cb('10_quake_stomp/target', 3.25, ASH, 1.3, 0, STOMP), cb('54_greater_fireball/target', 3.25, ASH, 1.1, 0, FIRE),
         [3.25, { type: 'shake', n: 18 }], [3.25, { type: 'punch', n: 0.1 }], [3.25, { type: 'sfx', name: 'quake', v: 1 }], [3.25, { type: 'sfx', name: 'v_fire', v: 1 }], [3.55, { type: 'sfx', name: 'whoosh', v: 1 }]],
-      hit(3.78, ['k3'], { flash: 0.6, shake: 12, big: true, pk: 'cleave', scale: 1.8 }),
+      hit(3.78, ['k3'], { flash: 0.6, shake: 12, big: true, pk: 'double_slash' }),
       [cb('11_ghostfire_hex/caster', 3.95, 'k2', 1.1, 0, { end: 0.9 }), [4.0, { type: 'sfx', name: 'magic', v: 0.9 }], [4.55, { type: 'sfx', name: 'clang_1', v: 1 }], [4.55, { type: 'flash', a: 0.5, col: '255,250,230' }], [4.55, { type: 'shake', n: 7 }]],
-      [cb('54_greater_fireball/target', 4.77, 'k2', 1.6, 0, FIRE), [4.77, { type: 'pk', name: 'spell_fire', on: 'k2', z: 24, scale: 2 }]], hit(4.77, ['k2'], { flash: 0.8, shake: 16, punch: 0.1, big: true }), big(4.77, 'k2', { dur: 0.14 })),
+      [cb('54_greater_fireball/target', 4.77, 'k2', 1.5, 0, FIRE), cb('05_phantom_legion/caster', 4.8, 'k2', 1.2, 0, { from: 0.3, end: 1.3 })], hit(4.77, ['k2'], { flash: 0.8, shake: 16, punch: 0.1, big: true }), big(4.77, 'k2', { dur: 0.14 })),
     cam: { follow: 'fc', off: G(-12, -12), offTo: G(34, -8), zoom: [2.3, 2.45], lift: 22, lag: 2.6 }, light: { on: [0.5, 0.5], r: 0.85, dark: 0.5 } };
 
   // Shot C: the last king. Lightning cracks behind them; they run at each other, cross blades in an impact frame, and
@@ -215,7 +215,7 @@
       cb('101_skyfall_thunder/target', 0.42, G(40, -80), 1.2, 0, THUNDER), [0.42, { type: 'sfx', name: 'bolt', v: 0.8 }], [0.5, { type: 'sfx', name: 'step_2', v: 0.8 }], [0.9, { type: 'sfx', name: 'swish_2', v: 1 }],
       [1.05, { type: 'impact', dur: 0.24 }], [1.05, { type: 'punch', n: 0.12 }], [1.05, { type: 'shake', n: 16 }], [1.05, { type: 'sfx', name: 'clang_1', v: 1 }], [1.06, { type: 'sfx', name: 'blow_big', v: 1 }],
       
-      [2.5, { type: 'pk', name: 'cleave', on: 'k4', by: 'fc', turn: true, z: 24, scale: 1.9 }], [2.5, { type: 'blow', on: 'k4', by: 'fc', big: true }], [2.5, { type: 'hurt', on: 'k4' }], [2.5, { type: 'sfx', name: 'slash_2', v: 1 }], [2.5, { type: 'flash', a: 0.4, col: '255,220,220' }],
+      [2.5, { type: 'pk', name: 'double_slash', on: 'k4', by: 'fc', turn: true, z: 24, scale: 1.35 }], [2.5, { type: 'blow', on: 'k4', by: 'fc', big: true }], [2.5, { type: 'hurt', on: 'k4' }], [2.5, { type: 'sfx', name: 'slash_2', v: 1 }], [2.5, { type: 'flash', a: 0.4, col: '255,220,220' }],
       [2.9, { type: 'pk', name: 'v_soul', on: 'k4', z: 10 }], [2.9, { type: 'sfx', name: 'soul', v: 0.7 }]],
     cam: { at: [0, 0], to: [0, 0], zoom: [2.6, 3.2], lift: 24, push: 0.22 }, light: { on: [0.5, 0.52], r: 0.7, dark: 0.6 } };
 
@@ -241,11 +241,11 @@
       // The Frost King: ice.
       cb('13_water_orb/target', POW(1) + 0.2, 'q1', 1.1, 0, FROST), [POW(1) + 0.2, { type: 'pk', name: 'v_frost', on: 'q1', scale: 1.6 }], [POW(1) + 0.2, { type: 'sfx', name: 'v_ice', v: 0.8 }],
       // The King under the Stair: shadow.
-      cb('175_violet_veil/caster', POW(2) + 0.1, 'q2', 1.2, 0, { end: 1.4 }), [POW(2) + 0.1, { type: 'sfx', name: 'magic', v: 0.7 }],
+      cb('05_phantom_legion/caster', POW(2) + 0.05, 'q2', 1.2, 0, { from: 0.2, end: 1.35 }), [POW(2) + 0.1, { type: 'sfx', name: 'magic', v: 0.7 }],
       // The Ash King: fire.
-      [POW(3) + 0.2, { type: 'pk', name: 'spell_fire', on: 'q3', z: 30, scale: 1.8 }], cb('54_greater_fireball/target', POW(3) + 0.25, 'q3', 0.8, 0, FIRE), [POW(3) + 0.25, { type: 'sfx', name: 'v_fire', v: 0.8 }],
-      // The Storm King: lightning down onto his raised sword.
-      cb('101_skyfall_thunder/target', POW(4) + 0.3, 'q4', 1.1, 0, THUNDER), [POW(4) + 0.3, { type: 'sfx', name: 'bolt', v: 0.9 }], [POW(4) + 0.3, { type: 'flash', a: 0.5, col: '200,220,255' }], [POW(4) + 0.3, { type: 'shake', n: 7 }]],
+      cb('08_meteor_rain/target', POW(3) - 0.05, 'q3', 1.0, 0, { from: 0.35, end: 1.7, dx: 14, dy: 14 }), [POW(3) + 0.4, { type: 'sfx', name: 'v_fire', v: 0.9 }], [POW(3) + 0.4, { type: 'shake', n: 8 }], [POW(3) + 0.4, { type: 'flash', a: 0.35, col: '255,200,150' }],
+      // The Storm King: a whirlwind around him that breaks in lightning.
+      cb('43_cyclone_bolt/target', POW(4) - 0.6, 'q4', 1.0, 0, { from: 0.2, end: 1.75, soft: 170 }), [POW(4) - 0.5, { type: 'sfx', name: 'whoosh', v: 0.7 }], [POW(4) + 0.4, { type: 'sfx', name: 'bolt', v: 0.9 }], [POW(4) + 0.4, { type: 'flash', a: 0.5, col: '200,220,255' }], [POW(4) + 0.4, { type: 'shake', n: 7 }]],
     cam: { at: ARC[0], to: ARC[4], zoom: [2.5, 2.7], lift: 24 }, light: { on: [0.5, 0.5], r: 0.7, dark: 0.5, col: '#c8d4ff', glow: 0.1 } };
 
   S.OPENING = { hint: true, shots: [
