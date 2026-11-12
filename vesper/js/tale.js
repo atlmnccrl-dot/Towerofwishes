@@ -241,8 +241,10 @@
     // effect by name), 'flash', 'shake', 'sfx'.
     (sh.ev || []).forEach(([et, e], i) => {
       if (t < et || F.evd[i]) return; F.evd[i] = true;
-      const on = e.on ? byId(e.on) : null; if (on) e = Object.assign({}, e, { x: on.u.x + (e.dx || 0), y: on.u.y + (e.dy || 0) });
-      if (e.type === 'pk') R.pk(e.name, e.x, e.y, e.z || 0, e.scale || 1);
+      const on = e.on ? byId(e.on) : null; if (on) e = Object.assign({}, e, { x: on.u.x + (e.dx || 0), y: on.u.y + (e.dy || 0), id: on.u.id });
+      const by = e.by ? byId(e.by) : null; if (by && on) e.ang = Math.atan2(on.u.y - by.u.y, on.u.x - by.u.x);   // which way a blow travels
+      // pk: one effect by name; from: seconds into it to start (skips a slow build-up), end: when to cut it, by: turn it the way a blow goes.
+      if (e.type === 'pk') R.pk(e.name, e.x, e.y, e.z || 0, e.scale || 1, { t: e.from || 0, end: e.end, angle: e.ang != null && e.turn ? R.screenAng(e.ang) : undefined });
       else if (e.type === 'punch') R.punch = Math.max(R.punch || 0, e.n || 0.12);
       else if (e.type === 'hurt') { if (on) on.u.flash = 1; }
       else if (e.type === 'impact') F.impact = { at: t0, dur: e.dur || 0.16, x: e.x, y: e.y };   // an anime impact frame (real seconds)
@@ -255,7 +257,7 @@
     if (cam.follow) {
       const h = F.cast.find((m) => m.c.who === cam.follow || m.c.id === cam.follow);
       if (h) {
-        const tx = h.u.x + (cam.off ? cam.off[0] : 0), ty = h.u.y + (cam.off ? cam.off[1] : 0);
+        const o0 = cam.off || [0, 0], o1 = cam.offTo || o0, tx = h.u.x + o0[0] + (o1[0] - o0[0]) * ck, ty = h.u.y + o0[1] + (o1[1] - o0[1]) * ck;   // offTo: the framing drifts over the shot
         // A filmed shot trails its subject softly instead of locking onto it.
         if (sh.cine) { if (!F.fc) F.fc = [tx, ty]; const kf = Math.min(1, dt * (cam.lag || 2.2)); F.fc[0] += (tx - F.fc[0]) * kf; F.fc[1] += (ty - F.fc[1]) * kf; c2[0] = F.fc[0]; c2[1] = F.fc[1]; }
         else { c2[0] = tx; c2[1] = ty; }

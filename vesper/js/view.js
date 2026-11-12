@@ -318,6 +318,12 @@
           R.shake = Math.max(R.shake, e.art ? 8 : e.finisher ? 7 : e.heavy ? 5 : 2.6);
           break;
         }
+        case 'blow': {   // a blow in a story film: white sparks and blood thrown the way the blade went (no numbers)
+          const z = 22 * sc, a0 = e.ang || 0, n = e.big ? 34 : 20;
+          FX({ kind: 'spark', x: e.x, y: e.y, z, life: 0.2, col: '#ffffff', r: e.big ? 30 : 20 }); sparks(e.x, e.y, z, e.big ? 12 : 7, '#fff4e8', e.big ? 200 : 140);
+          for (let i = 0; i < n; i++) { const a = a0 + (Math.random() - 0.5) * 1.1, v = 60 + Math.random() * (e.big ? 210 : 150); P({ x: e.x, y: e.y, z: z - 4 + Math.random() * 8, vx: Math.cos(a) * v, vy: Math.sin(a) * v, vz: 30 + Math.random() * 110, g: -460, life: 0.5 + Math.random() * 0.4, size: 1.3 + Math.random() * 1.5, col: i % 3 ? '#a8101e' : '#e8203a', shape: 'sq' }); }
+          break;
+        }
         case 'hurt': sparks(e.x, e.y, 22, 9, RED, 130, 1.6); R.float(String(e.dmg), e.x, e.y, 38, '#ff5a6e', e.big); R.flash = 0.35; R.flashCol = '255,30,50'; R.shake = Math.max(R.shake, e.big ? 6 : 4); break;
         case 'parry': FX({ kind: 'ring', x: e.x, y: e.y, z: 22, life: 0.35, col: '#cfeeff', r0: 4, r1: 46, w: 3 }); sparks(e.x, e.y, 22, 14, '#cfeeff', 200, 1.6); R.float('PARRY', e.x, e.y, 50, '#cfeeff', true, true); R.flash = 0.45; R.flashCol = '210,235,255'; R.shake = 5; break;
         case 'perfect': R.float('PERFECT', e.x, e.y, 56, '#8ef0ff', true, true); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.5, col: '#8ef0ff', r0: 6, r1: 60, w: 2 }); break;
@@ -463,7 +469,7 @@
     R.pfx = R.pfx.filter((e) => {
       e.t += dt; const q = R.P(e.x, e.y, e.z);
       const alive = A.fx(ctx, e.name, e.t, q.x, q.y, e.scale * Sh * 0.55, e.alpha, e.angle, e.flip);
-      return alive && e.t < 5;
+      return alive && e.t < (e.end || 5);   // end: a story film cuts a long effect short
     });
     R.parts = R.parts.filter((p) => {
       p.t += dt; if (p.t >= p.life) return false;
