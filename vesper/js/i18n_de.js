@@ -987,7 +987,7 @@ VS.I18N.add("de", {
 "Long ago, a white Moon kept the dead asleep.": "Vor langer Zeit hielt ein weißer Mond die Toten im Schlaf.",
 "Five kings kept her peace, one for each kingdom of the mountain.": "Fünf Könige hüteten ihren Frieden, einer für jedes Reich des Berges.",
 "Then a swordsman climbed the mountain.": "Dann stieg ein Schwertkämpfer den Berg hinauf.",
-"He killed all five kings and took their souls.": "Er tötete alle fünf Könige und nahm ihre Seelen.",
+"He killed all five and took their souls.": "Er tötete alle fünf und nahm ihre Seelen.",
 "With them he cut the Moon. Her light turned red.": "Mit ihnen schnitt er den Mond. Ihr Licht wurde rot.",
 "And red light wakes the dead.": "Und rotes Licht weckt die Toten.",
 "He chained each king's soul inside a monster.": "Er kettete die Seele jedes Königs in ein Ungeheuer.",
@@ -995,6 +995,7 @@ VS.I18N.add("de", {
 "THE ASH KING, CHAINED": "DER ASCHEKÖNIG, GEKETTET",
 "THE STORM KING, CHAINED": "DER STURMKÖNIG, GEKETTET",
 "Seven hundred years later, one knight still stands.": "Siebenhundert Jahre später steht noch eine Ritterin.",
-"\"Kneel.\"": "„Knie nieder.“"
+"\"Kneel.\"": "„Knie nieder.“",
+"The five kings met him together.": "Die fünf Könige stellten sich ihm gemeinsam."
 },
   { tier: {"Iron": "Eisen", "Steel": "Stahl", "Moonsteel": "Mondstahl", "Bloodsteel": "Blutstahl", "Bone": "Knochen", "Silver": "Silber", "Moon": "Mond", "Blood": "Blut"}, base: {"Blade": "Klinge", "Saber": "Säbel", "Axe": "Axt", "Spear": "Speer", "Greatsword": "Großschwert", "Coat": "Mantel", "Mail": "Kettenhemd", "Plate": "Plattenpanzer", "Cloak": "Umhang", "Locket": "Medaillon", "Ring": "Ring", "Fang": "Fangzahn", "Talisman": "Talisman"}, suf: {"of Edges": "der Schneiden", "of the Wall": "des Walls", "of Warding": "des Schutzes", "of the Moon": "des Mondes", "of Thirst": "des Durstes", "of Haste": "der Eile", "of Wind": "des Windes", "of Patience": "der Geduld", "of Mending": "der Heilung", "of Fortune": "des Glücks"}, make: (b, t, s) => t + b.toLowerCase() + (s.length ? ' ' + s.join(' und ') : '') });

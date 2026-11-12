@@ -1034,7 +1034,7 @@ Una caballera sigue en pie.
 Hace mucho, una Luna blanca mantenía dormidos a los muertos.
 Cinco reyes guardaban su paz, uno por cada reino de la montaña.
 Entonces un espadachín subió la montaña.
-Mató a los cinco reyes y se llevó sus almas.
+Los mató a los cinco y se llevó sus almas.
 Con ellas cortó la Luna. Su luz se volvió roja.
 Y la luz roja despierta a los muertos.
 Encadenó el alma de cada rey dentro de un monstruo.
@@ -1043,3 +1043,5 @@ EL REY DE CENIZA, ENCADENADO
 EL REY DE LA TORMENTA, ENCADENADO
 Setecientos años después, una caballera sigue en pie.
 «Arrodíllate.»
+@1022
+Los cinco reyes lo enfrentaron juntos.

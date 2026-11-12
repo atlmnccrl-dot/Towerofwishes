@@ -187,7 +187,12 @@
   }
   const lerp2 = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
   SHOT.film = function (ctx, sh, k, t, sc) {
-    const F = filmOf(sc, sh), s = F.s, dt = Math.min(0.05, sc.dt || 0.016), sl = sh.slow || 1;
+    const F = filmOf(sc, sh), s = F.s, sl = sh.slow || 1, t0 = t;
+    // ramp: [[at, speed], ...] in real seconds: hit-stops and slow motion. Everything the shot stages (moves, clips,
+    // deaths, events, effects) runs on the film's own clock; the camera and the captions stay on the real one.
+    const spd = rampAt(sh.ramp, t0), dt = Math.min(0.05, sc.dt || 0.016) * spd;
+    t = filmTime(sh.ramp, t0);
+    const byId = (id) => F.cast.find((mm) => mm.c.id === id || mm.c.who === id);
     for (const m of F.cast) {
       const { c, u } = m, tt = t - (c.delay || 0), ed = c.edur || (c.enter === 'drop' ? 1.3 : 1.1);
       if (c.enter && tt < ed) {
@@ -219,8 +224,13 @@
       const clip = act ? act[1] : moving || pathDir != null ? (c.run ? 'Run' : 'Walk') : after ? c.after : c.clip || 'Idle4';
       // slow: slow motion for the cast's clips (the opening's beats play at a third to half speed).
       u.clip = clip; u.frame = act ? (act[4] ? loop(clip, (tt - act[0]) * sl, act[3]) : Math.min(14, Math.floor((tt - act[0]) * sl * (act[3] || 10)))) : D.LOOP[clip] ? loop(clip, t * sl + u.id * 0.3) : Math.min(14, Math.floor((t - (m.landT || 0)) * sl * (D.FPS[clip] || 10)));
-      const look = pathDir != null && !act ? pathDir : c.face === 'cam' ? TOWARD_CAM : Array.isArray(c.face) ? Math.atan2(c.face[1] - u.y, c.face[0] - u.x) : typeof c.face === 'number' ? c.face : moving ? Math.atan2(c.to[1] - c.at[1], c.to[0] - c.at[0]) : TOWARD_CAM;
+      const fid = typeof c.face === 'string' && c.face !== 'cam' ? byId(c.face) : null;
+      const look = pathDir != null && !act ? pathDir : fid ? Math.atan2(fid.u.y - u.y, fid.u.x - u.x) : c.face === 'cam' ? TOWARD_CAM : Array.isArray(c.face) ? Math.atan2(c.face[1] - u.y, c.face[0] - u.x) : typeof c.face === 'number' ? c.face : moving ? Math.atan2(c.to[1] - c.at[1], c.to[0] - c.at[0]) : TOWARD_CAM;
       u.ang = look; u.face = Math.cos(look) >= 0 ? 1 : -1;
+      // A dash (a path leg faster than a run) leaves afterimages behind, as a dodge does in a fight.
+      if (m.px != null && dt > 0) { const vx = (u.x - m.px) / dt, vy = (u.y - m.py) / dt, v = Math.hypot(vx, vy); if (v > 260) { u.state = 'dodge'; u.dodgeDir = [vx / v, vy / v]; } }
+      m.px = u.x; m.py = u.y;
+      u.flash = Math.max(0, (u.flash || 0) - dt * 5);
       // die: falls at that moment and stays down, then fades (linger: seconds before the body fades).
       if (c.die != null && tt >= c.die) { const dd = tt - c.die; u.state = 'dead'; u.alive = false; u.deadT = dd - (c.linger == null ? 1.4 : c.linger); u.clip = 'Die'; u.frame = Math.min(14, Math.floor(dd * sl * (c.dfps || D.FPS.Die))); }
       else if (c.die != null) u.alive = true;
@@ -229,7 +239,10 @@
     // effect by name), 'flash', 'shake', 'sfx'.
     (sh.ev || []).forEach(([et, e], i) => {
       if (t < et || F.evd[i]) return; F.evd[i] = true;
+      const on = e.on ? byId(e.on) : null; if (on) e = Object.assign({}, e, { x: on.u.x + (e.dx || 0), y: on.u.y + (e.dy || 0) });
       if (e.type === 'pk') R.pk(e.name, e.x, e.y, e.z || 0, e.scale || 1);
+      else if (e.type === 'punch') R.punch = Math.max(R.punch || 0, e.n || 0.12);
+      else if (e.type === 'hurt') { if (on) on.u.flash = 1; }
       else if (e.type === 'flash') { R.flash = Math.max(R.flash || 0, e.a || 0.7); R.flashCol = e.col || '255,255,255'; }
       else if (e.type === 'shake') R.shake = Math.max(R.shake || 0, e.n || 10);
       else if (e.type === 'sfx') sc.cues.push([e.name, e.v || 1]);
@@ -250,6 +263,13 @@
     const lift = cam.lift == null ? 6 : cam.lift, hs = Math.sin(R.HELI.ang), hc = Math.cos(R.HELI.ang);
     R.hcam.x = c2[0] - hs * lift / R.HELI.pitch; R.hcam.y = c2[1] - hc * lift / R.HELI.pitch;
     const z = cam.zoom || [1.3, 1.5]; s.zoom = z[0] + (z[1] - z[0]) * ck;
+    // bolts: [{ at, from, to, dur, fx }]: a spell in flight between two points or cast members.
+    s.bolts = [];
+    for (const b of sh.bolts || []) {
+      const f = (t - b.at) / (b.dur || 0.3); if (f < 0 || f > 1) continue;
+      const pa = typeof b.from === 'string' ? byId(b.from).u : { x: b.from[0], y: b.from[1] }, pb = typeof b.to === 'string' ? byId(b.to).u : { x: b.to[0], y: b.to[1] };
+      const d = b.dur || 0.3; s.bolts.push({ x: pa.x + (pb.x - pa.x) * f, y: pa.y + (pb.y - pa.y) * f, vx: (pb.x - pa.x) / d, vy: (pb.y - pa.y) / d, t: f * d, fx: b.fx || 'fireball_arcane', big: !!b.big });
+    }
     s.t += dt; R.t = R.t || 0;
     ctx.save(); if (R.shake > 0.5) ctx.translate((Math.random() - 0.5) * R.shake * R.dpr, (Math.random() - 0.5) * R.shake * R.dpr); R.drawFight(ctx, s, dt); ctx.restore();
     if (sh.tint === 'past') { ctx.save(); ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = 'rgb(150,160,200)'; ctx.fillRect(0, 0, R.W, R.H); ctx.restore(); ctx.fillStyle = 'rgba(20,24,48,0.18)'; ctx.fillRect(0, 0, R.W, R.H); }   // seven hundred years ago: a cold memory
@@ -261,10 +281,10 @@
       ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = gr; ctx.fillRect(0, 0, R.W, R.H);
       A.tex(ctx, 'light_01', R.W * 0.5, R.H * 0.02, R.W * 1.2, R.H * 0.7, '#fff0d8', 0.8 * g, 0, true); ctx.restore();
     }
-    if (sh.cine) cine(ctx, sh, F, k, t);
-    if (sh.card) { const kk = (t - (sh.card.at || 1.2)) / 0.4; if (kk > 0) nameCard(ctx, sh.card.who, sh.card.also, ease(kk), sh.card.sub); }
+    if (sh.cine) cine(ctx, sh, F, k, t);   // (the grade turns on the film's clock: a hit-stop holds it too)
+    if (sh.card) { const kk = (t0 - (sh.card.at || 1.2)) / 0.4; if (kk > 0) nameCard(ctx, sh.card.who, sh.card.also, ease(kk), sh.card.sub); }
     bars(ctx, 1, sh.cine);
-    if (sh.cine && sh.fade) { const d = durOf(sh), f = sh.fade, a = Math.max(f[0] ? 1 - t / f[0] : 0, f[1] ? (t - (d - f[1])) / f[1] : 0); if (a > 0) { ctx.fillStyle = `rgba(0,0,0,${Math.min(1, a)})`; ctx.fillRect(0, 0, R.W, R.H); } }
+    if (sh.cine && sh.fade) { const d = durOf(sh), f = sh.fade, a = Math.max(f[0] ? 1 - t0 / f[0] : 0, f[1] ? (t0 - (d - f[1])) / f[1] : 0); if (a > 0) { ctx.fillStyle = `rgba(0,0,0,${Math.min(1, a)})`; ctx.fillRect(0, 0, R.W, R.H); } }
   };
   // ---- The cinematic grade for filmed shots (the opening, 2026-11-12) ---------------------------------
   // grade: 'silver' (the night before: the white Moon, cold and drained of colour), 'red' (the bleeding night),
@@ -272,8 +292,8 @@
   // leaves a pool of light on the subject and lets the rest of the frame fall into dark.
   const GRADE = {
     silver: (ctx, a) => {
-      ctx.globalAlpha = a * 0.78; ctx.globalCompositeOperation = 'color'; ctx.fillStyle = '#7e8cab'; ctx.fillRect(0, 0, R.W, R.H);
-      ctx.globalAlpha = a; ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = '#a2abc4'; ctx.fillRect(0, 0, R.W, R.H);
+      ctx.globalAlpha = a * 0.55; ctx.globalCompositeOperation = 'color'; ctx.fillStyle = '#7e8cab'; ctx.fillRect(0, 0, R.W, R.H);
+      ctx.globalAlpha = a; ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = '#b6bdd0'; ctx.fillRect(0, 0, R.W, R.H);
       ctx.globalCompositeOperation = 'lighter'; const g = ctx.createLinearGradient(0, 0, 0, R.H); g.addColorStop(0, 'rgba(150,170,210,0.16)'); g.addColorStop(0.6, 'rgba(150,170,210,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, R.W, R.H);
     },
     red: (ctx, a) => {
@@ -281,6 +301,13 @@
       ctx.globalCompositeOperation = 'lighter'; const g = ctx.createLinearGradient(0, 0, 0, R.H); g.addColorStop(0, 'rgba(255,40,70,0.14)'); g.addColorStop(0.7, 'rgba(255,40,70,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, R.W, R.H);
     },
   };
+  const rampAt = (rp, t) => { let v = 1; for (const [a, sp] of rp || []) if (t >= a) v = sp; return v; };
+  function filmTime(rp, t) {
+    if (!rp) return t;
+    let ft = 0, last = 0, v = 1;
+    for (const [a, sp] of rp) { if (a >= t) break; ft += (a - last) * v; last = a; v = sp; }
+    return ft + (t - last) * v;
+  }
   const smooth = (k) => { k = Math.max(0, Math.min(1, k)); return k * k * k * (k * (k * 6 - 15) + 10); };
   function onScreen(F, who) {
     // A cast member's chest on screen, through the shot's zoom.

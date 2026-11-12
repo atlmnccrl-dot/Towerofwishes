@@ -992,7 +992,7 @@ VS.I18N.add("pt", {
 "Long ago, a white Moon kept the dead asleep.": "Há muito tempo, uma Lua branca mantinha os mortos adormecidos.",
 "Five kings kept her peace, one for each kingdom of the mountain.": "Cinco reis guardavam a sua paz, um para cada reino da montanha.",
 "Then a swordsman climbed the mountain.": "Então um espadachim subiu a montanha.",
-"He killed all five kings and took their souls.": "Ele matou os cinco reis e tomou as suas almas.",
+"He killed all five and took their souls.": "Matou os cinco e tomou as suas almas.",
 "With them he cut the Moon. Her light turned red.": "Com elas, cortou a Lua. A sua luz ficou vermelha.",
 "And red light wakes the dead.": "E a luz vermelha desperta os mortos.",
 "He chained each king's soul inside a monster.": "Acorrentou a alma de cada rei dentro de um monstro.",
@@ -1000,6 +1000,7 @@ VS.I18N.add("pt", {
 "THE ASH KING, CHAINED": "O REI DAS CINZAS, ACORRENTADO",
 "THE STORM KING, CHAINED": "O REI DA TEMPESTADE, ACORRENTADO",
 "Seven hundred years later, one knight still stands.": "Setecentos anos depois, uma cavaleira ainda está de pé.",
-"\"Kneel.\"": "«Ajoelha-te.»"
+"\"Kneel.\"": "«Ajoelha-te.»",
+"The five kings met him together.": "Os cinco reis enfrentaram-no juntos."
 },
   { tier: {"Iron": "ferro", "Steel": "aço", "Moonsteel": "aço lunar", "Bloodsteel": "aço sangrento", "Bone": "osso", "Silver": "prata", "Moon": "lua", "Blood": "sangue"}, base: {"Blade": "Lâmina", "Saber": "Sabre", "Axe": "Machado", "Spear": "Lança", "Greatsword": "Montante", "Coat": "Casaco", "Mail": "Cota", "Plate": "Couraça", "Cloak": "Capa", "Locket": "Medalhão", "Ring": "Anel", "Fang": "Presa", "Talisman": "Talismã"}, suf: {"of Edges": "dos Gumes", "of the Wall": "da Muralha", "of Warding": "da Proteção", "of the Moon": "da Lua", "of Thirst": "da Sede", "of Haste": "da Pressa", "of Wind": "do Vento", "of Patience": "da Paciência", "of Mending": "da Cura", "of Fortune": "da Fortuna"}, make: (b, t, s) => b + ' de ' + t + (s.length ? ' ' + s.join(' e ') : '') });

@@ -1034,7 +1034,7 @@ Une chevalière tient encore debout.
 Il y a longtemps, une Lune blanche gardait les morts endormis.
 Cinq rois gardaient sa paix, un pour chaque royaume de la montagne.
 Puis un épéiste gravit la montagne.
-Il tua les cinq rois et prit leurs âmes.
+Il les tua tous les cinq et prit leurs âmes.
 Avec elles, il trancha la Lune. Sa lumière devint rouge.
 Et la lumière rouge réveille les morts.
 Il enchaîna l'âme de chaque roi dans un monstre.
@@ -1043,3 +1043,5 @@ LE ROI DES CENDRES, ENCHAÎNÉ
 LE ROI DES TEMPÊTES, ENCHAÎNÉ
 Sept cents ans plus tard, une chevalière tient encore debout.
 « À genoux. »
+@1022
+Les cinq rois l'affrontèrent ensemble.

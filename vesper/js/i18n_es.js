@@ -996,7 +996,7 @@ VS.I18N.add("es", {
 "Long ago, a white Moon kept the dead asleep.": "Hace mucho, una Luna blanca mantenía dormidos a los muertos.",
 "Five kings kept her peace, one for each kingdom of the mountain.": "Cinco reyes guardaban su paz, uno por cada reino de la montaña.",
 "Then a swordsman climbed the mountain.": "Entonces un espadachín subió la montaña.",
-"He killed all five kings and took their souls.": "Mató a los cinco reyes y se llevó sus almas.",
+"He killed all five and took their souls.": "Los mató a los cinco y se llevó sus almas.",
 "With them he cut the Moon. Her light turned red.": "Con ellas cortó la Luna. Su luz se volvió roja.",
 "And red light wakes the dead.": "Y la luz roja despierta a los muertos.",
 "He chained each king's soul inside a monster.": "Encadenó el alma de cada rey dentro de un monstruo.",
@@ -1004,6 +1004,7 @@ VS.I18N.add("es", {
 "THE ASH KING, CHAINED": "EL REY DE CENIZA, ENCADENADO",
 "THE STORM KING, CHAINED": "EL REY DE LA TORMENTA, ENCADENADO",
 "Seven hundred years later, one knight still stands.": "Setecientos años después, una caballera sigue en pie.",
-"\"Kneel.\"": "«Arrodíllate.»"
+"\"Kneel.\"": "«Arrodíllate.»",
+"The five kings met him together.": "Los cinco reyes lo enfrentaron juntos."
 },
   { tier: {"Iron": "hierro", "Steel": "acero", "Moonsteel": "acero lunar", "Bloodsteel": "acero sangriento", "Bone": "hueso", "Silver": "plata", "Moon": "luna", "Blood": "sangre"}, base: {"Blade": "Hoja", "Saber": "Sable", "Axe": "Hacha", "Spear": "Lanza", "Greatsword": "Mandoble", "Coat": "Casaca", "Mail": "Cota", "Plate": "Coraza", "Cloak": "Capa", "Locket": "Relicario", "Ring": "Anillo", "Fang": "Colmillo", "Talisman": "Talismán"}, suf: {"of Edges": "de los Filos", "of the Wall": "del Muro", "of Warding": "de la Guarda", "of the Moon": "de la Luna", "of Thirst": "de la Sed", "of Haste": "de la Prisa", "of Wind": "del Viento", "of Patience": "de la Paciencia", "of Mending": "de la Curación", "of Fortune": "de la Fortuna"}, make: (b, t, s) => b + ' de ' + t + (s.length ? ' ' + s.join(' y ') : '') });

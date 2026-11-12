@@ -1034,7 +1034,7 @@ Uma cavaleira ainda está de pé.
 Há muito tempo, uma Lua branca mantinha os mortos adormecidos.
 Cinco reis guardavam a sua paz, um para cada reino da montanha.
 Então um espadachim subiu a montanha.
-Ele matou os cinco reis e tomou as suas almas.
+Matou os cinco e tomou as suas almas.
 Com elas, cortou a Lua. A sua luz ficou vermelha.
 E a luz vermelha desperta os mortos.
 Acorrentou a alma de cada rei dentro de um monstro.
@@ -1043,3 +1043,5 @@ O REI DAS CINZAS, ACORRENTADO
 O REI DA TEMPESTADE, ACORRENTADO
 Setecentos anos depois, uma cavaleira ainda está de pé.
 «Ajoelha-te.»
+@1022
+Os cinco reis enfrentaram-no juntos.
