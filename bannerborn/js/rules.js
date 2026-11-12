@@ -425,8 +425,8 @@
   // the horde is sized to the team that meets it: one hero faces a fifth of what five do, and a little less
   // (a lone hero has no healer and no shield beside them, so their foes also hit softer, and bosses and gates are
   // cut down further than the crowd is). By team size 0..5: how many come, how hard they hit, a boss's health, a gate's.
-  BB.TEAM_K = { count: [0.2, 0.2, 0.34, 0.52, 0.76, 1], atk: [0.5, 0.5, 0.56, 0.85, 1, 1.05], hp: [0.5, 0.5, 0.6, 0.72, 0.86, 1], boss: [0.1, 0.1, 0.14, 0.36, 0.68, 1], gate: [0.25, 0.25, 0.4, 0.6, 0.8, 1],
-    gates: [0.34, 0.34, 0.5, 0.67, 0.84, 1], cap: [2, 2, 4, 6, 8, 9], elite: [0, 0, 0.3, 0.55, 0.8, 1], // gates: how many of a stage's gates stand; cap: how many a gate keeps on the field; elite: how often one comes
+  BB.TEAM_K = { count: [0.2, 0.2, 0.34, 0.44, 0.72, 1], atk: [0.5, 0.5, 0.56, 0.62, 0.86, 1.05], hp: [0.5, 0.5, 0.6, 0.72, 0.86, 1], boss: [0.1, 0.1, 0.14, 0.36, 0.68, 1], gate: [0.25, 0.25, 0.4, 0.6, 0.8, 1],
+    gates: [0.34, 0.34, 0.5, 0.67, 0.84, 1], cap: [2, 2, 4, 5, 8, 9], elite: [0, 0, 0.3, 0.55, 0.8, 1], // gates: how many of a stage's gates stand; cap: how many a gate keeps on the field; elite: how often one comes
     crowd: [0, 0, 1, 2, 3, 4], wait: [5, 5, 2.4, 1.6, 1.2, 1] }; // crowd: a new wave waits until this few are left standing; wait: how much longer before it comes anyway
   BB.teamK = (what, n) => BB.TEAM_K[what][Math.max(0, Math.min(5, n | 0))];
   BB.waveScale = (n) => BB.teamK('count', n);
@@ -623,7 +623,7 @@
   // dead are raised, by how far into the campaign they are: [level, health x, damage x], read between the rows. The
   // far marches (levels 28 to 40) needed the most; the last land was already the tightest. A boss takes a part of
   // the raise (bossHp, bossAtk): it is its own measure.
-  BB.DIFF = { knots: [[1, 1.5, 2.0], [4, 2.8, 4.4], [6, 2.6, 4.0], [7, 2.0, 2.9], [9, 2.4, 3.6], [17, 2.4, 3.6], [22, 2.8, 4.4], [28, 3.4, 5.4], [40, 3.2, 5.0], [44, 2.6, 3.8], [47, 2.3, 3.3]], bossHp: 0.3, bossAtk: 0.2 };
+  BB.DIFF = { knots: [[1, 1.5, 2.0], [4, 2.8, 4.4], [6, 2.6, 4.0], [7, 2.0, 2.9], [9, 2.4, 3.6], [20, 2.4, 3.6], [21, 2.4, 3.3], [27, 2.5, 3.5], [28, 3.0, 4.2], [30, 2.9, 4.0], [32, 2.6, 3.6], [33, 2.2, 3.0], [42, 2.2, 3.0], [44, 1.8, 2.4], [47, 1.7, 2.2]], bossHp: 0.3, bossAtk: 0.2 };
   BB.diffAt = function (level) {
     const D = BB.DIFF; if (D.flat) return { hp: D.flat[0], atk: D.flat[1] };
     const K = D.knots; if (level <= K[0][0]) return { hp: K[0][1], atk: K[0][2] };

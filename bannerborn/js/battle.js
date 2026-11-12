@@ -116,7 +116,7 @@
       this.obj.text = 'Destroy the Gravegates';
     } else if (M.type === 'defend') {
       const w = m.wardSpot;
-      const hp = Math.round((1400 + M.level * 420) * (M.chapter > 4 ? 1.8 + (M.chapter - 5) * 0.45 : 1)); // the far marches' wards are built to last: their sieges are longer
+      const hp = Math.round((1400 + M.level * 420) * (M.chapter > 4 ? 1.8 + (M.chapter - 5) * 0.45 : M.chapter === 4 ? 1.5 : 1) * (1 + Math.max(0, this.teamN - 2) * 0.35)); // the far marches' wards are built to last: their sieges are longer
       this.ward = { id: 'ward', side: 'hero', ward: true, prop: true, x: w.x, y: w.y, r: 0.7, hp, maxhp: hp, def: 4, buffs: {}, name: { cart: 'Caravan', refugees: 'Refugees', cage: 'Witch\'s Cage' }[M.ward] || 'Ward', dir: 0, sc: 1 };
       this.ents.push(this.ward);
       this.obj.timeLeft = M.time; this.obj.text = 'Protect the ' + this.ward.name;
