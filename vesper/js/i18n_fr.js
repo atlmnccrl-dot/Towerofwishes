@@ -973,6 +973,15 @@ VS.I18N.add("fr", {
 "At dawn she dies, and the dead never sleep again.": "À l'aube elle meurt, et les morts ne dorment plus jamais.",
 "THE MOON'S LAST KNIGHT": "LA DERNIÈRE CHEVALIÈRE DE LA LUNE",
 "FREE THE KINGS": "LIBÈRE LES ROIS",
-"FREE THE FIVE KINGS": "LIBÈRE LES CINQ ROIS"
+"FREE THE FIVE KINGS": "LIBÈRE LES CINQ ROIS",
+"Five kingdoms stood on the Spire, beneath the white Moon.": "Cinq royaumes se dressaient sur la Flèche, sous la Lune blanche.",
+"The Moon kept the dead asleep, and five kings kept her peace.": "La Lune gardait les morts endormis, et cinq rois veillaient sur sa paix.",
+"Then a swordsman came up the mountain.": "Puis un bretteur gravit la montagne.",
+"He cut down every king, and took their souls.": "Il abattit chaque roi et prit leurs âmes.",
+"With their souls, he cut the Moon.": "Avec leurs âmes, il trancha la Lune.",
+"Her light turned red, and the dead awoke.": "Sa lumière devint rouge, et les morts s'éveillèrent.",
+"He bound each king inside a guardian, to bar the way up.": "Il enferma chaque roi dans un gardien, pour barrer la montée.",
+"Seven hundred years later, the Moon is bleeding out.": "Sept cents ans plus tard, la Lune se vide de son sang.",
+"One knight still stands.": "Une chevalière tient encore debout."
 },
   { tier: {"Iron": "fer", "Steel": "acier", "Moonsteel": "acier lunaire", "Bloodsteel": "acier sanglant", "Bone": "os", "Silver": "argent", "Moon": "lune", "Blood": "sang"}, base: {"Blade": "Lame", "Saber": "Sabre", "Axe": "Hache", "Spear": "Lance", "Greatsword": "Espadon", "Coat": "Veste", "Mail": "Cotte", "Plate": "Cuirasse", "Cloak": "Cape", "Locket": "Médaillon", "Ring": "Anneau", "Fang": "Croc", "Talisman": "Talisman"}, suf: {"of Edges": "des Tranchants", "of the Wall": "du Rempart", "of Warding": "de la Garde", "of the Moon": "de la Lune", "of Thirst": "de la Soif", "of Haste": "de la Hâte", "of Wind": "du Vent", "of Patience": "de la Patience", "of Mending": "de la Guérison", "of Fortune": "de la Fortune"}, make: (b, t, s) => b + (/^[aeiouh]/.test(t) ? " d'" : ' de ') + t + (s.length ? ' ' + s.join(' et ') : '') });

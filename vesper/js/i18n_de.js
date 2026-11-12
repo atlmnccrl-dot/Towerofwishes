@@ -974,6 +974,15 @@ VS.I18N.add("de", {
 "At dawn she dies, and the dead never sleep again.": "Im Morgengrauen stirbt er, und die Toten schlafen nie wieder.",
 "THE MOON'S LAST KNIGHT": "DIE LETZTE RITTERIN DES MONDES",
 "FREE THE KINGS": "BEFREIE DIE KÖNIGE",
-"FREE THE FIVE KINGS": "BEFREIE DIE FÜNF KÖNIGE"
+"FREE THE FIVE KINGS": "BEFREIE DIE FÜNF KÖNIGE",
+"Five kingdoms stood on the Spire, beneath the white Moon.": "Fünf Königreiche standen auf der Nadel, unter dem weißen Mond.",
+"The Moon kept the dead asleep, and five kings kept her peace.": "Der Mond hielt die Toten im Schlaf, und fünf Könige wahrten seinen Frieden.",
+"Then a swordsman came up the mountain.": "Dann stieg ein Schwertkämpfer den Berg hinauf.",
+"He cut down every king, and took their souls.": "Er streckte jeden König nieder und nahm ihre Seelen.",
+"With their souls, he cut the Moon.": "Mit ihren Seelen schnitt er den Mond.",
+"Her light turned red, and the dead awoke.": "Sein Licht wurde rot, und die Toten erwachten.",
+"He bound each king inside a guardian, to bar the way up.": "Er sperrte jeden König in einen Wächter, um den Weg nach oben zu versperren.",
+"Seven hundred years later, the Moon is bleeding out.": "Siebenhundert Jahre später blutet der Mond aus.",
+"One knight still stands.": "Eine Ritterin steht noch."
 },
   { tier: {"Iron": "Eisen", "Steel": "Stahl", "Moonsteel": "Mondstahl", "Bloodsteel": "Blutstahl", "Bone": "Knochen", "Silver": "Silber", "Moon": "Mond", "Blood": "Blut"}, base: {"Blade": "Klinge", "Saber": "Säbel", "Axe": "Axt", "Spear": "Speer", "Greatsword": "Großschwert", "Coat": "Mantel", "Mail": "Kettenhemd", "Plate": "Plattenpanzer", "Cloak": "Umhang", "Locket": "Medaillon", "Ring": "Ring", "Fang": "Fangzahn", "Talisman": "Talisman"}, suf: {"of Edges": "der Schneiden", "of the Wall": "des Walls", "of Warding": "des Schutzes", "of the Moon": "des Mondes", "of Thirst": "des Durstes", "of Haste": "der Eile", "of Wind": "des Windes", "of Patience": "der Geduld", "of Mending": "der Heilung", "of Fortune": "des Glücks"}, make: (b, t, s) => t + b.toLowerCase() + (s.length ? ' ' + s.join(' und ') : '') });
