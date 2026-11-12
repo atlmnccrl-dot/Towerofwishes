@@ -1005,6 +1005,8 @@ VS.I18N.add("es", {
 "THE STORM KING, CHAINED": "EL REY DE LA TORMENTA, ENCADENADO",
 "Seven hundred years later, one knight still stands.": "Setecientos años después, una caballera sigue en pie.",
 "\"Kneel.\"": "«Arrodíllate.»",
-"The five kings met him together.": "Los cinco reyes lo enfrentaron juntos."
+"The five kings met him together.": "Los cinco reyes lo enfrentaron juntos.",
+"The five kings met him with their armies.": "Los cinco reyes lo enfrentaron con sus ejércitos.",
+"Ice, storm, fire and shadow. Nothing touched him.": "Hielo, tormenta, fuego y sombra. Nada lo tocó."
 },
   { tier: {"Iron": "hierro", "Steel": "acero", "Moonsteel": "acero lunar", "Bloodsteel": "acero sangriento", "Bone": "hueso", "Silver": "plata", "Moon": "luna", "Blood": "sangre"}, base: {"Blade": "Hoja", "Saber": "Sable", "Axe": "Hacha", "Spear": "Lanza", "Greatsword": "Mandoble", "Coat": "Casaca", "Mail": "Cota", "Plate": "Coraza", "Cloak": "Capa", "Locket": "Relicario", "Ring": "Anillo", "Fang": "Colmillo", "Talisman": "Talismán"}, suf: {"of Edges": "de los Filos", "of the Wall": "del Muro", "of Warding": "de la Guarda", "of the Moon": "de la Luna", "of Thirst": "de la Sed", "of Haste": "de la Prisa", "of Wind": "del Viento", "of Patience": "de la Paciencia", "of Mending": "de la Curación", "of Fortune": "de la Fortuna"}, make: (b, t, s) => b + ' de ' + t + (s.length ? ' ' + s.join(' y ') : '') });

@@ -1045,3 +1045,6 @@ Setecientos años después, una caballera sigue en pie.
 «Arrodíllate.»
 @1022
 Los cinco reyes lo enfrentaron juntos.
+@1023
+Los cinco reyes lo enfrentaron con sus ejércitos.
+Hielo, tormenta, fuego y sombra. Nada lo tocó.

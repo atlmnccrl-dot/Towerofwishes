@@ -27,7 +27,7 @@ const film = (i, t) => ({ run: async (pg) => { await pg.evaluate(([i, t]) => { V
 const SHOTS = [
   ['01_kings', film(1, 3.0)],
   ['02_horde', fight('a3-3', 9000)],
-  ['03_spell', film(5, 3.4)],
+  ['03_spell', film(4, 2.4)],
   ['04_guardian', fight('a3-b', 12000)],
   ['05_map', { run: async (pg) => { await pg.evaluate(() => VS.main.map(VS.PROG.nextNode(VS.main.save))); await pg.waitForTimeout(2500); } }],
   ['06_souls', { run: async (pg) => { await pg.evaluate(() => VS.main.souls()); await pg.waitForTimeout(2000); } }],

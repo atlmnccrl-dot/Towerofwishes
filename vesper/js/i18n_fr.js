@@ -995,6 +995,8 @@ VS.I18N.add("fr", {
 "THE STORM KING, CHAINED": "LE ROI DES TEMPÊTES, ENCHAÎNÉ",
 "Seven hundred years later, one knight still stands.": "Sept cents ans plus tard, une chevalière tient encore debout.",
 "\"Kneel.\"": "« À genoux. »",
-"The five kings met him together.": "Les cinq rois l'affrontèrent ensemble."
+"The five kings met him together.": "Les cinq rois l'affrontèrent ensemble.",
+"The five kings met him with their armies.": "Les cinq rois l'affrontèrent avec leurs armées.",
+"Ice, storm, fire and shadow. Nothing touched him.": "Glace, tempête, feu et ombre. Rien ne l'atteignit."
 },
   { tier: {"Iron": "fer", "Steel": "acier", "Moonsteel": "acier lunaire", "Bloodsteel": "acier sanglant", "Bone": "os", "Silver": "argent", "Moon": "lune", "Blood": "sang"}, base: {"Blade": "Lame", "Saber": "Sabre", "Axe": "Hache", "Spear": "Lance", "Greatsword": "Espadon", "Coat": "Veste", "Mail": "Cotte", "Plate": "Cuirasse", "Cloak": "Cape", "Locket": "Médaillon", "Ring": "Anneau", "Fang": "Croc", "Talisman": "Talisman"}, suf: {"of Edges": "des Tranchants", "of the Wall": "du Rempart", "of Warding": "de la Garde", "of the Moon": "de la Lune", "of Thirst": "de la Soif", "of Haste": "de la Hâte", "of Wind": "du Vent", "of Patience": "de la Patience", "of Mending": "de la Guérison", "of Fortune": "de la Fortune"}, make: (b, t, s) => b + (/^[aeiouh]/.test(t) ? " d'" : ' de ') + t + (s.length ? ' ' + s.join(' et ') : '') });

@@ -996,6 +996,8 @@ VS.I18N.add("de", {
 "THE STORM KING, CHAINED": "DER STURMKÖNIG, GEKETTET",
 "Seven hundred years later, one knight still stands.": "Siebenhundert Jahre später steht noch eine Ritterin.",
 "\"Kneel.\"": "„Knie nieder.“",
-"The five kings met him together.": "Die fünf Könige stellten sich ihm gemeinsam."
+"The five kings met him together.": "Die fünf Könige stellten sich ihm gemeinsam.",
+"The five kings met him with their armies.": "Die fünf Könige stellten sich ihm mit ihren Heeren.",
+"Ice, storm, fire and shadow. Nothing touched him.": "Eis, Sturm, Feuer und Schatten. Nichts berührte ihn."
 },
   { tier: {"Iron": "Eisen", "Steel": "Stahl", "Moonsteel": "Mondstahl", "Bloodsteel": "Blutstahl", "Bone": "Knochen", "Silver": "Silber", "Moon": "Mond", "Blood": "Blut"}, base: {"Blade": "Klinge", "Saber": "Säbel", "Axe": "Axt", "Spear": "Speer", "Greatsword": "Großschwert", "Coat": "Mantel", "Mail": "Kettenhemd", "Plate": "Plattenpanzer", "Cloak": "Umhang", "Locket": "Medaillon", "Ring": "Ring", "Fang": "Fangzahn", "Talisman": "Talisman"}, suf: {"of Edges": "der Schneiden", "of the Wall": "des Walls", "of Warding": "des Schutzes", "of the Moon": "des Mondes", "of Thirst": "des Durstes", "of Haste": "der Eile", "of Wind": "des Windes", "of Patience": "der Geduld", "of Mending": "der Heilung", "of Fortune": "des Glücks"}, make: (b, t, s) => t + b.toLowerCase() + (s.length ? ' ' + s.join(' und ') : '') });

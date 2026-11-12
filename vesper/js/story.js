@@ -137,51 +137,84 @@
     for (const id of ids) ev.push([t, { type: 'hurt', on: id }], [t, { type: 'pk', name: o.pk || 'v_slash', on: id, z: 24, scale: o.scale || 1.3 }], [t, { type: 'pk', name: 'v_blood', on: id, z: 22, scale: 1.4 }], [t + 0.05, { type: 'pk', name: 'v_impact', on: id, z: 20, scale: 1.1 }]);
     return ev;
   };
-  // Shot A: the kings at once. The Black Gate and the Frost King charge from both sides and he cuts them down in one
-  // turn; the King under the Stair casts and he rolls clear, then dashes through him; the Ash King's axe meets his
-  // blade in a parry, and the counter kills him. The Storm King watches, and raises his sword.
-  const A0 = G(0, 0), A = { k0: G(-80, 10), k1: G(78, 20), k2: G(10, -85), k3: G(-58, -55), k4: G(72, -62) };
-  const FA = holds(4.7, [[1.25, 0.45, 0.07], [2.68, 0.35, 0.1], [3.5, 0.3, 0.15], [4.0, 0.45, 0.07]]);
-  const fightA = { k: 'film', stage: 5, area: 'last', d: FA.d, ramp: FA.ramp, grade: 'silver', say: 'The five kings met him together.', sayAt: 0.2,
+  // P(r, deg): a point r from the middle of the floor at an angle on screen (0 to the right, 90 toward the camera).
+  const P = (r, deg) => G(r * Math.cos(deg * Math.PI / 180), r * Math.sin(deg * Math.PI / 180));
+  const big = (t, on, o) => [[t, { type: 'impact', dur: (o && o.dur) || 0.18, on }], [t, { type: 'sfx', name: 'quake', v: 0.7 }]];
+  const cb = (name, t, where, scale, z) => [t, Object.assign({ type: 'pk', name: 'cb:' + name, z: z || 0, scale: scale || 1 }, typeof where === 'string' ? { on: where } : { x: where[0], y: where[1] })];
+  // Shot A: the armies. The five kings watch from the far side while their guards close on him from every side. He
+  // turns once, and seven of them are thrown back dead; he cuts the last three down in three dashes, then points his
+  // sword at the kings.
+  const GUARDS = KINGS.flatMap((k) => k.guards), RING = GUARDS.map((g, i) => 18 + 36 * i), LATE = { 0: 1, 2: 1, 4: 1 };
+  const FA = holds(4.4, [[1.25, 0.6, 0.05], [1.95, 0.14, 0.12], [2.28, 0.14, 0.12], [2.62, 0.45, 0.06]]);
+  const dashA = [[1.75, 1.9, P(30, 18)], [2.1, 2.23, P(32, 90)], [2.42, 2.56, P(32, 162)]];
+  const lateKill = { 0: [1.95, 1.4, 1.95, 48], 2: [2.28, 1.5, 2.25, 52], 4: [2.62, 1.6, 2.6, 50] };   // hit, charge from, arrive, radius
+  const fightA = { k: 'film', stage: 5, area: 'last', d: FA.d, ramp: FA.ramp, grade: 'silver', say: 'The five kings met him with their armies.', sayAt: 0.3,
+    cast: [{ who: 'firstCut', id: 'fc', at: [0, 0], face: 'g1', clip: 'Idle4',
+        path: [[0, 0, 0], [1.75, 0, 0]].concat(dashA.flatMap(([a, b, p], i) => [[a, ...(i ? dashA[i - 1][2] : [0, 0])], [b, ...p]])),
+        acts: [[0.3, 'Special1', 0.7, 12], [1.05, 'Attack6', 0.7, 16], [1.82, 'Attack2', 0.4, 18], [2.16, 'Attack3', 0.4, 18], [2.5, 'Attack2', 0.5, 18], [3.2, 'C_Command', 1.2, 8]] }]
+      .concat(GUARDS.map((set, i) => {
+        const a = RING[i], lk = lateKill[i];
+        if (lk) return { who: 'ghoul', id: 'g' + i, set, at: P(92, a), face: 'fc', run: true, die: lk[0], linger: 2,
+          path: [[0, ...P(92, a)], [lk[1], ...P(92, a)], [lk[2], ...P(lk[3], a)], [lk[0] + 0.02, ...P(lk[3], a)], [lk[0] + 0.4, ...P(lk[3] + 34, a)]], acts: [[lk[2] - 0.2, 'Attack1', 0.3, 16]] };
+        return { who: 'ghoul', id: 'g' + i, set, at: P(92, a), face: 'fc', run: true, die: 1.27, linger: 2.2,
+          path: [[0, ...P(92, a)], [0.7, ...P(92, a)], [1.2, ...P(24, a)], [1.27, ...P(24, a)], [1.8, ...P(112, a)]], acts: [[1.05, i % 2 ? 'Attack1' : 'Attack2', 0.3, 16]] };
+      }), KINGS.map((k, i) => ({ who: 'ghoul', id: 'k' + i, set: k.set, at: P(122, 215 + i * 27.5), face: 'fc',
+        path: [[0, ...P(122, 215 + i * 27.5)], [3.0, ...P(122, 215 + i * 27.5)], [4.2, ...P(100, 215 + i * 27.5)]], acts: [[0.2 + i * 0.25, 'Taunt', 0.8, 10]] }))),
+    ev: [].concat([[0.35, { type: 'pk', name: 'charge_up', on: 'fc', z: 10 }], [0.35, { type: 'sfx', name: 'charge', v: 0.7 }], [0.7, { type: 'sfx', name: 'step_2', v: 0.8 }], [1.0, { type: 'sfx', name: 'swish_2', v: 1 }]],
+      big(1.25), [cb('02_roaring_blade_nova/target', 1.25, 'fc', 1.5, 10)], [[1.26, { type: 'pk', name: 'v_shock', on: 'fc', scale: 2.2 }], [1.26, { type: 'pk', name: 'v_crack', on: 'fc', scale: 1.7 }]],
+      hit(1.27, RING.map((_, i) => 'g' + i).filter((_, i) => !LATE[i]), { flash: 0.8, punch: 0.1, shake: 18, scale: 1.2 }),
+      [[1.75, { type: 'sfx', name: 'whoosh', v: 0.9 }], [2.1, { type: 'sfx', name: 'whoosh', v: 0.9 }], [2.42, { type: 'sfx', name: 'whoosh', v: 1 }]],
+      hit(1.95, ['g0'], { shake: 8 }), hit(2.28, ['g2'], { shake: 8 }), hit(2.62, ['g4'], { flash: 0.7, shake: 13 }), big(2.62, 'g4', { dur: 0.12 }),
+      [[3.25, { type: 'sfx', name: 'unsheathe_01', v: 0.6 }], [3.3, { type: 'pk', name: 'fc_glint', on: 'fc', z: 40 }]]),
+    cam: { follow: 'fc', off: G(0, -24), zoom: [2.0, 2.45], lift: 22, lag: 3 }, light: { on: [0.5, 0.5], r: 0.85, dark: 0.5 } };
+
+  // Shot B: the kings' powers. The Frost King's ice bursts where he stood; the Storm King calls lightning down after
+  // him, strike after strike, a step behind each dash; his crescent cuts through the Frost King and the King of the
+  // Black Gate behind him in one stroke; the Ash King leaps in and slams the ground in fire, and he rolls clear and
+  // dashes through him; the King under the Stair's ghostfire he strikes back into its caster.
+  const KB = { k0: P(122, 200), k1: P(78, 200), k2: P(100, 25), k3: P(98, 140), k4: P(104, 300) };
+  const D1 = P(50, 60), D2 = P(48, 118), D3 = P(42, 172), D4 = P(18, 250), D5 = P(58, 300), ASH = P(8, 222);
+  const THRU = [Math.round(ASH[0] + (ASH[0] - D5[0]) * 0.9), Math.round(ASH[1] + (ASH[1] - D5[1]) * 0.9)];
+  const FB = holds(5.3, [[1.22, 0.12, 0.2], [1.52, 0.12, 0.2], [1.82, 0.12, 0.2], [2.3, 0.55, 0.05], [3.25, 0.3, 0.1], [3.78, 0.4, 0.07], [4.77, 0.45, 0.06]]);
+  const fightB = { k: 'film', stage: 5, area: 'last', d: FB.d, ramp: FB.ramp, grade: 'silver', say: 'Ice, storm, fire and shadow. Nothing touched him.', sayAt: 0.4,
     cast: [
-      { who: 'firstCut', id: 'fc', at: A0, face: 'k0', clip: 'Idle4',
-        path: [[0, ...A0], [2.0, ...A0], [2.36, ...G(-30, 20)], [2.47, ...G(-30, 20)], [2.64, ...G(-2, -66)], [3.8, ...G(-2, -66)], [3.95, ...G(-16, -58)]],
-        acts: [[1.02, 'Attack6', 0.7, 16], [2.0, 'Rolling', 0.36, 40], [2.5, 'Attack3', 0.5, 18], [3.36, 'Attack1', 0.45, 16], [3.8, 'Attack2', 0.6, 18]] },
-      { who: 'ghoul', id: 'k0', set: KINGS[0].set, at: A.k0, face: 'fc', path: [[0, ...A.k0], [0.6, ...A.k0], [1.15, ...G(-22, 4)], [1.3, ...G(-22, 4)], [1.7, ...G(-64, 16)]],
-        acts: [[0.1, 'Taunt', 0.5, 10], [1.0, 'Attack1', 0.3, 16]], die: 1.3, linger: 2.6, run: true },
-      { who: 'ghoul', id: 'k1', set: KINGS[1].set, at: A.k1, face: 'fc', path: [[0, ...A.k1], [0.6, ...A.k1], [1.15, ...G(20, 6)], [1.3, ...G(20, 6)], [1.7, ...G(62, 22)]],
-        acts: [[1.0, 'Attack2', 0.3, 16]], die: 1.3, linger: 2.6, run: true },
-      { who: 'ghoul', id: 'k2', set: KINGS[2].set, at: A.k2, face: 'fc', path: [[0, ...A.k2], [2.7, ...A.k2], [3.0, ...G(16, -104)]],
-        acts: [[1.66, 'Attack3', 0.6, 14]], die: 2.7, linger: 1.8 },
-      { who: 'ghoul', id: 'k3', set: KINGS[3].set, at: A.k3, face: 'fc', path: [[0, ...A.k3], [3.0, ...A.k3], [3.38, ...G(-20, -64)], [3.5, ...G(-20, -64)], [3.7, ...G(-34, -60)], [4.0, ...G(-34, -60)], [4.3, ...G(-56, -56)]],
-        acts: [[0.2, 'Taunt', 0.6, 10], [3.22, 'Attack4', 0.4, 16], [3.5, 'TakeDamage', 0.35, 20]], die: 4.0, linger: 2, run: true },
-      { who: 'ghoul', id: 'k4', set: KINGS[4].set, at: A.k4, face: 'fc', acts: [[4.1, 'Taunt', 0.6, 10]] }],
-    bolts: [{ at: 1.95, from: 'k2', to: A0, dur: 0.32, fx: 'fireball_arcane', big: true }],
+      { who: 'firstCut', id: 'fc', at: [0, 0], face: 'k1', clip: 'Idle4',
+        path: [[0, 0, 0], [0.45, 0, 0], [0.6, ...D1], [1.05, ...D1], [1.18, ...D2], [1.35, ...D2], [1.48, ...D3], [1.65, ...D3], [1.78, ...D4], [3.1, ...D4], [3.42, ...D5], [3.55, ...D5], [3.72, ...THRU]],
+        acts: [[2.0, 'Attack5', 0.55, 16], [3.1, 'Rolling', 0.36, 40], [3.58, 'Attack3', 0.4, 18], [4.42, 'Attack1', 0.35, 18]] },
+      { who: 'ghoul', id: 'k0', set: KINGS[0].set, at: KB.k0, face: 'fc', die: 2.38, linger: 2, path: [[0, ...KB.k0], [2.38, ...KB.k0], [2.8, ...P(150, 200)]] },
+      { who: 'ghoul', id: 'k1', set: KINGS[1].set, at: KB.k1, face: 'fc', die: 2.3, linger: 2, path: [[0, ...KB.k1], [2.3, ...KB.k1], [2.7, ...P(108, 200)]], acts: [[0.15, 'Special1', 0.8, 12]] },
+      { who: 'ghoul', id: 'k2', set: KINGS[2].set, at: KB.k2, face: 'fc', die: 4.77, linger: 2, path: [[0, ...KB.k2], [4.77, ...KB.k2], [5.1, ...P(130, 25)]], acts: [[3.95, 'Attack3', 0.5, 14]] },
+      { who: 'ghoul', id: 'k3', set: KINGS[3].set, at: KB.k3, face: 'fc', die: 3.78, linger: 2, path: [[0, ...KB.k3], [2.8, ...KB.k3], [3.25, ...ASH], [3.78, ...ASH], [4.1, ...P(30, 222)]], hop: [[2.8, 3.25, 46]], acts: [[2.75, 'Attack4', 0.6, 14], [3.6, 'TakeDamage', 0.3, 16]] },
+      { who: 'ghoul', id: 'k4', set: KINGS[4].set, at: KB.k4, face: 'fc', acts: [[0.95, 'Attack3', 0.9, 12]] }],
+    bolts: [{ at: 2.12, from: 'fc', to: P(170, 200), dur: 0.36, fx: 'dark_slash', big: true }, { at: 4.22, from: 'k2', to: 'fc', dur: 0.3, fx: 'fireball_arcane', big: true }, { at: 4.55, from: 'fc', to: 'k2', dur: 0.22, fx: 'fireball_arcane', big: true, reflected: true }],
     ev: [].concat(
-      [[0.6, { type: 'sfx', name: 'step_2', v: 0.7 }], [0.95, { type: 'sfx', name: 'swish_1', v: 0.9 }]],
-      hit(1.25, ['k0', 'k1'], { flash: 0.7, punch: 0.09, shake: 12, scale: 1.6 }),
-      [[1.75, { type: 'sfx', name: 'magic', v: 0.8 }], [2.27, { type: 'pk', name: 'v_blast', x: A0[0], y: A0[1], scale: 1.3 }],
-        [2.27, { type: 'sfx', name: 'bolt', v: 1 }], [2.27, { type: 'shake', n: 8 }], [2.0, { type: 'sfx', name: 'whoosh', v: 0.7 }], [2.47, { type: 'sfx', name: 'whoosh', v: 0.9 }]],
-      hit(2.68, ['k2']),
-      [[3.25, { type: 'sfx', name: 'swish_2', v: 0.9 }], [3.5, { type: 'flash', a: 0.8, col: '255,250,230' }], [3.5, { type: 'punch', n: 0.08 }], [3.5, { type: 'shake', n: 12 }],
-        [3.5, { type: 'sfx', name: 'clang_1', v: 1 }], [3.5, { type: 'pk', name: 'v_impact', x: G(-10, -65)[0], y: G(-10, -65)[1], z: 30, scale: 1.6 }], [3.52, { type: 'pk', name: 'hit_crit', x: G(-10, -65)[0], y: G(-10, -65)[1], z: 30 }]],
-      hit(4.0, ['k3'], { flash: 0.6, shake: 11 })),
-    cam: { follow: 'fc', off: G(0, -14), zoom: [2.55, 2.75], lift: 22, lag: 3.2 }, light: { on: [0.5, 0.52], r: 0.8, dark: 0.55 } };
-  // Shot B: the last king. They run at each other, cross blades in a white flash, and come to rest back to back. A beat;
-  // then the Storm King falls.
-  const FB = holds(3.7, [[1.05, 0.55, 0.05], [2.55, 0.5, 0.35]]);
-  const fightB = { k: 'film', stage: 5, area: 'last', d: FB.d, ramp: FB.ramp, grade: 'silver', say: 'He killed all five and took their souls.', sayAt: FB.d - 1.9,
+      [[0.5, { type: 'pk', name: 'hit_ice', x: 0, y: 0, z: 12, scale: 2.2 }], [0.5, { type: 'pk', name: 'frost_nova', x: 0, y: 0, scale: 2.4 }], [0.5, { type: 'flash', a: 0.5, col: '210,235,255' }], [0.55, { type: 'pk', name: 'ice_shard', x: 0, y: 0, z: 6, scale: 1.8 }], [0.5, { type: 'pk', name: 'v_frost', x: 0, y: 0, scale: 1.5 }], [0.5, { type: 'sfx', name: 'v_ice', v: 1 }], [0.5, { type: 'shake', n: 8 }], [0.45, { type: 'sfx', name: 'whoosh', v: 0.8 }]],
+      [[1.22, D1], [1.52, D2], [1.82, D3]].flatMap(([t, p]) => [cb('101_skyfall_thunder/target', t, p, 1.3), [t, { type: 'flash', a: 0.6, col: '200,220,255' }], [t, { type: 'shake', n: 11 }], [t, { type: 'sfx', name: 'bolt', v: 1 }], [t - 0.15, { type: 'sfx', name: 'whoosh', v: 0.7 }]]),
+      [[2.05, { type: 'sfx', name: 'swish_2', v: 1 }], [2.1, { type: 'pk', name: 'fc_crescent', on: 'fc', z: 24, scale: 1.4 }]],
+      hit(2.3, ['k1'], { flash: 0.7, shake: 14 }), hit(2.38, ['k0'], { shake: 10 }), big(2.3, 'k1'),
+      [cb('10_quake_stomp/target', 3.25, ASH, 1.4), [3.25, { type: 'pk', name: 'explosion_fire', x: ASH[0], y: ASH[1], scale: 1.6 }], [3.26, { type: 'pk', name: 'v_crack', x: ASH[0], y: ASH[1], scale: 1.6 }],
+        [3.25, { type: 'shake', n: 18 }], [3.25, { type: 'punch', n: 0.1 }], [3.25, { type: 'sfx', name: 'quake', v: 1 }], [3.25, { type: 'sfx', name: 'v_fire', v: 1 }], [3.55, { type: 'sfx', name: 'whoosh', v: 1 }]],
+      [cb('107_flashpoint_severance/target', 3.74, 'k3', 1.2, 20)], hit(3.78, ['k3'], { flash: 0.6, shake: 12 }),
+      [cb('11_ghostfire_hex/caster', 4.0, 'k2', 1.1), [4.0, { type: 'sfx', name: 'magic', v: 0.9 }], [4.55, { type: 'sfx', name: 'clang_1', v: 1 }], [4.55, { type: 'pk', name: 'parry', on: 'fc', z: 26, scale: 1.5 }], [4.55, { type: 'flash', a: 0.5, col: '255,250,230' }]],
+      [cb('54_greater_fireball/target', 4.77, 'k2', 1.3)], hit(4.77, ['k2'], { flash: 0.8, shake: 16, punch: 0.1 }), big(4.77, 'k2', { dur: 0.14 })),
+    cam: { follow: 'fc', off: G(0, -12), zoom: [2.3, 2.45], lift: 22, lag: 2.6 }, light: { on: [0.5, 0.5], r: 0.85, dark: 0.5 } };
+
+  // Shot C: the last king. Lightning cracks behind them; they run at each other, cross blades in an impact frame, and
+  // come to rest back to back. A beat; then the Storm King falls.
+  const FC2 = holds(3.7, [[1.05, 0.6, 0.04], [2.55, 0.5, 0.35]]);
+  const fightC = { k: 'film', stage: 5, area: 'last', d: FC2.d, ramp: FC2.ramp, grade: 'silver', say: 'He killed all five and took their souls.', sayAt: FC2.d - 1.9,
     cast: [
       { who: 'firstCut', id: 'fc', at: G(-75, 8), face: 'k4', clip: 'Idle4', path: [[0, ...G(-75, 8)], [0.5, ...G(-75, 8)], [1.0, ...G(-8, 2)], [1.08, ...G(-8, 2)], [1.32, ...G(58, -6)]],
         acts: [[0.85, 'Attack3', 0.5, 18]], run: true },
       { who: 'ghoul', id: 'k4', set: KINGS[4].set, at: G(75, -8), face: 'fc', path: [[0, ...G(75, -8)], [0.5, ...G(75, -8)], [1.0, ...G(8, -2)], [1.08, ...G(8, -2)], [1.32, ...G(-48, 6)]],
-        acts: [[0.1, 'Taunt', 0.4, 10], [0.85, 'Attack2', 0.5, 18], [2.25, 'TakeDamage', 0.3, 16]], die: 2.55, linger: 3, run: true }],
-    ev: [[0.5, { type: 'sfx', name: 'step_2', v: 0.8 }], [0.9, { type: 'sfx', name: 'swish_2', v: 1 }],
-      [1.05, { type: 'flash', a: 1, col: '255,255,255' }], [1.05, { type: 'punch', n: 0.1 }], [1.05, { type: 'shake', n: 14 }], [1.05, { type: 'sfx', name: 'clang_1', v: 1 }], [1.06, { type: 'sfx', name: 'blow_big', v: 1 }],
-      [1.05, { type: 'pk', name: 'v_impact', x: 0, y: 0, z: 30, scale: 2.0 }], [1.06, { type: 'pk', name: 'hit_crit', x: 0, y: 0, z: 30, scale: 1.4 }],
-      [2.5, { type: 'pk', name: 'v_blood', on: 'k4', z: 24, scale: 1.8 }], [2.5, { type: 'pk', name: 'v_slash', on: 'k4', z: 26, scale: 1.5 }], [2.5, { type: 'sfx', name: 'slash_2', v: 1 }], [2.5, { type: 'flash', a: 0.4, col: '255,220,220' }],
+        acts: [[0.1, 'Attack3', 0.4, 12], [0.85, 'Attack2', 0.5, 18], [2.25, 'TakeDamage', 0.3, 16]], die: 2.55, linger: 3, run: true }],
+    ev: [cb('101_skyfall_thunder/target', 0.15, G(-30, -70), 1.2), [0.15, { type: 'sfx', name: 'bolt', v: 0.8 }], [0.15, { type: 'flash', a: 0.4, col: '200,220,255' }],
+      cb('101_skyfall_thunder/target', 0.42, G(40, -80), 1.2), [0.42, { type: 'sfx', name: 'bolt', v: 0.8 }], [0.5, { type: 'sfx', name: 'step_2', v: 0.8 }], [0.9, { type: 'sfx', name: 'swish_2', v: 1 }],
+      [1.05, { type: 'impact', dur: 0.24 }], [1.05, { type: 'punch', n: 0.12 }], [1.05, { type: 'shake', n: 16 }], [1.05, { type: 'sfx', name: 'clang_1', v: 1 }], [1.06, { type: 'sfx', name: 'blow_big', v: 1 }],
+      [1.05, { type: 'pk', name: 'v_impact', x: 0, y: 0, z: 30, scale: 2.2 }], [1.06, { type: 'pk', name: 'v_shock', x: 0, y: 0, scale: 2 }],
+      cb('90_last_stand_strike/target', 2.5, 'k4', 1.2, 10), [2.5, { type: 'pk', name: 'v_blood', on: 'k4', z: 24, scale: 1.8 }], [2.5, { type: 'sfx', name: 'slash_2', v: 1 }], [2.5, { type: 'flash', a: 0.4, col: '255,220,220' }],
       [2.9, { type: 'pk', name: 'v_soul', on: 'k4', z: 10 }], [2.9, { type: 'sfx', name: 'soul', v: 0.7 }]],
-    cam: { at: [0, 0], to: [0, 0], zoom: [2.6, 3.2], lift: 24 }, light: { on: [0.5, 0.52], r: 0.7, dark: 0.6 } };
+    cam: { at: [0, 0], to: [0, 0], zoom: [2.6, 3.2], lift: 24, push: 0.22 }, light: { on: [0.5, 0.52], r: 0.7, dark: 0.6 } };
 
   S.OPENING = { hint: true, shots: [
     Object.assign({ k: 'film', stage: 5, area: 'last', d: 5.6, grade: 'silver', eyebrow: 'THE SPIRE', say: 'Long ago, a white Moon kept the dead asleep.', sayAt: 1.2,
@@ -190,12 +223,13 @@
       cast: kingsCast((i) => ({ acts: [[0.5 + i * 0.95, 'Taunt', 1.3, 10]] })), cam: { at: KP(0), to: KP(4), zoom: [2.7, 2.9], lift: 22 }, light: { on: [0.5, 0.5], r: 0.62, dark: 0.55, col: '#b8c8ff', glow: 0.12 } }, CINE),
     Object.assign({ k: 'film', stage: 4, area: 0, d: 5.2, grade: 'silver', slow: 0.6, say: 'Then a swordsman climbed the mountain.',
       cast: [{ who: 'firstCut', id: 'fc', at: [170, 0], path: [[0, 170, 0], [5.0, 30, 0]] }], cam: { follow: 'fc', off: [-18, 0], zoom: [2.5, 2.9], lift: 18, lag: 1.6 }, light: { on: 'fc', r: 0.5, dark: 0.75 } }, CINE),
-    Object.assign(fightA, CINE, { fade: [0.5, 0.25] }),
-    Object.assign(fightB, CINE, { fade: [0.25, 0.6] }),
+    Object.assign(fightA, CINE, { fade: [0.5, 0.2] }),
+    Object.assign(fightB, CINE, { fade: [0.2, 0.2] }),
+    Object.assign(fightC, CINE, { fade: [0.2, 0.6] }),
     Object.assign({ k: 'film', stage: 5, area: 'last', d: 6.2, grade: { from: 'silver', to: 'red', at: 3.15, dur: 0.6 }, slow: 0.55, say: 'With them he cut the Moon. Her light turned red.', sayAt: 3.4,
       cast: [{ who: 'firstCut', id: 'fc', at: [0, 0], face: 'cam', clip: 'C_Stand', acts: [[0.8, 'C_Raise', 2.2, 6], [3.0, 'C_Cut', 3.2, 9]] }],
       ev: [[1.0, { type: 'sfx', name: 'charge', v: 0.7 }], [1.2, { type: 'pk', name: 'v_soul', x: -40, y: -10, z: 20 }], [1.5, { type: 'pk', name: 'v_soul', x: 30, y: 40, z: 20 }], [1.8, { type: 'pk', name: 'v_soul', x: 40, y: -30, z: 20 }],
-        [3.15, { type: 'flash', a: 1, col: '255,255,255' }], [3.15, { type: 'shake', n: 14 }], [3.15, { type: 'sfx', name: 'blow_big', v: 1 }], [3.2, { type: 'sfx', name: 'quake', v: 0.8 }],
+        [3.15, { type: 'impact', dur: 0.22 }], [3.37, { type: 'flash', a: 0.9, col: '255,255,255' }], [3.15, { type: 'shake', n: 16 }], [3.15, { type: 'punch', n: 0.1 }], [3.15, { type: 'sfx', name: 'blow_big', v: 1 }], [3.2, { type: 'sfx', name: 'quake', v: 0.8 }],
         [3.25, { type: 'pk', name: 'v_shock', x: 0, y: 0, scale: 1.6 }], [3.15, { type: 'pk', name: 'v_pillar', x: 0, y: 0, scale: 1.0 }]],
       cam: { at: [0, 0], to: [0, 0], zoom: [2.4, 3.3], lift: 30 }, light: { on: 'fc', r: 0.55, dark: 0.7 } }, CINE),
     Object.assign({ k: 'film', stage: 0, area: 0, d: 5.4, grade: 'red', say: 'And red light wakes the dead.', sayAt: 1.0,

@@ -218,6 +218,8 @@
         u.x = a[1] + (b[1] - a[1]) * f; u.y = a[2] + (b[2] - a[2]) * f;
         if (seg > 0 && f > 0.02 && f < 0.96 && Math.hypot(b[1] - a[1], b[2] - a[2]) > 4) pathDir = Math.atan2(b[2] - a[2], b[1] - a[1]);
       }
+      // hop: [[from, to, height]]: a leap through the air.
+      if (c.hop) { u.z = 0; for (const [a, b, h] of c.hop) if (tt >= a && tt <= b) u.z = Math.sin(Math.PI * (tt - a) / (b - a)) * h; }
       const after = m.landT != null && t - m.landT < 1.4 && c.after;
       // Timed actions (the First Cut's films): [at, clip, seconds, fps, loop].
       let act = null; for (const a of c.acts || []) if (tt >= a[0] && tt < a[0] + (a[2] || 1.2)) act = a;
@@ -243,6 +245,7 @@
       if (e.type === 'pk') R.pk(e.name, e.x, e.y, e.z || 0, e.scale || 1);
       else if (e.type === 'punch') R.punch = Math.max(R.punch || 0, e.n || 0.12);
       else if (e.type === 'hurt') { if (on) on.u.flash = 1; }
+      else if (e.type === 'impact') F.impact = { at: t0, dur: e.dur || 0.16, x: e.x, y: e.y };   // an anime impact frame (real seconds)
       else if (e.type === 'flash') { R.flash = Math.max(R.flash || 0, e.a || 0.7); R.flashCol = e.col || '255,255,255'; }
       else if (e.type === 'shake') R.shake = Math.max(R.shake || 0, e.n || 10);
       else if (e.type === 'sfx') sc.cues.push([e.name, e.v || 1]);
@@ -263,12 +266,14 @@
     const lift = cam.lift == null ? 6 : cam.lift, hs = Math.sin(R.HELI.ang), hc = Math.cos(R.HELI.ang);
     R.hcam.x = c2[0] - hs * lift / R.HELI.pitch; R.hcam.y = c2[1] - hc * lift / R.HELI.pitch;
     const z = cam.zoom || [1.3, 1.5]; s.zoom = z[0] + (z[1] - z[0]) * ck;
+    // A hit-stop pushes the camera in a little, and it eases back out as the action runs again.
+    if (sh.ramp) { const want = (1 - Math.min(1, spd)) * (cam.push == null ? 0.16 : cam.push); F.push = (F.push || 0) + (want - (F.push || 0)) * Math.min(1, (sc.dt || 0.016) * (want > (F.push || 0) ? 9 : 2.5)); s.zoom *= 1 + F.push; }
     // bolts: [{ at, from, to, dur, fx }]: a spell in flight between two points or cast members.
     s.bolts = [];
     for (const b of sh.bolts || []) {
       const f = (t - b.at) / (b.dur || 0.3); if (f < 0 || f > 1) continue;
       const pa = typeof b.from === 'string' ? byId(b.from).u : { x: b.from[0], y: b.from[1] }, pb = typeof b.to === 'string' ? byId(b.to).u : { x: b.to[0], y: b.to[1] };
-      const d = b.dur || 0.3; s.bolts.push({ x: pa.x + (pb.x - pa.x) * f, y: pa.y + (pb.y - pa.y) * f, vx: (pb.x - pa.x) / d, vy: (pb.y - pa.y) / d, t: f * d, fx: b.fx || 'fireball_arcane', big: !!b.big });
+      const d = b.dur || 0.3; s.bolts.push({ x: pa.x + (pb.x - pa.x) * f, y: pa.y + (pb.y - pa.y) * f, vx: (pb.x - pa.x) / d, vy: (pb.y - pa.y) / d, t: f * d, fx: b.fx || 'fireball_arcane', big: !!b.big, reflected: !!b.reflected });
     }
     s.t += dt; R.t = R.t || 0;
     ctx.save(); if (R.shake > 0.5) ctx.translate((Math.random() - 0.5) * R.shake * R.dpr, (Math.random() - 0.5) * R.shake * R.dpr); R.drawFight(ctx, s, dt); ctx.restore();
@@ -282,6 +287,7 @@
       A.tex(ctx, 'light_01', R.W * 0.5, R.H * 0.02, R.W * 1.2, R.H * 0.7, '#fff0d8', 0.8 * g, 0, true); ctx.restore();
     }
     if (sh.cine) cine(ctx, sh, F, k, t);   // (the grade turns on the film's clock: a hit-stop holds it too)
+    if (F.impact && t0 - F.impact.at < F.impact.dur) impactFrame(ctx, F, (t0 - F.impact.at) / F.impact.dur);
     if (sh.card) { const kk = (t0 - (sh.card.at || 1.2)) / 0.4; if (kk > 0) nameCard(ctx, sh.card.who, sh.card.also, ease(kk), sh.card.sub); }
     bars(ctx, 1, sh.cine);
     if (sh.cine && sh.fade) { const d = durOf(sh), f = sh.fade, a = Math.max(f[0] ? 1 - t0 / f[0] : 0, f[1] ? (t0 - (d - f[1])) / f[1] : 0); if (a > 0) { ctx.fillStyle = `rgba(0,0,0,${Math.min(1, a)})`; ctx.fillRect(0, 0, R.W, R.H); } }
@@ -301,6 +307,17 @@
       ctx.globalCompositeOperation = 'lighter'; const g = ctx.createLinearGradient(0, 0, 0, R.H); g.addColorStop(0, 'rgba(255,40,70,0.14)'); g.addColorStop(0.7, 'rgba(255,40,70,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, R.W, R.H);
     },
   };
+  // The impact frame: the shot in black silhouettes on white with speed lines toward the blow, then the reverse.
+  function impactFrame(ctx, F, k) {
+    const z = F.s.zoom || 1, sx = (q) => R.W / 2 + (q.x - R.W / 2) * z, sy = (q) => R.H * 0.56 + (q.y - R.H * 0.56) * z;
+    const fq = F.impact.x != null ? R.P(F.impact.x, F.impact.y, 24) : { x: R.W / 2, y: R.H / 2 };
+    impact(ctx, k, sx(fq), sy(fq), (col) => {
+      for (const m of F.cast) {
+        const u = m.u; if (u.state === 'dead' && u.deadT > 0.5) continue; if (u.state === 'spawn') continue;
+        const q = R.P(u.x, u.y); A.actor(ctx, u.set, u.clip, u.frame, R.screenAng(u.ang), Math.round(sx(q)), Math.round(sy(q)), R.Sh() * (u.scale || 1) * z, { shade: col });
+      }
+    });
+  }
   const rampAt = (rp, t) => { let v = 1; for (const [a, sp] of rp || []) if (t >= a) v = sp; return v; };
   function filmTime(rp, t) {
     if (!rp) return t;

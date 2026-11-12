@@ -223,7 +223,7 @@
   // dead (the townsfolk and a skeleton), the hero; and every hour's arena tiles. Loaded before it plays (a new game, the theatre).
   const OPENING_SETS = ['vh_firstcut', 'vh_townsfolk_001', 'vh_townsfolk_004', 'vh_townsfolk_007', 'vh_townsfolk_010', 'vh_townsfolk_013'];
   const openingNeeds = () => ({
-    sets: OPENING_SETS.concat((S.KINGS || []).map((k) => k.set), ['vh_skeleton_002'], ['ghoul', 'warden', 'hunger', 'wing', 'firstCut'].map((k) => D.FOES[k].set), [(D.HEROES[P().hero] || D.HEROES.vesper).set])
+    sets: OPENING_SETS.concat((S.KINGS || []).map((k) => k.set), S.KING_SETS || [], ['vh_skeleton_002'], ['ghoul', 'warden', 'hunger', 'wing', 'firstCut'].map((k) => D.FOES[k].set), [(D.HEROES[P().hero] || D.HEROES.vesper).set])
       .filter((id, i, a) => id && a.indexOf(id) === i),
     iso: [0, 1, 2, 3, 4, 5].flatMap(isoFor).filter((g, i, a) => a.indexOf(g) === i) });
   function loadOpening(then) {
