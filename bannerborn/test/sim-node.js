@@ -12,7 +12,7 @@ BB.fxLen = () => 16; BB.clipLen = () => 15; BB.hasClip = () => true; BB.heroLaye
 BB.envRect = () => null; BB.drawFx = () => {}; BB.drawEnv = () => {}; BB.drawOther = () => {};
 BB.ROSTER = []; BB.poolKeys = () => []; BB.npcKeys = () => [];
 BB.dirFromVec = function (dx, dy) { const sx = dx - dy, sy = (dx + dy) / 2; if (Math.abs(sx) + Math.abs(sy) < 1e-6) return null; const a = Math.atan2(sy, sx) * 180 / Math.PI; return ((Math.round(a / 45) % 8) + 8) % 8; };
-require('../js/world.js'); require('../js/battle.js'); require('../js/structures.js'); require('../js/identity.js'); require('../js/tactics.js'); require('../js/signatures.js'); require('../js/epic.js'); require('../js/traits.js');
+require('../js/world.js'); require('../js/battle.js'); require('../js/structures.js'); require('../js/modes.js'); require('../js/identity.js'); require('../js/tactics.js'); require('../js/signatures.js'); require('../js/epic.js'); require('../js/traits.js');
 if (process.env.DIFF) BB.DIFF.flat = process.env.DIFF.split(',').map(Number); // DIFF=health,damage: one raise for every level, to find what a land needs
 const which = process.argv[2] || 'all', runs = +(process.argv[3] || 4);
 const REAL = !!process.env.REAL, LAG = process.env.LAG !== undefined ? +process.env.LAG : REAL ? -1 : 1;

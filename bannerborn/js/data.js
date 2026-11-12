@@ -257,7 +257,7 @@
 
   // ---- stronghold buildings
   // ---- campaign: chapters of stages. stage ids are 's<chapter>-<n>'
-  // type: rout (clear every wave) | gates (destroy every gate) | defend (keep the ward alive) | boss | duel
+  // type: rout (clear every wave) | gates (destroy every gate) | defend (keep the ward alive) | boss | duel | survive (hold out for `time` seconds: the waves come round again, faster, from every side)
   BB.CHAPTERS = [
     { id: 1, name: 'Greenvale', biome: 'vale', blurb: 'Farms and forest gone quiet. The Bone Tide came here first.', stages: [
       { name: 'Ashford Road', type: 'rout', layout: 'village', waves: [['ghoul', 2], ['ghoul', 2], ['ghoul', 3]], tutorial: true },
@@ -266,7 +266,7 @@
       { name: 'Witch of the Thornwood', type: 'defend', layout: 'grove', ward: 'cage', time: 55, legend: 'sera', waves: [['ghoul', 3], ['skel', 2, 'ghoul', 2], ['warden', 1, 'ghoul', 3], ['necro', 1, 'skel', 2], ['ghoul', 4]] },
       { name: 'Thornwood Depths', type: 'rout', layout: 'grove', waves: [['skel', 3, 'ghoul', 2], ['skelshield', 1, 'skelarcher', 2], ['stalker', 1, 'ghoul', 3], ['warden', 1, 'necro', 1, 'skel', 2], ['skel', 3, 'skelarcher', 2]] },
       { name: 'The Old Watch', type: 'gates', layout: 'ruins', gates: 2, waves: [['skel', 2, 'ghoul', 2], ['skelshield', 1, 'skelarcher', 2], ['stalker', 1, 'skel', 2], ['necro', 1, 'ghoul', 3]] },
-      { name: 'Chapel Road', type: 'rout', layout: 'courtyard', waves: [['ghoul', 4, 'skel', 2], ['skelshield', 2, 'skelarcher', 2], ['stalker', 2, 'ghoul', 2], ['warden', 1, 'necro', 2, 'skel', 2], ['skelshield', 2, 'skelarcher', 3, 'stalker', 1]] },
+      { name: 'Chapel Road', type: 'survive', time: 60, layout: 'courtyard', waves: [['ghoul', 4, 'skel', 2], ['skelshield', 2, 'skelarcher', 2], ['stalker', 2, 'ghoul', 2], ['warden', 1, 'necro', 2, 'skel', 2], ['skelshield', 2, 'skelarcher', 3, 'stalker', 1]] },
       { name: 'Ossric, the Gravewarden', type: 'boss', layout: 'courtyard', boss: 'ossric', waves: [['ghoul', 3, 'skel', 1], ['skelarcher', 2, 'skel', 2], ['stalker', 1, 'ghoul', 3]] },
     ] },
     { id: 2, name: 'The Sunscar', biome: 'sand', elites: 1, blurb: 'Palms, ruins and buried temples, and something singing under the dunes.', stages: [
@@ -276,7 +276,7 @@
       { name: 'Palm Gates', type: 'gates', layout: 'oasis', gates: 2, waves: [['skel', 3, 'beastkin', 2], ['skelshield', 2, 'skelarcher', 2], ['stalker', 2, 'beastkin', 2], ['warden', 2, 'necro', 1]] },
       { name: 'The Shade in the Dunes', type: 'duel', layout: 'dunes', boss: 'kestrelfoe', legend: 'kestrel', waves: [['ghoul', 3], ['stalker', 2]] },
       { name: 'Tombs of Glass', type: 'gates', layout: 'tombs', gates: 2, waves: [['skel', 3, 'skelarcher', 2], ['skelshield', 2, 'wraith', 2], ['stalker', 2, 'skel', 2], ['warden', 1, 'wraith', 2, 'skelarcher', 1]] },
-      { name: 'Temple Steps', type: 'rout', layout: 'temple', waves: [['skel', 4, 'beastkin', 2], ['wraith', 2, 'skelshield', 2], ['stalker', 2, 'skelarcher', 3], ['necro', 2, 'beastkin', 3], ['warden', 2, 'wraith', 2, 'stalker', 2]] },
+      { name: 'Temple Steps', type: 'survive', time: 70, layout: 'temple', waves: [['skel', 4, 'beastkin', 2], ['wraith', 2, 'skelshield', 2], ['stalker', 2, 'skelarcher', 3], ['necro', 2, 'beastkin', 3], ['warden', 2, 'wraith', 2, 'stalker', 2]] },
       { name: 'Sallow, the Dune Necromancer', type: 'boss', layout: 'temple', boss: 'sallow', waves: [['ghoul', 4, 'skel', 2], ['necro', 1, 'skelarcher', 2], ['stalker', 2, 'beastkin', 2]] },
     ] },
     { id: 3, name: 'Aldmere', biome: 'vale', floor: 'cobble', elites: 2, blurb: 'The fallen capital. Wraiths walk its streets and warlocks sing in its halls.', stages: [
@@ -285,14 +285,14 @@
       { name: 'Market Ruins', type: 'rout', layout: 'city', waves: [['skel', 5, 'warlock', 1], ['wraith', 3, 'skelarcher', 2], ['stalker', 2, 'beastkin', 2], ['skelshield', 3, 'warlock', 2], ['skel', 4, 'wraith', 2, 'stalker', 2]] },
       { name: 'The Warlock Conclave', type: 'defend', layout: 'plaza', ward: 'refugees', time: 70, legend: 'reaper', waves: [['warlock', 2, 'skel', 3], ['wraith', 3, 'skelarcher', 2], ['stalker', 2, 'skel', 3], ['warlock', 3, 'skelshield', 2], ['beastkin', 3, 'wraith', 2], ['wraith', 3, 'warlock', 2, 'stalker', 2]] },
       { name: 'Guild Quarter', type: 'gates', layout: 'city', gates: 3, waves: [['wraith', 3, 'skel', 3], ['warlock', 2, 'skelshield', 2], ['stalker', 3, 'skelarcher', 2], ['skelshield', 2, 'wraith', 3]] },
-      { name: 'The Last Square', type: 'rout', layout: 'plaza', waves: [['skel', 5, 'wraith', 2], ['warlock', 3, 'skelarcher', 3], ['stalker', 3, 'skelshield', 2], ['skelshield', 3, 'wraith', 3], ['warden', 2, 'warlock', 2, 'stalker', 2]] },
+      { name: 'The Last Square', type: 'survive', time: 75, layout: 'plaza', waves: [['skel', 5, 'wraith', 2], ['warlock', 3, 'skelarcher', 3], ['stalker', 3, 'skelshield', 2], ['skelshield', 3, 'wraith', 3], ['warden', 2, 'warlock', 2, 'stalker', 2]] },
       { name: 'Halls of the Dead King', type: 'rout', layout: 'throne', waves: [['wraith', 4, 'skelshield', 2], ['warlock', 3, 'skel', 3], ['stalker', 3, 'skelarcher', 2], ['wraith', 3, 'warlock', 2], ['skelshield', 3, 'skelarcher', 3, 'stalker', 2]] },
       { name: 'The Pale Regent', type: 'boss', layout: 'throne', boss: 'regent', waves: [['wraith', 2, 'skel', 2], ['warlock', 2, 'skelshield', 1], ['stalker', 2, 'wraith', 2]] },
     ] },
     { id: 4, name: 'The Cantor\'s Gate', biome: 'vale', night: true, elites: 3, blurb: 'Where the first Gravegate opened. Where it ends.', stages: [
       { name: 'March of Banners', type: 'rout', layout: 'march', legend: 'talia', waves: [['ghoul', 4, 'skel', 3], ['necro', 1, 'wraith', 2, 'beastkin', 2], ['stalker', 3, 'skelarcher', 2], ['warden', 2, 'skelshield', 2], ['beastkin', 3, 'warlock', 2, 'stalker', 1]] },
       { name: 'Field of Graves', type: 'gates', layout: 'endless', gates: 3, waves: [['skel', 4, 'warden', 2], ['wraith', 3, 'warlock', 2], ['stalker', 3, 'skelarcher', 2], ['skelshield', 3, 'necro', 2]] },
-      { name: 'The Shattered Wall', type: 'rout', layout: 'ruins', waves: [['warden', 3, 'skelarcher', 3], ['beastkin', 4, 'warlock', 2], ['stalker', 3, 'skel', 3], ['wraith', 4, 'skelshield', 3], ['warden', 2, 'warlock', 2, 'stalker', 2]] },
+      { name: 'The Shattered Wall', type: 'survive', time: 80, layout: 'ruins', waves: [['warden', 3, 'skelarcher', 3], ['beastkin', 4, 'warlock', 2], ['stalker', 3, 'skel', 3], ['wraith', 4, 'skelshield', 3], ['warden', 2, 'warlock', 2, 'stalker', 2]] },
       { name: 'Before the Gate', type: 'defend', layout: 'grove', ward: 'cage', time: 75, waves: [['wraith', 3, 'skel', 4], ['warlock', 3, 'warden', 2], ['stalker', 3, 'beastkin', 2], ['beastkin', 4, 'necro', 2], ['skelshield', 3, 'skelarcher', 3], ['wraith', 4, 'warlock', 2, 'stalker', 2]] },
       { name: 'Choir of Bones', type: 'rout', layout: 'gate', waves: [['ghoul', 6, 'warlock', 2], ['warden', 3, 'wraith', 3], ['stalker', 3, 'skelarcher', 3], ['skelshield', 3, 'necro', 2, 'skelarcher', 3], ['beastkin', 3, 'warlock', 2, 'stalker', 3]] },
       { name: 'Vesh Morrow, the Bone Cantor', type: 'boss', layout: 'gate', boss: 'vesh', waves: [['ghoul', 3, 'wraith', 1], ['warden', 2, 'warlock', 1], ['stalker', 2, 'skelarcher', 2], ['skelshield', 2, 'wraith', 2]] },
@@ -303,7 +303,7 @@
       { name: 'The White Road', type: 'rout', layout: 'village', waves: [['rimeghoul', 4, 'rimeghoul', 3], ['skelshield', 3, 'skelarcher', 3], ['stalker', 3, 'beastkin', 2], ['frostwarden', 2, 'wraith', 3], ['beastkin', 3, 'skelarcher', 3, 'stalker', 2]] },
       { name: 'The Frozen Mill', type: 'gates', layout: 'mill', gates: 2, waves: [['rimeghoul', 4, 'frostwarden', 2], ['wraith', 3, 'skelarcher', 3], ['stalker', 3, 'skelshield', 2], ['iceseer', 2, 'beastkin', 3]] },
       { name: 'Hearth of the Lost', type: 'defend', layout: 'plaza', ward: 'refugees', time: 80, waves: [['beastkin', 3, 'skel', 4], ['wraith', 3, 'skelarcher', 3], ['stalker', 3, 'frostwarden', 2], ['warlock', 2, 'skelshield', 3], ['beastkin', 4, 'iceseer', 2], ['stalker', 3, 'wraith', 3]] },
-      { name: 'The Rime Wood', type: 'rout', layout: 'grove', waves: [['beastkin', 4, 'skelarcher', 3], ['frostwarden', 3, 'wraith', 3], ['stalker', 4, 'skel', 3], ['skelshield', 3, 'warlock', 2, 'skelarcher', 2], ['beastkin', 4, 'frostwarden', 2, 'stalker', 2]] },
+      { name: 'The Rime Wood', type: 'survive', time: 80, layout: 'grove', waves: [['beastkin', 4, 'skelarcher', 3], ['frostwarden', 3, 'wraith', 3], ['stalker', 4, 'skel', 3], ['skelshield', 3, 'warlock', 2, 'skelarcher', 2], ['beastkin', 4, 'frostwarden', 2, 'stalker', 2]] },
       { name: 'Icebound Watch', type: 'gates', layout: 'ruins', gates: 3, waves: [['skelshield', 3, 'skelarcher', 4], ['frostwarden', 3, 'iceseer', 2], ['stalker', 3, 'wraith', 3], ['beastkin', 4, 'warlock', 2]] },
       { name: 'Hroald, the Rime Jarl', type: 'boss', layout: 'courtyard', boss: 'hroald', waves: [['rimeghoul', 4, 'beastkin', 2], ['skelshield', 2, 'skelarcher', 3], ['stalker', 2, 'frostwarden', 2], ['beastkin', 3, 'wraith', 2]] },
     ] },
@@ -312,12 +312,12 @@
       { name: 'The Burnt Village', type: 'rout', layout: 'village', waves: [['emberghoul', 5, 'warlock', 2], ['wraith', 4, 'skelarcher', 3], ['stalker', 4, 'beastkin', 2], ['skelshield', 4, 'warlock', 3], ['cinderwarden', 3, 'wraith', 3, 'stalker', 2]] },
       { name: 'Ashen Gates', type: 'gates', layout: 'endless', gates: 3, waves: [['emberghoul', 5, 'cinderwarden', 2], ['warlock', 3, 'wraith', 3], ['stalker', 4, 'skelarcher', 3], ['skelshield', 3, 'ashcaller', 3]] },
       { name: 'The Last Granary', type: 'defend', layout: 'grove', ward: 'cage', time: 85, waves: [['warlock', 3, 'skel', 4], ['beastkin', 4, 'skelarcher', 3], ['stalker', 4, 'cinderwarden', 2], ['wraith', 4, 'skelshield', 3], ['warlock', 3, 'beastkin', 3], ['stalker', 3, 'ashcaller', 3]] },
-      { name: 'The Slag Court', type: 'rout', layout: 'courtyard', waves: [['cinderwarden', 4, 'skelarcher', 4], ['warlock', 4, 'skelshield', 3], ['stalker', 4, 'wraith', 3], ['beastkin', 5, 'ashcaller', 2], ['cinderwarden', 3, 'warlock', 3, 'stalker', 3]] },
+      { name: 'The Slag Court', type: 'survive', time: 85, layout: 'courtyard', waves: [['cinderwarden', 4, 'skelarcher', 4], ['warlock', 4, 'skelshield', 3], ['stalker', 4, 'wraith', 3], ['beastkin', 5, 'ashcaller', 2], ['cinderwarden', 3, 'warlock', 3, 'stalker', 3]] },
       { name: 'Maelis, the Cinder Witch', type: 'boss', layout: 'throne', boss: 'maelis', waves: [['warlock', 2, 'skel', 4], ['skelshield', 3, 'wraith', 2], ['stalker', 3, 'skelarcher', 3], ['cinderwarden', 2, 'warlock', 2]] },
     ] },
     { id: 7, name: 'Mirefen', biome: 'vale', skin: 'mire', elites: 4, blurb: 'Drowned villages and black water. The fen keeps what it takes, and its mother counts every one.', stages: [
       { name: 'The Drowned Road', type: 'rout', layout: 'village', waves: [['bogreaver', 6, 'fenlurker', 3], ['wraith', 4, 'skelshield', 3], ['beastkin', 4, 'skelarcher', 4], ['necro', 3, 'mosswarden', 3], ['fenlurker', 4, 'wraith', 3, 'warlock', 2]] },
-      { name: 'Rotwood', type: 'rout', layout: 'grove', waves: [['beastkin', 5, 'bogreaver', 4], ['fenlurker', 5, 'skelarcher', 3], ['mosswarden', 3, 'necro', 3], ['wraith', 4, 'warlock', 3], ['beastkin', 4, 'fenlurker', 4, 'necro', 2]] },
+      { name: 'Rotwood', type: 'survive', time: 85, layout: 'grove', waves: [['beastkin', 5, 'bogreaver', 4], ['fenlurker', 5, 'skelarcher', 3], ['mosswarden', 3, 'necro', 3], ['wraith', 4, 'warlock', 3], ['beastkin', 4, 'fenlurker', 4, 'necro', 2]] },
       { name: 'The Sunken Stones', type: 'gates', layout: 'ruins', gates: 3, waves: [['skel', 5, 'necro', 3], ['wraith', 4, 'skelshield', 3], ['fenlurker', 5, 'skelarcher', 3], ['mosswarden', 3, 'warlock', 3]] },
       { name: 'The Lantern Keepers', type: 'defend', layout: 'grove', ward: 'cage', time: 90, waves: [['fenlurker', 4, 'bogreaver', 5], ['wraith', 4, 'skelarcher', 4], ['beastkin', 5, 'necro', 2], ['warlock', 4, 'skelshield', 3], ['fenlurker', 5, 'mosswarden', 2], ['wraith', 4, 'beastkin', 4]] },
       { name: 'Gates in the Reeds', type: 'gates', layout: 'endless', gates: 4, waves: [['skelshield', 4, 'skelarcher', 4], ['necro', 3, 'wraith', 4], ['fenlurker', 5, 'beastkin', 3], ['mosswarden', 4, 'warlock', 3]] },
@@ -326,7 +326,7 @@
     { id: 8, name: 'The Hollow', biome: 'vale', skin: 'blight', elites: 4, blurb: 'Pale fields where nothing grows green. The last gates stand here, and a king with no kingdom guards them.', stages: [
       { name: 'The Pale Fields', type: 'rout', layout: 'march', waves: [['wraith', 5, 'hollowreaver', 5], ['warlock', 4, 'skelshield', 4], ['palestalker', 5, 'skelarcher', 4], ['blightwarden', 4, 'necro', 3], ['wraith', 4, 'warlock', 3, 'palestalker', 3]] },
       { name: 'Gravebloom', type: 'gates', layout: 'endless', gates: 4, waves: [['hollowreaver', 6, 'blightwarden', 3], ['wraith', 5, 'warlock', 3], ['palestalker', 5, 'skelarcher', 4], ['skelshield', 4, 'necro', 3]] },
-      { name: 'The Hollow City', type: 'rout', layout: 'city', waves: [['wraith', 5, 'skelshield', 4], ['warlock', 4, 'hollowreaver', 5], ['palestalker', 5, 'beastkin', 3], ['blightwarden', 4, 'wraith', 4], ['skelshield', 4, 'warlock', 4, 'palestalker', 3]] },
+      { name: 'The Hollow City', type: 'survive', time: 90, layout: 'city', waves: [['wraith', 5, 'skelshield', 4], ['warlock', 4, 'hollowreaver', 5], ['palestalker', 5, 'beastkin', 3], ['blightwarden', 4, 'wraith', 4], ['skelshield', 4, 'warlock', 4, 'palestalker', 3]] },
       { name: 'The Last Hearth', type: 'defend', layout: 'plaza', ward: 'refugees', time: 95, waves: [['wraith', 5, 'hollowreaver', 5], ['warlock', 4, 'blightwarden', 3], ['palestalker', 5, 'beastkin', 3], ['beastkin', 5, 'necro', 3], ['skelshield', 4, 'skelarcher', 5], ['wraith', 5, 'warlock', 4, 'palestalker', 3]] },
       { name: 'Throne Road', type: 'rout', layout: 'throne', waves: [['wraith', 6, 'skelshield', 4], ['warlock', 5, 'hollowreaver', 4], ['palestalker', 5, 'skelarcher', 4], ['blightwarden', 4, 'wraith', 4], ['skelshield', 4, 'warlock', 4, 'palestalker', 4]] },
       { name: 'Aurelian, the Hollow King', type: 'boss', layout: 'gate', boss: 'aurelian', waves: [['wraith', 4, 'hollowreaver', 3], ['warlock', 3, 'skelshield', 2], ['palestalker', 3, 'skelarcher', 3], ['blightwarden', 3, 'wraith', 3]] },

@@ -15,6 +15,8 @@
     obelisk: { name: 'Hex Obelisk', art: null, hp: 280, atk: 0, def: 7, spd: 0, range: 4.6, aspd: 0.22, xp: 20, gold: 9, turret: true, struct: 'obelisk', r: 0.45, barH: 82, stone: true },
     brazier: { name: 'Cinder Brazier', art: null, hp: 210, atk: 11, def: 5, spd: 0, range: 7.2, aspd: 0.16, xp: 16, gold: 7, ranged: true, turret: true, struct: 'brazier', r: 0.55, barH: 62, stone: true },
     cage: { name: 'Bone Cage', art: null, hp: 220, atk: 0, def: 4, spd: 0, range: 0, aspd: 0.13, xp: 16, gold: 7, turret: true, struct: 'cage', r: 0.45, barH: 52 },
+    nest: { name: 'Grave Nest', art: null, hp: 300, atk: 0, def: 5, spd: 0, range: 0, aspd: 0.12, xp: 22, gold: 10, turret: true, struct: 'nest', r: 0.6, barH: 40 },
+    ballista: { name: 'Bone Ballista', art: null, hp: 210, atk: 24, def: 4, spd: 0, range: 10, aspd: 0.26, xp: 20, gold: 9, ranged: true, turret: true, struct: 'ballista', r: 0.5, barH: 50 },
   });
   // what a land lends its defences: the touch their blasts carry, and their light
   const LAND = {
@@ -48,7 +50,7 @@
     list.forEach((kind, i) => {
       const a = guard[i % guard.length], dx = from.x - a.x, dy = from.y - a.y, d = hyp(dx, dy) || 1, ux = dx / d, uy = dy / d, flank = (i % 2 ? 1 : -1) * (1.7 + (i >> 1) * 0.8);
       // each stands forward of what it guards, toward the heroes, where the fight will be: a tower farthest out, a mortar well back
-      const out = Math.min(d * { watchtower: 0.36, brazier: 0.32, obelisk: 0.28, cage: 0.24, mortar: 0.12 }[kind], { watchtower: 6.5, brazier: 6, obelisk: 5, cage: 4.5, mortar: 2.4 }[kind] * (M.type === 'boss' ? 0.5 : 1));
+      const out = Math.min(d * { watchtower: 0.36, brazier: 0.32, obelisk: 0.28, cage: 0.24, nest: 0.2, mortar: 0.12, ballista: 0.1 }[kind], { watchtower: 6.5, brazier: 6, obelisk: 5, cage: 4.5, nest: 4, mortar: 2.4, ballista: 2.2 }[kind] * (M.type === 'boss' ? 0.5 : 1));
       const e = this.spawnFoe(kind, a.x + ux * out - uy * flank, a.y + uy * out + ux * flank, {});
       e.cd = 2.5 + i * 1.3; e.phase = this.r() * TAU; if (kind === 'brazier') e.name = L.brazier; if (kind === 'cage') e.budget = 3;
       // its works around it: stakes toward the heroes, the banner of the dead behind
@@ -96,11 +98,18 @@
       if (!(e.budget > 0) || this.foesAlive().length >= BB.teamK('cap', this.teamN) + 2) { e.cd = 1.5; return; }
       e.cd = 1 / e.aspd / Math.sqrt(this.waveK || 1) * 0.9; e.budget--; e.fireT = 0.7; BB.sfx && BB.sfx('cage');
       this.later(0.6, () => { if (!e.dead) { this.spawnFoe(this.r.pick(this.obj.pool), e.x + this.r.range(0.5, 1), e.y + this.r.range(0.5, 1), { rise: true }); this.addFx('bones', e.x, e.y, { sc: 0.6 }); } });
+    } else if (k === 'nest') { // never empty: one more of the dead climbs out, for as long as it stands
+      if (this.foesAlive().length >= BB.teamK('cap', this.teamN) + 2) { e.cd = 1.5; return; }
+      e.cd = 1 / e.aspd / Math.sqrt(this.waveK || 1); e.fireT = 0.8; BB.sfx && BB.sfx('cage');
+      this.later(0.6, () => { if (!e.dead) { this.spawnFoe(this.r.pick(this.obj.pool), e.x + this.r.range(0.6, 1.1), e.y + this.r.range(0.6, 1.1), { rise: true }); this.addFx('bones', e.x, e.y, { sc: 0.8 }); } });
+    } else if (k === 'ballista') { // one heavy bolt at whoever stands farthest back
+      let far = null, fd = -1; for (const h of heroes) { const q = hyp(h.x - e.x, h.y - e.y); if (q < e.range && q > fd) { fd = q; far = h; } }
+      if (!far) return; e.cd = 1 / e.aspd; e.fireT = 0.3; this.shoot(e, far.x, far.y, 'arrow', 1, { z: 1.6 }); BB.sfx && BB.sfx('mortar');
     }
   };
 
   // ---------------------------------------------------------------- drawing
-  const PROP = { tower: ['vale', 'Misc B55_S', 1], mortar: ['vale', 'Misc C3_S', 1.15], obelisk: ['craft', 'Hex Obelisk', 1], brazier: ['vale', 'Misc C8_S', 0.9], cage: ['vale', 'Misc C13_S', 1.1] };
+  const PROP = { tower: ['vale', 'Misc B55_S', 1], mortar: ['vale', 'Misc C3_S', 1.15], obelisk: ['craft', 'Hex Obelisk', 1], brazier: ['vale', 'Misc C8_S', 0.9], nest: ['craft', 'Grave Nest', 1.15], ballista: ['craft', 'Bone Ballista', 1.2], cage: ['vale', 'Misc C13_S', 1.1] };
   Battle.prototype.drawStruct = function (ctx, e, s) {
     const k = e.F.struct, L = landOf(this), P = PROP[k], t = this.time + (e.phase || 0), skin = this.map.skin;
     if (e.dead) { if (e.deadT < 6) BB.drawEnv(ctx, 'craft', 'Rubble', s.x, s.y, 1, Math.min(1, 6 - e.deadT)); return; }
@@ -267,6 +276,22 @@
   // a crystal: a tall prism leaning by `lean`, lit from the left
   const shard = (g, x, y, w, h, lean, c) => { const tx = x + lean, ty = y - h; poly(g, [x - w, y, x, y + w * 0.5, tx, ty], c[0]); poly(g, [x, y + w * 0.5, x + w, y, tx, ty], c[1]); line(g, x, y + w * 0.5, tx, ty, c[2], 1); };
   const PIECES = {
+    'Grave Nest': [64, 46, (g) => { // heaped earth, ribs standing out of it, and a pit that glows
+      shadow(g, 32, 38, 28, 6);
+      blob(g, 32, 31, 27, 12, '#231c2a'); blob(g, 29, 28, 21, 9, '#372d42'); blob(g, 24, 25, 9, 4, '#4a3d58');
+      for (const [x, y, lean] of [[9, 31, -5], [17, 24, -3], [47, 24, 3], [55, 31, 5], [26, 20, -1], [39, 20, 1]]) { poly(g, [x, y + 6, x + 3, y + 6, x + lean + 2, y - 13, x + lean, y - 12], '#e6dfcc'); line(g, x + 3, y + 6, x + lean + 2, y - 13, '#a39c88', 1); }
+      blob(g, 32, 27, 12, 5.5, '#0c0812'); blob(g, 32, 27, 8, 3.4, '#6a35c0'); blob(g, 32, 27, 4, 1.8, '#e3c4ff');
+      blob(g, 20, 36, 3.6, 3.2, '#e6dfcc'); g.fillStyle = '#231c2a'; g.fillRect(18, 35, 2, 2); g.fillRect(21, 35, 2, 2); blob(g, 45, 37, 3.2, 2.8, '#cfc8b4'); g.fillRect(43, 36, 2, 2); g.fillRect(46, 36, 2, 2);
+      speck(g, 64, 46, '#5a4c6a80', 50);
+    }, 38],
+    'Bone Ballista': [58, 52, (g) => { // a frame of timber, a bow of two great ribs, a bolt as long as a man
+      shadow(g, 29, 46, 23, 5);
+      poly(g, [9, 46, 15, 46, 27, 24, 23, 24], '#5a4030'); poly(g, [43, 46, 49, 46, 35, 24, 31, 24], '#3a281a'); poly(g, [20, 26, 38, 26, 38, 32, 20, 32], '#6f4c2c'); line(g, 20, 26, 38, 26, '#8d6a44', 1);
+      poly(g, [29, 24, 5, 11, 7, 7, 30, 19], '#e6dfcc'); poly(g, [29, 24, 53, 11, 51, 7, 28, 19], '#cfc8b4'); line(g, 5, 11, 29, 24, '#a39c88', 1);
+      line(g, 6, 9, 29, 34, '#d9d2bd', 1); line(g, 52, 9, 29, 34, '#d9d2bd', 1);
+      poly(g, [28, 6, 30, 6, 30, 35, 28, 35], '#7a7468'); poly(g, [25, 8, 29, 0, 33, 8], '#c9d2e0'); line(g, 29, 0, 29, 8, '#ffffff', 1);
+      blob(g, 29, 29, 3, 3, '#3a281a'); speck(g, 58, 52, '#2a1c1280', 40);
+    }, 46],
     'Hex Obelisk': [40, 88, (g) => {
       shadow(g, 20, 80, 17, 6);
       poly(g, [9, 76, 15, 82, 12, 70], '#3a3f4c'); poly(g, [26, 82, 34, 76, 31, 70], '#22252e');                       // broken stone at its foot

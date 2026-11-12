@@ -201,6 +201,21 @@ to thin. A lone hero meets a fifth of the crowd, hitting at 40%, and a boss at a
 test/sim-node.js all 3` plays every stage with as many heroes as the campaign has opened places for by then (the
 simulator used to leave the team out, so its hordes were always the smallest; it now passes it, as the game does).
 
+**More ways to fight** (js/modes.js).
+- **Survive** stages (one in each land: Chapel Road, Temple Steps, The Last Square, The Shattered Wall, The Rime
+  Wood, The Slag Court, Rotwood, The Hollow City): no gate to break and no last wave. The dead come from a different
+  side each time, more of them and faster as the clock runs down, with a last surge fifteen seconds from the end.
+- **Expeditions** (the home screen, once the first land is cleared): a long march through five fields or more in a
+  row, in the furthest land you have cleared, at your team's level. The same heroes go from one field to the next
+  with the wounds they took (a little is mended between fields; the fallen come back on their feet at a quarter).
+  After most fields **the road forks** and each way gives a clue: one leads on toward the way out, the other to a
+  side road and back: a **cache** (more loot at the end), a **shrine** (everyone mended), or an **ambush** (a harder
+  fight, more gold). The third field is a timed stand, the last is guarded, and beyond it is the way out. Rewards
+  come at the end, for however far you got; the first way out found in each land pays crystals.
+- **Two more works of the dead** (js/structures.js, art drawn there): the **Grave Nest**, which sends one more of
+  the dead climbing out for as long as it stands, and the **Bone Ballista**, which puts a heavy bolt into whoever
+  stands farthest back. They guard the fields of an expedition.
+
 **How hard.** A player's heroes grow much faster than the first balance assumed: gear in every slot and every skill
 point spent make a team three to four times the strength a stage used to ask for, and measured that way it never fell
 below four fifths of its health. The dead are raised to meet that (`BB.DIFF`, `BB.diffAt(level)` in js/rules.js):
@@ -363,6 +378,7 @@ name, their horde, the face-off, the clash) and a fall; chapters 2-4 open with y
 | `js/drill.js` | the team field: the current region with the formation's heroes training, sparring and chatting |
 | `js/preview.js` | the duel preview beside a summoning: one hero, one enemy, basic attacks → signature → ultimate, looped |
 | `js/tactics.js` | battlefield tactics: potions, rescues, hands-on heals, stones to throw, kicks, charges, pounces, dodge rolls |
+| `js/modes.js` | the survive stage type; expeditions (the plan of fields and forks, what a team carries from one field to the next) |
 | `js/cinema.js` | cutscenes: shot sequencer (scene fly-throughs, close-ups, splits, impact frames, titles) and the four scripts |
 | `js/cineart.js` | art made for the cutscenes: drawn figures (knights, the Captain, the dead, Vesh) posed from joints, lit per shot and kept once drawn; `BB.CineArt.draw / drawLow / eyes / skull` |
 | `js/opening.js` | the opening film: eleven shots with their own painters (the ridge, the blades, the tear, the gate, the map, the glass, the last stand) |
