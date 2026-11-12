@@ -140,6 +140,25 @@ svg.ci{width:100%;height:100%;fill:currentColor;stroke:none}
 .battle .s{font:600 12px var(--body);color:rgba(27,18,6,.75);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}
 .battle .prog{height:4px;margin-top:8px;border-radius:2px;background:rgba(27,18,6,.18);overflow:hidden}
 .battle .prog i{display:block;height:100%;background:rgba(27,18,6,.8)}
+#home .nextup{display:flex;flex-direction:column;align-items:flex-end;gap:2px;padding:8px 14px;border-radius:14px;background:rgba(12,14,21,.72);border:1px solid var(--line2);color:var(--text);max-width:min(320px,46vw);text-align:right}
+#home .nextup small{font:700 10px var(--head);letter-spacing:.2em;text-transform:uppercase;color:var(--accent)}
+#home .nextup b{font:600 13px var(--body);line-height:1.3}
+#play .body{display:flex;flex-direction:column;gap:14px;padding:calc(70px + var(--safe-t)) calc(18px + var(--safe-r)) calc(96px + var(--safe-b)) calc(18px + var(--safe-l));overflow:auto}
+#play .phead{font:800 clamp(18px,2.6vw,26px) var(--head);letter-spacing:.14em;text-transform:uppercase}
+#play .pcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.pcard{display:flex;flex-direction:column;gap:8px;padding:16px;border-radius:18px;background:var(--glass);border:1px solid var(--line);text-align:left;color:var(--text)}
+.pcard.main{border-color:var(--accent);box-shadow:0 0 24px -8px rgba(255,190,85,.6)}
+.pcard.lock{opacity:.55}
+.pcard .k{font:700 11px var(--head);letter-spacing:.2em;text-transform:uppercase;color:var(--accent)}
+.pcard h3{margin:0;font:800 20px var(--head);letter-spacing:.04em}
+.pcard p{margin:0;font:500 13px/1.45 var(--body);color:var(--mute)}
+.pcard .st{font:600 13px var(--body)}
+.pcard .bar{height:5px;border-radius:3px;background:rgba(255,255,255,.1);overflow:hidden}.pcard .bar i{display:block;height:100%;background:var(--accent)}
+.pcard .btn{align-self:flex-start;margin-top:auto}
+.work{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid var(--line);margin-bottom:8px}
+.work .w{flex:1;min-width:0}.work b{display:block;font:700 15px var(--head)}.work small{display:block;font:500 12px/1.4 var(--body);color:var(--mute)}
+.work .pips{display:flex;gap:3px;margin-top:5px}.work .pips i{width:16px;height:5px;border-radius:3px;background:rgba(255,255,255,.14)}.work .pips i.on{background:var(--accent)}
+.work.sel{border-color:var(--accent)}
 #home .rec{font:500 12px var(--body);color:var(--mute);text-shadow:0 1px 6px rgba(0,0,0,.8)}
 #home .rec b{color:var(--green);font-weight:700} #home .rec b.lo{color:var(--red)}
 
@@ -908,10 +927,10 @@ body.native #bTheater{display:none}
     <button class="rbtn" id="bSettings" aria-label="Settings"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg></button>
   </div>
   <nav id="tabbar">
-    <button class="tab" data-tab="home"><svg class="i" viewBox="0 0 24 24"><path d="M3 20h18M5 20L12 5l7 15M12 5v15"/><path d="M9.5 20l2.5-5 2.5 5"/></svg>Camp</button>
+    <button class="tab" data-tab="play"><svg class="i" viewBox="0 0 24 24"><path d="M4 4l10 10M4 4h4M4 4v4M20 4L10 14M20 4h-4M20 4v4M7 17l-3 3M17 17l3 3"/></svg>Play</button>
     <button class="tab" data-tab="heroes"><svg class="i" viewBox="0 0 24 24"><path d="M6 10a6 6 0 0 1 12 0v4l-2 3H8l-2-3z"/><path d="M9 12h6M12 4v4"/></svg>Heroes</button>
-    <button class="tab" data-tab="team"><svg class="i" viewBox="0 0 24 24"><path d="M12 2.5l7.5 3v6c0 4.8-3.3 8.6-7.5 10.5C7.8 20.1 4.5 16.3 4.5 11.5v-6z"/><path d="M12 7v9M8.5 10.5h7"/></svg>Team</button>
-    <button class="tab" data-tab="shop"><svg class="i" viewBox="0 0 24 24"><path d="M6 8h12l-1 12H7z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>Shop</button>
+    <button class="tab" data-tab="shop"><svg class="i" viewBox="0 0 24 24"><path d="M6 8h12l-1 12H7z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>Market</button>
+    <button class="tab" data-tab="home"><svg class="i" viewBox="0 0 24 24"><path d="M3 20h18M5 20L12 5l7 15M12 5v15"/><path d="M9.5 20l2.5-5 2.5 5"/></svg>Camp</button>
   </nav>
 </div>
 
@@ -923,11 +942,10 @@ body.native #bTheater{display:none}
     <button class="orb" id="bSpoils"><span class="o"><svg class="i" viewBox="0 0 24 24"><path d="M3 10h18v10H3z"/><path d="M3 10l2.5-5h13L21 10M12 10v10M9 14h6"/></svg><span class="meter"><i id="spoilsFill"></i></span></span><span><b>Spoils</b><small id="spoilsT">0m</small></span></button>
     <button class="orb" id="bRoll" style="display:none"><span class="o"><svg class="i" viewBox="0 0 24 24"><path d="M5 4h14v16H5z"/><path d="M8 9l2 2 4-4M8 15h8"/></svg></span><span><b>Muster roll</b><small id="rollT"></small></span></button>
     <button class="orb" id="bQuests"><span class="o"><svg class="i" viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/><path d="M9 8h6M9 11.5h6"/></svg></span><span><b>Goals</b><small id="questT"></small></span></button>
-    <button class="orb" id="bRecruitH"><span class="o"><svg class="i" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="6" ry="9"/><path d="M12 7v10M8.5 12h7"/></svg></span><span><b>Recruit</b><small id="recruitT"></small></span></button>
-    <button class="orb" id="bTrek" style="display:none"><span class="o"><svg class="i" viewBox="0 0 24 24"><path d="M3 20l5-9 3 5 3-8 7 12zM14 5l2-2 2 2"/></svg></span><span><b>Expedition</b><small id="trekT">One great map. Three gates. A way out.</small></span></button>
-    <button class="orb" id="bEndless" style="display:none"><span class="o"><svg class="i" viewBox="0 0 24 24"><path d="M7 9c-2.2 0-4 1.3-4 3s1.8 3 4 3c4 0 6-6 10-6 2.2 0 4 1.3 4 3s-1.8 3-4 3c-4 0-6-6-10-6z"/></svg></span><span><b>Endless Gate</b><small id="endlessT"></small></span></button>
+    <button class="orb" id="bWorks"><span class="o"><svg class="i" viewBox="0 0 24 24"><path d="M4 20V10l8-6 8 6v10M9 20v-6h6v6"/></svg></span><span><b>Camp works</b><small id="worksT"></small></span></button>
   </div>
   <div class="side r">
+    <button class="nextup" id="hmUp"><small>Next</small><b id="hmUpT"></b></button>
     <div class="rec" id="hmRec"></div>
     <button class="battle" id="bContinue"><span class="sw"><svg class="i" viewBox="0 0 24 24"><path d="M4 4l10 10M4 4h4M4 4v4M20 4L10 14M20 4h-4M20 4v4M7 17l-3 3M17 17l3 3M8.5 15.5l-2 2M15.5 15.5l2 2"/></svg></span><span class="t">BATTLE</span><span class="s" id="hmNext"></span><span class="prog"><i id="hmProg"></i></span></button>
   </div>
@@ -938,12 +956,13 @@ body.native #bTheater{display:none}
   <div class="row grow" style="align-items:stretch;min-height:0"><div class="path frame"><canvas id="pathCv"></canvas></div><div class="card frame" id="stageCard"></div></div>
 </div></div>
 
+<div id="play" class="screen"><div class="bg"></div><div class="body"><div class="phead">Where will the banner go?</div><div class="pcards" id="playCards"></div></div></div>
 <div id="heroes" class="screen"><div class="bg"></div><div class="body">
   <div class="stage" id="hsStage"><div class="spot" id="hsSpot">
     <div class="sp-bot"><div class="rkrow"><span class="rk" id="hsRk"></span><span class="lvp" id="hsLv"></span></div><div class="stars" id="hsStars"></div><div class="nm" id="hsNm"></div><div class="cl" id="hsCl"></div><div class="row" style="justify-content:center;gap:8px"><span class="pw" id="hsPw"></span><button class="btn sm" id="hsOpen">Open ▸</button></div></div>
   </div></div>
   <div class="col">
-    <div class="head"><div class="coll"><span class="lbl" id="hrCount"></span><div class="bar"><i id="hrColl"></i></div></div><div class="filters" id="hrFilters"></div><div class="grow"></div><button class="btn sm" id="bRecruit">✦ Recruit</button></div>
+    <div class="head"><div class="coll"><span class="lbl" id="hrCount"></span><div class="bar"><i id="hrColl"></i></div></div><div class="filters" id="hrFilters"></div><div class="grow"></div><button class="btn sm dark" id="bFormation">Formation</button><button class="btn sm" id="bRecruit">✦ Recruit</button></div>
     <div class="list scroll grow" id="heroList"></div>
   </div>
 </div></div>
@@ -1023,6 +1042,8 @@ body.native #bTheater{display:none}
   <h2 class="gold">How to play</h2>
   <div class="guide">
     <p><b>Battles.</b> Your heroes fight on their own. Each one charges an ultimate by fighting; tap the glowing card to use it, or turn on AUTO. A mark on the ground is a blow about to land: heroes step out of it when they can.</p>
+    <p><b>Finding your way.</b> <b>Play</b> lists every way to fight. <b>Heroes</b> is your roster and formation. <b>Market</b> is where you buy and recruit. <b>Camp</b> is what the camp gives and what you build there; its <b>Next</b> pointer always names the most useful thing to do.</p>
+    <p><b>Camp works and relics.</b> Expeditions and stands survived pay salvage, which builds the Forge (better gear), the Shrine (healing on expeditions) and the Barracks (faster learning). The lord at the end of an expedition gives up a relic for the banner; carry one and it helps in every fight.</p>
     <p><b>Survive and expeditions.</b> Some stages are a stand against the clock: hold out until it runs down. An <b>Expedition</b> (on the camp screen once you have won two fights) is one long fight on one great map: a road cut by three gates, each of which opens only when everything on its side has fallen. At each gate you choose: safer, or richer and harder. The land's lord guards the way out.</p>
     <p><b>The team.</b> You start with one place in the team. Another opens at 20%, 40%, 60% and 80% of the campaign, up to five. You can own many heroes; who marches is your choice. Drag them on the Team field: right of the line they fight in front, left of it they stand behind. Tanks in front, archers, mages and healers behind.</p>
     <p><b>Bonds and classes.</b> Certain mixes of callings give the whole team a bonus (shown on the Team screen). A team with a tank, a healer and damage lasts longest.</p>
@@ -1051,6 +1072,7 @@ body.native #bTheater{display:none}
 <div id="mDiag" class="modal"><div class="frame" style="width:min(620px,94vw)"><h3 class="gold">Report for support</h3><div class="mute" style="font-size:13px">Nothing here is sent anywhere. If something went wrong, copy this and send it to whoever is helping you.</div><textarea id="diagText" readonly style="width:100%;height:min(46vh,260px);background:#0d1017;color:#cfe8cf;border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:10px;font:500 11.5px/1.5 ui-monospace,Menlo,monospace;resize:none"></textarea><div class="row" style="justify-content:flex-end"><button class="btn dark" id="diagClose">Close</button><button class="btn" id="diagCopy">Copy</button></div></div></div>
 <div id="mSpoils" class="modal"><div class="frame" style="width:min(400px,90vw);text-align:center"><h3 class="gold">The camp's spoils</h3><div id="spText" style="font-size:17px"></div><div class="row" style="justify-content:center;flex-wrap:wrap"><button class="btn dark" id="spTake">Take it</button><button class="btn" id="spDouble"></button></div></div></div>
 <div id="mTrek" class="modal"><div class="frame" style="width:min(600px,92vw);text-align:center"><div style="font:800 22px var(--head);letter-spacing:.14em;text-transform:uppercase" id="trekHead"></div><div class="mute" id="trekSub" style="font-size:14px;margin:8px 0 16px;line-height:1.45"></div><div class="row" style="gap:12px;align-items:stretch"><button class="btn dark" id="trekL" style="flex:1;white-space:normal;height:auto;padding:16px 14px;line-height:1.4;text-transform:none;letter-spacing:0;font-weight:500"><b style="display:block;font:800 14px var(--head);letter-spacing:.14em;text-transform:uppercase;margin-bottom:8px;color:var(--accent)"></b><span></span></button><button class="btn dark" id="trekR" style="flex:1;white-space:normal;height:auto;padding:16px 14px;line-height:1.4;text-transform:none;letter-spacing:0;font-weight:500"><b style="display:block;font:800 14px var(--head);letter-spacing:.14em;text-transform:uppercase;margin-bottom:8px;color:var(--accent)"></b><span></span></button></div></div></div>
+<div id="mWorks" class="modal"><div class="frame" style="width:min(640px,94vw);max-height:88vh;overflow:auto"><div class="row" style="justify-content:space-between;align-items:baseline"><div style="font:800 20px var(--head);letter-spacing:.14em;text-transform:uppercase">Camp works</div><div class="mute" id="worksSalv" style="font-size:14px"></div></div><div class="mute" style="font-size:13px;margin:6px 0 12px">Salvage comes from expeditions and from stands survived. What you build here helps everywhere else.</div><div id="worksList"></div><div style="font:700 13px var(--head);letter-spacing:.16em;text-transform:uppercase;margin:16px 0 8px">Relic on the banner</div><div class="mute" style="font-size:13px;margin-bottom:10px">Taken from the lord who guards an expedition's way out: one in each land. The banner carries one at a time.</div><div id="relicList"></div><div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn dark" id="worksClose">Close</button></div></div></div>
 <div id="mConfirm" class="modal"><div class="frame" style="width:min(420px,90vw)"><div id="confText" style="font-size:16px"></div><div class="row" style="justify-content:flex-end"><button class="btn dark" id="confNo">Cancel</button><button class="btn" id="confYes">Yes</button></div></div></div>
 <div class="toast" id="toast"></div>
 <div id="rotate"><div class="logo" style="font-size:40px">BANNERBORN</div><div>Turn your device sideways to play.</div></div>

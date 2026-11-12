@@ -39,7 +39,7 @@
   BB.ascendWaitingXp = (h) => { if (h.level < BB.levelCap(h)) BB.gainXp(h, 0); };
   // what a battle teaches each hero who fought: more for harder stages, a share for the work done, a little for losing;
   // a hero below the stage's level learns faster, so new recruits catch up by fighting
-  BB.battleXp = (M, win, share, mvp, lvl) => Math.round((40 + M.level * 20) * (win ? 1 : 0.4) * (0.75 + Math.min(1, share || 0) * 1.25) * (mvp ? 1.2 : 1) *
+  BB.battleXp = (M, win, share, mvp, lvl) => Math.round((40 + M.level * 20) * (1 + (BB.workRank ? BB.workRank(BB.save, 'barracks') : 0) * 0.06) * (win ? 1 : 0.4) * (0.75 + Math.min(1, share || 0) * 1.25) * (mvp ? 1.2 : 1) *
     (lvl && lvl < M.level ? Math.min(3, 1 + (M.level - lvl) * 0.2) : 1));
   BB.ascendCost = (h) => (h.stars || 1) * 4;
 
@@ -60,6 +60,33 @@
   BB.newCaptain = function () {
     return BB.newHero({ calling: 'vanguard', captain: true, name: 'The Captain', rarity: 2, look: Object.assign({}, BB.CAPTAIN_LOOK) });
   };
+  // ---------------------------------------------------------------- the camp's works, and relics
+  // Salvage comes from expeditions and from stands survived, and builds the camp; each work helps somewhere else.
+  BB.WORKS = [
+    { id: 'forge', name: 'The Forge', per: 'Gear you find is one level higher', text: (r) => 'Gear from loot is ' + r + ' level' + (r === 1 ? '' : 's') + ' higher.' },
+    { id: 'shrine', name: 'The Shrine', per: 'Each gate opened on an expedition mends the team by 6%', text: (r) => 'Each gate opened on an expedition mends the team by ' + r * 6 + '%.' },
+    { id: 'barracks', name: 'The Barracks', per: 'Heroes learn 6% faster', text: (r) => 'Heroes learn ' + r * 6 + '% faster from every fight.' },
+  ];
+  BB.WORK_MAX = 5; BB.WORK_COST = [3, 6, 10, 15, 22];
+  BB.workRank = (S, id) => (S && S.works && S.works[id]) || 0;
+  BB.workCost = (S, id) => BB.WORK_COST[BB.workRank(S, id)];
+  BB.canBuild = (S, id) => BB.workRank(S, id) < BB.WORK_MAX && (S.salvage || 0) >= BB.workCost(S, id);
+  BB.build = function (S, id) { if (!BB.canBuild(S, id)) return false; S.salvage -= BB.workCost(S, id); S.works = S.works || {}; S.works[id] = BB.workRank(S, id) + 1; return true; };
+  // A relic is taken from the lord who guards an expedition's way out, one for each land. The banner carries one.
+  BB.BANNER_RELICS = [
+    { id: 'r1', chapter: 1, name: "Ossric's Oath", text: 'Every hero has 8% more health.', mod: { hpPct: 0.08 } },
+    { id: 'r2', chapter: 2, name: "Sallow's Hourglass", text: 'Ultimates charge 15% faster.', mod: { energyGain: 0.15 } },
+    { id: 'r3', chapter: 3, name: "The Regent's Signet", text: 'Every hero strikes 8% harder.', mod: { atkPct: 0.08 } },
+    { id: 'r4', chapter: 4, name: "The Cantor's Bell", text: 'Every hero starts a fight with 30 more energy.', mod: { startEnergy: 30 } },
+    { id: 'r5', chapter: 5, name: "Hroald's Horn", text: 'Heroes are healed by 6% of the harm they do.', mod: { leech: 0.06 } },
+    { id: 'r6', chapter: 6, name: 'The Cinder Heart', text: 'Ultimates hit 15% harder.', mod: { skillDmg: 0.15 } },
+    { id: 'r7', chapter: 7, name: "Morwen's Root", text: 'All healing is a fifth stronger.', mod: { heal: 0.2 } },
+    { id: 'r8', chapter: 8, name: 'The Hollow Crown', text: '6% more health, 6% more damage, ultimates 8% faster.', mod: { hpPct: 0.06, atkPct: 0.06, energyGain: 0.08 } },
+  ];
+  BB.relicOf = (S) => (S && S.relic && BB.BANNER_RELICS.find((x) => x.id === S.relic)) || null;
+  BB.relicMod = (S) => { const r = BB.relicOf(S); return r ? r.mod : null; };
+  BB.hasRelic = (S, id) => !!(S.relics && S.relics.includes(id));
+  BB.gainRelic = function (S, chapter) { const r = BB.BANNER_RELICS.find((x) => x.chapter === chapter); if (!r || BB.hasRelic(S, r.id)) return null; S.relics = (S.relics || []).concat(r.id); if (!S.relic) S.relic = r.id; return r; };
   BB.heroColor = (h) => h.legend ? BB.LEGENDS[h.legend].color : BB.CALLINGS[h.calling].color;
   BB.heroTitle = (h) => h.legend ? BB.LEGENDS[h.legend].title : h.captain ? 'Banner-Captain' : BB.CALLINGS[h.calling].name;
   BB.shortName = (h) => { const p = h.name.split(' '); return p[0] === 'The' && p[1] ? p[1] : p[0]; };
@@ -117,6 +144,7 @@
     return true;
   };
   BB.rollLoot = function (r, level, heroes, count) {
+    level += BB.workRank ? BB.workRank(BB.save, 'forge') : 0;
     const items = [];
     for (let i = 0; i < count; i++) {
       const h = r.pick(heroes);
@@ -155,6 +183,7 @@
     if (C.ranged && hero.calling !== 'warpriest') s.crit += s.rangedCrit;
     if (hero.calling === 'arcanist' || hero.calling === 'warpriest') s.atkPct += s.casterAtk;
     if (!C.ranged) s.atkPct += s.meleeAtk;
+    { const rl = BB.relicMod && BB.relicMod(BB.save); if (rl) for (const q in rl) s[q] = (s[q] || 0) + rl[q]; }
     { const wr = (BB.save && BB.save.rank) || 0; s.hpPct += wr * BB.RANK_STEP; s.atkPct += wr * BB.RANK_STEP; } // the war chest: every rank lifts the whole banner
     s.hp = Math.round(s.hp * (1 + s.hpPct));
     s.atk = s.atk * (1 + s.atkPct);

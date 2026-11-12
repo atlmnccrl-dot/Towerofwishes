@@ -13,15 +13,15 @@
   UI.copyCanvas = copyCanvas;
 
   // ---------------------------------------------------------------- screens, modals, toast
-  const MAIN = ['home', 'heroes', 'team', 'shop', 'campaign', 'hero', 'recruit'];
+  const MAIN = ['home', 'play', 'heroes', 'team', 'shop', 'campaign', 'hero', 'recruit'];
   UI.show = function (id) {
     document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('on', s.id === id));
     if (UI.current !== id && MAIN.includes(id)) { const sc = $(id); sc.classList.remove('enter'); void sc.offsetWidth; sc.classList.add('enter'); } // the panels rise into place
     UI.current = id; document.body.dataset.screen = id;
     $('shell').classList.toggle('on', MAIN.includes(id));
     $('tabbar').style.display = ['hero', 'recruit', 'campaign'].includes(id) ? 'none' : '';
-    document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('on', t.dataset.tab === id));
-    $('tbTitle').textContent = { home: 'Camp', heroes: 'Heroes', team: 'Team', shop: 'Shop', campaign: 'Campaign', hero: 'Hero', recruit: 'Recruit' }[id] || '';
+    { const under = { team: 'heroes', hero: 'heroes', recruit: 'shop', campaign: 'play' }[id] || id; document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('on', t.dataset.tab === under)); }
+    $('tbTitle').textContent = { home: 'Camp', play: 'Play', heroes: 'Heroes', team: 'Formation', shop: 'Market', campaign: 'Campaign', hero: 'Hero', recruit: 'Recruit' }[id] || '';
     UI.refreshTop();
   };
   UI.modal = (id, on) => $(id).classList.toggle('on', on !== false);
@@ -40,9 +40,9 @@
     const canRecruit = BB.heroTiers(BB.ROSTER).some(({ tier, heroes }) => BB.tierOpen(S, tier) && S.crystals >= tier.cost && heroes.some((e) => !S.heroes.some((h) => h.recruit === e.key)));
     const canLevel = S.heroes.some((h) => (h.stars < BB.MAX_STARS && h.level >= BB.levelCap(h) && S.sigils >= BB.ascendCost(h)) || (BB.talentFree && BB.talentFree(h) > 0));
     const set = (tab, on) => { const t = document.querySelector('.tab[data-tab="' + tab + '"]'); let b = t.querySelector('.badge'); if (on && !b) { b = el('span', 'badge', '!'); t.appendChild(b); } if (!on && b) b.remove(); };
-    set('heroes', canRecruit || canLevel);
-    set('shop', BB.shopLeft(S, BB.SHOP[0], now()) > 0);
-    set('team', BB.teamIds(S).length < Math.min(5, S.heroes.length));
+    set('heroes', canLevel || BB.teamIds(S).length < Math.min(5, S.heroes.length));
+    set('shop', canRecruit || BB.shopLeft(S, BB.SHOP[0], now()) > 0);
+    set('home', BB.questsReady(S) > 0 || BB.WORKS.some((w) => BB.canBuild(S, w.id)));
   };
 
   // ---------------------------------------------------------------- banner art, item icons, stats
@@ -280,14 +280,47 @@
     const tp = BB.teamPower(BB.teamHeroes(S)), rp = BB.recPower(st);
     $('hmRec').innerHTML = done ? '' : 'Team <b class="' + (tp >= rp ? '' : 'lo') + '">⚔ ' + fmt(tp) + '</b> · needs ⚔ ' + fmt(rp);
     UI.updateSpoils();
-    const open = BB.heroTiers(BB.ROSTER).filter(({ tier }) => BB.tierOpen(S, tier));
-    const cheapest = open.length ? Math.min(...open.map(({ tier }) => tier.cost)) : 0;
-    $('recruitT').textContent = '◆ ' + cheapest + ' · you have ' + fmt(S.crystals);
-    $('bEndless').style.display = BB.chapterCleared(S, 1) ? '' : 'none'; $('bTrek').style.display = S.cleared['s1-2'] ? '' : 'none'; // an expedition is open as soon as the first two fights are won $('trekT').textContent = S.stats.treks ? 'Ways out found: ' + S.stats.treks : 'One great map. Three gates. A way out.'; $('endlessT').textContent = S.stats.endless ? 'Best: wave ' + S.stats.endless : 'How long can you hold?';
-    $('bRecruitH').classList.toggle('glow', S.crystals >= cheapest);
+    $('worksT').textContent = '⛭ ' + (S.salvage || 0) + ' salvage' + (BB.relicOf(S) ? ' · ' + BB.relicOf(S).name : ''); $('bWorks').classList.toggle('glow', BB.WORKS.some((w) => BB.canBuild(S, w.id)));
+    { const up = UI.nextUp(); $('hmUpT').textContent = up.text; $('hmUp').onclick = () => { BB.sfx('click'); up.go(); }; }
     { const rs = BB.rollState(S, now()), rb = $('bRoll'); rb.style.display = rs.ready && !BB.dev ? '' : 'none'; rb.classList.toggle('glow', rs.ready); $('rollT').textContent = 'Day ' + (rs.day + 1) + ' of 7 · ready'; }
     const qn = BB.questsReady(S); $('questT').textContent = qn ? qn + ' to claim' : BB.QUESTS.filter((q) => BB.questState(S, q) === 'claimed').length + ' / ' + BB.QUESTS.length + ' done';
     $('bQuests').classList.toggle('glow', qn > 0);
+  };
+  // The one thing most worth doing now, and where it is. Shown on the camp screen; tapping it goes there.
+  UI.nextUp = function () {
+    const S = BB.save, t = now(), done = BB.campaignDone(S), st = BB.MISSIONS[BB.nextStageIdx(S)];
+    if (BB.rollState(S, t).ready && !BB.dev) return { text: 'The muster roll is ready to sign.', go: () => $('bRoll').click() };
+    const qn = BB.questsReady(S); if (qn) return { text: qn + ' goal' + (qn > 1 ? 's' : '') + ' to claim.', go: () => UI.openQuests() };
+    const w = BB.WORKS.find((x) => BB.canBuild(S, x.id)); if (w) return { text: 'The camp can build: ' + w.name + '.', go: () => UI.openWorks() };
+    if (S.heroes.some((h) => BB.talentFree && BB.talentFree(h) > 0)) return { text: 'A hero has a skill point to spend.', go: () => UI.go('heroes') };
+    if (S.heroes.some((h) => h.stars < BB.MAX_STARS && h.level >= BB.levelCap(h) && S.sigils >= BB.ascendCost(h))) return { text: 'A hero is ready to ascend.', go: () => UI.go('heroes') };
+    if (BB.teamIds(S).length < Math.min(5, S.heroes.length, BB.slotsAt ? BB.slotsAt(BB.nextStageIdx(S)) : 5)) return { text: 'A place in the formation is empty.', go: () => UI.openTeam() };
+    if (BB.heroTiers(BB.ROSTER).some(({ tier, heroes }) => BB.tierOpen(S, tier) && S.crystals >= tier.cost && heroes.some((e) => !S.heroes.some((h) => h.recruit === e.key)))) return { text: 'You can afford a new hero.', go: () => UI.openRecruit() };
+    if (done) return { text: 'The campaign is won. Try an expedition.', go: () => UI.go('play') };
+    return { text: 'Stage ' + st.code + ' · ' + st.name, go: () => UI.openCampaign() };
+  };
+  // Play: every way to fight, in one place
+  UI.renderPlay = function () {
+    const S = BB.save, box = $('playCards'), done = BB.campaignDone(S), st = BB.MISSIONS[BB.nextStageIdx(S)], cleared = BB.MISSIONS.filter((m) => S.cleared[m.id]).length;
+    const tp = BB.teamPower(BB.teamHeroes(S)), rp = BB.recPower(st), land = Math.max(1, BB.CHAPTERS.filter((c) => BB.chapterCleared(S, c.id)).length), relic = BB.BANNER_RELICS.find((r) => r.chapter === land);
+    box.innerHTML = '';
+    const card = (cls, k, title, text, status, btn, fn, locked) => { const c = el('div', 'pcard ' + cls + (locked ? ' lock' : ''), '<div class="k">' + k + '</div><h3>' + esc(title) + '</h3><p>' + text + '</p><div class="st">' + status + '</div>'); if (!locked) { const b = el('button', 'btn' + (cls === 'main' ? '' : ' dark'), btn); click(b, fn); c.appendChild(b); } box.appendChild(c); return c; };
+    const c0 = card('main', 'Campaign', done ? 'The campaign is won' : 'Stage ' + st.code + ' · ' + st.name, 'Eight lands, ' + BB.MISSIONS.length + ' stages: routs, gates to break, stands against the clock, and a lord at the end of each land.', done ? 'Replay any stage.' : 'Team ⚔ ' + fmt(tp) + ' · needs ⚔ ' + fmt(rp), done ? 'Open the map' : 'March', () => UI.openCampaign());
+    c0.insertBefore(el('div', 'bar', '<i style="width:' + (cleared / BB.MISSIONS.length * 100) + '%"></i>'), c0.querySelector('.st'));
+    const trekOpen = !!S.cleared['s1-2'];
+    card('', 'Expedition', 'The Long Road', 'One great map in ' + esc(BB.CHAPTERS[land - 1].name) + '. Three gates that open only when their guards fall, a choice at each, and the land\'s lord at the way out. Pays salvage for the camp.', trekOpen ? (relic ? (BB.hasRelic(S, relic.id) ? 'Relic taken: ' + esc(relic.name) : 'Its lord carries a relic: ' + esc(relic.name)) : '') + (S.stats.treks ? ' · ways out found: ' + S.stats.treks : '') : 'Opens after stage 1-2.', 'Set out', () => BB.deployTrek(), !trekOpen);
+    const endOpen = BB.chapterCleared(S, 1);
+    card('', 'Endless', 'The Endless Gate', 'Wave after wave, each stronger than the last. How long can the banner hold?', endOpen ? (S.stats.endless ? 'Best: wave ' + S.stats.endless : 'Not yet tried.') : 'Opens when the first land is cleared.', 'Hold the gate', () => BB.deployEndless(), !endOpen);
+  };
+  // the camp's works and the banner's relic
+  UI.openWorks = function () {
+    const S = BB.save, list = $('worksList'), rl = $('relicList'); list.innerHTML = ''; rl.innerHTML = '';
+    $('worksSalv').textContent = '⛭ ' + (S.salvage || 0) + ' salvage';
+    for (const w of BB.WORKS) { const r = BB.workRank(S, w.id), max = r >= BB.WORK_MAX, row = el('div', 'work', '<div class="w"><b>' + esc(w.name) + '</b><small>' + (r ? esc(w.text(r)) : 'Not built. ' + esc(w.per) + ' for each rank.') + '</small><div class="pips">' + Array.from({ length: BB.WORK_MAX }, (_, i) => '<i class="' + (i < r ? 'on' : '') + '"></i>').join('') + '</div></div>');
+      const b = el('button', 'btn sm' + (BB.canBuild(S, w.id) ? '' : ' dark'), max ? 'Finished' : (r ? 'Raise' : 'Build') + ' · ⛭ ' + BB.workCost(S, w.id)); b.disabled = max || !BB.canBuild(S, w.id); if (!b.disabled) click(b, () => { if (BB.build(S, w.id)) { BB.persist(); BB.sfx('levelup'); UI.openWorks(); UI.renderHome(); } }); row.appendChild(b); list.appendChild(row); }
+    for (const r of BB.BANNER_RELICS) { const have = BB.hasRelic(S, r.id), on = S.relic === r.id, row = el('div', 'work' + (on ? ' sel' : ''), '<div class="w"><b>' + (have ? esc(r.name) : '???') + '</b><small>' + (have ? esc(r.text) : 'Held by the lord of ' + esc(BB.CHAPTERS[r.chapter - 1].name) + '. Find the way out of an expedition there.') + '</small></div>');
+      if (have) { const b = el('button', 'btn sm' + (on ? ' dark' : ''), on ? 'Carried' : 'Carry'); b.disabled = on; if (!on) click(b, () => { S.relic = r.id; BB.persist(); BB.sfx('click'); UI.openWorks(); UI.renderHome(); }); row.appendChild(b); } rl.appendChild(row); }
+    UI.modal('mWorks');
   };
   UI.updateSpoils = function () {
     const S = BB.save; if (!S) return;
@@ -1461,6 +1494,7 @@
   UI.go = function (tab) {
     if (tab === 'home') { BB.goCamp(); return; }
     if (BB.ambience) BB.ambience(tab === 'shop' ? 'market' : null); // the market has its own air
+    if (tab === 'play') UI.renderPlay();
     if (tab === 'heroes') UI.renderHeroes();
     if (tab === 'team') { UI.openTeam(); return; }
     if (tab === 'shop') { MK.sel = null; UI.renderShop(); }

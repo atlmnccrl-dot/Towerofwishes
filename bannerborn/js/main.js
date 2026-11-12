@@ -435,6 +435,7 @@
     if (current.stage.type === 'endless') return finishEndless();
     const S = BB.save, B = scene, M = current.stage, win = !!B.result.win;
     const first = win && !S.cleared[M.id];
+    if (win && M.type === 'survive') { const sv = first ? 2 : 1; S.salvage = (S.salvage || 0) + sv; UI.toast('⛭ +' + sv + ' salvage for the camp'); }
     const heroes = B.heroList.map((e) => e.hero);
     let mvp = null; for (const e of B.heroList) if (!mvp || (e.dealt || 0) > (mvp.dealt || 0)) mvp = e;
     if (BB.Ads && !devReal) BB.Ads.battleDone();
@@ -529,6 +530,8 @@
     res.crystals = first ? 60 : win ? 10 : 0; res.sigils = win ? 1 : 0;
     if (B.loot && B.loot.length) res.items.push(...B.loot);
     const rolls = win ? 2 + (o.caches || 0) * 2 + (o.horn ? 1 : 0) + (o.greed || 0) : 0; if (rolls) res.items.push(...BB.rollLoot(BB.rng(now() & 0xffffff), M.level + 2, S.heroes, rolls)); // a vault is only yours if you walk out with it
+    { const sv = win ? 4 + (o.caches || 0) * 2 + (o.greed || 0) + (o.horn ? 1 : 0) : gates; if (sv) { S.salvage = (S.salvage || 0) + sv; res.title += ' · ⛭ +' + sv + ' salvage'; } }
+    if (win) { const got = BB.gainRelic(S, M.chapter); if (got) res.title += ' · relic: ' + got.name; }
     if (win) { S.stats.treks = (S.stats.treks || 0) + 1; S.stats.trekLands = S.stats.trekLands || {}; S.stats.trekLands[M.chapter] = 1; }
     S.gold += res.gold; S.crystals += res.crystals; S.sigils += res.sigils; S.inventory.push(...res.items); S.stats.kills += B.kills;
     BB.persist(); UI.modal('mTrek', false);
@@ -704,8 +707,6 @@
   // ---------------------------------------------------------------- buttons
   UI.click($('bPlay'), () => { if (BB.save) goCamp(); else newGame(); });
   UI.click($('bTrailer'), () => playTrailer());
-  UI.click($('bEndless'), () => UI.openTeam ? BB.deployEndless() : null);
-  UI.click($('bTrek'), () => BB.deployTrek());
   UI.click($('bGuide'), () => { UI.modal('mSettings', false); UI.modal('mGuide'); });
   UI.click($('bGuideClose'), () => UI.modal('mGuide', false));
   // the muster roll: the week laid out, today's gift lit
@@ -740,7 +741,9 @@
   UI.click($('bkClose'), () => UI.modal('mBackup', false));
   UI.click($('bContinue'), () => UI.openCampaign());
   UI.click($('bCampBack'), () => goCamp());
-  UI.click($('bRecruitH'), () => UI.openRecruit());
+  UI.click($('bWorks'), () => UI.openWorks());
+  UI.click($('worksClose'), () => UI.modal('mWorks', false));
+  UI.click($('bFormation'), () => UI.openTeam());
   UI.click($('bQuests'), () => UI.openQuests());
   UI.click($('bRecruit'), () => UI.openRecruit());
   UI.click($('bRecBack'), () => UI.go('heroes'));

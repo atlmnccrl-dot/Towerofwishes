@@ -201,6 +201,22 @@ to thin. A lone hero meets a fifth of the crowd, hitting at 40%, and a boss at a
 test/sim-node.js all 3` plays every stage with as many heroes as the campaign has opened places for by then (the
 simulator used to leave the team out, so its hordes were always the smallest; it now passes it, as the game does).
 
+**Finding your way.** The bar at the bottom has four places. **Play** lists every way to fight on one page (the
+campaign's next stage, the expedition, the Endless Gate), each with what it asks and what it pays. **Heroes** is the
+roster, with the formation and recruiting one tap away. **Market** is the traders and the recruiting gates. **Camp**
+is what the camp gives (spoils, the muster roll, goals) and what you build there. On the camp screen a **Next**
+pointer names the one thing most worth doing now (a roll to sign, goals to claim, something the camp can build, a
+skill point to spend, an empty place in the formation, a hero you can afford, otherwise the next stage) and takes you
+there.
+
+**Systems that feed each other.** Expeditions and stands survived pay **salvage**. Salvage builds the **camp's
+works** (five ranks each): the Forge makes gear from loot a level higher per rank, the Shrine mends the team by 6%
+per rank at every gate opened on an expedition, the Barracks makes heroes learn 6% faster per rank. The lord who
+guards an expedition's way out gives up a **banner relic**, one in each land (`BB.BANNER_RELICS`); the banner
+carries one at a time and it changes every fight in every mode (more health, faster ultimates, harder blows, and so
+on). So the campaign opens lands, a land's expedition pays salvage and a relic, and those make the campaign's next
+land easier to take.
+
 **More ways to fight** (js/modes.js).
 - **Survive** stages (one in each land: Chapel Road, Temple Steps, The Last Square, The Shattered Wall, The Rime
   Wood, The Slag Court, Rotwood, The Hollow City): no gate to break and no last wave. The dead come from a different

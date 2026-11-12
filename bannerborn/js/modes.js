@@ -30,7 +30,8 @@
     const m = this.map, o = this.obj, gone = m.props.filter((p) => p.gate === gi);
     m.props = m.props.filter((p) => p.gate !== gi); if (BB.rebuildGrid) BB.rebuildGrid(m);
     for (const p of gone) this.addFx('x_wood', p.x, p.y - 0.2, { sc: 0.9 });
-    o.gatesOpen++; this.shake = Math.max(this.shake || 0, 0.5); this.banner('THE GATE OPENS', 1.6); if (BB.sfx) BB.sfx('gate');
+    o.gatesOpen++; this.shake = Math.max(this.shake || 0, 0.5);
+    { const sr = BB.workRank ? BB.workRank(this.save || BB.save, 'shrine') : 0; if (sr) for (const h of this.heroesAlive()) this.heal(null, h, h.maxhp * 0.06 * sr); } this.banner('THE GATE OPENS', 1.6); if (BB.sfx) BB.sfx('gate');
     if (this.march) this.march.path = null;
   };
   const CHOICES = [
