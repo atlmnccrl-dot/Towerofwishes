@@ -203,7 +203,7 @@ simulator used to leave the team out, so its hordes were always the smallest; it
 
 **The commander's hand** (js/orders.js): a fight is no longer won by watching. Every several seconds one of the dead
 stops, glows and winds up a **heavy blow** (a ring closing on it, a mark over its head, a warning at the top of the
-screen); left alone it takes about a third of a hero's health and splashes those beside them. The answers are the
+screen); left alone it takes two fifths of a hero's health and splashes those beside them. The answers are the
 player's: **tap that foe** to break the blow off (it reels, the team gains a little energy; a tap on any foe calls it
 out, so the heroes turn on it and it takes 40% more harm for six seconds), raise the **Shield Wall** (everyone takes
 70% less for a moment; a heavy blow that lands on the wall staggers the one who threw it), or **Rally** (everyone
@@ -212,7 +212,10 @@ kills). AUTO casts ultimates and never gives orders. Keys: W wall, R rally. **Ho
 longer than they did (`BB.DIFF`: +30% health, +50% damage easing to +15% by the last land, bosses +12% damage, and more for full teams
 in `BB.TEAM_K`). In the simulator at one level under the stage, a team nobody commands wins about half its fights
 mid-campaign; a player who answers the heavy blows wins nearly all of them, worn to between a third and three
-quarters of its health (`ORDERS=1 node test/sim-node.js`, which now prints how low the team fell).
+quarters of its health (`ORDERS=1 node test/sim-node.js`, which now prints how low the team fell). The bot, which
+plays the real progression (best gear, every skill point) and never gives an order, was measured before the last
+raise of the heavy blow: 22 fights won of 22 through 3-6, its health falling to 54% on average and under 40% in
+eight of them (before any of this: never under 60%).
 
 Losing costs nothing (and still teaches your heroes): change gear or the formation and fight again.
 

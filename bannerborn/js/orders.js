@@ -14,7 +14,7 @@
   BB.ORDERS = {
     max: 3, start: 1.5, every: 7.5, kill: 0.18,
     brace: { cost: 1, dur: 2.8, cut: 0.7 }, mark: { cost: 1, dur: 6, amp: 0.4, reel: 2.4 }, rally: { cost: 2, heal: 0.24, energy: 30 },
-    heavy: { first: 5.5, every: [7.5, 11], wind: 1.9, dmg: 0.36, elite: 0.42, splash: 1.7, splashK: 0.4, held: 2.2, few: [1.45, 1.45, 1.35, 1.2, 1.1, 1] }, // few: how much rarer for a small team
+    heavy: { first: 5.5, every: [6.5, 9.5], wind: 1.9, dmg: 0.42, elite: 0.5, splash: 1.7, splashK: 0.4, held: 2.2, few: [1.45, 1.45, 1.35, 1.2, 1.1, 1] }, // few: how much rarer for a small team
   };
   Battle.prototype.ordersInit = function () { const O = BB.ORDERS; this.cmd = O.start; this.braceT = 0; this.heavyT = O.heavy.first; this.heavies = 0; this.heaviesBroken = 0; this.heaviesHeld = 0; this.ordersUsed = 0; };
   Battle.prototype.canOrder = function (what) { return !this.result && !this.intro && !this.peaceful && !this.noOrders && this.cmd !== undefined && this.cmd >= BB.ORDERS[what].cost; };
