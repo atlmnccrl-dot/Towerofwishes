@@ -201,6 +201,19 @@ to thin. A lone hero meets a fifth of the crowd, hitting at 40%, and a boss at a
 test/sim-node.js all 3` plays every stage with as many heroes as the campaign has opened places for by then (the
 simulator used to leave the team out, so its hordes were always the smallest; it now passes it, as the game does).
 
+**The commander's hand** (js/orders.js): a fight is no longer won by watching. Every several seconds one of the dead
+stops, glows and winds up a **heavy blow** (a ring closing on it, a mark over its head, a warning at the top of the
+screen); left alone it takes about a third of a hero's health and splashes those beside them. The answers are the
+player's: **tap that foe** to break the blow off (it reels, the team gains a little energy; a tap on any foe calls it
+out, so the heroes turn on it and it takes 40% more harm for six seconds), raise the **Shield Wall** (everyone takes
+70% less for a moment; a heavy blow that lands on the wall staggers the one who threw it), or **Rally** (everyone
+mended by a quarter, ultimates charged). Orders cost **command** (three gold bars; it fills with time and with
+kills). AUTO casts ultimates and never gives orders. Keys: W wall, R rally. **How hard:** the dead hit harder and last
+longer than they did (`BB.DIFF`: +15% health, +30% damage easing to +5% by the last land, and more for full teams in
+`BB.TEAM_K`). In the simulator at one level under the stage, a team nobody commands wins about half its fights
+mid-campaign; a player who answers the heavy blows wins nearly all of them, worn to between a third and three
+quarters of its health (`ORDERS=1 node test/sim-node.js`, which now prints how low the team fell).
+
 Losing costs nothing (and still teaches your heroes): change gear or the formation and fight again.
 
 **After and around the campaign**
@@ -353,6 +366,7 @@ name, their horde, the face-off, the clash) and a fall; chapters 2-4 open with y
 | `js/drill.js` | the team field: the current region with the formation's heroes training, sparring and chatting |
 | `js/preview.js` | the duel preview beside a summoning: one hero, one enemy, basic attacks → signature → ultimate, looped |
 | `js/tactics.js` | battlefield tactics: potions, rescues, hands-on heals, stones to throw, kicks, charges, pounces, dodge rolls |
+| `js/orders.js` | the commander's orders: heavy blows, break (tap a foe), shield wall, rally, command; and what a careful player does, for the simulator |
 | `js/cinema.js` | cutscenes: shot sequencer (scene fly-throughs, close-ups, splits, impact frames, titles) and the four scripts |
 | `js/cineart.js` | art made for the cutscenes: drawn figures (knights, the Captain, the dead, Vesh) posed from joints, lit per shot and kept once drawn; `BB.CineArt.draw / drawLow / eyes / skull` |
 | `js/opening.js` | the opening film: eleven shots with their own painters (the ridge, the blades, the tear, the gate, the map, the glass, the last stand) |

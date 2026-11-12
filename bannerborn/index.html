@@ -405,6 +405,19 @@ body.dev::after{content:'DEVELOPMENT SANDBOX · NOTHING IS SAVED';position:fixed
 #hud .bnr div.lose{color:var(--red)}
 #hud .bnr div.small,#hud .bnr div.combo{font-size:clamp(14px,2.2vw,22px);letter-spacing:.3em;position:relative;top:-14vh}
 #hud .bnr div.combo{color:var(--cyan);text-shadow:0 0 20px rgba(92,211,255,.6)}
+#hud .orders{position:absolute;left:calc(12px + var(--safe-l));bottom:calc(12px + var(--safe-b));display:flex;flex-direction:column;gap:8px;align-items:flex-start;transition:opacity .3s}
+#hud.cine .orders{opacity:0;pointer-events:none}
+#hud .pips{display:flex;gap:5px;padding:0 2px}
+#hud .pips i{width:30px;height:8px;border-radius:4px;background:rgba(0,0,0,.6);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);overflow:hidden;position:relative}
+#hud .pips i::after{content:'';position:absolute;left:0;top:0;bottom:0;width:var(--f,0%);background:linear-gradient(90deg,#ffbe55,#ffe9a0)}
+#hud .pips.nope{animation:shake .25s}
+#hud .obtn{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:132px;height:44px;padding:0 10px 0 14px;border-radius:14px;background:rgba(12,14,21,.84);border:1px solid var(--line2);color:var(--text);font:700 11px var(--head);letter-spacing:.14em;text-transform:uppercase}
+#hud .obtn em{font-style:normal;min-width:20px;height:20px;border-radius:10px;background:var(--accent);color:#1b1206;font:800 11px var(--head);display:flex;align-items:center;justify-content:center}
+#hud .obtn.off{opacity:.4}
+#hud .obtn.hot{border-color:#ff7a59;box-shadow:0 0 18px -2px rgba(255,110,80,.85)}
+#hud .hvy{position:absolute;left:50%;top:calc(60px + var(--safe-t));transform:translateX(-50%);padding:7px 18px;border-radius:999px;background:rgba(120,22,12,.88);border:1px solid #ff7a59;font:700 12px var(--head);letter-spacing:.14em;text-transform:uppercase;white-space:nowrap;display:none;pointer-events:none}
+#hud .hvy.on{display:block;animation:hvy .45s ease-in-out infinite alternate}
+@keyframes hvy{from{opacity:.7}to{opacity:1}}
 #hud .tut{position:absolute;left:50%;bottom:calc(126px + var(--safe-b));transform:translateX(-50%);padding:11px 20px;border-radius:14px;background:rgba(12,14,21,.8);border:1px solid var(--line2);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);font-size:14px;max-width:80vw;text-align:center;display:none}
 
 /* ---- modals, toast */
@@ -982,6 +995,8 @@ body.native #bTheater{display:none}
   <div class="tut" id="tut"></div>
   <div class="cutin" id="cutin"><canvas width="96" height="96"></canvas><div class="ciText"><div class="ciName"></div><div class="ciSkill"></div></div></div>
   <div class="cards" id="cards"></div>
+  <div class="orders" id="orders"><div class="pips" id="oPips"><i></i><i></i><i></i></div><button class="obtn" id="oBrace"><span>Shield wall</span><em>1</em></button><button class="obtn" id="oRally"><span>Rally</span><em>2</em></button></div>
+  <div class="hvy" id="hvy"></div>
 </div>
 
 <div id="versus"><div class="vl"><div class="vin"><div class="vlbl">Your banner</div><div class="vrow" id="vsHeroes"></div><div class="vpw" id="vsPow"></div></div></div><div class="vr"><div class="vin"><div class="vlbl" id="vsFoeLbl">The horde</div><div class="vrow" id="vsFoes"></div><div class="vpw" id="vsRec"></div></div></div><div class="seam"></div><div class="vc"><div class="code" id="vsCode"></div><div class="vsw">VS</div><div class="vnm" id="vsName"></div><div class="vob" id="vsObj"></div></div></div>
@@ -992,7 +1007,7 @@ body.native #bTheater{display:none}
 <div id="mResults" class="modal"><div class="frame scroll" id="resBody"></div></div>
 <div id="mPause" class="modal"><div class="frame" style="width:min(380px,90vw)">
   <h2 class="gold" style="text-align:center">Paused</h2>
-  <div class="mute" style="font-size:14px;text-align:center">Heroes fight on their own. Tap a glowing hero card to unleash an ultimate, or turn on AUTO.</div>
+  <div class="mute" style="font-size:14px;text-align:center">Heroes fight on their own. Tap a glowing hero card for an ultimate. When a foe glows and winds up, tap it to break the blow.</div>
   <button class="btn" id="bResume">Resume</button>
   <button class="btn dark" id="bRetreat">Retreat</button>
 </div></div>
@@ -1022,6 +1037,7 @@ body.native #bTheater{display:none}
   <h2 class="gold">How to play</h2>
   <div class="guide">
     <p><b>Battles.</b> Your heroes fight on their own. Each one charges an ultimate by fighting; tap the glowing card to use it, or turn on AUTO. A mark on the ground is a blow about to land: heroes step out of it when they can.</p>
+    <p><b>Orders.</b> A fight is not won by watching. Now and then one of the dead stops, glows and winds up a <b>heavy blow</b>: left alone it takes a third of a hero's health. <b>Tap that foe</b> to break the blow off (tap any foe to call it out: your heroes turn on it and it takes more harm). <b>Shield wall</b> makes everyone take far less for a moment, and a heavy blow that lands on it staggers the one who threw it. <b>Rally</b> mends everyone and charges their ultimates. Orders cost command (the gold bars), which fills with time and with kills. AUTO casts ultimates; it does not give orders.</p>
     <p><b>The team.</b> You start with one place in the team. Another opens at 20%, 40%, 60% and 80% of the campaign, up to five. You can own many heroes; who marches is your choice. Drag them on the Team field: right of the line they fight in front, left of it they stand behind. Tanks in front, archers, mages and healers behind.</p>
     <p><b>Bonds and classes.</b> Certain mixes of callings give the whole team a bonus (shown on the Team screen). A team with a tank, a healer and damage lasts longest.</p>
     <p><b>What the dead build.</b> From the second land on, the horde raises works where it holds ground, and all must fall before a field is won. A <b>watchtower</b> shoots fast. A <b>mortar</b> marks where its shell will land. An <b>obelisk</b> mends the dead near it and makes them hit harder: break it early. A <b>brazier</b> spits the land's own harm under your heroes: fire, frost that slows, poison that lingers, blight that drains. A <b>cage</b> keeps letting more out until it is broken.</p>
@@ -1066,6 +1082,7 @@ body.native #bTheater{display:none}
 <script src="js/signatures.js"></script>
 <script src="js/epic.js"></script>
 <script src="js/traits.js"></script>
+<script src="js/orders.js"></script>
 <script src="js/drill.js"></script>
 <script src="js/preview.js"></script>
 <script src="js/audio.js"></script>

@@ -395,7 +395,7 @@
   // the horde is sized to the team that meets it: one hero faces a fifth of what five do, and a little less
   // (a lone hero has no healer and no shield beside them, so their foes also hit softer, and bosses and gates are
   // cut down further than the crowd is). By team size 0..5: how many come, how hard they hit, a boss's health, a gate's.
-  BB.TEAM_K = { count: [0.2, 0.2, 0.34, 0.52, 0.76, 1], atk: [0.4, 0.4, 0.5, 0.75, 0.9, 1], hp: [0.5, 0.5, 0.6, 0.72, 0.86, 1], boss: [0.1, 0.1, 0.14, 0.36, 0.68, 1], gate: [0.25, 0.25, 0.4, 0.6, 0.8, 1],
+  BB.TEAM_K = { count: [0.2, 0.2, 0.34, 0.52, 0.76, 1], atk: [0.5, 0.5, 0.56, 0.85, 1, 1.05], hp: [0.5, 0.5, 0.6, 0.72, 0.86, 1], boss: [0.1, 0.1, 0.14, 0.36, 0.68, 1], gate: [0.25, 0.25, 0.4, 0.6, 0.8, 1],
     gates: [0.34, 0.34, 0.5, 0.67, 0.84, 1], cap: [2, 2, 4, 6, 8, 9], elite: [0, 0, 0.3, 0.55, 0.8, 1], // gates: how many of a stage's gates stand; cap: how many a gate keeps on the field; elite: how often one comes
     crowd: [0, 0, 1, 2, 3, 4], wait: [5, 5, 2.4, 1.6, 1.2, 1] }; // crowd: a new wave waits until this few are left standing; wait: how much longer before it comes anyway
   BB.teamK = (what, n) => BB.TEAM_K[what][Math.max(0, Math.min(5, n | 0))];
@@ -588,10 +588,13 @@
   };
 
   // ---------------------------------------------------------------- foes
+  // How hard the dead are, over the base tables: their health, how hard they hit, a boss's health. Raised so a fight
+  // is close: the team should be worn down to a third or less at its level, and lose if nobody commands it.
+  BB.DIFF = { hp: 1.15, atk: 1.3, atkLate: 1.05, boss: 1 }; // atk eases toward atkLate by level 46: the last lands were already the tightest
   BB.foeStats = function (kind, level, elite) {
     const F = BB.FOES[kind];
     const g = 1 + (level - 1) * 0.2;
-    const s = { hp: Math.round(F.hp * g * (F.boss ? 3.5 : F.gate ? 1.6 : 2.5)), atk: F.atk * (1 + (level - 1) * 0.16) * (F.boss ? 2.5 : 2.9), def: F.def + (level - 1) * 0.6 };
+    const D = BB.DIFF, s = { hp: Math.round(F.hp * g * (F.boss ? 3.5 * D.boss : F.gate ? 1.6 : 2.5 * D.hp)), atk: F.atk * (1 + (level - 1) * 0.16) * (F.boss ? 2.5 : 2.9) * (D.atkLate === undefined ? D.atk : D.atkLate + (D.atk - D.atkLate) * Math.max(0, Math.min(1, (46 - level) / 26))), def: F.def + (level - 1) * 0.6 };
     if (elite) { s.hp = Math.round(s.hp * elite.hp); s.atk *= elite.atk; }
     return s;
   };

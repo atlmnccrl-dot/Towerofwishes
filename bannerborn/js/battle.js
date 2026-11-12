@@ -362,6 +362,7 @@
     if (src && (o.sureCrit || this.r() < (src.crit || 0) + (o.elem === 'arcane' ? 0.1 : 0))) { dmg *= src.st && src.st.rangedCrit ? 1.9 : 1.75; crit = true; }
     if (o.elem === 'shadow') dmg *= 1.2;
     if (tgt.buffs.guard > 0) dmg *= 0.5;
+    if (tgt.marked > 0 && BB.ORDERS) dmg *= 1 + BB.ORDERS.mark.amp; // the foe the commander called out
     if (tgt.side === 'hero' && !tgt.ward && this.heroList.length < 3) dmg *= this.heroList.length === 1 ? 0.6 : 0.8; // the banner steels the few
     if (tgt.F && tgt.F.block && src && !o.aoe) {
       const fd = BB.dirFromVec(src.x - tgt.x, src.y - tgt.y);
@@ -418,6 +419,7 @@
     e.dead = true; e.hp = 0; e.deadT = 0; e.state = 'dead';
     if (e.ward) { this.addFx('x_wood', e.x, e.y - 0.2, { sc: 0.8 }); return; }
     if (e.side === 'foe' && BB.foeVoice) BB.foeVoice(e, 'die', e.boss ? 1 : 0.45);
+    if (e.side === 'foe' && !e.prop && this.cmd !== undefined && BB.ORDERS) this.cmd = Math.min(BB.ORDERS.max, this.cmd + BB.ORDERS.kill); // a kill is worth a little command
     if (e.gate && BB.voice) BB.voice('rumble', 0.55);
     if (e.side === 'hero') {
       if (this.revives > 0) {
@@ -819,6 +821,7 @@
         for (const o of this.inRadius(c.x, c.y, c.rad, c.side)) if (!o.gate && !o.ward) this.hit(null, o, 1, { atk: c.dps * 0.5 * 3, aoe: true });
     }
     this.clouds = this.clouds.filter((c) => c.t < c.dur);
+    if (this.ordersTick) this.ordersTick(dt); // heavy blows, and the commander's answers (js/orders.js)
     for (const t of this.tele) { t.t += dt; if (t.t >= t.dur && t.onEnd && !t.fired) { t.fired = true; t.onEnd(); } }
     this.tele = this.tele.filter((t) => t.t < t.dur + 0.15);
     for (const f of this.fx) f.t += dt;
@@ -1773,6 +1776,7 @@
     }
     if (e.turret && e.F.struct && this.drawStruct) { this.drawStruct(ctx, e, s); return; }
     if (e.side === 'foe' && this.drawHexed && !e.dead) this.drawHexed(ctx, e, s);
+    if (e.side === 'foe' && this.drawHeavy && !e.dead) this.drawHeavy(ctx, e, s);
     if (e.turret) {
       BB.drawFx(ctx, 'turret', e.dead ? 7 : Math.floor(this.time * 6) % 2, s.x, s.y - 6, 1.1, {});
       if (e.flash > 0) BB.drawFx(ctx, 'turret', 0, s.x, s.y - 6, 1.1, { add: true, alpha: e.flash * 3 });
