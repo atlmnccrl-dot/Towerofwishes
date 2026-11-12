@@ -888,8 +888,8 @@
     try {
     watchTick(dt);
     switch (M.state) {
-      case 'load': ctx.fillStyle = '#07060a'; ctx.fillRect(0, 0, R.W, R.H); break;
-      case 'title': ctx.fillStyle = '#05020a'; ctx.fillRect(0, 0, R.W, R.H); if (VS.INTRO && VS.INTRO.menu) VS.INTRO.menu(dt); else backdrop(ctx, dt, 5, true); break;   // the menu's scene (js/intro.js)
+      case 'load': if (VS.LOADSCENE) VS.LOADSCENE.draw(ctx, dt, VS.LOADSCENE.p == null ? 0 : VS.LOADSCENE.p); else { ctx.fillStyle = '#07060a'; ctx.fillRect(0, 0, R.W, R.H); } break;   // js/loadscene.js
+      case 'title': ctx.fillStyle = '#05020a'; ctx.fillRect(0, 0, R.W, R.H); if (VS.MENUFILM) VS.MENUFILM.draw(ctx, dt); else if (VS.INTRO && VS.INTRO.menu) VS.INTRO.menu(dt); else backdrop(ctx, dt, 5, true); break;   // js/menufilm.js   // the menu's scene (js/intro.js)
       case 'menu': if (VS.MENU) { ctx.fillStyle = '#05020a'; ctx.fillRect(0, 0, R.W, R.H); VS.MENU.draw(dt, M.menuSc); } else { backdrop(ctx, dt, 5, false); ctx.fillStyle = 'rgba(6,3,8,0.62)'; ctx.fillRect(0, 0, R.W, R.H); } break;
       case 'scene': scene(ctx, dt); break;
       case 'intro': VS.INTRO.update(dt, !!(M.pressed.back || M.pressed.tap)); if (M.state === 'intro') VS.INTRO.draw(ctx, dt); break;
@@ -955,6 +955,7 @@
     else title();
   }
   addEventListener('wheel', (e) => { if (M.state === 'map' && !e.target.closest('.mission')) { VS.MAP.wheel(e.deltaY); } }, { passive: true });
+  M.isoFor = isoFor;
   M.startFight = startFight; M.startScene = startScene; M.theatre = theatre; M.title = title; M.endFight = endFight; M.map = map; M.playNode = playNode; M.startNode = startNode; M.skills = skills; M.souls = souls; M.shop = shop; M.settings = settings; M.gear = gear; M.modes = modes; M.roster = roster;
   boot();
 })();

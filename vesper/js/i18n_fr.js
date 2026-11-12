@@ -997,6 +997,14 @@ VS.I18N.add("fr", {
 "\"Kneel.\"": "« À genoux. »",
 "The five kings met him together.": "Les cinq rois l'affrontèrent ensemble.",
 "The five kings met him with their armies.": "Les cinq rois l'affrontèrent avec leurs armées.",
-"Ice, storm, fire and shadow. Nothing touched him.": "Glace, tempête, feu et ombre. Rien ne l'atteignit."
+"Ice, storm, fire and shadow. Nothing touched him.": "Glace, tempête, feu et ombre. Rien ne l'atteignit.",
+"The red light of the wounded Moon wakes the dead.": "La lumière rouge de la Lune blessée réveille les morts.",
+"Each king you free climbs beside you as a Bound Soul.": "Chaque roi libéré monte à vos côtés comme Âme Liée.",
+"Attack right after a dodge for a dash-cut.": "Attaquez juste après une esquive pour une coupe en élan.",
+"When three foes crowd you, your next blow lands heavy.": "Quand trois ennemis vous pressent, votre prochain coup est lourd.",
+"Your skills join your combo by themselves. Keep attacking.": "Vos compétences rejoignent votre combo d'elles-mêmes. Continuez d'attaquer.",
+"A moon art strikes hardest when your health is low.": "Un art lunaire frappe plus fort quand votre santé est basse.",
+"If she falls, the Moon turns the night back, and she climbs again.": "Si elle tombe, la Lune ramène la nuit en arrière, et elle remonte.",
+"Dawn is six hours away. The First Cut waits at the top.": "L'aube est à six heures. La Première Taille attend au sommet."
 },
   { tier: {"Iron": "fer", "Steel": "acier", "Moonsteel": "acier lunaire", "Bloodsteel": "acier sanglant", "Bone": "os", "Silver": "argent", "Moon": "lune", "Blood": "sang"}, base: {"Blade": "Lame", "Saber": "Sabre", "Axe": "Hache", "Spear": "Lance", "Greatsword": "Espadon", "Coat": "Veste", "Mail": "Cotte", "Plate": "Cuirasse", "Cloak": "Cape", "Locket": "Médaillon", "Ring": "Anneau", "Fang": "Croc", "Talisman": "Talisman"}, suf: {"of Edges": "des Tranchants", "of the Wall": "du Rempart", "of Warding": "de la Garde", "of the Moon": "de la Lune", "of Thirst": "de la Soif", "of Haste": "de la Hâte", "of Wind": "du Vent", "of Patience": "de la Patience", "of Mending": "de la Guérison", "of Fortune": "de la Fortune"}, make: (b, t, s) => b + (/^[aeiouh]/.test(t) ? " d'" : ' de ') + t + (s.length ? ' ' + s.join(' et ') : '') });

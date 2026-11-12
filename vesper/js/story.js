@@ -282,6 +282,36 @@
       cam: { at: [0, 90], to: [0, -20], zoom: [2.2, 2.8], lift: 30 }, light: { on: 'fc', r: 0.6, dark: 0.7 } }, CINE, { fade: [0.6, 1.2] }),
   ] };
 
+  // ---- The main menu's film (2026-11-12, the author: "the same thing for the main menu screen"). A loop of three shots at
+  // the Black Gate (its tiles and this cast stream in behind the menu first), filmed like the opening but calmer: no
+  // captions, no bars, no impact frames or white flashes, so it never fights the menu for attention. She keeps watch as
+  // the dead rise around her; she cuts down the ones who come; the Gatewarden walks out of the storm toward her.
+  const MENU = { cine: true, fade: [0.9, 0.9], nobars: true };   // no grade: the Black Gate in its own colours
+  const RISE = [[-95, -40, 1.0, 'ghoul'], [80, -70, 1.8, 'ghast'], [110, 30, 2.6, 'raider'], [-70, 70, 3.3, 'ghoul'], [20, -105, 4.1, 'raider']];
+  const MA = holds(6.2, [[1.42, 0.35, 0.12], [2.32, 0.2, 0.15], [3.12, 0.45, 0.1]]);
+  S.MENU = { hint: false, menu: true, shots: [
+    Object.assign({ k: 'film', stage: 0, area: 0, d: 7.6,
+      cast: [{ who: 'hero', id: 'h', at: [0, 0], face: G(-1, 1), clip: 'Idle4', acts: [[5.2, 'Taunt', 1.4, 10]] }]
+        .concat(RISE.map(([sx, sy, dl, who]) => ({ who, at: G(sx, sy), enter: 'rift', delay: dl, edur: 1.5, face: 'h', clip: 'Idle' }))),
+      cam: { at: G(-28, -4), to: G(-30, 4), zoom: [3.0, 3.4], lift: 24, breathe: 1.2 }, light: { on: 'h', r: 0.55, dark: 0.55 } }, MENU),
+    Object.assign({ k: 'film', stage: 0, area: 0, d: MA.d, ramp: MA.ramp,
+      cast: [{ who: 'hero', id: 'h', at: [0, 0], face: 'd0', clip: 'Idle4', path: [[0, 0, 0], [2.05, 0, 0], [2.22, ...G(30, 26)], [2.9, ...G(30, 26)], [3.02, ...G(10, 44)]],
+          acts: [[1.18, 'Attack6', 0.7, 16], [2.15, 'Attack2', 0.4, 18], [2.94, 'Attack3', 0.5, 16], [4.2, 'Idle4', 2, 8]] },
+        { who: 'ghoul', id: 'd0', at: G(-80, 0), face: 'h', run: true, die: 1.42, linger: 2.5, path: [[0, ...G(-80, 0)], [0.6, ...G(-80, 0)], [1.32, ...G(-22, 0)], [1.44, ...G(-22, 0)], [1.8, ...G(-56, 4)]], acts: [[1.2, 'Attack1', 0.3, 16]] },
+        { who: 'ghast', id: 'd1', at: G(20, -84), face: 'h', run: true, die: 1.42, linger: 2.5, path: [[0, ...G(20, -84)], [0.7, ...G(20, -84)], [1.34, ...G(6, -22)], [1.44, ...G(6, -22)], [1.8, ...G(12, -60)]], acts: [[1.2, 'Attack2', 0.3, 16]] },
+        { who: 'raider', id: 'd2', at: G(96, 30), face: 'h', run: true, die: 2.32, linger: 2, path: [[0, ...G(96, 30)], [1.2, ...G(96, 30)], [2.2, ...G(50, 28)], [2.34, ...G(50, 28)], [2.7, ...G(84, 30)]], acts: [[2.08, 'Attack1', 0.3, 16]] },
+        { who: 'ghoul', id: 'd3', at: G(-30, 110), face: 'h', run: true, die: 3.12, linger: 2, path: [[0, ...G(-30, 110)], [1.6, ...G(-30, 110)], [3.0, ...G(6, 64)], [3.14, ...G(6, 64)], [3.5, ...G(-4, 96)]], acts: [[2.9, 'Attack2', 0.3, 16]] }],
+      ev: [].concat(hit(1.42, ['d0', 'd1'], { flash: 0.2, shake: 6, big: true, pk: 'slash_r', by: 'h' }), [cb('01_crimson_tide_cleave/target', 1.42, 'h', 1.3, 8, CLEAVE)],
+        hit(2.32, ['d2'], { flash: 0.15, shake: 5, pk: 'slash_l', by: 'h' }), hit(3.12, ['d3'], { flash: 0.2, shake: 8, big: true, pk: 'double_slash', by: 'h' }),
+        [[1.1, { type: 'sfx', name: 'swish_2', v: 0.6 }]]),
+      cam: { follow: 'h', off: G(-28, -4), zoom: [3.1, 3.25], lift: 22, lag: 2.4 }, light: { on: 'h', r: 0.6, dark: 0.5 } }, MENU),
+    Object.assign({ k: 'film', stage: 0, area: 'last', d: 7.4,
+      cast: [{ who: 'hero', id: 'h', at: G(-10, 60), face: 'w', clip: 'Idle4', acts: [[3.6, 'Taunt', 1.5, 10]] },
+        { who: 'warden', id: 'w', at: G(40, -110), face: 'h', aura: true, path: [[0, ...G(40, -110)], [5.6, ...G(16, -18)]], acts: [[6.0, 'Taunt', 1.4, 10]] }],
+      ev: [cb('101_skyfall_thunder/target', 1.2, G(110, -150), 1.2, 0, THUNDER), cb('101_skyfall_thunder/target', 4.3, G(-60, -150), 1.2, 0, THUNDER)],
+      cam: { at: G(-22, -40), to: G(-18, 14), zoom: [2.6, 3.3], lift: 30 }, light: { on: [0.62, 0.52], r: 0.7, dark: 0.5 } }, MENU),
+  ] };
+
   S.ENDING = { shots: [
     { k: 'seal', eyebrow: 'DAWN', say: 'With the five kings beside you, you strike the wound.', d: 4.2 },
     { k: 'film', stage: 5, area: 'last', tint: 'dawn', say: 'The wound closes. The Moon turns white again, and the dead sleep.', d: 4.8,

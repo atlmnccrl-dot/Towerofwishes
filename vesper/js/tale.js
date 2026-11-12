@@ -291,7 +291,7 @@
     if (sh.cine) cine(ctx, sh, F, k, t);   // (the grade turns on the film's clock: a hit-stop holds it too)
     if (F.impact && t0 - F.impact.at < F.impact.dur) impactFrame(ctx, F, (t0 - F.impact.at) / F.impact.dur);
     if (sh.card) { const kk = (t0 - (sh.card.at || 1.2)) / 0.4; if (kk > 0) nameCard(ctx, sh.card.who, sh.card.also, ease(kk), sh.card.sub); }
-    bars(ctx, 1, sh.cine);
+    if (!sh.nobars) bars(ctx, 1, sh.cine);
     if (sh.cine && sh.fade) { const d = durOf(sh), f = sh.fade, a = Math.max(f[0] ? 1 - t0 / f[0] : 0, f[1] ? (t0 - (d - f[1])) / f[1] : 0); if (a > 0) { ctx.fillStyle = `rgba(0,0,0,${Math.min(1, a)})`; ctx.fillRect(0, 0, R.W, R.H); } }
   };
   // ---- The cinematic grade for filmed shots (the opening, 2026-11-12) ---------------------------------

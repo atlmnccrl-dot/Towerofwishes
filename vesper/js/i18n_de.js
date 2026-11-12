@@ -998,6 +998,14 @@ VS.I18N.add("de", {
 "\"Kneel.\"": "„Knie nieder.“",
 "The five kings met him together.": "Die fünf Könige stellten sich ihm gemeinsam.",
 "The five kings met him with their armies.": "Die fünf Könige stellten sich ihm mit ihren Heeren.",
-"Ice, storm, fire and shadow. Nothing touched him.": "Eis, Sturm, Feuer und Schatten. Nichts berührte ihn."
+"Ice, storm, fire and shadow. Nothing touched him.": "Eis, Sturm, Feuer und Schatten. Nichts berührte ihn.",
+"The red light of the wounded Moon wakes the dead.": "Das rote Licht des verwundeten Mondes weckt die Toten.",
+"Each king you free climbs beside you as a Bound Soul.": "Jeder befreite König steigt als Gebundene Seele mit dir auf.",
+"Attack right after a dodge for a dash-cut.": "Greif direkt nach einem Ausweichen an für einen Sprungschnitt.",
+"When three foes crowd you, your next blow lands heavy.": "Bedrängen dich drei Gegner, trifft dein nächster Schlag schwer.",
+"Your skills join your combo by themselves. Keep attacking.": "Deine Fertigkeiten fügen sich von selbst in deine Kombo ein. Greif weiter an.",
+"A moon art strikes hardest when your health is low.": "Eine Mondkunst trifft am härtesten, wenn deine Gesundheit niedrig ist.",
+"If she falls, the Moon turns the night back, and she climbs again.": "Fällt sie, dreht der Mond die Nacht zurück, und sie steigt erneut.",
+"Dawn is six hours away. The First Cut waits at the top.": "Die Dämmerung ist sechs Stunden entfernt. Der Erste Schnitt wartet oben."
 },
   { tier: {"Iron": "Eisen", "Steel": "Stahl", "Moonsteel": "Mondstahl", "Bloodsteel": "Blutstahl", "Bone": "Knochen", "Silver": "Silber", "Moon": "Mond", "Blood": "Blut"}, base: {"Blade": "Klinge", "Saber": "Säbel", "Axe": "Axt", "Spear": "Speer", "Greatsword": "Großschwert", "Coat": "Mantel", "Mail": "Kettenhemd", "Plate": "Plattenpanzer", "Cloak": "Umhang", "Locket": "Medaillon", "Ring": "Ring", "Fang": "Fangzahn", "Talisman": "Talisman"}, suf: {"of Edges": "der Schneiden", "of the Wall": "des Walls", "of Warding": "des Schutzes", "of the Moon": "des Mondes", "of Thirst": "des Durstes", "of Haste": "der Eile", "of Wind": "des Windes", "of Patience": "der Geduld", "of Mending": "der Heilung", "of Fortune": "des Glücks"}, make: (b, t, s) => t + b.toLowerCase() + (s.length ? ' ' + s.join(' und ') : '') });

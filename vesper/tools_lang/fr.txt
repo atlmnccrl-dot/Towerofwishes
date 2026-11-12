@@ -1048,3 +1048,12 @@ Les cinq rois l'affrontèrent ensemble.
 @1023
 Les cinq rois l'affrontèrent avec leurs armées.
 Glace, tempête, feu et ombre. Rien ne l'atteignit.
+@1025
+La lumière rouge de la Lune blessée réveille les morts.
+Chaque roi libéré monte à vos côtés comme Âme Liée.
+Attaquez juste après une esquive pour une coupe en élan.
+Quand trois ennemis vous pressent, votre prochain coup est lourd.
+Vos compétences rejoignent votre combo d'elles-mêmes. Continuez d'attaquer.
+Un art lunaire frappe plus fort quand votre santé est basse.
+Si elle tombe, la Lune ramène la nuit en arrière, et elle remonte.
+L'aube est à six heures. La Première Taille attend au sommet.

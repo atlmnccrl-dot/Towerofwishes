@@ -1003,6 +1003,14 @@ VS.I18N.add("pt", {
 "\"Kneel.\"": "«Ajoelha-te.»",
 "The five kings met him together.": "Os cinco reis enfrentaram-no juntos.",
 "The five kings met him with their armies.": "Os cinco reis enfrentaram-no com os seus exércitos.",
-"Ice, storm, fire and shadow. Nothing touched him.": "Gelo, tempestade, fogo e sombra. Nada o tocou."
+"Ice, storm, fire and shadow. Nothing touched him.": "Gelo, tempestade, fogo e sombra. Nada o tocou.",
+"The red light of the wounded Moon wakes the dead.": "A luz vermelha da Lua ferida desperta os mortos.",
+"Each king you free climbs beside you as a Bound Soul.": "Cada rei que libertas sobe ao teu lado como Alma Vinculada.",
+"Attack right after a dodge for a dash-cut.": "Ataca logo depois de esquivar para um corte de investida.",
+"When three foes crowd you, your next blow lands heavy.": "Quando três inimigos te cercam, o teu próximo golpe é pesado.",
+"Your skills join your combo by themselves. Keep attacking.": "As tuas habilidades juntam-se ao combo sozinhas. Continua a atacar.",
+"A moon art strikes hardest when your health is low.": "Uma arte lunar atinge mais forte quando tens pouca vida.",
+"If she falls, the Moon turns the night back, and she climbs again.": "Se ela cair, a Lua faz a noite recuar, e ela sobe de novo.",
+"Dawn is six hours away. The First Cut waits at the top.": "A aurora está a seis horas. O Primeiro Corte espera no topo."
 },
   { tier: {"Iron": "ferro", "Steel": "aço", "Moonsteel": "aço lunar", "Bloodsteel": "aço sangrento", "Bone": "osso", "Silver": "prata", "Moon": "lua", "Blood": "sangue"}, base: {"Blade": "Lâmina", "Saber": "Sabre", "Axe": "Machado", "Spear": "Lança", "Greatsword": "Montante", "Coat": "Casaco", "Mail": "Cota", "Plate": "Couraça", "Cloak": "Capa", "Locket": "Medalhão", "Ring": "Anel", "Fang": "Presa", "Talisman": "Talismã"}, suf: {"of Edges": "dos Gumes", "of the Wall": "da Muralha", "of Warding": "da Proteção", "of the Moon": "da Lua", "of Thirst": "da Sede", "of Haste": "da Pressa", "of Wind": "do Vento", "of Patience": "da Paciência", "of Mending": "da Cura", "of Fortune": "da Fortuna"}, make: (b, t, s) => b + ' de ' + t + (s.length ? ' ' + s.join(' e ') : '') });

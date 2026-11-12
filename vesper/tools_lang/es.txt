@@ -1048,3 +1048,12 @@ Los cinco reyes lo enfrentaron juntos.
 @1023
 Los cinco reyes lo enfrentaron con sus ejércitos.
 Hielo, tormenta, fuego y sombra. Nada lo tocó.
+@1025
+La luz roja de la Luna herida despierta a los muertos.
+Cada rey que liberas sube a tu lado como Alma Ligada.
+Ataca justo después de esquivar para un corte de impulso.
+Cuando tres enemigos te rodean, tu siguiente golpe es pesado.
+Tus habilidades se unen solas a tu combo. Sigue atacando.
+Un arte lunar golpea más fuerte cuando tienes poca salud.
+Si ella cae, la Luna hace retroceder la noche y vuelve a subir.
+El alba está a seis horas. El Primer Corte espera en la cima.

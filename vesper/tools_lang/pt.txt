@@ -1048,3 +1048,12 @@ Os cinco reis enfrentaram-no juntos.
 @1023
 Os cinco reis enfrentaram-no com os seus exércitos.
 Gelo, tempestade, fogo e sombra. Nada o tocou.
+@1025
+A luz vermelha da Lua ferida desperta os mortos.
+Cada rei que libertas sobe ao teu lado como Alma Vinculada.
+Ataca logo depois de esquivar para um corte de investida.
+Quando três inimigos te cercam, o teu próximo golpe é pesado.
+As tuas habilidades juntam-se ao combo sozinhas. Continua a atacar.
+Uma arte lunar atinge mais forte quando tens pouca vida.
+Se ela cair, a Lua faz a noite recuar, e ela sobe de novo.
+A aurora está a seis horas. O Primeiro Corte espera no topo.

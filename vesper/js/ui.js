@@ -135,10 +135,10 @@
     el.querySelectorAll('canvas.hero-fig').forEach((c) => { const g = c.getContext('2d'); g.imageSmoothingEnabled = false; const H = D.HEROES[c.dataset.hero]; let t = 0;
       const draw = () => { if (!c.isConnected) return; g.clearRect(0, 0, 96, 96); VS.A.actor(g, H.set, 'Idle4', Math.floor(t * 8) % 15, Math.PI * 0.25, 48, 88, 1.7, {}); t += 1 / 30; setTimeout(draw, 33); }; draw(); });
   };
+  // The loading screen is drawn on the canvas (js/loadscene.js); the page only holds an empty screen so menus stay hidden.
   U.loading = function (p) {
-    const r = root(); let el = r.querySelector('.screen-loading');
-    if (!el) el = U.show('loading', `<div class="center"><div class="loader"><span></span></div><p class="eyebrow">THE BLEEDING MOON</p></div>`);
-    el.querySelector('.loader span').style.width = Math.round(p * 100) + '%';
+    const r = root(); if (!r.querySelector('.screen-loading')) U.show('loading', '<div class="load-quiet" aria-label="Loading"></div>');
+    if (VS.LOADSCENE) VS.LOADSCENE.p = p;
   };
 
   // ---- the campaign hub ------------------------------------------------------------------------------
