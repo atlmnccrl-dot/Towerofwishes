@@ -142,6 +142,12 @@ svg.ci{width:100%;height:100%;fill:currentColor;stroke:none}
 .battle .prog i{display:block;height:100%;background:rgba(27,18,6,.8)}
 #tip{position:fixed;left:50%;top:calc(58px + var(--safe-t));transform:translateX(-50%);z-index:60;display:none;align-items:center;gap:14px;width:min(560px,92vw);padding:12px 14px 12px 16px;border-radius:16px;background:rgba(14,16,24,.96);border:1px solid var(--accent);box-shadow:0 10px 40px rgba(0,0,0,.6)}
 #tip.on{display:flex}#tip b{display:block;font:800 13px var(--head);letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:3px}#tip span{font:500 13px/1.4 var(--body)}#tip>div{flex:1}
+@media (pointer:coarse),(max-height:520px){ /* a finger needs 40 px: every control gets it on a touch screen */
+.btn.sm,.hx-tab,.chip,.mk-plate,#tbCrysBtn,#hsOpen,#mkBack,#bCampBack{min-height:40px}
+#bSettings,.rbtn,#hxPrev,#hxNext,.fbtn,#hud .topr .rbtn{min-width:40px;min-height:40px}
+#hud .topr .auto{min-height:40px}
+.play{min-width:40px;min-height:40px}
+}
 #home .nextup{display:flex;flex-direction:column;align-items:flex-end;gap:2px;padding:8px 14px;border-radius:14px;background:rgba(12,14,21,.72);border:1px solid var(--line2);color:var(--text);max-width:min(320px,46vw);text-align:right}
 #home .nextup small{font:700 10px var(--head);letter-spacing:.2em;text-transform:uppercase;color:var(--accent)}
 #home .nextup b{font:600 13px var(--body);line-height:1.3}

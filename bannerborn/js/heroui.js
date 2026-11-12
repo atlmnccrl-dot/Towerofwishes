@@ -129,13 +129,13 @@
     const lv = el('div', 'hx-lv' + (HS.pop === 'level' ? ' pop' : ''),
       '<div class="ring" style="--p:' + fr.toFixed(3) + '"><span><b>' + h.level + '</b><small>of ' + cap + '</small></span></div>' +
       '<div class="grow"><div class="lbl">' + (capped ? 'Level cap' : 'Experience') + '<span>' + (capped ? (maxS ? 'fully grown' : 'ascend to keep growing') : fmt(xp) + ' / ' + fmt(need)) + '</span></div><div class="xbar"><i style="width:' + Math.round(fr * 100) + '%"></i></div>' +
-      '<div class="hint">' + (capped ? 'Experience waits for the next star.' : nm + ' grows by fighting. Every level gives a skill point.') + '</div></div>');
+      '<div class="hint">' + (capped ? 'Experience waits for the next star.' : 'Every level gives a skill point.') + '</div></div>');
     body.appendChild(lv);
     const asc = el('div', 'hx-asc', '<div class="st5">' + '<i class="on">★</i>'.repeat(h.stars) + '<i>★</i>'.repeat(BB.MAX_STARS - h.stars) + '</div><div class="grow"><b>' + (maxS ? 'Fully ascended' : 'Ascension') + '</b><small>' + (maxS ? 'No star left to earn.' : 'The next star raises the level cap to ' + BB.levelCap(Object.assign({}, h, { stars: h.stars + 1 })) + '.') + '</small></div>');
     const ab = el('button', 'btn blue', maxS ? 'Max stars' : 'Ascend<span class="cost">✧ ' + S.sigils + ' / ' + ac + '</span>'); ab.dataset.r = 'asc'; ab.disabled = maxS || S.sigils < ac;
     click(ab, () => { if (!BB.ascend(S, h)) return; BB.sfx('rally'); show('cheer', 210); HS.pop = 'stars'; UI.toast(h.name + ' rises to ' + h.stars + ' stars'); save(); UI.renderHero(); });
     asc.appendChild(ab); body.appendChild(asc);
-    const big = (k, name, v, plus, c) => '<div class="st" style="--c:' + c + '">' + ICO[k] + '<small>' + name + '</small><b>' + v + '</b>' + (plus ? '<em>+' + plus + ' next level</em>' : '<em>&nbsp;</em>') + '</div>';
+    const big = (k, name, v, plus, c) => '<div class="st" style="--c:' + c + '">' + ICO[k] + '<small>' + name + '</small><b>' + v + '</b>' + '' + '</div>';
     body.appendChild(el('div', 'hx-stats', big('hp', 'Health', fmt(Math.round(st.hp)), nx && Math.round(nx.hp - st.hp), '#ff6b6b') + big('atk', 'Attack', Math.round(st.atk), nx && Math.round(nx.atk - st.atk), '#ffbe55') + big('def', 'Defence', Math.round(st.def), nx && Math.round(nx.def - st.def), '#5aa8ff')));
     body.appendChild(el('div', 'hx-minor', '<span>Crit <b>' + Math.round(st.crit * 100) + '%</b></span><span>Attack speed <b>' + st.aspd.toFixed(2) + '</b></span><span>Range <b>' + (C.ranged ? 'Far' : 'Melee') + '</b></span>'));
     const abil = (cls, kind, title, name, desc, r) => { const d = el('div', 'hx-abil ' + cls, '<div class="grow"><small>' + title + '</small><b>' + esc(name) + '</b><p>' + esc(desc) + '</p></div>'); const b = el('button', 'play', '▶'); b.dataset.r = r; b.title = 'Watch'; click(b, () => { BB.sfx('click'); show(kind, cls === 'u' ? 275 : 40); }); d.insertBefore(b, d.firstChild); return d; };
