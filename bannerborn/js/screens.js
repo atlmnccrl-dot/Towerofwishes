@@ -280,11 +280,20 @@
     const tp = BB.teamPower(BB.teamHeroes(S)), rp = BB.recPower(st);
     $('hmRec').innerHTML = done ? '' : 'Team <b class="' + (tp >= rp ? '' : 'lo') + '">⚔ ' + fmt(tp) + '</b> · needs ⚔ ' + fmt(rp);
     UI.updateSpoils();
+    if ((S.salvage || 0) > 0) UI.tip('works', 'Salvage', 'Expeditions and stands survived pay salvage. Spend it in Camp works: a forge for better gear, a shrine, a barracks.'); else if (S.relics && S.relics.length) UI.tip('relic', 'A relic for the banner', 'The lord you beat gave up a relic. The banner carries one at a time and it helps in every fight. Change it in Camp works.');
     $('worksT').textContent = '⛭ ' + (S.salvage || 0) + ' salvage' + (BB.relicOf(S) ? ' · ' + BB.relicOf(S).name : ''); $('bWorks').classList.toggle('glow', BB.WORKS.some((w) => BB.canBuild(S, w.id)));
     { const up = UI.nextUp(); $('hmUp').style.display = up.stage ? 'none' : ''; $('hmUpT').textContent = up.text; $('hmUp').onclick = () => { BB.sfx('click'); up.go(); }; }
     { const rs = BB.rollState(S, now()), rb = $('bRoll'); rb.style.display = rs.ready && !BB.dev ? '' : 'none'; rb.classList.toggle('glow', rs.ready); $('rollT').textContent = 'Day ' + (rs.day + 1) + ' of 7 · ready'; }
     const qn = BB.questsReady(S); $('questT').textContent = qn ? qn + ' to claim' : BB.QUESTS.filter((q) => BB.questState(S, q) === 'claimed').length + ' / ' + BB.QUESTS.length + ' done';
     $('bQuests').classList.toggle('glow', qn > 0);
+  };
+  // A word the first time something new turns up: a card at the top of the screen that goes when it is read (it never
+  // blocks what is under it).
+  let tipT = 0;
+  UI.tip = function (id, title, text) {
+    const S = BB.save; if (!S || S.seen['tip_' + id] || BB.dev) return false; S.seen['tip_' + id] = 1; BB.persist();
+    $('tipT').textContent = title; $('tipX').textContent = text; $('tip').classList.add('on'); clearTimeout(tipT); tipT = setTimeout(() => $('tip').classList.remove('on'), 14000);
+    $('tipOk').onclick = () => { $('tip').classList.remove('on'); clearTimeout(tipT); }; return true;
   };
   // The one thing most worth doing now, and where it is. Shown on the camp screen; tapping it goes there.
   UI.nextUp = function () {
@@ -1158,6 +1167,7 @@
   // ---------------------------------------------------------------- team: an open field; heroes are placed anywhere on it by dragging
   const T = UI.tm = { sel: null, stage: null, t: 0, drag: null, marks: [] };
   UI.openTeam = function (stageIdx) {
+    { const st0 = stageIdx !== undefined && stageIdx !== null ? BB.MISSIONS[stageIdx] : null; if (st0 && st0.type === 'survive') UI.tip('survive', 'A stand against the clock', 'No gate to break here and no last wave. The dead keep coming, faster, until the time runs out. Stay alive.'); }
     T.stage = stageIdx === undefined ? null : stageIdx; T.sel = null; T.drag = null; BB.fixFormation(BB.save);
     UI.renderTeam(); UI.show('team'); $('tabbar').style.display = T.stage !== null ? 'none' : ''; $('team').classList.toggle('pre', T.stage !== null);
     if (BB.openDrill) BB.openDrill(T.stage);
@@ -1493,7 +1503,7 @@
   UI.go = function (tab) {
     if (tab === 'home') { BB.goCamp(); return; }
     if (BB.ambience) BB.ambience(tab === 'shop' ? 'market' : null); // the market has its own air
-    if (tab === 'play') UI.renderPlay();
+    if (tab === 'play') { UI.renderPlay(); if (BB.save.cleared['s1-2']) UI.tip('trek', 'Expeditions', 'One long fight on one great map. A gate opens only when everything on its side has fallen, and at each gate you choose: safer, or richer and harder.'); }
     if (tab === 'heroes') UI.renderHeroes();
     if (tab === 'team') { UI.openTeam(); return; }
     if (tab === 'shop') { MK.sel = null; UI.renderShop(); }

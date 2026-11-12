@@ -18,13 +18,15 @@
     if (M.type === 'survive') { o.time = o.timeLeft = M.time || 60; o.nextWaveT = 1.5; o.n = 0; o.text = 'Hold out'; }
     if (M.type === 'expedition' && this.map.trek) {
       const T = this.map.trek; Object.assign(o, { sec: 0, i: 0, greed: 0, caches: 0, horn: false, opened: false, gatesOpen: 0, lord: null, text: 'The long road' });
-      T.gates.forEach((G, gi) => { for (let x = G.x0; x <= G.x1; x++) this.map.add('Stakes', x + 0.5, G.y, { biome: 'craft', r: 0.55, gate: gi }); if (G.x0 > 2) this.map.add('Dead Banner', G.x0 - 0.2, G.y - 0.4, { biome: 'craft', r: 0.04, gate: gi }); });
+      T.gates.forEach((G, gi) => { for (const c of G.cells) this.map.add('Stakes', c[0], c[1], { biome: 'craft', r: 0.55, gate: gi }); this.map.add('Dead Banner', G.cells[0][0] - G.ux * 0.6, G.cells[0][1] - G.uy * 0.6, { biome: 'craft', r: 0.04, gate: gi }); });
+      o.picks = BB.rng((this.mission.seed || 1) + 5).pick([[0, 1], [0, 3], [2, 1], [3, 1], [0, 2], [2, 3]]).concat([4]); // which choice waits at which gate: the last is always the horn
       resort(this.map); this.trekWorks(0);
     }
   };
   // what the dead have built in a part of the road stands from the moment the warband enters it
   Battle.prototype.trekWorks = function (sec) {
-    for (const s of this.map.trek.works) if (s.s === sec && BB.FOES[s.kind]) { const e = this.spawnFoe(s.kind, s.x, s.y, {}); e.cd = 3 + this.r() * 2; e.phase = this.r() * 6.28; if (s.kind === 'cage') e.budget = 3; }
+    const few = this.teamN <= 2; let n = 0;
+    for (const s of this.map.trek.works) if (s.s === sec && BB.FOES[s.kind] && !(few && n++ > 0)) { const e = this.spawnFoe(s.kind, s.x, s.y, {}); e.cd = 3 + this.r() * 2; e.phase = this.r() * 6.28; if (s.kind === 'cage') e.budget = 3; }
   };
   Battle.prototype.openGate = function (gi) {
     const m = this.map, o = this.obj, gone = m.props.filter((p) => p.gate === gi);
@@ -35,12 +37,18 @@
     if (this.march) this.march.path = null;
   };
   const CHOICES = [
-    (B) => ({ title: 'A wayside shrine', text: 'The first gate is down and the dead beyond it have not yet turned. A shrine stands by the road.', opts: [
+    (B) => ({ title: 'A wayside shrine', text: 'The gate is down and the dead beyond it have not yet turned. A shrine stands by the road.', opts: [
       { label: 'Rest', hint: 'Everyone is mended by two fifths.', fn() { for (const h of B.heroesAlive()) B.heal(null, h, h.maxhp * 0.4); } },
       { label: 'Press on', hint: 'No rest. The dead ahead are a level stronger, and the spoils a quarter richer.', fn() { B.obj.greed++; B.level++; } }] }),
-    (B) => ({ title: 'A sealed vault', text: 'Cut into the bank beside the second gate: a door of black stone, and a seal of bone on it.', opts: [
-      { label: 'Break the seal', hint: 'Its guards wake. Beat them and what it holds is yours.', fn() { B.obj.caches++; const g = B.map.trek.gates[1], w = B.mission.waves[B.mission.waves.length - 1].slice(); const el = B.mission.elites; B.mission.elites = (el || 0) + 2; B.spawnWave(w, [{ x: (g.x0 + g.x1) / 2 + 0.5, y: g.y - 3 }]); B.mission.elites = el; B.banner('THE VAULT WAKES', 1.4); } },
+    (B) => ({ title: 'A sealed vault', text: 'Cut into the bank beside the gate: a door of black stone, and a seal of bone on it.', opts: [
+      { label: 'Break the seal', hint: 'Its guards wake. Beat them and what it holds is yours.', fn() { B.obj.caches++; const g = B.map.trek.gates[Math.min(B.obj.sec, B.map.trek.gates.length - 1)], w = B.mission.waves[B.mission.waves.length - 1].slice(); const el = B.mission.elites; B.mission.elites = (el || 0) + 2; B.spawnWave(w, [{ x: g.x + g.ux * 3.5, y: g.y + g.uy * 3.5 }]); B.mission.elites = el; B.banner('THE VAULT WAKES', 1.4); } },
       { label: 'Leave it', hint: 'The road is long enough. A short rest instead: everyone mended by a sixth.', fn() { for (const h of B.heroesAlive()) B.heal(null, h, h.maxhp * 0.16); } }] }),
+    (B) => ({ title: 'An altar of bone', text: 'Something was promised here once. The stone is still warm.', opts: [
+      { label: 'Give blood', hint: 'Everyone loses a fifth of their health. The spoils are a quarter richer, and the dead no stronger.', fn() { B.obj.greed++; for (const h of B.heroesAlive()) h.hp = Math.max(1, h.hp - h.maxhp * 0.2); } },
+      { label: 'Pass it by', hint: 'Nothing given, nothing gained.', fn() {} }] }),
+    (B) => ({ title: 'A captive in a cage', text: 'One of the living, kept for later. The jailers have not gone far.', opts: [
+      { label: 'Break the cage', hint: 'The jailers come back in force. Free the captive and every hero strikes a tenth harder for the rest of the road.', fn() { const g = B.map.trek.gates[Math.min(B.obj.sec, B.map.trek.gates.length - 1)], w = B.mission.waves[0].slice().concat(B.mission.waves[1 % B.mission.waves.length].slice(0, 2)); B.spawnWave(w, [{ x: g.x + g.ux * 3.5, y: g.y + g.uy * 3.5 }]); for (const h of B.heroList) h.atk *= 1.1; B.banner('THE JAILERS RETURN', 1.4); } },
+      { label: 'Leave them', hint: 'There is no time. Every ultimate gains a third of its charge.', fn() { for (const h of B.heroesAlive()) h.energy = Math.min(100, (h.energy || 0) + 34); } }] }),
     (B) => ({ title: 'The last gate', text: 'Beyond it the road ends in a yard, and something waits there that has waited a long time.', opts: [
       { label: 'Sound the horn', hint: 'Call it out in its fury: it is a quarter stronger, and the spoils half again as rich.', fn() { B.obj.horn = true; if (BB.sfx) BB.sfx('rally'); } },
       { label: 'Go quietly', hint: 'Every ultimate is charged before it knows you are there.', fn() { for (const h of B.heroesAlive()) h.energy = 100; } }] }),
@@ -68,7 +76,7 @@
         else if (!left) o.i++;
       } else if (!left) {
         if (o.sec < T.gates.length) { // this side of the gate is clear: it opens, and there is something to decide
-          if (!o.opened) { o.opened = true; this.openGate(o.sec); this.choice = CHOICES[o.sec % CHOICES.length](this); }
+          if (!o.opened) { o.opened = true; this.openGate(o.sec); this.choice = CHOICES[(o.picks && o.picks[o.sec] !== undefined ? o.picks[o.sec] : o.sec) % CHOICES.length](this); }
           else { o.sec++; o.i = 0; o.opened = false; this.trekWorks(o.sec); }
         } else if (!o.lord) { this.goal = T.boss; if (hyp(wc.x - T.boss.x, wc.y - T.boss.y) < 8.5) { const b = o.lord = this.spawnFoe(this.mission.boss, T.boss.x, T.boss.y, { rise: true }); if (o.horn) { b.maxhp = Math.round(b.maxhp * 1.25); b.hp = b.maxhp; b.atk *= 1.12; } this.boss = b; this.shake = 0.6; this.banner(b.F.name, 2.2, 'boss'); if (BB.sfx) BB.sfx('boss'); } }
         else if (o.lord.dead) { this.crumbleAll(); this.win(); return; }
@@ -82,6 +90,6 @@
   BB.expedition = function (chapter, level, seed) {
     const r = BB.rng(seed || 1), ch = BB.CHAPTERS[chapter - 1], pool = BB.MISSIONS.filter((m) => m.chapter === chapter && /^(rout|gates|survive)$/.test(m.type)), lord = BB.MISSIONS.find((m) => m.chapter === chapter && m.type === 'boss');
     const waves = []; for (let i = 0; i < 7; i++) { const src = pool[(i + r.int(pool.length)) % pool.length].waves; waves.push(src[Math.min(src.length - 1, 1 + (i % Math.max(1, src.length - 1)))].slice()); }
-    return { id: 'trek', code: '', name: 'The Long Road', type: 'expedition', layout: 'road', waves, boss: lord ? lord.boss : 'ossric', chapter, region: 'c' + chapter, level, elites: ch.elites || 0, trek: true };
+    return { id: 'trek', code: '', name: r.pick(['The Long Road', 'The Drowned Causeway', 'The Bone Road', 'The Pilgrims\' Way']), seed: seed || 1, type: 'expedition', layout: 'road', waves, boss: lord ? lord.boss : 'ossric', chapter, region: 'c' + chapter, level, elites: ch.elites || 0, trek: true };
   };
 })();

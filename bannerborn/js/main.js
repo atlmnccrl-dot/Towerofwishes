@@ -415,7 +415,7 @@
     UI.versusFoes(M); // their faces are loaded now
     await held;
     const seed = BB.hashStr(M.id) % 9000 + (S.cleared[M.id] ? Math.floor(Math.random() * 999) : 1);
-    const map = BB.buildMap(M.layout, biome, seed, { night: !!region.night, floor: region.floor, skin: region.skin });
+    const map = BB.buildMap(M.layout, biome, seed, { night: !!region.night, floor: region.floor, skin: region.skin, road: M.seed });
     BB.renderGround(map);
     scene = new BB.Battle({ map, mission: M, formation: BB.formationList(S), heroes: team, level: BB.foeLevel(M), save: S, seed, intro: true });
     scene.cam.zoom = 1;
@@ -509,7 +509,7 @@
   BB.deployTrek = function () {
     const S = BB.save, team = BB.teamHeroes(S);
     if (!team.length) { UI.toast('Place at least one hero in the formation.'); return; }
-    const ch = Math.max(1, BB.CHAPTERS.filter((c) => BB.chapterCleared(S, c.id)).length), lv = Math.max(2, Math.round(team.reduce((a, h) => a + h.level, 0) / team.length) - 1);
+    const ch = Math.max(1, BB.CHAPTERS.filter((c) => BB.chapterCleared(S, c.id)).length), lv = Math.max(1, Math.round(team.reduce((a, h) => a + h.level, 0) / team.length) - (team.length <= 1 ? 2 : 1)); // a lone hero's road is a little gentler
     current = { stage: BB.expedition(ch, lv, now() & 0xffffff), idx: -1, trek: true };
     startBattle();
   };

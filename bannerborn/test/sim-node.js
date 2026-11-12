@@ -17,10 +17,12 @@ if (process.env.DIFF) BB.DIFF.flat = process.env.DIFF.split(',').map(Number); //
 const which = process.argv[2] || 'all', runs = +(process.argv[3] || 4);
 const REAL = !!process.env.REAL, LAG = process.env.LAG !== undefined ? +process.env.LAG : REAL ? -1.5 : 1;
 const list = which === 'all' ? BB.MISSIONS.map((_, i) => i) : [+which];
+const TREK = +process.env.TREK || 0; // TREK=n: instead of the stage, the expedition of land n at that stage's level (it picks the first choice at each gate, or CHOICE=1 the second)
 let bad = 0;
 const comps = [['vanguard', 'ranger', 'warpriest', 'berserker', 'arcanist'], ['vanguard', 'lancer', 'ranger', 'arcanist', 'warpriest'], ['monk', 'shadowblade', 'warpriest', 'ranger', 'arcanist']];
 for (const idx of list) {
-  const M = BB.MISSIONS[idx];
+  const M0 = BB.MISSIONS[idx];
+  let M = M0;
   const agg = { n: 0, w: 0, t: 0, alive: 0, to: 0, low: 0 };
   for (let k = 0; k < runs; k++) {
     const r = BB.rng(idx * 100 + k + 1);
@@ -36,10 +38,12 @@ for (const idx of list) {
     });
     const formation = heroes.map((h, i) => ({ hero: h, row: i < 2 ? 'front' : 'back', slot: i < 2 ? i : i - 2 }));
     if (process.env.PLACED) { const D = { front: [[0.74, 0.36], [0.78, 0.64]], back: [[0.24, 0.24], [0.28, 0.5], [0.32, 0.76]] }; formation.forEach((f) => { f.u = D[f.row][f.slot][0]; f.v = D[f.row][f.slot][1]; }); } // as the game places them
+    if (TREK) M = BB.expedition(TREK, M0.level, 100 + k);
     const map = BB.buildMap(M.layout, BB.CHAPTERS[M.chapter - 1].biome, 1000 + idx * 10 + k, {});
     const B = new BB.Battle({ map, mission: M, formation, heroes, level: M.level, save, seed: k + 1 }); // heroes: the horde is sized to the team, as in the game
     let t = 0;
-    while (!B.result && t < 400) {
+    while (!B.result && t < (TREK ? 900 : 400)) {
+      if (B.choice) B.trekChoose(+process.env.CHOICE || 0);
       B.update(1 / 30, null); t += 1 / 30;
       for (const e of B.ents) if (!Number.isFinite(e.x) || !Number.isFinite(e.y) || !Number.isFinite(e.hp)) { console.log('NaN', idx, e.kind || e.calling); bad++; e.x = e.y = 10; e.hp = 0; }
       if (B.ents.length > 400 || B.projs.length > 2000 || B.timers.length > 500) { console.log('RUNAWAY', idx); bad++; break; }

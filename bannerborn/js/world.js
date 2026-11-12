@@ -247,20 +247,27 @@
         break;
       case 'road': { // an expedition's map: almost three times the ground of any other, one long road across it
         for (let i = 0; i < W * H; i++) m.ground[i] = 3;
-        const P = [[7, 37], [36, 37], [36, 25], [8, 25], [8, 13], [36, 13], [36, 6.5]];
-        path(m, P, 3.6, 0); blob(m, 7, 37, 5, 0); blob(m, 36, 6.5, 5.4, 0); blob(m, 36, 6.5, 3.4, 4); path(m, P, 1.1, 2);
+        const ROADS = [ // three shapes of road; which one is the seed's choice
+          [[7, 37], [36, 37], [36, 25], [8, 25], [8, 13], [36, 13], [36, 6.5]],
+          [[7, 7], [36, 7], [36, 19], [8, 19], [8, 31], [36, 31], [36, 37.5]],
+          [[7, 37], [7, 8], [19, 8], [19, 36], [31, 36], [31, 9], [38, 9]]];
+        const P = ROADS[(opts.road !== undefined ? opts.road : seed) % ROADS.length], A = P[0], Z = P[P.length - 1];
+        path(m, P, 3.6, 0); blob(m, A[0], A[1], 5, 0); blob(m, Z[0], Z[1], 5.4, 0); blob(m, Z[0], Z[1], 3.4, 4); path(m, P, 1.1, 2);
         for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (m.at(x, y) === 0 && r() < 0.2) m.set(x, y, 1);
-        m.heroSpawn = { x: 7, y: 37 }; m.foeSpawns = [{ x: 18, y: 37 }]; m.bossSpot = { x: 36, y: 6.5 };
-        m.trek = { way: P, boss: { x: 36, y: 6.5 },
-          // what springs where (ax, ay: where they rise, a little ahead of the place that wakes them), by part of the road
-          enc: [{ s: 0, x: 17, y: 37, ax: 21, ay: 37 }, { s: 0, x: 29, y: 37, ax: 33, ay: 36.5 },
-            { s: 1, x: 30, y: 25, ax: 26, ay: 25 }, { s: 1, x: 17, y: 25, ax: 13, ay: 25 },
-            { s: 2, x: 14, y: 13, ax: 18, ay: 13 }, { s: 2, x: 26, y: 13, ax: 30, ay: 13 }],
-          works: [{ s: 0, kind: 'nest', x: 34.5, y: 34.2 }, { s: 1, kind: 'ballista', x: 10, y: 23.2 }, { s: 1, kind: 'watchtower', x: 21.5, y: 22.8 }, { s: 2, kind: 'nest', x: 22, y: 15.4 }, { s: 2, kind: 'ballista', x: 33.5, y: 11.2 }],
-          gates: [{ x0: 32, x1: 39, y: 31 }, { x0: 4, x1: 11, y: 19 }, { x0: 32, x1: 39, y: 10.5 }] };
+        const legs = []; let total = 0; for (let i = 0; i < P.length - 1; i++) { const d = Math.hypot(P[i + 1][0] - P[i][0], P[i + 1][1] - P[i][1]); legs.push({ a: P[i], b: P[i + 1], d, at: total }); total += d; }
+        const along = (dist) => { const L = legs.find((q) => dist <= q.at + q.d) || legs[legs.length - 1], k = Math.max(0, Math.min(1, (dist - L.at) / L.d)), ux = (L.b[0] - L.a[0]) / L.d, uy = (L.b[1] - L.a[1]) / L.d; return { x: L.a[0] + (L.b[0] - L.a[0]) * k, y: L.a[1] + (L.b[1] - L.a[1]) * k, ux, uy, L }; };
+        const mid = (f) => { let d = total * f; const L = legs.find((q) => d <= q.at + q.d) || legs[legs.length - 1]; d = Math.max(L.at + 5, Math.min(L.at + L.d - 5, d)); return d; }; // never at a corner of the road
+        const gd = [mid(0.3), mid(0.58), mid(0.86)];
+        const gates = gd.map((d) => { const q = along(d), cells = []; for (let k = -3.5; k <= 3.5; k++) cells.push([q.x - q.uy * k, q.y + q.ux * k]); return { cells, x: q.x, y: q.y, ux: q.ux, uy: q.uy }; });
+        const enc = [], works = [], KINDS = [['nest'], ['ballista', 'watchtower'], ['nest', 'ballista']];
+        for (let s = 0; s < 3; s++) { const d0 = s ? gd[s - 1] : 0, d1 = gd[s];
+          for (const f of [0.36, 0.78]) { const d = d0 + (d1 - d0) * f, q = along(d), a = along(Math.min(d + 4, d1 - 1.5)); enc.push({ s, x: q.x, y: q.y, ax: a.x, ay: a.y }); }
+          KINDS[s].forEach((kind, n) => { const q = along(d0 + (d1 - d0) * (n ? 0.5 : 0.93)), side = (s + n) % 2 ? 1 : -1; works.push({ s, kind, x: q.x - q.uy * 2.3 * side, y: q.y + q.ux * 2.3 * side }); }); }
+        m.heroSpawn = { x: A[0], y: A[1] }; m.foeSpawns = [{ x: enc[0].ax, y: enc[0].ay }]; m.bossSpot = { x: Z[0], y: Z[1] };
+        m.trek = { way: P, boss: { x: Z[0], y: Z[1] }, enc, works, gates };
         scatter(m, set.small, 46, inner); scatter(m, set.rocks || set.small, 14, inner); scatter(m, set.trees, 10, inner);
-        m.props = m.props.filter((p) => !m.trek.gates.some((g) => Math.abs(p.y - g.y) < 1.3 && p.x > g.x0 - 1 && p.x < g.x1 + 2) && !m.trek.works.some((w) => Math.hypot(p.x - w.x, p.y - w.y) < 1.6) && !m.trek.enc.some((e) => Math.hypot(p.x - e.ax, p.y - e.ay) < 2.2));
-        camp(m, 5.5, 39, true);
+        m.props = m.props.filter((p) => !gates.some((g) => Math.hypot(p.x - g.x, p.y - g.y) < 4.6) && !works.some((w) => Math.hypot(p.x - w.x, p.y - w.y) < 1.6) && !enc.some((e) => Math.hypot(p.x - e.ax, p.y - e.ay) < 2.2));
+        camp(m, A[0] - 1.5, A[1] + (A[1] > H / 2 ? 2 : -2), true);
         break; }
       case 'march':
         path(m, [[2, H - 3], [W - 3, 3]], 1.6);
