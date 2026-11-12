@@ -982,6 +982,18 @@ VS.I18N.add("fr", {
 "Her light turned red, and the dead awoke.": "Sa lumière devint rouge, et les morts s'éveillèrent.",
 "He bound each king inside a guardian, to bar the way up.": "Il enferma chaque roi dans un gardien, pour barrer la montée.",
 "Seven hundred years later, the Moon is bleeding out.": "Sept cents ans plus tard, la Lune se vide de son sang.",
-"One knight still stands.": "Une chevalière tient encore debout."
+"One knight still stands.": "Une chevalière tient encore debout.",
+"Long ago, a white Moon kept the dead asleep.": "Il y a longtemps, une Lune blanche gardait les morts endormis.",
+"Five kings kept her peace, one for each kingdom of the mountain.": "Cinq rois gardaient sa paix, un pour chaque royaume de la montagne.",
+"Then a swordsman climbed the mountain.": "Puis un épéiste gravit la montagne.",
+"He killed all five kings and took their souls.": "Il tua les cinq rois et prit leurs âmes.",
+"With them he cut the Moon. Her light turned red.": "Avec elles, il trancha la Lune. Sa lumière devint rouge.",
+"And red light wakes the dead.": "Et la lumière rouge réveille les morts.",
+"He chained each king's soul inside a monster.": "Il enchaîna l'âme de chaque roi dans un monstre.",
+"THE KING OF THE BLACK GATE, CHAINED": "LE ROI DE LA PORTE NOIRE, ENCHAÎNÉ",
+"THE ASH KING, CHAINED": "LE ROI DES CENDRES, ENCHAÎNÉ",
+"THE STORM KING, CHAINED": "LE ROI DES TEMPÊTES, ENCHAÎNÉ",
+"Seven hundred years later, one knight still stands.": "Sept cents ans plus tard, une chevalière tient encore debout.",
+"\"Kneel.\"": "« À genoux. »"
 },
   { tier: {"Iron": "fer", "Steel": "acier", "Moonsteel": "acier lunaire", "Bloodsteel": "acier sanglant", "Bone": "os", "Silver": "argent", "Moon": "lune", "Blood": "sang"}, base: {"Blade": "Lame", "Saber": "Sabre", "Axe": "Hache", "Spear": "Lance", "Greatsword": "Espadon", "Coat": "Veste", "Mail": "Cotte", "Plate": "Cuirasse", "Cloak": "Cape", "Locket": "Médaillon", "Ring": "Anneau", "Fang": "Croc", "Talisman": "Talisman"}, suf: {"of Edges": "des Tranchants", "of the Wall": "du Rempart", "of Warding": "de la Garde", "of the Moon": "de la Lune", "of Thirst": "de la Soif", "of Haste": "de la Hâte", "of Wind": "du Vent", "of Patience": "de la Patience", "of Mending": "de la Guérison", "of Fortune": "de la Fortune"}, make: (b, t, s) => b + (/^[aeiouh]/.test(t) ? " d'" : ' de ') + t + (s.length ? ' ' + s.join(' et ') : '') });

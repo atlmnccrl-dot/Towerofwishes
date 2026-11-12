@@ -29,7 +29,9 @@ for (const n of used) { if (!fx[n]) bad('fx ' + n); if (src.indexOf("'" + n + "'
 // Scenes: known shot kinds, known speakers, one scene per stage.
 for (const H of Object.values(D.HEROES)) for (const sk of H.skills) if (sk.fx && !fx[sk.fx]) bad('skill fx ' + sk.fx);
 const KINDS = ['title', 'moonfall', 'film', 'spire', 'clash', 'seal', 'anime'];
-const scenes = S.BEFORE.concat([S.ENDING]);
+const scenes = S.BEFORE.concat([S.ENDING, S.OPENING]);
+// The opening's cast in looks of their own (the kings, the risen townsfolk): each look exists, and the kings can fall.
+for (const sh of S.OPENING.shots) for (const c of sh.cast || []) if (c.set) check('opening ' + c.set, c.set, c.die != null ? ['Idle', 'Die'] : ['Idle']);
 if (S.BEFORE.length !== D.STAGES.length) bad('one scene per stage');
 for (const sc of scenes) for (const sh of sc.shots) {
   if (KINDS.indexOf(sh.k) < 0) bad('unknown shot ' + sh.k);

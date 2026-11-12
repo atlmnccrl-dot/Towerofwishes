@@ -20,8 +20,8 @@ fs.mkdirSync(out, { recursive: true });
 
   // A new game: the prologue, the trial (guided), its result, the map.
   await button('New game');
-  // The opening film (js/openfilm.js).
-  await page.waitForFunction(() => VS.main.state === 'intro' && VS.INTRO.st && VS.INTRO.st.t > 4, null, { timeout: 120000 });
+  // The opening, filmed on the arenas (S.OPENING): wait into its second shot, then Esc skips it and the title card.
+  await page.waitForFunction(() => VS.main.state === 'scene' && VS.main.scene.sc.i >= 1 && VS.main.scene.sc.t > 2.5, null, { timeout: 120000 });
   await shot('02-opening', 100);
   await page.keyboard.press('Escape');
   // The last hour (the end-game glimpse): it plays, then Esc skips it, then the title card.

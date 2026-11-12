@@ -1,1 +1,1 @@
-{"name": "k4_king", "url": "?map", "state": "map", "setup": "VS.R.noSkipHint = true; VS.main.state = 'intro'; VS.INTRO.play(VS.INTRO.PARTS.opening, () => {}, { skippable: false });", "parts": [{"before": "VS.INTRO.st.t = 17.9;", "dur": 2.8}]}
+{"name": "k4_king", "url": "?map", "state": "map", "setup": "VS.R.noSkipHint = true; VS.main.startScene(5, VS.STORY.OPENING, () => {}, true);", "parts": [{"before": "{ const sc = VS.main.scene.sc; sc.i = 4; sc.film = null; sc.t = 2.4; }", "dur": 2.8}]}

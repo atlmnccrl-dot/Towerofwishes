@@ -23,6 +23,7 @@
   // The caption: a small red eyebrow, one clean line, on a soft dark band at the bottom.
   function caption(ctx, sh, t) {
     if (!sh.say && !sh.eyebrow) return;
+    if (sh.cine) return cineCaption(ctx, sh, t);
     const k = R.k, a = Math.min(1, t / 0.4), y = R.H - 46 * k;
     const g = ctx.createLinearGradient(0, R.H - 120 * k, 0, R.H); g.addColorStop(0, 'rgba(4,2,6,0)'); g.addColorStop(1, `rgba(4,2,6,${0.85 * a})`); ctx.fillStyle = g; ctx.fillRect(0, R.H - 120 * k, R.W, 120 * k);
     ctx.save(); ctx.globalAlpha = a;
@@ -36,7 +37,21 @@
     }
     ctx.restore();
   }
-  function bars(ctx, a) { const h = R.H * 0.075 * a; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, R.W, h); ctx.fillRect(0, R.H - h, R.W, h); }
+  // The filmed opening's caption: one quiet line in the lower letterbox, fading in late and out early; the
+  // eyebrow (a place or a name) sits small in the upper bar.
+  function cineCaption(ctx, sh, t) {
+    const k = R.k, d = durOf(sh), at = sh.sayAt == null ? 0.7 : sh.sayAt, a = Math.max(0, Math.min(1, (t - at) / 0.6, (d - 0.35 - t) / 0.5));
+    if (a <= 0) return;
+    ctx.save(); ctx.globalAlpha = a;
+    if (sh.eyebrow) R.label(ctx, VS.I18N ? VS.I18N.t(sh.eyebrow) : sh.eyebrow, R.W / 2, R.H * 0.058, 10 * k, '#ff5a70', 'center', 6, 700);
+    if (sh.say) {
+      ctx.font = R.fb(19 * k, 500); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#ece4e6';
+      if ('letterSpacing' in ctx) ctx.letterSpacing = 0.6 * R.dpr + 'px';
+      ctx.fillText(VS.I18N ? VS.I18N.t(sh.say) : sh.say, R.W / 2, R.H * (1 - 0.0575) + (1 - a) * 4 * k);
+    }
+    ctx.restore();
+  }
+  function bars(ctx, a, wide) { const h = R.H * (wide ? 0.115 : 0.075) * a; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, R.W, h); ctx.fillRect(0, R.H - h, R.W, h); }
   // A full-resolution impact frame: white with black silhouettes and speed lines, then the reverse.
   function impact(ctx, k, cx, cy, draw) {
     const white = k < 0.55; ctx.fillStyle = white ? '#ffffff' : '#050307'; ctx.fillRect(0, 0, R.W, R.H);
@@ -146,8 +161,8 @@
   // standing), moves the camera from one point to another and pushes the zoom, then draws it with
   // the fight renderer. Positions are world units on the arena floor.
   const TOWARD_CAM = Math.atan2(Math.cos(VS.R.HELI.ang), Math.sin(VS.R.HELI.ang));
-  function nameCard(ctx, who, also, a) {
-    const H = who === 'hero' && D.HEROES ? D.HEROES[S.heroKey] || D.HEROES.vesper : null, f = H || D.FOES[who], name = also ? 'THE HOLLOW TWINS' : f.name.toUpperCase(), sub = also ? 'THE LEFT HAND AND THE RIGHT' : f.title.toUpperCase();   // the hero's card too (the opening)
+  function nameCard(ctx, who, also, a, sub0) {
+    const H = who === 'hero' && D.HEROES ? D.HEROES[S.heroKey] || D.HEROES.vesper : null, f = H || D.FOES[who], name = also ? 'THE HOLLOW TWINS' : f.name.toUpperCase(), sub = sub0 || (also ? 'THE LEFT HAND AND THE RIGHT' : f.title.toUpperCase());   // the hero's card too (the opening)
     ctx.save(); ctx.globalAlpha = a; ctx.font = R.fd(44 * R.k, 700); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = '#ffffff'; if ('letterSpacing' in ctx) ctx.letterSpacing = 3 * R.dpr + 'px';
     ctx.lineWidth = 6 * R.dpr; ctx.strokeStyle = 'rgba(6,2,6,0.7)'; ctx.strokeText(name, R.W * 0.06 + (1 - a) * -30, R.H * 0.24); ctx.fillText(name, R.W * 0.06 + (1 - a) * -30, R.H * 0.24); if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
     R.label(ctx, sub, R.W * 0.06 + 2, R.H * 0.24 + 24 * R.k, 12 * R.k, '#ff8a9a', 'left', 4, 600);
@@ -172,7 +187,7 @@
   }
   const lerp2 = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
   SHOT.film = function (ctx, sh, k, t, sc) {
-    const F = filmOf(sc, sh), s = F.s, dt = Math.min(0.05, sc.dt || 0.016);
+    const F = filmOf(sc, sh), s = F.s, dt = Math.min(0.05, sc.dt || 0.016), sl = sh.slow || 1;
     for (const m of F.cast) {
       const { c, u } = m, tt = t - (c.delay || 0), ed = c.edur || (c.enter === 'drop' ? 1.3 : 1.1);
       if (c.enter && tt < ed) {
@@ -188,15 +203,27 @@
       }
       u.state = 'idle';
       const tm = tt - (c.moveAt || 0);   // moveAt: the move starts later than the entrance
-      const mv = c.to ? ease(Math.max(0, Math.min(1, tm / (c.mdur || sh.d || 2.4)))) : 0, p = c.to ? lerp2(c.at, c.to, mv) : c.at, moving = c.to && mv < 0.98 && tm >= 0;
+      const mv = c.to ? (sh.cine ? smooth : ease)(Math.max(0, Math.min(1, tm / (c.mdur || sh.d || 2.4)))) : 0, p = c.to ? lerp2(c.at, c.to, mv) : c.at, moving = c.to && mv < 0.98 && tm >= 0;
       u.x = p[0]; u.y = p[1];
+      // path: [[t, x, y], ...]: marks to move between in one take (eased in and out between each pair).
+      let pathDir = null;
+      if (c.path) {
+        const P0 = c.path; let i = 0; while (i < P0.length - 1 && tt >= P0[i + 1][0]) i++;
+        const a = P0[i], b = P0[Math.min(P0.length - 1, i + 1)], seg = b[0] - a[0], f = seg > 0 ? smooth((tt - a[0]) / seg) : 1;
+        u.x = a[1] + (b[1] - a[1]) * f; u.y = a[2] + (b[2] - a[2]) * f;
+        if (seg > 0 && f > 0.02 && f < 0.96 && Math.hypot(b[1] - a[1], b[2] - a[2]) > 4) pathDir = Math.atan2(b[2] - a[2], b[1] - a[1]);
+      }
       const after = m.landT != null && t - m.landT < 1.4 && c.after;
       // Timed actions (the First Cut's films): [at, clip, seconds, fps, loop].
       let act = null; for (const a of c.acts || []) if (tt >= a[0] && tt < a[0] + (a[2] || 1.2)) act = a;
-      const clip = act ? act[1] : moving ? (c.run ? 'Run' : 'Walk') : after ? c.after : c.clip || 'Idle4';
-      u.clip = clip; u.frame = act ? (act[4] ? loop(clip, tt - act[0], act[3]) : Math.floor((tt - act[0]) * (act[3] || 10))) : D.LOOP[clip] ? loop(clip, t + u.id * 0.3) : Math.min(14, Math.floor((t - (m.landT || 0)) * (D.FPS[clip] || 10)));
-      const look = c.face === 'cam' ? TOWARD_CAM : Array.isArray(c.face) ? Math.atan2(c.face[1] - u.y, c.face[0] - u.x) : typeof c.face === 'number' ? c.face : moving ? Math.atan2(c.to[1] - c.at[1], c.to[0] - c.at[0]) : TOWARD_CAM;
+      const clip = act ? act[1] : moving || pathDir != null ? (c.run ? 'Run' : 'Walk') : after ? c.after : c.clip || 'Idle4';
+      // slow: slow motion for the cast's clips (the opening's beats play at a third to half speed).
+      u.clip = clip; u.frame = act ? (act[4] ? loop(clip, (tt - act[0]) * sl, act[3]) : Math.min(14, Math.floor((tt - act[0]) * sl * (act[3] || 10)))) : D.LOOP[clip] ? loop(clip, t * sl + u.id * 0.3) : Math.min(14, Math.floor((t - (m.landT || 0)) * sl * (D.FPS[clip] || 10)));
+      const look = pathDir != null && !act ? pathDir : c.face === 'cam' ? TOWARD_CAM : Array.isArray(c.face) ? Math.atan2(c.face[1] - u.y, c.face[0] - u.x) : typeof c.face === 'number' ? c.face : moving ? Math.atan2(c.to[1] - c.at[1], c.to[0] - c.at[0]) : TOWARD_CAM;
       u.ang = look; u.face = Math.cos(look) >= 0 ? 1 : -1;
+      // die: falls at that moment and stays down, then fades (linger: seconds before the body fades).
+      if (c.die != null && tt >= c.die) { const dd = tt - c.die; u.state = 'dead'; u.alive = false; u.deadT = dd - (c.linger == null ? 1.4 : c.linger); u.clip = 'Die'; u.frame = Math.min(14, Math.floor(dd * sl * (c.dfps || D.FPS.Die))); }
+      else if (c.die != null) u.alive = true;
     }
     // Timed events: [at, event]: the fight's own effects (a 'cut', a 'strike', a 'spawn' from a rift...), or 'pk' (one
     // effect by name), 'flash', 'shake', 'sfx'.
@@ -208,12 +235,21 @@
       else if (e.type === 'sfx') sc.cues.push([e.name, e.v || 1]);
       else { s.events = [Object.assign({}, e)]; R.consume(s); s.events = []; }
     });
-    const cam = sh.cam || {}, at = cam.at || [0, 0], c2 = lerp2(at, cam.to || at, ease(k));
-    if (cam.follow) { const h = F.cast.find((m) => m.c.who === cam.follow); if (h) { c2[0] = h.u.x + (cam.off ? cam.off[0] : 0); c2[1] = h.u.y + (cam.off ? cam.off[1] : 0); } }
+    const cam = sh.cam || {}, at = cam.at || [0, 0], ck = (sh.cine ? smooth : ease)(k), c2 = lerp2(at, cam.to || at, ck);
+    if (cam.follow) {
+      const h = F.cast.find((m) => m.c.who === cam.follow || m.c.id === cam.follow);
+      if (h) {
+        const tx = h.u.x + (cam.off ? cam.off[0] : 0), ty = h.u.y + (cam.off ? cam.off[1] : 0);
+        // A filmed shot trails its subject softly instead of locking onto it.
+        if (sh.cine) { if (!F.fc) F.fc = [tx, ty]; const kf = Math.min(1, dt * (cam.lag || 2.2)); F.fc[0] += (tx - F.fc[0]) * kf; F.fc[1] += (ty - F.fc[1]) * kf; c2[0] = F.fc[0]; c2[1] = F.fc[1]; }
+        else { c2[0] = tx; c2[1] = ty; }
+      }
+    }
+    if (cam.breathe) { c2[0] += Math.sin(t * 0.7) * cam.breathe; c2[1] += Math.sin(t * 0.53 + 1) * cam.breathe * 0.6; }   // a slow drift, as if held
     // Aim at chest height, not the feet: shift the camera toward the viewer by the lift.
     const lift = cam.lift == null ? 6 : cam.lift, hs = Math.sin(R.HELI.ang), hc = Math.cos(R.HELI.ang);
     R.hcam.x = c2[0] - hs * lift / R.HELI.pitch; R.hcam.y = c2[1] - hc * lift / R.HELI.pitch;
-    const z = cam.zoom || [1.3, 1.5]; s.zoom = z[0] + (z[1] - z[0]) * ease(k);
+    const z = cam.zoom || [1.3, 1.5]; s.zoom = z[0] + (z[1] - z[0]) * ck;
     s.t += dt; R.t = R.t || 0;
     ctx.save(); if (R.shake > 0.5) ctx.translate((Math.random() - 0.5) * R.shake * R.dpr, (Math.random() - 0.5) * R.shake * R.dpr); R.drawFight(ctx, s, dt); ctx.restore();
     if (sh.tint === 'past') { ctx.save(); ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = 'rgb(150,160,200)'; ctx.fillRect(0, 0, R.W, R.H); ctx.restore(); ctx.fillStyle = 'rgba(20,24,48,0.18)'; ctx.fillRect(0, 0, R.W, R.H); }   // seven hundred years ago: a cold memory
@@ -225,9 +261,51 @@
       ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = gr; ctx.fillRect(0, 0, R.W, R.H);
       A.tex(ctx, 'light_01', R.W * 0.5, R.H * 0.02, R.W * 1.2, R.H * 0.7, '#fff0d8', 0.8 * g, 0, true); ctx.restore();
     }
-    if (sh.card) { const kk = (t - (sh.card.at || 1.2)) / 0.4; if (kk > 0) nameCard(ctx, sh.card.who, sh.card.also, ease(kk)); }
-    bars(ctx, 1);
+    if (sh.cine) cine(ctx, sh, F, k, t);
+    if (sh.card) { const kk = (t - (sh.card.at || 1.2)) / 0.4; if (kk > 0) nameCard(ctx, sh.card.who, sh.card.also, ease(kk), sh.card.sub); }
+    bars(ctx, 1, sh.cine);
+    if (sh.cine && sh.fade) { const d = durOf(sh), f = sh.fade, a = Math.max(f[0] ? 1 - t / f[0] : 0, f[1] ? (t - (d - f[1])) / f[1] : 0); if (a > 0) { ctx.fillStyle = `rgba(0,0,0,${Math.min(1, a)})`; ctx.fillRect(0, 0, R.W, R.H); } }
   };
+  // ---- The cinematic grade for filmed shots (the opening, 2026-11-12) ---------------------------------
+  // grade: 'silver' (the night before: the white Moon, cold and drained of colour), 'red' (the bleeding night),
+  // or { from, to, at, dur } to turn from one to the other on screen. light: { on: a cast member or [x, y], r, col }
+  // leaves a pool of light on the subject and lets the rest of the frame fall into dark.
+  const GRADE = {
+    silver: (ctx, a) => {
+      ctx.globalAlpha = a * 0.78; ctx.globalCompositeOperation = 'color'; ctx.fillStyle = '#7e8cab'; ctx.fillRect(0, 0, R.W, R.H);
+      ctx.globalAlpha = a; ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = '#a2abc4'; ctx.fillRect(0, 0, R.W, R.H);
+      ctx.globalCompositeOperation = 'lighter'; const g = ctx.createLinearGradient(0, 0, 0, R.H); g.addColorStop(0, 'rgba(150,170,210,0.16)'); g.addColorStop(0.6, 'rgba(150,170,210,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, R.W, R.H);
+    },
+    red: (ctx, a) => {
+      ctx.globalAlpha = a; ctx.globalCompositeOperation = 'multiply'; ctx.fillStyle = '#c87c88'; ctx.fillRect(0, 0, R.W, R.H);
+      ctx.globalCompositeOperation = 'lighter'; const g = ctx.createLinearGradient(0, 0, 0, R.H); g.addColorStop(0, 'rgba(255,40,70,0.14)'); g.addColorStop(0.7, 'rgba(255,40,70,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, R.W, R.H);
+    },
+  };
+  const smooth = (k) => { k = Math.max(0, Math.min(1, k)); return k * k * k * (k * (k * 6 - 15) + 10); };
+  function onScreen(F, who) {
+    // A cast member's chest on screen, through the shot's zoom.
+    const m = F.cast.find((mm) => mm.c.who === who || mm.c.id === who); if (!m) return null;
+    const q = R.P(m.u.x, m.u.y, 26 * (m.u.scale || 1)), z = F.s.zoom || 1;
+    return { x: R.W / 2 + (q.x - R.W / 2) * z, y: R.H * 0.56 + (q.y - R.H * 0.56) * z };
+  }
+  function cine(ctx, sh, F, k, t) {
+    ctx.save();
+    const g = sh.grade;
+    if (typeof g === 'string') GRADE[g](ctx, 1);
+    else if (g) { const m = smooth((t - g.at) / (g.dur || 0.8)); if (m < 1) GRADE[g.from](ctx, 1 - m); ctx.restore(); ctx.save(); if (m > 0) GRADE[g.to](ctx, m); }
+    ctx.restore(); ctx.save();
+    const L = sh.light;
+    if (L) {
+      const p = Array.isArray(L.on) ? { x: R.W * L.on[0], y: R.H * L.on[1] } : onScreen(F, L.on) || { x: R.W / 2, y: R.H / 2 }, r = R.H * (L.r || 0.5);
+      const gr = ctx.createRadialGradient(p.x, p.y, r * 0.12, p.x, p.y, r); gr.addColorStop(0, 'rgba(3,2,6,0)'); gr.addColorStop(0.55, `rgba(3,2,6,${(L.dark || 0.8) * 0.45})`); gr.addColorStop(1, `rgba(3,2,6,${L.dark || 0.8})`);
+      ctx.fillStyle = gr; ctx.fillRect(0, 0, R.W, R.H);
+      if (L.col) { ctx.globalCompositeOperation = 'lighter'; A.tex(ctx, 'light_01', p.x, p.y, r * 1.1, r * 1.1, L.col, L.glow || 0.22, 0, true); }
+    }
+    ctx.restore(); ctx.save();
+    // A soft vignette on every shot.
+    const v = ctx.createRadialGradient(R.W / 2, R.H / 2, R.H * 0.35, R.W / 2, R.H / 2, R.W * 0.62); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.55)'); ctx.fillStyle = v; ctx.fillRect(0, 0, R.W, R.H);
+    ctx.restore();
+  }
 
   // ---- playback ------------------------------------------------------------------------------------
   const CUE = { film: [['magic', 0.4]], title: [['clang_1', 0.6]], moonfall: [['charge', 0.8]], clash: [['whoosh', 0.9]], seal: [['charge', 0.8]], spire: [['step_2', 0.5]] };
@@ -253,6 +331,7 @@
     }
     ctx.save(); ctx.imageSmoothingEnabled = false; SHOT[sh.k](ctx, sh, k, sc.t, sc); ctx.restore();
     caption(ctx, sh, sc.t);
+    if (sh.cine) { if (sc.t > 0.6 && !R.noSkipHint && sc.def.hint !== false) R.label(ctx, R.touch ? 'SKIP ›' : 'ESC SKIPS', R.W - 18 * R.k, R.H * 0.058, 9 * R.k, 'rgba(220,210,214,0.28)', 'right', 2, 500); return; }
     if (sc.t > 0.6 && !R.noSkipHint) R.label(ctx, R.touch ? 'TAP TO CONTINUE  ·  SKIP ›' : 'CLICK TO CONTINUE  ·  ESC SKIPS', R.W - 18 * R.k, 16 * R.k, 9 * R.k, 'rgba(220,210,214,0.4)', 'right', 2, 500);
   };
 })();

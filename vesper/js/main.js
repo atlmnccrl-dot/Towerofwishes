@@ -219,11 +219,11 @@
   }
   // A new game: the prologue, then the first trial.
   // The opening's risen dead are turned townsfolk: load them first.
-  // Everything the opening film draws (js/openfilm.js): the Kingslayer, the five kings, the guardians, the dead (the
-  // townsfolk and the raiders), the hero. Loaded before it plays (a new game, the theatre).
+  // Everything the opening draws (S.OPENING, filmed on the arenas): the Kingslayer, the five kings, three guardians, the
+  // dead (the townsfolk and a skeleton), the hero; and every hour's arena tiles. Loaded before it plays (a new game, the theatre).
   const OPENING_SETS = ['vh_firstcut', 'vh_townsfolk_001', 'vh_townsfolk_004', 'vh_townsfolk_007', 'vh_townsfolk_010', 'vh_townsfolk_013'];
   const openingNeeds = () => ({
-    sets: OPENING_SETS.concat((S.KINGS || []).map((k) => k.set), ['vh_skeleton_002', 'vh_barbarian_002'], ['ghoul', 'raider', 'ghast', 'warden', 'twinA', 'twinB', 'umbral', 'hunger', 'wing', 'firstCutFinal'].map((k) => D.FOES[k].set), [(D.HEROES[P().hero] || D.HEROES.vesper).set])
+    sets: OPENING_SETS.concat((S.KINGS || []).map((k) => k.set), ['vh_skeleton_002'], ['ghoul', 'warden', 'hunger', 'wing', 'firstCut'].map((k) => D.FOES[k].set), [(D.HEROES[P().hero] || D.HEROES.vesper).set])
       .filter((id, i, a) => id && a.indexOf(id) === i),
     iso: [0, 1, 2, 3, 4, 5].flatMap(isoFor).filter((g, i, a) => a.indexOf(g) === i) });
   function loadOpening(then) {
@@ -240,7 +240,12 @@
   // The opening: one film in the guardian films' panel style (js/openfilm.js), ending on the title. Esc skips it.
   function startIntro(then) {
     U.hide(); if (P().opts.scenes === 'skip') return then();
-    M.go('intro'); VS.INTRO.play(VS.INTRO.PARTS.opening, () => { R.hideCine(); then(); }, { skippable: true });
+    // The opening is filmed on the arenas (S.OPENING), then the title card; skipping the film skips the card too.
+    startScene(5, S.OPENING, () => {
+      if (M.scene && M.scene.sc.skipped) return then();
+      M.go('intro'); VS.INTRO.play(VS.INTRO.PARTS.title, () => { R.hideCine(); then(); }, { skippable: true });
+    }, true);
+    AU.playAmb('wind');
   }
   // A guardian's entrance film: in full the first time, a tap skips it after that.
   function startFilm(key, then) {

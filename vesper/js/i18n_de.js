@@ -983,6 +983,18 @@ VS.I18N.add("de", {
 "Her light turned red, and the dead awoke.": "Sein Licht wurde rot, und die Toten erwachten.",
 "He bound each king inside a guardian, to bar the way up.": "Er sperrte jeden König in einen Wächter, um den Weg nach oben zu versperren.",
 "Seven hundred years later, the Moon is bleeding out.": "Siebenhundert Jahre später blutet der Mond aus.",
-"One knight still stands.": "Eine Ritterin steht noch."
+"One knight still stands.": "Eine Ritterin steht noch.",
+"Long ago, a white Moon kept the dead asleep.": "Vor langer Zeit hielt ein weißer Mond die Toten im Schlaf.",
+"Five kings kept her peace, one for each kingdom of the mountain.": "Fünf Könige hüteten ihren Frieden, einer für jedes Reich des Berges.",
+"Then a swordsman climbed the mountain.": "Dann stieg ein Schwertkämpfer den Berg hinauf.",
+"He killed all five kings and took their souls.": "Er tötete alle fünf Könige und nahm ihre Seelen.",
+"With them he cut the Moon. Her light turned red.": "Mit ihnen schnitt er den Mond. Ihr Licht wurde rot.",
+"And red light wakes the dead.": "Und rotes Licht weckt die Toten.",
+"He chained each king's soul inside a monster.": "Er kettete die Seele jedes Königs in ein Ungeheuer.",
+"THE KING OF THE BLACK GATE, CHAINED": "DER KÖNIG DES SCHWARZEN TORS, GEKETTET",
+"THE ASH KING, CHAINED": "DER ASCHEKÖNIG, GEKETTET",
+"THE STORM KING, CHAINED": "DER STURMKÖNIG, GEKETTET",
+"Seven hundred years later, one knight still stands.": "Siebenhundert Jahre später steht noch eine Ritterin.",
+"\"Kneel.\"": "„Knie nieder.“"
 },
   { tier: {"Iron": "Eisen", "Steel": "Stahl", "Moonsteel": "Mondstahl", "Bloodsteel": "Blutstahl", "Bone": "Knochen", "Silver": "Silber", "Moon": "Mond", "Blood": "Blut"}, base: {"Blade": "Klinge", "Saber": "Säbel", "Axe": "Axt", "Spear": "Speer", "Greatsword": "Großschwert", "Coat": "Mantel", "Mail": "Kettenhemd", "Plate": "Plattenpanzer", "Cloak": "Umhang", "Locket": "Medaillon", "Ring": "Ring", "Fang": "Fangzahn", "Talisman": "Talisman"}, suf: {"of Edges": "der Schneiden", "of the Wall": "des Walls", "of Warding": "des Schutzes", "of the Moon": "des Mondes", "of Thirst": "des Durstes", "of Haste": "der Eile", "of Wind": "des Windes", "of Patience": "der Geduld", "of Mending": "der Heilung", "of Fortune": "des Glücks"}, make: (b, t, s) => t + b.toLowerCase() + (s.length ? ' ' + s.join(' und ') : '') });

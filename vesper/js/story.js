@@ -113,6 +113,67 @@
   // No lines are spoken in fights.
   S.PHASE = {};
 
+  // ---- The opening (2026-11-12, the author: "the 2D angle isn't working at all"; the pick: the game's isometric view,
+  // cinematic). The fight camera's own high three-quarter angle on the real arenas, filmed like a movie: close framing,
+  // slow motion, slow eased camera moves that trail their subject, a colour grade (silver for the night of the white
+  // Moon, red after the cut), a pool of light on the subject with the rest falling into dark, wide letterbox bars with
+  // one quiet line in the lower bar, a fade between shots, no game interface. Then the title (js/openfilm.js).
+  //   1. The summit under the white Moon.    5. The cut: the grade turns from silver to red.   9. The Pale Wing.
+  //   2. Along the five kings.               6. The dead rise at the Black Gate.               10. Vesper, the last knight.
+  //   3. A swordsman climbs the Throat.      7. The Gatewarden: a king chained inside.        11. The summit: "Kneel."
+  //   4. One take: the five kings fall.      8. The Hunger.
+  const KP = (i) => [(i - 2) * 36, (i - 2) * 36];   // the kings in a line across the screen, around the altar
+  const SLOT = (i) => [KP(i)[0] - 21, KP(i)[1] - 21];   // where the swordsman stands to strike each one
+  const kingsCast = (o) => KINGS.map((k, i) => Object.assign({ who: 'ghoul', id: 'king' + i, set: k.set, at: KP(i), face: 'cam', clip: 'Idle' }, o ? o(i) : {}));
+  const CINE = { cine: true, fade: [0.9, 0.6] };
+  // The take of the five deaths: he reaches each king, strikes, and moves on.
+  const KILL0 = 0.9, KILL = 1.35, HIT = 0.42;
+  const killPath = [[0, SLOT(0)[0] - 60, SLOT(0)[1] - 60]];
+  for (let i = 0; i < 5; i++) { killPath.push([KILL0 + i * KILL - 0.45, ...SLOT(i)]); if (i < 4) killPath.push([KILL0 + i * KILL + 0.9, ...SLOT(i)]); }
+  const killEv = [];
+  for (let i = 0; i < 5; i++) {
+    const t = KILL0 + i * KILL + HIT, [x, y] = KP(i);
+    killEv.push([t, { type: 'flash', a: 0.35, col: '220,230,255' }], [t, { type: 'shake', n: 6 }], [t, { type: 'sfx', name: i === 4 ? 'blow_big' : 'blow_1', v: 0.8 }],
+      [t, { type: 'pk', name: 'v_blood', x, y, z: 26 }], [t + 0.5, { type: 'pk', name: 'v_soul', x, y, z: 10 }]);
+  }
+  S.OPENING = { hint: true, shots: [
+    Object.assign({ k: 'film', stage: 5, area: 'last', d: 5.6, grade: 'silver', eyebrow: 'THE SPIRE', say: 'Long ago, a white Moon kept the dead asleep.', sayAt: 1.2,
+      cast: kingsCast(), cam: { at: [40, -90], to: [0, 0], zoom: [1.25, 1.7], lift: 30 }, light: { on: [0.5, 0.52], r: 0.75, dark: 0.6 } }, CINE, { fade: [1.6, 0.6] }),
+    Object.assign({ k: 'film', stage: 5, area: 'last', d: 5.8, grade: 'silver', say: 'Five kings kept her peace, one for each kingdom of the mountain.',
+      cast: kingsCast(), cam: { at: KP(0), to: KP(4), zoom: [2.7, 2.9], lift: 22 }, light: { on: [0.5, 0.5], r: 0.62, dark: 0.55, col: '#b8c8ff', glow: 0.12 } }, CINE),
+    Object.assign({ k: 'film', stage: 4, area: 0, d: 5.2, grade: 'silver', slow: 0.6, say: 'Then a swordsman climbed the mountain.',
+      cast: [{ who: 'firstCut', id: 'fc', at: [170, 0], path: [[0, 170, 0], [5.0, 30, 0]] }], cam: { follow: 'fc', off: [-18, 0], zoom: [2.5, 2.9], lift: 18, lag: 1.6 }, light: { on: 'fc', r: 0.5, dark: 0.75 } }, CINE),
+    Object.assign({ k: 'film', stage: 5, area: 'last', d: KILL0 + 5 * KILL + 1.6, grade: 'silver', slow: 0.75, say: 'He killed all five kings and took their souls.', sayAt: 1.6,
+      cast: [{ who: 'firstCut', id: 'fc', at: killPath[0].slice(1), path: killPath, face: [1, 1],
+        acts: [0, 1, 2, 3, 4].map((i) => [KILL0 + i * KILL - 0.2, i % 2 ? 'Attack3' : 'Attack2', 1.0, 16]) }]
+        .concat(kingsCast((i) => ({ face: SLOT(i), die: KILL0 + i * KILL + HIT, linger: 0.6, clip: 'Idle' }))),
+      ev: killEv, cam: { follow: 'fc', off: [14, 14], zoom: [2.6, 2.6], lift: 22, lag: 3.2 }, light: { on: 'fc', r: 0.6, dark: 0.6 } }, CINE),
+    Object.assign({ k: 'film', stage: 5, area: 'last', d: 6.2, grade: { from: 'silver', to: 'red', at: 3.15, dur: 0.6 }, slow: 0.55, say: 'With them he cut the Moon. Her light turned red.', sayAt: 3.4,
+      cast: [{ who: 'firstCut', id: 'fc', at: [0, 0], face: 'cam', clip: 'C_Stand', acts: [[0.8, 'C_Raise', 2.2, 6], [3.0, 'C_Cut', 3.2, 9]] }],
+      ev: [[1.0, { type: 'sfx', name: 'charge', v: 0.7 }], [1.2, { type: 'pk', name: 'v_soul', x: -40, y: -10, z: 20 }], [1.5, { type: 'pk', name: 'v_soul', x: 30, y: 40, z: 20 }], [1.8, { type: 'pk', name: 'v_soul', x: 40, y: -30, z: 20 }],
+        [3.15, { type: 'flash', a: 1, col: '255,255,255' }], [3.15, { type: 'shake', n: 14 }], [3.15, { type: 'sfx', name: 'blow_big', v: 1 }], [3.2, { type: 'sfx', name: 'quake', v: 0.8 }],
+        [3.25, { type: 'pk', name: 'v_shock', x: 0, y: 0, scale: 1.6 }], [3.15, { type: 'pk', name: 'v_pillar', x: 0, y: 0, scale: 1.0 }]],
+      cam: { at: [0, 0], to: [0, 0], zoom: [2.4, 3.3], lift: 30 }, light: { on: 'fc', r: 0.55, dark: 0.7 } }, CINE),
+    Object.assign({ k: 'film', stage: 0, area: 0, d: 5.4, grade: 'red', say: 'And red light wakes the dead.', sayAt: 1.0,
+      cast: [[-30, 20, 0.2], [40, -10, 0.7], [-70, -40, 1.1], [10, 60, 1.5], [80, 40, 1.9], [-20, -80, 2.3], [-90, 50, 2.6]].map(([x, y, dl], i) => ({ who: 'ghoul', set: ['vh_townsfolk_001', 'vh_townsfolk_004', 'vh_townsfolk_007', 'vh_townsfolk_010', 'vh_townsfolk_013', 'vh_skeleton_002', 'vh_townsfolk_004'][i], at: [x, y], enter: 'rift', delay: dl, edur: 1.6, face: 'cam', clip: 'Idle' })),
+      cam: { at: [0, 0], to: [-10, 10], zoom: [1.9, 2.5], lift: 20, breathe: 2 }, light: { on: [0.5, 0.52], r: 0.7, dark: 0.55 } }, CINE),
+    Object.assign({ k: 'film', stage: 0, area: 'last', d: 4.4, grade: 'red', say: "He chained each king's soul inside a monster.", sayAt: 0.6,
+      cast: [{ who: 'warden', id: 'g', at: [0, -85], face: 'cam', aura: true, clip: 'Idle', acts: [[1.4, 'Taunt', 1.6, 10]] }], card: { who: 'warden', at: 1.6, sub: 'THE KING OF THE BLACK GATE, CHAINED' },
+      cam: { at: [0, -60], to: [0, -85], zoom: [2.2, 2.9], lift: 30 }, light: { on: 'g', r: 0.55, dark: 0.7 } }, CINE, { fade: [0.6, 0.4] }),
+    Object.assign({ k: 'film', stage: 3, area: 'last', d: 3.2, grade: 'red',
+      cast: [{ who: 'hunger', id: 'g', at: [0, -95], face: 'cam', aura: true, clip: 'Idle', acts: [[0.9, 'Taunt', 1.6, 10]] }], card: { who: 'hunger', at: 0.7, sub: 'THE ASH KING, CHAINED' },
+      cam: { at: [-20, -80], to: [0, -95], zoom: [2.0, 2.4], lift: 40 }, light: { on: 'g', r: 0.6, dark: 0.6, col: '#ff6a3a', glow: 0.3 } }, CINE, { fade: [0.4, 0.4] }),
+    Object.assign({ k: 'film', stage: 4, area: 'last', d: 3.4, grade: 'red',
+      cast: [{ who: 'wing', id: 'g', at: [0, -95], face: 'cam', aura: true, clip: 'Idle', acts: [[0.9, 'Taunt', 1.6, 10]] }], card: { who: 'wing', at: 0.7, sub: 'THE STORM KING, CHAINED' },
+      cam: { at: [20, -80], to: [0, -95], zoom: [1.9, 2.3], lift: 44 }, light: { on: 'g', r: 0.6, dark: 0.7 } }, CINE, { fade: [0.4, 0.8] }),
+    Object.assign({ k: 'film', stage: 0, area: 0, d: 5.6, grade: 'red', slow: 0.6, eyebrow: 'THE LAST NIGHT', say: 'Seven hundred years later, one knight still stands.', sayAt: 1.0,
+      cast: [{ who: 'hero', id: 'h', at: [0, 0], face: 'cam', clip: 'Idle4' }].concat([[-150, -20], [130, -110], [150, 60]].map(([x, y], i) => ({ who: 'ghoul', set: ['vh_townsfolk_007', 'vh_skeleton_002', 'vh_townsfolk_013'][i], at: [x, y], path: [[0, x, y], [5.6, x * 0.72, y * 0.72]], face: [0, 0] }))),
+      card: { who: 'hero', at: 2.2 }, cam: { at: [0, 0], to: [0, 0], zoom: [2.6, 3.7], lift: 24, breathe: 1.2 }, light: { on: 'h', r: 0.5, dark: 0.72, col: '#ffd8dc', glow: 0.1 } }, CINE),
+    Object.assign({ k: 'film', stage: 5, area: 'last', d: 5.2, grade: 'red', slow: 0.7, eyebrow: 'THE FIRST CUT', say: '"Kneel."', sayAt: 2.6,
+      cast: [{ who: 'hero', id: 'h', at: [0, 120], path: [[0, 0, 120], [3.4, 0, 46]], face: [0, -40] }, { who: 'firstCut', id: 'fc', at: [0, -40], face: [0, 120], aura: true, clip: 'C_Stand', acts: [[2.4, 'C_Command', 2.8, 6]] }],
+      cam: { at: [0, 90], to: [0, -20], zoom: [2.2, 2.8], lift: 30 }, light: { on: 'fc', r: 0.6, dark: 0.7 } }, CINE, { fade: [0.6, 1.2] }),
+  ] };
+
   S.ENDING = { shots: [
     { k: 'seal', eyebrow: 'DAWN', say: 'With the five kings beside you, you strike the wound.', d: 4.2 },
     { k: 'film', stage: 5, area: 'last', tint: 'dawn', say: 'The wound closes. The Moon turns white again, and the dead sleep.', d: 4.8,
