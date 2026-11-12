@@ -594,7 +594,7 @@
   // dead are raised, by how far into the campaign they are: [level, health x, damage x], read between the rows. The
   // far marches (levels 28 to 40) needed the most; the last land was already the tightest. A boss takes a part of
   // the raise (bossHp, bossAtk): it is its own measure.
-  BB.DIFF = { knots: [[1, 1.2, 1.5], [4, 1.8, 2.6], [9, 1.7, 2.4], [17, 1.6, 2.2], [24, 2.1, 2.5], [28, 2.9, 2.8], [40, 2.9, 2.8], [44, 2.1, 2.4], [47, 2.0, 2.3]], bossHp: 0.5, bossAtk: 0.4 };
+  BB.DIFF = { knots: [[1, 1.5, 2.0], [4, 2.8, 4.4], [6, 2.6, 4.0], [7, 2.0, 2.9], [9, 2.4, 3.6], [17, 2.4, 3.6], [22, 2.8, 4.4], [28, 3.4, 5.4], [40, 3.2, 5.0], [44, 2.6, 3.8], [47, 2.3, 3.3]], bossHp: 0.3, bossAtk: 0.2 };
   BB.diffAt = function (level) {
     const D = BB.DIFF; if (D.flat) return { hp: D.flat[0], atk: D.flat[1] };
     const K = D.knots; if (level <= K[0][0]) return { hp: K[0][1], atk: K[0][2] };

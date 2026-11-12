@@ -216,15 +216,15 @@ simulator used to leave the team out, so its hordes were always the smallest; it
   the dead climbing out for as long as it stands, and the **Bone Ballista**, which puts a heavy bolt into whoever
   stands farthest back. They guard the fields of an expedition.
 
-**How hard.** A player's heroes grow much faster than the first balance assumed: gear in every slot and every skill
-point spent make a team three to four times the strength a stage used to ask for, and measured that way it never fell
-below four fifths of its health. The dead are raised to meet that (`BB.DIFF`, `BB.diffAt(level)` in js/rules.js):
-more health and more damage by how far into the campaign they are (about +70% health and +140% damage in the first
-three lands, more health than damage in the far marches, less in the last land, which was already the tightest), a
-boss taking part of the raise, and what a stage asks (`BB.recPower`, "needs ⚔") raised with it. Nothing about how a
-fight is fought changed: heroes fight on their own, you call the ultimates. `REAL=1 node test/sim-node.js` plays with
-heroes as a player really has them (a level over the stage, full gear, every skill point) and prints how low the
-team's health fell: in the first three lands it now falls to between a fifth and two fifths.
+**How hard.** A player's heroes grow much faster than the first balance assumed: all four gear slots filled, every
+skill point spent and a level or two over the stage make a team three to four times the strength a stage used to ask
+for, and measured that way (by the bot, which plays the real progression) it won every fight with four fifths of its
+health left. The dead are raised to meet that (`BB.DIFF`, `BB.diffAt(level)` in js/rules.js): more health and more
+damage by how far into the campaign they are (gentle for the first three fights, then about 2.5 times the health and
+3.5 to 4.5 times the damage through the first three lands, more in the far marches, a little less in the last
+land), a boss taking a small part of the raise, and what a stage asks (`BB.recPower`, "needs ⚔") raised with it.
+Nothing about how a fight is fought changed. `REAL=1 node test/sim-node.js` plays with heroes as the bot had them and
+prints how low the team's health fell: 25 to 40% through the first three lands now, 45 to 75% after.
 
 Losing costs nothing (and still teaches your heroes): change gear or the formation and fight again.
 

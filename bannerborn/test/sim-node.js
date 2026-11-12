@@ -1,8 +1,8 @@
 // Runs every campaign stage in Node with stubbed art. usage: node test/sim-node.js [stageIdx|all] [runs]
 //   PLACED=1  heroes stand at the game's default places (free placement) instead of the old fixed slots
 //   LAG=n   heroes are n levels below the stage (default 1)      NOULT=1  nobody casts ultimates (Auto off, no taps)
-//   GEAR=1  every hero has a weapon and armour                   REAL=1  heroes as a player really has them: a level over the stage,
-//                                                                full gear, every skill point spent (what the bot measured)
+//   GEAR=1  every hero has a weapon and armour                   REAL=1  heroes as a player really has them: a level or two over the
+//                                                                stage, all four gear slots, every skill point (what the bot measured)
 //   prints, per stage: wins, time, the lowest the team's health fell (wins only) and how many were left standing
 global.window = globalThis;
 const BB = require('../js/rules.js');
@@ -15,7 +15,7 @@ BB.dirFromVec = function (dx, dy) { const sx = dx - dy, sy = (dx + dy) / 2; if (
 require('../js/world.js'); require('../js/battle.js'); require('../js/structures.js'); require('../js/modes.js'); require('../js/identity.js'); require('../js/tactics.js'); require('../js/signatures.js'); require('../js/epic.js'); require('../js/traits.js');
 if (process.env.DIFF) BB.DIFF.flat = process.env.DIFF.split(',').map(Number); // DIFF=health,damage: one raise for every level, to find what a land needs
 const which = process.argv[2] || 'all', runs = +(process.argv[3] || 4);
-const REAL = !!process.env.REAL, LAG = process.env.LAG !== undefined ? +process.env.LAG : REAL ? -1 : 1;
+const REAL = !!process.env.REAL, LAG = process.env.LAG !== undefined ? +process.env.LAG : REAL ? -1.5 : 1;
 const list = which === 'all' ? BB.MISSIONS.map((_, i) => i) : [+which];
 let bad = 0;
 const comps = [['vanguard', 'ranger', 'warpriest', 'berserker', 'arcanist'], ['vanguard', 'lancer', 'ranger', 'arcanist', 'warpriest'], ['monk', 'shadowblade', 'warpriest', 'ranger', 'arcanist']];
@@ -26,11 +26,11 @@ for (const idx of list) {
     const r = BB.rng(idx * 100 + k + 1);
     const save = BB.newSave(1); save.settings.auto = !process.env.NOULT;
     const n = +process.env.TEAM || BB.slotsAt(idx); // as many heroes as the campaign has opened places for by this stage
-    const lvl = Math.max(1, M.level - LAG);
+    const lvl = Math.max(1, Math.round(M.level - LAG + (REAL && idx < 12 ? 0.5 : 0))); // the bot ran two levels over in the first lands, one after
     const heroes = comps[k % 3].slice(0, n).map((c, i) => {
       const h = i === 0 ? BB.newCaptain() : BB.newHero({ calling: c, rarity: Math.min(3, Math.floor(idx / 8)), seed: i + k * 7 });
       h.level = lvl; h.stars = Math.min(5, 1 + Math.floor(idx / 10));
-      for (const slot of ['weapon', 'chest']) if (REAL || process.env.GEAR || r() < Math.min(0.9, 0.3 + idx * 0.05)) h.gear[slot] = BB.makeItem(r, slot, Math.max(1, lvl - 1), r() < 0.3 ? 1 : 0, slot === 'weapon' ? BB.weaponType(h.calling) : undefined);
+      for (const slot of (REAL ? BB.SLOTS : ['weapon', 'chest'])) if (REAL || process.env.GEAR || r() < Math.min(0.9, 0.3 + idx * 0.05)) h.gear[slot] = BB.makeItem(r, slot, Math.max(1, lvl - (REAL ? 0 : 1)), r() < (REAL ? 0.6 : 0.3) ? 1 : 0, slot === 'weapon' ? BB.weaponType(h.calling) : undefined);
       if (REAL) { let more = true, guard = 0; while (more && guard++ < 200) { more = false; for (const id in BB.TREE_BY_ID) if (BB.canLearn(h, id) && BB.learn(h, id)) more = true; } }
       return h;
     });
