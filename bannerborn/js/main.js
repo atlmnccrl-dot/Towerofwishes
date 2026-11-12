@@ -1089,6 +1089,7 @@
   }
   UI.click($('bTheater'), () => { const s = BB.save.settings; s.music = +$('sMusic').value; s.sfx = +$('sSfx').value; s.shake = $('sShake').checked; s.numbers = $('sDmg').checked; s.gfx = $('sGfx').value; BB.setVolumes(); BB.persist(); applyGfx(); openTheater(); });
   UI.click($('bTheaterClose'), () => { UI.modal('mTheater', false); });
+  if (BB.BUILD && BB.BUILD.native) $('bTheater').style.display = 'none'; // the Development menu is for building the game: a store build does not carry it
   // a new game lives in Settings, behind a question: it erases the banner and everything won under it
   UI.click($('bNew'), () => UI.confirm('Start a new game? Your heroes and all progress will be erased for good.', () => {
     devExit(); UI.modal('mSettings', false);
