@@ -25,8 +25,12 @@ const richSave = () => {
   S.heroes[0].stars = 5; S.heroes[0].level = 46;
   const r = BB.rng(11); for (const h of S.heroes) for (const slot of BB.SLOTS) h.gear[slot] = BB.makeItem(r, slot, h.level, Math.min(3, h.rarity + (r() < 0.4 ? 1 : 0)), slot === 'weapon' ? BB.weaponType(h.calling) : undefined);
   for (let i = 0; i < 9; i++) S.inventory.push(BB.makeItem(r, BB.SLOTS[i % 4], 44, 1 + (i % 3)));
+  S.salvage = 14; S.works = { forge: 3, shrine: 2, barracks: 4 }; S.relics = ['r1', 'r2', 'r3', 'r4', 'r5']; S.relic = 'r3'; S.stats.treks = 6; S.stats.endless = 23;
+  for (const k of ['relic', 'survive', 'trek', 'works']) S.seen['tip_' + k] = 1; // no first-time cards over a screenshot
   BB.autoFill(S); BB.persist();
 };
+// the same save in the middle of the war (the Cinderfields ahead), for the screens that show where you are
+const midWar = () => { const S = BB.save, at = BB.MISSIONS.findIndex((m) => m.code === '6-3'); BB.MISSIONS.forEach((m, i) => { if (i >= at) delete S.cleared[m.id]; }); BB.persist(); };
 
 (async () => {
   const browser = await chromium.launch();
@@ -46,16 +50,23 @@ const richSave = () => {
     await p.click('#bPlay'); await p.waitForFunction(() => BB.Cinema.on && !BB.Cinema.loading, null, { timeout: 30000 }); await wait(400); await p.click('#cineSkip');
     await p.waitForFunction(() => BB.UI.current === 'home', null, { timeout: 20000 });
     await p.evaluate(richSave); await p.evaluate(() => BB.loadHeroes(BB.save.heroes)); await p.evaluate(() => BB.testHooks.goCamp()); await wait(800);
-    await fight('5-2', 13); await shot('02-frostmarch'); await leave();
-    await p.click('.tab[data-tab=heroes]'); await p.waitForFunction(() => BB.testHooks.scene().muster, null, { timeout: 40000 }); await wait(3000); await shot('03-muster');
-    await p.click('#hsOpen'); await wait(600); await p.click('[data-r="tab-gear"]'); await wait(2400); await shot('04-hero');
+    await fight('7-3', 13); await shot('02-mirefen'); await leave();
+    await fight('6-6', 15); await shot('03-cinder-witch'); await leave();
+    await fight('2-7', 19); await shot('05-stand'); await leave();
+    await p.evaluate(midWar); await p.evaluate(() => BB.testHooks.goCamp()); await wait(600);
+    // an expedition, stopped at its first gate: the choice is the picture
+    await p.evaluate(() => BB.deployTrek()); await p.waitForFunction(() => BB.UI.current === 'hud', null, { timeout: 60000 });
+    await p.evaluate(() => { const s = BB.testHooks.scene(); for (const e of s.ents) if (e.side === 'hero') { e.hp = e.maxhp = 9e6; e.atk *= 6; } s.autoSkills = true; });
+    await p.waitForFunction(() => document.getElementById('mTrek').classList.contains('on'), null, { timeout: 180000 }); await wait(700); await shot('04-expedition');
+    await p.evaluate(() => { BB.UI.modal('mTrek', false); BB.testHooks.scene().paused = false; }); await leave();
+    await p.click('.tab[data-tab=play]'); await wait(1200); await shot('06-play');
+    await p.click('.tab[data-tab=heroes]'); await p.waitForFunction(() => BB.testHooks.scene().muster, null, { timeout: 40000 }); await wait(3000); await shot('07-muster');
+    await p.click('#hsOpen'); await wait(600); await p.click('[data-r="tab-gear"]'); await wait(2400); await shot('08-hero');
     await p.click('[data-r="back"]'); await wait(500);
-    await p.click('.tab[data-tab=shop]'); await p.waitForFunction(() => BB.testHooks.scene().market, null, { timeout: 40000 }); await wait(3000); await shot('05-market');
+    await p.click('.tab[data-tab=shop]'); await p.waitForFunction(() => BB.testHooks.scene().market, null, { timeout: 40000 }); await wait(3000); await shot('09-market');
     await p.click('.tab[data-tab=home]'); await wait(800);
-    await p.evaluate(() => BB.UI.openCampaign(BB.MISSIONS.findIndex((m) => m.code === '6-3'))); await wait(3500); await shot('06-campaign');
-    await p.evaluate(() => BB.testHooks.goCamp()); await wait(600);
-    await fight('6-6', 15); await shot('07-cinder-witch'); await leave();
-    console.log(name + ': 7 screenshots at ' + w * scale + '×' + h * scale);
+    await p.evaluate(() => BB.UI.openCampaign(BB.MISSIONS.findIndex((m) => m.code === '6-3'))); await wait(3500); await shot('10-campaign');
+    console.log(name + ': 10 screenshots at ' + w * scale + '×' + h * scale);
     await ctx.close();
   }
   if (!only || only.includes('feature')) { // Google Play's feature graphic: the title, without its buttons

@@ -27,9 +27,15 @@ Greenvale, the Sunscar, drowned Aldmere, the Cantor's Gate, and beyond them the 
 Frostmarch under snow, the burning Cinderfields, poisonous Mirefen and the Hollow. Each land has its own
 dead, its own weather and its own music.
 
+ROUT, SIEGE, STAND AND THE LONG ROAD
+Not every fight is the same fight. Break the gates the dead pour from. Hold a ward. Stand against the
+clock until the horn. Or set out on an expedition: one great map, one road across it, three gates that
+open only when their guards fall, a choice at each (break the vault open and wake what guards it, or
+walk past?) and the land's lord at the way out.
+
 WHAT THE DEAD BUILD
 Watchtowers, mortars that mark where their shells will fall, obelisks that mend the horde, braziers that
-spit the land's own fire, frost, poison or blight, and cages that keep letting more out. Break them.
+spit the land's own fire, frost, poison or blight, nests and cages that keep letting more out. Break them.
 
 FORTY-SEVEN HEROES, NONE OF THEM TWICE
 Eight callings, four rarities, every hero with a signature move of their own. The recruiting gates never
@@ -37,10 +43,12 @@ give you a hero you already have, and each gate tells you your odds.
 
 A CAMP THAT IS A PLACE
 Your heroes muster in ranks under your banner. The market is a square you walk into: a smith, a
-quartermaster, a gem-trader, a seer. Gear is found, worn and seen.
+quartermaster, a gem-trader, a seer. Gear is found, worn and seen. Expeditions and stands pay salvage,
+and salvage builds the camp: a forge for better gear, a shrine that mends the team on the road, a
+barracks that teaches faster. Each land's lord carries a relic for your banner.
 
-AFTER THE WAR
-The Endless Gate, relics from every lord you bring down, a war chest to raise, and every stage to replay.
+AND WHEN YOU WANT MORE
+The Endless Gate, a war chest to raise, and every stage to replay.
 
 Free to play. Optional ads for small bonuses, an ad now and then between battles after the first road,
 and one purchase that removes those for good. Nothing sold wins a fight for you. Plays offline; your
@@ -74,8 +82,10 @@ The first release: eight lands, fifty-four stages, forty-seven heroes.
 | iPhone 6.7"–6.9" screenshots | `store/screenshots/iphone/` | 2688 × 1242 |
 | iPad 13" screenshots | `store/screenshots/ipad/` | 2752 × 2064 |
 | Android phone screenshots | `store/screenshots/android/` | 1920 × 1080 |
-| Trailer | `assets/trailer.mp4` if you recorded one (`tools/record-trailer.js`) | 1280 × 720, 30 fps |
+| Trailer | `tools/record-trailer.js <folder>` writes `bannerborn-trailer.mp4` (not kept in the repository) | 1280 × 720, 30 fps, 67 s |
 
-Screenshots are remade with `node tools/store-shots.js` (needs Playwright and the game served locally).
+Ten screenshots for each size, in the order to upload them: the title, a battle, a lord, an expedition's gate
+choice, a stand against the clock, the Play page, the muster, a hero, the market, the campaign.
+They are remade with `node tools/store-shots.js` (needs Playwright and the game served locally).
 Apple's app preview video has its own sizes and a 30-second limit; the recorded trailer is 16:9 and suits
 Google Play (as a YouTube link) as it is.

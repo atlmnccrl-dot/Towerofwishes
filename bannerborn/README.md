@@ -281,10 +281,12 @@ Losing costs nothing (and still teaches your heroes): change gear or the formati
 | Shadowblade | Assassin | **Shadowstep** — reappear behind a foe, sure critical |
 | Lancer | Skirmisher | **Impaling Charge** — spear everything in a line |
 
-**The trailer** (js/trailer.js; *Watch the trailer* on the title, and first in Development): under a minute, cut
-from the game itself on the beat of the boss drums. A Gravegate in the dark, the camp, a Legendary summoning, three
-live battles (a full-strength team already in the thick of it: Greenvale, the Sunscar, the Frostmarch under snow),
-the first land from above, the Pale Regent, a run of one-beat cuts, the name. Every line of text, the letterbox and
+**The trailer** (js/trailer.js; *Watch the trailer* on the title, and first in Development): 67 seconds, cut
+from the game itself on the beat of the boss drums. Two shots of the opening film's drawn art (the Gravegate
+bursting, the knight raising the banner: `BB.Opening`), a Legendary summoning, the muster, three live battles (a
+full-strength team already in the thick of it: Greenvale, the Sunscar, the Cinderfields), a stand against the clock
+in the Rime Wood, an expedition's road, the market, the first land from above, the Pale Regent, the Hollow King, a
+run of one-beat cuts, the name. Every line of text, the letterbox and
 the cuts are drawn from the trailer's own clock, so it can be stepped a frame at a time: `tools/record-trailer.js`
 records it to an mp4 (1280×720, 30 frames a second) with its sound, which is not captured but rendered: while
 recording, every sound the game asks for is written on a tape with the film's time and played into an offline

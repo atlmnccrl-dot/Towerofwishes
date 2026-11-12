@@ -189,6 +189,8 @@ details.more{flex:none;border-top:1px solid var(--line);padding-top:10px}details
 #pathCv{position:absolute;inset:0;width:100%;height:100%;border-radius:17px}
 #campaign .card{flex:1;min-width:0;max-width:360px;padding:20px;display:flex;flex-direction:column;gap:12px;overflow-y:auto}
 #stageCard > .btn.xl{position:sticky;bottom:0;flex:none;margin-top:auto}
+#campaign .body{bottom:calc(14px + var(--safe-b))} /* no tab bar on this screen: the map and the stage take its room */
+@media (max-height:600px){#campaign .card{padding:13px;gap:8px}#campaign .card>.lbl{display:none}#campaign .card .powcmp>div{padding:8px 12px}}
 .code{font:600 12px var(--head);color:var(--accent);letter-spacing:.2em}
 .bigname{font:700 24px var(--head);line-height:1.1}
 .powcmp{display:flex;gap:8px}

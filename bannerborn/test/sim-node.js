@@ -3,6 +3,8 @@
 //   LAG=n   heroes are n levels below the stage (default 1)      NOULT=1  nobody casts ultimates (Auto off, no taps)
 //   GEAR=1  every hero has a weapon and armour                   REAL=1  heroes as a player really has them: a level or two over the
 //                                                                stage, all four gear slots, every skill point (what the bot measured)
+//   BOT=1   REAL, but the warband the bot really had when it got stuck: stars 1 + a star every 22 stages, Rare recruits (Epic
+//           from 4-4), veterans a level over the stage and the newest hero two under. This is the preset to balance against.
 //   prints, per stage: wins, time, the lowest the team's health fell (wins only) and how many were left standing
 global.window = globalThis;
 const BB = require('../js/rules.js');
@@ -14,10 +16,12 @@ BB.ROSTER = []; BB.poolKeys = () => []; BB.npcKeys = () => [];
 BB.dirFromVec = function (dx, dy) { const sx = dx - dy, sy = (dx + dy) / 2; if (Math.abs(sx) + Math.abs(sy) < 1e-6) return null; const a = Math.atan2(sy, sx) * 180 / Math.PI; return ((Math.round(a / 45) % 8) + 8) % 8; };
 require('../js/world.js'); require('../js/battle.js'); require('../js/structures.js'); require('../js/modes.js'); require('../js/identity.js'); require('../js/tactics.js'); require('../js/signatures.js'); require('../js/epic.js'); require('../js/traits.js');
 if (process.env.DIFF) BB.DIFF.flat = process.env.DIFF.split(',').map(Number); // DIFF=health,damage: one raise for every level, to find what a land needs
+if (process.env.TK) Object.assign(BB.TEAM_K, JSON.parse(process.env.TK)); // TK='{"atk":[...]}': try other team-size tables
 const which = process.argv[2] || 'all', runs = +(process.argv[3] || 4);
-const REAL = !!process.env.REAL, LAG = process.env.LAG !== undefined ? +process.env.LAG : REAL ? -1.5 : 1;
+const BOT = !!process.env.BOT, REAL = BOT || !!process.env.REAL, LAG = process.env.LAG !== undefined ? +process.env.LAG : REAL ? -1.5 : 1;
 const list = which === 'all' ? BB.MISSIONS.map((_, i) => i) : [+which];
 const TREK = +process.env.TREK || 0; // TREK=n: instead of the stage, the expedition of land n at that stage's level (it picks the first choice at each gate, or CHOICE=1 the second)
+const LV = process.env.LV ? process.env.LV.split(',').map(Number) : null; // LV=24,20,19: each hero's level, as a real warband has them (a new recruit is behind)   STARS=n RAR=n: every hero's stars, every recruit's rarity
 let bad = 0;
 const comps = [['vanguard', 'ranger', 'warpriest', 'berserker', 'arcanist'], ['vanguard', 'lancer', 'ranger', 'arcanist', 'warpriest'], ['monk', 'shadowblade', 'warpriest', 'ranger', 'arcanist']];
 for (const idx of list) {
@@ -30,8 +34,8 @@ for (const idx of list) {
     const n = +process.env.TEAM || BB.slotsAt(idx); // as many heroes as the campaign has opened places for by this stage
     const lvl = Math.max(1, Math.round(M.level - LAG + (REAL && idx < 12 ? 0.5 : 0))); // the bot ran two levels over in the first lands, one after
     const heroes = comps[k % 3].slice(0, n).map((c, i) => {
-      const h = i === 0 ? BB.newCaptain() : BB.newHero({ calling: c, rarity: Math.min(3, Math.floor(idx / 8)), seed: i + k * 7 });
-      h.level = lvl; h.stars = Math.min(5, 1 + Math.floor(idx / 10));
+      const h = i === 0 ? BB.newCaptain() : BB.newHero({ calling: c, rarity: process.env.RAR ? +process.env.RAR : BOT ? (idx < 27 ? 1 : 2) : Math.min(3, Math.floor(idx / 8)), seed: i + k * 7 });
+      h.level = LV ? LV[Math.min(i, LV.length - 1)] : BOT ? Math.max(1, M.level + (i && i === n - 1 ? -2 : 1)) : lvl; h.stars = process.env.STARS ? +process.env.STARS : BOT ? Math.min(5, Math.round(1 + idx / 22)) : Math.min(5, 1 + Math.floor(idx / 10));
       for (const slot of (REAL ? BB.SLOTS : ['weapon', 'chest'])) if (REAL || process.env.GEAR || r() < Math.min(0.9, 0.3 + idx * 0.05)) h.gear[slot] = BB.makeItem(r, slot, Math.max(1, lvl - (REAL ? 0 : 1)), r() < (REAL ? 0.6 : 0.3) ? 1 : 0, slot === 'weapon' ? BB.weaponType(h.calling) : undefined);
       if (REAL) { let more = true, guard = 0; while (more && guard++ < 200) { more = false; for (const id in BB.TREE_BY_ID) if (BB.canLearn(h, id) && BB.learn(h, id)) more = true; } }
       return h;
@@ -49,6 +53,7 @@ for (const idx of list) {
       if (B.ents.length > 400 || B.projs.length > 2000 || B.timers.length > 500) { console.log('RUNAWAY', idx); bad++; break; }
     }
     const res = B.result ? (B.result.win ? 'win' : 'loss') : 'timeout';
+    if (process.env.VERBOSE) console.log('  run ' + k, comps[k % 3].slice(0, n).join('+'), res, Math.round(t) + 's', 'low ' + Math.round((B.lowHp === undefined ? 1 : B.lowHp) * 100) + '%', 'left ' + B.heroesAlive().length, 'foes left ' + B.foesAlive().length);
     agg.n++; if (res === 'win') { agg.w++; agg.t += t; agg.alive += B.heroesAlive().length; agg.low += B.lowHp === undefined ? 1 : B.lowHp; } if (res === 'timeout') { agg.to++; bad++; }
   }
   console.log((M.code + ' ' + M.name).padEnd(36), M.type.padEnd(7), 'L' + String(M.level).padEnd(3), 'team ' + (+process.env.TEAM || BB.slotsAt(idx)), 'win ' + agg.w + '/' + agg.n, 'avg ' + (agg.w ? Math.round(agg.t / agg.w) : '-') + 's', 'low ' + (agg.w ? Math.round(agg.low / agg.w * 100) + '%' : '-'), 'left ' + (agg.w ? (agg.alive / agg.w).toFixed(1) : '-'), agg.to ? 'TIMEOUTS ' + agg.to : '');

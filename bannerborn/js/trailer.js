@@ -1,6 +1,7 @@
-// Bannerborn — the trailer: under a minute, cut from the game itself. Real battles (a full-strength team, already in
-// the thick of it), a summoning, the campaign's land and the camp, cut on the beat of the boss drums with a line of
-// text over each. Everything on screen is drawn from the trailer's own clock, so it can be stepped frame by frame and
+// Bannerborn — the trailer: about a minute, cut from the game itself. Two shots of the opening film's drawn art (the
+// Gravegate, the banner raised), real battles (a full-strength team, already in the thick of it), a stand against the
+// clock, an expedition's road, a summoning, the campaign's land and the camp, cut on the beat of the boss drums with a
+// line of text over each. Everything on screen is drawn from the trailer's own clock, so it can be stepped frame by frame and
 // recorded (tools/record-trailer.js), with its sound rendered from the same clock.
 (function () {
   const BB = window.BB, UI = BB.UI;
@@ -12,14 +13,16 @@
 
   // the cut: lengths in beats
   const CUT = [
-    { b: 12, k: 'gate', lines: [[0.5, 2.9, 'The Gravegates stand open.'], [3.2, 5.9, 'The dead walk the old roads.']] },
-    { b: 8, k: 'scene', s: 'camp', z: [1.0, 1.28], cap: 'Raise your banner', flash: 1, horn: 1 },
-    { b: 10, k: 'summon', cap: 'Earn your heroes' },
+    { b: 12, k: 'art', a: 'gate', sh: { burstAt: 2.7, veshAt: 4.5 }, lines: [[0.4, 2.6, 'The Gravegates stand open.'], [3.2, 5.9, 'The dead walk the old roads.']] },
+    { b: 8, k: 'art', a: 'raise', sh: { raiseAt: 2.0, words: [['RAISE', 0.9, 0.31], ['YOUR', 1.45, 0.47], ['BANNER', 2.0, 0.66]] }, flash: 1, horn: 1 },
+    { b: 8, k: 'summon', cap: 'Earn your heroes' },
     { b: 6, k: 'scene', s: 'muster', z: [0.82, 0.96], cap: 'One by one, a warband' },
-    { b: 8, k: 'scene', s: 'a', z: [1.02, 1.18], cap: 'They fight on their own', flash: 1, drums: 1 },
+    { b: 6, k: 'scene', s: 'a', z: [1.02, 1.18], cap: 'They fight on their own', flash: 1, drums: 1 },
     { b: 8, k: 'scene', s: 'b', z: [1.2, 1.04], cap: 'You call the ultimates' },
     { b: 6, k: 'scene', s: 'c', z: [1.08, 1.26], cap: 'Break what the dead build' },
-    { b: 6, k: 'scene', s: 'market', z: [0.9, 1.04], cap: 'A camp that is a place' },
+    { b: 6, k: 'scene', s: 'stand', z: [1.0, 1.16], cap: 'Stand until the horn' },
+    { b: 8, k: 'scene', s: 'trek', z: [0.9, 1.08], cap: 'One long road · three gates' },
+    { b: 4, k: 'scene', s: 'market', z: [0.9, 1.04], cap: 'A camp that is a place' },
     { b: 6, k: 'land', z: [0.86, 0.98], cap: 'Eight lands · fifty-four stages' },
     { b: 2, k: 'scene', s: 'a', z: [1.5, 1.62] }, { b: 2, k: 'scene', s: 'c', z: [1.62, 1.5] }, { b: 2, k: 'scene', s: 'b', z: [1.45, 1.6] }, { b: 2, k: 'scene', s: 'a', z: [1.7, 1.52] },
     { b: 5, k: 'black', big: 'And at the end of every road' },
@@ -27,7 +30,7 @@
     { b: 8, k: 'scene', s: 'lord', z: [1.0, 1.24], name: 'The Hollow King', sub: 'beyond him', flash: 1, drums: 1 },
     { b: 1, k: 'scene', s: 'a', z: [1.6, 1.6], quick: 1 }, { b: 1, k: 'scene', s: 'c', z: [1.5, 1.5], quick: 1 }, { b: 1, k: 'scene', s: 'b', z: [1.6, 1.6], quick: 1 }, { b: 1, k: 'scene', s: 'lord', z: [1.5, 1.5], quick: 1 },
     { b: 1, k: 'scene', s: 'a', z: [1.4, 1.4], quick: 1 }, { b: 1, k: 'scene', s: 'c', z: [1.7, 1.7], quick: 1 }, { b: 1, k: 'scene', s: 'boss', z: [1.7, 1.7], quick: 1 }, { b: 1, k: 'scene', s: 'b', z: [1.5, 1.5], quick: 1 },
-    { b: 16, k: 'title' },
+    { b: 14, k: 'title' },
   ];
 
   // ---------------------------------------------------------------- the scenes, built and warmed before the first frame
@@ -45,7 +48,10 @@
     await step(0.3);
     S.a = await BB.stageScene({ idx: 4, over: 0, warm: 7, tick: ['sigs', 'sturdy'] }); await step(0.45);
     S.b = await BB.stageScene({ idx: 13, over: 0, archs: ['knight', 'monk', 'mage', 'ranger', 'spearman'], ench: ['holy', 'storm', 'fire', 'frost', 'shadow'], warm: 8, tick: ['ults', 'sigs', 'sturdy'] }); await step(0.6);
-    S.c = await BB.stageScene({ idx: 33, over: 0, archs: ['paladin', 'rogue', 'mage', 'ranger', 'barbarian'], ench: ['fire', 'poison', 'storm', 'frost', 'shadow'], warm: 8, tick: ['sigs', 'sturdy'] }); await step(0.75);
+    S.c = await BB.stageScene({ idx: 37, over: 0, archs: ['paladin', 'rogue', 'mage', 'ranger', 'barbarian'], ench: ['fire', 'poison', 'storm', 'frost', 'shadow'], warm: 8, tick: ['sigs', 'sturdy'] }); await step(0.75);
+    S.stand = await BB.stageScene({ idx: 33, over: 0, warm: 22, tick: ['sigs', 'sturdy'] }); await step(0.82);
+    S.trek = await BB.stageScene({ idx: 12, over: 0, mission: () => BB.expedition(2, 16, 7), warm: 26, tick: ['sigs', 'sturdy', (sc) => { if (sc.choice) sc.trekChoose(1); }] }); await step(0.87);
+    BB.Opening.hold();
     S.boss = await BB.stageScene({ idx: 23, over: 1, until: 'boss', warm: 3.2, tick: ['sigs', 'sturdy'] }); await step(0.9);
     { // the Hollow King, taking his tithe; and the two places of the camp, for a showcase warband
       S.lord = await BB.stageScene({ idx: 53, over: 2, until: 'boss', warm: 2.4, tick: ['sigs', 'sturdy'] });
@@ -68,7 +74,8 @@
     const cue = (at, fn) => T.cues.push([at, fn]);
     CUT.forEach((c, i) => {
       const sg = Object.assign({ t0: t, dur: c.b * BEAT }, c); T.segs.push(sg);
-      if (c.k === 'gate') { cue(t, () => BB.score('drone')); for (let b = 0; b < c.b - 3; b += 2) cue(t + b * BEAT, () => BB.score('tick')); cue(t + sg.dur - 1.7, () => BB.score('riser', 1.6)); }
+      if (c.a === 'gate') { cue(t, () => BB.score('drone')); for (let b = 0; b < c.b - 3; b += 2) cue(t + b * BEAT, () => BB.score('tick')); cue(t + c.sh.burstAt, () => { BB.score('braam', 1.1); BB.sfx('burst'); BB.sfx('slam'); }); cue(t + sg.dur - 1.7, () => BB.score('riser', 1.6)); }
+      else if (c.a === 'raise') { cue(t, () => { BB.score('boom'); BB.score('horn'); }); for (const w of c.sh.words) cue(t + w[1], () => { BB.score('hit', 0.9); BB.sfx('slam'); }); cue(t + 2.4, () => BB.sfx('rally')); }
       else if (c.k === 'summon') cue(t, () => BB.score('shimmer'));
       else if (c.k === 'black') { cue(t, () => { BB.music(null); BB.score('boom'); }); cue(t + sg.dur - 2.05, () => BB.score('riser', 2)); }
       else if (c.k === 'title') { cue(t, () => { BB.music(null); BB.score('braam', 1.2); BB.score('shimmer'); BB.sfx('boom'); }); cue(t + sg.dur - 3, () => BB.score('drone', false)); }
@@ -96,7 +103,7 @@
   function closeReveal() { if (!$('reveal').classList.contains('on')) return; const m = BB.sfxMute; BB.sfxMute = true; $('rvOk').click(); BB.sfxMute = m; }
   T.stop = function () {
     if (!T.on) return;
-    closeReveal(); T.on = false; T.loading = false; T.sc = {}; T.hero = null;
+    closeReveal(); T.on = false; T.loading = false; T.sc = {}; T.hero = null; BB.Opening.drop();
     if (T.record) BB.audioClock = null; else BB.score('drone', false);
     if (cv) cv.classList.remove('on'); $('trailerSkip').classList.remove('on');
     const d = T.done; T.done = null; if (d) d();
@@ -125,10 +132,6 @@
     const rw = w * (0.1 + 0.05 * k), ry = y + size * 0.95; g.fillStyle = 'rgba(255,206,120,0.7)'; g.fillRect(w / 2 - rw, ry, rw * 2, Math.max(1, h * 0.0022));
     g.restore();
   }
-  function fxFrame(key, frame, cx, cy, k, a) { // one frame of an effect sprite, held steady about the middle of its first frame
-    const A = BB.A.fx; if (!A || !A.meta.n[key]) return; const n = A.meta.n[key], F = A.meta.f[key], r = F[((frame % n) + n) % n], r0 = F[0]; if (!r || r[2] <= 1) return;
-    g.globalAlpha = a; g.imageSmoothingEnabled = false; g.drawImage(A.img, r[0], r[1], r[2], r[3], cx + (r[4] - r0[4] - r0[2] / 2) * k, cy + (r[5] - r0[5] - r0[3] / 2) * k, r[2] * k, r[3] * k); g.globalAlpha = 1;
-  }
 
   // ---------------------------------------------------------------- one frame
   T.frame = function (dt, ctx, W, H, dpr, z0) {
@@ -144,7 +147,7 @@
     }
     if (T.prime) { // colour every sprite the battles will need now, not during the first seconds of a clip
       T.prime = false; const lazy = BB.tintLazy;
-      for (const k of ['a', 'b', 'c', 'boss', 'lord', 'muster', 'market']) { const sc = T.sc[k]; if (!sc) continue; BB.tintLazy = false; sc.cam.zoom = z0; sc.renderField(ctx, W, H, dpr); }
+      for (const k of ['a', 'b', 'c', 'stand', 'trek', 'boss', 'lord', 'muster', 'market']) { const sc = T.sc[k]; if (!sc) continue; BB.tintLazy = false; sc.cam.zoom = z0; sc.renderField(ctx, W, H, dpr); }
       BB.tintLazy = lazy; black(); return;
     }
     T.t += dt;
@@ -166,17 +169,12 @@
       else if (sc.peaceful) { const c = sc.map.w / 2; sc.cam.x = c - 0.9 + (sg.k === 'title' ? 0.5 + k * 0.5 : k * 1.2); sc.cam.y = c + 0.5; sc.cam.zoom = z; }
       else { sc.cam.zoom = z * (sc.zoomK || 1); if (sc.tick) sc.tick(dt); }
       sc.update(dt, null); sc.render(ctx, W, H, dpr);
-    } else black();
+    } else if (sg.k === 'art') { ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); BB.Opening[sg.a](ctx, W, H, sg.sh, k, lt); ctx.restore(); }
+    else black();
     if (sg.k === 'summon') UI.revealRender(dt);
     // ---- over it
     const bar = Math.round(h * 0.105);
-    if (sg.k === 'gate') {
-      const a = cl(lt / 1.6) * cl((sg.dur - lt) / 0.25), cx = w / 2, by = h * 0.86, s = (h * 0.46 / 56) * (1 + k * 0.2);
-      g.globalCompositeOperation = 'lighter'; BB.drawGlow(g, '#7a4cff', cx, h * 0.56, h * 0.5 * (1 + k * 0.2), h * 0.42, a * (0.5 + 0.12 * Math.sin(T.t * 3)));
-      g.globalCompositeOperation = 'source-over'; fxFrame('portal', Math.floor(T.t * 12), cx, h * 0.56, s, a);
-      g.globalCompositeOperation = 'lighter'; g.fillStyle = '#c9a8ff';
-      for (let n = 0; n < 26; n++) { const q = (T.t * (0.05 + (n % 5) * 0.012) + n * 0.137) % 1, px = cx + Math.sin(n * 12.9898) * w * 0.3 * (0.3 + q), py = by - q * h * 0.7, sz = Math.max(1, h * 0.004); g.globalAlpha = a * Math.sin(q * Math.PI) * 0.8; g.fillRect(px, py, sz, sz); }
-      g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+    if (sg.lines) {
       for (const [t0, t1, s2] of sg.lines) { const la = cl((lt - t0) / 0.5) * cl((t1 - lt) / 0.45); if (la > 0) { g.globalAlpha = la; spaced(s2, w / 2, h * 0.24, Math.min(w * 0.036, h * 0.062), 1, { font: TEXT, w: 600, it: 1, fill: '#e9e2d0' }); g.globalAlpha = 1; } }
     }
     if (sg.k === 'black') { const a = cl(lt / 0.5) * cl((sg.dur - lt) / 0.3), size = Math.min(w * 0.04, h * 0.07); g.globalAlpha = a; spaced(sg.big.toUpperCase(), w / 2, h / 2, size, size * (0.22 + 0.1 * k), { fill: '#e9e2d0', edge: 0, max: w * 0.88 }); g.globalAlpha = 1; }

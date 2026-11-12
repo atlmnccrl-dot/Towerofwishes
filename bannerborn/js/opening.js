@@ -443,11 +443,14 @@
   }
 
   // ---------------------------------------------------------------- the film
-  C.SCENES.intro = async function () {
-    const cols = BB.BANNER_COLORS.concat(['#3a6a8a']), banners = []; for (let i = 0; i < 9; i++) banners.push(Object.assign({}, i === 8 ? BB.save.banner : { color: cols[i], sigil: BB.SIGILS[i % BB.SIGILS.length], trim: '#e8c66a' }));
-    A.clear();
+  function cast() {
+    const mine = (BB.save || BB.newSave(Date.now())).banner; // the trailer can run from the title, before there is a save
+    const cols = BB.BANNER_COLORS.concat(['#3a6a8a']), banners = []; for (let i = 0; i < 9; i++) banners.push(Object.assign({}, i === 8 ? mine : { color: cols[i], sigil: BB.SIGILS[i % BB.SIGILS.length], trim: '#e8c66a' }));
     // the ninth knight, and the Captain after them, wear what the game's Captain wears (BB.CAPTAIN_LOOK): great helm, steel, red
-    F = { banners, nine: A.NINE.map((o, i) => Object.assign({ color: banners[i].color, seed: i * 1.7 }, o)), capO: { helm: 'great', crest: true, weapon: 'sword', plate: '#8e98ac', color: banners[8].color, seed: 3 }, map: null, glass: null, bannerTex: BB.UI.bannerCanvas(BB.save.banner, 160, 250) };
+    return { banners, nine: A.NINE.map((o, i) => Object.assign({ color: banners[i].color, seed: i * 1.7 }, o)), capO: { helm: 'great', crest: true, weapon: 'sword', plate: '#8e98ac', color: banners[8].color, seed: 3 }, map: null, glass: null, bannerTex: BB.UI.bannerCanvas(mine, 160, 250) };
+  }
+  C.SCENES.intro = async function () {
+    A.clear(); F = cast();
     F.map = buildMap(); F.glass = buildGlass();
     C.onEnd = () => { F = null; A.clear(); }; // what the film drew for itself goes when it does
     const k = K, G = F.glass, M = F.map, oath = { draw: null, dur: 4.4, firstAt: 0.3, gap: 0.2, meetAt: 2.3 };
@@ -479,4 +482,6 @@
         cues: [[0, () => { BB.sfx('slam'); k.SHAKE(0.6)(); BB.score && BB.score('braam', 1.1); }]].concat([0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => [0.5 + i * 0.085, k.SPARKS(14, '#ffd98a', 0.22 + i * 0.062, 0.46, 260)]), [[1.5, k.SCORE('boom')], [1.7, k.SFX('click')]]) });
     return { music: null, shots };
   };
+  // single shots, for the trailer: hold() builds the cast they need, drop() lets it go
+  BB.Opening = { hold() { if (!F) { A.clear(); F = cast(); } }, drop() { F = null; A.clear(); }, gate: drawGateUp, raise: drawRaise };
 })();
