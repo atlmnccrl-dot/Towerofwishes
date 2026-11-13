@@ -172,7 +172,8 @@ export function ruin(ctx, x0, z0, x1, z1, hMin, hMax, o = {}) {
   }
   const L = a1 - a0, mid = (a0 + a1) / 2;
   if (alongX) add(ctx, box(L + 0.1, 0.5, t + 0.1), M.ashlar('#38424f'), mid, 0.25, c); else add(ctx, box(t + 0.1, 0.5, L + 0.1), M.ashlar('#38424f'), c, 0.25, mid);
-  if (alongX) solid(ctx, a0, c - t / 2, a1, c + t / 2, Math.max(1, hMin)); else solid(ctx, c - t / 2, a0, c + t / 2, a1, Math.max(1, hMin));
+  const sh = o.solidH ?? Math.max(1, hMin); // solidH: how high it counts for sight lines
+  if (alongX) solid(ctx, a0, c - t / 2, a1, c + t / 2, sh); else solid(ctx, c - t / 2, a0, c + t / 2, a1, sh);
   // loose blocks at its foot, on the side toward the camera unless told otherwise
   const side = o.side ?? 1; const n = o.debris ?? Math.round(L / 1.6);
   for (let i = 0; i < n; i++) {
