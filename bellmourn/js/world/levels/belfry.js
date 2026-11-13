@@ -58,7 +58,7 @@ export default {
     // ------------------------------------------------ the leads: the gutter walk along the nave roof
     K.floor(ctx, -2, 1.4, 2.2, 26, W.flags('#58626f'));
     K.wall(ctx, -2.2, -3.6, -2.2, 26, 0.6, { thick: 0.4, cap: false, tone: '#3a4454' });
-    K.roof(ctx, -9.6, 0.55, 18, 15.6, 43.2, 7.6, false, '#2c3848');
+    K.roof(ctx, -9.6, 0.55, 18, 15.6, 43.2, 7.6, false, '#34425a');
     for (const z of [12.4, 5.2]) { // dormers on the nave roof
       K.add(ctx, K.box(1.2, 1.4, 1.3), W.brick('#323c4e'), -4.4, 3.5, z);
       K.add(ctx, K.cone(1.05, 1.0, 4), W.slate('#2c3848'), -4.4, 4.7, z, { ry: Math.PI / 4 });
