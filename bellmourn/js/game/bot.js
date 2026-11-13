@@ -27,6 +27,7 @@ export function makeBot(skill = 1, seed = 1) {
         const zd = Math.hypot(h.x - z.x, h.z - z.z);
         if (z.shape === 'circle' && zd < z.r + h.r + 0.3) return dashAway(z, 0);
         if (z.shape === 'ring' && left < 0.05) { inp.dashPressed = true; return inp; }
+        if (z.shape === 'line') { const fx = Math.sin(z.face), fz = Math.cos(z.face); const dx = h.x - z.x, dz = h.z - z.z; const al = dx * fx + dz * fz, lat = dx * fz - dz * fx; if (al > -0.5 && al < z.len + 0.5 && Math.abs(lat) < z.width / 2 + h.r + 0.4) { const side = lat >= 0 ? 1 : -1; inp.mx = fz * side; inp.mz = -fx * side; inp.dashPressed = true; return inp; } }
       }
       for (const z of w.hazards) { if (z.shape !== 'ring' || z.t < z.warn) continue; const k = (z.t - z.warn) / z.life; const rr = z.r0 + (z.r1 - z.r0) * k; const zd = Math.hypot(h.x - z.x, h.z - z.z); if (zd > rr && zd - rr < 1.1) { const a = Math.atan2(z.x - h.x, z.z - h.z); inp.mx = Math.sin(a); inp.mz = Math.cos(a); inp.dashPressed = true; return inp; } }
       for (const p of w.projs) { if (p.team !== 'foe' || p.lob) continue; const pd = Math.hypot(p.x - h.x, p.z - h.z); const closing = (p.vx * (h.x - p.x) + p.vz * (h.z - p.z)) > 0; if (pd < 2.2 && closing) { const a = Math.atan2(p.vx, p.vz) + Math.PI / 2; inp.mx = Math.sin(a); inp.mz = Math.cos(a); inp.dashPressed = true; return inp; } }

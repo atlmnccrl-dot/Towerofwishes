@@ -87,7 +87,7 @@ export const BOSSES = {
     look: { weapon: 'staff', orb: 0x40e0d0, hat: 'brim', eyes: 0x40ffe0, skirt: 0x1c3034, cloak: true, colors: { skin: 0x5a6a6a, tunic: 0x1e3236, pants: 0x162426, boots: 0x0c1414, cloak: 0x1a2c30, hat: 0x0e1a1c, glove: 0x2a3a3a }, bulk: 1.2 },
   },
   silence: {
-    name: 'Saint Silence', title: 'The Hand That Stilled the Bell', hp: 3900, poise: 999, speed: 3.6, r: 0.7, mass: 8, scale: 1.7, boss: true,
+    name: 'Saint Silence', title: 'The Hand That Stilled the Bell', hp: 6800, poise: 999, speed: 3.6, r: 0.7, mass: 8, scale: 1.7, boss: true,
     look: { weapon: 'bell', eyes: 0xf0f0ff, crown: 0xd8d0b0, crownGlow: true, cloak: true, mask: 0xd8d4cc, colors: { skin: 0xd8d4cc, tunic: 0xe8e4dc, pants: 0xc8c4bc, boots: 0x8a8680, cloak: 0xf0ece4, cloakDark: 0xc8c4bc, glove: 0xd8d4cc, shoulder: 0xd0ccc4 }, bulk: 1.15 },
   },
 };

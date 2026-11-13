@@ -468,7 +468,11 @@ export class Game {
         case 'spawn': if (ev.e.state === 'spawn') { fx.mist(ev.e.x, 0.3, ev.e.z, 14, [0.25, 0.27, 0.32]); snd.play('rise', { vol: 0.6 }); } break;
         case 'fire': snd.play(ev.kind === 'bolt' ? 'bolt' : 'orb', { vol: 0.7 }); break;
         case 'projHit': fx.sparks(ev.p.x, ev.p.y ?? 1.1, ev.p.z, Math.random() * 6, 8, ev.p.kind === 'soul' ? [0.5, 2.5, 2.4] : [3, 0.6, 0.4]); break;
-        case 'hazardGo': { const k = ev.h.kind; if (k === 'fire' || k === 'wax') snd.play('fire'); else if (k === 'water' || k === 'poison') snd.play('splash'); else if (k === 'toll') snd.play('toll'); else if (k === 'lightning') { snd.play('thunder', { vol: 0.8 }); this.atmos.flashT = 0.2; } else snd.play('boom', { vol: 0.8 }); if (k !== 'fire' && k !== 'poison') r.shake(0.25, 0.25); break; }
+        case 'shieldUp': fx.shockRing(ev.x ?? ev.e.x, ev.z ?? ev.e.z, 1.2, [2.4, 2.2, 1.4], 0.4); snd.play('heal', { vol: 0.5 }); break;
+        case 'shield': fx.shockRing(ev.e.x, ev.e.z, 2.2, [2.2, 2.1, 1.8], 0.5); snd.play('clang'); break;
+        case 'beam': r.shake(0.3, 0.4); snd.play('fire'); break;
+        case 'hook': fx.slashLine((ev.e.x + ev.x) / 2, 1.4, (ev.e.z + ev.z) / 2, Math.hypot(ev.x - ev.e.x, ev.z - ev.e.z), [1.4, 1.5, 1.6], 0.3); snd.play(ev.hit ? 'clang' : 'swing'); break;
+        case 'hazardGo': { if (this.hazSnd === this.t) break; this.hazSnd = this.t; const k = ev.h.kind; if (k === 'fire' || k === 'wax') snd.play('fire'); else if (k === 'water' || k === 'poison') snd.play('splash'); else if (k === 'toll') snd.play('toll'); else if (k === 'lightning') { snd.play('thunder', { vol: 0.8 }); this.atmos.flashT = 0.2; } else snd.play('boom', { vol: 0.8 }); if (k !== 'fire' && k !== 'poison') r.shake(0.25, 0.25); break; }
         case 'phase': snd.play('roar'); this.ui.toast(ev.e.def.name.toUpperCase() + ' RAGES', { color: COL.red, life: 2 }); fx.shockRing(ev.e.x, ev.e.z, 6, [2.4, 0.4, 0.3], 0.6); break;
         case 'blink': fx.mist(ev.fx, 1, ev.fz, 12, [0.6, 0.15, 0.2]); fx.mist(ev.x, 1, ev.z, 12, [0.6, 0.15, 0.2]); snd.play('vanish'); break;
         case 'vanish': fx.mist(ev.e.x, 1, ev.e.z, 30, [0.8, 0.8, 0.85]); snd.play('vanish'); break;

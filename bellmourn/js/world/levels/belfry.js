@@ -45,7 +45,7 @@ export default {
         { foes: [{ t: 'brute', x: 6.5, z: -26.2 }, { t: 'acolyte', x: 1.4, z: -23.6 }, { t: 'acolyte', x: 11.6, z: -24.8 }, { t: 'hushed', x: 9.4, z: -23.2 }] },
       ] },
   ],
-  boss: { type: 'silence', x: 6.5, z: -48.5, face: 0, zone: [-4.3, -59.4, 17.4, -40.6], gates: ['belfryGate'], opens: ['belfryGate'] },
+  boss: { type: 'silence', dmgMul: 1.3, x: 6.5, z: -48.5, face: 0, zone: [-4.3, -59.4, 17.4, -40.6], gates: ['belfryGate'], opens: ['belfryGate'] },
   exit: { zone: [4.9, -55.4, 8.1, -53.8], to: 'end', requires: 'boss' },
   build(K, ctx) {
     const W = K.M;

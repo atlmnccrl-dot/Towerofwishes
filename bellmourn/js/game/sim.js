@@ -616,7 +616,7 @@ export class World {
       e.atk = { ...a, windup: c.windup, active: c.active, lungeT: [c.at, c.active], lunge: c.lunge ?? a.lunge, chain: null, chained: c, anim: a.anim };
       this.emit('tele', { e, atk: e.atk });
     }
-    if (e.t >= a.dur) { e.state = 'idle'; e.anim = 'idle'; e.t = 0; e.atk = null; e.tele = null; e.leapH = 0; e.leapFrom = null; e.ai.cd = (e.def.ranged ? 1.2 : 0.7) + this.rand() * 0.9; }
+    if (e.t >= a.dur) { e.state = 'idle'; e.anim = 'idle'; e.t = 0; e.atk = null; e.tele = null; e.leapH = 0; e.leapFrom = null; e.ai.cd = e.boss ? 0.4 + this.rand() * 0.6 : (e.def.ranged ? 1.2 : 0.7) + this.rand() * 0.9; }
   }
 
   _fire(e, r) {

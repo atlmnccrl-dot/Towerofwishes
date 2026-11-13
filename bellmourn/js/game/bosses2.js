@@ -186,7 +186,7 @@ export const BOSSES2 = {
 };
 
 // How hard each boss hits (multiplies every number below; the world's dmgMul still applies on top).
-const POWER = { harbormaster: 1.2, ossuary: 1.25, founder: 1.15, regent: 1.45 };
+const POWER = { harbormaster: 1.2, ossuary: 1.25, founder: 1.05, regent: 1.45 };
 
 // ------------------------------------------------------------------ the Harbormaster (District III, the docks)
 // A drowned giant with a boat-hook and an anchor. Throws the hook down a line and drags you in for an

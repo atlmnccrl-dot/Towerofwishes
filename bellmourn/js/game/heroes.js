@@ -16,7 +16,7 @@ export const HEROES = {
       combo: [
         { name: 'L1', anim: 'slash1', dur: 0.4, windup: 0.09, active: 0.17, cancel: 0.2, range: 2.05, arc: deg(150), dmg: 12, poise: 12, kb: 2.5, lunge: 4.2 },
         { name: 'L2', anim: 'slash2', dur: 0.42, windup: 0.09, active: 0.17, cancel: 0.2, range: 2.05, arc: deg(150), dmg: 13, poise: 12, kb: 2.5, lunge: 4.2 },
-        { name: 'L3', anim: 'slash3', dur: 0.62, windup: 0.16, active: 0.27, cancel: 0.42, range: 2.4, arc: deg(250), dmg: 22, poise: 30, kb: 7, lunge: 5.5, heavy: true },
+        { name: 'L3', anim: 'slash3', dur: 0.62, windup: 0.16, active: 0.27, cancel: 0.34, range: 2.4, arc: deg(250), dmg: 22, poise: 30, kb: 7, lunge: 5.5, heavy: true },
       ],
       dashAttack: { name: 'DA', anim: 'thrust', dur: 0.42, windup: 0.06, active: 0.2, cancel: 0.28, range: 2.6, width: 1.0, shape: 'line', dmg: 16, poise: 18, kb: 4, lunge: 11 },
     },
@@ -32,7 +32,7 @@ export const HEROES = {
     look: { weapon: 'crossbow', hood: true, cloak: true, cloakLen: [0.3, 0.3, 0.26], colors: { skin: 0xc89a80, hair: 0x1a1414, tunic: 0x1e3a36, pants: 0x18221e, boots: 0x101410, cloak: 0x24463e, cloakDark: 0x1a342e, hood: 0x24463e, glove: 0x2a2420, belt: 0x4a3a24 } },
   },
   bellbreaker: {
-    id: 'bellbreaker', name: 'BRAM', title: 'THE BELLBREAKER', weapon: 'hammer', hp: 150, speed: 5.5, armor: 0.15,
+    id: 'bellbreaker', name: 'BRAM', title: 'THE BELLBREAKER', weapon: 'hammer', hp: 135, speed: 5.5, armor: 0.1,
     blurb: 'A FOUNDRY HAMMER AND IRON SKIN. SLOW, HUGE BLOWS THAT SCATTER THE CROWD.',
     rating: { power: 5, range: 2, speed: 1, guard: 5 },
     attack: {
@@ -50,7 +50,7 @@ export const HEROES = {
     id: 'lamplighter', name: 'SISTER ASH', title: 'THE LAMPLIGHTER', weapon: 'focus', hp: 95, speed: 6.0, unlock: 'market',
     blurb: 'SHE KEEPS THE LAST LAMPS LIT. FIRE AT RANGE, PILLARS OF FLAME, A LANTERN THAT HEALS.',
     rating: { power: 4, range: 4, speed: 2, guard: 2 },
-    attack: { kind: 'shoot', anim: 'cast', rate: 0.42, proj: { kind: 'hfire', speed: 13, r: 0.3, life: 0.9, dmg: 12, poise: 8, status: { burn: 0.3 } } },
+    attack: { kind: 'shoot', anim: 'cast', rate: 0.42, proj: { kind: 'hfire', speed: 13, r: 0.3, life: 0.9, dmg: 11, poise: 8, status: { burn: 0.25 } } },
     abilities: ['pillar', 'lantern', 'wisps'], ult: 'sunburst',
     look: { weapon: 'staff', orb: 0xffb040, offhand: 'lantern', hood: true, skirt: 0x3a3a40, colors: { skin: 0xd8b8a0, hair: 0xd8d4cc, tunic: 0x4a4a52, pants: 0x2a2a30, boots: 0x18181c, hood: 0xd8d4cc, glove: 0x3a3a40 } },
   },

@@ -175,7 +175,10 @@ export class FX {
       if (!v) { v = this._hazardMesh(h); this.hz.set(h, v); this.group.add(v); }
       const warn = h.t < h.warn; const k = warn ? h.t / Math.max(0.01, h.warn) : (h.t - h.warn) / h.life;
       const ud = v.userData;
-      if (h.shape === 'circle') {
+      if (h.shape === 'line') {
+        ud.lane.material.color.copy(warn ? ud.warnC : ud.hotC); ud.lane.material.opacity = warn ? 0.15 + k * 0.3 : 0.85 * (1 - k * 0.7);
+        if (!warn && Math.random() < dt * 50) { const d = Math.random() * (h.len || 4), o = (Math.random() - 0.5) * (h.width || 1); const fx = Math.sin(h.face || 0), fz = Math.cos(h.face || 0); this.emit(h.x + fx * d + fz * o, 0.15, h.z + fz * d - fx * o, { n: 1, speed: 0.6, up: 1.5, vy: 2, life: 0.5, grav: -1, color: ud.hotC.toArray(), size: 1 }); }
+      } else if (h.shape === 'circle') {
         ud.ring.visible = true; ud.fill.scale.setScalar(warn ? Math.max(0.01, k) : 1);
         ud.fill.material.opacity = warn ? 0.18 + k * 0.25 : 0.65 * (1 - k);
         ud.fill.material.color.copy(warn ? ud.warnC : ud.hotC);
@@ -197,6 +200,13 @@ export class FX {
     const hot = kinds[h.kind] || kinds.slam;
     const g = new THREE.Group();
     const mat = (c, o) => new THREE.MeshBasicMaterial({ color: new THREE.Color(...c), transparent: true, opacity: o, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, side: THREE.DoubleSide });
+    if (h.shape === 'line') {
+      const pg = new THREE.PlaneGeometry(h.width || 1, h.len || 4); pg.translate(0, (h.len || 4) / 2, 0);
+      const lane = new THREE.Mesh(pg, mat([1.6, 0.12, 0.08], 0.25)); lane.rotation.x = -Math.PI / 2; lane.rotation.z = Math.PI;
+      const pivot = new THREE.Group(); pivot.rotation.y = h.face || 0; pivot.add(lane); g.add(pivot);
+      g.userData = { lane, warnC: new THREE.Color(1.6, 0.12, 0.08), hotC: new THREE.Color(...hot), line: true };
+      return g;
+    }
     if (h.shape === 'circle') {
       const ring = new THREE.Mesh(new THREE.RingGeometry(h.r - 0.1, h.r, 24), mat([1.6, 0.12, 0.08], 0.4)); ring.rotation.x = -Math.PI / 2; g.add(ring);
       const fill = new THREE.Mesh(new THREE.CircleGeometry(h.r, 24), mat([1.6, 0.12, 0.08], 0.2)); fill.rotation.x = -Math.PI / 2; g.add(fill);
