@@ -170,7 +170,8 @@ export function bridge(ctx, axis, deck, wet, opts = {}) {
   A(w0, w0 + 0.7, b0, b1, BED_Y, -0.23, stone); A(w1 - 0.7, w1, b0, b1, BED_Y, -0.23, stone);
   A(w0, w0 + 1.5, b0, b1, -0.47, -0.23, stone); A(w1 - 1.5, w1, b0, b1, -0.47, -0.23, stone);
   A(w0 + 1.5, w1 - 1.5, b0, b1, -0.3, -0.23, stone);
-  for (const [q0, q1] of [[b0, b0 + 0.32], [b1 - 0.32, b1]]) {
+  const pt = opts.parapet || 0.32;
+  for (const [q0, q1] of [[b0, b0 + pt], [b1 - pt, b1]]) {
     A(a0, a1, q0, q1, 0, 0.9, stone); A(a0 - 0.05, a1 + 0.05, q0 - 0.05, q1 + 0.05, 0.9, 1.0, capM);
     if (az) solid(ctx, q0, a0, q1, a1, 1.0); else solid(ctx, a0, q0, a1, q1, 1.0);
   }
@@ -180,7 +181,7 @@ export function bridge(ctx, axis, deck, wet, opts = {}) {
     if (az) solid(ctx, q - 0.25, p - 0.25, q + 0.25, p + 0.25, 1.4); else solid(ctx, p - 0.25, q - 0.25, p + 0.25, q + 0.25, 1.4);
   }
   // candle stubs along the parapet caps
-  if (opts.candles) for (const q of [b0 + 0.16, b1 - 0.16]) for (let p = a0 + 1.0; p < a1 - 0.8; p += 1.3) {
+  if (opts.candles) for (const q of [b0 + pt / 2, b1 - pt / 2]) for (let p = a0 + 1.0; p < a1 - 0.8; p += 1.3) {
     const [x, z] = az ? [q, p] : [p, q]; candles(ctx, x, 1.0, z, 2, { r: 0.1, tall: 0.16, pool: false });
   }
   return { mid: bc, wid };

@@ -39,7 +39,7 @@ export default {
       ] },
   ],
   boss: { type: 'tallow', x: -46, z: -31.5, face: Math.PI / 2, zone: [-54.4, -41.2, -36.4, -22.2], gates: ['squareGate'], opens: ['exitGate'] },
-  exit: { zone: [-48.2, -46, -46, -43.4], to: 'nave', requires: 'boss' },
+  exit: { zone: [-47.65, -46, -46.55, -43.4], to: 'nave', requires: 'boss' },
   build(K, ctx) {
     // ------------------------------------------------ ground and water
     K.floor(ctx, -12, 0.6, 5.5, 27, K.M.cobble('#545e6c'));
@@ -67,6 +67,7 @@ export default {
     P.canalHouse(ctx, -9.5, 16.2, 5, 3.6, 8, { plaster: '#46505e' });
     P.canalHouse(ctx, -9.5, 20, 5, 4, 7, {});
     P.canalHouse(ctx, -9.5, 24, 5, 4, 8.2, { plaster: '#4a4e5c' });
+    // the corner shop, kept low so it does not hide the market behind it
     K.house(ctx, -9.5, 1.8, 5, 2.4, 3.2, { lit: 0.6, doorSide: 'x', ridge: 'z', roofH: 1.4, windowLights: false, chimney: false });
     const r1 = P.stringPost(ctx, 4.7, 5), r2 = P.stringPost(ctx, 4.7, 12.8);
     P.lanterns(ctx, [-6.95, 5.3, 5], r1, { n: 8 }); P.lanterns(ctx, [-6.95, 5.6, 12.8], r2, { n: 8, colors: ['#ffc060', '#ff6038', '#ff9440'] });
@@ -78,7 +79,7 @@ export default {
     P.candles(ctx, -6.55, 0, 6.75, 6); P.candles(ctx, -6.5, 0, 14.4, 5); P.candles(ctx, 4.2, 0, 7.8, 4);
     K.lamp(ctx, 4.4, 16.6);
     K.puddle(ctx, -1.5, 9, 2, 1.1); K.puddle(ctx, 1.5, 3.6, 1.4, 1); K.puddle(ctx, -3, 15.8, 1.2, 1.6);
-    // behind: the road in from Gallows Gate, its gate left open
+    // behind: the road in from Gallows Gate, between two bare piers
     K.fence(ctx, -7, 19.6, -2.6, 19.6); K.fence(ctx, 1.4, 19.6, 5, 19.6);
     for (const x of [-2.25, 1.05]) { K.wall(ctx, x, 19.25, x, 19.95, 3.4, { thick: 0.7 }); P.candles(ctx, x + 0.6, 0, 20.5, 3); }
     K.cart(ctx, 2.4, 22.6, -0.5); K.barrel(ctx, -4.8, 21.4); K.barrel(ctx, -4.1, 22.1, { s: 0.85 }); K.crate(ctx, -5.8, 22.8);
@@ -110,7 +111,7 @@ export default {
     const m1 = P.stringPost(ctx, 4.75, -7.2), m2 = P.stringPost(ctx, 4.75, -13);
     P.lanterns(ctx, [-10.45, 5.8, -7.2], m1, { n: 9, sag: 1 }); P.lanterns(ctx, [-10.45, 5.4, -13], m2, { n: 9, colors: ['#ff6038', '#ffc060', '#e85a3a'] });
     K.barrelStack(ctx, 2.6, -14); K.crate(ctx, -10, -12.4); K.crate(ctx, -10.1, -11.6, { s: 0.55 });
-    K.crate(ctx, -3.5, 0, { s: 0.6 }); K.crate(ctx, 4.5, -0.3, { s: 0.7 }); K.barrel(ctx, 4.5, -7.2 + 0.9, { s: 0.85 });
+    K.crate(ctx, -3.5, 0, { s: 0.6 }); K.crate(ctx, 4.5, -0.3, { s: 0.7 }); K.barrel(ctx, 4.5, -6.3, { s: 0.85 });
     P.candles(ctx, -10, -0.3, 0, 5); P.candles(ctx, 1.4, 0, -14.4, 6); P.candles(ctx, -2.7, 0, -14.5, 4);
     P.candles(ctx, -1.6, 0, -5.4, 3, { r: 0.4 }); P.candles(ctx, 0.6, 0, -8.6, 2, { r: 0.3 }); P.waxPool(ctx, -2.8, -9.4, 0.35);
     K.fallenBody(ctx, -2, -6.8, 0.9); K.droppedSword(ctx, -0.8, -6.2, 2.2); K.chair(ctx, 1.6, -11.2, 0.4, true);
@@ -156,11 +157,11 @@ export default {
     P.tallowStack(ctx, -25.2, -22.6, 3, 'x'); P.tallowStack(ctx, -14.6, -34.6, 2, 'z'); P.tallowStack(ctx, -22.4, -22.4, 2, 'x');
     K.cart(ctx, -16.2, -22.4, Math.PI / 2); P.tallowStack(ctx, -16.2, -22.4, 2, 'x', 0.75);
     K.barrelStack(ctx, -27, -35.3); K.crate(ctx, -22.6, -35.5, { s: 0.7 }); K.crate(ctx, -18.4, -35.6, { s: 0.8 }); K.crate(ctx, -18.4, -35.6, { s: 0.5, y: 0.8, solid: false });
-    P.waxPool(ctx, -22, -31, 0.45); P.waxPool(ctx, -18.6, -26.5, 0.35); P.candles(ctx, -14, -0, -22.2, 4); P.candles(ctx, -26.9, 0, -22.1, 5);
+    P.waxPool(ctx, -22, -31, 0.45); P.waxPool(ctx, -18.6, -26.5, 0.35); P.candles(ctx, -14, 0, -22.2, 4); P.candles(ctx, -26.9, 0, -22.1, 5);
     K.fallenBody(ctx, -19, -24.8, 2.4); K.puddle(ctx, -21, -27.4, 2.2, 1.3); K.puddle(ctx, -16, -31.6, 1.2, 0.9);
 
     // ------------------------------------------------ the last bridge and Candlemas Square
-    P.bridge(ctx, 'x', [-35.6, -27.4, -27.3, -24.7], [-35, -28], { candles: true, posts: false });
+    P.bridge(ctx, 'x', [-35.6, -27.4, -27.3, -24.7], [-35, -28], { candles: true, posts: false, parapet: 0.72 }); // too narrow to blink onto
     K.lamp(ctx, -27, -23.6, { h: 2.8 });
     P.railing(ctx, -35.25, -42.2, -35.25, -27.7);
     ctx.marks.squareGate = K.gate(ctx, -35.25, -26, 2, 'z', { h: 2.4 });
@@ -171,16 +172,16 @@ export default {
     K.wall(ctx, -56.4, -42.4, -56.4, -38.5, 4.6, { face: 1 }); K.wall(ctx, -56.4, -25.5, -56.4, -21.3, 4, { face: 1 });
     K.torch(ctx, -56.1, 2.3, -40.4, '+x');
     P.canalHouse(ctx, -54.8, -45, 4.4, 6, 8.2, { front: '+z' });
-    P.canalHouse(ctx, -50.5, -45, 4.2, 6, 9.4, { front: '+z', hoist: true, plaster: '#4a5060' });
-    P.canalHouse(ctx, -43.7, -45, 4.2, 6, 8, { front: '+z', sign: true });
+    P.canalHouse(ctx, -50.125, -45, 4.95, 6, 9.4, { front: '+z', hoist: true, plaster: '#4a5060' });
+    P.canalHouse(ctx, -44.075, -45, 4.95, 6, 8, { front: '+z', sign: true });
     P.canalHouse(ctx, -39.7, -45, 3.8, 6, 9, { front: '+z', plaster: '#464c5a' });
     P.canalHouse(ctx, -36.4, -45, 2.8, 6, 7.2, { front: '+z' });
-    ctx.marks.exitGate = K.gate(ctx, -47.1, -42.2, 2, 'x', { h: 2.6 });
-    K.torch(ctx, -48.4, 2.2, -44.4, '+x');
+    ctx.marks.exitGate = K.gate(ctx, -47.1, -42.2, 1.1, 'x', { h: 2.6 }); // into a narrow alley (too narrow to blink into)
+    K.torch(ctx, -47.65, 2.2, -44.4, '+x');
     P.candelabra(ctx, -53.4, -39.6); P.candelabra(ctx, -53.2, -24); P.candelabra(ctx, -37.6, -39.8); P.candelabra(ctx, -37.4, -23.6);
     P.candleRing(ctx, -46, -31.5, 3.2, 18);
     P.votiveRack(ctx, -42.6, -40.85, 'x'); P.votiveRack(ctx, -36.25, -35, 'z');
-    for (const x of [-53.6, -49.4, -42.6, -38.6]) P.candles(ctx, x, 0, -41.3, 6);
+    for (const x of [-53.6, -49.4, -38.6]) P.candles(ctx, x, 0, -41.3, 6);
     for (const x of [-51.5, -47, -43, -39.6]) P.candles(ctx, x, 0, -22.05, 5);
     for (const z of [-37.4, -32.6, -29]) P.candles(ctx, -36.1, 0, z, 5);
     P.candles(ctx, -55.4, 0, -40.8, 7); P.candles(ctx, -55.4, 0, -23, 6);
@@ -190,10 +191,12 @@ export default {
     P.boat(ctx, -44.5, -18.3, 4.6, 'x', { lantern: false }); P.boat(ctx, -31.5, -36, 4.2, 'z', { lantern: false, tone: '#3e2c22' });
 
     // ------------------------------------------------ across the canal: the boatyard (low, seen from the square)
-    K.house(ctx, -42, -9.5, 12, 5, 2.8, { ridge: 'x', lit: 0.25, roofH: 1.6, windowLights: false, chimney: false, plaster: '#3e4250' });
-    K.house(ctx, -24, -8.5, 6, 5, 2.6, { lit: 0.3, roofH: 1.5, windowLights: false, chimney: false });
-    for (const [x, z] of [[-31, -12], [-53, -12.2]]) { P.boat(ctx, x, z, 5, 'x', { y: 0.55, lantern: false }); for (const o of [-1.4, 1.2]) K.crate(ctx, x + o, z, { s: 0.5 }); }
-    K.crate(ctx, -19.5, -12.6); K.crate(ctx, -20.3, -12.7, { s: 0.6 }); K.barrelStack(ctx, -36.5, -13.4);
+    // a row of boat sheds built to the water: nothing within a blink of the square is open floor
+    for (const [x0, x1, tone] of [[-57, -49.2, '#3e4250'], [-49.2, -42.6, '#444a58'], [-42.6, -34.4, '#3e4250'], [-34.4, -26.8, '#40465a'], [-26.8, -16.5, '#3e4250']]) {
+      K.house(ctx, (x0 + x1) / 2, -13.9, x1 - x0, 3.2, 2.4, { ridge: 'x', lit: 0.3, roofH: 1.1, windowLights: false, chimney: false, plaster: tone });
+    }
+    for (const [x, z] of [[-31, -10], [-50, -10.2]]) { P.boat(ctx, x, z, 5, 'x', { y: 0.55, lantern: false }); for (const o of [-1.4, 1.2]) K.crate(ctx, x + o, z, { s: 0.5 }); }
+    K.crate(ctx, -20.5, -11.2); K.crate(ctx, -21.3, -11.3, { s: 0.6 }); K.barrelStack(ctx, -40.5, -11.4);
 
     // ------------------------------------------------ last: the water's ripples and the lamps' reflections on it
     P.ripples(ctx, [[5.5, -15.5, 11.5, 26], [-62, -21, 11.5, -15.5], [-35, -50, -28, -21]]);

@@ -20,12 +20,12 @@ export function mix(a, b, k) {
 function add(a, b) { const o = { ...a }; for (const k in b) { const x = o[k], y = b[k]; if (Array.isArray(y)) { const p = x || [0, 0, 0]; o[k] = [p[0] + y[0], p[1] + y[1], p[2] + y[2]]; } else o[k] = (x || 0) + y; } return o; }
 // keyframes: [[t, pose, easing?], ...] sampled at t
 function keys(t, list) {
-  if (t <= list[0][0]) return list[0][1];
+  if (t <= list[0][0]) return { ...list[0][1] };
   for (let i = 0; i < list.length - 1; i++) {
     const [t0, p0] = list[i], [t1, p1, fn] = list[i + 1];
     if (t <= t1) return mix(p0, p1, (fn || ease)(clamp01((t - t0) / (t1 - t0))));
   }
-  return list[list.length - 1][1];
+  return { ...list[list.length - 1][1] };
 }
 
 // ------------------------------------------------------------------ base poses
@@ -35,6 +35,7 @@ const STANCE = {
   shL: [0.12, 0, 0.16], elL: [-0.35, 0, 0],
   hipL: [-0.28, 0, 0.07], knL: [0.34, 0, 0], ftL: [-0.05, 0, 0], hipR: [0.24, 0, -0.07], knR: [0.28, 0, 0], ftR: [-0.2, 0, 0],
 };
+Object.freeze(STANCE);
 const ARMS_OUT = { shR: [-1.5, 0, -0.18], elR: [-0.12, 0, 0], weapon: [1.62, 0, 0] }; // sword held straight out
 
 export function idle(t) {
@@ -244,6 +245,7 @@ export function poseFor(e, t) {
     }
   }
   if (e.def && e.def.hunch && e.anim !== 'die' && e.anim !== 'dieHard' && e.anim !== 'rise') p = add(p, HUNCH);
-  if (e.def && e.def.hover && e.anim !== 'die' && e.anim !== 'dieHard') p.bodyY = (p.bodyY || 0) + 0.35 + Math.sin(t * 1.8) * 0.08;
+  // never write into p: clips can return shared base poses (STANCE) by reference
+  if (e.def && e.def.hover && e.anim !== 'die' && e.anim !== 'dieHard' && e.anim !== 'idle') p = { ...p, bodyY: (p.bodyY || 0) + 0.35 + Math.sin(t * 1.8) * 0.08 };
   return p;
 }
