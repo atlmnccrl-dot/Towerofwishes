@@ -15,7 +15,12 @@ const fs = require('fs');
   await p.screenshot({ path: out + '/01-title.png' });
   // tap NEW GAME: find its rect
   const r = await p.evaluate(() => { const m = BM.game.menuRects.find((x) => BM.game.titleItems[x.i].id === 'new'); const k = BM.r.scale / BM.r.dpr; return { x: (m.x + m.w / 2) * k, y: (m.y + m.h / 2) * k }; });
-  await p.touchscreen.tap(r.x, r.y); await p.waitForTimeout(800); await p.screenshot({ path: out + '/02-story.png' });
+  await p.touchscreen.tap(r.x, r.y); await p.waitForTimeout(800); await p.screenshot({ path: out + '/02-select.png' });
+  // choose a warden by tapping their name twice, then SKIP TO THE CITY
+  const rectTap = async (pred) => { const q = await p.evaluate((src) => { const f = new Function('r', 'return ' + src); const m = BM.game.menuRects.find(f); if (!m) return null; const k = BM.r.scale / BM.r.dpr; return { x: (m.x + m.w / 2) * k, y: (m.y + m.h / 2) * k }; }, pred); if (q) await p.touchscreen.tap(q.x, q.y); await p.waitForTimeout(500); return !!q; };
+  await rectTap('r.i === 1'); await rectTap('r.i === 1'); await p.screenshot({ path: out + '/02b-select-menu.png' });
+  await rectTap('r.i === 1');
+  console.log('after select:', await p.evaluate(() => BM.game.state));
   for (let i = 0; i < 16 && (await p.evaluate(() => BM.game.state)) === 'story'; i++) { await p.touchscreen.tap(420, 200); await p.waitForTimeout(250); }
   await p.waitForFunction(() => BM.game.state === 'play', null, { timeout: 30000 }); await p.waitForTimeout(1500);
   await p.screenshot({ path: out + '/03-play.png' });
