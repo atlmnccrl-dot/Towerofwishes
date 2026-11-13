@@ -167,7 +167,7 @@ export function furnace(ctx, x, z, o = {}) {
   add(ctx, box(0.06, 1.1, 0.78), iron(), fx + 0.36, 1.05, z + 1.04, { ry: -0.85 }); // the door, hung open
   let k = Math.random() * 3, acc = 0;
   ctx.anims.push({ update(dt) { acc += dt; if (acc > 0.11) { acc = 0; k = (k + 1 + (Math.random() < 0.3 ? 1 : 0)) % 3; t.offset.x = Math.floor(k) / 3; } return false; } });
-  heatSpill(ctx, fx + 1.5, z, 3.4, 3.2, o.spill ?? 1);
+  heatSpill(ctx, fx + 1.1, z, 2.4, 2.4, o.spill ?? 0.6);
   ctx.lights.push({ x: fx + 0.9, y: 1.3, z, color: 0xff7424, intensity: o.light ?? 9, dist: o.dist ?? 10, flicker: 0.12 });
   solid(ctx, x, z - W / 2 - 0.08, fx + 0.1, z + W / 2 + 0.08, H);
 }
@@ -189,7 +189,7 @@ export function cupola(ctx, x, z, o = {}) {
   add(ctx, plane(0.36, 0.3), M.glow('#ffc050', 2.4), x + r + 0.02, 0.85, z, { ry: Math.PI / 2, cast: false });
   add(ctx, box(0.7, 0.14, 0.3), m, x + r + 0.3, 0.62, z);
   add(ctx, box(0.1, 0.5, 0.1), M.glow('#ffb040', 2.6), x + r + 0.62, 0.32, z, { cast: false });
-  heatSpill(ctx, x + r + 1.6, z, 3.6, 3.4, 0.9);
+  heatSpill(ctx, x + r + 1.2, z, 2.6, 2.6, 0.6);
   ctx.lights.push({ x: x + r + 1.0, y: 1.2, z, color: 0xff7424, intensity: 8, dist: 9, flicker: 0.14 });
   solidCircle(ctx, x, z, r + 0.35, h);
   solid(ctx, x + r - 0.2, z - 1.4, x + r + 1.5, z + 1.4, 0.6);
@@ -258,7 +258,7 @@ export function greatPit(ctx, x0, z0, x1, z1, o = {}) {
   bell(ctx, cx, -s * 0.45, cz, s, { mat: bronze() });
   add(ctx, geo(`fd-seam${s}`, () => new THREE.RingGeometry(s * 0.355, s * 0.355 + 0.3, 24).rotateX(-Math.PI / 2)), moltenMat(), cx, 0.12, cz, { cast: false });
   flow(ctx);
-  heatSpill(ctx, cx, z1 + 1.6, w * 0.9, 3.4, 0.7);
+  heatSpill(ctx, cx, z1 + 1.1, w * 0.8, 2.4, 0.4);
   for (const lx of [-w * 0.3, w * 0.3]) ctx.lights.push({ x: cx + lx, y: 1.6, z: cz + d * 0.3, color: 0xff6a1a, intensity: 8, dist: 11, flicker: 0.08 });
   solid(ctx, x0 - 0.45, z0 - 0.5, x1 + 0.45, z1 + 0.45, 1.2);
   return { x: cx, z: cz, top: s * 0.55 };
