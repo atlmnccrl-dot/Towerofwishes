@@ -1,7 +1,7 @@
 // Weather and light: fog, the moon (shadow-casting, follows the camera), moonbeams through the
 // mist, a pool of point lights handed to the nearest lamps, lamp halos, rain streaks, splashes on
 // the stones, and lightning.
-import * as THREE from 'three';
+import * as THREE from '../../vendor/three.module.min.js';
 import * as T from './textures.js';
 
 const POOL = 10; // point lights always present (fixed count = no shader recompiles)

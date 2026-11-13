@@ -2,7 +2,7 @@
 // faces, lean-to aisle roofs, the city far down and the storm mist over it), flying buttresses,
 // pinnacles, gargoyles, railings broken over the drop, flights of steps, wind-torn pennants, hanging
 // lanterns, rubble and the great bell in its timber frame.
-import * as THREE from 'three';
+import * as THREE from '../../../vendor/three.module.min.js';
 import { add, box, cyl, cone, geo, inst, mat4, solid, solidCircle, plane, torus } from '../kit.js';
 import { M, cutout } from '../../engine/materials.js';
 import * as T from '../../engine/textures.js';

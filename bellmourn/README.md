@@ -65,7 +65,7 @@ Carmine, last of the bell-wardens, comes home to ring the bell.
 
 | File | Role |
 |---|---|
-| `index.html` | page, import map for three.js, the two canvases |
+| `index.html` | page and the two canvases (modules import three.js by relative path, so no import map is needed; `node bellmourn/tools/fix-imports.mjs` rewrites any bare `'three'` import) |
 | `vendor/` | three.js r170 (MIT) and its BufferGeometryUtils |
 | `js/main.js` | boot and the frame loop, dynamic resolution |
 | `js/engine/renderer.js` | the pixel pipeline: low-res render target, snapped iso camera, bloom, grade, dither, fades |

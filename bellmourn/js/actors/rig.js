@@ -1,7 +1,7 @@
 // Low-poly articulated characters. At 16 px per metre a person is ~30 px tall, so a handful of boxes
 // with the right proportions, colours and motion reads like hand-made pixel sprites, but every
 // pose, swing and fall is free. Characters face +Z in local space; their right hand is -X.
-import * as THREE from 'three';
+import * as THREE from '../../vendor/three.module.min.js';
 
 const box = (() => { const c = new Map(); return (w, h, d) => { const k = `${w},${h},${d}`; if (!c.has(k)) c.set(k, new THREE.BoxGeometry(w, h, d)); return c.get(k); }; })();
 const matCache = new Map();

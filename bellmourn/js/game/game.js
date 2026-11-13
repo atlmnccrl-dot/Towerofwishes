@@ -1,6 +1,6 @@
 // The game: title, story, districts with lamps, locked-gate fights and bosses, death and retry,
 // upgrades, saving, the ending. Owns the World (simulation) and turns its events into effects.
-import * as THREE from 'three';
+import * as THREE from '../../vendor/three.module.min.js';
 import { World, angTo } from './sim.js';
 import { HERO } from './defs.js';
 import { buildLevel, K } from '../world/level.js';

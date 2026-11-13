@@ -2,7 +2,7 @@
 // shapes to ctx.solids, lights to ctx.lights and animated parts to ctx.anims. Repeated small parts
 // (fence bars, spear tips, cobble kerbs) go through ctx.inst so they become one InstancedMesh each.
 // World axes: X and Z on the ground, Y up, 1 unit = 1 metre. The camera looks from +X+Z.
-import * as THREE from 'three';
+import * as THREE from '../../vendor/three.module.min.js';
 import { M } from '../engine/materials.js';
 import * as T from '../engine/textures.js';
 

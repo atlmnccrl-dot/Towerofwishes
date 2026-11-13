@@ -3,7 +3,7 @@
 // grid no matter how the box was built or rotated by 90 degrees.
 // Every set material also has the see-through cut: anything standing between the camera and the
 // hero is dithered away in a circle around them, so tall buildings never hide the fight.
-import * as THREE from 'three';
+import * as THREE from '../../vendor/three.module.min.js';
 import * as T from './textures.js';
 
 export const shared = {

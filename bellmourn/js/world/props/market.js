@@ -1,7 +1,7 @@
 // Lantern Row's own set pieces: canals with quay walls, stone bridges, tall canal houses with
 // stepped gables, market stalls under striped awnings, strings of paper lanterns, candles everywhere
 // (Mother Tallow's mark), moored boats, and the tallow works' vats and drying racks.
-import * as THREE from 'three';
+import * as THREE from '../../../vendor/three.module.min.js';
 import { add, box, cyl, cone, plane, geo, solid, solidCircle, roof, water } from '../kit.js';
 import { M } from '../../engine/materials.js';
 import * as T from '../../engine/textures.js';

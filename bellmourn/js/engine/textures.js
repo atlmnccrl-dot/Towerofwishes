@@ -1,7 +1,7 @@
 // Procedural pixel textures. Every texture is drawn at 16 texels per world metre so that, with the
 // camera at 16 buffer pixels per metre, one texel is one screen pixel. All are seeded: the same
 // world looks the same every time.
-import * as THREE from 'three';
+import * as THREE from '../../vendor/three.module.min.js';
 
 export const TPM = 16; // texels per metre
 

@@ -3,7 +3,7 @@
 // without smoothing. The camera moves in whole buffer pixels; the remainder is applied in the
 // final pass as a screen-pixel offset, so scrolling is smooth but nothing shimmers.
 // Post: bloom for lamps, colour grade, vignette, ordered dither, lightning flash, fades.
-import * as THREE from 'three';
+import * as THREE from '../../vendor/three.module.min.js';
 
 export const PPU = 16;              // buffer pixels per world unit
 let TARGET_H = 200;

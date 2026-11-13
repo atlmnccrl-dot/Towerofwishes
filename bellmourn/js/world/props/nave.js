@@ -1,7 +1,7 @@
 // Props for District III, the Drowned Nave: clustered piers and pointed arcades, pews, ruined
 // walls and rubble, fallen chandeliers, the candles of the drowned (teal), the altar, the font,
 // drowned glass, the flood itself and the souls drifting over it.
-import * as THREE from 'three';
+import * as THREE from '../../../vendor/three.module.min.js';
 import { add, box, cyl, cone, geo, inst, mat4, solid, solidCircle, plane, water } from '../kit.js';
 import { M, cutout } from '../../engine/materials.js';
 import * as T from '../../engine/textures.js';

@@ -1,6 +1,6 @@
 // Keeps a rig for every entity in the simulation and poses it each frame, with short crossfades
 // between clips, cloak physics, hit flashes, corpses that linger and sink, and sword trails.
-import * as THREE from 'three';
+import * as THREE from '../../vendor/three.module.min.js';
 import { Rig } from './rig.js';
 import { poseFor, mix } from './anims.js';
 import { HERO_LOOK } from '../game/defs.js';

@@ -1,6 +1,6 @@
 // Effects: sword trails, pixel particles (sparks, blood, mist, embers), blood on the stones,
 // ground telegraphs for foe attacks and hazards, projectiles, dash afterimages, shock rings.
-import * as THREE from 'three';
+import * as THREE from '../../vendor/three.module.min.js';
 import * as T from './textures.js';
 
 const MAXP = 1600;
