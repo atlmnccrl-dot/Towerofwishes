@@ -141,7 +141,7 @@ export const UNITS = {
   gargoyle: {
     name: 'Gargoyle', hp: 64, poise: 24, flinch: 1, speed: 4.0, r: 0.45, mass: 1.3, aggro: 15, keep: 5, drop: 9,
     attacks: [{ a: ATK.rake, w: 1, min: 0, max: 2.0 }],
-    look: { rig: 'gargoyle', scale: 1.05, eyes: 0xff4030, colors: { stone: 0x70727a, dark: 0x4c4e56, wing: 0x55575f, horn: 0x34363c, claw: 0xc8c4b8 } },
+    look: { rig: 'gargoyle', scale: 1.05, eyes: 0xff4030, colors: { stone: 0x8a8c94, dark: 0x5e6068, wing: 0x6a6c74, horn: 0x3a3c42, claw: 0xd8d4c8 } },
   },
   bomber: {
     name: 'Tallow Bomber', hp: 48, poise: 22, flinch: 1, speed: 3.2, r: 0.38, mass: 1, aggro: 15, keep: 7, ranged: true, drop: 7,
