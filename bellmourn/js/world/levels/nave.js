@@ -39,7 +39,7 @@ export default {
         { foes: [{ t: 'warden', x: 0.2, z: -3.4 }, { t: 'hushed', x: -5.2, z: 1.6 }, { t: 'hushed', x: 5.6, z: 2.6 }, { t: 'acolyte', x: -5.8, z: -4.8 }] },
       ] },
   ],
-  boss: { type: 'deacon', x: 0, z: -29.5, face: 0, zone: [-11.8, -36.4, 11.8, -22.2], gates: ['choirGate'], opens: ['exitGate'] },
+  boss: { type: 'deacon', x: 0, z: -29.5, face: 0, zone: [-11.8, -36.4, 11.8, -22.2], gates: ['choirGate'], opens: ['exitGate', 'choirGate'] },
   exit: { zone: [-16.4, -30.6, -13.8, -27.4], to: 'belfry', requires: 'boss' },
   build(K, ctx) {
     const W = K.M;

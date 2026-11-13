@@ -2,7 +2,7 @@
 // stepped gables, market stalls under striped awnings, strings of paper lanterns, candles everywhere
 // (Mother Tallow's mark), moored boats, and the tallow works' vats and drying racks.
 import * as THREE from 'three';
-import { add, box, cyl, cone, plane, inst, geo, solid, solidCircle, roof, water } from '../kit.js';
+import { add, box, cyl, cone, plane, geo, solid, solidCircle, roof, water } from '../kit.js';
 import { M } from '../../engine/materials.js';
 import * as T from '../../engine/textures.js';
 
@@ -11,22 +11,40 @@ export const WATER_Y = -0.8, BED_Y = -1.7;
 // ---------------------------------------------------------------- helpers
 const _q = new THREE.Quaternion(), _p = new THREE.Vector3(), _s = new THREE.Vector3(), _m = new THREE.Matrix4(), _e = new THREE.Euler();
 const X1 = new THREE.Vector3(1, 0, 0);
-const unitCyl = () => geo('mk-cyl6', () => new THREE.CylinderGeometry(1, 1, 1, 6));
 const unitCyl10 = () => geo('mk-cyl10', () => new THREE.CylinderGeometry(1, 1, 1, 10));
 const unitBox = () => geo('mk-box', () => new THREE.BoxGeometry(1, 1, 1));
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 
-// An instanced part with its own (non-uniform) size.
+// Small repeated parts (candles, flames, lanterns, ripples) are gathered per kind and per 16 m cell,
+// then become instanced meshes in finish(): no shadows (too small to show), culled cell by cell.
+const REG = new WeakMap();
+function push(ctx, key, geom, mat, m, x, z) {
+  let reg = REG.get(ctx); if (!reg) REG.set(ctx, (reg = new Map()));
+  const k = key + '@' + Math.floor(x / 16) + ',' + Math.floor(z / 16);
+  let e = reg.get(k); if (!e) reg.set(k, (e = { geom, mat, mats: [], cast: key[0] === '!' }));
+  e.mats.push(m.clone());
+}
+// A placed part with its own (non-uniform) size.
 function put(ctx, key, geom, mat, x, y, z, sx, sy, sz, ry = 0, rz = 0) {
   _e.set(0, ry, rz); _q.setFromEuler(_e); _p.set(x, y, z); _s.set(sx, sy, sz);
-  inst(ctx, key, geom, mat, _m.compose(_p, _q, _s));
+  push(ctx, key, geom, mat, _m.compose(_p, _q, _s), x, z);
 }
-// An instanced bar (rope, rod) between two points.
+// A bar (rope, rod) between two points.
 function bar(ctx, key, mat, a, b, t) {
   const dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2]; const len = Math.hypot(dx, dy, dz) || 1e-3;
   _q.setFromUnitVectors(X1, _p.set(dx / len, dy / len, dz / len));
-  _p.set((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2); _s.set(len, t, t);
-  inst(ctx, key, unitBox(), mat, _m.compose(_p, _q, _s));
+  const mx = (a[0] + b[0]) / 2, mz = (a[2] + b[2]) / 2; _p.set(mx, (a[1] + b[1]) / 2, mz); _s.set(len, t, t);
+  push(ctx, key, unitBox(), mat, _m.compose(_p, _q, _s), mx, mz);
+}
+// Call once at the end of the level's build.
+export function finish(ctx) {
+  const reg = REG.get(ctx); if (!reg) return;
+  for (const e of reg.values()) {
+    const im = new THREE.InstancedMesh(e.geom, e.mat, e.mats.length);
+    e.mats.forEach((m, i) => im.setMatrixAt(i, m)); im.instanceMatrix.needsUpdate = true;
+    im.castShadow = e.cast; im.receiveShadow = true; im.computeBoundingSphere(); ctx.group.add(im);
+  }
+  REG.delete(ctx);
 }
 
 // Small pixel textures (16 texels per metre, like the rest of the city).
@@ -187,6 +205,26 @@ export function boat(ctx, x, z, len = 4.4, along = 'z', opts = {}) {
   }
 }
 
+// A plain iron quay railing on a low kerb: posts with finials, two rails, balusters between.
+// Lighter than the ornate fences; sight passes through it.
+export function railing(ctx, x0, z0, x1, z1, h = 1.15) {
+  const alongX = Math.abs(x1 - x0) >= Math.abs(z1 - z0); const len = Math.hypot(x1 - x0, z1 - z0);
+  const iron = M.ironLit(), kerb = 0.2;
+  add(ctx, box(alongX ? len : 0.4, kerb, alongX ? 0.4 : len), M.ashlar('#4c5666'), (x0 + x1) / 2, kerb / 2, (z0 + z1) / 2);
+  for (const ry of [kerb + 0.12, kerb + h - 0.06]) add(ctx, box(alongX ? len : 0.05, 0.05, alongX ? 0.05 : len), iron, (x0 + x1) / 2, ry, (z0 + z1) / 2);
+  const n = Math.max(1, Math.round(len / 0.3));
+  for (let i = 0; i <= n; i++) {
+    const t = i / n, x = x0 + (x1 - x0) * t, z = z0 + (z1 - z0) * t;
+    if (i % 4 === 0) {
+      put(ctx, '!mk-rpost', unitBox(), iron, x, kerb + (h + 0.1) / 2, z, 0.1, h + 0.1, 0.1);
+      put(ctx, '!mk-rfin', geo('mk-rfinG', () => new THREE.ConeGeometry(0.08, 0.24, 4)), iron, x, kerb + h + 0.22, z, 1, 1, 1, Math.PI / 4);
+    } else put(ctx, '!mk-rbar', unitBox(), iron, x, kerb + h / 2, z, 0.035, h, 0.035);
+  }
+  const pad = 0.18;
+  if (alongX) solid(ctx, Math.min(x0, x1), z0 - pad, Math.max(x0, x1), z0 + pad, h); else solid(ctx, x0 - pad, Math.min(z0, z1), x0 + pad, Math.max(z0, z1), h);
+  ctx.lowSolids.push(ctx.solids[ctx.solids.length - 1]);
+}
+
 // An iron mooring bollard on the quay (a candle stub on top, more often than not).
 export function bollard(ctx, x, z, candle = true) {
   put(ctx, 'mk-boll', geo('mk-bollG', () => new THREE.CylinderGeometry(0.11, 0.14, 0.62, 6)), M.ironLit(), x, 0.31, z, 1, 1, 1);
@@ -205,7 +243,7 @@ export function candles(ctx, x, y, z, n = 5, opts = {}) {
     const a = r() * Math.PI * 2, d = n === 1 ? 0 : Math.sqrt(r()) * R;
     const cx = x + Math.cos(a) * d, cz = z + Math.sin(a) * d;
     const h = 0.08 + r() * tall, cr = (0.04 + r() * 0.03) * thick, k = (r() * WAX.length) | 0;
-    put(ctx, 'mk-wax' + k, unitCyl(), waxMat(k), cx, y + h / 2, cz, cr, h, cr);
+    put(ctx, 'mk-wax' + k, unitBox(), waxMat(k), cx, y + h / 2, cz, cr * 1.7, h, cr * 1.7, a);
     put(ctx, 'mk-flame', unitBox(), flameMat(), cx, y + h + 0.05, cz, 0.06, 0.1, 0.06);
   }
   if (opts.pool !== false && y < 0.1) waxPool(ctx, x, z, R + 0.04);
@@ -237,7 +275,7 @@ export function candelabra(ctx, x, z, opts = {}) {
   add(ctx, box(1.0, 0.05, 0.05), iron, x, h, z, { ry: -Math.PI / 4 });
   for (const [ox, oz, hh] of [[0, 0, 0.42], [0.35, 0.35, 0.3], [-0.35, 0.35, 0.34], [0.35, -0.35, 0.28], [-0.35, -0.35, 0.32]]) {
     add(ctx, cyl(0.07, 0.04, 0.06, 6), iron, x + ox, h + 0.04, z + oz);
-    put(ctx, 'mk-wax0', unitCyl(), waxMat(0), x + ox, h + 0.07 + hh / 2, z + oz, 0.045, hh, 0.045);
+    put(ctx, 'mk-wax0', unitBox(), waxMat(0), x + ox, h + 0.07 + hh / 2, z + oz, 0.08, hh, 0.08);
     put(ctx, 'mk-flame', unitBox(), flameMat(), x + ox, h + 0.13 + hh, z + oz, 0.06, 0.11, 0.06);
   }
   waxPool(ctx, x + 0.1, z + 0.1, 0.32);
@@ -270,7 +308,7 @@ export function lanterns(ctx, a, b, opts = {}) {
   const rope = M.flat(0x1a1612), capM = M.ironLit();
   const S = 10; for (let i = 0; i < S; i++) bar(ctx, 'mk-rope', rope, at(i / S), at((i + 1) / S), 0.05);
   const cols = opts.colors || ['#ff9440', '#ff6038', '#ffc060', '#e85a3a'];
-  const lanG = geo('mk-lanG', () => new THREE.CylinderGeometry(0.15, 0.15, 0.32, 8)), capG = geo('mk-lcapG', () => new THREE.CylinderGeometry(0.07, 0.11, 0.05, 6));
+  const lanG = geo('mk-lanG', () => new THREE.CylinderGeometry(0.15, 0.15, 0.32, 6)), capG = geo('mk-lcapG', () => new THREE.BoxGeometry(0.16, 0.05, 0.16));
   const r = T.rng(Math.round(a[0] * 7 + a[2] * 13 + 3));
   for (let i = 0; i < n; i++) {
     const t = (i + 0.5 + (r() - 0.5) * 0.3) / n; const [x, y, z] = at(t); const s = 0.85 + r() * 0.3; const c = cols[(i + (r() * 2 | 0)) % cols.length];
@@ -416,7 +454,7 @@ export function stall(ctx, x, z, opts = {}) {
   }
   // dipped candles hanging from the front beam
   for (let v = -w / 2 + 0.25; v < w / 2 - 0.1; v += 0.3) for (const du of [-0.03, 0.03]) {
-    const [px, pz] = P(d / 2 - 0.05 + du, v + du); put(ctx, 'mk-wax2', unitCyl(), waxMat(2), px, 1.8, pz, 0.025, 0.28, 0.025);
+    const [px, pz] = P(d / 2 - 0.05 + du, v + du); put(ctx, 'mk-wax2', unitBox(), waxMat(2), px, 1.8, pz, 0.045, 0.28, 0.045);
   }
   // goods
   const goods = opts.goods || 'candles';
@@ -456,7 +494,7 @@ export function dryingRack(ctx, x, z, len = 2.6, along = 'x') {
   for (const sv of [-0.16, 0.16]) {
     add(ctx, box(ax ? len + 0.2 : 0.05, 0.05, ax ? 0.05 : len + 0.2), wood, x + (ax ? 0 : sv), 1.86, z + (ax ? sv : 0));
     for (let t = -len / 2 + 0.15; t <= len / 2 - 0.12; t += 0.13) for (const o of [-0.03, 0.03]) {
-      const px = x + (ax ? t : sv + o), pz = z + (ax ? sv + o : t); put(ctx, 'mk-wax0', unitCyl(), waxMat(0), px, 1.6, pz, 0.022, 0.42, 0.022);
+      const px = x + (ax ? t : sv + o), pz = z + (ax ? sv + o : t); put(ctx, 'mk-wax0', unitBox(), waxMat(0), px, 1.6, pz, 0.04, 0.42, 0.04);
     }
   }
   if (ax) solid(ctx, x - len / 2 - 0.1, z - 0.4, x + len / 2 + 0.1, z + 0.4, 1.9); else solid(ctx, x - 0.4, z - len / 2 - 0.1, x + 0.4, z + len / 2 + 0.1, 1.9);

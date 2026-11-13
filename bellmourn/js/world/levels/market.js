@@ -79,7 +79,10 @@ export default {
     K.lamp(ctx, 4.4, 16.6);
     K.puddle(ctx, -1.5, 9, 2, 1.1); K.puddle(ctx, 1.5, 3.6, 1.4, 1); K.puddle(ctx, -3, 15.8, 1.2, 1.6);
     // behind: the road in from Gallows Gate, its gate left open
-    K.fence(ctx, -7, 19.6, -2.9, 19.6); K.gate(ctx, -0.6, 19.6, 3.2, 'x', { h: 2.8, open: true, swingDir: 1 }); K.fence(ctx, 1.7, 19.6, 5, 19.6);
+    K.fence(ctx, -7, 19.6, -2.6, 19.6); K.fence(ctx, 1.4, 19.6, 5, 19.6);
+    for (const x of [-2.25, 1.05]) { K.wall(ctx, x, 19.25, x, 19.95, 3.4, { thick: 0.7 }); P.candles(ctx, x + 0.6, 0, 20.5, 3); }
+    K.cart(ctx, 2.4, 22.6, -0.5); K.barrel(ctx, -4.8, 21.4); K.barrel(ctx, -4.1, 22.1, { s: 0.85 }); K.crate(ctx, -5.8, 22.8);
+    P.candles(ctx, -3.3, 0, 20.3, 5); P.candles(ctx, 2.1, 0, 20.3, 4); K.puddle(ctx, -1, 22.6, 2.4, 1.4); K.fallenBody(ctx, -0.4, 24, 2);
     // the far bank: low sheds and stacks across the water
     K.wall(ctx, 13.6, -21, 13.6, 26, 1, { thick: 0.5 });
     K.house(ctx, 16, -7, 3.6, 6, 2.4, { lit: 0.3, doorSide: 'x', roofH: 1.4, windowLights: false, chimney: false });
@@ -95,10 +98,10 @@ export default {
     P.canalHouse(ctx, -13.5, -5.3, 6, 3.8, 9.2, { hoist: true, sign: true });
     P.canalHouse(ctx, -13.5, -9.3, 6, 4.2, 7, { plaster: '#4a5060' });
     P.canalHouse(ctx, -13.5, -13.45, 6, 4.1, 8.2, {});
-    K.fence(ctx, -10.5, -15.25, -2.45, -15.25, { h: 1.3, kerb: 0.2 });
+    P.railing(ctx, -10.5, -15.25, -2.45, -15.25);
     ctx.marks.bridgeGate = K.gate(ctx, -0.25, -15.25, 3, 'x', { h: 2.6 });
-    K.fence(ctx, 1.95, -15.25, 5.25, -15.25, { h: 1.3, kerb: 0.2 });
-    K.fence(ctx, 5.25, -15.25, 5.25, 0.6, { h: 1.3, kerb: 0.2 });
+    P.railing(ctx, 1.95, -15.25, 5.25, -15.25);
+    P.railing(ctx, 5.25, -15.25, 5.25, 0.6);
     P.stall(ctx, -9.55, -4.2, { face: '+x', w: 2.2, cloth: '#7a2a26', light: 2 });
     P.stall(ctx, -9.55, -8.3, { face: '+x', w: 2.2, cloth: '#8a6a2a' });
     P.stall(ctx, 3.75, -4.2, { face: '-x', w: 2.6, cloth: '#4a2a44', goods: 'cloth' });
@@ -142,8 +145,8 @@ export default {
     K.fence(ctx, -13, -30, -13, -27.95);
     ctx.marks.yardGate = K.gate(ctx, -13, -25.75, 3, 'z', { h: 2.6, open: true, swingDir: -1 });
     K.fence(ctx, -13, -23.55, -13, -21.4);
-    K.fence(ctx, -27.75, -21.25, -13.3, -21.25, { h: 1.3, kerb: 0.2 });
-    K.fence(ctx, -27.75, -36, -27.75, -27.3, { h: 1.3, kerb: 0.2 }); K.fence(ctx, -27.75, -24.7, -27.75, -21.3, { h: 1.3, kerb: 0.2 });
+    P.railing(ctx, -27.75, -21.25, -13.3, -21.25);
+    P.railing(ctx, -27.75, -36, -27.75, -27.3); P.railing(ctx, -27.75, -24.7, -27.75, -21.3);
     K.house(ctx, -20.5, -39.2, 15, 6.4, 5.4, { ridge: 'x', lit: 0.45, doorSide: 'z', plaster: '#4a4e58', windowLights: false, chimney: false });
     P.chimney(ctx, -15.4, -40.4, 12.5);
     K.torch(ctx, -25.8, 2.4, -36, '+z');
@@ -159,10 +162,10 @@ export default {
     // ------------------------------------------------ the last bridge and Candlemas Square
     P.bridge(ctx, 'x', [-35.6, -27.4, -27.3, -24.7], [-35, -28], { candles: true, posts: false });
     K.lamp(ctx, -27, -23.6, { h: 2.8 });
-    K.fence(ctx, -35.25, -42.2, -35.25, -27.7, { h: 1.3, kerb: 0.2 });
+    P.railing(ctx, -35.25, -42.2, -35.25, -27.7);
     ctx.marks.squareGate = K.gate(ctx, -35.25, -26, 2, 'z', { h: 2.4 });
-    K.fence(ctx, -35.25, -24.3, -35.25, -21.3, { h: 1.3, kerb: 0.2 });
-    K.fence(ctx, -56.3, -21.25, -35.5, -21.25, { h: 1.3, kerb: 0.2 });
+    P.railing(ctx, -35.25, -24.3, -35.25, -21.3);
+    P.railing(ctx, -56.3, -21.25, -35.5, -21.25);
     P.guildHall(ctx, -60.5, -32, 9, 13, 7.5);
     P.pillars(ctx, -54.6, -36.1, { light: 3.2 }); P.pillars(ctx, -54.6, -27.9, { light: 3.2 });
     K.wall(ctx, -56.4, -42.4, -56.4, -38.5, 4.6, { face: 1 }); K.wall(ctx, -56.4, -25.5, -56.4, -21.3, 4, { face: 1 });
@@ -193,5 +196,6 @@ export default {
 
     // ------------------------------------------------ last: the water's ripples and the lamps' reflections on it
     P.ripples(ctx, [[5.5, -15.5, 11.5, 26], [-62, -21, 11.5, -15.5], [-35, -50, -28, -21]]);
+    P.finish(ctx);
   },
 };
