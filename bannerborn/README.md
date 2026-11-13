@@ -245,10 +245,13 @@ land easier to take.
 **How hard.** A player's heroes grow much faster than the first balance assumed (all four gear slots filled, every
 skill point spent, a level or two over the stage), so the dead are raised to meet them (`BB.DIFF`,
 `BB.diffAt(level)` in js/rules.js): more health and more damage by how far into the campaign they are, a boss
-taking a small part of the raise, and what a stage asks (`BB.recPower`, "needs ⚔") raised with it. Nothing about
+taking a small part of the raise, and what a stage asks (`BB.recPower`, "needs ⚔") raised with it (from the
+first stage with three heroes on, it is the power a warband that wins there was measured to have). Nothing about
 how a fight is fought changed. The raise is measured two ways:
-- **The bot**, which plays the real progression. Through the first three lands (one hero, then two) it wins with
-  25 to 55% of its health left and loses now and then.
+- **The bot**, which plays the real progression. In 45 minutes it reaches the end of land 5: about one fight in
+  five is lost (nearly always the first try at a stage where a new hero has just joined, two or three levels
+  under it), and the fights it wins end with 15 to 60% of the team's health left through land 3, 45 to 85% in
+  lands 4 and 5. Lands 6 to 8 have only been played by the simulator's teams.
 - **`BOT=1 node test/sim-node.js`**, the warband the bot really had when it got stuck (two stars and Rare recruits in
   land 3, three stars and Epics later, the newest hero two levels behind). An earlier preset (`REAL=1`: Legendary
   heroes at five stars by the end) had set lands 4 to 8 far too high: the bot lost nine times running at 3-7, the

@@ -205,7 +205,9 @@
     const cs = ['vanguard', 'ranger', 'warpriest', 'berserker', 'arcanist'].slice(0, n);
     let p = 0; for (const c of cs) p += BB.power(BB.newHero({ calling: c, level: Math.max(1, stage.level - 1), rarity: 0, name: 'x' }));
     const d = BB.diffAt ? BB.diffAt(stage.level) : { hp: 1, atk: 1 }; // the dead are harder than the base tables: so is what a stage asks
-    return Math.round(p * 0.9 * Math.sqrt(d.hp * d.atk));
+    // from the first stage with three heroes on, what is asked is what a warband that wins there has been measured to
+    // have (the bot, and BOT=1 in test/sim-node.js): about three and a half times the bare heroes above
+    return Math.round(p * 0.9 * (stage.level >= 21 ? 3.5 : Math.sqrt(d.hp * d.atk)));
   };
 
   // ---------------------------------------------------------------- formation: up to five heroes, placed freely on the field
@@ -624,7 +626,7 @@
   // dead are raised, by how far into the campaign they are: [level, health x, damage x], read between the rows. The
   // far marches (levels 28 to 40) needed the most; the last land was already the tightest. A boss takes a part of
   // the raise (bossHp, bossAtk): it is its own measure.
-  BB.DIFF = { knots: [[1, 1.5, 2.0], [4, 2.8, 4.4], [6, 2.6, 4.0], [7, 2.0, 2.9], [9, 2.4, 3.6], [20, 2.4, 3.6], [21, 2.4, 3.3], [27, 2.5, 3.5], [28, 3.0, 4.2], [30, 2.9, 4.0], [32, 2.6, 3.6], [33, 2.2, 3.0], [42, 2.2, 3.0], [44, 1.8, 2.4], [47, 1.7, 2.2]], bossHp: 0.3, bossAtk: 0.2 };
+  BB.DIFF = { knots: [[1, 1.5, 2.0], [4, 2.8, 4.4], [6, 2.6, 4.0], [7, 2.0, 2.9], [9, 2.4, 3.6], [20, 2.4, 3.6], [21, 2.4, 3.3], [27, 2.5, 3.5], [28, 3.3, 4.6], [29, 3.3, 4.6], [30, 3.0, 4.2], [32, 2.6, 3.6], [33, 2.2, 3.0], [42, 2.2, 3.0], [44, 1.8, 2.4], [47, 1.7, 2.2]], bossHp: 0.3, bossAtk: 0.2 };
   BB.diffAt = function (level) {
     const D = BB.DIFF; if (D.flat) return { hp: D.flat[0], atk: D.flat[1] };
     const K = D.knots; if (level <= K[0][0]) return { hp: K[0][1], atk: K[0][2] };
