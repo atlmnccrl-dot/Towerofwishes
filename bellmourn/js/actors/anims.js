@@ -103,15 +103,42 @@ export function hurt(t) {
   const H = { ...STANCE, hipsY: -0.1, spine: [-0.35, 0.2, 0], chest: [-0.25, 0.3, 0.1], head: [-0.35, 0, 0], shR: [0.4, 0, -0.7], elR: [-0.6, 0, 0], shL: [0.3, 0, 0.8], elL: [-0.5, 0, 0], hipL: [-0.4, 0, 0.1], knL: [0.5, 0, 0] };
   return keys(t, [[0, STANCE], [0.06, H, easeOut], [0.36, STANCE]]);
 }
+// The tonic: the free (left) hand takes the flask from the belt, brings it up, the head tips back for
+// two gulps (the sim applies the heal at 0.5 s), then the flask goes back down. Lasts 0.95 s (HEAL.dur).
+// view.js shows the flask in the left hand between FLASK_T[0] and FLASK_T[1].
+export const FLASK_T = [0.12, 0.84];
+const DRINK = (g) => ({ ...STANCE, hipsY: -0.03, spine: [-0.06, 0.05, 0], chest: [-0.2, 0.22, 0], head: [-0.72 - g, 0.05, 0], shL: [-1.25 - g * 0.6, -0.64, -0.2 - g * 2.5], elL: [-2.21, 0, 0], shR: [-0.15, 0, -0.2], weapon: [1.0, 0, 0] });
 export function heal(t) {
-  const D = { ...STANCE, shL: [-2.2, 0.3, -0.35], elL: [-1.5, 0, 0], head: [-0.45, 0, 0], chest: [-0.12, 0.1, 0] };
-  return keys(t, [[0, STANCE], [0.25, D], [0.7, D], [0.95, STANCE]]);
+  if (t >= 0.4 && t <= 0.66) return DRINK(Math.max(0, Math.sin((t - 0.4) / 0.26 * Math.PI * 2)) * 0.12); // two gulps: head and flask nod
+  const grab = { ...STANCE, chest: [0.12, 0.42, 0], spine: [0.08, 0.15, 0], head: [0.3, 0.25, 0], shL: [0.42, 0, 0.02], elL: [-1.05, 0, 0], weapon: [0.95, 0, 0] };
+  const up = { ...STANCE, chest: [0.02, 0.32, 0], head: [-0.05, 0.1, 0], shL: [-0.81, -0.67, -0.48], elL: [-2.17, 0, 0], weapon: [0.95, 0, 0] };
+  const down = { ...STANCE, hipsY: -0.07, chest: [0.16, 0.3, 0], head: [0.18, 0, 0], shL: [0.3, 0, 0.05], elL: [-1.1, 0, 0], weapon: [0.9, 0, 0] };
+  return keys(t, [[0, STANCE], [0.14, grab, easeOut], [0.3, up, easeOut], [0.4, DRINK(0)], [0.66, DRINK(0)], [0.8, down], [0.95, STANCE]]);
 }
-export function finisher(t) {
-  const back = { ...STANCE, ...crouch(-0.18), chest: [0.1, -0.6, 0], shR: [0.6, 0, -0.4], elR: [-1.6, 0, 0], weapon: [1.6, 0, 0], shL: [-1.2, 0, 0.2], elL: [-0.3, 0, 0], head: [0, 0.3, 0] };
-  const stab = { ...STANCE, hipsY: -0.24, spine: [0.4, 0, 0], chest: [0.1, -0.2, 0], shR: [-1.55, 0, 0.05], elR: [0, 0, 0], weapon: [1.55, 0, 0], shL: [-0.6, 0, 0.4], hipL: [-1.0, 0, 0.05], knL: [0.7, 0, 0], hipR: [0.6, 0, 0], knR: [0.3, 0, 0] };
-  const rip = { ...STANCE, ...crouch(-0.15), ...ARMS_OUT, chest: [0.1, 1.2, 0], spine: [0.2, 0.4, 0], weapon: [1.8, 0, 0], bodyRy: 0 };
-  return keys(t, [[0, STANCE], [0.35, back], [0.55, stab, easeOut], [0.72, stab], [0.85, rip, easeOut], [0.95, STANCE]]);
+
+// Kneeling at the Haven's fire: down on the left knee, the right foot planted, head bowed. Each warden
+// rests their weapon their own way (sword point-down, hammer head on the stones, crossbow across the
+// knee, staff upright beside them with the lantern held low by the stones). Stand up again with standUp
+// (poseFor plays it for a hero whose anim is 'rise').
+const KNEEL_LEGS = { hipsY: -0.39, hipL: [0.12, 0, 0.06], knL: [1.62, 0, 0], ftL: [0.55, 0, 0], hipR: [-1.45, 0, -0.1], knR: [1.5, 0, 0], ftR: [0, 0, 0] };
+const REST_ARMS = { // (solved so the sword tip and hammer head meet the stones and the staff stands upright)
+  warden: { shR: [-0.5, 0.56, -0.17], elR: [-1.64, 0, 0], weapon: [2.67, -0.4, 0], shL: [-1, -0.81, -0.2], elL: [-1.28, 0, 0] },
+  huntress: { shR: [-0.5, 0, -0.05], elR: [-0.9, 0, 0], weapon: [1.0, 0.9, 0], shL: [-0.35, 0, 0.12], elL: [-0.9, 0, 0] },
+  bellbreaker: { shR: [-0.52, 0.1, 0.19], elR: [-1.33, 0, 0], weapon: [1.95, -0.36, 0], shL: [-1.26, -0.56, -0.37], elL: [-0.67, 0, 0] },
+  lamplighter: { shR: [-0.1, -0.51, -0.01], elR: [-1.4, 0, 0], weapon: [-0.45, -0.09, 0], shL: [0.01, -0.43, 0.27], elL: [-0.62, 0, 0] },
+};
+function restPose(heroId, b = 0) {
+  const A = REST_ARMS[heroId] || REST_ARMS.warden;
+  return { ...STANCE, ...KNEEL_LEGS, hipsY: KNEEL_LEGS.hipsY + b * 0.012, spine: [0.22, 0.05, 0], chest: [0.18 + b * 0.05, 0.1, 0], head: [0.55 - b * 0.06, 0, 0], ...A };
+}
+export function rest(t, heroId) { return restPose(heroId, Math.sin(t * 1.6)); } // slow breathing, about one breath in four seconds
+export function kneel(t, heroId) { // 0.6 s from standing down onto the knee
+  const dip = { ...STANCE, ...crouch(-0.3), spine: [0.3, 0.05, 0], chest: [0.15, 0.1, 0], head: [0.3, 0, 0] };
+  return keys(t, [[0, STANCE], [0.25, dip], [0.6, restPose(heroId, 0), easeOut]]);
+}
+export function standUp(t, heroId) { // back up from the knee: push off the right foot (0.7 s)
+  const push = { ...STANCE, ...crouch(-0.26), spine: [0.42, 0.05, 0], chest: [0.12, 0.1, 0], head: [0.1, 0, 0] };
+  return keys(t, [[0, restPose(heroId, 0)], [0.32, push, easeOut], [0.7, STANCE]]);
 }
 export function special(t) {
   // the Requiem: the hero leaps and blurs between foes; the view hides the rig mid-way and draws slashes
@@ -123,17 +150,14 @@ export function die(t) {
   const fall = { ...STANCE, bodyRx: -1.52, bodyY: 0.14, shR: [-2.4, 0, -0.6], shL: [-2.2, 0, 0.7], elR: [-0.3, 0, 0], elL: [-0.3, 0, 0], head: [0.3, 0.5, 0], hipL: [-0.2, 0, 0.15], knL: [0.2, 0, 0], hipR: [0.1, 0, -0.1], knR: [0.4, 0, 0], weapon: [0, 0, 0] };
   return keys(t, [[0, STANCE], [0.15, { ...STANCE, hipsY: -0.3, spine: [0.5, 0, 0], head: [0.4, 0, 0], knL: [1.2, 0, 0], knR: [1.2, 0, 0], hipL: [-0.8, 0, 0], hipR: [-0.6, 0, 0] }], [0.6, fall, (k) => k * k]]);
 }
-export function dieHard(t) { // thrown back by a finisher
+export function dieHard(t) { // thrown back by a heavy blow (sim.js kills with o.heavy)
   return keys(t, [[0, { ...STANCE, spine: [-0.6, 0, 0] }], [0.5, die(0.6), (k) => k * k]]);
 }
 export function stagger(t) {
   const sw = Math.sin(t * 5) * 0.12;
   return { ...STANCE, hipsY: -0.22, spine: [0.7, sw, 0], chest: [0.3, 0, sw], head: [0.6, 0, 0], shR: [0.2, 0, -0.1], elR: [-0.1, 0, 0], weapon: [1.4, 0, 0], shL: [0.2, 0, 0.1], hipL: [-0.5, 0, 0.1], knL: [0.9, 0, 0], hipR: [-0.2, 0, -0.1], knR: [0.9, 0, 0] };
 }
-export function finished(t) { // the victim of a finisher: forced to its knees
-  return keys(t, [[0, stagger(0)], [0.3, { ...STANCE, hipsY: -0.48, spine: [0.3, 0, 0], head: [-0.4, 0, 0], hipL: [-1.5, 0, 0.1], knL: [1.5, 0, 0], hipR: [0.1, 0, -0.1], knR: [1.6, 0, 0], shR: [0.4, 0, -0.5], shL: [0.4, 0, 0.5] }], [0.6, { ...STANCE, hipsY: -0.48, spine: [-0.5, 0, 0], head: [-0.8, 0, 0], hipL: [-1.5, 0, 0.1], knL: [1.5, 0, 0], hipR: [0.1, 0, -0.1], knR: [1.6, 0, 0], shR: [0.9, 0, -0.9], shL: [0.9, 0, 0.9] }]]);
-}
-export function rise(t) { // crawling up out of the stones
+export function rise(t) { // a foe crawling up out of the stones (a hero gets standUp instead)
   const k = clamp01(t / 0.9);
   return { ...STANCE, bodyY: -1.9 * (1 - easeOut(k)), spine: [0.8 * (1 - k), 0, 0], head: [0.5 * (1 - k), 0, 0], shR: [-2.6 * (1 - k), 0, -0.3], shL: [-2.6 * (1 - k), 0, 0.3] };
 }
@@ -249,14 +273,14 @@ export function poseFor(e, t) {
     case 'dash': p = dash(t); break;
     case 'parry': p = parry(t); break;
     case 'hurt': p = hurt(t); break;
-    case 'heal': p = heal(t); break;
-    case 'finisher': p = finisher(t); break;
+    case 'heal': { p = heal(t); const sp = Math.hypot(e.vx || 0, e.vz || 0); if (sp > 0.3) { const w = walk(t); p = { ...p, hipL: w.hipL, knL: w.knL, hipR: w.hipR, knR: w.knR }; } break; } // drinking on the move: walking legs
+    case 'kneel': p = kneel(t, e.heroId); break;
+    case 'rest': p = rest(t, e.heroId); break;
     case 'special': p = special(t); break;
     case 'die': p = die(t); break;
     case 'dieHard': p = dieHard(t); break;
     case 'stagger': p = stagger(t); break;
-    case 'finished': p = finished(t); break;
-    case 'rise': p = rise(t); break;
+    case 'rise': p = e.team === 'hero' || e.heroId ? standUp(t, e.heroId) : rise(t); break;
     case 'roar': p = roar(t); break;
     default: {
       const f = FOE_ATTACK[e.anim]; p = f ? f(t, e.atk || { windup: 0.5, active: 0.7, dur: 1.2 }) : idle(t);

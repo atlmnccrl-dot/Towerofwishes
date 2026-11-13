@@ -101,7 +101,7 @@ export const WEAPONS = {
   anchorHammer: { type: 'hammer', name: 'ANCHOR HAMMER', tier: 1, dmg: 1.14, trait: { frost: 0.3 }, desc: 'BLOWS MAY SLOW.' },
   knightBreaker: { type: 'hammer', name: 'KNIGHTBREAKER', tier: 2, dmg: 1.24, trait: { poise: 1.6 }, desc: 'SHATTERS GUARDS AND POISE.' },
   founderMaul: { type: 'hammer', name: "FOUNDER'S MAUL", tier: 3, dmg: 1.4, trait: { burn: 0.4 }, desc: 'MOLTEN BLOWS.' },
-  cathedralBell: { type: 'hammer', name: 'CATHEDRAL BELL', tier: 4, dmg: 1.58, trait: { shock: 0.25, quake: true }, desc: 'EVERY FINAL BLOW QUAKES.' },
+  cathedralBell: { type: 'hammer', name: 'CATHEDRAL BELL', tier: 4, dmg: 1.58, trait: { shock: 0.25, quake: true }, desc: 'THE LAST BLOW OF A COMBO QUAKES WIDER.' },
   lampStaff: { type: 'focus', name: 'LAMP STAFF', tier: 0, dmg: 1.0, desc: 'A LAMPLIGHTER\'S POLE.' },
   wickRod: { type: 'focus', name: 'WICK ROD', tier: 1, dmg: 1.14, trait: { burn: 0.25 }, desc: 'FIRE THAT CLINGS LONGER.' },
   tideCenser: { type: 'focus', name: 'TIDE CENSER', tier: 2, dmg: 1.24, trait: { frost: 0.35 }, desc: 'COLD FLAMES THAT SLOW.' },

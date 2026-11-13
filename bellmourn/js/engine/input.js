@@ -4,8 +4,10 @@
 const S = Math.SQRT1_2;
 export function screenToWorld(sx, sy) { return { mx: S * (sx + sy), mz: S * (sy - sx) }; }
 
+// Abilities have no keys: the sim casts them from the attack once they are ready (K/L, 1/2, the right
+// mouse button and pad Y are unbound). The ultimate keeps its key.
 const KEYMAP = {
-  attack: ['KeyJ'], skill1: ['KeyK', 'Digit1'], skill2: ['KeyL', 'Digit2'], dash: ['Space', 'ShiftLeft', 'ShiftRight'], heal: ['KeyR', 'KeyH'],
+  attack: ['KeyJ'], dash: ['Space', 'ShiftLeft', 'ShiftRight'], heal: ['KeyR', 'KeyH'],
   ult: ['KeyQ', 'KeyU'], interact: ['KeyE', 'KeyF'], pause: ['Escape', 'KeyP'], confirm: ['Enter', 'Space', 'KeyJ', 'KeyE'], back: ['Escape', 'Backspace'],
   tabL: ['KeyQ', 'BracketLeft', 'PageUp'], tabR: ['KeyE', 'BracketRight', 'PageDown', 'Tab'],
   up: ['KeyW', 'ArrowUp'], down: ['KeyS', 'ArrowDown'], left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'],
@@ -15,6 +17,7 @@ export class Input {
   constructor(canvas, renderer) {
     this.r = renderer; this.down = new Set(); this.pressed = new Set(); this.mouse = { x: 0, y: 0, used: false, l: false, r: false };
     this.touches = new Map(); this.stick = null; this.touchMode = false; this.layout = []; this.btnDown = new Set(); this.btnPressed = new Set(); this.taps = [];
+    this.touchScale = 1.3; // the UI copies ui.touchScale here so the stick's reach grows with the buttons
     addEventListener('keydown', (e) => {
       if (e.repeat) { if (['Space', 'ArrowUp', 'ArrowDown'].includes(e.code)) e.preventDefault(); return; }
       this.down.add(e.code); this.pressed.add(e.code); this.touchMode = false; this.lastDevice = 'key';
@@ -30,7 +33,7 @@ export class Input {
       if (this.touchMode && performance.now() - (this.lastTouch || 0) < 800) return;
       const p = pos(e); this.mouse.x = p.x; this.mouse.y = p.y; this.mouse.used = true; this.touchMode = false;
       if (e.button === 0) { this.mouse.l = true; this.pressed.add('Mouse0'); this.taps.push({ x: p.x, y: p.y }); }
-      if (e.button === 2) { this.mouse.r = true; this.pressed.add('Mouse2'); }
+      if (e.button === 2) this.mouse.r = true; // right button: unbound
       if (this.onAny) this.onAny();
     });
     addEventListener('mouseup', (e) => { if (e.button === 0) this.mouse.l = false; if (e.button === 2) this.mouse.r = false; });
@@ -42,7 +45,12 @@ export class Input {
     this.pad = null; this.padPrev = [];
   }
 
-  _btnAt(p) { for (const b of this.layout) if (b.hidden !== true && Math.hypot(p.x - b.x, p.y - b.y) <= b.r + 4) return b; return null; }
+  // the button under a thumb: within its ring plus a little slop; where two slops meet, the nearer ring wins
+  _btnAt(p) {
+    const slop = 2 + 1.5 * (this.touchScale || 1); let best = null, bd = Infinity;
+    for (const b of this.layout) { if (b.hidden === true) continue; const d = Math.hypot(p.x - b.x, p.y - b.y) - b.r; if (d <= slop && d < bd) { bd = d; best = b; } }
+    return best;
+  }
   _tStart(t, p) {
     const b = this.playing ? this._btnAt(p) : null;
     if (b) { this.touches.set(t.identifier, { btn: b.id }); this.btnDown.add(b.id); this.btnPressed.add(b.id); return; }
@@ -54,7 +62,7 @@ export class Input {
     if (s.stick && this.stick) {
       this.stick.x = p.x; this.stick.y = p.y;
       // the base follows a thumb that runs off the edge of the ring
-      const dx = p.x - this.stick.ox, dy = p.y - this.stick.oy, d = Math.hypot(dx, dy), R = 26;
+      const dx = p.x - this.stick.ox, dy = p.y - this.stick.oy, d = Math.hypot(dx, dy), R = 26 * (this.touchScale || 1);
       if (d > R) { this.stick.ox = p.x - dx / d * R; this.stick.oy = p.y - dy / d * R; }
     } else if (s.btn) {
       const b = this._btnAt(p);
@@ -85,7 +93,7 @@ export class Input {
     if (gp && (gp.buttons.some((b) => b.pressed) || Math.hypot(gp.axes[0] || 0, gp.axes[1] || 0) > 0.3)) this.padUsed = true;
     if (this.down.size || this.mouse.l) this.padUsed = false;
     if (gp) { const ax = gp.axes[0] || 0, ay = gp.axes[1] || 0; if (Math.hypot(ax, ay) > 0.2) { sx = ax; sy = ay; this.touchMode = false; } if (gb(12)) sy = -1; if (gb(13)) sy = 1; if (gb(14)) sx = -1; if (gb(15)) sx = 1; }
-    if (this.stick) { const dx = this.stick.x - this.stick.ox, dy = this.stick.y - this.stick.oy; const d = Math.hypot(dx, dy); if (d > 3) { const k = Math.min(1, d / 22); sx = dx / d * k; sy = dy / d * k; } }
+    if (this.stick) { const ts = this.touchScale || 1, dx = this.stick.x - this.stick.ox, dy = this.stick.y - this.stick.oy; const d = Math.hypot(dx, dy); if (d > 3 * ts) { const k = Math.min(1, d / (20 * ts)); /* full speed a little inside the ring */ sx = dx / d * k; sy = dy / d * k; } }
     const l = Math.hypot(sx, sy); if (l > 1) { sx /= l; sy /= l; }
     const w = screenToWorld(sx, sy);
     const bp = (id) => this.btnPressed.has(id); const bd = (id) => this.btnDown.has(id);
@@ -93,8 +101,6 @@ export class Input {
       mx: w.mx, mz: w.mz, sx, sy,
       attackPressed: this.hit('attack') || this.pressed.has('Mouse0') || bp('atk') || gpPressed(2),
       attackDown: this.key('attack') || this.mouse.l || bd('atk') || gb(2),
-      skill1Pressed: this.hit('skill1') || this.pressed.has('Mouse2') || bp('sk1') || gpPressed(3),
-      skill2Pressed: this.hit('skill2') || bp('sk2') || gpPressed(1),
       dashPressed: this.hit('dash') || bp('dsh') || gpPressed(0),
       healPressed: this.hit('heal') || bp('heal') || gpPressed(4),
       ultPressed: this.hit('ult') || bp('ult') || gpPressed(5) || gpPressed(7),

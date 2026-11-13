@@ -2,6 +2,7 @@
 // with the right proportions, colours and motion reads like hand-made pixel sprites, but every
 // pose, swing and fall is free. Characters face +Z in local space; their right hand is -X.
 import * as THREE from '../../vendor/three.module.min.js';
+import * as T from '../engine/textures.js';
 
 const box = (() => { const c = new Map(); return (w, h, d) => { const k = `${w},${h},${d}`; if (!c.has(k)) c.set(k, new THREE.BoxGeometry(w, h, d)); return c.get(k); }; })();
 const matCache = new Map();
@@ -160,23 +161,50 @@ export class Rig {
     this.cloak.forEach((g, i) => { g.rotation.x = (i === 0 ? a * 0.7 : a * 0.35) + Math.sin(this.time * 3 + i) * 0.03 * (i + 1); g.rotation.z = Math.sin(this.time * 1.7 + i * 0.7) * 0.03 + turn * 0.15 * i; });
   }
 
-  // White hit flash: temporarily swap emissive on every part.
-  flash(amount) {
-    if (amount === this._flash) return; this._flash = amount;
+  // White hit flash: temporarily swap emissive on every part. A coloured tint (the tonic's green glow,
+  // view.healGlow) uses the same swap; the white flash wins while both are on.
+  flash(amount) { if (amount === this._flash) return; this._flash = amount; this._overlay(); }
+  tint(color, amount) { this._tintC = color; this._tint = color ? Math.round(Math.max(0, Math.min(1, amount)) * 8) / 8 : 0; this._overlay(); }
+  _overlay() {
+    const f = this._flash || 0, k = this._tint || 0;
+    const key = f > 0 ? 'f' + f : (k > 0 ? 't' + k + ':' + this._tintC : '');
+    if (key === this._overlayKey) return; this._overlayKey = key;
     for (const m of this.parts) {
-      if (!m.material || m.material.isMeshBasicMaterial) continue;
-      if (amount > 0) { if (!this.baseMats.has(m)) this.baseMats.set(m, m.material); m.material = flashMat(this.baseMats.get(m), amount); }
-      else if (this.baseMats.has(m)) { m.material = this.baseMats.get(m); }
+      if (!m.material) continue;
+      if (!this.baseMats.has(m)) { if (m.material.isMeshBasicMaterial || !key) continue; this.baseMats.set(m, m.material); }
+      const base = this.baseMats.get(m);
+      m.material = !key ? base : (f > 0 ? overlayMat(base, 0xffffff, Math.round(f * 4) / 4 * 1.6) : overlayMat(base, this._tintC, k * 0.26));
     }
+  }
+
+  // The tonic flask in the free (left) hand, made on first use. `full` dims the glass once it is drunk.
+  // A Lamplighter hooks her lantern on her belt while she drinks.
+  showFlask(on, full = 1) {
+    if (!on && !this.flask) return;
+    if (!this.flask) {
+      // held in the fist with the neck along the forearm, so at the mouth the neck points in
+      const g = new THREE.Group(); g.position.set(0, -0.06, 0.03); this.j.haL.add(g);
+      this.flaskGlass = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.5, 2.6, 0.8), fog: false });
+      const body = new THREE.Mesh(box(0.11, 0.13, 0.11), this.flaskGlass); body.position.y = -0.04; g.add(body);
+      const neck = new THREE.Mesh(box(0.05, 0.05, 0.05), this.flaskGlass); neck.position.y = -0.12; g.add(neck);
+      const cork = new THREE.Mesh(box(0.06, 0.03, 0.06), mat(0x8a6a3a)); cork.position.y = -0.16; g.add(cork);
+      this.flaskHalo = new THREE.Sprite(new THREE.SpriteMaterial({ map: T.glow('#ffffff', 32, 1.6), color: new THREE.Color(0.25, 0.9, 0.35), blending: THREE.AdditiveBlending, depthWrite: false, fog: false, transparent: true }));
+      this.flaskHalo.scale.set(0.7, 0.7, 1); g.add(this.flaskHalo);
+      this.flask = g;
+      if (this.lantern) { this.beltLantern = this._part('hips', box(0.11, 0.14, 0.11), 0xffc060, 0.22 * (this.def.bulk || 1), -0.08, 0.05, { glow: 3 }); this.beltLantern.visible = false; }
+    }
+    this.flask.visible = on;
+    if (on) { const k = 0.35 + 0.65 * full; this.flaskGlass.color.setRGB(0.5 * k, 2.6 * k, 0.8 * k); this.flaskHalo.material.opacity = 0.25 + 0.75 * full; }
+    if (this.lantern) { this.lantern.visible = !on; this.beltLantern.visible = on; }
   }
 
   tipWorld(out) { return this.tip.getWorldPosition(out); }
   handWorld(out) { return this.j.haR.getWorldPosition(out); }
 }
 
-const flashCache = new Map();
-function flashMat(base, amount) {
-  const q = Math.round(amount * 4) / 4; const k = base.uuid + q;
-  if (!flashCache.has(k)) { const m = base.clone(); m.emissive = new THREE.Color(1, 1, 1); m.emissiveIntensity = q * 1.6; flashCache.set(k, m); }
-  return flashCache.get(k);
+const overlayCache = new Map();
+function overlayMat(base, color, intensity) {
+  const k = base.uuid + ':' + color + ':' + intensity;
+  if (!overlayCache.has(k)) { const m = base.clone(); m.emissive = new THREE.Color(color); m.emissiveIntensity = intensity; overlayCache.set(k, m); }
+  return overlayCache.get(k);
 }

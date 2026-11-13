@@ -1,5 +1,5 @@
 // All sound is synthesised in WebAudio: rain and thunder, steel, bells, and a slow organ-and-choir
-// score with drums that come in when a fight starts. No audio files.
+// score with drums that come in when a fight starts, and the Haven's quiet organ by the fire. No audio files.
 
 export class Sound {
   constructor() { this.ctx = null; this.on = true; this.musicVol = 0.55; this.mode = 'none'; this.nextBeat = 0; this.beat = 0; this.chordT = 0; }
@@ -19,6 +19,7 @@ export class Sound {
     this.noise = this._noise(2);
     this._rain();
     this.nextBeat = c.currentTime + 0.1;
+    if (this.mode === 'haven') this._haven(true);
   }
 
   setEnabled(on) { this.on = on; if (this.master) this.master.gain.setTargetAtTime(on ? 0.8 : 0, this.ctx.currentTime, 0.05); }
@@ -30,7 +31,7 @@ export class Sound {
   _rain() {
     const c = this.ctx; const src = c.createBufferSource(); src.buffer = this.noise; src.loop = true;
     const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 500;
-    const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 7000;
+    const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = this.mode === 'haven' ? 900 : 7000; this.rainLP = lp;
     this.rainGain = c.createGain(); this.rainGain.gain.value = 0.11;
     src.connect(hp); hp.connect(lp); lp.connect(this.rainGain); this.rainGain.connect(this.amb);
     const src2 = c.createBufferSource(); src2.buffer = this.noise; src2.loop = true; src2.playbackRate.value = 0.5;
@@ -72,7 +73,29 @@ export class Sound {
       case 'tele': this._osc('sawtooth', 300, 240, t, 0.1, 0.035 * v); this._nz(t, 0.18, 0.08 * v, 'bandpass', 3500, 5500, 6); break;
       case 'foeDie': this._osc('sawtooth', 160, 60, t, 0.5, 0.08 * v); this._nz(t, 0.4, 0.15 * v, 'lowpass', 900, 200, 0.7); break;
       case 'heroHurt': this._osc('sine', 120, 45, t, 0.22, 0.5); this._nz(t, 0.18, 0.3, 'lowpass', 1200, 300, 0.8); this._osc('sawtooth', 90, 70, t, 0.15, 0.06); break;
-      case 'heal': for (const [f, d] of [[1320, 0], [1760, 0.06], [2640, 0.12]]) this._osc('sine', f, f, t + d, 0.8, 0.07, this.sfx, 0.01); this._nz(t, 0.5, 0.08, 'bandpass', 800, 3000, 2, null, 0.1); break;
+      case 'heal': { // a warm rising chime: a low swell, four bell notes climbing a major chord, a shimmer on top
+        this._osc('triangle', 293.7, 293.7, t, 0.9, 0.05 * v, this.sfx, 0.18); this._osc('sine', 440, 440, t + 0.05, 0.85, 0.04 * v, this.sfx, 0.2);
+        [587.3, 740, 880, 1174.7].forEach((f, i) => { this.bell(t + i * 0.075, f, 1.5, 0.045 * v); this._osc('sine', f * 2, f * 2, t + i * 0.075, 0.5, 0.02 * v, this.sfx, 0.004); });
+        this._nz(t + 0.05, 0.9, 0.07 * v, 'bandpass', 1800, 7000, 3, null, 0.25);
+        break;
+      }
+      case 'drink': { // the cork comes out, then two gulps (timed to the 'heal' clip: lips at 0.4 s, heal at 0.5 s)
+        const c0 = t + 0.2; this._nz(c0, 0.03, 0.4 * v, 'bandpass', 1400, 900, 3); this._osc('sine', 950, 380, c0, 0.04, 0.22 * v, this.sfx, 0.001); this._nz(c0 + 0.03, 0.12, 0.05 * v, 'highpass', 3000, 6000, 1);
+        for (const g of [t + 0.42, t + 0.6]) { this._osc('sine', 230, 110, g, 0.09, 0.32 * v, this.sfx, 0.004); this._nz(g, 0.08, 0.16 * v, 'bandpass', 650, 260, 5, null, 0.004); this._osc('sine', 520, 860, g + 0.035, 0.04, 0.06 * v, this.sfx, 0.002); }
+        this._nz(t + 0.36, 0.35, 0.05 * v, 'bandpass', 900, 500, 2, null, 0.05); // liquid
+        break;
+      }
+      case 'upgrade': { // a bright bell strike and a whoosh of embers
+        this.bell(t, 784, 3.2, 0.14 * v); this.bell(t + 0.01, 1568, 1.4, 0.04 * v); this._osc('sine', 196, 196, t, 1.2, 0.08 * v, this.sfx, 0.004);
+        this._nz(t, 0.75, 0.22 * v, 'bandpass', 260, 3800, 1.1, null, 0.18);
+        for (let i = 0; i < 9; i++) { const d = t + 0.08 + Math.random() * 0.7; this._nz(d, 0.018, 0.12 * v, 'highpass', 4500, 3500, 1, null, 0.001); if (i % 3 === 0) this._osc('sine', 1800 + Math.random() * 900, 2800, d, 0.06, 0.025 * v, this.sfx, 0.002); }
+        break;
+      }
+      case 'equip': { // a metallic clink, then a softer one, and a little leather
+        for (const [d, b, a] of [[0, 2300, 1], [0.075, 3100, 0.55]]) { for (const [r, p] of [[1, 0.12], [1.47, 0.09], [2.09, 0.06], [2.9, 0.04]]) this._osc('sine', b * r, b * r * 0.998, t + d, 0.22, p * a * v, this.sfx, 0.001); this._nz(t + d, 0.02, 0.18 * a * v, 'highpass', 6000, 5000, 1, null, 0.001); }
+        this._nz(t + 0.02, 0.12, 0.08 * v, 'bandpass', 1400, 700, 1.2, null, 0.01);
+        break;
+      }
       case 'lamp': this._nz(t, 0.5, 0.3, 'lowpass', 200, 2400, 1, null, 0.05); this.bell(t + 0.1, 660, 2.2, 0.08); break;
       case 'gate': { const c = this.ctx; const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(70, t); const lfo = c.createOscillator(); lfo.frequency.value = 9; const lg = c.createGain(); lg.gain.value = 18; lfo.connect(lg); lg.connect(o.frequency); const f = c.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 700; f.Q.value = 3; const g = c.createGain(); this._env(g, t, 0.08, 0.06, 0.8); o.connect(f); f.connect(g); g.connect(this.sfx); o.start(t); lfo.start(t); o.stop(t + 1); lfo.stop(t + 1); this._nz(t + 0.85, 0.2, 0.35, 'lowpass', 1500, 200, 0.8); this._osc('sine', 140, 60, t + 0.85, 0.25, 0.3); break; }
       case 'bigBell': this.bell(t, 196, 7, 0.32); this.bell(t, 98, 8, 0.2); break;
@@ -109,12 +132,28 @@ export class Sound {
   }
 
   // ---------------------------------------------------------------- music
-  // modes: title, explore, combat, boss, dawn, none
-  setMusic(mode) { if (mode === this.mode) return; this.mode = mode; this.beat = 0; if (this.ctx) this.nextBeat = Math.max(this.nextBeat, this.ctx.currentTime + 0.05); }
+  // modes: title, explore, combat, boss, dawn, haven, none
+  setMusic(mode) {
+    if (mode === this.mode) return; this.mode = mode; this.beat = 0; if (this.ctx) this.nextBeat = Math.max(this.nextBeat, this.ctx.currentTime + 0.05);
+    this._haven(mode === 'haven');
+  }
+  // the Haven: under a roof the rain is muffled, and a fire burns (a crackling bed plus pops from update())
+  _haven(on) {
+    if (!this.ctx) return; const c = this.ctx, now = c.currentTime;
+    if (this.rainLP) this.rainLP.frequency.setTargetAtTime(on ? 900 : 7000, now, 0.6);
+    if (on && !this.fire) {
+      const src = c.createBufferSource(); src.buffer = this.noise; src.loop = true; src.playbackRate.value = 0.7;
+      const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 420; const bp = c.createBiquadFilter(); bp.type = 'peaking'; bp.frequency.value = 180; bp.gain.value = 6;
+      const g = c.createGain(); g.gain.value = 0.0001; src.connect(lp); lp.connect(bp); bp.connect(g); g.connect(this.amb); src.start();
+      this.fire = { src, g };
+    }
+    if (this.fire) this.fire.g.gain.setTargetAtTime(on ? 0.11 : 0.0001, now, on ? 0.8 : 0.4);
+  }
 
   update() {
     if (!this.ctx || this.mode === 'none') return;
     const c = this.ctx; const ahead = c.currentTime + 0.25;
+    if (this.mode === 'haven') { if (!this.fire) this._haven(true); return this._havenMusic(ahead); }
     const bpm = this.mode === 'boss' ? 124 : (this.mode === 'combat' ? 104 : 60); const spb = 60 / bpm / 2; // eighth notes
     const minor = [[146.8, 174.6, 220], [116.5, 146.8, 174.6], [98, 116.5, 146.8], [110, 138.6, 164.8]]; // Dm Bb Gm A
     const major = [[146.8, 185, 220], [98, 123.5, 146.8], [123.5, 146.8, 185], [110, 138.6, 164.8]]; // D G Bm A
@@ -144,6 +183,30 @@ export class Sound {
         if (heavy && b % 2 === 0) this._pluck(t, chord[0] / 2, spb * 1.8, 0.06, 'sawtooth');
       }
       this.beat++; this.nextBeat += spb;
+    }
+  }
+  // a slow organ (Dm, Bb, F, C; eight seconds a chord), a distant bell now and then, fire pops on the ambience
+  _havenMusic(ahead) {
+    const prog = [[146.8, 174.6, 220], [116.5, 146.8, 174.6], [174.6, 220, 261.6], [130.8, 164.8, 196]];
+    const spb = 0.5; // the beat is an eighth of a slow bar; 16 of them per chord
+    while (this.nextBeat < ahead) {
+      const t = this.nextBeat, b = this.beat, chord = prog[Math.floor(b / 16) % 4];
+      if (b % 16 === 0) { for (const f of chord) this._organ(t, f, 16 * spb, 0.016); this._organ(t, chord[0] / 2, 16 * spb, 0.02); }
+      if (b % 16 === 8 && Math.random() < 0.5) this._organ(t, chord[2] * 2, 6 * spb, 0.006); // a high voice drifting in
+      if (b % 48 === 20 || (b % 48 === 44 && Math.random() < 0.4)) { const f = [146.8, 110, 98][Math.floor(Math.random() * 3)]; this.bell(t, f * 2, 7, 0.022, this.mus); }
+      // the fire: a few pops and ticks every beat
+      const n = Math.random() < 0.35 ? 2 : (Math.random() < 0.6 ? 1 : 0);
+      for (let i = 0; i < n; i++) { const d = t + Math.random() * spb; if (Math.random() < 0.25) this._nz(d, 0.05, 0.14, 'lowpass', 900, 300, 1, this.amb, 0.002); else this._nz(d, 0.012 + Math.random() * 0.01, 0.07 + Math.random() * 0.08, 'highpass', 2500 + Math.random() * 3000, 2000, 1, this.amb, 0.001); }
+      this.beat++; this.nextBeat += spb;
+    }
+  }
+  _organ(t, f, dur, peak) { // flue pipes: a fundamental with an octave and a soft twelfth, slow to speak
+    const c = this.ctx;
+    for (const [r, a, type] of [[1, 1, 'triangle'], [2, 0.45, 'sine'], [3, 0.18, 'sine'], [0.5, 0.3, 'sine']]) {
+      const o = c.createOscillator(); o.type = type; o.frequency.value = f * r; o.detune.value = (Math.random() - 0.5) * 6;
+      const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1400;
+      const g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(peak * a, t + Math.min(2.2, dur * 0.3)); g.gain.setValueAtTime(peak * a, t + dur * 0.85); g.gain.linearRampToValueAtTime(0.0001, t + dur + 1.2);
+      o.connect(lp); lp.connect(g); g.connect(this.mus); o.start(t); o.stop(t + dur + 1.3);
     }
   }
   _pad(t, f, dur, peak) {

@@ -1,9 +1,34 @@
 // Effects: sword trails, pixel particles (sparks, blood, mist, embers), blood on the stones,
-// ground telegraphs for foe attacks and hazards, projectiles, dash afterimages, shock rings.
+// ground telegraphs for foe attacks and hazards, projectiles, dash afterimages, shock rings, and the
+// tonic's healing motes, rings and glow.
 import * as THREE from '../../vendor/three.module.min.js';
 import * as T from './textures.js';
 
 const MAXP = 1600;
+const MAXM = 192; // tonic motes
+const TAU = Math.PI * 2;
+const easeOut = (k) => 1 - (1 - k) * (1 - k);
+// procedural textures for the tonic: a soft ring (for a plane on the ground) and a column of light
+let _ringTex = null, _colTex = null;
+function ringTex() {
+  if (_ringTex) return _ringTex;
+  const n = 64, c = document.createElement('canvas'); c.width = c.height = n; const g = c.getContext('2d'); const img = g.createImageData(n, n);
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    const d = Math.hypot(x - n / 2 + 0.5, y - n / 2 + 0.5) / (n / 2); const a = Math.exp(-(((d - 0.82) / 0.08) ** 2)) + 0.16 * Math.max(0, 1 - d);
+    const i = (y * n + x) * 4; img.data[i] = img.data[i + 1] = img.data[i + 2] = 255; img.data[i + 3] = Math.round(Math.min(1, d > 1 ? 0 : a) * 255);
+  }
+  g.putImageData(img, 0, 0); _ringTex = new THREE.CanvasTexture(c); _ringTex.colorSpace = THREE.SRGBColorSpace; _ringTex.minFilter = THREE.LinearFilter; _ringTex.generateMipmaps = false; return _ringTex;
+}
+function columnTex() {
+  if (_colTex) return _colTex;
+  const w = 16, h = 64, c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); const img = g.createImageData(w, h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const u = Math.abs(x - w / 2 + 0.5) / (w / 2), v = y / (h - 1); // v: 0 top, 1 bottom
+    const a = Math.max(0, 1 - u) ** 1.6 * Math.min(1, v * 1.4) * Math.min(1, (1 - v) * 8); // brightest low, fading upwards
+    const i = (y * w + x) * 4; img.data[i] = img.data[i + 1] = img.data[i + 2] = 255; img.data[i + 3] = Math.round(Math.min(1, a) * 255);
+  }
+  g.putImageData(img, 0, 0); _colTex = new THREE.CanvasTexture(c); _colTex.colorSpace = THREE.SRGBColorSpace; _colTex.minFilter = THREE.LinearFilter; _colTex.generateMipmaps = false; return _colTex;
+}
 // remove an object and free what it alone owns (geometries/materials marked userData.keep are shared)
 function free(group, o) {
   group.remove(o);
@@ -17,7 +42,7 @@ function free(group, o) {
 export class FX {
   constructor(scene) {
     this.scene = scene; this.group = new THREE.Group(); scene.add(this.group);
-    this._particles(); this.trails = []; this.decals = []; this.teles = new Map(); this.hz = new Map(); this.projs = new Map(); this.ghosts = []; this.rings = []; this.bolts = []; this.slashes = [];
+    this._particles(); this._tonicInit(); this.trails = []; this.decals = []; this.teles = new Map(); this.hz = new Map(); this.projs = new Map(); this.ghosts = []; this.rings = []; this.bolts = []; this.slashes = [];
     this.decalGeo = new THREE.CircleGeometry(0.5, 7); this.decalGeo.userData.keep = true; this.zv = new Map();
     this.decalMat = new THREE.MeshLambertMaterial({ color: 0x3a0606, transparent: true, opacity: 0.85, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
   }
@@ -241,7 +266,7 @@ export class FX {
     m.rotation.x = -Math.PI / 2; m.position.set(x, 0.06, z); this.group.add(m); this.rings.push({ m, t: 0, life, r });
   }
 
-  // a crimson slash line drawn across a point (the Requiem, finishers, parries)
+  // a crimson slash line drawn across a point (the Requiem, parries, bolts)
   slashLine(x, y, z, len = 2.4, color = [3, 0.3, 0.25], life = 0.22) {
     const a = Math.random() * Math.PI; const dx = Math.cos(a) * len / 2, dz = Math.sin(a) * len / 2, dy = (Math.random() - 0.5) * 0.8;
     const g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x - dx, y - dy, z - dz), new THREE.Vector3(x + dx, y + dy, z + dz)]);
@@ -282,6 +307,119 @@ export class FX {
     return g;
   }
 
+  // ---------------------------------------------------------------- the tonic
+  // Chunky green-gold motes spiralling up a body (two strands of a helix), some drawn as little plus
+  // signs; a soft ring opening at the feet; a brief additive glow and a column of light. tonicStart(e)
+  // plays while the drink begins and follows the drinker; tonicBurst(x, z, amt) is the bright answer
+  // when the HP lands. Everything is pooled or freed when it ends.
+  _tonicInit() {
+    const g = new THREE.BufferGeometry();
+    this.mPos = new Float32Array(MAXM * 3); this.mCol = new Float32Array(MAXM * 4); this.mSize = new Float32Array(MAXM); this.mShape = new Float32Array(MAXM);
+    for (let i = 0; i < MAXM; i++) this.mPos[i * 3 + 1] = -999;
+    g.setAttribute('position', new THREE.BufferAttribute(this.mPos, 3)); g.setAttribute('color', new THREE.BufferAttribute(this.mCol, 4));
+    g.setAttribute('size', new THREE.BufferAttribute(this.mSize, 1)); g.setAttribute('shape', new THREE.BufferAttribute(this.mShape, 1));
+    const m = new THREE.ShaderMaterial({
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+      vertexShader: `attribute float size; attribute float shape; attribute vec4 color; varying vec4 vC; varying float vS; varying float vZ;
+        void main(){ vC = color; vS = shape; vZ = size; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); gl_PointSize = size; }`,
+      // shape 1: a plus sign in the point's square (a 3 px point gives a 3x3 cross)
+      fragmentShader: `varying vec4 vC; varying float vS; varying float vZ;
+        void main(){ if (vC.a < 0.01) discard; if (vS > 0.5) { vec2 q = floor(gl_PointCoord * vZ); float c = floor(vZ * 0.5); if (q.x != c && q.y != c) discard; } gl_FragColor = vC; }`,
+    });
+    this.motes = new THREE.Points(g, m); this.motes.frustumCulled = false; this.motes.renderOrder = 5; this.group.add(this.motes);
+    this.mI = 0; this.mv = []; for (let i = 0; i < MAXM; i++) this.mv.push({ life: 0, max: 1, a: 0, w: 0, r: 0, dr: 0, y: 0, vy: 0, cx: 0, cz: 0, e: null, c: [1, 1, 1], s: 1 });
+    this.tEm = []; this.tRings = []; this.tGlows = [];
+    this.ringGeo = new THREE.PlaneGeometry(2, 2); this.ringGeo.userData.keep = true;
+  }
+
+  // one mote: angle a (rad), radius r (m) and its drift dr, height y and rise vy, spin w (rad/s)
+  _mote(o) {
+    const v = this.mv[this.mI++ % MAXM];
+    v.e = o.e || null; v.cx = o.x; v.cz = o.z; v.a = o.a; v.r = o.r; v.dr = o.dr || 0; v.y = o.y; v.vy = o.vy; v.w = o.w;
+    v.life = v.max = o.life; v.c = o.c; v.s = o.s || 2; v.shape = o.shape || 0;
+  }
+
+  // a soft ring that opens on the ground (follows `e` if given)
+  _tRing(e, x, z, r0, r1, life, color, peak = 0.9, delay = 0) {
+    const m = new THREE.Mesh(this.ringGeo, new THREE.MeshBasicMaterial({ map: ringTex(), color: new THREE.Color(...color), transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+    m.rotation.x = -Math.PI / 2; m.position.set(x, 0.05, z); m.scale.setScalar(r0); m.renderOrder = 4; this.group.add(m);
+    this.tRings.push({ m, e, t: -delay, life, r0, r1, peak });
+  }
+  // an additive glow sprite (tex: the round glow or the column of light), centred at height y
+  _tGlow(e, x, z, y, sx, sy, life, color, peak, tex) {
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex || T.glow('#ffffff', 32, 1.2), color: new THREE.Color(...color), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+    s.position.set(x, y, z); s.scale.set(sx, sy, 1); s.renderOrder = 6; this.group.add(s);
+    this.tGlows.push({ s, e, y, t: 0, life, peak });
+  }
+
+  tonicStart(e) {
+    if (!e) return;
+    this._tonicE = e;
+    this.tEm.push({ e, t: 0, dur: 0.8, acc: 0, rate: 30, a0: Math.random() * TAU });
+    this._tRing(e, e.x, e.z, 0.25, 1.05, 0.75, [0.5, 1.8, 0.6], 0.75);
+    this._tGlow(e, e.x, e.z, 1.0, 1.4, 1.8, 0.4, [0.35, 1.2, 0.45], 0.4);
+  }
+
+  tonicBurst(x, z, amt = 30) {
+    // follow the drinker if the burst lands on them
+    const e = this._tonicE && !this._tonicE.dead && Math.hypot(this._tonicE.x - x, this._tonicE.z - z) < 1.5 ? this._tonicE : null;
+    const n = 22 + Math.min(16, Math.round((amt || 0) / 5));
+    const a0 = Math.random() * TAU;
+    for (let k = 0; k < n; k++) {
+      const plus = k % 3 === 0; const gold = k % 2 === 1;
+      this._mote({ e, x, z, a: a0 + (k / n) * TAU * 2 + Math.random() * 0.4, r: 0.25 + Math.random() * 0.25, dr: 0.45 + Math.random() * 0.3, y: 0.15 + Math.random() * 0.9, vy: 1.4 + Math.random() * 1.8, w: 5.5 + Math.random() * 1.5,
+        life: 0.8 + Math.random() * 0.5, c: plus ? [0.5, 2.2, 0.6] : (gold ? [2.1, 1.6, 0.4] : [0.4, 1.9, 0.5]), s: plus ? 3 : (Math.random() < 0.25 ? 1 : 2), shape: plus ? 1 : 0 });
+    }
+    this.emit(x, 0.6, z, { n: 14, speed: 1.4, up: 1.4, vy: 2.2, life: 0.9, grav: -1.2, color: [1.6, 2.8, 1.0], size: 1, jit: 0.7, jitY: 0.8, drag: 1.2 });
+    this._tRing(e, x, z, 0.3, 1.9, 0.6, [0.9, 2.2, 0.7], 1.0);
+    this._tRing(e, x, z, 0.2, 1.25, 0.55, [2.4, 2.0, 0.6], 0.6, 0.12);
+    this._tGlow(e, x, z, 1.0, 2.2, 2.8, 0.45, [0.5, 1.6, 0.55], 0.6);
+    this._tGlow(e, x, z, 1.7, 1.0, 3.6, 0.55, [0.7, 1.8, 0.6], 0.55, columnTex());
+  }
+
+  _tonicUpdate(dt) {
+    for (const em of this.tEm) {
+      em.t += dt; em.acc += dt * em.rate;
+      while (em.acc >= 1) {
+        em.acc -= 1; const e = em.e;
+        for (let s = 0; s < 2; s++) this._mote({ e, x: e.x, z: e.z, a: em.a0 + s * Math.PI + (Math.random() - 0.5) * 0.3, r: 0.42, dr: -0.1, y: 0.08, vy: 1.9 + Math.random() * 0.4, w: 6,
+          life: 0.75 + Math.random() * 0.25, c: s ? [2.0, 1.55, 0.38] : [0.38, 1.85, 0.48], s: Math.random() < 0.2 ? 1 : 2 });
+      }
+    }
+    this.tEm = this.tEm.filter((em) => em.t < em.dur);
+    const P = this.mPos, C = this.mCol, S = this.mSize, H = this.mShape;
+    for (let i = 0; i < MAXM; i++) {
+      const v = this.mv[i];
+      if (v.life <= 0) { if (C[i * 4 + 3] !== 0) { C[i * 4 + 3] = 0; P[i * 3 + 1] = -999; } continue; }
+      v.life -= dt; if (v.e) { v.cx = v.e.x; v.cz = v.e.z; }
+      v.a += v.w * dt; v.r = Math.max(0.05, v.r + v.dr * dt); v.y += v.vy * dt;
+      P[i * 3] = v.cx + Math.sin(v.a) * v.r; P[i * 3 + 1] = v.y; P[i * 3 + 2] = v.cz + Math.cos(v.a) * v.r;
+      const age = v.max - v.life; const k = Math.min(1, age / 0.06) * Math.min(1, v.life / (v.max * 0.4));
+      const tw = v.shape ? 0.75 + 0.25 * Math.sin(age * 30 + i) : 1;
+      C[i * 4] = v.c[0]; C[i * 4 + 1] = v.c[1]; C[i * 4 + 2] = v.c[2]; C[i * 4 + 3] = Math.max(0, k * tw);
+      S[i] = v.s; H[i] = v.shape || 0;
+    }
+    const g = this.motes.geometry; for (const n of ['position', 'color', 'size', 'shape']) g.attributes[n].needsUpdate = true;
+    for (const r of this.tRings) {
+      r.t += dt; if (r.t < 0) continue; const k = r.t / r.life;
+      if (r.e) r.m.position.set(r.e.x, 0.05, r.e.z);
+      r.m.scale.setScalar(r.r0 + (r.r1 - r.r0) * easeOut(Math.min(1, k)));
+      r.m.material.opacity = r.peak * Math.min(1, r.t / 0.05) * (1 - k);
+    }
+    this.tRings = this.tRings.filter((r) => { if (r.t >= r.life) { free(this.group, r.m); return false; } return true; });
+    for (const gl of this.tGlows) {
+      gl.t += dt; const k = gl.t / gl.life;
+      if (gl.e) gl.s.position.set(gl.e.x, gl.y, gl.e.z);
+      gl.s.material.opacity = gl.peak * Math.min(1, gl.t / 0.05) * (1 - k) * (1 - k);
+    }
+    this.tGlows = this.tGlows.filter((gl) => { if (gl.t >= gl.life) { free(this.group, gl.s); return false; } return true; });
+  }
+  _tonicClear() {
+    for (const r of this.tRings) free(this.group, r.m); for (const gl of this.tGlows) free(this.group, gl.s);
+    this.tRings = []; this.tGlows = []; this.tEm = []; this._tonicE = null;
+    for (const v of this.mv) v.life = 0;
+  }
+
   // ---------------------------------------------------------------- afterimages
   ghost(rig, color = [1.6, 0.15, 0.15], life = 0.28) {
     // a frozen copy of the figure: the rig's own geometry at its current world transforms
@@ -309,6 +447,7 @@ export class FX {
     }
     const g = this.points.geometry; g.attributes.position.needsUpdate = true; g.attributes.color.needsUpdate = true; g.attributes.size.needsUpdate = true;
     this._trails(dt);
+    this._tonicUpdate(dt);
     for (const d of this.decals) { d.t += dt; if (d.t > 25) d.m.material.opacity = Math.max(0, 0.85 - (d.t - 25) / 10); }
     this.decals = this.decals.filter((d) => { if (d.t > 35) { free(this.group, d.m); return false; } return true; });
     for (const gh of this.ghosts) { gh.t -= dt; gh.mat.opacity = 0.55 * Math.max(0, gh.t / gh.life); }
@@ -329,5 +468,6 @@ export class FX {
     for (const [, m] of this.zv) free(this.group, m); this.zv.clear();
     for (const tr of this.trails) free(this.group, tr.mesh); this.trails = [];
     for (let i = 0; i < MAXP; i++) this.pLife[i] = 0;
+    this._tonicClear();
   }
 }

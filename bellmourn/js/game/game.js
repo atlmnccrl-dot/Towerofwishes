@@ -1,6 +1,6 @@
-// The game: title, hero select, the training road, eight districts with lamps, locked-gate fights and
-// bosses, death and retry, levels, skills, weapons, relics, the merchant, travel, saving, the ending.
-// Owns the World (simulation) and turns its events into effects.
+// The game: title, hero select, the training road, eight districts with checkpoint lamps, locked-gate
+// fights and bosses, death and retry, the Haven between districts (levels, skills, weapons, relics, the
+// merchant, travel), saving, the ending. Owns the World (simulation) and turns its events into effects.
 import * as THREE from '../../vendor/three.module.min.js';
 import { World, angTo } from './sim.js';
 import { buildLevel, K } from '../world/level.js';
@@ -13,11 +13,16 @@ import { makeAutoplay } from './autoplay.js';
 import { BOSS_AI } from './ai.js';
 import { BOSS_AI2 } from './bosses2.js';
 import { HEROES, HERO_ORDER, heroStats, AFFIX_LIST, WEAPONS, RELICS, xpFor } from './heroes.js';
-import { freshSave, upgradeSave, addXp, xpFrac, bossReward, chestLoot, districtIndex, skillRows, useSkillRow, shopStock, buy, upgradeWeapon, toggleRelic, relicSlots } from './progress.js';
+import { freshSave, upgradeSave, addXp, xpFrac, bossReward, chestLoot, skillRows, useSkillRow, shopStock, buy, upgradeWeapon, toggleRelic, relicSlots, havenNext } from './progress.js';
 import { LampMenu } from './lampmenu.js';
-import { Tutorial } from './tutorial.js';
+import { Tutorial, STEPS } from './tutorial.js';
+import { Haven } from './haven.js';
+import { buildHaven } from '../world/haven.js';
 
 const QUALITY = [{ label: 'SHARP', h: 200 }, { label: 'BALANCED', h: 175 }, { label: 'FAST', h: 150 }];
+const BUTTONS = [1.15, 1.3, 1.5]; // touch button sizes (ui.touchScale)
+const BUTTON_LABEL = { 1.15: 'SMALL', 1.3: 'MEDIUM', 1.5: 'LARGE' };
+const ABILITY_MODES = [{ id: 'attack', label: 'ON ATTACK' }, { id: 'auto', label: 'AUTO' }];
 const SAVE_KEY = 'bellmourn.save.v2', SET_KEY = 'bellmourn.settings.v1';
 function load(key) { try { return JSON.parse(localStorage.getItem(key)); } catch (e) { return null; } }
 function store(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) { /* private mode */ } }
@@ -29,12 +34,15 @@ export class Game {
   constructor(sys) {
     Object.assign(this, sys); // r, atmos, fx, view, ui, input, sound
     this.save = upgradeSave(load(SAVE_KEY)) || freshSave();
-    this.settings = { sound: true, music: 0.55, shake: true, quality: 0, ...(load(SET_KEY) || {}) };
+    this.settings = { sound: true, music: 0.55, shake: true, quality: 0, touchScale: 1.3, abilityMode: 'attack', ...(load(SET_KEY) || {}) };
+    if (!BUTTONS.includes(this.settings.touchScale)) this.settings.touchScale = 1.3;
+    if (!ABILITY_MODES.some((m) => m.id === this.settings.abilityMode)) this.settings.abilityMode = 'attack';
     this.applyQuality();
+    this.ui.touchScale = this.settings.touchScale;
     this.sound.on = this.settings.sound; this.sound.musicVol = this.settings.music;
     this.state = 'boot'; this.t = 0; this.stateT = 0; this.sel = 0; this.camFocus = new THREE.Vector3(); this.zoom = 1;
     this.level = null; this.world = null; this.embersShown = this.save.embers; this.card = null; this.timers = []; this.token = 0;
-    this.rand = Math.random; this.lamp = new LampMenu(this);
+    this.rand = Math.random; this.lamp = new LampMenu(this); this.flares = []; this.inHaven = false; this.haven = null; this.groundAt = null;
     this.atmos.onThunder = (k) => this.sound.play('thunder', { delay: 0.3 + Math.random() * 0.9, vol: k, big: k > 0.9 });
   }
 
@@ -49,14 +57,14 @@ export class Game {
     const def = LEVELS[id]; if (!def) throw new Error('no level ' + id);
     this.loading = true; this.token++; this.timers = [];
     if (this.level) { this.r.scene.remove(this.level.group); }
-    this.view.clear(); this.fx.clear();
+    this.view.clear(); this.fx.clear(); this.leaveHaven(); this.clearNotes();
     const L = await buildLevel(def);
     // lamps and chests are built by the game so they can change state
     const ctx = K.makeCtx(); L.lamps = (def.lamps || []).map((l) => ({ ...l, h: K.shrineLamp(ctx, l.x, l.z) }));
     L.chests = (def.items || []).map((it) => ({ ...it, h: K.chest(ctx, it.x, it.z, it.ry || 0) }));
     await K.finishCtx(ctx); L.group.add(ctx.group); L.solids.push(...ctx.solids); L.lights.push(...ctx.lights); L.anims.push(...L.chests.map((c) => c.h));
     for (const c of L.chests) if (this.save.items[id + ':' + c.id]) { c.h.open = true; c.h.t = 1; c.h.lidPivot.rotation.x = -1.9; c.h.lock.visible = false; }
-    for (const l of L.lamps) l.h.set(this.save.lamp === id + ':' + l.id || !!this.save.litLamps[id + ':' + l.id]);
+    for (const l of L.lamps) l.h.set(this.save.lamp === id + ':' + l.id || !!this.save.litLamps[id + ':' + l.id]); // before setLevel: the light pool copies the lamps' state
     if (this.level && this.level !== L) this.r.scene.remove(this.level.group);
     this.r.scene.add(L.group); this.level = L; this.levelId = id;
     this.atmos.setLevel(def.ambience || {}, L.lights);
@@ -74,7 +82,8 @@ export class Game {
   spawnWorld(opts = {}) {
     const def = this.level.def; const L = this.level;
     this.view.clear(); this.fx.clear();
-    const w = this.world = new World({ solids: L.solids, bounds: def.bounds, seed: 11 + this.save.deaths });
+    const w = this.world = new World({ solids: L.solids, bounds: def.bounds, seed: 11 + this.save.deaths, abilityMode: this.settings.abilityMode });
+    w.abilityMode = this.settings.abilityMode; this.resting = null; this.flares = [];
     for (const [name, g] of Object.entries(L.marks)) if (g && g.set) { const startOpen = (def.gatesOpen || []).includes(name); g.set(startOpen); g.t = startOpen ? 1 : 0; g.update(0.0001); }
     let sx = def.start.x, sz = def.start.z, face = def.start.face ?? Math.PI;
     const lampKey = this.save.lamp && this.save.lamp.startsWith(this.levelId + ':') ? this.save.lamp.split(':')[1] : null;
@@ -98,11 +107,13 @@ export class Game {
   }
 
   // the hero changed (another hero, a skill, a weapon, a relic): respawn them in place with new stats
+  // (the same entity id, so the view keeps the rig unless the warden or the weapon changed)
   refreshHero() {
     const w = this.world; const old = w.hero; if (!old) return;
     const frac = old.hp / old.maxHp; w.ents = w.ents.filter((e) => e !== old);
-    const h = w.spawnHero(old.x, old.z, { ...this.heroStats(), face: old.face });
+    const h = w.spawnHero(old.x, old.z, { ...this.heroStats(), face: old.face }); h.id = old.id;
     h.hp = Math.max(1, Math.round(h.maxHp * frac)); h.tonics = Math.min(h.stats.maxTonics, old.tonics + (h.stats.maxTonics - old.stats.maxTonics));
+    if (this.inHaven && this.haven) this.haven.adopt(old, h);
   }
 
   gate(name, open, instant = false) {
@@ -125,6 +136,7 @@ export class Game {
       this.debugDone = true; this.debug = { god: q.get('god') === '1' };
       if (q.get('hero') && HEROES[q.get('hero')]) { this.save.hero = q.get('hero'); if (!this.save.unlocked.includes(q.get('hero'))) this.save.unlocked.push(q.get('hero')); }
       if (q.get('lamp')) this.save.lamp = q.get('level') + ':' + q.get('lamp');
+      if (q.get('level') === 'haven') { await this.enterHaven(havenNext(this.save, q.get('next') || 'gate'), { first: q.get('intro') === '1', resume: q.get('resume') === '1' }); return; }
       await this.enterLevel(q.get('level'), !q.get('lamp'));
       if (q.get('boss') === '1' && this.level.def.boss) { const B = this.level.def.boss; const h = this.world.hero; h.x = (B.zone[0] + B.zone[2]) / 2; h.z = B.zone[3] - 0.5; }
       return;
@@ -158,7 +170,7 @@ export class Game {
     else if (S === 'story') this.story(dt, inp);
     else if (S === 'play') this.play(dt, inp);
     else if (S === 'pause') this.pauseMenu(dt, inp);
-    else if (S === 'lamp') { if (this.lamp.update(dt, inp) === 'leave') this.go('play'); }
+    else if (S === 'haven') this.haven.update(dt, inp);
     else if (S === 'dead') this.dead(dt, inp);
     else if (S === 'bossIntro') this.bossIntro(dt, inp);
     else if (S === 'ending') this.ending(dt, inp);
@@ -173,18 +185,19 @@ export class Game {
     const S = this.state;
     if (S === 'title' && this.stateT > 0.5) { const hero = this.save.hero; this.save = freshSave(hero); this.persist(); this.embersShown = 0; this.enterLevel('gate', true); }
     else if (S === 'story') this.storyIdx = (this.storyLines || []).length;
-    else if (S === 'lamp' && this.stateT > 0.3) { this.autoSpend(); this.refreshHero(); this.go('play'); }
+    else if (S === 'haven' && this.haven && this.haven.ready() && this.stateT > 0.3) { this.autoSpend(); this.refreshHero(); this.haven.onward(); }
     else if (S === 'play' && this.world && !this.loading) Object.assign(inp, this.auto(this, dt), { pausePressed: false });
     else if (S === 'ending' && this.endT > 1.2) { this.endT = 0; this.endIdx++; }
   }
 
-  // what a sensible player does at a lamp: rank up skills, wear the best weapon and relics, temper, buy
+  // what a sensible player does at the Haven: rank up skills, wear the best weapon and relics, temper, buy
   autoSpend() {
     const S = this.save, P = S.heroes[S.hero];
     for (let guard = 0; guard < 20 && P.points > 0; guard++) { const rows = skillRows(S).filter((r) => !r.locked && r.rank < 5); if (!rows.length) break; rows.sort((a, b) => a.rank - b.rank); useSkillRow(S, rows[0]); }
     P.weapon = P.owned.slice().sort((a, b) => WEAPONS[b].tier - WEAPONS[a].tier)[0];
     for (const id of S.relicsOwned) if (!S.relicsOn.includes(id) && S.relicsOn.filter(Boolean).length < relicSlots(S)) toggleRelic(S, id);
-    for (const it of shopStock(S, this.levelId)) if (it.kind !== 'tome' && S.embers >= it.price + 150) buy(S, it, this.levelId);
+    const where = this.shopDistrict();
+    for (const it of shopStock(S, where)) if (it.kind !== 'tome' && S.embers >= it.price + 150) buy(S, it, where);
     for (let guard = 0; guard < 10; guard++) if (upgradeWeapon(S).startsWith('NOT')) break;
     this.persist();
   }
@@ -203,13 +216,13 @@ export class Game {
 
   title(dt, inp) {
     this.sound.setMusic('title');
-    const S = this.save; const hasSave = !!(S.lamp || Object.keys(S.cleared).length || S.level !== 'gate' || S.done || S.visited.length > 1);
+    const S = this.save; const hasSave = !!(S.lamp || Object.keys(S.cleared).length || S.level !== 'gate' || S.done || S.visited.length > 1 || S.inHaven || S.havenSeen);
     this.titleItems = [hasSave ? { label: 'CONTINUE', id: 'cont' } : null, { label: 'NEW GAME', id: 'new' }, { label: 'CONTROLS', id: 'controls' }, { label: 'SETTINGS', id: 'settings' }, { label: 'CREDITS', id: 'credits' }].filter(Boolean);
     const p = this.menuInput(inp, this.titleItems);
     if (p >= 0) {
       const id = this.titleItems[p].id;
       if (id === 'new') { this.selHero = 0; this.selStep = 0; this.go('select'); }
-      else if (id === 'cont') this.enterLevel(this.save.level, false);
+      else if (id === 'cont') { if (this.save.inHaven) this.enterHaven(havenNext(this.save, this.save.havenNext || this.save.level), { resume: true }); else this.enterLevel(this.save.level, false); }
       else { this.back = 'title'; this.go(id); }
     }
   }
@@ -256,36 +269,69 @@ export class Game {
     this.go('loading'); this.r.post.fade = 1;
     await this.loadLevel(id, { fromStart, at });
     if (id !== 'prologue') this.save.level = id;
+    this.save.inHaven = false;
     this.persist();
     const def = LEVELS[id]; const n = DISTRICTS.indexOf(id);
     this.card = { t: 0, sup: n >= 0 ? 'DISTRICT ' + ROMAN[n] : 'PROLOGUE', title: def.name.toUpperCase(), line: def.tagline || '' };
     this.go('play'); this.fadeIn = 0;
   }
 
-  travel(id) { this.save.lamp = null; const lamps = LEVELS[id].lamps || []; const l = lamps[0]; this.enterLevel(id, !l, l ? { x: l.x + (l.sx ?? 0), z: l.z + (l.sz ?? 1.3) } : undefined); }
+  // ------------------------------------------------------------------ the Haven
+  // After a district's exit (and the Old Road's), or from the pause menu: the shrine between districts.
+  // next: the district ONWARD leads to. opts: resume (start kneeling: CONTINUE), first (the guide).
+  async enterHaven(next, opts = {}) {
+    this.go('loading'); this.r.post.fade = 1; this.loading = true; this.token++; this.timers = [];
+    if (this.level) this.r.scene.remove(this.level.group);
+    this.view.clear(); this.fx.clear(); this.clearNotes();
+    const L = this.havenSet || (this.havenSet = await buildHaven());
+    this.r.scene.add(L.group); this.level = L; this.levelId = 'haven';
+    this.atmos.setLevel(L.def.ambience, L.lights); this.groundAt = L.roofAt; this.atmos.heroLight.intensity = 1.2;
+    this.sound.setRain(0.55); this.r.post.dawn = 0;
+    const S = this.save; S.inHaven = true; S.havenNext = next; S.havenSeen = true; if (next) S.level = next; this.persist();
+    const w = this.world = new World({ solids: L.solids, bounds: L.def.bounds, seed: 5, abilityMode: this.settings.abilityMode }); w.abilityMode = this.settings.abilityMode;
+    this.encs = []; this.boss = null; this.bossState = 'idle'; this.hints = []; this.tutorial = null; this.prompt = null; this.leaving = false; this.card = null; this.resting = null; this.flares = [];
+    this.inHaven = true; this.lamp.reset(1);
+    this.haven = new Haven(this, L, { next, resume: !!opts.resume, first: opts.first ?? !S.havenIntro });
+    this.camFocus.set(w.hero.x, 0, w.hero.z); this.r.focus.copy(this.camFocus);
+    this.loading = false; this.go('haven'); this.fadeIn = 0;
+  }
+  // toasts and floating numbers age only while the HUD is drawn: drop them when the place changes, or a
+  // district's last words (a boss's rewards) would turn up in the next one
+  clearNotes() { const ui = this.ui; ui.toasts = []; if (ui.floats) ui.floats = []; ui.gain = null; }
+  leaveHaven() { if (!this.inHaven) return; this.inHaven = false; this.haven = null; this.groundAt = null; this.atmos.heroLight.intensity = 5; this.atmos.heroLight.color.setHex(0xb8c8ec); }
+  // the merchant and the map at the Haven are stocked for the district ahead
+  shopDistrict() { return this.inHaven ? (this.save.havenNext || 'gate') : this.levelId; }
 
   controls(dt, inp) { if (inp.back || inp.confirm || inp.taps.length) { this.sound.play('ui'); this.go(this.back || 'title'); } }
   applyQuality() { const q = QUALITY[this.settings.quality || 0] || QUALITY[0]; setTargetHeight(q.h); this.r.resize(); }
   settingsMenu(dt, inp) {
     const s = this.settings;
-    this.setItems = [{ label: 'SOUND: ' + (s.sound ? 'ON' : 'OFF') }, { label: 'MUSIC: ' + Math.round(s.music * 10) }, { label: 'SCREEN SHAKE: ' + (s.shake ? 'ON' : 'OFF') }, { label: 'PIXELS: ' + QUALITY[s.quality || 0].label }, { label: 'BACK' }];
-    const p = this.menuInput(inp, this.setItems);
+    this.setItems = [{ label: 'SOUND: ' + (s.sound ? 'ON' : 'OFF') }, { label: 'MUSIC: ' + Math.round(s.music * 10) }, { label: 'SCREEN SHAKE: ' + (s.shake ? 'ON' : 'OFF') }, { label: 'PIXELS: ' + QUALITY[s.quality || 0].label },
+      { label: 'BUTTONS: ' + (BUTTON_LABEL[s.touchScale] || 'MEDIUM') }, { label: 'ABILITIES: ' + (ABILITY_MODES.find((m) => m.id === s.abilityMode) || ABILITY_MODES[0]).label }, { label: 'BACK' }];
+    const p = this.menuInput(inp, this.setItems); const side = inp.left ? -1 : (inp.right ? 1 : 0);
     if (p === 0) { s.sound = !s.sound; this.sound.setEnabled(s.sound); }
-    if (p === 1 || (this.sel === 1 && (inp.left || inp.right))) { s.music = inp.left ? Math.max(0, s.music - 0.1) : (inp.right ? Math.min(1, s.music + 0.1) : (s.music >= 0.95 ? 0 : s.music + 0.1)); s.music = Math.round(s.music * 10) / 10; this.sound.setMusicVol(s.music); }
+    if (p === 1 || (this.sel === 1 && side)) { s.music = side < 0 ? Math.max(0, s.music - 0.1) : (side > 0 ? Math.min(1, s.music + 0.1) : (s.music >= 0.95 ? 0 : s.music + 0.1)); s.music = Math.round(s.music * 10) / 10; this.sound.setMusicVol(s.music); }
     if (p === 2) s.shake = !s.shake;
     if (p === 3) { s.quality = ((s.quality || 0) + 1) % QUALITY.length; this.applyQuality(); }
-    if (p >= 0 && p < 4) this.saveSettings();
-    if (p === 4 || inp.back) this.go(this.back || 'title');
+    // touch button size: small / medium / large (the stick grows with them)
+    if (p === 4 || (this.sel === 4 && side)) { const i = Math.max(0, BUTTONS.indexOf(s.touchScale)); s.touchScale = BUTTONS[(i + (side || 1) + BUTTONS.length) % BUTTONS.length]; this.ui.touchScale = s.touchScale; }
+    // abilities: fired by the attack when ready (default), or cast on their own during a fight
+    if (p === 5 || (this.sel === 5 && side)) { const i = Math.max(0, ABILITY_MODES.findIndex((m) => m.id === s.abilityMode)); s.abilityMode = ABILITY_MODES[(i + 1) % ABILITY_MODES.length].id; if (this.world) this.world.abilityMode = s.abilityMode; }
+    if ((p >= 0 && p < 6) || (side && this.sel >= 1 && this.sel <= 5)) this.saveSettings();
+    if (p === 6 || inp.back) this.go(this.back || 'title');
   }
   credits(dt, inp) { if (this.stateT > 0.5 && (inp.back || inp.confirm || inp.taps.length)) { if (this.back === 'title') this.go('title'); else { this.go('loading'); this.start(); } } }
 
   pauseMenu(dt, inp) {
-    this.pauseItems = [{ label: 'RESUME' }, { label: 'CONTROLS' }, { label: 'SETTINGS' }, { label: 'QUIT TO TITLE' }];
-    const p = this.menuInput(inp, this.pauseItems);
-    if (inp.pausePressed || inp.back || p === 0) { this.go('play'); return; }
-    if (p === 1) { this.back = 'pause'; this.go('controls'); }
-    if (p === 2) { this.back = 'pause'; this.go('settings'); }
-    if (p === 3) { this.persist(); this.token++; this.timers = []; this.go('loading'); this.start(); }
+    // back to the Haven from a district once it has been reached (what was cleared stays cleared)
+    const canReturn = !this.inHaven && this.save.havenSeen && DISTRICTS.includes(this.levelId) && this.state === 'pause';
+    this.pauseItems = [{ label: 'RESUME', id: 'resume' }, canReturn ? { label: 'RETURN TO THE HAVEN', id: 'haven' } : null, { label: 'CONTROLS', id: 'controls' }, { label: 'SETTINGS', id: 'settings' }, { label: 'QUIT TO TITLE', id: 'quit' }].filter(Boolean);
+    const p = this.menuInput(inp, this.pauseItems); const id = p >= 0 ? this.pauseItems[p].id : null;
+    if (inp.pausePressed || inp.back || id === 'resume') { this.go(this.inHaven ? 'haven' : 'play'); return; }
+    if (id === 'haven') { this.persist(); this.enterHaven(havenNext(this.save, this.levelId)); }
+    if (id === 'controls') { this.back = 'pause'; this.go('controls'); }
+    if (id === 'settings') { this.back = 'pause'; this.go('settings'); }
+    if (id === 'quit') { this.persist(); this.token++; this.timers = []; this.leaveHaven(); this.go('loading'); this.start(); }
   }
 
   dead(dt, inp) {
@@ -308,11 +354,13 @@ export class Game {
     this.handleEvents(evs);
     if (this.tutorial) this.tutorial.update(dt, evs);
     if (this.state !== 'play') return;
-    // lamps, chests
+    if (this.resting) this.rest(dt, inp);
+    // lamps (checkpoints), chests
     this.prompt = null; let near = null, nearChest = null;
     for (const l of this.level.lamps) if (Math.hypot(hero.x - l.x, hero.z - l.z) < 1.9) near = l;
     for (const c of this.level.chests) if (!c.h.open && Math.hypot(hero.x - c.x, hero.z - c.z) < 1.7) nearChest = c;
     const calm = !w.combat;
+    if (this.resting) { near = null; nearChest = null; }
     if (near && calm) this.prompt = near.h.lit ? 'REST AT THE LAMP' : 'LIGHT THE LAMP';
     else if (nearChest) this.prompt = 'OPEN';
     if (inp.interactPressed && this.prompt) {
@@ -325,24 +373,44 @@ export class Game {
     if (B && this.bossState === 'idle' && inZone(hero, B.zone)) this.startBoss();
     // exit (the training road's gate only opens when the training is done)
     const exitOpen = def.exit && (!def.exit.requires || this.bossState === 'done') && (!this.tutorial || this.tutorial.step?.id === 'go');
+    // through the exit: the Haven, then on to the next district (the last exit rings the bell: the end)
     if (exitOpen && inZone(hero, def.exit.zone) && !this.leaving) {
       this.leaving = true; this.fadeOut = 0; const to = def.exit.to;
       if (to !== 'end') { this.save.lamp = null; }
       if (this.levelId === 'prologue') this.save.tutorial = true;
       this.persist();
-      this.after(0.65, () => { this.leaving = false; if (to === 'end') this.go('ending'); else this.enterLevel(to, true); });
+      this.after(0.65, () => { this.leaving = false; if (to === 'end') this.go('ending'); else this.enterHaven(havenNext(this.save, to)); });
     }
     this.sound.setMusic(this.boss && !this.boss.dead ? 'boss' : (w.combat ? 'combat' : 'explore'));
     if (hero.state === 'run' && (this.stepT = (this.stepT || 0) - dt) <= 0) { this.stepT = 0.27; this.sound.play('step'); if (Math.random() < 0.5) this.fx.splash(hero.x, hero.z, 3); }
   }
 
+  // A district lamp is a checkpoint: lit the first time, and every rest heals, refills the tonics and
+  // keeps your place; the warden kneels a moment and the flame leaps. (Growing happens at the Haven.)
   useLamp(l) {
-    const hero = this.world.hero;
-    if (!l.h.lit) { l.h.set(true); this.sound.play('lamp'); this.fx.embers(l.x, 3.3, l.z, 30); this.ui.toast('LAMP LIT', { color: COL.gold, big: true, life: 2 }); this.save.litLamps[this.levelId + ':' + l.id] = true; }
-    this.save.lamp = this.levelId + ':' + l.id; this.persist();
-    hero.hp = hero.maxHp; hero.tonics = hero.stats.maxTonics; hero.revives = hero.stats.revives; this.sound.play('heal');
-    this.lamp.sel = 0; this.go('lamp');
+    const hero = this.world.hero; const key = this.levelId + ':' + l.id;
+    if (!l.h.lit) { l.h.set(true); this.lampLight(l, true); this.ui.toast('LAMP LIT', { color: COL.gold, big: true, life: 2 }); this.save.litLamps[key] = true; }
+    else this.ui.toast('YOU REST. THE LAMP KEEPS YOUR PLACE', { color: COL.gold, life: 2 });
+    this.save.lamp = key; this.persist();
+    hero.hp = hero.maxHp; hero.tonics = hero.stats.maxTonics; hero.revives = hero.stats.revives;
+    this.sound.play('lamp'); this.sound.play('heal', { delay: 0.25 });
+    this.fx.embers(l.x, 3.35, l.z, 40, [3, 1.8, 0.5]); this.fx.embers(hero.x, 0.5, hero.z, 14, [3, 2.2, 0.8]); this.flareLamp(l);
+    hero.state = 'rest'; hero.anim = 'kneel'; hero.animT = 0; hero.t = 0; hero.vx = hero.vz = 0; hero.atk = null; hero.face = angTo(hero, l);
+    this.resting = { t: 0, lamp: l };
   }
+  // kneeling at a lamp: down (0.6 s), a breath, then up again (moving or attacking rises sooner)
+  rest(dt, inp) {
+    const R = this.resting, h = this.world.hero; R.t += dt;
+    if (!h || h.dead || h.state !== 'rest') { this.resting = null; return; }
+    if (h.anim === 'kneel' && h.animT >= 0.6) { h.anim = 'rest'; h.animT = 0; }
+    const wants = Math.hypot(inp.mx || 0, inp.mz || 0) > 0.3 || inp.attackPressed || inp.dashPressed;
+    if (h.anim !== 'rise' && (R.t > 1.6 || (R.t > 0.55 && wants))) { h.anim = 'rise'; h.animT = 0; }
+    if (h.anim === 'rise' && h.animT >= 0.7) { h.state = 'idle'; h.anim = 'idle'; h.t = 0; this.resting = null; }
+  }
+  // the lamp's light in the light pool follows the lamp (the pool keeps its own copy of each light)
+  lampSource(l) { const L = l.h.light; return this.atmos.sources.find((s) => s.x === L.x && s.y === L.y && s.z === L.z); }
+  lampLight(l, on) { const s = this.lampSource(l); if (s) s.on = on; }
+  flareLamp(l) { const s = this.lampSource(l); if (s) this.flares.push({ s, base: s.base ?? s.intensity, t: 0 }); }
 
   openChest(c) {
     c.h.open = true; this.save.items[this.levelId + ':' + c.id] = true; this.sound.play('uiOk'); this.fx.embers(c.x, 0.8, c.z, 30, [3, 2, 0.6]);
@@ -377,7 +445,7 @@ export class Game {
   }
 
   startBoss() {
-    const B = this.level.def.boss; this.bossState = 'intro';
+    const B = this.level.def.boss; this.bossState = 'intro'; this.card = null; // the district's name card never sits on the boss bar
     for (const g of B.gates || []) this.gate(g, false);
     this.boss = this.world.spawnBoss(B.type, B.x, B.z, { face: B.face ?? 0, hpMul: B.hpMul || 1, dmgMul: B.dmgMul || 1 });
     this.boss.state = 'roar'; this.boss.anim = 'idle'; this.boss.t = -2; this.boss.iframes = 3.5;
@@ -413,7 +481,7 @@ export class Game {
 
   gainXp(n) {
     const lv = addXp(this.save, n);
-    if (lv) { const P = this.save.heroes[this.save.hero]; this.ui.toast('LEVEL ' + P.level + ': A SKILL POINT', { color: COL.gold, big: true, life: 3 }); this.sound.play('lamp'); const h = this.world.hero; this.fx.embers(h.x, 1, h.z, 30, [3, 2.2, 0.8]); this.after(0.01, () => this.refreshHero()); }
+    if (lv) { const P = this.save.heroes[this.save.hero]; this.ui.toast('LEVEL ' + P.level + ': A SKILL POINT', { color: COL.gold, big: true, life: 3 }); if (P.level === 2) this.ui.toast('SPEND IT AT THE HAVEN', { color: COL.dim, life: 3 }); this.sound.play('lamp'); const h = this.world.hero; this.fx.embers(h.x, 1, h.z, 30, [3, 2.2, 0.8]); this.after(0.01, () => this.refreshHero()); }
   }
 
   // ------------------------------------------------------------------ ending
@@ -438,12 +506,11 @@ export class Game {
         case 'hit': {
           const d = ev.dst; const y = 1.0 * (d.def?.scale || 1);
           fx.sparks(d.x, y, d.z, ev.ang, ev.heavy ? 14 : (ev.crit ? 16 : 8), ev.crit ? [3, 2.6, 0.8] : undefined);
-          fx.blood(d.x, y, d.z, ev.ang, ev.heavy || ev.finisher ? 26 : 12);
+          fx.blood(d.x, y, d.z, ev.ang, ev.heavy ? 26 : 12);
           if (Math.random() < 0.6) fx.bloodPool(d.x, d.z, ev.heavy ? 1.2 : 0.8);
           if (ev.hero) { snd.play('heroHurt'); r.post.hurt = 0.7; }
-          else snd.play(ev.heavy || ev.finisher || ev.crit ? 'hitHeavy' : 'hit', { vol: ev.kind === 'bolt' ? 0.5 : 1 });
+          else snd.play(ev.heavy || ev.crit ? 'hitHeavy' : 'hit', { vol: ev.kind === 'bolt' ? 0.5 : 1 });
           if (ev.special) fx.slashLine(d.x, 1.1, d.z, 2.6);
-          if (ev.finisher) this.uiSlash = { t: 0.22, a: -0.5 + Math.random() * 0.3 };
           break;
         }
         case 'kill': {
@@ -458,8 +525,15 @@ export class Game {
         case 'perfect': snd.play('perfect'); this.view.get(hero) && fx.ghost(this.view.get(hero), [0.4, 0.8, 1.6], 0.5); this.ui.toast('PERFECT', { color: COL.ice, life: 0.9 }); break;
         case 'dash': snd.play('dash'); this.dashGhosts = 3; this.ghostT = 0; fx.dust(ev.e.x, ev.e.z, 5); break;
         case 'stagger': fx.shockRing(ev.e.x, ev.e.z, 1.6, [2.4, 2.2, 1.2], 0.35); snd.play('block'); break;
-        case 'finisher': this.zoomPunch = 1.35; break;
-        case 'heal': snd.play('heal'); fx.embers(ev.e.x, 1, ev.e.z, 16, [2.6, 0.5, 0.5]); break;
+        // the tonic: the drink starts (cork, gulps, motes up the body, a green glow on the warden), then
+        // the health lands (a chime, a burst, the bar's new part flashes, "+amt" over the head)
+        case 'drink': snd.play('drink'); if (fx.tonicStart) fx.tonicStart(ev.e); if (this.view.healGlow) this.view.healGlow(ev.e.id, 1.5); break;
+        case 'heal': {
+          const e = ev.e, amt = Math.round(ev.amt || 0); snd.play('heal');
+          if (fx.tonicBurst) fx.tonicBurst(e.x, e.z, amt);
+          if (e === hero && amt > 0) { if (this.ui.healGain) this.ui.healGain(amt); const p = r.project(new THREE.Vector3(e.x, 2.05, e.z)); if (this.ui.floatText) this.ui.floatText('+' + amt, p.x, p.y, '#7dff9a'); }
+          break;
+        }
         case 'ability': {
           const k = ev.kind; snd.play({ wave: 'swingHeavy', rush: 'dash', whirl: 'swingHeavy', volley: 'bolt', smoke: 'vanish', trap: 'gate', shock: 'boom', charge: 'dash', ward: 'toll', pillar: 'fire', lantern: 'heal', wisps: 'orb' }[k] || 'swing');
           if (k === 'ward') fx.shockRing(ev.e.x, ev.e.z, 2.7, [2.4, 2, 1], 0.5);
@@ -510,16 +584,20 @@ export class Game {
       this.titleCam = (this.titleCam || 0) + dt; target = new THREE.Vector3(-0.8 + Math.sin(this.titleCam * 0.12) * 0.8, 0, -1.6 + Math.cos(this.titleCam * 0.1) * 0.5);
       if (this.state === 'select' && w && w.hero) { target = new THREE.Vector3(w.hero.x + 1.2, 0.8, w.hero.z - 0.6); zt = 1.6; }
       if (w) { this.view.update(w, dt); for (const e of w.ents) e.animT += dt; }
+    } else if (this.inHaven && this.haven && w && w.hero) {
+      // the Haven runs its own camera (and the warden breathes on while the game is paused there)
+      const c = this.haven.camera(dt); target = c.target; zt = c.zoom;
+      for (const e of w.ents) e.animT += dt; this.view.update(w, dt);
     } else if (w && w.hero) {
       const h = w.hero; target = new THREE.Vector3(h.x + h.vx * 0.18, 0, h.z + h.vz * 0.18);
       if (this.state === 'bossIntro' && this.boss) { const k = Math.min(1, this.stateT / 1.0) * (this.stateT < 3.0 ? 1 : Math.max(0, 1 - (this.stateT - 3.0) / 0.6)); target.lerp(new THREE.Vector3(this.boss.x, 1.6 * (this.boss.def.scale || 1) * 0.6, this.boss.z), k * 0.85); zt = 1 + k * 0.25; }
       if (this.boss && !this.boss.dead && this.state === 'play') target.lerp(new THREE.Vector3(this.boss.x, 0, this.boss.z), 0.2);
       this.view.update(w, dt);
     }
-    if (target && !this.debugCamHold) this.camFocus.lerp(target, Math.min(1, dt * (this.state === 'play' ? 6 : 2.5)));
+    if (target && !this.debugCamHold) this.camFocus.lerp(target, Math.min(1, dt * (this.state === 'play' ? 6 : (this.inHaven ? 2 : 2.5))));
     if (this.zoomPunch) { zt = Math.max(zt, this.zoomPunch); this.zoomPunch = Math.max(1, this.zoomPunch - dt * 0.6); if (this.zoomPunch <= 1.001) this.zoomPunch = 0; }
     if (this.debugZoom) zt = this.debugZoom;
-    this.zoom += (zt - this.zoom) * Math.min(1, dt * 5); r.setZoom(Math.abs(this.zoom - 1) < 0.004 ? 1 : this.zoom);
+    this.zoom += (zt - this.zoom) * Math.min(1, dt * (this.inHaven ? 1.6 : 5)); r.setZoom(Math.abs(this.zoom - 1) < 0.004 ? 1 : this.zoom);
     r.focus.copy(this.camFocus);
     if (this.dashGhosts > 0 && w && w.hero) { this.ghostT -= dt; if (this.ghostT <= 0) { this.dashGhosts--; this.ghostT = 0.05; const rig = this.view.get(w.hero); if (rig) this.fx.ghost(rig); } }
     const P = r.post; P.hurt = Math.max(0, P.hurt - dt * 1.6); if (this.state !== 'dead') P.desat = Math.max(0, P.desat - dt * (this.specialT > 0 ? 0.2 : 1.5)); this.specialT = (this.specialT || 0) - dt;
@@ -530,7 +608,11 @@ export class Game {
     else P.fade = this.state === 'story' && this.storyNext === 'title' ? 1 : (this.state === 'story' ? 0.72 : 0);
     if (this.state === 'dead') P.fade = Math.min(0.6, this.stateT * 0.25);
     if (w && w.hero) { shared.cutFocus.value.set(w.hero.x, 1, w.hero.z); shared.cutDir.value.copy(r.fwd); }
-    this.atmos.update(dt, r.focus, () => 0);
+    // a lamp that was just used leaps up for a moment
+    for (const f of this.flares) { f.t += dt; f.s.intensity = f.base * (1 + 1.6 * Math.max(0, 1 - f.t / 0.9)); }
+    this.flares = this.flares.filter((f) => { if (f.t < 0.9) return true; f.s.intensity = f.base; return false; });
+    // the rain stops where a roof still holds (the Haven); elsewhere on the stones
+    this.atmos.update(dt, r.focus, this.groundAt || (() => 0));
     const hl = this.world && this.world.hero; if (hl && !hl.dead) this.atmos.heroLight.position.set(hl.x + 0.5, 2.6, hl.z + 0.8);
     if (this.level) for (const a of this.level.anims) a.update(dt);
     if (w) { this.fx.updateTeles(w.ents, this.t); this.fx.updateHazards(w.hazards, dt, this.t); this.fx.updateProjs(w.projs, this.t); this.fx.updateZones(w.zones, dt); }
@@ -554,7 +636,11 @@ export class Game {
     }
     if (S === 'select') this.drawSelect();
     if (S === 'controls') this.drawControls();
-    if (S === 'settings') { ui.frame(W / 2 - 80, H / 2 - 34, 160, 78); this.menuRects = ui.menu(this.setItems || [], this.sel, W / 2, H / 2 - 24, { align: 'center' }); }
+    if (S === 'settings') {
+      const n = (this.setItems || []).length, fh = n * 12 + 14; ui.frame(W / 2 - 86, Math.round(H / 2 - fh / 2), 172, fh); this.menuRects = ui.menu(this.setItems || [], this.sel, W / 2, Math.round(H / 2 - fh / 2) + 9, { align: 'center' });
+      const tip = [null, null, null, null, 'THE SIZE OF THE TOUCH BUTTONS AND THE STICK', 'ON ATTACK: A READY SKILL FIRES FROM YOUR ATTACK. AUTO: ALSO ON ITS OWN IN A FIGHT'][this.sel];
+      if (tip) ui.wrap(tip, Math.min(W - 20, 260)).forEach((l, k) => ui.text(l, W / 2, Math.round(H / 2 + fh / 2) + 5 + k * 9, { align: 'center', color: COL.dim }));
+    }
     if (S === 'credits') { CREDITS.forEach((l, i) => ui.text(l, W / 2, H * 0.42 + i * 12, { align: 'center', color: i === 0 ? COL.white : COL.dim })); }
     if (S === 'story') {
       const lines = this.storyLines || []; const i = Math.min(lines.length - 1, this.storyIdx || 0); const a = Math.min(1, (this.lineT || 0) * 1.5);
@@ -562,10 +648,12 @@ export class Game {
       wrapped.forEach((l, k) => ui.text(l, W / 2, H / 2 - wrapped.length * 6 + k * 12, { align: 'center', color: COL.text, alpha: a }));
       ui.text('TAP / ENTER', W / 2, H - 16, { align: 'center', color: '#5a564e', alpha: 0.5 + Math.sin(this.t * 3) * 0.3 });
     }
-    if (['play', 'pause', 'lamp', 'bossIntro', 'dead'].includes(S) && this.world) {
+    if (this.inHaven && this.haven && ['haven', 'pause', 'controls', 'settings'].includes(S)) this.haven.draw(ui, dt, S === 'haven');
+    else if (['play', 'pause', 'bossIntro', 'dead'].includes(S) && this.world) {
       const hs = this.hs || (this.hs = {}); if (hs.world !== this.world) { hs.hpGhost = undefined; hs.bossGhost = undefined; }
       const P = this.save.heroes[this.save.hero];
       Object.assign(hs, { world: this.world, boss: this.boss && this.bossState === 'fight' ? this.boss : null, bossPhases: this.boss ? (BOSS_AI[this.boss.type] || BOSS_AI2[this.boss.type] || {}).phases : null, embersShown: this.embersShown, prompt: S === 'play' ? this.prompt : null, level: P.level, xpFrac: xpFrac(this.save), points: P.points });
+      ui.toastY = S === 'play' && this.tutorial && this.tutorial.step && this.tutBottom ? this.tutBottom + 3 : 0; // toasts start under the training panel
       if (S !== 'bossIntro') ui.hud(hs, dt);
       if (this.card && S === 'play') {
         this.card.t += dt * (this.world.combat ? 4 : 1); const c = this.card; const a = Math.min(1, c.t * 1.5, Math.max(0, (4.5 - c.t) * 1.2));
@@ -580,11 +668,6 @@ export class Game {
       if (S === 'play' && this.input.touchMode) ui.drawTouch({ world: this.world, prompt: this.prompt }, this.input);
       if (S === 'play' && !this.world.combat && !this.card && !this.tutorial) this.drawCompass();
     }
-    if (this.uiSlash && this.uiSlash.t > 0) {
-      this.uiSlash.t -= dt; const k = this.uiSlash.t / 0.22; const g = ui.g; const a0 = g.globalAlpha; g.globalAlpha = k;
-      const cy = H / 2, sl = Math.tan(this.uiSlash.a); for (let x = 0; x < W; x++) { const y = Math.round(cy + (x - W / 2) * sl); ui.rect(x, y, 1, 1, '#fff4f0'); ui.rect(x, y + 1, 1, 1, '#c8242a'); }
-      g.globalAlpha = a0;
-    }
     if (S === 'bossIntro' && this.boss) {
       // the name sits inside the bottom bar so it never covers the fight
       const k = Math.min(1, this.stateT * 2) * (this.stateT > 3.2 ? Math.max(0, 1 - (this.stateT - 3.2) * 2.5) : 1);
@@ -592,7 +675,6 @@ export class Game {
       if (this.stateT > 1.2) { const a = Math.min(1, (this.stateT - 1.2) * 2) * k; const nm = this.boss.def.name.toUpperCase(); ui.text(nm, W / 2, H - 32, { align: 'center', scale: ui.measure(nm, 2) > W - 12 ? 1 : 2, color: COL.white, alpha: a }); ui.text(this.boss.def.title.toUpperCase(), W / 2, H - 13, { align: 'center', color: COL.red, alpha: a }); }
     }
     if (S === 'pause') { ui.rect(0, 0, W, H, 'rgba(0,0,0,0.5)'); ui.text('PAUSED', W / 2, H * 0.28, { align: 'center', scale: 2, color: COL.white }); this.menuRects = ui.menu(this.pauseItems || [], this.sel, W / 2, H * 0.45, { align: 'center' }); }
-    if (S === 'lamp') this.lamp.draw(ui);
     if (S === 'dead') { const a = Math.min(1, this.stateT * 0.8); ui.text('YOU FELL', W / 2, H * 0.4, { align: 'center', scale: 3, color: '#b01c22', alpha: a }); ui.text('THE LAMP STILL BURNS', W / 2, H * 0.4 + 28, { align: 'center', color: COL.dim, alpha: Math.max(0, a - 0.3) }); }
     if (S === 'ending') { const line = ENDING[Math.min(ENDING.length - 1, this.endIdx || 0)]; const a = Math.min(1, (this.endT || 0) * 1.2); ui.letterbox(1); ui.wrap(line, W - 40).forEach((l, k) => ui.text(l, W / 2, H * 0.84 + k * 10, { align: 'center', color: '#f0e0c0', alpha: a })); }
   }
@@ -620,10 +702,10 @@ export class Game {
 
   drawTutorial() {
     const ui = this.ui, W = ui.w; const T = this.tutorial; const s = T.step; if (!s) return;
-    const n = Math.min(T.i + 1, 9); const txt = T.text(this.inputMode); const note = T.note();
+    const N = STEPS.length, n = Math.min(T.i + 1, N); const txt = T.text(this.inputMode); const note = T.note();
     const lines = ui.wrap(txt, Math.min(W - 40, 280)); const ph = 14 + lines.length * 9 + (note ? 9 : 0); const pw = Math.min(W - 24, 296); const x0 = Math.round((W - pw) / 2), y0 = 26;
-    ui.frame(x0, y0, pw, ph, 'rgba(8,10,14,0.8)', T.doneT > 0 ? '#8a7a40' : '#3a3428');
-    ui.text('TRAINING ' + n + '/9', x0 + 5, y0 + 3, { color: COL.dim, shadow: false });
+    ui.frame(x0, y0, pw, ph, 'rgba(8,10,14,0.8)', T.doneT > 0 ? '#8a7a40' : '#3a3428'); this.tutBottom = y0 + ph;
+    ui.text('TRAINING ' + n + '/' + N, x0 + 5, y0 + 3, { color: COL.dim, shadow: false });
     if (T.doneT > 0) ui.text('DONE', x0 + pw - 5, y0 + 3, { align: 'right', color: COL.gold, shadow: false });
     lines.forEach((l, k) => ui.text(l, W / 2, y0 + 13 + k * 9, { align: 'center', color: T.doneT > 0 ? COL.gold : COL.white, shadow: false }));
     if (note) ui.text(note, W / 2, y0 + 13 + lines.length * 9, { align: 'center', color: COL.ice, shadow: false });
@@ -652,10 +734,13 @@ export class Game {
   drawControls() {
     const ui = this.ui, W = ui.w, H = ui.h; ui.rect(0, 0, W, H, 'rgba(0,0,0,0.6)');
     ui.text('CONTROLS', W / 2, 12, { align: 'center', scale: 2, color: COL.white });
-    const rows = [['MOVE', 'WASD / ARROWS', 'LEFT THUMB'], ['ATTACK (HOLD)', 'J / LEFT CLICK', 'ATK'], ['SKILL 1', 'K / RIGHT CLICK', 'LEFT SKILL'], ['SKILL 2', 'L', 'RIGHT SKILL'], ['DASH', 'SPACE / SHIFT', 'DASH'], ['ULTIMATE', 'Q', 'ULT'], ['TONIC', 'R', 'TON'], ['USE', 'E', 'USE'], ['PAUSE', 'ESC / P', 'II']];
+    const rows = [['MOVE', 'WASD / ARROWS', 'LEFT THUMB'], ['ATTACK (HOLD)', 'J / LEFT CLICK', 'ATK'], ['DASH', 'SPACE / SHIFT', 'DASH'], ['ULTIMATE', 'Q / U', 'ULT'], ['TONIC', 'R / H', 'TON'], ['USE', 'E', 'USE'], ['PAUSE', 'ESC / P', 'II']];
     const x0 = Math.max(6, Math.round(W / 2 - 150)); const colK = x0 + Math.min(92, Math.round(W * 0.28)), colT = x0 + Math.min(210, Math.round(W * 0.62));
     ui.text('KEYBOARD', colK, 32, { color: COL.dim }); ui.text('TOUCH', colT, 32, { color: COL.dim });
     rows.forEach((r, i) => { const y = 43 + i * 11; ui.text(r[0], x0, y, { color: COL.gold }); ui.text(r[1], colK, y); ui.text(r[2], colT, y); });
-    ui.wrap('GAMEPAD: X ATTACK, Y AND B SKILLS, A DASH, RB ULTIMATE, LB TONIC, BACK USE', W - 16).forEach((l, k) => ui.text(l, W / 2, H - 26 + k * 9, { align: 'center', color: COL.dim }));
+    // the two skills have no button of their own
+    const sy = 43 + rows.length * 11 + 4;
+    ui.wrap('SKILLS HAVE NO BUTTON: WHEN A SKILL\'S BADGE GLOWS, YOUR NEXT ATTACK FIRES IT (SETTINGS: ABILITIES AUTO CASTS THEM ON THEIR OWN).', Math.min(W - 16, 300)).forEach((l, k) => ui.text(l, W / 2, sy + k * 9, { align: 'center', color: COL.ice }));
+    ui.wrap('GAMEPAD: X ATTACK, A DASH, RB ULTIMATE, LB TONIC, BACK USE, START PAUSE', W - 16).forEach((l, k) => ui.text(l, W / 2, H - 26 + k * 9, { align: 'center', color: COL.dim }));
   }
 }

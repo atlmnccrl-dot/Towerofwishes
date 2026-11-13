@@ -49,8 +49,7 @@ export default {
     const W = K.M;
     // The side door and the two screens are opaque to the drowned: out of ctx.lowSolids, and 0.6 m
     // thick (about the kerb) so sim.sees(), which samples every 0.5 m, cannot step over them; an open
-    // gate still lets them see. Seen through the bars, foes beyond a locked room wait at a closed gate,
-    // and a finisher on one there steps the hero through it (sim.js), out of the fight or into the next.
+    // gate still lets them see. Seen through the bars, foes beyond a locked room wait at a closed gate.
     const opaque = (s, axis = 'x') => {
       const i = ctx.lowSolids.indexOf(s); if (i >= 0) ctx.lowSolids.splice(i, 1);
       const c = axis === 'x' ? (s.z0 + s.z1) / 2 : (s.x0 + s.x1) / 2;

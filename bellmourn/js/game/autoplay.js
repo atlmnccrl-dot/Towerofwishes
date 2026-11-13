@@ -1,5 +1,7 @@
-// Autoplay for end-to-end tests: walks a district on a grid path (closed gates block), lights lamps,
-// opens chests, fights with the bot, enters the boss arena and leaves by the exit. Pure logic.
+// Autoplay for end-to-end tests: walks a district on a grid path (closed gates block), opens chests,
+// fights with the bot, rests at the last lamp before the boss (lamps are checkpoints only: growing
+// happens at the Haven, which game.autoInput plays through), enters the boss arena and leaves by the
+// exit. Pure logic.
 import { makeBot } from './bot.js';
 
 const S = 0.25, R = 0.39;
@@ -32,7 +34,13 @@ export function makeAutoplay(seed = 3) {
 
   function targets(game) {
     const L = game.level, def = L.def; const out = [];
-    for (const l of L.lamps) if (!st.visited.has('lamp:' + l.id)) out.push({ id: 'lamp:' + l.id, x: l.x + 1.2, z: l.z + 0.6, lamp: l });
+    // the training on the Old Road: walk on, light the lamp when told, leave only when it says go
+    const T = game.tutorial && game.tutorial.step;
+    if (T) {
+      if (T.id === 'move') return [{ id: 'north', x: 0, z: 18 }];
+      if (T.id === 'lamp') for (const l of L.lamps) if (!l.h.lit) out.push({ id: 'lamp:' + l.id, x: l.x + 1.2, z: l.z + 0.6, lamp: l });
+      if (T.id !== 'go') return out;
+    }
     for (const c of L.chests) if (!c.h.open && !st.visited.has('chest:' + c.id)) out.push({ id: 'chest:' + c.id, x: c.x, z: c.z + 1.0, chest: c });
     for (const e of game.encs || []) if (e.state === 'idle') { const c = center(e.zone); out.push({ id: 'enc:' + e.id, x: c.x, z: c.z }); }
     if (def.boss && game.bossState === 'idle' && !out.length && !st.rested && L.lamps.length) { const l = L.lamps[L.lamps.length - 1]; out.push({ id: 'rest', x: l.x + 1.2, z: l.z + 0.6, lamp: l, rest: true }); }
@@ -43,7 +51,14 @@ export function makeAutoplay(seed = 3) {
 
   return function frame(game, dt) {
     const w = game.world, h = w.hero; const inp = bot(w, dt);
-    const fighting = w.foes().some((f) => f.ai.aggro && Math.hypot(f.x - h.x, f.z - h.z) < 14) || (game.boss && !game.boss.dead);
+    // the training asks for things a fight alone may not bring: two dashes, the ultimate, a tonic
+    const T = game.tutorial && game.tutorial.step; st.tT = (st.tT || 0) + dt;
+    if (T) {
+      if (T.id === 'dash' && game.tutorial.dashes < 2 && st.tT > 0.9) { st.tT = 0; inp.dashPressed = true; }
+      if (T.id === 'ult' && w.meter >= 100) inp.ultPressed = true;
+      if (T.id === 'tonic' && h.tonics > 0 && st.tT > 0.5) { st.tT = 0; inp.healPressed = true; }
+    }
+    const fighting = w.foes().some((f) => f.ai.aggro && Math.hypot(f.x - h.x, f.z - h.z) < 14) || (game.boss && !game.boss.dead) || (!!T && w.foes().length > 0);
     if (fighting) {
       // fight with the bot, but walk around walls and fences to reach the nearest foe
       st.path = null;

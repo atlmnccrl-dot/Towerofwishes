@@ -6,7 +6,7 @@ import { FOES, BOSSES, scaleFoe } from './defs.js';
 import { UNITS } from './units.js';
 import { BOSSES2 } from './bosses2.js';
 import { thinkFoe, thinkBoss } from './ai.js';
-import { HEROES, AFFIXES, rankDmg, rankCd, heroStats } from './heroes.js';
+import { HEROES, ABILITIES, ULTS, AFFIXES, rankDmg, rankCd, heroStats } from './heroes.js';
 
 const TAU = Math.PI * 2;
 export const STEP = 1 / 60;
@@ -22,10 +22,11 @@ export function mulberry(seed) {
 
 export const DASH = { dur: 0.24, speed: 15, iframes: 0.2, recharge: 0.7, perfectWindow: 0.16 };
 const HEAL = { dur: 0.95, at: 0.5 };
-const FIN = { dur: 0.95, hitAt: 0.55, mul: 4.5, heal: 8, meter: 10 };
-const METER = { onHit: 2.2, onPerfect: 22, onKill: 5, onHurt: 1.5 };
+// onBreak: breaking a foe's poise (or a guard, or a boss's poise) feeds the ultimate
+const METER = { onHit: 2.2, onPerfect: 22, onKill: 5, onHurt: 1.5, onBreak: 15 };
 const NONE = { mx: 0, mz: 0 };
-const PRESS = ['attack', 'dash', 'skill1', 'skill2', 'ult', 'heal'];
+// The two equipped abilities have no buttons: the sim casts them in place of a basic attack (see _autoCast).
+const PRESS = ['attack', 'dash', 'ult', 'heal'];
 
 export class World {
   constructor(opts = {}) {
@@ -35,7 +36,9 @@ export class World {
     this.hitstop = 0; this.slowT = 0; this.slowScale = 1; this.acc = 0;
     this.meter = 0; this.embers = 0; this.tokensMax = 2; this.paused = false;
     this.hero = null; this.combat = false;
-    this.stats = { hits: 0, kills: 0, perfects: 0, damageTaken: 0, finishers: 0, crits: 0 };
+    // 'attack': a ready, useful ability replaces the next basic attack; 'auto': also cast during combat unprompted
+    this.abilityMode = opts.abilityMode || 'attack';
+    this.stats = { hits: 0, kills: 0, perfects: 0, damageTaken: 0, crits: 0, abilities: 0 };
   }
 
   emit(type, data = {}) { this.events.push({ type, t: this.t, ...data }); }
@@ -57,10 +60,10 @@ export class World {
   spawnHero(x, z, stats = {}) {
     const kit = stats.kit || HEROES[stats.heroId || 'warden'];
     const s = { maxHp: kit.hp, dmgMul: 1, maxTonics: 3, tonicHeal: 0.45, dashCharges: 1, crit: 0, cdMul: 1, ultRate: 1, speedMul: 1, dmgTaken: 1 - (kit.armor || 0), revives: 0, relics: [], trait: {},
-      abilities: kit.abilities.slice(0, 2).map((id) => ({ id, rank: 1 })), ult: { id: kit.ult, rank: 1 }, ...stats, kit };
+      abilities: kit.abilities.slice(0, 2).map((id) => ({ id, def: ABILITIES[id], rank: 1 })), ult: { id: kit.ult, def: ULTS[kit.ult], rank: 1 }, ...stats, kit };
     const e = this._ent({ team: 'hero', type: 'hero', heroId: kit.id, x, z, r: 0.38, hp: s.hp ?? s.maxHp, maxHp: s.maxHp, speed: kit.speed * s.speedMul, poise: 999, maxPoise: 999, mass: 1.2 });
     e.stats = s; e.kit = kit; e.tonics = s.tonics ?? s.maxTonics; e.combo = 0; e.comboT = 0; e.buf = {}; e.face = stats.face ?? Math.PI;
-    e.cds = [0, 0]; e.dashCharges = s.dashCharges; e.dashT = 0; e.revives = s.revives; e.buffs = {}; e.shotT = 0;
+    e.cds = [0, 0]; e.cdMax = [1, 1]; e.autoT = 0; e.dashCharges = s.dashCharges; e.dashT = 0; e.revives = s.revives; e.buffs = {}; e.shotT = 0;
     this.hero = e; return e;
   }
 
@@ -120,7 +123,7 @@ export class World {
     for (const e of this.ents) if (e.team === 'foe' && !e.dead && (e.state === 'windup' || e.state === 'attack')) attackers++;
     this.attackers = attackers;
     for (const e of this.ents) {
-      if (e.dead) { e.deadT += h; continue; }
+      if (e.dead) { e.deadT += h; e.animT += h; if (e.flash > 0) e.flash -= h; continue; }
       e.t += h; e.animT += h;
       if (e.iframes > 0) e.iframes -= h;
       if (e.flash > 0) e.flash -= h;
@@ -194,12 +197,18 @@ export class World {
     if (cancelable && fresh('ult', 0.2) && this.meter >= 100) { take('ult'); return this._ult(e); }
     const dashOK = e.dashCharges > 0 && (cancelable || (e.state === 'hurt' && e.t > 0.2) || (e.state === 'dash' && e.t > 0.12) || ((e.state === 'rush' || e.state === 'whirl') && e.t > 0.2));
     if (dashOK && fresh('dash', 0.2)) { take('dash'); return this._dash(e, mdir); }
-    for (let i = 0; i < 2; i++) if (cancelable && fresh('skill' + (i + 1), 0.2) && e.cds[i] <= 0 && S.abilities[i]) { take('skill' + (i + 1)); return this._ability(e, i, mdir); }
-    if (canAct && fresh('heal', 0.2) && e.tonics > 0 && e.hp < e.maxHp) { take('heal'); e.state = 'heal'; e.t = 0; e.anim = 'heal'; e.animT = 0; e.healed = false; return; }
+    if (canAct && fresh('heal', 0.2) && e.tonics > 0 && e.hp < e.maxHp) { take('heal'); e.state = 'heal'; e.t = 0; e.anim = 'heal'; e.animT = 0; e.healed = false; this.emit('drink', { e }); return; }
     const wantAttack = fresh('attack', 0.25) || (K.attack.kind === 'shoot' && inp.attackDown);
+    // abilities ride on the attack: where a new attack could start (a fresh press for combos, the next shot
+    // for shooters), a ready ability that would be useful right now goes off instead. Slot 0 first.
+    if (wantAttack && cancelable && (K.attack.kind === 'combo' ? fresh('attack', 0.25) : e.shotT <= 0)) {
+      const c = this._autoCast(e, mdir, false);
+      if (c) { take('attack'); return this._ability(e, c.slot, mdir, c.tg); }
+    } else if (!wantAttack && cancelable && this.abilityMode === 'auto' && this.combat && (e.autoT -= h) <= 0) {
+      e.autoT = 0.1; const c = this._autoCast(e, mdir, true);
+      if (c) return this._ability(e, c.slot, mdir, c.tg);
+    }
     if (wantAttack && (cancelable || e.state === 'shoot')) {
-      const fin = this._finisherTarget(e);
-      if (fin && (fresh('attack', 0.25) || K.attack.kind === 'combo')) { take('attack'); return this._finisher(e, fin); }
       if (K.attack.kind === 'combo' && cancelable) {
         take('attack');
         const next = e.state === 'attack' && e.atk && e.atk.combo ? e.combo : (e.comboT > 0 ? e.combo : 0);
@@ -221,7 +230,8 @@ export class World {
       case 'attack': {
         const a = e.atk; this._lunge(e, a, h);
         if (e.t >= a.windup && e.t <= a.active) this._melee(e, a);
-        if (a.quake && !e.quaked && e.t >= a.active) { e.quaked = true; this.addZone({ shape: 'circle', x: e.x + Math.sin(e.face) * 1.6, z: e.z + Math.cos(e.face) * 1.6, r: a.quake, life: 0.12, dmg: a.dmg * 0.5, kb: 6, kind: 'quake' }); }
+        // the hammer's last blow quakes (wider and harder with a quake weapon); scaled like every hero blow
+        if (a.quake && !e.quaked && e.t >= a.active) { e.quaked = true; const qk = S.trait.quake ? 1.4 : 1; this.addZone({ shape: 'circle', x: e.x + Math.sin(e.face) * 1.6, z: e.z + Math.cos(e.face) * 1.6, r: a.quake * qk, life: 0.12, dmg: this.heroDmg(e, a.dmg * 0.5 * qk), kb: 6, kind: 'quake' }); }
         if (e.t >= a.dur) free();
         break;
       }
@@ -239,17 +249,6 @@ export class World {
         walk(0.3); if (mdir !== null) e.face = turn(e.face, mdir, 8 * h);
         if (!e.healed && e.t >= HEAL.at) { e.healed = true; e.tonics--; const amt = Math.round(e.maxHp * S.tonicHeal); e.hp = Math.min(e.maxHp, e.hp + amt); this.emit('heal', { e, amt }); }
         if (e.t >= HEAL.dur) free();
-        break;
-      }
-      case 'finisher': {
-        const tg = e.target;
-        if (tg && !e.finHit && e.t >= FIN.hitAt) {
-          e.finHit = true; const base = K.attack.kind === 'combo' ? K.attack.combo[K.attack.combo.length - 1].dmg : K.attack.proj.dmg * 2;
-          this._damage(e, tg, Math.round(base * FIN.mul * S.dmgMul), { poise: 0, kb: 6, heavy: true, finisher: true });
-          e.hp = Math.min(e.maxHp, e.hp + FIN.heal); this.meter = Math.min(100, this.meter + FIN.meter * S.ultRate);
-          this.stop(0.14); this.emit('shake', { amt: 0.5 });
-        }
-        if (e.t >= FIN.dur) { e.iframes = 0.15; free(); }
         break;
       }
       case 'cast': { walk(e.castMove ?? 0); if (e.t >= (e.castDur ?? 0.3)) free(); break; }
@@ -314,23 +313,105 @@ export class World {
   }
 
   // ------------------------------------------------------------------ abilities
-  _ability(e, slot, mdir) {
+  // Which equipped ability (if any) to cast right now: the first ready one, slot 0 first, that would be
+  // useful. Returns { slot, tg } (tg: the foe that made it useful, to aim at) or null.
+  _autoCast(e, mdir, auto) {
+    const S = e.stats;
+    for (let i = 0; i < 2; i++) {
+      const ab = S.abilities[i]; if (!ab || !ab.def || e.cds[i] > 0) continue;
+      const tg = this._useful(e, ab.def, mdir, auto);
+      if (tg) return { slot: i, tg: tg === true ? null : tg };
+    }
+    return null;
+  }
+
+  // Would this ability do something right now? Returns the foe it is for, true (no particular foe) or null.
+  //  - aimed and area abilities: a living, aggro'd foe within reach (and in the clear for aimed ones);
+  //  - self-heal / ward: the hero is hurt (below 75%) or foes are close;
+  //  - trap / summon: a foe within about 8 m;
+  //  - moves (rush, charge, smoke step): never into a hazard.
+  _useful(e, A, mdir, auto) {
+    const foes = this.foes().filter((f) => f.ai.aggro && f.state !== 'spawn' && !f.hidden);
+    if (!foes.length) return null;
+    const within = (r) => foes.filter((f) => dist(e, f) <= r + f.r);
+    const nearest = (r) => { let b = null, bd = Infinity; for (const f of within(r)) { const d = dist(e, f) - f.r; if (d < bd) { bd = d; b = f; } } return b; };
+    const hurt = e.hp < e.maxHp * 0.75;
+    // the same soft lock the basic attack uses, among foes that are fighting
+    const pick = (range) => {
+      let best = null, bs = Infinity;
+      for (const f of foes) {
+        const d = dist(e, f); if (d > range + f.r) continue;
+        const score = d + Math.abs(angDiff(mdir ?? e.face, angTo(e, f))) * 1.6;
+        if (score < bs && this.clear(e, f)) { bs = score; best = f; }
+      }
+      return best;
+    };
+    // in auto mode a move never pulls the hero against the stick
+    const along = (tg) => !auto || mdir === null || mdir === undefined || Math.abs(angDiff(mdir, angTo(e, tg))) < 1.6;
+    // where a move toward tg would carry the hero (walls stop it); from: the part of the path that is not covered by i-frames
+    const ahead = (tg, len, from = 0) => { const a = angTo(e, tg); const p = this._lastClear(e.x, e.z, e.x + Math.sin(a) * len, e.z + Math.cos(a) * len, e.r); return this._safePath(e.x + (p.x - e.x) * from, e.z + (p.z - e.z) * from, p.x, p.z) ? tg : null; };
+    switch (A.kind) {
+      case 'wave': return pick(8.5);
+      case 'volley': return pick(11);
+      case 'pillar': return pick(11);
+      case 'shock': return pick(A.r1 - 0.5);
+      case 'whirl': return nearest(A.radius - 0.1);
+      case 'rush': { const tg = pick(A.dist); return tg && along(tg) ? ahead(tg, A.dist, 0.75) : null; } // untouchable while it cuts: only the landing counts
+      case 'charge': { const tg = pick(A.dist + 0.5); return tg && along(tg) ? ahead(tg, A.dist) : null; }
+      case 'smoke': {
+        const tg = nearest(A.radius); if (!tg) return null;
+        const away = angTo(tg, e); const p = this._lastClear(e.x, e.z, e.x + Math.sin(away) * A.dist, e.z + Math.cos(away) * A.dist, e.r);
+        return Math.hypot(p.x - e.x, p.z - e.z) > 1.5 && !this._hazardAt(p.x, p.z, e.r + 0.4) ? tg : null;
+      }
+      case 'trap': case 'wisps': return nearest(8);
+      case 'ward': return nearest(A.radius + 0.3) || (hurt && nearest(6)) || null;
+      case 'lantern': {
+        const close = within(A.radius + 0.6);
+        return (hurt || close.length >= 2 || close.some((f) => f.boss)) ? (close[0] || true) : null;
+      }
+    }
+    return null;
+  }
+
+  // is a spot inside a hazard that is on its way or still burning?
+  _hazardAt(x, z, pad = 0.4) {
+    for (const hz of this.hazards) {
+      if (hz.t >= hz.warn + hz.life) continue;
+      const d = Math.hypot(x - hz.x, z - hz.z);
+      if (hz.shape === 'circle' && d < hz.r + pad) return true;
+      if (hz.shape === 'ring') { const k = Math.max(0, (hz.t - hz.warn) / hz.life); const rr = hz.r0 + (hz.r1 - hz.r0) * k; if (d < hz.r1 + pad && Math.abs(d - rr) < 1.3 + pad) return true; } // the band, about to roll over
+      if (hz.shape === 'line') { const fx = Math.sin(hz.face), fz = Math.cos(hz.face); const dx = x - hz.x, dz = z - hz.z; const al = dx * fx + dz * fz; if (al > -pad && al < hz.len + pad && Math.abs(dx * fz - dz * fx) < hz.width / 2 + pad) return true; }
+    }
+    return false;
+  }
+  _safePath(x0, z0, x1, z1) {
+    if (!this.hazards.length) return true;
+    const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, z1 - z0) / 0.5));
+    for (let i = 1; i <= n; i++) if (this._hazardAt(x0 + (x1 - x0) * i / n, z0 + (z1 - z0) * i / n, 0.5)) return false;
+    return true;
+  }
+
+  // slot: 0 or 1; tg: the foe the cast is for (from _autoCast), aimed at like the old manual cast's soft lock
+  _ability(e, slot, mdir, tg = null) {
     const ab = e.stats.abilities[slot]; const A = ab.def; const r = ab.rank; const S = e.stats;
-    e.cds[slot] = A.cd * rankCd(r) * S.cdMul; e.cdMax = e.cdMax || [1, 1]; e.cdMax[slot] = e.cds[slot];
+    e.cds[slot] = A.cd * rankCd(r) * S.cdMul; e.cdMax[slot] = e.cds[slot];
     const cast = (anim, dur, move = 0, cancel = 0.2) => { e.state = 'cast'; e.t = 0; e.anim = anim; e.animT = 0; e.castDur = dur; e.castMove = move; e.castCancel = cancel; e.atk = null; };
+    if (tg && tg.dead) tg = null;
+    if (tg) { e.face = angTo(e, tg); e.lockOn = tg; }
+    const aim = (range) => tg || this._aim(e, mdir, range);
     const fx = Math.sin(e.face), fz = Math.cos(e.face);
-    this.emit('ability', { e, id: ab.id, kind: A.kind, slot });
+    this.stats.abilities++; this.emit('ability', { e, id: ab.id, kind: A.kind, slot });
     switch (A.kind) {
       case 'wave': {
-        this._aim(e, mdir, 9); cast('slash3', 0.36, 0, 0.22);
+        aim(9); cast('slash3', 0.36, 0, 0.22);
         const a = e.face;
         this.projs.push({ id: this.nextId++, kind: 'wave', team: 'hero', x: e.x + Math.sin(a) * 0.8, z: e.z + Math.cos(a) * 0.8, vx: Math.sin(a) * 14, vz: Math.cos(a) * 14, r: 1.15, dmg: this.heroDmg(e, A.dmg, r), poise: 30, life: 0.6, hitSet: new Set(), pierce: true, face: a, src: e });
         break;
       }
-      case 'rush': { this._aim(e, mdir, 7); e.state = 'rush'; e.t = 0; e.anim = 'thrust'; e.animT = 0.06; e.iframes = 0.34; e.hitSet = new Set(); e.rushDmg = this.heroDmg(e, A.dmg, r); e.rushDist = A.dist; break; }
+      case 'rush': { aim(7); e.state = 'rush'; e.t = 0; e.anim = 'thrust'; e.animT = 0.06; e.iframes = 0.34; e.hitSet = new Set(); e.rushDmg = this.heroDmg(e, A.dmg, r); e.rushDist = A.dist; break; }
       case 'whirl': { e.state = 'whirl'; e.t = 0; e.anim = 'whirl'; e.animT = 0; e.whirlK = -1; e.whirl = { dmg: this.heroDmg(e, A.dmg, r), hits: A.hits, radius: A.radius, status: A.status }; break; }
       case 'volley': {
-        this._aim(e, mdir, 12); cast(e.kit.attack.anim || 'aim', 0.32, 0.4);
+        aim(12); cast(e.kit.attack.anim || 'aim', 0.32, 0.4);
         for (let i = 0; i < A.n; i++) {
           const a = e.face + (i - (A.n - 1) / 2) * A.spread;
           this.projs.push({ id: this.nextId++, kind: 'hbolt', team: 'hero', x: e.x + Math.sin(a) * 0.6, z: e.z + Math.cos(a) * 0.6, y: 1.15, vx: Math.sin(a) * 21, vz: Math.cos(a) * 21, r: 0.25, dmg: this.heroDmg(e, A.dmg, r), poise: 8, life: 0.7, pierce: !!S.trait.pierce, hitSet: new Set(), face: a, src: e });
@@ -338,7 +419,7 @@ export class World {
         break;
       }
       case 'smoke': {
-        const near = this._nearestFoe(e, 8); const away = near ? angTo(near, e) : e.face + Math.PI;
+        const near = tg || this._nearestFoe(e, 8); const away = near ? angTo(near, e) : e.face + Math.PI;
         this.addZone({ shape: 'circle', x: e.x, z: e.z, r: A.radius, warn: 0.45, life: 0.15, dmg: this.heroDmg(e, A.dmg, r), stun: A.stun, kind: 'smoke' });
         const tx = e.x + Math.sin(away) * A.dist, tz = e.z + Math.cos(away) * A.dist;
         const p = this._lastClear(e.x, e.z, tx, tz, e.r); this.emit('blinkHero', { e, fx: e.x, fz: e.z, x: p.x, z: p.z }); e.x = p.x; e.z = p.z; e.face = wrap(away + Math.PI);
@@ -347,16 +428,16 @@ export class World {
       }
       case 'trap': { cast('cast', 0.3); this.addZone({ shape: 'circle', x: e.x + fx * 1.2, z: e.z + fz * 1.2, r: A.radius, life: A.life, dmg: this.heroDmg(e, A.dmg, r), root: A.root, trigger: true, kind: 'trap' }); break; }
       case 'shock': { cast('hsmash2', 0.5, 0, 0.42); this.addZone({ shape: 'ring', x: e.x + fx * 1.2, z: e.z + fz * 1.2, r0: 0.8, r1: A.r1, warn: 0.3, life: 0.5, dmg: this.heroDmg(e, A.dmg, r), kb: 7, kind: 'shock' }); this.emit('shake', { amt: 0.4 }); break; }
-      case 'charge': { this._aim(e, mdir, 8); e.state = 'charging'; e.t = 0; e.anim = 'charge'; e.animT = 0; e.hitSet = new Set(); e.iframes = 0.25; e.chargeA = { dmg: this.heroDmg(e, A.dmg, r), slam: this.heroDmg(e, A.slam, r), radius: A.radius, dist: A.dist, slammed: false }; break; }
+      case 'charge': { aim(8); e.state = 'charging'; e.t = 0; e.anim = 'charge'; e.animT = 0; e.hitSet = new Set(); e.iframes = 0.25; e.chargeA = { dmg: this.heroDmg(e, A.dmg, r), slam: this.heroDmg(e, A.slam, r), radius: A.radius, dist: A.dist, slammed: false }; break; }
       case 'ward': { cast('roar', 0.4); e.buffs.ward = A.dur; e.wardPulse = 0; e.wardDmg = this.heroDmg(e, A.dmg, r); e.wardR = A.radius; this.addZone({ shape: 'circle', follow: e, r: A.radius, life: A.dur, dmg: e.wardDmg, tick: 0.6, kind: 'ward' }); break; }
       case 'pillar': {
-        const tg = this._aim(e, mdir, 11) || null; cast('cast', 0.34);
-        const px = tg ? tg.x : e.x + fx * 4, pz = tg ? tg.z : e.z + fz * 4;
+        const at = aim(11) || null; cast('cast', 0.34);
+        const px = at ? at.x : e.x + Math.sin(e.face) * 4, pz = at ? at.z : e.z + Math.cos(e.face) * 4;
         this.addZone({ shape: 'circle', x: px, z: pz, r: A.radius, warn: A.delay, life: 0.2, dmg: this.heroDmg(e, A.dmg, r), status: A.status, kind: 'pillar' });
         break;
       }
       case 'lantern': {
-        cast('heal', 0.4, 0.3); const amt = Math.round(e.maxHp * A.heal * rankDmg(r) * 0.8 + e.maxHp * 0.02); e.hp = Math.min(e.maxHp, e.hp + amt); this.emit('heal', { e, amt });
+        cast('cast', 0.4, 0.3); const amt = Math.round(e.maxHp * A.heal * rankDmg(r) * 0.8 + e.maxHp * 0.02); e.hp = Math.min(e.maxHp, e.hp + amt); this.emit('heal', { e, amt });
         this.addZone({ shape: 'circle', follow: e, r: A.radius, life: A.dur, dmg: this.heroDmg(e, A.dmg, r), tick: 0.5, status: { burn: 1 }, kind: 'lantern' });
         break;
       }
@@ -417,21 +498,6 @@ export class World {
     if (e.t >= D.dur) { e.iframes = 0.3; free(); }
   }
 
-  // ------------------------------------------------------------------ finishers
-  _finisherTarget(e) {
-    let best = null, bd = 2.4;
-    for (const f of this.foes()) { if (f.state !== 'stagger') continue; const d = dist(e, f) - f.r; if (d < bd && this.clear(e, f)) { bd = d; best = f; } }
-    return best;
-  }
-  _finisher(e, tg) {
-    e.state = 'finisher'; e.t = 0; e.anim = 'finisher'; e.animT = 0; e.target = tg; e.finHit = false; e.iframes = FIN.dur + 0.1;
-    e.face = angTo(e, tg); tg.state = 'finished'; tg.t = 0; tg.anim = 'finished'; tg.animT = 0; tg.face = angTo(tg, e);
-    // step into place, only where it is free and on this side of any bars
-    const want = tg.r + e.r + 0.35; const nx = tg.x - Math.sin(e.face) * want, nz = tg.z - Math.cos(e.face) * want;
-    if (!this._blocked(nx, nz, e.r) && this.clear({ x: nx, z: nz }, tg)) { e.x = nx; e.z = nz; }
-    this.stats.finishers++; this.emit('finisher', { e, target: tg }); this.slow(0.6, 0.45);
-  }
-
   // ------------------------------------------------------------------ hits
   _inShape(a, atk, t) {
     const dx = t.x - a.x, dz = t.z - a.z; const d = Math.hypot(dx, dz);
@@ -464,7 +530,7 @@ export class World {
         if (this.t - dst.dashAt <= DASH.perfectWindow + 0.06 && !dst.perfected) { dst.perfected = true; this.meter = Math.min(100, this.meter + METER.onPerfect * dst.stats.ultRate); this.stats.perfects++; this.slow(0.7, 0.3); this.emit('perfect', { e: dst, src }); }
         return false;
       }
-      if (dst.iframes > 0 || dst.state === 'finisher' || dst.state === 'special') return false;
+      if (dst.iframes > 0 || dst.state === 'special') return false;
       let real = dmg * dst.stats.dmgTaken * (dst.buffs.ward > 0 ? 0.5 : 1); real = Math.max(1, Math.round(real));
       dst.hp -= real; dst.flash = 0.15; dst.iframes = 0.55; this.stats.damageTaken += real;
       this.meter = Math.min(100, this.meter + METER.onHurt * dst.stats.ultRate);
@@ -482,15 +548,14 @@ export class World {
       return true;
     }
     // a foe
-    if (dst.state === 'spawn' || dst.state === 'finished' && !o.finisher) return false;
-    if (dst.iframes > 0 && !o.finisher) return false;
+    if (dst.state === 'spawn' || dst.iframes > 0) return false;
     const ang = Math.atan2(dst.x - src.x, dst.z - src.z);
     // shield: frontal blows are blocked until the guard breaks
-    if (dst.def.shield && !o.special && !o.finisher && !o.aoe && dst.state !== 'stagger' && dst.state !== 'attack' && dst.state !== 'windup' && Math.abs(angDiff(dst.face, ang + Math.PI)) < 1.2) {
+    if (dst.def.shield && !o.special && !o.aoe && dst.state !== 'stagger' && dst.state !== 'attack' && dst.state !== 'windup' && Math.abs(angDiff(dst.face, ang + Math.PI)) < 1.2) {
       dst.poise -= (o.poise || 10) * (o.heavy ? 1.2 : 0.6); dst.flash = 0.06;
       this.emit('block', { e: dst, src, x: dst.x - Math.sin(ang) * 0.5, z: dst.z - Math.cos(ang) * 0.5 });
       if (src === hero && !o.heavy && !o.proj) { hero.kbx = -Math.sin(ang) * 3; hero.kbz = -Math.cos(ang) * 3; }
-      if (dst.poise <= 0) this._stagger(dst, 1.8);
+      if (dst.poise <= 0) { if (src === hero) this.meter = Math.min(100, this.meter + METER.onBreak * hero.stats.ultRate); this._stagger(dst, 1.8); }
       this.stop(0.04);
       return false;
     }
@@ -503,8 +568,8 @@ export class World {
     if (src === hero) this.meter = Math.min(100, this.meter + METER.onHit * (o.special ? 0 : 1) * hero.stats.ultRate);
     const kb = (o.kb || 2) / Math.max(0.6, dst.mass) * (dst.boss ? 0.15 : 1);
     if (!(dst.armor && (dst.state === 'windup' || dst.state === 'attack'))) { dst.kbx = Math.sin(ang) * kb; dst.kbz = Math.cos(ang) * kb; }
-    this.emit('hit', { src, dst, dmg: real, x: dst.x, z: dst.z, ang, heavy: o.heavy, finisher: o.finisher, special: o.special, crit, kind: o.kind });
-    if (!o.special && !o.dotLike) this.stop(o.finisher ? 0.16 : (o.heavy ? 0.085 : (o.proj ? 0.02 : 0.045)));
+    this.emit('hit', { src, dst, dmg: real, x: dst.x, z: dst.z, ang, heavy: o.heavy, special: o.special, crit, kind: o.kind });
+    if (!o.special && !o.dotLike) this.stop(o.heavy ? 0.085 : (o.proj ? 0.02 : 0.045));
     if (o.heavy) this.emit('shake', { amt: 0.3 });
     // what the blow carries: statuses, weapon traits, relics
     if (src === hero && hero) this._onHeroHit(hero, dst, real, o);
@@ -514,7 +579,7 @@ export class World {
     // poise and interrupts
     if (!dst.boss) {
       dst.poise -= o.poise || 0;
-      if (dst.poise <= 0 && dst.state !== 'stagger') this._stagger(dst, 1.7);
+      if (dst.poise <= 0 && dst.state !== 'stagger') { if (src === hero) this.meter = Math.min(100, this.meter + METER.onBreak * hero.stats.ultRate); this._stagger(dst, 1.7); }
       else if (!dst.armor && !dst.shield && dst.state !== 'stagger' && dst.state !== 'hurt' && (dst.flinch >= 1 || o.heavy && dst.flinch >= 0.5)) {
         // a foe flinches a few times, then fights through the blows (button mashing gets punished)
         dst.flinch -= o.heavy ? 0.5 : 1;
@@ -522,7 +587,7 @@ export class World {
       }
     } else {
       dst.poise -= (o.poise || 0) * 0.5;
-      if (dst.poise <= 0 && dst.state !== 'stagger' && !dst.hidden) { dst.staggers = (dst.staggers || 0) + 1; dst.maxPoise = 300 * Math.min(2, 1 + 0.25 * dst.staggers); dst.poise = dst.maxPoise; dst.state = 'stagger'; dst.t = 0; dst.anim = 'stagger'; dst.animT = 0; dst.stagT = 2.2; dst.tele = null; dst.atk = null; dst.leapFrom = null; dst.leapH = 0; this.emit('stagger', { e: dst }); }
+      if (dst.poise <= 0 && dst.state !== 'stagger' && !dst.hidden) { if (src === hero) this.meter = Math.min(100, this.meter + METER.onBreak * hero.stats.ultRate); dst.staggers = (dst.staggers || 0) + 1; dst.maxPoise = 300 * Math.min(2, 1 + 0.25 * dst.staggers); dst.poise = dst.maxPoise; dst.state = 'stagger'; dst.t = 0; dst.anim = 'stagger'; dst.animT = 0; dst.stagT = 2.2; dst.tele = null; dst.atk = null; dst.leapFrom = null; dst.leapH = 0; this.emit('stagger', { e: dst }); }
     }
     return true;
   }
@@ -551,7 +616,7 @@ export class World {
   }
 
   _kill(e, src, o) {
-    e.hp = 0; e.dead = true; e.state = 'dead'; e.anim = o.finisher ? 'dieHard' : 'die'; e.animT = 0; e.tele = null; e.deadT = 0; e.leapH = 0; e.status = {};
+    e.hp = 0; e.dead = true; e.state = 'dead'; e.anim = o.heavy && !e.boss ? 'dieHard' : 'die'; e.animT = 0; e.tele = null; e.deadT = 0; e.leapH = 0; e.status = {};
     this.stats.kills++; const hero = this.hero;
     if (hero && !hero.dead) {
       this.meter = Math.min(100, this.meter + METER.onKill * hero.stats.ultRate);
@@ -576,7 +641,6 @@ export class World {
       case 'spawn': if (e.t >= 0.9) { e.state = 'idle'; e.t = 0; e.anim = 'idle'; } return;
       case 'hurt': if (e.stun <= 0) { e.state = 'idle'; e.anim = 'idle'; e.t = 0; e.ai.cd = Math.max(e.ai.cd, 0.35); } return;
       case 'stagger': if (e.t >= e.stagT) { e.state = 'idle'; e.anim = 'idle'; e.t = 0; e.ai.cd = 0.5; } return;
-      case 'finished': if (e.t > 1.1) { e.state = 'idle'; e.anim = 'idle'; e.t = 0; e.ai.cd = 0.8; } return;
       case 'windup': case 'attack': return this._foeAttack(e, h * (e.status.frost ? 0.7 : 1));
     }
     if (e.ai.passive) { e.anim = 'idle'; return; }

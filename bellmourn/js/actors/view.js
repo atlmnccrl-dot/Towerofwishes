@@ -1,23 +1,25 @@
 // Keeps a rig for every entity in the simulation and poses it each frame, with short crossfades
 // between clips, cloak physics, hit flashes, corpses that linger and sink, weapon trails, elite auras
-// and status tints (burning, chilled, shielded).
+// and status tints (burning, chilled, shielded). healGlow(id, dur) pulses an actor warm green (a tonic),
+// and while a hero drinks ('heal') the flask shows in the free hand.
 //
 // Bodies that are not people come from beasts.js: makeBeast(look) returns an object with the same
 // surface as Rig (root, flash, updateCloak, tip, handWorld, tipWorld) plus animate(e, t, dt), which
 // poses it itself; the view then skips poseFor/apply for it.
 import * as THREE from '../../vendor/three.module.min.js';
 import { Rig } from './rig.js';
-import { poseFor, mix } from './anims.js';
+import { poseFor, mix, FLASK_T } from './anims.js';
 import { makeBeast } from './beasts.js';
 import { HEROES, WEAPONS } from '../game/heroes.js';
 import { AFFIXES } from '../game/heroes.js';
 import * as T from '../engine/textures.js';
 
-const SWING = { slash1: [0.06, 0.2], slash2: [0.06, 0.2], slash3: [0.12, 0.3], thrust: [0.05, 0.22], finisher: [0.45, 0.9], special: [0.25, 1.4], hsmash1: [0.18, 0.34], hsmash2: [0.26, 0.48], whirl: [0.05, 0.75] };
+const SWING = { slash1: [0.06, 0.2], slash2: [0.06, 0.2], slash3: [0.12, 0.3], thrust: [0.05, 0.22], special: [0.25, 1.4], hsmash1: [0.18, 0.34], hsmash2: [0.26, 0.48], whirl: [0.05, 0.75] };
 const TAU = Math.PI * 2;
+const HEAL_TINT = 0x8cff5a; // warm green
 
 export class ActorView {
-  constructor(scene, fx) { this.scene = scene; this.fx = fx; this.map = new Map(); this.tmpA = new THREE.Vector3(); this.tmpB = new THREE.Vector3(); }
+  constructor(scene, fx) { this.scene = scene; this.fx = fx; this.map = new Map(); this.glows = new Map(); this.tmpA = new THREE.Vector3(); this.tmpB = new THREE.Vector3(); }
 
   lookFor(e) {
     if (e.team === 'hero') {
@@ -63,11 +65,14 @@ export class ActorView {
       if (rig.animate) rig.animate(e, e.animT, dt);
       else {
         // clip crossfade
-        if (e.anim !== v.anim) { v.from = v.pose; v.blend = 0; v.anim = e.anim; v.fade = /slash|thrust|dash|fslash|slam|sweep|pounce|finisher|hsmash|whirl/.test(e.anim) ? 0.035 : 0.09; }
+        if (e.anim !== v.anim) { v.from = v.pose; v.blend = 0; v.anim = e.anim; v.fade = /slash|thrust|dash|fslash|slam|sweep|pounce|hsmash|whirl/.test(e.anim) ? 0.035 : 0.09; }
         let p = poseFor(e, e.animT);
         if (v.blend < 1 && v.from) { v.blend = Math.min(1, v.blend + dt / v.fade); p = mix(v.from, p, v.blend); }
         v.pose = p; rig.apply(p);
       }
+      // the tonic: the flask in the free hand while a hero drinks (dimmer once drunk)
+      if (rig.showFlask) rig.showFlask(e.anim === 'heal' && !e.dead && (e.team === 'hero' || !!e.heroId) && e.animT >= FLASK_T[0] && e.animT <= FLASK_T[1], e.animT < 0.5 ? 1 : 0);
+      this._glow(e, rig, dt);
       // cloak follows motion
       const sp = Math.hypot(e.x - v.lastX, e.z - v.lastZ) / Math.max(dt, 1e-4); v.lastX = e.x; v.lastZ = e.z;
       rig.updateCloak(dt, Math.min(sp, 14), df);
@@ -99,9 +104,34 @@ export class ActorView {
         rig.handWorld(this.tmpA); rig.tipWorld(this.tmpB); this.fx.trail(e.id, this.tmpA, this.tmpB, [1.8, 0.35, 0.3]);
       }
     }
-    for (const [id, v] of this.map) if (!alive.has(id)) { this.scene.remove(v.rig.root); this._dropAura(v); this.map.delete(id); this.fx.dropTrail(id); }
+    for (const [id, g] of this.glows) if (!alive.has(id) && (g.t += dt) >= g.dur) this._endGlow(id, this.map.get(id)?.rig);
+    for (const [id, v] of this.map) if (!alive.has(id)) { this._endGlow(id, v.rig); this.scene.remove(v.rig.root); this._dropAura(v); this.map.delete(id); this.fx.dropTrail(id); }
+  }
+
+  // A warm green pulse over an actor for dur seconds (a tonic): an emissive tint on the rig and a soft
+  // halo around the body, rising fast, beating twice a second, fading out over the last third.
+  healGlow(id, dur = 1) { const g = this.glows.get(id); if (g) { g.t = 0; g.dur = Math.max(0.2, dur); } else this.glows.set(id, { t: 0, dur: Math.max(0.2, dur), halo: null }); }
+  _glow(e, rig, dt) {
+    const g = this.glows.get(e.id); if (!g) return;
+    g.t += dt; const u = g.t / g.dur;
+    if (u >= 1 || e.dead) { this._endGlow(e.id, rig); return; }
+    const env = Math.min(1, g.t / 0.12) * (u < 0.66 ? 1 : 1 - (u - 0.66) / 0.34);
+    const k = env * (0.5 + 0.5 * Math.cos(g.t * Math.PI * 4));
+    if (rig.tint) rig.tint(HEAL_TINT, k);
+    if (!g.halo) {
+      g.halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: T.glow('#ffffff', 32, 1.3), color: new THREE.Color(0.3, 0.9, 0.35), blending: THREE.AdditiveBlending, depthWrite: false, fog: false, transparent: true }));
+      this.scene.add(g.halo);
+    }
+    const s = (e.def?.scale || 1);
+    g.halo.position.set(e.x, (e.leapH || 0) + 1.0 * s, e.z); g.halo.scale.set(1.7 * s, 2.4 * s, 1); g.halo.material.opacity = 0.3 * k; g.halo.visible = rig.root.visible;
+  }
+  _endGlow(id, rig) {
+    const g = this.glows.get(id); if (!g) return;
+    if (rig && rig.tint) rig.tint(null, 0);
+    if (g.halo) { this.scene.remove(g.halo); g.halo.material.dispose(); }
+    this.glows.delete(id);
   }
 
   get(e) { return this.map.get(e.id)?.rig; }
-  clear() { for (const [id, v] of this.map) { this.scene.remove(v.rig.root); this._dropAura(v); this.fx.dropTrail(id); } this.map.clear(); }
+  clear() { for (const id of [...this.glows.keys()]) this._endGlow(id, this.map.get(id)?.rig); for (const [id, v] of this.map) { this.scene.remove(v.rig.root); this._dropAura(v); this.fx.dropTrail(id); } this.map.clear(); }
 }

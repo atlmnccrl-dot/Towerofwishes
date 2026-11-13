@@ -1,5 +1,5 @@
-// Progression rules on the save: experience and levels, skill ranks, loot, boss rewards, the merchant.
-// Pure functions (no DOM); the game persists the save.
+// Progression rules on the save: experience and levels, skill ranks, loot, boss rewards, the merchant,
+// and where the Haven sends you next. Pure functions (no DOM); the game persists the save.
 import { HEROES, HERO_ORDER, ABILITIES, WEAPONS, RELICS, MAX_LEVEL, MAX_RANK, xpFor, newHeroSave, weaponsOfType, weaponPrice, upgradeCost, MAX_PLUS } from './heroes.js';
 import { DISTRICTS } from './story.js';
 
@@ -12,6 +12,9 @@ export function freshSave(heroId = 'warden') {
     level: 'gate', lamp: null, litLamps: {}, cleared: {}, items: {}, bosses: {}, visited: [], bought: {},
     embers: 0, relicsOwned: [], relicsOn: [null, null], bossTonics: 0, tonicUp: 0,
     deaths: 0, time: 0, done: false, tutorial: false,
+    // the Haven between districts: whether the save was made there, which district ONWARD leads to,
+    // whether it was ever reached (pause: RETURN TO THE HAVEN) and whether its first-visit guide ran
+    inHaven: false, havenNext: null, havenSeen: false, havenIntro: false,
   };
 }
 
@@ -25,6 +28,13 @@ export function upgradeSave(s) {
 }
 
 export const districtIndex = (id) => Math.max(0, DISTRICTS.indexOf(id));
+
+// The district the Haven leads on to: the preferred one (a district's exit, or the district left from the
+// pause menu) unless its boss already fell, then the first district whose boss still stands.
+export function havenNext(save, preferred) {
+  if (preferred && DISTRICTS.includes(preferred) && !save.bosses[preferred]) return preferred;
+  return DISTRICTS.find((id) => !save.bosses[id]) || (DISTRICTS.includes(preferred) ? preferred : DISTRICTS[0]);
+}
 export const relicSlots = (save) => (save.bosses.nave ? 3 : 2);
 
 // Add experience to the current hero; returns the number of levels gained.
@@ -87,7 +97,7 @@ export function bossReward(save, districtId, rand) {
   const lv = addXp(save, 220 + n * 160); if (lv) lines.push('LEVEL ' + save.heroes[save.hero].level);
   if (n < 3) { save.bossTonics = Math.min(3, (save.bossTonics || 0) + 1); lines.push('A NEW TONIC FLASK'); }
   if (districtId === 'nave') lines.push('A THIRD RELIC SLOT');
-  if (districtId === 'market' && !save.unlocked.includes('lamplighter')) { save.unlocked.push('lamplighter'); lines.push('SISTER ASH JOINS YOU (CHANGE HERO AT A LAMP)'); }
+  if (districtId === 'market' && !save.unlocked.includes('lamplighter')) { save.unlocked.push('lamplighter'); lines.push('SISTER ASH JOINS YOU (CHANGE HERO AT THE HAVEN)'); }
   const w = rollWeapon(save, Math.min(4, Math.floor(n / 2) + 1), rand); if (w) { giveWeapon(save, w); lines.push('WEAPON: ' + WEAPONS[w].name); }
   const r = rollRelic(save, rand); if (r) { giveRelic(save, r); lines.push('RELIC: ' + RELICS[r].name); }
   return lines;
@@ -104,7 +114,7 @@ export function chestLoot(save, item, districtId, rand) {
   return lines;
 }
 
-// The merchant at the lamps: weapons for the current hero up to the district's strength, two relics, a flask, a tome.
+// The merchant at the Haven (stocked for the district ahead): weapons for the current hero up to the district's strength, two relics, a flask, a tome.
 export function shopStock(save, districtId) {
   const n = districtIndex(districtId); const type = HEROES[save.hero].weapon; const P = save.heroes[save.hero]; const items = [];
   for (const id of weaponsOfType(type)) if (WEAPONS[id].tier >= 1 && WEAPONS[id].tier <= Math.floor(n / 2) + 1 && !P.owned.includes(id)) items.push({ kind: 'weapon', id, name: WEAPONS[id].name, price: weaponPrice(id), desc: WEAPONS[id].desc });

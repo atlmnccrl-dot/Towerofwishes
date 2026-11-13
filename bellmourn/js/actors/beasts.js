@@ -175,9 +175,8 @@ class Quadruped extends Beast {
       }
     } else if (anim === 'hurt') {
       pose = { ...L([-0.3, 0.2], [-0.2, 0.2], [-0.2, 0.5], [-0.1, 0.5]), lift: -0.05 * P.s, pitch: -0.18, roll: Math.sin(t * 30) * 0.06, neck: [-0.4, 0.3, 0], head: [0.2, 0, 0], jaw: [0.6, 0, 0] }; rate = 30;
-    } else if (anim === 'stagger' || anim === 'finished') {
-      const down = anim === 'finished' && t > 0.25;
-      pose = { ...L([0.9, 0.9], [0.7, 1.1], [-1.2, 2.0], [-1.1, 1.9]), lift: (down ? -0.34 : -0.2) * P.s, pitch: 0.2, roll: Math.sin(t * 6) * 0.1, neck: [0.8, Math.sin(t * 4) * 0.3, 0], head: [-0.2, 0, 0.2], jaw: [0.4, 0, 0], ...tail(0.05, 3) }; rate = 10;
+    } else if (anim === 'stagger') {
+      pose = { ...L([0.9, 0.9], [0.7, 1.1], [-1.2, 2.0], [-1.1, 1.9]), lift: -0.2 * P.s, pitch: 0.2, roll: Math.sin(t * 6) * 0.1, neck: [0.8, Math.sin(t * 4) * 0.3, 0], head: [-0.2, 0, 0.2], jaw: [0.4, 0, 0], ...tail(0.05, 3) }; rate = 10;
     } else if (anim === 'die' || anim === 'dieHard') {
       const k = clamp01(t / 0.45);
       pose = { ...L([-0.6, 0.2], [-0.4, 0.3], [0.5, 0.2], [0.6, 0.1]), lift: -this.baseY + 0.16 * P.s * (P.w + 0.3), roll: 1.5 * ease(k), pitch: anim === 'dieHard' ? -0.15 : 0, neck: [0.2, 0, 0.3], head: [0.2, 0, 0], jaw: [0.5, 0, 0], tail0: [0, 0, 0] }; rate = 9;
@@ -277,9 +276,8 @@ class Gargoyle extends Beast {
       else pose = base;
     } else if (anim === 'hurt') {
       pose = { ...hover(0.7), pitch: -0.35, roll: Math.sin(t * 30) * 0.08, head: [0.4, 0.4, 0], ...wings(0.9, 0.6) }; rate = 30;
-    } else if (anim === 'stagger' || anim === 'finished') {
-      const down = anim === 'finished' && t > 0.25;
-      pose = { lift: down ? -0.32 : -0.18, pitch: 0.4, roll: Math.sin(t * 5) * 0.12, ...crouch, ...wings(-0.7, -0.4, 0.2), ...claws(0.3, -0.2), chest: [0.5, Math.sin(t * 4) * 0.3, 0], head: [0.6, 0, 0.2] }; rate = 10;
+    } else if (anim === 'stagger') {
+      pose = { lift: -0.18, pitch: 0.4, roll: Math.sin(t * 5) * 0.12, ...crouch, ...wings(-0.7, -0.4, 0.2), ...claws(0.3, -0.2), chest: [0.5, Math.sin(t * 4) * 0.3, 0], head: [0.6, 0, 0.2] }; rate = 10;
     } else if (anim === 'die' || anim === 'dieHard') {
       const k = clamp01(t / 0.6);
       pose = { lift: lerp(0.5, -0.5, ease(k)), roll: 1.45 * ease(k), pitch: 0.2, ...wings(-0.2, -0.6, 0), ...claws(-1.2, -0.3), hipL: [-0.6, 0, 0], hipR: [-0.3, 0, 0], knL: [0.8, 0, 0], knR: [1.2, 0, 0], head: [0.5, 0, 0.3] }; rate = 8;

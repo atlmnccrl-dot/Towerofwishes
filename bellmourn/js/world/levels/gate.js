@@ -14,7 +14,7 @@ export default {
   items: [{ id: 'c1', x: -8.4, z: -8.3, ry: 0.4, kind: 'embers', amount: 50 }, { id: 'c2', x: 3.9, z: -17.6, ry: -Math.PI / 2, kind: 'embers', amount: 70 }],
   hints: [
     { zone: [-9, 9.2, -1, 16], text: 'WASD TO MOVE. THE LAMP AHEAD KEEPS YOUR PLACE.', touch: 'LEFT THUMB TO MOVE. THE LAMP AHEAD KEEPS YOUR PLACE.' },
-    { zone: [-9, -9, 7.5, 8.4], text: 'J ATTACK  SPACE DASH  K AND L SKILLS  Q ULTIMATE', touch: 'ATK STRIKE  DASH EVADE  TWO SKILLS  ULT WHEN RED', life: 6 },
+    { zone: [-9, -9, 7.5, 8.4], text: 'J ATTACK  SPACE DASH  Q ULTIMATE. A GLOWING SKILL FIRES FROM THE ATTACK', touch: 'ATK STRIKE  DASH EVADE  ULT WHEN RED. SKILLS FIRE FROM ATK', life: 6 },
     { zone: [3, -27, 8, -11], text: 'RED ON THE STONES: A BLOW IS COMING. DASH THROUGH.' },
     { zone: [-2, -31, 12, -28.5], text: 'SOMETHING HEAVY MOVES ON THE GALLOWS SQUARE.' },
   ],

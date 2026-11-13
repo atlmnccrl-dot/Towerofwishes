@@ -18,7 +18,6 @@ export const HERO = {
   ],
   dashAttack: { name: 'DA', anim: 'thrust', dur: 0.42, windup: 0.06, active: 0.2, cancel: 0.28, range: 2.6, width: 1.0, shape: 'line', dmg: 15, poise: 18, kb: 4, lunge: 11 },
   heavy: { name: 'H', anim: 'heavy', dur: 0.62, windup: 0.1, active: 0.22, cancel: 0.5, range: 2.8, arc: deg(290), dmg: 22, poise: 45, kb: 9, lunge: 3, heavy: true, chargeMax: 0.85, chargeDmg: 22 },
-  finisher: { dur: 0.95, hitAt: 0.55, dmgMul: 5, heal: 8, meter: 12 },
   special: { dur: 1.6, radius: 6.5, hits: 7, dmg: 13, cost: 100 },
   meter: { onHit: 2.4, onParry: 20, onPerfect: 22, onKill: 5, onHurt: 1.5 },
 };

@@ -1,6 +1,7 @@
 // An autoplayer for tests (and the attract mode): reads the World and returns an input frame.
 // skill 0 mashes attack and walks in; skill 1 also reads telegraphs and hazards, dashes out of them,
-// uses both abilities when they are ready, heals when low, finishes broken foes and uses the ultimate.
+// heals when low and uses the ultimate. It presses attack, dash, ult and tonic only: the abilities go off
+// by themselves when an attack is pressed (sim.js).
 
 export function makeBot(skill = 1, seed = 1) {
   let s = seed >>> 0; const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
@@ -35,16 +36,15 @@ export function makeBot(skill = 1, seed = 1) {
     if (skill > 0) {
       if (h.hp < h.maxHp * 0.4 && h.tonics > 0 && nd > 3) inp.healPressed = true;
       const crowd = foes.filter((f) => Math.hypot(f.x - h.x, f.z - h.z) < 6).length;
-      if (w.meter >= 100 && (crowd >= 2 || foes.some((f) => f.boss))) inp.specialPressed = inp.ultPressed = true;
-      if (h.cds[0] <= 0 && nd < (ranged ? 9 : 5)) inp.skill1Pressed = true;
-      else if (h.cds[1] <= 0 && nd < (ranged ? 7 : 4) && rnd() < 0.05) inp.skill2Pressed = true;
+      if (w.meter >= 100 && (crowd >= 2 || foes.some((f) => f.boss))) inp.ultPressed = true;
     }
     // approach and attack (archers keep their distance)
     const want = ranged ? 5.5 : 1.4 + near.r;
     if (ranged) {
       if (d > want + 2) { inp.mx = dx / d; inp.mz = dz / d; } else if (d < want - 2.5) { inp.mx = -dx / d; inp.mz = -dz / d; }
+      // a wall between: step around it instead of shooting the stones
+      if (!w.clear(h, near)) { if (!st.side || rnd() < 0.004) st.side = rnd() < 0.5 ? 1 : -1; const a = Math.atan2(dx, dz) + st.side * 1.2; inp.mx = Math.sin(a); inp.mz = Math.cos(a); }
       inp.attackDown = true; if (st.t - st.lastAtk > 0.2) { st.lastAtk = st.t; inp.attackPressed = true; }
-      if (near.state === 'stagger' && d < 2.6) inp.attackPressed = true;
     } else if (d > want + 0.2) { inp.mx = dx / d; inp.mz = dz / d; }
     else if (st.t - st.lastAtk > (skill > 0 ? 0.18 : 0.12)) { st.lastAtk = st.t; inp.attackPressed = true; }
     return inp;
