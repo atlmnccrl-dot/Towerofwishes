@@ -11,7 +11,9 @@ export default {
   gatesOpen: ['hallGate', 'shedGate', 'arenaGate'],
   ambience: {
     fog: 0x221f24, fogNear: 78, fogFar: 175, sky: 0x0c0c11, moon: 1.5, hemi: 0.9, hemiGround: 0x1c1410, rain: 1, lightning: true,
-    beams: [{ x: 3.5, z: 11.5, r: 5.5, h: 16, from: [4, 0, -7], intensity: 55 }, { x: 0.5, z: -50, r: 7.5, h: 22, from: [5, 0, -9], intensity: 70 }],
+    // shaft lengths are whole metres (hypot(6, 15, 10) = 19, hypot(6, 18, 9) = 21): atmos.js shades a shaft
+    // with pow(1 - t, 1.2), and an awkward length rounds t past 1 at the top and paints NaN (a black blot)
+    beams: [{ x: 3.5, z: 11.5, r: 5.5, h: 15, from: [6, 0, -10], intensity: 55 }, { x: 0.5, z: -50, r: 7.5, h: 18, from: [6, 0, -9], intensity: 70 }],
   },
   lamps: [{ id: 'yard', x: 0.4, z: 12.4, sx: 1.4, sz: 0.3 }, { id: 'pit', x: 6.4, z: -39.8, sx: -1.5, sz: 0.3 }],
   items: [{ id: 'c1', x: 7.6, z: -24.2, ry: 0, kind: 'embers', amount: 130 }, { id: 'c2', x: -7.2, z: -9.5, ry: Math.PI / 2, kind: 'tonic' }],

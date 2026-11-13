@@ -153,7 +153,7 @@ function starTex(S) {
       if (d > c - 3 && d < c - 1) col = '#8a8ca0';
       else if (d > c - 7 && d < c - 6) col = '#3a3a48';
       else if (d < c - 9) {
-        const k = ((a / (Math.PI / 4)) % 1 + 1) % 1; const tri = Math.abs(k - 0.5) * 2; const rr = 6 + (c - 16) * Math.pow(tri, 2.2);
+        const k = ((a / (Math.PI / 4)) % 1 + 1) % 1; const tri = Math.abs(k - 0.5) * 2; const rr = 6 + (c - 16) * Math.pow(tri, 0.9) * (Math.floor(a / (Math.PI / 4) + 0.5) % 2 ? 0.62 : 1);
         if (d < 5) col = d < 4 ? '#a8aabb' : '#3a3a48';
         else if (d < rr) { const half = (Math.floor(a / (Math.PI / 8)) + 16) % 2; col = half ? '#8c8ea2' : '#3e3e4c'; if (Math.abs(d - rr) < 1) col = '#2c2c38'; }
         else if (d > c * 0.55 && d < c * 0.55 + 1) col = '#6a6c80';
