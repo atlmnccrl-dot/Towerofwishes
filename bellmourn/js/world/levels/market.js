@@ -16,9 +16,9 @@ export default {
   lamps: [{ id: 'row', x: -5.6, z: 6, sx: 1.3, sz: 0.4 }, { id: 'works', x: -25.6, z: -29.8, sx: 1.2, sz: 0.6 }],
   items: [{ id: 'c1', x: 9, z: -28.6, ry: 0, kind: 'embers', amount: 90 }, { id: 'c2', x: -8.6, z: -14.5, ry: 0, kind: 'tonic' }],
   hints: [
-    { zone: [-7, 9.5, 5.2, 18], text: 'HOLD K FULLY, THEN LET GO: THE CRIMSON WAVE.', touch: 'HOLD HVY FULLY, THEN LET GO: THE CRIMSON WAVE.' },
-    { zone: [-7, 0.9, 5, 5], text: 'PARRY A BOLT OR A FLAME AND IT FLIES BACK.' },
-    { zone: [-13, -30, -8.5, -21.6], text: 'EVEN THE HEAVIEST BLOW CAN BE PARRIED. THEN FINISH.' },
+    { zone: [-7, 9.5, 5.2, 18], text: 'SPEND SKILL POINTS AT A LAMP: SKILLS GROW STRONGER.' },
+    { zone: [-7, 0.9, 5, 5], text: 'A BOLT OR A FLAME CAN BE DODGED: DASH ACROSS IT.' },
+    { zone: [-13, -30, -8.5, -21.6], text: 'BREAK A BIG FOE'S GUARD, THEN FINISH IT WHILE IT REELS.' },
     { zone: [-27.4, -28.6, -24, -23.4], text: 'ACROSS THE WATER, ONE OF THE CANDLES MOVES.' },
   ],
   foes: [

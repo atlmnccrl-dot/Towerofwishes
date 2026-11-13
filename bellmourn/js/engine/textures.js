@@ -58,7 +58,7 @@ export function cobble(seed = 1, tone = '#5a6472') {
       let x = (row % 2) * 4 - 4;
       while (x < W) {
         const w = 6 + ((r() * 5) | 0); const y = row * rowH;
-        const f = 0.84 + r() * 0.26;
+        const f = 0.9 + r() * 0.16;
         const body = shade(tone, f);
         g.fillStyle = body;
         // rounded stone: skip corners
@@ -232,7 +232,7 @@ export function iron() { return cached('iron', () => { const [c, g] = canvas(4, 
 export function roseWindow(lit = false) {
   return cached('rose' + lit, () => {
     const S = 48; const [c, g] = canvas(S, S); const cx = S / 2 - 0.5, cy = S / 2 - 0.5;
-    const stone = '#6a7482', stoneLo = '#465060', glass = lit ? '#a86a30' : '#141a26', glass2 = lit ? '#d8a050' : '#1c2434', glass3 = lit ? '#6a2a3a' : '#182030';
+    const stone = '#7e8898', stoneLo = '#4e5868', glass = lit ? '#a86a30' : '#141a26', glass2 = lit ? '#d8a050' : '#1c2434', glass3 = lit ? '#6a2a3a' : '#182030';
     for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
       const dx = x - cx, dy = y - cy; const d = Math.hypot(dx, dy); const a = Math.atan2(dy, dx);
       let col = null;

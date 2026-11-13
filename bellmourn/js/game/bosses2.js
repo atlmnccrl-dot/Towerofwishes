@@ -183,6 +183,7 @@ export const BOSSES2 = {
 // rings of water rolling out one after another, and the hook comes faster.
 const harborReel = (p) => strike({ name: 'reel', anim: 'slam', shape: 'circle', offset: 1.5, radius: 2.1, windup: 0.75, active: 0.85, dur: 1.5, dmg: 24, lunge: 0.6, tele: 'circle', onStrike: (w, e) => { ringAt(w, e, e.x + Math.sin(e.face) * 1.5, e.z + Math.cos(e.face) * 1.5, p >= 2 ? 8 : 6, { warn: 0, life: 0.9, dmg: 12, kind: 'water' }); } });
 const HOOK = { range: 10.5, width: 1.1 };
+const harpoons = (p) => ({ name: 'harpoons', anim: 'aim', dur: 1.3, windup: 0.8, active: 0.82, tele: 'ray', teleRange: 14, ranged: { kind: 'bolt', speed: 15, r: 0.22, dmg: 13, life: 1.3, fan: p >= 2 ? 5 : 3, spread: deg(13) } });
 const harbormaster = {
   phases: [0.5], keep: 2.8, turn: 3.6,
   moves(p) {
@@ -192,16 +193,21 @@ const harbormaster = {
       // the hook: a long line; caught, you are hauled in and the anchor comes down where you land
       { id: 'hook', w: p >= 2 ? 2.4 : 1.8, min: 3, max: HOOK.range - 0.5, cd: p >= 2 ? 3.5 : 5, a: { name: 'hook', anim: 'fthrust', shape: 'line', range: HOOK.range, width: HOOK.width, windup: p >= 2 ? 0.75 : 0.85, active: p >= 2 ? 0.8 : 0.9, dur: 1.25, dmg: 0, lunge: 0, tele: 'line', turn: 3, heavy: true, onStrike: (w, e) => {
         const hero = w.hero; const caught = hero && !hero.dead && w._inShape(e, { shape: 'line', ...HOOK }, hero) && w.clear(e, hero);
-        w.emit('hook', { e, x: e.x + Math.sin(e.face) * HOOK.range, z: e.z + Math.cos(e.face) * HOOK.range, hit: false });
-        if (!caught || w._damage(e, hero, 12 * e.dmgMul, { kb: 0.01, heavy: true }) !== true) return;
-        // haul: a knockback toward him that stops about a stride in front (kb decays ~5.5x per second)
+        const hit = caught && w._damage(e, hero, 12 * e.dmgMul, { kb: 0.01, heavy: true }) === true;
+        // the view can draw the hook flying out (to the hero when it bites)
+        w.emit('hook', { e, x: hit ? hero.x : e.x + Math.sin(e.face) * HOOK.range, z: hit ? hero.z : e.z + Math.cos(e.face) * HOOK.range, hit });
+        if (!hit) return;
+        // haul: a knockback toward him that stops about a stride in front (knockback decays ~5.5x per second)
         const a = angTo(hero, e); const d = Math.max(0, dist(hero, e) - e.r - hero.r - 1.1); const kb = d * 5.5;
         hero.kbx = Math.sin(a) * kb; hero.kbz = Math.cos(a) * kb;
-        w.emit('hook', { e, x: hero.x, z: hero.z, hit: true });
         w.foeAttack(e, harborReel(p));
       } } },
-      { id: 'harpoons', w: 1.6, min: 4, cd: 4, a: { name: 'harpoons', anim: 'aim', dur: 1.3, windup: 0.8, active: 0.82, tele: 'ray', teleRange: 14, ranged: { kind: 'bolt', speed: 15, r: 0.22, dmg: 13, life: 1.3, fan: p >= 2 ? 5 : 3, spread: deg(13) } } },
-      { id: 'hounds', w: 0.9, cd: 24, run: (w, e) => { if (countOf(w, 'hound') < 2 && adds(w, e) < 4) summon(w, e, 'hound', 2, 2, 4); roarPause(e); } },
+      { id: 'harpoons', w: 1.6, min: 4, cd: 4, a: harpoons(p) },
+      { id: 'hounds', w: 0.9, cd: 24, run: (w, e) => {
+        // not in the opening seconds: the first pick only starts the clock and he throws harpoons instead
+        if (!e.ai.houndClock) { e.ai.houndClock = true; e.ai.cd_hounds = w.t + 12; return w.foeAttack(e, harpoons(p)); }
+        if (countOf(w, 'hound') < 2 && adds(w, e) < 4) summon(w, e, 'hound', 2, 2, 4); roarPause(e);
+      } },
     ];
     if (p >= 2) m.push({ id: 'tide', w: 1.5, cd: 8, a: { name: 'tide', anim: 'slam', dur: 2.0, windup: 0.9, active: 0.92, tele: 'circle', shape: 'circle', radius: 2.0, offset: 0, dmg: 20, kb: 8, heavy: true, onStrike: (w, e) => { for (let i = 0; i < 3; i++) ringAt(w, e, e.x, e.z, 12, { warn: i * 0.75, life: 1.7, dmg: 15, kind: 'water' }); } } });
     return m;

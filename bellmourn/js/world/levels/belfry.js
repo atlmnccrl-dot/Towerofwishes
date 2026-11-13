@@ -25,7 +25,7 @@ export default {
   items: [{ id: 'c1', x: 8.9, z: -16.2, ry: -Math.PI / 2, kind: 'tonic' }, { id: 'c2', x: -1, z: -10.2, ry: 0, kind: 'embers', amount: 160 }],
   hints: [
     { zone: [-2, 12.6, 2.2, 18], text: 'THE WIND UP HERE PULLS AT YOUR CLOAK. KEEP TO THE LEADS.' },
-    { zone: [-2, 1.8, 2.2, 4.4], text: 'SHIELDS TURN LIGHT BLOWS. STRIKE HEAVY, OR GET BEHIND.' },
+    { zone: [-2, 1.8, 2.2, 4.4], text: 'SHIELDS TURN BLOWS. USE SKILLS, OR GET BEHIND.' },
     { zone: [4.6, -14.4, 7.4, -11.9], text: 'NOTHING BELOW BUT CLOUD. THE BRIDGE IS THE ONLY WAY ON.' },
     { zone: [3, -37.4, 10, -33.8], text: 'THE BELL HANGS STILL. SOMEONE STANDS BESIDE IT.' },
   ],

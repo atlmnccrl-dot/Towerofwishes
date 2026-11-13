@@ -23,7 +23,7 @@ export default {
   hints: [
     { zone: [12, 10.2, 21.5, 16.5], text: 'THE WEST DOORS ARE BURIED. THE SIDE DOOR STILL STANDS.' },
     { zone: [8.6, -0.8, 12, 2.6], text: 'INSIDE, THE WATER IS SHALLOW. IT ONLY SOUNDS DEEP.' },
-    { zone: [-7.5, -8.6, 7.5, -6.4], text: 'PARRY AN ORB AND IT FLIES BACK AT WHOEVER CAST IT.' },
+    { zone: [-7.5, -8.6, 7.5, -6.4], text: 'KILL THE CASTERS FIRST. THEIR ORBS FOLLOW YOU.' },
     { zone: [-7.5, -19.4, 7.5, -16.2], text: 'BEYOND THE SCREEN, SOMEONE IS PREACHING TO THE WATER.' },
   ],
   foes: [

@@ -58,7 +58,7 @@ export class Rig {
       this._part('head', box(hs, hs, hs), C.skin, 0, hs / 2, 0);
       if (C.hair && !d.noHair) { this._part('head', box(hs + 0.04, hs * 0.42, hs + 0.04), C.hair, 0, hs * 0.86, -0.01); this._part('head', box(hs + 0.04, hs * 0.75, 0.08), C.hair, 0, hs * 0.55, -hs / 2 - 0.02); if (d.longHair) this._part('head', box(hs * 0.9, 0.3, 0.07), C.hair, 0, 0.02, -hs / 2 - 0.04); }
       if (d.hood) { this._part('head', box(hs + 0.08, hs + 0.06, hs + 0.08), C.hood || C.cloak || C.tunic, 0, hs / 2 + 0.03, -0.03); this._part('head', box(hs * 0.8, hs * 0.55, 0.02), 0x050608, 0, hs * 0.48, hs / 2 + 0.03); }
-      if (d.eyes) { for (const sx of [-1, 1]) this._part('head', box(0.075, 0.055, 0.03), d.eyes, sx * hs * 0.24, hs * 0.52, hs / 2 + 0.05, { glow: 5 }); }
+      if (d.eyes) { for (const sx of [-1, 1]) this._part('head', box(0.08, 0.09, 0.03), d.eyes, sx * hs * 0.24, hs * 0.52, hs / 2 + 0.05, { glow: 2.6 }); }
       if (d.mask) this._part('head', box(hs * 0.9, hs * 0.6, 0.03), d.mask, 0, hs * 0.45, hs / 2 + 0.03);
       if (d.hat === 'brim') { this._part('head', box(hs + 0.24, 0.04, hs + 0.24), C.hat || 0x15161a, 0, hs + 0.02, 0); this._part('head', box(hs * 0.85, 0.18, hs * 0.85), C.hat || 0x15161a, 0, hs + 0.12, 0); }
       if (d.horns) for (const sx of [-1, 1]) this._part('head', box(0.05, 0.22, 0.05), d.horns, sx * hs * 0.45, hs + 0.08, -0.02, { rz: -sx * 0.5 });

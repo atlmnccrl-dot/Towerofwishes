@@ -36,12 +36,13 @@ export class Atmos {
 
   setLevel(amb, lights) {
     const s = this.r.scene;
-    this.fogColor.set(amb.fog ?? 0x2a3442); s.fog.color = this.fogColor; s.fog.near = amb.fogNear ?? 64; s.fog.far = amb.fogFar ?? 118;
-    s.background = new THREE.Color(amb.sky ?? 0x0c1018);
-    this.hemi.color.set(amb.hemiSky ?? 0x5a6c8a); this.hemi.groundColor.set(amb.hemiGround ?? 0x10141c); this.hemi.intensity = amb.hemi ?? 1.1;
+    this.fogColor.set(amb.fog ?? 0x2a3442); s.fog.color = this.fogColor;
+    const near = amb.fogNear ?? 76; s.fog.near = Math.min(near, 77); s.fog.far = Math.min(amb.fogFar ?? 118, s.fog.near + 40);
+    s.background = this.fogColor.clone().multiplyScalar(0.55); // gaps at the map's edge melt into the mist
+    this.hemi.color.set(amb.hemiSky ?? 0x5a6c8a); this.hemi.groundColor.set(amb.hemiGround ?? 0x10141c); this.hemi.intensity = (amb.hemi ?? 1.1) * 0.7;
     this.amb.color.set(amb.ambient ?? 0x1a2438); this.amb.intensity = amb.ambientI ?? 0.6;
-    this.moon.color.set(amb.moonColor ?? 0x9db4d8); this.moon.intensity = amb.moon ?? 1.5;
-    this.fill.color.set(amb.fillColor ?? 0x8292b4); this.fill.intensity = amb.fill ?? 1.7;
+    this.moon.color.set(amb.moonColor ?? 0x9db4d8); this.moon.intensity = (amb.moon ?? 1.5) * 1.5;
+    this.fill.color.set(amb.fillColor ?? 0x8292b4); this.fill.intensity = amb.fill !== undefined ? amb.fill * 0.45 : 0.6;
     if (amb.moonDir) this.moonDir.set(...amb.moonDir).normalize();
     this.rainOn = amb.rain ?? 1; this.lightning = amb.lightning ?? true;
     // clear old halos and beams
@@ -52,7 +53,7 @@ export class Atmos {
       const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: T.glow('#ffd090', 32, 1.6), color: new THREE.Color(l.color).multiplyScalar(0.55), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, fog: false }));
       sp.scale.set(2.2, 2.2, 1); sp.position.set(l.x, l.y, l.z); this.group.add(sp); this.halos.push({ sprite: sp, src: l });
     }
-    for (const b of amb.beams || []) this.addBeam(b);
+    for (const b of amb.beams || []) this.addBeam({ ...b, intensity: (b.intensity || 60) * 1.8 });
   }
 
   // A moonbeam: spot light from high above with a soft visible shaft through the mist.
@@ -65,7 +66,7 @@ export class Atmos {
     const len = Math.hypot(from[0], h, from[2]);
     const g = new THREE.CylinderGeometry(r * 0.25, r * 1.05, len, 16, 6, true);
     const cols = []; const pos = g.attributes.position;
-    for (let i = 0; i < pos.count; i++) { const t = (pos.getY(i) / len + 0.5); const a = Math.pow(1 - t, 1.4) * 0.9 + 0.05; cols.push(a, a, a); }
+    for (let i = 0; i < pos.count; i++) { const t = (pos.getY(i) / len + 0.5); const s0 = Math.min(1, t / 0.3); const a = s0 * s0 * (3 - 2 * s0) * Math.pow(1 - t, 1.2) * 1.4; cols.push(a, a, a); }
     g.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
     const m = new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(0.07), vertexColors: true, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, side: THREE.DoubleSide, fog: false });
     const shaft = new THREE.Mesh(g, m);
@@ -79,7 +80,7 @@ export class Atmos {
     const N = 650; this.rainN = N;
     const pos = new Float32Array(N * 6); this.drops = new Float32Array(N * 4); // x,y,z,speed
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    const m = new THREE.LineBasicMaterial({ color: 0x9aaac4, transparent: true, opacity: 0.34, fog: false, depthWrite: false });
+    const m = new THREE.LineBasicMaterial({ color: 0x9aaac4, transparent: true, opacity: 0.27, fog: false, depthWrite: false });
     this.rain = new THREE.LineSegments(g, m); this.rain.frustumCulled = false; this.group.add(this.rain);
     for (let i = 0; i < N; i++) this._resetDrop(i, true, new THREE.Vector3());
     // splashes
@@ -138,7 +139,7 @@ export class Atmos {
         else { sp[j * 3 + 1] = -100; }
       }
       this.splash.geometry.attributes.position.needsUpdate = true;
-      this.rain.material.opacity = 0.34 * this.rainOn;
+      this.rain.material.opacity = 0.27 * this.rainOn;
     }
     // lightning
     if (this.lightning) { this.nextBolt -= dt; if (this.nextBolt <= 0) { this.nextBolt = 9 + Math.random() * 16; this.flash(0.6 + Math.random() * 0.4); } }

@@ -14,8 +14,8 @@ export default {
   items: [{ id: 'c1', x: -8.4, z: -8.3, ry: 0.4, kind: 'embers', amount: 50 }, { id: 'c2', x: 3.9, z: -17.6, ry: -Math.PI / 2, kind: 'embers', amount: 70 }],
   hints: [
     { zone: [-9, 9.2, -1, 16], text: 'WASD TO MOVE. THE LAMP AHEAD KEEPS YOUR PLACE.', touch: 'LEFT THUMB TO MOVE. THE LAMP AHEAD KEEPS YOUR PLACE.' },
-    { zone: [-9, -9, 7.5, 8.4], text: 'J ATTACK  SPACE DASH  L PARRY  K HEAVY', touch: 'ATK STRIKE  DASH EVADE  PRY PARRY  HVY HOLD', life: 6 },
-    { zone: [3, -27, 8, -11], text: 'RED ON THE STONES: A BLOW IS COMING. DASH OR PARRY.' },
+    { zone: [-9, -9, 7.5, 8.4], text: 'J ATTACK  SPACE DASH  K AND L SKILLS  Q ULTIMATE', touch: 'ATK STRIKE  DASH EVADE  TWO SKILLS  ULT WHEN RED', life: 6 },
+    { zone: [3, -27, 8, -11], text: 'RED ON THE STONES: A BLOW IS COMING. DASH THROUGH.' },
     { zone: [-2, -31, 12, -28.5], text: 'SOMETHING HEAVY MOVES ON THE GALLOWS SQUARE.' },
   ],
   foes: [
@@ -48,7 +48,7 @@ export default {
     K.fence(ctx, -9.6, 9, -6.9, 9);
     ctx.marks.cityGate = K.gate(ctx, -5, 9, 2.6, 'x', { h: 2.8, open: true, swingDir: -1 });
     K.fence(ctx, -3.1, 9, 7.6, 9);
-    K.chapel(ctx, 11.6, -1.5, 6, 11, 4.6, { front: '+z', belfry: true, roofH: 4.2, litRose: true });
+    K.chapel(ctx, 11.6, -1.5, 6, 11, 4.6, { front: '+z', belfry: true, roofH: 4.2, litRose: false });
     K.barrelStack(ctx, -6.4, -7.2);
     K.barrel(ctx, -8.2, -5.4);
     K.table(ctx, -0.6, -6.6, { mugs: true });

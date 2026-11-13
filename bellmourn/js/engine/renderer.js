@@ -43,7 +43,7 @@ export class PixelRenderer {
     // post uniforms (public)
     this.post = {
       flash: 0, fade: 0, fadeColor: new THREE.Color(0, 0, 0), hurt: 0, vignette: 0.55, saturation: 0.82,
-      lift: new THREE.Color(0.018, 0.028, 0.05), gain: new THREE.Color(1.0, 1.0, 1.04), exposure: 1.0, bloom: 0.55,
+      lift: new THREE.Color(0.003, 0.005, 0.011), gain: new THREE.Color(1.0, 1.0, 1.04), exposure: 1.0, bloom: 0.55,
       dawn: 0, desat: 0, time: 0,
     };
 
