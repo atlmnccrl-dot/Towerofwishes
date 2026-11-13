@@ -267,10 +267,10 @@ export function lowerCity(ctx, x0, z0, x1, z1, y, o = {}) {
   for (let bx = x0 + 2; bx < x1 - 4; bx += 9.5) {
     let bz = z0;
     while (bz < z1) {
-      const w = 5 + r() * 2, d = 3 + r() * 2.4, h = 2.6 + r() * 3.6; const hx = bx + w / 2, hz = bz + d / 2;
+      const w = 5 + r() * 2, d = 3 + r() * 2.4, h = 2.2 + r() * 2.2; const hx = bx + w / 2, hz = bz + d / 2;
       if (r() < 0.1) { bz += 2.4; continue; } // a lane
       add(ctx, box(w, h, d), walls[(r() * 3) | 0], hx, y + h / 2, hz, { cast: false });
-      hipRoof(ctx, hx, y + h, hz, w + 0.3, d + 0.3, Math.min(w, d) * 0.6, roofM, { cast: false });
+      hipRoof(ctx, hx, y + h, hz, w + 0.3, d + 0.3, Math.min(w, d) * 0.45, roofM, { cast: false });
       for (let k = 0; k < 3; k++) if (r() < 0.32) {
         const onX = r() < 0.6; const c = r() < 0.18 ? cold : warm;
         pts.push(onX ? hx + w / 2 + 0.05 : hx - w / 2 + 0.5 + r() * (w - 1), y + 0.9 + r() * Math.max(0.4, h - 1.6), onX ? hz - d / 2 + 0.4 + r() * (d - 0.8) : hz + d / 2 + 0.05);

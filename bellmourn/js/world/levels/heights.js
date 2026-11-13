@@ -63,11 +63,10 @@ export default {
     K.floor(ctx, -8.6, -32.6, 9.7, -23, W.cobble('#525868'), 0.006, 0.4);
     K.floor(ctx, -14, -53.4, 9.7, -32.6, W.court('#5c6274'), 0.006, 0.4);
     K.floor(ctx, 4.6, -64, 9.7, -53.4, W.flags('#5a6070'), 0.004, 0.4);
-    P.cliff(ctx, 9.7, -90, 50, 9);
+    P.cliff(ctx, 9.7, -90, 50, 7);
     P.balustrade(ctx, 9.2, -64, 9.2, 36, { urns: true });
-    P.lowerCity(ctx, 10.5, -100, 60, 60, -9);
-    P.mist(ctx, 9.7, -110, 80, 70, -1.6, 0.28);
-    P.mist(ctx, 9.7, -110, 80, 70, -4.8, 0.42);
+    P.lowerCity(ctx, 10.2, -100, 60, 60, -7);
+    P.mist(ctx, 9.7, -110, 80, 70, -3.4, 0.32);
 
     // ------------------------------------------------ the Regent's Road (the way in)
     P.manor(ctx, -12.1, 22.3, 7, 9.4, 7, { faces: ['x', 'z'], lit: 0.35, lights: 0, tone: '#4a4e60', bay: 2.4 });
