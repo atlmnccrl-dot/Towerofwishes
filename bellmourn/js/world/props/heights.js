@@ -222,7 +222,7 @@ export function crown(ctx, x, y, z, s = 1, parent) {
 // ---------------------------------------------------------------- the hill's edge
 // A stone balustrade: kerb, turned balusters, a rail, piers (urns on every other one). Low: it never
 // hides anything, and blows and bolts fly over it.
-const balGeo = () => lathe('bal', [[0, 0], [0.08, 0], [0.08, 0.06], [0.1, 0.3], [0.05, 0.58], [0.08, 0.66], [0.08, 0.72], [0, 0.72]], 4);
+const balGeo = () => lathe('bal', [[0.07, 0], [0.1, 0.28], [0.05, 0.6], [0.08, 0.72]], 4);
 export function balustrade(ctx, x0, z0, x1, z1, o = {}) {
   const alongX = Math.abs(x1 - x0) >= Math.abs(z1 - z0); const len = alongX ? Math.abs(x1 - x0) : Math.abs(z1 - z0);
   const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2; const W = alongX ? len : 0.5, D = alongX ? 0.5 : len;
@@ -303,7 +303,7 @@ export function mist(ctx, x0, z0, x1, z1, y, opacity, color = 0x15121f) {
 
 // ---------------------------------------------------------------- ironwork
 // Wrought-iron railing on a stone kerb: bars with gilded spear tips, posts with gilded finials, a
-// gilded scroll band. See-through (it does not block sight lines).
+// band of gilded lozenges. See-through (it does not block sight lines).
 export function railing(ctx, x0, z0, x1, z1, o = {}) {
   const h = o.h || 2.0; const alongX = Math.abs(x1 - x0) >= Math.abs(z1 - z0);
   const len = Math.hypot(x1 - x0, z1 - z0); const kerb = o.kerb ?? 0.4; const iron = M.ironLit(), gold = gilt();
@@ -322,7 +322,7 @@ export function railing(ctx, x0, z0, x1, z1, o = {}) {
     }
   }
   for (const ry of [0.22, h - 0.26]) add(ctx, box(alongX ? len : 0.05, 0.05, alongX ? 0.05 : len), iron, (x0 + x1) / 2, kerb + ry, (z0 + z1) / 2);
-  for (let i = 0; i < nb; i += 2) { const t = (i + 0.5) / nb; inst(ctx, 'hh-rring', geo('hh-ring', () => new THREE.TorusGeometry(0.09, 0.02, 3, 6)), gold, mat4(x0 + (x1 - x0) * t, kerb + h - 0.45, z0 + (z1 - z0) * t, alongX ? 0 : Math.PI / 2)); }
+  for (let i = 0; i < nb; i += 2) { const t = (i + 0.5) / nb; inst(ctx, 'hh-rloz', box(0.13, 0.13, 0.025), gold, mat4(x0 + (x1 - x0) * t, kerb + h - 0.45, z0 + (z1 - z0) * t, alongX ? 0 : Math.PI / 2, 0, Math.PI / 4)); }
   const pad = 0.18;
   if (alongX) solid(ctx, Math.min(x0, x1), z0 - pad, Math.max(x0, x1), z0 + pad, h); else solid(ctx, x0 - pad, Math.min(z0, z1), x0 + pad, Math.max(z0, z1), h);
   ctx.lowSolids.push(ctx.solids[ctx.solids.length - 1]);

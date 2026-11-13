@@ -124,7 +124,7 @@ export default {
     P.chimney(ctx, -7.6, -23.4, 14, 2);
     P.gargoyle(ctx, -9.8, 6.7, -13, Math.PI / 2); P.gargoyle(ctx, -9.8, 6.7, -19.4, Math.PI / 2);
     K.torch(ctx, -9.2, 2.4, -16.6, '+x');
-    K.fence(ctx, 11, 4, 11, -37.8);
+    K.fence(ctx, 11, -10.6, 11, -25.6);
     // the gantry crane on its rails, a bell on the hook
     P.rails(ctx, -7.8, -21.6, -7.8, -11); P.rails(ctx, 9.6, -25, 9.6, -11);
     const tr = P.gantry(ctx, -7.8, 9.6, -17.6, 7.4, { trolley: 1.6 });
