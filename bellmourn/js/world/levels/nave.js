@@ -114,7 +114,7 @@ export default {
     P.rafters(ctx, -7.6, 10, [1.4, -3.1, -7.6, -12.1], 1);
     // the west wall: broken down, its portal choked with what the tide brought in
     P.ruin(ctx, -8.5, 6, -2.7, 6, 1.3, 2.6, { thick: 1, tone: '#3e4858' });
-    K.add(ctx, K.box(1, 3, 1.2), W.ashlar('#46505e'), -2.2, 1.5, 6); K.add(ctx, K.box(1, 2.4, 1.2), W.ashlar('#46505e'), 2.2, 1.2, 6);
+    K.add(ctx, K.box(1, 3, 1.2), W.ashlar('#4a5464'), -2.2, 1.5, 6); K.add(ctx, K.box(1, 2.4, 1.2), W.ashlar('#4a5464'), 2.2, 1.2, 6);
     K.solid(ctx, -2.7, 5.4, -1.7, 6.6, 3); K.solid(ctx, 1.7, 5.4, 2.7, 6.6, 2.4);
     P.ruin(ctx, -1.7, 6, 1.7, 6, 0.9, 1.6, { thick: 1, debris: 0 });
     P.ruin(ctx, 2.7, 6, 8.5, 6, 1.2, 2.4, { thick: 1, tone: '#3e4858' });
@@ -154,7 +154,6 @@ export default {
     P.candles(ctx, -6.9, 4.6, { n: 6, light: false }); P.candles(ctx, 6.6, -4.9, { n: 4, light: false });
     K.torch(ctx, -3.03, 2.3, -1.5, '+x');
     K.banner(ctx, -2.98, 3.2, 3, '+x', 0x1a2c30);
-    K.fallenBody(ctx, 3, -3, 1.2, 0x1a1c20); K.droppedSword(ctx, 3.8, -4.4, 0.6);
 
     // ------------------------------------------------ the nave screen
     K.fence(ctx, -7.5, -6, -4.175, -6, { h: 2.4 }); K.fence(ctx, -3.025, -6, -2, -6, { h: 2.4 });
@@ -217,7 +216,7 @@ export default {
     P.chandelier(ctx, -9, -36.2, { r: 1.1, lit: 2 });
     P.pew(ctx, -9.8, -23.8, { ry: 0.5, kind: 'tipped' }); P.pew(ctx, 10.4, -35.4, { ry: 1.35 }); P.pew(ctx, 9.6, -24.4, { ry: -0.3, kind: 'broken' });
     P.rubble(ctx, -11.2, -40, 2, 1.4); P.rubble(ctx, 11.4, -22.8, 1.6, 1.4);
-    K.fallenBody(ctx, -5.5, -31.5, 0.9); K.fallenBody(ctx, 6.8, -27, -1.2, 0x1c181a); K.droppedSword(ctx, -4.6, -30.6, 2);
+    K.fallenBody(ctx, -5.5, -31.5, 0.9); K.droppedSword(ctx, -4.6, -30.6, 2);
     // the belfry passage behind the north transept
     K.wall(ctx, -17.6, -26.3, -13.3, -26.3, 4, { thick: 0.6 });
     K.wall(ctx, -17.6, -31.7, -13.3, -31.7, 5, { thick: 0.6 });

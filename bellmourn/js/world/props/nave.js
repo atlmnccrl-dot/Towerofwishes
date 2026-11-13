@@ -152,7 +152,7 @@ function glassMat(kind, w, h, glow) {
 
 // A tall lancet window of drowned glass on a wall face ('+x' or '+z'), with jambs and a sill.
 export function lancet(ctx, x, y, z, face = '+x', w = 1.25, h = 4.2, glow = 1.5) {
-  const m = glassMat('lancet', Math.round(w * 16), Math.round(h * 16), glow); const st = M.ashlar('#4e5868');
+  const m = glassMat('lancet', Math.round(w * 16), Math.round(h * 16), glow); const st = M.ashlar('#4a5464');
   if (face === '+x') {
     add(ctx, plane(w, h), m, x + 0.02, y + h / 2, z, { cast: false, ry: Math.PI / 2 });
     for (const s of [-1, 1]) add(ctx, box(0.14, h * 0.82, 0.16), st, x + 0.07, y + h * 0.41, z + s * (w / 2 + 0.08));
@@ -175,9 +175,9 @@ export function rose(ctx, x, y, z, face = '+z', size = 4.5, glow = 1.3) {
 // A clustered pier: plinth, square shaft with four engaged shafts, capital and abacus.
 // broken: the height where the shaft snapped (no capital). Returns the springing height.
 export function pier(ctx, x, z, h = 4.65, o = {}) {
-  const w = o.w || 0.8, pw = w + 0.35; const stone = M.ashlar(o.tone || '#58626f');
-  add(ctx, box(pw, 0.5, pw), M.ashlar('#46505e'), x, 0.25, z);
-  add(ctx, box(pw - 0.12, 0.12, pw - 0.12), M.ashlar('#646e7c'), x, 0.56, z);
+  const w = o.w || 0.8, pw = w + 0.35; const stone = M.ashlar(o.tone || '#56606e');
+  add(ctx, box(pw, 0.5, pw), M.ashlar('#4a5464'), x, 0.25, z);
+  add(ctx, box(pw - 0.12, 0.12, pw - 0.12), M.ashlar('#666f7d'), x, 0.56, z);
   const faces = [[1, 0], [-1, 0], [0, 1], [0, -1]]; const off = w / 2 + 0.07;
   if (o.broken) {
     const top = q16(o.broken), r = T.rng(Math.round(x * 13 + z * 7 + 300));
@@ -191,7 +191,7 @@ export function pier(ctx, x, z, h = 4.65, o = {}) {
   add(ctx, box(w, top - 0.5, w), stone, x, 0.5 + (top - 0.5) / 2, z);
   for (const [ox, oz] of faces) add(ctx, box(0.2, top - 0.5, 0.2), stone, x + ox * off, 0.5 + (top - 0.5) / 2, z + oz * off);
   add(ctx, box(pw - 0.05, 0.3, pw - 0.05), M.ashlar('#666f7d'), x, top + 0.15, z);
-  add(ctx, box(pw + 0.1, 0.15, pw + 0.1), M.ashlar('#6e7886'), x, top + 0.375, z);
+  add(ctx, box(pw + 0.1, 0.15, pw + 0.1), M.ashlar('#7c8692'), x, top + 0.375, z);
   solid(ctx, x - pw / 2, z - pw / 2, x + pw / 2, z + pw / 2, h);
   return h;
 }
@@ -209,14 +209,14 @@ export function arch(ctx, at, a0, a1, ys, yt, o = {}) {
     s.lineTo(span, H); s.lineTo(0, H); s.lineTo(0, 0);
     return new THREE.ExtrudeGeometry(s, { depth: t, bevelEnabled: false });
   });
-  const mat = M.ashlar(o.tone || '#58626f'); const lo = Math.min(a0, a1);
+  const mat = M.ashlar(o.tone || '#56606e'); const lo = Math.min(a0, a1);
   if ((o.axis || 'z') === 'z') { add(ctx, g, mat, at + t / 2, ys, lo, { ry: -Math.PI / 2 }); if (o.cornice !== false) add(ctx, box(t + 0.2, 0.2, span + 0.3), M.ashlar('#666f7d'), at, yt + 0.1, lo + span / 2); }
   else { add(ctx, g, mat, lo, ys, at - t / 2); if (o.cornice !== false) add(ctx, box(span + 0.3, 0.2, t + 0.2), M.ashlar('#666f7d'), lo + span / 2, yt + 0.1, at); }
 }
 
 // A broken wall: stone base, a jagged top of uneven courses, loose blocks at its foot.
 export function ruin(ctx, x0, z0, x1, z1, hMin, hMax, o = {}) {
-  const t = o.thick || 0.8; const mat = M.brick(o.tone || '#363f50');
+  const t = o.thick || 0.8; const mat = M.brick(o.tone || '#3e4858');
   const alongX = Math.abs(x1 - x0) >= Math.abs(z1 - z0);
   const a0 = alongX ? Math.min(x0, x1) : Math.min(z0, z1), a1 = alongX ? Math.max(x0, x1) : Math.max(z0, z1);
   const c = alongX ? z0 : x0; const r = T.rng(o.seed ?? Math.round(a0 * 17 + c * 29 + 1000));
@@ -228,7 +228,7 @@ export function ruin(ctx, x0, z0, x1, z1, hMin, hMax, o = {}) {
     p += len;
   }
   const L = a1 - a0, mid = (a0 + a1) / 2;
-  if (alongX) add(ctx, box(L + 0.1, 0.5, t + 0.1), M.ashlar('#38424f'), mid, 0.25, c); else add(ctx, box(t + 0.1, 0.5, L + 0.1), M.ashlar('#38424f'), c, 0.25, mid);
+  if (alongX) add(ctx, box(L + 0.1, 0.5, t + 0.1), M.ashlar('#3c4656'), mid, 0.25, c); else add(ctx, box(t + 0.1, 0.5, L + 0.1), M.ashlar('#3c4656'), c, 0.25, mid);
   const sh = o.solidH ?? Math.max(1, hMin); // solidH: how high it counts for sight lines
   if (alongX) solid(ctx, a0, c - t / 2, a1, c + t / 2, sh); else solid(ctx, c - t / 2, a0, c + t / 2, a1, sh);
   // loose blocks at its foot, on the side toward the camera unless told otherwise
@@ -236,7 +236,7 @@ export function ruin(ctx, x0, z0, x1, z1, hMin, hMax, o = {}) {
   for (let i = 0; i < n; i++) {
     const pp = a0 + r() * L, off = side * (t / 2 + 0.2 + r() * 0.6), s = q16(0.2 + r() * 0.25);
     const bx = alongX ? pp : c + off, bz = alongX ? c + off : pp;
-    add(ctx, box(s, q16(s * 0.7), s), M.ashlar('#3e4858'), bx, s * 0.3, bz, { ry: r() * 3, rz: (r() - 0.5) * 0.5 });
+    add(ctx, box(s, q16(s * 0.7), s), M.ashlar('#3c4656'), bx, s * 0.3, bz, { ry: r() * 3, rz: (r() - 0.5) * 0.5 });
   }
 }
 
@@ -245,7 +245,7 @@ export function buttress(ctx, x, z, h, face = '+x', o = {}) {
   const st = M.ashlar(o.tone || '#3c4656'); const fx = face === '+x' ? 1 : 0, fz = 1 - fx; const dp = o.depth || 1.1, w = o.w || 0.9;
   const bx = x + fx * dp / 2, bz = z + fz * dp / 2;
   add(ctx, box(fx ? dp : w, q16(h), fz ? dp : w), st, bx, h / 2, bz);
-  add(ctx, box(fx ? dp + 0.2 : w + 0.15, 0.5, fz ? dp + 0.2 : w + 0.15), M.ashlar('#38424f'), bx + fx * 0.1, 0.25, bz + fz * 0.1);
+  add(ctx, box(fx ? dp + 0.2 : w + 0.15, 0.5, fz ? dp + 0.2 : w + 0.15), M.ashlar('#3c4656'), bx + fx * 0.1, 0.25, bz + fz * 0.1);
   if (!o.broken) {
     add(ctx, box(fx ? dp * 0.6 : w, 0.9, fz ? dp * 0.6 : w), st, bx - fx * dp * 0.2, h + 0.45, bz - fz * dp * 0.2);
     add(ctx, box(fx ? 0.9 : w + 0.1, 0.25, fz ? 0.9 : w + 0.1), M.ashlar('#4c5666'), bx + fx * 0.05, h + 0.3, bz + fz * 0.05, fx ? { rz: 0.7 } : { rx: -0.7 });
@@ -257,7 +257,7 @@ export function buttress(ctx, x, z, h, face = '+x', o = {}) {
 // A heap of fallen masonry: blocks, a broken capital, a drum.
 export function rubble(ctx, x, z, w, d, o = {}) {
   const r = T.rng(Math.round(x * 37 + z * 19 + 77)); const n = o.n || Math.round(w * d * 2.6) + 3; const hh = o.h || 1.1;
-  const tones = ['#3e4858', '#4a5464', '#36404e', '#56606e'];
+  const tones = ['#3c4656', '#4a5464', '#56606e', '#4a5464'];
   for (let i = 0; i < n; i++) {
     const dx = (r() - 0.5) * w, dz = (r() - 0.5) * d; const f = 1 - Math.max(Math.abs(dx) / (w / 2), Math.abs(dz) / (d / 2));
     const s = q16(0.3 + r() * 0.45);
@@ -269,21 +269,21 @@ export function rubble(ctx, x, z, w, d, o = {}) {
 
 // Drums of a fallen shaft, lying in a row along ry.
 export function drums(ctx, x, z, ry, n = 2, o = {}) {
-  const w = o.w || 0.8, st = M.ashlar(o.tone || '#4a5464'); const r = T.rng(Math.round(x * 11 + z * 5 + 9));
+  const w = o.w || 0.8, st = M.ashlar(o.tone || '#56606e'); const r = T.rng(Math.round(x * 11 + z * 5 + 9));
   for (let i = 0; i < n; i++) part(ctx, box(w, w, 0.72), st, x, z, ry, (r() - 0.5) * 0.12, w / 2 - 0.02, (i - (n - 1) / 2) * 0.82, { ry: (r() - 0.5) * 0.18 });
   solidRot(ctx, x, z, ry, w / 2, n * 0.41, w);
 }
 
 // A heavy roof timber lying where it fell.
 export function beam(ctx, x, z, len, ry = 0, o = {}) {
-  const wood = M.wood(o.tone || '#33261c');
+  const wood = M.wood(o.tone || '#3a281c');
   add(ctx, box(0.36, 0.36, len), wood, x, 0.2, z, { ry, rx: o.tilt || 0.05 });
   if (o.solid !== false) solidRot(ctx, x, z, ry, 0.2, len / 2, 0.6);
 }
 
 // Roof timbers still hanging off a wall top, broken off, sloping toward +X (dir 1) or -X.
 export function rafters(ctx, x, y, zs, dir = 1) {
-  const wood = M.wood('#2c221a'); const r = T.rng(Math.round(x * 7 + y * 3 + zs.length));
+  const wood = M.wood('#3a281c'); const r = T.rng(Math.round(x * 7 + y * 3 + zs.length));
   for (const z of zs) { const L = q16(1.4 + r() * 2.2), a = 0.55 + r() * 0.3; add(ctx, box(L, 0.28, 0.28), wood, x + Math.cos(a) * L / 2 * dir, y + Math.sin(a) * L / 2, z, { rz: a * dir }); }
 }
 
@@ -319,11 +319,11 @@ export function chandelier(ctx, x, z, o = {}) {
   add(ctx, inner, iron, x, 0.3, z, { rx: Math.PI / 2 + tilt * 0.6 });
   add(ctx, cyl(0.16, 0.22, 0.4, 6), iron, x, 0.3, z, { rz: 1.3 });
   for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; add(ctx, box(0.05, 0.05, R), iron, x + Math.sin(a) * R * 0.5, 0.22 + Math.cos(a) * tilt * 0.4, z + Math.cos(a) * R * 0.5, { ry: a }); }
-  const wax = M.flat(0xcfc6ae), flame = M.glow('#ffc060', 3);
+  const wax = M.flat(0xcfc6ae), flame = M.glow('#ffc070', 3.2);
   for (let i = 0; i < 12; i++) {
     const a = i / 12 * Math.PI * 2 + 0.13; const cx = x + Math.sin(a) * R, cz = z + Math.cos(a) * R; const cy = 0.22 + Math.cos(a) * Math.sin(tilt) * R;
-    inst(ctx, 'chcup', cyl(0.08, 0.05, 0.08, 5), iron, mat4(cx, cy + 0.06, cz));
-    if (i % 3 === 0) { inst(ctx, 'chwax', cyl(0.04, 0.045, 0.22, 5), wax, mat4(cx, cy + 0.2, cz)); if (i / 3 < lit) inst(ctx, 'chflame', box(0.05, 0.09, 0.05), flame, mat4(cx, cy + 0.36, cz)); }
+    inst(ctx, 'cup', cyl(0.07, 0.045, 0.07, 5), iron, mat4(cx, cy + 0.06, cz));
+    if (i % 3 === 0) { inst(ctx, 'cwax1', cyl(0.04, 0.05, 0.24, 5), wax, mat4(cx, cy + 0.21, cz)); if (i / 3 < lit) inst(ctx, 'cflame#ffc070', box(0.05, 0.09, 0.05), flame, mat4(cx, cy + 0.38, cz)); }
     else inst(ctx, 'chstub', cyl(0.04, 0.045, 0.08, 5), wax, mat4(cx, cy + 0.12, cz, 0, 0.4, 0.3));
   }
   // the chain it hung by, in a heap
@@ -353,9 +353,9 @@ export function candelabrum(ctx, x, z, o = {}) {
   const wax = M.flat(0xcfc6ae), flame = M.glow(col, 3.2);
   for (const k of [-1, 0, 1]) {
     const cx = x + Math.cos(ry) * k * 0.42, cz = z - Math.sin(ry) * k * 0.42;
-    inst(ctx, 'cdcup', cyl(0.07, 0.04, 0.06, 5), iron, mat4(cx, 1.86, cz));
-    inst(ctx, 'cdwax', cyl(0.04, 0.045, 0.26, 5), wax, mat4(cx, 2.02, cz));
-    inst(ctx, 'cflame' + col, box(0.05, 0.09, 0.05), flame, mat4(cx, 2.2, cz));
+    inst(ctx, 'cup', cyl(0.07, 0.045, 0.07, 5), iron, mat4(cx, 1.86, cz));
+    inst(ctx, 'cwax1', cyl(0.04, 0.05, 0.24, 5), wax, mat4(cx, 2.01, cz));
+    inst(ctx, 'cflame' + col, box(0.05, 0.09, 0.05), flame, mat4(cx, 2.18, cz));
   }
   ctx.lights.push({ x, y: 2.3, z, color: new THREE.Color(col).getHex(), intensity: o.intensity || 3.2, dist: o.dist || 6.5, flicker: 0.1, halo: true });
   solidCircle(ctx, x, z, 0.32, 2);
@@ -363,14 +363,14 @@ export function candelabrum(ctx, x, z, o = {}) {
 
 // The high altar on its dais (front toward +Z): three steps, the block, the frontal, candles.
 export function altar(ctx, x, z, o = {}) {
-  const w = o.w || 6.4, d = o.d || 3.8; const st = M.ashlar('#4c5666'), hi = M.ashlar('#5a6474');
+  const w = o.w || 6.4, d = o.d || 3.8; const st = M.ashlar('#4c5666'), hi = M.ashlar('#56606e');
   add(ctx, box(w + 0.8, 0.2, d), st, x, 0.1, z);
   add(ctx, box(w + 0.4, 0.2, d - 0.6), st, x, 0.3, z - 0.3);
   add(ctx, box(w, 0.2, d - 1.2), hi, x, 0.5, z - 0.6);
   const az = z - 0.5; const marble = M.ashlar('#7c8692');
   add(ctx, box(2.6, 1.0, 1.0), marble, x, 1.1, az);
-  for (const s of [-1, 1]) add(ctx, box(0.24, 1.0, 0.24), M.ashlar('#5a6472'), x + s * 1.2, 1.1, az + 0.45);
-  add(ctx, box(3.0, 0.14, 1.3), M.ashlar('#8e98a4'), x, 1.67, az);
+  for (const s of [-1, 1]) add(ctx, box(0.24, 1.0, 0.24), M.ashlar('#56606e'), x + s * 1.2, 1.1, az + 0.45);
+  add(ctx, box(3.0, 0.14, 1.3), M.ashlar('#7c8692'), x, 1.67, az);
   add(ctx, box(1.7, 0.78, 0.03), M.flat(0x15363a), x, 1.16, az + 0.52);
   add(ctx, box(0.36, 0.36, 0.031), M.glow('#3ad6c4', 1.2), x, 1.2, az + 0.53, { cast: false });
   // a reliquary, and a tall cross behind
@@ -409,7 +409,7 @@ export function bell(ctx, x, z, s = 1.4, ry = 0) {
 
 // The font, still holding a little light.
 export function font(ctx, x, z) {
-  add(ctx, box(1.3, 0.25, 1.3), M.ashlar('#3e4858'), x, 0.125, z);
+  add(ctx, box(1.3, 0.25, 1.3), M.ashlar('#3c4656'), x, 0.125, z);
   add(ctx, cyl(0.28, 0.36, 0.55, 8), M.ashlar('#4a5464'), x, 0.52, z);
   add(ctx, cyl(0.78, 0.56, 0.45, 8), M.ashlar('#56606e'), x, 1.0, z);
   add(ctx, cyl(0.64, 0.64, 0.02, 8), M.glow('#2a8278', 1.1), x, 1.21, z, { cast: false });
