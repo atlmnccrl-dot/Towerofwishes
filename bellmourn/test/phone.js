@@ -35,9 +35,13 @@ const fs = require('fs');
   const after = await p.evaluate(() => ({ x: BM.game.world.hero.x, z: BM.game.world.hero.z }));
   console.log('moved', JSON.stringify(before), '->', JSON.stringify(after));
   const atk = await p.evaluate(() => { const b = BM.game.input.layout.find((x) => x.id === 'atk'); const k = BM.r.scale / BM.r.dpr; return { x: b.x * k, y: b.y * k }; });
-  await touch('touchStart', [{ x: atk.x, y: atk.y, id: 2 }]); await p.waitForTimeout(40); const st = await p.evaluate(() => BM.game.world.hero.state); await touch('touchEnd', []);
-  await p.waitForTimeout(100); await p.screenshot({ path: out + '/05-attack.png' });
-  console.log('after ATK tap hero state:', st, await p.evaluate(() => BM.game.world.hero.state));
+  // a tap registers if the hero swings (combo) or a bolt leaves (shoot): either moves the combo counter or the id counter
+  const mark = () => p.evaluate(() => ({ state: BM.game.world.hero.state, combo: BM.game.world.hero.combo, id: BM.game.world.nextId }));
+  const m0 = await mark();
+  await touch('touchStart', [{ x: atk.x, y: atk.y, id: 2 }]); await p.waitForTimeout(120); const m1 = await mark(); await touch('touchEnd', []);
+  await p.waitForTimeout(150); await p.screenshot({ path: out + '/05-attack.png' }); const m2 = await mark();
+  const ok = m1.state !== 'idle' || m1.combo !== m0.combo || m2.combo !== m0.combo || m2.id > m0.id;
+  console.log('ATK tap registered:', ok ? 'yes' : 'NO', JSON.stringify([m0, m1, m2]));
   console.log('errors:', errs.length ? errs.slice(0, 10) : 'none');
   await b.close();
 })();

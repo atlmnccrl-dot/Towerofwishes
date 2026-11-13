@@ -58,6 +58,8 @@ export class UI {
     g.drawImage(img, Math.round(dx), Math.round(y), w, img.height * sc); g.globalAlpha = a; return w;
   }
   measure(str, sc = 1) { return (String(str).length * 6 - 1) * sc; }
+  // wrap into as few lines as wrap() would, but with their lengths evened out (no lone last word)
+  wrapEven(str, maxW) { const n = this.wrap(str, maxW).length; if (n < 2) return this.wrap(str, maxW); let lo = 6, hi = maxW; while (lo < hi) { const mid = (lo + hi) >> 1; if (this.wrap(str, mid).length <= n) hi = mid; else lo = mid + 1; } return this.wrap(str, lo); }
   wrap(str, maxW) { const words = String(str).split(' '); const lines = []; let cur = ''; for (const w of words) { const t = cur ? cur + ' ' + w : w; if (this.measure(t) > maxW && cur) { lines.push(cur); cur = w; } else cur = t; } if (cur) lines.push(cur); return lines; }
 
   rect(x, y, w, h, c) { this.g.fillStyle = c; this.g.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); }

@@ -29,7 +29,7 @@ export const HEROES = {
     rating: { power: 2, range: 5, speed: 4, guard: 1 },
     attack: { kind: 'shoot', anim: 'aim', rate: 0.27, proj: { kind: 'hbolt', speed: 22, r: 0.22, life: 0.62, dmg: 9, poise: 6 } },
     abilities: ['volley', 'smoke', 'snare'], ult: 'rain',
-    look: { weapon: 'crossbow', hood: true, cloak: true, cloakLen: [0.3, 0.3, 0.26], colors: { skin: 0xc89a80, hair: 0x1a1414, tunic: 0x1e3a36, pants: 0x18221e, boots: 0x101410, cloak: 0x24463e, cloakDark: 0x1a342e, hood: 0x24463e, glove: 0x2a2420, belt: 0x4a3a24 } },
+    look: { weapon: 'crossbow', hood: true, cloak: true, cloakLen: [0.3, 0.3, 0.26], colors: { skin: 0xc89a80, hair: 0x1a1414, tunic: 0x2a4a44, pants: 0x1e2a26, boots: 0x141814, cloak: 0x2f6456, cloakDark: 0x224a40, hood: 0x2f6456, glove: 0x2a2420, belt: 0x4a3a24 } },
   },
   bellbreaker: {
     id: 'bellbreaker', name: 'BRAM', title: 'THE BELLBREAKER', weapon: 'hammer', hp: 135, speed: 5.5, armor: 0.1,
@@ -44,7 +44,7 @@ export const HEROES = {
       dashAttack: { name: 'BDA', anim: 'hsmash1', dur: 0.6, windup: 0.14, active: 0.26, cancel: 0.36, range: 2.4, arc: deg(200), dmg: 26, poise: 40, kb: 8, lunge: 9, heavy: true },
     },
     abilities: ['shockwave', 'charge', 'ward'], ult: 'toll',
-    look: { weapon: 'hammer', bulk: 1.28, colors: { skin: 0xb88a70, hair: 0x5a3a24, tunic: 0x4a3a2c, pants: 0x2a2420, boots: 0x161210, shoulder: 0x6a6a72, glove: 0x3a3028, belt: 0x5a4028 } },
+    look: { weapon: 'hammer', bulk: 1.28, colors: { skin: 0xb88a70, hair: 0x6a4428, tunic: 0x6a4a30, pants: 0x342a22, boots: 0x1a1412, shoulder: 0x8a8a94, glove: 0x3a3028, belt: 0x5a4028 } },
   },
   lamplighter: {
     id: 'lamplighter', name: 'SISTER ASH', title: 'THE LAMPLIGHTER', weapon: 'focus', hp: 95, speed: 6.0, unlock: 'market',

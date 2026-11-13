@@ -531,6 +531,7 @@ export class Game {
     if (this.state === 'dead') P.fade = Math.min(0.6, this.stateT * 0.25);
     if (w && w.hero) { shared.cutFocus.value.set(w.hero.x, 1, w.hero.z); shared.cutDir.value.copy(r.fwd); }
     this.atmos.update(dt, r.focus, () => 0);
+    const hl = this.world && this.world.hero; if (hl && !hl.dead) this.atmos.heroLight.position.set(hl.x + 0.5, 2.6, hl.z + 0.8);
     if (this.level) for (const a of this.level.anims) a.update(dt);
     if (w) { this.fx.updateTeles(w.ents, this.t); this.fx.updateHazards(w.hazards, dt, this.t); this.fx.updateProjs(w.projs, this.t); this.fx.updateZones(w.zones, dt); }
     this.fx.update(dt, this.t);
@@ -569,7 +570,10 @@ export class Game {
       if (this.card && S === 'play') {
         this.card.t += dt * (this.world.combat ? 4 : 1); const c = this.card; const a = Math.min(1, c.t * 1.5, Math.max(0, (4.5 - c.t) * 1.2));
         const y0 = Math.round(H * 0.62);
-        if (a > 0) { ui.text(c.sup, W / 2, y0, { align: 'center', color: COL.red, alpha: a }); ui.text(c.title, W / 2, y0 + 11, { align: 'center', color: COL.white, scale: ui.measure(c.title, 2) > W - 12 ? 1 : 2, alpha: a }); if (c.line) ui.wrap(c.line, Math.min(W - 16, 260)).forEach((l, k) => ui.text(l, W / 2, y0 + 31 + k * 9, { align: 'center', color: COL.dim, alpha: a })); }
+        // on touch the card keeps clear of the buttons (right) and, by symmetry, of the stick (left)
+        let maxW = Math.min(W - 16, 260);
+        if (this.input.touchMode) { const btns = (this.input.layout || []).filter((b) => !b.hidden && b.id !== 'pause' && b.id !== 'use'); const lim = btns.length ? Math.min(...btns.map((b) => b.x - b.r)) : W - 100; maxW = Math.min(maxW, Math.max(120, 2 * (lim - W / 2) - 6)); }
+        if (a > 0) { ui.text(c.sup, W / 2, y0, { align: 'center', color: COL.red, alpha: a }); ui.text(c.title, W / 2, y0 + 11, { align: 'center', color: COL.white, scale: ui.measure(c.title, 2) > maxW + 8 ? 1 : 2, alpha: a }); if (c.line) ui.wrapEven(c.line, maxW).forEach((l, k) => ui.text(l, W / 2, y0 + 31 + k * 9, { align: 'center', color: COL.dim, alpha: a })); }
         if (c.t > 5) this.card = null;
       }
       if (S === 'play' && this.tutorial) this.drawTutorial();

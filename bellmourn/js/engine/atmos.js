@@ -28,6 +28,8 @@ export class Atmos {
     // light pool
     this.pool = [];
     for (let i = 0; i < POOL; i++) { const l = new THREE.PointLight(0xffb060, 0, 8, 2); scene.add(l); this.pool.push(l); }
+    // a faint cool light that walks with the hero, so every warden reads in the dark (not only the red cloak)
+    this.heroLight = new THREE.PointLight(0xb8c8ec, 5, 4.6, 1.4); scene.add(this.heroLight);
     this.sources = []; this.halos = [];
     this._rain();
     this.flashT = 0; this.nextBolt = 6 + Math.random() * 10; this.lightning = true; this.rainOn = 1;
@@ -104,6 +106,7 @@ export class Atmos {
     const snap = 44 / 1024;
     const fx = Math.round(focus.x / snap) * snap, fz = Math.round(focus.z / snap) * snap;
     this.moon.target.position.set(fx, 0, fz); this.moon.position.set(fx + this.moonDir.x * 40, this.moonDir.y * 40, fz + this.moonDir.z * 40);
+    this.heroLight.position.set(focus.x + 0.5, 2.6, focus.z + 0.8);
     // point light pool: nearest sources
     const srcs = this.sources;
     for (const s of srcs) s.d2 = (s.x - focus.x) ** 2 + (s.z - focus.z) ** 2;
