@@ -25,8 +25,18 @@ export function thinkFoe(w, e, h) {
   const d = dist(e, hero); const ang = angTo(e, hero);
   if (!e.ai.aggro) {
     if ((d < D.aggro && w.sees(e, hero)) || d < 3) { e.ai.aggro = true; w.emit('aggro', { e }); }
-    else { e.anim = 'idle'; return; }
+    else {
+      const hm = e.ai.home; const dh = hm ? Math.hypot(hm.x - e.x, hm.z - e.z) : 0;
+      if (dh > 1) { const a = steer(w, e, Math.atan2(hm.x - e.x, hm.z - e.z)); e.mx = Math.sin(a); e.mz = Math.cos(a); e.moveSpeed = e.speed * 0.5; e.face = turn(e.face, a, 5 * h); e.anim = 'walk'; }
+      else e.anim = 'idle';
+      return;
+    }
   }
+  // lose interest when the hero is far away or out of reach for a while (stops endless 'combat')
+  e.ai.seeT = (e.ai.seeT || 0) - h; if (e.ai.seeT <= 0) { e.ai.seeT = 0.3; e.ai.sees = w.sees(e, hero); }
+  const reachable = e.ai.sees;
+  e.ai.lost = (d > D.aggro * 1.7 || (!reachable && d > 6)) ? (e.ai.lost || 0) + h : 0;
+  if (e.ai.lost > 4 && !e.ai.locked) { e.ai.aggro = false; e.ai.lost = 0; w.emit('calm', { e }); e.anim = 'idle'; return; }
   e.ai.cd -= h; e.ai.flip = (e.ai.flip || 2 + w.rand() * 2) - h;
   if (e.ai.flip <= 0) { e.ai.flip = 1.5 + w.rand() * 2.5; e.ai.strafeDir *= -1; }
   e.face = turn(e.face, ang, 7 * h);

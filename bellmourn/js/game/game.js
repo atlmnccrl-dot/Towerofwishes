@@ -322,7 +322,7 @@ export class Game {
     if (e.state === 'idle' && inZone(hero, e.zone)) {
       e.state = 'active'; for (const g of e.gates || []) this.gate(g, false);
       if (e.msg) this.ui.toast(e.msg, { color: COL.red });
-      if (e.preSpawned) { for (const f of e.mine) { f.ai.aggro = true; } }
+      if (e.preSpawned) { for (const f of e.mine) { f.ai.aggro = true; f.ai.locked = true; } }
       else this.spawnWave(e, 0);
     }
     if (e.state !== 'active') return;
@@ -338,7 +338,7 @@ export class Game {
   }
   spawnWave(e, i) {
     e.wave = i; const tier = this.level.def.tier || 0; const W = e.waves[i];
-    e.mine = W.foes.map((f) => this.world.spawnFoe(f.t, f.x, f.z, { tier: f.tier ?? tier, aggro: true }));
+    e.mine = W.foes.map((f) => { const m = this.world.spawnFoe(f.t, f.x, f.z, { tier: f.tier ?? tier, aggro: true }); m.ai.locked = true; return m; });
   }
 
   startBoss() {

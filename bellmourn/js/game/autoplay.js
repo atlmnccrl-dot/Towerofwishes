@@ -43,7 +43,21 @@ export function makeAutoplay(seed = 3) {
   return function frame(game, dt) {
     const w = game.world, h = w.hero; const inp = bot(w, dt);
     const fighting = w.foes().some((f) => f.ai.aggro && Math.hypot(f.x - h.x, f.z - h.z) < 14) || (game.boss && !game.boss.dead);
-    if (fighting) { st.path = null; return inp; }
+    if (fighting) {
+      // fight with the bot, but walk around walls and fences to reach the nearest foe
+      st.path = null;
+      const foes = w.foes().filter((f) => f.ai.aggro && !f.hidden); let near = null, nd = 1e9;
+      for (const f of foes) { const d = Math.hypot(f.x - h.x, f.z - h.z); if (d < nd) { nd = d; near = f; } }
+      if (near && nd > 2.6 && !inp.dashPressed && !inp.parryPressed) {
+        const key2 = game.levelId + L_key(game); if (key2 !== st.key) { st.grid = buildGrid(game.level, w); st.key = key2; }
+        st.fightT = (st.fightT || 0) - dt;
+        if (!st.fightPath || st.fightT <= 0) { st.fightPath = bfs(st.grid, cellOf(st.grid, h.x, h.z), cellOf(st.grid, near.x, near.z)); st.fightT = 0.5; }
+        const fp = st.fightPath;
+        while (fp && fp.length > 1 && Math.hypot(fp[0].x - h.x, fp[0].z - h.z) < 0.7) fp.shift();
+        if (fp && fp.length) { const wp = fp[Math.min(1, fp.length - 1)]; const dx = wp.x - h.x, dz = wp.z - h.z, d = Math.hypot(dx, dz); if (d > 0.2) { inp.mx = dx / d; inp.mz = dz / d; } }
+      }
+      return inp;
+    }
     // gates or level changed: rebuild the walk grid
     const key = game.levelId + L_key(game);
     if (key !== st.key) { st.grid = buildGrid(game.level, w); st.key = key; st.path = null; }
