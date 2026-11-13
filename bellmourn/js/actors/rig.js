@@ -95,6 +95,11 @@ export class Rig {
       const shaft = this._part('haR', box(0.05, 0.05, 1.0), 0x3a2a1e, 0, -0.05, 0.35); this.weapon.add(shaft);
       const head = this._part('haR', box(0.04, 0.32, 0.36), d.blade || 0x8a929c, 0, -0.14, 0.75); this.weapon.add(head);
       this.tip.position.set(0, -0.2, 0.9); this.bladeLen = 1;
+    } else if (w === 'hammer') {
+      const shaft = this._part('haR', box(0.06, 0.06, 1.25), 0x3a2a1e, 0, 0, 0.42); this.weapon.add(shaft);
+      const head = this._part('haR', box(0.34, 0.3, 0.42), d.blade || 0x5a5e66, 0, 0, 1.08, { emissive: d.bladeGlow || 0, ei: d.bladeGlow ? 2 : 1 }); this.weapon.add(head);
+      const band = this._part('haR', box(0.36, 0.06, 0.44), 0x8a7a58, 0, 0.12, 1.08); this.weapon.add(band);
+      this.tip.position.set(0, 0, 1.25); this.blade = head; this.bladeLen = 1.3;
     } else if (w === 'staff') {
       const shaft = this._part('haR', box(0.05, 0.05, 1.6), 0x2a2018, 0, -0.05, 0.4); this.weapon.add(shaft);
       const orb = this._part('haR', box(0.12, 0.12, 0.12), d.orb || 0xff3040, 0, -0.05, 1.22, { glow: 3 }); this.weapon.add(orb);

@@ -4,12 +4,21 @@ import * as THREE from '../../vendor/three.module.min.js';
 import * as T from './textures.js';
 
 const MAXP = 1600;
+// remove an object and free what it alone owns (geometries/materials marked userData.keep are shared)
+function free(group, o) {
+  group.remove(o);
+  o.traverse((c) => {
+    if (c.geometry && !c.geometry.userData.keep) c.geometry.dispose();
+    const ms = Array.isArray(c.material) ? c.material : (c.material ? [c.material] : []);
+    for (const m of ms) if (!m.userData.keep) m.dispose();
+  });
+}
 
 export class FX {
   constructor(scene) {
     this.scene = scene; this.group = new THREE.Group(); scene.add(this.group);
     this._particles(); this.trails = []; this.decals = []; this.teles = new Map(); this.hz = new Map(); this.projs = new Map(); this.ghosts = []; this.rings = []; this.bolts = []; this.slashes = [];
-    this.decalGeo = new THREE.CircleGeometry(0.5, 7);
+    this.decalGeo = new THREE.CircleGeometry(0.5, 7); this.decalGeo.userData.keep = true; this.zv = new Map();
     this.decalMat = new THREE.MeshLambertMaterial({ color: 0x3a0606, transparent: true, opacity: 0.85, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
   }
 
@@ -51,7 +60,7 @@ export class FX {
   splash(x, z, n = 8) { this.emit(x, 0.05, z, { n, speed: 1.8, up: 1.2, life: 0.35, grav: 12, color: [0.6, 0.68, 0.8], size: 1, alpha: 0.8 }); }
 
   bloodPool(x, z, s = 1) {
-    if (this.decals.length > 70) { const d = this.decals.shift(); this.group.remove(d.m); }
+    if (this.decals.length > 70) { const d = this.decals.shift(); free(this.group, d.m); }
     const m = new THREE.Mesh(this.decalGeo, this.decalMat.clone()); m.rotation.x = -Math.PI / 2; m.rotation.z = Math.random() * 6;
     m.position.set(x + (Math.random() - 0.5) * 0.4, 0.015 + this.decals.length * 0.0002, z + (Math.random() - 0.5) * 0.4); const k = (0.35 + Math.random() * 0.5) * s; m.scale.set(k, k * (0.6 + Math.random() * 0.6), 1);
     m.receiveShadow = true; this.group.add(m); this.decals.push({ m, t: 0 });
@@ -71,6 +80,37 @@ export class FX {
     }
     tr.pts.unshift({ h: hand.clone(), t: tip.clone(), age: 0 }); if (tr.pts.length > tr.N) tr.pts.pop(); tr.live = 0.15; tr.color = color;
   }
+  dropTrail(id) { const i = this.trails.findIndex((t) => t.id === id); if (i >= 0) { free(this.group, this.trails[i].mesh); this.trails.splice(i, 1); } }
+
+  // the hero's area attacks: a glow on the stones while they bite (smoke, traps, pillars, rings, auras)
+  updateZones(list, dt) {
+    const seen = new Set();
+    const C = { smoke: [1.2, 1.2, 1.3], trap: [2.2, 1.8, 0.8], pillar: [3, 1.2, 0.2], shock: [2.2, 2.0, 1.6], quake: [1.8, 1.6, 1.3], ward: [2.4, 2.0, 1.0], lantern: [3, 1.6, 0.4], fire: [3, 1.0, 0.2], bolt: [2.4, 2.2, 1.8], sun: [3.4, 2.6, 1.0] };
+    for (const z of list) {
+      seen.add(z); let v = this.zv.get(z); const c = C[z.kind] || [2, 2, 2];
+      if (!v) {
+        const mat = new THREE.MeshBasicMaterial({ color: new THREE.Color(...c), transparent: true, opacity: 0.4, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, side: THREE.DoubleSide });
+        const g = z.shape === 'ring' ? new THREE.RingGeometry(0.85, 1, 40) : new THREE.RingGeometry(z.r * 0.82, z.r, 28);
+        v = new THREE.Mesh(g, mat); v.rotation.x = -Math.PI / 2; this.group.add(v); this.zv.set(z, v);
+        if (z.kind === 'pillar' || z.kind === 'sun') { const f = new THREE.Mesh(new THREE.CircleGeometry(z.r, 24), mat.clone()); f.material.opacity = 0.18; v.add(f); }
+      }
+      v.position.set(z.x, 0.05, z.z);
+      const warn = z.t < z.warn; const k = warn ? z.t / Math.max(0.01, z.warn) : (z.t - z.warn) / Math.max(0.01, z.life);
+      if (z.shape === 'ring') { const rr = z.r0 + (z.r1 - z.r0) * (warn ? 0 : k); v.scale.setScalar(Math.max(0.05, rr)); v.material.opacity = warn ? 0.15 : 0.8 * (1 - k * 0.7); }
+      else if (z.trigger && !z.sprung) { v.material.opacity = 0.25 + 0.15 * Math.sin(z.t * 6); }
+      else v.material.opacity = warn ? 0.2 + k * 0.4 : (z.tick ? 0.35 + 0.1 * Math.sin(z.t * 10) : 0.8 * (1 - k));
+      if (!warn && !z._burst) { z._burst = true; this._zoneBurst(z, c); }
+      if (z.tick && Math.random() < dt * 18) { const a = Math.random() * 6.28, r = Math.random() * z.r; this.emit(z.x + Math.sin(a) * r, 0.1, z.z + Math.cos(a) * r, { n: 1, speed: 0.3, up: 1, vy: 1.5, life: 0.5, grav: -1.5, color: c, size: 1 }); }
+    }
+    for (const [z, v] of this.zv) if (!seen.has(z)) { free(this.group, v); this.zv.delete(z); }
+  }
+  _zoneBurst(z, c) {
+    if (z.shape === 'ring' || z.tick) return;
+    const n = z.kind === 'bolt' ? 6 : 26;
+    this.emit(z.x, 0.1, z.z, { n, speed: z.kind === 'smoke' ? 1.5 : 3, up: z.kind === 'pillar' ? 3 : 1, vy: z.kind === 'pillar' ? 4 : 0.5, life: z.kind === 'smoke' ? 1.2 : 0.5, grav: z.kind === 'smoke' ? -0.5 : 4, color: c, size: z.kind === 'smoke' ? 2 : 1, jit: z.r * 0.8, alpha: z.kind === 'smoke' ? 0.6 : 1 });
+    if (z.kind === 'bolt') { this.slashLine(z.x, 0.8, z.z, 1.2, [2.4, 2.3, 2], 0.12); }
+  }
+
   _trails(dt) {
     for (const tr of this.trails) {
       tr.live -= dt; for (const p of tr.pts) p.age += dt;
@@ -111,7 +151,7 @@ export class FX {
     for (const e of ents) {
       if (!e.tele || e.dead) continue; seen.add(e.id);
       let m = this.teles.get(e.id);
-      if (!m || m.userData.key !== e.tele) { if (m) this.group.remove(m); m = this._teleMesh(e.tele); if (!m) continue; m.userData.key = e.tele; this.group.add(m); this.teles.set(e.id, m); }
+      if (!m || m.userData.key !== e.tele) { if (m) free(this.group, m); m = this._teleMesh(e.tele); if (!m) continue; m.userData.key = e.tele; this.group.add(m); this.teles.set(e.id, m); }
       const t = e.tele; const k = Math.min(1, e.t / Math.max(0.05, t.dur));
       const ox = t.offset ? Math.sin(e.face) * t.offset : 0, oz = t.offset ? Math.cos(e.face) * t.offset : 0;
       if (t.at) m.position.set(t.at.x, 0.03, t.at.z); else m.position.set(e.x + ox, 0.03, e.z + oz);
@@ -124,7 +164,7 @@ export class FX {
       const pulse = 0.5 + 0.5 * Math.sin(time * 30);
       outer.material.opacity = 0.16 + pulse * 0.1 + k * 0.15; inner.material.opacity = 0.18 + k * 0.32;
     }
-    for (const [id, m] of this.teles) if (!seen.has(id)) { this.group.remove(m); this.teles.delete(id); }
+    for (const [id, m] of this.teles) if (!seen.has(id)) { free(this.group, m); this.teles.delete(id); }
   }
 
   // ---------------------------------------------------------------- hazards
@@ -149,11 +189,11 @@ export class FX {
       }
       v.position.set(h.x, 0.04, h.z);
     }
-    for (const [h, v] of this.hz) if (!seen.has(h)) { this.group.remove(v); this.hz.delete(h); }
+    for (const [h, v] of this.hz) if (!seen.has(h)) { free(this.group, v); this.hz.delete(h); }
   }
 
   _hazardMesh(h) {
-    const kinds = { fire: [3, 0.8, 0.15], slam: [1.6, 0.15, 0.1], water: [0.3, 1.6, 1.6], wax: [2, 1.8, 1.2], toll: [1.8, 1.8, 2.2], lightning: [1.6, 1.8, 3], shock: [1.8, 1.0, 0.6] };
+    const kinds = { fire: [3, 0.8, 0.15], poison: [0.5, 2.0, 0.3], beam: [3, 1.4, 0.3], bone: [2.2, 2.0, 1.6], slam: [1.6, 0.15, 0.1], water: [0.3, 1.6, 1.6], wax: [2, 1.8, 1.2], toll: [1.8, 1.8, 2.2], lightning: [1.6, 1.8, 3], shock: [1.8, 1.0, 0.6] };
     const hot = kinds[h.kind] || kinds.slam;
     const g = new THREE.Group();
     const mat = (c, o) => new THREE.MeshBasicMaterial({ color: new THREE.Color(...c), transparent: true, opacity: o, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, side: THREE.DoubleSide });
@@ -206,18 +246,18 @@ export class FX {
       seen.add(p.id); let v = this.projs.get(p.id);
       if (!v) { v = this._projMesh(p); this.projs.set(p.id, v); this.group.add(v); }
       v.position.set(p.x, p.y ?? 1.1, p.z); v.rotation.y = Math.atan2(p.vx, p.vz);
-      if (p.kind === 'wave') { const k = 1 - p.life / 0.55; v.scale.setScalar(1 + k * 0.6); v.children[0].material.opacity = 0.9 * (1 - k); }
+      if (p.kind === 'wave') { const k = 1 - p.life / 0.6; v.scale.setScalar(1 + k * 0.6); v.children[0].material.opacity = 0.9 * (1 - Math.max(0, k)); }
       if (Math.random() < 0.5) { const c = v.userData.trail; this.emit(p.x, (p.y ?? 1.1), p.z, { n: 1, speed: 0.2, life: 0.3, grav: 0, color: c, size: 1, alpha: 0.8 }); }
       if (p.team === 'hero' && v.userData.team !== 'hero') { v.userData.team = 'hero'; v.traverse((o) => { if (o.material) o.material.color.setRGB(3, 0.4, 0.3); }); }
     }
-    for (const [id, v] of this.projs) if (!seen.has(id)) { this.group.remove(v); this.projs.delete(id); }
+    for (const [id, v] of this.projs) if (!seen.has(id)) { free(this.group, v); this.projs.delete(id); }
   }
 
   _projMesh(p) {
     const g = new THREE.Group();
-    const cols = { orb: [3, 0.25, 0.3], flame: [3.2, 1.6, 0.3], soul: [0.4, 2.6, 2.4], bolt: [2, 1.9, 1.7], wave: [3, 0.35, 0.3] };
+    const cols = { orb: [3, 0.25, 0.3], flame: [3.2, 1.6, 0.3], soul: [0.4, 2.6, 2.4], bolt: [2, 1.9, 1.7], wave: [3, 0.35, 0.3], hbolt: [2.4, 2.2, 1.8], hfire: [3.4, 1.5, 0.3], wisp: [2.6, 2.2, 1.0], flask: [3, 1.3, 0.3], spit: [0.7, 2.4, 0.4] };
     const c = cols[p.kind] || cols.orb;
-    if (p.kind === 'bolt') {
+    if (p.kind === 'bolt' || p.kind === 'hbolt') {
       const m = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.7), new THREE.MeshBasicMaterial({ color: new THREE.Color(...c), fog: false })); g.add(m);
     } else if (p.kind === 'wave') {
       // the crimson crescent of a fully charged heavy
@@ -260,22 +300,24 @@ export class FX {
     const g = this.points.geometry; g.attributes.position.needsUpdate = true; g.attributes.color.needsUpdate = true; g.attributes.size.needsUpdate = true;
     this._trails(dt);
     for (const d of this.decals) { d.t += dt; if (d.t > 25) d.m.material.opacity = Math.max(0, 0.85 - (d.t - 25) / 10); }
-    this.decals = this.decals.filter((d) => { if (d.t > 35) { this.group.remove(d.m); return false; } return true; });
+    this.decals = this.decals.filter((d) => { if (d.t > 35) { free(this.group, d.m); return false; } return true; });
     for (const gh of this.ghosts) { gh.t -= dt; gh.mat.opacity = 0.55 * Math.max(0, gh.t / gh.life); }
-    this.ghosts = this.ghosts.filter((gh) => { if (gh.t <= 0) { this.group.remove(gh.g); gh.mat.dispose(); return false; } return true; });
+    this.ghosts = this.ghosts.filter((gh) => { if (gh.t <= 0) { this.group.remove(gh.g); gh.mat.dispose(); return false; } return true; }); // ghost meshes share the rig's geometry
     for (const r of this.rings) { r.t += dt; const k = r.t / r.life; r.m.scale.setScalar(0.3 + k * r.r); r.m.material.opacity = 0.8 * (1 - k); }
-    this.rings = this.rings.filter((r) => { if (r.t >= r.life) { this.group.remove(r.m); return false; } return true; });
+    this.rings = this.rings.filter((r) => { if (r.t >= r.life) { free(this.group, r.m); return false; } return true; });
     for (const b of this.bolts) { b.t -= dt; b.l.material.opacity = Math.max(0, b.t / 0.25); b.l.visible = Math.floor(b.t * 40) % 2 === 0 || b.t > 0.15; }
-    this.bolts = this.bolts.filter((b) => { if (b.t <= 0) { this.group.remove(b.l); return false; } return true; });
+    this.bolts = this.bolts.filter((b) => { if (b.t <= 0) { free(this.group, b.l); return false; } return true; });
     for (const s of this.slashes) { s.t -= dt; s.l.material.opacity = Math.max(0, s.t / s.life); }
-    this.slashes = this.slashes.filter((s) => { if (s.t <= 0) { this.group.remove(s.l); return false; } return true; });
+    this.slashes = this.slashes.filter((s) => { if (s.t <= 0) { free(this.group, s.l); return false; } return true; });
   }
 
   clear() {
-    for (const d of this.decals) this.group.remove(d.m); this.decals = [];
-    for (const [, m] of this.teles) this.group.remove(m); this.teles.clear();
-    for (const [, m] of this.hz) this.group.remove(m); this.hz.clear();
-    for (const [, m] of this.projs) this.group.remove(m); this.projs.clear();
+    for (const d of this.decals) free(this.group, d.m); this.decals = [];
+    for (const [, m] of this.teles) free(this.group, m); this.teles.clear();
+    for (const [, m] of this.hz) free(this.group, m); this.hz.clear();
+    for (const [, m] of this.projs) free(this.group, m); this.projs.clear();
+    for (const [, m] of this.zv) free(this.group, m); this.zv.clear();
+    for (const tr of this.trails) free(this.group, tr.mesh); this.trails = [];
     for (let i = 0; i < MAXP; i++) this.pLife[i] = 0;
   }
 }

@@ -146,7 +146,7 @@ function phased(t, atk, W, S, R) {
 export function fslash(t, atk) {
   const W = { ...STANCE, ...crouch(-0.1), chest: [-0.15, -0.5, 0], shR: [-2.7, 0, -0.35], elR: [-0.5, 0, 0], weapon: [0.6, 0, 0], shL: [-0.4, 0, 0.3], head: [-0.2, 0.3, 0] };
   const S = { ...STANCE, ...crouch(-0.2), spine: [0.35, 0.3, 0], chest: [0.25, 0.7, 0], shR: [-0.9, 0, 0.45], elR: [-0.1, 0, 0], weapon: [1.0, 0, 0], shL: [0.4, 0, 0.3] };
-  if (atk.chain && t > atk.chain.at) { const c = atk.chain; return keys(t, [[c.at, S], [c.windup, W], [c.active, S, easeOut], [atk.dur, STANCE]]); }
+  const c = atk.chain || atk.chained; if (c && t > c.at) return keys(t, [[c.at, S], [c.windup, W], [c.active, S, easeOut], [atk.dur, STANCE]]);
   return phased(t, atk, W, S);
 }
 export function fthrust(t, atk) {
@@ -210,6 +210,19 @@ export function hover(t) { // floating casters (Mother Tallow)
   return { ...STANCE, bodyY: 0.35 + b, hipL: [-0.2, 0, 0.05], knL: [0.5, 0, 0], hipR: [-0.1, 0, -0.05], knR: [0.6, 0, 0], shL: [-0.4, 0, 0.5], elL: [-0.5, 0, 0] };
 }
 
+// the Bellbreaker's hammer: an overhead smash, then a wide spinning blow
+export function hsmash1(t) {
+  const W = { ...STANCE, hipsY: 0.02, spine: [-0.35, -0.3, 0], chest: [-0.3, -0.4, 0], shR: [-3.0, 0, -0.2], elR: [-0.5, 0, 0], weapon: [0.1, 0, 0], shL: [-2.8, 0, 0.2], elL: [-0.5, 0, 0], head: [-0.2, 0.3, 0] };
+  const S = { ...STANCE, ...crouch(-0.34), spine: [0.6, 0.2, 0], chest: [0.3, 0.3, 0], shR: [-1.1, 0, 0.25], elR: [0, 0, 0], weapon: [1.4, 0, 0], shL: [-1.1, 0, -0.25], head: [0.2, 0, 0] };
+  return keys(t, [[0, STANCE], [0.18, W, easeOut], [0.3, S, (k) => k * k], [0.46, S], [0.62, STANCE]]);
+}
+export function hsmash2(t) {
+  const W = { ...STANCE, ...crouch(-0.24), ...ARMS_OUT, chest: [0.2, -1.5, 0], spine: [0.2, -0.5, 0], shL: [-1.2, 0, 0.3], elL: [-0.4, 0, 0], weapon: [1.7, 0, 0] };
+  const S = (ry) => ({ ...STANCE, ...crouch(-0.3), ...ARMS_OUT, chest: [0.2, 0.9, 0], spine: [0.3, 0.3, 0], shL: [-1.2, 0, 0.1], bodyRy: ry, weapon: [1.75, 0, 0] });
+  return keys(t, [[0, STANCE], [0.26, W, easeOut], [0.42, S(Math.PI * 2), easeOut], [0.6, S(Math.PI * 2)], [0.82, { ...STANCE, bodyRy: Math.PI * 2 }]]);
+}
+export function whirl(t) { const k = Math.min(1, t / 0.72); return { ...STANCE, ...crouch(-0.2), ...ARMS_OUT, chest: [0.1, 0.6, 0], shL: [0, 0, 1.3], bodyRy: easeOut(k) * Math.PI * 6, weapon: [1.68, 0, 0] }; }
+
 // hunched creatures add this on top of everything
 export const HUNCH = { spine: [0.55, 0, 0], head: [-0.55, 0, 0], hipsY: -0.12, knL: [0.25, 0, 0], knR: [0.25, 0, 0], hipL: [-0.2, 0, 0], hipR: [-0.2, 0, 0], shL: [-0.3, 0, 0], shR: [-0.3, 0, 0] };
 
@@ -225,9 +238,14 @@ export function poseFor(e, t) {
     case 'slash1': p = slash1(t); break;
     case 'slash2': p = slash2(t); break;
     case 'slash3': p = slash3(t); break;
-    case 'charge': p = charge(t, Math.min(1, (e.charge || 0) / 0.85)); break;
+    case 'charge': p = chargeRun(t, e.atk || { windup: e.team === 'hero' ? 0 : 0.85 }); break;
+    case 'hsmash1': p = hsmash1(t); break;
+    case 'hsmash2': p = hsmash2(t); break;
+    case 'whirl': p = whirl(t); break;
     case 'heavy': p = heavy(t); break;
     case 'thrust': p = e.team === 'hero' ? thrust(t) : fthrust(t, e.atk || { windup: 0.5, active: 0.7, dur: 1.1 }); break;
+    case 'aim': p = e.team === 'hero' ? aim(Math.max(t, 0.5), { windup: 0.4, active: 0.45, dur: 9 }) : aim(t, e.atk || { windup: 0.95, active: 0.97, dur: 1.5 }); break;
+    case 'cast': p = e.team === 'hero' ? cast(0.62 + Math.min(t, 0.2), { windup: 0.6, active: 0.62, dur: 9 }) : cast(t, e.atk || { windup: 0.6, active: 0.62, dur: 1.2 }); break;
     case 'dash': p = dash(t); break;
     case 'parry': p = parry(t); break;
     case 'hurt': p = hurt(t); break;

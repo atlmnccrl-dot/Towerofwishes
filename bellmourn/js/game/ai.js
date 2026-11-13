@@ -73,7 +73,7 @@ export function blink(w, e, hero) {
     const a = w.rand() * Math.PI * 2; const r = 5.5 + w.rand() * 2.5;
     const x = hero.x + Math.sin(a) * r, z = hero.z + Math.cos(a) * r;
     const [bx0, bz0, bx1, bz1] = w.bounds;
-    if (x < bx0 + 1 || x > bx1 - 1 || z < bz0 + 1 || z > bz1 - 1 || w._blocked(x, z, 0.6)) continue;
+    if (x < bx0 + 1 || x > bx1 - 1 || z < bz0 + 1 || z > bz1 - 1 || w._blocked(x, z, 0.6) || !w.clear(hero, { x, z })) continue;
     w.emit('blink', { e, fx: e.x, fz: e.z, x, z }); e.x = x; e.z = z; e.ai.blinkCd = 3.5; e.ai.cd = Math.max(e.ai.cd, 0.5); return;
   }
   e.ai.blinkCd = 1;
@@ -87,9 +87,9 @@ export function thinkBoss(w, e, h) {
   const B = BOSS_AI[e.type] || BOSS_AI2[e.type];
   // phase changes
   const frac = e.hp / e.maxHp;
-  const next = B.phases.findIndex((p) => frac <= p) + 2; // phases: [0.5] → phase 2 below 50%
-  if (next > e.phase && next <= B.phases.length + 1) {
-    e.phase = next; e.state = 'roar'; e.t = 0; e.anim = 'roar'; e.animT = 0; e.iframes = 1.4; e.tele = null;
+  const target = 1 + B.phases.filter((p) => frac <= p).length; // phases: [0.66, 0.33] → 2 below 66%, 3 below 33%
+  if (target > e.phase) {
+    e.phase++; // one phase at a time, so no phase's onPhase is skipped e.state = 'roar'; e.t = 0; e.anim = 'roar'; e.animT = 0; e.iframes = 1.4; e.tele = null;
     w.emit('phase', { e, phase: e.phase }); w.emit('shake', { amt: 0.6 }); w.slow(0.6, 0.4);
     if (B.onPhase) B.onPhase(w, e, e.phase);
     return;
@@ -121,7 +121,7 @@ export function summon(w, e, type, n, tier, radius = 4) {
   for (let i = 0; i < n; i++) {
     for (let k = 0; k < 8; k++) {
       const a = w.rand() * Math.PI * 2; const x = e.x + Math.sin(a) * radius, z = e.z + Math.cos(a) * radius;
-      if (!w._blocked(x, z, 0.6)) { w.spawnFoe(type, x, z, { tier, aggro: true }); break; }
+      if (!w._blocked(x, z, 0.6) && w.clear(e, { x, z })) { const f = w.spawnFoe(type, x, z, { tier, aggro: true }); f.ai.locked = true; break; }
     }
   }
   w.emit('summon', { e });
@@ -202,7 +202,7 @@ export const BOSS_AI = {
       e.ai.hideT -= h; e.anim = 'idle'; e.mx = 0; e.mz = 0;
       if (e.ai.hideT <= 0) {
         const hero = w.hero; const back = hero.face + Math.PI; const x = hero.x + Math.sin(back) * 2.4, z = hero.z + Math.cos(back) * 2.4;
-        if (!w._blocked(x, z, e.r)) { e.x = x; e.z = z; }
+        if (!w._blocked(x, z, e.r) && w.clear(hero, { x, z })) { e.x = x; e.z = z; }
         e.hidden = false; e.iframes = 0; e.face = angTo(e, hero); w.emit('appear', { e });
         w.foeAttack(e, strike({ name: 'ambush', anim: 'fslash', range: 3.2, arc: deg(150), windup: 0.55, active: 0.66, dur: 1.2, dmg: 24 }));
       }

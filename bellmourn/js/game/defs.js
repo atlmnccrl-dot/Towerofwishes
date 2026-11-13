@@ -94,7 +94,7 @@ export const BOSSES = {
 
 // District scaling: foes hit harder and last longer further in.
 export function scaleFoe(def, tier) {
-  const k = 1 + tier * 0.24; const kd = 1 + tier * 0.15;
+  const k = 1 + tier * 0.32; const kd = 1 + tier * 0.16;
   return { ...def, hp: Math.round(def.hp * k), dmgMul: kd, tier };
 }
 
