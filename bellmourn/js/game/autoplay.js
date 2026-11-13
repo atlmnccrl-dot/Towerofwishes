@@ -62,12 +62,17 @@ export function makeAutoplay(seed = 3) {
     const key = game.levelId + L_key(game);
     if (key !== st.key) { st.grid = buildGrid(game.level, w); st.key = key; st.path = null; }
     st.pathT -= dt;
+    // idle too long without a fight: rebuild the walk grid and forget the target that held it
+    if (st.lastPos2 && Math.hypot(st.lastPos2.x - h.x, st.lastPos2.z - h.z) < 0.3) st.idleT = (st.idleT || 0) + dt; else { st.idleT = 0; st.lastPos2 = { x: h.x, z: h.z }; }
+    if (st.idleT > 4) { st.idleT = 0; st.key = ''; st.path = null; if (st.target) { st.skip = st.skip || {}; st.skip[st.target.id] = 20; } st.grid = buildGrid(game.level, w); st.key = game.levelId + L_key(game); }
+    if (st.skip) for (const k in st.skip) { st.skip[k] -= dt; if (st.skip[k] <= 0) delete st.skip[k]; }
     if (!st.path || st.pathT <= 0) {
       const T = targets(game); let best = null, bestLen = 1e9;
-      for (const t of T) { const p = bfs(st.grid, cellOf(st.grid, h.x, h.z), cellOf(st.grid, t.x, t.z)); if (p && p.length + (t.last ? 400 : 0) < bestLen) { best = { t, p }; bestLen = p.length + (t.last ? 400 : 0); } }
+      for (const t of T) { if (st.skip && st.skip[t.id] && T.length > 1) continue; const p = bfs(st.grid, cellOf(st.grid, h.x, h.z), cellOf(st.grid, t.x, t.z)); if (p && p.length + (t.last ? 400 : 0) < bestLen) { best = { t, p }; bestLen = p.length + (t.last ? 400 : 0); } }
       st.target = best ? best.t : null; st.path = best ? best.p : null; st.pathT = 1.0;
     }
     const t = st.target;
+    game.autoDebug = { target: t && t.id, path: st.path ? st.path.length : -1, n: targets(game).map((x) => x.id).join(',') };
     if (t) {
       const dT = Math.hypot(t.x - h.x, t.z - h.z);
       // use it only from where the game offers the prompt (lamps 1.9 m, chests 1.7 m from the object itself)
