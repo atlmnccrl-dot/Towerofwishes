@@ -633,7 +633,7 @@ export function carriage(ctx, x, z, ry = 0, o = {}) {
   P(box(1.3, 0.78, 1.5), body, 0, 1.78, -0.25);
   P(box(1.44, 0.1, 1.66), body, 0, 2.22, -0.25);
   P(box(1.4, 0.06, 1.74), trim, 0, 1.4, -0.25);
-  P(box(1.48, 0.05, 1.74), trim, 0, 2.28, -0.25);
+  for (const s of [-1, 1]) { P(box(0.05, 0.05, 1.7), trim, s * 0.72, 2.28, -0.25); P(box(1.44, 0.05, 0.05), trim, 0, 2.28, -0.25 + s * 0.83); }
   for (const lz of [-0.95, 0.45]) for (const s of [-1, 1]) P(box(0.04, 0.16, 0.04), trim, s * 0.6, 2.36, lz);
   for (const s of [-1, 1]) P(box(0.04, 0.04, 1.44), trim, s * 0.6, 2.44, -0.25);
   for (const s of [-1, 1]) {

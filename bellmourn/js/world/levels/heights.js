@@ -114,7 +114,7 @@ export default {
     P.checkerFloor(ctx, -8, -22.8, -3, -11.4);
     P.colonnade(ctx, -3.8, -8.2, [-12.2, -14.7, -17.2, -19.7, -22.2]);
     K.torch(ctx, -8.08, 2.4, -18.56, '+x'); K.torch(ctx, -8.08, 2.4, -13.92, '+x');
-    for (const z of [-13.45, -15.95, -18.45, -20.95]) P.topiary(ctx, -2.4, z, 'cone', 0.9);
+    for (const z of [-14.7, -19.7]) P.topiary(ctx, -2.6, z, 'cone', 0.9); // in line with the columns: the gaps stay open
     P.statue(ctx, 6.6, -14.4, Math.PI * 0.25, { pose: 'sword' });
     P.statue(ctx, 6.6, -20.8, Math.PI * 0.25, { pose: 'angel' });
     P.statue(ctx, 5, -17, 1.3, { fallen: true, pose: 'crown' });
