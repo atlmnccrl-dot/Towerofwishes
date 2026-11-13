@@ -345,14 +345,6 @@ export function hangLantern(ctx, x, y, z, opts = {}) {
   ctx.lights.push({ x, y: y - 0.7, z, color: 0xffb45a, intensity: opts.intensity || 6, dist: opts.dist || 8.5, halo: true, flicker: 0.06 });
 }
 
-// An iron bracket on a wall face for a hanging lantern: face '+x' or '+z'.
-export function bracketLantern(ctx, x, y, z, face = '+x', opts = {}) {
-  const fx = face === '+x' ? 1 : 0, fz = 1 - fx; const iron = M.ironLit();
-  add(ctx, box(0.1 + fx * 0.8, 0.07, 0.1 + fz * 0.8), iron, x + fx * 0.4, y, z + fz * 0.4);
-  add(ctx, box(0.05 + fx * 0.5, 0.05, 0.05 + fz * 0.5), iron, x + fx * 0.25, y - 0.25, z + fz * 0.25, fx ? { rz: 0.8 } : { rx: -0.8 });
-  hangLantern(ctx, x + fx * 0.75, y, z + fz * 0.75, opts);
-}
-
 // Fallen masonry scattered over the leads (no collision: small enough to walk through).
 export function rubble(ctx, x, z, w, d, n = 8, opts = {}) {
   const r = T.rng(Math.round(x * 37 + z * 19 + 5)); const tones = ['#3c4656', '#4a5464', '#56606e'];

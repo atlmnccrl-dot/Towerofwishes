@@ -98,7 +98,11 @@ export class UI {
     let ty = 22;
     for (const t of this.toasts) {
       t.t += dt; const a = Math.min(1, t.t * 4, (t.life - t.t) * 2);
-      if (a > 0) { this.text(t.msg, w / 2, ty, { align: 'center', color: t.color, alpha: a, scale: t.big ? 2 : 1 }); ty += t.big ? 18 : 10; }
+      if (a > 0) {
+        const sc = t.big && this.measure(t.msg, 2) <= w - 12 ? 2 : 1;
+        for (const line of this.wrap(t.msg, (w - 12) / sc)) { this.text(line, w / 2, ty, { align: 'center', color: t.color, alpha: a, scale: sc }); ty += sc === 2 ? 18 : 9; }
+        ty += 1;
+      }
     }
     this.toasts = this.toasts.filter((t) => t.t < t.life);
     // prompt

@@ -510,7 +510,7 @@ export class Game {
       if (S !== 'bossIntro') ui.hud(hs, dt);
       if (this.card && S === 'play') {
         this.card.t += dt * (this.world.combat ? 4 : 1); const c = this.card; const a = Math.min(1, c.t * 1.5, Math.max(0, (4.5 - c.t) * 1.2));
-        if (a > 0) { ui.text(c.sup, W / 2, H * 0.24, { align: 'center', color: COL.red, alpha: a }); ui.text(c.title, W / 2, H * 0.24 + 11, { align: 'center', color: COL.white, scale: 2, alpha: a }); if (c.line) ui.text(c.line, W / 2, H * 0.24 + 31, { align: 'center', color: COL.dim, alpha: a }); }
+        if (a > 0) { ui.text(c.sup, W / 2, H * 0.24, { align: 'center', color: COL.red, alpha: a }); ui.text(c.title, W / 2, H * 0.24 + 11, { align: 'center', color: COL.white, scale: ui.measure(c.title, 2) > W - 12 ? 1 : 2, alpha: a }); if (c.line) ui.wrap(c.line, W - 16).forEach((l, k) => ui.text(l, W / 2, H * 0.24 + 31 + k * 9, { align: 'center', color: COL.dim, alpha: a })); }
         if (c.t > 5) this.card = null;
       }
       if (S === 'play' && this.input.touchMode) ui.drawTouch({ world: this.world, prompt: this.prompt }, this.input);
