@@ -27,7 +27,10 @@ const { chromium } = require('playwright');
     const zoneReach = (zn) => { for (let z = zn[1]; z <= zn[3]; z += S) for (let x = zn[0]; x <= zn[2]; x += S) { const [i, j] = cell(x, z); if (i >= 0 && j >= 0 && i < nx && j < nz && grid[idx(i, j)] === 3) return true; } return false; };
     const report = { level: def.id, problems: [], counts: {} };
     for (const l of def.lamps || []) if (!reach(l.x, l.z, 1.6)) report.problems.push('lamp unreachable: ' + l.id);
-    for (const c of def.items || []) if (!reach(c.x, c.z, 1.4)) report.problems.push('chest unreachable: ' + c.id);
+    // the prompt appears within 1.7 m of the chest (lamps 1.9 m): a walkable cell must lie that close
+    const reachR = (x, z, r) => { for (let dz = -r; dz <= r; dz += S) for (let dx = -r; dx <= r; dx += S) { if (dx * dx + dz * dz > r * r) continue; const [i, j] = cell(x + dx, z + dz); if (i >= 0 && j >= 0 && i < nx && j < nz && grid[idx(i, j)] === 3) return true; } return false; };
+    for (const c of def.items || []) if (!reachR(c.x, c.z, 1.55)) report.problems.push('chest cannot be opened (no floor within 1.55 m): ' + c.id);
+    for (const l of def.lamps || []) if (!reachR(l.x, l.z, 1.75)) report.problems.push('lamp cannot be used (no floor within 1.75 m): ' + l.id);
     for (const f of def.foes || []) { if (!free(f.x, f.z)) report.problems.push(`foe inside a wall: ${f.t} at ${f.x},${f.z}`); else if (!reach(f.x, f.z, 0.6)) report.problems.push(`foe unreachable: ${f.t} at ${f.x},${f.z}`); }
     for (const e of def.encounters || []) {
       if (!zoneReach(e.zone)) report.problems.push('encounter zone unreachable: ' + e.id);

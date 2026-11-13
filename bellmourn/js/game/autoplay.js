@@ -33,7 +33,7 @@ export function makeAutoplay(seed = 3) {
   function targets(game) {
     const L = game.level, def = L.def; const out = [];
     for (const l of L.lamps) if (!st.visited.has('lamp:' + l.id)) out.push({ id: 'lamp:' + l.id, x: l.x + 1.2, z: l.z + 0.6, lamp: l });
-    for (const c of L.chests) if (!c.h.open) out.push({ id: 'chest:' + c.id, x: c.x, z: c.z + 1.0, chest: c });
+    for (const c of L.chests) if (!c.h.open && !st.visited.has('chest:' + c.id)) out.push({ id: 'chest:' + c.id, x: c.x, z: c.z + 1.0, chest: c });
     for (const e of game.encs || []) if (e.state === 'idle') { const c = center(e.zone); out.push({ id: 'enc:' + e.id, x: c.x, z: c.z }); }
     if (def.boss && game.bossState === 'idle') { const z = def.boss.zone; out.push({ id: 'boss', x: (z[0] + z[2]) / 2, z: z[3] - 1.5 }); }
     if (def.exit && (!def.exit.requires || game.bossState === 'done')) { const c = center(def.exit.zone); out.push({ id: 'exit', x: c.x, z: c.z, last: true }); }
@@ -70,7 +70,10 @@ export function makeAutoplay(seed = 3) {
     const t = st.target;
     if (t) {
       const dT = Math.hypot(t.x - h.x, t.z - h.z);
-      if ((t.lamp || t.chest) && dT < 1.6) { inp.interactPressed = true; st.visited.add(t.id); st.path = null; return inp; }
+      // use it only from where the game offers the prompt (lamps 1.9 m, chests 1.7 m from the object itself)
+      const obj = t.lamp || t.chest; const dObj = obj ? Math.hypot(obj.x - h.x, obj.z - h.z) : 9;
+      if (obj && dObj < (t.lamp ? 1.7 : 1.5)) { inp.interactPressed = true; st.visited.add(t.id); st.path = null; return inp; }
+      if (obj && dT < 0.5) { const dx = obj.x - h.x, dz = obj.z - h.z; inp.mx = dx / dObj; inp.mz = dz / dObj; return inp; }
       if (t.id.startsWith('enc:') && dT < 1.5) st.path = null;
       while (st.path && st.path.length > 1 && Math.hypot(st.path[0].x - h.x, st.path[0].z - h.z) < 0.7) st.path.shift();
       const wp = st.path && st.path[0] ? st.path[Math.min(1, st.path.length - 1)] : t;

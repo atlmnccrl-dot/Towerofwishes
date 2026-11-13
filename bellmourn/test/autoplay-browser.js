@@ -1,16 +1,16 @@
 // Plays the whole game in the browser on autoplay: title -> four districts -> ending. Logs progress,
 // screenshots each district start and boss, fails on console errors or no progress.
-// NODE_PATH=$(npm root -g) node bellmourn/test/autoplay-browser.js <outdir> [maxMinutes=40] [speed=3] [god=0]
+// NODE_PATH=$(npm root -g) node bellmourn/test/autoplay-browser.js <outdir> [maxMinutes=40] [speed=3] [god=0] [startLevel]
 const { chromium } = require('playwright');
 const fs = require('fs');
 (async () => {
-  const out = process.argv[2] || '/tmp/bm-auto'; const maxMin = +(process.argv[3] || 40); const speed = process.argv[4] || 3; const god = process.argv[5] || '0';
+  const out = process.argv[2] || '/tmp/bm-auto'; const maxMin = +(process.argv[3] || 40); const speed = process.argv[4] || 3; const god = process.argv[5] || '0'; const from = process.argv[6] ? `&level=${process.argv[6]}` : '';
   fs.mkdirSync(out, { recursive: true }); const port = process.env.PORT || 8790;
   const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
   const p = await b.newPage({ viewport: { width: 640, height: 360 } });
   const errs = []; p.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); }); p.on('pageerror', (e) => errs.push('PAGEERROR ' + e.message));
   await p.goto(`http://127.0.0.1:${port}/bellmourn/index.html`); await p.evaluate(() => localStorage.clear());
-  await p.goto(`http://127.0.0.1:${port}/bellmourn/index.html?auto=3&speed=${speed}&god=${god}`);
+  await p.goto(`http://127.0.0.1:${port}/bellmourn/index.html?auto=3&speed=${speed}&god=${god}${from}`);
   await p.waitForFunction(() => window.BM && BM.ready, null, { timeout: 120000 });
   const t0 = Date.now(); let last = ''; let lastChange = Date.now(); const shots = new Set();
   while (Date.now() - t0 < maxMin * 60000) {
