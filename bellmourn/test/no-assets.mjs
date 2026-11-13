@@ -12,7 +12,8 @@ function scan(file) {
     const strs = line.match(/(['"`])(?:(?!\1).)*\1/g) || [];
     for (const s of strs) {
       const v = s.slice(1, -1);
-      if (/\.\.\/\.\.\/\.\.\/|(^|\/)assets\/|art_source|emberfall|\bv2\//.test(v) && !rel.startsWith('test')) bad.push(`${rel}:${i + 1} reaches outside the game: ${v}`);
+      if (v.startsWith('.') && /\.m?js$/.test(v)) { const target = path.resolve(path.dirname(file), v); if (!target.startsWith(root + path.sep)) bad.push(`${rel}:${i + 1} reaches outside the game: ${v}`); }
+      if (/(^|\/)assets\/|art_source|emberfall|\bv2\//.test(v)) bad.push(`${rel}:${i + 1} reaches into the repository's assets: ${v}`);
       if (BIN.test(v)) bad.push(`${rel}:${i + 1} loads a file: ${v}`);
       if (/^(https?:)?\/\//.test(v)) bad.push(`${rel}:${i + 1} loads from the network: ${v}`);
     }

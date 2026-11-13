@@ -10,10 +10,12 @@ export default {
   gatesOpen: ['lychGate', 'choirGate'],
   ambience: {
     fog: 0x1b2730, fogNear: 78, fogFar: 175, sky: 0x0a0e14, moon: 1.7, hemi: 1.0, rain: 1, lightning: true,
+    // short shafts (they start at the broken roof): the level runs up the screen, so a full-height
+    // shaft from the churchyard or the nave would lie across every room beyond it
     beams: [
-      { x: 15.4, z: 2.4, r: 5, h: 26, from: [6, 0, -10], intensity: 65 },
-      { x: 0.2, z: -3, r: 5.2, h: 26, from: [6, 0, -10], intensity: 75 },
-      { x: 0, z: -29.5, r: 7.5, h: 28, from: [6, 0, -10], intensity: 90 },
+      { x: 15, z: 2, r: 5, h: 14, from: [3.2, 0, -5.4], intensity: 32 },
+      { x: -3.5, z: 0, r: 5.5, h: 14, from: [3.2, 0, -5.4], intensity: 38 },
+      { x: 0, z: -29.5, r: 7.5, h: 15, from: [3.2, 0, -5.4], intensity: 45 },
     ],
   },
   lamps: [{ id: 'yard', x: 11.6, z: 12.6, sx: 1.3, sz: 0.4 }, { id: 'choir', x: 5.4, z: -18.4, sx: -1.4, sz: 0.3 }],
