@@ -145,7 +145,7 @@ export function heatSpill(ctx, x, z, w, d, k = 1) {
 // A brick furnace built against a wall, its back at x and its mouth facing +X: the burning arch behind
 // a grate, an iron door hung open, a tapering hood and a soot-black flue; strong orange light.
 export function furnace(ctx, x, z, o = {}) {
-  const D = o.d || 2.2, W = o.w || 2.6, H = o.h || 3.2, top = o.flue || 11.5; const brick = M.brick(o.tone || '#33292a');
+  const D = o.d || 2.2, W = o.w || 2.6, H = o.h || 3.4, top = o.flue || 11.5; const brick = M.brick(o.tone || '#3a2e2c');
   const fx = x + D;
   add(ctx, box(D, H, W), brick, x + D / 2, H / 2, z);
   add(ctx, box(D + 0.16, 0.5, W + 0.16), M.ashlar('#3a3436'), x + D / 2, 0.25, z);
@@ -156,20 +156,24 @@ export function furnace(ctx, x, z, o = {}) {
   add(ctx, box(1.0, fl, 1.0), M.brick('#262224'), x + D / 2, H + 2.4 + fl / 2, z);
   for (let y = H + 3.6; y < top - 0.5; y += 2.2) add(ctx, box(1.08, 0.1, 1.08), iron(), x + D / 2, y, z);
   add(ctx, box(1.3, 0.3, 1.3), M.ashlar('#34303a'), x + D / 2, top + 0.15, z);
+  // the front: a firebrick face between two stone pilasters, scorched round the mouth
+  add(ctx, box(0.08, 2.3, W - 0.5), M.brick('#5e3226'), fx + 0.04, 0.5 + 1.15, z);
+  for (const s of [-1, 1]) add(ctx, box(0.3, H, 0.3), M.ashlar('#4e484c'), fx + 0.1, H / 2, z + s * (W / 2 - 0.12));
+  add(ctx, box(0.36, 0.34, W + 0.04), M.ashlar('#565054'), fx + 0.12, 0.5 + 2.3 + 0.17, z); // the lintel
   // the mouth (its own copy of the fire, so the furnaces flicker apart)
   const t = mouthTex().clone(); t.needsUpdate = true; t.repeat.set(1 / 3, 1);
-  const mm = new THREE.MeshBasicMaterial({ map: t, alphaTest: 0.5, color: new THREE.Color(1.7, 1.5, 1.3), fog: false });
-  const mw = 1.25, mh = 1.125;
-  add(ctx, plane(mw, mh), mm, fx + 0.012, 0.5 + mh / 2, z, { ry: Math.PI / 2, cast: false, dynamic: true });
-  add(ctx, box(0.24, 0.3, 1.9), M.ashlar('#4a4446'), fx + 0.08, 0.5 + mh + 0.2, z); // the lintel
-  for (const s of [-1, 1]) add(ctx, box(0.12, mh + 0.3, 0.14), iron(), fx + 0.05, 0.5 + mh / 2, z + s * 0.7);
-  add(ctx, box(0.5, 0.08, 1.6), iron(), fx + 0.25, 0.44, z); // the sill plate
-  add(ctx, box(0.06, 1.1, 0.78), iron(), fx + 0.36, 1.05, z + 1.04, { ry: -0.85 }); // the door, hung open
+  const mm = new THREE.MeshBasicMaterial({ map: t, alphaTest: 0.5, color: new THREE.Color(1.8, 1.55, 1.3), fog: false });
+  const mw = 1.5, mh = 1.35;
+  add(ctx, plane(mw, mh), mm, fx + 0.1, 0.55 + mh / 2, z, { ry: Math.PI / 2, cast: false, dynamic: true });
+  add(ctx, box(0.6, 0.08, 1.7), iron(), fx + 0.3, 0.5, z); // the sill plate
+  add(ctx, box(0.06, 1.2, 0.86), iron(), fx + 0.42, 1.1, z + 1.12, { ry: -0.85 }); // the door, hung open
+  // a peephole glowing on the side toward the camera
+  add(ctx, plane(0.32, 0.22), M.glow('#ff8a2a', 1.8), x + D * 0.55, 1.5, z + W / 2 + 0.012, { cast: false });
   let k = Math.random() * 3, acc = 0;
   ctx.anims.push({ update(dt) { acc += dt; if (acc > 0.11) { acc = 0; k = (k + 1 + (Math.random() < 0.3 ? 1 : 0)) % 3; t.offset.x = Math.floor(k) / 3; } return false; } });
   heatSpill(ctx, fx + 1.1, z, 2.4, 2.4, o.spill ?? 0.6);
-  ctx.lights.push({ x: fx + 0.9, y: 1.3, z, color: 0xff7424, intensity: o.light ?? 9, dist: o.dist ?? 10, flicker: 0.12 });
-  solid(ctx, x, z - W / 2 - 0.08, fx + 0.1, z + W / 2 + 0.08, H);
+  ctx.lights.push({ x: fx + 1.3, y: 1.7, z, color: 0xff7424, intensity: o.light ?? 10, dist: o.dist ?? 10, flicker: 0.12 });
+  solid(ctx, x, z - W / 2 - 0.08, fx + 0.3, z + W / 2 + 0.08, H);
 }
 
 // A cupola furnace: a tall round shaft in an iron skin on a brick foot, a charging door up top, the tap
@@ -250,9 +254,9 @@ export function greatPit(ctx, x0, z0, x1, z1, o = {}) {
   for (const s of [-1, 1]) add(ctx, box(0.2, 0.4, d), lo, cx + s * (w / 2 - 0.1), 0.25, cz);
   // the pool
   const tex = crustTex();
-  const pm = mat('crust', () => new THREE.MeshBasicMaterial({ map: tex, color: new THREE.Color(1.25, 1.15, 1.05), fog: false }));
+  const pm = mat('crust', () => new THREE.MeshBasicMaterial({ map: tex, color: new THREE.Color(1.0, 0.95, 0.9), fog: false }));
   add(ctx, strip(w - 0.2, d - 0.2, 64, 64), pm, cx, 0.1, cz, { cast: false, dynamic: true });
-  let t = 0; ctx.anims.push({ update(dt) { t += dt; const k = 1.12 + Math.sin(t * 1.3) * 0.1 + Math.sin(t * 3.1) * 0.04; pm.color.setRGB(k * 1.1, k, k * 0.92); tex.offset.x = (tex.offset.x + dt * 0.004) % 1; return false; } });
+  let t = 0; ctx.anims.push({ update(dt) { t += dt; const k = 0.92 + Math.sin(t * 1.3) * 0.08 + Math.sin(t * 3.1) * 0.03; pm.color.setRGB(k * 1.08, k, k * 0.9); tex.offset.x = (tex.offset.x + dt * 0.004) % 1; return false; } });
   // the bell, buried to its shoulders
   const s = o.bell || Math.min(w, d) * 0.95;
   bell(ctx, cx, -s * 0.45, cz, s, { mat: bronze() });

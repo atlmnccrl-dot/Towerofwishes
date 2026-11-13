@@ -256,6 +256,12 @@ export function cliff(ctx, x, z0, z1, depth) {
   add(ctx, box(1.2, depth, L), deep(M.ashlar('#3c4052')), x - 0.6, -depth / 2 - 0.02, zm, { cast: false });
   add(ctx, box(0.3, 0.3, L), deep(M.ashlar('#4c5062')), x + 0.1, -0.75, zm, { cast: false });
   for (let z = z0 + 3; z < z1; z += 6.5) add(ctx, box(0.8, depth, 1.1), deep(M.ashlar('#363a4c')), x + 0.4, -depth / 2 - 1.1, z, { cast: false });
+  // the servants' rooms in the wall: small windows between the buttresses, a few still lit
+  const r = T.rng(Math.round(depth * 31 + z0)); const dark = deep(M.decal(T.houseWindow(false)));
+  for (let z = z0 + 5.2; z < z1 - 1; z += 3.25) for (const y of [-2.4, -4.8]) {
+    const lit = r() < 0.2; if (!lit && r() < 0.35) continue;
+    add(ctx, plane(0.5, 0.62), lit ? M.decal(T.houseWindow(true), 1.3) : dark, x + 0.01, y, z, { ry: Math.PI / 2, cast: false });
+  }
 }
 
 // The lower city below the hill: rows of dark roofs sinking into the mist, and the lit windows.

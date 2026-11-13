@@ -13,7 +13,7 @@ import { makeAutoplay } from './autoplay.js';
 import { BOSS_AI } from './ai.js';
 import { BOSS_AI2 } from './bosses2.js';
 import { HEROES, HERO_ORDER, heroStats, AFFIX_LIST, WEAPONS, RELICS, xpFor } from './heroes.js';
-import { freshSave, upgradeSave, addXp, xpFrac, bossReward, chestLoot, districtIndex } from './progress.js';
+import { freshSave, upgradeSave, addXp, xpFrac, bossReward, chestLoot, districtIndex, skillRows, useSkillRow, shopStock, buy, upgradeWeapon, toggleRelic, relicSlots } from './progress.js';
 import { LampMenu } from './lampmenu.js';
 import { Tutorial } from './tutorial.js';
 
@@ -173,9 +173,20 @@ export class Game {
     const S = this.state;
     if (S === 'title' && this.stateT > 0.5) { const hero = this.save.hero; this.save = freshSave(hero); this.persist(); this.embersShown = 0; this.enterLevel('gate', true); }
     else if (S === 'story') this.storyIdx = (this.storyLines || []).length;
-    else if (S === 'lamp' && this.stateT > 0.3) this.go('play');
+    else if (S === 'lamp' && this.stateT > 0.3) { this.autoSpend(); this.refreshHero(); this.go('play'); }
     else if (S === 'play' && this.world && !this.loading) Object.assign(inp, this.auto(this, dt), { pausePressed: false });
     else if (S === 'ending' && this.endT > 1.2) { this.endT = 0; this.endIdx++; }
+  }
+
+  // what a sensible player does at a lamp: rank up skills, wear the best weapon and relics, temper, buy
+  autoSpend() {
+    const S = this.save, P = S.heroes[S.hero];
+    for (let guard = 0; guard < 20 && P.points > 0; guard++) { const rows = skillRows(S).filter((r) => !r.locked && r.rank < 5); if (!rows.length) break; rows.sort((a, b) => a.rank - b.rank); useSkillRow(S, rows[0]); }
+    P.weapon = P.owned.slice().sort((a, b) => WEAPONS[b].tier - WEAPONS[a].tier)[0];
+    for (const id of S.relicsOwned) if (!S.relicsOn.includes(id) && S.relicsOn.filter(Boolean).length < relicSlots(S)) toggleRelic(S, id);
+    for (const it of shopStock(S, this.levelId)) if (it.kind !== 'tome' && S.embers >= it.price + 150) buy(S, it, this.levelId);
+    for (let guard = 0; guard < 10; guard++) if (upgradeWeapon(S).startsWith('NOT')) break;
+    this.persist();
   }
 
   // ------------------------------------------------------------------ title and menus
