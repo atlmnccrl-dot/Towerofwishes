@@ -2,7 +2,7 @@
 // opens chests, fights with the bot, enters the boss arena and leaves by the exit. Pure logic.
 import { makeBot } from './bot.js';
 
-const S = 0.5, R = 0.42;
+const S = 0.25, R = 0.39;
 
 export function makeAutoplay(seed = 3) {
   const bot = makeBot(1, seed);
@@ -20,7 +20,7 @@ export function makeAutoplay(seed = 3) {
     return { g, nx, nz, x0, z0 };
   }
   const cellOf = (G, x, z) => [Math.max(0, Math.min(G.nx - 1, Math.floor((x - G.x0) / S))), Math.max(0, Math.min(G.nz - 1, Math.floor((z - G.z0) / S)))];
-  function nearestFree(G, i, j) { if (G.g[j * G.nx + i]) return [i, j]; for (let r = 1; r < 8; r++) for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) { const a = i + di, b = j + dj; if (a >= 0 && b >= 0 && a < G.nx && b < G.nz && G.g[b * G.nx + a]) return [a, b]; } return [i, j]; }
+  function nearestFree(G, i, j) { if (G.g[j * G.nx + i]) return [i, j]; for (let r = 1; r < 14; r++) for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) { const a = i + di, b = j + dj; if (a >= 0 && b >= 0 && a < G.nx && b < G.nz && G.g[b * G.nx + a]) return [a, b]; } return [i, j]; }
   function bfs(G, from, to) {
     const [si, sj] = nearestFree(G, ...from), [ti, tj] = nearestFree(G, ...to);
     const prev = new Int32Array(G.nx * G.nz).fill(-1); const q = [sj * G.nx + si]; prev[q[0]] = q[0]; let head = 0; const T = tj * G.nx + ti;
@@ -80,7 +80,7 @@ export function makeAutoplay(seed = 3) {
       if (obj && dObj < (t.lamp ? 1.7 : 1.5)) { inp.interactPressed = true; st.visited.add(t.id); st.path = null; return inp; }
       if (obj && dT < 0.5) { const dx = obj.x - h.x, dz = obj.z - h.z; inp.mx = dx / dObj; inp.mz = dz / dObj; return inp; }
       if (t.id.startsWith('enc:') && dT < 1.5) st.path = null;
-      while (st.path && st.path.length > 1 && Math.hypot(st.path[0].x - h.x, st.path[0].z - h.z) < 0.7) st.path.shift();
+      while (st.path && st.path.length > 1 && Math.hypot(st.path[0].x - h.x, st.path[0].z - h.z) < 0.5) st.path.shift();
       const wp = st.path && st.path[0] ? st.path[Math.min(1, st.path.length - 1)] : t;
       const dx = wp.x - h.x, dz = wp.z - h.z, d = Math.hypot(dx, dz);
       if (d > 0.2) { inp.mx = dx / d; inp.mz = dz / d; }
