@@ -24,7 +24,7 @@ export const JOINTS = Object.keys(PLAN);
 export class Rig {
   constructor(def) {
     this.def = def; const s = def.scale || 1; this.s = s;
-    this.root = new THREE.Group(); this.root.userData.rig = this;
+    this.root = new THREE.Group(); this.baseMats = new Map();
     this.body = new THREE.Group(); this.root.add(this.body); this.body.scale.setScalar(s);
     this.j = { root: this.body };
     for (const name of JOINTS) {
@@ -58,7 +58,7 @@ export class Rig {
       this._part('head', box(hs, hs, hs), C.skin, 0, hs / 2, 0);
       if (C.hair && !d.noHair) { this._part('head', box(hs + 0.04, hs * 0.42, hs + 0.04), C.hair, 0, hs * 0.86, -0.01); this._part('head', box(hs + 0.04, hs * 0.75, 0.08), C.hair, 0, hs * 0.55, -hs / 2 - 0.02); if (d.longHair) this._part('head', box(hs * 0.9, 0.3, 0.07), C.hair, 0, 0.02, -hs / 2 - 0.04); }
       if (d.hood) { this._part('head', box(hs + 0.08, hs + 0.06, hs + 0.08), C.hood || C.cloak || C.tunic, 0, hs / 2 + 0.03, -0.03); this._part('head', box(hs * 0.8, hs * 0.55, 0.02), 0x050608, 0, hs * 0.48, hs / 2 + 0.03); }
-      if (d.eyes) { for (const sx of [-1, 1]) this._part('head', box(0.05, 0.035, 0.02), d.eyes, sx * hs * 0.22, hs * 0.52, hs / 2 + 0.045, { glow: 4 }); }
+      if (d.eyes) { for (const sx of [-1, 1]) this._part('head', box(0.075, 0.055, 0.03), d.eyes, sx * hs * 0.24, hs * 0.52, hs / 2 + 0.05, { glow: 5 }); }
       if (d.mask) this._part('head', box(hs * 0.9, hs * 0.6, 0.03), d.mask, 0, hs * 0.45, hs / 2 + 0.03);
       if (d.hat === 'brim') { this._part('head', box(hs + 0.24, 0.04, hs + 0.24), C.hat || 0x15161a, 0, hs + 0.02, 0); this._part('head', box(hs * 0.85, 0.18, hs * 0.85), C.hat || 0x15161a, 0, hs + 0.12, 0); }
       if (d.horns) for (const sx of [-1, 1]) this._part('head', box(0.05, 0.22, 0.05), d.horns, sx * hs * 0.45, hs + 0.08, -0.02, { rz: -sx * 0.5 });
@@ -160,8 +160,8 @@ export class Rig {
     if (amount === this._flash) return; this._flash = amount;
     for (const m of this.parts) {
       if (!m.material || m.material.isMeshBasicMaterial) continue;
-      if (amount > 0) { if (!m.userData.baseMat) m.userData.baseMat = m.material; m.material = flashMat(m.userData.baseMat, amount); }
-      else if (m.userData.baseMat) { m.material = m.userData.baseMat; }
+      if (amount > 0) { if (!this.baseMats.has(m)) this.baseMats.set(m, m.material); m.material = flashMat(this.baseMats.get(m), amount); }
+      else if (this.baseMats.has(m)) { m.material = this.baseMats.get(m); }
     }
   }
 

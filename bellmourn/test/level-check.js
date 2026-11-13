@@ -33,8 +33,11 @@ const { chromium } = require('playwright');
       if (!zoneReach(e.zone)) report.problems.push('encounter zone unreachable: ' + e.id);
       for (const g of [...(e.gates || []), ...(e.opens || [])]) if (!L.marks[g]) report.problems.push(`encounter ${e.id}: unknown gate ${g}`);
       for (const wv of e.waves) for (const f of wv.foes) if (!free(f.x, f.z)) report.problems.push(`encounter ${e.id}: foe inside a wall at ${f.x},${f.z}`);
+      // a gate that closes must not cut through the zone that triggers it (the hero would be shoved through it)
+      for (const g of e.gates || []) { const s = L.marks[g] && L.marks[g].solid; if (s && s.x1 > e.zone[0] - 0.5 && s.x0 < e.zone[2] + 0.5 && s.z1 > e.zone[1] - 0.5 && s.z0 < e.zone[3] + 0.5) report.problems.push(`encounter ${e.id}: gate ${g} overlaps its trigger zone`); }
     }
-    if (def.boss) { if (!zoneReach(def.boss.zone)) report.problems.push('boss zone unreachable'); if (!free(def.boss.x, def.boss.z)) report.problems.push('boss spawn blocked'); for (const g of [...(def.boss.gates || []), ...(def.boss.opens || [])]) if (!L.marks[g]) report.problems.push('boss: unknown gate ' + g); }
+    if (def.boss) { for (const g of def.boss.gates || []) { const s = L.marks[g] && L.marks[g].solid; const zn = def.boss.zone; if (s && s.x1 > zn[0] - 0.5 && s.x0 < zn[2] + 0.5 && s.z1 > zn[1] - 0.5 && s.z0 < zn[3] + 0.5) report.problems.push(`boss: gate ${g} overlaps the boss zone`); }
+      if (!zoneReach(def.boss.zone)) report.problems.push('boss zone unreachable'); if (!free(def.boss.x, def.boss.z)) report.problems.push('boss spawn blocked'); for (const g of [...(def.boss.gates || []), ...(def.boss.opens || [])]) if (!L.marks[g]) report.problems.push('boss: unknown gate ' + g); }
     if (def.exit && !zoneReach(def.exit.zone)) report.problems.push('exit unreachable');
     for (const g of def.gatesOpen || []) if (!L.marks[g]) report.problems.push('gatesOpen: unknown gate ' + g);
     const info = BM.r.gl.info; report.counts = { drawCalls: info.render.calls, triangles: info.render.triangles, lights: L.lights.length, solids: L.solids.length, foes: (def.foes || []).length, encounters: (def.encounters || []).length, fps: Math.round(BM.fps) };

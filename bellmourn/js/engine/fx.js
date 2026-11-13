@@ -234,9 +234,11 @@ export class FX {
 
   // ---------------------------------------------------------------- afterimages
   ghost(rig, color = [1.6, 0.15, 0.15], life = 0.28) {
-    const g = rig.root.clone(true);
+    // a frozen copy of the figure: the rig's own geometry at its current world transforms
+    const g = new THREE.Group();
     const mat = new THREE.MeshBasicMaterial({ color: new THREE.Color(...color), transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending, fog: false });
-    g.traverse((o) => { if (o.isMesh) { o.material = mat; o.castShadow = false; } });
+    rig.root.updateMatrixWorld(true);
+    rig.root.traverse((o) => { if (o.isMesh && o.visible) { const m = new THREE.Mesh(o.geometry, mat); o.matrixWorld.decompose(m.position, m.quaternion, m.scale); g.add(m); } });
     this.group.add(g); this.ghosts.push({ g, mat, t: life, life });
   }
 
@@ -260,7 +262,7 @@ export class FX {
     for (const d of this.decals) { d.t += dt; if (d.t > 25) d.m.material.opacity = Math.max(0, 0.85 - (d.t - 25) / 10); }
     this.decals = this.decals.filter((d) => { if (d.t > 35) { this.group.remove(d.m); return false; } return true; });
     for (const gh of this.ghosts) { gh.t -= dt; gh.mat.opacity = 0.55 * Math.max(0, gh.t / gh.life); }
-    this.ghosts = this.ghosts.filter((gh) => { if (gh.t <= 0) { this.group.remove(gh.g); return false; } return true; });
+    this.ghosts = this.ghosts.filter((gh) => { if (gh.t <= 0) { this.group.remove(gh.g); gh.mat.dispose(); return false; } return true; });
     for (const r of this.rings) { r.t += dt; const k = r.t / r.life; r.m.scale.setScalar(0.3 + k * r.r); r.m.material.opacity = 0.8 * (1 - k); }
     this.rings = this.rings.filter((r) => { if (r.t >= r.life) { this.group.remove(r.m); return false; } return true; });
     for (const b of this.bolts) { b.t -= dt; b.l.material.opacity = Math.max(0, b.t / 0.25); b.l.visible = Math.floor(b.t * 40) % 2 === 0 || b.t > 0.15; }

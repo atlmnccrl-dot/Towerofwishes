@@ -36,7 +36,7 @@ export class Input {
     const opt = { passive: false };
     canvas.addEventListener('touchstart', (e) => { e.preventDefault(); this.touchMode = true; this.lastTouch = performance.now(); for (const t of e.changedTouches) this._tStart(t, pos(t)); if (this.onAny) this.onAny(); }, opt);
     canvas.addEventListener('touchmove', (e) => { e.preventDefault(); for (const t of e.changedTouches) this._tMove(t, pos(t)); }, opt);
-    const end = (e) => { e.preventDefault(); for (const t of e.changedTouches) this._tEnd(t); };
+    const end = (e) => { e.preventDefault(); for (const t of e.changedTouches) this._tEnd(t); if (this.onAny) this.onAny(); }; // iOS unlocks audio on touchend
     canvas.addEventListener('touchend', end, opt); canvas.addEventListener('touchcancel', end, opt);
     this.pad = null; this.padPrev = [];
   }

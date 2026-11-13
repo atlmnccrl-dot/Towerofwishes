@@ -59,7 +59,7 @@ export class Atmos {
   addBeam({ x, z, r = 5, h = 26, from = [5, 0, -9], color = 0xa8c0e0, intensity = 60 }) {
     const L = new THREE.SpotLight(color, intensity, h * 2.2, Math.atan2(r, h) * 1.15, 0.6, 1.2);
     L.position.set(x + from[0], h, z + from[2]); L.target.position.set(x, 0, z);
-    L.castShadow = true; L.shadow.mapSize.set(512, 512); L.shadow.bias = -0.002; L.shadow.camera.near = 4; L.shadow.camera.far = h * 2;
+    L.castShadow = false; L.shadow.mapSize.set(512, 512); L.shadow.bias = -0.002; L.shadow.camera.near = 4; L.shadow.camera.far = h * 2;
     this.r.scene.add(L); this.r.scene.add(L.target);
     // the visible shaft: an open cone, additive, brighter near the ground
     const len = Math.hypot(from[0], h, from[2]);

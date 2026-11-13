@@ -92,6 +92,7 @@ export class UI {
       G.bossGhost = G.bossGhost === undefined ? boss.hp : Math.max(boss.hp, G.bossGhost - dt * 120);
       this.text(boss.def.name, bx, by - 9, { color: COL.white });
       this.bar(bx, by, bw, 3, boss.hp / boss.maxHp, '#b02028', '#14080a', G.bossGhost / boss.maxHp);
+      for (const ph of G.bossPhases || []) this.rect(bx + Math.round(bw * ph), by - 1, 1, 5, '#e8d8c0');
     }
     // toasts (top centre)
     let ty = 22;

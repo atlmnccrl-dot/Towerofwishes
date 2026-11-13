@@ -51,7 +51,7 @@ export class World {
   spawnFoe(type, x, z, opts = {}) {
     const base = FOES[type]; if (!base) throw new Error('unknown foe ' + type);
     const def = scaleFoe(base, opts.tier || 0);
-    const e = this._ent({ team: 'foe', type, def, x, z, r: def.r, mass: def.mass, hp: def.hp, maxHp: def.hp, poise: def.poise, maxPoise: def.poise, speed: def.speed, dmgMul: def.dmgMul, armor: !!def.armor });
+    const e = this._ent({ team: 'foe', type, def, x, z, r: def.r, mass: def.mass, hp: def.hp, maxHp: def.hp, poise: def.poise, maxPoise: def.poise, speed: def.speed, dmgMul: def.dmgMul, armor: !!def.armor, flinch: def.flinch ?? 2 });
     e.face = opts.face ?? angTo(e, this.hero || { x, z: z + 1 });
     if (opts.rise !== false) { e.state = 'spawn'; e.anim = 'rise'; e.iframes = 0.9; }
     e.ai = { cd: 0.6 + this.rand() * 0.8, strafeDir: this.rand() < 0.5 ? -1 : 1, aggro: !!opts.aggro, home: { x, z } };
@@ -60,7 +60,7 @@ export class World {
 
   spawnBoss(type, x, z, opts = {}) {
     const def = BOSSES[type];
-    const e = this._ent({ team: 'foe', type, def, boss: true, x, z, r: def.r, mass: def.mass, hp: def.hp * (opts.hpMul || 1), maxHp: def.hp * (opts.hpMul || 1), poise: 100, maxPoise: 100, speed: def.speed, dmgMul: opts.dmgMul || 1, armor: true });
+    const e = this._ent({ team: 'foe', type, def, boss: true, x, z, r: def.r, mass: def.mass, hp: def.hp * (opts.hpMul || 1), maxHp: def.hp * (opts.hpMul || 1), poise: 300, maxPoise: 300, speed: def.speed, dmgMul: opts.dmgMul || 1, armor: true });
     e.face = opts.face ?? 0; e.phase = 1; e.ai = { cd: 1.5, step: 0, aggro: true }; e.state = 'idle';
     this.emit('spawn', { e, boss: true }); return e;
   }
@@ -130,7 +130,8 @@ export class World {
     // global actions from neutral (or from cancel windows)
     const cancelable = canAct || (e.state === 'attack' && e.t >= e.atk.cancel) || (e.state === 'heavy' && e.t >= e.atk.cancel) || (e.state === 'parry' && e.t > H.parry.window + 0.08);
     if (cancelable && fresh('special', 0.2) && this.meter >= H.special.cost) { take('special'); return this._special(e); }
-    if ((cancelable || (e.state === 'hurt' && e.t > 0.2)) && fresh('dash', 0.2) && e.dashCd <= 0) { take('dash'); return this._dash(e, mdir); }
+    const canDash = e.dashCd <= 0 || (e.stats.unlock.dash2 && e.dashCharges > 0 && (e.state === 'dash' ? e.t > 0.12 : true));
+    if ((cancelable || (e.state === 'hurt' && e.t > 0.2) || (e.state === 'dash' && e.stats.unlock.dash2 && e.t > 0.12)) && fresh('dash', 0.2) && canDash) { take('dash'); e.dashCharges = e.dashCd > 0 ? 0 : 1; return this._dash(e, mdir); }
     if (cancelable && fresh('parry', 0.15)) { take('parry'); e.state = 'parry'; e.t = 0; e.anim = 'parry'; e.animT = 0; e.atk = null; this.emit('parryStart', { e }); return; }
     if (canAct && fresh('heal', 0.2) && e.tonics > 0 && e.hp < e.maxHp) { take('heal'); e.state = 'heal'; e.t = 0; e.anim = 'heal'; e.animT = 0; e.healed = false; return; }
     if (cancelable && inp.heavyDown && fresh('heavy', 0.3)) { take('heavy'); e.state = 'charge'; e.t = 0; e.charge = 0; e.anim = 'charge'; e.animT = 0; this._aim(e, mdir, 4.5); return; }
@@ -351,7 +352,11 @@ export class World {
     if (!dst.boss) {
       dst.poise -= o.poise || 0;
       if (dst.poise <= 0 && dst.state !== 'stagger') this._stagger(dst, 1.7);
-      else if (!dst.armor && dst.state !== 'stagger') { dst.state = 'hurt'; dst.t = 0; dst.anim = 'hurt'; dst.animT = 0; dst.atk = null; dst.tele = null; dst.stun = o.heavy ? 0.55 : 0.32; }
+      else if (!dst.armor && dst.state !== 'stagger' && (dst.flinch >= 1 || o.heavy && dst.flinch >= 0.5)) {
+        // a foe flinches a few times, then fights through the blows (button mashing gets punished)
+        dst.flinch -= o.heavy ? 0.5 : 1;
+        dst.state = 'hurt'; dst.t = 0; dst.anim = 'hurt'; dst.animT = 0; dst.atk = null; dst.tele = null; dst.stun = o.heavy ? 0.55 : 0.32;
+      }
     } else {
       dst.poise -= (o.poise || 0) * 0.5;
       if (dst.poise <= 0 && dst.state !== 'stagger') { dst.poise = dst.maxPoise; dst.state = 'stagger'; dst.t = 0; dst.anim = 'stagger'; dst.animT = 0; dst.stagT = 2.2; dst.tele = null; dst.atk = null; this.emit('stagger', { e: dst }); }
@@ -376,6 +381,7 @@ export class World {
   // ------------------------------------------------------------------ foes
   _foe(e, h, boss) {
     if (e.stun > 0) e.stun -= h;
+    if (!boss) e.flinch = Math.min(e.def.flinch ?? 2, (e.flinch ?? (e.def.flinch ?? 2)) + h / 1.1);
     e.mx = 0; e.mz = 0; e.moveSpeed = 0;
     switch (e.state) {
       case 'spawn': if (e.t >= 0.9) { e.state = 'idle'; e.t = 0; e.anim = 'idle'; } return;

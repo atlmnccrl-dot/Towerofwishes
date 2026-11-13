@@ -6,7 +6,8 @@
 import * as THREE from 'three';
 
 export const PPU = 16;              // buffer pixels per world unit
-const TARGET_H = 200;               // aim for a buffer this tall
+let TARGET_H = 200;
+export function setTargetHeight(h) { TARGET_H = h; }               // aim for a buffer this tall
 export const PITCH = THREE.MathUtils.degToRad(40);
 export const YAW = THREE.MathUtils.degToRad(45);
 const DIST = 80;

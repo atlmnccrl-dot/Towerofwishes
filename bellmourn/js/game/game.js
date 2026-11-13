@@ -8,6 +8,8 @@ import { OPENING, SHARDS, ENDING, CREDITS, TIPS, DISTRICTS } from './story.js';
 import { shared } from '../engine/materials.js';
 import { COL } from '../engine/ui.js';
 import LEVELS from '../world/levels/index.js';
+import { makeAutoplay } from './autoplay.js';
+import { BOSS_AI } from './ai.js';
 
 const SAVE_KEY = 'bellmourn.save.v1', SET_KEY = 'bellmourn.settings.v1';
 export function freshSave() { return { level: 'gate', lamp: null, cleared: {}, items: {}, bosses: {}, embers: 0, up: { hp: 0, blade: 0, tonic: 0 }, unlock: {}, deaths: 0, time: 0, done: false }; }
@@ -101,6 +103,7 @@ export class Game {
 
   async start() {
     const q = new URLSearchParams(location.search);
+    if (q.get('auto') && !this.auto) { this.auto = makeAutoplay(+q.get('auto') || 3); this.timeScale = +(q.get('speed') || 1); this.debug = { god: q.get('god') === '1' }; }
     if (q.get('level') && !this.debugDone) {
       // debug: ?level=id [&boss=1] [&god=1] [&lamp=id] — straight into a district
       this.debugDone = true; this.debug = { god: q.get('god') === '1' };
@@ -125,6 +128,7 @@ export class Game {
   update(dt) {
     this.t += dt; this.stateT += dt;
     const inp = this.input.frame();
+    if (this.auto) this.autoInput(inp, dt);
     this.input.playing = this.state === 'play';
     this.ui.touchMode = inp.touch;
     if (inp.taps.length || inp.confirm || inp.attackPressed) this.sound.unlock();
@@ -142,6 +146,16 @@ export class Game {
     else if (S === 'settings') this.settingsMenu(dt, inp);
     else if (S === 'credits') this.credits(dt, inp);
     this.renderFrame(dt);
+  }
+
+  // test autoplay: drives menus and the hero
+  autoInput(inp, dt) {
+    const S = this.state;
+    if (S === 'title' && this.stateT > 0.5) { this.save = freshSave(); this.persist(); this.embersShown = 0; this.enterLevel('gate', true); }
+    else if (S === 'story') this.storyIdx = (this.storyLines || []).length;
+    else if (S === 'lamp' && this.stateT > 0.3) this.go('play');
+    else if (S === 'play' && this.world && !this.loading) Object.assign(inp, this.auto(this, dt), { pausePressed: false });
+    else if (S === 'ending' && this.endT > 1.2) { this.endT = 0; this.endIdx++; }
   }
 
   // ------------------------------------------------------------------ title and menus
@@ -180,7 +194,7 @@ export class Game {
     if ((this.storyIdx || 0) >= this.storyLines.length) {
       const n = this.storyNext;
       if (n === 'enterGate') this.enterLevel('gate', true);
-      else if (n === 'title') { this.start(); }
+      else if (n === 'title') { this.storyNext = null; this.go('loading'); this.start(); }
       else if (n === 'credits') this.go('credits');
     }
   }
@@ -207,7 +221,7 @@ export class Game {
     if (p >= 0 && p < 3) this.saveSettings();
     if (p === 3 || inp.back) this.go(this.back || 'title');
   }
-  credits(dt, inp) { if (this.stateT > 0.5 && (inp.back || inp.confirm || inp.taps.length)) { if (this.back === 'title') this.go('title'); else this.start(); } }
+  credits(dt, inp) { if (this.stateT > 0.5 && (inp.back || inp.confirm || inp.taps.length)) { if (this.back === 'title') this.go('title'); else { this.go('loading'); this.start(); } } }
 
   pauseMenu(dt, inp) {
     this.pauseItems = [{ label: 'RESUME' }, { label: 'CONTROLS' }, { label: 'SETTINGS' }, { label: 'QUIT TO TITLE' }];
@@ -215,7 +229,7 @@ export class Game {
     if (inp.pausePressed || inp.back || p === 0) { this.go('play'); return; }
     if (p === 1) { this.back = 'pause'; this.go('controls'); }
     if (p === 2) { this.back = 'pause'; this.go('settings'); }
-    if (p === 3) { this.persist(); this.start(); }
+    if (p === 3) { this.persist(); this.go('loading'); this.start(); }
   }
 
   lampMenu(dt, inp) {
@@ -248,7 +262,7 @@ export class Game {
     if (inp.pausePressed) { this.go('pause'); return; }
     this.save.time += dt;
     if (this.debug && this.debug.god) { w.hero.hp = w.hero.maxHp; }
-    w.update(dt, inp);
+    w.update(dt * (this.timeScale || 1), inp);
     this.handleEvents(w.drain());
     if (this.state !== 'play') return;
     // lamps, chests
@@ -287,7 +301,6 @@ export class Game {
     if (!l.h.lit) { l.h.set(true); this.sound.play('lamp'); this.fx.embers(l.x, 3.3, l.z, 30); this.ui.toast('LAMP LIT', { color: COL.gold, big: true, life: 2 }); this.save.litLamps = { ...(this.save.litLamps || {}), [this.levelId + ':' + l.id]: true }; }
     this.save.lamp = this.levelId + ':' + l.id; this.persist();
     hero.hp = hero.maxHp; hero.tonics = hero.stats.maxTonics; this.sound.play('heal');
-    // resting brings back the wandering hushed (not those behind locked gates you cleared)
     this.go('lamp');
   }
 
@@ -382,13 +395,14 @@ export class Game {
           if (ev.hero) { snd.play('heroHurt'); r.post.hurt = 0.7; }
           else snd.play(ev.heavy || ev.finisher ? 'hitHeavy' : 'hit');
           if (ev.special) fx.slashLine(d.x, 1.1, d.z, 2.6);
+          if (ev.finisher) this.uiSlash = { t: 0.22, a: -0.5 + Math.random() * 0.3 };
           break;
         }
         case 'kill': {
           const e = ev.e; snd.play('kill'); snd.play('foeDie', { delay: 0.05 });
           fx.blood(e.x, 1, e.z, Math.random() * 6, 30); fx.mist(e.x, 0.8, e.z, 10, [0.15, 0.16, 0.2]); for (let i = 0; i < 3; i++) fx.bloodPool(e.x, e.z, 1.3);
           if (ev.drop) { this.save.embers += ev.drop; this.emberFly(e.x, e.z, ev.drop); }
-          if (ev.boss) { this.bossDown(); r.shake(0.8, 1.2); this.zoomPunch = 1.3; }
+          if (ev.boss) { this.bossDown(); r.shake(0.8, 1.2); this.zoomPunch = 1.3; fx.mist(e.x, 1.5, e.z, 60, [0.3, 0.3, 0.36]); fx.embers(e.x, 1.5, e.z, 60, [3, 1.4, 0.4]); fx.shockRing(e.x, e.z, 9, [2.6, 2.2, 1.6], 0.9); r.post.flash = 0.35; this.flashT = 0.12; }
           break;
         }
         case 'parry': fx.sparks(ev.x, 1.2, ev.z, Math.random() * 6, 28, [3, 2.8, 2.2]); fx.shockRing(ev.x, ev.z, 2.2, [2, 2, 2.4], 0.3); snd.play('parry'); r.post.flash = Math.max(r.post.flash, 0.25); this.flashT = 0.08; if (this.world.hero.stats.unlock.riposte) { hero.hp = Math.min(hero.maxHp, hero.hp + 6); } break;
@@ -397,7 +411,7 @@ export class Game {
         case 'stagger': fx.shockRing(ev.e.x, ev.e.z, 1.6, [2.4, 2.2, 1.2], 0.35); snd.play('block'); break;
         case 'finisher': this.zoomPunch = 1.35; break;
         case 'heal': snd.play('heal'); fx.embers(ev.e.x, 1, ev.e.z, 16, [2.6, 0.5, 0.5]); break;
-        case 'special': snd.play('special'); this.r.post.desat = 0.6; this.specialT = 1.6; this.zoomPunch = 1.2; break;
+        case 'special': snd.play('special'); this.r.post.desat = 0.6; this.specialT = 1.6; this.zoomPunch = 1.2; fx.shockRing(ev.e.x, ev.e.z, 6.5, [3, 0.3, 0.25], 0.5); fx.embers(ev.e.x, 1, ev.e.z, 30, [3, 0.3, 0.25]); break;
         case 'specialHit': snd.play('slashA'); for (const f of this.world.foes()) if (Math.hypot(f.x - ev.e.x, f.z - ev.e.z) < 6.5) fx.slashLine(f.x, 1.1, f.z, 2.8); break;
         case 'tele': if (ev.e.boss || Math.random() < 0.7) snd.play('tele', { vol: ev.e.boss ? 1.4 : 0.8 }); break;
         case 'spawn': if (ev.e.state === 'spawn') { fx.mist(ev.e.x, 0.3, ev.e.z, 14, [0.25, 0.27, 0.32]); snd.play('rise', { vol: 0.6 }); } break;
@@ -434,16 +448,17 @@ export class Game {
       if (w) { this.view.update(w, dt); for (const e of w.ents) e.animT += dt; }
     } else if (w && w.hero) {
       const h = w.hero; target = new THREE.Vector3(h.x + h.vx * 0.18, 0, h.z + h.vz * 0.18);
-      if (this.state === 'bossIntro' && this.boss) { const k = Math.min(1, this.stateT / 1.0) * (this.stateT < 3.0 ? 1 : Math.max(0, 1 - (this.stateT - 3.0) / 0.6)); target.lerp(new THREE.Vector3(this.boss.x, 0, this.boss.z), k * 0.85); zt = 1 + k * 0.25; }
+      if (this.state === 'bossIntro' && this.boss) { const k = Math.min(1, this.stateT / 1.0) * (this.stateT < 3.0 ? 1 : Math.max(0, 1 - (this.stateT - 3.0) / 0.6)); target.lerp(new THREE.Vector3(this.boss.x, 1.6 * (this.boss.def.scale || 1) * 0.6, this.boss.z), k * 0.85); zt = 1 + k * 0.25; }
       if (this.boss && !this.boss.dead && this.state === 'play') target.lerp(new THREE.Vector3(this.boss.x, 0, this.boss.z), 0.2);
       if (this.state !== 'title') this.view.update(w, dt);
     }
-    if (target) this.camFocus.lerp(target, Math.min(1, dt * (this.state === 'play' ? 6 : 2.5)));
+    if (target && !this.debugCamHold) this.camFocus.lerp(target, Math.min(1, dt * (this.state === 'play' ? 6 : 2.5)));
     if (this.zoomPunch) { zt = Math.max(zt, this.zoomPunch); this.zoomPunch = Math.max(1, this.zoomPunch - dt * 0.6); if (this.zoomPunch <= 1.001) this.zoomPunch = 0; }
+    if (this.debugZoom) zt = this.debugZoom;
     this.zoom += (zt - this.zoom) * Math.min(1, dt * 5); r.setZoom(Math.abs(this.zoom - 1) < 0.004 ? 1 : this.zoom);
     r.focus.copy(this.camFocus);
     // dash afterimages
-    if (this.dashGhosts > 0 && w && w.hero) { this.ghostT -= dt; if (this.ghostT <= 0) { const rig = this.view.get(w.hero); if (rig) this.fx.ghost(rig); this.dashGhosts--; this.ghostT = 0.05; } }
+    if (this.dashGhosts > 0 && w && w.hero) { this.ghostT -= dt; if (this.ghostT <= 0) { this.dashGhosts--; this.ghostT = 0.05; const rig = this.view.get(w.hero); if (rig) this.fx.ghost(rig); } }
     // post
     const P = r.post; P.hurt = Math.max(0, P.hurt - dt * 1.6); if (this.state !== 'dead') P.desat = Math.max(0, P.desat - dt * (this.specialT > 0 ? 0.2 : 1.5)); this.specialT = (this.specialT || 0) - dt;
     if (this.flashT > 0) { this.flashT -= dt; if (this.flashT <= 0) P.flash = 0; }
@@ -486,7 +501,7 @@ export class Game {
       ui.text('TAP / ENTER', W / 2, H - 16, { align: 'center', color: '#5a564e', alpha: 0.5 + Math.sin(this.t * 3) * 0.3 });
     }
     if (['play', 'pause', 'lamp', 'bossIntro', 'dead'].includes(S) && this.world) {
-      const hs = this.hs || (this.hs = {}); if (hs.world !== this.world) { hs.hpGhost = undefined; hs.bossGhost = undefined; } hs.world = this.world; hs.boss = this.boss && this.bossState === 'fight' ? this.boss : null; hs.embersShown = this.embersShown; hs.prompt = S === 'play' ? this.prompt : null;
+      const hs = this.hs || (this.hs = {}); if (hs.world !== this.world) { hs.hpGhost = undefined; hs.bossGhost = undefined; } hs.world = this.world; hs.boss = this.boss && this.bossState === 'fight' ? this.boss : null; hs.bossPhases = this.boss ? (BOSS_AI[this.boss.type] || {}).phases : null; hs.embersShown = this.embersShown; hs.prompt = S === 'play' ? this.prompt : null;
       if (S !== 'bossIntro') ui.hud(hs, dt);
       if (this.card && S === 'play') {
         this.card.t += dt; const c = this.card; const a = Math.min(1, c.t * 1.5, Math.max(0, (4.5 - c.t) * 1.2));
@@ -494,10 +509,17 @@ export class Game {
         if (c.t > 5) this.card = null;
       }
       if (S === 'play' && this.input.touchMode) ui.drawTouch({ world: this.world, prompt: this.prompt }, this.input);
+      if (S === 'play' && !this.world.combat && !this.card) this.drawCompass();
+    }
+    if (this.uiSlash && this.uiSlash.t > 0) {
+      // a cut across the whole screen on a finishing blow
+      this.uiSlash.t -= dt; const k = this.uiSlash.t / 0.22; const g = ui.g; const a0 = g.globalAlpha; g.globalAlpha = k;
+      const cy = H / 2, sl = Math.tan(this.uiSlash.a); for (let x = 0; x < W; x++) { const y = Math.round(cy + (x - W / 2) * sl); ui.rect(x, y, 1, 1, '#fff4f0'); ui.rect(x, y + 1, 1, 1, '#c8242a'); }
+      g.globalAlpha = a0;
     }
     if (S === 'bossIntro' && this.boss) {
       const k = Math.min(1, this.stateT * 2) * (this.stateT > 3.2 ? Math.max(0, 1 - (this.stateT - 3.2) * 2.5) : 1); ui.letterbox(k);
-      if (this.stateT > 1.2) { const a = Math.min(1, (this.stateT - 1.2) * 2) * k; ui.text(this.boss.def.name.toUpperCase(), W / 2, H * 0.72, { align: 'center', scale: 2, color: COL.white, alpha: a }); ui.text(this.boss.def.title.toUpperCase(), W / 2, H * 0.72 + 18, { align: 'center', color: COL.red, alpha: a }); }
+      if (this.stateT > 1.2) { const a = Math.min(1, (this.stateT - 1.2) * 2) * k; ui.text(this.boss.def.name.toUpperCase(), W / 2, H * 0.62, { align: 'center', scale: 2, color: COL.white, alpha: a }); ui.text(this.boss.def.title.toUpperCase(), W / 2, H * 0.62 + 18, { align: 'center', color: COL.red, alpha: a }); }
     }
     if (S === 'pause') { ui.rect(0, 0, W, H, 'rgba(0,0,0,0.5)'); ui.text('PAUSED', W / 2, H * 0.28, { align: 'center', scale: 2, color: COL.white }); this.menuRects = ui.menu(this.pauseItems || [], this.sel, W / 2, H * 0.45, { align: 'center' }); }
     if (S === 'lamp') {
@@ -508,6 +530,26 @@ export class Game {
     }
     if (S === 'dead') { const a = Math.min(1, this.stateT * 0.8); ui.text('YOU FELL', W / 2, H * 0.4, { align: 'center', scale: 3, color: '#b01c22', alpha: a }); ui.text('THE LAMP STILL BURNS', W / 2, H * 0.4 + 28, { align: 'center', color: COL.dim, alpha: Math.max(0, a - 0.3) }); }
     if (S === 'ending') { const line = ENDING[Math.min(ENDING.length - 1, this.endIdx || 0)]; const a = Math.min(1, (this.endT || 0) * 1.2); ui.letterbox(1); ui.wrap(line, W - 40).forEach((l, k) => ui.text(l, W / 2, H * 0.84 + k * 10, { align: 'center', color: '#f0e0c0', alpha: a })); }
+  }
+
+  // Where to go next: the nearest fight not yet fought, the boss, or the way out once he falls.
+  nextObjective() {
+    const def = this.level.def; const h = this.world.hero; const c = (z) => ({ x: (z[0] + z[2]) / 2, z: (z[1] + z[3]) / 2 });
+    const list = [];
+    for (const e of this.encs || []) if (e.state === 'idle') list.push(c(e.zone));
+    if (def.boss && this.bossState === 'idle') list.push(c(def.boss.zone));
+    if (!list.length && def.exit && (!def.exit.requires || this.bossState === 'done')) list.push(c(def.exit.zone));
+    let best = null, bd = 1e9; for (const p of list) { const d = Math.hypot(p.x - h.x, p.z - h.z); if (d < bd) { bd = d; best = p; } }
+    return best && bd > 9 ? best : null;
+  }
+  drawCompass() {
+    const t = this.nextObjective(); if (!t) return; const h = this.world.hero; const ui = this.ui;
+    const hp = this.r.project(new THREE.Vector3(h.x, 1, h.z)), tp = this.r.project(new THREE.Vector3(t.x, 1, t.z));
+    const dx = tp.x - hp.x, dy = tp.y - hp.y, d = Math.hypot(dx, dy); if (d < 1) return;
+    const ux = dx / d, uy = dy / d; const cx = hp.x + ux * 20, cy = hp.y + uy * 20;
+    const a = 0.35 + 0.25 * Math.sin(this.t * 4); const g = ui.g; const a0 = g.globalAlpha; g.globalAlpha = a;
+    for (let k = 0; k < 4; k++) { const bx = cx - ux * k, by = cy - uy * k; ui.rect(bx - uy * k, by + ux * k, 1, 1, COL.gold); ui.rect(bx + uy * k, by - ux * k, 1, 1, COL.gold); }
+    g.globalAlpha = a0;
   }
 
   drawControls() {
