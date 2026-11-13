@@ -37,22 +37,25 @@ function wardable(w, e) {
     .sort((a, b) => dist(a, e) - dist(b, e)).slice(0, 3);
 }
 
+// a sudden push forward as the blow lands (foes accelerate slowly, so lunges start with a burst)
+const burst = (v) => (w, e) => { e.vx = Math.sin(e.face) * v; e.vz = Math.cos(e.face) * v; };
+
 // ------------------------------------------------------------------ attacks
 const ATK = {
   // Grave Hound: a long lunge along a marked line, and a snap at close range
-  lunge: { name: 'lunge', anim: 'lunge', dur: 1.2, windup: 0.55, active: 0.82, range: 1.35, arc: deg(110), dmg: 12, kb: 4, lunge: 12, lungeT: [0.55, 0.82], tele: 'line', teleRange: 4.6, width: 1.1, turn: 7 },
+  lunge: { name: 'lunge', anim: 'lunge', dur: 1.3, windup: 0.55, active: 0.95, range: 1.35, arc: deg(110), dmg: 12, kb: 4, lunge: 10, lungeT: [0.55, 0.8], tele: 'line', teleRange: 4.6, width: 1.1, turn: 7, onStrike: burst(10) },
   snap: { name: 'snap', anim: 'bite', dur: 0.8, windup: 0.38, active: 0.5, range: 1.45, arc: deg(90), dmg: 8, kb: 2.5, lunge: 3, tele: 'arc' },
   // Plague Rat: a quick nip
-  nip: { name: 'nip', anim: 'nip', dur: 0.62, windup: 0.3, active: 0.42, range: 1.0, arc: deg(100), dmg: 5, kb: 1.5, lunge: 5, lungeT: [0.24, 0.42], tele: 'arc' },
+  nip: { name: 'nip', anim: 'nip', dur: 0.62, windup: 0.3, active: 0.42, range: 1.0, arc: deg(100), dmg: 5, kb: 1.5, lunge: 5, lungeT: [0.3, 0.42], tele: 'arc', onStrike: burst(4.5) },
   // Gargoyle: a dive from the air onto a marked circle (then grounded), and a raking claw
-  dive: { name: 'dive', anim: 'dive', dur: 1.5, windup: 0.8, active: 1.25, leap: true, shape: 'circle', offset: 0, radius: 1.7, dmg: 17, kb: 7, tele: 'circleAt', heavy: true, onStrike: (w, e) => { e.ai.groundT = w.t + 1.6; e.poise = Math.min(e.poise, e.maxPoise * 0.35); } },
+  dive: { name: 'dive', anim: 'dive', dur: 1.5, windup: 0.8, active: 1.25, leap: true, shape: 'circle', offset: 0, radius: 1.7, dmg: 17, kb: 7, tele: 'circleAt', heavy: true, onStrike: (w, e) => { e.ai.groundT = w.t + 1.6; e.flinch = 1; e.poise = Math.min(e.poise, e.maxPoise * 0.35); } },
   rake: { name: 'rake', anim: 'rake', dur: 1.0, windup: 0.48, active: 0.62, range: 1.9, arc: deg(130), dmg: 12, kb: 4, lunge: 3, tele: 'arc' },
   // Tallow Bomber: a fire flask lobbed ahead of the hero (a burning pool), a flask smashed at its own feet
-  flask: { name: 'flask', anim: 'cast', dur: 1.15, windup: 0.55, active: 0.58, tele: 'none', dmg: 0, onStrike: (w, e) => { const p = lead(w, w.hero, 0.45); lob(w, e, p.x, p.z, { kind: 'flask', arc: 0.95, splash: 1.5, pool: 2.6, dmg: 13, hazard: 'fire', status: { burn: 1 } }); w.emit('fire', { e, kind: 'flask' }); } },
+  flask: { name: 'flask', anim: 'cast', dur: 1.15, windup: 0.55, active: 0.58, tele: 'none', dmg: 0, onStrike: (w, e) => { const p = lead(w, w.hero, 0.8); lob(w, e, p.x, p.z, { kind: 'flask', arc: 0.95, splash: 1.5, pool: 2.6, dmg: 13, hazard: 'fire', status: { burn: 1 } }); w.emit('fire', { e, kind: 'flask' }); } },
   spill: { name: 'spill', anim: 'slam', dur: 0.95, windup: 0.42, active: 0.45, shape: 'circle', offset: 0, radius: 2.1, tele: 'circle', dmg: 0, onStrike: (w, e) => { w.addHazard({ shape: 'circle', x: e.x, z: e.z, r: 2.1, warn: 0.22, life: 2.2, dmg: 12 * e.dmgMul, src: e, kind: 'fire', kb: 4, status: { burn: 1 } }); } },
   // Mire Spitter: three globs across the hero's path (poison puddles), a claw when cornered
   spit: { name: 'spit', anim: 'cast', dur: 1.35, windup: 0.7, active: 0.72, tele: 'none', dmg: 0, onStrike: (w, e) => {
-    const hero = w.hero; const p = lead(w, hero, 0.3); const a = angTo(e, p); const sx = Math.cos(a), sz = -Math.sin(a);
+    const hero = w.hero; const p = lead(w, hero, 0.75); const a = angTo(e, p); const sx = Math.cos(a), sz = -Math.sin(a);
     const spots = [[0, 0, 1.0], [sx * 1.9, sz * 1.9, 1.15], [-sx * 1.9, -sz * 1.9, 1.3]];
     for (const [ox, oz, arc] of spots) { const q = free(w, p.x + ox, p.z + oz, 0.2) || p; lob(w, e, q.x, q.z, { kind: 'spit', arc, splash: 1.15, pool: 3.6, dmg: 9, hazard: 'poison', status: { poison: 1 } }); }
     w.emit('fire', { e, kind: 'spit' });
@@ -81,8 +84,8 @@ const ATK = {
   } },
   // Pale Knight: a two-blow combo, a shield bash, and a lunging thrust
   combo: { name: 'combo', anim: 'fslash', dur: 1.8, windup: 0.55, active: 0.68, range: 2.0, arc: deg(120), dmg: 14, kb: 3, lunge: 3.2, tele: 'arc', chain: { at: 0.95, windup: 1.22, active: 1.34, lunge: 4 } },
-  bash: { name: 'bash', anim: 'bash', dur: 1.15, windup: 0.45, active: 0.6, range: 1.55, arc: deg(90), dmg: 10, kb: 10, lunge: 7, lungeT: [0.42, 0.6], tele: 'arc' },
-  thrust: { name: 'thrust', anim: 'fthrust', dur: 1.2, windup: 0.6, active: 0.78, shape: 'line', range: 3.4, width: 0.9, dmg: 15, kb: 5, lunge: 7, lungeT: [0.6, 0.78], tele: 'line' },
+  bash: { name: 'bash', anim: 'bash', dur: 1.15, windup: 0.45, active: 0.6, range: 1.55, arc: deg(90), dmg: 10, kb: 10, lunge: 7, lungeT: [0.45, 0.6], tele: 'arc', onStrike: burst(7) },
+  thrust: { name: 'thrust', anim: 'fthrust', dur: 1.2, windup: 0.6, active: 0.78, shape: 'line', range: 3.4, width: 0.9, dmg: 15, kb: 5, lunge: 7, lungeT: [0.6, 0.78], tele: 'line', onStrike: burst(7) },
 };
 export const UNIT_ATTACKS = ATK;
 
@@ -123,37 +126,37 @@ const looks = {
 // attacks: what the common pattern would use if this unit ever falls back to it
 export const UNITS = {
   hound: {
-    name: 'Grave Hound', hp: 40, poise: 14, flinch: 2, speed: 6.0, r: 0.4, mass: 0.9, aggro: 14, keep: 3.6, drop: 6,
+    name: 'Grave Hound', hp: 52, poise: 16, flinch: 1, speed: 6.0, r: 0.4, mass: 0.9, aggro: 14, keep: 3.6, drop: 6,
     attacks: [{ a: ATK.lunge, w: 1, min: 2.4, max: 4.6 }, { a: ATK.snap, w: 1, min: 0, max: 1.8 }],
     look: { rig: 'hound', scale: 1.15, eyes: 0xff3020, colors: { fur: 0x2e2a2c, dark: 0x1e1b1d, bone: 0xd8d0bc } },
   },
   rat: {
-    name: 'Plague Rat', hp: 12, poise: 5, flinch: 1, speed: 5.2, r: 0.26, mass: 0.35, aggro: 12, keep: 1.0, drop: 2,
+    name: 'Plague Rat', hp: 12, poise: 5, flinch: 0, speed: 5.2, r: 0.26, mass: 0.35, aggro: 12, keep: 1.0, drop: 2,
     attacks: [{ a: ATK.nip, w: 1, min: 0, max: 1.4 }],
     look: { rig: 'rat', scale: 1, eyes: 0xff3020, colors: { fur: 0x6a5c4c, dark: 0x4a3e34, tail: 0xc89088, sore: 0x90e040 } },
   },
   gargoyle: {
-    name: 'Gargoyle', hp: 56, poise: 24, flinch: 1, speed: 4.0, r: 0.45, mass: 1.3, aggro: 15, keep: 5, drop: 9,
+    name: 'Gargoyle', hp: 64, poise: 24, flinch: 1, speed: 4.0, r: 0.45, mass: 1.3, aggro: 15, keep: 5, drop: 9,
     attacks: [{ a: ATK.rake, w: 1, min: 0, max: 2.0 }],
     look: { rig: 'gargoyle', scale: 1.05, eyes: 0xff4030, colors: { stone: 0x70727a, dark: 0x4c4e56, wing: 0x55575f, horn: 0x34363c, claw: 0xc8c4b8 } },
   },
   bomber: {
-    name: 'Tallow Bomber', hp: 42, poise: 16, flinch: 2, speed: 3.2, r: 0.38, mass: 1, aggro: 15, keep: 7, ranged: true, drop: 7,
+    name: 'Tallow Bomber', hp: 48, poise: 16, flinch: 1, speed: 3.2, r: 0.38, mass: 1, aggro: 15, keep: 7, ranged: true, drop: 7,
     attacks: [{ a: ATK.flask, w: 1, min: 3, max: 13 }],
     look: { weapon: 'none', offhand: 'lantern', hood: true, eyes: 0xffa030, extra: looks.bomber, colors: { skin: 0xd8ccb0, tunic: 0xc8b890, pants: 0x4a3a2a, boots: 0x1a1410, hood: 0x5a4430, glove: 0x3a2a1e, belt: 0x3a2a1a } },
   },
   spitter: {
-    name: 'Mire Spitter', hp: 46, poise: 16, flinch: 2, speed: 2.8, r: 0.4, mass: 1.1, aggro: 14, keep: 6, ranged: true, hunch: true, drop: 7,
+    name: 'Mire Spitter', hp: 54, poise: 18, flinch: 1, speed: 2.8, r: 0.4, mass: 1.1, aggro: 14, keep: 6, ranged: true, hunch: true, drop: 7,
     attacks: [{ a: ATK.spit, w: 1, min: 2.5, max: 12 }],
     look: { weapon: 'none', claws: 0xa8c070, eyes: 0x90ff60, noHair: true, bulk: 1.2, extra: looks.spitter, colors: { skin: 0x4a6038, tunic: 0x34482a, pants: 0x283a22, boots: 0x1c2a18, glove: 0x4a6038, shoulder: 0x3e5430 } },
   },
   shade: {
-    name: 'Shade', hp: 46, poise: 18, flinch: 1, speed: 3.8, r: 0.38, mass: 0.8, aggro: 15, keep: 4, drop: 9,
+    name: 'Shade', hp: 52, poise: 18, flinch: 1, speed: 3.8, r: 0.38, mass: 0.8, aggro: 15, keep: 4, drop: 9,
     attacks: [{ a: ATK.cut, w: 1, min: 0, max: 1.9 }],
     look: { weapon: 'saber', blade: 0x9aa8e0, bladeGlow: 0x203070, hood: true, cloak: true, extra: looks.shade, colors: { skin: 0x10121a, tunic: 0x0c0e16, pants: 0x0a0c12, boots: 0x08090c, cloak: 0x141826, cloakDark: 0x0c0e18, hood: 0x141826, glove: 0x0c0e14 } },
   },
   chanter: {
-    name: 'Chanter', hp: 40, poise: 16, flinch: 2, speed: 2.6, r: 0.38, mass: 1, aggro: 15, keep: 8, ranged: true, drop: 10,
+    name: 'Chanter', hp: 44, poise: 16, flinch: 2, speed: 2.6, r: 0.38, mass: 1, aggro: 15, keep: 8, ranged: true, drop: 10,
     attacks: [{ a: ATK.mote, w: 1, min: 2.5, max: 12 }],
     look: { weapon: 'staff', orb: 0xffe070, hood: true, eyes: 0xffe080, skirt: 0x6a5430, extra: looks.chanter, colors: { skin: 0x4a4440, tunic: 0x7a6440, pants: 0x3a3022, boots: 0x161210, hood: 0x6a5430, glove: 0x3a3022 } },
   },
@@ -163,7 +166,7 @@ export const UNITS = {
     look: { weapon: 'none', eyes: 0xffa030, mask: 0x5a4420, bulk: 1.45, extra: looks.sentinel, colors: { skin: 0x8a6a34, tunic: 0x7a5c2c, pants: 0x5e4620, boots: 0x4a3818, shoulder: 0x9a7838, glove: 0x6a5028, belt: 0x4a3818 } },
   },
   knight: {
-    name: 'Pale Knight', hp: 140, poise: 70, flinch: 1, speed: 2.5, r: 0.44, mass: 1.8, aggro: 13, keep: 1.8, shield: true, drop: 16,
+    name: 'Pale Knight', hp: 140, poise: 70, flinch: 0.5, speed: 2.5, r: 0.44, mass: 1.8, aggro: 13, keep: 1.8, shield: true, drop: 16,
     attacks: [{ a: ATK.combo, w: 2, min: 0, max: 2.0 }, { a: ATK.bash, w: 1, min: 0, max: 1.5 }],
     look: { weapon: 'sword', blade: 0xe0e4ec, offhand: 'shield', mask: 0xc8c4bc, eyes: 0xe8f0ff, extra: looks.knight, bulk: 1.15, colors: { skin: 0xc8c4bc, tunic: 0xb8b4ac, pants: 0x8a8680, boots: 0x6a6660, shoulder: 0xd8d4cc, glove: 0xa8a49c, belt: 0x6a5a40 } },
   },
@@ -192,6 +195,7 @@ const unit = (fn) => (w, e, h) => {
   if (!hero || hero.dead || !e.ai.aggro) { if (e.hidden) unhide(w, e); return false; }
   const d = dist(e, hero);
   if (!e.hidden && lost(w, e, h, hero, d)) return true;
+  e.ai.cd -= h;
   fn(w, e, h, hero, d, angTo(e, hero));
   return true;
 };
@@ -206,7 +210,7 @@ export const UNIT_AI = {
     const ready = ai.cd <= 0.35;
     if (ai.cd <= 0 && meleeToken(w) && facing(e, ang, 0.45)) {
       if (d < 1.9) { attack(w, e, ATK.snap); ai.backT = 0.35; return; }
-      if (d >= 2.3 && d <= 4.9 && ai.sees && w.clear(e, hero)) { attack(w, e, ATK.lunge); ai.backT = 0.55; return; }
+      if (d >= 2.3 && d <= 4.8 && ai.sees && w.clear(e, hero)) { attack(w, e, ATK.lunge); ai.backT = 0.55; return; }
     }
     if (d > 6.5) { const a = move(w, e, ang, e.speed); e.face = turn(e.face, a, 10 * h); return; }
     if (ready && d >= 2.3 && d <= 4.9 && meleeToken(w)) { stand(e, 'stalk'); e.face = turn(e.face, ang, 9 * h); return; } // stop and turn to face
@@ -232,6 +236,7 @@ export const UNIT_AI = {
   gargoyle: unit((w, e, h, hero, d, ang) => {
     const ai = e.ai;
     if (ai.groundT > w.t) { stand(e, 'grounded'); return; }
+    e.flinch = 0; // on the wing it shrugs off light blows; grounded it reels from every one
     strafeFlip(w, e, h); e.face = turn(e.face, ang, 6 * h);
     if (ai.cd <= 0 && meleeToken(w) && facing(e, ang, 0.6)) {
       if (d < 2.1) { attack(w, e, ATK.rake); return; }
@@ -284,6 +289,9 @@ export const UNIT_AI = {
       unhide(w, e); e.face = angTo(e, hero); attack(w, e, ATK.ambush); ai.blinkAt = w.t + 3.6 * haste(e);
       return;
     }
+    // struck up close: melt away and come back from behind
+    const struck = e.hp < (ai.lastHp ?? e.hp); ai.lastHp = e.hp;
+    if (struck && d < 2.6 && (ai.evadeAt ?? 0) <= w.t) { ai.evadeAt = w.t + 5 * haste(e); e.hidden = true; e.iframes = 9; e.tele = null; ai.hideT = 0.5; w.emit('vanish', { e }); return; }
     strafeFlip(w, e, h); e.face = turn(e.face, ang, 8 * h);
     if (ai.cd <= 0 && meleeToken(w)) {
       if (d < 2.0 && facing(e, ang, 0.5)) { attack(w, e, w.rand() < 0.4 ? ATK.flurry : ATK.cut); return; }

@@ -177,39 +177,51 @@ export const BOSSES2 = {
   },
 };
 
+// How hard each boss hits (multiplies every number below; the world's dmgMul still applies on top).
+const POWER = { harbormaster: 1.3, ossuary: 1.25, founder: 1.15, regent: 1.25 };
+
 // ------------------------------------------------------------------ the Harbormaster (District III, the docks)
 // A drowned giant with a boat-hook and an anchor. Throws the hook down a line and drags you in for an
-// anchor blow; slams the anchor (a ring of water); harpoon volleys; grave hounds. Below half: the tide,
-// rings of water rolling out one after another, and the hook comes faster.
-const harborReel = (p) => strike({ name: 'reel', anim: 'slam', shape: 'circle', offset: 1.5, radius: 2.1, windup: 0.75, active: 0.85, dur: 1.5, dmg: 24, lunge: 0.6, tele: 'circle', onStrike: (w, e) => { ringAt(w, e, e.x + Math.sin(e.face) * 1.5, e.z + Math.cos(e.face) * 1.5, p >= 2 ? 8 : 6, { warn: 0, life: 0.9, dmg: 12, kind: 'water' }); } });
+// anchor blow; slams the anchor (a ring of water); wades in with his shoulder; harpoon volleys; grave
+// hounds. Below half: the tide, rings of water rolling out one after another, and the hook comes faster.
 const HOOK = { range: 10.5, width: 1.1 };
-const harpoons = (p) => ({ name: 'harpoons', anim: 'aim', dur: 1.3, windup: 0.8, active: 0.82, tele: 'ray', teleRange: 14, ranged: { kind: 'bolt', speed: 15, r: 0.22, dmg: 13, life: 1.3, fan: p >= 2 ? 5 : 3, spread: deg(13) } });
+const harpoons = (p, K) => ({ name: 'harpoons', anim: 'aim', dur: 1.3, windup: 0.8, active: 0.82, tele: 'ray', teleRange: 14, ranged: { kind: 'bolt', speed: 15, r: 0.22, dmg: 14 * K, life: 1.3, fan: p >= 2 ? 6 : 4, spread: deg(11) } });
+const harborReel = (p, K) => strike({ name: 'reel', anim: 'slam', shape: 'circle', offset: 1.5, radius: 2.1, windup: 0.75, active: 0.81, dur: 1.5, dmg: 24 * K, lunge: 0.6, tele: 'circle', onStrike: (w, e) => { ringAt(w, e, e.x + Math.sin(e.face) * 1.5, e.z + Math.cos(e.face) * 1.5, p >= 2 ? 8 : 6, { warn: 0.3, life: 0.9, dmg: 12 * K, kind: 'water' }); } });
+// the hook bites anyone on its line: you are hauled in and the anchor comes down where you land
+function hookStrike(w, e, p, K) {
+  const hero = w.hero; const caught = hero && !hero.dead && w._inShape(e, { shape: 'line', ...HOOK }, hero) && w.clear(e, hero);
+  const hit = caught && w._damage(e, hero, 16 * K * e.dmgMul, { kb: 0.01, heavy: true }) === true;
+  // the view can draw the hook flying out (to the hero when it bites)
+  w.emit('hook', { e, x: hit ? hero.x : e.x + Math.sin(e.face) * HOOK.range, z: hit ? hero.z : e.z + Math.cos(e.face) * HOOK.range, hit });
+  if (!hit) return;
+  // haul: a knockback toward him that stops about a stride in front (knockback decays ~5.5x per second)
+  const a = angTo(hero, e); const d = Math.max(0, dist(hero, e) - e.r - hero.r - 1.1); const kb = d * 5.5;
+  hero.kbx = Math.sin(a) * kb; hero.kbz = Math.cos(a) * kb;
+  w.foeAttack(e, harborReel(p, K));
+}
 const harbormaster = {
   phases: [0.5], keep: 2.8, turn: 3.6,
   moves(p) {
+    const K = POWER.harbormaster;
     const m = [
-      { id: 'sweep', w: 2.6, max: 3.9, a: strike({ name: 'sweep', anim: 'sweep', range: 3.9, arc: deg(200), windup: 0.72, active: 0.86, dur: 1.4, dmg: 22, lunge: 1.4 }) },
-      { id: 'anchor', w: 2.2, max: 4.2, a: strike({ name: 'anchor', anim: 'slam', shape: 'circle', offset: 1.6, radius: 2.2, windup: 0.9, active: 1.0, dur: 1.7, dmg: 26, lunge: 0.8, tele: 'circle', onStrike: (w, e) => { const x = e.x + Math.sin(e.face) * 1.6, z = e.z + Math.cos(e.face) * 1.6; ringAt(w, e, x, z, 8, { warn: 0, life: 1.0, dmg: 14, kind: 'water' }); if (p >= 2) ringAt(w, e, x, z, 9, { warn: 0.55, life: 1.1, dmg: 14, kind: 'water' }); } }) },
+      { id: 'sweep', w: 2.6, max: 3.9, a: strike({ name: 'sweep', anim: 'sweep', range: 3.9, arc: deg(200), windup: 0.72, active: 0.86, dur: 1.4, dmg: 22 * K, lunge: 1.4 }) },
+      { id: 'anchor', w: 2.2, max: 4.2, a: strike({ name: 'anchor', anim: 'slam', shape: 'circle', offset: 1.6, radius: 2.2, windup: 0.9, active: 0.96, dur: 1.7, dmg: 26 * K, lunge: 0.8, tele: 'circle', onStrike: (w, e) => { const x = e.x + Math.sin(e.face) * 1.6, z = e.z + Math.cos(e.face) * 1.6; ringAt(w, e, x, z, 8, { warn: 0.3, life: 1.0, dmg: 14 * K, kind: 'water' }); if (p >= 2) ringAt(w, e, x, z, 9, { warn: 0.95, life: 1.1, dmg: 14 * K, kind: 'water' }); } }) },
       // the hook: a long line; caught, you are hauled in and the anchor comes down where you land
-      { id: 'hook', w: p >= 2 ? 2.4 : 1.8, min: 3, max: HOOK.range - 0.5, cd: p >= 2 ? 3.5 : 5, a: { name: 'hook', anim: 'fthrust', shape: 'line', range: HOOK.range, width: HOOK.width, windup: p >= 2 ? 0.75 : 0.85, active: p >= 2 ? 0.8 : 0.9, dur: 1.25, dmg: 0, lunge: 0, tele: 'line', turn: 3, heavy: true, onStrike: (w, e) => {
-        const hero = w.hero; const caught = hero && !hero.dead && w._inShape(e, { shape: 'line', ...HOOK }, hero) && w.clear(e, hero);
-        const hit = caught && w._damage(e, hero, 12 * e.dmgMul, { kb: 0.01, heavy: true }) === true;
-        // the view can draw the hook flying out (to the hero when it bites)
-        w.emit('hook', { e, x: hit ? hero.x : e.x + Math.sin(e.face) * HOOK.range, z: hit ? hero.z : e.z + Math.cos(e.face) * HOOK.range, hit });
-        if (!hit) return;
-        // haul: a knockback toward him that stops about a stride in front (knockback decays ~5.5x per second)
-        const a = angTo(hero, e); const d = Math.max(0, dist(hero, e) - e.r - hero.r - 1.1); const kb = d * 5.5;
-        hero.kbx = Math.sin(a) * kb; hero.kbz = Math.cos(a) * kb;
-        w.foeAttack(e, harborReel(p));
-      } } },
-      { id: 'harpoons', w: 1.6, min: 4, cd: 4, a: harpoons(p) },
-      { id: 'hounds', w: 0.9, cd: 24, run: (w, e) => {
+      { id: 'hook', w: p >= 2 ? 2.4 : 1.8, min: 3, max: HOOK.range - 0.5, cd: p >= 2 ? 3 : 4, a: { name: 'hook', anim: 'fthrust', shape: 'line', range: HOOK.range, width: HOOK.width, windup: p >= 2 ? 0.75 : 0.85, active: p >= 2 ? 0.8 : 0.9, dur: 1.25, dmg: 0, lunge: 0, tele: 'line', turn: 3, heavy: true, onStrike: (w, e) => hookStrike(w, e, p, K) } },
+      // harpoons, and while you step out of them the hook follows (its lane is the thin wedge)
+      { id: 'volley', w: 1.2, min: 4, max: HOOK.range - 0.5, cd: 7, a: { ...harpoons(p, K), name: 'volley', dur: 2.0, range: HOOK.range, arc: deg(7), chain: { at: 1.0, windup: 1.45, active: 1.47 }, onStrike: (w, e) => { if (e.atk.chained) hookStrike(w, e, p, K); } } },
+      // wading in: a shoulder charge down a lane, stopping when it reaches you
+      { id: 'wade', w: 1.4, min: 4.5, max: 12, cd: 6, a: strike({ name: 'wade', anim: 'charge', shape: 'line', range: 2.2, width: 1.7, windup: 0.85, active: 1.45, dur: 1.9, dmg: 26 * K, kb: 9, lunge: 12, lungeT: [0.85, 1.4], tele: 'line', teleRange: 8.8, turn: 2.6 }) },
+      { id: 'harpoons', w: 1.6, min: 4, cd: 3.5, a: harpoons(p, K) },
+      // the hook swung round on its line: a wide sweep that reaches the middle distance
+      { id: 'swing', w: 1.3, min: 3.2, max: 7.4, cd: 5, a: strike({ name: 'swing', anim: 'sweep', range: 7.6, arc: deg(130), windup: 1.0, active: 1.14, dur: 1.7, dmg: 20 * K, kb: 7, lunge: 0 }) },
+      { id: 'hounds', w: 0.9, cd: 20, run: (w, e) => {
         // not in the opening seconds: the first pick only starts the clock and he throws harpoons instead
-        if (!e.ai.houndClock) { e.ai.houndClock = true; e.ai.cd_hounds = w.t + 12; return w.foeAttack(e, harpoons(p)); }
+        if (!e.ai.houndClock) { e.ai.houndClock = true; e.ai.cd_hounds = w.t + 9; return w.foeAttack(e, harpoons(p, K)); }
         if (countOf(w, 'hound') < 2 && adds(w, e) < 4) summon(w, e, 'hound', 2, 2, 4); roarPause(e);
       } },
     ];
-    if (p >= 2) m.push({ id: 'tide', w: 1.5, cd: 8, a: { name: 'tide', anim: 'slam', dur: 2.0, windup: 0.9, active: 0.92, tele: 'circle', shape: 'circle', radius: 2.0, offset: 0, dmg: 20, kb: 8, heavy: true, onStrike: (w, e) => { for (let i = 0; i < 3; i++) ringAt(w, e, e.x, e.z, 12, { warn: i * 0.75, life: 1.7, dmg: 15, kind: 'water' }); } } });
+    if (p >= 2) m.push({ id: 'tide', w: 1.5, cd: 8, a: { name: 'tide', anim: 'slam', dur: 2.0, windup: 0.9, active: 0.92, tele: 'circle', shape: 'circle', radius: 2.0, offset: 0, dmg: 20 * K, kb: 8, heavy: true, onStrike: (w, e) => { for (let i = 0; i < 3; i++) ringAt(w, e, e.x, e.z, 12, { warn: i * 0.75, life: 1.7, dmg: 15 * K, kind: 'water' }); } } });
     return m;
   },
   onPhase(w, e) { if (adds(w, e) < 4) summon(w, e, 'hound', 2, 2, 5); e.speed *= 1.15; },
@@ -222,18 +234,18 @@ const harbormaster = {
 const ossuary = {
   phases: [0.66, 0.33], keep: 2.6, turn: 3.8,
   moves(p) {
-    const fast = p >= 3 ? 0.85 : 1;
-    const base = strike({ name: 'combo', anim: 'fslash', range: 3.4, arc: deg(150), windup: 0.62, active: 0.74, dur: p >= 3 ? 2.5 : 1.95, dmg: 21, lunge: 3, chain: { at: 0.98, windup: 1.38, active: 1.5, lunge: 4 } });
+    const K = POWER.ossuary; const fast = p >= 3 ? 0.85 : 1;
+    const base = strike({ name: 'combo', anim: 'fslash', range: 3.4, arc: deg(150), windup: 0.62, active: 0.74, dur: p >= 3 ? 2.5 : 1.95, dmg: 21 * K, lunge: 3, chain: { at: 0.98, windup: 1.38, active: 1.5, lunge: 4 } });
     const m = [
       { id: 'combo', w: 3, max: 3.4, a: p >= 3 ? combo(base, [{ at: 0.98, windup: 1.38, active: 1.5, lunge: 4 }, { at: 1.75, windup: 2.12, active: 2.24, lunge: 5 }]) : base },
       // overhead cleave: a line, and the bones keep breaking the floor beyond its end
-      { id: 'cleave', w: 2, max: 3.8, a: quick(strike({ name: 'cleave', anim: 'slam', shape: 'line', range: 4.2, width: 1.5, windup: 0.85, active: 0.95, dur: 1.55, dmg: 28, lunge: 1, tele: 'line', onStrike: (w, e) => row(w, e, e.x, e.z, e.face, { start: 5.2, n: 4, step: 1.2, warn: 0.3, gap: 0.12, r: 0.85, dmg: 18, kind: 'bone' }) }), fast) },
-      // the sword driven into the stones: a row of spikes runs at you (a fan of three rows later)
-      { id: 'spikes', w: 2.2, min: 3.2, cd: p >= 3 ? 3.5 : 4.5, a: quick({ name: 'spikes', anim: 'slam', dur: 1.5, windup: 0.75, active: 0.8, shape: 'circle', radius: 1.0, offset: 1.4, dmg: 14, kb: 5, tele: 'circle', heavy: true, onStrike: (w, e) => {
+      { id: 'cleave', w: 2, max: 3.8, a: quick(strike({ name: 'cleave', anim: 'slam', shape: 'line', range: 4.2, width: 1.5, windup: 0.85, active: 0.95, dur: 1.55, dmg: 28 * K, lunge: 1, tele: 'line', onStrike: (w, e) => row(w, e, e.x, e.z, e.face, { start: 5.2, n: 4, step: 1.2, warn: 0.3, gap: 0.12, r: 0.85, dmg: 18 * K, kind: 'bone' }) }), fast) },
+      // the sword driven into the stones: a row of spikes runs at you (two rows, then a fan of three)
+      { id: 'spikes', w: 2.2, min: 3.2, cd: p >= 3 ? 3.5 : 4.5, a: quick({ name: 'spikes', anim: 'slam', dur: 1.5, windup: 0.75, active: 0.8, shape: 'circle', radius: 1.0, offset: 1.4, dmg: 14 * K, kb: 5, tele: 'circle', heavy: true, onStrike: (w, e) => {
         const a0 = angTo(e, w.hero); const rows = p >= 3 ? [-0.38, 0, 0.38] : (p >= 2 ? [-0.2, 0.2] : [0]);
-        for (const off of rows) row(w, e, e.x, e.z, a0 + off, { start: 1.6, n: 10, step: 1.25, warn: 0.45, gap: 0.075, r: 0.9, dmg: 19, kind: 'bone' });
+        for (const off of rows) row(w, e, e.x, e.z, a0 + off, { start: 1.6, n: 10, step: 1.25, warn: 0.45, gap: 0.075, r: 0.9, dmg: 19 * K, kind: 'bone' });
       } }, fast) },
-      { id: 'leap', w: 1.5, min: 5, cd: 7, a: { name: 'leap', anim: 'leap', dur: 1.9, windup: 0.75, active: 1.3, leap: true, shape: 'circle', offset: 0, radius: 2.6, dmg: 28, kb: 9, tele: 'circleAt', heavy: true, onStrike: (w, e) => ringAt(w, e, e.x, e.z, 7, { warn: 0, life: 0.9, dmg: 14, kind: 'bone' }) } },
+      { id: 'leap', w: 1.5, min: 5, cd: 6, a: { name: 'leap', anim: 'leap', dur: 1.9, windup: 0.75, active: 1.3, leap: true, shape: 'circle', offset: 0, radius: 2.6, dmg: 28 * K, kb: 9, tele: 'circleAt', heavy: true, onStrike: (w, e) => ringAt(w, e, e.x, e.z, 7, { warn: 0, life: 0.9, dmg: 14 * K, kind: 'bone' }) } },
     ];
     if (p >= 2) {
       m.push({ id: 'ossify', w: 1.2, cd: 16, run: (w, e) => { if (!(e.shield > 0)) { e.shield = Math.round(e.maxHp * 0.07); w.emit('shield', { e }); } roarPause(e); } });
@@ -251,33 +263,35 @@ const ossuary = {
 // A bronze giant swinging a bell: huge slow sweeps, tolls that ring outward, molten pours that leave
 // pools burning for seconds, the bell thrown in a high arc. Below two thirds he calls the foundry's
 // sentinels and bombers; below a third molten lines run across the floor.
-function throwBell(w, e, p) {
+function throwBell(w, e, p, K) {
   const hero = w.hero; if (!hero) return;
   const T = 1.15; const a = angTo(e, hero); const d = Math.max(2, dist(e, hero));
   const tx = hero.x, tz = hero.z;
+  // the bell itself flies as a harmless lobbed projectile; the landing is the hazard
   w.projs.push({ id: w.nextId++, kind: 'flame', team: 'foe', x: e.x + Math.sin(a) * 1.2, z: e.z + Math.cos(a) * 1.2, y: 1.6, vx: Math.sin(a) * d / T, vz: Math.cos(a) * d / T, r: 0.6, dmg: 0, life: T, lob: T, lobT: 0, homing: 0, src: e, face: a, hitSet: new Set(), tx, tz });
-  circleAt(w, e, tx, tz, 2.5, { warn: T, life: 0.25, dmg: 28, kind: 'toll', kb: 9 });
-  ringAt(w, e, tx, tz, p >= 2 ? 8 : 6, { r0: 2.5, warn: T, life: 0.9, dmg: 13, kind: 'toll' });
+  circleAt(w, e, tx, tz, 2.5, { warn: T, life: 0.25, dmg: 28 * K, kind: 'toll', kb: 9 });
+  ringAt(w, e, tx, tz, p >= 2 ? 8 : 6, { r0: 2.5, warn: T, life: 0.9, dmg: 13 * K, kind: 'toll' });
   w.emit('fire', { e, kind: 'bell' });
 }
 const founder = {
   phases: [0.66, 0.33], keep: 3.2, turn: 2.8,
   moves(p) {
+    const K = POWER.founder;
     const m = [
-      { id: 'sweep', w: 3, max: 4.4, a: strike({ name: 'sweep', anim: 'sweep', range: 4.6, arc: deg(250), windup: 1.0, active: 1.18, dur: 1.9, dmg: 30, kb: 9, lunge: 1.0 }) },
-      { id: 'toll', w: 2.2, max: 4.8, a: strike({ name: 'toll', anim: 'slam', shape: 'circle', offset: 1.9, radius: 2.5, windup: 1.0, active: 1.1, dur: 1.9, dmg: 32, kb: 9, lunge: 0.6, tele: 'circle', onStrike: (w, e) => { const x = e.x + Math.sin(e.face) * 1.9, z = e.z + Math.cos(e.face) * 1.9; ringAt(w, e, x, z, 10, { warn: 0, life: 1.3, dmg: 16, kind: 'toll' }); if (p >= 2) ringAt(w, e, x, z, 10, { warn: 0.65, life: 1.3, dmg: 16, kind: 'toll' }); } }) },
+      { id: 'sweep', w: 3, max: 4.4, a: strike({ name: 'sweep', anim: 'sweep', range: 4.6, arc: deg(250), windup: 1.0, active: 1.18, dur: 1.9, dmg: 30 * K, kb: 9, lunge: 1.0 }) },
+      { id: 'toll', w: 2.2, max: 4.8, a: strike({ name: 'toll', anim: 'slam', shape: 'circle', offset: 1.9, radius: 2.5, windup: 1.0, active: 1.06, dur: 1.9, dmg: 32 * K, kb: 9, lunge: 0.6, tele: 'circle', onStrike: (w, e) => { const x = e.x + Math.sin(e.face) * 1.9, z = e.z + Math.cos(e.face) * 1.9; ringAt(w, e, x, z, 10, { warn: 0.3, life: 1.3, dmg: 16 * K, kind: 'toll' }); if (p >= 2) ringAt(w, e, x, z, 10, { warn: 1.0, life: 1.3, dmg: 16 * K, kind: 'toll' }); } }) },
       // molten bronze tipped over you: pools that keep burning
       { id: 'pour', w: 2, cd: 5.5, a: { name: 'pour', anim: 'cast', dur: 1.5, windup: 0.6, active: 0.62, tele: 'circle', shape: 'circle', radius: 1.2, offset: 0, dmg: 0, heavy: true, onStrike: (w, e) => {
         const hero = w.hero; const n = p >= 2 ? 4 : 3;
-        for (let i = 0; i < n; i++) { const a = w.rand() * Math.PI * 2, r = i ? 1.6 + w.rand() * 2.4 : 0; const x = hero.x + Math.sin(a) * r, z = hero.z + Math.cos(a) * r; if (free(w, x, z, 0)) circleAt(w, e, x, z, 1.6, { warn: 0.95 + i * 0.22, life: 6, dmg: 16, kind: 'fire', kb: 3 }); }
+        for (let i = 0; i < n; i++) { const a = w.rand() * Math.PI * 2, r = i ? 1.6 + w.rand() * 2.4 : 0; const x = hero.x + Math.sin(a) * r, z = hero.z + Math.cos(a) * r; if (free(w, x, z, 0)) circleAt(w, e, x, z, 1.6, { warn: 0.95 + i * 0.22, life: 6, dmg: 16 * K, kind: 'fire', kb: 3 }); }
       } } },
-      { id: 'bell', w: 1.7, min: 4.5, cd: 6, a: { name: 'bell', anim: 'sweep', dur: 1.6, windup: 0.85, active: 0.9, tele: 'none', dmg: 0, heavy: true, onStrike: (w, e) => throwBell(w, e, p) } },
+      { id: 'bell', w: 1.7, min: 4.5, cd: 6, a: { name: 'bell', anim: 'sweep', dur: 1.6, windup: 0.85, active: 0.9, tele: 'none', dmg: 0, heavy: true, onStrike: (w, e) => throwBell(w, e, p, K) } },
     ];
     if (p >= 2) m.push({ id: 'forge', w: 0.9, cd: 22, run: (w, e) => { if (adds(w, e) < 3) { if (countOf(w, 'sentinel') < 1) summon(w, e, 'sentinel', 1, 1, 5); else summon(w, e, 'bomber', 2, 4, 6); } roarPause(e); } });
     if (p >= 3) m.push({ id: 'molten', w: 1.6, cd: 7, a: { name: 'molten', anim: 'roar', dur: 1.9, windup: 0.8, active: 0.82, tele: 'circle', shape: 'circle', radius: 1.6, offset: 0, dmg: 0, heavy: true, onStrike: (w, e) => {
       const hero = w.hero; const a = w.rand() * Math.PI;
-      moltenLine(w, e, hero.x, hero.z, a, { warn: 0.8, sweep: 0.7, life: 4.5, dmg: 18 });
-      moltenLine(w, e, hero.x + Math.sin(a) * 4, hero.z + Math.cos(a) * 4, a + Math.PI / 2, { warn: 1.1, sweep: 0.7, life: 4.5, dmg: 18 });
+      moltenLine(w, e, hero.x, hero.z, a, { warn: 0.8, sweep: 0.7, life: 4.5, dmg: 18 * K });
+      moltenLine(w, e, hero.x + Math.sin(a) * 4, hero.z + Math.cos(a) * 4, a + Math.PI / 2, { warn: 1.1, sweep: 0.7, life: 4.5, dmg: 18 * K });
     } } });
     return m;
   },
@@ -288,24 +302,25 @@ const founder = {
 };
 
 // ------------------------------------------------------------------ the Pale Regent (District VII, the heights)
-// A fast duellist. Dash-thrusts across the floor, quick three-step flurries, a crown of thorns that closes
-// round you, and he vanishes to come back behind you. Below two thirds two shades join him; below a
-// third he is relentless: shorter windups, more vanishing, four-step flurries.
+// A fast duellist. Dash-thrusts across the floor, quick three-step flurries, a fan of thrown daggers, a
+// crown of thorns that closes round you, and he vanishes to come back behind you. Below two thirds two
+// shades join him; below a third he is relentless: shorter windups, more vanishing, four-step flurries.
 const regent = {
   phases: [0.66, 0.33], keep: 2.4, turn: 5,
   moves(p) {
-    const k = p >= 3 ? 0.82 : 1;
-    const flurry = (n) => combo(strike({ name: 'flurry', anim: 'fslash', range: 2.9, arc: deg(130), windup: 0.5, active: 0.6, dur: n > 3 ? 2.7 : 2.2, dmg: 16, lunge: 3.5 }),
+    const K = POWER.regent; const k = p >= 3 ? 0.82 : 1;
+    const flurry = (n) => combo(strike({ name: 'flurry', anim: 'fslash', range: 2.9, arc: deg(130), windup: 0.5, active: 0.6, dur: n > 3 ? 2.7 : 2.2, dmg: 16 * K, lunge: 3.5 }),
       [{ at: 0.8, windup: 1.12, active: 1.22, lunge: 4 }, { at: 1.42, windup: 1.74, active: 1.86, lunge: 5 }, ...(n > 3 ? [{ at: 2.02, windup: 2.32, active: 2.44, lunge: 6 }] : [])]);
     const m = [
       // dash-thrust: a long telegraphed lane; he stops when he reaches you
-      { id: 'thrust', w: 2.6, min: 2.8, max: 11, cd: p >= 3 ? 1.6 : 2.6, a: quick({ name: 'thrust', anim: 'fthrust', shape: 'line', range: 1.9, width: 1.3, windup: 0.66, active: 1.04, dur: 1.45, dmg: 25, kb: 7, lunge: 17, lungeT: [0.66, 0.98], tele: 'line', teleRange: 7.6, turn: 6, heavy: true }, k) },
+      { id: 'thrust', w: 2.6, min: 2.8, max: 11, cd: p >= 3 ? 1.6 : 2.6, a: quick({ name: 'thrust', anim: 'fthrust', shape: 'line', range: 1.9, width: 1.3, windup: 0.66, active: 1.04, dur: 1.45, dmg: 25 * K, kb: 7, lunge: 17, lungeT: [0.66, 0.98], tele: 'line', teleRange: 7.6, turn: 6, heavy: true }, k) },
       { id: 'flurry', w: 3, max: 3.1, a: flurry(p >= 3 ? 4 : 3) },
+      { id: 'daggers', w: 1.5, min: 4, cd: 3.5, a: quick({ name: 'daggers', anim: 'aim', dur: 1.15, windup: 0.62, active: 0.64, tele: 'ray', teleRange: 14, ranged: { kind: 'bolt', speed: 18, r: 0.2, dmg: 13 * K, life: 1.1, fan: p >= 2 ? 5 : 3, spread: deg(10) } }, k) },
       // a crown of thorns closes round you, then the ground inside it breaks
       { id: 'crown', w: 1.3, max: 12, cd: p >= 3 ? 6 : 8, a: { name: 'crown', anim: 'cast', dur: 1.4, windup: 0.6, active: 0.62, tele: 'circle', shape: 'circle', radius: 1.4, offset: 0, dmg: 0, heavy: true, onStrike: (w, e) => {
         const h = w.hero; const n = 10, R = 3.1;
-        for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2; const x = h.x + Math.sin(a) * R, z = h.z + Math.cos(a) * R; if (free(w, x, z, 0)) circleAt(w, e, x, z, 0.8, { warn: 0.7, life: 0.3, dmg: 16, kind: 'bone', kb: 4 }); }
-        circleAt(w, e, h.x, h.z, 2.5, { warn: 1.25, life: 0.3, dmg: 24, kind: 'toll', kb: 8 });
+        for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2; const x = h.x + Math.sin(a) * R, z = h.z + Math.cos(a) * R; if (free(w, x, z, 0)) circleAt(w, e, x, z, 0.8, { warn: 0.7, life: 0.3, dmg: 16 * K, kind: 'bone', kb: 4 }); }
+        circleAt(w, e, h.x, h.z, 2.5, { warn: 1.25, life: 0.3, dmg: 24 * K, kind: 'toll', kb: 8 });
       } } },
       { id: 'vanish', w: p >= 3 ? 1.8 : 1, min: 1.5, cd: p >= 3 ? 6 : 10, run: (w, e) => { e.hidden = true; e.iframes = 9; e.ai.hideT = p >= 3 ? 0.9 : 1.3; e.tele = null; e.mx = e.mz = 0; w.emit('vanish', { e }); } },
     ];
@@ -316,14 +331,14 @@ const regent = {
   hiddenThink(w, e, h) {
     e.ai.hideT -= h; e.anim = 'idle'; e.mx = 0; e.mz = 0;
     if (e.ai.hideT > 0) return;
-    const hero = w.hero;
+    const hero = w.hero; const K = POWER.regent;
     for (const off of [Math.PI, Math.PI * 0.7, -Math.PI * 0.7, Math.PI / 2, -Math.PI / 2, 0]) {
       const a = hero.face + off; const x = hero.x + Math.sin(a) * 2.5, z = hero.z + Math.cos(a) * 2.5;
       if (free(w, x, z, e.r) && w.clear(hero, { x, z })) { e.x = x; e.z = z; break; }
     }
     e.hidden = false; e.iframes = 0; e.face = angTo(e, hero); w.emit('appear', { e });
     const fast = e.phase >= 3;
-    w.foeAttack(e, strike({ name: 'ambush', anim: 'fslash', range: 3.1, arc: deg(150), windup: fast ? 0.52 : 0.6, active: fast ? 0.62 : 0.7, dur: fast ? 1.7 : 1.25, dmg: 24, lunge: 3, ...(fast ? { chain: { at: 0.95, windup: 1.3, active: 1.42, lunge: 5 } } : {}) }));
+    w.foeAttack(e, strike({ name: 'ambush', anim: 'fslash', range: 3.1, arc: deg(150), windup: fast ? 0.52 : 0.6, active: fast ? 0.62 : 0.7, dur: fast ? 1.7 : 1.25, dmg: 24 * K, lunge: 3, ...(fast ? { chain: { at: 0.95, windup: 1.3, active: 1.42, lunge: 5 } } : {}) }));
   },
   onPhase(w, e, p) {
     if (p === 2 && adds(w, e) < 4) summon(w, e, 'shade', 2, 5, 4);
@@ -332,4 +347,3 @@ const regent = {
 };
 
 export const BOSS_AI2 = { harbormaster, ossuary, founder, regent };
-export const _helpers = { row, moltenLine, combo, quick, hpFrac };
