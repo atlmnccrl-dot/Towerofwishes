@@ -18,12 +18,33 @@ function part(ctx, g, mat, x, y, z, ry, lx, ly, lz, rx = 0, rz = 0, o = {}) {
 }
 
 // ---------------------------------------------------------------- below the walkways
+// Stone that sinks into the night: the further below the walkways, the more it fades into the dark.
+export const VOID = 0x0a0e15;
+const deepCache = new Map();
+export function deep(base, range = 11) {
+  if (!base || !base.onBeforeCompile || base.userData.deep) return base;
+  const key = base.uuid + ':' + range; if (deepCache.has(key)) return deepCache.get(key);
+  const m = base.clone(); m.userData.deep = true;
+  m.onBeforeCompile = (sh, r) => {
+    base.onBeforeCompile(sh, r);
+    sh.uniforms.deepCol = { value: new THREE.Color(VOID) };
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform vec3 deepCol;')
+      .replace('#include <fog_fragment>', `gl_FragColor.rgb = mix(gl_FragColor.rgb, deepCol, clamp(-vWPos.y / ${range.toFixed(1)}, 0.0, 1.0));\n#include <fog_fragment>`);
+  };
+  m.customProgramCacheKey = () => base.customProgramCacheKey() + 'deep' + range;
+  deepCache.set(key, m); return m;
+}
+const D = (mat) => deep(mat);
+
 // Runs kit builders, then lowers everything they made by dy: set dressing under the walks (no solids, no lights).
 export function sunk(ctx, dy, fn, opts = {}) {
   const n0 = ctx.group.children.length, s0 = ctx.solids.length, w0 = ctx.lowSolids.length, l0 = ctx.lights.length;
   fn();
   const kids = ctx.group.children;
-  for (let i = n0; i < kids.length; i++) { kids[i].position.y += dy; if (opts.noShadow) kids[i].castShadow = false; }
+  for (let i = n0; i < kids.length; i++) {
+    const k = kids[i]; k.position.y += dy; if (opts.noShadow) k.castShadow = false;
+    if (k.isMesh && opts.deep !== false) k.material = deep(k.material);
+  }
   ctx.solids.length = s0; ctx.lowSolids.length = w0; ctx.lights.length = l0;
 }
 
@@ -38,43 +59,44 @@ export function mist(ctx, x0, z0, x1, z1, y, opacity, color = 0x121a24, order = 
 const cloudTex = new Map();
 function cloudImg(seed, density = 0.8) {
   const key = seed + ':' + density; if (cloudTex.has(key)) return cloudTex.get(key);
-  const S = 128; const c = document.createElement('canvas'); c.width = c.height = S; const g = c.getContext('2d');
+  const S = 192; const c = document.createElement('canvas'); c.width = c.height = S; const g = c.getContext('2d');
   const r = T.rng(seed); const blobs = [];
-  for (let i = 0; i < 22; i++) blobs.push([r() * S, r() * S, 6 + r() * 16, 0.35 + r() * 0.65, 1.8 + r() * 1.6]);
+  for (let i = 0; i < 30; i++) blobs.push([r() * S, r() * S, 6 + r() * 18, 0.35 + r() * 0.65, 2.2 + r() * 2.4]);
   const img = g.createImageData(S, S); const B = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
   for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
     let v = 0;
     for (const [bx, by, br, bs, st] of blobs) { let dx = Math.abs(x - bx); dx = Math.min(dx, S - dx) / st; let dy = Math.abs(y - by); dy = Math.min(dy, S - dy); v += bs * Math.exp(-(dx * dx + dy * dy) / (br * br)); }
+    const a = v * density; const th = (B[(y & 3) * 4 + (x & 3)] + 0.5) / 16;
     const k = (y * S + x) * 4; img.data[k] = img.data[k + 1] = img.data[k + 2] = 255;
-    img.data[k + 3] = v * density > (B[(y & 3) * 4 + (x & 3)] + 0.5) / 16 ? 255 : 0;
+    img.data[k + 3] = a > 0.62 ? 255 : (a > 0.42 && (a - 0.42) / 0.2 > th ? 255 : 0); // solid cores, dithered edges
   }
   g.putImageData(img, 0, 0);
   const t = new THREE.CanvasTexture(c); t.magFilter = t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; t.wrapS = t.wrapT = THREE.RepeatWrapping;
   cloudTex.set(key, t); return t;
 }
 export function clouds(ctx, x0, z0, x1, z1, y, opts = {}) {
-  const w = x1 - x0, d = z1 - z0; const tile = opts.tile || 16;
+  const w = x1 - x0, d = z1 - z0; const tile = opts.tile || 24;
   const tex = cloudImg(opts.seed || 41, opts.density ?? 0.8).clone(); tex.needsUpdate = true; tex.repeat.set(w / tile, d / tile);
   const m = new THREE.Mesh(plane(w, d), new THREE.MeshBasicMaterial({ map: tex, color: opts.color ?? 0x2c3848, transparent: true, opacity: opts.opacity ?? 0.5, depthWrite: false, fog: false }));
   m.rotation.x = -Math.PI / 2; m.position.set(x0 + w / 2, y, z0 + d / 2); m.renderOrder = opts.order ?? -9; ctx.group.add(m);
   const speed = (opts.speed ?? 2.2) / tile; let ox = 0, oy = 0;
-  ctx.anims.push({ update(dt) { ox -= dt * speed; oy += dt * speed * 0.35; tex.offset.set(Math.round(ox * 128) / 128, Math.round(oy * 128) / 128); return false; } });
+  ctx.anims.push({ update(dt) { ox -= dt * speed; oy += dt * speed * 0.35; tex.offset.set(Math.round(ox * 192) / 192, Math.round(oy * 192) / 192); return false; } });
   return m;
 }
 
 // The sheer stone face under a walkway's edge, falling into the dark; lancets on the sides the camera sees.
 export function drop(ctx, x0, z0, x1, z1, depth, opts = {}) {
   const tone = opts.tone || '#303a4c'; const w = x1 - x0, d = z1 - z0; const top = opts.top ?? -0.02;
-  add(ctx, box(w, depth, d), M.brick(tone), x0 + w / 2, top - depth / 2, z0 + d / 2, { cast: false });
+  add(ctx, box(w, depth, d), D(M.brick(tone)), x0 + w / 2, top - depth / 2, z0 + d / 2, { cast: false });
   // a string course a little below the walk
-  add(ctx, box(w + 0.12, 0.25, d + 0.12), M.ashlar('#3c4656'), x0 + w / 2, top - 0.9, z0 + d / 2, { cast: false });
+  add(ctx, box(w + 0.12, 0.25, d + 0.12), D(M.ashlar('#3c4656')), x0 + w / 2, top - 0.9, z0 + d / 2, { cast: false });
   const r = T.rng(Math.round(x0 * 13 + z0 * 7 + depth)); const lit = opts.lit ?? 0.2; const gap = opts.gap || 3.2;
   const faces = opts.faces || [];
   for (const f of faces) {
     const len = f === 'x' ? d : w; const n = Math.max(1, Math.floor(len / gap));
     for (let row = 0; row < (opts.rows || 2); row++) for (let i = 0; i < n; i++) {
       const p = -len / 2 + (i + 0.5) * (len / n); const isLit = r() < lit; const y = top - 3.2 - row * 5;
-      const mat = M.decal(T.lancet(isLit, 12, 42), isLit ? 0.45 : 0);
+      const mat = D(M.decal(T.lancet(isLit, 12, 42), isLit ? 0.45 : 0));
       if (f === 'x') add(ctx, plane(0.75, 2.6), mat, x1 + 0.01, y, z0 + d / 2 + p, { ry: Math.PI / 2, cast: false });
       else add(ctx, plane(0.75, 2.6), mat, x0 + w / 2 + p, y, z1 + 0.01, { cast: false });
     }
@@ -84,8 +106,8 @@ export function drop(ctx, x0, z0, x1, z1, depth, opts = {}) {
     const len = f === 'x' ? d : w; const n = Math.max(1, Math.round(len / opts.strips));
     for (let i = 0; i <= n; i++) {
       const p = -len / 2 + (i * len) / n;
-      if (f === 'x') add(ctx, box(0.5, depth, 0.6), M.ashlar('#343e50'), x1 + 0.25, top - 0.4 - depth / 2, z0 + d / 2 + p, { cast: false });
-      else add(ctx, box(0.6, depth, 0.5), M.ashlar('#343e50'), x0 + w / 2 + p, top - 0.4 - depth / 2, z1 + 0.25, { cast: false });
+      if (f === 'x') add(ctx, box(0.5, depth, 0.6), D(M.ashlar('#343e50')), x1 + 0.25, top - 0.4 - depth / 2, z0 + d / 2 + p, { cast: false });
+      else add(ctx, box(0.6, depth, 0.5), D(M.ashlar('#343e50')), x0 + w / 2 + p, top - 0.4 - depth / 2, z1 + 0.25, { cast: false });
     }
   }
 }
@@ -94,24 +116,24 @@ export function drop(ctx, x0, z0, x1, z1, depth, opts = {}) {
 // axis 'x': the slope runs along X (b is Z); 'z': along Z (b is X).
 export function leanRoof(ctx, a0, a1, yHigh, yLow, b0, b1, axis = 'x', tone = '#1c2430') {
   const run = Math.abs(a1 - a0), fall = yHigh - yLow, len = Math.abs(b1 - b0); const slope = Math.hypot(run, fall); const ang = Math.atan2(fall, run) * Math.sign(a1 - a0);
-  const mat = M.slate(tone);
+  const mat = D(M.slate(tone));
   if (axis === 'x') add(ctx, box(slope, 0.16, len), mat, (a0 + a1) / 2, (yHigh + yLow) / 2, (b0 + b1) / 2, { rz: -ang, cast: false });
   else add(ctx, box(len, 0.16, slope), mat, (b0 + b1) / 2, (yHigh + yLow) / 2, (a0 + a1) / 2, { rx: ang, cast: false });
 }
 
-// The city far below: rows of houses sunk deep under the mist, a few windows still lit.
-export function city(ctx, K, x0, z0, x1, z1, y, opts = {}) {
-  const r = T.rng(opts.seed || 77); const skip = opts.skip || [];
-  const cell = opts.cell || 7.5;
-  sunk(ctx, y, () => {
-    for (let z = z0; z < z1; z += cell) for (let x = x0; x < x1; x += cell) {
-      const cx = x + cell / 2 + (r() - 0.5) * 1.2, cz = z + cell / 2 + (r() - 0.5) * 1.2;
-      if (skip.some(([a, b, c, d]) => cx > a && cx < c && cz > b && cz < d)) continue;
-      if (r() < 0.15) continue;
-      const w = 3.5 + r() * 2.5, d = 3.5 + r() * 2.5, h = 4 + r() * 5;
-      K.house(ctx, cx, cz, w, d, h, { lit: 0.45, windowLights: false, chimney: r() < 0.5, plaster: r() < 0.3 ? '#3a404c' : undefined, tone: '#2c3444', roofTone: '#1a212c' });
-    }
-  }, { noShadow: true });
+// The city far below in the storm: only its windows show, tiny and warm, through the mist and cloud.
+export function cityLights(ctx, x0, z0, x1, z1, y, n = 260, opts = {}) {
+  const r = T.rng(opts.seed || 77); const skip = opts.skip || []; const pos = [];
+  while (pos.length < n * 3) {
+    // clusters of windows: a house front, a street
+    const cx = x0 + r() * (x1 - x0), cz = z0 + r() * (z1 - z0); if (skip.some(([a, b, c, d]) => cx > a && cx < c && cz > b && cz < d)) continue;
+    const k = 1 + ((r() * 4) | 0), along = r() < 0.5;
+    for (let i = 0; i < k; i++) pos.push(cx + (along ? i * 0.9 : 0), y - r() * 5, cz + (along ? 0 : i * 0.9));
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  const m = new THREE.PointsMaterial({ color: new THREE.Color(opts.color ?? 0xffa040).multiplyScalar(opts.bright ?? 0.85), size: 1, sizeAttenuation: false, transparent: true, depthWrite: false, fog: false });
+  const pts = new THREE.Points(g, m); pts.renderOrder = -5; pts.frustumCulled = false; ctx.group.add(pts);
+  return pts;
 }
 
 // ---------------------------------------------------------------- the cathedral's stonework
@@ -142,7 +164,7 @@ export function flyer(ctx, wx, wz, axis, len, opts = {}) {
     s.lineTo(0, yTop);
     return new THREE.ExtrudeGeometry(s, { depth: 0.6, bevelEnabled: false });
   });
-  const st = M.ashlar(opts.tone || '#3a4454');
+  const st = D(M.ashlar(opts.tone || '#3a4454'));
   if (axis === 'x') add(ctx, g, st, wx, 0, wz - 0.3);
   else add(ctx, g, st, wx + 0.3, 0, wz, { ry: -Math.PI / 2 });
   // coping along the top of the flyer
@@ -151,7 +173,7 @@ export function flyer(ctx, wx, wz, axis, len, opts = {}) {
   else add(ctx, box(0.72, 0.16, cl), M.ashlar('#4a5464'), wx, yTop - fall / 2 + 0.08, wz + L / 2, { rx: ca });
   // the pier and its pinnacle
   const px = axis === 'x' ? wx + len : wx, pz = axis === 'x' ? wz : wz + len; const pTop = yTop - fall + 0.6;
-  add(ctx, box(1.2, depth, 1.3), M.ashlar('#343e50'), px, pTop - depth / 2, pz, { cast: false });
+  add(ctx, box(1.2, depth, 1.3), D(M.ashlar('#343e50')), px, pTop - depth / 2, pz, { cast: false });
   add(ctx, box(1.36, 0.2, 1.46), M.ashlar('#4a5464'), px, pTop, pz);
   pinnacle(ctx, px, pz, pTop + 0.1, opts.pin ?? 3.2, 0.9);
   if (opts.gargoyle !== false) gargoyle(ctx, axis === 'x' ? px + 0.55 : px, pTop - 0.9, axis === 'x' ? pz : pz + 0.55, axis === 'x' ? Math.PI / 2 : 0, { stream: 1.8 });
@@ -160,10 +182,10 @@ export function flyer(ctx, wx, wz, axis, len, opts = {}) {
 // A square tower body rising from the dark, its top at y1 (the crossing's lantern tower).
 export function tower(ctx, x0, z0, x1, z1, y1, opts = {}) {
   const w = x1 - x0, d = z1 - z0, depth = opts.depth ?? 26; const tone = opts.tone || '#323c4e';
-  add(ctx, box(w, y1 + depth, d), M.brick(tone), x0 + w / 2, (y1 - depth) / 2, z0 + d / 2);
+  add(ctx, box(w, y1 + depth, d), D(M.brick(tone)), x0 + w / 2, (y1 - depth) / 2, z0 + d / 2);
   add(ctx, box(w + 0.3, 0.3, d + 0.3), M.ashlar('#4a5464'), x0 + w / 2, y1, z0 + d / 2);
   // corner buttresses
-  for (const [cx, cz] of [[x0, z0], [x1, z0], [x0, z1], [x1, z1]]) add(ctx, box(0.9, y1 + depth - 0.4, 0.9), M.ashlar('#3a4454'), cx, (y1 - 0.4 - depth) / 2, cz);
+  for (const [cx, cz] of [[x0, z0], [x1, z0], [x0, z1], [x1, z1]]) add(ctx, box(0.9, y1 + depth - 0.4, 0.9), D(M.ashlar('#3a4454')), cx, (y1 - 0.4 - depth) / 2, cz);
   solid(ctx, x0 - 0.45, z0 - 0.45, x1 + 0.45, z1 + 0.45, y1);
 }
 
@@ -194,8 +216,7 @@ export function gargoyle(ctx, x, y, z, ry = 0, opts = {}) {
     part(ctx, box(0.09, 0.3, 0.09), st, x, y, z, ry, s * 0.13, 0.32, 0.36);               // forelegs
   }
   if (opts.stream) { // the spout: a thread of rain falling out of the mouth
-    const m = part(ctx, box(0.04, opts.stream, 0.04), streamMat(), x, y, z, ry, 0, 0.56 - opts.stream / 2, 0.8, 0, 0, { cast: false, dynamic: true });
-    m.renderOrder = 1;
+    part(ctx, box(0.04, opts.stream, 0.04), streamMat(), x, y, z, ry, 0, 0.56 - opts.stream / 2, 0.8, 0, 0, { cast: false });
   }
 }
 let _stream;
@@ -278,7 +299,7 @@ export function flight(ctx, x0, z0, x1, z1, dir = 'z-', opts = {}) {
   }
   // cheeks: low walls either side, stepping up toward the top
   const cw = opts.cheek ?? 0.5; const h0 = opts.h0 ?? 0.9, h1 = opts.h1 ?? 1.9;
-  for (const side of [-1, 1]) {
+  if (cw > 0) for (const side of [-1, 1]) {
     for (let i = 0; i < n; i++) {
       const a = (alongZ ? z1 : x1) - (i + 0.5) * step; const hh = q16(h0 + (h1 - h0) * (i / (n - 1 || 1)));
       if (alongZ) add(ctx, box(cw, hh, step + 0.01), M.ashlar('#3e4858'), side < 0 ? x0 - cw / 2 : x1 + cw / 2, hh / 2, a);
@@ -362,24 +383,25 @@ export function rope(ctx, x, z) {
 
 // ---------------------------------------------------------------- the great bell
 // The great bell of St. Orrin hanging still in its timber frame; the frame runs along X, the wheel on +X.
+// Returns a handle: ring() sets the bell swinging on its headstock (the wheel turns with it).
+function mergedPart(parts, mat, parent) {
+  const g = mergeGeometries(parts.map(([geom, px, py, pz, rx = 0, ry = 0]) => { const c = geom.index ? geom.toNonIndexed() : geom.clone(); if (rx) c.rotateX(rx); if (ry) c.rotateY(ry); c.translate(px, py, pz); for (const k of Object.keys(c.attributes)) if (!['position', 'normal', 'uv'].includes(k)) c.deleteAttribute(k); return c; }), false);
+  const m = new THREE.Mesh(g, mat); m.castShadow = true; m.receiveShadow = true; parent.add(m); return m;
+}
 export function greatBell(ctx, x, z, opts = {}) {
   const lip = opts.lip ?? 1.2; const oak = M.wood('#4a3626'), dark = M.wood('#36281c'); const iron = M.ironLit();
   const prof = [[0, 3.2], [0.55, 3.18], [0.86, 3.04], [1.0, 2.74], [1.05, 2.2], [1.12, 1.62], [1.25, 1.02], [1.44, 0.52], [1.62, 0.18], [1.72, 0.04], [1.7, 0], [1.52, 0.06], [1.32, 0.4], [1.12, 1.0], [0.96, 1.8], [0.86, 2.6], [0, 2.8]];
-  const g = geo('greatbell', () => new THREE.LatheGeometry(prof.map(([r, y]) => new THREE.Vector2(r, y)), 20));
   const bronze = cutout(new THREE.MeshPhongMaterial({ color: 0x5a4426, specular: 0xb09660, shininess: 36 }));
-  add(ctx, g, bronze, x, lip, z);
-  // bands: the sound bow, the waist inscription, the shoulder
   const band = cutout(new THREE.MeshPhongMaterial({ color: 0x6e5630, specular: 0xc8ac70, shininess: 40 }));
-  add(ctx, geo('bb0', () => new THREE.TorusGeometry(1.5, 0.05, 4, 20)), band, x, lip + 0.42, z, { rx: Math.PI / 2 });
-  add(ctx, geo('bb1', () => new THREE.TorusGeometry(1.08, 0.04, 4, 20)), band, x, lip + 2.2, z, { rx: Math.PI / 2 });
-  add(ctx, geo('bb2', () => new THREE.TorusGeometry(1.02, 0.05, 4, 20)), band, x, lip + 2.75, z, { rx: Math.PI / 2 });
-  add(ctx, geo('bb3', () => new THREE.TorusGeometry(1.2, 0.03, 4, 20)), M.flat(0x3a5a4a), x, lip + 1.35, z, { rx: Math.PI / 2 }); // verdigris
-  // crown and the clapper hanging below the lip
-  for (const a of [0, Math.PI / 2]) add(ctx, torus(0.28, 0.07), bronze, x, lip + 3.42, z, { ry: a });
-  add(ctx, cyl(0.06, 0.06, 1.6, 6), iron, x, lip + 0.6, z);
-  add(ctx, cyl(0.22, 0.16, 0.4, 8), iron, x, lip - 0.18, z);
-  // the headstock the bell hangs from
-  add(ctx, box(6.6, 0.5, 0.6), dark, x, lip + 3.75, z);
+  // the swinging part hangs from the headstock's axis
+  const ax = lip + 3.75; const pivot = new THREE.Group(); pivot.position.set(x, ax, z); ctx.group.add(pivot);
+  const y = (v) => v - ax;
+  mergedPart([[new THREE.LatheGeometry(prof.map(([r, yy]) => new THREE.Vector2(r, yy)), 20), 0, y(lip), 0], [torus(0.28, 0.07), 0, y(lip + 3.42), 0], [torus(0.28, 0.07), 0, y(lip + 3.42), 0, 0, Math.PI / 2]], bronze, pivot);
+  // bands: the sound bow, the waist, the shoulder; a streak of verdigris
+  mergedPart([[new THREE.TorusGeometry(1.5, 0.05, 4, 20), 0, y(lip + 0.42), 0, Math.PI / 2], [new THREE.TorusGeometry(1.08, 0.04, 4, 20), 0, y(lip + 2.2), 0, Math.PI / 2], [new THREE.TorusGeometry(1.02, 0.05, 4, 20), 0, y(lip + 2.75), 0, Math.PI / 2]], band, pivot);
+  mergedPart([[new THREE.TorusGeometry(1.2, 0.03, 4, 20), 0, y(lip + 1.35), 0, Math.PI / 2]], M.flat(0x3a5a4a), pivot);
+  mergedPart([[cyl(0.06, 0.06, 1.6, 6), 0, y(lip + 0.6), 0], [cyl(0.22, 0.16, 0.4, 8), 0, y(lip - 0.18), 0]], iron, pivot); // clapper
+  mergedPart([[box(6.6, 0.5, 0.6), 0, 0, 0]], dark, pivot); // headstock
   // the frame: two trestles, sills, a top plate and braces
   const fx = 3.1, fz = 1.05, top = lip + 4.2;
   for (const s of [-1, 1]) {
@@ -387,22 +409,25 @@ export function greatBell(ctx, x, z, opts = {}) {
     add(ctx, box(0.36, 0.32, 2.5), oak, x + s * fx, 0.16, z);
     for (const t of [-1, 1]) add(ctx, box(0.34, top, 0.34), oak, x + s * fx, top / 2, z + t * fz);
     add(ctx, box(0.4, 0.34, 2.5), oak, x + s * fx, top + 0.17, z);
-    add(ctx, box(0.5, 0.3, 0.7), iron, x + s * fx, lip + 3.75, z); // bearings
-    // X braces in each trestle
+    add(ctx, box(0.5, 0.3, 0.7), iron, x + s * fx, ax, z); // bearings
     const bl = Math.hypot(2 * fz, top * 0.62), ba = Math.atan2(2 * fz, top * 0.62);
     for (const t of [-1, 1]) add(ctx, box(0.18, bl, 0.18), dark, x + s * fx, top * 0.36, z, { rx: t * ba });
-    // knee braces under the top plate
     for (const t of [-1, 1]) add(ctx, box(1.2, 0.16, 0.16), dark, x + s * (fx - 0.5), top - 0.45, z + t * fz, { rz: s * 0.7 });
   }
   for (const t of [-1, 1]) add(ctx, box(6.6, 0.3, 0.3), oak, x, top + 0.15, z + t * fz);
-  // the bell wheel on the +X side, its rope hanging down
-  const wx = x + fx + 0.55;
-  add(ctx, geo('bwheel', () => new THREE.TorusGeometry(1.7, 0.07, 4, 20)), dark, wx, lip + 3.75, z, { ry: Math.PI / 2 });
-  for (let i = 0; i < 4; i++) add(ctx, box(0.08, 3.3, 0.08), dark, wx, lip + 3.75, z, { rx: i * Math.PI / 4 });
+  // the bell wheel on the +X side turns with the bell; its rope hangs to the floor
+  const wx = x + fx + 0.55; const wheel = new THREE.Group(); wheel.position.set(wx, ax, z); ctx.group.add(wheel);
+  const spokes = [[new THREE.TorusGeometry(1.7, 0.07, 4, 20), 0, 0, 0, 0, Math.PI / 2]];
+  for (let i = 0; i < 4; i++) spokes.push([box(0.08, 3.3, 0.08), 0, 0, 0, i * Math.PI / 4]);
+  mergedPart(spokes, dark, wheel);
   add(ctx, box(0.05, lip + 3.7, 0.05), M.flat(0x6a5a40), wx, (lip + 3.7) / 2 + 0.05, z + 1.7);
   add(ctx, box(0.36, 0.3, 0.36), oak, wx, 0.15, z + 1.7);
   solid(ctx, x - fx - 0.3, z - fz - 0.3, x + fx + 0.3, z + fz + 0.3, top);
   solid(ctx, wx - 0.3, z - 1.8, wx + 0.3, z + 1.95, 2);
+  const h = { pivot, a: 0, t: 0, amp: 0, ring(amp = 0.9) { this.amp = Math.max(this.amp, amp); },
+    update(dt) { if (this.amp < 0.002) { if (this.a) { this.a = 0; pivot.rotation.x = 0; wheel.rotation.x = 0; } return false; } this.t += dt; this.amp *= Math.exp(-dt * 0.12); this.a = Math.sin(this.t * 2.1) * this.amp; pivot.rotation.x = this.a; wheel.rotation.x = this.a; return true; } };
+  ctx.anims.push(h);
+  return h;
 }
 
 // ---------------------------------------------------------------- the bridge, the oculus, braziers
@@ -417,7 +442,7 @@ export function archBridge(ctx, x0, x1, z0, z1, opts = {}) {
     s.lineTo(a, -deep); s.lineTo(u0, -deep); s.lineTo(u0, 0);
     return new THREE.ExtrudeGeometry(s, { depth: x1 - x0, bevelEnabled: false });
   });
-  add(ctx, g, M.ashlar(opts.tone || '#384252'), x0, -0.05, 0, { ry: Math.PI / 2, cast: false });
+  add(ctx, g, D(M.ashlar(opts.tone || '#384252')), x0, -0.05, 0, { ry: Math.PI / 2, cast: false });
   // a string course along the deck's edge
   add(ctx, box(x1 - x0 + 0.1, 0.22, z1 - z0), M.ashlar('#4a5464'), (x0 + x1) / 2, -0.75, (z0 + z1) / 2, { cast: false });
 }
@@ -425,7 +450,7 @@ export function archBridge(ctx, x0, x1, z0, z1, opts = {}) {
 // The crossing's oculus: an iron grille over the vault, candlelight rising from the nave below.
 export function oculus(ctx, x, z, r = 1.3) {
   add(ctx, cyl(r + 0.3, r + 0.3, 0.06, 16), M.ashlar('#4a5464'), x, 0.02, z, { cast: false });
-  add(ctx, cyl(r, r, 0.02, 16), M.glow('#ff7a30', 0.2), x, 0.05, z, { cast: false });
+  add(ctx, cyl(r, r, 0.02, 16), M.glow('#ff9a50', 0.12), x, 0.05, z, { cast: false });
   const iron = M.ironLit();
   add(ctx, geo('ocring' + r, () => new THREE.TorusGeometry(r, 0.07, 4, 20)), iron, x, 0.08, z, { rx: Math.PI / 2 });
   add(ctx, geo('ocring2' + r, () => new THREE.TorusGeometry(r * 0.55, 0.05, 4, 14)), iron, x, 0.08, z, { rx: Math.PI / 2 });
@@ -445,4 +470,39 @@ export function brazier(ctx, x, z) {
   let t = Math.random() * 10; ctx.anims.push({ update(dt) { t += dt; t0.offset.x = (Math.floor(t * 10) % 4) / 4; return false; } });
   ctx.lights.push({ x, y: 2, z, color: 0xff8a30, intensity: 5.5, dist: 7.5, halo: true, flicker: 0.25 });
   solidCircle(ctx, x, z, 0.42, 1.2);
+}
+
+// The bell-ringers' compass inlaid in the platform: two rings of dark stone and eight spokes.
+export function compass(ctx, x, z, R = 7) {
+  const dark = M.flags('#3e4654'), light = M.ashlar('#6c7686');
+  const ring = (r0, r1, mat) => { const m = add(ctx, geo(`ring${r0},${r1}`, () => new THREE.RingGeometry(r0, r1, 48)), mat, x, 0.008, z, { cast: false, rx: -Math.PI / 2 }); return m; };
+  ring(R - 0.75, R, dark); ring(R * 0.42 - 0.45, R * 0.42, dark); ring(R - 0.95, R - 0.8, light);
+  for (let i = 0; i < 8; i++) {
+    const a = i * Math.PI / 4, l = R * 0.58 - 0.75, rm = R * 0.42 + l / 2;
+    add(ctx, box(i % 2 ? 0.22 : 0.36, 0.016, l), i % 2 ? dark : light, x + Math.sin(a) * rm, 0.008, z + Math.cos(a) * rm, { ry: a, cast: false });
+  }
+  add(ctx, cyl(0.9, 0.9, 0.016, 16), light, x, 0.008, z, { cast: false });
+}
+
+// The drop itself: every part of the bounds that is not a walk gets a low, see-through solid, so nothing
+// that blinks, reappears or is summoned can land out in the dark (merged into as few boxes as possible).
+export function voidFill(ctx, bounds, walks, h = 1.2) {
+  const uniq = (a) => [...new Set(a.map((v) => Math.round(v * 1000) / 1000))].sort((p, q) => p - q);
+  const xs = uniq([bounds[0], bounds[2], ...walks.flatMap((r) => [r[0], r[2]])]).filter((v) => v >= bounds[0] && v <= bounds[2]);
+  const zs = uniq([bounds[1], bounds[3], ...walks.flatMap((r) => [r[1], r[3]])]).filter((v) => v >= bounds[1] && v <= bounds[3]);
+  const inWalk = (x, z) => walks.some((r) => x > r[0] && x < r[2] && z > r[1] && z < r[3]);
+  const open = new Map(); const out = [];
+  for (let j = 0; j < zs.length - 1; j++) {
+    const row = []; let start = null;
+    for (let i = 0; i < xs.length - 1; i++) {
+      const v = !inWalk((xs[i] + xs[i + 1]) / 2, (zs[j] + zs[j + 1]) / 2);
+      if (v && start === null) start = xs[i];
+      if (start !== null && (!v || i === xs.length - 2)) { row.push([start, v ? xs[i + 1] : xs[i]]); start = null; }
+    }
+    const next = new Map();
+    for (const [a, b] of row) { const k = a + ',' + b; const s = open.get(k); if (s) { s.z1 = zs[j + 1]; next.set(k, s); open.delete(k); } else { const n = { x0: a, x1: b, z0: zs[j], z1: zs[j + 1] }; out.push(n); next.set(k, n); } }
+    open.clear(); for (const [k, s] of next) open.set(k, s);
+  }
+  for (const s of out) { solid(ctx, s.x0, s.z0, s.x1, s.z1, h); ctx.lowSolids.push(ctx.solids[ctx.solids.length - 1]); }
+  return out.length;
 }

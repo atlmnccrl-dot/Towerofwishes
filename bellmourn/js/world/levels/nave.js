@@ -35,21 +35,35 @@ export default {
         { pre: true, foes: [{ t: 'hushed', x: 13.6, z: 2.6 }, { t: 'hushed', x: 17.2, z: 0.4 }, { t: 'ghoul', x: 11.4, z: -0.9 }] },
         { foes: [{ t: 'ghoul', x: 11.2, z: -3.8 }, { t: 'ghoul', x: 19.6, z: -1.2 }, { t: 'hushed', x: 15.4, z: -4.4 }] },
       ] },
-    { id: 'nave', zone: [3.9, -2.4, 7.2, 4], gates: ['sideDoor'], opens: ['naveGate'], msg: 'THE CONGREGATION RISES',
+    // no acolytes in this locked room: from inside the west nave most of their blinks land beyond its
+    // walls (the east nave, the churchyard), where nothing can reach them and the fight never ends
+    { id: 'nave', zone: [3.9, -2.4, 7, 4], gates: ['sideDoor'], opens: ['naveGate'], msg: 'THE CONGREGATION RISES',
       waves: [
-        { pre: true, foes: [{ t: 'acolyte', x: -0.2, z: 1, face: Math.PI }, { t: 'acolyte', x: -5.4, z: -2.8, face: Math.PI }, { t: 'acolyte', x: 2, z: -4.2, face: Math.PI }, { t: 'hushed', x: -1, z: -4.4, face: Math.PI }] },
-        { foes: [{ t: 'warden', x: 0.2, z: -3.4 }, { t: 'hushed', x: -5.2, z: 1.6 }, { t: 'hushed', x: 5.6, z: 2.6 }, { t: 'acolyte', x: -5.8, z: -4.8 }] },
+        { pre: true, foes: [{ t: 'hushed', x: -0.2, z: 1, face: Math.PI }, { t: 'hushed', x: -5.4, z: -2.8, face: Math.PI }, { t: 'crossbow', x: 2, z: -4.2, face: Math.PI }, { t: 'hushed', x: -1, z: -4.4, face: Math.PI }] },
+        { foes: [{ t: 'warden', x: 0.2, z: -3.4 }, { t: 'ghoul', x: -5.2, z: 1.6 }, { t: 'hushed', x: 5.6, z: 2.6 }, { t: 'crossbow', x: -5.8, z: -4.8 }] },
       ] },
   ],
   boss: { type: 'deacon', x: 0, z: -29.5, face: 0, zone: [-11.8, -36.4, 11.8, -22.2], gates: ['choirGate'], opens: ['exitGate', 'choirGate'] },
   exit: { zone: [-16.4, -30.6, -13.8, -27.4], to: 'belfry', requires: 'boss' },
   build(K, ctx) {
     const W = K.M;
+    // The side door and the two screens are opaque to the drowned: out of ctx.lowSolids, and 0.6 m
+    // thick (about the kerb) so sim.sees(), which samples every 0.5 m, cannot step over them; an open
+    // gate still lets them see. Seen through the bars, foes beyond a locked room wait at a closed gate,
+    // and a finisher on one there steps the hero through it (sim.js), out of the fight or into the next.
+    const opaque = (s, axis = 'x') => {
+      const i = ctx.lowSolids.indexOf(s); if (i >= 0) ctx.lowSolids.splice(i, 1);
+      const c = axis === 'x' ? (s.z0 + s.z1) / 2 : (s.x0 + s.x1) / 2;
+      if (axis === 'x') { s.z0 = c - 0.3; s.z1 = c + 0.3; } else { s.x0 = c - 0.3; s.x1 = c + 0.3; }
+    };
+    const screen = (x0, z0, x1, z1, o) => { K.fence(ctx, x0, z0, x1, z1, o); opaque(ctx.solids[ctx.solids.length - 1]); };
     // ------------------------------------------------ ground
     K.floor(ctx, -26, -56, 34, 28, W.dirt('#444c54'));
-    K.floor(ctx, 8.5, -42, 22, -6.5, W.grass('#3a4642'), 0.005, 0.3);
+    K.floor(ctx, 8.5, -42, 21.5, -6.5, W.grass('#323c3a'), 0.005, 0.3);
     K.floor(ctx, 8.5, -6.5, 21.5, 9.5, W.grass('#4a5652'), 0.01, 0.3);
-    K.floor(ctx, 8.5, 9.5, 30, 24, W.cobble('#56606e'), 0.01, 0.3);
+    K.floor(ctx, 8.5, 9.5, 21.5, 16.8, W.cobble('#56606e'), 0.01, 0.3);
+    K.floor(ctx, 8.5, 16.8, 34, 28, W.cobble('#545e6c'), 0.01, 0.3);
+    K.floor(ctx, 21.5, -42, 34, 16.8, W.grass('#323c3a'), 0.005, 0.3);
     K.floor(ctx, 14.3, -0.4, 16.7, 9.5, W.flags('#646e7c'), 0.02, 0.3);
     K.floor(ctx, 8.5, -0.4, 14.3, 1.9, W.flags('#646e7c'), 0.02, 0.3);
     K.floor(ctx, -7.5, -19.8, 7.5, 5.5, W.flags('#68727f'), 0.01, 0.3);
@@ -60,7 +74,8 @@ export default {
 
     // ------------------------------------------------ the street and the lychgate
     K.fence(ctx, 8.5, 6.6, 8.5, 16.8);
-    K.fence(ctx, 8.5, 16.8, 26, 16.8);
+    K.fence(ctx, 8.5, 16.8, 30, 16.8);
+    K.fence(ctx, 21.5, 9.5, 21.5, 16.8);
     K.fence(ctx, 8.5, 9.5, 13.5, 9.5);
     ctx.marks.lychGate = K.gate(ctx, 15.5, 9.5, 2.6, 'x', { h: 2.6, open: true, swingDir: -1 });
     K.fence(ctx, 17.5, 9.5, 21.5, 9.5);
@@ -69,6 +84,10 @@ export default {
     K.puddle(ctx, 14.2, 12.4, 1.8, 1); K.puddle(ctx, 18.6, 14.4, 1.2, 0.8);
     K.house(ctx, 19.5, 20.6, 7, 4, 4.2, { lit: 0.35, windowLights: false });
     K.house(ctx, 11, 20.4, 5, 4, 3.6, { lit: 0.6, windowLights: false, plaster: '#464c5a' });
+    // east of the railing: more of the old graveyard
+    for (const [x, z, r] of [[23.6, 13.4, 0.2], [25.2, 11.8, -0.2], [24.2, 15.4, 0.1], [26.8, 14, 0.3], [23.4, 6.2, -0.1], [25, 4, 0.2], [26.4, 8.2, -0.3], [23.8, -1.6, 0.1], [25.6, -3.8, -0.2]]) K.grave(ctx, x, z, r);
+    K.deadTree(ctx, 25.8, 10, 1.1); K.deadTree(ctx, 24.6, 0.8, 0.9);
+    K.puddle(ctx, 18.4, 11.2, 1.4, 0.8);
     // the west front outside the fence: the tide's wreckage
     P.rubble(ctx, 0.4, 7.4, 4.4, 1.8, { h: 1.3 });
     K.puddle(ctx, 4, 10, 2.4, 1.4); K.puddle(ctx, -2.5, 9.6, 1.8, 1.1);
@@ -115,11 +134,11 @@ export default {
     ctx.lights.push({ x: -6.8, y: 2.4, z: -8.25, color: 0x3ad6c4, intensity: 3.2, dist: 7.5 });
     P.rafters(ctx, -7.6, 10, [1.4, -3.1, -7.6, -12.1], 1);
     // the west wall: broken down, its portal choked with what the tide brought in
-    P.ruin(ctx, -8.5, 6, -2.7, 6, 1.3, 2.6, { thick: 1, tone: '#3e4858' });
+    P.ruin(ctx, -8.5, 6, -2.7, 6, 1.3, 2.6, { thick: 1, solidH: 2, tone: '#3e4858' });
     K.add(ctx, K.box(1, 3, 1.2), W.ashlar('#4a5464'), -2.2, 1.5, 6); K.add(ctx, K.box(1, 2.4, 1.2), W.ashlar('#4a5464'), 2.2, 1.2, 6);
     K.solid(ctx, -2.7, 5.4, -1.7, 6.6, 3); K.solid(ctx, 1.7, 5.4, 2.7, 6.6, 2.4);
     P.ruin(ctx, -1.7, 6, 1.7, 6, 0.9, 1.6, { thick: 1, debris: 0 });
-    P.ruin(ctx, 2.7, 6, 8.5, 6, 1.2, 2.4, { thick: 1, tone: '#3e4858' });
+    P.ruin(ctx, 2.7, 6, 8.5, 6, 1.2, 2.4, { thick: 1, solidH: 2, tone: '#3e4858' });
     P.rubble(ctx, 0, 4.5, 4.6, 1.6, { h: 1.4 });
     // the south wall (near side): fallen to its lower courses, buttresses still standing outside
     P.ruin(ctx, 8, 2.75, 8, 6.5, 1.2, 2.4, { thick: 1, solidH: 2, tone: '#3e4858' });
@@ -129,7 +148,7 @@ export default {
     K.add(ctx, K.box(1.2, 4, 0.8), W.ashlar('#3e4858'), 8, 2, -0.85); K.add(ctx, K.box(1.2, 4, 0.8), W.ashlar('#3e4858'), 8, 2, 2.35);
     K.solid(ctx, 7.4, -1.25, 8.6, -0.45, 4); K.solid(ctx, 7.4, 1.95, 8.6, 2.75, 4);
     P.arch(ctx, 8, -0.45, 1.95, 2.5, 4.4, { axis: 'z', thick: 1, c: 0.3 });
-    ctx.marks.sideDoor = K.gate(ctx, 8, 0.75, 2.4, 'z', { h: 2.4, piers: false, swingDir: 1 });
+    ctx.marks.sideDoor = K.gate(ctx, 8, 0.75, 2.4, 'z', { h: 2.4, piers: false, swingDir: 1 }); opaque(ctx.marks.sideDoor.solid, 'z');
     K.torch(ctx, 8.6, 2.4, -0.85, '+x');
 
     // ------------------------------------------------ the arcades
@@ -158,9 +177,9 @@ export default {
     K.banner(ctx, -2.98, 3.2, 3, '+x', 0x1a2c30);
 
     // ------------------------------------------------ the nave screen
-    K.fence(ctx, -7.5, -6, -4.175, -6, { h: 2.4 }); K.fence(ctx, -3.025, -6, -2, -6, { h: 2.4 });
-    ctx.marks.naveGate = K.gate(ctx, 0, -6, 2.6, 'x', { h: 2.6, swingDir: 1 });
-    K.fence(ctx, 2, -6, 3.025, -6, { h: 2.4 }); K.fence(ctx, 4.175, -6, 7.5, -6, { h: 2.4 });
+    screen(-7.5, -6, -4.175, -6, { h: 2.4 }); screen(-3.025, -6, -2, -6, { h: 2.4 });
+    ctx.marks.naveGate = K.gate(ctx, 0, -6, 2.6, 'x', { h: 2.6, swingDir: 1 }); opaque(ctx.marks.naveGate.solid);
+    screen(2, -6, 3.025, -6, { h: 2.4 }); screen(4.175, -6, 7.5, -6, { h: 2.4 });
 
     // ------------------------------------------------ the east nave: the fallen chandelier
     P.chandelier(ctx, -0.4, -11.2);
@@ -179,9 +198,9 @@ export default {
     K.fallenBody(ctx, 3.4, -12.8, -0.7); K.droppedSword(ctx, 2.6, -13.6, 1.9);
 
     // ------------------------------------------------ the choir screen
-    K.fence(ctx, -7.5, -19.8, -4.525, -19.8, { h: 2.8 }); K.fence(ctx, -3.075, -19.8, -2.2, -19.8, { h: 2.8 });
-    ctx.marks.choirGate = K.gate(ctx, 0, -19.8, 3, 'x', { h: 3, open: true, swingDir: 1 });
-    K.fence(ctx, 2.2, -19.8, 3.075, -19.8, { h: 2.8 }); K.fence(ctx, 4.525, -19.8, 7.5, -19.8, { h: 2.8 });
+    screen(-7.5, -19.8, -4.525, -19.8, { h: 2.8 }); screen(-3.075, -19.8, -2.2, -19.8, { h: 2.8 });
+    ctx.marks.choirGate = K.gate(ctx, 0, -19.8, 3, 'x', { h: 3, open: true, swingDir: 1 }); opaque(ctx.marks.choirGate.solid);
+    screen(2.2, -19.8, 3.075, -19.8, { h: 2.8 }); screen(4.525, -19.8, 7.5, -19.8, { h: 2.8 });
 
     // ------------------------------------------------ the crossing and the apse (the Deacon's arena)
     // north transept (far side): tall, with the door to the belfry stair

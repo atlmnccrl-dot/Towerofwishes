@@ -5,18 +5,20 @@
 import * as P from '../props/belfry.js';
 import * as T from '../../engine/textures.js';
 
+const BOUNDS = [-16, -62, 22, 18];
+
 export default {
   id: 'belfry', name: 'The Belfry', tagline: 'THE BELL IS SILENT. SOMEONE IS STILL UP THERE.', tier: 3,
   start: { x: 0.1, z: 15.2, face: Math.PI },
-  bounds: [-16, -62, 22, 18],
+  bounds: BOUNDS,
   gatesOpen: ['leadsGate', 'towerGate', 'belfryGate'],
   ambience: {
-    fog: 0x161e2a, fogNear: 70, fogFar: 160, sky: 0x06090f, moon: 2.2, moonColor: 0xb4c8ec, hemi: 0.85, hemiSky: 0x56688c,
-    fill: 1.5, fillColor: 0x7888b0, rain: 1.35, lightning: true,
+    fog: 0x161e2a, fogNear: 70, fogFar: 160, sky: 0x06090f, moon: 2.4, moonColor: 0xb4c8ec, hemi: 0.85, hemiSky: 0x56688c,
+    fill: 1.3, fillColor: 0x7888b0, rain: 1.35, lightning: true,
     beams: [
       { x: 0.2, z: 7.5, r: 4.5, h: 26, from: [6, 0, -10], intensity: 55 },
-      { x: 4, z: -5, r: 6, h: 27, from: [6, 0, -10], intensity: 75 },
-      { x: 6.5, z: -49, r: 9, h: 30, from: [6, 0, -10], intensity: 110 },
+      { x: 4, z: -5, r: 6, h: 28, from: [6, 0, -10], intensity: 75 },
+      { x: 6.5, z: -49, r: 9, h: 28, from: [6, 0, -10], intensity: 110 },
     ],
   },
   lamps: [{ id: 'leads', x: -1.2, z: 11.2, sx: 1.3, sz: 0.3 }, { id: 'belfry', x: 4.1, z: -35.6, sx: 1.3, sz: 0.3 }],
@@ -28,8 +30,8 @@ export default {
     { zone: [3, -37.4, 10, -33.8], text: 'THE BELL HANGS STILL. SOMEONE STANDS BESIDE IT.' },
   ],
   foes: [
-    { t: 'hushed', x: 0.6, z: 8.8 }, { t: 'hushed', x: -0.9, z: 6.2 }, { t: 'acolyte', x: 0.4, z: 3.4 },
-    { t: 'warden', x: 6, z: -15.6 }, { t: 'hushed', x: 6.2, z: -19.6 }, { t: 'crossbow', x: 12.1, z: -22.7 },
+    { t: 'hushed', x: 0.7, z: 4 }, { t: 'hushed', x: -0.9, z: 3.4 }, { t: 'warden', x: 0.3, z: 2.4, face: 0 },
+    { t: 'warden', x: 6, z: -17.6 }, { t: 'hushed', x: 6.2, z: -20.2 }, { t: 'crossbow', x: 12.1, z: -22.7 },
   ],
   encounters: [
     { id: 'crossing', zone: [-1.5, -6.5, 9.4, -1], gates: ['leadsGate'], opens: ['bridgeGate'], msg: 'THE BELL WARDENS RAISE THEIR SHIELDS', done: 'THE BRIDGE GATE SWINGS OPEN',
@@ -48,12 +50,11 @@ export default {
   build(K, ctx) {
     const W = K.M;
     // ------------------------------------------------ the dark below: the city in the storm, mist and racing cloud
-    P.city(ctx, K, -40, -96, 36, 26, -24, { cell: 8.5, skip: [[-6, -61, 19, -37], [-18, -12, -2, 40]] });
-    P.mist(ctx, -60, -115, 70, 60, -16, 0.5, 0x0a0e14, -17);
-    P.clouds(ctx, -60, -115, 70, 60, -9, { opacity: 0.6, speed: 1.6, seed: 59, order: -16, color: 0x2a3646, density: 1.1 });
-    P.mist(ctx, -60, -115, 70, 60, -8, 0.4, 0x0e141c, -15);
-    P.clouds(ctx, -60, -115, 70, 60, -3.6, { opacity: 0.42, speed: 3.2, seed: 41, order: -14, color: 0x3a4860 });
-    P.mist(ctx, -60, -115, 70, 60, -2, 0.16, 0x16202c, -13);
+    P.cityLights(ctx, -45, -100, 40, 30, -26, 320, { skip: [[-6, -61, 19, -37]] });
+    P.mist(ctx, -60, -115, 70, 60, -16, 0.55, 0x080b10, -17);
+    P.clouds(ctx, -60, -115, 70, 60, -9, { opacity: 0.4, speed: 1.6, seed: 59, order: -16, color: 0x26303e, density: 0.9, tile: 30 });
+    P.mist(ctx, -60, -115, 70, 60, -7.5, 0.4, 0x090d13, -15);
+    P.clouds(ctx, -60, -115, 70, 60, -3.4, { opacity: 0.28, speed: 3.4, seed: 41, order: -14, color: 0x3a465a, density: 0.7 });
 
     // ------------------------------------------------ the leads: the gutter walk along the nave roof
     K.floor(ctx, -2, 1.4, 2.2, 26, W.flags('#58626f'));
@@ -81,7 +82,8 @@ export default {
     K.puddle(ctx, 0.2, 12.6, 1.6, 0.8); K.puddle(ctx, -0.6, 4.6, 1.2, 0.9); K.puddle(ctx, 1, 9.4, 0.9, 1.4);
     K.fallenBody(ctx, 1, 10.2, 2.4); K.droppedSword(ctx, -0.4, 9.6, 0.9);
     P.rope(ctx, -1.2, 7.8);
-    P.rubble(ctx, -1.2, 3.2, 1.2, 1.6, 5);
+    P.rubble(ctx, -1.2, 5.2, 1.2, 1.6, 5);
+    P.flight(ctx, -2, 1.6, 2.2, 3.6, 'z-', { n: 4, cheek: 0 });
 
     // ------------------------------------------------ the crossing: the transept leads under the lantern spire
     K.floor(ctx, -2, -11.3, 10.3, 1.4, W.court('#5a6472'));
@@ -93,6 +95,7 @@ export default {
     for (const z of [-5.8, -9.2]) K.add(ctx, K.plane(0.9, 3), W.decal(T.lancet(true, 12, 42), 1.2), -2.48, 4.9, z, { ry: Math.PI / 2, cast: false });
     for (const x of [-4.6, -7.4]) K.add(ctx, K.plane(0.9, 3), W.decal(T.lancet(true, 12, 42), 1.2), x, 5.2, -3.98, { cast: false });
     K.torch(ctx, -2.5, 2.4, -5.4, '+x'); K.torch(ctx, -2.5, 2.4, -9.6, '+x');
+    K.banner(ctx, -2.5, 2.6, -6.3, '+x'); K.banner(ctx, -2.5, 2.6, -8.7, '+x');
     for (const [x, z] of [[-9.5, -11], [-2.5, -11], [-9.5, -4], [-2.5, -4]]) P.pinnacle(ctx, x, z, 7.6, 3.4, 1.0);
     P.spire(ctx, -6, -7.5, 7.6, 3, 13);
     // the choir roof rising beyond the far parapet, its gable over the bridge
@@ -127,7 +130,7 @@ export default {
     P.railing(ctx, 9.8, -18, 9.8, -14.4, { out: '+x', kw: 0.4, broken: [[0.3, 0.55]] });
     P.railing(ctx, 7.6, -17.8, 10, -17.8, { out: '-z', kw: 0.4 });
     P.drop(ctx, 7.8, -18, 10, -14.4, 0.9, { faces: [] });
-    K.add(ctx, K.cone(1.7, 2.6, 4), W.ashlar('#384252'), 8.9, -2.25, -16.2, { rx: Math.PI, ry: Math.PI / 4, cast: false });
+    K.add(ctx, K.cone(1.7, 2.6, 4), P.deep(W.ashlar('#384252')), 8.9, -2.25, -16.2, { rx: Math.PI, ry: Math.PI / 4, cast: false });
     K.lamp(ctx, 9.4, -17.3, { h: 2.6 });
     P.gargoyle(ctx, 10.1, 0.45, -14.3, Math.PI / 4, { stream: 1.8 });
     P.pennant(ctx, 7.6, 3.6, -12.1, { color: 0x5a1418 }); P.pennant(ctx, 7.6, 3.6, -21.1, { color: 0x5a1418 });
@@ -165,6 +168,7 @@ export default {
 
     // ------------------------------------------------ the bell platform at the top of the tower
     K.floor(ctx, -5, -60, 18, -37.8, W.court('#5c6674'));
+    P.compass(ctx, 6.5, -48, 7.5);
     P.drop(ctx, -5.6, -60.6, 18.4, -37.6, 30, { faces: ['x', 'z'], strips: 5.5, rows: 3, lit: 0.12, gap: 3.6 });
     P.railing(ctx, -5, -37.8, 4.4, -37.8, { out: '+z', broken: [[0.18, 0.32]] });
     P.railing(ctx, 8.6, -37.8, 18, -37.8, { out: '+z', broken: [[0.55, 0.72]] });
@@ -179,7 +183,7 @@ export default {
     P.gargoyle(ctx, -5.7, 0.5, -37.1, -Math.PI / 4, { stream: 1.8 }); P.gargoyle(ctx, 18.35, 0.5, -49, Math.PI / 2, { stream: 1.8 });
     for (const z of [-42.4, -49, -55.6]) P.flyer(ctx, 18.4, z, 'x', 6.4, { yTop: -0.7, fall: 2.2, pin: 3.6, gargoyle: false });
     // the great bell in its frame at the back, braziers before it
-    P.greatBell(ctx, 6.5, -57);
+    ctx.marks.bell = P.greatBell(ctx, 6.5, -57);
     P.hangLantern(ctx, 3.4, 4.7, -55.4); P.hangLantern(ctx, 9.6, 4.7, -55.4);
     P.pennant(ctx, 3.4, 7.4, -57, { pole: 2, len: 1.8 }); P.pennant(ctx, 9.6, 7.4, -57, { pole: 2, len: 1.8 });
     P.brazier(ctx, 2.6, -53.6); P.brazier(ctx, 10.4, -53.6);
@@ -189,5 +193,11 @@ export default {
     K.droppedSword(ctx, 11.2, -42.8, -0.5); P.rope(ctx, 8.6, -52.4);
     P.rubble(ctx, 16.8, -53.6, 1.4, 2.2, 7); P.rubble(ctx, -1.8, -38.8, 2.2, 1, 6); P.rubble(ctx, -3.8, -48.6, 1.2, 2, 6);
     K.puddle(ctx, 4.6, -46.4, 2.6, 1.6); K.puddle(ctx, 12.4, -44, 1.8, 1.2); K.puddle(ctx, -0.6, -52.4, 2, 1.2); K.puddle(ctx, 14, -55.8, 1.4, 1);
+
+    // ------------------------------------------------ the drop: nothing lands out there
+    P.voidFill(ctx, BOUNDS, [
+      [-2, 1.4, 2.2, 18], [-2.6, -11.5, 10.3, 1.4], [4.4, -21.6, 7.6, -11.5], [7.6, -17.8, 9.8, -14.6],
+      [-0.3, -29.4, 13, -21.6], [4, -33.6, 9, -29.4], [3, -37.8, 10, -33.6], [-5, -60, 18, -37.8],
+    ]);
   },
 };
