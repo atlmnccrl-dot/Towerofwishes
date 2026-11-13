@@ -73,7 +73,9 @@ export class Input {
   // Called once per frame. Returns the frame and clears one-shot presses.
   frame() {
     // gamepad
-    const pads = navigator.getGamepads ? navigator.getGamepads() : []; let gp = null;
+    // some embeds forbid the Gamepad API (it then throws): treat that as no pad
+    let pads = []; try { pads = navigator.getGamepads ? navigator.getGamepads() || [] : []; } catch (e) { pads = []; }
+    let gp = null;
     for (const p of pads) if (p && p.connected) { gp = p; break; }
     const gb = (i) => !!(gp && gp.buttons[i] && gp.buttons[i].pressed);
     const gpPressed = (i) => gb(i) && !this.padPrev[i];
