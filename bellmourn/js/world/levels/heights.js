@@ -54,7 +54,7 @@ export default {
     K.floor(ctx, -46, -90, 9.7, 50, W.cobble('#2c303c'), -0.03, 0.3);
     K.floor(ctx, -3.8, 4.8, 5.6, 36, W.cobble('#545a6a'), 0, 0.4);
     K.floor(ctx, 5.6, 4.8, 9.7, 36, W.flags('#5e6474'), 0.004, 0.4);
-    K.floor(ctx, -8.6, 4.8, -3.8, 36, W.grass('#28362e'), 0.002, 0.4);
+    K.floor(ctx, -8.6, 4.8, -3.8, 36, W.grass('#2a3830'), 0.002, 0.4);
     K.floor(ctx, -8.6, -11.2, 9.7, 4.8, W.dirt('#5a5c64'), 0.004, 0.4);
     K.floor(ctx, -2.4, -6.6, 3.6, 0.2, W.flags('#646a7a'), 0.008, 0.4);
     K.floor(ctx, -8.6, -23, 9.7, -11.2, W.grass('#2a3830'), 0.002, 0.4);
@@ -64,14 +64,14 @@ export default {
     K.floor(ctx, -14, -53.4, 9.7, -32.6, W.court('#5c6274'), 0.006, 0.4);
     K.floor(ctx, 4.6, -64, 9.7, -53.4, W.flags('#5a6070'), 0.004, 0.4);
     P.cliff(ctx, 9.7, -90, 50, 7);
-    P.balustrade(ctx, 9.2, -64, 9.2, 36, { urns: true });
+    P.balustrade(ctx, 9.2, -64, 9.2, 30, { urns: true });
     P.lowerCity(ctx, 10.2, -100, 60, 60, -7);
     P.mist(ctx, 9.7, -110, 80, 70, -3.4, 0.32);
 
     // ------------------------------------------------ the Regent's Road (the way in)
-    P.manor(ctx, -12.1, 22.3, 7, 9.4, 7, { faces: ['x', 'z'], lit: 0.35, lights: 0, tone: '#4a4e60', bay: 2.4 });
+    P.manor(ctx, -12.1, 22.3, 7, 9.4, 7, { faces: ['x', 'z'], lit: 0.35, lights: 0, tone: P.STONE2, bay: 2.4 });
     P.manor(ctx, -12.1, 13.2, 7, 8.8, 7.8, { faces: ['x', 'z'], lit: 0.4, bay: 2.9, pattern: (f, k, i, n) => (f === 'x' && k === 0 && i === (n >> 1) ? 'door' : 'win') });
-    P.manor(ctx, -12.1, 3.4, 7, 10.8, 7.4, { lit: 0.45, tone: '#484c5e', bay: 2.2 });
+    P.manor(ctx, -12.1, 3.4, 7, 10.8, 7.4, { lit: 0.45, tone: P.STONE2, bay: 2.2 });
     P.railing(ctx, -3.8, 4.8, -3.8, 11.3);
     P.gate(ctx, -3.8, 13.2, 2.4, 'z', { h: 2.4 });
     P.railing(ctx, -3.8, 15.1, -3.8, 36);
@@ -88,7 +88,7 @@ export default {
     K.puddle(ctx, 1, 12, 2, 1.1); K.puddle(ctx, -1, 6.4, 1.4, 0.9); K.puddle(ctx, 4.2, 15.8, 1.2, 0.8); K.puddle(ctx, 6.8, 9.6, 1.2, 1.4);
 
     // ------------------------------------------------ the fountain garden (the garden guard)
-    P.manor(ctx, -12.1, -6.8, 7, 9.6, 8.2, { lit: 0.5, tone: '#52566a', bay: 3.2, pattern: (f, k, i, n) => (k === 0 && i === (n >> 1) ? 'door' : 'win') });
+    P.manor(ctx, -12.1, -6.8, 7, 9.6, 8.2, { lit: 0.5, tone: P.STONE, bay: 3.2, pattern: (f, k, i, n) => (k === 0 && i === (n >> 1) ? 'door' : 'win') });
     P.railing(ctx, -8.6, 4.8, -1.5, 4.8);
     ctx.marks.gardenGate = P.gate(ctx, 0.6, 4.8, 2.8, 'x', { open: true, swingDir: -1 });
     P.railing(ctx, 2.7, 4.8, 8.95, 4.8);
@@ -109,7 +109,7 @@ export default {
 
     // ------------------------------------------------ the long colonnade
     // the gallery behind it: lit windows between niches of marble mourners
-    P.manor(ctx, -11.9, -17.4, 7.4, 11.6, 7.2, { lit: 0.5, lights: 2, tone: '#4e5266', bay: 2.32, pattern: (f, k, i) => (k === 0 && i % 2 === 0 ? 'niche' : 'win') });
+    P.manor(ctx, -11.9, -17.4, 7.4, 11.6, 7.2, { lit: 0.5, lights: 2, tone: P.STONE, bay: 2.32, pattern: (f, k, i) => (k === 0 && i % 2 === 0 ? 'niche' : 'win') });
     P.checkerFloor(ctx, -8, -22.8, -3, -11.4);
     P.colonnade(ctx, -3.8, -8.2, [-12.2, -14.7, -17.2, -19.7, -22.2]);
     K.torch(ctx, -8.08, 2.4, -18.56, '+x'); K.torch(ctx, -8.08, 2.4, -13.92, '+x');
@@ -126,7 +126,7 @@ export default {
     P.railing(ctx, -8.6, -23, -0.7, -23);
     ctx.marks.courtGate = P.gate(ctx, 1.4, -23, 2.8, 'x', { open: true, swingDir: -1 });
     P.railing(ctx, 3.5, -23, 8.95, -23);
-    P.manor(ctx, -12.1, -27.9, 7, 9, 6.2, { tone: '#464a5c', bay: 3, floors: 2, floorH: 2.4, lit: 0.3, lights: 0, pattern: (f, k) => (k === 0 ? 'blank' : 'win') });
+    P.manor(ctx, -12.1, -27.9, 7, 9, 6.2, { tone: P.STONE2, bay: 3, floors: 2, floorH: 2.4, lit: 0.3, lights: 0, pattern: (f, k) => (k === 0 ? 'blank' : 'win') });
     P.coachDoors(ctx, -8.6, [-30.9, -24.9]);
     P.banner(ctx, -8.6, 3, -27.9, '+x', { variant: 2 });
     P.carriage(ctx, -5.6, -26, Math.PI + 0.25, { door: true });
@@ -144,10 +144,10 @@ export default {
 
     // ------------------------------------------------ the palace forecourt (the Pale Regent)
     // the west wing (far side), the fallen house's banners between its windows
-    P.manor(ctx, -17.4, -43, 7.2, 20.8, 8.6, { lit: 0.4, tone: '#50566a', bay: 2.6 });
+    P.manor(ctx, -17.4, -43, 7.2, 20.8, 8.6, { lit: 0.4, tone: P.STONE, bay: 2.6 });
     for (const z of [-48.2, -43, -37.8]) P.banner(ctx, -13.68, 4.2, z, '+x', { variant: z === -43 ? 2 : 0 });
     // the palace (far side, north): eleven bays, the frontispiece and its stair in the middle three
-    P.manor(ctx, -8.2, -57.2, 25.6, 7.6, 9.6, { faces: ['z'], floors: 3, floorH: 2.6, bay: 25.6 / 11, lit: 0.45, lights: 2, tone: '#50566a', pattern: (f, k, i) => (i >= 6 && i <= 8 ? 'blank' : 'win') });
+    P.manor(ctx, -8.2, -57.2, 25.6, 7.6, 9.6, { faces: ['z'], floors: 3, floorH: 2.6, bay: 25.6 / 11, lit: 0.45, lights: 2, tone: P.STONE, pattern: (f, k, i) => (i >= 6 && i <= 8 ? 'blank' : 'win') });
     P.frontispiece(ctx, -3.55, -52.6, 7, 10.2, { doorY: 1.6 });
     P.grandStair(ctx, -3.55, -52.6, 4.6, 8);
     for (const x of [-9.37, 2.27]) P.banner(ctx, x, 5, -53.28, '+z', { long: true });

@@ -6,6 +6,7 @@ import * as THREE from '../../../vendor/three.module.min.js';
 import { add, box, cyl, cone, plane, geo, inst, mat4, solid, solidCircle, torus } from '../kit.js';
 import { M, cutout } from '../../engine/materials.js';
 import * as T from '../../engine/textures.js';
+import { mergeGeometries } from '../../../vendor/BufferGeometryUtils.js';
 
 // ---------------------------------------------------------------- materials
 const mats = new Map();
@@ -15,6 +16,9 @@ export const gilt = () => once('gilt', () => cutout(new THREE.MeshPhongMaterial(
 const marble = () => once('marble', () => cutout(new THREE.MeshPhongMaterial({ color: 0xa6a4b8, specular: 0x5a5a70, shininess: 24 })));
 const lacquer = () => once('lacquer', () => cutout(new THREE.MeshPhongMaterial({ color: 0x2a1e34, specular: 0x8a7aa8, shininess: 40 })));
 const hedgeM = () => M.grass('#1c2c26');
+const lawnM = () => M.grass('#2a3830');
+// the stone palette: every tone is one more material (one more draw call), so the Heights keep to four
+export const STONE = '#4e5264', STONE2 = '#484c5e', BASE = '#3c4052', STEP = '#5a5f72';
 const trimM = () => M.ashlar('#666b7e');
 
 // Small pixel textures (16 texels per metre, like the rest of the city).
@@ -53,6 +57,7 @@ const lathe = (key, prof, n = 8) => geo('hh-' + key, () => new THREE.LatheGeomet
 // A tall round-headed window: frame, mullion, transom, glazing bars. Lit: warm glass between drawn
 // curtains (three hangings, so a row of them does not repeat); dark: black glass with a cold sheen.
 function winTex(lit, k = 0) {
+  if (!lit) k = 0;
   return pix('hh-win' + lit + k, 9, 24, (g, w, h) => {
     const r = T.rng(31 + k * 7 + (lit ? 100 : 0)); const cx = 4, top = 4.5;
     const drape = ['#4a1c34', '#3a1e48', '#5a2a2a'][k % 3];
@@ -217,18 +222,19 @@ export function crown(ctx, x, y, z, s = 1, parent) {
 // ---------------------------------------------------------------- the hill's edge
 // A stone balustrade: kerb, turned balusters, a rail, piers (urns on every other one). Low: it never
 // hides anything, and blows and bolts fly over it.
-const balGeo = () => lathe('bal', [[0, 0], [0.085, 0], [0.085, 0.07], [0.055, 0.13], [0.1, 0.32], [0.06, 0.56], [0.05, 0.62], [0.08, 0.66], [0.08, 0.72], [0, 0.72]], 6);
+const balGeo = () => lathe('bal', [[0, 0], [0.08, 0], [0.08, 0.06], [0.1, 0.3], [0.05, 0.58], [0.08, 0.66], [0.08, 0.72], [0, 0.72]], 4);
 export function balustrade(ctx, x0, z0, x1, z1, o = {}) {
   const alongX = Math.abs(x1 - x0) >= Math.abs(z1 - z0); const len = alongX ? Math.abs(x1 - x0) : Math.abs(z1 - z0);
   const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2; const W = alongX ? len : 0.5, D = alongX ? 0.5 : len;
-  add(ctx, box(W, 0.26, D), M.ashlar('#4a4e60'), cx, 0.13, cz);
+  add(ctx, box(W, 0.26, D), M.ashlar(STONE), cx, 0.13, cz);
   add(ctx, box(alongX ? len : 0.42, 0.14, alongX ? 0.42 : len), trimM(), cx, 1.05, cz);
-  const n = Math.round(len / 0.3); const bm = M.flat(0x6c7082);
-  for (let i = 0; i < n; i++) { const t = (i + 0.5) / n; inst(ctx, 'hh-bal', balGeo(), bm, mat4(x0 + (x1 - x0) * t, 0.26, z0 + (z1 - z0) * t)); }
+  const n = Math.round(len / 0.32); const im = new THREE.InstancedMesh(balGeo(), M.flat(0x6c7082), n);
+  for (let i = 0; i < n; i++) { const t = (i + 0.5) / n; im.setMatrixAt(i, mat4(x0 + (x1 - x0) * t, 0.26, z0 + (z1 - z0) * t, Math.PI / 4)); }
+  im.instanceMatrix.needsUpdate = true; im.receiveShadow = true; im.computeBoundingSphere(); ctx.group.add(im);
   const np = Math.max(1, Math.round(len / (o.pier || 3.6)));
   for (let i = 0; i <= np; i++) {
     const t = i / np; const px = x0 + (x1 - x0) * t, pz = z0 + (z1 - z0) * t;
-    add(ctx, box(0.56, 1.2, 0.56), M.ashlar('#565b6e'), px, 0.6, pz); add(ctx, box(0.66, 0.12, 0.66), trimM(), px, 1.26, pz);
+    add(ctx, box(0.56, 1.2, 0.56), M.ashlar(STEP), px, 0.6, pz); add(ctx, box(0.66, 0.12, 0.66), trimM(), px, 1.26, pz);
     if (o.urns && i % 2 === 0) urn(ctx, px, 1.32, pz, 0.8);
   }
   solid(ctx, cx - W / 2, cz - D / 2, cx + W / 2, cz + D / 2, 1.2);
@@ -253,9 +259,9 @@ function deep(base, range = 12) {
 // The retaining wall under the hill's edge: its face (x) looks east over the lower city.
 export function cliff(ctx, x, z0, z1, depth) {
   const L = z1 - z0, zm = (z0 + z1) / 2;
-  add(ctx, box(1.2, depth, L), deep(M.ashlar('#3c4052')), x - 0.6, -depth / 2 - 0.02, zm, { cast: false });
-  add(ctx, box(0.3, 0.3, L), deep(M.ashlar('#4c5062')), x + 0.1, -0.75, zm, { cast: false });
-  for (let z = z0 + 3; z < z1; z += 6.5) add(ctx, box(0.8, depth, 1.1), deep(M.ashlar('#363a4c')), x + 0.4, -depth / 2 - 1.1, z, { cast: false });
+  add(ctx, box(1.2, depth, L), deep(M.ashlar(BASE)), x - 0.6, -depth / 2 - 0.02, zm, { cast: false });
+  add(ctx, box(0.3, 0.3, L), deep(M.ashlar(STONE)), x + 0.1, -0.75, zm, { cast: false });
+  for (let z = z0 + 3; z < z1; z += 6.5) add(ctx, box(0.8, depth, 1.1), deep(M.ashlar(BASE)), x + 0.4, -depth / 2 - 1.1, z, { cast: false });
   // the servants' rooms in the wall: small windows between the buttresses, a few still lit
   const r = T.rng(Math.round(depth * 31 + z0)); const dark = deep(M.decal(T.houseWindow(false)));
   for (let z = z0 + 5.2; z < z1 - 1; z += 3.25) for (const y of [-2.4, -4.8]) {
@@ -268,14 +274,14 @@ export function cliff(ctx, x, z0, z1, depth) {
 export function lowerCity(ctx, x0, z0, x1, z1, y, o = {}) {
   const r = T.rng(o.seed || 91); const range = o.range || 13;
   add(ctx, box(x1 - x0, 0.4, z1 - z0), deep(M.cobble('#2a2e3a'), range), (x0 + x1) / 2, y - 0.2, (z0 + z1) / 2, { cast: false });
-  const walls = ['#343848', '#3a3e4e', '#30344a'].map((t) => deep(M.brick(t), range)); const roofM = deep(M.slate('#22243a'), range);
+  const walls = ['#343848', '#3a3e4e'].map((t) => deep(M.brick(t), range)); const roofM = deep(M.slate('#22243a'), range);
   const pts = [], cols = []; const warm = new THREE.Color(0xffa448), cold = new THREE.Color(0xb8b0ff);
   for (let bx = x0 + 2; bx < x1 - 4; bx += 9.5) {
     let bz = z0;
     while (bz < z1) {
       const w = 5 + r() * 2, d = 3 + r() * 2.4, h = 2.2 + r() * 2.2; const hx = bx + w / 2, hz = bz + d / 2;
       if (r() < 0.1) { bz += 2.4; continue; } // a lane
-      add(ctx, box(w, h, d), walls[(r() * 3) | 0], hx, y + h / 2, hz, { cast: false });
+      add(ctx, box(w, h, d), walls[(r() * 2) | 0], hx, y + h / 2, hz, { cast: false });
       hipRoof(ctx, hx, y + h, hz, w + 0.3, d + 0.3, Math.min(w, d) * 0.45, roofM, { cast: false });
       for (let k = 0; k < 3; k++) if (r() < 0.32) {
         const onX = r() < 0.6; const c = r() < 0.18 ? cold : warm;
@@ -301,7 +307,7 @@ export function mist(ctx, x0, z0, x1, z1, y, opacity, color = 0x15121f) {
 export function railing(ctx, x0, z0, x1, z1, o = {}) {
   const h = o.h || 2.0; const alongX = Math.abs(x1 - x0) >= Math.abs(z1 - z0);
   const len = Math.hypot(x1 - x0, z1 - z0); const kerb = o.kerb ?? 0.4; const iron = M.ironLit(), gold = gilt();
-  add(ctx, box(alongX ? len + 0.1 : 0.5, kerb, alongX ? 0.5 : len + 0.1), M.ashlar('#4a4e60'), (x0 + x1) / 2, kerb / 2, (z0 + z1) / 2);
+  add(ctx, box(alongX ? len + 0.1 : 0.5, kerb, alongX ? 0.5 : len + 0.1), M.ashlar(STONE), (x0 + x1) / 2, kerb / 2, (z0 + z1) / 2);
   add(ctx, box(alongX ? len + 0.14 : 0.56, 0.08, alongX ? 0.56 : len + 0.14), trimM(), (x0 + x1) / 2, kerb + 0.04, (z0 + z1) / 2);
   const nb = Math.max(2, Math.round(len / 0.22));
   for (let i = 0; i <= nb; i++) {
@@ -316,10 +322,22 @@ export function railing(ctx, x0, z0, x1, z1, o = {}) {
     }
   }
   for (const ry of [0.22, h - 0.26]) add(ctx, box(alongX ? len : 0.05, 0.05, alongX ? 0.05 : len), iron, (x0 + x1) / 2, kerb + ry, (z0 + z1) / 2);
-  for (let i = 0; i < nb; i += 2) { const t = (i + 0.5) / nb; inst(ctx, 'hh-rring', torus(0.09, 0.018), gold, mat4(x0 + (x1 - x0) * t, kerb + h - 0.45, z0 + (z1 - z0) * t, alongX ? 0 : Math.PI / 2)); }
+  for (let i = 0; i < nb; i += 2) { const t = (i + 0.5) / nb; inst(ctx, 'hh-rring', geo('hh-ring', () => new THREE.TorusGeometry(0.09, 0.02, 3, 6)), gold, mat4(x0 + (x1 - x0) * t, kerb + h - 0.45, z0 + (z1 - z0) * t, alongX ? 0 : Math.PI / 2)); }
   const pad = 0.18;
   if (alongX) solid(ctx, Math.min(x0, x1), z0 - pad, Math.max(x0, x1), z0 + pad, h); else solid(ctx, x0 - pad, Math.min(z0, z1), x0 + pad, Math.max(z0, z1), h);
   ctx.lowSolids.push(ctx.solids[ctx.solids.length - 1]);
+}
+
+// Merges a group's child meshes into one mesh per material (a gate leaf: two draw calls, not forty).
+function mergeKids(group) {
+  const byMat = new Map();
+  for (const c of group.children) {
+    c.updateMatrix(); const g = (c.geometry.index ? c.geometry.toNonIndexed() : c.geometry.clone()).applyMatrix4(c.matrix);
+    for (const k of Object.keys(g.attributes)) if (!['position', 'normal', 'uv'].includes(k)) g.deleteAttribute(k);
+    if (!byMat.has(c.material)) byMat.set(c.material, []); byMat.get(c.material).push(g);
+  }
+  group.clear();
+  for (const [mat, geos] of byMat) { const m = new THREE.Mesh(mergeGeometries(geos, false), mat); m.castShadow = true; m.receiveShadow = true; group.add(m); }
 }
 
 // An ornate gilded double gate between stone piers crowned with urns. Same handle as the kit's gate:
@@ -329,7 +347,7 @@ export function gate(ctx, x, z, width = 2.8, axis = 'x', opts = {}) {
   const along = (p) => alongX ? [x + p, z] : [x, z + p];
   if (opts.piers !== false) for (const s of [-1, 1]) {
     const [px, pz] = along(s * (width / 2 + 0.35));
-    add(ctx, box(0.7, h + 0.9, 0.7), M.ashlar('#4e5264'), px, (h + 0.9) / 2, pz);
+    add(ctx, box(0.7, h + 0.9, 0.7), M.ashlar(STONE), px, (h + 0.9) / 2, pz);
     add(ctx, box(0.86, 0.2, 0.86), trimM(), px, h + 1.0, pz);
     urn(ctx, px, h + 1.1, pz, 0.95);
     solid(ctx, px - 0.35, pz - 0.35, px + 0.35, pz + 0.35, h + 1);
@@ -348,14 +366,13 @@ export function gate(ctx, x, z, width = 2.8, axis = 'x', opts = {}) {
     }
     const ring = new THREE.Mesh(torus(0.3, 0.03), gold); ring.position.set(alongX ? -s * lw / 2 : 0, h * 0.77, alongX ? 0 : -s * lw / 2); if (!alongX) ring.rotation.y = Math.PI / 2; pivot.add(ring);
     const boss = new THREE.Mesh(sph(0.08, 0), gold); boss.position.copy(ring.position); pivot.add(boss);
-    pivot.userData.side = s; leaves.push(pivot);
+    mergeKids(pivot); pivot.userData.side = s; leaves.push(pivot);
   }
   // the crest: an iron arch with gilded scrolls and a crown at its top
-  const arch = new THREE.Mesh(geo(`hh-arch${width}`, () => new THREE.TorusGeometry(width / 2, 0.05, 4, 16, Math.PI)), iron);
-  arch.position.set(x, h + 0.15, z); arch.scale.set(1, 0.45, 1); if (!alongX) arch.rotation.y = Math.PI / 2; arch.castShadow = true; ctx.group.add(arch);
+  add(ctx, geo(`hh-arch${width}`, () => new THREE.TorusGeometry(width / 2, 0.05, 4, 16, Math.PI)), iron, x, h + 0.15, z, { s: new THREE.Vector3(1, 0.45, 1), ry: alongX ? 0 : Math.PI / 2 });
   for (let i = -2; i <= 2; i++) {
-    const sc = new THREE.Mesh(torus(0.15, 0.025), gold); const [sx, sz] = along(i * width * 0.17);
-    sc.position.set(sx, h + 0.25 + (1 - Math.abs(i) / 2.5) * width * 0.16, sz); if (!alongX) sc.rotation.y = Math.PI / 2; ctx.group.add(sc);
+    const [sx, sz] = along(i * width * 0.17);
+    add(ctx, torus(0.15, 0.025), gold, sx, h + 0.25 + (1 - Math.abs(i) / 2.5) * width * 0.16, sz, { ry: alongX ? 0 : Math.PI / 2 });
   }
   crown(ctx, x, h + 0.42 + width * 0.24, z, 0.8);
   const sh = { x0: alongX ? x - width / 2 : x - 0.2, z0: alongX ? z - 0.2 : z - width / 2, x1: alongX ? x + width / 2 : x + 0.2, z1: alongX ? z + 0.2 : z + width / 2, h, gate: true, open: false };
@@ -405,8 +422,8 @@ function portico(ctx, f, out, along, o = {}) {
   at(f === 'x' ? box(0.9, 0.36, 2.4) : box(2.4, 0.36, 0.9), tm, 0.5, 3.18);
   const ped = add(ctx, pedGeo(2.6, 0.7, 0.9), tm, f === 'x' ? out + 0.05 : along, 3.36, f === 'x' ? along : out + 0.05, { ry: f === 'x' ? Math.PI / 2 : 0 });
   ped.userData.static = true;
-  at(f === 'x' ? box(0.5, 0.15, 2.2) : box(2.2, 0.15, 0.5), M.ashlar('#565b6e'), 0.95, 0.075);
-  at(f === 'x' ? box(0.4, 0.3, 2.0) : box(2.0, 0.3, 0.4), M.ashlar('#565b6e'), 0.45, 0.15);
+  at(f === 'x' ? box(0.5, 0.15, 2.2) : box(2.2, 0.15, 0.5), M.ashlar(STEP), 0.95, 0.075);
+  at(f === 'x' ? box(0.4, 0.3, 2.0) : box(2.0, 0.3, 0.4), M.ashlar(STEP), 0.45, 0.15);
   if (f === 'x') solid(ctx, out, along - 1.2, out + 1.2, along + 1.2, 3.2); else solid(ctx, along - 1.2, out, along + 1.2, out + 1.2, 3.2);
 }
 
@@ -415,7 +432,7 @@ function portico(ctx, f, out, along, o = {}) {
 // faces the camera sees (o.faces: 'x' for +X, 'z' for +Z). o.pattern(f, floor, bay, n) may return
 // 'door' | 'niche' | 'blank' | 'win'. o.lights: how many lit ground-floor windows cast light.
 export function manor(ctx, x, z, w, d, h, o = {}) {
-  const wallM = M.ashlar(o.tone || '#4c5062'), tm = trimM(), baseM = M.ashlar(o.base || '#3a3e4e');
+  const wallM = M.ashlar(o.tone || STONE), tm = trimM(), baseM = M.ashlar(o.base || BASE);
   add(ctx, box(w, h, d), wallM, x, h / 2, z);
   add(ctx, box(w + 0.16, 0.9, d + 0.16), baseM, x, 0.45, z);
   add(ctx, box(w + 0.44, 0.3, d + 0.44), tm, x, h + 0.15, z);
@@ -430,7 +447,7 @@ export function manor(ctx, x, z, w, d, h, o = {}) {
     for (const s of [-1, 1]) {
       const cx = x + (alongX ? s * w * 0.3 : 0), cz = z + (alongX ? 0 : s * d * 0.3); const ch = rh + 1.3;
       add(ctx, box(0.7, ch, 0.9), M.brick('#2c2e3c'), cx, ry0 + ch / 2, cz); add(ctx, box(0.86, 0.14, 1.06), tm, cx, ry0 + ch + 0.07, cz);
-      for (const k of [-0.2, 0.2]) add(ctx, cyl(0.1, 0.1, 0.3, 6), M.flat(0x3a3036), cx, ry0 + ch + 0.29, cz + k);
+      for (const k of [-0.2, 0.2]) add(ctx, cyl(0.1, 0.1, 0.3, 6), M.flat(0x2a2024), cx, ry0 + ch + 0.29, cz + k);
     }
   }
   const FH = o.floorH || 2.7; const floors = o.floors ?? Math.max(1, Math.floor((h - 1.6) / FH));
@@ -468,9 +485,9 @@ export function coachDoors(ctx, xFace, zs) {
 // The palace's frontispiece: a projecting bay with giant pilasters, the great door at the head of the
 // stair, a pediment with a gilt crown on it. Its face looks +Z at zFace.
 export function frontispiece(ctx, x, zFace, w, h, o = {}) {
-  const wallM = M.ashlar(o.tone || '#50566a'), tm = trimM();
+  const wallM = M.ashlar(o.tone || STONE), tm = trimM();
   add(ctx, box(w, h, 0.8), wallM, x, h / 2, zFace - 0.4);
-  add(ctx, box(w + 0.16, 0.9, 0.96), M.ashlar('#3a3e4e'), x, 0.45, zFace - 0.4);
+  add(ctx, box(w + 0.16, 0.9, 0.96), M.ashlar(BASE), x, 0.45, zFace - 0.4);
   add(ctx, box(w + 0.44, 0.32, 1.2), tm, x, h + 0.16, zFace - 0.4);
   solid(ctx, x - w / 2, zFace - 0.8, x + w / 2, zFace, h);
   for (const s of [-1, -0.33, 0.33, 1]) add(ctx, box(0.46, h - 0.9, 0.2), tm, x + s * (w / 2 - 0.3), (h + 0.9) / 2, zFace + 0.06);
@@ -488,14 +505,14 @@ export function frontispiece(ctx, x, zFace, w, h, o = {}) {
 
 // The grand stair: steps climbing toward -Z up to a door, cheek walls with urns. Solid.
 export function grandStair(ctx, x, zTop, w, n = 8, rise = 0.2, run = 0.4) {
-  const st = M.ashlar('#5a5f72');
+  const st = M.ashlar(STEP);
   for (let i = 0; i < n; i++) { const hh = rise * (n - i); add(ctx, box(w, hh, run), st, x, hh / 2, zTop + (i + 0.5) * run); add(ctx, box(w, 0.04, 0.06), trimM(), x, hh + 0.02, zTop + i * run + run - 0.03); }
   const L = n * run;
   for (const s of [-1, 1]) {
     const cx = x + s * (w / 2 + 0.25);
-    add(ctx, box(0.5, rise * n + 0.3, L), M.ashlar('#4e5264'), cx, (rise * n + 0.3) / 2, zTop + L / 2);
+    add(ctx, box(0.5, rise * n + 0.3, L), M.ashlar(STONE), cx, (rise * n + 0.3) / 2, zTop + L / 2);
     add(ctx, box(0.6, 0.12, L + 0.1), trimM(), cx, rise * n + 0.36, zTop + L / 2);
-    add(ctx, box(0.62, 1.1, 0.62), M.ashlar('#565b6e'), cx, 0.55, zTop + L - 0.1);
+    add(ctx, box(0.62, 1.1, 0.62), M.ashlar(STEP), cx, 0.55, zTop + L - 0.1);
     urn(ctx, cx, 1.12, zTop + L - 0.1, 1.0);
   }
   solid(ctx, x - w / 2 - 0.5, zTop, x + w / 2 + 0.5, zTop + L, rise * n + 0.3);
@@ -507,7 +524,7 @@ export function grandStair(ctx, x, zTop, w, n = 8, rise = 0.2, run = 0.4) {
 export function colonnade(ctx, xc, xw, zs, H = 4.6) {
   const sm = marble(), cm = M.ashlar('#666b7e');
   for (const z of zs) {
-    add(ctx, box(0.8, 0.36, 0.8), M.ashlar('#4e5264'), xc, 0.18, z);
+    add(ctx, box(0.8, 0.36, 0.8), M.ashlar(STONE), xc, 0.18, z);
     add(ctx, cyl(0.34, 0.36, 0.12, 10), cm, xc, 0.42, z);
     add(ctx, cyl(0.25, 0.29, H - 0.9, 10), sm, xc, 0.48 + (H - 0.9) / 2, z);
     add(ctx, cyl(0.36, 0.26, 0.24, 10), cm, xc, H - 0.3, z);
@@ -515,11 +532,11 @@ export function colonnade(ctx, xc, xw, zs, H = 4.6) {
     solidCircle(ctx, xc, z, 0.42, H);
   }
   const z0 = Math.min(...zs) - 0.6, z1 = Math.max(...zs) + 0.6, L = z1 - z0, zm = (z0 + z1) / 2;
-  add(ctx, box(0.78, 0.42, L), M.ashlar('#5c6174'), xc, H + 0.21, zm);
-  add(ctx, box(0.7, 0.36, L), M.ashlar('#484c5e'), xc, H + 0.6, zm);
+  add(ctx, box(0.78, 0.42, L), M.ashlar(STEP), xc, H + 0.21, zm);
+  add(ctx, box(0.7, 0.36, L), M.ashlar(STONE2), xc, H + 0.6, zm);
   add(ctx, box(1.0, 0.2, L + 0.3), cm, xc, H + 0.88, zm);
   const span = Math.abs(xc - xw), mx = (xc + xw) / 2;
-  for (const z of zs) add(ctx, box(span, 0.34, 0.3), M.ashlar('#50556a'), mx, H + 0.42, z);
+  for (const z of zs) add(ctx, box(span, 0.34, 0.3), M.ashlar(STONE), mx, H + 0.42, z);
   for (const z of zs) urn(ctx, xc, H + 0.98, z, 0.85);
   for (const f of [0.3, 0.65]) add(ctx, box(0.06, 0.06, L), M.ironLit(), xc + (xw - xc) * f, H + 0.68, zm);
 }
@@ -528,14 +545,14 @@ export function colonnade(ctx, xc, xw, zs, H = 4.6) {
 export function hedge(ctx, x0, z0, x1, z1, h = 0.8, o = {}) {
   const w = x1 - x0, d = z1 - z0;
   add(ctx, box(w, h, d), hedgeM(), x0 + w / 2, h / 2, z0 + d / 2);
-  add(ctx, box(Math.max(0.1, w - 0.12), 0.05, Math.max(0.1, d - 0.12)), M.grass('#26392f'), x0 + w / 2, h + 0.025, z0 + d / 2, { cast: false });
+  add(ctx, box(Math.max(0.1, w - 0.12), 0.05, Math.max(0.1, d - 0.12)), lawnM(), x0 + w / 2, h + 0.025, z0 + d / 2, { cast: false });
   if (o.solid !== false) solid(ctx, x0, z0, x1, z1, h);
 }
 // A parterre bed: a clipped hedge border round a lawn, something in the middle ('cone', 'tiers', or
 // 'statue:<pose>').
 export function bed(ctx, x0, z0, x1, z1, centre = 'cone', ry = 0) {
   const t = 0.42, h = 0.7;
-  add(ctx, box(x1 - x0 - 2 * t, 0.04, z1 - z0 - 2 * t), M.grass('#2a3a30'), (x0 + x1) / 2, 0.03, (z0 + z1) / 2, { cast: false });
+  add(ctx, box(x1 - x0 - 2 * t, 0.04, z1 - z0 - 2 * t), lawnM(), (x0 + x1) / 2, 0.03, (z0 + z1) / 2, { cast: false });
   hedge(ctx, x0, z0, x1, z0 + t, h, { solid: false }); hedge(ctx, x0, z1 - t, x1, z1, h, { solid: false });
   hedge(ctx, x0, z0 + t, x0 + t, z1 - t, h, { solid: false }); hedge(ctx, x1 - t, z0 + t, x1, z1 - t, h, { solid: false });
   for (const [cx, cz] of [[x0, z0], [x1, z0], [x0, z1], [x1, z1]]) add(ctx, sph(0.32, 1), hedgeM(), cx + Math.sign((x0 + x1) / 2 - cx) * 0.2, h + 0.18, cz + Math.sign((z0 + z1) / 2 - cz) * 0.2);
@@ -547,9 +564,9 @@ export function bed(ctx, x0, z0, x1, z1, centre = 'cone', ry = 0) {
 // Clipped yew in a stone planter: 'cone', 'ball' or 'tiers'.
 export function topiary(ctx, x, z, kind = 'cone', s = 1, planter = true) {
   const hm = hedgeM(); let y = 0;
-  if (planter) { add(ctx, box(0.72, 0.46, 0.72), M.ashlar('#565b6e'), x, 0.23, z); add(ctx, box(0.8, 0.07, 0.8), trimM(), x, 0.49, z); y = 0.5; }
+  if (planter) { add(ctx, box(0.72, 0.46, 0.72), M.ashlar(STEP), x, 0.23, z); add(ctx, box(0.8, 0.07, 0.8), trimM(), x, 0.49, z); y = 0.5; }
   if (kind === 'cone') add(ctx, cone(0.5 * s, 1.8 * s, 8), hm, x, y + 0.9 * s, z);
-  else if (kind === 'ball') { add(ctx, cyl(0.05, 0.06, 0.6, 4), M.wood('#2a2018'), x, y + 0.3, z); add(ctx, sph(0.5 * s), hm, x, y + 0.55 + 0.45 * s, z); }
+  else if (kind === 'ball') { add(ctx, cyl(0.05, 0.06, 0.6, 4), M.wood('#3a2a22'), x, y + 0.3, z); add(ctx, sph(0.5 * s), hm, x, y + 0.55 + 0.45 * s, z); }
   else { add(ctx, sph(0.48 * s), hm, x, y + 0.45 * s, z); add(ctx, sph(0.34 * s), hm, x, y + 1.1 * s, z); add(ctx, sph(0.2 * s), hm, x, y + 1.6 * s, z); }
   if (planter) solid(ctx, x - 0.38, z - 0.38, x + 0.38, z + 0.38, 1.6);
 }
@@ -559,7 +576,7 @@ export function topiary(ctx, x, z, kind = 'cone', s = 1, planter = true) {
 export function statue(ctx, x, z, ry = 0, o = {}) {
   const pose = o.pose || 'sword'; const mm = marble(); const plinth = o.plinth !== false && !o.fallen;
   if (plinth) {
-    add(ctx, box(1.05, 1.0, 1.05), M.ashlar('#4e5264'), x, 0.5, z); add(ctx, box(1.2, 0.14, 1.2), trimM(), x, 1.07, z); add(ctx, box(0.95, 0.16, 0.95), M.ashlar('#5a5f72'), x, 1.22, z);
+    add(ctx, box(1.05, 1.0, 1.05), M.ashlar(STONE), x, 0.5, z); add(ctx, box(1.2, 0.14, 1.2), trimM(), x, 1.07, z); add(ctx, box(0.95, 0.16, 0.95), M.ashlar(STEP), x, 1.22, z);
     solid(ctx, x - 0.6, z - 0.6, x + 0.6, z + 0.6, 2.8);
   }
   const g = local(x, o.y0 ?? (plinth ? 1.3 : 0), z, ry);
@@ -595,7 +612,7 @@ export function statue(ctx, x, z, ry = 0, o = {}) {
 // The fountain: an octagonal basin, dark water, a pedestal with two bowls spilling into each other, a
 // gilt crown on top. Low: blows and sight lines pass over its rim.
 export function fountain(ctx, x, z, R = 2.3) {
-  const st = M.ashlar('#5c6174'), lip = trimM(); const side = 2 * R * Math.sin(Math.PI / 8), ap = R * Math.cos(Math.PI / 8);
+  const st = M.ashlar(STEP), lip = trimM(); const side = 2 * R * Math.sin(Math.PI / 8), ap = R * Math.cos(Math.PI / 8);
   for (let i = 0; i < 8; i++) {
     const a = (i + 0.5) * Math.PI / 4;
     add(ctx, box(side + 0.06, 0.6, 0.34), st, x + Math.sin(a) * (ap - 0.17), 0.3, z + Math.cos(a) * (ap - 0.17), { ry: a });
@@ -626,7 +643,7 @@ export function fountain(ctx, x, z, R = 2.3) {
 // ---------------------------------------------------------------- the abandoned
 function wheel(P, lx, lz, r, trim) {
   P(geo('hh-rim' + r, () => new THREE.TorusGeometry(r, 0.045, 4, 14)), M.flat(0x2a2024), lx, r, lz, { ry: Math.PI / 2 });
-  for (let k = 0; k < 3; k++) P(box(0.04, r * 2 - 0.08, 0.04), M.flat(0x3a2c26), lx, r, lz, { rx: k * Math.PI / 3 });
+  for (let k = 0; k < 3; k++) P(box(0.04, r * 2 - 0.08, 0.04), M.flat(0x2a2024), lx, r, lz, { rx: k * Math.PI / 3 });
   P(cyl(0.09, 0.09, 0.14, 6), trim, lx, r, lz, { rz: Math.PI / 2 });
 }
 // A lacquered coach with gilt trim, its horses long gone. o.tipped: thrown on its side; o.door: hanging open.
@@ -647,9 +664,9 @@ export function carriage(ctx, x, z, ry = 0, o = {}) {
     P(box(0.03, 0.9, 0.06), trim, s * 0.69, 1.45, 0.25); P(box(0.03, 0.9, 0.06), trim, s * 0.69, 1.45, -0.75);
   }
   if (o.door) P(box(0.05, 0.92, 0.5), body, 0.95, 1.5, 0.08, { ry: 1.2 });
-  P(box(1.1, 0.5, 0.55), body, 0, 1.45, 0.95); P(box(1.0, 0.1, 0.45), M.flat(0x3a1a2c), 0, 1.75, 0.95);
+  P(box(1.1, 0.5, 0.55), body, 0, 1.45, 0.95); P(box(1.0, 0.1, 0.45), M.flat(0x3a1e2a), 0, 1.75, 0.95);
   P(box(1.0, 0.06, 0.42), wood, 0, 1.0, 1.38, { rx: -0.5 });
-  for (const s of [-1, 1]) { P(box(0.16, 0.24, 0.16), M.flat(0x101218), s * 0.62, 1.95, 0.64); P(cone(0.13, 0.12, 4), trim, s * 0.62, 2.12, 0.64, { ry: Math.PI / 4 }); }
+  for (const s of [-1, 1]) { P(box(0.16, 0.24, 0.16), M.flat(0x0c1016), s * 0.62, 1.95, 0.64); P(cone(0.13, 0.12, 4), trim, s * 0.62, 2.12, 0.64, { ry: Math.PI / 4 }); }
   for (const [lz, r] of [[-0.85, 0.62], [0.95, 0.46]]) for (const s of [-1, 1]) wheel(P, s * 0.74, lz, r, trim);
   if (o.shafts !== false) for (const s of [-1, 1]) P(box(0.06, 0.06, 2.2), wood, s * 0.42, 0.3, 2.35, { rx: 0.2 });
   bake(ctx, g);
@@ -658,16 +675,16 @@ export function carriage(ctx, x, z, ry = 0, o = {}) {
 // Luggage thrown from a coach: a trunk with gilt bands, hat boxes.
 export function trunk(ctx, x, z, ry = 0, o = {}) {
   const g = local(x, 0, z, ry); const P = (gm, mat, lx, ly, lz, opt = {}) => add(ctx, gm, mat, lx, ly, lz, { ...opt, parent: g });
-  P(box(0.9, 0.5, 0.55), M.wood('#4a2e22'), 0, 0.25, 0); P(box(0.94, 0.12, 0.59), M.flat(0x3a1e2a), 0, 0.53, 0);
+  P(box(0.9, 0.5, 0.55), M.wood('#3a2a22'), 0, 0.25, 0); P(box(0.94, 0.12, 0.59), M.flat(0x3a1e2a), 0, 0.53, 0);
   for (const lx of [-0.3, 0.3]) P(box(0.06, 0.64, 0.6), gilt(), lx, 0.3, 0);
-  if (o.hatbox !== false) { P(cyl(0.22, 0.22, 0.3, 8), M.flat(0x5a2a44), 0.75, 0.15, 0.35); P(cyl(0.18, 0.18, 0.26, 8), M.flat(0x6a5a70), 0.55, 0.13, -0.5, { rz: Math.PI / 2 }); }
+  if (o.hatbox !== false) { P(cyl(0.22, 0.22, 0.3, 8), M.flat(0x5a2a44), 0.75, 0.15, 0.35); P(cyl(0.18, 0.18, 0.26, 8), M.flat(0x5a2a44), 0.55, 0.13, -0.5, { rz: Math.PI / 2 }); }
   bake(ctx, g); solidLocal(ctx, x, z, ry, -0.47, -0.3, 0.47, 0.3, 0.6);
 }
 
 // ---------------------------------------------------------------- fire and cloth
 // A brazier of the house on a stone pedestal.
 export function brazier(ctx, x, z) {
-  add(ctx, box(0.62, 0.9, 0.62), M.ashlar('#4e5264'), x, 0.45, z); add(ctx, box(0.74, 0.1, 0.74), trimM(), x, 0.95, z);
+  add(ctx, box(0.62, 0.9, 0.62), M.ashlar(STONE), x, 0.45, z); add(ctx, box(0.74, 0.1, 0.74), trimM(), x, 0.95, z);
   add(ctx, cyl(0.46, 0.24, 0.34, 8), M.ironLit(), x, 1.17, z);
   for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4; add(ctx, box(0.07, 0.24, 0.07), gilt(), x + Math.sin(a) * 0.36, 1.2, z + Math.cos(a) * 0.36, { rx: Math.cos(a) * 0.4, rz: -Math.sin(a) * 0.4 }); }
   add(ctx, cyl(0.4, 0.4, 0.04, 8), M.glow('#ff8a30', 1.6), x, 1.33, z, { cast: false });
