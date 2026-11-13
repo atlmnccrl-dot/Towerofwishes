@@ -416,7 +416,7 @@ export function dryingRack(ctx, x, z, len = 2.6, along = 'x') {
   const ax = along === 'x', wood = M.wood('#4a3626');
   for (const e of [-1, 1]) {
     const tx = ax ? x + e * len / 2 : x, tz = ax ? z : z + e * len / 2;
-    for (const sv of [-1, 1]) add(ctx, box(0.07, 1.95, 0.07), wood, tx + (ax ? 0 : sv * 0.28), 0.95, tz + (ax ? sv * 0.28 : 0), ax ? { rx: sv * 0.16 } : { rz: -sv * 0.16 });
+    for (const sv of [-1, 1]) add(ctx, box(0.07, 1.95, 0.07), wood, tx + (ax ? 0 : sv * 0.28), 0.95, tz + (ax ? sv * 0.28 : 0), ax ? { rx: -sv * 0.16 } : { rz: sv * 0.16 });
   }
   for (const sv of [-0.16, 0.16]) {
     add(ctx, box(ax ? len + 0.2 : 0.05, 0.05, ax ? 0.05 : len + 0.2), wood, x + (ax ? 0 : sv), 1.86, z + (ax ? sv : 0));

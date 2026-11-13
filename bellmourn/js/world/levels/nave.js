@@ -28,12 +28,12 @@ export default {
     { t: 'hushed', x: -5.4, z: -8.8 }, { t: 'ghoul', x: 5, z: -12.8 }, { t: 'brute', x: 1, z: -14 }, { t: 'acolyte', x: -5.6, z: -13.2 },
   ],
   encounters: [
-    { id: 'yard', zone: [10, 4.6, 21.2, 9.1], gates: ['lychGate'], opens: ['sideDoor'], msg: 'THE GRAVES ARE NOT EMPTY', done: 'THE SIDE DOOR SWINGS OPEN',
+    { id: 'yard', zone: [10, 4.6, 21.2, 8.7], gates: ['lychGate'], opens: ['sideDoor'], msg: 'THE GRAVES ARE NOT EMPTY', done: 'THE SIDE DOOR SWINGS OPEN',
       waves: [
         { pre: true, foes: [{ t: 'hushed', x: 13.6, z: 2.6 }, { t: 'hushed', x: 17.2, z: 0.4 }, { t: 'ghoul', x: 11.4, z: -0.9 }] },
         { foes: [{ t: 'ghoul', x: 11.2, z: -3.8 }, { t: 'ghoul', x: 19.6, z: -1.2 }, { t: 'hushed', x: 15.4, z: -4.4 }] },
       ] },
-    { id: 'nave', zone: [3.9, -2.4, 7.4, 4], gates: ['sideDoor'], opens: ['naveGate'], msg: 'THE CONGREGATION RISES',
+    { id: 'nave', zone: [3.9, -2.4, 7.2, 4], gates: ['sideDoor'], opens: ['naveGate'], msg: 'THE CONGREGATION RISES',
       waves: [
         { pre: true, foes: [{ t: 'acolyte', x: -0.2, z: 1, face: Math.PI }, { t: 'acolyte', x: -5.4, z: -2.8, face: Math.PI }, { t: 'acolyte', x: 2, z: -4.2, face: Math.PI }, { t: 'hushed', x: -1, z: -4.4, face: Math.PI }] },
         { foes: [{ t: 'warden', x: 0.2, z: -3.4 }, { t: 'hushed', x: -5.2, z: 1.6 }, { t: 'hushed', x: 5.6, z: 2.6 }, { t: 'acolyte', x: -5.8, z: -4.8 }] },
