@@ -6,7 +6,7 @@
   const VS = window.VS, R = VS.R, A = VS.A, D = VS.DATA, S = VS.STORY, T = VS.TALE;
   const MF = VS.MENUFILM = { sc: null, phase: 0, f: 0 };
   function ready() {
-    const M = VS.main; if (!M || !M.bgDone || !S.MENU) return false;
+    const M = VS.main; if (!M || !S.MENU) return false;
     const iso = M.isoFor ? M.isoFor(0) : null; if (iso && A.isoReady && !A.isoReady(iso)) return false;
     return S.MENU.shots.every((sh) => (sh.cast || []).every((c) => c.who === 'hero' || A.hasSet(c.set || D.FOES[c.who].set)));
   }

@@ -3,11 +3,15 @@
 // stays under its file limit: assets/pixel/vh_b<N>.json plus vh_map.json (set -> bundle).
 // Run after tools/pack_pixel.py: node vesper/tools_vh_bundles.js
 const fs = require('fs'), path = require('path');
-require('./js/data.js'); require('./js/progress.js');
+require('./js/data.js'); require('./js/progress.js'); require('./js/story.js');
 const VS = globalThis.VS, D = VS.DATA, P = VS.PROG, OUT = path.join(__dirname, '..', 'assets', 'pixel');
 const groups = [], seen = new Set();
 const setsOfKey = (k, out) => { const f = D.FOES[k]; if (!f || out.has('k:' + k)) return; out.add('k:' + k); out.add(f.set); for (const v of (D.VARIANTS[k] || [])) out.add(v); for (const a of f.atks) if (a.summon) setsOfKey(a.summon.key, out); };
-// Bundle 0: what can show up anywhere (heroes, the opening's dead, every champion on the map).
+// Bundle 0: the opening's own cast (the five kings, their guards, the risen townsfolk), so a new game fetches about
+// twenty sets' metadata instead of five act bundles (2026-11-13: about 9 MB of JSON before the film could start).
+const opening = new Set(VS.STORY.KING_SETS.concat(['vh_townsfolk_001', 'vh_townsfolk_004', 'vh_townsfolk_007', 'vh_townsfolk_010', 'vh_townsfolk_013', 'vh_skeleton_002']));
+groups.push(opening);
+// Bundle 1: what can show up anywhere (heroes, the opening's dead, every champion on the map).
 const base = new Set(); for (const k in D.HEROES) base.add(D.HEROES[k].set); for (const s of ['vh_townsfolk_001', 'vh_townsfolk_004', 'vh_townsfolk_007', 'vh_townsfolk_010', 'vh_townsfolk_013', 'vh_skeleton_002', 'vh_barbarian_002']) base.add(s);
 for (const k of P.CHAMPS.flat()) base.add(D.FOES[k].set);
 groups.push(base);

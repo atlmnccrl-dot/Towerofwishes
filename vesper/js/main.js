@@ -219,18 +219,11 @@
   }
   // A new game: the prologue, then the first trial.
   // The opening's risen dead are turned townsfolk: load them first.
-  // Everything the opening draws (S.OPENING, filmed on the arenas): the Kingslayer, the five kings, three guardians, the
-  // dead (the townsfolk and a skeleton), the hero; and every hour's arena tiles. Loaded before it plays (a new game, the theatre).
+  // The guardians' films in the theatre draw the Kingslayer and the risen townsfolk.
   const OPENING_SETS = ['vh_firstcut', 'vh_townsfolk_001', 'vh_townsfolk_004', 'vh_townsfolk_007', 'vh_townsfolk_010', 'vh_townsfolk_013'];
-  const openingNeeds = () => ({
-    sets: OPENING_SETS.concat((S.KINGS || []).map((k) => k.set), S.KING_SETS || [], ['vh_skeleton_002'], ['ghoul', 'warden', 'hunger', 'wing', 'firstCut'].map((k) => D.FOES[k].set), [(D.HEROES[P().hero] || D.HEROES.vesper).set])
-      .filter((id, i, a) => id && a.indexOf(id) === i),
-    iso: [0, 1, 2, 3, 4, 5].flatMap(isoFor).filter((g, i, a) => a.indexOf(g) === i) });
-  function loadOpening(then) {
-    const N = openingNeeds(), miss = N.sets.filter((id) => !A.hasSet(id));
-    if (!miss.length && A.isoReady(N.iso) && A.cbReady()) return then();
-    M.go('load'); U.loading(0); Promise.all([A.loadSets(miss, (f) => U.loading(f)), A.loadIso(N.iso), A.loadCB().catch(() => {})]).then(() => { A.warm(R.ctx); A.isoWarm(R.ctx); U.hide(); then(); }, () => { U.hide(); then(); });
-  }
+  // The opening streams (2026-11-13): it starts as soon as its first shot is ready and the rest loads while it plays
+  // (startScene and the shot-by-shot check in scene()); the effect pages lead the background stream.
+  function loadOpening(then) { then(); }
   // A new game: the opening, the last hour (the tutorial at full power, ending in his First Cut and the Moon raising
   // her: "Free the five kings"), then the first trial at the Black Gate.
   function newGame() {
@@ -257,7 +250,7 @@
   M.startFilm = startFilm;
   // ---- the map hub -------------------------------------------------------------------------------------
   function map(sel) {
-    if (!M.bgDone && M.bgLoad) return needAll(() => map(sel));   // the map shows the guardians
+    { const g = ['warden', 'twinA', 'twinB', 'umbral', 'hunger', 'wing', 'firstCut'].map((k) => D.FOES[k].set).filter((id) => !A.hasSet(id)); if (g.length) return loadThen(g, [], () => map(sel)); }   // the map shows the guardians
     const p = P();
     { const freed = PR.checkSouls(p); if (freed.length) { M.write(); return soulBound(freed, () => map(sel)); } }   // a save from before the souls: free the ones earned
     M.mapSel = sel || M.mapSel || PR.nextNode(p);
@@ -441,8 +434,27 @@
   }
 
   // ---- scenes -------------------------------------------------------------------------------------------
+  // What one shot needs on screen: the looks of its cast, its arena's tiles, the pack's effects if it uses them.
+  function shotNeeds(sh, def) {
+    const sets = (sh.cast || []).map((c) => (c.who === 'hero' ? null : c.who[0] === '@' ? ((def.army || [])[+c.who.slice(5)] || {}).set : c.set || (D.FOES[c.who] || {}).set)).filter(Boolean);
+    const iso = sh.k === 'film' ? isoFor(sh.stage) : [], cb = (sh.ev || []).some(([, e]) => e.type === 'pk' && (String(e.name).startsWith('cb:') || (A.CBMAP && A.CBMAP[e.name])));
+    return { sets, iso, cb };
+  }
+  const shotReady = (sh, def) => { const n = shotNeeds(sh, def); return n.sets.every((id) => A.hasSet(id)) && (!n.iso.length || A.isoReady(n.iso)) && (!n.cb || A.cbReady()); };
   function startScene(stageIdx, def, then, force) {
-    if (!M.bgDone && M.bgLoad) return needAll(() => startScene(stageIdx, def, then, force));
+    const d0 = def || S.BEFORE[stageIdx], shots = d0.shots || [];
+    // The first shot (and the hero) before it starts; every later shot loads while the earlier ones play.
+    if (shots[0] && !d0.__ready) {
+      const n = shotNeeds(shots[0], d0), miss = [...new Set(n.sets.concat([(D.HEROES[P().hero] || D.HERO).set]))].filter((id) => !A.hasSet(id));
+      if (miss.length || (n.iso.length && !A.isoReady(n.iso)) || (n.cb && !A.cbReady())) {
+        M.go('load'); U.loading(0);
+        Promise.all([A.loadSets(miss, (f) => U.loading(f * 0.8)), n.iso.length ? A.loadIso(n.iso) : null, n.cb ? A.loadCB().catch(() => {}) : null])
+          .then(() => { A.warm(R.ctx); A.isoWarm(R.ctx); U.hide(); startScene(stageIdx, Object.assign({}, d0, { __ready: true }), then, force); }, () => { U.hide(); startScene(stageIdx, Object.assign({}, d0, { __ready: true }), then, force); });
+        return;
+      }
+    }
+    // Now the later shots, in the order they come, while this one plays.
+    if (shots.length > 1) (async () => { for (const sh of shots.slice(1)) { const r = shotNeeds(sh, d0); await Promise.all([A.loadSets(r.sets.filter((id) => !A.hasSet(id))), r.iso.length ? A.loadIso(r.iso) : null, r.cb ? A.loadCB() : null]).catch(() => {}); } })();
     U.hide();
     // Story scenes off (Settings): straight on to what follows (the theatre forces them on).
     if (!force && P().opts.scenes === 'skip' && then) return then();
@@ -452,6 +464,13 @@
   }
   function scene(ctx, dt) {
     const m = M.scene;
+    // A shot whose cast or tiles are still on the way holds on the loading walk until they are in (rare: they load
+    // while the earlier shots play).
+    const cur = m.sc.def.shots[m.sc.i];
+    if (cur && !(m.ok || (m.ok = {}))[m.sc.i]) {
+      if (shotReady(cur, m.sc.def)) { m.ok[m.sc.i] = true; A.warm(R.ctx); A.isoWarm(R.ctx); }
+      else { if (M.pressed.back) { m.sc.done = true; m.sc.skipped = true; R.hideCine(); m.then(); return; } VS.LOADSCENE.draw(ctx, dt, null); return; }
+    }
     VS.TALE.update(m.sc, dt, { tap: M.pressed.tap || M.pressed.confirm || M.pressed.atk, back: M.pressed.back });
     for (const [n, v] of m.sc.cues.splice(0)) AU.sfx(n, v);
     if (m.sc.done) { R.hideCine(); m.then(); return; }
@@ -470,7 +489,8 @@
   }
   M.needAll = needAll;
   function startFight(stageIdx, opts) {
-    if (!M.bgDone && M.bgLoad) return needAll(() => startFight(stageIdx, opts));
+    if (opts && opts.build && !opts.__ready) { const miss = missingFor(opts.build), iso = isoFor(stageIdx); if (miss.length || !A.isoReady(iso)) return loadThen(miss, iso, () => startFight(stageIdx, Object.assign({}, opts, { __ready: true }))); }
+    else if (!(opts && opts.build) && !M.bgDone && M.bgLoad) return needAll(() => startFight(stageIdx, opts));
     U.hide(); opts = opts || {};
     const p = P(), b = opts.build, kit = opts.kit || (opts.theatre ? null : PR.kit(p)), MD = VS.MODES;
     // The difficulty and New Game+ scale the foes; mastery adds to the hero's damage on top of the gear.
@@ -920,11 +940,22 @@
     const mine = (D.HEROES[M.save.hero] || D.HERO).set, first = [...new Set([D.HERO.set, mine])];
     const ids = new Set([D.HERO.set, D.LYS.set, D.CLONE.set]); for (const k in D.FOES) if (!D.FOES[k].set.startsWith('vh_')) ids.add(D.FOES[k].set); for (const k in D.HEROES) ids.add(D.HEROES[k].set);
     await A.load(first, (p) => U.loading(p));
-    M.bgLoad = new Promise((res) => setTimeout(res, 300)).then(() => Promise.all([A.loadSets([...ids].filter((id) => !A.hasSet(id))), A.loadIso(['w', 'a', 'v', 'i']).catch(() => {})]))
-      .then(() => { M.bgDone = true; A.warm(R.ctx); A.isoWarm(R.ctx); }, () => { M.bgDone = true; });
+    // The background stream, in order (2026-11-13, the author: "why does it take so long to load"): first what the
+    // menu's film needs, then the story's effect pages, then everyone else one sheet at a time. It steps aside while a
+    // loading screen is up, so what the player is waiting for gets the whole connection. Nothing waits for all of it:
+    // every scene, fight and the map loads what it needs itself (needFor).
+    const menuSets = S.MENU ? S.MENU.shots.flatMap((sh) => (sh.cast || []).filter((c) => c.who !== 'hero').map((c) => c.set || D.FOES[c.who].set)) : [];
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms)), quiet = async () => { while (M.state === 'load') await sleep(250); };
+    M.bgLoad = (async () => {
+      await sleep(300);
+      await Promise.all([A.loadSets([...new Set(menuSets)].filter((id) => !A.hasSet(id))), A.loadIso(isoFor(0)).catch(() => {})]).catch(() => {});
+      M.menuReady = true; A.warm(R.ctx); A.isoWarm(R.ctx);
+      await quiet(); await A.loadCB().catch(() => {});
+      for (const id of ids) { if (A.hasSet(id)) continue; await quiet(); await A.loadSets([id]).catch(() => {}); }
+    })().then(() => { M.bgDone = true; A.warm(R.ctx); A.isoWarm(R.ctx); }, () => { M.bgDone = true; });
     try { if (document.fonts) await Promise.race([Promise.all(['20px Adventurer', '700 20px "Chakra Petch"', '500 16px Barlow', '700 16px Barlow'].map((f) => document.fonts.load(f))), new Promise((r) => setTimeout(r, 2500))]); } catch (e) { /* fonts optional */ }
     A.warm(R.ctx); A.isoWarm(R.ctx);
-    A.loadCB().catch(() => {});   // the Crowd Breaker effects stream in after the start
+    // (The Crowd Breaker effects come in the background stream, right after the menu's film.)
     // Ads and purchases (js/shop.js): what a purchase gives goes into the profile; once-only unlocks apply to every save.
     const SH = VS.SHOP;
     if (SH) {
