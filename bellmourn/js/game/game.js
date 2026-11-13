@@ -7,6 +7,8 @@ import { buildLevel, K } from '../world/level.js';
 import { OPENING, SHARDS, ENDING, CREDITS, TIPS, DISTRICTS } from './story.js';
 import { shared } from '../engine/materials.js';
 import { COL } from '../engine/ui.js';
+import { setTargetHeight } from '../engine/renderer.js';
+const QUALITY = [{ label: 'SHARP', h: 200 }, { label: 'BALANCED', h: 175 }, { label: 'FAST', h: 150 }];
 import LEVELS from '../world/levels/index.js';
 import { makeAutoplay } from './autoplay.js';
 import { BOSS_AI } from './ai.js';
@@ -28,7 +30,8 @@ const inZone = (e, z) => e && e.x >= z[0] && e.x <= z[2] && e.z >= z[1] && e.z <
 export class Game {
   constructor(sys) {
     Object.assign(this, sys); // r, atmos, fx, view, ui, input, sound
-    this.save = load(SAVE_KEY, freshSave()); this.settings = load(SET_KEY, { sound: true, music: 0.55, shake: true });
+    this.save = load(SAVE_KEY, freshSave()); this.settings = load(SET_KEY, { sound: true, music: 0.55, shake: true, quality: 0 });
+    this.applyQuality();
     this.sound.on = this.settings.sound; this.sound.musicVol = this.settings.music;
     this.state = 'boot'; this.t = 0; this.stateT = 0; this.sel = 0; this.camFocus = new THREE.Vector3(); this.zoom = 1; this.zoomTarget = 1;
     this.level = null; this.world = null; this.embersShown = this.save.embers; this.card = null;
@@ -211,15 +214,17 @@ export class Game {
   controls(dt, inp) {
     if (inp.back || inp.confirm || inp.taps.length) { this.sound.play('ui'); this.go(this.back || 'title'); }
   }
+  applyQuality() { const q = QUALITY[this.settings.quality || 0] || QUALITY[0]; setTargetHeight(q.h); this.r.resize(); }
   settingsMenu(dt, inp) {
     const s = this.settings;
-    this.setItems = [{ label: 'SOUND: ' + (s.sound ? 'ON' : 'OFF') }, { label: 'MUSIC: ' + Math.round(s.music * 10) }, { label: 'SCREEN SHAKE: ' + (s.shake ? 'ON' : 'OFF') }, { label: 'BACK' }];
+    this.setItems = [{ label: 'SOUND: ' + (s.sound ? 'ON' : 'OFF') }, { label: 'MUSIC: ' + Math.round(s.music * 10) }, { label: 'SCREEN SHAKE: ' + (s.shake ? 'ON' : 'OFF') }, { label: 'PIXELS: ' + QUALITY[s.quality || 0].label }, { label: 'BACK' }];
     const p = this.menuInput(inp, this.setItems);
     if (p === 0) { s.sound = !s.sound; this.sound.setEnabled(s.sound); }
     if (p === 1 || (this.sel === 1 && (inp.left || inp.right))) { s.music = inp.left ? Math.max(0, s.music - 0.1) : (inp.right ? Math.min(1, s.music + 0.1) : (s.music >= 0.95 ? 0 : s.music + 0.1)); s.music = Math.round(s.music * 10) / 10; this.sound.setMusicVol(s.music); }
     if (p === 2) s.shake = !s.shake;
-    if (p >= 0 && p < 3) this.saveSettings();
-    if (p === 3 || inp.back) this.go(this.back || 'title');
+    if (p === 3) { s.quality = ((s.quality || 0) + 1) % QUALITY.length; this.applyQuality(); }
+    if (p >= 0 && p < 4) this.saveSettings();
+    if (p === 4 || inp.back) this.go(this.back || 'title');
   }
   credits(dt, inp) { if (this.stateT > 0.5 && (inp.back || inp.confirm || inp.taps.length)) { if (this.back === 'title') this.go('title'); else { this.go('loading'); this.start(); } } }
 
@@ -492,7 +497,7 @@ export class Game {
       }
     }
     if (S === 'controls') this.drawControls();
-    if (S === 'settings') { ui.frame(W / 2 - 80, H / 2 - 34, 160, 66); this.menuRects = ui.menu(this.setItems || [], this.sel, W / 2, H / 2 - 24, { align: 'center' }); }
+    if (S === 'settings') { ui.frame(W / 2 - 80, H / 2 - 34, 160, 78); this.menuRects = ui.menu(this.setItems || [], this.sel, W / 2, H / 2 - 24, { align: 'center' }); }
     if (S === 'credits') { CREDITS.forEach((l, i) => ui.text(l, W / 2, H * 0.42 + i * 12, { align: 'center', color: i === 0 ? COL.white : COL.dim })); }
     if (S === 'story') {
       const lines = this.storyLines || []; const i = Math.min(lines.length - 1, this.storyIdx || 0); const a = Math.min(1, (this.lineT || 0) * 1.5);
@@ -504,8 +509,8 @@ export class Game {
       const hs = this.hs || (this.hs = {}); if (hs.world !== this.world) { hs.hpGhost = undefined; hs.bossGhost = undefined; } hs.world = this.world; hs.boss = this.boss && this.bossState === 'fight' ? this.boss : null; hs.bossPhases = this.boss ? (BOSS_AI[this.boss.type] || {}).phases : null; hs.embersShown = this.embersShown; hs.prompt = S === 'play' ? this.prompt : null;
       if (S !== 'bossIntro') ui.hud(hs, dt);
       if (this.card && S === 'play') {
-        this.card.t += dt; const c = this.card; const a = Math.min(1, c.t * 1.5, Math.max(0, (4.5 - c.t) * 1.2));
-        if (a > 0) { ui.text(c.sup, W / 2, H * 0.3, { align: 'center', color: COL.red, alpha: a }); ui.text(c.title, W / 2, H * 0.3 + 11, { align: 'center', color: COL.white, scale: 2, alpha: a }); if (c.line) ui.text(c.line, W / 2, H * 0.3 + 31, { align: 'center', color: COL.dim, alpha: a }); }
+        this.card.t += dt * (this.world.combat ? 4 : 1); const c = this.card; const a = Math.min(1, c.t * 1.5, Math.max(0, (4.5 - c.t) * 1.2));
+        if (a > 0) { ui.text(c.sup, W / 2, H * 0.24, { align: 'center', color: COL.red, alpha: a }); ui.text(c.title, W / 2, H * 0.24 + 11, { align: 'center', color: COL.white, scale: 2, alpha: a }); if (c.line) ui.text(c.line, W / 2, H * 0.24 + 31, { align: 'center', color: COL.dim, alpha: a }); }
         if (c.t > 5) this.card = null;
       }
       if (S === 'play' && this.input.touchMode) ui.drawTouch({ world: this.world, prompt: this.prompt }, this.input);

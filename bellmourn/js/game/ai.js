@@ -122,7 +122,7 @@ export const BOSS_AI = {
     phases: [0.5], keep: 2.6, turn: 3.5,
     moves(p) {
       const m = [
-        { id: 'chop', w: 3, max: 3.4, a: strike({ name: 'chop', anim: 'slam', range: 3.2, arc: deg(70), shape: 'line', width: 1.4, windup: 0.75, active: 0.86, dur: 1.45, dmg: 24, lunge: 1.5, tele: 'line' }) },
+        { id: 'chop', w: 3, max: 3.4, a: strike({ name: 'chop', anim: 'slam', range: 3.2, arc: deg(70), shape: 'line', width: 1.4, windup: 0.8, active: 0.9, dur: 1.45, dmg: 22, lunge: 1.5, tele: 'line' }) },
         { id: 'sweep', w: 2, max: 3.6, a: strike({ name: 'sweep', anim: 'sweep', range: 3.4, arc: deg(210), windup: 0.7, active: 0.86, dur: 1.4, dmg: 20 }) },
         { id: 'combo', w: 2, max: 3.0, a: strike({ name: 'combo', anim: 'fslash', range: 3.0, arc: deg(130), windup: 0.55, active: 0.66, dur: 1.75, dmg: 16, chain: { at: 0.9, windup: 1.2, active: 1.32, lunge: 3 } }) },
         { id: 'charge', w: 1.6, min: 5, max: 16, cd: 5, a: strike({ name: 'charge', anim: 'charge', shape: 'line', range: 9, width: 1.8, windup: 0.85, active: 1.55, dur: 2.0, dmg: 22, lunge: 13, lungeT: [0.85, 1.5], tele: 'line', teleRange: 10, turn: 2.5 }) },

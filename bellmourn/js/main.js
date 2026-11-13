@@ -20,7 +20,7 @@ const game = new Game({ r, atmos, fx, view, ui, input, sound });
 window.BM = { r, game, ready: false, frames: 0 };
 await game.start();
 BM.ready = true;
-let last = performance.now(); let slowT = 0, targetH = 200;
+let last = performance.now(); let slowT = 0, targetH = [200, 175, 150][game.settings.quality || 0];
 function loop(now) {
   const dt = Math.min(0.05, Math.max(0, (now - last) / 1000)); last = now;
   try { game.update(dt); } catch (e) { console.error(e); }
