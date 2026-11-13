@@ -16,7 +16,7 @@ const mat = (k, fn) => { if (!cache.has(k)) cache.set(k, fn()); return cache.get
 export const iron = () => mat('iron', () => cutout(new THREE.MeshPhongMaterial({ color: 0x221e1e, specular: 0x7a604c, shininess: 22 })));
 export const bronze = () => mat('bronze', () => cutout(new THREE.MeshPhongMaterial({ color: 0x6e4c26, specular: 0xd8a868, shininess: 40 })));
 export const oldBronze = () => mat('oldBronze', () => cutout(new THREE.MeshPhongMaterial({ color: 0x4a3a26, specular: 0x8a7050, shininess: 24 })));
-const coalMat = () => mat('coal', () => cutout(new THREE.MeshPhongMaterial({ color: 0x131317, specular: 0x5a6070, shininess: 60 })));
+const coalMat = () => mat('coal', () => cutout(new THREE.MeshPhongMaterial({ color: 0x0e0e11, specular: 0x262a32, shininess: 30 })));
 export const SOOT = '#2c292c';
 
 const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _p = new THREE.Vector3(), _s = new THREE.Vector3(), _e = new THREE.Euler(), _d = new THREE.Vector3();
@@ -370,9 +370,10 @@ export function ladle(ctx, x, y, z, yTo = 0.1) {
 // ---------------------------------------------------------------- yard and floor clutter
 // A heap of coal, lumps rolled off its foot.
 export function coal(ctx, x, z, r = 1, h = 0.8) {
-  add(ctx, cyl(r * 0.28, r, h, 8), coalMat(), x, h / 2, z, { ry: x * 1.3 });
+  add(ctx, cyl(r * 0.18, r, h * 0.7, 7), coalMat(), x, h * 0.35, z, { ry: x * 1.3 });
+  add(ctx, cyl(r * 0.1, r * 0.55, h * 0.4, 6), coalMat(), x + r * 0.12, h * 0.8, z - r * 0.08, { ry: z });
   const rr = T.rng(Math.round(x * 31 + z * 17) + 5);
-  for (let i = 0; i < Math.round(r * 10); i++) { const a = rr() * 6.283, dd = r * (0.3 + rr() * 0.8), yy = Math.max(0.05, h * (1 - dd / r) * 0.95 + 0.04); put(ctx, 'fd-lump', coalMat(), x + Math.cos(a) * dd, yy, z + Math.sin(a) * dd, 0.14 + rr() * 0.12, 0.1 + rr() * 0.08, 0.14 + rr() * 0.1, rr() * 3, rr(), rr()); }
+  for (let i = 0; i < Math.round(r * 16); i++) { const a = rr() * 6.283, dd = r * (0.3 + rr() * 0.8), yy = Math.max(0.05, h * (1 - dd / r) * 0.95 + 0.04); put(ctx, 'fd-lump', coalMat(), x + Math.cos(a) * dd, yy, z + Math.sin(a) * dd, 0.14 + rr() * 0.12, 0.1 + rr() * 0.08, 0.14 + rr() * 0.1, rr() * 3, rr(), rr()); }
   solidCircle(ctx, x, z, r * 0.85, h);
 }
 // A heap of slag: rough grey-brown, a few clinkers still glowing.
