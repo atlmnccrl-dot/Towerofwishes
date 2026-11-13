@@ -10,6 +10,18 @@
 
   // Decoded during loading so the first draw of a sheet does not stall a frame.
   const loadImage = (src) => new Promise((res, rej) => { const im = new Image(); im.onload = () => (im.decode ? im.decode().catch(() => {}) : Promise.resolve()).then(() => res(im)); im.onerror = () => rej(new Error('image ' + src)); im.src = src; });
+  // Lossless WebP copies of the big pages (assets/webp, made by vesper/tools_webp.py: pixel-identical, about a third
+  // smaller). A browser that shows WebP takes the copy for every page on the list; anything else, or a copy that is not
+  // there, falls back to the PNG.
+  const webpOK = new Promise((res) => { try { const i = new Image(); i.onload = () => res(i.width === 1); i.onerror = () => res(false); i.src = 'data:image/webp;base64,UklGRhoAAABXRUJQVlA4TA0AAAAvAAAAEAcQERGIiP4HAA=='; } catch (e) { res(false); } });
+  let webpList = null;
+  const webpSet = () => webpList || (webpList = webpOK.then((ok) => (ok ? fetch(A.ROOT + 'webp/list.json').then((r) => (r.ok ? r.json() : [])).then((l) => new Set(l)).catch(() => new Set()) : new Set())));
+  async function loadPage(src) {
+    const rel = src.startsWith(A.ROOT) ? src.slice(A.ROOT.length) : null;
+    if (rel && (await webpSet()).has(rel)) { try { return await loadImage(A.ROOT + 'webp/' + rel.slice(0, -4) + '.webp'); } catch (e) { /* not there: the PNG */ } }
+    return loadImage(src);
+  }
+  A.webp = () => webpOK;
   async function loadJSON(src) { const r = await fetch(src); if (!r.ok) throw new Error('json ' + src); return r.json(); }
 
   const pending = {};
@@ -25,7 +37,7 @@
   async function loadSetNow(id) {
     if (id.indexOf('@') > 0) return loadSkin(id);
     const d = (id.startsWith('vh_') && await vhMeta(id)) || await loadJSON(A.ROOT + 'pixel/' + id + '.json');
-    d.images = await Promise.all(d.pages.map((p) => loadImage(A.ROOT + 'pixel/' + p)));
+    d.images = await Promise.all(d.pages.map((p) => loadPage(A.ROOT + 'pixel/' + p)));
     sets[id] = d; return d;
   }
   // A look: "<set>@<hero>.<skin>" is <set> with its pages recoloured (VS.DATA.SKINS), built once on first use.
@@ -143,7 +155,7 @@
   // the game starts; until then (or without them) the old effects play.
   let cbData = null, cbP = null;
   A.loadCB = function () {
-    return cbP || (cbP = loadJSON(A.ROOT + 'cbfx/cb.json').then(async (d) => { d.images = await Promise.all(Array.from({ length: d.pages }, (_, i) => loadImage(A.ROOT + 'cbfx/cb_' + i + (d.ext || '.png')))); cbData = d; }));   // ext: '.webp' in the store apps (tools_build.py --app)
+    return cbP || (cbP = loadJSON(A.ROOT + 'cbfx/cb.json').then(async (d) => { d.images = await Promise.all(Array.from({ length: d.pages }, (_, i) => loadPage(A.ROOT + 'cbfx/cb_' + i + (d.ext || '.png')))); cbData = d; }));   // ext: '.webp' in the store apps (tools_build.py --app)
   };
   A.cbReady = () => !!cbData;
   // The old effect names, played as Crowd Breaker sheets: [sheet, size against the old effect, options]
@@ -241,7 +253,7 @@
       return d;
     })));
     const jobs = [];
-    for (const g of groups) for (let i = 0; i < (isoData.pages[g] || 0); i++) { const k = g + i; if (isoPages[k]) continue; jobs.push(isoPend[k] || (isoPend[k] = loadImage(A.ROOT + 'iso/tiles_' + k + '.png').then((im) => { isoPages[k] = im; }))); }
+    for (const g of groups) for (let i = 0; i < (isoData.pages[g] || 0); i++) { const k = g + i; if (isoPages[k]) continue; jobs.push(isoPend[k] || (isoPend[k] = loadPage(A.ROOT + 'iso/tiles_' + k + '.png').then((im) => { isoPages[k] = im; }))); }
     await Promise.all(jobs);
   };
   function isoPage(p, tint) {
