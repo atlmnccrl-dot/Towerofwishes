@@ -475,6 +475,18 @@ export function gargoyle(ctx, x, y, z, ry = 0) {
   }
 }
 
+// An iron floor plate, riveted (flat, walkable).
+export function plate(ctx, x, z, w = 1.6, d = 1.6) {
+  put(ctx, 'fd-floorplate', iron(), x, 0.015, z, w, 0.03, d);
+  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) put(ctx, 'fd-rivet', iron(), x + sx * (w / 2 - 0.1), 0.035, z + sz * (d / 2 - 0.1), 0.06, 0.03, 0.06);
+}
+// A splash of bronze spilled on the floor, still glowing at its heart (flat, walkable).
+export function splash(ctx, x, z, r = 0.4) {
+  add(ctx, geo('fd-splash', () => new THREE.CircleGeometry(1, 7).rotateX(-Math.PI / 2)), M.flat(0x2a1a14), x, 0.014, z, { s: new THREE.Vector3(r * 1.3, 1, r), cast: false });
+  add(ctx, geo('fd-splash', () => new THREE.CircleGeometry(1, 7).rotateX(-Math.PI / 2)), moltenMat(), x, 0.02, z, { s: new THREE.Vector3(r * 0.6, 1, r * 0.45), cast: false });
+  flow(ctx);
+}
+
 // ---------------------------------------------------------------- sparks
 // Sparks rising from the fires: emitters [x0, z0, x1, z1, y0, n, rise]. Each spark climbs, wavers and
 // cools from white-gold to dull red, then starts again. Two layers: 2 px and 1 px.

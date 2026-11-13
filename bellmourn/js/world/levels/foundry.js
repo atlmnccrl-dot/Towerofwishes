@@ -197,6 +197,11 @@ export default {
     for (const z of [-44, -50, -56]) P.column(ctx, 11.4, z, 5);
     P.brazier(ctx, -7.6, -42.9); P.brazier(ctx, 10.2, -57.8); P.brazier(ctx, 10.2, -43);
     P.tippedBell(ctx, 9.2, -46.8, 1.3, 2.4); P.tippedBell(ctx, -6.8, -57.8, 1.1, -0.4);
+    // the pouring floor: iron plates, soot, bronze spilled and still glowing (all flat, all walkable)
+    for (const [x, z] of [[-4.2, -46.2], [4.6, -50.6], [-0.8, -55.4], [6.4, -44.6], [-5.6, -52.4], [1.6, -46.8]]) P.plate(ctx, x, z);
+    K.floor(ctx, -3, -58.9, 4, -56.6, W.dirt('#2c2626'), 0.01, 0.3);
+    for (const [x, z, r] of [[-3.2, -57.7, 0.5], [3.4, -58.2, 0.4], [-7.8, -52, 0.35], [0.8, -57.2, 0.3], [-8, -46.6, 0.3], [6.2, -57.8, 0.35]]) P.splash(ctx, x, z, r);
+    P.ingots(ctx, 10.2, -52.4, 4); P.mould(ctx, 10, -54.8, 0.9);
     K.fallenBody(ctx, 4.6, -46, 0.4); K.droppedSword(ctx, 5.6, -46.6, 2.4); K.fallenBody(ctx, -3, -53.6, -1.2, 0x1c1816);
     K.puddle(ctx, -2, -46, 2.2, 1.2); K.puddle(ctx, 5.5, -53, 1.6, 1); K.puddle(ctx, -5, -50, 1.4, 0.9);
     P.slag(ctx, 14, -48, 1.8, 1.1); P.slag(ctx, 13.6, -58, 1.4, 0.8);
