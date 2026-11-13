@@ -29,37 +29,55 @@ every swing and fall is free. Anything standing between the camera and the hero 
 
 For a hundred nights the great bell of St. Orrin has been silent; the rain has not stopped and neither
 has the night. The people still walking the streets have no voices any more, only red eyes: the Hushed.
-Carmine, last of the bell-wardens, comes home to ring the bell.
+The last of the bell-wardens come home to ring the bell.
 
-| District | Place | Boss | Gift |
-|---|---|---|---|
-| I | Gallows Gate | The Gaoler | Crimson Wave (a fully charged heavy sends a wave) |
-| II | Lantern Row | Mother Tallow | Twin Step (dash twice) |
-| III | The Drowned Nave | The Drowned Deacon | Riposte (a parry heals) |
-| IV | The Belfry | Saint Silence | the dawn |
+| | District | Boss |
+|---|---|---|
+| — | The Old Road (training) | — |
+| I | Gallows Gate | The Gaoler |
+| II | Lantern Row | Mother Tallow |
+| III | Mirewater Docks | The Harbormaster |
+| IV | The Drowned Nave | The Drowned Deacon |
+| V | The Undercroft | The Ossuary Knight |
+| VI | The Bell Foundry | The Bellfounder |
+| VII | The Crown Heights | The Pale Regent |
+| VIII | The Belfry | Saint Silence |
+
+## The wardens
+
+| Warden | Weapon | Attack | Skills | Ultimate |
+|---|---|---|---|---|
+| Carmine, the Bell-Warden | blade | 3-hit combo | Crimson Wave, Cutting Rush, Whirl of Thorns | Requiem |
+| Vesper, the Night Huntress | crossbow | hold to shoot | Volley, Smoke Step, Snare Trap | Rain of Bolts |
+| Bram, the Bellbreaker | hammer | 2-hit smash, armour | Shockwave, Iron Charge, Bell Ward | Toll of Ruin |
+| Sister Ash, the Lamplighter (joins after Lantern Row) | lantern staff | hold to cast fire | Flame Pillar, Lantern Ward, Will-o'-Wisps | Sunburst |
+
+The third skill unlocks at level 4 and can be swapped into a slot. Every warden levels on their own.
 
 ## Playing
 
 | | Keyboard / mouse | Touch | Gamepad |
 |---|---|---|---|
 | Move | WASD / arrows | left thumb (floating stick) | left stick |
-| Attack (3-hit combo) | J / left click | ATK | X |
-| Heavy (hold to charge) | K / right click | HVY | Y |
-| Dash (invulnerable) | Space / Shift | DASH | A |
-| Parry | L / F | PRY | B |
+| Attack (hold to keep shooting) | J / left click | ATK | X |
+| Skill 1 / Skill 2 | K or right click / L | the two skill buttons | Y / B |
+| Dash (invulnerable, recharges) | Space / Shift | DASH | A |
+| Ultimate (when the red gauge is full) | Q | ULT | RB |
 | Tonic | R | TON | LB |
-| Requiem (when the red gauge is full) | Q | ART | RB |
-| Use (lamps, chests) | E | USE | |
+| Use (lamps, chests) | E | USE | Back |
 | Pause | Esc / P | II | Start |
 
-- Foes telegraph every blow with red shapes on the stones. Dash through a blow at the last moment for
-  a **perfect dodge** (time slows); **parry** just before it lands to break the attacker.
+- Foes telegraph every blow with red shapes on the stones. Dash through a blow at the last moment for a
+  **perfect dodge** (time slows). There is no parry: read, dash, punish.
 - Every hit wears down a foe's poise; a broken foe reels and can be **finished** (attack while it reels).
-- Common foes flinch a few times, then fight through your blows. Bosses have phases.
-- **Lamps** are checkpoints: lighting or resting at one heals, refills tonics and keeps your place.
-  Spend **embers** (dropped by foes, found in chests) at a lamp on Vitality, Blade and Tonic.
+- Burn, bleed, poison, frost, stun and root. **Elite** foes glow with an affix (burning, frozen,
+  shielded, hasted, vampiric), hit harder and drop more.
+- **Lamps** are checkpoints and the place to grow: switch warden, spend skill points (five ranks per
+  skill), temper and change weapons (each warden has five), wear relics (fourteen; two slots, a third
+  after District IV), buy from the merchant, and travel to any district already reached.
+- Kills give embers and experience; chests and bosses give weapons, relics and tonic flasks.
 - Dying costs nothing but the fight in progress: you wake at the last lamp; cleared fights stay cleared.
-- Progress saves in the browser. Settings: sound, music volume, screen shake.
+- Progress saves in the browser. Settings: sound, music volume, screen shake, pixel size.
 
 ## Code
 
@@ -80,8 +98,12 @@ Carmine, last of the bell-wardens, comes home to ring the bell.
 | `js/world/level.js`, `js/world/levels/*.js` | the districts (layout, lamps, foes, locked-gate fights, boss, exit) |
 | `js/world/props/*.js` | props made for one district |
 | `js/actors/rig.js`, `anims.js`, `view.js` | articulated characters, their poses and clips, and the sim-to-rig view |
-| `js/game/sim.js` | the fight simulation: pure, fixed 60 Hz, deterministic; runs in Node |
-| `js/game/defs.js` | hero moves, foes, bosses (pure data) |
+| `js/game/sim.js` | the fight simulation: pure, fixed 60 Hz, deterministic; runs in Node (hero kits, abilities, ultimates, statuses, elites, relic effects) |
+| `js/game/heroes.js` | the four wardens, abilities, ultimates, weapons, relics, elite affixes, growth curves (pure data) |
+| `js/game/progress.js` | experience, skill ranks, loot, boss rewards, the merchant (pure functions on the save) |
+| `js/game/lampmenu.js`, `js/game/tutorial.js` | the lamp menu tabs; the guided training on the Old Road |
+| `js/game/units.js`, `js/game/bosses2.js`, `js/actors/beasts.js` | the newer foes and their behaviour, the four newer bosses, bodies that are not people |
+| `js/game/defs.js` | the first foes and bosses (pure data) |
 | `js/game/ai.js` | foe and boss behaviour (pure) |
 | `js/game/bot.js`, `autoplay.js` | an autoplayer for tests |
 | `js/game/story.js` | the opening, the districts, the gifts, the ending |
@@ -93,7 +115,7 @@ From the repository root, with a static server on port 8790 (`python3 -m http.se
 
 ```sh
 node bellmourn/test/no-assets.mjs                                           # no pre-made assets anywhere in the game
-node bellmourn/test/sim-test.mjs 12                                         # balance and invariants in Node
+HERO=warden node bellmourn/test/sim-test.mjs 6                              # balance and invariants in Node (any warden)
 NODE_PATH=$(npm root -g) node bellmourn/test/level-check.js gate            # reachability of every district (gate, market, nave, belfry)
 NODE_PATH=$(npm root -g) node bellmourn/test/play.js /tmp/bm-play            # title -> story -> first fight, screenshots
 NODE_PATH=$(npm root -g) node bellmourn/test/poses.js /tmp/bm-poses          # every clip, zoomed
@@ -101,5 +123,6 @@ NODE_PATH=$(npm root -g) node bellmourn/test/autoplay-browser.js /tmp/bm-auto 40
 NODE_PATH=$(npm root -g) node bellmourn/test/shot.js /tmp/x.png "level=nave&boss=1&god=1"   # any spot
 ```
 
-Debug URL parameters: `?level=<id>` starts in a district, `&lamp=<id>` at a lamp, `&boss=1` in the boss
-arena, `&god=1` makes the hero unkillable, `?auto=1&speed=3` plays itself.
+Debug URL parameters: `?level=<id>` starts in a district (prologue, gate, market, docks, nave,
+undercroft, foundry, heights, belfry), `&lamp=<id>` at a lamp, `&boss=1` in the boss arena, `&hero=<id>`
+as a given warden, `&god=1` makes the hero unkillable, `?auto=1&speed=3` plays itself.
