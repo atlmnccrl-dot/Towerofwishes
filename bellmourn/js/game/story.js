@@ -11,7 +11,7 @@ export const OPENING = [
   'CARMINE, LAST OF THE BELL-WARDENS, COMES HOME.',
 ];
 
-export const DISTRICTS = ['gate', 'market', 'nave', 'belfry'];
+export const DISTRICTS = ['gate', 'market', 'docks', 'nave', 'undercroft', 'foundry', 'heights', 'belfry'];
 
 export const SHARDS = {
   gate: { name: 'SHARD OF THE GATE', gift: 'CRIMSON WAVE', how: 'A FULLY CHARGED HEAVY NOW SENDS A WAVE OF RED STEEL.', unlock: 'wave' },

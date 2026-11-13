@@ -3,6 +3,8 @@
 //
 // The view reads entities (x, z, face, anim, animT, state, tele...) and drains `events` each frame.
 import { HERO, FOES, BOSSES, scaleFoe } from './defs.js';
+import { UNITS } from './units.js';
+import { BOSSES2 } from './bosses2.js';
 import { thinkFoe, thinkBoss } from './ai.js';
 
 const TAU = Math.PI * 2;
@@ -49,7 +51,7 @@ export class World {
   }
 
   spawnFoe(type, x, z, opts = {}) {
-    const base = FOES[type]; if (!base) throw new Error('unknown foe ' + type);
+    const base = FOES[type] || UNITS[type]; if (!base) throw new Error('unknown foe ' + type);
     const def = scaleFoe(base, opts.tier || 0);
     const e = this._ent({ team: 'foe', type, def, x, z, r: def.r, mass: def.mass, hp: def.hp, maxHp: def.hp, poise: def.poise, maxPoise: def.poise, speed: def.speed, dmgMul: def.dmgMul, armor: !!def.armor, flinch: def.flinch ?? 2 });
     e.face = opts.face ?? angTo(e, this.hero || { x, z: z + 1 });
@@ -59,7 +61,7 @@ export class World {
   }
 
   spawnBoss(type, x, z, opts = {}) {
-    const def = BOSSES[type];
+    const def = BOSSES[type] || BOSSES2[type]; if (!def) throw new Error('unknown boss ' + type);
     const e = this._ent({ team: 'foe', type, def, boss: true, x, z, r: def.r, mass: def.mass, hp: def.hp * (opts.hpMul || 1), maxHp: def.hp * (opts.hpMul || 1), poise: 300, maxPoise: 300, speed: def.speed, dmgMul: opts.dmgMul || 1, armor: true });
     e.face = opts.face ?? 0; e.phase = 1; e.ai = { cd: 1.5, step: 0, aggro: true }; e.state = 'idle';
     this.emit('spawn', { e, boss: true }); return e;

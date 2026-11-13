@@ -1,10 +1,12 @@
 // How foes and bosses think. Pure logic on top of the World in sim.js.
 import { ATTACKS as A } from './defs.js';
 import { angDiff, angTo, dist, turn } from './sim.js';
+import { UNIT_AI } from './units.js';
+import { BOSS_AI2 } from './bosses2.js';
 
 const deg = (d) => (d * Math.PI) / 180;
 
-function steer(w, e, ang) {
+export function steer(w, e, ang) {
   // try the direct heading, then fan out around obstacles
   for (const off of [0, 0.6, -0.6, 1.2, -1.2, 1.9, -1.9]) {
     const a = ang + off * (e.ai.strafeDir || 1); const px = e.x + Math.sin(a) * 0.9, pz = e.z + Math.cos(a) * 0.9;
@@ -13,13 +15,14 @@ function steer(w, e, ang) {
   return ang;
 }
 
-function pick(w, list) {
+export function pick(w, list) {
   const tot = list.reduce((s, o) => s + o.w, 0); let r = w.rand() * tot;
   for (const o of list) { r -= o.w; if (r <= 0) return o; }
   return list[list.length - 1];
 }
 
 export function thinkFoe(w, e, h) {
+  if (UNIT_AI[e.type] && UNIT_AI[e.type](w, e, h) !== false) return; // units with their own behaviour
   const hero = w.hero; const D = e.def;
   if (!hero || hero.dead) { e.anim = 'idle'; return; }
   const d = dist(e, hero); const ang = angTo(e, hero);
@@ -65,7 +68,7 @@ export function thinkFoe(w, e, h) {
   else e.anim = 'idle';
 }
 
-function blink(w, e, hero) {
+export function blink(w, e, hero) {
   for (let i = 0; i < 12; i++) {
     const a = w.rand() * Math.PI * 2; const r = 5.5 + w.rand() * 2.5;
     const x = hero.x + Math.sin(a) * r, z = hero.z + Math.cos(a) * r;
@@ -81,7 +84,7 @@ function blink(w, e, hero) {
 // the World's windup/telegraph/strike machinery) plus scripted extras through onStrike.
 export function thinkBoss(w, e, h) {
   const hero = w.hero; if (!hero || hero.dead) { e.anim = 'idle'; return; }
-  const B = BOSS_AI[e.type];
+  const B = BOSS_AI[e.type] || BOSS_AI2[e.type];
   // phase changes
   const frac = e.hp / e.maxHp;
   const next = B.phases.findIndex((p) => frac <= p) + 2; // phases: [0.5] → phase 2 below 50%
@@ -112,9 +115,9 @@ export function thinkBoss(w, e, h) {
 }
 
 // boss helpers
-function ringAt(w, e, x, z, r1, o = {}) { return w.addHazard({ shape: 'ring', x, z, r0: o.r0 ?? 0.6, r1, warn: o.warn ?? 0.5, life: o.life ?? 1.2, dmg: (o.dmg ?? 16) * e.dmgMul, src: e, kind: o.kind || 'shock', kb: 6 }); }
-function circleAt(w, e, x, z, r, o = {}) { return w.addHazard({ shape: 'circle', x, z, r, warn: o.warn ?? 0.9, life: o.life ?? 0.25, dmg: (o.dmg ?? 18) * e.dmgMul, src: e, kind: o.kind || 'slam', kb: o.kb ?? 7 }); }
-function summon(w, e, type, n, tier, radius = 4) {
+export function ringAt(w, e, x, z, r1, o = {}) { return w.addHazard({ shape: 'ring', x, z, r0: o.r0 ?? 0.6, r1, warn: o.warn ?? 0.5, life: o.life ?? 1.2, dmg: (o.dmg ?? 16) * e.dmgMul, src: e, kind: o.kind || 'shock', kb: 6 }); }
+export function circleAt(w, e, x, z, r, o = {}) { return w.addHazard({ shape: 'circle', x, z, r, warn: o.warn ?? 0.9, life: o.life ?? 0.25, dmg: (o.dmg ?? 18) * e.dmgMul, src: e, kind: o.kind || 'slam', kb: o.kb ?? 7 }); }
+export function summon(w, e, type, n, tier, radius = 4) {
   for (let i = 0; i < n; i++) {
     for (let k = 0; k < 8; k++) {
       const a = w.rand() * Math.PI * 2; const x = e.x + Math.sin(a) * radius, z = e.z + Math.cos(a) * radius;
@@ -124,7 +127,7 @@ function summon(w, e, type, n, tier, radius = 4) {
   w.emit('summon', { e });
 }
 
-const strike = (o) => ({ dur: 1.2, windup: 0.6, active: 0.75, range: 2.5, arc: deg(140), dmg: 18, kb: 6, lunge: 2.5, tele: 'arc', heavy: true, ...o });
+export const strike = (o) => ({ dur: 1.2, windup: 0.6, active: 0.75, range: 2.5, arc: deg(140), dmg: 18, kb: 6, lunge: 2.5, tele: 'arc', heavy: true, ...o });
 
 export const BOSS_AI = {
   // District I: a giant gaoler with a cleaver and a burning lantern on a chain.

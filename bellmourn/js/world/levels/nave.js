@@ -4,7 +4,7 @@
 import * as P from '../props/nave.js';
 
 export default {
-  id: 'nave', name: 'The Drowned Nave', tagline: 'THE TIDE CAME IN THROUGH THE DOORS. IT NEVER WENT OUT.', tier: 2,
+  id: 'nave', name: 'The Drowned Nave', tagline: 'THE TIDE CAME IN THROUGH THE DOORS. IT NEVER WENT OUT.', tier: 3,
   start: { x: 15.5, z: 14, face: Math.PI },
   bounds: [-17.5, -42.5, 22, 16.5],
   gatesOpen: ['lychGate', 'choirGate'],
@@ -44,7 +44,7 @@ export default {
       ] },
   ],
   boss: { type: 'deacon', x: 0, z: -29.5, face: 0, zone: [-11.8, -36.4, 11.8, -22.2], gates: ['choirGate'], opens: ['exitGate', 'choirGate'] },
-  exit: { zone: [-16.4, -30.6, -13.8, -27.4], to: 'belfry', requires: 'boss' },
+  exit: { zone: [-16.4, -30.6, -13.8, -27.4], to: 'undercroft', requires: 'boss' },
   build(K, ctx) {
     const W = K.M;
     // The side door and the two screens are opaque to the drowned: out of ctx.lowSolids, and 0.6 m

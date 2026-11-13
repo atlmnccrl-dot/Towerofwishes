@@ -8,7 +8,7 @@ import * as T from '../../engine/textures.js';
 const BOUNDS = [-16, -62, 22, 18];
 
 export default {
-  id: 'belfry', name: 'The Belfry', tagline: 'THE BELL IS SILENT. SOMEONE IS STILL UP THERE.', tier: 3,
+  id: 'belfry', name: 'The Belfry', tagline: 'THE BELL IS SILENT. SOMEONE IS STILL UP THERE.', tier: 7,
   start: { x: 0.1, z: 15.2, face: Math.PI },
   bounds: BOUNDS,
   gatesOpen: ['leadsGate', 'towerGate', 'belfryGate'],

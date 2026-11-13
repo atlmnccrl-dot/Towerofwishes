@@ -39,7 +39,7 @@ export default {
       ] },
   ],
   boss: { type: 'tallow', x: -46, z: -31.5, face: Math.PI / 2, zone: [-54.4, -41.2, -36.4, -22.2], gates: ['squareGate'], opens: ['exitGate'] },
-  exit: { zone: [-47.65, -46, -46.55, -43.4], to: 'nave', requires: 'boss' },
+  exit: { zone: [-47.65, -46, -46.55, -43.4], to: 'docks', requires: 'boss' },
   build(K, ctx) {
     // ------------------------------------------------ ground and water
     K.floor(ctx, -12, 0.6, 5.5, 27, K.M.cobble('#545e6c'));

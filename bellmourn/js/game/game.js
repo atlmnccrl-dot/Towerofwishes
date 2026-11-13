@@ -12,6 +12,7 @@ const QUALITY = [{ label: 'SHARP', h: 200 }, { label: 'BALANCED', h: 175 }, { la
 import LEVELS from '../world/levels/index.js';
 import { makeAutoplay } from './autoplay.js';
 import { BOSS_AI } from './ai.js';
+import { BOSS_AI2 } from './bosses2.js';
 
 const SAVE_KEY = 'bellmourn.save.v1', SET_KEY = 'bellmourn.settings.v1';
 export function freshSave() { return { level: 'gate', lamp: null, cleared: {}, items: {}, bosses: {}, embers: 0, up: { hp: 0, blade: 0, tonic: 0 }, unlock: {}, deaths: 0, time: 0, done: false }; }
@@ -24,7 +25,7 @@ export const UPGRADES = [
   { id: 'tonic', label: 'TONIC', max: 3, cost: (n) => 120 * (n + 1), desc: '+1 TONIC FLASK' },
 ];
 
-const ROMAN = ['I', 'II', 'III', 'IV', 'V'];
+const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
 const inZone = (e, z) => e && e.x >= z[0] && e.x <= z[2] && e.z >= z[1] && e.z <= z[3];
 
 export class Game {
@@ -506,7 +507,7 @@ export class Game {
       ui.text('TAP / ENTER', W / 2, H - 16, { align: 'center', color: '#5a564e', alpha: 0.5 + Math.sin(this.t * 3) * 0.3 });
     }
     if (['play', 'pause', 'lamp', 'bossIntro', 'dead'].includes(S) && this.world) {
-      const hs = this.hs || (this.hs = {}); if (hs.world !== this.world) { hs.hpGhost = undefined; hs.bossGhost = undefined; } hs.world = this.world; hs.boss = this.boss && this.bossState === 'fight' ? this.boss : null; hs.bossPhases = this.boss ? (BOSS_AI[this.boss.type] || {}).phases : null; hs.embersShown = this.embersShown; hs.prompt = S === 'play' ? this.prompt : null;
+      const hs = this.hs || (this.hs = {}); if (hs.world !== this.world) { hs.hpGhost = undefined; hs.bossGhost = undefined; } hs.world = this.world; hs.boss = this.boss && this.bossState === 'fight' ? this.boss : null; hs.bossPhases = this.boss ? (BOSS_AI[this.boss.type] || BOSS_AI2[this.boss.type] || {}).phases : null; hs.embersShown = this.embersShown; hs.prompt = S === 'play' ? this.prompt : null;
       if (S !== 'bossIntro') ui.hud(hs, dt);
       if (this.card && S === 'play') {
         this.card.t += dt * (this.world.combat ? 4 : 1); const c = this.card; const a = Math.min(1, c.t * 1.5, Math.max(0, (4.5 - c.t) * 1.2));
