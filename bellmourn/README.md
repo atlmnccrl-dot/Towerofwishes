@@ -3,8 +3,12 @@
 *Ring the bell. Bring the dawn.*
 
 An isometric pixel-art action game for the browser (PC and iPhone, landscape). A separate game
-from Tower of Wishes: its own world, cast, story, code and art. It reads nothing from the rest of the
-repository; everything (art, music, sound) is made in code at runtime.
+from Tower of Wishes: its own world, cast, story, code and art.
+
+**No pre-made assets.** Nothing is loaded from the repository's asset library or anywhere else: every
+texture, building, prop, character, effect, the font, the music and every sound are created from scratch
+in code when the game starts. The only third-party file is the three.js rendering library (code, MIT)
+in `vendor/`. `node bellmourn/test/no-assets.mjs` enforces this.
 
 Play: serve the repository root and open `bellmourn/index.html`, for example
 `python3 -m http.server 8000` and then <http://localhost:8000/bellmourn/>.
@@ -88,6 +92,7 @@ Carmine, last of the bell-wardens, comes home to ring the bell.
 From the repository root, with a static server on port 8790 (`python3 -m http.server 8790`):
 
 ```sh
+node bellmourn/test/no-assets.mjs                                           # no pre-made assets anywhere in the game
 node bellmourn/test/sim-test.mjs 12                                         # balance and invariants in Node
 NODE_PATH=$(npm root -g) node bellmourn/test/level-check.js gate            # reachability of every district (gate, market, nave, belfry)
 NODE_PATH=$(npm root -g) node bellmourn/test/play.js /tmp/bm-play            # title -> story -> first fight, screenshots
