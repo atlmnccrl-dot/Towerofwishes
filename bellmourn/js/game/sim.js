@@ -522,7 +522,7 @@ export class World {
       }
     } else {
       dst.poise -= (o.poise || 0) * 0.5;
-      if (dst.poise <= 0 && dst.state !== 'stagger' && !dst.hidden) { dst.poise = dst.maxPoise; dst.state = 'stagger'; dst.t = 0; dst.anim = 'stagger'; dst.animT = 0; dst.stagT = 2.2; dst.tele = null; dst.atk = null; dst.leapFrom = null; dst.leapH = 0; this.emit('stagger', { e: dst }); }
+      if (dst.poise <= 0 && dst.state !== 'stagger' && !dst.hidden) { dst.staggers = (dst.staggers || 0) + 1; dst.maxPoise = 300 * Math.min(2, 1 + 0.25 * dst.staggers); dst.poise = dst.maxPoise; dst.state = 'stagger'; dst.t = 0; dst.anim = 'stagger'; dst.animT = 0; dst.stagT = 2.2; dst.tele = null; dst.atk = null; dst.leapFrom = null; dst.leapH = 0; this.emit('stagger', { e: dst }); }
     }
     return true;
   }

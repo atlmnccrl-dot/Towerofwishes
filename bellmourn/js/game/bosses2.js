@@ -168,25 +168,25 @@ function regentExtra(rig, part, box) {
 // ------------------------------------------------------------------ stats
 export const BOSSES2 = {
   harbormaster: {
-    name: 'The Harbormaster', title: 'Who Drags the Drowned Ashore', hp: 4300, poise: 999, speed: 2.7, r: 0.85, mass: 9, scale: 1.85, boss: true,
+    name: 'The Harbormaster', title: 'Who Drags the Drowned Ashore', hp: 3100, poise: 999, speed: 2.7, r: 0.85, mass: 9, scale: 1.85, boss: true,
     look: { weapon: 'none', eyes: 0x60f0e0, hat: 'brim', bulk: 1.5, skirt: 0x5a5430, colors: { skin: 0x7a948a, tunic: 0x6a6436, pants: 0x3a3a2a, boots: 0x1a1c18, hat: 0x5a5430, glove: 0x4a5a50, shoulder: 0x726a3a, belt: 0x4a3420 }, extra: harborExtra },
   },
   ossuary: {
-    name: 'The Ossuary Knight', title: 'Keeper of Ten Thousand Names', hp: 5600, poise: 999, speed: 3.0, r: 0.75, mass: 8, scale: 1.75, boss: true,
+    name: 'The Ossuary Knight', title: 'Keeper of Ten Thousand Names', hp: 5000, poise: 999, speed: 3.0, r: 0.75, mass: 8, scale: 1.75, boss: true,
     look: { weapon: 'greatsword', blade: 0xe0d8c4, guard: 0x8a7a5a, eyes: 0xfff0a0, horns: 0xe8e0cc, mask: 0xd8d0bc, bulk: 1.3, cloak: true, cloakLen: [0.34, 0.34, 0.3], colors: { skin: 0xd8d0bc, tunic: 0x4a4038, pants: 0x3a322c, boots: 0xb8b0a0, shoulder: 0xe0d8c8, glove: 0xc8c0ac, belt: 0x5a4a3a, cloak: 0x3a342c, cloakDark: 0x2a2620 }, extra: ossuaryExtra },
   },
   founder: {
-    name: 'The Bellfounder', title: 'Who Poured the Silent Bell', hp: 6000, poise: 999, speed: 2.3, r: 0.95, mass: 10, scale: 2.0, boss: true,
+    name: 'The Bellfounder', title: 'Who Poured the Silent Bell', hp: 5000, poise: 999, speed: 2.3, r: 0.95, mass: 10, scale: 2.0, boss: true,
     look: { weapon: 'bell', eyes: 0xffa020, mask: 0x7a4a1c, bulk: 1.65, skirt: 0x3a2414, colors: { skin: 0x9a6a30, tunic: 0x6a4420, pants: 0x4a2e14, boots: 0x2a1a0c, belt: 0x3a2a14, glove: 0x5a3a1a, shoulder: 0xa87a3a }, extra: founderExtra },
   },
   regent: {
-    name: 'The Pale Regent', title: 'Who Sold the Dawn', hp: 6800, poise: 999, speed: 3.8, r: 0.65, mass: 7, scale: 1.6, boss: true,
+    name: 'The Pale Regent', title: 'Who Sold the Dawn', hp: 6200, poise: 999, speed: 3.8, r: 0.65, mass: 7, scale: 1.6, boss: true,
     look: { weapon: 'saber', blade: 0xf4ecff, bladeGlow: 0x403070, guard: 0xd8c070, eyes: 0xc8a8ff, crown: 0xe0c870, crownGlow: true, cloak: true, cloakLen: [0.42, 0.42, 0.4], longHair: true, colors: { skin: 0xe0d8e4, hair: 0xf0ecf4, tunic: 0x3a2a4a, pants: 0x2a1e36, boots: 0x140e1a, cloak: 0x5a2a6a, cloakDark: 0x341a40, glove: 0xe8e0ec, shoulder: 0x5a3a6a, belt: 0xd8c070, trim: 0xd8c070 }, extra: regentExtra },
   },
 };
 
 // How hard each boss hits (multiplies every number below; the world's dmgMul still applies on top).
-const POWER = { harbormaster: 1.2, ossuary: 1.25, founder: 1.05, regent: 1.45 };
+const POWER = { harbormaster: 1.1, ossuary: 1.25, founder: 1.0, regent: 1.45 };
 
 // ------------------------------------------------------------------ the Harbormaster (District III, the docks)
 // A drowned giant with a boat-hook and an anchor. Throws the hook down a line and drags you in for an
@@ -292,8 +292,8 @@ const founder = {
   moves(p) {
     const K = POWER.founder;
     const m = [
-      { id: 'sweep', w: 3, max: 4.4, a: strike({ name: 'sweep', anim: 'sweep', range: 4.6, arc: deg(250), windup: 1.0, active: 1.18, dur: 1.9, dmg: 24 * K, kb: 9, lunge: 1.0 }) },
-      { id: 'toll', w: 1.6, max: 4.8, a: strike({ name: 'toll', anim: 'slam', shape: 'circle', offset: 1.9, radius: 2.5, windup: 1.0, active: 1.06, dur: 1.9, dmg: 24 * K, kb: 9, lunge: 0.6, tele: 'circle', onStrike: (w, e) => { const x = e.x + Math.sin(e.face) * 1.9, z = e.z + Math.cos(e.face) * 1.9; ringAt(w, e, x, z, 10, { warn: 0.3, life: 1.3, dmg: 16 * K, kind: 'toll' }); if (p >= 2) ringAt(w, e, x, z, 10, { warn: 1.0, life: 1.3, dmg: 16 * K, kind: 'toll' }); } }) },
+      { id: 'sweep', w: 3, max: 4.4, a: strike({ name: 'sweep', anim: 'sweep', range: 4.6, arc: deg(250), windup: 1.0, active: 1.18, dur: 1.9, dmg: 21 * K, kb: 9, lunge: 1.0 }) },
+      { id: 'toll', w: 1.6, max: 4.8, a: strike({ name: 'toll', anim: 'slam', shape: 'circle', offset: 1.9, radius: 2.5, windup: 1.0, active: 1.06, dur: 1.9, dmg: 24 * K, kb: 9, lunge: 0.6, tele: 'circle', onStrike: (w, e) => { const x = e.x + Math.sin(e.face) * 1.9, z = e.z + Math.cos(e.face) * 1.9; ringAt(w, e, x, z, 10, { warn: 0.3, life: 1.3, dmg: 12 * K, kind: 'toll' }); if (p >= 2) ringAt(w, e, x, z, 10, { warn: 1.0, life: 1.3, dmg: 12 * K, kind: 'toll' }); } }) },
       // molten bronze tipped over you: pools that keep burning
       { id: 'pour', w: 2, cd: 5.5, a: { name: 'pour', anim: 'cast', dur: 1.5, windup: 0.6, active: 0.62, tele: 'circle', shape: 'circle', radius: 1.2, offset: 0, dmg: 0, heavy: true, onStrike: (w, e) => {
         around(w, e, p >= 2 ? 3 : 2, { warn: 0.95, gap: 0.25, r: 1.45, life: 6, dmg: 16 * K, kind: 'fire', kb: 3, near: 1.8 });

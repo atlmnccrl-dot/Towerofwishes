@@ -38,8 +38,8 @@ export const HEROES = {
     attack: {
       kind: 'combo',
       combo: [
-        { name: 'B1', anim: 'hsmash1', dur: 0.62, windup: 0.2, active: 0.3, cancel: 0.36, range: 2.5, arc: deg(170), dmg: 24, poise: 34, kb: 6, lunge: 3, heavy: true },
-        { name: 'B2', anim: 'hsmash2', dur: 0.82, windup: 0.3, active: 0.42, cancel: 0.55, range: 2.7, arc: deg(220), dmg: 34, poise: 50, kb: 9, lunge: 3.5, heavy: true, quake: 2.2 },
+        { name: 'B1', anim: 'hsmash1', dur: 0.66, windup: 0.22, active: 0.32, cancel: 0.4, range: 2.5, arc: deg(170), dmg: 22, poise: 30, kb: 6, lunge: 3, heavy: true },
+        { name: 'B2', anim: 'hsmash2', dur: 0.9, windup: 0.34, active: 0.46, cancel: 0.6, range: 2.7, arc: deg(220), dmg: 31, poise: 44, kb: 9, lunge: 3.5, heavy: true, quake: 2.2 },
       ],
       dashAttack: { name: 'BDA', anim: 'hsmash1', dur: 0.6, windup: 0.14, active: 0.26, cancel: 0.36, range: 2.4, arc: deg(200), dmg: 26, poise: 40, kb: 8, lunge: 9, heavy: true },
     },
@@ -69,7 +69,7 @@ export const ABILITIES = {
   charge: { name: 'IRON CHARGE', kind: 'charge', cd: 8, dmg: 20, dist: 7, slam: 30, radius: 2.4, desc: 'CHARGE, BATTER ASIDE ALL IN THE WAY, SLAM.' },
   ward: { name: 'BELL WARD', kind: 'ward', cd: 14, dur: 4.5, reduce: 0.5, dmg: 11, radius: 2.7, level: 4, desc: 'HALF DAMAGE FOR A WHILE; THE BELL BURNS ALL AROUND.' },
   pillar: { name: 'FLAME PILLAR', kind: 'pillar', cd: 5, dmg: 36, radius: 1.9, delay: 0.5, status: { burn: 1 }, desc: 'FIRE ERUPTS UNDER THE NEAREST FOE.' },
-  lantern: { name: 'LANTERN WARD', kind: 'lantern', cd: 11, heal: 0.18, dur: 3.5, dmg: 9, radius: 2.6, desc: 'HEAL, AND BURN WHAT COMES CLOSE.' },
+  lantern: { name: 'LANTERN WARD', kind: 'lantern', cd: 13, heal: 0.12, dur: 3.5, dmg: 9, radius: 2.6, desc: 'HEAL, AND BURN WHAT COMES CLOSE.' },
   wisps: { name: "WILL-O'-WISPS", kind: 'wisps', cd: 12, dmg: 24, n: 3, level: 4, desc: 'THREE WISPS HUNT DOWN THE NEAREST FOES.' },
 };
 

@@ -83,7 +83,7 @@ export const BOSSES = {
     look: { weapon: 'staff', orb: 0xffb040, hood: true, eyes: 0xffd060, skirt: 0xd8ccb0, colors: { skin: 0xe0d4bc, tunic: 0xc8bca0, pants: 0xa89c84, boots: 0x8a7e68, hood: 0xd0c4a8, glove: 0xe0d4bc }, bulk: 1.1 },
   },
   deacon: {
-    name: 'The Drowned Deacon', title: 'His Sermon Is the Tide', hp: 2600, poise: 999, speed: 2.8, r: 0.75, mass: 8, scale: 1.75, boss: true,
+    name: 'The Drowned Deacon', title: 'His Sermon Is the Tide', hp: 3700, poise: 999, speed: 2.8, r: 0.75, mass: 8, scale: 1.75, boss: true,
     look: { weapon: 'staff', orb: 0x40e0d0, hat: 'brim', eyes: 0x40ffe0, skirt: 0x1c3034, cloak: true, colors: { skin: 0x5a6a6a, tunic: 0x1e3236, pants: 0x162426, boots: 0x0c1414, cloak: 0x1a2c30, hat: 0x0e1a1c, glove: 0x2a3a3a }, bulk: 1.2 },
   },
   silence: {

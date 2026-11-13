@@ -116,7 +116,8 @@ From the repository root, with a static server on port 8790 (`python3 -m http.se
 ```sh
 node bellmourn/test/no-assets.mjs                                           # no pre-made assets anywhere in the game
 HERO=warden node bellmourn/test/sim-test.mjs 6                              # balance and invariants in Node (any warden)
-NODE_PATH=$(npm root -g) node bellmourn/test/level-check.js gate            # reachability of every district (gate, market, nave, belfry)
+NODE_PATH=$(npm root -g) node bellmourn/test/level-check.js gate            # reachability, gates, lamps and chests of one district (any id)
+NODE_PATH=$(npm root -g) node bellmourn/test/modules.js                     # every module imports in the browser (catches syntax errors)
 NODE_PATH=$(npm root -g) node bellmourn/test/play.js /tmp/bm-play            # title -> story -> first fight, screenshots
 NODE_PATH=$(npm root -g) node bellmourn/test/poses.js /tmp/bm-poses          # every clip, zoomed
 NODE_PATH=$(npm root -g) node bellmourn/test/autoplay-browser.js /tmp/bm-auto 40 3   # plays the whole game on autoplay

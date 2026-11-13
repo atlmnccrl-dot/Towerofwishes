@@ -45,7 +45,9 @@ function scenario(name, setup, tier, opts = {}) {
 
 const one = (type) => (w, tier) => [w.spawnFoe(type, 0, -4, { tier, aggro: true, rise: false })];
 const group = (list) => (w, tier) => list.map(([t, x, z]) => w.spawnFoe(t, x, z, { tier, aggro: true, rise: false }));
-const boss = (type) => (w, tier) => [w.spawnBoss(type, 0, -6, { face: 0 })];
+// as the districts spawn them (belfry.js gives Saint Silence dmgMul 1.3)
+const BOSS_OPTS = { silence: { dmgMul: 1.3 } };
+const boss = (type) => (w, tier) => [w.spawnBoss(type, 0, -6, { face: 0, ...(BOSS_OPTS[type] || {}) })];
 
 console.log(`seeds: ${N}  hero: ${HERO_ID}`);
 for (const t of ['hushed', 'ghoul', 'acolyte', 'crossbow', 'warden', 'brute']) scenario(`1v1 ${t} (tier 0)`, one(t), 0, { skills: [0, 1] });
