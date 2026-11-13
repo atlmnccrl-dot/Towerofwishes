@@ -15,19 +15,19 @@ const unitCyl10 = () => geo('mk-cyl10', () => new THREE.CylinderGeometry(1, 1, 1
 const unitBox = () => geo('mk-box', () => new THREE.BoxGeometry(1, 1, 1));
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 
-// Small repeated parts (candles, flames, lanterns, ripples) are gathered per kind and per 16 m cell,
+// Small repeated parts (candles, flames, lanterns, ripples) are gathered per kind and per 24 m cell,
 // then become instanced meshes in finish(): no shadows (too small to show), culled cell by cell.
 const REG = new WeakMap();
-function push(ctx, key, geom, mat, m, x, z) {
+function push(ctx, key, geom, mat, m, x, z, col) {
   let reg = REG.get(ctx); if (!reg) REG.set(ctx, (reg = new Map()));
-  const k = key + '@' + Math.floor(x / 16) + ',' + Math.floor(z / 16);
-  let e = reg.get(k); if (!e) reg.set(k, (e = { geom, mat, mats: [], cast: key[0] === '!' }));
-  e.mats.push(m.clone());
+  const k = key + '@' + Math.floor(x / 24) + ',' + Math.floor(z / 24);
+  let e = reg.get(k); if (!e) reg.set(k, (e = { geom, mat, mats: [], cols: [], cast: key[0] === '!' }));
+  e.mats.push(m.clone()); e.cols.push(col);
 }
-// A placed part with its own (non-uniform) size.
-function put(ctx, key, geom, mat, x, y, z, sx, sy, sz, ry = 0, rz = 0) {
+// A placed part with its own (non-uniform) size and, optionally, its own colour.
+function put(ctx, key, geom, mat, x, y, z, sx, sy, sz, ry = 0, rz = 0, col) {
   _e.set(0, ry, rz); _q.setFromEuler(_e); _p.set(x, y, z); _s.set(sx, sy, sz);
-  push(ctx, key, geom, mat, _m.compose(_p, _q, _s), x, z);
+  push(ctx, key, geom, mat, _m.compose(_p, _q, _s), x, z, col);
 }
 // A bar (rope, rod) between two points.
 function bar(ctx, key, mat, a, b, t) {
@@ -42,6 +42,7 @@ export function finish(ctx) {
   for (const e of reg.values()) {
     const im = new THREE.InstancedMesh(e.geom, e.mat, e.mats.length);
     e.mats.forEach((m, i) => im.setMatrixAt(i, m)); im.instanceMatrix.needsUpdate = true;
+    if (e.cols[0] !== undefined) { const c = new THREE.Color(); e.cols.forEach((h, i) => im.setColorAt(i, c.set(h ?? 0xffffff))); im.instanceColor.needsUpdate = true; }
     im.castShadow = e.cast; im.receiveShadow = true; im.computeBoundingSphere(); ctx.group.add(im);
   }
   REG.delete(ctx);
@@ -91,6 +92,7 @@ function candleSign() {
 
 const WAX = [0xe4d8b8, 0xd2c4a0, 0xefe6cc, 0xc4b28c];
 const waxMat = (k) => M.flat(WAX[k], { emissive: 0x2c2010 });
+const waxAll = () => M.flat(0xffffff, { emissive: 0x2c2010 }); // tinted per candle
 const flameMat = () => M.glow('#ffcf78', 2.6);
 const poolMat = () => M.flat(0x8e836c, { emissive: 0x140e06 });
 
@@ -243,7 +245,7 @@ export function candles(ctx, x, y, z, n = 5, opts = {}) {
     const a = r() * Math.PI * 2, d = n === 1 ? 0 : Math.sqrt(r()) * R;
     const cx = x + Math.cos(a) * d, cz = z + Math.sin(a) * d;
     const h = 0.08 + r() * tall, cr = (0.04 + r() * 0.03) * thick, k = (r() * WAX.length) | 0;
-    put(ctx, 'mk-wax' + k, unitBox(), waxMat(k), cx, y + h / 2, cz, cr * 1.7, h, cr * 1.7, a);
+    put(ctx, 'mk-wax', unitBox(), waxAll(), cx, y + h / 2, cz, cr * 1.7, h, cr * 1.7, a, 0, WAX[k]);
     put(ctx, 'mk-flame', unitBox(), flameMat(), cx, y + h + 0.05, cz, 0.06, 0.1, 0.06);
   }
   if (opts.pool !== false && y < 0.1) waxPool(ctx, x, z, R + 0.04);
@@ -275,12 +277,24 @@ export function candelabra(ctx, x, z, opts = {}) {
   add(ctx, box(1.0, 0.05, 0.05), iron, x, h, z, { ry: -Math.PI / 4 });
   for (const [ox, oz, hh] of [[0, 0, 0.42], [0.35, 0.35, 0.3], [-0.35, 0.35, 0.34], [0.35, -0.35, 0.28], [-0.35, -0.35, 0.32]]) {
     add(ctx, cyl(0.07, 0.04, 0.06, 6), iron, x + ox, h + 0.04, z + oz);
-    put(ctx, 'mk-wax0', unitBox(), waxMat(0), x + ox, h + 0.07 + hh / 2, z + oz, 0.08, hh, 0.08);
+    put(ctx, 'mk-wax', unitBox(), waxAll(), x + ox, h + 0.07 + hh / 2, z + oz, 0.08, hh, 0.08, 0, 0, WAX[0]);
     put(ctx, 'mk-flame', unitBox(), flameMat(), x + ox, h + 0.13 + hh, z + oz, 0.06, 0.11, 0.06);
   }
   waxPool(ctx, x + 0.1, z + 0.1, 0.32);
   solidCircle(ctx, x, z, 0.32, h);
   if (opts.light !== 0) ctx.lights.push({ x, y: h + 0.6, z, color: 0xffb060, intensity: opts.light || 3.4, dist: opts.dist || 6.5, flicker: 0.1 });
+}
+
+// A votive rack: three tiers of small candles, the back tier highest. along: the way the rack runs
+// (it faces +Z when along X, +X when along Z).
+export function votiveRack(ctx, x, z, along = 'x', w = 1.6) {
+  const ax = along === 'x', wood = M.wood('#4a3626');
+  for (let i = 0; i < 3; i++) {
+    const off = (1 - i) * 0.24, h = 0.45 + i * 0.25; const bx = ax ? x : x + off, bz = ax ? z + off : z;
+    add(ctx, box(ax ? w : 0.24, h, ax ? 0.24 : w), wood, bx, h / 2, bz);
+    for (let k = 0; k < 7; k++) { const t = -w / 2 + (k + 0.5) * w / 7; candles(ctx, bx + (ax ? t : 0), h, bz + (ax ? 0 : t), 1, { tall: 0.12, pool: false }); }
+  }
+  if (ax) solid(ctx, x - w / 2, z - 0.36, x + w / 2, z + 0.36, 1.0); else solid(ctx, x - 0.36, z - w / 2, x + 0.36, z + w / 2, 1.0);
 }
 
 // Pillar candles burned down over a hundred nights, standing in their own spilled wax.
@@ -313,7 +327,7 @@ export function lanterns(ctx, a, b, opts = {}) {
   for (let i = 0; i < n; i++) {
     const t = (i + 0.5 + (r() - 0.5) * 0.3) / n; const [x, y, z] = at(t); const s = 0.85 + r() * 0.3; const c = cols[(i + (r() * 2 | 0)) % cols.length];
     bar(ctx, 'mk-rope', rope, [x, y, z], [x, y - 0.14 * s, z], 0.02);
-    put(ctx, 'mk-lan' + c, lanG, M.glow(c, 1.5), x, y - 0.3 * s, z, s, s, s);
+    put(ctx, 'mk-lan', lanG, M.glow('#ffffff', 1.5), x, y - 0.3 * s, z, s, s, s, 0, 0, c);
     put(ctx, 'mk-lcap', capG, capM, x, y - 0.13 * s, z, s, 1, s);
     put(ctx, 'mk-lcap', capG, capM, x, y - 0.47 * s, z, s, 1, s);
   }
@@ -454,7 +468,7 @@ export function stall(ctx, x, z, opts = {}) {
   }
   // dipped candles hanging from the front beam
   for (let v = -w / 2 + 0.25; v < w / 2 - 0.1; v += 0.3) for (const du of [-0.03, 0.03]) {
-    const [px, pz] = P(d / 2 - 0.05 + du, v + du); put(ctx, 'mk-wax2', unitBox(), waxMat(2), px, 1.8, pz, 0.045, 0.28, 0.045);
+    const [px, pz] = P(d / 2 - 0.05 + du, v + du); put(ctx, 'mk-wax', unitBox(), waxAll(), px, 1.8, pz, 0.045, 0.28, 0.045, 0, 0, WAX[2]);
   }
   // goods
   const goods = opts.goods || 'candles';
@@ -494,7 +508,7 @@ export function dryingRack(ctx, x, z, len = 2.6, along = 'x') {
   for (const sv of [-0.16, 0.16]) {
     add(ctx, box(ax ? len + 0.2 : 0.05, 0.05, ax ? 0.05 : len + 0.2), wood, x + (ax ? 0 : sv), 1.86, z + (ax ? sv : 0));
     for (let t = -len / 2 + 0.15; t <= len / 2 - 0.12; t += 0.13) for (const o of [-0.03, 0.03]) {
-      const px = x + (ax ? t : sv + o), pz = z + (ax ? sv + o : t); put(ctx, 'mk-wax0', unitBox(), waxMat(0), px, 1.6, pz, 0.04, 0.42, 0.04);
+      const px = x + (ax ? t : sv + o), pz = z + (ax ? sv + o : t); put(ctx, 'mk-wax', unitBox(), waxAll(), px, 1.6, pz, 0.04, 0.42, 0.04, 0, 0, WAX[0]);
     }
   }
   if (ax) solid(ctx, x - len / 2 - 0.1, z - 0.4, x + len / 2 + 0.1, z + 0.4, 1.9); else solid(ctx, x - 0.4, z - len / 2 - 0.1, x + 0.4, z + len / 2 + 0.1, 1.9);

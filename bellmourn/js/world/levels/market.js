@@ -179,6 +179,7 @@ export default {
     K.torch(ctx, -48.4, 2.2, -44.4, '+x');
     P.candelabra(ctx, -53.4, -39.6); P.candelabra(ctx, -53.2, -24); P.candelabra(ctx, -37.6, -39.8); P.candelabra(ctx, -37.4, -23.6);
     P.candleRing(ctx, -46, -31.5, 3.2, 18);
+    P.votiveRack(ctx, -42.6, -40.85, 'x'); P.votiveRack(ctx, -36.25, -35, 'z');
     for (const x of [-53.6, -49.4, -42.6, -38.6]) P.candles(ctx, x, 0, -41.3, 6);
     for (const x of [-51.5, -47, -43, -39.6]) P.candles(ctx, x, 0, -22.05, 5);
     for (const z of [-37.4, -32.6, -29]) P.candles(ctx, -36.1, 0, z, 5);
