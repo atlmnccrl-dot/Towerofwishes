@@ -15,6 +15,10 @@ const G = {
   '=': [0, 0, 31, 0, 31, 0, 0], '[': [14, 8, 8, 8, 8, 8, 14], ']': [14, 2, 2, 2, 2, 2, 14], '—': [0, 0, 0, 31, 0, 0, 0], '#': [10, 10, 31, 10, 31, 10, 10],
 };
 
+// three-letter codes for the abilities on badges and buttons
+const ABBR = { wave: 'WAV', rush: 'RSH', whirl: 'WRL', volley: 'VOL', smoke: 'SMK', snare: 'TRP', shockwave: 'SHK', charge: 'CHG', ward: 'WRD', pillar: 'PIL', lantern: 'LNT', wisps: 'WSP' };
+export const abbr = (id) => ABBR[id] || String(id).slice(0, 3).toUpperCase();
+
 export const COL = { text: '#d8cfbc', dim: '#8a8478', red: '#c8242a', blood: '#8a1418', gold: '#e8b860', ember: '#ff9a40', ice: '#9cc8e8', dark: '#0a0c10', panel: 'rgba(8,10,14,0.82)', white: '#f2ece0' };
 
 const cache = new Map();
@@ -70,32 +74,49 @@ export class UI {
   toast(msg, o = {}) { this.toasts.push({ msg, t: 0, life: o.life || 2.8, color: o.color || COL.text, big: o.big }); if (this.toasts.length > 4) this.toasts.shift(); }
 
   // ---------------------------------------------------------------- HUD
+  // ability badge: a short code in a box with a cooldown fill rising from the bottom
+  badge(x, y, w, h, code, cdFrac, key, ready = true, accent = '#c8b890') {
+    this.rect(x - 1, y - 1, w + 2, h + 2, '#000'); this.rect(x, y, w, h, '#14161c');
+    if (cdFrac > 0) this.rect(x, y, w, Math.round(h * cdFrac), 'rgba(0,0,0,0.65)');
+    else this.rect(x, y, w, 1, accent);
+    this.text(code, x + w / 2, y + Math.round(h / 2) - 3, { align: 'center', color: cdFrac > 0 ? '#5a564e' : (ready ? COL.white : '#5a564e'), shadow: false });
+    if (key) this.text(key, x + w - 1, y + h + 2, { align: 'right', color: COL.dim, shadow: false });
+  }
+
   hud(G, dt) {
     this.t += dt; const w = this.w, h = this.h; const L = 6 + this.safe.l, R = w - 6 - this.safe.r;
     const hero = G.world && G.world.hero; if (!hero) return;
-    const hpW = Math.round(70 + (hero.maxHp - 100) * 0.35);
+    const hpW = Math.round(66 + (hero.maxHp - 100) * 0.18);
     G.hpGhost = G.hpGhost === undefined ? hero.hp : Math.max(hero.hp, G.hpGhost - dt * 30);
     this.bar(L, 6, hpW, 4, hero.hp / hero.maxHp, hero.hp / hero.maxHp < 0.3 && Math.floor(this.t * 4) % 2 ? '#ff3a3a' : COL.red, '#1a0c10', G.hpGhost / hero.maxHp);
-    // Requiem gauge
+    // ultimate gauge
     const m = G.world.meter / 100; const full = m >= 1;
     this.bar(L, 13, 46, 2, m, full ? (Math.floor(this.t * 6) % 2 ? '#ffffff' : '#ff4a4a') : '#a83040', '#140a0c');
-    if (full && !this.touchMode) this.text('Q', L + 50, 11, { color: '#ff6a6a' });
+    // level and experience
+    if (G.level) { this.text('LV' + G.level, L, 19, { color: COL.gold }); this.bar(L + 22, 21, 34, 1, G.xpFrac || 0, '#d8b860', '#1a160c'); if (G.points) this.text('+', L + 60, 19, { color: Math.floor(this.t * 3) % 2 ? COL.gold : COL.white }); }
     // tonics
     for (let i = 0; i < hero.stats.maxTonics; i++) this.flask(L + hpW + 4 + i * 6, 4, i < hero.tonics);
     // embers
-    this.emberIcon(R - 3 - this.measure(G.embersShown ?? 0) - 5, 6);
+    this.emberIcon(R - 3 - this.measure(Math.round(G.embersShown ?? 0)) - 5, 6);
     this.text(String(Math.round(G.embersShown ?? 0)), R, 5, { align: 'right', color: COL.gold });
+    // abilities (keyboard and pad): two skills, the ultimate, dashes
+    if (!this.touchMode && hero.stats.abilities) {
+      const bw = 18, bh = 12, by = h - bh - 12; let bx = R - (bw + 4) * 3 + 4;
+      hero.stats.abilities.forEach((ab, i) => { const cdm = (hero.cdMax && hero.cdMax[i]) || 1; this.badge(bx, by, bw, bh, abbr(ab.id), Math.max(0, hero.cds[i]) / cdm, i ? 'L' : 'K'); bx += bw + 4; });
+      this.badge(bx, by, bw, bh, 'ULT', full ? 0 : 1 - m, 'Q', full, '#ff5050');
+      for (let i = 0; i < hero.stats.dashCharges; i++) this.rect(R - (bw + 4) * 3 + 4 + i * 5, by - 5, 4, 2, i < hero.dashCharges ? COL.ice : '#2a3038');
+    }
     // boss bar
     const boss = G.boss && !G.boss.dead ? G.boss : null;
     if (boss) {
-      const bw = Math.round(w * 0.56), bx = Math.round((w - bw) / 2), by = h - 12;
+      const bw = Math.round(w * 0.5), bx = Math.round((w - bw) / 2), by = h - 12;
       G.bossGhost = G.bossGhost === undefined ? boss.hp : Math.max(boss.hp, G.bossGhost - dt * 120);
       this.text(boss.def.name, bx, by - 9, { color: COL.white });
       this.bar(bx, by, bw, 3, boss.hp / boss.maxHp, '#b02028', '#14080a', G.bossGhost / boss.maxHp);
       for (const ph of G.bossPhases || []) this.rect(bx + Math.round(bw * ph), by - 1, 1, 5, '#e8d8c0');
     }
     // toasts (top centre)
-    let ty = 22;
+    let ty = 26;
     for (const t of this.toasts) {
       t.t += dt; const a = Math.min(1, t.t * 4, (t.life - t.t) * 2);
       if (a > 0) {
@@ -105,25 +126,23 @@ export class UI {
       }
     }
     this.toasts = this.toasts.filter((t) => t.t < t.life);
-    // prompt
     if (G.prompt) { const key = this.touchMode ? '' : '[E] '; this.text(key + G.prompt, w / 2, h - (boss ? 32 : 22), { align: 'center', color: COL.gold, alpha: 0.75 + Math.sin(this.t * 5) * 0.25 }); }
-    // objective
-    if (G.objective && !boss) this.text(G.objective, L, 20, { color: COL.dim });
   }
 
   // ---------------------------------------------------------------- touch buttons
   touchLayout(G) {
     const w = this.w, h = this.h; const R = w - this.safe.r;
-    const hero = G && G.world && G.world.hero;
+    const hero = G && G.world && G.world.hero; const full = G && G.world && G.world.meter >= 100;
+    const ab = hero && hero.stats.abilities ? hero.stats.abilities : [];
     return [
-      { id: 'atk', x: R - 26, y: h - 26, r: 15, label: 'ATK' },
-      { id: 'dsh', x: R - 60, y: h - 17, r: 11, label: 'DASH' },
-      { id: 'hvy', x: R - 21, y: h - 61, r: 11, label: 'HVY' },
-      { id: 'par', x: R - 53, y: h - 48, r: 10, label: 'PRY' },
-      { id: 'heal', x: R - 86, y: h - 13, r: 8, label: 'TON', dim: !hero || hero.tonics <= 0 },
-      { id: 'art', x: R - 82, y: h - 42, r: 9, label: 'ART', dim: !G || !G.world || G.world.meter < 100 },
-      { id: 'use', x: R - 50, y: h - 80, r: 9, label: 'USE', hidden: !(G && G.prompt) },
-      { id: 'pause', x: R - 12, y: 26, r: 7, label: 'II' },
+      { id: 'atk', x: R - 27, y: h - 27, r: 16, label: 'ATK' },
+      { id: 'dsh', x: R - 63, y: h - 16, r: 11, label: 'DASH', count: hero ? hero.dashCharges : 0 },
+      { id: 'sk1', x: R - 58, y: h - 50, r: 11, label: ab[0] ? abbr(ab[0].id) : 'SK1', cd: hero ? Math.max(0, hero.cds[0]) / ((hero.cdMax && hero.cdMax[0]) || 1) : 0 },
+      { id: 'sk2', x: R - 27, y: h - 64, r: 11, label: ab[1] ? abbr(ab[1].id) : 'SK2', cd: hero ? Math.max(0, hero.cds[1]) / ((hero.cdMax && hero.cdMax[1]) || 1) : 0 },
+      { id: 'ult', x: R - 86, y: h - 40, r: 9, label: 'ULT', dim: !full, glow: full },
+      { id: 'heal', x: R - 90, y: h - 13, r: 8, label: 'TON', dim: !hero || hero.tonics <= 0 },
+      { id: 'use', x: R - 60, y: h - 84, r: 9, label: 'USE', hidden: !(G && G.prompt) },
+      { id: 'pause', x: R - 12, y: 30, r: 7, label: 'II' },
     ];
   }
   drawTouch(G, input) {
@@ -131,9 +150,11 @@ export class UI {
     for (const b of L) {
       if (b.hidden) continue;
       const down = input.btnDown.has(b.id); const g = this.g;
-      g.globalAlpha = b.dim ? 0.25 : (down ? 0.8 : 0.45);
-      this.circle(b.x, b.y, b.r, down ? '#5a1418' : '#101418'); this.ring(b.x, b.y, b.r, b.id === 'art' && !b.dim ? '#ff5050' : '#8a8070');
-      g.globalAlpha = b.dim ? 0.35 : 0.9; this.text(b.label, b.x, b.y - 3, { align: 'center', color: b.id === 'art' && !b.dim ? '#ff8080' : COL.text, shadow: false });
+      g.globalAlpha = b.dim ? 0.25 : (down ? 0.85 : 0.5);
+      this.circle(b.x, b.y, b.r, down ? '#5a1418' : '#101418'); this.ring(b.x, b.y, b.r, b.glow ? (Math.floor(this.t * 6) % 2 ? '#ff5050' : '#ffffff') : '#8a8070');
+      if (b.cd > 0) { g.globalAlpha = 0.6; const hh = Math.round(b.r * 2 * b.cd); this.rect(b.x - b.r + 2, b.y + b.r - hh, b.r * 2 - 3, hh, '#000'); }
+      g.globalAlpha = b.dim ? 0.35 : 0.95; this.text(b.label, b.x, b.y - 3, { align: 'center', color: b.glow ? '#ff9090' : (b.cd > 0 ? '#6a665e' : COL.text), shadow: false });
+      if (b.count !== undefined) for (let i = 0; i < b.count; i++) this.rect(b.x - 4 + i * 5, b.y + b.r + 2, 3, 2, COL.ice);
       g.globalAlpha = 1;
     }
     const s = input.stick;

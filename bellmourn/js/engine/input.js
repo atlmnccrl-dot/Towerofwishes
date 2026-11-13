@@ -5,8 +5,9 @@ const S = Math.SQRT1_2;
 export function screenToWorld(sx, sy) { return { mx: S * (sx + sy), mz: S * (sy - sx) }; }
 
 const KEYMAP = {
-  attack: ['KeyJ'], heavy: ['KeyK'], dash: ['Space', 'ShiftLeft', 'ShiftRight'], parry: ['KeyL', 'KeyF'], heal: ['KeyR', 'KeyH'],
-  special: ['KeyQ', 'KeyU'], interact: ['KeyE'], pause: ['Escape', 'KeyP'], confirm: ['Enter', 'Space', 'KeyJ', 'KeyE'], back: ['Escape', 'Backspace'],
+  attack: ['KeyJ'], skill1: ['KeyK', 'Digit1'], skill2: ['KeyL', 'Digit2'], dash: ['Space', 'ShiftLeft', 'ShiftRight'], heal: ['KeyR', 'KeyH'],
+  ult: ['KeyQ', 'KeyU'], interact: ['KeyE', 'KeyF'], pause: ['Escape', 'KeyP'], confirm: ['Enter', 'Space', 'KeyJ', 'KeyE'], back: ['Escape', 'Backspace'],
+  tabL: ['KeyQ', 'BracketLeft', 'PageUp'], tabR: ['KeyE', 'BracketRight', 'PageDown', 'Tab'],
   up: ['KeyW', 'ArrowUp'], down: ['KeyS', 'ArrowDown'], left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'],
 };
 
@@ -81,6 +82,8 @@ export class Input {
     const gpPressed = (i) => gb(i) && !this.padPrev[i];
     let sx = 0, sy = 0;
     if (this.key('left')) sx -= 1; if (this.key('right')) sx += 1; if (this.key('up')) sy -= 1; if (this.key('down')) sy += 1;
+    if (gp && (gp.buttons.some((b) => b.pressed) || Math.hypot(gp.axes[0] || 0, gp.axes[1] || 0) > 0.3)) this.padUsed = true;
+    if (this.down.size || this.mouse.l) this.padUsed = false;
     if (gp) { const ax = gp.axes[0] || 0, ay = gp.axes[1] || 0; if (Math.hypot(ax, ay) > 0.2) { sx = ax; sy = ay; this.touchMode = false; } if (gb(12)) sy = -1; if (gb(13)) sy = 1; if (gb(14)) sx = -1; if (gb(15)) sx = 1; }
     if (this.stick) { const dx = this.stick.x - this.stick.ox, dy = this.stick.y - this.stick.oy; const d = Math.hypot(dx, dy); if (d > 3) { const k = Math.min(1, d / 22); sx = dx / d * k; sy = dy / d * k; } }
     const l = Math.hypot(sx, sy); if (l > 1) { sx /= l; sy /= l; }
@@ -88,16 +91,17 @@ export class Input {
     const bp = (id) => this.btnPressed.has(id); const bd = (id) => this.btnDown.has(id);
     const f = {
       mx: w.mx, mz: w.mz, sx, sy,
-      attackPressed: this.hit('attack') || this.pressed.has('Mouse0') && !this.uiClick || bp('atk') || gpPressed(2),
-      heavyDown: this.key('heavy') || this.mouse.r || bd('hvy') || gb(3),
-      heavyPressed: this.hit('heavy') || this.pressed.has('Mouse2') || bp('hvy') || gpPressed(3),
+      attackPressed: this.hit('attack') || this.pressed.has('Mouse0') || bp('atk') || gpPressed(2),
+      attackDown: this.key('attack') || this.mouse.l || bd('atk') || gb(2),
+      skill1Pressed: this.hit('skill1') || this.pressed.has('Mouse2') || bp('sk1') || gpPressed(3),
+      skill2Pressed: this.hit('skill2') || bp('sk2') || gpPressed(1),
       dashPressed: this.hit('dash') || bp('dsh') || gpPressed(0),
-      parryPressed: this.hit('parry') || bp('par') || gpPressed(1),
       healPressed: this.hit('heal') || bp('heal') || gpPressed(4),
-      specialPressed: this.hit('special') || bp('art') || gpPressed(5) || gpPressed(7),
-      interactPressed: this.hit('interact') || bp('use') || gpPressed(3) && false,
+      ultPressed: this.hit('ult') || bp('ult') || gpPressed(5) || gpPressed(7),
+      interactPressed: this.hit('interact') || bp('use') || gpPressed(8) || gpPressed(6),
       pausePressed: this.hit('pause') || bp('pause') || gpPressed(9),
       up: this.hit('up') || gpPressed(12), down: this.hit('down') || gpPressed(13), left: this.hit('left') || gpPressed(14), right: this.hit('right') || gpPressed(15),
+      tabL: this.hit('tabL') || gpPressed(4), tabR: this.hit('tabR') || gpPressed(5),
       confirm: this.hit('confirm') || gpPressed(0) || gpPressed(2), back: this.hit('back') || gpPressed(1),
       taps: this.taps.slice(), mouse: this.mouse.used && !this.touchMode, touch: this.touchMode,
     };

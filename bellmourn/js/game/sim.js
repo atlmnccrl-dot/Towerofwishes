@@ -319,7 +319,7 @@ export class World {
     e.cds[slot] = A.cd * rankCd(r) * S.cdMul; e.cdMax = e.cdMax || [1, 1]; e.cdMax[slot] = e.cds[slot];
     const cast = (anim, dur, move = 0, cancel = 0.2) => { e.state = 'cast'; e.t = 0; e.anim = anim; e.animT = 0; e.castDur = dur; e.castMove = move; e.castCancel = cancel; e.atk = null; };
     const fx = Math.sin(e.face), fz = Math.cos(e.face);
-    this.emit('ability', { e, id: ab.id, kind: A.kind });
+    this.emit('ability', { e, id: ab.id, kind: A.kind, slot });
     switch (A.kind) {
       case 'wave': {
         this._aim(e, mdir, 9); cast('slash3', 0.36, 0, 0.22);
