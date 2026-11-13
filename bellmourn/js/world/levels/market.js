@@ -18,7 +18,7 @@ export default {
   hints: [
     { zone: [-7, 9.5, 5.2, 18], text: 'SPEND SKILL POINTS AT A LAMP: SKILLS GROW STRONGER.' },
     { zone: [-7, 0.9, 5, 5], text: 'A BOLT OR A FLAME CAN BE DODGED: DASH ACROSS IT.' },
-    { zone: [-13, -30, -8.5, -21.6], text: 'BREAK A BIG FOE'S GUARD, THEN FINISH IT WHILE IT REELS.' },
+    { zone: [-13, -30, -8.5, -21.6], text: 'BREAK A BIG FOE\'S GUARD, THEN FINISH IT WHILE IT REELS.' },
     { zone: [-27.4, -28.6, -24, -23.4], text: 'ACROSS THE WATER, ONE OF THE CANDLES MOVES.' },
   ],
   foes: [

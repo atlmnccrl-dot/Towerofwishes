@@ -46,28 +46,28 @@ function solidRot(ctx, x, z, ry, hw, hd, h) {
 }
 
 // ---------------------------------------------------------------- textures
-const BONE = { hi: '#a8a08c', base: '#888170', mid: '#6e6858', lo: '#4e493e', gap: '#1a1816', eye: '#0b0a09' };
-// The ossuary wall: bands of skulls between packed bone ends and courses of long bones (4 m x 3 m).
+const BONE = { hi: '#b8b09a', base: '#968e7a', mid: '#78715f', lo: '#555044', gap: '#141210', eye: '#040303' };
+// The ossuary wall: four bands of skulls between packed bone ends and a course of long bones (4 m x 3 m).
 function boneTex() {
-  return pix('uc-bone', 64, 48, (g, W) => {
+  return pix('uc-bone2', 64, 48, (g, W) => {
     const r = T.rng(501), C = BONE, d = dotter(g, W);
     g.fillStyle = C.gap; g.fillRect(0, 0, W, 48);
-    const SK = ['.hhh.', 'bhhhb', 'meBem', 'lmeml', '.l.l.'];
-    const col = { h: C.hi, b: C.base, B: C.base, m: C.mid, l: C.lo, e: C.eye };
+    const SK = ['.hhhhh.', 'hhbbbhh', 'bEEbEEb', 'mEEmEEm', 'lmmEmml', '.l.l.l.'];
+    const col = { h: C.hi, b: C.base, m: C.mid, l: C.lo, E: C.eye };
     const skull = (x, y) => SK.forEach((row, j) => [...row].forEach((ch, i) => { if (ch !== '.') d(x + i, y + j, col[ch]); }));
-    const knob = (x, y) => { d(x, y, C.base); d(x + 1, y, C.hi); d(x, y + 1, C.mid); d(x + 1, y + 1, C.lo); };
-    const skulls = (y, off) => { for (let k = 0; k < 10; k++) { const x = off + 1 + k * 6; if (r() < 0.07) { knob(x + 1, y + 1); knob(x + 2, y + 3); } else skull(x, y); } knob(off + 61, y + 1); knob(off + 61, y + 3); };
-    const ends = (y0, rows) => { for (let j = 0; j < rows; j++) { const y = y0 + j * 3; for (let x = (j % 2) * 2; x < W; x += 4) { if (r() < 0.07) continue; const v = r() < 0.35; d(x, y, C.base); d(x + 1, y, v ? C.base : C.hi); d(x + 2, y, C.mid); d(x, y + 1, C.mid); d(x + 1, y + 1, C.base); d(x + 2, y + 1, C.lo); } } };
+    const knob = (x, y) => { d(x, y, C.mid); d(x + 1, y, C.base); d(x + 2, y, C.mid); d(x, y + 1, C.lo); d(x + 1, y + 1, C.mid); d(x + 2, y + 1, C.lo); };
+    const skulls = (y, off) => { for (let k = 0; k < 8; k++) { const x = off + k * 8; if (r() < 0.06) { knob(x + 1, y + 1); knob(x + 3, y + 3); } else skull(x, y); } };
+    const ends = (y0, rows) => { for (let j = 0; j < rows; j++) for (let x = (j % 2) * 2; x < W; x += 4) if (r() > 0.06) knob(x, y0 + j * 3); };
     const longs = (y0) => {
       const x0 = (r() * 6) | 0; let x = x0;
       while (x < W + x0 - 4) {
-        const L = Math.min(7 + ((r() * 8) | 0), W + x0 - x - 1);
-        for (let xx = x + 2; xx < x + L - 2; xx++) { d(xx, y0 + 1, C.base); d(xx, y0 + 2, C.mid); }
-        for (const kx of [x, x + L - 2]) for (let yy = 0; yy < 4; yy++) for (let xx = 0; xx < 2; xx++) d(kx + xx, y0 + yy, yy === 0 ? C.hi : (yy === 3 ? C.lo : C.base));
+        const L = Math.min(8 + ((r() * 8) | 0), W + x0 - x - 1);
+        for (let xx = x + 2; xx < x + L - 2; xx++) { d(xx, y0 + 1, C.base); d(xx, y0 + 2, C.lo); }
+        for (const kx of [x, x + L - 2]) for (let yy = 0; yy < 4; yy++) for (let xx = 0; xx < 2; xx++) d(kx + xx, y0 + yy, yy === 0 ? C.base : (yy === 3 ? C.lo : C.mid));
         x += L + 1;
       }
     };
-    skulls(1, 0); ends(7, 3); longs(16); skulls(21, 3); ends(27, 3); longs(36); skulls(41, 1); ends(46, 1);
+    skulls(1, 0); ends(8, 2); skulls(14, 4); longs(21); skulls(26, 0); ends(33, 2); skulls(40, 4); ends(46, 1);
   }, true);
 }
 function boneMat() { return mat('bone', () => cutout(new THREE.MeshLambertMaterial({ map: boneTex() }))); }
@@ -101,7 +101,7 @@ function fadeMat() {
   return mat('fade', () => {
     const t = pix('uc-fade', 16, FADE_PX, (g, W, Hh) => {
       const B = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5]; g.fillStyle = '#000000';
-      for (let y = 0; y < Hh; y++) { const a = Math.min(1, Math.pow(1 - y / (Hh - 1), 1.15) * 1.3); for (let x = 0; x < W; x++) if ((B[(y % 4) * 4 + (x % 4)] + 0.5) / 16 < a) g.fillRect(x, y, 1, 1); }
+      for (let y = 0; y < Hh; y++) { const a = Math.max(0, Math.min(1, (Hh - 12 - y) / 20)); for (let x = 0; x < W; x++) if ((B[(y % 4) * 4 + (x % 4)] + 0.5) / 16 < a) g.fillRect(x, y, 1, 1); }
     }, true);
     return cutout(new THREE.MeshLambertMaterial({ color: 0x000000, map: t, alphaTest: 0.5, fog: false }));
   });
@@ -177,7 +177,7 @@ export function votive(ctx, x, z, o = {}) {
   const iron = M.ironLit();
   for (const s of [-1, 1]) add(ctx, box(0.05, 1.1, 0.05), iron, x + s * 0.55, 0.55, z);
   add(ctx, box(1.2, 0.05, 0.3), iron, x, 0.75, z); add(ctx, box(1.2, 0.05, 0.3), iron, x, 1.05, z - 0.08);
-  candles(ctx, x, 0.78, z, { n: 7, spread: 0.5, az: 0.25 }); candles(ctx, x, 1.08, z - 0.08, { n: 5, spread: 0.45, az: 0.2, light: o.light, intensity: 2.6, dist: 5.5, halo: o.halo });
+  candles(ctx, x, 0.78, z, { n: 7, spread: 0.5, az: 0.25 }); candles(ctx, x, 1.08, z - 0.08, { n: 5, spread: 0.45, az: 0.2, light: o.light, intensity: 2.6, dist: 5.5 });
   solid(ctx, x - 0.62, z - 0.2, x + 0.62, z + 0.2, 1.1);
 }
 
@@ -222,7 +222,8 @@ export function tallWall(ctx, x0, z0, x1, z1, o = {}) {
   }
   // pilasters
   const pil = [];
-  if (o.bay) { const n = Math.max(1, Math.round((a1 - a0) / o.bay)); for (let i = 0; i <= n; i++) { const pp = a0 + (a1 - a0) * i / n; if (inGap(pp, 0.6) || (i === 0 && o.skipStart) || (i === n && o.skipEnd)) continue; B(pp - 0.28, pp + 0.28, 0, Hh, f, f + 0.3, M.ashlar('#384050')); B(pp - 0.36, pp + 0.36, 0, 0.7, f, f + 0.4, baseM); S(pp - 0.36, pp + 0.36, f, f + 0.4, Hh); pil.push(pp); } }
+  if (o.pilasters) for (const pp of o.pilasters) { B(pp - 0.28, pp + 0.28, 0, Hh, f, f + 0.3, M.ashlar('#384050')); B(pp - 0.36, pp + 0.36, 0, 0.7, f, f + 0.4, baseM); S(pp - 0.36, pp + 0.36, f, f + 0.4, Hh); pil.push(pp); }
+  else if (o.bay) { const n = Math.max(1, Math.round((a1 - a0) / o.bay)); for (let i = 0; i <= n; i++) { const pp = a0 + (a1 - a0) * i / n; if (inGap(pp, 0.6) || (i === 0 && o.skipStart) || (i === n && o.skipEnd)) continue; B(pp - 0.28, pp + 0.28, 0, Hh, f, f + 0.3, M.ashlar('#384050')); B(pp - 0.36, pp + 0.36, 0, 0.7, f, f + 0.4, baseM); S(pp - 0.36, pp + 0.36, f, f + 0.4, Hh); pil.push(pp); } }
   // niches
   const niches = []; const step = o.nicheStep || 2;
   if (o.niches !== false) for (let pp = a0 + step / 2; pp < a1 - 0.5; pp += step) {
@@ -240,6 +241,9 @@ export function tallWall(ctx, x0, z0, x1, z1, o = {}) {
   if (o.endFade !== false) { if (alongX) add(ctx, uvPlane(q16(dw), FADE_H, 16, FADE_PX), fadeMat(), a1 + 0.41, FADE0 + FADE_H / 2, dc, { ry: Math.PI / 2, cast: false }); else add(ctx, uvPlane(q16(dw), FADE_H, 16, FADE_PX), fadeMat(), dc, FADE0 + FADE_H / 2, a1 + 0.41, { cast: false }); }
   return { face: f, niches };
 }
+
+// The dark beyond a doorway, on a face toward +x (w wide, h tall, from y).
+export function doorway(ctx, x, y, z, w, h) { add(ctx, plane(w, h), blackMat(), x, y + h / 2, z, { ry: Math.PI / 2, cast: false }); }
 
 // A low broken wall on a near side: jagged courses, loose blocks and bones at its foot (room side).
 export function stub(ctx, x0, z0, x1, z1, hMin = 0.5, hMax = 1.5, o = {}) {
@@ -370,7 +374,7 @@ export function stream(ctx, x0, z0, x1, z1) {
     for (let i = 0; i < 46; i++) { const x = (r() * W) | 0, y = (r() * Hh) | 0, l = 2 + ((r() * 6) | 0), a = (0.25 + r() * 0.6).toFixed(2); g.fillStyle = `rgba(150,184,208,${a})`; for (let j = 0; j < l; j++) g.fillRect(x, (y + j) % Hh, 1, 1); }
   }, true).clone();
   t.needsUpdate = true; t.repeat.set((x1 - x0 - 0.5) * 16 / 32, len * 16 / 64);
-  const fm = new THREE.MeshBasicMaterial({ map: t, color: new THREE.Color(0.5, 0.62, 0.78), transparent: true, opacity: 0.5, depthWrite: false, blending: THREE.AdditiveBlending });
+  const fm = new THREE.MeshBasicMaterial({ map: t, color: new THREE.Color(0.55, 0.68, 0.85), transparent: true, opacity: 0.7, depthWrite: false, blending: THREE.AdditiveBlending });
   const fl = new THREE.Mesh(plane(x1 - x0 - 0.5, len), fm); fl.rotation.x = -Math.PI / 2; fl.position.set(mx, WATER_Y + 0.01, mz); fl.renderOrder = 1; ctx.group.add(fl);
   let k = 0; ctx.anims.push({ update(dt) { k += dt; t.offset.y = Math.floor(k * 0.55 * 64) / 64; return false; } });
 }
@@ -407,7 +411,7 @@ export function motes(ctx, list) {
   const R = T.rng(3131); const base = [];
   for (const [x, z, r, n] of list) for (let i = 0; i < n; i++) { const a = R() * Math.PI * 2, d = Math.sqrt(R()) * r; base.push([x + Math.sin(a) * d, R() * 5, z + Math.cos(a) * d, R() * 10]); }
   const pos = new Float32Array(base.length * 3); const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  const m = new THREE.PointsMaterial({ color: new THREE.Color(0.9, 1.05, 1.3), size: 1.5, sizeAttenuation: false, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
+  const m = new THREE.PointsMaterial({ color: new THREE.Color(0.9, 1.05, 1.3), size: 1, sizeAttenuation: false, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
   const pts = new THREE.Points(g, m); pts.frustumCulled = false; ctx.group.add(pts);
   let t = 0;
   const step = () => { for (let i = 0; i < base.length; i++) { const [x, y, z, ph] = base[i]; pos[i * 3] = x + Math.sin(t * 0.3 + ph) * 0.3; pos[i * 3 + 1] = ((y - t * 0.18) % 5 + 5) % 5 + 0.2; pos[i * 3 + 2] = z + Math.cos(t * 0.25 + ph) * 0.3; } g.attributes.position.needsUpdate = true; };
@@ -424,7 +428,7 @@ export function altar(ctx, x, z, o = {}) {
   add(ctx, box(0.3, 0.3, 0.021), M.flat(0x8a7a50, { emissive: 0x1a140a }), x, 0.82, z + 0.07, { cast: false });
   add(ctx, box(0.5, 0.36, 0.34), M.flat(0x7a6a44, { emissive: 0x201808 }), x, 1.42, z - 0.45);
   add(ctx, box(0.12, 1.5, 0.12), M.flat(0x8a8a86), x, 2.0, z - 0.72); add(ctx, box(0.8, 0.12, 0.12), M.flat(0x8a8a86), x, 2.4, z - 0.72);
-  candles(ctx, x - 0.8, 1.24, z - 0.35, { n: 5, spread: 0.16, tall: true, light: true, intensity: 3.2, dist: 6.5, halo: true, lz: 0.6 });
+  candles(ctx, x - 0.8, 1.24, z - 0.35, { n: 5, spread: 0.16, tall: true, light: true, intensity: 3.2, dist: 6.5, lz: 0.6 });
   candles(ctx, x + 0.8, 1.24, z - 0.35, { n: 5, spread: 0.16, tall: true });
   candles(ctx, x - 1.55, 0.32, z + 0.35, { n: 4, spread: 0.18 }); candles(ctx, x + 1.55, 0.32, z + 0.35, { n: 3, spread: 0.18 });
   solid(ctx, x - 1.8, z - 0.95, x + 1.8, z + 0.95, 1.2);
@@ -494,7 +498,7 @@ export function skullShrine(ctx, x, zf, w = 2.8, o = {}) {
     if (Math.abs(u) > R || (y > 2.3 && Math.abs(u) > Math.sqrt(Math.max(0, R * R - (y - 2.3) ** 2)))) continue;
     skull(ctx, x + u, y, zf + 0.16, (j * 7 + i * 3) % 5 * 0.06 - 0.12);
   }
-  candles(ctx, x, 0.72, zf + 0.5, { n: 9, spread: w * 0.42, az: 0.15, light: true, intensity: 3, dist: 6, halo: true, lz: 0.4 });
+  candles(ctx, x, 0.72, zf + 0.5, { n: 9, spread: w * 0.42, az: 0.15, light: true, intensity: 3, dist: 6, lz: 0.4 });
   solid(ctx, x - w / 2 - 0.5, zf, x + w / 2 + 0.5, zf + 0.8, 3.6);
 }
 // Heat from below: a dim warm glow rising in an opening, dithered to dark at the top (the way down).

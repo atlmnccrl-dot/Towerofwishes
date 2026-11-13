@@ -27,9 +27,12 @@ function lob(w, e, tx, tz, o) {
   w.addHazard({ shape: 'circle', x: tx, z: tz, r: o.splash, warn: o.arc, life: o.pool, dmg: o.dmg * e.dmgMul, src: e, kind: o.hazard, kb: 3, status: o.status });
 }
 // where the hero will roughly be in `t` seconds (only part of the way, so standing still is not safe either)
-function lead(w, hero, t) {
-  const x = hero.x + hero.vx * t, z = hero.z + hero.vz * t;
-  return free(w, x, z, 0.2) || { x: hero.x, z: hero.z };
+// and never closer to the thrower than `near` (a hero charging in stops about there)
+function lead(w, e, hero, t, near = 2.2) {
+  const a = angTo(e, hero); const sa = Math.sin(a), ca = Math.cos(a);
+  const dx = hero.x + hero.vx * t - e.x, dz = hero.z + hero.vz * t - e.z;
+  const along = Math.max(near, dx * sa + dz * ca), lat = dx * ca - dz * sa;
+  return free(w, e.x + sa * along + ca * lat, e.z + ca * along - sa * lat, 0.2) || { x: hero.x, z: hero.z };
 }
 // allies a chanter can ward: close, not bosses, not already well shielded
 function wardable(w, e) {
@@ -51,11 +54,11 @@ const ATK = {
   dive: { name: 'dive', anim: 'dive', dur: 1.5, windup: 0.8, active: 1.25, leap: true, shape: 'circle', offset: 0, radius: 1.7, dmg: 17, kb: 7, tele: 'circleAt', heavy: true, onStrike: (w, e) => { e.ai.groundT = w.t + 1.6; e.flinch = 1; e.poise = Math.min(e.poise, e.maxPoise * 0.35); } },
   rake: { name: 'rake', anim: 'rake', dur: 1.0, windup: 0.48, active: 0.62, range: 1.9, arc: deg(130), dmg: 12, kb: 4, lunge: 3, tele: 'arc' },
   // Tallow Bomber: a fire flask lobbed ahead of the hero (a burning pool), a flask smashed at its own feet
-  flask: { name: 'flask', anim: 'cast', dur: 1.15, windup: 0.55, active: 0.58, tele: 'none', dmg: 0, onStrike: (w, e) => { const p = lead(w, w.hero, 0.8); lob(w, e, p.x, p.z, { kind: 'flask', arc: 0.95, splash: 1.5, pool: 2.6, dmg: 13, hazard: 'fire', status: { burn: 1 } }); w.emit('fire', { e, kind: 'flask' }); } },
+  flask: { name: 'flask', anim: 'cast', dur: 1.15, windup: 0.55, active: 0.58, tele: 'none', dmg: 0, onStrike: (w, e) => { const p = lead(w, e, w.hero, 0.8); lob(w, e, p.x, p.z, { kind: 'flask', arc: 0.95, splash: 1.5, pool: 2.6, dmg: 13, hazard: 'fire', status: { burn: 1 } }); w.emit('fire', { e, kind: 'flask' }); } },
   spill: { name: 'spill', anim: 'slam', dur: 0.95, windup: 0.42, active: 0.45, shape: 'circle', offset: 0, radius: 2.1, tele: 'circle', dmg: 0, onStrike: (w, e) => { w.addHazard({ shape: 'circle', x: e.x, z: e.z, r: 2.1, warn: 0.22, life: 2.2, dmg: 12 * e.dmgMul, src: e, kind: 'fire', kb: 4, status: { burn: 1 } }); } },
   // Mire Spitter: three globs across the hero's path (poison puddles), a claw when cornered
   spit: { name: 'spit', anim: 'cast', dur: 1.35, windup: 0.7, active: 0.72, tele: 'none', dmg: 0, onStrike: (w, e) => {
-    const hero = w.hero; const p = lead(w, hero, 0.75); const a = angTo(e, p); const sx = Math.cos(a), sz = -Math.sin(a);
+    const hero = w.hero; const p = lead(w, e, hero, 0.75, 2.6); const a = angTo(e, p); const sx = Math.cos(a), sz = -Math.sin(a);
     const spots = [[0, 0, 1.0], [sx * 1.9, sz * 1.9, 1.15], [-sx * 1.9, -sz * 1.9, 1.3]];
     for (const [ox, oz, arc] of spots) { const q = free(w, p.x + ox, p.z + oz, 0.2) || p; lob(w, e, q.x, q.z, { kind: 'spit', arc, splash: 1.15, pool: 3.6, dmg: 9, hazard: 'poison', status: { poison: 1 } }); }
     w.emit('fire', { e, kind: 'spit' });
@@ -126,12 +129,12 @@ const looks = {
 // attacks: what the common pattern would use if this unit ever falls back to it
 export const UNITS = {
   hound: {
-    name: 'Grave Hound', hp: 52, poise: 16, flinch: 1, speed: 6.0, r: 0.4, mass: 0.9, aggro: 14, keep: 3.6, drop: 6,
+    name: 'Grave Hound', hp: 52, poise: 28, flinch: 1, speed: 6.0, r: 0.4, mass: 0.9, aggro: 14, keep: 3.6, drop: 6,
     attacks: [{ a: ATK.lunge, w: 1, min: 2.4, max: 4.6 }, { a: ATK.snap, w: 1, min: 0, max: 1.8 }],
-    look: { rig: 'hound', scale: 1.15, eyes: 0xff3020, colors: { fur: 0x2e2a2c, dark: 0x1e1b1d, bone: 0xd8d0bc } },
+    look: { rig: 'hound', scale: 1.15, eyes: 0xff3020, colors: { fur: 0x4a4446, dark: 0x2c2829, bone: 0xe0d8c4 } },
   },
   rat: {
-    name: 'Plague Rat', hp: 12, poise: 5, flinch: 0, speed: 5.2, r: 0.26, mass: 0.35, aggro: 12, keep: 1.0, drop: 2,
+    name: 'Plague Rat', hp: 14, poise: 99, flinch: 0, speed: 5.2, r: 0.26, mass: 0.35, aggro: 12, keep: 1.0, drop: 2,
     attacks: [{ a: ATK.nip, w: 1, min: 0, max: 1.4 }],
     look: { rig: 'rat', scale: 1, eyes: 0xff3020, colors: { fur: 0x6a5c4c, dark: 0x4a3e34, tail: 0xc89088, sore: 0x90e040 } },
   },
@@ -141,17 +144,17 @@ export const UNITS = {
     look: { rig: 'gargoyle', scale: 1.05, eyes: 0xff4030, colors: { stone: 0x70727a, dark: 0x4c4e56, wing: 0x55575f, horn: 0x34363c, claw: 0xc8c4b8 } },
   },
   bomber: {
-    name: 'Tallow Bomber', hp: 48, poise: 16, flinch: 1, speed: 3.2, r: 0.38, mass: 1, aggro: 15, keep: 7, ranged: true, drop: 7,
+    name: 'Tallow Bomber', hp: 48, poise: 22, flinch: 1, speed: 3.2, r: 0.38, mass: 1, aggro: 15, keep: 7, ranged: true, drop: 7,
     attacks: [{ a: ATK.flask, w: 1, min: 3, max: 13 }],
     look: { weapon: 'none', offhand: 'lantern', hood: true, eyes: 0xffa030, extra: looks.bomber, colors: { skin: 0xd8ccb0, tunic: 0xc8b890, pants: 0x4a3a2a, boots: 0x1a1410, hood: 0x5a4430, glove: 0x3a2a1e, belt: 0x3a2a1a } },
   },
   spitter: {
-    name: 'Mire Spitter', hp: 54, poise: 18, flinch: 1, speed: 2.8, r: 0.4, mass: 1.1, aggro: 14, keep: 6, ranged: true, hunch: true, drop: 7,
+    name: 'Mire Spitter', hp: 54, poise: 30, flinch: 1, speed: 2.8, r: 0.4, mass: 1.1, aggro: 14, keep: 6, ranged: true, hunch: true, drop: 7,
     attacks: [{ a: ATK.spit, w: 1, min: 2.5, max: 12 }],
     look: { weapon: 'none', claws: 0xa8c070, eyes: 0x90ff60, noHair: true, bulk: 1.2, extra: looks.spitter, colors: { skin: 0x4a6038, tunic: 0x34482a, pants: 0x283a22, boots: 0x1c2a18, glove: 0x4a6038, shoulder: 0x3e5430 } },
   },
   shade: {
-    name: 'Shade', hp: 52, poise: 18, flinch: 1, speed: 3.8, r: 0.38, mass: 0.8, aggro: 15, keep: 4, drop: 9,
+    name: 'Shade', hp: 52, poise: 30, flinch: 1, speed: 3.8, r: 0.38, mass: 0.8, aggro: 15, keep: 4, drop: 9,
     attacks: [{ a: ATK.cut, w: 1, min: 0, max: 1.9 }],
     look: { weapon: 'saber', blade: 0x9aa8e0, bladeGlow: 0x203070, hood: true, cloak: true, extra: looks.shade, colors: { skin: 0x10121a, tunic: 0x0c0e16, pants: 0x0a0c12, boots: 0x08090c, cloak: 0x141826, cloakDark: 0x0c0e18, hood: 0x141826, glove: 0x0c0e14 } },
   },
@@ -200,6 +203,8 @@ const unit = (fn) => (w, e, h) => {
   return true;
 };
 function unhide(w, e) { e.hidden = false; e.iframes = 0; w.emit('appear', { e }); }
+// melt into the dark: untargetable, and shedding burns and bleeds (so nothing kills it unseen)
+function vanish(w, e, t) { e.hidden = true; e.iframes = 9; e.tele = null; e.status = {}; e.ai.hideT = t; w.emit('vanish', { e }); }
 
 export const UNIT_AI = {
   // Hunts in packs: circles the hero at its own distance, turns, crouches and lunges along a line,
@@ -210,7 +215,11 @@ export const UNIT_AI = {
     const ready = ai.cd <= 0.35;
     if (ai.cd <= 0 && meleeToken(w) && facing(e, ang, 0.45)) {
       if (d < 1.9) { attack(w, e, ATK.snap); ai.backT = 0.35; return; }
-      if (d >= 2.3 && d <= 4.8 && ai.sees && w.clear(e, hero)) { attack(w, e, ATK.lunge); ai.backT = 0.55; return; }
+      if (d >= 2.3 && d <= 4.8 && ai.sees && w.clear(e, hero)) { attack(w, e, ATK.lunge); e.flinch = 0; ai.backT = 0.55; return; }
+    }
+    if (d < 2.3) { // too close to lunge: snap if it can, else spring away to lunge again
+      if (ai.cd <= 0.2 && meleeToken(w)) { stand(e, 'stalk'); e.face = turn(e.face, ang, 12 * h); return; }
+      const a = move(w, e, ang + Math.PI - 0.5 * ai.strafeDir, e.speed); e.face = turn(e.face, a, 10 * h); return;
     }
     if (d > 6.5) { const a = move(w, e, ang, e.speed); e.face = turn(e.face, a, 10 * h); return; }
     if (ready && d >= 2.3 && d <= 4.9 && meleeToken(w)) { stand(e, 'stalk'); e.face = turn(e.face, ang, 9 * h); return; } // stop and turn to face
@@ -227,8 +236,11 @@ export const UNIT_AI = {
       let biting = 0; for (const f of w.ents) if (f.type === 'rat' && !f.dead && (f.state === 'windup' || f.state === 'attack')) biting++;
       if (biting < 3) { e.face = turn(e.face, ang, 1.5); attack(w, e, ATK.nip); ai.backT = 0.3 + w.rand() * 0.35; ai.backA = ang + Math.PI + (w.rand() - 0.5) * 2.2; return; }
     }
-    const zig = Math.sin(w.t * 7 + e.id * 1.7) * (d > 2.2 ? 0.75 : 0.25);
-    const a = move(w, e, ang + zig, e.speed * (d < 1.2 ? 0.35 : 1)); e.face = turn(e.face, d < 1.6 ? ang : a, 14 * h);
+    // scurry on a zigzag to its own side of the hero (the swarm surrounds), then dart in
+    const zig = Math.sin(w.t * 7 + e.id * 1.7) * 0.6;
+    if (d > 2.6 || ai.cd <= 0) { const a = move(w, e, ang + (d > 2.2 ? zig : 0), e.speed * (d < 1.2 ? 0.35 : 1)); e.face = turn(e.face, d < 1.6 ? ang : a, 14 * h); return; }
+    const slot = e.id * 2.4 + Math.sin(w.t * 0.7) * 0.5; const tx = hero.x + Math.sin(slot) * 2.2, tz = hero.z + Math.cos(slot) * 2.2;
+    const a = move(w, e, Math.atan2(tx - e.x, tz - e.z) + zig * 0.5, e.speed * 0.8); e.face = turn(e.face, a, 14 * h);
   }),
 
   // Hovers out of reach, drifting round; dives onto a marked circle, then is grounded and
@@ -286,16 +298,16 @@ export const UNIT_AI = {
         if (spot) break;
       }
       if (spot) { w.emit('blink', { e, fx: e.x, fz: e.z, x: spot.x, z: spot.z }); e.x = spot.x; e.z = spot.z; }
-      unhide(w, e); e.face = angTo(e, hero); attack(w, e, ATK.ambush); ai.blinkAt = w.t + 3.6 * haste(e);
+      unhide(w, e); e.face = angTo(e, hero); attack(w, e, ATK.ambush); e.flinch = 0; ai.blinkAt = w.t + 3.6 * haste(e);
       return;
     }
     // struck up close: melt away and come back from behind
     const struck = e.hp < (ai.lastHp ?? e.hp); ai.lastHp = e.hp;
-    if (struck && d < 2.6 && (ai.evadeAt ?? 0) <= w.t) { ai.evadeAt = w.t + 5 * haste(e); e.hidden = true; e.iframes = 9; e.tele = null; ai.hideT = 0.5; w.emit('vanish', { e }); return; }
+    if (struck && d < 2.6 && (ai.evadeAt ?? 0) <= w.t) { ai.evadeAt = w.t + 5 * haste(e); vanish(w, e, 0.5); return; }
     strafeFlip(w, e, h); e.face = turn(e.face, ang, 8 * h);
     if (ai.cd <= 0 && meleeToken(w)) {
       if (d < 2.0 && facing(e, ang, 0.5)) { attack(w, e, w.rand() < 0.4 ? ATK.flurry : ATK.cut); return; }
-      if (ai.blinkAt <= w.t && d < 11 && ai.sees) { e.hidden = true; e.iframes = 9; e.tele = null; ai.hideT = 0.55; w.emit('vanish', { e }); return; }
+      if (ai.blinkAt <= w.t && d < 11 && ai.sees) { vanish(w, e, 0.55); return; }
     }
     if (d > 6) move(w, e, ang, e.speed);
     else if (d < 3) move(w, e, ang + Math.PI - 0.6 * ai.strafeDir, e.speed * 0.8);
