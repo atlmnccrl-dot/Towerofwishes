@@ -74,6 +74,7 @@ function candleSign() {
 const WAX = [0xe4d8b8, 0xd2c4a0, 0xefe6cc, 0xc4b28c];
 const waxMat = (k) => M.flat(WAX[k], { emissive: 0x2c2010 });
 const flameMat = () => M.glow('#ffcf78', 2.6);
+const poolMat = () => M.flat(0x8e836c, { emissive: 0x140e06 });
 
 // ---------------------------------------------------------------- water
 // The water and the bed of a canal (the banks come from quay(), the solids from waterSolid()).
@@ -96,6 +97,37 @@ export function quay(ctx, x0, z0, x1, z1, waterSide) {
     add(ctx, box(0.52, H, len), wallM, x0 - sg * 0.24, BED_Y + H / 2, cz, { cast: false });
     add(ctx, box(0.56, 0.35, len), copeM, x0 - sg * 0.22, -0.125, cz, { cast: false });
   }
+}
+
+// Ripples on still water: short pale dashes lying along the screen, shimmering slowly; and the
+// broken columns of light that the lamps over the water throw on it. Call after the lights are placed.
+export function ripples(ctx, rects, density = 0.45) {
+  const cool = new THREE.Color(0x34465c), hot = new THREE.Color(0xa86c34);
+  const mats = [0, 1].map(() => new THREE.MeshBasicMaterial({ color: cool.clone(), fog: false }));
+  const warm = [0, 1].map(() => new THREE.MeshBasicMaterial({ color: hot.clone(), fog: false }));
+  const g = unitBox(); const y = WATER_Y + 0.01; const r = T.rng(77);
+  const wet = (x, z) => rects.some(([x0, z0, x1, z1]) => x > x0 + 0.3 && x < x1 - 0.3 && z > z0 + 0.3 && z < z1 - 0.3);
+  for (const [x0, z0, x1, z1] of rects) {
+    const n = Math.round((x1 - x0) * (z1 - z0) * density);
+    for (let i = 0; i < n; i++) {
+      const x = x0 + 0.4 + r() * (x1 - x0 - 0.8), z = z0 + 0.4 + r() * (z1 - z0 - 0.8); const k = i % 2;
+      put(ctx, 'mk-rip' + k, g, mats[k], x, y, z, 0.3 + r() * 0.9, 0.01, 0.06, Math.PI / 4);
+    }
+  }
+  // reflections: straight down the screen from each light, broken into dashes
+  for (const L of ctx.lights) {
+    const hh = L.y - WATER_Y; const off = hh * Math.cos(0.698) / Math.sin(0.698) / Math.SQRT2;
+    for (let j = -3; j <= 3; j++) {
+      const t = off + j * 0.32 * Math.max(1, hh / 3); const x = L.x + t, z = L.z + t; if (!wet(x, z)) continue;
+      const k = (j + 4) % 2; put(ctx, 'mk-glint' + k, g, warm[k], x, y + 0.005, z, (0.9 - Math.abs(j) * 0.1) * (0.6 + r() * 0.6), 0.01, 0.07, Math.PI / 4);
+    }
+  }
+  let t = 0;
+  ctx.anims.push({ update(dt) {
+    t += dt; const a = Math.sin(t * 1.3) * 0.3;
+    mats[0].color.copy(cool).multiplyScalar(1 + a); mats[1].color.copy(cool).multiplyScalar(1 - a);
+    warm[0].color.copy(hot).multiplyScalar(1 + a); warm[1].color.copy(hot).multiplyScalar(1 - a); return false;
+  } });
 }
 
 // Water you cannot walk into (and nothing can blink onto); sight passes over it.
@@ -176,13 +208,13 @@ export function candles(ctx, x, y, z, n = 5, opts = {}) {
     put(ctx, 'mk-wax' + k, unitCyl(), waxMat(k), cx, y + h / 2, cz, cr, h, cr);
     put(ctx, 'mk-flame', unitBox(), flameMat(), cx, y + h + 0.05, cz, 0.06, 0.1, 0.06);
   }
-  if (opts.pool !== false && y < 0.1) waxPool(ctx, x, z, R + 0.14);
+  if (opts.pool !== false && y < 0.1) waxPool(ctx, x, z, R + 0.04);
   if (opts.light) ctx.lights.push({ x, y: y + 0.7, z, color: 0xffa850, intensity: opts.light, dist: opts.dist || 4.5, flicker: 0.14 });
 }
 
 // Spilled wax on the stones.
 export function waxPool(ctx, x, z, r = 0.4) {
-  put(ctx, 'mk-pool', unitCyl10(), waxMat(1), x, 0.035, z, r, 0.02, r * 0.8);
+  put(ctx, 'mk-pool', unitCyl10(), poolMat(), x, 0.035, z, r, 0.02, r * 0.8);
 }
 
 // A row of candles along a line (a step, a sill, a kerb).
@@ -193,7 +225,7 @@ export function candleRow(ctx, x0, z0, x1, z1, y = 0, n = 6, opts = {}) {
 // A ring of candles on the ground joined by a line of spilled wax.
 export function candleRing(ctx, x, z, R, n = 16) {
   for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2; candles(ctx, x + Math.cos(a) * R, 0, z + Math.sin(a) * R, 2, { r: 0.1, tall: 0.18, pool: false }); }
-  add(ctx, geo('mk-ring' + R, () => new THREE.RingGeometry(R - 0.07, R + 0.07, 40)), waxMat(1), x, 0.036, z, { rx: -Math.PI / 2, cast: false });
+  add(ctx, geo('mk-ring' + R, () => new THREE.RingGeometry(R - 0.06, R + 0.06, 40)), poolMat(), x, 0.036, z, { rx: -Math.PI / 2, cast: false });
 }
 
 // A wrought-iron candelabrum: a tall stand with five tapers.
@@ -208,7 +240,7 @@ export function candelabra(ctx, x, z, opts = {}) {
     put(ctx, 'mk-wax0', unitCyl(), waxMat(0), x + ox, h + 0.07 + hh / 2, z + oz, 0.045, hh, 0.045);
     put(ctx, 'mk-flame', unitBox(), flameMat(), x + ox, h + 0.13 + hh, z + oz, 0.06, 0.11, 0.06);
   }
-  waxPool(ctx, x + 0.1, z + 0.1, 0.45);
+  waxPool(ctx, x + 0.1, z + 0.1, 0.32);
   solidCircle(ctx, x, z, 0.32, h);
   if (opts.light !== 0) ctx.lights.push({ x, y: h + 0.6, z, color: 0xffb060, intensity: opts.light || 3.4, dist: opts.dist || 6.5, flicker: 0.1 });
 }
@@ -225,7 +257,7 @@ export function pillars(ctx, x, z, opts = {}) {
     for (let j = 0; j < 3; j++) { const b = r() * Math.PI * 2, dh = h * (0.2 + r() * 0.3); add(ctx, box(0.05, dh, 0.05), m, cx + Math.cos(b) * cr, h - dh / 2, cz + Math.sin(b) * cr); }
     put(ctx, 'mk-flame', unitBox(), flameMat(), cx, h + 0.09, cz, 0.08, 0.16, 0.08);
   }
-  waxPool(ctx, x, z, 0.75 * s);
+  waxPool(ctx, x, z, 0.6 * s);
   solidCircle(ctx, x, z, 0.55 * s, 1.2);
   if (opts.light) ctx.lights.push({ x, y: 1.6 * s, z, color: 0xffb060, intensity: opts.light, dist: opts.dist || 6, flicker: 0.12 });
 }
@@ -236,7 +268,7 @@ export function lanterns(ctx, a, b, opts = {}) {
   const n = opts.n || 7, sag = opts.sag ?? 0.8;
   const at = (t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t - sag * 4 * t * (1 - t), a[2] + (b[2] - a[2]) * t];
   const rope = M.flat(0x1a1612), capM = M.ironLit();
-  const S = 10; for (let i = 0; i < S; i++) bar(ctx, 'mk-rope', rope, at(i / S), at((i + 1) / S), 0.03);
+  const S = 10; for (let i = 0; i < S; i++) bar(ctx, 'mk-rope', rope, at(i / S), at((i + 1) / S), 0.05);
   const cols = opts.colors || ['#ff9440', '#ff6038', '#ffc060', '#e85a3a'];
   const lanG = geo('mk-lanG', () => new THREE.CylinderGeometry(0.15, 0.15, 0.32, 8)), capG = geo('mk-lcapG', () => new THREE.CylinderGeometry(0.07, 0.11, 0.05, 6));
   const r = T.rng(Math.round(a[0] * 7 + a[2] * 13 + 3));
@@ -405,9 +437,12 @@ export function vat(ctx, x, z, r = 0.9) {
   add(ctx, cyl(r, r * 0.86, 1.0, 10), M.flat(0x22201e), x, 1.05, z);
   add(ctx, cyl(r + 0.07, r + 0.07, 0.1, 10), M.ironLit(), x, 1.55, z);
   add(ctx, cyl(r - 0.04, r - 0.04, 0.02, 10), M.glow('#e8d6a0', 1.05), x, 1.53, z, { cast: false });
-  add(ctx, box(0.6, 0.28, 0.04), M.glow('#ff7a28', 2.2), x, 0.22, z + r + 0.21, { cast: false });
-  add(ctx, box(0.04, 0.28, 0.6), M.glow('#ff7a28', 2.2), x + r + 0.21, 0.22, z, { cast: false });
-  ctx.lights.push({ x: x + r * 0.6, y: 0.7, z: z + r * 0.6 + 0.4, color: 0xff7a30, intensity: 3.6, dist: 5.5, flicker: 0.3 });
+  add(ctx, box(0.9, 0.3, 0.04), M.glow('#c83a14', 1.6), x, 0.24, z + r + 0.21, { cast: false });
+  const tex = T.flame().clone(); tex.needsUpdate = true; tex.repeat.set(1 / 4, 1);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, color: new THREE.Color(2.2, 1.8, 1.4), fog: false }));
+  sp.scale.set(0.8, 0.55, 1); sp.position.set(x, 0.42, z + r + 0.3); ctx.group.add(sp);
+  let t = Math.random() * 10; ctx.anims.push({ update(dt) { t += dt; tex.offset.x = (Math.floor(t * 9) % 4) / 4; return false; } });
+  ctx.lights.push({ x: x + 0.2, y: 0.9, z: z + r + 0.9, color: 0xff7a30, intensity: 5, dist: 7, flicker: 0.3, halo: true });
   solid(ctx, x - r - 0.2, z - r - 0.2, x + r + 0.2, z + r + 0.2, 1.6);
 }
 
@@ -425,6 +460,15 @@ export function dryingRack(ctx, x, z, len = 2.6, along = 'x') {
     }
   }
   if (ax) solid(ctx, x - len / 2 - 0.1, z - 0.4, x + len / 2 + 0.1, z + 0.4, 1.9); else solid(ctx, x - 0.4, z - len / 2 - 0.1, x + 0.4, z + len / 2 + 0.1, 1.9);
+}
+
+// Stacked cakes of rendered tallow, pale and waxy.
+export function tallowStack(ctx, x, z, n = 3, along = 'x', y0 = 0) {
+  const ax = along === 'x'; const m = waxMat(3);
+  for (let i = 0; i < n; i++) for (let k = 0; k < n - i; k++) {
+    const o = (k - (n - i - 1) / 2) * 0.46; add(ctx, box(0.42, 0.24, 0.42), m, x + (ax ? o : 0), y0 + 0.12 + i * 0.24, z + (ax ? 0 : o));
+  }
+  const half = n * 0.23; if (y0 > 0) return; if (ax) solid(ctx, x - half, z - 0.22, x + half, z + 0.22, n * 0.24); else solid(ctx, x - 0.22, z - half, x + 0.22, z + half, n * 0.24);
 }
 
 // A tall brick chimney stack (the works' flue).

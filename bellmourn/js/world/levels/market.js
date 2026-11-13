@@ -10,7 +10,7 @@ export default {
   bounds: [-56.6, -46, 14, 18],
   gatesOpen: ['marketGate', 'yardGate'],
   ambience: {
-    fog: 0x1e2632, fogNear: 78, fogFar: 175, sky: 0x0b0f17, moon: 1.6, hemi: 0.9, rain: 1, lightning: true,
+    fog: 0x1e2632, fogNear: 78, fogFar: 175, sky: 0x0b0f17, moon: 1.7, hemi: 0.95, rain: 1, lightning: true,
     beams: [{ x: -2.5, z: -7, r: 6, h: 26, from: [6, 0, -10], intensity: 70 }, { x: -46, z: -31.5, r: 8, h: 28, from: [6, 0, -10], intensity: 85 }],
   },
   lamps: [{ id: 'row', x: -5.6, z: 6, sx: 1.3, sz: 0.4 }, { id: 'works', x: -25.6, z: -29.8, sx: 1.2, sz: 0.6 }],
@@ -35,7 +35,7 @@ export default {
     { id: 'works', zone: [-27.2, -35.5, -14, -21.8], gates: ['yardGate'], opens: ['squareGate'], msg: 'SOMETHING STIRS IN THE TALLOW',
       waves: [
         { foes: [{ t: 'brute', x: -20.6, z: -30.4 }] },
-        { foes: [{ t: 'hushed', x: -16.2, z: -23.8 }, { t: 'hushed', x: -24.6, z: -23.4 }, { t: 'crossbow', x: -21, z: -32 }] },
+        { foes: [{ t: 'hushed', x: -16.6, z: -24.6 }, { t: 'hushed', x: -24.6, z: -23.4 }, { t: 'crossbow', x: -21, z: -32 }] },
       ] },
   ],
   boss: { type: 'tallow', x: -46, z: -31.5, face: Math.PI / 2, zone: [-54.4, -41.2, -36.4, -22.2], gates: ['squareGate'], opens: ['exitGate'] },
@@ -63,7 +63,7 @@ export default {
     // ------------------------------------------------ the canal road (the way in)
     P.canalHouse(ctx, -9.5, 4.9, 5, 3.8, 7.2, { sign: true });
     P.canalHouse(ctx, -9.5, 8.5, 5, 3.4, 8.6, { hoist: true, plaster: '#4c5262' });
-    P.canalHouse(ctx, -9.5, 12.3, 5, 4.2, 6.8, { light: 1.6 });
+    P.canalHouse(ctx, -9.5, 12.3, 5, 4.2, 6.8, {});
     P.canalHouse(ctx, -9.5, 16.2, 5, 3.6, 8, { plaster: '#46505e' });
     P.canalHouse(ctx, -9.5, 20, 5, 4, 7, {});
     P.canalHouse(ctx, -9.5, 24, 5, 4, 8.2, { plaster: '#4a4e5c' });
@@ -92,7 +92,7 @@ export default {
     ctx.marks.marketGate = K.gate(ctx, -1, 0.6, 2.8, 'x', { h: 2.6, open: true, swingDir: -1 });
     K.fence(ctx, 1.1, 0.6, 5, 0.6);
     P.canalHouse(ctx, -13.5, -1.4, 6, 4, 7.6, {});
-    P.canalHouse(ctx, -13.5, -5.3, 6, 3.8, 9.2, { hoist: true, sign: true, light: 1.6 });
+    P.canalHouse(ctx, -13.5, -5.3, 6, 3.8, 9.2, { hoist: true, sign: true });
     P.canalHouse(ctx, -13.5, -9.3, 6, 4.2, 7, { plaster: '#4a5060' });
     P.canalHouse(ctx, -13.5, -13.45, 6, 4.1, 8.2, {});
     K.fence(ctx, -10.5, -15.25, -2.45, -15.25, { h: 1.3, kerb: 0.2 });
@@ -102,14 +102,14 @@ export default {
     P.stall(ctx, -9.55, -4.2, { face: '+x', w: 2.2, cloth: '#7a2a26', light: 2 });
     P.stall(ctx, -9.55, -8.3, { face: '+x', w: 2.2, cloth: '#8a6a2a' });
     P.stall(ctx, 3.75, -4.2, { face: '-x', w: 2.6, cloth: '#4a2a44', goods: 'cloth' });
-    P.stall(ctx, 3.75, -10.4, { face: '-x', w: 2.6, cloth: '#7a2a26', goods: 'jars', light: 1.6 });
+    P.stall(ctx, 3.75, -10.4, { face: '-x', w: 2.6, cloth: '#7a2a26', goods: 'jars' });
     P.stall(ctx, -6.6, -13.9, { face: '+z', w: 2.4, d: 1.2, cloth: '#8a6a2a' });
     const m1 = P.stringPost(ctx, 4.75, -7.2), m2 = P.stringPost(ctx, 4.75, -13);
     P.lanterns(ctx, [-10.45, 5.8, -7.2], m1, { n: 9, sag: 1 }); P.lanterns(ctx, [-10.45, 5.4, -13], m2, { n: 9, colors: ['#ff6038', '#ffc060', '#e85a3a'] });
     K.barrelStack(ctx, 2.6, -14); K.crate(ctx, -10, -12.4); K.crate(ctx, -10.1, -11.6, { s: 0.55 });
     K.crate(ctx, -3.5, 0, { s: 0.6 }); K.crate(ctx, 4.5, -0.3, { s: 0.7 }); K.barrel(ctx, 4.5, -7.2 + 0.9, { s: 0.85 });
     P.candles(ctx, -10, -0.3, 0, 5); P.candles(ctx, 1.4, 0, -14.4, 6); P.candles(ctx, -2.7, 0, -14.5, 4);
-    P.candles(ctx, -1.6, 0, -5.4, 3, { r: 0.4 }); P.candles(ctx, 0.6, 0, -8.6, 2, { r: 0.3 }); P.waxPool(ctx, -2.8, -9.4, 0.5);
+    P.candles(ctx, -1.6, 0, -5.4, 3, { r: 0.4 }); P.candles(ctx, 0.6, 0, -8.6, 2, { r: 0.3 }); P.waxPool(ctx, -2.8, -9.4, 0.35);
     K.fallenBody(ctx, -2, -6.8, 0.9); K.droppedSword(ctx, -0.8, -6.2, 2.2); K.chair(ctx, 1.6, -11.2, 0.4, true);
     K.puddle(ctx, -4.5, -3, 2.2, 1.2); K.puddle(ctx, 0.8, -12, 1.6, 1.1); K.puddle(ctx, -6, -11, 1.2, 1.4);
     K.banner(ctx, -10.45, 3.4, -11.3, '+x', 0x5a1418);
@@ -146,11 +146,14 @@ export default {
     K.fence(ctx, -27.75, -36, -27.75, -27.3, { h: 1.3, kerb: 0.2 }); K.fence(ctx, -27.75, -24.7, -27.75, -21.3, { h: 1.3, kerb: 0.2 });
     K.house(ctx, -20.5, -39.2, 15, 6.4, 5.4, { ridge: 'x', lit: 0.45, doorSide: 'z', plaster: '#4a4e58', windowLights: false, chimney: false });
     P.chimney(ctx, -15.4, -40.4, 12.5);
-    K.torch(ctx, -25.8, 2.4, -36, '+z'); K.torch(ctx, -15.2, 2.4, -36, '+z');
+    K.torch(ctx, -25.8, 2.4, -36, '+z');
+    const y1 = P.stringPost(ctx, -18.9, -21.95); P.lanterns(ctx, [-18.9, 4.4, -35.95], y1, { n: 8, sag: 0.9, colors: ['#ffc060', '#ff9440', '#ff6038'] });
     P.vat(ctx, -24.4, -33.6, 0.85); P.vat(ctx, -16.8, -33.8, 0.8);
     P.dryingRack(ctx, -20.6, -34.6, 2.6, 'x'); P.dryingRack(ctx, -15.2, -28.8, 2.4, 'z');
+    P.tallowStack(ctx, -25.2, -22.6, 3, 'x'); P.tallowStack(ctx, -14.6, -34.6, 2, 'z'); P.tallowStack(ctx, -22.4, -22.4, 2, 'x');
+    K.cart(ctx, -16.2, -22.4, Math.PI / 2); P.tallowStack(ctx, -16.2, -22.4, 2, 'x', 0.75);
     K.barrelStack(ctx, -27, -35.3); K.crate(ctx, -22.6, -35.5, { s: 0.7 }); K.crate(ctx, -18.4, -35.6, { s: 0.8 }); K.crate(ctx, -18.4, -35.6, { s: 0.5, y: 0.8, solid: false });
-    P.waxPool(ctx, -22, -31, 0.7); P.waxPool(ctx, -18.6, -26.5, 0.5); P.candles(ctx, -14, -0, -22.2, 4); P.candles(ctx, -26.9, 0, -22.1, 5);
+    P.waxPool(ctx, -22, -31, 0.45); P.waxPool(ctx, -18.6, -26.5, 0.35); P.candles(ctx, -14, -0, -22.2, 4); P.candles(ctx, -26.9, 0, -22.1, 5);
     K.fallenBody(ctx, -19, -24.8, 2.4); K.puddle(ctx, -21, -27.4, 2.2, 1.3); K.puddle(ctx, -16, -31.6, 1.2, 0.9);
 
     // ------------------------------------------------ the last bridge and Candlemas Square
@@ -170,14 +173,14 @@ export default {
     P.canalHouse(ctx, -39.7, -45, 3.8, 6, 9, { front: '+z', plaster: '#464c5a' });
     P.canalHouse(ctx, -36.4, -45, 2.8, 6, 7.2, { front: '+z' });
     ctx.marks.exitGate = K.gate(ctx, -47.1, -42.2, 2, 'x', { h: 2.6 });
-    K.torch(ctx, -48.4, 2.2, -44.4, '+x'); K.lamp(ctx, -47.1, -48.4, { h: 2.6 });
+    K.torch(ctx, -48.4, 2.2, -44.4, '+x');
     P.candelabra(ctx, -53.4, -39.6); P.candelabra(ctx, -53.2, -24); P.candelabra(ctx, -37.6, -39.8); P.candelabra(ctx, -37.4, -23.6);
     P.candleRing(ctx, -46, -31.5, 3.2, 18);
     for (const x of [-53.6, -49.4, -42.6, -38.6]) P.candles(ctx, x, 0, -41.3, 6);
     for (const x of [-51.5, -47, -43, -39.6]) P.candles(ctx, x, 0, -22.05, 5);
     for (const z of [-37.4, -32.6, -29]) P.candles(ctx, -36.1, 0, z, 5);
     P.candles(ctx, -55.4, 0, -40.8, 7); P.candles(ctx, -55.4, 0, -23, 6);
-    P.waxPool(ctx, -41, -35, 0.6); P.waxPool(ctx, -50.5, -27.5, 0.5);
+    P.waxPool(ctx, -41, -35, 0.4); P.waxPool(ctx, -50.5, -27.5, 0.35);
     K.fallenBody(ctx, -40.4, -26.6, 1.9); K.droppedSword(ctx, -41.4, -27.4, 0.3); K.fallenBody(ctx, -51.6, -36.8, -0.7, 0x1c181a);
     K.puddle(ctx, -42, -27.5, 2.4, 1.4); K.puddle(ctx, -50, -35.5, 1.8, 1.2); K.puddle(ctx, -39.5, -36, 1.4, 1);
     P.boat(ctx, -44.5, -18.3, 4.6, 'x', { lantern: false }); P.boat(ctx, -31.5, -36, 4.2, 'z', { lantern: false, tone: '#3e2c22' });
@@ -187,5 +190,8 @@ export default {
     K.house(ctx, -24, -8.5, 6, 5, 2.6, { lit: 0.3, roofH: 1.5, windowLights: false, chimney: false });
     for (const [x, z] of [[-31, -12], [-53, -12.2]]) { P.boat(ctx, x, z, 5, 'x', { y: 0.55, lantern: false }); for (const o of [-1.4, 1.2]) K.crate(ctx, x + o, z, { s: 0.5 }); }
     K.crate(ctx, -19.5, -12.6); K.crate(ctx, -20.3, -12.7, { s: 0.6 }); K.barrelStack(ctx, -36.5, -13.4);
+
+    // ------------------------------------------------ last: the water's ripples and the lamps' reflections on it
+    P.ripples(ctx, [[5.5, -15.5, 11.5, 26], [-62, -21, 11.5, -15.5], [-35, -50, -28, -21]]);
   },
 };

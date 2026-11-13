@@ -21,17 +21,74 @@ function solidRot(ctx, x, z, ry, hw, hd, h) {
   solid(ctx, x - ax, z - az, x + ax, z + az, h);
 }
 
+function canvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return [c, c.getContext('2d')]; }
+function tex(c) { const t = new THREE.CanvasTexture(c); t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; t.colorSpace = THREE.SRGBColorSpace; return t; }
+
 // ---------------------------------------------------------------- the flood
-// Shallow black water over the floor: walkable, drawn under the telegraphs and blood.
+// Glints on the water: short dashes that read as level on screen (they run +X-Z), and rain rings.
+const rippleImgs = [];
+function rippleImg(k) {
+  if (rippleImgs[k]) return rippleImgs[k];
+  const S = 128; const [c, g] = canvas(S, S); const r = T.rng(900 + k * 13);
+  for (let i = 0; i < 60; i++) {
+    const x = (r() * S) | 0, y = (r() * S) | 0, len = 2 + ((r() * 5) | 0); g.fillStyle = `rgba(176,204,218,${(0.3 + r() * 0.6).toFixed(2)})`;
+    for (let j = 0; j < len; j++) g.fillRect((x + j) % S, (y - j + S) % S, 1, 1);
+  }
+  g.fillStyle = 'rgba(160,196,212,0.45)';
+  for (let i = 0; i < 14; i++) { const x = (r() * S) | 0, y = (r() * S) | 0; for (const [dx, dy] of [[0, -2], [1, -1], [2, 0], [1, 1], [0, 2], [-1, 1], [-2, 0], [-1, -1]]) g.fillRect((x + dx + S) % S, (y + dy + S) % S, 1, 1); }
+  return (rippleImgs[k] = c);
+}
+// Shallow black water over the floor: walkable, drawn under the telegraphs and blood; the floor
+// shows through, glints shimmer on top.
 export function flood(ctx, x0, z0, x1, z1) {
-  const m = water(ctx, x0, z0, x1, z1, 0.022, 0x0b171b);
-  m.material.opacity = 0.8; m.material.depthWrite = false; m.material.shininess = 70; m.renderOrder = -1;
+  const w = x1 - x0, d = z1 - z0;
+  const m = water(ctx, x0, z0, x1, z1, 0.022, 0x0c1a20);
+  m.material.opacity = 0.5; m.material.depthWrite = false; m.material.shininess = 60; m.material.specular.set(0x90a8c0); m.renderOrder = -2;
+  const frames = [0, 1, 2].map((k) => { const t = tex(rippleImg(k)); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(w * 16 / 128, d * 16 / 128); return t; });
+  const gm = new THREE.MeshBasicMaterial({ map: frames[0], color: new THREE.Color(0.75, 0.88, 1.0), transparent: true, opacity: 0.36, depthWrite: false });
+  const glints = new THREE.Mesh(plane(w, d), gm); glints.rotation.x = -Math.PI / 2; glints.position.set(x0 + w / 2, 0.024, z0 + d / 2); glints.renderOrder = -1; ctx.group.add(glints);
+  let t = Math.random() * 3, f = 0;
+  ctx.anims.push({ update(dt) { t += dt; const k = Math.floor(t / 0.28) % 3; if (k !== f) { f = k; gm.map = frames[k]; } return false; } });
   return m;
 }
 
+// Patterns inlaid in the drowned floor: the labyrinth at the crossing, ledger stones over the dead.
+const inlayCache = new Map();
+function inlayMat(key, draw, w, h) {
+  if (!inlayCache.has(key)) { const [c, g] = canvas(w, h); draw(g, w, h); inlayCache.set(key, new THREE.MeshLambertMaterial({ map: tex(c), alphaTest: 0.5 })); }
+  return inlayCache.get(key);
+}
+export function labyrinth(ctx, x, z, size = 10) {
+  const S = Math.round(size * 16);
+  const m = inlayMat('lab' + S, (g) => {
+    const c = S / 2, r = T.rng(77); const rings = []; for (let rr = 14; rr < c - 6; rr += 6) rings.push({ rr, gap: r() * Math.PI * 2, bar: r() * Math.PI * 2 });
+    for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+      const dx = x + 0.5 - c, dy = y + 0.5 - c, d = Math.hypot(dx, dy), a = Math.atan2(dy, dx); let col = null;
+      if (d > c - 4 && d < c - 1) col = '#8c96a6';
+      else if (d < 10) col = (Math.abs(Math.sin(a * 3)) * 9 > d - 1 && d > 2.5) ? '#8c96a6' : (d < 2 ? '#a0aab8' : null);
+      else for (let i = 0; i < rings.length; i++) {
+        const R = rings[i]; const ad = Math.abs(((a - R.gap + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
+        if (Math.abs(d - R.rr) < 0.6 && ad * R.rr > 2.6) { col = '#7e8898'; break; }
+        if (i < rings.length - 1 && d > R.rr && d < R.rr + 6) { const bd = Math.abs(((a - R.bar + Math.PI * 3) % (Math.PI * 2)) - Math.PI); if (bd * d < 0.6) { col = '#7e8898'; break; } }
+      }
+      if (col) { g.fillStyle = col; g.fillRect(x, y, 1, 1); }
+    }
+  }, S, S);
+  add(ctx, plane(size, size), m, x, 0.016, z, { rx: -Math.PI / 2, cast: false });
+}
+export function ledger(ctx, x, z, ry = 0) {
+  const m = inlayMat('ledger', (g, w, h) => {
+    const r = T.rng(55);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const edge = x === 0 || y === 0 || x === w - 1 || y === h - 1; const cross = (x === 7 || x === 8) && y > 4 && y < 17 || (y === 8 || y === 9) && x > 3 && x < 12;
+      const text = y > 19 && y < 27 && x > 2 && x < 13 && (y % 2 === 0) && r() < 0.7;
+      g.fillStyle = edge ? '#4a5262' : (cross || text ? '#454d5c' : (r() < 0.1 ? '#727c8c' : '#68727f')); g.fillRect(x, y, 1, 1);
+    }
+  }, 16, 30);
+  add(ctx, plane(1, 1.875), m, x, 0.016, z, { rx: -Math.PI / 2, rz: ry, cast: false });
+}
+
 // ---------------------------------------------------------------- drowned glass
-function canvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return [c, c.getContext('2d')]; }
-function tex(c) { const t = new THREE.CanvasTexture(c); t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; t.colorSpace = THREE.SRGBColorSpace; return t; }
 const glassCache = new Map();
 const GLASS = ['#163e44', '#1e5658', '#28706c', '#3a948a', '#5ab8a8'];
 
@@ -118,9 +175,9 @@ export function rose(ctx, x, y, z, face = '+z', size = 4.5, glow = 1.3) {
 // A clustered pier: plinth, square shaft with four engaged shafts, capital and abacus.
 // broken: the height where the shaft snapped (no capital). Returns the springing height.
 export function pier(ctx, x, z, h = 4.65, o = {}) {
-  const w = o.w || 0.8, pw = w + 0.35; const stone = M.ashlar(o.tone || '#4a5464');
-  add(ctx, box(pw, 0.5, pw), M.ashlar('#3c4656'), x, 0.25, z);
-  add(ctx, box(pw - 0.12, 0.12, pw - 0.12), M.ashlar('#56606e'), x, 0.56, z);
+  const w = o.w || 0.8, pw = w + 0.35; const stone = M.ashlar(o.tone || '#58626f');
+  add(ctx, box(pw, 0.5, pw), M.ashlar('#46505e'), x, 0.25, z);
+  add(ctx, box(pw - 0.12, 0.12, pw - 0.12), M.ashlar('#646e7c'), x, 0.56, z);
   const faces = [[1, 0], [-1, 0], [0, 1], [0, -1]]; const off = w / 2 + 0.07;
   if (o.broken) {
     const top = q16(o.broken), r = T.rng(Math.round(x * 13 + z * 7 + 300));
@@ -133,8 +190,8 @@ export function pier(ctx, x, z, h = 4.65, o = {}) {
   const top = h - 0.45;
   add(ctx, box(w, top - 0.5, w), stone, x, 0.5 + (top - 0.5) / 2, z);
   for (const [ox, oz] of faces) add(ctx, box(0.2, top - 0.5, 0.2), stone, x + ox * off, 0.5 + (top - 0.5) / 2, z + oz * off);
-  add(ctx, box(pw - 0.05, 0.3, pw - 0.05), M.ashlar('#56606e'), x, top + 0.15, z);
-  add(ctx, box(pw + 0.1, 0.15, pw + 0.1), M.ashlar('#5e6878'), x, top + 0.375, z);
+  add(ctx, box(pw - 0.05, 0.3, pw - 0.05), M.ashlar('#666f7d'), x, top + 0.15, z);
+  add(ctx, box(pw + 0.1, 0.15, pw + 0.1), M.ashlar('#6e7886'), x, top + 0.375, z);
   solid(ctx, x - pw / 2, z - pw / 2, x + pw / 2, z + pw / 2, h);
   return h;
 }
@@ -152,9 +209,9 @@ export function arch(ctx, at, a0, a1, ys, yt, o = {}) {
     s.lineTo(span, H); s.lineTo(0, H); s.lineTo(0, 0);
     return new THREE.ExtrudeGeometry(s, { depth: t, bevelEnabled: false });
   });
-  const mat = M.ashlar(o.tone || '#4a5464'); const lo = Math.min(a0, a1);
-  if ((o.axis || 'z') === 'z') { add(ctx, g, mat, at + t / 2, ys, lo, { ry: -Math.PI / 2 }); if (o.cornice !== false) add(ctx, box(t + 0.2, 0.2, span + 0.3), M.ashlar('#56606e'), at, yt + 0.1, lo + span / 2); }
-  else { add(ctx, g, mat, lo, ys, at - t / 2); if (o.cornice !== false) add(ctx, box(span + 0.3, 0.2, t + 0.2), M.ashlar('#56606e'), lo + span / 2, yt + 0.1, at); }
+  const mat = M.ashlar(o.tone || '#58626f'); const lo = Math.min(a0, a1);
+  if ((o.axis || 'z') === 'z') { add(ctx, g, mat, at + t / 2, ys, lo, { ry: -Math.PI / 2 }); if (o.cornice !== false) add(ctx, box(t + 0.2, 0.2, span + 0.3), M.ashlar('#666f7d'), at, yt + 0.1, lo + span / 2); }
+  else { add(ctx, g, mat, lo, ys, at - t / 2); if (o.cornice !== false) add(ctx, box(span + 0.3, 0.2, t + 0.2), M.ashlar('#666f7d'), lo + span / 2, yt + 0.1, at); }
 }
 
 // A broken wall: stone base, a jagged top of uneven courses, loose blocks at its foot.
@@ -234,7 +291,7 @@ export function rafters(ctx, x, y, zs, dir = 1) {
 // A pew facing -Z (toward the altar): seat, back, ends, kneeler. kind: 'up', 'tipped' (fallen on
 // its back toward +Z) or 'broken' (half of it gone).
 export function pew(ctx, x, z, o = {}) {
-  const len = o.len || 1.9, ry = o.ry || 0, kind = o.kind || 'up'; const wood = M.wood(o.tone || '#3e2c20'), dark = M.wood('#2e2018');
+  const len = o.len || 1.9, ry = o.ry || 0, kind = o.kind || 'up'; const wood = M.wood(o.tone || '#4e3828'), dark = M.wood('#3a281c');
   const P = (g, m, lx, ly, lz, oo) => part(ctx, g, m, x, z, ry, lx, ly, lz, oo);
   if (kind === 'tipped') {
     P(box(len, 0.06, 0.58), wood, 0, 0.03, 0.45);
@@ -310,19 +367,44 @@ export function altar(ctx, x, z, o = {}) {
   add(ctx, box(w + 0.8, 0.2, d), st, x, 0.1, z);
   add(ctx, box(w + 0.4, 0.2, d - 0.6), st, x, 0.3, z - 0.3);
   add(ctx, box(w, 0.2, d - 1.2), hi, x, 0.5, z - 0.6);
-  const az = z - 0.5;
-  add(ctx, box(2.6, 1.0, 1.0), M.ashlar('#5e6878'), x, 1.1, az);
-  for (const s of [-1, 1]) add(ctx, box(0.24, 1.0, 0.24), M.ashlar('#4a5464'), x + s * 1.2, 1.1, az + 0.45);
-  add(ctx, box(3.0, 0.14, 1.3), M.ashlar('#6a7484'), x, 1.67, az);
+  const az = z - 0.5; const marble = M.ashlar('#7c8692');
+  add(ctx, box(2.6, 1.0, 1.0), marble, x, 1.1, az);
+  for (const s of [-1, 1]) add(ctx, box(0.24, 1.0, 0.24), M.ashlar('#5a6472'), x + s * 1.2, 1.1, az + 0.45);
+  add(ctx, box(3.0, 0.14, 1.3), M.ashlar('#8e98a4'), x, 1.67, az);
   add(ctx, box(1.7, 0.78, 0.03), M.flat(0x15363a), x, 1.16, az + 0.52);
-  add(ctx, box(0.5, 0.1, 0.031), M.flat(0x8a7a50), x, 1.42, az + 0.53);
+  add(ctx, box(0.36, 0.36, 0.031), M.glow('#3ad6c4', 1.2), x, 1.2, az + 0.53, { cast: false });
   // a reliquary, and a tall cross behind
-  add(ctx, box(0.6, 0.45, 0.4), M.flat(0x6a5a3a, { emissive: 0x1a1408 }), x, 1.97, az - 0.1);
-  add(ctx, box(0.12, 2.6, 0.12), M.ironLit(), x, 2.9, az - 0.55);
-  add(ctx, box(1.1, 0.12, 0.12), M.ironLit(), x, 3.6, az - 0.55);
+  add(ctx, box(0.6, 0.45, 0.4), M.flat(0x8a7a50, { emissive: 0x241c0c }), x, 1.97, az - 0.1);
+  add(ctx, box(0.16, 3.2, 0.16), M.flat(0xa8a28c), x, 3.2, az - 0.55);
+  add(ctx, box(1.3, 0.16, 0.16), M.flat(0xa8a28c), x, 4.0, az - 0.55);
   candles(ctx, x - 1.05, az, { n: 4, spread: 0.2, y: 1.74, light: false });
   candles(ctx, x + 1.05, az, { n: 4, spread: 0.2, y: 1.74, light: false });
   solid(ctx, x - (w + 0.8) / 2, z - d / 2, x + (w + 0.8) / 2, z + d / 2, 1.7);
+}
+
+// An iron brazier on three legs, burning: the acolytes keep their fires.
+export function brazier(ctx, x, z) {
+  const iron = M.ironLit();
+  for (let i = 0; i < 3; i++) { const a = i / 3 * Math.PI * 2 + 0.4; add(ctx, box(0.05, 1.05, 0.05), iron, x + Math.sin(a) * 0.24, 0.5, z + Math.cos(a) * 0.24, { rx: -Math.cos(a) * 0.22, rz: Math.sin(a) * 0.22 }); }
+  add(ctx, cyl(0.4, 0.22, 0.32, 8), iron, x, 1.08, z);
+  add(ctx, cyl(0.35, 0.35, 0.04, 8), M.glow('#ff8a30', 1.6), x, 1.22, z, { cast: false });
+  const t0 = T.flame().clone(); t0.needsUpdate = true; t0.repeat.set(1 / 4, 1);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t0, color: new THREE.Color(2.2, 1.9, 1.6), fog: false }));
+  sp.scale.set(0.75, 1.0, 1); sp.position.set(x, 1.68, z); ctx.group.add(sp);
+  let t = Math.random() * 10; ctx.anims.push({ update(dt) { t += dt; t0.offset.x = (Math.floor(t * 10) % 4) / 4; return false; } });
+  ctx.lights.push({ x, y: 2, z, color: 0xff8a30, intensity: 5.5, dist: 7.5, halo: true, flicker: 0.25 });
+  solidCircle(ctx, x, z, 0.42, 1.2);
+}
+
+// A great bronze bell fallen on its side, its mouth turned toward ry.
+export function bell(ctx, x, z, s = 1.4, ry = 0) {
+  const prof = [[0, 1.62], [0.3, 1.62], [0.46, 1.54], [0.54, 1.3], [0.58, 0.9], [0.66, 0.5], [0.82, 0.2], [0.98, 0.04], [1.0, 0], [0.9, 0.02], [0.72, 0.2], [0.56, 0.5], [0.48, 0.9], [0.44, 1.3], [0, 1.44]];
+  const g = geo('bell', () => new THREE.LatheGeometry(prof.map(([r, y]) => new THREE.Vector2(r, y - 0.8)), 12));
+  const bronze = cutout(new THREE.MeshPhongMaterial({ color: 0x6a5634, specular: 0x9a8858, shininess: 28, side: THREE.DoubleSide }));
+  const m = add(ctx, g, bronze, x, 0.78 * s, z, { rz: Math.PI / 2 + 0.15, ry: ry - Math.PI / 2 });
+  m.scale.setScalar(s);
+  add(ctx, geo('bellcrown', () => new THREE.TorusGeometry(0.16, 0.06, 4, 8)), bronze, x - Math.sin(ry) * 0.92 * s, 0.66 * s, z - Math.cos(ry) * 0.92 * s, { ry: ry + Math.PI / 2 });
+  add(ctx, box(0.12, 0.12, 0.8 * s), M.iron(), x + Math.sin(ry) * 0.5 * s, 0.1, z + Math.cos(ry) * 0.5 * s, { ry: ry + 0.5 });
 }
 
 // The font, still holding a little light.

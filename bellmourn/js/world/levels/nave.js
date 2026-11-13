@@ -9,10 +9,10 @@ export default {
   bounds: [-17.5, -42.5, 22, 16.5],
   gatesOpen: ['lychGate', 'choirGate'],
   ambience: {
-    fog: 0x1b2730, fogNear: 78, fogFar: 175, sky: 0x0a0e14, moon: 1.5, hemi: 0.9, rain: 1, lightning: true,
+    fog: 0x1b2730, fogNear: 78, fogFar: 175, sky: 0x0a0e14, moon: 1.7, hemi: 1.0, rain: 1, lightning: true,
     beams: [
-      { x: 0.6, z: -0.6, r: 5.2, h: 26, from: [6, 0, -10], intensity: 70 },
-      { x: -0.6, z: -12.4, r: 5.2, h: 26, from: [6, 0, -10], intensity: 70 },
+      { x: 15.4, z: 2.4, r: 5, h: 26, from: [6, 0, -10], intensity: 65 },
+      { x: 0.2, z: -3, r: 5.2, h: 26, from: [6, 0, -10], intensity: 75 },
       { x: 0, z: -29.5, r: 7.5, h: 28, from: [6, 0, -10], intensity: 90 },
     ],
   },
@@ -25,7 +25,7 @@ export default {
     { zone: [-7.5, -19.4, 7.5, -16.2], text: 'BEYOND THE SCREEN, SOMEONE IS PREACHING TO THE WATER.' },
   ],
   foes: [
-    { t: 'hushed', x: -5.4, z: -8.8 }, { t: 'ghoul', x: 5, z: -12.8 }, { t: 'brute', x: 1, z: -14 }, { t: 'acolyte', x: -5.6, z: -13.2 },
+    { t: 'hushed', x: -5.4, z: -8.8 }, { t: 'ghoul', x: 4.6, z: -15.2 }, { t: 'brute', x: 1, z: -14 }, { t: 'acolyte', x: -5.6, z: -13.2 },
   ],
   encounters: [
     { id: 'yard', zone: [10, 4.6, 21.2, 8.7], gates: ['lychGate'], opens: ['sideDoor'], msg: 'THE GRAVES ARE NOT EMPTY', done: 'THE SIDE DOOR SWINGS OPEN',
@@ -44,13 +44,14 @@ export default {
   build(K, ctx) {
     const W = K.M;
     // ------------------------------------------------ ground
-    K.floor(ctx, -26, -56, 34, 28, W.dirt('#2c3034'));
-    K.floor(ctx, 8.5, -6.5, 21.5, 9.5, W.grass('#28302c'), 0.01, 0.3);
-    K.floor(ctx, 8.5, 9.5, 30, 24, W.cobble('#4e5866'), 0.01, 0.3);
-    K.floor(ctx, 14.3, -0.4, 16.7, 9.5, W.flags('#5a6472'), 0.02, 0.3);
-    K.floor(ctx, 8.5, -0.4, 14.3, 1.9, W.flags('#5a6472'), 0.02, 0.3);
-    K.floor(ctx, -7.5, -19.8, 7.5, 5.5, W.flags('#4c5664'), 0.01, 0.3);
-    K.floor(ctx, -12.5, -41, 12.5, -19.8, W.court('#525c6a'), 0.01, 0.3);
+    K.floor(ctx, -26, -56, 34, 28, W.dirt('#444c54'));
+    K.floor(ctx, 8.5, -42, 22, -6.5, W.grass('#3a4642'), 0.005, 0.3);
+    K.floor(ctx, 8.5, -6.5, 21.5, 9.5, W.grass('#4a5652'), 0.01, 0.3);
+    K.floor(ctx, 8.5, 9.5, 30, 24, W.cobble('#56606e'), 0.01, 0.3);
+    K.floor(ctx, 14.3, -0.4, 16.7, 9.5, W.flags('#646e7c'), 0.02, 0.3);
+    K.floor(ctx, 8.5, -0.4, 14.3, 1.9, W.flags('#646e7c'), 0.02, 0.3);
+    K.floor(ctx, -7.5, -19.8, 7.5, 5.5, W.flags('#68727f'), 0.01, 0.3);
+    K.floor(ctx, -12.5, -41, 12.5, -19.8, W.court('#5e6876'), 0.01, 0.3);
     K.floor(ctx, -17.8, -31.4, -13.3, -26.6, W.flags('#4c5664'), 0.01, 0.3);
     P.flood(ctx, -7.5, -19.8, 7.5, 5.5);
     P.flood(ctx, -12.5, -41, 12.5, -19.8);
@@ -65,12 +66,19 @@ export default {
     K.barrel(ctx, 9.4, 15.6); K.barrel(ctx, 10.2, 16, { s: 0.85 });
     K.puddle(ctx, 14.2, 12.4, 1.8, 1); K.puddle(ctx, 18.6, 14.4, 1.2, 0.8);
     K.house(ctx, 19.5, 20.6, 7, 4, 4.2, { lit: 0.35, windowLights: false });
-    K.house(ctx, 11, 20.4, 5, 4, 3.6, { lit: 0.2, windowLights: false, plaster: '#464c5a' });
+    K.house(ctx, 11, 20.4, 5, 4, 3.6, { lit: 0.6, windowLights: false, plaster: '#464c5a' });
     // the west front outside the fence: the tide's wreckage
     P.rubble(ctx, 0.4, 7.4, 4.4, 1.8, { h: 1.3 });
     K.puddle(ctx, 4, 10, 2.4, 1.4); K.puddle(ctx, -2.5, 9.6, 1.8, 1.1);
     K.grave(ctx, 6, 11, 0.2); K.grave(ctx, 3.6, 12.4, -0.3); K.grave(ctx, 6.4, 13.8, 0.1);
     K.deadTree(ctx, 5.2, 15.2, 1);
+    // the stump of the west tower, fallen across the doors, and its bell
+    P.ruin(ctx, -15, 6.5, -15, 12.5, 4.5, 7.5, { thick: 1, tone: '#323c4e', debris: 0 });
+    P.ruin(ctx, -15, 6.2, -8.5, 6.2, 4, 6.5, { thick: 0.8, tone: '#323c4e', debris: 0 });
+    P.ruin(ctx, -14.5, 12.5, -9, 12.5, 1.4, 3, { thick: 1, tone: '#3e4858' });
+    P.rubble(ctx, -10.4, 9.6, 3.2, 3.6, { h: 1.6, solid: false });
+    P.rubble(ctx, -6, 8.2, 3, 2, { h: 1.2, solid: false });
+    P.bell(ctx, -12.2, 9.4, 1.5, Math.PI * 0.25);
 
     // ------------------------------------------------ the churchyard
     K.fence(ctx, 21.5, 9.5, 21.5, -6.5);
@@ -105,16 +113,16 @@ export default {
     ctx.lights.push({ x: -6.8, y: 2.4, z: -8.25, color: 0x3ad6c4, intensity: 3.2, dist: 7.5 });
     P.rafters(ctx, -7.6, 10, [1.4, -3.1, -7.6, -12.1], 1);
     // the west wall: broken down, its portal choked with what the tide brought in
-    P.ruin(ctx, -8.5, 6, -2.7, 6, 1.6, 3.4, { thick: 1 });
-    K.add(ctx, K.box(1, 3.6, 1.2), W.ashlar('#3c4656'), -2.2, 1.8, 6); K.add(ctx, K.box(1, 2.8, 1.2), W.ashlar('#3c4656'), 2.2, 1.4, 6);
-    K.solid(ctx, -2.7, 5.4, -1.7, 6.6, 3.6); K.solid(ctx, 1.7, 5.4, 2.7, 6.6, 2.8);
+    P.ruin(ctx, -8.5, 6, -2.7, 6, 1.3, 2.6, { thick: 1, tone: '#3e4858' });
+    K.add(ctx, K.box(1, 3, 1.2), W.ashlar('#46505e'), -2.2, 1.5, 6); K.add(ctx, K.box(1, 2.4, 1.2), W.ashlar('#46505e'), 2.2, 1.2, 6);
+    K.solid(ctx, -2.7, 5.4, -1.7, 6.6, 3); K.solid(ctx, 1.7, 5.4, 2.7, 6.6, 2.4);
     P.ruin(ctx, -1.7, 6, 1.7, 6, 0.9, 1.6, { thick: 1, debris: 0 });
-    P.ruin(ctx, 2.7, 6, 8.5, 6, 1.5, 3.2, { thick: 1 });
+    P.ruin(ctx, 2.7, 6, 8.5, 6, 1.2, 2.4, { thick: 1, tone: '#3e4858' });
     P.rubble(ctx, 0, 4.5, 4.6, 1.6, { h: 1.4 });
     // the south wall (near side): fallen to its lower courses, buttresses still standing outside
-    P.ruin(ctx, 8, 2.75, 8, 6.5, 1.6, 3, { thick: 1, solidH: 2 });
-    P.ruin(ctx, 8, -21.3, 8, -1.25, 1.2, 3, { thick: 1, solidH: 2 });
-    for (const [z, h, broken] of [[5, 4.6], [-3.4, 3.4, true], [-8, 5], [-12.6, 2.4, true], [-17.2, 4.4]]) P.buttress(ctx, 8.5, z, h, '+x', { broken });
+    P.ruin(ctx, 8, 2.75, 8, 6.5, 1.2, 2.4, { thick: 1, solidH: 2, tone: '#3e4858' });
+    P.ruin(ctx, 8, -21.3, 8, -1.25, 1, 2.2, { thick: 1, solidH: 2, tone: '#3e4858' });
+    for (const [z, h, broken] of [[5, 3.4], [-3.4, 2.6, true], [-8, 3.6], [-12.6, 1.8, true], [-17.2, 3.2]]) P.buttress(ctx, 8.5, z, h, '+x', { broken });
     // the side door: a pointed portal, its iron gate shut until the churchyard is quiet
     K.add(ctx, K.box(1.2, 4, 0.8), W.ashlar('#3e4858'), 8, 2, -0.85); K.add(ctx, K.box(1.2, 4, 0.8), W.ashlar('#3e4858'), 8, 2, 2.35);
     K.solid(ctx, 7.4, -1.25, 8.6, -0.45, 4); K.solid(ctx, 7.4, 1.95, 8.6, 2.75, 4);
@@ -141,6 +149,9 @@ export default {
     P.pew(ctx, 2.05, -0.4, { ry: -0.2, kind: 'tipped' }); P.pew(ctx, 2.05, -2.2, { ry: 0.3, kind: 'broken' });
     P.pew(ctx, -5.6, -0.6, { ry: 1.45 }); P.pew(ctx, 6.2, 4.6, { ry: 0.9 });
     P.candelabrum(ctx, -6.7, -4.4);
+    P.brazier(ctx, 2.6, 1.6);
+    for (const [x, z] of [[-5.6, -4.6], [5.8, -0.2], [-5.4, 1.2]]) P.ledger(ctx, x, z, 0);
+    P.candles(ctx, -6.9, 4.6, { n: 6, light: false }); P.candles(ctx, 6.6, -4.9, { n: 4, light: false });
     K.torch(ctx, -3.03, 2.3, -1.5, '+x');
     K.banner(ctx, -2.98, 3.2, 3, '+x', 0x1a2c30);
     K.fallenBody(ctx, 3, -3, 1.2, 0x1a1c20); K.droppedSword(ctx, 3.8, -4.4, 0.6);
@@ -152,12 +163,15 @@ export default {
 
     // ------------------------------------------------ the east nave: the fallen chandelier
     P.chandelier(ctx, -0.4, -11.2);
+    P.brazier(ctx, 5.8, -12.6);
     P.rubble(ctx, -2, -8, 1.6, 1.2);
     P.beam(ctx, 5.9, -9, 3.4, 0.3);
     P.pew(ctx, -1.4, -13.9, { ry: 0.6, kind: 'tipped' });
     P.pew(ctx, -2.05, -16.4, { ry: 0.04 }); P.pew(ctx, 2.05, -16.4, { ry: -0.06 });
     P.pew(ctx, -2.05, -17.8, { kind: 'broken' }); P.pew(ctx, 2.05, -17.8, { ry: 0.1 });
     K.torch(ctx, -3.03, 2.3, -15, '+x');
+    for (const [x, z] of [[-5.6, -9.6], [5.6, -16.2], [-5.6, -11.6], [0, -18.6]]) P.ledger(ctx, x, z, 0);
+    P.candles(ctx, 6.7, -7.4, { n: 4, light: false });
     K.banner(ctx, -2.98, 3.2, -10.5, '+x', 0x2a1418);
     P.candles(ctx, -7, -18.6, { n: 6, halo: true, intensity: 3, dist: 6 });
     P.candles(ctx, -6.9, -15.9, { n: 4, light: false });
@@ -189,10 +203,16 @@ export default {
     K.torch(ctx, -8.9, 2.4, -41, '+z'); K.torch(ctx, 8.9, 2.4, -41, '+z');
     P.altar(ctx, 0, -39.1);
     K.statue(ctx, -4.6, -40.2, 0.3); K.statue(ctx, 4.6, -40.2, -0.3);
-    P.candelabrum(ctx, -4.3, -36.6); P.candelabrum(ctx, 4.3, -36.6);
+    P.candelabrum(ctx, -3.2, -36.6); P.candelabrum(ctx, 3.2, -36.6);
+    // the crossing: four piers (the near two broken), the labyrinth under the water, the dead under their slabs
+    P.pier(ctx, -5.2, -24.6, 6.4, { w: 1 }); P.pier(ctx, -5.2, -34.4, 6.4, { w: 1 });
+    P.pier(ctx, 5.2, -24.6, 6.4, { w: 1, broken: 2.6 }); P.pier(ctx, 5.2, -34.4, 6.4, { w: 1, broken: 3.4 });
+    P.labyrinth(ctx, 0, -29.5, 9);
+    for (const [x, z, r] of [[-8.6, -28.4, 0], [-8.6, -31, 0], [8.4, -29.6, 0.1], [-2.6, -36, 1.57], [7.6, -38.6, 0], [-10.4, -24, 0.2]]) P.ledger(ctx, x, z, r);
+    for (const [x, z] of [[-11.6, -27.4], [11.4, -30.2], [-7.8, -39.8], [8.4, -40], [-11.2, -33.2]]) P.candles(ctx, x, z, { n: 5, light: false });
     // south transept (near side): broken down to the sills
-    P.ruin(ctx, 8.5, -20.9, 13.3, -20.9, 1.2, 2.6, { thick: 0.8, side: -1, solidH: 2 });
-    P.ruin(ctx, 12.9, -41.8, 12.9, -20.5, 1, 2.4, { thick: 0.8, solidH: 2 });
+    P.ruin(ctx, 8.5, -20.9, 13.3, -20.9, 1, 2.2, { thick: 0.8, side: -1, solidH: 2, tone: '#3e4858' });
+    P.ruin(ctx, 12.9, -41.8, 12.9, -20.5, 0.9, 2, { thick: 0.8, solidH: 2, tone: '#3e4858' });
     for (const [z, h, broken] of [[-25, 2.6, true], [-30.5, 3.4], [-36, 2, true]]) P.buttress(ctx, 13.3, z, h, '+x', { broken });
     P.chandelier(ctx, -9, -36.2, { r: 1.1, lit: 2 });
     P.pew(ctx, -9.8, -23.8, { ry: 0.5, kind: 'tipped' }); P.pew(ctx, 10.4, -35.4, { ry: 1.35 }); P.pew(ctx, 9.6, -24.4, { ry: -0.3, kind: 'broken' });
@@ -208,6 +228,7 @@ export default {
     for (const [x, z, r] of [[11, -9.6, 0.2], [12.6, -10.2, -0.3], [10.6, -14, 0.1], [12.4, -16.4, 0.4], [15, -12, -0.2], [11.4, -26, 0.2], [15.6, -28.4, -0.1], [16, -34.2, 0.3], [14.8, -38, -0.3]]) K.grave(ctx, x, z, r);
     K.deadTree(ctx, 14.2, -15, 1.1); K.deadTree(ctx, 16.4, -24.6, 1); K.deadTree(ctx, 15, -40, 1.2);
     P.rubble(ctx, 14.8, -32.6, 1.6, 1.2, { solid: false, capital: false });
+    P.candles(ctx, 12.6, -9.9, { n: 4, spread: 0.2, color: '#ffc070', intensity: 2, dist: 4.5 });
     K.puddle(ctx, 11.5, -19, 2, 1.2); K.puddle(ctx, 16, -20.5, 1.4, 1);
 
     // ------------------------------------------------ the drowned, drifting
