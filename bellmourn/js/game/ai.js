@@ -89,12 +89,15 @@ export function thinkBoss(w, e, h) {
   const frac = e.hp / e.maxHp;
   const target = 1 + B.phases.filter((p) => frac <= p).length; // phases: [0.66, 0.33] → 2 below 66%, 3 below 33%
   if (target > e.phase) {
-    e.phase++; // one phase at a time, so no phase's onPhase is skipped e.state = 'roar'; e.t = 0; e.anim = 'roar'; e.animT = 0; e.iframes = 1.4; e.tele = null;
+    e.phase++; // one phase at a time, so no phase's onPhase is skipped
+    e.state = 'roar'; e.t = 0; e.anim = 'roar'; e.animT = 0; e.iframes = 1.4; e.tele = null; e.ai.chan = null;
     w.emit('phase', { e, phase: e.phase }); w.emit('shake', { amt: 0.6 }); w.slow(0.6, 0.4);
     if (B.onPhase) B.onPhase(w, e, e.phase);
     return;
   }
   if (e.state === 'roar') { if (e.t < 1.3) return; e.state = 'idle'; e.anim = 'idle'; e.ai.cd = 0.4; }
+  // a channelled rite (bosses3.js): the boss stands and works it out over time; B.channel returns false when done
+  if (e.ai.chan && B.channel) { if (B.channel(w, e, h) !== false) return; e.ai.chan = null; e.anim = 'idle'; e.animT = 0; }
   if (e.hidden) { if (B.hiddenThink) return B.hiddenThink(w, e, h); }
   const d = dist(e, hero); const ang = angTo(e, hero);
   e.face = turn(e.face, ang, (B.turn || 4) * h);

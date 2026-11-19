@@ -347,3 +347,247 @@ export function court(seed = 21, tone = '#5c6674') {
     return toTexture(c);
   });
 }
+
+// ================================================================ Act II: the lands beyond the walls
+// Shared value noise for the natural grounds (seeded, tiles at the canvas size).
+function vnoise(seed, W, H, cell) {
+  const r = rng(seed); const gw = Math.ceil(W / cell), gh = Math.ceil(H / cell); const v = [];
+  for (let i = 0; i < gw * gh; i++) v.push(r());
+  const at = (i, j) => v[((j % gh + gh) % gh) * gw + ((i % gw + gw) % gw)];
+  return (x, y) => {
+    const fx = x / cell, fy = y / cell, i = Math.floor(fx), j = Math.floor(fy), u = fx - i, w = fy - j;
+    const s = (t) => t * t * (3 - 2 * t); const a = at(i, j), b = at(i + 1, j), c = at(i, j + 1), d = at(i + 1, j + 1);
+    return (a + (b - a) * s(u)) + ((c + (d - c) * s(u)) - (a + (b - a) * s(u))) * s(w);
+  };
+}
+const px = (g, x, y, c) => { g.fillStyle = c; g.fillRect(x, y, 1, 1); };
+
+// Snow: soft drifts in broad bands, wind ripples, a few glinting crystals, blue in the hollows.
+export function snow(seed = 31, tone = '#c4cede') {
+  return cached('snow' + seed + tone, () => {
+    const W = 64, H = 64; const [c, g] = canvas(W, H); const r = rng(seed); const n1 = vnoise(seed, W, H, 16), n2 = vnoise(seed + 1, W, H, 8);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const ripple = Math.sin((x * 0.35 + y * 0.9) + n1(x, y) * 5) * 0.5 + 0.5;
+      let f = 0.84 + n1(x, y) * 0.16 + n2(x, y) * 0.06 + (ripple > 0.9 ? 0.05 : (ripple < 0.08 ? -0.06 : 0));
+      f = Math.round(f * 24) / 24;
+      g.fillStyle = shade(tone, f); g.fillRect(x, y, 1, 1);
+    }
+    for (let k = 0; k < 26; k++) px(g, (r() * W) | 0, (r() * H) | 0, '#f4f8ff');
+    for (let k = 0; k < 18; k++) px(g, (r() * W) | 0, (r() * H) | 0, shade(tone, 0.72));
+    return toTexture(c);
+  });
+}
+
+// Ice: a frozen sheet, pale streaks under the surface, a web of white cracks, trapped bubbles.
+export function ice(seed = 32, tone = '#6e98b8') {
+  return cached('ice' + seed + tone, () => {
+    const W = 64, H = 64; const [c, g] = canvas(W, H); const r = rng(seed); const n1 = vnoise(seed, W, H, 21);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const streak = Math.sin((x + y * 0.4) * 0.22 + n1(x, y) * 4); let f = 0.78 + n1(x, y) * 0.22 + (streak > 0.86 ? 0.12 : 0);
+      f = Math.round(f * 20) / 20; g.fillStyle = shade(tone, f); g.fillRect(x, y, 1, 1);
+    }
+    for (let k = 0; k < 7; k++) { // cracks: a dark line with a white lip
+      let x = r() * W, y = r() * H, a = r() * Math.PI * 2;
+      for (let s = 0; s < 18 + r() * 20; s++) { px(g, ((x | 0) + W) % W, ((y | 0) + H) % H, shade(tone, 0.5)); px(g, ((x | 0) + W) % W, ((y | 0) + 1 + H) % H, '#d8ecf8'); a += (r() - 0.5) * 0.9; x += Math.cos(a); y += Math.sin(a); }
+    }
+    for (let k = 0; k < 14; k++) { const x = (r() * W) | 0, y = (r() * H) | 0; px(g, x, y, '#cfe6f6'); }
+    return toTexture(c);
+  });
+}
+
+// Sand: wind ripples (a shadowed trough under a lit crest every few texels), grit and pebbles.
+export function sand(seed = 33, tone = '#b88a56') {
+  return cached('sand' + seed + tone, () => {
+    const W = 64, H = 64; const [c, g] = canvas(W, H); const r = rng(seed); const n1 = vnoise(seed, W, H, 32), n2 = vnoise(seed + 3, W, H, 8);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const ph = (y + Math.sin(x * Math.PI * 2 / 32 + n1(x, y) * 3) * 2.5 + n1(x, y) * 4) / 5; const t = ph - Math.floor(ph);
+      let f = 0.9 + n2(x, y) * 0.1 + (t < 0.2 ? -0.12 : (t < 0.36 ? 0.08 : 0));
+      f = Math.round(f * 24) / 24; g.fillStyle = shade(tone, f); g.fillRect(x, y, 1, 1);
+    }
+    speckle(g, r, W, H, [shade(tone, 0.62), shade(tone, 1.2)], 0.02);
+    return toTexture(c);
+  });
+}
+
+// Sandstone: courses of soft blocks, the strata in fine lines, eroded corners, dark weathered joints.
+export function sandstone(seed = 34, tone = '#a8784c') {
+  return cached('sandstone' + seed + tone, () => {
+    const W = 64, H = 32; const [c, g] = canvas(W, H); const r = rng(seed);
+    g.fillStyle = shade(tone, 0.48); g.fillRect(0, 0, W, H);
+    for (let row = 0; row < 4; row++) {
+      const y0 = row * 8; let x = -((r() * 12) | 0);
+      while (x < W) {
+        const w = 10 + ((r() * 10) | 0); const f = 0.86 + r() * 0.2;
+        for (let y = y0; y < y0 + 7; y++) for (let xx = x; xx < x + w - 1; xx++) {
+          const ex = xx - x, ey = y - y0; if ((ex === 0 || ex === w - 2) && (ey === 0 || ey === 6) && r() < 0.8) continue;
+          const strata = (y + ((xx * 0.15) | 0)) % 3 === 0 ? 0.93 : 1; g.fillStyle = shade(tone, f * strata * (0.95 + r() * 0.08)); g.fillRect((xx + W) % W, y, 1, 1);
+        }
+        g.fillStyle = shade(tone, f * 1.16); for (let xx = x + 1; xx < x + w - 2; xx++) g.fillRect((xx + W) % W, y0, 1, 1);
+        if (r() < 0.3) { const hx = x + 2 + ((r() * (w - 5)) | 0), hy = y0 + 2 + ((r() * 3) | 0); g.fillStyle = shade(tone, 0.6); g.fillRect((hx + W) % W, hy, 2, 1); }
+        x += w;
+      }
+    }
+    return toTexture(c);
+  });
+}
+
+// Old catacomb stone: big rough blocks gone brown with age, pale saltpetre bleeding from the joints.
+export function catstone(seed = 35, tone = '#5a5048') {
+  return cached('catstone' + seed + tone, () => {
+    const W = 64, H = 48; const [c, g] = canvas(W, H); const r = rng(seed); const n1 = vnoise(seed, W, H, 16);
+    g.fillStyle = shade(tone, 0.4); g.fillRect(0, 0, W, H);
+    for (let row = 0; row < 4; row++) {
+      const y0 = row * 12; let x = -((r() * 14) | 0);
+      while (x < W) {
+        const w = 14 + ((r() * 12) | 0); const f = 0.8 + r() * 0.22;
+        for (let y = y0; y < y0 + 11; y++) for (let xx = x; xx < x + w - 1; xx++) {
+          const xw = (xx + W) % W; g.fillStyle = shade(tone, f * (0.88 + n1(xw, y) * 0.2 + (r() - 0.5) * 0.06)); g.fillRect(xw, y, 1, 1);
+        }
+        g.fillStyle = shade(tone, f * 1.18); for (let xx = x + 1; xx < x + w - 2; xx++) g.fillRect((xx + W) % W, y0, 1, 1);
+        g.fillStyle = shade(tone, f * 0.66); for (let y = y0 + 1; y < y0 + 11; y++) g.fillRect((x + w - 2 + W) % W, y, 1, 1);
+        x += w;
+      }
+    }
+    for (let k = 0; k < 6; k++) { // saltpetre streaks running down from a joint
+      const x = (r() * W) | 0, y0 = ((r() * 4) | 0) * 12 + 11, len = 3 + ((r() * 8) | 0);
+      for (let i = 0; i < len; i++) px(g, x + (i > len / 2 && r() < 0.3 ? 1 : 0), (y0 + i) % H, i < 2 ? '#b8b0a0' : shade('#8a8478', 1 - i / len * 0.3));
+    }
+    return toTexture(c);
+  });
+}
+
+// Tomb floor: long worn slabs with carved epitaph lines and the odd cross.
+export function tombfloor(seed = 36, tone = '#575049') {
+  return cached('tombfloor' + seed + tone, () => {
+    const W = 64, H = 64; const [c, g] = canvas(W, H); const r = rng(seed); const n1 = vnoise(seed, W, H, 16);
+    g.fillStyle = shade(tone, 0.42); g.fillRect(0, 0, W, H);
+    for (let col = 0; col < 4; col++) {
+      let y = -((r() * 10) | 0); const x0 = col * 16;
+      while (y < H) {
+        const h = 20 + ((r() * 14) | 0), f = 0.8 + r() * 0.24;
+        for (let yy = y; yy < y + h - 1; yy++) for (let x = x0; x < x0 + 15; x++) { const yw = (yy + H) % H; g.fillStyle = shade(tone, f * (0.9 + n1(x, yw) * 0.16)); g.fillRect(x, yw, 1, 1); }
+        g.fillStyle = shade(tone, f * 1.15); for (let x = x0; x < x0 + 15; x++) g.fillRect(x, (y + H) % H, 1, 1);
+        if (r() < 0.6) { g.fillStyle = shade(tone, f * 0.6); for (let k = 0; k < 3; k++) { const ly = y + 6 + k * 3; for (let x = x0 + 3; x < x0 + 12; x++) if (r() < 0.75) g.fillRect(x, (ly + H) % H, 1, 1); } }
+        else if (r() < 0.5) { g.fillStyle = shade(tone, f * 0.58); const cx = x0 + 7, cy = y + 8; for (let k = -3; k <= 4; k++) g.fillRect(cx, (cy + k + H) % H, 1, 1); for (let k = -2; k <= 2; k++) g.fillRect(cx + k, (cy - 1 + H) % H, 1, 1); }
+        y += h;
+      }
+    }
+    return toTexture(c);
+  });
+}
+
+// Basalt for the Abyss: dark columnar cells, their seams faintly red with the heat below.
+export function basalt(seed = 37, tone = '#2e2628') {
+  return cached('basalt' + seed + tone, () => {
+    const W = 64, H = 64; const [c, g] = canvas(W, H); const r = rng(seed); const pts = [];
+    for (let i = 0; i < 22; i++) pts.push([r() * W, r() * H, 0.82 + r() * 0.3]);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      let d1 = 1e9, d2 = 1e9, f = 1;
+      for (const [qx, qy, qf] of pts) { let dx = Math.abs(x - qx), dy = Math.abs(y - qy); dx = Math.min(dx, W - dx); dy = Math.min(dy, H - dy); const d = Math.hypot(dx, dy); if (d < d1) { d2 = d1; d1 = d; f = qf; } else if (d < d2) d2 = d; }
+      const e = d2 - d1; let col;
+      if (e < 1) col = (x + y) % 3 === 0 ? '#5a1810' : '#3a0e0c';
+      else if (e < 2) col = shade(tone, 0.6);
+      else col = shade(tone, f * (e > 5 ? 1.05 : 0.95) * (0.94 + r() * 0.1));
+      g.fillStyle = col; g.fillRect(x, y, 1, 1);
+    }
+    return toTexture(c);
+  });
+}
+
+// Obsidian: black glass with violet depths and sharp pale glints along its fracture planes.
+export function obsidian(seed = 38, tone = '#1c1620') {
+  return cached('obsidian' + seed + tone, () => {
+    const W = 32, H = 32; const [c, g] = canvas(W, H); const r = rng(seed); const n1 = vnoise(seed, W, H, 8);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const f = 0.8 + n1(x, y) * 0.5; g.fillStyle = shade(tone, Math.round(f * 10) / 10); g.fillRect(x, y, 1, 1); }
+    for (let k = 0; k < 5; k++) { let x = r() * W, y = r() * H; const dx = r() - 0.3, dy = r() * 0.6 + 0.4; for (let s = 0; s < 6 + r() * 6; s++) { px(g, ((x | 0) + W) % W, ((y | 0) + H) % H, s % 3 ? '#4a3c58' : '#8a7aa0'); x += dx; y += dy; } }
+    return toTexture(c);
+  });
+}
+
+// Hell brick: dark red-brown courses with carved glyphs that catch the fire.
+export function hellbrick(seed = 39, tone = '#3a2220') {
+  return cached('hellbrick' + seed + tone, () => {
+    const W = 32, H = 32; const [c, g] = canvas(W, H); const r = rng(seed);
+    g.fillStyle = shade(tone, 0.45); g.fillRect(0, 0, W, H);
+    for (let row = 0; row < 4; row++) for (let k = 0; k < 2; k++) {
+      const x0 = k * 16 + (row % 2) * 8, y0 = row * 8, f = 0.85 + r() * 0.25;
+      for (let y = y0; y < y0 + 7; y++) for (let x = x0; x < x0 + 15; x++) { g.fillStyle = shade(tone, f * (0.92 + r() * 0.12)); g.fillRect(x % W, y, 1, 1); }
+      g.fillStyle = shade(tone, f * 1.2); for (let x = x0; x < x0 + 15; x++) g.fillRect(x % W, y0, 1, 1);
+      if (r() < 0.45) { g.fillStyle = '#7a2a18'; const gx = x0 + 5, gy = y0 + 2; const G = (r() * 4) | 0; const shapes = [[[1, 0], [1, 1], [1, 2], [0, 1], [2, 1]], [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2]], [[0, 0], [1, 0], [2, 0], [1, 1], [1, 2]], [[1, 0], [0, 1], [2, 1], [1, 2], [1, 1]]][G]; for (const [a, b] of shapes) g.fillRect((gx + a) % W, gy + b, 1, 1); }
+    }
+    return toTexture(c);
+  });
+}
+
+// Lava: slow bright currents, white-gold to blood red, with drifting black crust (scroll it to flow).
+export function lava(seed = 40) {
+  return cached('lava' + seed, () => {
+    const W = 32, H = 32; const [c, g] = canvas(W, H); const r = rng(seed); const n1 = vnoise(seed, W, H, 8), n2 = vnoise(seed + 1, W, H, 16);
+    const RAMP = ['#1a0604', '#4a0e06', '#8a1c08', '#c83a0c', '#f06a18', '#ffa83a', '#ffe08a'];
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const v = Math.sin((x / W) * Math.PI * 2 * 2 + n2(x, y) * 5) * 0.25 + n1(x, y) * 0.55 + 0.25 + (r() - 0.5) * 0.08;
+      g.fillStyle = RAMP[Math.max(0, Math.min(6, Math.floor(v * 7)))]; g.fillRect(x, y, 1, 1);
+    }
+    return toTexture(c);
+  });
+}
+
+// A ritual circle (white on clear; tint it): rings, a band of glyphs, a seven-pointed star, an inner eye.
+// kind: 'circle' (the full rite), 'seal' (rings and a triangle), 'ring' (rings and glyphs only).
+export function sigil(kind = 'circle', S = 96, seed = 41) {
+  return cached('sigil' + kind + S + seed, () => {
+    const [c, g] = canvas(S, S); const r = rng(seed); const C = S / 2; const W = '#ffffff', D = 'rgba(255,255,255,0.55)';
+    const ring = (R, th = 1, col = W) => { for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) { const d = Math.hypot(x + 0.5 - C, y + 0.5 - C); if (d >= R - th && d < R) px(g, x, y, col); } };
+    const line = (x0, y0, x1, y1, col = W) => { const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0)); for (let i = 0; i <= n; i++) px(g, Math.round(x0 + (x1 - x0) * i / n - 0.5), Math.round(y0 + (y1 - y0) * i / n - 0.5), col); };
+    ring(C - 1, 1.2); ring(C - 3, 1); if (kind !== 'seal') ring(C - 11, 1);
+    if (kind !== 'seal') { // glyph band between C-3 and C-11
+      const n = Math.floor((C - 7) * Math.PI * 2 / 7); const glyphs = [];
+      for (let i = 0; i < 9; i++) { const b = []; for (let k = 0; k < 15; k++) b.push(r() < 0.45); b[7] = true; glyphs.push(b); }
+      for (let i = 0; i < n; i++) {
+        const gl = glyphs[(r() * glyphs.length) | 0]; const a = (i / n) * Math.PI * 2; const ca = Math.cos(a), sa = Math.sin(a);
+        for (let k = 0; k < 15; k++) if (gl[k]) { const u = (k % 3) - 1, v = Math.floor(k / 3) - 2; const rr = C - 7 + v, tt = u; px(g, Math.round(C + ca * rr - sa * tt - 0.5), Math.round(C + sa * rr + ca * tt - 0.5), W); }
+      }
+    }
+    const R2 = kind === 'seal' ? C - 4 : C - 12;
+    if (kind === 'circle') { // a heptagram
+      const P = []; for (let i = 0; i < 7; i++) { const a = -Math.PI / 2 + i * Math.PI * 2 / 7; P.push([C + Math.cos(a) * R2, C + Math.sin(a) * R2]); }
+      for (let i = 0; i < 7; i++) { const a = P[i], b = P[(i + 3) % 7]; line(a[0], a[1], b[0], b[1]); }
+      ring(R2 * 0.42, 1); ring(R2 * 0.3, 1, D);
+      for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) { const dx = x + 0.5 - C, dy = (y + 0.5 - C) * 2.2; const d = Math.hypot(dx, dy); if (d < R2 * 0.26 && d > R2 * 0.26 - 1.3) px(g, x, y, W); if (Math.hypot(x + 0.5 - C, y + 0.5 - C) < 2.2) px(g, x, y, W); }
+    } else if (kind === 'seal') {
+      const P = []; for (let i = 0; i < 3; i++) { const a = -Math.PI / 2 + i * Math.PI * 2 / 3; P.push([C + Math.cos(a) * R2, C + Math.sin(a) * R2]); }
+      for (let i = 0; i < 3; i++) line(P[i][0], P[i][1], P[(i + 1) % 3][0], P[(i + 1) % 3][1]);
+      ring(R2 * 0.5, 1);
+    }
+    const t = toTexture(c, false); return t;
+  });
+}
+
+// An eye for the wheel above the Abyss (16 x 10): lids, a red iris, a slit pupil. open: 0..2 (shut, half, wide).
+export function eye(open = 2) {
+  return cached('eye' + open, () => {
+    const w = 16, h = 10; const [c, g] = canvas(w, h);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const dx = (x + 0.5 - w / 2) / (w / 2), dy = (y + 0.5 - h / 2) / (h / 2); const lid = (1 - dx * dx) * (open === 0 ? 0.12 : (open === 1 ? 0.5 : 1));
+      if (Math.abs(dy) > lid + 0.18) continue;
+      let col = Math.abs(dy) > lid - 0.05 ? '#2a0806' : '#e8d8c0';
+      if (open && Math.abs(dy) <= lid - 0.05) { const d = Math.hypot(dx * 1.6, dy); if (d < 0.62) col = d < 0.2 ? '#140202' : (d < 0.42 ? '#d02010' : '#ff7a28'); if (Math.abs(dx) < 0.06 && Math.abs(dy) < 0.6) col = '#000000'; }
+      px(g, x, y, col);
+    }
+    return toTexture(c, false);
+  });
+}
+
+// Crag: raw rock (no masonry): broad light and dark planes, angular fractures, a speckle of lichen.
+export function crag(seed = 42, tone = '#4c5462') {
+  return cached('crag' + seed + tone, () => {
+    const W = 64, H = 64; const [c, g] = canvas(W, H); const r = rng(seed); const n1 = vnoise(seed, W, H, 16), n2 = vnoise(seed + 5, W, H, 6);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { let f = 0.78 + n1(x, y) * 0.3 + n2(x, y) * 0.08; f = Math.round(f * 14) / 14; g.fillStyle = shade(tone, f); g.fillRect(x, y, 1, 1); }
+    for (let k = 0; k < 10; k++) {
+      let x = r() * W, y = r() * H; const a0 = r() < 0.5 ? 0.3 : 1.3; let a = a0;
+      for (let s = 0; s < 10 + r() * 16; s++) { px(g, ((x | 0) + W) % W, ((y | 0) + H) % H, shade(tone, 0.48)); px(g, ((x | 0) + W) % W, ((y | 0) - 1 + H) % H, shade(tone, 1.2)); a = a0 + (r() - 0.5) * 0.8; x += Math.cos(a); y += Math.sin(a); }
+    }
+    speckle(g, r, W, H, [shade('#6a7458', 0.9), shade(tone, 0.6)], 0.012);
+    return toTexture(c);
+  });
+}

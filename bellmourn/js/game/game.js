@@ -11,7 +11,9 @@ import { setTargetHeight } from '../engine/renderer.js';
 import LEVELS from '../world/levels/index.js';
 import { makeAutoplay } from './autoplay.js';
 import { BOSS_AI } from './ai.js';
-import { BOSS_AI2 } from './bosses2.js';
+import { BOSS_AI2, BOSSES2 } from './bosses2.js';
+import { FOES, BOSSES } from './defs.js';
+import { UNITS } from './units.js';
 import { HEROES, HERO_ORDER, heroStats, AFFIX_LIST, WEAPONS, RELICS, xpFor, ABILITIES, ULTS } from './heroes.js';
 import { freshSave, upgradeSave, addXp, xpFrac, bossReward, chestLoot, skillRows, useSkillRow, shopStock, buy, upgradeWeapon, toggleRelic, relicSlots, havenNext } from './progress.js';
 import { LampMenu, fit, dots } from './lampmenu.js';
@@ -31,6 +33,12 @@ const ARMS = { blade: 'BLADE', bow: 'CROSSBOW', hammer: 'HAMMER', focus: 'LANTER
 const hit = (r, p) => r && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
 const inZone = (e, z) => e && e.x >= z[0] && e.x <= z[2] && e.z >= z[1] && e.z <= z[3];
 const NO_INPUT = { mx: 0, mz: 0 };
+// a foe or boss type the simulation knows (a region may name units still being built: those are skipped,
+// with a warning, rather than stopping the game)
+const knownFoe = (t) => !!(FOES[t] || UNITS[t]);
+const knownBoss = (t) => !!(BOSSES[t] || BOSSES2[t]);
+const warned = new Set();
+const knownOrWarn = (f) => { if (knownFoe(f.t)) return true; if (!warned.has(f.t)) { warned.add(f.t); console.warn('bellmourn: unknown foe type skipped: ' + f.t); } return false; };
 const LAMP_REACH = 3.5, LAMP_CLEAR = 12, LAMP_REARM = 6; // metres: a lamp lights within reach when no hunting foe is this close; it restores again after you went this far
 
 export class Game {
@@ -95,11 +103,11 @@ export class Game {
     const hero = w.spawnHero(sx, sz, { ...this.heroStats(), face });
     if (opts.hp !== undefined) hero.hp = Math.min(hero.maxHp, opts.hp);
     const tier = def.tier || 0;
-    for (const f of def.foes || []) w.spawnFoe(f.t, f.x, f.z, { tier: f.tier ?? tier, rise: false, face: f.face, elite: f.elite || this._elite(tier, f.t) });
+    for (const f of (def.foes || []).filter(knownOrWarn)) w.spawnFoe(f.t, f.x, f.z, { tier: f.tier ?? tier, rise: false, face: f.face, elite: f.elite || this._elite(tier, f.t) });
     this.encs = (def.encounters || []).map((e) => ({ ...e, state: this.save.cleared[this.levelId + ':' + e.id] ? 'done' : 'idle', wave: -1, mine: [], delay: 0 }));
     for (const e of this.encs) {
       if (e.state === 'done') { for (const g of e.opens || []) this.gate(g, true, true); continue; }
-      if (e.waves[0] && e.waves[0].pre) { e.mine = e.waves[0].foes.map((f) => w.spawnFoe(f.t, f.x, f.z, { tier: f.tier ?? tier, rise: false, face: f.face, elite: f.elite })); e.wave = 0; e.preSpawned = true; }
+      if (e.waves[0] && e.waves[0].pre) { e.mine = e.waves[0].foes.filter(knownOrWarn).map((f) => w.spawnFoe(f.t, f.x, f.z, { tier: f.tier ?? tier, rise: false, face: f.face, elite: f.elite })); e.wave = 0; e.preSpawned = true; }
     }
     this.boss = null; this.bossState = this.save.bosses[this.levelId] ? 'done' : 'idle';
     if (this.bossState === 'done') for (const g of def.boss?.opens || []) this.gate(g, true, true);
@@ -460,11 +468,16 @@ export class Game {
   }
   spawnWave(e, i) {
     e.wave = i; const tier = this.level.def.tier || 0; const W = e.waves[i];
-    e.mine = W.foes.map((f) => { const m = this.world.spawnFoe(f.t, f.x, f.z, { tier: f.tier ?? tier, aggro: true, elite: f.elite || this._elite(tier, f.t) }); m.ai.locked = true; return m; });
+    e.mine = W.foes.filter(knownOrWarn).map((f) => { const m = this.world.spawnFoe(f.t, f.x, f.z, { tier: f.tier ?? tier, aggro: true, elite: f.elite || this._elite(tier, f.t) }); m.ai.locked = true; return m; });
   }
 
   startBoss() {
-    const B = this.level.def.boss; this.bossState = 'intro'; this.card = null; // the district's name card never sits on the boss bar
+    const B = this.level.def.boss;
+    if (!knownBoss(B.type)) { // a boss still being built: the arena stands empty and the way on opens (not saved as beaten)
+      console.warn('bellmourn: unknown boss type skipped: ' + B.type); this.bossState = 'done';
+      for (const g of B.opens || []) this.gate(g, true); this.ui.toast('THE ARENA STANDS EMPTY', { color: COL.dim, life: 3 }); return;
+    }
+    this.bossState = 'intro'; this.card = null; // the district's name card never sits on the boss bar
     for (const g of B.gates || []) this.gate(g, false);
     this.boss = this.world.spawnBoss(B.type, B.x, B.z, { face: B.face ?? 0, hpMul: B.hpMul || 1, dmgMul: B.dmgMul || 1 });
     this.boss.state = 'roar'; this.boss.anim = 'idle'; this.boss.t = -2; this.boss.iframes = 3.5;

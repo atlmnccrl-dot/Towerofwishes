@@ -1,6 +1,8 @@
 // Weather and light: fog, the moon (shadow-casting, follows the camera), moonbeams through the
 // mist, a pool of point lights handed to the nearest lamps, lamp halos, rain streaks, splashes on
-// the stones, and lightning.
+// the stones, and lightning. Act II adds other weather (amb.weather: 'snow', 'sand', 'embers', 'dust'),
+// a colour grade per place (amb.grade) and a slow pulse of the sky light (amb.pulse); a place that sets
+// none of them is lit exactly as before.
 import * as THREE from '../../vendor/three.module.min.js';
 import * as T from './textures.js';
 
@@ -34,6 +36,9 @@ export class Atmos {
     this._rain();
     this.flashT = 0; this.nextBolt = 6 + Math.random() * 10; this.lightning = true; this.rainOn = 1;
     this.t = 0;
+    // the renderer's grade as the city has it: places without amb.grade go back to it
+    const P = r.post; this.gradeDef = { gain: P.gain.clone(), lift: P.lift.clone(), sat: P.saturation };
+    this.weather = null; this.weatherK = 1; this.pulse = null; this.wx = null;
   }
 
   setLevel(amb, lights) {
@@ -47,6 +52,12 @@ export class Atmos {
     this.fill.color.set(amb.fillColor ?? 0x8292b4); this.fill.intensity = amb.fill !== undefined ? amb.fill * 0.45 : 0.6;
     if (amb.moonDir) this.moonDir.set(...amb.moonDir).normalize();
     this.rainOn = amb.rain ?? 1; this.lightning = amb.lightning ?? true;
+    // Act II: weather other than rain, the grade, the pulse
+    const P = this.r.post, G = amb.grade, D = this.gradeDef;
+    if (G) { P.gain.setRGB(...(G.gain || [D.gain.r, D.gain.g, D.gain.b])); P.lift.setRGB(...(G.lift || [D.lift.r, D.lift.g, D.lift.b])); P.saturation = G.sat ?? D.sat; }
+    else { P.gain.copy(D.gain); P.lift.copy(D.lift); P.saturation = D.sat; }
+    this.weather = amb.weather || null; this.weatherK = 1; this.pulse = amb.pulse || null; this.pulseHemi = this.hemi.intensity; this.pulseFlare = 0;
+    if (this.weather) { this.rainOn = 0; this._weatherSet(this.weather); } else if (this.wx) { this.wx.a.visible = this.wx.b.visible = false; }
     // clear old halos and beams
     for (const h of this.halos) this.group.remove(h.sprite); this.halos = [];
     for (const b of this.beams) { this.r.scene.remove(b.light); this.r.scene.remove(b.light.target); this.group.remove(b.shaft); } this.beams = [];
@@ -98,6 +109,59 @@ export class Atmos {
     d[i * 4 + 1] = initial ? Math.random() * 22 : 16 + Math.random() * 8; d[i * 4 + 3] = 17 + Math.random() * 6;
   }
 
+  // ---------------------------------------------------------------- Act II weather
+  // Two point layers that live in a 44 m box round the focus and wrap: snow (fine flakes and big ones
+  // drifting on the wind), sand (grains racing on a hot wind and slower dust), embers (sparks rising
+  // and ash falling), dust (motes hanging in the torchlight).
+  _weatherInit() {
+    const mk = (n) => {
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+      const m = new THREE.PointsMaterial({ size: 1, sizeAttenuation: false, transparent: true, fog: false, depthWrite: false });
+      const p = new THREE.Points(g, m); p.frustumCulled = false; p.visible = false; this.group.add(p); return p;
+    };
+    this.wx = { a: mk(900), b: mk(400), da: new Float32Array(900 * 6), db: new Float32Array(400 * 6) };
+  }
+  _weatherSet(kind) {
+    if (!this.wx) this._weatherInit();
+    const W = this.wx; const C = {
+      snow: { a: [700, 0xdce8f8, 1, 0.85, false], b: [150, 0xf0f6ff, 2, 0.9, false], H: 18 },
+      sand: { a: [900, 0xe8b070, 1, 0.55, false], b: [260, 0xb88450, 2, 0.22, false], H: 7 },
+      embers: { a: [240, 0xff7a30, 1, 1, true], b: [400, 0x6a5452, 1, 0.75, false], H: 14 },
+      dust: { a: [220, 0xc8a070, 1, 0.35, true], b: [0, 0, 1, 0, false], H: 5 },
+    }[kind] || { a: [0, 0, 1, 0], b: [0, 0, 1, 0], H: 10 };
+    W.H = C.H; W.kind = kind;
+    for (const [L, d, cfg] of [[W.a, W.da, C.a], [W.b, W.db, C.b]]) {
+      const [n, col, size, op, add] = cfg; L.userData.n = n; L.userData.op = op; L.visible = n > 0;
+      L.material.color.setHex(col); if (kind === 'embers' && L === W.a) L.material.color.setRGB(3.0, 1.1, 0.35);
+      L.material.size = size; L.material.opacity = op; L.material.blending = add ? THREE.AdditiveBlending : THREE.NormalBlending; L.material.needsUpdate = true;
+      L.geometry.setDrawRange(0, n);
+      for (let i = 0; i < n; i++) { d[i * 6] = (Math.random() - 0.5) * 44; d[i * 6 + 1] = Math.random() * C.H; d[i * 6 + 2] = (Math.random() - 0.5) * 44; d[i * 6 + 3] = Math.random(); d[i * 6 + 4] = Math.random() * 10; d[i * 6 + 5] = 0; }
+      d.placed = false;
+    }
+  }
+  _weatherStep(dt, focus) {
+    const W = this.wx, kind = this.weather, t = this.t, H = W.H;
+    const gust = kind === 'sand' ? 0.75 + 0.35 * Math.sin(t * 0.37) + 0.2 * Math.sin(t * 1.3) : 1;
+    for (const [L, d, layer] of [[W.a, W.da, 0], [W.b, W.db, 1]]) {
+      const n = L.userData.n; if (!n) continue; const pos = L.geometry.attributes.position.array;
+      if (!d.placed) { for (let i = 0; i < n; i++) { d[i * 6] += focus.x; d[i * 6 + 2] += focus.z; } d.placed = true; }
+      for (let i = 0; i < n; i++) {
+        const k = i * 6; const s = d[k + 3], ph = d[k + 4]; let vx = 0, vy = 0, vz = 0;
+        if (kind === 'snow') { vy = -(layer ? 1.1 : 0.8) - s * 0.8; vx = 0.7 + Math.sin(t * 0.9 + ph) * 0.6; vz = 0.25 + Math.cos(t * 0.7 + ph * 1.3) * 0.4; }
+        else if (kind === 'sand') { const sp = (layer ? 3.5 : 8) + s * 4; vx = -sp * gust; vz = sp * 0.38 * gust; vy = Math.sin(t * 2 + ph) * 0.6 - 0.15; }
+        else if (kind === 'embers') { if (layer === 0) { vy = 0.7 + s * 1.2; vx = Math.sin(t * 1.7 + ph) * 0.5 + 0.2; vz = Math.cos(t * 1.3 + ph) * 0.4; } else { vy = -0.35 - s * 0.5; vx = Math.sin(t * 0.8 + ph) * 0.7 + 0.25; vz = Math.cos(t * 0.6 + ph) * 0.5; } }
+        else { vx = Math.sin(t * 0.3 + ph) * 0.12; vy = Math.sin(t * 0.21 + ph * 2) * 0.06 - 0.03; vz = Math.cos(t * 0.27 + ph) * 0.12; }
+        d[k] += vx * dt; d[k + 1] += vy * dt; d[k + 2] += vz * dt;
+        if (d[k] - focus.x > 22) d[k] -= 44; else if (d[k] - focus.x < -22) d[k] += 44;
+        if (d[k + 2] - focus.z > 22) d[k + 2] -= 44; else if (d[k + 2] - focus.z < -22) d[k + 2] += 44;
+        if (d[k + 1] < 0) d[k + 1] += H; else if (d[k + 1] > H) d[k + 1] -= H;
+        pos[i * 3] = d[k]; pos[i * 3 + 1] = d[k + 1]; pos[i * 3 + 2] = d[k + 2];
+      }
+      L.geometry.attributes.position.needsUpdate = true;
+      L.material.opacity = L.userData.op * this.weatherK * (kind === 'sand' && layer === 1 ? gust : 1) * (kind === 'embers' && layer === 0 ? 0.75 + 0.25 * Math.sin(t * 9) : 1);
+    }
+  }
+
   flash(strength = 1) { this.flashT = 0.5 * strength; if (this.onThunder) this.onThunder(strength); }
 
   update(dt, focus, groundAt) {
@@ -143,6 +207,13 @@ export class Atmos {
       }
       this.splash.geometry.attributes.position.needsUpdate = true;
       this.rain.material.opacity = 0.27 * this.rainOn;
+    }
+    if (this.weather && this.wx) this._weatherStep(dt, focus);
+    // the slow pulse of the sky light (the Abyss breathes), with now and then a flare
+    if (this.pulse && this.flashT <= 0) {
+      const P = this.pulse; this.pulseFlare = Math.max(0, this.pulseFlare - dt * 1.6);
+      if (Math.random() < dt / (P.flareEvery || 9)) this.pulseFlare = 1;
+      this.hemi.intensity = this.pulseHemi * (1 + (P.amp ?? 0.25) * (0.5 + 0.5 * Math.sin(this.t * (P.speed ?? 0.9))) + this.pulseFlare * (P.flare ?? 0.8));
     }
     // lightning
     if (this.lightning) { this.nextBolt -= dt; if (this.nextBolt <= 0) { this.nextBolt = 9 + Math.random() * 16; this.flash(0.6 + Math.random() * 0.4); } }

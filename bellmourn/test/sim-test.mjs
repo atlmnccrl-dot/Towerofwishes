@@ -2,15 +2,16 @@
 // node bellmourn/test/sim-test.mjs [seeds=12]
 import { World } from '../js/game/sim.js';
 import { makeBot } from '../js/game/bot.js';
-import { heroStats, newHeroSave, HERO_ORDER, WEAPONS, weaponsOfType } from '../js/game/heroes.js';
+import { heroStats, newHeroSave, HERO_ORDER, WEAPONS, weaponsOfType, MAX_LEVEL } from '../js/game/heroes.js';
+import { UNITS } from '../js/game/units.js';
 
 const N = +(process.argv[2] || 12);
 const ARENA = { bounds: [-14, -14, 14, 14], solids: [{ x: -6, z: -6, r: 0.8, h: 3 }, { x0: 5, z0: 4, x1: 7, z1: 6, h: 3 }] };
-// what each hero has on reaching district `tier` (0-7): levels, a better weapon, upgrades, relics
+// what each hero has on reaching district `tier` (0-11; the level stops at the cap): levels, a better weapon, upgrades, relics
 function prog(heroId, tier) {
   const save = { heroes: {}, relicsOn: tier >= 2 ? (tier >= 5 ? ['psalter', 'clapper'] : ['psalter']) : [], bossTonics: Math.min(3, tier) };
   const P = save.heroes[heroId] = newHeroSave(heroId);
-  P.level = 1 + tier * 3; const H = HERO_ORDER; const ws = weaponsOfType(Object.values(WEAPONS).find(() => true) && { warden: 'blade', huntress: 'bow', bellbreaker: 'hammer', lamplighter: 'focus' }[heroId]);
+  P.level = Math.min(MAX_LEVEL, 1 + tier * 3); const H = HERO_ORDER; const ws = weaponsOfType(Object.values(WEAPONS).find(() => true) && { warden: 'blade', huntress: 'bow', bellbreaker: 'hammer', lamplighter: 'focus' }[heroId]);
   P.weapon = ws[Math.min(ws.length - 1, Math.floor(tier / 2))]; P.plus = { [P.weapon]: Math.min(10, Math.round(tier * 0.8)) };
   return heroStats(save, heroId);
 }
@@ -123,16 +124,94 @@ function rules() {
     check(!ev.some((x) => x.type === 'finisher' || (x.type === 'hit' && 'finisher' in x)), 'no finisher events');
   }
 }
-rules();
+const ONLY = process.env.ONLY || ''; // ONLY=creatures: just the new units (quicker)
+if (!ONLY) rules();
 
 console.log(`seeds: ${N}  hero: ${HERO_ID}`);
-for (const t of ['hushed', 'ghoul', 'acolyte', 'crossbow', 'warden', 'brute']) scenario(`1v1 ${t} (tier 0)`, one(t), 0, { skills: [0, 1] });
-scenario('courtyard wave 1 (3 hushed)', group([['hushed', 1.4, -2.6], ['hushed', 3.6, -0.6], ['hushed', 4.9, -4.6]]), 0, { target: { 0: [0.4, 0.95], 1: [0.85, 1] } });
-scenario('mixed pack tier 1', group([['hushed', -3, -4], ['ghoul', 3, -3], ['acolyte', 0, -10], ['crossbow', 8, -8]]), 1);
-scenario('heavy pack tier 2', group([['warden', -3, -4], ['brute', 3, -5], ['acolyte', 0, -10], ['hushed', 6, -2]]), 2);
-scenario('elite pack tier 3', group([['warden', -3, -4], ['warden', 3, -4], ['brute', 0, -7], ['crossbow', 9, -9], ['acolyte', -9, -9]]), 3);
-for (const [type, tier] of [['gaoler', 0], ['tallow', 1], ['harbormaster', 2], ['deacon', 3], ['ossuary', 4], ['founder', 5], ['regent', 6], ['silence', 7]]) scenario('BOSS ' + type, boss(type), tier, { maxT: 360, target: { 0: [0, 0.5], 1: [0.4, 1] } });
-for (const t of ['hound', 'bomber', 'gargoyle', 'shade', 'chanter', 'sentinel', 'rat', 'spitter', 'knight']) scenario(`1v1 ${t} (tier 3)`, one(t), 3, { skills: [1] });
-scenario('elite pack tier 5', (w, tier) => [['knight', -3, -4, 'shielded'], ['shade', 3, -4, 'hasted'], ['bomber', 0, -9, 'burning'], ['hound', 5, -2, 'vampiric']].map(([t, x, z, el]) => w.spawnFoe(t, x, z, { tier, aggro: true, rise: false, elite: el })), 5);
+if (!ONLY) {
+  for (const t of ['hushed', 'ghoul', 'acolyte', 'crossbow', 'warden', 'brute']) scenario(`1v1 ${t} (tier 0)`, one(t), 0, { skills: [0, 1] });
+  scenario('courtyard wave 1 (3 hushed)', group([['hushed', 1.4, -2.6], ['hushed', 3.6, -0.6], ['hushed', 4.9, -4.6]]), 0, { target: { 0: [0.4, 0.95], 1: [0.85, 1] } });
+  scenario('mixed pack tier 1', group([['hushed', -3, -4], ['ghoul', 3, -3], ['acolyte', 0, -10], ['crossbow', 8, -8]]), 1);
+  scenario('heavy pack tier 2', group([['warden', -3, -4], ['brute', 3, -5], ['acolyte', 0, -10], ['hushed', 6, -2]]), 2);
+  scenario('elite pack tier 3', group([['warden', -3, -4], ['warden', 3, -4], ['brute', 0, -7], ['crossbow', 9, -9], ['acolyte', -9, -9]]), 3);
+  for (const [type, tier] of [['gaoler', 0], ['tallow', 1], ['harbormaster', 2], ['deacon', 3], ['ossuary', 4], ['founder', 5], ['regent', 6], ['silence', 7]]) scenario('BOSS ' + type, boss(type), tier, { maxT: 360, target: { 0: [0, 0.5], 1: [0.4, 1] } });
+  for (const t of ['hound', 'bomber', 'gargoyle', 'shade', 'chanter', 'sentinel', 'rat', 'spitter', 'knight']) scenario(`1v1 ${t} (tier 3)`, one(t), 3, { skills: [1] });
+  scenario('elite pack tier 5', (w, tier) => [['knight', -3, -4, 'shielded'], ['shade', 3, -4, 'hasted'], ['bomber', 0, -9, 'burning'], ['hound', 5, -2, 'vampiric']].map(([t, x, z, el]) => w.spawnFoe(t, x, z, { tier, aggro: true, rise: false, elite: el })), 5);
+}
+
+// ------------------------------------------------------------------ the new units' own rules (hooks in units2.js)
+function creatureRules() {
+  const FLAT = { bounds: [-14, -14, 14, 14], solids: [] };
+  const IDLE = { mx: 0, mz: 0 };
+  const tick = (w, n, inp = IDLE) => { const ev = []; for (let i = 0; i < n; i++) { w.update(1 / 60, typeof inp === 'function' ? inp(i) : inp); ev.push(...w.drain()); } return ev; };
+  const check = (ok, m) => { if (!ok) bad('creature rule: ' + m); };
+  const setup = (type, x = 0, z = -3, o = {}) => { const w = new World({ ...FLAT, seed: 11 }); const h = w.spawnHero(0, 0, { heroId: 'warden', face: Math.PI }); const f = w.spawnFoe(type, x, z, { aggro: true, rise: false, tier: 0, ...o }); tick(w, 2); return [w, h, f]; };
+  const kills = (ev) => ev.filter((x) => x.type === 'kill');
+  { // the mummy rises once; the second fall is for good; a burning mummy stays down
+    const [w, h, f] = setup('mummy', 0, -6); h.iframes = 99;
+    w._damage(h, f, 9999, {}); check(!f.dead && f.ai.rose, 'mummy: the first fall is not death');
+    const ev = tick(w, 200); check(!f.dead && f.hp > 0 && f.state !== 'stagger', 'mummy: it gets up again');
+    w._damage(h, f, 9999, {}); check(f.dead, 'mummy: the second fall is death');
+    const [w2, h2, f2] = setup('mummy', 0, -6); w2.applyStatus(f2, 'burn', { dps: 1 }); w2._damage(h2, f2, 9999, {}); check(f2.dead, 'mummy: burning, it stays down');
+    const [w3, h3, f3] = setup('mummy', 0, -6); w3._damage(h3, f3, 9999, { kind: 'pillar' }); check(f3.dead, 'mummy: a fire blow keeps it down');
+    check(!kills(ev).length, 'mummy: no kill event while it is only down');
+  }
+  { // the slime splits into two slimelings, which do not split again
+    const [w, h, f] = setup('slime', 0, -6); w._damage(h, f, 9999, {});
+    const kids = w.foes().filter((x) => x.type === 'slimelet'); check(f.dead && kids.length === 2, 'slime: splits in two');
+    for (const k of kids) { k.state = 'idle'; k.iframes = 0; w._damage(h, k, 9999, {}); }
+    check(!w.foes().length, 'slimelings: dead for good, no further split');
+  }
+  { // a root holds the hero still; a dash tears free
+    const [w, h, f] = setup('mummy', 0, -13, { aggro: false }); w.applyStatus(h, 'root', {});
+    const z0 = h.z; tick(w, 20, { mx: 0, mz: 1 }); check(Math.abs(h.z - z0) < 0.05, 'root: the hero cannot walk');
+    check(h.status.root && h.status.root.t <= 1.3, 'root: capped at 1.3 s');
+    tick(w, 3, { mx: 0, mz: 1, dashPressed: true }); check(!h.status.root && h.z > z0 + 0.3, 'root: a dash tears free');
+  }
+  { // the seraph's gaze sweeps its beam from one side to the other
+    const [w, h, f] = setup('seraph', 0, -6); f.ai.cd = 0; f.ai.pulseAt = 99; f.face = Math.atan2(h.x - f.x, h.z - f.z);
+    let hz = null; for (let i = 0; i < 120 && !hz; i++) { tick(w, 1); hz = w.hazards.find((z) => z.sweep); }
+    check(hz, 'seraph: a sweeping beam is laid'); if (hz) { const a = hz.face; tick(w, 110); check(Math.abs(hz.face - a) > 0.8, 'seraph: the beam turns'); }
+  }
+  { // the scorpion and the worm vanish under the sand and come up again
+    for (const type of ['scorpion', 'sandworm']) {
+      const [w, h, f] = setup(type, 0, -6); h.iframes = 999; let hid = false, back = false;
+      for (let i = 0; i < 900; i++) { tick(w, 1); if (f.hidden) hid = true; else if (hid) { back = true; break; } }
+      check(hid && back, `${type}: burrows and surfaces`);
+    }
+  }
+  { // the bonecaster raises skeletons, two at most; the cultist's ritual is broken by blows
+    const [w, h, f] = setup('bonecaster', 0, -8); h.iframes = 9999; tick(w, 60 * 25);
+    const sk = w.foes().filter((x) => x.type === 'skeleton').length; check(sk >= 1 && sk <= 2, `bonecaster: raises 1-2 skeletons (${sk})`);
+    const [w2, h2, c] = setup('cultist', 0, -8); h2.iframes = 9999; let sig = null;
+    for (let i = 0; i < 400 && !sig; i++) { tick(w2, 1); sig = w2.hazards.find((z) => z.kind === 'sigil'); }
+    check(sig, 'cultist: the ritual lays a sigil');
+    for (let i = 0; i < 3; i++) { w2._damage(h2, c, 1, { poise: 1 }); c.flinch = 3; }
+    tick(w2, 60); check(!w2.hazards.includes(sig) && !w2.foes().some((x) => x.type === 'imp'), 'cultist: struck, the ritual breaks off');
+  }
+}
+creatureRules();
+
+// ------------------------------------------------------------------ the new units (units2.js): each alone at its home tier, then packs
+// A skilled bot should beat each one alone with no timeouts; packs of 3-5 should be dangerous but winnable.
+const at = (list) => (w, tier) => list.map(([t, x, z, el]) => w.spawnFoe(t, x, z, { tier, aggro: true, rise: false, elite: el }));
+const NEW = ['bat', 'crab', 'frostwolf', 'icewraith', 'yeti', 'scorpion', 'sandworm', 'mummy', 'bonecaster', 'slime', 'cryptspider', 'imp', 'hellhound', 'cultist', 'demon', 'seraph'];
+for (const t of NEW) {
+  const tier = UNITS[t].home;
+  // the swarmers come in numbers (one alone is nothing)
+  const setup = t === 'bat' ? at([['bat', -2, -4], ['bat', 2, -4], ['bat', 0, -6]]) : one(t);
+  scenario(`1v1 ${t}${t === 'bat' ? ' x3' : ''} (tier ${tier})`, setup, tier, { skills: [1], target: { 1: [0.8, 1] } });
+}
+const PACKS = [
+  ['pack: 5 bats + 2 hushed', 1, [['bat', -3, -4], ['bat', 3, -4], ['bat', 0, -7], ['bat', -5, -7], ['bat', 5, -7], ['hushed', -1, -3], ['hushed', 1, -3]]],
+  ['pack: 3 crabs + spitter', 2, [['crab', -3, -4], ['crab', 3, -4], ['crab', 0, -6], ['spitter', 0, -10]]],
+  ['pack: 3 frost wolves + wraith', 8, [['frostwolf', -3, -4], ['frostwolf', 3, -4], ['frostwolf', 0, -7], ['icewraith', 0, -10]]],
+  ['pack: yeti + 2 frost wolves', 8, [['yeti', 0, -6], ['frostwolf', -4, -4], ['frostwolf', 4, -4]]],
+  ['pack: 2 scorpions + mummy + worm', 9, [['scorpion', -3, -4], ['scorpion', 3, -4], ['mummy', 0, -6], ['sandworm', 0, -10]]],
+  ['pack: bonecaster + slime + 2 spiders', 10, [['bonecaster', 0, -10], ['slime', -3, -5], ['cryptspider', 3, -4], ['cryptspider', -5, -7]]],
+  ['pack: cultist + hellhound + 2 imps', 11, [['cultist', 0, -10], ['hellhound', -3, -4], ['imp', 4, -8], ['imp', -4, -8]]],
+  ['pack: demon + seraph + imp', 11, [['demon', 0, -6], ['seraph', 4, -9], ['imp', -4, -8]]],
+];
+for (const [name, tier, list] of PACKS) scenario(`${name} (tier ${tier})`, at(list), tier, { skills: [1], target: { 1: [0.5, 1] } });
 console.log(fail ? `${fail} failures` : 'all invariants hold');
 process.exit(fail ? 1 : 0);

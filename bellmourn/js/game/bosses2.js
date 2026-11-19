@@ -6,6 +6,9 @@
 // and can be dashed through or walked out of. Each boss also has reach (a hook, spike rows, pours and a
 // thrown bell, lunges and a vanish) so a ranged hero cannot kite it forever.
 import { strike, ringAt, circleAt, summon } from './ai.js';
+// Act II's four bosses live in bosses3.js and are merged into BOSSES2 / BOSS_AI2 below (it uses the
+// helpers from here at call time only, so the import cycle is harmless).
+import { BOSSES3, BOSS_AI3 } from './bosses3.js';
 
 const deg = (d) => (d * Math.PI) / 180;
 const angTo = (a, b) => Math.atan2(b.x - a.x, b.z - a.z);
@@ -372,3 +375,9 @@ const regent = {
 };
 
 export const BOSS_AI2 = { harbormaster, ossuary, founder, regent };
+// Act II (bosses3.js). Whichever of the two modules is evaluated second does the merge: here when
+// bosses3.js ran first (the usual order), in bosses3.js when this one did (its bindings are not ready yet).
+try { Object.assign(BOSSES2, BOSSES3); Object.assign(BOSS_AI2, BOSS_AI3); } catch (err) { /* bosses3.js merges itself */ }
+
+// shared with bosses3.js
+export { free, adds, countOf, roarPause, row, moltenLine, around, combo, quick };
