@@ -100,7 +100,7 @@ function buildProps() {
   const ramps = {
     pine: [P.mo3, P.mo2, P.mo1, P.mo0],
     dark: [P.ink, P.mo3, P.mo2, P.mo1],
-    ash: [P.ch1, P.st3, P.st2, P.st1],
+    ash: [P.ink, P.ch1, '#6f6b63', P.ash4],
   };
   for (let i = 0; i < 6; i++) canopy('tree' + i, 101 + i * 13, 9 + (i % 3) * 2, i % 2 ? ramps.pine : ramps.dark);
   for (let i = 0; i < 2; i++) canopy('treeA' + i, 301 + i * 7, 10 + i * 2, ramps.ash);

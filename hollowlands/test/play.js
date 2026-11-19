@@ -68,6 +68,17 @@ const SIM = () => {
     }
     return { ok: false, t };
   };
+  // like a player: if you fall, get up and go again (deaths are counted and reported)
+  S.fightRetry = (maxT, opt = {}, onDeath) => {
+    let deaths = 0;
+    for (let k = 0; k < 5; k++) {
+      const r = S.fight(maxT, opt);
+      if (!r.dead) return Object.assign(r, { deaths });
+      deaths++;
+      if (onDeath) onDeath(); else { const pl = G.player; pl.hp = pl.maxhp; pl.st = pl.maxst; pl.state = 'move'; pl.inv = 1; G.inv.poultice = (G.inv.poultice || 0) + 2; }
+    }
+    return { ok: false, deaths };
+  };
   S.frames = (n) => { for (let i = 0; i < n; i++) G.frame(1 / 60); };
   S.tp = (x, y) => { G.player.x = x; G.player.y = y; G.player.vx = G.player.vy = 0; G.snapCam(); };
   S.use = (id, from) => {
@@ -193,7 +204,7 @@ const SIM = () => {
     // the camp: guard + drifters, fought for real
     G.loadMap('ashwick', T(134), T(58)); G.enemies = G.enemies.filter((e) => HL.dist(e.x, e.y, T(141), T(63)) < 70);
     G.player.hp = 100; G.inv.poultice = 3;
-    const f = S.fight(150);
+    const f = S.fightRetry(150);
     out.campFight = f; out.hpAfterCamp = Math.round(G.player.hp);
     out.guardDead = !!G.flags['k:guard_camp'];
     const plate = G.world.obj('p_plate'); if (plate) { S.tp(plate.x, plate.y); S.step(30); }
@@ -219,11 +230,11 @@ const SIM = () => {
     out.crankLocked = !S.reach(T(23), T(41), T(23), T(16));
     out.vaultLocked = !S.reach(T(41), T(27), T(41), T(16));
     // clear the hall and ossuary by fighting
-    S.tp(T(23), T(30)); out.hall = S.fight(120, { near: 70 });
-    S.tp(T(9), T(28)); out.ossuary = S.fight(120, { near: 60 });
+    S.tp(T(23), T(30)); out.hall = S.fightRetry(120, { near: 70 });
+    S.tp(T(9), T(28)); out.ossuary = S.fightRetry(120, { near: 60 });
     out.oss = S.use('c_ossuary'); out.cryptKey = !!G.inv.crypt_key;
     out.iron = S.use('d_iron'); out.crankOpen = S.reach(T(23), T(41), T(23), T(16));
-    S.tp(T(41), T(28)); out.reso = S.fight(120, { near: 60 });
+    S.tp(T(41), T(28)); out.reso = S.fightRetry(120, { near: 60 });
     out.wrong = (S.use('bell0'), S.use('bell1'), S.use('bell2'), !G.flags.bells_done);
     S.use('bell1'); S.use('bell2'); S.use('bell0');
     out.bells = !!G.flags.bells_done; out.vaultOpen = S.reach(T(41), T(27), T(41), T(16));
@@ -232,7 +243,10 @@ const SIM = () => {
     out.vault = S.use('c_vault'); out.truth = G.journal.includes('bell_truth');
     G.player.hp = 100; G.inv.poultice = 4;
     out.crank = S.use('crank'); out.ironShut = !G.world.obj('d_iron').open;
-    out.waves = S.fight(300, { until: () => G.flags.waves_done || G.player.state === 'dead', goal: [T(23), T(13)] });
+    out.waves = S.fightRetry(300, { until: () => G.flags.waves_done, goal: [T(23), T(13)] }, () => {
+      const pl = G.player; pl.hp = pl.maxhp; pl.st = pl.maxst; pl.state = 'move'; G.inv.poultice = 4;
+      G.loadMap(G.fire.map, G.fire.x, G.fire.y); out.waveReset = !G.waves && !G.flags.waves_done; S.use('crank');
+    });
     out.wavesDone = !!G.flags.waves_done; out.hpAfterWaves = Math.round(G.player.hp); out.ultUsed = G.player.ult;
     out.stairsOpen = S.reach(T(23), T(16), ...S.near('x_down1'));
     out.down = S.use('x_down1'); S.frames(50); out.map = G.world.id;

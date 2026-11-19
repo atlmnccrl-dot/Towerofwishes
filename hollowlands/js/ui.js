@@ -190,7 +190,7 @@ UI.drawItems = (g, G) => {
   const slots = [['weapon', 'Weapon'], ['armor', 'Armour'], ['relic', 'Relic'], ['quick', 'Quick']];
   const sx0 = L + 16;
   slots.forEach(([k, name], i) => {
-    const x = sx0 + i * 38, y = 34, id = k === 'quick' ? G.quick : G.eq[k];
+    const x = sx0 + i * 42, y = 34, id = k === 'quick' ? G.quick : G.eq[k];
     UI.dotRect(g, x, y, 20, 20, M.sel === id && id ? P.cream : P.cream3);
     if (id && HL.ART.icons[id]) g.drawImage(HL.ART.icons[id], x + 4, y + 4);
     HL.text(g, name, x + 10, y + 23, P.cream3, 0.5);
