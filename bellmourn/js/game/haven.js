@@ -14,10 +14,11 @@ const turnTo = (a, b, max) => { let d = (b - a) % TAU; if (d > Math.PI) d -= TAU
 
 // The first visit's guide: each step says one thing; until() moves it on.
 const INTRO = [
-  { text: 'THE HAVEN. BETWEEN THE DISTRICTS THE WARDENS REST HERE, BY THE LAST FIRE IN THE CITY.', until: (H) => H.introT > 4.5 },
-  { text: 'SKILLS: SPEND YOUR POINT. EVERY RANK HITS HARDER AND COOLS FASTER.', enter: (H) => H.g.lamp.reset(1), until: (H) => H.g.save.heroes[H.g.save.hero].points <= 0 || H.g.lamp.tab !== 1 || H.introT > 16 },
-  { text: 'ARMS, RELICS AND THE SHOP TAKE EMBERS. HERO CHANGES WARDEN. THE MAP TAKES YOU BACK.', until: (H) => H.introT > 6.5 },
-  { text: 'WHEN YOU ARE READY, CHOOSE ONWARD.', enter: (H) => { H.g.save.havenIntro = true; H.g.persist(); }, until: () => false },
+  { text: 'BETWEEN THE DISTRICTS THE WARDENS REST HERE, BY THE LAST FIRE IN THE CITY.', until: (H) => H.introT > 5 },
+  { text: { touch: 'SKILLS: TAP A SKILL, THEN THE BUTTON BELOW TO SPEND YOUR POINT.', key: 'SKILLS: UP AND DOWN PICK A SKILL, ENTER SPENDS YOUR POINT.', pad: 'SKILLS: PICK A SKILL, A SPENDS YOUR POINT.' },
+    point: 'learn', enter: (H) => H.g.lamp.reset(1), until: (H) => H.g.save.heroes[H.g.save.hero].points <= 0 || H.g.lamp.tab !== 1 || H.introT > 18 },
+  { text: 'GEAR AND THE MERCHANT TAKE EMBERS. WARDEN CHANGES HERO. THE MAP TAKES YOU BACK.', until: (H) => H.introT > 6.5 },
+  { text: { touch: 'WHEN YOU ARE READY, TAP ONWARD.', key: 'WHEN YOU ARE READY, CHOOSE ONWARD.', pad: 'WHEN YOU ARE READY, CHOOSE ONWARD.' }, point: 'onward', enter: (H) => { H.g.save.havenIntro = true; H.g.persist(); }, until: () => false },
 ];
 
 export class Haven {
@@ -142,10 +143,8 @@ export class Haven {
   // and the kneeling warden in the part of the screen the menu leaves free, and slowly closes in.
   camera() {
     const g = this.g, ui = g.ui, r = g.r, h = this.hero, D = this.D;
-    const lay = g.lamp.layout(ui); const freeW = Math.max(60, lay.x0 - 4);
-    // while the guide is up it takes the bottom of the free area: the group frames above it
-    const guide = this.intro >= 0 && this.phase === 'rest' ? (this.introH || 0) + 8 : 0; this.guideK = (this.guideK || 0) + ((guide ? 1 : 0) - (this.guideK || 0)) * 0.05;
-    const zEnd = Math.max(1.0, Math.min(2.0, freeW / 74, (ui.h - guide) / 88)), z0 = Math.min(zEnd, 1.3);
+    const lay = g.lamp.layout(ui); const freeW = Math.max(60, lay.freeX1 - lay.freeX0); const freeC = (lay.freeX0 + lay.freeX1) / 2;
+    const zEnd = Math.max(0.9, Math.min(2.0, freeW / 74, ui.h / 88)), z0 = Math.min(zEnd, 1.3);
     // the group: the statue, the fire and the kneeling place (world/haven.js)
     let follow = 0; // 1 = follow the walking warden, 0 = frame the group
     if (this.phase === 'arrive') { const left = this.pathLeft(); follow = Math.min(0.42, left / 7); } // the shrine and the warden both in view
@@ -153,9 +152,9 @@ export class Haven {
     const zoomRest = z0 + (zEnd - z0) * ease(this.closeT / 10);
     const zoom = this.phase === 'arrive' ? 1.1 + (z0 - 1.1) * (1 - follow) : (this.phase === 'leave' ? zoomRest + (1.1 - zoomRest) * follow : zoomRest);
     // put the group's centre in the middle of the free area once the menu is in
-    const offPx = (ui.w / 2 - freeW / 2) * ease(Math.max(this.menuK, this.phase === 'kneel' || this.phase === 'turn' ? 0.6 : 0)) * (1 - follow);
+    const offPx = (ui.w / 2 - freeC) * ease(Math.max(this.menuK, this.phase === 'kneel' || this.phase === 'turn' ? 0.6 : 0)) * (1 - follow);
     const zNow = Math.max(0.5, g.zoom || zoom);
-    const tgt = new THREE.Vector3(D.frame.x, D.frame.y, D.frame.z).addScaledVector(r.right, offPx / (16 * zNow)).addScaledVector(r.up, -this.guideK * ((this.introH || 0) + 8) / 2 / (16 * zNow));
+    const tgt = new THREE.Vector3(D.frame.x, D.frame.y, D.frame.z).addScaledVector(r.right, offPx / (16 * zNow));
     const fol = new THREE.Vector3(h.x, 0.8, h.z);
     tgt.lerp(fol, follow);
     return { target: tgt, zoom };
@@ -163,29 +162,23 @@ export class Haven {
   pathLeft() { const h = this.hero; let d = 0, px = h.x, pz = h.z; for (const p of this.path || []) { d += Math.hypot(p.x - px, p.z - pz); px = p.x; pz = p.z; } return d; }
 
   draw(ui, dt, active) {
-    const g = this.g, W = ui.w, H = ui.h;
-    const lay = g.lamp.layout(ui); const freeW = lay.x0 - 4; const L = 6 + Math.round(ui.safe.l || 0);
-    // the place's name as the warden comes in
+    const g = this.g, W = ui.w;
+    const lay = g.lamp.layout(ui); const freeW = lay.freeX1 - lay.freeX0, freeC = Math.round((lay.freeX0 + lay.freeX1) / 2);
+    // the place's name as the warden comes in (centred in the free middle once the menu is in)
     if (this.cardT < 6) {
-      const a = Math.min(1, this.cardT * 1.2, Math.max(0, (5.5 - this.cardT) * 1.2)); const cx = Math.round(this.phase === 'arrive' ? W / 2 : Math.max(60, freeW / 2));
-      if (a > 0) { ui.text('BETWEEN THE DISTRICTS', cx, 14, { align: 'center', color: COL.red, alpha: a }); ui.text('THE HAVEN', cx, 25, { align: 'center', color: COL.white, scale: 2, alpha: a }); }
+      const a = Math.min(1, this.cardT * 1.2, Math.max(0, (5.5 - this.cardT) * 1.2)); const cx = this.phase === 'arrive' ? Math.round(W / 2) : freeC;
+      const big = this.phase === 'arrive' || ui.measure('THE HAVEN', 2) <= freeW + 16;
+      if (a > 0) { ui.text('BETWEEN THE DISTRICTS', cx, 14, { align: 'center', color: COL.red, alpha: a }); ui.text('THE HAVEN', cx, 25, { align: 'center', color: COL.white, scale: big ? 2 : 1, alpha: a }); }
     }
     if (!active) { this.pauseRect = null; return; } // paused (or the controls, the settings): their own screen, not the menu under it
-    if (this.menuK > 0.01) g.lamp.draw(ui, ease(this.menuK));
-    // the guide (first visit) at the bottom of the free area
-    const s = this.intro >= 0 ? INTRO[this.intro] : null;
-    if (s && this.phase === 'rest') {
-      const pw = Math.max(110, Math.min(freeW - 10, 220)); const lines = ui.wrap(s.text, pw - 10); const ph = 13 + lines.length * 9; const x0 = Math.max(L, Math.round(freeW / 2 - pw / 2)), y0 = H - ph - 6; this.introH = ph;
-      ui.frame(x0, y0, pw, ph, 'rgba(8,10,14,0.82)', '#6a5a38');
-      ui.text('THE HAVEN ' + (this.intro + 1) + '/' + INTRO.length, x0 + 5, y0 + 3, { color: COL.dim, shadow: false });
-      lines.forEach((l, k) => ui.text(l, x0 + 5, y0 + 12 + k * 9, { color: COL.white, shadow: false }));
-    } else if (this.phase === 'rest' && this.menuK > 0.9 && this.phaseT < 16) {
-      const mode = g.inputMode; const hint = mode === 'touch' ? ['TAP A TAB.', 'TAP TWICE TO CHOOSE.'] : (mode === 'pad' ? ['LB RB  TABS', 'A  CHOOSE', 'B  ONWARD'] : ['Q E  TABS', 'ENTER  CHOOSE', 'ESC  ONWARD', 'P  PAUSE']);
-      const ha = Math.min(1, (16 - this.phaseT) / 2);
-      hint.forEach((l, k) => ui.text(l, L, H - 10 - (hint.length - 1 - k) * 9, { color: '#7a7262', alpha: ha }));
-    }
-    // a pause button for touch (the district's touch buttons are not shown here)
-    if (g.inputMode === 'touch' && this.phase === 'rest' && this.cardT > 5.5) { const r = 7, cx = L + r, cy = 6 + r; const a0 = ui.g.globalAlpha; ui.g.globalAlpha = 0.5; ui.circle(cx, cy, r, '#101418'); ui.ring(cx, cy, r, '#8a8070'); ui.g.globalAlpha = 0.95; ui.text('II', cx, cy - 3, { align: 'center', shadow: false }); ui.g.globalAlpha = a0; this.pauseRect = { x: cx - r - 3, y: cy - r - 3, w: 2 * r + 6, h: 2 * r + 6 }; }
-    else this.pauseRect = null;
+    // the first visit's guide speaks inside the panel, where the description goes, and points at what it means
+    const s = this.intro >= 0 && this.phase === 'rest' ? INTRO[this.intro] : null;
+    const guide = s ? { text: typeof s.text === 'string' ? s.text : (s.text[g.inputMode] || s.text.key), point: s.point, n: this.intro + 1, of: INTRO.length } : null;
+    if (this.menuK > 0.01) g.lamp.draw(ui, ease(this.menuK), guide);
+    // a pause button for touch (the district's touch buttons are not shown here), top of the free middle
+    if (g.inputMode === 'touch' && this.phase === 'rest' && this.cardT > 5.5) {
+      const r = 9, cx = lay.freeX0 + 3 + r, cy = 6 + r; const a0 = ui.g.globalAlpha; ui.g.globalAlpha = 0.6; ui.circle(cx, cy, r, '#101418'); ui.ring(cx, cy, r, '#8a8070'); ui.g.globalAlpha = 0.95; ui.text('II', cx, cy - 3, { align: 'center', shadow: false }); ui.g.globalAlpha = a0;
+      this.pauseRect = { x: cx - r - 3, y: cy - r - 4, w: 2 * r + 6, h: 2 * r + 8 };
+    } else this.pauseRect = null;
   }
 }

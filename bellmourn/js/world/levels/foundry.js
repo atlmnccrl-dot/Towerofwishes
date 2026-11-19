@@ -21,7 +21,7 @@ export default {
     { zone: [-5, 9, 11, 17.6], text: 'BOMBERS LOB FIRE. KEEP MOVING, THEN CLOSE IN.' },
     { zone: [-9, -17, 11, -11.2], text: 'WATCH THE ROOFS. GARGOYLES DIVE FROM ABOVE.' },
     { zone: [-8.6, -30, 8, -26.6], text: 'KILL THE CHANTERS FIRST. THEY SHIELD THE REST.' },
-    { zone: [-3.4, -41.2, 8, -38.2], text: 'REST AT THE LAMP. THE GREAT PIT IS AHEAD.' },
+    { zone: [-3.4, -41.2, 8, -38.2], text: 'STOP BY THE LAMP. THE GREAT PIT IS AHEAD.' },
   ],
   foes: [
     { t: 'hushed', x: 3, z: 7.4 }, { t: 'bomber', x: 6.8, z: 5.8 },

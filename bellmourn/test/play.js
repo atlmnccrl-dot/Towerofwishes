@@ -1,5 +1,5 @@
 // Plays the opening in a headless browser: title -> new game -> warden -> skip to the city -> story ->
-// courtyard fight -> the checkpoint lamp (the warden kneels and rises).
+// courtyard fight -> the checkpoint lamp (it lights itself once the courtyard is clear: no button, no kneel).
 // NODE_PATH=$(npm root -g) node bellmourn/test/play.js <outdir> [port]
 const { chromium } = require('playwright');
 const fs = require('fs');
@@ -44,11 +44,22 @@ const fs = require('fs');
     if (i === 14) await shot('08-fight2');
   }
   await shot('09-after'); console.log(JSON.stringify(await st()), 'courtyard', await p.evaluate(() => (BM.game.encs.find((e) => e.id === 'court') || {}).state));
-  // the courtyard is clear: back to its lamp, a checkpoint (no menu); the warden kneels a moment, then rises
-  await walkTo(-6.4, 7.1, 0.5); await p.waitForFunction(() => !BM.game.world.combat, null, { timeout: 15000 }).catch(() => {});
-  await p.keyboard.press('KeyE'); await p.waitForTimeout(450); await shot('10-lamp-kneel');
-  console.log('lamp', JSON.stringify(await p.evaluate(() => ({ lamp: BM.game.save.lamp, anim: BM.game.world.hero.anim, hpFull: BM.game.world.hero.hp === BM.game.world.hero.maxHp, state: BM.game.state }))));
-  await p.waitForTimeout(2000); console.log('after rest', JSON.stringify(await p.evaluate(() => ({ anim: BM.game.world.hero.anim, st: BM.game.world.hero.state }))));
+  // the courtyard is clear: walk back toward its lamp; within 3.5 m and with no foe hunting it lights by
+  // itself (checkpoint, full health, saved), and the warden keeps walking
+  const lampAt = await p.evaluate(() => { const l = BM.game.level.lamps.find((x) => x.id === 'court') || BM.game.level.lamps[0]; return { id: l.id, x: l.x, z: l.z }; });
+  console.log('lit on the way in (before the fight):', await p.evaluate(() => JSON.stringify(BM.game.level.lamps.map((l) => l.id + ':' + l.h.lit))));
+  await p.evaluate((l) => { const h = BM.game.world.hero; h.hp = Math.round(h.maxHp * 0.5); h.x = l.x + 7; h.z = l.z + 1.5; }, lampAt);
+  await p.waitForFunction(() => !BM.game.world.combat, null, { timeout: 15000 }).catch(() => {});
+  await walkTo(lampAt.x + 2.4, lampAt.z + 1.2, 0.6); await p.waitForTimeout(400); await shot('10-lamp-lit');
+  const lit = await p.evaluate(() => ({ lamp: BM.game.save.lamp, hpFull: BM.game.world.hero.hp === BM.game.world.hero.maxHp, state: BM.game.world.hero.state, prompt: BM.game.prompt }));
+  console.log('lamp lit by walking up:', lit.lamp && lit.lamp.endsWith(lampAt.id) && lit.hpFull ? 'yes' : 'NO', JSON.stringify(lit));
+  // once per visit: hurt again beside it, nothing; walk away more than 6 m and back, restored
+  await p.evaluate(() => { BM.game.world.hero.hp = Math.round(BM.game.world.hero.maxHp * 0.5); }); await p.waitForTimeout(500);
+  const stay = await p.evaluate(() => BM.game.world.hero.hp < BM.game.world.hero.maxHp);
+  await p.evaluate((l) => { const h = BM.game.world.hero; h.x = l.x + 7; h.z = l.z + 1.5; }, lampAt); await p.waitForTimeout(300);
+  await walkTo(lampAt.x + 2.4, lampAt.z + 1.2, 0.6); await p.waitForTimeout(400);
+  const back = await p.evaluate(() => BM.game.world.hero.hp === BM.game.world.hero.maxHp);
+  console.log('restore once per visit:', stay && back ? 'yes' : 'NO', JSON.stringify({ stayedHurt: stay, restoredOnReturn: back }));
   console.log('errors:', errs.length ? errs.slice(0, 10) : 'none');
   await b.close();
 })();

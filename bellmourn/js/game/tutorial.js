@@ -23,8 +23,9 @@ export const STEPS = [
     done: (T, g) => g.world.foes().length === 0 },
   { id: 'tonic', key: 'YOU ARE HURT. TONIC: R', touch: 'YOU ARE HURT. TAP TON', pad: 'YOU ARE HURT. TONIC: LB',
     enter: (T, g) => { const h = g.world.hero; h.hp = Math.round(h.maxHp * 0.45); }, done: (T) => T.healed },
-  // the lamp is a checkpoint now; the point it gives is spent at the Haven, where the road ends
-  { id: 'lamp', key: 'LIGHT THE WARDEN\'S LAMP: E. A LIT LAMP HEALS YOU AND KEEPS YOUR PLACE', touch: 'LIGHT THE WARDEN\'S LAMP: TAP USE. A LIT LAMP HEALS YOU AND KEEPS YOUR PLACE', pad: 'LIGHT THE WARDEN\'S LAMP: BACK. A LIT LAMP HEALS YOU AND KEEPS YOUR PLACE',
+  // the lamp is a checkpoint: it lights itself when you come near with no foe about; the point it gives
+  // is spent at the Haven, where the road ends
+  { id: 'lamp', key: 'WALK TO THE WARDEN\'S LAMP. IT LIGHTS WHEN NO FOE IS NEAR, HEALS YOU AND KEEPS YOUR PLACE', touch: 'WALK TO THE WARDEN\'S LAMP. IT LIGHTS WHEN NO FOE IS NEAR, HEALS YOU AND KEEPS YOUR PLACE', pad: 'WALK TO THE WARDEN\'S LAMP. IT LIGHTS WHEN NO FOE IS NEAR, HEALS YOU AND KEEPS YOUR PLACE',
     enter: (T, g) => { const P = g.save.heroes[g.save.hero]; P.points += 1; }, done: (T, g) => g.level.lamps.some((l) => l.h.lit) },
   { id: 'go', key: 'THE GATE AHEAD LEADS TO THE HAVEN. GO.', touch: 'THE GATE AHEAD LEADS TO THE HAVEN. GO.', pad: 'THE GATE AHEAD LEADS TO THE HAVEN. GO.', done: () => false },
 ];

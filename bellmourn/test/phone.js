@@ -1,4 +1,4 @@
-// iPhone-sized landscape check with touch: title tap, story tap, then the joystick and the ATK button,
+// iPhone-sized landscape check with touch: title tap, the select screen (a warden, CHOOSE, SKIP), story tap, then the joystick and the ATK button,
 // the touch layout (ATK, DASH, ULT, TON, USE, II: no skill buttons, abilities fire from the attack) at every
 // button size and buffer height, and the HUD at each button size with a tonic (tapped on TON) healing.
 // NODE_PATH=$(npm root -g) node bellmourn/test/phone.js <outdir>
@@ -20,7 +20,10 @@ const fs = require('fs');
   await p.touchscreen.tap(r.x, r.y); await p.waitForTimeout(800); await p.screenshot({ path: out + '/02-select.png' });
   // choose a warden by tapping their name twice, then SKIP TO THE CITY
   const rectTap = async (pred) => { const q = await p.evaluate((src) => { const f = new Function('r', 'return ' + src); const m = BM.game.menuRects.find(f); if (!m) return null; const k = BM.r.scale / BM.r.dpr; return { x: (m.x + m.w / 2) * k, y: (m.y + m.h / 2) * k }; }, pred); if (q) await p.touchscreen.tap(q.x, q.y); await p.waitForTimeout(500); return !!q; };
-  await rectTap('r.i === 1'); await rectTap('r.i === 1'); await p.screenshot({ path: out + '/02b-select-menu.png' });
+  // the select screen: tap Vesper in the list, then CHOOSE, then SKIP TO THE CITY
+  const selTap = async (src) => { const q = await p.evaluate((src) => { const m = new Function('R', 'return ' + src)(BM.game.selRects || {}); if (!m) return null; const k = BM.r.scale / BM.r.dpr; return { x: (m.x + m.w / 2) * k, y: (m.y + m.h / 2) * k, h: m.h * k }; }, src); if (q) await p.touchscreen.tap(q.x, q.y); await p.waitForTimeout(900); return q; };
+  const hb = await selTap('R.heroes[1]'); console.log('warden button height:', hb ? Math.round(hb.h) + ' pt' : 'MISSING', 'selected:', await p.evaluate(() => BM.game.selHero));
+  await selTap('R.choose'); await p.screenshot({ path: out + '/02b-select-menu.png' });
   await rectTap('r.i === 1');
   console.log('after select:', await p.evaluate(() => BM.game.state));
   for (let i = 0; i < 16 && (await p.evaluate(() => BM.game.state)) === 'story'; i++) { await p.touchscreen.tap(420, 200); await p.waitForTimeout(250); }
@@ -72,6 +75,19 @@ const fs = require('fs');
     console.log('touch size', sc, 'buffer ' + bh + ',', healed ? 'TON tap: the tonic was drunk and the heal shown' : 'TON tap: NO heal shown ' + JSON.stringify([t0, t1]));
     await p.waitForTimeout(150); await p.screenshot({ path: out + '/06-hud-' + sc + '.png' });
   }
+  // the USE button only shows by a chest (lamps light themselves)
+  console.log('USE button without a chest:', await p.evaluate(() => (BM.game.input.layout.find((b) => b.id === 'use') || {}).hidden ? 'hidden (ok)' : 'SHOWN'));
+  // the Haven by touch: open GEAR, tap a row, tap the button under the list, then ONWARD
+  await p.goto(`http://127.0.0.1:${port}/bellmourn/index.html?level=haven&next=gate&resume=1`);
+  await p.waitForFunction(() => window.BM && BM.ready && BM.game.haven && BM.game.haven.ready(), null, { timeout: 120000 });
+  await p.evaluate(() => { const S = BM.game.save; S.embers = 500; S.havenIntro = true; BM.game.input.touchMode = true; }); await p.waitForTimeout(300);
+  const tapR = async (src) => { const q = await p.evaluate((src) => { const m = new Function('R', 'return ' + src)(BM.game.lamp.rects); if (!m) return null; const k = BM.r.scale / BM.r.dpr; return { x: (m.x + m.w / 2) * k, y: (m.y + m.h / 2) * k, w: m.w * k, h: m.h * k }; }, src); if (q) await p.touchscreen.tap(q.x, q.y); await p.waitForTimeout(400); return q; };
+  const sec = await tapR('R.secs[2]'); console.log('haven section button', sec ? Math.round(sec.w) + 'x' + Math.round(sec.h) + ' pt' : 'MISSING', 'open:', await p.evaluate(() => BM.game.lamp.sec));
+  const row = await tapR('R.rows.find((r) => r.i === 1)'); console.log('haven row', row ? Math.round(row.w) + 'x' + Math.round(row.h) + ' pt' : 'MISSING');
+  const e0 = await p.evaluate(() => BM.game.save.embers); await tapR('R.go'); const e1 = await p.evaluate(() => ({ embers: BM.game.save.embers, msg: BM.game.lamp.msg }));
+  console.log('haven temper by tap:', e1.embers < e0 ? 'yes (' + e0 + ' -> ' + e1.embers + ', ' + e1.msg + ')' : 'NO ' + JSON.stringify(e1));
+  await p.screenshot({ path: out + '/07-haven.png' });
+  await tapR('R.onward'); await p.waitForTimeout(400); console.log('haven ONWARD by tap:', await p.evaluate(() => BM.game.haven ? BM.game.haven.phase : BM.game.state));
   console.log('errors:', errs.length ? errs.slice(0, 10) : 'none');
   await b.close();
 })();

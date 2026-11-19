@@ -23,7 +23,7 @@ export default {
   lamps: [{ id: 'road', x: -2.4, z: 11.4, sx: 1.3, sz: 0.4 }, { id: 'court', x: -3.4, z: -30.4, sx: 1.3, sz: 0.4 }],
   items: [{ id: 'c1', x: -7.3, z: -21.6, ry: Math.PI / 2, kind: 'embers', amount: 130 }, { id: 'c2', x: 7.6, z: -10.3, ry: 0, kind: 'tonic' }],
   hints: [
-    { zone: [-3.8, 12.2, 9.4, 18.4], text: 'LIGHT THE LAMP. THE GARDENS ARE NOT EMPTY.' },
+    { zone: [-3.8, 12.2, 9.4, 18.4], text: 'STOP BY THE LAMP. THE GARDENS ARE NOT EMPTY.' },
     { zone: [-3.8, 5.2, 9.4, 8.6], text: 'PALE KNIGHTS BLOCK FROM THE FRONT. CIRCLE THEM.' },
     { zone: [-8.2, -14.4, 9.4, -11.6], text: 'SHADES STEP OUT BEHIND YOU. NEVER STAND STILL.' },
     { zone: [-13.4, -35.3, 9.4, -32.9], text: 'MUSIC ON THE FORECOURT. SOMEONE IS STILL DANCING.' },

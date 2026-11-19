@@ -23,6 +23,7 @@ function scan(file) {
 function walk(d) { for (const f of fs.readdirSync(d)) { const p = path.join(d, f); if (fs.statSync(p).isDirectory()) { if (!['vendor', 'test', 'tools'].includes(f)) walk(p); } else if (/\.(js|mjs|html|css)$/.test(f)) scan(p); } }
 walk(root);
 // nothing but code, the README and the three.js licence may live in the folder
-for (const f of fs.readdirSync(root, { recursive: true })) { const p = String(f); if (fs.statSync(path.join(root, p)).isFile() && !/\.(js|mjs|html|md)$/.test(p) && p !== 'vendor/THREE_LICENSE') bad.push('non-code file in the game folder: ' + p); }
+// tools/trailer/ is video production tooling (edit lists, scripts); the game never loads it
+for (const f of fs.readdirSync(root, { recursive: true })) { const p = String(f); if (fs.statSync(path.join(root, p)).isFile() && !/\.(js|mjs|html|md)$/.test(p) && p !== 'vendor/THREE_LICENSE' && !p.startsWith('tools/trailer/')) bad.push('non-code file in the game folder: ' + p); }
 console.log(bad.length ? bad.join('\n') : 'no pre-made assets: everything is generated in code');
 process.exit(bad.length ? 1 : 0);

@@ -204,7 +204,7 @@ export class UI {
     // toasts (top centre); on touch they wrap short of the pause button and the badges under it
     let ty = this.toastY || 26, tw = w - 12; // below the training panel while it is up (game.js sets toastY)
     if (touchL) { const p = touchL.find((b) => b.id === 'pause'); tw = Math.max(120, Math.min(tw, 2 * (Math.min(p.x - p.r, this.badgeX ?? p.x) - 5 - w / 2))); }
-    for (const t of this.toasts) {
+    for (const t of G.noToasts ? [] : this.toasts) {
       t.t += dt; const a = Math.min(1, t.t * 4, (t.life - t.t) * 2);
       if (a > 0) {
         const sc = t.big && this.measure(t.msg, 2) <= tw ? 2 : 1;
@@ -213,7 +213,7 @@ export class UI {
       }
     }
     this.toasts = this.toasts.filter((t) => t.t < t.life);
-    if (G.prompt) { const key = this.touchMode ? '' : '[E] '; this.text(key + G.prompt, w / 2, h - (boss ? 32 : 22), { align: 'center', color: COL.gold, alpha: 0.75 + Math.sin(this.t * 5) * 0.25 }); }
+    if (G.prompt) { const key = this.touchMode ? '' : (G.padMode ? '[BACK] ' : '[E] '); this.text(key + G.prompt, w / 2, h - (boss ? 32 : 22), { align: 'center', color: COL.gold, alpha: 0.75 + Math.sin(this.t * 5) * 0.25 }); }
     this.drawFloats(dt);
   }
 
@@ -239,7 +239,8 @@ export class UI {
 
   // ---------------------------------------------------------------- touch buttons
   // Right thumb: ATK, the biggest, in the corner; DASH and ULT on an arc around it (left, up-left); the
-  // tonic a little further out in the notch between them; USE above ATK when a prompt is up; pause top right.
+  // tonic a little further out in the notch between them; USE above ATK by a chest (lamps light themselves);
+  // pause top right.
   // Sizes are today's times ui.touchScale; margins keep clear of the safe-area insets (notch, home bar).
   // effective button scale: ui.touchScale, eased down only on a buffer shorter than 180 px (the dynamic
   // resolution's bigger pixels), where the buttons still come out at least as big on the glass
@@ -326,6 +327,32 @@ export class UI {
     });
     return rects;
   }
+
+  // A framed button, big enough for a thumb (callers give it at least 18 buffer px of height: on a phone
+  // that is about 40 points). o: on (an open section: a gold bar on the left), sel (keyboard focus: a gold
+  // edge), disabled, sub (a dim second line), align ('center' or 'left'), color, fill, edge, note (a short
+  // text on the right), noteColor. Returns its rect for tapping.
+  button(x, y, w, h, label, o = {}) {
+    x = Math.round(x); y = Math.round(y); w = Math.round(w); h = Math.round(h);
+    const on = !!o.on, sel = !!o.sel, dis = !!o.disabled;
+    this.rect(x, y, w, h, o.fill || (on ? '#30231a' : (sel ? '#251b13' : 'rgba(14,12,11,0.9)')));
+    this.outline(x, y, w, h, o.edge || (sel ? COL.gold : (on ? '#8a6a3a' : '#40362a')));
+    if (on) { this.rect(x + 1, y + 1, 2, h - 2, COL.gold); this.rect(x + 3, y + 1, w - 4, 1, '#4a3a26'); }
+    const col = o.color || (dis ? '#5e5a52' : (on || sel ? COL.white : COL.text));
+    const left = o.align === 'left'; const tx = left ? x + 8 : x + Math.round(w / 2);
+    const ty = o.sub ? y + Math.round((h - 16) / 2) : y + Math.round((h - 7) / 2);
+    this.text(label, tx, ty, { align: left ? undefined : 'center', color: col, shadow: false });
+    if (o.sub) this.text(o.sub, tx, ty + 9, { align: left ? undefined : 'center', color: dis ? '#4e4a44' : '#857d6e', shadow: false });
+    if (o.note) this.text(o.note, x + w - 7, y + Math.round((h - 7) / 2), { align: 'right', color: o.noteColor || COL.gold, shadow: false });
+    return { x, y, w, h };
+  }
+  // A column of buttons (the title, pause and settings menus): items [{label, note, disabled, sub}].
+  // Returns the rects ({x, y, w, h, i}) for menuInput's taps.
+  buttons(items, sel, x, y, w, h, gap = 4, o = {}) {
+    return items.map((it, i) => ({ ...this.button(x, y + i * (h + gap), w, h, it.label, { sel: i === sel, disabled: it.disabled, note: it.note, noteColor: it.noteColor, sub: it.sub, align: o.align }), i }));
+  }
+  // a dim veil over the scene, for screens that sit on top of it
+  veil(a = 0.55) { this.rect(0, 0, this.w, this.h, `rgba(4,5,8,${a})`); }
 
   letterbox(k) { const bh = Math.round(this.h * 0.12 * k); if (bh <= 0) return; this.rect(0, 0, this.w, bh, '#000'); this.rect(0, this.h - bh, this.w, bh, '#000'); }
 

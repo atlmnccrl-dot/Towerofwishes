@@ -1,7 +1,7 @@
 // Autoplay for end-to-end tests: walks a district on a grid path (closed gates block), opens chests,
-// fights with the bot, rests at the last lamp before the boss (lamps are checkpoints only: growing
-// happens at the Haven, which game.autoInput plays through), enters the boss arena and leaves by the
-// exit. Pure logic.
+// fights with the bot, walks by the last lamp before the boss (lamps light themselves and restore the
+// hero: nothing to press; growing happens at the Haven, which game.autoInput plays through), enters the
+// boss arena and leaves by the exit. Pure logic.
 import { makeBot } from './bot.js';
 
 const S = 0.25, R = 0.39;
@@ -34,7 +34,7 @@ export function makeAutoplay(seed = 3) {
 
   function targets(game) {
     const L = game.level, def = L.def; const out = [];
-    // the training on the Old Road: walk on, light the lamp when told, leave only when it says go
+    // the training on the Old Road: walk on, walk to the lamp when told, leave only when it says go
     const T = game.tutorial && game.tutorial.step;
     if (T) {
       if (T.id === 'move') return [{ id: 'north', x: 0, z: 18 }];
@@ -58,26 +58,38 @@ export function makeAutoplay(seed = 3) {
       if (T.id === 'ult' && w.meter >= 100) inp.ultPressed = true;
       if (T.id === 'tonic' && h.tonics > 0 && st.tT > 0.5) { st.tT = 0; inp.healPressed = true; }
     }
-    const fighting = w.foes().some((f) => f.ai.aggro && Math.hypot(f.x - h.x, f.z - h.z) < 14) || (game.boss && !game.boss.dead) || (!!T && w.foes().length > 0);
+    // wedged between props (a foe's shove or a knockback can leave the hero in a gap narrower than they
+    // are): when the hero has tried to move without getting anywhere, step out along a free heading
+    if (st.escape && (st.escape.t -= dt) > 0) { inp.mx = st.escape.mx; inp.mz = st.escape.mz; inp.attackPressed = false; return inp; }
+    const key0 = game.levelId + L_key(game); if (key0 !== st.key) { st.grid = buildGrid(game.level, w); st.key = key0; st.path = null; }
+    // the fight: the nearest foe hunting the hero that can actually be reached (a hound behind a closed gate
+    // or across the water is not a target: walking at it only pins the hero against the bars). Foes of a
+    // locked fight come first; anything already within reach of a blow counts.
+    st.fightT = (st.fightT || 0) - dt;
+    if (st.fightT <= 0) {
+      st.fightT = 0.5; st.foe = null; st.fightPath = null;
+      const cand = w.foes().filter((f) => (f.ai.aggro || T) && !f.hidden && f.state !== 'spawn' && (Math.hypot(f.x - h.x, f.z - h.z) < 14 || f.boss || T))
+        .sort((a, b) => ((b.ai.locked || b.boss ? 1 : 0) - (a.ai.locked || a.boss ? 1 : 0)) || Math.hypot(a.x - h.x, a.z - h.z) - Math.hypot(b.x - h.x, b.z - h.z));
+      for (const f of cand.slice(0, 5)) {
+        if (Math.hypot(f.x - h.x, f.z - h.z) < 2.6) { st.foe = f; break; }
+        const fp = bfs(st.grid, cellOf(st.grid, h.x, h.z), cellOf(st.grid, f.x, f.z)); if (fp) { st.foe = f; st.fightPath = fp; break; }
+      }
+      if (!st.foe) { const n = cand.find((f) => Math.hypot(f.x - h.x, f.z - h.z) < 2.6); if (n) st.foe = n; }
+    }
+    if (st.foe && (st.foe.dead || (!st.foe.ai.aggro && !T))) { st.foe = null; st.fightT = 0; }
+    const fighting = !!st.foe || (game.boss && !game.boss.dead && Math.hypot(game.boss.x - h.x, game.boss.z - h.z) < 3);
     if (fighting) {
-      // fight with the bot, but walk around walls and fences to reach the nearest foe
-      st.path = null;
-      const foes = w.foes().filter((f) => f.ai.aggro && !f.hidden); let near = null, nd = 1e9;
-      for (const f of foes) { const d = Math.hypot(f.x - h.x, f.z - h.z); if (d < nd) { nd = d; near = f; } }
-      if (near && nd > 2.6 && !inp.dashPressed && !inp.parryPressed) {
-        const key2 = game.levelId + L_key(game); if (key2 !== st.key) { st.grid = buildGrid(game.level, w); st.key = key2; }
-        st.fightT = (st.fightT || 0) - dt;
-        if (!st.fightPath || st.fightT <= 0) { st.fightPath = bfs(st.grid, cellOf(st.grid, h.x, h.z), cellOf(st.grid, near.x, near.z)); st.fightT = 0.5; }
+      // fight with the bot, but walk around walls and fences to reach the chosen foe
+      st.path = null; const near = st.foe; const nd = near ? Math.hypot(near.x - h.x, near.z - h.z) : 0;
+      if (near && nd > 2.6 && !inp.dashPressed) {
         const fp = st.fightPath;
         while (fp && fp.length > 1 && Math.hypot(fp[0].x - h.x, fp[0].z - h.z) < 0.7) fp.shift();
         if (fp && fp.length) { const wp = fp[Math.min(1, fp.length - 1)]; const dx = wp.x - h.x, dz = wp.z - h.z, d = Math.hypot(dx, dz); if (d > 0.2) { inp.mx = dx / d; inp.mz = dz / d; } }
       }
+      unstick(game, h, inp, dt);
       return inp;
     }
-    // gates or level changed: rebuild the walk grid
-    const key = game.levelId + L_key(game);
     if (game.levelId !== st.levelId) { st.levelId = game.levelId; st.visited.clear(); st.rested = false; }
-    if (key !== st.key) { st.grid = buildGrid(game.level, w); st.key = key; st.path = null; }
     st.pathT -= dt;
     // idle too long without a fight: rebuild the walk grid and forget the target that held it
     if (st.lastPos2 && Math.hypot(st.lastPos2.x - h.x, st.lastPos2.z - h.z) < 0.3) st.idleT = (st.idleT || 0) + dt; else { st.idleT = 0; st.lastPos2 = { x: h.x, z: h.z }; }
@@ -92,21 +104,45 @@ export function makeAutoplay(seed = 3) {
     game.autoDebug = { target: t && t.id, path: st.path ? st.path.length : -1, n: targets(game).map((x) => x.id).join(',') };
     if (t) {
       const dT = Math.hypot(t.x - h.x, t.z - h.z);
-      // use it only from where the game offers the prompt (lamps 1.9 m, chests 1.7 m from the object itself)
+      // a lamp lights (and restores) by itself within 3.5 m: being there is enough; a chest takes USE from
+      // where the game offers the prompt (1.7 m from the chest itself)
       const obj = t.lamp || t.chest; const dObj = obj ? Math.hypot(obj.x - h.x, obj.z - h.z) : 9;
-      if (obj && dObj < (t.lamp ? 1.7 : 1.5)) { inp.interactPressed = true; st.visited.add(t.id); if (t.rest) st.rested = true; st.path = null; return inp; }
+      if (t.lamp && dObj < 2.4) { st.visited.add(t.id); if (t.rest) st.rested = true; st.path = null; return inp; }
+      if (t.chest && dObj < 1.5) { inp.interactPressed = true; st.visited.add(t.id); st.path = null; return inp; }
       if (obj && dT < 0.5) { const dx = obj.x - h.x, dz = obj.z - h.z; inp.mx = dx / dObj; inp.mz = dz / dObj; return inp; }
       if (t.id.startsWith('enc:') && dT < 1.5) st.path = null;
       while (st.path && st.path.length > 1 && Math.hypot(st.path[0].x - h.x, st.path[0].z - h.z) < 0.5) st.path.shift();
       const wp = st.path && st.path[0] ? st.path[Math.min(1, st.path.length - 1)] : t;
       const dx = wp.x - h.x, dz = wp.z - h.z, d = Math.hypot(dx, dz);
       if (d > 0.2) { inp.mx = dx / d; inp.mz = dz / d; }
-      // unstick
-      if (st.lastPos && Math.hypot(st.lastPos.x - h.x, st.lastPos.z - h.z) < dt * 0.5) st.stuckT += dt; else st.stuckT = 0;
-      st.lastPos = { x: h.x, z: h.z };
-      if (st.stuckT > 1.2) { st.path = null; st.stuckT = 0; inp.dashPressed = true; const a = Math.random() * 6.28; inp.mx = Math.sin(a); inp.mz = Math.cos(a); }
+      if (unstick(game, h, inp, dt)) st.path = null;
     }
     return inp;
   };
+
+  // Trying to move but going nowhere for a second: pick the free heading nearest the one wanted (probing
+  // every solid, the low crates too, at the hero's own radius) and walk it for a moment.
+  function unstick(game, h, inp, dt) {
+    const wants = Math.hypot(inp.mx || 0, inp.mz || 0) > 0.5;
+    const moved = st.lastPos ? Math.hypot(st.lastPos.x - h.x, st.lastPos.z - h.z) : 1;
+    if (moved > 0.25) { st.lastPos = { x: h.x, z: h.z }; st.stuckT = 0; return false; }
+    if (!wants || h.state === 'attack' || h.state === 'hurt' || h.state === 'cast') { st.stuckT = Math.max(0, (st.stuckT || 0) - dt); return false; }
+    st.stuckT = (st.stuckT || 0) + dt; if (st.stuckT < 1.0) return false;
+    st.stuckT = 0; st.lastPos = { x: h.x, z: h.z };
+    const solids = game.level.solids.filter((s) => !s.open && !s.off);
+    const free = (x, z, r) => !solids.some((s) => (s.r !== undefined ? Math.hypot(x - s.x, z - s.z) < s.r + r : (x > s.x0 - r && x < s.x1 + r && z > s.z0 - r && z < s.z1 + r)));
+    const want = Math.atan2(inp.mx, inp.mz); let best = null;
+    for (const r of [h.r * 0.95, h.r * 0.6, 0.05]) {
+      for (let k = 0; k < 24; k++) {
+        const a = want + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * (Math.PI / 12);
+        if (free(h.x + Math.sin(a) * 0.35, h.z + Math.cos(a) * 0.35, r) && free(h.x + Math.sin(a) * 0.8, h.z + Math.cos(a) * 0.8, r)) { best = a; break; }
+      }
+      if (best !== null) break;
+    }
+    if (best === null) best = Math.random() * Math.PI * 2;
+    st.escape = { mx: Math.sin(best), mz: Math.cos(best), t: 0.45 };
+    inp.mx = st.escape.mx; inp.mz = st.escape.mz; inp.dashPressed = Math.random() < 0.5;
+    st.fightT = 0; return true;
+  }
 }
 function L_key(game) { return Object.values(game.level.marks).map((g) => (g && g.solid && g.solid.open ? 1 : 0)).join(''); }

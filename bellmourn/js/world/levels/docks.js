@@ -16,7 +16,7 @@ export default {
   lamps: [{ id: 'landing', x: -5.5, z: 10.4, sx: 1.3, sz: 0.4 }, { id: 'quay', x: -2.8, z: -33.2, sx: 1.3, sz: 0.5 }],
   items: [{ id: 'c1', x: 9.3, z: -1.5, ry: 0, kind: 'embers', amount: 120 }, { id: 'c2', x: -6.1, z: -31.6, ry: Math.PI / 2, kind: 'tonic' }],
   hints: [
-    { zone: [-7, 9.5, 5.5, 17.6], text: 'LIGHT THE LAMP FIRST. THE PIERS ARE NOT EMPTY.' },
+    { zone: [-7, 9.5, 5.5, 17.6], text: 'STOP BY THE LAMP FIRST. THE PIERS ARE NOT EMPTY.' },
     { zone: [-7, 6.4, 5.5, 8.6], text: 'HOUNDS HUNT IN PACKS. KEEP THEM IN FRONT OF YOU.' },
     { zone: [-2.6, -12, 2.6, -8.3], text: 'A LIT FLASK ARCS OVERHEAD. MOVE BEFORE IT LANDS.' },
     { zone: [-4.4, -35.2, 10, -33.4], text: 'SOMETHING HUGE STIRS IN THE HARBOUR WATER.' },
@@ -80,13 +80,13 @@ export default {
     P.fishStall(ctx, -5.55, 2.8, { face: '+x', w: 2.4, cloth: '#3e4a48', light: 2.2 });
     P.fishStall(ctx, -5.55, -2.4, { face: '+x', w: 2.4, cloth: '#4a2c28' });
     P.fishStall(ctx, -3.8, -6.45, { face: '+z', w: 2.4, d: 1.2, cloth: '#363c48' });
-    P.netRack(ctx, 4.5, 2.9, 2.6, 'z');
+    P.netRack(ctx, 4.85, 2.9, 2.6, 'z'); // against the quay edge: no slot between it and the water to be shoved into
     P.crane(ctx, 4.5, -6.5, '+x', { h: 5.6, reach: 3.4, loadY: 1.4 });
     P.pier(ctx, 5.5, -3.2, 10.2, 0.2, { boards: 'z', endBeam: [10.1, -1.5] });
     P.rowboat(ctx, 8.0, 1.25, 4.6, 'x', { moor: [6.2, 0.5, 0.0], crates: 2 }); P.rowboat(ctx, 7.6, -4.3, 4, 'x', { tone: '#2e241a', water: true });
     P.bollard(ctx, 6.2, -0.05); P.bollard(ctx, 10.0, -3.0);
     K.lamp(ctx, 4.9, -2.4, { h: 2.8 });
-    K.barrelStack(ctx, -6.4, 4.6); K.crate(ctx, 3.8, 5.2, { s: 0.7 }); K.crate(ctx, 4.5, 5.0, { s: 0.55 });
+    K.barrelStack(ctx, -6.4, 4.6); K.crate(ctx, 3.7, 5.45, { s: 0.7 }); K.crate(ctx, 4.5, 5.5, { s: 0.55 }); // against the fence: the walk past the net rack stays wider than a warden
     K.table(ctx, 1.2, -5.0, { benches: false }); P.basket(ctx, 0.6, -5.0, 0.82, 0.22); P.basket(ctx, 1.7, -4.9, 0.82, 0.2);
     for (const [x, z] of [[-2.2, -5.4], [1.8, -6.8], [4.4, -0.6], [-4.0, 4.9], [3.6, 0.6]]) P.basket(ctx, x, z);
     P.ropeCoil(ctx, 3.2, -3.0); P.pots(ctx, 2.9, -6.9, 3);

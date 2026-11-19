@@ -12,9 +12,9 @@ import LEVELS from '../world/levels/index.js';
 import { makeAutoplay } from './autoplay.js';
 import { BOSS_AI } from './ai.js';
 import { BOSS_AI2 } from './bosses2.js';
-import { HEROES, HERO_ORDER, heroStats, AFFIX_LIST, WEAPONS, RELICS, xpFor } from './heroes.js';
+import { HEROES, HERO_ORDER, heroStats, AFFIX_LIST, WEAPONS, RELICS, xpFor, ABILITIES, ULTS } from './heroes.js';
 import { freshSave, upgradeSave, addXp, xpFrac, bossReward, chestLoot, skillRows, useSkillRow, shopStock, buy, upgradeWeapon, toggleRelic, relicSlots, havenNext } from './progress.js';
-import { LampMenu } from './lampmenu.js';
+import { LampMenu, fit, dots } from './lampmenu.js';
 import { Tutorial, STEPS } from './tutorial.js';
 import { Haven } from './haven.js';
 import { buildHaven } from '../world/haven.js';
@@ -27,8 +27,11 @@ const SAVE_KEY = 'bellmourn.save.v2', SET_KEY = 'bellmourn.settings.v1';
 function load(key) { try { return JSON.parse(localStorage.getItem(key)); } catch (e) { return null; } }
 function store(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) { /* private mode */ } }
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
+const ARMS = { blade: 'BLADE', bow: 'CROSSBOW', hammer: 'HAMMER', focus: 'LANTERN STAFF' };
+const hit = (r, p) => r && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
 const inZone = (e, z) => e && e.x >= z[0] && e.x <= z[2] && e.z >= z[1] && e.z <= z[3];
 const NO_INPUT = { mx: 0, mz: 0 };
+const LAMP_REACH = 3.5, LAMP_CLEAR = 12, LAMP_REARM = 6; // metres: a lamp lights within reach when no hunting foe is this close; it restores again after you went this far
 
 export class Game {
   constructor(sys) {
@@ -83,7 +86,7 @@ export class Game {
     const def = this.level.def; const L = this.level;
     this.view.clear(); this.fx.clear();
     const w = this.world = new World({ solids: L.solids, bounds: def.bounds, seed: 11 + this.save.deaths, abilityMode: this.settings.abilityMode });
-    w.abilityMode = this.settings.abilityMode; this.resting = null; this.flares = [];
+    w.abilityMode = this.settings.abilityMode; this.flares = [];
     for (const [name, g] of Object.entries(L.marks)) if (g && g.set) { const startOpen = (def.gatesOpen || []).includes(name); g.set(startOpen); g.t = startOpen ? 1 : 0; g.update(0.0001); }
     let sx = def.start.x, sz = def.start.z, face = def.start.face ?? Math.PI;
     const lampKey = this.save.lamp && this.save.lamp.startsWith(this.levelId + ':') ? this.save.lamp.split(':')[1] : null;
@@ -102,6 +105,7 @@ export class Game {
     if (this.bossState === 'done') for (const g of def.boss?.opens || []) this.gate(g, true, true);
     this.hints = (def.hints || []).map((h) => ({ ...h, shown: false }));
     this.tutorial = def.tutorial ? new Tutorial(this) : null;
+    for (const l of L.lamps) l.armed = Math.hypot(hero.x - l.x, hero.z - l.z) > LAMP_REARM; // waking beside a lamp is its rest
     this.camFocus.set(hero.x, 0, hero.z); this.r.focus.copy(this.camFocus);
     this.prompt = null; this.leaving = false;
   }
@@ -227,23 +231,25 @@ export class Game {
     }
   }
 
-  // Hero select, then the training road or straight to the city.
+  // Hero select, then the training road or straight to the city. The list of wardens on the left (a tap
+  // picks one), the warden in the middle, their card on the right with a CHOOSE button; then how to begin.
   select(dt, inp) {
     this.sound.setMusic('title');
-    const ids = HERO_ORDER; const unlocked = (id) => id !== 'lamplighter';
+    const ids = HERO_ORDER; const unlocked = (id) => id !== 'lamplighter'; const R = this.selRects || {};
+    for (const tp of inp.taps) if (hit(R.back, tp)) { this.sound.play('ui'); if (this.selStep === 1) this.selStep = 0; else this.go('title'); return; }
     if (this.selStep === 0) {
       if (inp.left || inp.up) { this.selHero = (this.selHero + ids.length - 1) % ids.length; this.sound.play('ui'); }
       if (inp.right || inp.down) { this.selHero = (this.selHero + 1) % ids.length; this.sound.play('ui'); }
       let pick = inp.confirm;
-      for (const tp of inp.taps) for (const r of this.menuRects || []) if (tp.x >= r.x && tp.x <= r.x + r.w && tp.y >= r.y && tp.y <= r.y + r.h) { if (r.i === this.selHero) pick = true; else { this.selHero = r.i; this.sound.play('ui'); } }
+      for (const tp of inp.taps) { for (const r of R.heroes || []) if (hit(r, tp) && r.i !== this.selHero) { this.selHero = r.i; this.sound.play('ui'); } if (hit(R.choose, tp)) pick = true; }
       const id = ids[this.selHero];
       if (this.world.hero && this.world.hero.heroId !== id) this.titleScene(id);
       if (inp.back) { this.go('title'); return; }
       if (pick) { if (!unlocked(id)) { this.sound.play('ui'); this.ui.toast('SISTER ASH JOINS AFTER LANTERN ROW', { color: COL.dim }); } else { this.sound.play('uiOk'); this.selStep = 1; this.sel = 0; } }
     } else {
-      this.selItems = [{ label: 'PLAY THE TRAINING ROAD' }, { label: 'SKIP TO THE CITY' }, { label: 'BACK' }];
+      this.selItems = [{ label: 'THE TRAINING ROAD', sub: 'LEARN TO FIGHT FIRST' }, { label: 'SKIP TO THE CITY', sub: 'STRAIGHT TO GALLOWS GATE' }];
       const p = this.menuInput(inp, this.selItems);
-      if (inp.back || p === 2) { this.selStep = 0; return; }
+      if (inp.back) { this.selStep = 0; return; }
       if (p >= 0) {
         this.save = freshSave(ids[this.selHero]); this.persist(); this.embersShown = 0;
         this.storyLines = OPENING; this.storyNext = p === 0 ? 'prologue' : 'gate'; this.go('story');
@@ -289,7 +295,7 @@ export class Game {
     this.sound.setRain(0.55); this.r.post.dawn = 0;
     const S = this.save; S.inHaven = true; S.havenNext = next; S.havenSeen = true; if (next) S.level = next; this.persist();
     const w = this.world = new World({ solids: L.solids, bounds: L.def.bounds, seed: 5, abilityMode: this.settings.abilityMode }); w.abilityMode = this.settings.abilityMode;
-    this.encs = []; this.boss = null; this.bossState = 'idle'; this.hints = []; this.tutorial = null; this.prompt = null; this.leaving = false; this.card = null; this.resting = null; this.flares = [];
+    this.encs = []; this.boss = null; this.bossState = 'idle'; this.hints = []; this.tutorial = null; this.prompt = null; this.leaving = false; this.card = null; this.flares = [];
     this.inHaven = true; this.lamp.reset(1);
     this.haven = new Haven(this, L, { next, resume: !!opts.resume, first: opts.first ?? !S.havenIntro });
     this.camFocus.set(w.hero.x, 0, w.hero.z); this.r.focus.copy(this.camFocus);
@@ -302,23 +308,30 @@ export class Game {
   // the merchant and the map at the Haven are stocked for the district ahead
   shopDistrict() { return this.inHaven ? (this.save.havenNext || 'gate') : this.levelId; }
 
-  controls(dt, inp) { if (inp.back || inp.confirm || inp.taps.length) { this.sound.play('ui'); this.go(this.back || 'title'); } }
+  controls(dt, inp) { if (this.stateT > 0.2 && (inp.back || inp.confirm || inp.taps.length)) { this.sound.play('ui'); this.go(this.back || 'title'); } }
   applyQuality() { const q = QUALITY[this.settings.quality || 0] || QUALITY[0]; setTargetHeight(q.h); this.r.resize(); }
   settingsMenu(dt, inp) {
     const s = this.settings;
-    this.setItems = [{ label: 'SOUND: ' + (s.sound ? 'ON' : 'OFF') }, { label: 'MUSIC: ' + Math.round(s.music * 10) }, { label: 'SCREEN SHAKE: ' + (s.shake ? 'ON' : 'OFF') }, { label: 'PIXELS: ' + QUALITY[s.quality || 0].label },
-      { label: 'BUTTONS: ' + (BUTTON_LABEL[s.touchScale] || 'MEDIUM') }, { label: 'ABILITIES: ' + (ABILITY_MODES.find((m) => m.id === s.abilityMode) || ABILITY_MODES[0]).label }, { label: 'BACK' }];
-    const p = this.menuInput(inp, this.setItems); const side = inp.left ? -1 : (inp.right ? 1 : 0);
-    if (p === 0) { s.sound = !s.sound; this.sound.setEnabled(s.sound); }
-    if (p === 1 || (this.sel === 1 && side)) { s.music = side < 0 ? Math.max(0, s.music - 0.1) : (side > 0 ? Math.min(1, s.music + 0.1) : (s.music >= 0.95 ? 0 : s.music + 0.1)); s.music = Math.round(s.music * 10) / 10; this.sound.setMusicVol(s.music); }
-    if (p === 2) s.shake = !s.shake;
-    if (p === 3) { s.quality = ((s.quality || 0) + 1) % QUALITY.length; this.applyQuality(); }
+    this.setItems = [{ label: 'SOUND', value: s.sound ? 'ON' : 'OFF' }, { label: 'MUSIC', value: String(Math.round(s.music * 10)) }, { label: 'SCREEN SHAKE', value: s.shake ? 'ON' : 'OFF' }, { label: 'PIXELS', value: QUALITY[s.quality || 0].label },
+      { label: 'BUTTONS', value: BUTTON_LABEL[s.touchScale] || 'MEDIUM' }, { label: 'ABILITIES', value: (ABILITY_MODES.find((m) => m.id === s.abilityMode) || ABILITY_MODES[0]).label }, { label: 'BACK' }];
+    const n = this.setItems.length; let pick = -1, side = inp.left ? -1 : (inp.right ? 1 : 0);
+    if (inp.up) { this.sel = (this.sel + n - 1) % n; this.sound.play('ui'); }
+    if (inp.down) { this.sel = (this.sel + 1) % n; this.sound.play('ui'); }
+    if (inp.confirm) pick = this.sel;
+    for (const tp of inp.taps) for (const r of this.menuRects || []) if (hit(r, tp)) { this.sel = r.i; pick = r.i; side = r.i < n - 1 && tp.x < r.x + r.w * 0.35 ? -1 : 1; }
+    if (pick < 0 && side && this.sel < n - 1) pick = this.sel;
+    if (pick < 0) { if (inp.back) this.go(this.back || 'title'); return; }
+    const d = side || 1; this.sound.play(pick === n - 1 ? 'ui' : 'uiOk');
+    if (pick === 0) { s.sound = !s.sound; this.sound.setEnabled(s.sound); }
+    if (pick === 1) { const was = s.music; s.music = side ? Math.max(0, Math.min(1, was + d * 0.1)) : (was >= 0.95 ? 0 : was + 0.1); s.music = Math.round(s.music * 10) / 10; this.sound.setMusicVol(s.music); }
+    if (pick === 2) s.shake = !s.shake;
+    if (pick === 3) { s.quality = ((s.quality || 0) + d + QUALITY.length) % QUALITY.length; this.applyQuality(); }
     // touch button size: small / medium / large (the stick grows with them)
-    if (p === 4 || (this.sel === 4 && side)) { const i = Math.max(0, BUTTONS.indexOf(s.touchScale)); s.touchScale = BUTTONS[(i + (side || 1) + BUTTONS.length) % BUTTONS.length]; this.ui.touchScale = s.touchScale; }
+    if (pick === 4) { const i = Math.max(0, BUTTONS.indexOf(s.touchScale)); s.touchScale = BUTTONS[(i + d + BUTTONS.length) % BUTTONS.length]; this.ui.touchScale = s.touchScale; }
     // abilities: fired by the attack when ready (default), or cast on their own during a fight
-    if (p === 5 || (this.sel === 5 && side)) { const i = Math.max(0, ABILITY_MODES.findIndex((m) => m.id === s.abilityMode)); s.abilityMode = ABILITY_MODES[(i + 1) % ABILITY_MODES.length].id; if (this.world) this.world.abilityMode = s.abilityMode; }
-    if ((p >= 0 && p < 6) || (side && this.sel >= 1 && this.sel <= 5)) this.saveSettings();
-    if (p === 6 || inp.back) this.go(this.back || 'title');
+    if (pick === 5) { const i = Math.max(0, ABILITY_MODES.findIndex((m) => m.id === s.abilityMode)); s.abilityMode = ABILITY_MODES[(i + 1) % ABILITY_MODES.length].id; if (this.world) this.world.abilityMode = s.abilityMode; }
+    if (pick < n - 1) this.saveSettings();
+    if (pick === n - 1 || inp.back) this.go(this.back || 'title');
   }
   credits(dt, inp) { if (this.stateT > 0.5 && (inp.back || inp.confirm || inp.taps.length)) { if (this.back === 'title') this.go('title'); else { this.go('loading'); this.start(); } } }
 
@@ -354,19 +367,12 @@ export class Game {
     this.handleEvents(evs);
     if (this.tutorial) this.tutorial.update(dt, evs);
     if (this.state !== 'play') return;
-    if (this.resting) this.rest(dt, inp);
-    // lamps (checkpoints), chests
-    this.prompt = null; let near = null, nearChest = null;
-    for (const l of this.level.lamps) if (Math.hypot(hero.x - l.x, hero.z - l.z) < 1.9) near = l;
+    // lamps light themselves (checkpoints); chests take USE
+    this.lampsAuto(hero);
+    this.prompt = null; let nearChest = null;
     for (const c of this.level.chests) if (!c.h.open && Math.hypot(hero.x - c.x, hero.z - c.z) < 1.7) nearChest = c;
-    const calm = !w.combat;
-    if (this.resting) { near = null; nearChest = null; }
-    if (near && calm) this.prompt = near.h.lit ? 'REST AT THE LAMP' : 'LIGHT THE LAMP';
-    else if (nearChest) this.prompt = 'OPEN';
-    if (inp.interactPressed && this.prompt) {
-      if (near && calm) this.useLamp(near);
-      else if (nearChest) this.openChest(nearChest);
-    }
+    if (nearChest) this.prompt = 'OPEN';
+    if (inp.interactPressed && nearChest) this.openChest(nearChest);
     if (!this.card && !this.tutorial) for (const h of this.hints) if (!h.shown && inZone(hero, h.zone)) { h.shown = true; this.ui.toast(inp.touch && h.touch ? h.touch : h.text, { life: h.life || 4, color: COL.ice }); }
     for (const e of this.encs) this.runEncounter(e, dt);
     const B = def.boss;
@@ -385,27 +391,40 @@ export class Game {
     if (hero.state === 'run' && (this.stepT = (this.stepT || 0) - dt) <= 0) { this.stepT = 0.27; this.sound.play('step'); if (Math.random() < 0.5) this.fx.splash(hero.x, hero.z, 3); }
   }
 
-  // A district lamp is a checkpoint: lit the first time, and every rest heals, refills the tonics and
-  // keeps your place; the warden kneels a moment and the flame leaps. (Growing happens at the Haven.)
-  useLamp(l) {
-    const hero = this.world.hero; const key = this.levelId + ':' + l.id;
-    if (!l.h.lit) { l.h.set(true); this.lampLight(l, true); this.ui.toast('LAMP LIT', { color: COL.gold, big: true, life: 2 }); this.save.litLamps[key] = true; }
-    else this.ui.toast('YOU REST. THE LAMP KEEPS YOUR PLACE', { color: COL.gold, life: 2 });
+  // A district lamp is a checkpoint, and it lights itself: walk within reach (LAMP_REACH) while the area
+  // is clear (no foe hunting you within LAMP_CLEAR, no locked fight or boss under way) and it flares up:
+  // your place is kept, your health, tonics and revives come back, the game saves. Nobody kneels: the
+  // warden keeps moving. A lit lamp restores you again each time you come back within reach out of a
+  // fight, once per visit (it re-arms when you have walked LAMP_REARM away). Growing happens at the Haven.
+  lampClear(hero) {
+    if ((this.encs || []).some((e) => e.state === 'active')) return false;
+    if (this.bossState === 'intro' || this.bossState === 'fight') return false;
+    return !this.world.foes().some((f) => f.ai.aggro && !f.dead && Math.hypot(f.x - hero.x, f.z - hero.z) < LAMP_CLEAR);
+  }
+  lampsAuto(hero) {
+    if (!hero || hero.dead) return;
+    // the training road's lamp waits for its turn in the training
+    if (this.tutorial && this.tutorial.i < STEPS.findIndex((s) => s.id === 'lamp')) return;
+    let clear = null;
+    for (const l of this.level.lamps) {
+      const d = Math.hypot(hero.x - l.x, hero.z - l.z);
+      if (d > LAMP_REARM) l.armed = true;
+      if (d > LAMP_REACH || (l.h.lit && !l.armed)) continue;
+      if (clear === null) clear = this.lampClear(hero);
+      if (clear) this.lightLamp(l);
+    }
+  }
+  lightLamp(l) {
+    const hero = this.world.hero; const key = this.levelId + ':' + l.id; const first = !l.h.lit;
+    const restored = first || hero.hp < hero.maxHp || hero.tonics < hero.stats.maxTonics || hero.revives < hero.stats.revives;
+    l.armed = false;
+    if (first) { l.h.set(true); this.lampLight(l, true); this.save.litLamps[key] = true; }
     this.save.lamp = key; this.persist();
     hero.hp = hero.maxHp; hero.tonics = hero.stats.maxTonics; hero.revives = hero.stats.revives;
+    if (!restored) return; // already whole: the place is kept, quietly
+    this.ui.toast(first ? 'LAMP LIT' : 'THE LAMP RESTORES YOU', { color: COL.gold, big: first, life: first ? 2 : 1.6 });
     this.sound.play('lamp'); this.sound.play('heal', { delay: 0.25 });
-    this.fx.embers(l.x, 3.35, l.z, 40, [3, 1.8, 0.5]); this.fx.embers(hero.x, 0.5, hero.z, 14, [3, 2.2, 0.8]); this.flareLamp(l);
-    hero.state = 'rest'; hero.anim = 'kneel'; hero.animT = 0; hero.t = 0; hero.vx = hero.vz = 0; hero.atk = null; hero.face = angTo(hero, l);
-    this.resting = { t: 0, lamp: l };
-  }
-  // kneeling at a lamp: down (0.6 s), a breath, then up again (moving or attacking rises sooner)
-  rest(dt, inp) {
-    const R = this.resting, h = this.world.hero; R.t += dt;
-    if (!h || h.dead || h.state !== 'rest') { this.resting = null; return; }
-    if (h.anim === 'kneel' && h.animT >= 0.6) { h.anim = 'rest'; h.animT = 0; }
-    const wants = Math.hypot(inp.mx || 0, inp.mz || 0) > 0.3 || inp.attackPressed || inp.dashPressed;
-    if (h.anim !== 'rise' && (R.t > 1.6 || (R.t > 0.55 && wants))) { h.anim = 'rise'; h.animT = 0; }
-    if (h.anim === 'rise' && h.animT >= 0.7) { h.state = 'idle'; h.anim = 'idle'; h.t = 0; this.resting = null; }
+    this.fx.embers(l.x, 3.35, l.z, first ? 44 : 24, [3, 1.8, 0.5]); this.fx.embers(hero.x, 0.6, hero.z, first ? 16 : 10, [3, 2.2, 0.8]); this.flareLamp(l);
   }
   // the lamp's light in the light pool follows the lamp (the pool keeps its own copy of each light)
   lampSource(l) { const L = l.h.light; return this.atmos.sources.find((s) => s.x === L.x && s.y === L.y && s.z === L.z); }
@@ -579,10 +598,14 @@ export class Game {
   renderFrame(dt) {
     const r = this.r, w = this.world;
     let target = null; let zt = 1;
-    const titleish = this.state === 'title' || this.state === 'select' || (this.state === 'controls' || this.state === 'settings') && this.back === 'title' || this.state === 'credits' || (this.state === 'story' && (this.storyNext === 'prologue' || this.storyNext === 'gate'));
+    const titleish = this.state === 'title' || this.state === 'select' || (this.state === 'controls' || this.state === 'settings') && this.back === 'title' || (this.state === 'credits' && this.back === 'title') || (this.state === 'story' && (this.storyNext === 'prologue' || this.storyNext === 'gate'));
     if (titleish) {
       this.titleCam = (this.titleCam || 0) + dt; target = new THREE.Vector3(-0.8 + Math.sin(this.titleCam * 0.12) * 0.8, 0, -1.6 + Math.cos(this.titleCam * 0.1) * 0.5);
-      if (this.state === 'select' && w && w.hero) { target = new THREE.Vector3(w.hero.x + 1.2, 0.8, w.hero.z - 0.6); zt = 1.6; }
+      if (this.state === 'select' && w && w.hero) {
+        // the warden stands in the free middle between the list and the card, as big as it allows
+        const L = this.selLayout(); const fw = L.freeX1 - L.freeX0; zt = Math.max(1.3, Math.min(2.2, fw / 62, this.ui.h / 95));
+        target = new THREE.Vector3(w.hero.x, 0.8, w.hero.z).addScaledVector(r.right, (this.ui.w / 2 - (L.freeX0 + L.freeX1) / 2) / (16 * zt));
+      }
       if (w) { this.view.update(w, dt); for (const e of w.ents) e.animT += dt; }
     } else if (this.inHaven && this.haven && w && w.hero) {
       // the Haven runs its own camera (and the warden breathes on while the game is paused there)
@@ -625,23 +648,15 @@ export class Game {
 
   drawUI(dt) {
     const ui = this.ui, W = ui.w, H = ui.h, S = this.state;
-    if (S === 'title' || (S === 'controls' || S === 'settings' || S === 'credits') && this.back === 'title') {
-      const a = Math.min(1, this.stateT * 0.8);
-      ui.logo(W / 2, Math.round(H * 0.1), S === 'title' ? a : 0.35);
-      if (S === 'title') {
-        ui.text('RING THE BELL. BRING THE DAWN.', W / 2, Math.round(H * 0.1) + 34, { align: 'center', color: COL.dim, alpha: a });
-        this.menuRects = ui.menu(this.titleItems || [], this.sel, Math.round(W * 0.2) + ui.safe.l, Math.round(H * 0.62), { align: 'center' });
-        ui.text('V2.0', W - 4 - ui.safe.r, H - 10, { align: 'right', color: '#4a463e' });
-      }
-    }
+    if (S === 'title') this.drawTitle();
     if (S === 'select') this.drawSelect();
     if (S === 'controls') this.drawControls();
-    if (S === 'settings') {
-      const n = (this.setItems || []).length, fh = n * 12 + 14; ui.frame(W / 2 - 86, Math.round(H / 2 - fh / 2), 172, fh); this.menuRects = ui.menu(this.setItems || [], this.sel, W / 2, Math.round(H / 2 - fh / 2) + 9, { align: 'center' });
-      const tip = [null, null, null, null, 'THE SIZE OF THE TOUCH BUTTONS AND THE STICK', 'ON ATTACK: A READY SKILL FIRES FROM YOUR ATTACK. AUTO: ALSO ON ITS OWN IN A FIGHT'][this.sel];
-      if (tip) ui.wrap(tip, Math.min(W - 20, 260)).forEach((l, k) => ui.text(l, W / 2, Math.round(H / 2 + fh / 2) + 5 + k * 9, { align: 'center', color: COL.dim }));
+    if (S === 'settings') this.drawSettings();
+    if (S === 'credits') {
+      ui.veil(0.6); const n = CREDITS.length, y0 = Math.round(H / 2 - n * 6);
+      CREDITS.forEach((l, i) => ui.text(l, W / 2, y0 + i * 12, { align: 'center', color: i === 0 ? COL.white : COL.dim }));
+      if (this.stateT > 0.5) ui.text(this.inputMode === 'touch' ? 'TAP TO GO BACK' : 'ENTER TO GO BACK', W / 2, H - 14, { align: 'center', color: '#6a6252' });
     }
-    if (S === 'credits') { CREDITS.forEach((l, i) => ui.text(l, W / 2, H * 0.42 + i * 12, { align: 'center', color: i === 0 ? COL.white : COL.dim })); }
     if (S === 'story') {
       const lines = this.storyLines || []; const i = Math.min(lines.length - 1, this.storyIdx || 0); const a = Math.min(1, (this.lineT || 0) * 1.5);
       const wrapped = ui.wrap(lines[i] || '', Math.min(W - 40, 300));
@@ -652,7 +667,7 @@ export class Game {
     else if (['play', 'pause', 'bossIntro', 'dead'].includes(S) && this.world) {
       const hs = this.hs || (this.hs = {}); if (hs.world !== this.world) { hs.hpGhost = undefined; hs.bossGhost = undefined; }
       const P = this.save.heroes[this.save.hero];
-      Object.assign(hs, { world: this.world, boss: this.boss && this.bossState === 'fight' ? this.boss : null, bossPhases: this.boss ? (BOSS_AI[this.boss.type] || BOSS_AI2[this.boss.type] || {}).phases : null, embersShown: this.embersShown, prompt: S === 'play' ? this.prompt : null, level: P.level, xpFrac: xpFrac(this.save), points: P.points });
+      Object.assign(hs, { world: this.world, boss: this.boss && this.bossState === 'fight' ? this.boss : null, bossPhases: this.boss ? (BOSS_AI[this.boss.type] || BOSS_AI2[this.boss.type] || {}).phases : null, embersShown: this.embersShown, prompt: S === 'play' ? this.prompt : null, padMode: this.inputMode === 'pad', noToasts: S === 'pause', level: P.level, xpFrac: xpFrac(this.save), points: P.points });
       ui.toastY = S === 'play' && this.tutorial && this.tutorial.step && this.tutBottom ? this.tutBottom + 3 : 0; // toasts start under the training panel
       if (S !== 'bossIntro') ui.hud(hs, dt);
       if (this.card && S === 'play') {
@@ -674,30 +689,108 @@ export class Game {
       const bh = Math.round(H * 0.2 * k); if (bh > 0) { ui.rect(0, 0, W, bh, '#000'); ui.rect(0, H - bh, W, bh, '#000'); }
       if (this.stateT > 1.2) { const a = Math.min(1, (this.stateT - 1.2) * 2) * k; const nm = this.boss.def.name.toUpperCase(); ui.text(nm, W / 2, H - 32, { align: 'center', scale: ui.measure(nm, 2) > W - 12 ? 1 : 2, color: COL.white, alpha: a }); ui.text(this.boss.def.title.toUpperCase(), W / 2, H - 13, { align: 'center', color: COL.red, alpha: a }); }
     }
-    if (S === 'pause') { ui.rect(0, 0, W, H, 'rgba(0,0,0,0.5)'); ui.text('PAUSED', W / 2, H * 0.28, { align: 'center', scale: 2, color: COL.white }); this.menuRects = ui.menu(this.pauseItems || [], this.sel, W / 2, H * 0.45, { align: 'center' }); }
-    if (S === 'dead') { const a = Math.min(1, this.stateT * 0.8); ui.text('YOU FELL', W / 2, H * 0.4, { align: 'center', scale: 3, color: '#b01c22', alpha: a }); ui.text('THE LAMP STILL BURNS', W / 2, H * 0.4 + 28, { align: 'center', color: COL.dim, alpha: Math.max(0, a - 0.3) }); }
+    if (S === 'pause') this.drawPause();
+    if (S === 'dead') {
+      const a = Math.min(1, this.stateT * 0.8); ui.text('YOU FELL', W / 2, Math.round(H * 0.36), { align: 'center', scale: 3, color: '#b01c22', alpha: a }); ui.text('THE LAMP STILL BURNS', W / 2, Math.round(H * 0.36) + 28, { align: 'center', color: COL.dim, alpha: Math.max(0, a - 0.3) });
+      if (this.stateT > 1.2) ui.text(this.inputMode === 'touch' ? 'TAP TO RISE' : 'ENTER TO RISE', W / 2, Math.round(H * 0.36) + 46, { align: 'center', color: '#7a7262', alpha: Math.min(1, (this.stateT - 1.2) * 2) * (0.7 + 0.3 * Math.sin(this.t * 4)) });
+    }
     if (S === 'ending') { const line = ENDING[Math.min(ENDING.length - 1, this.endIdx || 0)]; const a = Math.min(1, (this.endT || 0) * 1.2); ui.letterbox(1); ui.wrap(line, W - 40).forEach((l, k) => ui.text(l, W / 2, H * 0.84 + k * 10, { align: 'center', color: '#f0e0c0', alpha: a })); }
   }
 
+  // ---- menus: one look everywhere (ui.button): framed buttons at least 18 px tall (about 40 points on a
+  // phone), clear of the notch, a dim veil over the scene where a screen sits on top of it
+  menuHeight(n, avail, gap) { return Math.max(16, Math.min(22, Math.floor((avail - gap * (n - 1)) / n))); }
+
+  drawTitle() {
+    const ui = this.ui, W = ui.w, H = ui.h; const a = Math.min(1, this.stateT * 0.8); const sl = Math.round(ui.safe.l), sr = Math.round(ui.safe.r);
+    const short = H < 170; const ly = short ? 6 : Math.round(H * 0.07);
+    ui.logo(W / 2, ly, a);
+    if (!short) ui.text('RING THE BELL. BRING THE DAWN.', W / 2, ly + 34, { align: 'center', color: COL.dim, alpha: a });
+    const items = this.titleItems || []; const gap = 4; const y0 = ly + (short ? 34 : 48); const h = this.menuHeight(items.length, H - 6 - y0, gap);
+    const x = sl + 12, w = 118; const g = ui.g, a0 = g.globalAlpha; g.globalAlpha = a0 * a;
+    this.menuRects = ui.buttons(items, this.sel, x, y0, w, h, gap, { align: 'left' });
+    g.globalAlpha = a0;
+    ui.text('V2.1', W - 4 - sr, H - 10, { align: 'right', color: '#4a463e' });
+  }
+
+  drawPause() {
+    const ui = this.ui, W = ui.w, H = ui.h; ui.veil(0.6);
+    const short = H < 170; const ty = short ? 8 : Math.round(H * 0.1);
+    ui.text('PAUSED', W / 2, ty, { align: 'center', scale: 2, color: COL.white });
+    const where = this.inHaven ? 'THE HAVEN' : (this.level && this.level.def && this.level.def.name ? this.level.def.name.toUpperCase() : '');
+    if (where) ui.text(where, W / 2, ty + 19, { align: 'center', color: COL.dim });
+    const items = this.pauseItems || []; const gap = 4; const y0 = ty + 32; const h = this.menuHeight(items.length, H - 6 - y0, gap); const w = 156;
+    this.menuRects = ui.buttons(items, this.sel, Math.round(W / 2 - w / 2), y0, w, h, gap);
+  }
+
+  drawSettings() {
+    const ui = this.ui, W = ui.w, H = ui.h; ui.veil(0.66); const sl = Math.round(ui.safe.l), sr = Math.round(ui.safe.r);
+    const items = this.setItems || []; const n = items.length; const short = H < 175;
+    ui.text('SETTINGS', W / 2, 6, { align: 'center', scale: short ? 1 : 2, color: COL.white });
+    const top = short ? 18 : 26; const tipH = 11; const gap = 3;
+    // one column when it fits, two on a short screen (BACK under both)
+    const cols = short ? 2 : 1; const per = Math.ceil((n - 1) / cols);
+    const h = this.menuHeight(per + 1, H - top - tipH - 4, gap);
+    const use = W - sl - sr - 16; const cw = cols === 1 ? Math.min(250, use) : Math.min(200, Math.floor((use - 6) / 2));
+    const x0 = Math.round(sl + 8 + (use - (cw * cols + (cols - 1) * 6)) / 2);
+    this.menuRects = [];
+    items.forEach((it, i) => {
+      const back = i === n - 1; const c = back ? 0 : Math.floor(i / per), k = back ? per : i % per;
+      const bw = back ? Math.min(120, cw) : cw; const bx = back ? Math.round(W / 2 - bw / 2) : x0 + c * (cw + 6), by = top + k * (h + gap);
+      const r = ui.button(bx, by, bw, h, it.label, { sel: i === this.sel, align: back ? 'center' : 'left' });
+      if (!back) { const vx = bx + bw - 8; ui.text('>', vx, by + Math.round((h - 7) / 2), { align: 'right', color: '#8a6a3a', shadow: false }); ui.text(it.value, vx - 10, by + Math.round((h - 7) / 2), { align: 'right', color: COL.gold, shadow: false }); if (bx + 8 + ui.measure(it.label) + 10 < vx - 16 - ui.measure(it.value) - 5) ui.text('<', vx - 16 - ui.measure(it.value), by + Math.round((h - 7) / 2), { align: 'right', color: '#8a6a3a', shadow: false }); }
+      this.menuRects.push({ ...r, i });
+    });
+    const tip = ['SOUND EFFECTS AND MUSIC', 'MUSIC VOLUME, 0 TO 10', 'THE SCREEN SHAKES ON HEAVY BLOWS', 'BIGGER PIXELS RUN FASTER', 'THE SIZE OF THE TOUCH BUTTONS AND THE STICK', 'ON ATTACK: A READY SKILL FIRES FROM YOUR ATTACK. AUTO: ALSO ON ITS OWN', ''][this.sel] || '';
+    if (tip) ui.text(fit(ui, tip, W - sl - sr - 12), W / 2, H - tipH, { align: 'center', color: COL.dim });
+  }
+
   drawSelect() {
-    const ui = this.ui, W = ui.w, H = ui.h; const ids = HERO_ORDER; const id = ids[this.selHero]; const Hd = HEROES[id];
-    ui.text('CHOOSE YOUR WARDEN', W / 2, 8, { align: 'center', color: COL.gold });
-    // name tabs
-    this.menuRects = []; const tw = Math.min(90, Math.floor((W - 16) / ids.length)); let x = Math.round((W - tw * ids.length) / 2);
-    ids.forEach((hid, i) => { const on = i === this.selHero; const locked = hid === 'lamplighter'; if (on) ui.rect(x + 1, 19, tw - 2, 11, '#2a1418'); ui.text(HEROES[hid].name, x + tw / 2, 21, { align: 'center', color: locked ? '#5a564e' : (on ? COL.white : COL.dim), shadow: false }); this.menuRects.push({ x, y: 17, w: tw, h: 14, i }); x += tw; });
-    // card on the left
-    const cx = 8 + ui.safe.l, cy = 40, cw = Math.min(170, Math.round(W * 0.46));
-    ui.frame(cx, cy, cw, H - cy - 8, 'rgba(8,10,14,0.85)', '#4a4030');
-    ui.text(Hd.title, cx + 6, cy + 6, { color: COL.red });
-    ui.wrap(Hd.blurb, cw - 12).forEach((l, k) => ui.text(l, cx + 6, cy + 18 + k * 9, { color: COL.text, shadow: false }));
-    const rows = [['POWER', Hd.rating.power], ['RANGE', Hd.rating.range], ['SPEED', Hd.rating.speed], ['GUARD', Hd.rating.guard]];
-    const ry = cy + 22 + ui.wrap(Hd.blurb, cw - 12).length * 9 + 4;
-    rows.forEach(([n, v], k) => { ui.text(n, cx + 6, ry + k * 9, { color: COL.dim, shadow: false }); for (let s = 0; s < 5; s++) ui.rect(cx + 46 + s * 7, ry + k * 9 + 1, 5, 5, s < v ? COL.gold : '#2a2620'); });
-    const ab = Hd.abilities.map((a) => a.toUpperCase()).join('  ');
-    ui.wrap('SKILLS: ' + ab, cw - 12).forEach((l, k) => ui.text(l, cx + 6, ry + 40 + k * 9, { color: COL.ice, shadow: false }));
-    if (id === 'lamplighter') ui.text('JOINS AFTER LANTERN ROW', cx + 6, H - 22, { color: COL.dim });
-    if (this.selStep === 1) { const mx = W - 8 - ui.safe.r - 80; ui.frame(mx - 64, H - 54, 140, 46); this.menuRects = ui.menu(this.selItems || [], this.sel, mx + 6, H - 46, { align: 'center' }); }
-    else ui.text(ui.touchMode ? 'TAP A NAME, TAP AGAIN TO CHOOSE' : 'LEFT/RIGHT, ENTER TO CHOOSE', W - 8 - ui.safe.r, H - 12, { align: 'right', color: '#5a564e' });
+    const ui = this.ui, W = ui.w, H = ui.h; const ids = HERO_ORDER; const id = ids[this.selHero]; const Hd = HEROES[id]; const locked = id === 'lamplighter';
+    const L = this.selLayout(); const R = this.selRects = { heroes: [] };
+    // the wardens: a list on the left
+    ui.text('CHOOSE YOUR WARDEN', L.lx, 6, { color: COL.gold });
+    const bh = Math.max(20, Math.min(24, Math.floor((H - 18 - 30 - 9) / 4)));
+    ids.forEach((hid, i) => {
+      const lk = hid === 'lamplighter'; const y = 17 + i * (bh + 3);
+      R.heroes.push({ ...ui.button(L.lx, y, L.lw, bh, HEROES[hid].name, { on: i === this.selHero, align: 'left', sub: lk ? 'LOCKED' : ARMS[HEROES[hid].weapon], color: lk ? '#7a7266' : undefined }), i });
+      if (lk) lockIcon(ui, L.lx + L.lw - 12, y + Math.round(bh / 2) - 4);
+    });
+    R.back = ui.button(L.lx, H - 6 - 20, 64, 20, '< BACK', {});
+    // the card on the right
+    const cx = L.cx, cw = L.cw, cy = 6, ch = H - 12; const px = cx + 7, tw = cw - 14;
+    ui.frame(cx, cy, cw, ch, 'rgba(8,9,12,0.88)', locked ? '#3a3630' : '#5a4a32');
+    let y = cy + 6;
+    ui.text(Hd.name, px, y, { scale: ui.measure(Hd.name, 2) <= tw ? 2 : 1, color: locked ? '#8a8478' : COL.white }); y += 16;
+    ui.text(Hd.title, px, y, { color: COL.red, shadow: false }); y += 12;
+    const btnY = cy + ch - 6 - 22;
+    if (this.selStep === 0) {
+      const ult = ULTS[Hd.ult] ? ULTS[Hd.ult].name : Hd.ult.toUpperCase();
+      const skills = ui.wrap(Hd.abilities.map((a) => (ABILITIES[a] ? ABILITIES[a].name : a)).join(', '), tw); const statsH = 20, skillsH = 11 + skills.length * 9 + 9;
+      const room = btnY - 4 - y - statsH - skillsH; const blurb = ui.wrap(Hd.blurb, tw); const nb = Math.max(1, Math.min(blurb.length, Math.floor(room / 9)));
+      blurb.slice(0, nb).forEach((l, k) => ui.text(k === nb - 1 && nb < blurb.length ? dots(ui, l, tw) : l, px, y + k * 9, { color: COL.text, shadow: false })); y += nb * 9 + 4;
+      // ratings in two columns
+      const rows = [['POWER', Hd.rating.power], ['RANGE', Hd.rating.range], ['SPEED', Hd.rating.speed], ['GUARD', Hd.rating.guard]]; const colW = Math.floor(tw / 2);
+      rows.forEach(([nm, v], k) => { const rx = px + (k % 2) * colW, ry = y + Math.floor(k / 2) * 9; ui.text(nm, rx, ry, { color: COL.dim, shadow: false }); for (let s = 0; s < 5; s++) ui.rect(rx + 33 + s * 5, ry + 1, 4, 5, s < v ? COL.gold : '#2a2620'); });
+      y += statsH;
+      ui.text('SKILLS', px, y, { color: COL.dim, shadow: false }); y += 10;
+      skills.forEach((l, k) => ui.text(l, px, y + k * 9, { color: COL.ice, shadow: false })); y += skills.length * 9;
+      ui.text('ULTIMATE: ' + ult, px, y, { color: '#e08070', shadow: false });
+      R.choose = ui.button(px - 2, btnY, tw + 4, 22, locked ? 'JOINS AFTER LANTERN ROW' : 'CHOOSE ' + Hd.name, { sel: !locked, disabled: locked, fill: locked ? '#14120f' : '#3a1a14', edge: locked ? '#3a3228' : COL.gold, color: locked ? '#6a6458' : COL.white });
+    } else {
+      // how to begin: two big choices
+      ui.text('HOW WILL YOU BEGIN?', px, y + 2, { color: COL.dim, shadow: false }); y += 14;
+      const items = this.selItems || []; const gap = 4; const h = Math.max(20, Math.min(28, Math.floor((btnY + 22 - y - gap) / 2) - gap));
+      this.menuRects = ui.buttons(items, this.sel, px - 2, y, tw + 4, h, gap, { align: 'left' });
+      R.choose = null;
+    }
+    if (this.selStep === 0) this.menuRects = [];
+  }
+  // where the select screen puts things (the camera frames the warden between the list and the card)
+  selLayout() {
+    const ui = this.ui, W = ui.w; const sl = Math.round(ui.safe.l), sr = Math.round(ui.safe.r); const use = W - sl - sr;
+    const lx = sl + 6, lw = 92; const cw = Math.max(170, Math.min(206, Math.round(use * 0.46))); const cx = W - sr - 6 - cw;
+    return { lx, lw, cx, cw, freeX0: lx + lw, freeX1: cx };
   }
 
   drawTutorial() {
@@ -732,15 +825,23 @@ export class Game {
   }
 
   drawControls() {
-    const ui = this.ui, W = ui.w, H = ui.h; ui.rect(0, 0, W, H, 'rgba(0,0,0,0.6)');
-    ui.text('CONTROLS', W / 2, 12, { align: 'center', scale: 2, color: COL.white });
-    const rows = [['MOVE', 'WASD / ARROWS', 'LEFT THUMB'], ['ATTACK (HOLD)', 'J / LEFT CLICK', 'ATK'], ['DASH', 'SPACE / SHIFT', 'DASH'], ['ULTIMATE', 'Q / U', 'ULT'], ['TONIC', 'R / H', 'TON'], ['USE', 'E', 'USE'], ['PAUSE', 'ESC / P', 'II']];
-    const x0 = Math.max(6, Math.round(W / 2 - 150)); const colK = x0 + Math.min(92, Math.round(W * 0.28)), colT = x0 + Math.min(210, Math.round(W * 0.62));
-    ui.text('KEYBOARD', colK, 32, { color: COL.dim }); ui.text('TOUCH', colT, 32, { color: COL.dim });
-    rows.forEach((r, i) => { const y = 43 + i * 11; ui.text(r[0], x0, y, { color: COL.gold }); ui.text(r[1], colK, y); ui.text(r[2], colT, y); });
-    // the two skills have no button of their own
-    const sy = 43 + rows.length * 11 + 4;
-    ui.wrap('SKILLS HAVE NO BUTTON: WHEN A SKILL\'S BADGE GLOWS, YOUR NEXT ATTACK FIRES IT (SETTINGS: ABILITIES AUTO CASTS THEM ON THEIR OWN).', Math.min(W - 16, 300)).forEach((l, k) => ui.text(l, W / 2, sy + k * 9, { align: 'center', color: COL.ice }));
-    ui.wrap('GAMEPAD: X ATTACK, A DASH, RB ULTIMATE, LB TONIC, BACK USE, START PAUSE', W - 16).forEach((l, k) => ui.text(l, W / 2, H - 26 + k * 9, { align: 'center', color: COL.dim }));
+    const ui = this.ui, W = ui.w, H = ui.h; ui.veil(0.72); const sl = Math.round(ui.safe.l), sr = Math.round(ui.safe.r);
+    const short = H < 175; ui.text('CONTROLS', W / 2, 6, { align: 'center', scale: short ? 1 : 2, color: COL.white });
+    const rows = [['MOVE', 'WASD, ARROWS', 'LEFT THUMB', 'LEFT STICK'], ['ATTACK (HOLD)', 'J, LEFT CLICK', 'ATK', 'X'], ['DASH', 'SPACE, SHIFT', 'DASH', 'A'], ['ULTIMATE', 'Q, U', 'ULT', 'RB'], ['TONIC', 'R, H', 'TON', 'LB'], ['OPEN A CHEST', 'E', 'USE', 'BACK'], ['PAUSE', 'ESC, P', 'II', 'START']];
+    const head = ['', 'KEYBOARD', 'TOUCH', 'GAMEPAD'];
+    const widths = head.map((h, c) => Math.max(ui.measure(h), ...rows.map((r) => ui.measure(r[c]))));
+    const use = W - sl - sr - 12; const gapC = Math.max(6, Math.min(16, Math.floor((use - widths.reduce((a, b) => a + b, 0)) / 3)));
+    const total = widths.reduce((a, b) => a + b, 0) + gapC * 3; let x = Math.round(sl + 6 + (use - total) / 2); const xs = widths.map((w) => { const v = x; x += w + gapC; return v; });
+    let y = short ? 20 : 30; const lh = short ? 10 : 11;
+    head.forEach((h, c) => ui.text(h, xs[c], y, { color: COL.dim, shadow: false })); y += lh + 1;
+    ui.rect(xs[0], y - 3, total, 1, '#3a2e20');
+    rows.forEach((r) => { r.forEach((t, c) => ui.text(t, xs[c], y, { color: c === 0 ? COL.gold : COL.text, shadow: false })); y += lh; });
+    y += 4;
+    const notes = ['SKILLS HAVE NO BUTTON: WHEN A SKILL\'S BADGE GLOWS, YOUR NEXT ATTACK FIRES IT.', 'LAMPS LIGHT THEMSELVES WHEN NO FOE IS NEAR.'];
+    for (const n of notes) for (const l of ui.wrap(n, use)) { if (y + 7 < H - 4) ui.text(l, W / 2, y, { align: 'center', color: COL.ice, shadow: false }); y += 9; }
+    if (this.stateT > 0.3 && y + 9 < H) ui.text(this.inputMode === 'touch' ? 'TAP TO GO BACK' : 'ENTER TO GO BACK', W / 2, H - 10, { align: 'center', color: '#6a6252' });
   }
 }
+
+// a small padlock (locked wardens)
+function lockIcon(ui, x, y) { ui.rect(x + 1, y, 4, 1, '#8a8070'); ui.rect(x + 1, y, 1, 3, '#8a8070'); ui.rect(x + 4, y, 1, 3, '#8a8070'); ui.rect(x, y + 3, 6, 5, '#8a8070'); ui.rect(x + 2, y + 5, 2, 2, '#2a2620'); }

@@ -68,9 +68,9 @@ warden levels on their own.
 | Dash (invulnerable, recharges) | Space / Shift | DASH | A |
 | Ultimate (when the red gauge is full) | Q / U | ULT | RB |
 | Tonic | R / H | TON | LB |
-| Use (lamps, chests) | E | USE | Back |
+| Open a chest | E | USE (shows by a chest) | Back |
 | Pause | Esc / P | II | Start |
-| Haven menu: tabs, choose, ONWARD | Q E or arrows, Enter, Esc | tap a tab, tap a row twice, ONWARD | LB RB, A, B |
+| Haven menu: section, row, do it, ONWARD | Q E or left/right, up/down, Enter, Esc Esc | tap a section, tap a row, tap the button under the list, tap ONWARD (drag the list to scroll) | LB RB, up/down, A, B B |
 
 - Foes telegraph every blow with red shapes on the stones. Dash through a blow at the last moment for a
   **perfect dodge** (time slows). There is no parry: read, dash, punish.
@@ -84,21 +84,35 @@ warden levels on their own.
   the feet and the health landing (the bar's new part flashes green, "+amount" over the head).
 - Burn, bleed, poison, frost, stun and root. **Elite** foes glow with an affix (burning, frozen,
   shielded, hasted, vampiric), hit harder and drop more.
-- **Lamps** in a district are checkpoints: light one (E / USE), and every rest there heals you, refills
-  your tonics and keeps your place; the warden kneels a moment by the flame.
+- **Lamps** in a district are checkpoints and light themselves: walk within about 3.5 m of one while the
+  area is clear (no foe hunting you within 12 m, no locked fight or boss under way) and it flares up with
+  embers, the lamp's sound and LAMP LIT: your place is kept, your health, tonics and revives come back and
+  the game saves. Nothing to press and no kneeling: you keep moving. A lit lamp restores you again when you
+  come back within reach out of a fight, once per visit (it re-arms after you have walked 6 m away).
 - **The Haven** comes between the districts: walk through a district's exit after its boss (or the end
-  of the Old Road) and the warden walks in out of the rain, kneels by the fire, and the menu opens beside
-  them: HERO (switch warden), SKILLS (five ranks per skill, swap the third into a slot), ARMS (temper
-  and change weapons; each warden has five), RELICS (fourteen; two slots, a third after District IV),
-  SHOP (the merchant, stocked for the district ahead) and MAP (any district already reached). Every
-  choice is answered by the fire flaring, embers and a bell; a new weapon appears in the warden's hand,
-  a new warden takes the kneeling place. ONWARD: the warden rises and walks out into the next district.
-  The first visit has a short guide. The pause menu in a district offers RETURN TO THE HAVEN (what you
+  of the Old Road) and the warden walks in out of the rain and kneels by the fire, which stays in view
+  between the menu's two halves. On the left a rail of five big sections: WARDEN (switch warden), SKILLS
+  (five ranks per skill, swap the third into slot 2; a gold badge counts unspent points), GEAR (temper and
+  change weapons, each warden has five; relics, fourteen, two slots and a third after District IV),
+  MERCHANT (stocked for the district ahead) and MAP (any district already reached). On the right the open
+  section: a few large rows, each with its name, a second line saying what it is and, on the right, what
+  choosing it costs or its state (1 PT, 288 E, IN HAND, WORN, LOCKED). One tap selects a row; the button
+  under the list says what it will do and for how much (LEARN 1 PT, TEMPER 40 E, BUY 288 E, EQUIP, SET
+  OUT), or why it cannot (NEED 288 E, NO SKILL POINTS), and does it. Every choice is answered by the
+  fire flaring, embers and a bell; a new weapon appears in the warden's hand, a new warden takes the
+  kneeling place. ONWARD (bottom right, always there): the warden rises and walks out into the next
+  district. The first visit has a short guide in the panel that points at the button and at ONWARD. The pause menu in a district offers RETURN TO THE HAVEN (what you
   cleared stays cleared), and CONTINUE on the title resumes in the Haven if you saved there.
-- Kills give embers and experience; chests and bosses give weapons, relics and tonic flasks.
+- Kills give embers and experience; chests (E / USE) and bosses give weapons, relics and tonic flasks.
 - Dying costs nothing but the fight in progress: you wake at the last lamp; cleared fights stay cleared.
 - Progress saves in the browser. Settings: sound, music volume, screen shake, pixel size, BUTTONS (touch
-  button size: small, medium, large) and ABILITIES (ON ATTACK or AUTO).
+  button size: small, medium, large) and ABILITIES (ON ATTACK or AUTO); tap a row's right part to step a
+  value up, its left part to step it down (keys: left and right).
+- **Menus** share one look: framed buttons at least 18 buffer pixels tall (about 40 points on a phone),
+  kept clear of the notch and the home bar. A menu tap counts when the finger lifts without moving; a
+  drag scrolls a list. The select screen lists the wardens on the left (Sister Ash shows a lock until
+  Lantern Row), the chosen warden stands in the middle, and their card on the right gives the title,
+  blurb, ratings, skills and ultimate with a CHOOSE button, then THE TRAINING ROAD or SKIP TO THE CITY.
 
 ## Code
 
@@ -123,13 +137,13 @@ warden levels on their own.
 | `js/game/heroes.js` | the four wardens, abilities, ultimates, weapons, relics, elite affixes, growth curves (pure data) |
 | `js/game/progress.js` | experience, skill ranks, loot, boss rewards, the merchant (pure functions on the save) |
 | `js/game/haven.js`, `js/world/haven.js` | the Haven between districts: the scene (walk in, kneel, the camera closing in, the fire answering each choice, ONWARD) and its set (the ruined shrine, the brazier, the statue, candles, moths, the roof that stops the rain) |
-| `js/game/lampmenu.js`, `js/game/tutorial.js` | the Haven's menu tabs, beside the kneeling warden; the guided training on the Old Road |
+| `js/game/lampmenu.js`, `js/game/tutorial.js` | the Haven's menu (the section rail, the open section's rows, the button that does the selected row, ONWARD), beside the kneeling warden; the guided training on the Old Road |
 | `js/game/units.js`, `js/game/bosses2.js`, `js/actors/beasts.js` | the newer foes and their behaviour, the four newer bosses, bodies that are not people |
 | `js/game/defs.js` | the first foes and bosses (pure data) |
 | `js/game/ai.js` | foe and boss behaviour (pure) |
 | `js/game/bot.js`, `autoplay.js` | an autoplayer for tests |
 | `js/game/story.js` | the opening, the districts, the gifts, the ending |
-| `js/game/game.js` | states, levels, encounters, bosses, checkpoint lamps, the Haven state, saves, settings, events to effects |
+| `js/game/game.js` | states, levels, encounters, bosses, the self-lighting checkpoint lamps, the Haven state, saves, settings, the title, select, pause, settings and controls screens, events to effects |
 
 ## Tests
 
@@ -140,10 +154,10 @@ node bellmourn/test/no-assets.mjs                                           # no
 HERO=warden node bellmourn/test/sim-test.mjs 6                              # balance and invariants in Node (any warden)
 NODE_PATH=$(npm root -g) node bellmourn/test/level-check.js gate            # reachability, gates, lamps and chests of one district (any id)
 NODE_PATH=$(npm root -g) node bellmourn/test/modules.js                     # every module imports in the browser (catches syntax errors)
-NODE_PATH=$(npm root -g) node bellmourn/test/play.js /tmp/bm-play            # title -> story -> lamp -> first fight, screenshots
+NODE_PATH=$(npm root -g) node bellmourn/test/play.js /tmp/bm-play            # title -> story -> first fight -> the lamp lights by walking up, restores once per visit
 NODE_PATH=$(npm root -g) node bellmourn/test/poses.js /tmp/bm-poses          # every clip, zoomed
 NODE_PATH=$(npm root -g) node bellmourn/test/tonic.js /tmp/bm-tonic warden    # a tonic in a district: the flask, the motes, the heal; effects cleaned up
-NODE_PATH=$(npm root -g) node bellmourn/test/phone.js /tmp/bm-phone          # iPhone-sized touch: stick, ATK, the layout at every button size, a tonic tapped
+NODE_PATH=$(npm root -g) node bellmourn/test/phone.js /tmp/bm-phone          # iPhone-sized touch: select by taps, stick, ATK, the layout at every button size, a tonic tapped, the Haven by taps
 NODE_PATH=$(npm root -g) node bellmourn/test/autoplay-browser.js /tmp/bm-auto 40 3   # plays the whole game on autoplay
 NODE_PATH=$(npm root -g) node bellmourn/test/shot.js /tmp/x.png "level=nave&boss=1&god=1"   # any spot
 ```
