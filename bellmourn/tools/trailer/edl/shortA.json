@@ -25,13 +25,13 @@
   },
   {
    "take": "V_bellbreaker",
-   "in": 2.4,
+   "in": 2.0,
    "dur": 3.0,
    "flash": 0.15
   },
   {
    "take": "V_lamplighter",
-   "in": 3.0,
+   "in": 2.0,
    "dur": 3.0,
    "flash": 0.15,
    "fo": 0.3

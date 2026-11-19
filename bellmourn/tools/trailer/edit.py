@@ -19,6 +19,8 @@ for i, c in enumerate(edl['clips']):
              '-c:v', 'libx264', '-crf', '8', '-preset', 'veryfast', '-pix_fmt', 'yuv420p', '-c:a', 'pcm_s16le', seg])
     else:
         d = c['dur']; start = round(c.get('in', 0) * FPS); n = round(d * FPS); src = os.path.join(TAKES, c['take'])
+        have = len([f for f in os.listdir(src) if f.endswith('.jpg')])
+        if start + n > have: sys.exit(f"clip {i} ({c['take']}) needs frames {start}..{start + n} but the take has {have}")
         vf = [f'scale={W}:{H}:flags=neighbor', 'setsar=1']
         if c.get('fi'): vf.append(f"fade=t=in:st=0:d={c['fi']}")
         if c.get('flash'): vf.append(f"fade=t=in:st=0:d={c['flash']}:color=white")
