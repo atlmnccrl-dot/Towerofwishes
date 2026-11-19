@@ -44,7 +44,9 @@ open a shortcut → rest at a fire (heal, craft, save) → choose the next place
 Left thumb: floating joystick anywhere on the left half. Right thumb: a large attack button (tap to strike,
 hold to charge a heavy blow), roll, a context button that appears with its label next to it
 ("Search", "Unlock", "Turn the crank"), the quick item, and the ultimate once you own the Bell Shard.
-Tapping empty space on the right also strikes. Soft targeting turns your swing toward the nearest foe;
+Tapping empty space on the right also strikes. A strike starts the moment you press; keep holding after
+the swing to charge a heavy blow and release to unleash it. Held upright, the game turns itself a quarter
+so you can play by rotating the phone, even in viewers that do not rotate. Soft targeting turns your swing toward the nearest foe;
 nothing auto-plays. Keyboard: WASD, J attack (hold for heavy), Space roll, E interact, Q item, R ultimate,
 C swap weapon, Tab pack, M map.
 
@@ -120,7 +122,16 @@ link, which is how these projects are playtested today; there is no Mac/Xcode he
 It can be wrapped later (Capacitor) or ported. The systems are plain data and state machines, so a Godot
 port stays possible: the layouts, item tables, foe tables and save format move over as they are.
 
-**Rendering.** A low-resolution buffer (about 420×195 on a landscape phone) scaled by a whole number
+**Rendering (v0.2, 3D).** `js/render3d.js` builds each map as a lit low-poly scene with three.js
+(vendored in `vendor/`, MIT licence): a camera high above and 56° down with a narrow lens, a low sun with
+real cast shadows, haze, and every tree, rock, wall, building and prop made from merged primitives (few draw
+calls). The frame is rendered at the same low resolution as before and finished by one shader pass:
+tilt-shift blur at the top and bottom, a gentle grade that keeps red as the accent, ordered dithering to a
+limited palette, a rounded vignette and grain. Characters are small jointed figures (legs swing, the weapon
+follows its real swing). Telegraphs are red ground decals. The pixel UI is drawn on a second canvas on top.
+If WebGL is missing, the original 2D renderer below is used instead.
+
+**Rendering (2D fallback).** A low-resolution buffer (about 420×195 on a landscape phone) scaled by a whole number
 to the screen, so every pixel is crisp. Order each frame: pre-rendered ground for the map → interior floors
 and back walls of the building you are in → telegraphs and ground effects → shadows → everything else
 sorted by its feet (props, trees, buildings, foes, the Wayfarer) → a see-through silhouette when you are

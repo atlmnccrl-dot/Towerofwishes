@@ -19,10 +19,10 @@ HL.World = class World {
     for (const o of def.objects) this.addObject(Object.assign({}, o));
     if (!this.dark) this.plantForestEdge();
     this.bucket();
-    this.ground = this.renderGround();
     this.fog = new Uint8Array(Math.ceil(this.W / 2) * Math.ceil(this.H / 2));
     void TLc;
   }
+  get ground() { return this._g || (this._g = this.renderGround()); }
   tile(tx, ty) { return tx < 0 || ty < 0 || tx >= this.W || ty >= this.H ? HL.TILE.VOID : this.tiles[ty * this.W + tx]; }
   tileAt(x, y) { return this.tile(Math.floor(x / 8), Math.floor(y / 8)); }
   rectCells(x0, y0, x1, y1, fn) {
@@ -115,7 +115,7 @@ HL.World = class World {
     }
     if (o.rect && o.t !== 'door') this.solidRect(o.rect.x0, o.rect.y0, o.rect.x1, o.rect.y1);
     if (o.t === 'brazier') this.lights.push({ x: o.x, y: o.y - 7, r: o.light || 44, flick: Math.random() * 10 });
-    if (o.t === 'fire') { this.solidRect(o.x - 4, o.y - 3, o.x + 4, o.y + 1); this.lights.push({ x: o.x, y: o.y - 3, r: 70, flick: 3, fire: true }); }
+    if (o.t === 'fire') { this.solidRect(o.x - 4, o.y - 3, o.x + 4, o.y + 1); this.lights.push({ x: o.x, y: o.y - 3, r: 70, flick: 3, fire: true, id: o.id }); }
     o.sprite = s;
     this.objects.push(o);
   }

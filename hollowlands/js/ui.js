@@ -96,7 +96,7 @@ UI.drawControls = (g, G) => {
     if (c.id === 'attack') {
       const w = G.player.weaponDef();
       if (w) { const icon = HL.ART.icons[G.eq.weapon]; g.drawImage(icon, c.x - 6, c.y - 6); } else ic('-');
-      if (G.player.holdT > 0.3) HL.ringPx(g, c.x, c.y, c.r - 3, P.cream, 1, -Math.PI / 2, -Math.PI / 2 + HL.TAU * HL.clamp((G.player.holdT - 0.3) / 0.6, 0, 1));
+      if (G.player.chargeT > 0) HL.ringPx(g, c.x, c.y, c.r - 3, G.player.chargeT >= 0.6 ? P.lt0 : P.cream, 2, -Math.PI / 2, -Math.PI / 2 + HL.TAU * HL.clamp(G.player.chargeT / 0.6, 0, 1));
     } else if (c.id === 'dodge') { g.fillStyle = P.cream; for (let i = 0; i < 3; i++) { g.fillRect(c.x - 4 + i * 3, c.y - 2 + (i % 2), 2, 1); g.fillRect(c.x - 3 + i * 3, c.y + (i % 2), 2, 1); } }
     else if (c.id === 'interact') { ic('!'); const lw = HL.textWidth(near.label); g.fillStyle = P.ink; g.fillRect(c.x - lw - 20, c.y - 5, lw + 6, 11); HL.text(g, near.label, c.x - 17, c.y - 3, P.cream, 1); }
     else if (c.id === 'item') {
@@ -157,7 +157,7 @@ UI.drawHUD = (g, G, dt) => {
     HL.text(g, 'The gate rises', G.W / 2, y - 10, P.cream, 0.5, 1, P.ink);
     UI.bar(g, x, y, w, 3, G.waves.progress, P.cream);
   }
-  if (G.hurtVig > 0 || p.hp < 30) {
+  if (!G.use3d && (G.hurtVig > 0 || p.hp < 30)) {
     const a = Math.max(G.hurtVig || 0, p.hp < 30 ? 0.25 + Math.sin(G.time * 5) * 0.1 : 0);
     g.fillStyle = P.red2;
     for (let y = 0; y < G.H; y += 2) for (let x = 0; x < G.W; x += 2) { const ex = Math.max(Math.abs(x / G.W - 0.5), Math.abs(y / G.H - 0.5)) * 2; if (ex > 1 - a * 0.35 && HL.bayer(x >> 1, y >> 1) < (ex - (1 - a * 0.35)) * 3) g.fillRect(x, y, 2, 2); }

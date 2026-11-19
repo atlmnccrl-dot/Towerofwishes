@@ -52,7 +52,7 @@ const SIM = () => {
     if (tgt.type === 'guard' && tgt.state !== 'stagger' && p.st < 30) { inp.mx = -Math.cos(a); inp.my = -Math.sin(a); return inp; }
     if (p.state === 'move' || (p.state === 'attack' && p.atk && p.atk.phase === 'rec')) {
       inp.attack = true; inp.attackDown = true;
-      if (tgt.type === 'guard' && tgt.state !== 'stagger') hold = 28; else pressed = true;
+      if (tgt.type === 'guard' && tgt.state !== 'stagger') hold = 54; else pressed = true;
     }
     return inp;
   };

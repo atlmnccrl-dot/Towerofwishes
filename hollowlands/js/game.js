@@ -15,7 +15,14 @@ try { store = window.localStorage; store.setItem('hl.test', '1'); store.removeIt
 G.boot = function () {
   G.screen = document.getElementById('game');
   G.sg = G.screen.getContext('2d');
+  G.glc = document.getElementById('gl');
+  G.resize();
+  setTimeout(G.boot2, 30); // let the loading screen paint first
+};
+G.boot2 = function () {
   HL.buildArt();
+  try { G.use3d = HL.R3.init && HL.R3.init(G.glc); } catch (e) { G.use3d = false; }
+  if (!G.use3d) G.glc.style.display = 'none';
   G.resize();
   window.addEventListener('resize', G.resize);
   window.addEventListener('orientationchange', () => setTimeout(G.resize, 200));
@@ -23,6 +30,8 @@ G.boot = function () {
   G.saved = HL.Save.read(store);
   if (G.saved && G.saved.settings) { Object.assign(G.settings, G.saved.settings); HL.Audio.setMuted(!!G.settings.mute); }
   G.toTitle();
+  if (G.use3d) HL.R3.setWorld(G.world);
+  const ld = document.getElementById('loading'); if (ld) ld.remove();
   document.addEventListener('visibilitychange', () => { if (document.hidden && G.isPlaying()) G.save(); });
   window.addEventListener('pagehide', () => { if (G.isPlaying()) G.save(); });
   let last = performance.now();
@@ -40,7 +49,14 @@ G.readSafe = () => {
   return { l: n(cs.paddingLeft), r: n(cs.paddingRight), t: n(cs.paddingTop), b: n(cs.paddingBottom) };
 };
 G.resize = function () {
-  const dpr = Math.min(window.devicePixelRatio || 1, 3), cw = window.innerWidth, ch = window.innerHeight;
+  const vw = window.innerWidth, vh = window.innerHeight;
+  if (!vw || !vh) { setTimeout(G.resize, 120); return; }
+  // held upright (or a viewer that will not rotate): draw the game turned a quarter, so turning the phone shows it in landscape
+  G.rot = vh > vw;
+  const dpr = Math.min(window.devicePixelRatio || 1, 3), cw = G.rot ? vh : vw, ch = G.rot ? vw : vh;
+  G.cssW = cw; G.cssH = ch;
+  const st = document.getElementById('stage');
+  if (st) { st.style.width = cw + 'px'; st.style.height = ch + 'px'; st.style.transform = G.rot ? 'translateX(' + vw + 'px) rotate(90deg)' : 'none'; }
   const dw = Math.round(cw * dpr), dh = Math.round(ch * dpr);
   G.scale = Math.max(1, Math.round(dh / 200));
   G.W = Math.ceil(dw / G.scale); G.H = Math.ceil(dh / G.scale);
@@ -49,11 +65,12 @@ G.resize = function () {
   G.buf = HL.canvas(G.W, G.H);
   G.blur = HL.canvas(G.W, G.H); G.blurS = HL.canvas(Math.ceil(G.W / 3), Math.ceil(G.H / 3));
   G.light = HL.canvas(Math.ceil(G.W / 2), Math.ceil(G.H / 2));
-  const s = G.readSafe(), k = dpr / G.scale;
+  const s = G.rot ? { l: 0, r: 0, t: 0, b: 0 } : G.readSafe(), k = dpr / G.scale;
   G.safe = { l: Math.round(s.l * k), r: Math.round(s.r * k), t: Math.round(s.t * k), b: Math.round(s.b * k) };
+  if (G.glc) { G.glc.style.width = cw + 'px'; G.glc.style.height = ch + 'px'; if (G.use3d) HL.R3.resize(G.W, G.H); }
   HL.UI.layoutControls(G.W, G.H, G.safe);
   G.makePost();
-  G.portrait = ch > cw;
+  G.portrait = false;
 };
 G.makePost = function () {
   // rounded dark vignette (the reference's frame) and film grain
@@ -79,7 +96,10 @@ G.makePost = function () {
 };
 
 // ------------------------------------------------------------------ input wiring
-G.toBuf = (e) => { const r = G.screen.getBoundingClientRect(); return { x: ((e.clientX - r.left) / r.width) * G.W, y: ((e.clientY - r.top) / r.height) * G.H }; };
+G.toBuf = (e) => {
+  const lx = G.rot ? e.clientY : e.clientX, ly = G.rot ? window.innerWidth - e.clientX : e.clientY;
+  return { x: (lx / G.cssW) * G.W, y: (ly / G.cssH) * G.H };
+};
 G.bindInput = function () {
   const I = HL.Input, cv = G.screen;
   window.addEventListener('keydown', (e) => { Au.unlock(); const k = e.key.length === 1 ? e.key.toLowerCase() : e.key; if (['Tab', ' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(k)) e.preventDefault(); I.down(k); });
@@ -101,7 +121,7 @@ G.bindInput = function () {
     const j = I.st.joy; if (!j || j.pid !== e.pointerId) return;
     const p = G.toBuf(e); let dx = p.x - j.ox, dy = p.y - j.oy; const d = Math.hypot(dx, dy), R = 20;
     if (d > R * 1.6) { j.ox += (dx / d) * (d - R * 1.6); j.oy += (dy / d) * (d - R * 1.6); dx = p.x - j.ox; dy = p.y - j.oy; }
-    const m = Math.min(1, Math.hypot(dx, dy) / R), a = Math.atan2(dy, dx);
+    const m = HL.clamp((Math.hypot(dx, dy) / R - 0.12) / 0.6, 0, 1), a = Math.atan2(dy, dx);
     j.mag = m; j.dx = Math.cos(a) * m; j.dy = Math.sin(a) * m;
   });
   const end = (e) => {
@@ -546,7 +566,7 @@ G.updateRegion = function () {
 };
 
 // ------------------------------------------------------------------ render
-G.snapCam = function () { const c = G.camTarget(); G.cam.x = c.x; G.cam.y = c.y; };
+G.snapCam = function () { const c = G.camTarget(); G.cam.x = c.x; G.cam.y = c.y; if (G.use3d) HL.R3.snap(); };
 G.camTarget = function () {
   const w = G.world, p = G.player || { x: G.titleCam.x, y: G.titleCam.y, vx: 0, vy: 0 };
   let x = p.x + p.vx * 0.3 - G.W / 2, y = p.y - 8 + p.vy * 0.3 - G.H / 2;
@@ -718,8 +738,8 @@ G.render = function (dt) {
     HL.text(g, 'Turn your phone sideways', G.W / 2, G.H / 2 - 10, P.cream, 0.5);
     HL.text(g, 'HOLLOWLANDS plays in landscape.', G.W / 2, G.H / 2 + 4, P.cream3, 0.5);
   } else {
-    G.renderWorld(g, dt);
-    G.post(g);
+    if (G.use3d) { HL.R3.render(dt); g.clearRect(0, 0, G.W, G.H); if (G.state !== 'title') HL.R3.overlay(g); }
+    else { G.renderWorld(g, dt); G.post(g); }
     const UI = HL.UI;
     if (G.state === 'title') UI.drawTitle(g, G);
     else {
@@ -731,9 +751,10 @@ G.render = function (dt) {
       if (G.state === 'anvil') UI.drawAnvil(g, G);
       if (G.state === 'dead') UI.drawDead(g, G);
       if (G.state === 'end') UI.drawEnd(g, G);
-      if (G.state === 'fade') { g.fillStyle = 'rgba(12,9,10,' + HL.clamp(G.fadeT < 0.35 ? G.fadeT / 0.35 : 1 - (G.fadeT - 0.35) / 0.35, 0, 1) + ')'; g.fillRect(0, 0, G.W, G.H); }
+      if (G.state === 'fade' && !G.use3d) { g.fillStyle = 'rgba(12,9,10,' + HL.clamp(G.fadeT < 0.35 ? G.fadeT / 0.35 : 1 - (G.fadeT - 0.35) / 0.35, 0, 1) + ')'; g.fillRect(0, 0, G.W, G.H); }
     }
   }
+  G.sg.clearRect(0, 0, G.screen.width, G.screen.height);
   G.sg.drawImage(G.buf, 0, 0, G.W * G.scale, G.H * G.scale);
 };
 

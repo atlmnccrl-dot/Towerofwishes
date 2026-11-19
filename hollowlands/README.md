@@ -7,6 +7,7 @@ with the Bellworn Keeper.
 
 It is a separate game: it shares no code, art or content with anything else in this repository.
 Every image, sound and the font are generated from original code; there are no asset files.
+The 3D view uses the three.js library (vendored in `vendor/`, MIT licence).
 
 Design, the reading of the reference video, architecture and open decisions: [docs/DESIGN.md](docs/DESIGN.md).
 
@@ -32,5 +33,6 @@ On a phone, open the same address in landscape (or publish the folder to any sta
 ```sh
 NODE_PATH=$(npm root -g) node test/play.js     # bot plays the whole slice + lock checks + save reload
 NODE_PATH=$(npm root -g) node test/touch.js    # on-screen controls at iPhone size
+NODE_PATH=$(npm root -g) node test/portrait.js # phone held upright: the game turns itself
 NODE_PATH=$(npm root -g) node test/shots.js /tmp/hl-shots   # screenshots of every area
 ```

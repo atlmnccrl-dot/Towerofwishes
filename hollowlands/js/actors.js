@@ -56,7 +56,7 @@ HL.discDither = (g, x, y, r, col, fill, a0 = 0, a1 = HL.TAU) => {
 // ------------------------------------------------------------------ the Wayfarer
 HL.Player = class Player {
   constructor(x, y) {
-    Object.assign(this, { x, y, r: 3, vx: 0, vy: 0, face: Math.PI / 2, dir: 0, hp: 100, maxhp: 100, st: 100, maxst: 100, stDelay: 0, state: 'move', t: 0, walkT: 0, combo: 0, comboT: 0, inv: 0, flash: 0, holdT: -1, ult: 0, regen: 0, stepT: 0, atk: null, buffer: null });
+    Object.assign(this, { x, y, r: 3, vx: 0, vy: 0, face: Math.PI / 2, dir: 0, hp: 100, maxhp: 100, st: 100, maxst: 100, stDelay: 0, state: 'move', t: 0, walkT: 0, combo: 0, comboT: 0, inv: 0, flash: 0, holdT: -1, chargeT: 0, ult: 0, regen: 0, stepT: 0, atk: null, buffer: null });
   }
   get G() { return HL.G; }
   weaponDef() { const id = this.G.eq.weapon; return id ? HL.WEAPONS[id] : null; }
@@ -79,10 +79,12 @@ HL.Player = class Player {
     const mlen = Math.hypot(inp.mx, inp.my), mvA = Math.atan2(inp.my, inp.mx);
     // buffered inputs
     if (inp.dodge) this.buffer = { k: 'dodge', t: 0.18 };
-    if (inp.attack && w && this.holdT < 0) this.holdT = 0;
+    // strike on press; keep holding after the swing to charge a heavy blow, release to unleash it
+    if (inp.attack && w) { this.buffer = { k: 'light', t: 0.28 }; this.holdT = 0; this.chargeT = 0; }
     if (this.holdT >= 0) {
       this.holdT += dt;
-      if (inp.attackUp || !inp.attackDown) { this.buffer = { k: this.holdT > 0.3 ? 'heavy' : 'light', t: 0.2, charge: this.holdT }; this.holdT = -1; }
+      if (this.state === 'move' && this.holdT > 0.22 && !this.buffer) this.chargeT += dt;
+      if (inp.attackUp || !inp.attackDown) { if (this.chargeT > 0.16) this.buffer = { k: 'heavy', t: 0.2, charge: 0.3 + this.chargeT }; this.holdT = -1; this.chargeT = 0; }
     }
     if (this.buffer) { this.buffer.t -= dt; if (this.buffer.t <= 0) this.buffer = null; }
     const canAct = this.state === 'move' || (this.state === 'attack' && this.atk.phase === 'rec') || (this.state === 'heal' && this.t > 0.15);
@@ -95,7 +97,7 @@ HL.Player = class Player {
     let sp = this.speed();
     switch (this.state) {
       case 'move': {
-        if (this.holdT > 0.3) sp *= 0.45;
+        if (this.chargeT > 0) sp *= 0.45;
         const tx = inp.mx * sp, ty = inp.my * sp;
         this.vx = HL.approach(this.vx, tx, 520 * dt); this.vy = HL.approach(this.vy, ty, 520 * dt);
         if (mlen > 0.15) { this.face = mvA; }
@@ -122,7 +124,7 @@ HL.Player = class Player {
     } else this.walkT = 0;
   }
   startRoll(a) {
-    this.state = 'roll'; this.t = 0; this.rollA = a; this.face = a; this.inv = 0.24; this.spend(20); this.atk = null; this.holdT = -1;
+    this.state = 'roll'; this.t = 0; this.rollA = a; this.face = a; this.inv = 0.24; this.spend(20); this.atk = null; this.holdT = -1; this.chargeT = 0;
     A.play('roll'); HL.fx.dust(this.x, this.y, 4);
   }
   startAttack(heavy, charge, aimA) {
@@ -205,7 +207,7 @@ HL.Player = class Player {
     this.vx = Math.cos(a) * 90; this.vy = Math.sin(a) * 90;
     HL.fx.burst(this.x, this.y - 5, HL.P.red0, 7, 45);
     A.play('hurt');
-    if (this.state !== 'ult') { this.state = 'hurt'; this.t = 0; this.atk = null; this.holdT = -1; }
+    if (this.state !== 'ult') { this.state = 'hurt'; this.t = 0; this.atk = null; this.holdT = -1; this.chargeT = 0; }
     if (this.hp <= 0) { this.hp = 0; this.state = 'dead'; this.t = 0; A.play('die'); G.onDeath(); }
     return true;
   }
@@ -223,7 +225,7 @@ HL.Player = class Player {
         else if (a.phase === 'active') ang = this.face - (arc / 2) * a.side + arc * a.side * Math.min(1, a.pt / 0.09);
         else ang = this.face + (arc / 2) * a.side;
       } else if (this.state === 'ult') ang = this.t * 25;
-      else if (this.holdT > 0.3) ang = this.face + Math.PI + 0.6;
+      else if (this.chargeT > 0) ang = this.face + Math.PI + 0.6;
       else ang = this.dir === 0 ? 1.9 : this.dir === 1 ? -1.3 : this.dir === 2 ? 1.1 : Math.PI - 1.1;
       wpn = { kind: w.kind, ang, len };
       if (w.kind === 'spear' && this.state === 'attack' && this.atk && this.atk.phase === 'active') wpn.thrust = 3;
@@ -233,7 +235,7 @@ HL.Player = class Player {
     if (this.state === 'dead') f.pose = 'dead';
     if (!silhouette && this.inv > 0 && this.state !== 'roll' && Math.floor(this.inv * 20) % 2) return;
     HL.drawFigure(g, this.x, this.y, f);
-    if (!silhouette && this.holdT > 0.3) { const q = HL.clamp((this.holdT - 0.3) / 0.6, 0, 1); g.fillStyle = q >= 1 ? HL.P.cream : HL.P.cream3; g.fillRect(Math.round(this.x - 4), Math.round(this.y + 2), Math.round(8 * q), 1); }
+    if (!silhouette && this.chargeT > 0) { const q = HL.clamp(this.chargeT / 0.6, 0, 1); g.fillStyle = q >= 1 ? HL.P.cream : HL.P.cream3; g.fillRect(Math.round(this.x - 4), Math.round(this.y + 2), Math.round(8 * q), 1); }
   }
 };
 
