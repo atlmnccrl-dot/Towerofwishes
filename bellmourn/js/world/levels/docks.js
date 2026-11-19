@@ -25,12 +25,14 @@ export default {
     { t: 'hushed', x: 2.6, z: 8.8 }, { t: 'hushed', x: -2.8, z: 7.6 },
     { t: 'hound', x: -1.0, z: -13.4 }, { t: 'hound', x: 1.2, z: -14.4 }, { t: 'hound', x: -0.4, z: -15.6 },
     { t: 'spitter', x: -1.7, z: -18.0 }, { t: 'bomber', x: 1.6, z: -17.4 },
+    // drowned crabs come up out of the harbour (Act II expansion: units unlocked by tier)
+    { t: 'crab', x: -1.8, z: -11 }, { t: 'crab', x: 2, z: -11.8 },
   ],
   encounters: [
     { id: 'market', zone: [-6.6, -6.7, 5.0, 5.2], gates: ['landGate'], opens: ['marketGate'], msg: 'THE DOCKHANDS DROP THEIR NETS',
       waves: [
         { pre: true, foes: [{ t: 'hushed', x: -3.6, z: 1.0 }, { t: 'hushed', x: 2.4, z: -1.4 }, { t: 'hushed', x: -2.2, z: -4.4 }] },
-        { foes: [{ t: 'hound', x: 3.4, z: -5.4 }, { t: 'hound', x: -4.4, z: -4.6 }, { t: 'spitter', x: 7.6, z: -1.6 }, { t: 'hushed', x: -1.0, z: 3.6 }] },
+        { foes: [{ t: 'hound', x: 3.4, z: -5.4 }, { t: 'hound', x: -4.4, z: -4.6 }, { t: 'spitter', x: 7.6, z: -1.6 }, { t: 'hushed', x: -1.0, z: 3.6 }, { t: 'crab', x: 1.2, z: -3.2 }] },
       ] },
     { id: 'quay', zone: [-4.4, -34.0, 9.4, -20.4], gates: ['pierGate'], opens: ['dockGate'], msg: 'THE HOLDS ARE NOT EMPTY',
       waves: [

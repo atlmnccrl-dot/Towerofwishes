@@ -4,7 +4,7 @@
 import * as THREE from '../../vendor/three.module.min.js';
 import { World, angTo } from './sim.js';
 import { buildLevel, K } from '../world/level.js';
-import { OPENING, ENDING, CREDITS, TIPS, DISTRICTS } from './story.js';
+import { OPENING, ENDING, CREDITS, TIPS, DISTRICTS, ACT2, ACT2_OPENING, FINALE } from './story.js';
 import { shared } from '../engine/materials.js';
 import { COL } from '../engine/ui.js';
 import { setTargetHeight } from '../engine/renderer.js';
@@ -15,7 +15,7 @@ import { BOSS_AI2, BOSSES2 } from './bosses2.js';
 import { FOES, BOSSES } from './defs.js';
 import { UNITS } from './units.js';
 import { HEROES, HERO_ORDER, heroStats, AFFIX_LIST, WEAPONS, RELICS, xpFor, ABILITIES, ULTS } from './heroes.js';
-import { freshSave, upgradeSave, addXp, xpFrac, bossReward, chestLoot, skillRows, useSkillRow, shopStock, buy, upgradeWeapon, toggleRelic, relicSlots, havenNext } from './progress.js';
+import { freshSave, upgradeSave, addXp, xpFrac, bossReward, chestLoot, skillRows, useSkillRow, shopStock, buy, upgradeWeapon, toggleRelic, relicSlots, havenNext, noteKill, noteSeen } from './progress.js';
 import { LampMenu, fit, dots } from './lampmenu.js';
 import { Tutorial, STEPS } from './tutorial.js';
 import { Haven } from './haven.js';
@@ -28,7 +28,7 @@ const ABILITY_MODES = [{ id: 'attack', label: 'ON ATTACK' }, { id: 'auto', label
 const SAVE_KEY = 'bellmourn.save.v2', SET_KEY = 'bellmourn.settings.v1';
 function load(key) { try { return JSON.parse(localStorage.getItem(key)); } catch (e) { return null; } }
 function store(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) { /* private mode */ } }
-const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
+const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
 const ARMS = { blade: 'BLADE', bow: 'CROSSBOW', hammer: 'HAMMER', focus: 'LANTERN STAFF' };
 const hit = (r, p) => r && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
 const inZone = (e, z) => e && e.x >= z[0] && e.x <= z[2] && e.z >= z[1] && e.z <= z[3];
@@ -276,6 +276,7 @@ export class Game {
       const n = this.storyNext; this.storyNext = null;
       if (n === 'prologue' || n === 'gate') this.enterLevel(n, true);
       else if (n === 'title') { this.go('loading'); this.start(); }
+      else if (n && n.startsWith('haven:')) this.enterHaven(havenNext(this.save, n.slice(6)));
     }
   }
 
@@ -285,8 +286,8 @@ export class Game {
     if (id !== 'prologue') this.save.level = id;
     this.save.inHaven = false;
     this.persist();
-    const def = LEVELS[id]; const n = DISTRICTS.indexOf(id);
-    this.card = { t: 0, sup: n >= 0 ? 'DISTRICT ' + ROMAN[n] : 'PROLOGUE', title: def.name.toUpperCase(), line: def.tagline || '' };
+    const def = LEVELS[id]; const n = DISTRICTS.indexOf(id), a2 = ACT2.indexOf(id);
+    this.card = { t: 0, sup: a2 >= 0 ? 'ACT II  REGION ' + ROMAN[a2] : (n >= 0 ? 'DISTRICT ' + ROMAN[n] : 'PROLOGUE'), title: def.name.toUpperCase(), line: def.tagline || '' };
     this.go('play'); this.fadeIn = 0;
   }
 
@@ -393,7 +394,7 @@ export class Game {
       if (to !== 'end') { this.save.lamp = null; }
       if (this.levelId === 'prologue') this.save.tutorial = true;
       this.persist();
-      this.after(0.65, () => { this.leaving = false; if (to === 'end') this.go('ending'); else this.enterHaven(havenNext(this.save, to)); });
+      this.after(0.65, () => { this.leaving = false; if (to === 'end') this.startEnding(this.levelId === 'belfry' ? 'act1' : 'finale'); else this.enterHaven(havenNext(this.save, to)); });
     }
     this.sound.setMusic(this.boss && !this.boss.dead ? 'boss' : (w.combat ? 'combat' : 'explore'));
     if (hero.state === 'run' && (this.stepT = (this.stepT || 0) - dt) <= 0) { this.stepT = 0.27; this.sound.play('step'); if (Math.random() < 0.5) this.fx.splash(hero.x, hero.z, 3); }
@@ -517,14 +518,20 @@ export class Game {
   }
 
   // ------------------------------------------------------------------ ending
+  // 'act1': the bell rings after the Belfry (the end of Act I), then the Act II opening and the Haven with
+  // the Frostmarch ahead. 'finale': after the Archon, the closing ending and the credits. Both keep the dawn.
+  startEnding(kind = 'finale') { this.endKind = kind; this.endLines = kind === 'act1' ? ENDING : FINALE; if (kind === 'act1') this.save.act1 = true; this.go('ending'); }
   ending(dt, inp) {
-    const P = this.r.post;
-    if (this.stateT === dt) { this.endIdx = 0; this.endT = 0; this.save.done = true; this.persist(); this.sound.play('bigBell'); this.sound.setMusic('dawn'); this.atmos.lightning = false; if (this.world) this.world.idle(); }
-    P.dawn = Math.min(1, this.stateT / 8); this.atmos.rainOn = Math.max(0, 1 - this.stateT / 6); this.sound.setRain(this.atmos.rainOn);
+    const P = this.r.post; const lines = this.endLines || ENDING;
+    if (this.stateT === dt) { this.endIdx = 0; this.endT = 0; if (this.endKind !== 'act1') this.save.done = true; this.persist(); this.sound.play('bigBell'); this.sound.setMusic('dawn'); this.atmos.lightning = false; if (this.world) this.world.idle(); }
+    P.dawn = Math.min(1, this.stateT / 8); const fadeK = Math.max(0, 1 - this.stateT / 6); this.atmos.rainOn = this.atmos.weather ? 0 : fadeK; this.atmos.weatherK = fadeK; this.sound.setRain(this.atmos.rainOn);
     this.atmos.moon.intensity += (3.2 - this.atmos.moon.intensity) * dt * 0.3; this.atmos.moon.color.lerp(new THREE.Color(0xffc890), dt * 0.3);
     this.endT += dt;
     if (this.endT > 4 || (this.endT > 1 && (inp.confirm || inp.taps.length))) { this.endT = 0; this.endIdx++; }
-    if (this.endIdx >= ENDING.length) { this.storyLines = CREDITS; this.storyNext = 'title'; this.go('story'); }
+    if (this.endIdx >= lines.length) {
+      if (this.endKind === 'act1') { this.r.post.dawn = 0; this.storyLines = ACT2_OPENING; this.storyNext = 'haven:' + ACT2[0]; this.go('story'); }
+      else { this.storyLines = CREDITS; this.storyNext = 'title'; this.go('story'); }
+    }
     if (this.world) { this.world.update(dt, NO_INPUT); this.handleEvents(this.world.drain()); }
   }
 
@@ -551,6 +558,7 @@ export class Game {
           if (ev.drop) { const mul = hero && hero.stats.relics.includes('coin') ? 1.3 : 1; this.save.embers += Math.round(ev.drop * mul); this.emberFly(e.x, e.z, ev.drop); }
           if (ev.xp && this.levelId !== 'prologue') this.gainXp(ev.xp);
           if (ev.elite) this.ui.toast('ELITE SLAIN', { color: COL.gold, life: 1.5 });
+          if (e.type && e.type !== 'hero' && noteKill(this.save, e.type)) this.ui.toast('NEW IN THE BESTIARY', { color: COL.ice, life: 2 });
           if (ev.boss) { this.bossDown(); r.shake(0.8, 1.2); this.zoomPunch = 1.3; fx.mist(e.x, 1.5, e.z, 60, [0.3, 0.3, 0.36]); fx.embers(e.x, 1.5, e.z, 60, [3, 1.4, 0.4]); fx.shockRing(e.x, e.z, 9, [2.6, 2.2, 1.6], 0.9); r.post.flash = 0.35; this.flashT = 0.12; }
           break;
         }
@@ -582,7 +590,15 @@ export class Game {
         case 'crown': fx.embers(ev.x, 0.8, ev.z, 12, [2.6, 0.6, 0.6]); break;
         case 'shieldBreak': snd.play('clang'); fx.sparks(ev.e.x, 1.2, ev.e.z, 0, 20, [2.4, 2.2, 1.6]); break;
         case 'tele': if (ev.e.boss || Math.random() < 0.7) snd.play('tele', { vol: ev.e.boss ? 1.4 : 0.8 }); break;
-        case 'spawn': if (ev.e.state === 'spawn') { fx.mist(ev.e.x, 0.3, ev.e.z, 14, [0.25, 0.27, 0.32]); snd.play('rise', { vol: 0.6 }); } break;
+        case 'aggro': if (ev.e && ev.e.type) noteSeen(this.save, ev.e.type); break;
+        // the Act II units' moves (units2.js): sounds from the ones the city already has
+        case 'burrow': snd.play('boom', { vol: 0.5 }); fx.dust(ev.e.x, ev.e.z, 10); break;
+        case 'emerge': snd.play('boom', { vol: 0.8 }); fx.dust(ev.e.x, ev.e.z, 16); break;
+        case 'split': snd.play('splash'); break;
+        case 'collapse': snd.play('foeDie', { vol: 0.7 }); break;
+        case 'interrupt': snd.play('clang'); fx.shockRing(ev.e.x, ev.e.z, 1.6, [2.4, 1.2, 0.6], 0.35); break;
+        case 'breakFree': snd.play('dash', { vol: 0.8 }); if (ev.e) fx.shockRing(ev.e.x, ev.e.z, 1.2, [1.6, 1.8, 2.4], 0.3); break;
+        case 'spawn': if (ev.e && ev.e.type && ev.e.team === 'foe') noteSeen(this.save, ev.e.type); if (ev.e.state === 'spawn') { fx.mist(ev.e.x, 0.3, ev.e.z, 14, [0.25, 0.27, 0.32]); snd.play('rise', { vol: 0.6 }); } break;
         case 'fire': snd.play(ev.kind === 'bolt' ? 'bolt' : 'orb', { vol: 0.7 }); break;
         case 'projHit': fx.sparks(ev.p.x, ev.p.y ?? 1.1, ev.p.z, Math.random() * 6, 8, ev.p.kind === 'soul' ? [0.5, 2.5, 2.4] : [3, 0.6, 0.4]); break;
         case 'shieldUp': fx.shockRing(ev.x ?? ev.e.x, ev.z ?? ev.e.z, 1.2, [2.4, 2.2, 1.4], 0.4); snd.play('heal', { vol: 0.5 }); break;
@@ -687,9 +703,9 @@ export class Game {
         this.card.t += dt * (this.world.combat ? 4 : 1); const c = this.card; const a = Math.min(1, c.t * 1.5, Math.max(0, (4.5 - c.t) * 1.2));
         const y0 = Math.round(H * 0.62);
         // on touch the card keeps clear of the buttons (right) and, by symmetry, of the stick (left)
-        let maxW = Math.min(W - 16, 260);
+        let maxW = Math.min(W - 16, 260); if (!this.input.touchMode) maxW = Math.min(maxW, Math.max(140, 2 * (W - 90 - W / 2))); // clear of the ability badges
         if (this.input.touchMode) { const btns = (this.input.layout || []).filter((b) => !b.hidden && b.id !== 'pause' && b.id !== 'use'); const lim = btns.length ? Math.min(...btns.map((b) => b.x - b.r)) : W - 100; maxW = Math.min(maxW, Math.max(120, 2 * (lim - W / 2) - 6)); }
-        if (a > 0) { ui.text(c.sup, W / 2, y0, { align: 'center', color: COL.red, alpha: a }); ui.text(c.title, W / 2, y0 + 11, { align: 'center', color: COL.white, scale: ui.measure(c.title, 2) > maxW + 8 ? 1 : 2, alpha: a }); if (c.line) ui.wrapEven(c.line, maxW).forEach((l, k) => ui.text(l, W / 2, y0 + 31 + k * 9, { align: 'center', color: COL.dim, alpha: a })); }
+        if (a > 0) { ui.text(c.sup, W / 2, y0, { align: 'center', color: COL.red, alpha: a }); ui.text(c.title, W / 2, y0 + 11, { align: 'center', color: COL.white, scale: ui.measure(c.title, 2) > Math.min(W - 16, 260) + 8 ? 1 : 2, alpha: a }); if (c.line) ui.wrapEven(c.line, maxW).forEach((l, k) => ui.text(l, W / 2, y0 + 31 + k * 9, { align: 'center', color: COL.dim, alpha: a })); }
         if (c.t > 5) this.card = null;
       }
       if (S === 'play' && this.tutorial) this.drawTutorial();
@@ -707,7 +723,7 @@ export class Game {
       const a = Math.min(1, this.stateT * 0.8); ui.text('YOU FELL', W / 2, Math.round(H * 0.36), { align: 'center', scale: 3, color: '#b01c22', alpha: a }); ui.text('THE LAMP STILL BURNS', W / 2, Math.round(H * 0.36) + 28, { align: 'center', color: COL.dim, alpha: Math.max(0, a - 0.3) });
       if (this.stateT > 1.2) ui.text(this.inputMode === 'touch' ? 'TAP TO RISE' : 'ENTER TO RISE', W / 2, Math.round(H * 0.36) + 46, { align: 'center', color: '#7a7262', alpha: Math.min(1, (this.stateT - 1.2) * 2) * (0.7 + 0.3 * Math.sin(this.t * 4)) });
     }
-    if (S === 'ending') { const line = ENDING[Math.min(ENDING.length - 1, this.endIdx || 0)]; const a = Math.min(1, (this.endT || 0) * 1.2); ui.letterbox(1); ui.wrap(line, W - 40).forEach((l, k) => ui.text(l, W / 2, H * 0.84 + k * 10, { align: 'center', color: '#f0e0c0', alpha: a })); }
+    if (S === 'ending') { const EL = this.endLines || ENDING; const line = EL[Math.min(EL.length - 1, this.endIdx || 0)]; const a = Math.min(1, (this.endT || 0) * 1.2); ui.letterbox(1); ui.wrap(line, W - 40).forEach((l, k) => ui.text(l, W / 2, H * 0.84 + k * 10, { align: 'center', color: '#f0e0c0', alpha: a })); }
   }
 
   // ---- menus: one look everywhere (ui.button): framed buttons at least 18 px tall (about 40 points on a

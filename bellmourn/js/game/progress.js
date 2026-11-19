@@ -2,6 +2,7 @@
 // and where the Haven sends you next. Pure functions (no DOM); the game persists the save.
 import { HEROES, HERO_ORDER, ABILITIES, WEAPONS, RELICS, MAX_LEVEL, MAX_RANK, xpFor, newHeroSave, weaponsOfType, weaponPrice, upgradeCost, MAX_PLUS } from './heroes.js';
 import { DISTRICTS } from './story.js';
+import { HOME, SUMMON_ONLY } from './units2.js'; // a leaf module: no simulation pulled in
 
 export const SAVE_VERSION = 2;
 
@@ -15,6 +16,8 @@ export function freshSave(heroId = 'warden') {
     // the Haven between districts: whether the save was made there, which district ONWARD leads to,
     // whether it was ever reached (pause: RETURN TO THE HAVEN) and whether its first-visit guide ran
     inHaven: false, havenNext: null, havenSeen: false, havenIntro: false,
+    // the Haven's bestiary: foe type -> how many felled (0: met, not felled yet)
+    bestiary: {},
   };
 }
 
@@ -24,7 +27,24 @@ export function upgradeSave(s) {
   const f = freshSave(s.hero || 'warden');
   const out = { ...f, ...s, heroes: { ...f.heroes, ...(s.heroes || {}) } };
   if (!Array.isArray(out.relicsOn)) out.relicsOn = [null, null];
+  if (!out.bestiary || typeof out.bestiary !== 'object' || Array.isArray(out.bestiary)) out.bestiary = {};
   return out;
+}
+
+// ------------------------------------------------------------------ foes by tier, and the bestiary
+// The unit keys a district of this tier may field: every foe whose home tier is at or below it (the ones
+// only ever raised by other foes are left out). Tiers: 0-7 the districts of Act I, 8-11 the regions of Act II.
+export function unitPool(tier) { return Object.keys(HOME).filter((k) => HOME[k] <= tier && !SUMMON_ONLY.includes(k)); }
+export const unitHome = (type) => HOME[type];
+// A foe met (seen in a fight): goes into the bestiary at 0 felled. True the first time.
+export function noteSeen(save, type) {
+  if (!type) return false; const b = save.bestiary = (save.bestiary && typeof save.bestiary === 'object') ? save.bestiary : {};
+  if (type in b) return false; b[type] = 0; return true;
+}
+// A foe felled (the 'kill' event): counts it, and puts it in the bestiary the first time. True the first time.
+export function noteKill(save, type) {
+  if (!type) return false; const b = save.bestiary = (save.bestiary && typeof save.bestiary === 'object') ? save.bestiary : {};
+  const fresh = !(type in b); b[type] = (b[type] || 0) + 1; return fresh;
 }
 
 export const districtIndex = (id) => Math.max(0, DISTRICTS.indexOf(id));

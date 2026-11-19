@@ -25,12 +25,14 @@ export default {
     { t: 'hushed', x: 1.4, z: 7.4 }, { t: 'hushed', x: 2.6, z: 2.6 },
     { t: 'hushed', x: -3.6, z: -25.4 }, { t: 'ghoul', x: -9.4, z: -23.6 }, { t: 'crossbow', x: -11.4, z: -27.6 }, { t: 'acolyte', x: -6, z: -28 },
     { t: 'hushed', x: 7.6, z: -24.6 },
+    // a swarm of bats under the lantern strings (Act II expansion: units unlocked by tier)
+    { t: 'bat', x: -4.6, z: -26.4 }, { t: 'bat', x: -5.4, z: -27.2 }, { t: 'bat', x: -3.8, z: -27.4 },
   ],
   encounters: [
     { id: 'market', zone: [-10.2, -14.8, 4.8, -0.4], gates: ['marketGate'], opens: ['bridgeGate'], msg: 'THE STALLKEEPERS LEAVE THEIR STALLS',
       waves: [
         { pre: true, foes: [{ t: 'hushed', x: -7.4, z: -4.4 }, { t: 'hushed', x: 2.2, z: -4.6 }, { t: 'hushed', x: -7.2, z: -8.6 }] },
-        { foes: [{ t: 'ghoul', x: -3.6, z: -12.6 }, { t: 'ghoul', x: 2, z: -1.6 }, { t: 'crossbow', x: -0.4, z: -13.6 }, { t: 'hushed', x: -5.6, z: -0.8 }] },
+        { foes: [{ t: 'ghoul', x: -3.6, z: -12.6 }, { t: 'ghoul', x: 2, z: -1.6 }, { t: 'crossbow', x: -0.4, z: -13.6 }, { t: 'hushed', x: -5.6, z: -0.8 }, { t: 'bat', x: 1.4, z: -12.4 }, { t: 'bat', x: 2.6, z: -12.2 }] },
       ] },
     { id: 'works', zone: [-27.2, -35.5, -14, -21.8], gates: ['yardGate'], opens: ['squareGate'], msg: 'SOMETHING STIRS IN THE TALLOW',
       waves: [

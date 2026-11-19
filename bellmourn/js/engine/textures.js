@@ -378,19 +378,22 @@ export function snow(seed = 31, tone = '#c4cede') {
   });
 }
 
-// Ice: a frozen sheet, pale streaks under the surface, a web of white cracks, trapped bubbles.
+// Ice: a frozen sheet (8 m tile), pale streaks under the surface, a few long white cracks, bubbles.
 export function ice(seed = 32, tone = '#6e98b8') {
   return cached('ice' + seed + tone, () => {
-    const W = 64, H = 64; const [c, g] = canvas(W, H); const r = rng(seed); const n1 = vnoise(seed, W, H, 21);
+    const W = 128, H = 128; const [c, g] = canvas(W, H); const r = rng(seed); const n1 = vnoise(seed, W, H, 32), n2 = vnoise(seed + 9, W, H, 12);
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-      const streak = Math.sin((x + y * 0.4) * 0.22 + n1(x, y) * 4); let f = 0.78 + n1(x, y) * 0.22 + (streak > 0.86 ? 0.12 : 0);
-      f = Math.round(f * 20) / 20; g.fillStyle = shade(tone, f); g.fillRect(x, y, 1, 1);
+      const streak = Math.sin((x * 0.7 + y * 0.3) * 0.16 + n1(x, y) * 5); let f = 0.8 + n1(x, y) * 0.18 + n2(x, y) * 0.06 + (streak > 0.9 ? 0.08 : 0);
+      f = Math.round(f * 18) / 18; g.fillStyle = shade(tone, f); g.fillRect(x, y, 1, 1);
     }
-    for (let k = 0; k < 7; k++) { // cracks: a dark line with a white lip
-      let x = r() * W, y = r() * H, a = r() * Math.PI * 2;
-      for (let s = 0; s < 18 + r() * 20; s++) { px(g, ((x | 0) + W) % W, ((y | 0) + H) % H, shade(tone, 0.5)); px(g, ((x | 0) + W) % W, ((y | 0) + 1 + H) % H, '#d8ecf8'); a += (r() - 0.5) * 0.9; x += Math.cos(a); y += Math.sin(a); }
+    for (let k = 0; k < 5; k++) { // long cracks: a dark line, a pale lip, branching once
+      let x = r() * W, y = r() * H, a = r() * Math.PI * 2; const len = 30 + r() * 40;
+      for (let s = 0; s < len; s++) {
+        px(g, ((x | 0) + W) % W, ((y | 0) + H) % H, shade(tone, 0.62)); if (s % 3) px(g, ((x | 0) + W) % W, ((y | 0) + 1 + H) % H, shade(tone, 1.3));
+        a += (r() - 0.5) * 0.5; x += Math.cos(a); y += Math.sin(a);
+      }
     }
-    for (let k = 0; k < 14; k++) { const x = (r() * W) | 0, y = (r() * H) | 0; px(g, x, y, '#cfe6f6'); }
+    for (let k = 0; k < 30; k++) { const x = (r() * W) | 0, y = (r() * H) | 0; px(g, x, y, shade(tone, 1.45)); }
     return toTexture(c);
   });
 }
@@ -400,8 +403,8 @@ export function sand(seed = 33, tone = '#b88a56') {
   return cached('sand' + seed + tone, () => {
     const W = 64, H = 64; const [c, g] = canvas(W, H); const r = rng(seed); const n1 = vnoise(seed, W, H, 32), n2 = vnoise(seed + 3, W, H, 8);
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-      const ph = (y + Math.sin(x * Math.PI * 2 / 32 + n1(x, y) * 3) * 2.5 + n1(x, y) * 4) / 5; const t = ph - Math.floor(ph);
-      let f = 0.9 + n2(x, y) * 0.1 + (t < 0.2 ? -0.12 : (t < 0.36 ? 0.08 : 0));
+      const ph = (y + Math.sin(x * Math.PI * 2 / 32 + n1(x, y) * 3) * 2.5 + n1(x, y) * 7) / 6; const t = ph - Math.floor(ph); const rip = n1((x + 17) % W, (y + 9) % H) > 0.45;
+      let f = 0.9 + n2(x, y) * 0.1 + (rip ? (t < 0.16 ? -0.07 : (t < 0.3 ? 0.05 : 0)) : 0);
       f = Math.round(f * 24) / 24; g.fillStyle = shade(tone, f); g.fillRect(x, y, 1, 1);
     }
     speckle(g, r, W, H, [shade(tone, 0.62), shade(tone, 1.2)], 0.02);
@@ -564,9 +567,9 @@ export function sigil(kind = 'circle', S = 96, seed = 41) {
 }
 
 // An eye for the wheel above the Abyss (16 x 10): lids, a red iris, a slit pupil. open: 0..2 (shut, half, wide).
-export function eye(open = 2) {
-  return cached('eye' + open, () => {
-    const w = 16, h = 10; const [c, g] = canvas(w, h);
+export function eye(open = 2, w = 16, h = 10) {
+  return cached('eye' + open + 'x' + w + 'x' + h, () => {
+    const [c, g] = canvas(w, h);
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
       const dx = (x + 0.5 - w / 2) / (w / 2), dy = (y + 0.5 - h / 2) / (h / 2); const lid = (1 - dx * dx) * (open === 0 ? 0.12 : (open === 1 ? 0.5 : 1));
       if (Math.abs(dy) > lid + 0.18) continue;

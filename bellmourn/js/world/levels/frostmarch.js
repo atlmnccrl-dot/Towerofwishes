@@ -42,7 +42,7 @@ export default {
   ],
   foes: [
     { t: 'frostwolf', x: 1.4, z: 1.4 }, { t: 'frostwolf', x: 4.8, z: -0.2 }, { t: 'icewraith', x: 2.6, z: -2.6 },
-    { t: 'frostwolf', x: 1.2, z: -35.4 }, { t: 'icewraith', x: 4.2, z: -36.8 },
+    { t: 'frostwolf', x: 1.8, z: -35.4 }, { t: 'icewraith', x: 4.2, z: -36.8 },
   ],
   encounters: [
     { id: 'river', zone: [-5, -15, 8, -6.8], gates: ['fordGate'], opens: ['iceGate'], msg: 'THE ICE GROANS. SHAPES ON THE RIVER.', done: 'THE ICE ON THE FAR BANK CRACKS OPEN',
@@ -53,7 +53,7 @@ export default {
     { id: 'yard', zone: [-4, -30, 8, -20.4], gates: ['iceGate'], opens: ['towerGate'], msg: 'SOMETHING STIRS AMONG THE GRAVES', done: 'THE WAY NORTH CLEARS',
       waves: [
         { pre: true, foes: [{ t: 'yeti', x: 2.8, z: -29.6, face: 0 }, { t: 'icewraith', x: -2.6, z: -28.8, face: 0 }, { t: 'frostwolf', x: 6.8, z: -27.2 }, { t: 'frostwolf', x: 0.4, z: -25.8 }] },
-        { foes: [{ t: 'yeti', x: -2.8, z: -22.4 }, { t: 'icewraith', x: 7.4, z: -22 }, { t: 'frostwolf', x: 3.4, z: -30.4 }, { t: 'frostwolf', x: 6.4, z: -30.2 }] },
+        { foes: [{ t: 'yeti', x: -2.8, z: -22.4 }, { t: 'icewraith', x: 7.6, z: -23 }, { t: 'frostwolf', x: 3.4, z: -30.4 }, { t: 'frostwolf', x: 6.4, z: -30.2 }] },
       ] },
   ],
   boss: { type: 'frostgiant', x: 4.2, z: -50, face: 0, zone: [-6, -58, 14, -40.2], gates: ['cirqueGate'], opens: ['exitGate', 'cirqueGate'] },
@@ -118,7 +118,7 @@ export default {
     P.drift(ctx, 3.4, -24.4, 2.2, 1.6, 0.5, { solid: false });
     K.fallenBody(ctx, 4.4, -25.8, 2.2, 0x1a1c22); K.droppedSword(ctx, 3.2, -26.4, 0.6);
     // the north edge: rocks and firs pinch to a gap
-    P.crag(ctx, -6, -36, 1.4, -32.6, 3.4, { face: '+z' }); P.rock(ctx, 6.8, -33, 1.2, { solid: false }); P.drift(ctx, 8.4, -33, 2, 1.6, 0.6, { solid: false });
+    P.crag(ctx, -7, -36, -1.2, -32.6, 3.4, { face: '+x', solidFace: false }); P.rock(ctx, 0.4, -33, 1.1, { solid: false }); P.rock(ctx, 6.8, -33, 1.2, { solid: false }); P.drift(ctx, 8.4, -33, 2, 1.6, 0.6, { solid: false });
     ctx.marks.towerGate = barrier(ctx, 3.4, -33, 3.6, 'x', 'ice');
 
     // ------------------------------------------------ the pass
@@ -129,9 +129,9 @@ export default {
     ctx.marks.cirqueGate = barrier(ctx, 4.4, -38.6, 4, 'x', 'ice', { open: true });
 
     // ------------------------------------------------ the giant's cirque
-    P.glacier(ctx, -14, -66, 18, -58.6, 9, '+z');
+    P.glacier(ctx, -14, -66, 2.4, -58.6, 9, '+z'); P.glacier(ctx, 6.6, -66, 18, -58.6, 9, '+z');
     P.glacier(ctx, -14, -58.6, -6.6, -39.4, 7.5, '+x');
-    P.crag(ctx, 8.2, -42, 14, -39.4, 3, { face: '+z', solidFace: false });
+    P.rock(ctx, 9.4, -40.4, 1.2, { solid: false }); P.rock(ctx, 12.6, -39.8, 0.9, { solid: false }); P.drift(ctx, 11, -39.6, 4.4, 1.6, 0.6, { solid: false });
     // standing stones ring the frozen lake
     const ring = [[-4.6, -42], [-5.4, -47.4], [-5.2, -53], [-3.8, -57], [12.8, -57.2], [13.6, -51.6], [13.2, -45.6]];
     ring.forEach(([x, z], i) => P.standingStone(ctx, x, z, i < 4 ? 3.4 : 1.8, i * 0.4));
@@ -143,7 +143,8 @@ export default {
     // the way on, through a crevasse in the glacier
     ctx.marks.exitGate = barrier(ctx, 4.5, -59, 3.8, 'x', 'ice');
 
+    P.tufts(ctx, [[-5, 0, -0.4, 17], [4.6, -3.6, 8, 17], [-5, -31, 0.6, -19], [5.6, -31, 8.6, -19], [-6, -58, -3, -40], [11.8, -58, 14, -40]], 9, 61);
     // ------------------------------------------------ the wilds round it all
-    P.wilds(ctx, BOUNDS, WALKS, { seed: 808, skip: [[-15, -70, 19, -58.6], [-15, -58.6, -6.6, -39], [-14, -33, -6, -18], [-13, -18.4, -7, -5.2], [-11, -4.2, -6.2, 12.8], [-8, -40, -1.2, -32.6], [-6, -36, 1.4, -32.6], [8.2, -42, 14, -39.4], [-15, -16, 19, -6]] });
+    P.wilds(ctx, BOUNDS, WALKS, { seed: 808, skip: [[-15, -70, 19, -58.6], [-15, -58.6, -6.6, -39], [-14, -33, -6, -18], [-13, -18.4, -7, -5.2], [-11, -4.2, -6.2, 12.8], [-8, -40, -1.2, -32.6], [-7, -36, -1.2, -32.6], [-15, -16, 19, -6]] });
   },
 };

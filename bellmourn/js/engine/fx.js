@@ -29,6 +29,38 @@ function columnTex() {
   }
   g.putImageData(img, 0, 0); _colTex = new THREE.CanvasTexture(c); _colTex.colorSpace = THREE.SRGBColorSpace; _colTex.minFilter = THREE.LinearFilter; _colTex.generateMipmaps = false; return _colTex;
 }
+// pixel textures drawn once: a ritual sigil (rings, a seven-pointed star, runes) and a web. Nearest
+// filtering keeps them on the 16 texel/m grid of everything else.
+let _sigilTex = null, _webTex = null;
+function pixTex(n, draw) {
+  const c = document.createElement('canvas'); c.width = c.height = n; const g = c.getContext('2d'); g.fillStyle = '#fff'; draw(g, n);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; return t;
+}
+function pixLine(g, x0, y0, x1, y1, w = 1) { const n = Math.ceil(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0))); for (let i = 0; i <= n; i++) { const k = i / Math.max(1, n); g.fillRect(Math.round(x0 + (x1 - x0) * k), Math.round(y0 + (y1 - y0) * k), w, w); } }
+function pixRing(g, cx, cy, r, w = 1) { const n = Math.ceil(r * 7); for (let i = 0; i < n; i++) { const a = i / n * TAU; g.fillRect(Math.round(cx + Math.cos(a) * r), Math.round(cy + Math.sin(a) * r), w, w); } }
+function sigilTex() {
+  return _sigilTex || (_sigilTex = pixTex(84, (g, n) => {
+    const c = n / 2 - 0.5; pixRing(g, c, c, 40, 2); pixRing(g, c, c, 33, 1); pixRing(g, c, c, 14, 1);
+    const pts = []; for (let i = 0; i < 7; i++) { const a = i / 7 * TAU - Math.PI / 2; pts.push([c + Math.cos(a) * 32, c + Math.sin(a) * 32]); }
+    for (let i = 0; i < 7; i++) { const p = pts[i], q = pts[(i + 3) % 7]; pixLine(g, p[0], p[1], q[0], q[1], 1); }
+    for (let i = 0; i < 14; i++) { const a = i / 14 * TAU; const x = c + Math.cos(a) * 36.5, y = c + Math.sin(a) * 36.5; if (i % 2) g.fillRect(Math.round(x) - 1, Math.round(y) - 1, 3, 3); else { g.fillRect(Math.round(x), Math.round(y) - 2, 1, 5); g.fillRect(Math.round(x) - 1, Math.round(y) - 2, 3, 1); } }
+    g.fillRect(Math.round(c) - 2, Math.round(c) - 2, 5, 5);
+  }));
+}
+function webTex() {
+  return _webTex || (_webTex = pixTex(32, (g, n) => {
+    const c = n / 2 - 0.5; for (let i = 0; i < 8; i++) { const a = i / 8 * TAU + 0.2; pixLine(g, c, c, c + Math.cos(a) * 15, c + Math.sin(a) * 15); }
+    for (const r of [5, 9, 13]) { const pts = []; for (let i = 0; i < 8; i++) { const a = i / 8 * TAU + 0.2; pts.push([c + Math.cos(a) * r, c + Math.sin(a) * r]); } for (let i = 0; i < 8; i++) pixLine(g, pts[i][0], pts[i][1], pts[(i + 1) % 8][0], pts[(i + 1) % 8][1]); }
+  }));
+}
+// shared, kept geometry and materials for the solid bits of hazards (spikes, mounds, chunks)
+const KEEP = {};
+function kept(key, make) { if (!KEEP[key]) { const o = make(); o.userData.keep = true; KEEP[key] = o; } return KEEP[key]; }
+const SOLID = { ice: [0xc8f0ff, 0x3a90c0], frost: [0xe0f8ff, 0x4aa0d0], bone: [0xe8e2d0, 0x3a3428], sand: [0xc8a46a, 0x2a1a08], mound: [0xb08a58, 0x000000] };
+const solidMat = (k) => kept('m' + k, () => new THREE.MeshLambertMaterial({ color: SOLID[k][0], emissive: SOLID[k][1], emissiveIntensity: 0.6 }));
+// hazards that only mark the stones (no red warning, nothing to dodge)
+const MARKS = new Set(['mound', 'sandburst', 'bind', 'raise', 'sigil', 'sigilGo', 'curse']);
+
 // remove an object and free what it alone owns (geometries/materials marked userData.keep are shared)
 function free(group, o) {
   group.remove(o);
@@ -200,7 +232,13 @@ export class FX {
       if (!v) { v = this._hazardMesh(h); this.hz.set(h, v); this.group.add(v); }
       const warn = h.t < h.warn; const k = warn ? h.t / Math.max(0.01, h.warn) : (h.t - h.warn) / h.life;
       const ud = v.userData;
+      v.position.set(h.x, 0.04, h.z);
+      if (ud.mark) { this._markUpdate(h, v, Math.min(1, h.t / Math.max(0.01, h.life + h.warn)), dt, time); continue; }
+      if (ud.spikes) this._spikeUpdate(h, ud, warn, k);
       if (h.shape === 'line') {
+        ud.pivot.rotation.y = h.face || 0;
+        if (ud.fan) { ud.fan.visible = warn; ud.fan.material.opacity = 0.1 + k * 0.25 + 0.06 * Math.sin(time * 30); }
+        if (ud.core) { ud.core.visible = !warn; ud.core.material.opacity = 1 - k * 0.5; ud.core.scale.x = 0.7 + 0.3 * Math.sin(time * 60); }
         ud.lane.material.color.copy(warn ? ud.warnC : ud.hotC); ud.lane.material.opacity = warn ? 0.15 + k * 0.3 : 0.85 * (1 - k * 0.7);
         if (!warn && Math.random() < dt * 50) { const d = Math.random() * (h.len || 4), o = (Math.random() - 0.5) * (h.width || 1); const fx = Math.sin(h.face || 0), fz = Math.cos(h.face || 0); this.emit(h.x + fx * d + fz * o, 0.15, h.z + fz * d - fx * o, { n: 1, speed: 0.6, up: 1.5, vy: 2, life: 0.5, grav: -1, color: ud.hotC.toArray(), size: 1 }); }
       } else if (h.shape === 'circle') {
@@ -208,6 +246,8 @@ export class FX {
         ud.fill.material.opacity = warn ? 0.18 + k * 0.25 : 0.65 * (1 - k);
         ud.fill.material.color.copy(warn ? ud.warnC : ud.hotC);
         if (!warn && !ud.burst) { ud.burst = true; this._hazardBurst(h); }
+        if (!warn && (h.kind === 'acid' || h.kind === 'frost') && Math.random() < dt * 14) { const a = Math.random() * TAU, r = Math.random() * h.r; this.emit(h.x + Math.sin(a) * r, 0.08, h.z + Math.cos(a) * r, h.kind === 'acid' ? { n: 1, speed: 0.2, up: 1, vy: 0.9, life: 0.5, grav: 1, color: [0.8, 2.4, 0.4], size: 1 } : { n: 1, speed: 0.15, up: 0.4, vy: 0.4, life: 0.7, grav: -0.2, color: [1.6, 2.4, 2.8], size: 1 }); }
+        if (!warn && h.kind === 'hellfire' && Math.random() < dt * 60) this.emit(h.x + (Math.random() - 0.5) * h.r * 1.6, 0.1, h.z + (Math.random() - 0.5) * h.r * 1.6, { n: 1, speed: 0.6, up: 1, vy: 3, life: 0.5, grav: -3, color: Math.random() < 0.5 ? [3.4, 1.6, 0.3] : [3, 0.5, 0.1], size: 2 });
         if (!warn && h.kind === 'fire' && Math.random() < dt * 30) this.emit(h.x + (Math.random() - 0.5) * h.r * 1.6, 0.1, h.z + (Math.random() - 0.5) * h.r * 1.6, { n: 1, speed: 0.4, up: 1, vy: 2, life: 0.6, grav: -2, color: [3, 1.2, 0.2], size: 1 });
       } else if (h.shape === 'ring') {
         const r = h.r0 + (h.r1 - h.r0) * (warn ? 0 : k);
@@ -215,27 +255,92 @@ export class FX {
         ud.ring.visible = warn; ud.ring.material.opacity = 0.3;
         if (!warn && Math.random() < dt * 40) { const a = Math.random() * Math.PI * 2; this.emit(h.x + Math.sin(a) * r, 0.1, h.z + Math.cos(a) * r, { n: 1, speed: 1, up: 1.5, life: 0.4, grav: 5, color: ud.dust, size: 1 }); }
       }
-      v.position.set(h.x, 0.04, h.z);
     }
     for (const [h, v] of this.hz) if (!seen.has(h)) { free(this.group, v); this.hz.delete(h); }
   }
 
+  // spikes (ice, bone) that burst up out of a circle when it goes hot and sink away at its end
+  _spikeUpdate(h, ud, warn, k) {
+    const up = warn ? 0 : Math.min(1, (h.t - h.warn) / 0.07) * (k > 0.7 ? Math.max(0, 1 - (k - 0.7) / 0.3) : 1);
+    ud.spikes.visible = up > 0.01;
+    for (const m of ud.spikes.children) m.scale.set(1, Math.max(0.01, up * m.userData.h), 1);
+  }
+
+  // the marks: a burrow mound, a spray of sand, a web or grave-cloth at the hero's feet, the glow where a
+  // skeleton will rise, a ritual sigil turning, the flash when a ritual completes, a curse where the dead
+  // lie. k: 0..1 through the mark's life.
+  _markUpdate(h, v, k, dt, time) {
+    const ud = v.userData; const kind = h.kind; const fade = Math.min(1, (1 - k) * 4);
+    if (kind === 'mound') { const s = Math.sin(Math.min(1, k * 1.6) * Math.PI); ud.m.scale.set(h.r, Math.max(0.02, s), h.r); if (!ud.dust) { ud.dust = true; this.emit(h.x, 0.08, h.z, { n: 4, speed: 1.2, up: 1.4, life: 0.45, grav: 9, color: [1.4, 1.1, 0.7], size: 1, jit: h.r }); } }
+    else if (kind === 'sandburst') { ud.m.material.opacity = 0.7 * fade; ud.m.scale.setScalar(0.6 + k * 0.6); if (!ud.dust) { ud.dust = true; this.emit(h.x, 0.1, h.z, { n: 36, speed: 2.4, up: 2.2, vy: 2, life: 0.8, grav: 9, color: [1.5, 1.15, 0.7], colorVar: 0.3, size: 2, jit: h.r * 0.8 }); } }
+    else if (kind === 'bind') { const g = Math.min(1, k * 8); ud.m.scale.setScalar(h.r * (0.4 + 0.6 * g)); ud.m.material.opacity = 0.9 * fade; ud.m.rotation.z += dt * 0.3; }
+    else if (kind === 'raise' || kind === 'curse') {
+      const pulse = 0.5 + 0.5 * Math.sin(time * 14); ud.m.material.opacity = (0.35 + 0.4 * pulse * k) * fade; ud.m.scale.setScalar(h.r * (1.1 - k * 0.3));
+      const c = kind === 'raise' ? [0.7, 2.6, 0.5] : [1.8, 0.6, 2.6];
+      if (Math.random() < dt * 30) { const a = Math.random() * TAU, r = Math.random() * h.r; this.emit(h.x + Math.sin(a) * r, 0.1, h.z + Math.cos(a) * r, { n: 1, speed: 0.1, up: 0.2, vy: 1.6, life: 0.6, grav: -1, color: c, size: 1 }); }
+    } else if (kind === 'sigil') {
+      const g = Math.min(1, h.t / 0.3); ud.m.scale.setScalar(h.r * (0.6 + 0.4 * g)); ud.m.rotation.z += dt * (0.6 + k * 3); ud.m.material.opacity = (0.55 + 0.3 * Math.sin(time * 9)) * g;
+      ud.m2.rotation.z -= dt * 1.4; ud.m2.material.opacity = 0.3 * g;
+      if (Math.random() < dt * 40) { const a = Math.random() * TAU; this.emit(h.x + Math.sin(a) * h.r * 0.9, 0.1, h.z + Math.cos(a) * h.r * 0.9, { n: 1, speed: 0.1, up: 0.2, vy: 2.2 + k * 2, life: 0.6, grav: -1, color: [2.8, 0.4, 1.4], size: 1 }); }
+    } else if (kind === 'sigilGo') {
+      ud.m.scale.setScalar(h.r * (0.8 + k * 1.4)); ud.m.material.opacity = 0.9 * (1 - k);
+      if (!ud.burst) { ud.burst = true; this.shockRing(h.x, h.z, h.r * 2.2, [3, 0.4, 1.6], 0.5); this.emit(h.x, 0.2, h.z, { n: 40, speed: 2.5, up: 2, vy: 3, life: 0.8, grav: -1, color: [3, 0.5, 1.6], size: 1, jit: h.r }); }
+    }
+  }
+
   _hazardMesh(h) {
-    const kinds = { fire: [3, 0.8, 0.15], poison: [0.5, 2.0, 0.3], beam: [3, 1.4, 0.3], bone: [2.2, 2.0, 1.6], slam: [1.6, 0.15, 0.1], water: [0.3, 1.6, 1.6], wax: [2, 1.8, 1.2], toll: [1.8, 1.8, 2.2], lightning: [1.6, 1.8, 3], shock: [1.8, 1.0, 0.6] };
+    const kinds = { fire: [3, 0.8, 0.15], poison: [0.5, 2.0, 0.3], beam: [3, 1.4, 0.3], bone: [2.2, 2.0, 1.6], slam: [1.6, 0.15, 0.1], water: [0.3, 1.6, 1.6], wax: [2, 1.8, 1.2], toll: [1.8, 1.8, 2.2], lightning: [1.6, 1.8, 3], shock: [1.8, 1.0, 0.6],
+      frost: [0.9, 1.9, 2.8], ice: [1.3, 2.2, 3.0], sand: [2.2, 1.5, 0.6], venom: [0.9, 2.6, 0.3], acid: [0.9, 2.6, 0.35], hellfire: [3.4, 0.8, 0.15], holy: [3.0, 2.6, 1.4], eyebeam: [3.2, 2.9, 2.0], curse: [1.6, 0.5, 2.4] };
     const hot = kinds[h.kind] || kinds.slam;
     const g = new THREE.Group();
-    const mat = (c, o) => new THREE.MeshBasicMaterial({ color: new THREE.Color(...c), transparent: true, opacity: o, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, side: THREE.DoubleSide });
+    const mat = (c, o, blend = THREE.AdditiveBlending) => new THREE.MeshBasicMaterial({ color: new THREE.Color(...c), transparent: true, opacity: o, depthWrite: false, blending: blend, fog: false, side: THREE.DoubleSide });
+    const flat = (m) => { m.rotation.x = -Math.PI / 2; return m; };
+    if (h.vis && MARKS.has(h.kind)) { // marks: no warning colours
+      let m = null; const ud = { mark: true };
+      if (h.kind === 'mound') { m = new THREE.Mesh(kept('gMound', () => new THREE.ConeGeometry(1, 0.28, 6)), solidMat('mound')); m.position.y = 0.0; m.castShadow = true; }
+      else if (h.kind === 'sandburst') m = flat(new THREE.Mesh(new THREE.CircleGeometry(h.r, 10), mat([0.16, 0.1, 0.05], 0.7, THREE.NormalBlending)));
+      else if (h.kind === 'bind') { m = flat(new THREE.Mesh(this.ringGeo, new THREE.MeshBasicMaterial({ map: webTex(), color: new THREE.Color(1.6, 1.55, 1.4), transparent: true, opacity: 0.9, depthWrite: false, fog: false }))); m.position.y = 0.02; }
+      else if (h.kind === 'raise') m = flat(new THREE.Mesh(this.ringGeo, new THREE.MeshBasicMaterial({ map: ringTex(), color: new THREE.Color(0.6, 2.4, 0.4), transparent: true, opacity: 0.5, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })));
+      else if (h.kind === 'curse') m = flat(new THREE.Mesh(this.ringGeo, new THREE.MeshBasicMaterial({ map: ringTex(), color: new THREE.Color(1.6, 0.5, 2.4), transparent: true, opacity: 0.5, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })));
+      else if (h.kind === 'sigil') {
+        m = flat(new THREE.Mesh(this.ringGeo, new THREE.MeshBasicMaterial({ map: sigilTex(), color: new THREE.Color(2.8, 0.25, 1.1), transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }))); m.position.y = 0.02;
+        const m2 = flat(new THREE.Mesh(new THREE.CircleGeometry(h.r, 7), mat([0.9, 0.05, 0.3], 0.3))); g.add(m2); ud.m2 = m2;
+      } else m = flat(new THREE.Mesh(this.ringGeo, new THREE.MeshBasicMaterial({ map: ringTex(), color: new THREE.Color(3, 0.5, 1.6), transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }))); // sigilGo
+      g.add(m); ud.m = m; g.userData = ud; return g;
+    }
     if (h.shape === 'line') {
       const pg = new THREE.PlaneGeometry(h.width || 1, h.len || 4); pg.translate(0, (h.len || 4) / 2, 0);
       const lane = new THREE.Mesh(pg, mat([1.6, 0.12, 0.08], 0.25)); lane.rotation.x = -Math.PI / 2; lane.rotation.z = Math.PI;
       const pivot = new THREE.Group(); pivot.rotation.y = h.face || 0; pivot.add(lane); g.add(pivot);
-      g.userData = { lane, warnC: new THREE.Color(1.6, 0.12, 0.08), hotC: new THREE.Color(...hot), line: true };
+      g.userData = { lane, pivot, warnC: new THREE.Color(1.6, 0.12, 0.08), hotC: new THREE.Color(...hot), line: true };
+      if (h.kind === 'eyebeam') { // a white-hot core down the middle of the beam
+        const cg = new THREE.PlaneGeometry((h.width || 1) * 0.35, h.len || 4); cg.translate(0, (h.len || 4) / 2, 0);
+        const core = new THREE.Mesh(cg, mat([3.4, 3.2, 2.6], 1)); core.rotation.x = -Math.PI / 2; core.rotation.z = Math.PI; core.position.y = 0.01; pivot.add(core); g.userData.core = core;
+      }
+      if (h.sweep) { // the whole fan the beam will sweep, shown while it warns
+        const a0 = Math.min(h.sweep.a0, h.sweep.a1), a1 = Math.max(h.sweep.a0, h.sweep.a1);
+        const fan = new THREE.Mesh(new THREE.RingGeometry(0.4, h.len || 4, 24, 1, a0 - Math.PI / 2, a1 - a0), mat([1.6, 0.12, 0.08], 0.2)); fan.rotation.x = -Math.PI / 2; g.add(fan); g.userData.fan = fan;
+      }
       return g;
     }
     if (h.shape === 'circle') {
       const ring = new THREE.Mesh(new THREE.RingGeometry(h.r - 0.1, h.r, 24), mat([1.6, 0.12, 0.08], 0.4)); ring.rotation.x = -Math.PI / 2; g.add(ring);
       const fill = new THREE.Mesh(new THREE.CircleGeometry(h.r, 24), mat([1.6, 0.12, 0.08], 0.2)); fill.rotation.x = -Math.PI / 2; g.add(fill);
       g.userData = { ring, fill, warnC: new THREE.Color(1.6, 0.12, 0.08), hotC: new THREE.Color(...hot) };
+      if (h.kind === 'ice' || h.kind === 'bone' || h.kind === 'sand') { // spikes (or a burst of rock) that come up when it strikes
+        const sp = new THREE.Group(); sp.visible = false; const n = Math.max(4, Math.min(9, Math.round(h.r * 6)));
+        const geo = kept('gSpike', () => new THREE.ConeGeometry(0.13, 0.7, 4)); geo.translate && !geo.userData.moved && (geo.translate(0, 0.35, 0), geo.userData.moved = true);
+        const m0 = solidMat(h.kind);
+        for (let i = 0; i < n; i++) {
+          const a = i / n * TAU + Math.random() * 0.5, r = (i === 0 ? 0 : 0.35 + Math.random() * 0.5) * h.r;
+          const m = new THREE.Mesh(geo, m0); m.position.set(Math.sin(a) * r, 0, Math.cos(a) * r);
+          const sc = h.kind === 'sand' ? 0.9 + Math.random() * 0.6 : 0.8 + Math.random() * 0.7; m.userData.h = (i === 0 ? 1.5 : 1) * sc * (h.kind === 'sand' ? 0.7 : 1);
+          m.rotation.set((Math.random() - 0.5) * 0.5 + Math.cos(a) * 0.25 * (r > 0 ? 1 : 0), Math.random() * 3, (Math.random() - 0.5) * 0.5 - Math.sin(a) * 0.25 * (r > 0 ? 1 : 0)); m.castShadow = true;
+          if (h.kind === 'sand') m.scale.x = 2;
+          sp.add(m);
+        }
+        g.add(sp); g.userData.spikes = sp;
+      }
     } else {
       const ring = new THREE.Mesh(new THREE.RingGeometry(0.4, 0.6, 24), mat([1.6, 0.12, 0.08], 0.3)); ring.rotation.x = -Math.PI / 2; g.add(ring);
       const wave = new THREE.Mesh(new THREE.RingGeometry(0.88, 1.0, 40), mat(hot, 0.7)); wave.rotation.x = -Math.PI / 2; g.add(wave);
@@ -245,6 +350,13 @@ export class FX {
   }
 
   _hazardBurst(h) {
+    const at = (o) => this.emit(h.x, 0.1, h.z, { jit: h.r * 0.9, size: 1, ...o });
+    if (h.kind === 'ice' || h.kind === 'frost') { at({ n: 26, speed: 2.2, up: 2.2, vy: 2, life: 0.6, grav: 10, color: [1.8, 2.6, 3], colorVar: 0.3 }); at({ n: 8, speed: 1.2, up: 1.5, life: 0.8, grav: 6, color: [2.4, 2.8, 3], size: 2 }); return; }
+    if (h.kind === 'sand') { at({ n: 34, speed: 1.6, up: 3, vy: 4.5, life: 0.9, grav: 11, color: [1.6, 1.2, 0.7], colorVar: 0.35, size: 2 }); at({ n: 14, speed: 3, up: 1, life: 0.5, grav: 8, color: [1.1, 0.8, 0.5], size: 1 }); return; }
+    if (h.kind === 'bone') { at({ n: 22, speed: 2.4, up: 1.8, vy: 2, life: 0.55, grav: 12, color: [2.2, 2.1, 1.8], size: 1 }); at({ n: 10, speed: 0.4, up: 1, vy: 1.2, life: 0.8, grav: -0.5, color: [0.6, 2.2, 0.5], size: 1 }); return; }
+    if (h.kind === 'acid' || h.kind === 'venom') { at({ n: 22, speed: 2, up: 2, vy: 1.5, life: 0.6, grav: 10, color: [0.8, 2.6, 0.35], size: 1 }); return; }
+    if (h.kind === 'hellfire') { at({ n: 30, speed: 1.4, up: 2, vy: 3, life: 0.7, grav: -2, color: [3.4, 1.0, 0.15], size: 2 }); return; }
+    if (h.kind === 'holy') { at({ n: 24, speed: 2, up: 2, vy: 2, life: 0.6, grav: -1, color: [3, 2.6, 1.4] }); return; }
     if (h.kind === 'lightning') { this.bolt(h.x, h.z); }
     else if (h.kind === 'water') { this.emit(h.x, 0.1, h.z, { n: 40, speed: 2, up: 3, vy: 3, life: 0.9, grav: 10, color: [0.5, 1.2, 1.3], size: 1, jit: h.r }); }
     else if (h.kind === 'fire') { this.emit(h.x, 0.1, h.z, { n: 24, speed: 1.5, up: 2, vy: 2, life: 0.7, grav: -1, color: [3, 1.1, 0.2], size: 1, jit: h.r }); }
@@ -282,7 +394,11 @@ export class FX {
       if (!v) { v = this._projMesh(p); this.projs.set(p.id, v); this.group.add(v); }
       v.position.set(p.x, p.y ?? 1.1, p.z); v.rotation.y = Math.atan2(p.vx, p.vz);
       if (p.kind === 'wave') { const k = 1 - p.life / 0.6; v.scale.setScalar(1 + k * 0.6); v.children[0].material.opacity = 0.9 * (1 - Math.max(0, k)); }
-      if (Math.random() < 0.5) { const c = v.userData.trail; this.emit(p.x, (p.y ?? 1.1), p.z, { n: 1, speed: 0.2, life: 0.3, grav: 0, color: c, size: 1, alpha: 0.8 }); }
+      const ud = v.userData;
+      if (ud.spin) { v.rotation.x = time * ud.spin; v.rotation.z = time * ud.spin * 0.7; }
+      if (p.kind === 'wrap') v.rotation.z = Math.sin(time * 18) * 0.5;
+      if (p.kind === 'fireball') { this.emit(p.x, (p.y ?? 1.1), p.z, { n: 2, speed: 0.4, up: 1, vy: 0.8, life: 0.45, grav: -2, color: Math.random() < 0.5 ? [3.4, 1.6, 0.3] : [3, 0.5, 0.1], size: Math.random() < 0.3 ? 2 : 1, jit: 0.15 }); }
+      else if (Math.random() < (ud.rich ? 1 : 0.5)) { const c = ud.trail; this.emit(p.x, (p.y ?? 1.1), p.z, { n: 1, speed: 0.2, life: ud.rich ? 0.45 : 0.3, grav: ud.rich ? 1.5 : 0, color: c, size: 1, alpha: 0.8, jit: ud.rich ? 0.12 : 0 }); }
       if (p.team === 'hero' && v.userData.team !== 'hero') { v.userData.team = 'hero'; v.traverse((o) => { if (o.material) o.material.color.setRGB(3, 0.4, 0.3); }); }
     }
     for (const [id, v] of this.projs) if (!seen.has(id)) { free(this.group, v); this.projs.delete(id); }
@@ -290,8 +406,22 @@ export class FX {
 
   _projMesh(p) {
     const g = new THREE.Group();
-    const cols = { orb: [3, 0.25, 0.3], flame: [3.2, 1.6, 0.3], soul: [0.4, 2.6, 2.4], bolt: [2, 1.9, 1.7], wave: [3, 0.35, 0.3], hbolt: [2.4, 2.2, 1.8], hfire: [3.4, 1.5, 0.3], wisp: [2.6, 2.2, 1.0], flask: [3, 1.3, 0.3], spit: [0.7, 2.4, 0.4] };
+    const cols = { orb: [3, 0.25, 0.3], flame: [3.2, 1.6, 0.3], soul: [0.4, 2.6, 2.4], bolt: [2, 1.9, 1.7], wave: [3, 0.35, 0.3], hbolt: [2.4, 2.2, 1.8], hfire: [3.4, 1.5, 0.3], wisp: [2.6, 2.2, 1.0], flask: [3, 1.3, 0.3], spit: [0.7, 2.4, 0.4],
+      frostbolt: [1.2, 2.4, 3.2], iceshard: [1.8, 2.6, 3.2], boulder: [1.8, 2.2, 2.6], wrap: [2.2, 2.0, 1.5], web: [2.4, 2.4, 2.3], fireball: [3.4, 1.4, 0.25], hex: [2.6, 0.4, 2.2], sandspit: [1.8, 1.3, 0.7] };
     const c = cols[p.kind] || cols.orb;
+    const basic = (col, o = {}) => new THREE.MeshBasicMaterial({ color: new THREE.Color(...col), fog: false, ...o });
+    const halo = (col, s) => { const h = new THREE.Sprite(new THREE.SpriteMaterial({ map: T.glow('#ffffff', 32, 1.5), color: new THREE.Color(col[0] * 0.3, col[1] * 0.3, col[2] * 0.3), blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); h.scale.set(s, s, 1); return h; };
+    const NEW = {
+      frostbolt: () => { g.add(new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.56), basic(c))); const m = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.2), basic([2.6, 3, 3.2])); m.rotation.z = Math.PI / 4; m.position.z = 0.2; g.add(m); g.add(halo(c, 1.2)); return { rich: true }; },
+      iceshard: () => { const m = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.26, 0.26), basic(c)); m.rotation.set(0.6, 0.6, 0); g.add(m); g.add(halo(c, 0.9)); return { spin: 9 }; },
+      boulder: () => { g.add(new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.56, 0.6), new THREE.MeshLambertMaterial({ color: 0xdce8f4, emissive: 0x30506a }))); const m = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, 0.3), basic([1.6, 2.4, 3])); m.position.set(0.22, 0.2, 0.1); g.add(m); return { spin: 4, rich: true }; },
+      wrap: () => { g.add(new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.06, 0.56), basic([1.5, 1.35, 1.0]))); const m = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.07, 0.6), basic([0.4, 1.6, 1.0])); m.position.x = 0.1; g.add(m); g.add(halo([2.2, 2, 1.4], 1.0)); return { rich: true }; },
+      web: () => { g.add(new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 0.22), basic(c))); for (const r of [0, Math.PI / 2, Math.PI / 4, -Math.PI / 4]) { const m = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.035, 0.035), basic([2, 2, 1.9])); m.rotation.y = r; g.add(m); } return { spin: 6, rich: true }; },
+      fireball: () => { g.add(new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.36, 0.36), basic([3.4, 0.9, 0.15]))); g.add(new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 0.22), basic([3.6, 3.0, 1.2]))); g.add(halo(c, 2.0)); return { spin: 5 }; },
+      hex: () => { const m = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.24, 0.24), basic(c)); g.add(m); const m2 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.12), basic([3, 2, 3])); g.add(m2); g.add(halo(c, 1.5)); return { spin: 8, rich: true }; },
+      sandspit: () => { g.add(new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.26, 0.3), new THREE.MeshLambertMaterial({ color: 0xc8a46a, emissive: 0x3a2a10 }))); return { spin: 7, rich: true }; },
+    };
+    if (NEW[p.kind]) { const o = NEW[p.kind](); g.userData = { trail: c.map((v) => v * 0.6), team: p.team, ...o }; return g; }
     if (p.kind === 'bolt' || p.kind === 'hbolt') {
       const m = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.7), new THREE.MeshBasicMaterial({ color: new THREE.Color(...c), fog: false })); g.add(m);
     } else if (p.kind === 'wave') {

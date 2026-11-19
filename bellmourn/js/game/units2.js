@@ -324,12 +324,12 @@ export const UNITS2 = {
   bat: {
     name: 'Belfry Bat', hp: 12, poise: 99, flinch: 0, speed: 5.4, r: 0.28, mass: 0.3, aggro: 13, keep: 2.6, drop: 2, home: 1, flier: true,
     attacks: [{ a: A.swoop, w: 1, min: 1.5, max: 4 }],
-    look: { rig: 'bat', scale: 1.3, eyes: 0xff4030, colors: { fur: 0x3a2c30, dark: 0x22181c, wing: 0x5a2a2e, bone: 0x8a6a64 } },
+    look: { rig: 'bat', scale: 1.4, eyes: 0xff5030, colors: { fur: 0x5a4650, dark: 0x3a2a30, wing: 0x8a3a44, bone: 0xb08a80 } },
   },
   crab: {
     name: 'Drowned Crab', hp: 60, poise: 40, flinch: 1, speed: 2.5, r: 0.46, mass: 1.5, aggro: 11, keep: 1.6, drop: 8, home: 2, shield: true,
     attacks: [{ a: A.pinch, w: 2, min: 0, max: 1.7 }, { a: A.claws, w: 1, min: 0, max: 2.2 }],
-    look: { rig: 'crab', scale: 1, eyes: 0xffd060, colors: { shell: 0x7a3426, dark: 0x4a1e18, under: 0xc8a888, claw: 0x8a3c2a, tip: 0x2a1410, moss: 0x5a7a4a } },
+    look: { rig: 'crab', scale: 1.3, eyes: 0xffd060, colors: { shell: 0x7a3426, dark: 0x4a1e18, under: 0xc8a888, claw: 0x8a3c2a, tip: 0x2a1410, moss: 0x5a7a4a } },
   },
   frostwolf: {
     name: 'Frost Wolf', hp: 62, poise: 30, flinch: 1, speed: 6.2, r: 0.42, mass: 0.95, aggro: 15, keep: 3.8, drop: 7, home: 8,
@@ -339,7 +339,7 @@ export const UNITS2 = {
   icewraith: {
     name: 'Ice Wraith', hp: 52, poise: 20, flinch: 2, speed: 3.0, r: 0.38, mass: 0.7, aggro: 15, keep: 6.5, ranged: true, drop: 9, home: 8,
     attacks: [{ a: A.frostbolt, w: 1, min: 2.5, max: 11 }],
-    look: { rig: 'wraith', scale: 1.1, eyes: 0x80f0ff, colors: { robe: 0x9ab4d0, dark: 0x4a5a78, rag: 0xc8dcef, claw: 0xd0f4ff, ice: 0x90e8ff } },
+    look: { rig: 'wraith', scale: 1.1, eyes: 0x80f0ff, colors: { robe: 0xb8d4ee, dark: 0x5a7094, rag: 0xe0eefa, claw: 0xd0f4ff, ice: 0x90e8ff } },
   },
   yeti: {
     name: 'Yeti', hp: 260, poise: 130, flinch: 0, speed: 2.1, r: 0.64, mass: 3.4, aggro: 13, keep: 2.4, armor: true, scale: 1.5, drop: 24, home: 8,
@@ -354,12 +354,12 @@ export const UNITS2 = {
   sandworm: {
     name: 'Sandworm', hp: 150, poise: 80, flinch: 0, speed: 4.2, r: 0.62, mass: 4, aggro: 14, keep: 3, armor: true, drop: 18, home: 9,
     attacks: [{ a: A.wbite, w: 1, min: 0, max: 2.6 }],
-    look: { rig: 'worm', scale: 1, eyes: 0xff8030, colors: { skin: 0xb89068, dark: 0x7a5a3c, ring: 0x5a3e28, maw: 0x2a0e0a, teeth: 0xf0e4c8, sand: 0xc8a46a } },
+    look: { rig: 'worm', scale: 1, eyes: 0xff8030, colors: { skin: 0xc8946a, dark: 0xe8c89a, ring: 0x5a3422, maw: 0x2a0e0a, teeth: 0xf0e4c8, sand: 0xc8a46a } },
   },
   mummy: {
     name: 'Mummy', hp: 110, poise: 60, flinch: 0.5, speed: 1.75, r: 0.42, mass: 1.4, aggro: 12, keep: 1.6, drop: 12, home: 9, hunch: true,
     attacks: [{ a: A.mclaw, w: 1, min: 0, max: 1.8 }],
-    look: { weapon: 'none', claws: 0xd8ccb0, eyes: 0x60ffb0, noHair: true, extra: looks.mummy, colors: { skin: 0xbcae8c, tunic: 0xb0a280, pants: 0xa49672, boots: 0x887a5a, glove: 0xbcae8c, shoulder: 0xb8aa88, belt: 0x8a7c5c } },
+    look: { weapon: 'none', claws: 0xd8ccb0, eyes: 0x60ffb0, noHair: true, extra: looks.mummy, colors: { skin: 0xe0cfa2, tunic: 0xd4c294, pants: 0xc8b688, boots: 0xa89870, glove: 0xe0cfa2, shoulder: 0xdccb9c, belt: 0x8a7650 } },
     // rises again once, unless it was burning or the killing blow was fire
     beforeDeath: (w, e, src, o) => {
       if (e.ai.rose || e.status.burn || BURNING.has(o.kind)) return false;
@@ -401,7 +401,7 @@ export const UNITS2 = {
   cryptspider: {
     name: 'Crypt Spider', hp: 66, poise: 28, flinch: 1, speed: 5.0, r: 0.46, mass: 1.0, aggro: 15, keep: 4.2, drop: 9, home: 10,
     attacks: [{ a: A.fangs, w: 1, min: 0, max: 1.6 }],
-    look: { rig: 'spider', scale: 1.15, eyes: 0xff2030, colors: { shell: 0x3a383e, dark: 0x1c1a20, under: 0x5a5660, claw: 0x2a282e, tip: 0x0c0a0e, mark: 0xe8e0d0 } },
+    look: { rig: 'spider', scale: 1.15, eyes: 0xff2030, colors: { shell: 0x4a4650, dark: 0x26232a, under: 0x6a6670, claw: 0x34303a, tip: 0x0c0a0e, mark: 0xf0e8d8 } },
   },
   imp: {
     name: 'Imp', hp: 42, poise: 14, flinch: 2, speed: 4.0, r: 0.3, mass: 0.6, aggro: 15, keep: 6, ranged: true, drop: 6, home: 11, hunch: true,
@@ -411,7 +411,7 @@ export const UNITS2 = {
   hellhound: {
     name: 'Hellhound', hp: 76, poise: 32, flinch: 1, speed: 5.8, r: 0.44, mass: 1.0, aggro: 15, keep: 3.4, drop: 9, home: 11,
     attacks: [{ a: A.hbite, w: 1, min: 0, max: 1.8 }],
-    look: { rig: 'hellhound', scale: 1.2, eyes: 0xffb020, colors: { fur: 0x2a1614, dark: 0x160a0a, bone: 0xff7020, tail: 0x3a1a14, sore: 0xff6010 } },
+    look: { rig: 'hellhound', scale: 1.2, eyes: 0xffb020, colors: { fur: 0x2a1614, dark: 0x160a0a, bone: 0xff7020, skull: 0x4a3830, tail: 0x3a1a14, sore: 0xff6010 } },
   },
   cultist: {
     name: 'Cultist', hp: 64, poise: 18, flinch: 3, speed: 2.5, r: 0.38, mass: 0.9, aggro: 15, keep: 7, ranged: true, drop: 11, home: 11,
@@ -421,7 +421,7 @@ export const UNITS2 = {
   demon: {
     name: 'Horned Demon', hp: 320, poise: 150, flinch: 0, speed: 2.3, r: 0.66, mass: 3.6, aggro: 13, keep: 2.4, armor: true, scale: 1.55, drop: 30, home: 11,
     attacks: [{ a: A.hslam, w: 1, min: 0, max: 3.3 }, { a: A.dclaw, w: 1, min: 0, max: 2.7 }],
-    look: { weapon: 'none', claws: 0xff9030, clawGlow: true, eyes: 0xffa020, noHair: true, bulk: 1.5, extra: looks.demon, colors: { skin: 0x7a1c12, tunic: 0x5a140e, pants: 0x2a0a08, boots: 0x140604, shoulder: 0x6a180e, glove: 0x4a100a, belt: 0x1a0806 } },
+    look: { weapon: 'none', claws: 0xff9030, clawGlow: true, eyes: 0xffa020, noHair: true, bulk: 1.5, extra: looks.demon, colors: { skin: 0xb02a18, tunic: 0x8a2012, pants: 0x3a0e0a, boots: 0x1a0806, shoulder: 0xa02616, glove: 0x6a160c, belt: 0x2a0a06 } },
   },
   seraph: {
     name: 'Seraph', hp: 140, poise: 60, flinch: 0.5, speed: 2.2, r: 0.6, mass: 2, aggro: 15, keep: 6, ranged: true, drop: 20, home: 11, flier: true,

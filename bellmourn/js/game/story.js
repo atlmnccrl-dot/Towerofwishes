@@ -11,13 +11,34 @@ export const OPENING = [
   'THE LAST OF THE BELL-WARDENS COME HOME.',
 ];
 
-export const DISTRICTS = ['gate', 'market', 'docks', 'nave', 'undercroft', 'foundry', 'heights', 'belfry'];
+// Act II: the four regions beyond the walls, played after the Belfry (PROPOSAL: the author may rename them).
+export const ACT2 = ['frostmarch', 'ashdunes', 'catacombs', 'abyss'];
+// every place the Haven can lead to, in order (the map, the merchant's stock and the loot follow this order)
+export const DISTRICTS = ['gate', 'market', 'docks', 'nave', 'undercroft', 'foundry', 'heights', 'belfry', ...ACT2];
 
 export const ENDING = [
   'THE BELL OF ST. ORRIN RINGS.',
   'FOR THE FIRST TIME IN A HUNDRED NIGHTS, THE RAIN THINS.',
   'ACROSS THE ROOFS, ONE BY ONE, THE HUSHED LIFT THEIR HEADS.',
   'AND THE SUN COMES UP OVER BELLMOURN.',
+];
+
+// PROPOSAL (for the author): after the end of Act I (ENDING), the way into Act II.
+export const ACT2_OPENING = [
+  'END OF ACT I',
+  'THE BELL RANG. BUT FAR BEYOND THE WALLS, SOMETHING HEARD IT.',
+  'THE SILENCE DID NOT BEGIN IN BELLMOURN. IT WAS SENT.',
+  'NORTH THROUGH THE SNOWS, ACROSS THE ASH DUNES, DOWN UNDER THE SAND.',
+  'THE WARDENS TAKE UP THEIR LAMPS AGAIN.',
+  'ACT II: BEYOND THE WALLS',
+];
+
+// PROPOSAL (for the author): the closing ending, after the Hollow Archon falls (the dawn image is kept).
+export const FINALE = [
+  'THE WHEEL STOPS TURNING. ONE BY ONE, ITS EYES CLOSE.',
+  'FAR ABOVE, IN A CITY OF A HUNDRED BELLS, EVERY BELL RINGS AT ONCE.',
+  'THE WARDENS CLIMB TOWARD THE SOUND.',
+  'AND THE SUN COMES UP OVER BELLMOURN, AND OVER EVERYTHING BEYOND IT.',
 ];
 
 export const CREDITS = [

@@ -1,4 +1,5 @@
-// Bodies that are not people: the Grave Hound, the Plague Rat and the Gargoyle. Same building blocks as
+// Bodies that are not people: the Grave Hound, the Plague Rat, the Gargoyle, the Frost Wolf and the
+// Hellhound (the rest are in beasts2.js, with the shared Beast base). Same building blocks as
 // rig.js (a few boxes per limb, lit by the scene, glowing eyes) but their own skeletons and their own
 // clips. makeBeast(look) returns null when look.rig names no beast, and the view then builds a Rig.
 //
@@ -7,83 +8,7 @@
 // Every beast faces +Z in local space. Poses are { joint: [rx, ry, rz], lift, pitch, roll } and are
 // eased towards each frame, so clips blend without a crossfade table.
 import * as THREE from '../../vendor/three.module.min.js';
-import { mat } from './rig.js';
-
-const box = (() => { const c = new Map(); return (w, h, d) => { const k = `${w},${h},${d}`; if (!c.has(k)) c.set(k, new THREE.BoxGeometry(w, h, d)); return c.get(k); }; })();
-const glowCache = new Map();
-const glowMat = (color, k = 5) => { const key = color + ':' + k; if (!glowCache.has(key)) glowCache.set(key, new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(k), fog: false })); return glowCache.get(key); };
-const flashCache = new Map();
-function flashMat(base, amount) {
-  const q = Math.round(amount * 4) / 4; const k = base.uuid + q;
-  if (!flashCache.has(k)) { const m = base.clone(); m.emissive = new THREE.Color(1, 1, 1); m.emissiveIntensity = q * 1.6; flashCache.set(k, m); }
-  return flashCache.get(k);
-}
-const clamp01 = (k) => Math.max(0, Math.min(1, k));
-const ease = (k) => k * k * (3 - 2 * k);
-const lerp = (a, b, k) => a + (b - a) * k;
-// blend two poses
-function mixP(a, b, k) {
-  const o = {};
-  for (const key of new Set([...Object.keys(a), ...Object.keys(b)])) {
-    const x = a[key], y = b[key];
-    if (Array.isArray(x) || Array.isArray(y)) { const p = x || [0, 0, 0], q = y || [0, 0, 0]; o[key] = [lerp(p[0], q[0], k), lerp(p[1], q[1], k), lerp(p[2], q[2], k)]; }
-    else o[key] = lerp(x || 0, y || 0, k);
-  }
-  return o;
-}
-// keyframes [[t, pose], ...] sampled at t
-function keys(t, list) {
-  if (t <= list[0][0]) return list[0][1];
-  for (let i = 0; i < list.length - 1; i++) { const [t0, p0] = list[i], [t1, p1] = list[i + 1]; if (t <= t1) return mixP(p0, p1, ease(clamp01((t - t0) / Math.max(1e-3, t1 - t0)))); }
-  return list[list.length - 1][1];
-}
-// where an attack clip is: 0..1 through the windup, then the strike, then the recovery
-function phase(t, atk) {
-  const w = atk.windup, a = atk.active, d = atk.dur;
-  if (t < w) return { part: 'windup', k: clamp01(t / w) };
-  if (t < a) return { part: 'strike', k: clamp01((t - w) / Math.max(0.01, a - w)) };
-  return { part: 'recover', k: clamp01((t - a) / Math.max(0.01, d - a)) };
-}
-
-class Beast {
-  constructor(look) {
-    this.look = look; this.root = new THREE.Group(); this.body = new THREE.Group(); this.root.add(this.body);
-    this.body.scale.setScalar(look.scale || 1);
-    this.j = {}; this.parts = []; this.baseMats = new Map(); this.time = Math.random() * 10; this.gait = Math.random() * 6;
-    this.cur = { lift: 0, pitch: 0, roll: 0 }; this.tip = new THREE.Object3D(); this.hand = new THREE.Object3D();
-  }
-  joint(name, parent, x, y, z) { const g = new THREE.Group(); g.position.set(x, y, z); (parent ? this.j[parent] : this.body).add(g); this.j[name] = g; return g; }
-  part(joint, w, h, d, color, x, y, z, o = {}) {
-    const m = new THREE.Mesh(box(w, h, d), o.glow ? glowMat(color, o.glow) : mat(color, o.emissive || 0, o.ei || 1));
-    m.position.set(x, y, z); if (o.rx) m.rotation.x = o.rx; if (o.ry) m.rotation.y = o.ry; if (o.rz) m.rotation.z = o.rz;
-    if (!o.glow) m.castShadow = true;
-    this.j[joint].add(m); this.parts.push(m); return m;
-  }
-  // ease every joint towards the pose (rate: how snappy)
-  pose(P, dt, rate) {
-    const k = 1 - Math.exp(-rate * dt);
-    for (const name in this.j) {
-      if (name === 'base') continue;
-      const g = this.j[name]; const r = P[name] || ZERO;
-      g.rotation.x += (r[0] - g.rotation.x) * k; g.rotation.y += (r[1] - g.rotation.y) * k; g.rotation.z += (r[2] - g.rotation.z) * k;
-    }
-    for (const key of ['lift', 'pitch', 'roll']) this.cur[key] += ((P[key] || 0) - this.cur[key]) * k;
-    const b = this.j.base; b.position.y = this.baseY + this.cur.lift; b.rotation.x = this.cur.pitch; b.rotation.z = this.cur.roll;
-  }
-  flash(amount) {
-    if (amount === this._flash) return; this._flash = amount;
-    for (const m of this.parts) {
-      if (!m.material || m.material.isMeshBasicMaterial) continue;
-      if (amount > 0) { if (!this.baseMats.has(m)) this.baseMats.set(m, m.material); m.material = flashMat(this.baseMats.get(m), amount); }
-      else if (this.baseMats.has(m)) m.material = this.baseMats.get(m);
-    }
-  }
-  updateCloak() {}
-  tipWorld(v) { return this.tip.getWorldPosition(v); }
-  handWorld(v) { return this.hand.getWorldPosition(v); }
-  speedOf(e) { return Math.hypot(e.vx || 0, e.vz || 0); }
-}
-const ZERO = [0, 0, 0];
+import { Beast, makeBeast2, mixP, phase, clamp01, ease, lerp } from './beasts2.js';
 
 // ------------------------------------------------------------------ four legs (the hound and the rat)
 // size: a uniform scale of the hound's proportions; P: proportions and colours
@@ -96,13 +21,15 @@ class Quadruped extends Beast {
     this.part('base', 0.28 * s * P.w, 0.34 * s * P.deep, 0.34 * s, C.fur, 0, 0.04 * s, 0.26 * s * P.len);
     this.part('base', 0.2 * s * P.w, 0.19 * s, 0.42 * s * P.len, C.dark, 0, 0.07 * s, -0.04 * s * P.len);
     this.part('base', 0.25 * s * P.w, 0.25 * s, 0.26 * s, C.fur, 0, 0.03 * s, -0.31 * s * P.len);
-    if (P.ridge) for (let i = 0; i < 4; i++) this.part('base', 0.06 * s, 0.07 * s, 0.07 * s, C.bone, 0, 0.17 * s - Math.abs(i - 1.5) * 0.01 * s, (0.3 - i * 0.2) * s * P.len);
+    if (P.ridge) for (let i = 0; i < 4; i++) this.part('base', 0.06 * s, (P.ridgeH || 0.07) * s, 0.07 * s, C.bone, 0, 0.17 * s - Math.abs(i - 1.5) * 0.01 * s + ((P.ridgeH || 0.07) - 0.07) * s / 2, (0.3 - i * 0.2) * s * P.len, P.ridgeGlow ? { glow: P.ridgeGlow } : {});
+    if (P.mane) for (const sx of [-1, 1]) this.part('base', 0.06 * s, 0.2 * s, 0.26 * s, C.tail || C.fur, sx * 0.15 * s * P.w, 0.06 * s, 0.3 * s * P.len); // a ruff of fur at the shoulders
     if (P.sores) for (const [x, z] of [[0.09, 0.1], [-0.08, -0.15], [0.05, -0.32]]) this.part('base', 0.06 * s, 0.05 * s, 0.06 * s, C.sore, x * s, 0.15 * s, z * s * P.len, { glow: 2 });
+    if (P.cracks) for (const [x, y, z] of [[0.15, 0.02, 0.22], [-0.15, 0.04, 0.18], [0.13, 0.05, -0.28], [-0.13, 0.0, -0.3]]) this.part('base', 0.02 * s, 0.14 * s, 0.05 * s, C.bone, x * s * P.w, y * s, z * s * P.len, { glow: 2.4 }); // embers in the hide
     // neck, head, jaw
     this.joint('neck', 'base', 0, 0.12 * s, 0.38 * s * P.len);
     this.part('neck', 0.14 * s, 0.14 * s, 0.28 * s, C.fur, 0, 0.07 * s, 0.08 * s, { rx: -0.75 });
     this.joint('head', 'neck', 0, 0.18 * s, 0.17 * s);
-    const hc = P.skull ? C.bone : C.fur;
+    const hc = P.head ? C[P.head] : (P.skull ? C.bone : C.fur);
     this.part('head', 0.2 * s, 0.17 * s, 0.22 * s, hc, 0, 0, 0.03 * s);
     this.part('head', 0.12 * s, 0.09 * s, P.snout * s, hc, 0, -0.03 * s, (0.13 + P.snout / 2) * s);
     if (P.skull) this.part('head', 0.13 * s, 0.05 * s, 0.05 * s, C.dark, 0, -0.07 * s, 0.17 * s); // the dark of the mouth
@@ -173,6 +100,17 @@ class Quadruped extends Beast {
         else if (ph.part === 'strike') { pose = { ...bite, jaw: [ph.k < 0.5 ? 0.9 : 0, 0, 0], neck: [0.9, 0, 0] }; rate = 40; }
         else { pose = mixP(bite, STAND, ph.k); rate = 12; }
       }
+    } else if (anim === 'leap') { // coiled, then stretched out flying (the sim lifts the whole body)
+      const atk = e.atk || { windup: 0.62, active: 0.98, dur: 1.3 }; const ph = phase(t, atk);
+      const coil = { ...L([0.55, 0.45], [0.45, 0.55], [-1.1, 1.75], [-1.05, 1.7]), lift: -0.18 * P.s, pitch: 0.25, neck: [0.65, 0, 0], head: [-0.5, 0, 0], jaw: [0.4, 0, 0], ...tail(0.05, 14) };
+      const fly = { ...L([-1.4, 0.3], [-1.3, 0.35], [1.2, 0.1], [1.1, 0.15]), lift: 0.05 * P.s, pitch: ph.k < 0.5 ? -0.25 : 0.3, neck: [0.1, 0, 0], head: [-0.1, 0, 0], jaw: [1.0, 0, 0], tail0: [0.4, 0, 0] };
+      if (ph.part === 'windup') { pose = coil; rate = 14; } else if (ph.part === 'strike') { pose = fly; rate = 26; } else { pose = mixP({ ...STAND, lift: -0.1 * P.s, neck: [0.6, 0, 0], jaw: [0.2, 0, 0] }, STAND, ph.k); rate = 14; }
+    } else if (anim === 'breath') { // head low and thrust forward, jaws wide, braced
+      const atk = e.atk || { windup: 0.65, active: 1.2, dur: 1.45 }; const ph = phase(t, atk);
+      const brace = { ...L([0.3, 0.2], [0.25, 0.25], [-0.75, 1.25], [-0.7, 1.2]), lift: -0.08 * P.s };
+      if (ph.part === 'windup') { pose = { ...brace, pitch: -0.15, neck: [-0.5, 0, 0], head: [0.2, 0, 0], jaw: [0.3, 0, 0], ...tail(0.05, 10) }; rate = 12; }
+      else if (ph.part === 'strike') { pose = { ...brace, pitch: 0.12, neck: [0.55, Math.sin(t * 9) * 0.15, 0], head: [-0.35, 0, 0], jaw: [1.05, 0, 0], tail0: [0.2, 0, 0] }; rate = 24; }
+      else { pose = mixP(brace, STAND, ph.k); rate = 12; }
     } else if (anim === 'hurt') {
       pose = { ...L([-0.3, 0.2], [-0.2, 0.2], [-0.2, 0.5], [-0.1, 0.5]), lift: -0.05 * P.s, pitch: -0.18, roll: Math.sin(t * 30) * 0.06, neck: [-0.4, 0.3, 0], head: [0.2, 0, 0], jaw: [0.6, 0, 0] }; rate = 30;
     } else if (anim === 'stagger') {
@@ -191,6 +129,8 @@ class Quadruped extends Beast {
 }
 
 const HOUND = { s: 1, w: 1, len: 1, deep: 1, leg: 0.27, snout: 0.2, skull: true, ridge: true, ears: 'pointed', gaitK: 3.2, tail: { n: 2, len: 0.26, w: 0.06, lift: -0.25 } };
+const FROSTWOLF = { s: 1, w: 1.05, len: 1.05, deep: 1.05, leg: 0.29, snout: 0.22, ridge: true, ridgeH: 0.12, ridgeGlow: 1.3, mane: true, ears: 'pointed', gaitK: 3.2, tail: { n: 3, len: 0.22, w: 0.08, lift: -0.1 } };
+const HELLHOUND = { s: 1, w: 1.05, len: 1, deep: 1.1, leg: 0.27, snout: 0.2, skull: true, head: 'skull', ridge: true, ridgeH: 0.11, ridgeGlow: 2.4, cracks: true, ears: 'pointed', gaitK: 3.3, tail: { n: 3, len: 0.22, w: 0.06, lift: 0.1 } };
 const RAT = { s: 0.5, w: 1.1, len: 1.05, deep: 0.9, leg: 0.19, snout: 0.22, ears: 'round', sores: true, gaitK: 4.2, tail: { n: 4, len: 0.2, w: 0.05, lift: 0.2 } };
 
 // ------------------------------------------------------------------ the gargoyle: winged stone
@@ -296,5 +236,7 @@ export function makeBeast(look) {
   if (look.rig === 'hound') return new Quadruped(look, HOUND);
   if (look.rig === 'rat') return new Quadruped(look, RAT);
   if (look.rig === 'gargoyle') return new Gargoyle(look);
-  return null;
+  if (look.rig === 'frostwolf') return new Quadruped(look, FROSTWOLF);
+  if (look.rig === 'hellhound') return new Quadruped(look, HELLHOUND);
+  return makeBeast2(look);
 }

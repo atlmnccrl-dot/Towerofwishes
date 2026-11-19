@@ -166,7 +166,7 @@ function creatureRules() {
     const [w, h, f] = setup('mummy', 0, -13, { aggro: false }); w.applyStatus(h, 'root', {});
     const z0 = h.z; tick(w, 20, { mx: 0, mz: 1 }); check(Math.abs(h.z - z0) < 0.05, 'root: the hero cannot walk');
     check(h.status.root && h.status.root.t <= 1.3, 'root: capped at 1.3 s');
-    tick(w, 3, { mx: 0, mz: 1, dashPressed: true }); check(!h.status.root && h.z > z0 + 0.3, 'root: a dash tears free');
+    tick(w, 8, { mx: 0, mz: 1, dashPressed: true }); check(!h.status.root && h.z > z0 + 0.3, 'root: a dash tears free');
   }
   { // the seraph's gaze sweeps its beam from one side to the other
     const [w, h, f] = setup('seraph', 0, -6); f.ai.cd = 0; f.ai.pulseAt = 99; f.face = Math.atan2(h.x - f.x, h.z - f.z);

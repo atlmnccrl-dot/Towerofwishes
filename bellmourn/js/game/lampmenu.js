@@ -1,5 +1,5 @@
-// The Haven's menu, beside the kneeling warden. Touch first: a rail of five big sections on the left
-// (WARDEN, SKILLS, GEAR, MERCHANT, MAP), one section open at a time in the panel on the right with a few
+// The Haven's menu, beside the kneeling warden. Touch first: a rail of six big sections on the left
+// (WARDEN, SKILLS, GEAR, MERCHANT, MAP, BESTIARY), one section open at a time in the panel on the right with a few
 // large rows, each saying what it is and what choosing it costs; one tap selects a row, the button under
 // the list does it (its label says what will happen and for how much), and ONWARD sets out. The fire and
 // the kneeling warden stay in view between the two. Keyboard: Q/E or left/right change section, up/down
@@ -10,10 +10,14 @@ import { skillRows, useSkillRow, shopStock, buy, upgradeWeapon, toggleRelic, rel
 import { DISTRICTS } from './story.js';
 import { COL } from '../engine/ui.js';
 import LEVELS from '../world/levels/index.js';
+import { FOES, BOSSES } from './defs.js';
+import { UNITS } from './units.js';
+import { BOSSES2 } from './bosses2.js';
+import { HOME, BESTIARY_TEXT, DASH_BREAKS } from './units2.js';
 
-export const SECTIONS = ['WARDEN', 'SKILLS', 'GEAR', 'MERCHANT', 'MAP'];
+export const SECTIONS = ['WARDEN', 'SKILLS', 'GEAR', 'MERCHANT', 'MAP', 'BESTIARY'];
 export const SKILLS = 1;
-const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
+const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
 const FAIL = /^(NOT ENOUGH|NO SKILL|REACH LEVEL|ALREADY|FULLY)/;
 const ROW_H = 22, HEAD_H = 11, BTN_H = 22;
 const KIND = { weapon: 'WEAPON', relic: 'RELIC', tonic: 'ONE MORE FLASK', tome: 'ONE SKILL POINT' };
@@ -86,6 +90,7 @@ export class LampMenu {
           verb: 'BUY  ' + E(it.price), disabled: S.embers < it.price, why: 'NEED ' + E(it.price), desc: it.desc, act: () => done(buy(S, it, where), 'buy') });
         return rows;
       }
+      case 'BESTIARY': return bestiaryRows(S);
       case 'MAP': {
         const next = this.district();
         return DISTRICTS.filter((id) => S.visited.includes(id) || id === next).map((id) => {
@@ -164,7 +169,7 @@ export class LampMenu {
     const ga = ui.g, a0 = ga.globalAlpha; ga.globalAlpha = a0 * Math.min(1, k * 1.4);
     const R = this.rects = { secs: [], rows: [] }; const pulse = 0.5 + 0.5 * Math.sin(g.t * 6);
     // ---- the rail: one big button per section
-    const gap = 3; const bh = Math.max(18, Math.min(24, Math.floor((ui.h - 12 - gap * 4) / 5)));
+    const NS = SECTIONS.length; const gap = 3; const bh = Math.max(16, Math.min(24, Math.floor((ui.h - 12 - gap * (NS - 1)) / NS)));
     SECTIONS.forEach((s, i) => {
       const y = y0 + 1 + i * (bh + gap); const on = i === this.sec;
       R.secs.push(ui.button(rx, y, L.railW, bh, s, { on, align: 'left' }));
@@ -172,7 +177,7 @@ export class LampMenu {
       if (guide && guide.point === 'learn' && s === 'SKILLS' && !on) { ga.globalAlpha = a0 * pulse; ui.outline(rx - 2, y - 2, L.railW + 4, bh + 4, COL.gold); ga.globalAlpha = a0; }
     });
     // keyboard and pad: what the keys do, under the rail while there is room
-    const hy = y0 + 1 + 5 * (bh + gap) + 4; const mode = g.inputMode;
+    const hy = y0 + 1 + NS * (bh + gap) + 4; const mode = g.inputMode;
     if (mode !== 'touch') {
       const hint = mode === 'pad' ? ['LB RB  SECTION', 'A  CHOOSE', 'B  ONWARD'] : ['Q E  SECTION', 'ENTER  CHOOSE', 'ESC  ONWARD'];
       hint.forEach((l, i) => { if (hy + i * 9 + 7 <= ui.h - 3) ui.text(l, rx + 1, hy + i * 9, { color: '#6a6252', shadow: false }); });
@@ -246,6 +251,7 @@ export class LampMenu {
     let lx = x + 7;
     if (row.slot !== undefined && row.slot >= 0) { ui.rect(lx, y + 4, 8, 13, on ? COL.gold : '#7a6440'); ui.text(String(row.slot + 1), lx + 4, y + 7, { align: 'center', color: '#120e0a', shadow: false }); lx += 12; }
     else if (row.slot !== undefined) lx += 12;
+    if (row.icon) { drawIcon(ui, row.icon, lx - 2, y + 5, row.locked); lx += 14; }
     const noteW = row.note ? ui.measure(row.note) + 6 : 0;
     const dim = row.locked || (row.disabled && !row.note);
     ui.text(fit(ui, row.label, x + w - 5 - noteW - lx), lx, y + 3, { color: dim ? '#6a645a' : (on ? COL.white : COL.text), shadow: false });
@@ -262,3 +268,80 @@ function arrow(ui, cx, y, dir) { for (let i = 0; i < 3; i++) ui.rect(cx - i, dir
 export function dots(ui, s, w) { s = String(s).trimEnd().replace(/[.,:]+$/, ''); while (s.length && ui.measure(s + '...') > w) { const k = s.lastIndexOf(' '); s = k > 0 ? s.slice(0, k) : s.slice(0, -1); } return s + '...'; }
 // cut a label down to a width (in buffer pixels) with a trailing dot
 export function fit(ui, s, w) { s = String(s); if (ui.measure(s) <= w) return s; while (s.length > 1 && ui.measure(s + '.') > w) s = s.slice(0, -1); return s.trimEnd() + '.'; }
+
+// ------------------------------------------------------------------ the bestiary
+// Every foe by the district where it first appears (Act I's districts, then Act II's regions), then the
+// bosses. A foe met shows its name, how many fell and a line on how it fights; one not met yet is a dark
+// silhouette with its name hidden. Rows cannot be chosen into anything: the button says how many fell.
+const ROW_ICON = {
+  hushed: 'man', ghoul: 'man', crossbow: 'man', acolyte: 'caster', brute: 'brute', warden: 'man', hound: 'hound', rat: 'rat', gargoyle: 'winged',
+  bomber: 'man', spitter: 'brute', shade: 'man', chanter: 'caster', sentinel: 'brute', knight: 'man', bat: 'bat', crab: 'crab', frostwolf: 'hound',
+  icewraith: 'wraith', yeti: 'brute', scorpion: 'scorpion', sandworm: 'worm', mummy: 'man', bonecaster: 'caster', skeleton: 'man', slime: 'slime',
+  slimelet: 'slime', cryptspider: 'spider', imp: 'winged', hellhound: 'hound', cultist: 'caster', demon: 'brute', seraph: 'eye',
+};
+const ICONS = {
+  man: ['....####....', '...######...', '...#o##o#...', '...######...', '....####....', '..########..', '.##.####.##.', '.#..####..#.', '....####....', '....#..#....', '....#..#....', '...##..##...'],
+  caster: ['....###...o.', '...#####..#.', '...#o#o#..#.', '...#####..#.', '..#######.#.', '.#########..', '...#####..#.', '...#####..#.', '..#######.#.', '..#######.#.', '.#########..', '.#########..'],
+  brute: ['.#........#.', '.##.####.##.', '..########..', '...#o##o#...', '..########..', '.##########.', '############', '##.######.##', '##.######.##', '...######...', '...##..##...', '..###..###..'],
+  hound: ['.........##.', '........####', '.#......#o##', '..#.....###.', '...#######..', '..########..', '..########..', '..##....##..', '..#.#...#.#.', '..#.#...#.#.'],
+  rat: ['........##..', '.......#o##.', '...######...', '#.#######...', '.#..#..#....'],
+  bat: ['#....##....#', '##..####..##', '###.#oo#.###', '############', '.##########.', '..#.####.#..', '.....##.....'],
+  crab: ['.o........o.', '.#........#.', '##.######.##', '#.########.#', '..##oo##....', '.##########.', '#.#.#..#.#.#'],
+  scorpion: ['.....###....', '....#...#...', '........#...', '.......#....', '..##..##....', '.#o######...', '##########..', '.#.#.#.#....'],
+  spider: ['#..#....#..#', '.#..#..#..#.', '..#.####.#..', '...######...', '..########..', '.#.##oo##.#.', '#..######..#', '..#..##..#..', '.#........#.'],
+  wraith: ['...######...', '..########..', '..#o####o#..', '..########..', '.##########.', '#.########.#', '..########..', '..#######...', '...#.##.#...', '...#..#.....'],
+  worm: ['...#####....', '..#.....#...', '..#.ooo.#...', '..#######...', '...#####....', '...#####....', '....####....', '....####....', '...######...', '.##########.'],
+  slime: ['...######...', '..########..', '.##########.', '.###o##o###.', '.##########.', '.##########.', '############'],
+  eye: ['#.##....##.#', '.#..#..#..#.', '..#.####.#..', '.##.#oo#.##.', '##..#oo#..##', '.##.####.##.', '..#..##..#..', '.#........#.', '#..........#'],
+  winged: ['#...####...#', '##.######.##', '###.#o#o.###', '####.##.####', '.##########.', '...######...', '...######...', '...##..##...', '..###..###..'],
+  crown: ['.#..#..#..#.', '.##.####.##.', '.##########.', '............', '...######...', '..#o####o#..', '..########..', '.##########.', '############', '##.######.##', '...##..##...', '..###..###..'],
+};
+const hex = (n) => '#' + Math.max(0, Math.min(0xffffff, n | 0)).toString(16).padStart(6, '0');
+function lighten(n, k = 0.35) { const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255; const f = (v) => Math.round(v + (255 - v) * k); return (f(r) << 16) | (f(g) << 8) | f(b); }
+function bodyColour(look) { const C = look.colors || {}; return C.fur ?? C.shell ?? C.jelly ?? C.robe ?? C.eye ?? C.skin ?? C.stone ?? C.tunic ?? 0x8a8070; }
+// a 12x12 pixel silhouette (centred); locked: one dark tone, no eyes
+function drawIcon(ui, ic, x, y, locked) {
+  const bm = ICONS[ic.shape] || ICONS.man; const oy = Math.floor((12 - bm.length) / 2);
+  const body = locked ? '#2c2822' : ic.body, eye = locked ? '#2c2822' : ic.eye;
+  ui.rect(x - 1, y - 1, 14, 14, locked ? '#141210' : '#1a1610');
+  bm.forEach((line, j) => { for (let i = 0; i < line.length; i++) { const c = line[i]; if (c === '#') ui.rect(x + i, y + oy + j, 1, 1, body); else if (c === 'o') ui.rect(x + i, y + oy + j, 1, 1, eye); } });
+}
+// which level a tier belongs to (Act I's districts 0-7, Act II's regions 8-11)
+function levelOfTier(tier) { for (const id in LEVELS) { const L = LEVELS[id]; if (L.tier === tier && !L.tutorial) return { id, L }; } return null; }
+
+export function bestiaryRows(S) {
+  const B = S.bestiary || {}; const visited = S.visited || [];
+  const def = (k) => FOES[k] || UNITS[k];
+  const rows = []; let met = 0, total = 0;
+  const tiers = [...new Set(Object.values(HOME))].sort((a, b) => a - b);
+  for (const tier of tiers) {
+    const lv = levelOfTier(tier); const types = Object.keys(HOME).filter((k) => HOME[k] === tier && def(k));
+    if (!types.length) continue;
+    rows.push({ head: ROMAN[tier + 1] + '  ' + (lv ? lv.L.name.toUpperCase() : 'TIER ' + (tier + 1)) });
+    for (const k of types) {
+      const D = def(k); total++;
+      // met: in the bestiary, or (saves from before it) a placed foe of a district already walked
+      const known = k in B || (!D.summon && lv && visited.includes(lv.id)); const n = B[k] || 0; if (known) met++;
+      const where = lv ? lv.L.name.toUpperCase() : 'THE CITY';
+      rows.push({
+        label: known ? D.name.toUpperCase() : '? ? ?', sub: known ? ((BESTIARY_TEXT[k] || '').split('. ')[0].replace(/\.$/, '') || 'MET') : 'NOT YET MET',
+        note: known ? (n ? 'X' + n : 'MET') : '', noteCol: known ? COL.gold : '#6a625a', locked: !known, disabled: true,
+        icon: { shape: ROW_ICON[k] || 'man', body: hex(lighten(bodyColour(D.look))), eye: hex(D.look.eyes || 0xff4030) },
+        why: known ? (n ? n + ' FELLED' : 'NOT YET FELLED') : 'NOT YET MET',
+        desc: known ? (BESTIARY_TEXT[k] || '') + ((k === 'mummy' || k === 'cryptspider') ? ' ' + DASH_BREAKS : '') : 'NOT YET MET. FIRST SEEN IN ' + where + ' (' + ROMAN[tier + 1] + ').',
+      });
+    }
+  }
+  // the bosses, district by district
+  const bossRows = [];
+  for (const id in LEVELS) {
+    const L = LEVELS[id]; const type = L.boss && L.boss.type; const D = type && (BOSSES[type] || BOSSES2[type]); if (!D) continue;
+    total++; const known = type in B || !!(S.bosses || {})[id]; if (known) met++;
+    bossRows.push({ label: known ? D.name.toUpperCase() : '? ? ?', sub: known ? (D.title || '').toUpperCase() : 'NOT YET FACED', note: ROMAN[(L.tier ?? 0) + 1] || '', noteCol: known ? COL.gold : '#6a625a',
+      locked: !known, disabled: true, icon: { shape: 'crown', body: hex(lighten(bodyColour(D.look || {}))), eye: hex((D.look && D.look.eyes) || 0xffd060) },
+      why: known ? ((S.bosses || {})[id] ? 'FELLED' : 'FACED') : 'NOT YET FACED', desc: known ? (D.title || '').toUpperCase() + '. ' + L.name.toUpperCase() + '.' : 'NOT YET FACED. IT WAITS IN ' + L.name.toUpperCase() + '.' });
+  }
+  if (bossRows.length) rows.push({ head: 'BOSSES' }, ...bossRows);
+  rows.unshift({ head: 'MET ' + met + ' OF ' + total });
+  return rows;
+}

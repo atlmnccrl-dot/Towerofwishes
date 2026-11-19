@@ -6,6 +6,7 @@ import { add, box, cyl, cone, geo, inst, mat4, solid, solidCircle, plane } from 
 import { M, cutout } from '../../engine/materials.js';
 import * as T from '../../engine/textures.js';
 import { W2, once, part, put, boulder, mound, pine, snag, q16, flame, floorGlow } from '../kit2.js';
+export { pine, snag };
 
 export const SNOW = '#c4cede', SNOW2 = '#b6c2d4', PATH = '#a4b0c2', ROCK = '#4a5262';
 const snowCap = () => M.flat(0xd2dcea);
@@ -13,22 +14,30 @@ const iceM = () => once('fm-ice', () => cutout(new THREE.MeshPhongMaterial({ col
 const iceHi = () => once('fm-icehi', () => cutout(new THREE.MeshPhongMaterial({ color: 0xcfe8f8, emissive: 0x23455e, specular: 0xffffff, shininess: 120, flatShading: true })));
 
 // ---------------------------------------------------------------- crags and rocks
-// A crag along a far side: a solid rock core whose face is broken by leaning slabs and boulders, snow
-// lying on the top and on every ledge. face: '+x' or '+z' (the side toward the walk and the camera).
+// A crag along a far side: a solid rock core hidden behind a broken face of tall faceted rocks (leaning,
+// split), snow lying on the top, on every shoulder and drifted at the foot. face: '+x' or '+z' (the side
+// toward the walk and the camera).
 export function crag(ctx, x0, z0, x1, z1, h, o = {}) {
-  const R = T.rng(Math.round(x0 * 31 + z0 * 17 + h)); const rock = W2.crag(o.tone || ROCK), dark = W2.crag('#3a404c');
-  const w = x1 - x0, d = z1 - z0; add(ctx, box(w, h, d), rock, x0 + w / 2, h / 2, z0 + d / 2);
-  add(ctx, box(w + 0.1, 0.35, d + 0.1), W2.snow(SNOW2), x0 + w / 2, h + 0.12, z0 + d / 2);
+  const R = T.rng(Math.round(x0 * 31 + z0 * 17 + h)); const rock = W2.crag(o.tone || ROCK), dark = W2.crag('#3c424e'), lite = W2.crag('#5a6272');
+  const w = x1 - x0, d = z1 - z0; const face = o.face || '+x'; const alongZ = face === '+x';
+  // the core, set back from the face, and the snow on its top
+  const bx = alongZ ? x0 : x0, bw = alongZ ? w - 0.6 : w, bz = alongZ ? z0 : z0, bd = alongZ ? d : d - 0.6;
+  add(ctx, box(bw, h * 0.92, bd), dark, bx + bw / 2, h * 0.46, bz + bd / 2);
+  const top = add(ctx, geo('fm-dome', () => new THREE.SphereGeometry(0.5, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2)), W2.snow(SNOW2), bx + bw / 2, h * 0.9, bz + bd / 2); top.scale.set(bw * 1.04, 1.1, bd * 1.04);
   solid(ctx, x0, z0, x1, z1, h);
-  const face = o.face || '+x'; const alongZ = face === '+x'; const len = alongZ ? d : w; const n = Math.max(2, Math.round(len / 1.6));
+  // the face: tall faceted rocks, each with its shoulder of snow
+  const len = alongZ ? d : w; const n = Math.max(2, Math.round(len / 1.3));
   for (let i = 0; i < n; i++) {
-    const p = (alongZ ? z0 : x0) + (i + 0.5) * len / n + (R() - 0.5) * 0.6; const sh = h * (0.45 + R() * 0.55), sw = 1 + R() * 1.1, sd = 0.7 + R() * 0.6;
-    const cx = alongZ ? x1 + sd * 0.3 : p, cz = alongZ ? p : z1 + sd * 0.3;
-    const m = add(ctx, box(alongZ ? sd : sw, sh, alongZ ? sw : sd), R() < 0.5 ? rock : dark, cx, sh / 2 - 0.1, cz, { ry: (R() - 0.5) * 0.4, rz: alongZ ? (R() - 0.5) * 0.12 : 0, rx: alongZ ? 0 : (R() - 0.5) * 0.12 });
-    add(ctx, box(alongZ ? sd + 0.08 : sw + 0.08, 0.16, alongZ ? sw + 0.08 : sd + 0.08), snowCap(), cx, sh - 0.04, cz, { ry: m.rotation.y });
-    if (R() < 0.55) boulder(ctx, cx + (alongZ ? sd * 0.6 : (R() - 0.5)), cz + (alongZ ? (R() - 0.5) : sd * 0.6), 0.7 + R() * 0.6, R() < 0.5 ? rock : dark, { solid: false });
+    const p = (alongZ ? z0 : x0) + (i + 0.5) * len / n + (R() - 0.5) * 0.5; const sh = h * (0.55 + R() * 0.5), sw = 1.3 + R() * 1.0, sd = 1.0 + R() * 0.8;
+    const cx = alongZ ? x1 - 0.5 + (R() - 0.3) * 0.5 : p, cz = alongZ ? p : z1 - 0.5 + (R() - 0.3) * 0.5;
+    const m = add(ctx, geo('fm-dodec', () => new THREE.DodecahedronGeometry(0.5, 0)), [rock, dark, lite][(R() * 3) | 0], cx, sh * 0.42, cz, { ry: R() * 6, rz: (R() - 0.5) * 0.25, rx: (R() - 0.5) * 0.25 });
+    m.scale.set(alongZ ? sd : sw, sh, alongZ ? sw : sd);
+    const cap = add(ctx, geo('fm-cap', () => new THREE.SphereGeometry(0.5, 7, 3, 0, Math.PI * 2, 0, Math.PI / 2)), W2.snow(SNOW), cx - (alongZ ? 0.1 : 0), sh * 0.42 + sh * 0.3, cz - (alongZ ? 0 : 0.1), { ry: m.rotation.y });
+    cap.scale.set((alongZ ? sd : sw) * 0.62, 0.32, (alongZ ? sw : sd) * 0.62);
+    if (R() < 0.6) boulder(ctx, cx + (alongZ ? sd * 0.55 : (R() - 0.5)), cz + (alongZ ? (R() - 0.5) : sd * 0.55), 0.6 + R() * 0.6, R() < 0.5 ? rock : lite, { solid: false });
+    if (R() < 0.5) mound(ctx, cx + (alongZ ? sd * 0.5 : 0), cz + (alongZ ? 0 : sd * 0.5), alongZ ? 1.2 : sw * 1.1, alongZ ? sw * 1.1 : 1.2, 0.4, W2.snow(SNOW), { solid: false });
   }
-  if (o.solidFace !== false) { if (alongZ) solid(ctx, x1, z0, x1 + 0.6, z1, h * 0.5); else solid(ctx, x0, z1, x1, z1 + 0.6, h * 0.5); }
+  if (o.solidFace !== false) { if (alongZ) solid(ctx, x1, z0, x1 + 0.5, z1, h * 0.5); else solid(ctx, x0, z1, x1, z1 + 0.5, h * 0.5); }
 }
 // a snowy boulder: the rock and a cap of snow on its top
 export function rock(ctx, x, z, s = 1, o = {}) {
@@ -130,7 +139,7 @@ export function standingStone(ctx, x, z, h = 3, ry = 0) {
   const m = add(ctx, box(w, h, 0.6), W2.crag('#565e6c'), x, h / 2 - 0.1, z, { ry, rz: (R() - 0.5) * 0.1 });
   add(ctx, box(w + 0.06, 0.18, 0.66), snowCap(), x, h - 0.08, z, { ry, rz: m.rotation.z });
   const rune = M.glow('#8ad8ff', 1.4);
-  for (let k = 0; k < 3; k++) part(ctx, box(0.08, 0.22, 0.02), rune, x, z, ry, (k - 1) * 0.22, h * 0.55 + (k % 2) * 0.12, 0.31);
+  for (let k = 0; k < 4; k++) { const y = h * 0.3 + k * 0.28; part(ctx, box(0.06, 0.18, 0.02), rune, x, z, ry, 0, y, 0.31); part(ctx, box(0.18, 0.05, 0.02), rune, x, z, ry, 0, y + (k % 2 ? 0.06 : -0.04), 0.31); }
   solidCircle(ctx, x, z, Math.max(w, 0.6) * 0.55, h);
 }
 // The bones of an older giant: ribs arching out of the snow (a half-torus each) and a spine ridge.
@@ -204,14 +213,24 @@ export function pennant(ctx, x, z, h = 3.2, color = 0x5a1418) {
 export function wilds(ctx, bounds, walks, o = {}) {
   const R = T.rng(o.seed || 909); const [bx0, bz0, bx1, bz1] = bounds; const pad = 0.9;
   const inWalk = (x, z, p) => walks.some((r) => x > r[0] - p && x < r[2] + p && z > r[1] - p && z < r[3] + p);
-  const nearSide = (x, z) => walks.some((r) => z > r[1] - 1 && z < r[3] + 1 && x > r[2] && x < r[2] + 9) || walks.some((r) => x > r[0] - 1 && x < r[2] + 1 && z > r[3] && z < r[3] + 9);
+  // how tall a thing may stand here without hiding a walk: the camera looks along (-1, -1), so a thing h
+  // tall hides about 1.25 h of ground behind it that way
+  const room = (x, z) => { for (let t = 0; t < 12; t += 0.5) { const k = t / Math.SQRT2; if (inWalk(x - k, z - k, 0.8)) return t / 1.25; } return 99; };
   const skip = o.skip || [];
   for (let z = bz0 - 6; z < bz1 + 8; z += 1.6) for (let x = bx0 - 8; x < bx1 + 8; x += 1.6) {
     const jx = x + (R() - 0.5) * 1.4, jz = z + (R() - 0.5) * 1.4;
     if (inWalk(jx, jz, pad) || skip.some((s) => jx > s[0] && jx < s[2] && jz > s[1] && jz < s[3])) continue;
-    const k = R(); const near = nearSide(jx, jz) && !walks.some((r) => jx < r[0] && jz > r[1] - 2 && jz < r[3]);
-    if (near) { if (k < 0.32) pine(ctx, jx, jz, 1.4 + R() * 1.2, { solid: false }); else if (k < 0.5) rock(ctx, jx, jz, 0.6 + R() * 0.7, { solid: false }); else if (k < 0.66) drift(ctx, jx, jz, 1.6 + R(), 1.4 + R(), 0.5 + R() * 0.4, { solid: false }); }
-    else { if (k < 0.55) pine(ctx, jx, jz, 4.5 + R() * 3.5, { solid: false }); else if (k < 0.66) rock(ctx, jx, jz, 0.9 + R() * 1.1, { solid: false }); else if (k < 0.7) snag(ctx, jx, jz, 2.6 + R() * 1.5, 0x1e1a18, { solid: false }); }
+    const k = R(), hMax = room(jx, jz);
+    if (hMax < 3.5) { if (k < 0.3 && hMax > 1.3) pine(ctx, jx, jz, Math.min(hMax, 1.4 + R() * 1.2), { solid: false }); else if (k < 0.48) rock(ctx, jx, jz, 0.5 + R() * 0.6, { solid: false }); else if (k < 0.64) drift(ctx, jx, jz, 1.6 + R(), 1.4 + R(), 0.4 + R() * 0.3, { solid: false }); }
+    else { if (k < 0.55) pine(ctx, jx, jz, Math.min(hMax, 4.5 + R() * 3.5), { solid: false }); else if (k < 0.66) rock(ctx, jx, jz, 0.9 + R() * 1.1, { solid: false }); else if (k < 0.7) snag(ctx, jx, jz, Math.min(hMax, 2.6 + R() * 1.5), 0x1e1a18, { solid: false }); }
+  }
+}
+// Dead grass poking through the snow and dark patches where the wind bared the ground (on the walks).
+export function tufts(ctx, rects, n = 40, seed = 5) {
+  const R = T.rng(seed); const grass = M.flat(0x7a7254), dry = M.flat(0x5a5440);
+  for (const [x0, z0, x1, z1] of rects) for (let i = 0; i < n; i++) {
+    const x = x0 + R() * (x1 - x0), z = z0 + R() * (z1 - z0); const m = R() < 0.5 ? grass : dry;
+    for (let k = 0; k < 4; k++) inst(ctx, 'fm-tuft' + (m === grass ? 'a' : 'b'), box(0.03, 0.26, 0.03), m, mat4(x + (R() - 0.5) * 0.2, 0.1, z + (R() - 0.5) * 0.2, 0, (R() - 0.5) * 0.7, (R() - 0.5) * 0.7));
   }
 }
 // A row of wooden stakes, half buried (a snow fence), along a line.

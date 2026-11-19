@@ -46,6 +46,19 @@ fire in the city still burns.
 | VII | The Crown Heights | The Pale Regent |
 | VIII | The Belfry | Saint Silence |
 
+The bell rings: the end of Act I. Then **Act II, beyond the walls** (the names are proposals): the Haven
+opens on the lands the silence came from.
+
+| | Region | Weather and light | Boss |
+|---|---|---|---|
+| IX | The Frostmarch | falling snow, a cold blue moon; crags, firs, the frozen river and its waterfall, a bell-tower locked in ice, the giant's cirque under the glacier | The Hoarfrost King |
+| X | The Ash Dunes | a hot wind full of sand, a low amber moon; rock-cut tombs, the sunken colonnade, half-buried colossi and guardian beasts, the sinking bowl | Ashmaw |
+| XI | The Catacombs | no sky, dust in the torchlight; walls of loculi and skulls, cages and chains in the dark, the chasm bridge, the hall of sarcophagi, green witchfire | Abbot Morrow |
+| XII | The Abyss | embers rising, ash falling, the dark breathing red; basalt islands over the void, rivers of fire, ritual circles, chained altars, obsidian spires, a wheel of eyes overhead | The Hollow Archon |
+
+After the Archon falls the closing ending plays, at dawn. Act II's fights lock with their own barriers (ice
+that bursts from the snow, sandstone slabs, portcullises, teeth of black glass) instead of iron gates.
+
 ## The wardens
 
 | Warden | Weapon | Attack | Skills | Ultimate |
@@ -82,7 +95,7 @@ warden levels on their own.
   There are no finishers.
 - **Tonics**: drinking one shows the flask going up, green-gold motes rising round the warden, a ring at
   the feet and the health landing (the bar's new part flashes green, "+amount" over the head).
-- Burn, bleed, poison, frost, stun and root. **Elite** foes glow with an affix (burning, frozen,
+- Burn, bleed, poison, frost, stun and root. A dash tears you free of a web or a curse. **Elite** foes glow with an affix (burning, frozen,
   shielded, hasted, vampiric), hit harder and drop more.
 - **Lamps** in a district are checkpoints and light themselves: walk within about 3.5 m of one while the
   area is clear (no foe hunting you within 12 m, no locked fight or boss under way) and it flares up with
@@ -94,7 +107,8 @@ warden levels on their own.
   between the menu's two halves. On the left a rail of five big sections: WARDEN (switch warden), SKILLS
   (five ranks per skill, swap the third into slot 2; a gold badge counts unspent points), GEAR (temper and
   change weapons, each warden has five; relics, fourteen, two slots and a third after District IV),
-  MERCHANT (stocked for the district ahead) and MAP (any district already reached). On the right the open
+  MERCHANT (stocked for the district ahead), MAP (any district already reached) and BESTIARY (every foe met,
+  locked silhouettes for the rest, and where each first appears; a foe slain for the first time says NEW IN THE BESTIARY). On the right the open
   section: a few large rows, each with its name, a second line saying what it is and, on the right, what
   choosing it costs or its state (1 PT, 288 E, IN HAND, WORN, LOCKED). One tap selects a row; the button
   under the list says what it will do and for how much (LEARN 1 PT, TEMPER 40 E, BUY 288 E, EQUIP, SET
@@ -122,16 +136,17 @@ warden levels on their own.
 | `vendor/` | three.js r170 (MIT) and its BufferGeometryUtils |
 | `js/main.js` | boot and the frame loop, dynamic resolution |
 | `js/engine/renderer.js` | the pixel pipeline: low-res render target, snapped iso camera, bloom, grade, dither, fades |
-| `js/engine/textures.js` | procedural pixel textures (cobbles, paving, brick, ashlar, slate, wood, windows, rose window, flame) |
+| `js/engine/textures.js` | procedural pixel textures (cobbles, paving, brick, ashlar, slate, wood, windows, rose window, flame; snow, ice, sand, sandstone, crag, catacomb stone, tomb floor, basalt, obsidian, hell brick, lava, ritual sigils, eyes) |
 | `js/engine/materials.js` | world-mapped materials and the see-through cut around the hero |
-| `js/engine/atmos.js` | fog, moon and fill light, moonbeams, the point-light pool, rain, splashes, lightning |
+| `js/engine/atmos.js` | fog, moon and fill light, moonbeams, the point-light pool, rain, splashes, lightning; Act II's weather (snow, sand, embers and ash, dust), a grade and a pulse of the sky light per place |
 | `js/engine/fx.js` | sword trails, pixel particles, blood, telegraphs, hazards, projectiles, afterimages |
 | `js/engine/ui.js` | the 5x7 pixel font, HUD, menus, cards, touch buttons |
 | `js/engine/input.js` | keyboard, mouse, gamepad and touch, screen-relative movement |
 | `js/engine/audio.js` | synthesised rain, thunder, steel, bells, organ, choir and drums |
 | `js/world/kit.js` | the set kit (walls, houses, chapel, iron fences and gates, lamps, props) |
 | `js/world/level.js`, `js/world/levels/*.js` | the districts (layout, lamps, foes, locked-gate fights, boss, exit) |
-| `js/world/props/*.js` | props made for one district |
+| `js/world/props/*.js` | props made for one district or region |
+| `js/world/kit2.js` | the Act II kit: world-mapped snow, ice, sand, sandstone, catacomb stone, basalt and obsidian, the barriers that lock Act II's fights, boulders, mounds, firs, braziers, glows, chains |
 | `js/actors/rig.js`, `anims.js`, `view.js` | articulated characters, their poses and clips, and the sim-to-rig view |
 | `js/game/sim.js` | the fight simulation: pure, fixed 60 Hz, deterministic; runs in Node (hero kits, abilities, ultimates, statuses, elites, relic effects) |
 | `js/game/heroes.js` | the four wardens, abilities, ultimates, weapons, relics, elite affixes, growth curves (pure data) |
@@ -142,7 +157,7 @@ warden levels on their own.
 | `js/game/defs.js` | the first foes and bosses (pure data) |
 | `js/game/ai.js` | foe and boss behaviour (pure) |
 | `js/game/bot.js`, `autoplay.js` | an autoplayer for tests |
-| `js/game/story.js` | the opening, the districts, the gifts, the ending |
+| `js/game/story.js` | the opening, the districts and Act II's regions, the end of Act I, the way into Act II, the closing ending |
 | `js/game/game.js` | states, levels, encounters, bosses, the self-lighting checkpoint lamps, the Haven state, saves, settings, the title, select, pause, settings and controls screens, events to effects |
 
 ## Tests
@@ -163,7 +178,7 @@ NODE_PATH=$(npm root -g) node bellmourn/test/shot.js /tmp/x.png "level=nave&boss
 ```
 
 Debug URL parameters: `?level=<id>` starts in a district (prologue, gate, market, docks, nave,
-undercroft, foundry, heights, belfry), `&lamp=<id>` at a lamp, `&boss=1` in the boss arena, `&hero=<id>`
+undercroft, foundry, heights, belfry, frostmarch, ashdunes, catacombs, abyss), `&lamp=<id>` at a lamp, `&boss=1` in the boss arena, `&hero=<id>`
 as a given warden, `&god=1` makes the hero unkillable, `?auto=1&speed=3` plays itself (through the
 Haven too: it spends, equips and goes ONWARD). `?level=haven&next=<id>` opens the Haven leading to a
 district (`&resume=1` already kneeling, `&intro=1` with the first-visit guide).

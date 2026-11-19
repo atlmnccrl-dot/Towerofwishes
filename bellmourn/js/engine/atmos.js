@@ -125,7 +125,7 @@ export class Atmos {
     if (!this.wx) this._weatherInit();
     const W = this.wx; const C = {
       snow: { a: [700, 0xdce8f8, 1, 0.85, false], b: [150, 0xf0f6ff, 2, 0.9, false], H: 18 },
-      sand: { a: [900, 0xe8b070, 1, 0.55, false], b: [260, 0xb88450, 2, 0.22, false], H: 7 },
+      sand: { a: [900, 0xd8c4a4, 1, 0.5, false], b: [260, 0xa89478, 2, 0.2, false], H: 7 },
       embers: { a: [240, 0xff7a30, 1, 1, true], b: [400, 0x6a5452, 1, 0.75, false], H: 14 },
       dust: { a: [220, 0xc8a070, 1, 0.35, true], b: [0, 0, 1, 0, false], H: 5 },
     }[kind] || { a: [0, 0, 1, 0], b: [0, 0, 1, 0], H: 10 };

@@ -4,6 +4,7 @@
 // district. The first visit carries a short guide. The scene itself is world/haven.js.
 import * as THREE from '../../vendor/three.module.min.js';
 import { COL } from '../engine/ui.js';
+import { ACT2 } from './story.js';
 
 const WALK = 1.75;             // m/s, walking in and out
 const KNEEL = 0.6, RISE = 0.7; // the clips' lengths (anims.js)
@@ -168,7 +169,7 @@ export class Haven {
     if (this.cardT < 6) {
       const a = Math.min(1, this.cardT * 1.2, Math.max(0, (5.5 - this.cardT) * 1.2)); const cx = this.phase === 'arrive' ? Math.round(W / 2) : freeC;
       const big = this.phase === 'arrive' || ui.measure('THE HAVEN', 2) <= freeW + 16;
-      if (a > 0) { ui.text('BETWEEN THE DISTRICTS', cx, 14, { align: 'center', color: COL.red, alpha: a }); ui.text('THE HAVEN', cx, 25, { align: 'center', color: COL.white, scale: big ? 2 : 1, alpha: a }); }
+      if (a > 0) { ui.text(ACT2.includes(this.next) ? 'ACT II: BEYOND THE WALLS' : 'BETWEEN THE DISTRICTS', cx, 14, { align: 'center', color: COL.red, alpha: a }); ui.text('THE HAVEN', cx, 25, { align: 'center', color: COL.white, scale: big ? 2 : 1, alpha: a }); }
     }
     if (!active) { this.pauseRect = null; return; } // paused (or the controls, the settings): their own screen, not the menu under it
     // the first visit's guide speaks inside the panel, where the description goes, and points at what it means

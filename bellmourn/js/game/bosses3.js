@@ -33,9 +33,9 @@ const ADD_TIER = { frostgiant: 7, sandwyrm: 8, lich: 8, archon: 9 };
 // ------------------------------------------------------------------ helpers
 const known = (type) => !!(FOES[type] || UNITS[type]);
 // summon the first registered key of `list` (the Act II unit, then its stand-in); capped per type and in all
-function call(w, e, list, n, tier, radius = 5, cap = 2) {
+function call(w, e, list, n, tier, radius = 5, cap = 2, total = 5) {
   const type = list.find(known); if (!type) return 0;
-  const room = Math.min(n, cap - countOf(w, type), 5 - adds(w, e)); if (room <= 0) return 0;
+  const room = Math.min(n, cap - countOf(w, type), total - adds(w, e)); if (room <= 0) return 0;
   summon(w, e, type, room, tier, radius); return room;
 }
 const countAny = (w, list) => list.reduce((s, t) => s + countOf(w, t), 0);
@@ -106,9 +106,10 @@ function frostExtra(rig, part, box) {
   for (const [x, y, z, rx, rz] of [[0.2, 0, 1.0, 0, 1.57], [-0.2, 0, 1.12, 0, -1.57], [0.2, 0, 1.3, 0, 1.4], [-0.2, 0.05, 1.36, 0, -1.4], [0, 0.22, 1.08, 0, 0], [0, -0.28, 1.2, 0, 0], [0, 0.2, 1.38, 0.3, 0], [0, -0.04, 1.5, 1.57, 0]]) W(part('haR', box(0.06, 0.24, 0.06), glow, x, y, z, { glow: 1.6, rx, rz }));
   rig.tip.position.set(0, -0.04, 1.5); rig.bladeLen = 1.5;
   // a beard of frozen hair ending in icicles, and a crown of ice spikes
-  part('head', box(0.22, 0.16, 0.08), pale, 0, 0.03, 0.13);
-  for (let i = -2; i <= 2; i++) part('head', box(0.035, 0.1 + (2 - Math.abs(i)) * 0.05, 0.035), glow, i * 0.045, -0.07 - (2 - Math.abs(i)) * 0.025, 0.14, { glow: 1.5 });
-  for (let i = 0; i < 7; i++) { const a = i / 7 * TAU; part('head', box(0.045, 0.12 + (i % 2) * 0.08, 0.045), ice, S(a) * 0.12, 0.3 + (i % 2) * 0.04, C(a) * 0.12, { rz: S(a) * 0.35, rx: -C(a) * 0.35, ...ie }); }
+  const hs = 0.3; // look.headSize
+  part('head', box(0.28, 0.17, 0.08), pale, 0, 0.05, hs / 2 + 0.02);
+  for (let i = -2; i <= 2; i++) part('head', box(0.04, 0.1 + (2 - Math.abs(i)) * 0.05, 0.04), glow, i * 0.055, -0.06 - (2 - Math.abs(i)) * 0.025, hs / 2 + 0.03, { glow: 1.5 });
+  for (let i = 0; i < 7; i++) { const a = i / 7 * TAU; part('head', box(0.05, 0.14 + (i % 2) * 0.09, 0.05), ice, S(a) * 0.15, hs + 0.08 + (i % 2) * 0.04, C(a) * 0.15, { rz: S(a) * 0.35, rx: -C(a) * 0.35, ...ie }); }
   // glacier pauldrons with spikes, ice crusted on the forearms
   for (const side of ['L', 'R']) {
     const sx = side === 'L' ? 1 : -1;
@@ -118,10 +119,13 @@ function frostExtra(rig, part, box) {
     part('el' + side, box(0.21, 0.12, 0.21), ice, 0, -0.08, 0, ie);
   }
   // a fur collar, shards of the glacier grown through his back, and the heart of ice in his chest
-  part('chest', box(0.66, 0.15, 0.4), fur, 0, 0.3, -0.01);
+  part('chest', box(0.6, 0.08, 0.36), fur, 0, 0.26, -0.02);
   for (const [x, y, rz] of [[-0.18, 0.24, 0.5], [0.05, 0.3, -0.15], [0.2, 0.18, -0.6], [-0.05, 0.08, 0.2]]) part('chest', box(0.09, 0.4, 0.09), ice, x, y, -0.2, { rx: -0.6, rz, ...ie });
   part('chest', box(0.14, 0.14, 0.02), glow, 0, 0.12, 0.205, { glow: 3 });
   for (const sx of [-1, 1]) part('chest', box(0.04, 0.24, 0.02), glow, sx * 0.1, 0.12, 0.204, { glow: 1.6, rz: sx * 0.6 });
+  // frost crusted over the belly and thighs, faintly lit from inside
+  part('spine', box(0.5, 0.16, 0.03), ice, 0, 0.04, 0.2, ie);
+  for (const side of ['L', 'R']) part('hip' + side, box(0.2, 0.2, 0.03), ice, 0, -0.18, 0.115, ie);
   // a belt of trophies: frozen skulls
   for (const sx of [-1, 0, 1]) part('spine', box(0.08, 0.08, 0.07), 0xd8d4c8, sx * 0.16, -0.02, 0.2);
 }
@@ -129,7 +133,7 @@ function frostExtra(rig, part, box) {
 // PROPOSAL: Ashmaw, a wyrm of the deep sand that rises like a man from the waist: a hooded serpent head with
 // mandibles, scythe-claws on its forearms, a coil where its legs should be and a long tail behind it.
 function wyrmExtra(rig, part, box) {
-  const sand = 0xc49456, dark = 0x7a4e24, belly = 0xe2c48e, bone = 0xf0e0c0, eye = 0xffc030, hood = 0x9a6430;
+  const sand = 0xc49456, dark = 0x8a5a2c, belly = 0xe2c48e, bone = 0xf0e0c0, eye = 0xffc030, hood = 0xb47e44;
   for (const j of ['hipL', 'hipR']) rig.j[j].visible = false;
   // the coil rising out of the sand into the waist, belly plates in front
   part('hips', box(0.5, 0.98, 0.46), sand, 0, -0.48, -0.02);
@@ -184,6 +188,12 @@ function lichExtra(rig, part, box) {
   // tatters hanging from the hem of the robe, a cowl of bone over the shoulders
   for (let i = 0; i < 7; i++) part('hips', box(0.07, 0.18 + (i % 3) * 0.08, 0.03), rag, -0.18 + i * 0.06, -0.6 - (i % 3) * 0.04, 0.13);
   for (const side of ['L', 'R']) part('sh' + side, box(0.18, 0.1, 0.18), bone, 0, 0.05, 0);
+  // an abbot's mitre of yellowed bone over the hood, a green cross burning on it; green runes on the hem
+  part('head', box(0.2, 0.22, 0.14), old, 0, 0.42, -0.02);
+  part('head', box(0.14, 0.1, 0.1), old, 0, 0.57, -0.02);
+  part('head', box(0.03, 0.14, 0.02), green, 0, 0.45, 0.055, { glow: 2.4 });
+  part('head', box(0.1, 0.03, 0.02), green, 0, 0.47, 0.055, { glow: 2.4 });
+  for (let i = 0; i < 5; i++) part('hips', box(0.05, 0.05, 0.02), green, -0.16 + i * 0.08, -0.46, 0.15, { glow: 2 });
   // the staff's head: a skull with a crescent of bone round the green flame
   rig.weapon.add(part('haR', box(0.15, 0.15, 0.15), bone, 0, -0.05, 1.38));
   for (const sx of [-1, 1]) { rig.weapon.add(part('haR', box(0.04, 0.04, 0.26), old, sx * 0.12, -0.05, 1.22, { ry: sx * 0.5 })); rig.weapon.add(part('haR', box(0.03, 0.03, 0.02), green, sx * 0.04, -0.03, 1.46, { glow: 3 })); }
@@ -200,27 +210,27 @@ function lichExtra(rig, part, box) {
 // PROPOSAL: the Hollow Archon, the gnostic ruler of the false world: a robed figure with a golden mask and a
 // third eye, six wings set with eyes, a burning halo and two rings of sigils turning about it.
 function archonExtra(rig, part, box) {
-  const gold = 0xe8c060, fire = 0xffa030, white = 0xf0e8d8, crimson = 0x5a0c18, eye = 0xff2a18;
+  const gold = 0xe8c060, fire = 0xffa030, white = 0xf0e8d8, crimson = 0x8a1a2a, eye = 0xff2a18;
   // the third eye and a sunburst of gold behind the mask
   part('head', box(0.05, 0.07, 0.03), eye, 0, 0.2, 0.17, { glow: 3 });
   // a burning halo behind the head (outer fire, inner gold) that turns
-  const halo = group(rig, rig.j.head, 0, 0.2, -0.2); const inner = group(rig, rig.j.head, 0, 0.2, -0.22);
-  for (let i = 0; i < 14; i++) { const a = i / 14 * TAU; halo.add(part('head', box(0.1, 0.035, 0.03), fire, S(a) * 0.34, C(a) * 0.34, 0, { glow: 3, rz: -a + Math.PI / 2 })); }
-  for (let i = 0; i < 8; i++) { const a = i / 8 * TAU; inner.add(part('head', box(0.03, 0.12, 0.02), gold, S(a) * 0.22, C(a) * 0.22, 0, { glow: 2.2, rz: -a })); }
+  const halo = group(rig, rig.j.head, 0, 0.24, -0.2); const inner = group(rig, rig.j.head, 0, 0.24, -0.22);
+  for (let i = 0; i < 20; i++) { const a = i / 20 * TAU; halo.add(part('head', box(0.13, 0.045, 0.03), fire, S(a) * 0.4, C(a) * 0.4, 0, { glow: 3, rz: -a })); }
+  for (let i = 0; i < 12; i++) { const a = i / 12 * TAU; inner.add(part('head', box(0.08, 0.025, 0.02), gold, S(a) * 0.3, C(a) * 0.3, 0, { glow: 2, rz: -a })); }
   // six wings in three pairs, dark crimson edged in gold, each with eyes
   const wings = [];
   for (const [y, rz] of [[0.34, 0.75], [0.22, 0.1], [0.08, -0.55]]) for (const sx of [-1, 1]) {
     const g = group(rig, rig.j.chest, sx * 0.1, y, -0.17); g.rotation.set(0, sx * 0.5, sx * rz); wings.push({ g, sx, rz });
     const L = 0.85 - Math.abs(rz) * 0.2;
     g.add(part('chest', box(L, 0.16, 0.03), crimson, sx * L / 2, 0, 0));
-    g.add(part('chest', box(L, 0.035, 0.035), gold, sx * L / 2, 0.08, 0));
+    g.add(part('chest', box(L, 0.035, 0.035), gold, sx * L / 2, 0.08, 0, { glow: 1.3 }));
     for (let k = 0; k < 2; k++) { const x = sx * L * (0.4 + k * 0.32); g.add(part('chest', box(0.08, 0.07, 0.04), white, x, -0.01, 0.005)); g.add(part('chest', box(0.035, 0.035, 0.05), eye, x, -0.01, 0.01, { glow: 3 })); }
   }
   // two rings of sigils round the body at different tilts, turning opposite ways
   const rings = [];
-  for (const [R, tilt, col, n] of [[0.78, 0.38, gold, 14], [1.02, -0.3, eye, 18]]) {
+  for (const [R, tilt, col, n] of [[0.78, 0.38, gold, 16], [1.02, -0.3, eye, 20]]) {
     const g = group(rig, rig.body, 0, 0.95, 0); g.rotation.x = tilt; const sp = group(rig, g); rings.push(sp);
-    for (let i = 0; i < n; i++) { const a = i / n * TAU; sp.add(part('hips', i % 2 ? box(0.05, 0.05, 0.05) : box(0.14, 0.025, 0.035), col, S(a) * R, 0, C(a) * R, { glow: 2.6, ry: a })); }
+    for (let i = 0; i < n; i++) { const a = i / n * TAU; sp.add(part('hips', col === gold ? box(0.16, 0.025, 0.03) : box(0.06, 0.04, 0.04), col, S(a) * R, 0, C(a) * R, { glow: col === gold ? 2.4 : 2, ry: a })); }
   }
   // the sceptre: an eye in a star of gold
   rig.weapon.add(part('haR', box(0.34, 0.03, 0.03), gold, 0, -0.05, 1.28));
@@ -240,7 +250,7 @@ function archonExtra(rig, part, box) {
 export const BOSSES3 = {
   frostgiant: {
     name: 'The Hoarfrost King', title: 'Whose Breath Stilled the Pass', hp: 7400, poise: 999, speed: 2.3, r: 1.0, mass: 11, scale: 2.15, boss: true,
-    look: { weapon: 'none', eyes: 0x9ff6ff, bulk: 1.7, cloak: true, cloakLen: [0.4, 0.4, 0.36], colors: { skin: 0x7e9cb4, hair: 0xeef4f8, tunic: 0x4a5866, pants: 0x3a4652, boots: 0x2a323a, glove: 0x9cc8e0, shoulder: 0xbfe8ff, belt: 0x3a2e24, cloak: 0xdfe6ea, cloakDark: 0xaab4bc }, extra: frostExtra },
+    look: { weapon: 'none', eyes: 0x9ff6ff, bulk: 1.7, headSize: 0.3, longHair: true, cloak: true, cloakLen: [0.4, 0.4, 0.36], colors: { skin: 0x9ab8cc, hair: 0xeef4f8, tunic: 0x8a9cb0, pants: 0x5a6a7c, boots: 0x46525e, glove: 0x9cc8e0, shoulder: 0xbfe8ff, belt: 0x3a2e24, cloak: 0xdfe6ea, cloakDark: 0xaab4bc }, extra: frostExtra },
   },
   sandwyrm: {
     name: 'Ashmaw', title: 'The Wyrm Beneath the Dunes', hp: 7900, poise: 999, speed: 3.0, r: 0.95, mass: 10, scale: 1.9, boss: true,
@@ -248,7 +258,7 @@ export const BOSSES3 = {
   },
   lich: {
     name: 'Abbot Morrow', title: 'Who Keeps the Dead at Prayer', hp: 8400, poise: 999, speed: 3.1, r: 0.7, mass: 7, scale: 1.8, boss: true, hover: true,
-    look: { weapon: 'staff', orb: 0x9aff70, hood: true, eyes: 0x9aff50, crown: 0xd8d0b8, crownGlow: true, skirt: 0x221a2a, cloak: true, cloakLen: [0.42, 0.44, 0.42], claws: 0xe4dcc4, colors: { skin: 0xd8d0bc, tunic: 0x2e2438, pants: 0x221a2a, boots: 0x16121a, hood: 0x2a2030, glove: 0xd8d0bc, shoulder: 0x3a2e44, belt: 0x4a3a2a, cloak: 0x2a2030, cloakDark: 0x1a141e }, extra: lichExtra },
+    look: { weapon: 'staff', orb: 0x9aff70, hood: true, eyes: 0x9aff50, skirt: 0x463a50, cloak: true, cloakLen: [0.42, 0.44, 0.42], cloakGlow: 0x0a1608, claws: 0xe4dcc4, colors: { skin: 0xd8d0bc, tunic: 0x4e405e, pants: 0x3a3046, boots: 0x16121a, hood: 0x4a3e58, glove: 0xd8d0bc, shoulder: 0x3a2e44, belt: 0x6a5a3a, cloak: 0x3e3250, cloakDark: 0x2c2438 }, extra: lichExtra },
   },
   archon: {
     name: 'The Hollow Archon', title: 'Who Tolled the False World into Being', hp: 9000, poise: 999, speed: 2.7, r: 0.9, mass: 9, scale: 2.05, boss: true, hover: true,
@@ -498,9 +508,9 @@ const archon = {
       { id: 'brand', w: 2.4, max: 3.6, a: quick(strike({ name: 'brand', anim: 'sweep', range: 3.7, arc: deg(210), windup: 0.7, active: 0.84, dur: 1.4, dmg: 20 * K, kb: 8, lunge: 1.2 }), k) },
     ];
     if (p >= 2) {
-      m.push({ id: 'rite', w: 1, cd: 24, run: (w, e) => { call(w, e, CULT, 2, ADD_TIER.archon, 6, 3); roarPause(e); } });
+      m.push({ id: 'rite', w: 1, cd: 24, run: (w, e) => { call(w, e, CULT, 2, ADD_TIER.archon, 6, 2, 4); roarPause(e); } });
       m.push({ id: 'feed', w: 1.6, cd: 6, run: (w, e) => { if (feed(w, e, K)) roarPause(e, 0.2); else w.foeAttack(e, { name: 'gaze', anim: 'aim', dur: 1.5, windup: 0.5, active: 0.52, tele: 'none', dmg: 0, heavy: true, onStrike: (w2, e2) => gaze(w2, e2, K, 1) }); } });
-      m.push({ id: 'host', w: 0.9, cd: 22, run: (w, e) => { const pick = (e.ai.host = ((e.ai.host || 0) + 1) % 3); if (pick === 0) call(w, e, HOUND, 2, ADD_TIER.archon, 5); else if (pick === 1) call(w, e, IMP, 2, ADD_TIER.archon, 6); else call(w, e, SERAPH, 1, ADD_TIER.archon, 6, 1); roarPause(e); } });
+      m.push({ id: 'host', w: 0.9, cd: 22, run: (w, e) => { const pick = (e.ai.host = ((e.ai.host || 0) + 1) % 3); if (pick === 0) call(w, e, HOUND, 2, ADD_TIER.archon, 5, 2, 4); else if (pick === 1) call(w, e, IMP, 2, ADD_TIER.archon, 6, 2, 4); else call(w, e, SERAPH, 1, ADD_TIER.archon, 6, 1, 4); roarPause(e); } });
       m.push({ id: 'ascend', w: 0.8, max: 3, cd: 8, run: (w, e) => { blink(w, e, w.hero); spot(w, e, e.x, e.z, 2.2, { warn: 0.5, life: 0.3, dmg: 16 * K, kind: KIND.sigil, kb: 8 }); e.ai.cd = 0.4; } });
     }
     if (p >= 3) m.push({ id: 'sun', w: 1.3, cd: 12, run: (w, e) => startRite(e, 'sun', { a0: w.rand() * TAU, dir: w.rand() < 0.5 ? 1 : -1 }) });
@@ -519,8 +529,8 @@ const archon = {
     return t < 4.7;
   },
   onPhase(w, e, p) {
-    if (p === 2) { ward(w, e, 0.06); call(w, e, CULT, 2, ADD_TIER.archon, 6, 3); }
-    if (p === 3) { e.speed *= 1.1; call(w, e, IMP, 2, ADD_TIER.archon, 6); startRite(e, 'sun', { a0: w.rand() * TAU, dir: 1 }); }
+    if (p === 2) { ward(w, e, 0.06); call(w, e, CULT, 2, ADD_TIER.archon, 6, 2, 4); }
+    if (p === 3) { e.speed *= 1.1; call(w, e, IMP, 2, ADD_TIER.archon, 6, 2, 4); startRite(e, 'sun', { a0: w.rand() * TAU, dir: 1 }); }
   },
 };
 
