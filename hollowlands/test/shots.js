@@ -1,0 +1,51 @@
+// Screenshots of key places at phone-landscape size + console errors.
+// NODE_PATH=$(npm root -g) node test/shots.js /tmp/hl-shots
+const { chromium } = require('playwright');
+const path = require('path'), fs = require('fs');
+const { start } = require('./serve');
+(async () => {
+  const out = process.argv[2] || '/tmp/hl-shots';
+  fs.mkdirSync(out, { recursive: true });
+  const srv = await start(path.resolve(__dirname, '..'));
+  const url = `http://localhost:${srv.address().port}/index.html`;
+  const browser = await chromium.launch();
+  const page = await browser.newPage({ viewport: { width: 844, height: 390 }, deviceScaleFactor: 1, hasTouch: true });
+  const errors = [];
+  page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+  page.on('pageerror', (e) => errors.push(String(e.stack || e)));
+  await page.goto(url);
+  await page.waitForTimeout(2500);
+  await page.screenshot({ path: `${out}/00-title.png` });
+  await page.evaluate(() => HL.G.newGame());
+  await page.waitForTimeout(800);
+  await page.screenshot({ path: `${out}/01-start.png` });
+  const at = async (name, x, y, map, wait = 600) => {
+    await page.evaluate(([x, y, map]) => { const G = HL.G; if (map && G.world.id !== map) G.loadMap(map, x, y); HLDebug.tp(x, y); }, [x, y, map]);
+    await page.waitForTimeout(wait);
+    await page.screenshot({ path: `${out}/${name}.png` });
+  };
+  const T = (t) => t * 8 + 4;
+  await at('02-village', T(40), T(52));
+  await at('03-chapel', T(39), T(38));
+  await at('04-houseA-inside', T(29), T(43));
+  await at('05-forest', T(90), T(46));
+  await at('06-bridge', T(110), T(54));
+  await at('07-stones', T(120), T(30));
+  await at('08-camp', T(136), T(60));
+  await at('09-tower', T(162), T(54));
+  await at('10-crypt-entry', T(23), T(40), 'crypt1');
+  await at('11-crypt-hall', T(23), T(28), 'crypt1');
+  await at('12-reso', T(41), T(27), 'crypt1');
+  await at('13-crank', T(23), T(15), 'crypt1');
+  await at('14-boss', T(19), T(24), 'crypt2', 2500);
+  await page.evaluate(() => HL.G.openMenu('items'));
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${out}/15-menu.png` });
+  await page.evaluate(() => { HL.UI.menu.tab = 'map'; });
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${out}/16-map.png` });
+  const perf = await page.evaluate(() => new Promise((res) => { HL.G.closeMenu(); HL.G.loadMap('ashwick', 90 * 8, 46 * 8); let n = 0; const t0 = performance.now(); const f = () => { n++; if (n < 120) requestAnimationFrame(f); else res((performance.now() - t0) / n); }; requestAnimationFrame(f); }));
+  console.log('avg frame ms (headless, no GPU):', perf.toFixed(1));
+  console.log(errors.length ? 'ERRORS:\n' + errors.join('\n') : 'no console errors');
+  await browser.close(); srv.close();
+})();
