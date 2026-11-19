@@ -2,7 +2,7 @@
 """Cut a trailer from captured takes: clips (with fades / white flashes), title cards, letterbox, the game's own
 sound under a synthesised score, loudness-normalised, H.264 MP4 at 60 fps.
     python3 edit.py <edl.json> <takes_dir> <cards_dir> <out.mp4>
-edl: { "w", "h", "fps": 60, "bars": 0.0-0.15, "sfx": 0.8, "music": "score.wav", "musicGain": 1.0,
+edl: { "w", "h", "fps": 60, "bars": fraction of the height per bar (0.13 = scope), "sfx": 0.8, "music": "score.wav", "musicGain": 1.0,
        "clips": [ { "take", "in", "dur", "fi": 0, "fo": 0, "flash": 0, "black": false } | { "black": 1.5 } ],
        "cards": [ { "card", "t", "dur", "fade": 0.35 } ] }"""
 import json, os, subprocess, sys, tempfile
@@ -33,12 +33,13 @@ lst = os.path.join(tmp, 'list.txt'); open(lst, 'w').write(''.join(f"file '{s}'\n
 cut = os.path.join(tmp, 'cut.mkv'); run(['ffmpeg', '-y', '-f', 'concat', '-safe', '0', '-i', lst, '-c', 'copy', cut])
 # final pass: cards, bars, music, loudness
 inputs = ['-i', cut]; fc = []; last = '0:v'; idx = 1
+bars = edl.get('bars', 0)
+if bars:  # each bar is this fraction of the height
+    bh = int(H * bars) // 2 * 2; fc.append(f"[{last}]drawbox=x=0:y=0:w={W}:h={bh}:color=black:t=fill,drawbox=x=0:y={H - bh}:w={W}:h={bh}:color=black:t=fill[vb]"); last = 'vb'
 for k, cd in enumerate(edl.get('cards', [])):
     f = cd.get('fade', 0.35); inputs += ['-loop', '1', '-t', f"{cd['dur']:.3f}", '-i', os.path.join(CARDS, cd['card'] + '.png')]
     fc.append(f"[{idx}:v]format=rgba,fade=t=in:st=0:d={f}:alpha=1,fade=t=out:st={cd['dur'] - f:.3f}:d={f}:alpha=1,setpts=PTS+{cd['t']:.3f}/TB[c{k}]")
     fc.append(f"[{last}][c{k}]overlay=0:0:eof_action=pass:enable='between(t,{cd['t']:.3f},{cd['t'] + cd['dur']:.3f})'[v{k}]"); last = f'v{k}'; idx += 1
-bars = edl.get('bars', 0)
-if bars: bh = int(H * bars) // 2 * 2; fc.append(f"[{last}]drawbox=x=0:y=0:w={W}:h={bh}:color=black:t=fill,drawbox=x=0:y={H - bh}:w={W}:h={bh}:color=black:t=fill[vb]"); last = 'vb'
 fc.append(f"[{last}]format=yuv420p[vout]")
 if edl.get('music'):
     inputs += ['-i', edl['music']]; mi = idx; idx += 1

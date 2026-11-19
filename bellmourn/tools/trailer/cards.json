@@ -1,36 +1,558 @@
-{ "L": { "w": 1920, "h": 1080, "bw": 384, "bh": 216 }, "V": { "w": 1080, "h": 1920, "bw": 216, "bh": 384 },
-  "cards": [
-  { "name": "studio", "fmt": "L", "items": [ { "t": "BLEDINK STUDIOS", "y": 0.43, "s": 2, "c": "#e6dccb" }, { "t": "PRESENTS", "y": 0.57, "s": 1, "c": "#8a8478" } ] },
-  { "name": "n1", "fmt": "L", "items": [ { "t": "BELLMOURN, CITY OF A HUNDRED BELLS.", "y": 0.82, "s": 1, "c": "#e6dccb" } ] },
-  { "name": "n2", "fmt": "L", "items": [ { "t": "ONE HUNDRED NIGHTS AGO,", "y": 0.76, "s": 2, "c": "#e6dccb" }, { "t": "THE BELL FELL SILENT.", "y": 0.86, "s": 2, "c": "#c8242a" } ] },
-  { "name": "n3", "fmt": "L", "items": [ { "t": "THE PEOPLE HAVE NO VOICES NOW.", "y": 0.76, "s": 1, "c": "#e6dccb" }, { "t": "ONLY EYES.", "y": 0.84, "s": 2, "c": "#c8242a" } ] },
-  { "name": "n4", "fmt": "L", "items": [ { "t": "THE LAST OF THE BELL-WARDENS", "y": 0.76, "s": 2, "c": "#e6dccb" }, { "t": "COME HOME.", "y": 0.86, "s": 2, "c": "#d8b860" } ] },
-  { "name": "title", "fmt": "L", "items": [ { "logo": true, "y": 0.3, "s": 4 }, { "t": "RING THE BELL. BRING THE DAWN.", "y": 0.62, "s": 1, "c": "#8a8478" }, { "t": "A BLEDINK STUDIOS GAME", "y": 0.82, "s": 1, "c": "#d8b860" } ] },
-  { "name": "h_warden", "fmt": "L", "items": [ { "t": "CARMINE", "x": 0.06, "a": "left", "y": 0.74, "s": 2, "c": "#c8242a" }, { "t": "THE BELL-WARDEN  .  BLADE", "x": 0.06, "a": "left", "y": 0.84, "s": 1, "c": "#e6dccb" } ] },
-  { "name": "h_huntress", "fmt": "L", "items": [ { "t": "VESPER", "x": 0.06, "a": "left", "y": 0.74, "s": 2, "c": "#5ec8a8" }, { "t": "THE NIGHT HUNTRESS  .  CROSSBOW", "x": 0.06, "a": "left", "y": 0.84, "s": 1, "c": "#e6dccb" } ] },
-  { "name": "h_bellbreaker", "fmt": "L", "items": [ { "t": "BRAM", "x": 0.06, "a": "left", "y": 0.74, "s": 2, "c": "#d89a50" }, { "t": "THE BELLBREAKER  .  HAMMER", "x": 0.06, "a": "left", "y": 0.84, "s": 1, "c": "#e6dccb" } ] },
-  { "name": "h_lamplighter", "fmt": "L", "items": [ { "t": "SISTER ASH", "x": 0.06, "a": "left", "y": 0.74, "s": 2, "c": "#ffc860" }, { "t": "THE LAMPLIGHTER  .  LANTERN STAFF", "x": 0.06, "a": "left", "y": 0.84, "s": 1, "c": "#e6dccb" } ] },
-  { "name": "c_wardens", "fmt": "L", "items": [ { "t": "FOUR WARDENS", "y": 0.08, "s": 2, "c": "#e6dccb" } ] },
-  { "name": "c_dodge", "fmt": "L", "items": [ { "t": "DASH THROUGH EVERY BLOW", "y": 0.08, "s": 2, "c": "#e6dccb" } ] },
-  { "name": "c_skills", "fmt": "L", "items": [ { "t": "SKILLS FIRE WITH YOUR STRIKES", "y": 0.08, "s": 2, "c": "#e6dccb" } ] },
-  { "name": "c_ult", "fmt": "L", "items": [ { "t": "UNLEASH YOUR ULTIMATE", "y": 0.08, "s": 2, "c": "#c8242a" } ] },
-  { "name": "c_districts", "fmt": "L", "items": [ { "t": "EIGHT DISTRICTS", "y": 0.08, "s": 2, "c": "#e6dccb" } ] },
-  { "name": "c_bosses", "fmt": "L", "items": [ { "t": "EIGHT BOSSES", "y": 0.08, "s": 2, "c": "#c8242a" } ] },
-  { "name": "c_haven", "fmt": "L", "items": [ { "t": "GROW STRONGER AT THE HAVEN", "y": 0.08, "s": 2, "c": "#d8b860" } ] },
-  { "name": "c_tonic", "fmt": "L", "items": [ { "t": "DRINK. HEAL. FIGHT ON.", "y": 0.08, "s": 2, "c": "#7dff9a" } ] },
-  { "name": "v_hookA", "fmt": "V", "items": [ { "t": "FOUR WARDENS.", "y": 0.07, "s": 2, "c": "#e6dccb" }, { "t": "ONE SILENT CITY.", "y": 0.12, "s": 2, "c": "#c8242a" } ] },
-  { "name": "v_hookB", "fmt": "V", "items": [ { "t": "EIGHT BOSSES.", "y": 0.07, "s": 2, "c": "#c8242a" }, { "t": "ONE SILENT BELL.", "y": 0.12, "s": 2, "c": "#e6dccb" } ] },
-  { "name": "v_hookC", "fmt": "V", "items": [ { "t": "ONE WARDEN.", "y": 0.07, "s": 2, "c": "#e6dccb" }, { "t": "THE WHOLE HORDE.", "y": 0.12, "s": 2, "c": "#c8242a" } ] },
-  { "name": "v_warden", "fmt": "V", "items": [ { "t": "CARMINE", "y": 0.78, "s": 2, "c": "#c8242a" }, { "t": "THE BELL-WARDEN", "y": 0.83, "s": 1, "c": "#e6dccb" } ] },
-  { "name": "v_huntress", "fmt": "V", "items": [ { "t": "VESPER", "y": 0.78, "s": 2, "c": "#5ec8a8" }, { "t": "THE NIGHT HUNTRESS", "y": 0.83, "s": 1, "c": "#e6dccb" } ] },
-  { "name": "v_bellbreaker", "fmt": "V", "items": [ { "t": "BRAM", "y": 0.78, "s": 2, "c": "#d89a50" }, { "t": "THE BELLBREAKER", "y": 0.83, "s": 1, "c": "#e6dccb" } ] },
-  { "name": "v_lamplighter", "fmt": "V", "items": [ { "t": "SISTER ASH", "y": 0.78, "s": 2, "c": "#ffc860" }, { "t": "THE LAMPLIGHTER", "y": 0.83, "s": 1, "c": "#e6dccb" } ] },
-  { "name": "v_gaoler", "fmt": "V", "items": [ { "t": "THE GAOLER", "y": 0.8, "s": 2, "c": "#c8242a" } ] },
-  { "name": "v_tallow", "fmt": "V", "items": [ { "t": "MOTHER TALLOW", "y": 0.8, "s": 2, "c": "#c8242a" } ] },
-  { "name": "v_regent", "fmt": "V", "items": [ { "t": "THE PALE REGENT", "y": 0.8, "s": 2, "c": "#c8242a" } ] },
-  { "name": "v_silence", "fmt": "V", "items": [ { "t": "SAINT SILENCE", "y": 0.8, "s": 2, "c": "#c8242a" } ] },
-  { "name": "v_ult", "fmt": "V", "items": [ { "t": "REQUIEM", "y": 0.8, "s": 3, "c": "#c8242a" } ] },
-  { "name": "v_heal", "fmt": "V", "items": [ { "t": "DRINK. HEAL.", "y": 0.8, "s": 2, "c": "#7dff9a" }, { "t": "FIGHT ON.", "y": 0.85, "s": 2, "c": "#e6dccb" } ] },
-  { "name": "v_end", "fmt": "V", "items": [ { "logo": true, "y": 0.36, "s": 3 }, { "t": "RING THE BELL.", "y": 0.52, "s": 1, "c": "#8a8478" }, { "t": "BRING THE DAWN.", "y": 0.555, "s": 1, "c": "#8a8478" }, { "t": "A BLEDINK STUDIOS GAME", "y": 0.66, "s": 1, "c": "#d8b860" } ] },
-  { "name": "v_studio", "fmt": "V", "items": [ { "t": "BLEDINK", "y": 0.44, "s": 3, "c": "#e6dccb" }, { "t": "STUDIOS", "y": 0.5, "s": 2, "c": "#8a8478" } ] }
-  ] }
+{
+ "L": {
+  "w": 1920,
+  "h": 1080,
+  "bw": 384,
+  "bh": 216
+ },
+ "V": {
+  "w": 1080,
+  "h": 1920,
+  "bw": 216,
+  "bh": 384
+ },
+ "cards": [
+  {
+   "name": "studio",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "BLEDINK STUDIOS",
+     "y": 0.43,
+     "s": 2,
+     "c": "#e6dccb"
+    },
+    {
+     "t": "PRESENTS",
+     "y": 0.57,
+     "s": 1,
+     "c": "#8a8478"
+    }
+   ]
+  },
+  {
+   "name": "n1",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "BELLMOURN, CITY OF A HUNDRED BELLS.",
+     "y": 0.82,
+     "s": 1,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "n2",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "ONE HUNDRED NIGHTS AGO,",
+     "y": 0.874,
+     "s": 1,
+     "c": "#e6dccb"
+    },
+    {
+     "t": "THE BELL FELL SILENT.",
+     "y": 0.912,
+     "s": 2,
+     "c": "#c8242a"
+    }
+   ]
+  },
+  {
+   "name": "n3",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "THE PEOPLE HAVE NO VOICES NOW.",
+     "y": 0.874,
+     "s": 1,
+     "c": "#e6dccb"
+    },
+    {
+     "t": "ONLY EYES.",
+     "y": 0.912,
+     "s": 2,
+     "c": "#c8242a"
+    }
+   ]
+  },
+  {
+   "name": "n4",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "THE LAST OF THE BELL-WARDENS",
+     "y": 0.874,
+     "s": 1,
+     "c": "#e6dccb"
+    },
+    {
+     "t": "COME HOME.",
+     "y": 0.912,
+     "s": 2,
+     "c": "#d8b860"
+    }
+   ]
+  },
+  {
+   "name": "title",
+   "fmt": "L",
+   "items": [
+    {
+     "logo": true,
+     "y": 0.3,
+     "s": 4
+    },
+    {
+     "t": "RING THE BELL. BRING THE DAWN.",
+     "y": 0.62,
+     "s": 1,
+     "c": "#8a8478"
+    },
+    {
+     "t": "A BLEDINK STUDIOS GAME",
+     "y": 0.82,
+     "s": 1,
+     "c": "#d8b860"
+    }
+   ]
+  },
+  {
+   "name": "h_warden",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "CARMINE",
+     "x": 0.06,
+     "a": "left",
+     "y": 0.74,
+     "s": 2,
+     "c": "#c8242a"
+    },
+    {
+     "t": "THE BELL-WARDEN  .  BLADE",
+     "x": 0.06,
+     "a": "left",
+     "y": 0.84,
+     "s": 1,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "h_huntress",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "VESPER",
+     "x": 0.06,
+     "a": "left",
+     "y": 0.74,
+     "s": 2,
+     "c": "#5ec8a8"
+    },
+    {
+     "t": "THE NIGHT HUNTRESS  .  CROSSBOW",
+     "x": 0.06,
+     "a": "left",
+     "y": 0.84,
+     "s": 1,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "h_bellbreaker",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "BRAM",
+     "x": 0.06,
+     "a": "left",
+     "y": 0.74,
+     "s": 2,
+     "c": "#d89a50"
+    },
+    {
+     "t": "THE BELLBREAKER  .  HAMMER",
+     "x": 0.06,
+     "a": "left",
+     "y": 0.84,
+     "s": 1,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "h_lamplighter",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "SISTER ASH",
+     "x": 0.06,
+     "a": "left",
+     "y": 0.74,
+     "s": 2,
+     "c": "#ffc860"
+    },
+    {
+     "t": "THE LAMPLIGHTER  .  LANTERN STAFF",
+     "x": 0.06,
+     "a": "left",
+     "y": 0.84,
+     "s": 1,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "c_wardens",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "FOUR WARDENS",
+     "y": 0.08,
+     "s": 2,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "c_dodge",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "DASH THROUGH EVERY BLOW",
+     "y": 0.08,
+     "s": 2,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "c_skills",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "SKILLS FIRE WITH YOUR STRIKES",
+     "y": 0.08,
+     "s": 2,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "c_ult",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "UNLEASH YOUR ULTIMATE",
+     "y": 0.08,
+     "s": 2,
+     "c": "#c8242a"
+    }
+   ]
+  },
+  {
+   "name": "c_districts",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "EIGHT DISTRICTS",
+     "y": 0.08,
+     "s": 2,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "c_bosses",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "EIGHT BOSSES",
+     "y": 0.08,
+     "s": 2,
+     "c": "#c8242a"
+    }
+   ]
+  },
+  {
+   "name": "c_haven",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "GROW STRONGER AT THE HAVEN",
+     "y": 0.08,
+     "s": 2,
+     "c": "#d8b860"
+    }
+   ]
+  },
+  {
+   "name": "c_tonic",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "DRINK. HEAL. FIGHT ON.",
+     "y": 0.08,
+     "s": 2,
+     "c": "#7dff9a"
+    }
+   ]
+  },
+  {
+   "name": "v_hookA",
+   "fmt": "V",
+   "items": [
+    {
+     "t": "FOUR WARDENS.",
+     "y": 0.07,
+     "s": 2,
+     "c": "#e6dccb"
+    },
+    {
+     "t": "ONE SILENT CITY.",
+     "y": 0.12,
+     "s": 2,
+     "c": "#c8242a"
+    }
+   ]
+  },
+  {
+   "name": "v_hookB",
+   "fmt": "V",
+   "items": [
+    {
+     "t": "EIGHT BOSSES.",
+     "y": 0.07,
+     "s": 2,
+     "c": "#c8242a"
+    },
+    {
+     "t": "ONE SILENT BELL.",
+     "y": 0.12,
+     "s": 2,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "v_hookC",
+   "fmt": "V",
+   "items": [
+    {
+     "t": "ONE WARDEN.",
+     "y": 0.07,
+     "s": 2,
+     "c": "#e6dccb"
+    },
+    {
+     "t": "THE WHOLE HORDE.",
+     "y": 0.12,
+     "s": 2,
+     "c": "#c8242a"
+    }
+   ]
+  },
+  {
+   "name": "v_warden",
+   "fmt": "V",
+   "items": [
+    {
+     "t": "CARMINE",
+     "y": 0.78,
+     "s": 2,
+     "c": "#c8242a"
+    },
+    {
+     "t": "THE BELL-WARDEN",
+     "y": 0.83,
+     "s": 1,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "v_huntress",
+   "fmt": "V",
+   "items": [
+    {
+     "t": "VESPER",
+     "y": 0.78,
+     "s": 2,
+     "c": "#5ec8a8"
+    },
+    {
+     "t": "THE NIGHT HUNTRESS",
+     "y": 0.83,
+     "s": 1,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "v_bellbreaker",
+   "fmt": "V",
+   "items": [
+    {
+     "t": "BRAM",
+     "y": 0.78,
+     "s": 2,
+     "c": "#d89a50"
+    },
+    {
+     "t": "THE BELLBREAKER",
+     "y": 0.83,
+     "s": 1,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "v_lamplighter",
+   "fmt": "V",
+   "items": [
+    {
+     "t": "SISTER ASH",
+     "y": 0.78,
+     "s": 2,
+     "c": "#ffc860"
+    },
+    {
+     "t": "THE LAMPLIGHTER",
+     "y": 0.83,
+     "s": 1,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "v_gaoler",
+   "fmt": "V",
+   "items": [
+    {
+     "t": "THE GAOLER",
+     "y": 0.8,
+     "s": 2,
+     "c": "#c8242a"
+    }
+   ]
+  },
+  {
+   "name": "v_tallow",
+   "fmt": "V",
+   "items": [
+    {
+     "t": "MOTHER TALLOW",
+     "y": 0.8,
+     "s": 2,
+     "c": "#c8242a"
+    }
+   ]
+  },
+  {
+   "name": "v_regent",
+   "fmt": "V",
+   "items": [
+    {
+     "t": "THE PALE REGENT",
+     "y": 0.8,
+     "s": 2,
+     "c": "#c8242a"
+    }
+   ]
+  },
+  {
+   "name": "v_silence",
+   "fmt": "V",
+   "items": [
+    {
+     "t": "SAINT SILENCE",
+     "y": 0.8,
+     "s": 2,
+     "c": "#c8242a"
+    }
+   ]
+  },
+  {
+   "name": "v_ult",
+   "fmt": "V",
+   "items": [
+    {
+     "t": "REQUIEM",
+     "y": 0.8,
+     "s": 3,
+     "c": "#c8242a"
+    }
+   ]
+  },
+  {
+   "name": "v_heal",
+   "fmt": "V",
+   "items": [
+    {
+     "t": "DRINK. HEAL.",
+     "y": 0.8,
+     "s": 2,
+     "c": "#7dff9a"
+    },
+    {
+     "t": "FIGHT ON.",
+     "y": 0.85,
+     "s": 2,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "v_end",
+   "fmt": "V",
+   "items": [
+    {
+     "logo": true,
+     "y": 0.36,
+     "s": 3
+    },
+    {
+     "t": "RING THE BELL.",
+     "y": 0.52,
+     "s": 1,
+     "c": "#8a8478"
+    },
+    {
+     "t": "BRING THE DAWN.",
+     "y": 0.555,
+     "s": 1,
+     "c": "#8a8478"
+    },
+    {
+     "t": "A BLEDINK STUDIOS GAME",
+     "y": 0.66,
+     "s": 1,
+     "c": "#d8b860"
+    }
+   ]
+  },
+  {
+   "name": "v_studio",
+   "fmt": "V",
+   "items": [
+    {
+     "t": "BLEDINK",
+     "y": 0.44,
+     "s": 3,
+     "c": "#e6dccb"
+    },
+    {
+     "t": "STUDIOS",
+     "y": 0.5,
+     "s": 2,
+     "c": "#8a8478"
+    }
+   ]
+  }
+ ]
+}
