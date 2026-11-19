@@ -1,0 +1,195 @@
+{
+ "dur": 43,
+ "events": [
+  {
+   "type": "toll",
+   "t": 0.2
+  },
+  {
+   "type": "drone",
+   "t": 0,
+   "dur": 2.2
+  },
+  {
+   "type": "boom",
+   "t": 2.0
+  },
+  {
+   "type": "drums",
+   "t": 2.0,
+   "dur": 20.5,
+   "bpm": 128,
+   "busy": 1
+  },
+  {
+   "type": "drums",
+   "t": 22.5,
+   "dur": 12.5,
+   "bpm": 128,
+   "busy": 2
+  },
+  {
+   "type": "arp",
+   "chord": "Dm",
+   "t": 22.5,
+   "dur": 6,
+   "bpm": 128,
+   "v": 0.8
+  },
+  {
+   "type": "arp",
+   "chord": "Gm",
+   "t": 28.5,
+   "dur": 6.5,
+   "bpm": 128,
+   "v": 0.8
+  },
+  {
+   "type": "pad",
+   "chord": "Dm",
+   "t": 2,
+   "dur": 4
+  },
+  {
+   "type": "pad",
+   "chord": "Bb",
+   "t": 6,
+   "dur": 4
+  },
+  {
+   "type": "pad",
+   "chord": "Gm",
+   "t": 10,
+   "dur": 4
+  },
+  {
+   "type": "pad",
+   "chord": "A",
+   "t": 14,
+   "dur": 4
+  },
+  {
+   "type": "pad",
+   "chord": "Dm",
+   "t": 18,
+   "dur": 4
+  },
+  {
+   "type": "pad",
+   "chord": "Bb",
+   "t": 22,
+   "dur": 4
+  },
+  {
+   "type": "pad",
+   "chord": "Gm",
+   "t": 26,
+   "dur": 4
+  },
+  {
+   "type": "pad",
+   "chord": "A",
+   "t": 30,
+   "dur": 4
+  },
+  {
+   "type": "pad",
+   "chord": "Dm",
+   "t": 34,
+   "dur": 4
+  },
+  {
+   "type": "hit",
+   "chord": "Dm",
+   "t": 10,
+   "v": 0.8
+  },
+  {
+   "type": "hit",
+   "chord": "Bb",
+   "t": 14,
+   "v": 0.8
+  },
+  {
+   "type": "hit",
+   "chord": "Gm",
+   "t": 20,
+   "v": 0.8
+  },
+  {
+   "type": "hit",
+   "chord": "Dm",
+   "t": 22.5,
+   "v": 0.8
+  },
+  {
+   "type": "boom",
+   "t": 17.0
+  },
+  {
+   "type": "choir",
+   "chord": "Dm",
+   "t": 17,
+   "dur": 3
+  },
+  {
+   "type": "boom",
+   "t": 28.5
+  },
+  {
+   "type": "choir",
+   "chord": "Gm",
+   "t": 28.5,
+   "dur": 6.5,
+   "v": 0.8
+  },
+  {
+   "type": "pad",
+   "chord": "F",
+   "t": 35,
+   "dur": 4
+  },
+  {
+   "type": "choir",
+   "chord": "F",
+   "t": 35,
+   "dur": 4,
+   "v": 0.5
+  },
+  {
+   "type": "bell",
+   "f": 220,
+   "t": 35.4,
+   "dur": 4,
+   "v": 0.8
+  },
+  {
+   "type": "riser",
+   "t": 37.3,
+   "dur": 1.7
+  },
+  {
+   "type": "boom",
+   "t": 39,
+   "v": 1.3
+  },
+  {
+   "type": "toll",
+   "t": 39,
+   "v": 1.2
+  },
+  {
+   "type": "choir",
+   "chord": "Dm",
+   "t": 39,
+   "dur": 4,
+   "v": 1.2
+  },
+  {
+   "type": "pad",
+   "chord": "Dm",
+   "t": 39,
+   "dur": 4
+  }
+ ]
+}

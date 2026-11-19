@@ -1,0 +1,91 @@
+{
+ "dur": 14,
+ "events": [
+  {
+   "type": "boom",
+   "t": 0.0,
+   "v": 0.8
+  },
+  {
+   "type": "drums",
+   "t": 0,
+   "dur": 9,
+   "bpm": 136,
+   "busy": 2
+  },
+  {
+   "type": "pad",
+   "chord": "Dm",
+   "t": 0,
+   "dur": 3.5
+  },
+  {
+   "type": "pad",
+   "chord": "Bb",
+   "t": 3.5,
+   "dur": 1.5
+  },
+  {
+   "type": "riser",
+   "t": 3.5,
+   "dur": 1.5
+  },
+  {
+   "type": "boom",
+   "t": 5.0,
+   "v": 1.2
+  },
+  {
+   "type": "choir",
+   "chord": "Dm",
+   "t": 5,
+   "dur": 4
+  },
+  {
+   "type": "pad",
+   "chord": "Dm",
+   "t": 5,
+   "dur": 4
+  },
+  {
+   "type": "hit",
+   "chord": "F",
+   "t": 9.0,
+   "v": 0.7
+  },
+  {
+   "type": "pad",
+   "chord": "F",
+   "t": 9,
+   "dur": 2.5
+  },
+  {
+   "type": "bell",
+   "f": 293.7,
+   "t": 9.2,
+   "dur": 3,
+   "v": 0.7
+  },
+  {
+   "type": "boom",
+   "t": 11.5,
+   "v": 1.2
+  },
+  {
+   "type": "toll",
+   "t": 11.5
+  },
+  {
+   "type": "pad",
+   "chord": "Dm",
+   "t": 11.5,
+   "dur": 2.5
+  },
+  {
+   "type": "choir",
+   "chord": "Dm",
+   "t": 11.5,
+   "dur": 2.5
+  }
+ ]
+}

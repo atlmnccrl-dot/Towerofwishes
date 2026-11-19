@@ -1,0 +1,177 @@
+{
+ "dur": 30,
+ "events": [
+  {
+   "type": "drone",
+   "t": 0,
+   "dur": 26.5
+  },
+  {
+   "type": "toll",
+   "t": 0.3
+  },
+  {
+   "type": "toll",
+   "t": 3.0,
+   "v": 0.8
+  },
+  {
+   "type": "pad",
+   "chord": "Dm",
+   "t": 3,
+   "dur": 5
+  },
+  {
+   "type": "pad",
+   "chord": "Bb",
+   "t": 8,
+   "dur": 3
+  },
+  {
+   "type": "pad",
+   "chord": "Gm",
+   "t": 11,
+   "dur": 2
+  },
+  {
+   "type": "choir",
+   "chord": "Dm",
+   "t": 8,
+   "dur": 3,
+   "v": 0.6
+  },
+  {
+   "type": "riser",
+   "t": 10.6,
+   "dur": 2.4
+  },
+  {
+   "type": "boom",
+   "t": 13.0,
+   "v": 1.2
+  },
+  {
+   "type": "hit",
+   "chord": "Dm",
+   "t": 13.0
+  },
+  {
+   "type": "drums",
+   "t": 13,
+   "dur": 6,
+   "bpm": 120,
+   "busy": 1
+  },
+  {
+   "type": "drums",
+   "t": 19,
+   "dur": 7.5,
+   "bpm": 120,
+   "busy": 2
+  },
+  {
+   "type": "hit",
+   "chord": "Bb",
+   "t": 14.5,
+   "v": 0.7
+  },
+  {
+   "type": "hit",
+   "chord": "Gm",
+   "t": 16.0,
+   "v": 0.7
+  },
+  {
+   "type": "hit",
+   "chord": "A",
+   "t": 17.5,
+   "v": 0.7
+  },
+  {
+   "type": "hit",
+   "chord": "Dm",
+   "t": 19.0,
+   "v": 0.9
+  },
+  {
+   "type": "pad",
+   "chord": "Dm",
+   "t": 13,
+   "dur": 3
+  },
+  {
+   "type": "pad",
+   "chord": "Bb",
+   "t": 16,
+   "dur": 3
+  },
+  {
+   "type": "pad",
+   "chord": "Gm",
+   "t": 19,
+   "dur": 3
+  },
+  {
+   "type": "pad",
+   "chord": "A",
+   "t": 22,
+   "dur": 4.5
+  },
+  {
+   "type": "choir",
+   "chord": "Dm",
+   "t": 19,
+   "dur": 3.5
+  },
+  {
+   "type": "choir",
+   "chord": "Bb",
+   "t": 22.5,
+   "dur": 4
+  },
+  {
+   "type": "boom",
+   "t": 22.0
+  },
+  {
+   "type": "hit",
+   "chord": "Gm",
+   "t": 23.5,
+   "v": 0.8
+  },
+  {
+   "type": "hit",
+   "chord": "A",
+   "t": 25.0,
+   "v": 0.8
+  },
+  {
+   "type": "riser",
+   "t": 24.8,
+   "dur": 1.7
+  },
+  {
+   "type": "boom",
+   "t": 26.5,
+   "v": 1.3
+  },
+  {
+   "type": "toll",
+   "t": 26.5,
+   "v": 1.2
+  },
+  {
+   "type": "choir",
+   "chord": "Dm",
+   "t": 26.5,
+   "dur": 3.5,
+   "v": 1.2
+  },
+  {
+   "type": "pad",
+   "chord": "Dm",
+   "t": 26.5,
+   "dur": 3.5
+  }
+ ]
+}
