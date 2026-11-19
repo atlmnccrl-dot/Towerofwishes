@@ -1,0 +1,81 @@
+{
+ "w": 1080,
+ "h": 1920,
+ "fps": 60,
+ "sfx": 0.9,
+ "musicGain": 0.9,
+ "clips": [
+  {
+   "take": "V_establish",
+   "in": 0.3,
+   "dur": 3.5,
+   "fi": 0.5
+  },
+  {
+   "take": "V_warden",
+   "in": 1.8,
+   "dur": 3.0,
+   "flash": 0.2
+  },
+  {
+   "take": "V_huntress",
+   "in": 1.6,
+   "dur": 3.0,
+   "flash": 0.15
+  },
+  {
+   "take": "V_bellbreaker",
+   "in": 2.4,
+   "dur": 3.0,
+   "flash": 0.15
+  },
+  {
+   "take": "V_lamplighter",
+   "in": 3.0,
+   "dur": 3.0,
+   "flash": 0.15,
+   "fo": 0.3
+  },
+  {
+   "black": 2.5
+  }
+ ],
+ "cards": [
+  {
+   "card": "v_hookA",
+   "t": 0.15,
+   "dur": 3.25,
+   "fade": 0.3
+  },
+  {
+   "card": "v_warden",
+   "t": 3.6,
+   "dur": 2.8,
+   "fade": 0.25
+  },
+  {
+   "card": "v_huntress",
+   "t": 6.6,
+   "dur": 2.8,
+   "fade": 0.25
+  },
+  {
+   "card": "v_bellbreaker",
+   "t": 9.6,
+   "dur": 2.8,
+   "fade": 0.25
+  },
+  {
+   "card": "v_lamplighter",
+   "t": 12.6,
+   "dur": 2.8,
+   "fade": 0.25
+  },
+  {
+   "card": "v_end",
+   "t": 15.6,
+   "dur": 2.4,
+   "fade": 0.4
+  }
+ ]
+}

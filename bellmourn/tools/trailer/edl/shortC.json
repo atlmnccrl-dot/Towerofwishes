@@ -1,0 +1,56 @@
+{
+ "w": 1080,
+ "h": 1920,
+ "fps": 60,
+ "sfx": 1.0,
+ "musicGain": 0.85,
+ "clips": [
+  {
+   "take": "V_horde",
+   "in": 0.0,
+   "dur": 5.0,
+   "fi": 0.15
+  },
+  {
+   "take": "V_horde",
+   "in": 3.0,
+   "dur": 4.0,
+   "flash": 0.25
+  },
+  {
+   "take": "V_tonic",
+   "in": 0.1,
+   "dur": 2.5,
+   "flash": 0.15
+  },
+  {
+   "black": 2.5
+  }
+ ],
+ "cards": [
+  {
+   "card": "v_hookC",
+   "t": 0.1,
+   "dur": 2.6,
+   "fade": 0.25
+  },
+  {
+   "card": "v_ult",
+   "t": 5.1,
+   "dur": 2.4,
+   "fade": 0.2
+  },
+  {
+   "card": "v_heal",
+   "t": 9.1,
+   "dur": 2.3,
+   "fade": 0.25
+  },
+  {
+   "card": "v_end",
+   "t": 11.6,
+   "dur": 2.4,
+   "fade": 0.4
+  }
+ ]
+}

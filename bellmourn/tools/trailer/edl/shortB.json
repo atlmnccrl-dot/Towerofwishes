@@ -1,0 +1,75 @@
+{
+ "w": 1080,
+ "h": 1920,
+ "fps": 60,
+ "sfx": 0.9,
+ "musicGain": 0.9,
+ "clips": [
+  {
+   "take": "V_gaoler",
+   "in": 0.8,
+   "dur": 4.0,
+   "fi": 0.2
+  },
+  {
+   "take": "V_tallow",
+   "in": 2.0,
+   "dur": 3.5,
+   "flash": 0.2
+  },
+  {
+   "take": "V_regent",
+   "in": 2.0,
+   "dur": 3.5,
+   "flash": 0.2
+  },
+  {
+   "take": "V_silence",
+   "in": 2.0,
+   "dur": 4.0,
+   "flash": 0.2,
+   "fo": 0.3
+  },
+  {
+   "black": 2.5
+  }
+ ],
+ "cards": [
+  {
+   "card": "v_hookB",
+   "t": 0.1,
+   "dur": 2.6,
+   "fade": 0.25
+  },
+  {
+   "card": "v_gaoler",
+   "t": 2.2,
+   "dur": 1.8,
+   "fade": 0.25
+  },
+  {
+   "card": "v_tallow",
+   "t": 4.1,
+   "dur": 3.3,
+   "fade": 0.25
+  },
+  {
+   "card": "v_regent",
+   "t": 7.6,
+   "dur": 3.3,
+   "fade": 0.25
+  },
+  {
+   "card": "v_silence",
+   "t": 11.1,
+   "dur": 3.8,
+   "fade": 0.25
+  },
+  {
+   "card": "v_end",
+   "t": 15.1,
+   "dur": 2.4,
+   "fade": 0.4
+  }
+ ]
+}
