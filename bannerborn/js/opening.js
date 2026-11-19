@@ -388,7 +388,7 @@
       g.globalCompositeOperation = 'saturation'; g.fillStyle = 'rgba(128,128,128,' + cl(q / 0.15) * 0.92 + ')'; hole(); g.fill('evenodd'); g.globalCompositeOperation = 'source-over';
       g.fillStyle = 'rgba(8,6,14,' + cl(q / 0.2) * 0.4 + ')'; hole(); g.fill('evenodd');
       { const a = cl((q - 0.3) / 0.3); if (a > 0) { g.strokeStyle = 'rgba(255,255,255,' + a + ')'; g.lineWidth = u * 0.45; g.beginPath(); g.arc(cx, fy - u * 3, u * 21, -2.2, -2.2 + TAU * easeOut(cl((q - 0.3) / 0.5))); g.stroke(); } }
-      const bk = easeOut(cl((q - 0.12) / 0.3)), by = H * 0.785, col = BB.save.banner.color;
+      const bk = easeOut(cl((q - 0.12) / 0.3)), by = H * 0.785, col = F.banners[8].color;
       g.save(); g.translate(0, by); g.rotate(-0.045); g.fillStyle = '#050407'; g.beginPath(); g.moveTo(-W * 0.1, -u * 8); for (let x = 0; x <= 24; x++) g.lineTo(-W * 0.1 + W * 1.2 * bk * x / 24, -u * 8 - rnd(x, 121) * u * 1.6); for (let x = 24; x >= 0; x--) g.lineTo(-W * 0.1 + W * 1.2 * bk * x / 24, u * 8 + rnd(x, 122) * u * 1.6); g.closePath(); g.fill();
       g.fillStyle = col; g.fillRect(-W * 0.1, u * 8.6, W * 1.2 * bk, u * 0.7);
       if (bk > 0.6) { const a = cl((bk - 0.6) / 0.4); g.globalAlpha = a; g.textBaseline = 'middle'; g.font = '800 ' + Math.round(u * 10) + 'px ' + DISP; g.fillStyle = '#fff'; spaced(g, 'THE NINTH BANNER', W * 0.5, -u * 1.5, u * 1.3); g.font = '700 ' + Math.round(u * 3) + 'px ' + HEAD; g.fillStyle = '#ffe7a3'; spaced(g, 'IS YOURS', W * 0.5, u * 5, u * 2.2); g.globalAlpha = 1; g.textBaseline = 'alphabetic'; }
@@ -483,5 +483,5 @@
     return { music: null, shots };
   };
   // single shots, for the trailer: hold() builds the cast they need, drop() lets it go
-  BB.Opening = { hold() { if (!F) { A.clear(); F = cast(); } }, drop() { F = null; A.clear(); }, gate: drawGateUp, raise: drawRaise };
+  BB.Opening = { hold() { if (!F) { A.clear(); F = cast(); } }, drop() { F = null; A.clear(); }, ridge: drawRidge, oath: drawOath, gate: drawGateUp, cantor: drawCantor, rising: drawRising, ninth: drawNinth, raise: drawRaise };
 })();

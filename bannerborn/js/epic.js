@@ -125,8 +125,9 @@
     // near death: a red heartbeat at the edges
     if (E.low > 0) { const p = 0.6 + 0.4 * Math.pow(Math.max(0, Math.sin(t * 7.4)), 6), vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.7); vg.addColorStop(0, 'rgba(160,0,0,0)'); vg.addColorStop(1, 'rgba(160,0,0,' + 0.4 * E.low * p + ')'); ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H); }
     // the ultimate: time stops, a band sweeps across with the hero, the name slams in
+    const Hc = H > W ? W * 0.5625 : H; // on a tall picture (a vertical film of the game) the banners are sized by its width
     if (E.ult) {
-      const k = E.ult.t, e = E.ult.e, inK = easeOut(clamp01(k / 0.18)), outK = clamp01((k - 0.85) / 0.3), band = H * 0.34, cy = H * 0.5, sl = W * 0.06;
+      const k = E.ult.t, e = E.ult.e, inK = easeOut(clamp01(k / 0.18)), outK = clamp01((k - 0.85) / 0.3), band = Hc * 0.34, cy = H * 0.5, sl = W * 0.06;
       ctx.fillStyle = 'rgba(0,0,0,' + 0.45 * (1 - outK) + ')'; ctx.fillRect(0, 0, W, H);
       ctx.save(); ctx.translate((1 - inK) * -W + outK * W, 0);
       ctx.beginPath(); ctx.moveTo(-sl, cy - band / 2); ctx.lineTo(W + sl, cy - band / 2 - sl * 0.4); ctx.lineTo(W + sl, cy + band / 2 - sl * 0.4); ctx.lineTo(-sl, cy + band / 2); ctx.closePath();
@@ -134,13 +135,13 @@
       ctx.fillStyle = 'rgba(255,255,255,0.18)'; for (let i = 0; i < 40; i++) { const y = cy - band / 2 + Math.abs(Math.sin(i * 12.9)) % 1 * band, x = ((Math.abs(Math.sin(i * 7.7)) % 1) * W + k * W * 3) % W; ctx.fillRect(x, y, W * 0.12, 1.5 * u); }
       const S = Math.max(4, Math.round(band * 1.5 / 42)); ctx.imageSmoothingEnabled = false; if (e.layers) BB.drawLayers(ctx, e.layers, BB.hasClip(e.layers[0].key, 'Special1') ? 'Special1' : 'Attack1', 1, Math.min(10, Math.floor(k * 16)), W * 0.3, cy + band * 0.95, S, { noSlash: true }); ctx.imageSmoothingEnabled = true;
       ctx.restore(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 3 * u; ctx.stroke(); ctx.restore();
-      const tk = clamp01((k - 0.12) / 0.15), ts = 1 + (1 - tk) * 1.5; ctx.save(); ctx.globalAlpha = tk * (1 - outK); ctx.translate(W * 0.66, cy); ctx.scale(ts, ts); ctx.font = '800 ' + Math.round(H * 0.075) + 'px ' + SERIF; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff'; ctx.shadowColor = E.ult.col; ctx.shadowBlur = H * 0.04; ctx.fillText(E.ult.name.toUpperCase(), 0, 0); ctx.font = '600 ' + Math.round(H * 0.026) + 'px Outfit, sans-serif'; ctx.shadowBlur = 0; ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fillText(e.hero.name.toUpperCase(), 0, H * 0.065); ctx.restore();
+      const tk = clamp01((k - 0.12) / 0.15), ts = 1 + (1 - tk) * 1.5; ctx.save(); ctx.globalAlpha = tk * (1 - outK); ctx.translate(W * 0.66, cy); ctx.scale(ts, ts); ctx.font = '800 ' + Math.round(Hc * 0.075) + 'px ' + SERIF; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#fff'; ctx.shadowColor = E.ult.col; ctx.shadowBlur = Hc * 0.04; ctx.fillText(E.ult.name.toUpperCase(), 0, 0); ctx.font = '600 ' + Math.round(Hc * 0.026) + 'px Outfit, sans-serif'; ctx.shadowBlur = 0; ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fillText(e.hero.name.toUpperCase(), 0, Hc * 0.065); ctx.restore();
     }
     // the boss arrives: bars, its name slammed in
     if (E.cine) {
       const k = E.cine.t, bars = Math.min(1, k * 4) * Math.min(1, (E.cine.dur - k) * 3), bh = H * 0.11 * bars; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, bh); ctx.fillRect(0, H - bh, W, bh);
       const tk = clamp01((k - 0.5) / 0.2), a = tk * Math.min(1, (E.cine.dur - k) * 2.5), sc = 1 + (1 - easeOut(tk)) * 2.2;
-      if (a > 0) { ctx.save(); ctx.globalAlpha = a; ctx.translate(W / 2, H * 0.3); ctx.scale(sc, sc); ctx.font = '800 ' + Math.round(H * 0.1) + 'px ' + SERIF; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#ffe2c8'; ctx.shadowColor = '#ff4a2a'; ctx.shadowBlur = H * 0.05; ctx.fillText(E.cine.title, 0, 0); ctx.shadowBlur = 0; ctx.font = '600 ' + Math.round(H * 0.03) + 'px "Cormorant Garamond", Georgia, serif'; ctx.fillStyle = '#e8d8c8'; ctx.fillText(E.cine.sub, 0, H * 0.075); ctx.restore(); }
+      if (a > 0) { ctx.save(); ctx.globalAlpha = a; ctx.translate(W / 2, H * 0.3); ctx.scale(sc, sc); ctx.font = '800 ' + Math.round(Hc * 0.1) + 'px ' + SERIF; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#ffe2c8'; ctx.shadowColor = '#ff4a2a'; ctx.shadowBlur = Hc * 0.05; ctx.fillText(E.cine.title, 0, 0); ctx.shadowBlur = 0; ctx.font = '600 ' + Math.round(Hc * 0.03) + 'px "Cormorant Garamond", Georgia, serif'; ctx.fillStyle = '#e8d8c8'; ctx.fillText(E.cine.sub, 0, Hc * 0.075); ctx.restore(); }
       if (tk > 0 && !E.cine.hit) { E.cine.hit = true; this.shake = Math.max(this.shake, 0.8 * isFx(this)); this.flash = Math.max(this.flash, 0.5); }
     }
     // call-outs

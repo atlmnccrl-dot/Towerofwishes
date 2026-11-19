@@ -498,6 +498,7 @@ NODE_PATH=$(npm root -g) node test/shots.js /tmp/bb-shots            # title →
 NODE_PATH=$(npm root -g) node test/shots.js /tmp/bb-phone 844 390    # the same on a phone-sized touch screen
 NODE_PATH=$(npm root -g) node test/scenes.js /tmp/bb-scenes 4,7,15,23,29   # stages mid-fight with a five-hero team
 NODE_PATH=$(npm root -g) node tools/record-trailer.js /tmp/bb-trailer   # the trailer as an mp4 with sound (needs ffmpeg); --every 24 for a contact sheet only
+NODE_PATH=$(npm root -g) node tools/record-trailer.js /tmp/bb-promo --cut all   # the promotional videos (tools/promo-cuts.js): the reveal and the gameplay trailer at 1920x1080, three vertical shorts at 1080x1920, all 60 frames a second
 ```
 The browser tests expect a static server on port 8123 at `bannerborn/`
 (`npx http-server -p 8123 bannerborn`) and fail on any console error.
