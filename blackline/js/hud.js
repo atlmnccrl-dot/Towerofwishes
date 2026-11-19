@@ -29,6 +29,20 @@
     if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
   }
 
+  // Split a line into pieces that fit maxW at the given size.
+  function wrap(ctx, s, maxW, size) {
+    ctx.font = font(size);
+    const words = s.split(' ');
+    const out = [];
+    let line = '';
+    for (const w of words) {
+      const t = line ? line + ' ' + w : w;
+      if (ctx.measureText(t).width + t.length > maxW && line) { out.push(line); line = w; } else line = t;
+    }
+    if (line) out.push(line);
+    return out;
+  }
+
   function brackets(ctx, x, y, w, h, k, col) {
     ctx.strokeStyle = col || PAL.ink;
     ctx.beginPath();
@@ -170,31 +184,45 @@
     if (BL.audio.enabled) { ctx.beginPath(); ctx.arc(sxp + 14, my + 11, 5, -0.8, 0.8); ctx.moveTo(sxp + 21, my + 4); ctx.arc(sxp + 14, my + 11, 9, -0.8, 0.8); ctx.stroke(); }
     else { ctx.beginPath(); ctx.moveTo(sxp + 17, my + 7); ctx.lineTo(sxp + 24, my + 15); ctx.moveTo(sxp + 24, my + 7); ctx.lineTo(sxp + 17, my + 15); ctx.stroke(); }
     region(sxp - 2, my - 6, 30, 34, 'sound');
+    // action camera toggle: an eye inside brackets
+    const cxp = sxp - 36;
+    const on = G.camMode === 'action';
+    brackets(ctx, cxp, my, 26, 22, on ? 6 : 4, on ? PAL.ink : 'rgba(235,228,210,0.55)');
+    ctx.strokeStyle = on ? PAL.red : PAL.ink;
+    ctx.beginPath(); ctx.ellipse(cxp + 13, my + 11, 7, 4, 0, 0, 7); ctx.stroke();
+    ctx.fillStyle = ctx.strokeStyle; ctx.fillRect(cxp + 12, my + 10, 2, 2);
+    region(cxp - 4, my - 6, 34, 34, 'cam');
 
     // -- second row: line strength, sectors, RP
     const ry = my + mh + 18;
     const cx = W / 2;
     const barW = W >= 1100 ? 150 : clamp((W - 2 * P) * 0.5 - 52 - 150, 50, 150);
-    text(ctx, 'BLACKLINE', cx - 52 - barW - 8, ry, { size: 10, align: 'right', color: PAL.ink, spacing: 1 });
-    text(ctx, 'HOSTILE', cx + 52 + barW + 8, ry, { size: 10, align: 'left', color: PAL.red, spacing: 1 });
-    ticketBar(ctx, cx - 52 - barW, ry - 4, barW, T0.tickets / BL.RULES.tickets, PAL.ink, true);
-    ticketBar(ctx, cx + 52, ry - 4, barW, T1.tickets / BL.RULES.tickets, PAL.red, false);
-    text(ctx, String(Math.ceil(T0.tickets)), cx - 52 - barW / 2, ry + 11, { size: 9, align: 'center', color: PAL.inkDim });
-    text(ctx, String(Math.ceil(T1.tickets)), cx + 52 + barW / 2, ry + 11, { size: 9, align: 'center', color: PAL.inkDim });
+    if (S.drain) {
+      text(ctx, 'BLACKLINE', cx - 52 - barW - 8, ry, { size: 10, align: 'right', color: PAL.ink, spacing: 1 });
+      text(ctx, 'HOSTILE', cx + 52 + barW + 8, ry, { size: 10, align: 'left', color: PAL.red, spacing: 1 });
+      ticketBar(ctx, cx - 52 - barW, ry - 4, barW, T0.tickets / BL.RULES.tickets, PAL.ink, true);
+      ticketBar(ctx, cx + 52, ry - 4, barW, T1.tickets / BL.RULES.tickets, PAL.red, false);
+      text(ctx, String(Math.ceil(T0.tickets)), cx - 52 - barW / 2, ry + 11, { size: 9, align: 'center', color: PAL.inkDim });
+      text(ctx, String(Math.ceil(T1.tickets)), cx + 52 + barW / 2, ry + 11, { size: 9, align: 'center', color: PAL.inkDim });
+    }
     f.sectors.forEach((s, i) => sectorDiamond(ctx, s, cx + (i - 1) * 32, ry - 4));
+    // the mission's objective, always in view under the sectors
+    const M = G.mission;
+    const obj = M ? BL.campaign.progressText(S, M, G.ms) : '';
+    if (obj) text(ctx, obj, cx, ry + 28, { size: 11, align: 'center', color: PAL.ink, spacing: 2 });
 
     // RP and objective
     text(ctx, `RP ${Math.floor(T0.rp)}`, W - P, ry, { size: 14, align: 'right', color: PAL.ink, spacing: 1 });
     text(ctx, `+${(T0.income).toFixed(1)}/s  ·  ${BL.popCount(S, 0)}/${BL.RULES.popCap} units`, W - P, ry + 13, { size: 9, align: 'right', color: PAL.inkDim });
-    if (W >= 1100) {
-      text(ctx, 'OBJECTIVE', P, ry, { size: 9, color: PAL.inkDim, spacing: 2 });
-      text(ctx, 'Hold more sectors than the enemy.', P, ry + 12, { size: 10 });
-      text(ctx, 'Break the eastern line.', P, ry + 24, { size: 10 });
+    if (W >= 1100 && M) {
+      text(ctx, M.num ? `OPERATION BLACK RAIN · ${M.num}` : 'SKIRMISH', P, ry, { size: 9, color: PAL.inkDim, spacing: 2 });
+      text(ctx, M.name, P, ry + 14, { size: 12, spacing: 2 });
+      text(ctx, M.time + ' · ' + M.sky, P, ry + 27, { size: 9, color: PAL.inkDim, spacing: 1 });
     }
 
     // -- notices
     const nt = BL.fx.notices;
-    let ny = ry + 40;
+    let ny = ry + (obj ? 46 : 40);
     for (const n of nt) {
       n.t += G.frameDt;
       const a = clamp(Math.min(n.t * 4, (4 - n.t) / 0.8), 0, 1);
@@ -205,9 +233,9 @@
     for (let i = nt.length - 1; i >= 0; i--) if (nt[i].t > 4) nt.splice(i, 1);
 
     // -- deploy tray (bottom left)
-    const order = BL.DEPLOY_ORDER;
+    const order = BL.DEPLOY_ORDER.filter((k) => !S.allowed || !S.allowed[0] || S.allowed[0].has(k));
     // cards and commands share the bottom edge: size them so both fit
-    const cw = clamp(Math.floor((W - 2 * P - 20) / (order.length + 6 * 0.95)) - 4, 38, 62);
+    const cw = clamp(Math.floor((W - 2 * P - 20) / (Math.max(order.length, 6) + 6 * 0.95)) - 4, 38, 62);
     const ch = Math.round(cw * 1.08);
     const ty = Hh - ch - 10;
     order.forEach((type, i) => {
@@ -231,7 +259,9 @@
         ctx.beginPath(); ctx.moveTo(x + 2, ty + ch - 2); ctx.lineTo(x + 2, ty + ch - 2 - (ch - 4) * (1 - k)); ctx.stroke();
         text(ctx, `${Math.ceil(cd)}s`, x + cw - 3, ty + 10, { size: 8, align: 'right', color: PAL.inkDim });
       }
-      if (i < 9) text(ctx, String(i + 1), x + 3, ty + 10, { size: 8, color: 'rgba(235,228,210,0.3)' });
+      const keyN = BL.DEPLOY_ORDER.indexOf(type) + 1;
+      text(ctx, String(keyN), x + 3, ty + 10, { size: 8, color: 'rgba(235,228,210,0.3)' });
+      if (G.fresh && G.fresh.includes(type) && Math.sin(R.time * 5) > -0.3) text(ctx, 'NEW', x + cw - 3, ty + ch - 26, { size: 8, align: 'right', color: PAL.red, spacing: 1 });
       region(x, ty, cw, ch, 'card', type);
     });
     if (G.deploying) {
@@ -280,9 +310,9 @@
       ctx.setLineDash([]);
     }
 
+    drawHint(ctx, G, ty);
     if (G.help) drawHelp(ctx, G);
     if (G.paused && !S.over) drawPause(ctx, G);
-    if (S.over) drawEnd(ctx, G);
   }
 
   function ticketBar(ctx, x, y, w, k, col, rightAligned) {
@@ -362,69 +392,267 @@
   function drawPause(ctx, G) {
     veil(ctx, 0.62);
     H.regions.length = 0;
-    const x = Math.max(pad() + 10, R.W / 2 - 120), y = R.H * 0.32;
+    const x = Math.max(pad() + 10, R.W / 2 - 120), y = R.H * 0.3;
     text(ctx, 'PAUSED', x, y, { size: 20, spacing: 6 });
+    if (G.mission) text(ctx, BL.campaign.progressText(G.S, G.mission, G.ms), x, y + 20, { size: 10, color: PAL.inkDim, spacing: 2 });
     menu(ctx, [
       { id: 'resume', label: 'RESUME' },
-      { id: 'restart', label: 'RESTART BATTLE' },
+      { id: 'restart', label: G.mission && G.mission.num ? 'RESTART MISSION' : 'RESTART BATTLE' },
       { id: 'sound', label: 'SOUND  ' + (BL.audio.enabled ? 'ON' : 'OFF') },
       { id: 'help', label: 'HOW TO PLAY' },
-      { id: 'quit', label: 'QUIT TO TITLE' },
-    ], x, y + 38, 30, 13);
+      { id: 'quit', label: G.mission && G.mission.num ? 'ABANDON MISSION' : 'QUIT TO TITLE' },
+    ], x, y + 46, 30, 13);
   }
 
-  function drawEnd(ctx, G) {
-    const S = G.S;
-    const k = clamp((S.t - S.endT) / 2, 0, 1);
-    veil(ctx, 0.6 * k);
-    if (k < 0.5) return;
+  function star(ctx, cx, cy, r, filled, col) {
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const a = -Math.PI / 2 + i * Math.PI / 5;
+      const rr = i % 2 ? r * 0.45 : r;
+      i ? ctx.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr) : ctx.moveTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr);
+    }
+    ctx.closePath();
+    ctx.strokeStyle = col || PAL.ink;
+    ctx.lineWidth = 1;
+    if (filled) { ctx.fillStyle = col || PAL.ink; ctx.fill(); }
+    ctx.stroke();
+  }
+
+  const clock = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+
+  // After a battle: result, stars, numbers, and what the victory unlocked.
+  function drawDebrief(ctx, G) {
+    const S = G.S, M = G.mission;
+    G.debriefT = (G.debriefT || 0) + G.frameDt;
+    const k = clamp(G.debriefT / 0.8, 0, 1);
+    veil(ctx, 0.72 * k);
+    if (k < 0.4) return;
     H.regions.length = 0;
+    const W = R.W, Hh = R.H;
     const win = S.winner === 0;
-    const x = Math.max(pad() + 10, R.W / 2 - 220), y = R.H * 0.3;
-    text(ctx, win ? 'THE EASTERN LINE BREAKS' : 'OUR LINE BREAKS', x, y, { size: 22, spacing: 4, color: win ? PAL.ink : PAL.red });
-    text(ctx, win ? 'Black Rain is ours.' : 'The ridge is lost to the storm and the enemy.', x, y + 22, { size: 11, color: PAL.inkDim });
+    const P = pad() + 10;
+    const twoCol = G.fresh && G.fresh.length && W > 640;
+    const x = twoCol ? P : Math.max(P, W / 2 - 230);
+    let y = Hh * (Hh < 520 ? 0.12 : 0.2);
+    const camp = M && M.num;
+    text(ctx, camp ? `OPERATION BLACK RAIN · ${M.num} · ${M.name}` : 'SKIRMISH · BLACK RAIN', x, y, { size: 10, color: PAL.inkDim, spacing: 3 });
+    const title = camp ? (win ? 'MISSION COMPLETE' : 'MISSION FAILED') : (win ? 'THE EASTERN LINE BREAKS' : 'OUR LINE BREAKS');
+    text(ctx, title, x, y + 28, { size: clamp(W * 0.028, 18, 26), spacing: 4, color: win ? PAL.ink : PAL.red });
+    y += 44;
     const st = S.teams[0].stats, en = S.teams[1].stats;
-    const m = Math.floor(S.endT / 60), s = Math.floor(S.endT % 60);
-    const rows = [
-      ['TIME', `${m}:${String(s).padStart(2, '0')}`],
+    const tEnd = S.endT || S.t;
+    if (camp) {
+      // stars appear one by one
+      const n = G.stars || 0;
+      for (let i = 0; i < 3; i++) {
+        const shown = G.debriefT > 0.9 + i * 0.45;
+        star(ctx, x + 12 + i * 30, y + 16, 11, shown && i < n, i < n ? PAL.ink : 'rgba(235,228,210,0.35)');
+      }
+      const crit = [
+        ['OBJECTIVE', win ? 'DONE' : 'NOT MET', win],
+        [`LOSSES ≤ ${M.maxLoss}`, String(st.lost), win && st.lost <= M.maxLoss],
+        [`TIME ≤ ${clock(M.par + 25)}`, clock(tEnd), win && tEnd <= M.par + 25],
+      ];
+      y += 44;
+      crit.forEach((c, i) => {
+        text(ctx, (c[2] ? '★ ' : '☆ ') + c[0], x, y + i * 17, { size: 10, color: c[2] ? PAL.ink : PAL.inkDim, spacing: 1 });
+        text(ctx, c[1], x + 170, y + i * 17, { size: 10, color: PAL.inkDim });
+      });
+      y += 3 * 17 + 10;
+    }
+    const short = Hh < 520;
+    const rows = short && camp ? [['ENEMY LOSSES', `${en.lost}  (${st.vehKills} vehicles)`]] : [
+      ['TIME', clock(tEnd)],
       ['ENEMY LOSSES', `${en.lost}  (${st.vehKills} vehicles)`],
       ['OUR LOSSES', `${st.lost}`],
-      ['RP SPENT', `${st.spent}`],
       ['UNITS DEPLOYED', `${st.deployed}`],
     ];
     rows.forEach((r, i) => {
-      text(ctx, r[0], x, y + 56 + i * 18, { size: 10, color: PAL.inkDim, spacing: 2 });
-      text(ctx, r[1], x + 150, y + 56 + i * 18, { size: 11 });
+      text(ctx, r[0], x, y + i * 16, { size: 9, color: PAL.inkDim, spacing: 2 });
+      text(ctx, r[1], x + 170, y + i * 16, { size: 10 });
     });
-    menu(ctx, [{ id: 'restart', label: 'FIGHT AGAIN' }, { id: 'quit', label: 'TITLE' }], x, y + 56 + rows.length * 18 + 30, 28, 13);
+    y += rows.length * 16 + (short ? 18 : 26);
+    const items = [];
+    const idx = camp ? BL.campaign.MISSIONS.indexOf(M) : -1;
+    if (camp && win && idx < BL.campaign.MISSIONS.length - 1) items.push({ id: 'next', label: 'NEXT — ' + BL.campaign.MISSIONS[idx + 1].name });
+    items.push({ id: 'restart', label: win ? 'PLAY AGAIN' : 'RETRY' });
+    items.push({ id: camp ? 'campaign' : 'quit', label: camp ? 'CAMPAIGN' : 'TITLE' });
+    menu(ctx, items, x, y, short ? 22 : 26, 12);
+
+    // right column: the unlock
+    if (twoCol && G.debriefT > 1.8) {
+      const a = clamp((G.debriefT - 1.8) / 0.6, 0, 1);
+      const rx = Math.max(W * 0.52, x + 330);
+      const key = G.fresh[0];
+      const iy = Hh * (short ? 0.1 : 0.2);
+      if (!short) icon(ctx, key, rx + 50, iy + 34, 2.2, `rgba(235,228,210,${a})`);
+      BL.cinema.drawDossier(ctx, key, a, rx, 'UNLOCKED', short ? iy + 10 : iy + 80);
+      if (G.fresh[1]) {
+        const d2 = BL.UNITS[G.fresh[1]] || BL.SUPPORT[G.fresh[1]];
+        text(ctx, '+ ' + d2.name, rx, Hh - 30, { size: 11, color: `rgba(235,228,210,${a})`, spacing: 2 });
+      }
+    } else if (camp && win && idx === BL.campaign.MISSIONS.length - 1 && G.debriefT > 1.8) {
+      const rk = BL.campaign.rank(G.progress);
+      const rx = Math.max(W * 0.55, x + 330);
+      text(ctx, 'OPERATION BLACK RAIN', rx, Hh * 0.3, { size: 10, color: PAL.red, spacing: 4 });
+      text(ctx, 'COMPLETE', rx, Hh * 0.3 + 30, { size: 24, spacing: 6 });
+      text(ctx, `RANK  ${rk.name}   ★ ${rk.total}/${rk.max}`, rx, Hh * 0.3 + 56, { size: 11, color: PAL.inkDim, spacing: 2 });
+      text(ctx, 'Skirmish now has every unit.', rx, Hh * 0.3 + 80, { size: 11 });
+    }
   }
 
-  // ---------------------------------------------------------------- title
+  // ---------------------------------------------------------------- hints
+
+  function drawHint(ctx, G, trayY) {
+    const h = G.hint;
+    if (!h) return;
+    const S = G.S;
+    const n = Math.floor(h.shownT * 45);
+    const s = h.text.slice(0, n);
+    const a = clamp(h.shownT * 3, 0, 1);
+    const y = trayY - 40;
+    ctx.font = font(12);
+    const w = ctx.measureText(h.text).width + h.text.length * 1;
+    const x = clamp(R.W / 2 - w / 2, pad(), R.W - pad() - w);
+    ctx.fillStyle = `rgba(2,2,2,${0.55 * a})`;
+    ctx.fillRect(x - 10, y - 15, w + 20, 22);
+    ctx.fillStyle = PAL.red;
+    ctx.fillRect(x - 10, y - 15, 2, 22);
+    text(ctx, s, x, y, { size: 12, color: `rgba(235,228,210,${a})`, spacing: 1 });
+    // point at what the hint is about
+    const t = h.target;
+    if (!t) return;
+    const pulse = 0.5 + 0.5 * Math.sin(R.time * 6);
+    const col = `rgba(184,67,58,${0.5 + pulse * 0.5})`;
+    let box = null;
+    if (t.kind === 'card' || t.kind === 'cmd') {
+      const r = H.regions.find((q) => q.id === t.kind && q.arg === t.arg);
+      if (r) box = [r.x - 4, r.y - 4, r.w + 8, r.h + 8];
+    } else if (t.kind === 'unit') {
+      const u = S.units.find((q) => q.alive && q.team === 0 && (!t.type || q.type === t.type) && !q.members.some((m) => m.rappel));
+      if (u) {
+        const m = u.members.find((q) => q.alive) || u.members[0];
+        const px = BL.render.sx(u.x), py = BL.render.sy(u.kind === 'air' ? m.y : m.y + 5);
+        box = [px - 34, py - 24, 68, 40];
+      }
+    } else if (t.kind === 'sector') {
+      const sec = S.field.sectors.find((q) => q.id === t.id);
+      const px = BL.render.sx(sec.x), py = BL.render.sy(BL.heightAt(S.field, sec.x) + 40);
+      box = [px - 26, py - 46, 52, 70];
+    }
+    if (box) brackets(ctx, box[0] - pulse * 3, box[1] - pulse * 3, box[2] + pulse * 6, box[3] + pulse * 6, 8, col);
+  }
+
+  // ---------------------------------------------------------------- title and campaign
+
+  function logo(ctx, P, y, big) {
+    text(ctx, 'BLACKLINE', P, y, { size: big, spacing: big * 0.28 });
+    text(ctx, 'F R O N T L I N E S', P + 3, y + big * 0.55, { size: clamp(big * 0.28, 11, 18), color: PAL.inkDim, spacing: 3 });
+    ctx.strokeStyle = PAL.red;
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(P + 2, y + big * 0.8); ctx.lineTo(P + 60, y + big * 0.8); ctx.stroke();
+  }
+
+  function leftShade(ctx, w) {
+    const grd = ctx.createLinearGradient(0, 0, w, 0);
+    grd.addColorStop(0, 'rgba(2,2,2,0.86)');
+    grd.addColorStop(1, 'rgba(2,2,2,0)');
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, R.W, R.H);
+  }
 
   function drawTitle(ctx, G) {
     H.regions.length = 0;
     const P = pad() + 10;
     const W = R.W, Hh = R.H;
-    // let the battle breathe: darken only the left column
-    const grd = ctx.createLinearGradient(0, 0, Math.min(W * 0.6, 560), 0);
-    grd.addColorStop(0, 'rgba(2,2,2,0.82)');
-    grd.addColorStop(1, 'rgba(2,2,2,0)');
-    ctx.fillStyle = grd;
-    ctx.fillRect(0, 0, W, Hh);
+    leftShade(ctx, Math.min(W * 0.62, 600));
     const big = clamp(W * 0.055, 30, 64);
-    const y = Hh * 0.3;
-    text(ctx, 'BLACKLINE', P, y, { size: big, spacing: big * 0.28, weight: '' });
-    text(ctx, 'F R O N T L I N E S', P + 3, y + big * 0.55, { size: clamp(big * 0.28, 11, 18), color: PAL.inkDim, spacing: 3 });
-    ctx.strokeStyle = PAL.red;
-    ctx.beginPath(); ctx.moveTo(P + 2, y + big * 0.8); ctx.lineTo(P + 60, y + big * 0.8); ctx.stroke();
+    const y = Hh * 0.27;
+    logo(ctx, P, y, big);
+    const rk = BL.campaign.rank(G.progress);
+    text(ctx, `RANK  ${rk.name}   ★ ${rk.total}/${rk.max}`, P + 2, y + big * 0.8 + 20, { size: 10, color: PAL.inkDim, spacing: 2 });
+    const open = BL.campaign.skirmishOpen(G.progress);
     const items = [
-      { id: 'skirmish', label: 'SKIRMISH — BLACK RAIN' },
+      { id: 'campaign', label: 'CAMPAIGN — OPERATION BLACK RAIN' },
+      open ? { id: 'skirmish', label: 'SKIRMISH — BLACK RAIN' } : { id: 'x', label: 'SKIRMISH   (win mission 01 first)', dim: true },
       { id: 'difficulty', label: 'DIFFICULTY  ' + (G.difficulty === 'recruit' ? 'RECRUIT' : 'VETERAN') },
       { id: 'sound', label: 'SOUND  ' + (BL.audio.enabled ? 'ON' : 'OFF') },
-      { id: 'x', label: 'CAMPAIGN · SANDBOX · SURVIVAL   (planned)', dim: true },
     ];
-    menu(ctx, items, P, y + big * 0.8 + 40, clamp(Hh * 0.075, 26, 34), clamp(W * 0.016, 12, 15));
-    text(ctx, 'a vertical slice · the battle behind this menu is live', P, Hh - 18, { size: 9, color: 'rgba(235,228,210,0.35)' });
+    menu(ctx, items, P, y + big * 0.8 + 56, clamp(Hh * 0.075, 26, 34), clamp(W * 0.016, 12, 15));
+    text(ctx, 'the battle behind this menu is live', P, Hh - 18, { size: 9, color: 'rgba(235,228,210,0.35)' });
+  }
+
+  function drawCampaign(ctx, G) {
+    H.regions.length = 0;
+    const C = BL.campaign;
+    const P = pad() + 10;
+    const W = R.W, Hh = R.H;
+    veil(ctx, 0.35);
+    leftShade(ctx, Math.min(W * 0.75, 760));
+    const top = Math.max(30, Hh * 0.12);
+    text(ctx, 'OPERATION', P, top, { size: 10, color: PAL.inkDim, spacing: 4 });
+    text(ctx, 'BLACK RAIN', P, top + 28, { size: clamp(W * 0.03, 18, 30), spacing: 6 });
+    const rk = C.rank(G.progress);
+    text(ctx, `RANK  ${rk.name}   ★ ${rk.total}/${rk.max}`, P, top + 46, { size: 9, color: PAL.inkDim, spacing: 2 });
+    const rowH = clamp(Hh * 0.075, 26, 36);
+    const listW = Math.min(300, W * 0.4);
+    C.MISSIONS.forEach((M, i) => {
+      const y = top + 74 + i * rowH;
+      const open = C.missionOpen(G.progress, i);
+      const sel = G.campSel === i;
+      const col = open ? PAL.ink : 'rgba(235,228,210,0.3)';
+      if (sel) brackets(ctx, P - 8, y - rowH * 0.62, listW, rowH * 0.9, 5, PAL.ink);
+      text(ctx, M.num, P, y, { size: 11, color: open ? PAL.red : col, spacing: 1 });
+      text(ctx, M.name, P + 30, y, { size: 12, color: col, spacing: 2 });
+      if (open) {
+        const n = G.progress.stars[M.id] || 0;
+        for (let k = 0; k < 3; k++) star(ctx, P + listW - 50 + k * 15, y - 4, 5, k < n, k < n ? PAL.ink : 'rgba(235,228,210,0.3)');
+      } else text(ctx, 'LOCKED', P + listW - 20, y, { size: 9, align: 'right', color: col, spacing: 2 });
+      region(P - 8, y - rowH * 0.62, listW, rowH * 0.9, 'mission', i);
+    });
+    text(ctx, '— BACK', P, Math.min(Hh - 20, top + 74 + 5 * rowH + 12), { size: 12, spacing: 2 });
+    region(P - 8, Math.min(Hh - 20, top + 74 + 5 * rowH + 12) - 18, 90, 26, 'back');
+
+    // the selected mission
+    const M = C.MISSIONS[G.campSel];
+    const open = C.missionOpen(G.progress, G.campSel);
+    const rx = P + listW + Math.max(24, W * 0.04);
+    let y = top;
+    text(ctx, `${M.time}  ·  ${M.place}  ·  ${M.sky}`, rx, y, { size: 9, color: PAL.inkDim, spacing: 2 });
+    text(ctx, M.name, rx, y + 28, { size: clamp(W * 0.026, 16, 26), spacing: 4 });
+    const maxW = W - rx - P;
+    const sum = wrap(ctx, M.summary, maxW, 12);
+    sum.forEach((l, i) => text(ctx, l, rx, y + 50 + i * 15, { size: 12 }));
+    y += 76 + (sum.length - 1) * 15;
+    const lines = [];
+    for (const b of M.brief.slice(0, 3)) lines.push(...wrap(ctx, b, maxW, 11));
+    for (const line of lines) {
+      if (y > Hh * 0.6) break;
+      text(ctx, line, rx, y, { size: 11, color: PAL.inkDim });
+      y += 15;
+    }
+    y += 12;
+    if (M.intro && M.intro.length) {
+      text(ctx, 'NEW IN THIS MISSION', rx, y, { size: 9, color: PAL.red, spacing: 3 });
+      M.intro.forEach((k, i) => {
+        const ix = rx + i * Math.min(110, maxW / 2);
+        icon(ctx, k, ix + 24, y + 22, 1.1, PAL.ink);
+        text(ctx, (BL.UNITS[k] || BL.SUPPORT[k]).short, ix + 54, y + 28, { size: 10, spacing: 2 });
+      });
+      y += 50;
+    }
+    if (M.unlocks.length) {
+      text(ctx, 'VICTORY UNLOCKS  ' + M.unlocks.map((k) => (BL.UNITS[k] || BL.SUPPORT[k]).short).join(' · '), rx, y, { size: 9, color: PAL.inkDim, spacing: 2 });
+      y += 22;
+    }
+    const by = Math.min(Hh - 22, y + 20);
+    if (open) {
+      brackets(ctx, rx - 8, by - 20, 150, 30, 6, PAL.ink);
+      text(ctx, 'BEGIN MISSION', rx + 4, by, { size: 12, spacing: 2 });
+      region(rx - 8, by - 20, 150, 30, 'begin');
+    } else {
+      text(ctx, `Win ${C.MISSIONS[G.campSel - 1].num} — ${C.MISSIONS[G.campSel - 1].name} to open this mission.`, rx, by, { size: 11, color: PAL.inkDim });
+    }
   }
 
   function drawRotate(ctx) {
@@ -435,6 +663,8 @@
   }
 
   H.drawBattle = drawBattle;
+  H.drawDebrief = drawDebrief;
+  H.drawCampaign = drawCampaign;
   H.drawTitle = drawTitle;
   H.drawRotate = drawRotate;
   H.hit = hit;

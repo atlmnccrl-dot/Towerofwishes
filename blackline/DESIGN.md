@@ -106,8 +106,9 @@ lightning; synthesised sound.
    paratroopers, recon drone (temporary sight).
 3. **Battle Sandbox:** place units on both sides, pick weather and time, watch or take over.
 4. **Survival:** hold one sector against escalating waves; between waves, spend on fortifications.
-5. **Campaign:** a chain of missions with changing ground (forest, city ruins, coast, snow),
-   objectives (escort, destroy, hold until dawn) and unlocks of units and support.
+5. **Campaign:** Operation Black Rain (five missions, briefing cinematics, unit introductions,
+   hints, stars, ranks and unlocks) is built. Next: more operations on new ground (forest, city
+   ruins, coast, snow) with new objectives (escort, destroy, hold until dawn).
 6. **Skirmish options:** map seeds, sector counts, AI personalities.
 7. **Polish:** a hand-picked CC0 score, more voices of wind and rain, replays from the
    deterministic sim.

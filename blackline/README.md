@@ -21,6 +21,30 @@ Open `blackline/index.html` in a browser (no build step), or serve the folder. L
 | Modes | MOVE / ATTACK (attack-move) / HOLD / RETREAT | `M`, `G`, `H`, `R` |
 | Camera | drag, pinch, tap the top strip; FOLLOW or double-tap a unit | drag, wheel, arrows / `WASD`, `Q`/`E`, `F` |
 | Pause | ‖ top right | `Space`, `P`, `Esc` |
+| Action camera | eye button, top right | `C` |
+| Skip a cinematic | tap | `Space`, `Enter`, `Esc` |
+
+## Campaign: Operation Black Rain
+
+Five missions on the Black Rain front. Each one opens with a briefing cinematic (title card,
+typed lines over a flyover of the ground, an introduction card for each new unit, then H-hour),
+teaches through short hints that point at what to tap, and ends on a closing shot and a debrief.
+
+| # | Mission | Objective | New | Victory unlocks |
+|---|---|---|---|---|
+| 01 | Landfall | go in by rope, take sector A | rifle squad | machine-gun team |
+| 02 | The Gunline | hold A against four waves (3:30) | machine-gun team | scouts, artillery |
+| 03 | Eyes on the Ridge | take B from dug-in gunners | scouts, artillery | carrier, tank |
+| 04 | Iron in the Rain | meet their armour, take C | carrier, tank | helicopter, rope drop |
+| 05 | Black Rain | everything; break their line | helicopter, rope drop | — |
+
+Up to three stars per mission (win, losses under a limit, time under par); stars give a rank.
+Skirmish opens after mission 01 and offers the cards unlocked so far. Progress is saved in the
+browser (`localStorage`); if storage is blocked the game plays without saving.
+
+During battles: illumination flares go up over fights and light the ground; a vehicle destroyed
+on screen gets a moment of slow motion; the eye button (or `C`) switches on the action camera,
+which follows your fights by itself until you pan.
 
 ## What is in this slice
 
@@ -50,21 +74,25 @@ Open `blackline/index.html` in a browser (no build step), or serve the folder. L
 | `js/data.js` | unit, weapon, armour and support tables; rules |
 | `js/terrain.js` | height field, cover, trenches, structures, sectors, line of sight, craters |
 | `js/sim.js` | the fight: units, orders, sight, targeting, projectiles, damage, sectors, economy |
-| `js/ai.js` | the computer commander |
+| `js/ai.js` | the computer commander (modes: push, assault, defend) |
+| `js/campaign.js` | missions, waves, objectives, hints, stars, unlocks, saved progress |
 | `js/render/core.js` | canvas, camera, line helpers, grain, vignette |
 | `js/render/world.js` | sky, clouds, far hills, funnel, terrain, structures, sector marks, rain, lightning |
 | `js/render/units.js` | soldiers, vehicles, helicopters, wrecks, markers, selection |
-| `js/render/fx.js` | flashes, tracers, explosions, debris, smoke; event → effect and sound |
+| `js/render/fx.js` | flashes, tracers, explosions, debris, smoke, flares; event → effect and sound |
+| `js/render/cinema.js` | letterbox, title cards, briefing flyovers, unit dossiers, H-hour, closing shots |
 | `js/audio.js` | synthesised sound |
 | `js/hud.js` | the HUD, title, pause and end screens (canvas-drawn, hit regions) |
 | `js/main.js` | loop, screens, input, the title camera |
 
-`util`, `data`, `terrain`, `sim` and `ai` touch no DOM and run in Node.
+`util`, `data`, `terrain`, `sim`, `ai` and `campaign` touch no DOM and run in Node.
 
 ## Tests
 
 ```sh
 node test/sim-test.js 30                                         # rules + 30 AI-vs-AI matches
+node test/campaign-test.js 6                                     # mission data, progress/unlocks, each mission played by an AI on our side
+NODE_PATH=$(npm root -g) node test/flow.js /tmp/bl-flow [--phone]   # title → campaign → briefing → play → debrief → mission 02
 NODE_PATH=$(npm root -g) node test/browser.js /tmp/bl-shots      # plays through the real input path, screenshots, console errors
 NODE_PATH=$(npm root -g) node test/browser.js /tmp/bl-shots --phone   # same, iPhone 13 landscape emulation
 NODE_PATH=$(npm root -g) node test/gallery.js /tmp/bl-gallery    # close-ups of every unit, both sides, and the rope drop

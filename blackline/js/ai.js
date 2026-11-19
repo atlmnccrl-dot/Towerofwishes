@@ -8,11 +8,14 @@
 
   function createAI(S, team) {
     const vet = S.difficulty !== 'recruit';
+    const cfg = (S.aiCfg && S.aiCfg[team]) || {};
     if (!vet && team === 1) S.teams[team].incomeMul = 0.75;
+    if (cfg.incomeMul != null) S.teams[team].incomeMul = cfg.incomeMul * (vet ? 1 : 0.8);
     return {
+      cfg,
       team, rnd: rng(S.seed * 31 + team * 7 + 3),
       think: 0.5, react: vet ? 1.4 : 2.4, buys: 0, want: null, wantT: 0,
-      artyT: vet ? 50 : 90, dropT: vet ? 120 : 200, seen: new Map(),
+      artyT: cfg.artyT != null ? cfg.artyT : vet ? 50 : 90, dropT: vet ? 120 : 200, seen: new Map(),
     };
   }
 
@@ -31,8 +34,13 @@
 
   // ---------------------------------------------------------------- spending
 
+  function allowedHere(S, team, type) {
+    return !S.allowed || !S.allowed[team] || S.allowed[team].has(type);
+  }
+
   function chooseUnit(S, A) {
-    if (A.buys < OPENING.length) return OPENING[A.buys];
+    const opening = OPENING.filter((k) => allowedHere(S, A.team, k));
+    if (A.buys < opening.length) return opening[A.buys];
     const mine = count(S, A.team);
     const theirs = { inf: 0, veh: 0, air: 0 };
     for (const s of A.seen.values()) theirs[UNITS[s.type].kind]++;
@@ -44,6 +52,7 @@
     const rp = S.teams[A.team].rp;
     if (rp > 450 || S.t > 300) { w.tank *= 2.2; w.apc *= 1.8; w.heli *= 2; w.scout *= 0.5; }
     for (const k in LIMIT) if ((mine[k] || 0) >= LIMIT[k]) w[k] = 0;
+    for (const k in w) if (!allowedHere(S, A.team, k)) w[k] = 0;
     let sum = 0;
     for (const k in w) sum += w[k];
     let r = A.rnd() * sum;
@@ -58,6 +67,7 @@
   }
 
   function buy(S, A, T) {
+    if (A.cfg.buy === false) return;
     if (!A.want || S.t - A.wantT > 30) { A.want = chooseUnit(S, A); A.wantT = S.t; }
     const bad = BL.canAfford(S, A.team, A.want);
     if (bad === 'cap') return;
@@ -94,9 +104,10 @@
       free.push(u);
     }
 
+    const mode = A.cfg.mode || 'push';
     // one infantry squad garrisons each held sector that has no other guard
     const used = new Set();
-    for (const s of owned) {
+    for (const s of mode === 'assault' ? [] : owned) {
       const inf = free.filter((u) => u.kind === 'inf' && !used.has(u.id)).sort((a, b) => Math.abs(a.x - s.x) - Math.abs(b.x - s.x));
       const g = inf[0];
       if (!g || Math.abs(g.x - s.x) > 900) continue;
@@ -109,10 +120,15 @@
       const near = free.filter((u) => !used.has(u.id)).sort((a, b) => Math.abs(a.x - s.x) - Math.abs(b.x - s.x)).slice(0, 2);
       for (const u of near) { used.add(u.id); give(S, u, 'attack', s.x + dir * 40); }
     }
-    // everyone else pushes the next sector
+    // everyone else pushes the next sector (a defending force holds what it has)
     let k = 0;
     for (const u of free) {
       if (used.has(u.id)) continue;
+      if (mode === 'defend') {
+        const home = owned.slice().sort((a, b) => Math.abs(a.x - u.x) - Math.abs(b.x - u.x))[0];
+        give(S, u, 'hold', home ? home.x + ((k++ % 3) - 1) * 40 : u.x);
+        continue;
+      }
       let x;
       if (target) x = target.x + ((k++ % 3) - 1) * 36;
       else x = S.field.bases[1 - team] - dir * 260; // all held: press toward the enemy base
@@ -140,6 +156,7 @@
   // ---------------------------------------------------------------- support
 
   function support(S, A, T) {
+    if (A.cfg.support === false) return;
     if (S.t > A.artyT && !BL.canAfford(S, A.team, 'arty') && T.rp > SUPPORT.arty.cost + 80) {
       let best = null, bestN = 0;
       for (const e of S.units) {

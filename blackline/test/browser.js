@@ -33,14 +33,16 @@ const server = http.createServer((req, res) => {
   const shot = (n) => page.screenshot({ path: path.join(out, `${phone ? 'phone-' : ''}${n}.png`) });
   await shot('01-title');
 
-  // start a skirmish by tapping the menu item (real input path)
+  // unlock the campaign's cards, then start a skirmish by tapping the menu item
+  await page.evaluate(() => { const G = window.__BL_GAME; G.progress.stars = { m1: 1, m2: 1, m3: 1, m4: 1 }; });
+  await page.waitForTimeout(200);
   const r = await page.evaluate(() => window.BL.hud.regions.find((x) => x.arg === 'skirmish'));
   if (!r) throw new Error('no skirmish menu item');
   await page.mouse.click(r.x + 20, r.y + r.h / 2);
-  await page.waitForTimeout(500);
-  await shot('02-help');
-  await page.mouse.click(300, 300); // dismiss help
-  await page.waitForTimeout(300);
+  await page.waitForTimeout(2600);
+  await shot('02-briefing');
+  await page.mouse.click(300, 300); // skip the briefing
+  await page.waitForTimeout(600);
 
   // deploy a machine-gun team and a tank through the cards and a tap on the field
   async function deploy(type) {

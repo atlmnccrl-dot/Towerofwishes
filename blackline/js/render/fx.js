@@ -12,6 +12,7 @@
   const SM = [];     // smoke puffs (ring buffer)
   let smHead = 0;
   const notices = [];
+  const flares = [];
 
   function add(o) {
     const cap = Math.floor(MAX * (R.quality < 1 ? 0.65 : 1));
@@ -26,7 +27,87 @@
     if (SM.length < cap) SM.push(o); else { SM[smHead] = o; smHead = (smHead + 1) % cap; }
   }
 
-  function reset() { P.length = 0; SM.length = 0; head = 0; smHead = 0; notices.length = 0; }
+  function reset() { P.length = 0; SM.length = 0; head = 0; smHead = 0; notices.length = 0; flares.length = 0; }
+
+  // ---------------------------------------------------------------- illumination flares
+  // Fired up from the ground, they burst high, drift down under a small chute and light
+  // the ground below them for a few seconds.
+  function flare(x, gy) {
+    if (flares.length > 5) flares.shift();
+    flares.push({ x, y: gy + 4, vy: 260, vx: (Math.random() - 0.5) * 30, t: 0, life: 9 + Math.random() * 3, lit: false, seed: Math.random() * 100 });
+    if (BL.audio) BL.audio.ping(0.4);
+  }
+
+  function tickFlares(dt, field) {
+    for (const f of flares) {
+      f.t += dt;
+      if (!f.lit) {
+        f.vy -= 260 * dt;
+        f.y += f.vy * dt; f.x += f.vx * dt;
+        if (f.vy < 40) f.lit = true;
+      } else {
+        f.y -= 9 * dt;
+        f.x += BL.world.WX.wind * 12 * dt;
+      }
+    }
+    for (let i = flares.length - 1; i >= 0; i--) if (flares[i].t > flares[i].life) flares.splice(i, 1);
+  }
+
+  function flareLight(f) {
+    if (!f.lit) return 0;
+    const k = f.t / f.life;
+    return clamp(Math.min((f.t - 0.4) * 3, (1 - k) * 4), 0, 1) * (0.85 + Math.random() * 0.15);
+  }
+
+  // Pools of light on the ground (drawn after the terrain, before the units).
+  function drawLight(ctx) {
+    if (!flares.length) return;
+    const z = R.cam.z;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (const f of flares) {
+      const L = flareLight(f);
+      if (L <= 0) continue;
+      const px = sx(f.x), py = sy(f.y);
+      const r = 330 * z;
+      if (px < -r || px > R.W + r) continue;
+      const g = ctx.createRadialGradient(px, py, 0, px, py, r);
+      g.addColorStop(0, `rgba(235,228,210,${0.16 * L})`);
+      g.addColorStop(0.45, `rgba(235,228,210,${0.06 * L})`);
+      g.addColorStop(1, 'rgba(235,228,210,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(px - r, py - r, r * 2, r * 2);
+    }
+    ctx.restore();
+  }
+
+  function drawFlares(ctx) {
+    const z = R.cam.z;
+    for (const f of flares) {
+      const px = sx(f.x), py = sy(f.y);
+      if (px < -40 || px > R.W + 40) continue;
+      if (!f.lit) {
+        ctx.strokeStyle = 'rgba(240,233,214,0.8)';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px - f.vx * 0.04 * z, py + f.vy * 0.06 * z); ctx.stroke();
+        continue;
+      }
+      const L = flareLight(f);
+      // chute and line
+      ctx.strokeStyle = `rgba(235,228,210,${0.5 * L})`;
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.arc(px, py - 9 * Math.max(0.6, z), 4 * Math.max(0.6, z), Math.PI, 0);
+      ctx.moveTo(px - 4 * Math.max(0.6, z), py - 9 * Math.max(0.6, z)); ctx.lineTo(px, py);
+      ctx.lineTo(px + 4 * Math.max(0.6, z), py - 9 * Math.max(0.6, z));
+      ctx.stroke();
+      ctx.fillStyle = `rgba(255,250,236,${L})`;
+      const s = 2.2 + Math.random();
+      ctx.fillRect(px - s / 2, py - s / 2, s, s);
+      // a few sparks falling
+      if (Math.random() < 0.5) add({ k: 'dot', x: f.x, y: f.y, vx: (Math.random() - 0.5) * 10, vy: -10, life: 0.6, max: 0.6, s: 0.8 });
+    }
+  }
 
   // ---------------------------------------------------------------- events
 
@@ -84,6 +165,7 @@
           break;
         case 'vehDie':
           if (A) A.boom(60, nearCam(e.x));
+          if (api.onBig && onScreen(e.x, 0)) api.onBig(e);
           if (onScreen(e.x, 300)) {
             addShake(0.45 * nearCam(e.x));
             for (let i = 0; i < 26; i++) add({ k: 'dot', x: e.x, y: e.y + 8, vx: (Math.random() - 0.5) * 260, vy: 60 + Math.random() * 220, life: 2.4, max: 2.4, s: 1.2 + Math.random() * 2.2, red: Math.random() < 0.2 });
@@ -115,6 +197,10 @@
             else if (e.owner === 1 - playerTeam) note(`SECTOR ${e.id} LOST`, true);
             else if (e.from === playerTeam) note(`SECTOR ${e.id} CONTESTED`, true);
           }
+          if (A) A.radio();
+          break;
+        case 'wave':
+          if (playerTeam >= 0) note(e.n === e.of ? 'FINAL ASSAULT — HOLD' : 'ENEMY ATTACK ' + e.n + ' OF ' + e.of, true);
           if (A) A.radio();
           break;
         case 'insert':
@@ -330,5 +416,6 @@
     }
   }
 
-  BL.fx = { consume, emitters, draw, reset, notices, note };
+  const api = { consume, emitters, draw, reset, notices, note, flare, tickFlares, drawLight, drawFlares, flares, onBig: null };
+  BL.fx = api;
 })();

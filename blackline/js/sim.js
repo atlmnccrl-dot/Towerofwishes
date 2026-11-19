@@ -35,6 +35,20 @@
       ai: [null, null],
       difficulty: opts.difficulty || 'veteran',
     };
+    // mission options: which cards each side may use, who holds which sector, whether the
+    // frontline-strength drain decides the battle, and AI settings
+    S.allowed = (opts.allowed || [null, null]).map((a) => (a ? new Set(a) : null));
+    S.drain = opts.drain !== false;
+    S.calm = !!opts.calm;
+    S.aiCfg = opts.aiCfg || [{}, {}];
+    if (opts.sectors) {
+      for (const s of field.sectors) {
+        const o = opts.sectors[s.id];
+        if (o == null) continue;
+        s.owner = o; s.prog = o === 0 ? 100 : o === 1 ? -100 : 0;
+      }
+    }
+    if (opts.startRP) opts.startRP.forEach((rp, team) => { if (rp != null) S.teams[team].rp = rp; });
     if (opts.ai) opts.ai.forEach((on, team) => { if (on) S.ai[team] = BL.createAI(S, team); });
     return S;
   }
@@ -148,6 +162,7 @@
   function canAfford(S, team, type) {
     const cost = (UNITS[type] || SUPPORT[type]).cost;
     const T = S.teams[team];
+    if (S.allowed && S.allowed[team] && !S.allowed[team].has(type)) return 'locked';
     if (T.rp < cost) return 'rp';
     if ((T.cds[type] || 0) > S.t) return 'cooldown';
     if ((UNITS[type] || type === 'insert') && popCount(S, team) >= RULES.popCap) return 'cap';
@@ -165,7 +180,7 @@
     return false;
   }
 
-  function deploy(S, team, type, x) {
+  function deploy(S, team, type, x, force) {
     if (S.over) return { ok: false, reason: 'over' };
     const bad = canAfford(S, team, type);
     if (bad) return { ok: false, reason: bad };
@@ -180,7 +195,7 @@
       return { ok: true, x };
     }
     if (type === 'insert') {
-      if (!teamSees(S, team, x)) return { ok: false, reason: 'sight' };
+      if (!force && !teamSees(S, team, x)) return { ok: false, reason: 'sight' };
       const sp = SUPPORT.insert;
       const u = makeUnit(S, team, sp.unit, x);
       u.order = { type: 'hold', x, target: 0 };
@@ -479,7 +494,7 @@
     S.sightT -= dt;
     if (S.sightT <= 0) { S.sightT = RULES.sightTick; updateSight(S); }
 
-    for (let i = 0; i < 2; i++) if (S.ai[i]) BL.aiThink(S, i, dt);
+    if (!S.calm) for (let i = 0; i < 2; i++) if (S.ai[i]) BL.aiThink(S, i, dt);
 
     for (const u of S.units) {
       if (!u.alive) continue;
@@ -490,8 +505,11 @@
     stepProjectiles(S, dt);
     stepStrikes(S, dt);
     stepTransports(S, dt);
-    stepSectors(S, dt);
-    stepEconomy(S, dt);
+    // during a cinematic the field is calm: units move, nobody fights, nothing is scored
+    if (!S.calm) {
+      stepSectors(S, dt);
+      stepEconomy(S, dt);
+    }
 
     // drop dead units (corpses and wrecks are kept separately)
     if (S.units.some((u) => !u.alive && !u.members.some((m) => m.alive))) {
@@ -529,8 +547,13 @@
     const retreat = o.type === 'retreat';
     const engaged = S.t - u.engagedT < 1.6;
     const pinned = live.filter((m) => m.supp > 75).length;
+    // attack-move closes to effective range before it stops to fight
+    let near = 1e9;
+    for (const m of live) if (m.target) near = Math.min(near, Math.abs(m.target.x - m.x));
+    const reach = u.def.load.includes('mg') ? 0.85 : 0.62;
+    const range = WEAPONS[u.def.load[0]].range;
     let halt = false;
-    if (o.type === 'attack' && engaged) halt = true;
+    if (o.type === 'attack' && engaged && (near < range * reach || pinned > live.length * 0.3 || near === 1e9)) halt = true;
     if (o.type === 'hold') halt = Math.abs(gx - u.x) < 4;
     if (!retreat && pinned > live.length / 2) halt = true;
 
@@ -635,7 +658,7 @@
     else m.stance = 'stand';
     if (m.moving && m.stance === 'prone' && !pinned) m.stance = 'crouch';
 
-    if (retreat) { m.target = null; return; }
+    if (retreat || S.calm) { m.target = null; return; }
 
     // weapons
     m.retarget -= dt;
@@ -722,6 +745,7 @@
   }
 
   function stepMounted(S, u, m, dt) {
+    if (S.calm) { for (const wp of m.weapons) wp.target = null; return; }
     m.weapons.forEach((wp, wi) => {
       const w = wp.w;
       wp.retarget -= dt;
@@ -842,7 +866,9 @@
       p.x += sx; p.y += sy;
       if (!p.passed) p.left -= stepLen;
       const g = ground(S, p.x);
-      if (p.y <= g) {
+      // a shot already decided as a hit (or stopped by cover) flies its line even where it
+      // grazes a crest: sight was checked from the eye, the muzzle sits a little lower
+      if (p.y <= g && (p.passed || (!p.hit && !p.absorbed))) {
         p.y = g;
         p.on = false;
         if (p.kind === 'bullet') emit(S, { t: 'dirt', x: p.x, y: g, team: p.team });
@@ -950,7 +976,7 @@
           } else if (!ms.some((k) => k.alive && k.rappel)) {
             tr.phase = 'out'; tr.t = 0;
             // the squad spreads out from the rope
-            ms.forEach((k) => { k.x = tr.tx + k.slot * 0.4; });
+            ms.forEach((k) => { if (!k.alive) return; k.x = tr.tx + k.slot * 0.4; k.y = ground(S, k.x); });
           }
         }
       } else {
@@ -1004,11 +1030,11 @@
       T.rp += T.income * (T.incomeMul || 1) * dt;
       T.owned = owned[T.id];
     }
-    const diff = owned[0] - owned[1];
+    const diff = S.drain ? owned[0] - owned[1] : 0;
     if (diff > 0) S.teams[1].tickets -= RULES.drainPerSector * diff * dt;
     if (diff < 0) S.teams[0].tickets -= RULES.drainPerSector * -diff * dt;
     for (const T of S.teams) T.tickets = Math.max(0, T.tickets);
-    if (S.teams[0].tickets <= 0 || S.teams[1].tickets <= 0) {
+    if (S.drain && (S.teams[0].tickets <= 0 || S.teams[1].tickets <= 0)) {
       S.over = true;
       S.winner = S.teams[0].tickets <= 0 ? 1 : 0;
       S.endT = S.t;
@@ -1021,6 +1047,17 @@
   BL.step = step;
   BL.deploy = deploy;
   BL.deployPoints = deployPoints;
+  // place a unit for free (mission set-up and scripted waves)
+  BL.spawn = function (S, team, type, x, ord) {
+    const u = makeUnit(S, team, type, x);
+    u.order = ord ? { type: ord.type, x: ord.x != null ? ord.x : x, target: 0 } : { type: 'hold', x, target: 0 };
+    return u;
+  };
+  BL.endBattle = function (S, winner) {
+    if (S.over) return;
+    S.over = true; S.winner = winner; S.endT = S.t;
+    emit(S, { t: 'end', winner });
+  };
   BL.order = order;
   BL.canAfford = canAfford;
   BL.popCount = popCount;

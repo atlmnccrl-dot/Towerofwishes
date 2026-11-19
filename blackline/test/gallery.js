@@ -15,7 +15,8 @@ fs.mkdirSync(out, { recursive: true });
   await page.waitForTimeout(1500);
   await page.evaluate(() => {
     const G = window.__BL_GAME, BL = window.BL;
-    G.api.startBattle(); G.help = false;
+    G.progress.stars = { m1: 1, m2: 1, m3: 1, m4: 1 };
+    G.api.startMission(BL.campaign.SKIRMISH); BL.cinema.skip();
     const S = G.S;
     S.ai[1] = null;
     function place(team, type, x) {

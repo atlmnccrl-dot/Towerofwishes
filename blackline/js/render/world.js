@@ -8,6 +8,7 @@
   const WX = {
     wind: 0.4, gust: 0, gustT: 3, flash: 0, bolt: null, boltT: 0, nextBolt: 4,
     drops: [], splashes: [], loops: [], prevCamX: null, funnelX: 2700, onThunder: null,
+    rainMul: 1, windBase: 0.32, bolts: [5, 15],
   };
 
   let field = null;
@@ -100,13 +101,13 @@
       WX.gustTarget = Math.random() < 0.4 ? 0.5 + Math.random() * 0.6 : Math.random() * 0.25;
     }
     WX.gust += ((WX.gustTarget || 0) - WX.gust) * dt * 0.8;
-    WX.wind = 0.32 + 0.18 * Math.sin(R.time * 0.05) + WX.gust;
+    WX.wind = WX.windBase + 0.18 * Math.sin(R.time * 0.05) + WX.gust;
     WX.flash = Math.max(0, WX.flash - dt * 2.6);
     WX.funnelX += dt * 6 * WX.wind;
 
     WX.nextBolt -= dt;
     if (WX.nextBolt <= 0) {
-      WX.nextBolt = 5 + Math.random() * 10;
+      WX.nextBolt = WX.bolts[0] + Math.random() * (WX.bolts[1] - WX.bolts[0]);
       strike();
     }
     if (WX.bolt) {
@@ -665,7 +666,7 @@
 
   function drawRain(ctx, dt) {
     const W = R.W, H = R.H;
-    const want = Math.min(460, Math.floor((W * H) / 2300 * R.quality));
+    const want = Math.min(560, Math.floor((W * H) / 2300 * R.quality * WX.rainMul));
     while (WX.drops.length < want) WX.drops.push(newDrop(true));
     if (WX.drops.length > want) WX.drops.length = want;
     const ang = 0.12 + WX.wind * 0.35;
@@ -742,5 +743,13 @@
     };
   }
 
-  BL.world = { setup, tickWeather, drawSky, drawFar, drawWires, drawTerrain, drawStructures, drawSectors, drawRain, WX, strike };
+  function setWeather(w) {
+    w = w || {};
+    WX.rainMul = w.rain || 1;
+    WX.windBase = w.wind != null ? w.wind : 0.32;
+    WX.bolts = w.bolts || [5, 15];
+    WX.nextBolt = Math.min(WX.nextBolt, 3);
+  }
+
+  BL.world = { setWeather, setup, tickWeather, drawSky, drawFar, drawWires, drawTerrain, drawStructures, drawSectors, drawRain, WX, strike };
 })();
