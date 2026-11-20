@@ -66,8 +66,21 @@
   const sigOn = (name, sec) => every(sec || 2.4, (sc) => { const e = sc.heroesAlive()[0], f = e && foeNear(sc, e); if (e && f) sc.runSig(e, f, { sig: name, tgt: f }); });
   const ultOn = (calling, sec) => every(sec || 2.6, (sc) => { const e = sc.heroList.find((h) => h.calling === calling && !h.dead); if (!e) return; e.energy = 100; e.state = 'idle'; e.lock = 0; sc.useSkill(e, true); if (sc.ep) sc.ep.ult = null; });
   const tough = (sc) => { for (const o of sc.ents) if (o.side === 'foe' && !o.dead && !o.boss && o.hp < o.maxhp * 0.35) o.hp = o.maxhp * 0.35; };
+  // the effects reel: one scene plays many abilities, the segment on screen says which (`fire`: 'ult:arcanist',
+  // 'sig:meteor:2.2' or 'boss:deathcone:2.5', the last part how often it fires)
+  const fireMode = (sc, dt) => { const m = sc.fireMode; if (!m) return; sc.fireT -= dt; if (sc.fireT > 0) return;
+    const [kind, name, every] = m.split(':'); sc.fireT = +(every || 2.2);
+    if (kind === 'sig') { const e = sc.heroesAlive()[0], f = e && foeNear(sc, e); if (e && f) sc.runSig(e, f, { sig: name, tgt: f }); }
+    else if (kind === 'ult') { const e = sc.heroList.find((h) => h.calling === name && !h.dead); if (e) { e.energy = 100; e.state = 'idle'; e.lock = 0; e.leap = null; sc.useSkill(e, true); if (sc.ep) sc.ep.ult = null; } }
+    else if (kind === 'boss') { const b = sc.ents.find((o) => o.boss && !o.dead && o.side === 'foe'), t = sc.heroesAlive()[0]; if (b && t) { b.state = 'idle'; b.lock = 0; b.moveCd = 9; sc.bossMove(b, t, name); } } };
+  const reel = (idx, team, o) => async (n) => { const sc = await fight(idx, Math.max(n, team.length), Object.assign({ team, warm: 3, tick: ['sturdy', tough, fireMode] }, o)); sc.autoSkills = false;
+    const b = sc.ents.find((e) => e.boss && e.side === 'foe'); if (b) { const tk = sc.tick; sc.tick = (dt) => { tk(dt); if (b.hp < b.maxhp * 0.6) b.hp = b.maxhp * 0.6; }; } return sc; };
   const show = (idx, team, fn) => (n) => fight(idx, Math.max(n, team.length), { team, warm: 4, tick: ['sturdy', tough, fn] });
   const MAKE = {
+    fxA: reel(4, ['mage', 'knight', 'barbarian', 'ranger', 'paladin']),
+    fxB: reel(13, ['monk', 'rogue', 'spearman', 'knight', 'mage']),
+    fxEnch: reel(4, ['knight', 'barbarian', 'ranger', 'mage', 'rogue'], { ench: ['fire', 'frost', 'storm', 'shadow', 'poison'], tick: ['sturdy', tough, 'sigs'] }),
+    fxBoss: reel(23, ['knight', 'mage', 'ranger', 'barbarian', 'paladin'], { over: 1, until: 'boss', warm: 2.5 }),
     xMeteor: show(31, ['mage', 'knight', 'ranger'], sigOn('meteor', 2.2)),
     xStorm: show(44, ['mage', 'knight', 'ranger'], sigOn('chainbolt', 1.4)),
     xFlame: show(31, ['mage', 'knight', 'ranger'], ultOn('arcanist', 2.4)),
@@ -209,6 +222,7 @@
     if (i !== T.cur) { // a cut
       const was = T.segs[T.cur]; if (was && was.k === 'summon') closeReveal();
       if (sg.k === 'summon') { UI.reveal(T.hero, () => {}); UI.revealRender(1.3); } // past the slow gathering, straight to the charge
+      if (sg.k === 'scene' && T.sc[sg.s]) { T.sc[sg.s].fireMode = sg.fire || null; T.sc[sg.s].fireT = sg.fireAt === undefined ? 0.1 : sg.fireAt; }
       T.cur = i;
     }
     // ---- the picture
