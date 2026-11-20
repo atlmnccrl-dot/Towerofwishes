@@ -18,6 +18,9 @@ PITCH = 0.5          # the fight camera's ground squash (view.js HELI.pitch)
 def hexc(h): h = h.lstrip('#'); return [int(h[i:i + 2], 16) for i in (0, 2, 4)]
 def ramp(*cols): return np.array([hexc(c) for c in cols], np.uint8)
 FIRE = ramp('#5a0f12', '#a3201a', '#e0461c', '#ff8a24', '#ffd23f', '#fff6c8')
+FIRE2 = ramp('#b8281a', '#f05a1c', '#ff9426', '#ffc83c', '#fff0a8', '#ffffff')
+SMOKE2 = ramp('#4a4248', '#655a60', '#83777b', '#a69a9c')
+SHADOW2 = ramp('#1c0a26', '#3a1250', '#621c70', '#9a2a78', '#e04a86', '#ffb0c8')
 SMOKE = ramp('#151017', '#251d25', '#3a3039', '#544850', '#6e6168')
 FROST = ramp('#12305a', '#1f5f9a', '#3fa0d8', '#86dcf5', '#d4f6ff', '#ffffff')
 STORM = ramp('#3a2378', '#6248c8', '#8fb4ff', '#d6e8ff', '#ffffff')
@@ -35,7 +38,7 @@ HEAL = ramp('#145a2a', '#2a9a48', '#5ad86a', '#b0ff9a', '#f0ffe0')
 
 BAYER = np.array([[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]) / 16 - 0.5
 
-def paint(val, pal, lo=0.12, dither=0.7):
+def paint(val, pal, lo=0.12, dither=0.3):
     """Energy 0..1 to RGBA: transparent below lo, then the ramp in bands with an ordered dither."""
     h, w = val.shape; b = BAYER[np.arange(h)[:, None] % 4, np.arange(w)[None, :] % 4]
     v = (val - lo) / (1 - lo); n = len(pal)
@@ -50,12 +53,9 @@ def over(a, b):
     m = b[..., 3:4] > 0; return np.where(m, b, a)
 
 def dissolve(img, k, seed=0):
-    """Fade pixel art out by dropping pixels in a dither order (k 0 = whole, 1 = gone)."""
+    """Fade out as a whole (k 0 = solid, 1 = gone): a clean fade, no scattered pixels."""
     if k <= 0: return img
-    h, w = img.shape[:2]; r = np.random.default_rng(seed).random((h, w)) * 0.35
-    b = BAYER[np.arange(h)[:, None] % 4, np.arange(w)[None, :] % 4] + 0.5
-    keep = (b * 0.65 + r) >= k
-    out = img.copy(); out[..., 3] = np.where(keep, out[..., 3], 0); return out
+    out = img.copy(); out[..., 3] = (out[..., 3].astype(np.float32) * max(0.0, 1 - k)).astype(np.uint8); return out
 
 # ---- fields ---------------------------------------------------------------------------------------------
 def grid(w, h): y, x = np.mgrid[0:h, 0:w]; return x + 0.5, y + 0.5
@@ -807,6 +807,155 @@ def _():
             wy = cy - t * 28; v = np.maximum(v, np.clip(1 - np.hypot((x - bx - math.sin(t * 6) * 2) / 1.6, (y - wy) / 4), 0, 1) * (1 - t))
         img = over(img, paint(v, SHADOW, lo=0.3))
         out.append(dissolve(img, fade, f))
+    return out
+
+# ===== the second pass (the author, 2026-11-20: resize, re-angle, cleaner animation and placement) =====
+# Later definitions replace the first ones under the same name.
+
+def swipe(W, H, n, pal, rx, ry, thick, seed, sweep=2, a0=-2.5, a1=0.55):
+    """A sword's swipe seen from the fight camera: a flat arc around the target (an ellipse, squashed like the floor),
+    swept from behind to the front in two frames, white along its outer edge, then thinning away. Struck to the right;
+    the game mirrors it for blows to the left and tilts it a little, never stands it up."""
+    out = []; x, y = grid(W, H); cx, cy = W / 2, H / 2
+    for f in range(n):
+        prog = min(1, (f + 1) / sweep); fade = max(0, (f + 1 - sweep) / (n - sweep))
+        d = ell(x, y, cx, cy, rx, ry); a = np.arctan2((y - cy) / ry, (x - cx) / rx)
+        head = a0 + (a1 - a0) * prog; tail = a0 + (a1 - a0) * min(prog, fade * 1.2)
+        inarc = (a >= tail) & (a <= head)
+        span = max(head - tail, 1e-3); along = np.clip((a - tail) / span, 0, 1)
+        th = (thick / rx) * (0.35 + 0.65 * np.sin(np.pi * along)) * (1 - fade * 0.6)
+        band = np.clip(1 - np.abs(d - (1 - th / 2)) / (th / 2 + 0.02), 0, 1)
+        edge = np.exp(-((d - 0.97) / 0.035) ** 2)
+        v = inarc * np.maximum(band * (0.55 + 0.35 * along), edge * (band > 0.05) * 1.0)
+        out.append(dissolve(paint(np.clip(v, 0, 1), pal, lo=0.2, dither=0.15), fade * 0.85))
+    return out
+
+@fx('s_slash', 24, (22, 12))
+def _(): return swipe(44, 24, 6, HIT, 19, 9, 6.5, 1)
+@fx('s_slash_red', 22, (28, 15))
+def _(): return swipe(56, 30, 7, BLOOD, 25, 12, 8.5, 2)
+
+@fx('s_moon_wave', 14, (16, 9), loop=True)
+def _():
+    """The crescent wave in flight, flat over the floor: a blood-red moon blade, convex forward, white on its edge."""
+    out = []; W, H = 30, 18; x, y = grid(W, H); cx, cy = 10, 9
+    for f in range(4):
+        d1 = ell(x, y, cx, cy, 14, 7.5); d2 = ell(x, y, cx - 5, cy, 13, 7.5)
+        cres = (d1 < 1) & (d2 > 1) & (x > cx - 2)
+        tips = np.clip(1 - np.abs(y - cy) / 7.5, 0, 1)
+        edge = np.exp(-((d1 - 0.93) / 0.06) ** 2) * (x > cx)
+        v = cres * (0.45 + 0.3 * tips); v = np.maximum(v, edge * tips * (0.95 + 0.05 * math.sin(f * 2)))
+        trail = np.exp(-((d1 - 0.7) / 0.12) ** 2) * (x < cx + 6) * (x > 1) * tips * 0.32 * (0.6 + 0.4 * vnoise(W, H, 3, 61, oy=f * 4))
+        out.append(paint(np.clip(np.maximum(v, trail), 0, 1), BLOOD, lo=0.18, dither=0.15))
+    return out
+
+def puffs(W, H, n, pal, seed, cx, cy, count, r0, r1, rise, start=0.25):
+    """Round smoke puffs that swell, rise and fade (smoke after a blast, a shadow step)."""
+    rng = np.random.default_rng(seed); P = [(rng.uniform(-1, 1), rng.uniform(-0.4, 0.6), rng.uniform(0.7, 1.2)) for _ in range(count)]
+    x, y = grid(W, H); out = []
+    for f in range(n):
+        k = (f + 1) / n
+        if k < start: out.append(blank(W, H)); continue
+        kk = (k - start) / (1 - start); v = np.zeros((H, W))
+        for (ox, oy, s) in P:
+            r = (r0 + (r1 - r0) * kk) * s; px = cx + ox * r1 * 0.9; py = cy - oy * r1 * 0.4 - rise * kk
+            d = np.hypot(x - px, (y - py) * 1.15) / r
+            v = np.maximum(v, np.clip(1 - d, 0, 1) ** 0.6 * (0.55 + 0.45 * (1 - (y - py + r) / (2 * r + 1e-6))))
+        out.append(dissolve(paint(np.clip(v, 0, 1) * 0.9, pal, lo=0.15, dither=0.1), max(0, kk - 0.45) * 1.8))
+    return out
+
+def blast(W, H, n, seed, size, cx, cy, pal=FIRE2, smoke=None, embers=10):
+    """An explosion: a white flash, a fireball that swells and climbs, embers thrown up, a flat shock ring on the floor,
+    then a few grey puffs that rise and fade. No dark mass left behind."""
+    x, y = grid(W, H); rng = np.random.default_rng(seed)
+    E = [(rng.uniform(-math.pi * 0.95, -math.pi * 0.05), rng.uniform(0.6, 1.2)) for _ in range(embers)]
+    sm = puffs(W, H, n, smoke, seed + 1, cx, cy - size * 0.9, 3, size * 0.25, size * 0.45, size * 0.7, start=0.55) if smoke is not None else [blank(W, H)] * n
+    out = []
+    for f in range(n):
+        k = (f + 1) / n; nz = fbm(W, H, max(3, size / 3), seed, oy=f * 2.5)
+        swell = min(1, k * 3.2); cool = max(0, (k - 0.3) / 0.7)
+        rr = size * (0.35 + 0.65 * swell) * (1 - cool * 0.55); lift = size * 0.45 * k
+        d = ell(x, y, cx, cy - rr * 0.8 - lift * 0.5, rr, rr * 1.05)
+        heat = np.clip((1 - d) * 1.5 + (nz - 0.5) * 0.7, 0, 1) * (1.1 - cool * 0.9)
+        img = paint(np.clip(heat, 0, 1), pal, lo=0.22 + 0.25 * cool, dither=0.15)
+        img = over(sm[f], img) if cool > 0.5 else over(img, sm[f])
+        if k < 0.6:
+            ring = np.exp(-((ell(x, y, cx, cy, size * 1.4 * k / 0.6 + 2, (size * 1.4 * k / 0.6 + 2) * PITCH) - 1) / 0.06) ** 2) * (1 - k / 0.6)
+            img = over(paint(ring, pal, lo=0.35, dither=0), img)
+        for (a, sp) in E:
+            t = k * 0.9; px = cx + math.cos(a) * size * 1.6 * sp * t; py = cy - size * 0.6 + math.sin(a) * size * 1.4 * sp * t + size * 1.2 * t * t
+            if k < 0.85: sq(img, px, py, 1, pal[4] if k < 0.4 else pal[2])
+        if f == 0:
+            fl = np.clip(1.2 - ell(x, y, cx, cy - size * 0.4, size * 0.45, size * 0.45), 0, 1); img = over(img, paint(fl, pal, lo=0.3, dither=0))
+        out.append(img)
+    return out
+
+@fx('s_fire_burst', 18, (26, 50))
+def _(): return blast(52, 56, 10, 91, 15, 26, 50)
+@fx('s_meteor_impact', 16, (40, 74))
+def _():
+    a = blast(80, 80, 12, 92, 22, 40, 74, embers=16)
+    x, y = grid(80, 80)
+    for f, img in enumerate(a):   # a scorched crater under it, cooling
+        k = (f + 1) / 12; sc = np.clip(1 - ell(x, y, 40, 74, 22, 11), 0, 1) * (0.9 - k * 0.5)
+        c = paint(sc * 0.5, EARTH, lo=0.1, dither=0); c = dissolve(c, k * 0.7); a[f] = over(c, img)
+    return a
+
+@fx('s_shadow_burst', 16, (26, 46))
+def _():
+    """Shadow bursting out: a violet-black blast with a crimson rim, wisps climbing out of it, a ring on the floor."""
+    W, H = 52, 50; x, y = grid(W, H); cx, cy = 26, 46; out = []
+    sm = puffs(W, H, 10, SHADOW2, 102, cx, cy - 10, 5, 4, 11, 12, start=0.3)
+    for f in range(10):
+        k = (f + 1) / 10; nz = fbm(W, H, 4, 101, oy=f * 2)
+        rr = 14 * (0.4 + 0.6 * min(1, k * 3)) * (1 - max(0, k - 0.4) * 0.8)
+        d = ell(x, y, cx, cy - rr * 0.8, rr, rr)
+        core = np.clip((1 - d) * 1.4 + (nz - 0.5) * 0.6, 0, 1) * (1 - max(0, k - 0.3) * 1.2)
+        img = over(sm[f], paint(np.clip(core, 0, 1), SHADOW2, lo=0.18, dither=0.1))
+        rim = np.exp(-((d - 1) / 0.08) ** 2) * (1 - k) * (k < 0.7)
+        img = over(img, paint(rim, SHADOW2, lo=0.45, dither=0))
+        if k < 0.6:
+            ring = np.exp(-((ell(x, y, cx, cy, 24 * k / 0.6 + 2, (24 * k / 0.6 + 2) * PITCH) - 1) / 0.07) ** 2) * (1 - k / 0.6)
+            img = over(paint(ring, SHADOW2, lo=0.35, dither=0), img)
+        out.append(img)
+    return out
+
+@fx('s_shadow_bolt', 14, (19, 8), loop=True)
+def _():
+    """A ball of shadow in flight: a hot magenta heart in a violet orb, trailing dark smoke."""
+    out = []; W, H = 26, 16; x, y = grid(W, H); cx, cy = 19, 8
+    for f in range(6):
+        nz = fbm(W, H, 4, 21, ox=f * 3.5)
+        dx = cx - x; along = np.clip(dx / 18, 0, 1)
+        tail = np.exp(-((y - cy) / (4.5 * (1 - along * 0.6) + 0.5)) ** 2) * (1 - along) * (dx > 0) * (0.45 + 0.6 * nz)
+        d = np.hypot(x - cx, y - cy); orb = np.clip(1.15 - d / 5.2, 0, 1)
+        out.append(paint(np.clip(np.maximum(orb, tail * 0.6), 0, 1), SHADOW2, lo=0.14, dither=0.15))
+    return out
+
+@fx('s_vanish', 16, (18, 34))
+def _():
+    """Shadow step: a burst of violet-black smoke where the body was, crimson motes thrown out of it."""
+    W, H = 36, 38; out = puffs(W, H, 9, SHADOW2, 291, 18, 32, 6, 4, 10, 10, start=0.0)
+    rng = np.random.default_rng(292); M = [(rng.uniform(0, math.tau), rng.uniform(0.6, 1.1)) for _ in range(8)]
+    for f, img in enumerate(out):
+        k = (f + 1) / 9
+        for (a, sp) in M:
+            if k < 0.8: sq(img, 18 + math.cos(a) * 16 * sp * k, 26 + math.sin(a) * 8 * sp * k - 10 * k, 1, SHADOW2[5] if k < 0.4 else SHADOW2[4])
+    return out
+
+@fx('s_smoke', 14, (16, 22))
+def _(): return puffs(32, 26, 8, SMOKE2, 81, 16, 22, 4, 3, 8, 8, start=0.0)
+
+@fx('s_flames', 12, (12, 30), loop=True)
+def _():
+    """A tongue of fire on burning ground."""
+    out = []; W, H = 24, 32; x, y = grid(W, H)
+    for f in range(8):
+        nz = fbm(W, H, 4, 231, oy=f * 3.5)
+        up = np.clip((30 - y) / 26, 0, 1)
+        shape = np.clip(1 - np.abs(x - 12 - np.sin(y * 0.4 + f) * up * 1.5) / (7 * (1 - up) ** 0.8 + 0.4), 0, 1) * (y < 31)
+        v = np.clip(shape * 1.35 + (nz - 0.55) * 0.8 - up * 0.45, 0, 1)
+        out.append(paint(v, FIRE2, lo=0.22, dither=0.15))
     return out
 
 # ---- pack ------------------------------------------------------------------------------------------------------

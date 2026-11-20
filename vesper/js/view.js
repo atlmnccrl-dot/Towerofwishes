@@ -415,7 +415,7 @@
         }
         case 'chain': R.chains.push({ pts: e.pts, t: 0 }); for (const p of e.pts.slice(1)) PK('s_shock', p[0], p[1], 22, 1.8); R.flash = 0.25; R.flashCol = '200,215,255'; R.shake = Math.max(R.shake, 4); break;
         case 'thunder': PK('s_lightning', e.x, e.y, 0, 2.0); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.4, col: '#bcd4ff', r0: 6, r1: e.r * 1.4, w: 3 }); R.impactF = { t: 0, dur: 0.08, x: e.x, y: e.y, big: false }; R.shake = Math.max(R.shake, 9); break;
-        case 'strike': if (e.hand) { PK('s_quake', e.x, e.y, 0, 3.4); R.shake = Math.max(R.shake, 14); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.6, col: '#ffffff', r0: 20, r1: 150, w: 4 }); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.9, col: '#ff3048', r0: 10, r1: 110, w: 6 }); FX({ kind: 'gcrater', x: e.x, y: e.y, r: e.r || 50, life: 1.6 }); R.flash = Math.max(R.flash, 0.35); R.flashCol = '255,60,80'; R.punch = Math.max(R.punch || 0, 0.06); for (let i = 0; i < 18; i++) { const a = i / 18 * 6.28; P({ x: e.x + Math.cos(a) * 10, y: e.y + Math.sin(a) * 10, z: 4, vx: Math.cos(a) * (60 + Math.random() * 90), vy: Math.sin(a) * (60 + Math.random() * 90), vz: 120 + Math.random() * 160, life: 0.9, size: 2 + Math.random() * 2, col: i % 3 ? '#2a1a20' : '#ff5a6a', shape: 'sq', g: -520 }); } } if (!e.quiet) { if (e.fx === 'explosion_fire') PK('s_meteor_impact', e.x, e.y, 0, 1.6); else PK(e.fx || 'blast', e.x, e.y, e.fx === 'rock_burst' || e.fx === 'ice_shatter' || e.fx === 'frost_nova' ? 0 : 6, e.fx === 'poison_cloud' ? 1.6 : 2.2); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.35, col: e.team === 'hero' ? '#ffffff' : '#ff8070', r0: 3, r1: e.r * 1.3, w: 2 }); R.shake = Math.max(R.shake, 3); } else PK(e.fx || 'blast', e.x, e.y, 6, 1.4); break;
+        case 'strike': if (e.hand) { PK('s_quake', e.x, e.y, 0, 3.4); R.shake = Math.max(R.shake, 14); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.6, col: '#ffffff', r0: 20, r1: 150, w: 4 }); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.9, col: '#ff3048', r0: 10, r1: 110, w: 6 }); FX({ kind: 'gcrater', x: e.x, y: e.y, r: e.r || 50, life: 1.6 }); R.flash = Math.max(R.flash, 0.35); R.flashCol = '255,60,80'; R.punch = Math.max(R.punch || 0, 0.06); for (let i = 0; i < 18; i++) { const a = i / 18 * 6.28; P({ x: e.x + Math.cos(a) * 10, y: e.y + Math.sin(a) * 10, z: 4, vx: Math.cos(a) * (60 + Math.random() * 90), vy: Math.sin(a) * (60 + Math.random() * 90), vz: 120 + Math.random() * 160, life: 0.9, size: 2 + Math.random() * 2, col: i % 3 ? '#2a1a20' : '#ff5a6a', shape: 'sq', g: -520 }); } } if (!e.quiet) { if (e.fx === 'explosion_fire') PK('s_meteor_impact', e.x, e.y, 0, 1.6); else PK(e.fx || 'blast', e.x, e.y, 0, e.fx === 'poison_cloud' ? 1.6 : 2.2); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.35, col: e.team === 'hero' ? '#ffffff' : '#ff8070', r0: 3, r1: e.r * 1.3, w: 2 }); R.shake = Math.max(R.shake, 3); } else PK(e.fx || 'blast', e.x, e.y, 0, 1.4); break;
         case 'tick': R.float(String(e.dmg), e.x, e.y, 30, '#b0ff90', false); break;
         case 'cast': if (u) PK('s_rune', u.x, u.y, 0, 1.6); break;
         case 'vanish': PK('s_vanish', e.x, e.y, 0, 1.9); break;
@@ -593,7 +593,7 @@
         const life = Math.min(1, (z.t - z.delay) / 0.3, (z.delay + z.dur - z.t) / 0.4), tint = z.fx === 'burning_ground' ? '#ff7030' : z.fx === 'poison_cloud' ? '#80ff60' : z.fx === 'frost_nova' ? '#9ad8ff' : '#c070ff';
         ctx.save(); ground(ctx); const gr = ctx.createRadialGradient(z.x, z.y, 0, z.x, z.y, z.r); gr.addColorStop(0, rgba(tint, 0.35 * life)); gr.addColorStop(1, rgba(tint, 0)); ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, 7); ctx.fill();
         ctx.strokeStyle = rgba(tint, 0.5 * life); ctx.lineWidth = 1; ctx.setLineDash([4, 5]); ctx.lineDashOffset = -R.t * 10; ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, 7); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-        if (z.fx) for (let i = 0; i < 3; i++) { const a = i * 2.1 + z.x, rr = z.r * 0.45, q = R.P(z.x + Math.cos(a) * rr, z.y + Math.sin(a) * rr * 0.8, 0); A.fx(ctx, (A.ZONEFX && A.ZONEFX[z.fx]) || (A.spellReady && A.spellReady() ? 's_shadow_pool' : z.fx), R.t + i * 0.3, q.x, q.y, Sh * 0.7 * Math.max(0.5, z.r / 40), 0.85 * life); }
+        if (z.fx) for (let i = 0; i < 5; i++) { const a = i * 1.26 + z.x, rr = z.r * (i % 2 ? 0.55 : 0.3), q = R.P(z.x + Math.cos(a) * rr, z.y + Math.sin(a) * rr * 0.8, 0); A.fx(ctx, (A.ZONEFX && A.ZONEFX[z.fx]) || (A.spellReady && A.spellReady() ? 's_shadow_pool' : z.fx), R.t + i * 0.3, q.x, q.y, Sh * 0.7 * Math.max(0.5, z.r / 40), 0.85 * life); }
       } else if (z.kind === 'tornado') {
         const q = R.P(z.x, z.y, 0);
         for (let i = 0; i < 6; i++) { const y = q.y - i * 9 * Sh, rw = (8 + i * 4) * Sh, a = R.t * 9 + i; ctx.strokeStyle = rgba(i % 2 ? '#ffffff' : '#c8d8ff', 0.55); ctx.lineWidth = 2 * R.dpr; ctx.beginPath(); ctx.ellipse(q.x + Math.sin(a) * 3 * Sh, y, rw, rw * 0.3, 0, a, a + 4.2); ctx.stroke(); }
@@ -956,7 +956,9 @@
     if (R.camFix) { const c = godCam(s); R.hcam.x = c.x; R.hcam.y = c.y; return; }
     const k = VS.arenaOf(s).kind === 'grid' ? 1 : 0.6; R.hcam.x = s.hero.x * k; R.hcam.y = s.hero.y * k;
   };
-  R.drawFight = function (ctx, s, dt) {
+  // The spell forge's sheets snap to the fight's pixel size while the fight is drawn (A.gridK; assets.js).
+  R.drawFight = function (ctx, s, dt) { VS.A.gridK = R.Sh(); try { return drawFight0(ctx, s, dt); } finally { VS.A.gridK = 0; } };
+  function drawFight0(ctx, s, dt) {
     const st = s.def;
     if (!s.staged) R.follow(s, dt);
     // Inside the warp tunnel nothing of the arena shows: draw only the tunnel.

@@ -201,8 +201,8 @@
   const SM = {
     // blows
     hit_slash: ['s_hit', 1, { dir: 1 }], v_impact: ['s_hit_heavy', 1.3, { dir: 1 }], hit_crit: ['s_crit', 1, { dir: 1 }], parry: ['s_hit_heavy', 1, { dir: 1 }],
-    v_blood: ['s_blood', 1.4, { dir: 1 }], v_slash: ['s_slash', 1.4, { dir: 1 }], katana: ['s_slash', 1.1, { dir: 1 }], arc_white: ['s_slash', 1.2, { dir: 1 }],
-    slash_arc_blood: ['s_slash_red', 1.1, { dir: 1 }], spin_slash: ['s_spin', 0.85], dissipate: ['s_smoke', 1], smoke_dark: ['s_smoke', 1.2], smoke_burst: ['s_smoke', 1.1],
+    v_blood: ['s_blood', 1.4, { dir: 1 }], v_slash: ['s_slash', 1.4], katana: ['s_slash', 1.1], arc_white: ['s_slash', 1.2],
+    slash_arc_blood: ['s_slash_red', 1.1], spin_slash: ['s_spin', 0.85], dissipate: ['s_smoke', 1], smoke_dark: ['s_smoke', 1.2], smoke_burst: ['s_smoke', 1.1],
     // earth and force
     shockwave: ['s_quake', 0.8], v_shock: ['s_quake', 0.9], v_crack: null, rock_burst: ['s_earth_burst', 0.75],
     // fire
@@ -220,13 +220,13 @@
     arrow: ['s_arrow', 1.33], dart: ['s_dart', 1.33], dagger: ['s_dagger', 1.33],
     // the Crowd Breaker sheets the films and fights named
     'cb:01_crimson_tide_cleave/caster': ['s_blood_wave', 1], 'cb:01_crimson_tide_cleave/target': ['s_crit', 1.4, { dir: 1 }], 'cb:01_crimson_tide_cleave/death': ['s_smoke', 1.4],
-    'cb:02_roaring_blade_nova/target': ['s_hit', 1.4, { dir: 1 }], 'cb:06_piercing_dash/target': ['s_slash', 1.4, { dir: 1 }], 'cb:218_sky_rend_star/target': ['s_hit_heavy', 1.4, { dir: 1 }],
+    'cb:02_roaring_blade_nova/target': ['s_hit', 1.4, { dir: 1 }], 'cb:06_piercing_dash/target': ['s_slash', 1.4], 'cb:218_sky_rend_star/target': ['s_hit_heavy', 1.4, { dir: 1 }],
     'cb:113_earthshaker_stance/target': ['s_spin', 1.2], 'cb:10_quake_stomp/target': ['s_earth_burst', 1.1], 'cb:10_quake_stomp/caster': ['s_quake', 1.1],
     'cb:08_meteor_rain/target': ['s_meteor', 0.9], 'cb:54_greater_fireball/target': ['s_fire_burst', 1.2], 'cb:183_frost_curtain/caster': ['s_frost_burst', 1.1],
     'cb:13_water_orb/target': ['s_frost_burst', 1.1], 'cb:101_skyfall_thunder/target': ['s_lightning', 0.9], 'cb:15_storm_orb/target': ['s_shock', 1.4],
     'cb:156_inner_flow_mending/caster': ['s_heal', 1.4], 'cb:11_ghostfire_hex/caster': ['s_rune', 1.4], 'cb:05_phantom_legion/caster': ['s_summon', 1.3],
     'cb:175_violet_veil/caster': ['s_vanish', 1.4], 'cb:12_golden_blessing/caster': ['s_charge', 1.4], 'cb:19_recall_beam/caster': ['s_holy_pillar', 1.0],
-    'cb:107_flashpoint_severance/target': ['s_slash', 1.4, { dir: 1 }], 'cb:43_cyclone_bolt/target': ['s_whirl', 1.2],
+    'cb:107_flashpoint_severance/target': ['s_slash', 1.4], 'cb:43_cyclone_bolt/target': ['s_whirl', 1.2],
   };
   A.SPELLMAP = SM;
   // The ground zones loop their own sheet.
@@ -239,19 +239,32 @@
     const m = SM[name]; if (m === null) return null; if (!m) return undefined;
     if (!m[0].startsWith('s_') || !spellData.fx[m[0]]) return undefined; return m;
   };
+  // Flat sheets (a sword's swipe, the moon wave) lie over the floor: mirrored for a blow to the left and tilted a little,
+  // never stood up on end. Turning sheets (the blows' splashes) take the blow's whole angle.
+  A.SPELLFLAT = { s_slash: 1, s_slash_red: 1, s_moon_wave: 1 };
+  A.SPELLDIR = { s_hit: 1, s_hit_heavy: 1, s_crit: 1, s_blood: 1 };
+  // In a fight the view sets A.gridK (its pixels per world unit): each sheet is drawn at a whole or half step of it, so
+  // its pixels are the cast's own size (or half again, or twice for the great spells), never an odd size in between.
+  A.gridK = 0;
+  const STEPS = [1, 1.5, 2, 3];
+  function snap(k) { if (!A.gridK) return k; const m = k / A.gridK; let best = 1; for (const s of STEPS) if (Math.abs(s - m) < Math.abs(best - m)) best = s; return A.gridK * best; }
   function spell(ctx, key, t, x, y, scale, alpha, angle, flip, dir) {
     const d = spellData.fx[key]; const n = d.frames.length; let i = Math.floor(t * d.fps);
     if (d.loop) i = ((i % n) + n) % n; else if (i >= n) return false;
     if (i < 0) return true;
     const f = d.frames[i]; if (!f) return true;
-    const k = scale || 1, ga = ctx.globalAlpha; if (alpha != null) ctx.globalAlpha = ga * alpha;
+    const k = snap(scale || 1), ga = ctx.globalAlpha; if (alpha != null) ctx.globalAlpha = ga * alpha;
     const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
-    const rot = dir || d.loop ? angle || 0 : 0;   // projectiles and blows turn; ground effects stand
+    const flat = A.SPELLFLAT[key], a = angle || 0, left = Math.cos(a) < 0;
+    // flat: mirror to the left, tilt by at most ~20 degrees; turning sheets and flights: the whole angle
+    const rot = flat ? Math.max(-0.35, Math.min(0.35, Math.atan2(Math.sin(a), Math.abs(Math.cos(a))) * 0.5)) * (left ? -1 : 1) : (dir || A.SPELLDIR[key] || d.loop) ? a : 0;
+    const mir = flat && left;
     const ox = f[5] * k, oy = f[6] * k, w = f[3] * k, h = f[4] * k;
-    if (!rot && !flip) ctx.drawImage(spellData.images[f[0]], f[1], f[2], f[3], f[4], Math.round(x + ox), Math.round(y + oy), Math.round(w), Math.round(h));
+    if (!rot && !flip && !mir) ctx.drawImage(spellData.images[f[0]], f[1], f[2], f[3], f[4], Math.round(x + ox), Math.round(y + oy), Math.round(w), Math.round(h));
     else {
       ctx.save(); ctx.translate(Math.round(x), Math.round(y));
-      if (rot) { const c = Math.cos(rot); ctx.rotate(rot); if (c < 0 && dir) ctx.scale(1, -1); }   // a blow struck to the left is mirrored, not drawn upside down
+      if (mir) ctx.scale(-1, 1);
+      if (rot) { ctx.rotate(rot); if (!flat && Math.cos(rot) < 0 && (dir || A.SPELLDIR[key])) ctx.scale(1, -1); }   // a splash struck to the left is mirrored, not drawn upside down
       if (flip) ctx.scale(-1, 1);
       ctx.drawImage(spellData.images[f[0]], f[1], f[2], f[3], f[4], ox, oy, w, h); ctx.restore();
     }
