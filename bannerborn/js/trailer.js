@@ -60,7 +60,21 @@
   let showcase = null; // a far-on save with a roster to muster, for the two places of the camp
   const camp = () => { if (!showcase) { showcase = BB.showSave({ idx: 40, over: 2 }); for (const t of BB.heroTiers(BB.ROSTER)) for (const e of t.heroes.slice(0, 4)) if (!showcase.heroes.some((h) => h.recruit === e.key)) showcase.heroes.push(BB.heroFromEntry(showcase, e)); } return showcase; };
   const fight = (idx, n, o) => BB.stageScene(Object.assign({ idx, over: 0, archs: ((o && o.team) || FIVE).slice(0, n), warm: 8, tick: ['sigs', 'sturdy'] }, o, o && o.ench ? { ench: o.ench.slice(0, n) } : null));
+  // a showcase: one ability fired again and again (its cut-in banner left out, so the effect itself is seen)
+  const every = (sec, fn) => { let t = 0.2; return (sc, dt) => { t -= dt; if (t <= 0) { t = sec; fn(sc); } }; };
+  const foeNear = (sc, e) => sc.foesAlive().filter((o) => !o.turret && !o.gate).sort((a, b) => Math.hypot(a.x - e.x, a.y - e.y) - Math.hypot(b.x - e.x, b.y - e.y))[0];
+  const sigOn = (name, sec) => every(sec || 2.4, (sc) => { const e = sc.heroesAlive()[0], f = e && foeNear(sc, e); if (e && f) sc.runSig(e, f, { sig: name, tgt: f }); });
+  const ultOn = (calling, sec) => every(sec || 2.6, (sc) => { const e = sc.heroList.find((h) => h.calling === calling && !h.dead); if (!e) return; e.energy = 100; e.state = 'idle'; e.lock = 0; sc.useSkill(e, true); if (sc.ep) sc.ep.ult = null; });
+  const tough = (sc) => { for (const o of sc.ents) if (o.side === 'foe' && !o.dead && !o.boss && o.hp < o.maxhp * 0.35) o.hp = o.maxhp * 0.35; };
+  const show = (idx, team, fn) => (n) => fight(idx, Math.max(n, team.length), { team, warm: 4, tick: ['sturdy', tough, fn] });
   const MAKE = {
+    xMeteor: show(31, ['mage', 'knight', 'ranger'], sigOn('meteor', 2.2)),
+    xStorm: show(44, ['mage', 'knight', 'ranger'], sigOn('chainbolt', 1.4)),
+    xFlame: show(31, ['mage', 'knight', 'ranger'], ultOn('arcanist', 2.4)),
+    xSmite: show(37, ['knight', 'mage', 'ranger'], sigOn('smite', 1.2)),
+    xCry: show(4, ['barbarian', 'knight', 'mage'], sigOn('warcry', 1.5)),
+    xShadow: show(31, ['rogue', 'knight', 'mage'], sigOn('blinkstrike', 1.3)),
+    xSlam: show(13, ['barbarian', 'knight', 'mage'], sigOn('groundpound', 1.6)),
     camp: () => BB.titleCamp(),
     land: () => { // the first land of the campaign, as the campaign screen builds it
       const ch = BB.CHAPTERS[0], stages = BB.MISSIONS.filter((m) => m.chapter === ch.id), map = BB.buildJourney(stages, ch.biome || 'vale', 100 + ch.id, { night: !!ch.night });

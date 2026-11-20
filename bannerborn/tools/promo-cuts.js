@@ -51,6 +51,16 @@ module.exports = {
     quick('b', 1.4), quick('frost', 1.5), quick('c', 1.4), quick('a', 1.5),
     { b: 8, k: 'title', soon: SOON },
   ] },
+  'short-abilities': { file: 'bannerborn-short-4-abilities-1080x1920', w: 1080, h: 1920, opts: { team: 3, brand: BRAND }, cut: [
+    { b: 6, k: 'scene', s: 'xMeteor', z: [1.55, 1.7], hook: 'New abilities.\nAll hand-painted.', drums: 1 },
+    { b: 6, k: 'scene', s: 'xMeteor', z: [1.7, 1.85], cap: 'Meteor' },
+    { b: 5, k: 'scene', s: 'xStorm', z: [1.7, 1.85], cap: 'Chain lightning', flash: 1 },
+    { b: 5, k: 'scene', s: 'xFlame', z: [1.6, 1.75], cap: 'Dragonbreath', flash: 1 },
+    { b: 5, k: 'scene', s: 'xSmite', z: [1.7, 1.85], cap: 'Smite', flash: 1 },
+    { b: 5, k: 'scene', s: 'xCry', z: [1.7, 1.85], cap: 'War cry', flash: 1 },
+    { b: 5, k: 'scene', s: 'xSlam', z: [1.7, 1.85], cap: 'Ground pound', flash: 1 },
+    { b: 8, k: 'title', soon: SOON },
+  ] },
   'short-story': { file: 'bannerborn-short-3-last-banner-1080x1920', w: 1080, h: 1920, opts: { team: 3, clean: true, brand: BRAND }, cut: [
     { d: 3.4, k: 'art', a: 'gate', from: 1.4, hook: 'The dead\nare rising.' },
     { d: 2.4, k: 'art', a: 'rising', speed: 1.38 },
