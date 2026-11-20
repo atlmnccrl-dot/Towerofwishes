@@ -72,7 +72,7 @@
       const e = this.heroList.find((x) => x.hero.id === q.id); if (!e) continue;
       e.home = { x: q.x, y: q.y };
       if (D.dragId === q.id) { e.x = q.x; e.y = q.y; e.z = 0.32; e.held = true; if (e.act && e.act.with) e.act.with.act = null; e.act = null; e.wander = null; e.drillT = 1.5; if (e.state !== 'attack') { e.state = 'idle'; this.setClip(e, 'Idle'); } } // carried by the finger
-      else if (e.held) { e.held = false; e.z = 0; this.addFx('buff3', e.x, e.y, { sc: 0.4, add: true }); for (const d of D.dummies) d.wv += 1.5; }
+      else if (e.held) { e.held = false; e.z = 0; this.addFx('v_dust', e.x, e.y, { sc: 0.7, fps: 22 }); for (const d of D.dummies) d.wv += 1.5; }
     }
     const key = want.map((q) => q.id).join(',');
     if (key === D.lastIds) return;
@@ -86,7 +86,7 @@
       const e = this.spawnHero(h, BB.heroStats(h), q.x, q.y);
       if (!this.ents.includes(e)) this.ents.push(e); if (!this.heroList.includes(e)) this.heroList.push(e);
       e.home = { x: q.x, y: q.y }; e.drillT = 0.5 + R() * 2; e.dir = 1; e.spawnT = 0.4;
-      this.addFx('buff3', e.x, e.y, { sc: 0.5, add: true });
+      this.addFx('v_dust', e.x, e.y, { sc: 0.8, fps: 22 });
     }
     if (!missing) D.lastIds = key;
   };
@@ -146,7 +146,7 @@
         this.face(e, tgt.x, tgt.y);
         if (A.t > A.dur) { e.act = null; return; }
         if (A.kind === 'spar') { if ((A.next = (A.next || (A.lead ? 0.2 : 0.75)) - dt) <= 0) { A.next = 1.1 + R() * 0.5; play(this, e, pick((BB.CALLINGS[e.calling].basic) || ['Attack1']));
-          this.later(0.16, () => { if (!this.ents.includes(tgt)) return; const s = { x: (e.x + tgt.x) / 2, y: (e.y + tgt.y) / 2 }; this.addFx('buff9', s.x, s.y, { sc: 0.25, add: true }); BB.sfx && UI_on() && BB.sfx('guard'); }); } }
+          this.later(0.16, () => { if (!this.ents.includes(tgt)) return; const s = { x: (e.x + tgt.x) / 2, y: (e.y + tgt.y) / 2 }; this.addFx('v_spark', s.x, s.y, { sc: 0.8, z: 0.8, fps: 26 }); BB.sfx && UI_on() && BB.sfx('guard'); }); } }
         else if ((A.next = (A.next || (A.lead ? 0.1 : 0.9)) - dt) <= 0) { A.next = 1.6 + R(); say(e, pick(EMO), 1.3); if (R() < 0.3) play(this, e, 'Taunt', true); }
         if (e.state !== 'attack') this.setClip(e, 'Idle');
         return;
@@ -174,7 +174,7 @@
     else if (k === 'stretch') play(this, e, 'Taunt', true);
     else if (k === 'shoot') { const dm = D.dummies.reduce((a, d) => (hyp(d.x - e.x, d.y - e.y) < hyp(a.x - e.x, a.y - e.y) ? d : a)); e.act = { kind: 'shoot', dummy: dm, hits: 0, max: 3 + Math.floor(R() * 2), t: 0 }; }
     else if (k === 'fire') { const a = R() * TAU; e.act = { kind: 'fire', x: D.fire.x + Math.cos(a) * 0.95, y: D.fire.y + Math.sin(a) * 0.95, t: 0, dur: 3.5 + R() * 3.5 }; }
-    else if (k === 'mend') { const m = pick(mates); this.face(e, m.x, m.y); play(this, e, 'Special1', true); this.later(0.3, () => { if (this.ents.includes(m) && this.onHeal) { m.healFxT = 0; this.onHeal(m, 1); this.addFx('buff1', m.x, m.y, { sc: 0.45, add: true, hue: -160 }); } }); }
+    else if (k === 'mend') { const m = pick(mates); this.face(e, m.x, m.y); play(this, e, 'Special1', true); this.later(0.3, () => { if (this.ents.includes(m) && this.onHeal) { m.healFxT = 0; this.onHeal(m, 1); this.addFx('v_heal', m.x, m.y, { sc: 0.85, fps: 18 }); } }); }
     else if (k === 'show') { // try out the signature: its clip, and a burst of its colour
       play(this, e, 'Special1', true);
       const I = BB.identityOf ? BB.identityOf(e.hero) : null, cls = I ? BB.CLASSES[I.cls] : null;

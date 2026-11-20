@@ -67,7 +67,7 @@
     this.tele.push({ kind: 'circle', x, y, rad, t: 0, dur: delay, col: L.col, onEnd() {
       self.fx.push({ key: '_ring', x, y, t: 0, fps: 1, n: 0.8, rad, ring: true });
       if (L.gas) { self.clouds.push({ x, y, rad, t: 0, dur: 3.5, side: 'hero', dps: src.atk * 0.5, key: 'gas' }); self.addFx('gas', x, y, { sc: rad * 0.55, fps: 12 }); }
-      else self.addFx('aoe', x, y, { sc: rad * 0.42, add: true, hue: L === LAND.frost ? 200 : L === LAND.blight ? 275 : 18 });
+      else self.vfx(L === LAND.frost ? 'v_frostburst' : L === LAND.blight ? 'v_shadowburst' : 'v_fireburst', x, y, { sc: rad * 0.75, fps: 22 });
       for (const o of self.inRadius(x, y, rad, 'hero')) if (!o.ward) self.hit(src, o, mult, Object.assign({ aoe: true }, L.hit));
       if (self.ward && !self.ward.dead && hyp(self.ward.x - x, self.ward.y - y) < rad + 0.7) self.hit(src, self.ward, mult, { aoe: true });
       BB.sfx && BB.sfx('flame');
@@ -187,7 +187,7 @@
         if (e.dead) return; const x = h.x + self.r.range(-0.5, 0.5), y = h.y + self.r.range(-0.5, 0.5), rad = 1.25;
         (e.falls = e.falls || []).push({ x, y, t0: self.time, dur: 1.15 });
         self.tele.push({ kind: 'circle', x, y, rad, t: 0, dur: 1.15, col: '255,90,30', onEnd() {
-          self.fx.push({ key: '_ring', x, y, t: 0, fps: 1, n: 0.8, rad, ring: true }); self.addFx('aoe', x, y, { sc: 0.5, add: true, hue: 18 });
+          self.flameRing(x, y, rad);
           for (const o of self.inRadius(x, y, rad, 'hero')) if (!o.ward) self.hit(e, o, 1.05, { aoe: true, burn: true });
           self.addDeco('Lava Vent', x, y, 5, { glow: '255,110,40', swell: true }); self.clouds.push({ x, y, rad: 0.95, t: 0, dur: 5, side: 'hero', dps: e.atk * 0.22, key: 'none' });
           self.shake = Math.max(self.shake || 0, 0.35); BB.sfx && BB.sfx('meteor');
@@ -205,7 +205,7 @@
     }
     if (mv === 'tithe') { // a thread to every hero in reach: for three seconds each pays him in blood, and he is the better for it
       cast(1.0, 'Special1'); e.tithe = { t: 0, dur: 3, next: 0.5, who: heroes.filter((h) => hyp(h.x - e.x, h.y - e.y) < 8) };
-      this.addFx('buff9', e.x, e.y, { sc: 1.2, add: true, hue: 275 }); BB.sfx && BB.sfx('hex');
+      this.vfx('v_shadowburst', e.x, e.y, { sc: 1.3, z: 0.6, fps: 18 }); BB.sfx && BB.sfx('hex');
       return true;
     }
     return false;

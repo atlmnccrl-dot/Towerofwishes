@@ -47,7 +47,7 @@
     const dx = e.x - fx, dy = e.y - fy, l = hyp(dx, dy) || 1, sp = 9;
     e.kb = { vx: dx / l * sp, vy: dy / l * sp, t: dist / sp };
     if (stun) this.stun(e, stun);
-    const sv = BB.iso(dx, dy); this.addFx('dash', e.x, e.y, { sc: 0.4, rot: Math.atan2(sv.y, sv.x), alpha: 0.7, fps: 40 });
+    this.addFx('v_dust', e.x, e.y, { sc: 0.7, fps: 24 });
   };
   B.updateKnock = function (e, dt) {
     if (!e.kb) return;
@@ -151,7 +151,7 @@
           this.setClip(e, has(this, e, 'Taunt') ? 'Taunt' : 'Idle', true); BB.sfx && BB.sfx('heal');
           this.text(e.x, e.y + 0.2, 'POTION', '#7dff9a', 1);
           const amt = e.maxhp * 0.28;
-          for (let i = 0; i < 4; i++) this.later(0.25 + i * 0.22, () => { if (!e.dead) { this.heal(e, e, amt / 4); this.addFx('buff9', e.x, e.y, { sc: 0.45, add: true, hue: 100, fps: 30 }); } });
+          for (let i = 0; i < 4; i++) this.later(0.25 + i * 0.22, () => { if (!e.dead) { this.heal(e, e, amt / 4); this.addFx('v_heal', e.x, e.y, { sc: 0.8, fps: 20 }); } });
           e.potCd = 16;
           return true;
         }
@@ -186,7 +186,7 @@
           if (d > 1.1 && m.t < 3) { this.moveToward(e, a.x, a.y, dt, 1.3); return true; }
           this.halt(e); this.face(e, a.x, a.y); m.phase = 1;
           e.state = 'attack'; e.lock = 0.9; e.atkDur = 0.9; e.hitAt = 99; e.hitDone = true; this.setClip(e, has(this, e, 'Special1') ? 'Special1' : 'Taunt', true);
-          this.addFx('buff9', a.x, a.y, { sc: 0.8, add: true, hue: e.side === 'hero' ? 60 : -60, fps: 24 });
+          this.vfx(e.side === 'hero' ? 'v_holyburst' : 'v_shadowburst', a.x, a.y, { sc: 0.7, z: 0.5, fps: 20 });
           this.later(0.45, () => { if (!a.dead && !e.dead) { this.heal(e, a, a.maxhp * (e.side === 'hero' ? 0.3 * (1 + ((e.st && e.st.heal) || 0)) : 0.22)); this.text(a.x, a.y + 0.2, e.side === 'hero' ? 'MEND' : 'DARK MEND', e.side === 'hero' ? '#ffe7a3' : '#c9a8ff', 1); this.addFx('levelup', a.x, a.y, { sc: 0.7, add: true }); } });
           return true;
         }
@@ -254,7 +254,7 @@
           m.phase = 3; const dx = f.x - e.x, dy = f.y - e.y, l = hyp(dx, dy) || 1, sp = 15, dur = Math.min(0.4, (l + 0.6) / sp);
           e.dash = { vx: dx / l * sp, vy: dy / l * sp, t: dur }; e.state = 'attack'; e.lock = dur + 0.15; e.atkDur = dur + 0.15; e.hitAt = 99; e.hitDone = true;
           this.setClip(e, has(this, e, 'AttackRun') ? 'AttackRun' : atkClip(this, e, 1), true); BB.sfx && BB.sfx('swing');
-          const sv = BB.iso(dx, dy); this.addFx('dash', e.x, e.y, { sc: 0.55, rot: Math.atan2(sv.y, sv.x) + Math.PI, alpha: 0.9, fps: 40 });
+          this.addFx('v_dust', e.x, e.y, { sc: 0.8, fps: 24 });
           this.later(dur * 0.8, () => { if (!e.dead && !f.dead && hyp(f.x - e.x, f.y - e.y) < 1.4 && !(f.invuln > 0)) { this.hit(e, f, 1.6, { heavy: true }); this.knock(f, e.x - dx / l, e.y - dy / l, 1.6, f.boss ? 0 : 0.55); this.shake = Math.max(this.shake, 0.3); this.hitstop = Math.max(this.hitstop, 0.07); } });
           return true;
         }

@@ -265,6 +265,24 @@
   // ---------------------------------------------------------------- helpers
   Battle.prototype.later = function (delay, fn) { this.timers.push({ t: delay, fn }); };
   Battle.prototype.banner = function (text, dur, kind) { if (kind === 'small' || kind === 'combo') return; /* minor notices are not written across the screen */ this.banners.push({ text, t: 0, dur: dur || 2, kind: kind || '' }); };
+  // The battle's own effects (assets/fx/vfx, painted by tools/make-vfx.js; keys start 'v_'): pixel art, a sprite pixel
+  // to a world unit. An effect may stand `z` above the ground, `follow` a fighter (and end with them) and last `life`
+  // seconds when it loops; `must` puts it on screen even in a crowded fight.
+  Battle.prototype.vfx = function (key, x, y, o) { return this.addFx(key, x, y, Object.assign({ fps: 20, sc: 1, must: true }, o)); };
+  // what each element looks like as a shot, the burst where it lands, and how big that burst is drawn
+  const ELEM_FX = { fire: ['v_fireball', 'v_fireburst', 0.55], frost: ['v_shard', 'v_frostburst', 0.55], storm: ['v_stormorb', 'v_zap', 0.8], shadow: ['v_shadowbolt', 'v_shadowburst', 0.55],
+    holy: ['v_lightorb', 'v_holyburst', 0.45], poison: ['v_venom', 'v_poison', 0.65], arcane: ['v_arcane', 'v_arcanehit', 0.8] };
+  BB.ELEM_FX = ELEM_FX;
+  const HIT_OF = {}; for (const k in ELEM_FX) HIT_OF[ELEM_FX[k][0]] = [ELEM_FX[k][1], ELEM_FX[k][2]];
+  const projKey = (p) => {
+    if (p.kind === 'arrow') return 'v_arrow';
+    if (p.kind === 'light') return 'v_lightorb';
+    if (p.elem && ELEM_FX[p.elem]) return ELEM_FX[p.elem][0];
+    if (p.side === 'hero') return 'v_arcane';
+    if (p.burn || p.kind === 'bolt') return 'v_fireball';
+    if (p.slow) return 'v_shard';
+    const h = ((p.hue || 0) % 360 + 360) % 360; return h >= 90 && h <= 180 ? 'v_venom' : 'v_shadowbolt';
+  };
   Battle.prototype.addFx = function (key, x, y, o) {
     const f = Object.assign({ key, x, y, t: 0, fps: 20, sc: 1 }, o || {});
     f.n = BB.fxLen(key);
@@ -328,7 +346,7 @@
     const melee = src && !o.aoe && !src.ranged && !o.counter && !o.chained;
     if (melee && tgt.parryAt && Math.abs(this.time - tgt.parryAt) < 0.3 && !(tgt.stunT > 0)) {
       tgt.parryAt = 0; tgt.guardUntil = 0;
-      this.text(tgt.x, tgt.y, 'PARRY!', '#ffffff', 2); this.addFx('hit2', (tgt.x + src.x) / 2, (tgt.y + src.y) / 2 - 0.3, { sc: 0.9, add: true });
+      this.text(tgt.x, tgt.y, 'PARRY!', '#ffffff', 2); this.vfx('v_spark', (tgt.x + src.x) / 2, (tgt.y + src.y) / 2, { sc: 1.3, z: 0.8, fps: 24 });
       this.hitstop = Math.max(this.hitstop, 0.1); this.shake = Math.max(this.shake, 0.25); this.flash = Math.max(this.flash, 0.15); BB.sfx && BB.sfx('perfect');
       if (this.knock) this.knock(src, tgt.x, tgt.y, 1.0, src.boss ? 0.45 : 0.75); else this.stun(src, src.boss ? 0.45 : 0.75); this.breakPoise(src, src.maxPoise ? src.maxPoise * 0.3 : 0);
       if (tgt.side === 'hero') tgt.energy = Math.min(100, (tgt.energy || 0) + 15);
@@ -337,7 +355,7 @@
     }
     if (melee && tgt.guardUntil > this.time && !(tgt.openT > 0)) {
       mult = (mult || 1) * (this.roleOf(tgt) === 'tank' ? 0.45 : 0.62);
-      this.text(tgt.x, tgt.y, 'BLOCK', '#a9c4e0'); this.addFx('hit2', tgt.x, tgt.y - 0.3, { sc: 0.4, add: true, hue: 180 }); BB.sfx && BB.sfx('guard');
+      this.text(tgt.x, tgt.y, 'BLOCK', '#a9c4e0'); this.addFx('v_spark', tgt.x, tgt.y, { sc: 0.8, z: 0.8, fps: 26 }); BB.sfx && BB.sfx('guard');
       if (this.knock && !tgt.kb) { this.knock(tgt, src.x, src.y, 0.35, 0); this.knock(src, tgt.x, tgt.y, 0.25, 0); } // the blow jars them both
       if (this.roleOf(tgt) === 'tank' && this.r() < 0.25) this.later(0.1, () => { if (!tgt.dead && !src.dead && hyp(tgt.x - src.x, tgt.y - src.y) < 2) { this.text(tgt.x, tgt.y + 0.1, 'COUNTER', '#ffd23a', 1); this.hit(tgt, src, 1.0, { counter: true }); } });
     }
@@ -350,7 +368,7 @@
     }
     if (src && src.stealth && !o.aoe) { // out of the shadows: a backstab
       mult = (mult || 1) * 1.8; o.sureCrit = true; src.stealth = false;
-      this.text(tgt.x, tgt.y, 'BACKSTAB', '#ff7ad9', 1); this.addFx('hit2', tgt.x, tgt.y - 0.3, { sc: 0.6, add: true, hue: -60 });
+      this.text(tgt.x, tgt.y, 'BACKSTAB', '#ff7ad9', 1); this.addFx('v_shadowslash', tgt.x, tgt.y, { sc: 0.6, z: 0.7, fps: 24 });
     } else if (src && !o.aoe && this.roleOf(src) === 'assassin') { // from behind: harder
       const fd = BB.dirFromVec(src.x - tgt.x, src.y - tgt.y);
       if (fd !== null && Math.min((fd - tgt.dir + 8) % 8, (tgt.dir - fd + 8) % 8) >= 3) mult = (mult || 1) * 1.3;
@@ -377,20 +395,20 @@
     if (tgt.side === 'hero' && tgt.st && tgt.st.thorns && src && !src.ranged && !o.aoe) this.hit(null, src, 1, { atk: dmg * tgt.st.thorns * 3, aoe: true });
     if (o.burn) { tgt.buffs.burn = 3; tgt.burnAtk = Math.max(tgt.burnAtk || 0, atk); }
     if (o.venom) { tgt.buffs.poison = 3; tgt.poisonN = Math.max(tgt.poisonN || 0, 1); tgt.poisonAtk = Math.max(tgt.poisonAtk || 0, atk * 0.5); } // a foe's venom: one stack, half strength
-    if (o.drain && src && !src.dead) { src.hp = Math.min(src.maxhp, src.hp + dmg * 0.3); if (this.r() < 0.5) this.addFx('buff3', src.x, src.y, { sc: 0.35, add: true, hue: 230 }); } // the Hollow's dead feed on what they wound
+    if (o.drain && src && !src.dead) { src.hp = Math.min(src.maxhp, src.hp + dmg * 0.3); if (this.r() < 0.5) this.addFx('v_shadowburst', src.x, src.y, { sc: 0.45, z: 0.5, fps: 22 }); } // the Hollow's dead feed on what they wound
     if (o.elem && src && tgt.side === 'foe') {
       const E = BB.ELEMENTS[o.elem];
       if (E.effect === 'burn') { tgt.buffs.burn = 3; tgt.burnAtk = Math.max(tgt.burnAtk || 0, atk); }
       else if (E.effect === 'slow') tgt.buffs.slow = 2;
       else if (E.effect === 'leech') src.hp = Math.min(src.maxhp, src.hp + dmg * 0.25);
       else if (E.effect === 'heal') { const a = this.lowestAlly(src, 6); if (a) { this.heal(src, a, dmg * 0.2); if (this.traitLink && a.hp < a.maxhp + 1) this.traitLink('holy', tgt, a); } }
-      else if (E.effect === 'chain' && !o.chained) { const n = this.nearest(tgt, 'foe', 3); if (n) { this.later(0.1, () => this.hit(src, n, 0.6, { aoe: true, chained: true })); this.addFx('buff3', n.x, n.y, { sc: 0.4, add: true, hue: -110 }); if (this.traitLink) this.traitLink('storm', tgt, n); } }
+      else if (E.effect === 'chain' && !o.chained) { const n = this.nearest(tgt, 'foe', 3); if (n) { this.later(0.1, () => this.hit(src, n, 0.6, { aoe: true, chained: true })); this.addFx('v_zap', n.x, n.y, { sc: 0.7, z: 0.6, fps: 24 }); if (this.traitLink) this.traitLink('storm', tgt, n); } }
       else if (E.effect === 'poison') { tgt.buffs.poison = 4; tgt.poisonN = Math.min(3, (tgt.poisonN || 0) + 1); tgt.poisonAtk = Math.max(tgt.poisonAtk || 0, atk); }
       if (E.effect === 'rend') tgt.buffs.rend = 1.2;
       if (this.onTrait && !o.chained) this.onTrait(src, tgt, o.elem, dmg, crit);
     }
     if (tgt.F && tgt.F.phase && tgt.hp > 0 && this.r() < 0.18 && !tgt.boss) { // wraiths flicker away
-      const a = this.r() * TAU; this.addFx('buff9', tgt.x, tgt.y, { sc: 0.5, add: true, hue: 200 });
+      const a = this.r() * TAU; this.addFx('v_blink', tgt.x, tgt.y, { sc: 0.8, fps: 22 });
       tgt.x += Math.cos(a) * 1.6; tgt.y += Math.sin(a) * 1.6; tgt.invuln = 0.4; BB.collide(this.map, tgt);
     }
     if (tgt.F && tgt.F.frenzy && !tgt.frenzied && tgt.hp > 0 && tgt.hp < tgt.maxhp / 2) { tgt.frenzied = true; tgt.aspd *= 1.5; tgt.spd *= 1.2; this.text(tgt.x, tgt.y, 'FRENZY', '#ff7a3a', 1); }
@@ -429,7 +447,7 @@
       return;
     }
     if (e.gate) {
-      this.addFx('x_stone', e.x, e.y - 0.3, { sc: 1 }); this.addFx('aoe', e.x, e.y, { sc: 0.5, ground: true, hue: 270, add: true });
+      this.addFx('x_stone', e.x, e.y - 0.3, { sc: 1 }); this.vfx('v_shadowburst', e.x, e.y, { sc: 1.5, z: 0.6, fps: 18 });
       this.shake = 0.5; this.text(e.x, e.y, 'GATE SHATTERED', '#d9a6ff', 2); BB.sfx && BB.sfx('gate');
       this.addRally(15); this.goldGot += e.F.gold; if (this.save) this.save.stats.gates++;
       return;
@@ -488,7 +506,7 @@
   Battle.prototype.updateProjs = function (dt) {
     for (const p of this.projs) {
       p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt;
-      if (p.fall) { p.z -= p.fall * dt; if (p.z <= 0) { p.life = 0; this.aoeAt(p.src, p.x, p.y, 0.7, p.mult, 'foe'); this.addFx('x_grass', p.x, p.y, { sc: 0.35 }); } continue; }
+      if (p.fall) { p.z -= p.fall * dt; if (p.z <= 0) { p.life = 0; this.aoeAt(p.src, p.x, p.y, 0.7, p.mult, 'foe'); this.addFx('v_dust', p.x, p.y, { sc: 0.55, fps: 22 }); } continue; }
       const enemy = p.side === 'hero' ? 'foe' : 'hero';
       for (const o of this.ents) {
         if (o.dead || p.hitIds[o.id] || (o.side !== enemy && !o.barrel) || o.hidden) continue;
@@ -496,7 +514,7 @@
         if (hyp(o.x - p.x, o.y - p.y) < (o.r || 0.3) + 0.25) {
           p.hitIds[o.id] = 1;
           this.hit(p.src, o, p.mult, { burn: p.burn, slow: p.slow, elem: p.elem });
-          if (p.kind === 'bolt' || p.kind === 'curse') this.addFx('buff9', p.x, p.y, { sc: 0.4, hue: p.kind === 'curse' ? (p.hue || 0) : 160, add: true, fps: 30 });
+          { const h = HIT_OF[projKey(p)]; if (h) this.addFx(h[0], p.x, p.y, { sc: h[1], z: 0.6, fps: 24 }); else this.addFx('v_spark', p.x, p.y, { sc: 0.6, z: 0.7, fps: 24 }); }
           if (p.pierce > 0) p.pierce--; else { p.life = 0; break; }
         }
       }
@@ -553,9 +571,12 @@
       if (dot < (C.cleave ? -0.1 : 0.25) && d > 0.5) continue;
       if (C.pierce && Math.abs(dx * v.y - dy * v.x) > 0.55) continue; // spear: a narrow line
       this.hit(e, o, (e.combo % 3 === 0 ? 1.25 : 1) * (e.punish ? 1.4 : 1), e.ench ? { elem: e.ench } : undefined); hitAny = true;
-      if (e.ench && !this.onTrait) this.addFx('hit2', o.x, o.y - 0.3, { sc: 0.5, add: true, hue: BB.ELEMENTS[e.ench].hue });
+      this.addFx('v_spark', o.x, o.y, { sc: 0.7, z: 0.8, fps: 26 });
+      if (e.ench && !this.onTrait && ELEM_FX[e.ench]) this.addFx(ELEM_FX[e.ench][1], o.x, o.y, { sc: ELEM_FX[e.ench][2] * 0.8, z: 0.5, fps: 24 });
       if (!C.cleave && !C.pierce && t && o !== t && !o.barrel) break;
     }
+    // every swing cuts the air, hit or miss
+    { const sv = BB.iso(v.x, v.y), heavy = C.cleave || e.combo % 3 === 0; this.addFx(C.pierce ? 'v_impale' : heavy ? 'v_cleave' : 'v_slash', cx, cy, { sc: C.pierce ? 0.45 : heavy ? 0.75 : 0.85, z: 0.75, fps: 30, rot: C.pierce ? Math.atan2(sv.y, sv.x) : Math.atan2(sv.y, sv.x) + Math.PI / 2, flip: (e.combo & 1) === 1 }); }
     if (hitAny) BB.sfx && BB.sfx('slash');
     if (e.ench) { e.swingT = 0.28; e.swingN = (e.swingN || 0) + 1; }
     e.punish = false;
@@ -582,7 +603,7 @@
         this.combo++;
         if (this.combo >= 2) {
           this.banner('COMBO ×' + this.combo, 1.1, 'combo');
-          for (const h of this.heroesAlive()) { h.buffs.combo = 4; this.addFx('buff3', h.x, h.y, { sc: 0.5, add: true }); }
+          for (const h of this.heroesAlive()) { h.buffs.combo = 4; this.vfx('v_buff', h.x, h.y, { sc: 0.9, fps: 16 }); }
           this.addRally(6 * this.combo); BB.sfx && BB.sfx('perfect');
         }
       } else this.combo = 1;
@@ -594,7 +615,7 @@
     if (id === 'shieldwall') {
       e.lock = 0.7; this.setClip(e, 'Special1', true);
       e.buffs.guard = 4 + e.st.skillDur;
-      big('buff2', 0.9, { hue: 170, ground: true }); big('buff10', 0.7, { hue: 170 });
+      this.vfx('v_wall', e.x, e.y, { sc: 1.1, fps: 14 }); this.vfx('v_slam', e.x, e.y, { sc: 0.6, fps: 26 });
       for (const f of this.inRadius(e.x, e.y, 4.5, 'foe')) if (!f.boss || this.r() < 0.5) { f.taunt = e; f.tauntT = 4; }
       say('SHIELD WALL', '#8cf'); BB.sfx && BB.sfx('guard');
     } else if (id === 'leap') {
@@ -627,7 +648,7 @@
           this.hit(e, f, 1.9 * (1 + e.st.skillDmg), { aoe: true, heavy: true });
           const d = hyp(f.x - e.x, f.y - e.y) || 1; if (!f.boss && !f.gate && !f.turret) { f.x += (f.x - e.x) / d * 1.1; f.y += (f.y - e.y) / d * 1.1; BB.collide(this.map, f); }
         }
-        this.addFx('aoe', e.x, e.y, { sc: 0.4 + e.st.skillArea * 0.2, ground: true, add: true, hue: 30, fps: 30, alpha: 0.8 });
+        this.vfx('v_spin', e.x, e.y, { sc: (rad / 1.9) * 1.05, fps: 22 }); this.vfx('v_dust', e.x, e.y, { sc: 1.2, fps: 18 });
         this.shake = 0.3; BB.sfx && BB.sfx('slam');
       });
       say('WHIRLWIND', '#ffb46a'); BB.sfx && BB.sfx('leap');
@@ -635,12 +656,12 @@
       const tgt = this.nearest(e, 'foe', 8, (o) => !o.gate && !o.hidden) || foe;
       if (tgt) {
         const v = dirVec(tgt.dir);
-        this.addFx('buff9', e.x, e.y, { sc: 0.6, add: true, hue: 200 });
+        this.vfx('v_blink', e.x, e.y, { sc: 1, fps: 22 });
         e.x = tgt.x - v.x * 0.9; e.y = tgt.y - v.y * 0.9; BB.collide(this.map, e);
-        this.addFx('buff9', e.x, e.y, { sc: 0.6, add: true, hue: 200 });
+        this.vfx('v_blink', e.x, e.y, { sc: 1, fps: 22 });
         this.face(e, tgt.x, tgt.y);
         e.invuln = 0.5; e.lock = 0.7; e.atkDur = 0.7; this.setClip(e, 'Attack6', true);
-        this.later(0.3, () => { if (!e.dead && !tgt.dead) this.hit(e, tgt, 3.2 * (1 + e.st.skillDmg), { sureCrit: true, heavy: true }); });
+        this.later(0.3, () => { if (!e.dead && !tgt.dead) { this.hit(e, tgt, 3.2 * (1 + e.st.skillDmg), { sureCrit: true, heavy: true }); this.vfx('v_shadowslash', tgt.x, tgt.y, { sc: 1, z: 0.7, fps: 22 }); this.vfx('v_shadowburst', tgt.x, tgt.y, { sc: 0.7, z: 0.4, fps: 22 }); } });
         BB.sfx && BB.sfx('blink');
       } else { e.cd = 0.5; e.state = 'idle'; }
     } else if (id === 'impale') {
@@ -649,18 +670,17 @@
       e.dash = { vx: v.x / d * 15, vy: v.y / d * 15, t: len / 15 }; e.impaleHit = {}; e.impaleMult = 1.8 * (1 + e.st.skillDmg);
       e.invuln = len / 15; e.lock = len / 15 + 0.15; e.atkDur = e.lock;
       this.face(e, e.x + v.x, e.y + v.y); this.setClip(e, 'AttackRun', true);
-      const s = BB.iso(v.x, v.y); this.addFx('dash', e.x, e.y, { sc: 0.6, rot: Math.atan2(s.y, s.x) + Math.PI, fps: 40 });
+      const s = BB.iso(v.x, v.y); this.vfx('v_impale', e.x, e.y, { sc: len / 104 * BB.TW * 0.62, z: 0.7, rot: Math.atan2(s.y, s.x), fps: 22 }); this.vfx('v_dust', e.x, e.y, { sc: 1, fps: 20 });
       say('IMPALE', '#7fe8c8'); BB.sfx && BB.sfx('leap');
     } else if (id === 'sanctuary') {
       e.lock = 0.8; this.setClip(e, 'Special1', true);
-      big('buff78', 1, { ground: true });
-      big('levelup', 1.2, {});
+      this.vfx('v_holyburst', e.x, e.y, { sc: 1.6, z: 0.4, fps: 18 }); this.vfx('v_pillar', e.x, e.y, { sc: 0.8, fps: 22 });
       for (const a of this.inRadius(e.x, e.y, 5, 'hero')) {
         if (a.ward) continue;
         this.heal(e, a, a.maxhp * 0.3 * (1 + e.st.heal + e.st.skillDmg));
         a.buffs.burn = 0; a.buffs.slow = 0;
         if (e.st.shieldHeal) a.shield = (a.shield || 0) + a.maxhp * 0.15;
-        this.addFx('buff10', a.x, a.y, { sc: 0.6, add: true });
+        this.vfx('v_heal', a.x, a.y, { sc: 1, fps: 16 });
       }
       say('SANCTUARY', '#ffe57a'); BB.sfx && BB.sfx('heal');
     }
@@ -700,10 +720,16 @@
       BB.sfx && BB.sfx('coin'); BB.sfx && BB.sfx('levelup');
     }
   };
+  // a ring of fire: bursts round the edge of a circle and one in the middle, and the ground left scorched
+  Battle.prototype.flameRing = function (x, y, rad) {
+    const n = Math.max(5, Math.round(rad * 4));
+    for (let i = 0; i < n; i++) { const a = i / n * TAU; this.later(i * 0.02, () => this.vfx('v_fireburst', x + Math.cos(a) * rad * 0.8, y + Math.sin(a) * rad * 0.8, { sc: 0.55, fps: 22 })); }
+    this.vfx('v_fireburst', x, y, { sc: 0.9, fps: 20 }); this.vfx('v_scorch', x, y, { sc: rad * 0.6, fps: 4 });
+  };
   Battle.prototype.fireRing = function (src, x, y, rad, delay) {
     const self = this;
     this.tele.push({ kind: 'circle', x, y, rad, t: 0, dur: delay, col: '255,120,40', onEnd() {
-      self.fx.push({ key: '_ring', x, y, t: 0, fps: 1, n: 0.8, rad, ring: true });
+      self.flameRing(x, y, rad);
       for (const o of self.inRadius(x, y, rad, 'hero')) if (!o.ward) self.hit(src, o, 1.3, { aoe: true, burn: true });
       if (self.ward && !self.ward.dead && hyp(self.ward.x - x, self.ward.y - y) < rad + 0.7) self.hit(src, self.ward, 1.3, { aoe: true });
       BB.sfx && BB.sfx('flame');
@@ -728,7 +754,7 @@
     if (BB.hasClip(this.artKey(e), 'Rolling')) { this.setClip(e, 'Rolling', true); e.state = 'roll'; e.atkDur = 0.34; e.lock = 0.3; }
     this.face(e, e.x + v.x, e.y + v.y);
     const s = BB.iso(v.x, v.y);
-    this.addFx('dash', e.x, e.y, { sc: 0.45, rot: Math.atan2(s.y, s.x) + Math.PI, alpha: 0.8, fps: 40 });
+    this.addFx('v_dust', e.x, e.y, { sc: 0.7, fps: 22 });
     BB.sfx && BB.sfx('dodge');
   };
   function dirVec(d) { // screen facing row -> world unit vector
@@ -823,7 +849,7 @@
     this.tele = this.tele.filter((t) => t.t < t.dur + 0.15);
     for (const f of this.fx) f.t += dt;
     this.updateChests(dt);
-    this.fx = this.fx.filter((f) => f.loop || f.t * f.fps < f.n);
+    this.fx = this.fx.filter((f) => (f.follow && f.follow.dead) ? false : f.loop ? (f.life === undefined || f.t < f.life) : f.t * f.fps < f.n);
     for (const t of this.texts) { t.t += dtReal; t.z += dtReal * (t.big ? 0.9 : 1.4); }
     this.texts = this.texts.filter((t) => t.t < (t.big ? 1.3 : 0.9));
     for (const b of this.banners) b.t += dtReal;
@@ -900,7 +926,7 @@
       if (k >= 1) {
         e.leap = null; e.z = 0;
         this.aoeAt(e, e.x, e.y, 1.9, 2.1, 'foe', { heavy: true });
-        this.addFx('x_stone', e.x, e.y - 0.1, { sc: 0.8 }); this.addFx('aoe', e.x, e.y, { sc: 0.45, ground: true, add: true, hue: -40, fps: 30 });
+        this.vfx('v_slam', e.x, e.y, { sc: 1.05, fps: 24 }); this.vfx('v_fireburst', e.x, e.y, { sc: 0.7, fps: 24 }); this.vfx('v_scorch', e.x, e.y, { sc: 0.9, fps: 5, ground: true });
         this.shake = 0.4; BB.sfx && BB.sfx('slam');
       }
       return;
@@ -910,7 +936,7 @@
       if (e.flameAt <= 0) {
         e.flameAt = undefined;
         const v = dirVec(e.dir), s = BB.iso(v.x, v.y);
-        this.addFx('cone', e.x + v.x * 1.6, e.y + v.y * 1.6, { sc: 0.9, rot: Math.atan2(s.y, s.x) + Math.PI, add: true, fps: 24, hue: -30, sat: 1.2 });
+        this.vfx('v_flamecone', e.x + v.x * 0.35, e.y + v.y * 0.35, { sc: 1.5, z: 0.55, rot: Math.atan2(s.y, s.x), fps: 20 });
         for (const o of this.ents) {
           if (o.dead || (o.side !== 'foe' && !o.barrel)) continue;
           const dx = o.x - e.x, dy = o.y - e.y, d = hyp(dx, dy);
@@ -969,7 +995,7 @@
       for (const g of side) if (g !== t && !g.dead && this.roleOf(g) === 'tank' && !(g.lock > 0.15) && hyp(g.x - t.x, g.y - t.y) < 2.6 && !(g.stunT > 0) && this.r() < 0.4) {
         const mx = (t.x + e.x) / 2, my = (t.y + e.y) / 2, dx = mx - g.x, dy = my - g.y, l = hyp(dx, dy) || 1;
         g.dash = { vx: dx / l * 12, vy: dy / l * 12, t: Math.min(0.2, l / 12) }; g.lock = 0.2;
-        this.text(g.x, g.y, 'COVER!', '#8fd4ff', 1); this.addFx('dash', g.x, g.y, { sc: 0.45, alpha: 0.8, fps: 40 });
+        this.text(g.x, g.y, 'COVER!', '#8fd4ff', 1); this.addFx('v_dust', g.x, g.y, { sc: 0.8, fps: 22 });
         t = g; e.atkTgt = g; break;
       }
     }
@@ -995,7 +1021,7 @@
     e.poise -= amt; e.poiseT = 2.2;
     if (e.poise <= 0) {
       e.poise = e.maxPoise; e.brokenT = e.boss ? 3.5 : 2.2; this.stun(e, e.boss ? 2.4 : 1.5);
-      if (e.boss) this.text(e.x, e.y, 'BREAK!', '#ffb347', 2); if (BB.foeVoice) BB.foeVoice(e, e.boss ? 'brk' : 'hurt'); this.addFx('aoe', e.x, e.y, { sc: e.boss ? 0.8 : 0.5, ground: true, add: true, hue: 20, fps: 30 });
+      if (e.boss) this.text(e.x, e.y, 'BREAK!', '#ffb347', 2); if (BB.foeVoice) BB.foeVoice(e, e.boss ? 'brk' : 'hurt'); this.vfx('v_spark', e.x, e.y, { sc: e.boss ? 2 : 1.4, z: 0.8, fps: 20 }); this.addFx('v_dust', e.x, e.y, { sc: e.boss ? 1.4 : 1, fps: 20 });
       this.shake = Math.max(this.shake, e.boss ? 0.7 : 0.35); this.hitstop = Math.max(this.hitstop, 0.08); BB.sfx && BB.sfx('slam');
       if (e.boss) { this.banner(e.F.name.split(',')[0] + ' is broken!', 1.4, 'small'); this.zoomPulse(1.08, 0.6); }
       for (const h of this.heroesAlive()) if (hyp(h.x - e.x, h.y - e.y) < 6) h.energy = Math.min(100, (h.energy || 0) + 12);
@@ -1010,9 +1036,9 @@
     if (!((e.blinkCd || 0) <= 0) || e.dead) return false;
     const f = BB.freeSpot(this.map, x, y, 0.3); if (!f || BB.blocked(this.map, f.x, f.y)) return false;
     const hue = e.side === 'hero' ? 200 : -60;
-    this.addFx('buff9', e.x, e.y, { sc: 0.6, add: true, hue }); this.addFx('portalopen', e.x, e.y - 0.1, { sc: 0.35, add: true, fps: 30 });
+    this.addFx('v_blink', e.x, e.y, { sc: 0.9, fps: 24, must: true });
     e.x = f.x; e.y = f.y; e.path = null; e.goTo = null; e.vx = e.vy = 0;
-    this.addFx('buff9', e.x, e.y, { sc: 0.6, add: true, hue }); e.invuln = Math.max(e.invuln || 0, 0.25); e.blinkCd = e.side === 'hero' ? 6 : 7; e.flash = 0.3;
+    this.addFx('v_blink', e.x, e.y, { sc: 0.9, fps: 24, must: true }); void hue; e.invuln = Math.max(e.invuln || 0, 0.25); e.blinkCd = e.side === 'hero' ? 6 : 7; e.flash = 0.3;
     BB.sfx && BB.sfx('dodge');
     return true;
   };
@@ -1255,7 +1281,7 @@
     if (d > 2.6 && d < 6.5 && !((e.dashCd || 0) > 0) && !e.boss && !e.gate && BB.lineClear(this.map, e.x, e.y, s.x, s.y, e.r)) {
       const dx = s.x - e.x, dy = s.y - e.y, l = hyp(dx, dy) || 1, sp = 13;
       e.dash = { vx: dx / l * sp, vy: dy / l * sp, t: Math.min(0.32, (l - 0.4) / sp) }; e.dashCd = 3.5 + this.r() * 2; e.lock = e.dash.t; this.face(e, s.x, s.y); this.setClip(e, 'Run');
-      const sv = BB.iso(dx, dy); this.addFx('dash', e.x, e.y, { sc: 0.5, rot: Math.atan2(sv.y, sv.x) + Math.PI, alpha: 0.85, fps: 40 }); BB.sfx && BB.sfx('dodge');
+      this.addFx('v_dust', e.x, e.y, { sc: 0.75, fps: 22 }); BB.sfx && BB.sfx('dodge');
       return false;
     }
     this.moveToward(e, s.x, s.y, dt);
@@ -1488,6 +1514,7 @@
       this.shoot(e, t.x, t.y, e.proj || 'curse', 1, { hue: eh, slow: (e.elite && e.elite.slow) || e.elem === 'frost', burn: e.elem === 'fire' }); return;
     }
     if (hyp(t.x - e.x, t.y - e.y) - (t.r || 0) <= e.range + 0.45) this.hit(e, t, e.punish ? 1.4 : 1, { slow: (e.elite && e.elite.slow) || e.F.touch === 'slow', burn: e.F.touch === 'burn', venom: e.F.touch === 'poison', drain: e.F.touch === 'leech', heavy: e.boss });
+    if (!t.dead && hyp(t.x - e.x, t.y - e.y) - (t.r || 0) <= e.range + 0.45) this.addFx(e.boss ? 'v_cleave' : 'v_spark', t.x, t.y, { sc: e.boss ? 0.8 : 0.6, z: 0.75, fps: 28 });
     e.punish = false;
   };
 
@@ -1495,7 +1522,7 @@
     e.cd -= dt; e.moveCd -= dt; if (this.farTick) this.farTick(e, dt);
     if (!e.enraged && e.hp < e.maxhp * 0.5) {
       e.enraged = true; e.aspd *= 1.3; e.spd *= 1.15; if (BB.foeVoice) BB.foeVoice(e, 'enrage'); this.banner(e.F.name.split(',')[0] + ' is enraged!', 1.8, 'boss');
-      this.addFx('buff9', e.x, e.y, { sc: 1.3, add: true, hue: -60 }); this.shake = 0.5; BB.sfx && BB.sfx('boss');
+      this.vfx('v_warcry', e.x, e.y, { sc: 1.5, fps: 18 }); this.vfx('v_rage', e.x, e.y, { sc: 1.6, fps: 14, loop: true, life: 3, follow: e }); this.shake = 0.5; BB.sfx && BB.sfx('boss');
       if (e.kind === 'vesh') this.bossMove(e, t, 'gates');
     }
     if (e.moveCd <= 0) {
@@ -1518,7 +1545,7 @@
       this.face(e, x, y); this.setClip(e, BB.hasClip(e.art, 'Attack4') ? 'Attack4' : 'Attack1', true);
       this.tele.push({ kind: 'circle', x, y, rad, t: 0, dur: 1.1, col: '255,60,40', onEnd() {
         self.aoeAt(e, x, y, rad, 1.7, 'hero', { heavy: true });
-        self.addFx('aoe', x, y, { sc: 0.55, ground: true, add: true, hue: -50, fps: 30 }); self.addFx('x_stone', x, y - 0.1, { sc: 0.9 });
+        self.vfx('v_slam', x, y, { sc: rad * 0.55, fps: 24 }); self.vfx('v_fireburst', x, y, { sc: 0.8, fps: 22 });
         self.shake = 0.6; BB.sfx && BB.sfx('slam');
       } });
     } else if (mv === 'charge') {
@@ -1545,8 +1572,8 @@
     } else if (mv === 'blink') {
       const a = this.r() * TAU, d = 4 + this.r() * 2;
       let nx = clamp(t.x + Math.cos(a) * d, 4, this.map.w - 4), ny = clamp(t.y + Math.sin(a) * d, 4, this.map.h - 4);
-      this.addFx('buff9', e.x, e.y, { sc: 1, add: true, hue: 200 });
-      e.x = nx; e.y = ny; this.addFx('buff9', e.x, e.y, { sc: 1, add: true, hue: 200 });
+      this.vfx('v_blink', e.x, e.y, { sc: 1.4, fps: 22 });
+      e.x = nx; e.y = ny; this.vfx('v_blink', e.x, e.y, { sc: 1.4, fps: 22 });
       BB.sfx && BB.sfx('blink');
     } else if (mv === 'gas') {
       const x = t.x, y = t.y;
@@ -1559,7 +1586,7 @@
       e.state = 'attack'; e.lock = 1.6; e.atkDur = 1.6; e.hitAt = 99; e.hitDone = true; this.face(e, t.x, t.y); this.setClip(e, 'Special1', true);
       this.tele.push({ kind: 'cone', x: e.x, y: e.y, vx: v.x, vy: v.y, len: 6.5, spread: 0.55, t: 0, dur: 1.2, col: '120,255,140', onEnd() {
         const s = BB.iso(v.x, v.y);
-        self.addFx('cone', e.x + v.x * 2.6, e.y + v.y * 2.6, { sc: 1.5, rot: Math.atan2(s.y, s.x) + Math.PI, add: true, hue: 110, fps: 24 });
+        self.vfx('v_venomcone', e.x + v.x * 0.5, e.y + v.y * 0.5, { sc: 2.4, z: 0.8, rot: Math.atan2(s.y, s.x), fps: 18 });
         for (const o of self.ents) {
           if (o.dead || o.side !== 'hero' || o.ward) continue;
           const dx = o.x - e.x, dy = o.y - e.y, dd = hyp(dx, dy);
@@ -1589,7 +1616,7 @@
       else if (el === 'frost') {
         this.tele.push({ kind: 'circle', x: e.x, y: e.y, rad: 3.6, t: 0, dur: 1.2, col: '140,210,255', onEnd() {
           for (const o of self.inRadius(e.x, e.y, 3.6, 'hero')) if (!o.ward) { self.hit(e, o, 1.2, { aoe: true }); o.buffs.slow = 3; }
-          self.addFx('aoe', e.x, e.y, { sc: 0.85, ground: true, add: true, hue: -70, fps: 26 }); BB.sfx && BB.sfx('slam');
+          self.vfx('v_icespikes', e.x, e.y, { sc: 1.9, fps: 18 }); self.vfx('v_frostburst', e.x, e.y, { sc: 1.6, z: 0.5, fps: 20 }); BB.sfx && BB.sfx('slam');
         } });
       } else for (let i = 0; i < 12; i++) { const a = i / 12 * TAU; this.later(0.6 + i * 0.04, () => { if (!e.dead && !self.result) self.shoot(e, e.x + Math.cos(a) * 6, e.y + Math.sin(a) * 6, 'curse', 0.7, { hue: 30 }); }); }
     } else if (mv === 'dash') {
@@ -1597,13 +1624,13 @@
       e.dash = { vx: dx / d * 14, vy: dy / d * 14, t: Math.max(0.1, (d - 0.8) / 14) };
       this.face(e, t.x, t.y); this.setClip(e, 'AttackRun', true);
       e.state = 'attack'; e.lock = 0.7; e.atkDur = 0.7; e.hitAt = 0.4; e.hitDone = false; e.atkTgt = t;
-      const s = BB.iso(dx, dy); this.addFx('dash', e.x, e.y, { sc: 0.5, rot: Math.atan2(s.y, s.x) + Math.PI, fps: 40 });
+      this.vfx('v_dust', e.x, e.y, { sc: 1.1, fps: 22 });
     } else if (mv === 'vanish') {
-      e.hidden = true; this.addFx('buff9', e.x, e.y, { sc: 0.8, add: true, hue: 200 });
+      e.hidden = true; this.vfx('v_blink', e.x, e.y, { sc: 1.2, fps: 22 });
       this.later(1.6, () => {
         if (e.dead) return;
         e.hidden = false; const v = dirVec(t.dir); e.x = t.x - v.x * 1; e.y = t.y - v.y * 1;
-        self.addFx('buff9', e.x, e.y, { sc: 0.8, add: true, hue: 200 });
+        self.vfx('v_blink', e.x, e.y, { sc: 1.2, fps: 22 });
         self.foeAttack(e, t, 'Attack4'); self.text(e.x, e.y, 'Behind you.', '#cde', 1);
       });
     }
@@ -1824,29 +1851,19 @@
   };
 
   Battle.prototype.drawFxObj = function (ctx, f) {
-    const s = BB.iso(f.x, f.y);
+    if (f.follow) { f.x = f.follow.x; f.y = f.follow.y; }
+    const s = BB.iso(f.x, f.y); if (f.z) s.y -= f.z * 24;
+    if (f.drop) { const k = Math.min(1, f.t / f.drop.dur), q = 1 - k; s.x += f.drop.dx * q; s.y += f.drop.dy * q; } // falling in from (dx, dy) screen pixels away
+    if (f.life && f.loop) { const left = f.life - f.t; if (left < 0.3) f.alpha = Math.max(0, left / 0.3) * (f.a0 === undefined ? (f.a0 = f.alpha === undefined ? 1 : f.alpha) : f.a0); }
     if (f.ring) { const k = f.t / f.n; BB.drawOther(ctx, 'AoEFire', s.x, s.y, f.rad * BB.TW * 1.02 / 256 * (0.8 + k * 0.3), { add: true, alpha: Math.min(1, (1 - k) * 2.5), sy: 0.55 }); return; }
     const fr = Math.floor(f.t * f.fps);
-    BB.drawFx(ctx, f.key, f.loop ? fr % f.n : fr, s.x, s.y, f.sc, { add: f.add, hue: f.hue, rot: f.rot, alpha: f.alpha, squash: f.ground ? 0.55 : 1, sat: f.sat });
+    BB.drawFx(ctx, f.key, f.loop ? fr % f.n : fr, s.x, s.y, f.sc, { add: f.add, hue: f.hue, rot: f.rot, alpha: f.alpha, squash: f.ground && f.key.charCodeAt(1) !== 95 ? 0.55 : 1, sat: f.sat, flip: f.flip });
   };
 
   Battle.prototype.drawProj = function (ctx, p) {
-    const s = BB.iso(p.x, p.y), y = s.y - p.z * 24;
-    if (p.kind === 'arrow') {
-      const v = BB.iso(p.vx, p.vy); let vx = v.x, vy = v.y - (p.fall ? p.fall * 24 : 0); const l = hyp(vx, vy) || 1; vx /= l; vy /= l;
-      ctx.strokeStyle = '#e8dcc0'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(s.x - vx * 9, y - vy * 9); ctx.lineTo(s.x, y); ctx.stroke();
-      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(s.x, y, 1, 0, TAU); ctx.fill();
-      if (!p.fall) { ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.beginPath(); ctx.ellipse(s.x, s.y, 3, 1.4, 0, 0, TAU); ctx.fill(); }
-      return;
-    }
-    if (p.kind === 'light') {
-      ctx.save(); ctx.globalCompositeOperation = 'lighter';
-      const gr = ctx.createRadialGradient(s.x, y, 0, s.x, y, 9); gr.addColorStop(0, 'rgba(255,250,200,1)'); gr.addColorStop(0.4, 'rgba(255,210,90,0.7)'); gr.addColorStop(1, 'rgba(255,200,80,0)');
-      ctx.fillStyle = gr; ctx.fillRect(s.x - 10, y - 10, 20, 20); ctx.restore(); return;
-    }
-    const v = BB.iso(p.vx, p.vy);
-    const hue = p.kind === 'bolt' ? (p.side === 'hero' ? 150 : 0) : (p.hue || 0);
-    BB.drawFx(ctx, 'bolt', Math.floor(this.time * 30) % BB.fxLen('bolt'), s.x, y, 0.32, { add: true, hue, rot: Math.atan2(v.y, v.x) + Math.PI });
+    const s = BB.iso(p.x, p.y), y = s.y - p.z * 24, v = BB.iso(p.vx, p.vy), key = projKey(p);
+    if (!p.fall) { ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.beginPath(); ctx.ellipse(s.x, s.y, 3.5, 1.5, 0, 0, TAU); ctx.fill(); }
+    BB.drawFx(ctx, key, Math.floor(this.time * 18) % (BB.fxLen(key) || 1), s.x, y, 1, { rot: Math.atan2(v.y - (p.fall ? p.fall * 24 : 0), v.x) });
   };
 
   Battle.prototype.drawTele = function (ctx, t) {

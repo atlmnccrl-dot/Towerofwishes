@@ -32,33 +32,34 @@
     switch (elem) {
       case 'fire':
         burst(this, tgt, big ? 6 : 1, { cols: C, sp: 1.6 * k, up: 3.2, life: 0.7, s: 1.8, kind: 'ember', grav: -1.5 });
-        if (big) F.fx.push({ kind: 'flare', x: tgt.x, y: tgt.y, t: 0, dur: 0.32, k, col: C });
+        if (big) this.addFx('v_fireburst', tgt.x, tgt.y, { sc: 0.55 * k, z: 0.5, fps: 24 });
         break;
       case 'frost':
         burst(this, tgt, big ? 4 : 1, { cols: C, sp: 3.2 * k, up: 2.5, life: 0.55, s: 1.6, kind: 'shard', grav: 9 });
-        if (big) F.fx.push({ kind: 'spikes', x: tgt.x, y: tgt.y, t: 0, dur: 0.5, k, rot: R() * TAU, col: C });
+        if (big) this.addFx(crit ? 'v_icespikes' : 'v_frostburst', tgt.x, tgt.y, { sc: crit ? 0.8 : 0.55, z: crit ? 0 : 0.5, fps: 22 });
         break;
       case 'storm':
         burst(this, tgt, big ? 4 : 1, { cols: C, sp: 4 * k, up: 2, life: 0.3, s: 1.2, kind: 'spark' });
-        if (big) F.fx.push({ kind: 'strike', x: tgt.x, y: tgt.y, t: 0, dur: 0.24, k, seed: R() * 99, col: C });
+        if (big) this.addFx(crit ? 'v_strike' : 'v_zap', tgt.x, tgt.y, { sc: crit ? 0.7 : 0.75, z: crit ? 0 : 0.6, fps: 26 });
         break;
       case 'shadow':
         burst(this, tgt, big ? 4 : 1, { cols: [C[1], C[2], C[2]], sp: 1.2, up: 1.6, life: 0.8, s: 2.6, kind: 'wisp', add: false, grav: -1 });
-        if (big) F.fx.push({ kind: 'cross', x: tgt.x, y: tgt.y, t: 0, dur: 0.3, k, rot: (R() - 0.5) * 0.6, col: C });
+        if (big) this.addFx('v_shadowslash', tgt.x, tgt.y, { sc: 0.6 * k, z: 0.7, fps: 26, flip: R() < 0.5 });
         break;
       case 'holy':
         burst(this, tgt, big ? 5 : 1, { cols: C, sp: 1.2, up: 3.5, life: 0.8, s: 1.3, kind: 'mote', grav: -2 });
-        if (big) F.fx.push({ kind: 'pillar', x: tgt.x, y: tgt.y, t: 0, dur: 0.45, k, col: C });
+        if (big) this.addFx(crit ? 'v_pillar' : 'v_holyburst', tgt.x, tgt.y, { sc: crit ? 0.6 : 0.45, z: crit ? 0 : 0.6, fps: 26 });
         break;
       case 'poison':
         burst(this, tgt, big ? 5 : 1, { cols: C, sp: 2.4 * k, up: 3, life: 0.65, s: 1.7, kind: 'drop', grav: 8, add: false });
-        if (big) F.fx.push({ kind: 'cloud', x: tgt.x, y: tgt.y, t: 0, dur: 0.7, k, col: C });
+        if (big) this.addFx('v_poison', tgt.x, tgt.y, { sc: 0.65 * k, fps: 20 });
         break;
     }
   };
   B.traitLink = function (kind, a, b) {
     if (this.peaceful || !a || !b) return;
-    T(this).fx.push({ kind: kind === 'storm' ? 'chain' : 'stream', x: a.x, y: a.y, x2: b.x, y2: b.y, t: 0, dur: kind === 'storm' ? 0.28 : 0.55, seed: R() * 99, col: COL[kind] });
+    if (kind === 'storm') { (this.zaps = this.zaps || []).push({ x1: a.x, y1: a.y, x2: b.x, y2: b.y, t: 0, seed: R() * 99 }); return; } // the painted lightning (js/signatures.js draws it)
+    T(this).fx.push({ kind: 'stream', x: a.x, y: a.y, x2: b.x, y2: b.y, t: 0, dur: 0.55, seed: R() * 99, col: COL[kind] });
   };
   B.updateTraits = function (dt) {
     const F = T(this);
@@ -165,7 +166,7 @@
     if (this.peaceful && !this.drill) return;
     if (tgt.healFxT > this.time) return; tgt.healFxT = this.time + 0.25;
     for (let i = 0; i < 5; i++) part(this, { x: tgt.x + (R() - 0.5) * 0.5, y: tgt.y + (R() - 0.5) * 0.5, z: 0.3 + R() * 0.8, vz: 1.2 + R(), life: 0.7, s: 1.5, col: i % 2 ? '#9dffb0' : '#5fe07a', kind: 'ember', grav: -0.5 });
-    T(this).fx.push({ kind: 'mend', x: tgt.x, y: tgt.y, t: 0, dur: 0.4, k: 1, col: COL.holy });
+    this.addFx('v_heal', tgt.x, tgt.y, { sc: 0.85, fps: 18 });
   };
   function bolt(g, x0, y0, x1, y1, seed, segs, jag) {
     g.beginPath(); g.moveTo(x0, y0);

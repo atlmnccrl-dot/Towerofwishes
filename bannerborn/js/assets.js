@@ -141,9 +141,9 @@
     return Promise.all(list);
   };
   BB.landReady = (region) => !region.skin || !!(A.env[region.skin] && A.env[region.skin + '.ground']);
-  BB.loadFx = function () {
-    if (A.fx) return Promise.resolve(A.fx);
-    if (!pending.fx) pending.fx = loadAtlas('assets/fx/fx').then((a) => (A.fx = a));
+  BB.loadFx = function () { // the effect sheets: the packs' (fx) and the battle's own, painted for the game (vfx: tools/make-vfx.js)
+    if (A.fx && A.vfx) return Promise.resolve(A.fx);
+    if (!pending.fx) pending.fx = Promise.all([loadAtlas('assets/fx/fx'), loadAtlas('assets/fx/vfx')]).then(([a, v]) => { A.vfx = v; return (A.fx = a); });
     return pending.fx;
   };
   BB.loadOther = function () {
@@ -328,7 +328,7 @@
   BB.drawLayers = function (ctx, layers, clip, dir, frame, x, y, sc, opts) {
     opts = opts || {};
     for (const L of layers) {
-      if (L.slash && (opts.noSlash || !BB.hasClip('slash', clip))) continue;
+      if (L.slash) continue; // the pack's swing trail: the battle paints its own cuts now (v_slash, v_cleave)
       if (!A.chars[L.key]) continue;
       drawFrame(ctx, L.key, null, clip, dir, frame, x, y, sc, L.spec, L.sk);
     }
@@ -381,11 +381,12 @@
   BB.envHas = (biome, name) => !!(A.env[biome] && A.env[biome].meta.f[name]);
 
   // ---- effects: anchor = sprite centre. tinted variants cached per hue
-  BB.fxLen = (key) => (A.fx && A.fx.meta.n[key]) || 0;
+  const isV = (key) => key.charCodeAt(0) === 118 && key.charCodeAt(1) === 95; // 'v_': one of the battle's own effects
+  BB.fxLen = (key) => { const a = isV(key) ? A.vfx : A.fx; return (a && a.meta.n[key]) || 0; };
   const fxTint = {};
   function cut(img, r) { const c = document.createElement('canvas'); c.width = r[2]; c.height = r[3]; c.getContext('2d').drawImage(img, r[0], r[1], r[2], r[3], 0, 0, r[2], r[3]); return c; }
   BB.drawFx = function (ctx, key, frame, x, y, sc, opts) {
-    const a = A.fx; if (!a) return;
+    const v = isV(key), a = v ? A.vfx : A.fx; if (!a) return;
     const n = a.meta.n[key]; if (!n) return;
     const fi = Math.max(0, Math.min(n - 1, frame | 0)), r = a.meta.f[key][fi];
     if (!r || r[2] <= 1) return;
@@ -399,17 +400,27 @@
     sc = sc || 1;
     const sy = opts.squash || 1;
     // no save/restore here: this runs for every spark on the field
-    const ga = ctx.globalAlpha, gc = ctx.globalCompositeOperation;
+    const ga = ctx.globalAlpha, gc = ctx.globalCompositeOperation, sm = ctx.imageSmoothingEnabled;
     if (opts.alpha !== undefined) ctx.globalAlpha = opts.alpha;
     if (opts.add) ctx.globalCompositeOperation = 'lighter';
-    if (opts.rot) {
-      ctx.save(); ctx.translate(x, y); ctx.rotate(opts.rot);
+    if (v) ctx.imageSmoothingEnabled = false; // pixel art: drawn crisp, as the fighters are
+    if (opts.rot || opts.flip || opts.sx) {
+      ctx.save(); ctx.translate(x, y); if (opts.rot) ctx.rotate(opts.rot); if (opts.flip || opts.sx) ctx.scale((opts.flip ? -1 : 1) * (opts.sx || 1), 1);
       ctx.drawImage(img, rx, ry, r[2], r[3], r[4] * sc, r[5] * sc * sy, r[2] * sc, r[3] * sc * sy);
       ctx.restore();
     } else {
       ctx.drawImage(img, rx, ry, r[2], r[3], x + r[4] * sc, y + r[5] * sc * sy, r[2] * sc, r[3] * sc * sy);
     }
-    ctx.globalAlpha = ga; ctx.globalCompositeOperation = gc;
+    ctx.globalAlpha = ga; ctx.globalCompositeOperation = gc; ctx.imageSmoothingEnabled = sm;
+  };
+
+  // a bolt of lightning between two points on the screen: one of the painted strips, turned and stretched to fit
+  BB.drawBolt = function (ctx, x1, y1, x2, y2, frame, alpha) {
+    const a = A.vfx; if (!a) return; const L = Math.hypot(x2 - x1, y2 - y1); if (L < 2) return;
+    const key = L < 90 ? 'v_bolt_s' : 'v_bolt_l', n = a.meta.n[key], r = a.meta.f[key][((frame % n) + n) % n], len = key === 'v_bolt_s' ? 64 : 128;
+    ctx.save(); ctx.translate(x1, y1); ctx.rotate(Math.atan2(y2 - y1, x2 - x1) - Math.PI / 2); ctx.scale(1, L / len);
+    if (alpha !== undefined) ctx.globalAlpha = alpha; ctx.imageSmoothingEnabled = false; // drawn as it is painted (dark rim, white core): it reads on snow as well as on night ground
+    ctx.drawImage(a.img, r[0], r[1], r[2], r[3], r[4], r[5], r[2], r[3]); ctx.restore();
   };
 
   // ---- a portrait canvas for a hero (head and shoulders, facing the camera)
