@@ -23,8 +23,16 @@ for (const st of D.STAGES) {
   if (!D.FOES[st.bossWave[0]].boss) bad(`${st.id} boss wave does not open with its boss`);
 }
 // Effect names used in the code (keep in step with view.js and cine.js).
-const used = new Set(['holy_light', 'frost_nova', 'explosion_fire', 'slash_arc_blood', 'hit_crit', 'parry', 'v_slash', 'v_impact', 'v_blood', 'v_soul', 'v_pillar', 'v_crack', 'v_shock', 'v_blast', 'dissipate', 'smoke_dark', 'blast', 'teleport', 'shockwave', 'spin_slash', 'smoke_burst', 'portal', 'hit_shock', 'thunder', 'lightning_holy', 'explosion_frost', 'frost_nova', 'spell_cast', 'summon', 'spell_zap', 'charge_up', 'cast_circle', 'wind_gust']);
+const used = new Set(['frost_nova', 'explosion_fire', 'slash_arc_blood', 'parry', 'v_slash', 'v_blood', 'v_soul', 'v_pillar', 'blast', 'smoke_burst', 'portal', 'wind_gust']);
 const src = ['view.js', 'cine.js'].map((f) => fs.readFileSync(path.join(__dirname, '../js', f), 'utf8')).join('\n');
+// The spell forge (tools_spells.py): every sheet the game names, and every old name it routes, is in assets/spell.
+{
+  const sp = JSON.parse(fs.readFileSync(root + '/spell/spell.json')).fx, all = ['assets.js', 'view.js', 'cine.js', 'tale.js', 'story.js', 'intro.js', 'bossfilms.js'].map((f) => fs.readFileSync(path.join(__dirname, '../js', f), 'utf8')).join('\n');
+  const names = new Set(all.match(/'s_[a-z_]+'/g).map((m) => m.slice(1, -1)));
+  for (const n of names) if (!sp[n]) bad('spell sheet missing ' + n);
+  for (const [k, e] of Object.entries(sp)) { if (!e.frames.length) bad('spell ' + k + ' has no frames'); if (!e.frames.some(Boolean)) bad('spell ' + k + ' is empty'); }
+  console.log(`spells: ${Object.keys(sp).length} sheets, ${names.size} named in the game, all present`);
+}
 for (const n of used) { if (!fx[n]) bad('fx ' + n); if (src.indexOf("'" + n + "'") < 0) bad('fx listed but unused ' + n); }
 // Scenes: known shot kinds, known speakers, one scene per stage.
 for (const H of Object.values(D.HEROES)) for (const sk of H.skills) if (sk.fx && !fx[sk.fx]) bad('skill fx ' + sk.fx);

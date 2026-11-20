@@ -437,7 +437,7 @@
   // What one shot needs on screen: the looks of its cast, its arena's tiles, the pack's effects if it uses them.
   function shotNeeds(sh, def) {
     const sets = (sh.cast || []).map((c) => (c.who === 'hero' ? null : c.who[0] === '@' ? ((def.army || [])[+c.who.slice(5)] || {}).set : c.set || (D.FOES[c.who] || {}).set)).filter(Boolean);
-    const iso = sh.k === 'film' ? isoFor(sh.stage) : [], cb = (sh.ev || []).some(([, e]) => e.type === 'pk' && (String(e.name).startsWith('cb:') || (A.CBMAP && A.CBMAP[e.name])));
+    const iso = sh.k === 'film' ? isoFor(sh.stage) : [], cb = (sh.ev || []).some(([, e]) => e.type === 'pk' && A.spellOf(e.name) === undefined && (String(e.name).startsWith('cb:') || (A.CBMAP && A.CBMAP[e.name])));
     return { sets, iso, cb };
   }
   const shotReady = (sh, def) => { const n = shotNeeds(sh, def); return n.sets.every((id) => A.hasSet(id)) && (!n.iso.length || A.isoReady(n.iso)) && (!n.cb || A.cbReady()); };
@@ -950,7 +950,7 @@
       await sleep(300);
       await Promise.all([A.loadSets([...new Set(menuSets)].filter((id) => !A.hasSet(id))), A.loadIso(isoFor(0)).catch(() => {})]).catch(() => {});
       M.menuReady = true; A.warm(R.ctx); A.isoWarm(R.ctx);
-      await quiet(); await A.loadCB().catch(() => {});
+      // (The Crowd Breaker sheets are no longer streamed: the spell forge plays every effect the fights and films name.)
       for (const id of ids) { if (A.hasSet(id)) continue; await quiet(); await A.loadSets([id]).catch(() => {}); }
     })().then(() => { M.bgDone = true; A.warm(R.ctx); A.isoWarm(R.ctx); }, () => { M.bgDone = true; });
     try { if (document.fonts) await Promise.race([Promise.all(['20px Adventurer', '700 20px "Chakra Petch"', '500 16px Barlow', '700 16px Barlow'].map((f) => document.fonts.load(f))), new Promise((r) => setTimeout(r, 2500))]); } catch (e) { /* fonts optional */ }

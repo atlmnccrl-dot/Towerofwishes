@@ -244,7 +244,8 @@
       const on = e.on ? byId(e.on) : null; if (on) e = Object.assign({}, e, { x: on.u.x + (e.dx || 0), y: on.u.y + (e.dy || 0), id: on.u.id });
       const by = e.by ? byId(e.by) : null; if (by && on) e.ang = Math.atan2(on.u.y - by.u.y, on.u.x - by.u.x);   // which way a blow travels
       // pk: one effect by name; from: seconds into it to start (skips a slow build-up), end: when to cut it, by: turn it the way a blow goes.
-      if (e.type === 'pk') R.pk(e.name, e.x, e.y, e.z || 0, e.scale || 1, { t: e.from || 0, end: e.end, soft: e.soft, angle: e.ang != null && e.turn ? R.screenAng(e.ang) : undefined });
+      // The spell forge's sheets (A.spellOf) start at once and play out whole: from/end/soft were timed to the old pack's sheets.
+      if (e.type === 'pk') { const own = VS.A.spellOf && VS.A.spellOf(e.name); R.pk(e.name, e.x, e.y, e.z || 0, e.scale || 1, own !== undefined ? { angle: e.ang != null ? R.screenAng(e.ang) : undefined } : { t: e.from || 0, end: e.end, soft: e.soft, angle: e.ang != null && e.turn ? R.screenAng(e.ang) : undefined }); }
       else if (e.type === 'punch') R.punch = Math.max(R.punch || 0, e.n || 0.12);
       else if (e.type === 'hurt') { if (on) on.u.flash = 1; }
       else if (e.type === 'impact') F.impact = { at: t0, dur: e.dur || 0.16, x: e.x, y: e.y };   // an anime impact frame (real seconds)

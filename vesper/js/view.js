@@ -322,12 +322,14 @@
           // Pack effects only on the blows that matter; light cuts get clean sparks alone.
           // Every blow lands: a slash mark in its direction, sparks, a number; heavier blows punch the camera.
           // No cross-shaped sparkles on the blows (the author, 2026-11-10): a slash on the dash-cut, a burst on the arts.
-          if (e.fx === 'finisher') { R.punch = Math.max(R.punch || 0, 0.06); PK('v_impact', e.x, e.y, z, 1.7); PK('v_blood', e.x, e.y, z - 6, 1.3); }   // the forge's burst (tools_forge.py)
-          else if (e.fx === 'dash') PK('v_slash', e.x, e.y, z, 1.4, { angle: sa });   // the forge's crescent (the pack's katana opens on a cross flare)
-          else if (e.art) PK('hit_crit', e.x, e.y, z, 2);
-          else if (e.heavy) { R.punch = Math.max(R.punch || 0, 0.035); PK('v_impact', e.x, e.y, z, 1.25); }
-          FX({ kind: 'spark', x: e.x, y: e.y, z, life: 0.22, col: e.art ? RED : '#ffffff', r: e.finisher ? 36 : e.heavy ? 28 : 20 });
-          sparks(e.x, e.y, z, e.finisher ? 18 : e.heavy ? 13 : 8, e.heavy ? '#ffd9a0' : '#ffffff', e.heavy ? 190 : 130);
+          // The spell forge's blows (tools_spells.py), struck the way the blow went; a light cut gets the small hit alone.
+          if (e.fx === 'finisher') { R.punch = Math.max(R.punch || 0, 0.06); PK('s_crit', e.x, e.y, z, 1.6, { angle: sa }); PK('v_blood', e.x, e.y, z - 6, 1.1, { angle: sa }); }
+          else if (e.fx === 'dash') PK('v_slash', e.x, e.y, z, 1.4, { angle: sa });
+          else if (e.art) PK('s_crit', e.x, e.y, z, 1.9, { angle: sa });
+          else if (e.heavy) { R.punch = Math.max(R.punch || 0, 0.035); PK('s_hit_heavy', e.x, e.y, z, 1.7, { angle: sa }); }
+          else PK('s_hit', e.x, e.y, z, 1.6, { angle: sa });
+          if (e.finisher || e.heavy || e.art) FX({ kind: 'spark', x: e.x, y: e.y, z, life: 0.18, col: e.art ? RED : '#ffffff', r: e.finisher ? 26 : 20 });
+          sparks(e.x, e.y, z, e.finisher ? 10 : e.heavy ? 7 : 3, e.heavy ? '#ffd9a0' : '#ffffff', e.heavy ? 170 : 120);
           R.float(String(e.dmg), e.x, e.y, z + 14, e.art ? RED : e.heavy || e.finisher ? '#ffd9a0' : '#ffffff', e.heavy || e.finisher || e.art);
           R.shake = Math.max(R.shake, e.art ? 8 : e.finisher ? 7 : e.heavy ? 5 : 2.6);
           break;
@@ -344,10 +346,10 @@
         case 'riposte': R.float('RIPOSTE', e.x, e.y, 64, '#ff9aa8', true, true); break;
         case 'break': { FX({ kind: 'ring', x: e.x, y: e.y, z: 24 * sc, life: 0.45, col: '#ffd060', r0: 6, r1: 60, w: 3 }); for (let i = 0; i < 14; i++) { const a = Math.random() * Math.PI * 2, v = 90 + Math.random() * 120; P({ x: e.x, y: e.y, z: 24 * sc, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.6, vz: 60 + Math.random() * 80, g: -380, life: 0.6, size: 3, col: '#ffd060', shape: 'tri', rot: Math.random() * 6 }); } R.float('BREAK', e.x, e.y, 56 * sc, '#ffd060', true, true); R.shake = 7; break; }
         case 'counter': R.float('COUNTER', e.x, e.y, 58, '#5ac8b0', true, true); sparks(e.x, e.y, 22, 10, '#c8fff0', 160); R.shake = Math.max(R.shake, 4); break;
-        case 'healpulse': PK('v_heal', e.x, e.y, 0, 1.6); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.7, col: '#ffe08a', r0: 8, r1: e.r, w: 3 }); PK('holy_light', e.x, e.y, 0, 1.6); if (e.n) R.float('+HEAL', e.x, e.y, 64, '#ffe08a', false, true); break;
+        case 'healpulse': PK('s_holy_burst', e.x, e.y, 0, 1.8); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.7, col: '#ffe08a', r0: 8, r1: e.r, w: 3 }); if (e.n) R.float('+HEAL', e.x, e.y, 64, '#ffe08a', false, true); break;
         case 'block': R.float('BLOCK', e.x, e.y, 54, '#c8c0b0', false, true); sparks(e.x, e.y, 22, 6, '#e8e0c8', 120); break;
         case 'guardbreak': FX({ kind: 'ring', x: e.x, y: e.y, z: 22, life: 0.4, col: '#ffd060', r0: 6, r1: 56, w: 3 }); R.float('GUARD BREAK', e.x, e.y, 60, '#ffd060', true, true); R.shake = Math.max(R.shake, 8); R.punch = Math.max(R.punch || 0, 0.05); break;
-        case 'explode': PK('blast', e.x, e.y, 10, 3.2); PK('smoke_burst', e.x, e.y, 8, 2.2); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.5, col: '#ff6a5a', r0: 6, r1: e.r * 1.4, w: 4 }); sparks(e.x, e.y, 14, 24, '#ff8a6a', 260); R.flash = 0.4; R.flashCol = '255,90,60'; R.shake = Math.max(R.shake, 10); break;
+        case 'explode': PK('s_fire_burst', e.x, e.y, 0, 2.6); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.5, col: '#ff6a5a', r0: 6, r1: e.r * 1.4, w: 4 }); sparks(e.x, e.y, 14, 24, '#ff8a6a', 260); R.flash = 0.4; R.flashCol = '255,90,60'; R.shake = Math.max(R.shake, 10); break;
         case 'reinforce': R.flash = 0.35; R.flashCol = '255,40,70'; R.shake = Math.max(R.shake, 7); break;
         case 'revive': PK('v_levelup', e.x, e.y, 0, 2); PK('v_pillar', e.x, e.y, 0, 2.2); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.7, col: '#ffffff', r0: 10, r1: 140, w: 5 }); R.flash = 0.6; R.flashCol = '255,240,240'; R.shake = Math.max(R.shake, 8); R.float('RISE AGAIN', e.x, e.y, 80, '#ffd0d6', true, true); break;
         case 'soulRise': PK('v_soul', e.x, e.y, 0, e.first ? 1.2 : 1.6); if (A.hasFx('v_spawn')) PK('v_spawn', e.x, e.y, 0, 0.9); break;
@@ -359,23 +361,23 @@
           if (!e.hero && !e.boss && u && !u.ally) { R.streak = R.streakT > 0 ? R.streak + 1 : 1; R.streakT = 2.4; const nm = streakName(R.streak); if (nm) R.streakShow = { text: nm, n: R.streak, t: 0 }; if (u.elite) { R.float('ELITE DOWN', e.x, e.y, 64, RED, true, true); R.shake = Math.max(R.shake, 8); } }
           const col = (u && u.def.color) || '#ffffff';
           for (let i = 0; i < (e.boss ? 60 : 22); i++) P({ x: e.x + (Math.random() - 0.5) * 16 * sc, y: e.y + (Math.random() - 0.5) * 8 * sc, z: Math.random() * 36 * sc, vx: (Math.random() - 0.5) * 30, vy: (Math.random() - 0.5) * 16, vz: 20 + Math.random() * 60, g: 10, life: 0.7 + Math.random() * 0.6, size: 1.5 + Math.random() * 1.5, col, shape: 'sq' });
-          if (e.hero) PK('smoke_dark', e.x, e.y, 16 * sc, 1.3 * sc); else PK(A.hasFx('v_soul') ? 'v_soul' : 'dissipate', e.x, e.y, 4 * sc, 1.5 * sc);   // his dead give up a red soul
-          if (e.boss) { R.flash = 0.9; R.flashCol = '255,255,255'; R.shake = 12; PK('blast', e.x, e.y, 20 * sc, 3); PK('smoke_dark', e.x, e.y, 10, 3); }
+          if (e.hero) PK('s_smoke', e.x, e.y, 4 * sc, 1.8 * sc); else PK(A.hasFx('v_soul') ? 'v_soul' : 'dissipate', e.x, e.y, 4 * sc, 1.5 * sc);   // his dead give up a red soul
+          if (e.boss) { R.flash = 0.9; R.flashCol = '255,255,255'; R.shake = 12; PK('s_shadow_burst', e.x, e.y, 0, 3.2); }
           break;
         }
         case 'pickup': PK(e.kind === 'hp' ? 'v_heal' : 'v_levelup', e.x, e.y, 0, 0.8); break;
         case 'chest': PK('v_loot', e.x, e.y, 0, 1.6); PK('v_levelup', e.x, e.y, 0, 1.0); break;
         case 'moonFull': { const h = s.hero; PK('v_levelup', h.x, h.y, 0, 1.3); break; }   // the moon gauge full: a gold column
-        case 'blink': if (e.petals) { for (let i = 0; i < 14; i++) { const a = Math.random() * 6.28, v = 40 + Math.random() * 80; P({ x: e.x, y: e.y, z: 14 + Math.random() * 20, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.6, vz: 20 + Math.random() * 40, g: -40, life: 0.8, size: 2, col: Math.random() < 0.5 ? '#ff9ab8' : '#ffffff', shape: 'tri', rot: Math.random() * 6 }); } } PK('teleport', e.x, e.y, 0, 1.6); FX({ kind: 'ring', x: e.x, y: e.y, z: 20, life: 0.3, col: '#c070ff', r0: 40, r1: 2, w: 2 }); sparks(e.x, e.y, 20, 10, '#c070ff', 90); break;
+        case 'blink': if (e.petals) { for (let i = 0; i < 14; i++) { const a = Math.random() * 6.28, v = 40 + Math.random() * 80; P({ x: e.x, y: e.y, z: 14 + Math.random() * 20, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.6, vz: 20 + Math.random() * 40, g: -40, life: 0.8, size: 2, col: Math.random() < 0.5 ? '#ff9ab8' : '#ffffff', shape: 'tri', rot: Math.random() * 6 }); } } PK('s_vanish', e.x, e.y, 0, 1.8); sparks(e.x, e.y, 20, 5, '#c070ff', 90); break;
         case 'dodge': for (let i = 0; i < 6; i++) P({ x: e.x, y: e.y, z: 1, vx: (Math.random() - 0.5) * 60, vy: (Math.random() - 0.5) * 40, vz: Math.random() * 25, g: -40, life: 0.35, size: 2 + Math.random() * 2, col: 'rgba(200,190,200,0.35)', shape: 'circle' }); break;
-        case 'boltHit': if (e.burstFx || e.burst) PK(e.burstFx || 'explosion_fire', e.x, e.y, 10, e.burst ? e.burst / 14 : 1.4); FX({ kind: 'ring', x: e.x, y: e.y, z: 16, life: 0.25, col: '#e0b0ff', r0: 3, r1: 22, w: 2 }); sparks(e.x, e.y, 16, 8, '#e0b0ff', 120); break;
-        case 'slam': PK('shockwave', e.x, e.y, 0, 2.2); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.45, col: '#ff6a5a', r0: e.r * 0.3, r1: e.r * 1.2, w: 3 }); for (let i = 0; i < 16; i++) { const a = Math.random() * Math.PI * 2; P({ x: e.x + Math.cos(a) * e.r * 0.6, y: e.y + Math.sin(a) * e.r * 0.6, z: 1, vx: Math.cos(a) * 60, vy: Math.sin(a) * 60, vz: 40 + Math.random() * 60, g: -200, life: 0.5, size: 2.5, col: 'rgba(160,140,140,0.8)', shape: 'sq' }); } R.shake = Math.max(R.shake, 6); break;
+        case 'boltHit': if (e.burstFx || e.burst) PK(e.burstFx || 'explosion_fire', e.x, e.y, 0, e.burst ? e.burst / 14 : 1.4); else PK('s_arcane_burst', e.x, e.y, 16, 1.4); break;
+        case 'slam': PK('s_quake', e.x, e.y, 0, 1.8); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.45, col: '#ff6a5a', r0: e.r * 0.3, r1: e.r * 1.2, w: 3 }); for (let i = 0; i < 16; i++) { const a = Math.random() * Math.PI * 2; P({ x: e.x + Math.cos(a) * e.r * 0.6, y: e.y + Math.sin(a) * e.r * 0.6, z: 1, vx: Math.cos(a) * 60, vy: Math.sin(a) * 60, vz: 40 + Math.random() * 60, g: -200, life: 0.5, size: 2.5, col: 'rgba(160,140,140,0.8)', shape: 'sq' }); } R.shake = Math.max(R.shake, 6); break;
         // No drawn crescent on the swing (2026-11-10): one generic arc never matched the blade's real path in each
         // clip. The sprite's own sword carries the swing; sparks and a glow mark where it connects.
         case 'swing': break;
-        case 'spin': { const h = s.hero; if (s.heroDef.heavy.fx === 'frost') { PK('v_frost', h.x, h.y, 0, 2.2); PK('explosion_frost', h.x, h.y, 10, 3); PK('frost_nova', h.x, h.y, 4, 2.6); } else PK('spin_slash', h.x, h.y, 18, 2.2); FX({ kind: 'gring', x: h.x, y: h.y, life: 0.35, col: '#ffffff', r0: 8, r1: 46, w: 3 }); FX({ kind: 'spin', x: h.x, y: h.y, life: 0.3 }); R.shake = Math.max(R.shake, 4); break; }
+        case 'spin': { const h = s.hero; if (s.heroDef.heavy.fx === 'frost') PK('s_frost_burst', h.x, h.y, 0, 2.3); else PK('s_spin', h.x, h.y, 0, 1.9); FX({ kind: 'gring', x: h.x, y: h.y, life: 0.35, col: '#ffffff', r0: 8, r1: 46, w: 3 }); FX({ kind: 'spin', x: h.x, y: h.y, life: 0.3 }); R.shake = Math.max(R.shake, 4); break; }
         case 'spawn': if (e.mode === 'rift' && !e.boss && A.hasFx('v_spawn')) PK('v_spawn', e.x, e.y, 0, 1.3); break;   // the ground tears open
-        case 'landed': if (e.boss) { PK('shockwave', e.x, e.y, 0, 3.2); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.6, col: '#ffffff', r0: 10, r1: 110, w: 4 }); R.shake = 14; } else { const u2 = s.units.find((o) => o.id === e.id); if (u2 && u2.mode === 'drop') { FX({ kind: 'gring', x: e.x, y: e.y, life: 0.4, col: '#ffffff', r0: 4, r1: 34, w: 2 }); R.shake = Math.max(R.shake, 2.5); } else if (u2 && u2.mode === 'rift') PK('smoke_burst', e.x, e.y, 6, 1.0); } break;
+        case 'landed': if (e.boss) { PK('s_quake', e.x, e.y, 0, 2.8); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.6, col: '#ffffff', r0: 10, r1: 110, w: 4 }); R.shake = 14; } else { const u2 = s.units.find((o) => o.id === e.id); if (u2 && u2.mode === 'drop') { FX({ kind: 'gring', x: e.x, y: e.y, life: 0.4, col: '#ffffff', r0: 4, r1: 34, w: 2 }); R.shake = Math.max(R.shake, 2.5); } else if (u2 && u2.mode === 'rift') PK('smoke_burst', e.x, e.y, 6, 1.0); } break;
         case 'portal': R.flash = 0.4; R.flashCol = '255,220,230'; break;
         case 'impact': R.impactF = { t: 0, dur: e.size === 'big' ? 0.17 : 0.1, x: e.x, y: e.y, big: e.size === 'big' }; R.shake = Math.max(R.shake, e.size === 'big' ? 12 : 6); break;
         case 'launch': { const z = 20 * sc; FX({ kind: 'gring', x: e.x, y: e.y, life: 0.35, col: '#ffffff', r0: 4, r1: 36, w: 2 }); for (let i = 0; i < 8; i++) P({ x: e.x, y: e.y, z: 2, vx: (Math.random() - 0.5) * 30, vy: (Math.random() - 0.5) * 20, vz: 160 + Math.random() * 120, life: 0.35, size: 1.4, col: '#ffffff', shape: 'line' }); R.float('LAUNCH', e.x, e.y, z + 40, '#ffd060', true, true); R.shake = Math.max(R.shake, 4); break; }
@@ -395,28 +397,28 @@
           const n = 14; for (let i = 0; i <= n; i++) { const f = i / n, x = e.x1 + (e.x2 - e.x1) * f, y = e.y1 + (e.y2 - e.y1) * f; sparks(x, y, 4, i % 2 ? 5 : 3, i % 3 ? '#ffd0d8' : '#ff3048', 170, 1.3); if (i % 3 === 1) PK('smoke_burst', x, y, 2, 0.9); }
           break; }
         case 'gateSpawn': FX({ kind: 'gring', x: e.x, y: e.y, life: 0.5, col: '#ff5a6a', r0: 10, r1: 70, w: 3 }); R.shake = Math.max(R.shake, 3); break;
-        case 'gateDown': PK('v_blast', e.x, e.y, 10, 2.4); PK('v_shock', e.x, e.y, 0, 2.4); PK('blast', e.x, e.y, 30, 3); PK('smoke_dark', e.x, e.y, 20, 3); PK('cb:01_crimson_tide_cleave/caster', e.x, e.y, 4, 2); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.7, col: '#ffffff', r0: 20, r1: 180, w: 5 }); R.float('GATE DESTROYED', e.x, e.y, 90, '#ffd0d6', true, true); R.shake = Math.max(R.shake, 14); R.flash = Math.max(R.flash, 0.5); R.flashCol = '255,80,100'; R.punch = Math.max(R.punch || 0, 0.06); break;
+        case 'gateDown': PK('s_shadow_burst', e.x, e.y, 0, 2.6); PK('s_blood_wave', e.x, e.y, 0, 2); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.7, col: '#ffffff', r0: 20, r1: 180, w: 5 }); R.float('GATE DESTROYED', e.x, e.y, 90, '#ffd0d6', true, true); R.shake = Math.max(R.shake, 14); R.flash = Math.max(R.flash, 0.5); R.flashCol = '255,80,100'; R.punch = Math.max(R.punch || 0, 0.06); break;
         case 'godMove': R.godPose = { move: e.move, t: 0 }; if (e.move === 'last') { R.bossArt = { key: 'godCut', name: 'THE LAST CUT', t: 0 }; R.flash = 0.6; R.flashCol = '255,30,50'; R.shake = 16; } break;
-        case 'doom': { R.flash = 1; R.flashCol = '255,255,255'; R.shake = 28; R.punch = 0.1; const AR = VS.arenaOf(s), rr = AR.godR || 300; for (let i = 0; i < 9; i++) { const a = i / 9 * Math.PI * 2, x = Math.cos(a) * rr * 0.6, y = Math.sin(a) * rr * 0.6; PK('cb:01_crimson_tide_cleave/caster', x, y, 4, 2); PK('v_pillar', x, y, 0, 2); PK('v_crack', x, y, 0, 1.6); } FX({ kind: 'gring', x: e.x, y: e.y, life: 0.8, col: '#cfe0ff', r0: e.r, r1: e.r * 3, w: 5 }); break; }
+        case 'doom': { R.flash = 1; R.flashCol = '255,255,255'; R.shake = 28; R.punch = 0.1; const AR = VS.arenaOf(s), rr = AR.godR || 300; for (let i = 0; i < 9; i++) { const a = i / 9 * Math.PI * 2, x = Math.cos(a) * rr * 0.6, y = Math.sin(a) * rr * 0.6; PK('s_shadow_rise', x, y, 0, 1.9); } FX({ kind: 'gring', x: e.x, y: e.y, life: 0.8, col: '#cfe0ff', r0: e.r, r1: e.r * 3, w: 5 }); break; }
         case 'godPhase': R.bossArt = { key: 'godCut', name: e.n === 2 ? 'HIS DEAD RISE' : 'HE KNEELS TO KILL', t: 0 }; R.flash = 0.7; R.flashCol = '255,40,60'; R.shake = 14; break;
         case 'godKneel': R.shake = 16; R.flash = 0.4; R.flashCol = '255,255,255'; FX({ kind: 'gring', x: e.x, y: e.y, life: 0.7, col: '#ffffff', r0: 20, r1: 200, w: 4 }); break;
         case 'godDown': PK('cb:19_recall_beam/caster', s.hero.x, s.hero.y, 0, 3); R.flash = 1; R.flashCol = '255,250,252'; R.shake = 24; R.godFall = 0.001; break;
         case 'skill': {
           const h = s.hero; R.float(e.name.toUpperCase(), h.x, h.y, 64, s.heroDef.color, true, true);
           if (e.kind === 'wave') PK('slash_arc_blood', h.x + Math.cos(e.ang) * 14, h.y + Math.sin(e.ang) * 14, 20, 1.6, { angle: R.screenAng(e.ang) });
-          if (e.kind === 'zone') PK('spell_cast', h.x, h.y, 26, 1.6);
+          if (e.kind === 'zone') PK('s_rune', h.x, h.y, 0, 1.8);
           if (e.kind === 'smoke') { for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; PK('smoke_burst', h.x + Math.cos(a) * 26, h.y + Math.sin(a) * 18, 8, 2); } FX({ kind: 'gring', x: h.x, y: h.y, life: 0.5, col: '#c9a0ff', r0: 6, r1: 70, w: 3 }); R.shake = Math.max(R.shake, 4); }
-          if (e.kind === 'clones') PK('summon', h.x, h.y, 0, 1.6);
-          if (e.kind === 'chain') PK('spell_zap', h.x, h.y, 26, 1.6);
-          if (e.kind === 'leapSlam') PK('charge_up', h.x, h.y, 10, 1.6);
+          if (e.kind === 'clones') PK('s_summon', h.x, h.y, 0, 1.8);
+          if (e.kind === 'chain') PK('s_shock', h.x, h.y, 26, 1.8);
+          if (e.kind === 'leapSlam') PK('s_charge', h.x, h.y, 0, 1.8);
           break;
         }
-        case 'chain': R.chains.push({ pts: e.pts, t: 0 }); for (const p of e.pts.slice(1)) PK('hit_shock', p[0], p[1], 22, 1.6); R.flash = 0.3; R.flashCol = '255,240,170'; R.shake = Math.max(R.shake, 4); break;
-        case 'thunder': PK('v_bolt', e.x, e.y, 0, 2.2); PK('thunder', e.x, e.y, 0, 3.2); PK('lightning_holy', e.x, e.y, 0, 2.4); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.5, col: '#fff0a0', r0: 6, r1: e.r * 1.6, w: 4 }); R.impactF = { t: 0, dur: 0.08, x: e.x, y: e.y, big: false }; R.shake = Math.max(R.shake, 9); break;
-        case 'strike': if (e.fx === 'fire_burst' || e.fx === 'explosion_fire') PK('v_fire', e.x, e.y, 0, 1.4); if (e.hand) { PK('v_shock', e.x, e.y, 0, 2.6); PK('v_crack', e.x, e.y, 0, 1.8); PK('cb:10_quake_stomp/caster', e.x, e.y, 0, 2.4); R.shake = Math.max(R.shake, 14); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.6, col: '#ffffff', r0: 20, r1: 150, w: 4 }); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.9, col: '#ff3048', r0: 10, r1: 110, w: 6 }); FX({ kind: 'gcrater', x: e.x, y: e.y, r: e.r || 50, life: 1.6 }); R.flash = Math.max(R.flash, 0.35); R.flashCol = '255,60,80'; R.punch = Math.max(R.punch || 0, 0.06); for (let i = 0; i < 18; i++) { const a = i / 18 * 6.28; P({ x: e.x + Math.cos(a) * 10, y: e.y + Math.sin(a) * 10, z: 4, vx: Math.cos(a) * (60 + Math.random() * 90), vy: Math.sin(a) * (60 + Math.random() * 90), vz: 120 + Math.random() * 160, life: 0.9, size: 2 + Math.random() * 2, col: i % 3 ? '#2a1a20' : '#ff5a6a', shape: 'sq', g: -520 }); } } if (!e.quiet) { PK(e.fx || 'blast', e.x, e.y, 6, e.fx === 'poison_cloud' ? 1.6 : 2.2); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.35, col: e.team === 'hero' ? '#ffffff' : '#ff8070', r0: 3, r1: e.r * 1.3, w: 2 }); R.shake = Math.max(R.shake, 3); } else PK(e.fx || 'blast', e.x, e.y, 6, 1.4); break;
+        case 'chain': R.chains.push({ pts: e.pts, t: 0 }); for (const p of e.pts.slice(1)) PK('s_shock', p[0], p[1], 22, 1.8); R.flash = 0.25; R.flashCol = '200,215,255'; R.shake = Math.max(R.shake, 4); break;
+        case 'thunder': PK('s_lightning', e.x, e.y, 0, 2.0); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.4, col: '#bcd4ff', r0: 6, r1: e.r * 1.4, w: 3 }); R.impactF = { t: 0, dur: 0.08, x: e.x, y: e.y, big: false }; R.shake = Math.max(R.shake, 9); break;
+        case 'strike': if (e.hand) { PK('s_quake', e.x, e.y, 0, 3.4); R.shake = Math.max(R.shake, 14); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.6, col: '#ffffff', r0: 20, r1: 150, w: 4 }); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.9, col: '#ff3048', r0: 10, r1: 110, w: 6 }); FX({ kind: 'gcrater', x: e.x, y: e.y, r: e.r || 50, life: 1.6 }); R.flash = Math.max(R.flash, 0.35); R.flashCol = '255,60,80'; R.punch = Math.max(R.punch || 0, 0.06); for (let i = 0; i < 18; i++) { const a = i / 18 * 6.28; P({ x: e.x + Math.cos(a) * 10, y: e.y + Math.sin(a) * 10, z: 4, vx: Math.cos(a) * (60 + Math.random() * 90), vy: Math.sin(a) * (60 + Math.random() * 90), vz: 120 + Math.random() * 160, life: 0.9, size: 2 + Math.random() * 2, col: i % 3 ? '#2a1a20' : '#ff5a6a', shape: 'sq', g: -520 }); } } if (!e.quiet) { if (e.fx === 'explosion_fire') PK('s_meteor_impact', e.x, e.y, 0, 1.6); else PK(e.fx || 'blast', e.x, e.y, e.fx === 'rock_burst' || e.fx === 'ice_shatter' || e.fx === 'frost_nova' ? 0 : 6, e.fx === 'poison_cloud' ? 1.6 : 2.2); FX({ kind: 'gring', x: e.x, y: e.y, life: 0.35, col: e.team === 'hero' ? '#ffffff' : '#ff8070', r0: 3, r1: e.r * 1.3, w: 2 }); R.shake = Math.max(R.shake, 3); } else PK(e.fx || 'blast', e.x, e.y, 6, 1.4); break;
         case 'tick': R.float(String(e.dmg), e.x, e.y, 30, '#b0ff90', false); break;
-        case 'cast': if (u) PK('cast_circle', u.x, u.y, 2, 1.6); break;
-        case 'vanish': PK('v_shadow', e.x, e.y, 22, 1.4); PK('smoke_dark', e.x, e.y, 10, 1.2); break;
+        case 'cast': if (u) PK('s_rune', u.x, u.y, 0, 1.6); break;
+        case 'vanish': PK('s_vanish', e.x, e.y, 0, 1.9); break;
         case 'bossArt': R.bossArt = { key: e.key, name: e.name, t: 0 }; break;
         // The tell before a delayed blow: a hard glint on the weapon, held.
         case 'glint': { const c = e.unparry ? '#ff5a6a' : '#ffffff'; FX({ kind: 'ring', x: e.x, y: e.y, z: e.z, life: 0.4, col: c, r0: 4, r1: 40, w: 2 }); break; }
@@ -580,18 +582,22 @@
             ctx.restore();
           }
         }
-        if (z.kind === 'strike' && !z.part && z.delay - z.t < 0.35) { const q = R.P(z.x, z.y, 0), q2 = R.P(z.x, z.y, 200); ctx.strokeStyle = rgba('#ffffff', 0.5 * (1 - (z.delay - z.t) / 0.35)); ctx.lineWidth = 2 * R.dpr; ctx.beginPath(); ctx.moveTo(q.x, q.y); ctx.lineTo(q2.x, q2.y); ctx.stroke(); }
+        const fall = z.kind === 'strike' && !z.part && !z.quiet && !z.arena && A.spellReady && A.spellReady() && ({ explosion_fire: 's_meteor_rock', fire_burst: 's_meteor_rock', ice_shatter: 's_ice_lance', frost_nova: 's_ice_lance', blast: 's_shadow_bolt', frost: 's_ice_lance' })[z.fx];
+        if (fall && z.delay - z.t < 0.4) {   // it drops in from high up and a little to the side, and lands as the strike does
+          const f = 1 - (z.delay - z.t) / 0.4, hz = 260 * (1 - f), sx = 70 * (1 - f) * (fall === 's_meteor_rock' ? 1 : 0.25), q0 = R.P(z.x + sx, z.y - sx * 0.3, hz), q1 = R.P(z.x, z.y, 0);
+          A.fx(ctx, fall, z.t, q0.x, q0.y, Sh * (fall === 's_meteor_rock' ? 1.3 : 1.1), 1, Math.atan2(q1.y - q0.y, q1.x - q0.x));
+        } else if (z.kind === 'strike' && !z.part && z.delay - z.t < 0.35) { const q = R.P(z.x, z.y, 0), q2 = R.P(z.x, z.y, 200); ctx.strokeStyle = rgba('#ffffff', 0.5 * (1 - (z.delay - z.t) / 0.35)); ctx.lineWidth = 2 * R.dpr; ctx.beginPath(); ctx.moveTo(q.x, q.y); ctx.lineTo(q2.x, q2.y); ctx.stroke(); }
         continue;
       }
       if (z.kind === 'zone') {
         const life = Math.min(1, (z.t - z.delay) / 0.3, (z.delay + z.dur - z.t) / 0.4), tint = z.fx === 'burning_ground' ? '#ff7030' : z.fx === 'poison_cloud' ? '#80ff60' : z.fx === 'frost_nova' ? '#9ad8ff' : '#c070ff';
         ctx.save(); ground(ctx); const gr = ctx.createRadialGradient(z.x, z.y, 0, z.x, z.y, z.r); gr.addColorStop(0, rgba(tint, 0.35 * life)); gr.addColorStop(1, rgba(tint, 0)); ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, 7); ctx.fill();
         ctx.strokeStyle = rgba(tint, 0.5 * life); ctx.lineWidth = 1; ctx.setLineDash([4, 5]); ctx.lineDashOffset = -R.t * 10; ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, 7); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
-        if (z.fx) for (let i = 0; i < 3; i++) { const a = i * 2.1 + z.x, rr = z.r * 0.45, q = R.P(z.x + Math.cos(a) * rr, z.y + Math.sin(a) * rr * 0.8, 0); A.fx(ctx, z.fx, R.t + i * 0.3, q.x, q.y, Sh * 0.7 * Math.max(0.5, z.r / 40), 0.85 * life); }
+        if (z.fx) for (let i = 0; i < 3; i++) { const a = i * 2.1 + z.x, rr = z.r * 0.45, q = R.P(z.x + Math.cos(a) * rr, z.y + Math.sin(a) * rr * 0.8, 0); A.fx(ctx, (A.ZONEFX && A.ZONEFX[z.fx]) || (A.spellReady && A.spellReady() ? 's_shadow_pool' : z.fx), R.t + i * 0.3, q.x, q.y, Sh * 0.7 * Math.max(0.5, z.r / 40), 0.85 * life); }
       } else if (z.kind === 'tornado') {
         const q = R.P(z.x, z.y, 0);
         for (let i = 0; i < 6; i++) { const y = q.y - i * 9 * Sh, rw = (8 + i * 4) * Sh, a = R.t * 9 + i; ctx.strokeStyle = rgba(i % 2 ? '#ffffff' : '#c8d8ff', 0.55); ctx.lineWidth = 2 * R.dpr; ctx.beginPath(); ctx.ellipse(q.x + Math.sin(a) * 3 * Sh, y, rw, rw * 0.3, 0, a, a + 4.2); ctx.stroke(); }
-        A.fx(ctx, 'wind_gust', R.t * 1.5, q.x, q.y - 26 * Sh, Sh * 1.2, 0.7);
+        if (A.spellReady && A.spellReady()) A.fx(ctx, 's_whirl', (R.t + z.x * 0.01) % A.spellLen('s_whirl'), q.x, q.y, Sh * 1.1, 0.85); else A.fx(ctx, 'wind_gust', R.t * 1.5, q.x, q.y - 26 * Sh, Sh * 1.2, 0.7);
         if (Math.random() < 0.5) P({ x: z.x + (Math.random() - 0.5) * 30, y: z.y + (Math.random() - 0.5) * 16, z: 2, vx: (Math.random() - 0.5) * 60, vy: 0, vz: 60 + Math.random() * 60, life: 0.5, size: 1.6, col: 'rgba(210,210,220,0.6)', shape: 'sq' });
       }
     }
@@ -991,8 +997,9 @@
     for (const b of s.bolts) {
       const q = R.P(b.x, b.y, 16), t = R.P(b.x - b.vx * 0.12, b.y - b.vy * 0.12, 16);
       const col = b.reflected ? '#ffffff' : ({ wind_gust: '#dfe8ff', dark_slash: RED, fireball: '#ff8040', fireball_big: '#ff8040', explosion_fire: '#ff8040', magic_missile: '#ff9ad0', fireball_arcane: '#d080ff', arcane_orb: '#c070ff', rock: '#d8b060', arrow: '#ffffff', dart: '#c0e0a0', dagger: '#e0d0ff' })[b.fx] || '#c070ff';
-      if (!b.clean) { ctx.save(); ctx.strokeStyle = rgba(col, 0.45); ctx.lineWidth = (b.big ? 7 : 3.5) * R.Sh() * 0.5; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(q.x, q.y); ctx.stroke(); ctx.restore(); }   // clean: a story film's bolt, no drawn tail
-      R.glowAt(ctx, col, q.x, q.y, (b.big ? 22 : 12) * R.Sh(), 0.8);
+      const own = A.spellOf && A.spellOf(b.fx);
+      if (!b.clean && !own) { ctx.save(); ctx.strokeStyle = rgba(col, 0.45); ctx.lineWidth = (b.big ? 7 : 3.5) * R.Sh() * 0.5; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(q.x, q.y); ctx.stroke(); ctx.restore(); }   // clean: a story film's bolt, no drawn tail
+      R.glowAt(ctx, col, q.x, q.y, (b.big ? 22 : 12) * R.Sh(), own ? 0.45 : 0.8);
       const sa = Math.atan2(q.y - t.y, q.x - t.x), info = A.hasFx(b.fx);
       if (info) A.fx(ctx, b.fx, b.t, q.x, q.y, R.Sh() * (b.big ? 1.3 : 0.75), 1, sa);
       else { ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(q.x, q.y, 2.4 * R.Sh(), 0, 7); ctx.fill(); }

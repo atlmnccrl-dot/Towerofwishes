@@ -4,7 +4,7 @@
   const VS = window.VS;
   const A = VS.A = { ROOT: '../assets/' };
   const DIRS = ['E', 'SE', 'S', 'SW', 'W', 'NW', 'N', 'NE'];
-  const sets = {}, tex = {}; let fxData = null, tileData = null;
+  const sets = {}, tex = {}; let fxData = null, tileData = null, spellData = null;
   // Soft particle textures (white on clear, CC0): glows, a vortex, a rune ring, smoke, a ring, a flare.
   A.TEX = ['light_01', 'twirl_02', 'magic_01', 'magic_02', 'smoke_04', 'smoke_07', 'circle_03', 'star_06'];
 
@@ -73,6 +73,7 @@
       for (const g of [f, fc]) if (g) { const off = d.pages.length; d.pages = d.pages.concat(g.pages); for (const k in g.fx) { const e = g.fx[k]; e.frames = e.frames.map((fr) => [fr[0] + off].concat(fr.slice(1))); d.fx[k] = e; } }
       d.images = await Promise.all(d.pages.map((p) => loadImage(A.ROOT + 'fx/' + p))); fxData = d; tick();
     }));
+    jobs.push(loadJSON(A.ROOT + 'spell/spell.json').then(async (d) => { d.images = await Promise.all(d.pages.map((p) => loadImage(A.ROOT + 'spell/' + p))); spellData = d; }).catch(() => {}));
     jobs.push(loadJSON(A.ROOT + 'tiles/tiles.json').then(async (d) => { d.images = await Promise.all(d.pages.map((p) => loadImage(A.ROOT + 'tiles/' + p))); tileData = d; tick(); }));
     jobs.push(Promise.all(A.TEX.map((t) => loadImage(A.ROOT + 'vfx/' + t + '.png').then((im) => { tex[t] = im; }).catch(() => {}))).then(tick));
     await Promise.all(jobs);
@@ -86,7 +87,7 @@
   A.warm = function (ctx) {
     const all = [];
     for (const k in sets) all.push(...sets[k].images);
-    if (fxData) all.push(...fxData.images); if (tileData) all.push(...tileData.images); for (const k in tex) all.push(tex[k]);
+    if (fxData) all.push(...fxData.images); if (spellData) all.push(...spellData.images); if (tileData) all.push(...tileData.images); for (const k in tex) all.push(tex[k]);
     for (const im of all) ctx.drawImage(im, 0, 0, 1, 1, 0, 0, 1, 1);
     ctx.clearRect(0, 0, 2, 2);
   };
@@ -192,9 +193,77 @@
     ctx.imageSmoothingEnabled = sm; ctx.globalAlpha = ga; return true;
   };
   A.cbLen = (key) => { const d = cbData && cbData.fx[key]; if (!d) return 0; const g = d.tags[0]; return (g[2] - g[1] + 1) / d.fps; };
+  // ---- the spell forge (vesper/tools_spells.py: assets/spell) ---------------------------------------------
+  // The game's own effects for every attack, ability and spell, drawn in code at the characters' pixel size. The old
+  // effect names (the first pack, the Crowd Breaker sheets 'cb:...', the forge's v_*) are routed here:
+  // name: [sheet, size against the old call, options]; null plays nothing (an old layer that doubled another).
+  // Sheets point along +x: directional ones (dir) turn to the blow's angle.
+  const SM = {
+    // blows
+    hit_slash: ['s_hit', 1, { dir: 1 }], v_impact: ['s_hit_heavy', 1.3, { dir: 1 }], hit_crit: ['s_crit', 1, { dir: 1 }], parry: ['s_hit_heavy', 1, { dir: 1 }],
+    v_blood: ['s_blood', 1.4, { dir: 1 }], v_slash: ['s_slash', 1.4, { dir: 1 }], katana: ['s_slash', 1.1, { dir: 1 }], arc_white: ['s_slash', 1.2, { dir: 1 }],
+    slash_arc_blood: ['s_slash_red', 1.1, { dir: 1 }], spin_slash: ['s_spin', 0.85], dissipate: ['s_smoke', 1], smoke_dark: ['s_smoke', 1.2], smoke_burst: ['s_smoke', 1.1],
+    // earth and force
+    shockwave: ['s_quake', 0.8], v_shock: ['s_quake', 0.9], v_crack: null, rock_burst: ['s_earth_burst', 0.75],
+    // fire
+    explosion_fire: ['s_fire_burst', 0.8], fire_burst: ['s_fire_burst', 0.8], v_fire: null, blast: ['s_shadow_burst', 0.75], v_blast: ['s_shadow_burst', 0.8],
+    // frost
+    explosion_frost: ['s_frost_burst', 0.7], frost_nova: ['s_frost_burst', 0.75], ice_shatter: ['s_frost_burst', 0.75], frost: ['s_frost_burst', 0.75], v_frost: null,
+    // storm
+    thunder: ['s_lightning', 0.6], v_bolt: ['s_lightning', 0.85], lightning_holy: null, hit_shock: ['s_shock', 1.1], spell_zap: ['s_shock', 1.1], chain_lightning: ['s_shock', 1.1],
+    // poison, light, shadow, casting
+    poison_cloud: ['s_poison_burst', 0.8], holy_light: ['s_holy_burst', 1.1], v_heal: ['s_heal', 1.1], v_pillar: ['s_holy_pillar', 0.8],
+    spell_cast: ['s_rune', 1.2], cast_circle: ['s_rune', 1.2], summon: ['s_summon', 1.1], teleport: ['s_vanish', 1.1], v_shadow: ['s_vanish', 1.1], charge_up: ['s_charge', 1.1],
+    // in flight (the bolts are drawn at 0.75 of the view; the sheets are made at the cast's pixel size)
+    fireball: ['s_fireball', 1.33], fireball_big: ['s_fireball_big', 1.1], fireball_arcane: ['s_arcane_bolt', 1.33], magic_missile: ['s_spark_bolt', 1.33], energy_bolt: ['s_spark_bolt', 1.33],
+    arcane_orb: ['s_arcane_orb', 1.33], ice_shard: ['s_frost_shard', 1.33], dark_slash: ['s_moon_wave', 1.1], wind_gust: ['s_wind', 1.33], rock: ['s_rock', 1.33],
+    arrow: ['s_arrow', 1.33], dart: ['s_dart', 1.33], dagger: ['s_dagger', 1.33],
+    // the Crowd Breaker sheets the films and fights named
+    'cb:01_crimson_tide_cleave/caster': ['s_blood_wave', 1], 'cb:01_crimson_tide_cleave/target': ['s_crit', 1.4, { dir: 1 }], 'cb:01_crimson_tide_cleave/death': ['s_smoke', 1.4],
+    'cb:02_roaring_blade_nova/target': ['s_hit', 1.4, { dir: 1 }], 'cb:06_piercing_dash/target': ['s_slash', 1.4, { dir: 1 }], 'cb:218_sky_rend_star/target': ['s_hit_heavy', 1.4, { dir: 1 }],
+    'cb:113_earthshaker_stance/target': ['s_spin', 1.2], 'cb:10_quake_stomp/target': ['s_earth_burst', 1.1], 'cb:10_quake_stomp/caster': ['s_quake', 1.1],
+    'cb:08_meteor_rain/target': ['s_meteor', 0.9], 'cb:54_greater_fireball/target': ['s_fire_burst', 1.2], 'cb:183_frost_curtain/caster': ['s_frost_burst', 1.1],
+    'cb:13_water_orb/target': ['s_frost_burst', 1.1], 'cb:101_skyfall_thunder/target': ['s_lightning', 0.9], 'cb:15_storm_orb/target': ['s_shock', 1.4],
+    'cb:156_inner_flow_mending/caster': ['s_heal', 1.4], 'cb:11_ghostfire_hex/caster': ['s_rune', 1.4], 'cb:05_phantom_legion/caster': ['s_summon', 1.3],
+    'cb:175_violet_veil/caster': ['s_vanish', 1.4], 'cb:12_golden_blessing/caster': ['s_charge', 1.4], 'cb:19_recall_beam/caster': ['s_holy_pillar', 1.0],
+    'cb:107_flashpoint_severance/target': ['s_slash', 1.4, { dir: 1 }], 'cb:43_cyclone_bolt/target': ['s_whirl', 1.2],
+  };
+  A.SPELLMAP = SM;
+  // The ground zones loop their own sheet.
+  A.ZONEFX = { burning_ground: 's_flames', poison_cloud: 's_poison_fume', frost_nova: 's_frost_mist', circle_holy: 's_holy_motes' };
+  A.spellReady = () => !!spellData;
+  // The sheet an effect name plays, or undefined when it is not one of ours (null: routed to nothing).
+  A.spellOf = function (name) {
+    if (!spellData || !name) return undefined;
+    if (name.charCodeAt(0) === 115 && name.charCodeAt(1) === 95) return spellData.fx[name] ? [name, 1] : undefined;   // 's_...'
+    const m = SM[name]; if (m === null) return null; if (!m) return undefined;
+    if (!m[0].startsWith('s_') || !spellData.fx[m[0]]) return undefined; return m;
+  };
+  function spell(ctx, key, t, x, y, scale, alpha, angle, flip, dir) {
+    const d = spellData.fx[key]; const n = d.frames.length; let i = Math.floor(t * d.fps);
+    if (d.loop) i = ((i % n) + n) % n; else if (i >= n) return false;
+    if (i < 0) return true;
+    const f = d.frames[i]; if (!f) return true;
+    const k = scale || 1, ga = ctx.globalAlpha; if (alpha != null) ctx.globalAlpha = ga * alpha;
+    const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
+    const rot = dir || d.loop ? angle || 0 : 0;   // projectiles and blows turn; ground effects stand
+    const ox = f[5] * k, oy = f[6] * k, w = f[3] * k, h = f[4] * k;
+    if (!rot && !flip) ctx.drawImage(spellData.images[f[0]], f[1], f[2], f[3], f[4], Math.round(x + ox), Math.round(y + oy), Math.round(w), Math.round(h));
+    else {
+      ctx.save(); ctx.translate(Math.round(x), Math.round(y));
+      if (rot) { const c = Math.cos(rot); ctx.rotate(rot); if (c < 0 && dir) ctx.scale(1, -1); }   // a blow struck to the left is mirrored, not drawn upside down
+      if (flip) ctx.scale(-1, 1);
+      ctx.drawImage(spellData.images[f[0]], f[1], f[2], f[3], f[4], ox, oy, w, h); ctx.restore();
+    }
+    ctx.imageSmoothingEnabled = sm; ctx.globalAlpha = ga; return true;
+  }
+  A.spellLen = (key) => { const d = spellData && spellData.fx[key]; return d ? d.frames.length / d.fps : 0; };
+
   // Effects: name, t seconds since start, centre, scale, alpha, angle, flipX. False once a one-shot ends.
   // 'cb:<sheet>' plays a Crowd Breaker sheet by name; names in A.CBMAP play their Crowd Breaker sheet once loaded.
   A.fx = function (ctx, name, t, x, y, scale, alpha, angle, flip) {
+    const sp = A.spellOf(name); if (sp === null) return false;
+    if (sp) return spell(ctx, sp[0], t, x, y, (scale || 1) * sp[1], alpha, angle, flip, sp[2] && sp[2].dir);
     if (name.charCodeAt(0) === 99 && name.startsWith('cb:')) return A.cb(ctx, name.slice(3), t, x, y, scale, alpha, angle, flip);
     const mp = cbData && A.CBMAP[name];
     if (mp && cbData.fx[mp[0]]) return A.cb(ctx, mp[0], t, x, y, (scale || 1) * mp[1] * A.CB_SCALE, alpha, angle, mp[2] && mp[2].flipAng ? (!!flip !== (angle != null && Math.cos(angle) < 0)) : flip, mp[2]);
@@ -211,8 +280,8 @@
     }
     ctx.globalAlpha = ga; return true;
   };
-  A.fxLen = (name) => { const mp = cbData && A.CBMAP[name]; if (mp && cbData.fx[mp[0]]) return A.cbLen(mp[0]); if (name.startsWith('cb:')) return A.cbLen(name.slice(3)); const d = fxData && fxData.fx[name]; return d ? d.frames.length / d.fps : 0; };
-  A.fxLoop = (name) => { const d = fxData && fxData.fx[name]; return !!(d && d.loop); };
+  A.fxLen = (name) => { const sp = A.spellOf(name); if (sp === null) return 0; if (sp) return A.spellLen(sp[0]); const mp = cbData && A.CBMAP[name]; if (mp && cbData.fx[mp[0]]) return A.cbLen(mp[0]); if (name.startsWith('cb:')) return A.cbLen(name.slice(3)); const d = fxData && fxData.fx[name]; return d ? d.frames.length / d.fps : 0; };
+  A.fxLoop = (name) => { const sp = A.spellOf(name); if (sp) return !!spellData.fx[sp[0]].loop; const d = fxData && fxData.fx[name]; return !!(d && d.loop); };
 
   // Tiles (top-left) and props (bottom-centre); props can be drawn as a solid silhouette.
   A.tile = function (ctx, name, x, y, w, h) {
@@ -300,5 +369,5 @@
   };
   A.hasTex = (name) => !!tex[name];
   A.hasTile = (name) => !!(tileData && tileData.sprites[name]);
-  A.hasFx = (name) => !!(fxData && fxData.fx[name]);
+  A.hasFx = (name) => !!A.spellOf(name) || !!(fxData && fxData.fx[name]);
 })();

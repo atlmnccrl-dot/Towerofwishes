@@ -340,15 +340,17 @@
     fill(ctx, '#05060c'); const h = hero(s);
     if (Math.floor(T * 14) % 5 === 0) fill(ctx, 'rgba(255,240,180,0.25)');
     A.actor(ctx, h.set, 'Special1', Math.min(9, Math.floor(k * 10)), 0, Math.round(W() * 0.5), Math.round(H() * 1.1), 4.0, { grey: true });
-    for (let i = 0; i < 5; i++) { const sx = W() * 0.5 + (hash(i, Math.floor(T * 12)) - 0.5) * 60, sy = H() * 0.2; ctx.strokeStyle = i % 2 ? '#ffffff' : '#ffd060'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(sx, 0); let x = sx, y = 0; while (y < sy + 40) { x += (hash(i, y | 0) - 0.5) * 14; y += 8; ctx.lineTo(x, y); } ctx.stroke(); }
+    if (A.spellReady && A.spellReady()) { const len = A.spellLen('s_lightning'), sc = H() * 0.3 / 150; for (let i = 0; i < 3; i++) A.fx(ctx, 's_lightning', (T * 1.6 + i * 0.37) % 1 * len * 1.6, W() * 0.5 + (i - 1) * 14, H() * 0.3, sc, 1); }
+    else for (let i = 0; i < 5; i++) { const sx = W() * 0.5 + (hash(i, Math.floor(T * 12)) - 0.5) * 60, sy = H() * 0.2; ctx.strokeStyle = i % 2 ? '#ffffff' : '#ffd060'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(sx, 0); let x = sx, y = 0; while (y < sy + 40) { x += (hash(i, y | 0) - 0.5) * 14; y += 8; ctx.lineTo(x, y); } ctx.stroke(); }
     embers(ctx, T, 26, 0, W(), '#ffd060');
   };
   // One colossal bolt from the sky onto the foe, an impact frame.
-  B.spear = function (ctx, s, c, k, T) {
+  B.spear = function (ctx, s, c, k, T, d) {
     const white = k > 0.25 && k < 0.36, dark = k >= 0.36 && k < 0.45;
     fill(ctx, white ? '#ffffff' : dark ? '#000000' : '#0a0a14');
     silhouettes(ctx, s, c, k, T, white ? '#000000' : dark ? '#ffffff' : '#000000', k > 0.3);
-    if (k > 0.2 && !white && !dark) {
+    if (k > 0.2 && !white && !dark && A.spellReady && A.spellReady()) { const len = A.spellLen('s_lightning'), gy = H() * 0.92; A.fx(ctx, 's_lightning', ((k - 0.2) * d) % len, W() * 0.5, gy, gy / 150, 1); A.fx(ctx, 's_lightning', ((k - 0.2) * d + len * 0.45) % len, W() * 0.5 + 18, gy, gy / 170, 0.8); }
+    else if (k > 0.2 && !white && !dark) {
       const cx = W() * 0.5, w = 6 + 10 * Math.max(0, 1 - (k - 0.45) * 2);
       for (const [col, ww] of [['rgba(255,208,96,0.45)', w * 3], ['#ffffff', w]]) { ctx.strokeStyle = col; ctx.lineWidth = ww; ctx.beginPath(); ctx.moveTo(cx, 0); let x = cx; for (let y = 0; y <= H() * 0.9; y += 10) { x = cx + (hash(Math.floor(T * 20), y) - 0.5) * 18; ctx.lineTo(x, y); } ctx.stroke(); }
       ctx.fillStyle = 'rgba(255,240,180,0.35)'; ctx.beginPath(); ctx.ellipse(cx, H() * 0.9, 80, 14, 0, 0, 7); ctx.fill();
@@ -357,7 +359,8 @@
   };
   B.thunderrain = function (ctx, s, c, k, T) {
     fill(ctx, '#07070f'); silhouettes(ctx, s, c, k, T, '#000000', true);
-    for (let i = 0; i < 9; i++) { const ph = (T * 3 + hash(i, 4)) % 1; if (ph > 0.3) continue; const x = hash(i, Math.floor(T * 3 + hash(i, 4))) * W(); ctx.strokeStyle = ph < 0.1 ? '#ffffff' : '#ffd060'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, 0); let xx = x; for (let y = 0; y < H() * 0.92; y += 9) { xx += (hash(i * 7, y) - 0.5) * 12; ctx.lineTo(xx, y); } ctx.stroke(); if (ph < 0.08) fill(ctx, 'rgba(255,240,200,0.25)'); }
+    if (A.spellReady && A.spellReady()) { const len = A.spellLen('s_lightning'), gy = H() * 0.92; for (let i = 0; i < 9; i++) { const ph = (T * 2.2 + hash(i, 4)) % 1; if (ph > 0.55) continue; A.fx(ctx, 's_lightning', ph / 0.55 * len, hash(i, Math.floor(T * 2.2 + hash(i, 4))) * W(), gy * (0.9 + hash(i, 6) * 0.1), gy / (160 + hash(i, 5) * 60), 1); } }
+    else for (let i = 0; i < 9; i++) { const ph = (T * 3 + hash(i, 4)) % 1; if (ph > 0.3) continue; const x = hash(i, Math.floor(T * 3 + hash(i, 4))) * W(); ctx.strokeStyle = ph < 0.1 ? '#ffffff' : '#ffd060'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, 0); let xx = x; for (let y = 0; y < H() * 0.92; y += 9) { xx += (hash(i * 7, y) - 0.5) * 12; ctx.lineTo(xx, y); } ctx.stroke(); if (ph < 0.08) fill(ctx, 'rgba(255,240,200,0.25)'); }
   };
   // Wisp vanishes into smoke, then a hundred cuts land from every side.
   B.vanish = function (ctx, s, c, k, T) {
