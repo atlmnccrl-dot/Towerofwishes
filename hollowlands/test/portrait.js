@@ -18,7 +18,12 @@ const { start } = require('./serve');
   const r = await page.evaluate(() => { const r = HL.UI.regions.find((r) => r.w >= 110); return { x: r.x + r.w / 2, y: r.y + r.h / 2 }; });
   const b = toScreen(r.x, r.y, st);
   await page.touchscreen.tap(b.x, b.y); await page.waitForTimeout(500);
-  check('tap on Begin (turned) starts the game', await page.evaluate(() => HL.G.state === 'play'));
+  const MAP = (x, y, s) => toScreen(x, y, s);
+  // the opening plays: skip it with the Skip button
+  check('Begin plays the opening cutscene', await page.evaluate(() => HL.G.state === 'cut'));
+  { const sk = await page.evaluate(() => { const G = HL.G, r = HL.UI.regions[HL.UI.regions.length - 1]; return { x: r.x + r.w / 2, y: r.y + r.h / 2, W: G.W, H: G.H }; });
+    const pt = MAP(sk.x, sk.y, sk); await page.touchscreen.tap(pt.x, pt.y); await page.waitForTimeout(300); }
+  check('tap on Begin, then Skip (turned) starts the game', await page.evaluate(() => HL.G.state === 'play'));
   await page.evaluate(() => { HL.G.enemies = []; });
   const x0 = await page.evaluate(() => HL.G.player.x);
   // drag the stick to the player's right = down the physical screen
@@ -41,9 +46,11 @@ const { start } = require('./serve');
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [tp(s0.x, s0.y, 1)] });
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [tp(s1.x, s1.y, 1)] });
   await page.waitForTimeout(150);
-  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [tp(s1.x, s1.y, 1), tp(ab.x, ab.y, 2)] });
-  await page.waitForTimeout(50);
-  const mid = await page.evaluate(() => ({ st: HL.G.player.state, joy: !!HL.Input.st.joy }));
+  // second finger on the attack button (pointer events), while the stick finger stays down
+  const finger = (type, x, y) => page.evaluate(([type, x, y]) => document.getElementById('game').dispatchEvent(new PointerEvent(type, { pointerId: 99, pointerType: 'touch', isPrimary: false, clientX: x, clientY: y, bubbles: true })), [type, x, y]);
+  await finger('pointerdown', ab.x, ab.y); await page.waitForTimeout(80);
+  await finger('pointerup', ab.x, ab.y); await page.waitForTimeout(40);
+  const mid = await page.evaluate(() => ({ st: HL.G.player.state, joy: !!HL.Input.st.joy, btn: HL.Input.st.btn.attack && { held: HL.Input.st.btn.attack.held, rel: HL.Input.st.btn.attack.release }, hold: HL.G.player.holdT, buf: HL.G.player.buffer }));
   await page.waitForTimeout(40);
   await page.screenshot({ path: process.argv[2] || '/tmp/hl-portrait.png' });
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });

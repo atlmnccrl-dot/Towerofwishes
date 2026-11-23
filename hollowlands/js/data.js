@@ -97,3 +97,65 @@ HL.MAREN = [
   { when: (f) => f.met_maren, lines: ['The well. Edda\'s husband jammed it. The smith took the crank.', 'Rest by the fire when you are hurt. It is the only warm thing left in Ashwick.'] },
   { when: () => true, lines: ['...You are not one of them. Your eyes are still in.', 'I am Maren. I stayed when the rest went to the chapel cellar. None of them came back up.', 'Sit by the fire if you need it. It keeps them off, mostly.'], set: 'met_maren' },
 ];
+
+// ------------------------------------------------------------------ story (PROPOSAL text, see docs/DESIGN.md)
+HL.NOTES.silence = { title: 'The Great Silence', text: 'Veyr was a kingdom of bells. Every tower rang at dusk, as it had for three hundred years, and nobody remembered why.\n\nOne night every bell in Veyr stopped at once. Roads sank. Towns emptied. Things with hollow eyes walked up out of the ground.\n\nYou were hauling salt and lamp oil to the village of Ashwick when the ringing stopped.' };
+HL.NOTES.tower_seen = { title: 'The Warden\'s Tower', text: 'The bell-warden\'s tower stands at the end of Crowshade Trail. Its bell has not rung since the Silence. Maren says the warden went down inside and never came back up.' };
+HL.NOTES.crypt_seen = { title: 'Bellroot Underchapel', text: 'Under the tower the stairs keep going: a chapel built upside down, its bells hung over the floor instead of in the sky. The air hums.' };
+
+// Cutscene shots: x, y = what the camera looks at (px), view = how much ground fits on screen, text = the card.
+HL.CUTS = {
+  intro: {
+    note: 'silence',
+    shots: [
+      { x: 150 * 8, y: 60 * 8, view: 340, text: 'Veyr was a kingdom of bells. Every tower rang at dusk, and nobody remembered why.', dur: 5.5 },
+      { x: 120 * 8, y: 48 * 8, view: 360, text: 'One night, every bell fell silent at once.', dur: 4.5, toll: true },
+      { x: 40 * 8, y: 52 * 8, view: 260, text: 'The roads sank. The towns emptied. Things with hollow eyes walked up out of the ground.', dur: 5.5 },
+      { x: 11 * 8, y: 56 * 8, view: 150, text: 'You were hauling salt and lamp oil to Ashwick when the ringing stopped. Now the cart is broken, and the village ahead is very quiet.', dur: 6 },
+    ],
+  },
+  tower: {
+    note: 'tower_seen',
+    shots: [
+      { x: 166 * 8, y: 52 * 8, view: 300, text: 'The bell-warden\'s tower. Its bell has not rung since the Silence.', dur: 4.5 },
+      { x: 166 * 8, y: 47 * 8, view: 200, text: 'The gate at its foot is locked: a big, rust-red keyhole.', dur: 4 },
+    ],
+  },
+  crypt: { note: 'crypt_seen', shots: [{ x: 24 * 8, y: 30 * 8, view: 260, text: 'Beneath the tower, the old wardens kept something shut. Something down here still hums.', dur: 5 }] },
+  keeper: { shots: [{ x: 20 * 8, y: 13 * 8, view: 150, text: 'THE BELLWORN KEEPER. It was the warden, once. Now it only guards.', dur: 4.5, toll: true }] },
+};
+
+// What to do next, from what you've done. target: an object id on a map, or the boss.
+HL.objective = (f, inv, eq, map) => {
+  if (map === 'ashwick') {
+    if (!f['p:p_sword']) return { text: 'Take the sword lying by the wrecked cart.', id: 'p_sword' };
+    if (!f['c:c_cart']) return { text: 'Search the wrecked cart.', id: 'c_cart' };
+    if (!f.met_maren) return { text: 'Someone keeps a fire burning in Ashwick\'s square. Find them.', id: 'maren' };
+    if (!f.storehouse_open) {
+      if (inv.storehouse_key) return { text: 'Unlock the storehouse with its key.', id: 'd_store' };
+      if (inv.winch_crank) return { text: 'Fit the crank to the well in the square.', id: 'well' };
+      return { text: 'The storehouse is locked; its key fell down the well. The well has no crank: search the smithy.', id: 'c_smithy' };
+    }
+    if (!f['c:c_store']) return { text: 'Search the storehouse.', id: 'c_store' };
+    if (!f.boss_dead) {
+      if (!inv.gate_key && !f['d:d_tower']) return { text: 'Head east along Crowshade Trail. The tower key is in the armoured warden\'s camp, south of the road.', id: 'c_traveller' };
+      if (!f['d:d_tower']) return { text: 'Unlock the tower at the end of the trail.', id: 'x_tower' };
+      return { text: 'Enter the tower.', id: 'x_tower' };
+    }
+    if (!f.chapel_open) return { text: 'Lift the bar on the chapel door.', id: 'd_chapel' };
+    if (!f.maren_end) return { text: 'Tell Maren what happened below.', id: 'maren' };
+    if (!f.stones_done) return { text: 'Slice complete. Still hidden: the ring of stones north of the trail.', id: 'stone1', optional: true };
+    return { text: 'Slice complete. The road east to Blackfen waits.', id: null };
+  }
+  if (map === 'crypt1') {
+    if (f.waves_done) return { text: 'Take the stairs down.', id: 'x_down1' };
+    if (!f['d:d_iron']) return inv.crypt_key ? { text: 'Open the iron door, north of the great hall.', id: 'd_iron' } : { text: 'Find the key to the iron door. Search the ossuary, west of the hall.', id: 'c_ossuary' };
+    return { text: 'Turn the crank in the hall beyond the iron door to raise the gate.', id: 'crank' };
+  }
+  if (map === 'crypt2') {
+    if (!f.boss_dead) return { text: 'Defeat the Bellworn Keeper. Strike a glowing resonator to stun it.', id: 'keeper' };
+    if (!inv.bell_key && !f['d:d_bell']) return { text: 'Take the key from the Keeper\'s bell.', id: 'p_bellkey' };
+    return { text: 'Climb out through the bell door.', id: 'x_chapelUp' };
+  }
+  return null;
+};

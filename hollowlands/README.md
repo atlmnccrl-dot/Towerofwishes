@@ -22,9 +22,10 @@ cd hollowlands && python3 -m http.server 8000   # then open http://localhost:800
 On a phone, open the same address in landscape (or publish the folder to any static host).
 
 - **Phone:** left thumb anywhere = move. Right side: big button = strike (hold for a heavy blow),
-  small buttons = roll, quick item, ultimate (after the Bell Shard). A labelled button appears when
+  tap = strike the nearest foe, press and drag = aim, hold = heavy blow; small buttons = dash, quick item,
+  ultimate (after the Bell Shard). A labelled button appears when
   something can be used. Top right: pack and map.
-- **Keyboard:** WASD move · J strike (hold: heavy) · Space roll · E use · Q quick item · R ultimate ·
+- **Keyboard:** WASD move · J strike (hold: heavy) · Space dash · hold J and move to aim · E use · Q quick item · R ultimate ·
   C swap weapon · Tab pack · M map · Esc close.
 
 

@@ -13,7 +13,12 @@ const { start } = require('./serve');
   // tap "Begin" on the title screen
   const btn = await page.evaluate(() => { const r = HL.UI.regions.find((r) => r.w >= 110); const G = HL.G; return r && { x: (r.x + r.w / 2) * 844 / G.W, y: (r.y + r.h / 2) * 390 / G.H }; });
   await page.touchscreen.tap(btn.x, btn.y); await page.waitForTimeout(400);
-  check('title: tapping Begin starts the game', await page.evaluate(() => HL.G.state === 'play'));
+  const MAP = (x, y, s) => ({ x: x * 844 / s.W, y: y * 390 / s.H });
+  // the opening plays: skip it with the Skip button
+  check('Begin plays the opening cutscene', await page.evaluate(() => HL.G.state === 'cut'));
+  { const sk = await page.evaluate(() => { const G = HL.G, r = HL.UI.regions[HL.UI.regions.length - 1]; return { x: r.x + r.w / 2, y: r.y + r.h / 2, W: G.W, H: G.H }; });
+    const pt = MAP(sk.x, sk.y, sk); await page.touchscreen.tap(pt.x, pt.y); await page.waitForTimeout(300); }
+  check('Skip ends it; the game starts', await page.evaluate(() => HL.G.state === 'play'));
   const fist = await page.evaluate(() => { const G = HL.G, c = HL.Input.layout.find((c) => c.id === 'attack'); return { x: c.x * 844 / G.W, y: c.y * 390 / G.H }; });
   await page.touchscreen.tap(fist.x, fist.y); await page.waitForTimeout(50);
   check('attack button punches before you find a weapon', await page.evaluate(() => !HL.G.eq.weapon && HL.G.player.state === 'attack'));
@@ -31,6 +36,16 @@ const { start } = require('./serve');
   const at = (id) => info.layout.find((c) => c.id === id);
   await page.touchscreen.tap(at('attack').x, at('attack').y); await page.waitForTimeout(60);
   check('attack button swings the weapon', await page.evaluate(() => HL.G.player.state === 'attack'));
+  await page.waitForTimeout(500);
+  // press the attack button and drag up-left: the strike goes that way
+  const A = at('attack');
+  await page.mouse.move(A.x, A.y); await page.mouse.down(); await page.mouse.move(A.x - 60, A.y - 60, { steps: 6 }); await page.waitForTimeout(120);
+  const aiming = await page.evaluate(() => HL.G.player.aimA);
+  await page.screenshot({ path: '/tmp/hl-aim.png' });
+  await page.mouse.up(); await page.waitForTimeout(60);
+  const fa = await page.evaluate(() => ({ st: HL.G.player.state, face: HL.G.player.face }));
+  const want = Math.atan2(-1, -1);
+  check('drag from attack aims; release strikes that way', aiming != null && fa.st === 'attack' && Math.abs(fa.face - want) < 0.3, JSON.stringify({ aiming, ...fa }));
   await page.waitForTimeout(500);
   await page.touchscreen.tap(at('dodge').x, at('dodge').y); await page.waitForTimeout(60);
   check('dodge button rolls', await page.evaluate(() => HL.G.player.state === 'roll'));

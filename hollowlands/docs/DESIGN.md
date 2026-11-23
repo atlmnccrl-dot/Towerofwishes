@@ -44,8 +44,12 @@ open a shortcut → rest at a fire (heal, craft, save) → choose the next place
 Left thumb: floating joystick anywhere on the left half. Right thumb: a large attack button (tap to strike,
 hold to charge a heavy blow), roll, a context button that appears with its label next to it
 ("Search", "Unlock", "Turn the crank"), the quick item, and the ultimate once you own the Bell Shard.
-Tapping empty space on the right also strikes. A strike starts the moment you press; keep holding after
-the swing to charge a heavy blow and release to unleash it. Held upright, the game turns itself a quarter
+Tapping empty space on the right also strikes. **Drag to aim** (v0.3): press the attack button and drag; a
+cream arc shows the swing on the ground and the strike goes that way on release; a quick tap strikes the
+nearest foe; holding past 0.4 s charges a heavy blow. **Dash** replaces the roll: a 0.17 s burst that
+passes through attacks and foes. **Story and direction** (v0.3): an opening cutscene and short ones at the
+tower, the crypt and the Keeper (skippable, they also go in the journal); an objective line always on screen
+and a guide marker or edge arrow toward it (can be turned off in System). Held upright, the game turns itself a quarter
 so you can play by rotating the phone, even in viewers that do not rotate. Soft targeting turns your swing toward the nearest foe;
 nothing auto-plays. Keyboard: WASD, J attack (hold for heavy), Space roll, E interact, Q item, R ultimate,
 C swap weapon, Tab pack, M map.

@@ -4,7 +4,7 @@ const G = (HL.G = {
   state: 'boot', W: 400, H: 200, scale: 1, safe: { l: 0, r: 0, t: 0, b: 0 },
   world: null, player: null, enemies: [], shots: [], drops: [],
   flags: {}, inv: {}, eq: {}, wlv: {}, journal: [], quick: 'poultice', fire: null, fogs: {}, worlds: {},
-  settings: { shake: true, mute: false }, time: 0, playtime: 0, hitstop: 0, shake: 0, hurtVig: 0,
+  settings: { shake: true, mute: false, guide: true }, time: 0, playtime: 0, hitstop: 0, shake: 0, hurtVig: 0,
   cam: { x: 0, y: 0 }, prompt: null, dialog: null, waves: null, bossAwake: false, deadT: 0, fade: 0, saved: null,
 });
 const Au = HL.Audio;
@@ -102,6 +102,7 @@ G.toBuf = (e) => {
 };
 G.bindInput = function () {
   const I = HL.Input, cv = G.screen;
+  const capture = (id) => { try { cv.setPointerCapture(id); } catch (e) { /* some browsers refuse; input still works */ } };
   window.addEventListener('keydown', (e) => { Au.unlock(); const k = e.key.length === 1 ? e.key.toLowerCase() : e.key; if (['Tab', ' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(k)) e.preventDefault(); I.down(k); });
   window.addEventListener('keyup', (e) => { const k = e.key.length === 1 ? e.key.toLowerCase() : e.key; I.up(k); });
   window.addEventListener('blur', () => { for (const k in I.keys) I.keys[k] = false; I.clearTouches(); });
@@ -112,12 +113,18 @@ G.bindInput = function () {
     for (const c of I.layout) {
       if (c.id === 'ult' && G.eq.relic !== 'bell_shard') continue;
       if (c.id === 'interact' && !G.prompt) continue;
-      if (HL.dist(p.x, p.y, c.x, c.y) <= c.r + 5) { I.st.btn[c.id] = { held: true, press: true, pid: e.pointerId }; cv.setPointerCapture(e.pointerId); return; }
+      if (HL.dist(p.x, p.y, c.x, c.y) <= c.r + 5) { I.st.btn[c.id] = { held: true, press: true, pid: e.pointerId, cx: c.x, cy: c.y, ax: null, ay: null }; capture(e.pointerId); return; }
     }
-    if (p.x < G.W * 0.5) { I.st.joy = { pid: e.pointerId, ox: p.x, oy: p.y, dx: 0, dy: 0, mag: 0 }; cv.setPointerCapture(e.pointerId); }
-    else { I.st.btn.attack = { held: true, press: true, pid: e.pointerId }; cv.setPointerCapture(e.pointerId); } // right side: strike
+    if (p.x < G.W * 0.5) { I.st.joy = { pid: e.pointerId, ox: p.x, oy: p.y, dx: 0, dy: 0, mag: 0 }; capture(e.pointerId); }
+    else { I.st.btn.attack = { held: true, press: true, pid: e.pointerId, cx: p.x, cy: p.y, ax: null, ay: null }; capture(e.pointerId); } // right side: strike
   }, { passive: false });
   cv.addEventListener('pointermove', (e) => {
+    const ab = I.st.btn.attack;
+    if (ab && ab.held && ab.pid === e.pointerId) { // drag from the attack button to aim
+      const p = G.toBuf(e), dx = p.x - ab.cx, dy = p.y - ab.cy, d = Math.hypot(dx, dy);
+      if (d > 7) { ab.ax = dx / d; ab.ay = dy / d; ab.dd = Math.min(1, d / 26); } else if (ab.ax != null && d < 4) { ab.ax = ab.ay = null; }
+      return;
+    }
     const j = I.st.joy; if (!j || j.pid !== e.pointerId) return;
     const p = G.toBuf(e); let dx = p.x - j.ox, dy = p.y - j.oy; const d = Math.hypot(dx, dy), R = 20;
     if (d > R * 1.6) { j.ox += (dx / d) * (d - R * 1.6); j.oy += (dy / d) * (d - R * 1.6); dx = p.x - j.ox; dy = p.y - j.oy; }
@@ -134,7 +141,7 @@ G.bindInput = function () {
 
 // ------------------------------------------------------------------ game lifecycle
 G.freshState = function () {
-  Object.assign(G, { flags: {}, inv: { tattered_cloak: 1 }, eq: { weapon: null, armor: 'tattered_cloak', relic: null }, wlv: {}, journal: [], quick: 'poultice', fogs: {}, worlds: {}, playtime: 0, waves: null, bossAwake: false });
+  Object.assign(G, { flags: {}, inv: { tattered_cloak: 1 }, eq: { weapon: null, armor: 'tattered_cloak', relic: null }, wlv: {}, journal: [], quick: 'poultice', fogs: {}, worlds: {}, playtime: 0, waves: null, bossAwake: false, objText: null, cut: null });
   G.fire = { map: 'ashwick', x: HL.getMap('ashwick').start.x, y: HL.getMap('ashwick').start.y };
 };
 G.toTitle = function () {
@@ -152,8 +159,39 @@ G.newGame = function () {
   G.player = new HL.Player(s.x, s.y); G.player.face = -Math.PI / 2;
   G.loadMap('ashwick', s.x, s.y);
   G.state = 'play'; G.time = 0;
-  HL.UI.showBanner('Ashwick Vale', 'You wake beside a wrecked cart.');
   G.save();
+  G.playCut('intro', () => { HL.UI.showBanner('Ashwick Vale', 'You wake beside a wrecked cart.'); HL.UI.toast('Left thumb: move. Follow the objective at the top left.', 5); });
+};
+// ------------------------------------------------------------------ cutscenes: camera moves over the world with a card
+G.playCut = function (id, onEnd) {
+  const def = HL.CUTS[id]; if (!def) { if (onEnd) onEnd(); return; }
+  G.flags['cut:' + id] = 1;
+  if (def.note) G.addJournal(def.note);
+  G.cut = { def, i: 0, t: 0, onEnd, fromX: G.player ? G.player.x : def.shots[0].x, fromY: G.player ? G.player.y : def.shots[0].y, fromV: 165 };
+  G.state = 'cut'; HL.Input.clearTouches();
+  if (def.shots[0].toll) Au.play('toll');
+};
+G.cutShot = function () {
+  const c = G.cut; if (!c) return null;
+  const s = c.def.shots[c.i], prev = c.i ? c.def.shots[c.i - 1] : { x: c.fromX, y: c.fromY, view: c.fromV };
+  const k = HL.clamp(c.t / Math.min(2.2, s.dur * 0.6), 0, 1), e = k * k * (3 - 2 * k);
+  return { x: HL.lerp(prev.x, s.x, e), y: HL.lerp(prev.y, s.y, e), view: HL.lerp(prev.view || 165, s.view || 165, e), text: s.text, k: c.t };
+};
+G.nextShot = function (skipAll) {
+  const c = G.cut; if (!c) return;
+  const last = c.def.shots[c.i];
+  if (!skipAll && c.i < c.def.shots.length - 1) { c.fromX = last.x; c.fromY = last.y; c.fromV = last.view; c.i++; c.t = 0; Au.play('page'); if (c.def.shots[c.i].toll) Au.play('toll'); return; }
+  G.cut = null; G.state = 'play'; HL.Input.clearTouches(); G.snapCam();
+  if (c.onEnd) c.onEnd();
+};
+// ------------------------------------------------------------------ objective and guide
+G.objective = function () {
+  if (!G.player || !G.world) return null;
+  const o = HL.objective(G.flags, G.inv, G.eq, G.world.id); if (!o) return null;
+  let tgt = null;
+  if (o.id === 'keeper') tgt = G.enemies.find((e) => e.type === 'keeper' && !e.dead) || null;
+  else if (o.id) { const ob = G.world.obj(o.id); if (ob && !ob.taken && !(ob.t === 'container' && ob.opened)) tgt = ob; }
+  return { text: o.text, tgt, optional: o.optional };
 };
 G.continueGame = function () {
   const d = HL.Save.read(store); if (!d) return G.newGame();
@@ -235,7 +273,7 @@ G.give = function (id, n = 1, quiet) {
   if (added && !quiet) { HL.UI.pushFeed(id, added); Au.play(it.kind === 'material' ? 'pickup' : 'item'); }
   if (it.kind === 'weapon' && !G.eq.weapon) { G.eq.weapon = id; }
   if (it.kind === 'consumable' && !G.inv[G.quick]) G.quick = id;
-  if (id === 'rusted_sword') HL.UI.toast('Strike: right thumb (tap the blade). Hold for a heavy blow. Roll: the dash button.');
+  if (id === 'rusted_sword') HL.UI.toast('ATTACK: tap to strike the nearest foe, or press and drag to aim. Hold to charge a heavy blow. DASH slips through attacks.', 6);
   if (id === 'ashwood_spear' || id === 'bellbreaker') HL.UI.toast('A new weapon. Open your pack (top right) to wield it.');
   if (it.kind === 'armor' && id !== 'tattered_cloak') HL.UI.toast(it.name + ': open your pack to wear it.');
   if (id === 'bell_shard') { G.eq.relic = 'bell_shard'; HL.UI.toast('The shard hums. Fighting fills it; when full, unleash your weapon\'s ultimate.'); }
@@ -466,8 +504,13 @@ G.frame = function (dt) {
   if (G.state === 'play') G.update(dt, inp);
   else if (G.state === 'fade') {
     G.fadeT += dt;
-    if (G.fadeT > 0.35 && G.fadeTo) { const t = G.fadeTo; G.fadeTo = null; G.loadMap(t.to, t.x, t.y); HL.UI.showBanner(G.world.name); if (t.after) t.after(); G.save(); }
-    if (G.fadeT > 0.7) G.state = 'play';
+    if (G.fadeT > 0.35 && G.fadeTo) { const t = G.fadeTo; G.fadeTo = null; G.loadMap(t.to, t.x, t.y); HL.UI.showBanner(G.world.name); if (t.after) t.after(); G.save(); if (t.to === 'crypt1' && !G.flags['cut:crypt']) G.pendingCut = 'crypt'; }
+    if (G.fadeT > 0.7) { G.state = 'play'; if (G.pendingCut) { const c = G.pendingCut; G.pendingCut = null; G.playCut(c); } }
+    HL.fx.update(dt);
+  } else if (G.state === 'cut') {
+    G.cut.t += dt;
+    if (inp.esc) G.nextShot(true);
+    else if (inp.attack || inp.interact || inp.enter || inp.dodge || G.cut.t > G.cut.def.shots[G.cut.i].dur) G.nextShot();
     HL.fx.update(dt);
   } else {
     if (G.state === 'dead') G.deadT += dt;
@@ -506,6 +549,9 @@ G.update = function (dt, inp) {
   HL.fx.update(dt);
   G.updateBoss(dt);
   G.updateRegion();
+  if (G.world.id === 'ashwick' && p.x > 150 * 8 && !G.flags['cut:tower']) { G.playCut('tower'); return; }
+  const ob = G.objective(), txt = ob && ob.text;
+  if (txt !== G.objText) { if (G.objText != null && txt) { HL.UI.objFlash = 2.5; Au.play('item'); } G.objText = txt; }
   // buildings fade their roofs while you're inside
   for (const b of G.world.buildings) b.fade = HL.approach(b.fade, b.inside(p.x, p.y) ? 0 : 1, dt * 4);
   // reveal the map around you
@@ -550,7 +596,7 @@ G.updateDrops = function (dt) {
 G.updateBoss = function (dt) {
   const ar = G.world.def.arena; if (!ar || G.flags.boss_dead) return;
   const p = G.player;
-  if (!G.bossAwake && p.y < ar.y - 6 && p.state !== 'dead') { G.bossAwake = true; G.refreshDoors(); Au.ambient('boss'); HL.UI.showBanner('The Bellworn Keeper', 'Strike a glowing resonator to stun it.'); }
+  if (!G.bossAwake && p.y < ar.y - 6 && p.state !== 'dead') { G.bossAwake = true; G.refreshDoors(); Au.ambient('boss'); if (!G.flags['cut:keeper']) G.playCut('keeper', () => HL.UI.showBanner('The Bellworn Keeper', 'Strike a glowing resonator to stun it.')); else HL.UI.showBanner('The Bellworn Keeper', 'Strike a glowing resonator to stun it.'); }
   if (!G.bossAwake) return;
   G.resoT = (G.resoT || 6) - dt;
   const rs = G.world.objects.filter((o) => o.t === 'resonator');
@@ -568,7 +614,7 @@ G.updateRegion = function () {
 // ------------------------------------------------------------------ render
 G.snapCam = function () { const c = G.camTarget(); G.cam.x = c.x; G.cam.y = c.y; if (G.use3d) HL.R3.snap(); };
 G.camTarget = function () {
-  const w = G.world, p = G.player || { x: G.titleCam.x, y: G.titleCam.y, vx: 0, vy: 0 };
+  const w = G.world, cs = G.state === 'cut' && G.cutShot(), p = cs ? { x: cs.x, y: cs.y, vx: 0, vy: 0 } : G.player || { x: G.titleCam.x, y: G.titleCam.y, vx: 0, vy: 0 };
   let x = p.x + p.vx * 0.3 - G.W / 2, y = p.y - 8 + p.vy * 0.3 - G.H / 2;
   x = w.pw < G.W ? (w.pw - G.W) / 2 : HL.clamp(x, 0, w.pw - G.W);
   y = w.ph < G.H ? (w.ph - G.H) / 2 : HL.clamp(y, 0, w.ph - G.H);
@@ -743,7 +789,8 @@ G.render = function (dt) {
     const UI = HL.UI;
     if (G.state === 'title') UI.drawTitle(g, G);
     else {
-      if (G.state !== 'menu') UI.drawHUD(g, G, dt);
+      if (G.state !== 'menu' && G.state !== 'cut') UI.drawHUD(g, G, dt);
+      if (G.state === 'play') UI.drawGuide(g, G);
       if (G.state === 'play') UI.drawControls(g, G);
       if (G.state === 'menu') UI.drawMenu(g, G);
       if (G.state === 'dialog') UI.drawDialog(g, G);
@@ -751,6 +798,7 @@ G.render = function (dt) {
       if (G.state === 'anvil') UI.drawAnvil(g, G);
       if (G.state === 'dead') UI.drawDead(g, G);
       if (G.state === 'end') UI.drawEnd(g, G);
+      if (G.state === 'cut') UI.drawCut(g, G);
       if (G.state === 'fade' && !G.use3d) { g.fillStyle = 'rgba(12,9,10,' + HL.clamp(G.fadeT < 0.35 ? G.fadeT / 0.35 : 1 - (G.fadeT - 0.35) / 0.35, 0, 1) + ')'; g.fillRect(0, 0, G.W, G.H); }
     }
   }

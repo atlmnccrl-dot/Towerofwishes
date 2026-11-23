@@ -443,7 +443,7 @@ HL.R3 = (() => {
     f.legs[0].rotation.x = sw * 0.75; f.legs[1].rotation.x = -sw * 0.75;
     f.rig.position.y = o.moving ? Math.abs(sw) * 0.5 : 0;
     f.rig.rotation.set(0, 0, 0); f.rig.position.z = 0;
-    if (o.pose === 'roll') { f.rig.rotation.x = (o.t || 0) * Math.PI * 2 * 1.4; f.rig.position.y = 2; }
+    if (o.pose === 'roll') { f.rig.rotation.x = 0.55; f.rig.position.y = 0.4; f.legs[0].rotation.x = 0.9; f.legs[1].rotation.x = -0.6; }
     if (o.pose === 'dead') { f.rig.rotation.x = -Math.PI / 2; f.rig.position.y = 1.4; f.rig.position.z = -5; }
     if (o.lean) f.rig.rotation.x = o.lean;
     if (o.wang != null) { f.arm.rotation.set(o.wtilt != null ? o.wtilt : 0.25, o.face - o.wang, 0); if (f.weapon) f.weapon.position.z = o.thrust || 0; }
@@ -598,10 +598,15 @@ HL.R3 = (() => {
     if (w.ph > extH * 2) ty = HL.clamp(ty, extH * 0.8, w.ph - extH * 0.9); else ty = w.ph / 2;
     if (!camT.init || !p) { camT.x = tx; camT.y = ty; camT.init = true; }
     const k = Math.min(1, dt * 6); camT.x += (tx - camT.x) * k; camT.y += (ty - camT.y) * k;
+    let vh = viewH;
+    const cs = G.state === 'cut' && G.cutShot();
+    if (cs) { camT.x = cs.x; camT.y = cs.y; vh = cs.view * (viewH / 165); camT.init = false; }
     let sx = 0, sz = 0; if (G.shake > 0.05 && G.settings.shake) { sx = (Math.random() - 0.5) * G.shake * 1.6; sz = (Math.random() - 0.5) * G.shake * 1.6; }
-    const D = (viewH * Math.sin(PITCH)) / (2 * Math.tan(((FOV * Math.PI) / 180) / 2));
+    const D = (vh * Math.sin(PITCH)) / (2 * Math.tan(((FOV * Math.PI) / 180) / 2));
     cam.position.set(camT.x + sx, Math.sin(PITCH) * D, camT.y + sz + Math.cos(PITCH) * D);
     cam.lookAt(camT.x + sx, 0, camT.y + sz);
+    if (scene.fog && !w.dark) { scene.fog.near = D * 0.95; scene.fog.far = D * 2.1; }
+    cam.far = D * 3 + 400; cam.updateProjectionMatrix();
     // light
     if (!w.dark) {
       const sxp = Math.round(camT.x / 4) * 4, szp = Math.round(camT.y / 4) * 4;
@@ -692,6 +697,13 @@ HL.R3 = (() => {
     // telegraphs
     for (const d of decals) { d.used = false; d.m.visible = false; }
     for (const e of G.enemies) drawTele(e);
+    if (p && p.holdT >= 0 && (p.aimA != null || p.chargeT > 0)) {
+      const wd = p.weaponDef(), heavy = p.chargeT > 0.05, arc = Math.max(0.5, heavy ? wd.heavy.arc : wd.arc), reach = heavy ? wd.heavy.reach : wd.reach, a = p.aimA != null ? p.aimA : p.face;
+      const arcK = Math.round(arc * 20) / 20, m = decal('slash', arcK);
+      m.position.set(p.x, 0.6, p.y); m.scale.setScalar(reach + 2); m.rotation.set(-Math.PI / 2, 0, -(a + arcK / 2));
+      m.material.color.set(heavy ? P.lt0 : P.cream); m.material.opacity = heavy ? 0.45 + Math.min(0.4, p.chargeT) : 0.3;
+      const l = decal('line'); l.position.set(p.x, 0.65, p.y); l.scale.set(reach + 10, 1, 1); l.rotation.set(-Math.PI / 2, 0, -a); l.material.color.set(P.cream); l.material.opacity = 0.5;
+    }
     // arrows and flasks
     let ai = 0;
     for (const s of G.shots) {

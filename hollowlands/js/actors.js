@@ -79,19 +79,25 @@ HL.Player = class Player {
     const mlen = Math.hypot(inp.mx, inp.my), mvA = Math.atan2(inp.my, inp.mx);
     // buffered inputs
     if (inp.dodge) this.buffer = { k: 'dodge', t: 0.18 };
-    // strike on press; keep holding after the swing to charge a heavy blow, release to unleash it
-    if (inp.attack && w) { this.buffer = { k: 'light', t: 0.28 }; this.holdT = 0; this.chargeT = 0; }
+    // press the attack button and drag to aim; release to strike that way (a tap strikes the nearest foe).
+    // Hold past ~0.4 s to charge: the release becomes a heavy blow.
+    if (inp.attack && w) { this.holdT = 0; this.aimA = null; }
     if (this.holdT >= 0) {
       this.holdT += dt;
-      if (this.state === 'move' && this.holdT > 0.22 && !this.buffer) this.chargeT += dt;
-      if (inp.attackUp || !inp.attackDown) { if (this.chargeT > 0.16) this.buffer = { k: 'heavy', t: 0.2, charge: 0.3 + this.chargeT }; this.holdT = -1; this.chargeT = 0; }
+      if (inp.aimX != null) { this.aimA = Math.atan2(inp.aimY, inp.aimX); if (this.state === 'move') this.face = this.aimA; }
+      this.chargeT = Math.max(0, this.holdT - 0.42);
+      if (inp.attackUp || !inp.attackDown) {
+        const heavy = this.chargeT > 0.05;
+        this.buffer = { k: heavy ? 'heavy' : 'light', t: 0.25, charge: 0.3 + this.chargeT, aim: this.aimA };
+        this.holdT = -1; this.chargeT = 0; this.aimA = null;
+      }
     }
     if (this.buffer) { this.buffer.t -= dt; if (this.buffer.t <= 0) this.buffer = null; }
     const canAct = this.state === 'move' || (this.state === 'attack' && this.atk.phase === 'rec') || (this.state === 'heal' && this.t > 0.15);
     if (this.buffer && canAct) {
       const b = this.buffer;
       if (b.k === 'dodge' && this.st > 0) { this.buffer = null; return this.startRoll(mlen > 0.2 ? mvA : this.face); }
-      if ((b.k === 'light' || b.k === 'heavy') && w && this.st > 0 && (this.state !== 'attack' || this.atk.phase === 'rec')) { this.buffer = null; this.startAttack(b.k === 'heavy', b.charge, mlen > 0.2 ? mvA : null); }
+      if ((b.k === 'light' || b.k === 'heavy') && w && this.st > 0 && (this.state !== 'attack' || this.atk.phase === 'rec')) { this.buffer = null; this.startAttack(b.k === 'heavy', b.charge, b.aim != null ? b.aim : mlen > 0.2 ? mvA : null, b.aim != null); }
     }
     if (inp.ult && this.state === 'move' && G.eq.relic === 'bell_shard' && this.ult >= 100 && G.eq.weapon) return this.startUlt(mlen > 0.2 ? mvA : this.face);
     let sp = this.speed();
@@ -103,10 +109,11 @@ HL.Player = class Player {
         if (mlen > 0.15) { this.face = mvA; }
         break;
       }
-      case 'roll': {
-        const k = this.t / 0.32, s = 125 * (1 - k * 0.7);
+      case 'roll': { // the dash: a short, fast burst that slips through attacks and foes
+        const D = 0.17, k = this.t / D, s = this.t < D ? 280 * (1 - k * 0.5) : 30;
         this.vx = Math.cos(this.rollA) * s; this.vy = Math.sin(this.rollA) * s;
-        if (this.t > 0.32) this.state = 'move';
+        if (this.t < D) for (let i = 0; i < 2; i++) HL.fx.add({ k: 'p', x: this.x + (Math.random() - 0.5) * 3, y: this.y, vx: 0, vy: 0, z: 2 + Math.random() * 8, vz: 0, col: i ? HL.P.cream3 : HL.P.ash1, life: 0.22 });
+        if (this.t > D + 0.07) this.state = 'move';
         break;
       }
       case 'attack': this.updateAttack(dt, w); break;
@@ -124,12 +131,12 @@ HL.Player = class Player {
     } else this.walkT = 0;
   }
   startRoll(a) {
-    this.state = 'roll'; this.t = 0; this.rollA = a; this.face = a; this.inv = 0.24; this.spend(20); this.atk = null; this.holdT = -1; this.chargeT = 0;
+    this.state = 'roll'; this.t = 0; this.rollA = a; this.face = a; this.inv = 0.22; this.spend(18); this.atk = null; this.holdT = -1; this.chargeT = 0;
     A.play('roll'); HL.fx.dust(this.x, this.y, 4);
   }
-  startAttack(heavy, charge, aimA) {
+  startAttack(heavy, charge, aimA, aimed) {
     const w = this.weaponDef();
-    const tgt = this.nearestFoe((heavy ? w.heavy.reach : w.reach) + 14) || HL.G.targetProp(this, w.reach + 8);
+    const tgt = aimed ? null : this.nearestFoe((heavy ? w.heavy.reach : w.reach) + 14) || HL.G.targetProp(this, w.reach + 8);
     if (tgt) this.face = Math.atan2(tgt.y - this.y, tgt.x - this.x); else if (aimA != null) this.face = aimA;
     if (!heavy && this.state === 'attack' && this.comboT > 0) this.combo = (this.combo + 1) % w.combo; else if (!heavy && this.comboT <= 0) this.combo = 0;
     const fin = !heavy && this.combo === w.combo - 1 && w.combo > 1;

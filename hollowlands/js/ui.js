@@ -23,8 +23,10 @@ HL.Input = (() => {
         attack: e.j || e.z || btnEdge('attack'), attackDown: !!(k.j || k.z || (b.attack && b.attack.held)), attackUp: e.j_up || e.z_up || btnUp('attack'),
         dodge: e[' '] || e.k || e.x || btnEdge('dodge'), interact: e.e || e.f || btnEdge('interact'), ult: e.r || btnEdge('ult'), item: e.q || btnEdge('item'),
         menu: e.Tab || e.i || btnEdge('menu'), map: e.m || btnEdge('map'), esc: e.Escape, enter: e.Enter,
-        swap: e.c || btnEdge('swap'),
+        swap: e.c || btnEdge('swap'), aimX: null, aimY: null,
       };
+      if (b.attack && b.attack.held && b.attack.ax != null) { out.aimX = b.attack.ax; out.aimY = b.attack.ay; }
+      else if ((k.j || k.z) && (mx || my)) { out.aimX = mx; out.aimY = my; }
       for (const n in e) delete e[n];
       return out;
     },
@@ -68,7 +70,7 @@ UI.tap = (x, y) => {
 };
 UI.pushFeed = (id, n, text) => { UI.feed.push({ id, n, text, t: 0 }); if (UI.feed.length > 5) UI.feed.shift(); };
 UI.showBanner = (s, sub) => { UI.banner = { s, sub, t: 0 }; };
-UI.toast = (s) => { UI.toastMsg = s; UI.toastT = 2.6; };
+UI.toast = (s, d = 3) => { UI.toastMsg = s; UI.toastT = d; };
 
 // ------------------------------------------------------------------ on-screen controls
 UI.layoutControls = (W, H, safe) => {
@@ -95,9 +97,11 @@ UI.drawControls = (g, G) => {
     const ic = (s) => HL.text(g, s, c.x, c.y - 3, P.cream, 0.5);
     if (c.id === 'attack') {
       const w = G.player.weaponDef();
+      const ab = I.st.btn.attack;
+      if (ab && ab.held && ab.ax != null) { HL.ringPx(g, c.x + ab.ax * 9, c.y + ab.ay * 9, 6, P.lt0, 2); }
       if (G.eq.weapon && HL.ART.icons[G.eq.weapon]) g.drawImage(HL.ART.icons[G.eq.weapon], c.x - 6, c.y - 6); else { g.fillStyle = P.cream; g.fillRect(c.x - 3, c.y - 3, 6, 5); g.fillRect(c.x - 3, c.y + 2, 4, 2); g.fillStyle = P.ink; g.fillRect(c.x - 1, c.y - 3, 1, 3); g.fillRect(c.x + 1, c.y - 3, 1, 3); } void w;
       if (G.player.chargeT > 0) HL.ringPx(g, c.x, c.y, c.r - 3, G.player.chargeT >= 0.6 ? P.lt0 : P.cream, 2, -Math.PI / 2, -Math.PI / 2 + HL.TAU * HL.clamp(G.player.chargeT / 0.6, 0, 1));
-    } else if (c.id === 'dodge') { g.fillStyle = P.cream; for (let i = 0; i < 3; i++) { g.fillRect(c.x - 4 + i * 3, c.y - 2 + (i % 2), 2, 1); g.fillRect(c.x - 3 + i * 3, c.y + (i % 2), 2, 1); } }
+    } else if (c.id === 'dodge') { g.fillStyle = P.cream; for (let i = 0; i < 2; i++) { const x = c.x - 4 + i * 4; g.fillRect(x, c.y - 3, 1, 1); g.fillRect(x + 1, c.y - 2, 1, 1); g.fillRect(x + 2, c.y - 1, 1, 2); g.fillRect(x + 1, c.y + 1, 1, 1); g.fillRect(x, c.y + 2, 1, 1); } HL.text(g, 'dash', c.x, c.y + c.r + 2, P.cream3, 0.5, 1, P.ink); }
     else if (c.id === 'interact') { ic('!'); const lw = HL.textWidth(near.label); g.fillStyle = P.ink; g.fillRect(c.x - lw - 20, c.y - 5, lw + 6, 11); HL.text(g, near.label, c.x - 17, c.y - 3, P.cream, 1); }
     else if (c.id === 'item') {
       const q = G.quick; if (q && G.inv[q]) { g.drawImage(HL.ART.icons[q], c.x - 6, c.y - 7); HL.text(g, String(G.inv[q]), c.x + 6, c.y + 2, P.cream, 0.5, 1, P.ink); } else ic('·');
@@ -123,6 +127,17 @@ UI.drawHUD = (g, G, dt) => {
   UI.bar(g, m, t, 76, 4, p.hp / p.maxhp, P.cream, P.ui2, G.hpTrail / p.maxhp);
   UI.bar(g, m, t + 7, 58, 2, p.st / p.maxst, p.stDelay > 0.6 ? P.cream3 : P.ash2, P.ui2);
   if (p.regen > 0) HL.text(g, '+', m + 80, t - 2, P.cream2);
+  // the objective, always on screen
+  const ob = G.objective();
+  if (ob) {
+    UI.objFlash = Math.max(0, (UI.objFlash || 0) - dt);
+    const lines = HL.wrap(ob.text, Math.min(200, G.W * 0.45));
+    let y = t + 15;
+    if (UI.objFlash > 0) { HL.text(g, 'New objective', m, y, Math.floor(G.time * 6) % 2 ? P.lt0 : P.tan0, 0, 1, P.ink); y += 10; }
+    g.fillStyle = 'rgba(20,16,16,0.45)'; g.fillRect(m - 3, y - 2, Math.min(206, G.W * 0.45 + 6), lines.length * 10 + 3);
+    g.fillStyle = ob.optional ? P.cream3 : P.tan0; g.fillRect(m - 3, y - 2, 1, lines.length * 10 + 3);
+    lines.forEach((l, i) => HL.text(g, l, m + 1, y + i * 10, P.cream, 0, 1, P.ink));
+  }
   // feed
   UI.feed.forEach((f, i) => {
     f.t += dt; const y = G.H * 0.42 + i * 11, a = f.t > 3 ? 1 - (f.t - 3) : 1;
@@ -138,9 +153,9 @@ UI.drawHUD = (g, G, dt) => {
     const b = UI.banner; b.t += dt; const a = b.t < 0.5 ? b.t * 2 : b.t > 3 ? 1 - (b.t - 3) : 1;
     if (a <= 0) UI.banner = null; else {
       g.globalAlpha = HL.clamp(a, 0, 1);
-      HL.text(g, b.s, G.W / 2, 22 + G.safe.t, P.cream, 0.5, 1, P.ink);
-      HL.text(g, '---', G.W / 2, 31 + G.safe.t, P.cream3, 0.5);
-      if (b.sub) HL.text(g, b.sub, G.W / 2, 40 + G.safe.t, P.cream2, 0.5, 1, P.ink);
+      HL.text(g, b.s, G.W / 2, 50 + G.safe.t, P.cream, 0.5, 1, P.ink);
+      HL.text(g, '---', G.W / 2, 59 + G.safe.t, P.cream3, 0.5);
+      if (b.sub) HL.text(g, b.sub, G.W / 2, 68 + G.safe.t, P.cream2, 0.5, 1, P.ink);
       g.globalAlpha = 1;
     }
   }
@@ -164,6 +179,49 @@ UI.drawHUD = (g, G, dt) => {
   }
 };
 
+// ------------------------------------------------------------------ guide: a marker over the next goal, or an arrow at the edge
+UI.drawGuide = (g, G) => {
+  if (!G.settings.guide) return;
+  const ob = G.objective(); if (!ob || !ob.tgt) return;
+  const o = ob.tgt, h = o.type === 'keeper' ? 48 : o.t === 'exit' && o.id === 'x_tower' ? 26 : 18;
+  const s = G.use3d ? HL.R3.project(o.x, h, o.y) : { x: o.x - G.cam.x, y: o.y - h * 0.8 - G.cam.y };
+  const P = P_, M = 16, bob = Math.round(Math.sin(G.time * 4) * 1.5);
+  if (s.x > M && s.x < G.W - M && s.y > M + 20 && s.y < G.H - M && !s.behind) {
+    const x = Math.round(s.x), y = Math.round(s.y) - 8 + bob;
+    g.fillStyle = P.ink; for (let j = -6; j <= 6; j++) { const w = 6 - Math.abs(j); g.fillRect(x - w, y + j, w * 2 + 1, 1); }
+    g.fillStyle = P.tan0; for (let j = -5; j <= 5; j++) { const w = 5 - Math.abs(j); g.fillRect(x - w, y + j, w * 2 + 1, 1); }
+    g.fillStyle = P.lt0; g.fillRect(x - 1, y - 3, 2, 4); g.fillRect(x - 1, y + 2, 2, 1);
+    g.fillStyle = P.tan0; g.fillRect(x, y + 7, 1, 3);
+    return;
+  }
+  // off screen: arrow on the edge pointing toward it
+  const cx = G.W / 2, cy = G.H / 2, a = Math.atan2(s.y - cy, s.x - cx);
+  const kx = (G.W / 2 - M - 6) / Math.max(0.001, Math.abs(Math.cos(a))), ky = (G.H / 2 - M - 6) / Math.max(0.001, Math.abs(Math.sin(a))), r = Math.min(kx, ky);
+  const x = cx + Math.cos(a) * (r + bob), y = cy + Math.sin(a) * (r + bob);
+  for (let i = 0; i < 9; i++) for (let j = -i; j <= i; j++) {
+    const px = x + Math.cos(a) * (4 - i * 0.9) - Math.sin(a) * j * 0.6, py = y + Math.sin(a) * (4 - i * 0.9) + Math.cos(a) * j * 0.6;
+    g.fillStyle = Math.abs(j) === i || i === 8 ? P.ink : P.tan0; g.fillRect(Math.round(px), Math.round(py), 1, 1);
+  }
+};
+// ------------------------------------------------------------------ cutscene card: letterbox, the line, skip
+UI.drawCut = (g, G) => {
+  const P = P_, c = G.cut; if (!c) return;
+  const bar = Math.round(G.H * 0.12);
+  g.fillStyle = '#0c0909'; g.fillRect(0, 0, G.W, bar); g.fillRect(0, G.H - bar, G.W, bar);
+  const s = c.def.shots[c.i], a = HL.clamp(c.t / 0.6, 0, 1);
+  g.globalAlpha = a;
+  const lines = HL.wrap(s.text, Math.min(360, G.W - 60));
+  const y0 = G.H - bar - 10 - lines.length * 11;
+  g.fillStyle = 'rgba(12,9,9,0.55)'; g.fillRect(G.W / 2 - Math.min(370, G.W - 50) / 2, y0 - 5, Math.min(370, G.W - 50), lines.length * 11 + 8);
+  lines.forEach((l, i) => HL.text(g, l, G.W / 2, y0 + i * 11, P.cream, 0.5, 1, P.ink));
+  g.globalAlpha = 1;
+  for (let i = 0; i < c.def.shots.length; i++) { g.fillStyle = i === c.i ? P.cream : P.cream3; g.fillRect(G.W / 2 - c.def.shots.length * 4 + i * 8, G.H - bar / 2, 4, 1); }
+  HL.text(g, 'tap to continue', 12 + G.safe.l, G.H - bar / 2 - 3, P.cream3);
+  UI.button(g, 'Skip >', G.W - 60 - G.safe.r, Math.round(bar / 2) - 7, () => G.nextShot(true), { w: 50, h: 14 });
+  UI.region(0, 0, G.W, G.H, () => G.nextShot());
+  // keep the skip button on top of the full-screen tap region
+  UI.regions.push(UI.regions.splice(UI.regions.length - 2, 1)[0]);
+};
 // ------------------------------------------------------------------ the item screen (from the reference: dotted grid, speckled cells)
 UI.menu = { tab: 'items', sel: null, jsel: 0 };
 UI.drawMenu = (g, G) => {
@@ -290,10 +348,10 @@ UI.drawSystem = (g, G) => {
   UI.button(g, 'Save now', x, 40, () => { G.save(true); }, { w: 120 });
   UI.button(g, 'Sound: ' + (HL.Audio.muted ? 'off' : 'on'), x, 62, () => { HL.Audio.setMuted(!HL.Audio.muted); G.settings.mute = HL.Audio.muted; }, { w: 120 });
   UI.button(g, 'Screen shake: ' + (G.settings.shake ? 'on' : 'off'), x, 84, () => { G.settings.shake = !G.settings.shake; }, { w: 120 });
-  UI.button(g, 'Return to title', x, 106, () => { G.save(); G.toTitle(); }, { w: 120 });
-  HL.text(g, 'Playtime ' + Math.floor((G.playtime || 0) / 60) + ' min', G.W / 2, 134, P.cream3, 0.5);
-  HL.text(g, 'Keys: WASD move  J attack (hold: heavy)  Space roll', G.W / 2, 150, P.cream3, 0.5);
-  HL.text(g, 'E interact  Q quick item  R ultimate  Tab items  M map', G.W / 2, 160, P.cream3, 0.5);
+  UI.button(g, 'Guide arrow: ' + (G.settings.guide ? 'on' : 'off'), x, 106, () => { G.settings.guide = !G.settings.guide; }, { w: 120 });
+  UI.button(g, 'Watch the opening', x, 128, () => { G.closeMenu(); G.playCut('intro'); }, { w: 120 });
+  UI.button(g, 'Return to title', x, 150, () => { G.save(); G.toTitle(); }, { w: 120 });
+  HL.text(g, 'Playtime ' + Math.floor((G.playtime || 0) / 60) + ' min   ·   Keys: WASD  J attack (hold J + move: aim)  Space dash  E use  Q item  R ult', G.W / 2, 172, P.cream3, 0.5);
 };
 
 // ------------------------------------------------------------------ dialogue, notes, fire, anvil, death, title
