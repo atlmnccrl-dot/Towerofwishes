@@ -14,7 +14,7 @@ export const BEFORE_BOSS = { founder: 'founder.pre', silence: 'silence.pre' };
 export const ON_ENTER = { prologue: 'prologue.road' };
 // what each scene stands in, for the scene test (a level id, 'haven', or the boss arena of a level)
 export const STAGE = {
-  'prologue.road': { level: 'prologue' }, 'prologue.meet': { level: 'prologue', at: 'exit' }, 'haven.ash': { haven: true, fresh: true },
+  'prologue.road': { level: 'prologue' }, 'road.short': { level: 'prologue' }, 'prologue.meet': { level: 'prologue', at: 'exit' }, 'haven.ash': { haven: true, fresh: true },
   'recruit.kestrel': { level: 'gate', boss: 'dead' }, 'recruit.ash': { level: 'market', boss: 'dead' }, 'recruit.hollis': { level: 'docks', boss: 'dead' }, 'recruit.wren': { level: 'nave', boss: 'dead' },
   'founder.pre': { level: 'foundry', boss: 'alive' }, 'founder.post': { level: 'foundry', boss: 'dead' }, 'regent.post': { level: 'heights', boss: 'dead' },
   'silence.pre': { level: 'belfry', boss: 'alive' }, 'belfry.bell': { level: 'belfry', boss: 'dead' }, 'act1.end': { level: 'belfry', boss: 'dead' },

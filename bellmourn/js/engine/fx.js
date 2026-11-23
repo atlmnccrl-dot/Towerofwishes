@@ -66,6 +66,12 @@ const MARKS = new Set(['mound', 'sandburst', 'bind', 'raise', 'sigil', 'sigilGo'
   'lure', 'bubble', 'regrow', 'wake', 'bellmark', 'rewind', 'song']);
 const MARKC = { lure: [1.0, 2.8, 1.8], bubble: [1.0, 1.8, 3.2], regrow: [0.8, 2.6, 0.5], wake: [0.3, 0.5, 0.45], bellmark: [1.6, 2.4, 1.6], rewind: [1.2, 2.0, 3.2], song: [3.2, 2.6, 1.2] };
 
+// the run's bosses (bosses5.js, the reworked Gaoler and Tallow): props and marks drawn by _mark5Mesh, blows with
+// decorations of their own (_hz5Decor), set pieces of their entrances (_piece5)
+const MARK5 = new Set(['cagewall', 'cagehold', 'waxwall', 'voice', 'kamae']);
+const H5 = new Set(['iai', 'limb', 'cage', 'grin', 'pyre', 'brand', 'holyfire', 'tide', 'petal', 'chain']);
+const PIECE5 = new Set(['descent', 'pyre', 'chandelier']);
+
 // remove an object and free what it alone owns (geometries/materials marked userData.keep are shared)
 function free(group, o) {
   group.remove(o);
@@ -209,7 +215,7 @@ export class FX {
   }
 
   updateTeles(ents, time) {
-    this._auras(ents, time);
+    this._auras(ents, time); this._boss5(ents, time);
     const seen = new Set();
     for (const e of ents) {
       if (!e.tele || e.dead) continue; seen.add(e.id);
@@ -240,6 +246,7 @@ export class FX {
       const ud = v.userData;
       v.position.set(h.x, 0.04, h.z);
       if (ud.mark) { this._markUpdate(h, v, Math.min(1, h.t / Math.max(0.01, h.life + h.warn)), dt, time); continue; }
+      if (ud.mark5) { this._mark5Update(h, v, dt, time); continue; }
       if (ud.spikes) this._spikeUpdate(h, ud, warn, k);
       if (ud.spear) { ud.spear.position.y = warn ? 1.3 + 9 * (1 - k * k) : 1.3 - Math.min(1, k * 3) * 0.6; ud.spear.visible = !warn || k > 0.25; }
       if (h.shape === 'line') {
@@ -262,6 +269,7 @@ export class FX {
         ud.ring.visible = warn; ud.ring.material.opacity = 0.3;
         if (!warn && Math.random() < dt * 40) { const a = Math.random() * Math.PI * 2; this.emit(h.x + Math.sin(a) * r, 0.1, h.z + Math.cos(a) * r, { n: 1, speed: 1, up: 1.5, life: 0.4, grav: 5, color: ud.dust, size: 1 }); }
       }
+      if (H5.has(h.kind)) this._hz5Update(h, v, warn, k, dt, time);
     }
     for (const [h, v] of this.hz) if (!seen.has(h)) { free(this.group, v); this.hz.delete(h); }
   }
@@ -305,9 +313,14 @@ export class FX {
   }
 
   _hazardMesh(h) {
+    if (h.vis && MARK5.has(h.kind)) return this._mark5Mesh(h);
+    const g = this._hazardMesh0(h); if (!h.vis && H5.has(h.kind)) this._hz5Decor(h, g); return g;
+  }
+  _hazardMesh0(h) {
     const kinds = { fire: [3, 0.8, 0.15], poison: [0.5, 2.0, 0.3], beam: [3, 1.4, 0.3], bone: [2.2, 2.0, 1.6], slam: [1.6, 0.15, 0.1], water: [0.3, 1.6, 1.6], wax: [2, 1.8, 1.2], toll: [1.8, 1.8, 2.2], lightning: [1.6, 1.8, 3], shock: [1.8, 1.0, 0.6],
       frost: [0.9, 1.9, 2.8], ice: [1.3, 2.2, 3.0], sand: [2.2, 1.5, 0.6], venom: [0.9, 2.6, 0.3], acid: [0.9, 2.6, 0.35], hellfire: [3.4, 0.8, 0.15], holy: [3.0, 2.6, 1.4], eyebeam: [3.2, 2.9, 2.0], curse: [1.6, 0.5, 2.4],
-      bog: [0.7, 1.4, 0.35], wispfire: [0.9, 2.8, 1.8], steam: [1.1, 1.2, 1.3], spark: [3.2, 1.9, 0.6], saw: [2.6, 2.4, 2.0], chrono: [0.55, 1.1, 2.1], radiant: [2.4, 2.2, 1.5], choir: [3.0, 1.6, 2.6], spear: [3.2, 3.0, 2.0], spoke: [2.2, 1.9, 1.0], discord: [2.4, 0.4, 2.8] };
+      bog: [0.7, 1.4, 0.35], wispfire: [0.9, 2.8, 1.8], steam: [1.1, 1.2, 1.3], spark: [3.2, 1.9, 0.6], saw: [2.6, 2.4, 2.0], chrono: [0.55, 1.1, 2.1], radiant: [2.4, 2.2, 1.5], choir: [3.0, 1.6, 2.6], spear: [3.2, 3.0, 2.0], spoke: [2.2, 1.9, 1.0], discord: [2.4, 0.4, 2.8],
+      iai: [3.4, 3.4, 3.8], limb: [2.4, 2.3, 2.1], cage: [1.6, 1.3, 1.0], grin: [3, 3, 3], pyre: [3.4, 1.2, 0.2], brand: [3.4, 0.9, 0.15], holyfire: [3.4, 2.5, 0.9], tide: [0.6, 1.9, 2.1], petal: [3.0, 1.3, 1.8], chain: [1.6, 1.5, 1.4], drop: [1.4, 1.3, 1.2] };
     const hot = kinds[h.kind] || kinds.slam;
     const g = new THREE.Group();
     const mat = (c, o, blend = THREE.AdditiveBlending) => new THREE.MeshBasicMaterial({ color: new THREE.Color(...c), transparent: true, opacity: o, depthWrite: false, blending: blend, fog: false, side: THREE.DoubleSide });
@@ -386,6 +399,10 @@ export class FX {
     if (h.kind === 'acid' || h.kind === 'venom') { at({ n: 22, speed: 2, up: 2, vy: 1.5, life: 0.6, grav: 10, color: [0.8, 2.6, 0.35], size: 1 }); return; }
     if (h.kind === 'hellfire') { at({ n: 30, speed: 1.4, up: 2, vy: 3, life: 0.7, grav: -2, color: [3.4, 1.0, 0.15], size: 2 }); return; }
     if (h.kind === 'holy') { at({ n: 24, speed: 2, up: 2, vy: 2, life: 0.6, grav: -1, color: [3, 2.6, 1.4] }); return; }
+    if (h.kind === 'pyre' || h.kind === 'brand' || h.kind === 'holyfire') { at({ n: 22, speed: 1.4, up: 2, vy: 3, life: 0.7, grav: -2, color: h.kind === 'holyfire' ? [3.4, 2.6, 1.0] : [3.4, 1.2, 0.2], size: 2 }); return; }
+    if (h.kind === 'grin') { at({ n: 18, speed: 2.4, up: 1, vy: 1, life: 0.3, grav: 4, color: [3, 3, 3] }); return; }
+    if (h.kind === 'cage') { at({ n: 20, speed: 2.6, up: 1, life: 0.4, grav: 8, color: [0.5, 0.48, 0.45], size: 1 }); return; }
+    if (h.kind === 'drop') { at({ n: 30, speed: 2.6, up: 1, life: 0.5, grav: 6, color: [0.6, 0.58, 0.55], size: 1 }); return; }
     if (h.kind === 'lightning') { this.bolt(h.x, h.z); }
     else if (h.kind === 'water') { this.emit(h.x, 0.1, h.z, { n: 40, speed: 2, up: 3, vy: 3, life: 0.9, grav: 10, color: [0.5, 1.2, 1.3], size: 1, jit: h.r }); }
     else if (h.kind === 'fire') { this.emit(h.x, 0.1, h.z, { n: 24, speed: 1.5, up: 2, vy: 2, life: 0.7, grav: -1, color: [3, 1.1, 0.2], size: 1, jit: h.r }); }
@@ -438,7 +455,7 @@ export class FX {
     const g = new THREE.Group();
     const cols = { orb: [3, 0.25, 0.3], flame: [3.2, 1.6, 0.3], soul: [0.4, 2.6, 2.4], bolt: [2, 1.9, 1.7], wave: [3, 0.35, 0.3], hbolt: [2.4, 2.2, 1.8], hfire: [3.4, 1.5, 0.3], wisp: [2.6, 2.2, 1.0], flask: [3, 1.3, 0.3], spit: [0.7, 2.4, 0.4],
       frostbolt: [1.2, 2.4, 3.2], iceshard: [1.8, 2.6, 3.2], boulder: [1.8, 2.2, 2.6], wrap: [2.2, 2.0, 1.5], web: [2.4, 2.4, 2.3], fireball: [3.4, 1.4, 0.25], hex: [2.6, 0.4, 2.2], sandspit: [1.8, 1.3, 0.7],
-      wispbolt: [0.9, 2.8, 1.8], hexbolt: [1.0, 2.4, 0.9], weed: [0.6, 1.4, 0.5], mud: [0.5, 0.6, 0.3], fist: [3, 1.8, 0.6], saw: [2.6, 2.6, 2.6], halo: [3.2, 2.6, 1.0], gear: [2.8, 2.0, 0.8], bell: [1.8, 1.4, 0.7] };
+      wispbolt: [0.9, 2.8, 1.8], hexbolt: [1.0, 2.4, 0.9], weed: [0.6, 1.4, 0.5], mud: [0.5, 0.6, 0.3], fist: [3, 1.8, 0.6], saw: [2.6, 2.6, 2.6], halo: [3.2, 2.6, 1.0], gear: [2.8, 2.0, 0.8], bell: [1.8, 1.4, 0.7], bubble: [1.4, 2.2, 2.4] };
     const c = cols[p.kind] || cols.orb;
     const basic = (col, o = {}) => new THREE.MeshBasicMaterial({ color: new THREE.Color(...col), fog: false, ...o });
     const halo = (col, s) => { const h = new THREE.Sprite(new THREE.SpriteMaterial({ map: T.glow('#ffffff', 32, 1.5), color: new THREE.Color(col[0] * 0.3, col[1] * 0.3, col[2] * 0.3), blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); h.scale.set(s, s, 1); return h; };
@@ -459,6 +476,7 @@ export class FX {
       halo: () => { const d = new THREE.Group(); for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; const m = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.05, 0.05), basic(c)); m.position.set(Math.sin(a) * 0.4, 0, Math.cos(a) * 0.4); m.rotation.y = a + Math.PI / 2; d.add(m); } g.add(d); g.add(halo(c, 1.6)); return { disc: d, rich: true }; },
       gear: () => { const d = new THREE.Group(); d.add(new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.08, 0.34), new THREE.MeshLambertMaterial({ color: 0xc8963a, emissive: 0x2a1404 }))); for (let i = 0; i < 6; i++) { const m = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.08, 0.56), new THREE.MeshLambertMaterial({ color: 0xc8963a, emissive: 0x2a1404 })); m.rotation.y = i / 6 * Math.PI; d.add(m); } g.add(d); return { disc: d }; },
       bell: () => { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.36, 0.48, 8), new THREE.MeshLambertMaterial({ color: 0x8a6a2a, emissive: 0x1a1406 })); g.add(m); const v = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.04, 0.3), basic([0.8, 2.4, 1.6])); v.position.y = -0.24; g.add(v); return { spin: 3, rich: true }; },
+      bubble: () => { g.add(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.4), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.8, 1.6, 1.8), transparent: true, opacity: 0.45, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }))); const m = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.12), basic([2.6, 3, 3])); m.position.set(0.1, 0.12, 0); g.add(m); return { spin: 2, rich: true }; },
       sandspit: () => { g.add(new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.26, 0.3), new THREE.MeshLambertMaterial({ color: 0xc8a46a, emissive: 0x3a2a10 }))); return { spin: 7, rich: true }; },
     };
     if (NEW[p.kind]) { const o = NEW[p.kind](); g.userData = { trail: c.map((v) => v * 0.6), team: p.team, ...o }; return g; }
@@ -677,6 +695,7 @@ export class FX {
     const glow = (rgb, op = 1) => new THREE.MeshBasicMaterial({ color: new THREE.Color(...rgb), transparent: op < 1, opacity: op, depthWrite: op >= 1, blending: op < 1 ? THREE.AdditiveBlending : THREE.NormalBlending, fog: false, side: THREE.DoubleSide });
     const boxm = (w, h, d, m, px, py, pz, parent = g) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(px, py, pz); b.castShadow = true; parent.add(b); return b; };
     const P = { kind, g, t: 0, life: o.life || 4, o, ud: {} }; const U = P.ud;
+    if (PIECE5.has(kind)) { this._piece5(kind, P); (this.pieceList || (this.pieceList = [])).push(P); return P; }
     if (kind === 'wall') {
       const sm = lam(0x6a5e56), dk = lam(0x4a403a); U.bricks = [];
       for (let r = 0; r < 6; r++) for (let i = -4; i <= 4; i++) { const b = boxm(0.44, 0.24, 0.5, (r + i) % 3 ? sm : dk, i * 0.46 + (r % 2) * 0.23, 0.13 + r * 0.26, 0); U.bricks.push(b); }
@@ -734,7 +753,8 @@ export class FX {
   _pieces(dt) {
     const L = this.pieceList || []; const ez = (k) => k * k * (3 - 2 * k); const cl = (k) => Math.max(0, Math.min(1, k));
     for (const P of L) {
-      P.t += dt; const t = P.t, o = P.o, U = P.ud, g = P.g; const end = cl((t - (P.life - 0.6)) / 0.6);
+      P.t += dt; if (P.update5) { P.update5(dt); continue; }
+      const t = P.t, o = P.o, U = P.ud, g = P.g; const end = cl((t - (P.life - 0.6)) / 0.6);
       if (P.kind === 'wall') {
         const hit = t >= o.burst; for (const b of U.bricks) b.visible = !hit; U.stub.visible = hit;
         if (!hit) { const shake = (Math.abs(t - 0.35) < 0.08 || Math.abs(t - 0.8) < 0.08) ? Math.sin(t * 90) * 0.05 : 0; g.children.forEach((c) => { if (c !== U.stub) c.position.x += shake * 0.2; }); }
@@ -798,6 +818,199 @@ export class FX {
     this.chunks = L.filter((d) => { if (d.t >= d.life) { free(this.group, d.m); return false; } return true; });
   }
 
+  // ================================================================ the run's bosses (game/bosses5.js, the reworked Gaoler and Tallow)
+  // Hazard kinds of their own, drawn here: a line of light before the Ronin's cut, the tide's wall of water, a
+  // pale limb thrust out of the dark, teeth closing, a cage falling from the dark, fire that stays (the Pyre
+  // Saint's rings and brands, the cross of flame), petals on the wind, a chain lying taut. Props they leave
+  // standing (marks with a solid under them): the Gaoler's cages, Tallow's walls of wax, a cage shut round the
+  // hero; and the marks of their rites: the voices in the dark, the Ronin's guard. Read from the entities every
+  // frame (_boss5): the dark and the flicker of the lights (e.dark, e.flicker), the Guest's smile hanging in
+  // the dark and the frames it skips, the Ronin's petals and the line where he passed, the Saint's flames, her
+  // cross and her pillar of fire, Tallow's candles while she is snuffed, dust falling from the vault.
+  _mark5Mesh(h) {
+    const g = new THREE.Group(); const ud = { mark5: true }; g.userData = ud;
+    const lam = (hex, em = 0) => kept('l5' + hex + em, () => new THREE.MeshLambertMaterial({ color: hex, emissive: em }));
+    const glow = (rgb, op = 1) => new THREE.MeshBasicMaterial({ color: new THREE.Color(...rgb), transparent: true, opacity: op, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, side: THREE.DoubleSide });
+    const add = (geo, m, x, y, z, p = g) => { const b = new THREE.Mesh(geo, m); b.position.set(x, y, z); b.castShadow = true; p.add(b); return b; };
+    if (h.kind === 'cagewall' || h.kind === 'cagehold') { // a gibbet cage of black iron, dropped from the dark above
+      const r = h.kind === 'cagehold' ? 0.75 : h.r, H = h.kind === 'cagehold' ? 2.0 : 2.2; const iron = lam(0x2a2622, 0x080604);
+      ud.cage = new THREE.Group(); g.add(ud.cage);
+      for (let i = 0; i < 10; i++) { const a = i / 10 * TAU; add(kept('gBar', () => new THREE.BoxGeometry(0.06, 1, 0.06)), iron, Math.sin(a) * r, H / 2, Math.cos(a) * r, ud.cage).scale.y = H; }
+      for (const y of [0.06, H * 0.55, H]) { const ring = add(new THREE.TorusGeometry(r, 0.04, 4, 12), iron, 0, y, 0, ud.cage); ring.rotation.x = Math.PI / 2; }
+      add(new THREE.ConeGeometry(r * 0.9, 0.4, 10), iron, 0, H + 0.2, 0, ud.cage); add(kept('gChainV', () => new THREE.BoxGeometry(0.05, 6, 0.05)), iron, 0, H + 3.4, 0, ud.cage);
+      ud.h = H; ud.drop = h.kind === 'cagewall' ? 0.0 : 0.0;
+    } else if (h.kind === 'waxwall') { // a heap of hardened wax with candle stubs still burning in it
+      const wax = lam(0xe8dcc0, 0x302418), drip = lam(0xd8c8a0, 0x201810);
+      ud.wall = new THREE.Group(); g.add(ud.wall);
+      add(new THREE.CylinderGeometry(h.r * 0.75, h.r * 1.05, 1.1, 8), wax, 0, 0.55, 0, ud.wall); add(new THREE.CylinderGeometry(h.r * 0.5, h.r * 0.78, 0.6, 7), drip, 0.05, 1.35, -0.04, ud.wall);
+      for (let i = 0; i < 6; i++) { const a = i / 6 * TAU + 0.3; add(kept('gDrip', () => new THREE.BoxGeometry(0.1, 0.4, 0.1)), drip, Math.sin(a) * h.r * 0.95, 0.3, Math.cos(a) * h.r * 0.95, ud.wall); }
+      ud.flames = []; for (let i = 0; i < 3; i++) { const a = i / 3 * TAU; const c = add(kept('gStub', () => new THREE.BoxGeometry(0.08, 0.2, 0.08)), wax, Math.sin(a) * 0.22, 1.72, Math.cos(a) * 0.22, ud.wall); const f = add(kept('gFlame', () => new THREE.BoxGeometry(0.07, 0.12, 0.07)), kept('mFl5', () => new THREE.MeshBasicMaterial({ color: new THREE.Color(3.2, 2.0, 0.6), fog: false })), 0, 0.16, 0, c); ud.flames.push(f); }
+      ud.wall.scale.y = 0.05;
+    } else if (h.kind === 'voice') { // where the Hushed's voices call from: a pale ripple and a mouth in the dark
+      ud.ring = new THREE.Mesh(this.ringGeo, new THREE.MeshBasicMaterial({ map: ringTex(), color: new THREE.Color(1.8, 1.7, 1.6), transparent: true, opacity: 0.6, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+      ud.ring.rotation.x = -Math.PI / 2; ud.ring.position.y = 0.03; g.add(ud.ring);
+      ud.mouth = add(kept('gMouth5', () => new THREE.BoxGeometry(0.06, 0.4, 0.02)), glow([1.6, 0.2, 0.25], 0.8), 0, 1.4, 0);
+    } else if (h.kind === 'kamae') { // the reach of the Ronin's guard: a thin pale circle, and a second one breathing
+      ud.ring = new THREE.Mesh(new THREE.RingGeometry(h.r - 0.05, h.r, 40), glow([2.2, 2.0, 2.6], 0.35)); ud.ring.rotation.x = -Math.PI / 2; ud.ring.position.y = 0.04; g.add(ud.ring);
+      ud.ring2 = new THREE.Mesh(new THREE.RingGeometry(h.r - 0.03, h.r, 40), glow([3, 1.6, 2.2], 0.25)); ud.ring2.rotation.x = -Math.PI / 2; ud.ring2.position.y = 0.05; g.add(ud.ring2);
+    }
+    return g;
+  }
+  _mark5Update(h, v, dt, time) {
+    const ud = v.userData; const life = h.life + h.warn; const age = h.t; const end = Math.min(1, Math.max(0, (life - age) / 0.5));
+    if (ud.cage) { // falls, bounces, stands; lifts away at its end
+      const fall = Math.min(1, age / 0.18); ud.cage.position.y = (1 - fall) * 7 - end * 0 + (end < 1 ? (1 - end) * 7 : 0);
+      if (!ud.landed && fall >= 1) { ud.landed = true; this.dust(h.x, h.z, 14); this.shockRing(h.x, h.z, h.r + 0.8, [1.4, 1.2, 1.0], 0.3); this.sparks(h.x, 0.2, h.z, 0, 10, [2.8, 2.2, 1.4]); }
+    } else if (ud.wall) { const g2 = Math.min(1, age / 0.45); ud.wall.scale.y = Math.max(0.05, g2 * end); ud.wall.position.y = 0; for (const f of ud.flames) { f.scale.y = 0.8 + Math.random() * 0.6; f.visible = end > 0.2; }
+      if (Math.random() < dt * 6) this.emit(h.x + (Math.random() - 0.5) * 0.4, 1.9, h.z + (Math.random() - 0.5) * 0.4, { n: 1, speed: 0.1, vy: 0.8, life: 0.6, grav: -0.5, color: [3, 1.6, 0.4], size: 1 }); }
+    else if (ud.mouth) { const pulse = 0.5 + 0.5 * Math.sin(time * 9 + h.x); ud.ring.scale.setScalar(h.r * (1 + pulse * 0.3)); ud.ring.material.opacity = 0.5 * end; ud.mouth.scale.y = 0.4 + pulse; ud.mouth.material.opacity = 0.8 * end;
+      if (Math.random() < dt * 10) this.emit(h.x + (Math.random() - 0.5) * 0.6, 0.6 + Math.random(), h.z + (Math.random() - 0.5) * 0.6, { n: 1, speed: 0.1, vy: 0.4, life: 0.8, grav: -0.2, color: [1.2, 1.1, 1.1], size: 1, alpha: 0.6 }); }
+    else if (ud.ring2) { ud.ring.material.opacity = 0.35 * end; const k = (time * 0.8) % 1; ud.ring2.scale.setScalar(0.3 + k * 0.7); ud.ring2.material.opacity = 0.3 * (1 - k) * end; }
+  }
+  // decorations on the new kinds of blow (built once with the hazard's mesh, posed every frame)
+  _hz5Decor(h, g) {
+    const ud = g.userData; const glow = (rgb, op = 1) => new THREE.MeshBasicMaterial({ color: new THREE.Color(...rgb), transparent: true, opacity: op, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, side: THREE.DoubleSide });
+    if (h.kind === 'iai' && h.shape === 'line') { // a single line of light: thin while he waits, a blinding blade when he passes
+      const L = h.len || 6; const pg = new THREE.PlaneGeometry(0.07, L); pg.translate(0, L / 2, 0); const m = new THREE.Mesh(pg, glow([3.4, 3.4, 3.8], 0.2)); m.rotation.x = -Math.PI / 2; m.rotation.z = Math.PI; m.position.y = 0.06; ud.pivot.add(m); ud.light = m;
+      const bg = new THREE.PlaneGeometry(h.width || 1.2, L); bg.translate(0, L / 2, 0); const b = new THREE.Mesh(bg, glow([3.4, 3.4, 3.8], 0)); b.rotation.x = -Math.PI / 2; b.rotation.z = Math.PI; b.position.y = 0.07; ud.pivot.add(b); ud.blade = b;
+      ud.lane.material.opacity = 0; ud.iai = true;
+    } else if (h.kind === 'limb' && h.shape === 'line') { // a long pale limb thrust out of the dark down the lane
+      const L = h.len || 8; const lg = new THREE.BoxGeometry(0.12, 0.12, L); lg.translate(0, 0, -L / 2); const m = new THREE.Mesh(lg, kept('mLimb', () => new THREE.MeshLambertMaterial({ color: 0xe8e2d6, emissive: 0x222018 }))); m.position.y = 0.9; m.castShadow = true;
+      const hold = new THREE.Group(); hold.rotation.y = 0; ud.pivot.add(hold); hold.add(m); ud.limb = m; ud.limbLen = L; m.visible = false;
+    } else if (h.kind === 'cage' && h.shape === 'circle') { // the cage seen falling out of the dark while the circle warns
+      const cg = new THREE.Group(); const iron = kept('mIron5', () => new THREE.MeshLambertMaterial({ color: 0x2a2622, emissive: 0x080604 }));
+      for (let i = 0; i < 8; i++) { const a = i / 8 * TAU; const b = new THREE.Mesh(kept('gBar', () => new THREE.BoxGeometry(0.06, 1, 0.06)), iron); b.scale.y = 2.1; b.position.set(Math.sin(a) * h.r * 0.7, 1.05, Math.cos(a) * h.r * 0.7); cg.add(b); }
+      const top = new THREE.Mesh(new THREE.ConeGeometry(h.r * 0.75, 0.4, 8), iron); top.position.y = 2.3; cg.add(top); g.add(cg); ud.fall = cg; cg.position.y = 12;
+    } else if (h.kind === 'grin' && h.shape === 'circle') { // teeth: two white rows that close on the circle
+      const tg = new THREE.Group(); const tm = kept('mTooth', () => new THREE.MeshBasicMaterial({ color: new THREE.Color(3, 3, 3), fog: false }));
+      const n = Math.max(5, Math.round(h.r * 7)); for (let row = 0; row < 2; row++) for (let i = 0; i < n; i++) { const a = (i + 0.5) / n * Math.PI; const t = new THREE.Mesh(kept('gTooth', () => new THREE.BoxGeometry(0.1, 0.22, 0.08)), tm); t.position.set(Math.cos(a) * h.r, 0.12, (row ? -1 : 1) * Math.sin(a) * h.r * 0.2); t.userData.row = row; t.userData.a = a; tg.add(t); }
+      g.add(tg); ud.teeth = tg;
+    } else if ((h.kind === 'pyre' || h.kind === 'brand' || h.kind === 'holyfire') && !h.vis) { ud.fire = true; }
+    else if (h.kind === 'tide' && h.shape === 'line') ud.tide = true;
+    else if (h.kind === 'petal' && h.shape === 'line') ud.petal = true;
+    else if (h.kind === 'chain' && h.shape === 'line') { const L = h.len || 8; const cg = new THREE.Group(); const iron = kept('mIron5', () => new THREE.MeshLambertMaterial({ color: 0x2a2622, emissive: 0x080604 })); for (let i = 0; i < Math.round(L / 0.22); i++) { const l = new THREE.Mesh(kept('gLink', () => new THREE.BoxGeometry(0.08, 0.05, 0.16)), iron); l.position.set(0, 0.3, i * 0.22); l.rotation.z = i % 2 ? Math.PI / 2 : 0; cg.add(l); } ud.pivot.add(cg); ud.chain = cg; cg.visible = false; }
+  }
+  _hz5Update(h, v, warn, k, dt, time) {
+    const ud = v.userData; const fx = Math.sin(h.face || 0), fz = Math.cos(h.face || 0);
+    if (ud.iai) {
+      ud.lane.material.opacity = 0;
+      if (warn) { ud.light.material.opacity = 0.25 + 0.75 * k * k + 0.1 * Math.sin(time * 40) * k; ud.blade.material.opacity = 0.05 * k; }
+      else { ud.light.material.opacity = 1 - k; ud.blade.material.opacity = 0.9 * (1 - k); if (!ud.cut) { ud.cut = true; const L = h.len || 6; for (let i = 0; i < 24; i++) { const d = Math.random() * L; this.emit(h.x + fx * d, 1.0, h.z + fz * d, { n: 1, speed: 1.4, up: 0.6, life: 0.5, grav: 1, color: [3.2, 3.2, 3.6], size: 1 }); } this.sparks(h.x + fx * L, 1.1, h.z + fz * L, h.face, 12, [3.2, 3.2, 3.6]); } }
+    }
+    if (ud.limb) { // out of the dark: thrust in at the strike, hold, withdraw
+      ud.limb.visible = !warn; if (!warn) { const out = k < 0.3 ? k / 0.3 : 1 - (k - 0.3) / 0.7 * 0.6; ud.limb.position.z = ud.limbLen * (out - 0.02); ud.limb.scale.z = 1; }
+    }
+    if (ud.fall) { ud.fall.position.y = warn ? 12 * (1 - k * k) : 0; ud.fall.visible = warn; }
+    if (ud.teeth) { const c = warn ? 1 - k * 0.35 : 0.25; for (const t of ud.teeth.children) { t.position.z = (t.userData.row ? -1 : 1) * Math.sin(t.userData.a) * h.r * c; } ud.teeth.visible = warn || k < 0.4; ud.ring.visible = false; }
+    if (ud.fire && !warn && Math.random() < dt * (h.shape === 'line' ? 60 : 24)) {
+      const d = h.shape === 'line' ? Math.random() * (h.len || 6) : 0; const o = (Math.random() - 0.5) * (h.shape === 'line' ? h.width || 1 : h.r * 1.6);
+      const px = h.shape === 'line' ? h.x + fx * d + fz * o : h.x + o, pz = h.shape === 'line' ? h.z + fz * d - fx * o : h.z + (Math.random() - 0.5) * h.r * 1.6;
+      this.emit(px, 0.1, pz, { n: 1, speed: 0.4, up: 1, vy: 2.5 + Math.random() * 2, life: 0.55, grav: -2.5, color: h.kind === 'holyfire' ? [3.4, 2.6, 1.0] : (Math.random() < 0.5 ? [3.4, 1.5, 0.25] : [3, 0.55, 0.1]), size: Math.random() < 0.25 ? 2 : 1 });
+    }
+    if (ud.tide && Math.random() < dt * (warn ? 20 * k : 90)) { const d = Math.random() * (h.len || 6), o = (Math.random() - 0.5) * (h.width || 1); this.emit(h.x + fx * d + fz * o, 0.1, h.z + fz * d - fx * o, warn ? { n: 1, speed: 0.3, up: 1, vy: 1.4, life: 0.4, grav: 8, color: [0.5, 1.2, 1.4], size: 1 } : { n: 2, speed: 1.2, up: 2, vy: 4.5, life: 0.7, grav: 10, color: [0.8, 1.8, 2.0], size: 2 }); }
+    if (ud.petal && Math.random() < dt * (warn ? 18 : 70)) { const d = Math.random() * (h.len || 6), o = (Math.random() - 0.5) * (h.width || 1); this.emit(h.x + fx * d + fz * o, 0.5 + Math.random() * 1.2, h.z + fz * d - fx * o, { n: 1, speed: warn ? 0.3 : 2.5, vx: fx * (warn ? 0.6 : 7), vz: fz * (warn ? 0.6 : 7), life: 0.6, grav: 0.3, color: [3.0, 1.3, 1.8], size: 1, drag: 0.5 }); }
+    if (ud.chain) { ud.chain.visible = !warn; if (!warn) ud.chain.position.y = Math.sin(time * 30) * 0.02; }
+  }
+  // the lights of the scene, dimmed for the dark (the warden's own light is kept); restored when it lifts
+  _lights5(dark, flick, hero) {
+    const want = Math.max(0, Math.min(0.95, dark)) ; const f = flick ? (Math.random() < 0.35 ? 0.92 : (Math.random() < 0.5 ? 0.4 : 0)) : 0;
+    const k = 1 - Math.max(want, f);
+    if (k >= 0.999 && !this._dimmed) return;
+    this._dimmed = k < 0.999;
+    this.scene.traverse((o) => {
+      if (!o.isLight) return; const ud = o.userData;
+      if (hero && o.isPointLight && Math.hypot(o.position.x - hero.x - 0.5, o.position.z - hero.z - 0.8) < 0.8) return; // the warden's own light
+      if (ud.bm5Set === undefined || Math.abs(o.intensity - ud.bm5Set) > 1e-4) ud.bm5Base = o.intensity; // someone else set it since
+      o.intensity = ud.bm5Base * k; ud.bm5Set = o.intensity;
+      if (k >= 0.999) { o.intensity = ud.bm5Base; delete ud.bm5Set; delete ud.bm5Base; }
+    });
+  }
+  _boss5(ents, time) {
+    const dt = Math.min(0.1, Math.max(0, time - (this._b5T ?? time))); this._b5T = time;
+    const st = this.b5 || (this.b5 = { dark: 0, last: new Map(), grin: new Map(), cols: new Map() });
+    let dark = 0, flick = false; let hero = null; const seen = new Set();
+    for (const e of ents) {
+      if (e.team === 'hero' && !e.ally && !hero) hero = e;
+      if (e.dead || e.team !== 'foe') continue;
+      if (e.dark) dark = Math.max(dark, e.dark); if (e.flicker) flick = true;
+      const T = e.type; if (!T) continue;
+      const sc = (e.def && e.def.scale) || 1; const last = st.last.get(e.id); st.last.set(e.id, { x: e.x, z: e.z }); seen.add(e.id);
+      // the frames it skips: a smear where it was
+      if ((T === 'smiling' || T === 'guestmask') && last && Math.hypot(e.x - last.x, e.z - last.z) > 0.45) {
+        for (let i = 0; i < 3; i++) this.emit(last.x, 0.5 + i * 0.6 * sc, last.z, { n: 6, speed: 0.4, life: 0.35, grav: 0, color: i === 2 ? [2.6, 2.6, 2.6] : [0.05, 0.05, 0.06], size: 2, alpha: 0.9, jit: 0.2 });
+      }
+      // the Guest's smile hangs in the dark while the rest of it is gone
+      if (T === 'smiling') {
+        let gm = st.grin.get(e.id); const on = e.hidden && e.grin;
+        if (!gm && on) { gm = this._grinSprite(); st.grin.set(e.id, gm); this.group.add(gm); }
+        if (gm) { gm.visible = !!on; gm.position.set(e.x, 1.6 * sc, e.z); gm.material.opacity = 0.85 + 0.15 * Math.sin(time * 7); }
+      }
+      // the Ronin passes along his line: a white trail where he was
+      if (T === 'ronin') {
+        if (last && Math.hypot(e.x - last.x, e.z - last.z) > 1.2) { const n = Math.ceil(Math.hypot(e.x - last.x, e.z - last.z) / 0.3); for (let i = 0; i <= n; i++) { const k = i / n; this.emit(last.x + (e.x - last.x) * k, 1.0 + Math.random() * 0.6, last.z + (e.z - last.z) * k, { n: 1, speed: 0.3, life: 0.45, grav: 0, color: [3.2, 3.2, 3.6], size: 1 }); } this.slash5(last.x, last.z, e.x, e.z); }
+        if (Math.random() < dt * 9) { const a = Math.random() * TAU, r = 1 + Math.random() * 6; this.emit(e.x + Math.sin(a) * r - 3, 2.5 + Math.random() * 2, e.z + Math.cos(a) * r, { n: 1, speed: 0.2, vx: 1.8, vy: -0.35, life: 2.6, grav: 0.2, color: [2.8, 1.2, 1.6], size: 1, drag: 0.3 }); }
+        if (e.stance && Math.random() < dt * 6) this.emit(e.x + Math.sin(e.face + 1.2) * 0.3, 0.9 * sc, e.z + Math.cos(e.face + 1.2) * 0.3, { n: 1, speed: 0.05, life: 0.25, grav: 0, color: [3.4, 3.4, 3.8], size: 2 });
+      }
+      // the Pyre Saint: flames off her hem always; her cross of light; her pillar of fire
+      if (T === 'pyresaint') {
+        if (!e.hidden && Math.random() < dt * 30) this.emit(e.x + (Math.random() - 0.5) * 0.7, 0.3 + (e.leapH || 0) + 0.3, e.z + (Math.random() - 0.5) * 0.7, { n: 1, speed: 0.3, up: 1, vy: 2.2, life: 0.6, grav: -2, color: Math.random() < 0.5 ? [3.4, 1.6, 0.3] : [3, 0.6, 0.12], size: Math.random() < 0.3 ? 2 : 1 });
+        let col = st.cols.get(e.id); if (!col) { col = this._pyreColumn(); st.cols.set(e.id, col); this.group.add(col.g); }
+        const on = !!e.pillar; col.k += ((on ? 1 : 0) - col.k) * Math.min(1, dt * 5); col.g.visible = col.k > 0.02; col.g.position.set(e.x, 0, e.z);
+        col.inner.material.opacity = 0.55 * col.k; col.outer.material.opacity = 0.25 * col.k * (0.85 + 0.15 * Math.sin(time * 14)); col.g.scale.set(0.6 + col.k * 0.4, 1, 0.6 + col.k * 0.4); col.inner.rotation.y = time * 3;
+        if (on && Math.random() < dt * 90) this.emit(e.x + (Math.random() - 0.5) * 1.6, 0.2 + Math.random() * 4, e.z + (Math.random() - 0.5) * 1.6, { n: 1, speed: 0.5, vy: 4 + Math.random() * 3, life: 0.6, grav: -3, color: Math.random() < 0.5 ? [3.4, 1.6, 0.3] : [3.2, 0.6, 0.1], size: Math.random() < 0.4 ? 2 : 1 });
+        col.cross.visible = !!e.crossed; if (e.crossed) { col.cross.position.set(0, 1.5 * sc + (e.leapH || 0), 0); col.cross.rotation.y = e.face; col.cross.children.forEach((m) => { m.material.opacity = 0.55 + 0.25 * Math.sin(time * 12); }); }
+      }
+      // Tallow snuffed: only her candles show, drifting in the dark
+      if (T === 'tallow' && e.hidden && Math.random() < dt * 40) { const a = Math.random() * TAU; this.emit(e.x + Math.sin(a) * 0.5, 2.6 + Math.random() * 0.3, e.z + Math.cos(a) * 0.5, { n: 1, speed: 0.05, life: 0.3, grav: -0.3, color: [3.2, 2.2, 0.7], size: 1 }); }
+      // the Mother in the vault: dust and grit falling from above where she crawls
+      if (T === 'hollowmother' && e.hidden && hero && Math.random() < dt * 14) { const a = Math.random() * TAU, r = Math.random() * 5; this.emit(hero.x + Math.sin(a) * r, 7, hero.z + Math.cos(a) * r, { n: 2, speed: 0.1, life: 1.2, grav: 7, color: [0.45, 0.42, 0.4], size: 1 }); }
+    }
+    for (const [id, gm] of st.grin) if (!seen.has(id)) { free(this.group, gm); st.grin.delete(id); }
+    for (const [id, c] of st.cols) if (!seen.has(id)) { free(this.group, c.g); st.cols.delete(id); }
+    for (const id of [...st.last.keys()]) if (!seen.has(id)) st.last.delete(id);
+    st.dark += (dark - st.dark) * Math.min(1, dt * (dark > st.dark ? 6 : 2.5));
+    this._lights5(st.dark, flick, hero);
+  }
+  _grinSprite() { // a wide white smile and two pin-point eyes, drawn in pixels
+    const tex = kept('tGrin', () => { const t = pixTex(32, (g, n) => { g.clearRect(0, 0, n, n); g.fillStyle = '#fff'; for (let x = 4; x <= 27; x++) { const y = 18 + Math.round(Math.sin((x - 4) / 23 * Math.PI) * 4); g.fillRect(x, y, 1, 2); if (x % 3 === 0) g.fillRect(x, y - 1, 1, 1); } g.fillRect(10, 10, 2, 2); g.fillRect(20, 10, 2, 2); }); t.userData = t.userData || {}; const m = new THREE.Object3D(); m.userData.tex = t; return m; }).userData.tex;
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, color: new THREE.Color(2.4, 2.4, 2.4), transparent: true, depthWrite: false, depthTest: false, fog: false })); s.scale.set(1.6, 1.6, 1); s.renderOrder = 12; return s;
+  }
+  _pyreColumn() {
+    const g = new THREE.Group();
+    const mk = (r, h, c, op) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.7, r, h, 10, 1, true), new THREE.MeshBasicMaterial({ color: new THREE.Color(...c), transparent: true, opacity: op, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, side: THREE.DoubleSide })); m.position.y = h / 2; g.add(m); return m; };
+    const inner = mk(0.55, 5.5, [3.4, 1.8, 0.5], 0); const outer = mk(1.0, 6.5, [3.0, 0.7, 0.12], 0);
+    const cross = new THREE.Group(); g.add(cross); const cm = () => new THREE.MeshBasicMaterial({ color: new THREE.Color(3.2, 2.4, 1.0), transparent: true, opacity: 0.6, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, side: THREE.DoubleSide });
+    const v = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 3.2), cm()); cross.add(v); const hz = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.22), cm()); hz.position.y = 0.55; cross.add(hz); cross.visible = false;
+    g.visible = false; return { g, inner, outer, cross, k: 0 };
+  }
+  // a straight line of light from (x0, z0) to (x1, z1): where a blade passed
+  slash5(x0, z0, x1, z1, color = [3.4, 3.4, 3.8], life = 0.35) {
+    const g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x0, 1.0, z0), new THREE.Vector3(x1, 1.0, z1)]);
+    const l = new THREE.Line(g, new THREE.LineBasicMaterial({ color: new THREE.Color(...color), transparent: true, fog: false, depthTest: false })); l.renderOrder = 10; this.group.add(l); this.slashes.push({ l, t: life, life });
+  }
+  // set pieces of the new entrances: limbs uncurling down from the vault, the burning stake, Tallow's chandelier
+  _piece5(kind, P) {
+    const g = P.g, o = P.o, U = P.ud;
+    const boxm = (w, h, d, m, px, py, pz, parent = g) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(px, py, pz); b.castShadow = true; parent.add(b); return b; };
+    const lam = (hex, em = 0) => new THREE.MeshLambertMaterial({ color: hex, emissive: em });
+    const glow = (rgb, op = 1) => new THREE.MeshBasicMaterial({ color: new THREE.Color(...rgb), transparent: op < 1, opacity: op, depthWrite: op >= 1, blending: op < 1 ? THREE.AdditiveBlending : THREE.NormalBlending, fog: false, side: THREE.DoubleSide });
+    if (kind === 'descent') { U.limbs = []; const m = lam(0xe8e2d6, 0x1a1814); for (let i = 0; i < 6; i++) { const a = i / 6 * TAU; const L = 3 + Math.random() * 2; const b = boxm(0.1, L, 0.1, m, Math.sin(a) * 1.2, (o.y || 10) + L / 2, Math.cos(a) * 1.2); b.rotation.z = Math.sin(a) * 0.2; U.limbs.push({ b, L, d: i * 0.12 }); } }
+    else if (kind === 'pyre') { U.stake = new THREE.Group(); g.add(U.stake); const wd = lam(0x2a1a10, 0x200800); boxm(0.22, 3.4, 0.22, wd, 0, 1.7, -0.25, U.stake); boxm(1.9, 0.18, 0.18, wd, 0, 2.6, -0.25, U.stake);
+      for (let i = 0; i < 9; i++) { const a = i / 9 * TAU; boxm(0.9, 0.16, 0.16, lam(0x3a2414, 0x301004), Math.sin(a) * 0.6, 0.12, Math.cos(a) * 0.6, U.stake).rotation.y = a; }
+      U.col = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 1.2, 7, 10, 1, true), glow([3.2, 1.2, 0.2], 0.0)); U.col.position.y = 3.5; g.add(U.col); U.stake.position.y = -3.6; }
+    else if (kind === 'chandelier') { U.ch = new THREE.Group(); g.add(U.ch); const iron = lam(0x2a2620); const ring = new THREE.Mesh(new THREE.TorusGeometry(1.4, 0.06, 4, 18), iron); ring.rotation.x = Math.PI / 2; U.ch.add(ring);
+      for (let i = 0; i < 4; i++) { const a = i / 4 * TAU; const s = boxm(0.04, 3.2, 0.04, iron, Math.sin(a) * 0.7, 1.5, Math.cos(a) * 0.7, U.ch); s.rotation.set(Math.cos(a) * 0.42, 0, -Math.sin(a) * 0.42); }
+      boxm(0.06, 7, 0.06, iron, 0, 6.5, 0, U.ch); U.candles = []; for (let i = 0; i < 14; i++) { const a = i / 14 * TAU; const c = boxm(0.1, 0.3, 0.1, lam(0xe8dcc0), Math.sin(a) * 1.4, 0.2, Math.cos(a) * 1.4, U.ch); boxm(0.06, 0.08, 0.06, glow([3.2, 2.2, 0.8]), 0, 0.2, 0, c); U.candles.push(c); } }
+    P.update5 = (dt) => {
+      const t = P.t; const cl = (k) => Math.max(0, Math.min(1, k)); const ez = (k) => k * k * (3 - 2 * k); const end = cl((t - (P.life - 0.6)) / 0.6);
+      if (kind === 'descent') { for (const L of U.limbs) { const k = ez(cl((t - L.d) / 1.8)); L.b.position.y = (o.y || 10) + L.L / 2 - k * (o.y || 10) * 0.75; L.b.rotation.x = Math.sin(t * 3 + L.d * 9) * 0.15; } g.visible = end < 1; }
+      else if (kind === 'pyre') { const r = ez(cl((t - (o.rise || [0, 1])[0]) / ((o.rise || [0, 1])[1] - (o.rise || [0, 1])[0]))); U.stake.position.y = -3.6 + r * 3.6; const b = cl((t - (o.blaze || 1.2)) / 0.5); U.col.material.opacity = 0.35 * b * (1 - end) * (0.85 + 0.15 * Math.sin(t * 20)); U.col.scale.set(1 + 0.1 * Math.sin(t * 9), 1, 1 + 0.1 * Math.sin(t * 9));
+        if (r > 0.2 && Math.random() < dt * 60) this.emit(g.position.x + (Math.random() - 0.5) * 1.5, 0.2 + Math.random() * 3 * b, g.position.z + (Math.random() - 0.5) * 1.5, { n: 1, speed: 0.4, vy: 3 + Math.random() * 3, life: 0.7, grav: -2, color: Math.random() < 0.5 ? [3.4, 1.6, 0.3] : [3, 0.6, 0.1], size: Math.random() < 0.3 ? 2 : 1 }); U.stake.visible = end < 0.8; }
+      else if (kind === 'chandelier') { const [t0, t1, y0] = o.drop || [0, 2, 9]; const k = cl((t - t0) / (t1 - t0)); U.ch.position.y = (1 - (1 - k) * (1 - k)) * (2.6 - y0) + y0; U.ch.rotation.y = t * 0.6; const m = cl((t - (o.melt || 2.4)) / 0.8); for (const c of U.candles) c.scale.y = Math.max(0.05, 1 - m); g.visible = end < 1; }
+    };
+    return P;
+  }
+
   clear() {
     for (const d of this.decals) free(this.group, d.m); this.decals = [];
     for (const [, m] of this.teles) free(this.group, m); this.teles.clear();
@@ -808,7 +1021,12 @@ export class FX {
     for (const p of this.pieceList || []) free(this.group, p.g); this.pieceList = [];
     for (const d of this.chunks || []) free(this.group, d.m); this.chunks = [];
     for (const [, a] of this.auraMap || []) free(this.group, a.g); if (this.auraMap) this.auraMap.clear();
+    if (this.b5) { for (const [, gm] of this.b5.grin) free(this.group, gm); for (const [, c] of this.b5.cols) free(this.group, c.g); this.b5 = null; } this._lights5(0, false, null);
     for (let i = 0; i < MAXP; i++) this.pLife[i] = 0;
     this._tonicClear();
   }
 }
+
+// B's element visuals (js/engine/fx_elements.js, a mixin installed on FX.prototype), loaded after FX exists so the
+// mixin may import it; a missing file changes nothing
+import('./fx_elements.js').then((m) => { const f = m && (m.installElements || m.install || m.default); if (typeof f === 'function') f(FX); }).catch(() => {});

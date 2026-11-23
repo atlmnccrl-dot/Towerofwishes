@@ -33,4 +33,6 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
-document.addEventListener('visibilitychange', () => { if (document.hidden && game.state === 'play') game.go('pause'); });
+// leaving the page (an app switch on a phone): pause a fight and save the run where it is
+document.addEventListener('visibilitychange', () => { if (!document.hidden) return; if (game.state === 'play') game.go('pause'); try { game.persist(); } catch (e) { /* */ } });
+window.addEventListener('pagehide', () => { try { game.persist(); } catch (e) { /* */ } });

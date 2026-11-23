@@ -2,8 +2,10 @@
 // cathedral (its west doors buried by the tide), down the flooded nave between the arcades, past the
 // fallen chandelier, to the crossing where the Drowned Deacon preaches to the water.
 import * as P from '../props/nave.js';
+import { VARIANTS } from '../../game/variants.js';
 
 export default {
+  variants: VARIANTS.nave, // the run's area variants: layout, condition, foes, boss pool, events (js/game/variants.js)
   id: 'nave', name: 'The Drowned Nave', tagline: 'THE TIDE CAME IN THROUGH THE DOORS. IT NEVER WENT OUT.', tier: 3,
   start: { x: 15.5, z: 14, face: Math.PI },
   bounds: [-17.5, -42.5, 22, 16.5],

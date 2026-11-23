@@ -1,8 +1,8 @@
-// Autoplay for end-to-end tests: walks a district on a grid path (closed gates block), opens chests,
-// fights with the bot, walks by the last lamp before the boss (lamps light themselves and restore the
-// hero: nothing to press; growing happens at the Haven, which game.autoInput plays through), enters the
-// boss arena and leaves by the exit. Pure logic. Cutscenes are skipped by game.autoInput (a choice is
-// picked by game.autoChoice: at the end SING when trueEndingReady(save), else RING).
+// Autoplay for end-to-end tests: inside an area it walks on a grid path (closed gates block), opens chests,
+// fights with the bot, enters the boss arena and leaves by the exit; in the tutorial duel it answers each beat
+// (strike, dash, the frozen perfect dodge, the ultimate, the title). Everything between areas (the warden, the
+// route map, boons, events, shrines, the merchant, the summary) is picked by game.autoInput / autoScreen.
+// Pure logic. Cutscenes are skipped by game.autoInput (game.autoChoice picks: SING when it can, else RING).
 import { makeBot } from './bot.js';
 
 const S = 0.25, R = 0.39;
@@ -36,15 +36,11 @@ export function makeAutoplay(seed = 3) {
   function targets(game) {
     const L = game.level, def = L.def; const out = [];
     // the training on the Old Road: walk on, walk to the lamp when told, leave only when it says go
-    const T = game.tutorial && game.tutorial.step;
-    if (T) {
-      if (T.id === 'move') return [{ id: 'north', x: 0, z: 18 }];
-      if (T.id === 'lamp') for (const l of L.lamps) if (!l.h.lit) out.push({ id: 'lamp:' + l.id, x: l.x + 1.2, z: l.z + 0.6, lamp: l });
-      if (T.id !== 'go') return out;
-    }
+    if (game.tutorial) return out; // the duel: stay and fight
+    for (const t of game.touches || []) if (!t.used && t.id && !st.visited.has('touch:' + t.id)) out.push({ id: 'touch:' + t.id, x: t.x, z: t.z, touch: t });
     for (const c of L.chests) if (!c.h.open && !st.visited.has('chest:' + c.id)) out.push({ id: 'chest:' + c.id, x: c.x, z: c.z + 1.0, chest: c });
     for (const e of game.encs || []) if (e.state === 'idle') { const c = center(e.zone); out.push({ id: 'enc:' + e.id, x: c.x, z: c.z }); }
-    if (def.boss && game.bossState === 'idle' && !out.length && !st.rested && L.lamps.length) { const l = L.lamps[L.lamps.length - 1]; out.push({ id: 'rest', x: l.x + 1.2, z: l.z + 0.6, lamp: l, rest: true }); }
+    for (const l of L.lamps) if (!l.h.lit && game.world.hero.hp < game.world.hero.maxHp * 0.8) out.push({ id: 'lamp:' + l.id, x: l.x + 1.2, z: l.z + 0.6, lamp: l });
     if (def.boss && game.bossState === 'idle') { const z = def.boss.zone; out.push({ id: 'boss', x: (z[0] + z[2]) / 2, z: z[3] - 1.5 }); }
     if (def.exit && (!def.exit.requires || game.bossState === 'done')) { const c = center(def.exit.zone); out.push({ id: 'exit', x: c.x, z: c.z, last: true }); }
     return out;
@@ -53,12 +49,15 @@ export function makeAutoplay(seed = 3) {
   return function frame(game, dt) {
     const w = game.world, h = w.hero; const inp = bot(w, dt);
     // the training asks for things a fight alone may not bring: two dashes, the ultimate, a tonic
-    const T = game.tutorial && game.tutorial.step; st.tT = (st.tT || 0) + dt;
-    if (T) {
-      if (T.id === 'dash' && game.tutorial.dashes < 2 && st.tT > 0.9) { st.tT = 0; inp.dashPressed = true; }
-      if (T.id === 'ult' && w.meter >= 100) inp.ultPressed = true;
-      if (T.id === 'tonic' && h.tonics > 0 && st.tT > 0.5) { st.tT = 0; inp.healPressed = true; }
+    const D = game.tutorial; const T = D && D.beat; st.tT = (st.tT || 0) + dt;
+    if (D) {
+      if (T === 'dash' && st.tT > 0.9) { st.tT = 0; inp.dashPressed = true; }
+      if (T === 'perfect') { inp.dashPressed = !!D.freeze; if (!D.freeze) inp.attackPressed = false; }
+      if (T === 'ult' && w.meter >= 100) inp.ultPressed = true;
+      if (T === 'title' && D.bt > 3.8) D.tap();
+      if (T === 'intro' || T === 'finish' || T === 'title') return inp;
     }
+    if (!D && h.hp < h.maxHp * 0.35 && h.tonics > 0 && st.tT > 1.5) { st.tT = 0; inp.healPressed = true; }
     // wedged between props (a foe's shove or a knockback can leave the hero in a gap narrower than they
     // are): when the hero has tried to move without getting anywhere, step out along a free heading
     if (st.escape && (st.escape.t -= dt) > 0) { inp.mx = st.escape.mx; inp.mz = st.escape.mz; inp.attackPressed = false; return inp; }
@@ -109,6 +108,7 @@ export function makeAutoplay(seed = 3) {
       // where the game offers the prompt (1.7 m from the chest itself)
       const obj = t.lamp || t.chest; const dObj = obj ? Math.hypot(obj.x - h.x, obj.z - h.z) : 9;
       if (t.lamp && dObj < 2.4) { st.visited.add(t.id); if (t.rest) st.rested = true; st.path = null; return inp; }
+      if (t.touch && (t.touch.used || dT < 0.9)) { st.visited.add(t.id); st.path = null; }
       if (t.chest && dObj < 1.5) { inp.interactPressed = true; st.visited.add(t.id); st.path = null; return inp; }
       if (obj && dT < 0.5) { const dx = obj.x - h.x, dz = obj.z - h.z; inp.mx = dx / dObj; inp.mz = dz / dObj; return inp; }
       if (t.id.startsWith('enc:') && dT < 1.5) st.path = null;

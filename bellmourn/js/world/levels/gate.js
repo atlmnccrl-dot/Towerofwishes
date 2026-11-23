@@ -3,8 +3,10 @@
 // gallows square where the Gaoler keeps the keys. The lane is the gaol: cell blocks with barred windows,
 // the watchtower and its beacon over the roofs, gibbet cages over the cobbles.
 import * as P from '../props/gate.js';
+import { VARIANTS } from '../../game/variants.js';
 
 export default {
+  variants: VARIANTS.gate, // the run's area variants: layout, condition, foes, boss pool, events (js/game/variants.js)
   id: 'gate', name: 'Gallows Gate', tagline: 'THE GATE STANDS OPEN. IT NEVER USED TO.', tier: 0,
   start: { x: -5, z: 13.5, face: Math.PI },
   bounds: [-14, -49, 18, 16],

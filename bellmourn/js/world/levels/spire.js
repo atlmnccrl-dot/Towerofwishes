@@ -6,6 +6,7 @@
 // its dial in the floor and the great clock face. Far above, the rim of the Wheel.
 import * as P from '../props/spire.js';
 import { barrier3, W3 } from '../kit3.js';
+import { VARIANTS } from '../../game/variants.js';
 
 const DECKS = [
   [-4, 4, 8, 15],          // the lift deck
@@ -25,6 +26,7 @@ const WALKS = [...DECKS, ...CATWALKS];
 const BOUNDS = [-16, -66, 20, 16];
 
 export default {
+  variants: VARIANTS.spire, // the run's area variants: layout, condition, foes, boss pool, events (js/game/variants.js)
   id: 'spire', name: 'The Clockwork Spire', tagline: 'THE WHEEL\'S MACHINERY. EVERY GEAR TURNS AGAINST THE TOLL.', tier: 13, act: 3,
   start: { x: 2.6, z: 12.6, face: Math.PI },
   bounds: BOUNDS, apron: false,

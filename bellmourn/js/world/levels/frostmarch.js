@@ -6,6 +6,7 @@
 import * as P from '../props/frostmarch.js';
 import { rockFill } from '../props/undercroft.js';
 import { W2, barrier, floorGlow } from '../kit2.js';
+import { VARIANTS } from '../../game/variants.js';
 
 const WALKS = [
   [-5.5, -4.0, 8.5, 18],     // the north road among the firs
@@ -22,6 +23,7 @@ const WALKS = [
 const BOUNDS = [-16, -62, 18, 18];
 
 export default {
+  variants: VARIANTS.frostmarch, // the run's area variants: layout, condition, foes, boss pool, events (js/game/variants.js)
   id: 'frostmarch', name: 'The Frostmarch', tagline: 'BEYOND THE WALLS THE TOLL CARRIES NORTH. THE SNOW ANSWERS.', tier: 8, act: 2,
   start: { x: 1.6, z: 15.4, face: Math.PI },
   bounds: BOUNDS, apron: false,

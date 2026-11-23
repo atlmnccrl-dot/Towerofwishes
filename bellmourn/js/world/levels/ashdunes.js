@@ -8,6 +8,7 @@ import { rockFill } from '../props/undercroft.js';
 import { clouds } from '../props/belfry.js';
 import { W2, barrier, floorGlow, decal } from '../kit2.js';
 import * as T from '../../engine/textures.js';
+import { VARIANTS } from '../../game/variants.js';
 
 const WALKS = [
   [-5, -5.0, 9, 18],          // the caravan road
@@ -24,6 +25,7 @@ const WALKS = [
 const BOUNDS = [-16, -63, 20, 18];
 
 export default {
+  variants: VARIANTS.ashdunes, // the run's area variants: layout, condition, foes, boss pool, events (js/game/variants.js)
   id: 'ashdunes', name: 'The Ash Dunes', tagline: 'THE SAND REMEMBERS A CITY OLDER THAN OURS.', tier: 9, act: 2,
   start: { x: 1.8, z: 15.4, face: Math.PI },
   bounds: BOUNDS, apron: false,

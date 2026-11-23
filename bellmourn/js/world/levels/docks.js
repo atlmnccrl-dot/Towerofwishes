@@ -3,8 +3,10 @@
 // aboard, the Salt Quay under the warehouse loading decks, and the Graving Quay by the dry dock
 // (a wreck on its keel blocks) where the Harbormaster drags the drowned ashore.
 import * as P from '../props/docks.js';
+import { VARIANTS } from '../../game/variants.js';
 
 export default {
+  variants: VARIANTS.docks, // the run's area variants: layout, condition, foes, boss pool, events (js/game/variants.js)
   id: 'docks', name: 'Mirewater Docks', tagline: 'THE SHIPS CAME BACK. THE CREWS DID NOT.', tier: 2,
   start: { x: 0.4, z: 14.4, face: Math.PI },
   bounds: [-26, -56, 14, 17.6],

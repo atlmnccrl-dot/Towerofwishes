@@ -9,10 +9,11 @@
 // As everywhere, no parry: every blow is marked first and can be dashed through or walked out of.
 //
 // Names, titles, the comments describing who they are and what they do: PROPOSAL, for the author.
-import { strike, ringAt, circleAt, summon, blink, steer } from './ai.js';
+import { strike, ringAt, circleAt, summon, blink, steer, BOSS_AI } from './ai.js';
 import { BOSSES2, BOSS_AI2, free, adds, countOf, roarPause, row, around, combo, quick } from './bosses2.js';
 import { FOES } from './defs.js';
 import { UNITS } from './units.js';
+import { ASCENDED5, ENTRANCES5 } from './bosses5.js'; // the five new bosses' Ascended forms and entrances (merged at the end)
 
 const deg = (d) => (d * Math.PI) / 180;
 const TAU = Math.PI * 2;
@@ -531,7 +532,7 @@ export function bossPlan(e, B) {
 }
 // how many phases a boss fight has (for the tests and the HUD): own, true form, ascended
 export function PHASES_OF(type, o = {}) {
-  const B = BOSS_AI2[type] || null; const own = B && B.phasesFor ? B.phasesFor(o) : (B ? B.phases : null);
+  const B = BOSS_AI2[type] || BOSS_AI[type] || null; const own = B && B.phasesFor ? B.phasesFor(o) : (B ? B.phases : null);
   const base = own ? own.length + 1 : ({ gaoler: 2, tallow: 2, deacon: 3, silence: 3 })[type] || 3;
   if (!o.ascended) return base;
   const A = ASCENDED[type]; return A.phases && !(o.trueForm && B && B.phasesFor) ? A.phases.length + 1 : base + 1;
@@ -554,7 +555,7 @@ export function ascendDef(e) {
 // returns true while the entrance runs and false once it has ended (the boss is then on its spot, idle).
 const once = (S, key, fn) => { if (!S.fired.has(key)) { S.fired.add(key); fn(); } };
 // the scripts: (w, e, t, fx, st) with st.home {x, z, face}, st.fired, st.dt; F(fn) runs fn only with fx
-const ENTRANCES = {
+export const ENTRANCES = {
   // PROPOSAL: the Gaoler kicks his way out through the wall of the gallows square
   gaoler: { kind: 'wall', dur: 3.4, cam: { zoom: 1.15 }, script(w, e, t, F, st) {
     const back = st.at(-3.2), wall = st.at(-2.4);
@@ -567,8 +568,9 @@ const ENTRANCES = {
     if (t < 2.15) st.anim('charge', t - 1.25 + 0.85); else st.anim('roar', t - 2.15);
   } },
   // PROPOSAL: Mother Tallow comes down from the dark in a hanging cage of candles that melts open
-  tallow: { kind: 'cage', dur: 3.8, cam: { zoom: 1.1, lift: 2 }, script(w, e, t, F, st) {
-    once(st, 'piece', () => F((fx) => fx.setPiece('cage', st.home.x, st.home.z, st.home.face, { life: 4.4, drop: [0, 2.0, 9], melt: 2.2 })));
+  // (reworked: the Gaoler has the cages now; she comes down on a great iron chandelier of candles)
+  tallow: { kind: 'chandelier', dur: 3.8, cam: { zoom: 1.1, lift: 2 }, script(w, e, t, F, st) {
+    once(st, 'piece', () => F((fx) => fx.setPiece('chandelier', st.home.x, st.home.z, st.home.face, { life: 4.4, drop: [0, 2.0, 9], melt: 2.4 })));
     const k = easeOut(clamp01(t / 2.0)); e.leapH = lerp(9, 0.4, k) * (t < 3.0 ? 1 : 1 - ease(clamp01((t - 3.0) / 0.5)));
     st.put(st.home.x, st.home.z);
     if (t >= 2.2) once(st, 'melt', () => F((fx) => { fx.embers(st.home.x, 1.5, st.home.z, 40, [3, 2, 0.8]); fx.debris(st.home.x, 2, st.home.z, 14, [0.95, 0.9, 0.75], { speed: 3, size: 0.12 }); }));
@@ -716,3 +718,4 @@ export function bossEntrance(type) {
 
 // the other half of the merge in bosses2.js: when this module is evaluated second
 try { Object.assign(BOSSES2, BOSSES4); Object.assign(BOSS_AI2, BOSS_AI4); } catch (err) { /* bosses2.js merges */ }
+try { Object.assign(ASCENDED, ASCENDED5); Object.assign(ENTRANCES, ENTRANCES5); } catch (err) { /* bosses5.js merges */ }

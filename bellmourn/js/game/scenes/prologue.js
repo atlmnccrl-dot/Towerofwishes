@@ -101,4 +101,23 @@ export const havenAsh = {
   },
 };
 
-export default { [road.id]: road, [meet.id]: meet, [havenAsh.id]: havenAsh };
+// Later runs: a short cinematic road (a few seconds, skippable): the warden walks toward the dark gate in the
+// rain, the road's name and the run's number, thunder, and on to the route map. PROPOSAL: the card's text.
+export const roadShort = {
+  id: 'road.short', music: 'title', fadeIn: true,
+  steps: (S) => {
+    const h = heroP(S); const n = ((S.g.meta && S.g.meta.runs) | 0) + 1;
+    return [
+      spawn('lead', { use: 'hero', face: h.face, anim: 'idle' }),
+      cam(scr(h, 0, 1.4), { zoom: 1.75, dur: 0 }),
+      fade(0, 0.9),
+      par(walk('lead', ahead(h, 5.5), { wait: false }), cam(scr(ahead(h, 5), 0, 2.2), { zoom: 1.3, dur: 3.2, wait: false })),
+      title('THE OLD ROAD', 'RUN ' + n, 2.6),
+      flash(0.7), sound('thunder', { vol: 0.8, big: true }),
+      wait(0.5),
+      fade(1, 0.6),
+    ];
+  },
+};
+
+export default { [road.id]: road, [meet.id]: meet, [havenAsh.id]: havenAsh, [roadShort.id]: roadShort };

@@ -31,10 +31,11 @@ For a hundred nights the great bell of St. Orrin has been silent; the rain has n
 has the night. The people still walking the streets have no voices any more, only red eyes: the Hushed.
 The last of the bell-wardens come home to ring the bell.
 
-Between the districts the wardens rest at **the Haven**, a ruined lamplighters' shrine whose fire was lit
-from the great bell's own forge, so the night cannot touch it. The embers the wardens carry there are
-freed voices: striking a Hushed down releases the voice asleep in it. The story, the cast and the endings
-are planned in `docs/STORY_BIBLE.md` (a proposal for the author).
+Between the fights a warden may rest at **the Haven**: a lonely rooftop high above the drowned city, where
+one great iron lantern holds the Great Bell's forge-flame, the only fire the night cannot touch. No one else
+is there. The embers a warden carries are freed voices: striking a Hushed down releases the voice asleep in it.
+The story, the cast and the endings are planned in `docs/STORY_BIBLE.md`; the roguelite run in
+`docs/RUN_DESIGN.md` (both proposals for the author).
 
 **Cutscenes** play in the game world with the real characters: letterbox bars, each line under the
 speaker's name in their colour (a tap, a click or a key moves on), a SKIP button top right (skipping never
@@ -73,6 +74,33 @@ opens on the lands the silence came from.
 After the Archon falls, the Wheel above the Abyss starts to turn: Act III, the Wheel (the Weeping Marsh,
 the Clockwork Spire, the Empyrean), and the final choice. Act II's fights lock with their own barriers (ice
 that bursts from the snow, sandstone slabs, portcullises, teeth of black glass) instead of iron gates.
+
+## The run (a roguelite)
+
+- **One run is the whole road**, Act I to Act III, on a branching route map generated from a seed: Gallows Gate,
+  3 of the 6 middle districts, the Belfry; 2 of the 3 regions beyond the walls, the Abyss; 1 of 2 regions of the
+  Wheel, the Empyrean. About ten areas a run, each a variant (a layout, a condition such as FLOODED or BLOOD
+  MOON, its foes, its boss drawn from a pool) cut short for runs: a fight or two, the boss, the exit.
+- Between the areas sit small nodes: **EVENT** (a card with two or three choices), **SHRINE** (the Haven: rest,
+  raise a boon's rarity, buy a reroll or a tonic), **MERCHANT** (tonics, bindings, a boon, relics and a weapon for
+  this run), **TRIAL** (an elite arena: a rarer boon), and **QUEST** (only once its hint was found).
+- **A run is one warden**, chosen on the select screen (locked wardens show their unlock challenge), with up to
+  three **talents** from their mastery. No switching anywhere.
+- **Boons**: after every cleared fight, a boss, a trial and some events, pick one of three (seven Resonances,
+  chains, duos, crowns, rarities). Embers are spent at shrines and merchants during the run.
+- **Death ends the run**: the RUN SUMMARY shows what it earned (Bell Shards, mastery, challenges, unlocks), then
+  the title. The run saves at every node: closing the app and choosing CONTINUE RUN picks it up at that node
+  (fights already won there stay won).
+- **Permanent progress** (meta): warden mastery and talents, Bell Shards spent in the **Bell Tower** on
+  upgrades for every run (a tonic, rerolls, an ember purse, health, warmer shrines, rarer offers, a second
+  life), challenges that unlock wardens and more, the Codex. The old v2 save migrates once: its wardens and the
+  story it saw are kept; levels become mastery; embers and fallen bosses become shards.
+- **The first run's Old Road** is a cinematic duel with the crow-masked oath-sworn warden that teaches by single
+  words (STRIKE, DASH, a frozen slow-motion perfect dodge, a first boon, the ULTIMATE), then the title over the
+  gate. Later runs walk a short cinematic road. Cutscenes play in full once, then are cut short.
+- **Allies**: wardens befriended through side quests arrive, each with an entrance, when the Wheel enters its
+  second stage.
+- The old district lamps are small one-time heals.
 
 ## The wardens
 
@@ -114,28 +142,9 @@ warden levels on their own.
   the feet and the health landing (the bar's new part flashes green, "+amount" over the head).
 - Burn, bleed, poison, frost, stun and root. A dash tears you free of a web or a curse. **Elite** foes glow with an affix (burning, frozen,
   shielded, hasted, vampiric), hit harder and drop more.
-- **Lamps** in a district are checkpoints and light themselves: walk within about 3.5 m of one while the
-  area is clear (no foe hunting you within 12 m, no locked fight or boss under way) and it flares up with
-  embers, the lamp's sound and LAMP LIT: your place is kept, your health, tonics and revives come back and
-  the game saves. Nothing to press and no kneeling: you keep moving. A lit lamp restores you again when you
-  come back within reach out of a fight, once per visit (it re-arms after you have walked 6 m away).
-- **The Haven** comes between the districts: walk through a district's exit after its boss (or the end
-  of the Old Road) and the warden walks in out of the rain and kneels by the fire, which stays in view
-  between the menu's two halves. On the left a rail of five big sections: WARDEN (switch warden), SKILLS
-  (five ranks per skill, swap the third into slot 2; a gold badge counts unspent points), GEAR (temper and
-  change weapons, each warden has five; relics, fourteen, two slots and a third after District IV),
-  MERCHANT (stocked for the district ahead), MAP (any district already reached) and BESTIARY (every foe met,
-  locked silhouettes for the rest, and where each first appears; a foe slain for the first time says NEW IN THE BESTIARY). On the right the open
-  section: a few large rows, each with its name, a second line saying what it is and, on the right, what
-  choosing it costs or its state (1 PT, 288 E, IN HAND, WORN, LOCKED). One tap selects a row; the button
-  under the list says what it will do and for how much (LEARN 1 PT, TEMPER 40 E, BUY 288 E, EQUIP, SET
-  OUT), or why it cannot (NEED 288 E, NO SKILL POINTS), and does it. Every choice is answered by the
-  fire flaring, embers and a bell; a new weapon appears in the warden's hand, a new warden takes the
-  kneeling place. ONWARD (bottom right, always there): the warden rises and walks out into the next
-  district. The first visit has a short guide in the panel that points at the button and at ONWARD. The pause menu in a district offers RETURN TO THE HAVEN (what you
-  cleared stays cleared), and CONTINUE on the title resumes in the Haven if you saved there.
-- Kills give embers and experience; chests (E / USE) and bosses give weapons, relics and tonic flasks.
-- Dying costs nothing but the fight in progress: you wake at the last lamp; cleared fights stay cleared.
+- **Lamps** in an area light when you walk up to one out of a fight: a small heal, once each.
+- Chests (E / USE) hold embers, sometimes a tonic or a relic for the run. Kills free voices: embers.
+- Dying ends the run (the tutorial duel cannot be lost).
 - Progress saves in the browser. Settings: sound, music volume, screen shake, pixel size, BUTTONS (touch
   button size: small, medium, large) and ABILITIES (ON ATTACK or AUTO); tap a row's right part to step a
   value up, its left part to step it down (keys: left and right).
@@ -167,16 +176,17 @@ warden levels on their own.
 | `js/actors/rig.js`, `anims.js`, `view.js` | articulated characters, their poses and clips, and the sim-to-rig view |
 | `js/game/sim.js` | the fight simulation: pure, fixed 60 Hz, deterministic; runs in Node (hero kits, abilities, ultimates, statuses, elites, relic effects) |
 | `js/game/heroes.js` | the four wardens, abilities, ultimates, weapons, relics, elite affixes, growth curves (pure data) |
-| `js/game/progress.js` | experience, skill ranks, loot, boss rewards, the merchant (pure functions on the save) |
-| `js/game/haven.js`, `js/world/haven.js` | the Haven between districts: the scene (walk in, kneel, the camera closing in, the fire answering each choice, ONWARD) and its set (the ruined shrine, the brazier, the statue, candles, moths, the roof that stops the rain) |
-| `js/game/lampmenu.js`, `js/game/tutorial.js` | the Haven's menu (the section rail, the open section's rows, the button that does the selected row, ONWARD), beside the kneeling warden; the guided training on the Old Road |
+| `js/game/run.js` | the run (pure): the seeded route map per act, moving along it, the virtual save the warden's stats come from, talents, the Bell Tower, the shrine's and the merchant's wares, the run summary (`endRun`), the v2 save's migration (`migrateSave`) |
+| `js/game/progress.js` | the old save's rules (the bestiary helpers and the true-ending check are still used) |
+| `js/game/haven.js`, `js/world/haven.js` | the Haven, used for SHRINE nodes: the scene (walk up the stair, kneel at the great lantern, the camera closing in, the flame answering each choice, LEAVE) and its set (a lonely rooftop above the drowned city, the lantern with the forge-flame, a fallen bell, the city and the Belfry far below in the rain) |
+| `js/game/tutorial.js` | the first run's tutorial duel on the Old Road (the beats, their words, the slow motion, the finish and the title over the gate) |
 | `js/game/units.js`, `js/game/bosses2.js`, `js/actors/beasts.js` | the newer foes and their behaviour, the four newer bosses, bodies that are not people |
 | `js/game/defs.js` | the first foes and bosses (pure data) |
 | `js/game/ai.js` | foe and boss behaviour (pure) |
 | `js/game/bot.js`, `autoplay.js` | an autoplayer for tests |
 | `js/game/story.js` | the opening cards, the districts and regions of the three acts, the tips, the credits |
 | `js/game/cutscene.js`, `js/game/scenes/*.js` | the cutscene player (camera, actors, lines, choices, the bell's strikes, SKIP) and the scene scripts (`index.js` says which plays when; `lines.js` holds every boss's two lines; `cast.js` the speakers' colours and stand-in looks) |
-| `js/game/game.js` | states, levels, encounters, bosses, the self-lighting checkpoint lamps, the Haven state, saves, settings, the title, select, pause, settings and controls screens, events to effects |
+| `js/game/game.js` | the run's flow (title, select, talents, the Old Road, the map, each node, boons, death, the summary), areas (variants, bosses, encounters, trials), the screens (E's `js/ui`, plain stand-ins until they land), saves (meta and run), settings, pause, events to effects, the allies at the Wheel |
 
 ## Tests
 
@@ -191,15 +201,17 @@ NODE_PATH=$(npm root -g) node bellmourn/test/play.js /tmp/bm-play            # t
 NODE_PATH=$(npm root -g) node bellmourn/test/poses.js /tmp/bm-poses          # every clip, zoomed
 NODE_PATH=$(npm root -g) node bellmourn/test/tonic.js /tmp/bm-tonic warden    # a tonic in a district: the flask, the motes, the heal; effects cleaned up
 NODE_PATH=$(npm root -g) node bellmourn/test/phone.js /tmp/bm-phone          # iPhone-sized touch: select by taps, stick, ATK, the layout at every button size, a tonic tapped, the Haven by taps
-NODE_PATH=$(npm root -g) node bellmourn/test/autoplay-browser.js /tmp/bm-auto 40 3   # plays the whole game on autoplay
+NODE_PATH=$(npm root -g) node bellmourn/test/autoplay-browser.js /tmp/bm-auto 40 3 0 1   # plays whole runs on autoplay [god] [runs] [hero]; says when a run has finished
+node bellmourn/test/run-test.mjs 300                                         # the run's rules: maps for many seeds, newRun, endRun, migrateSave, talents, Tower, shop
 NODE_PATH=$(npm root -g) node bellmourn/test/shot.js /tmp/x.png "level=nave&boss=1&god=1"   # any spot
 NODE_PATH=$(npm root -g) node bellmourn/test/scenes-test.js /tmp/bm-scenes [id ...]   # every cutscene on a phone-sized screen, a frame from each
 NODE_PATH=$(npm root -g) node bellmourn/test/story-flow.js /tmp/bm-flow     # the story by script: the Old Road, the Haven, the Gaoler and Kestrel, Silence, the bell, Act II
 ```
 
-Debug URL parameters: `?level=<id>` starts in a district (prologue, gate, market, docks, nave,
-undercroft, foundry, heights, belfry, frostmarch, ashdunes, catacombs, abyss), `&lamp=<id>` at a lamp, `&boss=1` in the boss arena, `&hero=<id>`
-as a given warden, `&god=1` makes the hero unkillable, `?auto=1&speed=3` plays itself (through the
-Haven too: it spends, equips and goes ONWARD). `?level=haven&next=<id>` opens the Haven leading to a
-district (`&resume=1` already kneeling, `&intro=1` with the first-visit guide). Debug params skip the cutscenes (add `&scenes=1` to keep them). `?scene=<id>` plays one
-cutscene on its stage (`&fast=1` lets it run itself; ids in `js/game/scenes/index.js`).
+Debug URL parameters: `?level=<id>` starts a fresh run in an area (prologue, gate, market, docks, nave,
+undercroft, foundry, heights, belfry, frostmarch, ashdunes, catacombs, abyss, marsh, spire, empyrean) at that
+area's depth, `&variant=<id>` in a given variant, `&boss=1` in the boss arena, `&hero=<id>` as a given warden,
+`&god=1` makes the hero unkillable, `&seed=<n>` the run's seed; `?level=prologue&duel=1` the tutorial duel;
+`?level=shrine` a shrine (the Haven); `?level=map` the route map of a fresh run. `?auto=1&speed=3` plays whole
+runs by itself (`&runs=<n>`, `&hero=<id>`). Debug params skip the cutscenes (add `&scenes=1` to keep them).
+`?scene=<id>` plays one cutscene on its stage (`&fast=1` lets it run itself; ids in `js/game/scenes/index.js`).

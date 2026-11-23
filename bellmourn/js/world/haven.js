@@ -1,190 +1,171 @@
-// The Haven: the ruined lamplighters' shrine between the districts. Two tall walls of the old chapel
-// still stand at the back; the roof over them holds, the front half of it fell in long ago and only
-// the rafters remain, so the rain comes down past the fire. A great iron brazier burns in the middle
-// before a hooded statue of the first lamplighter, candles at its feet; moths circle the flame.
-// Built with the set kit like a district; game/haven.js runs the scene.
+// The Haven: a lonely rooftop high above the drowned city. The leaded top of an old lamplighters' tower, a
+// broken parapet round it, and in the middle one great iron lantern holding the Great Bell's forge-flame, the
+// only fire the night cannot touch. A cracked bronze bell lies beside it, wicks and a ladder, a worn mat where a
+// warden kneels. All round and far below, the city in the rain: roofs, a few lit windows, the dark Belfry
+// standing up out of the mist. No one else is here. Built with the set kit; game/haven.js runs the scene.
 //
-// Camera from +X+Z: +X is screen right-down, +Z screen left-down. On screen, left to right: the statue
-// against the west wall, the fire, the warden kneeling (facing the fire, seen in profile), so the menu
-// can sit at the right of the screen beside them. The roof that fell in is the part over that row (a
-// roof there would stand between the camera and the statue); what is left of it frames the sides.
+// Camera from +X+Z: +X is screen right-down, +Z screen left-down. On screen, left to right: the fallen bell,
+// the great lantern, the warden kneeling (facing it, in profile), so a panel can sit at the right of the screen.
+// The parapet is tall only on the far sides (-X, -Z), low on the near ones, so nothing hides the lantern.
 import * as THREE from '../../vendor/three.module.min.js';
 import * as K from './kit.js';
 import { M } from '../engine/materials.js';
 import * as T from '../engine/textures.js';
 import { candles, finish as finishProps } from './props/market.js';
 
-const RIDGE_Z = -1.6, RIDGE_Y = 6.0, EAVE_Y = 4.6, WALL = -4.6, ROOF_X0 = -4.9, ROOF_X1 = 3.9;
-const SLOPE = (RIDGE_Y - EAVE_Y) / (RIDGE_Z - WALL); // rise per metre toward the ridge
+const X0 = -4.8, Z0 = -4.8, X1 = 4.9, Z1 = 4.2; // the roof's edges
+const DROP = 17; // how far below the city lies
 
 export const HAVEN = {
-  id: 'haven', name: 'The Haven', bounds: [-9, -9, 12, 12],
-  // where the fire burns, where the warden kneels (facing the fire), where they come in from and leave to
+  id: 'haven', name: 'The Haven', bounds: [X0, Z0, X1, Z1],
+  // where the flame burns, where the warden kneels (facing it), where they come up the stair and go down again
   fire: { x: -1.6, z: -1.6 },
   kneel: { x: -0.2, z: -3.0 },
-  statue: { x: -3.55, z: -1.6 },
-  frame: { x: -1.9, y: 1.7, z: -2.3 }, // what the camera frames once the warden kneels (statue, fire, warden)
-  enter: [{ x: 5.4, z: 2.5 }, { x: 2.8, z: 0.2 }, { x: 1.0, z: -1.9 }],
-  leave: [{ x: 1.2, z: -1.7 }, { x: 3.4, z: 0.6 }, { x: 7.6, z: 4.4 }],
+  statue: { x: -3.55, z: -1.6 }, // the fallen bell (the scenes call it the statue: something by the fire)
+  frame: { x: -1.9, y: 1.9, z: -2.3 }, // what the camera frames once the warden kneels (the bell, the lantern, the warden)
+  enter: [{ x: 4.0, z: 2.9 }, { x: 2.6, z: 0.6 }, { x: 1.0, z: -1.9 }],
+  leave: [{ x: 1.2, z: -1.7 }, { x: 2.8, z: 0.8 }, { x: 4.1, z: 3.1 }],
   ambience: {
-    fog: 0x1a212c, fogNear: 76, fogFar: 120, sky: 0x080b10, moon: 1.05, hemi: 0.62, ambient: 0x182030, ambientI: 0.5, fill: 0.7, rain: 1, lightning: true,
-    beams: [],
+    fog: 0x141a26, fogNear: 70, fogFar: 128, sky: 0x06080d, moon: 1.15, hemi: 0.5, ambient: 0x141c2c, ambientI: 0.45, fill: 0.6, rain: 1, lightning: true,
+    beams: [{ x: -1.6, z: -1.6, r: 3.2, h: 30, from: [6, 0, -10], intensity: 34 }],
   },
 };
 
-// The height the rain stops at: the roof where it still holds, the stones elsewhere.
-const strips = []; // the front slope's surviving slates: [x0, x1, zEnd]
-export function roofAt(x, z) {
-  if (x < ROOF_X0 || x > ROOF_X1 || z < WALL - 0.35) return 0;
-  if (z <= RIDGE_Z) return EAVE_Y + (z - WALL) * SLOPE;
-  for (const s of strips) if (x >= s[0] && x < s[1] && z <= s[2]) return RIDGE_Y - (z - RIDGE_Z) * SLOPE;
-  return 0;
-}
+// The height the rain stops at: the roof, or the streets far below.
+export function roofAt(x, z) { return x >= X0 - 0.3 && x <= X1 + 0.3 && z >= Z0 - 0.3 && z <= Z1 + 0.3 ? 0 : -DROP; }
 
 export async function buildHaven() {
-  const ctx = K.makeCtx(); const r = T.rng(4242); const D = HAVEN;
-  const wood = M.wood('#3e2c20'), darkWood = M.wood('#2e2018'), stone = M.ashlar('#4a5464'), iron = M.ironLit();
-  // ------------------------------------------------ ground: wet cobbles outside, old flags inside
-  K.floor(ctx, -40, -40, 40, 40, M.cobble('#2e343e'), -0.03, 0.3);
-  K.floor(ctx, -9, -9, 12, 12, M.cobble('#4a5260'));
-  K.floor(ctx, WALL, WALL, 3.6, 3.2, M.flags('#5a626e'), 0.02, 0.42);
-  // a worn red mat where the wardens kneel
-  K.add(ctx, K.box(1.5, 0.03, 1.0), M.flat(0x4a1c1c), D.kneel.x + 0.1, 0.045, D.kneel.z + 0.1, { ry: Math.PI / 4, cast: false });
-  K.add(ctx, K.box(1.3, 0.035, 0.8), M.flat(0x5e2622), D.kneel.x + 0.1, 0.05, D.kneel.z + 0.1, { ry: Math.PI / 4, cast: false });
-  // puddles where the rain gets in, and out in the street
-  K.puddle(ctx, 1.4, 1.6, 1.8, 1.1); K.puddle(ctx, -1.6, 1.4, 1.2, 0.8); K.puddle(ctx, 4.6, 3.6, 2.2, 1.3); K.puddle(ctx, 7.8, -1.2, 1.6, 1.1); K.puddle(ctx, -3.6, 6.4, 2.4, 1.2);
+  const ctx = K.makeCtx(); const r = T.rng(4243); const D = HAVEN;
+  const stone = M.ashlar('#424b5a'), stoneLo = M.ashlar('#343c4a'), lead = M.flags('#4a525e'), iron = M.ironLit(), wood = M.wood('#3e2c20');
+  const bronze = M.flat(0x6e5a32), bronzeDk = M.flat(0x3e3420);
+  // ------------------------------------------------ the roof: worn lead sheets, seams, puddles
+  K.floor(ctx, X0, Z0, X1, Z1, lead, 0, 0.5);
+  for (let x = X0 + 1.2; x < X1; x += 1.6) K.add(ctx, K.box(0.06, 0.04, Z1 - Z0 - 0.4), M.flat(0x5a626e), x, 0.02, (Z0 + Z1) / 2, { cast: false });
+  K.puddle(ctx, 1.6, 1.4, 1.6, 1.0); K.puddle(ctx, -2.8, 1.8, 1.2, 0.8); K.puddle(ctx, 3.0, -2.6, 1.1, 0.7);
+  // the tower's body falling away under the roof (seen on the near faces): ashlar, a string course, slit windows
+  K.add(ctx, K.box(X1 - X0, DROP, Z1 - Z0), stoneLo, (X0 + X1) / 2, -DROP / 2 - 0.5, (Z0 + Z1) / 2);
+  K.add(ctx, K.box(X1 - X0 + 0.3, 0.35, Z1 - Z0 + 0.3), stone, (X0 + X1) / 2, -0.62, (Z0 + Z1) / 2);
+  K.add(ctx, K.box(X1 - X0 + 0.3, 0.35, Z1 - Z0 + 0.3), stone, (X0 + X1) / 2, -6.2, (Z0 + Z1) / 2);
+  for (const y of [-3.2, -9.4]) { for (const z of [-2.4, 1.2]) K.add(ctx, K.box(0.05, 1.1, 0.3), M.glow(y > -5 ? '#ffb050' : '#402010', y > -5 ? 1.4 : 1), X1 + 0.01, y, z, { cast: false }); for (const x of [-1.8, 2.2]) K.add(ctx, K.box(0.3, 1.1, 0.05), M.glow('#ffb050', y > -5 ? 1.2 : 0.6), x, y, Z1 + 0.01, { cast: false }); }
+  K.solid(ctx, X0 - 1, Z0 - 1, X0, Z1 + 1, 2); K.solid(ctx, X0 - 1, Z0 - 1, X1 + 1, Z0, 2); K.solid(ctx, X1, Z0 - 1, X1 + 1, Z1 + 1, 1); K.solid(ctx, X0 - 1, Z1, X1 + 1, Z1 + 1, 1);
 
-  // ------------------------------------------------ the two walls that stand (the far corner of the old chapel)
-  K.wall(ctx, WALL, -4.9, WALL, 0.6, EAVE_Y, { face: 1, buttress: 0, arches: 2 });
-  K.wall(ctx, -4.9, WALL, 1.2, WALL, EAVE_Y, { face: 1, arches: 2, litArches: [] });
-  // their near ends broke away: low, ragged courses and fallen stones
-  K.wall(ctx, WALL, 0.6, WALL, 2.0, 2.4, { face: 1, cap: false }); K.wall(ctx, WALL, 2.0, WALL, 3.2, 1.1, { face: 1, cap: false });
-  K.wall(ctx, 1.2, WALL, 2.4, WALL, 2.0, { face: 1, cap: false }); K.wall(ctx, 2.4, WALL, 3.6, WALL, 0.9, { face: 1, cap: false });
-  for (let i = 0; i < 9; i++) { const s = 0.25 + r() * 0.35; K.add(ctx, K.box(s, s * 0.7, s * 0.9), stone, WALL + 0.5 + r() * 0.8, s * 0.35, 1.6 + r() * 2.4, { ry: r() * 3 }); }
-  for (let i = 0; i < 8; i++) { const s = 0.25 + r() * 0.35; K.add(ctx, K.box(s, s * 0.7, s * 0.9), stone, 1.8 + r() * 2.6, s * 0.35, WALL + 0.5 + r() * 0.9, { ry: r() * 3 }); }
-  // a pier at the corner and pilasters where the arches spring
-  K.add(ctx, K.box(0.9, EAVE_Y + 0.3, 0.9), stone, WALL + 0.15, (EAVE_Y + 0.3) / 2, WALL + 0.15);
-  for (const z of [-2.6, -0.6]) K.add(ctx, K.box(0.35, EAVE_Y - 0.2, 0.45), stone, WALL + 0.45, (EAVE_Y - 0.2) / 2, z);
-  for (const x of [-2.6, -0.4]) K.add(ctx, K.box(0.45, EAVE_Y - 0.2, 0.35), stone, x, (EAVE_Y - 0.2) / 2, WALL + 0.45);
-  // the gable over the west wall (only its back half stands)
-  const gs = new THREE.Shape(); gs.moveTo(0, 0); gs.lineTo(RIDGE_Z - WALL, 0); gs.lineTo(RIDGE_Z - WALL, RIDGE_Y - EAVE_Y - 0.1); gs.lineTo(0, 0);
-  const gm = new THREE.Mesh(new THREE.ExtrudeGeometry(gs, { depth: 0.5, bevelEnabled: false }), M.brick('#384356'));
-  gm.rotation.y = -Math.PI / 2; gm.position.set(WALL + 0.25, EAVE_Y, WALL); gm.castShadow = true; gm.receiveShadow = true; gm.userData.static = true; ctx.group.add(gm);
-
-  // ------------------------------------------------ the roof: the back slope holds, the front is rafters
-  const ang = Math.atan(SLOPE); const backLen = (RIDGE_Z - WALL + 0.45) / Math.cos(ang);
-  const slate = M.slate('#1e2531');
-  K.add(ctx, K.box(ROOF_X1 - ROOF_X0, 0.16, backLen), slate, (ROOF_X0 + ROOF_X1) / 2, (EAVE_Y + RIDGE_Y) / 2 - 0.12, (WALL - 0.45 + RIDGE_Z) / 2, { rx: -ang });
-  // the front slope: strips of slates of uneven length, ragged where it broke
-  strips.length = 0; const nS = 9, sw = (ROOF_X1 - ROOF_X0) / nS;
-  for (let i = 0; i < nS; i++) {
-    const x0 = ROOF_X0 + i * sw; const mid = x0 + sw > -3.4 && x0 < 2.4; // over the statue, the fire and the warden only stubs remain
-    const reach = mid ? 0.12 + r() * 0.4 : 0.9 + r() * 1.0; // how far the slates still reach down from the ridge
-    const zEnd = RIDGE_Z + reach; strips.push([x0, x0 + sw, zEnd]);
-    const len = reach / Math.cos(ang);
-    K.add(ctx, K.box(sw + 0.02, 0.16, len), slate, x0 + sw / 2, RIDGE_Y - reach * SLOPE / 2 - 0.12, RIDGE_Z + reach / 2, { rx: ang });
-    // a few loose slates hang off the broken edge
-    if (r() < 0.6) K.add(ctx, K.box(0.34, 0.04, 0.5), slate, x0 + sw * (0.3 + r() * 0.4), RIDGE_Y - reach * SLOPE - 0.32, zEnd + 0.12, { rx: ang + 0.7 + r() * 0.5, ry: (r() - 0.5) * 0.6 });
+  // ------------------------------------------------ the parapet: crenellated on the far sides, a low broken kerb on the near
+  const PH = 1.15;
+  K.add(ctx, K.box(0.5, PH, Z1 - Z0), stone, X0 + 0.25, PH / 2, (Z0 + Z1) / 2);
+  K.add(ctx, K.box(X1 - X0, PH, 0.5), stone, (X0 + X1) / 2, PH / 2, Z0 + 0.25);
+  for (let z = Z0 + 0.6; z < Z1 - 0.3; z += 0.9) K.add(ctx, K.box(0.56, 0.42, 0.48), stone, X0 + 0.25, PH + 0.21, z);
+  for (let x = X0 + 0.6; x < X1 - 0.3; x += 0.9) { if (x > 1.6 && x < 2.6) continue; K.add(ctx, K.box(0.48, 0.42, 0.56), stone, x, PH + 0.21, Z0 + 0.25); } // a merlon fell
+  for (const [x, z] of [[2.1, Z0 - 0.4], [2.5, Z0 + 0.7]]) K.add(ctx, K.box(0.46, 0.4, 0.5), stone, x, x > 2.3 ? 0.2 : -0.5, z, { ry: r() * 2, rz: (r() - 0.5) * 0.6 });
+  // the near kerb, knee-high, broken where the stair comes up
+  K.add(ctx, K.box(0.4, 0.42, 3.9), stone, X1 - 0.2, 0.21, Z0 + 2.2); K.add(ctx, K.box(0.4, 0.3, 1.2), stone, X1 - 0.2, 0.15, Z1 - 0.8);
+  K.add(ctx, K.box(4.4, 0.42, 0.4), stone, X0 + 2.4, 0.21, Z1 - 0.2); K.add(ctx, K.box(1.4, 0.3, 0.4), stone, 0.9, 0.15, Z1 - 0.2);
+  // corner pinnacles with little spires, and a weathered gargoyle looking down on the city
+  for (const [x, z, h] of [[X0 + 0.25, Z0 + 0.25, 3.4], [X1 - 0.25, Z0 + 0.25, 2.2], [X0 + 0.25, Z1 - 0.25, 2.2]]) {
+    K.add(ctx, K.box(0.8, h, 0.8), stone, x, h / 2, z); K.add(ctx, K.box(0.95, 0.18, 0.95), stoneLo, x, h + 0.09, z);
+    K.add(ctx, K.cone(0.42, 1.3, 4), M.slate('#262e3a'), x, h + 0.85, z, { ry: Math.PI / 4 }); K.add(ctx, K.box(0.08, 0.4, 0.08), iron, x, h + 1.7, z);
   }
-  // the ridge beam on a post at the open end, and the rafters running down from it
-  K.add(ctx, K.box(ROOF_X1 - ROOF_X0 + 0.3, 0.24, 0.24), darkWood, (ROOF_X0 + ROOF_X1) / 2, RIDGE_Y - 0.28, RIDGE_Z);
-  K.add(ctx, K.box(0.26, RIDGE_Y - 0.4, 0.26), darkWood, ROOF_X1 - 0.2, (RIDGE_Y - 0.4) / 2, RIDGE_Z); K.solid(ctx, ROOF_X1 - 0.35, RIDGE_Z - 0.15, ROOF_X1 - 0.05, RIDGE_Z + 0.15, 6);
-  K.add(ctx, K.box(0.5, 0.5, 0.5), stone, ROOF_X1 - 0.2, 0.25, RIDGE_Z);
-  for (let i = 0; i <= 9; i++) {
-    const x = ROOF_X0 + 0.3 + i * (ROOF_X1 - ROOF_X0 - 0.6) / 9;
-    const reach = x > -3.2 && x < 2.2 ? 0 : 1.6 + r() * 1.4; if (!reach) { r(); continue; } // the middle ones fell (they lie on the floor below)
-    const len = reach / Math.cos(ang);
-    K.add(ctx, K.box(0.12, 0.16, len), wood, x, RIDGE_Y - reach * SLOPE / 2 - 0.3, RIDGE_Z + reach / 2, { rx: ang });
-  }
-  // the fallen rafter, leaning from the broken wall to the flags, and one more on the ground
-  K.add(ctx, K.box(0.14, 0.16, 4.2), wood, WALL + 0.9, 1.25, 1.4, { rx: 0.62, ry: 0.15 });
-  K.add(ctx, K.box(0.14, 0.14, 2.6), wood, 2.2, 0.08, 1.9, { ry: 1.1 });
-  // broken slates scattered under the hole
-  for (let i = 0; i < 14; i++) K.add(ctx, K.box(0.3, 0.04, 0.42), slate, -2.8 + r() * 6, 0.05 + r() * 0.03, -0.2 + r() * 3, { ry: r() * 3, rz: (r() - 0.5) * 0.4, cast: false });
+  K.add(ctx, K.box(0.5, 0.36, 0.9), stoneLo, X0 + 0.25, PH + 0.1, 1.0); K.add(ctx, K.box(0.34, 0.3, 0.42), stoneLo, X0 - 0.12, PH + 0.06, 1.0); // the gargoyle
 
-  // ------------------------------------------------ the first lamplighter, hooded, his lantern held out
-  const sx = D.statue.x, sz = D.statue.z;
-  K.add(ctx, K.box(1.5, 0.5, 1.5), stone, sx, 0.25, sz); K.add(ctx, K.box(1.2, 0.7, 1.2), M.ashlar('#56606e'), sx, 0.85, sz); K.add(ctx, K.box(1.3, 0.1, 1.3), stone, sx, 1.25, sz);
-  K.solid(ctx, sx - 0.75, sz - 0.75, sx + 0.75, sz + 0.75, 2.5);
-  const robe = M.flat(0x56606c);
-  K.add(ctx, K.cyl(0.3, 0.5, 1.7, 6), robe, sx, 2.15, sz, { ry: 0.3 });
-  K.add(ctx, K.cyl(0.22, 0.32, 0.5, 6), robe, sx + 0.04, 3.15, sz);
-  K.add(ctx, K.cone(0.3, 0.6, 6), robe, sx + 0.07, 3.55, sz, { rz: -0.2 });
-  K.add(ctx, K.box(0.08, 0.2, 0.2), M.flat(0x0a0c10), sx + 0.27, 3.38, sz); // the shadow under the hood, toward the fire
-  // the arm held out toward the fire, an iron lantern hanging from the hand (a little light still in it)
-  K.add(ctx, K.box(0.7, 0.16, 0.16), robe, sx + 0.45, 2.75, sz, { rz: 0.45 });
-  const lx = sx + 0.82, lz = sz, ly = 2.62;
-  K.add(ctx, K.box(0.03, 0.3, 0.03), iron, lx, ly + 0.05, lz);
-  K.add(ctx, K.box(0.24, 0.3, 0.24), M.glow('#ffb860', 1.25), lx, ly - 0.25, lz, { cast: false });
-  for (const [ox, oz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) K.add(ctx, K.box(0.03, 0.34, 0.03), iron, lx + ox * 0.12, ly - 0.25, lz + oz * 0.12);
-  K.add(ctx, K.cone(0.2, 0.16, 4), iron, lx, ly - 0.02, lz, { ry: Math.PI / 4 });
-  // candles on the plinth and along the walls (two clusters cast a little light)
-  candles(ctx, sx + 0.45, 1.3, sz + 0.25, 6, { r: 0.2, tall: 0.3, light: 2.6, dist: 3.4 });
-  candles(ctx, sx + 0.45, 1.3, sz - 0.45, 3, { r: 0.12, tall: 0.22 }); candles(ctx, sx - 0.35, 1.3, sz + 0.5, 2, { r: 0.1, tall: 0.18 });
-  candles(ctx, -2.7, 0, WALL + 0.6, 7, { r: 0.35, tall: 0.4, light: 2.2, dist: 3.2 });
-  candles(ctx, WALL + 0.6, 0, -3.6, 4, { r: 0.25, tall: 0.3 });
-  candles(ctx, 1.1, 0, WALL + 0.55, 3, { r: 0.16, tall: 0.2 });
-  candles(ctx, -2.65, 0, -0.35, 3, { r: 0.12, tall: 0.16 });
+  // ------------------------------------------------ the stair hatch the warden comes up by (the near corner)
+  K.add(ctx, K.box(1.6, 0.08, 1.4), M.flat(0x07080b), 4.0, 0.03, 3.0, { cast: false });
+  for (let i = 0; i < 3; i++) K.add(ctx, K.box(1.3, 0.12, 0.34), stoneLo, 4.0, -0.12 - i * 0.22, 2.55 + i * 0.36);
+  K.add(ctx, K.box(0.1, 0.9, 0.1), iron, 3.2, 0.45, 2.3); K.add(ctx, K.box(0.1, 0.9, 0.1), iron, 3.2, 0.45, 3.7); K.add(ctx, K.box(0.06, 0.06, 1.4), iron, 3.2, 0.88, 3.0);
 
-  // ------------------------------------------------ the lamplighters' things
-  // a bench along the north wall, a ladder, poles and unlit lanterns leaning on the west wall, stores
-  K.bench(ctx, 0.9, WALL + 0.75, 0);
-  for (const s of [-0.22, 0.22]) K.add(ctx, K.box(0.07, 3.4, 0.07), wood, 2.15 + s, 1.65, WALL + 0.55, { rx: -0.26 });
-  for (let i = 0; i < 8; i++) K.add(ctx, K.box(0.5, 0.05, 0.05), wood, 2.15, 0.3 + i * 0.4, WALL + 0.62 + i * 0.105);
-  for (const [z, a] of [[-2.85, 0.2], [-2.65, 0.14], [0.15, -0.18]]) K.add(ctx, K.cyl(0.025, 0.03, 3.2, 5), darkWood, WALL + 0.62, 1.55, z, { rz: -a });
-  for (const z of [-3.9, -0.05]) { K.add(ctx, K.box(0.04, 0.04, 0.3), iron, WALL + 0.45, 3.0, z, { ry: Math.PI / 2 }); K.add(ctx, K.box(0.2, 0.26, 0.2), M.flat(0x2a2620), WALL + 0.62, 2.72, z); K.add(ctx, K.cone(0.17, 0.12, 4), iron, WALL + 0.62, 2.9, z, { ry: Math.PI / 4 }); }
-  K.crate(ctx, 2.9, -3.7, { s: 0.7 }); K.crate(ctx, 2.75, -3.0, { s: 0.55 }); K.barrel(ctx, -3.9, 0.55, { s: 0.85 });
-  K.add(ctx, K.box(0.55, 0.42, 0.4), M.flat(0x4a3e2e), -2.2, 0.21, WALL + 0.62, { ry: 0.3 }); // a sack of wicks
-  // a little shelf of oil jars in the west wall
-  K.add(ctx, K.box(0.3, 0.06, 1.1), stone, WALL + 0.45, 1.5, -3.55);
-  for (let i = 0; i < 3; i++) K.add(ctx, K.cyl(0.07, 0.09, 0.22, 6), M.flat([0x5a4a30, 0x3a4a3a, 0x6a5038][i]), WALL + 0.45, 1.64, -3.9 + i * 0.32);
+  // ------------------------------------------------ the fallen bell: cracked bronze on its side, by the lantern
+  const bx = D.statue.x, bz = D.statue.z;
+  K.add(ctx, K.cyl(0.42, 0.78, 1.15, 10), bronze, bx, 0.62, bz, { rz: 1.35, ry: 0.4 });
+  K.add(ctx, K.cyl(0.8, 0.8, 0.12, 10), bronzeDk, bx + 0.52, 0.72, bz + 0.2, { rz: 1.35, ry: 0.4 });
+  K.add(ctx, K.cyl(0.2, 0.2, 0.22, 6), bronzeDk, bx - 0.62, 0.48, bz - 0.24, { rz: 1.35, ry: 0.4 });
+  K.add(ctx, K.box(0.05, 0.8, 0.06), M.flat(0x15120c), bx + 0.1, 0.95, bz + 0.48, { rz: 0.5, ry: 0.4 }); // the crack
+  K.add(ctx, K.box(0.18, 0.18, 0.5), iron, bx + 0.3, 0.12, bz - 0.7, { ry: 0.8 }); // the clapper, fallen out
+  K.solidCircle(ctx, bx, bz, 0.8, 1.2);
+  candles(ctx, bx + 0.7, 0, bz + 0.9, 5, { r: 0.22, tall: 0.26, light: 2.2, dist: 3.0 });
+  candles(ctx, X0 + 0.65, 0, -3.6, 4, { r: 0.22, tall: 0.3 });
+  candles(ctx, 0.9, 0, Z0 + 0.65, 3, { r: 0.16, tall: 0.2 });
 
-  // ------------------------------------------------ the brazier: a great iron bowl on three legs, coals, fire
+  // ------------------------------------------------ the lamplighter's things: a ladder, poles, a wick sack, oil
+  for (const s of [-0.22, 0.22]) K.add(ctx, K.box(0.07, 3.0, 0.07), wood, 2.4 + s, 1.45, Z0 + 0.62, { rx: -0.26 });
+  for (let i = 0; i < 7; i++) K.add(ctx, K.box(0.5, 0.05, 0.05), wood, 2.4, 0.3 + i * 0.4, Z0 + 0.7 + i * 0.105);
+  for (const [z, a] of [[-2.9, 0.2], [-2.7, 0.14]]) K.add(ctx, K.cyl(0.025, 0.03, 2.8, 5), M.wood('#2e2018'), X0 + 0.62, 1.4, z, { rz: -a });
+  K.add(ctx, K.box(0.55, 0.42, 0.4), M.flat(0x4a3e2e), -2.3, 0.21, Z0 + 0.65, { ry: 0.3 });
+  for (let i = 0; i < 3; i++) K.add(ctx, K.cyl(0.07, 0.09, 0.22, 6), M.flat([0x5a4a30, 0x3a4a3a, 0x6a5038][i]), X0 + 0.7, 0.11, -0.6 + i * 0.26);
+  K.crate(ctx, 3.3, -3.6, { s: 0.6 });
+  // the worn red mat where a warden kneels
+  K.add(ctx, K.box(1.5, 0.03, 1.0), M.flat(0x4a1c1c), D.kneel.x + 0.1, 0.02, D.kneel.z + 0.1, { ry: Math.PI / 4, cast: false });
+  K.add(ctx, K.box(1.3, 0.035, 0.8), M.flat(0x5e2622), D.kneel.x + 0.1, 0.03, D.kneel.z + 0.1, { ry: Math.PI / 4, cast: false });
+
+  // ------------------------------------------------ the great lantern: a stone plinth, an iron cage taller than a man,
+  // the forge-flame inside, a pointed cap and a ring; chains run from it to the parapet
   const fx = D.fire.x, fz = D.fire.z;
-  K.add(ctx, K.cyl(0.62, 0.7, 0.24, 8), stone, fx, 0.12, fz);
-  for (let i = 0; i < 3; i++) { const a = i / 3 * Math.PI * 2 + 0.4; K.add(ctx, K.box(0.08, 1.0, 0.08), iron, fx + Math.cos(a) * 0.32, 0.68, fz + Math.sin(a) * 0.32, { rz: Math.cos(a) * 0.32, rx: -Math.sin(a) * 0.32 }); }
-  K.add(ctx, K.cyl(0.12, 0.14, 0.9, 6), iron, fx, 0.7, fz);
-  K.add(ctx, K.cyl(0.62, 0.34, 0.36, 10), iron, fx, 1.2, fz);
-  K.add(ctx, K.cyl(0.66, 0.66, 0.06, 10), iron, fx, 1.38, fz);
-  for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; K.add(ctx, K.cone(0.05, 0.28, 4), iron, fx + Math.cos(a) * 0.64, 1.5, fz + Math.sin(a) * 0.64, { rz: -Math.cos(a) * 0.35, rx: Math.sin(a) * 0.35 }); }
-  K.add(ctx, K.cyl(0.56, 0.56, 0.06, 10), M.glow('#ff7a2a', 1.6), fx, 1.4, fz, { cast: false });
-  for (let i = 0; i < 7; i++) K.add(ctx, K.box(0.16, 0.1, 0.14), M.glow(i % 2 ? '#ffb040' : '#c84818', 1.4 + (i % 3) * 0.3), fx + (r() - 0.5) * 0.7, 1.45, fz + (r() - 0.5) * 0.7, { ry: r() * 3, cast: false });
-  K.solidCircle(ctx, fx, fz, 0.72, 1.6);
-  const fireLight = { x: fx, y: 2.1, z: fz, color: 0xff9440, intensity: 15, dist: 10.5, flicker: 0.16, tag: 'havenFire' };
+  K.add(ctx, K.box(1.7, 0.4, 1.7), stone, fx, 0.2, fz); K.add(ctx, K.box(1.3, 0.35, 1.3), M.ashlar('#525c6a'), fx, 0.57, fz);
+  K.add(ctx, K.cyl(0.62, 0.66, 0.16, 8), iron, fx, 0.82, fz);
+  const CH = 2.3, CB = 0.9; // the cage: height and base
+  for (const [ox, oz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) K.add(ctx, K.box(0.09, CH, 0.09), iron, fx + ox * 0.5, CB + CH / 2, fz + oz * 0.5);
+  for (const y of [CB + 0.05, CB + CH - 0.05]) for (const [w, d, ox, oz] of [[1.08, 0.08, 0, -0.5], [1.08, 0.08, 0, 0.5], [0.08, 1.08, -0.5, 0], [0.08, 1.08, 0.5, 0]]) K.add(ctx, K.box(w, 0.08, d), iron, fx + ox, y, fz + oz);
+  for (const [w, d, ox, oz] of [[0.04, 0.04, -0.5, 0], [0.04, 0.04, 0.5, 0], [0.04, 0.04, 0, -0.5], [0.04, 0.04, 0, 0.5]]) K.add(ctx, K.box(w + 0.02, CH - 0.1, d + 0.02), iron, fx + ox, CB + CH / 2, fz + oz);
+  // faint glass panes on the far sides only (the near ones are broken out, so the flame shows)
+  K.add(ctx, K.box(0.94, CH - 0.2, 0.02), M.glow('#ff9a40', 0.32), fx, CB + CH / 2, fz - 0.49, { cast: false });
+  K.add(ctx, K.box(0.02, CH - 0.2, 0.94), M.glow('#ff9a40', 0.32), fx - 0.49, CB + CH / 2, fz, { cast: false });
+  K.add(ctx, K.cone(0.95, 0.8, 4), iron, fx, CB + CH + 0.4, fz, { ry: Math.PI / 4 });
+  K.add(ctx, K.box(0.12, 0.5, 0.12), iron, fx, CB + CH + 1.0, fz);
+  K.add(ctx, K.torus(0.22, 0.04), iron, fx, CB + CH + 1.42, fz);
+  // a bed of coals in the cage's floor
+  K.add(ctx, K.cyl(0.4, 0.44, 0.1, 8), M.glow('#ff7a2a', 1.6), fx, CB + 0.14, fz, { cast: false });
+  for (let i = 0; i < 6; i++) K.add(ctx, K.box(0.14, 0.08, 0.12), M.glow(i % 2 ? '#ffb040' : '#c84818', 1.4 + (i % 3) * 0.3), fx + (r() - 0.5) * 0.5, CB + 0.2, fz + (r() - 0.5) * 0.5, { ry: r() * 3, cast: false });
+  // chains from the cap down to rings in the far parapet
+  for (const [tx, tz] of [[X0 + 0.5, fz + 0.4], [fx + 0.4, Z0 + 0.5]]) {
+    const sx = fx, sy = CB + CH + 0.3, sz = fz; const n = 9;
+    for (let i = 1; i < n; i++) { const k = i / n; const x = sx + (tx - sx) * k, z = sz + (tz - sz) * k; const y = sy + (PH + 0.2 - sy) * k - Math.sin(k * Math.PI) * 0.55; K.add(ctx, K.box(0.07, 0.07, 0.07), iron, x, y, z, { ry: k * 3 }); }
+  }
+  K.solidCircle(ctx, fx, fz, 0.9, 3);
+  const fireLight = { x: fx, y: 2.2, z: fz, color: 0xff9440, intensity: 17, dist: 11.5, flicker: 0.16, tag: 'havenFire' };
   ctx.lights.push(fireLight);
-  const fire = makeFire(ctx, fx, 1.42, fz);
-
-  // ------------------------------------------------ moths around the flame
-  makeMoths(ctx, fx, 2.15, fz, 7);
-
-  // ------------------------------------------------ outside: the dark city in the rain
-  K.house(ctx, -9.2, -2.5, 4, 7, 7.5, { lit: 0.35, doorSide: 'x' }); K.house(ctx, -3.5, -9.4, 7, 4, 8, { lit: 0.3 });
-  K.house(ctx, 5.5, -9.0, 5, 4, 6.5, { lit: 0.45 }); K.house(ctx, -9.4, 6.5, 4, 5, 6, { lit: 0.25, doorSide: 'x' });
-  K.house(ctx, 10.6, -3.6, 4, 6, 5.5, { lit: 0.3, doorSide: 'x', plaster: '#464c5a' });
-  K.deadTree(ctx, 6.4, -4.4, 1.1); K.deadTree(ctx, -6.4, 4.6, 0.9);
-  K.grave(ctx, 6.2, 6.2, 0.3); K.grave(ctx, 7.4, 5.4, -0.2); K.grave(ctx, 5.1, 7.4, 0.1);
-  K.lamp(ctx, 8.6, 1.4, { intensity: 4, dist: 7 });
-  // low remains of the chapel's near walls (knee-high: they never hide the fire)
-  for (const [x0, z0, x1, z1] of [[-4.9, 3.5, -2.4, 3.5], [3.9, -4.9, 3.9, -2.8]]) K.add(ctx, K.box(Math.abs(x1 - x0) || 0.55, 0.45, Math.abs(z1 - z0) || 0.55), stone, (x0 + x1) / 2, 0.22, (z0 + z1) / 2);
+  const fire = makeFire(ctx, fx, CB + 0.18, fz);
+  makeMoths(ctx, fx, CB + 1.4, fz, 6);
 
   finishProps(ctx);
   const group = await K.finishCtx(ctx);
+
+  // ------------------------------------------------ the city far below in the rain (its own group, lowered)
+  const city = K.makeCtx(); const rc = T.rng(9191);
+  K.floor(city, -60, -60, 60, 60, M.cobble('#1c2028'), 0, 0.3);
+  const tones = ['#2c3442', '#323a4a', '#28303c', '#363c48'];
+  for (let gx = -6; gx <= 6; gx++) for (let gz = -6; gz <= 6; gz++) {
+    const x = gx * 7.5 + (rc() - 0.5) * 2, z = gz * 7.5 + (rc() - 0.5) * 2;
+    if (Math.abs(x) < 8.5 && Math.abs(z) < 8.5) continue; // the tower's own foot
+    if (rc() < 0.18) continue; // squares and lanes
+    const w = 3.6 + rc() * 2.6, d = 3.6 + rc() * 2.6, h = 4 + rc() * 6;
+    K.house(city, x, z, w, d, h, { lit: 0.45, windowLights: false, chimney: rc() < 0.6, tone: tones[Math.floor(rc() * tones.length)], ridge: rc() < 0.5 ? 'x' : 'z' });
+  }
+  // street lamps glowing in the lanes
+  for (let i = 0; i < 26; i++) { const a = rc() * Math.PI * 2, d = 10 + rc() * 32; K.add(city, K.box(0.25, 0.3, 0.25), M.glow('#ffb050', 2.2), Math.cos(a) * d, 3, Math.sin(a) * d, { cast: false }); }
+  // the Belfry: the dark tower of the Great Bell rising out of the mist, a faint light in its bell-chamber
+  const bfx = -24, bfz = -22;
+  K.add(city, K.box(6, 30, 6), M.ashlar('#2a303c'), bfx, 15, bfz); K.add(city, K.box(5, 6, 5), M.ashlar('#262c38'), bfx, 33, bfz);
+  K.add(city, K.cone(4.4, 9, 4), M.slate('#1a202a'), bfx, 40.5, bfz, { ry: Math.PI / 4 });
+  for (const [ox, oz, ry] of [[3.01, 0, Math.PI / 2], [0, 3.01, 0]]) K.add(city, K.plane(2.2, 3.4), M.glow('#c08850', 0.9), bfx + ox, 33, bfz + oz, { ry, cast: false });
+  K.add(city, K.box(7, 1, 7), M.ashlar('#323844'), bfx, 30.5, bfz);
+  // two more spires on the skyline
+  for (const [x, z, h] of [[30, -26, 22], [-30, 20, 18]]) { K.add(city, K.box(3.5, h, 3.5), M.ashlar('#2a303c'), x, h / 2, z); K.add(city, K.cone(2.8, 6, 4), M.slate('#1a202a'), x, h + 3, z, { ry: Math.PI / 4 }); }
+  const cityG = await K.finishCtx(city); cityG.position.y = -DROP - 0.5; cityG.traverse((o) => { if (o.isMesh) o.castShadow = false; });
+  group.add(cityG);
+
   return { def: HAVEN, group, solids: ctx.solids, lowSolids: ctx.lowSolids, lights: ctx.lights.slice(), anims: ctx.anims, marks: {}, puddles: ctx.puddles || [], lamps: [], chests: [], fire, roofAt };
 }
 
-// The fire: three animated flame sprites (one tall, two low at the sides), a warm glow and sparks of
+// The forge-flame: three animated flame sprites (one tall, two low at the sides), a warm glow and sparks of
 // light, all flickering; flare(k) makes it leap up and brighten for a moment.
 function makeFire(ctx, x, y, z) {
   const parts = [];
   const mk = (sx, sy, ox, oy, speed, phase) => {
     const tex = T.flame().clone(); tex.needsUpdate = true; tex.repeat.set(1 / 4, 1);
-    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, color: new THREE.Color(1.55, 1.25, 1.0), fog: false, transparent: true, alphaTest: 0.5 }));
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, color: new THREE.Color(1.6, 1.25, 1.0), fog: false, transparent: true, alphaTest: 0.5 }));
     sp.scale.set(sx, sy, 1); sp.position.set(x + ox, y + oy + sy / 2, z - ox); ctx.group.add(sp);
     parts.push({ sp, tex, sx, sy, ox, oy, speed, t: phase });
   };
-  mk(0.56, 0.9, 0, -0.04, 10, 0); mk(0.42, 0.6, -0.24, -0.02, 13, 1.3); mk(0.4, 0.56, 0.24, -0.03, 12, 2.1);
-  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: T.glow('#ffb060', 32, 2.2), color: new THREE.Color(0.55, 0.3, 0.12), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, fog: false }));
-  glow.position.set(x, y + 0.5, z); glow.scale.set(2.6, 2.6, 1); ctx.group.add(glow);
+  mk(0.62, 1.15, 0, -0.04, 10, 0); mk(0.42, 0.7, -0.2, -0.02, 13, 1.3); mk(0.4, 0.64, 0.2, -0.03, 12, 2.1);
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: T.glow('#ffb060', 32, 2.2), color: new THREE.Color(0.6, 0.32, 0.12), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, fog: false }));
+  glow.position.set(x, y + 0.7, z); glow.scale.set(3.6, 3.6, 1); ctx.group.add(glow);
   const handle = {
     x, y, z, boost: 0, t: 0,
     flare(k = 1) { this.boost = Math.max(this.boost, k); },
@@ -193,10 +174,10 @@ function makeFire(ctx, x, y, z) {
       const b = this.boost, fl = 1 + Math.sin(this.t * 9.3) * 0.05 + Math.sin(this.t * 23.1) * 0.04;
       for (const p of parts) {
         p.t += dt; p.tex.offset.x = (Math.floor(p.t * p.speed) % 4) / 4;
-        const k = (1 + b * 0.75) * fl * (1 + Math.sin(p.t * 7 + p.ox * 9) * 0.06);
-        p.sp.scale.set(p.sx * (1 + b * 0.3), p.sy * k, 1); p.sp.position.y = y + p.oy + p.sy * k / 2;
+        const k = (1 + b * 0.6) * fl * (1 + Math.sin(p.t * 7 + p.ox * 9) * 0.06);
+        p.sp.scale.set(p.sx * (1 + b * 0.25), p.sy * k, 1); p.sp.position.y = y + p.oy + p.sy * k / 2;
       }
-      glow.scale.setScalar(2.6 * fl * (1 + b * 0.5)); glow.material.color.setRGB(0.55 * (1 + b * 1.4), 0.3 * (1 + b * 1.2), 0.12 * (1 + b));
+      glow.scale.setScalar(3.6 * fl * (1 + b * 0.5)); glow.material.color.setRGB(0.6 * (1 + b * 1.4), 0.32 * (1 + b * 1.2), 0.12 * (1 + b));
       return false;
     },
   };
@@ -204,19 +185,19 @@ function makeFire(ctx, x, y, z) {
   return handle;
 }
 
-// Moths: tiny pale wings fluttering on wandering loops round the flame, now and then darting in.
+// Moths: tiny pale wings fluttering on wandering loops round the lantern, now and then darting in.
 function makeMoths(ctx, x, y, z, n) {
   const r = T.rng(77); const ms = [];
   for (let i = 0; i < n; i++) {
     const sp = new THREE.Sprite(new THREE.SpriteMaterial({ color: new THREE.Color(1.9, 1.7, 1.3), fog: false }));
     sp.scale.set(0.12, 0.08, 1); ctx.group.add(sp);
-    ms.push({ sp, a: r() * 6.28, w: (0.9 + r() * 1.4) * (r() < 0.5 ? -1 : 1), rad: 0.45 + r() * 0.7, h: (r() - 0.3) * 0.9, ph: r() * 10, flap: 14 + r() * 10, t: 0 });
+    ms.push({ sp, a: r() * 6.28, w: (0.9 + r() * 1.4) * (r() < 0.5 ? -1 : 1), rad: 0.75 + r() * 0.7, h: (r() - 0.3) * 1.2, ph: r() * 10, flap: 14 + r() * 10, t: 0 });
   }
   ctx.anims.push({
     update(dt) {
       for (const m of ms) {
         m.t += dt; m.a += m.w * dt * (1 + Math.sin(m.t * 1.7 + m.ph) * 0.6);
-        const rr = m.rad * (0.75 + 0.25 * Math.sin(m.t * 2.3 + m.ph)) * (Math.sin(m.t * 0.5 + m.ph) > 0.92 ? 0.45 : 1);
+        const rr = m.rad * (0.75 + 0.25 * Math.sin(m.t * 2.3 + m.ph)) * (Math.sin(m.t * 0.5 + m.ph) > 0.92 ? 0.7 : 1);
         m.sp.position.set(x + Math.cos(m.a) * rr, y + m.h + Math.sin(m.t * 3.1 + m.ph) * 0.25, z + Math.sin(m.a) * rr);
         const open = Math.floor(m.t * m.flap) % 2 === 0; m.sp.scale.set(open ? 0.13 : 0.06, 0.08, 1);
       }

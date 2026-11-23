@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bellmourn variant view (test harness)</title>
+<style>html, body { margin: 0; background: #06080c; overflow: hidden; } canvas { display: block; position: fixed; left: 0; top: 0; }
+#tag { position: fixed; left: 8px; top: 6px; color: #e8dcc0; font: bold 14px monospace; text-shadow: 1px 1px 0 #000; }</style>
+<script type="importmap">{ "imports": { "three": "../vendor/three.module.min.js" } }</script>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="tag"></div>
+<script type="module">
+// A level on its own, with no game around it: the renderer, the weather and the level built exactly as the game
+// builds it (lamps and chests included), under a variant of js/game/variants.js. test/level-check.js falls back to
+// it when the game cannot reach play, and test/variants-shots.js photographs every variant with it.
+// ?level=<id>&variant=<id>&short=1&x=&z=&zoom=
+import { PixelRenderer } from '../js/engine/renderer.js';
+import { Atmos } from '../js/engine/atmos.js';
+import { buildLevel, K } from '../js/world/level.js';
+import LEVELS from '../js/world/levels/index.js';
+import * as V from '../js/game/variants.js';
+const r = new PixelRenderer(document.getElementById('game')); const atmos = new Atmos(r);
+let level = null, frames = 0, t = 0;
+async function load(lid, vid, short, at) {
+  const base = LEVELS[lid]; const v = vid ? V.getVariant(lid, vid) : null;
+  const def = v || short ? V.applyVariant(base, v, { short }) : base;
+  if (level) r.scene.remove(level.group);
+  const L = await buildLevel(def);
+  const ctx = K.makeCtx(); L.lamps = (def.lamps || []).map((l) => ({ ...l, h: K.shrineLamp(ctx, l.x, l.z) })); L.chests = (def.items || []).map((it) => ({ ...it, h: K.chest(ctx, it.x, it.z, it.ry || 0) }));
+  await K.finishCtx(ctx); L.group.add(ctx.group); L.solids.push(...ctx.solids); L.lights.push(...ctx.lights); L.anims.push(...L.chests.map((c) => c.h));
+  for (const l of L.lamps) l.h.set(true);
+  for (const [name, g] of Object.entries(L.marks)) if (g && g.set) { const open = (def.gatesOpen || []).includes(name); g.set(open); g.t = open ? 1 : 0; g.update(0.0001); }
+  r.scene.add(L.group); level = L; atmos.setLevel(def.ambience || {}, L.lights);
+  const f = at || def.start; r.focus.set(f.x, 0, f.z); if (at && at.zoom) r.setZoom(at.zoom);
+  document.getElementById('tag').textContent = (def.name || lid).toUpperCase() + (v ? '  /  ' + v.name + '  (' + (V.CONDITIONS[v.condition].name) + ')' : '  /  BASE') + (short ? '  SHORT' : '');
+  frames = 0; window.VV.level = L; return { touches: (def.touches || []).length };
+}
+const norender = new URLSearchParams(location.search).get('norender') === '1'; // checks only: build, no drawing
+function loop(now) { const dt = 1 / 30; t += dt; if (level) { if (!norender) { for (const a of level.anims) a.update(dt); atmos.update(dt, r.focus, () => 0); r.render(dt); } frames++; } window.VV.frames = frames; requestAnimationFrame(loop); }
+window.VV = { r, atmos, load, level: null, frames: 0, ready: true, variants: V };
+const q = new URLSearchParams(location.search);
+if (q.get('level')) await load(q.get('level'), q.get('variant'), q.get('short') === '1', q.get('x') ? { x: +q.get('x'), z: +q.get('z'), zoom: q.get('zoom') ? +q.get('zoom') : undefined } : null);
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

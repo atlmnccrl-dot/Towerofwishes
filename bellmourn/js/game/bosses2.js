@@ -11,6 +11,8 @@ import { strike, ringAt, circleAt, summon } from './ai.js';
 import { BOSSES3, BOSS_AI3 } from './bosses3.js';
 // Act III's three bosses (bosses4.js), merged the same way
 import { BOSSES4, BOSS_AI4 } from './bosses4.js';
+// the run's five new bosses (bosses5.js), merged the same way
+import { BOSSES5, BOSS_AI5 } from './bosses5.js';
 
 const deg = (d) => (d * Math.PI) / 180;
 const angTo = (a, b) => Math.atan2(b.x - a.x, b.z - a.z);
@@ -381,6 +383,7 @@ export const BOSS_AI2 = { harbormaster, ossuary, founder, regent };
 // bosses3.js ran first (the usual order), in bosses3.js when this one did (its bindings are not ready yet).
 try { Object.assign(BOSSES2, BOSSES3); Object.assign(BOSS_AI2, BOSS_AI3); } catch (err) { /* bosses3.js merges itself */ }
 try { Object.assign(BOSSES2, BOSSES4); Object.assign(BOSS_AI2, BOSS_AI4); } catch (err) { /* bosses4.js merges itself */ }
+try { Object.assign(BOSSES2, BOSSES5); Object.assign(BOSS_AI2, BOSS_AI5); } catch (err) { /* bosses5.js merges itself */ }
 
 // shared with bosses3.js
 export { free, adds, countOf, roarPause, row, moltenLine, around, combo, quick };

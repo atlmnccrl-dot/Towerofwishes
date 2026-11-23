@@ -3,8 +3,10 @@
 // where the Executioner waits, and over the last bridge Candlemas Square before the Chandlers' Hall,
 // where Mother Tallow keeps every candle burning.
 import * as P from '../props/market.js';
+import { VARIANTS } from '../../game/variants.js';
 
 export default {
+  variants: VARIANTS.market, // the run's area variants: layout, condition, foes, boss pool, events (js/game/variants.js)
   id: 'market', name: 'Lantern Row', tagline: 'THE CANDLES STILL BURN. NO ONE LIT THEM.', tier: 1,
   start: { x: 0, z: 15.5, face: Math.PI },
   bounds: [-56.6, -46, 14, 18],
@@ -60,7 +62,11 @@ export default {
     K.floor(ctx, -62, -15.5, -16.5, -2, K.MC.herring('#56392e'));
     P.candleTower(ctx, -20.2, -7.2); // the landmark: over the market roofs
     P.canal(ctx, 5.5, -15.5, 11.5, 26); P.canal(ctx, -62, -21, 11.5, -15.5); P.canal(ctx, -35, -50, -28, -21);
-    P.waterSolid(ctx, 5.5, -15.5, 11.5, 26); P.waterSolid(ctx, -62, -21, -2.3, -15.5); P.waterSolid(ctx, 1.8, -21, 11.5, -15.5);
+    // a run variant may freeze the canals (layout.frozenCanals): the east canal and its mouth bear a warden's
+    // weight, a second way down to the chandlers' quay past the boats, round the Wick Market's fight
+    const frozen = !!(ctx.layout && ctx.layout.frozenCanals);
+    if (!frozen) P.waterSolid(ctx, 5.5, -15.5, 11.5, 26); P.waterSolid(ctx, -62, -21, -2.3, -15.5); if (!frozen) P.waterSolid(ctx, 1.8, -21, 11.5, -15.5);
+    if (frozen) { K.floor(ctx, 5.5, -21, 11.5, 26, K.W2ice(), -0.02, 0.2); K.floor(ctx, 1.8, -21, 5.5, -15.5, K.W2ice(), -0.02, 0.2); }
     P.waterSolid(ctx, -35, -50, -28, -27.3); P.waterSolid(ctx, -35, -24.7, -28, -21);
     P.quay(ctx, 5.5, -15.5, 5.5, 26, '+x'); P.quay(ctx, 11.5, -21, 11.5, 26, '-x');
     P.quay(ctx, -62, -15.5, -2.3, -15.5, '-z'); P.quay(ctx, 1.8, -15.5, 5.5, -15.5, '-z');

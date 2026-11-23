@@ -3,10 +3,12 @@
 // the fountain garden, along the long colonnade, across the carriage court of a fallen house, to the
 // palace forecourt where the Pale Regent still holds his last ball. Out by the stair to the cathedral.
 import * as P from '../props/heights.js';
+import { VARIANTS } from '../../game/variants.js';
 
 const LAMP = '#d6ccff'; // the Heights burn pale gas, not tallow
 
 export default {
+  variants: VARIANTS.heights, // the run's area variants: layout, condition, foes, boss pool, events (js/game/variants.js)
   id: 'heights', name: 'The Crown Heights', tagline: 'UP HERE THEY PAID FOR THE NIGHT TO STAY.', tier: 6,
   start: { x: 1.6, z: 14.6, face: Math.PI },
   bounds: [-14, -57.6, 9.4, 18.4],

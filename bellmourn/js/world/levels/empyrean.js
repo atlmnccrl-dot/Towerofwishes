@@ -6,6 +6,7 @@
 // Voice, the Wheel itself comes down to guard it. The final fight; the choice; the endings.
 import * as P from '../props/empyrean.js';
 import { barrier3 } from '../kit3.js';
+import { VARIANTS } from '../../game/variants.js';
 
 const ISLES = [
   [-4, 4, 8, 15],          // the threshold
@@ -25,6 +26,7 @@ const WALKS = [...ISLES, ...BRIDGES];
 const BOUNDS = [-16, -68, 20, 16];
 
 export default {
+  variants: VARIANTS.empyrean, // the run's area variants: layout, condition, foes, boss pool, events (js/game/variants.js)
   id: 'empyrean', name: 'The Empyrean', tagline: 'THE HUB OF THE WHEEL. HEAVEN, TURNED INSIDE OUT.', tier: 14, act: 3,
   start: { x: 2.6, z: 12.6, face: Math.PI },
   bounds: BOUNDS, apron: false,

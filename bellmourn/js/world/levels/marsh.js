@@ -6,6 +6,7 @@
 // her hoard of bells and the voices in them. Fog on the water, fireflies, a drizzle that never stops.
 import * as P from '../props/marsh.js';
 import { barrier3 } from '../kit3.js';
+import { VARIANTS } from '../../game/variants.js';
 
 const ISLES = [
   [-5, 4, 8, 15],          // the landing
@@ -23,10 +24,12 @@ const WALKS_BW = [
   [2.6, -66, 6.4, -62],    // the way on, toward the Spire (after the Bog Mother)
 ];
 const WALKS = [...ISLES, ...WALKS_BW];
+const ICE = [[-5.6, -20, -2.2, -15], [-1.8, -37, 0.8, -32], [5.6, -2, 8, 4]]; // the frozen marsh's ice bridges (layout.iceBridges)
 const BOUNDS = [-16, -66, 20, 16];
 const wet = (x, z) => !WALKS.some((r) => x > r[0] - 0.3 && x < r[2] + 0.3 && z > r[1] - 0.3 && z < r[3] + 0.3) && !(x > 1 && x < 4.4 && z > 15 && z < 20);
 
 export default {
+  variants: VARIANTS.marsh, // the run's area variants: layout, condition, foes, boss pool, events (js/game/variants.js)
   id: 'marsh', name: 'The Weeping Marsh', tagline: 'WHERE THE FIRST BELL WAS CAST, AND DROWNED.', tier: 12, act: 3,
   start: { x: 2.6, z: 12.6, face: Math.PI },
   bounds: BOUNDS, apron: false,
@@ -69,7 +72,11 @@ export default {
     for (const r of ISLES) P.isle(ctx, ...r);
     P.boardwalk(ctx, 1.2, 15, 4, 20.5, { rail: '+x' }); P.boardwalk(ctx, 1, -2, 4.4, 4, { rail: '+x' }); P.boardwalk(ctx, 1.4, -20, 4.8, -15, { rail: '-x' });
     P.boardwalk(ctx, 2, -37, 5.4, -32, { rail: '+x' }); P.boardwalk(ctx, 2.4, -43, 5.8, -41); P.boardwalk(ctx, 2.6, -66, 6.4, -62, { rail: '-x' });
-    P.voidFill(ctx, BOUNDS, WALKS, 1.0);
+    // a run variant may freeze the marsh (layout.iceBridges): ice that bears a warden's weight joins the isles
+    // beside the boardwalks, a second way round each crossing
+    const ice = ctx.layout && ctx.layout.iceBridges ? ICE : [];
+    P.voidFill(ctx, BOUNDS, [...WALKS, ...ice], 1.0);
+    for (const r of ice) K.floor(ctx, r[0], r[1], r[2], r[3], K.W2ice(), 0.01, 0.3);
     // islets out in the water (no walking there: the water's solid covers them)
     for (const [x0, z0, x1, z1] of [[11.5, -11, 15.5, -5], [-12.5, -14, -9.5, -8], [-12, -30, -8.5, -24], [12.5, -30, 16, -23], [12, -40, 15.5, -36], [-13, -50, -9.5, -45], [17, -58, 20, -52], [-11, 8, -8.5, 12]]) { P.isle(ctx, x0, z0, x1, z1, { moss: 1 }); P.cypress(ctx, (x0 + x1) / 2, (z0 + z1) / 2, 6.5 + ((x0 * 7) % 3), { solid: false }); }
 

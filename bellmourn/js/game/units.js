@@ -5,6 +5,7 @@
 // there is no parry. Lobbed flasks and spit mark where they land the moment they are thrown.
 import { steer } from './ai.js'; // used at call time only: ai.js imports this module too
 import { UNITS2, UNIT_AI2, UNIT_ATTACKS2 } from './units2.js'; // Act II foes and the small ones (a leaf module)
+import { UNITS5, UNIT_AI5 } from './bosses5.js'; // the Smiling Guest's masks (merged here or there, whichever module runs second)
 
 const deg = (d) => (d * Math.PI) / 180;
 const TAU = Math.PI * 2;
@@ -359,3 +360,4 @@ export const UNIT_AI = {
 Object.assign(UNITS, UNITS2);
 Object.assign(UNIT_AI, UNIT_AI2);
 Object.assign(ATK, UNIT_ATTACKS2);
+try { Object.assign(UNITS, UNITS5); Object.assign(UNIT_AI, UNIT_AI5); } catch (err) { /* bosses5.js merges */ }

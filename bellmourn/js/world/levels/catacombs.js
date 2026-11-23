@@ -7,6 +7,7 @@ import * as P from '../props/catacombs.js';
 import { rockFill } from '../props/undercroft.js';
 import { W2, barrier, floorGlow, decal } from '../kit2.js';
 import * as T from '../../engine/textures.js';
+import { VARIANTS } from '../../game/variants.js';
 
 const WALKS = [
   [0, 4, 10, 16],             // the stair hall
@@ -26,6 +27,7 @@ const WALKS = [
 const BOUNDS = [-18, -64, 12 + 10, 18];
 
 export default {
+  variants: VARIANTS.catacombs, // the run's area variants: layout, condition, foes, boss pool, events (js/game/variants.js)
   id: 'catacombs', name: 'The Catacombs', tagline: 'BELOW THE SAND, THE DEAD OF A THOUSAND YEARS.', tier: 10, act: 2,
   start: { x: 5.4, z: 14.4, face: Math.PI },
   bounds: BOUNDS, apron: false,

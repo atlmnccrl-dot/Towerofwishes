@@ -4,6 +4,7 @@
 // Underground: no rain, the vault lost in the dark above the tall far walls, moonlight only where the
 // street grates far overhead let it fall.
 import * as P from '../props/undercroft.js';
+import { VARIANTS } from '../../game/variants.js';
 
 const WALKS = [
   [0.4, -8.4, 10.4, 16.4],      // the stair foot and the bone gallery
@@ -16,6 +17,7 @@ const WALKS = [
 const BOUNDS = [-17.8, -41.6, 23, 16.8];
 
 export default {
+  variants: VARIANTS.undercroft, // the run's area variants: layout, condition, foes, boss pool, events (js/game/variants.js)
   id: 'undercroft', name: 'The Undercroft', tagline: 'BENEATH THE TIDE, THE OLDER DEAD.', tier: 4,
   start: { x: 5.4, z: 13.6, face: Math.PI },
   bounds: BOUNDS,

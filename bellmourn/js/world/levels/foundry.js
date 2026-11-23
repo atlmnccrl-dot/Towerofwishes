@@ -3,8 +3,10 @@
 // crane, through the casting shed where the pits are still being poured, past the last lamp, to the
 // great casting pit where the Bellfounder keeps the furnaces fed.
 import * as P from '../props/foundry.js';
+import { VARIANTS } from '../../game/variants.js';
 
 export default {
+  variants: VARIANTS.foundry, // the run's area variants: layout, condition, foes, boss pool, events (js/game/variants.js)
   id: 'foundry', name: 'The Bell Foundry', tagline: 'THE FURNACES NEVER COOLED. SOMETHING KEPT THEM FED.', tier: 5,
   start: { x: 4, z: 14.6, face: Math.PI },
   bounds: [-17, -67, 11.8, 17.6],

@@ -6,7 +6,9 @@ import { FOES, BOSSES, scaleFoe } from './defs.js';
 import { UNITS } from './units.js';
 import { BOSSES2 } from './bosses2.js';
 import { thinkFoe, thinkBoss } from './ai.js';
-import { HEROES, ABILITIES, ULTS, AFFIXES, rankDmg, rankCd, heroStats } from './heroes.js';
+import { HEROES, ABILITIES, ULTS, AFFIXES, rankDmg, rankCd, heroStats, applyBoonStats } from './heroes.js';
+import { installBoons } from './sim_boons.js';
+import { makeBot } from './bot.js';
 
 const TAU = Math.PI * 2;
 export const STEP = 1 / 60;
@@ -28,6 +30,13 @@ const NONE = { mx: 0, mz: 0 };
 // The two equipped abilities have no buttons: the sim casts them in place of a basic attack (see _autoCast),
 // except movement abilities (def.move), which the dash press casts instead of a plain dash (see _moveSlot).
 const PRESS = ['attack', 'dash', 'ult', 'heal'];
+// elements (elemental foes, boons): the status a foe of that element leaves on whoever it strikes
+export const EL_STATUS = { fire: 'burn', frost: 'frost', poison: 'poison', storm: 'shock', blood: 'bleed', holy: 'sear', void: 'mark' };
+// the allies' minds by warden (allies.js ALLY_AI registers itself here through setAllyAI)
+const ALLY_AI_REG = {};
+export function setAllyAI(map) { Object.assign(ALLY_AI_REG, map || {}); }
+// D's allies.js, when it exists, registers its ALLY_AI (loaded lazily, so the sim never depends on it)
+import('./allies.js').then((m) => { if (m && m.ALLY_AI) setAllyAI(m.ALLY_AI); }).catch(() => {});
 
 export class World {
   constructor(opts = {}) {
@@ -39,8 +48,13 @@ export class World {
     this.hero = null; this.combat = false;
     // 'attack': a ready, useful ability replaces the next basic attack; 'auto': also cast during combat unprompted
     this.abilityMode = opts.abilityMode || 'attack';
-    this.stats = { hits: 0, kills: 0, perfects: 0, damageTaken: 0, crits: 0, abilities: 0 };
+    this.stats = { hits: 0, kills: 0, perfects: 0, damageTaken: 0, crits: 0, abilities: 0, boon: {}, allyKills: 0 };
+    this.fxq = []; // looks for the view (sim_boons.js): drained by the view, capped, never read by the sim
+    this.allies = []; this.allyAI = opts.allyAI || null;
   }
+  // the warden the player plays (world.hero is swapped for a moment while a foe that hunts an ally thinks)
+  get main() { return this._realHero || this.hero; }
+  heroTeam() { const m = this.main; const L = m && !m.dead ? [m] : []; for (const a of this.allies) if (!a.dead) L.push(a); return L; }
 
   emit(type, data = {}) { this.events.push({ type, t: this.t, ...data }); }
   drain() { const e = this.events; this.events = []; return e; }
@@ -58,15 +72,43 @@ export class World {
   }
 
   // stats: the result of heroStats(save, heroId) (or a partial object in tests)
-  spawnHero(x, z, stats = {}) {
+  spawnHero(x, z, stats = {}) { const e = this._heroEnt(x, z, stats); this.hero = e; return e; }
+  // stats.boons: boonMods(run) from boons.js (its plain stat parts are folded in here, once)
+  _heroEnt(x, z, stats = {}) {
     const kit = stats.kit || HEROES[stats.heroId || 'warden'];
+    if (stats.boons && !stats.boonsApplied) stats = applyBoonStats({ ...stats }, stats.boons);
     const s = { maxHp: kit.hp, dmgMul: 1, maxTonics: 3, tonicHeal: 0.45, dashCharges: 1, crit: 0, cdMul: 1, ultRate: 1, speedMul: 1, dmgTaken: 1 - (kit.armor || 0), revives: 0, relics: [], trait: { ...(kit.attack.trait || {}) }, echo: {},
       abilities: kit.abilities.slice(0, 2).map((id) => ({ id, def: ABILITIES[id], rank: 1 })), ult: { id: kit.ult, def: ULTS[kit.ult], rank: 1 }, ...stats, kit };
     const e = this._ent({ team: 'hero', type: 'hero', heroId: kit.id, x, z, r: 0.38, hp: s.hp ?? s.maxHp, maxHp: s.maxHp, speed: kit.speed * s.speedMul, poise: 999, maxPoise: 999, mass: 1.2 });
     e.stats = s; e.kit = kit; e.tonics = s.tonics ?? s.maxTonics; e.combo = 0; e.comboT = 0; e.buf = {}; e.face = stats.face ?? Math.PI;
     e.cds = [0, 0]; e.cdMax = [1, 1]; e.autoT = 0; e.dashCharges = s.dashCharges; e.dashT = 0; e.revives = s.revives; e.buffs = {}; e.shotT = 0;
     e.echo = s.echo || {}; e.boneWard = 0; e.boneT = 0; e.hookT = 0; e.castN = 0; e.shotN = 0;
-    this.hero = e; return e;
+    e.B = s.boons || null; e.aegis = 0; e.aegisMax = e.B ? e.B.shieldMax : 0; e.lastHurt = -99; e.meter = 0;
+    return e;
+  }
+
+  // An AI warden on the hero's side (side quests' friends: RUN_DESIGN.md section 5). Uses that warden's kit; thinks with
+  // opts.think, else world.allyAI[heroId] / setAllyAI() (allies.js ALLY_AI), else a built-in follower.
+  // think(world, ally, dt) returns an input frame like the player's ({ mx, mz, attackPressed, attackDown,
+  // dashPressed, ultPressed }) or nothing (it then drives ally itself). Modest by design: opts.dmg and opts.hp
+  // scale the warden's damage and health (default 0.6 each; opts.scale sets both). The ally's ultimate has its
+  // own meter (ally.meter, filled at opts.ultRate, default 0.6). Foes hunt allies too.
+  spawnAlly(heroId, x, z, opts = {}) {
+    const kit = HEROES[heroId]; if (!kit) throw new Error('unknown warden ' + heroId);
+    const k = opts.scale ?? 0.6; const hpK = opts.hp ?? k, dmgK = opts.dmg ?? k;
+    const base = opts.stats || {};
+    const e = this._heroEnt(x, z, { heroId, maxTonics: 0, tonics: 0, revives: 0, ultRate: opts.ultRate ?? 0.6, ...base,
+      maxHp: Math.round((base.maxHp || kit.hp) * hpK), dmgMul: (base.dmgMul || 1) * dmgK, face: opts.face ?? Math.PI });
+    e.ally = true; e.type = 'ally'; e.inp = { mx: 0, mz: 0 };
+    const bot = makeBot(1, 977 + e.id, { self: e });
+    e.think = opts.think || (this.allyAI && this.allyAI[heroId]) || ALLY_AI_REG[heroId] || ((w, a, dt) => bot(w, dt));
+    this.allies.push(e); this.emit('spawn', { e, ally: true }); return e;
+  }
+  _allyStep(e, h) {
+    let inp = null;
+    try { inp = e.think(this, e, h); } catch (err) { inp = null; }
+    if (inp) { const b = e.buf; for (const k of PRESS) if (inp[k + 'Pressed']) b[k] = this.t; e.inp = inp; } else e.inp = e.inp || NONE;
+    this._caster = e; this._hero(e, h); this._caster = null;
   }
 
   spawnFoe(type, x, z, opts = {}) {
@@ -77,6 +119,8 @@ export class World {
     if (opts.rise !== false) { e.state = 'spawn'; e.anim = 'rise'; e.iframes = 0.9; }
     e.ai = { cd: 0.6 + this.rand() * 0.8, strafeDir: this.rand() < 0.5 ? -1 : 1, aggro: !!opts.aggro, home: { x, z }, passive: !!opts.passive };
     if (opts.elite && AFFIXES[opts.elite]) this._makeElite(e, opts.elite);
+    // an elemental foe: its blows carry the element and leave a small hazard; tinted, with an aura (view.js)
+    if (opts.element && EL_STATUS[opts.element]) { e.element = opts.element; e.maxHp = e.hp = Math.round(e.hp * 1.15); e.elT = 0; }
     this.emit('spawn', { e }); return e;
   }
 
@@ -131,9 +175,11 @@ export class World {
       e.t += h; e.animT += h;
       if (e.iframes > 0) e.iframes -= h;
       if (e.flash > 0) e.flash -= h;
+      if (e.status.freeze) e.animT -= h; // frozen: the pose holds
       this._status(e, h);
       if (e.dead) continue;
-      if (e === hero) this._hero(e, h);
+      if (e === hero) { this._hero(e, h); if (e.B) this._boonTick(e, h); }
+      else if (e.ally) this._allyStep(e, h);
       else if (e.boss) this._foe(e, h, true);
       else this._foe(e, h, false);
     }
@@ -141,6 +187,8 @@ export class World {
     this._projectiles(h);
     this._hazards(h);
     this._zones(h);
+    this._boonWorld(h);
+    if (this.allies.length) this.allies = this.allies.filter((a) => this.ents.includes(a));
     const dead = this.ents.filter((e) => e.dead && e !== hero);
     if (dead.length > 14) { const old = new Set(dead.sort((a, b) => b.deadT - a.deadT).slice(0, dead.length - 14)); this.ents = this.ents.filter((e) => !old.has(e)); }
     this.combat = this.foes().some((f) => f.ai.aggro);
@@ -148,12 +196,32 @@ export class World {
 
   // ------------------------------------------------------------------ statuses
   // burn/bleed/poison: damage over time; frost: slow; stun: no action; root: no movement.
+  // chill: stacks (o.stacks); at o.at stacks (3) it freezes. freeze: a foe stands locked in ice (a great foe is only
+  // slowed). shock: crackles (lightning bites harder, boons). mark: the void's stacks. blind: deals less. sear: holy
+  // fire on the hero. A foe of an element shrugs off its own status.
   applyStatus(e, kind, o = {}) {
     if (e.dead || (e.boss && (kind === 'stun' || kind === 'root'))) return;
-    const s = e.status; const dur = o.dur ?? { burn: 3, bleed: 4, poison: 4, frost: 2, stun: 1.2, root: 2.2 }[kind];
+    if (e.element && EL_STATUS[e.element] === kind) return;
+    if (e.element === 'frost' && (kind === 'chill' || kind === 'freeze')) return;
+    const s = e.status; const dur = o.dur ?? { burn: 3, bleed: 4, poison: 4, frost: 2, stun: 1.2, root: 2.2, chill: 3, freeze: 1.6, shock: 2, mark: 6, blind: 3, sear: 3 }[kind];
     if (kind === 'resonate') { s.resonate = { t: o.dur ?? 4, stacks: Math.min(3, (s.resonate ? s.resonate.stacks : 0) + (o.stacks || 1)) }; this.emit('status', { e, kind }); return; }
-    if (kind === 'bleed') { const cur = s.bleed; const stacks = Math.min(3, (cur ? cur.stacks : 0) + 1); s.bleed = { t: dur, dps: o.dps ?? 4, stacks, tick: cur ? cur.tick : 0.5 }; }
-    else if (kind === 'burn' || kind === 'poison') s[kind] = { t: Math.max(dur, s[kind]?.t || 0), dps: Math.max(o.dps ?? 5, s[kind]?.dps || 0), tick: s[kind]?.tick ?? 0.5 };
+    if (kind === 'chill') {
+      if (s.freeze) return;
+      const stacks = (s.chill ? s.chill.stacks : 0) + (o.stacks || 1); s.frost = { t: Math.max(dur, s.frost?.t || 0) };
+      if (stacks >= (o.at || 3) && e.team === 'foe') { delete s.chill; return this.applyStatus(e, 'freeze', { src: o.src }); }
+      s.chill = { t: dur, stacks: Math.min(o.at ? o.at - 1 : 2, stacks) }; this.emit('status', { e, kind }); return;
+    }
+    if (kind === 'freeze') {
+      if (e.team !== 'foe') { s.frost = { t: 2 }; return; }
+      // a great foe is never frozen: the cold makes it brittle instead (it takes more for a while)
+      if (e.boss) { s.frost = { t: Math.max(2.5, s.frost?.t || 0) }; s.brittle = { t: 2.5 }; s.chill = { t: 2.5, stacks: 2 }; this.emit('status', { e, kind: 'brittle' }); this._fx({ k: 'brittle', e }); return; }
+      s.freeze = { t: dur }; delete s.chill; e.state = 'hurt'; e.t = 0; e.atk = null; e.tele = null; e.stun = dur; e.leapH = 0;
+      this.emit('status', { e, kind }); this._fx({ k: 'freeze', e }); this._onStatus(e, kind, o); return;
+    }
+    if (kind === 'mark') { s.mark = { t: dur, stacks: Math.min(o.max || 5, (s.mark ? s.mark.stacks : 0) + (o.stacks || 1)) }; this.emit('status', { e, kind }); if (e.team === 'foe') this._onStatus(e, kind, o); return; }
+    if (kind === 'bleed') { const cur = s.bleed; const stacks = Math.min(o.max || 3, (cur ? cur.stacks : 0) + 1); s.bleed = { t: dur, dps: o.dps ?? 4, stacks, tick: cur ? cur.tick : 0.5 }; }
+    else if (kind === 'poison' && o.stack) { const cur = s.poison; s.poison = { t: Math.max(dur, cur?.t || 0), dps: Math.max(o.dps ?? 5, cur?.dps || 0), tick: cur?.tick ?? 0.5, stacks: Math.min(o.max || 5, (cur?.stacks || 0) + (o.stacks || 1)) }; }
+    else if (kind === 'burn' || kind === 'poison' || kind === 'sear') s[kind] = { t: Math.max(dur, s[kind]?.t || 0), dps: Math.max(o.dps ?? 5, s[kind]?.dps || 0), tick: s[kind]?.tick ?? 0.5, stacks: s[kind]?.stacks };
     else s[kind] = { t: Math.max(dur, s[kind]?.t || 0) };
     if (kind === 'stun' && e.team === 'foe' && !e.boss) { e.state = 'hurt'; e.t = 0; e.anim = 'stagger'; e.animT = 0; e.atk = null; e.tele = null; e.stun = dur; }
     this.emit('status', { e, kind });
@@ -162,7 +230,7 @@ export class World {
     const s = e.status;
     for (const k in s) {
       const v = s[k]; v.t -= h;
-      if ((k === 'burn' || k === 'bleed' || k === 'poison') && (v.tick -= h) <= 0) {
+      if ((k === 'burn' || k === 'bleed' || k === 'poison' || k === 'sear') && (v.tick -= h) <= 0) {
         v.tick += 0.5; const amt = Math.max(1, Math.round(v.dps * (v.stacks || 1) * 0.5));
         if (e.team === 'hero') this._dotHero(e, amt, k); else this._dot(e, amt, k);
       }
@@ -170,12 +238,14 @@ export class World {
     }
   }
   _dot(e, amt, kind) {
-    if (e.dead) return; e.hp -= amt; this.emit('dot', { e, dmg: amt, kind });
+    if (e.dead) return; amt = this._boonDot(e, amt, kind); e.hp -= amt; this.emit('dot', { e, dmg: amt, kind });
     if (e.hp <= 0) this._kill(e, this.hero, { dot: true });
   }
   _dotHero(e, amt, kind) {
     if (e.dead || e.state === 'special') return;
-    e.hp -= Math.max(1, Math.round(amt * e.stats.dmgTaken * (e.buffs.ward > 0 ? 0.5 : 1) * (e.buffs.barnacle > 0 ? 1 - e.barnReduce : 1))); this.emit('dot', { e, dmg: amt, kind });
+    let d = amt * e.stats.dmgTaken * (e.buffs.ward > 0 ? 0.5 : 1) * (e.buffs.barnacle > 0 ? 1 - e.barnReduce : 1);
+    if (e.aegis > 0) { const ab = Math.min(e.aegis, d); e.aegis -= ab; d -= ab; if (d <= 0) return; }
+    e.hp -= Math.max(1, Math.round(d)); this.emit('dot', { e, dmg: amt, kind });
     if (e.hp <= 0) this._heroDown(e);
   }
 
@@ -195,18 +265,23 @@ export class World {
     if (e.comboT > 0) { e.comboT -= h; if (e.comboT <= 0) e.combo = 0; }
     if (e.shotT > 0) e.shotT -= h;
     e.mx = 0; e.mz = 0; e.moveSpeed = 0;
-    const slowK = (e.status.frost ? 0.6 : 1);
+    const slowK = (e.status.frost ? 0.6 : 1) * (e.status.shock ? 0.85 : 1);
     const walk = (k) => { if (mdir !== null) { e.mx = Math.sin(mdir) * mlen; e.mz = Math.cos(mdir) * mlen; e.moveSpeed = e.speed * k * slowK; } };
 
     const canAct = e.state === 'idle' || e.state === 'run' || (e.state === 'shoot' && e.t > 0.05);
     const free = () => { e.state = mlen > 0.15 ? 'run' : 'idle'; e.t = 0; e.atk = null; e.anim = e.state; };
     const cancelable = canAct || (e.state === 'attack' && e.t >= e.atk.cancel) || (e.state === 'cast' && e.t >= (e.castCancel ?? 0.2));
 
-    if (cancelable && fresh('ult', 0.2) && this.meter >= 100) { take('ult'); return this._ult(e); }
+    if (cancelable && fresh('ult', 0.2) && this._meterOf(e) >= 100) { take('ult'); return this._ult(e); }
     const dashOK = e.dashCharges > 0 && (cancelable || (e.state === 'hurt' && e.t > 0.2) || (e.state === 'dash' && e.t > 0.12) || ((e.state === 'rush' || e.state === 'whirl') && e.t > 0.2));
     if (dashOK && fresh('dash', 0.2)) {
       take('dash'); const mv = e.status.root ? -1 : this._moveSlot(e); // held fast: the dash tears free instead
-      if (mv >= 0) return this._ability(e, mv, mdir, null, true); // a ready movement ability rides on the dash (no charge spent)
+      if (mv >= 0) { // a ready movement ability rides on the dash (no charge spent)
+        if (e.B) this._boonDashStart(e, true);
+        this._ability(e, mv, mdir, null, true);
+        if (e.B && e.state !== 'rush' && e.state !== 'charging') this._boonDashEnd(e); // a blink lands at once
+        return;
+      }
       return this._dash(e, mdir);
     }
     if (canAct && fresh('heal', 0.2) && e.tonics > 0 && e.hp < e.maxHp) { take('heal'); e.state = 'heal'; e.t = 0; e.anim = 'heal'; e.animT = 0; e.healed = false; this.emit('drink', { e }); return; }
@@ -216,7 +291,7 @@ export class World {
     if (wantAttack && cancelable && (K.attack.kind === 'combo' ? fresh('attack', 0.25) : e.shotT <= 0)) {
       const c = this._autoCast(e, mdir, false);
       if (c) { take('attack'); return this._ability(e, c.slot, mdir, c.tg); }
-    } else if (!wantAttack && cancelable && this.abilityMode === 'auto' && this.combat && (e.autoT -= h) <= 0) {
+    } else if (!wantAttack && cancelable && (this.abilityMode === 'auto' || e.ally) && this.combat && (e.autoT -= h) <= 0) {
       e.autoT = 0.1; const c = this._autoCast(e, mdir, true);
       if (c) return this._ability(e, c.slot, mdir, c.tg);
     }
@@ -244,7 +319,7 @@ export class World {
         if (e.t >= a.windup && e.t <= a.active) this._melee(e, a);
         // the hammer's last blow quakes (wider and harder with a quake weapon); scaled like every hero blow
         // (Hollis's anchor splashes where it lands, at the end of its chain: quakeAt, quakeKind)
-        if (a.quake && !e.quaked && e.t >= a.active) { e.quaked = true; const qk = S.trait.quake ? 1.4 : 1; const at = a.quakeAt ?? 1.6; this.addZone({ shape: 'circle', x: e.x + Math.sin(e.face) * at, z: e.z + Math.cos(e.face) * at, r: a.quake * qk, life: 0.12, dmg: this.heroDmg(e, a.dmg * 0.5 * qk), kb: 6, kind: a.quakeKind || 'quake' }); }
+        if (a.quake && !e.quaked && e.t >= a.active) { e.quaked = true; const qk = S.trait.quake ? 1.4 : 1; const at = a.quakeAt ?? 1.6; this.addZone({ shape: 'circle', x: e.x + Math.sin(e.face) * at, z: e.z + Math.cos(e.face) * at, r: a.quake * qk, life: 0.12, dmg: this.heroDmg(e, a.dmg * 0.5 * qk), kb: 6, kind: a.quakeKind || 'quake', slot: 'attack' }); }
         if (e.t >= a.dur) free();
         break;
       }
@@ -253,7 +328,9 @@ export class World {
         if (S.relics.includes('rosary') && (e.trailT = (e.trailT || 0) - h) <= 0) { e.trailT = 0.06; this.addZone({ shape: 'circle', x: e.x, z: e.z, r: 0.7, life: 1.4, dmg: 4, tick: 0.5, status: { burn: 1 }, kind: 'fire' }); }
         // Ashmaw's Echo: the dash leaves a burrowing trail that bursts up a moment later
         if (e.echo.sandwyrm && (e.sandT = (e.sandT || 0) - h) <= 0) { const up = e.echo.sandwyrm > 1; e.sandT = 0.08; this.addZone({ shape: 'circle', x: e.x, z: e.z, r: 1.0, warn: 0.4, life: 0.12, dmg: this.heroDmg(e, up ? 15 : 9), kb: 4, poise: 12, status: up ? { frost: 1 } : null, kind: 'sandtrail' }); }
+        if (e.B) this._boonDashStep(e, h);
         if (e.t >= DASH.dur) {
+          if (e.B) this._boonDashEnd(e);
           if (e.echo.harbormaster && e.hookT <= 0) this._echoHook(e);
           if (fresh('attack', 0.18) && K.attack.dashAttack) { take('attack'); this._aim(e, e.dashDir, 4); return this._startAttack(e, { ...K.attack.dashAttack }); }
           free();
@@ -268,9 +345,9 @@ export class World {
         break;
       }
       case 'cast': { walk(e.castMove ?? 0); if (e.t >= (e.castDur ?? 0.3)) free(); break; }
-      case 'rush': this._rush(e, h, free); break;
-      case 'whirl': this._whirl(e, h, free); break;
-      case 'charging': this._charging(e, h, free); break;
+      case 'rush': this._slotCtx = 'skill'; this._rush(e, h, free); this._slotCtx = null; if (e.B) { this._boonDashStep(e, h); if (e.state !== 'rush') this._boonDashEnd(e); } break;
+      case 'whirl': this._slotCtx = 'skill'; this._whirl(e, h, free); this._slotCtx = null; break;
+      case 'charging': this._slotCtx = 'skill'; this._charging(e, h, free); this._slotCtx = null; if (e.B) { this._boonDashStep(e, h); if (e.state !== 'charging') this._boonDashEnd(e); } break;
       case 'special': this._special(e, h, free); break;
     }
   }
@@ -281,6 +358,14 @@ export class World {
     if (e.stats.relics.includes('wick') && e.hp < e.maxHp * 0.4) d *= 1.25;
     if (e.buffs && e.buffs.hush > 0) d *= e.echo.silence > 1 ? 1.7 : 1.5; // the Stilled Hand: after a perfect dodge
     return d;
+  }
+
+  // the ultimate's meter: the world's for the player's warden, each ally's own
+  _meterOf(e) { return e === this.main ? this.meter : (e.meter || 0); }
+  _gain(src, amt) {
+    if (!src || src.team !== 'hero' || !src.stats) return;
+    if (src === this.main) this.meter = Math.min(100, this.meter + amt * src.stats.ultRate);
+    else if (src.ally) src.meter = Math.min(100, (src.meter || 0) + amt * src.stats.ultRate);
   }
 
   _aim(e, mdir, range) {
@@ -326,8 +411,11 @@ export class World {
   _dash(e, mdir) {
     e.state = 'dash'; e.t = 0; e.anim = 'dash'; e.animT = 0; e.atk = null; e.dashCharges--; e.dashT = 0;
     e.dashDir = mdir ?? e.face; e.face = e.dashDir; e.iframes = DASH.iframes; e.perfected = false; e.dashAt = this.t;
-    this.emit('dash', { e });
+    if (e.B) this._boonDashStart(e, false);
+    this._emitBy(e, 'dash', { e });
   }
+  // allies' own moves are told apart ('ally' events), so the player's sounds and camera do not answer them
+  _emitBy(e, type, data) { if (e && e.ally) this.emit('ally', { what: type, ...data }); else this.emit(type, data); }
 
   // ------------------------------------------------------------------ abilities
   // Which equipped ability (if any) to cast right now: the first ready one, slot 0 first, that would be
@@ -458,7 +546,25 @@ export class World {
     if (tg) { e.face = angTo(e, tg); e.lockOn = tg; }
     const aim = (range) => tg || this._aim(e, mdir, range);
     const fx = Math.sin(e.face), fz = Math.cos(e.face);
-    this.stats.abilities++; this.emit('ability', { e, id: ab.id, kind: A.kind, slot });
+    if (e === this.main) this.stats.abilities++; this._emitBy(e, 'ability', { e, id: ab.id, kind: A.kind, slot });
+    const np = this.projs.length, nz = this.zones.length; this._slotCtx = 'skill';
+    try { this._abilityCast(e, ab, A, r, S, slot, dir, viaDash, tg, aim, cast, fx, fz); } finally { this._slotCtx = null; }
+    // what the skill made counts as the skill (boons: skill riders)
+    for (let i = np; i < this.projs.length; i++) this.projs[i].slot = this.projs[i].slot || 'skill';
+    let at = null; for (let i = nz; i < this.zones.length; i++) { const z = this.zones[i]; z.slot = z.slot || 'skill'; if (!z.follow && !at) at = { x: z.x, z: z.z }; }
+    if (e.B) this._boonSkill(e, slot, A, e.lockOn || tg, at);
+    // from the dash: the opening of the move is untouchable like a dash, and a blow dodged in it is a perfect dodge
+    if (viaDash) { e.iframes = Math.max(e.iframes, DASH.iframes); e.dashAt = this.t; e.perfected = false; e.dodgeUntil = this.t + DASH.iframes; this._emitBy(e, 'dash', { e, ability: ab.id }); }
+    // the Deacon's Echo: a pool of black water where the skill went
+    if (e.echo.deacon) {
+      const up = e.echo.deacon > 1; const at = tg && !tg.dead ? tg : null; const px = at ? at.x : e.x + fx * 2, pz = at ? at.z : e.z + fz * 2;
+      this.addZone({ shape: 'circle', x: px, z: pz, r: up ? 2.6 : 2.0, life: 2.6, dmg: this.heroDmg(e, up ? 7 : 4), tick: 0.5, status: { frost: 1 }, kind: 'tidepool' });
+    }
+    // the Clockmaster's Echo: every third skill winds the other one back
+    if (e.echo.clockmaster && ++e.castN % 3 === 0) { const o = 1 - slot; e.cds[o] = 0; }
+  }
+
+  _abilityCast(e, ab, A, r, S, slot, dir, viaDash, tg, aim, cast, fx, fz) {
     switch (A.kind) {
       case 'wave': {
         aim(9); cast('slash3', 0.36, 0, 0.22);
@@ -480,7 +586,7 @@ export class World {
         const near = viaDash ? null : (tg || this._nearestFoe(e, 8)); const away = viaDash ? dir : (near ? angTo(near, e) : e.face + Math.PI);
         this.addZone({ shape: 'circle', x: e.x, z: e.z, r: A.radius, warn: 0.45, life: 0.15, dmg: this.heroDmg(e, A.dmg, r), stun: A.stun, kind: 'smoke' });
         const tx = e.x + Math.sin(away) * A.dist, tz = e.z + Math.cos(away) * A.dist;
-        const p = this._lastClear(e.x, e.z, tx, tz, e.r); this.emit('blinkHero', { e, fx: e.x, fz: e.z, x: p.x, z: p.z }); e.x = p.x; e.z = p.z; e.face = wrap(away + Math.PI);
+        const p = this._lastClear(e.x, e.z, tx, tz, e.r); this._emitBy(e, 'blinkHero', { e, fx: e.x, fz: e.z, x: p.x, z: p.z }); e.x = p.x; e.z = p.z; e.face = wrap(away + Math.PI);
         e.iframes = 0.3; cast('dash', 0.22, 0);
         break;
       }
@@ -517,9 +623,9 @@ export class World {
         const t = viaDash ? this._foeToward(e, dir, A.range) : aim(A.range); const p = t && this._behind(e, t);
         if (!t || !p) { // nobody that way: a long blink along the dash, no strike
           const q = this._lastClear(e.x, e.z, e.x + Math.sin(dir) * 5, e.z + Math.cos(dir) * 5, e.r);
-          this.emit('blinkHero', { e, fx: e.x, fz: e.z, x: q.x, z: q.z }); e.x = q.x; e.z = q.z; e.iframes = 0.3; cast('kstab', 0.26, 0, 0.2); break;
+          this._emitBy(e, 'blinkHero', { e, fx: e.x, fz: e.z, x: q.x, z: q.z }); e.x = q.x; e.z = q.z; e.iframes = 0.3; cast('kstab', 0.26, 0, 0.2); break;
         }
-        this.emit('blinkHero', { e, fx: e.x, fz: e.z, x: p.x, z: p.z }); e.x = p.x; e.z = p.z; e.face = angTo(e, t); e.lockOn = t;
+        this._emitBy(e, 'blinkHero', { e, fx: e.x, fz: e.z, x: p.x, z: p.z }); e.x = p.x; e.z = p.z; e.face = angTo(e, t); e.lockOn = t;
         e.iframes = 0.4; cast('kstab', 0.34, 0, 0.26);
         this._damage(e, t, this.heroDmg(e, A.dmg, r), { poise: 35, kb: 3, heavy: true, status: A.status, kind: 'backstab' });
         break;
@@ -559,15 +665,6 @@ export class World {
       case 'lullaby': { cast('chant', 0.42, 0.2); this.addZone({ shape: 'circle', x: e.x, z: e.z, r: A.radius, life: 0.2, dmg: this.heroDmg(e, A.dmg, r), stun: A.stun, resonate: 1, kind: 'lull' }); break; }
       case 'echo': { cast('chant', 0.3, 0.4); e.buffs.echo = A.dur; e.echoT = 0.25; e.echoRate = A.rate; e.echoDmg = this.heroDmg(e, A.dmg, r); e.echoSide = 1; break; }
     }
-    // from the dash: the opening of the move is untouchable like a dash, and a blow dodged in it is a perfect dodge
-    if (viaDash) { e.iframes = Math.max(e.iframes, DASH.iframes); e.dashAt = this.t; e.perfected = false; e.dodgeUntil = this.t + DASH.iframes; this.emit('dash', { e, ability: ab.id }); }
-    // the Deacon's Echo: a pool of black water where the skill went
-    if (e.echo.deacon) {
-      const up = e.echo.deacon > 1; const at = tg && !tg.dead ? tg : null; const px = at ? at.x : e.x + fx * 2, pz = at ? at.z : e.z + fz * 2;
-      this.addZone({ shape: 'circle', x: px, z: pz, r: up ? 2.6 : 2.0, life: 2.6, dmg: this.heroDmg(e, up ? 7 : 4), tick: 0.5, status: { frost: 1 }, kind: 'tidepool' });
-    }
-    // the Clockmaster's Echo: every third skill winds the other one back
-    if (e.echo.clockmaster && ++e.castN % 3 === 0) { const o = 1 - slot; e.cds[o] = 0; }
   }
 
   // the foe a dash-cast Shadow Step goes for: in reach, near the dash direction, in the clear
@@ -588,8 +685,8 @@ export class World {
     const ox = e.x + Math.sin(e.face + e.echoSide * 1.6) * 0.9, oz = e.z + Math.cos(e.face + e.echoSide * 1.6) * 0.9;
     if (!this.clear({ x: ox, z: oz }, tg)) return;
     const a = Math.atan2(tg.x - ox, tg.z - oz);
-    this.projs.push({ id: this.nextId++, kind: 'note', team: 'hero', x: ox, z: oz, y: 1.7, vx: Math.sin(a) * 13, vz: Math.cos(a) * 13, r: 0.3, dmg: e.echoDmg, poise: 6, life: 1.0, resonate: 1, homing: 4, seekAfter: 0.05, hitSet: new Set(), face: a, src: e });
-    this.emit('shoot', { e, kind: 'note' });
+    this.projs.push({ id: this.nextId++, kind: 'note', team: 'hero', x: ox, z: oz, y: 1.7, vx: Math.sin(a) * 13, vz: Math.cos(a) * 13, r: 0.3, dmg: e.echoDmg, poise: 6, life: 1.0, resonate: 1, homing: 4, seekAfter: 0.05, hitSet: new Set(), face: a, src: e, slot: 'skill' });
+    this._emitBy(e, 'shoot', { e, kind: 'note' });
   }
 
   // the Harbormaster's Echo: the end of a dash throws a hook at the nearest foe (two when Ascended) and drags it in
@@ -626,10 +723,12 @@ export class World {
   // ------------------------------------------------------------------ ultimates
   _ult(e) {
     const U = e.stats.ult; const D = U.def; const r = U.rank;
-    this.meter = 0; e.state = 'special'; e.t = 0; e.animT = 0; e.atk = null; e.spK = -1; e.ultDef = D; e.ultDmg = this.heroDmg(e, D.dmg, r);
+    if (e === this.main) this.meter = 0; else e.meter = 0;
+    e.state = 'special'; e.t = 0; e.animT = 0; e.atk = null; e.spK = -1; e.ultDef = D; e.ultDmg = this.heroDmg(e, D.dmg, r);
     e.anim = { requiem: 'special', rain: 'aim', toll: 'hsmash2', sunburst: 'roar', cutstorm: 'kstorm', flood: 'bellring', choir: 'choir' }[D.kind] || 'special';
     e.iframes = D.dur + 0.3; e.ultFin = D.finale ? this.heroDmg(e, D.finale, r) : 0; e.stormAt = { x: e.x, z: e.z };
-    this.emit('special', { e, kind: D.kind }); this.slow(0.35, 0.35);
+    this._emitBy(e, 'special', { e, kind: D.kind }); if (!e.ally) this.slow(0.35, 0.35);
+    if (e.B) this._boonUlt(e, 'start');
   }
   _special(e, h, free) {
     const D = e.ultDef;
@@ -657,7 +756,7 @@ export class World {
         const near = this.foes().filter((f) => f.state !== 'spawn' && !f.hidden && Math.hypot(f.x - c.x, f.z - c.z) < D.radius + f.r).sort((a, b) => dist(e, a) - dist(e, b));
         const tg = near.length ? near[(k * 7) % Math.min(near.length, 4)] : null;
         if (tg) {
-          const p = this._behind(e, tg); if (p) { if (k % 2 === 0) this.emit('blinkHero', { e, fx: e.x, fz: e.z, x: p.x, z: p.z }); e.x = p.x; e.z = p.z; }
+          const p = this._behind(e, tg); if (p) { if (k % 2 === 0) this._emitBy(e, 'blinkHero', { e, fx: e.x, fz: e.z, x: p.x, z: p.z }); e.x = p.x; e.z = p.z; }
           e.face = angTo(e, tg); e.animT = 0.2 + (k % 3) * 0.05;
           for (const f of near) if (Math.hypot(f.x - tg.x, f.z - tg.z) < 1.9 + f.r) this._damage(e, f, e.ultDmg, { poise: 18, kb: 1.5, special: true, status: D.status, aoe: true });
         }
@@ -684,7 +783,7 @@ export class World {
       if (e.t > 0.3) { const inp = e.inp || NONE; const ml = Math.hypot(inp.mx || 0, inp.mz || 0); if (ml > 0.15) { e.mx = inp.mx / ml; e.mz = inp.mz / ml; e.moveSpeed = e.speed * 0.4; } }
     }
     if (e.t >= D.dur) {
-      e.iframes = 0.3;
+      e.iframes = 0.3; if (e.B) this._boonUlt(e, 'end');
       // the Hollow Crown: every ultimate ends in a burst of void
       if (e.echo.archon) { const up = e.echo.archon > 1; this.addZone({ shape: 'circle', x: e.x, z: e.z, r: up ? 6 : 5, life: 0.15, dmg: this.heroDmg(e, up ? 70 : 40), kb: 6, kind: 'void', special: true }); this.emit('shake', { amt: 0.5 }); }
       free();
@@ -703,7 +802,7 @@ export class World {
   }
 
   _melee(a, atk) {
-    const targets = a.team === 'hero' ? this.foes() : [this.hero].filter((x) => x && !x.dead);
+    const targets = a.team === 'hero' ? this.foes() : this.heroTeam();
     for (const t of targets) {
       if (a.hitSet.has(t.id) || t.state === 'spawn' || t.hidden) continue;
       if (!this._inShape(a, atk, t) || !this.clear(a, t)) continue;
@@ -716,30 +815,38 @@ export class World {
   // The one place damage happens.
   _damage(src, dst, dmg, o = {}) {
     if (dst.dead) return false;
-    const hero = this.hero;
-    if (dst === hero) {
+    const main = this.main;
+    if (dst.team === 'hero') {
+      const isMain = dst === main;
       // perfect dodge: a blow that lands inside the first part of a dash
       if ((dst.state === 'dash' || this.t < (dst.dodgeUntil || 0)) && dst.iframes > 0) {
         if (this.t - dst.dashAt <= DASH.perfectWindow + 0.06 && !dst.perfected) {
-          dst.perfected = true; this.meter = Math.min(100, this.meter + METER.onPerfect * dst.stats.ultRate); this.stats.perfects++; this.slow(0.7, 0.3); this.emit('perfect', { e: dst, src });
-          if (dst.echo.silence) { const up = dst.echo.silence > 1; dst.buffs.hush = up ? 3 : 2; this.slow(up ? 1.2 : 1.0, 0.25); this.emit('hush', { e: dst }); }
+          dst.perfected = true; this._gain(dst, METER.onPerfect);
+          if (isMain) { this.stats.perfects++; this.slow(0.7, 0.3); this.emit('perfect', { e: dst, src }); }
+          if (dst.echo.silence) { const up = dst.echo.silence > 1; dst.buffs.hush = up ? 3 : 2; if (isMain) { this.slow(up ? 1.2 : 1.0, 0.25); this.emit('hush', { e: dst }); } }
+          if (dst.B) this._boonPerfect(dst);
         }
         return false;
       }
       if (dst.iframes > 0 || dst.state === 'special') return false;
       // Ten Thousand Names: a ward of bone turns the blow aside
       if (dst.boneWard > 0) { dst.boneWard--; dst.iframes = 0.4; this.emit('block', { e: dst, src, x: dst.x, z: dst.z }); this.emit('boneWard', { e: dst, n: dst.boneWard }); this.stop(0.05); return false; }
-      let real = dmg * dst.stats.dmgTaken * (dst.buffs.ward > 0 ? 0.5 : 1) * (dst.buffs.barnacle > 0 ? 1 - dst.barnReduce : 1); real = Math.max(1, Math.round(real));
+      let real = dmg * dst.stats.dmgTaken * (dst.buffs.ward > 0 ? 0.5 : 1) * (dst.buffs.barnacle > 0 ? 1 - dst.barnReduce : 1);
+      if (dst.status.mark) real *= 1.15; // a void foe's mark: the marked take more
+      real = this._boonGuard(dst, src, real, o); // boons: shields, mail, the poisoned's weakness (shields soak first)
+      if (real <= 0.5) { dst.iframes = Math.max(dst.iframes, 0.25); dst.flash = 0.08; this.emit('block', { e: dst, src, x: dst.x, z: dst.z, shield: true }); if (src && src.element) this._elOnHero(src, dst, 0); return false; }
+      real = Math.max(1, Math.round(real));
       // Barnacle Guard: what strikes Hollis in close is cut and chilled
       if (dst.buffs.barnacle > 0 && o.melee && src && !src.dead && src.team === 'foe') this._damage(dst, src, dst.barnDmg, { kb: 3, aoe: true, status: { frost: 1 }, kind: 'barnacle' });
-      dst.hp -= real; dst.flash = 0.15; dst.iframes = 0.55; this.stats.damageTaken += real;
-      this.meter = Math.min(100, this.meter + METER.onHurt * dst.stats.ultRate);
+      dst.hp -= real; dst.flash = 0.15; dst.iframes = 0.55; if (isMain) this.stats.damageTaken += real;
+      this._gain(dst, METER.onHurt);
       const ang = src ? Math.atan2(dst.x - src.x, dst.z - src.z) : 0; const kb = (o.kb || 3) * (dst.kit.armor ? 0.5 : 1);
       dst.kbx = Math.sin(ang) * kb; dst.kbz = Math.cos(ang) * kb;
-      this.emit('hit', { src, dst, dmg: real, x: dst.x, z: dst.z, ang, heavy: o.heavy, hero: true });
-      this.stop(o.heavy ? 0.1 : 0.06); this.emit('shake', { amt: o.heavy ? 0.45 : 0.25 });
+      this.emit('hit', { src, dst, dmg: real, x: dst.x, z: dst.z, ang, heavy: o.heavy, hero: isMain, ally: !isMain });
+      if (isMain) { this.stop(o.heavy ? 0.1 : 0.06); this.emit('shake', { amt: o.heavy ? 0.45 : 0.25 }); }
       // elite foes' touch
       if (src && src.elite) { const A = AFFIXES[src.elite]; if (A.hit) for (const k in A.hit) this.applyStatus(dst, k, { dps: 5 }); if (A.leech) { src.hp = Math.min(src.maxHp, src.hp + real * A.leech); } }
+      if (src && src.element) this._elOnHero(src, dst, real);
       if (o.status) for (const k in o.status) this.applyStatus(dst, k, { dps: o.dps || 5 });
       if (dst.hp <= 0) return this._heroDown(dst);
       // the armoured hero keeps swinging through blows
@@ -750,26 +857,30 @@ export class World {
     // a foe
     if (dst.state === 'spawn' || dst.iframes > 0) return false;
     const ang = Math.atan2(dst.x - src.x, dst.z - src.z);
+    const byHero = src && src.team === 'hero' && !!src.stats; // the player's warden or an ally
+    const byMain = byHero && src === main;
     // shield: frontal blows are blocked until the guard breaks
     if (dst.def.shield && !o.special && !o.aoe && dst.state !== 'stagger' && dst.state !== 'attack' && dst.state !== 'windup' && Math.abs(angDiff(dst.face, ang + Math.PI)) < 1.2) {
       dst.poise -= (o.poise || 10) * (o.heavy ? 1.2 : 0.6); dst.flash = 0.06;
       this.emit('block', { e: dst, src, x: dst.x - Math.sin(ang) * 0.5, z: dst.z - Math.cos(ang) * 0.5 });
-      if (src === hero && !o.heavy && !o.proj) { hero.kbx = -Math.sin(ang) * 3; hero.kbz = -Math.cos(ang) * 3; }
-      if (dst.poise <= 0) { if (src === hero) this.meter = Math.min(100, this.meter + METER.onBreak * hero.stats.ultRate); this._stagger(dst, 1.8); }
-      this.stop(0.04);
+      if (byHero && !o.heavy && !o.proj) { src.kbx = -Math.sin(ang) * 3; src.kbz = -Math.cos(ang) * 3; }
+      if (dst.poise <= 0) { this._gain(src, METER.onBreak); this._stagger(dst, 1.8); }
+      if (byMain) this.stop(0.04);
       return false;
     }
     let real = dmg; let crit = false;
-    if (src === hero && hero && this.rand() < hero.stats.crit) { real *= 2; crit = true; this.stats.crits++; }
+    if (byHero && (this.rand() < (src.stats.crit || 0) || this._veilCrit(src, o))) { real *= 2; crit = true; if (byMain) this.stats.crits++; }
     if (dst.state === 'stagger') real *= 1.4;
-    if (src === hero && hero) {
+    if (byHero) {
       if (dst.status.resonate) real *= 1 + 0.1 * dst.status.resonate.stacks; // Mother Wren: resonating foes take more
-      if (dst.status.frost && hero.echo && hero.echo.frostgiant) real *= hero.echo.frostgiant > 1 ? 1.25 : 1.15; // Hoarfrost Breath
+      if (dst.status.frost && src.echo && src.echo.frostgiant) real *= src.echo.frostgiant > 1 ? 1.25 : 1.15; // Hoarfrost Breath
+      if (dst.status.brittle) real *= 1.2; // frozen through, a great foe cracks
+      if (src.B) real *= this._boonMul(src, dst, o);
     }
     real = Math.round(real);
     if (dst.shield > 0) { const ab = Math.min(dst.shield, real); dst.shield -= ab; real -= ab; if (dst.shield <= 0) this.emit('shieldBreak', { e: dst }); }
-    dst.hp -= real; dst.flash = 0.12; this.stats.hits++;
-    if (src === hero) this.meter = Math.min(100, this.meter + METER.onHit * (o.special ? 0 : 1) * hero.stats.ultRate);
+    dst.hp -= real; dst.flash = 0.12; if (byMain) this.stats.hits++;
+    if (byHero && !o.special) this._gain(src, METER.onHit);
     const kb = (o.kb || 2) / Math.max(0.6, dst.mass) * (dst.boss ? 0.15 : 1);
     if (!(dst.armor && (dst.state === 'windup' || dst.state === 'attack'))) {
       if (o.pull && src) { // dragged toward the source, to just in front of it (the anchor's undertow, hooks)
@@ -778,11 +889,11 @@ export class World {
         dst.kbx = -Math.sin(ang) * k; dst.kbz = -Math.cos(ang) * k;
       } else { dst.kbx = Math.sin(ang) * kb; dst.kbz = Math.cos(ang) * kb; }
     }
-    this.emit('hit', { src, dst, dmg: real, x: dst.x, z: dst.z, ang, heavy: o.heavy, special: o.special, crit, kind: o.kind });
-    if (!o.special && !o.dotLike) this.stop(o.heavy ? 0.085 : (o.proj ? 0.02 : 0.045));
-    if (o.heavy) this.emit('shake', { amt: 0.3 });
-    // what the blow carries: statuses, weapon traits, relics
-    if (src === hero && hero) this._onHeroHit(hero, dst, real, o);
+    this.emit('hit', { src, dst, dmg: real, x: dst.x, z: dst.z, ang, heavy: o.heavy, special: o.special, crit, kind: o.kind, ally: byHero && !byMain, boon: !!o.boon });
+    if (!o.special && !o.dotLike && (byMain || !byHero)) this.stop(o.heavy ? 0.085 : (o.proj ? 0.02 : 0.045));
+    if (o.heavy && (byMain || !byHero)) this.emit('shake', { amt: 0.3 });
+    // what the blow carries: statuses, weapon traits, relics, boons
+    if (byHero) { const pc = this._caster; this._caster = src; this._onHeroHit(src, dst, real, o); this._caster = pc; }
     if (dst.hp <= 0) return this._kill(dst, src, o);
     if (o.resonate) this.applyStatus(dst, 'resonate', { stacks: o.resonate });
     if (o.stun) this.applyStatus(dst, 'stun', { dur: o.stun });
@@ -790,7 +901,7 @@ export class World {
     // poise and interrupts
     if (!dst.boss) {
       dst.poise -= o.poise || 0;
-      if (dst.poise <= 0 && dst.state !== 'stagger') { if (src === hero) this.meter = Math.min(100, this.meter + METER.onBreak * hero.stats.ultRate); this._stagger(dst, 1.7); }
+      if (dst.poise <= 0 && dst.state !== 'stagger') { this._gain(src, METER.onBreak); this._stagger(dst, 1.7); }
       else if (!dst.armor && !dst.shield && dst.state !== 'stagger' && dst.state !== 'hurt' && (dst.flinch >= 1 || o.heavy && dst.flinch >= 0.5)) {
         // a foe flinches a few times, then fights through the blows (button mashing gets punished)
         dst.flinch -= o.heavy ? 0.5 : 1;
@@ -798,14 +909,39 @@ export class World {
       }
     } else {
       dst.poise -= (o.poise || 0) * 0.5;
-      if (dst.poise <= 0 && dst.state !== 'stagger' && !dst.hidden) { if (src === hero) this.meter = Math.min(100, this.meter + METER.onBreak * hero.stats.ultRate); dst.staggers = (dst.staggers || 0) + 1; dst.maxPoise = 300 * Math.min(2, 1 + 0.25 * dst.staggers); dst.poise = dst.maxPoise; dst.state = 'stagger'; dst.t = 0; dst.anim = 'stagger'; dst.animT = 0; dst.stagT = 2.2; dst.tele = null; dst.atk = null; dst.leapFrom = null; dst.leapH = 0; this.emit('stagger', { e: dst }); }
+      if (dst.poise <= 0 && dst.state !== 'stagger' && !dst.hidden) { this._gain(src, METER.onBreak); dst.staggers = (dst.staggers || 0) + 1; dst.maxPoise = 300 * Math.min(2, 1 + 0.25 * dst.staggers); dst.poise = dst.maxPoise; dst.state = 'stagger'; dst.t = 0; dst.anim = 'stagger'; dst.animT = 0; dst.stagT = 2.2; dst.tele = null; dst.atk = null; dst.leapFrom = null; dst.leapH = 0; this.emit('stagger', { e: dst }); }
     }
     return true;
   }
 
+  // an elemental foe's blow on the hero's side: its element's status (blood drinks, storm leaps to a friend beside)
+  _elOnHero(src, dst, real) {
+    const el = src.element; const st = EL_STATUS[el]; const lvl = 1 + (src.def && src.def.tier ? src.def.tier * 0.15 : 0);
+    if (el === 'frost') this.applyStatus(dst, 'frost', { dur: 1.6 });
+    else if (el === 'storm') { this.applyStatus(dst, 'shock', { dur: 1.5 }); for (const o of this.heroTeam()) if (o !== dst && dist(o, dst) < 4) { this._fx({ k: 'arc', x0: dst.x, z0: dst.z, x1: o.x, z1: o.z, el: 'storm' }); this._dotHero(o, Math.round(3 * lvl), 'shock'); break; } }
+    else if (el === 'blood') { this.applyStatus(dst, 'bleed', { dps: 3 * lvl }); if (real > 0) src.hp = Math.min(src.maxHp, src.hp + real * 0.35); }
+    else if (el === 'void') this.applyStatus(dst, 'mark', { dur: 4, stacks: 1, max: 1 });
+    else this.applyStatus(dst, st, { dps: (el === 'holy' ? 3 : 4) * lvl });
+  }
+  // an elemental foe strikes: a small hazard of its element where the blow fell (one every couple of seconds)
+  _elHazard(e, x, z) {
+    if (!e.element || this.t < (e.elT || 0)) return; e.elT = this.t + 2.2; const m = e.dmgMul || 1;
+    const H = {
+      fire: { r: 1.2, warn: 0.3, life: 2.4, tick: 0.5, dmg: 3 * m, status: { burn: 1 }, kind: 'fire' },
+      frost: { r: 1.4, warn: 0.3, life: 3, tick: 0.5, dmg: 1, status: { frost: 1 }, kind: 'frost' },
+      poison: { r: 1.3, warn: 0.3, life: 3.4, tick: 0.5, dmg: 2 * m, status: { poison: 1 }, kind: 'acid' },
+      storm: { r: 1.1, warn: 0.75, life: 0.12, dmg: 9 * m, status: { shock: 1 }, kind: 'lightning' },
+      blood: { r: 1.2, warn: 0.3, life: 3, tick: 0.5, dmg: 2 * m, status: { bleed: 1 }, kind: 'blood' },
+      holy: { r: 1.7, warn: 0.85, life: 0.15, dmg: 10 * m, status: { sear: 1 }, kind: 'holy' },
+      void: { r: 1.4, warn: 0.3, life: 2.2, tick: 0.5, dmg: 2 * m, status: { mark: 1 }, kind: 'curse', pull: 1.4 },
+    }[e.element];
+    if (H) this.addHazard({ shape: 'circle', x, z, src: e, el: e.element, ...H });
+  }
+
   _onHeroHit(hero, dst, real, o) {
     const T = hero.stats.trait; const R = hero.stats.relics; const base = real || 1;
-    if (o.status) for (const k in o.status) if (o.status[k] && this.rand() < o.status[k]) this.applyStatus(dst, k, { dps: Math.max(3, base * (k === 'burn' ? 0.22 : 0.15)) });
+    const B = hero.B;
+    if (o.status) for (const k in o.status) if (o.status[k] && this.rand() < o.status[k]) this.applyStatus(dst, k, { dps: Math.max(3, base * (k === 'burn' ? 0.22 : 0.15)) * (k === 'burn' && B ? B.burnMul : 1), stack: !!B, max: B ? (k === 'poison' ? B.poisonMax : (k === 'bleed' ? B.bleedMax : 5)) : undefined, at: B ? B.freezeAt : 3, src: hero });
     if (o.basic || o.proj) {
       for (const k of ['burn', 'bleed', 'frost']) if (T[k] && this.rand() < T[k]) this.applyStatus(dst, k, { dps: Math.max(3, base * (k === 'burn' ? 0.22 : 0.15)) });
       if (T.leech) hero.hp = Math.min(hero.maxHp, hero.hp + base * T.leech);
@@ -824,11 +960,15 @@ export class World {
     }
     if (!o.chain && ((T.shock && (o.basic || o.proj) && this.rand() < T.shock) || (R.includes('storm') && this.rand() < 0.1))) {
       let n = 0;
-      for (const f of this.foes()) { if (f === dst || n >= 2 || dist(f, dst) > 4.5) continue; n++; this.emit('chain', { from: dst, to: f }); this._damage(hero, f, base * 0.5, { chain: true, kb: 1, dotLike: true }); }
+      for (const f of this.foes()) { if (f === dst || n >= 2 || dist(f, dst) > 4.5) continue; n++; this.emit('chain', { from: dst, to: f }); this._fx({ k: 'arc', x0: dst.x, z0: dst.z, x1: f.x, z1: f.z, el: 'storm' }); this._damage(hero, f, base * 0.5, { chain: true, kb: 1, dotLike: true }); }
     }
+    if (B) this._boonHit(hero, dst, real, o);
   }
 
   _heroDown(e) {
+    if (e.ally || e !== this.main) { // an ally falls: out of this fight
+      e.hp = 0; e.dead = true; e.state = 'dead'; e.anim = 'die'; e.animT = 0; e.deadT = 0; e.status = {}; this.emit('allyDown', { e }); return true;
+    }
     if (e.revives > 0) { e.revives--; e.hp = Math.round(e.maxHp * 0.3); e.iframes = 2; e.state = 'idle'; e.anim = 'idle'; this.emit('revive', { e }); this.slow(0.8, 0.3); return true; }
     e.hp = 0; e.dead = true; e.state = 'dead'; e.anim = 'die'; e.animT = 0; this.emit('heroDeath', { e }); this.slow(1.2, 0.25); return true;
   }
@@ -839,14 +979,15 @@ export class World {
   }
 
   _kill(e, src, o) {
-    const burning = !!(e.status && e.status.burn);
+    const burning = !!(e.status && e.status.burn); const st = e.status || {};
     e.hp = 0; e.dead = true; e.state = 'dead'; e.anim = o.heavy && !e.boss ? 'dieHard' : 'die'; e.animT = 0; e.tele = null; e.deadT = 0; e.leapH = 0; e.status = {};
-    this.stats.kills++; const hero = this.hero;
+    this.stats.kills++; if (src && src.ally) this.stats.allyKills++; const hero = this.main;
     if (hero && !hero.dead) {
       this.meter = Math.min(100, this.meter + METER.onKill * hero.stats.ultRate);
       if (hero.stats.relics.includes('thread')) hero.hp = Math.min(hero.maxHp, hero.hp + 3);
       if (hero.stats.relics.includes('crown') && this.rand() < 0.12) { hero.hp = Math.min(hero.maxHp, hero.hp + Math.round(hero.maxHp * 0.08)); this.emit('crown', { x: e.x, z: e.z }); }
       if (e.team === 'foe') this._echoKill(hero, e, burning);
+      if (e.team === 'foe' && hero.B) this._boonKill(hero, e, st);
     }
     const drop = e.boss ? 0 : Math.round((e.def.drop || 5) * (e.elite ? 2.5 : 1)); this.embers += drop;
     const xp = e.boss ? 0 : Math.round((e.def.drop || 5) * 2.2 * (e.elite ? 2.5 : 1) * (1 + (e.def.tier || 0) * 0.25));
@@ -869,7 +1010,22 @@ export class World {
   _nearestFoe(e, range = 99) { let best = null, bd = range; for (const f of this.foes()) { const d = dist(e, f); if (d < bd && !f.hidden) { bd = d; best = f; } } return best; }
 
   // ------------------------------------------------------------------ foes
+  // with allies about, a foe hunts whoever is nearest (the player's warden a little preferred, a great foe much
+  // more): the AI reads world.hero, so while it thinks world.hero is its quarry (world.main stays the player's)
   _foe(e, h, boss) {
+    if (!this.allies.length || this._realHero) return this._foeThink(e, h, boss);
+    const tg = this._foeTarget(e, boss); if (!tg || tg === this.hero) return this._foeThink(e, h, boss);
+    this._realHero = this.hero; this.hero = tg;
+    try { this._foeThink(e, h, boss); } finally { this.hero = this._realHero; this._realHero = null; }
+  }
+  _foeTarget(e, boss) {
+    const main = this.hero; const ai = e.ai;
+    if (ai.tg && !ai.tg.dead && this.t < (ai.tgT || 0) && (ai.tg === main || this.allies.includes(ai.tg))) return ai.tg;
+    let best = main && !main.dead ? main : null, bs = best ? dist(e, best) : Infinity;
+    for (const a of this.allies) { if (a.dead || a.untargetable) continue; const d = dist(e, a) * (boss ? 2.2 : 1.3); if (d < bs) { bs = d; best = a; } }
+    ai.tg = best; ai.tgT = this.t + 1.2 + this.rand() * 0.8; return best;
+  }
+  _foeThink(e, h, boss) {
     if (e.stun > 0) e.stun -= h;
     if (!boss) e.flinch = Math.min(e.def.flinch ?? 2, (e.flinch ?? (e.def.flinch ?? 2)) + h / 1.1);
     e.mx = 0; e.mz = 0; e.moveSpeed = 0;
@@ -906,7 +1062,10 @@ export class World {
         if (k >= 1) { e.landed = true; e.leapH = 0; e.leapFrom = null; e.iframes = 0; e.tele = null; e.hitSet = new Set(); this._melee(e, { ...a, shape: 'circle', offset: 0 }); if (a.onStrike) a.onStrike(this, e); this.emit('land', { e }); this.emit('shake', { amt: 0.6 }); }
       }
     }
-    if (e.t >= a.windup && e.state === 'windup') { e.state = 'attack'; if (!a.leap) e.tele = null; this.emit('foeStrike', { e, atk: a }); if (a.onStrike && !a.leap) a.onStrike(this, e); }
+    if (e.t >= a.windup && e.state === 'windup') {
+      e.state = 'attack'; if (!a.leap) e.tele = null; this.emit('foeStrike', { e, atk: a }); if (a.onStrike && !a.leap) a.onStrike(this, e);
+      if (e.element && !a.ranged) { const at = a.leap ? 0 : Math.min(2.4, (a.range || a.radius || 1.6) * 0.7 + (a.offset || 0)); this._elHazard(e, e.x + Math.sin(e.face) * at, e.z + Math.cos(e.face) * at); }
+    }
     if (a.ranged) { if (!e.fired && e.t >= a.windup) { e.fired = true; this._fire(e, a.ranged); } }
     else if (!a.leap && a.dmg && e.t >= a.windup && e.t <= a.active) this._melee(e, a);
     if (a.chain && !e.chainDone && e.t >= a.chain.at) {
@@ -925,7 +1084,7 @@ export class World {
     for (let i = 0; i < n; i++) {
       const a = base + (n > 1 ? (i - (n - 1) / 2) * r.spread : 0);
       const sx = e.x + Math.sin(a) * (e.r + 0.4), sz = e.z + Math.cos(a) * (e.r + 0.4);
-      const p = { id: this.nextId++, kind: r.kind, team: 'foe', x: sx, z: sz, y: r.y ?? 1.2, vx: Math.sin(a) * r.speed, vz: Math.cos(a) * r.speed, r: r.r, dmg: r.dmg * e.dmgMul, life: r.life, homing: r.homing || 0, src: e, face: a, hitSet: new Set(), status: r.status, onLand: r.onLand };
+      const p = { id: this.nextId++, kind: r.kind, team: 'foe', x: sx, z: sz, y: r.y ?? 1.2, vx: Math.sin(a) * r.speed, vz: Math.cos(a) * r.speed, r: r.r, dmg: r.dmg * e.dmgMul, life: r.life, homing: r.homing || 0, src: e, face: a, hitSet: new Set(), status: r.status, onLand: r.onLand, el: e.element };
       if (r.arc && hero) { // lobbed: flies to where the hero stands, lands there
         const d = Math.max(2, dist(e, hero)); p.vx = Math.sin(a) * d / r.arc; p.vz = Math.cos(a) * d / r.arc; p.life = r.arc; p.lob = r.arc; p.lobT = 0; p.y = 1.2; p.tx = hero.x; p.tz = hero.z;
         this.addHazard({ shape: 'circle', x: hero.x, z: hero.z, r: r.splash || 1.4, warn: r.arc, life: r.burn || 0.2, dmg: r.dmg * e.dmgMul, src: e, kind: r.kind === 'flask' ? 'fire' : (r.kind === 'spit' ? 'poison' : 'slam'), kb: 3, status: r.status });
@@ -939,7 +1098,7 @@ export class World {
   _projectiles(h) {
     const hero = this.hero;
     for (const p of this.projs) {
-      p.life -= h; if (p.life <= 0) { p.dead = true; if (p.lob) this.emit('projHit', { p, landed: true }); continue; }
+      p.life -= h; if (p.life <= 0) { p.dead = true; if (p.lob) this.emit('projHit', { p, landed: true }); if (p.el && p.src) this._elHazard(p.src, p.x, p.z); continue; }
       if (p.lob) { p.lobT += h; const k = p.lobT / p.lob; p.y = 1.2 + Math.sin(Math.min(1, k) * Math.PI) * 3; p.x += p.vx * h; p.z += p.vz * h; continue; }
       if (p.homing && p.team === 'foe' && hero && !hero.dead) {
         const want = Math.atan2(hero.x - p.x, hero.z - p.z); const cur = Math.atan2(p.vx, p.vz); const sp = Math.hypot(p.vx, p.vz);
@@ -951,16 +1110,18 @@ export class World {
         else if (p.src) { const a = Math.atan2(p.x - p.src.x, p.z - p.src.z) + h * 5; p.x = p.src.x + Math.sin(a) * 1.1; p.z = p.src.z + Math.cos(a) * 1.1; continue; }
       }
       p.x += p.vx * h; p.z += p.vz * h;
-      if (p.kind !== 'wave' && !p.ghost && this._blocked(p.x, p.z, 0.05)) { p.dead = true; this.emit('projHit', { p, wall: true }); continue; }
+      if (p.kind !== 'wave' && !p.ghost && this._blocked(p.x, p.z, 0.05)) { p.dead = true; this.emit('projHit', { p, wall: true }); if (p.el && p.src) this._elHazard(p.src, p.x, p.z); continue; }
       if (p.team === 'foe') {
-        if (hero && !hero.dead && Math.hypot(hero.x - p.x, hero.z - p.z) < hero.r + p.r) {
-          const res = this._damage(p.src, hero, p.dmg, { kb: 3, proj: true, status: p.status });
-          if (res !== false || hero.state !== 'dash') { p.dead = true; this.emit('projHit', { p }); }
+        for (const t of this.heroTeam()) {
+          if (Math.hypot(t.x - p.x, t.z - p.z) >= t.r + p.r) continue;
+          const res = this._damage(p.src, t, p.dmg, { kb: 3, proj: true, status: p.status });
+          if (res !== false || t.state !== 'dash') { p.dead = true; this.emit('projHit', { p }); if (p.el && p.src) this._elHazard(p.src, p.x, p.z); break; }
         }
       } else {
+        const by = p.src && p.src.team === 'hero' && p.src.stats ? p.src : hero;
         for (const f of this.foes()) {
           if (p.hitSet.has(f.id) || f.state === 'spawn' || Math.hypot(f.x - p.x, f.z - p.z) > f.r + p.r) continue;
-          p.hitSet.add(f.id); this._damage(hero, f, p.dmg, { poise: p.poise ?? 20, kb: p.kb ?? (p.kind === 'wave' ? 4 : 1.5), proj: true, basic: p.basic, status: p.status, resonate: p.resonate, kind: p.kind });
+          p.hitSet.add(f.id); this._damage(by, f, p.dmg, { poise: p.poise ?? 20, kb: p.kb ?? (p.kind === 'wave' ? 4 : 1.5), proj: true, basic: p.basic, status: p.status, resonate: p.resonate, kind: p.kind, slot: p.slot });
           if (!p.pierce) { p.dead = true; this.emit('projHit', { p }); break; }
         }
       }
@@ -970,18 +1131,29 @@ export class World {
 
   // hazard (hurts the hero): { shape:'circle'|'ring'|'line', x, z, r, r0, r1, warn, life, dmg, face, len, width, kind, status }
   addHazard(hz) { const h = { t: 0, hitSet: new Set(), ...hz }; this.hazards.push(h); this.emit('hazard', { h }); return h; }
+  // tick: a lingering pool that bites every `tick` seconds (light: no knockback, no stagger); pull: drags toward its middle
   _hazards(h) {
-    const hero = this.hero;
+    const team = this.heroTeam();
     for (const z of this.hazards) {
       z.t += h; if (z.t >= z.warn + z.life) { z.dead = true; continue; }
-      if (z.t < z.warn || !hero || hero.dead || z.hitSet.has(hero.id)) continue;
+      if (z.t < z.warn || !team.length) continue;
       if (!z.started) { z.started = true; this.emit('hazardGo', { h: z }); }
-      const d = Math.hypot(hero.x - z.x, hero.z - z.z); let hit = false;
-      if (z.shape === 'circle') hit = d < z.r + hero.r;
-      else if (z.shape === 'ring') { const k = (z.t - z.warn) / z.life; const rr = z.r0 + (z.r1 - z.r0) * k; hit = Math.abs(d - rr) < 0.45 + hero.r; }
-      else if (z.shape === 'line') { const fx = Math.sin(z.face), fz = Math.cos(z.face); const dx = hero.x - z.x, dz = hero.z - z.z; const al = dx * fx + dz * fz; hit = al > 0 && al < z.len && Math.abs(dx * fz - dz * fx) < z.width / 2 + hero.r; }
-      if (hit) {
+      for (const hero of team) {
+        if (!z.tick && z.hitSet.has(hero.id)) continue;
+        const d = Math.hypot(hero.x - z.x, hero.z - z.z); let hit = false;
+        if (z.shape === 'circle') hit = d < z.r + hero.r;
+        else if (z.shape === 'ring') { const k = (z.t - z.warn) / z.life; const rr = z.r0 + (z.r1 - z.r0) * k; hit = Math.abs(d - rr) < 0.45 + hero.r; }
+        else if (z.shape === 'line') { const fx = Math.sin(z.face), fz = Math.cos(z.face); const dx = hero.x - z.x, dz = hero.z - z.z; const al = dx * fx + dz * fz; hit = al > 0 && al < z.len && Math.abs(dx * fz - dz * fx) < z.width / 2 + hero.r; }
+        if (!hit) continue;
         const st = z.status || (z.kind === 'fire' ? { burn: 1 } : (z.kind === 'poison' ? { poison: 1 } : null));
+        if (z.pull && d > 0.3 && hero.state !== 'dash') { hero.kbx += (z.x - hero.x) / d * z.pull * h * 8; hero.kbz += (z.z - hero.z) / d * z.pull * h * 8; }
+        if (z.tick) { // a pool: a little hurt and its status, every tick, and never a stagger
+          const lm = z.lastHit || (z.lastHit = new Map()); if (this.t - (lm.get(hero.id) ?? -9) < z.tick) continue; lm.set(hero.id, this.t);
+          if (hero.state === 'dash' && hero.iframes > 0) continue;
+          if (z.dmg) this._dotHero(hero, Math.max(1, Math.round(z.dmg)), z.kind);
+          if (st) for (const k in st) this.applyStatus(hero, k, { dps: z.dps || 4, dur: k === 'mark' ? 3 : undefined, max: 1 });
+          continue;
+        }
         const res = this._damage(z.src || null, hero, z.dmg, { kb: z.kb || 5, heavy: true, status: st, dps: 5 });
         if (res !== false || z.once) z.hitSet.add(hero.id);
       }
@@ -990,7 +1162,9 @@ export class World {
   }
 
   // zone (the hero's area attacks; hurts foes): { shape:'circle'|'ring', x, z, r | r0,r1, warn, life, dmg, tick?, trigger?, follow?, status, stun, root, kb, kind }
-  addZone(zn) { const z = { t: 0, warn: 0, hitSet: new Set(), lastHit: new Map(), ...zn }; if (z.follow) { z.x = z.follow.x; z.z = z.follow.z; } this.zones.push(z); this.emit('zone', { z }); return z; }
+  // src: who made it (the player's warden unless an ally did); slot: 'attack' | 'skill' | 'ult' | 'dash' (boon riders);
+  // boon: made by a boon (no riders of its own); onHit(world, zone, foe): a boon's touch; fxOwn: drawn by fx_elements.js
+  addZone(zn) { const z = { t: 0, warn: 0, hitSet: new Set(), lastHit: new Map(), src: this._caster || null, slot: this._slotCtx || null, ...zn }; if (z.follow) { z.x = z.follow.x; z.z = z.follow.z; } this.zones.push(z); this.emit('zone', { z }); return z; }
   _zones(h) {
     const hero = this.hero;
     for (const z of this.zones) {
@@ -1015,7 +1189,9 @@ export class World {
         // a Hymn of Shattering breaks the resonance it finds for more
         const res = z.shatter && f.status.resonate ? f.status.resonate.stacks : 0;
         if (res) this.emit('shatter', { e: f, n: res });
-        this._damage(hero || { x: z.x, z: z.z }, f, z.dmg + (z.shatter || 0) * res, { aoe: true, kb: z.kb || 2, status: z.status, stun: z.stun, root: z.root, special: z.special, dotLike: !!z.tick, poise: z.poise ?? 15, kind: z.kind, resonate: res ? 0 : z.resonate });
+        const by = z.src && !z.src.dead ? z.src : (hero || { x: z.x, z: z.z });
+        this._damage(by, f, z.dmg + (z.shatter || 0) * res, { aoe: true, kb: z.kb || 2, status: z.status, stun: z.stun, root: z.root, special: z.special, dotLike: !!z.tick, poise: z.poise ?? 15, kind: z.kind, resonate: res ? 0 : z.resonate, boon: z.boon, slot: z.slot });
+        if (z.onHit && !f.dead) z.onHit(this, z, f);
         if (res && !f.dead) delete f.status.resonate;
       }
     }
@@ -1027,7 +1203,7 @@ export class World {
     for (const e of this.ents) {
       if (e.dead) { e.kbx *= Math.pow(0.02, h); e.kbz *= Math.pow(0.02, h); this._push(e, e.kbx * h, e.kbz * h); continue; }
       let sp = e.moveSpeed;
-      if (e.team === 'foe') { if (e.status.frost) sp *= 0.55; if (e.status.root || e.status.stun) sp = 0; }
+      if (e.team === 'foe') { if (e.status.frost) sp *= 0.55; if (e.status.root || e.status.stun || e.status.freeze) sp = 0; }
       const accel = e.team === 'hero' ? (e.state === 'dash' ? 200 : 60) : 22;
       const tvx = e.mx * sp, tvz = e.mz * sp;
       e.vx += clamp(tvx - e.vx, accel * h); e.vz += clamp(tvz - e.vz, accel * h);
@@ -1112,4 +1288,5 @@ export class World {
 }
 
 function clamp(v, m) { return Math.max(-m, Math.min(m, v)); }
+installBoons(World);
 export { heroStats, NONE };

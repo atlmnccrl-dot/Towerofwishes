@@ -4,10 +4,12 @@
 // Saint Silence keeps the great bell of St. Orrin from ringing.
 import * as P from '../props/belfry.js';
 import * as T from '../../engine/textures.js';
+import { VARIANTS } from '../../game/variants.js';
 
 const BOUNDS = [-16, -62, 22, 18];
 
 export default {
+  variants: VARIANTS.belfry, // the run's area variants: layout, condition, foes, boss pool, events (js/game/variants.js)
   id: 'belfry', name: 'The Belfry', tagline: 'THE BELL IS SILENT. SOMEONE IS STILL UP THERE.', tier: 7,
   start: { x: 0.1, z: 15.2, face: Math.PI },
   bounds: BOUNDS,

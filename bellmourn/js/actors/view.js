@@ -13,6 +13,7 @@ import { makeBeast } from './beasts.js';
 import { HEROES, WEAPONS } from '../game/heroes.js';
 import { AFFIXES } from '../game/heroes.js';
 import * as T from '../engine/textures.js';
+import { installElements } from '../engine/fx_elements.js';
 
 const SWING = { slash1: [0.06, 0.2], slash2: [0.06, 0.2], slash3: [0.12, 0.3], thrust: [0.05, 0.22], special: [0.25, 1.4], hsmash1: [0.18, 0.34], hsmash2: [0.26, 0.48], whirl: [0.05, 0.75],
   kslash1: [0.04, 0.15], kcross: [0.08, 0.28], kstab: [0.04, 0.22], kstorm: [0.15, 1.6], asweep1: [0.17, 0.38], asweep2: [0.17, 0.38], aslam: [0.3, 0.5] };
@@ -24,9 +25,16 @@ const ZONE_TINT = { splash: [0.6, 1.8, 1.7], noose: [2.2, 0.5, 0.4], tidepool: [
 const TRAIL_COL = { kestrel: [2.6, 2.4, 2.4], hollis: [0.7, 2.0, 1.8] };
 const TAU = Math.PI * 2;
 const HEAL_TINT = 0x8cff5a; // warm green
+// elemental foes (sim.js spawnFoe opts.element): a tint over the body and an aura in the element's colour
+const EL_HEX = { fire: 0xff6a20, frost: 0x70d0ff, poison: 0x80e040, storm: 0xffe070, blood: 0xff2030, holy: 0xfff0b0, void: 0xb050ff };
+const ICE_TINT = 0x4aa8ff;
 
 export class ActorView {
-  constructor(scene, fx) { this.scene = scene; this.fx = fx; this.map = new Map(); this.glows = new Map(); this.tmpA = new THREE.Vector3(); this.tmpB = new THREE.Vector3(); }
+  constructor(scene, fx) {
+    this.scene = scene; this.fx = fx; this.map = new Map(); this.glows = new Map(); this.tmpA = new THREE.Vector3(); this.tmpB = new THREE.Vector3();
+    // the elements' looks (fx_elements.js) on this FX, whether or not fx.js has imported them itself
+    if (fx) installElements(Object.getPrototypeOf(fx).constructor);
+  }
 
   lookFor(e) {
     if (e.team === 'hero') {
@@ -38,7 +46,7 @@ export class ActorView {
 
   rigFor(e) {
     let v = this.map.get(e.id);
-    const key = e.team === 'hero' ? e.heroId + ':' + (e.stats && e.stats.weapon) : e.type + (e.elite || '');
+    const key = e.team === 'hero' ? e.heroId + ':' + (e.stats && e.stats.weapon) : e.type + (e.elite || '') + (e.element || '');
     if (v && v.key === key) return v;
     if (v) { this.scene.remove(v.rig.root); this._dropAura(v); }
     const look = this.lookFor(e);
@@ -47,17 +55,18 @@ export class ActorView {
     this.scene.add(rig.root);
     v = { rig, e, key, pose: null, from: null, blend: 1, anim: null, lastX: e.x, lastZ: e.z };
     if (e.elite) this._aura(v, AFFIXES[e.elite].color);
+    if (e.element && EL_HEX[e.element]) this._aura(v, EL_HEX[e.element], true);
     this.map.set(e.id, v); return v;
   }
 
   // a ring of the affix colour under an elite and a soft glow around it
-  _aura(v, color) {
-    const c = new THREE.Color(color);
-    const ring = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.7, 20), new THREE.MeshBasicMaterial({ color: c.clone().multiplyScalar(2), transparent: true, opacity: 0.7, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+  _aura(v, color, element = false) {
+    const c = new THREE.Color(color); const R = element ? (v.e.r || 0.5) + 0.25 : 0.55;
+    const ring = new THREE.Mesh(new THREE.RingGeometry(R, R + 0.15, 20), new THREE.MeshBasicMaterial({ color: c.clone().multiplyScalar(2), transparent: true, opacity: 0.7, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
     ring.rotation.x = -Math.PI / 2; ring.position.y = 0.04; v.rig.root.add(ring);
-    const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: T.glow('#ffffff', 32, 1.4), color: c.clone().multiplyScalar(0.5), blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+    const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: T.glow('#ffffff', 32, 1.4), color: c.clone().multiplyScalar(element ? 0.22 : 0.5), blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
     halo.scale.set(2.2, 2.6, 1); halo.position.y = 1.0; v.rig.root.add(halo);
-    v.auraParts = [ring, halo];
+    v.auraParts = [...(v.auraParts || []), ring, halo]; if (element) v.elRing = ring;
   }
   _dropAura(v) { for (const p of v.auraParts || []) { p.geometry && p.geometry.dispose(); p.material.dispose(); } v.auraParts = null; }
 
@@ -80,6 +89,14 @@ export class ActorView {
       // the tonic: the flask in the free hand while a hero drinks (dimmer once drunk)
       if (rig.showFlask) rig.showFlask(e.anim === 'heal' && !e.dead && (e.team === 'hero' || !!e.heroId) && e.animT >= FLASK_T[0] && e.animT <= FLASK_T[1], e.animT < 0.5 ? 1 : 0);
       this._glow(e, rig, dt);
+      // elemental foes wear their element; a frozen body goes ice-pale (the heal glow, when it shows, wins)
+      if (rig.tint && !this.glows.has(e.id)) {
+        const tc = e.dead ? null : (e.status && e.status.freeze ? ICE_TINT : (e.element ? EL_HEX[e.element] : null)); const tk = tc ? 0.5 : 0;
+        if (v.tintC !== tc || v.tintK !== tk) { v.tintC = tc; v.tintK = tk; rig.tint(tc, tk); }
+      }
+      if (v.elRing && !e.dead) { const p = 0.5 + 0.5 * Math.sin(performance.now() * 0.006 + e.id); v.elRing.material.opacity = 0.45 + 0.4 * p; }
+      // the veil (VANISH): violet afterimages trail the warden
+      if (e.buffs && e.buffs.veil > 0 && !e.dead && (v.veilT = (v.veilT || 0) - dt) <= 0 && this.fx.ghost) { v.veilT = 0.09; this.fx.ghost(rig, [0.7, 0.18, 1.3], 0.3); }
       // cloak follows motion
       const sp = Math.hypot(e.x - v.lastX, e.z - v.lastZ) / Math.max(dt, 1e-4); v.lastX = e.x; v.lastZ = e.z;
       rig.updateCloak(dt, Math.min(sp, 14), df);
@@ -120,6 +137,7 @@ export class ActorView {
     }
     this._heroBuffs(world.hero, dt);
     this._dress(world);
+    if (this.fx.elemFrame && world.fxq) this.fx.elemFrame(world, dt);
     for (const [id, g] of this.glows) if (!alive.has(id) && (g.t += dt) >= g.dur) this._endGlow(id, this.map.get(id)?.rig);
     for (const [id, v] of this.map) if (!alive.has(id)) { this._endGlow(id, v.rig); this.scene.remove(v.rig.root); this._dropAura(v); this.map.delete(id); this.fx.dropTrail(id); }
   }
@@ -177,7 +195,7 @@ export class ActorView {
   }
   _endGlow(id, rig) {
     const g = this.glows.get(id); if (!g) return;
-    if (rig && rig.tint) rig.tint(null, 0);
+    if (rig && rig.tint) rig.tint(null, 0); const v = this.map.get(id); if (v) v.tintC = undefined;
     if (g.halo) { this.scene.remove(g.halo); g.halo.material.dispose(); }
     this.glows.delete(id);
   }

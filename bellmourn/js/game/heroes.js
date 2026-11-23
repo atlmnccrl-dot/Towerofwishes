@@ -286,3 +286,13 @@ export function newHeroSave(heroId) {
   const H = HEROES[heroId]; const w = START_WEAPON[H.weapon];
   return { level: 1, xp: 0, points: 0, weapon: w, owned: [w], plus: {}, ranks: { [H.abilities[0]]: 1, [H.abilities[1]]: 1, [H.ult]: 1 }, equipped: [H.abilities[0], H.abilities[1]] };
 }
+
+// The boons' plain stat parts (boons.js boonMods), folded into a stats object once: less hurt taken. The rest of
+// what a boon does happens in the fight (sim_boons.js). Returns a new stats object (boonsApplied marks it).
+export function applyBoonStats(stats, mods) {
+  if (!mods || stats.boonsApplied) return stats;
+  const kit = stats.kit || HEROES[stats.heroId || 'warden'];
+  const s = { ...stats, boons: mods, boonsApplied: true };
+  s.dmgTaken = (stats.dmgTaken ?? (1 - (kit.armor || 0))) * (mods.dmgTaken ?? 1);
+  return s;
+}

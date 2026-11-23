@@ -54,7 +54,9 @@ export class Atmos {
     this.moon.color.set(amb.moonColor ?? 0x9db4d8); this.moon.intensity = (amb.moon ?? 1.5) * 1.5;
     this.fill.color.set(amb.fillColor ?? 0x8292b4); this.fill.intensity = amb.fill !== undefined ? amb.fill * 0.45 : 0.6;
     if (amb.moonDir) this.moonDir.set(...amb.moonDir).normalize();
-    this.rainOn = amb.rain ?? 1; this.lightning = amb.lightning ?? true;
+    this.rainOn = amb.rain ?? 1; this.lightning = amb.lightning ?? true; this.boltEvery = amb.boltEvery ?? 1;
+    // the run variants: rain of another colour (a blood moon's), lightning more often (a storm's)
+    this.rain.material.color.setHex(amb.rainColor ?? 0x9aaac4); this.splash.material.color.setHex(amb.rainColor ?? 0xa8b8d0);
     // Act II: weather other than rain, the grade, the pulse
     const P = this.r.post, G = amb.grade, D = this.gradeDef;
     if (G) { P.gain.setRGB(...(G.gain || [D.gain.r, D.gain.g, D.gain.b])); P.lift.setRGB(...(G.lift || [D.lift.r, D.lift.g, D.lift.b])); P.saturation = G.sat ?? D.sat; }
@@ -135,12 +137,17 @@ export class Atmos {
       marsh: { a: [170, 0xc8f070, 1, 1, true], b: [300, 0x9aaa9c, 1, 0.16, false], H: 3.2 },
       steam: { a: [110, 0xffa040, 1, 1, true], b: [260, 0xc8c4d4, 2, 0.1, false], H: 9 },
       feathers: { a: [320, 0xffe0a0, 1, 0.9, true], b: [110, 0xfffaf0, 2, 0.85, false], H: 12 },
+      // the run variants' conditions: ASHFALL (grey flakes and a few live sparks), PLAGUE (spores drifting up out of
+      // a green haze), ECLIPSE (motes of violet dark rising)
+      ash: { a: [140, 0xff7030, 1, 0.8, true], b: [650, 0x8a8480, 2, 0.75, false], H: 16 },
+      spores: { a: [260, 0xb8f070, 1, 0.9, true], b: [320, 0x6a8a4a, 1, 0.35, false], H: 4 },
+      voidmotes: { a: [260, 0xb080ff, 1, 0.9, true], b: [220, 0x281838, 2, 0.5, false], H: 9 },
     }[kind] || { a: [0, 0, 1, 0], b: [0, 0, 1, 0], H: 10 };
     W.H = C.H; W.kind = kind;
     for (const [L, d, cfg] of [[W.a, W.da, C.a], [W.b, W.db, C.b]]) {
       const [n, col, size, op, add] = cfg; L.userData.n = n; L.userData.op = op; L.visible = n > 0;
       L.material.color.setHex(col); if (kind === 'embers' && L === W.a) L.material.color.setRGB(3.0, 1.1, 0.35);
-      if (kind === 'marsh' && L === W.a) L.material.color.setRGB(2.2, 2.8, 0.9); if (kind === 'steam' && L === W.a) L.material.color.setRGB(3.0, 1.5, 0.45); if (kind === 'feathers' && L === W.a) L.material.color.setRGB(2.0, 1.75, 1.1);
+      if (kind === 'marsh' && L === W.a) L.material.color.setRGB(2.2, 2.8, 0.9); if (kind === 'ash' && L === W.a) L.material.color.setRGB(3.0, 1.2, 0.4); if (kind === 'spores' && L === W.a) L.material.color.setRGB(1.6, 2.6, 0.8); if (kind === 'voidmotes' && L === W.a) L.material.color.setRGB(1.7, 1.0, 3.0); if (kind === 'steam' && L === W.a) L.material.color.setRGB(3.0, 1.5, 0.45); if (kind === 'feathers' && L === W.a) L.material.color.setRGB(2.0, 1.75, 1.1);
       L.material.size = size; L.material.opacity = op; L.material.blending = add ? THREE.AdditiveBlending : THREE.NormalBlending; L.material.needsUpdate = true;
       L.geometry.setDrawRange(0, n);
       for (let i = 0; i < n; i++) { d[i * 6] = (Math.random() - 0.5) * 44; d[i * 6 + 1] = Math.random() * C.H; d[i * 6 + 2] = (Math.random() - 0.5) * 44; d[i * 6 + 3] = Math.random(); d[i * 6 + 4] = Math.random() * 10; d[i * 6 + 5] = 0; }
@@ -160,6 +167,9 @@ export class Atmos {
         else if (kind === 'embers') { if (layer === 0) { vy = 0.7 + s * 1.2; vx = Math.sin(t * 1.7 + ph) * 0.5 + 0.2; vz = Math.cos(t * 1.3 + ph) * 0.4; } else { vy = -0.35 - s * 0.5; vx = Math.sin(t * 0.8 + ph) * 0.7 + 0.25; vz = Math.cos(t * 0.6 + ph) * 0.5; } }
         else if (kind === 'marsh') { if (layer === 0) { vx = Math.sin(t * 0.7 + ph) * 0.45; vy = Math.sin(t * 1.1 + ph * 2) * 0.25; vz = Math.cos(t * 0.6 + ph * 1.7) * 0.45; } else { vx = 0.35 + s * 0.2; vy = Math.sin(t * 0.3 + ph) * 0.05; vz = 0.12 + Math.sin(t * 0.2 + ph) * 0.1; } }
         else if (kind === 'steam') { if (layer === 0) { vy = -3.2 - s * 3.5; vx = 0.3 + Math.sin(ph) * 0.4; vz = Math.cos(ph) * 0.3; } else { vy = 0.45 + s * 0.4; vx = 0.25 + Math.sin(t * 0.5 + ph) * 0.35; vz = Math.cos(t * 0.4 + ph) * 0.3; } }
+        else if (kind === 'ash') { if (layer === 0) { vy = 0.5 + s * 0.8; vx = Math.sin(t * 1.5 + ph) * 0.4 + 0.2; vz = Math.cos(t * 1.1 + ph) * 0.3; } else { vy = -0.45 - s * 0.45; vx = 0.35 + Math.sin(t * 0.6 + ph) * 0.5; vz = 0.12 + Math.cos(t * 0.5 + ph * 1.3) * 0.3; } }
+        else if (kind === 'spores') { if (layer === 0) { vy = 0.18 + s * 0.25; vx = Math.sin(t * 0.6 + ph) * 0.3; vz = Math.cos(t * 0.5 + ph * 1.7) * 0.3; } else { vx = 0.2 + s * 0.15; vy = Math.sin(t * 0.3 + ph) * 0.05; vz = 0.1 + Math.sin(t * 0.25 + ph) * 0.1; } }
+        else if (kind === 'voidmotes') { if (layer === 0) { vy = 0.35 + s * 0.5; vx = Math.sin(t * 0.8 + ph) * 0.2; vz = Math.cos(t * 0.7 + ph) * 0.2; } else { vy = 0.12 + s * 0.2; vx = Math.sin(t * 0.4 + ph) * 0.25; vz = Math.cos(t * 0.3 + ph * 1.3) * 0.25; } }
         else if (kind === 'feathers') { if (layer === 0) { vy = 0.25 + s * 0.35; vx = Math.sin(t * 0.4 + ph) * 0.15; vz = Math.cos(t * 0.35 + ph) * 0.15; } else { vy = -0.35 - s * 0.25; vx = Math.sin(t * 1.1 + ph) * 0.9 + 0.15; vz = Math.cos(t * 0.9 + ph * 1.3) * 0.5; } }
         else { vx = Math.sin(t * 0.3 + ph) * 0.12; vy = Math.sin(t * 0.21 + ph * 2) * 0.06 - 0.03; vz = Math.cos(t * 0.27 + ph) * 0.12; }
         d[k] += vx * dt; d[k + 1] += vy * dt; d[k + 2] += vz * dt;
@@ -168,8 +178,8 @@ export class Atmos {
         if (d[k + 1] < 0) d[k + 1] += H; else if (d[k + 1] > H) d[k + 1] -= H;
         pos[i * 3] = d[k]; pos[i * 3 + 1] = d[k + 1]; pos[i * 3 + 2] = d[k + 2];
         // Act III: fireflies blink, sparks come in bursts, motes of light twinkle (a point that is out is put away)
-        if (layer === 0 && (kind === 'marsh' || kind === 'steam' || kind === 'feathers')) {
-          const c = kind === 'marsh' ? Math.sin(t * (1.2 + s) + ph * 3) > 0.35 : (kind === 'steam' ? ((ph * 0.37 + t * 0.21) % 1) < 0.22 : Math.sin(t * (2 + s * 3) + ph * 5) > -0.6);
+        if (layer === 0 && (kind === 'marsh' || kind === 'steam' || kind === 'feathers' || kind === 'spores' || kind === 'voidmotes')) {
+          const c = (kind === 'marsh' || kind === 'spores' || kind === 'voidmotes') ? Math.sin(t * (1.2 + s) + ph * 3) > 0.35 : (kind === 'steam' ? ((ph * 0.37 + t * 0.21) % 1) < 0.22 : Math.sin(t * (2 + s * 3) + ph * 5) > -0.6);
           if (!c) pos[i * 3 + 1] = -100;
         }
       }
@@ -232,7 +242,7 @@ export class Atmos {
       this.hemi.intensity = this.pulseHemi * (1 + (P.amp ?? 0.25) * (0.5 + 0.5 * Math.sin(this.t * (P.speed ?? 0.9))) + this.pulseFlare * (P.flare ?? 0.8));
     }
     // lightning
-    if (this.lightning) { this.nextBolt -= dt; if (this.nextBolt <= 0) { this.nextBolt = 9 + Math.random() * 16; this.flash(0.6 + Math.random() * 0.4); } }
+    if (this.lightning) { this.nextBolt -= dt; if (this.nextBolt <= 0) { this.nextBolt = (9 + Math.random() * 16) * (this.boltEvery ?? 1); this.flash(0.6 + Math.random() * 0.4); } }
     if (this.flashT > 0) {
       this.flashT -= dt; const f = Math.max(0, this.flashT) / 0.5;
       const flick = f > 0.6 ? 1 : (f > 0.45 ? 0.2 : f);

@@ -6,6 +6,7 @@
 import * as P from '../props/abyss.js';
 import { W2, barrier } from '../kit2.js';
 import * as T from '../../engine/textures.js';
+import { VARIANTS } from '../../game/variants.js';
 
 const ISLANDS = [
   [-4, 6, 8, 17],          // the rift: where the wardens come through
@@ -25,6 +26,7 @@ const WALKS = [...ISLANDS, ...BRIDGES];
 const BOUNDS = [-18, -68, 22, 18];
 
 export default {
+  variants: VARIANTS.abyss, // the run's area variants: layout, condition, foes, boss pool, events (js/game/variants.js)
   id: 'abyss', name: 'The Abyss', tagline: 'WHERE THE SILENCE CAME FROM.', tier: 11, act: 2,
   start: { x: 1.6, z: 13.8, face: Math.PI },
   bounds: BOUNDS, apron: false,

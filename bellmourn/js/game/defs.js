@@ -71,15 +71,68 @@ export const FOES = {
   },
 };
 
+
+// The reworked Gaoler and Mother Tallow (PROPOSAL): extra geometry on their rigs, added when the view builds
+// them (browser only). part(joint, geometry, colour, x, y, z, opts) adds a box to a joint; rig.weapon is the
+// right-hand weapon group (+Z along the weapon).
+// The Gaoler: an executioner's hood with burning eye-holes, a gibbet cage chained to his back with a skull in
+// it, a meat-hook on a chain in his right fist, the great ring of the gaol's keys in his left, a padlock on
+// his chest and keys at his belt.
+function gaolerExtra(rig, part, box) {
+  const iron = 0x2a2622, rust = 0x5a3a22, bone = 0xd8d0bc;
+  const hs = 0.24;
+  part('head', box(hs + 0.06, hs + 0.1, hs + 0.06), 0x1a1414, 0, hs / 2 + 0.03, -0.01); // the hood
+  part('head', box(0.12, 0.16, 0.12), 0x1a1414, 0, hs + 0.12, -0.04, { rx: -0.4 });
+  for (const sx of [-1, 1]) part('head', box(0.06, 0.035, 0.03), 0xffa030, sx * 0.06, hs * 0.58, hs / 2 + 0.05, { glow: 3 });
+  // the gibbet on his back
+  for (let i = 0; i < 9; i++) { const a = i / 9 * Math.PI * 2; part('chest', box(0.025, 0.62, 0.025), iron, Math.sin(a) * 0.17, 0.2, -0.34 + Math.cos(a) * 0.15); }
+  for (const y of [-0.1, 0.5]) part('chest', box(0.4, 0.04, 0.36), iron, 0, y, -0.34);
+  part('chest', box(0.12, 0.12, 0.12), bone, 0, 0.08, -0.34); part('chest', box(0.08, 0.05, 0.05), 0x1a1414, 0, 0.07, -0.27);
+  for (const sx of [-1, 1]) part('chest', box(0.03, 0.03, 0.4), iron, sx * 0.16, 0.42, -0.14, { rx: 0.4 });
+  // the padlock and the belt of keys
+  part('chest', box(0.12, 0.14, 0.05), rust, 0, 0.1, 0.14); part('chest', box(0.08, 0.06, 0.03), iron, 0, 0.2, 0.14);
+  for (let i = 0; i < 5; i++) part('spine', box(0.025, 0.12, 0.02), 0x8a7a50, -0.16 + i * 0.08, -0.06, 0.13);
+  // the hook on its chain (right fist)
+  const W = (m) => { rig.weapon.add(m); return m; };
+  for (let i = 0; i < 6; i++) W(part('haR', box(i % 2 ? 0.03 : 0.06, i % 2 ? 0.06 : 0.03, 0.1), iron, 0, -0.02, 0.05 + i * 0.1));
+  W(part('haR', box(0.05, 0.05, 0.36), 0x6a6e72, 0, -0.02, 0.8));
+  W(part('haR', box(0.05, 0.22, 0.05), 0x6a6e72, 0, -0.12, 0.98)); W(part('haR', box(0.05, 0.05, 0.16), 0x6a6e72, 0, -0.22, 0.92, { rx: 0.4 }));
+  rig.tip.position.set(0, -0.2, 0.98); rig.bladeLen = 1.1;
+  // the key ring (left fist)
+  for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2; part('haL', box(0.04, 0.04, 0.06), iron, Math.sin(a) * 0.16, -0.2 + Math.cos(a) * 0.16, 0.05, { rz: -a }); }
+  for (let i = 0; i < 5; i++) part('haL', box(0.03, 0.22, 0.02), 0x8a7a50, -0.12 + i * 0.06, -0.42, 0.05, { rz: (i - 2) * 0.12 });
+}
+// Mother Tallow: a crown of a hundred candles burning on her head, a face of melted wax, two more arms holding
+// tapers, and her body run down into a skirt of wax that never touches the stones (she floats).
+function tallowExtra(rig, part, box) {
+  const wax = 0xe8dcc0, drip = 0xd8c8a0, flame = 0xffc060;
+  for (const j of ['hipL', 'hipR']) rig.j[j].visible = false;
+  part('hips', box(0.46, 0.5, 0.36), wax, 0, -0.42, 0); part('hips', box(0.56, 0.32, 0.46), drip, 0, -0.78, 0); part('hips', box(0.4, 0.2, 0.32), wax, 0, -1.0, 0);
+  for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; part('hips', box(0.06, 0.26 + (i % 3) * 0.08, 0.06), drip, Math.sin(a) * 0.27, -1.0 - (i % 3) * 0.05, Math.cos(a) * 0.22); }
+  const hs = 0.24;
+  part('head', box(hs * 0.96, hs * 0.5, 0.03), drip, 0, hs * 0.2, hs / 2 + 0.02); // the melted lower face
+  for (let i = -2; i <= 2; i++) part('head', box(0.025, 0.08 + Math.abs(i) * 0.02, 0.02), drip, i * 0.045, hs * 0.02, hs / 2 + 0.03);
+  // the crown of candles: two rings, every wick lit
+  for (let r = 0; r < 2; r++) for (let i = 0; i < 8; i++) { const a = (i + r * 0.5) / 8 * Math.PI * 2; const R = 0.16 - r * 0.07; const h = 0.14 + ((i + r) % 3) * 0.06 + r * 0.08;
+    part('head', box(0.045, h, 0.045), wax, Math.sin(a) * R, hs + h / 2 + r * 0.04, Math.cos(a) * R);
+    part('head', box(0.03, 0.05, 0.03), flame, Math.sin(a) * R, hs + h + 0.03 + r * 0.04, Math.cos(a) * R, { glow: 3.2 }); }
+  // two more arms, each holding up a taper
+  for (const sx of [-1, 1]) {
+    part('chest', box(0.08, 0.08, 0.32), wax, sx * 0.24, 0.18, 0.12, { rx: -0.9, rz: sx * 0.3 });
+    part('chest', box(0.04, 0.3, 0.04), wax, sx * 0.3, 0.42, 0.24);
+    part('chest', box(0.035, 0.06, 0.035), flame, sx * 0.3, 0.6, 0.24, { glow: 3.4 });
+  }
+}
+
 // Bosses: base stats; their patterns live in ai.js.
 export const BOSSES = {
   gaoler: {
-    name: 'The Gaoler', title: 'Keeper of the Gallows Keys', hp: 1500, poise: 999, speed: 2.4, r: 0.85, mass: 9, scale: 1.9, boss: true,
-    look: { weapon: 'cleaver', offhand: 'lantern', mask: 0x1e1a1a, eyes: 0xffa030, bulk: 1.5, colors: { skin: 0x6a5450, tunic: 0x2a1e1a, pants: 0x1c1616, boots: 0x0e0c0c, belt: 0x4a3a26, glove: 0x2a2020, shoulder: 0x3a3030 } },
+    name: 'The Gaoler', title: 'Keeper of the Gallows Keys', hp: 1650, poise: 999, speed: 2.4, r: 0.85, mass: 9, scale: 1.9, boss: true,
+    look: { weapon: 'none', eyes: null, bulk: 1.55, noHair: true, colors: { skin: 0x6a5450, tunic: 0x3a2a22, pants: 0x1c1616, boots: 0x0e0c0c, belt: 0x4a3a26, glove: 0x2a2020, shoulder: 0x4a3a30 }, extra: gaolerExtra },
   },
   tallow: {
     name: 'Mother Tallow', title: 'Who Keeps the Candles Burning', hp: 2000, poise: 999, speed: 3.2, r: 0.6, mass: 6, scale: 1.55, boss: true, hover: true,
-    look: { weapon: 'staff', orb: 0xffb040, hood: true, eyes: 0xffd060, skirt: 0xd8ccb0, colors: { skin: 0xe0d4bc, tunic: 0xc8bca0, pants: 0xa89c84, boots: 0x8a7e68, hood: 0xd0c4a8, glove: 0xe0d4bc }, bulk: 1.1 },
+    look: { weapon: 'staff', orb: 0xffb040, eyes: 0xffd060, noHair: true, colors: { skin: 0xe0d4bc, tunic: 0xc8bca0, pants: 0xa89c84, boots: 0x8a7e68, glove: 0xe0d4bc, shoulder: 0xd8ccb0 }, bulk: 1.1, extra: tallowExtra },
   },
   deacon: {
     name: 'The Drowned Deacon', title: 'His Sermon Is the Tide', hp: 3700, poise: 999, speed: 2.8, r: 0.75, mass: 8, scale: 1.75, boss: true,

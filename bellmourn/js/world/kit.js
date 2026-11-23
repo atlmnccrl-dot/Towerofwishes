@@ -7,6 +7,8 @@ import { M } from '../engine/materials.js';
 import * as T from '../engine/textures.js';
 import * as KC from './kit_city.js';
 export { MC, LIGHT } from './kit_city.js';
+// the run variants' dressing (conditions, blocks, touches): applyVariant's build calls K.variantDress(K, ctx, def)
+export { dress as variantDress, iceMat as W2ice } from './kit_var.js';
 
 // The district whose style the shared pieces take from here on (kit_city.js): 'gate' (the reference
 // iron-and-slate city), 'market', 'docks', 'nave', 'undercroft', 'foundry', 'heights', 'belfry'.

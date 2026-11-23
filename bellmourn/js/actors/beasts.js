@@ -10,6 +10,7 @@
 import * as THREE from '../../vendor/three.module.min.js';
 import { Beast, makeBeast2, mixP, phase, clamp01, ease, lerp } from './beasts2.js';
 import { makeBeast3 } from './beasts3.js'; // Act III: the leech, the wisp, the gear spider, the choir mask, the Wheel
+import { makeBeast4 } from './beasts4.js'; // the run's new bosses: the King-Crab, the Hollow Mother, the Ronin, the Guest and its masks, the Pyre Saint
 
 // ------------------------------------------------------------------ four legs (the hound and the rat)
 // size: a uniform scale of the hound's proportions; P: proportions and colours
@@ -239,5 +240,5 @@ export function makeBeast(look) {
   if (look.rig === 'gargoyle') return new Gargoyle(look);
   if (look.rig === 'frostwolf') return new Quadruped(look, FROSTWOLF);
   if (look.rig === 'hellhound') return new Quadruped(look, HELLHOUND);
-  return makeBeast2(look) || makeBeast3(look);
+  return makeBeast2(look) || makeBeast3(look) || makeBeast4(look);
 }

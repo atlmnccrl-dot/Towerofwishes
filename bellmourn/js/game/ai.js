@@ -2,7 +2,7 @@
 import { ATTACKS as A } from './defs.js';
 import { angDiff, angTo, dist, turn } from './sim.js';
 import { UNIT_AI } from './units.js';
-import { BOSS_AI2 } from './bosses2.js';
+import { BOSS_AI2, quick } from './bosses2.js';
 import { bossPlan, ascendDef } from './bosses4.js'; // Ascended forms, the wheel's true form, entrances
 
 const deg = (d) => (d * Math.PI) / 180;
@@ -138,42 +138,181 @@ export function summon(w, e, type, n, tier, radius = 4) {
 
 export const strike = (o) => ({ dur: 1.2, windup: 0.6, active: 0.75, range: 2.5, arc: deg(140), dmg: 18, kb: 6, lunge: 2.5, tele: 'arc', heavy: true, ...o });
 
+// ------------------------------------------------------------------ world hooks and props (shared with bosses5.js)
+// hookWorld5(w): installed the first time a boss that needs it thinks. It runs, every simulation step and
+// whatever state the boss is in (winding up, staggered, hidden), the actions a boss scheduled with later()
+// (a cage that lands, wax that hardens, a cut that falls) and prunes props that ended.
+export function hookWorld5(w) {
+  if (w._b5) return; w._b5 = true; w._later = [];
+  // props go into this world's own list: the level's list is shared by every world made on it (a retry), and a
+  // prop must never outlive its world
+  w.solids = w.solids.slice();
+  const heroStep = w._hero;
+  w._hero = function (e, h) { tick5(this); heroStep.call(this, e, h); };
+}
+function tick5(w) {
+  const q = w._later;
+  if (q.length) {
+    const due = q.filter((a) => a.at <= w.t); if (due.length) { w._later = q.filter((a) => a.at > w.t); for (const a of due) if (!a.src || !a.src.dead || a.always) a.fn(w); }
+  }
+  if (w.t >= (w._pruneT || 0)) { w._pruneT = w.t + 0.5; for (let i = w.solids.length - 1; i >= 0; i--) { const s = w.solids[i]; if (s.bm && s.off) w.solids.splice(i, 1); } }
+}
+// run fn(w) `delay` seconds from now (dropped if src has died, unless o.always)
+export function later(w, src, delay, fn, o = {}) { hookWorld5(w); w._later.push({ at: w.t + delay, fn, src, always: !!o.always }); }
+// A prop the boss leaves standing (a cage, a wall of hardened wax): a round solid that blocks walking, blows
+// and projectiles, gone after `life` seconds or when the boss falls (its `off` is read by every collision
+// test, so nothing has to remove it in time), and a mark that fx.js draws as the prop.
+export function prop(w, e, x, z, r, life, kind, h = 1.8) {
+  hookWorld5(w); const until = w.t + life;
+  const s = { x, z, r, h, bm: kind, src: e, get off() { return w.t >= until || !!e.dead; } };
+  w.solids.push(s);
+  const hero = w.hero; const m = w.addHazard({ shape: 'circle', x, z, r, warn: 0, dmg: 0, t: 0.06, life: life + 0.06, hitSet: new Set(hero ? [hero.id] : []), vis: true, kind, src: e, prop: s });
+  s.mark = m; return s;
+}
+export const propsOf = (w, e, kind) => w.solids.filter((s) => s.bm === kind && s.src === e && !s.off);
+// a point inside the arena, off the solids, not on the hero; null when there is none
+export function spotFree(w, x, z, r = 0.5) {
+  const [x0, z0, x1, z1] = w.bounds;
+  if (x < x0 + r + 0.6 || x > x1 - r - 0.6 || z < z0 + r + 0.6 || z > z1 - r - 0.6 || w._blocked(x, z, r)) return false;
+  return true;
+}
+
+// The Gaoler's cage: marked where it will fall; caught under it, you are shut in for a moment (a dash breaks
+// the lock); missed, it stands where it fell, bars and all, for a few seconds.
+function cage(w, e, x, z, o) {
+  circleAt(w, e, x, z, o.r || 0.95, { warn: o.warn, life: 0.2, dmg: o.dmg, kind: 'cage', kb: 3 });
+  later(w, e, o.warn, (w2) => {
+    const hero = w2.hero; w2.emit('cageFall', { e, x, z });
+    if (hero && !hero.dead && Math.hypot(hero.x - x, hero.z - z) < (o.r || 0.95) + hero.r) {
+      if (hero.state !== 'dash') { w2.applyStatus(hero, 'root', { dur: o.hold || 0.9 }); if (hero.status.root) hero.status.root.t = Math.min(hero.status.root.t, o.hold || 0.9); w2.addHazard({ shape: 'circle', x: hero.x, z: hero.z, r: 0.8, warn: 0, dmg: 0, t: 0.06, life: (o.hold || 0.9) + 0.06, hitSet: new Set([hero.id]), vis: true, kind: 'cagehold', src: e }); }
+      return;
+    }
+    if (propsOf(w2, e, 'cagewall').length < (o.cap || 6) && spotFree(w2, x, z, 0.6)) prop(w2, e, x, z, 0.62, o.stay || 7, 'cagewall', 2.2);
+  });
+}
+// a hook flung down a line; whoever it bites is hauled in to a stride in front of him
+function gaolerHook(w, e, range, dmg) {
+  const hero = w.hero; const caught = hero && !hero.dead && w._inShape(e, { shape: 'line', range, width: 1.1 }, hero) && w.clear(e, hero);
+  const hit = caught && w._damage(e, hero, dmg * e.dmgMul, { kb: 0.01, heavy: true }) === true;
+  w.emit('hook', { e, x: hit ? hero.x : e.x + Math.sin(e.face) * range, z: hit ? hero.z : e.z + Math.cos(e.face) * range, hit, chain: true });
+  if (!hit) return false;
+  const a = angTo(hero, e); const d = Math.max(0, dist(hero, e) - e.r - hero.r - 1.0); const kb = d * 5.5;
+  hero.kbx = Math.sin(a) * kb; hero.kbz = Math.cos(a) * kb;
+  return true;
+}
+// wax poured where you stand; a moment later it hardens into a wall (cover from her fire, and a cage of her making)
+function pour(w, e, x, z, o) {
+  circleAt(w, e, x, z, 1.25, { warn: o.warn, life: 0.6, dmg: o.dmg, kind: 'wax', kb: 3 });
+  later(w, e, o.warn + 1.3, (w2) => {
+    if (propsOf(w2, e, 'waxwall').length >= (o.cap || 6) || !spotFree(w2, x, z, 0.75)) return;
+    const hero = w2.hero; if (hero && Math.hypot(hero.x - x, hero.z - z) < 0.75 + hero.r + 0.1) return; // never sealed inside it
+    prop(w2, e, x, z, 0.72, o.stay || 8, 'waxwall', 1.7); w2.emit('harden', { e, x, z });
+  });
+}
+
+const TAU = Math.PI * 2;
+
 export const BOSS_AI = {
-  // District I: a giant gaoler with a cleaver and a burning lantern on a chain.
+  // District I (PROPOSAL, reworked): the Gaoler, a hunched giant with a gibbet cage chained to his back, a
+  // meat-hook on a chain in one fist and the great ring of the gaol's keys in the other. His rhythm is the
+  // gaol's: he catches you (the hook, chains that drag), he shuts you in (cages drop from the dark above and
+  // stay standing, so the yard fills with bars), then he comes down on you. Below 60% he tears the gibbet off
+  // his back and swings it; below 25%, lockdown: a ring of cages round you and the hook right after.
   gaoler: {
-    phases: [0.5], keep: 2.6, turn: 3.5,
+    phases: [0.6, 0.25], keep: 2.8, turn: 3.4,
+    tick(w) { hookWorld5(w); },
     moves(p) {
+      const q = p >= 3 ? 0.88 : 1;
       const m = [
-        { id: 'chop', w: 3, max: 3.4, a: strike({ name: 'chop', anim: 'slam', range: 3.2, arc: deg(70), shape: 'line', width: 1.4, windup: 0.8, active: 0.9, dur: 1.45, dmg: 22, lunge: 1.5, tele: 'line' }) },
-        { id: 'sweep', w: 2, max: 3.6, a: strike({ name: 'sweep', anim: 'sweep', range: 3.4, arc: deg(210), windup: 0.7, active: 0.86, dur: 1.4, dmg: 20 }) },
-        { id: 'combo', w: 2, max: 3.0, a: strike({ name: 'combo', anim: 'fslash', range: 3.0, arc: deg(130), windup: 0.55, active: 0.66, dur: 1.75, dmg: 16, chain: { at: 0.9, windup: 1.2, active: 1.32, lunge: 3 } }) },
-        { id: 'charge', w: 1.6, min: 5, max: 16, cd: 5, a: strike({ name: 'charge', anim: 'charge', shape: 'line', range: 9, width: 1.8, windup: 0.85, active: 1.55, dur: 2.0, dmg: 22, lunge: 13, lungeT: [0.85, 1.5], tele: 'line', teleRange: 10, turn: 2.5 }) },
-        { id: 'lantern', w: 1.2, max: 4.5, cd: 6, a: strike({ name: 'lantern', anim: 'spin', shape: 'circle', offset: 0, radius: 3.6, windup: 0.9, active: 1.2, dur: 1.9, dmg: 18, lunge: 0, tele: 'circle', onStrike: (w, e) => { for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; circleAt(w, e, e.x + Math.sin(a) * 4.2, e.z + Math.cos(a) * 4.2, 1.1, { warn: 0.6, life: 2.4, dmg: 10, kind: 'fire', kb: 3 }); } } }) },
+        // the key ring swung like a flail
+        { id: 'keys', w: 2.6, max: 3.6, a: quick(strike({ name: 'keys', anim: 'sweep', range: 3.5, arc: deg(220), windup: 0.75, active: 0.9, dur: 1.45, dmg: 20, kb: 7, lunge: 1.4 }), q) },
+        // the keys, overhand and back: two blows
+        { id: 'maul', w: 2.2, max: 3.1, a: quick(strike({ name: 'maul', anim: 'fslash', range: 3.0, arc: deg(130), windup: 0.6, active: 0.7, dur: 1.75, dmg: 17, kb: 6, lunge: 2.4, chain: { at: 0.95, windup: 1.25, active: 1.36, lunge: 3 } }), q) },
+        // the hook: caught, you are hauled in, a cage falls where you land and the keys come down
+        { id: 'hook', w: 2, min: 3, max: 10, cd: p >= 3 ? 3.5 : 4.5, a: { name: 'hook', anim: 'fthrust', shape: 'line', range: 10, width: 1.0, windup: p >= 3 ? 0.75 : 0.85, active: 0.9, dur: 1.25, dmg: 0, lunge: 0, tele: 'line', turn: 3, heavy: true, onStrike: (w, e) => {
+          if (!gaolerHook(w, e, 10, 9)) return;
+          const fx = e.x + Math.sin(e.face) * (e.r + 1.5), fz = e.z + Math.cos(e.face) * (e.r + 1.5);
+          cage(w, e, fx, fz, { warn: 0.8, dmg: 10, hold: 0.8 });
+          w.foeAttack(e, strike({ name: 'keyslam', anim: 'slam', shape: 'circle', offset: 1.6, radius: 1.7, windup: 0.95, active: 1.02, dur: 1.6, dmg: 19, kb: 8, lunge: 0.3, tele: 'circle' }));
+        } } },
+        // cages from the dark above: the first right where you stand
+        { id: 'cages', w: 1.8, cd: 5, a: { name: 'cages', anim: 'cast', dur: 1.5, windup: 0.55, active: 0.57, tele: 'none', dmg: 0, heavy: true, onStrike: (w, e) => {
+          const h = w.hero; const n = 2 + p;
+          for (let i = 0; i < n; i++) { const a = w.rand() * TAU, r = i ? 2.2 + w.rand() * 1.8 : 0; const x = h.x + Math.sin(a) * r, z = h.z + Math.cos(a) * r; if (i && !spotFree(w, x, z, 0.6)) continue; cage(w, e, x, z, { warn: 1.0 + i * 0.16, dmg: 13 }); }
+          w.emit('chains', { e });
+        } } },
+        // chains hurled across the yard: they lie taut for a moment and drag whoever touches them to him
+        { id: 'chains', w: 1.6, min: 2.5, cd: 5.5, a: { name: 'chains', anim: 'sweep', dur: 1.5, windup: 0.6, active: 0.62, tele: 'none', dmg: 0, heavy: true, onStrike: (w, e) => {
+          const a0 = angTo(e, w.hero); const offs = p >= 2 ? [-0.55, -0.18, 0.18, 0.55] : [-0.45, 0, 0.45];
+          for (const o of offs) w.addHazard({ shape: 'line', x: e.x, z: e.z, face: a0 + o, len: 11, width: 0.7, warn: 0.8, life: 0.9, dmg: 8 * e.dmgMul, src: e, kind: 'chain', kb: -7 });
+        } } },
+        // the stamp of a boot that shakes the yard
+        { id: 'stomp', w: 2.1, max: 3.0, cd: 3, a: strike({ name: 'stomp', anim: 'slam', shape: 'circle', offset: 0.6, radius: 2.5, windup: 0.85, active: 0.95, dur: 1.6, dmg: 22, kb: 8, lunge: 0, tele: 'circle', onStrike: (w, e) => ringAt(w, e, e.x, e.z, 7, { warn: 0.05, life: 1.0, dmg: 10, kind: 'shock' }) }) },
+        { id: 'charge', w: 1.3, min: 5, max: 15, cd: 6, a: strike({ name: 'charge', anim: 'charge', shape: 'line', range: 9, width: 1.8, windup: 0.9, active: 1.55, dur: 2.0, dmg: 21, lunge: 12.5, lungeT: [0.9, 1.5], tele: 'line', teleRange: 10, turn: 2.4 }) },
       ];
       if (p >= 2) {
-        m.push({ id: 'quake', w: 1.5, max: 20, cd: 7, a: strike({ name: 'quake', anim: 'slam', shape: 'circle', offset: 1.5, radius: 2.2, windup: 0.95, active: 1.05, dur: 1.8, dmg: 26, lunge: 0.5, tele: 'circle', onStrike: (w, e) => { ringAt(w, e, e.x + Math.sin(e.face) * 1.5, e.z + Math.cos(e.face) * 1.5, 9, { warn: 0, life: 1.1, dmg: 14 }); } }) });
-        m.push({ id: 'chains', w: 0.8, max: 30, cd: 16, run: (w, e) => { summon(w, e, 'hushed', 2, 0); e.ai.cd = 1.2; e.state = 'roar'; e.t = 0.4; e.anim = 'roar'; e.animT = 0; } });
+        // the gibbet torn off his back and swung round on its chain
+        m.push({ id: 'gibbet', w: 1.5, max: 4.6, cd: 6, a: strike({ name: 'gibbet', anim: 'spin', shape: 'circle', offset: 0, radius: 4.0, windup: 1.0, active: 1.3, dur: 2.0, dmg: 20, kb: 9, lunge: 0, tele: 'circle', onStrike: (w, e) => ringAt(w, e, e.x, e.z, 8, { warn: 0.25, life: 1.1, dmg: 10, kind: 'shock' }) }) });
+        // lockdown: a ring of cages round you with one way out
+        m.push({ id: 'lockdown', w: 1.1, cd: 12, a: { name: 'lockdown', anim: 'roar', dur: 1.7, windup: 0.7, active: 0.72, tele: 'none', dmg: 0, heavy: true, onStrike: (w, e) => {
+          const h = w.hero; const n = 9; const gap = Math.floor(w.rand() * n);
+          for (let i = 0; i < n; i++) { if (i === gap || (p >= 3 ? false : i === (gap + 1) % n)) continue; const a = i / n * TAU; const x = h.x + Math.sin(a) * 3.3, z = h.z + Math.cos(a) * 3.3; if (spotFree(w, x, z, 0.6)) cage(w, e, x, z, { warn: 1.1, dmg: 12, stay: 6, cap: 12 }); }
+        } } });
       }
       return m;
     },
-    onPhase(w, e) { summon(w, e, 'hushed', 2, 0, 5); e.speed *= 1.18; },
+    onPhase(w, e, p) { if (p === 2) { summon(w, e, 'hushed', 2, 0, 5); e.speed *= 1.12; w.emit('gibbet', { e }); } if (p === 3) e.speed *= 1.1; },
   },
 
-  // District II: the candle-witch of the market. Floats, blinks, rains wax and fire.
+  // District II (PROPOSAL, reworked): Mother Tallow floats over the market, a crown of a hundred candles on her
+  // head and two more arms holding tapers, her body run down into a skirt of wax that never touches the
+  // stones. She pours wax that hardens into walls (cover from her fire, or a trap), throws fire, glides. Her
+  // rhythm is light and dark: below 60% she snuffs every candle, the square goes black and only drifting
+  // wicks hunt you, then she flares back somewhere else. Below 30% her walls catch fire.
   tallow: {
-    phases: [0.55], keep: 6, turn: 5,
+    phases: [0.6, 0.3], keep: 6, turn: 5,
+    tick(w, e) { hookWorld5(w); e.dark = 0; },
     moves(p) {
       const m = [
-        { id: 'orbs', w: 3, min: 2.5, a: { ...A.orbFan, name: 'orbs', dur: 1.3, windup: 0.65, active: 0.67, ranged: { kind: 'flame', speed: 6.8, r: 0.32, dmg: 13, life: 3.2, fan: p >= 2 ? 5 : 3, spread: deg(18), reflect: true } } },
-        { id: 'wick', w: 2, min: 0, a: { name: 'wick', anim: 'cast', dur: 1.6, windup: 0.5, active: 0.52, tele: 'none', ranged: null, onStrike: (w, e) => { const hero = w.hero; for (let i = 0; i < (p >= 2 ? 5 : 3); i++) { const a = w.rand() * Math.PI * 2, r = w.rand() * 2.2; circleAt(w, e, hero.x + Math.sin(a) * r, hero.z + Math.cos(a) * r, 1.2, { warn: 0.9 + i * 0.15, dmg: 16, kind: 'fire' }); } } } },
-        { id: 'flare', w: 1.6, max: 3.2, a: strike({ name: 'flare', anim: 'spin', shape: 'circle', offset: 0, radius: 3, windup: 0.6, active: 0.75, dur: 1.2, dmg: 15, lunge: 0, tele: 'circle' }) },
-        { id: 'blink', w: 1.5, max: 4, cd: 3, run: (w, e) => { blink(w, e, w.hero); e.ai.cd = 0.35; } },
-        { id: 'wax', w: 1, cd: 9, a: { name: 'wax', anim: 'roar', dur: 1.8, windup: 0.8, active: 0.82, tele: 'circle', shape: 'circle', radius: 1.5, offset: 0, dmg: 0, onStrike: (w, e) => { ringAt(w, e, e.x, e.z, 10, { warn: 0, life: 1.6, dmg: 15, kind: 'wax' }); if (p >= 2) ringAt(w, e, e.x, e.z, 10, { warn: 0.7, life: 1.6, dmg: 15, kind: 'wax' }); } } },
+        { id: 'flames', w: 2.6, min: 2.5, a: { ...A.orbFan, name: 'flames', anim: 'cast', dur: 1.3, windup: 0.65, active: 0.67, ranged: { kind: 'flame', speed: 6.8, r: 0.32, dmg: 12, life: 3.2, fan: p >= 2 ? 5 : 3, spread: deg(17), reflect: true } } },
+        // wax poured round you; it hardens into walls a moment later
+        { id: 'pour', w: 2.2, cd: 4.5, a: { name: 'pour', anim: 'cast', dur: 1.5, windup: 0.6, active: 0.62, tele: 'none', dmg: 0, heavy: true, onStrike: (w, e) => {
+          const h = w.hero; const n = p >= 2 ? 4 : 3;
+          for (let i = 0; i < n; i++) { const a = w.rand() * TAU, r = i ? 2.0 + w.rand() * 2.2 : 0; const x = h.x + Math.sin(a) * r, z = h.z + Math.cos(a) * r; if (spotFree(w, x, z, 0.8)) pour(w, e, x, z, { warn: 0.85 + i * 0.12, dmg: 12 }); }
+        } } },
+        { id: 'wick', w: 1.8, a: { name: 'wick', anim: 'cast', dur: 1.5, windup: 0.5, active: 0.52, tele: 'none', dmg: 0, onStrike: (w, e) => { const hero = w.hero; for (let i = 0; i < (p >= 2 ? 5 : 3); i++) { const a = w.rand() * TAU, r = i ? 0.8 + w.rand() * 2.2 : 0; circleAt(w, e, hero.x + Math.sin(a) * r, hero.z + Math.cos(a) * r, 1.15, { warn: 0.9 + i * 0.15, dmg: 15, kind: 'fire' }); } } } },
+        { id: 'flare', w: 1.6, max: 3.4, a: strike({ name: 'flare', anim: 'spin', shape: 'circle', offset: 0, radius: 3, windup: 0.6, active: 0.75, dur: 1.2, dmg: 15, lunge: 0, tele: 'circle' }) },
+        // she glides down a lane, a trail of molten wax behind her
+        { id: 'glide', w: 1.4, min: 3.5, max: 12, cd: 5, a: strike({ name: 'glide', anim: 'cast', shape: 'line', range: 2.2, width: 1.6, windup: 0.7, active: 1.2, dur: 1.6, dmg: 16, kb: 7, lunge: 12, lungeT: [0.7, 1.15], tele: 'line', teleRange: 7.5, turn: 3, onStrike: (w, e) => w.addHazard({ shape: 'line', x: e.x, z: e.z, face: e.face, len: 7, width: 1.2, warn: 0.45, life: 1.4, dmg: 8 * e.dmgMul, src: e, kind: 'wax', kb: 3 }) }) },
       ];
-      if (p >= 2) m.push({ id: 'brood', w: 0.8, cd: 14, run: (w, e) => { summon(w, e, 'ghoul', 3, 1, 5); e.ai.cd = 1; e.state = 'roar'; e.t = 0.5; e.anim = 'roar'; e.animT = 0; } });
+      if (p >= 2) {
+        // the dark: every candle snuffed; she drifts unseen while wicks hunt you; then she flares back
+        m.push({ id: 'snuff', w: 1.6, cd: p >= 3 ? 9 : 12, run: (w, e) => { e.hidden = true; e.iframes = 99; e.tele = null; e.dark = 1; e.ai.snuff = { t0: w.t, n: 0 }; w.emit('snuff', { e }); w.emit('vanish', { e }); } });
+        m.push({ id: 'brood', w: 0.8, cd: 15, run: (w, e) => { if (w.foes().filter((f) => f.type === 'ghoul').length < 2) summon(w, e, 'ghoul', 2, 1, 5); e.ai.cd = 1; e.state = 'roar'; e.t = 0.5; e.anim = 'roar'; e.animT = 0; } });
+      }
+      // her walls catch fire
+      if (p >= 3) m.push({ id: 'kindle', w: 1.5, cd: 7, a: { name: 'kindle', anim: 'roar', dur: 1.6, windup: 0.7, active: 0.72, tele: 'none', dmg: 0, heavy: true, onStrike: (w, e) => {
+        const walls = propsOf(w, e, 'waxwall'); for (const s of walls) circleAt(w, e, s.x, s.z, 1.7, { warn: 0.85, life: 0.4, dmg: 15, kind: 'fire' });
+        if (!walls.length) for (let i = 0; i < 3; i++) { const a = w.rand() * TAU; pour(w, e, w.hero.x + Math.sin(a) * 2.6, w.hero.z + Math.cos(a) * 2.6, { warn: 0.9, dmg: 12 }); }
+      } } });
       return m;
     },
-    onPhase(w, e) { summon(w, e, 'ghoul', 2, 1, 5); },
+    hiddenThink(w, e, h) {
+      const S = e.ai.snuff; if (!S) { e.hidden = false; e.iframes = 0; return; }
+      const t = w.t - S.t0; e.anim = 'idle'; e.mx = 0; e.mz = 0; e.dark = 1; e.iframes = 99;
+      // wicks drift out of the dark at you
+      while (S.n < 4 && t >= 0.5 + S.n * 0.7) {
+        S.n++; const hero = w.hero; const a = w.rand() * TAU; const x = hero.x + Math.sin(a) * 6.5, z = hero.z + Math.cos(a) * 6.5; const b = Math.atan2(hero.x - x, hero.z - z);
+        w.projs.push({ id: w.nextId++, kind: 'wisp', team: 'foe', x, z, y: 1.2, vx: Math.sin(b) * 3.6, vz: Math.cos(b) * 3.6, r: 0.3, dmg: 11 * e.dmgMul, life: 3.6, homing: 1.1, src: e, face: b, hitSet: new Set(), status: { burn: 1 } });
+      }
+      if (t < 3.4) return;
+      // she flares back up, away from you, and the square lights at once
+      const hero = w.hero;
+      for (let k = 0; k < 12; k++) { const a = w.rand() * TAU, r = 4.5 + w.rand() * 2.5; const x = hero.x + Math.sin(a) * r, z = hero.z + Math.cos(a) * r; if (spotFree(w, x, z, e.r)) { e.x = x; e.z = z; break; } }
+      e.hidden = false; e.iframes = 0; e.dark = 0; e.ai.snuff = null; e.face = angTo(e, hero); w.emit('appear', { e }); w.emit('relight', { e });
+      ringAt(w, e, e.x, e.z, 9, { r0: 1, warn: 0.45, life: 1.4, dmg: 13, kind: 'fire' }); e.ai.cd = 1.1;
+    },
+    onPhase(w, e, p) { if (p === 2) summon(w, e, 'ghoul', 2, 1, 5); if (p === 3) e.speed *= 1.15; },
   },
 
   // District III: the drowned priest of the flooded nave. Tides, geysers, a censer that drags you in.
