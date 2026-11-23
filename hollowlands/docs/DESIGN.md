@@ -60,6 +60,26 @@ a roll with invulnerability frames, one stamina bar, hit-stop, white hit flash, 
 small screen shake (can be turned off), synthesised impacts, footsteps that change on ash, stone and wood.
 Every enemy attack has a red ground telegraph (ring, arc or aim line) that stays readable at this distance.
 
+### v0.4: effects, attack types, new units, cinematics
+- **Effects engine** (`js/vfx3d.js`): weapon trails in each weapon's colour, sparks and hot impact cores,
+  shockwaves with dust rings, flying debris, impact lights, light pillars, afterimages on the dash, ash and
+  embers when the hollow die, scorch marks and craters, screen flash, colour split, zoom kick and slow motion
+  on big blows. Outdoors effects are opaque and saturated (additive light vanishes on pale ash); underground
+  they glow additively.
+- **Attack types**: every weapon has its own heavy: Sword spinning cleave, Spear lunge, Bellbreaker ground
+  slam, Twin Blades whirlwind (steer while spinning), Bow piercing shot, Focus shockwave. New weapons:
+  Twin Blades (house B), Ashen Bow (hound hollow), Bell Focus (vault). Quick SWAP button.
+- **Ultimates**: Grave Arc (two-pulse spin storm), Ashen Drive (burning rush), King's Fall (leap, crater,
+  debris), Veilstep (blink from foe to foe), Blackflight (arrow rain), Silence Burst (stuns everything).
+  A name banner slashes across the screen.
+- **New foes**: Bell Wraith (floats, blinks, three seeking orbs), Hollow Brute (wide charge lane, slam,
+  dazed when it hits a wall). **The Keeper's second phase** at half health: the bell cracks (slow motion,
+  red light), then falling bell shards and a chain pull join its attacks.
+- **Cinematics** (`js/cine.js`): staged scenes with camera paths, actors and lighting: the bell tolling
+  and dying, the hollow climbing out of the ash, the Wayfarer by the wreck, the title slam; the tower
+  crane shot; braziers lighting in the crypt; the Keeper rising from its knees with a roar and title;
+  the Keeper's death with light pouring from the bell.
+
 ### Weapons (Built: three of the six proposed families)
 | Weapon | Where | Feel | Ultimate |
 |---|---|---|---|

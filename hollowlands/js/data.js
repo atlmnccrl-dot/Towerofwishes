@@ -8,28 +8,48 @@ HL.RARITY = { common: 'Common', forged: 'Forged', relic: 'Relic', named: 'Named'
 HL.WEAPONS = {
   rusted_sword: {
     kind: 'sword', dmg: 11, reach: 15, arc: 2.1, wind: 0.07, active: 0.09, rec: 0.2, stam: 11, combo: 3, finisher: 1.6,
-    heavy: { mult: 2.3, reach: 18, arc: 2.6, stam: 26 }, ult: 'grave_arc', step: 22,
+    heavy: { mult: 2.1, reach: 19, arc: Math.PI * 2, stam: 26, spinCut: true }, ult: 'grave_arc', step: 22, trail: '#ffc95a',
   },
   ashwood_spear: {
     kind: 'spear', dmg: 13, reach: 25, arc: 0.55, wind: 0.13, active: 0.1, rec: 0.27, stam: 13, combo: 2, finisher: 1.3,
-    heavy: { mult: 2.1, reach: 30, arc: 0.5, stam: 26 }, ult: 'ashen_drive', step: 30,
+    heavy: { mult: 2.2, reach: 30, arc: 0.6, stam: 26, lunge: 95 }, ult: 'ashen_drive', step: 30, trail: '#7fd8ff',
   },
   bellbreaker: {
     kind: 'axe', dmg: 23, reach: 16, arc: 2.5, wind: 0.22, active: 0.1, rec: 0.38, stam: 20, combo: 2, finisher: 1.4, breaker: true,
-    heavy: { mult: 2.2, reach: 20, arc: 3.2, stam: 32 }, ult: 'kings_fall', step: 16,
+    heavy: { mult: 2.3, reach: 26, arc: Math.PI * 2, stam: 32, slam: true }, ult: 'kings_fall', step: 16, trail: '#ff7a2a',
   },
 };
 // Bare hands, until you find a weapon: weak, but the attack button always does something.
 HL.FISTS = { kind: 'fists', dmg: 5, reach: 11, arc: 1.7, wind: 0.05, active: 0.08, rec: 0.17, stam: 8, combo: 2, finisher: 1.4, heavy: { mult: 2, reach: 12, arc: 1.9, stam: 18 }, ult: null, step: 18 };
+Object.assign(HL.WEAPONS, {
+  twin_blades: {
+    kind: 'twin', dmg: 7, reach: 13, arc: 1.9, wind: 0.04, active: 0.07, rec: 0.12, stam: 7, combo: 4, finisher: 1.8,
+    heavy: { mult: 1.3, reach: 18, arc: Math.PI * 2, stam: 30, spin: { dur: 0.6, tick: 0.12 } }, ult: 'veilstep', step: 26, trail: '#ff3d3d',
+  },
+  ashen_bow: {
+    kind: 'bow', dmg: 9, reach: 140, arc: 0.3, wind: 0.12, active: 0.05, rec: 0.25, stam: 9, combo: 1, finisher: 1,
+    heavy: { mult: 3.2, reach: 170, arc: 0.3, stam: 24, pierce: true }, ult: 'blackflight', step: 0, shoot: { speed: 280, col: '#ece4d1' },
+  },
+  bell_focus: {
+    kind: 'focus', dmg: 10, reach: 80, arc: 0.4, wind: 0.1, active: 0.05, rec: 0.28, stam: 12, combo: 2, finisher: 1.3,
+    heavy: { mult: 2.4, reach: 36, arc: Math.PI * 2, stam: 30, nova: true }, ult: 'silence_burst', step: 0, shoot: { speed: 170, col: '#9fd0ff', seek: 2.5 }, trail: '#9fd0ff',
+  },
+});
 HL.ULTS = {
   grave_arc: { name: 'Grave Arc', desc: 'A full circle cleave that staggers everything close.' },
   ashen_drive: { name: 'Ashen Drive', desc: 'A piercing rush through everything in a line.' },
-  kings_fall: { name: "King's Fall", desc: 'A committed overhead blow that crushes the ground.' },
+  kings_fall: { name: "King's Fall", desc: 'Leap and crush the ground: a crater and a storm of debris.' },
+  veilstep: { name: 'Veilstep', desc: 'Blink from foe to foe, cutting each one.' },
+  blackflight: { name: 'Blackflight', desc: 'A rain of black arrows over everything ahead.' },
+  silence_burst: { name: 'Silence Burst', desc: 'A soundless shockwave that stuns everything nearby.' },
 };
 
 HL.ITEMS = {
   rusted_sword: { name: 'Rusted Sword', kind: 'weapon', rarity: 'common', desc: 'Balanced reach. Three quick cuts, the last one heavier. Hold to cleave.' },
   ashwood_spear: { name: 'Ashwood Spear', kind: 'weapon', rarity: 'forged', desc: 'Long straight reach. Keep them at the point; weak to the flanks.' },
+  twin_blades: { name: 'Twin Blades', kind: 'weapon', rarity: 'forged', desc: 'Short, fast, merciless. Four-cut flurries. Hold for a whirlwind.' },
+  ashen_bow: { name: 'Ashen Bow', kind: 'weapon', rarity: 'forged', desc: 'Strike from afar: drag to aim. Hold to draw a piercing shot. Arrows can ring resonators.' },
+  bell_focus: { name: 'Bell Focus', kind: 'weapon', rarity: 'relic', desc: 'A warden\'s tuning staff. Fires seeking bolts; hold for a shockwave around you.' },
   bellbreaker: { name: 'Bellbreaker', kind: 'weapon', rarity: 'named', desc: "The Keeper's own clapper, hafted. Slow, but it breaks any guard." },
   tattered_cloak: { name: 'Tattered Cloak', kind: 'armor', rarity: 'common', def: 0, desc: 'It keeps off the ash. Not much else.' },
   gravecloth_coat: { name: 'Gravecloth Coat', kind: 'armor', rarity: 'forged', def: 0.15, desc: 'Layered burial linen, waxed stiff. Takes 15% less harm.' },
@@ -68,6 +88,8 @@ HL.FOES = {
   archer: { name: 'Grave Archer', hp: 24, r: 3, speed: 22, chase: 28, aggro: 105, leash: 180, dmg: 11, poise: 12, drops: [['cloth_scrap', 0.4], ['iron_scrap', 0.3], ['lamp_oil', 0.2]] },
   guard: { name: 'Rustbound Guard', hp: 80, r: 4, speed: 14, chase: 17, aggro: 70, leash: 140, dmg: 24, poise: 40, drops: [['iron_scrap', 1], ['iron_scrap', 0.6], ['bone_dust', 0.5]] },
   lurker: { name: 'Rootlurker', hp: 28, r: 4, speed: 0, chase: 0, aggro: 30, leash: 70, dmg: 13, poise: 16, drops: [['ash_herb', 0.8], ['ash_herb', 0.4]] },
+  wraith: { name: 'Bell Wraith', hp: 26, r: 3, speed: 24, chase: 30, aggro: 115, leash: 200, dmg: 12, poise: 14, drops: [['bone_dust', 0.5], ['lamp_oil', 0.3]] },
+  brute: { name: 'Hollow Brute', hp: 140, r: 6, speed: 14, chase: 18, aggro: 85, leash: 170, dmg: 26, poise: 70, drops: [['iron_scrap', 1], ['bone_dust', 1], ['poultice', 0.5]] },
   keeper: { name: 'The Bellworn Keeper', hp: 640, r: 10, speed: 13, chase: 16, aggro: 400, leash: 999, dmg: 22, poise: 999, drops: [] },
 };
 

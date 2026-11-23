@@ -367,8 +367,11 @@ HL.R3 = (() => {
     if (opt.shield) { const sh = mesh(bx(0.8, 5.5, 4.2), P.st2); sh.position.set(-2.9, 6.4, 1); rig.add(sh); const boss = mesh(bx(0.4, 1, 1), P.rust); boss.position.set(-3.4, 6.4, 1); rig.add(boss); }
     const arm = new T.Group(); arm.position.set(2.2, 7.6, 0.3); rig.add(arm);
     const hand = mesh(bx(1.1, 1.1, 1.1), look.c1); arm.add(hand);
+    const arm2 = new T.Group(); arm2.position.set(-2.2, 7.6, 0.3); rig.add(arm2);
+    let cape = null;
+    if (opt.cape) { cape = new T.Group(); cape.position.set(0, 9, -1.6); rig.add(cape); const cm = mesh(bx(4.6, 6.5, 0.6), look.c1); cm.position.set(0, -3.4, -0.2); cape.add(cm); const hem = mesh(bx(4.8, 0.8, 0.7), look.c2); hem.position.set(0, -6.6, -0.2); cape.add(hem); }
     g.scale.setScalar(s);
-    return { g, rig, legs, body, head, eyes, arm, mats, weapon: null, wkind: null };
+    return { g, rig, legs, body, head, eyes, arm, arm2, cape, mats, weapon: null, weapon2: null, wkind: null };
   }
   function weaponMesh(kind, mats) {
     const g = new T.Group(), M = (c) => figMat(c, mats), add = (geom, c, x, y, z) => { const m = new T.Mesh(geom, M(c)); m.position.set(x, y, z); m.castShadow = true; g.add(m); return m; };
@@ -377,7 +380,9 @@ HL.R3 = (() => {
     else if (kind === 'spear') { add(bx(1.3, 1.3, 16), P.wd0, 0, 0, 4.5); const tip = add(new T.ConeGeometry(1.4, 3.6, 4), P.cream, 0, 0, 14); tip.rotation.x = Math.PI / 2; }
     else if (kind === 'axe') { add(bx(1.3, 1.3, 9), P.wd1, 0, 0, 3.8); add(bx(1.4, 4.6, 3.4), P.bronze, 0, 0.8, 7.6); }
     else if (kind === 'maul') { add(bx(1.3, 1.3, 8), P.wd2, 0, 0, 3.5); add(bx(3, 3, 3.6), P.st1, 0, 0, 7.5); }
-    else if (kind === 'bow') { const b = add(new T.TorusGeometry(3.4, 0.7, 3, 8, Math.PI), P.wd1, 0, 0, 1); b.rotation.set(0, Math.PI / 2, Math.PI / 2); }
+    else if (kind === 'bow') { const b = add(new T.TorusGeometry(3.6, 0.7, 3, 8, Math.PI), P.wd0, 0, 0, 1); b.rotation.set(0, Math.PI / 2, Math.PI / 2); add(bx(0.4, 0.4, 7.2), P.cream3, 0, 0, 1); }
+    else if (kind === 'twin') { add(bx(1.3, 1.1, 6.5), '#e8d8d0', 0, 0, 4); add(bx(2.6, 1.1, 1.1), P.red1, 0, 0, 0.6); }
+    else if (kind === 'focus') { add(bx(1.2, 1.2, 9), P.wd1, 0, 0, 3); const o = new T.Mesh(new T.IcosahedronGeometry(1.8, 0), new T.MeshBasicMaterial({ color: '#9fd0ff' })); o.position.set(0, 0, 8); g.add(o); }
     return g;
   }
   function hound(mats) {
@@ -412,10 +417,22 @@ HL.R3 = (() => {
     for (let i = 0; i < 12; i++) { const m = mesh(bx(1.2, 1.2, 1.2), i % 2 ? P.st1 : P.st3, 0, 0.6, 0, g); chains.push(m); }
     return { g, rig, legs, arms, head, core, chains, mats };
   }
+  function wraith(mats) {
+    const g = new T.Group(), rig = new T.Group(); g.add(rig);
+    const mesh = (geom, c, x, y, z) => { const m = new T.Mesh(geom, figMat(c, mats)); m.position.set(x, y, z); m.castShadow = true; rig.add(m); return m; };
+    const robe = mesh(new T.ConeGeometry(3.2, 9, 7, 1, true), '#bdb6aa', 0, 7.5, 0); robe.rotation.x = Math.PI;
+    mesh(new T.ConeGeometry(2.6, 4.2, 7), '#8d8678', 0, 13.2, 0);
+    const face = new T.Mesh(bx(1.6, 1.2, 0.4), new T.MeshBasicMaterial({ color: P.ink })); face.position.set(0, 12.2, 1.9); rig.add(face);
+    const eyes = new T.Mesh(bx(1.4, 0.4, 0.3), new T.MeshBasicMaterial({ color: '#9fd0ff' })); eyes.position.set(0, 12.4, 2.1); rig.add(eyes);
+    const lantern = new T.Mesh(geo('bell'), new T.MeshBasicMaterial({ color: '#cfe6ff' })); lantern.scale.set(2.4, 2.4, 2.4); lantern.position.set(2.6, 6, 2); rig.add(lantern);
+    const legs = []; return { g, rig, legs, eyes, mats, lantern };
+  }
   function figFor(e) {
     const mats = [];
     let f;
-    if (e === 'player') f = humanoid(HL.LOOKS.player);
+    if (e === 'player') f = humanoid(HL.LOOKS.player, { cape: true });
+    else if (e.type === 'wraith') f = wraith(mats);
+    else if (e.type === 'brute') f = humanoid(HL.LOOKS.brute, { scale: 1.7 });
     else if (e.type === 'hound') f = hound(mats);
     else if (e.type === 'lurker') f = lurker(mats);
     else if (e.type === 'keeper') f = keeper(mats);
@@ -432,9 +449,12 @@ HL.R3 = (() => {
   function equipWeapon(f, kind) {
     if (f.wkind === kind) return;
     if (f.weapon) f.arm.remove(f.weapon);
-    f.wkind = kind; f.weapon = kind && kind !== 'claw' ? weaponMesh(kind, f.mats) : null;
+    if (f.weapon2) f.arm2.remove(f.weapon2);
+    f.wkind = kind; f.weapon = kind && kind !== 'claw' && kind !== 'fists' ? weaponMesh(kind, f.mats) : null; f.weapon2 = null;
     if (f.weapon) f.arm.add(f.weapon);
+    if (kind === 'twin' && f.arm2) { f.weapon2 = weaponMesh('twin', f.mats); f.arm2.add(f.weapon2); }
   }
+  const WLEN = { sword: 10, spear: 17, axe: 9, twin: 7.5, focus: 8, fists: 2.2, maul: 9 };
   const rotFor = (a) => Math.PI / 2 - a;
   function poseHumanoid(f, o) {
     f.g.position.set(o.x, 0, o.y);
@@ -446,7 +466,9 @@ HL.R3 = (() => {
     if (o.pose === 'roll') { f.rig.rotation.x = 0.55; f.rig.position.y = 0.4; f.legs[0].rotation.x = 0.9; f.legs[1].rotation.x = -0.6; }
     if (o.pose === 'dead') { f.rig.rotation.x = -Math.PI / 2; f.rig.position.y = 1.4; f.rig.position.z = -5; }
     if (o.lean) f.rig.rotation.x = o.lean;
-    if (o.wang != null) { f.arm.rotation.set(o.wtilt != null ? o.wtilt : 0.25, o.face - o.wang, 0); if (f.weapon) f.weapon.position.z = o.thrust || 0; }
+    if (o.wang != null) { f.arm.rotation.set(o.wtilt != null ? o.wtilt : 0.25, o.face - o.wang, 0); if (f.weapon) f.weapon.position.z = o.thrust || 0; if (f.arm2) f.arm2.rotation.set(o.wtilt != null ? o.wtilt : 0.25, -(o.face - o.wang) * 0.7 + 0.5, 0); }
+    if (o.lift) f.g.position.y = o.lift;
+    if (f.cape) f.cape.rotation.x = -0.15 - Math.min(1.1, (o.speed || 0) / 60);
     f.eyes.visible = !!o.glint;
   }
 
@@ -478,7 +500,7 @@ HL.R3 = (() => {
     } else if (tl.k === 'line') {
       const a = decal('line'); let len = tl.len * Math.min(1, q * 1.5);
       for (let i = 6; i < len; i += 3) if (cur.w.sightBlocked(e.x + Math.cos(tl.a) * i, e.y - 4 + Math.sin(tl.a) * i)) { len = i; break; }
-      a.position.set(e.x, 0.5, e.y); a.scale.set(len, 1.2, 1); a.rotation.set(-Math.PI / 2, 0, -tl.a); a.material.opacity = q > 0.7 ? 0.95 : 0.55; a.material.color.set(P.red0);
+      a.position.set(e.x, 0.5, e.y); a.scale.set(len, tl.wide ? 10 : 1.2, 1); a.rotation.set(-Math.PI / 2, 0, -tl.a); a.material.opacity = tl.wide ? 0.2 + q * 0.35 : q > 0.7 ? 0.95 : 0.55; a.material.color.set(P.red0);
     } else if (tl.k === 'glow') { const b = decal('ring'); b.position.set(tl.x, 0.5, tl.y); b.scale.setScalar(10 + (q % 0.3) * 30); b.material.opacity = 0.8; b.material.color.set(P.red0); }
   }
 
@@ -507,10 +529,10 @@ HL.R3 = (() => {
     // post pass
     rt = new T.WebGLRenderTarget(4, 4, { minFilter: T.NearestFilter, magFilter: T.NearestFilter, depthBuffer: true });
     postMat = new T.ShaderMaterial({
-      uniforms: { tD: { value: rt.texture }, res: { value: new T.Vector2(4, 4) }, time: { value: 0 }, tilt: { value: 1 }, hurt: { value: 0 }, fade: { value: 0 } },
+      uniforms: { tD: { value: rt.texture }, res: { value: new T.Vector2(4, 4) }, time: { value: 0 }, tilt: { value: 1 }, hurt: { value: 0 }, fade: { value: 0 }, flash: { value: 0 }, flashCol: { value: new T.Color(1, 1, 1) }, chroma: { value: 0 } },
       vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
       fragmentShader: `
-        uniform sampler2D tD; uniform vec2 res; uniform float time, tilt, hurt, fade; varying vec2 vUv;
+        uniform sampler2D tD; uniform vec2 res; uniform float time, tilt, hurt, fade, flash, chroma; uniform vec3 flashCol; varying vec2 vUv;
         float b2(vec2 a){ a = floor(a); return fract(dot(a, vec2(0.5, a.y * 0.75))); }
         float bayer(vec2 a){ return b2(0.5 * a) * 0.25 + b2(a); }
         float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
@@ -518,6 +540,7 @@ HL.R3 = (() => {
           vec2 uv = vUv;
           float blur = (smoothstep(0.66, 1.0, uv.y) * 1.0 + smoothstep(0.22, 0.0, uv.y) * 0.6) * tilt;
           vec3 c = texture2D(tD, uv).rgb;
+          if (chroma > 0.01) { vec2 o = (uv - 0.5) * chroma * 6.0 / res; c.r = texture2D(tD, uv + o).r; c.b = texture2D(tD, uv - o).b; }
           if (blur > 0.02) {
             vec3 a = c; float r = blur * 2.2;
             a += texture2D(tD, uv + vec2( r, 0.0) / res).rgb; a += texture2D(tD, uv + vec2(-r, 0.0) / res).rgb;
@@ -528,8 +551,8 @@ HL.R3 = (() => {
           }
           c = pow(max(c, 0.0), vec3(1.0 / 2.2));
           float l = dot(c, vec3(0.299, 0.587, 0.114));
-          float redness = smoothstep(0.08, 0.25, c.r - max(c.g, c.b));
-          c = mix(vec3(l), c, mix(0.72, 1.15, redness));
+          float sat = max(c.r, max(c.g, c.b)) - min(c.r, min(c.g, c.b));
+          c = mix(vec3(l), c, mix(0.72, 1.2, smoothstep(0.1, 0.28, sat)));
           c *= vec3(1.03, 0.995, 0.965);
           float d = bayer(gl_FragCoord.xy) - 0.5;
           c = floor(c * 22.0 + 0.5 + d * 0.9) / 22.0;
@@ -539,6 +562,7 @@ HL.R3 = (() => {
           c *= 1.0 - vig * 0.8;
           c = mix(c, vec3(0.42, 0.07, 0.06), hurt * smoothstep(0.55, 1.05, v));
           c += (hash(gl_FragCoord.xy + floor(time * 24.0)) - 0.5) * 0.03;
+          c = mix(c, pow(flashCol, vec3(1.0 / 2.2)), flash);
           c = mix(c, vec3(0.047, 0.035, 0.04), fade);
           gl_FragColor = vec4(c, 1.0);
         }`,
@@ -546,6 +570,8 @@ HL.R3 = (() => {
     });
     postScene = new T.Scene(); postCam = new T.OrthographicCamera(-1, 1, 1, -1, 0, 1);
     const q = new T.Mesh(new T.PlaneGeometry(2, 2), postMat); q.frustumCulled = false; postScene.add(q);
+    R.post = { flash: 0, flashCol: new T.Color(1, 1, 1), chroma: 0, kick: 0 };
+    HL.vfx.init(scene, R);
     R.ok = true;
     return true;
   };
@@ -572,6 +598,7 @@ HL.R3 = (() => {
     figs.clear();
     for (const [, s] of iconSprites) scene.remove(s);
     iconSprites.clear();
+    HL.vfx.setDark(w.dark);
     if (w.dark) { scene.background = new T.Color(0x0c0909); scene.fog = new T.Fog(0x0c0909, 300, 700); hemi.intensity = 0.7; hemi.color.set(0x9a8e90); sun.intensity = 0; sun.castShadow = false; }
     else { scene.background = new T.Color(0xcdc7be); scene.fog = new T.Fog(0xcdc7be, 330, 720); hemi.intensity = 2.0; hemi.color.set(0xe4ddd2); sun.intensity = 2.5; sun.castShadow = true; }
   };
@@ -599,20 +626,25 @@ HL.R3 = (() => {
     if (!camT.init || !p) { camT.x = tx; camT.y = ty; camT.init = true; }
     const k = Math.min(1, dt * 6); camT.x += (tx - camT.x) * k; camT.y += (ty - camT.y) * k;
     let vh = viewH;
-    const cs = G.state === 'cut' && G.cutShot();
+    const cs = G.state === 'cut' && !G.cutCam && G.cutShot();
     if (cs) { camT.x = cs.x; camT.y = cs.y; vh = cs.view * (viewH / 165); camT.init = false; }
     let sx = 0, sz = 0; if (G.shake > 0.05 && G.settings.shake) { sx = (Math.random() - 0.5) * G.shake * 1.6; sz = (Math.random() - 0.5) * G.shake * 1.6; }
     const D = (vh * Math.sin(PITCH)) / (2 * Math.tan(((FOV * Math.PI) / 180) / 2));
     cam.position.set(camT.x + sx, Math.sin(PITCH) * D, camT.y + sz + Math.cos(PITCH) * D);
     cam.lookAt(camT.x + sx, 0, camT.y + sz);
-    if (scene.fog && !w.dark) { scene.fog.near = D * 0.95; scene.fog.far = D * 2.1; }
+    const post = R.post;
+    if (G.state === 'cut' && G.cutCam) { const c = G.cutCam; cam.position.set(c.px + sx, c.py, c.pz + sz); cam.lookAt(c.lx, c.ly, c.lz); camT.x = c.lx; camT.y = c.lz; }
+    cam.fov = (G.state === 'cut' && G.cutCam && G.cutCam.fov ? G.cutCam.fov : FOV) * (1 - 0.06 * Math.min(1.6, post.kick));
+    if (scene.fog && !w.dark) { const fd = G.state === 'cut' && G.cutCam ? cam.position.distanceTo(tv.set(G.cutCam.lx, G.cutCam.ly, G.cutCam.lz)) : D; scene.fog.near = fd * 0.95 + 40; scene.fog.far = fd * 2.1 + 200; }
     cam.far = D * 3 + 400; cam.updateProjectionMatrix();
     // light
     if (!w.dark) {
       const sxp = Math.round(camT.x / 4) * 4, szp = Math.round(camT.y / 4) * 4;
       sun.position.set(sxp - 160, 300, szp - 120); sun.target.position.set(sxp, 0, szp); sun.target.updateMatrixWorld();
     }
-    lantern.intensity = w.dark && p ? 160 : 0;
+    const dk = G.state === 'cut' ? (G.cutDark || 0) : 0;
+    hemi.intensity = (w.dark ? 0.7 : 2.0) * (1 - 0.75 * dk); if (!w.dark) sun.intensity = 2.5 * (1 - 0.9 * dk);
+    lantern.intensity = w.dark && p && !G.hidePlayer ? 160 : 0;
     if (p) lantern.position.set(p.x, 16, p.y);
     // nearest fire/brazier lights
     const ls = w.lights.map((l) => ({ l, d: HL.dist(l.x, l.y, camT.x, camT.y) })).filter((o) => o.d < 260 && (!o.l.fire || G.flags['lit:' + o.l.id])).sort((a, b) => a.d - b.d);
@@ -641,7 +673,7 @@ HL.R3 = (() => {
     if (p) pose('player', () => figFor('player'), (f) => {
       const wd = p.weaponDef();
       const look = HL.LOOKS[G.eq.armor] || HL.LOOKS.player;
-      if (f.look !== look) { scene.remove(f.g); Object.assign(f, humanoid(look), { shadow: f.shadow, look, flashOn: null }); scene.add(f.g); }
+      if (f.look !== look) { scene.remove(f.g); Object.assign(f, humanoid(look, { cape: true }), { shadow: f.shadow, look, flashOn: null }); scene.add(f.g); }
       equipWeapon(f, wd ? wd.kind : null);
       let wang = null, thrust = 0;
       if (wd) {
@@ -657,9 +689,24 @@ HL.R3 = (() => {
       }
       const blink = p.inv > 0 && p.state !== 'roll' && p.state !== 'ult' && Math.floor(p.inv * 20) % 2;
       f.g.visible = !blink;
-      poseHumanoid(f, { x: p.x, y: p.y, face: p.face, moving: p.walkT > 0 && p.state === 'move', walkT: p.walkT, pose: p.state === 'roll' ? 'roll' : p.state === 'dead' ? 'dead' : null, t: p.t, wang, thrust, wtilt: p.state === 'attack' ? 0.05 : 0.5 });
+      poseHumanoid(f, { x: p.x, y: p.y, face: p.face, moving: p.walkT > 0 && p.state === 'move', walkT: p.walkT, pose: p.state === 'roll' ? 'roll' : p.state === 'dead' ? 'dead' : null, t: p.t, wang, thrust, wtilt: p.state === 'attack' ? 0.05 : 0.5, lift: p.lift, speed: Math.hypot(p.vx, p.vy) });
+      f.g.visible = f.g.visible && !G.hidePlayer;
       setFlash(f, p.flash > 0 || (p.chargeT > 0.6 && Math.floor(t * 10) % 2 === 0));
       f.shadow.position.set(p.x, 0.15, p.y);
+      // blade trails while a blow is out
+      const swinging = (p.state === 'attack' && p.atk && p.atk.phase !== 'rec') || p.state === 'ult';
+      const wl = WLEN[wd.kind];
+      if (swinging && wl && f.weapon) {
+        f.g.updateMatrixWorld(true);
+        const a0 = f.weapon.localToWorld(tv.set(0, 0, wl * 0.3)).clone(), b0 = f.weapon.localToWorld(tv2.set(0, 0, wl));
+        HL.vfx.trail('p', a0.x, a0.y, a0.z, b0.x, b0.y, b0.z, wd.trail || P.cream);
+        if (f.weapon2) { const a1 = f.weapon2.localToWorld(tv.set(0, 0, 2)).clone(), b1 = f.weapon2.localToWorld(tv2.set(0, 0, wl)); HL.vfx.trail('p2', a1.x, a1.y, a1.z, b1.x, b1.y, b1.z, wd.trail); }
+      } else { HL.vfx.trailEnd('p'); HL.vfx.trailEnd('p2'); }
+      // afterimages on the dash and the Veilstep
+      R.ghostT = (R.ghostT || 0) - dt;
+      if ((p.state === 'roll' && p.t < 0.2 && R.ghostT <= 0) || p.ghostReq) { R.ghostT = 0.035; p.ghostReq = false; HL.vfx.ghost(f, p.state === 'ult' ? '#ff6a5a' : P.cream); }
+      // charging: light gathers, then a ring when the blow is ready
+      if (p.chargeT > 0) { if (Math.random() < 0.7) HL.vfx.embers(p.x, p.y, 1, p.chargeT > 0.6 ? P.lt0 : P.cream2); if (p.chargeT > 0.6 && !R.chargeRing) { R.chargeRing = true; HL.vfx.ring3d(p.x, p.y, 1, 14, P.lt0, 0.35); HL.vfx.light(p.x, p.y, 0xfff0c0, 40, 0.3); } } else R.chargeRing = false;
     });
     for (const e of G.enemies) pose(e, () => figFor(e), (f) => {
       f.shadow.position.set(e.x, 0.15, e.y); f.shadow.visible = !e.hidden && !(e.dead && e.type !== 'keeper');
@@ -678,9 +725,17 @@ HL.R3 = (() => {
         f.rig.visible = em > 0.02;
         f.segs.forEach((m, i) => { m.position.set(Math.sin(i * 0.8 + e.t * 4) * (i / 6) * 1.6, 1.2 + i * 2.2 * em, 0); });
         f.eyes.position.set(f.segs[5].position.x, 1.2 + 5 * 2.2 * em + 0.6, 1.2); f.eyes.visible = em > 0.5;
+      } else if (e.type === 'wraith') {
+        f.g.position.set(e.x, 4 + Math.sin(e.t * 2.4) * 1.5, e.y); f.g.rotation.y = rotFor(e.face);
+        f.g.visible = !gone && !e.hidden; f.rig.rotation.x = e.dead ? -1.2 : 0;
+        f.lantern.material.color.set(e.state === 'tele' ? P.lt0 : '#cfe6ff'); f.eyes.material.color.set(glint ? P.lt0 : '#9fd0ff');
+        if (Math.random() < 0.3 && !e.dead && !e.hidden) HL.vfx.burst(e.x, e.y, 3, '#8d9aa6', 1, 6, 0.6);
       } else if (e.type === 'keeper') {
         f.g.position.set(e.x, 0, e.y); f.g.rotation.y = rotFor(e.face);
-        f.rig.rotation.x = e.dead ? -Math.PI / 2 : 0; f.rig.position.y = e.dead ? 4 : Math.sin(e.t * 2) * 0.6;
+        const kneel = e.state === 'dormant' ? 1 - (G.cutKeeperRise || 0) : 0;
+        f.rig.rotation.x = e.dead ? -Math.PI / 2 : kneel * 0.5; f.rig.position.y = e.dead ? 4 : Math.sin(e.t * 2) * 0.6 - kneel * 9;
+        if (!f.light) { f.light = new T.PointLight(0xff4030, 0, 70, 1.4); scene.add(f.light); }
+        f.light.position.set(e.x, 30, e.y + 4); f.light.intensity = e.dead ? 0 : e.state === 'dormant' && kneel > 0.9 ? 0 : (e.rage ? 70 : 35) * (0.8 + Math.sin(t * 6) * 0.2);
         f.arms.forEach((a) => (a.rotation.x = e.armsUp ? -2.6 : e.state === 'sweep' ? -1.2 : 0.15));
         f.core.material.color.set(e.stunned > 0 ? P.cream : e.rage ? P.fire : P.red0);
         f.head.rotation.z = e.stunned > 0 ? Math.sin(t * 14) * 0.15 : 0;
@@ -689,14 +744,16 @@ HL.R3 = (() => {
         let wkind = e.type === 'archer' ? 'bow' : e.type === 'guard' ? 'maul' : 'claw';
         equipWeapon(f, wkind);
         const dir = e.face;
-        const wang = e.type === 'guard' ? (e.state === 'tele' ? dir + Math.PI * 0.9 : e.state === 'rec' && e.t < 0.3 ? dir : dir + 0.8) : e.type === 'archer' ? dir : dir + 0.6;
+        if (e.type === 'brute') wkind = 'maul';
+        const wang = e.type === 'guard' || e.type === 'brute' ? (e.state === 'tele' || e.state === 'slamT' ? dir + Math.PI * 0.9 : e.state === 'rec' && e.t < 0.3 ? dir : dir + 0.8) : e.type === 'archer' ? dir : dir + 0.6;
+        if (e.type === 'brute' && e.state === 'charge' && Math.random() < 0.5) HL.vfx.ghost(f, P.red0);
         poseHumanoid(f, { x: e.x, y: e.y, face: e.face, moving: ['chase', 'return', 'walk'].includes(e.state) || (e.state === 'idle' && e.wander && e.wander.go), walkT: e.walkT, pose: e.dead ? 'dead' : null, wang, glint, lean: e.type === 'drifter' && e.state === 'tele' ? 0.35 : e.state === 'atk' ? 0.25 : 0, wtilt: e.type === 'guard' && e.state === 'tele' ? -0.9 : 0.4 });
       }
     });
     for (const [key, f] of figs) if (!alive.has(key)) { scene.remove(f.g); scene.remove(f.shadow); figs.delete(key); }
     // telegraphs
     for (const d of decals) { d.used = false; d.m.visible = false; }
-    for (const e of G.enemies) drawTele(e);
+    for (const e of G.enemies) { drawTele(e); if (e.teles) { const keep = e.tele; for (const tt of e.teles) { e.tele = tt; drawTele(e); } e.tele = keep; } }
     if (p && p.holdT >= 0 && (p.aimA != null || p.chargeT > 0)) {
       const wd = p.weaponDef(), heavy = p.chargeT > 0.05, arc = Math.max(0.5, heavy ? wd.heavy.arc : wd.arc), reach = heavy ? wd.heavy.reach : wd.reach, a = p.aimA != null ? p.aimA : p.face;
       const arcK = Math.round(arc * 20) / 20, m = decal('slash', arcK);
@@ -706,7 +763,9 @@ HL.R3 = (() => {
     }
     // arrows and flasks
     let ai = 0;
+    for (const s of G.pshots) HL.vfx.orb(s.x, s.y, 6, s.col, s.size);
     for (const s of G.shots) {
+      if (s.orb) { HL.vfx.orb(s.x, s.y + 5, 6, s.col, 6); continue; }
       let m = arrows[ai++];
       if (!m) { m = new T.Mesh(bx(0.6, 0.6, 5), new T.MeshBasicMaterial({ color: P.cream2 })); scene.add(m); arrows.push(m); }
       m.visible = true;
@@ -741,6 +800,11 @@ HL.R3 = (() => {
       const near = cur.occluders.filter((m) => m.visible && m.geometry.boundingSphere && tv.distanceTo(m.geometry.boundingSphere.center) < m.geometry.boundingSphere.radius + 60);
       R.occluded = raycaster.intersectObjects(near, false).length > 0;
     }
+    // effects
+    HL.vfx.update(dt * (G.slowT > 0 && G.state === 'play' ? G.slowScale || 0.3 : 1));
+    poseCutActors(t);
+    post.flash = Math.max(0, post.flash - dt * 2.6); post.chroma = Math.max(0, post.chroma - dt * 2.4); post.kick = Math.max(0, post.kick - dt * 4);
+    postMat.uniforms.flash.value = Math.min(0.9, post.flash); postMat.uniforms.flashCol.value.copy(post.flashCol); postMat.uniforms.chroma.value = post.chroma;
     // draw
     postMat.uniforms.time.value = t; postMat.uniforms.tilt.value = w.dark ? 0.5 : 1;
     postMat.uniforms.hurt.value = Math.max(G.hurtVig || 0, p && p.hp < 30 ? 0.35 + Math.sin(t * 5) * 0.12 : 0);
@@ -748,6 +812,33 @@ HL.R3 = (() => {
     renderer.info.reset(); renderer.setRenderTarget(rt); renderer.render(scene, cam);
     renderer.setRenderTarget(null); renderer.render(postScene, postCam);
   };
+  // cutscene actors: figures and props a cinematic places in the world
+  const actorFigs = new Map();
+  function bellProp() {
+    const g = new T.Group(), piv = new T.Group(); piv.position.y = 0; g.add(piv);
+    const bell = new T.Mesh(geo('bell'), new T.MeshLambertMaterial({ color: P.bronze, flatShading: true })); bell.scale.set(22, 20, 22); bell.position.y = -21; bell.castShadow = true; piv.add(bell);
+    const yoke = new T.Mesh(bx(30, 3, 4), new T.MeshLambertMaterial({ color: P.wd2 })); yoke.position.y = 1; g.add(yoke);
+    const clap = new T.Mesh(new T.SphereGeometry(2.4, 6, 4), new T.MeshLambertMaterial({ color: P.st3 })); clap.position.y = -19; piv.add(clap);
+    return { g, piv, bell };
+  }
+  function poseCutActors(t) {
+    const G = HL.G, list = G.state === 'cut' ? G.cutActors : [];
+    const alive = new Set();
+    for (const a of list) {
+      alive.add(a);
+      let f = actorFigs.get(a);
+      if (!f) { f = a.prop === 'bell' ? bellProp() : figFor(a.type === 'player' ? 'player' : { type: a.type }); actorFigs.set(a, f); scene.add(f.g); if (f.shadow) scene.add(f.shadow); if (a.type === 'player') equipWeapon(f, a.weapon || null); else if (a.type === 'archer') equipWeapon(f, 'bow'); }
+      if (a.prop === 'bell') { f.g.position.set(a.x, a.h, a.y); f.piv.rotation.z = a.rot || 0; continue; }
+      const rise = a.rise == null ? 1 : a.rise;
+      if (f.legs && f.arm) poseHumanoid(f, { x: a.x, y: a.y, face: a.face || 0, moving: !!a.moving, walkT: a.walkT || 0, pose: a.pose, wang: a.face + 0.8, glint: a.glint, lean: a.lean });
+      else { f.g.position.set(a.x, 0, a.y); f.g.rotation.y = rotFor(a.face || 0); }
+      if (a.getUp != null && f.rig) { const k = HL.clamp(a.getUp, 0, 1); f.rig.rotation.x = -Math.PI / 2 * (1 - k); f.rig.position.y = 1.4 * (1 - k); f.rig.position.z = -5 * (1 - k); }
+      f.g.position.y = -(1 - rise) * 15;
+      if (f.eyes) f.eyes.visible = !!a.glint;
+      if (f.shadow) { f.shadow.position.set(a.x, 0.15, a.y); f.shadow.visible = rise > 0.6; }
+    }
+    for (const [a, f] of actorFigs) if (!alive.has(a)) { scene.remove(f.g); if (f.shadow) scene.remove(f.shadow); actorFigs.delete(a); }
+  }
   // world point -> screen buffer pixel (for text, markers, alerts)
   R.project = function (x, h, y) {
     tv.set(x, h, y).project(cam);

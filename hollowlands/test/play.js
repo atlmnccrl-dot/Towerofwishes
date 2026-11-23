@@ -172,8 +172,8 @@ const SIM = () => {
   // ---- 2. combat balance: each foe alone, each weapon, bot plays
   const bal = await ev(() => {
     const G = HL.G, S = SIM, T = S.T, res = {};
-    for (const wpn of ['rusted_sword', 'ashwood_spear']) for (const foe of ['drifter', 'hound', 'archer', 'guard', 'lurker']) {
-      let wins = 0, time = 0, hpLost = 0, n = 6;
+    for (const wpn of ['rusted_sword', 'ashwood_spear', 'twin_blades', 'ashen_bow', 'bell_focus', 'bellbreaker']) for (const foe of ['drifter', 'hound', 'archer', 'guard', 'lurker', 'wraith', 'brute']) {
+      let wins = 0, time = 0, hpLost = 0, n = 4;
       for (let k = 0; k < n; k++) {
         G.loadMap('ashwick', T(40), T(56)); S.cleanFoes(); G.eq.weapon = wpn; G.eq.armor = 'tattered_cloak';
         const p = G.player; p.hp = 100; p.st = 100; p.state = 'move'; p.inv = 0; G.inv.poultice = 0;
@@ -189,7 +189,7 @@ const SIM = () => {
   });
   console.log('combat (bot, 1v1, no healing):');
   for (const [k, v] of Object.entries(bal)) console.log('   ', k.padEnd(24), 'win', (v.win * 100).toFixed(0) + '%', ' time', v.t + 's', ' hp lost', v.hpLost);
-  check('every foe is beatable 1v1 by the bot with both weapons', Object.values(bal).every((v) => v.win >= 0.5));
+  check('every foe is beatable 1v1 by the bot with every weapon', Object.values(bal).every((v) => v.win >= 0.5), Object.entries(bal).filter(([, v]) => v.win < 0.5).map(([k]) => k).join(', '));
 
   // ---- 3. forest: stones, glade, the guard, the key
   const r3 = await ev(() => {

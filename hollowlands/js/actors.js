@@ -70,7 +70,7 @@ HL.Player = class Player {
     return best;
   }
   update(dt, inp) {
-    const G = this.G, w = this.weaponDef();
+    const G = this.G, w = this.weaponDef(); this.inp = inp;
     this.t += dt; this.inv = Math.max(0, this.inv - dt); this.flash = Math.max(0, this.flash - dt); this.comboT = Math.max(0, this.comboT - dt);
     if (this.regen > 0) { this.regen -= dt; this.hp = Math.min(this.maxhp, this.hp + 3 * dt); }
     this.stDelay -= dt;
@@ -132,7 +132,7 @@ HL.Player = class Player {
   }
   startRoll(a) {
     this.state = 'roll'; this.t = 0; this.rollA = a; this.face = a; this.inv = 0.22; this.spend(18); this.atk = null; this.holdT = -1; this.chargeT = 0;
-    A.play('roll'); HL.fx.dust(this.x, this.y, 4);
+    A.play('roll'); HL.fx.dust(this.x, this.y, 4); HL.vfx.dust(this.x, this.y, 6); HL.vfx.kick(0.2);
   }
   startAttack(heavy, charge, aimA, aimed) {
     const w = this.weaponDef();
@@ -146,63 +146,132 @@ HL.Player = class Player {
     this.vx *= 0.3; this.vy *= 0.3;
   }
   updateAttack(dt, w) {
-    const a = this.atk; a.pt += dt;
-    const wind = a.heavy ? 0.06 : w.wind, act = a.heavy ? 0.13 : w.active, rec = a.heavy ? w.rec + 0.16 : w.rec * (a.fin ? 1.3 : 1);
-    if (a.phase === 'wind' && a.pt >= wind) { a.phase = 'active'; a.pt = 0; A.play('swing', a.heavy); const reach = a.heavy ? w.heavy.reach : w.reach; HL.fx.slash(this.x, this.y - 5, this.face, w.kind === 'spear' ? 0.25 : a.heavy ? w.heavy.arc : w.arc, reach - 2, 0.22); }
+    const a = this.atk, H = a.heavy ? w.heavy : null, spin = H && H.spin; a.pt += dt;
+    const wind = a.heavy ? (H.slam ? 0.2 : 0.06) : w.wind, act = spin ? spin.dur : a.heavy ? (H.lunge ? 0.2 : 0.13) : w.active, rec = a.heavy ? w.rec + 0.14 : w.rec * (a.fin ? 1.3 : 1);
+    if (a.phase === 'wind') {
+      this.vx *= 0.8; this.vy *= 0.8;
+      if (H && H.slam) this.lift = Math.sin(Math.min(1, a.pt / wind) * Math.PI * 0.5) * 7;
+      if (a.pt >= wind) { a.phase = 'active'; a.pt = 0; this.onStrike(w, a); }
+    }
     if (a.phase === 'active') {
-      const step = (a.tgt ? 0.35 : 1) * w.step * (a.heavy ? 1.2 : 1);
-      this.vx = Math.cos(this.face) * step * (1 - a.pt / act); this.vy = Math.sin(this.face) * step * (1 - a.pt / act);
-      this.hitSweep(w, a);
-      if (a.pt >= act) { a.phase = 'rec'; a.pt = 0; this.comboT = rec + 0.25; }
+      const shooter = w.shoot && !(H && H.nova);
+      if (spin) { // whirlwind: steer with the stick, everything around is cut every tick
+        a.tick = (a.tick || 0) + dt;
+        if (a.tick >= spin.tick) { a.tick = 0; a.hit.clear(); A.play('swing'); }
+        this.face += dt * 24;
+        const m = this.inp || { mx: 0, my: 0 }; this.vx = m.mx * 48; this.vy = m.my * 48;
+      } else if (H && H.lunge) { const s = H.lunge * 2.6 * (1 - a.pt / act); this.vx = Math.cos(this.face) * s; this.vy = Math.sin(this.face) * s; this.inv = Math.max(this.inv, 0.05); }
+      else if (!shooter) { const step = (a.tgt ? 0.35 : 1) * w.step * (a.heavy ? 1.2 : 1); this.vx = Math.cos(this.face) * step * (1 - a.pt / act); this.vy = Math.sin(this.face) * step * (1 - a.pt / act); }
+      else { this.vx *= 0.6; this.vy *= 0.6; }
+      if (!shooter) this.hitSweep(w, a);
+      if (a.pt >= act) { a.phase = 'rec'; a.pt = 0; this.comboT = rec + 0.25; this.lift = 0; }
     }
     if (a.phase === 'rec') { this.vx *= 0.7; this.vy *= 0.7; if (a.pt >= rec) { this.state = 'move'; this.atk = null; } }
+  }
+  // the moment a blow comes out: each weapon family has its own
+  onStrike(w, a) {
+    const G = HL.G, V = HL.vfx, P = HL.P, H = a.heavy ? w.heavy : null, reach = H ? H.reach : w.reach, arc = H ? H.arc : w.arc;
+    const c = Math.cos(this.face), s = Math.sin(this.face);
+    A.play('swing', a.heavy);
+    if (w.shoot && !(H && H.nova)) {
+      const spd = w.shoot.speed * (a.heavy ? 1.35 : 1), dmg = w.dmg * this.dmgMult() * (a.heavy ? H.mult * (0.75 + 0.25 * a.charge) : 1);
+      G.pshots.push({ x: this.x + c * 6, y: this.y + s * 6, vx: c * spd, vy: s * spd, dmg, life: reach / spd + 0.15, pierce: !!(a.heavy && H.pierce), col: a.heavy ? P.lt0 : w.shoot.col, size: a.heavy ? 8 : 5, seek: w.shoot.seek || 0, hit: new Set(), heavy: a.heavy, kind: w.kind });
+      A.play(w.kind === 'bow' ? 'twang' : 'bellHigh');
+      V.burst(this.x + c * 7, this.y + s * 7, 7, w.shoot.col, a.heavy ? 12 : 5, 40, 0.3);
+      if (a.heavy) { V.kick(0.6); V.flash(w.shoot.col, 0.18); V.ring3d(this.x, this.y, 6, 10, w.shoot.col, 0.3); }
+      return;
+    }
+    if (H && H.nova) { A.play('bellMid'); V.shock(this.x, this.y, reach + 6, '#9fd0ff', 0.5); V.burst(this.x, this.y, 6, '#cfe6ff', 24, 90); V.light(this.x, this.y, 0x9fd0ff, 120, 0.35); V.flash('#bfe0ff', 0.25); V.kick(0.7); G.shake = 3; return; }
+    if (H && H.slam) { A.play('burst'); const x = this.x + c * 6, y = this.y + s * 6; V.shock(x, y, reach + 8, P.fire, 0.5); V.debris(x, y, 14, P.st2, 1.1); V.crack(x, y, 16); V.dust(x, y, 10); V.light(x, y, 0xffa060, 100, 0.3); V.kick(1); G.shake = 4.5; this.lift = 0; return; }
+    if (H && H.spinCut) { V.shock(this.x, this.y, reach + 4, P.cream, 0.35); V.kick(0.5); }
+    if (H && H.lunge) { V.dust(this.x, this.y, 6); V.kick(0.4); }
+    HL.fx.slash(this.x, this.y - 5, this.face, w.kind === 'spear' ? 0.25 : Math.min(arc, 5.5), reach - 2, 0.22);
+    if (a.fin) V.kick(0.35);
   }
   hitSweep(w, a) {
     const G = HL.G;
     const reach = a.heavy ? w.heavy.reach : w.reach, arc = a.heavy ? w.heavy.arc : w.arc;
     let dmg = w.dmg * this.dmgMult() * (a.heavy ? w.heavy.mult * (0.75 + 0.25 * a.charge) : a.fin ? w.finisher : 1);
-    const opts = { heavy: a.heavy || a.fin, breaker: w.breaker || a.heavy, fx: this.x, fy: this.y, poise: a.heavy ? 40 : a.fin ? 22 : 12 };
+    const opts = { heavy: a.heavy || a.fin, breaker: w.breaker || a.heavy, fx: this.x, fy: this.y, poise: a.heavy ? 40 : a.fin ? 22 : 12, col: w.trail };
     for (const e of G.enemies) {
       if (e.dead || e.hidden || a.hit.has(e)) continue;
       const d = HL.dist(this.x, this.y, e.x, e.y);
       if (d > reach + e.r) continue;
       const ang = Math.atan2(e.y - this.y, e.x - this.x);
-      if (Math.abs(HL.angDiff(this.face, ang)) > arc / 2 + (d < 8 ? 1 : 0.15)) continue;
+      if (arc < 6 && Math.abs(HL.angDiff(this.face, ang)) > arc / 2 + (d < 8 ? 1 : 0.15)) continue;
       a.hit.add(e);
       HL.hitEnemy(e, dmg, opts);
     }
     G.hitProps(this, reach, arc, a);
   }
   startUlt(a) {
-    this.state = 'ult'; this.t = 0; this.face = a; this.inv = 0.7; this.ult = 0; this.ultHit = new Set(); this.ultFired = false;
-    A.play('ult'); HL.G.shake = 2; HL.fx.ring(this.x, this.y - 2, 22, HL.P.lt0, 0.3);
+    const V = HL.vfx, P = HL.P, w = this.weaponDef();
+    this.state = 'ult'; this.t = 0; this.face = a; this.inv = 0.8; this.ult = 0; this.ultHit = new Set(); this.ultFired = 0; this.lift = 0;
+    A.play('ult'); HL.G.shake = 2;
+    V.flash(P.lt0, 0.35); V.chroma(0.9); V.kick(0.8); V.slowmo(0.3, 0.35); V.beam(this.x, this.y, P.lt0, 0.6, 5, 120); V.shock(this.x, this.y, 24, P.lt0, 0.4);
+    HL.G.ultBanner = { name: HL.ULTS[w.ult].name, t: 0 };
+    if (w.ult === 'veilstep') this.ultTargets = HL.G.enemies.filter((e) => !e.dead && !e.hidden && HL.dist(this.x, this.y, e.x, e.y) < 100).sort((p, q) => HL.dist(this.x, this.y, p.x, p.y) - HL.dist(this.x, this.y, q.x, q.y)).slice(0, 6);
   }
   updateUlt(dt, w) {
-    const G = HL.G, kind = w.ult, mult = this.dmgMult();
+    const G = HL.G, V = HL.vfx, P = HL.P, kind = w.ult, mult = this.dmgMult();
+    const hitAll = (x, y, r, dmg, col) => { for (const e of G.enemies) if (!e.dead && !e.hidden && HL.dist(x, y, e.x, e.y) < r + e.r) HL.hitEnemy(e, dmg * mult, { heavy: true, breaker: true, ult: true, fx: x, fy: y, poise: 99, col }); };
     this.inv = Math.max(this.inv, 0.1);
     if (kind === 'grave_arc') {
-      this.vx = 0; this.vy = 0;
-      if (this.t > 0.15 && !this.ultFired) {
-        this.ultFired = true; G.hitstop = 0.08; G.shake = 3; A.play('hitHeavy');
-        HL.fx.slash(this.x, this.y - 5, this.t * 20, HL.TAU, 26, 0.3); HL.fx.ring(this.x, this.y, 34, HL.P.cream, 0.4, 2);
-        for (const e of G.enemies) if (!e.dead && !e.hidden && HL.dist(this.x, this.y, e.x, e.y) < 32 + e.r) HL.hitEnemy(e, 46 * mult, { heavy: true, breaker: true, ult: true, fx: this.x, fy: this.y, poise: 99 });
-      }
-      if (this.t > 0.5) this.state = 'move';
+      this.vx = 0; this.vy = 0; this.face += dt * 30;
+      if (this.t > 0.15 && this.ultFired === 0) { this.ultFired = 1; G.hitstop = 0.06; G.shake = 4; A.play('hitHeavy'); V.shock(this.x, this.y, 42, P.cream, 0.5); V.burst(this.x, this.y, 6, P.cream, 30, 110); V.kick(1.2); hitAll(this.x, this.y, 34, 46, P.cream); }
+      if (this.t > 0.34 && this.ultFired === 1) { this.ultFired = 2; A.play('hitHeavy'); V.shock(this.x, this.y, 52, P.lt0, 0.55); V.flash(P.lt0, 0.3); hitAll(this.x, this.y, 40, 24, P.lt0); }
+      if (this.t > 0.6) this.state = 'move';
     } else if (kind === 'ashen_drive') {
-      const s = this.t < 0.3 ? 260 : 0;
-      this.vx = Math.cos(this.face) * s; this.vy = Math.sin(this.face) * s;
-      if (s) HL.fx.dust(this.x, this.y, 1);
-      for (const e of G.enemies) if (!e.dead && !e.hidden && !this.ultHit.has(e) && HL.dist(this.x, this.y, e.x, e.y) < 12 + e.r) { this.ultHit.add(e); HL.hitEnemy(e, 52 * mult, { heavy: true, breaker: true, ult: true, fx: this.x, fy: this.y, poise: 99 }); }
-      if (this.t > 0.45) this.state = 'move';
-    } else {
+      const sp = this.t < 0.32 ? 290 : 0;
+      this.vx = Math.cos(this.face) * sp; this.vy = Math.sin(this.face) * sp;
+      if (sp) { V.embers(this.x, this.y, 3); if (Math.random() < 0.5) V.scorch(this.x, this.y, 5, '#2a1612'); }
+      for (const e of G.enemies) if (!e.dead && !e.hidden && !this.ultHit.has(e) && HL.dist(this.x, this.y, e.x, e.y) < 13 + e.r) { this.ultHit.add(e); HL.hitEnemy(e, 52 * mult, { heavy: true, breaker: true, ult: true, fx: this.x, fy: this.y, poise: 99, col: P.fire }); }
+      if (this.t > 0.32 && !this.ultFired) { this.ultFired = 1; V.shock(this.x, this.y, 30, P.fire, 0.5); V.burst(this.x, this.y, 5, P.fire, 26, 90); V.light(this.x, this.y, 0xff8040, 120, 0.4); V.kick(1); G.shake = 4; A.play('fire'); hitAll(this.x, this.y, 24, 20, P.fire); }
+      if (this.t > 0.5) this.state = 'move';
+    } else if (kind === 'kings_fall') {
       this.vx = 0; this.vy = 0;
+      this.lift = this.t < 0.42 ? Math.sin((this.t / 0.42) * Math.PI) * 30 : 0;
+      if (this.t < 0.42) { this.vx = Math.cos(this.face) * 40; this.vy = Math.sin(this.face) * 40; }
       if (this.t > 0.42 && !this.ultFired) {
-        this.ultFired = true; G.hitstop = 0.12; G.shake = 5; A.play('burst');
-        const cx = this.x + Math.cos(this.face) * 10, cy = this.y + Math.sin(this.face) * 10;
-        HL.fx.ring(cx, cy, 40, HL.P.cream, 0.5, 2); HL.fx.burst(cx, cy, HL.P.ash1, 16, 70);
-        for (const e of G.enemies) if (!e.dead && !e.hidden && HL.dist(cx, cy, e.x, e.y) < 38 + e.r) HL.hitEnemy(e, 72 * mult, { heavy: true, breaker: true, ult: true, fx: cx, fy: cy, poise: 99 });
+        this.ultFired = 1; G.hitstop = 0.1; G.shake = 7; A.play('burst'); A.play('toll');
+        const x = this.x + Math.cos(this.face) * 6, y = this.y + Math.sin(this.face) * 6;
+        V.crack(x, y, 28); V.debris(x, y, 26, P.st2, 1.6); V.shock(x, y, 50, P.fire, 0.6); V.shock(x, y, 34, P.cream, 0.45); V.beam(x, y, P.fire, 0.7, 9, 90);
+        V.flash('#fff0d0', 0.6); V.chroma(1.4); V.kick(1.6); V.slowmo(0.35, 0.3); V.light(x, y, 0xffa060, 220, 0.5); V.dust(x, y, 16);
+        hitAll(x, y, 42, 72, P.fire);
       }
-      if (this.t > 0.75) this.state = 'move';
+      if (this.t > 0.85) this.state = 'move';
+    } else if (kind === 'veilstep') {
+      this.vx = 0; this.vy = 0;
+      const ts = this.ultTargets || [], k = Math.floor(this.t / 0.09);
+      if (k > this.ultFired - 1 && this.ultFired < ts.length) {
+        const e = ts[this.ultFired]; this.ultFired++;
+        if (e && !e.dead) {
+          this.ghostReq = true;
+          const a = Math.atan2(e.y - this.y, e.x - this.x), nx = e.x + Math.cos(a) * 9, ny = e.y + Math.sin(a) * 9;
+          if (!G.world.blocked(nx, ny, this.r)) { this.x = nx; this.y = ny; }
+          this.face = a + Math.PI; A.play('swing', true);
+          HL.hitEnemy(e, 34 * mult, { heavy: true, breaker: true, ult: true, fx: this.x, fy: this.y, poise: 99, col: '#ff6a5a' });
+          V.burst(e.x, e.y, 6, '#ff6a5a', 14, 80); V.ring3d(e.x, e.y, 5, 12, '#ff6a5a', 0.3);
+        }
+      }
+      if (this.t > Math.max(0.3, ts.length * 0.09 + 0.15) && !this.done) { this.done = true; V.shock(this.x, this.y, 34, '#ff6a5a', 0.45); V.flash('#ffb0a0', 0.25); V.kick(1); }
+      if (this.t > Math.max(0.45, ts.length * 0.09 + 0.3)) { this.state = 'move'; this.done = false; }
+    } else if (kind === 'blackflight') {
+      this.vx = 0; this.vy = 0;
+      if (!this.ultFired) {
+        this.ultFired = 1; A.play('twang');
+        for (let i = 0; i < 16; i++) { const d = 26 + Math.random() * 90, off = (Math.random() - 0.5) * d * 0.8, c = Math.cos(this.face), s = Math.sin(this.face); G.impacts.push({ x: this.x + c * d - s * off, y: this.y + s * d + c * off, t: 0.15 + i * 0.04 + Math.random() * 0.05, r: 12, dmg: 24 * mult, col: P.cream }); }
+      }
+      if (this.t > 0.45) this.state = 'move';
+    } else if (kind === 'silence_burst') {
+      this.vx = 0; this.vy = 0;
+      if (this.t > 0.22 && !this.ultFired) {
+        this.ultFired = 1; A.play('toll'); A.play('bellLow'); G.shake = 5;
+        V.shock(this.x, this.y, 100, '#cfe6ff', 0.9); V.shock(this.x, this.y, 70, '#9fd0ff', 0.7); V.beam(this.x, this.y, '#9fd0ff', 0.9, 8, 140);
+        V.flash('#e6f2ff', 0.75); V.chroma(1.6); V.kick(1.2); V.slowmo(0.4, 0.3); V.light(this.x, this.y, 0x9fd0ff, 200, 0.6);
+        for (const e of G.enemies) if (!e.dead && !e.hidden && HL.dist(this.x, this.y, e.x, e.y) < 100) { HL.hitEnemy(e, 30 * mult, { heavy: true, breaker: true, ult: true, fx: this.x, fy: this.y, poise: 99, col: '#9fd0ff' }); if (e.type === 'keeper') { e.stunned = Math.max(e.stunned, 3); e.tele = null; } else if (!e.dead) { e.state = 'stagger'; e.stagT = 2.6; e.tele = null; } }
+      }
+      if (this.t > 0.6) this.state = 'move';
     }
   }
   hurt(dmg, sx, sy) {
@@ -212,7 +281,7 @@ HL.Player = class Player {
     this.hp -= real; this.inv = 0.6; this.flash = 0.12; G.hitstop = 0.06; G.shake = 2.5; G.hurtVig = 0.6;
     const a = Math.atan2(this.y - sy, this.x - sx);
     this.vx = Math.cos(a) * 90; this.vy = Math.sin(a) * 90;
-    HL.fx.burst(this.x, this.y - 5, HL.P.red0, 7, 45);
+    HL.vfx.hit(this.x, this.y, a + Math.PI, 1.5, HL.P.red0); HL.vfx.flash('#c4473f', 0.22); HL.vfx.chroma(0.8); HL.vfx.kick(0.5);
     A.play('hurt');
     if (this.state !== 'ult') { this.state = 'hurt'; this.t = 0; this.atk = null; this.holdT = -1; this.chargeT = 0; }
     if (this.hp <= 0) { this.hp = 0; this.state = 'dead'; this.t = 0; A.play('die'); G.onDeath(); }
@@ -256,7 +325,7 @@ HL.hitEnemy = function (e, dmg, o) {
     if (!o.breaker) {
       dmg *= 0.15; A.play('clank'); HL.fx.burst((e.x + o.fx) / 2, e.y - 6, HL.P.cream, 4, 50, 0.2); G.hitstop = 0.05;
       const p = G.player; const k = Math.atan2(p.y - e.y, p.x - e.x); p.vx += Math.cos(k) * 60; p.vy += Math.sin(k) * 60;
-      e.hp -= dmg; e.flash = 0.05; if (e.hp <= 0) HL.killEnemy(e);
+      e.hp -= dmg; e.flash = 0.05; if (e.hp <= 0) HL.killEnemy(e, o);
       return;
     }
     e.state = 'stagger'; e.t = 0; e.stagT = 1.3; A.play('clank'); HL.fx.text(e.x, e.y - 16, 'guard broken', HL.P.cream2, 0.8);
@@ -267,7 +336,10 @@ HL.hitEnemy = function (e, dmg, o) {
   e.hp -= dmg * mult; e.flash = 0.09; e.aggro = true;
   G.hitstop = Math.max(G.hitstop, o.heavy ? 0.085 : 0.045); G.shake = Math.max(G.shake, o.heavy ? 2.2 : 1);
   A.play(o.heavy ? 'hitHeavy' : 'hit');
-  HL.fx.burst(e.x, e.y - 5, e.type === 'guard' || e.type === 'keeper' ? HL.P.st0 : HL.P.red0, o.heavy ? 9 : 5, o.heavy ? 60 : 40);
+  const armoured = e.type === 'guard' || e.type === 'keeper' || e.type === 'brute';
+  HL.vfx.hit(e.x, e.y, ang + Math.PI, o.heavy ? 2 : 1, o.col || (armoured ? HL.P.lt1 : HL.P.red0));
+  if (!armoured) HL.vfx.burst(e.x, e.y, 6, e.type === 'wraith' ? '#9fb4c8' : HL.P.red1, o.heavy ? 8 : 4, 50, 0.4);
+  if (o.heavy) HL.vfx.kick(0.35);
   if (G.eq.relic === 'bell_shard' && !o.ult) G.player.ult = Math.min(100, G.player.ult + (o.heavy ? 9 : 6));
   if (e.type !== 'keeper') {
     const kb = (o.heavy ? 70 : 38) * (e.type === 'guard' ? 0.4 : 1);
@@ -275,14 +347,16 @@ HL.hitEnemy = function (e, dmg, o) {
     e.poiseDmg = (e.poiseDmg || 0) + (o.poise || 10);
     if (e.poiseDmg >= e.def.poise && e.state !== 'stagger' && e.type !== 'lurker') { e.state = 'stagger'; e.t = 0; e.stagT = 0.45; e.poiseDmg = 0; e.tele = null; }
   }
-  if (e.hp <= 0) HL.killEnemy(e);
+  if (e.hp <= 0) HL.killEnemy(e, o);
 };
-HL.killEnemy = function (e) {
+HL.killEnemy = function (e, o) {
   const G = HL.G;
   if (e.dead) return;
-  e.dead = true; e.deadT = 0; e.tele = null;
+  e.dead = true; e.deadT = 0; e.tele = null; e.wave = null;
   A.play('die');
-  HL.fx.burst(e.x, e.y - 4, e.type === 'guard' ? HL.P.st1 : HL.P.red1, 12, 50, 0.6);
+  HL.vfx.death(e);
+  if (e.type !== 'keeper' && o && (o.heavy || o.ult)) HL.vfx.slowmo(0.16, 0.35);
+  if (e.type === 'brute' || e.type === 'guard') { HL.vfx.kick(0.6); G.shake = Math.max(G.shake, 3); }
   if (G.eq.relic === 'bell_shard') G.player.ult = Math.min(100, G.player.ult + 10);
   for (const [item, ch] of e.def.drops) if (Math.random() < ch) G.dropItem(item, 1, e.x + (Math.random() - 0.5) * 8, e.y + (Math.random() - 0.5) * 6);
   if (e.id) G.flags['k:' + e.id] = 1;
@@ -439,8 +513,15 @@ HL.Enemy = class Enemy {
     if (this.state === 'dormant') { if (G.bossAwake) { this.state = 'intro'; this.t = 0; A.play('toll'); G.shake = 3; } return; }
     if (this.state === 'intro') { if (this.t > 1.6) { this.state = 'walk'; this.t = 0; } return; }
     if (this.stunned > 0) { this.stunned -= dt; this.tele = null; this.armsUp = false; if (this.stunned <= 0) { this.state = 'walk'; this.t = 0; } return; }
-    const rage = this.hp < this.maxhp * 0.35, sp = rage ? 0.8 : 1;
+    const rage = this.hp < this.maxhp * 0.35 || this.phase2, sp = rage ? 0.8 : 1;
     this.rage = rage;
+    if (!this.phase2 && this.hp < this.maxhp * 0.5 && (this.state === 'walk' || this.state === 'rec')) {
+      const V = HL.vfx, P = HL.P;
+      this.phase2 = true; this.state = 'phase2'; this.t = 0; this.tele = null; this.wave = null;
+      A.play('toll'); A.play('burst'); V.slowmo(0.9, 0.3); V.flash(P.red0, 0.5); V.chroma(1.6); V.kick(1.4); V.shock(this.x, this.y, 70, P.red0, 0.9); V.beam(this.x, this.y, P.red0, 1.3, 10, 160); V.embers(this.x, this.y, 30); G.shake = 6;
+      HL.UI.showBanner('THE BELL CRACKS', 'The Keeper burns. Bell shards will fall.');
+    }
+    if (this.state === 'phase2') { this.armsUp = this.t < 1.2; if (Math.random() < 0.5) HL.vfx.embers(this.x, this.y, 2); if (this.t > 1.7) { this.state = 'walk'; this.t = 0; this.cool = 0.4; this.armsUp = false; } return; }
     // summons at 55% and 25%
     if (this.state === 'walk' && ((this.summons === 0 && this.hp < this.maxhp * 0.55) || (this.summons === 1 && this.hp < this.maxhp * 0.25))) { this.summons++; this.state = 'summon'; this.t = 0; }
     if (this.state === 'walk') {
@@ -448,7 +529,9 @@ HL.Enemy = class Enemy {
       if (dist > 26) this.stepToward(toP, this.def.chase * (rage ? 1.25 : 1), dt);
       if (this.cool <= 0) {
         const r = Math.random();
-        if (dist < 40 && r < 0.55) this.state = 'sweep';
+        if (this.phase2 && r < 0.3) this.state = 'shards';
+        else if (this.phase2 && dist > 44 && r < 0.55) this.state = 'pull';
+        else if (dist < 40 && r < 0.55) this.state = 'sweep';
         else if (this.hp < this.maxhp * 0.75 && r < 0.8) this.state = 'toll';
         else this.state = 'slam';
         this.t = 0; this.hitDone = false; this.lockA = toP; this.tx = p.x; this.ty = p.y;
@@ -489,11 +572,88 @@ HL.Enemy = class Enemy {
         for (const [sx, sy] of [[12 * 8, 18 * 8], [28 * 8, 18 * 8]]) { G.spawnEnemy({ foe: 'drifter', x: sx, y: sy, summoned: true }); HL.fx.ring(sx, sy, 10, HL.P.red0, 0.5); }
         this.state = 'rec'; this.t = 0; this.recT = 0.6;
       }
+    } else if (this.state === 'shards') { // bell shards rain where you stand
+      const V = HL.vfx, P = HL.P;
+      if (!this.shards) { this.shards = []; for (let i = 0; i < 6; i++) { const a = Math.random() * HL.TAU, d = i ? 6 + Math.random() * 26 : 0; this.shards.push({ x: p.x + Math.cos(a) * d, y: p.y + Math.sin(a) * d, t: -i * 0.2 * sp }); } A.play('bellHigh'); }
+      for (const s of this.shards) s.t += dt;
+      this.teles = this.shards.filter((s) => s.t > 0 && !s.done).map((s) => ({ k: 'ring', x: s.x, y: s.y, r: 12, q: s.t / 0.75 }));
+      for (const s of this.shards) if (!s.done && s.t > 0.75) { s.done = true; A.play('clank'); V.beam(s.x, s.y, P.bronze, 0.35, 3, 90); V.debris(s.x, s.y, 5, P.bronze, 0.8); V.shock(s.x, s.y, 14, P.lt1, 0.3); V.crack(s.x, s.y, 7); G.shake = Math.max(G.shake, 2); if (HL.dist(p.x, p.y, s.x, s.y) < 12 + p.r) p.hurt(18, s.x, s.y); }
+      if (this.shards.every((s) => s.done)) { this.shards = null; this.teles = null; this.state = 'rec'; this.t = 0; this.recT = 0.6; }
+    } else if (this.state === 'pull') { // a chain lashes out and drags you in, then the sweep
+      if (this.t < 0.5) this.lockA = toP;
+      this.face = this.lockA; this.tele = { k: 'line', a: this.lockA, len: dist + 12, q: this.t / 0.75 };
+      if (this.t > 0.75 && !this.pulled) { this.pulled = true; this.tele = null; A.play('ratchet'); if (Math.abs(HL.angDiff(this.lockA, toP)) < 0.22 && p.inv <= 0 && p.state !== 'dead') { p.vx = -Math.cos(toP) * 230; p.vy = -Math.sin(toP) * 230; p.state = 'hurt'; p.t = 0; HL.vfx.burst(p.x, p.y, 6, HL.P.st1, 10, 50); } }
+      if (this.t > 1.05) { this.pulled = false; this.state = 'sweep'; this.t = 0; this.hitDone = false; this.lockA = toP; }
     } else if (this.state === 'rec') {
       if (this.t > this.recT) { this.state = 'walk'; this.t = 0; this.cool = (rage ? 0.6 : 1.1) + Math.random() * 0.6; }
     }
   }
+  // Bell Wraith: floats, keeps its distance, casts three seeking orbs, blinks away and back
+  ai_wraith(dt, p, dist, toP, sees) {
+    const G = this.G, V = HL.vfx, C = '#9fb4c8';
+    if (this.state === 'blink') {
+      if (this.t > 0.45) {
+        for (let k = 0; k < 10; k++) { const a = Math.random() * HL.TAU, d = 45 + Math.random() * 25, x = p.x + Math.cos(a) * d, y = p.y + Math.sin(a) * d; if (!G.world.blocked(x, y, this.r) && G.world.los(x, y - 4, p.x, p.y - 4)) { this.x = x; this.y = y; break; } }
+        this.hidden = false; this.state = 'chase'; this.t = 0; V.burst(this.x, this.y, 8, C, 16, 60); V.ring3d(this.x, this.y, 2, 12, C, 0.35); A.play('bellHigh');
+      }
+      return;
+    }
+    if (this.common(dt, dist, toP, sees)) return;
+    if (this.state === 'chase') {
+      if (this.leashCheck(dist)) return;
+      this.face = toP;
+      if (dist < 45) this.stepToward(toP + Math.PI, this.def.chase, dt); else if (dist > 85 || !sees) this.stepToward(toP, this.def.chase, dt); else this.stepToward(toP + (Math.PI / 2) * (this.slide || 1), this.def.speed * 0.6, dt);
+      this.cool = (this.cool == null ? 1.2 : this.cool) - dt;
+      if (this.cool <= 0 && sees) { this.state = 'tele'; this.t = 0; A.play('bellMid'); }
+    } else if (this.state === 'tele') {
+      this.face = toP; this.tele = { k: 'glow', x: this.x, y: this.y, q: this.t / 0.75 };
+      if (Math.random() < 0.6) V.burst(this.x, this.y, 12, C, 1, 18, 0.3);
+      if (this.t > 0.75) {
+        this.tele = null; A.play('bellHigh');
+        for (const off of [-0.42, 0, 0.42]) G.shots.push({ x: this.x, y: this.y - 5, vx: Math.cos(toP + off) * 72, vy: Math.sin(toP + off) * 72, life: 2.6, dmg: this.def.dmg, from: this, orb: true, seek: 1.3, col: C });
+        this.state = 'rec'; this.t = 0; this.cool = 2.2 + Math.random();
+      }
+    } else if (this.state === 'rec') {
+      if (this.t > 0.6) { if (Math.random() < 0.4) { this.state = 'blink'; this.t = 0; this.hidden = true; V.burst(this.x, this.y, 8, C, 16, 60); A.play('roll'); } else { this.state = 'chase'; this.t = 0; this.slide = -(this.slide || 1); } }
+    }
+  }
+  // Hollow Brute: shows a wide line, then charges; slams up close; dazed if it runs into a wall
+  ai_brute(dt, p, dist, toP, sees) {
+    const G = this.G, V = HL.vfx, P = HL.P;
+    if (this.common(dt, dist, toP, sees)) return;
+    if (this.state === 'chase') {
+      if (this.leashCheck(dist)) return;
+      this.face = toP; this.stepToward(toP, this.def.chase, dt); this.cool = (this.cool == null ? 1 : this.cool) - dt;
+      if (dist < 22) { this.state = 'slamT'; this.t = 0; }
+      else if (this.cool <= 0 && dist < 100 && sees) { this.state = 'tele'; this.t = 0; this.lockA = toP; A.play('growl'); }
+    } else if (this.state === 'tele') {
+      if (this.t < 0.6) this.lockA = toP;
+      this.face = this.lockA; this.tele = { k: 'line', a: this.lockA, len: 125, q: this.t / 0.85, wide: true };
+      if (this.t > 0.85) { this.tele = null; this.state = 'charge'; this.t = 0; this.hitDone = false; A.play('roll'); V.kick(0.4); }
+    } else if (this.state === 'charge') {
+      const ox = this.x, oy = this.y, c = Math.cos(this.lockA), s = Math.sin(this.lockA);
+      G.world.move(this, c * 190 * dt, s * 190 * dt); V.dust(this.x, this.y, 1); this.walkT += dt * 4;
+      if (!this.hitDone && dist < this.r + p.r + 4) { if (p.hurt(this.def.dmg, this.x, this.y)) { this.hitDone = true; p.vx += c * 130; p.vy += s * 130; } }
+      if (HL.dist(ox, oy, this.x, this.y) < 190 * dt * 0.4 && this.t > 0.05) {
+        this.state = 'dazed'; this.t = 0; this.vuln = 1.6; G.shake = 4; A.play('hitHeavy');
+        V.debris(this.x, this.y, 9, P.st2, 1); V.shock(this.x, this.y, 16, P.st0, 0.3); HL.fx.text(this.x, this.y - 22, 'stunned', P.cream, 0.9);
+      } else if (this.t > 0.65) { this.state = 'rec'; this.t = 0; this.cool = 2.5; }
+    } else if (this.state === 'slamT') {
+      this.face = toP; const cx = this.x + Math.cos(this.face) * 10, cy = this.y + Math.sin(this.face) * 9;
+      this.tele = { k: 'ring', x: cx, y: cy, r: 20, q: this.t / 0.8 };
+      if (this.t > 0.8) {
+        this.tele = null; A.play('burst'); G.shake = 4; V.shock(cx, cy, 24, P.fire, 0.4); V.debris(cx, cy, 8, P.st2, 1); V.crack(cx, cy, 10);
+        if (HL.dist(p.x, p.y, cx, cy) < 20 + p.r) p.hurt(this.def.dmg - 4, cx, cy);
+        this.state = 'rec'; this.t = 0; this.cool = Math.max(this.cool || 0, 1);
+      }
+    } else if (this.state === 'dazed') { if (this.t > 1.6) { this.state = 'chase'; this.t = 0; this.cool = 2; } }
+    else if (this.state === 'rec') { if (this.t > 0.9) { this.state = 'chase'; this.t = 0; } }
+  }
   drawTele(g) {
+    if (this.teles) { const keep = this.tele; for (const t of this.teles) { this.tele = t; this.drawTele1(g); } this.tele = keep; }
+    this.drawTele1(g);
+  }
+  drawTele1(g) {
     const P = HL.P, tl = this.tele;
     if (this.dead) return;
     if (this.wave) { HL.ringPx(g, this.x, this.y, this.wave.r, P.red0, 2); HL.ringPx(g, this.x, this.y, Math.max(1, this.wave.r - 4), P.red2, 1); }

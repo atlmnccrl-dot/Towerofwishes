@@ -81,6 +81,7 @@ UI.layoutControls = (W, H, safe) => {
     { id: 'interact', x: r - 22, y: b - 64, r: 13 },
     { id: 'item', x: r - 58, y: b - 46, r: 11 },
     { id: 'ult', x: r - 62, y: b - 78, r: 11 },
+    { id: 'swap', x: r - 94, y: b - 30, r: 10 },
     { id: 'menu', x: r - 8, y: 12 + safe.t, r: 10 },
     { id: 'map', x: r - 32, y: 12 + safe.t, r: 10 },
   ];
@@ -91,6 +92,8 @@ UI.drawControls = (g, G) => {
     const held = I.st.btn[c.id] && I.st.btn[c.id].held;
     if (c.id === 'ult' && G.eq.relic !== 'bell_shard') continue;
     if (c.id === 'interact' && !near) continue;
+    const owned = Object.keys(HL.WEAPONS).filter((w) => G.inv[w]);
+    if (c.id === 'swap' && owned.length < 2) continue;
     const full = c.id === 'ult' && G.player.ult >= 100;
     HL.discDither(g, c.x, c.y, c.r, held ? P.cream3 : P.ink, held ? 0.6 : 0.45);
     HL.ringPx(g, c.x, c.y, c.r, full ? P.lt0 : held ? P.cream : P.cream3, 1);
@@ -105,6 +108,9 @@ UI.drawControls = (g, G) => {
     else if (c.id === 'interact') { ic('!'); const lw = HL.textWidth(near.label); g.fillStyle = P.ink; g.fillRect(c.x - lw - 20, c.y - 5, lw + 6, 11); HL.text(g, near.label, c.x - 17, c.y - 3, P.cream, 1); }
     else if (c.id === 'item') {
       const q = G.quick; if (q && G.inv[q]) { g.drawImage(HL.ART.icons[q], c.x - 6, c.y - 7); HL.text(g, String(G.inv[q]), c.x + 6, c.y + 2, P.cream, 0.5, 1, P.ink); } else ic('·');
+    } else if (c.id === 'swap') {
+      const nx = owned[(owned.indexOf(G.eq.weapon) + 1) % owned.length]; if (HL.ART.icons[nx]) g.drawImage(HL.ART.icons[nx], c.x - 6, c.y - 6);
+      HL.text(g, 'swap', c.x, c.y + c.r + 2, P.cream3, 0.5, 1, P.ink);
     } else if (c.id === 'ult') {
       const f = G.player.ult / 100; g.fillStyle = full ? P.lt0 : P.cream3;
       for (let j = -5; j <= 5; j++) { const w = 5 - Math.abs(j); if ((j + 5) / 10 >= 1 - f) g.fillRect(c.x - w, c.y + j, w * 2 + 1, 1); }
@@ -160,6 +166,15 @@ UI.drawHUD = (g, G, dt) => {
     }
   }
   if (UI.toastT > 0) { UI.toastT -= dt; const lines = HL.wrap(UI.toastMsg, 220); lines.forEach((l, i) => HL.text(g, l, G.W / 2, G.H - 52 - G.safe.b - (lines.length - 1 - i) * 10, P.cream, 0.5, 1, P.ink)); }
+  // ultimate cut-in: a slash of light across the screen with its name
+  if (G.ultBanner && G.ultBanner.t < 1.1) {
+    const b = G.ultBanner, k = HL.clamp(b.t / 0.12, 0, 1), out = HL.clamp((b.t - 0.7) / 0.25, 0, 1), y = Math.round(G.H * 0.17);
+    g.globalAlpha = 1 - out;
+    g.fillStyle = 'rgba(12,9,9,0.7)'; g.fillRect(0, y - 4, G.W * k, 26);
+    g.fillStyle = P.lt0; g.fillRect(0, y - 5, G.W * k, 1); g.fillRect(G.W * (1 - k), y + 22, G.W * k, 1);
+    HL.text(g, b.name.toUpperCase(), G.W / 2 + (1 - k) * 80, y, P.lt0, 0.5, 2, P.ink);
+    g.globalAlpha = 1;
+  }
   // boss bar / gate bar
   const boss = G.enemies.find((e) => e.type === 'keeper' && !e.dead && e.state !== 'dormant');
   if (boss) {
@@ -206,13 +221,22 @@ UI.drawGuide = (g, G) => {
 // ------------------------------------------------------------------ cutscene card: letterbox, the line, skip
 UI.drawCut = (g, G) => {
   const P = P_, c = G.cut; if (!c) return;
-  const bar = Math.round(G.H * 0.12);
+  const bar = Math.round(G.H * 0.12 * (c.i === 0 ? HL.clamp(c.t / 0.5, 0, 1) : 1));
   g.fillStyle = '#0c0909'; g.fillRect(0, 0, G.W, bar); g.fillRect(0, G.H - bar, G.W, bar);
   const s = c.def.shots[c.i], a = HL.clamp(c.t / 0.6, 0, 1);
+  if (s.title && c.t >= (s.titleAt || 0)) { // the title slams in
+    const k = HL.clamp((c.t - (s.titleAt || 0)) / 0.22, 0, 1), base = G.W > 380 ? 4 : 3, sc = base + Math.round((1 - k) * 4);
+    const jx = k < 1 ? 0 : Math.round((Math.random() - 0.5) * Math.max(0, 1 - (c.t - (s.titleAt || 0) - 0.22) * 4) * 4);
+    g.globalAlpha = k;
+    HL.text(g, s.title, G.W / 2 + jx, G.H * 0.42 - (HL.FONT_H * sc) / 2, P.cream, 0.5, sc, P.ink);
+    g.globalAlpha = HL.clamp((c.t - (s.titleAt || 0) - 0.4) / 0.5, 0, 1);
+    if (s.sub) { HL.text(g, '---', G.W / 2, G.H * 0.42 + base * 5 + 2, P.cream3, 0.5); HL.text(g, s.sub, G.W / 2, G.H * 0.42 + base * 5 + 11, P.cream2, 0.5, 1, P.ink); }
+    g.globalAlpha = 1;
+  }
   g.globalAlpha = a;
-  const lines = HL.wrap(s.text, Math.min(360, G.W - 60));
+  const lines = s.text ? HL.wrap(s.text, Math.min(360, G.W - 60)) : [];
   const y0 = G.H - bar - 10 - lines.length * 11;
-  g.fillStyle = 'rgba(12,9,9,0.55)'; g.fillRect(G.W / 2 - Math.min(370, G.W - 50) / 2, y0 - 5, Math.min(370, G.W - 50), lines.length * 11 + 8);
+  if (lines.length) { g.fillStyle = 'rgba(12,9,9,0.55)'; g.fillRect(G.W / 2 - Math.min(370, G.W - 50) / 2, y0 - 5, Math.min(370, G.W - 50), lines.length * 11 + 8); }
   lines.forEach((l, i) => HL.text(g, l, G.W / 2, y0 + i * 11, P.cream, 0.5, 1, P.ink));
   g.globalAlpha = 1;
   for (let i = 0; i < c.def.shots.length; i++) { g.fillStyle = i === c.i ? P.cream : P.cream3; g.fillRect(G.W / 2 - c.def.shots.length * 4 + i * 8, G.H - bar / 2, 4, 1); }

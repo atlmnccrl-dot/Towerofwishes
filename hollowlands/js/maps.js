@@ -80,7 +80,7 @@ function outdoor() {
   O.push({ t: 'container', id: 'c_brlA', spr: 'barrel', open: 'barrel', x: px(27), y: px(44), loot: [['lamp_oil', 1]] });
   // House B
   O.push({ t: 'container', id: 'c_shelfB', spr: 'shelf', open: 'shelf', x: px(24), y: px(61) + 2, loot: [['dried_meat', 1], ['ash_herb', 1]], col: box(11, 4) });
-  O.push({ t: 'container', id: 'c_crateB', spr: 'crate', open: 'crateOpen', x: px(28), y: px(63), loot: [['cloth_scrap', 2]] });
+  O.push({ t: 'container', id: 'c_crateB', spr: 'crate', open: 'crateOpen', x: px(28), y: px(63), loot: [['twin_blades', 1], ['cloth_scrap', 2]] });
   O.push({ t: 'note', id: 'n_drawing', note: 'child_drawing', x: px(27), y: px(61) + 3, spr: 'table', col: box(10, 4) });
   prop('bed', 23, 64, box(7, 10));
   // Smithy
@@ -132,7 +132,7 @@ function outdoor() {
   O.push({ t: 'container', id: 'c_glade', spr: 'chest', open: 'chestOpen', x: px(138), y: px(24), loot: [['gravecloth_coat', 1], ['poultice', 2], ['iron_scrap', 2]] });
   prop('bush1', 135, 21, null); prop('stump', 140, 26, box(6, 3));
   // hound hollow
-  O.push({ t: 'container', id: 'c_hollow', spr: 'corpse', open: 'corpseOpen', x: px(101), y: px(69), loot: [['raw_meat', 1], ['ash_herb', 2], ['fire_flask', 1]] });
+  O.push({ t: 'container', id: 'c_hollow', spr: 'corpse', open: 'corpseOpen', x: px(101), y: px(69), loot: [['ashen_bow', 1], ['raw_meat', 1], ['ash_herb', 2], ['fire_flask', 1]] });
   prop('bones', 98, 70, null); prop('bones', 103, 66, null);
   // the armoured guard's camp
   prop('tent', 138, 61, box(18, 5)); prop('tent', 145, 60, box(18, 5)); O.push({ t: 'prop', spr: 'fireRing', x: px(141), y: px(65), col: box(9, 3) });
@@ -147,9 +147,9 @@ function outdoor() {
   const E = [
     ['drifter', 29, 31], ['drifter', 58, 45], ['drifter', 24, 71], ['drifter', 66, 50],
     ['drifter', 79, 45], ['lurker', 89, 47], ['drifter', 99, 52], ['hound', 99, 67], ['hound', 102, 70],
-    ['archer', 118, 58], ['lurker', 121, 51], ['archer', 117, 45], ['lurker', 131, 57], ['drifter', 122, 30],
+    ['archer', 118, 58], ['lurker', 121, 51], ['archer', 117, 45], ['lurker', 131, 57], ['wraith', 122, 30], ['brute', 128, 58, 'brute_trail'],
     ['guard', 141, 63, 'guard_camp'], ['drifter', 138, 64], ['drifter', 145, 65],
-    ['lurker', 151, 54], ['archer', 147, 52], ['hound', 158, 55], ['hound', 164, 57], ['lurker', 159, 46],
+    ['lurker', 151, 54], ['wraith', 147, 52], ['hound', 158, 55], ['hound', 164, 57], ['lurker', 159, 46],
   ].map(([foe, x, y, id]) => ({ foe, x: px(x), y: px(y), id }));
   return { id: 'ashwick', name: 'Ashwick Vale', W, H, tiles: T, objects: O, buildings: B, enemies: E, dark: false, amb: 'wind', start: { x: px(10), y: px(55) } };
 }
@@ -204,7 +204,7 @@ function crypt1() {
   O.push({ t: 'door', id: 'd_vault', spr: 'doorVault', x: px(41) + 4, y: px(21) + 4, w: 16, h: 8, puzzle: 'bells' });
   // vault
   O.push({ t: 'pickup', id: 'p_shard', item: 'bell_shard', n: 1, x: px(41) + 4, y: px(15) + 2, pedestal: true });
-  O.push({ t: 'container', id: 'c_vault', spr: 'chest', open: 'chestOpen', x: px(43), y: px(17), loot: [['ember_charm', 1], ['poultice', 1], ['fire_flask', 1]], note: 'bell_truth' });
+  O.push({ t: 'container', id: 'c_vault', spr: 'chest', open: 'chestOpen', x: px(43), y: px(17), loot: [['bell_focus', 1], ['ember_charm', 1], ['poultice', 1], ['fire_flask', 1]], note: 'bell_truth' });
   p('pedestal', 41.5, 15.6, b(9, 3));
   // iron door, crank hall (the wave arena), heavy gate, stairs down
   O.push({ t: 'door', id: 'd_iron', spr: 'doorIron', x: px(23) + 4, y: px(21) + 4, w: 16, h: 8, locked: 'crypt_key' });
@@ -214,7 +214,7 @@ function crypt1() {
   O.push({ t: 'exit', id: 'x_down1', spr: 'stairsDown', x: px(23) + 4, y: px(2) + 6, to: 'crypt2', tx: px(19) + 4, ty: px(31), label: 'Descend' });
   light(21, 1.6, 34);
   O.push({ t: 'waves', id: 'waves', points: [[16, 10], [31, 10], [16, 18], [31, 18], [23.5, 9.5]].map(([x, y]) => [px(x), px(y)]) });
-  const E = [['drifter', 18, 28], ['drifter', 29, 29], ['guard', 6, 25, 'guard_crypt'], ['drifter', 4, 29], ['archer', 44, 28], ['drifter', 38, 29]]
+  const E = [['drifter', 18, 28], ['drifter', 29, 29], ['guard', 6, 25, 'guard_crypt'], ['drifter', 4, 29], ['archer', 44, 28], ['wraith', 38, 29], ['wraith', 26, 26]]
     .map(([foe, x, y, id]) => ({ foe, x: px(x), y: px(y), id }));
   return { id: 'crypt1', name: 'Bellroot Underchapel', W, H, tiles: T, objects: O, buildings: [], enemies: E, dark: true, amb: 'crypt' };
 }

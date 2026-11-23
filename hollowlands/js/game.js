@@ -2,7 +2,7 @@
 // HOLLOWLANDS — the game: state, interactions, puzzles, waves, the boss, saving, the frame.
 const G = (HL.G = {
   state: 'boot', W: 400, H: 200, scale: 1, safe: { l: 0, r: 0, t: 0, b: 0 },
-  world: null, player: null, enemies: [], shots: [], drops: [],
+  world: null, player: null, enemies: [], shots: [], pshots: [], impacts: [], drops: [], cutActors: [], slowT: 0,
   flags: {}, inv: {}, eq: {}, wlv: {}, journal: [], quick: 'poultice', fire: null, fogs: {}, worlds: {},
   settings: { shake: true, mute: false, guide: true }, time: 0, playtime: 0, hitstop: 0, shake: 0, hurtVig: 0,
   cam: { x: 0, y: 0 }, prompt: null, dialog: null, waves: null, bossAwake: false, deadT: 0, fade: 0, saved: null,
@@ -113,6 +113,7 @@ G.bindInput = function () {
     for (const c of I.layout) {
       if (c.id === 'ult' && G.eq.relic !== 'bell_shard') continue;
       if (c.id === 'interact' && !G.prompt) continue;
+      if (c.id === 'swap' && Object.keys(HL.WEAPONS).filter((w) => G.inv[w]).length < 2) continue;
       if (HL.dist(p.x, p.y, c.x, c.y) <= c.r + 5) { I.st.btn[c.id] = { held: true, press: true, pid: e.pointerId, cx: c.x, cy: c.y, ax: null, ay: null }; capture(e.pointerId); return; }
     }
     if (p.x < G.W * 0.5) { I.st.joy = { pid: e.pointerId, ox: p.x, oy: p.y, dx: 0, dy: 0, mag: 0 }; capture(e.pointerId); }
@@ -164,24 +165,52 @@ G.newGame = function () {
 };
 // ------------------------------------------------------------------ cutscenes: camera moves over the world with a card
 G.playCut = function (id, onEnd) {
-  const def = HL.CUTS[id]; if (!def) { if (onEnd) onEnd(); return; }
+  const def = HL.CINE[id] || HL.CUTS[id]; if (!def) { if (onEnd) onEnd(); return; }
   G.flags['cut:' + id] = 1;
   if (def.note) G.addJournal(def.note);
-  G.cut = { def, i: 0, t: 0, onEnd, fromX: G.player ? G.player.x : def.shots[0].x, fromY: G.player ? G.player.y : def.shots[0].y, fromV: 165 };
+  G.cut = { def, id, i: -1, t: 0, onEnd, fromX: G.player ? G.player.x : def.shots[0].x, fromY: G.player ? G.player.y : def.shots[0].y, fromV: 165, api: G.cutApi() };
+  G.cutActors = []; G.hidePlayer = !!def.hidePlayer; G.cutDark = 0; G.cutCam = null;
   G.state = 'cut'; HL.Input.clearTouches();
-  if (def.shots[0].toll) Au.play('toll');
+  G.startShot(0);
+};
+G.cutApi = function () {
+  const api = {
+    actor(o) { G.cutActors.push(o); return o; },
+    clear() { G.cutActors = []; },
+    play: (n) => Au.play(n), shake: (v) => { G.shake = Math.max(G.shake, v); }, dark: (v) => { G.cutDark = v; },
+  };
+  return api;
+};
+G.startShot = function (i) {
+  const c = G.cut, s = c.def.shots[i];
+  c.i = i; c.t = 0;
+  if (s.dark != null) G.cutDark = s.dark;
+  c.keys = s.camFn ? s.camFn(G) : s.cam || null;
+  if (s.start) s.start(c.api, G);
+  if (s.toll) Au.play('toll');
+  if (i) Au.play('page');
+  G.updateCutCam();
+};
+G.updateCutCam = function () {
+  const c = G.cut; if (!c || !c.keys) { G.cutCam = null; return; }
+  const s = c.def.shots[c.i], q = HL.clamp(c.t / s.dur, 0, 1), K = c.keys;
+  let j = 0; while (j < K.length - 2 && q > K[j + 1][0]) j++;
+  const A = K[j], B = K[Math.min(j + 1, K.length - 1)], span = Math.max(0.0001, B[0] - A[0]), u = HL.clamp((q - A[0]) / span, 0, 1), e = u * u * (3 - 2 * u);
+  const L = (k) => HL.lerp(A[k], B[k], e);
+  G.cutCam = { px: L(1), py: L(2), pz: L(3), lx: L(4), ly: L(5), lz: L(6), fov: A[7] != null ? L(7) : 0 };
 };
 G.cutShot = function () {
   const c = G.cut; if (!c) return null;
-  const s = c.def.shots[c.i], prev = c.i ? c.def.shots[c.i - 1] : { x: c.fromX, y: c.fromY, view: c.fromV };
+  const s = c.def.shots[c.i]; if (s.cam || s.camFn) return null;
+  const prev = c.i ? c.def.shots[c.i - 1] : { x: c.fromX, y: c.fromY, view: c.fromV };
   const k = HL.clamp(c.t / Math.min(2.2, s.dur * 0.6), 0, 1), e = k * k * (3 - 2 * k);
   return { x: HL.lerp(prev.x, s.x, e), y: HL.lerp(prev.y, s.y, e), view: HL.lerp(prev.view || 165, s.view || 165, e), text: s.text, k: c.t };
 };
 G.nextShot = function (skipAll) {
   const c = G.cut; if (!c) return;
-  const last = c.def.shots[c.i];
-  if (!skipAll && c.i < c.def.shots.length - 1) { c.fromX = last.x; c.fromY = last.y; c.fromV = last.view; c.i++; c.t = 0; Au.play('page'); if (c.def.shots[c.i].toll) Au.play('toll'); return; }
-  G.cut = null; G.state = 'play'; HL.Input.clearTouches(); G.snapCam();
+  if (!skipAll && c.i < c.def.shots.length - 1) { const last = c.def.shots[c.i]; c.fromX = last.x; c.fromY = last.y; c.fromV = last.view; G.startShot(c.i + 1); return; }
+  if (c.def.end) c.def.end(c.api, G);
+  G.cut = null; G.cutCam = null; G.cutActors = []; G.hidePlayer = false; G.cutDark = 0; G.state = 'play'; HL.Input.clearTouches(); G.snapCam();
   if (c.onEnd) c.onEnd();
 };
 // ------------------------------------------------------------------ objective and guide
@@ -218,7 +247,7 @@ G.loadMap = function (id, x, y) {
   w.fog = G.fogs[id] || (G.fogs[id] = new Uint8Array(Math.ceil(w.W / 2) * Math.ceil(w.H / 2)));
   w.mapImg = null;
   G.player.x = x; G.player.y = y; G.player.vx = G.player.vy = 0;
-  G.enemies = []; G.shots = []; G.drops = []; HL.fx.list = [];
+  G.enemies = []; G.shots = []; G.pshots = []; G.impacts = []; G.drops = []; HL.fx.list = []; HL.vfx.clear();
   G.waves = null; G.bossAwake = false; G.region = null;
   for (const s of w.def.enemies) {
     if (s.id && G.flags['k:' + s.id]) continue;
@@ -274,7 +303,7 @@ G.give = function (id, n = 1, quiet) {
   if (it.kind === 'weapon' && !G.eq.weapon) { G.eq.weapon = id; }
   if (it.kind === 'consumable' && !G.inv[G.quick]) G.quick = id;
   if (id === 'rusted_sword') HL.UI.toast('ATTACK: tap to strike the nearest foe, or press and drag to aim. Hold to charge a heavy blow. DASH slips through attacks.', 6);
-  if (id === 'ashwood_spear' || id === 'bellbreaker') HL.UI.toast('A new weapon. Open your pack (top right) to wield it.');
+  if (HL.WEAPONS[id] && id !== 'rusted_sword') HL.UI.toast(HL.itemName(id) + '! Tap SWAP to wield it. Its ultimate: ' + HL.ULTS[HL.WEAPONS[id].ult].name + '.', 4);
   if (it.kind === 'armor' && id !== 'tattered_cloak') HL.UI.toast(it.name + ': open your pack to wear it.');
   if (id === 'bell_shard') { G.eq.relic = 'bell_shard'; HL.UI.toast('The shard hums. Fighting fills it; when full, unleash your weapon\'s ultimate.'); }
   if (id === 'gate_key') G.flags.got_gate_key = 1;
@@ -428,17 +457,21 @@ G.hitProps = function (p, reach, arc, atk) {
     const d = HL.dist(p.x, p.y, o.x, o.y); if (d > reach + 5) continue;
     if (Math.abs(HL.angDiff(p.face, Math.atan2(o.y - p.y, o.x - p.x))) > arc / 2 + 0.3) continue;
     atk.hit.add(o);
-    if (o.charge > 0) {
-      o.charge = 0; Au.play('toll'); G.shake = 3; G.hitstop = 0.1;
-      const k = G.enemies.find((e) => e.type === 'keeper' && !e.dead);
-      HL.fx.ring(o.x, o.y - 6, 60, P.lt0, 0.6, 2);
-      if (k) { k.stunned = 4.2; k.state = 'stunned'; k.tele = null; k.wave = null; HL.fx.text(k.x, k.y - 42, 'stunned', P.lt0, 1.2); }
-    } else { Au.play('clank'); HL.fx.burst(o.x, o.y - 8, P.bronze, 3, 30, 0.2); }
+    G.ringReso(o);
   }
+};
+G.ringReso = function (o) {
+  if (o.charge > 0) {
+    o.charge = 0; Au.play('toll'); G.shake = 3; G.hitstop = 0.1;
+    const k = G.enemies.find((e) => e.type === 'keeper' && !e.dead);
+    HL.fx.ring(o.x, o.y - 6, 60, P.lt0, 0.6, 2);
+    HL.vfx.shock(o.x, o.y, 60, P.lt0, 0.7); HL.vfx.beam(o.x, o.y, P.lt0, 0.7, 4, 120); HL.vfx.flash(P.lt0, 0.35); HL.vfx.kick(0.8);
+    if (k) { k.stunned = 4.2; k.state = 'stunned'; k.tele = null; k.teles = null; k.shards = null; k.wave = null; HL.fx.text(k.x, k.y - 42, 'stunned', P.lt0, 1.2); HL.vfx.beam(k.x, k.y, P.lt0, 0.5, 8, 80); }
+  } else { Au.play('clank'); HL.vfx.hit(o.x, o.y, 0, 0.6, P.bronze); }
 };
 
 // ------------------------------------------------------------------ waves: the crank hall
-G.WAVES = [['drifter', 'drifter', 'drifter', 'drifter'], ['drifter', 'drifter', 'archer', 'archer', 'drifter'], ['guard', 'hound', 'hound', 'drifter', 'drifter']];
+G.WAVES = [['drifter', 'drifter', 'drifter', 'drifter', 'hound'], ['drifter', 'wraith', 'archer', 'archer', 'drifter', 'wraith'], ['brute', 'hound', 'hound', 'drifter', 'drifter', 'wraith']];
 G.startWaves = function () {
   if (G.flags.waves_done) return;
   G.waves = { active: true, wave: 0, queue: [], spawnT: 0, pause: 0.8, alive: [], progress: 0 };
@@ -477,8 +510,9 @@ G.onEnemyDeath = function (e) {
     Au.ambient('crypt'); Au.play('toll'); G.shake = 5;
     for (const o of G.enemies) if (o.summoned && !o.dead) HL.killEnemy(o);
     G.applyState();
-    HL.UI.showBanner('The Keeper falls', 'Something rattles inside its bell.');
-    setTimeout(() => { if (G.state === 'play') G.showNote('keeper_fall'); }, 1800);
+    G.cutAt = { x: e.x, y: e.y };
+    HL.vfx.slowmo(0.8, 0.25); HL.vfx.flash(P.lt0, 0.6); HL.vfx.chroma(1.6); HL.vfx.kick(1.6); HL.vfx.beam(e.x, e.y, P.lt0, 1.2, 12, 160);
+    setTimeout(() => { if (G.state === 'play') G.playCut('keeperDeath', () => G.showNote('keeper_fall')); }, 700);
     G.save();
   }
 };
@@ -508,9 +542,13 @@ G.frame = function (dt) {
     if (G.fadeT > 0.7) { G.state = 'play'; if (G.pendingCut) { const c = G.pendingCut; G.pendingCut = null; G.playCut(c); } }
     HL.fx.update(dt);
   } else if (G.state === 'cut') {
-    G.cut.t += dt;
+    const c = G.cut, sh = c.def.shots[c.i];
+    c.t += dt;
+    if (sh.tick) sh.tick(c.api, c.t, G, dt);
+    G.updateCutCam();
+    G.shake = Math.max(0, G.shake - dt * 8);
     if (inp.esc) G.nextShot(true);
-    else if (inp.attack || inp.interact || inp.enter || inp.dodge || G.cut.t > G.cut.def.shots[G.cut.i].dur) G.nextShot();
+    else if (((inp.attack || inp.interact || inp.enter || inp.dodge) && c.t > 0.6) || c.t > sh.dur) G.nextShot();
     HL.fx.update(dt);
   } else {
     if (G.state === 'dead') G.deadT += dt;
@@ -532,8 +570,10 @@ G.update = function (dt, inp) {
   G.prompt = p.state === 'move' ? G.interactables() : null;
   if (inp.interact && G.prompt) { G.interact(G.prompt); return; }
   if (inp.item) G.useQuick();
-  if (inp.swap) { const ws = Object.keys(HL.WEAPONS).filter((w) => G.inv[w]); if (ws.length > 1) { G.eq.weapon = ws[(ws.indexOf(G.eq.weapon) + 1) % ws.length]; HL.UI.toast(HL.itemName(G.eq.weapon)); } }
+  if (inp.swap) { const ws = Object.keys(HL.WEAPONS).filter((w) => G.inv[w]); if (ws.length > 1) { G.eq.weapon = ws[(ws.indexOf(G.eq.weapon) + 1) % ws.length]; HL.UI.toast(HL.itemName(G.eq.weapon) + ': ' + HL.ULTS[HL.WEAPONS[G.eq.weapon].ult].name + ' ultimate', 1.6); HL.vfx.ring3d(p.x, p.y, 1, 12, HL.WEAPONS[G.eq.weapon].trail || P.cream, 0.3); HL.vfx.burst(p.x, p.y, 8, HL.WEAPONS[G.eq.weapon].trail || P.cream, 10, 40, 0.4); Au.play('item'); } }
   if (G.hitstop > 0) { G.hitstop -= dt; G.shake = Math.max(0, G.shake - dt * 10); return; }
+  if (G.slowT > 0) { G.slowT -= dt; dt *= G.slowScale || 0.3; }
+  G.ultBanner && (G.ultBanner.t += dt);
   p.update(dt, inp);
   for (const e of G.enemies) e.update(dt);
   // soft separation
@@ -544,6 +584,8 @@ G.update = function (dt, inp) {
   }
   G.enemies = G.enemies.filter((e) => !(e.dead && e.deadT > 2 && e.type !== 'keeper'));
   G.updateShots(dt);
+  G.updatePShots(dt);
+  G.updateImpacts(dt);
   G.updateDrops(dt);
   G.updateWaves(dt);
   HL.fx.update(dt);
@@ -573,14 +615,45 @@ G.updateShots = function (dt) {
       continue;
     }
     s.life -= dt;
+    if (s.seek) { const want = Math.atan2(p.y - 5 - s.y, p.x - s.x), cur = Math.atan2(s.vy, s.vx), sp = Math.hypot(s.vx, s.vy), na = cur + HL.clamp(HL.angDiff(cur, want), -s.seek * dt, s.seek * dt); s.vx = Math.cos(na) * sp; s.vy = Math.sin(na) * sp; }
     const n = 3;
     for (let k = 0; k < n && s.life > 0; k++) {
       s.x += (s.vx * dt) / n; s.y += (s.vy * dt) / n;
       if (G.world.sightBlocked(s.x, s.y + 4)) { s.life = 0; HL.fx.burst(s.x, s.y, P.st1, 3, 20, 0.2); break; }
-      if (HL.dist(s.x, s.y + 5, p.x, p.y) < p.r + 2) { if (p.hurt(s.dmg, s.x - s.vx, s.y - s.vy)) s.life = 0; }
+      if (HL.dist(s.x, s.y + 5, p.x, p.y) < p.r + 2) { if (p.hurt(s.dmg, s.x - s.vx, s.y - s.vy)) { s.life = 0; if (s.orb) HL.vfx.burst(s.x, s.y + 5, 6, s.col, 10, 50, 0.4); } }
     }
   }
   G.shots = G.shots.filter((s) => s.life > 0);
+};
+// the Wayfarer's arrows and bolts
+G.updatePShots = function (dt) {
+  for (const s of G.pshots) {
+    s.life -= dt;
+    if (s.seek) { let best = null, bd = 90; for (const e of G.enemies) { if (e.dead || e.hidden || s.hit.has(e)) continue; const d = HL.dist(s.x, s.y, e.x, e.y); if (d < bd) { bd = d; best = e; } } if (best) { const want = Math.atan2(best.y - s.y, best.x - s.x), cur = Math.atan2(s.vy, s.vx), sp = Math.hypot(s.vx, s.vy), na = cur + HL.clamp(HL.angDiff(cur, want), -s.seek * dt, s.seek * dt); s.vx = Math.cos(na) * sp; s.vy = Math.sin(na) * sp; } }
+    const n = 4;
+    for (let k = 0; k < n && s.life > 0; k++) {
+      s.x += (s.vx * dt) / n; s.y += (s.vy * dt) / n;
+      if (G.world.sightBlocked(s.x, s.y)) { s.life = 0; HL.vfx.hit(s.x, s.y, Math.atan2(-s.vy, -s.vx), 0.6, s.col); break; }
+      for (const e of G.enemies) {
+        if (e.dead || e.hidden || s.hit.has(e) || HL.dist(s.x, s.y, e.x, e.y) > e.r + 3) continue;
+        s.hit.add(e); HL.hitEnemy(e, s.dmg, { heavy: s.heavy, breaker: s.heavy, fx: s.x - s.vx * 0.05, fy: s.y - s.vy * 0.05, poise: s.heavy ? 40 : 10, col: s.col });
+        if (!s.pierce) { s.life = 0; break; }
+      }
+      for (const o of G.world.objects) if (o.t === 'resonator' && s.life > 0 && HL.dist(s.x, s.y, o.x, o.y - 2) < 6) { G.ringReso(o); s.life = 0; }
+    }
+    if (s.life <= 0 && s.kind === 'focus') HL.vfx.burst(s.x, s.y, 6, s.col, 8, 40, 0.35);
+  }
+  G.pshots = G.pshots.filter((s) => s.life > 0);
+};
+// delayed strikes: the arrow rain
+G.updateImpacts = function (dt) {
+  for (const m of G.impacts) {
+    m.t -= dt; if (m.t > 0) continue; m.done = true;
+    HL.vfx.beam(m.x, m.y, m.col, 0.25, 1.4, 70); HL.vfx.hit(m.x, m.y, -Math.PI / 2, 1.4, m.col); HL.vfx.ring3d(m.x, m.y, 0.6, m.r, m.col, 0.3); HL.vfx.dust(m.x, m.y, 3);
+    Au.play('hit');
+    for (const e of G.enemies) if (!e.dead && !e.hidden && HL.dist(m.x, m.y, e.x, e.y) < m.r + e.r) HL.hitEnemy(e, m.dmg, { heavy: true, ult: true, fx: m.x, fy: m.y - 1, poise: 30, col: m.col });
+  }
+  G.impacts = G.impacts.filter((m) => !m.done);
 };
 G.updateDrops = function (dt) {
   const p = G.player;
