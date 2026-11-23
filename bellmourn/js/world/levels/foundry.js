@@ -9,8 +9,12 @@ export default {
   start: { x: 4, z: 14.6, face: Math.PI },
   bounds: [-17, -67, 11.8, 17.6],
   gatesOpen: ['hallGate', 'shedGate', 'arenaGate'],
+  apron: false, // cinders beyond the map (below)
+  // furnace orange: a rust-red haze, embers on the wind, a thin rain hissing on hot iron (district variety)
   ambience: {
-    fog: 0x221f24, fogNear: 78, fogFar: 175, sky: 0x0c0c11, moon: 1.5, hemi: 0.9, hemiGround: 0x1c1410, rain: 1, lightning: true,
+    fog: 0x2a1c16, fogNear: 78, fogFar: 175, sky: 0x100a08, moon: 1.6, moonColor: 0xc8a890, hemi: 1.05, hemiSky: 0x7a5a48, hemiGround: 0x2a140a,
+    fill: 1.4, fillColor: 0xa88070, ambient: 0x2a1610, ambientI: 0.7, rain: 0.3, lightning: false, weather: 'embers', drizzle: 0.3,
+    grade: { gain: [1.1, 0.97, 0.86], lift: [0.012, 0.006, 0.0], sat: 0.95, exposure: 1.14 },
     // shaft lengths are whole metres (hypot(6, 15, 10) = 19, hypot(6, 18, 9) = 21): atmos.js shades a shaft
     // with pow(1 - t, 1.2), and an awkward length rounds t past 1 at the top and paints NaN (a black blot)
     beams: [{ x: 3.5, z: 11.5, r: 5.5, h: 15, from: [6, 0, -10], intensity: 55 }, { x: 0.5, z: -50, r: 7.5, h: 18, from: [6, 0, -9], intensity: 70 }],
@@ -55,16 +59,18 @@ export default {
     const gateAt = (x, z, w, o, axis = 'x') => { const g = K.gate(ctx, x, z, w, axis, o); opaque(g.solid, axis); return g; };
     const yTop = (xa, xb, ya, yb) => (x) => ya + (yb - ya) * (x - xa) / (xb - xa);
 
-    // ------------------------------------------------ ground
-    K.floor(ctx, -5.2, 4, 11.4, 19, W.cobble('#4e545e'));
-    K.floor(ctx, -12.8, -10.6, 6.8, 4, W.flags('#5a5a62'));
-    K.floor(ctx, 6.8, -10.6, 11.4, 4, W.dirt('#34343a'));
-    K.floor(ctx, -10.4, -25.6, 11.4, -10.6, W.court('#545a64'));
-    K.floor(ctx, -10.4, -37.8, 8.6, -25.6, W.flags('#58585e'));
-    K.floor(ctx, 8.6, -37.8, 11.4, -25.6, W.dirt('#34343a'));
-    K.floor(ctx, -10.4, -41.6, 11.4, -37.8, W.flags('#55565c'));
-    K.floor(ctx, -12.8, -67, 11.8, -41.6, W.court('#56585e'));
-    K.floor(ctx, -17.4, -57.8, -12.8, -53.3, W.flags('#4c4e56'));
+    K.district(ctx, 'foundry');
+    // ------------------------------------------------ ground: cinders in the yards, riveted plate in the halls, setts in the mould yard
+    K.floor(ctx, -5.2, 4, 11.4, 19, K.MC.cinder('#3a302c'));
+    K.floor(ctx, -12.8, -10.6, 6.8, 4, K.MC.plate('#4e4640'));
+    K.floor(ctx, 6.8, -10.6, 11.4, 4, K.MC.cinder('#342a26'));
+    K.floor(ctx, -10.4, -25.6, 11.4, -10.6, K.MC.setts('#5e5048'));
+    K.floor(ctx, -10.4, -37.8, 8.6, -25.6, K.MC.plate('#4a443e'));
+    K.floor(ctx, 8.6, -37.8, 11.4, -25.6, K.MC.cinder('#342a26'));
+    K.floor(ctx, -10.4, -41.6, 11.4, -37.8, K.MC.plate('#4a4440'));
+    K.floor(ctx, -12.8, -67, 11.8, -41.6, K.MC.plate('#524842'));
+    K.floor(ctx, -17.4, -57.8, -12.8, -53.3, K.MC.setts('#4e4440'));
+    P.greatStack(ctx, -16.6, -30.5, 27); // the landmark: over the far wall, its mouth glowing
     K.floor(ctx, -5.2, 4.4, -1.6, 16.4, W.dirt('#26262a'), 0.012, 0.3); // coal dust by the bunkers
     K.floor(ctx, -9.4, -10.6, -6.4, 4, W.dirt('#2a2628'), 0.012, 0.3); // soot before the furnaces
     K.floor(ctx, -2.6, -36.6, 6.6, -29.8, W.dirt('#463a30'), 0.012, 0.3); // moulding sand round the pits
@@ -156,6 +162,8 @@ export default {
     P.purlins(ctx, [-4.6, 3.4], -37.4, -26, shedTop);
     P.chain(ctx, [3.8, 6.4, -34.4], [3.8, 4.1, -34.4]); P.ladle(ctx, 3.8, 3.5, -34.4, 0.1);
     P.chain(ctx, [-4, 6.4, -27.4], [-4, 3, -27.4]); P.hook(ctx, -4, 3, -27.4);
+    // cast bells hung in a row from the trusses along the far wall, waiting to be tuned
+    for (const [z, s] of [[-27.4, 0.75], [-31, 0.9], [-34.4, 0.7]]) { P.chain(ctx, [-7.4, 6.4, z], [-7.4, 5.0, z]); P.hook(ctx, -7.4, 5.0, z); P.bell(ctx, -7.4, 5.0 - 1.5 * s, z, s); }
     K.torch(ctx, -9.2, 2.4, -36.4, '+x');
     P.mould(ctx, -8.4, -27, 1.1); P.mould(ctx, -8.4, -36.6, 1, { core: true });
     P.tippedBell(ctx, 7, -27.4, 1.3, -2.2); P.ingots(ctx, 7.2, -36.8, 3); P.ingots(ctx, -3.2, -36.8, 4);
@@ -192,6 +200,10 @@ export default {
     for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) P.chain(ctx, [gt.x + dx * 0.35, gt.y, gt.z + dz * 0.35], [dx * 0.14, 3.42, -62.4 + dz * 0.14]);
     K.wall(ctx, -12.8, -67, 11.4, -67, 10, { thick: 1.2, buttress: 4.8, arches: 4, litArches: [0, 3], tone: BRICK });
     P.gargoyle(ctx, -6, 10.2, -67, 0); P.gargoyle(ctx, 6.4, 10.2, -67, 0);
+    // the finished peal: a row of bells on iron brackets along the back wall, over the pit
+    for (const [x, s] of [[-7, 0.7], [-4.6, 0.85], [4.6, 1.0], [7, 1.15]]) {
+      K.add(ctx, K.box(0.14, 0.14, 1.2), P.iron(), x, 7.6, -65.8); P.chain(ctx, [x, 7.6, -65.3], [x, 6.6, -65.3]); P.hook(ctx, x, 6.6, -65.3); P.bell(ctx, x, 6.6 - 1.5 * s, -65.3, s);
+    }
     // the east side: columns and a railing open to the rain
     K.fence(ctx, 11.4, -41.6, 11.4, -58.95, { h: 1.6 });
     for (const z of [-44, -50, -56]) P.column(ctx, 11.4, z, 5);
@@ -219,5 +231,6 @@ export default {
     fire.push([-6.2, -32.2, -4.6, -31.4, 0.3, 8, 3], [-1.4, -32.6, 0.2, -31, 0.2, 6, 2.5], [4.3, -34.6, 4.7, -34.2, 0.2, 8, 2]);
     fire.push([-7.5, -64.8, 7.5, -59.8, 0.2, 40, 6], [-9.3, -58.8, -8.8, -43.8, 0.1, 10, 2]);
     P.sparks(ctx, fire);
+    K.apron(ctx, this.bounds, K.MC.cinder('#1e1816'));
   },
 };

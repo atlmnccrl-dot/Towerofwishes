@@ -12,7 +12,8 @@ export const STEPS = [
     enter: (T, g) => { T.dashes = 0; T.mine = [g.world.spawnFoe('hushed', 0, 6, { aggro: true, rise: true })]; },
     done: (T) => T.dashes >= 2 && T.mine.every((f) => f.dead), note: (T) => `DASHES ${Math.min(2, T.dashes)}/2` },
   // abilities have no buttons: a ready one (its badge glows) goes off in place of the next attack
-  { id: 'abilities', key: 'SKILLS FIRE FROM YOUR ATTACK WHEN THEIR BADGE GLOWS. KEEP ATTACKING', touch: 'SKILLS FIRE FROM ATK WHEN THEIR GOLD BAR GLOWS. KEEP ATTACKING', pad: 'SKILLS FIRE FROM YOUR ATTACK (X) WHEN THEIR BADGE GLOWS',
+  // movement skills (a rush, a charge, a smoke step) fire from the DASH instead (hero.dashAbility)
+  { id: 'abilities', key: 'SKILLS FIRE FROM YOUR ATTACK WHEN THEIR BADGE GLOWS; MOVEMENT SKILLS FIRE FROM YOUR DASH. KEEP FIGHTING', touch: 'SKILLS FIRE FROM ATK WHEN THEIR GOLD BAR GLOWS; MOVEMENT SKILLS FROM DASH. KEEP FIGHTING', pad: 'SKILLS FIRE FROM YOUR ATTACK (X) WHEN THEY GLOW; MOVEMENT SKILLS FROM YOUR DASH (A)',
     enter: (T, g) => { T.used = [false, false]; T.mine = [-2, 0, 2].map((x) => g.world.spawnFoe('hushed', x, -1, { aggro: true, rise: true })); },
     update: (T, g) => { if (T.mine.every((f) => f.dead) && !(T.used[0] && T.used[1])) { const z = g.world.hero.z - 3; T.mine = [-1.6, 1.6].map((x) => g.world.spawnFoe('hushed', x, z, { aggro: true, rise: true })); } },
     done: (T) => T.used[0] && T.used[1], note: (T) => `SKILLS ${T.used.filter(Boolean).length}/2` },

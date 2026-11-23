@@ -1072,7 +1072,7 @@ export class Game {
   drawControls() {
     const ui = this.ui, W = ui.w, H = ui.h; ui.veil(0.72); const sl = Math.round(ui.safe.l), sr = Math.round(ui.safe.r);
     const short = H < 175; ui.text('CONTROLS', W / 2, 6, { align: 'center', scale: short ? 1 : 2, color: COL.white });
-    const rows = [['MOVE', 'WASD, ARROWS', 'LEFT THUMB', 'LEFT STICK'], ['ATTACK (HOLD)', 'J, LEFT CLICK', 'ATK', 'X'], ['DASH', 'SPACE, SHIFT', 'DASH', 'A'], ['ULTIMATE', 'Q, U', 'ULT', 'RB'], ['TONIC', 'R, H', 'TON', 'LB'], ['OPEN A CHEST', 'E', 'USE', 'BACK'], ['PAUSE', 'ESC, P', 'II', 'START']];
+    const rows = [['MOVE', 'WASD, ARROWS', 'LEFT THUMB', 'LEFT STICK'], ['ATTACK (HOLD)', 'J, LEFT CLICK', 'ATK', 'X'], ['DASH (MOVE SKILL)', 'SPACE, SHIFT', 'DASH', 'A'], ['ULTIMATE', 'Q, U', 'ULT', 'RB'], ['TONIC', 'R, H', 'TON', 'LB'], ['OPEN A CHEST', 'E', 'USE', 'BACK'], ['PAUSE', 'ESC, P', 'II', 'START']];
     const head = ['', 'KEYBOARD', 'TOUCH', 'GAMEPAD'];
     const widths = head.map((h, c) => Math.max(ui.measure(h), ...rows.map((r) => ui.measure(r[c]))));
     const use = W - sl - sr - 12; const gapC = Math.max(6, Math.min(16, Math.floor((use - widths.reduce((a, b) => a + b, 0)) / 3)));
@@ -1082,7 +1082,7 @@ export class Game {
     ui.rect(xs[0], y - 3, total, 1, '#3a2e20');
     rows.forEach((r) => { r.forEach((t, c) => ui.text(t, xs[c], y, { color: c === 0 ? COL.gold : COL.text, shadow: false })); y += lh; });
     y += 4;
-    const notes = ['SKILLS HAVE NO BUTTON: WHEN A SKILL\'S BADGE GLOWS, YOUR NEXT ATTACK FIRES IT.', 'LAMPS LIGHT THEMSELVES WHEN NO FOE IS NEAR.'];
+    const notes = ['SKILLS FIRE FROM YOUR ATTACK WHEN THEIR BADGE GLOWS; MOVEMENT SKILLS FIRE FROM YOUR DASH.', 'LAMPS LIGHT THEMSELVES WHEN NO FOE IS NEAR.'];
     for (const n of notes) for (const l of ui.wrap(n, use)) { if (y + 7 < H - 4) ui.text(l, W / 2, y, { align: 'center', color: COL.ice, shadow: false }); y += 9; }
     if (this.stateT > 0.3 && y + 9 < H) ui.text(this.inputMode === 'touch' ? 'TAP TO GO BACK' : 'ENTER TO GO BACK', W / 2, H - 10, { align: 'center', color: '#6a6252' });
   }

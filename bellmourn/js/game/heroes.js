@@ -106,22 +106,24 @@ export const START_HEROES = ['warden', 'huntress', 'bellbreaker'];
 export const JOINS = { lamplighter: 'LANTERN ROW', kestrel: 'GALLOWS GATE', hollis: 'MIREWATER DOCKS', wren: 'THE DROWNED NAVE' };
 
 // ------------------------------------------------------------------ abilities (two slots, the third unlocks at level 4)
+// move: true marks an ability that carries the hero somewhere (a rush, a charge, a leap, a blink). Those never go
+// off from the attack: the DASH button casts them (sim.js), aimed like the dash, while one is slotted and ready.
 export const ABILITIES = {
   wave: { name: 'CRIMSON WAVE', kind: 'wave', cd: 5, dmg: 24, desc: 'A CRESCENT OF RED STEEL CUTS THROUGH EVERYTHING AHEAD.' },
-  rush: { name: 'CUTTING RUSH', kind: 'rush', cd: 7, dmg: 26, dist: 6.5, desc: 'DASH THROUGH THE PACK, CUTTING ALL IN YOUR PATH.' },
+  rush: { name: 'CUTTING RUSH', kind: 'rush', move: true, cd: 6, dmg: 32, dist: 6.5, desc: 'ON THE DASH: RUSH THROUGH THE PACK, CUTTING ALL IN YOUR PATH.' },
   whirl: { name: 'WHIRL OF THORNS', kind: 'whirl', cd: 9, dmg: 14, hits: 3, radius: 2.9, status: { bleed: 1 }, level: 4, desc: 'SPIN THREE TIMES. FOES AROUND YOU BLEED.' },
   volley: { name: 'VOLLEY', kind: 'volley', cd: 5, dmg: 10, n: 7, spread: deg(9), desc: 'A FAN OF SEVEN BOLTS.' },
-  smoke: { name: 'SMOKE STEP', kind: 'smoke', cd: 7, dmg: 22, dist: 5, radius: 2.5, stun: 1.3, desc: 'LEAP AWAY AND LEAVE A BOMB THAT STUNS.' },
+  smoke: { name: 'SMOKE STEP', kind: 'smoke', move: true, cd: 7, dmg: 22, dist: 5, radius: 2.5, stun: 1.3, desc: 'ON THE DASH: LEAP AWAY AND LEAVE A BOMB THAT STUNS.' },
   snare: { name: 'SNARE TRAP', kind: 'trap', cd: 10, dmg: 26, radius: 1.9, root: 2.4, life: 10, level: 4, desc: 'A TRAP THAT HOLDS AND CUTS WHAT STEPS IN IT.' },
   shockwave: { name: 'SHOCKWAVE', kind: 'shock', cd: 6, dmg: 28, r1: 6, desc: 'SLAM THE STONES: A RING OF FORCE ROLLS OUT.' },
-  charge: { name: 'IRON CHARGE', kind: 'charge', cd: 8, dmg: 20, dist: 7, slam: 30, radius: 2.4, desc: 'CHARGE, BATTER ASIDE ALL IN THE WAY, SLAM.' },
+  charge: { name: 'IRON CHARGE', kind: 'charge', move: true, cd: 8, dmg: 20, dist: 7, slam: 30, radius: 2.4, desc: 'ON THE DASH: CHARGE, BATTER ASIDE ALL IN THE WAY, SLAM.' },
   ward: { name: 'BELL WARD', kind: 'ward', cd: 14, dur: 4.5, reduce: 0.5, dmg: 11, radius: 2.7, level: 4, desc: 'HALF DAMAGE FOR A WHILE; THE BELL BURNS ALL AROUND.' },
   pillar: { name: 'FLAME PILLAR', kind: 'pillar', cd: 5, dmg: 36, radius: 1.9, delay: 0.5, status: { burn: 1 }, desc: 'FIRE ERUPTS UNDER THE NEAREST FOE.' },
   lantern: { name: 'LANTERN WARD', kind: 'lantern', cd: 13, heal: 0.12, dur: 3.5, dmg: 9, radius: 2.6, desc: 'HEAL, AND BURN WHAT COMES CLOSE.' },
   wisps: { name: "WILL-O'-WISPS", kind: 'wisps', cd: 12, dmg: 24, n: 3, level: 4, desc: 'THREE WISPS HUNT DOWN THE NEAREST FOES.' },
   // Kestrel (PROPOSAL: names and lines)
   knives: { name: 'FAN OF KNIVES', short: 'FAN', kind: 'fan', cd: 5, dmg: 10, n: 5, spread: deg(12), status: { bleed: 0.6 }, desc: 'FIVE KNIVES IN A FAN. THEY CUT DEEP: FOES BLEED.' },
-  shadow: { name: 'SHADOW STEP', short: 'SHD', kind: 'shadow', cd: 7, dmg: 30, range: 8, status: { bleed: 1 }, desc: 'VANISH, AND STRIKE FROM BEHIND THE NEAREST FOE.' },
+  shadow: { name: 'SHADOW STEP', short: 'SHD', kind: 'shadow', move: true, cd: 7, dmg: 30, range: 8, status: { bleed: 1 }, desc: 'ON THE DASH: VANISH, AND STRIKE FROM BEHIND THE FOE YOU DASH AT.' },
   gallows: { name: 'GALLOWS SNARE', short: 'NSE', kind: 'noose', cd: 10, dmg: 18, radius: 2.2, root: 2.2, range: 9, level: 4, desc: 'A NOOSE FLIES OUT AND HOLDS EVERY FOE IN THE KNOT.' },
   // Hollis
   undertow: { name: 'UNDERTOW', short: 'UND', kind: 'undertow', cd: 6, dmg: 20, range: 8, radius: 2.6, desc: 'HURL THE ANCHOR: IT DRAGS EVERY FOE AROUND IT BACK TO YOU.' },

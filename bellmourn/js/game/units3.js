@@ -35,6 +35,7 @@ export function hookWorld3(w) {
   w._hero = function (e, h) {
     lureTick(this);
     for (const f of this.ents) if (f.type === 'bogtroll' && !f.dead && f.state !== 'spawn') regrow(this, f, h); // every step, attacking or not
+    for (const f of this.ents) if (f.ai.latched && !f.dead && (f.state === 'hurt' || f.state === 'stagger')) letGo(this, f, 'hit'); // struck off (it reels, so it cannot think)
     heroStep.call(this, e, h);
     if (e.state === 'dash' || e.state === 'special') return;
     for (const z of this.hazards) if (z.kind === 'bubble' && z.t < z.warn + z.life && Math.hypot(e.x - z.x, e.z - z.z) < z.r) { e.moveSpeed *= 0.5; e.inBubble = true; return; }
@@ -239,13 +240,15 @@ export const UNIT_ATTACKS3 = A;
 function latchOn(w, e) {
   const h = w.hero; if (!h || h.dead || !e.hitSet.has(h.id) || h.iframes < 0.53) return;
   if (w.foes().filter((f) => f.ai.latched).length >= 3) return;
-  e.ai.latched = { a: w.rand() * TAU, t: 0, tick: 0.5, hp: e.hp };
+  // it rides on the side of the hero towards the camera (iso, yaw 45°), so it is seen clinging
+  const n = w.foes().filter((f) => f.ai.latched).length;
+  e.ai.latched = { a: Math.PI / 4 + [0, 0.9, -0.9][n] , t: 0, tick: 0.5, hp: e.hp };
   e._r = e.r; e.r = 0.06; e._m = e.mass; e.mass = 0.01; e.tele = null;
   w.emit('latch', { e });
 }
 function clinging(w, e, h, hero) {
-  const L = e.ai.latched; L.t += h; L.a += h * 0.4;
-  stand(e, 'latch'); e.x = hero.x + S(L.a) * 0.42; e.z = hero.z + C(L.a) * 0.42; e.vx = hero.vx; e.vz = hero.vz; e.face = angTo(e, hero); e.leapH = 0.75;
+  const L = e.ai.latched; L.t += h; const a = L.a + S(L.t * 3) * 0.15;
+  stand(e, 'latch'); e.x = hero.x + S(a) * 0.4; e.z = hero.z + C(a) * 0.4; e.vx = hero.vx; e.vz = hero.vz; e.face = angTo(e, hero); e.leapH = 0.85;
   if (hero.state === 'dash') return letGo(w, e, 'dash');
   if (e.hp < L.hp) return letGo(w, e, 'hit');
   if (L.t > 5) return letGo(w, e, 'full');

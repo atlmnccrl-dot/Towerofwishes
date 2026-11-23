@@ -533,3 +533,30 @@ export function rockFill(ctx, bounds, walks, h = 2) {
   for (const s of out) solid(ctx, s.x0, s.z0, s.x1, s.z1, h);
   return out.length;
 }
+
+// The Undercroft's landmark: the corona of bones, a great wheel of skulls and long bones hung from the
+// dark on four chains over the Ossuary, a ring of candles burning on it and a skull lantern at its hub,
+// turning very slowly. Seen from the chapel and the gallery through the grilles.
+export function boneCorona(ctx, x, y, z, R = 3.4) {
+  const g = new THREE.Group(); g.position.set(x, y, z); ctx.group.add(g);
+  const bone = cutout(new THREE.MeshLambertMaterial({ color: 0xc4b896 })), iron = M.ironLit();
+  const skull = geo('uc-cskull', () => new THREE.IcosahedronGeometry(0.17, 1)), femur = geo('uc-cfemur', () => new THREE.CylinderGeometry(0.04, 0.04, 0.6, 5));
+  const ring = new THREE.Mesh(geo('uc-cring' + R, () => new THREE.TorusGeometry(R, 0.09, 4, 32)), iron); ring.rotation.x = Math.PI / 2; g.add(ring);
+  const ring2 = new THREE.Mesh(geo('uc-cring' + R * 0.55, () => new THREE.TorusGeometry(R * 0.55, 0.07, 4, 24)), iron); ring2.rotation.x = Math.PI / 2; ring2.position.y = 0.6; g.add(ring2);
+  const nS = 28, sk = new THREE.InstancedMesh(skull, bone, nS * 2), fe = new THREE.InstancedMesh(femur, bone, nS * 2); const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
+  for (let i = 0; i < nS; i++) { const a = i / nS * Math.PI * 2;
+    m.compose(new THREE.Vector3(Math.cos(a) * R, 0.16, Math.sin(a) * R), q.setFromEuler(e.set(0, -a, 0)), new THREE.Vector3(1, 1, 1)); sk.setMatrixAt(i, m);
+    m.compose(new THREE.Vector3(Math.cos(a) * R * 0.55, 0.74, Math.sin(a) * R * 0.55), q.setFromEuler(e.set(0, -a, 0)), new THREE.Vector3(0.8, 0.8, 0.8)); sk.setMatrixAt(nS + i, m);
+    m.compose(new THREE.Vector3(Math.cos(a + 0.11) * R, -0.18, Math.sin(a + 0.11) * R), q.setFromEuler(e.set(0, -a, Math.PI / 2)), new THREE.Vector3(1, 1, 1)); fe.setMatrixAt(i, m);
+    m.compose(new THREE.Vector3(Math.cos(a) * R * 0.78, 0.35, Math.sin(a) * R * 0.78), q.setFromEuler(e.set(0, -a, Math.PI / 2 - 0.5)), new THREE.Vector3(1, 1.4, 1)); fe.setMatrixAt(nS + i, m); }
+  sk.castShadow = fe.castShadow = true; g.add(sk); g.add(fe);
+  // candles on the outer ring, a skull lantern at the hub
+  const wax = new THREE.MeshLambertMaterial({ color: 0xd8cca8 }), flame = M.glow('#ffb050', 2.6);
+  for (let i = 0; i < 12; i++) { const a = (i + 0.5) / 12 * Math.PI * 2; const c = new THREE.Mesh(geo('uc-ccandle', () => new THREE.CylinderGeometry(0.05, 0.05, 0.3, 5)), wax); c.position.set(Math.cos(a) * R, 0.42, Math.sin(a) * R); g.add(c); const f = new THREE.Mesh(geo('uc-cflame', () => new THREE.BoxGeometry(0.05, 0.1, 0.05)), flame); f.position.set(Math.cos(a) * R, 0.62, Math.sin(a) * R); g.add(f); }
+  const hub = new THREE.Mesh(geo('uc-chub', () => new THREE.IcosahedronGeometry(0.42, 1)), bone); hub.position.y = 0.3; g.add(hub);
+  const glow = new THREE.Mesh(geo('uc-chubg', () => new THREE.BoxGeometry(0.22, 0.2, 0.3)), M.glow('#ffb050', 2.2)); glow.position.set(0, 0.28, 0.25); g.add(glow);
+  for (let k = 0; k < 4; k++) { const a = k / 4 * Math.PI * 2 + Math.PI / 4; const A = new THREE.Vector3(Math.cos(a) * R, 0.1, Math.sin(a) * R), B = new THREE.Vector3(0, 7.5, 0); const D = B.clone().sub(A); const L = D.length();
+    const ch = new THREE.Mesh(geo('uc-cchain' + L.toFixed(2), () => new THREE.BoxGeometry(0.05, L, 0.05)), iron); ch.position.copy(A).add(B).multiplyScalar(0.5); ch.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), D.normalize()); g.add(ch); }
+  ctx.lights.push({ x, y: y - 0.4, z, color: 0xffb050, intensity: 7, dist: 11, halo: true, flicker: 0.12 });
+  let t = 0; ctx.anims.push({ update(dt) { t += dt; g.rotation.y = t * 0.05; return false; } });
+}

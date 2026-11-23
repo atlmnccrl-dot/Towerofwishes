@@ -107,7 +107,7 @@ export function plate(seed = 105, tone = '#4a4440') {
 export function cinder(seed = 106, tone = '#2e2826') {
   return once('cin' + seed + tone, () => {
     const W = 32, H = 32, S = sheet(W, H), r = rng(seed), b = hex(tone);
-    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) S.set(x, y, b, q(0.7 + r() * 0.55, 8));
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) S.set(x, y, b, q(0.82 + r() * 0.3, 6));
     for (let i = 0; i < 26; i++) { const x = (r() * W) | 0, y = (r() * H) | 0; S.set(x, y, b, 1.6); S.set(x + 1, y, b, 1.3); S.set(x, y + 1, b, 0.5); }
     for (let i = 0; i < 5; i++) S.set((r() * W) | 0, (r() * H) | 0, [214, 96, 34]);
     return S.done();

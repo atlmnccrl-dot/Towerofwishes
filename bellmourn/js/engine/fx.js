@@ -307,7 +307,7 @@ export class FX {
   _hazardMesh(h) {
     const kinds = { fire: [3, 0.8, 0.15], poison: [0.5, 2.0, 0.3], beam: [3, 1.4, 0.3], bone: [2.2, 2.0, 1.6], slam: [1.6, 0.15, 0.1], water: [0.3, 1.6, 1.6], wax: [2, 1.8, 1.2], toll: [1.8, 1.8, 2.2], lightning: [1.6, 1.8, 3], shock: [1.8, 1.0, 0.6],
       frost: [0.9, 1.9, 2.8], ice: [1.3, 2.2, 3.0], sand: [2.2, 1.5, 0.6], venom: [0.9, 2.6, 0.3], acid: [0.9, 2.6, 0.35], hellfire: [3.4, 0.8, 0.15], holy: [3.0, 2.6, 1.4], eyebeam: [3.2, 2.9, 2.0], curse: [1.6, 0.5, 2.4],
-      bog: [0.7, 1.4, 0.35], wispfire: [0.9, 2.8, 1.8], steam: [1.1, 1.2, 1.3], spark: [3.2, 1.9, 0.6], saw: [2.6, 2.4, 2.0], chrono: [1.0, 1.9, 3.2], radiant: [3.2, 3.0, 2.2], choir: [3.0, 1.6, 2.6], spear: [3.2, 3.0, 2.0], spoke: [3.4, 3.0, 1.8], discord: [2.4, 0.4, 2.8] };
+      bog: [0.7, 1.4, 0.35], wispfire: [0.9, 2.8, 1.8], steam: [1.1, 1.2, 1.3], spark: [3.2, 1.9, 0.6], saw: [2.6, 2.4, 2.0], chrono: [0.55, 1.1, 2.1], radiant: [2.4, 2.2, 1.5], choir: [3.0, 1.6, 2.6], spear: [3.2, 3.0, 2.0], spoke: [2.2, 1.9, 1.0], discord: [2.4, 0.4, 2.8] };
     const hot = kinds[h.kind] || kinds.slam;
     const g = new THREE.Group();
     const mat = (c, o, blend = THREE.AdditiveBlending) => new THREE.MeshBasicMaterial({ color: new THREE.Color(...c), transparent: true, opacity: o, depthWrite: false, blending: blend, fog: false, side: THREE.DoubleSide });
@@ -691,10 +691,10 @@ export class FX {
       U.links = []; for (let i = 0; i < 14; i++) U.links.push(boxm(0.12, 0.2, 0.06, lam(0x6a6e72, 0x101418), 0, 0, 0));
     } else if (kind === 'pool') {
       U.pool = new THREE.Mesh(new THREE.CircleGeometry(1, 28), new THREE.MeshBasicMaterial({ color: new THREE.Color(...(o.color || [0.1, 0.3, 0.3])), transparent: true, opacity: 0.88, depthWrite: false, fog: false })); U.pool.rotation.x = -Math.PI / 2; U.pool.position.y = 0.03; g.add(U.pool);
-      U.ripples = []; for (let i = 0; i < 3; i++) { const r = new THREE.Mesh(new THREE.RingGeometry(0.92, 1, 32), glow([0.5, 0.9, 0.9], 0.5)); r.rotation.x = -Math.PI / 2; r.position.y = 0.05; g.add(r); U.ripples.push(r); }
+      U.ripples = []; const rc = (o.color || [0.1, 0.3, 0.3]).map((v) => Math.min(1.2, v * 3 + 0.15)); for (let i = 0; i < 3; i++) { const r = new THREE.Mesh(new THREE.RingGeometry(0.92, 1, 32), glow(rc, 0.35)); r.rotation.x = -Math.PI / 2; r.position.y = 0.05; g.add(r); U.ripples.push(r); }
     } else if (kind === 'bones') {
       U.bones = []; const bm = lam(0xe0d8c4);
-      for (let i = 0; i < 18; i++) { const a = Math.random() * TAU, r = 2 + Math.random() * 2.6; const b = boxm(0.08 + Math.random() * 0.06, 0.06, 0.3 + Math.random() * 0.3, bm, Math.sin(a) * r, 0.05, Math.cos(a) * r); b.rotation.y = Math.random() * 3; U.bones.push({ b, x: b.position.x, z: b.position.z, ty: 0.3 + Math.random() * 1.6 }); }
+      for (let i = 0; i < 18; i++) { const a = Math.random() * TAU, r = 2 + Math.random() * 2.6; const b = boxm(0.12 + Math.random() * 0.08, 0.09, 0.45 + Math.random() * 0.4, bm, Math.sin(a) * r, 0.05, Math.cos(a) * r); b.rotation.y = Math.random() * 3; U.bones.push({ b, x: b.position.x, z: b.position.z, ty: 0.3 + Math.random() * 1.6 }); }
     } else if (kind === 'furnace') {
       U.body = new THREE.Group(); g.add(U.body); const br = lam(0x5a3a2a), dk = lam(0x2a1a12);
       boxm(2.4, 2.2, 1.6, br, 0, 1.1, 0, U.body); boxm(2.6, 0.3, 1.8, dk, 0, 2.3, 0, U.body); boxm(0.6, 1.6, 0.6, dk, 0.6, 3.1, 0, U.body);
@@ -710,7 +710,7 @@ export class FX {
       const y = o.y || 10; U.sky = new THREE.Group(); U.sky.position.y = y; g.add(U.sky); U.sky.rotation.x = 0; g.rotation.y = 0;
       for (let i = 0; i < 24; i++) { const a = i / 24 * TAU; boxm(0.3, 0.08, 0.12, glow(i % 2 ? [3, 2.4, 1.2] : [3, 0.6, 0.3]), Math.sin(a) * 2.8, 0, Math.cos(a) * 2.8, U.sky).rotation.y = a; }
       U.eye = new THREE.Group(); U.sky.add(U.eye); boxm(2.2, 0.06, 1.0, glow([3, 3, 2.8]), 0, -0.05, 0, U.eye); boxm(0.6, 0.08, 0.6, glow([3.2, 0.8, 0.3]), 0, -0.08, 0, U.eye);
-      U.col = new THREE.Mesh(new THREE.BoxGeometry(1.8, y, 1.8), glow([1.4, 1.2, 0.7], 0.25)); U.col.position.y = y / 2; g.add(U.col);
+      U.col = new THREE.Mesh(new THREE.BoxGeometry(1.4, y, 1.4), glow([1.4, 1.2, 0.7], 0.15)); U.col.position.y = y / 2; g.add(U.col);
     } else if (kind === 'bells') {
       U.bells = []; const n = o.n || 5, R = o.R || 3;
       for (let i = 0; i < n; i++) { const a = i / n * TAU; const bg = new THREE.Group(); bg.position.set(Math.sin(a) * R, -1, Math.cos(a) * R); g.add(bg); const m = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.4, 0.56, 8), lam(0x6a5a2a, 0x10140a)); m.position.y = 0.3; m.castShadow = true; bg.add(m); boxm(0.4, 0.04, 0.4, glow([0.6, 2.2, 1.4]), 0, 0.02, 0, bg); U.bells.push(bg); }
@@ -725,7 +725,7 @@ export class FX {
       U.door = boxm(R * 1.6, R * 1.6, 0.05, glow([0.02, 0.04, 0.08]), 0, R + 0.3, -0.14); U.door.material.opacity = 1;
       boxm(0.3, 0.3, 0.06, glow([1.2, 2, 3.2]), 0, R + 0.3, -0.2);
     } else if (kind === 'beam') {
-      U.col = new THREE.Mesh(new THREE.BoxGeometry(2.4, 20, 2.4), glow(o.color || [3, 2.6, 1.4], 0.18)); U.col.position.y = 10; g.add(U.col);
+      U.col = new THREE.Mesh(new THREE.BoxGeometry(1.5, 20, 1.5), glow(o.color || [3, 2.6, 1.4], 0.1)); U.col.position.y = 10; g.add(U.col);
       U.ring = new THREE.Mesh(new THREE.RingGeometry(2.4, 2.7, 36), glow(o.color || [3, 2.6, 1.4], 0.7)); U.ring.rotation.x = -Math.PI / 2; U.ring.position.y = 0.05; g.add(U.ring);
     }
     (this.pieceList || (this.pieceList = [])).push(P);
@@ -752,7 +752,7 @@ export class FX {
         U.pool.material.opacity = 0.9 * (1 - end); g.visible = end < 1;
       } else if (P.kind === 'pool') {
         const r = (o.r || 4) * ez(cl(t / (o.grow || 1))); U.pool.scale.setScalar(Math.max(0.01, r)); U.pool.material.opacity = 0.88 * (1 - end);
-        U.ripples.forEach((rp, i) => { const k = ((t * 0.7 + i / 3) % 1); rp.scale.setScalar(Math.max(0.01, r * k)); rp.material.opacity = 0.5 * (1 - k) * (1 - end); });
+        U.ripples.forEach((rp, i) => { const k = ((t * 0.7 + i / 3) % 1); rp.scale.setScalar(Math.max(0.01, r * k)); rp.material.opacity = 0.35 * (1 - k) * (1 - end); });
       } else if (P.kind === 'bones') {
         const [g0, g1] = o.gather || [0.3, 1.8];
         for (const B of U.bones) { const k = cl((t - g0) / (g1 - g0)); const kk = ez(k); B.b.position.set(B.x * (1 - kk), 0.05 + Math.sin(k * Math.PI) * 1.2 + kk * B.ty, B.z * (1 - kk)); B.b.rotation.x = k * 8; B.b.visible = t < g1 + 0.05; }
@@ -766,14 +766,14 @@ export class FX {
         g.visible = t < o.burst;
       } else if (P.kind === 'eye') {
         const k = ez(cl(t / (o.open || 1))); U.eye.scale.set(1, 1, Math.max(0.02, k)); U.sky.rotation.y = t * 0.4;
-        U.col.visible = t > (o.open || 1) * 0.8; U.col.material.opacity = 0.25 * (1 - end) * (0.8 + 0.2 * Math.sin(t * 12)); U.sky.visible = end < 1;
+        U.col.visible = t > (o.open || 1) * 0.8; U.col.material.opacity = 0.15 * (1 - end) * (0.8 + 0.2 * Math.sin(t * 12)); U.sky.visible = end < 1;
       } else if (P.kind === 'bells') {
         const [r0, r1] = o.rise || [1, 2]; U.bells.forEach((b, i) => { const k = ez(cl((t - r0 - i * 0.06) / (r1 - r0))); b.position.y = -1 + k * 1.2 + Math.sin(t * 3 + i) * 0.06 * k - end * 1.3; b.rotation.z = Math.sin(t * 4 + i) * 0.15; });
       } else if (P.kind === 'clock') {
         const sp = t < (o.open || 1.2) ? 14 : 2; U.mh.rotation.z -= dt * sp; U.hh.rotation.z -= dt * sp / 12;
         U.hinge.rotation.y = -ez(cl((t - (o.open || 1.2)) / 0.6)) * 1.9; g.position.y = -end * 4.5;
       } else if (P.kind === 'beam') {
-        const k = cl(t / 1.2); U.col.material.opacity = 0.2 * k * (1 - end) * (0.85 + 0.15 * Math.sin(t * 10)); U.ring.scale.setScalar(0.4 + k * 0.6 + Math.sin(t * 3) * 0.05); U.ring.material.opacity = 0.7 * k * (1 - end);
+        const k = cl(t / 1.2); U.col.material.opacity = 0.1 * k * (1 - end) * (0.85 + 0.15 * Math.sin(t * 10)); U.ring.scale.setScalar(0.4 + k * 0.6 + Math.sin(t * 3) * 0.05); U.ring.material.opacity = 0.7 * k * (1 - end);
       }
     }
     this.pieceList = L.filter((P) => { if (P.t >= P.life) { free(this.group, P.g); return false; } return true; });

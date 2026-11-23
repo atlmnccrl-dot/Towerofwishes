@@ -12,14 +12,15 @@ import { mergeGeometries } from '../../../vendor/BufferGeometryUtils.js';
 const mats = new Map();
 const once = (k, fn) => { if (!mats.has(k)) mats.set(k, fn()); return mats.get(k); };
 // gilt: dull gold that still catches a lamp in the rain
-export const gilt = () => once('gilt', () => cutout(new THREE.MeshPhongMaterial({ color: 0x9c7c38, specular: 0xffe4a8, shininess: 46, emissive: 0x1e1608 })));
-const marble = () => once('marble', () => cutout(new THREE.MeshPhongMaterial({ color: 0xa6a4b8, specular: 0x5a5a70, shininess: 24 })));
+export const gilt = () => once('gilt', () => cutout(new THREE.MeshPhongMaterial({ color: 0xc09432, specular: 0xffe8b0, shininess: 50, emissive: 0x2a1c06 })));
+const marble = () => once('marble', () => cutout(new THREE.MeshPhongMaterial({ color: 0xe0dacc, specular: 0x8a8478, shininess: 30 })));
 const lacquer = () => once('lacquer', () => cutout(new THREE.MeshPhongMaterial({ color: 0x2a1e34, specular: 0x8a7aa8, shininess: 40 })));
 const hedgeM = () => M.grass('#1c2c26');
 const lawnM = () => M.grass('#2a3830');
-// the stone palette: every tone is one more material (one more draw call), so the Heights keep to four
-export const STONE = '#4e5264', STONE2 = '#484c5e', BASE = '#3c4052', STEP = '#5a5f72';
-const trimM = () => M.ashlar('#666b7e');
+// the stone palette: every tone is one more material (one more draw call), so the Heights keep to four.
+// Pale limestone and white marble with gilt (district variety: the only pale quarter of the city)
+export const STONE = '#aaa496', STONE2 = '#9e988a', BASE = '#7c766a', STEP = '#b6b0a0';
+const trimM = () => M.ashlar('#cac4b4');
 
 // Small pixel textures (16 texels per metre, like the rest of the city).
 const texCache = new Map();
@@ -725,4 +726,24 @@ export function checkerFloor(ctx, x0, z0, x1, z1) {
 export function star(ctx, x, z, size = 12) {
   const S = Math.round(size * 16); const m = new THREE.MeshPhongMaterial({ map: starTex(S), alphaTest: 0.5, shininess: 30, specular: 0x4a5266 });
   add(ctx, plane(size, size), m, x, 0.018, z, { rx: -Math.PI / 2, cast: false });
+}
+
+// The palace dome: a drum ringed with pilasters and lit windows, a ribbed lead dome with gilded ribs and a
+// gilded lantern and crown on top, glowing. The Heights' landmark, over the palace roof (far side, north).
+export function dome(ctx, x, z, y0, R = 3.4) {
+  const st = M.ashlar(STONE), g = gilt();
+  const dh = 2.6; add(ctx, cyl(R, R, dh, 16), st, x, y0 + dh / 2, z);
+  add(ctx, cyl(R + 0.3, R + 0.3, 0.3, 16), trimM(), x, y0 + dh + 0.15, z);
+  for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2; inst(ctx, 'hh-dpil', box(0.3, dh, 0.3), trimM(), mat4(x + Math.cos(a) * R, y0 + dh / 2, z + Math.sin(a) * R, -a));
+    if (k % 2 === 0) add(ctx, plane(0.6, 1.3), M.decal(T.lancet(true, 10, 22), 1.4), x + Math.cos(a + 0.26) * (R + 0.02), y0 + dh / 2, z + Math.sin(a + 0.26) * (R + 0.02), { ry: Math.PI / 2 - (a + 0.26), cast: false }); }
+  const prof = []; for (let i = 0; i <= 8; i++) { const t = i / 8 * Math.PI / 2; prof.push([Math.cos(t) * R, Math.sin(t) * R * 1.1]); }
+  const dg = lathe('dome' + R, prof, 16); add(ctx, dg, M.slate('#3a3a4a'), x, y0 + dh + 0.3, z);
+  for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2; for (let i = 0; i < 8; i++) { const t0 = i / 8 * Math.PI / 2, t1 = (i + 1) / 8 * Math.PI / 2;
+    const ax = Math.cos(t0) * R, ay = Math.sin(t0) * R * 1.1, bx = Math.cos(t1) * R, by = Math.sin(t1) * R * 1.1; const L = Math.hypot(bx - ax, by - ay);
+    const m = new THREE.Matrix4().compose(new THREE.Vector3(x + Math.cos(a) * (ax + bx) / 2 * 1.01, y0 + dh + 0.3 + (ay + by) / 2, z + Math.sin(a) * (ax + bx) / 2 * 1.01), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -a, Math.atan2(by - ay, bx - ax) - Math.PI / 2)), new THREE.Vector3(0.14, L, 0.14));
+    inst(ctx, 'hh-drib', box(1, 1, 1), g, m); } }
+  const top = y0 + dh + 0.3 + R * 1.1;
+  add(ctx, cyl(0.7, 0.8, 1.4, 8), g, x, top + 0.6, z); add(ctx, cyl(0.55, 0.55, 1.0, 8), M.glow('#ffe0a0', 1.4), x, top + 0.8, z, { cast: false });
+  add(ctx, cone(0.8, 1.3, 8), g, x, top + 1.95, z); add(ctx, sph(0.26, 1), g, x, top + 2.8, z);
+  ctx.lights.push({ x: x + 1.2, y: top + 1, z: z + 1.2, color: 0xffe0a0, intensity: 6, dist: 10, halo: true, flicker: 0.02 });
 }

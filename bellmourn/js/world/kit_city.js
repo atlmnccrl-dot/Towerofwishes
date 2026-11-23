@@ -101,7 +101,20 @@ function fenceDocks(ctx, x0, z0, x1, z1) {
   for (let i = 0; i < n; i++) { const a = [x0 + (x1 - x0) * i / n, z0 + (z1 - z0) * i / n], b = [x0 + (x1 - x0) * (i + 1) / n, z0 + (z1 - z0) * (i + 1) / n], m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
     for (const [y, sag] of [[1.0, 0.22], [0.55, 0.12]]) { rod(ctx, 'dkf-rope', rope(), [a[0], y, a[1]], [m[0], y - sag, m[1]], 0.035); rod(ctx, 'dkf-rope', rope(), [m[0], y - sag, m[1]], [b[0], y, b[1]], 0.035); } }
 }
-function fenceNave(ctx, x0, z0, x1, z1) { balustrade(ctx, x0, z0, x1, z1, M.ashlar('#4a5462'), M.ashlar('#5a6472'), flatM(0x56606c), 'nvb'); }
+function fenceNave(ctx, x0, z0, x1, z1, opts = {}) {
+  if ((opts.h || 2) >= 2.4) return choirScreen(ctx, x0, z0, x1, z1, opts.h);
+  balustrade(ctx, x0, z0, x1, z1, M.ashlar('#4a5462'), M.ashlar('#5a6472'), flatM(0x56606c), 'nvb'); }
+// A tall screen of bronze tracery on a stone sill (the nave's choir screens).
+function choirScreen(ctx, x0, z0, x1, z1, h) {
+  const alongX = Math.abs(x1 - x0) >= Math.abs(z1 - z0); const len = Math.hypot(x1 - x0, z1 - z0); const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2; const b = bronze();
+  add(ctx, box(alongX ? len + 0.1 : 0.5, 0.6, alongX ? 0.5 : len + 0.1), M.ashlar('#46505e'), cx, 0.3, cz);
+  add(ctx, box(alongX ? len + 0.1 : 0.4, 0.16, alongX ? 0.4 : len + 0.1), M.ashlar('#56606e'), cx, h + 0.2, cz);
+  for (const y of [1.0, h - 0.4]) add(ctx, box(alongX ? len : 0.06, 0.07, alongX ? 0.06 : len), b, cx, y, cz);
+  const nb = Math.max(2, Math.round(len / 0.18));
+  for (let i = 0; i <= nb; i++) { const t = i / nb; inst(ctx, 'nvs-bar', box(0.04, h - 0.5, 0.04), b, mat4(x0 + (x1 - x0) * t, 0.6 + (h - 0.5) / 2, z0 + (z1 - z0) * t)); }
+  for (let t = 0.3; t < len; t += 0.6) { const f = t / len; inst(ctx, 'nvs-quat', torus(0.2, 0.025), b, mat4(x0 + (x1 - x0) * f, h - 0.75, z0 + (z1 - z0) * f, alongX ? 0 : Math.PI / 2)); }
+  along(x0, z0, x1, z1, 2.2, (x, z) => { inst(ctx, 'nvs-post', box(0.3, h + 0.3, 0.3), M.ashlar('#46505e'), mat4(x, (h + 0.3) / 2, z)); inst(ctx, 'nvs-pin', cone(0.22, 0.6, 4), M.ashlar('#56606e'), mat4(x, h + 0.6, z, Math.PI / 4)); });
+}
 function fenceHeights(ctx, x0, z0, x1, z1) { balustrade(ctx, x0, z0, x1, z1, MC.stucco('#c8c0b2'), MC.stucco('#d8d0c2'), flatM(0xd0c8ba), 'hhb', true); }
 function balustrade(ctx, x0, z0, x1, z1, base, rail, bal, key, urns) {
   const alongX = Math.abs(x1 - x0) >= Math.abs(z1 - z0); const len = Math.hypot(x1 - x0, z1 - z0); const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
@@ -115,15 +128,16 @@ function balustrade(ctx, x0, z0, x1, z1, base, rail, bal, key, urns) {
     if (urns) { inst(ctx, key + '-urn', cyl(0.16, 0.08, 0.3, 8), gold(), mat4(x, 1.42, z)); inst(ctx, key + '-urnt', sph(0.08, 0), gold(), mat4(x, 1.64, z)); }
   });
 }
-function fenceUndercroft(ctx, x0, z0, x1, z1) {
-  const alongX = Math.abs(x1 - x0) >= Math.abs(z1 - z0); const len = Math.hypot(x1 - x0, z1 - z0);
+function fenceUndercroft(ctx, x0, z0, x1, z1, opts = {}) {
+  // a rail of bones on skull posts; a tall one (a grille closing a fight) gets iron bars to its full height
+  const alongX = Math.abs(x1 - x0) >= Math.abs(z1 - z0); const len = Math.hypot(x1 - x0, z1 - z0); const H = (opts.h || 2) >= 2.4 ? opts.h : 1.0;
   along(x0, z0, x1, z1, 1.6, (x, z) => {
-    inst(ctx, 'ucf-post', box(0.24, 1.0, 0.24), M.ashlar('#3e3830'), mat4(x, 0.5, z));
-    for (let k = 0; k < 3; k++) inst(ctx, 'ucf-skull', sph(0.13, 1), bone(), mat4(x + (k - 1) * 0.06, 1.12 + (k === 1 ? 0.14 : 0), z + (k - 1) * 0.04));
+    inst(ctx, 'ucf-post', box(0.24, H, 0.24), M.ashlar('#3e3830'), mat4(x, H / 2, z));
+    for (let k = 0; k < 3; k++) inst(ctx, 'ucf-skull', sph(0.13, 1), bone(), mat4(x + (k - 1) * 0.06, H + 0.12 + (k === 1 ? 0.14 : 0), z + (k - 1) * 0.04));
   });
-  for (const y of [0.35, 0.8]) for (let t = 0; t < len; t += 0.42) { const f = (t + 0.21) / len; const x = x0 + (x1 - x0) * f, z = z0 + (z1 - z0) * f;
+  for (const y of [0.35, H - 0.2]) for (let t = 0; t < len; t += 0.42) { const f = (t + 0.21) / len; const x = x0 + (x1 - x0) * f, z = z0 + (z1 - z0) * f;
     inst(ctx, 'ucf-femur', cyl(0.035, 0.035, 0.42, 5), bone(), mat4(x, y, z, 0, alongX ? 0 : Math.PI / 2, alongX ? Math.PI / 2 : 0)); }
-  for (let t = 0.2; t < len; t += 0.2) { const f = t / len; inst(ctx, 'ucf-bar', box(0.035, 0.75, 0.035), M.ironLit(), mat4(x0 + (x1 - x0) * f, 0.6, z0 + (z1 - z0) * f)); }
+  for (let t = 0.2; t < len; t += 0.2) { const f = t / len; inst(ctx, 'ucf-bar' + (H > 1.5 ? 'T' : ''), box(0.035, H - 0.25, 0.035), M.ironLit(), mat4(x0 + (x1 - x0) * f, 0.15 + (H - 0.25) / 2, z0 + (z1 - z0) * f)); }
 }
 function fenceFoundry(ctx, x0, z0, x1, z1) {
   const alongX = Math.abs(x1 - x0) >= Math.abs(z1 - z0); const len = Math.hypot(x1 - x0, z1 - z0); const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
@@ -376,6 +390,7 @@ function wallStyled(ctx, cx, cz, W, D, h, alongX, len, face, opts, style) {
     const n = Math.max(1, Math.floor(len / 3));
     for (let i = 0; i <= n; i++) { const p = -len / 2 + i * len / n; const [px, pz] = alongX ? [cx + p, cz + face * (t / 2 + 0.15)] : [cx + face * (t / 2 + 0.15), cz + p];
       inst(ctx, 'fdw-pil', box(0.4, h, 0.4), MC.redBrick('#5e2e22'), mat4(px, h / 2, pz)); inst(ctx, 'fdw-tie', cyl(0.12, 0.12, 0.05, 6), steel(), mat4(px + (alongX ? 0 : face * 0.21), h * 0.7, pz + (alongX ? face * 0.21 : 0), 0, alongX ? Math.PI / 2 : 0, alongX ? 0 : Math.PI / 2)); }
+    archDecals(ctx, cx, cz, h, t, alongX, len, face, opts, 1.6);
     return true;
   }
   if (style === 'heights') {
@@ -385,9 +400,21 @@ function wallStyled(ctx, cx, cz, W, D, h, alongX, len, face, opts, style) {
     const n = Math.max(1, Math.floor(len / 2.6));
     for (let i = 0; i <= n; i++) { const p = -len / 2 + i * len / n; const [px, pz] = alongX ? [cx + p, cz + face * (t / 2 + 0.08)] : [cx + face * (t / 2 + 0.08), cz + p];
       inst(ctx, 'hhw-pil', box(0.36, h, 0.36), MC.stucco('#d4ccbe'), mat4(px, h / 2, pz)); inst(ctx, 'hhw-urn', cyl(0.14, 0.07, 0.3, 8), gold(), mat4(px, h + 0.33, pz)); }
+    archDecals(ctx, cx, cz, h, t, alongX, len, face, opts, 1.2);
     return true;
   }
   return false;
+}
+
+// Tall arched windows along a styled wall (opts.arches of them; opts.litArches glow), k times the size.
+function archDecals(ctx, cx, cz, h, t, alongX, len, face, opts, k = 1) {
+  if (!opts.arches) return; const n = opts.arches, step = len / (n + 1);
+  for (let i = 1; i <= n; i++) {
+    const p = -len / 2 + i * step, lit = opts.litArches && opts.litArches.includes(i - 1); const w = 10 / 16 * k, hh = 24 / 16 * k;
+    const pm = M.decal(T.lancet(lit, 10, 24), lit ? 1.6 : 0); const y = Math.min(h * 0.42 + hh / 2, h - hh / 2 - 0.3);
+    if (alongX) add(ctx, plane(w, hh), pm, cx + p, y, cz + face * (t / 2 + 0.01), { cast: false, ry: face > 0 ? 0 : Math.PI });
+    else add(ctx, plane(w, hh), pm, cx + face * (t / 2 + 0.01), y, cz + p, { cast: false, ry: face > 0 ? Math.PI / 2 : -Math.PI / 2 });
+  }
 }
 
 // ================================================================= houses (visuals; kit.js keeps the solid)

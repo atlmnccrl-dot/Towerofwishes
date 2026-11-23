@@ -21,8 +21,10 @@ export default {
   bounds: BOUNDS,
   gatesOpen: ['stairGate', 'effigyGate', 'ossuaryGate'],
   ambience: {
-    fog: 0x131820, fogNear: 78, fogFar: 175, sky: 0x020304, moon: 0.9, moonColor: 0x8ea4cc, hemi: 1.0, hemiSky: 0x4a5874, hemiGround: 0x0a0c10,
-    fill: 1.7, fillColor: 0x6a7898, ambient: 0x141a28, ambientI: 0.6, rain: 0, lightning: false,
+    // bone and candle: an ochre dark, dust hanging in the grate light (district variety)
+    fog: 0x18140f, fogNear: 78, fogFar: 175, sky: 0x020304, moon: 0.9, moonColor: 0xa8a4a0, hemi: 1.0, hemiSky: 0x5a5244, hemiGround: 0x0c0a08,
+    fill: 1.7, fillColor: 0x8a8070, ambient: 0x1a1610, ambientI: 0.6, rain: 0, lightning: false, weather: 'dust',
+    grade: { gain: [1.04, 0.98, 0.88], lift: [0.008, 0.006, 0.003], sat: 0.8 },
     // short shafts through the street grates (the ceiling is lost in the dark); none over the stream,
     // whose shaft would lie across the hall of effigies behind it. (Lengths chosen so the shaft's top
     // vertex colour stays finite: atmos computes pow(1 - t, 1.4) with t a hair over 1 for some lengths.)
@@ -64,6 +66,7 @@ export default {
   exit: { zone: [15.3, -41.2, 17.5, -38.2], to: 'foundry', requires: 'boss' },
   build(K, ctx) {
     const W = K.M;
+    K.district(ctx, 'undercroft');
     // the grilles that close off the fights are opaque to the dead (they cannot see through the bars)
     const screen = (x0, z0, x1, z1) => { K.fence(ctx, x0, z0, x1, z1, { h: 2.6 }); P.opaque(ctx, ctx.solids[ctx.solids.length - 1], x0 === x1 ? 'z' : 'x'); };
     const grilleGate = (name, x, z, w, axis, o) => { ctx.marks[name] = K.gate(ctx, x, z, w, axis, { h: 2.8, ...o }); P.opaque(ctx, ctx.marks[name].solid, axis); };
@@ -186,6 +189,7 @@ export default {
     grilleGate('exitGate', 16.4, -37.4, 2.6, 'x', { piers: false, swingDir: 1 });
     P.skullShrine(ctx, 6.4, -37, 2.8);
     P.nameRing(ctx, 11.4, -26.3, 6);
+    P.boneCorona(ctx, 11.4, 8.2, -26.3, 3.4); // the landmark: the corona of bones hung over the ring of names
     P.grateLight(ctx, 11.4, -26.3, 4.2);
     for (const [x, z, o] of [[2.8, -35, {}], [11.4, -35, {}], [20, -35, {}], [2.8, -26.3, {}], [2.8, -17.6, {}], [20, -26.3, { broken: 2 }], [11.4, -17.6, { broken: 1.6 }], [20, -17.6, { broken: 1 }]]) P.bonePillar(ctx, x, z, o);
     P.candles(ctx, 3.6, 0.02, -34.2, { n: 5, spread: 0.25, light: true, intensity: 2.8, dist: 6 });

@@ -208,27 +208,31 @@ class Wheel extends Beast {
   constructor(look) {
     super(look); const Cc = look.colors; this.baseY = 2.0;
     this.joint('base', null, 0, this.baseY, 0);
+    // everything hangs on a frame turned to the camera (iso, yaw 45°) and tipped back towards it, so the
+    // rings always read as rings whichever way the Wheel faces
+    this.facer = this.fixed('base', 0, 0, 0); this.facer.rotation.order = 'YXZ';
     // the bell of the Voice
-    this.joint('bell', 'base', 0, 0, 0);
+    this.joint('bell', this.facer, 0, 0, 0);
     const bell = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.42, 0.62, 8), this.part('bell', 0.01, 0.01, 0.01, Cc.gold, 0, 0, 0).material); bell.position.y = 0.0; bell.castShadow = true; this.j.bell.add(bell); this.parts.push(bell);
     this.part('bell', 0.18, 0.12, 0.18, Cc.dark, 0, 0.36, 0);
     this.voice = this.part('bell', 0.5, 0.05, 0.5, Cc.voice, 0, -0.31, 0, { glow: 2.4 });
     this.voiceCore = this.part('bell', 0.16, 0.2, 0.16, Cc.voice, 0, -0.18, 0, { glow: 3.5 });
     // spokes of light
-    this.spokes = this.joint('spokes', 'base', 0, 0, 0);
-    for (let i = 0; i < 6; i++) { const a = i / 6 * TAU; this.part('spokes', 0.06, 0.06, 0.9, Cc.spoke, S(a) * 0.62, 0, C(a) * 0.62, { glow: 2, ry: a }); }
+    this.spokes = this.joint('spokes', this.facer, 0, 0, 0);
+    for (let i = 0; i < 6; i++) { const a = i / 6 * TAU; this.part('spokes', 0.07, 0.62, 0.07, Cc.spoke, S(a) * 0.68, C(a) * 0.68, 0, { glow: 2.2, rz: -a }); }
     // three rings of eyes
     this.rings = []; this.eyes = [];
     const mk = (name, R, n, tilt, col) => {
-      const hold = this.fixed('base', 0, 0, 0, tilt[0], tilt[1], tilt[2]); const g = this.joint(name, hold, 0, 0, 0);
-      for (let i = 0; i < n; i++) { const a = i / n * TAU; this.part(name, 0.14, 0.22, 0.14, i % 2 ? col : Cc.dark, S(a) * R, C(a) * R, 0, { rz: -a }); }
+      const hold = this.fixed(this.facer, 0, 0, 0, tilt[0], tilt[1], tilt[2]); const g = this.joint(name, hold, 0, 0, 0);
+      for (let i = 0; i < n; i++) { const a = i / n * TAU; this.part(name, 0.14, 0.24, 0.12, i % 3 ? col : Cc.dark, S(a) * R, C(a) * R, 0, { rz: -a, emissive: i % 3 ? 0x2a1c08 : 0 }); }
       for (let i = 0; i < Math.round(n / 3); i++) {
         const a = (i + 0.5) / Math.round(n / 3) * TAU; const eg = new THREE.Group(); eg.position.set(S(a) * R, C(a) * R, 0); g.add(eg);
         const w = this.part(eg, 0.2, 0.2, 0.18, Cc.eye, 0, 0, 0); const ir = this.part(eg, 0.1, 0.1, 0.2, Cc.iris, 0, 0, 0.01, { glow: 3 }); this.eyes.push({ eg, w, ir });
       }
       this.rings.push(g); return g;
     };
-    mk('ringA', 1.05, 18, [0, 0, 0], Cc.gold); mk('ringB', 1.45, 24, [0, Math.PI / 2, 0], Cc.white); mk('ringC', 1.85, 30, [Math.PI / 2, 0, 0.3], Cc.gold);
+    // concentric, nearly face-on (the boss turns to face the hero), the outer one tilted a little
+    mk('ringA', 1.05, 18, [0, 0, 0], Cc.gold); mk('ringB', 1.45, 24, [0.18, 0, 0], Cc.white); mk('ringC', 1.85, 30, [-0.3, 0.25, 0], Cc.gold);
     this.j.bell.add(this.hand); this.j.bell.add(this.tip); this.tip.position.set(0, -0.3, 0.6);
     this.spinA = 0; this.open = 1;
   }
@@ -247,10 +251,11 @@ class Wheel extends Beast {
     else if (anim === 'die' || anim === 'dieHard') { const k = clamp01(t / 2.5); pose = { lift: -1.6 * ease(k), roll: 0.6 * k }; spin = 0.4 * (1 - k); dil = 0; unfold = 1 - 0.3 * k; rate = 3; }
     else pose = float;
     this.pose(pose, dt, rate);
+    this.facer.rotation.set(-0.42, Math.PI / 4 - (e.face || 0), 0);
     this.spinA += dt * spin;
     this.rings[0].rotation.z = this.spinA * 0.8; this.rings[1].rotation.z = -this.spinA * 0.55; this.rings[2].rotation.z = this.spinA * 0.4;
     this.rings.forEach((g, i) => g.scale.setScalar(Math.max(0.01, ease(clamp01(unfold * 3 - i)))));
-    this.spokes.scale.setScalar(Math.max(0.01, Math.min(1.6, spokeK))); this.spokes.rotation.y = -this.spinA * 0.3;
+    this.spokes.scale.setScalar(Math.max(0.01, Math.min(1.6, spokeK))); this.spokes.rotation.z = -this.spinA * 0.3;
     // the eyes look about; with the Voice singing back they close one by one (the bell glows gold)
     const voice = !!e.voice; const closed = voice ? clamp01((1 - e.hp / e.maxHp / 0.12)) : 0;
     this.eyes.forEach((ey, i) => { const shut = voice && i / this.eyes.length < closed; const k = shut ? 0.08 : dil; ey.eg.scale.set(1, Math.max(0.08, Math.min(1.3, 0.6 + 0.4 * k)) * (shut ? 0.15 : 1), 1); ey.ir.position.x = S(tm * 1.3 + i) * 0.03; });

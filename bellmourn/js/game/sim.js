@@ -25,7 +25,8 @@ const HEAL = { dur: 0.95, at: 0.5 };
 // onBreak: breaking a foe's poise (or a guard, or a boss's poise) feeds the ultimate
 const METER = { onHit: 2.2, onPerfect: 22, onKill: 5, onHurt: 1.5, onBreak: 15 };
 const NONE = { mx: 0, mz: 0 };
-// The two equipped abilities have no buttons: the sim casts them in place of a basic attack (see _autoCast).
+// The two equipped abilities have no buttons: the sim casts them in place of a basic attack (see _autoCast),
+// except movement abilities (def.move), which the dash press casts instead of a plain dash (see _moveSlot).
 const PRESS = ['attack', 'dash', 'ult', 'heal'];
 
 export class World {
@@ -187,6 +188,7 @@ export class World {
     const take = (k) => { delete b[k]; };
     if (e.dashCharges < S.dashCharges) { e.dashT += h; if (e.dashT >= DASH.recharge) { e.dashCharges++; e.dashT = 0; } }
     for (let i = 0; i < 2; i++) if (e.cds[i] > 0) e.cds[i] -= h;
+    this._dashAbility(e);
     for (const k in e.buffs) { e.buffs[k] -= h; if (e.buffs[k] <= 0) delete e.buffs[k]; }
     if (e.buffs.echo > 0 && (e.echoT -= h) <= 0) this._echoVoice(e);
     if (e.hookT > 0) e.hookT -= h;
@@ -202,7 +204,11 @@ export class World {
 
     if (cancelable && fresh('ult', 0.2) && this.meter >= 100) { take('ult'); return this._ult(e); }
     const dashOK = e.dashCharges > 0 && (cancelable || (e.state === 'hurt' && e.t > 0.2) || (e.state === 'dash' && e.t > 0.12) || ((e.state === 'rush' || e.state === 'whirl') && e.t > 0.2));
-    if (dashOK && fresh('dash', 0.2)) { take('dash'); return this._dash(e, mdir); }
+    if (dashOK && fresh('dash', 0.2)) {
+      take('dash'); const mv = e.status.root ? -1 : this._moveSlot(e); // held fast: the dash tears free instead
+      if (mv >= 0) return this._ability(e, mv, mdir, null, true); // a ready movement ability rides on the dash (no charge spent)
+      return this._dash(e, mdir);
+    }
     if (canAct && fresh('heal', 0.2) && e.tonics > 0 && e.hp < e.maxHp) { take('heal'); e.state = 'heal'; e.t = 0; e.anim = 'heal'; e.animT = 0; e.healed = false; this.emit('drink', { e }); return; }
     const wantAttack = fresh('attack', 0.25) || (K.attack.kind === 'shoot' && inp.attackDown);
     // abilities ride on the attack: where a new attack could start (a fresh press for combos, the next shot
@@ -329,11 +335,26 @@ export class World {
   _autoCast(e, mdir, auto) {
     const S = e.stats;
     for (let i = 0; i < 2; i++) {
-      const ab = S.abilities[i]; if (!ab || !ab.def || e.cds[i] > 0) continue;
+      const ab = S.abilities[i]; if (!ab || !ab.def || ab.def.move || e.cds[i] > 0) continue; // movement abilities wait for the dash
       const tg = this._useful(e, ab.def, mdir, auto);
       if (tg) return { slot: i, tg: tg === true ? null : tg };
     }
     return null;
+  }
+
+  // The slot of the movement ability the dash would cast now (the first ready one), or -1.
+  _moveSlot(e) {
+    const A = e.stats.abilities;
+    for (let i = 0; i < 2; i++) if (A[i] && A[i].def && A[i].def.move && e.cds[i] <= 0) return i;
+    return -1;
+  }
+  // hero.dashAbility for the HUD: the movement ability on the dash button ({ id, ready, cd, cdMax }) or null
+  _dashAbility(e) {
+    const A = e.stats.abilities; let pick = -1;
+    for (let i = 0; i < 2; i++) if (A[i] && A[i].def && A[i].def.move) { if (pick < 0) pick = i; if (e.cds[i] <= 0) { pick = i; break; } }
+    if (pick < 0) { e.dashAbility = null; return; }
+    const d = e.dashAbility && e.dashAbility.slot === pick ? e.dashAbility : (e.dashAbility = { slot: pick });
+    d.id = A[pick].id; d.cd = Math.max(0, e.cds[pick]); d.cdMax = e.cdMax[pick] || 1; d.ready = d.cd <= 0;
   }
 
   // Would this ability do something right now? Returns the foe it is for, true (no particular foe) or null.
@@ -426,8 +447,11 @@ export class World {
   }
 
   // slot: 0 or 1; tg: the foe the cast is for (from _autoCast), aimed at like the old manual cast's soft lock
-  _ability(e, slot, mdir, tg = null) {
+  // viaDash: cast from the dash press (movement abilities): aimed by the stick, or the facing, like the dash
+  _ability(e, slot, mdir, tg = null, viaDash = false) {
     const ab = e.stats.abilities[slot]; const A = ab.def; const r = ab.rank; const S = e.stats;
+    const dir = mdir ?? e.face;
+    if (viaDash) { tg = null; e.face = dir; e.lockOn = null; }
     e.cds[slot] = A.cd * rankCd(r) * S.cdMul; e.cdMax[slot] = e.cds[slot];
     const cast = (anim, dur, move = 0, cancel = 0.2) => { e.state = 'cast'; e.t = 0; e.anim = anim; e.animT = 0; e.castDur = dur; e.castMove = move; e.castCancel = cancel; e.atk = null; };
     if (tg && tg.dead) tg = null;
@@ -442,7 +466,7 @@ export class World {
         this.projs.push({ id: this.nextId++, kind: 'wave', team: 'hero', x: e.x + Math.sin(a) * 0.8, z: e.z + Math.cos(a) * 0.8, vx: Math.sin(a) * 14, vz: Math.cos(a) * 14, r: 1.15, dmg: this.heroDmg(e, A.dmg, r), poise: 30, life: 0.6, hitSet: new Set(), pierce: true, face: a, src: e });
         break;
       }
-      case 'rush': { aim(7); e.state = 'rush'; e.t = 0; e.anim = 'thrust'; e.animT = 0.06; e.iframes = 0.34; e.hitSet = new Set(); e.rushDmg = this.heroDmg(e, A.dmg, r); e.rushDist = A.dist; break; }
+      case 'rush': { if (!viaDash) aim(7); e.state = 'rush'; e.t = 0; e.anim = 'thrust'; e.animT = 0.06; e.iframes = 0.34; e.hitSet = new Set(); e.rushDmg = this.heroDmg(e, A.dmg, r); e.rushDist = A.dist; break; }
       case 'whirl': { e.state = 'whirl'; e.t = 0; e.anim = 'whirl'; e.animT = 0; e.whirlK = -1; e.whirl = { dmg: this.heroDmg(e, A.dmg, r), hits: A.hits, radius: A.radius, status: A.status }; break; }
       case 'volley': {
         aim(12); cast(e.kit.attack.anim || 'aim', 0.32, 0.4);
@@ -453,7 +477,7 @@ export class World {
         break;
       }
       case 'smoke': {
-        const near = tg || this._nearestFoe(e, 8); const away = near ? angTo(near, e) : e.face + Math.PI;
+        const near = viaDash ? null : (tg || this._nearestFoe(e, 8)); const away = viaDash ? dir : (near ? angTo(near, e) : e.face + Math.PI);
         this.addZone({ shape: 'circle', x: e.x, z: e.z, r: A.radius, warn: 0.45, life: 0.15, dmg: this.heroDmg(e, A.dmg, r), stun: A.stun, kind: 'smoke' });
         const tx = e.x + Math.sin(away) * A.dist, tz = e.z + Math.cos(away) * A.dist;
         const p = this._lastClear(e.x, e.z, tx, tz, e.r); this.emit('blinkHero', { e, fx: e.x, fz: e.z, x: p.x, z: p.z }); e.x = p.x; e.z = p.z; e.face = wrap(away + Math.PI);
@@ -462,7 +486,7 @@ export class World {
       }
       case 'trap': { cast('cast', 0.3); this.addZone({ shape: 'circle', x: e.x + fx * 1.2, z: e.z + fz * 1.2, r: A.radius, life: A.life, dmg: this.heroDmg(e, A.dmg, r), root: A.root, trigger: true, kind: 'trap' }); break; }
       case 'shock': { cast('hsmash2', 0.5, 0, 0.42); this.addZone({ shape: 'ring', x: e.x + fx * 1.2, z: e.z + fz * 1.2, r0: 0.8, r1: A.r1, warn: 0.3, life: 0.5, dmg: this.heroDmg(e, A.dmg, r), kb: 7, kind: 'shock' }); this.emit('shake', { amt: 0.4 }); break; }
-      case 'charge': { aim(8); e.state = 'charging'; e.t = 0; e.anim = 'charge'; e.animT = 0; e.hitSet = new Set(); e.iframes = 0.25; e.chargeA = { dmg: this.heroDmg(e, A.dmg, r), slam: this.heroDmg(e, A.slam, r), radius: A.radius, dist: A.dist, slammed: false }; break; }
+      case 'charge': { if (!viaDash) aim(8); e.state = 'charging'; e.t = 0; e.anim = 'charge'; e.animT = 0; e.hitSet = new Set(); e.iframes = 0.25; e.chargeA = { dmg: this.heroDmg(e, A.dmg, r), slam: this.heroDmg(e, A.slam, r), radius: A.radius, dist: A.dist, slammed: false }; break; }
       case 'ward': { cast('roar', 0.4); e.buffs.ward = A.dur; e.wardPulse = 0; e.wardDmg = this.heroDmg(e, A.dmg, r); e.wardR = A.radius; this.addZone({ shape: 'circle', follow: e, r: A.radius, life: A.dur, dmg: e.wardDmg, tick: 0.6, kind: 'ward' }); break; }
       case 'pillar': {
         const at = aim(11) || null; cast('cast', 0.34);
@@ -490,8 +514,11 @@ export class World {
         break;
       }
       case 'shadow': {
-        const t = aim(A.range); const p = t && this._behind(e, t);
-        if (!t || !p) { cast('kstab', 0.3, 0); break; }
+        const t = viaDash ? this._foeToward(e, dir, A.range) : aim(A.range); const p = t && this._behind(e, t);
+        if (!t || !p) { // nobody that way: a long blink along the dash, no strike
+          const q = this._lastClear(e.x, e.z, e.x + Math.sin(dir) * 5, e.z + Math.cos(dir) * 5, e.r);
+          this.emit('blinkHero', { e, fx: e.x, fz: e.z, x: q.x, z: q.z }); e.x = q.x; e.z = q.z; e.iframes = 0.3; cast('kstab', 0.26, 0, 0.2); break;
+        }
         this.emit('blinkHero', { e, fx: e.x, fz: e.z, x: p.x, z: p.z }); e.x = p.x; e.z = p.z; e.face = angTo(e, t); e.lockOn = t;
         e.iframes = 0.4; cast('kstab', 0.34, 0, 0.26);
         this._damage(e, t, this.heroDmg(e, A.dmg, r), { poise: 35, kb: 3, heavy: true, status: A.status, kind: 'backstab' });
@@ -532,6 +559,8 @@ export class World {
       case 'lullaby': { cast('chant', 0.42, 0.2); this.addZone({ shape: 'circle', x: e.x, z: e.z, r: A.radius, life: 0.2, dmg: this.heroDmg(e, A.dmg, r), stun: A.stun, resonate: 1, kind: 'lull' }); break; }
       case 'echo': { cast('chant', 0.3, 0.4); e.buffs.echo = A.dur; e.echoT = 0.25; e.echoRate = A.rate; e.echoDmg = this.heroDmg(e, A.dmg, r); e.echoSide = 1; break; }
     }
+    // from the dash: the opening of the move is untouchable like a dash, and a blow dodged in it is a perfect dodge
+    if (viaDash) { e.iframes = Math.max(e.iframes, DASH.iframes); e.dashAt = this.t; e.perfected = false; e.dodgeUntil = this.t + DASH.iframes; this.emit('dash', { e, ability: ab.id }); }
     // the Deacon's Echo: a pool of black water where the skill went
     if (e.echo.deacon) {
       const up = e.echo.deacon > 1; const at = tg && !tg.dead ? tg : null; const px = at ? at.x : e.x + fx * 2, pz = at ? at.z : e.z + fz * 2;
@@ -539,6 +568,17 @@ export class World {
     }
     // the Clockmaster's Echo: every third skill winds the other one back
     if (e.echo.clockmaster && ++e.castN % 3 === 0) { const o = 1 - slot; e.cds[o] = 0; }
+  }
+
+  // the foe a dash-cast Shadow Step goes for: in reach, near the dash direction, in the clear
+  _foeToward(e, dir, range) {
+    let best = null, bs = Infinity;
+    for (const f of this.foes()) {
+      if (f.state === 'spawn' || f.hidden) continue; const d = dist(e, f); if (d > range + f.r) continue;
+      const off = Math.abs(angDiff(dir, angTo(e, f))); if (off > 1.0) continue;
+      const sc = d + off * 2; if (sc < bs && this.clear(e, f)) { bs = sc; best = f; }
+    }
+    return best;
   }
 
   // Echo Choir: one of the two echoes beside Mother Wren sings a note at the nearest foe
@@ -679,7 +719,7 @@ export class World {
     const hero = this.hero;
     if (dst === hero) {
       // perfect dodge: a blow that lands inside the first part of a dash
-      if (dst.state === 'dash' && dst.iframes > 0) {
+      if ((dst.state === 'dash' || this.t < (dst.dodgeUntil || 0)) && dst.iframes > 0) {
         if (this.t - dst.dashAt <= DASH.perfectWindow + 0.06 && !dst.perfected) {
           dst.perfected = true; this.meter = Math.min(100, this.meter + METER.onPerfect * dst.stats.ultRate); this.stats.perfects++; this.slow(0.7, 0.3); this.emit('perfect', { e: dst, src });
           if (dst.echo.silence) { const up = dst.echo.silence > 1; dst.buffs.hush = up ? 3 : 2; this.slow(up ? 1.2 : 1.0, 0.25); this.emit('hush', { e: dst }); }

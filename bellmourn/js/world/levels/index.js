@@ -14,4 +14,5 @@ import catacombs from './catacombs.js';
 import abyss from './abyss.js';
 import marsh from './marsh.js';
 import spire from './spire.js';
-export default { prologue, gate, market, docks, nave, undercroft, foundry, heights, belfry, frostmarch, ashdunes, catacombs, abyss, marsh, spire };
+import empyrean from './empyrean.js';
+export default { prologue, gate, market, docks, nave, undercroft, foundry, heights, belfry, frostmarch, ashdunes, catacombs, abyss, marsh, spire, empyrean };

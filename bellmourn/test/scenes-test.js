@@ -24,7 +24,7 @@ const fs = require('fs');
     const t0 = Date.now(); const before = errs.length;
     await p.evaluate((sid) => { window.__scene = null; return BM.game.debugScene(sid, { party: true, speed: 1 }); }, id);
     const want = (SHOTS[id] || [2]).slice(); let shot = 0; const names = new Set(); let ended = false;
-    for (let guard = 0; guard < 900; guard++) {
+    for (let guard = 0; guard < 4000; guard++) {
       const s = await p.evaluate(() => { const g = BM.game, c = g.cut; if (!c) return { state: g.state, none: true }; const L = c.line; return { state: g.state, id: c.id, lines: c.lines, full: L ? Math.floor(L.t * 60) >= (L.pages[L.page] || []).join(' ').length : false, name: L && L.name, page: L && L.page, strike: !!c.strikeS, pick: !!c.pick, title: !!c.titleCard && c.titleCard.t > 0.5, waiting: c.waiting }; });
       if (s.none || s.state !== 'cutscene' || s.id !== id) { ended = true; break; }
       if (s.name) names.add(s.name);
@@ -38,7 +38,7 @@ const fs = require('fs');
       // move on: lines advance by themselves (fast), strikes and choices are answered
       await p.evaluate((still) => { const c = BM.game.cut; if (!c) return; c.auto = true; c.speed = still ? 2.5 : 5; }, want.length > 0);
       await p.waitForTimeout(want.length ? 40 : 100);
-      if (Date.now() - t0 > 90000) break;
+      if (Date.now() - t0 > 180000) break;
     }
     const nerr = errs.length - before;
     const ok = ended && nerr === 0 && !(names.has('') || names.has('UNDEFINED'));

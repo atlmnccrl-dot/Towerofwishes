@@ -15,6 +15,8 @@ export default {
   ambience: {
     fog: 0x161e2a, fogNear: 70, fogFar: 160, sky: 0x06090f, moon: 2.4, moonColor: 0xb4c8ec, hemi: 0.85, hemiSky: 0x56688c,
     fill: 1.3, fillColor: 0x7888b0, rain: 1.35, lightning: true,
+    // storm-white: hard cold light, washed-out colour, the wind and the height (district variety)
+    grade: { gain: [0.95, 1.0, 1.1], lift: [0.004, 0.006, 0.012], sat: 0.66, exposure: 1.05 },
     beams: [
       { x: 0.2, z: 7.5, r: 4.5, h: 26, from: [6, 0, -10], intensity: 55 },
       { x: 4, z: -5, r: 6, h: 28, from: [6, 0, -10], intensity: 75 },
@@ -49,6 +51,7 @@ export default {
   exit: { zone: [4.9, -55.4, 8.1, -53.8], to: 'end', requires: 'boss' },
   build(K, ctx) {
     const W = K.M;
+    K.district(ctx, 'belfry'); // lashed timber rails, plank barriers, storm lanterns: the bell-wrights' scaffolding
     // ------------------------------------------------ the dark below: the city in the storm, mist and racing cloud
     P.cityLights(ctx, -45, -100, 40, 30, -26, 320, { skip: [[-6, -61, 19, -37]] });
     P.mist(ctx, -60, -115, 70, 60, -16, 0.55, 0x080b10, -17);
@@ -57,7 +60,7 @@ export default {
     P.clouds(ctx, -60, -115, 70, 60, -3.4, { opacity: 0.28, speed: 3.4, seed: 41, order: -14, color: 0x3a465a, density: 0.7 });
 
     // ------------------------------------------------ the leads: the gutter walk along the nave roof
-    K.floor(ctx, -2, 1.4, 2.2, 26, W.flags('#58626f'));
+    K.floor(ctx, -2, 1.4, 2.2, 26, K.MC.plate('#5a626c')); // lead sheets on the gutter walk
     K.wall(ctx, -2.2, -3.6, -2.2, 26, 0.6, { thick: 0.4, cap: false, tone: '#3a4454' });
     K.roof(ctx, -9.6, 0.55, 18, 15.6, 43.2, 7.6, false, '#34425a');
     for (const z of [12.4, 5.2]) { // dormers on the nave roof
@@ -86,8 +89,8 @@ export default {
     P.flight(ctx, -2, 1.6, 2.2, 3.6, 'z-', { n: 4, cheek: 0 });
 
     // ------------------------------------------------ the crossing: the transept leads under the lantern spire
-    K.floor(ctx, -2, -11.3, 10.3, 1.4, W.court('#5a6472'));
-    K.floor(ctx, -2.6, -11.3, -2, -3.6, W.court('#5a6472'));
+    K.floor(ctx, -2, -11.3, 10.3, 1.4, K.MC.plate('#5e6670'));
+    K.floor(ctx, -2.6, -11.3, -2, -3.6, K.MC.plate('#5e6670'));
     ctx.marks.leadsGate = K.gate(ctx, 0.1, 1.4, 2.6, 'x', { h: 2.4, open: true, swingDir: -1 });
     // the lantern tower and its spire (far side)
     P.tower(ctx, -9.5, -11, -2.5, -4, 7.5);
@@ -98,6 +101,7 @@ export default {
     K.banner(ctx, -2.5, 2.6, -6.3, '+x'); K.banner(ctx, -2.5, 2.6, -8.7, '+x');
     for (const [x, z] of [[-9.5, -11], [-2.5, -11], [-9.5, -4], [-2.5, -4]]) P.pinnacle(ctx, x, z, 7.6, 3.4, 1.0);
     P.spire(ctx, -6, -7.5, 7.6, 3, 13);
+    P.scaffold(ctx, -8.4, -9.9, -3.6, -5.1, 7.6, 6); // the bell-wrights were mending the spire
     // the choir roof rising beyond the far parapet, its gable over the bridge
     P.sunk(ctx, -11.4, () => K.chapel(ctx, -3, -16.3, 13.2, 9.4, 12, { front: '+x', roofH: 7, litRose: true, roofTone: '#2a3546' }));
     K.wall(ctx, -2.6, -11.5, 4.1, -11.5, 1.0, { thick: 0.4 });
@@ -119,13 +123,13 @@ export default {
     P.rope(ctx, 8.4, -4.4);
 
     // ------------------------------------------------ the flying bridge
-    K.floor(ctx, 4.6, -21.6, 7.4, -11.5, W.flags('#5c6674'));
+    K.floor(ctx, 4.6, -21.6, 7.4, -11.5, K.MC.boards('#5a4a3a')); // a timber deck laid over the old arch
     P.archBridge(ctx, 4.2, 7.8, -21.6, -11.7, { apex: -2.4 });
     P.railing(ctx, 4.4, -21.6, 4.4, -11.7, { style: 'stone', out: '-x', kw: 0.4, broken: [[0.6, 0.7]] });
     P.railing(ctx, 7.6, -14.6, 7.6, -11.7, { out: '+x', kw: 0.4 });
     P.railing(ctx, 7.6, -21.6, 7.6, -17.8, { out: '+x', kw: 0.4 });
     // the balcony on the near side, corbelled out over the drop
-    K.floor(ctx, 7.4, -17.8, 9.8, -14.6, W.flags('#5c6674'));
+    K.floor(ctx, 7.4, -17.8, 9.8, -14.6, K.MC.boards('#5a4a3a'));
     P.railing(ctx, 7.6, -14.6, 10, -14.6, { out: '+z', kw: 0.4 });
     P.railing(ctx, 9.8, -18, 9.8, -14.4, { out: '+x', kw: 0.4, broken: [[0.3, 0.55]] });
     P.railing(ctx, 7.6, -17.8, 10, -17.8, { out: '-z', kw: 0.4 });
@@ -137,7 +141,7 @@ export default {
     ctx.marks.towerGate = K.gate(ctx, 6, -21.2, 2.4, 'x', { h: 2.6, open: true, swingDir: 1 });
 
     // ------------------------------------------------ the tower gallery
-    K.floor(ctx, 0, -29.4, 13, -21.6, W.flags('#5e6876'));
+    K.floor(ctx, 0, -29.4, 13, -21.6, K.MC.boards('#5e4c3a'));
     K.wall(ctx, -0.3, -29.6, -0.3, -21.4, 3.4, { thick: 0.6, buttress: 4, arches: 2, litArches: [0] });
     K.torch(ctx, 0, 2.2, -22.6, '+x'); K.torch(ctx, 0, 2.2, -28.4, '+x');
     K.wall(ctx, 0, -21.6, 4.2, -21.6, 1.0, { thick: 0.4 });
@@ -151,13 +155,16 @@ export default {
     K.lamp(ctx, 12.3, -25.6, { h: 2.8 });
     P.gargoyle(ctx, 13.35, 0.45, -21.3, Math.PI / 4, { stream: 1.8 });
     K.barrelStack(ctx, 1, -22.6);
+    P.bellFrame(ctx, 1.0, -27.0, -25.0, 3.2, [0.5, 0.65]); // the lesser bells, silent in their frame
+    // out over the drop: the bell-wrights' scaffold tower, a rope bridge to it from the broken railing
+    P.scaffold(ctx, 17.6, -27, 20.2, -24.4, -14, 14.4, { lifts: true }); P.ropeBridge(ctx, [13.2, 0.42, -25.7], [17.6, 0.42, -25.7], 0.5, 0.9);
     K.fallenBody(ctx, 9.6, -26.8, 0.6); K.droppedSword(ctx, 8.4, -27.4, -0.8);
     K.puddle(ctx, 5.4, -25.4, 1.8, 1.2); K.puddle(ctx, 10.2, -23.4, 1, 0.8);
     // the stair up and the landing below the bell platform
-    K.floor(ctx, 4.5, -33.6, 8.5, -29.4, W.flags('#56606e'));
+    K.floor(ctx, 4.5, -33.6, 8.5, -29.4, K.MC.boards('#56483a'));
     P.flight(ctx, 4.5, -33.6, 8.5, -29.6, 'z-', { n: 8, h0: 1.0, h1: 2.0 });
     P.drop(ctx, 4, -33.6, 9, -29.6, 24, { faces: ['x'] });
-    K.floor(ctx, 3, -37.6, 10, -33.6, W.flags('#5e6876'));
+    K.floor(ctx, 3, -37.6, 10, -33.6, K.MC.boards('#5e4c3a'));
     K.wall(ctx, 3, -37.6, 3, -33.6, 1.0, { thick: 0.4 });
     K.wall(ctx, 2.8, -33.6, 4, -33.6, 1.0, { thick: 0.4 });
     P.railing(ctx, 10, -37.6, 10, -33.35, { out: '+x' });
@@ -167,7 +174,7 @@ export default {
     ctx.marks.belfryGate = K.gate(ctx, 6.5, -37.8, 2.8, 'x', { h: 2.8, open: true, swingDir: 1 });
 
     // ------------------------------------------------ the bell platform at the top of the tower
-    K.floor(ctx, -5, -60, 18, -37.8, W.court('#5c6674'));
+    K.floor(ctx, -5, -60, 18, -37.8, K.MC.boards('#62503c')); // the bell deck: great oak boards
     P.compass(ctx, 6.5, -48, 7.5);
     P.drop(ctx, -5.6, -60.6, 18.4, -37.6, 30, { faces: ['x', 'z'], strips: 5.5, rows: 3, lit: 0.12, gap: 3.6 });
     P.railing(ctx, -5, -37.8, 4.4, -37.8, { out: '+z', broken: [[0.18, 0.32]] });

@@ -78,9 +78,10 @@ function rules() {
     check(a1 && a1.slot === 0 && a1.id === 'wave' && a1.e === h, 'first attack press casts slot 0 (wave)');
     check(Math.abs(Math.atan2(f.x - h.x, f.z - h.z) - h.face) < 0.05, 'the cast is aimed at the foe that made it useful');
     const e2 = tick(w, 60, mash); const a2 = types(e2, 'ability');
-    check(a2.length === 1 && a2[0].slot === 1 && a2[0].id === 'rush', 'the next press casts slot 1 (rush) while slot 0 recharges');
-    check(types(e2, 'swing').length >= 1, 'with both on cooldown the attack is a basic swing');
-    check(h.cdMax[0] > 0 && h.cds[0] > 0 && h.cdMax[1] > 0, 'cooldowns and their maxima are set');
+    check(a2.length === 0, 'the next presses cast nothing: slot 0 recharges and slot 1 (rush) is a movement ability');
+    check(types(e2, 'swing').length >= 1, 'with slot 0 on cooldown the attack is a basic swing');
+    check(h.cdMax[0] > 0 && h.cds[0] > 0, 'cooldowns and their maxima are set');
+    check(h.dashAbility && h.dashAbility.id === 'rush' && h.dashAbility.ready, 'hero.dashAbility: Cutting Rush waits on the dash, ready');
   }
   { // nothing to fight: plain swings, no casts; a foe that is not fighting does not count either
     const w = new World({ ...FLAT, seed: 4 }); at(w, 'warden', [['hushed', 2, -2, false]]);
@@ -99,18 +100,26 @@ function rules() {
     h.hp = Math.round(h.maxHp * 0.5); const ev = tick(w, 30, mash); const a = types(ev, 'ability')[0];
     check(a && a.id === 'lantern' && types(ev, 'heal').length === 1, 'Lantern Ward: cast when hurt, and it heals');
   }
-  { // Smoke Step only with a foe close; Iron Charge and Cutting Rush never into a hazard
-    const w = new World({ ...FLAT, seed: 7 }); const [h, [f]] = at(w, 'huntress', [['hushed', 0, -6]]); h.cds[0] = 99;
-    check(!types(tick(w, 40, { mx: 0, mz: 0, attackDown: true, attackPressed: true }), 'ability').length, 'Smoke Step: not with the foe 6 m away');
-    f.x = 0; f.z = -1.6; const ev = tick(w, 20, { mx: 0, mz: 0, attackDown: true, attackPressed: true });
-    check(types(ev, 'ability')[0]?.id === 'smoke' && h.z > 2, 'Smoke Step: with a foe close, leaps away from it');
-    for (const [hero, id] of [['warden', 'rush'], ['bellbreaker', 'charge']]) {
-      const w2 = new World({ ...FLAT, seed: 8 }); const [h2] = at(w2, hero, [['hushed', 0, -4]]); h2.cds[0] = 99;
-      const hz = w2.addHazard({ shape: 'circle', x: 0, z: -6.5, r: 1.6, warn: 9, life: 1, dmg: 0 });
-      check(!types(tick(w2, 40, mash), 'ability').length, `${id}: not into a hazard`);
-      hz.t = 99; tick(w2, 1, IDLE); // the hazard is gone
-      check(types(tick(w2, 60, mash), 'ability')[0]?.id === id, `${id}: cast once the way is clear`);
+  { // movement abilities (rush, charge, smoke step, shadow step) ride on the dash: never from the attack (nor in
+    // 'auto' mode), cast by a dash press when ready (aimed by the stick, no dash charge spent), a plain dash when not
+    for (const [hero, id] of [['warden', 'rush'], ['bellbreaker', 'charge'], ['huntress', 'smoke'], ['kestrel', 'shadow']]) {
+      const w = new World({ ...FLAT, seed: 8 }); const [h, [f]] = at(w, hero, [['hushed', 0, -1.8]]); h.cds[0] = 99;
+      const atk = { mx: 0, mz: 0, attackDown: true, attackPressed: true };
+      check(!types(tick(w, 60, (i) => (i % 12 === 0 ? atk : IDLE)), 'ability').length, `${id}: never from attack presses`);
+      w.abilityMode = 'auto'; check(!types(tick(w, 30, IDLE), 'ability').length, `${id}: never on its own in 'auto' mode`); w.abilityMode = 'attack';
+      tick(w, 30, IDLE); const charges = h.dashCharges; const x0 = h.x;
+      const ev = tick(w, 4, (i) => (i === 0 ? { mx: 1, mz: 0, dashPressed: true } : { mx: 1, mz: 0 })); const a = types(ev, 'ability')[0];
+      check(a && a.id === id && a.slot === 1, `${id}: a dash press casts it`);
+      check(h.dashCharges === charges && h.iframes > 0, `${id}: no dash charge spent, untouchable at the start`);
+      if (id === "rush" || id === "charge" || id === "smoke") { tick(w, 60, IDLE); check(h.x > x0 + 2, `${id}: goes the way the stick points`); }
+      check(h.dashAbility && h.dashAbility.id === id && !h.dashAbility.ready && h.dashAbility.cd > 0, `${id}: hero.dashAbility shows it recharging`);
+      tick(w, 60, IDLE); const ev2 = tick(w, 4, (i) => (i === 0 ? { mx: -1, mz: 0, dashPressed: true } : IDLE));
+      check(!types(ev2, 'ability').length && h.state === 'dash' && types(ev2, 'dash').length === 1, `${id}: on cooldown, the dash is a plain dash`);
     }
+    // a plain dash still makes perfect dodges; so does the opening of a dash-cast move
+    const w = new World({ ...FLAT, seed: 9 }); const [h] = at(w, 'warden', []);
+    tick(w, 2, (i) => (i === 0 ? { mx: 1, mz: 0, dashPressed: true } : IDLE)); w._damage({ x: 0, z: -1, team: 'foe' }, h, 10, {});
+    check(w.stats.perfects === 1, 'a dash-cast Cutting Rush can still perfect-dodge a blow');
   }
   { // the tonic: 'drink' when it starts, 'heal' when the health comes back
     const w = new World({ ...FLAT, seed: 9 }); const [h] = at(w, 'warden', [], { hp: 0.4 });
@@ -125,8 +134,8 @@ function rules() {
     check(!ev.some((x) => x.type === 'finisher' || (x.type === 'hit' && 'finisher' in x)), 'no finisher events');
   }
   { // the three who join later: Kestrel steps behind a foe, Hollis drags foes in, Wren's notes resonate and her hymn shatters it
-    const w = new World({ ...FLAT, seed: 12 }); const [h, [f]] = at(w, 'kestrel', [['hushed', 0, -5]]); h.cds[0] = 99;
-    const ev = tick(w, 2, { mx: 0, mz: 0, attackPressed: true }); const a = types(ev, 'ability')[0];
+    const w = new World({ ...FLAT, seed: 12 }); const [h, [f]] = at(w, 'kestrel', [['hushed', 0.6, -5]]); h.cds[0] = 99;
+    const ev = tick(w, 2, (i) => (i === 0 ? { mx: 0, mz: -1, dashPressed: true } : IDLE)); const a = types(ev, 'ability')[0];
     check(a && a.id === 'shadow' && h.z < f.z && types(ev, 'hit').some((x) => x.dst === f), 'Shadow Step: lands behind the foe and strikes');
     const w2 = new World({ ...FLAT, seed: 13 }); const [h2, [f2]] = at(w2, 'hollis', [['hushed', 0, -6.5]]); const d0 = Math.hypot(f2.x - h2.x, f2.z - h2.z);
     tick(w2, 40, (i) => (i === 0 ? { mx: 0, mz: 0, attackPressed: true } : IDLE));

@@ -84,7 +84,9 @@ that bursts from the snow, sandstone slabs, portcullises, teeth of black glass) 
 | Sister Ash, the Lamplighter (joins after Lantern Row) | lantern staff | hold to cast fire | Flame Pillar, Lantern Ward, Will-o'-Wisps | Sunburst |
 
 The skills have no buttons: the two in your slots fire from your attack once they are ready (their
-badges glow). The third skill unlocks at level 4 and can be swapped into a slot at the Haven. Every
+badges glow); a movement skill (Cutting Rush, Iron Charge, Smoke Step and the like) fires from the DASH
+instead (its badge carries a dash arrow and the dash key; on touch the DASH button shows its label and
+cooldown). The third skill unlocks at level 4 and can be swapped into a slot at the Haven. Every
 warden levels on their own.
 
 ## Playing

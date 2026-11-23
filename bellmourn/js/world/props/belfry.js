@@ -6,6 +6,7 @@ import * as THREE from '../../../vendor/three.module.min.js';
 import { add, box, cyl, cone, geo, inst, mat4, solid, solidCircle, plane, torus } from '../kit.js';
 import { M, cutout } from '../../engine/materials.js';
 import * as T from '../../engine/textures.js';
+import { MC } from '../kit_city.js';
 import { mergeGeometries } from '../../../vendor/BufferGeometryUtils.js';
 
 const q16 = (v) => Math.round(v * 16) / 16;
@@ -229,14 +230,14 @@ function streamMat() { return _stream || (_stream = new THREE.MeshBasicMaterial(
 export function railing(ctx, x0, z0, x1, z1, opts = {}) {
   const alongX = Math.abs(x1 - x0) >= Math.abs(z1 - z0); const len = alongX ? Math.abs(x1 - x0) : Math.abs(z1 - z0);
   const a0 = alongX ? Math.min(x0, x1) : Math.min(z0, z1); const c = alongX ? z0 : x0;
-  const h = opts.h ?? 1.15, kerb = opts.kerb ?? 0.45, style = opts.style || 'iron'; const broken = opts.broken || [];
+  const h = opts.h ?? 1.15, kerb = opts.kerb ?? 0.45, style = opts.style || 'timber'; const broken = opts.broken || []; // timber: the scaffold rails the bell-wrights lashed up
   const out = opts.out || (alongX ? '+z' : '+x'); const od = out[0] === '+' ? 1 : -1;
   const at = (p) => alongX ? [p, c] : [c, p];
   const iron = M.ironLit(), st = M.ashlar(opts.tone || '#4a5464');
   const isBroken = (p) => broken.some(([t0, t1]) => p >= a0 + t0 * len && p <= a0 + t1 * len);
   // kerb (always there: it is what stops a fall)
   const [kx, kz] = at(a0 + len / 2); const kw = opts.kw ?? 0.5;
-  add(ctx, box(alongX ? len : kw, kerb, alongX ? kw : len), st, kx, kerb / 2, kz);
+  add(ctx, box(alongX ? len : kw, kerb, alongX ? kw : len), style === 'timber' ? MC.boards('#4a3c2e') : st, kx, kerb / 2, kz);
   // the rail itself, run by run
   const runs = []; let start = a0;
   const edges = broken.map(([t0, t1]) => [a0 + t0 * len, a0 + t1 * len]).sort((p, q) => p[0] - q[0]);
@@ -246,7 +247,15 @@ export function railing(ctx, x0, z0, x1, z1, opts = {}) {
   for (const [p0, p1] of runs) {
     const rl = p1 - p0; if (rl < 0.2) continue;
     const [mx, mz] = at((p0 + p1) / 2);
-    if (style === 'iron') {
+    if (style === 'timber') {
+      const pole = M.wood('#6a5236'), lash = M.flat(0x6a5638); const np = Math.max(1, Math.round(rl / 1.6));
+      for (let i = 0; i <= np; i++) { const [bx, bz] = at(p0 + (i / np) * rl); inst(ctx, 'bf-tpole', cyl(0.07, 0.08, h + 0.35, 6), pole, mat4(bx, kerb + (h + 0.35) / 2, bz)); inst(ctx, 'bf-tlash', cyl(0.095, 0.095, 0.1, 6), lash, mat4(bx, kerb + h - 0.08, bz)); }
+      add(ctx, box(alongX ? rl : 0.09, 0.09, alongX ? 0.09 : rl), pole, mx, kerb + h - 0.08, mz);
+      // a rope rail, sagging between the poles
+      for (let i = 0; i < np; i++) { const [ax, az] = at(p0 + (i / np) * rl), [bx2, bz2] = at(p0 + ((i + 0.5) / np) * rl), [cx2, cz2] = at(p0 + ((i + 1) / np) * rl);
+        for (const [a, b] of [[[ax, az, 0.55], [bx2, bz2, 0.42]], [[bx2, bz2, 0.42], [cx2, cz2, 0.55]]]) { const dx = b[0] - a[0], dz = b[1] - a[1], dy = b[2] - a[2], L = Math.hypot(dx, dy, dz);
+          const mm = new THREE.Matrix4().compose(new THREE.Vector3((a[0] + b[0]) / 2, kerb + (a[2] + b[2]) / 2, (a[1] + b[1]) / 2), new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(dx / L, dy / L, dz / L)), new THREE.Vector3(0.035, L, 0.035)); inst(ctx, 'bf-trope', box(1, 1, 1), lash, mm); } }
+    } else if (style === 'iron') {
       const nb = Math.max(1, Math.round(rl / 0.24));
       for (let i = 0; i <= nb; i++) {
         const [bx, bz] = at(p0 + (i / nb) * rl); const post = i % 8 === 0 || i === nb;
@@ -497,4 +506,57 @@ export function voidFill(ctx, bounds, walks, h = 1.2) {
   }
   for (const s of out) { solid(ctx, s.x0, s.z0, s.x1, s.z1, h); ctx.lowSolids.push(ctx.solids[ctx.solids.length - 1]); }
   return out.length;
+}
+
+// ---------------------------------------------------------------- district variety: climbing the tower itself
+// Bell-wrights' scaffolding: a grid of lashed poles round a footprint from y0 to y0 + h, ledgers and plank
+// lifts every 2 m, a ladder up the camera-facing side. Decor on the tower faces, off the walkways.
+export function scaffold(ctx, x0, z0, x1, z1, y0, h, o = {}) {
+  const pole = M.wood('#6a5236'), plank = MC.boards('#5a4a38'), lash = M.flat(0x6a5638);
+  const nx = Math.max(1, Math.round((x1 - x0) / 1.8)), nz = Math.max(1, Math.round((z1 - z0) / 1.8));
+  for (let i = 0; i <= nx; i++) for (let j = 0; j <= nz; j++) { if (i > 0 && i < nx && j > 0 && j < nz) continue; const x = x0 + (x1 - x0) * i / nx, z = z0 + (z1 - z0) * j / nz;
+    inst(ctx, 'bf-spole', cyl(0.07, 0.08, h + 0.6, 6), pole, mat4(x, y0 + (h + 0.6) / 2, z)); }
+  for (let y = y0 + 2; y <= y0 + h + 0.01; y += 2) {
+    for (const z of [z0, z1]) { add(ctx, box(x1 - x0 + 0.3, 0.08, 0.08), pole, (x0 + x1) / 2, y, z); inst(ctx, 'bf-slash', cyl(0.1, 0.1, 0.1, 6), lash, mat4(x0, y, z)); }
+    for (const x of [x0, x1]) add(ctx, box(0.08, 0.08, z1 - z0 + 0.3), pole, x, y, (z0 + z1) / 2);
+    if (o.lifts !== false) { add(ctx, box(x1 - x0 + 0.2, 0.06, 0.5), plank, (x0 + x1) / 2, y + 0.07, z1 - 0.25); add(ctx, box(0.5, 0.06, z1 - z0 + 0.2), plank, x1 - 0.25, y + 0.07, (z0 + z1) / 2); }
+  }
+  // cross braces on the two faces toward the camera
+  for (let y = y0; y < y0 + h - 0.1; y += 2) { add(ctx, box(0.05, 0.05, Math.hypot(z1 - z0, 2)), pole, x1, y + 1, (z0 + z1) / 2, { rx: Math.atan2(2, z1 - z0) - Math.PI / 2 }); add(ctx, box(Math.hypot(x1 - x0, 2), 0.05, 0.05), pole, (x0 + x1) / 2, y + 1, z1, { rz: Math.atan2(2, x1 - x0) }); }
+  // a ladder
+  const lx = x1 + 0.25, lz = (z0 + z1) / 2 + 0.6; for (const s of [-0.22, 0.22]) add(ctx, box(0.06, h, 0.06), pole, lx, y0 + h / 2, lz + s);
+  for (let y = y0 + 0.3; y < y0 + h; y += 0.4) inst(ctx, 'bf-srung', box(0.05, 0.04, 0.44), pole, mat4(lx, y, lz));
+  // buckets and a pulley at the top
+  add(ctx, box(0.12, 0.12, 1.4), pole, x1 + 0.5, y0 + h + 0.4, z1 - 0.3); add(ctx, cyl(0.16, 0.16, 0.06, 8), M.ironLit(), x1 + 1.1, y0 + h + 0.25, z1 - 0.3, { rx: Math.PI / 2 });
+  add(ctx, box(0.025, Math.min(4, h), 0.025), lash, x1 + 1.25, y0 + h + 0.2 - Math.min(4, h) / 2, z1 - 0.3); add(ctx, cyl(0.16, 0.13, 0.3, 6), M.wood('#4a3626'), x1 + 1.25, y0 + h + 0.1 - Math.min(4, h), z1 - 0.3);
+}
+
+// A rope bridge slung across the drop between two points (decor high above the walk): plank treads on
+// two foot ropes sagging in a curve, hand ropes above, swaying a little in the wind.
+export function ropeBridge(ctx, a, b, sag = 1.2, w = 1.0) {
+  const g = new THREE.Group(); ctx.group.add(g); const plankM = M.wood('#5a4630'), lash = M.flat(0x6a5638);
+  const dx = b[0] - a[0], dz = b[2] - a[2], L = Math.hypot(dx, dz), px = -dz / L * w / 2, pz = dx / L * w / 2; const n = Math.max(6, Math.round(L / 0.35));
+  const at = (t) => [a[0] + dx * t, a[1] + (b[1] - a[1]) * t - sag * 4 * t * (1 - t), a[2] + dz * t];
+  const ang = Math.atan2(dx, dz);
+  for (let i = 0; i <= n; i++) { const [x, y, z] = at(i / n); if (i % 7 === 3) continue; const m = new THREE.Mesh(box(w + 0.1, 0.05, 0.22), plankM); m.position.set(x, y, z); m.rotation.y = ang; g.add(m); }
+  for (const s of [-1, 1]) for (const hy of [0, 0.9]) for (let i = 0; i < n; i++) {
+    const [x0, y0, z0] = at(i / n), [x1, y1, z1] = at((i + 1) / n); const A = new THREE.Vector3(x0 + s * px, y0 + hy, z0 + s * pz), B = new THREE.Vector3(x1 + s * px, y1 + hy, z1 + s * pz); const D = B.clone().sub(A);
+    const m = new THREE.Mesh(box(0.035, D.length(), 0.035), lash); m.position.copy(A).add(B).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), D.normalize()); g.add(m);
+    if (hy && i % 2 === 0) { const v = new THREE.Mesh(box(0.025, 0.9, 0.025), lash); v.position.set(A.x, A.y - 0.45, A.z); g.add(v); }
+  }
+  let t = Math.random() * 5; const c = new THREE.Vector3((a[0] + b[0]) / 2, Math.max(a[1], b[1]), (a[2] + b[2]) / 2);
+  g.position.copy(c); g.children.forEach((m) => m.position.sub(c));
+  ctx.anims.push({ update(dt) { t += dt; g.rotation.z = Math.sin(t * 0.9) * 0.012; g.rotation.x = Math.sin(t * 0.7) * 0.01; return false; } });
+}
+
+// A bell frame: oak posts and a headstock beam with bells hung in a row (the lesser bells of the tower,
+// silent). Stands against a wall facing +x; occupies a 1.4 m strip.
+export function bellFrame(ctx, x, z0, z1, h = 3.4, bells = [0.6, 0.75]) {
+  const oak = M.wood('#4a3626'), dark = M.wood('#33241a');
+  const bronze = cutout(new THREE.MeshPhongMaterial({ color: 0x7a5a2a, specular: 0xe0b070, shininess: 50, emissive: 0x1a1006 }));
+  for (const z of [z0, z1]) { add(ctx, box(0.24, h, 0.24), oak, x, h / 2, z); add(ctx, box(1.2, 0.2, 0.24), dark, x, 0.1, z); add(ctx, box(0.1, 1.4, 0.1), dark, x + 0.35, 0.65, z, { rz: 0.5 }); }
+  add(ctx, box(0.28, 0.28, z1 - z0 + 0.4), oak, x, h, (z0 + z1) / 2);
+  const bellG = geo('bf-lbell', () => new THREE.LatheGeometry([[0.02, 0.62], [0.22, 0.6], [0.3, 0.45], [0.34, 0.2], [0.42, 0.04], [0.45, 0], [0.38, 0.02]].map(([a2, b2]) => new THREE.Vector2(a2, b2)), 12));
+  bells.forEach((s, i) => { const z = z0 + (i + 1) * (z1 - z0) / (bells.length + 1); add(ctx, box(0.16, 0.3, 0.16), M.ironLit(), x, h - 0.28, z); add(ctx, bellG, bronze, x, h - 0.4 - 0.62 * s * 1.5, z, { s: new THREE.Vector3(s * 1.5, s * 1.5, s * 1.5) }); });
+  solid(ctx, x - 0.3, z0 - 0.2, x + 0.75, z1 + 0.2, h);
 }

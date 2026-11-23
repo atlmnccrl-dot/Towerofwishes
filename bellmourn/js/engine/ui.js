@@ -137,6 +137,8 @@ export class UI {
     this.text(code, x + w / 2, y + Math.round(h / 2) - 3, { align: 'center', color: on ? COL.white : '#5e5a52', shadow: false });
     if (key) this.text(key, x + w - 1, y + h + 2, { align: 'right', color: COL.dim, shadow: false });
   }
+  // a little dash arrow (>>) beside a badge whose skill fires from the dash
+  dashMark(x, y) { for (const o of [0, 3]) { this.rect(x + o, Math.round(y) - 1, 1, 1, COL.ice); this.rect(x + o + 1, Math.round(y), 1, 1, COL.ice); this.rect(x + o, Math.round(y) + 1, 1, 1, COL.ice); } }
   // ready pop and cast flash per ability slot, from how the cooldowns move between frames
   abilityFx(hero, dt) {
     const abs = hero.stats.abilities || []; const out = [];
@@ -147,7 +149,17 @@ export class UI {
       if (cd <= 0 && s.cd > 0) s.pop = 1;
       if (cd > s.cd + 0.05) { s.flash = 1; s.pop = 0; }
       s.cd = cd; s.pop = Math.max(0, s.pop - dt * 2.6); s.flash = Math.max(0, s.flash - dt * 4);
-      out.push({ code: abbr(id), frac: Math.min(1, cd / cdm), pop: s.pop, flash: s.flash });
+      out.push({ id, code: abbr(id), frac: Math.min(1, cd / cdm), pop: s.pop, flash: s.flash, dash: !!(hero.dashAbility && hero.dashAbility.id === id) });
+    }
+    // a movement skill fires from the DASH (hero.dashAbility, set by the sim); one not among the slotted
+    // skills gets its own badge
+    const D = hero.dashAbility;
+    if (D && D.id && !out.some((o) => o.id === D.id)) {
+      let s = this.abFx.dash; const cd = Math.max(0, D.ready ? 0 : (D.cd || 0));
+      if (!s || s.id !== D.id || s.hero !== hero.id) s = this.abFx.dash = { id: D.id, hero: hero.id, cd, pop: 0, flash: 0 };
+      if (cd <= 0 && s.cd > 0) s.pop = 1; if (cd > s.cd + 0.05) { s.flash = 1; s.pop = 0; }
+      s.cd = cd; s.pop = Math.max(0, s.pop - dt * 2.6); s.flash = Math.max(0, s.flash - dt * 4);
+      out.push({ id: D.id, code: abbr(D.id), frac: Math.min(1, cd / (D.cdMax || 1)), pop: s.pop, flash: s.flash, dash: true });
     }
     return out;
   }
@@ -181,13 +193,14 @@ export class UI {
       const col = p.y + p.r + 6 + n * (bh + 5) + 2 <= top, under = !col && p.y + p.r + 5 + bh + 3 <= top;
       let bx = col ? p.x + p.r - bw : under ? p.x + p.r - n * (bw + 4) + 4 : p.x - p.r - 5 - n * (bw + 4) + 4;
       let by = col ? p.y + p.r + 6 : under ? p.y + p.r + 5 : p.y - bh / 2; this.badgeX = n ? bx : undefined;
-      for (const a of abl) { this.badge(bx, by, bw, bh, a.code, a.frac, null, true, '#e8b860', a.pop, a.flash); if (col) by += bh + 5; else bx += bw + 4; }
+      for (const a of abl) { this.badge(bx, by, bw, bh, a.code, a.frac, null, true, a.dash ? COL.ice : '#e8b860', a.pop, a.flash); if (a.dash) this.dashMark(bx - 4, by + bh / 2); if (col) by += bh + 5; else bx += bw + 4; }
     } else if (hero.stats.abilities) {
       // keyboard and pad: bottom right, the two skills, the ultimate (Q) and the dash charges
-      const bw = 18, bh = 12, by = h - bh - 12; let bx = R - (bw + 4) * 3 + 4;
-      for (const a of abl) { this.badge(bx, by, bw, bh, a.code, a.frac, null, true, '#e8b860', a.pop, a.flash); bx += bw + 4; }
+      const bw = 18, bh = 12, by = h - bh - 12; let bx = R - (bw + 4) * (abl.length + 1) + 4;
+      // a movement skill shows the dash key (it fires from the dash, not from the attack)
+      for (const a of abl) { this.badge(bx, by, bw, bh, a.code, a.frac, a.dash ? (G.padMode ? 'A' : 'SPC') : null, true, a.dash ? COL.ice : '#e8b860', a.pop, a.flash); if (a.dash) this.dashMark(bx + 2, by - 3); bx += bw + 4; }
       this.badge(bx, by, bw, bh, 'ULT', full ? 0 : 1 - m, 'Q', full, '#ff5050', this.ultPop);
-      for (let i = 0; i < hero.stats.dashCharges; i++) this.rect(R - (bw + 4) * 3 + 4 + i * 5, by - 5, 4, 2, i < hero.dashCharges ? COL.ice : '#2a3038');
+      for (let i = 0; i < hero.stats.dashCharges; i++) this.rect(R - (bw + 4) + 4 + i * 5, by - 5, 4, 2, i < hero.dashCharges ? COL.ice : '#2a3038');
     }
     // boss bar
     const boss = G.boss && !G.boss.dead ? G.boss : null;
@@ -274,7 +287,9 @@ export class UI {
     const nab = hero && hero.stats.abilities ? hero.stats.abilities.length : 0;
     return [
       { id: 'atk', ...atk, label: 'ATK', pips: Array.from({ length: Math.min(2, nab) }, (_, i) => cd(i)) },
-      { id: 'dsh', ...dsh, label: 'DASH', count: hero ? hero.dashCharges : 0 },
+      // a movement skill rides on the DASH: its label, its cooldown filling the button, bright when ready
+      (() => { const D = hero && hero.dashAbility; if (!D || !D.id) return { id: 'dsh', ...dsh, label: 'DASH', count: hero ? hero.dashCharges : 0 };
+        return { id: 'dsh', ...dsh, label: abbr(D.id), sub: 'DASH', count: hero.dashCharges, cdFrac: D.ready ? 0 : Math.min(1, Math.max(0, (D.cd || 0) / (D.cdMax || 1))), ready: !!D.ready }; })(),
       { id: 'ult', ...ult, label: 'ULT', dim: !full, glow: full },
       { id: 'heal', ...ton, label: 'TON', dim: !hero || hero.tonics <= 0 },
       { id: 'use', ...use, label: 'USE', hidden: !(G && G.prompt) },
@@ -290,8 +305,14 @@ export class UI {
       g.globalAlpha = b.dim ? 0.25 : (down ? 0.85 : 0.5);
       this.circle(b.x, b.y, b.r, down ? '#5a1418' : '#101418'); this.ring(b.x, b.y, b.r, b.glow ? (Math.floor(this.t * 6) % 2 ? '#ff5050' : '#ffffff') : '#8a8070');
       if (b.id === 'atk') { g.globalAlpha = down ? 0.5 : 0.3; this.ring(b.x, b.y, b.r - 2, '#8a8070'); }
+      if (b.cdFrac !== undefined) {
+        // the dash's skill: a dim fill rising while it cools, a breathing ice ring when it is ready
+        if (b.cdFrac > 0) { const fh = Math.round((2 * b.r - 2) * (1 - b.cdFrac)); g.globalAlpha = 0.55; for (let yy = b.r - 1; yy > b.r - 1 - fh; yy--) { const hw = Math.floor(Math.sqrt(Math.max(0, (b.r - 1) * (b.r - 1) - yy * yy))); this.rect(b.x - hw, b.y + yy, hw * 2 + 1, 1, '#34404a'); } }
+        else { g.globalAlpha = 0.6 + 0.4 * Math.sin(this.t * 4.2); this.ring(b.x, b.y, b.r, COL.ice); this.ring(b.x, b.y, b.r + 1, COL.ice); }
+      }
       const pips = b.pips && b.pips.length && b.r >= 15;
-      g.globalAlpha = b.dim ? 0.35 : 0.95; this.text(b.label, b.x, b.y - 3 - (pips ? 2 : 0), { align: 'center', color: b.glow ? '#ff9090' : COL.text, shadow: false });
+      g.globalAlpha = b.dim ? 0.35 : 0.95; this.text(b.label, b.x, b.y - 3 - (pips ? 2 : 0) - (b.sub && b.r >= 12 ? 3 : 0), { align: 'center', color: b.glow ? '#ff9090' : (b.cdFrac === 0 ? COL.white : COL.text), shadow: false });
+      if (b.sub && b.r >= 12) { g.globalAlpha = 0.7; this.text(b.sub.length * 6 - 1 <= 2 * b.r - 4 ? b.sub : '>>', b.x, b.y + 4, { align: 'center', color: COL.ice, shadow: false }); }
       if (pips) {
         // the abilities the attack will fire: a gold bar when ready, a dim one filling while it cools
         const pw = 7, n = b.pips.length, x0 = Math.round(b.x - (n * pw + (n - 1) * 2) / 2), y0 = b.y + 6;

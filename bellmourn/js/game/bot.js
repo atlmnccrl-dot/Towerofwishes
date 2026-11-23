@@ -38,6 +38,17 @@ export function makeBot(skill = 1, seed = 1) {
       const crowd = foes.filter((f) => Math.hypot(f.x - h.x, f.z - h.z) < 6).length;
       if (w.meter >= 100 && (crowd >= 2 || foes.some((f) => f.boss))) inp.ultPressed = true;
     }
+    // a movement ability waits on the dash (sim.js): the skilled bot dashes at a foe to cut through it (rush,
+    // charge, shadow step) when the way is safe; a plain dodge also gets it when it is ready (smoke step is kept for that)
+    const DA = h.dashAbility;
+    if (skill > 0 && DA && DA.ready && h.dashCharges > 0 && h.state !== 'attack') {
+      const A = (h.stats.abilities.find((a) => a.id === DA.id) || {}).def || {};
+      const reach = A.kind === 'shadow' ? A.range : A.dist;
+      if (A.kind !== 'smoke' && reach && d > 1.2 && d < reach + near.r - 0.3 && w.clear(h, near)) {
+        const ex = h.x + dx / d * reach, ez = h.z + dz / d * reach;
+        if (!w._safePath || w._safePath(h.x, h.z, ex, ez)) { inp.mx = dx / d; inp.mz = dz / d; inp.dashPressed = true; return inp; }
+      }
+    }
     // approach and attack (archers keep their distance)
     // long reach (the anchor's chain) fights from a little further off; the masher just walks in
     const reach = skill > 0 && !ranged && h.kit.attack.combo ? h.kit.attack.combo[0].range : 0;

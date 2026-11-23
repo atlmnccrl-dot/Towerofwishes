@@ -25,7 +25,7 @@ const easeOut = (k) => 1 - (1 - k) * (1 - k);
 const lerp = (a, b, k) => a + (b - a) * k;
 
 // How hard each boss hits and the tier its summons come at.
-const POWER = { bogmother: 1.95, clockmaster: 2.0, wheel: 2.05 };
+const POWER = { bogmother: 1.95, clockmaster: 2.0, wheel: 1.85 };
 const ADD_TIER = { bogmother: 12, clockmaster: 13, wheel: 14 };
 
 // ------------------------------------------------------------------ helpers (as in bosses3.js)
@@ -75,16 +75,16 @@ const group = (rig, parent, x = 0, y = 0, z = 0) => { const g = new rig.root.con
 // crown of drowned bells and a mane of weed, from the waist down a great black eel's coil and tail; she
 // holds a bell-staff hung with the bells she has hoarded.
 function bogExtra(rig, part, box) {
-  const eel = 0x1e2a24, belly = 0x5a6a4a, weed = 0x3a5a2a, bronze = 0x8a6a2a, verd = 0x4a9a7a, eye = 0x9aff70;
+  const eel = 0x2e4e42, belly = 0x8aa478, weed = 0x5a7a3a, bronze = 0x8a6a2a, verd = 0x4a9a7a, eye = 0x9aff70;
   for (const j of ['hipL', 'hipR']) rig.j[j].visible = false;
-  part('hips', box(0.56, 1.0, 0.5), eel, 0, -0.5, -0.02); part('hips', box(0.76, 0.24, 0.76), 0x141c18, 0, -0.86, -0.06);
+  part('hips', box(0.5, 0.98, 0.46), eel, 0, -0.48, -0.02); part('hips', box(0.7, 0.2, 0.7), 0x22382e, 0, -0.86, -0.06);
   for (let i = 0; i < 4; i++) part('hips', box(0.4, 0.1, 0.02), belly, 0, -0.18 - i * 0.18, 0.24);
   const segs = []; let parent = group(rig, rig.body, 0, 0.18, -0.32);
   for (let i = 0; i < 10; i++) {
     const L = 0.44, wd = 0.5 - i * 0.04, ht = 0.32 - i * 0.022;
     const g = i === 0 ? parent : group(rig, parent, 0, 0, -L); parent = g; segs.push(g);
-    g.add(part('hips', box(wd, ht, L + 0.04), i % 2 ? eel : 0x26342c, 0, 0, -L / 2));
-    g.add(part('hips', box(0.04, 0.1, 0.16), verd, 0, ht / 2 + 0.04, -L / 2, { glow: 1.2 })); // a glowing fin
+    g.add(part('hips', box(wd, ht, L + 0.04), i % 2 ? eel : 0x3a5e4e, 0, 0, -L / 2));
+    g.add(part('hips', box(0.05, 0.14, 0.2), verd, 0, ht / 2 + 0.05, -L / 2, { glow: 1.8 })); // a glowing fin
     if (i === 9) g.add(part('hips', box(0.3, 0.06, 0.3), verd, 0, 0, -L, { glow: 1.4 }));
   }
   // weed hair, a crown of drowned bells, a hag's face
@@ -128,14 +128,14 @@ function clockExtra(rig, part, box) {
 export const BOSSES4 = {
   bogmother: {
     name: 'The Bog Mother', title: 'Who Hoards the Drowned Bells', hp: 9800, poise: 999, speed: 2.8, r: 0.95, mass: 10, scale: 1.95, boss: true,
-    look: { weapon: 'none', eyes: 0x9aff70, longHair: true, claws: 0xc8d0b0, bulk: 1.3, skirt: null, colors: { skin: 0x7a8a6a, hair: 0x2a3a22, tunic: 0x2a3424, pants: 0x1e2a24, boots: 0x1e2a24, glove: 0x6a7a5a, shoulder: 0x3a4a30, belt: 0x4a3a1e }, extra: bogExtra },
+    look: { weapon: 'none', eyes: 0x9aff70, longHair: true, claws: 0xc8d0b0, bulk: 1.3, skirt: null, colors: { skin: 0x9aac86, hair: 0x4a6a32, tunic: 0x4a5e3e, pants: 0x2e4e42, boots: 0x2e4e42, glove: 0x8a9c76, shoulder: 0x5a7044, belt: 0x6a5a2e }, extra: bogExtra },
   },
   clockmaster: {
     name: 'The Clockmaster', title: "Who Keeps the Wheel's Time", hp: 10800, poise: 999, speed: 3.0, r: 0.75, mass: 8, scale: 1.85, boss: true,
     look: { weapon: 'none', eyes: 0x70d0ff, noHair: true, noHead: false, headSize: 0.26, cloak: true, cloakLen: [0.5, 0.52, 0.5], skirt: 0x3a2a1a, colors: { skin: 0xc8963a, tunic: 0x3a2a1a, pants: 0x2a1e12, boots: 0x1a120a, glove: 0x8a6428, shoulder: 0xc8963a, belt: 0xc8963a, trim: 0xc8963a, cloak: 0x4a2e1a, cloakDark: 0x2e1c10 }, extra: clockExtra },
   },
   wheel: {
-    name: 'The Wheel', title: 'Jailer of the Voice', hp: 12000, poise: 999, speed: 1.5, r: 1.3, mass: 30, scale: 1.6, boss: true, hover: true,
+    name: 'The Wheel', title: 'Jailer of the Voice', hp: 11400, poise: 999, speed: 1.5, r: 1.3, mass: 30, scale: 1.6, boss: true, hover: true,
     look: { rig: 'wheel', eyes: 0xfff2c0, colors: { gold: 0xe8c060, white: 0xf4eee0, dark: 0x3a2a18, eye: 0xf8f4ea, iris: 0xff7a30, voice: 0xffe0a0, spoke: 0xfff0c0 } },
   },
 };
@@ -347,7 +347,7 @@ const wheel = {
       { id: 'spokes', w: 2, cd: 4.5, a: { name: 'spokes', anim: 'pulse', dur: 1.5, windup: 0.6, active: 0.62, tele: 'none', dmg: 0, heavy: true, onStrike: (w, e) => { const a0 = w.rand() * TAU; spokes(w, e, K, 6, 0.85, a0); if (p >= 2) spokes(w, e, K, 6, 1.6, a0 + TAU / 12); } } },
       { id: 'rim', w: 1.8, max: 9, cd: 5, a: quick({ name: 'rim', anim: 'pulse', dur: 1.8, windup: 0.8, active: 0.82, tele: 'circle', shape: 'circle', radius: 2.8, offset: 0, dmg: 20 * K, kb: 10, heavy: true, onStrike: (w, e) => { for (let i = 0; i < (p >= 3 ? 3 : 2); i++) wave(w, e, e.x, e.z, 11, { r0: 2.8, warn: 0.2 + i * 0.7, life: 1.5, dmg: 13 * K, kind: 'radiant' }); } }, k) },
       { id: 'judgement', w: 1.6, min: 2.5, cd: 5, a: { name: 'judgement', anim: 'gaze', dur: 1.4, windup: 0.6, active: 0.62, tele: 'none', dmg: 0, heavy: true, onStrike: (w, e) => around(w, e, p >= 3 ? 7 : 5, { warn: 0.95, gap: 0.16, r: 1.1, dmg: 17 * K, kind: 'spear' }) } },
-      { id: 'press', w: 2.4, max: 4.2, cd: 2.5, a: quick({ name: 'press', anim: 'slam', dur: 1.5, windup: 0.75, active: 0.8, tele: 'circle', shape: 'circle', radius: 3.6, offset: 0, dmg: 22 * K, kb: 11, heavy: true }, k) },
+      { id: 'press', w: 1.7, max: 4.2, cd: 3.6, a: quick({ name: 'press', anim: 'slam', dur: 1.6, windup: 0.9, active: 0.95, tele: 'circle', shape: 'circle', radius: 3.4, offset: 0, dmg: 22 * K, kb: 11, heavy: true }, k) },
     ];
     if (p >= 2) {
       m.push({ id: 'turning', w: 1.6, cd: p >= 4 ? 7 : 8.5, a: { name: 'turning', anim: 'pulse', dur: 1.3, windup: 0.5, active: 0.52, tele: 'none', dmg: 0, heavy: true, onStrike: (w, e) => turning(w, e, K, Math.min(4, p)) } });
@@ -450,7 +450,7 @@ export const ASCENDED = {
     { id: 'wheelfire', from: 2, w: 1.3, cd: 7, pat: 'rings', n: 3, gapT: 0.6, kind: 'hellfire', dmg: 15 },
     { id: 'starfall', from: 3, w: 1.3, cd: 6, pat: 'cross', n: 7, kind: 'sigil', dmg: 16 },
   ] },
-  bogmother: { hp: 1, dmg: 0.85, color: 0x9aff70, power: 1.95, phases: [0.66, 0.33, 0.15], quick: 0.88, speed: 1.08, ward: 0.05, adds: [[4, ['leech', 'rat'], 3, 4]], moves: [
+  bogmother: { hp: 1, dmg: 0.78, color: 0x9aff70, power: 1.95, phases: [0.66, 0.33, 0.15], quick: 0.88, speed: 1.08, ward: 0.05, adds: [[4, ['leech', 'rat'], 3, 4]], moves: [
     { id: 'drownedtide', from: 2, w: 1.3, cd: 7, pat: 'lanes', n: 5, gap: 2.2, width: 1.3, kind: 'bog', dmg: 15, anim: 'sweep' },
     { id: 'knell', from: 3, w: 1.3, cd: 7, pat: 'lobs', n: 4, kind: 'bell', splash: 1.7, ring: 6, hazard: 'toll', dmg: 18 },
   ] },
@@ -585,7 +585,7 @@ const ENTRANCES = {
   } },
   // PROPOSAL: the Drowned Deacon rises out of a pool that floods up through the stones
   deacon: { kind: 'flood', dur: 3.8, cam: { zoom: 1.1 }, script(w, e, t, F, st) {
-    once(st, 'piece', () => F((fx) => fx.setPiece('pool', st.home.x, st.home.z, st.home.face, { life: 4.6, r: 4.2, grow: 1.4, color: [0.16, 0.42, 0.44] })));
+    once(st, 'piece', () => F((fx) => fx.setPiece('pool', st.home.x, st.home.z, st.home.face, { life: 4.6, r: 4.2, grow: 1.4, color: [0.05, 0.16, 0.18] })));
     st.put(st.home.x, st.home.z); e.leapH = -2.4 * (1 - ease(clamp01((t - 1.0) / 2.0)));
     if (st.every(0.35)) F((fx) => { const a = Math.random() * TAU, r = 1 + Math.random() * 3; fx.emit(st.home.x + S(a) * r, 0.1, st.home.z + C(a) * r, { n: 16, speed: 0.6, up: 1, vy: 6, life: 0.8, grav: 10, color: [0.5, 1.3, 1.4], size: 1 }); });
     if (t < 3.0) st.anim('cast', 0.55); else st.anim('roar', t - 3.0);

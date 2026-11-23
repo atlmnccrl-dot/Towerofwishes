@@ -12,9 +12,11 @@ export default {
   bounds: [-14, -57.6, 9.4, 18.4],
   apron: false, // the east side falls away to the lower city: the level lays its own ground
   gatesOpen: ['gardenGate', 'courtGate'],
+  // pale and gold: silver moonlight on white stone, a soft lavender haze, gilt catching the gas lamps
   ambience: {
-    fog: 0x211e30, fogNear: 78, fogFar: 175, sky: 0x0b0a14, moon: 1.75, moonColor: 0xb4b0e4, hemi: 0.95, hemiSky: 0x5c5a8a, hemiGround: 0x120f1a,
-    fill: 1.3, fillColor: 0x8884b8, rain: 1, lightning: true,
+    fog: 0x2e2a3a, fogNear: 78, fogFar: 175, sky: 0x0e0c16, moon: 1.75, moonColor: 0xc8c4e8, hemi: 0.95, hemiSky: 0x6c6a8a, hemiGround: 0x18141e,
+    fill: 1.3, fillColor: 0x9894b8, rain: 0.7, lightning: true,
+    grade: { gain: [1.03, 1.0, 1.04], lift: [0.008, 0.007, 0.012], sat: 0.78, exposure: 1.06 },
     beams: [
       { x: 1.4, z: 12.6, r: 5.5, h: 26, from: [6, 0, -10], intensity: 70, color: 0xbab4ec },
       { x: -3.5, z: -42.6, r: 8, h: 28, from: [6, 0, -10], intensity: 85, color: 0xbab4ec },
@@ -50,19 +52,20 @@ export default {
   exit: { zone: [5.3, -57.4, 7.9, -54.2], to: 'belfry', requires: 'boss' },
   build(K, ctx) {
     const W = K.M;
-    // ------------------------------------------------ ground: the hill top, and the drop to the lower city
-    K.floor(ctx, -46, -90, 9.7, 50, W.cobble('#2c303c'), -0.03, 0.3);
-    K.floor(ctx, -3.8, 4.8, 5.6, 36, W.cobble('#545a6a'), 0, 0.4);
-    K.floor(ctx, 5.6, 4.8, 9.7, 36, W.flags('#5e6474'), 0.004, 0.4);
+    K.district(ctx, 'heights');
+    // ------------------------------------------------ ground: the hill top (white marble, black inlay), and the drop to the lower city
+    K.floor(ctx, -46, -90, 9.7, 50, W.flags('#5a5650'), -0.03, 0.3);
+    K.floor(ctx, -3.8, 4.8, 5.6, 36, K.MC.inlay('#b8b2a6'), 0, 0.4);
+    K.floor(ctx, 5.6, 4.8, 9.7, 36, W.flags('#a8a296'), 0.004, 0.4);
     K.floor(ctx, -8.6, 4.8, -3.8, 36, W.grass('#2a3830'), 0.002, 0.4);
-    K.floor(ctx, -8.6, -11.2, 9.7, 4.8, W.dirt('#5a5c64'), 0.004, 0.4);
-    K.floor(ctx, -2.4, -6.6, 3.6, 0.2, W.flags('#646a7a'), 0.008, 0.4);
+    K.floor(ctx, -8.6, -11.2, 9.7, 4.8, W.dirt('#8a8478'), 0.004, 0.4);
+    K.floor(ctx, -2.4, -6.6, 3.6, 0.2, W.flags('#b4aea0'), 0.008, 0.4);
     K.floor(ctx, -8.6, -23, 9.7, -11.2, W.grass('#2a3830'), 0.002, 0.4);
-    K.floor(ctx, -0.6, -23, 2.8, -11.2, W.dirt('#5a5c64'), 0.006, 0.4);
-    K.floor(ctx, -8.2, -23, -3, -11.2, W.flags('#5c6070'), 0.006, 0.4);
-    K.floor(ctx, -8.6, -32.6, 9.7, -23, W.cobble('#525868'), 0.006, 0.4);
-    K.floor(ctx, -14, -53.4, 9.7, -32.6, W.court('#5c6274'), 0.006, 0.4);
-    K.floor(ctx, 4.6, -64, 9.7, -53.4, W.flags('#5a6070'), 0.004, 0.4);
+    K.floor(ctx, -0.6, -23, 2.8, -11.2, W.dirt('#8a8478'), 0.006, 0.4);
+    K.floor(ctx, -8.2, -23, -3, -11.2, W.flags('#a8a296'), 0.006, 0.4);
+    K.floor(ctx, -8.6, -32.6, 9.7, -23, K.MC.inlay('#b0aa9e'), 0.006, 0.4);
+    K.floor(ctx, -14, -53.4, 9.7, -32.6, K.MC.inlay('#c4beb2', '#2a1e34'), 0.006, 0.4);
+    K.floor(ctx, 4.6, -64, 9.7, -53.4, W.flags('#a8a296'), 0.004, 0.4);
     P.cliff(ctx, 9.7, -90, 50, 7);
     P.balustrade(ctx, 9.2, -64, 9.2, 30, { urns: true });
     P.lowerCity(ctx, 10.2, -100, 60, 60, -7);
@@ -75,7 +78,7 @@ export default {
     P.railing(ctx, -3.8, 4.8, -3.8, 11.3);
     P.gate(ctx, -3.8, 13.2, 2.4, 'z', { h: 2.4 });
     P.railing(ctx, -3.8, 15.1, -3.8, 36);
-    K.floor(ctx, -8.6, 12.4, -3.8, 14, W.flags('#5a6070'), 0.008, 0.4);
+    K.floor(ctx, -8.6, 12.4, -3.8, 14, W.flags('#a8a296'), 0.008, 0.4);
     P.topiary(ctx, -5, 11.8, 'ball'); P.topiary(ctx, -5, 14.6, 'ball');
     P.topiary(ctx, -7.2, 6.4, 'cone'); P.topiary(ctx, -7.2, 19.4, 'cone');
     P.hedge(ctx, -8.2, 7.4, -4.6, 8.2, 0.9); P.hedge(ctx, -8.2, 16.6, -4.6, 17.4, 0.9); P.hedge(ctx, -8.2, 21.6, -4.6, 22.4, 0.9);
@@ -149,6 +152,7 @@ export default {
     // the palace (far side, north): eleven bays, the frontispiece and its stair in the middle three
     P.manor(ctx, -8.2, -57.2, 25.6, 7.6, 9.6, { faces: ['z'], floors: 3, floorH: 2.6, bay: 25.6 / 11, lit: 0.45, lights: 2, tone: P.STONE, pattern: (f, k, i) => (i >= 6 && i <= 8 ? 'blank' : 'win') });
     P.frontispiece(ctx, -3.55, -52.6, 7, 10.2, { doorY: 1.6 });
+    P.dome(ctx, -3.55, -58.2, 10.6, 3.4); // the landmark: the palace dome and its gilded lantern
     P.grandStair(ctx, -3.55, -52.6, 4.6, 8);
     for (const x of [-9.37, 2.27]) P.banner(ctx, x, 5, -53.28, '+z', { long: true });
     P.brazier(ctx, -7.4, -49); P.brazier(ctx, 0.3, -49); P.brazier(ctx, -12.6, -34); P.brazier(ctx, 8, -34);

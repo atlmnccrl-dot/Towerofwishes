@@ -8,8 +8,11 @@ export default {
   start: { x: 15.5, z: 14, face: Math.PI },
   bounds: [-17.5, -42.5, 22, 16.5],
   gatesOpen: ['lychGate', 'choirGate'],
+  // drowned teal: cold green-blue haze, the glass's colours on the water, candles of the drowned (district variety)
   ambience: {
-    fog: 0x1b2730, fogNear: 78, fogFar: 175, sky: 0x0a0e14, moon: 1.7, hemi: 1.0, rain: 1, lightning: true,
+    fog: 0x142a2e, fogNear: 78, fogFar: 175, sky: 0x081012, moon: 1.5, moonColor: 0x9ac8d0, hemi: 1.0, hemiSky: 0x4a7480, hemiGround: 0x0a1416,
+    fill: 1.2, fillColor: 0x7aa0a8, ambient: 0x10222a, ambientI: 0.6, rain: 0.8, lightning: true,
+    grade: { gain: [0.9, 1.02, 1.07], lift: [0.002, 0.01, 0.012], sat: 0.84 },
     // short shafts (they start at the broken roof): the level runs up the screen, so a full-height
     // shaft from the churchyard or the nave would lie across every room beyond it
     beams: [
@@ -56,12 +59,13 @@ export default {
       if (axis === 'x') { s.z0 = c - 0.3; s.z1 = c + 0.3; } else { s.x0 = c - 0.3; s.x1 = c + 0.3; }
     };
     const screen = (x0, z0, x1, z1, o) => { K.fence(ctx, x0, z0, x1, z1, o); opaque(ctx.solids[ctx.solids.length - 1]); };
+    K.district(ctx, 'nave');
     // ------------------------------------------------ ground
-    K.floor(ctx, -26, -56, 34, 28, W.dirt('#444c54'));
+    K.floor(ctx, -26, -56, 34, 28, W.dirt('#3a4a4c'));
     K.floor(ctx, 8.5, -42, 21.5, -6.5, W.grass('#323c3a'), 0.005, 0.3);
     K.floor(ctx, 8.5, -6.5, 21.5, 9.5, W.grass('#4a5652'), 0.01, 0.3);
-    K.floor(ctx, 8.5, 9.5, 21.5, 16.8, W.cobble('#56606e'), 0.01, 0.3);
-    K.floor(ctx, 8.5, 16.8, 34, 28, W.cobble('#545e6c'), 0.01, 0.3);
+    K.floor(ctx, 8.5, 9.5, 21.5, 16.8, W.flags('#56666a'), 0.01, 0.3);
+    K.floor(ctx, 8.5, 16.8, 34, 28, W.flags('#526266'), 0.01, 0.3);
     K.floor(ctx, 21.5, -42, 34, 16.8, W.grass('#323c3a'), 0.005, 0.3);
     K.floor(ctx, 14.3, -0.4, 16.7, 9.5, W.flags('#646e7c'), 0.02, 0.3);
     K.floor(ctx, 8.5, -0.4, 14.3, 1.9, W.flags('#646e7c'), 0.02, 0.3);
@@ -223,6 +227,7 @@ export default {
     P.altar(ctx, 0, -39.1);
     K.statue(ctx, -4.6, -40.2, 0.3); K.statue(ctx, 4.6, -40.2, -0.3);
     P.candelabrum(ctx, -3.2, -36.6); P.candelabrum(ctx, 3.2, -36.6);
+    P.organ(ctx, -8.4, -41, 4.4); // the landmark: the drowned organ in the apse's far corner
     // the crossing: four piers (the near two broken), the labyrinth under the water, the dead under their slabs
     P.pier(ctx, -5.2, -24.6, 6.4, { w: 1 }); P.pier(ctx, -5.2, -34.4, 6.4, { w: 1 });
     P.pier(ctx, 5.2, -24.6, 6.4, { w: 1, broken: 2.6 }); P.pier(ctx, 5.2, -34.4, 6.4, { w: 1, broken: 3.4 });
@@ -251,6 +256,10 @@ export default {
     K.puddle(ctx, 11.5, -19, 2, 1.2); K.puddle(ctx, 16, -20.5, 1.4, 1);
 
     // ------------------------------------------------ the drowned, drifting
+    // the drowned glass's colours lying on the flood before the windows, and pews afloat
+    P.glassPools(ctx, [[-5.6, 5, 1.6, 1.0, 0], [-5.6, -3.75, 1.6, 1.0, 1], [-5.6, -12.75, 1.6, 1.0, 2], [-5.4, -17.6, 1.4, 1.0, 3],
+      [-1.9, -38.2, 1.2, 1.6, 0], [1.9, -38.2, 1.2, 1.6, 1], [-10.6, -38.6, 1.4, 1.2, 4], [-10.8, -23.6, 1.4, 1.2, 2], [-10.8, -34.2, 1.2, 1.2, 3], [7.2, -38.8, 1.2, 1.2, 4]]);
+    P.floatingPew(ctx, -5.9, 4.0, 1.45); P.floatingPew(ctx, 5.7, -9.6, -0.3, 1.6); P.floatingPew(ctx, 10.4, -39, 0.9, 1.7);
     P.souls(ctx, [[-7, -5.5, 7, 3.5, 10], [-7, -19.5, 7, -6.5, 10], [-12, -36, 12, -22, 14], [10, -5, 20, 7, 6]]);
   },
 };

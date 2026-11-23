@@ -437,3 +437,59 @@ export function souls(ctx, regions) {
   };
   step(); ctx.anims.push({ update(dt) { t += dt; step(); return false; } });
 }
+
+// ---------------------------------------------------------------- district variety: the drowned organ,
+// the colours of the glass lying on the water, pews afloat
+// The broken organ: the Nave's landmark, standing in the apse's far corner (against a wall facing +z).
+// A dark oak case with gilt pipe-shades, a fan of tin pipes (some bent, some fallen across the case),
+// the console half under the flood, a drowned teal glow behind the pipes.
+export function organ(ctx, x, z, w = 4.4) {
+  const oak = M.wood('#2e2018'), dark = M.wood('#22180f');
+  const tin = cutout(new THREE.MeshPhongMaterial({ color: 0x8a96a0, specular: 0xc0d0dc, shininess: 60 }));
+  const gilt = cutout(new THREE.MeshPhongMaterial({ color: 0x9c7c38, specular: 0xffe4a8, shininess: 40, emissive: 0x140e04 }));
+  add(ctx, box(w, 3.2, 1.4), oak, x, 1.6, z + 0.7);
+  add(ctx, box(w + 0.3, 0.3, 1.6), dark, x, 3.3, z + 0.75);
+  for (const s of [-1, 1]) { add(ctx, box(0.9, 7.6, 1.2), oak, x + s * (w / 2 - 0.45), 3.8 + 3.3, z + 0.6); add(ctx, cone(0.6, 1.4, 4), dark, x + s * (w / 2 - 0.45), 11.6, z + 0.6, { ry: Math.PI / 4 }); }
+  add(ctx, box(w - 1.8, 0.4, 1.0), gilt, x, 10.6, z + 0.6);
+  // the fan of pipes, tallest in the middle; two bent out of line, one fallen
+  const n = 9;
+  for (let i = 0; i < n; i++) {
+    const u = -(w - 2) / 2 + (i + 0.5) * (w - 2) / n; const hgt = 3.6 + (1 - Math.abs(i - (n - 1) / 2) / ((n - 1) / 2)) * 3.8; const r = 0.11 + hgt * 0.008;
+    if (i === 2) continue; // the gap where a pipe fell
+    const bent = i === 6 ? 0.18 : (i === 7 ? -0.1 : 0);
+    add(ctx, cyl(r, r, hgt, 8), tin, x + u + bent * hgt / 2, 3.45 + hgt / 2, z + 1.05, { rz: -bent });
+    add(ctx, cone(r, 0.26, 8), tin, x + u, 3.32, z + 1.05, { rx: Math.PI });
+  }
+  for (let i = 0; i < 6; i++) { const u = -w / 2 + 1.1 + i * 0.44; add(ctx, cyl(0.07, 0.07, 1.6 + i * 0.25, 6), tin, x + u * 0.9, 3.45 + (1.6 + i * 0.25) / 2, z + 0.4); }
+  add(ctx, cyl(0.13, 0.13, 4.2, 8), tin, x + 1.2, 1.35, z + 2.2, { rz: 1.2, ry: 0.4 }); // the fallen pipe, across the console
+  // the console, its keyboards drowned
+  add(ctx, box(1.8, 0.9, 0.9), oak, x - 0.2, 0.45, z + 1.85, { ry: 0.12 });
+  for (const [y, o] of [[0.95, 0.15], [1.1, 0]]) add(ctx, box(1.5, 0.05, 0.28), M.flat(0xd8d0bc), x - 0.2, y, z + 1.95 + o, { ry: 0.12 });
+  add(ctx, box(1.6, 0.8, 0.08), dark, x - 0.24, 1.5, z + 1.45, { ry: 0.12 });
+  add(ctx, plane(w - 2.2, 6.4), M.glow('#2a8a7c', 0.55), x, 6.8, z + 0.02, { cast: false });
+  ctx.lights.push({ x: x + 0.4, y: 5, z: z + 2.2, color: 0x3ad6c4, intensity: 4.5, dist: 9, flicker: 0.04 });
+  solid(ctx, x - w / 2, z, x + w / 2, z + 2.4, 3.4);
+}
+
+// The colours of the drowned glass lying on the flood: soft pools of ruby, sapphire, emerald and gold on
+// the water in front of the windows (flat additive quads that shimmer a little), each with a faint light.
+const GLASS = [0xff3a50, 0x4a6aff, 0x2ad08a, 0xffc040, 0xb04aff];
+export function glassPools(ctx, spots) {
+  spots.forEach(([x, z, w, d, k], i) => {
+    const col = new THREE.Color(GLASS[(k ?? i) % GLASS.length]);
+    const m = new THREE.Mesh(plane(w, d), new THREE.MeshBasicMaterial({ color: col.clone().multiplyScalar(0.55), transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+    m.rotation.x = -Math.PI / 2; m.position.set(x, 0.03, z); m.renderOrder = -1; ctx.group.add(m);
+    ctx.lights.push({ x, y: 0.6, z, color: col.getHex(), intensity: 1.6, dist: 4 });
+    let t = i * 1.7; ctx.anims.push({ update(dt) { t += dt; m.material.opacity = 0.38 + Math.sin(t * 1.3) * 0.1; return false; } });
+  });
+}
+
+// A pew afloat: bobbing and turning slowly on the flood (its solid covers where it drifts).
+export function floatingPew(ctx, x, z, ry = 0, len = 1.8, solidToo = true) {
+  if (solidToo) solidRot(ctx, x, z, ry, len / 2 + 0.05, 0.3, 0.6);
+  const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = ry; ctx.group.add(g); const wood = M.wood('#4e3828'), dark = M.wood('#3a281c');
+  for (const [geo2, m, px, py, pz, rx] of [[box(len, 0.07, 0.42), wood, 0, 0.12, 0, 0], [box(len, 0.5, 0.06), wood, 0, 0.36, 0.2, -0.2], [box(0.07, 0.5, 0.5), dark, -len / 2, 0.24, 0.05, 0], [box(0.07, 0.5, 0.5), dark, len / 2, 0.24, 0.05, 0]]) {
+    const mesh = new THREE.Mesh(geo2, m); mesh.position.set(px, py, pz); mesh.rotation.x = rx; mesh.castShadow = true; g.add(mesh);
+  }
+  let t = Math.random() * 6; ctx.anims.push({ update(dt) { t += dt; g.position.y = Math.sin(t * 0.8) * 0.04 - 0.05; g.rotation.z = Math.sin(t * 0.6) * 0.06; g.rotation.y = ry + Math.sin(t * 0.13) * 0.15; return false; } });
+}

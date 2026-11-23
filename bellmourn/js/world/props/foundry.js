@@ -7,6 +7,7 @@ import * as THREE from '../../../vendor/three.module.min.js';
 import { add, box, cyl, geo, inst, solid, solidCircle, plane } from '../kit.js';
 import { M, cutout } from '../../engine/materials.js';
 import * as T from '../../engine/textures.js';
+import { MC } from '../kit_city.js';
 import { mergeGeometries } from '../../../vendor/BufferGeometryUtils.js';
 
 // ---------------------------------------------------------------- helpers
@@ -453,7 +454,7 @@ export function brazier(ctx, x, z, o = {}) {
 
 // A soot-black chimney stack: a brick shaft on a plinth, iron bands, a corbelled cap, blacker at the top.
 export function chimney(ctx, x, z, h = 14, s = 2) {
-  const b = M.brick('#252225');
+  const b = MC.redBrick('#5a2e24');
   add(ctx, box(s + 0.4, 1.2, s + 0.4), M.ashlar('#34323a'), x, 0.6, z);
   add(ctx, box(s, h - 3.2, s), b, x, 1.2 + (h - 3.2) / 2, z);
   add(ctx, box(s + 0.02, 2, s + 0.02), M.brick('#171517'), x, h - 1, z);
@@ -522,4 +523,19 @@ export function sparks(ctx, emitters) {
     }
   };
   step(0); ctx.anims.push({ update(dt) { step(Math.min(dt, 0.1)); return false; } });
+}
+
+// The foundry's landmark: the great round stack, red factory brick bound with iron hoops, its mouth
+// glowing over the whole district. Stands behind the far wall (no floor around it).
+export function greatStack(ctx, x, z, H = 27) {
+  add(ctx, box(4.2, 2.4, 4.2), MC.redBrick('#3a2a2c'), x, 1.2, z);
+  add(ctx, box(4.5, 0.3, 4.5), MC.plate('#3a3634'), x, 2.55, z);
+  add(ctx, cyl(1.3, 1.9, H - 2.4, 12), MC.redBrick('#6a3426'), x, 2.4 + (H - 2.4) / 2, z);
+  for (let y = 5; y < H - 1; y += 3.2) { const r = 1.9 - (1.9 - 1.3) * ((y - 2.4) / (H - 2.4)); add(ctx, cyl(r + 0.06, r + 0.06, 0.18, 12), M.ironLit(), x, y, z); }
+  add(ctx, cyl(1.55, 1.4, 0.8, 12), M.ironLit(), x, H + 0.2, z);
+  add(ctx, cyl(1.15, 1.15, 0.1, 12), M.glow('#ff7a2a', 2.2), x, H + 0.58, z, { cast: false });
+  // white lettering band? no: a ladder of iron rungs up the camera side
+  for (let y = 3; y < H - 0.6; y += 0.5) { const r = 1.9 - (1.9 - 1.3) * ((y - 2.4) / (H - 2.4)); inst(ctx, 'fd-rung', box(0.5, 0.04, 0.04), M.ironLit(), new THREE.Matrix4().makeTranslation(x + r * 0.71 + 0.12, y, z + r * 0.71 + 0.12)); }
+  ctx.lights.push({ x: x + 1.5, y: H + 1.2, z: z + 1.5, color: 0xff7a2a, intensity: 9, dist: 14, halo: true, flicker: 0.25 });
+  solid(ctx, x - 2.1, z - 2.1, x + 2.1, z + 2.1, H);
 }

@@ -263,7 +263,7 @@ export class Cutscene {
   }
   updateStrike(dt, adv) {
     const T = this.strikeS; T.t += dt; T.cool -= dt;
-    const go = (adv && T.cool <= 0 && T.t > 0.4) || (this.auto && T.cool <= -0.25 && T.t > 0.3);
+    const go = (adv && T.cool <= 0 && T.t > 0.4) || (this.auto && T.cool <= -0.5 && T.t > 1.2);
     if (!go) return;
     T.i++; T.cool = 0.55; try { T.onStrike && T.onStrike(this, T.i); } catch (err) { console.error(err); }
     if (T.i >= T.n) { this.strikeS = null; }
