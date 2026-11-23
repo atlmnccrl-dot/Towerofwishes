@@ -197,15 +197,16 @@ node bellmourn/test/no-assets.mjs                                           # no
 HERO=warden node bellmourn/test/sim-test.mjs 6                              # balance and invariants in Node (any warden)
 NODE_PATH=$(npm root -g) node bellmourn/test/level-check.js gate            # reachability, gates, lamps and chests of one district (any id)
 NODE_PATH=$(npm root -g) node bellmourn/test/modules.js                     # every module imports in the browser (catches syntax errors)
-NODE_PATH=$(npm root -g) node bellmourn/test/play.js /tmp/bm-play            # title -> story -> first fight -> the lamp lights by walking up, restores once per visit
+NODE_PATH=$(npm root -g) node bellmourn/test/play.js /tmp/bm-play            # title -> story -> first fight -> the lamp lights by walking up, restores once per visit  (written for the old linear game: its Haven menu and lamps are gone; run-flow.js covers the run)
 NODE_PATH=$(npm root -g) node bellmourn/test/poses.js /tmp/bm-poses          # every clip, zoomed
 NODE_PATH=$(npm root -g) node bellmourn/test/tonic.js /tmp/bm-tonic warden    # a tonic in a district: the flask, the motes, the heal; effects cleaned up
-NODE_PATH=$(npm root -g) node bellmourn/test/phone.js /tmp/bm-phone          # iPhone-sized touch: select by taps, stick, ATK, the layout at every button size, a tonic tapped, the Haven by taps
+NODE_PATH=$(npm root -g) node bellmourn/test/phone.js /tmp/bm-phone          # iPhone-sized touch: select by taps, stick, ATK, the layout at every button size, a tonic tapped, the Haven by taps  (written for the old linear game: its Haven menu and lamps are gone; run-flow.js covers the run)
 NODE_PATH=$(npm root -g) node bellmourn/test/autoplay-browser.js /tmp/bm-auto 40 3 0 1   # plays whole runs on autoplay [god] [runs] [hero]; says when a run has finished
+NODE_PATH=$(npm root -g) node bellmourn/test/run-flow.js /tmp/bm-run       # a scripted run, a screenshot per step: select, talents, the duel's beats, map, an area and its boon, an event, a shrine, the merchant, death, the summary
 node bellmourn/test/run-test.mjs 300                                         # the run's rules: maps for many seeds, newRun, endRun, migrateSave, talents, Tower, shop
 NODE_PATH=$(npm root -g) node bellmourn/test/shot.js /tmp/x.png "level=nave&boss=1&god=1"   # any spot
 NODE_PATH=$(npm root -g) node bellmourn/test/scenes-test.js /tmp/bm-scenes [id ...]   # every cutscene on a phone-sized screen, a frame from each
-NODE_PATH=$(npm root -g) node bellmourn/test/story-flow.js /tmp/bm-flow     # the story by script: the Old Road, the Haven, the Gaoler and Kestrel, Silence, the bell, Act II
+NODE_PATH=$(npm root -g) node bellmourn/test/story-flow.js /tmp/bm-flow     # the story by script: the Old Road, the Haven, the Gaoler and Kestrel, Silence, the bell, Act II  (written for the old linear game: its Haven menu and lamps are gone; run-flow.js covers the run)
 ```
 
 Debug URL parameters: `?level=<id>` starts a fresh run in an area (prologue, gate, market, docks, nave,

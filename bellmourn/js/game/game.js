@@ -89,7 +89,7 @@ const SPECS = {
   MapScreen: (g, d, h) => { const run = d.run; const nx = nextNodes(run); return { title: 'ACT ' + ['I', 'II', 'III'][run.act - 1] + ': ' + (d.map.name || ''), lines: ['HEALTH ' + (run.hp ?? '-') + '/' + (run.maxHp ?? '-') + '   EMBERS ' + run.embers + '   TONICS ' + (run.tonics ?? '-') + '   BOONS ' + run.boons.length, 'WHERE NEXT?'],
     items: nx.map((n) => ({ label: n.label + (n.cond ? ' (' + n.cond + ')' : ''), sub: n.kind === 'area' || n.kind === 'boss' ? (n.kind === 'boss' ? 'THE ACT\'S END' : 'AN AREA') : n.kind.toUpperCase(), on: () => h.pick(n.id) })) }; },
   BoonScreen: (g, d, h) => ({ title: 'A VOICE OFFERS ITS STRENGTH', lines: ['CHOOSE ONE.'], items: [...(d.offers || []).map((o) => ({ label: ((o.def && o.def.name) || o.id) + ' (' + String(o.rarity || 'common').toUpperCase() + ')', sub: (o.def && o.def.desc) || '', on: () => h.pick(o.id) })), (d.run.rerolls | 0) > 0 ? { label: 'REROLL (' + d.run.rerolls + ')', on: () => h.reroll() } : null].filter(Boolean) }),
-  EventScreen: (g, d, h) => ({ title: String(d.event.title || 'AN EVENT').toUpperCase(), lines: [String(d.event.text || '').toUpperCase()], items: (d.event.choices || []).map((c, i) => ({ label: String(c.label).toUpperCase(), sub: [c.cost && Object.entries(c.cost).map(([k, v]) => '-' + v + ' ' + k.toUpperCase()).join(' '), c.risk ? String(c.risk).toUpperCase() : ''].filter(Boolean).join('  '), on: () => h.choose(i) })) }),
+  EventScreen: (g, d, h) => ({ title: String(d.event.title || 'AN EVENT').toUpperCase(), lines: [String(d.event.text || '').toUpperCase()], items: (d.event.choices || []).map((c, i) => ({ label: String(c.label).toUpperCase(), sub: [c.cost && Object.entries(c.cost).map(([k, v]) => '-' + v + ' ' + k.toUpperCase()).join(' '), c.risk ? String(c.risk).toUpperCase() : ''].filter(Boolean).join('  '), disabled: !!c.disabled, on: () => h.choose(i) })) }),
   ShrineScreen: (g, d, h) => { const run = d.run; const used = h.used && h.used(); return { title: 'THE SHRINE', lines: ['A FIRE LIT FROM THE BELL\'S FORGE. EMBERS: ' + run.embers, 'HEALTH ' + run.hp + '/' + run.maxHp], items: [{ label: used ? 'RESTED' : 'REST', sub: 'HEAL ' + Math.round(h.healFrac() * 100) + '% AND A TONIC', disabled: used, on: () => h.heal() },
     ...run.boons.filter((b) => b.rarity !== 'legendary').slice(0, 4).map((b) => ({ label: 'RAISE ' + String(b.id).toUpperCase(), sub: String(b.rarity).toUpperCase() + ' -> ' + h.upgradeCost(b.rarity) + ' EMBERS', on: () => h.upgrade(b.id) })), { label: 'BUY A REROLL', sub: h.rerollCost() + ' EMBERS', on: () => h.reroll() }, { label: 'LEAVE', on: () => h.leave() }] }; },
   MerchantScreen: (g, d, h) => ({ title: 'THE MERCHANT', lines: ['EMBERS: ' + d.run.embers], items: [...d.stock.map((it) => ({ label: it.name, sub: it.price + ' EMBERS  ' + it.desc, disabled: (d.run.bought || []).includes(it.id) && it.kind !== 'tonic', on: () => h.buy(it) })), { label: 'LEAVE', on: () => h.leave() }] }),
@@ -232,7 +232,7 @@ export class Game {
     const hero = w.spawnHero(sx, sz, { ...this.heroStats(), face });
     this.fitRunHero(hero);
     const tier = def.tier || 0;
-    for (const f of (def.foes || []).filter(knownOrWarn)) w.spawnFoe(f.t, f.x, f.z, { tier: f.tier ?? tier, rise: false, face: f.face, elite: f.elite || this._elite(tier, f.t), element: f.element });
+    for (const f of (def.foes || []).filter(knownOrWarn)) { const m = w.spawnFoe(f.t, f.x, f.z, { tier: f.tier ?? tier, rise: false, face: f.face, elite: f.elite || this._elite(tier, f.t), element: f.element, aggro: !!f.wander }); if (f.wander) { m.wander = true; m.ai.aggro = true; } } // a wandering elite (C) comes looking for the warden
     this.encs = (def.encounters || []).map((e) => ({ ...e, state: prog.encs.includes(e.id) ? 'done' : 'idle', wave: -1, mine: [], delay: 0 }));
     for (const e of this.encs) {
       if (e.state === 'done') { for (const g of e.opens || []) this.gate(g, true, true); for (const g of e.gates || []) this.gate(g, true, true); continue; }
@@ -354,7 +354,7 @@ export class Game {
     else if (S === 'story') this.storyIdx = (this.storyLines || []).length;
     else if (S === 'haven' && this.haven && this.haven.ready() && this.stateT > 0.3) this.autoShrine();
     else if (S === 'play' && this.world && !this.loading) Object.assign(inp, this.auto(this, dt), { pausePressed: false });
-    else if (S === 'cutscene' && this.cut) { const c = this.cut; if (c.pick) { if (c.pick.t > 0.3) { const want = this.autoChoice(c.pick.key, c.pick.options.map((o) => o.id)); c.choose(Math.max(0, c.pick.options.findIndex((o) => o.id === want))); } } else if (c.strikeS) Object.assign(inp, { attackPressed: true }); else if (c.t > 0.3 && !c.skipping) c.skip(); }
+    else if (S === 'cutscene' && this.cut) { const c = this.cut; if (c.pick) { if (c.pick.t > 0.3) { const want = this.autoChoice(c.pick.key, c.pick.options.map((o) => o.id)); c.choose(Math.max(0, c.pick.options.findIndex((o) => o.id === want))); } } else if (c.strikeS) Object.assign(inp, { attackPressed: true }); else if (c.t > 0.3 && !c.skipping && !(c.outT >= 0)) c.skip(); }
     else if (S === 'credits' && this.stateT > 1.5) Object.assign(inp, { confirm: true });
     else if (S === 'bossIntro' && this.stateT > 0.6) Object.assign(inp, { confirm: true });
     else if (S === 'dead' && this.stateT > 1.4) Object.assign(inp, { confirm: true });
@@ -368,7 +368,7 @@ export class Game {
     else if (n === 'TalentScreen') { const av = availableTalents(this.meta, d.hero).filter((t) => !t.locked); if (av.length && !masteryOf(this.meta, d.hero).talents.length) h.pick(av[0].id); h.start(); }
     else if (n === 'MapScreen') { const nx = nextNodes(run); if (!nx.length) return; const want = (k) => nx.find((x) => x.kind === k); const low = run.hp !== null && run.maxHp && run.hp < run.maxHp * 0.5; const pick = (low && (want('shrine') || want('merchant'))) || want('quest') || want('area') || want('boss') || want('event') || want('shrine') || want('merchant') || nx[0]; h.pick(pick.id); }
     else if (n === 'BoonScreen') { const o = (d.offers || []).slice().sort((a, b) => rarN(b.rarity) - rarN(a.rarity))[0]; if (o) h.pick(o.id); else if (h.skip) h.skip(); }
-    else if (n === 'EventScreen') { const ch = (d.event && d.event.choices) || []; let best = 0, bs = -1e9; ch.forEach((c, i) => { const cost = c.cost || {}; const hpLeft = run && run.hp !== null ? run.hp - (cost.hp || 0) : 99; const ok = (!cost.embers || run.embers >= cost.embers) && (!cost.tonic || run.tonics >= cost.tonic) && hpLeft > (run ? run.maxHp * 0.3 : 0); const s = (ok ? 10 : -10) - i * 0.1 + (c.risk ? -1 : 0); if (s > bs) { bs = s; best = i; } }); h.choose(best); }
+    else if (n === 'EventScreen') { const ch = (d.event && d.event.choices) || []; let best = 0, bs = -1e9; ch.forEach((c, i) => { if (c.disabled) return; const cost = c.cost || {}; const hpLeft = run && run.hp !== null ? run.hp - (cost.hp || 0) : 99; const ok = (!cost.embers || run.embers >= cost.embers) && (!cost.tonic || run.tonics >= cost.tonic) && hpLeft > (run ? run.maxHp * 0.3 : 0); const s = (ok ? 10 : -10) - i * 0.1 + (c.risk ? -1 : 0); if (s > bs) { bs = s; best = i; } }); h.choose(best); }
     else if (n === 'ShrineScreen') this.autoShrine();
     else if (n === 'MerchantScreen') { const st = d.stock || []; const cand = st.filter((it) => it.price <= run.embers && !(run.bought || []).includes(it.id) && !(it.kind === 'tonic' && run.tonics >= this.maxTonics())); const pick = cand.find((it) => it.kind === 'heal' && run.hp < run.maxHp * 0.6) || cand.find((it) => it.kind === 'relic') || cand.find((it) => it.kind === 'boon') || cand.find((it) => it.kind === 'weapon'); if (pick && (this.autoBuys = (this.autoBuys | 0) + 1) < 4) h.buy(pick); else { this.autoBuys = 0; h.leave(); } }
     else if (n === 'SummaryScreen') h.done();
@@ -529,8 +529,8 @@ export class Game {
     const def = this.levelFor(n) || LEVELS[n.area];
     await this.loadLevel(n.area, { fromStart: true, def });
     this.persist();
-    const a = ACT_OF(n.area); const cond = n.cond || (this.variant && (this.variant.name || this.variant.condition)) || '';
-    this.card = { t: 0, sup: n.kind === 'road' || n.area === 'prologue' ? 'PROLOGUE' : (n.kind === 'boss' ? 'ACT ' + ['I', 'II', 'III'][a - 1] + '  THE LAST OF IT' : 'ACT ' + ['I', 'II', 'III'][(a || 1) - 1] + (cond ? '  ' + String(cond).toUpperCase() : '')), title: def.name.toUpperCase(), line: def.tagline || '' };
+    const a = ACT_OF(n.area); const cond = def.conditionName || n.cond || (this.variant && (this.variant.name || this.variant.condition)) || '';
+    this.card = { t: 0, sup: n.kind === 'road' || n.area === 'prologue' ? 'PROLOGUE' : (n.kind === 'boss' ? 'ACT ' + ['I', 'II', 'III'][a - 1] + '  THE LAST OF IT' : 'ACT ' + ['I', 'II', 'III'][(a || 1) - 1] + (cond ? '  ' + String(cond).toUpperCase() : '')), title: def.name.toUpperCase(), line: (def.variantName ? String(def.variantName).toUpperCase() + '. ' : '') + (def.tagline || '') };
     if (this.duelOn) this.card = null;
     this.go('play'); this.fadeIn = 0;
     // a scene on the way in, the first time only
@@ -574,7 +574,7 @@ export class Game {
   doEvent(n, o = {}) {
     const run = this.run, meta = this.meta; const rng = rngOf(hashSeed(run.seed, n.id, 'event'));
     let ev = null; const pe = opt('events', 'pickEvent'), E = OPT.events && OPT.events.EVENTS;
-    try { if (o.eventId && E) ev = Array.isArray(E) ? E.find((x) => x.id === o.eventId) : E[o.eventId]; if (!ev && pe) ev = pe(run, meta, rng, { node: n, act: run.act, quest: o.quest }); } catch (err) { console.error('bellmourn: pickEvent', err); }
+    try { const de = opt('events', 'dealEvent'); if (o.eventId && de) ev = de(run, o.eventId); if (!ev && o.eventId && E) ev = Array.isArray(E) ? E.find((x) => x.id === o.eventId) : E[o.eventId]; if (!ev && pe) ev = pe(run, meta, rng, { node: n, act: run.act, quest: o.quest }); } catch (err) { console.error('bellmourn: pickEvent', err); }
     if (!ev) ev = fallbackEvent(run); else { const ne = opt('events', 'noteEvent'); if (ne) { try { ne(run, ev.id); } catch (e) { /* */ } } }
     const re = opt('events', 'resolveEvent');
     this.openScreen('EventScreen', { run, event: ev, meta }, {
@@ -678,7 +678,7 @@ export class Game {
   questArea() { const run = this.run; const a = (run.stats.areas || []).slice(-1)[0]; return LEVELS[a] ? a : (run.act === 2 ? 'frostmarch' : (run.act === 3 ? 'marsh' : 'gate')); }
   // an event opened from inside an area (a cursed lamp's touch): the card over the frozen fight, then back to it
   openEvent(id) {
-    const run = this.run, meta = this.meta; const E = OPT.events && OPT.events.EVENTS; let ev = null; try { ev = E ? (Array.isArray(E) ? E.find((x) => x.id === id) : E[id]) : null; } catch (e) { ev = null; }
+    const run = this.run, meta = this.meta; const E = OPT.events && OPT.events.EVENTS; let ev = null; try { const de = opt('events', 'dealEvent'); ev = de ? de(run, id) : null; if (!ev) ev = E ? (Array.isArray(E) ? E.find((x) => x.id === id) : E[id]) : null; } catch (e) { ev = null; } const ne = opt('events', 'noteEvent'); if (ev && ne) { try { ne(run, ev.id); } catch (e) { /* */ } }
     if (!ev) return false; const rng = rngOf(hashSeed(run.seed, run.at || 'x', id)); const re = opt('events', 'resolveEvent');
     this.after(0.4, () => this.openScreen('EventScreen', { run, event: ev, meta }, { choose: (i) => {
       let res = null; try { res = re ? re(run, meta, ev.id, i, rng) : null; } catch (err) { console.error('bellmourn: resolveEvent', err); } res = res || { lines: [], changes: {} };

@@ -40,7 +40,7 @@ export function makeAutoplay(seed = 3) {
     for (const t of game.touches || []) if (!t.used && t.id && !st.visited.has('touch:' + t.id)) out.push({ id: 'touch:' + t.id, x: t.x, z: t.z, touch: t });
     for (const c of L.chests) if (!c.h.open && !st.visited.has('chest:' + c.id)) out.push({ id: 'chest:' + c.id, x: c.x, z: c.z + 1.0, chest: c });
     for (const e of game.encs || []) if (e.state === 'idle') { const c = center(e.zone); out.push({ id: 'enc:' + e.id, x: c.x, z: c.z }); }
-    for (const l of L.lamps) if (!l.h.lit && game.world.hero.hp < game.world.hero.maxHp * 0.8) out.push({ id: 'lamp:' + l.id, x: l.x + 1.2, z: l.z + 0.6, lamp: l });
+    for (const l of L.lamps) if (!l.h.lit && !st.visited.has('lamp:' + l.id) && game.world.hero.hp < game.world.hero.maxHp * 0.8) out.push({ id: 'lamp:' + l.id, x: l.x + 1.2, z: l.z + 0.6, lamp: l });
     if (def.boss && game.bossState === 'idle') { const z = def.boss.zone; out.push({ id: 'boss', x: (z[0] + z[2]) / 2, z: z[3] - 1.5 }); }
     if (def.exit && (!def.exit.requires || game.bossState === 'done')) { const c = center(def.exit.zone); out.push({ id: 'exit', x: c.x, z: c.z, last: true }); }
     return out;
@@ -106,9 +106,12 @@ export function makeAutoplay(seed = 3) {
       const dT = Math.hypot(t.x - h.x, t.z - h.z);
       // a lamp lights (and restores) by itself within 3.5 m: being there is enough; a chest takes USE from
       // where the game offers the prompt (1.7 m from the chest itself)
+      // any side target (a chest, a lamp) pursued too long is given up: the area's way on comes first
+      st.tgtT = st.tgtId === t.id ? (st.tgtT || 0) + dt : 0; st.tgtId = t.id; if ((t.chest || t.lamp) && st.tgtT > 25) { st.visited.add(t.id); st.path = null; return inp; }
       const obj = t.lamp || t.chest; const dObj = obj ? Math.hypot(obj.x - h.x, obj.z - h.z) : 9;
       if (t.lamp && dObj < 2.4) { st.visited.add(t.id); if (t.rest) st.rested = true; st.path = null; return inp; }
-      if (t.touch && (t.touch.used || dT < 0.9)) { st.visited.add(t.id); st.path = null; }
+      // a touch: walked into (or given up on after a while: it may sit just out of reach of the walk grid)
+      if (t.touch) { st.touchT = st.touchId === t.id ? (st.touchT || 0) + dt : 0; st.touchId = t.id; if (t.touch.used || dT < 1.4 || st.touchT > 14) { st.visited.add(t.id); st.path = null; } }
       if (t.chest && dObj < 1.5) { inp.interactPressed = true; st.visited.add(t.id); st.path = null; return inp; }
       if (obj && dT < 0.5) { const dx = obj.x - h.x, dz = obj.z - h.z; inp.mx = dx / dObj; inp.mz = dz / dObj; return inp; }
       if (t.id.startsWith('enc:') && dT < 1.5) st.path = null;

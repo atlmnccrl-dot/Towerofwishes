@@ -39,7 +39,11 @@ export class Duel {
   filter(inp) {
     if (this.beat === 'intro') { const k = this.bt < 2.1 ? 1 : 0; return { ...inp, mx: 0, mz: -k * 0.55, attackPressed: false, dashPressed: false, ultPressed: false, healPressed: false, attack: false }; }
     if (this.beat === 'finish' || this.beat === 'title') return { ...inp, mx: 0, mz: 0, attackPressed: false, dashPressed: false, ultPressed: false, healPressed: false, attack: false };
-    if (this.beat === 'perfect' && this.freeze && !inp.dashPressed) return { ...inp, attackPressed: false, attack: false };
+    // the dash lessons teach the plain dash: a movement skill on the dash button waits until they are over
+    if ((this.beat === 'dash' || this.beat === 'perfect') && this.g.world && this.g.world.hero) { const h = this.g.world.hero, da = h.dashAbility; if (da && da.slot !== undefined && h.cds) h.cds[da.slot] = Math.max(h.cds[da.slot] || 0, 0.5); }
+    // the frozen moment: the press itself is the dodge (the dash would crawl at the frozen speed before the sim reported it)
+    if (this.beat === 'perfect' && this.freeze && inp.dashPressed) { this.dodge(); return inp; }
+    if (this.beat === 'perfect' && this.freeze) return { ...inp, attackPressed: false, attack: false };
     return inp;
   }
   spawnCrow() {
@@ -52,6 +56,7 @@ export class Duel {
   }
 
   update(dt, evs) {
+    this.freezeGuard();
     const g = this.g, w = g.world, h = this.hero, c = this.crow; this.t += dt; this.bt += dt;
     if (this.word) this.word.t += dt;
     for (const ev of evs) {
@@ -126,6 +131,8 @@ export class Duel {
   tap() { this.tapped = true; }
   ok() { this.g.sound.play('uiOk'); if (this.word) this.word.okT = 0.001; }
   slowFor(sec, k) { this.slowT = sec; this.slowK = k; }
+  // called every frame by update(): if the frozen moment lasts too long (missed or unregistered press), dodge for the player
+  freezeGuard() { if (!this.freeze) { this.freezeAt = 0; return; } const now = performance.now(); if (!this.freezeAt) this.freezeAt = now; if (now - this.freezeAt > 8000) { this.freezeAt = 0; this.dodge(); } }
   dodge() { if (this.dodgeT) return; this.freeze = false; this.dodgeT = 0.001; this.slowK = 0.22; this.slowT = 1.4; this.word = null; this.g.sound.play('perfect'); }
   // the last blow: the world slows to a crawl, the bell, a white flash; the crow kneels and falls
   finish() {
