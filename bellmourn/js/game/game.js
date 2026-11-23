@@ -514,6 +514,8 @@ export class Game {
     this.save.lamp = null;
     if (this.levelId === 'prologue') this.save.tutorial = true;
     this.persist();
+    // the Empyrean's way out after the Wheel: the chosen ending (it normally plays as the Wheel falls)
+    if (to === 'end' && this.levelId === 'empyrean') { this.leaving = false; this.playEnding(this.save.choice === 'sing' ? 'song' : 'dawn'); return; }
     const next = to === 'end' ? (this.levelId === 'belfry' ? ACT2[0] : (this.levelId === 'abyss' ? ACT3[0] : 'gate')) : to;
     this.after(0.65, () => { this.leaving = false; this.enterHaven(havenNext(this.save, next)); });
   }

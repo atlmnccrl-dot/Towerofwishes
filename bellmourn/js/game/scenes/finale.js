@@ -27,14 +27,18 @@ export const finalChoice = {
   steps: (S) => {
     const b = bossP(S), h = heroP(S); const voiceAt = inZone(S, toward(b, h, 1.5)); const row = inZone(S, toward(voiceAt, h, 3.4));
     const song = ready(S);
+    // the bell that holds the Voice hangs over the Empyrean's far end (level data, or where the region puts it)
+    const vb = (S.def && S.def.voiceBell) || (S.def && S.def.id === 'empyrean' ? { x: 4, y: 3.6, z: -60.2 } : null);
+    const bellPt = vb ? [vb.x, vb.y ?? 3.6, vb.z] : null;
     return [
       ...partyRow(S, row, voiceAt),
       cam({ mid: ['lead', voiceAt] }, { zoom: 1.3, dur: 1.4, wait: false }),
       walk('lead', toward(voiceAt, row, 2.4), { face: voiceAt }),
       call((cs) => { cs.g.sound.play('special'); cs.g.fx.embers(voiceAt.x, 1.5, voiceAt.z, 60, [3, 2.8, 1.8]); cs.g.r.post.flash = 0.25; cs.g.flashT = 0.15; }),
       spawn('voice', { look: 'voice', x: voiceAt.x, z: voiceAt.z, face: Math.atan2(row.x - voiceAt.x, row.z - voiceAt.z) }),
-      cam({ mid: ['lead', 'voice'] }, { zoom: 1.55, dur: 1.2 }),
+      bellPt ? cam({ mid: ['voice', bellPt] }, { zoom: 1.05, dur: 1.6 }) : null,
       say('voice', 'WARDEN. I AM THE VOICE IN YOUR BELL. I AM SO TIRED.'),
+      cam({ mid: ['lead', 'voice'] }, { zoom: 1.55, dur: 1.2, wait: false }),
       say('voice', 'I COULD DIE. YOUR WORLD WOULD END GENTLY, LIKE A SONG ENDS.'),
       say('voice', 'OR BIND ME AGAIN, AND THE TOLL GOES ON, AS IT ALWAYS HAS.'),
       song ? say('voice', 'OR... SO MANY VOICES WALK WITH YOU. IF THEY SANG WITH ME, I MIGHT CHANGE.') : null,
