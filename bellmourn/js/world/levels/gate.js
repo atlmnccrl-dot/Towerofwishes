@@ -1,6 +1,9 @@
 // District I — Gallows Gate. In through the city gate, the courtyard by the chapel of St. Orrin
 // (the scene as first seen: the warden among the hushed in the rain), the gaol lane, and the
-// gallows square where the Gaoler keeps the keys.
+// gallows square where the Gaoler keeps the keys. The lane is the gaol: cell blocks with barred windows,
+// the watchtower and its beacon over the roofs, gibbet cages over the cobbles.
+import * as P from '../props/gate.js';
+
 export default {
   id: 'gate', name: 'Gallows Gate', tagline: 'THE GATE STANDS OPEN. IT NEVER USED TO.', tier: 0,
   start: { x: -5, z: 13.5, face: Math.PI },
@@ -31,6 +34,7 @@ export default {
   boss: { type: 'gaoler', x: 3, z: -38, face: 0, zone: [-8, -44, 14, -30.5], gates: ['laneGate'], opens: ['exitGate'] },
   exit: { zone: [0.6, -49, 5.4, -45.6], to: 'market', requires: 'boss' },
   build(K, ctx) {
+    K.district(ctx, 'gate'); // the reference city: wrought iron, gothic stone, slate
     // ------------------------------------------------ ground
     K.floor(ctx, -14, -12, 16, 16, K.M.cobble('#56606e'));
     K.floor(ctx, -14, -49, 18, -12, K.M.cobble('#545e6c'));
@@ -70,10 +74,12 @@ export default {
     K.house(ctx, 4.5, 13.6, 6, 3, 3.6, { lit: 0.4 });
     K.cart(ctx, -1.5, 13, 0.3);
     // ------------------------------------------------ the gaol lane (north of the courtyard)
-    K.house(ctx, 0.4, -14.2, 5, 6.4, 6, { lit: 0.25, doorSide: 'x' });
-    K.house(ctx, 0.4, -21.6, 5, 6, 5.2, { lit: 0.4, doorSide: 'x', plaster: '#4a5060' });
-    K.house(ctx, 11.2, -14.6, 5, 7, 4.2, { lit: 0.2 });
-    K.house(ctx, 11.2, -22, 5, 6.6, 4.4, { lit: 0.35, plaster: '#464c5a' });
+    P.cellBlock(ctx, 0.4, -14.2, 5, 6.4, 6.2, { front: '+x' });
+    P.cellBlock(ctx, 0.4, -21.6, 5, 6, 5.2, { front: '+x', lamp: false, tone: '#383c44' });
+    P.watchtower(ctx, -3.8, -21.6, 3.8, 12.5); // the landmark, behind the cells (far side of the lane)
+    P.cellBlock(ctx, 11.2, -14.6, 5, 7, 4.2, { front: '+z', lamp: false });
+    P.cellBlock(ctx, 11.2, -22, 5, 6.6, 4.4, { front: '+z', lamp: false, tone: '#383c44' });
+    P.gibbet(ctx, 3.35, -16.6, '+x'); P.gibbet(ctx, 8.25, -20.8, '-x', false);
     K.wall(ctx, 8.6, -10, 13.8, -10, 3, { face: 1 });
     K.lamp(ctx, 7.8, -12.6, { h: 2.6 }); K.lamp(ctx, 3.4, -20.4, { h: 2.6 });
     K.barrel(ctx, 3.6, -12.2); K.barrel(ctx, 3.5, -13.1, { s: 0.9 }); K.crate(ctx, 8.2, -16.8, { s: 0.7 }); K.crate(ctx, 8.1, -24, { s: 0.8 });
@@ -92,6 +98,7 @@ export default {
     K.torch(ctx, -8.5, 2.4, -36, '+x'); K.torch(ctx, -3, 2.4, -44.7, '+z'); K.torch(ctx, 9, 2.4, -44.7, '+z');
     K.lamp(ctx, -6.5, -29.5); K.lamp(ctx, 12.4, -29.8); K.lamp(ctx, 12.2, -42.6);
     K.gallows(ctx, -4.2, -39.2);
+    P.cage(ctx, 12.6, -36.8, 1.4); P.cage(ctx, -6.8, -43.2, 1.4, 2.0);
     K.statue(ctx, 10.5, -39.5);
     K.barrelStack(ctx, -7.4, -31.4); K.crate(ctx, 12.6, -33.4); K.crate(ctx, 12.8, -34.4, { s: 0.6 });
     K.puddle(ctx, 2, -33, 2.4, 1.4); K.puddle(ctx, 6.5, -40, 1.8, 1.2);

@@ -132,7 +132,8 @@ export class Sound {
   }
 
   // ---------------------------------------------------------------- music
-  // modes: title, explore, combat, boss, dawn, haven, none
+  // modes: title, explore, combat, boss, dawn, haven, none; for the cutscenes: story (a hushed organ) and
+  // song (the New Song: the dawn with a fuller choir and bells all round)
   setMusic(mode) {
     if (mode === this.mode) return; this.mode = mode; this.beat = 0; if (this.ctx) this.nextBeat = Math.max(this.nextBeat, this.ctx.currentTime + 0.05);
     this._haven(mode === 'haven');
@@ -159,19 +160,22 @@ export class Sound {
     const major = [[146.8, 185, 220], [98, 123.5, 146.8], [123.5, 146.8, 185], [110, 138.6, 164.8]]; // D G Bm A
     while (this.nextBeat < ahead) {
       const t = this.nextBeat; const b = this.beat;
-      const prog = this.mode === 'dawn' ? major : minor;
+      const bright = this.mode === 'dawn' || this.mode === 'song'; const prog = bright ? major : minor;
       const barLen = this.mode === 'boss' || this.mode === 'combat' ? 16 : 8; // eighths per chord
       const chord = prog[Math.floor(b / barLen) % 4];
       if (b % barLen === 0) {
         // the organ pad
         const dur = barLen * spb;
-        for (const f of chord) this._pad(t, f / 2, dur, this.mode === 'title' ? 0.03 : 0.025);
+        for (const f of chord) this._pad(t, f / 2, dur, this.mode === 'title' ? 0.03 : (this.mode === 'story' ? 0.018 : 0.025));
         this._pad(t, chord[0] / 4, dur, 0.03);
         if (this.mode === 'boss') this._choir(t, chord.map((f) => f * 2), dur, 0.012, this.mus);
-        if (this.mode === 'dawn') this._choir(t, chord.map((f) => f * 2), dur, 0.015, this.mus);
+        if (bright) this._choir(t, chord.map((f) => f * 2), dur, this.mode === 'song' ? 0.024 : 0.015, this.mus);
+        if (this.mode === 'story' && Math.random() < 0.5) this._choir(t, [chord[2] * 2], dur, 0.006, this.mus);
       }
       if ((this.mode === 'explore' || this.mode === 'title') && b % 32 === 0) this.bell(t, 73.4 * 2, 6, 0.06, this.mus);
       if (this.mode === 'dawn' && b % 4 === 0) this.bell(t, chord[(b / 4) % 3] * 4, 3, 0.03, this.mus);
+      if (this.mode === 'song' && b % 2 === 0) this.bell(t, chord[(b / 2) % 3] * (b % 8 < 4 ? 4 : 2), 3, 0.028, this.mus);
+      if (this.mode === 'story' && b % 16 === 8) this.bell(t, chord[0] * 2, 5, 0.02, this.mus);
       if (this.mode === 'combat' || this.mode === 'boss') {
         const heavy = this.mode === 'boss';
         const pat = heavy ? [1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0] : [1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0];

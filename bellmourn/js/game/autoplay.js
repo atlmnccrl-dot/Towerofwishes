@@ -1,7 +1,8 @@
 // Autoplay for end-to-end tests: walks a district on a grid path (closed gates block), opens chests,
 // fights with the bot, walks by the last lamp before the boss (lamps light themselves and restore the
 // hero: nothing to press; growing happens at the Haven, which game.autoInput plays through), enters the
-// boss arena and leaves by the exit. Pure logic.
+// boss arena and leaves by the exit. Pure logic. Cutscenes are skipped by game.autoInput (a choice is
+// picked by game.autoChoice: at the end SING when trueEndingReady(save), else RING).
 import { makeBot } from './bot.js';
 
 const S = 0.25, R = 0.39;

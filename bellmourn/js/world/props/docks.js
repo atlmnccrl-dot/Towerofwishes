@@ -6,6 +6,7 @@ import * as THREE from '../../../vendor/three.module.min.js';
 import { add, box, cyl, cone, plane, geo, solid, solidCircle, roof, water } from '../kit.js';
 import { M, cutout } from '../../engine/materials.js';
 import * as T from '../../engine/textures.js';
+import { MC } from '../kit_city.js';
 
 export const WATER_Y = -1.0, BED_Y = -2.4, PIT_Y = -2.6;
 
@@ -220,7 +221,7 @@ export function waterSolid(ctx, x0, z0, x1, z1) { solid(ctx, x0, z0, x1, z1, 1.0
 export function quay(ctx, x0, z0, x1, z1, waterSide) {
   const alongX = Math.abs(x1 - x0) >= Math.abs(z1 - z0); const len = alongX ? Math.abs(x1 - x0) : Math.abs(z1 - z0);
   const sg = waterSide[0] === '+' ? 1 : -1; const H = -BED_Y - 0.05;
-  const wallM = M.ashlar('#343e4c'), copeM = M.ashlar('#525c6a'), weed = M.flat(0x18241e), fend = M.wood('#2e241a');
+  const wallM = MC.sea('#3a4642'), copeM = MC.setts('#5a605c'), weed = M.flat(0x18241e), fend = M.wood('#2e241a');
   const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2; const seen = sg > 0;
   const B = (w, h, d, m, x, y, z) => add(ctx, box(alongX ? w : d, h, alongX ? d : w), m, x, y, z, { cast: false });
   if (alongX) {
@@ -494,14 +495,15 @@ export function chainRail(ctx, x0, z0, x1, z1, step = 1.6) {
 // the eaves, a hooded lucam over one; small windows; brick, or brick below tarred boards (clad).
 export function warehouse(ctx, x, z, w, d, h, opts = {}) {
   const fx = (opts.front || '+x') === '+x'; const r = T.rng(Math.round(x * 31 + z * 7 + h * 3));
-  const base = M.brick(opts.tone || '#384356'), clad = opts.clad ? M.wood(opts.clad) : base; const h0 = opts.clad ? Math.min(h, opts.base || 2.8) : h;
+  // sea-stone foot, tarred clapboard above, corrugated iron over (district variety: no slate, no city brick)
+  const base = MC.sea(opts.tone || '#46504c'), clad = opts.clad ? MC.clap(opts.clad) : base; const h0 = opts.clad ? Math.min(h, opts.base || 2.8) : h;
   add(ctx, box(w, h0, d), base, x, h0 / 2, z);
   if (h0 < h) add(ctx, box(w, h - h0, d), clad, x, h0 + (h - h0) / 2, z);
-  add(ctx, box(w + 0.1, 0.5, d + 0.1), M.ashlar('#363f4e'), x, 0.25, z);
+  add(ctx, box(w + 0.1, 0.5, d + 0.1), MC.sea('#36403c'), x, 0.25, z);
   if (h0 < h) add(ctx, box(w + 0.12, 0.14, d + 0.12), M.wood('#1e1a16'), x, h0, z);
   solid(ctx, x - w / 2, z - d / 2, x + w / 2, z + d / 2, h);
   const span = fx ? w : d, len = fx ? d : w; const rh = opts.roofH || span * 0.55;
-  roof(ctx, x, h, z, w + 0.5, d + 0.5, rh, !fx, opts.roofTone || '#222b38');
+  roof(ctx, x, h, z, w + 0.5, d + 0.5, rh, !fx, MC.corr(opts.roofTone || '#3a322c'));
   // gable ends
   const gh = rh * span / (span + 0.5); const shp = new THREE.Shape(); shp.moveTo(-span / 2, 0); shp.lineTo(span / 2, 0); shp.lineTo(0, gh); shp.lineTo(-span / 2, 0);
   const gg = geo(`dk-gable${span},${gh}`, () => new THREE.ExtrudeGeometry(shp, { depth: 0.3, bevelEnabled: false }));
@@ -738,4 +740,36 @@ export function lighthouse(ctx, x, z, opts = {}) {
   const bm = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.11, 0.115, 0.1), vertexColors: true, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, side: THREE.DoubleSide, fog: false });
   const beam = new THREE.Mesh(g, bm); beam.position.set(x, ty + 0.46, z); ctx.group.add(beam);
   let t = 0; ctx.anims.push({ update(dt) { t += dt; beam.rotation.y = t * 0.45; halo.material.opacity = 0.75 + Math.abs(Math.cos(t * 0.45)) * 0.25; return false; } });
+}
+
+// The harbour's landmark: a great timber crane tower behind the warehouses, its crane house high on a
+// braced trestle and its jib swung out over the roofs with a cargo net on the hook and a riding light at
+// the tip, so the docks read from anywhere on the quays. No floor around it: it stands in the yards.
+export function craneTower(ctx, x, z, H = 13, jib = [1, 0], reach = 8) {
+  const leg = M.wood('#2a2420'), brace = M.wood('#3a3028'), r0 = 2.4, r1 = 1.4;
+  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) bar(ctx, '!dk-ctleg', leg, [x + sx * r0, 0, z + sz * r0], [x + sx * r1, H, z + sz * r1], 0.36);
+  for (let y = 0; y < H - 1; y += 2.6) {
+    const ra = r0 + (r1 - r0) * (y / H), rb = r0 + (r1 - r0) * ((y + 2.6) / H);
+    for (const [ax, az, bx, bz] of [[-1, -1, 1, -1], [1, -1, 1, 1], [1, 1, -1, 1], [-1, 1, -1, -1]]) {
+      bar(ctx, '!dk-ctbr', brace, [x + ax * ra, y, z + az * ra], [x + bx * rb, y + 2.6, z + bz * rb], 0.14);
+      bar(ctx, '!dk-ctbr', brace, [x + ax * rb, y + 2.6, z + az * rb], [x + bx * ra, y, z + bz * ra], 0.14);
+    }
+  }
+  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) add(ctx, box(1.0, 0.5, 1.0), MC.sea('#3a4642'), x + sx * r0, 0.25, z + sz * r0);
+  // the crane house
+  add(ctx, box(4, 0.3, 4), M.wood('#2e2620'), x, H + 0.15, z);
+  add(ctx, box(3.6, 2.6, 3.6), MC.clap('#4a443c'), x, H + 1.6, z);
+  roof(ctx, x, H + 2.9, z, 4.2, 4.2, 1.4, jib[0] !== 0, MC.corr('#5a4a3e'));
+  add(ctx, plane(0.5, 0.62), M.decal(T.houseWindow(true), 1.8), x + 1.81, H + 1.8, z - 0.6, { ry: Math.PI / 2, cast: false });
+  add(ctx, plane(0.5, 0.62), M.decal(T.houseWindow(true), 1.8), x + 0.6, H + 1.8, z + 1.81, { cast: false });
+  // the jib, two booms meeting at the tip, stayed back to the roof
+  const tx = x + jib[0] * reach, tz = z + jib[1] * reach, ty = H + 3.4; const px = -jib[1], pz = jib[0];
+  for (const s of [-1, 1]) bar(ctx, '!dk-jib', leg, [x + jib[0] * 1.6 + px * s * 0.7, H + 1.0, z + jib[1] * 1.6 + pz * s * 0.7], [tx, ty, tz], 0.22);
+  bar(ctx, 'dk-line', ropeM(), [x, H + 4.2, z], [tx, ty, tz], 0.06); add(ctx, box(0.2, 1.4, 0.2), leg, x, H + 3.6, z);
+  bar(ctx, 'dk-line', ropeM(), [tx, ty, tz], [tx, H - 3.2, tz], 0.05);
+  add(ctx, box(0.2, 0.3, 0.2), M.ironLit(), tx, H - 3.3, tz);
+  add(ctx, geo('dk-ctnet', () => new THREE.IcosahedronGeometry(0.8, 0)), M.flat(0x3a3228), tx, H - 4.2, tz, { s: new THREE.Vector3(1, 0.8, 1) });
+  add(ctx, box(0.26, 0.3, 0.26), M.glow('#d8e8b0', 2.6), tx, ty + 0.3, tz, { cast: false });
+  ctx.lights.push({ x: tx, y: ty + 0.2, z: tz, color: 0xd8e8b0, intensity: 5, dist: 9, halo: true, flicker: 0.04 });
+  solid(ctx, x - r0 - 0.5, z - r0 - 0.5, x + r0 + 0.5, z + r0 + 0.5, H);
 }

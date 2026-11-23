@@ -4,6 +4,7 @@
 import * as THREE from '../../../vendor/three.module.min.js';
 import { add, box, cyl, cone, plane, geo, solid, solidCircle, roof, water } from '../kit.js';
 import { M } from '../../engine/materials.js';
+import { MC } from '../kit_city.js';
 import * as T from '../../engine/textures.js';
 
 export const WATER_Y = -0.8, BED_Y = -1.7;
@@ -212,16 +213,17 @@ export function boat(ctx, x, z, len = 4.4, along = 'z', opts = {}) {
 // Lighter than the ornate fences; sight passes through it.
 export function railing(ctx, x0, z0, x1, z1, h = 1.15) {
   const alongX = Math.abs(x1 - x0) >= Math.abs(z1 - z0); const len = Math.hypot(x1 - x0, z1 - z0);
-  const iron = M.ironLit(), kerb = 0.2;
-  add(ctx, box(alongX ? len : 0.4, kerb, alongX ? 0.4 : len), M.ashlar('#4c5666'), (x0 + x1) / 2, kerb / 2, (z0 + z1) / 2);
-  for (const ry of [kerb + 0.12, kerb + h - 0.06]) add(ctx, box(alongX ? len : 0.05, 0.05, alongX ? 0.05 : len), iron, (x0 + x1) / 2, ry, (z0 + z1) / 2);
-  const n = Math.max(1, Math.round(len / 0.3));
+  // an oak canal rail on a brick kerb: square posts with knobbed tops, a broad hand rail, a low rail
+  const oak = M.wood('#4a3020'), top = M.wood('#6a4a30'), kerb = 0.24;
+  add(ctx, box(alongX ? len : 0.42, kerb, alongX ? 0.42 : len), MC.herring('#5a3a2e'), (x0 + x1) / 2, kerb / 2, (z0 + z1) / 2);
+  add(ctx, box(alongX ? len : 0.16, 0.08, alongX ? 0.16 : len), top, (x0 + x1) / 2, kerb + h - 0.04, (z0 + z1) / 2);
+  add(ctx, box(alongX ? len : 0.06, 0.07, alongX ? 0.06 : len), oak, (x0 + x1) / 2, kerb + 0.3, (z0 + z1) / 2);
+  const n = Math.max(1, Math.round(len / 1.2));
   for (let i = 0; i <= n; i++) {
     const t = i / n, x = x0 + (x1 - x0) * t, z = z0 + (z1 - z0) * t;
-    if (i % 4 === 0) {
-      put(ctx, '!mk-rpost', unitBox(), iron, x, kerb + (h + 0.1) / 2, z, 0.1, h + 0.1, 0.1);
-      put(ctx, '!mk-rfin', geo('mk-rfinG', () => new THREE.ConeGeometry(0.08, 0.24, 4)), iron, x, kerb + h + 0.22, z, 1, 1, 1, Math.PI / 4);
-    } else put(ctx, '!mk-rbar', unitBox(), iron, x, kerb + h / 2, z, 0.035, h, 0.035);
+    put(ctx, '!mk-rpost', unitBox(), oak, x, kerb + (h + 0.1) / 2, z, 0.13, h + 0.1, 0.13);
+    put(ctx, '!mk-rknob', geo('mk-rknobG', () => new THREE.IcosahedronGeometry(0.09, 0)), top, x, kerb + h + 0.12, z, 1, 1, 1);
+    if (i < n) for (const f of [0.33, 0.66]) { const u = (i + f) / n; put(ctx, '!mk-rbar', unitBox(), oak, x0 + (x1 - x0) * u, kerb + (h + 0.3) / 2, z0 + (z1 - z0) * u, 0.05, h - 0.3, 0.05); }
   }
   const pad = 0.18;
   if (alongX) solid(ctx, Math.min(x0, x1), z0 - pad, Math.max(x0, x1), z0 + pad, h); else solid(ctx, x0 - pad, Math.min(z0, z1), x0 + pad, Math.max(z0, z1), h);
@@ -349,7 +351,107 @@ export function stringPost(ctx, x, z, h = 3.8) {
 // ---------------------------------------------------------------- buildings
 // A tall, narrow canal house: a stepped gable on the front, tall windows (most lit, a candle on many
 // sills), a shop window, a door with candle stubs on its step. front: '+x' or '+z' (toward the camera).
+// Lantern Row's houses: timber-framed, gable to the street, a brick shop floor and every floor above
+// oversailing the one below on carved struts, under clay tiles. Faces +X (front: '+x') or +Z.
+const PLASTER = ['#b89a70', '#a8805a', '#c0a882', '#9a6a4a', '#b48a64', '#a89070'];
+const TILE = ['#7a3e2a', '#6a4a2a', '#8a4a30', '#70382a'];
 export function canalHouse(ctx, x, z, w, d, h, opts = {}) {
+  if (opts.stone) return stoneGableHouse(ctx, x, z, w, d, h, opts);
+  const fx = (opts.front || '+x') === '+x';
+  const r = T.rng(Math.round(x * 29 + z * 17 + h * 5));
+  const pl = PLASTER[(r() * PLASTER.length) | 0], beam = r() < 0.5 ? '#3a2618' : '#2a1c14';
+  const body = MC.timber(pl, beam), brick = MC.herring(r() < 0.5 ? '#6a4232' : '#5a3a2e'), oak = M.wood(beam === '#3a2618' ? '#4a3020' : '#3a2618');
+  solid(ctx, x - w / 2, z - d / 2, x + w / 2, z + d / 2, h);
+  const span = fx ? d : w, depth = fx ? w : d;
+  const g0 = Math.min(2.7, h * 0.42), JUT = 0.38;
+  const floors = Math.max(1, Math.round((h - g0) / 2.2)), fh = (h - g0) / floors, top = floors * JUT;
+  // F(u, out): a point on the front at frontage offset u, `out` metres proud of the ground-floor wall
+  const F = (u, out = 0) => fx ? [x + w / 2 + out, z + u] : [x + u, z + d / 2 + out];
+  const ryF = fx ? Math.PI / 2 : 0;
+  const fbox = (fw, fhh, fo, mat, u, y, out) => { const [px, pz] = F(u, out); return add(ctx, box(fx ? fo : fw, fhh, fx ? fw : fo), mat, px, y, pz); };
+  const decal = (pw, ph, mat, u, y, out) => { const [px, pz] = F(u, out); return add(ctx, plane(pw, ph), mat, px, y, pz, { ry: ryF, cast: false }); };
+  // ground floor (brick) and the oversailing floors (timber framing), each pushed toward the street
+  add(ctx, box(w, g0, d), brick, x, g0 / 2, z);
+  for (let f = 0; f < floors; f++) {
+    const j = (f + 1) * JUT, y0 = g0 + f * fh; const [cx, cz] = F(0, j / 2 - depth / 2);
+    add(ctx, box(fx ? depth + j : span, fh, fx ? span : depth + j), body, cx, y0 + fh / 2, cz);
+    fbox(span + 0.08, 0.18, 0.2, oak, 0, y0 + 0.06, j - JUT + 0.06); // the jetty bressummer
+    for (const u of [-span / 2 + 0.15, span / 2 - 0.15]) { const [ax, az] = F(u, j - JUT - 0.02), [bx, bz] = F(u, j - 0.08); strut(ctx, oak, [ax, y0 - 0.7, az], [bx, y0 - 0.02, bz]); }
+  }
+  // the gable: tiles over the jettied front, a timber gable proud of the top floor
+  const rh = opts.roofH || span * 0.95; const [rx, rz] = F(0, top / 2 - depth / 2);
+  tileRoof(ctx, rx, h, rz, fx ? depth + top + 0.4 : span + 0.4, fx ? span + 0.4 : depth + top + 0.4, rh, fx, TILE[(r() * TILE.length) | 0]);
+  gable(ctx, F(0, top - 0.02), h, span, rh * span / (span + 0.4), fx, body, 1);
+  gable(ctx, F(0, -depth - 0.28), h, span, rh * span / (span + 0.4), fx, body, -1);
+  // bargeboards and a finial
+  const half = span / 2 + 0.2, sl = Math.hypot(half, rh), ang = Math.atan2(rh, half);
+  for (const s2 of [-1, 1]) { const [bx, bz] = F(s2 * half / 2, top + 0.24); add(ctx, box(fx ? 0.08 : sl, 0.16, fx ? sl : 0.08), oak, bx, h + rh / 2, bz, fx ? { rx: s2 * ang } : { rz: -s2 * ang }); }
+  fbox(0.12, 0.7, 0.12, oak, 0, h + rh + 0.25, top + 0.2);
+  const lit = opts.lit ?? 0.7;
+  const cols = span >= 3.0 ? [-span / 4, span / 4] : [0];
+  if (opts.windows !== false) {
+    const du = cols[0];
+    decal(1, 2, M.decal(T.door(opts.doorTone || '#4a2a1a')), du, 1.0, 0.02);
+    const [sx, sz] = F(du, 0.28); add(ctx, box(fx ? 0.56 : 1.2, 0.18, fx ? 1.2 : 0.56), MC.herring('#4a3028'), sx, 0.09, sz);
+    if (fx) solid(ctx, x + w / 2, z + du - 0.6, x + w / 2 + 0.56, z + du + 0.6, 0.2); else solid(ctx, x + du - 0.6, z + d / 2, x + du + 0.6, z + d / 2 + 0.56, 0.2);
+    if (opts.stepCandles !== false) { const [cx, cz] = F(du + 0.38, 0.3); candles(ctx, cx, 0.18, cz, 3, { r: 0.14, tall: 0.2, pool: false }); }
+    if (cols.length > 1) { const sl2 = r() < lit + 0.2; decal(1.1, 0.75, M.decal(shopWindow(sl2), sl2 ? 1.5 : 0), cols[1], 1.45, 0.02); }
+    for (let f = 0; f < floors; f++) for (const u of cols) {
+      const y = g0 + f * fh + fh * 0.5, j = (f + 1) * JUT; const isLit = r() < lit;
+      decal(0.62, 0.82, M.decal(leaded(isLit), isLit ? 1.6 : 0), u, y, j + 0.02);
+      fbox(0.74, 0.07, 0.16, oak, u, y - 0.46, j + 0.06);
+      if (isLit && r() < 0.5) { const [cx, cz] = F(u + 0.16, j + 0.1); candles(ctx, cx, y - 0.42, cz, 1, { tall: 0.1, pool: false }); }
+    }
+    const gl = r() < lit; decal(0.5, 0.62, M.decal(leaded(gl), gl ? 1.6 : 0), 0, h + rh * 0.35, top + 0.02);
+  }
+  if (opts.side !== false && opts.windows !== false) {
+    const S = (v, f) => fx ? [x + v + (f + 1) * JUT / 2 - JUT / 2, z + d / 2 + 0.01] : [x + w / 2 + 0.01, z + v + (f + 1) * JUT / 2 - JUT / 2];
+    const ns = Math.max(1, Math.floor((depth - 0.8) / 1.9));
+    for (let f = 0; f < floors; f++) for (let i = 0; i < ns; i++) {
+      const v = -depth / 2 + (i + 0.5) * depth / ns; const isLit = r() < lit * 0.6; const [px, pz] = S(v, f);
+      add(ctx, plane(0.5, 0.7), M.decal(leaded(isLit), isLit ? 1.6 : 0), px, g0 + f * fh + fh * 0.5, pz, { ry: fx ? 0 : Math.PI / 2, cast: false });
+    }
+  }
+  if (opts.hoist) {
+    fbox(0.14, 0.14, 1.0, oak, 0, h + rh * 0.4, top + 0.5);
+    const [hx, hz] = F(0, top + 0.92); bar(ctx, 'mk-rope', M.flat(0x1a1612), [hx, h + rh * 0.4, hz], [hx, h + rh * 0.4 - 1.6, hz], 0.03);
+    add(ctx, box(0.12, 0.12, 0.12), M.ironLit(), hx, h + rh * 0.4 - 1.65, hz);
+  }
+  if (opts.sign) {
+    const u = cols.length > 1 ? cols[1] + 0.6 : 0.6;
+    const [bx, bz] = F(u, 0.45); add(ctx, box(fx ? 0.9 : 0.05, 0.05, fx ? 0.05 : 0.9), oak, bx, 2.95, bz);
+    const [qx, qz] = F(u, 0.62); add(ctx, plane(0.62, 0.56), M.decal(candleSign()), qx, 2.6, qz, { ry: fx ? 0 : Math.PI / 2, cast: false });
+  }
+  if (opts.chimney !== false) { const [cx, cz] = F(span * 0.28, -depth * 0.65); add(ctx, box(0.55, 1.5, 0.55), MC.herring('#5a3a2c'), cx, h + rh * 0.55, cz); }
+  if (opts.light) { const [lx, lz] = F(cols[cols.length - 1], 0.8); ctx.lights.push({ x: lx, y: 1.5, z: lz, color: 0xffa040, intensity: opts.light, dist: 4.5 }); }
+}
+function strut(ctx, mat, a, b) { const dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2], L = Math.hypot(dx, dy, dz); const m = add(ctx, box(0.1, L, 0.1), mat, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(dx / L, dy / L, dz / L)); }
+// A clay-tile roof: two pitched slabs and a ridge of rolled tiles.
+function tileRoof(ctx, x, y, z, w, d, rh, ridgeX, tone) {
+  const span = ridgeX ? d : w, len = ridgeX ? w : d; const half = span / 2, slope = Math.hypot(half, rh), ang = Math.atan2(rh, half); const mat = MC.tiles(tone);
+  for (const s of [-1, 1]) { const m = new THREE.Mesh(box(ridgeX ? len : slope, 0.16, ridgeX ? slope : len), mat);
+    if (ridgeX) { m.position.set(x, y + rh / 2, z + s * half / 2); m.rotation.x = s * ang; } else { m.position.set(x + s * half / 2, y + rh / 2, z); m.rotation.z = -s * ang; }
+    m.castShadow = true; m.receiveShadow = true; m.userData.static = true; ctx.group.add(m); }
+  add(ctx, box(ridgeX ? len : 0.26, 0.18, ridgeX ? 0.26 : len), MC.tiles('#4a2a1e'), x, y + rh + 0.06, z);
+}
+function gable(ctx, [gx, gz], y, span, rh, fx, mat, dir) {
+  const shape = new THREE.Shape(); shape.moveTo(-span / 2, 0); shape.lineTo(span / 2, 0); shape.lineTo(0, rh); shape.lineTo(-span / 2, 0);
+  const g = geo(`mkgab${span},${rh}`, () => new THREE.ExtrudeGeometry(shape, { depth: 0.3, bevelEnabled: false }));
+  const m = new THREE.Mesh(g, mat); m.castShadow = true; m.receiveShadow = true; m.userData.static = true;
+  if (fx) { m.position.set(gx - (dir > 0 ? 0.3 : 0), y, gz); m.rotation.y = Math.PI / 2; } else m.position.set(gx, y, gz - (dir > 0 ? 0.3 : 0));
+  ctx.group.add(m);
+}
+// Leaded casements: small diamond panes in an oak frame.
+function leaded(lit) {
+  return pix('leaded' + lit, 10, 13, (g) => {
+    g.fillStyle = '#2a1a10'; g.fillRect(0, 0, 10, 13);
+    for (let y = 1; y < 12; y++) for (let x = 1; x < 9; x++) { const d = ((x + y) % 3 === 0) || ((x - y + 30) % 3 === 0); g.fillStyle = d ? '#3a2a1c' : (lit ? ((x + y) % 2 ? '#ffc060' : '#f0a040') : ((x + y) % 2 ? '#1c2230' : '#242c3a')); g.fillRect(x, y, 1, 1); }
+    g.fillStyle = '#2a1a10'; g.fillRect(0, 6, 10, 1); g.fillRect(4, 0, 1, 13);
+  });
+}
+
+// The older stone house with a stepped gable (the Chandlers' Hall is one).
+function stoneGableHouse(ctx, x, z, w, d, h, opts = {}) {
   const fx = (opts.front || '+x') === '+x';
   const body = opts.plaster ? M.plaster(opts.plaster) : M.brick(opts.tone || '#3a4456');
   const stone = M.ashlar('#384252'), cope = M.ashlar('#56606e');
@@ -421,7 +523,7 @@ export function canalHouse(ctx, x, z, w, d, h, opts = {}) {
 // The Chandlers' Hall: a broad stepped gable with a lit rose window, a tall portal between lancets,
 // front steps crowded with candles. Faces +X.
 export function guildHall(ctx, x, z, w, d, h, opts = {}) {
-  canalHouse(ctx, x, z, w, d, h, { front: '+x', steps: 6, windows: false, roofH: d * 0.62, tone: '#353f52', chimney: false });
+  canalHouse(ctx, x, z, w, d, h, { front: '+x', steps: 6, windows: false, roofH: d * 0.62, tone: '#4a3a34', chimney: false, stone: true });
   const fx = x + w / 2, stone = M.ashlar('#4a5464'), cope = M.ashlar('#5c6676');
   add(ctx, plane(3.2, 3.2), M.decal(T.roseWindow(true), 0.7), fx + 0.22, h + 1.9, z, { ry: Math.PI / 2, cast: false });
   // buttress piers across the front
@@ -529,4 +631,31 @@ export function chimney(ctx, x, z, h = 10) {
   add(ctx, box(1.4, h, 1.4), M.brick('#2e2a2e'), x, h / 2, z);
   add(ctx, box(1.7, 0.4, 1.7), M.ashlar('#3a4250'), x, h + 0.2, z);
   solid(ctx, x - 0.7, z - 0.7, x + 0.7, z + 0.7, h);
+}
+
+// The candle-makers' tower: Lantern Row's landmark, seen over the roofs from the market and the quays.
+// A brick shaft, a timber-framed belfry stage, an open lantern room where a great candle burns behind
+// amber glass, a tiled spire with a candle-flame vane. Stands behind the houses (no floor around it).
+export function candleTower(ctx, x, z, H = 21) {
+  const brick = MC.herring('#5a3a2e'), oak = M.wood('#3a2618');
+  const b0 = H * 0.45; add(ctx, box(4.2, b0, 4.2), brick, x, b0 / 2, z);
+  for (const y of [b0 * 0.33, b0 * 0.66]) add(ctx, box(4.4, 0.2, 4.4), MC.setts('#7a6450'), x, y, z);
+  const t0 = H * 0.3; add(ctx, box(4.6, t0, 4.6), MC.timber('#b48a64', '#2a1c14'), x, b0 + t0 / 2, z);
+  add(ctx, box(4.9, 0.24, 4.9), oak, x, b0 + 0.1, z); add(ctx, box(4.9, 0.24, 4.9), oak, x, b0 + t0, z);
+  // the lantern room: corner posts, amber glass, the great candle inside
+  const l0 = b0 + t0, lh = H * 0.13;
+  for (const [ox, oz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) add(ctx, box(0.36, lh, 0.36), oak, x + ox * 2.1, l0 + lh / 2, z + oz * 2.1);
+  add(ctx, box(3.8, lh * 0.9, 3.8), M.glow('#ff9a3a', 1.25), x, l0 + lh / 2, z, { cast: false });
+  add(ctx, cyl(0.7, 0.7, lh * 0.7, 10), M.glow('#ffe0a0', 1.6), x, l0 + lh * 0.4, z, { cast: false });
+  add(ctx, box(4.8, 0.3, 4.8), oak, x, l0 + lh + 0.15, z);
+  ctx.lights.push({ x: x + 2.6, y: l0 + lh / 2, z: z + 2.6, color: 0xff9a3a, intensity: 9, dist: 14, halo: true, flicker: 0.08 });
+  // spire and vane
+  const s0 = l0 + lh + 0.3, sh = H - s0 + 4;
+  add(ctx, cone(3.6, sh, 4), MC.tiles('#7a3e2a'), x, s0 + sh / 2, z, { ry: Math.PI / 4 });
+  add(ctx, box(0.08, 1.4, 0.08), M.ironLit(), x, s0 + sh + 0.6, z); add(ctx, box(0.16, 0.36, 0.16), M.glow('#ffb050', 2.4), x, s0 + sh + 1.4, z, { cast: false });
+  // a long hanging candle sign on the street side
+  add(ctx, box(0.1, 0.1, 1.6), M.ironLit(), x + 2.2, b0 - 1.2, z + 0.8);
+  add(ctx, box(0.2, 1.6, 0.2), waxMat(1), x + 2.2, b0 - 2.2, z + 1.5); add(ctx, box(0.1, 0.24, 0.1), M.glow('#ffc060', 2.4), x + 2.2, b0 - 1.3, z + 1.5, { cast: false });
+  add(ctx, plane(1, 2), M.decal(T.door('#3a2418')), x + 2.11, 1, z, { ry: Math.PI / 2, cast: false });
+  solid(ctx, x - 2.3, z - 2.3, x + 2.3, z + 2.3, H);
 }

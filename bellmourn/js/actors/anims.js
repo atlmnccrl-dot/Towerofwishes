@@ -126,6 +126,9 @@ const REST_ARMS = { // (solved so the sword tip and hammer head meet the stones 
   huntress: { shR: [-0.5, 0, -0.05], elR: [-0.9, 0, 0], weapon: [1.0, 0.9, 0], shL: [-0.35, 0, 0.12], elL: [-0.9, 0, 0] },
   bellbreaker: { shR: [-0.52, 0.1, 0.19], elR: [-1.33, 0, 0], weapon: [1.95, -0.36, 0], shL: [-1.26, -0.56, -0.37], elL: [-0.67, 0, 0] },
   lamplighter: { shR: [-0.1, -0.51, -0.01], elR: [-1.4, 0, 0], weapon: [-0.45, -0.09, 0], shL: [0.01, -0.43, 0.27], elL: [-0.62, 0, 0] },
+  kestrel: { shR: [-0.5, 0, -0.05], elR: [-0.9, 0, 0], weapon: [1.3, 0.6, 0], shL: [-0.35, 0, 0.12], elL: [-0.9, 0, 0], weaponL: [1.3, -0.6, 0] },
+  hollis: { shR: [-0.52, 0.1, 0.19], elR: [-1.33, 0, 0], weapon: [1.95, -0.36, 0], shL: [-1.26, -0.56, -0.37], elL: [-0.67, 0, 0] },
+  wren: { shR: [-0.1, -0.51, -0.01], elR: [-1.4, 0, 0], weapon: [-0.45, -0.09, 0], shL: [0.01, -0.43, 0.27], elL: [-0.62, 0, 0] },
 };
 function restPose(heroId, b = 0) {
   const A = REST_ARMS[heroId] || REST_ARMS.warden;
@@ -247,6 +250,72 @@ export function hsmash2(t) {
 }
 export function whirl(t) { const k = Math.min(1, t / 0.72); return { ...STANCE, ...crouch(-0.2), ...ARMS_OUT, chest: [0.1, 0.6, 0], shL: [0, 0, 1.3], bodyRy: easeOut(k) * Math.PI * 6, weapon: [1.68, 0, 0] }; }
 
+// ------------------------------------------------------------------ the three who join later
+// Kestrel's twin knives: quick alternating cuts (the left knife is posed with weaponL), a crossing spin, a
+// lunging double stab, a flick of thrown knives, and the blur of the Storm of Cuts.
+const ARMS_OUT_L = { shL: [-1.5, 0, 0.18], elL: [-0.12, 0, 0], weaponL: [1.62, 0, 0] };
+const KREADY = { ...STANCE, ...crouch(-0.1), shR: [-0.7, 0, -0.25], elR: [-1.0, 0, 0], weapon: [1.3, 0, 0], shL: [-0.7, 0, 0.25], elL: [-1.0, 0, 0], weaponL: [1.3, 0, 0] };
+export function kslash1(t) { // right knife, right to left
+  const W = { ...KREADY, ...crouch(-0.14), ...ARMS_OUT, chest: [0.1, -1.0, 0], spine: [0.15, -0.3, 0], head: [0, 0.5, 0] };
+  const S = { ...KREADY, ...crouch(-0.16), ...ARMS_OUT, chest: [0.12, 0.95, 0], spine: [0.2, 0.35, 0], weapon: [1.7, 0, 0], shL: [-0.2, 0, 0.5], head: [0, -0.4, 0] };
+  return keys(t, [[0, KREADY], [0.05, W, easeOut], [0.12, S, easeOut], [0.19, S], [0.3, KREADY]]);
+}
+export function kslash2(t) { // left knife, left to right
+  const W = { ...KREADY, ...crouch(-0.14), ...ARMS_OUT_L, chest: [0.1, 1.0, 0], spine: [0.15, 0.3, 0], head: [0, -0.5, 0] };
+  const S = { ...KREADY, ...crouch(-0.16), ...ARMS_OUT_L, chest: [0.12, -0.95, 0], spine: [0.2, -0.35, 0], weaponL: [1.7, 0, 0], shR: [-0.2, 0, -0.5], head: [0, 0.4, 0] };
+  return keys(t, [[0, KREADY], [0.05, W, easeOut], [0.12, S, easeOut], [0.19, S], [0.3, KREADY]]);
+}
+export function kcross(t) { // both knives out wide, then crossed in a full turn
+  const W = { ...KREADY, ...crouch(-0.24), chest: [0.25, -0.6, 0], spine: [0.3, -0.2, 0], shR: [-1.3, 0, -1.1], elR: [-0.2, 0, 0], weapon: [1.6, 0, 0], shL: [-1.3, 0, 1.1], elL: [-0.2, 0, 0], weaponL: [1.6, 0, 0] };
+  const S = (ry) => ({ ...KREADY, ...crouch(-0.22), chest: [0.15, 0.3, 0], spine: [0.2, 0.1, 0], shR: [-1.5, 0, 0.45], elR: [-0.1, 0, 0], weapon: [1.65, 0, 0], shL: [-1.5, 0, -0.45], elL: [-0.1, 0, 0], weaponL: [1.65, 0, 0], bodyRy: ry });
+  return keys(t, [[0, KREADY], [0.1, W, easeOut], [0.22, S(Math.PI * 2), easeOut], [0.34, S(Math.PI * 2)], [0.5, { ...KREADY, bodyRy: Math.PI * 2 }]]);
+}
+export function kstab(t) { // a lunge with both knives driven forward (dash attack, Shadow Step)
+  const L = { ...STANCE, hipsY: -0.26, spine: [0.5, 0, 0], chest: [0.1, 0, 0], head: [-0.4, 0, 0], shR: [-1.5, 0, 0.12], elR: [0, 0, 0], weapon: [1.55, 0, 0], shL: [-1.5, 0, -0.12], elL: [0, 0, 0], weaponL: [1.55, 0, 0], hipL: [-1.0, 0, 0.05], knL: [0.7, 0, 0], hipR: [0.7, 0, -0.05], knR: [0.35, 0, 0], ftR: [0.3, 0, 0] };
+  return keys(t, [[0, { ...KREADY, ...crouch(-0.22), shR: [0.3, 0, -0.3], elR: [-1.3, 0, 0], shL: [0.3, 0, 0.3], elL: [-1.3, 0, 0] }], [0.06, L, easeOut], [0.24, L], [0.36, KREADY]]);
+}
+export function kthrow(t) { // knives flicked from behind the shoulder
+  const W = { ...KREADY, chest: [-0.15, -0.6, 0], spine: [-0.1, -0.2, 0], shR: [-2.7, 0, -0.35], elR: [-1.3, 0, 0], weapon: [0.4, 0, 0], shL: [-0.9, 0, 0.6], elL: [-0.8, 0, 0] };
+  const S = { ...KREADY, ...crouch(-0.12), chest: [0.2, 0.5, 0], spine: [0.25, 0.2, 0], shR: [-1.45, 0, 0.15], elR: [0, 0, 0], weapon: [1.6, 0, 0], shL: [-1.2, 0, 0.5], elL: [-0.3, 0, 0], head: [0, -0.3, 0] };
+  return keys(t, [[0, KREADY], [0.07, W, easeOut], [0.15, S, easeOut], [0.3, S]]);
+}
+export function kstorm(t) { const k = Math.min(1, t / 1.6); return { ...KREADY, ...crouch(-0.25), ...ARMS_OUT, ...ARMS_OUT_L, shL: [-1.5, 0, 0.9], chest: [0.2, 0.4, 0], bodyRy: easeOut(k) * Math.PI * 8 }; }
+
+// Hollis's anchor: wide sweeps at full chain, an overhead slam, the throw of the Undertow, and the Flood Bell
+// (he rocks so the bell on his back tolls).
+export function asweep1(t) {
+  const W = { ...STANCE, ...crouch(-0.2), ...ARMS_OUT, chest: [0.15, -1.45, 0], spine: [0.15, -0.45, 0], shL: [-0.3, 0, 0.7], elL: [-0.5, 0, 0], weapon: [1.5, 0, 0], head: [0, 0.6, 0] };
+  const S = { ...STANCE, ...crouch(-0.24), ...ARMS_OUT, chest: [0.15, 1.35, 0], spine: [0.22, 0.45, 0], weapon: [1.68, 0, 0], shL: [0.4, 0, 0.6], head: [0, -0.5, 0] };
+  return keys(t, [[0, STANCE], [0.18, W, easeOut], [0.33, S, easeOut], [0.45, S], [0.64, STANCE]]);
+}
+export function asweep2(t) { // the backhand: the chain comes back the other way
+  const S1 = asweep1(0.45);
+  const S = { ...STANCE, ...crouch(-0.24), ...ARMS_OUT, chest: [0.15, -1.4, 0], spine: [0.22, -0.45, 0], weapon: [1.68, 0, 0], shR: [-1.45, 0, 0.35], shL: [-0.3, 0, 0.8], head: [0, 0.5, 0] };
+  return keys(t, [[0, S1], [0.18, { ...S1, chest: [0.2, 1.6, 0], weapon: [1.5, 0, 0] }, easeOut], [0.33, S, easeOut], [0.45, S], [0.64, STANCE]]);
+}
+export function aslam(t) { // over the head and down: the anchor bites the stones
+  return keys(t, [[0, STANCE], [0.3, hsmash1(0.18), easeOut], [0.44, hsmash1(0.3), (k) => k * k], [0.62, hsmash1(0.3)], [0.9, STANCE]]);
+}
+export function athrow(t) { // the anchor hurled out on its chain (the Undertow)
+  const W = { ...STANCE, chest: [-0.2, -0.6, 0], spine: [-0.1, -0.2, 0], shR: [-2.8, 0, -0.35], elR: [-0.6, 0, 0], weapon: [0.3, 0, 0], shL: [-0.8, 0, 0.5], elL: [-0.6, 0, 0], head: [-0.1, 0.3, 0] };
+  const S = { ...STANCE, ...crouch(-0.2), chest: [0.25, 0.45, 0], spine: [0.35, 0.15, 0], shR: [-1.5, 0, -0.05], elR: [0, 0, 0], weapon: [1.5, 0, 0], shL: [-0.2, 0, 0.6], head: [-0.1, -0.3, 0] };
+  return keys(t, [[0, STANCE], [0.12, W, easeOut], [0.24, S, easeOut], [0.45, S]]);
+}
+export function bellring(t) {
+  const sw = Math.sin(Math.max(0, t - 0.15) * Math.PI / 0.6) * Math.min(1, t / 0.3);
+  return { ...STANCE, ...crouch(-0.18), spine: [-0.15, sw * 0.25, 0], chest: [-0.25, sw * 0.3, sw * 0.12], head: [-0.4, 0, 0], shR: [-0.7, 0, -1.2], elR: [-0.3, 0, 0], weapon: [1.2, 0, 0], shL: [-0.7, 0, 1.2], elL: [-0.3, 0, 0], bodyRz: sw * 0.16 };
+}
+
+// Mother Wren: the staff held up to sing (her shooting stance), and the Last Choir, lifted off the stones.
+export function chant(t) {
+  const b = Math.sin(t * 10) * 0.06;
+  return { ...STANCE, chest: [-0.1, 0.25, 0], spine: [0.05, 0.05, 0], head: [-0.2 + b, -0.1, 0], shR: [-0.95 - b, 0, -0.45], elR: [-0.75, 0, 0], weapon: [0.15, 0, 0], shL: [-1.15, 0, 0.75 + b], elL: [-0.25, 0, 0] };
+}
+export function choir(t) {
+  const k = easeOut(Math.min(1, t / 0.5)); const b = Math.sin(t * 3) * 0.04;
+  return { ...STANCE, bodyY: 0.3 * k + b, chest: [-0.3 * k, 0, 0], spine: [-0.1 * k, 0, 0], head: [-0.5 * k, 0, 0], shR: [-2.3 * k, 0, -0.8 * k], elR: [-0.2, 0, 0], weapon: [0.75 - 0.5 * k, 0, 0], shL: [-2.3 * k, 0, 0.9 * k], elL: [-0.2, 0, 0], hipL: [0.05, 0, 0.05], knL: [0.45, 0, 0], ftL: [0.5, 0, 0], hipR: [0.15, 0, -0.05], knR: [0.3, 0, 0], ftR: [0.5, 0, 0] };
+}
+
 // hunched creatures add this on top of everything
 export const HUNCH = { spine: [0.55, 0, 0], head: [-0.55, 0, 0], hipsY: -0.12, knL: [0.25, 0, 0], knR: [0.25, 0, 0], hipL: [-0.2, 0, 0], hipR: [-0.2, 0, 0], shL: [-0.3, 0, 0], shR: [-0.3, 0, 0] };
 
@@ -282,6 +351,19 @@ export function poseFor(e, t) {
     case 'stagger': p = stagger(t); break;
     case 'rise': p = e.team === 'hero' || e.heroId ? standUp(t, e.heroId) : rise(t); break;
     case 'roar': p = roar(t); break;
+    case 'kslash1': p = kslash1(t); break;
+    case 'kslash2': p = kslash2(t); break;
+    case 'kcross': p = kcross(t); break;
+    case 'kstab': p = kstab(t); break;
+    case 'kthrow': p = kthrow(t); break;
+    case 'kstorm': p = kstorm(t); break;
+    case 'asweep1': p = asweep1(t); break;
+    case 'asweep2': p = asweep2(t); break;
+    case 'aslam': p = aslam(t); break;
+    case 'athrow': p = athrow(t); break;
+    case 'bellring': p = bellring(t); break;
+    case 'chant': p = chant(t); break;
+    case 'choir': p = choir(t); break;
     default: {
       const f = FOE_ATTACK[e.anim]; p = f ? f(t, e.atk || { windup: 0.5, active: 0.7, dur: 1.2 }) : idle(t);
     }

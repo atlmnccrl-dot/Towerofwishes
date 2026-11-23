@@ -54,8 +54,56 @@ export const HEROES = {
     abilities: ['pillar', 'lantern', 'wisps'], ult: 'sunburst',
     look: { weapon: 'staff', orb: 0xffb040, offhand: 'lantern', hood: true, skirt: 0x3a3a40, colors: { skin: 0xd8b8a0, hair: 0xd8d4cc, tunic: 0x4a4a52, pants: 0x2a2a30, boots: 0x18181c, hood: 0xd8d4cc, glove: 0x3a3a40 } },
   },
+  // ---- the three who join later (STORY_BIBLE.md). PROPOSAL: names, titles, blurbs, abilities and weapons.
+  kestrel: {
+    id: 'kestrel', name: 'KESTREL', title: "THE GAOLER'S DAUGHTER", weapon: 'knives', hp: 88, speed: 7.0, unlock: 'gate',
+    blurb: "TWIN KNIVES FROM HER FATHER'S GAOL. THE FASTEST CUTS IN THE CITY, AND EVERY WOUND BLEEDS.", // PROPOSAL
+    rating: { power: 2, range: 1, speed: 5, guard: 2 },
+    attack: {
+      kind: 'combo', trait: { bleed: 0.3 }, // her basic cuts may bleed, whatever knives she holds
+      combo: [
+        { name: 'K1', anim: 'kslash1', dur: 0.3, windup: 0.05, active: 0.13, cancel: 0.17, range: 1.85, arc: deg(140), dmg: 8, poise: 7, kb: 1.2, lunge: 4.6 },
+        { name: 'K2', anim: 'kslash2', dur: 0.3, windup: 0.05, active: 0.13, cancel: 0.17, range: 1.85, arc: deg(140), dmg: 8, poise: 7, kb: 1.2, lunge: 4.6 },
+        { name: 'K3', anim: 'kslash1', dur: 0.3, windup: 0.05, active: 0.13, cancel: 0.17, range: 1.85, arc: deg(140), dmg: 9, poise: 8, kb: 1.4, lunge: 4.6 },
+        { name: 'K4', anim: 'kcross', dur: 0.5, windup: 0.1, active: 0.22, cancel: 0.28, range: 2.15, arc: deg(230), dmg: 16, poise: 24, kb: 4.5, lunge: 5.5, heavy: true },
+      ],
+      dashAttack: { name: 'KDA', anim: 'kstab', dur: 0.36, windup: 0.05, active: 0.18, cancel: 0.24, range: 2.5, width: 1.0, shape: 'line', dmg: 13, poise: 14, kb: 3, lunge: 12 },
+    },
+    abilities: ['knives', 'shadow', 'gallows'], ult: 'cutstorm',
+    look: { weapon: 'knife', offhand: 'knife', bulk: 0.92, scarf: true, cloak: true, cloakLen: [0.2, 0.2, 0.16], cloakW: [0.13, 0.11, 0.09], blade: 0xd0d6dc,
+      colors: { skin: 0xe0c4b0, hair: 0xcfc8bc, tunic: 0x2c2224, pants: 0x1c1618, boots: 0x120e0e, cloak: 0xb01c24, cloakDark: 0x8a141a, glove: 0x2a1e1a, belt: 0x4a3020, trim: 0x46302a, shoulder: 0x3a2a28 } },
+  },
+  hollis: {
+    id: 'hollis', name: 'HOLLIS', title: 'THE DROWNED BELLMAN', weapon: 'chain', hp: 140, speed: 5.5, armor: 0.1, unlock: 'docks',
+    blurb: 'AN ANCHOR ON A CHAIN. WIDE SWEEPS THAT DRAG THE PACK IN, AND A BELL THAT FLOODS THE STREET.', // PROPOSAL
+    rating: { power: 4, range: 4, speed: 1, guard: 4 },
+    attack: {
+      kind: 'combo',
+      combo: [
+        { name: 'A1', anim: 'asweep1', dur: 0.6, windup: 0.18, active: 0.32, cancel: 0.38, range: 3.3, arc: deg(210), dmg: 20, poise: 20, kb: 2, lunge: 1.4, pull: 1.2 },
+        { name: 'A2', anim: 'asweep2', dur: 0.6, windup: 0.18, active: 0.32, cancel: 0.38, range: 3.3, arc: deg(210), dmg: 20, poise: 20, kb: 2, lunge: 1.4, pull: 1.2 },
+        { name: 'A3', anim: 'aslam', dur: 0.86, windup: 0.32, active: 0.44, cancel: 0.56, range: 3.8, shape: 'line', width: 1.6, dmg: 34, poise: 42, kb: 5, lunge: 1.8, heavy: true, quake: 1.9, quakeAt: 2.8, quakeKind: 'splash' },
+      ],
+      dashAttack: { name: 'ADA', anim: 'asweep1', dur: 0.62, windup: 0.18, active: 0.32, cancel: 0.42, range: 3.2, arc: deg(220), dmg: 22, poise: 30, kb: 5, lunge: 8, heavy: true },
+    },
+    abilities: ['undertow', 'tidetoll', 'barnacle'], ult: 'floodbell',
+    look: { weapon: 'anchor', bulk: 1.18, longHair: true, eyes: 0x2a6ad0, backBell: true, barnacles: 0xc8c2a8, blade: 0x8a9a96,
+      colors: { skin: 0x98aca6, hair: 0x22382f, tunic: 0x2e5a50, pants: 0x1e3a34, boots: 0x14201c, shoulder: 0x3a6a5c, sleeve: 0x2a4e46, glove: 0x23302c, belt: 0x4a3a24, trim: 0x6a8a70 } },
+  },
+  wren: {
+    id: 'wren', name: 'MOTHER WREN', title: 'THE CHOIR-WITCH', weapon: 'hymn', hp: 90, speed: 5.9, unlock: 'nave',
+    blurb: 'A STAFF THAT SINGS. HOLD ATTACK: STRUCK FOES RESONATE AND TAKE MORE HURT. HYMNS THAT SHATTER.', // PROPOSAL
+    rating: { power: 3, range: 4, speed: 2, guard: 2 },
+    attack: { kind: 'shoot', anim: 'chant', rate: 0.36, proj: { kind: 'note', speed: 15, r: 0.3, life: 0.8, dmg: 9, poise: 6, resonate: 1 } },
+    abilities: ['shatter', 'lullaby', 'echo'], ult: 'lastchoir',
+    look: { weapon: 'fork', orb: 0xb070ff, scale: 1.08, skirt: 0x4a3462, longHair: true, ruff: 0xb8b0a6,
+      colors: { skin: 0xd8c0b0, hair: 0x8e8894, tunic: 0x5c5866, pants: 0x3a3442, boots: 0x18141c, sleeve: 0x4a3462, glove: 0x3a3442, belt: 0x6a4a8a, trim: 0x8a5ab8 } },
+  },
 };
-export const HERO_ORDER = ['warden', 'huntress', 'bellbreaker', 'lamplighter'];
+export const HERO_ORDER = ['warden', 'huntress', 'bellbreaker', 'lamplighter', 'kestrel', 'hollis', 'wren'];
+// who walks with you from the first night, and where the others join (the district whose boss frees them)
+export const START_HEROES = ['warden', 'huntress', 'bellbreaker'];
+export const JOINS = { lamplighter: 'LANTERN ROW', kestrel: 'GALLOWS GATE', hollis: 'MIREWATER DOCKS', wren: 'THE DROWNED NAVE' };
 
 // ------------------------------------------------------------------ abilities (two slots, the third unlocks at level 4)
 export const ABILITIES = {
@@ -71,6 +119,18 @@ export const ABILITIES = {
   pillar: { name: 'FLAME PILLAR', kind: 'pillar', cd: 5, dmg: 36, radius: 1.9, delay: 0.5, status: { burn: 1 }, desc: 'FIRE ERUPTS UNDER THE NEAREST FOE.' },
   lantern: { name: 'LANTERN WARD', kind: 'lantern', cd: 13, heal: 0.12, dur: 3.5, dmg: 9, radius: 2.6, desc: 'HEAL, AND BURN WHAT COMES CLOSE.' },
   wisps: { name: "WILL-O'-WISPS", kind: 'wisps', cd: 12, dmg: 24, n: 3, level: 4, desc: 'THREE WISPS HUNT DOWN THE NEAREST FOES.' },
+  // Kestrel (PROPOSAL: names and lines)
+  knives: { name: 'FAN OF KNIVES', short: 'FAN', kind: 'fan', cd: 5, dmg: 10, n: 5, spread: deg(12), status: { bleed: 0.6 }, desc: 'FIVE KNIVES IN A FAN. THEY CUT DEEP: FOES BLEED.' },
+  shadow: { name: 'SHADOW STEP', short: 'SHD', kind: 'shadow', cd: 7, dmg: 30, range: 8, status: { bleed: 1 }, desc: 'VANISH, AND STRIKE FROM BEHIND THE NEAREST FOE.' },
+  gallows: { name: 'GALLOWS SNARE', short: 'NSE', kind: 'noose', cd: 10, dmg: 18, radius: 2.2, root: 2.2, range: 9, level: 4, desc: 'A NOOSE FLIES OUT AND HOLDS EVERY FOE IN THE KNOT.' },
+  // Hollis
+  undertow: { name: 'UNDERTOW', short: 'UND', kind: 'undertow', cd: 6, dmg: 20, range: 8, radius: 2.6, desc: 'HURL THE ANCHOR: IT DRAGS EVERY FOE AROUND IT BACK TO YOU.' },
+  tidetoll: { name: 'TIDAL TOLL', short: 'TDE', kind: 'tide', cd: 7, dmg: 26, status: { frost: 1 }, desc: 'A WALL OF BLACK WATER ROLLS OUT AND CHILLS WHAT IT HITS.' },
+  barnacle: { name: 'BARNACLE GUARD', short: 'BRN', kind: 'barnacle', cd: 14, dur: 5, reduce: 0.4, dmg: 14, level: 4, desc: 'SHELLS CLOSE OVER HIM: LESS HURT, AND WHAT STRIKES HIM IS CUT.' },
+  // Mother Wren
+  shatter: { name: 'HYMN OF SHATTERING', short: 'HYM', kind: 'shatter', cd: 5, dmg: 22, radius: 2.3, delay: 0.35, per: 10, desc: 'A HIGH NOTE BREAKS OVER THE NEAREST FOE. RESONATING FOES SHATTER FOR MORE.' },
+  lullaby: { name: 'LULLABY', short: 'LUL', kind: 'lullaby', cd: 11, dmg: 8, radius: 3.3, stun: 1.6, desc: 'A SOFT SONG: THE FOES AROUND HER FALL STILL, AND RESONATE.' },
+  echo: { name: 'ECHO CHOIR', short: 'ECH', kind: 'echo', cd: 13, dur: 5, dmg: 10, rate: 0.5, level: 4, desc: 'TWO ECHOES SING BESIDE HER, AND THEIR NOTES HUNT.' },
 };
 
 export const ULTS = {
@@ -78,6 +138,9 @@ export const ULTS = {
   rain: { name: 'RAIN OF BOLTS', kind: 'rain', dur: 2.6, radius: 6.5, rate: 0.06, dmg: 12, r: 1.1 },
   toll: { name: 'TOLL OF RUIN', kind: 'toll', dur: 1.9, rings: 3, dmg: 34, r1: 7.5 },
   sunburst: { name: 'SUNBURST', kind: 'sunburst', dur: 1.0, radius: 7.5, dmg: 80, heal: 0.3, status: { burn: 1 } },
+  cutstorm: { name: 'STORM OF CUTS', kind: 'cutstorm', dur: 1.7, radius: 6.5, hits: 10, dmg: 13, status: { bleed: 1 } }, // PROPOSAL
+  floodbell: { name: 'THE FLOOD BELL', kind: 'flood', dur: 2.1, radius: 8, rings: 3, dmg: 30, status: { frost: 1 } }, // PROPOSAL
+  lastchoir: { name: 'THE LAST CHOIR', kind: 'choir', dur: 2.3, radius: 8, rate: 0.2, dmg: 14, r: 1.5, finale: 60 }, // PROPOSAL
 };
 
 export const rankDmg = (r) => 1 + 0.22 * ((r || 1) - 1);
@@ -107,8 +170,24 @@ export const WEAPONS = {
   tideCenser: { type: 'focus', name: 'TIDE CENSER', tier: 2, dmg: 1.24, trait: { frost: 0.35 }, desc: 'COLD FLAMES THAT SLOW.' },
   boneScepter: { type: 'focus', name: 'BONE SCEPTER', tier: 3, dmg: 1.38, trait: { leech: 0.05 }, desc: 'EVERY HIT HEALS YOU A LITTLE.' },
   dawnLantern: { type: 'focus', name: 'DAWN LANTERN', tier: 4, dmg: 1.58, trait: { burn: 0.4, crit: 0.12 }, desc: 'THE FIRST LIGHT, IN A CAGE.' },
+  // PROPOSAL: the new wardens' weapons
+  cellKnives: { type: 'knives', name: 'CELL KNIVES', tier: 0, dmg: 1.0, desc: 'TWO KNIVES FROM THE GAOL KITCHEN.' },
+  rustShivs: { type: 'knives', name: 'RUSTED SHIVS', tier: 1, dmg: 1.14, trait: { bleed: 0.25 }, look: { blade: 0xa07858 }, desc: 'RAGGED EDGES: CUTS BLEED MORE OFTEN.' },
+  nooseCutters: { type: 'knives', name: 'NOOSE-CUTTERS', tier: 2, dmg: 1.26, trait: { crit: 0.15 }, look: { blade: 0xe8e0c8 }, desc: 'HOOKED BLADES THAT FIND THE GAPS. MORE CRITS.' },
+  moonFangs: { type: 'knives', name: 'MOONLIT FANGS', tier: 3, dmg: 1.4, trait: { frost: 0.3, crit: 0.08 }, look: { blade: 0x9ce0f0, bladeGlow: 0x104050 }, desc: 'COLD AS THE ROOFTOPS: HITS MAY SLOW.' },
+  gallowsKeys: { type: 'knives', name: 'KEYS OF THE GALLOWS', tier: 4, dmg: 1.56, trait: { bleed: 0.3, crit: 0.12, shock: 0.15 }, look: { blade: 0xf0d890, bladeGlow: 0x504018 }, desc: 'GROUND FROM HER FATHER\'S KEYS. BLEEDING, CRITS AND LIGHTNING.' },
+  harbourAnchor: { type: 'chain', name: 'HARBOUR ANCHOR', tier: 0, dmg: 1.0, desc: 'THE OLD ANCHOR BY THE HARBOUR BELL.' },
+  kelpChain: { type: 'chain', name: 'KELP CHAIN', tier: 1, dmg: 1.14, trait: { frost: 0.3 }, look: { blade: 0x3a6a58 }, desc: 'COLD AS THE DEEP: BLOWS MAY SLOW.' },
+  wreckAnchor: { type: 'chain', name: "WRECKER'S ANCHOR", tier: 2, dmg: 1.24, trait: { poise: 1.6 }, look: { blade: 0x6a5a4a }, desc: 'A WRECK\'S ANCHOR: BREAKS GUARDS AND POISE.' },
+  leviathanHook: { type: 'chain', name: 'LEVIATHAN HOOK', tier: 3, dmg: 1.4, trait: { leech: 0.02 }, look: { blade: 0xb8c8c0 }, desc: 'IT DRINKS WHAT IT DRAGS IN: HITS HEAL YOU A LITTLE.' },
+  stormAnchor: { type: 'chain', name: 'STORM ANCHOR', tier: 4, dmg: 1.58, trait: { shock: 0.3, frost: 0.2 }, look: { blade: 0x8ab0d0, bladeGlow: 0x203850 }, desc: 'CAST IN A STORM: LIGHTNING AND COLD.' },
+  choirFork: { type: 'hymn', name: 'CHOIR FORK', tier: 0, dmg: 1.0, desc: 'A TUNING FORK AS TALL AS SHE IS.' },
+  psalmStaff: { type: 'hymn', name: 'COLD PSALM', tier: 1, dmg: 1.14, trait: { frost: 0.25 }, look: { orb: 0x80c8ff }, desc: 'A WINTER HYMN: NOTES MAY SLOW.' },
+  requiemFork: { type: 'hymn', name: 'REQUIEM FORK', tier: 2, dmg: 1.2, trait: { rate: 0.85 }, look: { orb: 0xff70c0 }, desc: 'IT SINGS FASTER.' },
+  bellFork: { type: 'hymn', name: 'BELL-TONGUE FORK', tier: 3, dmg: 1.38, trait: { pierce: true }, look: { orb: 0xffd080 }, desc: 'NOTES RING ON THROUGH FOES.' },
+  lastHymn: { type: 'hymn', name: 'THE LAST HYMN', tier: 4, dmg: 1.58, trait: { crit: 0.15, shock: 0.2 }, look: { orb: 0xffffff }, desc: 'THE CHOIR\'S LAST SONG: CRITS AND LIGHTNING.' },
 };
-export const START_WEAPON = { blade: 'wardenBlade', bow: 'nightCrossbow', hammer: 'ironMaul', focus: 'lampStaff' };
+export const START_WEAPON = { blade: 'wardenBlade', bow: 'nightCrossbow', hammer: 'ironMaul', focus: 'lampStaff', knives: 'cellKnives', chain: 'harbourAnchor', hymn: 'choirFork' };
 export const weaponsOfType = (type) => Object.entries(WEAPONS).filter(([, w]) => w.type === type).map(([id]) => id);
 export const upgradeMul = (plus) => 1 + 0.05 * (plus || 0);
 export const upgradeCost = (id, plus) => Math.round(40 * Math.pow((plus || 0) + 1, 1.5) * (1 + (WEAPONS[id]?.tier || 0) * 0.4));
@@ -143,6 +222,29 @@ export const AFFIXES = {
 };
 export const AFFIX_LIST = Object.keys(AFFIXES);
 
+// ------------------------------------------------------------------ echoes
+// Each boss leaves an Echo, the voice it stole (STORY_BIBLE.md). Worn in Echo slots at the Haven (two, three in
+// New Game+); an Ascended kill in New Game+ empowers it (level 2: the `up` line). heroStats hands the worn ones
+// to the sim as stats.echo = { type: level }; sim.js reads them where they bite. Key = the boss type.
+// PROPOSAL: every name and line below.
+export const ECHOES = {
+  gaoler: { name: "THE GAOLER'S KEYS", from: 'THE GAOLER', desc: 'HITS MAY CHAIN FOES IN PLACE FOR A MOMENT.', up: 'CHAINS BITE MORE OFTEN AND HOLD LONGER.' },
+  tallow: { name: "TALLOW'S WICK", from: 'MOTHER TALLOW', desc: 'HITS MAY SET FOES ALIGHT. THE BURNING DEAD BURST INTO FLAME.', up: 'MORE FIRE, AND A WIDER BURST.' },
+  harbormaster: { name: "THE HARBORMASTER'S HOOK", from: 'THE HARBORMASTER', desc: 'EVERY DASH ENDS WITH A HOOK THAT DRAGS THE NEAREST FOE TO YOU.', up: 'THE HOOK TAKES TWO, AND COMES BACK SOONER.' },
+  deacon: { name: "THE DEACON'S TIDE", from: 'THE DROWNED DEACON', desc: 'EVERY SKILL LEAVES A POOL OF BLACK WATER THAT SLOWS AND DROWNS.', up: 'DEEPER, WIDER POOLS.' },
+  ossuary: { name: 'TEN THOUSAND NAMES', from: 'THE OSSUARY KNIGHT', desc: 'A KILL RAISES A WARD OF BONE THAT TURNS ASIDE THE NEXT BLOW.', up: 'HOLD TWO WARDS AT ONCE.' },
+  founder: { name: "THE FOUNDER'S HEAT", from: 'THE BELLFOUNDER', desc: 'HEAVY BLOWS, AND EVERY FOURTH SHOT, SPLASH MOLTEN BRONZE.', up: 'HOTTER, WIDER SPLASHES.' },
+  regent: { name: "THE REGENT'S BARGAIN", from: 'THE PALE REGENT', desc: 'EVERY KILL GIVES BACK A LITTLE HEALTH.', up: 'EACH KILL GIVES BACK MORE.' },
+  silence: { name: 'THE STILLED HAND', from: 'SAINT SILENCE', desc: 'A PERFECT DODGE HUSHES THE WORLD: YOUR NEXT BLOWS HIT FAR HARDER.', up: 'A LONGER, DEEPER HUSH.' },
+  frostgiant: { name: 'HOARFROST BREATH', from: 'THE HOARFROST KING', desc: 'HITS MAY CHILL. CHILLED FOES TAKE MORE HURT.', up: 'COLDER STILL.' },
+  sandwyrm: { name: "ASHMAW'S WAKE", from: 'ASHMAW', desc: 'YOUR DASH LEAVES A BURROWING TRAIL THAT BURSTS UNDER FOES.', up: 'THE SAND BITES HARDER AND SLOWS.' },
+  lich: { name: "THE ABBOT'S PRAYER", from: 'ABBOT MORROW', desc: 'THE FALLEN RISE AS SPIRITS THAT HUNT THE NEAREST FOE.', up: 'STRONGER SPIRITS.' },
+  archon: { name: 'THE HOLLOW CROWN', from: 'THE HOLLOW ARCHON', desc: 'THE ULTIMATE CHARGES FASTER AND ENDS IN A BURST OF VOID.', up: 'FASTER STILL, AND A GREATER VOID.' },
+  bogmother: { name: "THE BOG MOTHER'S KISS", from: 'THE BOG MOTHER', desc: 'HITS MAY POISON.', up: 'A STRONGER POISON, MORE OFTEN.' },
+  clockmaster: { name: "THE CLOCKMASTER'S KEY", from: 'THE CLOCKMASTER', desc: 'SKILLS RECHARGE FASTER. EVERY THIRD SKILL WINDS THE OTHER BACK.', up: 'FASTER STILL.' },
+};
+export const ECHO_ORDER = Object.keys(ECHOES);
+
 // ------------------------------------------------------------------ growth
 export const MAX_LEVEL = 30;
 export const xpFor = (level) => Math.round(45 * Math.pow(level, 1.55)); // xp needed to go from level to level+1
@@ -156,16 +258,22 @@ export function heroStats(save, heroId) {
   const relics = new Set((save.relicsOn || []).filter(Boolean));
   const has = (r) => relics.has(r);
   const tonicUp = save.tonicUp || 0;
+  // the hero's own touch (Kestrel's cuts bleed) adds to the weapon's
+  const trait = { ...(W.trait || {}) }; for (const k in (H.attack.trait || {})) trait[k] = typeof H.attack.trait[k] === 'number' ? (trait[k] || 0) + H.attack.trait[k] : H.attack.trait[k];
+  // the Echoes worn: { type: 1 | 2 (Ascended) }
+  const echo = {}; const slots = save.ngPlus > 0 ? 3 : 2; const owned = save.echoes || [];
+  for (const t of (save.echoesOn || []).slice(0, slots)) if (t && ECHOES[t] && owned.includes(t)) echo[t] = (save.echoesAsc || []).includes(t) ? 2 : 1;
+  const cdEcho = echo.clockmaster ? (echo.clockmaster > 1 ? 0.78 : 0.85) : 1, ultEcho = echo.archon ? (echo.archon > 1 ? 1.4 : 1.25) : 1;
   return {
     heroId, kit: H, level: P.level,
     maxHp: Math.round(H.hp * levelHp(P.level)),
     dmgMul: levelDmg(P.level) * W.dmg * upgradeMul(plus),
-    weapon: P.weapon, weaponDef: W, trait: W.trait || {},
+    weapon: P.weapon, weaponDef: W, trait,
     abilities: P.equipped.map((id) => ({ id, def: ABILITIES[id], rank: (P.ranks || {})[id] || 1 })),
     ult: { id: H.ult, def: ULTS[H.ult], rank: (P.ranks || {})[H.ult] || 1 },
     maxTonics: 3 + tonicUp + (save.bossTonics || 0), tonicHeal: 0.45 * (has('pearl') ? 1.3 : 1),
-    dashCharges: 1 + (has('moth') ? 1 : 0), crit: (W.trait?.crit || 0) + (has('tooth') ? 0.15 : 0),
-    cdMul: has('clapper') ? 0.82 : 1, ultRate: has('glass') ? 1.35 : 1, speedMul: has('silk') ? 1.12 : 1,
+    dashCharges: 1 + (has('moth') ? 1 : 0), crit: (trait.crit || 0) + (has('tooth') ? 0.15 : 0),
+    cdMul: (has('clapper') ? 0.82 : 1) * cdEcho, ultRate: (has('glass') ? 1.35 : 1) * ultEcho, speedMul: has('silk') ? 1.12 : 1, echo,
     dmgTaken: (1 - (H.armor || 0)) * (has('psalter') ? 0.85 : 1), revives: has('bone') ? 1 : 0,
     relics: [...relics], armor: H.armor || 0,
   };

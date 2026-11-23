@@ -4,7 +4,13 @@
 import * as THREE from '../../vendor/three.module.min.js';
 import { World, angTo } from './sim.js';
 import { buildLevel, K } from '../world/level.js';
-import { OPENING, ENDING, CREDITS, TIPS, DISTRICTS, ACT2, ACT2_OPENING, FINALE } from './story.js';
+import { OPENING, ENDING, CREDITS, TIPS, DISTRICTS, ACT2, ACT3, ACT2_OPENING, FINALE } from './story.js';
+import { Cutscene, drawLineBox } from './cutscene.js';
+import { SCENES, AFTER_BOSS, BEFORE_BOSS, ON_ENTER, STAGE } from './scenes/index.js';
+import { BOSS_LINES } from './scenes/lines.js';
+import { SPEAKERS, JOINS, WARDENS } from './scenes/cast.js';
+import * as PROG from './progress.js';
+import * as B4 from './bosses4.js'; // bossEntrance(type): the bosses' entrances
 import { shared } from '../engine/materials.js';
 import { COL } from '../engine/ui.js';
 import { setTargetHeight } from '../engine/renderer.js';
@@ -28,8 +34,9 @@ const ABILITY_MODES = [{ id: 'attack', label: 'ON ATTACK' }, { id: 'auto', label
 const SAVE_KEY = 'bellmourn.save.v2', SET_KEY = 'bellmourn.settings.v1';
 function load(key) { try { return JSON.parse(localStorage.getItem(key)); } catch (e) { return null; } }
 function store(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) { /* private mode */ } }
-const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
-const ARMS = { blade: 'BLADE', bow: 'CROSSBOW', hammer: 'HAMMER', focus: 'LANTERN STAFF' };
+const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV'];
+const STARTERS = ['warden', 'huntress', 'bellbreaker'];
+const ARMS = { blade: 'BLADE', bow: 'CROSSBOW', hammer: 'HAMMER', focus: 'LANTERN STAFF', knives: 'TWIN KNIVES', anchor: 'ANCHOR AND CHAIN', song: 'SUNG STAFF' };
 const hit = (r, p) => r && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
 const inZone = (e, z) => e && e.x >= z[0] && e.x <= z[2] && e.z >= z[1] && e.z <= z[3];
 const NO_INPUT = { mx: 0, mz: 0 };
@@ -68,7 +75,7 @@ export class Game {
     const def = LEVELS[id]; if (!def) throw new Error('no level ' + id);
     this.loading = true; this.token++; this.timers = [];
     if (this.level) { this.r.scene.remove(this.level.group); }
-    this.view.clear(); this.fx.clear(); this.leaveHaven(); this.clearNotes();
+    this.view.clear(); this.fx.clear(); this.leaveHaven(); this.clearNotes(); this.groundAt = null; this.wheelWakes = false; this.bark = null; this.pendingScene = null;
     const L = await buildLevel(def);
     // lamps and chests are built by the game so they can change state
     const ctx = K.makeCtx(); L.lamps = (def.lamps || []).map((l) => ({ ...l, h: K.shrineLamp(ctx, l.x, l.z) }));
@@ -143,6 +150,7 @@ export class Game {
   async start() {
     const q = new URLSearchParams(location.search);
     if (q.get('auto') && !this.auto) { this.auto = makeAutoplay(+q.get('auto') || 3); this.timeScale = +(q.get('speed') || 1); this.debug = { god: q.get('god') === '1' }; if (q.get('hero')) this.save.hero = q.get('hero'); }
+    if (q.get('scene') && !this.debugDone) { this.debugDone = true; this.debug = { god: true }; await this.debugScene(q.get('scene'), { party: q.get('party') !== '0', auto: q.get('fast') === '1', speed: +(q.get('speed') || 1) }); return; }
     if (q.get('level') && !this.debugDone) {
       // debug: ?level=id [&boss=1] [&god=1] [&lamp=id] [&hero=id] — straight into a district
       this.debugDone = true; this.debug = { god: q.get('god') === '1' };
@@ -189,6 +197,7 @@ export class Game {
     else if (S === 'controls') this.controls(dt, inp);
     else if (S === 'settings') this.settingsMenu(dt, inp);
     else if (S === 'credits') this.credits(dt, inp);
+    else if (S === 'cutscene') this.cutUpdate(dt, inp);
     this.renderFrame(dt);
   }
 
@@ -200,6 +209,16 @@ export class Game {
     else if (S === 'haven' && this.haven && this.haven.ready() && this.stateT > 0.3) { this.autoSpend(); this.refreshHero(); this.haven.onward(); }
     else if (S === 'play' && this.world && !this.loading) Object.assign(inp, this.auto(this, dt), { pausePressed: false });
     else if (S === 'ending' && this.endT > 1.2) { this.endT = 0; this.endIdx++; }
+    // scenes skip themselves (a choice is picked: see autoChoice); the credits move on
+    else if (S === 'cutscene' && this.cut) { const c = this.cut; if (c.pick) { if (c.pick.t > 0.3) { const want = this.autoChoice(c.pick.key, c.pick.options.map((o) => o.id)); c.choose(Math.max(0, c.pick.options.findIndex((o) => o.id === want))); } } else if (c.t > 0.3 && !c.skipping) c.skip(); }
+    else if (S === 'credits' && this.stateT > 1.5) Object.assign(inp, { confirm: true });
+    else if (S === 'bossIntro' && this.stateT > 0.6) Object.assign(inp, { confirm: true });
+  }
+  // what the autoplay (and a scene played with cutAuto) picks: at the end SING if the New Song can be sung, else RING
+  autoChoice(key, ids) {
+    if (key === 'final') { let ready = false; try { ready = !!(PROG.trueEndingReady && PROG.trueEndingReady(this.save)); } catch (e) { /* */ } return ready && ids.includes('sing') ? 'sing' : 'ring'; }
+    if (key === 'ngplus') return 'title';
+    return ids[0];
   }
 
   // what a sensible player does at the Haven: rank up skills, wear the best weapon and relics, temper, buy
@@ -243,7 +262,7 @@ export class Game {
   // picks one), the warden in the middle, their card on the right with a CHOOSE button; then how to begin.
   select(dt, inp) {
     this.sound.setMusic('title');
-    const ids = HERO_ORDER; const unlocked = (id) => id !== 'lamplighter'; const R = this.selRects || {};
+    const ids = this.selIds(); const unlocked = (id) => STARTERS.includes(id); const R = this.selRects || {};
     for (const tp of inp.taps) if (hit(R.back, tp)) { this.sound.play('ui'); if (this.selStep === 1) this.selStep = 0; else this.go('title'); return; }
     if (this.selStep === 0) {
       if (inp.left || inp.up) { this.selHero = (this.selHero + ids.length - 1) % ids.length; this.sound.play('ui'); }
@@ -253,13 +272,14 @@ export class Game {
       const id = ids[this.selHero];
       if (this.world.hero && this.world.hero.heroId !== id) this.titleScene(id);
       if (inp.back) { this.go('title'); return; }
-      if (pick) { if (!unlocked(id)) { this.sound.play('ui'); this.ui.toast('SISTER ASH JOINS AFTER LANTERN ROW', { color: COL.dim }); } else { this.sound.play('uiOk'); this.selStep = 1; this.sel = 0; } }
+      if (pick) { if (!unlocked(id)) { this.sound.play('ui'); this.ui.toast(HEROES[id].name + ' ' + this.joinsText(id), { color: COL.dim }); } else { this.sound.play('uiOk'); this.selStep = 1; this.sel = 0; } }
     } else {
       this.selItems = [{ label: 'THE TRAINING ROAD', sub: 'LEARN TO FIGHT FIRST' }, { label: 'SKIP TO THE CITY', sub: 'STRAIGHT TO GALLOWS GATE' }];
       const p = this.menuInput(inp, this.selItems);
       if (inp.back) { this.selStep = 0; return; }
       if (p >= 0) {
-        this.save = freshSave(ids[this.selHero]); this.persist(); this.embersShown = 0;
+        // a new game forgets the old one, but keeps the endings already seen
+        const endings = (this.save && this.save.endings) || []; this.save = freshSave(ids[this.selHero]); if (endings.length) this.save.endings = endings.slice(); this.persist(); this.embersShown = 0;
         this.storyLines = OPENING; this.storyNext = p === 0 ? 'prologue' : 'gate'; this.go('story');
       }
     }
@@ -281,14 +301,87 @@ export class Game {
   }
 
   async enterLevel(id, fromStart, at) {
+    if (!LEVELS[id]) { // a region still being built: stay at (or go back to) the Haven
+      console.warn('bellmourn: level not built yet: ' + id); this.ui.toast('THE ROAD BEYOND IS NOT OPEN YET', { color: COL.dim, life: 3 });
+      if (this.levelId !== 'haven') { const ok = DISTRICTS.filter((d) => LEVELS[d]); this.enterHaven(ok.includes(this.save.level) ? this.save.level : ok[0], { resume: true }); }
+      else if (this.haven) { this.enterHaven(this.save.havenNext, { resume: true }); }
+      return;
+    }
     this.go('loading'); this.r.post.fade = 1;
     await this.loadLevel(id, { fromStart, at });
     if (id !== 'prologue') this.save.level = id;
     this.save.inHaven = false;
     this.persist();
-    const def = LEVELS[id]; const n = DISTRICTS.indexOf(id), a2 = ACT2.indexOf(id);
-    this.card = { t: 0, sup: a2 >= 0 ? 'ACT II  REGION ' + ROMAN[a2] : (n >= 0 ? 'DISTRICT ' + ROMAN[n] : 'PROLOGUE'), title: def.name.toUpperCase(), line: def.tagline || '' };
+    const def = LEVELS[id]; const n = DISTRICTS.indexOf(id), a2 = ACT2.indexOf(id), a3 = ACT3.indexOf(id);
+    this.card = { t: 0, sup: a3 >= 0 ? 'ACT III  REGION ' + ROMAN[a3] : (a2 >= 0 ? 'ACT II  REGION ' + ROMAN[a2] : (n >= 0 ? 'DISTRICT ' + ROMAN[n] : 'PROLOGUE')), title: def.name.toUpperCase(), line: def.tagline || '' };
     this.go('play'); this.fadeIn = 0;
+    // a scene on the way in (the Old Road's; the wardens meeting at the gate if the road was skipped)
+    const sid = this.noAutoScenes ? null : (ON_ENTER[id] && !this.seen(ON_ENTER[id]) ? ON_ENTER[id] : (id === 'gate' && fromStart && !this.save.tutorial && !this.seen('prologue.meet') ? 'prologue.meet' : null));
+    if (sid) this.playScene(sid, {}, () => { this.go('play'); this.fadeIn = 1; if (this.card) this.card.t = 0; });
+  }
+
+  // ------------------------------------------------------------------ cutscenes
+  seen(id) { const k = id + '@' + (this.save.ngPlus | 0); return !!(this.save.seen && this.save.seen[k]); }
+  markSeen(id) { const S = this.save; S.seen = S.seen && typeof S.seen === 'object' ? S.seen : {}; S.seen[id + '@' + (S.ngPlus | 0)] = true; this.persist(); }
+  // Play a scene by id; onEnd(result) runs when it is over (default: back to where the game was).
+  playScene(id, ctx = {}, onEnd = null) {
+    const sc = SCENES[id]; const back = this.state === 'cutscene' ? (this.cutBack || 'play') : this.state;
+    if (!sc) { console.warn('bellmourn: no scene ' + id); if (onEnd) onEnd({}); return false; }
+    if (this.world) this.world.idle();
+    this.markSeen(id); this.cutBack = back; this.bark = null;
+    try {
+      this.cut = new Cutscene(this, sc, ctx, { onEnd: (res) => { this.cut = null; this.persist(); if (onEnd) onEnd(res); else this.go(back === 'cutscene' ? 'play' : back); } });
+    } catch (err) { console.error('bellmourn: scene ' + id + ' failed', err); this.cut = null; if (onEnd) onEnd({}); return false; }
+    this.go('cutscene'); return true;
+  }
+  cutUpdate(dt, inp) {
+    if (!this.cut) { this.go('play'); return; }
+    try { this.cut.update(dt, inp); } catch (err) { console.error('bellmourn: scene error', err); const c = this.cut; if (c) { c.skipping = false; c.i = c.queue.length; c.active = []; c.finish(); } }
+  }
+  // The stage a scene moves to (an ending in the Belfry, the New Game+ offer at the Haven fire): the place
+  // without its foes or its game (the scene hides what is there and brings its own actors).
+  async stageAt(id, o = {}) {
+    this.leaveHaven(); this.haven = null;
+    if (id === 'haven') {
+      this.token++; this.timers = []; if (this.level) this.r.scene.remove(this.level.group);
+      this.view.clear(); this.fx.clear(); this.clearNotes();
+      const L = this.havenSet || (this.havenSet = await buildHaven());
+      this.r.scene.add(L.group); this.level = L; this.levelId = 'haven-stage';
+      this.atmos.setLevel(L.def.ambience, L.lights); this.groundAt = L.roofAt; this.atmos.heroLight.intensity = 1.2;
+      this.sound.setRain(0.55); this.r.post.dawn = 0;
+      this.world = new World({ solids: L.solids, bounds: L.def.bounds, seed: 5 }); this.boss = null; this.encs = []; this.hints = []; this.tutorial = null; this.card = null; this.bossState = 'idle';
+      this.camFocus.set(L.def.frame.x, L.def.frame.y, L.def.frame.z); this.r.focus.copy(this.camFocus);
+      return;
+    }
+    const lid = LEVELS[id] ? id : (o.fallback && LEVELS[o.fallback] ? o.fallback : 'belfry');
+    await this.loadLevel(lid, { fromStart: true }); this.boss = null; this.tutorial = null; this.card = null;
+  }
+  // for tests and ?scene=<id>: set the stage a scene expects, then play it
+  async debugScene(id, opts = {}) {
+    const st = STAGE[id] || {}; this.cutAuto = !!opts.auto; this.cutSpeed = opts.speed || 1; this.noAutoScenes = true;
+    if (opts.party !== false) for (const h of WARDENS) if (HEROES[h] && !this.save.unlocked.includes(h)) this.save.unlocked.push(h);
+    if (opts.hero && HEROES[opts.hero]) this.save.hero = opts.hero;
+    if (this.state === 'cutscene' && this.cut) { const c = this.cut; this.cut = null; c.onEnd = null; c.finish(); }
+    if (st.haven) {
+      await this.enterHaven(st.fresh ? 'gate' : (id === 'act3.open' ? 'marsh' : 'frostmarch'), { resume: true, first: false, noScene: true });
+    } else {
+      const lid = LEVELS[st.level] ? st.level : (LEVELS[st.fallback] ? st.fallback : 'gate');
+      await this.enterLevel(lid, true); this.card = null; this.tutorial = null;
+      const def = this.level.def; const h = this.world.hero;
+      if (st.at === 'exit' && def.exit) { const z = def.exit.zone; h.x = (z[0] + z[2]) / 2; h.z = z[3] + 0.6; h.face = Math.PI; }
+      if (st.boss && def.boss) {
+        const B = def.boss; h.x = (B.zone[0] + B.zone[2]) / 2; h.z = B.zone[3] - 2; h.face = Math.atan2(B.x - h.x, B.z - h.z);
+        this.world.ents = this.world.ents.filter((e) => e === h);
+        if (st.boss !== 'none' && knownBoss(B.type)) {
+          const b = this.boss = this.world.spawnBoss(B.type, B.x, B.z, { face: B.face ?? 0 }); b.face = Math.atan2(h.x - b.x, h.z - b.z);
+          if (st.boss === 'dead') { b.dead = true; b.hp = 0; b.anim = 'die'; b.animT = 3; this.bossState = 'done'; this.save.bosses[lid] = true; } else this.bossState = 'intro';
+        }
+        this.world.drain();
+      }
+      this.camFocus.set(h.x, 0, h.z);
+    }
+    this.noAutoScenes = false;
+    this.playScene(id, {}, () => { this.go(this.inHaven && this.haven ? 'haven' : 'play'); });
   }
 
   // ------------------------------------------------------------------ the Haven
@@ -302,13 +395,22 @@ export class Game {
     this.r.scene.add(L.group); this.level = L; this.levelId = 'haven';
     this.atmos.setLevel(L.def.ambience, L.lights); this.groundAt = L.roofAt; this.atmos.heroLight.intensity = 1.2;
     this.sound.setRain(0.55); this.r.post.dawn = 0;
-    const S = this.save; S.inHaven = true; S.havenNext = next; S.havenSeen = true; if (next) S.level = next; this.persist();
+    const S = this.save; const firstEver = !S.havenSeen; S.inHaven = true; S.havenNext = next; S.havenSeen = true; if (next) S.level = next; this.persist();
+    // a scene at the fire: Sister Ash on the first visit; the wardens gathered as Act II and Act III begin
+    const sid = opts.noScene || opts.resume ? null : (firstEver && !this.seen('haven.ash') ? 'haven.ash'
+      : (next === ACT2[0] && !this.seen('act2.open') && (S.bosses.belfry || S.act1) ? 'act2.open'
+        : (next === ACT3[0] && !this.seen('act3.open') && S.bosses.abyss ? 'act3.open' : null)));
     const w = this.world = new World({ solids: L.solids, bounds: L.def.bounds, seed: 5, abilityMode: this.settings.abilityMode }); w.abilityMode = this.settings.abilityMode;
     this.encs = []; this.boss = null; this.bossState = 'idle'; this.hints = []; this.tutorial = null; this.prompt = null; this.leaving = false; this.card = null; this.flares = [];
     this.inHaven = true; this.lamp.reset(1);
-    this.haven = new Haven(this, L, { next, resume: !!opts.resume, first: opts.first ?? !S.havenIntro });
+    this.haven = new Haven(this, L, { next, resume: !!opts.resume || !!sid, first: opts.first ?? !S.havenIntro });
     this.camFocus.set(w.hero.x, 0, w.hero.z); this.r.focus.copy(this.camFocus);
     this.loading = false; this.go('haven'); this.fadeIn = 0;
+    if (sid) this.playScene(sid, {}, () => {
+      // back at the fire: the warden kneels on the mat and the menu opens
+      const h = this.world.hero, D = L.def; if (h && this.haven) { h.x = D.kneel.x; h.z = D.kneel.z; h.face = Math.atan2(D.fire.x - h.x, D.fire.z - h.z); this.haven.pose(h, 'rest'); }
+      this.go('haven'); this.fadeIn = 1;
+    });
   }
   // toasts and floating numbers age only while the HUD is drawn: drop them when the place changes, or a
   // district's last words (a boss's rewards) would turn up in the next one
@@ -342,7 +444,11 @@ export class Game {
     if (pick < n - 1) this.saveSettings();
     if (pick === n - 1 || inp.back) this.go(this.back || 'title');
   }
-  credits(dt, inp) { if (this.stateT > 0.5 && (inp.back || inp.confirm || inp.taps.length)) { if (this.back === 'title') this.go('title'); else { this.go('loading'); this.start(); } } }
+  credits(dt, inp) {
+    // after an ending the credits roll (a tap after a moment moves on), then New Game+ is offered
+    if (this.back === 'ngplus') { if (this.stateT > 16 || (this.stateT > 1.2 && (inp.back || inp.confirm || inp.taps.length))) { this.back = null; this.offerNewGamePlus(); } return; }
+    if (this.stateT > 0.5 && (inp.back || inp.confirm || inp.taps.length)) { if (this.back === 'title') this.go('title'); else { this.go('loading'); this.start(); } }
+  }
 
   pauseMenu(dt, inp) {
     // back to the Haven from a district once it has been reached (what was cleared stays cleared)
@@ -387,17 +493,26 @@ export class Game {
     const B = def.boss;
     if (B && this.bossState === 'idle' && inZone(hero, B.zone)) this.startBoss();
     // exit (the training road's gate only opens when the training is done)
-    const exitOpen = def.exit && (!def.exit.requires || this.bossState === 'done') && (!this.tutorial || this.tutorial.step?.id === 'go');
+    const exitOpen = def.exit && (!def.exit.requires || this.bossState === 'done') && (!this.tutorial || this.tutorial.step?.id === 'go') && !this.pendingScene;
     // through the exit: the Haven, then on to the next district (the last exit rings the bell: the end)
     if (exitOpen && inZone(hero, def.exit.zone) && !this.leaving) {
-      this.leaving = true; this.fadeOut = 0; const to = def.exit.to;
-      if (to !== 'end') { this.save.lamp = null; }
-      if (this.levelId === 'prologue') this.save.tutorial = true;
-      this.persist();
-      this.after(0.65, () => { this.leaving = false; if (to === 'end') this.startEnding(this.levelId === 'belfry' ? 'act1' : 'finale'); else this.enterHaven(havenNext(this.save, to)); });
+      // the end of the Old Road: the other two wardens meet the lead at the gate first
+      if (this.levelId === 'prologue' && !this.seen('prologue.meet')) { this.save.tutorial = true; this.playScene('prologue.meet', {}, () => { this.go('play'); this.leaveBy(def.exit.to); }); return; }
+      this.leaveBy(def.exit.to);
     }
     this.sound.setMusic(this.boss && !this.boss.dead ? 'boss' : (w.combat ? 'combat' : 'explore'));
     if (hero.state === 'run' && (this.stepT = (this.stepT || 0) - dt) <= 0) { this.stepT = 0.27; this.sound.play('step'); if (Math.random() < 0.5) this.fx.splash(hero.x, hero.z, 3); }
+  }
+
+  // Out through a district's exit: the Haven, on to the next place. The story's ends ('end': the Belfry,
+  // the Abyss) were scenes already played when their bosses fell: they lead on to the next act.
+  leaveBy(to) {
+    this.leaving = true; this.fadeOut = 0;
+    this.save.lamp = null;
+    if (this.levelId === 'prologue') this.save.tutorial = true;
+    this.persist();
+    const next = to === 'end' ? (this.levelId === 'belfry' ? ACT2[0] : (this.levelId === 'abyss' ? ACT3[0] : 'gate')) : to;
+    this.after(0.65, () => { this.leaving = false; this.enterHaven(havenNext(this.save, next)); });
   }
 
   // A district lamp is a checkpoint, and it lights itself: walk within reach (LAMP_REACH) while the area
@@ -474,41 +589,115 @@ export class Game {
 
   startBoss() {
     const B = this.level.def.boss;
+    // the last fight: the Voice in the Bell speaks first, and the warden chooses (SILENCE ends it here)
+    if (B.type === 'wheel' && !this.save.choice) {
+      this.bossState = 'intro';
+      this.playScene('finale.choice', {}, (res) => {
+        const c = res.final || this.save.choice || 'ring'; this.save.choice = c; this.persist();
+        if (c === 'silence') { this.playEnding('silence'); return; }
+        this.bossState = 'idle'; this.go('play'); this.startBoss();
+      });
+      return;
+    }
     if (!knownBoss(B.type)) { // a boss still being built: the arena stands empty and the way on opens (not saved as beaten)
       console.warn('bellmourn: unknown boss type skipped: ' + B.type); this.bossState = 'done';
       for (const g of B.opens || []) this.gate(g, true); this.ui.toast('THE ARENA STANDS EMPTY', { color: COL.dim, life: 3 }); return;
     }
     this.bossState = 'intro'; this.card = null; // the district's name card never sits on the boss bar
     for (const g of B.gates || []) this.gate(g, false);
-    this.boss = this.world.spawnBoss(B.type, B.x, B.z, { face: B.face ?? 0, hpMul: B.hpMul || 1, dmgMul: B.dmgMul || 1 });
-    this.boss.state = 'roar'; this.boss.anim = 'idle'; this.boss.t = -2; this.boss.iframes = 3.5;
-    this.go('bossIntro'); this.sound.setMusic('none');
+    // New Game+: every boss returns Ascended; the Wheel takes its true form for the New Song
+    const ng = (this.save.ngPlus | 0) > 0;
+    this.boss = this.world.spawnBoss(B.type, B.x, B.z, { face: B.face ?? 0, hpMul: (B.hpMul || 1) * (ng ? 1.5 : 1), dmgMul: B.dmgMul || 1, ascended: ng, trueForm: B.type === 'wheel' && this.save.choice === 'sing' });
+    const hold = () => { const b = this.boss; b.state = 'roar'; b.anim = 'idle'; b.t = -2; b.iframes = 99; };
+    hold(); this.sound.setMusic('none'); this.entT = 0; this.entDoneT = 0;
+    // a boss with words before its fight: after its entrance (or, with none, before the roar)
+    const pre = BEFORE_BOSS[B.type]; this.preScene = pre && !this.seen(pre) ? pre : null;
+    if (this.preScene && !this.entranceOf(this.boss)) { const sid = this.preScene; this.preScene = null; this.playScene(sid, {}, () => { hold(); this.go('bossIntro'); }); }
+    else this.go('bossIntro');
   }
 
+  // The boss's entrance (its def.entrance: crawling out, breaking through, slamming down...), then its
+  // name and its line; the fight starts when the entrance is over. A tap jumps the entrance to its end.
+  // Without an entrance: the old roar.
   bossIntro(dt, inp) {
     const b = this.boss; const hero = this.world.hero;
     hero.anim = 'idle'; hero.state = 'idle'; hero.vx = hero.vz = 0;
+    const E = this.entranceOf(b);
+    if (E) {
+      const skip = this.stateT > 0.3 && (inp.confirm || inp.taps.length || inp.back || inp.attackPressed);
+      if (!this.entDoneT) {
+        this.entT = skip ? E.dur : Math.min(E.dur, (this.entT || 0) + dt);
+        try { E.step(this.world, b, this.entT, this.fx); } catch (err) { console.error('bellmourn: entrance', err); this.entT = E.dur; }
+        b.iframes = 99; b.animT += dt; this.handleEvents(this.world.drain());
+        if (this.entT >= E.dur) { this.entDoneT = this.stateT; this.sound.play('roar'); }
+      }
+      if (this.entDoneT && (this.stateT - this.entDoneT > 2.2 || (skip && this.stateT - this.entDoneT > 0.25))) {
+        const fight = () => { b.state = 'idle'; b.anim = 'idle'; b.t = 0; b.iframes = 0; b.ai.cd = 1.2; this.bossState = 'fight'; this.entDoneT = 0; this.go('play'); this.sound.setMusic('boss'); };
+        if (this.preScene) { const sid = this.preScene; this.preScene = null; this.entDoneT = 0; this.playScene(sid, {}, fight); } else fight();
+      }
+      return;
+    }
     if (this.stateT > 1.0 && b.anim !== 'roar') { b.anim = 'roar'; b.animT = 0; this.sound.play('roar'); this.r.shake(0.5, 1.0); }
     b.animT += dt; hero.animT += dt;
-    if (this.stateT > 3.6 || (this.stateT > 1.5 && (inp.confirm || inp.taps.length))) {
+    if (this.stateT > 4.4 || (this.stateT > 1.5 && (inp.confirm || inp.taps.length))) {
       b.state = 'idle'; b.anim = 'idle'; b.t = 0; b.iframes = 0; b.ai.cd = 1.2; this.bossState = 'fight';
       this.go('play'); this.sound.setMusic('boss');
     }
   }
+  entranceOf(b) {
+    if (!b) return null; if (b._entrance === undefined) { let E = b.def && b.def.entrance; if (!E && typeof B4.bossEntrance === 'function') { try { E = B4.bossEntrance(b.type); } catch (err) { E = null; } } b._entrance = E && typeof E.step === 'function' && E.dur > 0 ? E : null; }
+    return b._entrance;
+  }
+  // how far the boss intro is: 0..1 for the name card (after an entrance, or the old roar)
+  introK() { const E = this.entranceOf(this.boss); if (E) return this.entDoneT ? Math.min(1, (this.stateT - this.entDoneT) * 2.5 + 0.3) : Math.max(0, (this.entT / E.dur - 0.6) / 0.4) * 0.8; return this.stateT > 1.2 ? Math.min(1, (this.stateT - 1.2) * 2) : 0; }
 
   bossDown() {
     const B = this.level.def.boss; this.bossState = 'done'; this.save.bosses[this.levelId] = true;
-    const w = this.world;
+    const w = this.world; const type = this.boss && this.boss.type;
     for (const f of w.foes()) { f.hp = 0; w._kill(f, w.hero, {}); }
     w.hazards.length = 0; w.projs = w.projs.filter((p) => p.team === 'hero');
     const lines = bossReward(this.save, this.levelId, this.rand);
+    if (this.save.justRecruited) this.save.justRecruited = null;
     this.persist();
+    // the boss's last words, then the scene this fall opens (a recruit, a revelation, the bell, an ending)
+    const BL = BOSS_LINES[type]; if (BL && BL.fall) this.bark = { name: (SPEAKERS[type] || {}).name || this.boss.def.name.toUpperCase(), color: (SPEAKERS[type] || {}).color || COL.gold, text: BL.fall, t: 0, life: 3.6 };
+    const sid = type === 'wheel' ? 'end' : AFTER_BOSS[type];
+    if (sid && (sid === 'end' || !this.seen(sid))) {
+      this.pendingScene = sid;
+      this.after(3.4, () => {
+        if (sid === 'end') { this.playEnding(this.save.choice === 'sing' ? 'song' : 'dawn'); return; }
+        if (this.state === 'dead') { this.pendingScene = null; return; }
+        this.playScene(sid, {}, () => { this.pendingScene = null; this.afterBossScene(type); });
+      });
+    }
     this.sound.play('bigBell', { delay: 0.4 });
     this.after(1.8, () => {
       for (const g of B.opens || []) this.gate(g, true);
       this.ui.toast(this.boss.def.name.toUpperCase() + ' FALLS', { color: COL.gold, big: true, life: 4 });
       lines.forEach((l, i) => this.after(0.6 * (i + 1), () => this.ui.toast(l, { color: COL.text, life: 4 })));
       this.refreshHero();
+    });
+  }
+
+  // what follows a boss's scene: the end of Act I after the bell, Act III after the Archon, else the district
+  afterBossScene(type) {
+    if (type === 'silence') { this.save.act1 = true; this.persist(); this.playScene('act1.end', {}, () => { this.r.post.dawn = 0; this.enterHaven(havenNext(this.save, ACT2[0])); }); return; }
+    if (type === 'archon') { this.save.act2 = true; this.persist(); this.r.post.dawn = 0; this.enterHaven(havenNext(this.save, ACT3[0])); return; }
+    this.go('play');
+  }
+  // an ending (dawn, silence, song), then the credits, then the offer of New Game+
+  playEnding(kind) {
+    this.pendingScene = 'end';
+    this.playScene('end.' + kind, {}, () => {
+      const S = this.save; S.done = true; S.ending = kind; S.endings = Array.isArray(S.endings) ? S.endings : []; if (!S.endings.includes(kind)) S.endings.push(kind); this.persist();
+      this.pendingScene = null; this.back = 'ngplus'; this.r.post.fade = 1; this.go('credits');
+    });
+  }
+  offerNewGamePlus() {
+    this.playScene('ngplus', {}, (res) => {
+      this.r.post.dawn = 0;
+      if (res.ngplus === 'ng' && PROG.startNewGamePlus) { PROG.startNewGamePlus(this.save); this.save.choice = null; this.persist(); this.enterHaven(havenNext(this.save, 'gate'), { resume: true }); }
+      else { this.persist(); this.go('loading'); this.start(); }
     });
   }
 
@@ -628,7 +817,12 @@ export class Game {
     const r = this.r, w = this.world;
     let target = null; let zt = 1;
     const titleish = this.state === 'title' || this.state === 'select' || (this.state === 'controls' || this.state === 'settings') && this.back === 'title' || (this.state === 'credits' && this.back === 'title') || (this.state === 'story' && (this.storyNext === 'prologue' || this.storyNext === 'gate'));
-    if (titleish) {
+    if (this.state === 'cutscene' && this.cut) {
+      // a scene runs the camera; its puppets are drawn with the world (which stands still, breathing)
+      const cs = this.cut; target = cs.camPos.clone(); zt = cs.zoom; this.camFocus.copy(target); this.zoom = zt;
+      if (w) for (const e of w.ents) if (e.state !== 'cut') e.animT += dt;
+      this.view.update(cs.viewList(w), dt);
+    } else if (titleish) {
       this.titleCam = (this.titleCam || 0) + dt; target = new THREE.Vector3(-0.8 + Math.sin(this.titleCam * 0.12) * 0.8, 0, -1.6 + Math.cos(this.titleCam * 0.1) * 0.5);
       if (this.state === 'select' && w && w.hero) {
         // the warden stands in the free middle between the list and the card, as big as it allows
@@ -642,20 +836,26 @@ export class Game {
       for (const e of w.ents) e.animT += dt; this.view.update(w, dt);
     } else if (w && w.hero) {
       const h = w.hero; target = new THREE.Vector3(h.x + h.vx * 0.18, 0, h.z + h.vz * 0.18);
-      if (this.state === 'bossIntro' && this.boss) { const k = Math.min(1, this.stateT / 1.0) * (this.stateT < 3.0 ? 1 : Math.max(0, 1 - (this.stateT - 3.0) / 0.6)); target.lerp(new THREE.Vector3(this.boss.x, 1.6 * (this.boss.def.scale || 1) * 0.6, this.boss.z), k * 0.85); zt = 1 + k * 0.25; }
+      const E = this.state === 'bossIntro' && this.entranceOf(this.boss);
+      if (E) { // the entrance: the camera stays on the boss (entrance.cam: zoom and offset)
+        const c = E.cam || {}; const o = c.off || c.offset || [0, 0, 0]; const ox = Array.isArray(o) ? o[0] : (o.x || 0), oy = (Array.isArray(o) ? (o.length > 2 ? o[1] : 0) : (o.y || 0)) + (c.lift || 0), oz = Array.isArray(o) ? (o.length > 2 ? o[2] : o[1]) : (o.z || 0);
+        const k = Math.min(1, this.stateT / 0.6); target.lerp(new THREE.Vector3(this.boss.x + ox, 1.6 * (this.boss.def.scale || 1) * 0.6 + oy + (this.boss.leapH || 0) * 0.5, this.boss.z + oz), k * 0.9); zt = 1 + k * ((c.zoom || 1.25) - 1);
+      } else if (this.state === 'bossIntro' && this.boss) { const k = Math.min(1, this.stateT / 1.0) * (this.stateT < 3.8 ? 1 : Math.max(0, 1 - (this.stateT - 3.8) / 0.6)); target.lerp(new THREE.Vector3(this.boss.x, 1.6 * (this.boss.def.scale || 1) * 0.6, this.boss.z), k * 0.85); zt = 1 + k * 0.25; }
       if (this.boss && !this.boss.dead && this.state === 'play') target.lerp(new THREE.Vector3(this.boss.x, 0, this.boss.z), 0.2);
       this.view.update(w, dt);
     }
-    if (target && !this.debugCamHold) this.camFocus.lerp(target, Math.min(1, dt * (this.state === 'play' ? 6 : (this.inHaven ? 2 : 2.5))));
+    if (target && !this.debugCamHold && this.state !== 'cutscene') this.camFocus.lerp(target, Math.min(1, dt * (this.state === 'play' ? 6 : (this.inHaven ? 2 : 2.5))));
     if (this.zoomPunch) { zt = Math.max(zt, this.zoomPunch); this.zoomPunch = Math.max(1, this.zoomPunch - dt * 0.6); if (this.zoomPunch <= 1.001) this.zoomPunch = 0; }
     if (this.debugZoom) zt = this.debugZoom;
-    this.zoom += (zt - this.zoom) * Math.min(1, dt * (this.inHaven ? 1.6 : 5)); r.setZoom(Math.abs(this.zoom - 1) < 0.004 ? 1 : this.zoom);
+    if (this.state !== 'cutscene') this.zoom += (zt - this.zoom) * Math.min(1, dt * (this.inHaven ? 1.6 : 5)); r.setZoom(Math.abs(this.zoom - 1) < 0.004 ? 1 : this.zoom);
     r.focus.copy(this.camFocus);
     if (this.dashGhosts > 0 && w && w.hero) { this.ghostT -= dt; if (this.ghostT <= 0) { this.dashGhosts--; this.ghostT = 0.05; const rig = this.view.get(w.hero); if (rig) this.fx.ghost(rig); } }
     const P = r.post; P.hurt = Math.max(0, P.hurt - dt * 1.6); if (this.state !== 'dead') P.desat = Math.max(0, P.desat - dt * (this.specialT > 0 ? 0.2 : 1.5)); this.specialT = (this.specialT || 0) - dt;
     if (this.flashT > 0) { this.flashT -= dt; if (this.flashT <= 0) P.flash = 0; }
     if (this.state === 'loading') P.fade = 1;
     else if (this.leaving) { this.fadeOut += dt; P.fade = Math.min(1, this.fadeOut / 0.6); }
+    else if (this.state === 'cutscene' && this.cut) P.fade = this.cut.fade;
+    else if (this.state === 'credits' && this.back === 'ngplus') P.fade = Math.max(P.fade, 0.85);
     else if (this.fadeIn !== undefined && this.fadeIn < 1) { this.fadeIn += dt * 1.5; P.fade = Math.max(0, 1 - this.fadeIn); }
     else P.fade = this.state === 'story' && this.storyNext === 'title' ? 1 : (this.state === 'story' ? 0.72 : 0);
     if (this.state === 'dead') P.fade = Math.min(0.6, this.stateT * 0.25);
@@ -681,7 +881,12 @@ export class Game {
     if (S === 'select') this.drawSelect();
     if (S === 'controls') this.drawControls();
     if (S === 'settings') this.drawSettings();
-    if (S === 'credits') {
+    if (S === 'credits' && this.back === 'ngplus') {
+      // the credits roll up after an ending
+      const n = CREDITS.length; const y0 = Math.round(H + 4 - this.stateT * 18); const end = Math.round(H / 2 - n * 6);
+      const yy = Math.max(end, y0); CREDITS.forEach((l, i) => { if (l) ui.text(l, W / 2, yy + i * 12, { align: 'center', scale: i === 0 ? 2 : 1, color: i === 0 ? COL.white : (i === 1 ? COL.gold : COL.dim) }); });
+      if (this.stateT > 1.2) ui.text(this.inputMode === 'touch' ? 'TAP TO GO ON' : 'ENTER TO GO ON', W / 2, H - 12, { align: 'center', color: '#6a6252', alpha: 0.6 });
+    } else if (S === 'credits') {
       ui.veil(0.6); const n = CREDITS.length, y0 = Math.round(H / 2 - n * 6);
       CREDITS.forEach((l, i) => ui.text(l, W / 2, y0 + i * 12, { align: 'center', color: i === 0 ? COL.white : COL.dim }));
       if (this.stateT > 0.5) ui.text(this.inputMode === 'touch' ? 'TAP TO GO BACK' : 'ENTER TO GO BACK', W / 2, H - 14, { align: 'center', color: '#6a6252' });
@@ -714,10 +919,18 @@ export class Game {
     }
     if (S === 'bossIntro' && this.boss) {
       // the name sits inside the bottom bar so it never covers the fight
-      const k = Math.min(1, this.stateT * 2) * (this.stateT > 3.2 ? Math.max(0, 1 - (this.stateT - 3.2) * 2.5) : 1);
+      const k = Math.min(1, this.stateT * 2) * (this.entranceOf(this.boss) || this.stateT <= 4.0 ? 1 : Math.max(0, 1 - (this.stateT - 4.0) * 2.5));
       const bh = Math.round(H * 0.2 * k); if (bh > 0) { ui.rect(0, 0, W, bh, '#000'); ui.rect(0, H - bh, W, bh, '#000'); }
-      if (this.stateT > 1.2) { const a = Math.min(1, (this.stateT - 1.2) * 2) * k; const nm = this.boss.def.name.toUpperCase(); ui.text(nm, W / 2, H - 32, { align: 'center', scale: ui.measure(nm, 2) > W - 12 ? 1 : 2, color: COL.white, alpha: a }); ui.text(this.boss.def.title.toUpperCase(), W / 2, H - 13, { align: 'center', color: COL.red, alpha: a }); }
+      const ik = this.introK();
+      if (ik > 0) { const a = ik * k; const nm = this.boss.def.name.toUpperCase(); ui.text(nm, W / 2, H - 32, { align: 'center', scale: ui.measure(nm, 2) > W - 12 ? 1 : 2, color: COL.white, alpha: a }); ui.text((this.boss.def.title || '').toUpperCase(), W / 2, H - 13, { align: 'center', color: COL.red, alpha: a }); }
+      // its line, in the top bar, in its own colour
+      const BL = BOSS_LINES[this.boss.type]; const la = Math.max(0, ik - 0.35) / 0.65 * k;
+      if (BL && BL.intro && la > 0) { const sp = SPEAKERS[this.boss.type] || {}; const tw = Math.min(W - 24, 252); const ls = ui.wrap('"' + BL.intro + '"', tw).slice(0, 2); ls.forEach((l, i) => ui.text(l, W / 2, Math.max(3, Math.round(bh / 2) - ls.length * 5) + i * 10, { align: 'center', color: sp.color || COL.text, alpha: la, shadow: false })); }
+      if (this.entranceOf(this.boss) && !this.entDoneT && this.stateT > 0.3) ui.text('TAP TO SKIP', W - Math.round(ui.safe.r) - 6, H - bh + 3, { align: 'right', color: '#6a6252', shadow: false });
     }
+    if (S === 'cutscene' && this.cut) this.cut.draw(ui);
+    // a boss's last words as it falls
+    if (this.bark && S === 'play') { const B = this.bark; B.t += dt; const a = Math.min(1, B.t * 3, Math.max(0, (B.life - B.t) * 2)); if (a > 0) drawLineBox(ui, B.name, B.color, B.text, a, this.input.touchMode ? 'top' : 'bottom'); if (B.t > B.life) this.bark = null; }
     if (S === 'pause') this.drawPause();
     if (S === 'dead') {
       const a = Math.min(1, this.stateT * 0.8); ui.text('YOU FELL', W / 2, Math.round(H * 0.36), { align: 'center', scale: 3, color: '#b01c22', alpha: a }); ui.text('THE LAMP STILL BURNS', W / 2, Math.round(H * 0.36) + 28, { align: 'center', color: COL.dim, alpha: Math.max(0, a - 0.3) });
@@ -775,14 +988,14 @@ export class Game {
   }
 
   drawSelect() {
-    const ui = this.ui, W = ui.w, H = ui.h; const ids = HERO_ORDER; const id = ids[this.selHero]; const Hd = HEROES[id]; const locked = id === 'lamplighter';
+    const ui = this.ui, W = ui.w, H = ui.h; const ids = this.selIds(); const id = ids[this.selHero] || ids[0]; const Hd = HEROES[id]; const locked = !STARTERS.includes(id);
     const L = this.selLayout(); const R = this.selRects = { heroes: [] };
     // the wardens: a list on the left
     ui.text('CHOOSE YOUR WARDEN', L.lx, 6, { color: COL.gold });
-    const bh = Math.max(20, Math.min(24, Math.floor((H - 18 - 30 - 9) / 4)));
+    const gap = ids.length > 5 ? 2 : 3; const bh = Math.max(12, Math.min(24, Math.floor((H - 17 - 30) / ids.length) - gap));
     ids.forEach((hid, i) => {
-      const lk = hid === 'lamplighter'; const y = 17 + i * (bh + 3);
-      R.heroes.push({ ...ui.button(L.lx, y, L.lw, bh, HEROES[hid].name, { on: i === this.selHero, align: 'left', sub: lk ? 'LOCKED' : ARMS[HEROES[hid].weapon], color: lk ? '#7a7266' : undefined }), i });
+      const lk = !STARTERS.includes(hid); const y = 17 + i * (bh + gap);
+      R.heroes.push({ ...ui.button(L.lx, y, L.lw, bh, HEROES[hid].name, { on: i === this.selHero, align: 'left', sub: bh >= 19 ? (lk ? 'LOCKED' : ARMS[HEROES[hid].weapon] || '') : undefined, color: lk ? '#7a7266' : undefined }), i });
       if (lk) lockIcon(ui, L.lx + L.lw - 12, y + Math.round(bh / 2) - 4);
     });
     R.back = ui.button(L.lx, H - 6 - 20, 64, 20, '< BACK', {});
@@ -805,7 +1018,7 @@ export class Game {
       ui.text('SKILLS', px, y, { color: COL.dim, shadow: false }); y += 10;
       skills.forEach((l, k) => ui.text(l, px, y + k * 9, { color: COL.ice, shadow: false })); y += skills.length * 9;
       ui.text('ULTIMATE: ' + ult, px, y, { color: '#e08070', shadow: false });
-      R.choose = ui.button(px - 2, btnY, tw + 4, 22, locked ? 'JOINS AFTER LANTERN ROW' : 'CHOOSE ' + Hd.name, { sel: !locked, disabled: locked, fill: locked ? '#14120f' : '#3a1a14', edge: locked ? '#3a3228' : COL.gold, color: locked ? '#6a6458' : COL.white });
+      R.choose = ui.button(px - 2, btnY, tw + 4, 22, locked ? fit(ui, this.joinsText(id), tw) : 'CHOOSE ' + Hd.name, { sel: !locked, disabled: locked, fill: locked ? '#14120f' : '#3a1a14', edge: locked ? '#3a3228' : COL.gold, color: locked ? '#6a6458' : COL.white });
     } else {
       // how to begin: two big choices
       ui.text('HOW WILL YOU BEGIN?', px, y + 2, { color: COL.dim, shadow: false }); y += 14;
@@ -815,6 +1028,9 @@ export class Game {
     }
     if (this.selStep === 0) this.menuRects = [];
   }
+  // the wardens on the select screen (every registered one; those who join later show a lock)
+  selIds() { return HERO_ORDER.filter((id) => HEROES[id]); }
+  joinsText(id) { const at = (HEROES[id] && HEROES[id].unlock) || JOINS[id]; const L = at && LEVELS[at]; return L ? 'JOINS AFTER ' + L.name.toUpperCase() : 'JOINS LATER'; }
   // where the select screen puts things (the camera frames the warden between the list and the card)
   selLayout() {
     const ui = this.ui, W = ui.w; const sl = Math.round(ui.safe.l), sr = Math.round(ui.safe.r); const use = W - sl - sr;

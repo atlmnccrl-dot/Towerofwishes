@@ -5,6 +5,12 @@
 import * as THREE from '../../vendor/three.module.min.js';
 import { M } from '../engine/materials.js';
 import * as T from '../engine/textures.js';
+import * as KC from './kit_city.js';
+export { MC, LIGHT } from './kit_city.js';
+
+// The district whose style the shared pieces take from here on (kit_city.js): 'gate' (the reference
+// iron-and-slate city), 'market', 'docks', 'nave', 'undercroft', 'foundry', 'heights', 'belfry'.
+export function district(ctx, id) { ctx.style = id; }
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const geoCache = new Map();
@@ -74,21 +80,13 @@ export function wall(ctx, x0, z0, x1, z1, h = 4, opts = {}) {
   const len = alongX ? Math.abs(x1 - x0) : Math.abs(z1 - z0);
   const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
   const W = alongX ? len : t, D = alongX ? t : len;
+  const face = opts.face ?? 1;
+  solid(ctx, cx - W / 2, cz - D / 2, cx + W / 2, cz + D / 2, h);
+  if (KC.styledWall(ctx, cx, cz, W, D, h, alongX, len, face, opts)) { wallButtress(ctx, cx, cz, h, t, alongX, len, face, opts); return; }
   add(ctx, box(W, h, D), M.brick(tone), cx, h / 2, cz);
   add(ctx, box(W + 0.1, 0.5, D + 0.1), M.ashlar('#3c4656'), cx, 0.25, cz);
   if (opts.cap !== false) add(ctx, box(W + 0.16, 0.2, D + 0.16), M.ashlar('#4a5464'), cx, h + 0.1, cz);
-  solid(ctx, cx - W / 2, cz - D / 2, cx + W / 2, cz + D / 2, h);
-  // buttresses on the face toward the camera (+X or +Z side unless told otherwise)
-  const face = opts.face ?? 1;
-  if (opts.buttress) {
-    const n = Math.max(1, Math.floor(len / opts.buttress));
-    for (let i = 0; i <= n; i++) {
-      const p = -len / 2 + (i * len) / n; if (opts.skipEnds && (i === 0 || i === n)) continue;
-      const bh = h * 0.8;
-      if (alongX) { add(ctx, box(0.5, bh, 0.5), M.ashlar('#3a4454'), cx + p, bh / 2, cz + face * (t / 2 + 0.25)); add(ctx, box(0.5, 0.4, 0.3), M.ashlar('#4a5464'), cx + p, bh + 0.1, cz + face * (t / 2 + 0.1), { rx: face * 0.5 }); solid(ctx, cx + p - 0.25, cz + face * t / 2, cx + p + 0.25, cz + face * (t / 2 + 0.5), bh); }
-      else { add(ctx, box(0.5, bh, 0.5), M.ashlar('#3a4454'), cx + face * (t / 2 + 0.25), bh / 2, cz + p); add(ctx, box(0.3, 0.4, 0.5), M.ashlar('#4a5464'), cx + face * (t / 2 + 0.1), bh + 0.1, cz + p, { rz: -face * 0.5 }); solid(ctx, cx + face * t / 2, cz + p - 0.25, cx + face * (t / 2 + 0.5), cz + p + 0.25, bh); }
-    }
-  }
+  wallButtress(ctx, cx, cz, h, t, alongX, len, face, opts);
   // arched recesses / windows along the face
   if (opts.arches) {
     const n = opts.arches; const step = len / (n + 1);
@@ -101,15 +99,33 @@ export function wall(ctx, x0, z0, x1, z1, h = 4, opts = {}) {
     }
   }
 }
+// Buttresses on the face toward the camera (+X or +Z side unless told otherwise): solids in every style.
+function wallButtress(ctx, cx, cz, h, t, alongX, len, face, opts) {
+  const styledLook = !!(ctx.style && ctx.style !== 'gate' && ['market', 'docks', 'foundry', 'heights'].includes(ctx.style));
+  if (opts.buttress) {
+    const n = Math.max(1, Math.floor(len / opts.buttress));
+    for (let i = 0; i <= n; i++) {
+      const p = -len / 2 + (i * len) / n; if (opts.skipEnds && (i === 0 || i === n)) continue;
+      const bh = h * 0.8;
+      const [bx, bz] = alongX ? [cx + p, cz + face * (t / 2 + 0.25)] : [cx + face * (t / 2 + 0.25), cz + p];
+      if (styledLook) add(ctx, box(0.5, bh, 0.5), KC.buttressMat(ctx), bx, bh / 2, bz);
+      else if (alongX) { add(ctx, box(0.5, bh, 0.5), M.ashlar('#3a4454'), bx, bh / 2, bz); add(ctx, box(0.5, 0.4, 0.3), M.ashlar('#4a5464'), cx + p, bh + 0.1, cz + face * (t / 2 + 0.1), { rx: face * 0.5 }); }
+      else { add(ctx, box(0.5, bh, 0.5), M.ashlar('#3a4454'), bx, bh / 2, bz); add(ctx, box(0.3, 0.4, 0.5), M.ashlar('#4a5464'), cx + face * (t / 2 + 0.1), bh + 0.1, cz + p, { rz: -face * 0.5 }); }
+      if (alongX) solid(ctx, cx + p - 0.25, cz + face * t / 2, cx + p + 0.25, cz + face * (t / 2 + 0.5), bh);
+      else solid(ctx, cx + face * t / 2, cz + p - 0.25, cx + face * (t / 2 + 0.5), cz + p + 0.25, bh);
+    }
+  }
+}
 export const plane = (w, h) => geo(`p${w},${h}`, () => new THREE.PlaneGeometry(w, h));
 
 // ---------------------------------------------------------------- buildings
 // A town house: body, steep slate roof with overhang (ridge along the longer side), windows, door, chimney.
 export function house(ctx, x, z, w, d, h, opts = {}) {
+  solid(ctx, x - w / 2, z - d / 2, x + w / 2, z + d / 2, h);
+  const styledHouse = opts.style !== false && KC.styled(ctx, 'house'); if (styledHouse && styledHouse(ctx, x, z, w, d, h, opts)) return;
   const tone = opts.tone || '#384356'; const body = opts.plaster ? M.plaster(opts.plaster) : M.brick(tone);
   add(ctx, box(w, h, d), body, x, h / 2, z);
   add(ctx, box(w + 0.1, 0.6, d + 0.1), M.ashlar('#384252'), x, 0.3, z);
-  solid(ctx, x - w / 2, z - d / 2, x + w / 2, z + d / 2, h);
   const ridgeX = opts.ridge ? opts.ridge === 'x' : w >= d;
   const rh = opts.roofH || Math.min(w, d) * 0.75;
   roof(ctx, x, h, z, w + 0.5, d + 0.5, rh, ridgeX, opts.roofTone || '#222b38');
@@ -143,7 +159,7 @@ export function house(ctx, x, z, w, d, h, opts = {}) {
 export function roof(ctx, x, y, z, w, d, rh, ridgeX, tone = '#222b38') {
   const span = ridgeX ? d : w, len = ridgeX ? w : d;
   const half = span / 2; const slope = Math.hypot(half, rh); const ang = Math.atan2(rh, half);
-  const mat = M.slate(tone);
+  const mat = tone && tone.isMaterial ? tone : M.slate(tone); // a material may be passed instead of a slate tone
   for (const s of [-1, 1]) {
     const m = new THREE.Mesh(box(ridgeX ? len : slope, 0.14, ridgeX ? slope : len), mat);
     if (ridgeX) { m.position.set(x, y + rh / 2, z + s * half / 2); m.rotation.x = s * ang; }
@@ -226,6 +242,14 @@ export function fence(ctx, x0, z0, x1, z1, opts = {}) {
   const h = opts.h || 2.0; const alongX = Math.abs(x1 - x0) >= Math.abs(z1 - z0);
   const len = Math.hypot(x1 - x0, z1 - z0); const dx = (x1 - x0) / len, dz = (z1 - z0) / len;
   const kerb = opts.kerb ?? 0.35; const iron = M.ironLit();
+  const styledFence = opts.style !== false && KC.styled(ctx, 'fence');
+  if (styledFence) styledFence(ctx, x0, z0, x1, z1, opts);
+  else fenceIron(ctx, x0, z0, x1, z1, h, alongX, len, kerb, iron);
+  const pad = 0.18;
+  if (alongX) solid(ctx, Math.min(x0, x1), z0 - pad, Math.max(x0, x1), z0 + pad, h); else solid(ctx, x0 - pad, Math.min(z0, z1), x0 + pad, Math.max(z0, z1), h);
+  ctx.lowSolids.push(ctx.solids[ctx.solids.length - 1]); // see-through: does not block sight lines
+}
+function fenceIron(ctx, x0, z0, x1, z1, h, alongX, len, kerb, iron) {
   if (kerb > 0) plinth(ctx, x0 - (alongX ? 0 : 0.25), z0 - (alongX ? 0.25 : 0), x1 + (alongX ? 0 : 0.25), z1 + (alongX ? 0.25 : 0), kerb);
   const nb = Math.round(len / 0.25);
   for (let i = 0; i <= nb; i++) {
@@ -247,25 +271,42 @@ export function fence(ctx, x0, z0, x1, z1, opts = {}) {
     const t = (i + 0.5) / nb; const x = x0 + (x1 - x0) * t, z = z0 + (z1 - z0) * t;
     inst(ctx, 'fring', torus(0.1, 0.02), iron, mat4(x, kerb + h - 0.48, z, alongX ? 0 : Math.PI / 2));
   }
-  const pad = 0.18;
-  if (alongX) solid(ctx, Math.min(x0, x1), z0 - pad, Math.max(x0, x1), z0 + pad, h); else solid(ctx, x0 - pad, Math.min(z0, z1), x0 + pad, Math.max(z0, z1), h);
-  ctx.lowSolids.push(ctx.solids[ctx.solids.length - 1]); // see-through: does not block sight lines
 }
 export const torus = (r, t) => geo(`t${r},${t}`, () => new THREE.TorusGeometry(r, t, 4, 10));
 
 // An ornate double gate with an arched crest. Returns a handle with open(t) for the arena locks.
 // axis: 'x' if the gate sits in a fence running along X.
 export function gate(ctx, x, z, width = 3.2, axis = 'x', opts = {}) {
-  const h = opts.h || 2.6; const iron = M.ironLit();
-  const piers = opts.piers !== false;
-  const alongX = axis === 'x';
+  const h = opts.h || 2.6; const alongX = axis === 'x';
   const along = (p) => alongX ? [x + p, z] : [x, z + p];
-  if (piers) for (const s of [-1, 1]) {
+  // the piers' solids are the same in every style; the district draws them and the leaves
+  if (opts.piers !== false) for (const s of [-1, 1]) { const [px, pz] = along(s * (width / 2 + 0.35)); solid(ctx, px - 0.35, pz - 0.35, px + 0.35, pz + 0.35, h + 1); }
+  const styledGate = opts.style !== false && KC.styled(ctx, 'gate');
+  const apply = styledGate ? styledGate(ctx, x, z, width, alongX, h, opts, along) : gateIron(ctx, x, z, width, alongX, h, opts, along);
+  const sh = { x0: alongX ? x - width / 2 : x - 0.2, z0: alongX ? z - 0.2 : z - width / 2, x1: alongX ? x + width / 2 : x + 0.2, z1: alongX ? z + 0.2 : z + width / 2, h, gate: true, open: false };
+  ctx.solids.push(sh); ctx.lowSolids.push(sh);
+  const handle = {
+    t: opts.open ? 1 : 0, target: opts.open ? 1 : 0, solid: sh, x, z,
+    set(open) { this.target = open ? 1 : 0; sh.open = !!open; },
+    update(dt) {
+      if (this.t === this.target) return false;
+      this.t += Math.sign(this.target - this.t) * Math.min(Math.abs(this.target - this.t), dt * 1.2);
+      apply((1 - Math.cos(this.t * Math.PI)) / 2);
+      return true;
+    },
+  };
+  sh.open = !!opts.open; apply(opts.open ? 1 : 0);
+  ctx.anims.push(handle);
+  return handle;
+}
+// The reference gate (Gallows Gate): wrought-iron leaves with scrolls under an arched crest, stone piers.
+function gateIron(ctx, x, z, width, alongX, h, opts, along) {
+  const iron = M.ironLit();
+  if (opts.piers !== false) for (const s of [-1, 1]) {
     const [px, pz] = along(s * (width / 2 + 0.35));
     add(ctx, box(0.7, h + 0.9, 0.7), M.ashlar('#3e4858'), px, (h + 0.9) / 2, pz);
     add(ctx, box(0.85, 0.2, 0.85), M.ashlar('#56606e'), px, h + 1.0, pz);
     add(ctx, cyl(0.18, 0.24, 0.4, 6), M.ashlar('#56606e'), px, h + 1.3, pz);
-    solid(ctx, px - 0.35, pz - 0.35, px + 0.35, pz + 0.35, h + 1);
   }
   const leaves = [];
   for (const s of [-1, 1]) {
@@ -294,27 +335,21 @@ export function gate(ctx, x, z, width = 3.2, axis = 'x', opts = {}) {
     }
     const top = new THREE.Mesh(cone(0.1, 0.4, 4), iron); top.position.set(x, h + 0.25 + width * 0.24 + 0.25, z); ctx.group.add(top);
   }
-  const sh = { x0: alongX ? x - width / 2 : x - 0.2, z0: alongX ? z - 0.2 : z - width / 2, x1: alongX ? x + width / 2 : x + 0.2, z1: alongX ? z + 0.2 : z + width / 2, h, gate: true, open: false };
-  ctx.solids.push(sh); ctx.lowSolids.push(sh);
-  const handle = {
-    t: opts.open ? 1 : 0, target: opts.open ? 1 : 0, solid: sh, x, z,
-    set(open) { this.target = open ? 1 : 0; sh.open = !!open; },
-    update(dt) {
-      if (this.t === this.target) return false;
-      this.t += Math.sign(this.target - this.t) * Math.min(Math.abs(this.target - this.t), dt * 1.2);
-      const a = (1 - Math.cos(this.t * Math.PI)) / 2 * (opts.swing || 1.6);
-      for (const l of leaves) l.rotation.y = l.userData.side * a * (alongX ? -1 : 1) * (opts.swingDir || 1);
-      return true;
-    },
-  };
-  sh.open = !!opts.open; handle.update(0); if (opts.open) { handle.t = 1; for (const l of leaves) l.rotation.y = l.userData.side * (opts.swing || 1.6) * (alongX ? -1 : 1) * (opts.swingDir || 1); }
-  ctx.anims.push(handle);
-  return handle;
+  const sw = opts.swing || 1.6, dir = (alongX ? -1 : 1) * (opts.swingDir || 1);
+  return (k) => { for (const l of leaves) l.rotation.y = l.userData.side * k * sw * dir; };
 }
 
 // ---------------------------------------------------------------- lights and props
 export function lamp(ctx, x, z, opts = {}) {
   const h = opts.h || 3.0; const iron = M.ironLit();
+  const styledLamp = opts.style !== false && KC.styled(ctx, 'lamp');
+  if (styledLamp) {
+    const col = opts.color ? new THREE.Color(opts.color).getHex() : KC.LIGHT[ctx.style];
+    const p = styledLamp(ctx, x, z, h, col);
+    solidCircle(ctx, x, z, 0.25, h);
+    ctx.lights.push({ x: p.lx, y: p.ly, z: p.lz, color: col, intensity: opts.intensity || 7, dist: opts.dist || 9, halo: true, flicker: ctx.style === 'market' || ctx.style === 'undercroft' ? 0.1 : 0.04 });
+    return;
+  }
   add(ctx, box(0.36, 0.3, 0.36), M.ashlar('#3a4454'), x, 0.15, z);
   add(ctx, cyl(0.06, 0.08, h, 6), iron, x, h / 2, z);
   add(ctx, cyl(0.12, 0.08, 0.12, 4), iron, x, h + 0.02, z, { ry: Math.PI / 4 });
@@ -329,6 +364,7 @@ export function lamp(ctx, x, z, opts = {}) {
 
 // A torch in an iron bracket on a wall. face: direction the wall faces ('+x','+z').
 export function torch(ctx, x, y, z, face = '+x') {
+  if (KC.styledTorch(ctx, x, y, z, face)) return;
   const iron = M.ironLit(); const fx = face === '+x' ? 1 : 0, fz = face === '+z' ? 1 : 0;
   add(ctx, box(0.1 + fx * 0.3, 0.08, 0.1 + fz * 0.3), iron, x + fx * 0.15, y, z + fz * 0.15);
   add(ctx, cyl(0.06, 0.04, 0.5, 5), M.wood('#4a3020'), x + fx * 0.32, y + 0.15, z + fz * 0.32, { rz: -fx * 0.3, rx: fz * 0.3 });
@@ -556,4 +592,24 @@ export function water(ctx, x0, z0, x1, z1, y = -0.15, tone = 0x0e161c) {
   m.rotation.x = -Math.PI / 2; m.position.set(x0 + w / 2, y, z0 + d / 2); m.receiveShadow = true; ctx.group.add(m);
   ctx.puddles = ctx.puddles || []; ctx.puddles.push({ x: x0 + w / 2, z: z0 + d / 2, w, d, water: true });
   return m;
+}
+
+// Dark ground beyond the map (in place of level.js's apron) that leaves every water surface open: the
+// rectangle (bounds + margin) is cut around each water() sheet laid so far (and any `extra` [x0, z0, x1, z1]
+// pits), so call it last in build().
+export function apron(ctx, b, mat, y = -0.03, margin = 30, extra = []) {
+  const X0 = b[0] - margin, Z0 = b[1] - margin, X1 = b[2] + margin, Z1 = b[3] + margin;
+  const holes = (ctx.puddles || []).filter((p) => p.water).map((p) => [p.x - p.w / 2, p.z - p.d / 2, p.x + p.w / 2, p.z + p.d / 2]).concat(extra);
+  const cut = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const xs = [...new Set([X0, X1, ...holes.flatMap((h) => [cut(h[0], X0, X1), cut(h[2], X0, X1)])])].sort((a, c) => a - c);
+  const zs = [...new Set([Z0, Z1, ...holes.flatMap((h) => [cut(h[1], Z0, Z1), cut(h[3], Z0, Z1)])])].sort((a, c) => a - c);
+  const inHole = (x, z) => holes.some((h) => x > h[0] && x < h[2] && z > h[1] && z < h[3]);
+  for (let j = 0; j < zs.length - 1; j++) {
+    const zc = (zs[j] + zs[j + 1]) / 2; let run = null;
+    for (let i = 0; i < xs.length - 1; i++) {
+      const open = !inHole((xs[i] + xs[i + 1]) / 2, zc);
+      if (open && run === null) run = xs[i];
+      if ((!open || i === xs.length - 2) && run !== null) { const xe = open ? xs[i + 1] : xs[i]; if (xe - run > 0.01) floor(ctx, run, zs[j], xe, zs[j + 1], mat, y, 0.3); run = null; }
+    }
+  }
 }

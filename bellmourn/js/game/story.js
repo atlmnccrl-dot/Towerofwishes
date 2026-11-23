@@ -1,5 +1,5 @@
-// The story of Bellmourn: the opening, the districts in order, the tips, the end.
-// Pure data.
+// The story of Bellmourn: the opening, the districts and regions in order, the act cards, the tips, the
+// credits. Pure data. The spoken scenes are scripts in js/game/scenes/ (played by js/game/cutscene.js).
 
 export const OPENING = [
   'BELLMOURN, CITY OF A HUNDRED BELLS.',
@@ -13,8 +13,14 @@ export const OPENING = [
 
 // Act II: the four regions beyond the walls, played after the Belfry (PROPOSAL: the author may rename them).
 export const ACT2 = ['frostmarch', 'ashdunes', 'catacombs', 'abyss'];
+// Act III: the Wheel (PROPOSAL, docs/STORY_BIBLE.md): the Weeping Marsh, the Clockwork Spire, the Empyrean.
+export const ACT3 = ['marsh', 'spire', 'empyrean'];
+export const ACT1 = ['gate', 'market', 'docks', 'nave', 'undercroft', 'foundry', 'heights', 'belfry'];
 // every place the Haven can lead to, in order (the map, the merchant's stock and the loot follow this order)
-export const DISTRICTS = ['gate', 'market', 'docks', 'nave', 'undercroft', 'foundry', 'heights', 'belfry', ...ACT2];
+export const DISTRICTS = [...ACT1, ...ACT2, ...ACT3];
+// the card over a place as it is entered: which act, which region
+export const ACT_OF = (id) => (ACT3.includes(id) ? 3 : (ACT2.includes(id) ? 2 : (ACT1.includes(id) ? 1 : 0)));
+export const ACT_NAMES = { 1: 'THE CITY', 2: 'BEYOND THE WALLS', 3: 'THE WHEEL' }; // PROPOSAL
 
 export const ENDING = [
   'THE BELL OF ST. ORRIN RINGS.',
@@ -33,7 +39,16 @@ export const ACT2_OPENING = [
   'ACT II: BEYOND THE WALLS',
 ];
 
-// PROPOSAL (for the author): the closing ending, after the Hollow Archon falls (the dawn image is kept).
+// PROPOSAL (for the author): the way into Act III, after the Hollow Archon falls.
+export const ACT3_OPENING = [
+  'END OF ACT II',
+  'ABOVE THE ABYSS, THE WHEEL BEGAN TO TURN.',
+  'THE GREAT BELL HOLDS THE VOICE OF THE GOD WHO MADE THE WORLD. THE WHEEL IS ITS JAILER.',
+  'THROUGH THE WEEPING MARSH, UP THE CLOCKWORK SPIRE, TO THE HUB OF THE WHEEL.',
+  'ACT III: THE WHEEL',
+];
+
+// (older card text, kept for reference) the closing ending, after the Hollow Archon falls (the dawn image is kept).
 export const FINALE = [
   'THE WHEEL STOPS TURNING. ONE BY ONE, ITS EYES CLOSE.',
   'FAR ABOVE, IN A CITY OF A HUNDRED BELLS, EVERY BELL RINGS AT ONCE.',
@@ -43,9 +58,13 @@ export const FINALE = [
 
 export const CREDITS = [
   'BELLMOURN',
-  'A GAME MADE FOR THIS REPOSITORY',
-  'CODE, ART, MUSIC AND SOUND MADE IN THE BROWSER',
+  'A BLEDINK STUDIOS GAME',
+  '',
+  'CODE, ART, MUSIC AND SOUND',
+  'MADE IN THE BROWSER, FROM SCRATCH',
+  '',
   'RENDERED WITH THREE.JS (MIT)',
+  '',
   'THANK YOU FOR PLAYING',
 ];
 
@@ -63,4 +82,5 @@ export const TIPS = [
   'WHEN THE RED GAUGE IS FULL, UNLEASH YOUR ULTIMATE.',
   'TRY ANOTHER WARDEN AT THE HAVEN. EACH ONE LEVELS ON THEIR OWN.',
   'THE PAUSE MENU CAN TAKE YOU BACK TO THE HAVEN. WHAT YOU CLEARED STAYS CLEARED.',
+  'EVERY EMBER IS A VOICE SET FREE. CARRY THEM BACK TO THE HAVEN FIRE.', // PROPOSAL
 ];

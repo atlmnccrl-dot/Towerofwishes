@@ -1,6 +1,7 @@
 // Pose sheet: freezes the hero (and a foe) in each clip at a few moments and saves zoomed crops.
 // The tonic drink ('heal', with the flask in the free hand), 'kneel', 'rest' and the hero's 'rise' are shot
-// for all four wardens, since each holds a different weapon (blade, crossbow, hammer, lantern staff).
+// for every warden, since each holds a different weapon (HEROES=... picks; the default is all seven), and the
+// three later wardens' own clips (kestrel, hollis, wren: only=kestrel shoots just hers; NEW=... picks).
 // NODE_PATH=$(npm root -g) node bellmourn/test/poses.js <outdir> [only]   (only: e.g. "heal,rest" or "foe")
 const { chromium } = require('playwright');
 const fs = require('fs');
@@ -27,7 +28,14 @@ const fs = require('fs');
   // (seen three-quarters from the side, so the arm to the mouth and the bent knees read)
   const each = [['heal', [0.14, 0.3, 0.5, 0.75]], ['kneel', [0.3]], ['rest', [0.5, 2.4]], ['rise', [0.35]]];
   const faces = (process.env.FACES || '-0.2').split(',').map(Number);
-  for (const id of (process.env.HEROES || 'warden,huntress,bellbreaker,lamplighter').split(',')) for (const [anim, times] of each) if (want(anim)) for (const t of times) for (const f of faces) await shoot(`${id}-${anim}-${t}${faces.length > 1 ? '-f' + f : ''}`, anim, t, id, f);
+  for (const id of (process.env.HEROES || 'warden,huntress,bellbreaker,lamplighter,kestrel,hollis,wren').split(',')) for (const [anim, times] of each) if (want(anim)) for (const t of times) for (const f of faces) await shoot(`${id}-${anim}-${t}${faces.length > 1 ? '-f' + f : ''}`, anim, t, id, f);
+  // the three who join later: their own clips (twin knives, anchor and chain, the singing staff), at a few moments
+  const OWN = {
+    kestrel: [['idle', [0.3]], ['run', [0.15]], ['kslash1', [0.05, 0.12]], ['kslash2', [0.05, 0.12]], ['kcross', [0.1, 0.22]], ['kstab', [0.12]], ['kthrow', [0.07, 0.15]], ['kstorm', [0.5]]],
+    hollis: [['idle', [0.3]], ['run', [0.15]], ['asweep1', [0.18, 0.33]], ['asweep2', [0.18, 0.33]], ['aslam', [0.3, 0.46]], ['athrow', [0.12, 0.24]], ['bellring', [0.45]], ['roar', [0.4]]],
+    wren: [['idle', [0.3]], ['run', [0.15]], ['chant', [0.5]], ['choir', [0.9]], ['cast', [0.1]], ['hurt', [0.1]]],
+  };
+  for (const id of (process.env.NEW || 'kestrel,hollis,wren').split(',')) for (const [anim, times] of OWN[id] || []) if (want(anim) || want(id)) for (const t of times) await shoot(`${id}-${anim}-${t}`, anim, t, id, Number(process.env.FACE || 0.8));
   // a foe
   if (want('foe')) {
     await p.evaluate(() => { const w = BM.game.world; const f = w.spawnFoe('hushed', 0, 3, { rise: false }); f.face = -2.4; BM.foe = f; const h = w.hero; h.anim = 'idle'; h.x = -4; });

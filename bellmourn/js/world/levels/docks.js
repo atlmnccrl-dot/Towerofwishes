@@ -9,8 +9,12 @@ export default {
   start: { x: 0.4, z: 14.4, face: Math.PI },
   bounds: [-26, -56, 14, 17.6],
   gatesOpen: ['landGate', 'pierGate'],
+  apron: false, // the harbour stone runs on beyond the map (below)
+  // sea fog: grey-green, cold whale-oil lamps, a drizzle off the water (district variety)
   ambience: {
-    fog: 0x1c262e, fogNear: 68, fogFar: 160, sky: 0x0a0e13, moon: 1.5, hemi: 0.9, rain: 0.6, lightning: false,
+    fog: 0x1e2c2a, fogNear: 68, fogFar: 160, sky: 0x0a100f, moon: 1.4, moonColor: 0xa8c8c0, hemi: 0.95, hemiSky: 0x587a74, hemiGround: 0x0c1412,
+    fill: 1.2, fillColor: 0x7a9a94, ambient: 0x142220, ambientI: 0.6, rain: 0.5, lightning: false,
+    grade: { gain: [0.94, 1.03, 1.0], lift: [0.004, 0.01, 0.01], sat: 0.72 },
     beams: [{ x: 0, z: 11.5, r: 4.6, h: 26, from: [6, 0, -10], intensity: 65 }, { x: -0.5, z: -45, r: 7.5, h: 28, from: [6, 0, -10], intensity: 80 }],
   },
   lamps: [{ id: 'landing', x: -5.5, z: 10.4, sx: 1.3, sz: 0.4 }, { id: 'quay', x: -2.8, z: -33.2, sx: 1.3, sz: 0.5 }],
@@ -43,6 +47,7 @@ export default {
   boss: { type: 'harbormaster', x: -0.4, z: -46.5, face: 0, zone: [-9.6, -52.4, 9.4, -36.6], gates: ['dockGate'], opens: ['exitGate'] },
   exit: { zone: [-17.4, -52.6, -14.2, -49.2], to: 'nave', requires: 'boss' },
   build(K, ctx) {
+    K.district(ctx, 'docks');
     // ------------------------------------------------ water, quays, ground
     P.harbour(ctx, 2.6, -80, 30, 24); P.harbour(ctx, -40, -80, 2.6, -53); P.harbour(ctx, -16, -19.5, 2.6, -8.2);
     P.waterSolid(ctx, 5.5, 0.2, 14, 17.6); P.waterSolid(ctx, 5.5, -8.2, 14, -3.2); P.waterSolid(ctx, 10.2, -3.2, 14, 0.2);
@@ -52,15 +57,17 @@ export default {
     P.quay(ctx, -16, -8.2, -2.6, -8.2, '-z'); P.quay(ctx, 2.6, -8.2, 5.5, -8.2, '-z');
     P.quay(ctx, -16, -19.5, -2.6, -19.5, '+z'); P.quay(ctx, 2.6, -19.5, 10, -19.5, '+z');
     P.quay(ctx, -16, -19.5, -16, -8.2, '+x'); P.quay(ctx, 10, -53, 10, -19.5, '+x'); P.quay(ctx, -26, -53, 10, -53, '-z');
-    K.floor(ctx, -7, 6, 5.5, 17.6, K.M.cobble('#505a66'));
-    K.floor(ctx, -26, -8.2, -7, 17.6, K.M.cobble('#48525e'));
-    K.floor(ctx, -7, -8.2, 5.5, 6, K.M.court('#5a6470'), 0, 0.4);
-    K.floor(ctx, -26, -19.5, -16, -8.2, K.M.cobble('#48525e'));
-    K.floor(ctx, -26, -35.4, 10, -19.5, K.M.cobble('#4e5864'));
-    K.floor(ctx, -4.6, -35.2, 10, -19.7, K.M.flags('#56606c'), 0.02, 0.42);
-    K.floor(ctx, -10.6, -53, 10, -35.4, K.M.court('#56606c'));
-    K.floor(ctx, -26, -36.4, -10.6, -35.4, K.M.cobble('#4a5460')); K.floor(ctx, -26, -53, -10.6, -47.6, K.M.cobble('#4a5460'));
-    K.floor(ctx, -26, -47.6, -20, -36.4, K.M.cobble('#4a5460')); K.floor(ctx, -11.2, -47.6, -10.6, -36.4, K.M.cobble('#4a5460'));
+    // granite setts on the quays, timber wharf boards on the fish market and the Salt Quay
+    K.floor(ctx, -7, 6, 5.5, 17.6, K.MC.setts('#5a605c'));
+    K.floor(ctx, -26, -8.2, -7, 17.6, K.MC.setts('#4e5450'));
+    K.floor(ctx, -7, -8.2, 5.5, 6, K.MC.boards('#5e5448'), 0, 0.4);
+    K.floor(ctx, -26, -19.5, -16, -8.2, K.MC.setts('#4e5450'));
+    K.floor(ctx, -26, -35.4, 10, -19.5, K.MC.setts('#545a56'));
+    K.floor(ctx, -4.6, -35.2, 10, -19.7, K.MC.boards('#585048'), 0.02, 0.42);
+    K.floor(ctx, -10.6, -53, 10, -35.4, K.MC.setts('#5a605c'));
+    K.floor(ctx, -26, -36.4, -10.6, -35.4, K.MC.setts('#4e5450')); K.floor(ctx, -26, -53, -10.6, -47.6, K.MC.setts('#4e5450'));
+    K.floor(ctx, -26, -47.6, -20, -36.4, K.MC.setts('#4e5450')); K.floor(ctx, -11.2, -47.6, -10.6, -36.4, K.MC.setts('#4e5450'));
+    P.craneTower(ctx, -20.5, 1.5, 13, [1, 0], 8.5); // the landmark: its jib over the warehouse roofs
 
     // ------------------------------------------------ the landing (the way in)
     P.warehouse(ctx, -10, 11.8, 6, 11.6, 6.4, { front: '+x', doors: [-2.6, 2.8], lit: 0.35, ajar: 1 });
@@ -159,6 +166,7 @@ export default {
     P.mist(ctx, [[2.6, -64, 22, 20], [-30, -66, 2.6, -53], [-16, -19.5, 2.6, -8.2]], -0.6, 0.22);
     P.mist(ctx, [[-30, -70, 24, -55.2]], 1.0, 0.16); P.mist(ctx, [[-30, -72, 24, -55.6]], 2.6, 0.12);
     P.ripples(ctx, [[5.6, -8.1, 16, 17.6], [2.7, -19.4, 16, -8.3], [10.1, -60, 16, -19.6], [-16, -19.4, -2.7, -8.3], [-22, -62, 10, -53.1]]);
+    K.apron(ctx, this.bounds, K.MC.sea('#2a3230'), -0.03, 30, [[-20, -47.6, -11.2, -36.4]]); // beyond the map, the water left open (it used to be covered)
     P.finish(ctx);
   },
 };

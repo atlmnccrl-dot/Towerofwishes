@@ -201,11 +201,13 @@ export function wheel(ctx, x, z, o = {}) {
   ctx.lights.push({ x, y: 4, z: z - 4, color: 0xff3010, intensity: 3, dist: 14, flicker: 0.05 });
   let t = 0, blink = 3, look = new THREE.Vector2();
   const eyeTex = [eyeMat(0), eyeMat(1), eyeMat(2)];
-  let dying = -1; // when the Archon falls the wheel stops, every eye shuts and it fades into the dark
+  let dying = -1; // the story no longer lets the wheel die with the Archon: it wakes (STORY_BIBLE.md, end of Act II)
+  let wake = 0;
   const ringMats = rings.map((r) => r.g.children.filter((m) => m.material && m.material.transparent).map((m) => m.material)).flat();
   ctx.anims.push({ update(dt) {
     const G = typeof window !== 'undefined' && window.BM && window.BM.game;
-    if (dying < 0 && G && G.levelId === 'abyss' && G.bossState === 'done') dying = 0;
+    // when the Archon falls the wheel starts to turn instead (the story's scene sets game.wheelWakes)
+    if (G && G.wheelWakes) { wake = Math.min(1, wake + dt / 2.5); dying = -1; }
     if (dying >= 0) {
       if (dying >= 1) { grp.visible = false; return false; }
       dying = Math.min(1, dying + dt / 3.5); const a = 1 - dying;
@@ -214,7 +216,7 @@ export function wheel(ctx, x, z, o = {}) {
       lidT.position.y = H / 32 / 2 + 0.05; lidB.position.y = -(H / 32 / 2 + 0.05); hub.visible = iris.visible = dying < 0.4;
       return false;
     }
-    t += dt;
+    t += dt * (1 + wake * 5); if (wake) { glowM.material.color.setRGB(1.6 * wake + 0.4, 0.3, 0.1); }
     for (const r of rings) { r.g.rotation.z = Math.round(t * r.speed * 64) / 64; for (const e of r.eyes) { e.m.rotation.z = -r.g.rotation.z; e.t -= dt; if (e.t < 0) e.t = 3 + Math.random() * 7; e.m.material = e.t < 0.12 ? eyeTex[0] : (e.t < 0.24 ? eyeTex[1] : eyeTex[2]); } }
     // the great eye looks toward the warden (window.BM.game.world.hero), and blinks now and then
     const h = typeof window !== 'undefined' && window.BM && window.BM.game && window.BM.game.world && window.BM.game.world.hero;

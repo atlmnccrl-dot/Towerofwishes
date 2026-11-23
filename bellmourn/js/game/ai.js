@@ -3,6 +3,7 @@ import { ATTACKS as A } from './defs.js';
 import { angDiff, angTo, dist, turn } from './sim.js';
 import { UNIT_AI } from './units.js';
 import { BOSS_AI2 } from './bosses2.js';
+import { bossPlan, ascendDef } from './bosses4.js'; // Ascended forms, the wheel's true form, entrances
 
 const deg = (d) => (d * Math.PI) / 180;
 
@@ -83,16 +84,21 @@ export function blink(w, e, hero) {
 // Each boss: phases by health, a move list per phase. Moves are attack defs (melee or ranged, using
 // the World's windup/telegraph/strike machinery) plus scripted extras through onStrike.
 export function thinkBoss(w, e, h) {
+  if (e.entering) return; // its entrance (bosses4.js bossEntrance) places and poses it
   const hero = w.hero; if (!hero || hero.dead) { e.anim = 'idle'; return; }
   const B = BOSS_AI[e.type] || BOSS_AI2[e.type];
+  // the plan: its own phases and moves, or its Ascended form's (e.ascended), or the wheel's true form
+  if (e.ascended && !e.def.ascended) ascendDef(e);
+  const P = bossPlan(e, B);
+  if (B.tick) B.tick(w, e, h);
   // phase changes
   const frac = e.hp / e.maxHp;
-  const target = 1 + B.phases.filter((p) => frac <= p).length; // phases: [0.66, 0.33] → 2 below 66%, 3 below 33%
+  const target = 1 + P.phases.filter((p) => frac <= p).length; // phases: [0.66, 0.33] → 2 below 66%, 3 below 33%
   if (target > e.phase) {
     e.phase++; // one phase at a time, so no phase's onPhase is skipped
     e.state = 'roar'; e.t = 0; e.anim = 'roar'; e.animT = 0; e.iframes = 1.4; e.tele = null; e.ai.chan = null;
     w.emit('phase', { e, phase: e.phase }); w.emit('shake', { amt: 0.6 }); w.slow(0.6, 0.4);
-    if (B.onPhase) B.onPhase(w, e, e.phase);
+    if (P.onPhase) P.onPhase(w, e, e.phase);
     return;
   }
   if (e.state === 'roar') { if (e.t < 1.3) return; e.state = 'idle'; e.anim = 'idle'; e.ai.cd = 0.4; }
@@ -103,7 +109,7 @@ export function thinkBoss(w, e, h) {
   e.face = turn(e.face, ang, (B.turn || 4) * h);
   e.ai.cd -= h;
   if (e.ai.cd <= 0 && Math.abs(angDiff(e.face, ang)) < 0.8) {
-    const list = B.moves(e.phase).filter((m) => d >= (m.min ?? 0) && d <= (m.max ?? 99) && (!m.cd || (e.ai['cd_' + m.id] || 0) <= w.t));
+    const list = P.moves(e.phase).filter((m) => d >= (m.min ?? 0) && d <= (m.max ?? 99) && (!m.cd || (e.ai['cd_' + m.id] || 0) <= w.t));
     if (list.length) {
       const m = pick(w, list); if (m.cd) e.ai['cd_' + m.id] = w.t + m.cd;
       if (m.run) { m.run(w, e); return; }

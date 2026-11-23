@@ -31,8 +31,22 @@ For a hundred nights the great bell of St. Orrin has been silent; the rain has n
 has the night. The people still walking the streets have no voices any more, only red eyes: the Hushed.
 The last of the bell-wardens come home to ring the bell.
 
-Between the districts the wardens rest at **the Haven**, a ruined lamplighters' shrine where the last
-fire in the city still burns.
+Between the districts the wardens rest at **the Haven**, a ruined lamplighters' shrine whose fire was lit
+from the great bell's own forge, so the night cannot touch it. The embers the wardens carry there are
+freed voices: striking a Hushed down releases the voice asleep in it. The story, the cast and the endings
+are planned in `docs/STORY_BIBLE.md` (a proposal for the author).
+
+**Cutscenes** play in the game world with the real characters: letterbox bars, each line under the
+speaker's name in their colour (a tap, a click or a key moves on), a SKIP button top right (skipping never
+skips a reward, a story flag or a choice). They tell the prologue on the Old Road (the crow-masked warden
+at the gate, the three wardens meeting), Sister Ash at the first Haven, each recruitment (Kestrel after the
+Gaoler, Sister Ash after Mother Tallow, Hollis after the Harbormaster, Mother Wren after the Deacon), Bram
+and the Bellfounder, the Pale Regent's revelation, Saint Silence before his fight, the ringing of the great
+bell (you strike it three times with the attack; the dawn comes, the Hushed lift their heads, Vesper finds
+her brother Tam; then the bell cracks), the ends and openings of the acts, the Hollow Archon's revelation,
+and the Voice in the Bell's choice before the last fight: RING, SILENCE, or (with all seven wardens and
+every Echo) SING. Each choice has its own ending (the Dawn, Silence, the New Song), then the credits, then
+New Game+ (bosses return Ascended). Every boss speaks a line as its fight begins and as it falls.
 
 | | District | Boss |
 |---|---|---|
@@ -56,7 +70,8 @@ opens on the lands the silence came from.
 | XI | The Catacombs | no sky, dust in the torchlight; walls of loculi and skulls, cages and chains in the dark, the chasm bridge, the hall of sarcophagi, green witchfire | Abbot Morrow |
 | XII | The Abyss | embers rising, ash falling, the dark breathing red; basalt islands over the void, rivers of fire, ritual circles, chained altars, obsidian spires, a wheel of eyes overhead | The Hollow Archon |
 
-After the Archon falls the closing ending plays, at dawn. Act II's fights lock with their own barriers (ice
+After the Archon falls, the Wheel above the Abyss starts to turn: Act III, the Wheel (the Weeping Marsh,
+the Clockwork Spire, the Empyrean), and the final choice. Act II's fights lock with their own barriers (ice
 that bursts from the snow, sandstone slabs, portcullises, teeth of black glass) instead of iron gates.
 
 ## The wardens
@@ -157,7 +172,8 @@ warden levels on their own.
 | `js/game/defs.js` | the first foes and bosses (pure data) |
 | `js/game/ai.js` | foe and boss behaviour (pure) |
 | `js/game/bot.js`, `autoplay.js` | an autoplayer for tests |
-| `js/game/story.js` | the opening, the districts and Act II's regions, the end of Act I, the way into Act II, the closing ending |
+| `js/game/story.js` | the opening cards, the districts and regions of the three acts, the tips, the credits |
+| `js/game/cutscene.js`, `js/game/scenes/*.js` | the cutscene player (camera, actors, lines, choices, the bell's strikes, SKIP) and the scene scripts (`index.js` says which plays when; `lines.js` holds every boss's two lines; `cast.js` the speakers' colours and stand-in looks) |
 | `js/game/game.js` | states, levels, encounters, bosses, the self-lighting checkpoint lamps, the Haven state, saves, settings, the title, select, pause, settings and controls screens, events to effects |
 
 ## Tests
@@ -175,10 +191,12 @@ NODE_PATH=$(npm root -g) node bellmourn/test/tonic.js /tmp/bm-tonic warden    # 
 NODE_PATH=$(npm root -g) node bellmourn/test/phone.js /tmp/bm-phone          # iPhone-sized touch: select by taps, stick, ATK, the layout at every button size, a tonic tapped, the Haven by taps
 NODE_PATH=$(npm root -g) node bellmourn/test/autoplay-browser.js /tmp/bm-auto 40 3   # plays the whole game on autoplay
 NODE_PATH=$(npm root -g) node bellmourn/test/shot.js /tmp/x.png "level=nave&boss=1&god=1"   # any spot
+NODE_PATH=$(npm root -g) node bellmourn/test/scenes-test.js /tmp/bm-scenes [id ...]   # every cutscene on a phone-sized screen, a frame from each
 ```
 
 Debug URL parameters: `?level=<id>` starts in a district (prologue, gate, market, docks, nave,
 undercroft, foundry, heights, belfry, frostmarch, ashdunes, catacombs, abyss), `&lamp=<id>` at a lamp, `&boss=1` in the boss arena, `&hero=<id>`
 as a given warden, `&god=1` makes the hero unkillable, `?auto=1&speed=3` plays itself (through the
 Haven too: it spends, equips and goes ONWARD). `?level=haven&next=<id>` opens the Haven leading to a
-district (`&resume=1` already kneeling, `&intro=1` with the first-visit guide).
+district (`&resume=1` already kneeling, `&intro=1` with the first-visit guide). `?scene=<id>` plays one
+cutscene on its stage (`&fast=1` lets it run itself; ids in `js/game/scenes/index.js`).

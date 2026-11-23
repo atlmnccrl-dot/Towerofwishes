@@ -39,7 +39,9 @@ export function makeBot(skill = 1, seed = 1) {
       if (w.meter >= 100 && (crowd >= 2 || foes.some((f) => f.boss))) inp.ultPressed = true;
     }
     // approach and attack (archers keep their distance)
-    const want = ranged ? 5.5 : 1.4 + near.r;
+    // long reach (the anchor's chain) fights from a little further off; the masher just walks in
+    const reach = skill > 0 && !ranged && h.kit.attack.combo ? h.kit.attack.combo[0].range : 0;
+    const want = ranged ? 5.5 : Math.max(1.4, reach - 1.1) + near.r;
     if (ranged) {
       if (d > want + 2) { inp.mx = dx / d; inp.mz = dz / d; } else if (d < want - 2.5) { inp.mx = -dx / d; inp.mz = -dz / d; }
       // a wall between: step around it instead of shooting the stones

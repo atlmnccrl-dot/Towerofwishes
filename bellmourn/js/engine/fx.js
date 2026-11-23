@@ -8,6 +8,7 @@ const MAXP = 1600;
 const MAXM = 192; // tonic motes
 const TAU = Math.PI * 2;
 const easeOut = (k) => 1 - (1 - k) * (1 - k);
+const lerpN = (a, b, k) => a + (b - a) * k;
 // procedural textures for the tonic: a soft ring (for a plane on the ground) and a column of light
 let _ringTex = null, _colTex = null;
 function ringTex() {
@@ -59,7 +60,11 @@ function kept(key, make) { if (!KEEP[key]) { const o = make(); o.userData.keep =
 const SOLID = { ice: [0xc8f0ff, 0x3a90c0], frost: [0xe0f8ff, 0x4aa0d0], bone: [0xe8e2d0, 0x3a3428], sand: [0xc8a46a, 0x2a1a08], mound: [0xb08a58, 0x000000] };
 const solidMat = (k) => kept('m' + k, () => new THREE.MeshLambertMaterial({ color: SOLID[k][0], emissive: SOLID[k][1], emissiveIntensity: 0.6 }));
 // hazards that only mark the stones (no red warning, nothing to dodge)
-const MARKS = new Set(['mound', 'sandburst', 'bind', 'raise', 'sigil', 'sigilGo', 'curse']);
+const MARKS = new Set(['mound', 'sandburst', 'bind', 'raise', 'sigil', 'sigilGo', 'curse',
+  // Act III: a wisp's lure, a bubble of slow time, a troll regrowing, the Bog Mother's wake, a bell tolling,
+  // the Clockmaster's rewind, the Voice's circles of song
+  'lure', 'bubble', 'regrow', 'wake', 'bellmark', 'rewind', 'song']);
+const MARKC = { lure: [1.0, 2.8, 1.8], bubble: [1.0, 1.8, 3.2], regrow: [0.8, 2.6, 0.5], wake: [0.3, 0.5, 0.45], bellmark: [1.6, 2.4, 1.6], rewind: [1.2, 2.0, 3.2], song: [3.2, 2.6, 1.2] };
 
 // remove an object and free what it alone owns (geometries/materials marked userData.keep are shared)
 function free(group, o) {
@@ -204,6 +209,7 @@ export class FX {
   }
 
   updateTeles(ents, time) {
+    this._auras(ents, time);
     const seen = new Set();
     for (const e of ents) {
       if (!e.tele || e.dead) continue; seen.add(e.id);
@@ -235,6 +241,7 @@ export class FX {
       v.position.set(h.x, 0.04, h.z);
       if (ud.mark) { this._markUpdate(h, v, Math.min(1, h.t / Math.max(0.01, h.life + h.warn)), dt, time); continue; }
       if (ud.spikes) this._spikeUpdate(h, ud, warn, k);
+      if (ud.spear) { ud.spear.position.y = warn ? 1.3 + 9 * (1 - k * k) : 1.3 - Math.min(1, k * 3) * 0.6; ud.spear.visible = !warn || k > 0.25; }
       if (h.shape === 'line') {
         ud.pivot.rotation.y = h.face || 0;
         if (ud.fan) { ud.fan.visible = warn; ud.fan.material.opacity = 0.1 + k * 0.25 + 0.06 * Math.sin(time * 30); }
@@ -282,6 +289,15 @@ export class FX {
       const g = Math.min(1, h.t / 0.3); ud.m.scale.setScalar(h.r * (0.6 + 0.4 * g)); ud.m.rotation.z += dt * (0.6 + k * 3); ud.m.material.opacity = (0.55 + 0.3 * Math.sin(time * 9)) * g;
       ud.m2.rotation.z -= dt * 1.4; ud.m2.material.opacity = 0.3 * g;
       if (Math.random() < dt * 40) { const a = Math.random() * TAU; this.emit(h.x + Math.sin(a) * h.r * 0.9, 0.1, h.z + Math.cos(a) * h.r * 0.9, { n: 1, speed: 0.1, up: 0.2, vy: 2.2 + k * 2, life: 0.6, grav: -1, color: [2.8, 0.4, 1.4], size: 1 }); }
+    } else if (MARKC[kind]) {
+      const c = MARKC[kind];
+      if (ud.thread) { ud.m.material.opacity = (0.4 + 0.4 * Math.sin(time * 18)) * fade; if (Math.random() < dt * 30) { const d = Math.random() * (h.len || 3); this.emit(h.x + Math.sin(h.face) * d, 0.9, h.z + Math.cos(h.face) * d, { n: 1, speed: 0.2, life: 0.4, grav: 0, color: c, size: 1 }); } return; }
+      const g = Math.min(1, h.t / 0.25); const pulse = 0.5 + 0.5 * Math.sin(time * (kind === 'bubble' ? 3 : 10));
+      ud.m.scale.setScalar(h.r * (kind === 'wake' ? 0.6 + k * 0.8 : (kind === 'rewind' ? 1.3 - k * 0.6 : 1.05))); ud.m.material.opacity = (kind === 'wake' ? 0.5 : 0.35 + 0.35 * pulse) * g * fade;
+      if (kind === 'bubble' || kind === 'rewind') ud.m.rotation.z -= dt * (kind === 'rewind' ? 6 : 0.4);
+      if (ud.m2) ud.m2.material.opacity = (kind === 'song' ? 0.22 + 0.1 * pulse : 0.14) * g * fade;
+      if (kind !== 'wake' && Math.random() < dt * (kind === 'song' ? 40 : 18)) { const a = Math.random() * TAU, r = Math.random() * h.r; this.emit(h.x + Math.sin(a) * r, 0.1, h.z + Math.cos(a) * r, { n: 1, speed: 0.1, up: 0.2, vy: kind === 'song' ? 2.4 : 1.2, life: 0.7, grav: -0.6, color: c, size: 1 }); }
+      if (kind === 'bellmark' && !ud.burst) { ud.burst = true; this.shockRing(h.x, h.z, 2.4, c, 0.5); }
     } else if (kind === 'sigilGo') {
       ud.m.scale.setScalar(h.r * (0.8 + k * 1.4)); ud.m.material.opacity = 0.9 * (1 - k);
       if (!ud.burst) { ud.burst = true; this.shockRing(h.x, h.z, h.r * 2.2, [3, 0.4, 1.6], 0.5); this.emit(h.x, 0.2, h.z, { n: 40, speed: 2.5, up: 2, vy: 3, life: 0.8, grav: -1, color: [3, 0.5, 1.6], size: 1, jit: h.r }); }
@@ -290,7 +306,8 @@ export class FX {
 
   _hazardMesh(h) {
     const kinds = { fire: [3, 0.8, 0.15], poison: [0.5, 2.0, 0.3], beam: [3, 1.4, 0.3], bone: [2.2, 2.0, 1.6], slam: [1.6, 0.15, 0.1], water: [0.3, 1.6, 1.6], wax: [2, 1.8, 1.2], toll: [1.8, 1.8, 2.2], lightning: [1.6, 1.8, 3], shock: [1.8, 1.0, 0.6],
-      frost: [0.9, 1.9, 2.8], ice: [1.3, 2.2, 3.0], sand: [2.2, 1.5, 0.6], venom: [0.9, 2.6, 0.3], acid: [0.9, 2.6, 0.35], hellfire: [3.4, 0.8, 0.15], holy: [3.0, 2.6, 1.4], eyebeam: [3.2, 2.9, 2.0], curse: [1.6, 0.5, 2.4] };
+      frost: [0.9, 1.9, 2.8], ice: [1.3, 2.2, 3.0], sand: [2.2, 1.5, 0.6], venom: [0.9, 2.6, 0.3], acid: [0.9, 2.6, 0.35], hellfire: [3.4, 0.8, 0.15], holy: [3.0, 2.6, 1.4], eyebeam: [3.2, 2.9, 2.0], curse: [1.6, 0.5, 2.4],
+      bog: [0.7, 1.4, 0.35], wispfire: [0.9, 2.8, 1.8], steam: [2.6, 2.6, 2.6], spark: [3.2, 1.9, 0.6], saw: [2.6, 2.4, 2.0], chrono: [1.0, 1.9, 3.2], radiant: [3.2, 3.0, 2.2], choir: [3.0, 1.6, 2.6], spear: [3.2, 3.0, 2.0], spoke: [3.4, 3.0, 1.8], discord: [2.4, 0.4, 2.8] };
     const hot = kinds[h.kind] || kinds.slam;
     const g = new THREE.Group();
     const mat = (c, o, blend = THREE.AdditiveBlending) => new THREE.MeshBasicMaterial({ color: new THREE.Color(...c), transparent: true, opacity: o, depthWrite: false, blending: blend, fog: false, side: THREE.DoubleSide });
@@ -305,6 +322,14 @@ export class FX {
       else if (h.kind === 'sigil') {
         m = flat(new THREE.Mesh(this.ringGeo, new THREE.MeshBasicMaterial({ map: sigilTex(), color: new THREE.Color(2.8, 0.25, 1.1), transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }))); m.position.y = 0.02;
         const m2 = flat(new THREE.Mesh(new THREE.CircleGeometry(h.r, 7), mat([0.9, 0.05, 0.3], 0.3))); g.add(m2); ud.m2 = m2;
+      } else if (MARKC[h.kind]) {
+        if (h.shape === 'line') { // a thread of light (the lure)
+          const pg = new THREE.PlaneGeometry(h.width || 0.25, h.len || 4); pg.translate(0, (h.len || 4) / 2, 0);
+          m = new THREE.Mesh(pg, mat(MARKC[h.kind], 0.8)); m.rotation.x = -Math.PI / 2; m.rotation.z = Math.PI; const pv = new THREE.Group(); pv.rotation.y = h.face || 0; pv.add(m); g.add(pv); ud.m = m; ud.thread = true; g.userData = ud; return g;
+        }
+        m = flat(new THREE.Mesh(this.ringGeo, new THREE.MeshBasicMaterial({ map: ringTex(), color: new THREE.Color(...MARKC[h.kind]), transparent: true, opacity: 0.6, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })));
+        if (h.kind === 'bubble' || h.kind === 'song') { const f = flat(new THREE.Mesh(new THREE.CircleGeometry(h.r, 28), mat(MARKC[h.kind], 0.16))); g.add(f); ud.m2 = f; }
+        if (h.kind === 'wake') { m.material = mat([0.25, 0.4, 0.38], 0.5, THREE.NormalBlending); }
       } else m = flat(new THREE.Mesh(this.ringGeo, new THREE.MeshBasicMaterial({ map: ringTex(), color: new THREE.Color(3, 0.5, 1.6), transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }))); // sigilGo
       g.add(m); ud.m = m; g.userData = ud; return g;
     }
@@ -327,6 +352,10 @@ export class FX {
       const ring = new THREE.Mesh(new THREE.RingGeometry(h.r - 0.1, h.r, 24), mat([1.6, 0.12, 0.08], 0.4)); ring.rotation.x = -Math.PI / 2; g.add(ring);
       const fill = new THREE.Mesh(new THREE.CircleGeometry(h.r, 24), mat([1.6, 0.12, 0.08], 0.2)); fill.rotation.x = -Math.PI / 2; g.add(fill);
       g.userData = { ring, fill, warnC: new THREE.Color(1.6, 0.12, 0.08), hotC: new THREE.Color(...hot) };
+      if (h.kind === 'spear') { // a spear of light that comes down from above as the warning runs out
+        const sp = new THREE.Mesh(kept('gSpear', () => new THREE.BoxGeometry(0.12, 2.6, 0.12)), kept('mSpear', () => new THREE.MeshBasicMaterial({ color: new THREE.Color(3.2, 3.0, 2.0), fog: false })));
+        sp.position.y = 9; g.add(sp); g.userData.spear = sp;
+      }
       if (h.kind === 'ice' || h.kind === 'bone' || h.kind === 'sand') { // spikes (or a burst of rock) that come up when it strikes
         const sp = new THREE.Group(); sp.visible = false; const n = Math.max(4, Math.min(9, Math.round(h.r * 6)));
         const geo = kept('gSpike', () => new THREE.ConeGeometry(0.13, 0.7, 4)); geo.translate && !geo.userData.moved && (geo.translate(0, 0.35, 0), geo.userData.moved = true);
@@ -396,6 +425,7 @@ export class FX {
       if (p.kind === 'wave') { const k = 1 - p.life / 0.6; v.scale.setScalar(1 + k * 0.6); v.children[0].material.opacity = 0.9 * (1 - Math.max(0, k)); }
       const ud = v.userData;
       if (ud.spin) { v.rotation.x = time * ud.spin; v.rotation.z = time * ud.spin * 0.7; }
+      if (ud.disc) ud.disc.rotation.y = time * 18;
       if (p.kind === 'wrap') v.rotation.z = Math.sin(time * 18) * 0.5;
       if (p.kind === 'fireball') { this.emit(p.x, (p.y ?? 1.1), p.z, { n: 2, speed: 0.4, up: 1, vy: 0.8, life: 0.45, grav: -2, color: Math.random() < 0.5 ? [3.4, 1.6, 0.3] : [3, 0.5, 0.1], size: Math.random() < 0.3 ? 2 : 1, jit: 0.15 }); }
       else if (Math.random() < (ud.rich ? 1 : 0.5)) { const c = ud.trail; this.emit(p.x, (p.y ?? 1.1), p.z, { n: 1, speed: 0.2, life: ud.rich ? 0.45 : 0.3, grav: ud.rich ? 1.5 : 0, color: c, size: 1, alpha: 0.8, jit: ud.rich ? 0.12 : 0 }); }
@@ -407,7 +437,8 @@ export class FX {
   _projMesh(p) {
     const g = new THREE.Group();
     const cols = { orb: [3, 0.25, 0.3], flame: [3.2, 1.6, 0.3], soul: [0.4, 2.6, 2.4], bolt: [2, 1.9, 1.7], wave: [3, 0.35, 0.3], hbolt: [2.4, 2.2, 1.8], hfire: [3.4, 1.5, 0.3], wisp: [2.6, 2.2, 1.0], flask: [3, 1.3, 0.3], spit: [0.7, 2.4, 0.4],
-      frostbolt: [1.2, 2.4, 3.2], iceshard: [1.8, 2.6, 3.2], boulder: [1.8, 2.2, 2.6], wrap: [2.2, 2.0, 1.5], web: [2.4, 2.4, 2.3], fireball: [3.4, 1.4, 0.25], hex: [2.6, 0.4, 2.2], sandspit: [1.8, 1.3, 0.7] };
+      frostbolt: [1.2, 2.4, 3.2], iceshard: [1.8, 2.6, 3.2], boulder: [1.8, 2.2, 2.6], wrap: [2.2, 2.0, 1.5], web: [2.4, 2.4, 2.3], fireball: [3.4, 1.4, 0.25], hex: [2.6, 0.4, 2.2], sandspit: [1.8, 1.3, 0.7],
+      wispbolt: [0.9, 2.8, 1.8], hexbolt: [1.0, 2.4, 0.9], weed: [0.6, 1.4, 0.5], mud: [0.5, 0.6, 0.3], fist: [3, 1.8, 0.6], saw: [2.6, 2.6, 2.6], halo: [3.2, 2.6, 1.0], gear: [2.8, 2.0, 0.8], bell: [1.8, 1.4, 0.7] };
     const c = cols[p.kind] || cols.orb;
     const basic = (col, o = {}) => new THREE.MeshBasicMaterial({ color: new THREE.Color(...col), fog: false, ...o });
     const halo = (col, s) => { const h = new THREE.Sprite(new THREE.SpriteMaterial({ map: T.glow('#ffffff', 32, 1.5), color: new THREE.Color(col[0] * 0.3, col[1] * 0.3, col[2] * 0.3), blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); h.scale.set(s, s, 1); return h; };
@@ -419,6 +450,15 @@ export class FX {
       web: () => { g.add(new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 0.22), basic(c))); for (const r of [0, Math.PI / 2, Math.PI / 4, -Math.PI / 4]) { const m = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.035, 0.035), basic([2, 2, 1.9])); m.rotation.y = r; g.add(m); } return { spin: 6, rich: true }; },
       fireball: () => { g.add(new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.36, 0.36), basic([3.4, 0.9, 0.15]))); g.add(new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 0.22), basic([3.6, 3.0, 1.2]))); g.add(halo(c, 2.0)); return { spin: 5 }; },
       hex: () => { const m = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.24, 0.24), basic(c)); g.add(m); const m2 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.12), basic([3, 2, 3])); g.add(m2); g.add(halo(c, 1.5)); return { spin: 8, rich: true }; },
+      wispbolt: () => { g.add(new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 0.22), basic([2.8, 3.2, 3.0]))); g.add(halo(c, 1.6)); return { rich: true }; },
+      hexbolt: () => { const m = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 0.22), basic(c)); m.rotation.z = Math.PI / 4; g.add(m); g.add(halo(c, 1.3)); return { spin: 6, rich: true }; },
+      weed: () => { for (const r of [0, 1.2, 2.4]) { const m = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.6), basic(c)); m.rotation.z = r; g.add(m); } return { spin: 5, rich: true }; },
+      mud: () => { g.add(new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.45, 0.5), new THREE.MeshLambertMaterial({ color: 0x3a3a22, emissive: 0x0a1206 }))); const m = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.2), new THREE.MeshLambertMaterial({ color: 0x4a6a2a })); m.position.set(0.2, 0.2, 0); g.add(m); return { spin: 4, rich: true }; },
+      fist: () => { g.add(new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.38, 0.42), new THREE.MeshLambertMaterial({ color: 0xc8963a, emissive: 0x3a2008 }))); const m = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.4), basic([3.2, 1.6, 0.4])); m.position.z = -0.4; g.add(m); g.add(halo([3, 1.4, 0.4], 1.2)); return { rich: true }; },
+      saw: () => { const d = new THREE.Group(); for (let i = 0; i < 8; i++) { const m = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.03, 0.62), basic(c)); m.rotation.y = i / 8 * Math.PI; d.add(m); } g.add(d); g.userData.disc = d; return { disc: d, rich: true }; },
+      halo: () => { const d = new THREE.Group(); for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; const m = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.05, 0.05), basic(c)); m.position.set(Math.sin(a) * 0.4, 0, Math.cos(a) * 0.4); m.rotation.y = a + Math.PI / 2; d.add(m); } g.add(d); g.add(halo(c, 1.6)); return { disc: d, rich: true }; },
+      gear: () => { const d = new THREE.Group(); d.add(new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.08, 0.34), new THREE.MeshLambertMaterial({ color: 0xc8963a, emissive: 0x2a1404 }))); for (let i = 0; i < 6; i++) { const m = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.08, 0.56), new THREE.MeshLambertMaterial({ color: 0xc8963a, emissive: 0x2a1404 })); m.rotation.y = i / 6 * Math.PI; d.add(m); } g.add(d); return { disc: d }; },
+      bell: () => { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.36, 0.48, 8), new THREE.MeshLambertMaterial({ color: 0x8a6a2a, emissive: 0x1a1406 })); g.add(m); const v = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.04, 0.3), basic([0.8, 2.4, 1.6])); v.position.y = -0.24; g.add(v); return { spin: 3, rich: true }; },
       sandspit: () => { g.add(new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.26, 0.3), new THREE.MeshLambertMaterial({ color: 0xc8a46a, emissive: 0x3a2a10 }))); return { spin: 7, rich: true }; },
     };
     if (NEW[p.kind]) { const o = NEW[p.kind](); g.userData = { trail: c.map((v) => v * 0.6), team: p.team, ...o }; return g; }
@@ -586,8 +626,176 @@ export class FX {
     this.rings = this.rings.filter((r) => { if (r.t >= r.life) { free(this.group, r.m); return false; } return true; });
     for (const b of this.bolts) { b.t -= dt; b.l.material.opacity = Math.max(0, b.t / 0.25); b.l.visible = Math.floor(b.t * 40) % 2 === 0 || b.t > 0.15; }
     this.bolts = this.bolts.filter((b) => { if (b.t <= 0) { free(this.group, b.l); return false; } return true; });
+    this._pieces(dt); this._debris(dt);
     for (const s of this.slashes) { s.t -= dt; s.l.material.opacity = Math.max(0, s.t / s.life); }
     this.slashes = this.slashes.filter((s) => { if (s.t <= 0) { free(this.group, s.l); return false; } return true; });
+  }
+
+  // ---------------------------------------------------------------- Ascended bosses (New Game+)
+  // A crown of light over the boss, a ring in its colour under it, a soft glow round it and motes rising;
+  // all of it brighter and bigger in its last phase (e.ascPeak). The Wheel's true form (e.voice) gets a gold
+  // aura of its own. Read from the entities each frame (ascColor is set by bosses4.js).
+  _auras(ents, time) {
+    const map = this.auraMap || (this.auraMap = new Map()); const seen = new Set();
+    const dt = Math.min(0.1, Math.max(0, time - (this._auraT ?? time))); this._auraT = time;
+    for (const e of ents) {
+      if (!e.boss || e.dead || !(e.ascended || e.voice)) continue; seen.add(e.id);
+      let a = map.get(e.id); const col = e.voice && !e.ascended ? 0xffe08a : (e.ascColor || 0xfff0c0);
+      if (!a || a.col !== col) { if (a) free(this.group, a.g); a = this._auraMake(e, col); map.set(e.id, a); this.group.add(a.g); }
+      const sc = e.def.scale || 1; const peak = e.ascPeak || e.voice ? 1 : 0; const c = new THREE.Color(col);
+      a.g.visible = !e.hidden; a.g.position.set(e.x, (e.leapH || 0), e.z);
+      a.crown.position.y = 2.05 * sc + (e.def.hover ? 0.4 : 0) + Math.sin(time * 2) * 0.05; a.crown.rotation.y = time * (1.2 + peak * 1.5); a.crown.scale.setScalar(sc * (0.75 + peak * 0.3));
+      const pulse = 0.5 + 0.5 * Math.sin(time * (4 + peak * 4));
+      a.ring.scale.setScalar((e.r + 0.7) * (1 + 0.06 * pulse)); a.ring.material.opacity = 0.4 + 0.35 * pulse;
+      a.ring2.visible = !!peak; a.ring2.rotation.z = -time * 0.8; a.ring2.scale.setScalar((e.r + 1.5) * (1 + 0.1 * Math.sin(time * 3)));
+      a.halo.position.y = 1.1 * sc; a.halo.scale.set(2.4 * sc * (1 + peak * 0.3), 3.0 * sc * (1 + peak * 0.3), 1); a.halo.material.opacity = 0.35 + 0.15 * pulse + peak * 0.2;
+      if (!e.hidden && Math.random() < dt * (14 + peak * 30)) { const ang = Math.random() * TAU, r = (e.r + 0.4) * Math.random(); this.emit(e.x + Math.sin(ang) * r, 0.2 + Math.random() * 1.5 * sc, e.z + Math.cos(ang) * r, { n: 1, speed: 0.15, vy: 1.6 + peak, up: 0.2, life: 0.9, grav: -0.8, color: [c.r * 3, c.g * 3, c.b * 3], size: Math.random() < 0.2 + peak * 0.3 ? 2 : 1 }); }
+    }
+    for (const [id, a] of map) if (!seen.has(id)) { free(this.group, a.g); map.delete(id); }
+  }
+  _auraMake(e, col) {
+    const c = new THREE.Color(col); const g = new THREE.Group();
+    const add = (m) => new THREE.MeshBasicMaterial({ color: c.clone().multiplyScalar(m), transparent: true, opacity: 0.8, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, side: THREE.DoubleSide });
+    const crown = new THREE.Group(); g.add(crown);
+    for (let i = 0; i < 9; i++) { const a = i / 9 * TAU; const b = new THREE.Mesh(new THREE.BoxGeometry(0.07, i % 3 ? 0.16 : 0.28, 0.07), new THREE.MeshBasicMaterial({ color: c.clone().multiplyScalar(3), fog: false })); b.position.set(Math.sin(a) * 0.3, i % 3 ? 0.08 : 0.14, Math.cos(a) * 0.3); crown.add(b); }
+    const band = new THREE.Mesh(new THREE.RingGeometry(0.27, 0.33, 18), add(2.4)); band.rotation.x = -Math.PI / 2; crown.add(band);
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.0, 36), add(2)); ring.rotation.x = -Math.PI / 2; ring.position.y = 0.05; g.add(ring);
+    const ring2 = new THREE.Mesh(this.ringGeo, new THREE.MeshBasicMaterial({ map: sigilTex(), color: c.clone().multiplyScalar(2.2), transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })); ring2.rotation.x = -Math.PI / 2; ring2.position.y = 0.04; g.add(ring2);
+    const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: T.glow('#ffffff', 32, 1.4), color: c.clone().multiplyScalar(0.55), blending: THREE.AdditiveBlending, depthWrite: false, fog: false, transparent: true })); g.add(halo);
+    return { g, crown, ring, ring2, halo, col };
+  }
+
+  // ---------------------------------------------------------------- set pieces for the boss entrances
+  // setPiece(kind, x, z, face, o): a temporary prop built here and animated over its own life (o.life): a
+  // brick wall that bursts, a cage of candles that comes down and melts, a chain out of the water, a pool
+  // that floods, bones that gather, a furnace that bursts, a staircase of light, a glacier block, the wheel's
+  // eye in the sky, drowned bells rising, a clock face that swings open, a column of light. It fades or sinks
+  // away by itself. debris(x, y, z, n, colour, o): chunks that fly, fall, bounce and shrink away.
+  setPiece(kind, x, z, face = 0, o = {}) {
+    const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = face; this.group.add(g);
+    const lam = (hex, em = 0) => new THREE.MeshLambertMaterial({ color: hex, emissive: em });
+    const glow = (rgb, op = 1) => new THREE.MeshBasicMaterial({ color: new THREE.Color(...rgb), transparent: op < 1, opacity: op, depthWrite: op >= 1, blending: op < 1 ? THREE.AdditiveBlending : THREE.NormalBlending, fog: false, side: THREE.DoubleSide });
+    const boxm = (w, h, d, m, px, py, pz, parent = g) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(px, py, pz); b.castShadow = true; parent.add(b); return b; };
+    const P = { kind, g, t: 0, life: o.life || 4, o, ud: {} }; const U = P.ud;
+    if (kind === 'wall') {
+      const sm = lam(0x6a5e56), dk = lam(0x4a403a); U.bricks = [];
+      for (let r = 0; r < 6; r++) for (let i = -4; i <= 4; i++) { const b = boxm(0.44, 0.24, 0.5, (r + i) % 3 ? sm : dk, i * 0.46 + (r % 2) * 0.23, 0.13 + r * 0.26, 0); U.bricks.push(b); }
+      U.stub = boxm(4.4, 0.4, 0.55, dk, 0, 0.2, 0); U.stub.visible = false;
+    } else if (kind === 'cage') {
+      const iron = lam(0x2a2620); U.cage = new THREE.Group(); g.add(U.cage); U.bars = [];
+      for (let i = 0; i < 10; i++) { const a = i / 10 * TAU; U.bars.push(boxm(0.07, 2.8, 0.07, iron, Math.sin(a) * 1.25, 1.4, Math.cos(a) * 1.25, U.cage)); }
+      boxm(2.6, 0.1, 2.6, iron, 0, 2.85, 0, U.cage); boxm(0.06, 6, 0.06, iron, 0, 5.8, 0, U.cage);
+      U.candles = []; for (let i = 0; i < 10; i++) { const a = (i + 0.5) / 10 * TAU; const cnd = boxm(0.1, 0.22, 0.1, lam(0xe8dcc0), Math.sin(a) * 1.25, 2.98, Math.cos(a) * 1.25, U.cage); boxm(0.06, 0.08, 0.06, glow([3.2, 2.2, 0.8]), 0, 0.15, 0, cnd); U.candles.push(cnd); }
+    } else if (kind === 'chain') {
+      U.pool = new THREE.Mesh(new THREE.CircleGeometry(2.6, 24), glow([0.08, 0.2, 0.24], 0.9)); U.pool.material.blending = THREE.NormalBlending; U.pool.rotation.x = -Math.PI / 2; U.pool.position.y = 0.03; g.add(U.pool);
+      U.links = []; for (let i = 0; i < 14; i++) U.links.push(boxm(0.12, 0.2, 0.06, lam(0x6a6e72, 0x101418), 0, 0, 0));
+    } else if (kind === 'pool') {
+      U.pool = new THREE.Mesh(new THREE.CircleGeometry(1, 28), new THREE.MeshBasicMaterial({ color: new THREE.Color(...(o.color || [0.1, 0.3, 0.3])), transparent: true, opacity: 0.88, depthWrite: false, fog: false })); U.pool.rotation.x = -Math.PI / 2; U.pool.position.y = 0.03; g.add(U.pool);
+      U.ripples = []; for (let i = 0; i < 3; i++) { const r = new THREE.Mesh(new THREE.RingGeometry(0.92, 1, 32), glow([0.5, 0.9, 0.9], 0.5)); r.rotation.x = -Math.PI / 2; r.position.y = 0.05; g.add(r); U.ripples.push(r); }
+    } else if (kind === 'bones') {
+      U.bones = []; const bm = lam(0xe0d8c4);
+      for (let i = 0; i < 18; i++) { const a = Math.random() * TAU, r = 2 + Math.random() * 2.6; const b = boxm(0.08 + Math.random() * 0.06, 0.06, 0.3 + Math.random() * 0.3, bm, Math.sin(a) * r, 0.05, Math.cos(a) * r); b.rotation.y = Math.random() * 3; U.bones.push({ b, x: b.position.x, z: b.position.z, ty: 0.3 + Math.random() * 1.6 }); }
+    } else if (kind === 'furnace') {
+      U.body = new THREE.Group(); g.add(U.body); const br = lam(0x5a3a2a), dk = lam(0x2a1a12);
+      boxm(2.4, 2.2, 1.6, br, 0, 1.1, 0, U.body); boxm(2.6, 0.3, 1.8, dk, 0, 2.3, 0, U.body); boxm(0.6, 1.6, 0.6, dk, 0.6, 3.1, 0, U.body);
+      U.mouth = boxm(1.2, 1.1, 0.05, glow([3.2, 1.4, 0.3]), 0, 0.8, 0.82, U.body); boxm(0.5, 0.06, 0.5, glow([3.2, 1.6, 0.4]), 0.6, 3.92, 0, U.body);
+    } else if (kind === 'stairs') {
+      U.steps = []; const n = o.steps || 5, L = o.len || 4.6, H = o.height || 2.4; const m = lam(0xe8e2f0, 0x201830), edge = glow([2.4, 2.0, 3.0]);
+      for (let i = 0; i < n; i++) { const z = -L * (i + 0.5) / n, h = H * (i + 1) / n; const b = boxm(2.2, h, L / n + 0.02, m, 0, h / 2, z); boxm(2.24, 0.05, 0.06, edge, 0, h / 2, L / n / 2, b); U.steps.push(b); }
+    } else if (kind === 'glacier') {
+      const W = o.w || 3, Hh = o.h || 4.4;
+      U.ice = new THREE.Mesh(new THREE.BoxGeometry(W, Hh, W * 0.9), new THREE.MeshLambertMaterial({ color: 0xb8e4ff, emissive: 0x1a3a50, transparent: true, opacity: 0.55, depthWrite: false })); U.ice.position.y = Hh / 2; g.add(U.ice);
+      U.cracks = []; for (let i = 0; i < 6; i++) { const c = boxm(0.05, 0.8 + Math.random(), 0.05, glow([1.8, 2.8, 3.2]), (Math.random() - 0.5) * W, 0.6 + Math.random() * (Hh - 1.2), W * 0.46); c.rotation.z = (Math.random() - 0.5) * 1.6; c.visible = false; U.cracks.push(c); }
+    } else if (kind === 'eye') {
+      const y = o.y || 10; U.sky = new THREE.Group(); U.sky.position.y = y; g.add(U.sky); U.sky.rotation.x = 0; g.rotation.y = 0;
+      for (let i = 0; i < 24; i++) { const a = i / 24 * TAU; boxm(0.3, 0.08, 0.12, glow(i % 2 ? [3, 2.4, 1.2] : [3, 0.6, 0.3]), Math.sin(a) * 2.8, 0, Math.cos(a) * 2.8, U.sky).rotation.y = a; }
+      U.eye = new THREE.Group(); U.sky.add(U.eye); boxm(2.2, 0.06, 1.0, glow([3, 3, 2.8]), 0, -0.05, 0, U.eye); boxm(0.6, 0.08, 0.6, glow([3.2, 0.8, 0.3]), 0, -0.08, 0, U.eye);
+      U.col = new THREE.Mesh(new THREE.BoxGeometry(1.8, y, 1.8), glow([1.4, 1.2, 0.7], 0.25)); U.col.position.y = y / 2; g.add(U.col);
+    } else if (kind === 'bells') {
+      U.bells = []; const n = o.n || 5, R = o.R || 3;
+      for (let i = 0; i < n; i++) { const a = i / n * TAU; const bg = new THREE.Group(); bg.position.set(Math.sin(a) * R, -1, Math.cos(a) * R); g.add(bg); const m = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.4, 0.56, 8), lam(0x6a5a2a, 0x10140a)); m.position.y = 0.3; m.castShadow = true; bg.add(m); boxm(0.4, 0.04, 0.4, glow([0.6, 2.2, 1.4]), 0, 0.02, 0, bg); U.bells.push(bg); }
+    } else if (kind === 'clock') {
+      const R = o.r || 2; U.hinge = new THREE.Group(); U.hinge.position.set(-R, 0, 0); g.add(U.hinge);
+      U.face = new THREE.Group(); U.face.position.set(R, R + 0.3, 0); U.hinge.add(U.face);
+      const disc = new THREE.Mesh(new THREE.CylinderGeometry(R, R, 0.2, 24), lam(0xe8e0c8, 0x201a10)); disc.rotation.x = Math.PI / 2; U.face.add(disc);
+      const rim = new THREE.Mesh(new THREE.TorusGeometry(R, 0.12, 4, 24), lam(0xc8963a, 0x2a1404)); U.face.add(rim);
+      for (let i = 0; i < 12; i++) { const a = i / 12 * TAU; boxm(0.08, i % 3 ? 0.2 : 0.38, 0.06, lam(0x2a1e10), Math.sin(a) * R * 0.82, Math.cos(a) * R * 0.82, 0.12, U.face).rotation.z = -a; }
+      U.hh = new THREE.Group(); U.face.add(U.hh); boxm(0.12, R * 0.5, 0.05, lam(0x2a1e10), 0, R * 0.25, 0.16, U.hh);
+      U.mh = new THREE.Group(); U.face.add(U.mh); boxm(0.08, R * 0.78, 0.05, lam(0x8a1a1a), 0, R * 0.39, 0.18, U.mh);
+      U.door = boxm(R * 1.6, R * 1.6, 0.05, glow([0.02, 0.04, 0.08]), 0, R + 0.3, -0.14); U.door.material.opacity = 1;
+      boxm(0.3, 0.3, 0.06, glow([1.2, 2, 3.2]), 0, R + 0.3, -0.2);
+    } else if (kind === 'beam') {
+      U.col = new THREE.Mesh(new THREE.BoxGeometry(2.4, 20, 2.4), glow(o.color || [3, 2.6, 1.4], 0.18)); U.col.position.y = 10; g.add(U.col);
+      U.ring = new THREE.Mesh(new THREE.RingGeometry(2.4, 2.7, 36), glow(o.color || [3, 2.6, 1.4], 0.7)); U.ring.rotation.x = -Math.PI / 2; U.ring.position.y = 0.05; g.add(U.ring);
+    }
+    (this.pieceList || (this.pieceList = [])).push(P);
+    return P;
+  }
+  _pieces(dt) {
+    const L = this.pieceList || []; const ez = (k) => k * k * (3 - 2 * k); const cl = (k) => Math.max(0, Math.min(1, k));
+    for (const P of L) {
+      P.t += dt; const t = P.t, o = P.o, U = P.ud, g = P.g; const end = cl((t - (P.life - 0.6)) / 0.6);
+      if (P.kind === 'wall') {
+        const hit = t >= o.burst; for (const b of U.bricks) b.visible = !hit; U.stub.visible = hit;
+        if (!hit) { const shake = (Math.abs(t - 0.35) < 0.08 || Math.abs(t - 0.8) < 0.08) ? Math.sin(t * 90) * 0.05 : 0; g.children.forEach((c) => { if (c !== U.stub) c.position.x += shake * 0.2; }); }
+        g.position.y = -end * 0.5;
+      } else if (P.kind === 'cage') {
+        const [t0, t1, y0] = o.drop || [0, 2, 9]; const k = cl((t - t0) / (t1 - t0)); U.cage.position.y = (1 - (1 - k) * (1 - k)) * (0.4 - y0) + y0;
+        const m = cl((t - (o.melt || 2.2)) / 0.9); for (const b of U.bars) { b.scale.y = Math.max(0.01, 1 - m); b.position.y = 1.4 * (1 - m) + 0.02; }
+        for (const c of U.candles) c.position.y = 2.98 - m * 2.9; U.cage.children.forEach((c) => { if (!U.bars.includes(c) && !U.candles.includes(c)) c.visible = m < 0.95; });
+        if (m > 0 && m < 1 && Math.random() < dt * 40) { const a = Math.random() * TAU; this.emit(g.position.x + Math.sin(a) * 1.2, 1 + Math.random() * 1.5, g.position.z + Math.cos(a) * 1.2, { n: 1, speed: 0.2, life: 0.7, grav: 6, color: [2.4, 2.2, 1.7], size: 1 }); }
+        g.visible = end < 1;
+      } else if (P.kind === 'chain') {
+        const pulls = o.pulls || [0.6, 1.2, 1.8, 2.4]; let h = -(o.depth || 2.6); pulls.forEach((p0) => { h += ez(cl((t - p0) / 0.35)) * (o.depth || 2.6) / pulls.length; });
+        const bot = { x: 0, y: Math.min(0, h) + 1.7, z: 0.2 }, top = { x: 0, y: 7, z: -1.6 };
+        U.links.forEach((l, i) => { const k = i / (U.links.length - 1); l.position.set(lerpN(bot.x, top.x, k), lerpN(bot.y, top.y, k), lerpN(bot.z, top.z, k)); l.rotation.y = i % 2 ? Math.PI / 2 : 0; l.rotation.x = Math.atan2(top.z - bot.z, top.y - bot.y); });
+        U.pool.material.opacity = 0.9 * (1 - end); g.visible = end < 1;
+      } else if (P.kind === 'pool') {
+        const r = (o.r || 4) * ez(cl(t / (o.grow || 1))); U.pool.scale.setScalar(Math.max(0.01, r)); U.pool.material.opacity = 0.88 * (1 - end);
+        U.ripples.forEach((rp, i) => { const k = ((t * 0.7 + i / 3) % 1); rp.scale.setScalar(Math.max(0.01, r * k)); rp.material.opacity = 0.5 * (1 - k) * (1 - end); });
+      } else if (P.kind === 'bones') {
+        const [g0, g1] = o.gather || [0.3, 1.8];
+        for (const B of U.bones) { const k = cl((t - g0) / (g1 - g0)); const kk = ez(k); B.b.position.set(B.x * (1 - kk), 0.05 + Math.sin(k * Math.PI) * 1.2 + kk * B.ty, B.z * (1 - kk)); B.b.rotation.x = k * 8; B.b.visible = t < g1 + 0.05; }
+      } else if (P.kind === 'furnace') {
+        const hit = t >= o.burst; U.mouth.material.color.setRGB(3.2 * (1 + Math.sin(t * 20) * 0.2), 1.4, 0.3);
+        if (hit) { const k = cl((t - o.burst) / 0.3); U.body.scale.set(1 + k * 0.2, Math.max(0.01, 1 - k), 1 + k * 0.2); U.body.visible = k < 1; }
+      } else if (P.kind === 'stairs') {
+        U.steps.forEach((b, i) => { b.position.y = (b.geometry.parameters.height / 2) - end * 3 - Math.max(0, t - 2.8 - i * 0.12) * 0.0; b.visible = end < 1; });
+      } else if (P.kind === 'glacier') {
+        U.cracks.forEach((c, i) => { c.visible = t > 0.8 + (i % 2) * 0.7; });
+        g.visible = t < o.burst;
+      } else if (P.kind === 'eye') {
+        const k = ez(cl(t / (o.open || 1))); U.eye.scale.set(1, 1, Math.max(0.02, k)); U.sky.rotation.y = t * 0.4;
+        U.col.visible = t > (o.open || 1) * 0.8; U.col.material.opacity = 0.25 * (1 - end) * (0.8 + 0.2 * Math.sin(t * 12)); U.sky.visible = end < 1;
+      } else if (P.kind === 'bells') {
+        const [r0, r1] = o.rise || [1, 2]; U.bells.forEach((b, i) => { const k = ez(cl((t - r0 - i * 0.06) / (r1 - r0))); b.position.y = -1 + k * 1.2 + Math.sin(t * 3 + i) * 0.06 * k - end * 1.3; b.rotation.z = Math.sin(t * 4 + i) * 0.15; });
+      } else if (P.kind === 'clock') {
+        const sp = t < (o.open || 1.2) ? 14 : 2; U.mh.rotation.z -= dt * sp; U.hh.rotation.z -= dt * sp / 12;
+        U.hinge.rotation.y = -ez(cl((t - (o.open || 1.2)) / 0.6)) * 1.9; g.position.y = -end * 4.5;
+      } else if (P.kind === 'beam') {
+        const k = cl(t / 1.2); U.col.material.opacity = 0.2 * k * (1 - end) * (0.85 + 0.15 * Math.sin(t * 10)); U.ring.scale.setScalar(0.4 + k * 0.6 + Math.sin(t * 3) * 0.05); U.ring.material.opacity = 0.7 * k * (1 - end);
+      }
+    }
+    this.pieceList = L.filter((P) => { if (P.t >= P.life) { free(this.group, P.g); return false; } return true; });
+  }
+  debris(x, y, z, n = 16, color = [0.5, 0.45, 0.4], o = {}) {
+    const list = this.chunks || (this.chunks = []); const m = new THREE.MeshLambertMaterial({ color: new THREE.Color(...color) });
+    for (let i = 0; i < n; i++) {
+      const s = (o.size || 0.18) * (0.6 + Math.random() * 0.8); const b = new THREE.Mesh(kept('gChunk', () => new THREE.BoxGeometry(1, 1, 1)), m); b.scale.set(s, s * (0.6 + Math.random() * 0.6), s); b.castShadow = true;
+      b.position.set(x + (Math.random() - 0.5) * 1.2, y + (Math.random() - 0.5) * 1.2, z + (Math.random() - 0.5) * 1.2); this.group.add(b);
+      const a = o.ang !== undefined ? o.ang + (Math.random() - 0.5) * 1.6 : Math.random() * TAU; const sp = (o.speed || 5) * (0.4 + Math.random() * 0.8);
+      list.push({ m: b, vx: Math.sin(a) * sp, vz: Math.cos(a) * sp, vy: 2 + Math.random() * 4, t: 0, life: 1.6 + Math.random() * 0.8, s, spin: (Math.random() - 0.5) * 12 });
+    }
+    if (list.length > 160) for (const d of list.splice(0, list.length - 160)) free(this.group, d.m);
+  }
+  _debris(dt) {
+    const L = this.chunks || [];
+    for (const d of L) {
+      d.t += dt; const b = d.m; d.vy -= 16 * dt; b.position.x += d.vx * dt; b.position.y += d.vy * dt; b.position.z += d.vz * dt; b.rotation.x += d.spin * dt; b.rotation.z += d.spin * 0.7 * dt;
+      if (b.position.y < d.s * 0.5) { b.position.y = d.s * 0.5; d.vy *= -0.3; d.vx *= 0.6; d.vz *= 0.6; d.spin *= 0.6; }
+      const k = Math.max(0, (d.t - d.life + 0.4) / 0.4); if (k > 0) b.scale.multiplyScalar(Math.max(0.5, 1 - k * 0.3));
+    }
+    this.chunks = L.filter((d) => { if (d.t >= d.life) { free(this.group, d.m); return false; } return true; });
   }
 
   clear() {
@@ -597,6 +805,9 @@ export class FX {
     for (const [, m] of this.projs) free(this.group, m); this.projs.clear();
     for (const [, m] of this.zv) free(this.group, m); this.zv.clear();
     for (const tr of this.trails) free(this.group, tr.mesh); this.trails = [];
+    for (const p of this.pieceList || []) free(this.group, p.g); this.pieceList = [];
+    for (const d of this.chunks || []) free(this.group, d.m); this.chunks = [];
+    for (const [, a] of this.auraMap || []) free(this.group, a.g); if (this.auraMap) this.auraMap.clear();
     for (let i = 0; i < MAXP; i++) this.pLife[i] = 0;
     this._tonicClear();
   }

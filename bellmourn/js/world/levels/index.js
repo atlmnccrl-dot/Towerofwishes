@@ -1,4 +1,4 @@
-// The districts, in the order they are played; then Act II's regions beyond the walls.
+// The districts, in the order they are played; then Act II's regions beyond the walls; then Act III's, the Wheel.
 import prologue from './prologue.js';
 import gate from './gate.js';
 import market from './market.js';
@@ -12,4 +12,6 @@ import frostmarch from './frostmarch.js';
 import ashdunes from './ashdunes.js';
 import catacombs from './catacombs.js';
 import abyss from './abyss.js';
-export default { prologue, gate, market, docks, nave, undercroft, foundry, heights, belfry, frostmarch, ashdunes, catacombs, abyss };
+import marsh from './marsh.js';
+import spire from './spire.js';
+export default { prologue, gate, market, docks, nave, undercroft, foundry, heights, belfry, frostmarch, ashdunes, catacombs, abyss, marsh, spire };

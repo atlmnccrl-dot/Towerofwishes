@@ -8,6 +8,10 @@
 // shown by the rules of sim.js alone (a root that holds the hero, a slime that splits, a mummy that gets
 // up again, a beam that sweeps) go through hookWorld(w), installed the first time one of these units
 // thinks.
+//
+// Act III's foes live in units3.js (a leaf module too) and are merged in here, so everything that reads
+// UNITS2, HOME or BESTIARY_TEXT sees them. Import units3.js only from this file.
+import { UNITS3, UNIT_AI3, UNIT_ATTACKS3, HOME3, BESTIARY_TEXT3 } from './units3.js';
 
 const deg = (d) => (d * Math.PI) / 180;
 const TAU = Math.PI * 2;
@@ -237,6 +241,8 @@ const A = {
   } },
 };
 export const UNIT_ATTACKS2 = A;
+// Act III's moves (units3.js), under their own names; none clashes with a name above
+for (const k in UNIT_ATTACKS3) if (!(k in A)) A[k] = UNIT_ATTACKS3[k];
 
 // the cultist's ritual completes: empower the allies around it, or (alone) call up imps
 function ritualDone(w, e) {
@@ -435,7 +441,9 @@ export const HOME = {
   hushed: 0, ghoul: 0, crossbow: 0, acolyte: 1, brute: 1, hound: 2, bomber: 2, spitter: 2, warden: 3,
   rat: 4, shade: 4, chanter: 4, knight: 4, gargoyle: 5, sentinel: 5,
 };
+Object.assign(UNITS2, UNITS3);
 for (const k in UNITS2) HOME[k] = UNITS2[k].home;
+Object.assign(HOME, HOME3);
 // raised by other foes, never placed or pooled on their own
 export const SUMMON_ONLY = Object.keys(UNITS2).filter((k) => UNITS2[k].summon);
 
@@ -475,6 +483,7 @@ export const BESTIARY_TEXT = {
   demon: 'CHARGES DOWN A LINE, THEN SLAMS FIRE.',
   seraph: 'ITS GAZE SWEEPS THE FLOOR. DASH THROUGH.',
 };
+Object.assign(BESTIARY_TEXT, BESTIARY_TEXT3);
 export const DASH_BREAKS = 'A DASH TEARS YOU FREE OF A WEB OR A CURSE.'; // PROPOSAL (a hint line)
 
 // ------------------------------------------------------------------ behaviour
@@ -765,3 +774,6 @@ function slimeThink(w, e, h, hero, d, ang, hop, squish) {
   if (beat < 0.5) move(w, e, d > 1.5 ? ang : ang + Math.PI / 2 * ai.strafeDir, e.speed * (d > 1.5 ? 1 : 0.5)); else stand(e, 'idle');
   e.anim = 'walk';
 }
+
+// Act III (units3.js)
+Object.assign(UNIT_AI2, UNIT_AI3);

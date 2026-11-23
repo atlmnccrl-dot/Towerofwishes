@@ -1,6 +1,7 @@
 // The pixel UI: a 2D canvas at buffer resolution, scaled up like the 3D view. A 5x7 bitmap font,
 // HUD (health, tonics, Requiem gauge, ability badges, embers, boss bar), toasts, floating texts,
 // cards, menus and touch buttons.
+import { ABILITIES } from '../game/heroes.js';
 
 const G = {
   A: [14, 17, 17, 31, 17, 17, 17], B: [30, 17, 17, 30, 17, 17, 30], C: [14, 17, 16, 16, 16, 17, 14], D: [30, 17, 17, 17, 17, 17, 30], E: [31, 16, 16, 30, 16, 16, 31],
@@ -18,7 +19,8 @@ const G = {
 
 // three-letter codes for the abilities on badges and buttons
 const ABBR = { wave: 'WAV', rush: 'RSH', whirl: 'WRL', volley: 'VOL', smoke: 'SMK', snare: 'TRP', shockwave: 'SHK', charge: 'CHG', ward: 'WRD', pillar: 'PIL', lantern: 'LNT', wisps: 'WSP' };
-export const abbr = (id) => ABBR[id] || String(id).slice(0, 3).toUpperCase();
+// an ability's own badge label (ABILITIES[id].short) comes first
+export const abbr = (id) => (ABILITIES[id] && ABILITIES[id].short) || ABBR[id] || String(id).slice(0, 3).toUpperCase();
 
 export const COL = { text: '#d8cfbc', dim: '#8a8478', red: '#c8242a', blood: '#8a1418', gold: '#e8b860', ember: '#ff9a40', ice: '#9cc8e8', dark: '#0a0c10', panel: 'rgba(8,10,14,0.82)', white: '#f2ece0' };
 

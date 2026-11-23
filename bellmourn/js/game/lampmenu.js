@@ -1,12 +1,12 @@
-// The Haven's menu, beside the kneeling warden. Touch first: a rail of six big sections on the left
-// (WARDEN, SKILLS, GEAR, MERCHANT, MAP, BESTIARY), one section open at a time in the panel on the right with a few
+// The Haven's menu, beside the kneeling warden. Touch first: a rail of seven big sections on the left
+// (WARDEN, SKILLS, GEAR, ECHOES, MERCHANT, MAP, BESTIARY), one section open at a time in the panel on the right with a few
 // large rows, each saying what it is and what choosing it costs; one tap selects a row, the button under
 // the list does it (its label says what will happen and for how much), and ONWARD sets out. The fire and
 // the kneeling warden stay in view between the two. Keyboard: Q/E or left/right change section, up/down
 // pick a row, Enter does it, Esc goes to ONWARD (again to set out). Pad: LB/RB, A, B. Every choice tells
 // the Haven what happened (react(kind, ok)) so the fire, the warden and the sound can answer it.
-import { HEROES, HERO_ORDER, WEAPONS, RELICS, MAX_RANK, upgradeCost, upgradeMul, MAX_PLUS, xpFor, MAX_LEVEL } from './heroes.js';
-import { skillRows, useSkillRow, shopStock, buy, upgradeWeapon, toggleRelic, relicSlots } from './progress.js';
+import { HEROES, HERO_ORDER, WEAPONS, RELICS, ECHOES, ECHO_ORDER, JOINS, MAX_RANK, upgradeCost, upgradeMul, MAX_PLUS, xpFor, MAX_LEVEL } from './heroes.js';
+import { skillRows, useSkillRow, shopStock, buy, upgradeWeapon, toggleRelic, relicSlots, toggleEcho, echoSlots, echoLevel, trueEndingCount, trueEndingReady, DISTRICT_BOSS } from './progress.js';
 import { DISTRICTS } from './story.js';
 import { COL } from '../engine/ui.js';
 import LEVELS from '../world/levels/index.js';
@@ -15,10 +15,10 @@ import { UNITS } from './units.js';
 import { BOSSES2 } from './bosses2.js';
 import { HOME, BESTIARY_TEXT, DASH_BREAKS } from './units2.js';
 
-export const SECTIONS = ['WARDEN', 'SKILLS', 'GEAR', 'MERCHANT', 'MAP', 'BESTIARY'];
+export const SECTIONS = ['WARDEN', 'SKILLS', 'GEAR', 'ECHOES', 'MERCHANT', 'MAP', 'BESTIARY'];
 export const SKILLS = 1;
 const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
-const FAIL = /^(NOT ENOUGH|NO SKILL|REACH LEVEL|ALREADY|FULLY)/;
+const FAIL = /^(NOT ENOUGH|NO SKILL|REACH LEVEL|ALREADY|FULLY|NOT YET)/;
 const ROW_H = 22, HEAD_H = 11, BTN_H = 22;
 const KIND = { weapon: 'WEAPON', relic: 'RELIC', tonic: 'ONE MORE FLASK', tome: 'ONE SKILL POINT' };
 const inR = (r, p) => r && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
@@ -43,12 +43,16 @@ export class LampMenu {
     const done = (m, kind) => { const ok = !FAIL.test(m || ''); this.say(m, ok); g.persist(); g.refreshHero(); if (g.haven) g.haven.react(kind, ok); };
     const E = (n) => n + ' E';
     switch (SECTIONS[this.sec]) {
-      case 'WARDEN': return HERO_ORDER.map((id) => {
-        const X = HEROES[id]; const open = S.unlocked.includes(id); const L = S.heroes[id]; const here = S.hero === id;
-        return { label: X.name, sub: X.title, note: here ? 'HERE' : (open ? 'LV' + L.level : 'LOCKED'), noteCol: here ? COL.gold : (open ? COL.text : '#6a625a'), locked: !open,
-          verb: 'SWITCH', why: here ? 'RESTING HERE' : (open ? '' : 'LOCKED'), disabled: here || !open,
-          desc: open ? X.blurb + ' LEVEL ' + L.level + '.' : 'JOINS YOU AFTER LANTERN ROW.', act: () => { S.hero = id; done(X.name + ' RESTS HERE', 'hero'); } };
-      });
+      case 'WARDEN': {
+        const rows = HERO_ORDER.map((id) => {
+          const X = HEROES[id]; const open = S.unlocked.includes(id); const L = S.heroes[id] || { level: 1 }; const here = S.hero === id; const where = JOINS[id] || 'THE CITY';
+          return { label: X.name, sub: open ? X.title : 'JOINS: ' + where, note: here ? 'HERE' : (open ? 'LV' + L.level : 'LOCKED'), noteCol: here ? COL.gold : (open ? COL.text : '#6a625a'), locked: !open,
+            verb: 'SWITCH', why: here ? 'RESTING HERE' : (open ? '' : 'JOINS AFTER ' + where), disabled: here || !open,
+            desc: open ? X.blurb + ' LEVEL ' + L.level + '.' : X.title + '. JOINS YOU AFTER ' + where + '.', act: () => { S.hero = id; done(X.name + ' RESTS HERE', 'hero'); } };
+        });
+        rows.push({ head: 'THE NEW SONG' }, trueEndingRow(S));
+        return rows;
+      }
       case 'SKILLS': return skillRows(S).map((r) => {
         const equip = !r.ult && r.rank > 0 && r.slot < 0 && !r.locked; const max = r.rank >= MAX_RANK;
         const name = r.ult ? r.name.replace('ULTIMATE: ', '') : r.name; const slot2 = P.equipped[1] && P.equipped[1] !== r.id ? skillRows(S).find((x) => x.id === P.equipped[1]) : null;
@@ -80,6 +84,20 @@ export class LampMenu {
           rows.push({ label: RELICS[id].name, sub: on ? 'WORN' : 'IN YOUR PACK', note: on ? 'WORN' : 'WEAR', noteCol: on ? COL.gold : COL.text, verb: on ? 'TAKE OFF' : (full ? 'SWAP IN' : 'WEAR'),
             desc: RELICS[id].desc + (out ? ' SWAPS OUT ' + RELICS[out].name + '.' : ''), act: () => done(toggleRelic(S, id), 'relic') });
         }
+        return rows;
+      }
+      case 'ECHOES': {
+        const slots = echoSlots(S); const on = (S.echoesOn || []).slice(0, slots); const worn = on.filter(Boolean); const owned = S.echoes || [];
+        const rows = [{ head: 'WORN ' + worn.length + '/' + slots + '  HEARD ' + owned.length + '/' + ECHO_ORDER.length }];
+        for (const t of ECHO_ORDER) {
+          const X = ECHOES[t]; const lv = echoLevel(S, t); const isOn = on.includes(t); const full = !isOn && worn.length >= slots; const out = full ? on[slots - 1] : null;
+          const where = Object.keys(DISTRICT_BOSS).find((d) => DISTRICT_BOSS[d] === t); const place = where && LEVELS[where] ? LEVELS[where].name.toUpperCase() : 'BEYOND THE WALLS';
+          if (!lv) { rows.push({ label: '? ? ?', sub: 'NOT YET HEARD', note: '', locked: true, disabled: true, why: 'NOT YET HEARD', desc: 'AN ECHO STILL HELD BY ' + X.from + ', IN ' + place + '.' }); continue; }
+          rows.push({ label: X.name + (lv > 1 ? ' +' : ''), sub: (lv > 1 ? 'ASCENDED: ' : 'FROM ') + X.from, note: isOn ? 'WORN' : 'WEAR', noteCol: isOn ? COL.gold : COL.text,
+            verb: isOn ? 'SILENCE IT' : (full ? 'SWAP IN' : 'WEAR'),
+            desc: X.desc + (lv > 1 ? ' ' + X.up : '') + (out ? ' SWAPS OUT ' + ECHOES[out].name + '.' : ''), act: () => done(toggleEcho(S, t), 'relic') });
+        }
+        rows.push({ head: 'THE NEW SONG' }, trueEndingRow(S));
         return rows;
       }
       case 'MERCHANT': {
@@ -260,6 +278,14 @@ export class LampMenu {
     if (row.sub) ui.text(fit(ui, row.sub, subW), lx, y + 12, { color: '#857d6e', shadow: false });
     if (row.note) ui.text(row.note, x + w - 5, y + 3, { align: 'right', color: row.noteCol || COL.gold, shadow: false });
   }
+}
+
+// The true ending's readout: how many wardens walk with you and how many Echoes you carry (PROPOSAL text)
+function trueEndingRow(S) {
+  const c = trueEndingCount(S); const ready = trueEndingReady(S);
+  return { label: 'TRUE ENDING', sub: c.wardens + '/' + c.ofWardens + ' WARDENS  ' + c.echoes + '/' + c.ofEchoes + ' ECHOES', note: ready ? 'READY' : '', noteCol: COL.gold, disabled: true,
+    why: ready ? 'THE NEW SONG CAN BE SUNG' : c.wardens + '/' + c.ofWardens + ' WARDENS ' + c.echoes + '/' + c.ofEchoes + ' ECHOES',
+    desc: ready ? 'ALL SEVEN WARDENS AND EVERY ECHO. AT THE WHEEL, YOU CAN SING.' : 'FIND ALL SEVEN WARDENS AND GATHER EVERY ECHO, AND AT THE WHEEL A NEW SONG CAN BE SUNG.' };
 }
 
 // a small pixel arrow: up (-1) or down (1)

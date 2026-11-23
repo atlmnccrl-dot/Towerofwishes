@@ -2,7 +2,7 @@
 // node bellmourn/test/sim-test.mjs [seeds=12]
 import { World } from '../js/game/sim.js';
 import { makeBot } from '../js/game/bot.js';
-import { heroStats, newHeroSave, HERO_ORDER, WEAPONS, weaponsOfType, MAX_LEVEL } from '../js/game/heroes.js';
+import { heroStats, newHeroSave, HERO_ORDER, HEROES, WEAPONS, weaponsOfType, MAX_LEVEL } from '../js/game/heroes.js';
 import { UNITS } from '../js/game/units.js';
 
 const N = +(process.argv[2] || 12);
@@ -11,7 +11,8 @@ const ARENA = { bounds: [-14, -14, 14, 14], solids: [{ x: -6, z: -6, r: 0.8, h: 
 function prog(heroId, tier) {
   const save = { heroes: {}, relicsOn: tier >= 2 ? (tier >= 5 ? ['psalter', 'clapper'] : ['psalter']) : [], bossTonics: Math.min(3, tier) };
   const P = save.heroes[heroId] = newHeroSave(heroId);
-  P.level = Math.min(MAX_LEVEL, 1 + tier * 3); const H = HERO_ORDER; const ws = weaponsOfType(Object.values(WEAPONS).find(() => true) && { warden: 'blade', huntress: 'bow', bellbreaker: 'hammer', lamplighter: 'focus' }[heroId]);
+  P.level = Math.min(MAX_LEVEL, 1 + tier * 3); const ws = weaponsOfType(HEROES[heroId].weapon); // every warden's own kind of weapon
+  if (process.env.ECHOES) { save.echoes = process.env.ECHOES.split(','); save.echoesOn = save.echoes.slice(0, 2); }
   P.weapon = ws[Math.min(ws.length - 1, Math.floor(tier / 2))]; P.plus = { [P.weapon]: Math.min(10, Math.round(tier * 0.8)) };
   return heroStats(save, heroId);
 }
@@ -122,6 +123,23 @@ function rules() {
     f.poise = 1; const ev = tick(w, 240, mash);
     check(types(ev, 'stagger').length >= 1, 'poise break: the foe staggers');
     check(!ev.some((x) => x.type === 'finisher' || (x.type === 'hit' && 'finisher' in x)), 'no finisher events');
+  }
+  { // the three who join later: Kestrel steps behind a foe, Hollis drags foes in, Wren's notes resonate and her hymn shatters it
+    const w = new World({ ...FLAT, seed: 12 }); const [h, [f]] = at(w, 'kestrel', [['hushed', 0, -5]]); h.cds[0] = 99;
+    const ev = tick(w, 2, { mx: 0, mz: 0, attackPressed: true }); const a = types(ev, 'ability')[0];
+    check(a && a.id === 'shadow' && h.z < f.z && types(ev, 'hit').some((x) => x.dst === f), 'Shadow Step: lands behind the foe and strikes');
+    const w2 = new World({ ...FLAT, seed: 13 }); const [h2, [f2]] = at(w2, 'hollis', [['hushed', 0, -6.5]]); const d0 = Math.hypot(f2.x - h2.x, f2.z - h2.z);
+    tick(w2, 40, (i) => (i === 0 ? { mx: 0, mz: 0, attackPressed: true } : IDLE));
+    check(Math.hypot(f2.x - h2.x, f2.z - h2.z) < d0 - 2.5, 'Undertow: the foe is dragged toward Hollis');
+    const w3 = new World({ ...FLAT, seed: 14 }); const [h3, [f3]] = at(w3, 'wren', [['brute', 0, -6]]); h3.cds = [99, 99];
+    tick(w3, 90, { mx: 0, mz: 0, attackDown: true, attackPressed: true });
+    check(f3.status.resonate && f3.status.resonate.stacks >= 2, "Wren's notes: the foe resonates, in stacks");
+    h3.cds[0] = 0; const ev3 = tick(w3, 40, (i) => (i === 0 ? { mx: 0, mz: 0, attackDown: true, attackPressed: true } : IDLE));
+    check(types(ev3, 'shatter').length === 1 && !f3.status.resonate, 'Hymn of Shattering: breaks the resonance it finds');
+  }
+  { // Echoes: worn ones reach the sim; the Ossuary's ward turns a blow aside
+    const w = new World({ ...FLAT, seed: 15 }); const h = w.spawnHero(0, 0, { heroId: 'warden', echo: { ossuary: 1 } }); h.boneWard = 1;
+    const hp = h.hp; const r = w._damage({ x: 0, z: -1, team: 'foe' }, h, 30, {}); check(r === false && h.hp === hp && h.boneWard === 0, 'Ten Thousand Names: the ward takes the blow');
   }
 }
 const ONLY = process.env.ONLY || ''; // ONLY=creatures: just the new units (quicker)

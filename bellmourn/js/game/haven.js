@@ -1,10 +1,13 @@
 // The Haven between the districts: the warden walks in out of the rain, kneels by the fire and rests
 // while you spend what the district gave you (the menu sits beside them, lampmenu.js); every choice
 // is answered by the fire, the sound and the warden; ONWARD and they rise and walk out into the next
-// district. The first visit carries a short guide. The scene itself is world/haven.js.
+// district. The first visit carries a short guide. The scene itself is world/haven.js. The other wardens
+// who have joined rest round the shrine (Sister Ash keeps it even before she joins).
 import * as THREE from '../../vendor/three.module.min.js';
 import { COL } from '../engine/ui.js';
-import { ACT2 } from './story.js';
+import { ACT2, ACT3 } from './story.js';
+import { puppet } from './cutscene.js';
+import { WARDENS } from './scenes/cast.js';
 
 const WALK = 1.75;             // m/s, walking in and out
 const KNEEL = 0.6, RISE = 0.7; // the clips' lengths (anims.js)
@@ -15,10 +18,11 @@ const turnTo = (a, b, max) => { let d = (b - a) % TAU; if (d > Math.PI) d -= TAU
 
 // The first visit's guide: each step says one thing; until() moves it on.
 const INTRO = [
-  { text: 'BETWEEN THE DISTRICTS THE WARDENS REST HERE, BY THE LAST FIRE IN THE CITY.', until: (H) => H.introT > 5 },
+  // PROPOSAL (docs/STORY_BIBLE.md): the fire comes from the bell's forge; embers are freed voices
+  { text: 'BETWEEN THE DISTRICTS THE WARDENS REST HERE, BY A FIRE LIT FROM THE GREAT BELL\'S FORGE.', until: (H) => H.introT > 5 },
   { text: { touch: 'SKILLS: TAP A SKILL, THEN THE BUTTON BELOW TO SPEND YOUR POINT.', key: 'SKILLS: UP AND DOWN PICK A SKILL, ENTER SPENDS YOUR POINT.', pad: 'SKILLS: PICK A SKILL, A SPENDS YOUR POINT.' },
     point: 'learn', enter: (H) => H.g.lamp.reset(1), until: (H) => H.g.save.heroes[H.g.save.hero].points <= 0 || H.g.lamp.tab !== 1 || H.introT > 18 },
-  { text: 'GEAR AND THE MERCHANT TAKE EMBERS. WARDEN CHANGES HERO. THE MAP TAKES YOU BACK.', until: (H) => H.introT > 6.5 },
+  { text: 'EMBERS ARE THE VOICES YOU FREED: THEY BUY GEAR AND WARES. WARDEN CHANGES HERO. THE MAP TAKES YOU BACK.', until: (H) => H.introT > 7 },
   { text: { touch: 'WHEN YOU ARE READY, TAP ONWARD.', key: 'WHEN YOU ARE READY, CHOOSE ONWARD.', pad: 'WHEN YOU ARE READY, CHOOSE ONWARD.' }, point: 'onward', enter: (H) => { H.g.save.havenIntro = true; H.g.persist(); }, until: () => false },
 ];
 
@@ -37,7 +41,22 @@ export class Haven {
       const p0 = D.enter[0]; const h = w.spawnHero(p0.x, p0.z, { ...game.heroStats(), face: angTo(p0, D.enter[1]) });
       this.pose(h, 'walk'); this.phase = 'arrive'; this.path = [...D.enter.slice(1), D.kneel];
     }
-    this.dest = this.next;
+    this.dest = this.next; this.mates = [];
+  }
+
+  // The wardens resting round the shrine: everyone who has joined but the one at the fire (and Sister Ash,
+  // who keeps the Haven before she joins). They live in world.ents (the Haven never steps the simulation).
+  syncMates() {
+    const g = this.g, w = g.world, S = g.save, D = this.D; if (!w) return;
+    const want = WARDENS.filter((id) => id !== S.hero && (id === 'lamplighter' || (S.unlocked || []).includes(id)));
+    const key = want.join(',') + '|' + S.hero; if (key === this.mateKey) return; this.mateKey = key;
+    w.ents = w.ents.filter((e) => !e.havenMate); this.mates = [];
+    const F = D.fire; const spots = [[-1.1, -1.7, 'idle'], [0.4, -2.6, 'rest'], [-1.8, 1.5, 'idle'], [1.3, -2.2, 'idle'], [-2.3, -0.9, 'rest'], [-0.6, 1.9, 'idle'], [1.6, 0.2, 'rest']];
+    want.forEach((id, i) => {
+      // Sister Ash keeps her place by the fire (where she stands in the first visit's scene)
+      const o = id === 'lamplighter' ? [(D.statue.x - F.x) / 2 + 0.2, 1.15, 'idle'] : spots[i % spots.length]; const e = puppet(g, 'mate:' + id, { hero: id }); e.x = F.x + o[0]; e.z = F.z + o[1];
+      e.face = angTo(e, F) + (o[2] === 'idle' ? 0.25 : 0); e.anim = o[2]; e.animT = Math.random() * 3; e.state = 'haven'; e.havenMate = true; w.ents.push(e); this.mates.push(e);
+    });
   }
 
   get hero() { return this.g.world.hero; }
@@ -84,7 +103,7 @@ export class Haven {
   update(dt, inp) {
     const g = this.g, h = this.hero, D = this.D; if (!h) return;
     this.t += dt; this.phaseT += dt;
-    g.sound.setMusic('haven');
+    g.sound.setMusic('haven'); this.syncMates();
     if (inp.pausePressed && !inp.back) { g.go('pause'); return; }
     for (const tp of inp.taps) if (this.pauseRect && tp.x >= this.pauseRect.x && tp.x <= this.pauseRect.x + this.pauseRect.w && tp.y >= this.pauseRect.y && tp.y <= this.pauseRect.y + this.pauseRect.h) { g.sound.play('ui'); g.go('pause'); return; }
     // the fire: sparks drift up, now and then a curl of smoke; its light breathes with the flare
@@ -169,7 +188,7 @@ export class Haven {
     if (this.cardT < 6) {
       const a = Math.min(1, this.cardT * 1.2, Math.max(0, (5.5 - this.cardT) * 1.2)); const cx = this.phase === 'arrive' ? Math.round(W / 2) : freeC;
       const big = this.phase === 'arrive' || ui.measure('THE HAVEN', 2) <= freeW + 16;
-      if (a > 0) { ui.text(ACT2.includes(this.next) ? 'ACT II: BEYOND THE WALLS' : 'BETWEEN THE DISTRICTS', cx, 14, { align: 'center', color: COL.red, alpha: a }); ui.text('THE HAVEN', cx, 25, { align: 'center', color: COL.white, scale: big ? 2 : 1, alpha: a }); }
+      if (a > 0) { ui.text(ACT3.includes(this.next) ? 'ACT III: THE WHEEL' : (ACT2.includes(this.next) ? 'ACT II: BEYOND THE WALLS' : 'BETWEEN THE DISTRICTS'), cx, 14, { align: 'center', color: COL.red, alpha: a }); ui.text('THE HAVEN', cx, 25, { align: 'center', color: COL.white, scale: big ? 2 : 1, alpha: a }); }
     }
     if (!active) { this.pauseRect = null; return; } // paused (or the controls, the settings): their own screen, not the menu under it
     // the first visit's guide speaks inside the panel, where the description goes, and points at what it means

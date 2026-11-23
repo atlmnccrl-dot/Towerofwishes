@@ -59,11 +59,12 @@ export class World {
   // stats: the result of heroStats(save, heroId) (or a partial object in tests)
   spawnHero(x, z, stats = {}) {
     const kit = stats.kit || HEROES[stats.heroId || 'warden'];
-    const s = { maxHp: kit.hp, dmgMul: 1, maxTonics: 3, tonicHeal: 0.45, dashCharges: 1, crit: 0, cdMul: 1, ultRate: 1, speedMul: 1, dmgTaken: 1 - (kit.armor || 0), revives: 0, relics: [], trait: {},
+    const s = { maxHp: kit.hp, dmgMul: 1, maxTonics: 3, tonicHeal: 0.45, dashCharges: 1, crit: 0, cdMul: 1, ultRate: 1, speedMul: 1, dmgTaken: 1 - (kit.armor || 0), revives: 0, relics: [], trait: { ...(kit.attack.trait || {}) }, echo: {},
       abilities: kit.abilities.slice(0, 2).map((id) => ({ id, def: ABILITIES[id], rank: 1 })), ult: { id: kit.ult, def: ULTS[kit.ult], rank: 1 }, ...stats, kit };
     const e = this._ent({ team: 'hero', type: 'hero', heroId: kit.id, x, z, r: 0.38, hp: s.hp ?? s.maxHp, maxHp: s.maxHp, speed: kit.speed * s.speedMul, poise: 999, maxPoise: 999, mass: 1.2 });
     e.stats = s; e.kit = kit; e.tonics = s.tonics ?? s.maxTonics; e.combo = 0; e.comboT = 0; e.buf = {}; e.face = stats.face ?? Math.PI;
     e.cds = [0, 0]; e.cdMax = [1, 1]; e.autoT = 0; e.dashCharges = s.dashCharges; e.dashT = 0; e.revives = s.revives; e.buffs = {}; e.shotT = 0;
+    e.echo = s.echo || {}; e.boneWard = 0; e.boneT = 0; e.hookT = 0; e.castN = 0; e.shotN = 0;
     this.hero = e; return e;
   }
 
@@ -89,6 +90,8 @@ export class World {
     const def = BOSSES[type] || BOSSES2[type]; if (!def) throw new Error('unknown boss ' + type);
     const e = this._ent({ team: 'foe', type, def, boss: true, x, z, r: def.r, mass: def.mass, hp: def.hp * (opts.hpMul || 1), maxHp: def.hp * (opts.hpMul || 1), poise: 300, maxPoise: 300, speed: def.speed, dmgMul: opts.dmgMul || 1, armor: true });
     e.face = opts.face ?? 0; e.phase = 1; e.ai = { cd: 1.5, step: 0, aggro: true }; e.state = 'idle';
+    // New Game+: an Ascended boss (extra moves, a fourth phase); the final boss's true-ending form (ai reads both)
+    e.ascended = !!opts.ascended; e.trueForm = !!opts.trueForm;
     this.emit('spawn', { e, boss: true }); return e;
   }
 
@@ -147,6 +150,7 @@ export class World {
   applyStatus(e, kind, o = {}) {
     if (e.dead || (e.boss && (kind === 'stun' || kind === 'root'))) return;
     const s = e.status; const dur = o.dur ?? { burn: 3, bleed: 4, poison: 4, frost: 2, stun: 1.2, root: 2.2 }[kind];
+    if (kind === 'resonate') { s.resonate = { t: o.dur ?? 4, stacks: Math.min(3, (s.resonate ? s.resonate.stacks : 0) + (o.stacks || 1)) }; this.emit('status', { e, kind }); return; }
     if (kind === 'bleed') { const cur = s.bleed; const stacks = Math.min(3, (cur ? cur.stacks : 0) + 1); s.bleed = { t: dur, dps: o.dps ?? 4, stacks, tick: cur ? cur.tick : 0.5 }; }
     else if (kind === 'burn' || kind === 'poison') s[kind] = { t: Math.max(dur, s[kind]?.t || 0), dps: Math.max(o.dps ?? 5, s[kind]?.dps || 0), tick: s[kind]?.tick ?? 0.5 };
     else s[kind] = { t: Math.max(dur, s[kind]?.t || 0) };
@@ -170,7 +174,7 @@ export class World {
   }
   _dotHero(e, amt, kind) {
     if (e.dead || e.state === 'special') return;
-    e.hp -= Math.max(1, Math.round(amt * e.stats.dmgTaken * (e.buffs.ward > 0 ? 0.5 : 1))); this.emit('dot', { e, dmg: amt, kind });
+    e.hp -= Math.max(1, Math.round(amt * e.stats.dmgTaken * (e.buffs.ward > 0 ? 0.5 : 1) * (e.buffs.barnacle > 0 ? 1 - e.barnReduce : 1))); this.emit('dot', { e, dmg: amt, kind });
     if (e.hp <= 0) this._heroDown(e);
   }
 
@@ -184,6 +188,8 @@ export class World {
     if (e.dashCharges < S.dashCharges) { e.dashT += h; if (e.dashT >= DASH.recharge) { e.dashCharges++; e.dashT = 0; } }
     for (let i = 0; i < 2; i++) if (e.cds[i] > 0) e.cds[i] -= h;
     for (const k in e.buffs) { e.buffs[k] -= h; if (e.buffs[k] <= 0) delete e.buffs[k]; }
+    if (e.buffs.echo > 0 && (e.echoT -= h) <= 0) this._echoVoice(e);
+    if (e.hookT > 0) e.hookT -= h;
     if (e.comboT > 0) { e.comboT -= h; if (e.comboT <= 0) e.combo = 0; }
     if (e.shotT > 0) e.shotT -= h;
     e.mx = 0; e.mz = 0; e.moveSpeed = 0;
@@ -231,14 +237,18 @@ export class World {
         const a = e.atk; this._lunge(e, a, h);
         if (e.t >= a.windup && e.t <= a.active) this._melee(e, a);
         // the hammer's last blow quakes (wider and harder with a quake weapon); scaled like every hero blow
-        if (a.quake && !e.quaked && e.t >= a.active) { e.quaked = true; const qk = S.trait.quake ? 1.4 : 1; this.addZone({ shape: 'circle', x: e.x + Math.sin(e.face) * 1.6, z: e.z + Math.cos(e.face) * 1.6, r: a.quake * qk, life: 0.12, dmg: this.heroDmg(e, a.dmg * 0.5 * qk), kb: 6, kind: 'quake' }); }
+        // (Hollis's anchor splashes where it lands, at the end of its chain: quakeAt, quakeKind)
+        if (a.quake && !e.quaked && e.t >= a.active) { e.quaked = true; const qk = S.trait.quake ? 1.4 : 1; const at = a.quakeAt ?? 1.6; this.addZone({ shape: 'circle', x: e.x + Math.sin(e.face) * at, z: e.z + Math.cos(e.face) * at, r: a.quake * qk, life: 0.12, dmg: this.heroDmg(e, a.dmg * 0.5 * qk), kb: 6, kind: a.quakeKind || 'quake' }); }
         if (e.t >= a.dur) free();
         break;
       }
       case 'dash': {
         e.mx = Math.sin(e.dashDir); e.mz = Math.cos(e.dashDir); e.moveSpeed = DASH.speed * (e.t < DASH.dur * 0.7 ? 1 : 0.4);
         if (S.relics.includes('rosary') && (e.trailT = (e.trailT || 0) - h) <= 0) { e.trailT = 0.06; this.addZone({ shape: 'circle', x: e.x, z: e.z, r: 0.7, life: 1.4, dmg: 4, tick: 0.5, status: { burn: 1 }, kind: 'fire' }); }
+        // Ashmaw's Echo: the dash leaves a burrowing trail that bursts up a moment later
+        if (e.echo.sandwyrm && (e.sandT = (e.sandT || 0) - h) <= 0) { const up = e.echo.sandwyrm > 1; e.sandT = 0.08; this.addZone({ shape: 'circle', x: e.x, z: e.z, r: 1.0, warn: 0.4, life: 0.12, dmg: this.heroDmg(e, up ? 15 : 9), kb: 4, poise: 12, status: up ? { frost: 1 } : null, kind: 'sandtrail' }); }
         if (e.t >= DASH.dur) {
+          if (e.echo.harbormaster && e.hookT <= 0) this._echoHook(e);
           if (fresh('attack', 0.18) && K.attack.dashAttack) { take('attack'); this._aim(e, e.dashDir, 4); return this._startAttack(e, { ...K.attack.dashAttack }); }
           free();
         }
@@ -263,6 +273,7 @@ export class World {
   heroDmg(e, base, rank = 1) {
     let d = base * e.stats.dmgMul * rankDmg(rank);
     if (e.stats.relics.includes('wick') && e.hp < e.maxHp * 0.4) d *= 1.25;
+    if (e.buffs && e.buffs.hush > 0) d *= e.echo.silence > 1 ? 1.7 : 1.5; // the Stilled Hand: after a perfect dodge
     return d;
   }
 
@@ -292,7 +303,7 @@ export class World {
     e.state = 'shoot'; e.t = 0; if (e.anim !== A.anim) { e.anim = A.anim; e.animT = 0.5; }
     e.shotT = A.rate * (tr.rate || 1);
     const a = e.face;
-    this.projs.push({ id: this.nextId++, kind: P.kind, team: 'hero', x: e.x + Math.sin(a) * 0.6, z: e.z + Math.cos(a) * 0.6, y: 1.15, vx: Math.sin(a) * P.speed, vz: Math.cos(a) * P.speed, r: P.r, dmg: this.heroDmg(e, P.dmg), poise: P.poise, life: P.life, pierce: !!tr.pierce, status: P.status, basic: true, hitSet: new Set(), face: a, src: e });
+    this.projs.push({ id: this.nextId++, kind: P.kind, team: 'hero', x: e.x + Math.sin(a) * 0.6, z: e.z + Math.cos(a) * 0.6, y: 1.15, vx: Math.sin(a) * P.speed, vz: Math.cos(a) * P.speed, r: P.r, dmg: this.heroDmg(e, P.dmg), poise: P.poise, life: P.life, pierce: !!tr.pierce, status: P.status, resonate: P.resonate, basic: true, hitSet: new Set(), face: a, src: e });
     this.emit('shoot', { e, kind: P.kind });
   }
 
@@ -369,8 +380,31 @@ export class World {
         const close = within(A.radius + 0.6);
         return (hurt || close.length >= 2 || close.some((f) => f.boss)) ? (close[0] || true) : null;
       }
+      // Kestrel
+      case 'fan': return pick(9);
+      case 'noose': return pick(A.range);
+      case 'shadow': { // a foe in reach, and a free, safe spot behind it
+        const tg = pick(A.range); if (!tg || !along(tg)) return null; const p = this._behind(e, tg);
+        return p && !this._hazardAt(p.x, p.z, e.r + 0.4) ? tg : null;
+      }
+      // Hollis
+      case 'undertow': return pick(A.range);
+      case 'tide': return pick(7.5);
+      case 'barnacle': return nearest(3) || (hurt && nearest(6)) || null;
+      // Mother Wren
+      case 'shatter': return pick(11);
+      case 'lullaby': return nearest(A.radius - 0.2);
+      case 'echo': return nearest(9);
     }
     return null;
+  }
+
+  // where Shadow Step lands: just behind tg as seen from e (null when walls leave no room)
+  _behind(e, tg) {
+    const a = angTo(e, tg); const d = tg.r + e.r + 0.45; const tx = tg.x + Math.sin(a) * d, tz = tg.z + Math.cos(a) * d;
+    const p = this._lastClear(tg.x, tg.z, tx, tz, e.r); if (Math.hypot(p.x - tg.x, p.z - tg.z) < tg.r + e.r * 0.6) return null;
+    const [bx0, bz0, bx1, bz1] = this.bounds; if (p.x < bx0 + e.r || p.x > bx1 - e.r || p.z < bz0 + e.r || p.z > bz1 - e.r) return null;
+    return p;
   }
 
   // is a spot inside a hazard that is on its way or still burning?
@@ -446,7 +480,88 @@ export class World {
         for (let i = 0; i < A.n; i++) { const a = e.face + (i / A.n) * TAU; this.projs.push({ id: this.nextId++, kind: 'wisp', team: 'hero', x: e.x + Math.sin(a), z: e.z + Math.cos(a), y: 1.4, vx: Math.sin(a) * 3, vz: Math.cos(a) * 3, r: 0.35, dmg: this.heroDmg(e, A.dmg, r), poise: 15, life: 4, homing: 7, seekAfter: 0.35 + i * 0.12, status: { burn: 1 }, hitSet: new Set(), src: e }); }
         break;
       }
+      // ---- Kestrel
+      case 'fan': {
+        aim(10); cast('kthrow', 0.3, 0.3);
+        for (let i = 0; i < A.n; i++) {
+          const a = e.face + (i - (A.n - 1) / 2) * A.spread;
+          this.projs.push({ id: this.nextId++, kind: 'knife', team: 'hero', x: e.x + Math.sin(a) * 0.6, z: e.z + Math.cos(a) * 0.6, y: 1.1, vx: Math.sin(a) * 20, vz: Math.cos(a) * 20, r: 0.25, dmg: this.heroDmg(e, A.dmg, r), poise: 8, life: 0.55, pierce: !!S.trait.pierce, status: A.status, hitSet: new Set(), face: a, src: e });
+        }
+        break;
+      }
+      case 'shadow': {
+        const t = aim(A.range); const p = t && this._behind(e, t);
+        if (!t || !p) { cast('kstab', 0.3, 0); break; }
+        this.emit('blinkHero', { e, fx: e.x, fz: e.z, x: p.x, z: p.z }); e.x = p.x; e.z = p.z; e.face = angTo(e, t); e.lockOn = t;
+        e.iframes = 0.4; cast('kstab', 0.34, 0, 0.26);
+        this._damage(e, t, this.heroDmg(e, A.dmg, r), { poise: 35, kb: 3, heavy: true, status: A.status, kind: 'backstab' });
+        break;
+      }
+      case 'noose': {
+        const t = aim(A.range); const px = t ? t.x : e.x + fx * 5, pz = t ? t.z : e.z + fz * 5; cast('kthrow', 0.3);
+        this.emit('hook', { e, x: px, z: pz, hit: !!t });
+        this.addZone({ shape: 'circle', x: px, z: pz, r: A.radius, warn: 0.15, life: 0.15, dmg: this.heroDmg(e, A.dmg, r), root: A.root, status: { bleed: 1 }, kind: 'noose' });
+        break;
+      }
+      // ---- Hollis
+      case 'undertow': {
+        const t = aim(A.range); const px = t ? t.x : e.x + fx * 6, pz = t ? t.z : e.z + fz * 6; cast('athrow', 0.45, 0, 0.32);
+        this.emit('hook', { e, x: px, z: pz, hit: !!t }); this.emit('shake', { amt: 0.25 });
+        const dmg = this.heroDmg(e, A.dmg, r);
+        for (const f of this.foes()) {
+          if (f.state === 'spawn' || f.hidden || Math.hypot(f.x - px, f.z - pz) > A.radius + f.r || !this.clear(e, f)) continue;
+          this._damage(e, f, dmg, { poise: 20, pull: dist(e, f), heavy: true, aoe: true, kind: 'undertow' });
+        }
+        this.addZone({ shape: 'circle', x: px, z: pz, r: A.radius, life: 0.3, dmg: 0, visual: true, kind: 'tidepool' });
+        break;
+      }
+      case 'tide': {
+        aim(8); cast('aslam', 0.5, 0, 0.42); const a = e.face;
+        this.projs.push({ id: this.nextId++, kind: 'tide', team: 'hero', x: e.x + Math.sin(a) * 0.9, z: e.z + Math.cos(a) * 0.9, y: 0.6, vx: Math.sin(a) * 11, vz: Math.cos(a) * 11, r: 1.45, dmg: this.heroDmg(e, A.dmg, r), poise: 26, kb: 5, life: 0.7, hitSet: new Set(), pierce: true, ghost: true, status: A.status, face: a, src: e });
+        this.emit('shake', { amt: 0.3 });
+        break;
+      }
+      case 'barnacle': { cast('roar', 0.4); e.buffs.barnacle = A.dur; e.barnReduce = A.reduce; e.barnDmg = this.heroDmg(e, A.dmg, r); this.emit('shieldUp', { e, x: e.x, z: e.z }); break; }
+      // ---- Mother Wren
+      case 'shatter': {
+        const t = aim(11); cast('chant', 0.34, 0.3);
+        const px = t ? t.x : e.x + fx * 5, pz = t ? t.z : e.z + fz * 5;
+        this.addZone({ shape: 'circle', x: px, z: pz, r: A.radius, warn: A.delay, life: 0.18, dmg: this.heroDmg(e, A.dmg, r), shatter: this.heroDmg(e, A.per, r), resonate: 1, kind: 'hymn' });
+        break;
+      }
+      case 'lullaby': { cast('chant', 0.42, 0.2); this.addZone({ shape: 'circle', x: e.x, z: e.z, r: A.radius, life: 0.2, dmg: this.heroDmg(e, A.dmg, r), stun: A.stun, resonate: 1, kind: 'lull' }); break; }
+      case 'echo': { cast('chant', 0.3, 0.4); e.buffs.echo = A.dur; e.echoT = 0.25; e.echoRate = A.rate; e.echoDmg = this.heroDmg(e, A.dmg, r); e.echoSide = 1; break; }
     }
+    // the Deacon's Echo: a pool of black water where the skill went
+    if (e.echo.deacon) {
+      const up = e.echo.deacon > 1; const at = tg && !tg.dead ? tg : null; const px = at ? at.x : e.x + fx * 2, pz = at ? at.z : e.z + fz * 2;
+      this.addZone({ shape: 'circle', x: px, z: pz, r: up ? 2.6 : 2.0, life: 2.6, dmg: this.heroDmg(e, up ? 7 : 4), tick: 0.5, status: { frost: 1 }, kind: 'tidepool' });
+    }
+    // the Clockmaster's Echo: every third skill winds the other one back
+    if (e.echo.clockmaster && ++e.castN % 3 === 0) { const o = 1 - slot; e.cds[o] = 0; }
+  }
+
+  // Echo Choir: one of the two echoes beside Mother Wren sings a note at the nearest foe
+  _echoVoice(e) {
+    e.echoT = e.echoRate || 0.5; e.echoSide = -(e.echoSide || 1);
+    const tg = this._nearestFoe(e, 11); if (!tg || tg.state === 'spawn') return;
+    const ox = e.x + Math.sin(e.face + e.echoSide * 1.6) * 0.9, oz = e.z + Math.cos(e.face + e.echoSide * 1.6) * 0.9;
+    if (!this.clear({ x: ox, z: oz }, tg)) return;
+    const a = Math.atan2(tg.x - ox, tg.z - oz);
+    this.projs.push({ id: this.nextId++, kind: 'note', team: 'hero', x: ox, z: oz, y: 1.7, vx: Math.sin(a) * 13, vz: Math.cos(a) * 13, r: 0.3, dmg: e.echoDmg, poise: 6, life: 1.0, resonate: 1, homing: 4, seekAfter: 0.05, hitSet: new Set(), face: a, src: e });
+    this.emit('shoot', { e, kind: 'note' });
+  }
+
+  // the Harbormaster's Echo: the end of a dash throws a hook at the nearest foe (two when Ascended) and drags it in
+  _echoHook(e) {
+    const up = e.echo.harbormaster > 1; let n = 0;
+    const list = this.foes().filter((f) => f.state !== 'spawn' && !f.hidden && f.ai.aggro && dist(e, f) < 7 + f.r && this.clear(e, f)).sort((a, b) => dist(e, a) - dist(e, b));
+    for (const f of list) {
+      if (n >= (up ? 2 : 1)) break; n++;
+      this.emit('hook', { e, x: f.x, z: f.z, hit: true });
+      this._damage(e, f, this.heroDmg(e, 8), { poise: 12, pull: dist(e, f), kind: 'hook' });
+    }
+    if (n) e.hookT = up ? 2 : 3;
   }
 
   _rush(e, h, free) {
@@ -472,8 +587,8 @@ export class World {
   _ult(e) {
     const U = e.stats.ult; const D = U.def; const r = U.rank;
     this.meter = 0; e.state = 'special'; e.t = 0; e.animT = 0; e.atk = null; e.spK = -1; e.ultDef = D; e.ultDmg = this.heroDmg(e, D.dmg, r);
-    e.anim = { requiem: 'special', rain: 'aim', toll: 'hsmash2', sunburst: 'roar' }[D.kind] || 'special';
-    e.iframes = D.dur + 0.3;
+    e.anim = { requiem: 'special', rain: 'aim', toll: 'hsmash2', sunburst: 'roar', cutstorm: 'kstorm', flood: 'bellring', choir: 'choir' }[D.kind] || 'special';
+    e.iframes = D.dur + 0.3; e.ultFin = D.finale ? this.heroDmg(e, D.finale, r) : 0; e.stormAt = { x: e.x, z: e.z };
     this.emit('special', { e, kind: D.kind }); this.slow(0.35, 0.35);
   }
   _special(e, h, free) {
@@ -494,8 +609,46 @@ export class World {
       if (e.t > 0.2 && k < D.rings && k !== e.spK) { e.spK = k; this.addZone({ shape: 'ring', x: e.x, z: e.z, r0: 0.6, r1: D.r1, life: 0.55, dmg: e.ultDmg, kb: 8, kind: 'shock', special: true }); this.emit('shake', { amt: 0.7 }); e.animT = 0.1; }
     } else if (D.kind === 'sunburst') {
       if (e.t > 0.45 && e.spK < 0) { e.spK = 1; this.addZone({ shape: 'circle', x: e.x, z: e.z, r: D.radius, life: 0.15, dmg: e.ultDmg, status: D.status, kb: 6, kind: 'sun', special: true }); const amt = Math.round(e.maxHp * D.heal); e.hp = Math.min(e.maxHp, e.hp + amt); this.emit('heal', { e, amt }); this.emit('shake', { amt: 0.8 }); }
+    } else if (D.kind === 'cutstorm') {
+      // Kestrel flickers from foe to foe around where she stood, cutting each one she lands behind
+      const step = (D.dur - 0.35) / D.hits; const k = Math.floor((e.t - 0.2) / step);
+      if (e.t > 0.2 && k < D.hits && k !== e.spK) {
+        e.spK = k; const c = e.stormAt;
+        const near = this.foes().filter((f) => f.state !== 'spawn' && !f.hidden && Math.hypot(f.x - c.x, f.z - c.z) < D.radius + f.r).sort((a, b) => dist(e, a) - dist(e, b));
+        const tg = near.length ? near[(k * 7) % Math.min(near.length, 4)] : null;
+        if (tg) {
+          const p = this._behind(e, tg); if (p) { if (k % 2 === 0) this.emit('blinkHero', { e, fx: e.x, fz: e.z, x: p.x, z: p.z }); e.x = p.x; e.z = p.z; }
+          e.face = angTo(e, tg); e.animT = 0.2 + (k % 3) * 0.05;
+          for (const f of near) if (Math.hypot(f.x - tg.x, f.z - tg.z) < 1.9 + f.r) this._damage(e, f, e.ultDmg, { poise: 18, kb: 1.5, special: true, status: D.status, aoe: true });
+        }
+        this.emit('whirlHit', { e, k });
+      }
+    } else if (D.kind === 'flood') {
+      // the bell on Hollis's back tolls three times: each toll drags the street in, then a ring of water rolls out
+      const k = Math.floor((e.t - 0.25) / 0.6);
+      if (e.t > 0.25 && k < D.rings && k !== e.spK) {
+        e.spK = k;
+        for (const f of this.foes()) { if (f.state === 'spawn' || f.hidden || dist(e, f) > D.radius + f.r) continue; this._damage(e, f, e.ultDmg * 0.35, { pull: dist(e, f), special: true, aoe: true, kind: 'undertow' }); }
+        this.addZone({ shape: 'ring', x: e.x, z: e.z, r0: 0.8, r1: D.radius * 0.8, warn: 0.12, life: 0.5, dmg: e.ultDmg, kb: 7, status: D.status, kind: 'tidering', special: true });
+        this.emit('toll', { e, k }); this.emit('shake', { amt: 0.6 });
+      }
+    } else if (D.kind === 'choir') {
+      // Mother Wren sings: notes fall on every foe near her, then the last chord shatters the resonance
+      if ((e.rainT = (e.rainT || 0) - h) <= 0 && e.t > 0.2 && e.t < D.dur - 0.4) {
+        e.rainT = D.rate; const foes = this.foes().filter((f) => f.state !== 'spawn' && !f.hidden && dist(e, f) < D.radius);
+        const f = foes.length ? foes[(this.rand() * foes.length) | 0] : null; let x, z;
+        if (f) { x = f.x; z = f.z; } else { const a = this.rand() * TAU, d = Math.sqrt(this.rand()) * D.radius * 0.7; x = e.x + Math.sin(a) * d; z = e.z + Math.cos(a) * d; }
+        this.addZone({ shape: 'circle', x, z, r: D.r, warn: 0.18, life: 0.08, dmg: e.ultDmg, resonate: 1, kind: 'hymn', special: true });
+      }
+      if (e.t >= D.dur - 0.4 && e.spK < 0) { e.spK = 1; this.addZone({ shape: 'circle', x: e.x, z: e.z, r: D.radius, life: 0.15, dmg: e.ultFin, shatter: e.ultFin * 0.25, kb: 6, kind: 'hymn', special: true }); this.emit('shake', { amt: 0.8 }); }
+      if (e.t > 0.3) { const inp = e.inp || NONE; const ml = Math.hypot(inp.mx || 0, inp.mz || 0); if (ml > 0.15) { e.mx = inp.mx / ml; e.mz = inp.mz / ml; e.moveSpeed = e.speed * 0.4; } }
     }
-    if (e.t >= D.dur) { e.iframes = 0.3; free(); }
+    if (e.t >= D.dur) {
+      e.iframes = 0.3;
+      // the Hollow Crown: every ultimate ends in a burst of void
+      if (e.echo.archon) { const up = e.echo.archon > 1; this.addZone({ shape: 'circle', x: e.x, z: e.z, r: up ? 6 : 5, life: 0.15, dmg: this.heroDmg(e, up ? 70 : 40), kb: 6, kind: 'void', special: true }); this.emit('shake', { amt: 0.5 }); }
+      free();
+    }
   }
 
   // ------------------------------------------------------------------ hits
@@ -515,7 +668,7 @@ export class World {
       if (a.hitSet.has(t.id) || t.state === 'spawn' || t.hidden) continue;
       if (!this._inShape(a, atk, t) || !this.clear(a, t)) continue;
       a.hitSet.add(t.id);
-      if (a.team === 'hero') this._damage(a, t, this.heroDmg(a, atk.dmg), { poise: atk.poise * (a.stats.trait.poise || 1), kb: atk.kb, heavy: atk.heavy, atk, basic: true });
+      if (a.team === 'hero') this._damage(a, t, this.heroDmg(a, atk.dmg), { poise: atk.poise * (a.stats.trait.poise || 1), kb: atk.kb, heavy: atk.heavy, atk, basic: true, pull: atk.pull ? Math.min(atk.pull, dist(a, t)) : 0 });
       else this._damage(a, t, atk.dmg * a.dmgMul, { kb: atk.kb, heavy: atk.heavy, atk, melee: true, src: a });
     }
   }
@@ -527,11 +680,18 @@ export class World {
     if (dst === hero) {
       // perfect dodge: a blow that lands inside the first part of a dash
       if (dst.state === 'dash' && dst.iframes > 0) {
-        if (this.t - dst.dashAt <= DASH.perfectWindow + 0.06 && !dst.perfected) { dst.perfected = true; this.meter = Math.min(100, this.meter + METER.onPerfect * dst.stats.ultRate); this.stats.perfects++; this.slow(0.7, 0.3); this.emit('perfect', { e: dst, src }); }
+        if (this.t - dst.dashAt <= DASH.perfectWindow + 0.06 && !dst.perfected) {
+          dst.perfected = true; this.meter = Math.min(100, this.meter + METER.onPerfect * dst.stats.ultRate); this.stats.perfects++; this.slow(0.7, 0.3); this.emit('perfect', { e: dst, src });
+          if (dst.echo.silence) { const up = dst.echo.silence > 1; dst.buffs.hush = up ? 3 : 2; this.slow(up ? 1.2 : 1.0, 0.25); this.emit('hush', { e: dst }); }
+        }
         return false;
       }
       if (dst.iframes > 0 || dst.state === 'special') return false;
-      let real = dmg * dst.stats.dmgTaken * (dst.buffs.ward > 0 ? 0.5 : 1); real = Math.max(1, Math.round(real));
+      // Ten Thousand Names: a ward of bone turns the blow aside
+      if (dst.boneWard > 0) { dst.boneWard--; dst.iframes = 0.4; this.emit('block', { e: dst, src, x: dst.x, z: dst.z }); this.emit('boneWard', { e: dst, n: dst.boneWard }); this.stop(0.05); return false; }
+      let real = dmg * dst.stats.dmgTaken * (dst.buffs.ward > 0 ? 0.5 : 1) * (dst.buffs.barnacle > 0 ? 1 - dst.barnReduce : 1); real = Math.max(1, Math.round(real));
+      // Barnacle Guard: what strikes Hollis in close is cut and chilled
+      if (dst.buffs.barnacle > 0 && o.melee && src && !src.dead && src.team === 'foe') this._damage(dst, src, dst.barnDmg, { kb: 3, aoe: true, status: { frost: 1 }, kind: 'barnacle' });
       dst.hp -= real; dst.flash = 0.15; dst.iframes = 0.55; this.stats.damageTaken += real;
       this.meter = Math.min(100, this.meter + METER.onHurt * dst.stats.ultRate);
       const ang = src ? Math.atan2(dst.x - src.x, dst.z - src.z) : 0; const kb = (o.kb || 3) * (dst.kit.armor ? 0.5 : 1);
@@ -562,18 +722,29 @@ export class World {
     let real = dmg; let crit = false;
     if (src === hero && hero && this.rand() < hero.stats.crit) { real *= 2; crit = true; this.stats.crits++; }
     if (dst.state === 'stagger') real *= 1.4;
+    if (src === hero && hero) {
+      if (dst.status.resonate) real *= 1 + 0.1 * dst.status.resonate.stacks; // Mother Wren: resonating foes take more
+      if (dst.status.frost && hero.echo && hero.echo.frostgiant) real *= hero.echo.frostgiant > 1 ? 1.25 : 1.15; // Hoarfrost Breath
+    }
     real = Math.round(real);
     if (dst.shield > 0) { const ab = Math.min(dst.shield, real); dst.shield -= ab; real -= ab; if (dst.shield <= 0) this.emit('shieldBreak', { e: dst }); }
     dst.hp -= real; dst.flash = 0.12; this.stats.hits++;
     if (src === hero) this.meter = Math.min(100, this.meter + METER.onHit * (o.special ? 0 : 1) * hero.stats.ultRate);
     const kb = (o.kb || 2) / Math.max(0.6, dst.mass) * (dst.boss ? 0.15 : 1);
-    if (!(dst.armor && (dst.state === 'windup' || dst.state === 'attack'))) { dst.kbx = Math.sin(ang) * kb; dst.kbz = Math.cos(ang) * kb; }
+    if (!(dst.armor && (dst.state === 'windup' || dst.state === 'attack'))) {
+      if (o.pull && src) { // dragged toward the source, to just in front of it (the anchor's undertow, hooks)
+        const d = Math.hypot(dst.x - src.x, dst.z - src.z); const gap = Math.max(0, d - (src.r || 0.4) - dst.r - 0.35);
+        const k = Math.min(o.pull, gap) * 5.5 / Math.max(1, dst.mass * 0.7) * (dst.boss ? 0.15 : 1);
+        dst.kbx = -Math.sin(ang) * k; dst.kbz = -Math.cos(ang) * k;
+      } else { dst.kbx = Math.sin(ang) * kb; dst.kbz = Math.cos(ang) * kb; }
+    }
     this.emit('hit', { src, dst, dmg: real, x: dst.x, z: dst.z, ang, heavy: o.heavy, special: o.special, crit, kind: o.kind });
     if (!o.special && !o.dotLike) this.stop(o.heavy ? 0.085 : (o.proj ? 0.02 : 0.045));
     if (o.heavy) this.emit('shake', { amt: 0.3 });
     // what the blow carries: statuses, weapon traits, relics
     if (src === hero && hero) this._onHeroHit(hero, dst, real, o);
     if (dst.hp <= 0) return this._kill(dst, src, o);
+    if (o.resonate) this.applyStatus(dst, 'resonate', { stacks: o.resonate });
     if (o.stun) this.applyStatus(dst, 'stun', { dur: o.stun });
     if (o.root) this.applyStatus(dst, 'root', { dur: o.root });
     // poise and interrupts
@@ -599,6 +770,18 @@ export class World {
       for (const k of ['burn', 'bleed', 'frost']) if (T[k] && this.rand() < T[k]) this.applyStatus(dst, k, { dps: Math.max(3, base * (k === 'burn' ? 0.22 : 0.15)) });
       if (T.leech) hero.hp = Math.min(hero.maxHp, hero.hp + base * T.leech);
     }
+    // the Echoes that ride on a blow
+    const E = hero.echo || {};
+    if ((o.basic || o.proj) && !o.chain) {
+      const ch = (k, a, b) => E[k] && this.rand() < (E[k] > 1 ? b : a);
+      if (ch('gaoler', 0.14, 0.22)) { if (dst.boss) this.applyStatus(dst, 'frost', { dur: 1 }); else this.applyStatus(dst, 'root', { dur: E.gaoler > 1 ? 1.6 : 1.0 }); this.emit('hook', { e: hero, x: dst.x, z: dst.z, hit: true, echo: 'gaoler' }); }
+      if (ch('tallow', 0.18, 0.28)) this.applyStatus(dst, 'burn', { dps: Math.max(3, base * 0.22) * (E.tallow > 1 ? 1.4 : 1) });
+      if (ch('frostgiant', 0.25, 0.4)) this.applyStatus(dst, 'frost', {});
+      if (ch('bogmother', 0.2, 0.32)) this.applyStatus(dst, 'poison', { dps: Math.max(3, base * 0.2) * (E.bogmother > 1 ? 1.5 : 1) });
+      if (E.founder && !o.aoe && ((o.basic && o.heavy) || (o.proj && o.basic && ++hero.shotN % 4 === 0))) {
+        const up = E.founder > 1; this.addZone({ shape: 'circle', x: dst.x, z: dst.z, r: up ? 2.2 : 1.6, life: 0.12, dmg: base * (up ? 0.45 : 0.3), status: { burn: 1 }, kb: 3, kind: 'fire' });
+      }
+    }
     if (!o.chain && ((T.shock && (o.basic || o.proj) && this.rand() < T.shock) || (R.includes('storm') && this.rand() < 0.1))) {
       let n = 0;
       for (const f of this.foes()) { if (f === dst || n >= 2 || dist(f, dst) > 4.5) continue; n++; this.emit('chain', { from: dst, to: f }); this._damage(hero, f, base * 0.5, { chain: true, kb: 1, dotLike: true }); }
@@ -616,18 +799,31 @@ export class World {
   }
 
   _kill(e, src, o) {
+    const burning = !!(e.status && e.status.burn);
     e.hp = 0; e.dead = true; e.state = 'dead'; e.anim = o.heavy && !e.boss ? 'dieHard' : 'die'; e.animT = 0; e.tele = null; e.deadT = 0; e.leapH = 0; e.status = {};
     this.stats.kills++; const hero = this.hero;
     if (hero && !hero.dead) {
       this.meter = Math.min(100, this.meter + METER.onKill * hero.stats.ultRate);
       if (hero.stats.relics.includes('thread')) hero.hp = Math.min(hero.maxHp, hero.hp + 3);
       if (hero.stats.relics.includes('crown') && this.rand() < 0.12) { hero.hp = Math.min(hero.maxHp, hero.hp + Math.round(hero.maxHp * 0.08)); this.emit('crown', { x: e.x, z: e.z }); }
+      if (e.team === 'foe') this._echoKill(hero, e, burning);
     }
     const drop = e.boss ? 0 : Math.round((e.def.drop || 5) * (e.elite ? 2.5 : 1)); this.embers += drop;
     const xp = e.boss ? 0 : Math.round((e.def.drop || 5) * 2.2 * (e.elite ? 2.5 : 1) * (1 + (e.def.tier || 0) * 0.25));
     this.emit('kill', { e, src, drop, xp, x: e.x, z: e.z, boss: !!e.boss, elite: e.elite });
     if (this.foes().length === 0 || e.boss) this.slow(e.boss ? 2.2 : 0.55, e.boss ? 0.2 : 0.35);
     return 'kill';
+  }
+
+  // the Echoes that answer a kill
+  _echoKill(hero, e, burning) {
+    const E = hero.echo || {};
+    if (E.tallow && burning) { const up = E.tallow > 1; this.addZone({ shape: 'circle', x: e.x, z: e.z, r: up ? 2.4 : 1.8, life: 0.12, dmg: this.heroDmg(hero, up ? 26 : 16), status: { burn: 1 }, kb: 4, kind: 'fire' }); }
+    if (E.regent) { const amt = Math.round(hero.maxHp * (E.regent > 1 ? 0.05 : 0.03)); hero.hp = Math.min(hero.maxHp, hero.hp + amt); this.emit('crown', { x: e.x, z: e.z }); }
+    if (E.ossuary && this.t >= hero.boneT) { const max = E.ossuary > 1 ? 2 : 1; if (hero.boneWard < max) { hero.boneWard++; hero.boneT = this.t + 4; this.emit('boneWard', { e: hero, n: hero.boneWard }); this.emit('shieldUp', { e: hero, x: hero.x, z: hero.z }); } }
+    if (E.lich && this.projs.filter((p) => p.spirit).length < 3) {
+      this.projs.push({ id: this.nextId++, kind: 'soul', team: 'hero', spirit: true, x: e.x, z: e.z, y: 1.3, vx: 0, vz: 2, r: 0.35, dmg: this.heroDmg(hero, E.lich > 1 ? 22 : 14), poise: 12, life: 4, homing: 6, seekAfter: 0.3, hitSet: new Set(), src: null, face: 0 });
+    }
   }
 
   _nearestFoe(e, range = 99) { let best = null, bd = range; for (const f of this.foes()) { const d = dist(e, f); if (d < bd && !f.hidden) { bd = d; best = f; } } return best; }
@@ -715,7 +911,7 @@ export class World {
         else if (p.src) { const a = Math.atan2(p.x - p.src.x, p.z - p.src.z) + h * 5; p.x = p.src.x + Math.sin(a) * 1.1; p.z = p.src.z + Math.cos(a) * 1.1; continue; }
       }
       p.x += p.vx * h; p.z += p.vz * h;
-      if (p.kind !== 'wave' && this._blocked(p.x, p.z, 0.05)) { p.dead = true; this.emit('projHit', { p, wall: true }); continue; }
+      if (p.kind !== 'wave' && !p.ghost && this._blocked(p.x, p.z, 0.05)) { p.dead = true; this.emit('projHit', { p, wall: true }); continue; }
       if (p.team === 'foe') {
         if (hero && !hero.dead && Math.hypot(hero.x - p.x, hero.z - p.z) < hero.r + p.r) {
           const res = this._damage(p.src, hero, p.dmg, { kb: 3, proj: true, status: p.status });
@@ -724,7 +920,7 @@ export class World {
       } else {
         for (const f of this.foes()) {
           if (p.hitSet.has(f.id) || f.state === 'spawn' || Math.hypot(f.x - p.x, f.z - p.z) > f.r + p.r) continue;
-          p.hitSet.add(f.id); this._damage(hero, f, p.dmg, { poise: p.poise ?? 20, kb: p.kind === 'wave' ? 4 : 1.5, proj: true, basic: p.basic, status: p.status, kind: p.kind });
+          p.hitSet.add(f.id); this._damage(hero, f, p.dmg, { poise: p.poise ?? 20, kb: p.kb ?? (p.kind === 'wave' ? 4 : 1.5), proj: true, basic: p.basic, status: p.status, resonate: p.resonate, kind: p.kind });
           if (!p.pierce) { p.dead = true; this.emit('projHit', { p }); break; }
         }
       }
@@ -767,6 +963,7 @@ export class World {
       if (z.t >= z.warn + z.life) { z.dead = true; continue; }
       if (z.t < z.warn) continue;
       if (!z.started) { z.started = true; this.emit('zoneGo', { z }); }
+      if (z.visual) continue;
       for (const f of this.foes()) {
         if (f.state === 'spawn' || f.hidden) continue;
         const d = Math.hypot(f.x - z.x, f.z - z.z); let hit = false;
@@ -775,7 +972,11 @@ export class World {
         if (!hit) continue;
         if (z.tick) { const last = z.lastHit.get(f.id) ?? -9; if (this.t - last < z.tick) continue; z.lastHit.set(f.id, this.t); }
         else { if (z.hitSet.has(f.id)) continue; z.hitSet.add(f.id); }
-        this._damage(hero || { x: z.x, z: z.z }, f, z.dmg, { aoe: true, kb: z.kb || 2, status: z.status, stun: z.stun, root: z.root, special: z.special, dotLike: !!z.tick, poise: 15, kind: z.kind });
+        // a Hymn of Shattering breaks the resonance it finds for more
+        const res = z.shatter && f.status.resonate ? f.status.resonate.stacks : 0;
+        if (res) this.emit('shatter', { e: f, n: res });
+        this._damage(hero || { x: z.x, z: z.z }, f, z.dmg + (z.shatter || 0) * res, { aoe: true, kb: z.kb || 2, status: z.status, stun: z.stun, root: z.root, special: z.special, dotLike: !!z.tick, poise: z.poise ?? 15, kind: z.kind, resonate: res ? 0 : z.resonate });
+        if (res && !f.dead) delete f.status.resonate;
       }
     }
     this.zones = this.zones.filter((z) => !z.dead);

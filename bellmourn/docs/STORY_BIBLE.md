@@ -137,3 +137,25 @@ bosses return Ascended.
 - No modern words. Bells, voices, lamps, rain and dawn are the recurring images.
 - The Hushed are victims, never monsters. The wardens never call them "things".
 - Every boss gets one line before its fight and one as it falls.
+
+## Notes from building the scenes (PROPOSAL)
+
+Gaps the bible left open, and how the cutscenes fill them for now (`js/game/scenes/`):
+
+- **The lead is whoever the player chose.** The prologue is written for Carmine, but Vesper or Bram can be
+  picked first. The scenes follow the chosen warden; the other two starters are the ones who join at the
+  gate. The crow-masked warden calls only Carmine "oathbreaker".
+- **Skipping the Old Road.** The wardens' meeting at the gate plays at the start of Gallows Gate instead.
+- **Sister Ash keeps the Haven before she joins.** She is there at the first visit and stays by the fire;
+  after Lantern Row she can be played.
+- **Where the Hushed are when the bell rings.** Some followed the wardens up the tower stair; Tam is among
+  them, so Vesper can reach him on the bell platform.
+- **The wardens travel together.** A warden who is not the one being played still appears in the scenes
+  that are about them (Bram at the Foundry, Vesper at the bell).
+- **The choice.** RING and SING are followed by the fight with the Wheel; SILENCE ends the game at once
+  (the Silence ending needs no fight). A choice made stays made if the warden falls to the Wheel.
+- **Where the endings play.** The Dawn: the Belfry, the wardens kneeling as the bell's new keepers. Silence:
+  the Belfry, the lamps going out one by one. The New Song: Gallows Gate at sunrise, where the game began,
+  the freed Hushed singing and the city's bells ringing.
+- **The Archon's line.** "You cannot stop a wheel by breaking a spoke" is spoken in his scene; his falling
+  line in the fight is a different one, so it is not heard twice.

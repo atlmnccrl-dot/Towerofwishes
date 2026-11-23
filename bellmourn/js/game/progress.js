@@ -1,6 +1,6 @@
 // Progression rules on the save: experience and levels, skill ranks, loot, boss rewards, the merchant,
 // and where the Haven sends you next. Pure functions (no DOM); the game persists the save.
-import { HEROES, HERO_ORDER, ABILITIES, WEAPONS, RELICS, MAX_LEVEL, MAX_RANK, xpFor, newHeroSave, weaponsOfType, weaponPrice, upgradeCost, MAX_PLUS } from './heroes.js';
+import { HEROES, HERO_ORDER, START_HEROES, ABILITIES, WEAPONS, RELICS, ECHOES, ECHO_ORDER, MAX_LEVEL, MAX_RANK, xpFor, newHeroSave, weaponsOfType, weaponPrice, upgradeCost, MAX_PLUS } from './heroes.js';
 import { DISTRICTS } from './story.js';
 import { HOME, SUMMON_ONLY } from './units2.js'; // a leaf module: no simulation pulled in
 
@@ -9,7 +9,7 @@ export const SAVE_VERSION = 2;
 export function freshSave(heroId = 'warden') {
   const heroes = {}; for (const id of HERO_ORDER) heroes[id] = newHeroSave(id);
   return {
-    v: SAVE_VERSION, hero: heroId, heroes, unlocked: ['warden', 'huntress', 'bellbreaker'],
+    v: SAVE_VERSION, hero: heroId, heroes, unlocked: START_HEROES.slice(),
     level: 'gate', lamp: null, litLamps: {}, cleared: {}, items: {}, bosses: {}, visited: [], bought: {},
     embers: 0, relicsOwned: [], relicsOn: [null, null], bossTonics: 0, tonicUp: 0,
     deaths: 0, time: 0, done: false, tutorial: false,
@@ -18,6 +18,9 @@ export function freshSave(heroId = 'warden') {
     inHaven: false, havenNext: null, havenSeen: false, havenIntro: false,
     // the Haven's bestiary: foe type -> how many felled (0: met, not felled yet)
     bestiary: {},
+    // Echoes: the boss types whose Echo is owned, the ones worn (2 slots, 3 in New Game+), the ones empowered
+    // by an Ascended kill; New Game+ count; the warden a boss just freed (the game shows them joining, then clears it)
+    echoes: [], echoesOn: [null, null], echoesAsc: [], ngPlus: 0, justRecruited: null,
   };
 }
 
@@ -28,6 +31,10 @@ export function upgradeSave(s) {
   const out = { ...f, ...s, heroes: { ...f.heroes, ...(s.heroes || {}) } };
   if (!Array.isArray(out.relicsOn)) out.relicsOn = [null, null];
   if (!out.bestiary || typeof out.bestiary !== 'object' || Array.isArray(out.bestiary)) out.bestiary = {};
+  for (const k of ['echoes', 'echoesAsc', 'unlocked']) if (!Array.isArray(out[k])) out[k] = f[k].slice();
+  if (!Array.isArray(out.echoesOn)) out.echoesOn = [null, null];
+  while (out.echoesOn.length < echoSlots(out)) out.echoesOn.push(null);
+  out.ngPlus = Math.max(0, out.ngPlus | 0);
   return out;
 }
 
@@ -55,7 +62,50 @@ export function havenNext(save, preferred) {
   if (preferred && DISTRICTS.includes(preferred) && !save.bosses[preferred]) return preferred;
   return DISTRICTS.find((id) => !save.bosses[id]) || (DISTRICTS.includes(preferred) ? preferred : DISTRICTS[0]);
 }
-export const relicSlots = (save) => (save.bosses.nave ? 3 : 2);
+export const relicSlots = (save) => (save.bosses.nave || save.ngPlus > 0 ? 3 : 2);
+
+// ------------------------------------------------------------------ Echoes, the true ending, New Game+
+// which boss each district holds (the boss type is the Echo's key); the Empyrean's Wheel leaves none
+export const DISTRICT_BOSS = { gate: 'gaoler', market: 'tallow', docks: 'harbormaster', nave: 'deacon', undercroft: 'ossuary', foundry: 'founder', heights: 'regent', belfry: 'silence',
+  frostmarch: 'frostgiant', ashdunes: 'sandwyrm', catacombs: 'lich', abyss: 'archon', marsh: 'bogmother', spire: 'clockmaster', empyrean: 'wheel' };
+// the wardens a fallen boss sets free
+export const RECRUITS = { gaoler: 'kestrel', tallow: 'lamplighter', harbormaster: 'hollis', deacon: 'wren' };
+export const echoSlots = (save) => (save.ngPlus > 0 ? 3 : 2);
+export const echoLevel = (save, type) => ((save.echoes || []).includes(type) ? ((save.echoesAsc || []).includes(type) ? 2 : 1) : 0);
+// Gain a boss's Echo (ascended: empower it). Worn at once when a slot is free. Returns a toast line or null.
+export function giveEcho(save, type, ascended = false) {
+  if (!ECHOES[type]) return null; save.echoes = save.echoes || []; save.echoesAsc = save.echoesAsc || []; save.echoesOn = save.echoesOn || [];
+  let line = null;
+  if (!save.echoes.includes(type)) { save.echoes.push(type); line = 'ECHO: ' + ECHOES[type].name; } // PROPOSAL
+  if (ascended && !save.echoesAsc.includes(type)) { save.echoesAsc.push(type); line = 'ECHO ASCENDED: ' + ECHOES[type].name; } // PROPOSAL
+  if (line && !save.echoesOn.includes(type)) { const n = echoSlots(save); for (let i = 0; i < n; i++) if (!save.echoesOn[i]) { save.echoesOn[i] = type; break; } }
+  return line;
+}
+export function toggleEcho(save, type) {
+  if (!(save.echoes || []).includes(type)) return 'NOT YET HEARD';
+  const n = echoSlots(save); while (save.echoesOn.length < n) save.echoesOn.push(null);
+  const i = save.echoesOn.indexOf(type);
+  if (i >= 0) { save.echoesOn[i] = null; return 'ECHO SILENCED'; }
+  for (let k = 0; k < n; k++) if (!save.echoesOn[k]) { save.echoesOn[k] = type; return 'ECHO WORN'; }
+  save.echoesOn[n - 1] = type; return 'ECHO SWAPPED IN';
+}
+// The New Song can be sung: all seven wardens found, and every boss's Echo gathered.
+export function trueEndingReady(save) {
+  return HERO_ORDER.every((id) => (save.unlocked || []).includes(id)) && ECHO_ORDER.every((t) => (save.echoes || []).includes(t));
+}
+export const trueEndingCount = (save) => ({ wardens: HERO_ORDER.filter((id) => (save.unlocked || []).includes(id)).length, ofWardens: HERO_ORDER.length,
+  echoes: ECHO_ORDER.filter((t) => (save.echoes || []).includes(t)).length, ofEchoes: ECHO_ORDER.length });
+// After an ending: walk the city again with everything you carry; the bosses return Ascended.
+// Keeps levels, gear, relics, embers, Echoes, wardens and the bestiary; resets the districts and their bosses.
+export function startNewGamePlus(save) {
+  save.ngPlus = (save.ngPlus | 0) + 1;
+  Object.assign(save, { level: 'gate', lamp: null, litLamps: {}, cleared: {}, items: {}, bosses: {}, visited: [], bought: {}, done: false,
+    inHaven: false, havenNext: null, justRecruited: null });
+  for (const k of ['act1', 'act2', 'act3', 'ending', 'choice']) if (k in save) delete save[k];
+  if (!Array.isArray(save.echoesOn)) save.echoesOn = [];
+  while (save.echoesOn.length < echoSlots(save)) save.echoesOn.push(null);
+  return save;
+}
 
 // Add experience to the current hero; returns the number of levels gained.
 export function addXp(save, amount) {
@@ -117,7 +167,14 @@ export function bossReward(save, districtId, rand) {
   const lv = addXp(save, 220 + n * 160); if (lv) lines.push('LEVEL ' + save.heroes[save.hero].level);
   if (n < 3) { save.bossTonics = Math.min(3, (save.bossTonics || 0) + 1); lines.push('A NEW TONIC FLASK'); }
   if (districtId === 'nave') lines.push('A THIRD RELIC SLOT');
-  if (districtId === 'market' && !save.unlocked.includes('lamplighter')) { save.unlocked.push('lamplighter'); lines.push('SISTER ASH JOINS YOU (CHANGE HERO AT THE HAVEN)'); }
+  // the warden this boss frees (lines.recruit and save.justRecruited say who, for the joining scene)
+  const type = DISTRICT_BOSS[districtId]; const rec = RECRUITS[type];
+  if (rec && HEROES[rec] && !save.unlocked.includes(rec)) {
+    save.unlocked.push(rec); save.justRecruited = rec; lines.recruit = rec;
+    lines.push(HEROES[rec].name + ' JOINS YOU (CHANGE WARDEN AT THE HAVEN)'); // PROPOSAL
+  }
+  // the boss's Echo; an Ascended boss (New Game+) empowers it
+  const el = giveEcho(save, type, save.ngPlus > 0); if (el) lines.push(el);
   const w = rollWeapon(save, Math.min(4, Math.floor(n / 2) + 1), rand); if (w) { giveWeapon(save, w); lines.push('WEAPON: ' + WEAPONS[w].name); }
   const r = rollRelic(save, rand); if (r) { giveRelic(save, r); lines.push('RELIC: ' + RELICS[r].name); }
   return lines;

@@ -109,12 +109,58 @@ export class Rig {
       const st = this._part('haR', box(0.06, 0.08, 0.6), 0x3a2a1e, 0, -0.04, 0.2); this.weapon.add(st);
       const bow = this._part('haR', box(0.6, 0.04, 0.05), 0x1a1a1e, 0, -0.02, 0.42); this.weapon.add(bow);
       this.tip.position.set(0, -0.04, 0.55);
+    } else if (w === 'knife') { // Kestrel: a short, slightly curved blade (the twin is in the left hand, below)
+      this.weapon.add(this._part('haR', box(0.04, 0.04, 0.14), 0x2a1a14, 0, 0, 0.02));
+      this.weapon.add(this._part('haR', box(0.12, 0.03, 0.03), d.guard || 0x6a5a48, 0, 0, 0.09));
+      const blade = this._part('haR', box(0.045, 0.02, 0.42), d.blade || 0xd0d6dc, 0, 0.012, 0.31, { emissive: d.bladeGlow || 0x202830, ei: d.bladeGlow ? 2 : 1 }); this.weapon.add(blade);
+      this.weapon.add(this._part('haR', box(0.03, 0.02, 0.1), d.blade || 0xd0d6dc, 0, 0.04, 0.53, { rx: -0.35, emissive: d.bladeGlow || 0x202830, ei: d.bladeGlow ? 2 : 1 }));
+      this.tip.position.set(0, 0.04, 0.58); this.blade = blade; this.bladeLen = 0.6;
+    } else if (w === 'anchor') { // Hollis: a chain from the fist, an anchor at its end
+      const links = 7, step = 0.14; const iron = 0x6a7274;
+      for (let i = 0; i < links; i++) this.weapon.add(this._part('haR', box(i % 2 ? 0.03 : 0.07, i % 2 ? 0.07 : 0.03, 0.12), iron, 0, 0, 0.06 + i * step));
+      const z0 = 0.06 + links * step; const col = d.blade || 0x4a5a58;
+      this.weapon.add(this._part('haR', box(0.12, 0.12, 0.08), col, 0, 0, z0)); // the ring
+      const shank = this._part('haR', box(0.09, 0.09, 0.62), col, 0, 0, z0 + 0.34, { emissive: d.bladeGlow || 0, ei: d.bladeGlow ? 2 : 1 }); this.weapon.add(shank);
+      this.weapon.add(this._part('haR', box(0.5, 0.07, 0.07), col, 0, 0, z0 + 0.1)); // the stock
+      for (const sx of [-1, 1]) { // the arms and their flukes
+        this.weapon.add(this._part('haR', box(0.3, 0.08, 0.08), col, sx * 0.14, 0, z0 + 0.66, { ry: sx * 0.5 }));
+        this.weapon.add(this._part('haR', box(0.12, 0.06, 0.14), col, sx * 0.27, 0, z0 + 0.56, { ry: sx * 0.3 }));
+      }
+      if (d.barnacles) for (const [x, z] of [[0.05, 0.4], [-0.05, 0.62], [0.2, 0.68]]) this.weapon.add(this._part('haR', box(0.06, 0.06, 0.06), d.barnacles, x, 0.04, z0 + z));
+      this.tip.position.set(0, 0, z0 + 0.7); this.blade = shank; this.bladeLen = z0 + 0.7;
+    } else if (w === 'fork') { // Mother Wren: a staff that ends in a tuning fork, a note held between the tines
+      this.weapon.add(this._part('haR', box(0.05, 0.05, 1.5), 0x5a4a64, 0, -0.05, 0.35));
+      const metal = 0xd8dce8;
+      this.weapon.add(this._part('haR', box(0.3, 0.05, 0.05), metal, 0, -0.05, 1.12));
+      for (const sx of [-1, 1]) this.weapon.add(this._part('haR', box(0.05, 0.05, 0.42), metal, sx * 0.13, -0.05, 1.34));
+      const orb = this._part('haR', box(0.12, 0.12, 0.12), d.orb || 0xb070ff, 0, -0.05, 1.34, { glow: 3 }); this.weapon.add(orb);
+      this.tip.position.set(0, -0.05, 1.4); this.orb = orb;
     } else if (w === 'bell') {
       const shaft = this._part('haR', box(0.06, 0.06, 1.8), 0x2a2018, 0, -0.05, 0.55); this.weapon.add(shaft);
       const bellG = new THREE.CylinderGeometry(0.22, 0.42, 0.6, 8);
       const bell = new THREE.Mesh(bellG, mat(0x6a5a3a, 0x201808)); bell.position.set(0, -0.3, 1.45); this.weapon.add(bell); this.parts.push(bell);
       this.tip.position.set(0, -0.4, 1.45); this.bladeLen = 1.7;
     }
+    this.weaponL = null;
+    if (d.offhand === 'knife') { // the twin knife in the left fist, posed with weaponL
+      const g = new THREE.Group(); g.position.set(0, -0.05, 0); this.j.haL.add(g); this.weaponL = g;
+      const add = (geom, c, x, y, z, o) => { const m = this._part('haL', geom, c, x, y, z, o); g.add(m); return m; };
+      add(box(0.04, 0.04, 0.14), 0x2a1a14, 0, 0, 0.02); add(box(0.12, 0.03, 0.03), d.guard || 0x6a5a48, 0, 0, 0.09);
+      add(box(0.045, 0.02, 0.42), d.blade || 0xd0d6dc, 0, 0.012, 0.31, { emissive: d.bladeGlow || 0x202830, ei: d.bladeGlow ? 2 : 1 });
+      add(box(0.03, 0.02, 0.1), d.blade || 0xd0d6dc, 0, 0.04, 0.53, { rx: -0.35, emissive: d.bladeGlow || 0x202830, ei: d.bladeGlow ? 2 : 1 });
+      this.tipL = new THREE.Object3D(); this.tipL.position.set(0, 0.04, 0.58); g.add(this.tipL);
+    }
+    // Hollis: the harbour bell on his back, barnacles on his shoulders
+    if (d.backBell) {
+      const bb = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.19, 0.3, 8), mat(0x5a4624, 0x100a04)); bb.position.set(0, 0.1, -0.22 * (d.bulk || 1)); bb.rotation.x = 0.2; this.j.chest.add(bb); this.parts.push(bb);
+      const lip = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.04, 8), mat(0x3e7a62)); lip.position.set(0, -0.04, -0.25 * (d.bulk || 1)); lip.rotation.x = 0.2; this.j.chest.add(lip); this.parts.push(lip); // verdigris at the lip
+      this._part('chest', box(0.05, 0.08, 0.05), 0x3e7a62, 0, 0.26, -0.2 * (d.bulk || 1)); // the crown loop
+      this._part('chest', box(0.06, 0.06, 0.06), 0x2a2a20, 0, -0.06, -0.26 * (d.bulk || 1)); // the clapper
+      for (const sx of [-1, 1]) this._part('chest', box(0.04, 0.36, 0.04), 0x4a3a24, sx * 0.12, 0.12, 0.13 * (d.bulk || 1), { rz: sx * 0.15 }); // the straps
+    }
+    if (d.barnacles) for (const [j, x, y, z] of [['shL', 0.04, 0.03, 0.03], ['shL', -0.03, 0.04, -0.04], ['shR', 0.02, 0.04, 0.04], ['elL', 0.05, -0.1, 0], ['chest', 0.12, 0.2, 0.13], ['hipR', -0.06, -0.2, 0.05]]) this._part(j, box(0.06, 0.05, 0.06), d.barnacles, x, y, z);
+    // Mother Wren: a white choir ruff at the collar
+    if (d.ruff) { this._part('chest', box(0.4, 0.07, 0.3), d.ruff, 0, 0.29, 0); this._part('chest', box(0.34, 0.05, 0.26), 0xc8c0b6, 0, 0.25, 0.01); }
     if (d.offhand === 'lantern') {
       const l = this._part('haL', box(0.12, 0.16, 0.12), 0xffc060, 0, -0.16, 0.04, { glow: 3 }); this.lantern = l;
     } else if (d.offhand === 'shield') {
@@ -126,16 +172,21 @@ export class Rig {
   _cloak(d) {
     // three hanging segments from the back of the shoulders, plus a mantle over them
     const C = d.colors; const col = C.cloak; const bulk = d.bulk || 1;
-    this._part('chest', box(0.46 * bulk, 0.1, 0.3 * bulk), col, 0, 0.27, -0.01, { emissive: d.cloakGlow || 0 });
-    for (const sx of [-1, 1]) this._part('chest', box(0.1, 0.18, 0.26 * bulk), col, sx * 0.23 * bulk, 0.18, 0, { emissive: d.cloakGlow || 0 });
-    const segs = []; let parent = this.j.chest; let y = 0.28;
-    const lens = d.cloakLen || [0.36, 0.36, 0.34]; const widths = [0.48, 0.54, 0.6];
+    if (d.scarf) { // a scarf wound at the neck, its tails hanging off one shoulder blade (the segments below)
+      this._part('chest', box(0.3, 0.09, 0.27), col, 0, 0.32, 0, { emissive: d.cloakGlow || 0 });
+      this._part('chest', box(0.26, 0.06, 0.24), C.cloakDark || col, 0, 0.38, 0.01);
+    } else {
+      this._part('chest', box(0.46 * bulk, 0.1, 0.3 * bulk), col, 0, 0.27, -0.01, { emissive: d.cloakGlow || 0 });
+      for (const sx of [-1, 1]) this._part('chest', box(0.1, 0.18, 0.26 * bulk), col, sx * 0.23 * bulk, 0.18, 0, { emissive: d.cloakGlow || 0 });
+    }
+    const segs = []; let parent = this.j.chest; let y = d.scarf ? 0.33 : 0.28;
+    const lens = d.cloakLen || [0.36, 0.36, 0.34]; const widths = d.cloakW || [0.48, 0.54, 0.6];
     for (let i = 0; i < lens.length; i++) {
-      const g = new THREE.Group(); g.position.set(0, i === 0 ? y : -lens[i - 1], i === 0 ? -0.13 * bulk : 0); parent.add(g);
+      const g = new THREE.Group(); g.position.set(i === 0 && d.scarf ? 0.07 : 0, i === 0 ? y : -lens[i - 1], i === 0 ? -0.13 * bulk : 0); parent.add(g);
       const m = new THREE.Mesh(box(widths[i] * bulk, lens[i], 0.035), mat(i % 2 ? col : (C.cloakDark || col), d.cloakGlow || 0, 1));
       m.position.y = -lens[i] / 2; g.add(m); this.parts.push(m);
       // side flaps that wrap around a little
-      for (const sx of [-1, 1]) { const f = new THREE.Mesh(box(0.035, lens[i], 0.12), mat(C.cloakDark || col, d.cloakGlow || 0, 1)); f.position.set(sx * widths[i] * bulk / 2, -lens[i] / 2, 0.05); g.add(f); this.parts.push(f); }
+      if (!d.scarf) for (const sx of [-1, 1]) { const f = new THREE.Mesh(box(0.035, lens[i], 0.12), mat(C.cloakDark || col, d.cloakGlow || 0, 1)); f.position.set(sx * widths[i] * bulk / 2, -lens[i] / 2, 0.05); g.add(f); this.parts.push(f); }
       segs.push(g); parent = g;
     }
     this.cloak = segs;
@@ -147,6 +198,7 @@ export class Rig {
     const hp = PLAN.hips; this.j.hips.position.set(hp[0] + (p.hipsX || 0), hp[1] + (p.hipsY || 0), hp[2] + (p.hipsZ || 0));
     if (p.hips) this.j.hips.rotation.set(p.hips[0], p.hips[1], p.hips[2]);
     if (p.weapon) this.weapon.rotation.set(p.weapon[0], p.weapon[1], p.weapon[2]); else this.weapon.rotation.set(0, 0, 0);
+    if (this.weaponL) { const wl = p.weaponL || p.weapon; if (wl) this.weaponL.rotation.set(wl[0], wl[1], wl[2]); else this.weaponL.rotation.set(0, 0, 0); }
     this.body.rotation.set(p.bodyRx || 0, p.bodyRy || 0, p.bodyRz || 0); this.body.position.set(0, p.bodyY || 0, p.bodyZ || 0);
   }
 

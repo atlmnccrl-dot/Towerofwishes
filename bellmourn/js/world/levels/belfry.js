@@ -34,7 +34,7 @@ export default {
     { t: 'warden', x: 6, z: -17.6 }, { t: 'hushed', x: 6.2, z: -20.2 }, { t: 'crossbow', x: 12.1, z: -22.7 },
   ],
   encounters: [
-    { id: 'crossing', zone: [-1.5, -6.5, 9.4, -1], gates: ['leadsGate'], opens: ['bridgeGate'], msg: 'THE BELL WARDENS RAISE THEIR SHIELDS', done: 'THE BRIDGE GATE SWINGS OPEN',
+    { id: 'crossing', zone: [-1.5, -6.5, 9.4, -1], gates: ['leadsGate'], opens: ['bridgeGate'], msg: 'THE OATH-SWORN WARDENS RAISE THEIR SHIELDS', /* PROPOSAL: the Bell Warden foes are the fallen who swore the Oath of Silence */ done: 'THE BRIDGE GATE SWINGS OPEN',
       waves: [
         { pre: true, foes: [{ t: 'warden', x: 3.6, z: -6.6, face: 0 }, { t: 'hushed', x: 0.6, z: -3.4 }, { t: 'hushed', x: 6.6, z: -2.8 }, { t: 'acolyte', x: 7.8, z: -8.8, face: 0 }] },
         { foes: [{ t: 'brute', x: 3.8, z: -7.6 }, { t: 'hushed', x: -0.6, z: -7.4 }, { t: 'crossbow', x: 9, z: -9.9 }] },

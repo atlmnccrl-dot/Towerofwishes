@@ -594,3 +594,145 @@ export function crag(seed = 42, tone = '#4c5462') {
     return toTexture(c);
   });
 }
+
+// ================================================================ Act III: the Wheel
+// Marsh mud: black-green silt, wet hollows holding a skin of water that glints, a crust of pale dried
+// silt in cracks on the rises, rotten leaves and root threads.
+export function mud(seed = 51, tone = '#2e3226') {
+  return cached('mud' + seed + tone, () => {
+    const W = 64, H = 64; const [c, g] = canvas(W, H); const r = rng(seed); const n1 = vnoise(seed, W, H, 16), n2 = vnoise(seed + 2, W, H, 6);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const v = n1(x, y) * 0.75 + n2(x, y) * 0.25; let f;
+      if (v < 0.34) f = 0.62 + v * 0.3;               // wet hollow
+      else f = 0.86 + v * 0.26 + (r() - 0.5) * 0.05;  // the rise
+      f = Math.round(f * 16) / 16; g.fillStyle = shade(tone, f); g.fillRect(x, y, 1, 1);
+      if (v < 0.3 && r() < 0.03) px(g, x, y, '#6a7a78');          // a glint on the wet skin
+    }
+    for (let k = 0; k < 9; k++) { // cracks in the dried crust
+      let x = r() * W, y = r() * H, a = r() * 6.3; for (let s = 0; s < 6 + r() * 8; s++) { if (n1(x | 0, y | 0) > 0.42) px(g, ((x | 0) + W) % W, ((y | 0) + H) % H, shade(tone, 0.55)); a += (r() - 0.5) * 1.2; x += Math.cos(a); y += Math.sin(a); }
+    }
+    for (let k = 0; k < 14; k++) { const x = (r() * W) | 0, y = (r() * H) | 0; px(g, x, y, '#4a3a22'); if (r() < 0.5) px(g, (x + 1) % W, y, '#3a2c1a'); } // rotten leaves
+    speckle(g, r, W, H, [shade('#4e5a34', 0.9), shade(tone, 1.25)], 0.012);
+    return toTexture(c);
+  });
+}
+
+// Moss: a deep pelt in clumps, lit crowns and dark hollows between them, sprigs of paler growth.
+export function moss(seed = 52, tone = '#3a4630') {
+  return cached('moss' + seed + tone, () => {
+    const W = 64, H = 64; const [c, g] = canvas(W, H); const r = rng(seed); const n1 = vnoise(seed, W, H, 8), n2 = vnoise(seed + 4, W, H, 3);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const v = n1(x, y) * 0.6 + n2(x, y) * 0.4; let f = 0.6 + v * 0.62; if (n2(x, (y + 1) % H) > n2(x, y) + 0.08) f *= 1.12;
+      f = Math.round(f * 14) / 14; g.fillStyle = shade(tone, f); g.fillRect(x, y, 1, 1);
+    }
+    for (let k = 0; k < 40; k++) { const x = (r() * W) | 0, y = (r() * H) | 0; px(g, x, y, shade('#7a8a4a', 0.8 + r() * 0.3)); px(g, x, (y + 1) % H, shade(tone, 0.6)); }
+    return toTexture(c);
+  });
+}
+
+// Rotten boards (they run along X): grey-brown planks with dark gaps, soft black rot at the ends,
+// moss creeping along the seams, rusted nail heads and the odd board gone.
+export function rotwood(seed = 53, tone = '#4c4236') {
+  return cached('rotwood' + seed + tone, () => {
+    const W = 64, H = 32; const [c, g] = canvas(W, H); const r = rng(seed); const n1 = vnoise(seed, W, H, 8);
+    for (let b = 0; b < 6; b++) {
+      const y0 = Math.round(b * H / 6), y1 = Math.round((b + 1) * H / 6); const f = 0.78 + r() * 0.3, gone = r() < 0.08; const j = (r() * W) | 0;
+      for (let y = y0; y < y1; y++) for (let x = 0; x < W; x++) {
+        const seam = y === y1 - 1, xj = (x - j + W) % W; let col;
+        if (gone) col = '#06080a';
+        else if (seam) col = r() < 0.25 ? '#3e4a2a' : shade(tone, 0.38);
+        else {
+          let k = f * (0.9 + n1(x, y) * 0.18) * (y === y0 ? 1.12 : 1); if (xj < 2) k *= 0.5; // butt joint
+          if (xj < 7 && n1(x, y) < 0.45) k *= 0.62;                                          // rot at the board's end
+          if (((x * 3 + y * 7 + b) % 11) === 0) k *= 0.9;                                     // grain
+          col = shade(tone, k);
+        }
+        px(g, x, y, col);
+      }
+      if (!gone) { px(g, (j + 3) % W, y0 + 1, '#5a3a24'); px(g, (j + W - 3) % W, y0 + 1, '#5a3a24'); }
+    }
+    for (let k = 0; k < 10; k++) { const x = (r() * W) | 0, y = ((r() * 6) | 0) * (H / 6) | 0; for (let i = 0; i < 3 + r() * 4; i++) px(g, (x + i) % W, (y + (r() < 0.5 ? 0 : 1)) % H, shade('#55663a', 0.8 + r() * 0.4)); }
+    return toTexture(c);
+  });
+}
+
+// Brass plates (2 m panels): a lit top and left edge, shaded bottom and right, rivets round the edge,
+// a brushed grain, scratches and blooms of green patina.
+export function brass(seed = 54, tone = '#8a6a34') {
+  return cached('brass' + seed + tone, () => {
+    const W = 64, H = 64; const [c, g] = canvas(W, H); const r = rng(seed); const n1 = vnoise(seed, W, H, 16);
+    for (let py = 0; py < 2; py++) for (let pxi = 0; pxi < 2; pxi++) {
+      const x0 = pxi * 32, y0 = py * 32, f = 0.86 + r() * 0.2;
+      for (let y = y0; y < y0 + 32; y++) for (let x = x0; x < x0 + 32; x++) {
+        const ex = x - x0, ey = y - y0; let k = f * (0.92 + n1(x, y) * 0.14) * (((y * 5 + (x >> 2)) % 7) === 0 ? 0.96 : 1);
+        if (ex === 0 || ey === 0) k = f * 1.32; else if (ex === 31 || ey === 31) k = f * 0.46; else if (ex === 1 || ey === 1) k *= 1.1;
+        px(g, x, y, shade(tone, k));
+      }
+      for (let i = 3; i < 32; i += 7) for (const [a, b] of [[i, 3], [i, 28], [3, i], [28, i]]) { px(g, x0 + a, y0 + b, shade(tone, 1.45)); px(g, x0 + a + 1, y0 + b + 1, shade(tone, 0.5)); }
+    }
+    for (let k = 0; k < 6; k++) { let x = r() * W, y = r() * H; const dx = r() * 2 - 1, dy = r() * 0.4; for (let s = 0; s < 5 + r() * 8; s++) { px(g, ((x | 0) + W) % W, ((y | 0) + H) % H, shade(tone, 1.3)); x += dx; y += dy; } }
+    for (let k = 0; k < 7; k++) { const cx = r() * W, cy = r() * H, rr = 1 + r() * 2.5; for (let y = -3; y <= 3; y++) for (let x = -3; x <= 3; x++) if (Math.hypot(x, y) < rr && r() < 0.7) px(g, (((cx + x) | 0) + W) % W, (((cy + y) | 0) + H) % H, r() < 0.5 ? '#3e6a58' : '#2e5446'); }
+    return toTexture(c);
+  });
+}
+
+// An iron grating over the drop: bars and a frame, the gaps black-violet with the depth below.
+export function grate(seed = 55, tone = '#3a3e48') {
+  return cached('grate' + seed + tone, () => {
+    const W = 32, H = 32; const [c, g] = canvas(W, H); const r = rng(seed);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const frame = x < 2 || y < 2; const bar = x % 4 === 0 || y % 4 === 0;
+      let col; if (frame) col = shade(tone, x === 0 || y === 0 ? 1.3 : 0.9); else if (bar) col = shade(tone, (y % 4 === 0 ? 1.15 : 0.85) * (0.9 + r() * 0.15)); else col = (x + y) % 2 ? '#0c0a14' : '#120e1c';
+      px(g, x, y, col);
+    }
+    for (let k = 0; k < 8; k++) { const x = (r() * W) | 0, y = ((r() * 8) | 0) * 4; px(g, x, y, '#6a4a2a'); } // rust
+    return toTexture(c);
+  });
+}
+
+// Tread plate: steel with raised diamond lugs in alternate directions, panel seams and rivets.
+export function tread(seed = 56, tone = '#4a4e5a') {
+  return cached('tread' + seed + tone, () => {
+    const W = 32, H = 32; const [c, g] = canvas(W, H); const r = rng(seed); const n1 = vnoise(seed, W, H, 8);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      let k = 0.86 + n1(x, y) * 0.12; const cx = x % 4, cy = y % 4; const alt = ((x >> 2) + (y >> 2)) % 2;
+      if ((alt ? cx === cy : cx === 3 - cy) && cx > 0 && cx < 3) k = 1.3; else if ((alt ? cx === cy + 1 : cx === 4 - cy) && cx > 1) k = 0.62;
+      if (x === 0 || y === 0) k = 0.42; if (x === 1 || y === 1) k = 1.15;
+      px(g, x, y, shade(tone, k));
+    }
+    for (const [a, b] of [[3, 3], [28, 3], [3, 28], [28, 28]]) { px(g, a, b, shade(tone, 1.5)); px(g, a + 1, b + 1, shade(tone, 0.45)); }
+    speckle(g, r, W, H, ['#5a3e2a'], 0.01);
+    return toTexture(c);
+  });
+}
+
+// Heaven's marble: great white slabs (2 m) jointed with thin gold, soft grey veins and a few of gold.
+export function marble(seed = 57, tone = '#d8d2c6') {
+  return cached('marble' + seed + tone, () => {
+    const W = 64, H = 64; const [c, g] = canvas(W, H); const r = rng(seed); const n1 = vnoise(seed, W, H, 16), n2 = vnoise(seed + 7, W, H, 32);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const slab = ((x >> 5) + (y >> 5) * 2); const vein = Math.abs(Math.sin((x * 0.21 + y * 0.13 + slab * 3) + n2(x, y) * 7));
+      let k = 0.94 + n1(x, y) * 0.08 + (slab % 3) * 0.02; if (vein < 0.06) k = 0.78; else if (vein < 0.12) k = 0.88;
+      k = Math.round(k * 24) / 24; px(g, x, y, shade(tone, k));
+      if (vein < 0.04 && n1(x, y) > 0.62) px(g, x, y, '#c8a050');
+    }
+    for (let i = 0; i < W; i++) { px(g, i, 0, '#b08a3c'); px(g, i, 32, '#b08a3c'); px(g, 0, i, '#b08a3c'); px(g, 32, i, '#b08a3c'); px(g, i, 1, shade(tone, 1.06)); px(g, i, 33, shade(tone, 1.06)); }
+    for (let k = 0; k < 10; k++) px(g, (r() * W) | 0, (r() * H) | 0, '#f4efe4');
+    return toTexture(c);
+  });
+}
+
+// Gilt: beaten gold with an engraved key pattern in a band, for trims, steps and kerbs.
+export function gilt(seed = 58, tone = '#b08a3c') {
+  return cached('gilt' + seed + tone, () => {
+    const W = 32, H = 16; const [c, g] = canvas(W, H); const r = rng(seed); const n1 = vnoise(seed, W, H, 8);
+    const KEY = ['11111111', '10000001', '10111101', '10100101', '10100001', '10111111', '10000000', '11111111'];
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      let k = 0.9 + n1(x, y) * 0.2; if (y === 0) k = 1.35; else if (y === H - 1) k = 0.55;
+      else if (y >= 4 && y < 12 && KEY[y - 4][x % 8] === '1') k *= 0.72;
+      px(g, x, y, shade(tone, Math.round(k * 12) / 12));
+    }
+    for (let k = 0; k < 6; k++) px(g, (r() * W) | 0, 1 + ((r() * (H - 2)) | 0), '#fff0b8');
+    return toTexture(c);
+  });
+}

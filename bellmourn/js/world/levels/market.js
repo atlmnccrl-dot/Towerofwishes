@@ -9,8 +9,12 @@ export default {
   start: { x: 0, z: 15.5, face: Math.PI },
   bounds: [-56.6, -46, 14, 18],
   gatesOpen: ['marketGate', 'yardGate'],
+  apron: false, // its own ground beyond the map (below)
+  // amber: the candles' light everywhere, warm haze, soft rain (district variety: no two districts share a palette)
   ambience: {
-    fog: 0x1e2632, fogNear: 78, fogFar: 175, sky: 0x0b0f17, moon: 1.7, hemi: 0.95, rain: 1, lightning: true,
+    fog: 0x2a2220, fogNear: 78, fogFar: 175, sky: 0x100c0a, moon: 1.4, moonColor: 0xc0aa92, hemi: 0.95, hemiSky: 0x6a5444, hemiGround: 0x1a1008,
+    fill: 1.2, fillColor: 0x9a8070, ambient: 0x2a1c14, ambientI: 0.6, rain: 0.7, lightning: false,
+    grade: { gain: [1.06, 1.0, 0.9], lift: [0.01, 0.006, 0.002], sat: 0.95, exposure: 1.08 },
     beams: [{ x: -2.5, z: -7, r: 6, h: 26, from: [6, 0, -10], intensity: 70 }, { x: -46, z: -31.5, r: 8, h: 28, from: [6, 0, -10], intensity: 85 }],
   },
   lamps: [{ id: 'row', x: -5.6, z: 6, sx: 1.3, sz: 0.4 }, { id: 'works', x: -25.6, z: -29.8, sx: 1.2, sz: 0.6 }],
@@ -43,16 +47,18 @@ export default {
   boss: { type: 'tallow', x: -46, z: -31.5, face: Math.PI / 2, zone: [-54.4, -41.2, -36.4, -22.2], gates: ['squareGate'], opens: ['exitGate'] },
   exit: { zone: [-47.65, -46, -46.55, -43.4], to: 'docks', requires: 'boss' },
   build(K, ctx) {
-    // ------------------------------------------------ ground and water
-    K.floor(ctx, -12, 0.6, 5.5, 27, K.M.cobble('#545e6c'));
-    K.floor(ctx, -16.5, -15.5, 5.5, 0.6, K.M.cobble('#56606e'));
-    K.floor(ctx, -10.5, -15, 5, 0.6, K.M.court('#5e6876'), 0.02, 0.42);
-    K.floor(ctx, 11.5, -36, 18, 27, K.M.cobble('#505a68'));
-    K.floor(ctx, -28, -44, 11.5, -21, K.M.cobble('#545e6c'));
-    K.floor(ctx, -13, -29.9, 11, -21.5, K.M.flags('#5a6472'), 0.02, 0.42);
-    K.floor(ctx, -66, -50, -35, -21, K.M.cobble('#545e6c'));
-    K.floor(ctx, -55.8, -41.6, -35.6, -21.6, K.M.court('#5c6674'), 0.02, 0.42);
-    K.floor(ctx, -62, -15.5, -16.5, -2, K.M.cobble('#4c5664'));
+    K.district(ctx, 'market');
+    // ------------------------------------------------ ground and water: basket-weave brick, warm setts on the squares
+    K.floor(ctx, -12, 0.6, 5.5, 27, K.MC.herring('#7a4a38'));
+    K.floor(ctx, -16.5, -15.5, 5.5, 0.6, K.MC.herring('#664434'));
+    K.floor(ctx, -10.5, -15, 5, 0.6, K.MC.setts('#7a6650'), 0.02, 0.42);
+    K.floor(ctx, 11.5, -36, 18, 27, K.MC.herring('#5a3e32'));
+    K.floor(ctx, -28, -44, 11.5, -21, K.MC.herring('#664434'));
+    K.floor(ctx, -13, -29.9, 11, -21.5, K.M.flags('#6e6252'), 0.02, 0.42);
+    K.floor(ctx, -66, -50, -35, -21, K.MC.herring('#664434'));
+    K.floor(ctx, -55.8, -41.6, -35.6, -21.6, K.MC.setts('#7a6650'), 0.02, 0.42);
+    K.floor(ctx, -62, -15.5, -16.5, -2, K.MC.herring('#56392e'));
+    P.candleTower(ctx, -20.2, -7.2); // the landmark: over the market roofs
     P.canal(ctx, 5.5, -15.5, 11.5, 26); P.canal(ctx, -62, -21, 11.5, -15.5); P.canal(ctx, -35, -50, -28, -21);
     P.waterSolid(ctx, 5.5, -15.5, 11.5, 26); P.waterSolid(ctx, -62, -21, -2.3, -15.5); P.waterSolid(ctx, 1.8, -21, 11.5, -15.5);
     P.waterSolid(ctx, -35, -50, -28, -27.3); P.waterSolid(ctx, -35, -24.7, -28, -21);
@@ -202,6 +208,7 @@ export default {
 
     // ------------------------------------------------ last: the water's ripples and the lamps' reflections on it
     P.ripples(ctx, [[5.5, -15.5, 11.5, 26], [-62, -21, 11.5, -15.5], [-35, -50, -28, -21]]);
+    K.apron(ctx, this.bounds, K.MC.herring('#3a2a24')); // beyond the map, the water left open (it used to be covered)
     P.finish(ctx);
   },
 };
