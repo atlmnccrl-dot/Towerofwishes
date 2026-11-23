@@ -2,6 +2,7 @@
 // HOLLOWLANDS — shared helpers: math, deterministic noise, canvases, the pixel font.
 const HL = (window.HL = {});
 
+HL.BUILD = '0.6.1';
 HL.TAU = Math.PI * 2;
 HL.clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 HL.lerp = (a, b, t) => a + (b - a) * t;

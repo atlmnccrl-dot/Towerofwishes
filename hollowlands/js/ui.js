@@ -91,11 +91,15 @@ UI.drawControls = (g, G) => {
   const P = P_, I = HL.Input, near = G.prompt;
   for (const c of I.layout) {
     const held = I.st.btn[c.id] && I.st.btn[c.id].held;
-    if (c.id === 'ult' && G.eq.relic !== 'bell_shard') continue;
+    const lock = UI.lockOf(c.id, G);
     if (c.id === 'interact' && !near) continue;
     const owned = Object.keys(HL.WEAPONS).filter((w) => G.inv[w]);
-    if (c.id === 'swap' && owned.length < 2) continue;
-    if (c.id === 'skill' && !G.flags['sigil:burst']) continue;
+    if (lock) { // shown from the start, dimmed and locked until earned
+      HL.discDither(g, c.x, c.y, c.r, P.ink, 0.35); HL.ringPx(g, c.x, c.y, c.r, P.cream3, 1);
+      g.fillStyle = P.cream2; g.fillRect(c.x - 2, c.y - 1, 5, 4); g.fillRect(c.x - 1, c.y - 3, 1, 2); g.fillRect(c.x + 1, c.y - 3, 1, 2); g.fillRect(c.x - 1, c.y - 4, 3, 1);
+      HL.text(g, { swap: 'swap', skill: 'light', ult: 'ult' }[c.id], c.x, c.y + c.r + 2, P.cream3, 0.5, 1, P.ink);
+      continue;
+    }
     const full = c.id === 'ult' && G.player.ult >= 100;
     HL.discDither(g, c.x, c.y, c.r, held ? P.cream3 : P.ink, held ? 0.6 : 0.45);
     HL.ringPx(g, c.x, c.y, c.r, full ? P.lt0 : held ? P.cream : P.cream3, 1);
@@ -134,6 +138,13 @@ UI.drawControls = (g, G) => {
   } else if (G.time < 40 && G.state === 'play') { HL.ringPx(g, 42 + G.safe.l, G.H - 40 - G.safe.b, 20, P.cream3, 1); HL.text(g, 'move', 42 + G.safe.l, G.H - 43 - G.safe.b, P.cream3, 0.5); }
 };
 
+// which on-screen buttons are still locked, and how to earn them
+UI.lockOf = (id, G) => {
+  if (id === 'ult') return G.eq.relic !== 'bell_shard' ? 'ULTIMATE: find the Bell Shard in the vault under the tower, then fill this by fighting.' : null;
+  if (id === 'skill') return !G.flags['sigil:burst'] ? 'LIGHT SKILL: awaken the Shrine of Trials (forest clearing south of the road).' : null;
+  if (id === 'swap') return Object.keys(HL.WEAPONS).filter((w) => G.inv[w]).length < 2 ? 'SWAP: find a second weapon. There is a spear in the storehouse and blades in a house.' : null;
+  return null;
+};
 // ------------------------------------------------------------------ HUD
 UI.drawHUD = (g, G, dt) => {
   const P = P_, p = G.player, m = 8 + G.safe.l, t = 8 + G.safe.t;
@@ -401,7 +412,7 @@ UI.drawSystem = (g, G) => {
   UI.button(g, 'Guide arrow: ' + (G.settings.guide ? 'on' : 'off'), x, 106, () => { G.settings.guide = !G.settings.guide; }, { w: 120 });
   UI.button(g, 'Watch the opening', x, 128, () => { G.closeMenu(); G.playCut('intro'); }, { w: 120 });
   UI.button(g, 'Return to title', x, 150, () => { G.save(); G.toTitle(); }, { w: 120 });
-  HL.text(g, 'Playtime ' + Math.floor((G.playtime || 0) / 60) + ' min   ·   Keys: WASD  J attack (hold J + move: aim)  Space dash  E use  Q item  R ult', G.W / 2, 172, P.cream3, 0.5);
+  HL.text(g, 'Build ' + HL.BUILD + '   ·   Playtime ' + Math.floor((G.playtime || 0) / 60) + ' min   ·   Keys: WASD  J attack (hold J + move: aim)  Space dash  E use  Q item  R ult', G.W / 2, 172, P.cream3, 0.5);
 };
 
 // ------------------------------------------------------------------ dialogue, notes, fire, anvil, death, title
@@ -472,7 +483,7 @@ UI.drawTitle = (g, G) => {
   UI.button(g, has ? 'New journey' : 'Begin', cx - 55, y, () => { if (has && !G.confirmNew) { G.confirmNew = true; UI.toast('Tap again to start over. Your save will be replaced.'); return; } G.newGame(); }, { w: 110 });
   y += 22;
   UI.button(g, 'Sound: ' + (HL.Audio.muted ? 'off' : 'on'), cx - 55, y, () => { HL.Audio.setMuted(!HL.Audio.muted); G.settings.mute = HL.Audio.muted; }, { w: 110 });
-  HL.text(g, 'working title · vertical slice 0.1', cx, G.H - 12 - G.safe.b, P.cream3, 0.5, 1, P.ink);
+  HL.text(g, 'working title · build ' + HL.BUILD, cx, G.H - 12 - G.safe.b, P.cream3, 0.5, 1, P.ink);
   if (UI.toastT > 0) { UI.toastT -= 1 / 60; HL.text(g, UI.toastMsg, cx, G.H - 26 - G.safe.b, P.cream, 0.5, 1, P.ink); }
 };
 UI.drawEnd = (g, G) => {

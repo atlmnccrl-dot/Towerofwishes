@@ -111,9 +111,9 @@ G.bindInput = function () {
     const p = G.toBuf(e);
     if (G.state !== 'play') { HL.UI.tap(p.x, p.y); return; }
     for (const c of I.layout) {
-      if (c.id === 'ult' && G.eq.relic !== 'bell_shard') continue;
+      const lock = HL.UI.lockOf(c.id, G);
       if (c.id === 'interact' && !G.prompt) continue;
-      if (c.id === 'swap' && Object.keys(HL.WEAPONS).filter((w) => G.inv[w]).length < 2) continue;
+      if (lock && HL.dist(p.x, p.y, c.x, c.y) <= c.r + 5) { HL.UI.toast(lock, 4); Au.play('locked'); return; }
       if (HL.dist(p.x, p.y, c.x, c.y) <= c.r + 5) { I.st.btn[c.id] = { held: true, press: true, pid: e.pointerId, cx: c.x, cy: c.y, ax: null, ay: null }; capture(e.pointerId); return; }
     }
     if (p.x < G.W * 0.5) { I.st.joy = { pid: e.pointerId, ox: p.x, oy: p.y, dx: 0, dy: 0, mag: 0 }; capture(e.pointerId); }

@@ -29,6 +29,11 @@ On a phone, open the same address in landscape (or publish the folder to any sta
   C swap weapon · Tab pack · M map · Esc close.
 
 
+## Publishing
+
+`python3 tools/build.py` writes `dist/index.html`: the whole game in one file. Publish that file, so a
+phone can never run a new page with old cached scripts. The build number shows on the title screen.
+
 ## Tests
 
 ```sh
