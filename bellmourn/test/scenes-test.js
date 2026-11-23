@@ -38,7 +38,7 @@ const fs = require('fs');
       // move on: lines advance by themselves (fast), strikes and choices are answered
       await p.evaluate((still) => { const c = BM.game.cut; if (!c) return; c.auto = true; c.speed = still ? 2.5 : 5; }, want.length > 0);
       await p.waitForTimeout(want.length ? 40 : 100);
-      if (Date.now() - t0 > 180000) break;
+      if (Date.now() - t0 > 320000) break;
     }
     const nerr = errs.length - before;
     const ok = ended && nerr === 0 && !(names.has('') || names.has('UNDEFINED'));

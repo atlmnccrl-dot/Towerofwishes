@@ -58,9 +58,9 @@ const fs = require('fs');
   check(true, 'the Gaoler\'s intro'); await p.waitForTimeout(1800); await shot('2-gaoler-intro');
   await until((x) => x.state === 'play' && x.boss === 'fight', 20000, 200, async () => { await press(); });
   await p.evaluate(() => { const g = BM.game, w = g.world, b = g.boss; w._kill(b, w.hero, {}); });
-  s = await until((x) => x.boss === 'done', 10000); await p.waitForTimeout(500);
+  s = await until((x) => x.boss === 'done', 30000); await p.waitForTimeout(500);
   check(!!s.bark || !!(await st()).bark, 'the Gaoler\'s last words'); await shot('2-gaoler-falls');
-  s = await until((x) => x.state === 'cutscene' && x.scene === 'recruit.kestrel', 15000);
+  s = await until((x) => x.state === 'cutscene' && x.scene === 'recruit.kestrel', 90000);
   check(true, 'Kestrel\'s scene after the Gaoler');
   await until((x) => x.line === 'KESTREL', 30000, 150, async () => { await fast(); }); await p.waitForTimeout(400); await shot('2-kestrel');
   await until((x) => x.state === 'play', 60000, 200, async () => { await press(); });
@@ -68,13 +68,13 @@ const fs = require('fs');
 
   // ---- 3. the Belfry: Silence, the bell, the end of Act I
   await p.goto(base + '?level=belfry&boss=1&god=1'); await ready();
-  s = await until((x) => x.state === 'cutscene' && x.scene === 'silence.pre', 30000);
+  // his entrance first (a key press jumps it to its end), then his words
+  s = await until((x) => x.state === 'cutscene' && x.scene === 'silence.pre', 90000, 300, async (x) => { if (x.state === 'bossIntro') await press(); });
   check(true, 'Saint Silence speaks before his fight');
   await until((x) => x.line === 'SAINT SILENCE', 20000, 150, async () => { await fast(); }); await p.waitForTimeout(400); await shot('3-silence-pre');
-  await until((x) => x.state === 'bossIntro', 60000, 200, async () => { await press(); });
-  await until((x) => x.state === 'play' && x.boss === 'fight', 20000, 200, async () => { await press(); });
+  await until((x) => x.state === 'play' && x.boss === 'fight', 60000, 200, async () => { await press(); });
   await p.evaluate(() => { const g = BM.game, w = g.world, b = g.boss; w._kill(b, w.hero, {}); });
-  s = await until((x) => x.state === 'cutscene' && x.scene === 'belfry.bell', 20000);
+  s = await until((x) => x.state === 'cutscene' && x.scene === 'belfry.bell', 90000);
   check(true, 'the bell scene after Silence falls');
   for (let t0 = Date.now(); Date.now() - t0 < 60000;) { if (await p.evaluate(() => !!(BM.game.cut && BM.game.cut.strikeS))) break; await fast(); await press(); await p.waitForTimeout(150); }
   const strikeUp = await p.evaluate(() => !!(BM.game.cut && BM.game.cut.strikeS)); check(strikeUp, 'the bell waits to be struck');

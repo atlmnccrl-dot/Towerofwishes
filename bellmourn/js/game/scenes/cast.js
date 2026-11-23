@@ -47,9 +47,9 @@ export const FALLBACK_LOOKS = {
     extra: (rig, part, box) => { part('head', box(0.07, 0.07, 0.24), 0x22201e, 0, 0.1, 0.2); part('head', box(0.05, 0.04, 0.12), 0x34302a, 0, 0.06, 0.3); },
     colors: { skin: 0x3a3438, tunic: 0x30343c, pants: 0x1c1e24, boots: 0x101114, shoulder: 0x4a505a, glove: 0x2a2e36, cloak: 0x18181e, cloakDark: 0x111116, hood: 0x18181e }, bulk: 1.1 },
   // Vesper's brother, one of the Hushed: small, hooded, no blade
-  tam: { weapon: 'none', hood: true, eyes: 0xff2a20, scale: 0.78, colors: { skin: 0x5a5458, tunic: 0x343844, pants: 0x24262e, boots: 0x16161a, hood: 0x30343e, glove: 0x24262c } },
+  tam: { weapon: 'none', hood: true, eyes: 0xff2a20, scale: 0.78, freed: { hood: false, colors: { skin: 0xe0c0a8, hair: 0x2a1c18, tunic: 0x4a6a60, pants: 0x34403c, boots: 0x201c18, glove: 0xd0b098 } }, colors: { skin: 0x5a5458, tunic: 0x343844, pants: 0x24262e, boots: 0x16161a, hood: 0x30343e, glove: 0x24262c } },
   // a Hushed after the toll: the red gone from the eyes
-  freed: { weapon: 'none', hood: true, colors: { skin: 0x8a7e78, tunic: 0x3a3e4a, pants: 0x262830, boots: 0x16161a, hood: 0x343844, glove: 0x2a2c32 } },
+  freed: { weapon: 'none', hood: false, colors: { skin: 0xd8b8a0, hair: 0x6a5040, tunic: 0x7a6a58, pants: 0x4a4440, boots: 0x2a2420, glove: 0xb89880 } },
   // a Hushed in the city: hooded, red-eyed, no blade (the scenes never arm them)
   hushed: { weapon: 'none', hood: true, eyes: 0xff2a20, colors: { skin: 0x4a4448, tunic: 0x2a2e38, pants: 0x1e2028, boots: 0x121216, hood: 0x252933, glove: 0x181a20 } },
   // the Voice in the Bell: a tall figure of light

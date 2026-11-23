@@ -304,7 +304,7 @@ export class Cutscene {
   // ---- drawing
   draw(ui) {
     const W = ui.w, H = ui.h, k = ease(this.bars); const sl = Math.round(ui.safe.l), sr = Math.round(ui.safe.r);
-    const L = this.line; const boxH = L ? 36 : 0;
+    const L = this.line; const boxH = L || this.strikeS ? 36 : 0;
     const top = Math.round(H * 0.11 * k), bot = Math.round(Math.max(H * 0.11, boxH) * k);
     if (top > 0) { ui.rect(0, 0, W, top, '#000'); ui.rect(0, H - bot, W, bot, '#000'); }
     // the speaker: a small mark over their head
@@ -332,18 +332,21 @@ export class Cutscene {
     }
     // a choice: big buttons in the middle, the prompt over them
     if (this.pick) {
-      const P = this.pick; const n = P.options.length; const bw = Math.min(W - sl - sr - 24, 220); const bh = Math.max(18, Math.min(24, Math.floor((H - top - bot - 30) / n) - 4));
+      const P = this.pick; const n = P.options.length; const bw = Math.min(W - sl - sr - 24, 270);
+      const fitT = (t) => { if (!t || ui.measure(t) <= bw - 10) return t; let x = t; while (x.length > 3 && ui.measure(x + '...') > bw - 10) x = x.slice(0, -1); return x.trim() + '...'; }; const bh = Math.max(18, Math.min(24, Math.floor((H - top - bot - 30) / n) - 4));
       const total = n * bh + (n - 1) * 4; let y = Math.round((H - total) / 2) + 6; const x = Math.round(W / 2 - bw / 2);
       ui.veil(0.35);
       if (P.prompt) ui.wrap(P.prompt, W - 40).forEach((l, i, arr) => ui.text(l, W / 2, y - 12 - (arr.length - 1 - i) * 10, { align: 'center', color: COL.gold }));
-      P.rects = P.options.map((o, i) => { const r = ui.button(x, y + i * (bh + 4), bw, bh, o.label, { sel: i === P.sel, sub: o.sub, color: o.color }); return { ...r, i }; });
+      P.rects = P.options.map((o, i) => { const r = ui.button(x, y + i * (bh + 4), bw, bh, o.label, { sel: i === P.sel, sub: fitT(o.sub), color: o.color }); return { ...r, i }; });
     }
     // the bell: strike it
     if (this.strikeS) {
-      const T = this.strikeS; const a = 0.6 + 0.4 * Math.sin(this.t * 6); const touch = this.g.inputMode === 'touch';
+      // in the bottom bar: what to press, and a bell-mark for each strike (lit once struck)
+      const T = this.strikeS; const a = 0.7 + 0.3 * Math.sin(this.t * 6); const touch = this.g.inputMode === 'touch';
       const txt = T.prompt || (touch ? 'TAP TO STRIKE THE BELL' : (this.g.inputMode === 'pad' ? 'X: STRIKE THE BELL' : 'ATTACK (J): STRIKE THE BELL'));
-      ui.text(txt, W / 2, H - bot - 22, { align: 'center', scale: ui.measure(txt, 2) <= W - 20 ? 2 : 1, color: COL.gold, alpha: a });
-      for (let i = 0; i < T.n; i++) { const cx = Math.round(W / 2 + (i - (T.n - 1) / 2) * 12); ui.circle(cx, H - bot - 30 - 2, 3, i < T.i ? COL.gold : '#3a3226'); }
+      const by = H - bot; const sc = ui.measure(txt, 2) <= W - 40 && bot >= 30 ? 2 : 1;
+      ui.text(txt, W / 2, by + 4, { align: 'center', scale: sc, color: COL.gold, alpha: a, shadow: false });
+      for (let i = 0; i < T.n; i++) { const cx = Math.round(W / 2 + (i - (T.n - 1) / 2) * 12); ui.circle(cx, by + 7 * sc + 11, 3, i < T.i ? COL.gold : '#3a3226'); }
     }
     // SKIP, top right, inside the bar
     if (!this.pick && this.t > 0.25 && this.outT < 0) {

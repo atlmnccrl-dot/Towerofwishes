@@ -16,7 +16,7 @@ export default {
     fog: 0x161e2a, fogNear: 70, fogFar: 160, sky: 0x06090f, moon: 2.4, moonColor: 0xb4c8ec, hemi: 0.85, hemiSky: 0x56688c,
     fill: 1.3, fillColor: 0x7888b0, rain: 1.35, lightning: true,
     // storm-white: hard cold light, washed-out colour, the wind and the height (district variety)
-    grade: { gain: [0.95, 1.0, 1.1], lift: [0.004, 0.006, 0.012], sat: 0.66, exposure: 1.05 },
+    grade: { gain: [0.94, 1.0, 1.12], lift: [0.01, 0.012, 0.02], sat: 0.6, exposure: 1.12 },
     beams: [
       { x: 0.2, z: 7.5, r: 4.5, h: 26, from: [6, 0, -10], intensity: 55 },
       { x: 4, z: -5, r: 6, h: 28, from: [6, 0, -10], intensity: 75 },

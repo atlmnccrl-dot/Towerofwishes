@@ -7,7 +7,8 @@ import { heroP, bossP, toward, inZone, party, has } from './util.js';
 // The wardens gathered round the Haven fire (the lead kneels at the mat, the others stand in an arc).
 export function gathering(S) {
   const D = S.level.def; const F = D.fire; const ids = party(S).filter((id) => id !== S.lead);
-  const spots = [[0.2, 1.9], [1.05, 1.75], [-0.6, 1.95], [1.75, 1.2], [-1.25, 1.6], [2.1, 0.4]]; // offsets from the fire (screen-near side)
+  // round the fire, clear of the camera's line to it and of the kneeling mat (angles from +z toward +x)
+  const spots = [165, 200, 235, 305, 335, 0].map((d) => { const r = d * Math.PI / 180; return [Math.sin(r) * 2.2, Math.cos(r) * 2.2]; });
   const out = [spawn('lead', { use: 'hero', x: D.kneel.x, z: D.kneel.z, face: Math.atan2(F.x - D.kneel.x, F.z - D.kneel.z), anim: 'rest' })];
   ids.forEach((id, i) => { const o = spots[i % spots.length]; const p = { x: F.x + o[0], z: F.z + o[1] }; out.push(spawn(id, { hero: id, x: p.x, z: p.z, face: Math.atan2(F.x - p.x, F.z - p.z) })); });
   return out;

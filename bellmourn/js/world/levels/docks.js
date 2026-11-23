@@ -12,9 +12,9 @@ export default {
   apron: false, // the harbour stone runs on beyond the map (below)
   // sea fog: grey-green, cold whale-oil lamps, a drizzle off the water (district variety)
   ambience: {
-    fog: 0x1e2c2a, fogNear: 68, fogFar: 160, sky: 0x0a100f, moon: 1.4, moonColor: 0xa8c8c0, hemi: 0.95, hemiSky: 0x587a74, hemiGround: 0x0c1412,
+    fog: 0x1e2c2a, fogNear: 68, fogFar: 160, sky: 0x0a100f, moon: 1.7, moonColor: 0xa8c8c0, hemi: 0.95, hemiSky: 0x587a74, hemiGround: 0x0c1412,
     fill: 1.2, fillColor: 0x7a9a94, ambient: 0x142220, ambientI: 0.6, rain: 0.5, lightning: false,
-    grade: { gain: [0.94, 1.03, 1.0], lift: [0.004, 0.01, 0.01], sat: 0.72 },
+    grade: { gain: [0.94, 1.03, 1.0], lift: [0.006, 0.012, 0.012], sat: 0.74, exposure: 1.14 },
     beams: [{ x: 0, z: 11.5, r: 4.6, h: 26, from: [6, 0, -10], intensity: 65 }, { x: -0.5, z: -45, r: 7.5, h: 28, from: [6, 0, -10], intensity: 80 }],
   },
   lamps: [{ id: 'landing', x: -5.5, z: 10.4, sx: 1.3, sz: 0.4 }, { id: 'quay', x: -2.8, z: -33.2, sx: 1.3, sz: 0.5 }],

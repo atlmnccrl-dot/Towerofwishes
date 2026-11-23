@@ -41,9 +41,9 @@ export const finalChoice = {
       call((cs) => { cs.g.sound.play('roar'); if (cs.g.settings.shake) cs.g.r.shake(0.6, 1); cs.g.atmos.flash(0.8); }),
       say('voice', 'CHOOSE QUICKLY. THE WHEEL WILL NOT LET YOU CHOOSE IN PEACE.'),
       choice('final', [
-        { id: 'ring', label: 'RING', sub: 'BIND THE VOICE AGAIN: THE DAWN AS IT WAS' },
-        { id: 'silence', label: 'SILENCE', sub: 'LET IT DIE: A GENTLE, ENDLESS NIGHT', color: '#b8b4c8' },
-        { id: 'sing', label: 'SING', sub: 'EVERY VOICE SINGS WITH IT: A NEW DAWN', color: '#ffe8a8', when: song },
+        { id: 'ring', label: 'RING', sub: 'BIND IT AGAIN: THE DAWN AS IT WAS' },
+        { id: 'silence', label: 'SILENCE', sub: 'LET IT DIE: AN ENDLESS NIGHT', color: '#b8b4c8' },
+        { id: 'sing', label: 'SING', sub: 'ALL VOICES SING WITH IT: A NEW DAWN', color: '#ffe8a8', when: song },
       ], { prompt: 'WHAT WILL YOU DO?' }),
       call((cs) => {
         const c = cs.result.final; const L = { ring: 'THEN WE RING. AS WARDENS ALWAYS HAVE.', silence: '...THEN REST. I WILL HOLD THE BELL STILL.', sing: 'THEN SING WITH US. ALL OF US.' }[c] || '';
@@ -160,7 +160,7 @@ export const ngplus = {
     say(S.lead === 'lamplighter' ? 'lead' : 'ash', 'THE FIRE STILL BURNS. IT WILL, WHILE SOMEONE TENDS IT.'),
     say(S.lead === 'lamplighter' ? 'lead' : 'ash', 'BUT THE NIGHT REMEMBERS. ITS SERVANTS WILL RISE AGAIN, STRONGER.'),
     choice('ngplus', [
-      { id: 'ng', label: 'BEGIN NEW GAME+', sub: 'KEEP LEVELS AND GEAR. BOSSES RETURN ASCENDED' },
+      { id: 'ng', label: 'BEGIN NEW GAME+', sub: 'KEEP LEVELS AND GEAR; BOSSES ASCEND' },
       { id: 'title', label: 'REST BY THE FIRE', sub: 'RETURN TO THE TITLE' },
     ], { prompt: 'THE ROAD OPENS AGAIN' }),
   ],

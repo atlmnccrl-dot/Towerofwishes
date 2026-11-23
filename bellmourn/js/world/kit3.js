@@ -162,7 +162,7 @@ export function barrier3(ctx, x, z, width = 3, axis = 'x', style = 'roots', o = 
   const fixed = (g, m, lx, ly, lz, oo = {}) => { const ry = alongX ? 0 : Math.PI / 2; const c = Math.cos(ry), s = Math.sin(ry); return add(ctx, g, m, x + lx * c + lz * s, ly, z - lx * s + lz * c, { ...oo, ry: ry + (oo.ry || 0) || undefined }); };
   let travel = h + 0.5; const fx = []; // fx: extra things that follow t (opacity by k)
   if (style === 'roots') {
-    const bark = M.flat(0x1c1914), bark2 = M.flat(0x2a241a), mossC = M.flat(0x4a5a3a), bronze = once('k3-drbell', () => cutout(new THREE.MeshPhongMaterial({ color: 0x3e5a46, specular: 0x8ab0a0, shininess: 30 })));
+    const bark = M.flat(0x3a3026), bark2 = M.flat(0x4a3c2e), mossC = M.flat(0x7e8a5e), bronze = once('k3-drbell', () => cutout(new THREE.MeshPhongMaterial({ color: 0x3e5a46, specular: 0x8ab0a0, shininess: 30 })));
     const n = Math.max(4, Math.round(width / 0.32));
     for (let i = 0; i < n; i++) {
       const u = -width / 2 + (i + 0.5) * width / n + (R() - 0.5) * 0.12; const hh = h * (0.55 + R() * 0.55); const r0 = 0.11 + R() * 0.08; const lz0 = (R() - 0.5) * 0.4;
