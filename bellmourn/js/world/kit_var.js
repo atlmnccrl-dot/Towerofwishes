@@ -22,12 +22,17 @@ function grid(ctx, def) {
   const freeAt = (x, z, pad = 0) => { for (const s of sol) { if (s.r !== undefined) { if (Math.hypot(x - s.x, z - s.z) < s.r + pad) return false; } else if (x > s.x0 - pad && x < s.x1 + pad && z > s.z0 - pad && z < s.z1 + pad) return false; } return true; };
   const cells = new Uint8Array(nx * nz);
   for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) cells[j * nx + i] = freeAt(x0 + i + 0.5, z0 + j + 0.5) ? 1 : 0;
-  // the sheets (water, frost, ash) run under small props too: only walls and buildings (tall solids) cut them
-  // (and large solids of any height: rock fill, deep water, the void beyond a walkway: a sheet never lies over those)
-  const tall = sol.filter((s) => (s.r !== undefined ? s.r >= 0.8 : ((s.h ?? 3) >= 2.2 && !(s.x1 - s.x0 < 1.2 && s.z1 - s.z0 < 1.2)) || (s.x1 - s.x0) * (s.z1 - s.z0) >= 3));
-  const sheetCells = []; for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) { const x = x0 + i + 0.5, z = z0 + j + 0.5; let ok = true; for (const s of tall) { if (s.r !== undefined) { if (Math.hypot(x - s.x, z - s.z) < s.r) { ok = false; break; } } else if (x > s.x0 + 0.1 && x < s.x1 - 0.1 && z > s.z0 + 0.1 && z < s.z1 - 0.1) { ok = false; break; } } if (ok) sheetCells.push({ x, z }); }
   const isFree = (i, j) => i >= 0 && j >= 0 && i < nx && j < nz && cells[j * nx + i] === 1;
-  const list = []; for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) if (cells[j * nx + i]) {
+  // only the floor the hero can reach from the start counts (a flood fill over the cells): the sheets (water, frost,
+  // ash, mist) and the scattered props never lie over rock fill, deep water, the void or the far side of a wall
+  const reach = new Uint8Array(nx * nz); const si = Math.floor(def.start.x - x0), sj = Math.floor(def.start.z - z0); const q = [];
+  const seed = (i, j) => { if (isFree(i, j) && !reach[j * nx + i]) { reach[j * nx + i] = 1; q.push([i, j]); } };
+  for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) seed(si + di, sj + dj);
+  while (q.length) { const [i, j] = q.pop(); seed(i + 1, j); seed(i - 1, j); seed(i, j + 1); seed(i, j - 1); }
+  // the sheets reach one cell further, so they tuck under the walls and run under small props
+  const R1 = (i, j) => i >= 0 && j >= 0 && i < nx && j < nz && reach[j * nx + i] === 1;
+  const sheetCells = []; for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) if (R1(i, j) || R1(i - 1, j) || R1(i + 1, j) || R1(i, j - 1) || R1(i, j + 1)) sheetCells.push({ x: x0 + i + 0.5, z: z0 + j + 0.5 });
+  const list = []; for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) if (reach[j * nx + i]) {
     const edge = !isFree(i - 1, j) || !isFree(i + 1, j) || !isFree(i, j - 1) || !isFree(i, j + 1);
     const open = isFree(i - 1, j) && isFree(i + 1, j) && isFree(i, j - 1) && isFree(i, j + 1) && isFree(i - 1, j - 1) && isFree(i + 1, j + 1);
     list.push({ i, j, x: x0 + i + 0.5, z: z0 + j + 0.5, edge, open });
@@ -101,7 +106,7 @@ function waterOver(ctx, G, color) {
   sheet(ctx, G, 0.07, mat, 6);
   // the light running on the water: thin additive glints drifting the other way
   const h = glintTex().clone(); h.needsUpdate = true; h.wrapS = h.wrapT = THREE.RepeatWrapping;
-  sheet(ctx, G, 0.09, new THREE.MeshBasicMaterial({ map: h, color: 0x6a9aaa, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }), 5);
+  sheet(ctx, G, 0.09, new THREE.MeshBasicMaterial({ map: h, color: 0x8ac0d0, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }), 5);
   let ox = 0; ctx.anims.push({ update(dt) { ox += dt * 0.025; t.offset.set(Math.round(ox * 96) / 96, Math.round(ox * 0.6 * 96) / 96); h.offset.set(-Math.round(ox * 1.3 * 64) / 64, Math.round(ox * 0.4 * 64) / 64); return false; } });
 }
 // a drifting dithered mist over the walkable cells only (fog, miasma)
@@ -162,7 +167,7 @@ function motes(ctx, G, n, R, avoid, color) {
 }
 
 function overlay(ctx, G, def, C, R, avoid) {
-  const o = C.overlay || {}; const b = def.bounds;
+  const o = { ...(C.overlay || {}), ...((def.variant && def.variant.overlay) || {}) };
   if (o.water) { waterOver(ctx, G, o.water); }
   if (o.wet) wetOver(ctx, G);
   if (o.debris) debris(ctx, G, 9, R, avoid);

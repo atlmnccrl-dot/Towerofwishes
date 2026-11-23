@@ -111,7 +111,7 @@ export const roadShort = {
       spawn('lead', { use: 'hero', face: h.face, anim: 'idle' }),
       cam(scr(h, 0, 1.4), { zoom: 1.75, dur: 0 }),
       fade(0, 0.9),
-      par(walk('lead', ahead(h, 5.5), { wait: false }), cam(scr(ahead(h, 5), 0, 2.2), { zoom: 1.3, dur: 3.2, wait: false })),
+      walk('lead', ahead(h, 4.5), { wait: false }), cam(scr(ahead(h, 4), 0, 2.0), { zoom: 1.3, dur: 3.0, wait: false }),
       title('THE OLD ROAD', 'RUN ' + n, 2.6),
       flash(0.7), sound('thunder', { vol: 0.8, big: true }),
       wait(0.5),

@@ -88,6 +88,9 @@ const SH = window.SH = {
   nextNode() { return scr.nextIds ? scr.nextIds()[0] : null; },
   info() { return { bw: r.bw, bh: r.bh, scale: r.scale, dpr: r.dpr, sample: DATA.sample.slice() }; },
   smallest() { const k = r.scale / r.dpr; let m = 1e9, id = ''; for (const it of scr.items) { if (it.small) continue; const s = Math.min(it.w, it.h) * k; if (s < m) { m = s; id = it.id; } } return { min: Math.round(m), id }; },
+  // a page of the event vignettes (six at a time), each with its name
+  vignettes(page, t = 1.5) { const keys = SCR.SCENE_KEYS.slice(page * 6, page * 6 + 6); ui.clear(); ui.rect(0, 0, ui.w, ui.h, '#06070a'); const cw = Math.floor((ui.w - 16) / 3), ch = Math.floor((ui.h - 24) / 2);
+    keys.forEach((k, i) => { const x = 4 + (i % 3) * (cw + 4), y = 4 + Math.floor(i / 3) * (ch + 8); SCR.drawVignette(ui, { scene: k }, x, y, cw, ch - 6, t); ui.text(k.toUpperCase(), x, y + ch - 5, { color: '#e8b860' }); }); return keys.length; },
   // a screen API call (showResult etc.)
   call(fn, ...a) { return scr[fn](...a); },
   get scr() { return scr; },
@@ -196,6 +199,7 @@ window.SH_READY = true;
       await p.keyboard.press('Enter'); await step(1); check((await calls()).some((c) => c.startsWith('pick:')), 'pc keyboard boon pick');
       await open('event'); await step(3); await p.keyboard.press('ArrowDown'); await step(0.05); await p.keyboard.press('Enter'); await step(0.1); check((await calls()).some((c) => c.startsWith('choose:')), 'pc keyboard event choose: ' + (await calls()).join(' '));
     }
+    if (!touch && want('vignettes')) { const n = await p.evaluate(() => Math.ceil(SH.vignettes(0, 0) ? 99 : 0)); for (let pg = 0; pg < 5; pg++) { const k = await p.evaluate((pg) => SH.vignettes(pg), pg); if (!k) break; await shot('vignettes-' + (pg + 1)); } void n; }
     if (want('boon')) console.log(' ', dev.tag, 'sample data in use:', (await p.evaluate(() => SH.info())).sample.join(', ') || 'none');
     await ctx.close();
   }

@@ -51,6 +51,10 @@ const knownFoe = (t) => !!(FOES[t] || UNITS[t]);
 const knownBoss = (t) => !!(BOSSES[t] || BOSSES2[t]);
 const warned = new Set();
 const knownOrWarn = (f) => { if (knownFoe(f.t)) return true; if (!warned.has(f.t)) { warned.add(f.t); console.warn('bellmourn: unknown foe type skipped: ' + f.t); } return false; };
+const D_SOUNDS = { iai: ['slashA', 1], sheathe: ['clang', 0.5], stillness: ['toll', 0.35], counter: ['parry', 1], stutter: ['vanish', 0.5], laugh: ['roar', 0.4], lightsOut: ['vanish', 0.9], lightsOn: ['lamp', 0.8],
+  masquerade: ['vanish', 0.8], unmasked: ['clang', 0.9], mimic: ['vanish', 0.6], scare: ['roar', 0.8], climb: ['step', 0.6], dropWarn: ['tele', 1.2], flicker: ['lamp', 0.4], tide: ['splash', 1], shellBreak: ['hitHeavy', 1],
+  shellUp: ['clang', 0.8], clawStuck: ['boom', 0.8], brood: ['rise', 0.7], cageFall: ['gate', 1], chains: ['clang', 0.6], gibbet: ['gate', 0.7], harden: ['clang', 0.7], snuff: ['vanish', 0.6], relight: ['fire', 0.8],
+  pyreRings: ['fire', 1], crucify: ['clang', 1], nova: ['boom', 1], pillar: ['fire', 0.9], pillarEnd: ['fire', 0.4], gust: ['dash', 0.8], allyArrive: ['bigBell', 0.6], choir: ['toll', 0.6], pin: ['clang', 0.8] };
 const LAMP_REACH = 3.5, LAMP_CLEAR = 12, LAMP_HEAL = 0.2; // metres; an old lamp heals this much of the max health, once
 
 // ------------------------------------------------------------------ the other owners' modules
@@ -64,6 +68,7 @@ async function loadOptional() {
 }
 const bossLines = (t) => BOSS_LINES[t] || (OPT.bosses5 && OPT.bosses5.BOSS_LINES5 && OPT.bosses5.BOSS_LINES5[t]) || null;
 const speaker = (t) => SPEAKERS[t] || (OPT.bosses5 && OPT.bosses5.SPEAKERS5 && OPT.bosses5.SPEAKERS5[t]) || {};
+const lockedOf = (meta) => { const f = OPT.challenges && OPT.challenges.lockedBoons; try { return f ? f(meta) || [] : []; } catch (e) { return []; } };
 const opt = (mod, name) => (OPT[mod] && typeof OPT[mod][name] === 'function' ? OPT[mod][name] : null);
 // E's screen class by name (from js/ui/index.js), else the plain stand-in
 function screenClass(name) { const S = OPT.screens; const C = S && (S[name] || (S.SCREENS && S.SCREENS[name])); return typeof C === 'function' ? C : MiniScreen; }
@@ -91,6 +96,7 @@ const SPECS = {
   SummaryScreen: (g, d, h) => ({ title: 'THE RUN IS OVER', lines: (d.summary.lines || []), items: [{ label: 'BACK TO THE TITLE', on: () => h.done() }] }),
 };
 const TOWER_LIST = () => TOWER;
+export { finishResult };
 export class MiniScreen {
   constructor(game, name) { this.g = game; this.name = name; this.sel = 0; this.t = 0; this.rects = []; this.scroll = 0; }
   open(data, handlers) { this.data = data; this.h = handlers; this.result = null; this.t = 0; }
@@ -125,6 +131,13 @@ export class MiniScreen {
       const r = ui.button(x, yy, bw, bh, fit(ui, it.label, bw - 12), { sel: i === this.sel, align: 'left', disabled: it.disabled, sub: bh >= 19 && it.sub ? fit(ui, it.sub, bw - 12) : undefined, color: it.disabled ? '#7a7266' : undefined }); this.rects.push({ ...r, i }); });
   }
   close() {}
+}
+// a screen showing an outcome (EventScreen.showResult): go on as CONTINUE would (E keeps onDone, the stand-in done)
+function finishResult(scr) {
+  const r = scr && scr.result; if (!r) return false;
+  const f = typeof r.onDone === 'function' ? r.onDone : (typeof r.done === 'function' ? r.done : null); if (!f) return false;
+  if (typeof r.onDone === 'function') { r.onDone = null; r.done = true; } else scr.result = null;
+  f(); return true;
 }
 const g_tap = (g) => (g.inputMode === 'touch' ? 'TAP TO GO ON' : 'ENTER TO GO ON');
 // an event when C's events are not in yet: a stranger by a fire (PROPOSAL)
@@ -349,7 +362,7 @@ export class Game {
   // what a sensible player picks on each screen (calls the screen's handlers, as a tap would)
   autoScreen() {
     const n = this.screenName, d = this.screenData || {}, h = this.screenH || {}; const run = this.run; this.autoT = (this.autoT || 0) + 1;
-    if (this.screen && this.screen.result) { const r = this.screen.result; this.screen.result = null; if (r.done) r.done(); return; }
+    if (this.screen && this.screen.result) { if (finishResult(this.screen)) return; }
     if (this.screen && typeof this.screen.autoDone === 'function' && this.screen.autoDone()) return;
     if (n === 'SelectScreen') { const ids = (this.meta.unlocked || []).filter((id) => HEROES[id]); h.choose(this.autoHero && ids.includes(this.autoHero) ? this.autoHero : ids[(this.meta.runs | 0) % ids.length]); }
     else if (n === 'TalentScreen') { const av = availableTalents(this.meta, d.hero).filter((t) => !t.locked); if (av.length && !masteryOf(this.meta, d.hero).talents.length) h.pick(av[0].id); h.start(); }
@@ -536,7 +549,7 @@ export class Game {
   offerBoon(source, then, o = {}) {
     const run = this.run; const ob = opt('boons', 'offerBoons');
     let offers = [];
-    const roll = () => { const rng = rngOf(hashSeed(run.seed, run.at || 'road', source, (run.stats.boons | 0), this.rerollN | 0)); try { offers = ob ? (ob(run, rng, Math.max(2, Math.round(curseMod(run, 'boonChoicesAdd', 3))), { source, luck: towerLevel(this.meta, 'luck'), minRarity: o.minRarity, res: o.res, act: run.act, hero: run.hero, heroId: run.hero, abilities: (HEROES[run.hero].abilities || []).slice(0, 2) }) || []) : []; } catch (err) { console.error('bellmourn: offerBoons', err); offers = []; } };
+    const roll = () => { const rng = rngOf(hashSeed(run.seed, run.at || 'road', source, (run.stats.boons | 0), this.rerollN | 0)); try { offers = ob ? (ob(run, rng, Math.max(2, Math.round(curseMod(run, 'boonChoicesAdd', 3))), { source, luck: towerLevel(this.meta, 'luck'), minRarity: o.minRarity, res: o.res, rarityBoost: 0.15 * towerLevel(this.meta, 'luck'), locked: lockedOf(this.meta), act: run.act, hero: run.hero, heroId: run.hero, abilities: (HEROES[run.hero].abilities || []).slice(0, 2) }) || []) : []; } catch (err) { console.error('bellmourn: offerBoons', err); offers = []; } };
     this.rerollN = 0; roll();
     if (!offers.length) { if (!ob) this.ui.toast('A VOICE ANSWERS, BUT FINDS NO SHAPE YET', { color: COL.dim, life: 2 }); then(); return; } // PROPOSAL
     const back = this.state === 'play' ? 'play' : null;
@@ -544,7 +557,7 @@ export class Game {
       pick: (id) => {
         const it = offers.find((x) => x.id === id) || offers[0]; const ab = opt('boons', 'addBoon');
         try { if (ab) ab(run, it.id, it.rarity); else run.boons.push({ id: it.id, rarity: it.rarity }); } catch (err) { console.error('bellmourn: addBoon', err); }
-        run.stats.boons = (run.stats.boons | 0) + 1; this.sound.play('upgrade');
+        run.stats.boons = (run.stats.boons | 0) + 1; this.sound.play('upgrade'); this.freshBoon = it.id;
         this.track({ type: 'boon', id: it.id, rarity: it.rarity, res: it.def && it.def.res });
         this.closeScreen(); if (back) this.go('play'); this.refreshHero(); this.persist(); then(it);
       },
@@ -575,7 +588,7 @@ export class Game {
           if (after.boon) this.eventBoon(after.boon, () => this.nodeDone()); else this.nodeDone();
         };
         const lines = [...(res.lines || []), ...(after.lines || [])];
-        if (this.screen && typeof this.screen.showResult === 'function') this.screen.showResult(lines, done); else done();
+        if (this.screen && typeof this.screen.showResult === 'function') this.screen.showResult(lines, done, res.changes || {}); else done();
       },
     });
   }
@@ -673,7 +686,7 @@ export class Game {
       this.persist(); this.track({ type: 'event', id: ev.id, choice: i, changes: res.changes });
       const back = () => { this.closeScreen(); this.go('play'); if (after.boon) this.eventBoon(after.boon, () => {}); };
       const lines = [...(res.lines || []), ...(after.lines || [])];
-      if (this.screen && this.screen.showResult) this.screen.showResult(lines, back); else back();
+      if (this.screen && this.screen.showResult) this.screen.showResult(lines, back, res.changes || {}); else back();
     } }));
     return true;
   }
@@ -884,7 +897,7 @@ export class Game {
     this.world.update(dt * 0.35, NO_INPUT); this.handleEvents(this.world.drain());
     this.r.post.desat = Math.min(0.85, this.stateT * 0.5);
     if (this.stateT > 1.0 && !this.deathSlow) { this.deathSlow = true; this.sound.setMusic('none'); }
-    if (this.stateT > 4.5 || (this.stateT > 1.6 && (inp.confirm || inp.taps.length))) {
+    if (this.stateT > 3.6 || (this.stateT > 1.6 && (inp.confirm || inp.taps.length))) {
       this.deathSlow = false; this.r.post.desat = 0;
       if (this.duelOn) { const h = this.world.hero; h.dead = false; h.hp = h.maxHp; h.state = 'idle'; h.anim = 'idle'; this.go('play'); return; } // the tutorial duel cannot be lost
       this.finishRun('death');
@@ -914,7 +927,7 @@ export class Game {
     if (!this.card && !this.tutorial) for (const h of this.hints) if (!h.shown && inZone(hero, h.zone)) { h.shown = true; this.ui.toast(inp.touch && h.touch ? h.touch : h.text, { life: h.life || 4, color: COL.ice }); }
     // a touch (C): a quest hint, a chained survivor, a cursed lamp; quests.onHint applies it (and may open an event)
     for (const t of this.touches || []) if (!t.used && Math.hypot(hero.x - t.x, hero.z - t.z) < (t.r || 1.1) + 0.4) {
-      t.used = true; this.nodeProg().touched.push(t.id); this.sound.play('bell', { vol: 0.6 }); this.fx.embers(t.x, 1, t.z, 24, [2.4, 2.2, 3]);
+      t.used = true; this.nodeProg().touched.push(t.id); this.sound.play('toll', { vol: 0.5 }); this.fx.embers(t.x, 1, t.z, 24, [2.4, 2.2, 3]);
       const oh = opt('quests', 'onHint'); let res = null;
       if (oh) { try { res = oh(this, t.id); } catch (err) { console.error('bellmourn: onHint', err); } }
       else { this.meta.hints[t.id] = true; this.ui.toast(t.text || 'A HINT', { color: COL.ice, life: 4 }); }
@@ -1022,9 +1035,10 @@ export class Game {
     }
     this.bossState = 'intro'; this.card = null; // the area's name card never sits on the boss bar
     for (const g of B.gates || []) this.gate(g, false);
-    // a boss drawn into an earlier row of the run than its own district fights to the row's strength
-    const BT = OPT.bosses5 && OPT.bosses5.BOSS_TIER; const tier = this.level.def.tier ?? 0, own = (BT && BT[B.type] !== undefined ? BT[B.type] : (B.baseTier ?? tier)); const hpK = (1 + tier * 0.32) / (1 + own * 0.32), dK = (1 + tier * 0.16) / (1 + own * 0.16);
-    this.boss = this.world.spawnBoss(B.type, B.x, B.z, { face: B.face ?? 0, hpMul: (B.hpMul || 1) * Math.max(0.45, Math.min(1.6, hpK)), dmgMul: (B.dmgMul || 1) * Math.max(0.6, Math.min(1.3, dK)), ascended: !!B.ascended, trueForm: B.type === 'wheel' && run && run.choice === 'sing' });
+    // a boss fights to its row's strength against its district's own (bossOpts covers a boss from another district)
+    const tier = this.level.def.tier ?? 0, own = B.baseTier ?? AREA_TIER[this.levelId] ?? tier; const hpK = (1 + tier * 0.32) / (1 + own * 0.32), dK = (1 + tier * 0.16) / (1 + own * 0.16);
+    const bo = opt('bosses5', 'bossOpts'); let O = {}; if (bo) { try { O = bo(B.type, this.levelId) || {}; } catch (e) { O = {}; } }
+    this.boss = this.world.spawnBoss(B.type, B.x, B.z, { ...O, face: B.face ?? 0, hpMul: (B.hpMul || 1) * (O.hpMul || 1) * Math.max(0.45, Math.min(1.6, hpK)), dmgMul: (B.dmgMul || 1) * (O.dmgMul || 1) * Math.max(0.6, Math.min(1.3, dK)), ascended: !!B.ascended, trueForm: B.type === 'wheel' && run && run.choice === 'sing' });
     if (typeof B4.ascendDef === 'function' && B.ascended) { try { B4.ascendDef(this.boss); } catch (err) { console.error(err); } }
     this.bossTonics0 = run ? run.stats.tonics : 0; this.track({ type: 'bossStart', boss: B.type });
     const hold = () => { const b = this.boss; b.state = 'roar'; b.anim = 'idle'; b.t = -2; b.iframes = 99; };
@@ -1112,8 +1126,9 @@ export class Game {
       let ally = null; try { ally = w.spawnAlly(id, x, z, { tier: this.level.def.tier || 0, stats: this.heroStats(id) }); } catch (err) { console.error('bellmourn: spawnAlly ' + id, err); }
       if (!ally) return;
       let E = null; try { E = ae ? ae(id) : null; } catch (err) { E = null; }
-      this.allyEnts.push({ e: ally, E: E && typeof E.step === 'function' ? E : null, t: 0, delay: i * 0.7 });
-      this.after(i * 0.7, () => { this.ui.toast(HEROES[id].name + ' ANSWERS THE TOLL', { color: COL.gold, big: i === 0, life: 2.6 }); this.sound.play('bigBell', { vol: 0.6 }); }); // PROPOSAL
+      this.allyEnts.push({ e: ally, E: E && typeof E.step === 'function' ? E : null, t: 0, delay: 0 });
+      const AL = OPT.allies && OPT.allies.ALLY_LINES; const line = (E && E.line) || (AL && AL[id]);
+      this.after(i * 1.6, () => { this.ui.toast(HEROES[id].name + ' ANSWERS THE TOLL', { color: COL.gold, big: i === 0, life: 2.6 }); this.sound.play('bigBell', { vol: 0.6 }); if (line) this.bark = { name: HEROES[id].name, color: (SPEAKERS[id] || {}).color || COL.gold, text: line, t: 0, life: 3 }; }); // PROPOSAL
     });
     for (const id of friends) this.track({ type: 'ally', hero: id });
   }
@@ -1248,6 +1263,8 @@ export class Game {
         case 'shatter': snd.play('clang'); if (ev.e) fx.sparks(ev.e.x, 1.1, ev.e.z, 0, 16, [1.6, 2.2, 2.8]); break;
         case 'hush': snd.play('vanish', { vol: 0.6 }); break;
         case 'boneWard': snd.play('block'); if (ev.e) fx.shockRing(ev.e.x, ev.e.z, 1.4, [2.2, 2.1, 1.8], 0.35); break;
+        // the new bosses' moves (D's bosses5.js) and the allies' arrivals: sounds from the ones the game has
+        default: { const sd = D_SOUNDS[ev.type]; if (sd) { if (this.dSnd && this.dSnd[ev.type] === this.t) break; (this.dSnd = this.dSnd || {})[ev.type] = this.t; snd.play(sd[0], { vol: sd[1] }); if (ev.type === 'shellBreak') this.ui.toast('THE SHELL BREAKS', { color: COL.gold, life: 1.6 }); } } // PROPOSAL
       }
     }
   }

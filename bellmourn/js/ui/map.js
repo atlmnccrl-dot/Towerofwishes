@@ -3,7 +3,7 @@
 // (district, event, shrine, merchant, trial, quest, boss); a district shows its condition (fog, flood,
 // fire...) in a corner. Your token stands on the node you are at. Tap a glowing node: a panel slides up
 // with what it is and GO (or tap the node again); the token walks the road, then pick(id).
-import { Screen, hpOf, PAL, ease, clamp, mix, iron, parchment, backdrop, button, line, alpha, ROMAN, lines, fit, hash } from './kit.js';
+import { Screen, hpOf, PAL, ease, clamp, mix, iron, parchment, backdrop, button, line, alpha, ROMAN, fit, hash } from './kit.js';
 import { icon, KIND, conditionOf } from './icons.js';
 import { drawBoonStrip } from './hud.js';
 

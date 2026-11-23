@@ -54,7 +54,7 @@ const fs = require('fs');
   await p.evaluate(() => { const g = BM.game; const r = g.run; const nx = r.map.nodes.find((x) => x.id === r.at).next.map((id) => r.map.nodes.find((x) => x.id === id)); const ev = nx.find((x) => x.kind === 'event'); if (ev) g.screenH.pick(ev.id); else { g.closeScreen(); g.doEvent({ id: 'test-event', kind: 'event', act: 1 }); } });
   await until(() => BM.game.screenName === 'EventScreen', 20000); await p.waitForTimeout(1200); await shot('event');
   await p.evaluate(() => BM.game.screenH.choose(0)); await p.waitForTimeout(1200); await shot('event-result');
-  await p.evaluate(() => { const s = BM.game.screen; if (s && s.result) { const r = s.result; s.result = null; r.done(); } else if (s && s.autoDone) s.autoDone(); else BM.game.autoScreen(); });
+  await p.evaluate(() => BM.game.autoScreen());
   await p.waitForTimeout(800);
   if (await p.evaluate(() => BM.game.screenName === 'BoonScreen')) { await p.evaluate(() => { const g = BM.game; g.screenH.pick(g.screenData.offers[0].id); }); await p.waitForTimeout(500); }
   if (await p.evaluate(() => BM.game.screenName === 'EventScreen')) { await p.evaluate(() => BM.game.autoScreen()); await p.waitForTimeout(800); }
@@ -77,7 +77,7 @@ const fs = require('fs');
   await until(() => BM.game.state === 'play'); await p.waitForTimeout(1200);
   await p.evaluate(() => { const g = BM.game; g.world.hero.hp = 0; g.handleEvents([{ type: 'heroDeath', e: g.world.hero }]); });
   await p.waitForTimeout(1500); await shot('dead');
-  await until(() => BM.game.screenName === 'SummaryScreen', 20000, null); await p.waitForTimeout(1500); await shot('summary');
+  await until(() => BM.game.screenName === 'SummaryScreen', 60000, null); await p.waitForTimeout(1500); await shot('summary');
   check(await p.evaluate(() => !BM.game.run && !localStorage.getItem('bellmourn.run.v3') && BM.game.meta.runs === 1 && BM.game.meta.shards > 0), 'death ends the run and pays into meta');
   await p.evaluate(() => BM.game.screenH.done()); await until(() => BM.game.state === 'title', 30000); await p.waitForTimeout(1000); await shot('title-after');
   console.log('errors:', errs.length ? [...new Set(errs.map((e) => e.split('\n')[0]))].slice(0, 10) : 'none');

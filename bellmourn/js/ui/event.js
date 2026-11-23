@@ -4,7 +4,7 @@
 // its cost (health, embers, a tonic) and its risk. Choosing lights the choice and calls choose(i); A
 // resolves it and calls showResult: the choices slide away and the outcome types in, with what changed
 // popping in as chips, then CONTINUE calls onDone.
-import { Screen, hpOf, PAL, ease, clamp, mix, iron, backdrop, button, lines, alpha, fit, chip } from './kit.js';
+import { Screen, hpOf, PAL, ease, clamp, iron, backdrop, button, lines, alpha, fit, chip } from './kit.js';
 import { icon, COST_ICON } from './icons.js';
 import { drawVignette } from './vignettes.js';
 

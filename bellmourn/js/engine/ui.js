@@ -2,6 +2,7 @@
 // HUD (health, tonics, Requiem gauge, ability badges, embers, boss bar), toasts, floating texts,
 // cards, menus and touch buttons.
 import { ABILITIES } from '../game/heroes.js';
+import { drawBoonStrip } from '../ui/hud.js';
 
 const G = {
   A: [14, 17, 17, 31, 17, 17, 17], B: [30, 17, 17, 30, 17, 17, 30], C: [14, 17, 16, 16, 16, 17, 14], D: [30, 17, 17, 17, 17, 17, 30], E: [31, 16, 16, 30, 16, 16, 31],
@@ -171,11 +172,15 @@ export class UI {
     G.hpGhost = G.hpGhost === undefined ? hero.hp : Math.max(hero.hp, G.hpGhost - dt * 30);
     this.bar(L, 6, hpW, 4, hero.hp / hero.maxHp, hero.hp / hero.maxHp < 0.3 && Math.floor(this.t * 4) % 2 ? '#ff3a3a' : COL.red, '#1a0c10', G.hpGhost / hero.maxHp);
     this.drawGain(hero, L, 6, hpW, 4, L + hpW + 4 + hero.stats.maxTonics * 6 + 2, dt);
+    // DAWN's shield of light (B: hero.aegis / aegisMax): a pale bar riding on top of the health bar
+    if (hero.aegis > 0) { const ak = Math.min(1, hero.aegis / Math.max(1, hero.aegisMax || hero.maxHp)); this.rect(L - 1, 3, Math.round(hpW * ak) + 2, 3, '#000'); this.rect(L, 4, Math.round(hpW * ak), 1, Math.floor(this.t * 3) % 2 ? '#fff4d0' : '#ffe8a8'); }
     // ultimate gauge
     const m = G.world.meter / 100; const full = m >= 1;
     this.bar(L, 13, 46, 2, m, full ? (Math.floor(this.t * 6) % 2 ? '#ffffff' : '#ff4a4a') : '#a83040', '#140a0c');
     // level and experience
     if (G.level) { this.text('LV' + G.level, L, 19, { color: COL.gold }); this.bar(L + 22, 21, 34, 1, G.xpFrac || 0, '#d8b860', '#1a160c'); if (G.points) this.text('+', L + 60, 19, { color: Math.floor(this.t * 3) % 2 ? COL.gold : COL.white }); }
+    // the boons of the run as Resonance pips (js/ui/hud.js), small, under the gauges
+    if (G.run && G.run.boons && G.run.boons.length) { try { drawBoonStrip(this, G.run, L - 1, G.level ? 26 : 18, { t: this.t, alpha: 0.85, fresh: G.freshBoon }); } catch (e) { /* the HUD never breaks on a boon it does not know */ } }
     // tonics
     for (let i = 0; i < hero.stats.maxTonics; i++) this.flask(L + hpW + 4 + i * 6, 4, i < hero.tonics);
     // embers

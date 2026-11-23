@@ -23,7 +23,7 @@ export const RARITY = {
   epic: { name: 'EPIC', col: '#c47cff', glow: '#8a3ad8', n: 2 },
   legendary: { name: 'LEGENDARY', col: '#ffbc40', glow: '#e07a10', n: 3 },
 };
-export const rarityOf = (r) => RARITY[r] || RARITY.common;
+export const rarityOf = (r) => { const R = RARITY[r] || RARITY.common; const b = DATA.RARITY && DATA.RARITY[r]; return b && b.col && b.col !== R.col ? (RARITY[r] = { ...R, col: b.col }) : R; };
 
 // The Resonances: B's RES wins (colour, name, icon); this is the fallback until it lands.
 export const RES_ORDER = ['ember', 'rime', 'blight', 'thunder', 'crimson', 'dawn', 'silence'];

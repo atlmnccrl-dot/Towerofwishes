@@ -324,7 +324,8 @@ const SCENES = {
       const cl = (y, col, seed) => { for (let i = 0; i < 12; i++) P.circ(hash(seed + i) * w, y + hash(seed + i * 3) * 6, 6 + Math.floor(hash(seed + i * 5) * 9), col); P.rect(0, y + 4, w, h, col); };
       cl(h * 0.62, '#fff6e4', 1); cl(h * 0.76, '#f0e2c0', 7); cl(h * 0.88, '#e4d0a4', 13);
       const rx = w * 0.5, ry = h * 0.34, rr = Math.round(h * 0.22);
-      for (let a = 0; a < 200; a++) { const t = a / 200 * Math.PI * 2; P.px(rx + Math.cos(t) * rr, ry + Math.sin(t) * rr * 0.92, c.accent); P.px(rx + Math.cos(t) * (rr - 2), ry + Math.sin(t) * (rr - 2) * 0.92, '#fff4c0'); }
+      for (let k = 0; k < 9; k++) { const a = -Math.PI / 2 + (k - 4) * 0.28; P.poly([[rx, ry], [rx + Math.cos(a - 0.05) * w, ry + Math.sin(a - 0.05) * w], [rx + Math.cos(a + 0.05) * w, ry + Math.sin(a + 0.05) * w]], mix(c.accent, '#ffffff', 0.4), 0.35); }
+      for (let a = 0; a < 260; a++) { const t = a / 260 * Math.PI * 2; for (const [d, col] of [[0, mix(c.accent, '#000000', 0.25)], [1, c.accent], [2, mix(c.accent, '#000000', 0.25)], [-2, '#fff4c0']]) P.px(rx + Math.cos(t) * (rr + d), ry + Math.sin(t) * (rr + d) * 0.92, col); }
       P.glow(rx, ry, rr, '#ffffff', 0.5);
       for (let s = 0; s < 6; s++) P.rect(rx - 10 + s * 2, h * 0.62 - s * 4, 20 - s * 4, 3, mix('#ffffff', c.accent, s * 0.08));
     },
@@ -504,9 +505,9 @@ roof: {
   forge: {
     still(P, c) { const { w, h } = P;
       P.grad(0, 0, w, h, ['#0a0604', '#1a0e08', '#0a0604']);
-      const fx = w * 0.3, fy = h * 0.55; P.rect(fx - w * 0.16, fy - h * 0.4, w * 0.32, h * 0.5, '#2a1e18'); P.circ(fx, fy - h * 0.15, Math.round(w * 0.09), '#100806'); P.rect(fx - w * 0.09, fy - h * 0.15, w * 0.18, h * 0.2, '#100806');
+      const fx = w * 0.3, fy = h * 0.55; P.rect(fx - w * 0.16, fy - h * 0.4, w * 0.32, h * 0.5, '#4a3226'); P.rect(fx - w * 0.16, fy - h * 0.4, w * 0.32, 2, '#6a4a36'); P.circ(fx, fy - h * 0.15, Math.round(w * 0.09), '#100806'); P.rect(fx - w * 0.09, fy - h * 0.15, w * 0.18, h * 0.2, '#100806');
       P.glow(fx, fy - 4, Math.round(h * 0.5), c.warm, 0.5);
-      for (let k = 0; k < 8; k++) P.rect(fx - w * 0.16, fy - h * 0.4 + k * 7, w * 0.32, 1, '#1a120e');
+      for (let k = 0; k < 8; k++) P.rect(fx - w * 0.16, fy - h * 0.4 + k * 7, w * 0.32, 1, '#2a1c14'); P.rect(fx - w * 0.04, 0, w * 0.08, fy - h * 0.4, '#2a1e18');
       const ax = w * 0.68, ay = h * 0.78; P.rect(ax - 14, ay - 8, 28, 5, '#3a3a40'); P.poly([[ax - 18, ay - 8], [ax - 14, ay - 8], [ax - 14, ay - 4]], '#3a3a40'); P.rect(ax - 6, ay - 3, 12, 10, '#2a2a30'); P.rect(ax - 14, ay - 8, 28, 1, '#7a7a84');
       P.rect(0, h * 0.86, w, h * 0.14, '#140c08'); P.rect(ax + 6, ay - 14, 10, 4, '#5a5a62'); P.rect(ax + 10, ay - 10, 2, 8, '#3a2010');
     },

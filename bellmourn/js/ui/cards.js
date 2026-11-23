@@ -1,8 +1,8 @@
 // Cards: the boon card face (Resonance art with its sigil, slot and tier, name, tags, effect, and the
 // chain preview: where it sits in its Resonance chain, what it unlocks next, duo hints), the card back,
 // and flip/slide drawing from an offscreen canvas so a card can turn over and fly without redrawing.
-import { PAL, resOf, rarityOf, mix, lines, chip, iron, canvas, into, diamond, ROMAN, alpha, hash } from './kit.js';
-import { icon, sigil, SLOT } from './icons.js';
+import { PAL, resOf, rarityOf, mix, lines, iron, canvas, into, diamond, ROMAN, alpha, hash } from './kit.js';
+import { icon, sigil, sigilName, iconSize, SLOT } from './icons.js';
 import { boonDef, boonList, DATA } from './data.js';
 
 // a boon's effect, as { desc, stat }: B's boonText(id, rarity) when it is there, else the def's desc and
@@ -30,7 +30,7 @@ export function drawBoonFace(ui, offer, w, h, o = {}) {
   const duoR = kind === 'duo' && def.duo ? resOf(def.duo.find((r) => r !== def.res) || def.duo[1]) : null;
   iron(ui, 0, 0, w, h, { fill: mix('#0c0e13', R.col, 0.05), accent: RA.n > 0 ? mix(RA.col, '#000000', 0.25) : null });
   // ---- art
-  const ax = 4, ay = 4, aw = w - 8, ah = Math.round(Math.min(46, h * 0.28));
+  const ax = 4, ay = 4, aw = w - 8, ah = Math.round(Math.min(46, h * (h < 160 ? 0.21 : 0.26)));
   for (let y = 0; y < ah; y++) { const k = y / ah; ui.rect(ax, ay + y, aw, 1, mix(mix(R.col, '#000000', 0.55), '#07080b', k * 0.85)); }
   if (duoR) { const g = ui.g; g.save(); g.beginPath(); g.moveTo(ax + aw * 0.62, ay); g.lineTo(ax + aw, ay); g.lineTo(ax + aw, ay + ah); g.lineTo(ax + aw * 0.38, ay + ah); g.closePath(); g.clip(); for (let y = 0; y < ah; y++) ui.rect(ax, ay + y, aw, 1, mix(mix(duoR.col, '#000000', 0.55), '#07080b', y / ah * 0.85)); g.restore(); }
   // rings and motes behind the sigil
@@ -38,8 +38,8 @@ export function drawBoonFace(ui, offer, w, h, o = {}) {
   for (const rr of [ah * 0.62, ah * 0.46]) for (let a = 0; a < 90; a++) { const t = a / 90 * Math.PI * 2; if (a % 3) ui.rect(cx + Math.round(Math.cos(t) * rr), cy + Math.round(Math.sin(t) * rr), 1, 1, mix(R.col, '#000000', 0.62)); }
   for (let i = 0; i < 14; i++) ui.rect(ax + hash(i * 7 + def.name.length) * aw, ay + hash(i * 3 + 1) * ah, 1, 1, mix(R.col, '#ffffff', 0.2 + hash(i) * 0.5));
   if (kind === 'crown') { for (let k = 0; k < 10; k++) { const t = k / 10 * Math.PI * 2; for (let r = ah * 0.3; r < ah * 0.75; r += 1.3) if (hash(k * 50 + r) < 0.7) ui.rect(cx + Math.round(Math.cos(t) * r), cy + Math.round(Math.sin(t) * r), 1, 1, mix(PAL.gold, '#000000', 0.25)); } }
-  const sc = ah >= 40 ? 3 : 2;
-  if (duoR) { sigil(ui, def.res, cx - 6 - 4 * sc, cy, { scale: sc, center: true }); sigil(ui, duoR.id, cx + 6 + 4 * sc - 8, cy, { scale: sc, center: true }); ui.text('+', cx - 2, cy - 3, { color: PAL.text }); }
+  const isz = iconSize(sigilName(def.res)).h; const sc = Math.max(2, Math.min(4, Math.floor((ah * (duoR ? 0.5 : 0.66)) / isz)));
+  if (duoR) { sigil(ui, def.res, cx - 4 - Math.ceil(isz * sc / 2), cy, { scale: sc, center: true }); sigil(ui, duoR.id, cx + 4 + Math.ceil(isz * sc / 2), cy, { scale: sc, center: true }); ui.text('+', cx - 2, cy - 3, { color: PAL.text }); }
   else sigil(ui, def.res, cx, cy + (kind === 'crown' ? 3 : 0), { scale: sc, center: true });
   if (kind === 'crown') icon(ui, 'crown', cx, ay + 6, PAL.gold, { center: true, scale: 1 });
   // slot (top left, with its name when it fits), tier (top right), DUO / CROWN on the art's foot

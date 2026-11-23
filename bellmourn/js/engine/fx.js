@@ -3,6 +3,7 @@
 // tonic's healing motes, rings and glow.
 import * as THREE from '../../vendor/three.module.min.js';
 import * as T from './textures.js';
+import { installElements } from './fx_elements.js'; // B's element visuals (installed at the end of this file)
 
 const MAXP = 1600;
 const MAXM = 192; // tonic motes
@@ -833,7 +834,7 @@ export class FX {
     const glow = (rgb, op = 1) => new THREE.MeshBasicMaterial({ color: new THREE.Color(...rgb), transparent: true, opacity: op, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, side: THREE.DoubleSide });
     const add = (geo, m, x, y, z, p = g) => { const b = new THREE.Mesh(geo, m); b.position.set(x, y, z); b.castShadow = true; p.add(b); return b; };
     if (h.kind === 'cagewall' || h.kind === 'cagehold') { // a gibbet cage of black iron, dropped from the dark above
-      const r = h.kind === 'cagehold' ? 0.75 : h.r, H = h.kind === 'cagehold' ? 2.0 : 2.2; const iron = lam(0x2a2622, 0x080604);
+      const r = h.kind === 'cagehold' ? 0.75 : h.r, H = h.kind === 'cagehold' ? 2.0 : 2.2; const iron = lam(0x6a6058, 0x1a1410);
       ud.cage = new THREE.Group(); g.add(ud.cage);
       for (let i = 0; i < 10; i++) { const a = i / 10 * TAU; add(kept('gBar', () => new THREE.BoxGeometry(0.06, 1, 0.06)), iron, Math.sin(a) * r, H / 2, Math.cos(a) * r, ud.cage).scale.y = H; }
       for (const y of [0.06, H * 0.55, H]) { const ring = add(new THREE.TorusGeometry(r, 0.04, 4, 12), iron, 0, y, 0, ud.cage); ring.rotation.x = Math.PI / 2; }
@@ -878,7 +879,7 @@ export class FX {
       const L = h.len || 8; const lg = new THREE.BoxGeometry(0.12, 0.12, L); lg.translate(0, 0, -L / 2); const m = new THREE.Mesh(lg, kept('mLimb', () => new THREE.MeshLambertMaterial({ color: 0xe8e2d6, emissive: 0x222018 }))); m.position.y = 0.9; m.castShadow = true;
       const hold = new THREE.Group(); hold.rotation.y = 0; ud.pivot.add(hold); hold.add(m); ud.limb = m; ud.limbLen = L; m.visible = false;
     } else if (h.kind === 'cage' && h.shape === 'circle') { // the cage seen falling out of the dark while the circle warns
-      const cg = new THREE.Group(); const iron = kept('mIron5', () => new THREE.MeshLambertMaterial({ color: 0x2a2622, emissive: 0x080604 }));
+      const cg = new THREE.Group(); const iron = kept('mIron5', () => new THREE.MeshLambertMaterial({ color: 0x6a6058, emissive: 0x1a1410 }));
       for (let i = 0; i < 8; i++) { const a = i / 8 * TAU; const b = new THREE.Mesh(kept('gBar', () => new THREE.BoxGeometry(0.06, 1, 0.06)), iron); b.scale.y = 2.1; b.position.set(Math.sin(a) * h.r * 0.7, 1.05, Math.cos(a) * h.r * 0.7); cg.add(b); }
       const top = new THREE.Mesh(new THREE.ConeGeometry(h.r * 0.75, 0.4, 8), iron); top.position.y = 2.3; cg.add(top); g.add(cg); ud.fall = cg; cg.position.y = 12;
     } else if (h.kind === 'grin' && h.shape === 'circle') { // teeth: two white rows that close on the circle
@@ -888,7 +889,7 @@ export class FX {
     } else if ((h.kind === 'pyre' || h.kind === 'brand' || h.kind === 'holyfire') && !h.vis) { ud.fire = true; }
     else if (h.kind === 'tide' && h.shape === 'line') ud.tide = true;
     else if (h.kind === 'petal' && h.shape === 'line') ud.petal = true;
-    else if (h.kind === 'chain' && h.shape === 'line') { const L = h.len || 8; const cg = new THREE.Group(); const iron = kept('mIron5', () => new THREE.MeshLambertMaterial({ color: 0x2a2622, emissive: 0x080604 })); for (let i = 0; i < Math.round(L / 0.22); i++) { const l = new THREE.Mesh(kept('gLink', () => new THREE.BoxGeometry(0.08, 0.05, 0.16)), iron); l.position.set(0, 0.3, i * 0.22); l.rotation.z = i % 2 ? Math.PI / 2 : 0; cg.add(l); } ud.pivot.add(cg); ud.chain = cg; cg.visible = false; }
+    else if (h.kind === 'chain' && h.shape === 'line') { const L = h.len || 8; const cg = new THREE.Group(); const iron = kept('mIron5', () => new THREE.MeshLambertMaterial({ color: 0x6a6058, emissive: 0x1a1410 })); for (let i = 0; i < Math.round(L / 0.22); i++) { const l = new THREE.Mesh(kept('gLink', () => new THREE.BoxGeometry(0.08, 0.05, 0.16)), iron); l.position.set(0, 0.3, i * 0.22); l.rotation.z = i % 2 ? Math.PI / 2 : 0; cg.add(l); } ud.pivot.add(cg); ud.chain = cg; cg.visible = false; }
   }
   _hz5Update(h, v, warn, k, dt, time) {
     const ud = v.userData; const fx = Math.sin(h.face || 0), fz = Math.cos(h.face || 0);
@@ -1027,6 +1028,5 @@ export class FX {
   }
 }
 
-// B's element visuals (js/engine/fx_elements.js, a mixin installed on FX.prototype), loaded after FX exists so the
-// mixin may import it; a missing file changes nothing
-import('./fx_elements.js').then((m) => { const f = m && (m.installElements || m.install || m.default); if (typeof f === 'function') f(FX); }).catch(() => {});
+// B's element visuals (fx_elements.js): the mixin installed on FX.prototype
+installElements(FX);

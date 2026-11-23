@@ -4,7 +4,7 @@
 // one, and unlocks turned over with rays. A tap hurries it to the end; DONE calls done().
 // summary: endRun's { shards, masteryXp, challengesDone, unlocks, lines } plus, when A passes them, outcome,
 // hero, act, depth, run (its stats and boons) and mastery { level, xp, next, levelAfter }.
-import { Screen, PAL, ease, clamp, mix, iron, backdrop, button, lines, alpha, fit, bar, rays, ROMAN, header, glow } from './kit.js';
+import { Screen, PAL, ease, clamp, iron, backdrop, button, lines, alpha, fit, bar, rays, ROMAN, header, glow } from './kit.js';
 import { icon, sigil } from './icons.js';
 import { portrait, heroColour } from './portraits.js';
 import { HEROES } from '../game/heroes.js';

@@ -101,7 +101,7 @@ export function buildMap(seed, act, meta = null, run = null) {
   // area variants (C): picked now so the map can show the condition
   const pv = fn('variants', 'pickVariant');
   if (pv) for (const n of nodes) if (n.area && (n.kind === 'area' || n.kind === 'boss')) {
-    try { const v = pv(n.area, rngOf(hashSeed(seed, n.id, 'variant')), run); if (v) { n.variant = v.id; if (v.name || v.condition) n.cond = String(v.name || v.condition).toUpperCase(); } } catch (e) { /* a variant table still being built */ }
+    try { const v = pv(n.area, rngOf(hashSeed(seed, n.id, 'variant')), run); if (v) { n.variant = v.id; if (v.condition) n.condition = v.condition; if (v.name || v.condition) n.cond = String(v.name || v.condition).toUpperCase(); } } catch (e) { /* a variant table still being built */ }
   }
   const map = { act, nodes, start: byRow[0].map((n) => n.id), rows: byRow.length, name: A.name };
   // quest nodes (C): only when a hint was found; each sits in a row of small nodes
@@ -399,5 +399,7 @@ export function endRun(meta, run, outcome = 'death') {
     '+' + shards + ' BELL SHARDS', '+' + masteryXp + ' MASTERY' + (lvUp ? '   MASTERY ' + m.level + '!' : ''),
     ...challengesDone.map((id) => 'CHALLENGE: ' + chTitle(id)), ...unlocks.map((id) => (HEROES[id] ? HEROES[id].name : id) + ' UNLOCKED'),
   ];
-  return { outcome, ending, hero: run.hero, act: run.act, depth: run.depth, areas, bosses, kills: S.kills, boons: (run.boons || []).length, shards, masteryXp, masteryLevel: m.level, levelUp: lvUp, challengesDone, unlocks, lines, seed: run.seed };
+  const mastery = { level: before.level, levelAfter: m.level, xp: m.xp, xpBefore: m.xp - masteryXp, prev: masteryNeed(m.level), next: m.level >= MASTERY_MAX ? null : masteryNeed(m.level + 1) };
+  return { outcome, ending, hero: run.hero, act: run.act, depth: run.depth, areas, bosses, kills: S.kills, boons: (run.boons || []).length, shards, masteryXp, masteryLevel: m.level, levelUp: lvUp, challengesDone, unlocks, lines, seed: run.seed,
+    mastery, stats: { ...S }, run: { hero: run.hero, act: run.act, depth: run.depth, stats: { ...S }, boons: (run.boons || []).slice(), echoes: (run.echoes || []).slice(), relics: (run.relics || []).slice() } };
 }

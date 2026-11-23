@@ -230,7 +230,7 @@ function rollRarity(rng, boost = 0, min = 'common') {
 // tier more so; Resonances you have none of keep a fair share (variety); at most one offer per Resonance when
 // enough are open; when you hold any, at least one offer continues a chain, and one opens something new.
 export function offerBoons(run, rng = Math.random, n = 3, ctx = {}) {
-  const c = useCtx(run, ctx); const counts = resCounts(run); const excl = new Set(ctx.exclude || []);
+  const c = useCtx(run, ctx); const counts = resCounts(run); const excl = new Set([...(ctx.exclude || []), ...(ctx.locked || [])]); // ctx.locked: challenges.lockedBoons(meta) (boons and crowns no challenge has opened yet; game.js passes it)
   const heldAny = held(run).length > 0;
   const pool = BOON_LIST.filter((id) => !excl.has(id) && isOpen(run, id, counts) && canUse(id, c) && (!ctx.res || BOONS[id].res === ctx.res || (BOONS[id].duo || []).includes(ctx.res)) && !(ctx.noDuo && BOONS[id].kind === 'duo'));
   const weight = (id) => {

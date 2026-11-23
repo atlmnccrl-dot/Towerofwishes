@@ -2,7 +2,7 @@
 // cards on a carousel; the one in the middle is big and lit, its neighbours step back into the dark. An
 // unlocked warden shows their title and mastery; a locked one is a silhouette with the challenges that
 // free them and a progress bar for each. A drag, a tap on a neighbour, or left/right turns the carousel;
-// BEGIN chooses. Under it: THE BELL TOWER, CHALLENGES and the CODEX.
+// BEGIN chooses (preview(id), when given, hears each change of warden). Under it: THE BELL TOWER, CHALLENGES and the CODEX.
 import { Screen, PAL, ease, clamp, mix, iron, backdrop, button, lines, alpha, fit, bar, glow, brackets } from './kit.js';
 import { icon } from './icons.js';
 import { portrait, heroColour } from './portraits.js';
@@ -14,10 +14,10 @@ export class SelectScreen extends Screen {
   get meta() { return this.data.meta || {}; }
   open_(id) { return (this.meta.unlocked || []).includes(id); }
   unlockChallenges(id) { return challengeList().filter((c) => { const r = rewardOf(c); return r.kind === 'hero' && r.id === id; }); }
-  turn(d) { const n = this.ids.length; const i = (this.idx + d + n) % n; if (i !== this.idx) { this.idx = i; this.changeT = 0; this.sound('ui'); } }
+  turn(d) { const n = this.ids.length; const i = (this.idx + d + n) % n; if (i !== this.idx) { this.idx = i; this.changeT = 0; this.sound('ui'); this.call('preview', this.ids[i]); } }
   onDir(dir) { if (dir[0]) { this.turn(dir[0]); this.focusId = 'begin'; return true; } if (dir[1]) { this.turn(dir[1] * Math.ceil(this.ids.length / 2)); return true; } return false; }
   onTap(id) {
-    if (id.startsWith('hero:')) { const i = this.ids.indexOf(id.slice(5)); if (i === this.idx) { if (this.open_(this.ids[i])) this.begin(); else this.deny(this.items.find((x) => x.id === id)); } else { this.idx = i; this.changeT = 0; this.sound('ui'); } return; }
+    if (id.startsWith('hero:')) { const i = this.ids.indexOf(id.slice(5)); if (i === this.idx) { if (this.open_(this.ids[i])) this.begin(); else this.deny(this.items.find((x) => x.id === id)); } else { this.idx = i; this.changeT = 0; this.sound('ui'); this.call('preview', this.ids[i]); } return; }
     if (id === 'begin') { this.begin(); return; }
     if (id.startsWith('btn:')) { this.sound('uiOk'); this.call(id.slice(4)); }
   }

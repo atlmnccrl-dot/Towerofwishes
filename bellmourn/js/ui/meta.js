@@ -3,7 +3,7 @@
 // { back }) (every challenge with its progress bar and reward, filtered by what it rewards), and
 // TalentScreen({ meta, hero, slots? }, { pick(id), start, back? }) (choose up to two of the warden's talents
 // before a run; the ones above their mastery stay locked).
-import { Screen, refused, PAL, ease, clamp, mix, iron, backdrop, button, lines, alpha, fit, bar, glow, header, resOf, chip } from './kit.js';
+import { Screen, refused, PAL, ease, clamp, mix, iron, backdrop, button, lines, alpha, fit, bar, glow, header, resOf } from './kit.js';
 import { icon, sigil } from './icons.js';
 import { portrait, heroColour } from './portraits.js';
 import { HEROES, ECHOES } from '../game/heroes.js';

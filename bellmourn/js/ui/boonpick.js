@@ -4,7 +4,7 @@
 // lifts, a click takes. Keys and pad: left/right, confirm. Taking one flashes it, rings it in its colour,
 // throws sparks and turns the others away; then pick(id). REROLL deals a new hand (reroll() may return
 // the new offers, or A calls setOffers(offers) / open() again).
-import { Screen, PAL, ease, clamp, resOf, rarityOf, mix, glow, brackets, backdrop, button, alpha, rays } from './kit.js';
+import { Screen, PAL, ease, clamp, resOf, rarityOf, mix, glow, brackets, backdrop, button, rays } from './kit.js';
 import { icon, COST_ICON } from './icons.js';
 import { drawBoonFace, drawCardBack, CardCanvas, blitCard } from './cards.js';
 import { drawBoonStrip } from './hud.js';
@@ -51,7 +51,7 @@ export class BoonScreen extends Screen {
       const n = this.offers.length;
       for (let i = 0; i < n; i++) { const t0 = 0.08 + i * STAGGER; if (!this.dealt[i] && this.phaseT >= t0) { this.dealt[i] = true; this.sound('dash', { vol: 0.5 }); } if (!this.revealed[i] && this.phaseT >= t0 + DEAL) { this.revealed[i] = true; const RA = rarityOf(this.offers[i].rarity); this.sound(RA.n >= 3 ? 'perfect' : 'ui'); } }
       if (this.phaseT >= 0.08 + (n - 1) * STAGGER + DEAL + FLIP) { this.phase = 'idle'; this.phaseT = 0; }
-    } else if (this.phase === 'pick' && this.phaseT >= 0.8 && !this.sent) { this.sent = true; const o = this.offers[this.picked]; this.call('pick', o.id); }
+    } else if (this.phase === 'pick' && this.phaseT >= 0.62 && !this.sent) { this.sent = true; const o = this.offers[this.picked]; this.call('pick', o.id); }
     else if (this.phase === 'out' && this.phaseT >= 0.42) {
       const r = this.call('reroll'); if (Array.isArray(r)) this.setOffers(r); else if (this.phase === 'out') this.setOffers(this.data.offers || this.offers);
     }
@@ -67,8 +67,8 @@ export class BoonScreen extends Screen {
     ui.text(title, B.L, B.T + 1, { color: PAL.text, scale: 2 }); ui.rect(B.L, B.T + 16, Math.min(60, ui.measure(title, 2)), 1, PAL.blood);
     const sx = B.L + ui.measure(title, 2) + 8; if ((run.boons || []).length) drawBoonStrip(ui, run, sx, B.T + 4, { t });
     const rs = this.rerollState(); let rx = B.R;
-    if (rs.show) { const rh = 18; const costTxt = rs.free > 0 ? 'FREE' : String(rs.cost ?? '-'); const stripW = (run.boons || []).length * 4 + 16; const full = ui.measure('REROLL') + ui.measure(costTxt) + 36; const compact = B.R - full - 50 - ui.measure(String(run.embers ?? 0)) < sx + stripW; const rw = compact ? ui.measure(costTxt) + 34 : full; const st = this.hit('reroll', rx - rw, B.T, rw, rh, { disabled: !rs.can });
-      button(ui, { x: rx - rw, y: B.T, w: rw, h: rh }, compact ? '' : 'REROLL', st, { icon: (u, x, y) => icon(u, 'reroll', x, y, rs.can ? PAL.text : PAL.faint), cost: rs.free > 0 ? { n: 'FREE', col: PAL.ok } : { icon: COST_ICON.embers, n: rs.cost ?? '-', ok: (run.embers ?? 0) >= (rs.cost ?? 0) } }); rx -= rw + 6; }
+    if (rs.show) { const rh = 18; const costTxt = rs.free > 0 ? (rs.free > 1 ? 'X' + rs.free : 'FREE') : String(rs.cost ?? '0'); const stripW = (run.boons || []).length * 4 + 16; const full = ui.measure('REROLL') + ui.measure(costTxt) + 46; const compact = B.R - full - 50 - ui.measure(String(run.embers ?? 0)) < sx + stripW; const rw = compact ? ui.measure(costTxt) + 40 : full; const st = this.hit('reroll', rx - rw, B.T, rw, rh, { disabled: !rs.can });
+      button(ui, { x: rx - rw, y: B.T, w: rw, h: rh }, compact ? '' : 'REROLL', st, { icon: (u, x, y) => icon(u, 'reroll', x, y, rs.can ? PAL.text : PAL.faint), cost: rs.free > 0 ? { n: rs.free > 1 ? 'X' + rs.free : 'FREE', col: PAL.ok } : (rs.cost !== null ? { icon: COST_ICON.embers, n: rs.cost, ok: (run.embers ?? 0) >= rs.cost } : { n: '0', ok: false }) }); rx -= rw + 6; }
     icon(ui, 'ember', rx - ui.measure(String(run.embers ?? 0)) - 10, B.T + 6, PAL.ember); ui.text(String(run.embers ?? 0), rx, B.T + 6, { align: 'right', color: PAL.goldHi });
     // the cards
     const n = this.offers.length; const deckX = (B.L + B.R) / 2, deckY = ui.h + L.ch * 0.6;
@@ -99,6 +99,7 @@ export class BoonScreen extends Screen {
       const takeH = 15;
       const cvs = face ? this.faces[i].get(ui, o.id + o.rarity + L.cw + 'x' + L.ch + (run.boons || []).length, L.cw, L.ch, () => drawBoonFace(ui, o, L.cw, L.ch, { run, footer: takeH }))
         : this.back.get(ui, 'b' + L.cw + 'x' + L.ch, L.cw, L.ch, () => drawCardBack(ui, L.cw, L.ch));
+      if (sxk > 0.9) sxk = 1; // a card nearly face-on is drawn face-on: no dropped pixel columns in the text
       blitCard(ui, cvs, cx, cy, sxk, sc, a);
       if (this.phase === 'idle' || this.phase === 'pick') {
         const x = Math.round(cx - L.cw / 2), y = Math.round(cy - L.ch / 2);

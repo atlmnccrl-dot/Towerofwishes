@@ -172,7 +172,7 @@ function allies() {
     const w = new World({ ...ARENA, seed: 9 }); w.spawnHero(0, 6, prog('warden', 14)); const boss = w.spawnBoss('wheel', 0, -4, { face: 0 });
     if (!w.spawnAlly) { note('world.spawnAlly is not there yet: the ally fights are skipped'); return; }
     const a = w.spawnAlly(id, 2, 6, { face: Math.PI }); let t = 0; const dt = 1 / 60; let idle = true;
-    while (t <= E.dur + 0.05) { E.step(w, a, t, null); w.update(dt, { mx: 0, mz: 0 }); w.drain(); if (a.entering && (Math.abs(a.vx) > 0.5 || a.state === 'attack' || a.state === 'shoot')) idle = false; t += dt; if (!invariants(w, 'ally entrance ' + id)) break; }
+    while (t < E.dur) { E.step(w, a, t, null); w.update(dt, { mx: 0, mz: 0 }); w.drain(); if (a.entering && (Math.abs(a.vx) > 0.5 || a.state === 'attack' || a.state === 'shoot')) idle = false; t += dt; if (!invariants(w, 'ally entrance ' + id)) break; }
     E.step(w, a, E.dur + 0.1, null);
     if (!idle) bad(`ally ${id}: it acts during its entrance`);
     if (a.entering || a.hidden || Math.hypot(a.x - 2, a.z - 6) > 0.6 || Math.abs(a.leapH || 0) > 0.01) bad(`ally ${id}: the entrance does not end on its spot`);

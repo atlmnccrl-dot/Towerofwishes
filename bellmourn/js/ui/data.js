@@ -14,7 +14,7 @@ export function loadData() {
   if (loading) return loading;
   const tryMod = (path, fn) => import(path).then(fn, () => {});
   loading = Promise.all([
-    tryMod('../game/boons.js', (m) => { DATA.RES = DATA.RES || pick(m, ['RES', 'RESONANCES']); DATA.BOONS = DATA.BOONS || pick(m, ['BOONS']); DATA.BOONTEXT = DATA.BOONTEXT || (typeof m.boonText === 'function' ? m.boonText : null); }),
+    tryMod('../game/boons.js', (m) => { DATA.RES = DATA.RES || pick(m, ['RES', 'RESONANCES']); DATA.BOONS = DATA.BOONS || pick(m, ['BOONS']); DATA.RARITY = DATA.RARITY || pick(m, ['RARITY']); DATA.BOONTEXT = DATA.BOONTEXT || (typeof m.boonText === 'function' ? m.boonText : null); }),
     tryMod('../game/challenges.js', (m) => { DATA.CHALLENGES = DATA.CHALLENGES || pick(m, ['CHALLENGES']); }),
     tryMod('../game/run.js', (m) => { DATA.TOWER = DATA.TOWER || pick(m, ['towerUpgrades', 'TOWER_UPGRADES', 'TOWER']); DATA.TALENTS = DATA.TALENTS || pick(m, ['TALENTS', 'talents']);
       if (!DATA.MASTERY && m.masteryLevel && m.masteryNeed) DATA.MASTERY = { masteryLevel: m.masteryLevel, masteryNeed: m.masteryNeed, talentSlots: m.talentSlots }; }),

@@ -3,6 +3,7 @@
 // '#' the main colour, '+' its light tone, '-' its dark tone, 'o' white, '.' empty. Icons get a dark
 // 1 px outline by default so they read on any ground. Cached per (name, colour, scale).
 import { mix, resOf, PAL } from './kit.js';
+import { DATA } from './data.js';
 
 const B = {
   // ---- boon slots (7x7)
@@ -112,4 +113,14 @@ export function icon(ui, name, x, y, col = PAL.text, o = {}) {
 export const ic = (name, col) => (ui, x, y) => icon(ui, name, x, y, col);
 export const COST_ICON = { hp: ic('hp', PAL.hp), embers: ic('ember', PAL.ember), ember: ic('ember', PAL.ember), tonic: ic('tonic', PAL.tonic), tonics: ic('tonic', PAL.tonic), shards: ic('shard', PAL.shard), shard: ic('shard', PAL.shard) };
 // a Resonance sigil in its colour (B may give its own icon name: used if it is one of ours)
-export function sigil(ui, res, x, y, o = {}) { const R = resOf(res); const name = B['res:' + R.icon] ? 'res:' + R.icon : (B['res:' + R.id] ? 'res:' + R.id : 'star'); return icon(ui, name, x, y, o.col || R.col, o); }
+// B's own 7x7 glyph (RES[res].pix) when boons.js is loaded, so the menus and the game show one sigil; it gets
+// a light top edge and a dark lower edge here. Without it, the 9x9 sigils above.
+function pixName(R) {
+  const src = DATA.RES && DATA.RES[R.id]; if (!src || !Array.isArray(src.pix) || !src.pix.length) return null;
+  const name = 'pix:' + R.id; if (B[name]) return name;
+  const P = src.pix.map((r) => String(r)); const at = (x, y) => y >= 0 && y < P.length && x >= 0 && x < P[y].length && P[y][x] !== '.' && P[y][x] !== ' ';
+  B[name] = P.map((row, y) => [...row].map((ch, x) => (!at(x, y) ? '.' : (!at(x, y - 1) ? '+' : (!at(x, y + 1) ? '-' : '#')))).join(''));
+  return name;
+}
+export function sigilName(res) { const R = resOf(res); return pixName(R) || (B['res:' + R.icon] ? 'res:' + R.icon : (B['res:' + R.id] ? 'res:' + R.id : 'star')); }
+export function sigil(ui, res, x, y, o = {}) { const R = resOf(res); return icon(ui, sigilName(res), x, y, o.col || R.col, o); }

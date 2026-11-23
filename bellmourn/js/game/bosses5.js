@@ -42,7 +42,7 @@ const lerp = (a, b, k) => a + (b - a) * k;
 
 // How hard each boss hits (multiplies every number below; the boss's dmgMul still applies on top) and the
 // tier its summons come at.
-const POWER = { kingcrab: 1.45, hollowmother: 1.35, ronin: 1.6, smiling: 1.4, pyresaint: 1.2 };
+const POWER = { kingcrab: 1.45, hollowmother: 1.28, ronin: 1.6, smiling: 1.4, pyresaint: 1.2 };
 const ADD_TIER = { kingcrab: 2, hollowmother: 4, ronin: 6, smiling: 2, pyresaint: 5 };
 
 // ------------------------------------------------------------------ helpers (as in bosses3.js / bosses4.js)
@@ -107,7 +107,7 @@ export const BOSSES5 = {
   // smooth white head with no eyes and a mouth that opens down its whole length, and too many limbs, each
   // twice as long as a man, each ending in a hand. It walks on the walls and the vault and drops.
   hollowmother: {
-    name: 'The Hollow Mother', title: 'Who Nurses the Dark', hp: 4600, poise: 999, speed: 3.8, r: 0.9, mass: 9, scale: 2.05, boss: true,
+    name: 'The Hollow Mother', title: 'Who Nurses the Dark', hp: 4200, poise: 999, speed: 3.8, r: 0.9, mass: 9, scale: 2.05, boss: true,
     look: { rig: 'hollowmother', eyes: 0xfff4e8, colors: { skin: 0xe8e2d6, shade: 0xb8b0a2, dark: 0x16121a, mouth: 0x2a0408, nail: 0x3a3430, glow: 0xffe8d0 } },
   },
   // PROPOSAL: a swordsman of a foreign order who came to the city to ring the bell for his own dead and
@@ -130,7 +130,7 @@ export const BOSSES5 = {
   // back burning and blessing. A charred figure in white robes gone to ash at the hem, arms spread on the
   // beam she was bound to, a crown of fire and broken irons on her wrists; she floats, head bowed.
   pyresaint: {
-    name: 'The Pyre Saint', title: 'Who Burns So Others May See', hp: 4200, poise: 999, speed: 2.2, r: 0.7, mass: 8, scale: 1.7, boss: true, hover: true,
+    name: 'The Pyre Saint', title: 'Who Burns So Others May See', hp: 4200, poise: 999, speed: 2.2, r: 0.75, mass: 8, scale: 1.95, boss: true, hover: true,
     look: { rig: 'saint', eyes: 0xfff0a0, skirt: 0xe0d8c8, noHair: false, longHair: true, hood: false, bulk: 1.0,
       colors: { skin: 0x3a2a24, hair: 0x1a1210, tunic: 0xe8e0d0, pants: 0xd8d0c0, boots: 0x2a2018, glove: 0x3a2a24, shoulder: 0xe0d8c8, belt: 0x8a6a3a, wood: 0x2a1a10, iron: 0x4a4440, ember: 0xff9a30, ash: 0x8a8070 } },
   },
@@ -598,7 +598,7 @@ const pyresaint = {
       const a = angTo(e, h); const d = dist(e, h); if (d > 1.2) { e.mx = S(a); e.mz = C(a); e.moveSpeed = 2.7; } else { e.mx = 0; e.mz = 0; }
       if (t >= (c.trail || 0.8)) { c.trail = t + 0.38; spot(w, e, e.x, e.z, 1.0, { warn: 0.3, life: 2.4, dmg: 10 * K, kind: 'pyre', kb: 3, status: { burn: 1 } }); }
       if (t >= (c.pulse || 1.6)) { c.pulse = t + 1.7; wave(w, e, e.x, e.z, 5.5, { r0: 1.0, warn: 0.3, life: 1.0, dmg: 12 * K, kind: 'fire' }); }
-      if (t >= 5.2) { e.pillar = false; w.emit('pillarEnd', { e }); startRite(e, 'cross'); return true; }
+      if (t >= 4.6) { e.pillar = false; w.emit('pillarEnd', { e }); e.ai.cd_cross = 0; return endRite(e, 0.5); } // the cross comes next (its cooldown cleared)
       return true;
     }
     return false;

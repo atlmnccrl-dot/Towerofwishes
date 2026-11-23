@@ -33,15 +33,9 @@ const { chromium } = require('playwright');
   let bad = 0;
   for (const vid of list) {
     // rebuild under the variant unless the game already did (A's ?variant= parsing)
-    const how = await p.evaluate(async ({ lid, vid, short }) => {
-      if (window.VV) { await VV.load(lid, vid, short); return 'viewer'; }
-      const G = BM.game; const cur = G.level && G.level.def; if (!vid && !short && !(cur && cur.variant)) return 'base';
-      if (vid && cur && cur.variant && cur.variant.id === vid && !!(cur.layout && cur.layout.short) === short) return 'game';
-      const V = await import('/bellmourn/js/game/variants.js'); const LV = (await import('/bellmourn/js/world/levels/index.js')).default;
-      window.__baseDefs = window.__baseDefs || {}; const base = window.__baseDefs[lid] || (window.__baseDefs[lid] = (LV[lid].base || LV[lid]));
-      LV[lid] = vid || short ? V.applyVariant(base, vid ? V.getVariant(lid, vid) : null, { short }) : base;
-      await G.loadLevel(lid, { fromStart: true }); return 'harness';
-    }, { lid: id, vid, short });
+    // the viewer rebuilds in place; the game is reloaded with ?variant= (&short=1), which game.js reads (A)
+    if (viewer) await p.evaluate(async ({ lid, vid, short }) => { await VV.load(lid, vid, short); }, { lid: id, vid, short });
+    else if (list.length > 1 || vid || short) { await p.goto(`http://127.0.0.1:${port}/bellmourn/index.html?level=${id}&god=1${vid ? '&variant=' + vid : ''}${short ? '&short=1' : ''}`); }
     await toPlay(); if (out) await p.waitForTimeout(1500);
     if (out) await p.screenshot({ path: list.length > 1 || vid ? out.replace(/\.png$/, '') + '-' + (vid || 'base') + (short ? '-short' : '') + '.png' : out });
     const res = await p.evaluate(() => {

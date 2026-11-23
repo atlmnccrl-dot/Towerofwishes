@@ -59,9 +59,9 @@ export const CONDITIONS = {
   },
   bloodmoon: {
     name: 'BLOOD MOON', line: 'THE MOON CAME UP RED. EVERYTHING IS HUNGRY.',
-    ambience: (b) => ({ moonColor: 0xff6a50, moon: Math.max(1.6, b.moon ?? 1.5) * 1.05, hemiSky: mixHex(b.hemiSky ?? 0x5a6c8a, 0x7a2a30, 0.5), fog: mixHex(b.fog, 0x3c0c10, 0.45), rainColor: 0xc85050,
+    ambience: (b) => ({ moonColor: 0xe8705a, moon: Math.min(Math.max(1.5, b.moon ?? 1.5), 1.9), hemiSky: mixHex(b.hemiSky ?? 0x5a6c8a, 0x7a2a30, 0.45), fog: mixHex(b.fog, 0x3c0c10, 0.45), rainColor: 0xc85050,
       fillColor: mixHex(b.fillColor ?? 0x8292b4, 0xb04848, 0.5), beams: (b.beams || []).map((x) => ({ ...x, color: 0xff6a50 })),
-      grade: { ...(b.grade || {}), gain: [1.12, 0.93, 0.9], lift: [0.012, 0.0, 0.002], sat: 0.92 } }),
+      grade: { ...(b.grade || {}), gain: [1.08, 0.94, 0.92], lift: [0.01, 0.0, 0.002], sat: 0.88, exposure: Math.min(1.05, b.grade?.exposure ?? 1.0) } }),
     overlay: { blood: 12, glow: 0xff3020 },
     pool: { ghoul: 'hound', hushed: 'ghoul', crossbow: 'crossbow', rat: 'bat' },
     elements: { blood: 5, void: 1 }, elite: 'vampiric', chance: 0.6, eliteChance: 0.2,
@@ -88,7 +88,7 @@ export const CONDITIONS = {
       fill: (b.fill ?? 1.3) * 0.85, grade: { ...(b.grade || {}), gain: [0.94, 0.92, 1.1], lift: [0.004, 0.0, 0.016], sat: 0.6, vignette: 0.55, exposure: (b.grade?.exposure ?? 1.05) * 1.02 } }),
     overlay: { cracks: 8, glow: 0x9a60ff },
     pool: { hushed: 'shade', acolyte: 'chanter', crossbow: 'choirmask', hound: 'shade', bat: 'wisp' },
-    elements: { void: 4, holy: 1 }, elite: 'shielded', chance: 0.55,
+    elements: { void: 4, holy: 1 }, elite: 'shielded', chance: 0.55, bgMix: 0.9,
   },
   ashfall: {
     name: 'ASHFALL', line: 'GREY ASH FALLS LIKE SNOW THAT DOES NOT MELT.',
@@ -238,7 +238,8 @@ const AREAS = {
     short: { start: { x: 3, z: -12, face: PI }, drop: ['river'], cut: [[-16, -16.8, 18, 18]], open: ['iceGate'] },
     variants: [
       { id: 'frostmarch.storm', name: 'THE WHITEOUT', condition: 'storm', tagline: 'SNOW AND THUNDER TOGETHER. THE FIRS SCREAM.',
-        ambience: { weather: 'snow', rain: 0, drizzle: 0, rainColor: 0xdce8f8 },
+        ambience: { weather: 'snow', rain: 0, drizzle: 0, fog: 0x8a98ac, fogNear: 62, fogFar: 100, grade: { gain: [0.98, 1.0, 1.06], lift: [0.04, 0.045, 0.05], sat: 0.45 } },
+        overlay: { wet: false, puddles: 0, struck: 0, glow: 0x80b8ff, frost: 0xe8f0fa },
         layout: { blocks: [[-3.2, -10.6, 4.6, 1.4, 'ice']] }, bossPool: ['frostgiant'], events: ['ambush', 'hint'] },
       { id: 'frostmarch.fog', name: 'THE FROZEN FOG', condition: 'fog', tagline: 'THE FOG FREEZES ON YOUR CLOAK.',
         ambience: { weather: 'snow', rain: 0 }, layout: { start: { x: 6.2, z: 15.6, face: PI }, blocks: [[6.4, -26.4, 1.6, 1.6, 'ice']] },
@@ -395,7 +396,7 @@ export function applyVariant(def, variant, opts = {}) {
   if (C) {
     const base = def.ambience || {}; let amb = { ...base, ...C.ambience(base, def.id), ...(v.ambience || {}) };
     if (NO_RAIN.has(def.id)) { amb.rain = 0; amb.drizzle = 0; amb.lightning = false; if (!amb.weather) amb.weather = base.weather || 'dust'; }
-    if (base.background !== undefined && amb.fog !== base.fog) amb.background = mixHex(base.background, amb.fog, 0.5);
+    if (base.background !== undefined && amb.fog !== base.fog) amb.background = mixHex(base.background, amb.fog, C.bgMix ?? 0.5);
     out.ambience = amb;
   }
   // the run cut
@@ -445,7 +446,7 @@ export function applyVariant(def, variant, opts = {}) {
   }
   // a soft line as the hero comes near a touch: how a player notices them
   for (const t of touches) if (t.near) hints.push({ zone: [t.x - 5.5, t.z - 5.5, t.x + 5.5, t.z + 5.5], text: t.near, life: 3.5 });
-  if (C && !S) hints.unshift({ zone: [out.start.x - 3, out.start.z - 3, out.start.x + 3, out.start.z + 3], text: C.name + ': ' + C.line, life: 4.5 });
+  if (C) hints.unshift({ zone: [out.start.x - 3, out.start.z - 3, out.start.x + 3, out.start.z + 3], text: C.name + ': ' + C.line, life: 4.5 });
   out.foes = foes; out.encounters = encounters; out.touches = touches; out.hints = hints;
   // the build: the district's own, then kit_var lays the condition, the blocks and the touches (K.variantDress)
   const baseBuild = def.build;

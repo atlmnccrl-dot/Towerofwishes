@@ -2,7 +2,7 @@
 // first walk), BOSSES, BOONS, ECHOES, LORE and ENDINGS. A grid of tiles on the left (a dark ? for what is
 // not found yet), the chosen entry on the right. The foe silhouettes and lines come from the old Haven
 // bestiary (lampmenu.js), folded in here.
-import { Screen, PAL, ease, clamp, mix, iron, backdrop, button, lines, alpha, fit, header, resOf, rarityOf } from './kit.js';
+import { Screen, PAL, ease, clamp, iron, backdrop, button, lines, alpha, fit, header, resOf } from './kit.js';
 import { icon, sigil, SLOT } from './icons.js';
 import { boonList, loreList, endingList } from './data.js';
 import { boonText } from './cards.js';
