@@ -113,7 +113,7 @@ export class LampMenu {
         const next = this.district();
         return DISTRICTS.filter((id) => S.visited.includes(id) || id === next).map((id) => {
           const n = DISTRICTS.indexOf(id) + 1; const cleared = !!S.bosses[id];
-          return { label: ROMAN[n] + '  ' + LEVELS[id].name.toUpperCase(), sub: id === next ? 'WHERE ONWARD LEADS' : (cleared ? 'CLEARED: GOOD FOR EMBERS' : 'NOT CLEARED'),
+          return { label: ROMAN[n] + '  ' + LEVELS[id].name.toUpperCase(), sub: id === next ? 'WHERE ONWARD LEADS' : (cleared ? 'CLEARED: VOICES STILL TO FREE' : 'NOT CLEARED'),
             note: id === next ? 'NEXT' : (cleared ? 'CLEARED' : ''), verb: 'SET OUT',
             desc: (LEVELS[id].tagline || '') + (cleared ? ' THE WANDERING HUSHED RETURN THERE.' : ''), act: () => { if (g.haven) g.haven.onward(id); } };
         });

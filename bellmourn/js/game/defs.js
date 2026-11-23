@@ -65,7 +65,7 @@ export const FOES = {
     look: { weapon: 'axe', mask: 0x2a2a2e, eyes: 0xff3020, bulk: 1.35, colors: { skin: 0x6a5a54, tunic: 0x2a1c18, pants: 0x1a1414, boots: 0x0e0c0c, belt: 0x3a2a1e, glove: 0x2a2020 } },
   },
   warden: {
-    name: 'Bell Warden', hp: 120, poise: 50, flinch: 1, speed: 2.4, r: 0.42, mass: 1.6, aggro: 12, keep: 1.6, shield: true,
+    name: 'Oath-Sworn Warden', hp: 120, poise: 50, flinch: 1, speed: 2.4, r: 0.42, mass: 1.6, aggro: 12, keep: 1.6, shield: true,
     attacks: [{ a: A.thrust, w: 2, min: 0, max: 2.6 }, { a: A.shieldBash, w: 1, min: 0, max: 1.5 }], drop: 12,
     look: { weapon: 'sword', offhand: 'shield', eyes: 0xff4030, horns: 0x2a2a30, colors: { skin: 0x3a3438, tunic: 0x30343c, pants: 0x1c1e24, boots: 0x101114, shoulder: 0x4a505a, glove: 0x2a2e36 }, bulk: 1.1 },
   },

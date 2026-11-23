@@ -22,8 +22,8 @@ export default {
   gatesOpen: ['stairGate', 'effigyGate', 'ossuaryGate'],
   ambience: {
     // bone and candle: an ochre dark, dust hanging in the grate light (district variety)
-    fog: 0x18140f, fogNear: 78, fogFar: 175, sky: 0x020304, moon: 0.9, moonColor: 0xa8a4a0, hemi: 1.0, hemiSky: 0x5a5244, hemiGround: 0x0c0a08,
-    fill: 1.7, fillColor: 0x8a8070, ambient: 0x1a1610, ambientI: 0.6, rain: 0, lightning: false, weather: 'dust',
+    fog: 0x18140f, fogNear: 78, fogFar: 175, sky: 0x020304, moon: 0.9, moonColor: 0xa8a4a0, hemi: 1.35, hemiSky: 0x6a6050, hemiGround: 0x14100c,
+    fill: 2.1, fillColor: 0x9a8e7a, ambient: 0x221c14, ambientI: 0.85, rain: 0, lightning: false, weather: 'dust',
     grade: { gain: [1.04, 0.98, 0.88], lift: [0.008, 0.006, 0.003], sat: 0.8 },
     // short shafts through the street grates (the ceiling is lost in the dark); none over the stream,
     // whose shaft would lie across the hall of effigies behind it. (Lengths chosen so the shaft's top

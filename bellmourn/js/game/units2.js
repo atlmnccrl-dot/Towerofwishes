@@ -449,7 +449,7 @@ export const SUMMON_ONLY = Object.keys(UNITS2).filter((k) => UNITS2[k].summon);
 
 // PROPOSAL: the bestiary lines (a short note on how each foe fights), for the author to revise.
 export const BESTIARY_TEXT = {
-  hushed: 'THE VOICELESS OF THE CITY. A CUT, OR TWO.',
+  hushed: 'A VOICE SLEEPS IN EACH. STRIKE ONE DOWN TO FREE IT.', // PROPOSAL
   ghoul: 'LEAPS IN ALONG A LINE. STEP ASIDE.',
   crossbow: 'AIMS A LONG RAY, THEN LOOSES.',
   acolyte: 'THROWS RED ORBS AND BLINKS AWAY.',
@@ -457,7 +457,7 @@ export const BESTIARY_TEXT = {
   hound: 'CIRCLES, CROUCHES, LUNGES DOWN A LINE.',
   bomber: 'LOBS FIRE AHEAD OF YOU. CORNERED, IT SPILLS.',
   spitter: 'SPITS POISON ACROSS YOUR PATH.',
-  warden: 'A SHIELD IN FRONT. STRIKE AS IT SWINGS.',
+  warden: 'SWORN TO SILENCE. A SHIELD IN FRONT: STRIKE AS IT SWINGS.', // PROPOSAL
   rat: 'NIPS AND SCURRIES. NEVER ALONE.',
   shade: 'MELTS INTO THE DARK, CUTS FROM BEHIND.',
   chanter: 'WARDS ITS KIN. INTERRUPT THE CHANT.',
