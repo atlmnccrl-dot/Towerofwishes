@@ -9,7 +9,12 @@ const { chromium } = require('playwright');
   const p = await b.newPage({ viewport: { width: 960, height: 540 } });
   const errs = []; p.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); }); p.on('pageerror', (e) => errs.push('PAGEERROR ' + e.message));
   await p.goto(`http://127.0.0.1:${port}/bellmourn/index.html?level=${id}&god=1`);
-  await p.waitForFunction(() => window.BM && BM.ready && BM.game.state === 'play' && BM.frames > 5, null, { timeout: 120000 });
+  // a scene on the way in (story cutscenes) is skipped, so the check always reaches play
+  await p.waitForFunction(() => {
+    if (!(window.BM && BM.ready)) return false; const G = BM.game;
+    if (G.state === 'cutscene' && G.cut) { try { if (G.cut.pick) G.cut.choose(0); else if (!G.cut.skipping) G.cut.skip(); } catch (e) { /* the scene ends on its own */ } }
+    return G.state === 'play' && BM.frames > 5;
+  }, null, { timeout: 120000, polling: 500 });
   await p.waitForTimeout(1500);
   if (out) await p.screenshot({ path: out });
   const res = await p.evaluate(() => {

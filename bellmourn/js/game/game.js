@@ -10,6 +10,7 @@ import { SCENES, AFTER_BOSS, BEFORE_BOSS, ON_ENTER, STAGE } from './scenes/index
 import { BOSS_LINES } from './scenes/lines.js';
 import { SPEAKERS, JOINS, WARDENS } from './scenes/cast.js';
 import * as PROG from './progress.js';
+import * as HX from './heroes.js'; // START_HEROES, JOINS (where a warden joins)
 import * as B4 from './bosses4.js'; // bossEntrance(type): the bosses' entrances
 import { shared } from '../engine/materials.js';
 import { COL } from '../engine/ui.js';
@@ -35,7 +36,7 @@ const SAVE_KEY = 'bellmourn.save.v2', SET_KEY = 'bellmourn.settings.v1';
 function load(key) { try { return JSON.parse(localStorage.getItem(key)); } catch (e) { return null; } }
 function store(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) { /* private mode */ } }
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV'];
-const STARTERS = ['warden', 'huntress', 'bellbreaker'];
+const STARTERS = HX.START_HEROES || ['warden', 'huntress', 'bellbreaker'];
 const ARMS = { blade: 'BLADE', bow: 'CROSSBOW', hammer: 'HAMMER', focus: 'LANTERN STAFF', knives: 'TWIN KNIVES', anchor: 'ANCHOR AND CHAIN', song: 'SUNG STAFF' };
 const hit = (r, p) => r && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
 const inZone = (e, z) => e && e.x >= z[0] && e.x <= z[2] && e.z >= z[1] && e.z <= z[3];
@@ -154,6 +155,7 @@ export class Game {
     if (q.get('level') && !this.debugDone) {
       // debug: ?level=id [&boss=1] [&god=1] [&lamp=id] [&hero=id] — straight into a district
       this.debugDone = true; this.debug = { god: q.get('god') === '1' };
+      this.noScenes = q.get('scenes') !== '1'; // straight into a district for tests: no cutscenes unless ?scenes=1
       if (q.get('hero') && HEROES[q.get('hero')]) { this.save.hero = q.get('hero'); if (!this.save.unlocked.includes(q.get('hero'))) this.save.unlocked.push(q.get('hero')); }
       if (q.get('lamp')) this.save.lamp = q.get('level') + ':' + q.get('lamp');
       if (q.get('level') === 'haven') { await this.enterHaven(havenNext(this.save, q.get('next') || 'gate'), { first: q.get('intro') === '1', resume: q.get('resume') === '1' }); return; }
@@ -326,6 +328,7 @@ export class Game {
   // Play a scene by id; onEnd(result) runs when it is over (default: back to where the game was).
   playScene(id, ctx = {}, onEnd = null) {
     const sc = SCENES[id]; const back = this.state === 'cutscene' ? (this.cutBack || 'play') : this.state;
+    if (this.noScenes && !this.forceScene) { this.markSeen(id); if (onEnd) onEnd({}); return false; }
     if (!sc) { console.warn('bellmourn: no scene ' + id); if (onEnd) onEnd({}); return false; }
     if (this.world) this.world.idle();
     this.markSeen(id); this.cutBack = back; this.bark = null;
@@ -358,7 +361,7 @@ export class Game {
   }
   // for tests and ?scene=<id>: set the stage a scene expects, then play it
   async debugScene(id, opts = {}) {
-    const st = STAGE[id] || {}; this.cutAuto = !!opts.auto; this.cutSpeed = opts.speed || 1; this.noAutoScenes = true;
+    const st = STAGE[id] || {}; this.forceScene = true; this.cutAuto = !!opts.auto; this.cutSpeed = opts.speed || 1; this.noAutoScenes = true;
     if (opts.party !== false) for (const h of WARDENS) if (HEROES[h] && !this.save.unlocked.includes(h)) this.save.unlocked.push(h);
     if (opts.hero && HEROES[opts.hero]) this.save.hero = opts.hero;
     if (this.state === 'cutscene' && this.cut) { const c = this.cut; this.cut = null; c.onEnd = null; c.finish(); }
@@ -658,17 +661,17 @@ export class Game {
     for (const f of w.foes()) { f.hp = 0; w._kill(f, w.hero, {}); }
     w.hazards.length = 0; w.projs = w.projs.filter((p) => p.team === 'hero');
     const lines = bossReward(this.save, this.levelId, this.rand);
-    if (this.save.justRecruited) this.save.justRecruited = null;
+    const rec = (lines && lines.recruit) || this.save.justRecruited; const recScene = rec ? 'recruit.' + (rec === 'lamplighter' ? 'ash' : rec) : null;
     this.persist();
     // the boss's last words, then the scene this fall opens (a recruit, a revelation, the bell, an ending)
     const BL = BOSS_LINES[type]; if (BL && BL.fall) this.bark = { name: (SPEAKERS[type] || {}).name || this.boss.def.name.toUpperCase(), color: (SPEAKERS[type] || {}).color || COL.gold, text: BL.fall, t: 0, life: 3.6 };
-    const sid = type === 'wheel' ? 'end' : AFTER_BOSS[type];
+    const sid = type === 'wheel' ? 'end' : (recScene && SCENES[recScene] ? recScene : AFTER_BOSS[type]);
     if (sid && (sid === 'end' || !this.seen(sid))) {
       this.pendingScene = sid;
       this.after(3.4, () => {
         if (sid === 'end') { this.playEnding(this.save.choice === 'sing' ? 'song' : 'dawn'); return; }
         if (this.state === 'dead') { this.pendingScene = null; return; }
-        this.playScene(sid, {}, () => { this.pendingScene = null; this.afterBossScene(type); });
+        this.playScene(sid, {}, () => { this.pendingScene = null; if (this.save.justRecruited) { this.save.justRecruited = null; this.persist(); } this.afterBossScene(type); });
       });
     }
     this.sound.play('bigBell', { delay: 0.4 });
@@ -765,7 +768,8 @@ export class Game {
           break;
         }
         case 'ability': {
-          const k = ev.kind; snd.play({ wave: 'swingHeavy', rush: 'dash', whirl: 'swingHeavy', volley: 'bolt', smoke: 'vanish', trap: 'gate', shock: 'boom', charge: 'dash', ward: 'toll', pillar: 'fire', lantern: 'heal', wisps: 'orb' }[k] || 'swing');
+          const k = ev.kind; snd.play({ wave: 'swingHeavy', rush: 'dash', whirl: 'swingHeavy', volley: 'bolt', smoke: 'vanish', trap: 'gate', shock: 'boom', charge: 'dash', ward: 'toll', pillar: 'fire', lantern: 'heal', wisps: 'orb', fan: 'slashA', shadow: 'vanish', noose: 'clang', undertow: 'splash', tide: 'splash', barnacle: 'clang', shatter: 'hitHeavy', lullaby: 'heal', echo: 'toll' }[k] || 'swing');
+          if (k === 'shadow') { this.dashGhosts = 4; this.ghostT = 0; }
           if (k === 'ward') fx.shockRing(ev.e.x, ev.e.z, 2.7, [2.4, 2, 1], 0.5);
           if (k === 'rush' || k === 'charge') { this.dashGhosts = 4; this.ghostT = 0; }
           break;
@@ -817,6 +821,11 @@ export class Game {
         case 'silence': snd.play('toll', { f: 73, vol: 0.7 }); break;
         case 'ascend': snd.play('bigBell'); snd.play('roar', { delay: 0.2 }); if (ev.e) { fx.shockRing(ev.e.x, ev.e.z, 7, [2.8, 2.4, 1.2], 0.7); this.ui.toast(ev.e.def.name.toUpperCase() + ' ASCENDS', { color: COL.gold, big: true, life: 2.4 }); } break; // PROPOSAL
         case 'musicStop': snd.setMusic('none'); break;
+        // the new wardens' powers and the Echoes (sim.js)
+        case 'toll': snd.play('toll'); if (ev.e) fx.shockRing(ev.e.x, ev.e.z, 3.2, [2.6, 2.2, 1.2], 0.5); break;
+        case 'shatter': snd.play('clang'); if (ev.e) fx.sparks(ev.e.x, 1.1, ev.e.z, 0, 16, [1.6, 2.2, 2.8]); break;
+        case 'hush': snd.play('vanish', { vol: 0.6 }); break;
+        case 'boneWard': snd.play('block'); if (ev.e) fx.shockRing(ev.e.x, ev.e.z, 1.4, [2.2, 2.1, 1.8], 0.35); break;
       }
     }
   }
@@ -1041,7 +1050,7 @@ export class Game {
   }
   // the wardens on the select screen (every registered one; those who join later show a lock)
   selIds() { return HERO_ORDER.filter((id) => HEROES[id]); }
-  joinsText(id) { const at = (HEROES[id] && HEROES[id].unlock) || JOINS[id]; const L = at && LEVELS[at]; return L ? 'JOINS AFTER ' + L.name.toUpperCase() : 'JOINS LATER'; }
+  joinsText(id) { if (HX.JOINS && HX.JOINS[id]) return 'JOINS AFTER ' + HX.JOINS[id]; const at = (HEROES[id] && HEROES[id].unlock) || JOINS[id]; const L = at && LEVELS[at]; return L ? 'JOINS AFTER ' + L.name.toUpperCase() : 'JOINS LATER'; }
   // where the select screen puts things (the camera frames the warden between the list and the card)
   selLayout() {
     const ui = this.ui, W = ui.w; const sl = Math.round(ui.safe.l), sr = Math.round(ui.safe.r); const use = W - sl - sr;

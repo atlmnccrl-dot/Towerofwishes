@@ -194,11 +194,12 @@ NODE_PATH=$(npm root -g) node bellmourn/test/phone.js /tmp/bm-phone          # i
 NODE_PATH=$(npm root -g) node bellmourn/test/autoplay-browser.js /tmp/bm-auto 40 3   # plays the whole game on autoplay
 NODE_PATH=$(npm root -g) node bellmourn/test/shot.js /tmp/x.png "level=nave&boss=1&god=1"   # any spot
 NODE_PATH=$(npm root -g) node bellmourn/test/scenes-test.js /tmp/bm-scenes [id ...]   # every cutscene on a phone-sized screen, a frame from each
+NODE_PATH=$(npm root -g) node bellmourn/test/story-flow.js /tmp/bm-flow     # the story by script: the Old Road, the Haven, the Gaoler and Kestrel, Silence, the bell, Act II
 ```
 
 Debug URL parameters: `?level=<id>` starts in a district (prologue, gate, market, docks, nave,
 undercroft, foundry, heights, belfry, frostmarch, ashdunes, catacombs, abyss), `&lamp=<id>` at a lamp, `&boss=1` in the boss arena, `&hero=<id>`
 as a given warden, `&god=1` makes the hero unkillable, `?auto=1&speed=3` plays itself (through the
 Haven too: it spends, equips and goes ONWARD). `?level=haven&next=<id>` opens the Haven leading to a
-district (`&resume=1` already kneeling, `&intro=1` with the first-visit guide). `?scene=<id>` plays one
+district (`&resume=1` already kneeling, `&intro=1` with the first-visit guide). Debug params skip the cutscenes (add `&scenes=1` to keep them). `?scene=<id>` plays one
 cutscene on its stage (`&fast=1` lets it run itself; ids in `js/game/scenes/index.js`).

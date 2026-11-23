@@ -1,9 +1,9 @@
 // The story's flow by script, in the browser, with real key presses for the lines and the bell:
 //  1. a new game: the training road -> the Old Road scene -> (the training is cut short) the gate scene ->
 //     the Haven with Sister Ash -> ONWARD into Gallows Gate;
-//  2. ?level=gate&boss=1&god=1: the Gaoler's entrance and line, he falls (struck down by the test), his last
+//  2. ?level=gate&boss=1&god=1&scenes=1 (debug params skip scenes unless scenes=1): the Gaoler's entrance and line, he falls (struck down by the test), his last
 //     words, then Kestrel's scene;
-//  3. ?level=belfry&boss=1&god=1: Saint Silence's scene, his fight, the bell scene (three strikes with J),
+//  3. ?level=belfry&boss=1&god=1&scenes=1: Saint Silence's scene, his fight, the bell scene (three strikes with J),
 //     the end of Act I, the Haven with the Act II scene.
 // NODE_PATH=$(npm root -g) node bellmourn/test/story-flow.js /tmp/bm-flow
 const { chromium } = require('playwright');
@@ -53,7 +53,7 @@ const fs = require('fs');
   check(true, 'ONWARD into Gallows Gate'); await p.waitForTimeout(600); await shot('1-gate');
 
   // ---- 2. the Gaoler, his entrance, his fall and Kestrel
-  await p.goto(base + '?level=gate&boss=1&god=1'); await ready();
+  await p.goto(base + '?level=gate&boss=1&god=1&scenes=1'); await ready();
   s = await until((x) => x.state === 'bossIntro', 30000);
   check(true, 'the Gaoler\'s intro'); await p.waitForTimeout(1800); await shot('2-gaoler-intro');
   await until((x) => x.state === 'play' && x.boss === 'fight', 20000, 200, async () => { await press(); });
@@ -67,7 +67,7 @@ const fs = require('fs');
   check(true, 'back to the district after the scene');
 
   // ---- 3. the Belfry: Silence, the bell, the end of Act I
-  await p.goto(base + '?level=belfry&boss=1&god=1'); await ready();
+  await p.goto(base + '?level=belfry&boss=1&god=1&scenes=1'); await ready();
   // his entrance first (a key press jumps it to its end), then his words
   s = await until((x) => x.state === 'cutscene' && x.scene === 'silence.pre', 90000, 300, async (x) => { if (x.state === 'bossIntro') await press(); });
   check(true, 'Saint Silence speaks before his fight');
