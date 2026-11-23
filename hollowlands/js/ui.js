@@ -95,7 +95,7 @@ UI.drawControls = (g, G) => {
     const ic = (s) => HL.text(g, s, c.x, c.y - 3, P.cream, 0.5);
     if (c.id === 'attack') {
       const w = G.player.weaponDef();
-      if (w) { const icon = HL.ART.icons[G.eq.weapon]; g.drawImage(icon, c.x - 6, c.y - 6); } else ic('-');
+      if (G.eq.weapon && HL.ART.icons[G.eq.weapon]) g.drawImage(HL.ART.icons[G.eq.weapon], c.x - 6, c.y - 6); else { g.fillStyle = P.cream; g.fillRect(c.x - 3, c.y - 3, 6, 5); g.fillRect(c.x - 3, c.y + 2, 4, 2); g.fillStyle = P.ink; g.fillRect(c.x - 1, c.y - 3, 1, 3); g.fillRect(c.x + 1, c.y - 3, 1, 3); } void w;
       if (G.player.chargeT > 0) HL.ringPx(g, c.x, c.y, c.r - 3, G.player.chargeT >= 0.6 ? P.lt0 : P.cream, 2, -Math.PI / 2, -Math.PI / 2 + HL.TAU * HL.clamp(G.player.chargeT / 0.6, 0, 1));
     } else if (c.id === 'dodge') { g.fillStyle = P.cream; for (let i = 0; i < 3; i++) { g.fillRect(c.x - 4 + i * 3, c.y - 2 + (i % 2), 2, 1); g.fillRect(c.x - 3 + i * 3, c.y + (i % 2), 2, 1); } }
     else if (c.id === 'interact') { ic('!'); const lw = HL.textWidth(near.label); g.fillStyle = P.ink; g.fillRect(c.x - lw - 20, c.y - 5, lw + 6, 11); HL.text(g, near.label, c.x - 17, c.y - 3, P.cream, 1); }

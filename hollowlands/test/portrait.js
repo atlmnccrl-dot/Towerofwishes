@@ -26,7 +26,28 @@ const { start } = require('./serve');
   await page.mouse.move(s0.x, s0.y); await page.mouse.down(); await page.mouse.move(s1.x, s1.y, { steps: 5 }); await page.waitForTimeout(600);
   const x1 = await page.evaluate(() => HL.G.player.x); await page.mouse.up();
   check('stick drag moves the Wayfarer right in game space', x1 > x0 + 12, 'dx=' + (x1 - x0).toFixed(1));
+  // the attack button, turned: bare hands first, then with the sword
+  const btn = await page.evaluate(() => { const c = HL.Input.layout.find((c) => c.id === 'attack'); return { x: c.x, y: c.y }; });
+  const ab = toScreen(btn.x, btn.y, st);
+  await page.waitForTimeout(400);
+  check('starts without a weapon', await page.evaluate(() => !HL.G.eq.weapon));
+  await page.touchscreen.tap(ab.x, ab.y); await page.waitForTimeout(50);
+  check('attack button punches with bare hands (turned screen)', await page.evaluate(() => HL.G.player.state === 'attack'));
+  await page.waitForTimeout(500);
+  await page.evaluate(() => HL.G.give('rusted_sword'));
+  // hold the stick and tap attack at the same time (two fingers)
+  const cdp = await page.context().newCDPSession(page);
+  const tp = (x, y, id) => ({ x, y, id, radiusX: 4, radiusY: 4, force: 1 });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [tp(s0.x, s0.y, 1)] });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [tp(s1.x, s1.y, 1)] });
+  await page.waitForTimeout(150);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [tp(s1.x, s1.y, 1), tp(ab.x, ab.y, 2)] });
+  await page.waitForTimeout(50);
+  const mid = await page.evaluate(() => ({ st: HL.G.player.state, joy: !!HL.Input.st.joy }));
+  await page.waitForTimeout(40);
   await page.screenshot({ path: process.argv[2] || '/tmp/hl-portrait.png' });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  check('sword strike while the other thumb holds the stick', mid.st === 'attack' && mid.joy, JSON.stringify(mid));
   console.log(errors.length ? 'ERRORS ' + errors.join('\n') : 'no page errors');
   console.log(fails ? fails + ' FAILED' : 'ALL PASSED');
   await browser.close(); srv.close(); process.exit(fails || errors.length ? 1 : 0);

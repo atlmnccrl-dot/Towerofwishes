@@ -14,6 +14,10 @@ const { start } = require('./serve');
   const btn = await page.evaluate(() => { const r = HL.UI.regions.find((r) => r.w >= 110); const G = HL.G; return r && { x: (r.x + r.w / 2) * 844 / G.W, y: (r.y + r.h / 2) * 390 / G.H }; });
   await page.touchscreen.tap(btn.x, btn.y); await page.waitForTimeout(400);
   check('title: tapping Begin starts the game', await page.evaluate(() => HL.G.state === 'play'));
+  const fist = await page.evaluate(() => { const G = HL.G, c = HL.Input.layout.find((c) => c.id === 'attack'); return { x: c.x * 844 / G.W, y: c.y * 390 / G.H }; });
+  await page.touchscreen.tap(fist.x, fist.y); await page.waitForTimeout(50);
+  check('attack button punches before you find a weapon', await page.evaluate(() => !HL.G.eq.weapon && HL.G.player.state === 'attack'));
+  await page.waitForTimeout(400);
   const info = await page.evaluate(() => { const G = HL.G; G.enemies = []; G.give('rusted_sword'); return { W: G.W, H: G.H, scale: G.scale, layout: HL.Input.layout.map((c) => ({ id: c.id, x: c.x * 844 / G.W, y: c.y * 390 / G.H, r: c.r * 844 / G.W })) }; });
   console.log('buffer', info.W + 'x' + info.H, 'scale', info.scale, '-> attack button diameter', Math.round(info.layout[0].r * 2) + ' CSS px');
   // drag the floating joystick to the right with a pointer

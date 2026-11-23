@@ -19,6 +19,8 @@ HL.WEAPONS = {
     heavy: { mult: 2.2, reach: 20, arc: 3.2, stam: 32 }, ult: 'kings_fall', step: 16,
   },
 };
+// Bare hands, until you find a weapon: weak, but the attack button always does something.
+HL.FISTS = { kind: 'fists', dmg: 5, reach: 11, arc: 1.7, wind: 0.05, active: 0.08, rec: 0.17, stam: 8, combo: 2, finisher: 1.4, heavy: { mult: 2, reach: 12, arc: 1.9, stam: 18 }, ult: null, step: 18 };
 HL.ULTS = {
   grave_arc: { name: 'Grave Arc', desc: 'A full circle cleave that staggers everything close.' },
   ashen_drive: { name: 'Ashen Drive', desc: 'A piercing rush through everything in a line.' },

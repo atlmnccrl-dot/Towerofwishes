@@ -372,11 +372,12 @@ HL.R3 = (() => {
   }
   function weaponMesh(kind, mats) {
     const g = new T.Group(), M = (c) => figMat(c, mats), add = (geom, c, x, y, z) => { const m = new T.Mesh(geom, M(c)); m.position.set(x, y, z); m.castShadow = true; g.add(m); return m; };
-    if (kind === 'sword') { add(bx(0.5, 0.35, 7.5), P.st0, 0, 0, 4.6); add(bx(2.4, 0.5, 0.5), P.st2, 0, 0, 0.8); add(bx(0.5, 0.5, 1.6), P.wd1, 0, 0, -0.2); }
-    else if (kind === 'spear') { add(bx(0.45, 0.45, 15), P.wd0, 0, 0, 4); const tip = add(new T.ConeGeometry(0.7, 2.4, 4), P.cream, 0, 0, 12.6); tip.rotation.x = Math.PI / 2; }
-    else if (kind === 'axe') { add(bx(0.55, 0.55, 8), P.wd1, 0, 0, 3.5); add(bx(0.6, 3.6, 2.6), P.bronze, 0, 0.6, 7); }
-    else if (kind === 'maul') { add(bx(0.55, 0.55, 8), P.wd2, 0, 0, 3.5); add(bx(2.6, 2.6, 3.2), P.st1, 0, 0, 7.5); }
-    else if (kind === 'bow') { const b = add(new T.TorusGeometry(3.2, 0.3, 3, 8, Math.PI), P.wd1, 0, 0, 1); b.rotation.set(0, Math.PI / 2, Math.PI / 2); }
+    // chunky on purpose: anything thinner than ~1.3 units vanishes at this resolution
+    if (kind === 'sword') { add(bx(1.5, 1.3, 9), P.cream2, 0, 0, 5.6); add(bx(3.4, 1.3, 1.3), P.st2, 0, 0, 0.8); add(bx(1.3, 1.3, 2), P.wd1, 0, 0, -0.4); }
+    else if (kind === 'spear') { add(bx(1.3, 1.3, 16), P.wd0, 0, 0, 4.5); const tip = add(new T.ConeGeometry(1.4, 3.6, 4), P.cream, 0, 0, 14); tip.rotation.x = Math.PI / 2; }
+    else if (kind === 'axe') { add(bx(1.3, 1.3, 9), P.wd1, 0, 0, 3.8); add(bx(1.4, 4.6, 3.4), P.bronze, 0, 0.8, 7.6); }
+    else if (kind === 'maul') { add(bx(1.3, 1.3, 8), P.wd2, 0, 0, 3.5); add(bx(3, 3, 3.6), P.st1, 0, 0, 7.5); }
+    else if (kind === 'bow') { const b = add(new T.TorusGeometry(3.4, 0.7, 3, 8, Math.PI), P.wd1, 0, 0, 1); b.rotation.set(0, Math.PI / 2, Math.PI / 2); }
     return g;
   }
   function hound(mats) {
@@ -454,7 +455,7 @@ HL.R3 = (() => {
   function decal(kind, arc) {
     let d = decals.find((x) => !x.used && x.kind === kind && x.arc === arc);
     if (!d) {
-      const gm = kind === 'arc' ? (decalGeo.arcs[arc] || (decalGeo.arcs[arc] = new T.CircleGeometry(1, 32, 0, arc))) : kind === 'arcRing' ? (decalGeo.arcs['r' + arc] || (decalGeo.arcs['r' + arc] = new T.RingGeometry(0.93, 1, 32, 1, 0, arc))) : decalGeo[kind];
+      const gm = kind === 'slash' ? (decalGeo.arcs['s' + arc] || (decalGeo.arcs['s' + arc] = new T.RingGeometry(0.5, 1.05, 24, 1, 0, arc))) : kind === 'arc' ? (decalGeo.arcs[arc] || (decalGeo.arcs[arc] = new T.CircleGeometry(1, 32, 0, arc))) : kind === 'arcRing' ? (decalGeo.arcs['r' + arc] || (decalGeo.arcs['r' + arc] = new T.RingGeometry(0.93, 1, 32, 1, 0, arc))) : decalGeo[kind];
       const m = new T.Mesh(gm, new T.MeshBasicMaterial({ color: P.red0, transparent: true, opacity: 0.4, depthWrite: false, side: T.DoubleSide }));
       m.rotation.x = -Math.PI / 2; m.renderOrder = 2;
       d = { kind, arc, m }; decals.push(d); scene.add(m);
@@ -709,7 +710,11 @@ HL.R3 = (() => {
       if (f.k === 'p') put(f.x, f.z + 3, f.y, f.col);
       else if (f.k === 'd') put(f.x, 1 + q * 4, f.y, q < 0.5 ? P.ash1 : P.ash2);
       else if (f.k === 'ring') { const r = f.r * (0.3 + q * 0.7), m = Math.max(10, Math.floor(r * 1.4)); for (let i = 0; i < m; i++) { const a = (i / m) * HL.TAU; put(f.x + Math.cos(a) * r, 1, f.y + Math.sin(a) * r, f.col); } }
-      else if (f.k === 'slash') { const m = Math.ceil(f.arc * f.r * 1.2); for (let i = 0; i <= m; i++) { if (q > 0.5 && i / m < (q - 0.5) * 2) continue; const a = f.a - f.arc / 2 + (f.arc * i) / m; put(f.x + Math.cos(a) * f.r, 6, f.y + 5 + Math.sin(a) * f.r, q < 0.5 ? f.col : P.cream3); } }
+      else if (f.k === 'slash') {
+        const arcK = Math.round(f.arc * 20) / 20, m2 = decal('slash', arcK);
+        m2.position.set(f.x, 0.7, f.y + 5); m2.scale.setScalar(f.r + 2); m2.rotation.set(-Math.PI / 2, 0, -(f.a + arcK / 2));
+        m2.material.color.set(P.cream); m2.material.opacity = 0.85 * (1 - q);
+ const m = Math.ceil(f.arc * f.r * 1.2); for (let i = 0; i <= m; i++) { if (q > 0.5 && i / m < (q - 0.5) * 2) continue; const a = f.a - f.arc / 2 + (f.arc * i) / m; put(f.x + Math.cos(a) * f.r, 6, f.y + 5 + Math.sin(a) * f.r, q < 0.5 ? f.col : P.cream3); } }
     }
     if (!w.dark) { // drifting ash
       for (let i = 0; i < 70; i++) { const ax = ((HL.hash(i, 1, 3) * 600 + t * (8 + (i % 5))) % 600) - 300, az = ((HL.hash(i, 2, 3) * 400 + t * (4 + (i % 3))) % 400) - 200; put(camT.x + ax, 30 + HL.hash(i, 3, 3) * 50, camT.y + az, P.ash0); }

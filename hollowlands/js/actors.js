@@ -59,7 +59,7 @@ HL.Player = class Player {
     Object.assign(this, { x, y, r: 3, vx: 0, vy: 0, face: Math.PI / 2, dir: 0, hp: 100, maxhp: 100, st: 100, maxst: 100, stDelay: 0, state: 'move', t: 0, walkT: 0, combo: 0, comboT: 0, inv: 0, flash: 0, holdT: -1, chargeT: 0, ult: 0, regen: 0, stepT: 0, atk: null, buffer: null });
   }
   get G() { return HL.G; }
-  weaponDef() { const id = this.G.eq.weapon; return id ? HL.WEAPONS[id] : null; }
+  weaponDef() { const id = this.G.eq.weapon; return (id && HL.WEAPONS[id]) || HL.FISTS; }
   dmgMult() { const id = this.G.eq.weapon; return 1 + (this.G.wlv[id] || 0) * HL.UPGRADE.perLevel; }
   def() { const a = HL.ITEMS[this.G.eq.armor]; return a ? a.def || 0 : 0; }
   speed() { const a = HL.ITEMS[this.G.eq.armor]; return 52 * (1 - ((a && a.slow) || 0)); }
@@ -93,7 +93,7 @@ HL.Player = class Player {
       if (b.k === 'dodge' && this.st > 0) { this.buffer = null; return this.startRoll(mlen > 0.2 ? mvA : this.face); }
       if ((b.k === 'light' || b.k === 'heavy') && w && this.st > 0 && (this.state !== 'attack' || this.atk.phase === 'rec')) { this.buffer = null; this.startAttack(b.k === 'heavy', b.charge, mlen > 0.2 ? mvA : null); }
     }
-    if (inp.ult && this.state === 'move' && G.eq.relic === 'bell_shard' && this.ult >= 100 && w) return this.startUlt(mlen > 0.2 ? mvA : this.face);
+    if (inp.ult && this.state === 'move' && G.eq.relic === 'bell_shard' && this.ult >= 100 && G.eq.weapon) return this.startUlt(mlen > 0.2 ? mvA : this.face);
     let sp = this.speed();
     switch (this.state) {
       case 'move': {
@@ -141,7 +141,7 @@ HL.Player = class Player {
   updateAttack(dt, w) {
     const a = this.atk; a.pt += dt;
     const wind = a.heavy ? 0.06 : w.wind, act = a.heavy ? 0.13 : w.active, rec = a.heavy ? w.rec + 0.16 : w.rec * (a.fin ? 1.3 : 1);
-    if (a.phase === 'wind' && a.pt >= wind) { a.phase = 'active'; a.pt = 0; A.play('swing', a.heavy); const reach = a.heavy ? w.heavy.reach : w.reach; HL.fx.slash(this.x, this.y - 5, this.face, w.kind === 'spear' ? 0.25 : a.heavy ? w.heavy.arc : w.arc, reach - 2, 0.14); }
+    if (a.phase === 'wind' && a.pt >= wind) { a.phase = 'active'; a.pt = 0; A.play('swing', a.heavy); const reach = a.heavy ? w.heavy.reach : w.reach; HL.fx.slash(this.x, this.y - 5, this.face, w.kind === 'spear' ? 0.25 : a.heavy ? w.heavy.arc : w.arc, reach - 2, 0.22); }
     if (a.phase === 'active') {
       const step = (a.tgt ? 0.35 : 1) * w.step * (a.heavy ? 1.2 : 1);
       this.vx = Math.cos(this.face) * step * (1 - a.pt / act); this.vy = Math.sin(this.face) * step * (1 - a.pt / act);
