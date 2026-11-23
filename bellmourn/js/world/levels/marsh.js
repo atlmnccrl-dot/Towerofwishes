@@ -32,7 +32,7 @@ export default {
   bounds: BOUNDS, apron: false,
   gatesOpen: ['reedGate', 'motherGate'],
   ambience: {
-    fog: 0x18221f, fogNear: 76, fogFar: 140, moon: 1.9, moonColor: 0xb4ccb8, moonDir: [0.3, 1, -0.7], hemi: 1.35, hemiSky: 0x6a8478, hemiGround: 0x0e1612,
+    fog: 0x18221f, fogNear: 76, fogFar: 140, moon: 2.2, moonColor: 0xb4ccb8, moonDir: [0.3, 1, -0.7], hemi: 1.6, hemiSky: 0x6a8478, hemiGround: 0x0e1612,
     fill: 1.5, fillColor: 0x7a9488, ambient: 0x1c2824, ambientI: 0.8, rain: 0.35, drizzle: 0.45, lightning: false, weather: 'marsh',
     grade: { gain: [0.93, 1.02, 0.97], lift: [0.004, 0.012, 0.009], sat: 0.7 },
     beams: [],

@@ -248,6 +248,7 @@ export class Rig {
     this.flask.visible = on;
     if (on) { const k = 0.35 + 0.65 * full; this.flaskGlass.color.setRGB(0.5 * k, 2.6 * k, 0.8 * k); this.flaskHalo.material.opacity = 0.25 + 0.75 * full; }
     if (this.lantern) { this.lantern.visible = !on; this.beltLantern.visible = on; }
+    if (this.weaponL) this.weaponL.visible = !on; // Kestrel tucks her second knife away to drink
   }
 
   tipWorld(out) { return this.tip.getWorldPosition(out); }

@@ -1,10 +1,11 @@
 // Balance and invariants for Act II's bosses (bosses3.js), as sim-test.mjs does for the first eight.
+// Act III's bosses, every Ascended form and the entrances: test/act3-test.mjs.
 // node bellmourn/test/boss3-test.mjs [seeds=12]      HERO=warden|huntress|bellbreaker|lamplighter
 // Targets: the skilled bot (skill 1) wins 40-100 %, the masher (skill 0) rarely; no timeouts, no NaN,
 // nobody outside the arena, nobody stuck in a windup or a rite.
 import { World } from '../js/game/sim.js';
 import { makeBot } from '../js/game/bot.js';
-import { heroStats, newHeroSave, HERO_ORDER, WEAPONS, weaponsOfType, MAX_LEVEL } from '../js/game/heroes.js';
+import { heroStats, newHeroSave, HERO_ORDER, HEROES as KITS, weaponsOfType, MAX_LEVEL } from '../js/game/heroes.js';
 import { BOSSES2, BOSS_AI2 } from '../js/game/bosses2.js';
 import { UNITS } from '../js/game/units.js';
 import { FOES } from '../js/game/defs.js';
@@ -16,8 +17,8 @@ const ARENA = { bounds: [-10, -9, 10, 9], solids: [{ x: -5, z: -3, r: 0.7, h: 3 
 function prog(heroId, tier) {
   const save = { heroes: {}, relicsOn: tier >= 2 ? (tier >= 5 ? ['psalter', 'clapper'] : ['psalter']) : [], bossTonics: Math.min(3, tier) };
   const P = save.heroes[heroId] = newHeroSave(heroId);
-  P.level = Math.min(MAX_LEVEL, 1 + tier * 3); const ws = weaponsOfType({ warden: 'blade', huntress: 'bow', bellbreaker: 'hammer', lamplighter: 'focus' }[heroId]);
-  P.weapon = ws[Math.min(ws.length - 1, Math.floor(tier / 2))]; P.plus = { [P.weapon]: Math.min(10, Math.round(tier * 0.8)) };
+  P.level = Math.min(MAX_LEVEL, 1 + tier * 3); const ws = weaponsOfType(KITS[heroId].weapon); // any warden, the new ones too
+  if (ws.length) { P.weapon = ws[Math.min(ws.length - 1, Math.floor(tier / 2))]; P.plus = { [P.weapon]: Math.min(10, Math.round(tier * 0.8)) }; }
   return heroStats(save, heroId);
 }
 const HEROES = process.env.HERO ? process.env.HERO.split(',') : HERO_ORDER;

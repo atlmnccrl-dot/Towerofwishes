@@ -18,7 +18,7 @@ export const W3 = {
   mud: (tone = '#2e3226') => pho('mud' + tone, T.mud(51, tone), { shininess: 40, specular: 0x34403c }),
   moss: (tone = '#3a4630') => lam('moss' + tone, T.moss(52, tone)),
   rotwood: (tone = '#4c4236') => lam('rot' + tone, T.rotwood(53, tone)),
-  brass: (tone = '#8a6a34') => pho('brass' + tone, T.brass(54, tone), { shininess: 48, specular: 0xc8a060 }),
+  brass: (tone = '#8a6a34') => pho('brass' + tone, T.brass(54, tone), { shininess: 36, specular: 0x8a7048 }),
   grate: (tone = '#3a3e48') => pho('grate' + tone, T.grate(55, tone), { shininess: 30, specular: 0x6a6a80 }),
   tread: (tone = '#4a4e5a') => pho('tread' + tone, T.tread(56, tone), { shininess: 36, specular: 0x8088a0 }),
   marble: (tone = '#d8d2c6') => pho('marble' + tone, T.marble(57, tone), { shininess: 30, specular: 0x8a8070 }),
@@ -27,9 +27,9 @@ export const W3 = {
   rock: (tex, tone) => once('k3rock' + tex + tone, () => worldMat(new THREE.MeshLambertMaterial({ flatShading: true }), T[tex](59, tone))),
 };
 // Plain metals for machinery (not world-mapped: they turn).
-export const brassM = () => once('k3-brassM', () => cutout(new THREE.MeshPhongMaterial({ color: 0x8a6430, specular: 0xffd890, shininess: 54 })));
+export const brassM = () => once('k3-brassM', () => cutout(new THREE.MeshPhongMaterial({ color: 0x8a6430, specular: 0x9a7a50, shininess: 30 })));
 export const darkBrassM = () => once('k3-dbrassM', () => cutout(new THREE.MeshPhongMaterial({ color: 0x5a4020, specular: 0xb08850, shininess: 36 })));
-export const steelM = () => once('k3-steelM', () => cutout(new THREE.MeshPhongMaterial({ color: 0x3a3e4a, specular: 0x9aa0b8, shininess: 44 })));
+export const steelM = () => once('k3-steelM', () => cutout(new THREE.MeshPhongMaterial({ color: 0x3a3e4a, specular: 0x5a6070, shininess: 30 })));
 export const goldM = () => once('k3-goldM', () => cutout(new THREE.MeshPhongMaterial({ color: 0xc8962e, specular: 0xfff0b0, shininess: 70, emissive: 0x3a2808 })));
 
 // ---------------------------------------------------------------- stone that sinks into a sky

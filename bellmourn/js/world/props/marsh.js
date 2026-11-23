@@ -261,7 +261,7 @@ export function punt(ctx, x, z, ry = 0) {
 // crown, moss hanging down it and, low on its face, the flue arch still glowing from some fire far below.
 export function chimney(ctx, x, z, h = 15, s = 2.4, o = {}) {
   const g = new THREE.Group(); g.position.set(x, BED_Y, z); g.rotation.set(o.rx ?? 0.06, o.ry ?? 0.3, o.rz ?? -0.09); ctx.group.add(g);
-  const brick = M.brick('#2e2a2a'), soot = M.brick('#1a1818'), R = T.rng(Math.round(x * 7 + z * 3)); const H = h - BED_Y;
+  const brick = M.brick('#4a3e3a'), soot = M.brick('#262222'), R = T.rng(Math.round(x * 7 + z * 3)); const H = h - BED_Y;
   const P = (gm, m, lx, ly, lz, cast = true) => { const me = new THREE.Mesh(gm, m); me.position.set(lx, ly, lz); me.castShadow = cast; me.receiveShadow = true; g.add(me); return me; };
   P(box(s + 0.5, 1.6, s + 0.5), M.ashlar('#2c2c30'), 0, 0.8, 0); P(box(s, H - 1.4, s), brick, 0, (H - 1.4) / 2 + 0.8, 0);
   for (let y = 2.4; y < H - 2; y += 2.2) P(box(s + 0.08, 0.12, s + 0.08), M.ironLit(), 0, y, 0);
@@ -276,7 +276,7 @@ export function chimney(ctx, x, z, h = 15, s = 2.4, o = {}) {
 // A ruined foundry wall (brick, along X or Z): stretches of varied height with broken tops and moss on
 // them, gaps where it fell, the fallen bricks heaped at its foot. Solid where it stands.
 export function ruinWall(ctx, x0, z0, x1, z1, hMin = 0.8, hMax = 3.6, o = {}) {
-  const alongX = Math.abs(x1 - x0) >= Math.abs(z1 - z0); const len = alongX ? x1 - x0 : z1 - z0; const R = T.rng(Math.round(x0 * 7 + z0 * 13 + len)); const brick = M.brick(o.tone || '#3a3230'); const n = Math.max(1, Math.round(len / 1.1));
+  const alongX = Math.abs(x1 - x0) >= Math.abs(z1 - z0); const len = alongX ? x1 - x0 : z1 - z0; const R = T.rng(Math.round(x0 * 7 + z0 * 13 + len)); const brick = M.brick(o.tone || '#564640'); const n = Math.max(1, Math.round(len / 1.1));
   for (let i = 0; i < n; i++) {
     if (o.gaps && R() < o.gaps) continue; const a = (alongX ? x0 : z0) + i * len / n, b = a + len / n; const hh = hMin + R() * (hMax - hMin);
     const cx = alongX ? (a + b) / 2 : x0, cz = alongX ? z0 : (a + b) / 2; const w = len / n;
@@ -305,7 +305,7 @@ export function foundryFloor(ctx, x0, z0, x1, z1, ring = [0, 0, 5]) {
 // The mouth of a great furnace in a wall (opening toward +x or +z): brick piers and a lintel, an arch of
 // dark iron, the black throat glowing deep red.
 export function furnaceMouth(ctx, x, z, face = '+x') {
-  const fx = face === '+x', brick = M.brick('#3a3230'); const ry = fx ? Math.PI / 2 : 0;
+  const fx = face === '+x', brick = M.brick('#5e4c40'); const ry = fx ? Math.PI / 2 : 0;
   const P = (g, m, lx, ly, lz, o) => part(ctx, g, m, x, z, ry, lx, ly, lz, o);
   for (const s of [-1, 1]) P(box(0.9, 3.4, 1.2), brick, s * 1.35, 1.3, 0);
   P(box(3.6, 0.9, 1.3), brick, 0, 3.2, 0); P(box(1.9, 0.18, 0.2), M.ironLit(), 0, 2.6, 0.62);

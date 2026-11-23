@@ -164,7 +164,7 @@ export function cageLift(ctx, x, z) {
   for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) add(ctx, box(0.12, 3, 0.12), st, x + dx * 1.24, 1.5, z + dz * 1.24);
   for (let i = -4; i <= 4; i++) { put(ctx, '!sp-cbar', st, x + i * 0.28, 1.5, z - 1.24, 0.04, 3, 0.04); put(ctx, '!sp-cbar', st, x - 1.24, 1.5, z + i * 0.28, 0.04, 3, 0.04); }
   add(ctx, box(2.7, 0.18, 2.7), br, x, 3.05, z); add(ctx, cone(1.0, 0.8, 4), st, x, 3.5, z, { ry: Math.PI / 4 });
-  for (const dx of [-0.4, 0.4]) chain(ctx, x + dx, 22, z, 3.9);
+  for (const dx of [-0.4, 0.4]) chain(ctx, x + dx, 8.5, z, 3.9);
   solid(ctx, x - 1.3, z - 1.3, x + 1.3, z - 1.1, 3); solid(ctx, x - 1.3, z - 1.3, x - 1.1, z + 1.3, 3); solidCircle(ctx, x + 1.24, z + 1.24, 0.12, 3);
 }
 

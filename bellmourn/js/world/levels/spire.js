@@ -119,7 +119,6 @@ export default {
     for (const [x, z] of [[14.2, -48.4], [14.2, -56.8], [-6.2, -57], [-6.2, -48.2]]) P.workLamp(ctx, x, z, { color: 0xffb060 });
     P.works(ctx, 7.6, -62, 14.6, -60.8, 2.2); P.works(ctx, -7, -62, 1.4, -60.8, 2.2);
     K.fallenBody(ctx, 9.6, -50.4, 0.9, 0x18161e); K.droppedSword(ctx, 10.6, -49.8, 2.4);
-    for (const [x, z] of [[-3, -46], [11.6, -46.4], [-2, -59], [11, -59.4]]) P.chain(ctx, x, 24, z, 5 + ((x * 3) % 2), { hook: true });
     P.sparks(ctx, [[-7.6, -48, -7, -46.8, 0.4, 12, 1.4], [10, -63, 11, -62.4, 0.6, 12, 1.4]]);
     ctx.marks.exitGate = barrier3(ctx, 4.5, -62.6, 4, 'x', 'pistons');
 
