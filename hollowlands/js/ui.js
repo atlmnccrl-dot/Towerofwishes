@@ -138,6 +138,105 @@ UI.drawControls = (g, G) => {
   } else if (G.time < 40 && G.state === 'play') { HL.ringPx(g, 42 + G.safe.l, G.H - 40 - G.safe.b, 20, P.cream3, 1); HL.text(g, 'move', 42 + G.safe.l, G.H - 43 - G.safe.b, P.cream3, 0.5); }
 };
 
+// ------------------------------------------------------------------ on-screen controls, drawn sharp at full screen resolution
+// (the world stays pixel art; the buttons are clean so they read at a glance over any ground)
+UI.drawControlsHD = (ctx, G) => {
+  const S = G.scale, I = HL.Input, near = G.prompt, P = P_, p = G.player, TAU = HL.TAU;
+  const FONT = (px, w = 700) => w + ' ' + Math.round(px * S) + 'px ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", sans-serif';
+  const circle = (x, y, r) => { ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); };
+  const label = (txt, x, y, col = 'rgba(236,228,209,0.9)') => { ctx.font = FONT(4.4, 800); ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillText(txt, x + S * 0.4, y + S * 0.4); ctx.fillStyle = col; ctx.fillText(txt, x, y); };
+  const icon = (id, x, y, size) => { const ic = HL.ART.icons[id]; if (ic) ctx.drawImage(ic, Math.round(x - size / 2), Math.round(y - size / 2), Math.round(size), Math.round(size)); };
+  const arc = (x, y, r, f, col, w) => { ctx.beginPath(); ctx.arc(x, y, r, -Math.PI / 2, -Math.PI / 2 + TAU * HL.clamp(f, 0, 1)); ctx.strokeStyle = col; ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.stroke(); ctx.lineCap = 'butt'; };
+  ctx.save(); ctx.imageSmoothingEnabled = false;
+  const owned = Object.keys(HL.WEAPONS).filter((w) => G.inv[w]);
+  for (const c of I.layout) {
+    if (c.id === 'interact' && !near) continue;
+    const X = c.x * S, Y = c.y * S, R = c.r * S, b = I.st.btn[c.id], held = b && b.held, lock = UI.lockOf(c.id, G);
+    const ring = Math.max(2, S * 0.55);
+    // base
+    circle(X, Y, R);
+    if (lock) { ctx.fillStyle = 'rgba(10,8,8,0.22)'; ctx.fill(); ctx.setLineDash([S * 1.2, S * 1.2]); ctx.strokeStyle = 'rgba(236,228,209,0.35)'; ctx.lineWidth = ring * 0.7; ctx.stroke(); ctx.setLineDash([]); }
+    else {
+      const gr = ctx.createRadialGradient(X, Y - R * 0.3, R * 0.1, X, Y, R);
+      gr.addColorStop(0, held ? 'rgba(80,70,64,0.72)' : 'rgba(40,33,32,0.62)'); gr.addColorStop(1, held ? 'rgba(30,24,24,0.8)' : 'rgba(14,11,11,0.62)');
+      ctx.fillStyle = gr; ctx.fill(); ctx.strokeStyle = held ? '#fff6e0' : 'rgba(236,228,209,0.85)'; ctx.lineWidth = ring; ctx.stroke();
+    }
+    if (lock) { // a small padlock
+      const k = R * 0.32; ctx.fillStyle = 'rgba(236,228,209,0.55)'; ctx.fillRect(X - k, Y - k * 0.2, k * 2, k * 1.5);
+      ctx.beginPath(); ctx.arc(X, Y - k * 0.2, k * 0.65, Math.PI, 0); ctx.strokeStyle = 'rgba(236,228,209,0.55)'; ctx.lineWidth = Math.max(2, S * 0.5); ctx.stroke();
+      label({ swap: 'SWAP', skill: 'LIGHT', ult: 'ULT' }[c.id] || '', X, Y + R + S * 1.2, 'rgba(236,228,209,0.45)');
+      continue;
+    }
+    switch (c.id) {
+      case 'attack': {
+        if (G.eq.weapon) icon(G.eq.weapon, X, Y, R * 1.15);
+        else { ctx.fillStyle = P.cream; ctx.font = FONT(9, 900); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('✊', X, Y + S * 0.5); }
+        if (p && p.chargeT > 0) { arc(X, Y, R - ring * 1.6, p.chargeT / 0.6, p.chargeT >= 0.6 ? '#ffe08a' : '#ece4d1', ring * 1.3); }
+        if (b && b.held && b.ax != null) { circle(X + b.ax * R * 0.55, Y + b.ay * R * 0.55, R * 0.28); ctx.fillStyle = 'rgba(255,224,138,0.9)'; ctx.fill(); }
+        label('ATTACK', X, Y + R + S * 1.2);
+        break;
+      }
+      case 'dodge': {
+        ctx.strokeStyle = P.cream; ctx.lineWidth = S * 0.9; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+        for (const dx of [-R * 0.22, R * 0.18]) { ctx.beginPath(); ctx.moveTo(X + dx - R * 0.16, Y - R * 0.32); ctx.lineTo(X + dx + R * 0.14, Y); ctx.lineTo(X + dx - R * 0.16, Y + R * 0.32); ctx.stroke(); }
+        label('DASH', X, Y + R + S * 1.2);
+        break;
+      }
+      case 'interact': {
+        circle(X, Y, R - ring); ctx.fillStyle = 'rgba(236,228,209,0.95)'; ctx.fill();
+        ctx.fillStyle = '#1a1414'; ctx.font = FONT(8, 900); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('!', X, Y + S * 0.4);
+        ctx.font = FONT(5.4, 800); const tw = ctx.measureText(near.label).width, pw = tw + S * 6, ph = S * 9, px = Math.min(X - pw / 2, G.W * S - pw - S * 3), py = Y - R - S * 3 - ph;
+        ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(px, py, pw, ph, ph / 2); else ctx.rect(px, py, pw, ph); ctx.fillStyle = 'rgba(14,11,11,0.78)'; ctx.fill(); ctx.strokeStyle = 'rgba(236,228,209,0.6)'; ctx.lineWidth = Math.max(1.5, S * 0.35); ctx.stroke();
+        ctx.fillStyle = P.cream; ctx.textAlign = 'center'; ctx.fillText(near.label, px + pw / 2, py + ph / 2 + S * 0.3);
+        break;
+      }
+      case 'item': {
+        const q = G.quick;
+        if (q && G.inv[q]) { icon(q, X, Y - S * 0.3, R * 1.15); circle(X + R * 0.7, Y + R * 0.62, S * 3.3); ctx.fillStyle = '#ece4d1'; ctx.fill(); ctx.fillStyle = '#1a1414'; ctx.font = FONT(4.2, 900); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(G.inv[q]), X + R * 0.7, Y + R * 0.66); }
+        else { ctx.fillStyle = 'rgba(236,228,209,0.35)'; circle(X, Y, S * 1.2); ctx.fill(); }
+        label('ITEM', X, Y + R + S * 1.2);
+        break;
+      }
+      case 'ult': {
+        const f = p ? p.ult / 100 : 0, full = f >= 1;
+        if (full) { circle(X, Y, R + S * (1.5 + Math.sin(G.time * 6))); ctx.strokeStyle = 'rgba(255,201,90,0.55)'; ctx.lineWidth = S; ctx.stroke(); }
+        arc(X, Y, R - ring * 1.4, f, full ? '#ffc95a' : 'rgba(255,201,90,0.75)', ring * 1.3);
+        ctx.beginPath(); const k = R * 0.36; ctx.moveTo(X, Y - k); ctx.lineTo(X + k * 0.8, Y); ctx.lineTo(X, Y + k); ctx.lineTo(X - k * 0.8, Y); ctx.closePath();
+        ctx.fillStyle = full ? '#ffe08a' : 'rgba(236,228,209,0.6)'; ctx.fill();
+        label(full ? 'ULT!' : 'ULT', X, Y + R + S * 1.2, full ? '#ffc95a' : undefined);
+        break;
+      }
+      case 'skill': {
+        const cd = p ? p.skillCd || 0 : 0, ready = cd <= 0;
+        if (!ready) arc(X, Y, R - ring * 1.4, 1 - cd / 7, '#7fe8e0', ring * 1.2);
+        else { circle(X, Y, R + S * (1 + Math.sin(G.time * 5) * 0.8)); ctx.strokeStyle = 'rgba(127,232,224,0.6)'; ctx.lineWidth = S * 0.8; ctx.stroke(); }
+        ctx.beginPath(); const k = R * 0.38; for (let i = 0; i < 8; i++) { const a = (i / 8) * TAU, rr = i % 2 ? k * 0.45 : k; ctx.lineTo(X + Math.cos(a) * rr, Y + Math.sin(a) * rr); } ctx.closePath();
+        ctx.fillStyle = ready ? '#bffaf3' : 'rgba(127,232,224,0.45)'; ctx.fill();
+        label('LIGHT', X, Y + R + S * 1.2, '#9ff5ec');
+        break;
+      }
+      case 'swap': {
+        const nx = owned[(owned.indexOf(G.eq.weapon) + 1) % owned.length]; icon(nx, X, Y, R * 1.05);
+        label('SWAP', X, Y + R + S * 1.2);
+        break;
+      }
+      case 'menu': { const k = R * 0.42; ctx.fillStyle = P.cream; ctx.fillRect(X - k, Y - k * 0.5, k * 2, k * 1.4); ctx.fillStyle = '#1a1414'; ctx.fillRect(X - k * 0.7, Y - k * 0.1, k * 1.4, k * 0.2); ctx.strokeStyle = P.cream; ctx.lineWidth = S * 0.5; ctx.strokeRect(X - k * 0.4, Y - k * 0.9, k * 0.8, k * 0.45); break; }
+      case 'map': { const k = R * 0.45; ctx.fillStyle = '#d0a578'; ctx.fillRect(X - k, Y - k * 0.7, k * 2, k * 1.4); ctx.strokeStyle = '#6e4732'; ctx.lineWidth = S * 0.4; ctx.beginPath(); ctx.moveTo(X - k * 0.3, Y - k * 0.7); ctx.lineTo(X - k * 0.3, Y + k * 0.7); ctx.moveTo(X + k * 0.35, Y - k * 0.7); ctx.lineTo(X + k * 0.35, Y + k * 0.7); ctx.stroke(); ctx.fillStyle = '#c4473f'; circle(X + k * 0.55, Y - k * 0.2, S * 0.9); ctx.fill(); break; }
+    }
+  }
+  // floating joystick
+  const j = I.st.joy;
+  if (j) {
+    const X = j.ox * S, Y = j.oy * S, R = 20 * S;
+    circle(X, Y, R); ctx.fillStyle = 'rgba(14,11,11,0.3)'; ctx.fill(); ctx.strokeStyle = 'rgba(236,228,209,0.55)'; ctx.lineWidth = Math.max(2, S * 0.5); ctx.stroke();
+    circle(X + j.dx * R * 0.8, Y + j.dy * R * 0.8, R * 0.42); ctx.fillStyle = 'rgba(236,228,209,0.85)'; ctx.fill();
+  } else if (G.time < 40) {
+    const X = (42 + G.safe.l) * S, Y = (G.H - 40 - G.safe.b) * S, R = 20 * S;
+    circle(X, Y, R); ctx.setLineDash([S * 1.5, S * 1.5]); ctx.strokeStyle = 'rgba(236,228,209,0.45)'; ctx.lineWidth = Math.max(2, S * 0.5); ctx.stroke(); ctx.setLineDash([]);
+    label('MOVE', X, Y - S * 2.5, 'rgba(236,228,209,0.6)');
+  }
+  ctx.restore();
+};
 // which on-screen buttons are still locked, and how to earn them
 UI.lockOf = (id, G) => {
   if (id === 'ult') return G.eq.relic !== 'bell_shard' ? 'ULTIMATE: find the Bell Shard in the vault under the tower, then fill this by fighting.' : null;

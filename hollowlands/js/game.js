@@ -963,7 +963,6 @@ G.render = function (dt) {
     else {
       if (G.state !== 'menu' && G.state !== 'cut') UI.drawHUD(g, G, dt);
       if (G.state === 'play') UI.drawGuide(g, G);
-      if (G.state === 'play') UI.drawControls(g, G);
       if (G.state === 'menu') UI.drawMenu(g, G);
       if (G.state === 'dialog') UI.drawDialog(g, G);
       if (G.state === 'fire') UI.drawFire(g, G);
@@ -977,6 +976,7 @@ G.render = function (dt) {
   }
   G.sg.clearRect(0, 0, G.screen.width, G.screen.height);
   G.sg.drawImage(G.buf, 0, 0, G.W * G.scale, G.H * G.scale);
+  if (G.state === 'play' && !G.portrait) HL.UI.drawControlsHD(G.sg, G);
 };
 
 // test/debug hook (used by the automated browser checks; harmless in play)
