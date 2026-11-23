@@ -10,173 +10,168 @@
   // at play time); follow names a moving subject; reveal shows the enemy during the shot.
   const MISSIONS = [
     {
-      id: 'm1', num: '01', name: 'LANDFALL', time: '0214 HRS', place: 'WESTERN SLOPES', sky: 'HEAVY RAIN',
-      summary: 'Go in by rope and take the hill at sector A.',
+      id: 'm1', num: '01', name: 'THE FORD', map: 'ford', time: '0214 HRS', place: 'THE STREAM', sky: 'HEAVY RAIN',
+      summary: 'Cross the stream at the ford and take the wooded hill at A.',
       brief: [
-        'The storm grounded the convoys. The ridge belongs to them.',
-        'Two enemy squads hold the hill at sector A.',
-        'We go in by rope, ahead of the main body.',
-        'Take sector A before first light.',
+        'The bridges are down. One ford is still passable.',
+        'Two enemy squads hold the wooded hill at sector A.',
+        'Our lead platoon is at the start line.',
+        'Cross at the ford. Take sector A before first light.',
       ],
       shots: [
-        { x: 2400, z: 0.45, dur: 4.6, line: 0 },
-        { x: 1340, z: 1.5, dur: 4.6, line: 1, reveal: true },
-        { follow: 'transport', z: 1.6, dur: 6.2, line: 2 },
-        { x: 900, z: 1.25, dur: 3.8, line: 3 },
+        { x: 1400, y: 850, z: 0.42, dur: 4.6, line: 0 },
+        { x: 1480, y: 780, z: 1.5, dur: 4.6, line: 1, reveal: true },
+        { x: 1110, y: 800, z: 1.4, dur: 4.2, line: 3 },
+        { x: 330, y: 880, z: 1.6, dur: 3.8, line: 2 },
       ],
       weather: { rain: 1.15, wind: 0.3, bolts: [7, 14] },
       allowed: ['rifle'], enemyAllowed: ['rifle'],
       sectors: { A: 1 }, drain: false, startRP: 100,
-      insert: { x: 640 },
       setup: [
-        { team: 1, type: 'rifle', x: 1290 },
-        { team: 1, type: 'rifle', x: 1430 },
+        { team: 0, type: 'rifle', x: 300, y: 820 },
+        { team: 0, type: 'rifle', x: 320, y: 950 },
+        { team: 1, type: 'rifle', x: 1490, y: 740 },
+        { team: 1, type: 'rifle', x: 1390, y: 860 },
       ],
       ai: { buy: false, support: false, mode: 'defend' },
       objective: { type: 'capture', sector: 'A', text: 'TAKE SECTOR A' },
-      intro: ['rifle'], par: 360, maxLoss: 8, unlocks: ['mg'],
-      hints: 'm1',
+      intro: ['rifle'], par: 360, maxLoss: 8, unlocks: ['mg'], hints: 'm1',
     },
     {
-      id: 'm2', num: '02', name: 'THE GUNLINE', time: '0347 HRS', place: 'SECTOR A', sky: 'WIND RISING',
-      summary: 'Hold the trench at A against their counterattack.',
+      id: 'm2', num: '02', name: 'THE GUNLINE', map: 'ford', time: '0347 HRS', place: 'SECTOR A', sky: 'WIND RISING',
+      summary: 'Hold the hill at A against their counterattack.',
       brief: [
         'They want the hill back.',
-        'Their companies are massing behind the ridge at B.',
+        'Their companies are massing on the far ridge.',
         'A machine-gun team has reached our trench.',
         'Hold sector A until the guns behind us are ready.',
       ],
       shots: [
-        { x: 1700, z: 0.55, dur: 4.4, line: 0 },
-        { x: 2520, z: 1.3, dur: 4.6, line: 1, reveal: true },
-        { x: 1395, z: 2.1, dur: 4.6, line: 2 },
-        { x: 1500, z: 1.2, dur: 3.6, line: 3 },
+        { x: 1800, y: 850, z: 0.5, dur: 4.4, line: 0 },
+        { x: 2400, y: 900, z: 1.2, dur: 4.6, line: 1, reveal: true },
+        { x: 1395, y: 760, z: 2.0, dur: 4.6, line: 2 },
+        { x: 1550, y: 780, z: 1.1, dur: 3.6, line: 3 },
       ],
       weather: { rain: 1.0, wind: 0.55, bolts: [6, 12] },
       allowed: ['rifle', 'mg'], enemyAllowed: ['rifle', 'mg'],
-      sectors: { A: 0, B: 1, C: 1 }, drain: false, startRP: 140,
+      sectors: { A: 0, B: 1, C: 1 }, drain: false, startRP: 220,
       setup: [
-        { team: 0, type: 'rifle', x: 1375 },
-        { team: 0, type: 'mg', x: 1402 },
+        { team: 0, type: 'rifle', x: 1395, y: 860 },
+        { team: 0, type: 'mg', x: 1390, y: 760 },
       ],
       waves: [
-        { t: 14, units: ['rifle', 'rifle'] },
-        { t: 58, units: ['rifle', 'rifle', 'mg'] },
-        { t: 110, units: ['rifle', 'rifle', 'rifle'] },
+        { t: 16, units: ['rifle'] },
+        { t: 55, units: ['rifle', 'rifle'] },
+        { t: 105, units: ['rifle', 'mg', 'rifle'] },
         { t: 160, units: ['rifle', 'mg', 'rifle', 'rifle'] },
       ],
-      waveX: 2560,
+      waveAt: { x: 2560, y: 820, spread: 140 },
       ai: { buy: false, support: false, mode: 'assault' },
       objective: { type: 'hold', sector: 'A', dur: 210, text: 'HOLD SECTOR A' },
-      intro: ['mg'], par: 210, maxLoss: 10, unlocks: ['scout', 'arty'],
-      hints: 'm2',
+      intro: ['mg'], par: 210, maxLoss: 10, unlocks: ['scout', 'arty'], hints: 'm2',
     },
     {
-      id: 'm3', num: '03', name: 'EYES ON THE RIDGE', time: '0420 HRS', place: 'SECTOR B', sky: 'LIGHTNING',
+      id: 'm3', num: '03', name: 'EYES ON THE RIDGE', map: 'ridge', time: '0420 HRS', place: 'SECTOR B', sky: 'LIGHTNING',
       summary: 'Find their guns on the ridge and take sector B.',
       brief: [
         'The ridge at B looks down on everything.',
-        'Their gunners are dug in among the ruins by the mast.',
+        'Their gunners are dug in among the ruins.',
         'Scouts can see what our rifles cannot.',
         'The batteries are ready. Spot for them. Take B.',
       ],
       shots: [
-        { x: 2400, z: 0.5, dur: 4.4, line: 0 },
-        { x: 2420, z: 1.9, dur: 4.8, line: 1, reveal: true },
-        { x: 1395, z: 1.7, dur: 4.2, line: 2 },
-        { x: 1900, z: 0.9, dur: 3.8, line: 3 },
+        { x: 1700, y: 950, z: 0.42, dur: 4.4, line: 0 },
+        { x: 1710, y: 960, z: 1.8, dur: 4.8, line: 1, reveal: true },
+        { x: 900, y: 900, z: 1.6, dur: 4.2, line: 2 },
+        { x: 1300, y: 940, z: 0.8, dur: 3.8, line: 3 },
       ],
       weather: { rain: 0.9, wind: 0.4, bolts: [4, 8] },
       allowed: ['rifle', 'mg', 'scout', 'arty'], enemyAllowed: ['rifle', 'mg', 'arty'],
       sectors: { A: 0, B: 1, C: 1 }, drain: true, startRP: 320,
       setup: [
-        { team: 0, type: 'rifle', x: 1390 },
-        { team: 0, type: 'mg', x: 1372 },
-        { team: 1, type: 'mg', x: 2415 },
-        { team: 1, type: 'rifle', x: 2370 },
-        { team: 1, type: 'rifle', x: 2505 },
+        { team: 0, type: 'rifle', x: 930, y: 860 },
+        { team: 0, type: 'mg', x: 880, y: 960 },
+        { team: 1, type: 'mg', x: 1690, y: 900 },
+        { team: 1, type: 'rifle', x: 1640, y: 1040 },
+        { team: 1, type: 'rifle', x: 1770, y: 1000 },
       ],
       ai: { buy: true, support: true, mode: 'defend', incomeMul: 0.6, artyT: 80 },
       objective: { type: 'capture', sector: 'B', text: 'TAKE SECTOR B' },
-      intro: ['scout', 'arty'], par: 420, maxLoss: 14, unlocks: ['apc', 'tank'],
-      hints: 'm3',
+      intro: ['scout', 'arty'], par: 420, maxLoss: 14, unlocks: ['apc', 'tank'], hints: 'm3',
     },
     {
-      id: 'm4', num: '04', name: 'IRON IN THE RAIN', time: '0455 HRS', place: 'SECTOR C', sky: 'ARMOUR REPORTED',
-      summary: 'Their armour is coming. Meet it, then take C.',
+      id: 'm4', num: '04', name: 'IRON IN THE RAIN', map: 'ridge', time: '0455 HRS', place: 'THE VILLAGE', sky: 'ARMOUR REPORTED',
+      summary: 'Their armour holds the village. Break it and take C.',
       brief: [
-        'B is ours. Engines on the far side of the valley.',
-        'Their tanks are moving up to sector C.',
-        'Our armour has crossed the river. Tanks and carriers.',
-        'Break their armour and take sector C.',
+        'The ridge is ours. Engines in the village below.',
+        'Their tanks are dug in at sector C.',
+        'Our armour has come up the road. Tanks and carriers.',
+        'Break their armour and take the village.',
       ],
       shots: [
-        { x: 2900, z: 0.5, dur: 4.2, line: 0 },
-        { x: 3520, z: 1.7, dur: 4.8, line: 1, reveal: true },
-        { x: 380, z: 1.8, dur: 4.4, line: 2 },
-        { x: 2700, z: 0.9, dur: 3.8, line: 3 },
+        { x: 2300, y: 1000, z: 0.5, dur: 4.2, line: 0 },
+        { x: 2640, y: 1010, z: 1.5, dur: 4.8, line: 1, reveal: true },
+        { x: 360, y: 950, z: 1.7, dur: 4.4, line: 2 },
+        { x: 2100, y: 1000, z: 0.8, dur: 3.8, line: 3 },
       ],
       weather: { rain: 1.1, wind: 0.5, bolts: [6, 11] },
       allowed: ['rifle', 'mg', 'scout', 'arty', 'apc', 'tank'], enemyAllowed: ['rifle', 'mg', 'apc', 'tank'],
       sectors: { A: 0, B: 0, C: 1 }, drain: true, startRP: 520,
       setup: [
-        { team: 0, type: 'rifle', x: 2380 },
-        { team: 0, type: 'mg', x: 2412 },
-        { team: 0, type: 'scout', x: 2330 },
-        { team: 0, type: 'tank', x: 330 },
-        { team: 1, type: 'tank', x: 3560 },
-        { team: 1, type: 'apc', x: 3470 },
-        { team: 1, type: 'rifle', x: 3505 },
-        { team: 1, type: 'mg', x: 3420 },
+        { team: 0, type: 'rifle', x: 1700, y: 960 },
+        { team: 0, type: 'mg', x: 1690, y: 1020 },
+        { team: 0, type: 'scout', x: 1780, y: 960 },
+        { team: 0, type: 'tank', x: 330, y: 950 },
+        { team: 1, type: 'tank', x: 2700, y: 1010 },
+        { team: 1, type: 'apc', x: 2620, y: 1180 },
+        { team: 1, type: 'rifle', x: 2600, y: 960 },
+        { team: 1, type: 'mg', x: 2490, y: 1000 },
       ],
       ai: { buy: true, support: false, mode: 'push', incomeMul: 0.7 },
       objective: { type: 'capture', sector: 'C', text: 'TAKE SECTOR C' },
-      intro: ['tank', 'apc'], par: 480, maxLoss: 16, unlocks: ['heli', 'insert'],
-      hints: 'm4',
+      intro: ['tank', 'apc'], par: 480, maxLoss: 16, unlocks: ['heli', 'insert'], hints: 'm4',
     },
     {
-      id: 'm5', num: '05', name: 'BLACK RAIN', time: '0530 HRS', place: 'THE WHOLE FRONT', sky: 'THE STORM BREAKS',
+      id: 'm5', num: '05', name: 'BLACK RAIN', map: 'valley', time: '0530 HRS', place: 'THE VALLEY', sky: 'THE STORM BREAKS',
       summary: 'Everything we have. Break their line.',
       brief: [
         'Their reserve has come up. They want all of it back.',
-        'Every sector is in play again.',
+        'Every sector in the valley is in play.',
         'Air support is cleared to fly in this weather.',
         'Break the eastern line.',
       ],
       shots: [
-        { x: 2400, z: 0.32, dur: 4.6, line: 0 },
-        { x: 3600, z: 1.1, dur: 4.4, line: 1, reveal: true },
-        { x: 300, z: 1.8, dur: 4.4, line: 2 },
-        { x: 1300, z: 0.8, dur: 3.8, line: 3 },
+        { x: 1800, y: 1000, z: 0.34, dur: 4.6, line: 0 },
+        { x: 2700, y: 1200, z: 1.0, dur: 4.4, line: 1, reveal: true },
+        { x: 260, y: 1000, z: 1.7, dur: 4.4, line: 2 },
+        { x: 1100, y: 800, z: 0.7, dur: 3.8, line: 3 },
       ],
       weather: { rain: 1.3, wind: 0.65, bolts: [4, 9] },
-      allowed: null, enemyAllowed: null,
-      sectors: null, drain: true, startRP: 350,
+      allowed: null, enemyAllowed: null, sectors: null, drain: true, startRP: 350,
       setup: [
-        { team: 0, type: 'rifle', x: 260, order: { type: 'hold', x: 320 } },
-        { team: 0, type: 'heli', x: 220 },
-        { team: 1, type: 'rifle', x: 4540 },
+        { team: 0, type: 'rifle', x: 280, y: 940, order: { type: 'hold', x: 360, y: 940 } },
+        { team: 0, type: 'heli', x: 220, y: 1060 },
+        { team: 1, type: 'rifle', x: 3320, y: 1060 },
       ],
       ai: {},
       objective: { type: 'break', text: 'BREAK THE EASTERN LINE' },
-      intro: ['heli', 'insert'], par: 720, maxLoss: 30, unlocks: [],
-      hints: 'm5',
+      intro: ['heli', 'insert'], par: 720, maxLoss: 30, unlocks: [], hints: 'm5',
     },
   ];
 
   const SKIRMISH = {
-    id: 'skirmish', num: '', name: 'SKIRMISH', time: 'NIGHT', place: 'BLACK RAIN', sky: 'STORM',
+    id: 'skirmish', num: '', name: 'SKIRMISH', map: 'valley', time: 'NIGHT', place: 'THE VALLEY', sky: 'STORM',
     brief: ['Night. A storm over three sectors.', 'Hold more of them than the enemy does.', 'Break their line.'],
     shots: [
-      { x: 2400, z: 0.35, dur: 4.2, line: 0, reveal: true },
-      { x: 2400, z: 1.4, dur: 4, line: 1, reveal: true },
-      { x: 450, z: 1.4, dur: 3.6, line: 2 },
+      { x: 1800, y: 1000, z: 0.34, dur: 4.2, line: 0, reveal: true },
+      { x: 1800, y: 1000, z: 1.3, dur: 4, line: 1, reveal: true },
+      { x: 360, y: 1000, z: 1.4, dur: 3.6, line: 2 },
     ],
     weather: { rain: 1.1, wind: 0.45, bolts: [5, 12] },
     drain: true, startRP: 350,
     setup: [
-      { team: 0, type: 'rifle', x: 260, order: { type: 'hold', x: 320 } },
-      { team: 1, type: 'rifle', x: 4540 },
+      { team: 0, type: 'rifle', x: 280, y: 940, order: { type: 'hold', x: 360, y: 940 } },
+      { team: 1, type: 'rifle', x: 3320, y: 1060 },
     ],
     ai: {},
     objective: { type: 'break', text: 'BREAK THE EASTERN LINE' },
@@ -195,38 +190,38 @@
     insert: { role: 'Air insertion', lines: ['A rifle squad by rope from a transport.', 'Anywhere your units can see.'] },
   };
 
-  // Tutorial hints. when/done take (S, c) where c = { selected, shownT }.
+  // Tutorial hints. when/done take (S, c) where c = { selected, shownT, deployOpen }.
   const own = (S) => S.units.filter((u) => u.alive && u.team === 0);
-  const ownLanded = (S) => own(S).filter((u) => !u.members.some((m) => m.rappel));
   const sees = (S) => S.units.some((u) => u.alive && u.team === 1 && BL.visible(S, 0, u));
   const sector = (S, id) => S.field.sectors.find((s) => s.id === id);
+  const near = (u, s, r) => Math.hypot(u.x - s.x, u.y - s.y) < r;
   const HINTS = {
     m1: [
-      { text: 'Your squad is down. Tap it to take command.', target: { kind: 'unit' }, when: (S) => ownLanded(S).length > 0, done: (S, c) => c.selected.size > 0 },
-      { text: 'Tap the ground near flag A to move up the hill.', target: { kind: 'sector', id: 'A' }, when: (S, c) => c.selected.size > 0, done: (S) => own(S).some((u) => Math.abs(u.order.x - 1300) < 260 || u.x > 1050) },
-      { text: 'Drag to look around. Pinch or scroll to zoom.', when: () => true, done: (S, c) => c.shownT > 7 },
-      { text: 'Reinforcements: tap the RIFLE card, then tap near a beam.', target: { kind: 'card', arg: 'rifle' }, when: (S) => !BL.canAfford(S, 0, 'rifle'), done: (S) => own(S).length >= 2 || S.teams[0].stats.deployed >= 2 },
-      { text: 'Contact. Squads fire on their own; ATTACK mode stops them to fight.', target: { kind: 'cmd', arg: 'attack' }, when: sees, done: (S, c) => c.shownT > 8 },
-      { text: 'Stand inside the brackets on the hill to take the sector.', target: { kind: 'sector', id: 'A' }, when: (S) => own(S).some((u) => Math.abs(u.x - 1300) < 420), done: (S, c) => sector(S, 'A').prog > -40 || c.shownT > 10 },
+      { text: 'Your units are listed on the left. Tap one to command it.', target: { kind: 'roster' }, when: () => true, done: (S, c) => c.selected.size > 0 },
+      { text: 'Now tap the map near flag A. The squad finds its way there.', target: { kind: 'sector', id: 'A' }, when: (S, c) => c.selected.size > 0, done: (S) => own(S).some((u) => near(u.order, sector(S, 'A'), 320) || near(u, sector(S, 'A'), 520)) },
+      { text: 'Drag the map to look around. Pinch or scroll to zoom.', when: () => true, done: (S, c) => c.shownT > 7 },
+      { text: 'Reinforcements: tap DEPLOY, pick RIFLE, then tap a glowing ring.', target: { kind: 'deploy' }, when: (S) => !BL.canAfford(S, 0, 'rifle'), done: (S) => S.teams[0].stats.deployed >= 1 },
+      { text: 'Contact. ATTACK makes a squad stop and fight; MOVE keeps it going.', target: { kind: 'cmd', arg: 'attack' }, when: sees, done: (S, c) => c.shownT > 8 },
+      { text: 'Stand inside the ring around the flag to take the sector.', target: { kind: 'sector', id: 'A' }, when: (S) => own(S).some((u) => near(u, sector(S, 'A'), 420)), done: (S, c) => sector(S, 'A').prog > -40 || c.shownT > 10 },
     ],
     m2: [
-      { text: 'Machine guns must set up before they fire. Keep them still.', target: { kind: 'unit', type: 'mg' }, when: () => true, done: (S, c) => c.shownT > 7 },
-      { text: 'HOLD digs a squad in: harder to hit from cover.', target: { kind: 'cmd', arg: 'hold' }, when: () => true, done: (S, c) => c.shownT > 7 },
+      { text: 'Machine guns must set up before they fire. Keep them still.', target: { kind: 'roster', type: 'mg' }, when: () => true, done: (S, c) => c.shownT > 7 },
+      { text: 'HOLD digs a unit in where it stands: harder to hit.', target: { kind: 'cmd', arg: 'hold' }, when: (S, c) => c.selected.size > 0, done: (S, c) => c.shownT > 7 },
       { text: 'Pinned men go prone and stop advancing. Fire wins the fight.', when: sees, done: (S, c) => c.shownT > 8 },
       { text: 'Hurt squads can RETREAT: at base they refill.', target: { kind: 'cmd', arg: 'retreat' }, when: (S) => own(S).some((u) => u.kind === 'inf' && u.members.filter((m) => m.alive).length <= 3), done: (S, c) => c.shownT > 8 },
     ],
     m3: [
-      { text: 'Scouts see farther than anyone. You cannot shoot what you cannot see.', target: { kind: 'card', arg: 'scout' }, when: () => true, done: (S, c) => c.shownT > 8 || own(S).some((u) => u.type === 'scout') },
-      { text: 'ARTILLERY: tap the card, then the target. Mind your own men.', target: { kind: 'card', arg: 'arty' }, when: (S) => !BL.canAfford(S, 0, 'arty') && sees(S), done: (S, c) => c.shownT > 9 || S.strikes.some((s) => s.team === 0) },
-      { text: 'Hold more sectors than the enemy and their line drains.', when: () => true, done: (S, c) => c.shownT > 8 },
+      { text: 'Scouts see farther than anyone. You cannot shoot what you cannot see.', target: { kind: 'deploy' }, when: () => true, done: (S, c) => c.shownT > 8 || own(S).some((u) => u.type === 'scout') },
+      { text: 'Woods hide whoever stands in them. Ridges block sight.', when: () => true, done: (S, c) => c.shownT > 8 },
+      { text: 'ARTILLERY: pick it in DEPLOY, then tap the target. Mind your own men.', target: { kind: 'deploy' }, when: (S) => !BL.canAfford(S, 0, 'arty') && sees(S), done: (S, c) => c.shownT > 9 || S.strikes.some((s) => s.team === 0) },
     ],
     m4: [
-      { text: 'Vehicles deploy at the base. Infantry can deploy at sectors you hold.', target: { kind: 'card', arg: 'tank' }, when: () => true, done: (S, c) => c.shownT > 8 },
+      { text: 'Vehicles deploy at the base. Infantry can deploy at sectors you hold.', target: { kind: 'deploy' }, when: () => true, done: (S, c) => c.shownT > 8 },
       { text: 'Rifle squads carry one AT rocket. Tanks break armour.', when: (S) => S.units.some((u) => u.alive && u.team === 1 && u.kind === 'veh' && BL.visible(S, 0, u)), done: (S, c) => c.shownT > 8 },
     ],
     m5: [
-      { text: 'The helicopter hits anything on the ground. Keep it away from autocannons.', target: { kind: 'unit', type: 'heli' }, when: () => true, done: (S, c) => c.shownT > 8 },
-      { text: 'DROP lands a squad by rope anywhere you can see.', target: { kind: 'card', arg: 'insert' }, when: (S) => !BL.canAfford(S, 0, 'insert'), done: (S, c) => c.shownT > 8 },
+      { text: 'The helicopter hits anything on the ground. Keep it away from carriers.', target: { kind: 'roster', type: 'heli' }, when: () => true, done: (S, c) => c.shownT > 8 },
+      { text: 'DROP lands a squad by rope anywhere you can see.', target: { kind: 'deploy' }, when: (S) => !BL.canAfford(S, 0, 'insert'), done: (S, c) => c.shownT > 8 },
     ],
   };
 
@@ -237,7 +232,7 @@
     const mine = isSkirmish ? unlockedCards(P) : M.allowed;
     const theirs = isSkirmish ? unlockedCards(P) : M.enemyAllowed;
     return {
-      seed, difficulty,
+      seed, difficulty, map: M.map || 'valley',
       ai: [false, true],
       allowed: [mine ? mine.slice() : null, theirs ? theirs.slice() : null],
       sectors: M.sectors || null,
@@ -249,23 +244,8 @@
   }
 
   function setupBattle(S, M) {
-    for (const s of M.setup || []) {
-      const u = BL.spawn(S, s.team, s.type, s.x, s.order || { type: 'hold', x: s.x });
-      u.members.forEach((m) => { m.y = BL.heightAt(S.field, m.x) + (u.kind === 'air' ? 150 : 0); });
-    }
-    if (M.insert) {
-      S.teams[0].rp += BL.SUPPORT.insert.cost;
-      const saveCd = S.teams[0].cds.insert;
-      const saved = S.allowed[0];
-      S.allowed[0] = null;
-      const r = BL.deploy(S, 0, 'insert', M.insert.x, true);
-      if (!r.ok) throw new Error('mission insert failed: ' + r.reason);
-      S.allowed[0] = saved;
-      S.teams[0].cds.insert = saveCd || 0;
-      S.teams[0].stats.spent -= BL.SUPPORT.insert.cost;
-      S.teams[0].stats.deployed--;
-    }
-    return { t: 0, wave: 0, hintsDone: {}, result: null };
+    for (const s of M.setup || []) BL.spawn(S, s.team, s.type, s.x, s.y, s.order || null);
+    return { t: 0, wave: 0, result: null };
   }
 
   // ---------------------------------------------------------------- mission tick
@@ -276,10 +256,11 @@
     const waves = M.waves || [];
     while (ms.wave < waves.length && waves[ms.wave].t <= ms.t) {
       const w = waves[ms.wave++];
+      const at = M.waveAt || { x: S.field.W - 260, y: S.field.H / 2, spread: 120 };
+      const tgt = sector(S, M.objective.sector);
       w.units.forEach((type, i) => {
-        const x = (M.waveX || S.field.W - 260) + i * 34;
-        const tgt = sector(S, M.objective.sector);
-        BL.spawn(S, 1, type, x, { type: 'attack', x: tgt ? tgt.x + 30 : 1300 });
+        const y = at.y + (i - (w.units.length - 1) / 2) * (at.spread / Math.max(1, w.units.length - 1));
+        BL.spawn(S, 1, type, at.x + (i % 2) * 30, y, { type: 'attack', x: tgt ? tgt.x + 40 : at.x - 800, y: tgt ? tgt.y + (i - 1) * 30 : y });
       });
       S.events.push({ t: 'wave', n: ms.wave, of: waves.length });
     }

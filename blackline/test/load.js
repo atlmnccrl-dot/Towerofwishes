@@ -1,4 +1,4 @@
 // Loads the pure game modules into Node (they attach to globalThis.BL).
 const path = require('path');
-for (const f of ['util', 'data', 'terrain', 'sim', 'ai', 'campaign']) require(path.join(__dirname, '..', 'js', f + '.js'));
+for (const f of ['util', 'data', 'map', 'sim', 'ai', 'campaign']) require(path.join(__dirname, '..', 'js', f + '.js'));
 module.exports = globalThis.BL;

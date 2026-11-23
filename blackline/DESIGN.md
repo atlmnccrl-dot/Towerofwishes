@@ -1,6 +1,12 @@
 # BLACKLINE: FRONTLINES — design
 
-Working title. A side-on, real-time tactical battle game for phones (landscape) and desktop.
+Working title. A real-time tactical battle game seen from above at an angle, for phones
+(landscape) and desktop.
+
+> **Revision (author's direction):** only the art style is taken from the reference. The view is an
+> angled top-down field (not the side-on hill view), commands go through a unit roster, the interface
+> uses condensed sans-serif type (not the typewriter caption from the clip), and the maps and
+> missions are original (no hill-and-rope-drop opening).
 It stands on its own: it shares no code, art, names or rules with Tower of Wishes, Emberfall or
 any other project in this repository, and it uses no files from `assets/`. Everything you see is
 drawn by code at run time.
@@ -14,15 +20,15 @@ down over the hills. These are the principles the game copies (not the frames th
 | Principle | In the reference | In BLACKLINE |
 |---|---|---|
 | Black ground | Sky and land are both near-black; shapes come from light, not fill | `#050505` field; the terrain is black on black, drawn only by its edge and its stipple |
-| Dotted ridgelines | Each hill is a broken line of bright dots, thicker on the crest | The ground's top is a jittered chain of dots, denser and brighter on crests, thinner in hollows |
-| Halftone depth | Under each crest, sparse dots fade with depth; distant layers are dimmer dot bands | Precomputed stipple under the surface (density falls with depth); two parallax layers of dimmer dotted hills; dithered cloud bands |
+| Dotted ridgelines | Each hill is a broken line of bright dots, thicker on the crest | Hills are dotted contour lines, every third one brighter |
+| Halftone depth | Under each crest, sparse dots fade with depth; distant layers are dimmer dot bands | Relief as halftone: slopes facing the light get dots, the rest stays black; dithered cloud bands drift over the field |
 | Thin, imperfect lines | Rain, wind loops and rope are 1 px strokes that wobble | All strokes are about 1 device pixel; outlines carry a small seeded jitter that "boils" (switches variant) a few times a second |
 | Cream-filled vehicles | The helicopter is a cream silhouette with black detail lines | Friendly vehicles: cream fill, black inner lines. Enemy vehicles: hollow off-white outline with a muted red mark |
 | Tiny people | Soldiers are a few pixels: a head, a body, legs | Soldiers are 9 world units tall: head, torso, two animated legs, a weapon line |
 | Red as the only colour | Small red flecks: hits, a marking on the helicopter | Muted red (`#b8433a`) only for hits, blood, enemy tracers, enemy markings, threats (artillery warnings) and fire |
 | Weather is the set | Slanted rain at many lengths; wind loops; a storm funnel; drifting cloud bands | Screen-space rain that slants with gusting wind; drifting dithered clouds; lightning that lights the hills; wind loops in the storm |
 | Debris as squares | Explosions throw small white squares | Explosions throw square debris, a thin shock ring, a brief flash, a red core and long stippled smoke |
-| Moving camera | Slow pans, tilts and a dive along a slope | Smooth pan and zoom with inertia, unit tracking, restrained shake on big blasts |
+| Moving camera | Slow pans, tilts and a dive along a slope | Smooth pan and zoom over the angled field, unit tracking, restrained shake on big blasts |
 | Grain | Faint noise over everything | A tiled grain texture at low opacity and a vignette |
 
 What is left out on purpose: the TikTok marks and the caption in the clip, colour, cartoon shapes,

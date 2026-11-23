@@ -25,7 +25,7 @@ const server = http.createServer((req, res) => {
   const context = await browser.newContext(phone ? { ...devices['iPhone 13 landscape'] } : { viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1 });
   const page = await context.newPage();
   const errors = [];
-  page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+  page.on('console', (m) => { if (m.type() === 'error' && !/fonts\.g|ERR_|net::/.test(m.text())) errors.push(m.text()); });
   page.on('pageerror', (e) => errors.push(String(e)));
   await page.goto(`http://127.0.0.1:${server.address().port}/`);
   await page.waitForTimeout(2200);
@@ -55,10 +55,6 @@ const server = http.createServer((req, res) => {
       await page.waitForTimeout(s.step === 'card' ? 1400 : 1800);
       await shot('f03-intro-' + s.step);
     }
-    if (s.step === 'shot' && !seen.shot2) {
-      const follow = await page.evaluate(() => !!window.BL.cinema.CI.steps[window.BL.cinema.CI.i].follow);
-      if (follow) { seen.shot2 = true; await page.waitForTimeout(2600); await shot('f04-intro-rope'); }
-    }
     await page.waitForTimeout(150);
   }
   log.push(['intro steps seen', Object.keys(seen)]);
@@ -66,25 +62,32 @@ const server = http.createServer((req, res) => {
   await shot('f05-hhour-play');
   const calmAfter = await page.evaluate(() => window.__BL_GAME.S.calm);
 
-  // the first hint asks us to tap our squad: do it through the canvas
+  // the first hint points at the roster: tap the first unit in the list
   await page.waitForTimeout(2500);
   const hint1 = await page.evaluate(() => window.__BL_GAME.hint && window.__BL_GAME.hint.text);
   await shot('f06-hint');
-  const pos = await page.evaluate(() => { const S = window.__BL_GAME.S; const u = S.units.find((k) => k.team === 0 && k.alive && !k.members.some((m) => m.rappel)); const m = u.members.find((q) => q.alive); return { x: window.BL.render.sx(m.x), y: window.BL.render.sy(m.y + 5) }; });
-  await page.mouse.click(pos.x, pos.y);
+  const row = await region('unit');
+  await page.mouse.click(row.x + 40, row.y + 10);
   await page.waitForTimeout(300);
   const selected = await page.evaluate(() => window.__BL_GAME.selected.size);
   await page.waitForTimeout(3200);
   const hint2 = await page.evaluate(() => window.__BL_GAME.hint && window.__BL_GAME.hint.text);
-  // order toward A by tapping the ground near the flag
-  const ax = await page.evaluate(() => { const R = window.BL.R; R.cam.tx = R.cam.x = 1150; return window.BL.render.sx(1290); });
-  await page.waitForTimeout(500);
-  const ax2 = await page.evaluate(() => window.BL.render.sx(1290));
+  // order toward A: bring A into view and tap the ground just short of it
+  await page.evaluate(() => { const S = window.__BL_GAME.S, A = S.field.sectors[0], R = window.BL.R; R.cam.tx = R.cam.x = A.x - 60; R.cam.ty = R.cam.y = A.y; });
+  await page.waitForTimeout(600);
+  const pt = await page.evaluate(() => { const S = window.__BL_GAME.S, A = S.field.sectors[0]; const x = A.x - 120, y = A.y; return { x: window.BL.render.sx(x), y: window.BL.render.sy(y, window.BL.heightAt(S.field, x, y)) }; });
   const vp = page.viewportSize();
-  await page.mouse.click(Math.max(40, Math.min(vp.width - 40, ax2)), Math.round(vp.height * 0.5));
-  const order = await page.evaluate(() => window.__BL_GAME.S.units.filter((u) => u.team === 0).map((u) => u.order.type + '@' + Math.round(u.order.x)));
+  await page.mouse.click(pt.x, pt.y);
+  const order = await page.evaluate(() => window.__BL_GAME.S.units.filter((u) => u.team === 0).map((u) => u.order.type + '@' + Math.round(u.order.x) + ',' + Math.round(u.order.y)));
   await page.waitForTimeout(400);
   await shot('f07-order');
+  // open the deploy drawer through its button, then close it
+  const dep = await region('deploy');
+  await page.mouse.click(dep.x + 20, dep.y + 10);
+  await page.waitForTimeout(300);
+  const drawer = await page.evaluate(() => window.__BL_GAME.deployOpen && window.BL.hud.regions.some((r) => r.id === 'card'));
+  await shot('f07b-deploy');
+  await page.mouse.click(dep.x + 20, dep.y + 10);
 
   // let an AI finish the mission on our side, then watch the closing shot and debrief
   await page.evaluate(() => { const G = window.__BL_GAME; G.S.ai[0] = window.BL.createAI(G.S, 0); G.S.teams[0].rp += 400; });
@@ -118,9 +121,9 @@ const server = http.createServer((req, res) => {
   }
   const m2 = await page.evaluate(() => { const G = window.__BL_GAME; return { mission: G.mission && G.mission.id, phase: G.phase, cards: window.BL.hud.regions.filter((r) => r.id === 'card').map((r) => r.arg) }; });
 
-  console.log(JSON.stringify({ skirmishLocked, m2Locked, log, calmAfter, hint1, selected, hint2, order, outroShot, deb, m2, errors }, null, 1));
+  console.log(JSON.stringify({ skirmishLocked, m2Locked, log, calmAfter, hint1, selected, hint2, order, drawer, outroShot, deb, m2, errors }, null, 1));
   await browser.close();
   server.close();
-  const bad = errors.length || !seen.card || !seen.shot || !seen.unit || !seen.hhour || calmAfter || !selected || deb.result !== 'win' || !deb.fresh.includes('mg') || m2.mission !== 'm2';
+  const bad = errors.length || !seen.card || !seen.shot || !seen.unit || !seen.hhour || calmAfter || !selected || !drawer || !order.some((o) => o.startsWith('move')) || deb.result !== 'win' || !deb.fresh.includes('mg') || m2.mission !== 'm2';
   if (bad) { console.error('FLOW CHECK FAILED'); process.exit(1); }
 })().catch((e) => { console.error(e); server.close(); process.exit(1); });

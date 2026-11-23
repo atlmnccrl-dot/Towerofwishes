@@ -1,10 +1,9 @@
-// BLACKLINE — the HUD, drawn on the canvas in the same thin line style as the world.
-// Every interactive element registers a hit region for the frame; input tests those first.
+// BLACKLINE — the interface, drawn on the canvas: condensed type, thin rules, dark panels at
+// the edges, the battle in the middle. Every interactive element registers a hit region.
 (function () {
   const BL = window.BL;
   const { R, PAL, clamp } = BL;
-  const FONT = '"Courier New", Courier, monospace';
-  const H = { regions: [] };
+  const H = { regions: [], rects: {} };
 
   function region(x, y, w, h, id, arg) { H.regions.push({ x, y, w, h, id, arg }); }
   function hit(px, py) {
@@ -14,652 +13,588 @@
     }
     return null;
   }
+  const pad = () => (R.mobile && R.W > 700 ? 36 : 14);
+  const font = (px, w) => `${w || 500} ${px}px ${R.FONT}`;
+  const DIM = 'rgba(235,228,210,0.55)', FAINT = 'rgba(235,228,210,0.3)';
 
-  function pad() { return R.mobile && R.W > 700 ? 34 : 14; }
-  function font(px, weight) { return `${weight || ''} ${px}px ${FONT}`; }
-
-  function text(ctx, s, x, y, opts) {
-    opts = opts || {};
-    ctx.font = font(opts.size || 11, opts.weight);
-    ctx.textAlign = opts.align || 'left';
-    ctx.textBaseline = opts.base || 'alphabetic';
-    ctx.fillStyle = opts.color || PAL.ink;
-    if (opts.spacing && 'letterSpacing' in ctx) ctx.letterSpacing = opts.spacing + 'px';
+  function text(ctx, s, x, y, o) {
+    o = o || {};
+    ctx.font = font(o.size || 13, o.weight);
+    ctx.textAlign = o.align || 'left';
+    ctx.textBaseline = o.base || 'alphabetic';
+    ctx.fillStyle = o.color || PAL.ink;
+    if ('letterSpacing' in ctx) ctx.letterSpacing = (o.spacing != null ? o.spacing : 0.5) + 'px';
     ctx.fillText(s, x, y);
     if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
   }
+  function measure(ctx, s, size, weight, spacing) { ctx.font = font(size, weight); return ctx.measureText(s).width + s.length * (spacing != null ? spacing : 0.5); }
 
-  // Split a line into pieces that fit maxW at the given size.
-  function wrap(ctx, s, maxW, size) {
-    ctx.font = font(size);
-    const words = s.split(' ');
-    const out = [];
-    let line = '';
-    for (const w of words) {
+  function panel(ctx, x, y, w, h) {
+    ctx.fillStyle = PAL.panel; ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = PAL.line; ctx.lineWidth = 1; ctx.strokeRect(Math.round(x) + 0.5, Math.round(y) + 0.5, Math.round(w) - 1, Math.round(h) - 1);
+    ctx.fillStyle = 'rgba(235,228,210,0.7)';
+    ctx.fillRect(x, y, 6, 1); ctx.fillRect(x, y, 1, 6); ctx.fillRect(x + w - 6, y + h - 1, 6, 1); ctx.fillRect(x + w - 1, y + h - 6, 1, 6);
+  }
+
+  // A button. primary: filled; active: highlighted; disabled: dim and inert.
+  function button(ctx, x, y, w, h, label, id, arg, o) {
+    o = o || {};
+    const on = o.primary || o.active;
+    ctx.fillStyle = o.primary ? PAL.cream : o.active ? 'rgba(235,228,210,0.14)' : 'rgba(8,8,8,0.7)';
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = o.disabled ? 'rgba(235,228,210,0.15)' : on ? PAL.ink : 'rgba(235,228,210,0.35)';
+    ctx.lineWidth = 1; ctx.strokeRect(Math.round(x) + 0.5, Math.round(y) + 0.5, Math.round(w) - 1, Math.round(h) - 1);
+    if (o.active && !o.primary) { ctx.fillStyle = o.red ? PAL.red : PAL.ink; ctx.fillRect(x, y + h - 2, w, 2); }
+    const col = o.disabled ? 'rgba(235,228,210,0.3)' : o.primary ? '#0a0a0a' : PAL.ink;
+    if (o.icon) {
+      o.icon(ctx, x + w / 2, y + h * 0.4, col);
+      text(ctx, label, x + w / 2, y + h - 6, { size: clamp(h * 0.24, 10, 12), align: 'center', color: col, weight: 600, spacing: 1 });
+    } else text(ctx, label, x + (o.left ? 14 : w / 2), y + h / 2 + 1, { size: o.size || clamp(h * 0.36, 12, 16), align: o.left ? 'left' : 'center', base: 'middle', color: col, weight: 600, spacing: 1.5 });
+    if (!o.disabled) region(x, y, w, h, id, arg);
+  }
+
+  // ---------------------------------------------------------------- icons
+
+  function unitIcon(ctx, type, cx, cy, s, col) {
+    ctx.save();
+    ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 1; ctx.lineJoin = 'round';
+    const poly = (pts, close) => { ctx.beginPath(); pts.forEach((p, i) => (i ? ctx.lineTo(cx + p[0] * s, cy + p[1] * s) : ctx.moveTo(cx + p[0] * s, cy + p[1] * s))); if (close) ctx.closePath(); ctx.stroke(); };
+    if (type === 'tank') {
+      poly([[-11, 3], [11, 3], [12, 5], [11, 7], [-11, 7], [-12, 5]], true);
+      poly([[-10, 3], [-9, -1], [9, -1], [11, 3]], false);
+      poly([[-5, -1], [-4, -4], [3, -4], [4, -1]], false);
+      ctx.beginPath(); ctx.moveTo(cx + 4 * s, cy - 3 * s); ctx.lineTo(cx + 14 * s, cy - 3.5 * s); ctx.stroke();
+    } else if (type === 'apc') {
+      poly([[-10, 4], [-10, -2], [5, -2], [10, 1], [10, 4]], true);
+      for (const x of [-6, 0, 6]) { ctx.beginPath(); ctx.arc(cx + x * s, cy + 5.5 * s, 2 * s, 0, 7); ctx.stroke(); }
+      ctx.beginPath(); ctx.moveTo(cx, cy - 2 * s); ctx.lineTo(cx, cy - 4 * s); ctx.lineTo(cx + 8 * s, cy - 4.5 * s); ctx.stroke();
+    } else if (type === 'heli' || type === 'insert') {
+      poly([[12, 1], [8, -2], [0, -2], [-4, 0], [-14, 0], [-14, 1], [-4, 2], [0, 3], [8, 3]], true);
+      ctx.beginPath(); ctx.moveTo(cx - 12 * s, cy - 5 * s); ctx.lineTo(cx + 12 * s, cy - 5 * s); ctx.moveTo(cx + 1 * s, cy - 5 * s); ctx.lineTo(cx + 1 * s, cy - 2 * s); ctx.stroke();
+      if (type === 'insert') { ctx.setLineDash([1.5, 2]); ctx.beginPath(); ctx.moveTo(cx, cy + 3 * s); ctx.lineTo(cx + 1, cy + 9 * s); ctx.stroke(); ctx.setLineDash([]); }
+    } else if (type === 'arty') {
+      for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(cx + (-7 + i * 6) * s, cy - 8 * s); ctx.lineTo(cx + (-5 + i * 6) * s, cy + 1 * s); ctx.stroke(); }
+      ctx.beginPath();
+      for (let i = 0; i < 8; i++) { const a = i / 8 * 6.28; ctx.moveTo(cx + Math.cos(a) * 2 * s, cy + 5 * s + Math.sin(a) * 1.5 * s); ctx.lineTo(cx + Math.cos(a) * 5 * s, cy + 5 * s + Math.sin(a) * 3 * s); }
+      ctx.stroke();
+    } else {
+      const n = type === 'scout' ? 2 : 3;
+      for (let i = 0; i < n; i++) {
+        const x = cx + (i - (n - 1) / 2) * 6.5 * s, y = cy + 7 * s;
+        ctx.beginPath();
+        ctx.moveTo(x - 1.5 * s, y); ctx.lineTo(x, y - 4 * s); ctx.lineTo(x + 1.5 * s, y);
+        ctx.moveTo(x, y - 4 * s); ctx.lineTo(x + 0.4 * s, y - 7 * s);
+        const Lw = type === 'scout' ? 6.5 : type === 'mg' && i === 0 ? 6.5 : 4.5;
+        ctx.moveTo(x - 1 * s, y - 6 * s); ctx.lineTo(x + Lw * s, y - 6.4 * s);
+        ctx.stroke();
+        ctx.beginPath(); ctx.arc(x + 0.6 * s, y - 8.4 * s, 1.2 * s, 0, 7); ctx.fill();
+      }
+      if (type === 'mg') { ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx - 8 * s, cy + 1 * s); ctx.lineTo(cx - 1.5 * s, cy + 0.7 * s); ctx.stroke(); }
+    }
+    ctx.restore();
+  }
+
+  const CMD_ICONS = {
+    move: (ctx, cx, cy, col) => { ctx.strokeStyle = col; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(cx - 3, cy - 6); ctx.lineTo(cx + 4, cy); ctx.lineTo(cx - 3, cy + 6); ctx.moveTo(cx - 10, cy); ctx.lineTo(cx + 3, cy); ctx.stroke(); },
+    attack: (ctx, cx, cy, col) => { ctx.strokeStyle = col; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(cx, cy, 5.5, 0, 7); ctx.moveTo(cx - 9, cy); ctx.lineTo(cx - 3, cy); ctx.moveTo(cx + 3, cy); ctx.lineTo(cx + 9, cy); ctx.moveTo(cx, cy - 9); ctx.lineTo(cx, cy - 3); ctx.moveTo(cx, cy + 3); ctx.lineTo(cx, cy + 9); ctx.stroke(); },
+    hold: (ctx, cx, cy, col) => { ctx.strokeStyle = col; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(cx - 9, cy + 4); ctx.lineTo(cx + 9, cy + 4); for (let i = -1; i <= 1; i++) { ctx.moveTo(cx + i * 6 - 3, cy + 4); ctx.quadraticCurveTo(cx + i * 6, cy - 3, cx + i * 6 + 3, cy + 4); } ctx.stroke(); },
+    retreat: (ctx, cx, cy, col) => { ctx.strokeStyle = col; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(cx + 2, cy - 6); ctx.lineTo(cx - 5, cy); ctx.lineTo(cx + 2, cy + 6); ctx.moveTo(cx + 8, cy - 6); ctx.lineTo(cx + 1, cy); ctx.lineTo(cx + 8, cy + 6); ctx.stroke(); },
+    follow: (ctx, cx, cy, col) => { ctx.strokeStyle = col; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.ellipse(cx, cy, 9, 5, 0, 0, 7); ctx.stroke(); ctx.fillStyle = col; ctx.beginPath(); ctx.arc(cx, cy, 2, 0, 7); ctx.fill(); },
+  };
+
+  function iconBtn(ctx, x, y, s, id, draw, active) {
+    ctx.fillStyle = active ? 'rgba(235,228,210,0.14)' : 'rgba(8,8,8,0.7)';
+    ctx.fillRect(x, y, s, s);
+    ctx.strokeStyle = active ? PAL.ink : 'rgba(235,228,210,0.35)'; ctx.lineWidth = 1;
+    ctx.strokeRect(x + 0.5, y + 0.5, s - 1, s - 1);
+    draw(ctx, x + s / 2, y + s / 2, active ? PAL.red : PAL.ink);
+    region(x - 3, y - 3, s + 6, s + 6, id);
+  }
+  const ICON = {
+    pause: (ctx, cx, cy, col) => { ctx.fillStyle = col; ctx.fillRect(cx - 5, cy - 6, 3, 12); ctx.fillRect(cx + 2, cy - 6, 3, 12); },
+    sound: (ctx, cx, cy, col) => {
+      ctx.strokeStyle = col; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(cx - 7, cy - 3); ctx.lineTo(cx - 4, cy - 3); ctx.lineTo(cx, cy - 7); ctx.lineTo(cx, cy + 7); ctx.lineTo(cx - 4, cy + 3); ctx.lineTo(cx - 7, cy + 3); ctx.closePath(); ctx.stroke();
+      if (BL.audio.enabled) { ctx.beginPath(); ctx.arc(cx + 1, cy, 4, -0.8, 0.8); ctx.moveTo(cx + 6.5, cy - 5); ctx.arc(cx + 1, cy, 7.5, -0.8, 0.8); ctx.stroke(); }
+      else { ctx.beginPath(); ctx.moveTo(cx + 3, cy - 3); ctx.lineTo(cx + 8, cy + 3); ctx.moveTo(cx + 8, cy - 3); ctx.lineTo(cx + 3, cy + 3); ctx.stroke(); }
+    },
+    cam: (ctx, cx, cy, col) => { ctx.strokeStyle = col; ctx.lineWidth = 1.2; ctx.strokeRect(cx - 8, cy - 5, 12, 10); ctx.beginPath(); ctx.moveTo(cx + 4, cy - 1); ctx.lineTo(cx + 8, cy - 4); ctx.lineTo(cx + 8, cy + 4); ctx.lineTo(cx + 4, cy + 1); ctx.stroke(); },
+  };
+
+  // ---------------------------------------------------------------- battle
+
+  function unitStatus(S, u) {
+    if (u.members.some((m) => m.rappel)) return { t: 'LANDING', c: DIM };
+    const live = u.members.filter((m) => m.alive);
+    const o = u.order.type;
+    if (o === 'retreat') return { t: 'FALLING BACK', c: DIM };
+    if (u.kind === 'inf') {
+      const pinned = live.filter((m) => m.supp > 75).length;
+      if (pinned > live.length / 2) return { t: 'PINNED', c: PAL.red };
+      if (u.def.load.includes('mg') && S.t - u.engagedT < 1.6 && live.some((m) => m.wkey === 'mg' && m.setup < 1.4)) return { t: 'SETTING UP', c: PAL.red };
+    }
+    if (S.t - u.engagedT < 1.6) return { t: 'ENGAGED', c: PAL.red };
+    if (u.path && u.path.length) return { t: o === 'attack' ? 'ADVANCING' : 'MOVING', c: PAL.ink };
+    return { t: o === 'hold' && u.holdT > 4 ? 'DUG IN' : 'HOLDING', c: DIM };
+  }
+
+  function healthOf(u) {
+    if (u.kind === 'inf') {
+      let hp = 0;
+      for (const m of u.members) if (m.alive) hp += m.hp;
+      return { k: hp / (u.def.hp * u.def.load.length), n: u.members.filter((m) => m.alive).length, of: u.def.load.length };
+    }
+    const m = u.members[0];
+    return { k: m.alive ? m.hp / m.maxHp : 0 };
+  }
+
+  function drawBattle(ctx, G) {
+    const S = G.S;
+    H.regions.length = 0;
+    H.rects = {};
+    const W = R.W, Hh = R.H, P = pad();
+    const T0 = S.teams[0], T1 = S.teams[1];
+    const small = Hh < 500;
+
+    // -- top bar
+    const grd = ctx.createLinearGradient(0, 0, 0, 58);
+    grd.addColorStop(0, 'rgba(0,0,0,0.85)'); grd.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = grd; ctx.fillRect(0, 0, W, 58);
+    const M = G.mission;
+    text(ctx, M.num ? `${M.num}  ${M.name}` : 'SKIRMISH', P, 17, { size: 11, color: DIM, weight: 600, spacing: 2 });
+    text(ctx, BL.campaign.progressText(S, M, G.ms), P, 36, { size: small ? 15 : 17, weight: 600, spacing: 1 });
+    const cx = W / 2;
+    S.field.sectors.forEach((s, i) => chip(ctx, s, cx + (i - 1) * 32 - 12, 8));
+    if (S.drain) {
+      const bw = clamp(W * 0.08, 46, 110);
+      bar(ctx, cx - 60 - bw, 19, bw, T0.tickets / BL.RULES.tickets, PAL.ink, true);
+      bar(ctx, cx + 60, 19, bw, T1.tickets / BL.RULES.tickets, PAL.red, false);
+      text(ctx, String(Math.ceil(T0.tickets)), cx - 60 - bw / 2, 38, { size: 11, align: 'center', weight: 600, color: DIM });
+      text(ctx, String(Math.ceil(T1.tickets)), cx + 60 + bw / 2, 38, { size: 11, align: 'center', weight: 600, color: PAL.red });
+    }
+    const bs = 30;
+    let bx = W - P - bs;
+    iconBtn(ctx, bx, 6, bs, 'pause', ICON.pause);
+    bx -= bs + 6; iconBtn(ctx, bx, 6, bs, 'sound', ICON.sound);
+    bx -= bs + 6; iconBtn(ctx, bx, 6, bs, 'cam', ICON.cam, G.camMode === 'action');
+    const rp = `${Math.floor(T0.rp)}`;
+    text(ctx, rp, bx - 12, 27, { size: 21, align: 'right', weight: 600, spacing: 1 });
+    text(ctx, 'RP', bx - 16 - measure(ctx, rp, 21, 600, 1), 27, { size: 11, align: 'right', color: DIM, weight: 600, spacing: 2 });
+    text(ctx, `+${T0.income.toFixed(1)} / S`, bx - 12, 42, { size: 10, align: 'right', color: DIM, weight: 600, spacing: 1 });
+
+    // -- roster (left)
+    const RW = clamp(W * 0.17, 142, 196);
+    const top = 54, footH = 40;
+    const units = S.units.filter((u) => u.alive && u.team === 0);
+    const rowH = small ? 34 : 40;
+    const mmW = clamp(W * 0.19, 150, 230);
+    const maxRows = Math.max(2, Math.floor((Hh - top - footH - 26 - 12) / rowH));
+    const rows = Math.min(units.length, maxRows);
+    const ph = 26 + Math.max(1, rows) * rowH + footH + 6;
+    panel(ctx, P, top, RW, ph);
+    H.rects.roster = { x: P, y: top, w: RW, h: ph };
+    text(ctx, 'FORCES', P + 10, top + 17, { size: 11, color: DIM, weight: 600, spacing: 2 });
+    text(ctx, `${units.length}/${BL.RULES.popCap}`, P + 60, top + 17, { size: 11, weight: 600 });
+    const allOn = units.length > 0 && units.every((u) => G.selected.has(u.id));
+    text(ctx, 'ALL', P + RW - 12, top + 17, { size: 12, align: 'right', weight: 600, spacing: 2, color: allOn ? PAL.ink : DIM });
+    region(P + RW - 52, top, 52, 26, 'all');
+    G.rosterScroll = clamp(G.rosterScroll || 0, 0, Math.max(0, units.length - maxRows));
+    const counts = {};
+    const numbered = units.map((u) => { counts[u.type] = (counts[u.type] || 0) + 1; return { u, n: counts[u.type] }; });
+    numbered.slice(G.rosterScroll, G.rosterScroll + maxRows).forEach(({ u, n }, i) => {
+      const y = top + 26 + i * rowH;
+      const sel = G.selected.has(u.id);
+      if (sel) { ctx.fillStyle = 'rgba(235,228,210,0.13)'; ctx.fillRect(P + 1, y, RW - 2, rowH - 2); ctx.fillStyle = PAL.ink; ctx.fillRect(P + 1, y, 3, rowH - 2); }
+      unitIcon(ctx, u.type, P + 22, y + rowH / 2 - 2, 0.9, sel ? PAL.ink : DIM);
+      const hl = healthOf(u);
+      text(ctx, `${u.def.short} ${n}`, P + 42, y + (small ? 14 : 16), { size: 14, weight: 600, spacing: 1 });
+      if (hl.n != null) text(ctx, `${hl.n}/${hl.of}`, P + RW - 10, y + (small ? 14 : 16), { size: 12, align: 'right', color: DIM, weight: 600 });
+      const st = unitStatus(S, u);
+      text(ctx, st.t, P + 42, y + (small ? 26 : 30), { size: 10, color: st.c, weight: 600, spacing: 1.5 });
+      ctx.fillStyle = 'rgba(235,228,210,0.15)'; ctx.fillRect(P + 42, y + rowH - 5, RW - 52, 2);
+      ctx.fillStyle = hl.k < 0.35 ? PAL.red : PAL.ink; ctx.fillRect(P + 42, y + rowH - 5, (RW - 52) * clamp(hl.k, 0, 1), 2);
+      region(P, y, RW, rowH - 1, 'unit', u.id);
+    });
+    if (!units.length) text(ctx, 'NO UNITS IN THE FIELD', P + 10, top + 26 + rowH / 2 + 4, { size: 11, color: DIM, weight: 600, spacing: 1 });
+    if (units.length > maxRows) text(ctx, `${G.rosterScroll + 1}–${Math.min(units.length, G.rosterScroll + maxRows)} OF ${units.length} · DRAG`, P + RW / 2, top + 26 + rows * rowH + 3, { size: 9, align: 'center', color: FAINT, weight: 600 });
+    const fy = top + ph - footH - 2;
+    button(ctx, P + 6, fy, RW - 12, footH - 6, G.deployOpen || G.deploying ? 'CLOSE' : '+  DEPLOY', 'deploy', null, { active: G.deployOpen || !!G.deploying, size: 15 });
+
+    if (G.deployOpen && !G.deploying) drawDeploy(ctx, G, P + RW + 8, top);
+    if (G.deploying) {
+      const def = BL.UNITS[G.deploying] || BL.SUPPORT[G.deploying];
+      const msg = G.deploying === 'arty' ? 'TAP THE MAP TO AIM THE SHELLS' : G.deploying === 'insert' ? 'TAP WHERE THE SQUAD SHOULD LAND' : 'TAP A GLOWING RING TO DEPLOY';
+      const w = Math.max(measure(ctx, msg, 12, 600, 1), measure(ctx, def.name, 16, 600, 1)) + 30;
+      const x = P + RW + 8;
+      panel(ctx, x, top, w, 52);
+      text(ctx, def.name, x + 12, top + 22, { size: 16, weight: 600, spacing: 1 });
+      text(ctx, msg, x + 12, top + 41, { size: 12, color: DIM, weight: 600, spacing: 1 });
+    }
+
+    // -- minimap
+    const mmH = mmW * S.field.H / S.field.W;
+    const mx = W - P - mmW, my = Hh - 10 - mmH;
+    minimap(ctx, G, mx, my, mmW, mmH);
+
+    // -- orders
+    const sel = units.filter((u) => G.selected.has(u.id));
+    const ox0 = P + RW + 10, ox1 = mx - 10;
+    const obh = small ? 42 : 50;
+    if (sel.length) {
+      const ids = ['move', 'attack', 'hold', 'retreat', 'follow'];
+      const bw = clamp((ox1 - ox0 - 4 * 6) / 5, 46, 74);
+      const total = ids.length * bw + 4 * 6;
+      const sx0 = Math.max(ox0, (ox0 + ox1) / 2 - total / 2);
+      const by = Hh - obh - 10;
+      ids.forEach((id, i) => {
+        const active = id === G.cmdMode || (id === 'follow' && G.following);
+        button(ctx, sx0 + i * (bw + 6), by, bw, obh, id.toUpperCase(), 'cmd', id, { icon: CMD_ICONS[id], active, red: id === 'attack' });
+      });
+      const names = sel.length === 1 ? sel[0].def.name : `${sel.length} UNITS SELECTED`;
+      const st = sel.length === 1 ? unitStatus(S, sel[0]) : null;
+      text(ctx, names, sx0, by - 9, { size: 13, weight: 600, spacing: 1.5 });
+      if (st && total > 300) text(ctx, st.t, sx0 + measure(ctx, names, 13, 600, 1.5) + 10, by - 9, { size: 11, color: st.c, weight: 600, spacing: 1.5 });
+      H.rects.orders = { x: sx0, y: by, w: total, h: obh };
+    } else text(ctx, 'SELECT A UNIT FROM THE LIST, OR TAP ONE ON THE MAP', (ox0 + ox1) / 2, Hh - 22, { size: 11, align: 'center', color: FAINT, weight: 600, spacing: 1.5 });
+
+    // -- notices
+    let ny = 70;
+    for (const n of BL.fx.notices) {
+      n.t += G.frameDt;
+      const a = clamp(Math.min(n.t * 4, (4 - n.t) / 0.8), 0, 1);
+      if (a <= 0) continue;
+      text(ctx, n.text, cx, ny, { size: 13, align: 'center', color: n.bad ? `rgba(206,90,76,${a})` : `rgba(235,228,210,${a})`, weight: 600, spacing: 2.5 });
+      ny += 17;
+    }
+    for (let i = BL.fx.notices.length - 1; i >= 0; i--) if (BL.fx.notices[i].t > 4) BL.fx.notices.splice(i, 1);
+    if (G.flashMsg && G.flashT > 0) text(ctx, G.flashMsg, cx, ny + 4, { size: 13, align: 'center', color: PAL.red, weight: 600, spacing: 2 });
+
+    drawHint(ctx, G, sel.length ? Hh - obh - 46 : Hh - 48, (ox0 + ox1) / 2);
+    if (G.paused && !S.over) drawPause(ctx, G);
+  }
+
+  function chip(ctx, s, x, y) {
+    const w = 24;
+    const own = s.owner === 0, foe = s.owner === 1;
+    ctx.fillStyle = own ? PAL.cream : foe ? 'rgba(184,67,58,0.35)' : 'rgba(8,8,8,0.7)';
+    ctx.fillRect(x, y, w, w);
+    ctx.strokeStyle = own ? PAL.cream : foe ? PAL.red : 'rgba(235,228,210,0.45)';
+    ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, w - 1, w - 1);
+    text(ctx, s.id, x + w / 2, y + w / 2 + 1, { size: 14, align: 'center', base: 'middle', weight: 600, color: own ? '#0a0a0a' : foe ? PAL.ink : DIM });
+    if (Math.abs(s.prog) < 100 || s.contested) {
+      ctx.fillStyle = 'rgba(235,228,210,0.2)'; ctx.fillRect(x, y + w + 3, w, 2);
+      ctx.fillStyle = s.prog >= 0 ? PAL.ink : PAL.red;
+      const k = Math.abs(s.prog) / 100;
+      ctx.fillRect(s.prog >= 0 ? x : x + w - w * k, y + w + 3, w * k, 2);
+    }
+    if (s.contested && Math.sin(R.time * 10) > 0) { ctx.strokeStyle = PAL.red; ctx.strokeRect(x - 2.5, y - 2.5, w + 5, w + 5); }
+  }
+
+  function bar(ctx, x, y, w, k, col, rightAligned) {
+    k = clamp(k, 0, 1);
+    ctx.fillStyle = 'rgba(235,228,210,0.15)'; ctx.fillRect(x, y, w, 3);
+    ctx.fillStyle = col;
+    if (rightAligned) ctx.fillRect(x + w - w * k, y, w * k, 3); else ctx.fillRect(x, y, w * k, 3);
+  }
+
+  function drawDeploy(ctx, G, x, y) {
+    const S = G.S;
+    const order = BL.DEPLOY_ORDER.filter((k) => !S.allowed || !S.allowed[0] || S.allowed[0].has(k));
+    const small = R.H < 500;
+    const cw = small ? 76 : 88, ch = small ? 64 : 76, gap = 6;
+    const cols = Math.min(order.length, Math.max(2, Math.floor((R.W - x - 40) / (cw + gap))), 4);
+    const rows = Math.ceil(order.length / cols);
+    const w = cols * (cw + gap) + gap + 2, h = rows * (ch + gap) + 30;
+    panel(ctx, x, y, w, h);
+    text(ctx, 'DEPLOY', x + 10, y + 17, { size: 11, color: DIM, weight: 600, spacing: 2 });
+    order.forEach((type, i) => {
+      const cx = x + gap + 1 + (i % cols) * (cw + gap), cy = y + 26 + Math.floor(i / cols) * (ch + gap);
+      const def = BL.UNITS[type] || BL.SUPPORT[type];
+      const why = BL.canAfford(S, 0, type);
+      const col = why ? FAINT : PAL.ink;
+      ctx.fillStyle = 'rgba(10,10,10,0.85)'; ctx.fillRect(cx, cy, cw, ch);
+      ctx.strokeStyle = why ? 'rgba(235,228,210,0.15)' : 'rgba(235,228,210,0.45)'; ctx.strokeRect(cx + 0.5, cy + 0.5, cw - 1, ch - 1);
+      unitIcon(ctx, type, cx + cw / 2, cy + ch * 0.36, 1.3, col);
+      text(ctx, def.short, cx + 8, cy + ch - 9, { size: 13, weight: 600, color: col, spacing: 1 });
+      text(ctx, String(def.cost), cx + cw - 8, cy + ch - 9, { size: 12, align: 'right', weight: 600, color: why === 'rp' ? PAL.red : col });
+      const cd = (S.teams[0].cds[type] || 0) - S.t;
+      if (cd > 0) {
+        ctx.fillStyle = 'rgba(235,228,210,0.12)'; ctx.fillRect(cx, cy + ch * (1 - cd / def.cd), cw, ch * cd / def.cd);
+        text(ctx, `${Math.ceil(cd)}S`, cx + cw - 6, cy + 14, { size: 11, align: 'right', color: DIM, weight: 600 });
+      }
+      if (G.fresh && G.fresh.includes(type)) text(ctx, 'NEW', cx + 6, cy + 14, { size: 10, color: PAL.red, weight: 600, spacing: 1 });
+      region(cx, cy, cw, ch, 'card', type);
+    });
+    H.rects.deploy = { x, y, w, h };
+  }
+
+  // The whole field from above: woods, water, ruins, sectors, units, the camera's view.
+  function minimap(ctx, G, x, y, w, h) {
+    const S = G.S, f = S.field;
+    panel(ctx, x, y, w, h);
+    H.rects.minimap = { x, y, w, h };
+    if (!H.mm || H.mm.field !== f || H.mm.w !== Math.round(w)) {
+      const c = document.createElement('canvas');
+      c.width = Math.round(w); c.height = Math.round(h);
+      const g = c.getContext('2d');
+      const kx = w / f.W, ky = h / f.H;
+      // height as tone, then woods, water and roads on top
+      let hmax = 1;
+      for (const v of f.hgt) hmax = Math.max(hmax, v);
+      for (let py = 0; py < c.height; py++) for (let px = 0; px < c.width; px++) {
+        const wx = px / kx, wy = py / ky;
+        const fl = BL.flagAt(f, wx, wy), hh = BL.heightAt(f, wx, wy) / hmax;
+        let a = 0.05 + hh * 0.3;
+        if (fl & BL.MAPF.WOOD) a = 0.55;
+        if (fl & BL.MAPF.WATER) a = 0.7;
+        if (fl & BL.MAPF.ROAD) a = Math.max(a, 0.4);
+        if (((px * 7 + py * 13) % 5) / 5 < a * 1.4) { g.fillStyle = `rgba(235,228,210,${Math.min(0.75, a + 0.1)})`; g.fillRect(px, py, 1, 1); }
+      }
+      g.fillStyle = 'rgba(235,228,210,0.7)';
+      for (const ru of f.ruins) g.fillRect(ru.x * kx - 1, ru.y * ky - 1, 3, 3);
+      H.mm = { field: f, w: Math.round(w), c };
+    }
+    ctx.drawImage(H.mm.c, x, y);
+    const kx = w / f.W, ky = h / f.H;
+    for (const s of f.sectors) {
+      const col = s.owner === 0 ? PAL.ink : s.owner === 1 ? PAL.red : DIM;
+      ctx.strokeStyle = col;
+      ctx.beginPath(); ctx.arc(x + s.x * kx, y + s.y * ky, BL.RULES.captureRadius * kx, 0, 7); ctx.stroke();
+      text(ctx, s.id, x + s.x * kx, y + s.y * ky + 4, { size: 11, align: 'center', weight: 600, color: col });
+    }
+    for (const u of S.units) {
+      if (!u.alive || (u.team === 1 && !BL.visible(S, 0, u))) continue;
+      ctx.fillStyle = u.team === 0 ? PAL.ink : PAL.red;
+      const sz = u.kind === 'inf' ? 2.5 : 3.5;
+      ctx.fillRect(x + u.x * kx - sz / 2, y + u.y * ky - sz / 2, sz, sz);
+      if (G.selected.has(u.id)) { ctx.strokeStyle = PAL.ink; ctx.strokeRect(x + u.x * kx - 4, y + u.y * ky - 4, 8, 8); }
+    }
+    for (const st of S.strikes) { ctx.strokeStyle = PAL.red; ctx.beginPath(); ctx.arc(x + st.x * kx, y + st.y * ky, 5, 0, 7); ctx.stroke(); }
+    const vr = BL.render.viewRect(0);
+    const rx0 = clamp(vr.x0 * kx, 0, w), rx1 = clamp(vr.x1 * kx, 0, w);
+    const ry0 = clamp(vr.y0 * ky, 0, h), ry1 = clamp((vr.y1 - 120 / (R.cam.z * BL.render.K)) * ky, 0, h);
+    ctx.strokeStyle = 'rgba(235,228,210,0.8)';
+    ctx.strokeRect(x + rx0 + 0.5, y + ry0 + 0.5, Math.max(4, rx1 - rx0), Math.max(4, ry1 - ry0));
+    region(x, y, w, h, 'minimap');
+  }
+
+  function drawHint(ctx, G, y, cx) {
+    const h = G.hint;
+    if (!h) return;
+    const S = G.S;
+    const s = h.text.slice(0, Math.floor(h.shownT * 45));
+    const a = clamp(h.shownT * 3, 0, 1);
+    const w = measure(ctx, h.text, 14, 600, 0.5) + 30;
+    const x = clamp(cx - w / 2, pad(), R.W - pad() - w);
+    ctx.fillStyle = `rgba(4,4,4,${0.85 * a})`; ctx.fillRect(x, y - 18, w, 28);
+    ctx.fillStyle = PAL.red; ctx.fillRect(x, y - 18, 3, 28);
+    text(ctx, s, x + 14, y + 1, { size: 14, color: `rgba(235,228,210,${a})`, weight: 600, spacing: 0.5 });
+    const t = h.target;
+    if (!t) return;
+    const pulse = 0.5 + 0.5 * Math.sin(R.time * 6);
+    let box = null;
+    if (t.kind === 'cmd') { const r = H.regions.find((q) => q.id === 'cmd' && q.arg === t.arg); if (r) box = [r.x, r.y, r.w, r.h]; }
+    else if (t.kind === 'deploy') { const r = H.regions.find((q) => q.id === 'deploy'); if (r) box = [r.x, r.y, r.w, r.h]; }
+    else if (t.kind === 'roster') {
+      const u = S.units.find((q) => q.alive && q.team === 0 && (!t.type || q.type === t.type));
+      const r = u ? H.regions.find((q) => q.id === 'unit' && q.arg === u.id) : H.rects.roster;
+      if (r) box = [r.x, r.y, r.w, r.h];
+    } else if (t.kind === 'sector') {
+      const sec = S.field.sectors.find((q) => q.id === t.id);
+      const px = BL.render.sx(sec.x), py = BL.render.sy(sec.y, BL.heightAt(S.field, sec.x, sec.y));
+      box = [px - 30, py - 62, 60, 74];
+    }
+    if (box) {
+      ctx.strokeStyle = `rgba(206,90,76,${0.55 + pulse * 0.45})`; ctx.lineWidth = 2;
+      ctx.strokeRect(box[0] - 3 - pulse * 3, box[1] - 3 - pulse * 3, box[2] + 6 + pulse * 6, box[3] + 6 + pulse * 6);
+      ctx.lineWidth = 1;
+    }
+  }
+
+  // ---------------------------------------------------------------- overlays
+
+  function veil(ctx, a) { ctx.fillStyle = `rgba(2,2,2,${a})`; ctx.fillRect(0, 0, R.W, R.H); }
+  function centerPanel(ctx, w, h) {
+    const x = Math.round(R.W / 2 - w / 2), y = Math.round(R.H / 2 - h / 2);
+    panel(ctx, x, y, w, h);
+    return { x, y };
+  }
+
+  function drawPause(ctx, G) {
+    veil(ctx, 0.55);
+    H.regions.length = 0;
+    const bh = R.H < 500 ? 36 : 42, w = 280;
+    const items = [
+      ['resume', 'RESUME', true],
+      ['restart', G.mission.num ? 'RESTART MISSION' : 'RESTART BATTLE'],
+      ['sound', 'SOUND  ' + (BL.audio.enabled ? 'ON' : 'OFF')],
+      ['quit', G.mission.num ? 'ABANDON MISSION' : 'QUIT TO TITLE'],
+    ];
+    const h = 52 + items.length * (bh + 8) + 8;
+    const p = centerPanel(ctx, w, h);
+    text(ctx, 'PAUSED', p.x + 18, p.y + 31, { size: 18, weight: 600, spacing: 4 });
+    items.forEach(([id, label, primary], i) => button(ctx, p.x + 16, p.y + 48 + i * (bh + 8), w - 32, bh, label, 'menu', id, { primary }));
+  }
+
+  function star(ctx, cx, cy, r, filled, col) {
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.45 : r; i ? ctx.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr) : ctx.moveTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); }
+    ctx.closePath(); ctx.strokeStyle = col || PAL.ink; ctx.lineWidth = 1;
+    if (filled) { ctx.fillStyle = col || PAL.ink; ctx.fill(); }
+    ctx.stroke();
+  }
+  const clock = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+
+  function drawDebrief(ctx, G) {
+    const S = G.S, M = G.mission;
+    G.debriefT = (G.debriefT || 0) + G.frameDt;
+    const k = clamp(G.debriefT / 0.8, 0, 1);
+    veil(ctx, 0.6 * k);
+    if (k < 0.4) return;
+    H.regions.length = 0;
+    const W = R.W, Hh = R.H;
+    const win = S.winner === 0, camp = !!M.num;
+    const fresh = G.fresh && G.fresh.length ? G.fresh : null;
+    const pw = Math.min(W - 2 * pad(), fresh ? 760 : 440), ph = Math.min(Hh - 20, 340);
+    const p = centerPanel(ctx, pw, ph);
+    const x = p.x + 22;
+    let y = p.y + 30;
+    text(ctx, camp ? `OPERATION BLACK RAIN · ${M.num}  ${M.name}` : 'SKIRMISH · THE VALLEY', x, y, { size: 11, color: DIM, weight: 600, spacing: 2 });
+    text(ctx, camp ? (win ? 'MISSION COMPLETE' : 'MISSION FAILED') : (win ? 'THE EASTERN LINE BREAKS' : 'OUR LINE BREAKS'), x, y + 30, { size: 26, weight: 600, spacing: 2, color: win ? PAL.ink : PAL.red });
+    y += 50;
+    const st = S.teams[0].stats, en = S.teams[1].stats;
+    const tEnd = S.endT || S.t;
+    if (camp) {
+      for (let i = 0; i < 3; i++) star(ctx, x + 12 + i * 30, y + 12, 11, G.debriefT > 0.9 + i * 0.45 && i < G.stars, i < G.stars ? PAL.ink : FAINT);
+      y += 36;
+      [['OBJECTIVE', win ? 'DONE' : 'NOT MET', win], [`LOSSES ≤ ${M.maxLoss}`, String(st.lost), win && st.lost <= M.maxLoss], [`TIME ≤ ${clock(M.par + 25)}`, clock(tEnd), win && tEnd <= M.par + 25]].forEach((c, i) => {
+        text(ctx, c[0], x, y + i * 18, { size: 12, color: c[2] ? PAL.ink : DIM, weight: 600, spacing: 1 });
+        text(ctx, c[1], x + 160, y + i * 18, { size: 12, color: DIM, weight: 600 });
+      });
+      y += 3 * 18 + 6;
+    }
+    text(ctx, `ENEMY LOSSES ${en.lost}  ·  VEHICLES DESTROYED ${st.vehKills}  ·  TIME ${clock(tEnd)}`, x, y + 4, { size: 11, color: DIM, weight: 600, spacing: 1 });
+    const idx = camp ? BL.campaign.MISSIONS.indexOf(M) : -1;
+    const items = [];
+    if (camp && win && idx < BL.campaign.MISSIONS.length - 1) items.push(['next', 'NEXT  ' + BL.campaign.MISSIONS[idx + 1].name, true]);
+    items.push(['restart', win ? 'PLAY AGAIN' : 'RETRY', !items.length]);
+    items.push([camp ? 'campaign' : 'quit', camp ? 'CAMPAIGN' : 'TITLE']);
+    const bh = 34, by = p.y + ph - 18 - bh;
+    let bx = x;
+    for (const [id, label, primary] of items) {
+      const bw = measure(ctx, label, 14, 600, 1.5) + 36;
+      button(ctx, bx, by, bw, bh, label, 'menu', id, { primary });
+      bx += bw + 8;
+    }
+    if (fresh && G.debriefT > 1.6) {
+      const a = clamp((G.debriefT - 1.6) / 0.6, 0, 1);
+      const rx = p.x + Math.max(390, pw * 0.53);
+      ctx.fillStyle = PAL.line; ctx.fillRect(rx - 18, p.y + 18, 1, ph - 36);
+      BL.cinema.drawDossier(ctx, fresh[0], a, rx, 'UNLOCKED', p.y + 30);
+      if (fresh[1]) text(ctx, '+ ' + (BL.UNITS[fresh[1]] || BL.SUPPORT[fresh[1]]).name, rx, p.y + ph - 22, { size: 13, color: `rgba(235,228,210,${a})`, weight: 600, spacing: 1 });
+    } else if (camp && win && idx === BL.campaign.MISSIONS.length - 1) {
+      const rk = BL.campaign.rank(G.progress);
+      text(ctx, `OPERATION COMPLETE · RANK ${rk.name} · ★ ${rk.total}/${rk.max}`, x, by - 14, { size: 12, color: PAL.red, weight: 600, spacing: 1.5 });
+    }
+  }
+
+  // ---------------------------------------------------------------- title and campaign
+
+  function leftShade(ctx, w) {
+    const g = ctx.createLinearGradient(0, 0, w, 0);
+    g.addColorStop(0, 'rgba(2,2,2,0.9)'); g.addColorStop(1, 'rgba(2,2,2,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, R.W, R.H);
+  }
+
+  function drawTitle(ctx, G) {
+    H.regions.length = 0;
+    const P = pad() + 12, W = R.W, Hh = R.H;
+    leftShade(ctx, Math.min(W * 0.6, 620));
+    const big = clamp(Math.min(W * 0.065, Hh * 0.13), 38, 80);
+    const y = Hh * 0.2 + big * 0.6;
+    text(ctx, 'BLACKLINE', P, y, { size: big, weight: 600, spacing: big * 0.14 });
+    ctx.fillStyle = PAL.red; ctx.fillRect(P + 2, y + 12, 40, 3);
+    text(ctx, 'FRONTLINES', P + 52, y + 18, { size: clamp(big * 0.28, 12, 20), color: DIM, weight: 600, spacing: 6 });
+    const rk = BL.campaign.rank(G.progress);
+    text(ctx, `RANK  ${rk.name}     ★ ${rk.total} / ${rk.max}`, P + 2, y + 44, { size: 12, color: DIM, weight: 600, spacing: 2 });
+    const open = BL.campaign.skirmishOpen(G.progress);
+    const bw = clamp(W * 0.28, 240, 330), bh = Hh < 500 ? 38 : 44, gap = 8;
+    let by = y + 60;
+    button(ctx, P, by, bw, bh, 'CAMPAIGN', 'menu', 'campaign', { primary: true, left: true });
+    by += bh + gap;
+    button(ctx, P, by, bw, bh, open ? 'SKIRMISH' : 'SKIRMISH — WIN MISSION 01 FIRST', 'menu', 'skirmish', { left: true, disabled: !open });
+    by += bh + gap;
+    const half = (bw - gap) / 2;
+    button(ctx, P, by, half, bh, G.difficulty === 'recruit' ? 'RECRUIT' : 'VETERAN', 'menu', 'difficulty', { size: 13 });
+    button(ctx, P + half + gap, by, half, bh, 'SOUND ' + (BL.audio.enabled ? 'ON' : 'OFF'), 'menu', 'sound', { size: 13 });
+    text(ctx, 'THE BATTLE BEHIND THIS MENU IS LIVE', P, Hh - 16, { size: 10, color: FAINT, weight: 600, spacing: 2 });
+  }
+
+  function wrap(ctx, s, maxW, size, weight) {
+    const out = []; let line = '';
+    for (const w of s.split(' ')) {
       const t = line ? line + ' ' + w : w;
-      if (ctx.measureText(t).width + t.length > maxW && line) { out.push(line); line = w; } else line = t;
+      if (measure(ctx, t, size, weight, 0.5) > maxW && line) { out.push(line); line = w; } else line = t;
     }
     if (line) out.push(line);
     return out;
   }
 
-  function brackets(ctx, x, y, w, h, k, col) {
-    ctx.strokeStyle = col || PAL.ink;
-    ctx.beginPath();
-    ctx.moveTo(x, y + k); ctx.lineTo(x, y); ctx.lineTo(x + k, y);
-    ctx.moveTo(x + w - k, y); ctx.lineTo(x + w, y); ctx.lineTo(x + w, y + k);
-    ctx.moveTo(x, y + h - k); ctx.lineTo(x, y + h); ctx.lineTo(x + k, y + h);
-    ctx.moveTo(x + w - k, y + h); ctx.lineTo(x + w, y + h); ctx.lineTo(x + w, y + h - k);
-    ctx.stroke();
-  }
-
-  // ---------------------------------------------------------------- icons
-
-  function icon(ctx, type, cx, cy, s, col) {
-    ctx.save();
-    ctx.strokeStyle = col; ctx.fillStyle = col;
-    ctx.lineWidth = 1;
-    ctx.lineJoin = 'round';
-    const SH = BL.units.SHAPES;
-    const poly = (pts, close) => { ctx.beginPath(); for (let i = 0; i < pts.length; i += 2) i ? ctx.lineTo(pts[i], pts[i + 1]) : ctx.moveTo(pts[i], pts[i + 1]); if (close) ctx.closePath(); ctx.stroke(); };
-    if (type === 'tank' || type === 'apc') {
-      const sh = SH[type];
-      ctx.translate(cx, cy + 6 * s); ctx.scale(s * 0.62, -s * 0.62); ctx.lineWidth = 1 / (s * 0.62);
-      if (sh.tracks) poly(sh.tracks, true);
-      poly(sh.hull, true);
-      for (const x of sh.wheels) { ctx.beginPath(); ctx.arc(x, sh.wy, sh.wr, 0, 7); ctx.stroke(); }
-      ctx.translate(sh.pivot[0], sh.pivot[1]);
-      poly(sh.turret, true);
-      ctx.beginPath(); ctx.moveTo(sh.barrel.x, sh.barrel.y); ctx.lineTo(sh.barrel.x + sh.barrel.len, sh.barrel.y + 1); ctx.stroke();
-    } else if (type === 'heli' || type === 'insert') {
-      const sh = SH[type === 'heli' ? 'heli' : 'transport'];
-      ctx.translate(cx, cy - 1 * s); ctx.scale(s * 0.42, -s * 0.42); ctx.lineWidth = 1 / (s * 0.42);
-      poly(sh.body, true); poly(sh.fin, true);
-      ctx.beginPath(); ctx.moveTo(sh.mast[0] - sh.rotorL, sh.rotorY); ctx.lineTo(sh.mast[0] + sh.rotorL, sh.rotorY); ctx.stroke();
-      if (type === 'insert') { ctx.setLineDash([1.5, 2]); ctx.beginPath(); ctx.moveTo(2, -6); ctx.lineTo(4, -26); ctx.stroke(); ctx.setLineDash([]); }
-    } else if (type === 'arty') {
-      for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(cx - 8 * s + i * 7 * s, cy - 10 * s); ctx.lineTo(cx - 6 * s + i * 7 * s, cy + 2 * s); ctx.stroke(); }
-      ctx.beginPath();
-      for (let i = 0; i < 8; i++) { const a = i / 8 * 6.28; ctx.moveTo(cx + Math.cos(a) * 3 * s, cy + 7 * s + Math.sin(a) * 2 * s); ctx.lineTo(cx + Math.cos(a) * 6 * s, cy + 7 * s + Math.sin(a) * 4 * s); }
-      ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(cx - 12 * s, cy + 10 * s); ctx.lineTo(cx + 12 * s, cy + 10 * s); ctx.stroke();
-    } else {
-      // infantry: a few small figures
-      const n = type === 'scout' ? 2 : 3;
-      for (let i = 0; i < n; i++) {
-        const x = cx + (i - (n - 1) / 2) * 7 * s, y = cy + 9 * s;
-        ctx.beginPath();
-        ctx.moveTo(x - 1.6 * s, y); ctx.lineTo(x, y - 4 * s); ctx.lineTo(x + 1.6 * s, y);
-        ctx.moveTo(x, y - 4 * s); ctx.lineTo(x + 0.4 * s, y - 7 * s);
-        const L = type === 'scout' ? 7 : type === 'mg' && i === 0 ? 7 : 4.5;
-        ctx.moveTo(x - 1 * s, y - 6 * s); ctx.lineTo(x + L * s, y - 6.4 * s);
-        ctx.stroke();
-        ctx.beginPath(); ctx.arc(x + 0.6 * s, y - 8.4 * s, 1.2 * s, 0, 7); ctx.fill();
-      }
-      if (type === 'mg') { ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx - 8 * s, cy + 3 * s); ctx.lineTo(cx - 1 * s, cy + 2.7 * s); ctx.stroke(); }
-    }
-    ctx.restore();
-  }
-
-  function cmdIcon(ctx, id, cx, cy, col) {
-    ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    if (id === 'move') {
-      ctx.moveTo(cx - 3, cy - 7); ctx.lineTo(cx + 5, cy); ctx.lineTo(cx - 3, cy + 7);
-      ctx.moveTo(cx - 12, cy); ctx.lineTo(cx - 9, cy); ctx.moveTo(cx - 6, cy); ctx.lineTo(cx - 3, cy);
-    } else if (id === 'attack') {
-      ctx.arc(cx, cy, 6, 0, 7);
-      ctx.moveTo(cx - 10, cy); ctx.lineTo(cx - 3, cy); ctx.moveTo(cx + 3, cy); ctx.lineTo(cx + 10, cy);
-      ctx.moveTo(cx, cy - 10); ctx.lineTo(cx, cy - 3); ctx.moveTo(cx, cy + 3); ctx.lineTo(cx, cy + 10);
-    } else if (id === 'hold') {
-      ctx.moveTo(cx - 10, cy + 5); ctx.lineTo(cx + 10, cy + 5);
-      ctx.moveTo(cx - 8, cy + 5); ctx.quadraticCurveTo(cx - 5, cy - 2, cx - 2, cy + 5);
-      ctx.moveTo(cx - 2, cy + 5); ctx.quadraticCurveTo(cx + 1, cy - 2, cx + 4, cy + 5);
-      ctx.moveTo(cx + 4, cy + 5); ctx.quadraticCurveTo(cx + 7, cy - 2, cx + 10, cy + 5);
-      ctx.moveTo(cx - 5, cy - 3); ctx.quadraticCurveTo(cx - 2, cy - 9, cx + 1, cy - 3);
-      ctx.moveTo(cx + 1, cy - 3); ctx.quadraticCurveTo(cx + 4, cy - 9, cx + 7, cy - 3);
-    } else if (id === 'retreat') {
-      ctx.moveTo(cx + 3, cy - 7); ctx.lineTo(cx - 5, cy); ctx.lineTo(cx + 3, cy + 7);
-      ctx.moveTo(cx + 9, cy - 7); ctx.lineTo(cx + 1, cy); ctx.lineTo(cx + 9, cy + 7);
-    } else if (id === 'all') {
-      ctx.moveTo(cx - 10, cy - 4); ctx.lineTo(cx - 10, cy - 8); ctx.lineTo(cx - 6, cy - 8);
-      ctx.moveTo(cx + 6, cy - 8); ctx.lineTo(cx + 10, cy - 8); ctx.lineTo(cx + 10, cy - 4);
-      ctx.moveTo(cx - 10, cy + 4); ctx.lineTo(cx - 10, cy + 8); ctx.lineTo(cx - 6, cy + 8);
-      ctx.moveTo(cx + 6, cy + 8); ctx.lineTo(cx + 10, cy + 8); ctx.lineTo(cx + 10, cy + 4);
-      ctx.stroke(); ctx.beginPath();
-      for (let i = -1; i <= 1; i++) ctx.rect(cx + i * 5 - 1, cy - 1, 2, 2);
-      ctx.fill(); return;
-    } else if (id === 'follow') {
-      ctx.arc(cx, cy, 4, 0, 7);
-      ctx.moveTo(cx - 11, cy); ctx.quadraticCurveTo(cx, cy - 11, cx + 11, cy); ctx.quadraticCurveTo(cx, cy + 11, cx - 11, cy);
-    }
-    ctx.stroke();
-  }
-
-  // ---------------------------------------------------------------- battle HUD
-
-  function drawBattle(ctx, G) {
-    const S = G.S;
-    H.regions.length = 0;
-    const W = R.W, Hh = R.H, P = pad();
-    const T0 = S.teams[0], T1 = S.teams[1];
-    ctx.lineWidth = 1;
-
-    // -- top strip: the whole front as a dotted profile
-    const mx = P, my = 8, mw = W - P * 2 - 70, mh = 22;
-    const f = S.field;
-    let hmin = 1e9, hmax = -1e9;
-    for (let x = 0; x <= f.W; x += 40) { const h = BL.heightAt(f, x); hmin = Math.min(hmin, h); hmax = Math.max(hmax, h); }
-    const toX = (x) => mx + (x / f.W) * mw;
-    const toY = (h) => my + mh - 3 - ((h - hmin) / (hmax - hmin)) * (mh - 9);
-    ctx.fillStyle = 'rgba(235,228,210,0.5)';
-    for (let x = 0; x <= f.W; x += 24) ctx.fillRect(toX(x), toY(BL.heightAt(f, x)), 1, 1);
-    for (const s of f.sectors) {
-      const col = s.owner === 0 ? PAL.ink : s.owner === 1 ? PAL.red : 'rgba(235,228,210,0.45)';
-      text(ctx, s.id, toX(s.x), my + 6, { size: 9, align: 'center', color: col });
-    }
-    for (const u of S.units) {
-      if (!u.alive) continue;
-      if (u.team === 1 && !BL.visible(S, 0, u)) continue;
-      const x = toX(u.x);
-      const y = u.kind === 'air' ? my + 6 : toY(BL.heightAt(f, u.x));
-      ctx.fillStyle = u.team === 0 ? PAL.ink : PAL.red;
-      ctx.fillRect(x - 0.5, y - (u.kind === 'inf' ? 4 : 5), u.kind === 'inf' ? 1 : 2.4, u.kind === 'inf' ? 3 : 3);
-      if (G.selected.has(u.id)) ctx.fillRect(x - 2, y + 2, 4, 1);
-    }
-    for (const st of S.strikes) { ctx.fillStyle = PAL.red; ctx.fillRect(toX(st.x) - 3, my + mh - 2, 6, 1.5); }
-    const v0 = toX(clamp(BL.render.wx(0), 0, f.W)), v1 = toX(clamp(BL.render.wx(W), 0, f.W));
-    brackets(ctx, v0, my + 1, Math.max(6, v1 - v0), mh - 1, 4, 'rgba(235,228,210,0.8)');
-    region(mx, my - 4, mw, mh + 8, 'minimap');
-
-    // pause and sound, top right
-    const bx = W - P - 26;
-    ctx.strokeStyle = PAL.ink;
-    ctx.lineWidth = 1.4;
-    ctx.beginPath(); ctx.moveTo(bx + 9, my + 3); ctx.lineTo(bx + 9, my + 19); ctx.moveTo(bx + 17, my + 3); ctx.lineTo(bx + 17, my + 19); ctx.stroke();
-    region(bx - 6, my - 6, 38, 34, 'pause');
-    const sxp = bx - 34;
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(sxp + 4, my + 8); ctx.lineTo(sxp + 8, my + 8); ctx.lineTo(sxp + 13, my + 3); ctx.lineTo(sxp + 13, my + 19); ctx.lineTo(sxp + 8, my + 14); ctx.lineTo(sxp + 4, my + 14); ctx.closePath(); ctx.stroke();
-    if (BL.audio.enabled) { ctx.beginPath(); ctx.arc(sxp + 14, my + 11, 5, -0.8, 0.8); ctx.moveTo(sxp + 21, my + 4); ctx.arc(sxp + 14, my + 11, 9, -0.8, 0.8); ctx.stroke(); }
-    else { ctx.beginPath(); ctx.moveTo(sxp + 17, my + 7); ctx.lineTo(sxp + 24, my + 15); ctx.moveTo(sxp + 24, my + 7); ctx.lineTo(sxp + 17, my + 15); ctx.stroke(); }
-    region(sxp - 2, my - 6, 30, 34, 'sound');
-    // action camera toggle: an eye inside brackets
-    const cxp = sxp - 36;
-    const on = G.camMode === 'action';
-    brackets(ctx, cxp, my, 26, 22, on ? 6 : 4, on ? PAL.ink : 'rgba(235,228,210,0.55)');
-    ctx.strokeStyle = on ? PAL.red : PAL.ink;
-    ctx.beginPath(); ctx.ellipse(cxp + 13, my + 11, 7, 4, 0, 0, 7); ctx.stroke();
-    ctx.fillStyle = ctx.strokeStyle; ctx.fillRect(cxp + 12, my + 10, 2, 2);
-    region(cxp - 4, my - 6, 34, 34, 'cam');
-
-    // -- second row: line strength, sectors, RP
-    const ry = my + mh + 18;
-    const cx = W / 2;
-    const barW = W >= 1100 ? 150 : clamp((W - 2 * P) * 0.5 - 52 - 150, 50, 150);
-    if (S.drain) {
-      text(ctx, 'BLACKLINE', cx - 52 - barW - 8, ry, { size: 10, align: 'right', color: PAL.ink, spacing: 1 });
-      text(ctx, 'HOSTILE', cx + 52 + barW + 8, ry, { size: 10, align: 'left', color: PAL.red, spacing: 1 });
-      ticketBar(ctx, cx - 52 - barW, ry - 4, barW, T0.tickets / BL.RULES.tickets, PAL.ink, true);
-      ticketBar(ctx, cx + 52, ry - 4, barW, T1.tickets / BL.RULES.tickets, PAL.red, false);
-      text(ctx, String(Math.ceil(T0.tickets)), cx - 52 - barW / 2, ry + 11, { size: 9, align: 'center', color: PAL.inkDim });
-      text(ctx, String(Math.ceil(T1.tickets)), cx + 52 + barW / 2, ry + 11, { size: 9, align: 'center', color: PAL.inkDim });
-    }
-    f.sectors.forEach((s, i) => sectorDiamond(ctx, s, cx + (i - 1) * 32, ry - 4));
-    // the mission's objective, always in view under the sectors
-    const M = G.mission;
-    const obj = M ? BL.campaign.progressText(S, M, G.ms) : '';
-    if (obj) text(ctx, obj, cx, ry + 28, { size: 11, align: 'center', color: PAL.ink, spacing: 2 });
-
-    // RP and objective
-    text(ctx, `RP ${Math.floor(T0.rp)}`, W - P, ry, { size: 14, align: 'right', color: PAL.ink, spacing: 1 });
-    text(ctx, `+${(T0.income).toFixed(1)}/s  ·  ${BL.popCount(S, 0)}/${BL.RULES.popCap} units`, W - P, ry + 13, { size: 9, align: 'right', color: PAL.inkDim });
-    if (W >= 1100 && M) {
-      text(ctx, M.num ? `OPERATION BLACK RAIN · ${M.num}` : 'SKIRMISH', P, ry, { size: 9, color: PAL.inkDim, spacing: 2 });
-      text(ctx, M.name, P, ry + 14, { size: 12, spacing: 2 });
-      text(ctx, M.time + ' · ' + M.sky, P, ry + 27, { size: 9, color: PAL.inkDim, spacing: 1 });
-    }
-
-    // -- notices
-    const nt = BL.fx.notices;
-    let ny = ry + (obj ? 46 : 40);
-    for (const n of nt) {
-      n.t += G.frameDt;
-      const a = clamp(Math.min(n.t * 4, (4 - n.t) / 0.8), 0, 1);
-      if (a <= 0) continue;
-      text(ctx, n.text, cx, ny, { size: 11, align: 'center', color: n.bad ? `rgba(200,80,66,${a})` : `rgba(235,228,210,${a})`, spacing: 2 });
-      ny += 15;
-    }
-    for (let i = nt.length - 1; i >= 0; i--) if (nt[i].t > 4) nt.splice(i, 1);
-
-    // -- deploy tray (bottom left)
-    const order = BL.DEPLOY_ORDER.filter((k) => !S.allowed || !S.allowed[0] || S.allowed[0].has(k));
-    // cards and commands share the bottom edge: size them so both fit
-    const cw = clamp(Math.floor((W - 2 * P - 20) / (Math.max(order.length, 6) + 6 * 0.95)) - 4, 38, 62);
-    const ch = Math.round(cw * 1.08);
-    const ty = Hh - ch - 10;
-    order.forEach((type, i) => {
-      const x = P + i * (cw + 4);
-      const def = BL.UNITS[type] || BL.SUPPORT[type];
-      const why = BL.canAfford(S, 0, type);
-      const ready = !why;
-      const sel = G.deploying === type;
-      const col = ready ? PAL.ink : 'rgba(235,228,210,0.32)';
-      ctx.lineWidth = 1;
-      brackets(ctx, x, ty, cw, ch, sel ? 9 : 5, sel ? PAL.ink : ready ? 'rgba(235,228,210,0.55)' : 'rgba(235,228,210,0.2)');
-      if (sel) { ctx.fillStyle = 'rgba(235,228,210,0.07)'; ctx.fillRect(x, ty, cw, ch); }
-      icon(ctx, type, x + cw / 2, ty + ch * 0.36, cw / 50, col);
-      text(ctx, def.short, x + cw / 2, ty + ch - 15, { size: 9, align: 'center', color: col, spacing: 1 });
-      text(ctx, String(def.cost), x + cw / 2, ty + ch - 4, { size: 9, align: 'center', color: why === 'rp' ? 'rgba(200,80,66,0.8)' : col });
-      // cooldown sweep: a line rising up the card's left edge
-      const cd = (S.teams[0].cds[type] || 0) - S.t;
-      if (cd > 0) {
-        const k = cd / def.cd;
-        ctx.strokeStyle = PAL.ink;
-        ctx.beginPath(); ctx.moveTo(x + 2, ty + ch - 2); ctx.lineTo(x + 2, ty + ch - 2 - (ch - 4) * (1 - k)); ctx.stroke();
-        text(ctx, `${Math.ceil(cd)}s`, x + cw - 3, ty + 10, { size: 8, align: 'right', color: PAL.inkDim });
-      }
-      const keyN = BL.DEPLOY_ORDER.indexOf(type) + 1;
-      text(ctx, String(keyN), x + 3, ty + 10, { size: 8, color: 'rgba(235,228,210,0.3)' });
-      if (G.fresh && G.fresh.includes(type) && Math.sin(R.time * 5) > -0.3) text(ctx, 'NEW', x + cw - 3, ty + ch - 26, { size: 8, align: 'right', color: PAL.red, spacing: 1 });
-      region(x, ty, cw, ch, 'card', type);
-    });
-    if (G.deploying) {
-      const def = BL.UNITS[G.deploying] || BL.SUPPORT[G.deploying];
-      const msg = G.deploying === 'arty' ? 'TAP THE FIELD TO AIM THE SHELLS' : G.deploying === 'insert' ? 'TAP WHERE THE SQUAD SHOULD DROP (WHERE YOU CAN SEE)' : `TAP NEAR A BEAM TO DEPLOY ${def.name}`;
-      text(ctx, msg, P, ty - 10, { size: 10, color: PAL.ink, spacing: 1 });
-      if (G.deployMsg && G.deployMsgT > 0) text(ctx, G.deployMsg, P, ty - 24, { size: 10, color: PAL.red });
-    } else if (G.deployMsg && G.deployMsgT > 0) {
-      text(ctx, G.deployMsg, P, ty - 10, { size: 10, color: PAL.red });
-    }
-
-    // -- commands (bottom right)
-    const bs = clamp(Math.round(cw * 0.95), 38, 56);
-    const cmds = G.selected.size ? ['all', 'follow', 'move', 'attack', 'hold', 'retreat'] : ['all'];
-    const total = cmds.length * (bs + 4);
-    let x0 = W - P - total + 4;
-    const by = Hh - bs - 10;
-    cmds.forEach((id, i) => {
-      const x = x0 + i * (bs + 4);
-      const active = (id === 'move' || id === 'attack') && G.cmdMode === id || (id === 'follow' && G.following);
-      brackets(ctx, x, by, bs, bs, active ? 9 : 5, active ? PAL.ink : 'rgba(235,228,210,0.5)');
-      if (active) { ctx.fillStyle = 'rgba(235,228,210,0.07)'; ctx.fillRect(x, by, bs, bs); }
-      cmdIcon(ctx, id, x + bs / 2, by + bs / 2 - 5, id === 'attack' && active ? PAL.red : PAL.ink);
-      text(ctx, id.toUpperCase(), x + bs / 2, by + bs - 5, { size: 8, align: 'center', color: PAL.inkDim, spacing: 1 });
-      region(x, by, bs, bs, 'cmd', id);
-    });
-    // selection summary
-    if (G.selected.size) {
-      const units = S.units.filter((u) => G.selected.has(u.id) && u.alive);
-      const names = {};
-      units.forEach((u) => { names[u.def.short] = (names[u.def.short] || 0) + 1; });
-      const label = Object.keys(names).map((k) => (names[k] > 1 ? `${names[k]}× ` : '') + k).join('  ');
-      text(ctx, label, W - P, by - 10, { size: 10, align: 'right', color: PAL.ink, spacing: 1 });
-      const ord = units.length === 1 ? units[0].order.type.toUpperCase() : '';
-      text(ctx, (ord ? ord + ' · ' : '') + (G.cmdMode === 'attack' ? 'TAP GROUND: ATTACK-MOVE' : 'TAP GROUND: MOVE · FOE: ATTACK'), W - P, by - 22, { size: 8, align: 'right', color: PAL.inkDim });
-    } else {
-      text(ctx, 'TAP A UNIT TO COMMAND IT', W - P, by - 10, { size: 9, align: 'right', color: PAL.inkDim, spacing: 1 });
-    }
-
-    // box selection
-    if (G.box) {
-      ctx.strokeStyle = PAL.ink;
-      ctx.setLineDash([3, 3]);
-      const b = G.box;
-      ctx.strokeRect(Math.min(b.x0, b.x1), Math.min(b.y0, b.y1), Math.abs(b.x1 - b.x0), Math.abs(b.y1 - b.y0));
-      ctx.setLineDash([]);
-    }
-
-    drawHint(ctx, G, ty);
-    if (G.help) drawHelp(ctx, G);
-    if (G.paused && !S.over) drawPause(ctx, G);
-  }
-
-  function ticketBar(ctx, x, y, w, k, col, rightAligned) {
-    k = clamp(k, 0, 1);
-    ctx.strokeStyle = 'rgba(235,228,210,0.18)';
-    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + w, y); ctx.stroke();
-    ctx.strokeStyle = col;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    if (rightAligned) { ctx.moveTo(x + w, y); ctx.lineTo(x + w - w * k, y); }
-    else { ctx.moveTo(x, y); ctx.lineTo(x + w * k, y); }
-    ctx.stroke();
-    ctx.lineWidth = 1;
-    // tick marks every 10 %
-    ctx.fillStyle = 'rgba(235,228,210,0.25)';
-    for (let i = 0; i <= 10; i++) ctx.fillRect(x + w * i / 10, y + 3, 1, 2);
-  }
-
-  function sectorDiamond(ctx, s, x, y) {
-    const r = 9;
-    const col = s.owner === 0 ? PAL.ink : s.owner === 1 ? PAL.red : 'rgba(235,228,210,0.5)';
-    ctx.strokeStyle = col;
-    ctx.beginPath(); ctx.moveTo(x, y - r); ctx.lineTo(x + r, y); ctx.lineTo(x, y + r); ctx.lineTo(x - r, y); ctx.closePath(); ctx.stroke();
-    if (s.owner >= 0) {
-      ctx.fillStyle = s.owner === 0 ? 'rgba(235,228,210,0.18)' : 'rgba(184,67,58,0.22)';
-      ctx.fill();
-    }
-    text(ctx, s.id, x, y + 3.5, { size: 10, align: 'center', color: col });
-    // progress arc
-    const k = s.prog / 100;
-    if (Math.abs(k) < 0.999) {
-      ctx.strokeStyle = k >= 0 ? PAL.ink : PAL.red;
-      ctx.beginPath();
-      ctx.arc(x, y, r + 4, -Math.PI / 2, -Math.PI / 2 + Math.abs(k) * Math.PI * 2 * (k >= 0 ? 1 : -1), k < 0);
-      ctx.stroke();
-    }
-    if (s.contested && Math.sin(R.time * 10) > 0) { ctx.strokeStyle = PAL.red; ctx.beginPath(); ctx.arc(x, y, r + 7, 0, 7); ctx.stroke(); }
-  }
-
-  function veil(ctx, a) { ctx.fillStyle = `rgba(2,2,2,${a})`; ctx.fillRect(0, 0, R.W, R.H); }
-
-  function menu(ctx, items, x, y, gap, size) {
-    items.forEach((it, i) => {
-      const yy = y + i * gap;
-      const col = it.dim ? 'rgba(235,228,210,0.35)' : PAL.ink;
-      text(ctx, (it.dim ? '  ' : '— ') + it.label, x, yy, { size: size || 14, color: col, spacing: 2 });
-      if (!it.dim) {
-        ctx.font = font(size || 14);
-        const w = ctx.measureText('— ' + it.label).width + it.label.length * 2;
-        region(x - 10, yy - gap * 0.7, w + 30, gap, 'menu', it.id);
-      }
-    });
-  }
-
-  function drawHelp(ctx, G) {
-    veil(ctx, 0.55);
-    const x = Math.max(pad() + 10, R.W / 2 - 250), y = R.H * 0.28;
-    text(ctx, 'BLACK RAIN', x, y, { size: 22, spacing: 6 });
-    text(ctx, 'Night. Storm. Three sectors between two lines.', x, y + 24, { size: 11, color: PAL.inkDim });
-    const lines = [
-      ['DEPLOY', 'tap a card, then tap near a beam (base or a sector you hold)'],
-      ['COMMAND', 'tap a unit; tap ground to move, tap a seen enemy to attack'],
-      ['ORDERS', 'attack-move stops to fight · hold digs in · retreat refits at base'],
-      ['CAMERA', 'drag to pan · pinch or wheel to zoom · tap the strip on top'],
-      ['GROUP', 'hold, then drag to box-select · ALL takes the whole force'],
-      ['WIN', 'hold more sectors to drain their line; losses drain it too'],
-    ];
-    lines.forEach((l, i) => {
-      text(ctx, l[0], x, y + 56 + i * 19, { size: 10, color: PAL.inkDim, spacing: 2 });
-      text(ctx, l[1], x + 84, y + 56 + i * 19, { size: 11 });
-    });
-    text(ctx, 'tap anywhere to begin', x, y + 56 + lines.length * 19 + 18, { size: 11, color: Math.sin(R.time * 3) > 0 ? PAL.ink : PAL.inkDim, spacing: 2 });
-    H.regions.length = 0;
-    region(0, 0, R.W, R.H, 'helpOff');
-  }
-
-  function drawPause(ctx, G) {
-    veil(ctx, 0.62);
-    H.regions.length = 0;
-    const x = Math.max(pad() + 10, R.W / 2 - 120), y = R.H * 0.3;
-    text(ctx, 'PAUSED', x, y, { size: 20, spacing: 6 });
-    if (G.mission) text(ctx, BL.campaign.progressText(G.S, G.mission, G.ms), x, y + 20, { size: 10, color: PAL.inkDim, spacing: 2 });
-    menu(ctx, [
-      { id: 'resume', label: 'RESUME' },
-      { id: 'restart', label: G.mission && G.mission.num ? 'RESTART MISSION' : 'RESTART BATTLE' },
-      { id: 'sound', label: 'SOUND  ' + (BL.audio.enabled ? 'ON' : 'OFF') },
-      { id: 'help', label: 'HOW TO PLAY' },
-      { id: 'quit', label: G.mission && G.mission.num ? 'ABANDON MISSION' : 'QUIT TO TITLE' },
-    ], x, y + 46, 30, 13);
-  }
-
-  function star(ctx, cx, cy, r, filled, col) {
-    ctx.beginPath();
-    for (let i = 0; i < 10; i++) {
-      const a = -Math.PI / 2 + i * Math.PI / 5;
-      const rr = i % 2 ? r * 0.45 : r;
-      i ? ctx.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr) : ctx.moveTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr);
-    }
-    ctx.closePath();
-    ctx.strokeStyle = col || PAL.ink;
-    ctx.lineWidth = 1;
-    if (filled) { ctx.fillStyle = col || PAL.ink; ctx.fill(); }
-    ctx.stroke();
-  }
-
-  const clock = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
-
-  // After a battle: result, stars, numbers, and what the victory unlocked.
-  function drawDebrief(ctx, G) {
-    const S = G.S, M = G.mission;
-    G.debriefT = (G.debriefT || 0) + G.frameDt;
-    const k = clamp(G.debriefT / 0.8, 0, 1);
-    veil(ctx, 0.72 * k);
-    if (k < 0.4) return;
-    H.regions.length = 0;
-    const W = R.W, Hh = R.H;
-    const win = S.winner === 0;
-    const P = pad() + 10;
-    const twoCol = G.fresh && G.fresh.length && W > 640;
-    const x = twoCol ? P : Math.max(P, W / 2 - 230);
-    let y = Hh * (Hh < 520 ? 0.12 : 0.2);
-    const camp = M && M.num;
-    text(ctx, camp ? `OPERATION BLACK RAIN · ${M.num} · ${M.name}` : 'SKIRMISH · BLACK RAIN', x, y, { size: 10, color: PAL.inkDim, spacing: 3 });
-    const title = camp ? (win ? 'MISSION COMPLETE' : 'MISSION FAILED') : (win ? 'THE EASTERN LINE BREAKS' : 'OUR LINE BREAKS');
-    text(ctx, title, x, y + 28, { size: clamp(W * 0.028, 18, 26), spacing: 4, color: win ? PAL.ink : PAL.red });
-    y += 44;
-    const st = S.teams[0].stats, en = S.teams[1].stats;
-    const tEnd = S.endT || S.t;
-    if (camp) {
-      // stars appear one by one
-      const n = G.stars || 0;
-      for (let i = 0; i < 3; i++) {
-        const shown = G.debriefT > 0.9 + i * 0.45;
-        star(ctx, x + 12 + i * 30, y + 16, 11, shown && i < n, i < n ? PAL.ink : 'rgba(235,228,210,0.35)');
-      }
-      const crit = [
-        ['OBJECTIVE', win ? 'DONE' : 'NOT MET', win],
-        [`LOSSES ≤ ${M.maxLoss}`, String(st.lost), win && st.lost <= M.maxLoss],
-        [`TIME ≤ ${clock(M.par + 25)}`, clock(tEnd), win && tEnd <= M.par + 25],
-      ];
-      y += 44;
-      crit.forEach((c, i) => {
-        text(ctx, (c[2] ? '★ ' : '☆ ') + c[0], x, y + i * 17, { size: 10, color: c[2] ? PAL.ink : PAL.inkDim, spacing: 1 });
-        text(ctx, c[1], x + 170, y + i * 17, { size: 10, color: PAL.inkDim });
-      });
-      y += 3 * 17 + 10;
-    }
-    const short = Hh < 520;
-    const rows = short && camp ? [['ENEMY LOSSES', `${en.lost}  (${st.vehKills} vehicles)`]] : [
-      ['TIME', clock(tEnd)],
-      ['ENEMY LOSSES', `${en.lost}  (${st.vehKills} vehicles)`],
-      ['OUR LOSSES', `${st.lost}`],
-      ['UNITS DEPLOYED', `${st.deployed}`],
-    ];
-    rows.forEach((r, i) => {
-      text(ctx, r[0], x, y + i * 16, { size: 9, color: PAL.inkDim, spacing: 2 });
-      text(ctx, r[1], x + 170, y + i * 16, { size: 10 });
-    });
-    y += rows.length * 16 + (short ? 18 : 26);
-    const items = [];
-    const idx = camp ? BL.campaign.MISSIONS.indexOf(M) : -1;
-    if (camp && win && idx < BL.campaign.MISSIONS.length - 1) items.push({ id: 'next', label: 'NEXT — ' + BL.campaign.MISSIONS[idx + 1].name });
-    items.push({ id: 'restart', label: win ? 'PLAY AGAIN' : 'RETRY' });
-    items.push({ id: camp ? 'campaign' : 'quit', label: camp ? 'CAMPAIGN' : 'TITLE' });
-    menu(ctx, items, x, y, short ? 22 : 26, 12);
-
-    // right column: the unlock
-    if (twoCol && G.debriefT > 1.8) {
-      const a = clamp((G.debriefT - 1.8) / 0.6, 0, 1);
-      const rx = Math.max(W * 0.52, x + 330);
-      const key = G.fresh[0];
-      const iy = Hh * (short ? 0.1 : 0.2);
-      if (!short) icon(ctx, key, rx + 50, iy + 34, 2.2, `rgba(235,228,210,${a})`);
-      BL.cinema.drawDossier(ctx, key, a, rx, 'UNLOCKED', short ? iy + 10 : iy + 80);
-      if (G.fresh[1]) {
-        const d2 = BL.UNITS[G.fresh[1]] || BL.SUPPORT[G.fresh[1]];
-        text(ctx, '+ ' + d2.name, rx, Hh - 30, { size: 11, color: `rgba(235,228,210,${a})`, spacing: 2 });
-      }
-    } else if (camp && win && idx === BL.campaign.MISSIONS.length - 1 && G.debriefT > 1.8) {
-      const rk = BL.campaign.rank(G.progress);
-      const rx = Math.max(W * 0.55, x + 330);
-      text(ctx, 'OPERATION BLACK RAIN', rx, Hh * 0.3, { size: 10, color: PAL.red, spacing: 4 });
-      text(ctx, 'COMPLETE', rx, Hh * 0.3 + 30, { size: 24, spacing: 6 });
-      text(ctx, `RANK  ${rk.name}   ★ ${rk.total}/${rk.max}`, rx, Hh * 0.3 + 56, { size: 11, color: PAL.inkDim, spacing: 2 });
-      text(ctx, 'Skirmish now has every unit.', rx, Hh * 0.3 + 80, { size: 11 });
-    }
-  }
-
-  // ---------------------------------------------------------------- hints
-
-  function drawHint(ctx, G, trayY) {
-    const h = G.hint;
-    if (!h) return;
-    const S = G.S;
-    const n = Math.floor(h.shownT * 45);
-    const s = h.text.slice(0, n);
-    const a = clamp(h.shownT * 3, 0, 1);
-    const y = trayY - 40;
-    ctx.font = font(12);
-    const w = ctx.measureText(h.text).width + h.text.length * 1;
-    const x = clamp(R.W / 2 - w / 2, pad(), R.W - pad() - w);
-    ctx.fillStyle = `rgba(2,2,2,${0.55 * a})`;
-    ctx.fillRect(x - 10, y - 15, w + 20, 22);
-    ctx.fillStyle = PAL.red;
-    ctx.fillRect(x - 10, y - 15, 2, 22);
-    text(ctx, s, x, y, { size: 12, color: `rgba(235,228,210,${a})`, spacing: 1 });
-    // point at what the hint is about
-    const t = h.target;
-    if (!t) return;
-    const pulse = 0.5 + 0.5 * Math.sin(R.time * 6);
-    const col = `rgba(184,67,58,${0.5 + pulse * 0.5})`;
-    let box = null;
-    if (t.kind === 'card' || t.kind === 'cmd') {
-      const r = H.regions.find((q) => q.id === t.kind && q.arg === t.arg);
-      if (r) box = [r.x - 4, r.y - 4, r.w + 8, r.h + 8];
-    } else if (t.kind === 'unit') {
-      const u = S.units.find((q) => q.alive && q.team === 0 && (!t.type || q.type === t.type) && !q.members.some((m) => m.rappel));
-      if (u) {
-        const m = u.members.find((q) => q.alive) || u.members[0];
-        const px = BL.render.sx(u.x), py = BL.render.sy(u.kind === 'air' ? m.y : m.y + 5);
-        box = [px - 34, py - 24, 68, 40];
-      }
-    } else if (t.kind === 'sector') {
-      const sec = S.field.sectors.find((q) => q.id === t.id);
-      const px = BL.render.sx(sec.x), py = BL.render.sy(BL.heightAt(S.field, sec.x) + 40);
-      box = [px - 26, py - 46, 52, 70];
-    }
-    if (box) brackets(ctx, box[0] - pulse * 3, box[1] - pulse * 3, box[2] + pulse * 6, box[3] + pulse * 6, 8, col);
-  }
-
-  // ---------------------------------------------------------------- title and campaign
-
-  function logo(ctx, P, y, big) {
-    text(ctx, 'BLACKLINE', P, y, { size: big, spacing: big * 0.28 });
-    text(ctx, 'F R O N T L I N E S', P + 3, y + big * 0.55, { size: clamp(big * 0.28, 11, 18), color: PAL.inkDim, spacing: 3 });
-    ctx.strokeStyle = PAL.red;
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(P + 2, y + big * 0.8); ctx.lineTo(P + 60, y + big * 0.8); ctx.stroke();
-  }
-
-  function leftShade(ctx, w) {
-    const grd = ctx.createLinearGradient(0, 0, w, 0);
-    grd.addColorStop(0, 'rgba(2,2,2,0.86)');
-    grd.addColorStop(1, 'rgba(2,2,2,0)');
-    ctx.fillStyle = grd;
-    ctx.fillRect(0, 0, R.W, R.H);
-  }
-
-  function drawTitle(ctx, G) {
-    H.regions.length = 0;
-    const P = pad() + 10;
-    const W = R.W, Hh = R.H;
-    leftShade(ctx, Math.min(W * 0.62, 600));
-    const big = clamp(W * 0.055, 30, 64);
-    const y = Hh * 0.27;
-    logo(ctx, P, y, big);
-    const rk = BL.campaign.rank(G.progress);
-    text(ctx, `RANK  ${rk.name}   ★ ${rk.total}/${rk.max}`, P + 2, y + big * 0.8 + 20, { size: 10, color: PAL.inkDim, spacing: 2 });
-    const open = BL.campaign.skirmishOpen(G.progress);
-    const items = [
-      { id: 'campaign', label: 'CAMPAIGN — OPERATION BLACK RAIN' },
-      open ? { id: 'skirmish', label: 'SKIRMISH — BLACK RAIN' } : { id: 'x', label: 'SKIRMISH   (win mission 01 first)', dim: true },
-      { id: 'difficulty', label: 'DIFFICULTY  ' + (G.difficulty === 'recruit' ? 'RECRUIT' : 'VETERAN') },
-      { id: 'sound', label: 'SOUND  ' + (BL.audio.enabled ? 'ON' : 'OFF') },
-    ];
-    menu(ctx, items, P, y + big * 0.8 + 56, clamp(Hh * 0.075, 26, 34), clamp(W * 0.016, 12, 15));
-    text(ctx, 'the battle behind this menu is live', P, Hh - 18, { size: 9, color: 'rgba(235,228,210,0.35)' });
-  }
-
   function drawCampaign(ctx, G) {
     H.regions.length = 0;
     const C = BL.campaign;
-    const P = pad() + 10;
-    const W = R.W, Hh = R.H;
+    const P = pad() + 12, W = R.W, Hh = R.H;
     veil(ctx, 0.35);
-    leftShade(ctx, Math.min(W * 0.75, 760));
-    const top = Math.max(30, Hh * 0.12);
-    text(ctx, 'OPERATION', P, top, { size: 10, color: PAL.inkDim, spacing: 4 });
-    text(ctx, 'BLACK RAIN', P, top + 28, { size: clamp(W * 0.03, 18, 30), spacing: 6 });
+    leftShade(ctx, Math.min(W * 0.85, 960));
+    const small = Hh < 500;
+    const top = small ? 24 : Math.max(40, Hh * 0.1);
+    text(ctx, 'OPERATION', P, top, { size: 11, color: DIM, weight: 600, spacing: 4 });
+    text(ctx, 'BLACK RAIN', P, top + 28, { size: small ? 24 : 32, weight: 600, spacing: 4 });
     const rk = C.rank(G.progress);
-    text(ctx, `RANK  ${rk.name}   ★ ${rk.total}/${rk.max}`, P, top + 46, { size: 9, color: PAL.inkDim, spacing: 2 });
-    const rowH = clamp(Hh * 0.075, 26, 36);
-    const listW = Math.min(300, W * 0.4);
+    text(ctx, `RANK ${rk.name}  ·  ★ ${rk.total}/${rk.max}`, P + (small ? 150 : 200), top + 26, { size: 11, color: DIM, weight: 600, spacing: 2 });
+    const lw = clamp(W * 0.3, 220, 320), rowH = small ? 40 : 50, gap = 6;
+    const ly = top + 42;
     C.MISSIONS.forEach((M, i) => {
-      const y = top + 74 + i * rowH;
-      const open = C.missionOpen(G.progress, i);
-      const sel = G.campSel === i;
-      const col = open ? PAL.ink : 'rgba(235,228,210,0.3)';
-      if (sel) brackets(ctx, P - 8, y - rowH * 0.62, listW, rowH * 0.9, 5, PAL.ink);
-      text(ctx, M.num, P, y, { size: 11, color: open ? PAL.red : col, spacing: 1 });
-      text(ctx, M.name, P + 30, y, { size: 12, color: col, spacing: 2 });
-      if (open) {
-        const n = G.progress.stars[M.id] || 0;
-        for (let k = 0; k < 3; k++) star(ctx, P + listW - 50 + k * 15, y - 4, 5, k < n, k < n ? PAL.ink : 'rgba(235,228,210,0.3)');
-      } else text(ctx, 'LOCKED', P + listW - 20, y, { size: 9, align: 'right', color: col, spacing: 2 });
-      region(P - 8, y - rowH * 0.62, listW, rowH * 0.9, 'mission', i);
+      const y = ly + i * (rowH + gap);
+      const open = C.missionOpen(G.progress, i), sel = G.campSel === i;
+      ctx.fillStyle = sel ? 'rgba(235,228,210,0.12)' : 'rgba(8,8,8,0.72)'; ctx.fillRect(P, y, lw, rowH);
+      ctx.strokeStyle = sel ? PAL.ink : 'rgba(235,228,210,0.25)'; ctx.strokeRect(P + 0.5, y + 0.5, lw - 1, rowH - 1);
+      if (sel) { ctx.fillStyle = PAL.ink; ctx.fillRect(P, y, 3, rowH); }
+      text(ctx, M.num, P + 14, y + rowH / 2 + 1, { size: 15, base: 'middle', weight: 600, color: open ? PAL.red : FAINT });
+      text(ctx, M.name, P + 42, y + rowH / 2 + 1, { size: 15, base: 'middle', weight: 600, spacing: 1.5, color: open ? PAL.ink : FAINT });
+      if (open) { const n = G.progress.stars[M.id] || 0; for (let s = 0; s < 3; s++) star(ctx, P + lw - 54 + s * 16, y + rowH / 2, 5.5, s < n, s < n ? PAL.ink : FAINT); }
+      else { const lx = P + lw - 22, lyy = y + rowH / 2; ctx.strokeStyle = FAINT; ctx.lineWidth = 1.2; ctx.strokeRect(lx - 5, lyy - 1, 10, 7); ctx.beginPath(); ctx.arc(lx, lyy - 1, 3.5, Math.PI, 0); ctx.stroke(); }
+      region(P, y, lw, rowH, 'mission', i);
     });
-    text(ctx, '— BACK', P, Math.min(Hh - 20, top + 74 + 5 * rowH + 12), { size: 12, spacing: 2 });
-    region(P - 8, Math.min(Hh - 20, top + 74 + 5 * rowH + 12) - 18, 90, 26, 'back');
-
-    // the selected mission
+    const rh = 5 * (rowH + gap) - gap;
+    button(ctx, P, ly + rh + 8, 110, small ? 30 : 36, 'BACK', 'back', null, {});
     const M = C.MISSIONS[G.campSel];
     const open = C.missionOpen(G.progress, G.campSel);
-    const rx = P + listW + Math.max(24, W * 0.04);
-    let y = top;
-    text(ctx, `${M.time}  ·  ${M.place}  ·  ${M.sky}`, rx, y, { size: 9, color: PAL.inkDim, spacing: 2 });
-    text(ctx, M.name, rx, y + 28, { size: clamp(W * 0.026, 16, 26), spacing: 4 });
-    const maxW = W - rx - P;
-    const sum = wrap(ctx, M.summary, maxW, 12);
-    sum.forEach((l, i) => text(ctx, l, rx, y + 50 + i * 15, { size: 12 }));
-    y += 76 + (sum.length - 1) * 15;
-    const lines = [];
-    for (const b of M.brief.slice(0, 3)) lines.push(...wrap(ctx, b, maxW, 11));
-    for (const line of lines) {
-      if (y > Hh * 0.6) break;
-      text(ctx, line, rx, y, { size: 11, color: PAL.inkDim });
-      y += 15;
-    }
-    y += 12;
+    const rx = P + lw + 14, rw = Math.min(W - rx - pad(), 500);
+    panel(ctx, rx, ly, rw, rh);
+    let y = ly + 22;
+    text(ctx, `${M.time}  ·  ${M.place}  ·  ${M.sky}`, rx + 16, y, { size: 11, color: DIM, weight: 600, spacing: 2 });
+    text(ctx, M.name, rx + 16, y + 28, { size: small ? 22 : 28, weight: 600, spacing: 2 });
+    y += 50;
+    const lines = wrap(ctx, M.summary, rw - 32, 15, 500);
+    lines.forEach((l, i) => text(ctx, l, rx + 16, y + i * 19, { size: 15, weight: 500 }));
+    y += lines.length * 19 + 6;
+    if (!small) for (const b of M.brief.slice(1, 3)) for (const l of wrap(ctx, b, rw - 32, 13, 400)) { text(ctx, l, rx + 16, y, { size: 13, color: DIM, weight: 400 }); y += 17; }
+    y += 4;
     if (M.intro && M.intro.length) {
-      text(ctx, 'NEW IN THIS MISSION', rx, y, { size: 9, color: PAL.red, spacing: 3 });
-      M.intro.forEach((k, i) => {
-        const ix = rx + i * Math.min(110, maxW / 2);
-        icon(ctx, k, ix + 24, y + 22, 1.1, PAL.ink);
-        text(ctx, (BL.UNITS[k] || BL.SUPPORT[k]).short, ix + 54, y + 28, { size: 10, spacing: 2 });
-      });
-      y += 50;
+      text(ctx, 'NEW IN THIS MISSION', rx + 16, y + 6, { size: 10, color: PAL.red, weight: 600, spacing: 2 });
+      M.intro.forEach((kk, i) => { unitIcon(ctx, kk, rx + 34 + i * 120, y + 26, 1.1, PAL.ink); text(ctx, (BL.UNITS[kk] || BL.SUPPORT[kk]).short, rx + 56 + i * 120, y + 31, { size: 13, weight: 600, spacing: 1 }); });
+      y += 42;
     }
-    if (M.unlocks.length) {
-      text(ctx, 'VICTORY UNLOCKS  ' + M.unlocks.map((k) => (BL.UNITS[k] || BL.SUPPORT[k]).short).join(' · '), rx, y, { size: 9, color: PAL.inkDim, spacing: 2 });
-      y += 22;
-    }
-    const by = Math.min(Hh - 22, y + 20);
-    if (open) {
-      brackets(ctx, rx - 8, by - 20, 150, 30, 6, PAL.ink);
-      text(ctx, 'BEGIN MISSION', rx + 4, by, { size: 12, spacing: 2 });
-      region(rx - 8, by - 20, 150, 30, 'begin');
-    } else {
-      text(ctx, `Win ${C.MISSIONS[G.campSel - 1].num} — ${C.MISSIONS[G.campSel - 1].name} to open this mission.`, rx, by, { size: 11, color: PAL.inkDim });
-    }
+    if (M.unlocks.length && y < ly + rh - 60) text(ctx, 'VICTORY UNLOCKS  ' + M.unlocks.map((kk) => (BL.UNITS[kk] || BL.SUPPORT[kk]).short).join(' · '), rx + 16, y + 6, { size: 11, color: DIM, weight: 600, spacing: 1.5 });
+    const bh = small ? 34 : 40;
+    if (open) button(ctx, rx + 16, ly + rh - bh - 12, 180, bh, 'BEGIN MISSION', 'begin', null, { primary: true });
+    else text(ctx, `WIN ${C.MISSIONS[G.campSel - 1].num} ${C.MISSIONS[G.campSel - 1].name} TO OPEN THIS MISSION`, rx + 16, ly + rh - 22, { size: 12, color: DIM, weight: 600, spacing: 1 });
   }
 
   function drawRotate(ctx) {
-    ctx.fillStyle = '#030303';
-    ctx.fillRect(0, 0, R.W, R.H);
-    text(ctx, 'TURN YOUR PHONE SIDEWAYS', R.W / 2, R.H / 2, { size: 13, align: 'center', spacing: 2 });
-    text(ctx, 'BLACKLINE plays in landscape', R.W / 2, R.H / 2 + 20, { size: 10, align: 'center', color: PAL.inkDim });
+    ctx.fillStyle = '#030303'; ctx.fillRect(0, 0, R.W, R.H);
+    text(ctx, 'TURN YOUR PHONE SIDEWAYS', R.W / 2, R.H / 2, { size: 16, align: 'center', weight: 600, spacing: 2 });
+    text(ctx, 'BLACKLINE PLAYS IN LANDSCAPE', R.W / 2, R.H / 2 + 22, { size: 12, align: 'center', color: DIM, weight: 600, spacing: 2 });
   }
 
   H.drawBattle = drawBattle;
@@ -668,5 +603,6 @@
   H.drawTitle = drawTitle;
   H.drawRotate = drawRotate;
   H.hit = hit;
+  H.unitIcon = unitIcon;
   BL.hud = H;
 })();
