@@ -70,6 +70,8 @@ HL.ITEMS = {
   gate_key: { name: 'Gate Key', kind: 'key', desc: 'Opens a lock. Heavy and rust-red, from a tower gate.', use: 'Unlock' },
   crypt_key: { name: 'Crypt Key', kind: 'key', desc: 'Opens a lock. Bone handle, iron bit.', use: 'Unlock' },
   bell_key: { name: 'Bell Key', kind: 'key', desc: 'Found inside the Keeper\'s bell. Warm. It opens the way up.', use: 'Unlock' },
+  lumen_shard: { name: 'Lumen Shard', kind: 'key', stack: 20, desc: 'A sliver of the old light, still warm. Each one you carry strengthens you: +5 max health.' },
+  champion_mantle: { name: "Champion's Mantle", kind: 'armor', rarity: 'named', def: 0.22, desc: 'Torn from the Broken Champion. Takes 22% less harm, and does not slow you.' },
   map_scrap: { name: 'Map Scrap', kind: 'doc', desc: 'A torn road map. A road east, past drowned farms: "Blackfen".' },
 };
 HL.itemName = (id) => (HL.ITEMS[id] ? HL.ITEMS[id].name : id);
@@ -117,7 +119,7 @@ HL.MAREN = [
   { when: (f) => f.got_gate_key, lines: ['That key. The warden carried one like it.', 'The tower past the woods goes down a long way. Rest here first. The fire will keep you.'] },
   { when: (f) => f.storehouse_open, lines: ['So you got into the storehouse. Good. Take what helps.', 'East, through Crowshade, there is a tower. The bell-warden went in and never rang again.', 'Something in armour walks the forest now. It took the warden\'s key off a dead man.'] },
   { when: (f) => f.met_maren, lines: ['The well. Edda\'s husband jammed it. The smith took the crank.', 'Rest by the fire when you are hurt. It is the only warm thing left in Ashwick.'] },
-  { when: () => true, lines: ['...You are not one of them. Your eyes are still in.', 'I am Maren. I stayed when the rest went to the chapel cellar. None of them came back up.', 'Sit by the fire if you need it. It keeps them off, mostly.'], set: 'met_maren' },
+  { when: () => true, lines: ['...You are not one of them. Your eyes are still in.', 'I am Maren. I stayed when the rest went to the chapel cellar. None of them came back up.', 'Sit by the fire if you need it. It keeps them off, mostly.', 'And if you find the old shrines, touch them. Some still remember the light.'], set: 'met_maren' },
 ];
 
 // ------------------------------------------------------------------ story (PROPOSAL text, see docs/DESIGN.md)
@@ -181,3 +183,22 @@ HL.objective = (f, inv, eq, map) => {
   }
   return null;
 };
+
+// ------------------------------------------------------------------ LUMEN: the light the old kingdom drew from the earth (PROPOSAL)
+HL.SIGILS = {
+  blink: { name: 'Sigil of Passage', short: 'Blink', desc: 'Your dash becomes a blink: farther, through foes, trailing light.' },
+  burst: { name: 'Sigil of Radiance', short: 'Lumen Burst', desc: 'A new skill: tap the light button to blast everything around you.' },
+  vessel: { name: 'Sigil of the Vessel', short: 'Vessel', desc: 'Your body holds more light: +30 max health.' },
+  ward: { name: 'Sigil of the Ward', short: 'Ward', desc: 'A shell of light blocks one blow, and returns every 10 seconds.' },
+  sight: { name: 'Sigil of Sight', short: 'Sight', desc: 'Every hidden shard and shrine is marked on your map.' },
+};
+HL.SHRINES = {
+  shrine_passage: { name: 'Shrine of Passage', trial: 'touch', sigil: 'blink' },
+  shrine_trial: { name: 'Shrine of Trials', trial: 'combat', sigil: 'burst', waves: [['drifter', 'drifter', 'hound', 'drifter'], ['wraith', 'archer', 'drifter', 'hound', 'drifter'], ['brute', 'wraith', 'hound', 'hound']] },
+  shrine_echo: { name: 'Shrine of Echoes', trial: 'pylons', sigil: 'vessel' },
+  shrine_deep: { name: 'Shrine of the Deep', trial: 'touch', sigil: 'ward' },
+  shrine_hidden: { name: 'The Hidden Shrine', trial: 'touch', sigil: 'sight' },
+};
+HL.SHARD_COUNT = 8;
+HL.NOTES.silence = { title: 'The Light Below', text: 'Veyr was built on Lumen: a pale light that rose out of the earth through the old shrines. It lit the roads, healed the sick, and kept the dark below where it belonged.\n\nOne night every shrine in Veyr went dark at once. Roads sank. Towns emptied. And out of the dark below came the hollow.\n\nYou were hauling lamp oil to Ashwick when the light went out.' };
+HL.NOTES.shrines = { title: 'The Shrines', text: 'Some shrines still remember the light. Touch them and they wake, and give a little of it back: a Sigil, a power of the old kingdom. Awakened shrines can carry you to one another (Map).\n\nFive stand near Ashwick. Eight shards of the light lie scattered where the dark could not swallow them.' };

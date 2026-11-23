@@ -183,9 +183,12 @@ G.cutApi = function () {
 };
 G.startShot = function (i) {
   const c = G.cut, s = c.def.shots[i];
-  c.i = i; c.t = 0;
+  c.i = i; c.t = 0; c.reveal = 0;
+  if (s.textFn) s.text = s.textFn(G);
+  if (s.titleFn) { const [ti, su] = s.titleFn(G); s.title = ti; s.sub = su; }
   if (s.dark != null) G.cutDark = s.dark;
   c.keys = s.camFn ? s.camFn(G) : s.cam || null;
+  c.api.grade = undefined;
   if (s.start) s.start(c.api, G);
   if (s.toll) Au.play('toll');
   if (i) Au.play('page');
@@ -210,7 +213,7 @@ G.nextShot = function (skipAll) {
   const c = G.cut; if (!c) return;
   if (!skipAll && c.i < c.def.shots.length - 1) { const last = c.def.shots[c.i]; c.fromX = last.x; c.fromY = last.y; c.fromV = last.view; G.startShot(c.i + 1); return; }
   if (c.def.end) c.def.end(c.api, G);
-  G.cut = null; G.cutCam = null; G.cutActors = []; G.hidePlayer = false; G.cutDark = 0; G.state = 'play'; HL.Input.clearTouches(); G.snapCam();
+  G.cut = null; G.cutCam = null; G.cutActors = []; G.hidePlayer = false; G.cutDark = 0; G.cutFade = 0; G.cutGrade = null; G.state = 'play'; HL.Input.clearTouches(); G.snapCam();
   if (c.onEnd) c.onEnd();
 };
 // ------------------------------------------------------------------ objective and guide
@@ -228,7 +231,7 @@ G.continueGame = function () {
   Object.assign(G, { flags: d.flags, inv: d.inv, eq: Object.assign({ weapon: null, armor: 'tattered_cloak', relic: null }, d.eq), wlv: d.wlv || {}, journal: d.journal, fire: d.fire || G.fire, playtime: d.playtime || 0 });
   G.quick = d.quick || 'poultice';
   for (const [k, s] of Object.entries(d.fog || {})) { const m = HL.getMap(k); G.fogs[k] = HL.Save.unpackFog(s, Math.ceil(m.W / 2) * Math.ceil(m.H / 2)); }
-  G.player = new HL.Player(d.x, d.y); G.player.hp = Math.max(1, d.hp); G.player.ult = d.ult || 0;
+  G.player = new HL.Player(d.x, d.y); G.recalcHp(); G.player.hp = Math.min(G.player.maxhp, Math.max(1, d.hp)); G.player.ult = d.ult || 0;
   G.loadMap(d.map, d.x, d.y);
   G.state = 'play'; G.time = 60;
   HL.UI.showBanner(G.world.name);
@@ -248,7 +251,7 @@ G.loadMap = function (id, x, y) {
   w.mapImg = null;
   G.player.x = x; G.player.y = y; G.player.vx = G.player.vy = 0;
   G.enemies = []; G.shots = []; G.pshots = []; G.impacts = []; G.drops = []; HL.fx.list = []; HL.vfx.clear();
-  G.waves = null; G.bossAwake = false; G.region = null;
+  G.waves = null; G.trial = null; G.bossAwake = false; G.region = null;
   for (const s of w.def.enemies) {
     if (s.id && G.flags['k:' + s.id]) continue;
     G.enemies.push(new HL.Enemy(s));
@@ -271,7 +274,7 @@ G.applyState = function () {
   }
   for (const b of w.buildings) b.fade = b.inside(G.player.x, G.player.y) ? 0 : 1;
   // persistent drops that were never picked up
-  const persist = [['crypt2', 'boss_dead', 'p_bellkey', 'bell_key', 19 * 8, 13 * 8], ['crypt2', 'boss_dead', 'p_breaker', 'bellbreaker', 21 * 8, 14 * 8], ['ashwick', 'k:guard_camp', 'p_plate', 'rustbound_plate', 141 * 8, 64 * 8]];
+  const persist = [['crypt2', 'boss_dead', 'p_bellkey', 'bell_key', 19 * 8, 13 * 8], ['crypt2', 'boss_dead', 'p_breaker', 'bellbreaker', 21 * 8, 14 * 8], ['ashwick', 'k:guard_camp', 'p_plate', 'rustbound_plate', 141 * 8, 64 * 8], ['ashwick', 'k:champion', 'p_mantle', 'champion_mantle', 128 * 8, 58 * 8]];
   for (const [m, cond, id, item, x, y] of persist) if (w.id === m && f[cond] && !f['p:' + id] && !w.obj(id)) w.objects.push({ t: 'pickup', id, item, n: 1, x, y });
 };
 G.setSolid = (o, on) => { const r = o.rect; G.world.rectCells(r.x0, r.y0, r.x1, r.y1, (k) => { G.world.col[k] = on ? 3 : 0; }); };
@@ -307,12 +310,30 @@ G.give = function (id, n = 1, quiet) {
   if (it.kind === 'armor' && id !== 'tattered_cloak') HL.UI.toast(it.name + ': open your pack to wear it.');
   if (id === 'bell_shard') { G.eq.relic = 'bell_shard'; HL.UI.toast('The shard hums. Fighting fills it; when full, unleash your weapon\'s ultimate.'); }
   if (id === 'gate_key') G.flags.got_gate_key = 1;
+  const rc = { common: P.cream2, forged: '#7fd8ff', relic: '#c88cff', named: '#ffc95a' }[it.rarity];
+  if (added && G.player && (it.kind === 'weapon' || it.kind === 'armor' || it.kind === 'relic') && id !== 'tattered_cloak') {
+    HL.vfx.beam(G.player.x, G.player.y, rc || P.cream, 1.1, 4, 100); HL.vfx.shock(G.player.x, G.player.y, 16, rc || P.cream, 0.5); HL.vfx.burst(G.player.x, G.player.y, 8, rc || P.cream, 16, 60); HL.vfx.flash(rc || P.cream, 0.2);
+    HL.UI.showBanner(it.name, (HL.RARITY[it.rarity] || '') + (it.kind === 'weapon' ? ' weapon' : it.kind === 'armor' ? ' armour' : ' relic'));
+  }
+  if (id === 'lumen_shard' && added) {
+    G.recalcHp(); G.player.hp = Math.min(G.player.maxhp, G.player.hp + 15);
+    HL.vfx.beam(G.player.x, G.player.y, '#7fe8e0', 1, 5, 120); HL.vfx.shock(G.player.x, G.player.y, 22, '#7fe8e0', 0.6); HL.vfx.flash('#d8fffa', 0.3); Au.play('ult');
+    HL.UI.showBanner('LUMEN SHARD ' + G.inv.lumen_shard + ' / ' + HL.SHARD_COUNT, '+5 max health');
+  }
   return added;
 };
 G.dropItem = function (item, n, x, y, noMerge) { G.drops.push({ item, n, x, y, t: 0, delay: noMerge ? 1.2 : 0.4 }); };
 G.addJournal = function (id) { if (!G.journal.includes(id)) { G.journal.push(id); return true; } return false; };
 G.showNote = function (id) { G.addJournal(id); G.dialog = { kind: 'note', id }; G.state = 'dialog'; Au.play('page'); };
-G.talk = function (name, lines, onEnd) { G.dialog = { kind: 'talk', name, lines, i: 0, onEnd }; G.state = 'dialog'; };
+// conversations are filmed: the camera frames the speaker, a clean subtitle, no box
+G.talk = function (name, lines, onEnd, who) {
+  const npc = who || G.world.objects.find((o) => o.t === 'npc') || G.player;
+  G.cutAt = { x: npc.x, y: npc.y };
+  HL.CINE.__talk = { talk: true, shots: lines.map((l, i) => ({ dur: 99, wait: true, speaker: name, text: l, grade: ['#ffd9a8', 0.18],
+    camFn: (G) => { const p = G.player, n = G.cutAt, a = Math.atan2(p.y - n.y, p.x - n.x) + (i % 2 ? 0.5 : -0.5), d = 26; return [[0, n.x + Math.cos(a) * d, 15, n.y + Math.sin(a) * d + 8, n.x, 8, n.y, 30], [1, n.x + Math.cos(a) * (d - 5), 14, n.y + Math.sin(a) * (d - 5) + 8, n.x, 8.5, n.y, 28]]; } })) };
+  G.playCut('__talk', onEnd);
+  G.flags['cut:__talk'] = 0;
+};
 G.advanceDialog = function () {
   const d = G.dialog; if (!d) { G.state = 'play'; return; }
   if (d.kind === 'talk' && d.i < d.lines.length - 1) { d.i++; Au.play('tick'); return; }
@@ -354,6 +375,7 @@ G.interactables = function () {
       case 'bell': label = 'Strike'; r = 13; break;
       case 'crank': if (!f.waves_done && !(G.waves && G.waves.active)) label = 'Turn the crank'; r = 15; break;
       case 'anvil': label = 'Anvil'; r = 15; break;
+      case 'shrine': { const d = HL.SHRINES[o.id]; label = f['shrine:' + o.id] ? 'Shrine (travel)' : d.trial === 'combat' ? (G.trial ? null : 'Begin the trial') : d.trial === 'pylons' ? 'Listen' : 'Awaken'; r = 18; break; }
     }
     if (!label) continue;
     const d = HL.dist(G.player.x, G.player.y, o.x, o.y - 2);
@@ -405,7 +427,7 @@ G.interact = function (it) {
     }
     case 'npc': {
       const entry = HL.MAREN.find((e) => e.when(f));
-      G.talk('Maren', entry.lines, () => { if (entry.set) f[entry.set] = 1; if (entry.set === 'maren_end' && !f.end_seen) { f.end_seen = 1; G.addJournal('next_region'); G.state = 'end'; } G.save(); });
+      G.talk('MAREN', entry.lines, () => { if (entry.set) f[entry.set] = 1; if (entry.set === 'maren_end' && !f.end_seen) { f.end_seen = 1; G.addJournal('next_region'); G.state = 'end'; } G.save(); });
       break;
     }
     case 'well': {
@@ -445,7 +467,74 @@ G.interact = function (it) {
     }
     case 'crank': G.startWaves(o); break;
     case 'anvil': G.state = 'anvil'; break;
+    case 'shrine': {
+      const d = HL.SHRINES[o.id];
+      if (f['shrine:' + o.id]) { G.openMenu('map'); break; }
+      if (!f.seen_shrine) { f.seen_shrine = 1; G.addJournal('shrines'); }
+      if (d.trial === 'touch') G.awaken(o);
+      else if (d.trial === 'combat') G.startTrial(o);
+      else HL.UI.toast('The shrine whispers: strike the three crystal pylons while each still glows.', 4);
+      break;
+    }
   }
+};
+// ------------------------------------------------------------------ LUMEN: shrines, trials, pylons, shards, travel
+G.maxHp = () => 100 + (G.flags['sigil:vessel'] ? 30 : 0) + 5 * (G.inv.lumen_shard || 0);
+G.recalcHp = function () { if (!G.player) return; const m = G.maxHp(); G.player.maxhp = m; G.player.hp = Math.min(G.player.hp, m); };
+G.awaken = function (o) {
+  const d = HL.SHRINES[o.id], sg = HL.SIGILS[d.sigil];
+  G.flags['shrine:' + o.id] = 1; G.flags['sigil:' + d.sigil] = 1;
+  G.cutAt = { x: o.x, y: o.y, name: d.name, sigil: sg };
+  G.playCut('shrine', () => {
+    if (d.sigil === 'vessel') { G.recalcHp(); G.player.hp = G.player.maxhp; }
+    G.player.hp = Math.min(G.player.maxhp, G.player.hp + 40);
+    HL.UI.toast(sg.name + ': ' + sg.desc, 5);
+    G.save();
+  });
+  G.recalcHp();
+};
+G.startTrial = function (o) {
+  const d = HL.SHRINES[o.id];
+  G.cutAt = { x: o.x, y: o.y, name: d.name };
+  G.playCut('trial', () => { G.trial = { o, d, wave: 0, queue: [], alive: [], pause: 0.6, cx: o.x, cy: o.y + 18, r: 54 }; G.save(); });
+};
+G.updateTrial = function (dt) {
+  const T = G.trial; if (!T) return;
+  const p = G.player, d = HL.dist(p.x, p.y, T.cx, T.cy);
+  if (d > T.r - 4) { const k = (d - (T.r - 4)) / d; G.world.move(p, (T.cx - p.x) * k, (T.cy - p.y) * k); }
+  for (const e of T.alive) { if (e.dead) continue; const de = HL.dist(e.x, e.y, T.cx, T.cy); if (de > T.r - 6) { const k = (de - (T.r - 6)) / de; G.world.move(e, (T.cx - e.x) * k, (T.cy - e.y) * k); } }
+  if (T.pause > 0) { T.pause -= dt; if (T.pause <= 0) T.queue = T.d.waves[T.wave].slice(); return; }
+  if (T.queue.length) {
+    T.spawnT = (T.spawnT || 0) - dt;
+    if (T.spawnT <= 0) {
+      T.spawnT = 0.4;
+      let x = T.cx, y = T.cy;
+      for (let k = 0; k < 24; k++) { const a = Math.random() * HL.TAU, d = T.r * (0.35 + Math.random() * 0.4), nx = T.cx + Math.cos(a) * d, ny = T.cy + Math.sin(a) * d; if (!G.world.blocked(nx, ny, 6) && G.world.los(nx, ny - 4, T.cx, T.cy - 4)) { x = nx; y = ny; break; } }
+      const foe = T.queue.shift(), e = G.spawnEnemy({ foe, x, y, summoned: true, elite: T.wave === 2 && foe === 'brute' }); T.alive.push(e);
+      HL.vfx.beam(x, y, '#7fe8e0', 0.5, 4, 60); HL.vfx.shock(x, y, 12, '#7fe8e0', 0.35); Au.play('bellHigh');
+    }
+  }
+  if (!T.queue.length && T.alive.length && T.alive.every((e) => e.dead)) {
+    T.wave++; T.alive = [];
+    if (T.wave >= T.d.waves.length) { G.trial = null; HL.vfx.shock(T.cx, T.cy, T.r, '#7fe8e0', 0.7); G.awaken(T.o); }
+    else { T.pause = 1.6; HL.UI.showBanner('Wave ' + (T.wave + 1) + ' of ' + T.d.waves.length); Au.play('ratchet'); }
+  }
+};
+// pylons and resonators answer blows, arrows, bolts and bursts
+G.strikeProp = function (o) {
+  if (o.t === 'resonator') return G.ringReso(o);
+  if (o.t !== 'pylon') return;
+  const was = o.litT > 0; o.litT = 6;
+  HL.vfx.beam(o.x, o.y, '#7fe8e0', 0.5, 3, 70); HL.vfx.burst(o.x, o.y, 12, '#7fe8e0', 12, 50); HL.vfx.light(o.x, o.y, 0x7fe8e0, 70, 0.4);
+  Au.play(['bellLow', 'bellMid', 'bellHigh'][+o.id.slice(-1)] || 'bellMid');
+  if (!was) HL.fx.text(o.x, o.y - 20, 'lit', '#7fe8e0', 0.8);
+  const ps = G.world.objects.filter((q) => q.t === 'pylon');
+  const sh = G.world.obj('shrine_echo');
+  if (sh && !G.flags['shrine:shrine_echo'] && ps.every((q) => q.litT > 0)) { ps.forEach((q) => (q.litT = 99)); G.awaken(sh); }
+};
+G.travelTo = function (id) {
+  if (G.trial || G.bossAwake || (G.waves && G.waves.active)) { HL.UI.toast('Not while the fight goes on.'); return; }
+  for (const mid of Object.keys(HL.MAPS)) { const o = HL.getMap(mid).objects.find((q) => q.id === id); if (o) { G.closeMenu(); HL.vfx.beam(G.player.x, G.player.y, '#7fe8e0', 0.6, 5, 120); Au.play('ult'); G.transition(mid, o.x, o.y + 20, () => { HL.vfx.beam(o.x, o.y + 20, '#7fe8e0', 0.8, 5, 120); HL.vfx.shock(o.x, o.y + 20, 20, '#7fe8e0', 0.5); }); return; } }
 };
 G.targetProp = function (p, reach) {
   for (const o of G.world.objects) if (o.t === 'resonator' && o.charge > 0 && HL.dist(p.x, p.y, o.x, o.y) < reach) return o;
@@ -453,11 +542,11 @@ G.targetProp = function (p, reach) {
 };
 G.hitProps = function (p, reach, arc, atk) {
   for (const o of G.world.objects) {
-    if (o.t !== 'resonator' || atk.hit.has(o)) continue;
+    if ((o.t !== 'resonator' && o.t !== 'pylon') || atk.hit.has(o)) continue;
     const d = HL.dist(p.x, p.y, o.x, o.y); if (d > reach + 5) continue;
     if (Math.abs(HL.angDiff(p.face, Math.atan2(o.y - p.y, o.x - p.x))) > arc / 2 + 0.3) continue;
     atk.hit.add(o);
-    G.ringReso(o);
+    G.strikeProp(o);
   }
 };
 G.ringReso = function (o) {
@@ -504,6 +593,7 @@ G.updateWaves = function (dt) {
 };
 G.spawnEnemy = function (spec) { const e = new HL.Enemy(spec); G.enemies.push(e); return e; };
 G.onEnemyDeath = function (e) {
+  if (e.bossName) { HL.vfx.slowmo(0.7, 0.25); HL.vfx.flash('#ffc95a', 0.45); HL.vfx.chroma(1.3); HL.vfx.beam(e.x, e.y, '#ffc95a', 1, 9, 140); HL.UI.showBanner(e.bossName.toUpperCase() + ' FALLS', 'Something gleams where it stood.'); G.world.objects.push({ t: 'pickup', id: 'p_mantle', item: 'champion_mantle', n: 1, x: e.x, y: e.y }); }
   if (e.id === 'guard_camp') { G.world.objects.push({ t: 'pickup', id: 'p_plate', item: 'rustbound_plate', n: 1, x: e.x, y: e.y }); }
   if (e.type === 'keeper') {
     G.flags.boss_dead = 1; G.bossAwake = false; G.refreshDoors();
@@ -519,7 +609,7 @@ G.onEnemyDeath = function (e) {
 G.onDeath = function () { G.deadT = 0; setTimeout(() => { if (G.player.state === 'dead') G.state = 'dead'; }, 700); };
 G.respawn = function () {
   const f = G.fire, p = G.player;
-  p.hp = p.maxhp; p.st = p.maxst; p.state = 'move'; p.inv = 1; p.regen = 0;
+  G.recalcHp(); p.hp = p.maxhp; p.st = p.maxst; p.state = 'move'; p.inv = 1; p.regen = 0;
   G.transition(f.map, f.x, f.y, () => { HL.UI.toast('You wake by the fire. The hollow you felled stand again.'); });
   G.state = 'fade';
 };
@@ -548,7 +638,10 @@ G.frame = function (dt) {
     G.updateCutCam();
     G.shake = Math.max(0, G.shake - dt * 8);
     if (inp.esc) G.nextShot(true);
-    else if (((inp.attack || inp.interact || inp.enter || inp.dodge) && c.t > 0.6) || c.t > sh.dur) G.nextShot();
+    else if (((inp.attack || inp.interact || inp.enter || inp.dodge) && c.t > (sh.wait ? 0.25 : 0.6)) || c.t > sh.dur) { if (sh.wait && c.reveal < 1) c.reveal = 1; else G.nextShot(); }
+    c.reveal = Math.min(1, (c.reveal || 0) + dt * (sh.wait ? 1.6 : 1));
+    G.cutFade = c.def.talk ? 0 : Math.max(HL.clamp(1 - c.t / 0.3, 0, 1) * (c.i ? 1 : 0), sh.dur < 90 ? HL.clamp((c.t - (sh.dur - 0.25)) / 0.25, 0, 1) : 0);
+    G.cutGrade = c.api.grade !== undefined ? c.api.grade : sh.grade || null;
     HL.fx.update(dt);
   } else {
     if (G.state === 'dead') G.deadT += dt;
@@ -586,6 +679,8 @@ G.update = function (dt, inp) {
   G.updateShots(dt);
   G.updatePShots(dt);
   G.updateImpacts(dt);
+  G.updateTrial(dt);
+  for (const o of G.world.objects) if (o.t === 'pylon' && o.litT > 0 && o.litT < 50) o.litT -= dt;
   G.updateDrops(dt);
   G.updateWaves(dt);
   HL.fx.update(dt);
@@ -639,7 +734,7 @@ G.updatePShots = function (dt) {
         s.hit.add(e); HL.hitEnemy(e, s.dmg, { heavy: s.heavy, breaker: s.heavy, fx: s.x - s.vx * 0.05, fy: s.y - s.vy * 0.05, poise: s.heavy ? 40 : 10, col: s.col });
         if (!s.pierce) { s.life = 0; break; }
       }
-      for (const o of G.world.objects) if (o.t === 'resonator' && s.life > 0 && HL.dist(s.x, s.y, o.x, o.y - 2) < 6) { G.ringReso(o); s.life = 0; }
+      for (const o of G.world.objects) if ((o.t === 'resonator' || o.t === 'pylon') && s.life > 0 && HL.dist(s.x, s.y, o.x, o.y - 2) < 6) { G.strikeProp(o); s.life = 0; }
     }
     if (s.life <= 0 && s.kind === 'focus') HL.vfx.burst(s.x, s.y, 6, s.col, 8, 40, 0.35);
   }

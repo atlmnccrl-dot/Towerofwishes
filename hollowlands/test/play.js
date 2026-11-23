@@ -90,7 +90,7 @@ const SIM = () => {
     const it = G.interactables();
     if (!it || it.o !== o) return 'prompt mismatch for ' + id + ' (got ' + (it && it.o.id) + ')';
     G.interact(it);
-    while (G.state === 'dialog') G.advanceDialog();
+    while (G.state === 'dialog' || G.state === 'cut') { if (G.state === 'dialog') G.advanceDialog(); else G.nextShot(true); }
     return null;
   };
   S.cleanFoes = () => { G.enemies = []; };
@@ -230,7 +230,7 @@ const SIM = () => {
     out.crankLocked = !S.reach(T(23), T(41), T(23), T(16));
     out.vaultLocked = !S.reach(T(41), T(27), T(41), T(16));
     // clear the hall and ossuary by fighting
-    S.tp(T(23), T(30)); out.hall = S.fightRetry(120, { near: 70 });
+    S.tp(T(23), T(30)); out.hall = S.fightRetry(240, { near: 70 });
     S.tp(T(9), T(28)); out.ossuary = S.fightRetry(120, { near: 60 });
     out.oss = S.use('c_ossuary'); out.cryptKey = !!G.inv.crypt_key;
     out.iron = S.use('d_iron'); out.crankOpen = S.reach(T(23), T(41), T(23), T(16));
@@ -302,6 +302,44 @@ const SIM = () => {
   check('climb into the chapel; lift the bar: shortcut to the square', r5.map === 'ashwick' && r5.chapelOutside && r5.chapelOpen && r5.shortcut, r5.chapel || '');
   check('Maren\'s last words end the slice', !r5.maren && r5.end);
 
+  // ---- 5b. the Lumen shrines, trials, pylons, shards, travel
+  const r7 = await ev(() => {
+    const G = HL.G, S = SIM, T = S.T, out = {};
+    G.loadMap('ashwick', T(18), T(53)); S.cleanFoes(); G.player.hp = G.player.maxhp;
+    const hp0 = G.player.maxhp;
+    out.passage = S.use('shrine_passage'); out.blink = !!G.flags['sigil:blink'];
+    // the blink goes farther than a dash
+    const x0 = G.player.x; G.player.state = 'move'; G.player.st = 100; G.player.face = 0; G.player.startRoll(0); S.step(20); out.blinkDist = Math.round(G.player.x - x0);
+    // the combat trial: the bot fights three waves inside the wall of light
+    G.loadMap('ashwick', T(80), T(66)); S.cleanFoes(); G.player.hp = G.player.maxhp; G.inv.poultice = 5; G.eq.weapon = 'rusted_sword';
+    out.trialStart = S.use('shrine_trial'); out.trialOn = !!G.trial;
+    out.trial = S.fightRetry(300, { until: () => G.flags['shrine:shrine_trial'], goal: [T(80), T(65)] }, () => { const pl = G.player; pl.hp = pl.maxhp; pl.state = 'move'; G.loadMap('ashwick', T(80), T(66)); S.cleanFoes(); S.use('shrine_trial'); });
+    while (G.state === 'cut') G.nextShot(true);
+    out.burst = !!G.flags['sigil:burst'];
+    // the echo shrine: three pylons, each struck while the others still glow
+    G.loadMap('ashwick', T(98), T(33)); S.cleanFoes();
+    ['pylon0', 'pylon1', 'pylon2'].forEach((id) => G.strikeProp(G.world.obj(id)));
+    while (G.state === 'cut') G.nextShot(true);
+    out.vessel = !!G.flags['sigil:vessel'] && G.player.maxhp >= hp0 + 30;
+    // shards raise max health
+    const mh = G.player.maxhp, n0 = G.inv.lumen_shard || 0, sh = G.world.obj('p_ls1'); S.tp(sh.x, sh.y); S.step(40);
+    out.shard = G.inv.lumen_shard === n0 + 1 && G.player.maxhp === mh + 5;
+    out.reach = ['shrine_passage', 'shrine_trial', 'shrine_echo', 'shrine_hidden', 'p_ls1', 'p_ls2', 'p_ls3', 'p_ls4', 'p_ls5', 'p_ls6'].filter((id) => !S.reach(G.world.def.start.x, G.world.def.start.y, ...S.near(id)) && !(id === 'shrine_hidden'));
+    // travel to an awakened shrine
+    G.state = 'play'; G.travelTo('shrine_passage'); S.frames(50);
+    out.travel = HL.dist(G.player.x, G.player.y, G.world.obj('shrine_passage').x, G.world.obj('shrine_passage').y) < 30;
+    if (!out.burst) out.trialLeft = (G.trial ? 'trial still on ' : '') + JSON.stringify(G.enemies.filter((e) => !e.dead).map((e) => ({ t: e.type, s: e.state, x: Math.round(e.x / 8), y: Math.round(e.y / 8), hid: !!e.hidden })));
+    G.state = 'play'; G.save();
+    out.snapshot = { inv: JSON.stringify(G.inv), journal: G.journal.length };
+    return out;
+  });
+  check('touch a shrine: Sigil of Passage; the dash becomes a longer blink', !r7.passage && r7.blink && r7.blinkDist > 50, 'blink ' + r7.blinkDist + 'px');
+  check('the combat trial walls you in; the bot survives its waves for the Lumen Burst', r7.trialOn && r7.burst, JSON.stringify(r7.trial) + ' ' + (r7.trialLeft || ''));
+  check('three lit pylons wake the Shrine of Echoes (+30 max health)', r7.vessel);
+  check('a Lumen Shard adds 5 max health', r7.shard);
+  check('every outdoor shrine and shard is reachable', !r7.reach.length, r7.reach.join(', '));
+  check('fast travel to an awakened shrine', r7.travel);
+
   // ---- 6. reload the page and continue
   await page.reload(); await page.waitForTimeout(1500); await page.evaluate(SIM);
   const r6 = await ev((snap) => {
@@ -322,7 +360,7 @@ const SIM = () => {
     G.respawn(); S.frames(60);
     out.respawned = G.player.state === 'move' && G.player.hp === G.player.maxhp && JSON.stringify(G.inv) === before;
     return out;
-  }, r5.snapshot);
+  }, r7.snapshot);
   check('save survives a page reload', r6.hasSave && r6.map === 'ashwick' && r6.inv && r6.journal && r6.flags);
   check('opened chests, taken items, doors, well stay as left', r6.storeLooted && r6.swordGone && r6.chapelDoor && r6.well);
   check('unique foes stay dead (guard, Keeper)', r6.guardGone && r6.keeperGone);

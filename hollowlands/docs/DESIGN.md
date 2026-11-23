@@ -60,6 +60,22 @@ a roll with invulnerability frames, one stamina bar, hit-stop, white hit flash, 
 small screen shake (can be turned off), synthesised impacts, footsteps that change on ash, stone and wood.
 Every enemy attack has a red ground telegraph (ring, arc or aim line) that stays readable at this distance.
 
+### v0.5: Lumen (PROPOSAL motif replacing bells at the centre)
+- **Lumen**: pale cyan light the old kingdom drew from the earth through shrines; the Silence is the night it
+  went out. Bells remain in the crypt and the boss, but no longer carry the story.
+- **Five shrines**, each a different challenge, each awakening filmed and granting a Sigil: Passage (touch,
+  the dash becomes a blink), Trials (a wall of light and three waves, Lumen Burst skill button), Echoes
+  (strike three crystal pylons while each still glows, +30 health), the Deep (crypt, guarded by an elite,
+  a ward that blocks a blow every 10 s), the Hidden shrine (glade, reveals shards and shrines on the map).
+  Awakened shrines are fast-travel points (Map tab).
+- **Eight Lumen Shards** hidden around (each +5 max health), shown by a beam of light.
+- **Elites** burn with stolen Lumen (2.2x health, faster, cyan eyes and aura); **the Broken Champion**
+  (elite Brute mini-boss with its own bar) drops the Named Champion's Mantle.
+- **Loot** arrives with a rarity-coloured beam and banner.
+- **Conversations are filmed**: the camera frames the speaker, a name tag and a clean subtitle revealed
+  letter by letter; notes are a clean full-screen card. **Cinematics**: fades through black, per-shot colour
+  grades, floating subtitles; a new opening (the great shrine, the faithful, the light shattering).
+
 ### v0.4: effects, attack types, new units, cinematics
 - **Effects engine** (`js/vfx3d.js`): weapon trails in each weapon's colour, sparks and hot impact cores,
   shockwaves with dust rings, flying debris, impact lights, light pillars, afterimages on the dash, ash and

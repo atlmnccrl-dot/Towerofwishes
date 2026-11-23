@@ -99,6 +99,11 @@ HL.Player = class Player {
       if (b.k === 'dodge' && this.st > 0) { this.buffer = null; return this.startRoll(mlen > 0.2 ? mvA : this.face); }
       if ((b.k === 'light' || b.k === 'heavy') && w && this.st > 0 && (this.state !== 'attack' || this.atk.phase === 'rec')) { this.buffer = null; this.startAttack(b.k === 'heavy', b.charge, b.aim != null ? b.aim : mlen > 0.2 ? mvA : null, b.aim != null); }
     }
+    // Sigil of the Ward: a shell of light returns every 10 s
+    if (G.flags['sigil:ward'] && !this.ward) { this.wardT = (this.wardT || 0) - dt; if (this.wardT <= 0) { this.ward = true; HL.vfx.ring3d(this.x, this.y, 6, 10, '#7fe8e0', 0.4); A.play('pickup'); } }
+    // Sigil of Radiance: Lumen Burst
+    this.skillCd = Math.max(0, (this.skillCd || 0) - dt);
+    if (inp.skill && G.flags['sigil:burst'] && this.skillCd <= 0 && (this.state === 'move' || (this.state === 'attack' && this.atk.phase === 'rec'))) this.lumenBurst();
     if (inp.ult && this.state === 'move' && G.eq.relic === 'bell_shard' && this.ult >= 100 && G.eq.weapon) return this.startUlt(mlen > 0.2 ? mvA : this.face);
     let sp = this.speed();
     switch (this.state) {
@@ -109,8 +114,9 @@ HL.Player = class Player {
         if (mlen > 0.15) { this.face = mvA; }
         break;
       }
-      case 'roll': { // the dash: a short, fast burst that slips through attacks and foes
-        const D = 0.17, k = this.t / D, s = this.t < D ? 280 * (1 - k * 0.5) : 30;
+      case 'roll': { // the dash: a short, fast burst that slips through attacks and foes (a blink with the Sigil)
+        const blink = G.flags['sigil:blink'], D = 0.17, k = this.t / D, s = this.t < D ? (blink ? 420 : 280) * (1 - k * 0.5) : 30;
+        if (blink && this.t < D) { HL.vfx.burst(this.x, this.y, 6, '#7fe8e0', 2, 20, 0.35); this.ghostReq = Math.random() < 0.5; }
         this.vx = Math.cos(this.rollA) * s; this.vy = Math.sin(this.rollA) * s;
         if (this.t < D) for (let i = 0; i < 2; i++) HL.fx.add({ k: 'p', x: this.x + (Math.random() - 0.5) * 3, y: this.y, vx: 0, vy: 0, z: 2 + Math.random() * 8, vz: 0, col: i ? HL.P.cream3 : HL.P.ash1, life: 0.22 });
         if (this.t > D + 0.07) this.state = 'move';
@@ -130,8 +136,18 @@ HL.Player = class Player {
       if (this.stepT <= 0 && this.state === 'move') { this.stepT = 0.29; A.play('step', G.world.surface(this.x, this.y)); if (Math.random() < 0.3) HL.fx.dust(this.x, this.y, 1); }
     } else this.walkT = 0;
   }
+  lumenBurst() {
+    const G = HL.G, V = HL.vfx, C = '#7fe8e0';
+    this.skillCd = 7; this.state = 'move'; this.atk = null;
+    A.play('toll'); A.play('burst'); G.shake = 4;
+    V.shock(this.x, this.y, 48, C, 0.55); V.shock(this.x, this.y, 30, '#e0fffb', 0.4); V.beam(this.x, this.y, C, 0.6, 7, 110); V.burst(this.x, this.y, 6, C, 30, 110);
+    V.flash('#d8fffa', 0.35); V.chroma(1); V.kick(1); V.light(this.x, this.y, 0x7fe8e0, 180, 0.4);
+    for (const e of G.enemies) if (!e.dead && !e.hidden && HL.dist(this.x, this.y, e.x, e.y) < 44 + e.r) HL.hitEnemy(e, 26 * this.dmgMult(), { heavy: true, breaker: true, fx: this.x, fy: this.y, poise: 99, col: C });
+    for (const o of G.world.objects) if ((o.t === 'resonator' || o.t === 'pylon') && HL.dist(this.x, this.y, o.x, o.y) < 46) G.strikeProp(o);
+  }
   startRoll(a) {
-    this.state = 'roll'; this.t = 0; this.rollA = a; this.face = a; this.inv = 0.22; this.spend(18); this.atk = null; this.holdT = -1; this.chargeT = 0;
+    this.state = 'roll'; this.t = 0; this.rollA = a; this.face = a; this.inv = HL.G.flags['sigil:blink'] ? 0.28 : 0.22; this.spend(HL.G.flags['sigil:blink'] ? 14 : 18);
+    if (HL.G.flags['sigil:blink']) { HL.vfx.ring3d(this.x, this.y, 5, 9, '#7fe8e0', 0.3); A.play('bellHigh'); } this.atk = null; this.holdT = -1; this.chargeT = 0;
     A.play('roll'); HL.fx.dust(this.x, this.y, 4); HL.vfx.dust(this.x, this.y, 6); HL.vfx.kick(0.2);
   }
   startAttack(heavy, charge, aimA, aimed) {
@@ -277,6 +293,7 @@ HL.Player = class Player {
   hurt(dmg, sx, sy) {
     const G = HL.G;
     if (this.inv > 0 || this.state === 'dead' || G.state !== 'play') return false;
+    if (this.ward) { this.ward = false; this.wardT = 10; this.inv = 0.5; A.play('clank'); HL.vfx.shock(this.x, this.y, 18, '#7fe8e0', 0.35); HL.vfx.burst(this.x, this.y, 7, '#7fe8e0', 14, 60); HL.vfx.flash('#d8fffa', 0.2); HL.fx.text(this.x, this.y - 16, 'warded', '#7fe8e0', 0.8); return false; }
     const real = Math.max(1, Math.round(dmg * (1 - this.def())));
     this.hp -= real; this.inv = 0.6; this.flash = 0.12; G.hitstop = 0.06; G.shake = 2.5; G.hurtVig = 0.6;
     const a = Math.atan2(this.y - sy, this.x - sx);
@@ -345,7 +362,7 @@ HL.hitEnemy = function (e, dmg, o) {
     const kb = (o.heavy ? 70 : 38) * (e.type === 'guard' ? 0.4 : 1);
     e.vx = -Math.cos(ang) * kb; e.vy = -Math.sin(ang) * kb;
     e.poiseDmg = (e.poiseDmg || 0) + (o.poise || 10);
-    if (e.poiseDmg >= e.def.poise && e.state !== 'stagger' && e.type !== 'lurker') { e.state = 'stagger'; e.t = 0; e.stagT = 0.45; e.poiseDmg = 0; e.tele = null; }
+    if (e.poiseDmg >= e.poise && e.state !== 'stagger' && e.type !== 'lurker') { e.state = 'stagger'; e.t = 0; e.stagT = 0.45; e.poiseDmg = 0; e.tele = null; }
   }
   if (e.hp <= 0) HL.killEnemy(e, o);
 };
@@ -371,6 +388,10 @@ HL.Enemy = class Enemy {
     if (this.type === 'lurker') { this.hidden = true; this.state = 'hidden'; this.emerge = 0; }
     if (this.type === 'keeper') { this.state = 'dormant'; this.stunned = 0; this.cool = 1.5; this.summons = 0; this.chainA = 0; }
     if (spec.summoned) { this.state = 'chase'; this.aggro = true; }
+    // elites burn with stolen Lumen: tougher, faster, harder-hitting
+    const m = spec.boss ? { hp: 3.2, dmg: 1.3, sp: 1.2 } : spec.elite ? { hp: 2.2, dmg: 1.25, sp: 1.15 } : { hp: 1, dmg: 1, sp: 1 };
+    this.elite = !!(spec.elite || spec.boss); this.bossName = spec.boss ? 'The Broken Champion' : null;
+    this.hp = this.maxhp = Math.round(d.hp * m.hp); this.dmg = d.dmg * m.dmg; this.chase = d.chase * m.sp; this.spd = d.speed * m.sp; this.poise = d.poise * (this.elite ? 1.6 : 1);
   }
   get G() { return HL.G; }
   update(dt) {
@@ -401,14 +422,14 @@ HL.Enemy = class Enemy {
   idle(dt, sees) {
     if (sees) { this.state = 'alert'; this.t = 0; this.face = Math.atan2(this.G.player.y - this.y, this.G.player.x - this.x); if (this.type === 'hound') A.play('bark'); else A.play('growl'); return; }
     if (!this.wander || this.t > this.wander.t) this.wander = { a: Math.random() * HL.TAU, t: this.t + 1.5 + Math.random() * 2.5, go: Math.random() < 0.5 };
-    if (this.wander.go && HL.dist(this.x, this.y, this.hx, this.hy) < 30) { this.face = this.wander.a; this.stepToward(this.wander.a, this.def.speed * 0.4, dt); }
-    else if (this.wander.go) { const a = Math.atan2(this.hy - this.y, this.hx - this.x); this.face = a; this.stepToward(a, this.def.speed * 0.4, dt); }
+    if (this.wander.go && HL.dist(this.x, this.y, this.hx, this.hy) < 30) { this.face = this.wander.a; this.stepToward(this.wander.a, this.spd * 0.4, dt); }
+    else if (this.wander.go) { const a = Math.atan2(this.hy - this.y, this.hx - this.x); this.face = a; this.stepToward(a, this.spd * 0.4, dt); }
   }
   common(dt, dist, toP, sees) {
     if (this.state === 'idle') { this.idle(dt, sees); return true; }
     if (this.state === 'alert') { if (this.t > 0.45) { this.state = 'chase'; this.t = 0; } return true; }
     if (this.state === 'return') {
-      const a = Math.atan2(this.hy - this.y, this.hx - this.x); this.face = a; this.stepToward(a, this.def.chase, dt);
+      const a = Math.atan2(this.hy - this.y, this.hx - this.x); this.face = a; this.stepToward(a, this.chase, dt);
       this.hp = Math.min(this.maxhp, this.hp + 20 * dt);
       if (HL.dist(this.x, this.y, this.hx, this.hy) < 6) { this.state = 'idle'; this.t = 0; }
       return true;
@@ -422,14 +443,14 @@ HL.Enemy = class Enemy {
     if (this.common(dt, dist, toP, sees)) return;
     if (this.state === 'chase') {
       if (this.leashCheck(dist)) return;
-      this.face = toP; this.stepToward(toP, this.def.chase, dt);
+      this.face = toP; this.stepToward(toP, this.chase, dt);
       if (dist < 21 && sees) { this.state = 'tele'; this.t = 0; this.lockA = toP; }
     } else if (this.state === 'tele') {
       this.face = this.lockA = HL.lerp(this.lockA, toP, 0.1);
       if (this.t > 0.55) { this.state = 'atk'; this.t = 0; this.hitDone = false; A.play('swing'); }
     } else if (this.state === 'atk') {
       this.G.world.move(this, Math.cos(this.lockA) * 92 * dt, Math.sin(this.lockA) * 92 * dt);
-      this.hitPlayerIf(dist < this.r + p.r + 4, this.def.dmg);
+      this.hitPlayerIf(dist < this.r + p.r + 4, this.dmg);
       if (this.t > 0.22) { this.state = 'rec'; this.t = 0; }
     } else if (this.state === 'rec') { if (this.t > 0.75) { this.state = 'chase'; this.t = 0; } }
   }
@@ -437,10 +458,10 @@ HL.Enemy = class Enemy {
     if (this.common(dt, dist, toP, sees)) return;
     if (this.state === 'chase') {
       if (this.leashCheck(dist)) return;
-      if (dist > 40) { this.face = toP; this.stepToward(toP, this.def.chase, dt); this.circT = 0; }
+      if (dist > 40) { this.face = toP; this.stepToward(toP, this.chase, dt); this.circT = 0; }
       else { // circle at a distance, then pounce
         this.circT = (this.circT || 0) + dt; this.cdir = this.cdir || (Math.random() < 0.5 ? 1 : -1);
-        const a = toP + this.cdir * 1.5 + (dist < 30 ? 0.6 * this.cdir : 0); this.face = toP; this.stepToward(a, this.def.chase * 0.7, dt);
+        const a = toP + this.cdir * 1.5 + (dist < 30 ? 0.6 * this.cdir : 0); this.face = toP; this.stepToward(a, this.chase * 0.7, dt);
         if (this.circT > 0.8 + Math.random() * 0.8 && sees) { this.state = 'tele'; this.t = 0; A.play('bark'); }
       }
     } else if (this.state === 'tele') {
@@ -448,26 +469,26 @@ HL.Enemy = class Enemy {
       if (this.t > 0.38) { this.state = 'atk'; this.t = 0; this.hitDone = false; }
     } else if (this.state === 'atk') {
       this.G.world.move(this, Math.cos(this.lockA) * 150 * dt, Math.sin(this.lockA) * 150 * dt);
-      this.hitPlayerIf(dist < this.r + p.r + 3, this.def.dmg);
+      this.hitPlayerIf(dist < this.r + p.r + 3, this.dmg);
       if (this.t > 0.3) { if (this.hitDone) { this.state = 'rec'; this.t = 0.3; } else { this.state = 'dazed'; this.t = 0; this.vuln = 0.95; HL.fx.text(this.x, this.y - 12, '?', HL.P.cream2, 0.8); } }
     } else if (this.state === 'dazed') { if (this.t > 0.95) { this.state = 'chase'; this.t = 0; this.cdir = -this.cdir; } }
-    else if (this.state === 'rec') { this.stepToward(toP + Math.PI, this.def.chase * 0.5, dt); if (this.t > 0.7) { this.state = 'chase'; this.t = 0; } }
+    else if (this.state === 'rec') { this.stepToward(toP + Math.PI, this.chase * 0.5, dt); if (this.t > 0.7) { this.state = 'chase'; this.t = 0; } }
   }
   ai_archer(dt, p, dist, toP, sees) {
     if (this.common(dt, dist, toP, sees)) return;
     if (this.state === 'chase') {
       if (this.leashCheck(dist)) return;
       this.face = toP;
-      if (dist < 42) this.stepToward(toP + Math.PI + (this.slide || 1) * 0.5, this.def.chase, dt);
-      else if (dist > 95 || !sees) this.stepToward(toP, this.def.chase, dt);
-      else { this.stepToward(toP + Math.PI / 2 * (this.slide || 1), this.def.speed * 0.5, dt); if (this.t > 0.6) { this.state = 'tele'; this.t = 0; } }
+      if (dist < 42) this.stepToward(toP + Math.PI + (this.slide || 1) * 0.5, this.chase, dt);
+      else if (dist > 95 || !sees) this.stepToward(toP, this.chase, dt);
+      else { this.stepToward(toP + Math.PI / 2 * (this.slide || 1), this.spd * 0.5, dt); if (this.t > 0.6) { this.state = 'tele'; this.t = 0; } }
     } else if (this.state === 'tele') {
       if (this.t < 0.55) this.lockA = toP;
       this.face = this.lockA;
       this.tele = { k: 'line', a: this.lockA, len: 110, q: this.t / 0.8 };
       if (this.t > 0.8) {
         this.tele = null; this.state = 'rec'; this.t = 0; A.play('twang');
-        this.G.shots.push({ x: this.x + Math.cos(this.lockA) * 5, y: this.y - 5 + Math.sin(this.lockA) * 4, vx: Math.cos(this.lockA) * 150, vy: Math.sin(this.lockA) * 150, life: 1.2, dmg: this.def.dmg, from: this });
+        this.G.shots.push({ x: this.x + Math.cos(this.lockA) * 5, y: this.y - 5 + Math.sin(this.lockA) * 4, vx: Math.cos(this.lockA) * 150, vy: Math.sin(this.lockA) * 150, life: 1.2, dmg: this.dmg, from: this });
       }
       if (!sees && this.t < 0.55) { this.tele = null; this.state = 'chase'; }
     } else if (this.state === 'rec') { if (this.t > 0.7) { this.state = 'chase'; this.t = 0; this.slide = -(this.slide || 1); } }
@@ -477,7 +498,7 @@ HL.Enemy = class Enemy {
     const turn = (rate) => { this.face += HL.clamp(HL.angDiff(this.face, toP), -rate * dt, rate * dt); };
     if (this.state === 'chase') {
       if (this.leashCheck(dist)) return;
-      turn(2.2); this.stepToward(this.face, this.def.chase, dt);
+      turn(2.2); this.stepToward(this.face, this.chase, dt);
       if (dist < 24) { this.state = 'tele'; this.t = 0; }
     } else if (this.state === 'tele') {
       turn(1.2);
@@ -486,7 +507,7 @@ HL.Enemy = class Enemy {
       if (this.t > 0.85) {
         this.tele = null; this.state = 'rec'; this.t = 0; A.play('hitHeavy'); this.G.shake = 2.5;
         HL.fx.ring(cx, cy, 18, HL.P.ash1, 0.35); HL.fx.burst(cx, cy, HL.P.ash2, 8, 40);
-        if (HL.dist(p.x, p.y, cx, cy) < 16 + p.r) p.hurt(this.def.dmg, cx, cy);
+        if (HL.dist(p.x, p.y, cx, cy) < 16 + p.r) p.hurt(this.dmg, cx, cy);
       }
     } else if (this.state === 'rec') { turn(0.6); if (this.t > 1.0) { this.state = 'chase'; this.t = 0; } }
   }
@@ -502,7 +523,7 @@ HL.Enemy = class Enemy {
       if (this.t > 0.75) {
         this.tele = null; this.state = 'wait'; this.t = 0; A.play('burst');
         HL.fx.burst(this.tx, this.ty, HL.P.mo2, 10, 45); HL.fx.ring(this.tx, this.ty, 12, HL.P.mo1, 0.3);
-        if (HL.dist(p.x, p.y, this.tx, this.ty) < 11 + p.r) p.hurt(this.def.dmg, this.tx, this.ty);
+        if (HL.dist(p.x, p.y, this.tx, this.ty) < 11 + p.r) p.hurt(this.dmg, this.tx, this.ty);
       }
     }
   }
@@ -526,7 +547,7 @@ HL.Enemy = class Enemy {
     if (this.state === 'walk' && ((this.summons === 0 && this.hp < this.maxhp * 0.55) || (this.summons === 1 && this.hp < this.maxhp * 0.25))) { this.summons++; this.state = 'summon'; this.t = 0; }
     if (this.state === 'walk') {
       this.face = toP; this.cool -= dt;
-      if (dist > 26) this.stepToward(toP, this.def.chase * (rage ? 1.25 : 1), dt);
+      if (dist > 26) this.stepToward(toP, this.chase * (rage ? 1.25 : 1), dt);
       if (this.cool <= 0) {
         const r = Math.random();
         if (this.phase2 && r < 0.3) this.state = 'shards';
@@ -542,7 +563,7 @@ HL.Enemy = class Enemy {
       this.tele = { k: 'arc', x: this.x, y: this.y, r: 44, a: this.lockA, arc: 3.4, q: this.t / T };
       if (this.t > T) {
         this.tele = null; A.play('hitHeavy'); G.shake = 3; HL.fx.slash(this.x, this.y - 6, this.lockA, 3.4, 40, 0.25, HL.P.ash1);
-        if (dist < 46 && Math.abs(HL.angDiff(this.lockA, toP)) < 1.7) p.hurt(this.def.dmg, this.x, this.y);
+        if (dist < 46 && Math.abs(HL.angDiff(this.lockA, toP)) < 1.7) p.hurt(this.dmg, this.x, this.y);
         this.state = 'rec'; this.t = 0; this.recT = 0.85;
       }
     } else if (this.state === 'slam') {
@@ -553,7 +574,7 @@ HL.Enemy = class Enemy {
       if (this.t > T) {
         this.tele = null; this.armsUp = false; A.play('burst'); G.shake = 4;
         HL.fx.ring(this.tx, this.ty, 24, HL.P.ash1, 0.4, 2); HL.fx.burst(this.tx, this.ty, HL.P.st1, 14, 60);
-        if (HL.dist(p.x, p.y, this.tx, this.ty) < 22 + p.r) p.hurt(this.def.dmg + 4, this.tx, this.ty);
+        if (HL.dist(p.x, p.y, this.tx, this.ty) < 22 + p.r) p.hurt(this.dmg + 4, this.tx, this.ty);
         this.state = 'rec'; this.t = 0; this.recT = 0.7;
       }
     } else if (this.state === 'toll') {
@@ -593,7 +614,8 @@ HL.Enemy = class Enemy {
     const G = this.G, V = HL.vfx, C = '#9fb4c8';
     if (this.state === 'blink') {
       if (this.t > 0.45) {
-        for (let k = 0; k < 10; k++) { const a = Math.random() * HL.TAU, d = 45 + Math.random() * 25, x = p.x + Math.cos(a) * d, y = p.y + Math.sin(a) * d; if (!G.world.blocked(x, y, this.r) && G.world.los(x, y - 4, p.x, p.y - 4)) { this.x = x; this.y = y; break; } }
+        const tr = G.trial;
+        for (let k = 0; k < 14; k++) { const a = Math.random() * HL.TAU, d = (tr ? 28 : 45) + Math.random() * 25, x = p.x + Math.cos(a) * d, y = p.y + Math.sin(a) * d; if (tr && HL.dist(x, y, tr.cx, tr.cy) > tr.r - 10) continue; if (!G.world.blocked(x, y, this.r) && G.world.los(x, y - 4, p.x, p.y - 4)) { this.x = x; this.y = y; break; } }
         this.hidden = false; this.state = 'chase'; this.t = 0; V.burst(this.x, this.y, 8, C, 16, 60); V.ring3d(this.x, this.y, 2, 12, C, 0.35); A.play('bellHigh');
       }
       return;
@@ -602,7 +624,7 @@ HL.Enemy = class Enemy {
     if (this.state === 'chase') {
       if (this.leashCheck(dist)) return;
       this.face = toP;
-      if (dist < 45) this.stepToward(toP + Math.PI, this.def.chase, dt); else if (dist > 85 || !sees) this.stepToward(toP, this.def.chase, dt); else this.stepToward(toP + (Math.PI / 2) * (this.slide || 1), this.def.speed * 0.6, dt);
+      if (dist < 45) this.stepToward(toP + Math.PI, this.spd * 0.9, dt); else if (dist > 85 || !sees) this.stepToward(toP, this.chase, dt); else this.stepToward(toP + (Math.PI / 2) * (this.slide || 1), this.spd * 0.6, dt);
       this.cool = (this.cool == null ? 1.2 : this.cool) - dt;
       if (this.cool <= 0 && sees) { this.state = 'tele'; this.t = 0; A.play('bellMid'); }
     } else if (this.state === 'tele') {
@@ -610,7 +632,7 @@ HL.Enemy = class Enemy {
       if (Math.random() < 0.6) V.burst(this.x, this.y, 12, C, 1, 18, 0.3);
       if (this.t > 0.75) {
         this.tele = null; A.play('bellHigh');
-        for (const off of [-0.42, 0, 0.42]) G.shots.push({ x: this.x, y: this.y - 5, vx: Math.cos(toP + off) * 72, vy: Math.sin(toP + off) * 72, life: 2.6, dmg: this.def.dmg, from: this, orb: true, seek: 1.3, col: C });
+        for (const off of [-0.42, 0, 0.42]) G.shots.push({ x: this.x, y: this.y - 5, vx: Math.cos(toP + off) * 72, vy: Math.sin(toP + off) * 72, life: 2.6, dmg: this.dmg, from: this, orb: true, seek: 1.3, col: C });
         this.state = 'rec'; this.t = 0; this.cool = 2.2 + Math.random();
       }
     } else if (this.state === 'rec') {
@@ -623,7 +645,7 @@ HL.Enemy = class Enemy {
     if (this.common(dt, dist, toP, sees)) return;
     if (this.state === 'chase') {
       if (this.leashCheck(dist)) return;
-      this.face = toP; this.stepToward(toP, this.def.chase, dt); this.cool = (this.cool == null ? 1 : this.cool) - dt;
+      this.face = toP; this.stepToward(toP, this.chase, dt); this.cool = (this.cool == null ? 1 : this.cool) - dt;
       if (dist < 22) { this.state = 'slamT'; this.t = 0; }
       else if (this.cool <= 0 && dist < 100 && sees) { this.state = 'tele'; this.t = 0; this.lockA = toP; A.play('growl'); }
     } else if (this.state === 'tele') {
@@ -633,7 +655,7 @@ HL.Enemy = class Enemy {
     } else if (this.state === 'charge') {
       const ox = this.x, oy = this.y, c = Math.cos(this.lockA), s = Math.sin(this.lockA);
       G.world.move(this, c * 190 * dt, s * 190 * dt); V.dust(this.x, this.y, 1); this.walkT += dt * 4;
-      if (!this.hitDone && dist < this.r + p.r + 4) { if (p.hurt(this.def.dmg, this.x, this.y)) { this.hitDone = true; p.vx += c * 130; p.vy += s * 130; } }
+      if (!this.hitDone && dist < this.r + p.r + 4) { if (p.hurt(this.dmg, this.x, this.y)) { this.hitDone = true; p.vx += c * 130; p.vy += s * 130; } }
       if (HL.dist(ox, oy, this.x, this.y) < 190 * dt * 0.4 && this.t > 0.05) {
         this.state = 'dazed'; this.t = 0; this.vuln = 1.6; G.shake = 4; A.play('hitHeavy');
         V.debris(this.x, this.y, 9, P.st2, 1); V.shock(this.x, this.y, 16, P.st0, 0.3); HL.fx.text(this.x, this.y - 22, 'stunned', P.cream, 0.9);
@@ -643,7 +665,7 @@ HL.Enemy = class Enemy {
       this.tele = { k: 'ring', x: cx, y: cy, r: 20, q: this.t / 0.8 };
       if (this.t > 0.8) {
         this.tele = null; A.play('burst'); G.shake = 4; V.shock(cx, cy, 24, P.fire, 0.4); V.debris(cx, cy, 8, P.st2, 1); V.crack(cx, cy, 10);
-        if (HL.dist(p.x, p.y, cx, cy) < 20 + p.r) p.hurt(this.def.dmg - 4, cx, cy);
+        if (HL.dist(p.x, p.y, cx, cy) < 20 + p.r) p.hurt(this.dmg - 4, cx, cy);
         this.state = 'rec'; this.t = 0; this.cool = Math.max(this.cool || 0, 1);
       }
     } else if (this.state === 'dazed') { if (this.t > 1.6) { this.state = 'chase'; this.t = 0; this.cool = 2; } }

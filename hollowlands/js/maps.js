@@ -37,11 +37,13 @@ function outdoor() {
     else if (HL.fbm(x * 0.13, y * 0.13, 3, 3) > 0.57) set(x, y, TL.GRASS);
   }
   const open = (x, y) => { if (HL.SOLID[at(x, y)]) set(x, y, HL.fbm(x * 0.13, y * 0.13, 3, 3) > 0.55 ? TL.GRASS : TL.ASH); };
-  const clearings = [[100, 68, 5.5], [120, 28, 7.5], [137, 24, 5], [141, 64, 8.5], [160, 50, 12.5], [88, 44, 4.5], [72, 50, 6]];
+  const clearings = [[100, 68, 5.5], [120, 28, 7.5], [137, 24, 5], [141, 64, 8.5], [160, 50, 12.5], [88, 44, 4.5], [72, 50, 6], [80, 64, 8], [98, 30, 7]];
   clearings.forEach(([x, y, r]) => brushDisc(W, H, x, y, r + HL.hash(x, y) * 1.5, (cx, cy) => open(cx, cy)));
   const road = [[0, 56], [14, 56], [26, 52], [40, 50], [52, 50], [62, 49], [72, 47], [84, 45], [96, 50], [106, 54], [116, 54], [124, 55], [134, 58], [146, 56], [156, 52], [164, 53]];
   const sides = [
     [[96, 51], [98, 58], [100, 66]],
+    [[76, 48], [78, 56], [80, 62]],
+    [[90, 45], [94, 38], [98, 32]],
     [[118, 54], [119, 44], [120, 33]],
     [[126, 27], [131, 26], [135, 25]],
     [[134, 58], [139, 62]],
@@ -49,7 +51,7 @@ function outdoor() {
   ];
   const carve = (pts, clear, pathR) => brushLine(W, H, pts, clear, (x, y, d) => { open(x, y); if (d <= pathR && at(x, y) !== TL.WATER) set(x, y, TL.PATH); });
   carve(road, 3.4, 1.3);
-  sides.forEach((s, i) => carve(s, i === 2 ? 1.6 : i < 4 ? 2.6 : 1.4, i < 4 ? 0.9 : 0.8));
+  sides.forEach((s, i) => carve(s, i === 4 ? 1.6 : i < 6 ? 2.6 : 1.4, i < 6 ? 0.9 : 0.8));
   // river under the canopy, open around the ruined bridge
   brushLine(W, H, [[109, 34], [112, 44], [110, 54], [113, 64], [111, 74]], 1.9, (x, y) => set(x, y, TL.WATER));
   brushLine(W, H, road.slice(8, 11), 1.6, (x, y) => { if (at(x, y) === TL.WATER) set(x, y, TL.BRIDGE); });
@@ -138,6 +140,13 @@ function outdoor() {
   prop('tent', 138, 61, box(18, 5)); prop('tent', 145, 60, box(18, 5)); O.push({ t: 'prop', spr: 'fireRing', x: px(141), y: px(65), col: box(9, 3) });
   O.push({ t: 'container', id: 'c_traveller', spr: 'corpse', open: 'corpseOpen', x: px(144), y: px(67), loot: [['gate_key', 1], ['poultice', 1]], note: 'traveller' });
   O.push({ t: 'container', id: 'c_campCrate', spr: 'crate', open: 'crateOpen', x: px(137), y: px(66), loot: [['lamp_oil', 1], ['cloth_scrap', 1]] });
+  // LUMEN: shrines, the pylons of the echo trial, the scattered shards
+  O.push({ t: 'shrine', id: 'shrine_passage', x: px(18), y: px(50) });
+  O.push({ t: 'shrine', id: 'shrine_trial', x: px(80), y: px(63) });
+  O.push({ t: 'shrine', id: 'shrine_echo', x: px(98), y: px(29) });
+  [[93, 31], [103, 31], [98, 35.5]].forEach(([x, y], i) => O.push({ t: 'pylon', id: 'pylon' + i, x: px(x), y: px(y), col: { w: 6, h: 4 } }));
+  O.push({ t: 'shrine', id: 'shrine_hidden', x: px(135), y: px(23) });
+  [[24, 35, 1], [57, 37, 2], [9, 70, 3], [106, 50, 4], [101, 71, 5], [143, 68, 6]].forEach(([x, y, n]) => O.push({ t: 'pickup', id: 'p_ls' + n, item: 'lumen_shard', n: 1, x: px(x), y: px(y), shard: true }));
   // the tower
   O.push({ t: 'tower', id: 'tower', x: px(166), y: px(45), col: { w: 56, h: 14 } });
   O.push({ t: 'exit', id: 'x_tower', spr: null, x: px(166), y: px(45) + 9, to: 'crypt1', tx: px(23) + 4, ty: px(41) + 4, locked: 'gate_key', doorId: 'd_tower', label: 'Enter' });
@@ -147,10 +156,10 @@ function outdoor() {
   const E = [
     ['drifter', 29, 31], ['drifter', 58, 45], ['drifter', 24, 71], ['drifter', 66, 50],
     ['drifter', 79, 45], ['lurker', 89, 47], ['drifter', 99, 52], ['hound', 99, 67], ['hound', 102, 70],
-    ['archer', 118, 58], ['lurker', 121, 51], ['archer', 117, 45], ['lurker', 131, 57], ['wraith', 122, 30], ['brute', 128, 58, 'brute_trail'],
-    ['guard', 141, 63, 'guard_camp'], ['drifter', 138, 64], ['drifter', 145, 65],
+    ['archer', 118, 58], ['lurker', 121, 51], ['archer', 117, 45], ['lurker', 131, 57], ['wraith', 122, 30], ['brute', 128, 58, 'champion', 'champion'],
+    ['guard', 141, 63, 'guard_camp'], ['drifter', 138, 64], ['archer', 145, 65, 'elite_camp', true],
     ['lurker', 151, 54], ['wraith', 147, 52], ['hound', 158, 55], ['hound', 164, 57], ['lurker', 159, 46],
-  ].map(([foe, x, y, id]) => ({ foe, x: px(x), y: px(y), id }));
+  ].map(([foe, x, y, id, elite]) => ({ foe, x: px(x), y: px(y), id, elite: elite === true, boss: elite === 'champion' }));
   return { id: 'ashwick', name: 'Ashwick Vale', W, H, tiles: T, objects: O, buildings: B, enemies: E, dark: false, amb: 'wind', start: { x: px(10), y: px(55) } };
 }
 
@@ -174,7 +183,7 @@ function crypt1() {
   const W = 50, H = 48;
   const T = rooms(W, H, [
     [20, 1, 8, 4], [23, 5, 2, 3], [14, 8, 20, 12, 3], [23, 20, 2, 4], [15, 24, 18, 8], [10, 27, 5, 2], [2, 21, 8, 11, 2],
-    [33, 27, 4, 2], [37, 22, 10, 10, 2], [41, 19, 2, 3], [39, 14, 6, 5], [23, 32, 2, 6], [20, 38, 8, 7, 1],
+    [33, 27, 4, 2], [37, 22, 10, 10, 2], [44, 32, 2, 2], [41, 34, 7, 6, 1], [41, 19, 2, 3], [39, 14, 6, 5], [23, 32, 2, 6], [20, 38, 8, 7, 1],
   ]);
   const O = [];
   const p = (spr, x, y, col, extra) => O.push(Object.assign({ t: 'prop', spr, x: px(x), y: px(y), col }, extra));
@@ -214,8 +223,11 @@ function crypt1() {
   O.push({ t: 'exit', id: 'x_down1', spr: 'stairsDown', x: px(23) + 4, y: px(2) + 6, to: 'crypt2', tx: px(19) + 4, ty: px(31), label: 'Descend' });
   light(21, 1.6, 34);
   O.push({ t: 'waves', id: 'waves', points: [[16, 10], [31, 10], [16, 18], [31, 18], [23.5, 9.5]].map(([x, y]) => [px(x), px(y)]) });
-  const E = [['drifter', 18, 28], ['drifter', 29, 29], ['guard', 6, 25, 'guard_crypt'], ['drifter', 4, 29], ['archer', 44, 28], ['wraith', 38, 29], ['wraith', 26, 26]]
-    .map(([foe, x, y, id]) => ({ foe, x: px(x), y: px(y), id }));
+  O.push({ t: 'shrine', id: 'shrine_deep', x: px(44) + 4, y: px(37) });
+  O.push({ t: 'pickup', id: 'p_ls7', item: 'lumen_shard', n: 1, x: px(3), y: px(26), shard: true });
+  O.push({ t: 'pickup', id: 'p_ls8', item: 'lumen_shard', n: 1, x: px(43), y: px(15) + 4, shard: true });
+  const E = [['drifter', 18, 28], ['drifter', 29, 29], ['guard', 6, 25, 'guard_crypt'], ['drifter', 4, 29], ['archer', 44, 28], ['wraith', 38, 29], ['wraith', 26, 26], ['wraith', 43, 36, 'elite_deep', true]]
+    .map(([foe, x, y, id, elite]) => ({ foe, x: px(x), y: px(y), id, elite }));
   return { id: 'crypt1', name: 'Bellroot Underchapel', W, H, tiles: T, objects: O, buildings: [], enemies: E, dark: true, amb: 'crypt' };
 }
 

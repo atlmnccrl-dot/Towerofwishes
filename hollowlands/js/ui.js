@@ -22,7 +22,7 @@ HL.Input = (() => {
         mx, my,
         attack: e.j || e.z || btnEdge('attack'), attackDown: !!(k.j || k.z || (b.attack && b.attack.held)), attackUp: e.j_up || e.z_up || btnUp('attack'),
         dodge: e[' '] || e.k || e.x || btnEdge('dodge'), interact: e.e || e.f || btnEdge('interact'), ult: e.r || btnEdge('ult'), item: e.q || btnEdge('item'),
-        menu: e.Tab || e.i || btnEdge('menu'), map: e.m || btnEdge('map'), esc: e.Escape, enter: e.Enter,
+        menu: e.Tab || e.i || btnEdge('menu'), skill: e.v || btnEdge('skill'), map: e.m || btnEdge('map'), esc: e.Escape, enter: e.Enter,
         swap: e.c || btnEdge('swap'), aimX: null, aimY: null,
       };
       if (b.attack && b.attack.held && b.attack.ax != null) { out.aimX = b.attack.ax; out.aimY = b.attack.ay; }
@@ -82,6 +82,7 @@ UI.layoutControls = (W, H, safe) => {
     { id: 'item', x: r - 58, y: b - 46, r: 11 },
     { id: 'ult', x: r - 62, y: b - 78, r: 11 },
     { id: 'swap', x: r - 94, y: b - 30, r: 10 },
+    { id: 'skill', x: r - 96, y: b - 64, r: 11 },
     { id: 'menu', x: r - 8, y: 12 + safe.t, r: 10 },
     { id: 'map', x: r - 32, y: 12 + safe.t, r: 10 },
   ];
@@ -94,6 +95,7 @@ UI.drawControls = (g, G) => {
     if (c.id === 'interact' && !near) continue;
     const owned = Object.keys(HL.WEAPONS).filter((w) => G.inv[w]);
     if (c.id === 'swap' && owned.length < 2) continue;
+    if (c.id === 'skill' && !G.flags['sigil:burst']) continue;
     const full = c.id === 'ult' && G.player.ult >= 100;
     HL.discDither(g, c.x, c.y, c.r, held ? P.cream3 : P.ink, held ? 0.6 : 0.45);
     HL.ringPx(g, c.x, c.y, c.r, full ? P.lt0 : held ? P.cream : P.cream3, 1);
@@ -108,6 +110,12 @@ UI.drawControls = (g, G) => {
     else if (c.id === 'interact') { ic('!'); const lw = HL.textWidth(near.label); g.fillStyle = P.ink; g.fillRect(c.x - lw - 20, c.y - 5, lw + 6, 11); HL.text(g, near.label, c.x - 17, c.y - 3, P.cream, 1); }
     else if (c.id === 'item') {
       const q = G.quick; if (q && G.inv[q]) { g.drawImage(HL.ART.icons[q], c.x - 6, c.y - 7); HL.text(g, String(G.inv[q]), c.x + 6, c.y + 2, P.cream, 0.5, 1, P.ink); } else ic('·');
+    } else if (c.id === 'skill') {
+      const cd = G.player.skillCd || 0, f = 1 - cd / 7;
+      g.fillStyle = cd > 0 ? '#3e8a86' : '#7fe8e0'; for (let j = -4; j <= 4; j++) { const w = 4 - Math.abs(j); g.fillRect(c.x - w, c.y + j, w * 2 + 1, 1); }
+      if (cd > 0) HL.ringPx(g, c.x, c.y, c.r - 2, '#7fe8e0', 1, -Math.PI / 2, -Math.PI / 2 + HL.TAU * f);
+      else HL.ringPx(g, c.x, c.y, c.r + 1 + Math.sin(G.time * 6), '#7fe8e0', 1);
+      HL.text(g, 'light', c.x, c.y + c.r + 2, '#7fe8e0', 0.5, 1, P.ink);
     } else if (c.id === 'swap') {
       const nx = owned[(owned.indexOf(G.eq.weapon) + 1) % owned.length]; if (HL.ART.icons[nx]) g.drawImage(HL.ART.icons[nx], c.x - 6, c.y - 6);
       HL.text(g, 'swap', c.x, c.y + c.r + 2, P.cream3, 0.5, 1, P.ink);
@@ -143,6 +151,8 @@ UI.drawHUD = (g, G, dt) => {
     g.fillStyle = 'rgba(20,16,16,0.45)'; g.fillRect(m - 3, y - 2, Math.min(206, G.W * 0.45 + 6), lines.length * 10 + 3);
     g.fillStyle = ob.optional ? P.cream3 : P.tan0; g.fillRect(m - 3, y - 2, 1, lines.length * 10 + 3);
     lines.forEach((l, i) => HL.text(g, l, m + 1, y + i * 10, P.cream, 0, 1, P.ink));
+    const shr = Object.keys(HL.SHRINES).filter((k) => G.flags['shrine:' + k]).length, sha = G.inv.lumen_shard || 0;
+    if (shr || sha) HL.text(g, 'shrines ' + shr + '/' + Object.keys(HL.SHRINES).length + '  shards ' + sha + '/' + HL.SHARD_COUNT, m, y + lines.length * 10 + 4, '#7fe8e0', 0, 1, P.ink);
   }
   // feed
   UI.feed.forEach((f, i) => {
@@ -176,10 +186,10 @@ UI.drawHUD = (g, G, dt) => {
     g.globalAlpha = 1;
   }
   // boss bar / gate bar
-  const boss = G.enemies.find((e) => e.type === 'keeper' && !e.dead && e.state !== 'dormant');
+  const boss = G.enemies.find((e) => !e.dead && ((e.type === 'keeper' && e.state !== 'dormant') || (e.bossName && e.state !== 'idle' && e.state !== 'return')));
   if (boss) {
     const w = Math.min(220, G.W - 160), x = (G.W - w) / 2, y = G.H - 18 - G.safe.b;
-    HL.text(g, HL.FOES.keeper.name, G.W / 2, y - 10, P.cream, 0.5, 1, P.ink);
+    HL.text(g, boss.bossName || HL.FOES.keeper.name, G.W / 2, y - 10, boss.bossName ? '#ffc95a' : P.cream, 0.5, 1, P.ink);
     UI.bar(g, x, y, w, 3, boss.hp / boss.maxhp, boss.stunned > 0 ? P.lt0 : P.cream);
   }
   if (G.waves && G.waves.active) {
@@ -221,29 +231,33 @@ UI.drawGuide = (g, G) => {
 // ------------------------------------------------------------------ cutscene card: letterbox, the line, skip
 UI.drawCut = (g, G) => {
   const P = P_, c = G.cut; if (!c) return;
-  const bar = Math.round(G.H * 0.12 * (c.i === 0 ? HL.clamp(c.t / 0.5, 0, 1) : 1));
-  g.fillStyle = '#0c0909'; g.fillRect(0, 0, G.W, bar); g.fillRect(0, G.H - bar, G.W, bar);
-  const s = c.def.shots[c.i], a = HL.clamp(c.t / 0.6, 0, 1);
+  const s = c.def.shots[c.i], talk = c.def.talk;
+  const bar = Math.round(G.H * (talk ? 0.09 : 0.12) * (c.i === 0 ? HL.clamp(c.t / 0.45, 0, 1) : 1));
+  g.fillStyle = '#060404'; g.fillRect(0, 0, G.W, bar); g.fillRect(0, G.H - bar, G.W, bar);
   if (s.title && c.t >= (s.titleAt || 0)) { // the title slams in
-    const k = HL.clamp((c.t - (s.titleAt || 0)) / 0.22, 0, 1), base = G.W > 380 ? 4 : 3, sc = base + Math.round((1 - k) * 4);
+    const k = HL.clamp((c.t - (s.titleAt || 0)) / 0.22, 0, 1), base = G.W > 380 ? (s.title.length > 16 ? 3 : 4) : 3, sc = base + Math.round((1 - k) * 4);
     const jx = k < 1 ? 0 : Math.round((Math.random() - 0.5) * Math.max(0, 1 - (c.t - (s.titleAt || 0) - 0.22) * 4) * 4);
     g.globalAlpha = k;
-    HL.text(g, s.title, G.W / 2 + jx, G.H * 0.42 - (HL.FONT_H * sc) / 2, P.cream, 0.5, sc, P.ink);
+    HL.text(g, s.title, G.W / 2 + jx, G.H * 0.4 - (HL.FONT_H * sc) / 2, P.cream, 0.5, sc, P.ink);
     g.globalAlpha = HL.clamp((c.t - (s.titleAt || 0) - 0.4) / 0.5, 0, 1);
-    if (s.sub) { HL.text(g, '---', G.W / 2, G.H * 0.42 + base * 5 + 2, P.cream3, 0.5); HL.text(g, s.sub, G.W / 2, G.H * 0.42 + base * 5 + 11, P.cream2, 0.5, 1, P.ink); }
+    if (s.sub) { const sw = Math.min(G.W - 40, HL.textWidth(s.sub) + 20); g.fillStyle = '#7fe8e0'; g.fillRect(G.W / 2 - sw / 2, G.H * 0.4 + base * 5 + 3, sw, 1); HL.wrap(s.sub, G.W - 60).forEach((l, i) => HL.text(g, l, G.W / 2, G.H * 0.4 + base * 5 + 8 + i * 10, P.cream2, 0.5, 1, P.ink)); }
     g.globalAlpha = 1;
   }
-  g.globalAlpha = a;
-  const lines = s.text ? HL.wrap(s.text, Math.min(360, G.W - 60)) : [];
-  const y0 = G.H - bar - 10 - lines.length * 11;
-  if (lines.length) { g.fillStyle = 'rgba(12,9,9,0.55)'; g.fillRect(G.W / 2 - Math.min(370, G.W - 50) / 2, y0 - 5, Math.min(370, G.W - 50), lines.length * 11 + 8); }
-  lines.forEach((l, i) => HL.text(g, l, G.W / 2, y0 + i * 11, P.cream, 0.5, 1, P.ink));
-  g.globalAlpha = 1;
-  for (let i = 0; i < c.def.shots.length; i++) { g.fillStyle = i === c.i ? P.cream : P.cream3; g.fillRect(G.W / 2 - c.def.shots.length * 4 + i * 8, G.H - bar / 2, 4, 1); }
-  HL.text(g, 'tap to continue', 12 + G.safe.l, G.H - bar / 2 - 3, P.cream3);
-  UI.button(g, 'Skip >', G.W - 60 - G.safe.r, Math.round(bar / 2) - 7, () => G.nextShot(true), { w: 50, h: 14 });
-  UI.region(0, 0, G.W, G.H, () => G.nextShot());
-  // keep the skip button on top of the full-screen tap region
+  if (s.text) { // floating subtitle: no box, revealed letter by letter, a name above when someone speaks
+    const fade = HL.clamp(c.t / 0.35, 0, 1) * (s.dur < 90 ? HL.clamp((s.dur - c.t) / 0.3, 0, 1) : 1);
+    const full = s.text, n = Math.ceil(full.length * HL.clamp((c.reveal || 0) * (talk ? 1.4 : 1.8), 0, 1));
+    const lines = HL.wrap(full, Math.min(330, G.W - 70));
+    let left = n; const shown = lines.map((l) => { const t = l.slice(0, Math.max(0, left)); left -= l.length + 1; return t; });
+    const y0 = G.H - bar - 8 - lines.length * 11;
+    g.globalAlpha = fade;
+    if (s.speaker) { const nw = HL.textWidth(s.speaker); HL.text(g, s.speaker, G.W / 2, y0 - 14, '#7fe8e0', 0.5, 1, P.ink); g.fillStyle = 'rgba(127,232,224,0.6)'; g.fillRect(G.W / 2 - nw / 2 - 6, y0 - 4, nw + 12, 1); }
+    shown.forEach((l, i) => { const x = G.W / 2 - HL.textWidth(lines[i]) / 2; HL.text(g, l, x + 1, y0 + i * 11 + 1, '#000000'); HL.text(g, l, x, y0 + i * 11, P.cream); });
+    g.globalAlpha = 1;
+  }
+  if (talk) { if ((c.reveal || 0) >= 1 && Math.floor(G.time * 2) % 2) HL.text(g, '>', G.W / 2, G.H - bar / 2 - 3, '#7fe8e0', 0.5); }
+  else for (let i = 0; i < c.def.shots.length; i++) { g.fillStyle = i === c.i ? P.cream : P.cream3; g.fillRect(G.W / 2 - c.def.shots.length * 4 + i * 8, G.H - bar / 2, 4, 1); }
+  UI.button(g, talk ? 'Skip' : 'Skip >', G.W - 56 - G.safe.r, Math.max(2, Math.round(bar / 2) - 7), () => G.nextShot(true), { w: 46, h: 14 });
+  UI.region(0, 0, G.W, G.H, () => { if (s.wait && (c.reveal || 0) < 1) c.reveal = 1; else G.nextShot(); });
   UI.regions.push(UI.regions.splice(UI.regions.length - 2, 1)[0]);
 };
 // ------------------------------------------------------------------ the item screen (from the reference: dotted grid, speckled cells)
@@ -331,7 +345,7 @@ UI.itemAction = (G, id) => {
   else if (it.kind === 'doc') G.showNote('next_region');
 };
 UI.drawMap = (g, G) => {
-  const P = P_, w = G.world, W = G.W - G.safe.l - G.safe.r - 30, H = G.H - 40;
+  const P = P_, w = G.world, W = G.W - G.safe.l - G.safe.r - 110, H = G.H - 40;
   if (!w.mapImg) {
     const s = Math.min(W / w.pw, H / w.ph), mw = Math.round(w.pw * s), mh = Math.round(w.ph * s);
     const c = HL.canvas(mw, mh); c.g.imageSmoothingEnabled = true; c.g.drawImage(w.ground, 0, 0, mw, mh);
@@ -340,7 +354,7 @@ UI.drawMap = (g, G) => {
     for (const b of w.buildings) { c.g.fillStyle = P.ch0; c.g.fillRect(b.x0 * s, b.y0 * s, (b.x1 - b.x0) * s, (b.y1 - b.y0) * s); }
     w.mapImg = { c, s };
   }
-  const { c, s } = w.mapImg, ox = Math.round(G.safe.l + 15 + (W - c.width) / 2), oy = 28;
+  const { c, s } = w.mapImg, ox = Math.round(G.safe.l + 12 + (W - c.width) / 2), oy = 28;
   g.drawImage(c, ox, oy);
   // fog of the unexplored
   const fw = Math.ceil(w.W / 2);
@@ -352,6 +366,17 @@ UI.drawMap = (g, G) => {
   const labels = w.id === 'ashwick' ? [['Ashwick', 40, 47], ['Crowshade Trail', 96, 40], ['The Tower', 166, 38], ['Ring of Stones', 120, 22]] : [];
   for (const [n, tx, ty] of labels) if (w.fog[Math.floor(ty / 2) * fw + Math.floor(tx / 2)] || w.fog[Math.floor((ty + 4) / 2) * fw + Math.floor(tx / 2)]) HL.text(g, n, ox + tx * 8 * s, oy + ty * 8 * s, P.ink, 0.5);
   HL.text(g, w.name, G.W / 2, G.H - 10, P.cream3, 0.5);
+  for (const o of w.objects) {
+    const sight = G.flags['sigil:sight'], X = Math.round(ox + o.x * s), Y = Math.round(oy + o.y * s);
+    if (o.t === 'shrine' && (G.flags['shrine:' + o.id] || sight || w.fog[Math.floor(o.y / 16) * fw + Math.floor(o.x / 16)])) { g.fillStyle = G.flags['shrine:' + o.id] ? '#7fe8e0' : '#3e8a86'; g.fillRect(X - 1, Y - 2, 3, 5); g.fillRect(X - 2, Y, 5, 1); }
+    if (o.t === 'pickup' && o.shard && !o.taken && sight) { g.fillStyle = Math.floor(G.time * 4) % 2 ? '#d8fffa' : '#7fe8e0'; g.fillRect(X, Y, 2, 2); }
+  }
+  // travel between awakened shrines
+  const aw = Object.keys(HL.SHRINES).filter((k) => G.flags['shrine:' + k]);
+  if (aw.length) {
+    HL.text(g, 'Travel', G.W - G.safe.r - 70, 30, '#7fe8e0');
+    aw.forEach((k, i) => UI.button(g, HL.SHRINES[k].name.replace('Shrine of ', '').replace('The ', ''), G.W - G.safe.r - 74, 42 + i * 19, () => G.travelTo(k), { w: 66, h: 15 }));
+  }
 };
 UI.drawJournal = (g, G) => {
   const P = P_, M = UI.menu, L = G.safe.l + 16, list = G.journal;
@@ -383,20 +408,15 @@ UI.drawPanel = (g, G, x, y, w, h) => { g.fillStyle = P_.ui; g.fillRect(x, y, w, 
 UI.drawDialog = (g, G) => {
   const P = P_, d = G.dialog;
   if (d.kind === 'note') {
-    const n = HL.NOTES[d.id], w = Math.min(300, G.W - 40), lines = HL.wrap(n.text, w - 24), h = 44 + lines.length * 10;
-    const x = (G.W - w) / 2, y = Math.max(8, (G.H - h) / 2);
-    UI.drawPanel(g, G, x, y, w, h);
-    HL.text(g, n.title, G.W / 2, y + 8, P.cream, 0.5); HL.text(g, '---', G.W / 2, y + 17, P.cream3, 0.5);
-    lines.forEach((l, i) => HL.text(g, l, x + 12, y + 28 + i * 10, P.cream2));
-    HL.text(g, '(tap)', G.W / 2, y + h + 4, P.cream3, 0.5);
-  } else {
-    const w = Math.min(340, G.W - 30), line = d.lines[d.i], lines = HL.wrap(line, w - 24), h = 26 + lines.length * 10;
-    const x = (G.W - w) / 2, y = G.H - h - 10 - G.safe.b;
-    UI.drawPanel(g, G, x, y, w, h);
-    HL.text(g, d.name, x + 10, y + 6, P.tan0);
-    lines.forEach((l, i) => HL.text(g, l, x + 12, y + 17 + i * 10, P.cream));
-    if (Math.floor(G.time * 2) % 2) HL.text(g, '>', x + w - 10, y + h - 10, P.cream3);
-  }
+    const n = HL.NOTES[d.id], w = Math.min(320, G.W - 60), lines = HL.wrap(n.text, w);
+    g.fillStyle = 'rgba(6,4,4,0.82)'; g.fillRect(0, 0, G.W, G.H);
+    const h = 40 + lines.length * 10, y = Math.max(14, (G.H - h) / 2);
+    HL.text(g, n.title.toUpperCase(), G.W / 2, y, P.cream, 0.5, 2, P.ink);
+    const tw = Math.min(G.W - 40, HL.textWidth(n.title.toUpperCase(), 2) + 30);
+    g.fillStyle = '#7fe8e0'; g.fillRect(G.W / 2 - tw / 2, y + 21, tw, 1);
+    lines.forEach((l, i) => HL.text(g, l, G.W / 2, y + 30 + i * 10, P.cream2, 0.5, 1, P.ink));
+    HL.text(g, 'tap to close', G.W / 2, G.H - 14, P.cream3, 0.5);
+  } else { G.dialog = null; G.state = 'play'; }
   UI.region(0, 0, G.W, G.H, () => G.advanceDialog());
 };
 UI.drawFire = (g, G) => {

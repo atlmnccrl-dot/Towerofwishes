@@ -305,7 +305,12 @@ HL.R3 = (() => {
         case 'fire': e.base = mk(S('fireRing'), o.x, o.y); e.flame = flame(o.x, o.y, 1); group.add(e.flame); break;
         case 'brazier': e.base = mk(S('brazier'), o.x, o.y - 2); e.flame = flame(o.x, o.y - 2, 0.6, 8); group.add(e.flame); break;
         case 'npc': { e.fig = humanoid({ c0: P.st2, c1: P.st3, c2: P.tan1, face: P.cream2, leg: P.ink }); e.fig.g.position.set(o.x, 0, o.y); e.fig.g.rotation.y = Math.PI / 2; e.fig.rig.scale.y = 0.8; group.add(e.fig.g); break; }
-        case 'pickup': if (o.pedestal) e.base = mk(S('pedestal'), o.x, o.y + 1); break;
+        case 'pickup':
+          if (o.pedestal) e.base = mk(S('pedestal'), o.x, o.y + 1);
+          if (o.shard) { e.shard = new T.Mesh(new T.OctahedronGeometry(2.2, 0), new T.MeshBasicMaterial({ color: '#9ff5ec' })); e.shard.scale.y = 1.6; group.add(e.shard); e.beam = new T.Mesh(new T.CylinderGeometry(0.5, 1.2, 60, 6, 1, true).translate(0, 30, 0), new T.MeshBasicMaterial({ color: '#7fe8e0', transparent: true, opacity: 0.35, depthWrite: false })); e.beam.position.set(o.x, 0, o.y); group.add(e.beam); }
+          break;
+        case 'shrine': { e.sh = shrineModel(1); e.sh.g.position.set(o.x, 0, o.y - 4); group.add(e.sh.g); occluders.push(e.sh.base); break; }
+        case 'pylon': { const p2 = new Parts(); p2.add('box', 0, 0, 0, 5, 3, 5, P.st3); p2.add('taper', 0, 3, 0, 1.8, 8, 1.8, P.st2); p2.place(0, o.x, o.y - 2); e.base = meshOf(p2); group.add(e.base); e.cr = new T.Mesh(new T.OctahedronGeometry(2.4, 0), new T.MeshBasicMaterial({ color: '#4a5658' })); e.cr.position.set(o.x, 15, o.y - 2); e.cr.scale.y = 1.4; group.add(e.cr); break; }
         case 'tower': {
           const tex = towerTexture(), m = new T.Mesh(new T.CylinderGeometry(29, 31, 190, 28, 1, true), new T.MeshLambertMaterial({ map: tex }));
           m.position.set(o.x, 95, o.y - 2); m.castShadow = true; m.receiveShadow = true; group.add(m); occluders.push(m);
@@ -323,6 +328,35 @@ HL.R3 = (() => {
     for (const k in chunks) { const m = meshOf(chunks[k]); group.add(m); occluders.push(m); }
     return { group, dyn, occluders, buildings, w, dark: w.dark };
   }
+  // the Lumen shrine: an octagonal dais, broken slabs, an obelisk with veins of light, a floating crystal, two rune rings
+  function shrineModel(scale = 1) {
+    const g = new T.Group(), p = new Parts();
+    p.add('cyl', 0, 0, 0, 13, 1.6, 13, P.st3); p.add('cyl', 0, 1.6, 0, 10, 1.2, 10, P.st2);
+    for (let i = 0; i < 6; i++) { const a = (i / 6) * HL.TAU + 0.3; if (i === 4) continue; p.add('box', Math.cos(a) * 15, 0, Math.sin(a) * 15, 3.5, 7 + (i % 3) * 4, 2.6, i % 2 ? P.st2 : P.st1, -a + Math.PI / 2, 0, (i % 2 ? 0.12 : -0.08)); }
+    p.add('taper', 0, 2.8, 0, 3.6, 20, 3.6, '#3b3a40');
+    p.add('pyr', 0, 22.8, 0, 2.6, 4, 2.6, '#3b3a40');
+    const base = meshOf(p); g.add(base);
+    const veinMat = new T.MeshBasicMaterial({ color: '#2a3a3a' });
+    for (let i = 0; i < 4; i++) { const v = new T.Mesh(bx(0.7, 16, 0.4), veinMat); const a = (i / 4) * HL.TAU + Math.PI / 4; v.position.set(Math.cos(a) * 2.9, 11, Math.sin(a) * 2.9); v.rotation.y = -a; g.add(v); }
+    const crystal = new T.Mesh(new T.OctahedronGeometry(3.4, 0), new T.MeshBasicMaterial({ color: '#4a5658' })); crystal.position.y = 33; crystal.scale.y = 1.5; g.add(crystal);
+    const ringMat = new T.MeshBasicMaterial({ color: '#4a5658' });
+    const rings = [7.5, 10.5].map((r, i) => { const m = new T.Mesh(new T.TorusGeometry(r, 0.45, 4, 32), ringMat); m.position.y = 18 + i * 6; m.rotation.x = Math.PI / 2 + (i ? 0.35 : -0.25); g.add(m); return m; });
+    const light = new T.PointLight(0x7fe8e0, 0, 110, 1.3); light.position.y = 26; g.add(light);
+    g.scale.setScalar(scale);
+    return { g, crystal, rings, veinMat, ringMat, light, base };
+  }
+  const LC = { v0: new T.Color('#2a3a3a'), v1: new T.Color('#7fe8e0'), r0: new T.Color('#4a5658'), r1: new T.Color('#9ff5ec') };
+  function animShrine(sh, awake, t, k = 1) {
+    sh.awakeK = HL.lerp(sh.awakeK || 0, awake ? 1 : 0, 0.05);
+    const a = sh.awakeK;
+    sh.crystal.rotation.y = t * (0.4 + a * 1.6); sh.crystal.position.y = 33 + Math.sin(t * 1.6) * (0.5 + a * 1.5);
+    sh.rings[0].rotation.z = t * (0.2 + a * 1.2); sh.rings[1].rotation.z = -t * (0.15 + a * 0.9);
+    sh.crystal.material.color.set(a > 0.5 ? (Math.sin(t * 3) > 0 ? '#bffaf3' : '#7fe8e0') : '#4a5658');
+    sh.veinMat.color.lerpColors(LC.v0, LC.v1, a);
+    sh.ringMat.color.lerpColors(LC.r0, LC.r1, a);
+    sh.light.intensity = a * 70 * k * (0.85 + Math.sin(t * 4) * 0.15);
+  }
+  R.shrineModel = shrineModel; R.animShrine = animShrine;
   function glyphSprite(k, x, y, z) {
     const glyphs = ['.###./#.#.#/.###.', '..#../.###./#####', '.##../#..../.##..', '#.#.#/.###./#.#.#'];
     const c = HL.canvas(7, 5);
@@ -437,7 +471,8 @@ HL.R3 = (() => {
     else if (e.type === 'lurker') f = lurker(mats);
     else if (e.type === 'keeper') f = keeper(mats);
     else f = humanoid(HL.LOOKS[e.type], { shield: e.type === 'guard', tabard: e.type === 'guard' ? P.red0 : null, scale: e.type === 'guard' ? 1.18 : 1 });
-    if (!f.mats) f.mats = mats; else f.mats.push(...mats);
+    if (!f.mats) f.mats = mats; else if (f.mats !== mats) f.mats.push(...mats);
+    if (e !== 'player' && e.elite) { f.g.scale.multiplyScalar(e.bossName ? 1.25 : 1.12); if (f.eyes) { f.eyes.material = f.eyes.material.clone(); f.eyes.material.color.set('#7fe8e0'); } }
     const sh = new T.Mesh(new T.CircleGeometry(1, 10), new T.MeshBasicMaterial({ color: 0x140e0f, transparent: true, opacity: 0.35, depthWrite: false }));
     sh.rotation.x = -Math.PI / 2; sh.position.y = 0.15; sh.scale.setScalar(e !== 'player' && e.type === 'keeper' ? 14 : e !== 'player' && e.type === 'hound' ? 4.5 : 3.6); f.shadow = sh;
     return f;
@@ -529,10 +564,10 @@ HL.R3 = (() => {
     // post pass
     rt = new T.WebGLRenderTarget(4, 4, { minFilter: T.NearestFilter, magFilter: T.NearestFilter, depthBuffer: true });
     postMat = new T.ShaderMaterial({
-      uniforms: { tD: { value: rt.texture }, res: { value: new T.Vector2(4, 4) }, time: { value: 0 }, tilt: { value: 1 }, hurt: { value: 0 }, fade: { value: 0 }, flash: { value: 0 }, flashCol: { value: new T.Color(1, 1, 1) }, chroma: { value: 0 } },
+      uniforms: { tD: { value: rt.texture }, res: { value: new T.Vector2(4, 4) }, time: { value: 0 }, tilt: { value: 1 }, hurt: { value: 0 }, fade: { value: 0 }, flash: { value: 0 }, flashCol: { value: new T.Color(1, 1, 1) }, chroma: { value: 0 }, tint: { value: new T.Color(1, 1, 1) }, tintAmt: { value: 0 } },
       vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
       fragmentShader: `
-        uniform sampler2D tD; uniform vec2 res; uniform float time, tilt, hurt, fade, flash, chroma; uniform vec3 flashCol; varying vec2 vUv;
+        uniform sampler2D tD; uniform vec2 res; uniform float time, tilt, hurt, fade, flash, chroma, tintAmt; uniform vec3 flashCol, tint; varying vec2 vUv;
         float b2(vec2 a){ a = floor(a); return fract(dot(a, vec2(0.5, a.y * 0.75))); }
         float bayer(vec2 a){ return b2(0.5 * a) * 0.25 + b2(a); }
         float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
@@ -554,6 +589,7 @@ HL.R3 = (() => {
           float sat = max(c.r, max(c.g, c.b)) - min(c.r, min(c.g, c.b));
           c = mix(vec3(l), c, mix(0.72, 1.2, smoothstep(0.1, 0.28, sat)));
           c *= vec3(1.03, 0.995, 0.965);
+          c = mix(c, c * pow(tint, vec3(1.0 / 2.2)) * 1.25, tintAmt);
           float d = bayer(gl_FragCoord.xy) - 0.5;
           c = floor(c * 22.0 + 0.5 + d * 0.9) / 22.0;
           vec2 q = abs(uv - 0.5) * 2.0;
@@ -662,9 +698,12 @@ HL.R3 = (() => {
       if (e.glow) { e.glow.visible = o.charge > 0; e.glow.scale.setScalar(5 + Math.sin(t * 12) * 0.6); }
       if (e.flame) { const lit = o.t === 'brazier' || G.flags['lit:' + o.id]; e.flame.visible = !!lit; if (lit && HL.dist(o.x, o.y, camT.x, camT.y) < 260) animFlame(e.flame, t); }
       if (e.door) { const lit = G.flags['d:d_tower']; e.door.material.color.set(lit ? P.lt0 : P.ink); e.doorLight.intensity = lit ? 30 : 0; }
-      if (o.t === 'pickup') { const vis = !o.taken; if (e.base) e.base.visible = true; if (vis) { const s = iconSprite(o, o.item); s.visible = true; s.position.set(o.x, (o.pedestal ? 14 : 6) + Math.sin(t * 3) * 0.8, o.y); } }
+      if (o.t === 'pickup' && o.shard) { e.shard.visible = e.beam.visible = !o.taken; e.shard.position.set(o.x, 7 + Math.sin(t * 2.4) * 1.2, o.y); e.shard.rotation.y = t * 2; e.beam.material.opacity = 0.25 + Math.sin(t * 3) * 0.08; if (!o.taken && Math.random() < 0.08 && HL.dist(o.x, o.y, camT.x, camT.y) < 200) HL.vfx.embers(o.x, o.y, 1, '#7fe8e0'); }
+      else if (o.t === 'pickup') { const vis = !o.taken; if (e.base) e.base.visible = true; if (vis) { const s = iconSprite(o, o.item); s.visible = true; s.position.set(o.x, (o.pedestal ? 14 : 6) + Math.sin(t * 3) * 0.8, o.y); } }
+      if (e.sh && HL.dist(o.x, o.y, camT.x, camT.y) < 320) { const awake = !!G.flags['shrine:' + o.id] || (G.state === 'cut' && G.cutAt && G.cutAt.x === o.x && G.cut && G.cut.id === 'shrine' && G.cut.i > 0); animShrine(e.sh, awake, t); if (awake && Math.random() < 0.25) HL.vfx.embers(o.x + (Math.random() - 0.5) * 20, o.y - 4, 1, '#7fe8e0'); }
+      if (e.cr) { const lit = o.litT > 0; e.cr.material.color.set(lit ? (o.litT < 2 && Math.floor(t * 8) % 2 ? '#4a5658' : '#bffaf3') : '#4a5658'); e.cr.rotation.y = t * (lit ? 3 : 0.5); e.cr.position.y = 15 + Math.sin(t * 2 + o.x) * 0.8; }
     }
-    for (const o of w.objects) if (o.t === 'pickup' && !o.taken && !cur.dyn.has(o)) { const s = iconSprite(o, o.item); s.visible = true; s.position.set(o.x, 6 + Math.sin(t * 3) * 0.8, o.y); }
+    for (const o of w.objects) if (o.t === 'pickup' && !o.taken && !cur.dyn.has(o) && !o.shard) { const s = iconSprite(o, o.item); s.visible = true; s.position.set(o.x, 6 + Math.sin(t * 3) * 0.8, o.y); }
     for (const d of G.drops) { const s = iconSprite(d, d.item); s.visible = true; s.position.set(d.x, 5 + Math.sin(t * 4 + d.x) * 0.8, d.y); }
     for (const [key, s] of iconSprites) { if (!s.userData.seen || (key.taken) || (key.gone)) { s.visible = false; } s.userData.seen = false; }
     // figures
@@ -751,6 +790,14 @@ HL.R3 = (() => {
       }
     });
     for (const [key, f] of figs) if (!alive.has(key)) { scene.remove(f.g); scene.remove(f.shadow); figs.delete(key); }
+    // the trial's wall of light
+    if (!R.barrier) { R.barrier = new T.Mesh(new T.CylinderGeometry(1, 1, 1, 48, 1, true).translate(0, 0.5, 0), new T.MeshBasicMaterial({ color: '#7fe8e0', transparent: true, opacity: 0.3, depthWrite: false, side: T.DoubleSide })); scene.add(R.barrier); }
+    const tr = G.trial; R.barrier.visible = !!tr && G.state !== 'cut';
+    if (tr) { R.barrier.position.set(tr.cx, 0, tr.cy); R.barrier.scale.set(tr.r, 26 + Math.sin(t * 3) * 2, tr.r); R.barrier.material.opacity = 0.22 + Math.sin(t * 5) * 0.06; if (Math.random() < 0.5) { const a = Math.random() * HL.TAU; HL.vfx.embers(tr.cx + Math.cos(a) * tr.r, tr.cy + Math.sin(a) * tr.r, 1, '#7fe8e0'); } }
+    if (!R.wardMesh) { R.wardMesh = new T.Mesh(new T.IcosahedronGeometry(1, 1), new T.MeshBasicMaterial({ color: '#7fe8e0', transparent: true, opacity: 0.2, depthWrite: false, wireframe: true })); scene.add(R.wardMesh); }
+    R.wardMesh.visible = !!(p && p.ward && !G.hidePlayer);
+    if (p && p.ward) { R.wardMesh.position.set(p.x, 7 + (p.lift || 0), p.y); R.wardMesh.scale.setScalar(9 + Math.sin(t * 4) * 0.4); R.wardMesh.rotation.y = t; }
+    for (const e of G.enemies) if (e.elite && !e.dead && !e.hidden && Math.random() < 0.35) HL.vfx.embers(e.x, e.y, 1, '#7fe8e0');
     // telegraphs
     for (const d of decals) { d.used = false; d.m.visible = false; }
     for (const e of G.enemies) { drawTele(e); if (e.teles) { const keep = e.tele; for (const tt of e.teles) { e.tele = tt; drawTele(e); } e.tele = keep; } }
@@ -808,7 +855,8 @@ HL.R3 = (() => {
     // draw
     postMat.uniforms.time.value = t; postMat.uniforms.tilt.value = w.dark ? 0.5 : 1;
     postMat.uniforms.hurt.value = Math.max(G.hurtVig || 0, p && p.hp < 30 ? 0.35 + Math.sin(t * 5) * 0.12 : 0);
-    postMat.uniforms.fade.value = G.state === 'fade' ? HL.clamp(G.fadeT < 0.35 ? G.fadeT / 0.35 : 1 - (G.fadeT - 0.35) / 0.35, 0, 1) : 0;
+    postMat.uniforms.fade.value = G.state === 'fade' ? HL.clamp(G.fadeT < 0.35 ? G.fadeT / 0.35 : 1 - (G.fadeT - 0.35) / 0.35, 0, 1) : G.state === 'cut' ? (G.cutFade || 0) : 0;
+    const gr = G.state === 'cut' && G.cutGrade; postMat.uniforms.tintAmt.value = gr ? gr[1] : 0; if (gr) postMat.uniforms.tint.value.set(gr[0]);
     renderer.info.reset(); renderer.setRenderTarget(rt); renderer.render(scene, cam);
     renderer.setRenderTarget(null); renderer.render(postScene, postCam);
   };
@@ -827,11 +875,13 @@ HL.R3 = (() => {
     for (const a of list) {
       alive.add(a);
       let f = actorFigs.get(a);
-      if (!f) { f = a.prop === 'bell' ? bellProp() : figFor(a.type === 'player' ? 'player' : { type: a.type }); actorFigs.set(a, f); scene.add(f.g); if (f.shadow) scene.add(f.shadow); if (a.type === 'player') equipWeapon(f, a.weapon || null); else if (a.type === 'archer') equipWeapon(f, 'bow'); }
+      if (!f) { f = a.prop === 'shrine' ? shrineModel(a.scale || 3) : a.prop === 'bell' ? bellProp() : figFor(a.type === 'player' ? 'player' : { type: a.type }); actorFigs.set(a, f); scene.add(f.g); if (f.shadow) scene.add(f.shadow); if (a.type === 'player') equipWeapon(f, a.weapon || null); else if (a.type === 'archer') equipWeapon(f, 'bow'); }
       if (a.prop === 'bell') { f.g.position.set(a.x, a.h, a.y); f.piv.rotation.z = a.rot || 0; continue; }
+      if (a.prop === 'shrine') { f.g.position.set(a.x, 0, a.y); animShrine(f, a.awake !== false, t, a.k == null ? 3 : a.k); f.g.visible = !a.hidden; if (a.broken) { f.crystal.visible = false; f.light.intensity = 0; } continue; }
       const rise = a.rise == null ? 1 : a.rise;
       if (f.legs && f.arm) poseHumanoid(f, { x: a.x, y: a.y, face: a.face || 0, moving: !!a.moving, walkT: a.walkT || 0, pose: a.pose, wang: a.face + 0.8, glint: a.glint, lean: a.lean });
       else { f.g.position.set(a.x, 0, a.y); f.g.rotation.y = rotFor(a.face || 0); }
+      if (a.kneel && f.rig) { f.rig.position.y = -2.6; f.rig.rotation.x = 0.4; f.legs.forEach((l) => (l.rotation.x = -1.2)); }
       if (a.getUp != null && f.rig) { const k = HL.clamp(a.getUp, 0, 1); f.rig.rotation.x = -Math.PI / 2 * (1 - k); f.rig.position.y = 1.4 * (1 - k); f.rig.position.z = -5 * (1 - k); }
       f.g.position.y = -(1 - rise) * 15;
       if (f.eyes) f.eyes.visible = !!a.glint;
