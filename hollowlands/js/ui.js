@@ -146,7 +146,7 @@ UI.drawHUD = (g, G, dt) => {
   if (ob) {
     UI.objFlash = Math.max(0, (UI.objFlash || 0) - dt);
     const lines = HL.wrap(ob.text, Math.min(200, G.W * 0.45));
-    let y = t + 15;
+    let y = t + 19;
     if (UI.objFlash > 0) { HL.text(g, 'New objective', m, y, Math.floor(G.time * 6) % 2 ? P.lt0 : P.tan0, 0, 1, P.ink); y += 10; }
     g.fillStyle = 'rgba(20,16,16,0.45)'; g.fillRect(m - 3, y - 2, Math.min(206, G.W * 0.45 + 6), lines.length * 10 + 3);
     g.fillStyle = ob.optional ? P.cream3 : P.tan0; g.fillRect(m - 3, y - 2, 1, lines.length * 10 + 3);
@@ -175,6 +175,7 @@ UI.drawHUD = (g, G, dt) => {
       g.globalAlpha = 1;
     }
   }
+  HL.Epic.drawHUD(g, G, dt);
   if (UI.toastT > 0) { UI.toastT -= dt; const lines = HL.wrap(UI.toastMsg, 220); lines.forEach((l, i) => HL.text(g, l, G.W / 2, G.H - 52 - G.safe.b - (lines.length - 1 - i) * 10, P.cream, 0.5, 1, P.ink)); }
   // ultimate cut-in: a slash of light across the screen with its name
   if (G.ultBanner && G.ultBanner.t < 1.1) {

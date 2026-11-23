@@ -466,6 +466,7 @@ HL.R3 = (() => {
     let f;
     if (e === 'player') f = humanoid(HL.LOOKS.player, { cape: true });
     else if (e.type === 'wraith') f = wraith(mats);
+    else if (e.type === 'husk') { const pp = new Parts(); pp.add('box', -0.9, 0, 0, 1.2, 3, 1.3, P.red3); pp.add('box', 0.9, 0, 0, 1.2, 3, 1.3, P.red3); pp.add('taper', 0, 2.8, 0, 2.2, 5, 2, P.red1); pp.add('box', 0, 7.6, 0.5, 2.4, 2.4, 2.4, P.red2); pp.add('box', 0, 8.2, 1.75, 1.6, 0.5, 0.2, P.red0); const mat = vcMat.clone(); mats.push(mat); const m = meshOf(pp, mat); const rig = new T.Group(); rig.add(m); const g = new T.Group(); g.add(rig); f = { g, rig, mats, husk: true }; }
     else if (e.type === 'brute') f = humanoid(HL.LOOKS.brute, { scale: 1.7 });
     else if (e.type === 'hound') f = hound(mats);
     else if (e.type === 'lurker') f = lurker(mats);
@@ -764,6 +765,9 @@ HL.R3 = (() => {
         f.rig.visible = em > 0.02;
         f.segs.forEach((m, i) => { m.position.set(Math.sin(i * 0.8 + e.t * 4) * (i / 6) * 1.6, 1.2 + i * 2.2 * em, 0); });
         f.eyes.position.set(f.segs[5].position.x, 1.2 + 5 * 2.2 * em + 0.6, 1.2); f.eyes.visible = em > 0.5;
+      } else if (e.type === 'husk') {
+        f.g.position.set(e.x, 0, e.y); f.g.rotation.y = rotFor(e.face);
+        f.rig.position.y = e.dead ? 0 : Math.abs(Math.sin(e.walkT * Math.PI * 2)) * 0.8; f.rig.rotation.x = e.dead ? -Math.PI / 2 : e.state === 'tele' ? 0.4 : e.state === 'atk' ? 0.6 : 0.15;
       } else if (e.type === 'wraith') {
         f.g.position.set(e.x, 4 + Math.sin(e.t * 2.4) * 1.5, e.y); f.g.rotation.y = rotFor(e.face);
         f.g.visible = !gone && !e.hidden; f.rig.rotation.x = e.dead ? -1.2 : 0;
@@ -856,7 +860,7 @@ HL.R3 = (() => {
     postMat.uniforms.time.value = t; postMat.uniforms.tilt.value = w.dark ? 0.5 : 1;
     postMat.uniforms.hurt.value = Math.max(G.hurtVig || 0, p && p.hp < 30 ? 0.35 + Math.sin(t * 5) * 0.12 : 0);
     postMat.uniforms.fade.value = G.state === 'fade' ? HL.clamp(G.fadeT < 0.35 ? G.fadeT / 0.35 : 1 - (G.fadeT - 0.35) / 0.35, 0, 1) : G.state === 'cut' ? (G.cutFade || 0) : 0;
-    const gr = G.state === 'cut' && G.cutGrade; postMat.uniforms.tintAmt.value = gr ? gr[1] : 0; if (gr) postMat.uniforms.tint.value.set(gr[0]);
+    const gr = G.state === 'cut' ? G.cutGrade : G.tide && G.tide.active ? ['#ff7a6a', 0.2] : null; postMat.uniforms.tintAmt.value = gr ? gr[1] : 0; if (gr) postMat.uniforms.tint.value.set(gr[0]);
     renderer.info.reset(); renderer.setRenderTarget(rt); renderer.render(scene, cam);
     renderer.setRenderTarget(null); renderer.render(postScene, postCam);
   };
@@ -902,6 +906,7 @@ HL.R3 = (() => {
       if (e.state === 'alert') { const s = R.project(e.x, e.type === 'keeper' ? 46 : 18, e.y); HL.text(g, '!', s.x, s.y - 8, P.red0, 0.5, 1, P.ink); }
       if (e.hp < e.maxhp && e.type !== 'keeper') { const s = R.project(e.x, 0, e.y), w = 10, f = Math.max(0, e.hp / e.maxhp); g.fillStyle = P.ink; g.fillRect(Math.round(s.x - w / 2), Math.round(s.y + 3), w, 2); g.fillStyle = P.red0; g.fillRect(Math.round(s.x - w / 2), Math.round(s.y + 3), Math.ceil(w * f), 2); }
       if (e.vuln > 0) { const s = R.project(e.x, 14, e.y); HL.text(g, '*', s.x, s.y - 8, P.cream, 0.5, 1, P.ink); }
+      if (p && HL.Epic.executable(e) && HL.dist(p.x, p.y, e.x, e.y) < 70) { const s = R.project(e.x, e.type === 'brute' ? 24 : 16, e.y), x = Math.round(s.x), y = Math.round(s.y) - 6 + Math.round(Math.sin(G.time * 8)); g.fillStyle = P.ink; for (let j = -4; j <= 4; j++) { const w = 4 - Math.abs(j); g.fillRect(x - w - 1, y + j, w * 2 + 3, 1); } g.fillStyle = '#ff6a6a'; for (let j = -3; j <= 3; j++) { const w = 3 - Math.abs(j); g.fillRect(x - w, y + j, w * 2 + 1, 1); } }
     }
     if (p && R.occluded) {
       const s = R.project(p.x, 6, p.y);

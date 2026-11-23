@@ -98,6 +98,14 @@
           tick(a, t) { const n = Math.floor(t / 0.35); while (a.lit.length && (a.done || 0) < n) { const b = a.lit.shift(); a.done = (a.done || 0) + 1; V().burst(b.x, b.y, 8, P.fire, 10, 40); V().light(b.x, b.y, 0xffa050, 80, 0.5); a.play('fire'); } } },
       ],
     },
+    tide: {
+      shots: [
+        { dur: 3.6, dark: 0.5, grade: ['#ff6a5a', 0.32], titleFn: (G) => [G.cutAt.name, 'hold the line'], titleAt: 0.9,
+          camFn: (G) => { const k = G.cutAt; return [[0, k.x, 34, k.y + 40, k.x, 0, k.y, 34], [1, k.x, 120, k.y + 118, k.x, 0, k.y, 42]]; },
+          start(a) { a.play('growl'); a.play('rumble'); a.shake(3); },
+          tick(a, t, G) { if (t > 0.9 && !a.h) { a.h = true; a.play('toll'); V().flash('#ff6a5a', 0.3); V().chroma(1.2); a.shake(4); } if (Math.random() < 0.3) for (const e of G.enemies) if (e.type === 'husk' && Math.random() < 0.05) V().embers(e.x, e.y, 1, P.red0); } },
+      ],
+    },
     keeper: {
       shots: [
         { dur: 3.2, dark: 0, text: 'Something kneels in the dark, wrapped in chains.',

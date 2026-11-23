@@ -42,7 +42,7 @@ G.boot2 = function () {
   };
   requestAnimationFrame(frame);
 };
-G.isPlaying = () => G.player && G.world && ['play', 'menu', 'dialog', 'fire', 'anvil'].includes(G.state);
+G.isPlaying = () => G.player && G.world && ['play', 'menu', 'dialog', 'fire', 'anvil', 'perk'].includes(G.state);
 G.readSafe = () => {
   const d = document.getElementById('safe'); if (!d) return { l: 0, r: 0, t: 0, b: 0 };
   const cs = getComputedStyle(d); const n = (v) => parseFloat(v) || 0;
@@ -251,7 +251,7 @@ G.loadMap = function (id, x, y) {
   w.mapImg = null;
   G.player.x = x; G.player.y = y; G.player.vx = G.player.vy = 0;
   G.enemies = []; G.shots = []; G.pshots = []; G.impacts = []; G.drops = []; HL.fx.list = []; HL.vfx.clear();
-  G.waves = null; G.trial = null; G.bossAwake = false; G.region = null;
+  G.waves = null; G.trial = null; G.tide = null; G.bossAwake = false; G.region = null; HL.Epic.reset();
   for (const s of w.def.enemies) {
     if (s.id && G.flags['k:' + s.id]) continue;
     G.enemies.push(new HL.Enemy(s));
@@ -315,6 +315,7 @@ G.give = function (id, n = 1, quiet) {
     HL.vfx.beam(G.player.x, G.player.y, rc || P.cream, 1.1, 4, 100); HL.vfx.shock(G.player.x, G.player.y, 16, rc || P.cream, 0.5); HL.vfx.burst(G.player.x, G.player.y, 8, rc || P.cream, 16, 60); HL.vfx.flash(rc || P.cream, 0.2);
     HL.UI.showBanner(it.name, (HL.RARITY[it.rarity] || '') + (it.kind === 'weapon' ? ' weapon' : it.kind === 'armor' ? ' armour' : ' relic'));
   }
+  if (id === 'tide_mark' && added) HL.UI.showBanner('MARK OF THE TIDE', '+10% damage, forever');
   if (id === 'lumen_shard' && added) {
     G.recalcHp(); G.player.hp = Math.min(G.player.maxhp, G.player.hp + 15);
     HL.vfx.beam(G.player.x, G.player.y, '#7fe8e0', 1, 5, 120); HL.vfx.shock(G.player.x, G.player.y, 22, '#7fe8e0', 0.6); HL.vfx.flash('#d8fffa', 0.3); Au.play('ult');
@@ -479,7 +480,7 @@ G.interact = function (it) {
   }
 };
 // ------------------------------------------------------------------ LUMEN: shrines, trials, pylons, shards, travel
-G.maxHp = () => 100 + (G.flags['sigil:vessel'] ? 30 : 0) + 5 * (G.inv.lumen_shard || 0);
+G.maxHp = () => 100 + (G.flags['sigil:vessel'] ? 30 : 0) + 5 * (G.inv.lumen_shard || 0) + 4 * ((G.flags.lvl || 1) - 1) + (G.flags['perk:giant'] ? 25 : 0);
 G.recalcHp = function () { if (!G.player) return; const m = G.maxHp(); G.player.maxhp = m; G.player.hp = Math.min(G.player.hp, m); };
 G.awaken = function (o) {
   const d = HL.SHRINES[o.id], sg = HL.SIGILS[d.sigil];
@@ -645,6 +646,7 @@ G.frame = function (dt) {
     HL.fx.update(dt);
   } else {
     if (G.state === 'dead') G.deadT += dt;
+    if (G.state === 'perk') G.perkT -= dt;
     if ((G.state === 'menu') && (inp.menu || inp.esc)) G.closeMenu();
     else if (G.state === 'dialog' && (inp.interact || inp.enter || inp.attack || inp.esc)) G.advanceDialog();
     else if ((G.state === 'fire' || G.state === 'anvil' || G.state === 'end') && inp.esc) G.state = 'play';
@@ -680,6 +682,8 @@ G.update = function (dt, inp) {
   G.updatePShots(dt);
   G.updateImpacts(dt);
   G.updateTrial(dt);
+  HL.Epic.update(dt);
+  if (G.perkChoice) { G.perkDelay = (G.perkDelay == null ? 0.7 : G.perkDelay) - dt; if (G.perkDelay <= 0) { G.perkDelay = null; G.perkT = 0.45; G.state = 'perk'; HL.Input.clearTouches(); } }
   for (const o of G.world.objects) if (o.t === 'pylon' && o.litT > 0 && o.litT < 50) o.litT -= dt;
   G.updateDrops(dt);
   G.updateWaves(dt);
@@ -967,6 +971,7 @@ G.render = function (dt) {
       if (G.state === 'dead') UI.drawDead(g, G);
       if (G.state === 'end') UI.drawEnd(g, G);
       if (G.state === 'cut') UI.drawCut(g, G);
+      if (G.state === 'perk') HL.Epic.drawPerks(g, G);
       if (G.state === 'fade' && !G.use3d) { g.fillStyle = 'rgba(12,9,10,' + HL.clamp(G.fadeT < 0.35 ? G.fadeT / 0.35 : 1 - (G.fadeT - 0.35) / 0.35, 0, 1) + ')'; g.fillRect(0, 0, G.W, G.H); }
     }
   }

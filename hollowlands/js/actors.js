@@ -97,6 +97,8 @@ HL.Player = class Player {
     if (this.buffer && canAct) {
       const b = this.buffer;
       if (b.k === 'dodge' && this.st > 0) { this.buffer = null; return this.startRoll(mlen > 0.2 ? mvA : this.face); }
+      const ex = b.k === 'light' && b.aim == null ? HL.Epic.findExec(this) : null;
+      if (ex) { this.buffer = null; HL.Epic.execute(this, ex); return; }
       if ((b.k === 'light' || b.k === 'heavy') && w && this.st > 0 && (this.state !== 'attack' || this.atk.phase === 'rec')) { this.buffer = null; this.startAttack(b.k === 'heavy', b.charge, b.aim != null ? b.aim : mlen > 0.2 ? mvA : null, b.aim != null); }
     }
     // Sigil of the Ward: a shell of light returns every 10 s
@@ -126,6 +128,12 @@ HL.Player = class Player {
       case 'heal': { this.vx = inp.mx * sp * 0.4; this.vy = inp.my * sp * 0.4; if (this.t > 0.55) { this.hp = Math.min(this.maxhp, this.hp + 45); HL.fx.burst(this.x, this.y - 6, HL.P.cream2, 6, 20); this.state = 'move'; } break; }
       case 'hurt': { this.vx *= 0.85; this.vy *= 0.85; if (this.t > 0.2) this.state = 'move'; break; }
       case 'ult': this.updateUlt(dt, w); break;
+      case 'exec': { // the finisher: a leap and a killing blow
+        this.vx = 0; this.vy = 0; this.lift = Math.sin(HL.clamp(this.t / 0.3, 0, 1) * Math.PI) * 10; this.inv = Math.max(this.inv, 0.1);
+        if (this.t > 0.15 && this.execT) { const e = this.execT; this.execT = null; if (!e.dead) HL.Epic.execHit(this, e); }
+        if (this.t > 0.38) { this.state = 'move'; this.lift = 0; }
+        break;
+      }
     }
     this.dir = dirOf(this.face);
     const moved = HL.dist(0, 0, this.vx, this.vy) > 4;
@@ -146,6 +154,8 @@ HL.Player = class Player {
     for (const o of G.world.objects) if ((o.t === 'resonator' || o.t === 'pylon') && HL.dist(this.x, this.y, o.x, o.y) < 46) G.strikeProp(o);
   }
   startRoll(a) {
+    this.perfectUsed = false; HL.Epic.onDash(this);
+    if (HL.Epic.has('twin')) this.st += HL.G.flags['sigil:blink'] ? 7 : 9;
     this.state = 'roll'; this.t = 0; this.rollA = a; this.face = a; this.inv = HL.G.flags['sigil:blink'] ? 0.28 : 0.22; this.spend(HL.G.flags['sigil:blink'] ? 14 : 18);
     if (HL.G.flags['sigil:blink']) { HL.vfx.ring3d(this.x, this.y, 5, 9, '#7fe8e0', 0.3); A.play('bellHigh'); } this.atk = null; this.holdT = -1; this.chargeT = 0;
     A.play('roll'); HL.fx.dust(this.x, this.y, 4); HL.vfx.dust(this.x, this.y, 6); HL.vfx.kick(0.2);
@@ -189,6 +199,7 @@ HL.Player = class Player {
     const G = HL.G, V = HL.vfx, P = HL.P, H = a.heavy ? w.heavy : null, reach = H ? H.reach : w.reach, arc = H ? H.arc : w.arc;
     const c = Math.cos(this.face), s = Math.sin(this.face);
     A.play('swing', a.heavy);
+    HL.Epic.onStrike(this);
     if (w.shoot && !(H && H.nova)) {
       const spd = w.shoot.speed * (a.heavy ? 1.35 : 1), dmg = w.dmg * this.dmgMult() * (a.heavy ? H.mult * (0.75 + 0.25 * a.charge) : 1);
       G.pshots.push({ x: this.x + c * 6, y: this.y + s * 6, vx: c * spd, vy: s * spd, dmg, life: reach / spd + 0.15, pierce: !!(a.heavy && H.pierce), col: a.heavy ? P.lt0 : w.shoot.col, size: a.heavy ? 8 : 5, seek: w.shoot.seek || 0, hit: new Set(), heavy: a.heavy, kind: w.kind });
@@ -293,11 +304,13 @@ HL.Player = class Player {
   hurt(dmg, sx, sy) {
     const G = HL.G;
     if (this.inv > 0 || this.state === 'dead' || G.state !== 'play') return false;
+    if (this.state === 'roll' && this.t < 0.17 && !this.perfectUsed) { HL.Epic.perfect(this, sx, sy); return false; }
     if (this.ward) { this.ward = false; this.wardT = 10; this.inv = 0.5; A.play('clank'); HL.vfx.shock(this.x, this.y, 18, '#7fe8e0', 0.35); HL.vfx.burst(this.x, this.y, 7, '#7fe8e0', 14, 60); HL.vfx.flash('#d8fffa', 0.2); HL.fx.text(this.x, this.y - 16, 'warded', '#7fe8e0', 0.8); return false; }
     const real = Math.max(1, Math.round(dmg * (1 - this.def())));
     this.hp -= real; this.inv = 0.6; this.flash = 0.12; G.hitstop = 0.06; G.shake = 2.5; G.hurtVig = 0.6;
-    const a = Math.atan2(this.y - sy, this.x - sx);
-    this.vx = Math.cos(a) * 90; this.vy = Math.sin(a) * 90;
+    HL.Epic.onHurt();
+    const a = Math.atan2(this.y - sy, this.x - sx), kb = HL.Epic.has('giant') ? 45 : 90;
+    this.vx = Math.cos(a) * kb; this.vy = Math.sin(a) * kb;
     HL.vfx.hit(this.x, this.y, a + Math.PI, 1.5, HL.P.red0); HL.vfx.flash('#c4473f', 0.22); HL.vfx.chroma(0.8); HL.vfx.kick(0.5);
     A.play('hurt');
     if (this.state !== 'ult') { this.state = 'hurt'; this.t = 0; this.atk = null; this.holdT = -1; this.chargeT = 0; }
@@ -347,8 +360,8 @@ HL.hitEnemy = function (e, dmg, o) {
     }
     e.state = 'stagger'; e.t = 0; e.stagT = 1.3; A.play('clank'); HL.fx.text(e.x, e.y - 16, 'guard broken', HL.P.cream2, 0.8);
   }
-  let mult = 1;
-  if (e.vuln > 0) mult = 1.5;
+  let mult = HL.Epic.dmgMult();
+  if (e.vuln > 0) mult *= 1.5;
   if (e.type === 'keeper' && e.stunned > 0) mult = 1.6;
   e.hp -= dmg * mult; e.flash = 0.09; e.aggro = true;
   G.hitstop = Math.max(G.hitstop, o.heavy ? 0.085 : 0.045); G.shake = Math.max(G.shake, o.heavy ? 2.2 : 1);
@@ -357,7 +370,8 @@ HL.hitEnemy = function (e, dmg, o) {
   HL.vfx.hit(e.x, e.y, ang + Math.PI, o.heavy ? 2 : 1, o.col || (armoured ? HL.P.lt1 : HL.P.red0));
   if (!armoured) HL.vfx.burst(e.x, e.y, 6, e.type === 'wraith' ? '#9fb4c8' : HL.P.red1, o.heavy ? 8 : 4, 50, 0.4);
   if (o.heavy) HL.vfx.kick(0.35);
-  if (G.eq.relic === 'bell_shard' && !o.ult) G.player.ult = Math.min(100, G.player.ult + (o.heavy ? 9 : 6));
+  if (G.eq.relic === 'bell_shard' && !o.ult) G.player.ult = Math.min(100, G.player.ult + (o.heavy ? 9 : 6) * (HL.Epic.has('fury') ? 1.5 : 1));
+  HL.Epic.onHit(e, o, dmg * mult);
   if (e.type !== 'keeper') {
     const kb = (o.heavy ? 70 : 38) * (e.type === 'guard' ? 0.4 : 1);
     e.vx = -Math.cos(ang) * kb; e.vy = -Math.sin(ang) * kb;
@@ -372,6 +386,7 @@ HL.killEnemy = function (e, o) {
   e.dead = true; e.deadT = 0; e.tele = null; e.wave = null;
   A.play('die');
   HL.vfx.death(e);
+  HL.Epic.onKill(e, o);
   if (e.type !== 'keeper' && o && (o.heavy || o.ult)) HL.vfx.slowmo(0.16, 0.35);
   if (e.type === 'brute' || e.type === 'guard') { HL.vfx.kick(0.6); G.shake = Math.max(G.shake, 3); }
   if (G.eq.relic === 'bell_shard') G.player.ult = Math.min(100, G.player.ult + 10);
@@ -608,6 +623,14 @@ HL.Enemy = class Enemy {
     } else if (this.state === 'rec') {
       if (this.t > this.recT) { this.state = 'walk'; this.t = 0; this.cool = (rage ? 0.6 : 1.1) + Math.random() * 0.6; }
     }
+  }
+  // Hollow Husk: the tide's rank and file, weak alone, deadly in numbers
+  ai_husk(dt, p, dist, toP, sees) {
+    if (this.state === 'idle' || this.state === 'alert') { this.state = 'chase'; this.t = 0; }
+    if (this.state === 'chase') { this.face = toP; this.stepToward(toP + Math.sin(this.t * 3 + this.x) * 0.3, this.chase, dt); if (dist < 11) { this.state = 'tele'; this.t = 0; this.lockA = toP; } }
+    else if (this.state === 'tele') { this.face = this.lockA; if (this.t > 0.24) { this.state = 'atk'; this.t = 0; this.hitDone = false; } }
+    else if (this.state === 'atk') { this.G.world.move(this, Math.cos(this.lockA) * 100 * dt, Math.sin(this.lockA) * 100 * dt); this.hitPlayerIf(dist < this.r + p.r + 3, this.dmg); if (this.t > 0.15) { this.state = 'rec'; this.t = 0; } }
+    else if (this.state === 'rec') { if (this.t > 0.45) { this.state = 'chase'; this.t = 0; } }
   }
   // Bell Wraith: floats, keeps its distance, casts three seeking orbs, blinks away and back
   ai_wraith(dt, p, dist, toP, sees) {

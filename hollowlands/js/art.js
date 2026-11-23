@@ -315,6 +315,7 @@ function buildIcons() {
   icon('iron_scrap', (pe) => { pe.r(2, 5, 4, 4, P.st2); pe.r(6, 3, 4, 3, P.st1); pe.r(5, 8, 4, 2, P.rust); pe.p(7, 3, P.st0); });
   icon('bone_dust', (pe) => { pe.disc(6, 8, 4, 2.5, P.ash1); pe.disc(6, 7, 2, 1.5, P.ash0); pe.line(3, 3, 8, 5, P.ash2); });
   icon('lamp_oil', (pe) => { pe.r(3, 4, 6, 7, P.st3); pe.r(3, 4, 2, 7, P.st2); pe.r(5, 2, 2, 2, P.ch1); pe.r(4, 7, 4, 2, P.tan1); });
+  icon('tide_mark', (pe) => { pe.disc(6, 6, 4.5, 4.5, P.red2); pe.disc(6, 6, 3, 3, P.red0); pe.line(3, 9, 9, 3, P.cream); pe.p(6, 6, P.lt0); });
   icon('lumen_shard', (pe) => { pe.shade(3, 1, 6, 10, ['#3e8a86', '#7fe8e0', '#d8fffa'], (x, y) => (Math.abs(x - 2.5) < (y < 5 ? y * 0.6 : (10 - y) * 0.6)) ? 1 - y / 12 : -1); });
   icon('champion_mantle', (pe) => { pe.r(2, 1, 8, 3, '#5f1f1f'); pe.r(1, 4, 10, 7, '#7a2828'); pe.r(6, 4, 5, 7, '#5f1f1f'); pe.r(1, 6, 10, 1, '#ffc95a'); });
   icon('twin_blades', (pe) => { pe.line(1, 10, 6, 2, P.cream2); pe.line(5, 11, 11, 4, P.cream2); pe.p(6, 1, P.cream); pe.p(11, 3, P.cream); pe.line(0, 9, 2, 11, P.red1); pe.line(4, 10, 6, 12, P.red1); });
@@ -342,6 +343,7 @@ HL.LOOKS = {
   drifter: { c0: P.red0, c1: P.red1, c2: P.red2, face: P.ink, leg: P.red3, hunch: true },
   archer: { c0: P.red1, c1: P.red2, c2: P.ch0, face: P.ink, leg: P.red3 },
   guard: { c0: P.st2, c1: P.st3, c2: P.red0, face: P.ink, leg: P.ch1, plate: true, helm: true },
+  husk: { c0: P.red1, c1: P.red2, c2: P.red3, face: P.ink, leg: P.red3, hunch: true },
   acolyte: { c0: '#d8d2c4', c1: '#a8a090', c2: '#7fe8e0', face: P.cream2, leg: '#8d8678', hem: true },
   wraith: { c0: '#c9c2b6', c1: '#8d8678', c2: '#5f6f7d', face: P.ink, leg: '#8d8678' },
   brute: { c0: P.red2, c1: P.red3, c2: P.ch0, face: P.ink, leg: P.ch1, plate: true },

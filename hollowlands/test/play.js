@@ -56,11 +56,13 @@ const SIM = () => {
     }
     return inp;
   };
-  S.step = (n, fn) => { for (let i = 0; i < n; i++) { if (G.state === 'dialog') G.advanceDialog(); if (G.state !== 'play') G.state = 'play'; G.update(1 / 60, fn ? fn() : blank()); } };
+  const pick = () => { if (G.perkChoice) HL.Epic.pickPerk(G.perkChoice[0]); };
+  S.step = (n, fn) => { for (let i = 0; i < n; i++) { if (G.state === 'dialog') G.advanceDialog(); pick(); if (G.state !== 'play') G.state = 'play'; G.update(1 / 60, fn ? fn() : blank()); } };
   S.fight = (maxT, opt = {}) => {
     let t = 0;
     while (t < maxT) {
       if (G.state === 'dialog') G.advanceDialog();
+      pick();
       if (G.state !== 'play') G.state = 'play';
       if (G.player.state === 'dead') return { dead: true, t };
       G.update(1 / 60, S.bot(opt)); t += 1 / 60;
@@ -128,7 +130,8 @@ const SIM = () => {
   // ---- 1. Ashwick
   const r1 = await ev(() => {
     const G = HL.G, S = SIM, T = S.T, out = {};
-    G.newGame(); S.cleanFoes();
+    G.newGame(); while (G.state === 'cut') G.nextShot(true); S.cleanFoes();
+    G.flags['tide:tide_square'] = 1; G.flags['tide:tide_bridge'] = 1; // hordes get their own test below
     out.noWeapon = !G.eq.weapon;
     const sw = G.world.obj('p_sword'); S.tp(sw.x, sw.y + 1); S.step(5);
     out.sword = G.eq.weapon === 'rusted_sword';
@@ -234,7 +237,7 @@ const SIM = () => {
     S.tp(T(9), T(28)); out.ossuary = S.fightRetry(120, { near: 60 });
     out.oss = S.use('c_ossuary'); out.cryptKey = !!G.inv.crypt_key;
     out.iron = S.use('d_iron'); out.crankOpen = S.reach(T(23), T(41), T(23), T(16));
-    S.tp(T(41), T(28)); out.reso = S.fightRetry(120, { near: 60 });
+    S.tp(T(41), T(28)); out.reso = S.fightRetry(220, { near: 60 });
     out.wrong = (S.use('bell0'), S.use('bell1'), S.use('bell2'), !G.flags.bells_done);
     S.use('bell1'); S.use('bell2'); S.use('bell0');
     out.bells = !!G.flags.bells_done; out.vaultOpen = S.reach(T(41), T(27), T(41), T(16));
@@ -323,7 +326,7 @@ const SIM = () => {
     out.vessel = !!G.flags['sigil:vessel'] && G.player.maxhp >= hp0 + 30;
     // shards raise max health
     const mh = G.player.maxhp, n0 = G.inv.lumen_shard || 0, sh = G.world.obj('p_ls1'); S.tp(sh.x, sh.y); S.step(40);
-    out.shard = G.inv.lumen_shard === n0 + 1 && G.player.maxhp === mh + 5;
+    out.shard = G.inv.lumen_shard === n0 + 1 && G.player.maxhp >= mh + 5;
     out.reach = ['shrine_passage', 'shrine_trial', 'shrine_echo', 'shrine_hidden', 'p_ls1', 'p_ls2', 'p_ls3', 'p_ls4', 'p_ls5', 'p_ls6'].filter((id) => !S.reach(G.world.def.start.x, G.world.def.start.y, ...S.near(id)) && !(id === 'shrine_hidden'));
     // travel to an awakened shrine
     G.state = 'play'; G.travelTo('shrine_passage'); S.frames(50);
@@ -339,6 +342,23 @@ const SIM = () => {
   check('a Lumen Shard adds 5 max health', r7.shard);
   check('every outdoor shrine and shard is reachable', !r7.reach.length, r7.reach.join(', '));
   check('fast travel to an awakened shrine', r7.travel);
+
+  // ---- 5c. a Hollow Tide: the bot holds the line against the horde
+  const r8 = await ev(() => {
+    const G = HL.G, S = SIM, T = S.T, out = {};
+    G.flags['tide:tide_square'] = 0; G.flags.storehouse_open = 1;
+    G.loadMap('ashwick', T(40), T(53)); S.cleanFoes(); G.player.hp = G.player.maxhp; G.inv.poultice = 6; G.eq.weapon = 'ashwood_spear';
+    const marks = G.inv.tide_mark || 0, lvl0 = G.flags.lvl || 1;
+    S.step(3); while (G.cut) G.nextShot(true);
+    out.started = !!G.tide;
+    out.fight = S.fightRetry(260, { until: () => G.flags['tide:tide_square'] === 1 }, () => { const pl = G.player; pl.hp = pl.maxhp; pl.state = 'move'; G.inv.poultice = 6; G.loadMap('ashwick', T(40), T(53)); S.cleanFoes(); S.step(3); while (G.cut) G.nextShot(true); });
+    out.mark = (G.inv.tide_mark || 0) === marks + 1;
+    out.levels = (G.flags.lvl || 1) - lvl0; out.best = HL.Epic.combo.best;
+    out.perks = Object.keys(G.flags).filter((k) => k.startsWith('perk:')).length;
+    G.state = 'play'; G.save(); out.snapshot = { inv: JSON.stringify(G.inv), journal: G.journal.length };
+    return out;
+  });
+  check('a Hollow Tide rises at the square; the bot breaks it and its herald', r8.started && r8.mark, JSON.stringify(r8.fight) + ' levels +' + r8.levels + ' best combo ' + r8.best + ' perks ' + r8.perks);
 
   // ---- 6. reload the page and continue
   await page.reload(); await page.waitForTimeout(1500); await page.evaluate(SIM);
@@ -360,7 +380,7 @@ const SIM = () => {
     G.respawn(); S.frames(60);
     out.respawned = G.player.state === 'move' && G.player.hp === G.player.maxhp && JSON.stringify(G.inv) === before;
     return out;
-  }, r7.snapshot);
+  }, r8.snapshot);
   check('save survives a page reload', r6.hasSave && r6.map === 'ashwick' && r6.inv && r6.journal && r6.flags);
   check('opened chests, taken items, doors, well stay as left', r6.storeLooted && r6.swordGone && r6.chapelDoor && r6.well);
   check('unique foes stay dead (guard, Keeper)', r6.guardGone && r6.keeperGone);

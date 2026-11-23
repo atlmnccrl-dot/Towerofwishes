@@ -60,6 +60,21 @@ a roll with invulnerability frames, one stamina bar, hit-stop, white hit flash, 
 small screen shake (can be turned off), synthesised impacts, footsteps that change on ash, stone and wood.
 Every enemy attack has a red ground telegraph (ring, arc or aim line) that stays readable at this distance.
 
+### v0.6: epic systems (`js/epic.js`)
+- **Perfect Dash**: dash through a blow in the last instant: slow motion, PERFECT, +25 ultimate, +60%
+  damage for 1.6 s.
+- **Style rank** D-C-B-A-S-SS-SSS from unbroken hits (+5% damage per rank, reset when hit); **kill callouts**
+  DOUBLE / TRIPLE / QUAD KILL / MASSACRE / ANNIHILATION / HOLLOW BREAKER.
+- **Executions**: stunned, dazed or nearly dead foes show a red mark; a tap finishes them in slow motion
+  with a leap, light and a heal.
+- **Experience and perk cards**: every kill gives experience; each level offers three of eleven powers
+  (Arc Lightning, Burning Path, Death Nova, Bloodthirst, Rising Fury, Second Wind, Phantom Blades,
+  Thunderstep, Colossus, Executioner, Lumen Orbit) and +4 max health.
+- **Hollow Tides**: horde events in the spirit of the reference video's red crowds. The sky turns red, dozens
+  of Hollow Husks pour out of the forest, then a glowing Herald. Breaking a tide gives a permanent Mark of the
+  Tide (+10% damage). Two tides: Ashwick's square (after the storehouse) and the ruined bridge (with the
+  tower key).
+
 ### v0.5: Lumen (PROPOSAL motif replacing bells at the centre)
 - **Lumen**: pale cyan light the old kingdom drew from the earth through shrines; the Silence is the night it
   went out. Bells remain in the crypt and the boss, but no longer carry the story.
