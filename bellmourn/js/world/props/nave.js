@@ -473,10 +473,10 @@ export function organ(ctx, x, z, w = 4.4) {
 
 // The colours of the drowned glass lying on the flood: soft pools of ruby, sapphire, emerald and gold on
 // the water in front of the windows (flat additive quads that shimmer a little), each with a faint light.
-const GLASS = [0xff3a50, 0x4a6aff, 0x2ad08a, 0xffc040, 0xb04aff];
+const POOL_COLS = [0xff3a50, 0x4a6aff, 0x2ad08a, 0xffc040, 0xb04aff];
 export function glassPools(ctx, spots) {
   spots.forEach(([x, z, w, d, k], i) => {
-    const col = new THREE.Color(GLASS[(k ?? i) % GLASS.length]);
+    const col = new THREE.Color(POOL_COLS[(k ?? i) % POOL_COLS.length]);
     const m = new THREE.Mesh(plane(w, d), new THREE.MeshBasicMaterial({ color: col.clone().multiplyScalar(0.55), transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
     m.rotation.x = -Math.PI / 2; m.position.set(x, 0.03, z); m.renderOrder = -1; ctx.group.add(m);
     ctx.lights.push({ x, y: 0.6, z, color: col.getHex(), intensity: 1.6, dist: 4 });

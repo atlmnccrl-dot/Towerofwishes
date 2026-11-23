@@ -608,6 +608,7 @@ export class Game {
     // New Game+: every boss returns Ascended; the Wheel takes its true form for the New Song
     const ng = (this.save.ngPlus | 0) > 0;
     this.boss = this.world.spawnBoss(B.type, B.x, B.z, { face: B.face ?? 0, hpMul: (B.hpMul || 1) * (ng ? 1.5 : 1), dmgMul: B.dmgMul || 1, ascended: ng, trueForm: B.type === 'wheel' && this.save.choice === 'sing' });
+    if (typeof B4.ascendDef === 'function') { try { B4.ascendDef(this.boss); } catch (err) { console.error(err); } } // ASCENDED. on the card at once
     const hold = () => { const b = this.boss; b.state = 'roar'; b.anim = 'idle'; b.t = -2; b.iframes = 99; };
     hold(); this.sound.setMusic('none'); this.entT = 0; this.entDoneT = 0;
     // a boss with words before its fight: after its entrance (or, with none, before the roar)
@@ -806,6 +807,16 @@ export class Game {
         case 'summon': snd.play('rise'); break;
         case 'storm': this.atmos.flash(1); break;
         case 'foeStrike': if (ev.e.boss) snd.play('swingHeavy', { vol: 0.8 }); break;
+        // Act III's foes and bosses (units3.js, bosses4.js): sounds from the ones the game already has
+        case 'latch': snd.play('clang', { vol: 0.7 }); break;
+        case 'vent': snd.play('fire'); if (ev.e) fx.mist(ev.e.x, 1, ev.e.z, 18, [0.6, 0.6, 0.62]); break;
+        case 'cool': snd.play('splash', { vol: 0.6 }); if (ev.e) fx.mist(ev.e.x, 1.2, ev.e.z, 10, [0.5, 0.55, 0.6]); break;
+        case 'bubble': snd.play('splash'); break;
+        case 'rewind': snd.play('vanish'); if (ev.e) { fx.shockRing(ev.e.x, ev.e.z, 2.5, [2.2, 2, 1.2], 0.5); this.ui.toast('TIME TURNS BACK', { color: COL.ice, life: 1.6 }); } break; // PROPOSAL
+        case 'voice': snd.play('special'); this.ui.toast('STAND IN THE SONG.', { color: COL.gold, big: true, life: 3.2 }); break; // PROPOSAL (the Wheel's true form)
+        case 'silence': snd.play('toll', { f: 73, vol: 0.7 }); break;
+        case 'ascend': snd.play('bigBell'); snd.play('roar', { delay: 0.2 }); if (ev.e) { fx.shockRing(ev.e.x, ev.e.z, 7, [2.8, 2.4, 1.2], 0.7); this.ui.toast(ev.e.def.name.toUpperCase() + ' ASCENDS', { color: COL.gold, big: true, life: 2.4 }); } break; // PROPOSAL
+        case 'musicStop': snd.setMusic('none'); break;
       }
     }
   }

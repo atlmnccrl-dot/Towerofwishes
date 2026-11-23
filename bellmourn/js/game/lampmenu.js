@@ -17,7 +17,7 @@ import { HOME, BESTIARY_TEXT, DASH_BREAKS } from './units2.js';
 
 export const SECTIONS = ['WARDEN', 'SKILLS', 'GEAR', 'ECHOES', 'MERCHANT', 'MAP', 'BESTIARY'];
 export const SKILLS = 1;
-const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV'];
 const FAIL = /^(NOT ENOUGH|NO SKILL|REACH LEVEL|ALREADY|FULLY|NOT YET)/;
 const ROW_H = 22, HEAD_H = 11, BTN_H = 22;
 const KIND = { weapon: 'WEAPON', relic: 'RELIC', tonic: 'ONE MORE FLASK', tome: 'ONE SKILL POINT' };
@@ -332,7 +332,7 @@ function drawIcon(ui, ic, x, y, locked) {
   ui.rect(x - 1, y - 1, 14, 14, locked ? '#141210' : '#1a1610');
   bm.forEach((line, j) => { for (let i = 0; i < line.length; i++) { const c = line[i]; if (c === '#') ui.rect(x + i, y + oy + j, 1, 1, body); else if (c === 'o') ui.rect(x + i, y + oy + j, 1, 1, eye); } });
 }
-// which level a tier belongs to (Act I's districts 0-7, Act II's regions 8-11)
+// which level a tier belongs to (Act I's districts 0-7, Act II's regions 8-11, Act III's 12-14: marsh, spire, empyrean)
 function levelOfTier(tier) { for (const id in LEVELS) { const L = LEVELS[id]; if (L.tier === tier && !L.tutorial) return { id, L }; } return null; }
 
 export function bestiaryRows(S) {
@@ -354,7 +354,7 @@ export function bestiaryRows(S) {
         note: known ? (n ? 'X' + n : 'MET') : '', noteCol: known ? COL.gold : '#6a625a', locked: !known, disabled: true,
         icon: { shape: ROW_ICON[k] || 'man', body: hex(lighten(bodyColour(D.look))), eye: hex(D.look.eyes || 0xff4030) },
         why: known ? (n ? n + ' FELLED' : 'NOT YET FELLED') : 'NOT YET MET',
-        desc: known ? (BESTIARY_TEXT[k] || '') + ((k === 'mummy' || k === 'cryptspider') ? ' ' + DASH_BREAKS : '') : 'NOT YET MET. FIRST SEEN IN ' + where + ' (' + ROMAN[tier + 1] + ').',
+        desc: known ? (BESTIARY_TEXT[k] || '') + ((k === 'mummy' || k === 'cryptspider' || k === 'leech') ? ' ' + DASH_BREAKS : '') : 'NOT YET MET. FIRST SEEN IN ' + where + ' (' + ROMAN[tier + 1] + ').',
       });
     }
   }
