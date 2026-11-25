@@ -19,6 +19,7 @@ import LEVELS from '../world/levels/index.js';
 import { makeAutoplay } from './autoplay.js';
 import { BOSS_AI } from './ai.js';
 import { BOSS_AI2, BOSSES2 } from './bosses2.js';
+import './content.js'; // add-on content (Acts IV-VI, interludes): self-registering modules
 import { FOES, BOSSES } from './defs.js';
 import { UNITS } from './units.js';
 import { HEROES, heroStats, AFFIX_LIST, RELICS, ECHOES } from './heroes.js';
