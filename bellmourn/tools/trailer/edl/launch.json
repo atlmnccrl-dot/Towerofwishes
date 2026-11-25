@@ -114,13 +114,13 @@
   },
   {
    "take": "X_crimson",
-   "in": 2.4,
+   "in": 0.3,
    "dur": 2.0,
    "flash": 0.15
   },
   {
    "take": "X_dawn",
-   "in": 2.4,
+   "in": 0.4,
    "dur": 2.0,
    "flash": 0.15
   },
