@@ -521,6 +521,7 @@ export class Game {
       let type = def.boss.type; const bp = opt('bosses5', 'bossPool'); let pool = null;
       if (bp) { try { pool = bp(n.area, variant); } catch (e) { pool = null; } } if ((!pool || !pool.length) && variant && Array.isArray(variant.bossPool)) pool = variant.bossPool;
       if (pool && pool.length) { const t = pool[hashSeed((this.run && this.run.seed) || 1, n.id, 'boss') % pool.length]; if (knownBoss(t)) type = t; }
+      { const fq = new URLSearchParams(location.search).get('bossType'); if (fq && knownBoss(fq)) type = fq; } // debug: ?bossType=<type> fields that boss (tests, trailers)
       def.boss = { ...def.boss, type, baseTier: base.tier ?? 0 };
     }
     this.variant = variant; const nv = opt('variants', 'noteVariant'); if (nv && variant && this.run) { try { nv(this.run, variant); } catch (e) { /* */ } }

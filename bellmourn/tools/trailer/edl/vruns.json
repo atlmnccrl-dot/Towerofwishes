@@ -1,0 +1,75 @@
+{
+ "w": 1080,
+ "h": 1920,
+ "fps": 60,
+ "sfx": 0.9,
+ "musicGain": 0.9,
+ "clips": [
+  {
+   "take": "VW_blood",
+   "in": 0.8,
+   "dur": 3.0,
+   "fi": 0.15
+  },
+  {
+   "take": "VW_burn",
+   "in": 0.8,
+   "dur": 3.0,
+   "flash": 0.2
+  },
+  {
+   "take": "VW_frozen",
+   "in": 0.8,
+   "dur": 3.0,
+   "flash": 0.2
+  },
+  {
+   "take": "VW_abyss",
+   "in": 0.8,
+   "dur": 3.0,
+   "flash": 0.2,
+   "fo": 0.3
+  },
+  {
+   "black": 2.5
+  }
+ ],
+ "cards": [
+  {
+   "card": "v2_hookW",
+   "t": 0.1,
+   "dur": 2.8,
+   "fade": 0.25
+  },
+  {
+   "card": "vw_blood",
+   "t": 0.5,
+   "dur": 2.4,
+   "fade": 0.25
+  },
+  {
+   "card": "vw_burn",
+   "t": 3.1,
+   "dur": 2.8,
+   "fade": 0.25
+  },
+  {
+   "card": "vw_frozen",
+   "t": 6.1,
+   "dur": 2.8,
+   "fade": 0.25
+  },
+  {
+   "card": "vw_abyss",
+   "t": 9.1,
+   "dur": 2.8,
+   "fade": 0.25
+  },
+  {
+   "card": "v_end",
+   "t": 12.1,
+   "dur": 2.4,
+   "fade": 0.4
+  }
+ ]
+}

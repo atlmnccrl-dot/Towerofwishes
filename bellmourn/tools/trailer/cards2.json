@@ -1,0 +1,642 @@
+{
+ "L": {
+  "w": 1920,
+  "h": 1080,
+  "bw": 384,
+  "bh": 216
+ },
+ "V": {
+  "w": 1080,
+  "h": 1920,
+  "bw": 216,
+  "bh": 384
+ },
+ "cards": [
+  {
+   "name": "b_kingcrab",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "THE DROWNED KING-CRAB",
+     "x": 0.06,
+     "a": "left",
+     "y": 0.74,
+     "s": 2,
+     "c": "#c8242a"
+    },
+    {
+     "t": "BREAK THE SHELL",
+     "x": 0.06,
+     "a": "left",
+     "y": 0.84,
+     "s": 1,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "b_ronin",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "THE STILLED RONIN",
+     "x": 0.06,
+     "a": "left",
+     "y": 0.74,
+     "s": 2,
+     "c": "#c8242a"
+    },
+    {
+     "t": "ONE CUT. NO WARNING.",
+     "x": 0.06,
+     "a": "left",
+     "y": 0.84,
+     "s": 1,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "b_smiling",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "THE SMILING GUEST",
+     "x": 0.06,
+     "a": "left",
+     "y": 0.74,
+     "s": 2,
+     "c": "#c8242a"
+    },
+    {
+     "t": "DON'T LOOK AWAY",
+     "x": 0.06,
+     "a": "left",
+     "y": 0.84,
+     "s": 1,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "b_hollow",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "THE HOLLOW MOTHER",
+     "x": 0.06,
+     "a": "left",
+     "y": 0.74,
+     "s": 2,
+     "c": "#c8242a"
+    },
+    {
+     "t": "SHE DROPS FROM THE DARK",
+     "x": 0.06,
+     "a": "left",
+     "y": 0.84,
+     "s": 1,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "b_pyre",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "THE PYRE SAINT",
+     "x": 0.06,
+     "a": "left",
+     "y": 0.74,
+     "s": 2,
+     "c": "#c8242a"
+    },
+    {
+     "t": "THE FLOOR IS BURNING",
+     "x": 0.06,
+     "a": "left",
+     "y": 0.84,
+     "s": 1,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "b_frost",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "THE HOARFROST KING",
+     "x": 0.06,
+     "a": "left",
+     "y": 0.74,
+     "s": 2,
+     "c": "#c8242a"
+    },
+    {
+     "t": "BEYOND THE WALLS",
+     "x": 0.06,
+     "a": "left",
+     "y": 0.84,
+     "s": 1,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "b_archon",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "THE HOLLOW ARCHON",
+     "x": 0.06,
+     "a": "left",
+     "y": 0.74,
+     "s": 2,
+     "c": "#c8242a"
+    },
+    {
+     "t": "THE WHEEL'S HIGH PRIEST",
+     "x": 0.06,
+     "a": "left",
+     "y": 0.84,
+     "s": 1,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "b_wheel",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "THE WHEEL",
+     "x": 0.06,
+     "a": "left",
+     "y": 0.74,
+     "s": 2,
+     "c": "#c8242a"
+    },
+    {
+     "t": "JAILER OF THE VOICE",
+     "x": 0.06,
+     "a": "left",
+     "y": 0.84,
+     "s": 1,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "c_beyond",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "BEYOND THE WALLS",
+     "y": 0.08,
+     "s": 2,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "c_seven",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "SEVEN WARDENS. SEVEN ELEMENTS.",
+     "y": 0.08,
+     "s": 2,
+     "c": "#d8b860"
+    }
+   ]
+  },
+  {
+   "name": "c_runs",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "NO TWO RUNS THE SAME",
+     "y": 0.08,
+     "s": 2,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "c_bosses2",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "BOSSES UNLIKE ANY OTHER",
+     "y": 0.08,
+     "s": 2,
+     "c": "#c8242a"
+    }
+   ]
+  },
+  {
+   "name": "c_choice",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "ONE BELL. ONE CHOICE.",
+     "y": 0.08,
+     "s": 2,
+     "c": "#d8b860"
+    }
+   ]
+  },
+  {
+   "name": "e_ember",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "EMBER",
+     "x": 0.94,
+     "a": "right",
+     "y": 0.74,
+     "s": 3,
+     "c": "#ff8a3a"
+    },
+    {
+     "t": "FIRE",
+     "x": 0.94,
+     "a": "right",
+     "y": 0.88,
+     "s": 1,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "e_rime",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "RIME",
+     "x": 0.94,
+     "a": "right",
+     "y": 0.74,
+     "s": 3,
+     "c": "#9ae0ff"
+    },
+    {
+     "t": "FROST",
+     "x": 0.94,
+     "a": "right",
+     "y": 0.88,
+     "s": 1,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "e_thunder",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "THUNDER",
+     "x": 0.94,
+     "a": "right",
+     "y": 0.74,
+     "s": 3,
+     "c": "#b49cff"
+    },
+    {
+     "t": "STORM",
+     "x": 0.94,
+     "a": "right",
+     "y": 0.88,
+     "s": 1,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "e_crimson",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "CRIMSON",
+     "x": 0.94,
+     "a": "right",
+     "y": 0.74,
+     "s": 3,
+     "c": "#e0303a"
+    },
+    {
+     "t": "BLOOD",
+     "x": 0.94,
+     "a": "right",
+     "y": 0.88,
+     "s": 1,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "e_dawn",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "DAWN",
+     "x": 0.94,
+     "a": "right",
+     "y": 0.74,
+     "s": 3,
+     "c": "#ffe08a"
+    },
+    {
+     "t": "HOLY",
+     "x": 0.94,
+     "a": "right",
+     "y": 0.88,
+     "s": 1,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "e_silence",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "SILENCE",
+     "x": 0.94,
+     "a": "right",
+     "y": 0.74,
+     "s": 3,
+     "c": "#b07ae0"
+    },
+    {
+     "t": "VOID",
+     "x": 0.94,
+     "a": "right",
+     "y": 0.88,
+     "s": 1,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "w_blood",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "BLOOD MOON",
+     "x": 0.06,
+     "a": "left",
+     "y": 0.84,
+     "s": 2,
+     "c": "#e0303a"
+    }
+   ]
+  },
+  {
+   "name": "w_burn",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "BURNING",
+     "x": 0.06,
+     "a": "left",
+     "y": 0.84,
+     "s": 2,
+     "c": "#ff8a3a"
+    }
+   ]
+  },
+  {
+   "name": "w_frozen",
+   "fmt": "L",
+   "items": [
+    {
+     "t": "FROZEN OVER",
+     "x": 0.06,
+     "a": "left",
+     "y": 0.84,
+     "s": 2,
+     "c": "#9ae0ff"
+    }
+   ]
+  },
+  {
+   "name": "v2_hookB",
+   "fmt": "V",
+   "items": [
+    {
+     "t": "FIVE NEW BOSSES.",
+     "y": 0.07,
+     "s": 2,
+     "c": "#c8242a"
+    },
+    {
+     "t": "NONE ALIKE.",
+     "y": 0.12,
+     "s": 2,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "v2_hookX",
+   "fmt": "V",
+   "items": [
+    {
+     "t": "SEVEN ELEMENTS.",
+     "y": 0.07,
+     "s": 2,
+     "c": "#d8b860"
+    },
+    {
+     "t": "BUILD YOUR RUN.",
+     "y": 0.12,
+     "s": 2,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "v2_hookW",
+   "fmt": "V",
+   "items": [
+    {
+     "t": "NO TWO RUNS",
+     "y": 0.07,
+     "s": 2,
+     "c": "#e6dccb"
+    },
+    {
+     "t": "THE SAME.",
+     "y": 0.12,
+     "s": 2,
+     "c": "#c8242a"
+    }
+   ]
+  },
+  {
+   "name": "vb_kingcrab",
+   "fmt": "V",
+   "items": [
+    {
+     "t": "THE KING-CRAB",
+     "y": 0.79,
+     "s": 2,
+     "c": "#c8242a"
+    }
+   ]
+  },
+  {
+   "name": "vb_ronin",
+   "fmt": "V",
+   "items": [
+    {
+     "t": "THE STILLED RONIN",
+     "y": 0.79,
+     "s": 2,
+     "c": "#c8242a"
+    }
+   ]
+  },
+  {
+   "name": "vb_smiling",
+   "fmt": "V",
+   "items": [
+    {
+     "t": "THE SMILING GUEST",
+     "y": 0.79,
+     "s": 2,
+     "c": "#c8242a"
+    }
+   ]
+  },
+  {
+   "name": "vb_hollow",
+   "fmt": "V",
+   "items": [
+    {
+     "t": "THE HOLLOW MOTHER",
+     "y": 0.79,
+     "s": 2,
+     "c": "#c8242a"
+    }
+   ]
+  },
+  {
+   "name": "vb_pyre",
+   "fmt": "V",
+   "items": [
+    {
+     "t": "THE PYRE SAINT",
+     "y": 0.79,
+     "s": 2,
+     "c": "#c8242a"
+    }
+   ]
+  },
+  {
+   "name": "ve_ember",
+   "fmt": "V",
+   "items": [
+    {
+     "t": "EMBER",
+     "y": 0.77,
+     "s": 3,
+     "c": "#ff8a3a"
+    },
+    {
+     "t": "FIRE",
+     "y": 0.84,
+     "s": 1,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "ve_rime",
+   "fmt": "V",
+   "items": [
+    {
+     "t": "RIME",
+     "y": 0.77,
+     "s": 3,
+     "c": "#9ae0ff"
+    },
+    {
+     "t": "FROST",
+     "y": 0.84,
+     "s": 1,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "ve_thunder",
+   "fmt": "V",
+   "items": [
+    {
+     "t": "THUNDER",
+     "y": 0.77,
+     "s": 3,
+     "c": "#b49cff"
+    },
+    {
+     "t": "STORM",
+     "y": 0.84,
+     "s": 1,
+     "c": "#e6dccb"
+    }
+   ]
+  },
+  {
+   "name": "vw_blood",
+   "fmt": "V",
+   "items": [
+    {
+     "t": "BLOOD MOON",
+     "y": 0.79,
+     "s": 2,
+     "c": "#e0303a"
+    }
+   ]
+  },
+  {
+   "name": "vw_burn",
+   "fmt": "V",
+   "items": [
+    {
+     "t": "BURNING",
+     "y": 0.79,
+     "s": 2,
+     "c": "#ff8a3a"
+    }
+   ]
+  },
+  {
+   "name": "vw_frozen",
+   "fmt": "V",
+   "items": [
+    {
+     "t": "FROZEN OVER",
+     "y": 0.79,
+     "s": 2,
+     "c": "#9ae0ff"
+    }
+   ]
+  },
+  {
+   "name": "vw_abyss",
+   "fmt": "V",
+   "items": [
+    {
+     "t": "THE ABYSS",
+     "y": 0.79,
+     "s": 2,
+     "c": "#c8242a"
+    }
+   ]
+  }
+ ]
+}

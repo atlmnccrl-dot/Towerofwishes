@@ -1,0 +1,63 @@
+{
+ "w": 1080,
+ "h": 1920,
+ "fps": 60,
+ "sfx": 1.0,
+ "musicGain": 0.85,
+ "clips": [
+  {
+   "take": "VX_ember",
+   "in": 1.2,
+   "dur": 3.6,
+   "fi": 0.15
+  },
+  {
+   "take": "VX_rime",
+   "in": 1.0,
+   "dur": 3.6,
+   "flash": 0.2
+  },
+  {
+   "take": "VX_thunder",
+   "in": 1.0,
+   "dur": 3.8,
+   "flash": 0.2,
+   "fo": 0.3
+  },
+  {
+   "black": 2.5
+  }
+ ],
+ "cards": [
+  {
+   "card": "v2_hookX",
+   "t": 0.1,
+   "dur": 2.7,
+   "fade": 0.25
+  },
+  {
+   "card": "ve_ember",
+   "t": 0.6,
+   "dur": 3.0,
+   "fade": 0.25
+  },
+  {
+   "card": "ve_rime",
+   "t": 3.7,
+   "dur": 3.4,
+   "fade": 0.25
+  },
+  {
+   "card": "ve_thunder",
+   "t": 7.3,
+   "dur": 3.6,
+   "fade": 0.25
+  },
+  {
+   "card": "v_end",
+   "t": 11.1,
+   "dur": 2.4,
+   "fade": 0.4
+  }
+ ]
+}

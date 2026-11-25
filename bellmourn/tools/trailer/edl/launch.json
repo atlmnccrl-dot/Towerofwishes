@@ -1,0 +1,296 @@
+{
+ "w": 1920,
+ "h": 1080,
+ "fps": 60,
+ "bars": 0.0,
+ "sfx": 0.85,
+ "musicGain": 0.95,
+ "clips": [
+  {
+   "black": 2.5
+  },
+  {
+   "take": "R_frost",
+   "in": 1.0,
+   "dur": 2.0,
+   "fi": 0.4
+  },
+  {
+   "take": "R_dunes",
+   "in": 1.0,
+   "dur": 1.5
+  },
+  {
+   "take": "R_cata",
+   "in": 1.0,
+   "dur": 1.5
+  },
+  {
+   "take": "R_abyss",
+   "in": 1.0,
+   "dur": 1.5
+  },
+  {
+   "take": "R_marsh",
+   "in": 1.0,
+   "dur": 1.5
+  },
+  {
+   "take": "R_spire",
+   "in": 1.0,
+   "dur": 1.5
+  },
+  {
+   "take": "R_emp",
+   "in": 1.0,
+   "dur": 2.0,
+   "fo": 0.2
+  },
+  {
+   "take": "B_kingcrab",
+   "in": 1.4,
+   "dur": 2.0,
+   "flash": 0.25
+  },
+  {
+   "take": "B_ronin",
+   "in": 1.4,
+   "dur": 2.0,
+   "flash": 0.15
+  },
+  {
+   "take": "B_smiling",
+   "in": 1.4,
+   "dur": 2.0,
+   "flash": 0.15
+  },
+  {
+   "take": "B_hollow",
+   "in": 1.4,
+   "dur": 2.0,
+   "flash": 0.15
+  },
+  {
+   "take": "B_pyre",
+   "in": 1.4,
+   "dur": 2.0,
+   "flash": 0.15
+  },
+  {
+   "take": "B_frost",
+   "in": 1.4,
+   "dur": 2.0,
+   "flash": 0.15
+  },
+  {
+   "take": "B_archon",
+   "in": 1.4,
+   "dur": 2.0,
+   "flash": 0.15
+  },
+  {
+   "take": "B_wheel",
+   "in": 1.6,
+   "dur": 2.0,
+   "flash": 0.15
+  },
+  {
+   "take": "X_ember",
+   "in": 2.6,
+   "dur": 2.0,
+   "flash": 0.25
+  },
+  {
+   "take": "X_rime",
+   "in": 2.4,
+   "dur": 2.0,
+   "flash": 0.15
+  },
+  {
+   "take": "X_thunder",
+   "in": 2.4,
+   "dur": 2.0,
+   "flash": 0.15
+  },
+  {
+   "take": "X_crimson",
+   "in": 2.4,
+   "dur": 2.0,
+   "flash": 0.15
+  },
+  {
+   "take": "X_dawn",
+   "in": 2.4,
+   "dur": 2.0,
+   "flash": 0.15
+  },
+  {
+   "take": "X_silence",
+   "in": 2.4,
+   "dur": 2.0,
+   "flash": 0.15
+  },
+  {
+   "take": "W_blood",
+   "in": 1.0,
+   "dur": 1.3,
+   "flash": 0.2
+  },
+  {
+   "take": "W_burn",
+   "in": 1.0,
+   "dur": 1.3,
+   "flash": 0.15
+  },
+  {
+   "take": "W_frozen",
+   "in": 1.0,
+   "dur": 1.4,
+   "flash": 0.15,
+   "fo": 0.3
+  },
+  {
+   "black": 4.0
+  }
+ ],
+ "cards": [
+  {
+   "card": "studio",
+   "t": 0.3,
+   "dur": 2.0,
+   "fade": 0.4
+  },
+  {
+   "card": "c_beyond",
+   "t": 2.6,
+   "dur": 4.0,
+   "fade": 0.3
+  },
+  {
+   "card": "c_bosses2",
+   "t": 14.1,
+   "dur": 3.0,
+   "fade": 0.25
+  },
+  {
+   "card": "b_kingcrab",
+   "t": 14.1,
+   "dur": 1.9,
+   "fade": 0.15
+  },
+  {
+   "card": "b_ronin",
+   "t": 16.1,
+   "dur": 1.9,
+   "fade": 0.15
+  },
+  {
+   "card": "b_smiling",
+   "t": 18.1,
+   "dur": 1.9,
+   "fade": 0.15
+  },
+  {
+   "card": "b_hollow",
+   "t": 20.1,
+   "dur": 1.9,
+   "fade": 0.15
+  },
+  {
+   "card": "b_pyre",
+   "t": 22.1,
+   "dur": 1.9,
+   "fade": 0.15
+  },
+  {
+   "card": "b_frost",
+   "t": 24.1,
+   "dur": 1.9,
+   "fade": 0.15
+  },
+  {
+   "card": "b_archon",
+   "t": 26.1,
+   "dur": 1.9,
+   "fade": 0.15
+  },
+  {
+   "card": "b_wheel",
+   "t": 28.1,
+   "dur": 1.9,
+   "fade": 0.15
+  },
+  {
+   "card": "c_seven",
+   "t": 30.1,
+   "dur": 3.0,
+   "fade": 0.25
+  },
+  {
+   "card": "e_ember",
+   "t": 30.1,
+   "dur": 1.9,
+   "fade": 0.15
+  },
+  {
+   "card": "e_rime",
+   "t": 32.1,
+   "dur": 1.9,
+   "fade": 0.15
+  },
+  {
+   "card": "e_thunder",
+   "t": 34.1,
+   "dur": 1.9,
+   "fade": 0.15
+  },
+  {
+   "card": "e_crimson",
+   "t": 36.1,
+   "dur": 1.9,
+   "fade": 0.15
+  },
+  {
+   "card": "e_dawn",
+   "t": 38.1,
+   "dur": 1.9,
+   "fade": 0.15
+  },
+  {
+   "card": "e_silence",
+   "t": 40.1,
+   "dur": 1.9,
+   "fade": 0.15
+  },
+  {
+   "card": "c_runs",
+   "t": 42.1,
+   "dur": 3.8,
+   "fade": 0.25
+  },
+  {
+   "card": "w_blood",
+   "t": 42.1,
+   "dur": 1.2,
+   "fade": 0.1
+  },
+  {
+   "card": "w_burn",
+   "t": 43.4,
+   "dur": 1.2,
+   "fade": 0.1
+  },
+  {
+   "card": "w_frozen",
+   "t": 44.7,
+   "dur": 1.2,
+   "fade": 0.1
+  },
+  {
+   "card": "title",
+   "t": 46.1,
+   "dur": 3.9,
+   "fade": 0.6
+  }
+ ]
+}

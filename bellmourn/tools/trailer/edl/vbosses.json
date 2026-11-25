@@ -1,0 +1,87 @@
+{
+ "w": 1080,
+ "h": 1920,
+ "fps": 60,
+ "sfx": 0.9,
+ "musicGain": 0.9,
+ "clips": [
+  {
+   "take": "VB_kingcrab",
+   "in": 0.8,
+   "dur": 3.2,
+   "fi": 0.15
+  },
+  {
+   "take": "VB_ronin",
+   "in": 1.2,
+   "dur": 3.0,
+   "flash": 0.2
+  },
+  {
+   "take": "VB_smiling",
+   "in": 1.2,
+   "dur": 3.0,
+   "flash": 0.2
+  },
+  {
+   "take": "VB_hollow",
+   "in": 1.2,
+   "dur": 3.0,
+   "flash": 0.2
+  },
+  {
+   "take": "VB_pyre",
+   "in": 1.2,
+   "dur": 3.3,
+   "flash": 0.2,
+   "fo": 0.3
+  },
+  {
+   "black": 2.5
+  }
+ ],
+ "cards": [
+  {
+   "card": "v2_hookB",
+   "t": 0.1,
+   "dur": 2.9,
+   "fade": 0.25
+  },
+  {
+   "card": "vb_kingcrab",
+   "t": 1.4,
+   "dur": 1.8,
+   "fade": 0.25
+  },
+  {
+   "card": "vb_ronin",
+   "t": 3.3,
+   "dur": 2.8,
+   "fade": 0.25
+  },
+  {
+   "card": "vb_smiling",
+   "t": 6.3,
+   "dur": 2.8,
+   "fade": 0.25
+  },
+  {
+   "card": "vb_hollow",
+   "t": 9.3,
+   "dur": 2.8,
+   "fade": 0.25
+  },
+  {
+   "card": "vb_pyre",
+   "t": 12.3,
+   "dur": 3.0,
+   "fade": 0.25
+  },
+  {
+   "card": "v_end",
+   "t": 15.6,
+   "dur": 2.4,
+   "fade": 0.4
+  }
+ ]
+}

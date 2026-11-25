@@ -6,7 +6,7 @@
 // setup/pre/post run in the page (they are sent as source); T is the page helper (window.__T).
 const fs = require('fs'); const path = require('path');
 const { chromium } = require('playwright');
-const [shotFile, outDir, base = 'http://localhost:8791/bellmourn/'] = process.argv.slice(2);
+const [shotFile, outDir, base = process.env.BASE || 'http://localhost:8791/bellmourn/'] = process.argv.slice(2);
 // a shot is a module, or one entry of a takes file: takes.js#name
 const [modPath, takeName] = shotFile.split('#'); const mod = require(path.resolve(modPath)); const shot = takeName ? mod[takeName] : mod;
 if (!shot) { console.error('no such take', shotFile); process.exit(1); }
