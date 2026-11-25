@@ -216,6 +216,29 @@ export class Game {
 
   // elites appear more often deeper in
   _elite(tier, type) { if (type === 'rat' || this.levelId === 'prologue') return undefined; return Math.random() < 0.035 + tier * 0.022 ? AFFIX_LIST[Math.floor(Math.random() * AFFIX_LIST.length)] : undefined; }
+  // how deep the run is: areas cleared so far. The road starts with plain foes; elites, elements and wanderers come later.
+  runDepth() { const r = this.run; return r && r.stats && Array.isArray(r.stats.areas) ? r.stats.areas.length : 0; }
+  // elites: none in the first two areas, then a chance that grows with depth (a level's own elite only once the run is under way)
+  eliteFor(f, tier) { const d = this.runDepth(); if (this.levelId === 'prologue' || f.t === 'rat') return undefined; if (d < 2) return undefined; if (f.elite && Math.random() < Math.min(1, (d - 1) * 0.25)) return f.elite; return Math.random() < Math.min(0.28, (d - 1) * 0.045) ? AFFIX_LIST[Math.floor(Math.random() * AFFIX_LIST.length)] : undefined; }
+  // elemental foes: none at first, then more as the run goes on
+  elementFor(f) { if (!f.element) return undefined; return Math.random() < Math.min(1, this.runDepth() * 0.18) ? f.element : undefined; }
+  // loose foes spread out: no knot of three or more on one spot; moved within their own open space, clear of fights, the boss floor and the start
+  spreadFoes(list) {
+    const w = this.world, def = this.level.def; const [x0, z0, x1, z1] = def.bounds; const st = def.start;
+    const zones = [...(this.encs || []).map((e) => e.zone), def.boss && def.boss.zone].filter(Boolean);
+    const inZone = (x, z) => zones.some((q) => x >= Math.min(q[0], q[2]) - 1 && x <= Math.max(q[0], q[2]) + 1 && z >= Math.min(q[1], q[3]) - 1 && z <= Math.max(q[1], q[3]) + 1);
+    for (const f of list) {
+      if (!f || f.dead || f.boss) continue;
+      if (list.filter((o) => o !== f && !o.dead && Math.hypot(o.x - f.x, o.z - f.z) < 2.2).length < 2) continue;
+      for (let k = 0; k < 18; k++) {
+        const a = Math.random() * Math.PI * 2, r = 3 + Math.random() * 8; const x = f.x + Math.sin(a) * r, z = f.z + Math.cos(a) * r;
+        if (x < x0 + 1 || x > x1 - 1 || z < z0 + 1 || z > z1 - 1 || inZone(x, z) || Math.hypot(x - st.x, z - st.z) < 8) continue;
+        if (w._blocked(x, z, (f.r || 0.5) + 0.2) || !w.clear(f, { x, z })) continue;
+        if (list.some((o) => o !== f && !o.dead && Math.hypot(o.x - x, o.z - z) < 2.6)) continue;
+        f.x = x; f.z = z; if (f.ai && f.ai.home) { f.ai.home.x = x; f.ai.home.z = z; } break;
+      }
+    }
+  }
   // what this node has already done (kept in the run, so closing the app mid-area loses nothing won)
   nodeProg() { const run = this.run; const empty = { node: null, encs: [], boss: false, chests: [], lamps: [], touched: [] }; if (!run) return empty; if (!run.prog || run.prog.node !== run.at) run.prog = { ...empty, node: run.at }; if (!run.prog.touched) run.prog.touched = []; return run.prog; }
 
@@ -226,18 +249,21 @@ export class Game {
     this.view.clear(); this.fx.clear();
     const w = this.world = new World({ solids: L.solids, bounds: def.bounds, seed: run ? hashSeed(run.seed, run.at || 'road') % 100000 : 11, abilityMode: this.settings.abilityMode });
     w.abilityMode = this.settings.abilityMode; this.flares = [];
+    // foes grow with the run: every area cleared makes the next ones tougher (+6% health, +3% damage each), waves and summons too
+    { const d = this.runDepth(); if (d > 0) { const spawn = w.spawnFoe.bind(w); w.spawnFoe = (...a) => { const m = spawn(...a); if (m && !m.boss) { const k = 1 + d * 0.06; m.maxHp = Math.round(m.maxHp * k); m.hp = Math.round(m.hp * k); m.dmgMul = (m.dmgMul || 1) * (1 + d * 0.03); } return m; }; } }
     for (const [name, g] of Object.entries(L.marks)) if (g && g.set) { const startOpen = (def.gatesOpen || []).includes(name); g.set(startOpen); g.t = startOpen ? 1 : 0; g.update(0.0001); }
     let sx = def.start.x, sz = def.start.z, face = def.start.face ?? Math.PI;
     if (opts.at) { sx = opts.at.x; sz = opts.at.z; face = opts.at.face ?? face; }
     const hero = w.spawnHero(sx, sz, { ...this.heroStats(), face });
     this.fitRunHero(hero);
     const tier = def.tier || 0;
-    for (const f of (def.foes || []).filter(knownOrWarn)) { const m = w.spawnFoe(f.t, f.x, f.z, { tier: f.tier ?? tier, rise: false, face: f.face, elite: f.elite || this._elite(tier, f.t), element: f.element, aggro: !!f.wander }); if (f.wander) { m.wander = true; m.ai.aggro = true; } } // a wandering elite (C) comes looking for the warden
+    const loose = []; for (const f of (def.foes || []).filter(knownOrWarn)) { const m = w.spawnFoe(f.t, f.x, f.z, { tier: f.tier ?? tier, rise: false, face: f.face, elite: this.eliteFor(f, tier), element: this.elementFor(f), aggro: !!(f.wander && this.runDepth() >= 3) }); if (f.wander && this.runDepth() >= 3) { m.wander = true; m.ai.aggro = true; } loose.push(m); } // a wandering elite (C) comes looking for the warden
     this.encs = (def.encounters || []).map((e) => ({ ...e, state: prog.encs.includes(e.id) ? 'done' : 'idle', wave: -1, mine: [], delay: 0 }));
     for (const e of this.encs) {
       if (e.state === 'done') { for (const g of e.opens || []) this.gate(g, true, true); for (const g of e.gates || []) this.gate(g, true, true); continue; }
-      if (e.waves[0] && e.waves[0].pre) { e.mine = e.waves[0].foes.filter(knownOrWarn).map((f) => w.spawnFoe(f.t, f.x, f.z, { tier: f.tier ?? tier, rise: false, face: f.face, elite: f.elite, element: f.element })); e.wave = 0; e.preSpawned = true; }
+      if (e.waves[0] && e.waves[0].pre) { e.mine = e.waves[0].foes.filter(knownOrWarn).map((f) => w.spawnFoe(f.t, f.x, f.z, { tier: f.tier ?? tier, rise: false, face: f.face, elite: this.eliteFor(f, tier), element: this.elementFor(f) })); e.wave = 0; e.preSpawned = true; }
     }
+    this.spreadFoes(loose);
     this.boss = null; this.bossState = prog.boss || !def.boss ? 'done' : 'idle';
     if (this.bossState === 'done' && def.boss) for (const g of def.boss.opens || []) this.gate(g, true, true);
     this.hints = (def.hints || []).map((h) => ({ ...h, shown: false }));
@@ -514,7 +540,7 @@ export class Game {
     const base = LEVELS[n.area]; if (!base) return null;
     let def = base; let variant = null;
     if (n.variant) { variant = (base.variants || []).find((v) => v.id === n.variant) || null; const gv = opt('variants', 'getVariant'); if (!variant && gv) { try { variant = gv(n.area, n.variant); } catch (e) { /* */ } } }
-    const av = opt('variants', 'applyVariant'); if (variant && av) { try { def = av(base, variant, { short: n.short !== false, seed: hashSeed((this.run && this.run.seed) || 1, n.id) % 100000, meta: this.meta, run: this.run }) || base; } catch (err) { console.error('bellmourn: applyVariant', err); def = base; } }
+    const av = opt('variants', 'applyVariant'); if (variant && av) { try { def = av(base, variant, { short: n.short === true, seed: hashSeed((this.run && this.run.seed) || 1, n.id) % 100000, meta: this.meta, run: this.run }) || base; } catch (err) { console.error('bellmourn: applyVariant', err); def = base; } }
     def = { ...def, tier: n.tier ?? def.tier ?? 0 };
     // the boss: the variant's pool (D's bossPool), seeded per node; the level's own if the drawn one is unknown
     if (def.boss && n.kind !== 'trial') {
@@ -1020,7 +1046,7 @@ export class Game {
   }
   spawnWave(e, i) {
     e.wave = i; const tier = this.level.def.tier || 0; const W = e.waves[i];
-    e.mine = W.foes.filter(knownOrWarn).map((f) => { const m = this.world.spawnFoe(f.t, f.x, f.z, { tier: f.tier ?? tier, aggro: true, elite: f.elite || this._elite(tier, f.t), element: f.element }); m.ai.locked = true; return m; });
+    e.mine = W.foes.filter(knownOrWarn).map((f) => { const m = this.world.spawnFoe(f.t, f.x, f.z, { tier: f.tier ?? tier, aggro: true, elite: this.eliteFor(f, tier), element: this.elementFor(f) }); m.ai.locked = true; return m; });
   }
 
   startBoss() {

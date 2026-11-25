@@ -133,7 +133,7 @@ export class Duel {
   slowFor(sec, k) { this.slowT = sec; this.slowK = k; }
   // called every frame by update(): if the frozen moment lasts too long (missed or unregistered press), dodge for the player
   freezeGuard() { if (!this.freeze) { this.freezeAt = 0; return; } const now = performance.now(); if (!this.freezeAt) this.freezeAt = now; if (now - this.freezeAt > 8000) { this.freezeAt = 0; this.dodge(); } }
-  dodge() { if (this.dodgeT) return; this.freeze = false; this.dodgeT = 0.001; this.slowK = 0.22; this.slowT = 1.4; this.word = null; this.g.sound.play('perfect'); }
+  dodge() { if (this.dodgeT) return; this.freeze = false; this.dodgeT = 0.001; this.slowK = 1; this.slowT = 0; this.word = null; this.g.sound.play('perfect'); }
   // the last blow: the world slows to a crawl, the bell, a white flash; the crow kneels and falls
   finish() {
     if (this.beat === 'finish' || this.beat === 'title') return;

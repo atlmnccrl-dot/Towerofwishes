@@ -822,8 +822,8 @@ export class World {
       if ((dst.state === 'dash' || this.t < (dst.dodgeUntil || 0)) && dst.iframes > 0) {
         if (this.t - dst.dashAt <= DASH.perfectWindow + 0.06 && !dst.perfected) {
           dst.perfected = true; this._gain(dst, METER.onPerfect);
-          if (isMain) { this.stats.perfects++; this.slow(0.7, 0.3); this.emit('perfect', { e: dst, src }); }
-          if (dst.echo.silence) { const up = dst.echo.silence > 1; dst.buffs.hush = up ? 3 : 2; if (isMain) { this.slow(up ? 1.2 : 1.0, 0.25); this.emit('hush', { e: dst }); } }
+          if (isMain) { this.stats.perfects++; this.emit('perfect', { e: dst, src }); }
+          if (dst.echo.silence) { const up = dst.echo.silence > 1; dst.buffs.hush = up ? 3 : 2; if (isMain) { this.emit('hush', { e: dst }); } }
           if (dst.B) this._boonPerfect(dst);
         }
         return false;
