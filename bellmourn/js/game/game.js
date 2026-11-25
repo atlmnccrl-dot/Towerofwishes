@@ -244,6 +244,8 @@ export class Game {
     // the variant's touches (C): a quest hint, a chained survivor, a cursed lamp: walked into, onHint() runs them
     this.touches = (def.touches || []).filter((t) => !(this.meta.hints || {})[t.id] && !this.nodeProg().touched.includes(t.id)).map((t) => ({ ...t, used: false }));
     this.tutorial = def.tutorial && this.duelOn ? new Duel(this) : null;
+    // arrival grace: two seconds untouchable, and no foe strikes before the warden has found their feet
+    hero.iframes = Math.max(hero.iframes || 0, 2.0); for (const f of w.foes()) if (f.ai) f.ai.cd = Math.max(f.ai.cd || 0, 2.5);
     this.camFocus.set(hero.x, 0, hero.z); this.r.focus.copy(this.camFocus);
     this.prompt = null; this.leaving = false; this.alliesCalled = false; this.allyEnts = [];
   }
@@ -252,6 +254,8 @@ export class Game {
     const run = this.run; if (!run || !hero) return;
     if (run.maxHp === null || run.hp === null) { run.maxHp = hero.maxHp; run.hp = hero.maxHp; }
     else if (hero.maxHp !== run.maxHp) { run.hp = Math.max(1, run.hp + (hero.maxHp - run.maxHp)); run.maxHp = hero.maxHp; }
+    // arriving in a new area the warden has caught their breath: never fewer than 30% of their health
+    run.hp = Math.max(run.hp, Math.round(run.maxHp * 0.3));
     hero.hp = Math.max(1, Math.min(hero.maxHp, run.hp));
     if (run.tonics === null || run.tonics === undefined) run.tonics = hero.stats.maxTonics;
     hero.tonics = Math.min(hero.stats.maxTonics, run.tonics);
@@ -695,6 +699,7 @@ export class Game {
   finishRun(outcome, then = null) {
     const run = this.run; if (!run) { if (then) then(); else this.go('title'); return; }
     this.keepHero();
+    if (String(outcome).startsWith('ending:')) { const n = currentNode(run); if (n && !run.cleared.includes(n.id)) completeNode(run, { boss: this.areaBoss || n.boss, echo: this.areaBoss || n.boss }); } // the last area counts
     let summary; try { summary = endRun(this.meta, run, outcome); } catch (err) { console.error('bellmourn: endRun', err); summary = { lines: ['THE RUN IS OVER.'], outcome }; }
     this.meta.lastHero = run.hero; this.persistMeta(); this.clearRun();
     this.autoRunsDone = (this.autoRunsDone | 0) + 1; this.lastSummary = summary;
@@ -1092,6 +1097,8 @@ export class Game {
     // the run's rewards: embers, the boss's Echo for this run, then a boon of three
     const lines = []; const k = priceK(run || { act: 1 }); const emb = Math.round(70 * k + (this.level.def.tier || 0) * 6);
     if (run) { run.embers += emb; lines.push('+' + emb + ' EMBERS'); if (ECHOES[type] && !run.echoes.includes(type)) { run.echoes.push(type); lines.push('ECHO: ' + ECHOES[type].name); } if (!run.stats.bosses.includes(type)) run.stats.bosses.push(type); }
+    // the toll mends the warden: a boss down gives back 40% health and a tonic, so a close fight is not a death sentence in the next area
+    if (run && w.hero && !w.hero.dead) { const h = w.hero; const before = h.hp; h.hp = Math.min(h.maxHp, h.hp + Math.round(h.maxHp * 0.4)); h.tonics = Math.min(h.stats.maxTonics, (h.tonics || 0) + 1); const got = Math.round(h.hp - before); if (got > 0) { lines.push('THE TOLL MENDS YOU  +' + got); this.fx.tonicBurst && this.fx.tonicBurst(h.x, h.z, got); this.ui.healGain && this.ui.healGain(got); } }
     this.areaBoss = type; this.keepHero(); this.persist();
     this.track({ type: 'bossDown', boss: type, area: this.levelId, tonicsUsed: run ? run.stats.tonics - (this.bossTonics0 | 0) : 0, hp: w.hero ? w.hero.hp / w.hero.maxHp : 1 });
     // the boss's last words, then the scene this fall opens (a revelation, the bell, an ending)
