@@ -72,13 +72,13 @@
   },
   {
    "take": "B_pyre",
-   "in": 1.4,
+   "in": 3.0,
    "dur": 2.0,
    "flash": 0.15
   },
   {
    "take": "B_frost",
-   "in": 1.4,
+   "in": 6.8,
    "dur": 2.0,
    "flash": 0.15
   },
