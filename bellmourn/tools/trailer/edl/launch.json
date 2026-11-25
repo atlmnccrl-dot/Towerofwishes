@@ -90,13 +90,13 @@
   },
   {
    "take": "B_wheel",
-   "in": 1.6,
+   "in": 5.0,
    "dur": 2.0,
    "flash": 0.15
   },
   {
    "take": "X_ember",
-   "in": 2.6,
+   "in": 0.6,
    "dur": 2.0,
    "flash": 0.25
   },
