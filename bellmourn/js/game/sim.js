@@ -238,7 +238,7 @@ export class World {
     }
   }
   _dot(e, amt, kind) {
-    if (e.dead) return; amt = this._boonDot(e, amt, kind); e.hp -= amt; this.emit('dot', { e, dmg: amt, kind });
+    if (e.dead || e.away) return; /* a boss away in an interlude (interlude.js) takes nothing */ amt = this._boonDot(e, amt, kind); e.hp -= amt; this.emit('dot', { e, dmg: amt, kind });
     if (e.hp <= 0) this._kill(e, this.hero, { dot: true });
   }
   _dotHero(e, amt, kind) {
@@ -1213,7 +1213,7 @@ export class World {
     // separation
     const L = this.ents;
     for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) {
-      const a = L[i], b = L[j]; if (a.dead || b.dead) continue;
+      const a = L[i], b = L[j]; if (a.dead || b.dead || a.away || b.away) continue; // away: interlude.js
       if ((a.state === 'dash' || b.state === 'dash' || a.state === 'rush' || b.state === 'rush') && a.team !== b.team) continue;
       const dx = b.x - a.x, dz = b.z - a.z; const d = Math.hypot(dx, dz); const min = a.r + b.r;
       if (d < min && d > 1e-5) {

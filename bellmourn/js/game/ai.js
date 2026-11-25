@@ -85,6 +85,8 @@ export function blink(w, e, hero) {
 // the World's windup/telegraph/strike machinery) plus scripted extras through onStrike.
 export function thinkBoss(w, e, h) {
   if (e.entering) return; // its entrance (bosses4.js bossEntrance) places and poses it
+  if (!e.ai.spawnAt) e.ai.spawnAt = { x: e.x, z: e.z }; // the arena's heart for interlude.js
+  if (e.il || e.away) { e.mx = 0; e.mz = 0; return; } // away in an interlude (interlude.js moves and poses it)
   const hero = w.hero; if (!hero || hero.dead) { e.anim = 'idle'; return; }
   const B = BOSS_AI[e.type] || BOSS_AI2[e.type];
   // the plan: its own phases and moves, or its Ascended form's (e.ascended), or the wheel's true form
@@ -93,7 +95,7 @@ export function thinkBoss(w, e, h) {
   if (B.tick) B.tick(w, e, h);
   // phase changes
   const frac = e.hp / e.maxHp;
-  const target = 1 + P.phases.filter((p) => frac <= p).length; // phases: [0.66, 0.33] → 2 below 66%, 3 below 33%
+  const target = e.mini ? 1 : 1 + P.phases.filter((p) => frac <= p).length; // phases: [0.66, 0.33] → 2 below 66%, 3 below 33% (a returning mini-boss keeps one stage)
   if (target > e.phase) {
     e.phase++; // one phase at a time, so no phase's onPhase is skipped
     e.state = 'roar'; e.t = 0; e.anim = 'roar'; e.animT = 0; e.iframes = 1.4; e.tele = null; e.ai.chan = null;

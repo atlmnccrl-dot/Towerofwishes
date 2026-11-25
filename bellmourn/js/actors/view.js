@@ -86,6 +86,7 @@ export class ActorView {
         if (v.blend < 1 && v.from) { v.blend = Math.min(1, v.blend + dt / v.fade); p = mix(v.from, p, v.blend); }
         v.pose = p; rig.apply(p);
       }
+      if (rig.onEnt) rig.onEnt(e, dt); // a boss's stage looks (bosses2.js stageLook): parts shown by stage
       // the tonic: the flask in the free hand while a hero drinks (dimmer once drunk)
       if (rig.showFlask) rig.showFlask(e.anim === 'heal' && !e.dead && (e.team === 'hero' || !!e.heroId) && e.animT >= FLASK_T[0] && e.animT <= FLASK_T[1], e.animT < 0.5 ? 1 : 0);
       this._glow(e, rig, dt);

@@ -217,12 +217,18 @@ export class UI {
         if (bx + bw > lim) { const cw = Math.round(2 * (lim - w / 2)); if (cw >= w * 0.34) { bw = cw; bx = Math.round((w - bw) / 2); } else { bw = Math.round(Math.min(w * 0.5, lim - L)); bx = Math.round(lim - bw); } }
       }
       G.bossGhost = G.bossGhost === undefined ? boss.hp : Math.max(boss.hp, G.bossGhost - dt * 120);
-      this.text(boss.def.name, bx, by - 9, { color: COL.white });
-      this.bar(bx, by, bw, 3, boss.hp / boss.maxHp, '#b02028', '#14080a', G.bossGhost / boss.maxHp);
-      for (const ph of G.bossPhases || []) this.rect(bx + Math.round(bw * ph), by - 1, 1, 5, '#e8d8c0');
+      const IL = G.world && G.world.interlude && G.world.interlude.boss === boss ? G.world.interlude : null;
+      if (IL && IL.phase === 'away') this.ilBar(IL, boss, bx, by, bw); // interlude.js: the objective in place of the bar
+      else {
+        this.text(boss.def.name, bx, by - 9, { color: COL.white });
+        this.bar(bx, by, bw, 3, boss.hp / boss.maxHp, '#b02028', '#14080a', G.bossGhost / boss.maxHp);
+        for (const ph of G.bossPhases || []) this.rect(bx + Math.round(bw * ph), by - 1, 1, 5, '#e8d8c0');
+      }
     }
+    if (G.world && G.world.interlude) this.ilBanner(G.world.interlude, w, dt);
     // toasts (top centre); on touch they wrap short of the pause button and the badges under it
     let ty = this.toastY || 26, tw = w - 12; // below the training panel while it is up (game.js sets toastY)
+    if (G.world && G.world.interlude && G.world.interlude.phase !== 'done') ty += 28; // under an interlude's banner
     if (touchL) { const p = touchL.find((b) => b.id === 'pause'); tw = Math.max(120, Math.min(tw, 2 * (Math.min(p.x - p.r, this.badgeX ?? p.x) - 5 - w / 2))); }
     for (const t of G.noToasts ? [] : this.toasts) {
       t.t += dt; const a = Math.min(1, t.t * 4, (t.life - t.t) * 2);
@@ -235,6 +241,30 @@ export class UI {
     this.toasts = this.toasts.filter((t) => t.t < t.life);
     if (G.prompt) { const key = this.touchMode ? '' : (G.padMode ? '[BACK] ' : '[E] '); this.text(key + G.prompt, w / 2, h - (boss ? 32 : 22), { align: 'center', color: COL.gold, alpha: 0.75 + Math.sin(this.t * 5) * 0.25 }); }
     this.drawFloats(dt);
+  }
+
+  // Interludes (game/interlude.js): while the boss is away its bar shows the objective, in gold, with the
+  // time left as a thin line under it; a banner names the job at the top of the screen (big while it is new).
+  ilBar(IL, boss, bx, by, bw) {
+    const [n, of] = IL.progress || [0, 1]; const k = of ? n / of : 0;
+    const label = IL.kind === 'gauntlet' ? IL.banner + '  ' + Math.max(0, Math.ceil(IL.dur - IL.t)) + 'S' : IL.banner + '  ' + n + '/' + of;
+    this.text(boss.def.name + ' IS GONE', bx, by - 9, { color: COL.dim });
+    this.bar(bx, by, bw, 3, IL.kind === 'gauntlet' ? IL.t / IL.dur : k, '#e8b860', '#18120a');
+    this.rect(bx, by + 4, Math.round(bw * Math.max(0, 1 - IL.t / IL.dur)), 1, '#8a7a5a');
+    if (IL.kind !== 'gauntlet') for (let i = 1; i < of && of <= 12; i++) this.rect(bx + Math.round(bw * i / of), by - 1, 1, 5, '#0a0806');
+    this.text(label, bx + bw, by - 9, { align: 'right', color: COL.gold });
+  }
+  ilBanner(IL, w, dt) {
+    if (IL !== this._ilLast) { this._ilLast = IL; this._ilT = 0; } this._ilT += dt;
+    if (IL.phase === 'done') return;
+    const [n, of] = IL.progress || [0, 1]; const t = this._ilT; const y = (this.toastY || 26) - 4;
+    const big = t < 2.4 && this.measure(IL.banner, 2) <= w - 24; const a = Math.min(1, t * 5);
+    const txt = IL.phase === 'return' ? 'IT RETURNS' : IL.banner;
+    const sub = IL.phase !== 'away' ? '' : (IL.kind === 'gauntlet' ? Math.max(0, Math.ceil(IL.dur - IL.t)) + 'S' : n + ' / ' + of);
+    const col = IL.phase === 'return' ? COL.red : COL.gold;
+    if (big) this.text(txt, w / 2, y, { align: 'center', color: col, alpha: a, scale: 2 });
+    else this.text(txt + (sub ? '  ' + sub : ''), w / 2, y, { align: 'center', color: col, alpha: 0.8 + Math.sin(this.t * 4) * 0.2 });
+    if (big && sub) this.text(sub, w / 2, y + 17, { align: 'center', color: COL.white, alpha: a });
   }
 
   // the green part of the health bar a heal just filled, blinking then fading, and "+amt" rising at tx

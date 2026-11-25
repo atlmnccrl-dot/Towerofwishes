@@ -9,6 +9,7 @@
 // no thinner than a pixel; colours in the renderer's bright-additive range so they bloom.
 import * as THREE from '../../vendor/three.module.min.js';
 import * as T from './textures.js';
+import { installInterlude } from './fx_interlude.js';
 
 const TAU = Math.PI * 2;
 export const EL_COL = {
@@ -441,6 +442,7 @@ export function installElements(FX) {
   Object.assign(P, M);
   const uz = P.updateZones; if (uz) P.updateZones = function (list, dt) { return uz.call(this, list.some((z) => z.fxOwn) ? list.filter((z) => !z.fxOwn) : list, dt); };
   const cl = P.clear; P.clear = function (...a) { this._elClear(); return cl ? cl.apply(this, a) : undefined; };
+  installInterlude(FX); // interludes and stage changes (fx_interlude.js) ride on elemFrame
 }
 // fx.js may import this file for its side effect (one line); it installs itself when fx.js has finished loading
 import('./fx.js').then((m) => installElements(m.FX)).catch(() => {});
