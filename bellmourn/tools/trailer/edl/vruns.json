@@ -13,13 +13,13 @@
   },
   {
    "take": "VW_burn",
-   "in": 0.8,
+   "in": 0.5,
    "dur": 3.0,
    "flash": 0.2
   },
   {
    "take": "VW_frozen",
-   "in": 0.8,
+   "in": 0.3,
    "dur": 3.0,
    "flash": 0.2
   },
