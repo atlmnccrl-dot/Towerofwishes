@@ -125,8 +125,8 @@ export const BOSSES8 = {
   // crack); bronze gauntlets and a breastplate with a sun on it; where a face should be, a smooth oval of light
   // with nothing in it; behind the head a crown of bronze rays; six wings of light folded behind. He floats.
   god: {
-    name: 'The Voice', title: 'God of the Toll', hp: 19000, poise: 999, speed: 0.01, r: 1.7, mass: 60, scale: 3.1, boss: true, hover: true,
-    look: { rig: 'god', eyes: 0xfff4d0, colors: { light: 0xfff6e2, robe: 0xf2ecdc, shade: 0xc8bea8, bronze: 0xb8863a, dark: 0x5a3a18, verd: 0x5a8a70, gold: 0xf0c860, sun: 0xffd890, face: 0xfff8ec } },
+    name: 'The Voice', title: 'God of the Toll', hp: 19000, poise: 999, speed: 0.01, r: 1.7, mass: 60, scale: 2.4, boss: true, hover: true,
+    look: { rig: 'god', eyes: 0xfff4d0, colors: { light: 0xffd890, robe: 0xc8a868, shade: 0x8a7048, bronze: 0x9a6a2a, dark: 0x3a2410, verd: 0x5a8a70, gold: 0xf0c860, sun: 0xffd890, face: 0xfff8ec } },
   },
 };
 
@@ -137,13 +137,13 @@ export const UNITS8 = {
   // round its crown, two slits of fire for eyes under the shoulder, fire in its mouth, its clapper a tongue of flame.
   dawnbell: {
     name: 'The Dawn Bell', hp: 2600, poise: 999, flinch: 0, speed: 2.4, r: 1.15, mass: 22, aggro: 99, keep: 2.8, home: 99, drop: 0, armor: true, bell: true,
-    attacks: [], look: { rig: 'dawnbell', eyes: 0xffc040, scale: 1, colors: { metal: 0xd8a83a, light: 0xffe08a, dark: 0x6a4410, rim: 0xf0c860, fire: 0xff8a20, core: 0xfff0b0 } },
+    attacks: [], look: { rig: 'dawnbell', eyes: 0xffc040, scale: 1.7, colors: { metal: 0xd8a83a, light: 0xffe08a, dark: 0x6a4410, rim: 0xf0c860, fire: 0xff8a20, core: 0xfff0b0 } },
   },
   // PROPOSAL: its twin of black iron, alive: a crescent moon in relief, chains hanging from its crown, rust, and in
   // its mouth a night with stars; its clapper a weight of void; two violet eyes.
   duskbell: {
     name: 'The Dusk Bell', hp: 2600, poise: 999, flinch: 0, speed: 2.2, r: 1.15, mass: 22, aggro: 99, keep: 3.4, home: 99, drop: 0, armor: true, bell: true,
-    attacks: [], look: { rig: 'duskbell', eyes: 0xc070ff, scale: 1, colors: { metal: 0x3a3a44, light: 0x8a8aa0, dark: 0x16161c, rim: 0x5a5a6a, rust: 0x6a3a2a, void: 0x8a40ff, core: 0xe0c0ff } },
+    attacks: [], look: { rig: 'duskbell', eyes: 0xc070ff, scale: 1.7, colors: { metal: 0x3a3a44, light: 0x8a8aa0, dark: 0x16161c, rim: 0x5a5a6a, rust: 0x6a3a2a, void: 0x8a40ff, core: 0xe0c0ff } },
   },
 };
 
