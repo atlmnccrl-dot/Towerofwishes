@@ -106,6 +106,34 @@ source.
 - **The Empyrean**: the hub of the Wheel, white and gold, a heaven turned inside out. At its heart, the Voice in the
   Bell, the dying god, guarded by the Wheel itself (the final boss).
 
+### The Ascent: Acts IV to VI (PROPOSAL, added 2026-11)
+
+The author asked for God as the final boss, two more acts before the last, and bosses that change as they
+fight. This replaces "the Wheel as final boss" and moves the choice to God's Throne. Full design:
+`docs/ASCENT_DESIGN.md`.
+
+- **The Voice wakes.** When the Wheel falls at the end of Act III, the Voice in the Bell wakes fully for the
+  first time since the First Founder caught it in bronze. It is not grateful: every toll that kept the world
+  alive was its pain. It means to toll the world back into the silence it came from and begin again. Its line:
+  "I was the dawn. You made me a bell."
+- **Act IV, the Drowned Heaven.** Heaven fell into a sea of bell-bronze when the Wheel broke. The areas:
+  - **the Sunken Choir:** a cathedral sunk under the sea;
+  - **the Glass Orchard:** trees of stained glass whose fruit are the voices the Bell took;
+  - **the Hall of Echoes:** the Voice replays the wardens' old battles, and the bosses they felled return;
+  - **the Broken Halo:** heaven's ring lying on the bronze sea. Its gate is kept by **the Last Seraph**, God's
+    herald and the last angel. She falls and lets them pass: "Go into his dream. Do not wake him gently."
+- **Act V, the God's Dream.** The wardens walk into the Voice's sleeping mind. The areas:
+  - **the Ribcage Cathedral:** a church grown inside a bronze body;
+  - **the Sea of Unborn Days:** every stolen dawn, as an island with its sun stuck at the horizon;
+  - **the Waking City:** Bellmourn as he dreams it, tilted and upside down;
+  - **the Cradle of Bronze:** the foundry where the Bell was cast. There **the First Founder** has guarded the
+    dream for a thousand years. He saved the world and caged a god, "both, always both", and when he falls
+    the god wakes.
+- **Act VI, the Throne of the Toll.** God sits above the clouds on a throne before the cracked Great Bell. He
+  summons the Dawn Bell and the Dusk Bell, two great living bells. When they fall he rises and tolls the
+  world, and then fights alone, vast. The choice (ring, silence, sing) is spoken by God himself before the
+  fight. Silence ends the game without it.
+
 ### The choice and the endings
 
 Before the last fight the Voice speaks to the warden: it is tired; it could die, ending the world gently; or be bound
