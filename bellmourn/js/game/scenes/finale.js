@@ -27,6 +27,9 @@ export const finalChoice = {
   steps: (S) => {
     const b = bossP(S), h = heroP(S); const voiceAt = inZone(S, toward(b, h, 1.5)); const row = inZone(S, toward(voiceAt, h, 3.4));
     const song = ready(S);
+    // at the Throne (Act VI) it is God Himself who speaks, from His seat; elsewhere (no Throne built yet) the Voice
+    // appears before the Wheel as it always did
+    if (S.def && S.def.id === 'throne') return throneChoice(S, b, h, song);
     // the bell that holds the Voice hangs over the Empyrean's far end (level data, or where the region puts it)
     const vb = (S.def && S.def.voiceBell) || (S.def && S.def.id === 'empyrean' ? { x: 4, y: 3.6, z: -60.2 } : null);
     const bellPt = vb ? [vb.x, vb.y ?? 3.6, vb.z] : null;
@@ -59,6 +62,38 @@ export const finalChoice = {
   },
 };
 
+// PROPOSAL: the choice at the Throne. God speaks from His seat; the bells hang silent at His sides.
+function throneChoice(S, b, h, song) {
+  const stand = inZone(S, toward(b, h, 6)); const row = inZone(S, toward(stand, h, 2.4));
+  const V = (t, o = {}) => say('voice', t, { actor: null, ...o });
+  return [
+    ...partyRow(S, row, b),
+    cam({ mid: ['lead', b] }, { zoom: 1.0, dur: 1.6, wait: false }),
+    walk('lead', stand, { face: b }),
+    call((cs) => { cs.g.sound.play('bigBell'); cs.g.r.post.flash = 0.3; cs.g.flashT = 0.15; if (cs.g.settings.shake) cs.g.r.shake(0.5, 1); }),
+    V('SO. THE LITTLE KEEPERS OF MY CAGE CLIMB UP TO ME.'),
+    V('A THOUSAND YEARS YOUR WORLD BREATHED MY BREATH. EVERY DAWN, MY SCREAM.'),
+    say('lead', 'WE DID NOT KNOW.'),
+    V('NOW YOU KNOW. CHOOSE, WARDEN. THE LAST CHOICE ANYONE WILL MAKE.'),
+    V('BIND ME AGAIN, IF YOU CAN. AND THE TOLL GOES ON.'),
+    V('OR KNEEL, AND LET ME END IT. A LONG QUIET NIGHT, AND NOTHING AFTER.'),
+    song ? V('...OR. SO MANY VOICES WALK WITH YOU. I HAVE NOT HEARD SINGING IN A THOUSAND YEARS.', { soft: true }) : null,
+    choice('final', [
+      { id: 'ring', label: 'RING', sub: 'BIND HIM AGAIN: THE DAWN AS IT WAS' },
+      { id: 'silence', label: 'SILENCE', sub: 'KNEEL: AN ENDLESS NIGHT', color: '#b8b4c8' },
+      { id: 'sing', label: 'SING', sub: 'EVERY VOICE SINGS TO HIM: A NEW DAWN', color: '#ffe8a8', when: song },
+    ], { prompt: 'WHAT WILL YOU DO?' }),
+    call((cs) => {
+      const c = cs.result.final;
+      const L = { ring: 'THEN WE RING YOU BACK INTO THE BRONZE.', silence: '...THEN REST. ALL OF US.', sing: 'THEN LISTEN. WE CAME TO SING.' }[c] || '';
+      const R = { ring: 'THEN COME AND TRY.', silence: null, sing: 'SINGING. THEN SING LOUDER THAN MY TOLL.' }[c];
+      cs.queue.splice(cs.i, 0, say('lead', L, { soft: c === 'silence' }), R ? V(R) : null);
+      cs.queue = cs.queue.filter(Boolean);
+    }),
+    call((cs) => { cs.g.save.choice = cs.result.final; cs.g.save.flags = cs.g.save.flags || {}; cs.g.save.flags.finalChoice = cs.result.final; }, { keep: true }),
+  ].filter(Boolean);
+}
+
 // ------------------------------------------------------------------ the Dawn: bound again, the wardens keep the bell
 export const endDawn = {
   id: 'end.dawn', music: 'none',
@@ -70,7 +105,7 @@ export const endDawn = {
     title('THE DAWN', '', 2.6),
     call((cs) => { const b = bellOf(cs.S); if (b && b.ring) b.ring(0.6); cs.g.sound.play('bigBell'); }),
     dawn(0.75, 6),
-    say('lead', 'THE VOICE SLEEPS AGAIN. THE TOLL GOES ON.'),
+    say('lead', 'HE SLEEPS IN THE BRONZE AGAIN. THE TOLL GOES ON.'),
     say(has(S, 'lamplighter') && S.lead !== 'lamplighter' ? 'lamplighter' : 'bellbreaker', 'SOMEONE MUST KEEP IT NOW. EVERY DAWN. FOREVER.'),
     say('lead', 'THEN WE KEEP IT.'),
     call((cs) => { for (const [id, e] of cs.actors) if (e.heroId) { e.anim = 'kneel'; e.animT = 0; } }),
@@ -134,7 +169,7 @@ export const endSong = {
     say('lead', 'WE RANG IT. AND IT SANG BACK.'),
     call((cs) => { BELLS.slice().reverse().forEach((f, i) => cs.g.sound.play('toll', { f, delay: i * 0.3, vol: 0.6 })); }),
     cam((SS) => ({ x: cs0(SS).x, y: 1.5, z: cs0(SS).z }), { zoom: 0.85, dur: 4.5, wait: false }),
-    title('ENDING: THE NEW SONG', 'THE WHEEL STOPS FOR GOOD. THE RAIN ENDS EVERYWHERE.', 5),
+    title('ENDING: THE NEW SONG', 'GOD IS NOT BOUND. GOD DOES NOT DIE. GOD BECOMES THE DAWN.', 5),
     fade(1, 1.6),
     call((cs) => { cs.g.save.ending = 'song'; }, { keep: true }),
   ],
