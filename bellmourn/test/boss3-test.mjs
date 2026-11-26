@@ -32,7 +32,7 @@ function run(type, heroId, skill, seed, tier, maxT = 360) {
     w.update(dt, bot(w, dt)); t += dt;
     for (const ev of w.drain()) { if (ev.type === 'tele' && ev.e === boss) moves.add(ev.atk.name); if (ev.type === 'phase') phases.add(ev.phase); }
     if (boss.ai.chan && boss.state === 'idle') { chanT += dt; moves.add('rite:' + boss.ai.chan.id); } else chanT = 0;
-    if (boss.hidden && !boss.dead) { hidT += dt; moves.add('hidden'); } else hidT = 0;
+    if (boss.hidden && !boss.dead && !boss.away) { hidT += dt; moves.add('hidden'); } else hidT = 0; // away: an interlude (interlude.js), capped there
     if (chanT > 8) { bad(`${type} stuck in a rite`); return { win: false, t }; }
     if (hidT > 8) { bad(`${type} stuck hidden`); return { win: false, t }; }
     maxAdds = Math.max(maxAdds, w.foes().length - (boss.dead ? 0 : 1));

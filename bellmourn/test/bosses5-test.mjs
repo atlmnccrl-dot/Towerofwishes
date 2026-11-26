@@ -118,7 +118,7 @@ function bossRun(type, heroId, skill, seed, tier, o = {}) {
     w.update(dt, bot(w, dt)); t += dt;
     for (const ev of w.drain()) { if (ev.type === 'tele' && ev.e === boss) moves.add(ev.atk.name); if (ev.type === 'phase' && ev.e === boss) phases.add(ev.phase); if (ev.type === 'hit' && ev.dst === boss) { total += ev.dmg; if (ev.src && ev.src.ally) allyDmg += ev.dmg; } if (ev.type === 'ally' && ev.what === 'hit' && ev.dst === boss) { total += ev.dmg; allyDmg += ev.dmg; } }
     if (boss.ai.chan && boss.state === 'idle') { chanT += dt; moves.add('rite:' + boss.ai.chan.id); } else chanT = 0;
-    if (boss.hidden && !boss.dead) { hidT += dt; moves.add('hidden'); } else hidT = 0;
+    if (boss.hidden && !boss.dead && !boss.away) { hidT += dt; moves.add('hidden'); } else hidT = 0; // away: an interlude (interlude.js), capped there
     if (chanT > 9) { bad(`${type} stuck in a rite (${boss.ai.chan && boss.ai.chan.id})`); return { win: false, t }; }
     if (hidT > 8) { bad(`${type} stuck hidden`); return { win: false, t }; }
     if (!invariants(w, type)) return { win: false, t };

@@ -15,4 +15,5 @@ import abyss from './abyss.js';
 import marsh from './marsh.js';
 import spire from './spire.js';
 import empyrean from './empyrean.js';
-export default { prologue, gate, market, docks, nave, undercroft, foundry, heights, belfry, frostmarch, ashdunes, catacombs, abyss, marsh, spire, empyrean };
+import choir from './choir.js'; // Act IV: the Drowned Heaven
+export default { prologue, gate, market, docks, nave, undercroft, foundry, heights, belfry, frostmarch, ashdunes, catacombs, abyss, marsh, spire, empyrean, choir };

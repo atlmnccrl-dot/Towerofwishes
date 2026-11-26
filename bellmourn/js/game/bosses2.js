@@ -6,6 +6,7 @@
 // and can be dashed through or walked out of. Each boss also has reach (a hook, spike rows, pours and a
 // thrown bell, lunges and a vanish) so a ranged hero cannot kite it forever.
 import { strike, ringAt, circleAt, summon } from './ai.js';
+import { interlude, arena, arenaHeart, arenaSpot } from './interlude.js'; // the bosses leave the fight (Isaac-style)
 // Act II's four bosses live in bosses3.js and are merged into BOSSES2 / BOSS_AI2 below (it uses the
 // helpers from here at call time only, so the import cycle is harmless).
 import { BOSSES3, BOSS_AI3 } from './bosses3.js';
@@ -77,6 +78,48 @@ function quick(a, k) {
   const o = { ...a, windup: s(a.windup), active: s(a.windup) + (a.active - a.windup), dur: Math.max(s(a.windup) + (a.active - a.windup) + 0.3, a.dur * k) };
   if (a.lungeT) o.lungeT = [s(a.lungeT[0]), s(a.lungeT[0]) + (a.lungeT[1] - a.lungeT[0])];
   return o;
+}
+
+// ------------------------------------------------------------------ evolving bosses: shared tools
+// stageLook(def, build): the boss's look changes with its stage. Its own look.extra runs first (the parts it
+// makes are handed to build as `orig`: [{ m, j }]); build(rig, part, box, orig) returns { s2: [meshes shown from
+// stage 2], s3: [from stage 3], hide2: [meshes hidden from stage 2], hide3, scale: [1, 1, 1.1] (the whole body
+// per stage), frame(e, dt, stage) }. The view calls rig.onEnt(e, dt) every frame (view.js). Browser only.
+export function stageLook(def, build) {
+  if (!def || !def.look || def.look._staged) return; const orig0 = def.look.extra;
+  def.look = { ...def.look, _staged: true, extra(rig, part, box) {
+    const orig = []; const cap = (...a) => { const m = part(...a); orig.push({ m, j: a[0] }); return m; };
+    if (orig0) orig0(rig, cap, box);
+    const S = build(rig, part, box, orig) || {}; const all = (k) => S[k] || [];
+    for (const m of [...all('s2'), ...all('s3')]) m.visible = false;
+    let last = 0;
+    rig.onEnt = (e, dt) => {
+      const st = e.mini ? 1 : Math.max(1, Math.min(3, e.phase || 1));
+      if (st !== last) {
+        last = st;
+        for (const m of all('s2')) m.visible = st >= 2; for (const m of all('s3')) m.visible = st >= 3;
+        for (const m of all('hide2')) m.visible = st < 2; for (const m of all('hide3')) m.visible = st < 3;
+        if (S.scale) rig.root.scale.setScalar(S.scale[st - 1] || 1);
+      }
+      if (S.frame) S.frame(e, dt, st);
+    };
+  } };
+}
+// a turn of stage without an interlude: a roar that pushes the warden off (telegraphed), the arena changes
+export function stageTurn(w, e, o = {}) {
+  w.emit('shake', { amt: 0.8 }); w.slow(0.5, 0.45);
+  ringAt(w, e, e.x, e.z, o.r || 6, { r0: e.r + 0.4, warn: 0.55, life: 0.8, dmg: o.dmg ?? 8, kind: o.kind || 'shock' });
+  if (o.arena) arena(w, e, o.arena);
+  if (o.speed) e.speed *= o.speed;
+  const q = w.fxq || (w.fxq = []); if (q.length < 300) q.push({ k: 'ilLand', ent: 'slam', x: e.x, z: e.z, r: e.r + 1, e });
+}
+// true once every s seconds for this boss (arena hazards from B.tick); the first after s
+export function every(w, e, key, s) { const k = 'ev_' + key; if (e.ai[k] === undefined) e.ai[k] = w.t + s; if (e.ai[k] <= w.t) { e.ai[k] = w.t + s; return true; } return false; }
+// glowing cracks radiating from the heart (arena fx), n of them, len long
+export function cracksAround(w, e, n, len = 7, r0 = 1.2) {
+  const c = arenaHeart(w, e); const out = []; const a0 = w.rand() * Math.PI * 2;
+  for (let i = 0; i < n; i++) { const a = a0 + i / n * Math.PI * 2 + (w.rand() - 0.5) * 0.4; out.push({ x: c.x + Math.sin(a) * r0, z: c.z + Math.cos(a) * r0, face: a, len: len * (0.7 + w.rand() * 0.5), w: 0.18 + w.rand() * 0.14 }); }
+  return out;
 }
 
 // ------------------------------------------------------------------ looks (extra geometry on the rig)

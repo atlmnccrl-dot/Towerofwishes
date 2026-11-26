@@ -88,6 +88,16 @@ function register() {
   UNIT_AI.itarget = still; UNIT_AI.idecoy = still;
 }
 
+// ------------------------------------------------------------------ the arena as a stage leaves it
+// arena(world, boss, o): world.arenaFx for fx_interlude.js (water, dark, embers, fall, mist, cracks...), centred on
+// the arena's heart; it goes when the boss falls. o.cracks: [{ x, z, face, len, w }] in world space.
+export function arena(w, boss, o = {}) {
+  const c = heart(w, boss); const prev = w.arenaFx;
+  w.arenaFx = { x: c.x, z: c.z, r: 12, ...o, src: boss, v: ((prev && prev.v) || 0) + 1 };
+  return w.arenaFx;
+}
+export function arenaHeart(w, boss) { return heart(w, boss); }
+
 // ------------------------------------------------------------------ places
 // the arena's heart: where the boss first stood, a third of the way toward where the warden met it
 function heart(w, boss) {

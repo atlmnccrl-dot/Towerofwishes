@@ -94,7 +94,7 @@ const M = {
 
   // ---------------------------------------------------------------- the arena as the stage leaves it
   _ilArena(world, dt) {
-    const S = this._ilS(); const A = world && world.arenaFx;
+    const S = this._ilS(); const A = world && world.arenaFx && !(world.arenaFx.src && world.arenaFx.src.dead && (world.arenaFx.src.deadT || 0) > 2.5) ? world.arenaFx : null;
     if (!A) { if (S.arena) { drop(S.arena.g); S.arena = null; S.av = -1; } return; }
     const key = (A.v || 0) + ':' + (A.cracks ? A.cracks.length : 0) + ':' + !!A.water + ':' + !!A.dark;
     if (!S.arena || S.av !== key) {
