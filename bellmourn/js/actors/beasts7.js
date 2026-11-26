@@ -30,6 +30,10 @@ class God extends Beast {
     // the crown of rays
     this.crown = this.joint('crown', 'head', 0, 0.08, -0.08);
     for (let i = 0; i < 11; i++) { const a = (i - 5) / 5 * 1.25; const L = i % 2 ? 0.2 : 0.32; this.part('crown', 0.035, L, 0.03, Cc.gold, S(a) * (0.17 + L / 2), C(a) * (0.17 + L / 2), 0, { glow: 2, rz: -a }); }
+    // the sun behind Him: a great disc of slats of light round His head, turning slowly
+    this.sun = this.joint('sun', 'head', 0, 0.1, -0.2);
+    for (let i = 0; i < 18; i++) { const a = i / 18 * TAU; this.part('sun', 0.1, 0.36, 0.03, Cc.sun, S(a) * 0.62, C(a) * 0.62, 0, { glow: 2.6, rz: -a }); }
+    for (let i = 0; i < 18; i++) { const a = (i + 0.5) / 18 * TAU; this.part('sun', 0.05, 0.18, 0.03, Cc.gold, S(a) * 0.48, C(a) * 0.48, 0, { glow: 1.8, rz: -a }); }
     // arms: bronze gauntlets
     for (const [n, sx] of [['shL', 1], ['shR', -1]]) {
       this.joint(n, 'chest', sx * 0.24, 0.28, 0);
@@ -59,6 +63,7 @@ class God extends Beast {
     this.pose({ lift: up + S(tm * 1.4) * 0.08, pitch: lean, roll: S(tm * 0.9) * 0.03, shL: armL, shR: armR, shLf: [-0.4, 0, 0], shRf: [-0.4, 0, 0] }, dt, 6);
     for (const wg of this.wings) { const j = this.j[wg.n]; j.rotation.y = wg.sx * (-0.4 - spread * (0.5 + wg.i * 0.25)) + S(tm * 2 + wg.i) * 0.05; j.rotation.z = wg.sx * (0.3 - wg.i * 0.35) * wk; j.scale.setScalar(Math.max(0.01, wk)); }
     this.crown.scale.setScalar(Math.max(0.01, ck)); this.crown.rotation.z = S(tm * 0.6) * 0.05;
+    this.sun.scale.setScalar(Math.max(0.01, ck) * (1 + 0.05 * S(tm * 2))); this.sun.rotation.z = tm * 0.15;
     this.face.scale.setScalar(1 + 0.06 * S(tm * 3));
     const vis = e.entering ? clamp01(e.form ?? 1) : 1; // He fades in during His arrival only this.body.scale.setScalar(Math.max(0.01, (this.look.scale || 1) * (0.6 + 0.4 * vis)));
   }

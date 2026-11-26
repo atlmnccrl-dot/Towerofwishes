@@ -1423,6 +1423,8 @@ export class Game {
         const k = Math.min(1, this.stateT / 0.6); target.lerp(new THREE.Vector3(this.boss.x + ox, 1.6 * (this.boss.def.scale || 1) * 0.6 + oy + (this.boss.leapH || 0) * 0.5, this.boss.z + oz), k * 0.9); zt = 1 + k * ((c.zoom || 1.25) - 1);
       } else if (this.state === 'bossIntro' && this.boss) { const k = Math.min(1, this.stateT / 1.0) * (this.stateT < 3.8 ? 1 : Math.max(0, 1 - (this.stateT - 3.8) / 0.6)); target.lerp(new THREE.Vector3(this.boss.x, 1.6 * (this.boss.def.scale || 1) * 0.6, this.boss.z), k * 0.85); zt = 1 + k * 0.25; }
       if (this.boss && !this.boss.dead && this.state === 'play') target.lerp(new THREE.Vector3(this.boss.x, 0, this.boss.z), 0.2);
+      // a colossal boss (God): the camera pulls back and frames the two of them, its eye at His height
+      if (this.boss && !this.boss.dead && this.boss.def.colossal && (this.state === 'play' || this.state === 'bossIntro')) { target.lerp(new THREE.Vector3(this.boss.x, (this.boss.def.scale || 1) * 1.1 + (this.boss.leapH || 0) * 0.4, this.boss.z), 0.35); zt = Math.min(zt, this.boss.def.colossal); }
       // the tutorial duel runs its own camera (close on the two of them, the gate at the end)
       const tc = this.tutorial && this.tutorial.camera && (this.state === 'play' || this.state === 'screen') ? this.tutorial.camera() : null; if (tc) { target = tc.target; zt = tc.zoom; }
       this.view.update(w, dt);

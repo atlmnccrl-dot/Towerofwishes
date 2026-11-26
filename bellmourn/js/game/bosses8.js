@@ -125,7 +125,7 @@ export const BOSSES8 = {
   // crack); bronze gauntlets and a breastplate with a sun on it; where a face should be, a smooth oval of light
   // with nothing in it; behind the head a crown of bronze rays; six wings of light folded behind. He floats.
   god: {
-    name: 'The Voice', title: 'God of the Toll', hp: 19000, poise: 999, speed: 0.01, r: 1.7, mass: 60, scale: 2.4, boss: true, hover: true,
+    name: 'The Voice', title: 'God of the Toll', hp: 19000, poise: 999, speed: 0.01, r: 1.7, mass: 60, scale: 3.6, boss: true, hover: true, colossal: 0.74,
     look: { rig: 'god', eyes: 0xfff4d0, colors: { light: 0xffd890, robe: 0xc8a868, shade: 0x8a7048, bronze: 0x9a6a2a, dark: 0x3a2410, verd: 0x5a8a70, gold: 0xf0c860, sun: 0xffd890, face: 0xfff8ec } },
   },
 };
