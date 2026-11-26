@@ -1433,6 +1433,7 @@ export class Game {
     if (this.zoomPunch) { zt = Math.max(zt, this.zoomPunch); this.zoomPunch = Math.max(1, this.zoomPunch - dt * 0.6); if (this.zoomPunch <= 1.001) this.zoomPunch = 0; }
     if (this.debugZoom) zt = this.debugZoom;
     if (this.state !== 'cutscene') this.zoom += (zt - this.zoom) * Math.min(1, dt * (this.inHaven ? 1.6 : 5)); r.setZoom(Math.abs(this.zoom - 1) < 0.004 ? 1 : this.zoom);
+    if (this.state !== 'cutscene' && r.viewIsDefault && !r.viewIsDefault()) r.setView(); // a cinematic's angle ends with it
     r.focus.copy(this.camFocus);
     if (this.dashGhosts > 0 && w && w.hero) { this.ghostT -= dt; if (this.ghostT <= 0) { this.dashGhosts--; this.ghostT = 0.05; const rig = this.view.get(w.hero); if (rig) this.fx.ghost(rig); } }
     const P = r.post; P.hurt = Math.max(0, P.hurt - dt * 1.6); if (this.state !== 'dead') P.desat = Math.max(0, P.desat - dt * (this.specialT > 0 ? 0.2 : 1.5)); this.specialT = (this.specialT || 0) - dt;

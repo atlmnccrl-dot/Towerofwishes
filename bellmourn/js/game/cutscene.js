@@ -38,11 +38,15 @@ export const music = (mode) => ({ k: 'call', fn: (cs) => cs.g.sound.setMusic(mod
 export const call = (fn, o = {}) => ({ k: 'call', fn, keep: !!o.keep });
 export const flag = (name, value = true) => ({ k: 'call', keep: true, fn: (cs) => { const S = cs.g.save; (S.flags || (S.flags = {}))[name] = value; } });
 export const tween = (fn, dur, o = {}) => ({ k: 'tween', fn, dur, wait: o.wait ?? true });
-export const title = (text, sub = '', dur = 3.2) => ({ k: 'title', text, sub, dur });
+export const title = (text, sub = '', dur = 3.2, o = {}) => ({ k: 'title', text, sub, dur, style: o.style }); // o.style: 'name' (a boss's name slammed in low), 'logo' (the game's title)
 export const choice = (key, options, o = {}) => ({ k: 'choice', key, options, prompt: o.prompt || '', onPick: o.onPick });
 export const strike = (n, onStrike, o = {}) => ({ k: 'strike', n, onStrike, prompt: o.prompt });
 export const place = (id, o = {}) => ({ k: 'place', id, o });
 export const par = (...steps) => ({ k: 'par', steps: steps.flat().filter(Boolean) });
+// a cinematic angle: the camera swings to look from yaw/pitch (degrees; the game's own view is 45/40) over dur
+// seconds (0: a cut). The game puts its own angle back when the scene ends.
+export const angle = (yaw, pitch, dur = 0, o = {}) => ({ k: 'tween', dur: Math.max(0.0001, dur), wait: o.wait ?? (dur > 0), start: (cs) => ({ y0: cs.g.r.view.yaw, p0: cs.g.r.view.pitch }),
+  fn: (k, cs, st) => { const e = dur > 0 ? ease(k) : 1; const Y = yaw * Math.PI / 180, P = pitch * Math.PI / 180; cs.g.r.setView(st.y0 + (Y - st.y0) * e, st.p0 + (P - st.p0) * e); } });
 // an effect burst at an actor (or a point): fx(kind, at, n, color, y)
 export const fx = (kind, at, n = 20, color, y = 1) => ({ k: 'call', fn: (cs) => { const p = cs.pos(at); if (!p) return; const F = cs.g.fx; if (kind === 'mist') F.mist(p.x, y, p.z, n, color); else if (kind === 'ring') F.shockRing(p.x, p.z, n, color || [2.6, 2.2, 1.4], 0.6); else if (kind === 'dust') F.dust(p.x, p.z, n); else if (kind === 'sparks') F.sparks(p.x, y, p.z, 0, n, color); else F.embers(p.x, y, p.z, n, color); } });
 // the dawn: the night lifts, the rain thins, the moon turns warm (k 0..1 over dur)
@@ -137,7 +141,7 @@ export class Cutscene {
       case 'fade': st.f0 = this.fade; break;
       case 'call': { try { s.fn(this, g, this.S); } catch (err) { console.error('cutscene call', err); } st.done = true; break; }
       case 'tween': st.data = s.start ? s.start(this) : null; break;
-      case 'title': this.titleCard = { text: s.text, sub: s.sub, t: 0, dur: s.dur }; break;
+      case 'title': this.titleCard = { text: s.text, sub: s.sub, t: 0, dur: s.dur, style: s.style }; break;
       case 'choice': {
         const opts = s.options.filter((o) => o.when === undefined || (typeof o.when === 'function' ? o.when(this.S) : o.when));
         this.pick = { key: s.key, options: opts, sel: 0, prompt: s.prompt, onPick: s.onPick, t: 0 }; this.line = null; break;
@@ -326,9 +330,21 @@ export class Cutscene {
     // a title card (an act ends, a time passes)
     if (this.titleCard) {
       const T = this.titleCard; const a = Math.min(1, T.t * 1.6, Math.max(0, (T.dur - T.t) * 2));
-      const sc = ui.measure(T.text, 2) <= W - 24 ? 2 : 1; const y = Math.round(H / 2 - (T.sub ? 14 : 7));
-      ui.text(T.text, W / 2, y, { align: 'center', scale: sc, color: COL.white, alpha: a });
-      if (T.sub) ui.wrap(T.sub, W - 40).forEach((l, i) => ui.text(l, W / 2, y + 7 * sc + 8 + i * 10, { align: 'center', color: COL.gold, alpha: a }));
+      if (T.style === 'name') {
+        // a boss's name: slammed in on the lower third, a beat bigger at first, a red bar under it, its ground over it
+        const fit = Math.max(2, Math.min(4, Math.floor((W - 30) / Math.max(1, ui.measure(T.text)))));
+        const sc = fit + (T.t < 0.12 ? 1 : 0); const y = Math.round(H * 0.68) + (T.t < 0.12 ? -2 : 0); const a2 = Math.min(1, T.t * 8, Math.max(0, (T.dur - T.t) * 3));
+        if (T.sub) ui.text(T.sub, W / 2, y - 12, { align: 'center', color: COL.gold, alpha: a2 * 0.9 });
+        ui.text(T.text, W / 2, y, { align: 'center', scale: sc, color: COL.white, alpha: a2 });
+        const bw = Math.round(ui.measure(T.text, sc) * Math.min(1, T.t * 4)); ui.rect(Math.round(W / 2 - bw / 2), y + sc * 7 + 3, bw, 2, '#c02028');
+      } else if (T.style === 'logo' && ui.logo) {
+        ui.logo(W / 2, Math.round(H * 0.4), a);
+        if (T.sub) ui.text(T.sub, W / 2, Math.round(H * 0.4) + 34, { align: 'center', color: COL.dim, alpha: a });
+      } else {
+        const sc = ui.measure(T.text, 2) <= W - 24 ? 2 : 1; const y = Math.round(H / 2 - (T.sub ? 14 : 7));
+        ui.text(T.text, W / 2, y, { align: 'center', scale: sc, color: COL.white, alpha: a });
+        if (T.sub) ui.wrap(T.sub, W - 40).forEach((l, i) => ui.text(l, W / 2, y + 7 * sc + 8 + i * 10, { align: 'center', color: COL.gold, alpha: a }));
+      }
     }
     // a choice: big buttons in the middle, the prompt over them
     if (this.pick) {

@@ -35,6 +35,7 @@ export class PixelRenderer {
     this.up = new THREE.Vector3().setFromMatrixColumn(this.camera.matrixWorld, 1);
     this.fwd = new THREE.Vector3().setFromMatrixColumn(this.camera.matrixWorld, 2).negate();
 
+    this.view = { yaw: YAW, pitch: PITCH }; // the angle the camera looks from (cinematics may swing it; play keeps the default)
     this.focus = new THREE.Vector3();     // where the camera looks (smoothed by the caller)
     this.shakeAmt = 0; this.shakeT = 0;
     this.ppu = PPU; this.zoom = 1;
@@ -52,6 +53,16 @@ export class PixelRenderer {
     addEventListener('resize', () => this.resize());
   }
 
+  // Swing the camera to look from another angle (radians; cutscenes only): the ortho camera turns about the focus,
+  // and the screen axes the pixel snapping uses turn with it. setView() with no arguments puts the default back.
+  setView(yaw = YAW, pitch = PITCH) {
+    if (Math.abs(yaw - this.view.yaw) < 1e-5 && Math.abs(pitch - this.view.pitch) < 1e-5) return;
+    this.view.yaw = yaw; this.view.pitch = pitch;
+    this.camera.position.set(Math.sin(yaw) * Math.cos(pitch), Math.sin(pitch), Math.cos(yaw) * Math.cos(pitch)).multiplyScalar(DIST);
+    this.camera.up.set(0, 1, 0); this.camera.lookAt(0, 0, 0); this.camera.updateMatrixWorld();
+    this.right.setFromMatrixColumn(this.camera.matrixWorld, 0); this.up.setFromMatrixColumn(this.camera.matrixWorld, 1); this.fwd.setFromMatrixColumn(this.camera.matrixWorld, 2).negate();
+  }
+  viewIsDefault() { return Math.abs(this.view.yaw - YAW) < 1e-5 && Math.abs(this.view.pitch - PITCH) < 1e-5; }
   _rt(w, h, depth, linear) {
     return new THREE.WebGLRenderTarget(w, h, {
       minFilter: linear ? THREE.LinearFilter : THREE.NearestFilter, magFilter: linear ? THREE.LinearFilter : THREE.NearestFilter,
