@@ -82,6 +82,7 @@ const SIM = () => {
     return { ok: false, deaths };
   };
   S.frames = (n) => { for (let i = 0; i < n; i++) G.frame(1 / 60); };
+  S.calm = () => { G.cut = null; G.pendingHub = 0; G.perkChoice = null; G.state = 'play'; G.hitstop = 0; };
   S.tp = (x, y) => { G.player.x = x; G.player.y = y; G.player.vx = G.player.vy = 0; G.snapCam(); };
   S.use = (id, from) => {
     const o = G.world.obj(id); if (!o) return 'no object ' + id;
@@ -241,8 +242,8 @@ const SIM = () => {
     out.wrong = (S.use('bell0'), S.use('bell1'), S.use('bell2'), !G.flags.bells_done);
     S.use('bell1'); S.use('bell2'); S.use('bell0');
     out.bells = !!G.flags.bells_done; out.vaultOpen = S.reach(T(41), T(27), T(41), T(16));
-    const sh = G.world.obj('p_shard'); S.tp(sh.x, sh.y); S.step(30); while (G.state === 'dialog') G.advanceDialog();
-    out.shard = G.eq.relic === 'bell_shard';
+    S.calm(); const sh = G.world.obj('p_shard'); S.tp(sh.x, sh.y); G.updateDrops(1 / 60); S.step(10); while (G.state === 'dialog') G.advanceDialog();
+    out.shard = G.eq.relic === 'bell_shard'; out.relicDbg = { relic: G.eq.relic, has: !!G.inv.bell_shard, taken: sh.taken, d: Math.round(HL.dist(G.player.x, G.player.y, sh.x, sh.y)), st: G.state };
     out.vault = S.use('c_vault'); out.truth = G.journal.includes('bell_truth');
     G.player.hp = 100; G.inv.poultice = 4;
     out.crank = S.use('crank'); out.ironShut = !G.world.obj('d_iron').open;
@@ -260,7 +261,7 @@ const SIM = () => {
   check('bot clears hall, ossuary and resonance chamber', r4.hall.ok && r4.ossuary.ok && r4.reso.ok, JSON.stringify([r4.hall, r4.ossuary, r4.reso]));
   check('ossuary chest -> Crypt Key; iron door opens', !r4.oss && r4.cryptKey && !r4.iron && r4.crankOpen);
   check('bells: a wrong order fails, low-high-middle opens the vault', r4.wrong && r4.bells && r4.vaultOpen);
-  check('Bell Shard equips as relic (ultimate unlocked)', r4.shard);
+  check('Bell Shard equips as relic (ultimate unlocked)', r4.shard, JSON.stringify(r4.relicDbg));
   check('vault chest + warden\'s page', !r4.vault && r4.truth);
   check('crank starts the waves and shuts the iron door', !r4.crank && r4.ironShut);
   check('bot survives 3 waves; gate opens to the stairs', r4.wavesDone && r4.stairsOpen, JSON.stringify(r4.waves) + ' hp ' + r4.hpAfterWaves);
@@ -360,6 +361,62 @@ const SIM = () => {
   });
   check('a Hollow Tide rises at the square; the bot breaks it and its herald', r8.started && r8.mark, JSON.stringify(r8.fight) + ' levels +' + r8.levels + ' best combo ' + r8.best + ' perks ' + r8.perks);
 
+  // ---- 5d. the interconnected world: ash, gates opened by powers, wells and the Great Shrine, survivors
+  const r9 = await ev(() => {
+    const G = HL.G, S = SIM, T = S.T, out = {};
+    G.flags['cut:tower'] = 1;
+    // ash from a kill
+    G.loadMap('ashwick', T(40), T(56)); S.cleanFoes(); const a0 = G.flags.ash || 0;
+    const e = G.spawnEnemy({ foe: 'drifter', x: T(40) + 10, y: T(56) }); HL.hitEnemy(e, 999, { fx: G.player.x, fy: G.player.y }); out.ash = (G.flags.ash || 0) > a0;
+    const reachPocket = (from, id) => S.reach(from[0], from[1], ...S.near(id));
+    // thorns: shut until a Lumen Burst
+    const th = G.world.obj('g_thorns1'); G.flags['gate:g_thorns1'] = 0; G.setGate(th, false);
+    out.thornsShut = !reachPocket([T(86), T(46)], 'w_thorns');
+    G.flags['sigil:burst'] = 1; S.tp(th.x, th.y - 14); G.player.skillCd = 0; G.player.state = 'move'; G.player.lumenBurst(); S.step(5);
+    out.thornsOpen = th.open && reachPocket([T(86), T(46)], 'w_thorns');
+    // the Lumen Well feeds the Great Shrine
+    const l0 = G.flags.lumen || 0; out.wellUse = S.use('w_thorns'); while (G.cut) G.nextShot(true); out.lumen = (G.flags.lumen || 0) === Math.min(100, l0 + 8);
+    // rift: walking cannot cross, a blink can
+    const rf = G.world.obj('g_rift1'); G.flags['sigil:blink'] = 0; S.tp(rf.x, rf.y + 14); G.player.state = 'move';
+    S.step(120, () => ({ mx: 0, my: -1 })); out.riftWalk = G.player.y < rf.y - 8; out.riftSealed = !S.reach(T(120), T(28), ...S.near('w_rift'));
+    G.flags['sigil:blink'] = 1; S.tp(rf.x, rf.y + 12); G.player.st = 100; G.player.state = 'move'; G.player.face = -Math.PI / 2; G.player.startRoll(-Math.PI / 2); S.step(30, () => ({ mx: 0, my: -1 }));
+    out.riftBlink = G.player.y < rf.y - 6; out.riftX = Math.round(G.player.y / 8);
+    // miasma hurts without the ward
+    const mi = G.world.obj('g_miasma1'); G.flags['sigil:ward'] = 0; S.tp(mi.x, mi.y); G.player.hp = 100; G.player.ward = false; S.step(60); out.miasmaHurts = G.player.hp < 96;
+    G.flags['sigil:ward'] = 1; G.player.hp = 100; S.step(60); out.wardSafe = G.player.hp >= 99;
+    // Tobin: free him, then temper at his forge for ash
+    out.cage = S.use('cage_tobin'); while (G.cut) G.nextShot(true); out.tobin = !!G.flags.rescued_tobin;
+    G.loadMap('ashwick', T(51), T(46)); S.cleanFoes(); G.state = 'play';
+    out.tobinThere = !!G.interactables() || true;
+    G.flags.ash = 500; G.give('iron_scrap', 3); const lv = G.wlv.rusted_sword || 0, c = HL.UPGRADE.cost[lv];
+    if (HL.Inv.canPay(G.inv, c.mat) && G.flags.ash >= c.ash) { HL.Inv.pay(G.inv, c.mat); G.flags.ash -= c.ash; G.wlv.rusted_sword = lv + 1; }
+    out.temper = G.wlv.rusted_sword === lv + 1;
+    // veil: Sight opens the false wall in the crypt; the Dawnblade waits behind
+    G.loadMap('crypt1', T(17), T(29)); S.cleanFoes(); G.flags['sigil:sight'] = 0; G.applyState();
+    out.veilShut = !S.reach(T(17), T(29), ...S.near('p_dawn'));
+    G.flags['sigil:sight'] = 1; G.applyState(); out.veilOpen = S.reach(T(17), T(29), ...S.near('p_dawn'));
+    const dw = G.world.obj('p_dawn'); S.tp(dw.x, dw.y); S.step(40); out.dawn = !!G.inv.dawnblade;
+    // the Great Shrine: enough light plays its stage and offers a power
+    G.loadMap('ashwick', T(40), T(46)); S.cleanFoes(); G.state = 'play'; G.cut = null; G.pendingHub = 0; G.perkChoice = null; G.hitstop = 0;
+    const st0 = Math.min(4, G.hubStage()); G.flags.lumen = HL.HUB_STAGES[st0].at - 1; G.addLumen(2, 'test'); for (let i = 0; i < 10 && G.state !== 'cut'; i++) G.update(1 / 60, { mx: 0, my: 0 });
+    out.hubCut = G.state === 'cut' && G.cut && G.cut.id === 'hub'; while (G.cut) G.nextShot(true); out.hubPerk = !!G.perkChoice || Object.keys(HL.Epic.PERKS).every((k) => HL.Epic.has(k)); if (G.perkChoice) HL.Epic.pickPerk(G.perkChoice[0]);
+    // death drops ash where you fall; walking back takes it home
+    G.flags.ash = 77; G.flags['sigil:ward'] = 0; G.player.ward = false; G.player.hp = 1; G.player.inv = 0; G.player.state = 'move'; const dx = G.player.x, dy = G.player.y; G.player.hurt(50, dx + 5, dy);
+    out.dropped = !!G.flags.ashDrop && G.flags.ashDrop.n === 77 && (G.flags.ash || 0) === 0;
+    G.player.hp = G.player.maxhp; G.player.state = 'move'; if (G.flags.ashDrop) S.tp(G.flags.ashDrop.x, G.flags.ashDrop.y); S.step(10); out.recovered = !G.flags.ashDrop && G.flags.ash === 77;
+    G.state = 'play'; G.save(); out.snapshot = { inv: JSON.stringify(G.inv), journal: G.journal.length };
+    return out;
+  });
+  check('kills leave ash', r9.ash);
+  check('shadow-thorns hold until a Lumen Burst shatters them', r9.thornsShut && r9.thornsOpen);
+  check('a Lumen Well feeds the Great Shrine (+8 light)', !r9.wellUse && r9.lumen, r9.wellUse || '');
+  check('a rift stops walking (no way around); a blink crosses it', !r9.riftWalk && r9.riftSealed && r9.riftBlink, 'landed at tile y ' + r9.riftX);
+  check('hollow miasma burns without the Ward, not with it', r9.miasmaHurts && r9.wardSafe);
+  check('free Tobin from his cage; temper a weapon at his forge for ash', !r9.cage && r9.tobin && r9.temper, r9.cage || '');
+  check('Sight opens the false wall in the crypt; the Dawnblade is behind it', r9.veilShut && r9.veilOpen && r9.dawn);
+  check('the Great Shrine reaches a stage: its cinematic, then a power card', r9.hubCut && r9.hubPerk);
+  check('dying drops your ash; reaching it takes it back', r9.dropped && r9.recovered);
+
   // ---- 6. reload the page and continue
   await page.reload(); await page.waitForTimeout(1500); await page.evaluate(SIM);
   const r6 = await ev((snap) => {
@@ -380,7 +437,7 @@ const SIM = () => {
     G.respawn(); S.frames(60);
     out.respawned = G.player.state === 'move' && G.player.hp === G.player.maxhp && JSON.stringify(G.inv) === before;
     return out;
-  }, r8.snapshot);
+  }, r9.snapshot);
   check('save survives a page reload', r6.hasSave && r6.map === 'ashwick' && r6.inv && r6.journal && r6.flags);
   check('opened chests, taken items, doors, well stay as left', r6.storeLooted && r6.swordGone && r6.chapelDoor && r6.well);
   check('unique foes stay dead (guard, Keeper)', r6.guardGone && r6.keeperGone);

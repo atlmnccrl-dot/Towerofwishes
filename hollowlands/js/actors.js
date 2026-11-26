@@ -137,7 +137,13 @@ HL.Player = class Player {
     }
     this.dir = dirOf(this.face);
     const moved = HL.dist(0, 0, this.vx, this.vy) > 4;
+    G.world.riftPass = this.state === 'roll' && G.flags['sigil:blink'] && this.t < 0.2;
     G.world.move(this, this.vx * dt, this.vy * dt);
+    if (G.world.riftPass && G.world.blocked(this.x, this.y, this.r)) { G.world.riftPass = true; } // still over the rift: the blink carries on
+    G.world.riftPass = false;
+    if (G.world.blocked(this.x, this.y, this.r)) { // landed inside a rift: finish the crossing
+      const a = this.rollA || this.face; for (let k = 1; k < 14; k++) { const nx = this.x + Math.cos(a) * k * 2, ny = this.y + Math.sin(a) * k * 2; if (!G.world.blocked(nx, ny, this.r)) { this.x = nx; this.y = ny; break; } }
+    }
     if (moved) {
       this.walkT += dt * (this.state === 'move' ? 1.9 : 0);
       this.stepT -= dt;
@@ -152,6 +158,7 @@ HL.Player = class Player {
     V.flash('#d8fffa', 0.35); V.chroma(1); V.kick(1); V.light(this.x, this.y, 0x7fe8e0, 180, 0.4);
     for (const e of G.enemies) if (!e.dead && !e.hidden && HL.dist(this.x, this.y, e.x, e.y) < 44 + e.r) HL.hitEnemy(e, 26 * this.dmgMult(), { heavy: true, breaker: true, fx: this.x, fy: this.y, poise: 99, col: C });
     for (const o of G.world.objects) if ((o.t === 'resonator' || o.t === 'pylon') && HL.dist(this.x, this.y, o.x, o.y) < 46) G.strikeProp(o);
+    for (const o of G.world.objects) if (o.t === 'gate' && o.kind === 'thorns' && !o.open && HL.dist(this.x, this.y, o.x, o.y) < 54) G.breakGate(o);
   }
   startRoll(a) {
     this.perfectUsed = false; HL.Epic.onDash(this);
@@ -370,7 +377,7 @@ HL.hitEnemy = function (e, dmg, o) {
   HL.vfx.hit(e.x, e.y, ang + Math.PI, o.heavy ? 2 : 1, o.col || (armoured ? HL.P.lt1 : HL.P.red0));
   if (!armoured) HL.vfx.burst(e.x, e.y, 6, e.type === 'wraith' ? '#9fb4c8' : HL.P.red1, o.heavy ? 8 : 4, 50, 0.4);
   if (o.heavy) HL.vfx.kick(0.35);
-  if (G.eq.relic === 'bell_shard' && !o.ult) G.player.ult = Math.min(100, G.player.ult + (o.heavy ? 9 : 6) * (HL.Epic.has('fury') ? 1.5 : 1));
+  if (G.eq.relic === 'bell_shard' && !o.ult) G.player.ult = Math.min(100, G.player.ult + (o.heavy ? 9 : 6) * HL.Epic.ultMult());
   HL.Epic.onHit(e, o, dmg * mult);
   if (e.type !== 'keeper') {
     const kb = (o.heavy ? 70 : 38) * (e.type === 'guard' ? 0.4 : 1);

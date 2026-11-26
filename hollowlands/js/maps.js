@@ -37,7 +37,7 @@ function outdoor() {
     else if (HL.fbm(x * 0.13, y * 0.13, 3, 3) > 0.57) set(x, y, TL.GRASS);
   }
   const open = (x, y) => { if (HL.SOLID[at(x, y)]) set(x, y, HL.fbm(x * 0.13, y * 0.13, 3, 3) > 0.55 ? TL.GRASS : TL.ASH); };
-  const clearings = [[100, 68, 5.5], [120, 28, 7.5], [137, 24, 5], [141, 64, 8.5], [160, 50, 12.5], [88, 44, 4.5], [72, 50, 6], [80, 64, 8], [98, 30, 7]];
+  const clearings = [[100, 68, 5.5], [120, 28, 7.5], [137, 24, 5], [141, 64, 8.5], [160, 50, 12.5], [88, 44, 4.5], [72, 50, 6], [80, 64, 8], [98, 30, 7], [84, 33, 4], [121, 11, 3.6], [157, 72, 5.5]];
   clearings.forEach(([x, y, r]) => brushDisc(W, H, x, y, r + HL.hash(x, y) * 1.5, (cx, cy) => open(cx, cy)));
   const road = [[0, 56], [14, 56], [26, 52], [40, 50], [52, 50], [62, 49], [72, 47], [84, 45], [96, 50], [106, 54], [116, 54], [124, 55], [134, 58], [146, 56], [156, 52], [164, 53]];
   const sides = [
@@ -47,7 +47,7 @@ function outdoor() {
     [[118, 54], [119, 44], [120, 33]],
     [[126, 27], [131, 26], [135, 25]],
     [[134, 58], [139, 62]],
-    [[39, 49], [39, 36]], [[40, 50], [30, 47]], [[38, 53], [31, 63], [26, 67]], [[42, 49], [50, 45]], [[44, 52], [53, 61], [56, 64]], [[14, 56], [13, 50]],
+    [[39, 49], [39, 36]], [[40, 50], [30, 47]], [[38, 53], [31, 63], [26, 67]], [[42, 49], [50, 45]], [[44, 52], [53, 61], [56, 64]], [[14, 56], [13, 50]], [[86, 45], [85, 40], [84, 36]], [[121, 21], [121, 16], [121, 12]], [[160, 60], [158, 66], [157, 70]],
   ];
   const carve = (pts, clear, pathR) => brushLine(W, H, pts, clear, (x, y, d) => { open(x, y); if (d <= pathR && at(x, y) !== TL.WATER) set(x, y, TL.PATH); });
   carve(road, 3.4, 1.3);
@@ -148,6 +148,21 @@ function outdoor() {
   O.push({ t: 'shrine', id: 'shrine_hidden', x: px(135), y: px(23) });
   [[24, 35, 1], [57, 37, 2], [9, 70, 3], [106, 50, 4], [101, 71, 5], [143, 68, 6]].forEach(([x, y, n]) => O.push({ t: 'pickup', id: 'p_ls' + n, item: 'lumen_shard', n: 1, x: px(x), y: px(y), shard: true }));
   // the tower
+  // the hub: the Great Shrine of Ashwick; survivors and their places
+  O.push({ t: 'greatshrine', id: 'greatshrine', x: px(40), y: px(41), col: box(26, 10) });
+  O.push({ t: 'npc', id: 'tobin', who: 'TOBIN', x: px(51) + 2, y: px(43) + 4, look: 'smith', cond: (f) => f.rescued_tobin });
+  O.push({ t: 'npc', id: 'ilse_hub', who: 'ILSE', x: px(43) + 4, y: px(42) + 4, look: 'acolyte', cond: (f) => f.rescued_ilse });
+  O.push({ t: 'cage', id: 'cage_tobin', x: px(140), y: px(68), col: box(12, 6) });
+  // gates your powers open, and what lies behind them
+  O.push({ t: 'gate', kind: 'thorns', id: 'g_thorns1', x: px(85) + 4, y: px(40), col: box(44, 14) });
+  O.push({ t: 'lwell', id: 'w_thorns', x: px(84), y: px(33) });
+  O.push({ t: 'container', id: 'c_thorns', spr: 'chest', open: 'chestOpen', x: px(86), y: px(32), loot: [['ash', 80], ['fire_flask', 2]] });
+  O.push({ t: 'gate', kind: 'rift', id: 'g_rift1', x: px(121), y: px(17) + 2, col: box(48, 12) });
+  O.push({ t: 'lwell', id: 'w_rift', x: px(120), y: px(11) });
+  O.push({ t: 'container', id: 'c_rift', spr: 'chest', open: 'chestOpen', x: px(123), y: px(10) + 4, loot: [['ash', 120], ['iron_scrap', 3]] });
+  O.push({ t: 'gate', kind: 'miasma', id: 'g_miasma1', x: px(157), y: px(71), r: 46 });
+  O.push({ t: 'lwell', id: 'w_miasma', x: px(157), y: px(73) });
+  O.push({ t: 'container', id: 'c_miasma', spr: 'chest', open: 'chestOpen', x: px(160), y: px(72), loot: [['ash', 150], ['poultice', 3]] });
   O.push({ t: 'tower', id: 'tower', x: px(166), y: px(45), col: { w: 56, h: 14 } });
   O.push({ t: 'exit', id: 'x_tower', spr: null, x: px(166), y: px(45) + 9, to: 'crypt1', tx: px(23) + 4, ty: px(41) + 4, locked: 'gate_key', doorId: 'd_tower', label: 'Enter' });
   prop('rubble', 158, 44, null); prop('rock0', 171, 52, box(10, 4)); prop('rubble', 168, 55, null); prop('rock1', 155, 57, box(5, 3));
@@ -182,7 +197,7 @@ function rooms(W, H, rects) {
 function crypt1() {
   const W = 50, H = 48;
   const T = rooms(W, H, [
-    [20, 1, 8, 4], [23, 5, 2, 3], [14, 8, 20, 12, 3], [23, 20, 2, 4], [15, 24, 18, 8], [10, 27, 5, 2], [2, 21, 8, 11, 2],
+    [20, 1, 8, 4], [23, 5, 2, 3], [14, 8, 20, 12, 3], [23, 20, 2, 4], [15, 24, 18, 8], [16, 32, 2, 2], [12, 34, 6, 4], [10, 27, 5, 2], [2, 21, 8, 11, 2],
     [33, 27, 4, 2], [37, 22, 10, 10, 2], [44, 32, 2, 2], [41, 34, 7, 6, 1], [41, 19, 2, 3], [39, 14, 6, 5], [23, 32, 2, 6], [20, 38, 8, 7, 1],
   ]);
   const O = [];
@@ -194,7 +209,7 @@ function crypt1() {
   light(20, 38.6); light(27, 38.6);
   O.push({ t: 'container', id: 'c_cr1', spr: 'urn', open: 'urnBroken', x: px(26), y: px(42), loot: [['ash_herb', 1], ['cloth_scrap', 1]] });
   // hall
-  light(16, 24.6); light(31, 24.6); light(16, 30.6, 38); light(31, 30.6, 38);
+  light(16, 24.6); light(31, 24.6); light(15.4, 28.2, 38); light(31, 30.6, 38);
   [[19, 26], [28, 26], [19, 29.5], [28, 29.5]].forEach(([x, y]) => p('pillar', x, y, b(8, 4)));
   O.push({ t: 'note', id: 'n_inscr', note: 'inscription', spr: 'scratch', x: px(21), y: px(24) + 2, col: b(8, 2) });
   p('bones', 25, 30, null); p('bones', 17, 27, null);
@@ -224,6 +239,10 @@ function crypt1() {
   light(21, 1.6, 34);
   O.push({ t: 'waves', id: 'waves', points: [[16, 10], [31, 10], [16, 18], [31, 18], [23.5, 9.5]].map(([x, y]) => [px(x), px(y)]) });
   O.push({ t: 'shrine', id: 'shrine_deep', x: px(44) + 4, y: px(37) });
+  O.push({ t: 'npc', id: 'ilse', who: 'ILSE', x: px(42), y: px(38) + 4, look: 'acolyte', cond: (f) => !f.rescued_ilse });
+  O.push({ t: 'gate', kind: 'veil', id: 'g_veil1', x: px(16) + 4, y: px(32) + 4, col: { w: 16, h: 8 } });
+  O.push({ t: 'lwell', id: 'w_veil', x: px(13) + 4, y: px(36) });
+  O.push({ t: 'pickup', id: 'p_dawn', item: 'dawnblade', n: 1, x: px(16) + 4, y: px(35) + 4, pedestal: true });
   O.push({ t: 'pickup', id: 'p_ls7', item: 'lumen_shard', n: 1, x: px(3), y: px(26), shard: true });
   O.push({ t: 'pickup', id: 'p_ls8', item: 'lumen_shard', n: 1, x: px(43), y: px(15) + 4, shard: true });
   const E = [['drifter', 18, 28], ['drifter', 29, 29], ['guard', 6, 25, 'guard_crypt'], ['drifter', 4, 29], ['archer', 44, 28], ['wraith', 38, 29], ['wraith', 26, 26], ['wraith', 43, 36, 'elite_deep', true]]

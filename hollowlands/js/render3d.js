@@ -304,12 +304,28 @@ HL.R3 = (() => {
         case 'exit': if (o.spr && S(o.spr)) e.base = mk(S(o.spr), o.x, o.y - 5); break;
         case 'fire': e.base = mk(S('fireRing'), o.x, o.y); e.flame = flame(o.x, o.y, 1); group.add(e.flame); break;
         case 'brazier': e.base = mk(S('brazier'), o.x, o.y - 2); e.flame = flame(o.x, o.y - 2, 0.6, 8); group.add(e.flame); break;
-        case 'npc': { e.fig = humanoid({ c0: P.st2, c1: P.st3, c2: P.tan1, face: P.cream2, leg: P.ink }); e.fig.g.position.set(o.x, 0, o.y); e.fig.g.rotation.y = Math.PI / 2; e.fig.rig.scale.y = 0.8; group.add(e.fig.g); break; }
+        case 'npc': { const lk = o.look === 'smith' ? { c0: P.wd1, c1: P.wd2, c2: P.rust, face: P.cream2, leg: P.ink, plate: true } : o.look === 'acolyte' ? HL.LOOKS.acolyte : { c0: P.st2, c1: P.st3, c2: P.tan1, face: P.cream2, leg: P.ink }; e.fig = humanoid(lk); e.fig.g.position.set(o.x, 0, o.y); e.fig.g.rotation.y = o.id === 'maren' ? Math.PI / 2 : 0; if (o.id === 'maren') e.fig.rig.scale.y = 0.8; group.add(e.fig.g); break; }
         case 'pickup':
           if (o.pedestal) e.base = mk(S('pedestal'), o.x, o.y + 1);
           if (o.shard) { e.shard = new T.Mesh(new T.OctahedronGeometry(2.2, 0), new T.MeshBasicMaterial({ color: '#9ff5ec' })); e.shard.scale.y = 1.6; group.add(e.shard); e.beam = new T.Mesh(new T.CylinderGeometry(0.5, 1.2, 60, 6, 1, true).translate(0, 30, 0), new T.MeshBasicMaterial({ color: '#7fe8e0', transparent: true, opacity: 0.35, depthWrite: false })); e.beam.position.set(o.x, 0, o.y); group.add(e.beam); }
           break;
         case 'shrine': { e.sh = shrineModel(1); e.sh.g.position.set(o.x, 0, o.y - 4); group.add(e.sh.g); occluders.push(e.sh.base); break; }
+        case 'greatshrine': { e.sh = shrineModel(1.9); e.sh.g.position.set(o.x, 0, o.y - 6); group.add(e.sh.g); occluders.push(e.sh.base);
+          e.beacon = new T.Mesh(new T.CylinderGeometry(4, 9, 600, 12, 1, true).translate(0, 300, 0), new T.MeshBasicMaterial({ color: '#9ff5ec', transparent: true, opacity: 0.3, depthWrite: false, side: T.DoubleSide })); e.beacon.position.set(o.x, 0, o.y - 6); group.add(e.beacon); break; }
+        case 'gate': {
+          const p2 = new Parts();
+          if (o.kind === 'thorns') { for (let i = 0; i < 16; i++) { const a = (i / 16) * 6.28, d = (HL.hash(i, 3, 5) - 0.5) * (o.col.w - 6); p2.add('cone', d, 0, (HL.hash(i, 4, 5) - 0.5) * (o.col.h - 2), 2 + HL.hash(i, 5, 5) * 2.5, 9 + HL.hash(i, 6, 5) * 16, 2 + HL.hash(i, 7, 5) * 2, i % 3 ? '#24161c' : '#3a1a24', a, (HL.hash(i, 8, 5) - 0.5) * 0.8, (HL.hash(i, 9, 5) - 0.5) * 0.8); } }
+          if (o.kind === 'rift') { p2.add('box', 0, -0.3, 0, o.col.w, 0.5, o.col.h, '#060404'); const horiz = o.col.w > o.col.h, L = horiz ? o.col.w : o.col.h, Wd = horiz ? o.col.h : o.col.w; for (let i = 0; i < 6; i++) { const u = -L / 2 + 4 + i * (L - 8) / 5; if (horiz) { p2.add('box', u, 0, -Wd / 2 - 2, 2.5, 1, 4, P.wd2, 0.2 * (i % 2)); p2.add('box', u + 1.5, 0, Wd / 2 + 2, 2.5, 1, 4, P.wd1, -0.2); } else { p2.add('box', -Wd / 2 - 2, 0, u, 4, 1, 2.5, P.wd2, 0.2 * (i % 2)); p2.add('box', Wd / 2 + 2, 0, u + 1.5, 4, 1, 2.5, P.wd1, -0.2); } } }
+          if (o.kind === 'veil') { for (let i = 0; i < 5; i++) p2.add('dodec', (i - 2) * 3.5, 4, (HL.hash(i, 1, 4) - 0.5) * 3, 4.5, 6 + HL.hash(i, 2, 4) * 4, 4, i % 2 ? P.st2 : P.st3, i); }
+          if (o.kind === 'miasma') { e.fog = true; break; }
+          p2.place(0, o.x, o.y); e.closed = meshOf(p2); group.add(e.closed);
+          if (o.kind === 'rift') { e.open = e.closed; e.closed = null; e.rift = true; }
+          break;
+        }
+        case 'lwell': { const p2 = new Parts(); p2.add('cyl12', 0, 0, 0, 7, 3, 7, P.st2); p2.add('cyl12', 0, 3, 0, 7.6, 0.8, 7.6, P.st1); for (let i = 0; i < 4; i++) { const a = i * 1.57 + 0.4; p2.add('box', Math.cos(a) * 7, 0, Math.sin(a) * 7, 1.6, 7, 1.6, P.st3); } p2.place(0, o.x, o.y - 2); e.base = meshOf(p2); group.add(e.base);
+          e.water = new T.Mesh(new T.CircleGeometry(5.6, 16), new T.MeshBasicMaterial({ color: '#7fe8e0' })); e.water.rotation.x = -Math.PI / 2; e.water.position.set(o.x, 3.2, o.y - 2); group.add(e.water); break; }
+        case 'cage': { const p2 = new Parts(); p2.add('box', 0, 0, 0, 12, 1, 8, P.wd2); p2.add('box', 0, 12, 0, 12, 1, 8, P.wd2); for (let i = 0; i < 6; i++) { p2.add('box', -5.5 + i * 2.2, 0, -3.6, 0.7, 12, 0.7, P.st2); p2.add('box', -5.5 + i * 2.2, 0, 3.6, 0.7, 12, 0.7, P.st2); } p2.place(0, o.x, o.y - 3); e.closed = meshOf(p2); group.add(e.closed);
+          e.fig = humanoid({ c0: P.wd1, c1: P.wd2, c2: P.rust, face: P.cream2, leg: P.ink }); e.fig.g.position.set(o.x, 0, o.y - 3); e.fig.g.rotation.y = 0.3; e.fig.rig.rotation.x = 0.3; group.add(e.fig.g); break; }
         case 'pylon': { const p2 = new Parts(); p2.add('box', 0, 0, 0, 5, 3, 5, P.st3); p2.add('taper', 0, 3, 0, 1.8, 8, 1.8, P.st2); p2.place(0, o.x, o.y - 2); e.base = meshOf(p2); group.add(e.base); e.cr = new T.Mesh(new T.OctahedronGeometry(2.4, 0), new T.MeshBasicMaterial({ color: '#4a5658' })); e.cr.position.set(o.x, 15, o.y - 2); e.cr.scale.y = 1.4; group.add(e.cr); break; }
         case 'tower': {
           const tex = towerTexture(), m = new T.Mesh(new T.CylinderGeometry(29, 31, 190, 28, 1, true), new T.MeshLambertMaterial({ map: tex }));
@@ -684,7 +700,7 @@ HL.R3 = (() => {
     lantern.intensity = w.dark && p && !G.hidePlayer ? 160 : 0;
     if (p) lantern.position.set(p.x, 16, p.y);
     // nearest fire/brazier lights
-    const ls = w.lights.map((l) => ({ l, d: HL.dist(l.x, l.y, camT.x, camT.y) })).filter((o) => o.d < 260 && (!o.l.fire || G.flags['lit:' + o.l.id])).sort((a, b) => a.d - b.d);
+    const ls = w.lights.map((l) => ({ l, d: HL.dist(l.x, l.y, camT.x, camT.y) })).filter((o) => o.d < 260 && (!o.l.fire || G.flags['lit:' + o.l.id] || G.hubStage() >= 2) && (!o.l.lamp || G.hubStage() >= 1)).sort((a, b) => a.d - b.d);
     plights.forEach((pl, i) => { const o = ls[i]; if (!o) { pl.intensity = 0; return; } pl.position.set(o.l.x, o.l.fire ? 8 : 14, o.l.y); pl.distance = o.l.r * 1.9; pl.intensity = (w.dark ? 90 : 40) * (1 + Math.sin(t * 9 + o.l.flick) * 0.08); });
     // buildings fade while you are inside
     for (const B of cur.buildings) {
@@ -702,6 +718,17 @@ HL.R3 = (() => {
       if (o.t === 'pickup' && o.shard) { e.shard.visible = e.beam.visible = !o.taken; e.shard.position.set(o.x, 7 + Math.sin(t * 2.4) * 1.2, o.y); e.shard.rotation.y = t * 2; e.beam.material.opacity = 0.25 + Math.sin(t * 3) * 0.08; if (!o.taken && Math.random() < 0.08 && HL.dist(o.x, o.y, camT.x, camT.y) < 200) HL.vfx.embers(o.x, o.y, 1, '#7fe8e0'); }
       else if (o.t === 'pickup') { const vis = !o.taken; if (e.base) e.base.visible = true; if (vis) { const s = iconSprite(o, o.item); s.visible = true; s.position.set(o.x, (o.pedestal ? 14 : 6) + Math.sin(t * 3) * 0.8, o.y); } }
       if (e.sh && HL.dist(o.x, o.y, camT.x, camT.y) < 320) { const awake = !!G.flags['shrine:' + o.id] || (G.state === 'cut' && G.cutAt && G.cutAt.x === o.x && G.cut && G.cut.id === 'shrine' && G.cut.i > 0); animShrine(e.sh, awake, t); if (awake && Math.random() < 0.25) HL.vfx.embers(o.x + (Math.random() - 0.5) * 20, o.y - 4, 1, '#7fe8e0'); }
+      if (o.t === 'npc' && e.fig) e.fig.g.visible = !o.cond || !!o.cond(G.flags);
+      if (o.t === 'cage') { const r = !!G.flags.rescued_tobin; e.closed.visible = !r; e.fig.g.visible = !r; }
+      if (o.t === 'greatshrine') { const L = (G.flags.lumen || 0) / 100; animShrine(e.sh, L > 0.05, t, 0.6 + L * 3); e.sh.crystal.scale.setScalar(1 + L * 0.8); e.sh.crystal.scale.y = 1.5 + L; e.beacon.visible = G.hubStage() >= 3; e.beacon.material.opacity = 0.18 + Math.sin(t * 2) * 0.06 + L * 0.12; if (L > 0.05 && Math.random() < L * 0.8 && HL.dist(o.x, o.y, camT.x, camT.y) < 260) HL.vfx.embers(o.x + (Math.random() - 0.5) * 30, o.y - 6, 1, '#7fe8e0'); }
+      if (o.t === 'lwell') { const used = !!G.flags['well:' + o.id]; e.water.material.color.set(used ? '#2a3a3a' : Math.sin(t * 3) > 0 ? '#9ff5ec' : '#7fe8e0'); if (!used && Math.random() < 0.15 && HL.dist(o.x, o.y, camT.x, camT.y) < 220) HL.vfx.embers(o.x, o.y - 2, 1, '#7fe8e0'); }
+      if (o.t === 'gate') {
+        if (e.closed) e.closed.visible = !o.open;
+        if (o.kind === 'veil' && o.open && Math.random() < 0.2) HL.vfx.embers(o.x, o.y, 1, '#c8b4ff');
+        if (o.kind === 'thorns' && !o.open && Math.random() < 0.1 && HL.dist(o.x, o.y, camT.x, camT.y) < 220) HL.vfx.embers(o.x + (Math.random() - 0.5) * 30, o.y, 1, '#ff4a6a');
+        if (e.rift && Math.random() < 0.25 && HL.dist(o.x, o.y, camT.x, camT.y) < 220) HL.vfx.embers(o.x + (Math.random() - 0.5) * o.col.w, o.y + (Math.random() - 0.5) * o.col.h, 1, '#7fe8e0');
+        if (e.fog && HL.dist(o.x, o.y, camT.x, camT.y) < 300) for (let k = 0; k < 3; k++) { const a = Math.random() * 6.28, d = Math.random() * o.r; HL.vfx.burst(o.x + Math.cos(a) * d, o.y + Math.sin(a) * d, 2 + Math.random() * 6, Math.random() < 0.5 ? '#5a2a4a' : '#7a3a5a', 1, 8, 1.4); }
+      }
       if (e.cr) { const lit = o.litT > 0; e.cr.material.color.set(lit ? (o.litT < 2 && Math.floor(t * 8) % 2 ? '#4a5658' : '#bffaf3') : '#4a5658'); e.cr.rotation.y = t * (lit ? 3 : 0.5); e.cr.position.y = 15 + Math.sin(t * 2 + o.x) * 0.8; }
     }
     for (const o of w.objects) if (o.t === 'pickup' && !o.taken && !cur.dyn.has(o) && !o.shard) { const s = iconSprite(o, o.item); s.visible = true; s.position.set(o.x, 6 + Math.sin(t * 3) * 0.8, o.y); }
@@ -794,6 +821,11 @@ HL.R3 = (() => {
       }
     });
     for (const [key, f] of figs) if (!alive.has(key)) { scene.remove(f.g); scene.remove(f.shadow); figs.delete(key); }
+    // your lost ash, waiting where you fell
+    if (!R.ashPile) { R.ashPile = new T.Group(); const pile = new T.Mesh(new T.ConeGeometry(4, 3, 7), new T.MeshLambertMaterial({ color: '#4a3030', flatShading: true })); pile.position.y = 1.5; R.ashPile.add(pile); const bm = new T.Mesh(new T.CylinderGeometry(1, 2.4, 90, 8, 1, true).translate(0, 45, 0), new T.MeshBasicMaterial({ color: '#ff6a4a', transparent: true, opacity: 0.35, depthWrite: false })); R.ashPile.add(bm); scene.add(R.ashPile); }
+    const ad = G.flags.ashDrop; R.ashPile.visible = !!(ad && ad.map === w.id);
+    if (R.ashPile.visible) { R.ashPile.position.set(ad.x, 0, ad.y); if (Math.random() < 0.3) HL.vfx.embers(ad.x, ad.y, 1, '#ff8a6a'); }
+    if (w.id === 'ashwick' && G.hubStage() >= 1 && Math.random() < 0.3) for (const l of w.lights) if (l.lamp && HL.dist(l.x, l.y, camT.x, camT.y) < 200 && Math.random() < 0.1) HL.vfx.embers(l.x, l.y + 10, 1, '#ffd27a');
     // the trial's wall of light
     if (!R.barrier) { R.barrier = new T.Mesh(new T.CylinderGeometry(1, 1, 1, 48, 1, true).translate(0, 0.5, 0), new T.MeshBasicMaterial({ color: '#7fe8e0', transparent: true, opacity: 0.3, depthWrite: false, side: T.DoubleSide })); scene.add(R.barrier); }
     const tr = G.trial; R.barrier.visible = !!tr && G.state !== 'cut';
@@ -860,7 +892,7 @@ HL.R3 = (() => {
     postMat.uniforms.time.value = t; postMat.uniforms.tilt.value = w.dark ? 0.5 : 1;
     postMat.uniforms.hurt.value = Math.max(G.hurtVig || 0, p && p.hp < 30 ? 0.35 + Math.sin(t * 5) * 0.12 : 0);
     postMat.uniforms.fade.value = G.state === 'fade' ? HL.clamp(G.fadeT < 0.35 ? G.fadeT / 0.35 : 1 - (G.fadeT - 0.35) / 0.35, 0, 1) : G.state === 'cut' ? (G.cutFade || 0) : 0;
-    const gr = G.state === 'cut' ? G.cutGrade : G.tide && G.tide.active ? ['#ff7a6a', 0.2] : null; postMat.uniforms.tintAmt.value = gr ? gr[1] : 0; if (gr) postMat.uniforms.tint.value.set(gr[0]);
+    const gr = G.state === 'cut' ? G.cutGrade : G.tide && G.tide.active ? ['#ff7a6a', 0.2] : w.id === 'ashwick' && G.hubStage() >= 5 && p && p.x < 70 * 8 ? ['#ffe0a8', 0.14] : null; postMat.uniforms.tintAmt.value = gr ? gr[1] : 0; if (gr) postMat.uniforms.tint.value.set(gr[0]);
     renderer.info.reset(); renderer.setRenderTarget(rt); renderer.render(scene, cam);
     renderer.setRenderTarget(null); renderer.render(postScene, postCam);
   };

@@ -12,7 +12,7 @@ HL.World = class World {
     this.dyn = new Uint8Array(this.cw * this.chh);
     for (let ty = 0; ty < this.H; ty++) for (let tx = 0; tx < this.W; tx++) {
       const t = this.tiles[ty * this.W + tx];
-      if (HL.SOLID[t]) { const v = 1 | (HL.OPAQUE[t] ? 2 : 0); for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) this.col[(ty * 2 + j) * this.cw + tx * 2 + i] = v; }
+      if (HL.SOLID[t]) { const v = 1 | (HL.OPAQUE[t] ? 2 : 0) | 8; for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) this.col[(ty * 2 + j) * this.cw + tx * 2 + i] = v; }
     }
     this.statics = []; this.buildings = []; this.objects = []; this.lights = [];
     for (const b of def.buildings || []) this.addBuilding(b);
@@ -34,7 +34,9 @@ HL.World = class World {
   setDyn(r, on) { this.rectCells(r.x0, r.y0, r.x1, r.y1, (k) => (this.dyn[k] = on ? 3 : 0)); }
   cellBlocked(i, j, bit = 1) {
     if (i < 0 || j < 0 || i >= this.cw || j >= this.chh) return true;
-    const k = j * this.cw + i; return ((this.col[k] | this.dyn[k]) & bit) !== 0;
+    const k = j * this.cw + i, v = this.col[k] | this.dyn[k];
+    if (this.riftPass && bit === 1 && (v & 4) && !(this.col[k] & 8)) return false; // a blink crosses rifts
+    return (v & bit) !== 0;
   }
   blocked(x, y, r) {
     const a = Math.floor((x - r) / CELL), b = Math.floor((x + r - 0.01) / CELL), c = Math.floor((y - r) / CELL), d = Math.floor((y + r - 0.01) / CELL);
@@ -98,6 +100,10 @@ HL.World = class World {
       o.rect = o.t === 'door' ? { x0: o.x - o.w / 2, y0: o.y - o.h / 2, x1: o.x + o.w / 2, y1: o.y + o.h / 2 } : { x0: o.x - c.w / 2, y0: o.y - c.h, x1: o.x + c.w / 2, y1: o.y + 1 };
     }
     if (o.t === 'door' && !o.rect) o.rect = { x0: o.x - o.w / 2, y0: o.y - o.h / 2, x1: o.x + o.w / 2, y1: o.y + o.h / 2 };
+    if (o.t === 'gate') { // gates sit across a path; rifts block walking but not a blink
+      if (o.col) { o.rect = { x0: o.x - o.col.w / 2, y0: o.y - o.col.h / 2, x1: o.x + o.col.w / 2, y1: o.y + o.col.h / 2 }; o.bits = o.kind === 'rift' ? 5 : 3; }
+      o.sprite = null; this.objects.push(o); return;
+    }
     if (o.t === 'tower') {
       o.rect = { x0: o.x - 28, y0: o.y - 8, x1: o.x + 28, y1: o.y + 6 };
       this.solidRect(o.rect.x0, o.rect.y0, o.rect.x1, o.rect.y1);
@@ -106,6 +112,7 @@ HL.World = class World {
       this.objects.push(o);
       return;
     }
+    if (o.t === 'prop' && o.spr === 'lamp') this.lights.push({ x: o.x + 3, y: o.y - 12, r: 60, flick: Math.random() * 10, lamp: true });
     if (o.t === 'prop' || o.t === 'tree') {
       const sp = HL.ART.spr[o.spr];
       if (o.t === 'tree') this.solidRect(o.x - 2, o.y - 3, o.x + 2, o.y);

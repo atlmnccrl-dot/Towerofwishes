@@ -12,6 +12,7 @@ HL.Epic = (() => {
   E.callouts = [];
   E.callout = (s, col = P.cream, size = 2) => { E.callouts.push({ s, col, size, t: 0 }); if (E.callouts.length > 2) E.callouts.shift(); };
   E.rankOf = (n) => { let r = 0; for (let i = 0; i < E.RANKS.length; i++) if (n >= E.RANKS[i][0]) r = i; return r; };
+  E.ultMult = () => (HL.G.hubStage && HL.G.hubStage() >= 5 ? 1.3 : 1) * (E.has('fury') ? 1.5 : 1);
   E.dmgMult = () => {
     const g = G(), p = g.player, f = g.flags;
     let m = 1 + E.combo.rank * 0.05 + (g.inv.tide_mark || 0) * 0.1;
@@ -55,8 +56,13 @@ HL.Epic = (() => {
     for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
     if (pool.length) { g.perkChoice = pool.slice(0, 3); g.perkT = 0.9; }
   };
+  E.offerPerks = (title) => {
+    const g = G(), pool = Object.keys(E.PERKS).filter((k) => !E.has(k));
+    for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+    if (pool.length) { g.perkChoice = pool.slice(0, 3); g.perkTitle = title; g.perkT = 0.9; }
+  };
   E.pickPerk = (k) => {
-    const g = G(); g.flags['perk:' + k] = 1; g.perkChoice = null; g.state = 'play';
+    const g = G(); g.flags['perk:' + k] = 1; g.perkChoice = null; g.perkTitle = null; g.state = 'play';
     if (k === 'giant') g.recalcHp();
     const p = g.player; V().beam(p.x, p.y, E.PERKS[k].col, 0.9, 5, 130); V().shock(p.x, p.y, 26, E.PERKS[k].col, 0.5); A.play('item');
     HL.UI.showBanner(E.PERKS[k].name, E.PERKS[k].desc); g.save();
@@ -84,6 +90,8 @@ HL.Epic = (() => {
   E.onKill = (e, o) => {
     const g = G(), p = g.player, now = g.time;
     E.addXp(Math.round((E.XP[e.type] || 8) * (e.bossName ? 6 : e.elite ? 3 : 1)));
+    const ash = Math.round((HL.ASH[e.type] || 4) * (e.bossName ? 4 : e.elite ? 3 : 1));
+    if (p && ash) { g.addAsh(ash); V().motes ? V().motes(e.x, e.y, p, Math.min(14, 2 + ash)) : null; }
     if (E.has('leech') && p) p.hp = Math.min(p.maxhp, p.hp + (e.type === 'husk' ? 1 : 3));
     if (E.has('nova') && !(o && o.nova)) {
       V().shock(e.x, e.y, 18, '#ff5a4a', 0.35); V().burst(e.x, e.y, 6, '#ff5a4a', 10, 60, 0.4);
@@ -264,7 +272,7 @@ HL.Epic = (() => {
   E.drawPerks = (g, Gm) => {
     const P_ = HL.P, ch = Gm.perkChoice; if (!ch) return;
     g.fillStyle = 'rgba(6,4,4,0.8)'; g.fillRect(0, 0, Gm.W, Gm.H);
-    HL.text(g, 'LEVEL ' + (Gm.flags.lvl || 1), Gm.W / 2, 14, GOLD, 0.5, 2, P_.ink);
+    HL.text(g, Gm.perkTitle || 'LEVEL ' + (Gm.flags.lvl || 1), Gm.W / 2, 14, GOLD, 0.5, 2, P_.ink);
     HL.text(g, 'Choose a power', Gm.W / 2, 36, P_.cream2, 0.5);
     const cw = Math.min(118, (Gm.W - 40) / 3 - 8), ch2 = 108, gap = 8, x0 = (Gm.W - (cw * ch.length + gap * (ch.length - 1))) / 2, y0 = 52;
     ch.forEach((k, i) => {

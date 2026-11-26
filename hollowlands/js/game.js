@@ -42,7 +42,7 @@ G.boot2 = function () {
   };
   requestAnimationFrame(frame);
 };
-G.isPlaying = () => G.player && G.world && ['play', 'menu', 'dialog', 'fire', 'anvil', 'perk'].includes(G.state);
+G.isPlaying = () => G.player && G.world && ['play', 'menu', 'dialog', 'fire', 'anvil', 'perk', 'ilse'].includes(G.state);
 G.readSafe = () => {
   const d = document.getElementById('safe'); if (!d) return { l: 0, r: 0, t: 0, b: 0 };
   const cs = getComputedStyle(d); const n = (v) => parseFloat(v) || 0;
@@ -254,6 +254,7 @@ G.loadMap = function (id, x, y) {
   G.waves = null; G.trial = null; G.tide = null; G.bossAwake = false; G.region = null; HL.Epic.reset();
   for (const s of w.def.enemies) {
     if (s.id && G.flags['k:' + s.id]) continue;
+    if (id === 'ashwick' && G.hubStage() >= 4 && s.x < 64 * 8) continue; // the Ward of Ashwick
     G.enemies.push(new HL.Enemy(s));
   }
   G.applyState();
@@ -269,7 +270,8 @@ G.applyState = function () {
     if (o.t === 'stone') o.face = f['stone:' + o.idx] != null ? f['stone:' + o.idx] : o.face0 != null ? o.face0 : (o.face0 = o.face);
     if (o.t === 'roots') { o.gone = !!f.stones_done; if (o.rect) { if (o.gone) G.setSolid(o, false); else G.setSolid(o, true); } }
     if (o.t === 'resonator') o.charge = 0;
-    if (o.t === 'well') o.sprite = HL.ART.spr[f.well_done ? 'wellBucket' : 'well'];
+    if (o.t === 'well' && o.spr) o.sprite = HL.ART.spr[f.well_done ? 'wellBucket' : 'well'];
+    if (o.t === 'gate') G.setGate(o, G.gateOpen(o));
     if (o.t === 'door') G.setDoor(o, G.doorOpen(o));
   }
   for (const b of w.buildings) b.fade = b.inside(G.player.x, G.player.y) ? 0 : 1;
@@ -299,6 +301,7 @@ G.transition = function (to, x, y, after) {
 
 // ------------------------------------------------------------------ items, journal, dialogue
 G.give = function (id, n = 1, quiet) {
+  if (id === 'ash') { G.addAsh(n); if (!quiet) { HL.UI.pushFeed(null, n, '+' + n + ' ash'); Au.play('pickup'); } return n; }
   const added = HL.Inv.add(G.inv, id, n);
   const it = HL.ITEMS[id];
   if (added < n) G.dropItem(id, n - added, G.player.x + 6, G.player.y + 2, true);
@@ -316,6 +319,8 @@ G.give = function (id, n = 1, quiet) {
     HL.UI.showBanner(it.name, (HL.RARITY[it.rarity] || '') + (it.kind === 'weapon' ? ' weapon' : it.kind === 'armor' ? ' armour' : ' relic'));
   }
   if (id === 'tide_mark' && added) HL.UI.showBanner('MARK OF THE TIDE', '+10% damage, forever');
+  if (id === 'lumen_shard' && added) G.addLumen(HL.LUMEN_GAIN.shard, 'a shard');
+  if (id === 'tide_mark' && added) G.addLumen(HL.LUMEN_GAIN.tide, 'the broken tide');
   if (id === 'lumen_shard' && added) {
     G.recalcHp(); G.player.hp = Math.min(G.player.maxhp, G.player.hp + 15);
     HL.vfx.beam(G.player.x, G.player.y, '#7fe8e0', 1, 5, 120); HL.vfx.shock(G.player.x, G.player.y, 22, '#7fe8e0', 0.6); HL.vfx.flash('#d8fffa', 0.3); Au.play('ult');
@@ -369,7 +374,11 @@ G.interactables = function () {
       case 'door': if (!o.open) { label = o.id === 'd_chapel' ? (G.player.y < o.y ? 'Lift the bar' : 'Examine') : o.locked ? (G.inv[o.locked] ? 'Unlock' : 'Locked') : 'Examine'; r = 14; } break;
       case 'exit': label = o.locked && !f['d:' + o.doorId] ? (G.inv[o.locked] ? 'Unlock' : 'Locked') : o.label; r = 14; break;
       case 'fire': label = 'Fire'; r = 17; break;
-      case 'npc': label = 'Talk'; r = 17; break;
+      case 'npc': if (!o.cond || o.cond(f)) { label = 'Talk'; r = 17; } break;
+      case 'greatshrine': label = 'Great Shrine'; r = 28; break;
+      case 'gate': if (!o.open && o.kind !== 'miasma') { label = 'Examine'; r = 22; } break;
+      case 'lwell': if (!f['well:' + o.id]) { label = 'Draw the light'; r = 15; } break;
+      case 'cage': if (!f.rescued_tobin) { label = 'Open the cage'; r = 17; } break;
       case 'well': label = f.well_done ? 'Look' : G.inv.winch_crank ? 'Fit the crank' : 'Examine'; r = 17; break;
       case 'stone': label = 'Turn'; r = 14; break;
       case 'roots': if (!o.gone) { label = 'Examine'; r = 16; } break;
@@ -427,6 +436,9 @@ G.interact = function (it) {
       break;
     }
     case 'npc': {
+      if (o.id === 'tobin') { const en = HL.TOBIN.find((e) => e.when(f)); G.talk('TOBIN', en.lines, () => { if (en.set) f[en.set] = 1; G.state = 'anvil'; }, o); break; }
+      if (o.id === 'ilse_hub') { const en = HL.ILSE.find((e) => e.when(f)); G.talk('ILSE', en.lines, () => { if (en.set) f[en.set] = 1; G.state = 'ilse'; }, o); break; }
+      if (o.id === 'ilse') { const en = HL.ILSE.find((e) => e.when(f)); G.talk('ILSE', en.lines, () => { f.rescued_ilse = 1; G.addLumen(HL.LUMEN_GAIN.rescue, 'Ilse is safe'); HL.vfx.beam(o.x, o.y, '#7fe8e0', 1, 5, 120); HL.UI.showBanner('ILSE IS SAFE', 'She will wait for you at the Great Shrine in Ashwick.'); G.save(); }, o); break; }
       const entry = HL.MAREN.find((e) => e.when(f));
       G.talk('MAREN', entry.lines, () => { if (entry.set) f[entry.set] = 1; if (entry.set === 'maren_end' && !f.end_seen) { f.end_seen = 1; G.addJournal('next_region'); G.state = 'end'; } G.save(); });
       break;
@@ -467,7 +479,24 @@ G.interact = function (it) {
       break;
     }
     case 'crank': G.startWaves(o); break;
-    case 'anvil': G.state = 'anvil'; break;
+    case 'anvil': if (f.rescued_tobin) G.state = 'anvil'; else HL.UI.toast('The forge is cold. Its smith, Tobin, was dragged east into the woods.', 4); break;
+    case 'cage': {
+      f.rescued_tobin = 1; Au.play('unlock'); HL.vfx.burst(o.x, o.y, 6, P.cream, 14, 60); G.addLumen(HL.LUMEN_GAIN.rescue, 'Tobin is free');
+      G.talk('TOBIN', ['Free! I am Tobin, the smith of Ashwick. They caged me to beat their iron.', 'I will light my forge again. Find me there, and bring ash from the hollow.'], () => { HL.UI.showBanner('TOBIN IS FREE', 'His forge in Ashwick will burn again.'); G.save(); }, o);
+      break;
+    }
+    case 'greatshrine': {
+      const n = f.lumen || 0, next = HL.HUB_STAGES.find((st) => n < st.at);
+      HL.vfx.ring3d(o.x, o.y, 30, 30, '#7fe8e0', 0.6); Au.play('bellLow');
+      HL.UI.toast('The Great Shrine holds ' + n + ' / 100 light. ' + (next ? 'At ' + next.at + ': ' + next.name.toLowerCase() + '.' : 'Ashwick is rekindled.') + ' Wake shrines, break tides, find shards and wells to feed it.', 6);
+      break;
+    }
+    case 'gate': { const gd = HL.GATES[o.kind]; HL.UI.toast(f['sigil:' + gd.need] ? gd.hint + ' (You have the power: ' + { burst: 'use LIGHT here', blink: 'dash across', sight: 'it is already gone', ward: 'walk in' }[gd.need] + '.)' : gd.hint, 5); break; }
+    case 'lwell': {
+      f['well:' + o.id] = 1; Au.play('ult'); HL.vfx.beam(o.x, o.y, '#7fe8e0', 1.2, 5, 140); HL.vfx.shock(o.x, o.y, 24, '#7fe8e0', 0.6); HL.vfx.flash('#d8fffa', 0.25);
+      G.addLumen(HL.LUMEN_GAIN.well, 'a Lumen Well'); G.save();
+      break;
+    }
     case 'shrine': {
       const d = HL.SHRINES[o.id];
       if (f['shrine:' + o.id]) { G.openMenu('map'); break; }
@@ -479,12 +508,68 @@ G.interact = function (it) {
     }
   }
 };
+// ------------------------------------------------------------------ the hub, ash, gates
+G.hubStage = () => HL.HUB_STAGES.filter((st) => (G.flags.lumen || 0) >= st.at).length;
+G.addLumen = function (n, why) {
+  const f = G.flags, before = G.hubStage();
+  f.lumen = Math.min(100, (f.lumen || 0) + n);
+  if (G.player) HL.fx.text(G.player.x, G.player.y - 22, '+' + n + ' light', '#7fe8e0', 1.4);
+  if (G.hubStage() > before) G.pendingHub = (G.pendingHub || 0) + (G.hubStage() - before);
+};
+G.playHub = function () {
+  const st = HL.HUB_STAGES[G.hubStage() - G.pendingHub]; G.pendingHub--;
+  if (!st) return;
+  const gs = HL.getMap('ashwick').objects.find((o) => o.id === 'greatshrine');
+  G.cutAt = { x: gs.x, y: gs.y, name: st.name, desc: st.desc, remote: G.world.id !== 'ashwick' };
+  G.playCut(G.world.id === 'ashwick' ? 'hub' : 'hubRemote', () => {
+    if (st.at === 80 || st.at === 100) G.recalcHp();
+    HL.Epic.offerPerks(st.name);
+    G.save();
+  });
+};
+G.addAsh = function (n) { G.flags.ash = (G.flags.ash || 0) + n; HL.UI.ashPop = 0.5; };
+G.gateOpen = function (o) {
+  const f = G.flags;
+  if (o.kind === 'veil') return !!f['sigil:sight'];
+  if (o.kind === 'miasma') return true;
+  return !!f['gate:' + o.id];
+};
+G.setGate = function (o, open) {
+  o.open = open;
+  if (!o.rect) return;
+  G.world.rectCells(o.rect.x0, o.rect.y0, o.rect.x1, o.rect.y1, (k) => { G.world.col[k] = open ? (G.world.col[k] & 8) : (G.world.col[k] & 8) | o.bits; });
+};
+G.breakGate = function (o) {
+  if (o.open) return;
+  G.flags['gate:' + o.id] = 1; G.setGate(o, true);
+  Au.play('burst'); Au.play('clank'); HL.vfx.debris(o.x, o.y, 22, '#2a1c22', 1.3); HL.vfx.shock(o.x, o.y, 30, '#7fe8e0', 0.5); HL.vfx.burst(o.x, o.y, 8, '#ff4a6a', 20, 70); G.shake = 4;
+  HL.UI.showBanner('THE THORNS SHATTER', 'Something waits beyond.'); G.save();
+};
+G.updateGates = function (dt) {
+  const p = G.player, f = G.flags;
+  for (const o of G.world.objects) {
+    if (o.t !== 'gate') continue;
+    const d = HL.dist(p.x, p.y, o.x, o.y);
+    if (d < 70 && !f['seen:' + o.id]) { f['seen:' + o.id] = 1; const gd = HL.GATES[o.kind]; if (!f['sigil:' + gd.need]) HL.UI.toast(gd.hint, 5); }
+    if (o.kind === 'miasma' && d < o.r && p.state !== 'dead') {
+      if (f['sigil:ward']) { if (Math.random() < 0.1) HL.vfx.ring3d(p.x, p.y, 6, 10, '#7fe8e0', 0.3); }
+      else { o.hurtT = (o.hurtT || 0) - dt; G.hurtVig = Math.max(G.hurtVig, 0.4); p.hp -= 9 * dt; if (p.hp <= 1) { p.hp = 1; p.inv = 0; p.hurt(10, o.x, o.y); } }
+    }
+  }
+  // your lost ash, waiting where you fell
+  const ad = f.ashDrop;
+  if (ad && ad.map === G.world.id && HL.dist(p.x, p.y, ad.x, ad.y) < 10 && p.state !== 'dead') {
+    G.addAsh(ad.n); f.ashDrop = null; Au.play('ult'); HL.vfx.beam(p.x, p.y, '#ff6a4a', 0.8, 4, 100); HL.vfx.burst(p.x, p.y, 7, '#ff8a6a', 20, 60);
+    HL.UI.showBanner('ASH RECOVERED', '+' + ad.n + ' ash'); G.save();
+  }
+};
 // ------------------------------------------------------------------ LUMEN: shrines, trials, pylons, shards, travel
-G.maxHp = () => 100 + (G.flags['sigil:vessel'] ? 30 : 0) + 5 * (G.inv.lumen_shard || 0) + 4 * ((G.flags.lvl || 1) - 1) + (G.flags['perk:giant'] ? 25 : 0);
+G.maxHp = () => 100 + (G.flags['sigil:vessel'] ? 30 : 0) + 5 * (G.inv.lumen_shard || 0) + 4 * ((G.flags.lvl || 1) - 1) + (G.flags['perk:giant'] ? 25 : 0) + (G.hubStage() >= 4 ? 20 : 0);
 G.recalcHp = function () { if (!G.player) return; const m = G.maxHp(); G.player.maxhp = m; G.player.hp = Math.min(G.player.hp, m); };
 G.awaken = function (o) {
   const d = HL.SHRINES[o.id], sg = HL.SIGILS[d.sigil];
-  G.flags['shrine:' + o.id] = 1; G.flags['sigil:' + d.sigil] = 1;
+  G.flags['shrine:' + o.id] = 1; G.flags['sigil:' + d.sigil] = 1; G.addLumen(HL.LUMEN_GAIN.shrine, d.name);
+  if (d.sigil === 'sight') for (const q of G.world.objects) if (q.t === 'gate') G.setGate(q, G.gateOpen(q));
   G.cutAt = { x: o.x, y: o.y, name: d.name, sigil: sg };
   G.playCut('shrine', () => {
     if (d.sigil === 'vessel') { G.recalcHp(); G.player.hp = G.player.maxhp; }
@@ -594,6 +679,8 @@ G.updateWaves = function (dt) {
 };
 G.spawnEnemy = function (spec) { const e = new HL.Enemy(spec); G.enemies.push(e); return e; };
 G.onEnemyDeath = function (e) {
+  if (e.bossName) { G.addLumen(HL.LUMEN_GAIN.champion, e.bossName); }
+  if (e.type === 'keeper') G.addLumen(HL.LUMEN_GAIN.boss, 'the Keeper');
   if (e.bossName) { HL.vfx.slowmo(0.7, 0.25); HL.vfx.flash('#ffc95a', 0.45); HL.vfx.chroma(1.3); HL.vfx.beam(e.x, e.y, '#ffc95a', 1, 9, 140); HL.UI.showBanner(e.bossName.toUpperCase() + ' FALLS', 'Something gleams where it stood.'); G.world.objects.push({ t: 'pickup', id: 'p_mantle', item: 'champion_mantle', n: 1, x: e.x, y: e.y }); }
   if (e.id === 'guard_camp') { G.world.objects.push({ t: 'pickup', id: 'p_plate', item: 'rustbound_plate', n: 1, x: e.x, y: e.y }); }
   if (e.type === 'keeper') {
@@ -607,11 +694,14 @@ G.onEnemyDeath = function (e) {
     G.save();
   }
 };
-G.onDeath = function () { G.deadT = 0; setTimeout(() => { if (G.player.state === 'dead') G.state = 'dead'; }, 700); };
+G.onDeath = function () {
+  const n = G.flags.ash || 0;
+  if (n > 0) { G.flags.ashDrop = { map: G.world.id, x: Math.round(G.player.x), y: Math.round(G.player.y), n }; G.flags.ash = 0; }
+  G.deadT = 0; setTimeout(() => { if (G.player.state === 'dead') G.state = 'dead'; }, 700); };
 G.respawn = function () {
   const f = G.fire, p = G.player;
   G.recalcHp(); p.hp = p.maxhp; p.st = p.maxst; p.state = 'move'; p.inv = 1; p.regen = 0;
-  G.transition(f.map, f.x, f.y, () => { HL.UI.toast('You wake by the fire. The hollow you felled stand again.'); });
+  G.transition(f.map, f.x, f.y, () => { HL.UI.toast(G.flags.ashDrop ? 'You wake by the fire. Your ash lies where you fell: reach it to take it back.' : 'You wake by the fire. The hollow you felled stand again.', 5); });
   G.state = 'fade';
 };
 G.rest = function () {
@@ -649,7 +739,7 @@ G.frame = function (dt) {
     if (G.state === 'perk') G.perkT -= dt;
     if ((G.state === 'menu') && (inp.menu || inp.esc)) G.closeMenu();
     else if (G.state === 'dialog' && (inp.interact || inp.enter || inp.attack || inp.esc)) G.advanceDialog();
-    else if ((G.state === 'fire' || G.state === 'anvil' || G.state === 'end') && inp.esc) G.state = 'play';
+    else if ((G.state === 'fire' || G.state === 'anvil' || G.state === 'end' || G.state === 'ilse') && inp.esc) G.state = 'play';
     if (G.state === 'menu' && inp.map) UI_tab('map');
     HL.fx.update(dt * 0.3);
   }
@@ -682,7 +772,9 @@ G.update = function (dt, inp) {
   G.updatePShots(dt);
   G.updateImpacts(dt);
   G.updateTrial(dt);
+  G.updateGates(dt);
   HL.Epic.update(dt);
+  if (G.pendingHub > 0 && !G.cut && !G.perkChoice && !G.trial && !(G.tide && G.tide.active) && !G.bossAwake) { G.playHub(); return; }
   if (G.perkChoice) { G.perkDelay = (G.perkDelay == null ? 0.7 : G.perkDelay) - dt; if (G.perkDelay <= 0) { G.perkDelay = null; G.perkT = 0.45; G.state = 'perk'; HL.Input.clearTouches(); } }
   for (const o of G.world.objects) if (o.t === 'pylon' && o.litT > 0 && o.litT < 50) o.litT -= dt;
   G.updateDrops(dt);
@@ -967,6 +1059,7 @@ G.render = function (dt) {
       if (G.state === 'dialog') UI.drawDialog(g, G);
       if (G.state === 'fire') UI.drawFire(g, G);
       if (G.state === 'anvil') UI.drawAnvil(g, G);
+      if (G.state === 'ilse') UI.drawIlse(g, G);
       if (G.state === 'dead') UI.drawDead(g, G);
       if (G.state === 'end') UI.drawEnd(g, G);
       if (G.state === 'cut') UI.drawCut(g, G);

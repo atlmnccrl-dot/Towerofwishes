@@ -262,7 +262,7 @@ UI.drawHUD = (g, G, dt) => {
     g.fillStyle = ob.optional ? P.cream3 : P.tan0; g.fillRect(m - 3, y - 2, 1, lines.length * 10 + 3);
     lines.forEach((l, i) => HL.text(g, l, m + 1, y + i * 10, P.cream, 0, 1, P.ink));
     const shr = Object.keys(HL.SHRINES).filter((k) => G.flags['shrine:' + k]).length, sha = G.inv.lumen_shard || 0;
-    if (shr || sha) HL.text(g, 'shrines ' + shr + '/' + Object.keys(HL.SHRINES).length + '  shards ' + sha + '/' + HL.SHARD_COUNT, m, y + lines.length * 10 + 4, '#7fe8e0', 0, 1, P.ink);
+    if (shr || sha || G.flags.lumen) HL.text(g, 'light ' + (G.flags.lumen || 0) + '%  shrines ' + shr + '/' + Object.keys(HL.SHRINES).length + '  shards ' + sha + '/' + HL.SHARD_COUNT, m, y + lines.length * 10 + 4, '#7fe8e0', 0, 1, P.ink);
   }
   // feed
   UI.feed.forEach((f, i) => {
@@ -286,6 +286,11 @@ UI.drawHUD = (g, G, dt) => {
     }
   }
   HL.Epic.drawHUD(g, G, dt);
+  { // ash
+    UI.ashPop = Math.max(0, (UI.ashPop || 0) - dt); const ax = m + 1, ay = G.H - 14 - G.safe.b, n = G.flags.ash || 0;
+    g.fillStyle = P.ink; g.fillRect(ax - 1, ay - 1, 9, 9); g.fillStyle = UI.ashPop > 0 ? '#ffd0a0' : '#ff9a6a'; g.fillRect(ax + 1, ay + 1, 5, 5); g.fillStyle = '#fff0d8'; g.fillRect(ax + 2, ay + 2, 2, 2);
+    HL.text(g, 'x ' + n, ax + 11, ay, UI.ashPop > 0 ? '#ffd0a0' : P.cream, 0, UI.ashPop > 0.3 ? 2 : 1, P.ink);
+  }
   if (UI.toastT > 0) { UI.toastT -= dt; const lines = HL.wrap(UI.toastMsg, 220); lines.forEach((l, i) => HL.text(g, l, G.W / 2, G.H - 52 - G.safe.b - (lines.length - 1 - i) * 10, P.cream, 0.5, 1, P.ink)); }
   // ultimate cut-in: a slash of light across the screen with its name
   if (G.ultBanner && G.ultBanner.t < 1.1) {
@@ -480,6 +485,9 @@ UI.drawMap = (g, G) => {
   for (const o of w.objects) {
     const sight = G.flags['sigil:sight'], X = Math.round(ox + o.x * s), Y = Math.round(oy + o.y * s);
     if (o.t === 'shrine' && (G.flags['shrine:' + o.id] || sight || w.fog[Math.floor(o.y / 16) * fw + Math.floor(o.x / 16)])) { g.fillStyle = G.flags['shrine:' + o.id] ? '#7fe8e0' : '#3e8a86'; g.fillRect(X - 1, Y - 2, 3, 5); g.fillRect(X - 2, Y, 5, 1); }
+    if (o.t === 'gate' && G.flags['seen:' + o.id] && !(o.open && o.kind !== 'miasma')) { const c = { thorns: '#ff4a6a', rift: '#7fe8e0', veil: '#c8b4ff', miasma: '#a05a8a' }[o.kind]; g.fillStyle = P.ink; g.fillRect(X - 3, Y - 3, 7, 7); g.fillStyle = c; g.fillRect(X - 2, Y - 2, 5, 5); HL.text(g, '?', X, Y - 12, c, 0.5, 1, P.ink); }
+    if (o.t === 'lwell' && (G.flags['seen:' + o.id] || sight) && !G.flags['well:' + o.id]) { g.fillStyle = '#7fe8e0'; g.fillRect(X - 1, Y - 1, 3, 3); }
+    if (o.t === 'greatshrine') { g.fillStyle = '#9ff5ec'; g.fillRect(X - 2, Y - 3, 5, 7); HL.text(g, 'Great Shrine', X, Y + 6, '#7fe8e0', 0.5, 1, P.ink); }
     if (o.t === 'pickup' && o.shard && !o.taken && sight) { g.fillStyle = Math.floor(G.time * 4) % 2 ? '#d8fffa' : '#7fe8e0'; g.fillRect(X, Y, 2, 2); }
   }
   // travel between awakened shrines
@@ -550,18 +558,32 @@ UI.drawFire = (g, G) => {
   });
 };
 UI.drawAnvil = (g, G) => {
-  const P = P_, w = Math.min(320, G.W - 30), h = 150, x = (G.W - w) / 2, y = (G.H - h) / 2;
+  const P = P_, w = Math.min(330, G.W - 30), h = Math.min(180, G.H - 10), x = (G.W - w) / 2, y = (G.H - h) / 2;
   UI.drawPanel(g, G, x, y, w, h);
-  HL.text(g, 'Anvil', G.W / 2, y + 7, P.cream, 0.5); HL.text(g, '---', G.W / 2, y + 16, P.cream3, 0.5);
+  HL.text(g, "TOBIN'S FORGE", G.W / 2, y + 7, P.cream, 0.5); g.fillStyle = '#ff9a6a'; g.fillRect(G.W / 2 - 40, y + 17, 80, 1);
+  HL.text(g, 'ash x ' + (G.flags.ash || 0), x + w - 10, y + 7, '#ff9a6a', 1);
   const ws = Object.keys(HL.WEAPONS).filter((id) => G.inv[id]);
-  ws.forEach((id, i) => {
-    const yy = y + 30 + i * 30, lv = G.wlv[id] || 0, cost = HL.UPGRADE.cost[lv], ok = cost && HL.Inv.canPay(G.inv, cost);
-    g.drawImage(HL.ART.icons[id], x + 14, yy + 2);
-    HL.text(g, HL.itemName(id) + ' +' + lv, x + 32, yy, P.cream);
-    HL.text(g, cost ? 'Temper: ' + Object.entries(cost).map(([c, n]) => (G.inv[c] || 0) + '/' + n + ' ' + HL.itemName(c)).join(', ') : 'Fully tempered.', x + 32, yy + 10, P.cream3);
-    if (cost) UI.button(g, 'Temper', x + w - 62, yy, () => { if (HL.Inv.pay(G.inv, cost)) { G.wlv[id] = lv + 1; HL.Audio.play('clank'); UI.toast(HL.itemName(id) + ' tempered to +' + (lv + 1) + '.'); } }, { w: 50, disabled: !ok });
+  ws.slice(0, 5).forEach((id, i) => {
+    const yy = y + 24 + i * 27, lv = G.wlv[id] || 0, cost = HL.UPGRADE.cost[lv];
+    const ok = cost && HL.Inv.canPay(G.inv, cost.mat) && (G.flags.ash || 0) >= cost.ash;
+    g.drawImage(HL.ART.icons[id], x + 10, yy + 2);
+    HL.text(g, HL.itemName(id) + ' +' + lv, x + 28, yy, P.cream);
+    HL.text(g, cost ? cost.ash + ' ash, ' + Object.entries(cost.mat).map(([c, n]) => (G.inv[c] || 0) + '/' + n + ' ' + HL.itemName(c)).join(', ') : 'Fully tempered.', x + 28, yy + 10, ok ? P.cream2 : P.cream3);
+    if (cost) UI.button(g, 'Temper', x + w - 58, yy, () => { if (HL.Inv.canPay(G.inv, cost.mat) && (G.flags.ash || 0) >= cost.ash) { HL.Inv.pay(G.inv, cost.mat); G.flags.ash -= cost.ash; G.wlv[id] = lv + 1; HL.Audio.play('clank'); HL.vfx.burst(G.player.x, G.player.y, 8, '#ffb070', 20, 60); UI.toast(HL.itemName(id) + ' tempered to +' + (lv + 1) + '.'); G.save(); } }, { w: 48, disabled: !ok });
   });
-  UI.button(g, 'Leave', x + 12, y + h - 22, () => { G.state = 'play'; }, { w: 70 });
+  UI.button(g, 'Leave', x + 10, y + h - 20, () => { G.state = 'play'; }, { w: 64 });
+};
+// Ilse reads visions in the ash: an extra power card for a price
+UI.drawIlse = (g, G) => {
+  const P = P_, w = Math.min(300, G.W - 30), h = 120, x = (G.W - w) / 2, y = (G.H - h) / 2, n = G.flags.visions || 0, cost = 120 + n * 80;
+  const left = Object.keys(HL.Epic.PERKS).filter((k) => !HL.Epic.has(k)).length, ok = (G.flags.ash || 0) >= cost && left > 0;
+  UI.drawPanel(g, G, x, y, w, h);
+  HL.text(g, 'ILSE, THE LIGHTKEEPER', G.W / 2, y + 7, '#7fe8e0', 0.5); g.fillStyle = '#7fe8e0'; g.fillRect(G.W / 2 - 60, y + 17, 120, 1);
+  HL.text(g, 'The Great Shrine holds ' + (G.flags.lumen || 0) + ' / 100 light.', G.W / 2, y + 26, P.cream2, 0.5);
+  HL.text(g, left ? 'A vision: choose a new power. ' + cost + ' ash.' : 'You have seen every vision.', G.W / 2, y + 44, P.cream, 0.5);
+  HL.text(g, 'You carry ' + (G.flags.ash || 0) + ' ash.', G.W / 2, y + 56, '#ff9a6a', 0.5);
+  UI.button(g, 'Seek a vision', G.W / 2 - 50, y + 72, () => { if (!ok) return; G.flags.ash -= cost; G.flags.visions = n + 1; G.state = 'play'; HL.vfx.beam(G.player.x, G.player.y, '#7fe8e0', 1, 5, 130); HL.Audio.play('ult'); HL.Epic.offerPerks('A VISION'); }, { w: 100, disabled: !ok });
+  UI.button(g, 'Leave', x + 10, y + h - 20, () => { G.state = 'play'; }, { w: 64 });
 };
 UI.drawDead = (g, G) => {
   const P = P_;

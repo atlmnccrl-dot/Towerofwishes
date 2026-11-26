@@ -60,6 +60,21 @@ a roll with invulnerability frames, one stamina bar, hit-stop, white hit flash, 
 small screen shake (can be turned off), synthesised impacts, footsteps that change on ash, stone and wood.
 Every enemy attack has a red ground telegraph (ring, arc or aim line) that stays readable at this distance.
 
+### v0.7: one connected world
+- **The Great Shrine of Ashwick** (hub goal): every shrine (+15 light), tide (+10), shard (+3), Lumen Well (+8),
+  rescue (+5), the Champion (+10) and the Keeper (+20) feed it. Five stages, each filmed and each offering a
+  power card: the lamps of Ashwick relight, the hearth (fires burn), a beacon visible from anywhere, the
+  Ward of Ashwick (the village is safe, +20 health), Ashwick rekindled (dawn light, faster ultimate).
+- **Gates your powers open** (seen ones are marked on the map): shadow-thorns (Lumen Burst), a rift (the
+  blink), a false wall in the crypt (Sight), hollow miasma (the Ward). Behind them: Lumen Wells, ash caches,
+  and the Named **Dawnblade**. The chain: stones puzzle -> glade -> Hidden Shrine (Sight) -> crypt false wall
+  -> Dawnblade.
+- **Survivors**: Tobin the smith (caged in the warden's camp) relights his forge: weapon tempering to +3 for
+  ash and scrap. Ilse the lightkeeper (lost in the crypt) waits at the Great Shrine and sells visions (an
+  extra power card) for ash.
+- **Ash**: every kill streams ash into you (counter bottom left, like the reference's counter). Dying drops it
+  where you fell; reach it to take it back.
+
 ### v0.6: epic systems (`js/epic.js`)
 - **Perfect Dash**: dash through a blow in the last instant: slow motion, PERFECT, +25 ultimate, +60%
   damage for 1.6 s.

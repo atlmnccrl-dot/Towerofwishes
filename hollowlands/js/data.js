@@ -22,6 +22,10 @@ HL.WEAPONS = {
 // Bare hands, until you find a weapon: weak, but the attack button always does something.
 HL.FISTS = { kind: 'fists', dmg: 5, reach: 11, arc: 1.7, wind: 0.05, active: 0.08, rec: 0.17, stam: 8, combo: 2, finisher: 1.4, heavy: { mult: 2, reach: 12, arc: 1.9, stam: 18 }, ult: null, step: 18 };
 Object.assign(HL.WEAPONS, {
+  dawnblade: {
+    kind: 'sword', dmg: 17, reach: 17, arc: 2.3, wind: 0.06, active: 0.09, rec: 0.18, stam: 11, combo: 3, finisher: 1.7,
+    heavy: { mult: 2.3, reach: 22, arc: Math.PI * 2, stam: 26, spinCut: true }, ult: 'grave_arc', step: 24, trail: '#9ff5ec',
+  },
   twin_blades: {
     kind: 'twin', dmg: 7, reach: 13, arc: 1.9, wind: 0.04, active: 0.07, rec: 0.12, stam: 7, combo: 4, finisher: 1.8,
     heavy: { mult: 1.3, reach: 18, arc: Math.PI * 2, stam: 30, spin: { dur: 0.6, tick: 0.12 } }, ult: 'veilstep', step: 26, trail: '#ff3d3d',
@@ -47,6 +51,7 @@ HL.ULTS = {
 HL.ITEMS = {
   rusted_sword: { name: 'Rusted Sword', kind: 'weapon', rarity: 'common', desc: 'Balanced reach. Three quick cuts, the last one heavier. Hold to cleave.' },
   ashwood_spear: { name: 'Ashwood Spear', kind: 'weapon', rarity: 'forged', desc: 'Long straight reach. Keep them at the point; weak to the flanks.' },
+  dawnblade: { name: 'Dawnblade', kind: 'weapon', rarity: 'named', desc: 'Forged from Lumen before the Silence. Its light cuts deeper than iron, and it leaves dawn in its wake.' },
   twin_blades: { name: 'Twin Blades', kind: 'weapon', rarity: 'forged', desc: 'Short, fast, merciless. Four-cut flurries. Hold for a whirlwind.' },
   ashen_bow: { name: 'Ashen Bow', kind: 'weapon', rarity: 'forged', desc: 'Strike from afar: drag to aim. Hold to draw a piercing shot. Arrows can ring resonators.' },
   bell_focus: { name: 'Bell Focus', kind: 'weapon', rarity: 'relic', desc: 'A warden\'s tuning staff. Fires seeking bolts; hold for a shockwave around you.' },
@@ -82,7 +87,7 @@ HL.RECIPES = [
   { out: 'fire_flask', n: 1, need: { lamp_oil: 1, cloth_scrap: 1 } },
   { out: 'dried_meat', n: 1, need: { raw_meat: 1 } },
 ];
-HL.UPGRADE = { maxLevel: 2, perLevel: 0.18, cost: [{ iron_scrap: 2, bone_dust: 1 }, { iron_scrap: 4, bone_dust: 2 }] };
+HL.UPGRADE = { maxLevel: 3, perLevel: 0.18, cost: [{ mat: { iron_scrap: 2 }, ash: 60 }, { mat: { iron_scrap: 3, bone_dust: 2 }, ash: 150 }, { mat: { iron_scrap: 5, bone_dust: 3 }, ash: 300 }] };
 
 // Enemy ecology for the slice. Every foe has a different problem to solve.
 HL.FOES = {
@@ -121,7 +126,7 @@ HL.MAREN = [
   { when: (f) => f.got_gate_key, lines: ['That key. The warden carried one like it.', 'The tower past the woods goes down a long way. Rest here first. The fire will keep you.'] },
   { when: (f) => f.storehouse_open, lines: ['So you got into the storehouse. Good. Take what helps.', 'East, through Crowshade, there is a tower. The bell-warden went in and never rang again.', 'Something in armour walks the forest now. It took the warden\'s key off a dead man.'] },
   { when: (f) => f.met_maren, lines: ['The well. Edda\'s husband jammed it. The smith took the crank.', 'Rest by the fire when you are hurt. It is the only warm thing left in Ashwick.'] },
-  { when: () => true, lines: ['...You are not one of them. Your eyes are still in.', 'I am Maren. I stayed when the rest went to the chapel cellar. None of them came back up.', 'Sit by the fire if you need it. It keeps them off, mostly.', 'And if you find the old shrines, touch them. Some still remember the light.'], set: 'met_maren' },
+  { when: () => true, lines: ['...You are not one of them. Your eyes are still in.', 'I am Maren. I stayed when the rest went to the chapel cellar. None of them came back up.', 'Sit by the fire if you need it. It keeps them off, mostly.', 'And if you find the old shrines, touch them. Some still remember the light.', 'The Great Shrine on the chapel road went dark with the rest. If light ever comes back to Ashwick, it will come back there.'], set: 'met_maren' },
 ];
 
 // ------------------------------------------------------------------ story (PROPOSAL text, see docs/DESIGN.md)
@@ -204,3 +209,33 @@ HL.SHRINES = {
 HL.SHARD_COUNT = 8;
 HL.NOTES.silence = { title: 'The Light Below', text: 'Veyr was built on Lumen: a pale light that rose out of the earth through the old shrines. It lit the roads, healed the sick, and kept the dark below where it belonged.\n\nOne night every shrine in Veyr went dark at once. Roads sank. Towns emptied. And out of the dark below came the hollow.\n\nYou were hauling lamp oil to Ashwick when the light went out.' };
 HL.NOTES.shrines = { title: 'The Shrines', text: 'Some shrines still remember the light. Touch them and they wake, and give a little of it back: a Sigil, a power of the old kingdom. Awakened shrines can carry you to one another (Map).\n\nFive stand near Ashwick. Eight shards of the light lie scattered where the dark could not swallow them.' };
+
+// ------------------------------------------------------------------ the hub: the Great Shrine of Ashwick (PROPOSAL)
+// Everything you do pours light into it; as it fills, Ashwick comes back to life.
+HL.LUMEN_GAIN = { shrine: 15, shard: 3, tide: 10, boss: 20, champion: 10, rescue: 5, well: 8 };
+HL.HUB_STAGES = [
+  { at: 15, name: 'THE LAMPS OF ASHWICK', desc: 'The village lamps burn again. Choose a power.' },
+  { at: 35, name: 'THE HEARTH', desc: 'Warmth returns to Ashwick. Choose a power.' },
+  { at: 55, name: 'THE BEACON', desc: 'A pillar of light marks home from anywhere. Choose a power.' },
+  { at: 80, name: 'THE WARD OF ASHWICK', desc: 'The hollow no longer walk the village. +20 max health. Choose a power.' },
+  { at: 100, name: 'ASHWICK REKINDLED', desc: 'Dawn over the village. Your ultimate charges faster. The road east, to Blackfen, is open.' },
+];
+// what each kind of foe leaves behind
+HL.ASH = { husk: 1, drifter: 4, hound: 4, archer: 5, lurker: 4, wraith: 6, guard: 15, brute: 20, keeper: 200 };
+// places your powers open
+HL.GATES = {
+  thorns: { name: 'Shadow-thorns', need: 'burst', hint: 'Shadow-thorns. Only a burst of light could break them.' },
+  rift: { name: 'Rift', need: 'blink', hint: 'A rift in the earth. A blink could carry you across.' },
+  veil: { name: 'Veiled wall', need: 'sight', hint: 'The stone here looks wrong, as if painted over something.' },
+  miasma: { name: 'Hollow miasma', need: 'ward', hint: 'Choking hollow miasma. Without a ward of light it will eat you alive.' },
+};
+HL.TOBIN = [
+  { when: (f) => f.rescued_tobin && f.met_tobin, lines: ['Bring me ash and scrap and I will put an edge on anything you carry.'] },
+  { when: (f) => f.rescued_tobin, lines: ['You opened that cage like it was nothing. I am Tobin. I kept the forge in Ashwick.', 'I will light it again. Bring me ash from the hollow and iron scrap, and your weapons will bite deeper.'], set: 'met_tobin' },
+  { when: () => true, lines: ['Get me out of here. They caged me to work their iron.', 'Open the latch. I know the way back to Ashwick.'] },
+];
+HL.ILSE = [
+  { when: (f) => f.rescued_ilse && f.met_ilse, lines: ['The shrine drinks your light. Give me ash and I will show you a vision of what you could become.'] },
+  { when: (f) => f.rescued_ilse, lines: ['I am Ilse. I kept the light in Ashwick before it went out.', 'Bring the light home. Every shrine you wake, every shard, it all flows to the Great Shrine.', 'And bring me ash. I can still read the old visions in it.'], set: 'met_ilse' },
+  { when: () => true, lines: ['You can see me? Then the light is not all gone.', 'I followed the warden down here and lost the way out. Take me home. I will find my way to Ashwick.'] },
+];

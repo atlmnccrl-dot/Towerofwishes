@@ -98,6 +98,19 @@
           tick(a, t) { const n = Math.floor(t / 0.35); while (a.lit.length && (a.done || 0) < n) { const b = a.lit.shift(); a.done = (a.done || 0) + 1; V().burst(b.x, b.y, 8, P.fire, 10, 40); V().light(b.x, b.y, 0xffa050, 80, 0.5); a.play('fire'); } } },
       ],
     },
+    hub: { // the Great Shrine drinks the light; Ashwick wakes a little more
+      shots: [
+        { dur: 4.2, dark: 0.35, grade: ['#a8fff4', 0.25], titleAt: 1, titleFn: (G) => [G.cutAt.name, G.cutAt.desc],
+          camFn: (G) => { const k = G.cutAt; return [[0, k.x + 60, 26, k.y + 66, k.x, 30, k.y - 6, 34], [1, k.x - 50, 70, k.y + 110, k.x, 20, k.y - 6, 38]]; },
+          start(a, G) { const k = G.cutAt; a.play('rumble'); V().beam(k.x, k.y - 6, '#7fe8e0', 1.2, 6, 260); },
+          tick(a, t, G) { const k = G.cutAt; if (t > 1 && !a.w) { a.w = true; a.play('toll'); a.play('ult'); V().shock(k.x, k.y - 6, 90, '#7fe8e0', 1.2); V().shock(k.x, k.y - 6, 50, '#e0fffb', 0.8); V().flash('#e8fffb', 0.45); V().chroma(1.2); a.shake(3); } if (Math.random() < 0.9) V().embers(k.x + (Math.random() - 0.5) * 60, k.y + (Math.random() - 0.5) * 50, 2, '#7fe8e0'); } },
+      ],
+    },
+    hubRemote: { // far from home: the light rises on the horizon
+      shots: [{ dur: 3.2, dark: 0.3, grade: ['#a8fff4', 0.2], titleAt: 0.4, titleFn: (G) => [G.cutAt.name, 'Far away, the Great Shrine of Ashwick grows brighter. ' + G.cutAt.desc],
+        camFn: (G) => { const p = G.player; return [[0, p.x, 40, p.y + 50, p.x, 6, p.y, 34], [1, p.x, 90, p.y + 90, p.x, 0, p.y, 38]]; },
+        start(a, G) { a.play('toll'); V().beam(G.player.x, G.player.y, '#7fe8e0', 1, 4, 160); } }],
+    },
     tide: {
       shots: [
         { dur: 3.6, dark: 0.5, grade: ['#ff6a5a', 0.32], titleFn: (G) => [G.cutAt.name, 'hold the line'], titleAt: 0.9,

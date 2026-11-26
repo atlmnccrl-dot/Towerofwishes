@@ -158,6 +158,8 @@ HL.vfx = (() => {
       scene.add(g); ghosts.push({ g, t: 0, dur: 0.32 });
     },
     // glowing orb projectiles drawn by the game each frame (bolts, wraith orbs, arrows)
+    // ash streams from a fallen foe into the Wayfarer
+    motes(x, y, p, n = 6) { for (let i = 0; i < n; i++) { const life = 0.45 + Math.random() * 0.25, sx = x + (Math.random() - 0.5) * 8, sy = y + (Math.random() - 0.5) * 6, sz = 6 + Math.random() * 8; spawn(glow, { x: sx, y: sz, z: sy, vx: (p.x - sx) / life, vy: (8 - sz) / life + 30, vz: (p.y - sy) / life, col: Math.random() < 0.5 ? '#ff9a6a' : '#ffd0a0', life, s0: 3.5, s1: 1.5, drag: 0, grav: 60, floor: false }); } },
     orb(x, y, z, col, size = 6, trail = true) { spawn(glow, { x, y: z, z: y, col: '#fff3c4', life: 0.04, s0: size * 0.6, s1: size * 0.6, drag: 0, floor: false }); spawn(glow, { x, y: z, z: y, col, life: 0.05, s0: size * 1.4, s1: size * 1.4, drag: 0, floor: false, a: 0.85 }); if (trail) spawn(glow, { x, y: z, z: y, col, life: 0.25, s0: size, s1: 0, drag: 0, floor: false, a: 0.7 }); },
     update(dt) {
       if (!api.ok) return;
