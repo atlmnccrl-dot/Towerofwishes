@@ -61,12 +61,12 @@ export default {
     { id: 'nave', zone: [-5, -15, 12, -0.4], gates: ['naveGate', 'chapelGate'], opens: ['organGate', 'chapelGate'], msg: 'THE PEWS FILL WITH THE DROWNED', done: 'THE PIPES SINK INTO THE FLOOR',
       waves: [
         { pre: true, foes: [{ t: 'drownedangel', x: -2.6, z: -8.6 }, { t: 'choirwraith', x: 9.4, z: -10.4 }, { t: 'belljelly', x: 3.4, z: -13 }] },
-        { foes: [{ t: 'drownedangel', x: 10.4, z: -4.6 }, { t: 'choirwraith', x: -3.6, z: -3.6 }, { t: 'belljelly', x: 7.6, z: -13.6 }, { t: 'choirwraith', x: -3.4, z: -13.4 }] },
+        { foes: [{ t: 'drownedangel', x: 9, z: -7 }, { t: 'choirwraith', x: -1, z: -6 }, { t: 'belljelly', x: 7.6, z: -13.6 }, { t: 'choirwraith', x: 0, z: -10 }] },
       ] },
     { id: 'chapel', zone: [-21, -14, -13.4, -4], gates: ['chapelGate'], opens: ['chapelGate'], msg: 'THE CANDLES GUTTER. THE CHAPEL IS NOT EMPTY.', done: 'THE CANDLES BURN STILL AGAIN',
       waves: [
         { pre: true, foes: [{ t: 'choirwraith', x: -18.6, z: -12.4, face: 0 }, { t: 'choirwraith', x: -15, z: -5.6 }] },
-        { foes: [{ t: 'drownedangel', x: -19.4, z: -6 }, { t: 'belljelly', x: -15.4, z: -12.6 }, { t: 'choirwraith', x: -20.6, z: -13.6 }] },
+        { foes: [{ t: 'drownedangel', x: -19.4, z: -6 }, { t: 'belljelly', x: -15.4, z: -12.6 }, { t: 'choirwraith', x: -18, z: -12 }] },
       ] },
     { id: 'organ', zone: [-4, -39, 12, -22.4], gates: ['organGate', 'fontGate'], opens: ['choirGate', 'fontGate'], msg: 'THE ORGAN PLAYS. THE WHOLE LOFT SHAKES.', done: 'THE LAST CHORD FADES',
       waves: [
@@ -76,11 +76,11 @@ export default {
     { id: 'font', zone: [19.6, -37.4, 28.4, -26.6], gates: ['fontGate'], opens: ['fontGate'], msg: 'THE FONT BOILS WITH LIGHT', done: 'THE FONT IS STILL',
       waves: [
         { pre: true, foes: [{ t: 'belljelly', x: 26.4, z: -28.4 }, { t: 'belljelly', x: 21.4, z: -36 }, { t: 'drownedangel', x: 26.6, z: -36, face: 0 }] },
-        { foes: [{ t: 'drownedangel', x: 21, z: -28 }, { t: 'choirwraith', x: 27.6, z: -27.4 }, { t: 'belljelly', x: 27.4, z: -36.6 }] },
+        { foes: [{ t: 'drownedangel', x: 21, z: -28 }, { t: 'choirwraith', x: 26, z: -29.4 }, { t: 'belljelly', x: 27.4, z: -36.6 }] },
       ] },
     { id: 'stalls', zone: [-5, -61, 13, -46.4], gates: ['choirGate'], opens: ['cloisterGate'], msg: 'THE CHOIR TURNS ITS HEADS TOWARD YOU', done: 'THE SINGING DROPS TO A HUM',
       waves: [
-        { pre: true, foes: [{ t: 'choirwraith', x: -0.6, z: -55.4, face: 0 }, { t: 'choirwraith', x: 8.6, z: -55.6, face: 0 }, { t: 'drownedangel', x: 4, z: -59.4, face: 0 }, { t: 'belljelly', x: 10.4, z: -49.4 }] },
+        { pre: true, foes: [{ t: 'choirwraith', x: -0.6, z: -55.4, face: 0 }, { t: 'choirwraith', x: 8.6, z: -55.6, face: 0 }, { t: 'drownedangel', x: 4, z: -55, face: 0 }, { t: 'belljelly', x: 10.4, z: -49.4 }] },
         { foes: [{ t: 'drownedangel', x: -2.6, z: -49.6 }, { t: 'drownedangel', x: 11.4, z: -59.6 }, { t: 'choirwraith', x: 4, z: -51 }, { t: 'belljelly', x: -2.4, z: -60 }] },
       ] },
     { id: 'cloister', zone: [-3, -81, 11, -68.4], gates: ['cloisterGate'], opens: ['sanctGate'], msg: 'THE BELLS IN THE CLOISTER BEGIN TO SWING', done: 'THE BELLS HANG STILL',
@@ -90,9 +90,9 @@ export default {
       ] },
     { id: 'sanctuary', zone: [-7, -105, 15, -88.4], gates: ['sanctGate'], opens: ['exitGate'], msg: 'THE ALTAR WAKES. THE DROWNED KNEEL, THEN RISE.', done: 'THE SANCTUARY FALLS SILENT. THE WAY UP IS OPEN.',
       waves: [
-        { pre: true, foes: [{ t: 'drownedangel', x: -2.4, z: -97.4, face: 0 }, { t: 'drownedangel', x: 10.6, z: -97.6, face: 0 }, { t: 'choirwraith', x: 4, z: -92.6 }, { t: 'belljelly', x: 13.4, z: -92 }] },
-        { foes: [{ t: 'drownedangel', x: 4, z: -100.6, elite: 'shielded' }, { t: 'choirwraith', x: -5, z: -92 }, { t: 'choirwraith', x: 13, z: -102 }, { t: 'belljelly', x: -4.6, z: -103 }] },
-        { foes: [{ t: 'drownedangel', x: -4.4, z: -100 }, { t: 'drownedangel', x: 12.4, z: -91.6 }, { t: 'belljelly', x: 4, z: -91 }, { t: 'choirwraith', x: 12.6, z: -103.4 }, { t: 'choirwraith', x: -4.6, z: -91.6 }] },
+        { pre: true, foes: [{ t: 'drownedangel', x: -2.4, z: -97.4, face: 0 }, { t: 'drownedangel', x: 4, z: -101, face: 0 }, { t: 'choirwraith', x: 4, z: -92.6 }, { t: 'belljelly', x: 13.4, z: -92 }] },
+        { foes: [{ t: 'drownedangel', x: 4, z: -97, elite: 'shielded' }, { t: 'choirwraith', x: -5, z: -92 }, { t: 'choirwraith', x: 13, z: -102 }, { t: 'belljelly', x: -4.6, z: -103 }] },
+        { foes: [{ t: 'drownedangel', x: -4.4, z: -100 }, { t: 'drownedangel', x: 12.4, z: -91.6 }, { t: 'belljelly', x: 4, z: -91 }, { t: 'choirwraith', x: 6, z: -94 }, { t: 'choirwraith', x: -4.6, z: -91.6 }] },
       ] },
   ],
   exit: { zone: [1.8, -111.6, 5, -110], to: 'orchard', requires: 'boss' },
@@ -137,7 +137,7 @@ export default {
     shaft(ctx, -17.6, -9, 1.8, { color: 0xbfe8b0, k: 0.12 });
 
     // ------------------------------------------------ the organ loft
-    P.organ(ctx, -3.6, -38.8, 10.2);
+    P.organ(ctx, -3.6, -38.8, 4.6); P.organ(ctx, 6.2, -38.8, 4.6); // two halves, the way down to the choir between them
     P.drownedAngel(ctx, -3.6, -24.6, Math.PI * 0.75, { glow: 2 }); P.drownedAngel(ctx, 11.6, -24.4, -Math.PI * 0.75, { glow: 2 });
     P.pillar(ctx, 12, -39, 5.6); P.pillar(ctx, -4, -30, 4, { broken: true });
     P.pews(ctx, 1.6, -29.6, 4, 1, 1); P.drownLamp(ctx, 11.8, -30.6);
@@ -154,8 +154,8 @@ export default {
     P.kelp(ctx, 28, -30, 3);
 
     // ------------------------------------------------ the drowned choir
-    P.stalls(ctx, -5.6, -61, -5.6, -47, '+x', 2); P.stalls(ctx, 13.6, -61, 13.6, -47, '-x', 2);
-    P.stalls(ctx, -2.4, -61.6, 10.4, -61.6, '+z', 1);
+    P.stalls(ctx, -5.6, -61, -5.6, -57, '+x', 2); P.stalls(ctx, -5.6, -51, -5.6, -47, '+x', 2); // the way to the reliquary between them P.stalls(ctx, 13.6, -61, 13.6, -47, '-x', 2);
+    P.stalls(ctx, -2.4, -61.6, 0.8, -61.6, '+z', 1); P.stalls(ctx, 6.0, -61.6, 10.4, -61.6, '+z', 1); // the way to the cloister between them
     P.drownedAngel(ctx, 4, -58.6, 0, { glow: 3.4 });
     P.hangBell(ctx, 0, 1, -50, 1.1, { ring: true }); P.hangBell(ctx, 8.8, 1.6, -51, 1.3); P.hangBell(ctx, 4, 2.4, -55, 1.8, { ring: true });
     P.drownLamp(ctx, 0, -47.4); P.drownLamp(ctx, 8.8, -47.4);
@@ -178,10 +178,10 @@ export default {
     ctx.marks.cloisterGate = barrier4(ctx, 3.4, -63, 4, 'x', 'pipes');
 
     // ------------------------------------------------ the sanctuary of the drowned altar
-    P.altar(ctx, 4, -101.6, 0);
+    P.altar(ctx, 10.6, -98, -Math.PI / 2); // against the east wall, its great bell off the way up
     P.drownedAngel(ctx, -5.6, -103.6, Math.PI * 0.25, { glow: 2.6 }); P.drownedAngel(ctx, 13.6, -103.6, -Math.PI * 0.25, { glow: 2.6 });
     P.drownedAngel(ctx, -5.6, -90.4, Math.PI * 0.75, { pose: 'pray' }); P.drownedAngel(ctx, 13.6, -90.6, -Math.PI * 0.75, { pose: 'pray' });
-    P.ruin(ctx, -8, -106, 16, -106, 4.2, { lancets: true }); P.ruin(ctx, -8, -106, -8, -94, 3.6, { lancets: true }); P.ruin(ctx, 16, -106, 16, -96, 3.6, { lancets: true });
+    P.ruin(ctx, -8, -106, 1.2, -106, 4.2, { lancets: true }); P.ruin(ctx, 5.6, -106, 16, -106, 4.2, { lancets: true }); // the way up out of the sea between them P.ruin(ctx, -8, -106, -8, -94, 3.6, { lancets: true }); P.ruin(ctx, 16, -106, 16, -96, 3.6, { lancets: true });
     P.rose(ctx, 4, -95.4, 2.4);
     P.hangBell(ctx, -1, 1.4, -96, 1.2, { ring: true }); P.hangBell(ctx, 9.4, 1.8, -95.6, 1.4, { ring: true });
     P.kelp(ctx, -6.4, -97, 3); P.kelp(ctx, 14.4, -98, 3); P.coral(ctx, -6, -95, 0.8); P.coral(ctx, 14, -101, 0.8);

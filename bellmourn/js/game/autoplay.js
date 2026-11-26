@@ -99,8 +99,12 @@ export function makeAutoplay(seed = 3) {
       const T = targets(game); let best = null, bestLen = 1e9;
       for (const t of T) { if (st.skip && st.skip[t.id] && T.length > 1) continue; const p = bfs(st.grid, cellOf(st.grid, h.x, h.z), cellOf(st.grid, t.x, t.z)); if (p && p.length + (t.last ? 400 : 0) < bestLen) { best = { t, p }; bestLen = p.length + (t.last ? 400 : 0); } }
       st.target = best ? best.t : null; st.path = best ? best.p : null; st.pathT = 1.0;
+      if (!best && T.length) st.key = ''; // no way to anything: the walk grid is stale (a gate opened since): rebuild it
     }
     const t = st.target;
+    // nowhere to go from here (wedged in a pocket the walk grid cannot reach out of): step out in a new direction
+    // every second until a path appears
+    if (!t && !game.tutorial && !(w.foes().some((f) => !f.dead && f.ai && f.ai.aggro))) { st.escT = (st.escT || 0) - dt; if (st.escT <= 0) { st.escT = 1.0; st.escA = Math.random() * Math.PI * 2; } inp.mx = Math.sin(st.escA); inp.mz = Math.cos(st.escA); if (Math.random() < dt * 0.6) inp.dashPressed = true; }
     game.autoDebug = { target: t && t.id, path: st.path ? st.path.length : -1, n: targets(game).map((x) => x.id).join(',') };
     if (t) {
       const dT = Math.hypot(t.x - h.x, t.z - h.z);
