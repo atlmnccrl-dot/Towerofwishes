@@ -74,7 +74,7 @@ function leave(w, e, d, I, f) {
 // the later stages' own moves: a quake of rings with gaps, lanes swept across the floor, then a star of rows,
 // blows raining round the warden and novas rolling out
 function stageMoves(p, e, base, d) {
-  if (p < 2 || e.mini) return base;
+  if (p < 2 || e.mini || d.own) return base; // d.own: the boss carries its own moves for every stage
   const K = d.K, kind = d.kind, st = d.status;
   const m = base.slice();
   m.push({ id: 'st_quake', w: 2.8, cd: 5.5, a: { name: 'st_quake', anim: 'slam', dur: 1.6, windup: 0.8, active: 0.85, tele: 'circle', shape: 'circle', offset: 0, radius: 2.2, dmg: 16 * K, kb: 7, heavy: true, onStrike: (w, e2) => gapRings(w, e2, e2.x, e2.z, { n: 3, r0: 3.2, step: 2.1, warn: 0.35, gapT: 0.4, dmg: 14 * K, kind, status: st }) } });

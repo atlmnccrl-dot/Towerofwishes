@@ -120,11 +120,71 @@ class ShardSwarm extends Beast {
   }
 }
 
+
+// ------------------------------------------------------------------ the Last Seraph
+// God's herald, the last angel: taller than a man, she floats; a robe of white and gold that thins at the hem into
+// light, golden bracers, a smooth mask of gold with no face on it, six wings of gold feathers edged with light in
+// three pairs, and behind her head her halo, a ring of fire-gold that she draws down into her hand and swings as
+// a blade, or throws. e.form 2: the wings burn at the edges; e.form 3: the robe is torn, the mask cracked, light
+// pours out of the crack.
+class Seraph extends Beast {
+  constructor(look) {
+    super(look); const Cc = look.colors; this.baseY = 1.1;
+    this.joint('base', null, 0, this.baseY, 0);
+    // the robe: tapering drums that thin into light at the hem
+    for (let i = 0; i < 4; i++) { const w = 0.3 + i * 0.07; this.part('base', w, 0.22, w * 0.8, i === 3 ? Cc.light : Cc.robe, 0, -0.1 - i * 0.2, 0, i === 3 ? { glow: 1.4 } : {}); }
+    this.hem = this.part('base', 0.62, 0.05, 0.52, Cc.light, 0, -0.76, 0, { glow: 2.4 });
+    this.joint('chest', 'base', 0, 0.08, 0);
+    this.part('chest', 0.38, 0.44, 0.26, Cc.robe, 0, 0.2, 0); this.part('chest', 0.32, 0.22, 0.04, Cc.gold, 0, 0.26, 0.14);
+    this.part('chest', 0.42, 0.08, 0.3, Cc.gold, 0, 0.42, 0);
+    this.joint('head', 'chest', 0, 0.48, 0);
+    this.part('head', 0.2, 0.26, 0.2, Cc.gold, 0, 0.1, 0); this.mask = this.part('head', 0.16, 0.2, 0.03, Cc.mask, 0, 0.1, 0.11, { glow: 1.1 });
+    this.crack = this.part('head', 0.025, 0.2, 0.02, Cc.light, 0.03, 0.1, 0.125, { glow: 3.2, rz: 0.3 }); this.crack.visible = false;
+    this.part('head', 0.24, 0.06, 0.24, Cc.gold, 0, 0.24, -0.02);
+    // the halo: behind her head, or in her hand
+    this.joint('halo', 'head', 0, 0.16, -0.22);
+    const ring = 12; for (let i = 0; i < ring; i++) { const a = i / ring * Math.PI * 2; this.part('halo', 0.1, 0.05, 0.05, Cc.halo, Math.sin(a) * 0.34, Math.cos(a) * 0.34, 0, { glow: 2.8, rz: -a }); }
+    // arms
+    for (const [n, sx] of [['shL', 1], ['shR', -1]]) { this.joint(n, 'chest', sx * 0.24, 0.36, 0); this.part(n, 0.1, 0.32, 0.1, Cc.robe, 0, -0.16, 0); this.joint(n + 'f', n, 0, -0.32, 0); this.part(n + 'f', 0.11, 0.3, 0.11, Cc.gold, 0, -0.14, 0); this.part(n + 'f', 0.08, 0.1, 0.1, Cc.skin, 0, -0.32, 0.02); }
+    // six wings, three a side: feathers of gold, edged with light
+    this.wings = [];
+    for (const sx of [-1, 1]) for (let i = 0; i < 3; i++) {
+      const n = 'w' + (sx > 0 ? 'L' : 'R') + i; this.joint(n, 'chest', sx * 0.14, 0.34 - i * 0.14, -0.15);
+      const L = 0.7 - i * 0.12; for (let k = 0; k < 5; k++) { this.part(n, 0.14, 0.06, L * (1 - k * 0.12), Cc.feather, sx * (0.1 + k * 0.15), -k * 0.035, -L * 0.3, {}); }
+      this.edges = this.edges || []; this.edges.push(this.part(n, 0.82, 0.03, 0.05, Cc.light, sx * 0.42, -0.08, -L * 0.62, { glow: 2.2 }));
+      this.wings.push({ n, sx, i });
+    }
+    this.j.shRf.add(this.hand); this.hand.position.set(0, -0.32, 0.05); this.j.shRf.add(this.tip); this.tip.position.set(0, -0.32, 0.7);
+  }
+  animate(e, t, dt) {
+    this.time += dt; const tm = this.time; const a = e.anim; const ph = this.atkPhase(e, t, e.atk || { windup: 0.7, active: 0.85, dur: 1.4 });
+    const k = ph.part === 'windup' ? ph.k : (ph.part === 'strike' ? 1 : 1 - ph.k);
+    let P = { lift: 0.25 + S(tm * 1.5) * 0.1, roll: S(tm * 0.8) * 0.03, shL: [0.15, 0, 0.2], shR: [0.15, 0, -0.2], shLf: [-0.3, 0, 0], shRf: [-0.3, 0, 0], head: [0.05, 0, 0] };
+    let spread = 0.4, flap = S(tm * 2.2) * 0.12, haloInHand = false;
+    if (a === 'sweep' || a === 'haloblade') { haloInHand = true; P = { ...P, shR: [-1.2 - 0.6 * k + (ph.part === 'strike' ? 1.6 : 0), 0.8 * (ph.part === 'windup' ? -1 : 1), -0.5], chest: [0, (ph.part === 'windup' ? 0.6 : -0.7) * k, 0], pitch: 0.1 * k }; spread = 0.7; }
+    else if (a === 'cast' || a === 'raise') { P = { ...P, shL: [-2.6 * k, 0, 0.4], shR: [-2.6 * k, 0, -0.4], head: [-0.3 * k, 0, 0], lift: P.lift + 0.3 * k }; spread = 0.4 + 0.8 * k; }
+    else if (a === 'throw') { haloInHand = ph.part === 'windup'; P = { ...P, shR: [ph.part === 'windup' ? -2.4 * k : 0.6, 0, -0.3], chest: [0, ph.part === 'windup' ? 0.5 * k : -0.5, 0] }; spread = 0.6; }
+    else if (a === 'slam' || a === 'dive' || a === 'leap') { haloInHand = true; P = { ...P, pitch: ph.part === 'windup' ? -0.3 * k : 0.6, lift: ph.part === 'windup' ? P.lift + 0.8 * k : 0, shR: [-2.8 * k, 0, -0.2], shL: [-2.8 * k, 0, 0.2] }; spread = ph.part === 'windup' ? 1.2 : 0.1; }
+    else if (a === 'roar' || a === 'toll') { P = { ...P, shL: [-0.5, 0, 1.4 * k], shR: [-0.5, 0, -1.4 * k], head: [-0.4 * k, 0, 0], pitch: -0.15 * k }; spread = 0.5 + 1.0 * k; flap = 0; }
+    else if (a === 'stagger' || a === 'hurt') { P = { ...P, pitch: -0.35, lift: 0, head: [0.4, 0, 0] }; spread = 0.15; }
+    else if (a === 'die' || a === 'dieHard') { const q = clamp01(t / 2); P = { ...P, pitch: 0.6 * q, lift: -0.9 * q, roll: 0.3 * q, head: [0.6 * q, 0, 0] }; spread = 0.5 * (1 - q); }
+    this.pose(P, dt, a === 'sweep' || a === 'haloblade' ? 16 : 8);
+    for (const wg of this.wings) { const j = this.j[wg.n]; j.rotation.y = wg.sx * (-0.3 - spread * (0.6 + wg.i * 0.3)) + flap * wg.sx; j.rotation.z = wg.sx * (0.5 - wg.i * 0.45 + flap); j.rotation.x = -0.2; }
+    // the halo: behind her head, turning; in her hand when she swings it; gone while it flies
+    const hj = this.j.halo; if (haloInHand) { const v = new THREE.Vector3(); this.hand.getWorldPosition(v); this.j.head.worldToLocal(v); hj.position.copy(v); hj.rotation.set(Math.PI / 2, 0, 0); } else { hj.position.set(0, 0.16, -0.22); hj.rotation.set(0, 0, tm * 0.8); }
+    hj.visible = !(a === 'throw' && ph.part !== 'windup');
+    const f = e.form || 1; this.crack.visible = f >= 3; this.mask.scale.y = f >= 3 ? 0.9 : 1;
+    for (const ed of this.edges) ed.scale.set(1, 1 + (f - 1) * 1.5 + 0.4 * S(tm * 9), 1);
+    this.hem.scale.setScalar(1 + 0.15 * S(tm * 4));
+  }
+}
+
 export function makeBeast5(look) {
   switch (look.rig) {
     case 'belljelly': return new BellJelly(look);
     case 'glasshound': return new GlassHound(look);
     case 'shardswarm': return new ShardSwarm(look);
+    case 'seraph': return new Seraph(look);
   }
   return null;
 }

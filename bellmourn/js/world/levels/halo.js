@@ -84,7 +84,7 @@ export default {
     // ------------------------------------------------ the bronze sea, the slabs of the ring, the ways
     P.sea(ctx, BOUNDS, -0.9);
     const goldM = W4.gold('#a8803a'), marbM = W4.marble('#d8d0c0'), wayM = W4.gold('#8a6a30');
-    for (const r of ROOMS) slab(ctx, ...r, r === ROOMS[6] ? goldM : marbM, SEA, { kerb: W4.gold('#e0b050'), depth: 2.2, range: 3 });
+    for (const r of ROOMS) slab(ctx, ...r, r === ROOMS[6] ? W4.marble('#5a5448') : marbM, SEA, { kerb: W4.gold('#e0b050'), depth: 2.2, range: 3 });
     for (const r of WAYS) span(ctx, ...r, wayM, SEA, { rail: W4.gold('#e0b050') });
     voidFill(ctx, BOUNDS, WALKS);
     motes(ctx, [[-30, -116, 32, 20]], 120, { vy: -0.15, h: 9, y0: 0, color: 0xfff0c0, add: true, k: 1.6, blink: true, sway: 0.6, seed: 4801 });
