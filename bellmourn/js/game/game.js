@@ -291,7 +291,13 @@ export class Game {
     this.minis = plan.map((m, i) => ({ ...m, id: 'mini' + i, done: prog.minis.includes('mini' + i) })).filter((m) => !m.done);
   }
   minisStep() {
-    const h = this.world && this.world.hero; if (!h || !this.minis || !this.minis.length) return;
+    const h = this.world && this.world.hero;
+    // a safety net: an echo that stays hidden (burrowed, in the dark, in its shell) comes up after 10 s, and one
+    // still standing after three minutes falls, so no fight (and no exit) can hang on an echo
+    for (const b of this.miniLive || []) { if (b.dead) continue; const dt = 1 / 60; b.miniT = (b.miniT || 0) + dt; b.miniHid = (b.hidden || b.away) ? (b.miniHid || 0) + dt : 0;
+      if (b.miniHid > 10) { b.hidden = false; b.away = false; b.iframes = 0; b.miniHid = 0; if (b.ai) { b.ai.dig = null; b.ai.chan = null; } b.state = 'idle'; }
+      if (b.miniT > 180 && this.world) { b.hp = 0; this.world._kill(b, h || b, {}); } }
+    if (!h || !this.minis || !this.minis.length) return;
     for (const m of this.minis) {
       if (m.spawned || m.done) continue;
       if (m.enc) { const e = (this.encs || []).find((x) => x.id === m.enc); if (e && e.state === 'active') { const z = e.zone; const p = this.miniSpot(h, z ? (z[0] + z[2]) / 2 : h.x, z ? (z[1] + z[3]) / 2 : h.z); const b = this.spawnMini(m, p.x, p.z); if (b) e.mine.push(b); } else if (e && e.state === 'done') m.done = true; }
@@ -1048,7 +1054,7 @@ export class Game {
     const B = def.boss;
     if (B && this.bossState === 'idle' && inZone(hero, B.zone)) this.startBoss();
     // the exit opens after the boss; the Old Road's gate opens when the duel is over
-    const exitOpen = def.exit && (!def.exit.requires || this.bossState === 'done') && (!this.tutorial || this.tutorial.done) && !this.pendingScene && !(this.encs || []).some((e) => e.state === 'active');
+    const exitOpen = def.exit && (!def.exit.requires || !def.boss || this.bossState === 'done') && (!this.tutorial || this.tutorial.done) && !this.pendingScene && !(this.encs || []).some((e) => e.state === 'active');
     if (exitOpen && inZone(hero, def.exit.zone) && !this.leaving) this.finishArea();
     this.sound.setMusic(this.boss && !this.boss.dead ? 'boss' : (w.combat ? 'combat' : 'explore'));
     if (hero.state === 'run' && (this.stepT = (this.stepT || 0) - dt) <= 0) { this.stepT = 0.27; this.sound.play('step'); if (Math.random() < 0.5) this.fx.splash(hero.x, hero.z, 3); }
@@ -1575,7 +1581,7 @@ export class Game {
     const list = [];
     for (const e of this.encs || []) if (e.state === 'idle') list.push(c(e.zone));
     if (def.boss && this.bossState === 'idle') list.push(c(def.boss.zone));
-    if (!list.length && def.exit && (!def.exit.requires || this.bossState === 'done')) list.push(c(def.exit.zone));
+    if (!list.length && def.exit && (!def.exit.requires || !def.boss || this.bossState === 'done')) list.push(c(def.exit.zone));
     let best = null, bd = 1e9; for (const p of list) { const d = Math.hypot(p.x - h.x, p.z - h.z); if (d < bd) { bd = d; best = p; } }
     return best && bd > 9 ? best : null;
   }
