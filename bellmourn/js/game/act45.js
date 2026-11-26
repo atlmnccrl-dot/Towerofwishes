@@ -47,7 +47,7 @@ export const BOSSES45 = {
 };
 function bossLooks() {
   BOSSES45.seraph.look = { rig: 'seraph', scale: 1.9, eyes: 0xfff0a0, colors: { robe: 0xf4ecd8, gold: 0xe0b040, mask: 0xfff0c0, light: 0xfff4d0, halo: 0xffc040, skin: 0xf0d8b0, feather: 0xe8c870 } };
-  BOSSES45.firstfounder.look = { rig: 'firstfounder', scale: 2.0, eyes: 0xffa030, colors: { bronze: 0xa8743a, dark: 0x2a1a0c, iron: 0x4a4a52, molten: 0xff7a20, mould: 0x5a4a3a, apron: 0x4a3020, strap: 0x2a1a10, beard: 0xc8904a, cap: 0x3a2a1a, god: 0xffd890 } };
+  BOSSES45.firstfounder.look = { rig: 'firstfounder', scale: 2.4, eyes: 0xffa030, colors: { bronze: 0xa8743a, dark: 0x2a1a0c, iron: 0x4a4a52, molten: 0xff7a20, mould: 0x5a4a3a, apron: 0x4a3020, strap: 0x2a1a10, beard: 0xc8904a, cap: 0x3a2a1a, god: 0xffd890 } };
 }
 
 // The Last Seraph. Stage one, THE HERALD: the halo-blade swept wide, three lances of light, feathers falling as
@@ -91,17 +91,41 @@ const seraph = {
   },
   onPhase(w, e, p) { summon(w, e, 'drownedangel', p >= 3 ? 2 : 1, e.def.tier ?? 18, 5); },
 };
-// the First Founder: the casting hammer, molten lanes, moulds that pour bronze copies of him
+// The First Founder. Stage one, THE BELLFOUNDER: the casting hammer brought down (a marked circle), swung wide,
+// molten bronze poured down a line toward you, a mould that casts a bronze copy of him. At two thirds he climbs
+// to the gantry and you break the moulds before they pour (an interlude, his copies coming). Stage two, THE POUR:
+// a wave of molten bronze swept across the floor in lanes; the hammer on the floor, rings of bronze with a gap;
+// crucibles rain from the gantry; he calls two copies at once. At a third the bronze rivers run (a second
+// interlude: survive the lanes). Stage three, UNMADE: his skin cracks and the molten god-light shows through: three
+// leaping smashes, each where you stand; a bell dropped on you from above (a ring after); the river crossing the
+// floor both ways; and the hammer swung round twice.
+const FF = {
+  smash: (q) => ({ id: 'smash', w: 2.6, max: 3.6, a: quick(strike({ name: 'smash', anim: 'smash', shape: 'circle', offset: 1.8, radius: 2.2, windup: 0.95, active: 1.05, dur: 2.0, dmg: 28, kb: 9, lunge: 0.6, tele: 'circle' }), q) }),
+  swing: (q) => ({ id: 'swing', w: 2.2, max: 3.4, a: quick(strike({ name: 'swing', anim: 'sweep', range: 3.6, arc: deg(200), windup: 0.75, active: 0.9, dur: 1.5, dmg: 22, kb: 7, lunge: 1.4 }), q) }),
+  pour: () => ({ id: 'pour', w: 1.9, min: 2, cd: 5, a: { name: 'pour', anim: 'pour', dur: 1.6, windup: 0.8, active: 0.85, tele: 'none', dmg: 0, onStrike: (w, e) => { const a = angTo(e, w.hero); for (let k = 0; k < 8; k++) spot(w, e, e.x + S(a) * (1.8 + k * 1.2), e.z + C(a) * (1.8 + k * 1.2), 0.9, { warn: 0.6 + k * 0.08, dmg: 20, kind: 'fire', status: { burn: 1 } }); } } }),
+  mould: (n = 1) => ({ id: 'mould' + n, w: 1.2, min: 2, cd: 12, run: (w, e) => { e.anim = 'forge'; e.animT = 0; summon(w, e, UNITS.bronzecopy ? 'bronzecopy' : 'homunculus', n, e.def.tier ?? 23, 4); w.emit('summon', { e }); } }),
+  wave: () => ({ id: 'wave', w: 2.2, cd: 6, a: { name: 'wave', anim: 'pour', dur: 1.8, windup: 0.8, active: 0.85, tele: 'none', dmg: 0, heavy: true, onStrike: (w, e) => { const a = angTo(e, w.hero); const px = C(a), pz = -S(a); for (let i = -2; i <= 2; i++) w.addHazard({ shape: 'line', x: e.x + px * i * 2.4 - S(a) * 2, z: e.z + pz * i * 2.4 - C(a) * 2, face: a, len: 16, width: 1.4, warn: 0.7 + Math.abs(i) * 0.3, life: 1.2, dmg: 18 * e.dmgMul, src: e, kind: 'fire', kb: 4, status: { burn: 1 } }); } } }),
+  quake: () => ({ id: 'quake', w: 2.0, cd: 6.5, a: { name: 'quake', anim: 'smash', dur: 2.0, windup: 0.95, active: 1.05, tele: 'circle', shape: 'circle', offset: 0, radius: 2.4, dmg: 24, kb: 9, heavy: true, onStrike: (w, e) => { for (let i = 0; i < 3; i++) { const R = 3.4 + i * 2.2; const gap = angTo(e, w.hero) + Math.PI + (w.rand() - 0.5); const n = Math.round(TAU * R / 1.4); for (let k = 0; k < n; k++) { const a = k / n * TAU; let d = a - gap; d = Math.atan2(S(d), C(d)); if (Math.abs(d) < 0.45) continue; spot(w, e, e.x + S(a) * R, e.z + C(a) * R, 0.8, { warn: 0.35 + i * 0.4, dmg: 18, kind: 'fire', status: { burn: 1 } }); } } } } }),
+  crucibles: () => ({ id: 'crucibles', w: 1.8, min: 2, cd: 5.5, a: { name: 'crucibles', anim: 'cast', dur: 1.4, windup: 0.6, active: 0.65, tele: 'none', dmg: 0, onStrike: (w, e) => { const h = w.hero; for (let i = 0; i < 6; i++) { const a = w.rand() * TAU, r = i ? 1.4 + w.rand() * 4 : 0; spot(w, e, h.x + S(a) * r, h.z + C(a) * r, 1.3, { warn: 1.0 + i * 0.15, dmg: 22, kind: 'fire', status: { burn: 1 }, kb: 7 }); } } } }),
+  leaps: () => ({ id: 'leaps', w: 2.0, cd: 8, run: (w, e) => { e.ai.leaps = 3; e.ai.leapAt = w.t; } }),
+  belldrop: () => ({ id: 'belldrop', w: 1.8, cd: 7, a: { name: 'belldrop', anim: 'cast', dur: 1.6, windup: 0.6, active: 0.62, tele: 'none', dmg: 0, onStrike: (w, e) => { const h = w.hero; spot(w, e, h.x, h.z, 2.2, { warn: 1.3, dmg: 30, kind: 'bell', kb: 11 }); w.addHazard({ shape: 'ring', x: h.x, z: h.z, r0: 2.2, r1: 7, warn: 1.55, life: 0.8, dmg: 16 * e.dmgMul, src: e, kind: 'toll', kb: 7 }); } } }),
+  cross: () => ({ id: 'cross', w: 1.8, cd: 7, a: { name: 'cross', anim: 'pour', dur: 1.9, windup: 0.8, active: 0.85, tele: 'none', dmg: 0, heavy: true, onStrike: (w, e) => { const h = w.hero; for (const [fa, off] of [[0, 0], [Math.PI / 2, 0.6]]) for (let i = -1; i <= 1; i++) { const px = C(fa) * i * 3.2, pz = -S(fa) * i * 3.2; w.addHazard({ shape: 'line', x: h.x + px - S(fa) * 10, z: h.z + pz - C(fa) * 10, face: fa, len: 20, width: 1.3, warn: 0.8 + off, life: 1.0, dmg: 18 * e.dmgMul, src: e, kind: 'fire', kb: 4, status: { burn: 1 } }); } } } }),
+  spin: () => ({ id: 'spin', w: 2.2, max: 4, a: { ...strike({ name: 'spin', anim: 'sweep', range: 4.0, arc: deg(360), windup: 0.85, active: 1.0, dur: 2.6, dmg: 24, kb: 8, lunge: 0.4 }), chain: { at: 1.2, windup: 1.5, active: 1.65, lunge: 0.6 } } }),
+};
 const firstfounder = {
   phases: [0.66, 0.33], keep: 2.8, turn: 4,
+  tick(w, e) {
+    // the three leaping smashes of the last stage: each lands where you stand, a marked circle, half a breath apart
+    if (e.ai.leaps > 0 && w.t >= e.ai.leapAt && e.state !== 'windup' && e.state !== 'attack' && !e.away) {
+      e.ai.leaps--; e.ai.leapAt = w.t + 1.25;
+      w.foeAttack(e, { name: 'leapsmash', anim: 'smash', dur: 1.2, windup: 0.6, active: 0.9, leap: true, shape: 'circle', offset: 0, radius: 2.4, dmg: 26, kb: 9, tele: 'circleAt', heavy: true });
+    }
+  },
   moves(p) {
     const q = p >= 3 ? 0.88 : 1;
-    return [
-      { id: 'smash', w: 2.6, max: 3.6, a: quick(strike({ name: 'smash', anim: 'smash', shape: 'circle', offset: 1.8, radius: 2.2, windup: 0.95, active: 1.05, dur: 2.0, dmg: 28, kb: 9, lunge: 0.6, tele: 'circle' }), q) },
-      { id: 'swing', w: 2.2, max: 3.4, a: quick(strike({ name: 'swing', anim: 'sweep', range: 3.6, arc: deg(200), windup: 0.75, active: 0.9, dur: 1.5, dmg: 22, kb: 7, lunge: 1.4 }), q) },
-      { id: 'pour', w: 1.9, min: 2, cd: 5, a: { name: 'pour', anim: 'pour', dur: 1.6, windup: 0.8, active: 0.85, tele: 'none', dmg: 0, onStrike: (w, e) => { const a = angTo(e, w.hero); for (let k = 0; k < 8; k++) spot(w, e, e.x + S(a) * (1.8 + k * 1.2), e.z + C(a) * (1.8 + k * 1.2), 0.9, { warn: 0.6 + k * 0.08, dmg: 20, kind: 'fire', status: { burn: 1 } }); } } },
-      { id: 'mould', w: 1.2, min: 2, cd: 12, run: (w, e) => { summon(w, e, UNITS.bronzecopy ? 'bronzecopy' : 'homunculus', 1, e.def.tier ?? 23, 4); w.emit('summon', { e }); } },
-    ];
+    if (p <= 1) return [FF.smash(q), FF.swing(q), FF.pour(), FF.mould(1)];
+    if (p === 2) return [FF.smash(q), FF.wave(), FF.quake(), FF.crucibles(), FF.mould(2)];
+    return [FF.leaps(), FF.belldrop(), FF.cross(), FF.spin(), FF.wave(), FF.crucibles()];
   },
   onPhase(w, e, p) { summon(w, e, UNITS.homunculus ? 'homunculus' : 'hushed', p >= 3 ? 3 : 2, e.def.tier ?? 23, 5); },
 };
@@ -112,7 +136,7 @@ Object.assign(MORE_STAGES, {
   seraph: { col: 0xffd060, kind: 'radiant', K: 1.25, own: true,
     il: { kind: 'targets', leave: 'fly', banner: 'BREAK THE SIX FEATHERS OF HER HALO', dur: 22, targets: { type: 'bell', n: 6, hp: 70, name: 'Halo feather' }, waves: [[['drownedangel', 1], ['choirwraith', 2]], [['belljelly', 2]]], addsGap: 8, back: { entrance: 'drop' } },
     il2: { kind: 'gauntlet', leave: 'fly', banner: 'THE HALO FALLS', dur: 15, rain: true, back: { entrance: 'drop' } } },
-  firstfounder: { col: 0xff7a20, kind: 'fire', status: { burn: 1 }, K: 1.3,
+  firstfounder: { col: 0xff7a20, kind: 'fire', status: { burn: 1 }, K: 1.3, own: true,
     il: { kind: 'targets', leave: 'climb', banner: 'BREAK THE MOULDS BEFORE THEY POUR', dur: 22, targets: { type: 'mould', n: 4, hp: 90, name: 'Mould' }, waves: [[['homunculus', 3]], [['bronzecopy', 1], ['homunculus', 2]]], addsGap: 8, back: { entrance: 'slam' } },
     il2: { kind: 'gauntlet', leave: 'climb', banner: 'THE BRONZE RIVERS RUN', dur: 15, lanes: true, back: { entrance: 'slam' } } },
 });
@@ -124,6 +148,14 @@ export const ENTRANCES45 = {
     st.put(st.home.x, st.home.z);
     if (t < 2.2) { e.leapH = 10 * (1 - (t / 2.2) ** 2); st.anim('dive', 0.5); }
     else { e.leapH = 0; once(st, 'land', () => { w.emit('shake', { amt: 0.9 }); F((fx) => fx.shockRing(st.home.x, st.home.z, 7, [3, 2.6, 1.4], 0.7)); }); st.anim(t < 3.0 ? 'roar' : 'haloblade', t < 3.0 ? (t - 2.2) * 0.9 : (t - 3.0) * 0.6); }
+  } },
+  // PROPOSAL: the First Founder at his anvil, his back to you, hammering; he stops, turns, and brings the hammer
+  // down on the anvil: a ring of molten light rolls out across the Cradle.
+  firstfounder: { kind: 'forge', dur: 3.6, cam: { zoom: 1.08, lift: 1.6 }, script(w, e, t, F, st) {
+    st.put(st.home.x, st.home.z);
+    if (t < 1.8) { e.face = st.home.face + Math.PI; st.anim(Math.floor(t * 2) % 2 ? 'hammerDown' : 'hammerUp', 0); if (st.every(0.5, 'clang')) F((fx) => fx.embers && fx.embers(st.home.x, 1.2, st.home.z, 12, [3, 1.4, 0.3])); }
+    else if (t < 2.6) { e.face = st.home.face + Math.PI * (1 - (t - 1.8) / 0.8); st.anim('hammerUp', 0); }
+    else { e.face = st.home.face; st.anim('smash', Math.min(1.4, (t - 2.6) * 1.6)); if (t > 3.0) once(st, 'ring', () => { w.emit('shake', { amt: 1 }); F((fx) => fx.shockRing(st.home.x, st.home.z, 9, [3, 1.2, 0.2], 0.8)); }); }
   } },
 };
 function once(st, key, fn) { if (!st.fired.has(key)) { st.fired.add(key); fn(); } }
