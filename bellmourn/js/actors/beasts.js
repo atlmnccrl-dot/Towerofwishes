@@ -12,6 +12,7 @@ import { Beast, makeBeast2, mixP, phase, clamp01, ease, lerp } from './beasts2.j
 import { makeBeast3 } from './beasts3.js'; // Act III: the leech, the wisp, the gear spider, the choir mask, the Wheel
 import { makeBeast4 } from './beasts4.js'; // the run's new bosses: the King-Crab, the Hollow Mother, the Ronin, the Guest and its masks, the Pyre Saint
 import { makeBeast6 } from './beasts6.js'; // Act V: the god's thought, the nightmare hound, the unrisen dawn, the First Founder
+import { makeBeast5 } from './beasts5.js'; // Act IV: the bell-jelly, the glass hound, the shard swarm
 import { makeBeast7 } from './beasts7.js'; // Act VI: God and His two bells
 import { makeMark } from './interlude_props.js'; // interlude targets
 
@@ -244,5 +245,5 @@ export function makeBeast(look) {
   if (look.rig === 'frostwolf') return new Quadruped(look, FROSTWOLF);
   if (look.rig === 'hellhound') return new Quadruped(look, HELLHOUND);
   if (look.rig === 'imark') return makeMark(look); // an interlude's target (interlude_props.js)
-  return makeBeast2(look) || makeBeast3(look) || makeBeast4(look) || makeBeast6(look) || makeBeast7(look);
+  return makeBeast2(look) || makeBeast3(look) || makeBeast4(look) || makeBeast5(look) || makeBeast6(look) || makeBeast7(look);
 }

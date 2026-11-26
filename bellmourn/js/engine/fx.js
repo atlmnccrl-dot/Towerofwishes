@@ -321,7 +321,7 @@ export class FX {
     const kinds = { fire: [3, 0.8, 0.15], poison: [0.5, 2.0, 0.3], beam: [3, 1.4, 0.3], bone: [2.2, 2.0, 1.6], slam: [1.6, 0.15, 0.1], water: [0.3, 1.6, 1.6], wax: [2, 1.8, 1.2], toll: [1.8, 1.8, 2.2], lightning: [1.6, 1.8, 3], shock: [1.8, 1.0, 0.6],
       frost: [0.9, 1.9, 2.8], ice: [1.3, 2.2, 3.0], sand: [2.2, 1.5, 0.6], venom: [0.9, 2.6, 0.3], acid: [0.9, 2.6, 0.35], hellfire: [3.4, 0.8, 0.15], holy: [3.0, 2.6, 1.4], eyebeam: [3.2, 2.9, 2.0], curse: [1.6, 0.5, 2.4],
       bog: [0.7, 1.4, 0.35], wispfire: [0.9, 2.8, 1.8], steam: [1.1, 1.2, 1.3], spark: [3.2, 1.9, 0.6], saw: [2.6, 2.4, 2.0], chrono: [0.55, 1.1, 2.1], radiant: [2.4, 2.2, 1.5], choir: [3.0, 1.6, 2.6], spear: [3.2, 3.0, 2.0], spoke: [2.2, 1.9, 1.0], discord: [2.4, 0.4, 2.8],
-      iai: [3.4, 3.4, 3.8], limb: [2.4, 2.3, 2.1], cage: [1.6, 1.3, 1.0], grin: [3, 3, 3], pyre: [3.4, 1.2, 0.2], brand: [3.4, 0.9, 0.15], holyfire: [3.4, 2.5, 0.9], tide: [0.6, 1.9, 2.1], petal: [3.0, 1.3, 1.8], chain: [1.6, 1.5, 1.4], drop: [1.4, 1.3, 1.2] };
+      iai: [3.4, 3.4, 3.8], limb: [2.4, 2.3, 2.1], cage: [1.6, 1.3, 1.0], grin: [3, 3, 3], pyre: [3.4, 1.2, 0.2], brand: [3.4, 0.9, 0.15], holyfire: [3.4, 2.5, 0.9], tide: [0.6, 1.9, 2.1], petal: [3.0, 1.3, 1.8], chain: [1.6, 1.5, 1.4], drop: [1.4, 1.3, 1.2], glass: [2.4, 1.7, 3.2], deepsong: [0.6, 2.4, 2.0] };
     const hot = kinds[h.kind] || kinds.slam;
     const g = new THREE.Group();
     const mat = (c, o, blend = THREE.AdditiveBlending) => new THREE.MeshBasicMaterial({ color: new THREE.Color(...c), transparent: true, opacity: o, depthWrite: false, blending: blend, fog: false, side: THREE.DoubleSide });

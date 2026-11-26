@@ -36,7 +36,7 @@ const T = {
     il: { kind: 'gauntlet', leave: 'climb', banner: 'DODGE THE MOLTEN BRONZE', dur: 15, lanes: true, back: { entrance: 'drop' } } },
   regent: { col: 0xe0c0ff, kind: 'discord', K: 1.1,
     il: { kind: 'chase', leave: 'fade', banner: 'FIND THE REAL REGENT', dur: 20, chase: { hits: 3, surface: 2.0, gap: 0.9, decoys: 3, decoyHp: 1, punish: 12 }, back: { entrance: 'rush' } } },
-  silence: { col: 0xf0f0ff, kind: 'bell', status: { silence: 1 }, K: 1.15,
+  silence: { col: 0xf0f0ff, kind: 'bell', status: { blind: 1 }, K: 1.15,
     il: { kind: 'targets', leave: 'fade', banner: 'RING THE THREE BELLS', dur: 22, targets: { type: 'bell', n: 3, hp: 80, name: 'Bell' }, waves: [[['warden', 1], ['hushed', 2]], [['warden', 2]]], addsGap: 8, back: { entrance: 'drop' } },
     il2: { kind: 'waves', leave: 'fly', banner: 'HOLD AGAINST THE OATH-SWORN', dur: 22, waves: [[['warden', 2]], [['warden', 2], ['hushed', 2]], [['warden', 3]]], waveGap: 7, back: { entrance: 'slam' } } },
   // ---- the run's five

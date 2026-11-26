@@ -19,7 +19,7 @@ const beamAt = (w, e, ang, o) => w.addHazard({ shape: 'line', x: e.x, z: e.z, fa
 
 // ------------------------------------------------------------------ Act IV's foes (recast from heaven's own)
 function recast(base, id, o) {
-  const B = UNITS[base]; if (!B) return;
+  const B = UNITS[base]; if (!B || UNITS[id]) return; // a foe of its own (units4.js) wins
   UNITS[id] = { ...B, ...o.stats, name: o.name, look: { ...B.look, ...(o.look || {}), colors: { ...(B.look.colors || {}), ...(o.colors || {}) } } };
   if (UNIT_AI[base] && !UNIT_AI[id]) UNIT_AI[id] = UNIT_AI[base];
 }
