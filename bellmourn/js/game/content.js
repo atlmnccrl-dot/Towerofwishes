@@ -3,3 +3,4 @@
 // bosses4.js, UNITS / UNIT_AI from units.js, BOSS_LINES from scenes/lines.js ...). Owners append one import line
 // each; keep the list in act order.
 export const CONTENT = [];
+import './units5.js'; // Act V foes (the God's Dream)
