@@ -6,7 +6,7 @@
 import * as THREE from '../../vendor/three.module.min.js';
 import { World, angTo } from './sim.js';
 import { buildLevel, K } from '../world/level.js';
-import { CREDITS, ACT_OF } from './story.js';
+import { CREDITS, ACT_OF, ROAD_GOES_ON } from './story.js';
 import { Cutscene, drawLineBox } from './cutscene.js';
 import { SCENES, AFTER_BOSS, BEFORE_BOSS, ON_ENTER, STAGE } from './scenes/index.js';
 import { BOSS_LINES } from './scenes/lines.js';
@@ -28,6 +28,8 @@ import {
   freshMeta, upgradeMeta, migrateSave, newRun, nextNodes, enterNode, completeNode, advanceAct, actOver, currentNode, endRun, statSave, applyRunStats,
   merchantStock, buyItem, healRun, upgradeCost, rerollCost, shrineHeal, priceK, towerLevel, buyTower, toggleTalent, availableTalents, masteryOf,
   rngOf, hashSeed, AREA_NAMES, AREA_BOSS, AREA_TIER, RUN_VERSION, TOWER, curseMod,
+  ACTS, actRoman, setPlayable, roadEnd, actUnlocked, actPlayable, foeScale, bossScale, crowdChance, bossHealFrac, lampHealFrac, arrivalFloor, emberMul, eliteChance,
+  boonChoices, tollMods, runToll, DIFF, TOLLS, miniPlan, miniScale,
 } from './run.js';
 import { Duel } from './tutorial.js';
 import { Haven } from './haven.js';
@@ -87,7 +89,7 @@ const SPECS = {
     items: [...TOWER_LIST().map((t) => ({ label: t.name + ' ' + towerLevel(d.meta, t.id) + '/' + t.max, sub: towerLevel(d.meta, t.id) >= t.max ? 'BUILT' : t.desc + ' ' + t.cost[towerLevel(d.meta, t.id)] + ' SHARDS', on: () => h.buy(t.id) })), { label: '< BACK', on: () => h.back() }] }),
   ChallengesScreen: (g, d, h) => { const CH = (OPT.challenges && OPT.challenges.CHALLENGES) || []; const list = Array.isArray(CH) ? CH : Object.values(CH); return { title: 'CHALLENGES', lines: list.length ? list.slice(0, 8).map((c) => ((d.meta.done || []).includes(c.id) ? 'DONE  ' : '      ') + String(c.title || c.id).toUpperCase()) : ['NO CHALLENGES YET.'], items: [{ label: '< BACK', on: () => h.back() }] }; },
   CodexScreen: (g, d, h) => ({ title: 'THE CODEX', lines: ['FOES MET: ' + Object.keys(d.meta.codex.foes || {}).length, 'BOSSES FELLED: ' + Object.keys(d.meta.codex.bosses || {}).length, 'BOONS FOUND: ' + Object.keys(d.meta.codex.boons || {}).length, 'ECHOES HEARD: ' + Object.keys(d.meta.codex.echoes || {}).length, 'ENDINGS: ' + ((d.meta.codex.endings || []).join(', ') || 'NONE').toUpperCase()], items: [{ label: '< BACK', on: () => h.back() }] }),
-  MapScreen: (g, d, h) => { const run = d.run; const nx = nextNodes(run); return { title: 'ACT ' + ['I', 'II', 'III'][run.act - 1] + ': ' + (d.map.name || ''), lines: ['HEALTH ' + (run.hp ?? '-') + '/' + (run.maxHp ?? '-') + '   EMBERS ' + run.embers + '   TONICS ' + (run.tonics ?? '-') + '   BOONS ' + run.boons.length, 'WHERE NEXT?'],
+  MapScreen: (g, d, h) => { const run = d.run; const nx = nextNodes(run); return { title: 'ACT ' + actRoman(run.act) + ': ' + (d.map.name || ''), lines: ['HEALTH ' + (run.hp ?? '-') + '/' + (run.maxHp ?? '-') + '   EMBERS ' + run.embers + '   TONICS ' + (run.tonics ?? '-') + '   BOONS ' + run.boons.length, 'WHERE NEXT?'],
     items: nx.map((n) => ({ label: n.label + (n.cond ? ' (' + n.cond + ')' : ''), sub: n.kind === 'area' || n.kind === 'boss' ? (n.kind === 'boss' ? 'THE ACT\'S END' : 'AN AREA') : n.kind.toUpperCase(), on: () => h.pick(n.id) })) }; },
   BoonScreen: (g, d, h) => ({ title: 'A VOICE OFFERS ITS STRENGTH', lines: ['CHOOSE ONE.'], items: [...(d.offers || []).map((o) => ({ label: ((o.def && o.def.name) || o.id) + ' (' + String(o.rarity || 'common').toUpperCase() + ')', sub: (o.def && o.def.desc) || '', on: () => h.pick(o.id) })), (d.run.rerolls | 0) > 0 ? { label: 'REROLL (' + d.run.rerolls + ')', on: () => h.reroll() } : null].filter(Boolean) }),
   EventScreen: (g, d, h) => ({ title: String(d.event.title || 'AN EVENT').toUpperCase(), lines: [String(d.event.text || '').toUpperCase()], items: (d.event.choices || []).map((c, i) => ({ label: String(c.label).toUpperCase(), sub: [c.cost && Object.entries(c.cost).map(([k, v]) => '-' + v + ' ' + k.toUpperCase()).join(' '), c.risk ? String(c.risk).toUpperCase() : ''].filter(Boolean).join('  '), disabled: !!c.disabled, on: () => h.choose(i) })) }),
@@ -220,7 +222,7 @@ export class Game {
   // how deep the run is: areas cleared so far. The road starts with plain foes; elites, elements and wanderers come later.
   runDepth() { const r = this.run; return r && r.stats && Array.isArray(r.stats.areas) ? r.stats.areas.length : 0; }
   // elites: none in the first two areas, then a chance that grows with depth (a level's own elite only once the run is under way)
-  eliteFor(f, tier) { const d = this.runDepth(); if (this.levelId === 'prologue' || f.t === 'rat') return undefined; if (d < 2) return undefined; if (f.elite && Math.random() < Math.min(1, (d - 1) * 0.25)) return f.elite; return Math.random() < Math.min(0.28, (d - 1) * 0.045) ? AFFIX_LIST[Math.floor(Math.random() * AFFIX_LIST.length)] : undefined; }
+  eliteFor(f, tier) { const d = this.runDepth(); if (this.levelId === 'prologue' || f.t === 'rat') return undefined; const c = eliteChance(this.run, d); if (c <= 0) return undefined; if (f.elite && Math.random() < Math.min(1, c * 5.5)) return f.elite; return Math.random() < c ? AFFIX_LIST[Math.floor(Math.random() * AFFIX_LIST.length)] : undefined; }
   // elemental foes: none at first, then more as the run goes on
   elementFor(f) { if (!f.element) return undefined; return Math.random() < Math.min(1, this.runDepth() * 0.18) ? f.element : undefined; }
   // loose foes spread out: no knot of three or more on one spot; moved within their own open space, clear of fights, the boss floor and the start
@@ -250,8 +252,9 @@ export class Game {
     this.view.clear(); this.fx.clear();
     const w = this.world = new World({ solids: L.solids, bounds: def.bounds, seed: run ? hashSeed(run.seed, run.at || 'road') % 100000 : 11, abilityMode: this.settings.abilityMode });
     w.abilityMode = this.settings.abilityMode; this.flares = [];
-    // foes grow with the run: every area cleared makes the next ones tougher (+6% health, +3% damage each), waves and summons too
-    { const d = this.runDepth(); if (d > 0) { const spawn = w.spawnFoe.bind(w); w.spawnFoe = (...a) => { const m = spawn(...a); if (m && !m.boss) { const k = 1 + d * 0.06; m.maxHp = Math.round(m.maxHp * k); m.hp = Math.round(m.hp * k); m.dmgMul = (m.dmgMul || 1) * (1 + d * 0.03); } return m; }; } }
+    // the base challenge and the depth (run.js foeScale): every foe is tougher, and every area cleared makes the
+    // next ones tougher still; waves and summons too. The Tolls stack on it.
+    if (run && this.levelId !== 'prologue') { const F = foeScale(run, this.runDepth()); const spawn = w.spawnFoe.bind(w); w.spawnFoe = (...a) => { const m = spawn(...a); if (m && !m.boss) { m.maxHp = Math.round(m.maxHp * F.hp); m.hp = Math.round(m.hp * F.hp); m.dmgMul = (m.dmgMul || 1) * F.dmg; } return m; }; }
     for (const [name, g] of Object.entries(L.marks)) if (g && g.set) { const startOpen = (def.gatesOpen || []).includes(name); g.set(startOpen); g.t = startOpen ? 1 : 0; g.update(0.0001); }
     let sx = def.start.x, sz = def.start.z, face = def.start.face ?? Math.PI;
     if (opts.at) { sx = opts.at.x; sz = opts.at.z; face = opts.at.face ?? face; }
@@ -275,6 +278,52 @@ export class Game {
     hero.iframes = Math.max(hero.iframes || 0, 2.0); for (const f of w.foes()) if (f.ai) f.ai.cd = Math.max(f.ai.cd || 0, 2.5);
     this.camFocus.set(hero.x, 0, hero.z); this.r.focus.copy(this.camFocus);
     this.prompt = null; this.leaving = false; this.alliesCalled = false; this.allyEnts = [];
+    this.planMinis();
+  }
+  // ---- the echoes of old bosses (ASCENT_DESIGN §5): from Act II on an area may field a returning boss with its
+  // real moves, one stage and about 45% health (run.js miniPlan / miniScale). A level def's own stand where it
+  // says (they wake when the warden comes near); the automatic ones join one of the area's fights.
+  planMinis() {
+    this.minis = []; this.miniLive = [];
+    const run = this.run, n = this.node, def = this.level && this.level.def; if (!run || !n || !def || this.levelId === 'prologue' || !(n.kind === 'area' || n.kind === 'boss') || this.duelOn) return;
+    const prog = this.nodeProg(); prog.minis = prog.minis || [];
+    let plan = []; try { plan = miniPlan(run, this.meta, n, { encs: (this.encs || []).filter((e) => e.state !== 'done').map((e) => e.id), defMinis: def.minibosses || [], known: knownBoss, exclude: [def.boss && def.boss.type].filter(Boolean) }); } catch (err) { console.error('bellmourn: miniPlan', err); plan = []; }
+    this.minis = plan.map((m, i) => ({ ...m, id: 'mini' + i, done: prog.minis.includes('mini' + i) })).filter((m) => !m.done);
+  }
+  minisStep() {
+    const h = this.world && this.world.hero; if (!h || !this.minis || !this.minis.length) return;
+    for (const m of this.minis) {
+      if (m.spawned || m.done) continue;
+      if (m.enc) { const e = (this.encs || []).find((x) => x.id === m.enc); if (e && e.state === 'active') { const z = e.zone; const p = this.miniSpot(h, z ? (z[0] + z[2]) / 2 : h.x, z ? (z[1] + z[3]) / 2 : h.z); const b = this.spawnMini(m, p.x, p.z); if (b) e.mine.push(b); } else if (e && e.state === 'done') m.done = true; }
+      else if (m.x !== undefined && Math.hypot(h.x - m.x, h.z - m.z) < 9) this.spawnMini(m, m.x, m.z);
+    }
+  }
+  // a clear spot for an echo: near the fight's heart, a few metres from the warden
+  miniSpot(h, cx, cz) {
+    const w = this.world; for (let k = 0; k < 24; k++) { const a = Math.random() * Math.PI * 2, r = 4.5 + Math.random() * 3; const x = (k < 12 ? cx : h.x) + Math.sin(a) * r, z = (k < 12 ? cz : h.z) + Math.cos(a) * r; if (Math.hypot(x - h.x, z - h.z) > 3.5 && !w._blocked(x, z, 1.2) && w.clear(h, { x, z })) return { x, z }; }
+    return { x: cx, z: cz };
+  }
+  spawnMini(m, x, z) {
+    m.spawned = true; const w = this.world; const tier = this.level.def.tier || 0; let b = null;
+    try { const S = miniScale(this.run, m.type, tier); b = w.spawnBoss(m.type, x, z, { hpMul: S.hp, dmgMul: S.dmg, mini: true }); } catch (err) { console.error('bellmourn: echo ' + m.type, err); m.done = true; return null; }
+    b.mini = true; b.miniId = m.id; b.face = angTo(b, w.hero); b.iframes = 1.4; b.ai.cd = 1.8; b.ai.aggro = true; this.miniLive.push(b);
+    // a short entrance: it rises out of a ring of old light, its name as a banner (PROPOSAL)
+    const nm = String((b.def && b.def.name) || m.type).toUpperCase().replace(/^THE /, '');
+    this.ui.toast('ECHO OF THE ' + nm, { color: COL.red, big: true, life: 2.6 }); this.sound.play('bigBell', { vol: 0.55 }); this.sound.play('roar', { delay: 0.5, vol: 0.7 });
+    this.fx.shockRing(x, z, 5, [1.6, 1.2, 2.4], 0.7); this.fx.mist(x, 1.2, z, 40, [0.4, 0.36, 0.5]); this.r.shake(0.4, 0.6);
+    return b;
+  }
+  // an echo falls: it pays like a trial (embers, a rare boon of three); the area goes on
+  miniDown(b) {
+    const run = this.run; this.miniLive = (this.miniLive || []).filter((x) => x !== b); if (b.noPay) return;
+    const m = (this.minis || []).find((x) => x.id === b.miniId); if (m) m.done = true; const prog = this.nodeProg(); prog.minis = prog.minis || []; if (b.miniId && !prog.minis.includes(b.miniId)) prog.minis.push(b.miniId);
+    if (!run) return; run.stats.minis = (run.stats.minis | 0) + 1;
+    const emb = Math.round(40 * priceK(run) + (this.level.def.tier || 0) * 3); run.embers += emb;
+    const nm = String((b.def && b.def.name) || b.type).toUpperCase().replace(/^THE /, '');
+    this.ui.toast('THE ECHO OF THE ' + nm + ' FADES', { color: COL.gold, big: true, life: 3 }); this.after(0.7, () => this.ui.toast('+' + emb + ' EMBERS', { color: COL.text, life: 3 })); // PROPOSAL
+    this.sound.play('bigBell', { delay: 0.3, vol: 0.6 }); this.keepHero(); this.persist(); this.track({ type: 'miniDown', boss: b.type, area: this.levelId });
+    const offer = () => { if (this.state === 'play' && !(this.encs || []).some((e) => e.state === 'active' && e.mine.some((f) => !f.dead))) this.offerBoon('trial', () => {}, { minRarity: 'rare' }); else this.after(1.2, offer); };
+    this.after(1.6, offer);
   }
   // the run's health and tonics on a freshly spawned warden (a deeper level may raise the max: the gain is added)
   fitRunHero(hero) {
@@ -282,7 +331,7 @@ export class Game {
     if (run.maxHp === null || run.hp === null) { run.maxHp = hero.maxHp; run.hp = hero.maxHp; }
     else if (hero.maxHp !== run.maxHp) { run.hp = Math.max(1, run.hp + (hero.maxHp - run.maxHp)); run.maxHp = hero.maxHp; }
     // arriving in a new area the warden has caught their breath: never fewer than 30% of their health
-    run.hp = Math.max(run.hp, Math.round(run.maxHp * 0.3));
+    run.hp = Math.max(run.hp, Math.round(run.maxHp * arrivalFloor(this.meta)));
     hero.hp = Math.max(1, Math.min(hero.maxHp, run.hp));
     if (run.tonics === null || run.tonics === undefined) run.tonics = hero.stats.maxTonics;
     hero.tonics = Math.min(hero.stats.maxTonics, run.tonics);
@@ -318,8 +367,11 @@ export class Game {
 
   async start() {
     await loadOptional();
+    // an area plays when its level is built and, for an act's last area, its boss exists (the new acts arrive
+    // over time: a missing area is left off the map, a missing act ends the run at the one before)
+    setPlayable((id) => { const L = LEVELS[id]; if (!L) return false; const bossArea = Object.values(ACTS).some((A) => A.boss === id); return !bossArea || knownBoss((L.boss && L.boss.type) || AREA_BOSS[id]); });
     const q = new URLSearchParams(location.search);
-    if (q.get('auto') && !this.auto) { this.auto = makeAutoplay(+q.get('auto') || 3); this.timeScale = +(q.get('speed') || 1); this.debug = { god: q.get('god') === '1' }; this.autoHero = q.get('hero') || null; this.autoRuns = +(q.get('runs') || 1); }
+    if (q.get('auto') && !this.auto) { this.auto = makeAutoplay(+q.get('auto') || 3); this.timeScale = +(q.get('speed') || 1); this.debug = { god: q.get('god') === '1' }; this.autoHero = q.get('hero') || null; this.autoRuns = +(q.get('runs') || 1); this.turbo = Math.max(1, Math.min(30, +(q.get('turbo') || 1))); }
     if (q.get('scene') && !this.debugDone) { this.debugDone = true; this.debug = { god: true }; if (!this.run) { this.run = newRun(this.meta, q.get('hero') || 'warden', 7); this.syncSave(); } await this.debugScene(q.get('scene'), { party: q.get('party') !== '0', auto: q.get('fast') === '1', speed: +(q.get('speed') || 1) }); return; }
     if (q.get('level') && !this.debugDone) {
       // debug: ?level=id [&boss=1] [&god=1] [&hero=id] [&variant=id] — straight into an area of a fresh run
@@ -330,7 +382,7 @@ export class Game {
       if (q.get('level') === 'haven' || q.get('level') === 'shrine') { await this.enterShrine({ id: 'debug-shrine', kind: 'shrine', act: 1 }); return; }
       if (q.get('level') === 'map') { this.openMap(); return; }
       const id = q.get('level'); const T = AREA_TIER[id] ?? 0; this.run.tier = T;
-      const node = { id: 'debug-' + id, kind: id === 'prologue' ? 'road' : (['belfry', 'abyss', 'empyrean'].includes(id) ? 'boss' : 'area'), act: ACT_OF(id) || 1, area: id, tier: T, boss: AREA_BOSS[id], variant: q.get('variant') || undefined, short: q.get('short') === '1' };
+      const node = { id: 'debug-' + id, kind: id === 'prologue' ? 'road' : (Object.values(ACTS).some((A) => A.boss === id) ? 'boss' : 'area'), act: ACT_OF(id) || 1, area: id, tier: T, boss: AREA_BOSS[id], variant: q.get('variant') || undefined, short: q.get('short') === '1' };
       this.run.at = node.id; this.duelOn = id === 'prologue' && q.get('duel') === '1';
       await this.enterArea(node);
       if (q.get('boss') === '1' && this.level.def.boss) { const B = this.level.def.boss; const h = this.world.hero; h.x = (B.zone[0] + B.zone[2]) / 2; h.z = B.zone[3] - 0.5; }
@@ -349,7 +401,13 @@ export class Game {
     this.titleCam = this.titleCam || 0;
   }
 
+  // turbo (autoplay tests only, ?turbo=N): N game frames per browser frame, drawn once (the balance check)
   update(dt) {
+    const n = this.auto && this.turbo > 1 ? this.turbo : 1;
+    for (let i = 0; i < n; i++) { this.skipDraw = i < n - 1; this.update1(dt); }
+    this.skipDraw = false;
+  }
+  update1(dt) {
     this.t += dt; this.stateT += dt;
     const inp = this.input.frame();
     if (this.auto) this.autoInput(inp, dt);
@@ -489,7 +547,7 @@ export class Game {
   beginRun(heroId) {
     this.closeScreen();
     this.run = newRun(this.meta, heroId, (Date.now() ^ Math.floor(Math.random() * 1e9)) >>> 0);
-    this.syncSave(); const st = this.heroStats(); this.run.maxHp = st.maxHp; this.run.hp = st.maxHp; this.run.tonics = st.maxTonics;
+    this.syncSave(); const st = this.heroStats(); this.run.maxHp = st.maxHp; this.run.hp = st.maxHp; this.run.tonics = Math.max(1, st.maxTonics - (DIFF.baseTonics - DIFF.startTonics)); // the flask starts short of full
     this.embersShown = this.run.embers; this.persist();
     this.track({ type: 'runStart', hero: heroId });
     this.oldRoad();
@@ -510,9 +568,27 @@ export class Game {
   openMap() {
     const run = this.run; if (!run) { this.go('title'); return; }
     this.node = null; this.leaveHaven();
-    if (actOver(run)) { if (!advanceAct(run, this.meta)) { this.finishRun('ending:' + (run.choice === 'sing' ? 'song' : 'dawn')); return; } this.track({ type: 'actEnter', act: run.act }); }
+    if (actOver(run)) { if (!advanceAct(run, this.meta)) { this.roadGoesOn(); return; } this.track({ type: 'actEnter', act: run.act }); if (towerLevel(this.meta, 'vow') > 0) run.tonics = this.maxTonics(); }
     this.persist();
+    // A BLESSING (the Bell Tower's FAITH): the run begins with a boon of three
+    if (run.blessing && !run.blessed && run.act === 1 && !run.at) { run.blessed = true; this.offerBoon('start', () => this.openMap(), { minRarity: run.blessing === 'rare' ? 'rare' : undefined }); return; }
     this.openScreen('MapScreen', { run, map: run.map }, { pick: (id) => this.goNode(id) });
+  }
+  // the run stops at the last act this save has opened (or that is built): a card, then a victorious summary
+  roadGoesOn() {
+    const run = this.run; const why = roadEnd(run, this.meta) || 'locked';
+    if (why === 'end') { this.finishRun('ending:' + (run.choice === 'sing' ? 'song' : 'dawn')); return; }
+    this.closeScreen(); this.leaveHaven();
+    this.storyLines = (ROAD_GOES_ON[why] || ROAD_GOES_ON.locked).slice(); this.storyNext = () => this.finishRun('victory');
+    this.sound.play('bigBell', { vol: 0.6 }); this.go('story');
+  }
+  // the final choice and the ending belong to God's fight at the Throne; until the Throne is built (and while the
+  // run cannot go past Act III) they stay with the Wheel at the Empyrean, as before
+  finaleReady() { return !!LEVELS.throne && knownBoss('god'); }
+  finalBoss(type) {
+    if (type === 'god') return true;
+    if (type !== 'wheel') return false;
+    return !this.finaleReady() && !(actUnlocked(this.meta, 4) && actPlayable(4));
   }
   goNode(id) {
     const run = this.run; const n = enterNode(run, id); if (!n) { this.sound.play('ui'); return; }
@@ -562,7 +638,7 @@ export class Game {
     await this.loadLevel(n.area, { fromStart: true, def });
     this.persist();
     const a = ACT_OF(n.area); const cond = def.conditionName || n.cond || (this.variant && (this.variant.name || this.variant.condition)) || '';
-    this.card = { t: 0, sup: n.kind === 'road' || n.area === 'prologue' ? 'PROLOGUE' : (n.kind === 'boss' ? 'ACT ' + ['I', 'II', 'III'][a - 1] + '  THE LAST OF IT' : 'ACT ' + ['I', 'II', 'III'][(a || 1) - 1] + (cond ? '  ' + String(cond).toUpperCase() : '')), title: def.name.toUpperCase(), line: (def.variantName ? String(def.variantName).toUpperCase() + '. ' : '') + (def.tagline || '') };
+    this.card = { t: 0, sup: n.kind === 'road' || n.area === 'prologue' ? 'PROLOGUE' : (n.kind === 'boss' ? 'ACT ' + actRoman(a || 1) + '  THE LAST OF IT' : 'ACT ' + actRoman(a || 1) + (cond ? '  ' + String(cond).toUpperCase() : '')), title: def.name.toUpperCase(), line: (def.variantName ? String(def.variantName).toUpperCase() + '. ' : '') + (def.tagline || '') };
     if (this.duelOn) this.card = null;
     this.go('play'); this.fadeIn = 0;
     // a scene on the way in, the first time only
@@ -581,7 +657,7 @@ export class Game {
   offerBoon(source, then, o = {}) {
     const run = this.run; const ob = opt('boons', 'offerBoons');
     let offers = [];
-    const roll = () => { const rng = rngOf(hashSeed(run.seed, run.at || 'road', source, (run.stats.boons | 0), this.rerollN | 0)); try { offers = ob ? (ob(run, rng, Math.max(2, Math.round(curseMod(run, 'boonChoicesAdd', 3))), { source, luck: towerLevel(this.meta, 'luck'), minRarity: o.minRarity, res: o.res, rarityBoost: 0.15 * towerLevel(this.meta, 'luck'), locked: lockedOf(this.meta), act: run.act, hero: run.hero, heroId: run.hero, abilities: (HEROES[run.hero].abilities || []).slice(0, 2) }) || []) : []; } catch (err) { console.error('bellmourn: offerBoons', err); offers = []; } };
+    const roll = () => { const rng = rngOf(hashSeed(run.seed, run.at || 'road', source, (run.stats.boons | 0), this.rerollN | 0)); try { offers = ob ? (ob(run, rng, Math.max(2, Math.round(curseMod(run, 'boonChoicesAdd', boonChoices(run, this.meta)))), { source, luck: towerLevel(this.meta, 'luck'), minRarity: o.minRarity, res: o.res, rarityBoost: 0.15 * towerLevel(this.meta, 'luck'), locked: lockedOf(this.meta), act: run.act, hero: run.hero, heroId: run.hero, abilities: (HEROES[run.hero].abilities || []).slice(0, 2) }) || []) : []; } catch (err) { console.error('bellmourn: offerBoons', err); offers = []; } };
     this.rerollN = 0; roll();
     if (!offers.length) { if (!ob) this.ui.toast('A VOICE ANSWERS, BUT FINDS NO SHAPE YET', { color: COL.dim, life: 2 }); then(); return; } // PROPOSAL
     const back = this.state === 'play' ? 'play' : null;
@@ -847,7 +923,7 @@ export class Game {
     this.atmos.setLevel(L.def.ambience, L.lights); this.groundAt = L.roofAt; this.atmos.heroLight.intensity = 1.2;
     this.sound.setRain(0.6); this.r.post.dawn = 0;
     const act = n.act || (this.run && this.run.act) || 1;
-    const sid = opts.noScene ? null : (n.start && act === 2 && !this.seen('act2.open') ? 'act2.open' : (n.start && act === 3 && !this.seen('act3.open') ? 'act3.open' : null));
+    const open = 'act' + act + '.open'; const sid = opts.noScene ? null : (n.start && act >= 2 && SCENES[open] && !this.seen(open) ? open : null);
     const w = this.world = new World({ solids: L.solids, bounds: L.def.bounds, seed: 5, abilityMode: this.settings.abilityMode }); w.abilityMode = this.settings.abilityMode;
     this.encs = []; this.boss = null; this.bossState = 'idle'; this.hints = []; this.qhints = []; this.tutorial = null; this.prompt = null; this.leaving = false; this.card = null; this.flares = [];
     this.inHaven = true; this.shrineUsed = false; this.shrineAuto = 0;
@@ -865,17 +941,17 @@ export class Game {
   shrineData() {
     const run = this.run, meta = this.meta; const k = priceK(run);
     const cheapest = Math.min(...(run.boons || []).filter((b) => b.rarity !== 'legendary').map((b) => upgradeCost(run, b.rarity) || 999), 999);
-    return { run, meta, prices: { heal: 0, upgrade: cheapest < 999 ? cheapest : upgradeCost(run, 'common'), reroll: rerollCost(run), tonic: Math.round(45 * k) }, limits: { heal: 1, upgrade: 3, reroll: 3, tonic: 2 }, healAmount: Math.round((run.maxHp || 100) * shrineHeal(meta)), veil: 0.42, inScene: true };
+    return { run, meta, prices: { heal: 0, upgrade: cheapest < 999 ? cheapest : upgradeCost(run, 'common'), reroll: rerollCost(run), tonic: Math.round(45 * k) }, limits: { heal: 1, upgrade: 3, reroll: 3, tonic: 2 }, healAmount: Math.round((run.maxHp || 100) * shrineHeal(meta, run)), veil: 0.42, inScene: true };
   }
   shrineHandlers() {
     const run = this.run, meta = this.meta; const no = (m) => { this.sound.play('ui'); if (m) this.ui.toast(m, { color: COL.dim, life: 1.4 }); return false; };
     return {
-      heal: () => { if (this.shrineUsed) return no('YOU HAVE RESTED'); this.shrineUsed = true; const got = this.healTo(shrineHeal(meta)); if (this.haven) this.haven.react('skill', true); this.syncSave(); this.persist(); return got > 0 ? '+' + got + ' HEALTH' : 'RESTED'; }, // PROPOSAL
+      heal: () => { if (this.shrineUsed) return no('YOU HAVE RESTED'); this.shrineUsed = true; const got = this.healTo(shrineHeal(meta, run)); if (this.haven) this.haven.react('skill', true); this.syncSave(); this.persist(); return got > 0 ? '+' + got + ' HEALTH' : 'RESTED'; }, // PROPOSAL
       tonic: () => { const c = Math.round(45 * priceK(run)); if (run.embers < c) return no('NOT ENOUGH EMBERS'); if ((run.tonics ?? 0) >= this.maxTonics()) return no('YOUR FLASK IS FULL'); run.embers -= c; run.tonics = (run.tonics ?? 0) + 1; if (this.haven) this.haven.react('buy', true); this.persist(); return 'A TONIC'; }, // PROPOSAL
       upgrade: (id) => { const b = (run.boons || []).find((x) => x.id === id); const c = b ? upgradeCost(run, b.rarity) : null; if (!b || c === null) return no('IT CANNOT RISE FURTHER'); if (run.embers < c) return no('NOT ENOUGH EMBERS'); const ub = opt('boons', 'upgradeBoon'); let ok = false; try { ok = ub ? ub(run, id) !== false : false; } catch (e) { ok = false; } if (!ok) return no('THE BOON WILL NOT CHANGE'); run.embers -= c; if (this.haven) this.haven.react('temper', true); this.refreshHero(); this.persist(); this.track({ type: 'upgrade', id }); return 'THE BOON GROWS'; }, // PROPOSAL
       reroll: () => { const c = rerollCost(run); if (run.embers < c) return no('NOT ENOUGH EMBERS'); run.embers -= c; run.rerolls = (run.rerolls | 0) + 1; if (this.haven) this.haven.react('buy', true); this.persist(); return 'A REROLL FOR LATER'; }, // PROPOSAL
       leave: () => { if (this.haven) this.haven.onward(); },
-      upgradeCost: (rarity) => upgradeCost(run, rarity), rerollCost: () => rerollCost(run), healFrac: () => shrineHeal(meta), used: () => this.shrineUsed,
+      upgradeCost: (rarity) => upgradeCost(run, rarity), rerollCost: () => rerollCost(run), healFrac: () => shrineHeal(meta, run), used: () => this.shrineUsed,
     };
   }
   // toasts and floating numbers age only while the HUD is drawn: drop them when the place changes, or a
@@ -968,6 +1044,7 @@ export class Game {
       this.persist(); this.track({ type: t.id.startsWith('ev:') ? 'touch' : 'hint', id: t.id, kind: t.kind, res });
     }
     for (const e of this.encs) this.runEncounter(e, dt);
+    this.minisStep();
     const B = def.boss;
     if (B && this.bossState === 'idle' && inZone(hero, B.zone)) this.startBoss();
     // the exit opens after the boss; the Old Road's gate opens when the duel is over
@@ -999,7 +1076,7 @@ export class Game {
   lightLamp(l) {
     const hero = this.world.hero; const prog = this.nodeProg();
     l.h.set(true); this.lampLight(l, true); if (!prog.lamps.includes(l.id)) prog.lamps.push(l.id);
-    const amt = Math.round(hero.maxHp * LAMP_HEAL); const before = hero.hp; hero.hp = Math.min(hero.maxHp, hero.hp + amt); const got = Math.round(hero.hp - before);
+    const amt = Math.round(hero.maxHp * (this.run ? lampHealFrac(this.run) : LAMP_HEAL)); const before = hero.hp; hero.hp = Math.min(hero.maxHp, hero.hp + amt); const got = Math.round(hero.hp - before);
     if (this.run) this.run.stats.healed += got; this.keepHero(); this.persist();
     this.ui.toast(got > 0 ? 'THE LAMP WARMS YOU  +' + got : 'LAMP LIT', { color: COL.gold, life: 1.8 }); // PROPOSAL
     if (got > 0) { if (this.ui.healGain) this.ui.healGain(got); this.track({ type: 'heal', amt: got, source: 'lamp' }); }
@@ -1047,13 +1124,16 @@ export class Game {
   }
   spawnWave(e, i) {
     e.wave = i; const tier = this.level.def.tier || 0; const W = e.waves[i];
-    e.mine = W.foes.filter(knownOrWarn).map((f) => { const m = this.world.spawnFoe(f.t, f.x, f.z, { tier: f.tier ?? tier, aggro: true, elite: this.eliteFor(f, tier), element: this.elementFor(f) }); m.ai.locked = true; return m; });
+    // the crowd (run.js crowdChance): a wave may bring one more of its own foes (two, deep in), beside one of them
+    const list = W.foes.filter(knownOrWarn).slice();
+    if (this.run && !e.trial && this.levelId !== 'prologue' && list.length) { const c = crowdChance(this.run, this.runDepth()); const n = Math.floor(c) + (Math.random() < c % 1 ? 1 : 0); for (let k = 0; k < n; k++) { const f = list[Math.floor(Math.random() * list.length)]; const a = Math.random() * Math.PI * 2; const x = f.x + Math.sin(a) * 1.4, z = f.z + Math.cos(a) * 1.4; list.push({ ...f, x: this.world._blocked(x, z, 0.6) ? f.x : x, z: this.world._blocked(x, z, 0.6) ? f.z : z, extra: true }); } }
+    e.mine = list.map((f) => { const m = this.world.spawnFoe(f.t, f.x, f.z, { tier: f.tier ?? tier, aggro: true, elite: f.extra ? undefined : this.eliteFor(f, tier), element: this.elementFor(f) }); m.ai.locked = true; return m; });
   }
 
   startBoss() {
     const B = this.level.def.boss; const run = this.run;
     // the last fight: the Voice in the Bell speaks first, and the warden chooses (SILENCE ends the run here)
-    if (B.type === 'wheel' && !(run && run.choice)) {
+    if (this.finalBoss(B.type) && !(run && run.choice)) {
       this.bossState = 'intro';
       this.playScene('finale.choice', {}, (res) => {
         const c = res.final || this.save.choice || 'ring'; if (run) run.choice = c; this.save.choice = c; this.persist();
@@ -1071,8 +1151,9 @@ export class Game {
     // a boss fights to its row's strength against its district's own (bossOpts covers a boss from another district)
     const tier = this.level.def.tier ?? 0, own = B.baseTier ?? AREA_TIER[this.levelId] ?? tier; const hpK = (1 + tier * 0.32) / (1 + own * 0.32), dK = (1 + tier * 0.16) / (1 + own * 0.16);
     const bo = opt('bosses5', 'bossOpts'); let O = {}; if (bo) { try { O = bo(B.type, this.levelId) || {}; } catch (e) { O = {}; } }
-    this.boss = this.world.spawnBoss(B.type, B.x, B.z, { ...O, face: B.face ?? 0, hpMul: (B.hpMul || 1) * (O.hpMul || 1) * Math.max(0.45, Math.min(1.6, hpK)), dmgMul: (B.dmgMul || 1) * (O.dmgMul || 1) * Math.max(0.6, Math.min(1.3, dK)), ascended: !!B.ascended, trueForm: B.type === 'wheel' && run && run.choice === 'sing' });
-    if (typeof B4.ascendDef === 'function' && B.ascended) { try { B4.ascendDef(this.boss); } catch (err) { console.error(err); } }
+    const BS = run ? bossScale(run) : { hp: 1, dmg: 1 }; const asc = !!B.ascended || !!(run && tollMods(runToll(run)).ascended && Object.values(ACTS).some((A) => A.boss === this.levelId));
+    this.boss = this.world.spawnBoss(B.type, B.x, B.z, { ...O, face: B.face ?? 0, hpMul: (B.hpMul || 1) * (O.hpMul || 1) * Math.max(0.45, Math.min(1.6, hpK)) * BS.hp, dmgMul: (B.dmgMul || 1) * (O.dmgMul || 1) * Math.max(0.6, Math.min(1.3, dK)) * BS.dmg, ascended: asc, choice: run ? run.choice : null, trueForm: (B.type === 'wheel' || B.type === 'god') && run && run.choice === 'sing' });
+    if (typeof B4.ascendDef === 'function' && asc) { try { B4.ascendDef(this.boss); } catch (err) { console.error(err); } }
     this.bossTonics0 = run ? run.stats.tonics : 0; this.track({ type: 'bossStart', boss: B.type });
     const hold = () => { const b = this.boss; b.state = 'roar'; b.anim = 'idle'; b.t = -2; b.iframes = 99; };
     hold(); this.sound.setMusic('none'); this.entT = 0; this.entDoneT = 0;
@@ -1120,18 +1201,18 @@ export class Game {
   bossDown() {
     const B = this.level.def.boss; this.bossState = 'done'; this.nodeProg().boss = true;
     const w = this.world; const type = this.boss && this.boss.type; const run = this.run;
-    for (const f of w.foes()) { if (f.ally || f.team !== 'foe') continue; f.hp = 0; w._kill(f, w.hero, {}); }
+    for (const f of w.foes()) { if (f.ally || f.team !== 'foe') continue; if (f.mini) f.noPay = true; f.hp = 0; w._kill(f, w.hero, {}); }
     w.hazards.length = 0; w.projs = w.projs.filter((p) => p.team === 'hero');
     // the run's rewards: embers, the boss's Echo for this run, then a boon of three
     const lines = []; const k = priceK(run || { act: 1 }); const emb = Math.round(70 * k + (this.level.def.tier || 0) * 6);
     if (run) { run.embers += emb; lines.push('+' + emb + ' EMBERS'); if (ECHOES[type] && !run.echoes.includes(type)) { run.echoes.push(type); lines.push('ECHO: ' + ECHOES[type].name); } if (!run.stats.bosses.includes(type)) run.stats.bosses.push(type); }
     // the toll mends the warden: a boss down gives back 40% health and a tonic, so a close fight is not a death sentence in the next area
-    if (run && w.hero && !w.hero.dead) { const h = w.hero; const before = h.hp; h.hp = Math.min(h.maxHp, h.hp + Math.round(h.maxHp * 0.4)); h.tonics = Math.min(h.stats.maxTonics, (h.tonics || 0) + 1); const got = Math.round(h.hp - before); if (got > 0) { lines.push('THE TOLL MENDS YOU  +' + got); this.fx.tonicBurst && this.fx.tonicBurst(h.x, h.z, got); this.ui.healGain && this.ui.healGain(got); } }
+    if (run && w.hero && !w.hero.dead) { const h = w.hero; const before = h.hp; h.hp = Math.min(h.maxHp, h.hp + Math.round(h.maxHp * bossHealFrac(run, this.meta))); if (bossHealFrac(run, this.meta) > 0) h.tonics = Math.min(h.stats.maxTonics, (h.tonics || 0) + 1); const got = Math.round(h.hp - before); if (got > 0) { lines.push('THE TOLL MENDS YOU  +' + got); this.fx.tonicBurst && this.fx.tonicBurst(h.x, h.z, got); this.ui.healGain && this.ui.healGain(got); } }
     this.areaBoss = type; this.keepHero(); this.persist();
     this.track({ type: 'bossDown', boss: type, area: this.levelId, tonicsUsed: run ? run.stats.tonics - (this.bossTonics0 | 0) : 0, hp: w.hero ? w.hero.hp / w.hero.maxHp : 1 });
     // the boss's last words, then the scene this fall opens (a revelation, the bell, an ending)
     const BL = bossLines(type); if (BL && BL.fall) this.bark = { name: speaker(type).name || this.boss.def.name.toUpperCase(), color: speaker(type).color || COL.gold, text: BL.fall, t: 0, life: 3.6 };
-    const after = AFTER_BOSS[type]; const sid = type === 'wheel' ? 'end' : (after && !after.startsWith('recruit.') && !this.seen(after) ? after : null);
+    const after = AFTER_BOSS[type]; const sid = this.finalBoss(type) ? 'end' : (after && !after.startsWith('recruit.') && !this.seen(after) ? after : null);
     this.pendingScene = 'boss';
     this.after(3.4, () => {
       if (this.state === 'dead') { this.pendingScene = null; return; }
@@ -1181,6 +1262,8 @@ export class Game {
     if (n && n.kind === 'boss') {
       const go = () => { this.r.post.dawn = 0; this.keepHero(); this.nodeDone({ boss: type, echo: type }); this.areaBoss = null; };
       if (type === 'silence' || n.area === 'belfry') { this.playScene('act1.end', {}, go); return; }
+      // the end of a later act (Act III's Wheel when it is not the last fight, the Seraph, the First Founder)
+      const end = 'act' + (n.act || (this.run && this.run.act) || 0) + '.end'; if (n.act > 1 && SCENES[end]) { this.playScene(end, {}, go); return; }
       go(); return;
     }
     this.go('play');
@@ -1216,11 +1299,12 @@ export class Game {
         case 'kill': {
           const e = ev.e; snd.play('kill'); snd.play('foeDie', { delay: 0.05 });
           fx.blood(e.x, 1, e.z, Math.random() * 6, 30); fx.mist(e.x, 0.8, e.z, 10, [0.15, 0.16, 0.2]); for (let i = 0; i < 3; i++) fx.bloodPool(e.x, e.z, 1.3);
-          if (ev.drop && this.run && this.levelId !== 'prologue' && e.team === 'foe') { const mul = hero && hero.stats.relics.includes('coin') ? 1.3 : 1; this.run.embers += Math.round(ev.drop * mul * 0.8 * curseMod(this.run, 'emberMul')); this.emberFly(e.x, e.z, ev.drop); }
+          if (ev.drop && this.run && this.levelId !== 'prologue' && e.team === 'foe') { const mul = hero && hero.stats.relics.includes('coin') ? 1.3 : 1; this.run.embers += Math.round(ev.drop * mul * 0.8 * curseMod(this.run, 'emberMul') * emberMul(this.run, this.meta)); this.emberFly(e.x, e.z, ev.drop); }
           if (this.run && e.team === 'foe' && !e.ally) { this.run.stats.kills++; this.run.stats.freed++; if (ev.elite) this.run.stats.elites++; this.track({ type: 'kill', e, foe: e.type, elite: !!ev.elite, boss: !!ev.boss, element: e.element }); }
           if (ev.elite) this.ui.toast('ELITE SLAIN', { color: COL.gold, life: 1.5 });
           if (e.type && e.team === 'foe' && noteKill(this.codexSave(), e.type)) this.ui.toast('NEW IN THE BESTIARY', { color: COL.ice, life: 2 });
-          if (ev.boss) { this.bossDown(); r.shake(0.8, 1.2); this.zoomPunch = 1.3; fx.mist(e.x, 1.5, e.z, 60, [0.3, 0.3, 0.36]); fx.embers(e.x, 1.5, e.z, 60, [3, 1.4, 0.4]); fx.shockRing(e.x, e.z, 9, [2.6, 2.2, 1.6], 0.9); r.post.flash = 0.35; this.flashT = 0.12; }
+          if (ev.boss && e.mini) { this.miniDown(e); r.shake(0.5, 0.8); fx.mist(e.x, 1.5, e.z, 40, [0.3, 0.3, 0.36]); fx.shockRing(e.x, e.z, 6, [2.0, 1.8, 2.6], 0.7); }
+          else if (ev.boss) { this.bossDown(); r.shake(0.8, 1.2); this.zoomPunch = 1.3; fx.mist(e.x, 1.5, e.z, 60, [0.3, 0.3, 0.36]); fx.embers(e.x, 1.5, e.z, 60, [3, 1.4, 0.4]); fx.shockRing(e.x, e.z, 9, [2.6, 2.2, 1.6], 0.9); r.post.flash = 0.35; this.flashT = 0.12; }
           break;
         }
         case 'perfect': if (this.run && ev.e === hero) { this.run.stats.perfects++; this.track({ type: 'perfect' }); } snd.play('perfect'); this.view.get(hero) && fx.ghost(this.view.get(hero), [0.4, 0.8, 1.6], 0.5); this.ui.toast('PERFECT', { color: COL.ice, life: 0.9 }); break;
@@ -1249,7 +1333,7 @@ export class Game {
         case 'specialHit': snd.play('slashA'); for (const f of this.world.foes()) if (Math.hypot(f.x - ev.e.x, f.z - ev.e.z) < 6.5) fx.slashLine(f.x, 1.1, f.z, 2.8); break;
         case 'chain': if (ev.boon) { if (this.t - (this.chainT || 0) < 0.12) break; this.chainT = this.t; }
           fx.slashLine((ev.from.x + ev.to.x) / 2, 1.2, (ev.from.z + ev.to.z) / 2, Math.hypot(ev.to.x - ev.from.x, ev.to.z - ev.from.z), [1.6, 1.8, 3], 0.15); snd.play('slashA', { vol: 0.5 }); break;
-        case 'revive': if (this.run && ev.e === hero && this.run.mercy > 0 && (!hero.stats.relics.includes('bone') || hero.revives === 0)) { this.run.mercy = 0; this.persist(); } snd.play('bigBell'); fx.embers(ev.e.x, 1, ev.e.z, 40, [3, 2.6, 1.6]); this.ui.toast("SAINT'S BONE: YOU RISE", { color: COL.gold, big: true, life: 2.5 }); break;
+        case 'revive': { let second = false; if (this.run && ev.e === hero && this.run.mercy > 0 && (!hero.stats.relics.includes('bone') || hero.revives === 0)) { this.run.mercy = 0; second = true; ev.e.hp = Math.max(ev.e.hp, Math.round(ev.e.maxHp * 0.4)); this.persist(); } snd.play('bigBell'); fx.embers(ev.e.x, 1, ev.e.z, 40, [3, 2.6, 1.6]); this.ui.toast(second ? 'THE SECOND TOLL: YOU RISE' : "SAINT'S BONE: YOU RISE", { color: COL.gold, big: true, life: 2.5 }); break; }
         case 'crown': fx.embers(ev.x, 0.8, ev.z, 12, [2.6, 0.6, 0.6]); break;
         case 'shieldBreak': snd.play('clang'); fx.sparks(ev.e.x, 1.2, ev.e.z, 0, 20, [2.4, 2.2, 1.6]); break;
         case 'tele': if (ev.e.boss || Math.random() < 0.7) snd.play('tele', { vol: ev.e.boss ? 1.4 : 0.8 }); break;
@@ -1269,7 +1353,7 @@ export class Game {
         case 'beam': r.shake(0.3, 0.4); snd.play('fire'); break;
         case 'hook': fx.slashLine((ev.e.x + ev.x) / 2, 1.4, (ev.e.z + ev.z) / 2, Math.hypot(ev.x - ev.e.x, ev.z - ev.e.z), [1.4, 1.5, 1.6], 0.3); snd.play(ev.hit ? 'clang' : 'swing'); break;
         case 'hazardGo': { if (this.hazSnd === this.t) break; this.hazSnd = this.t; const k = ev.h.kind; if (k === 'fire' || k === 'wax') snd.play('fire'); else if (k === 'water' || k === 'poison') snd.play('splash'); else if (k === 'toll') snd.play('toll'); else if (k === 'lightning') { snd.play('thunder', { vol: 0.8 }); this.atmos.flashT = 0.2; } else snd.play('boom', { vol: 0.8 }); if (k !== 'fire' && k !== 'poison') r.shake(0.25, 0.25); break; }
-        case 'phase': if (ev.e && ev.e.type === 'wheel' && !this.alliesCalled) this.callAllies(); snd.play('roar'); this.ui.toast(ev.e.def.name.toUpperCase() + ' RAGES', { color: COL.red, life: 2 }); fx.shockRing(ev.e.x, ev.e.z, 6, [2.4, 0.4, 0.3], 0.6); break;
+        case 'phase': if (ev.e && (ev.e.type === 'wheel' || ev.e.type === 'god') && !ev.e.mini && !this.alliesCalled) this.callAllies(); snd.play('roar'); this.ui.toast(ev.e.def.name.toUpperCase() + ' RAGES', { color: COL.red, life: 2 }); fx.shockRing(ev.e.x, ev.e.z, 6, [2.4, 0.4, 0.3], 0.6); break;
         case 'blink': fx.mist(ev.fx, 1, ev.fz, 12, [0.6, 0.15, 0.2]); fx.mist(ev.x, 1, ev.z, 12, [0.6, 0.15, 0.2]); snd.play('vanish'); break;
         case 'vanish': fx.mist(ev.e.x, 1, ev.e.z, 30, [0.8, 0.8, 0.85]); snd.play('vanish'); break;
         case 'appear': fx.mist(ev.e.x, 1, ev.e.z, 20, [0.8, 0.8, 0.85]); snd.play('vanish'); break;
@@ -1362,8 +1446,10 @@ export class Game {
     if (this.level) for (const a of this.level.anims) a.update(dt);
     if (w) { this.fx.updateTeles(w.ents, this.t); this.fx.updateHazards(w.hazards, dt, this.t); this.fx.updateProjs(w.projs, this.t); this.fx.updateZones(w.zones, dt); }
     this.fx.update(dt, this.t);
+    this.embersShown += ((this.run ? this.run.embers : 0) - this.embersShown) * Math.min(1, dt * 6);
+    if (this.skipDraw) return;
     r.render(dt);
-    this.ui.clear(); this.embersShown += ((this.run ? this.run.embers : 0) - this.embersShown) * Math.min(1, dt * 6);
+    this.ui.clear();
     this.drawUI(dt);
     this.sound.update();
   }
@@ -1393,7 +1479,8 @@ export class Game {
     else if (['play', 'pause', 'bossIntro', 'dead'].includes(S) && this.world && this.world.hero) {
       const hs = this.hs || (this.hs = {}); if (hs.world !== this.world) { hs.hpGhost = undefined; hs.bossGhost = undefined; }
       const run = this.run; const lv = this.save.heroes[this.save.hero];
-      Object.assign(hs, { world: this.world, boss: this.boss && this.bossState === 'fight' ? this.boss : null, bossPhases: this.boss ? (BOSS_AI[this.boss.type] || BOSS_AI2[this.boss.type] || {}).phases : null, embersShown: this.embersShown, prompt: S === 'play' ? this.prompt : null, padMode: this.inputMode === 'pad', noToasts: S === 'pause', level: lv ? lv.level : 1, xpFrac: 0, points: 0, run, boons: run ? run.boons : [], act: run ? run.act : 0, duel: !!this.duelOn });
+      const echo = !(this.boss && this.bossState === 'fight') && (this.miniLive || []).find((b) => !b.dead); const hb = this.boss && this.bossState === 'fight' ? this.boss : (echo || null);
+      Object.assign(hs, { world: this.world, boss: hb, bossPhases: hb && !hb.mini ? (BOSS_AI[hb.type] || BOSS_AI2[hb.type] || {}).phases : null, toll: run ? runToll(run) : 0, embersShown: this.embersShown, prompt: S === 'play' ? this.prompt : null, padMode: this.inputMode === 'pad', noToasts: S === 'pause', level: lv ? lv.level : 1, xpFrac: 0, points: 0, run, boons: run ? run.boons : [], act: run ? run.act : 0, duel: !!this.duelOn });
       ui.toastY = S === 'play' && this.tutorial && this.tutBottom ? this.tutBottom + 3 : 0;
       if (S !== 'bossIntro' && !(this.tutorial && this.tutorial.hideHud && this.tutorial.hideHud())) ui.hud(hs, dt);
       if (this.card && S === 'play') {

@@ -133,6 +133,13 @@ Levers, all owned by the run core:
   game picks a boss from that pool, preferring ones this warden has met. The game also adds about one per area
   from Act II on, rising with depth.
 - The Hall of Echoes (Act IV) is a gauntlet of them.
+- **Contract for boss AIs (run core):** an echo is spawned with `world.spawnBoss(type, x, z, { hpMul, dmgMul, mini: true })`
+  and then `boss.mini = true` is set before its first tick. `boss.mini` means: **no interludes, no stage changes
+  beyond the first, no arena changes, no allies called.** A boss AI that starts interludes or changes stages must
+  skip them when `boss.mini` is set (`ai.js` already keeps one stage). Its fall does not end the level: game.js
+  pays it like a trial (`miniDown`), and the HUD shows its bar while no real boss fight is on.
+- Pools (run.js `MINI_POOLS`, `miniPoolFor(act)`): an Act II area draws from Act I's bosses, Act III from I and
+  II, Acts IV-VI from I-III. Scaling: `miniScale` (45% of the health its boss would have at this tier).
 
 ## 6. Shared contracts
 

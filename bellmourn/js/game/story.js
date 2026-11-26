@@ -18,9 +18,18 @@ export const ACT3 = ['marsh', 'spire', 'empyrean'];
 export const ACT1 = ['gate', 'market', 'docks', 'nave', 'undercroft', 'foundry', 'heights', 'belfry'];
 // every place the Haven can lead to, in order (the map, the merchant's stock and the loot follow this order)
 export const DISTRICTS = [...ACT1, ...ACT2, ...ACT3];
+// The Ascent (PROPOSAL, docs/ASCENT_DESIGN.md): Act IV the Drowned Heaven, Act V the God's Dream, Act VI the Throne.
+export const ACT4 = ['choir', 'orchard', 'echoes', 'halo'];
+export const ACT5 = ['ribs', 'unborn', 'wake', 'cradle'];
+export const ACT6 = ['throne'];
 // the card over a place as it is entered: which act, which region
-export const ACT_OF = (id) => (ACT3.includes(id) ? 3 : (ACT2.includes(id) ? 2 : (ACT1.includes(id) ? 1 : 0)));
-export const ACT_NAMES = { 1: 'THE CITY', 2: 'BEYOND THE WALLS', 3: 'THE WHEEL' }; // PROPOSAL
+export const ACT_OF = (id) => (ACT6.includes(id) ? 6 : (ACT5.includes(id) ? 5 : (ACT4.includes(id) ? 4 : (ACT3.includes(id) ? 3 : (ACT2.includes(id) ? 2 : (ACT1.includes(id) ? 1 : 0))))));
+export const ACT_NAMES = { 1: 'THE CITY', 2: 'BEYOND THE WALLS', 3: 'THE WHEEL', 4: 'THE DROWNED HEAVEN', 5: "THE GOD'S DREAM", 6: 'THE THRONE' }; // PROPOSAL
+// the card when a run stops at the last act this save has opened (PROPOSAL)
+export const ROAD_GOES_ON = {
+  locked: ['THE ROAD GOES ON.', 'BEYOND THIS, SOMETHING STIRS THAT YOU ARE NOT YET READY TO MEET.', 'COME BACK STRONGER, WARDEN.'],
+  unbuilt: ['THE ROAD GOES ON.', 'THE WAY AHEAD IS STILL BEING WALKED.', 'COME BACK, WARDEN.'],
+};
 
 export const ENDING = [
   'THE BELL OF ST. ORRIN RINGS.',

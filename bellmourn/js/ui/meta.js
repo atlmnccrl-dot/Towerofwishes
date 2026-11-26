@@ -3,7 +3,7 @@
 // { back }) (every challenge with its progress bar and reward, filtered by what it rewards), and
 // TalentScreen({ meta, hero, slots? }, { pick(id), start, back? }) (choose up to two of the warden's talents
 // before a run; the ones above their mastery stay locked).
-import { Screen, refused, PAL, ease, clamp, mix, iron, backdrop, button, lines, alpha, fit, bar, glow, header, resOf } from './kit.js';
+import { Screen, refused, PAL, ease, clamp, mix, iron, backdrop, button, lines, alpha, fit, bar, glow, header, resOf, line, brackets } from './kit.js';
 import { icon, sigil } from './icons.js';
 import { portrait, heroColour } from './portraits.js';
 import { HEROES, ECHOES } from '../game/heroes.js';
@@ -18,71 +18,91 @@ function scrollBar(ui, x, y, h, scroll, max, total) { if (max <= 0) return; ui.r
 function backBtn(scr, ui, B) { const st = scr.hit('back', B.R - 60, B.T, 60, 18); button(ui, { x: B.R - 60, y: B.T, w: 60, h: 18 }, 'BACK', st, {}); } // PROPOSAL
 
 // ------------------------------------------------------------------ the Bell Tower
+// A chained tree in five branches (run.js TOWER, BRANCHES), drawn as five columns hanging from the bell: each node
+// a badge with its level pips, each chain a line lit gold once its parent is built far enough. The chosen node's
+// name, effect, level and price sit in the panel below with RAISE. Mewgenics-like: the whole tree at one glance.
+const NODE_ICON = { vigor: 'heart', flask: 'tonic', heart: 'hp', draught: 'tonic', mend: 'bell', shrine: 'shrine', edge: 'weapon', crit: 'eye', steel: 'weapon', focus: 'skill', ult: 'ult',
+  swift: 'dash', hide: 'relic', wind: 'dash', breath: 'heart', bulwark: 'crown', purse: 'ember', reroll: 'reroll', greed: 'ember', luck: 'star', haggle: 'merchant', shardk: 'shard',
+  blessing: 'boon', choice: 'boon', mercy: 'bell', anoint: 'crown', vow: 'tonic' };
+const BRANCH_COL = { vigour: '#e05060', arms: '#e8b860', grace: '#9adcf0', fortune: '#ff9a40', faith: '#f0e8c8' };
 export class TowerScreen extends Screen {
-  onOpen() { this.sel = 0; this.selT = 0; this.bought = {}; }
+  onOpen() { this.sel = (towerTree().find((u) => !u.req) || {}).id || null; this.selT = 0; this.bought = {}; this.focusId = this.sel ? 'up:' + this.sel : null; }
   get meta() { return this.data.meta || {}; }
-  level(u) { return ((this.meta.tower || {})[u.id] || 0); }
+  level(u) { return Math.max(0, Math.min(u.max || 1, ((this.meta.tower || {})[u.id] || 0))); }
+  open_(u) { if (!u.req) return true; const p = towerTree().find((x) => x.id === u.req[0]); return !!p && this.level(p) >= u.req[1]; }
   onTap(id) {
     if (id === 'back') { this.sound('ui'); this.call('back'); return; }
-    if (id.startsWith('up:')) { const i = +id.slice(3); if (i !== this.sel) { this.sel = i; this.selT = 0; this.sound('ui'); } else if (!this.lastTouch) this.buy(); return; }
+    if (id.startsWith('up:')) { const k = id.slice(3); if (k !== this.sel) { this.sel = k; this.selT = 0; this.sound('ui'); } else if (!this.lastTouch) this.buy(); return; }
     if (id === 'buy') this.buy();
   }
+  onFocus(id) { if (id.startsWith('up:')) { this.sel = id.slice(3); this.selT = 0; } }
   buy() {
-    const U = towerList(); const u = U[this.sel]; const rect = this.items.find((x) => x.id === 'buy'); if (!u) return;
-    const lv = this.level(u), c = towerCost(u, lv); if (lv >= towerMax(u) || c === null || (this.meta.shards ?? 0) < c) { this.deny(rect); return; }
-    const r = this.call('buy', u.id); if (refused(r)) { this.deny(rect); return; }
-    this.bought[u.id] = this.t; const row = this.items.find((x) => x.id === 'up:' + this.sel);
-    if (row) { this.flash(row.x, row.y, row.w, row.h, PAL.shard, 0.4); this.burst(row.x + row.w - 20, row.y + row.h / 2, PAL.shard, 18, 60); }
-    if (this.towerAt) { this.ring(this.towerAt.x, this.towerAt.y, PAL.gold, 30, 0.7); } this.sound('bigBell', { vol: 0.5 }); this.sound('upgrade'); this.shake(2, 0.3);
+    const u = towerTree().find((x) => x.id === this.sel); const rect = this.items.find((x) => x.id === 'buy'); if (!u) return;
+    const lv = this.level(u), c = u.cost[lv]; if (lv >= u.max || c === undefined || !this.open_(u) || (this.meta.shards ?? 0) < c) { this.deny(rect); return; }
+    const r = this.call('buy', u.id); if (refused(r) || (typeof r === 'string' && r.startsWith('NEEDS'))) { this.deny(rect); return; }
+    this.bought[u.id] = this.t; const node = this.items.find((x) => x.id === 'up:' + u.id);
+    if (node) { this.flash(node.x, node.y, node.w, node.h, PAL.shard, 0.4); this.burst(node.x + node.w / 2, node.y + node.h / 2, BRANCH_COL[u.branch] || PAL.shard, 20, 60); }
+    if (this.bellAt) this.ring(this.bellAt.x, this.bellAt.y, PAL.gold, 26, 0.7); this.sound('bigBell', { vol: 0.5 }); this.sound('upgrade'); this.shake(2, 0.3);
   }
   onBack() { this.call('back'); }
   onUpdate(dt) { this.selT += dt; }
   render(ui) {
-    const t = this.t, M = this.meta; const B = this.box(ui); const U = towerList(); backdrop(ui, t, { veil: this.data.veil, tint: '#10283a', moteCol: '#9adcf0' });
-    header(ui, B.L, B.T, 'THE BELL TOWER', null); backBtn(this, ui, B); // PROPOSAL
+    const t = this.t, M = this.meta; const B = this.box(ui); const U = towerTree(); const BR = towerBranches();
+    backdrop(ui, t, { veil: this.data.veil, tint: '#10283a', moteCol: '#9adcf0' });
+    let built = 0, all = 0; for (const u of U) { built += this.level(u); all += u.max; }
+    header(ui, B.L, B.T, 'THE BELL TOWER', built + ' OF ' + all + ' RAISED', { maxW: B.R - B.L - 130 }); backBtn(this, ui, B); // PROPOSAL
     const sw = ui.measure(String(M.shards ?? 0)); icon(ui, 'shard', B.R - 70 - sw - 10, B.T + 5, PAL.shard); ui.text(String(M.shards ?? 0), B.R - 68, B.T + 5, { align: 'right', color: '#c8f4ff' });
-    const top = B.T + 22; const tw = Math.round((B.R - B.L) * 0.26);
-    this.drawTower(ui, B.L, top, tw, B.B - top, U);
-    const x = B.L + tw + 8, w = B.R - x; const listH = B.B - top - 24; const rh = Math.max(16, Math.min(20, Math.floor(listH / Math.max(1, U.length))));
+    // the bell over the tree, brighter the more is raised
+    const k = all ? built / all : 0; const bx = Math.round((B.L + B.R) / 2), by = B.T + 27;
+    for (let r = 4; r >= 1; r--) alpha(ui, 0.05 + 0.05 * k, () => ui.circle(bx, by, 5 + r * 4, PAL.gold));
+    icon(ui, 'bell', bx, by, k > 0 ? mix(PAL.goldLo, PAL.goldHi, k) : PAL.iron3, { center: true }); this.bellAt = { x: bx, y: by };
+    const panelH = 34; const top = B.T + 38; const bottom = B.B - panelH - 4; const rows = Math.max(1, ...U.map((u) => u.row + 1));
+    const colW = (B.R - B.L) / BR.length; const rowH = Math.max(18, Math.min(26, Math.floor((bottom - top - 10) / rows))); const S = 14;
+    const pos = {}; for (const u of U) { const ci = BR.findIndex((b) => b.id === u.branch); const cx = B.L + colW * (ci + 0.5); pos[u.id] = { x: Math.round(cx + (u.col || 0) * Math.min(18, colW * 0.24) - S / 2), y: Math.round(top + 10 + u.row * rowH) }; }
+    BR.forEach((br, ci) => { // branch titles and the rope down from the bell
+      const cx = Math.round(B.L + colW * (ci + 0.5)); const col = BRANCH_COL[br.id] || PAL.text;
+      line(ui, bx, by + 6, cx, top - 1, PAL.iron1); ui.text(fit(ui, br.name, colW - 4), cx, top, { align: 'center', color: col, shadow: false });
+    });
+    // the chains: parent to child, lit when open
+    for (const u of U) { if (!u.req) continue; const p = pos[u.req[0]], q = pos[u.id]; if (!p || !q) continue; const lit = this.open_(u); const col = lit ? mix(BRANCH_COL[u.branch] || PAL.gold, '#000000', 0.25) : PAL.iron1;
+      const x0 = p.x + S / 2, y0 = p.y + S + 3, x1 = q.x + S / 2, y1 = q.y - 1; const ym = Math.round((y0 + y1) / 2);
+      line(ui, x0, y0, x0, ym, col, lit ? 0 : 2, lit ? 0 : 2); line(ui, x0, ym, x1, ym, col, lit ? 0 : 2, lit ? 0 : 2); line(ui, x1, ym, x1, y1, col, lit ? 0 : 2, lit ? 0 : 2); }
+    // the nodes
     U.forEach((u, i) => {
-      const y = top + i * rh; if (y + rh > top + listH + 2) return; const lv = this.level(u), mx = towerMax(u), c = towerCost(u, lv), full = lv >= mx; const on = this.sel === i;
-      const k = ease.out(clamp((t - i * 0.05) / 0.3)); const st = this.hit('up:' + i, x, y, w, rh - 2);
-      alpha(ui, k, () => {
-        button(ui, { x: x + (1 - k) * 20, y, w, h: rh - 2 }, '', on ? { focus: true, hover: st.hover } : st, { primary: on });
-        const yy = y + Math.round((rh - 2 - 7) / 2) + (st.press ? 1 : (st.hover || on ? -1 : 0));
-        ui.text(fit(ui, String(u.name).toUpperCase(), w - 110), x + 7, yy, { color: on ? PAL.goldHi : PAL.text, shadow: false });
-        for (let p = 0; p < mx; p++) { const px = x + w - 52 - (mx - p) * 5; ui.rect(px, yy + 1, 4, 5, p < lv ? PAL.shard : PAL.iron2); if (p < lv) ui.rect(px, yy + 1, 4, 1, '#e0faff'); if (this.bought[u.id] && p === lv - 1) alpha(ui, 1 - clamp((t - this.bought[u.id]) * 2), () => ui.rect(px - 1, yy, 6, 7, '#ffffff')); }
-        if (full) ui.text('MAX', x + w - 7, yy, { align: 'right', color: PAL.gold, shadow: false });
-        else { ui.text(String(c), x + w - 7, yy, { align: 'right', color: (M.shards ?? 0) >= c ? '#c8f4ff' : PAL.bad, shadow: false }); icon(ui, 'shard', x + w - 7 - ui.measure(String(c)) - 9, yy, PAL.shard, { outline: false }); }
+      const P = pos[u.id]; const lv = this.level(u), full = lv >= u.max, open = this.open_(u); const c = u.cost[lv]; const afford = !full && open && (M.shards ?? 0) >= c;
+      const on = this.sel === u.id; const st = this.hit('up:' + u.id, P.x - 2, P.y - 2, S + 4, S + 6); const bc = BRANCH_COL[u.branch] || PAL.gold;
+      const ka = ease.out(clamp((t - i * 0.02) / 0.3));
+      alpha(ui, ka, () => {
+        const fill = full ? mix(bc, '#000000', 0.45) : lv > 0 ? mix(bc, '#000000', 0.7) : open ? PAL.iron0 : '#08090c';
+        const edge = on ? PAL.goldHi : full ? bc : lv > 0 ? mix(bc, '#000000', 0.2) : open ? (afford ? PAL.iron4 : PAL.iron2) : PAL.iron1;
+        ui.rect(P.x, P.y, S, S, fill); ui.outline(P.x, P.y, S, S, edge); if (on) brackets(ui, P.x - 2, P.y - 2, S + 4, S + 4, PAL.gold, 3, t);
+        if (afford && !on) alpha(ui, 0.3 + 0.3 * Math.sin(t * 4 + i), () => ui.outline(P.x - 1, P.y - 1, S + 2, S + 2, PAL.shard));
+        if (open) icon(ui, NODE_ICON[u.id] || 'star', P.x + 3, P.y + 3, lv > 0 ? (full ? '#fff4d8' : bc) : PAL.iron4, { outline: false }); else icon(ui, 'lock', P.x + 3, P.y + 3, PAL.iron2, { outline: false });
+        for (let q = 0; q < u.max; q++) { const px = P.x + Math.round(S / 2 - u.max * 2 + q * 4); ui.rect(px, P.y + S + 1, 3, 2, q < lv ? bc : PAL.iron1); }
+        if (this.bought[u.id]) alpha(ui, 1 - clamp((t - this.bought[u.id]) * 2), () => ui.rect(P.x - 1, P.y - 1, S + 2, S + 2, '#ffffff'));
       });
     });
-    const u = U[this.sel]; if (u) {
-      const lv = this.level(u), c = towerCost(u, lv), full = lv >= towerMax(u); const ok = !full && c !== null && (M.shards ?? 0) >= c;
-      const bw = 96; alpha(ui, ease.out(clamp(this.selT / 0.2)), () => { const L2 = lines(ui, u.desc || '', w - bw - 8, 2); let yy = B.B - 9 - L2.length * 4; for (const l of L2) { ui.text(l, x + 2, yy, { color: PAL.soft, shadow: false }); yy += 8; } }); const st = this.hit('buy', B.R - bw, B.B - 18, bw, 18, { disabled: !ok });
-      button(ui, { x: B.R - bw, y: B.B - 18, w: bw, h: 18 }, full ? 'COMPLETE' : 'RAISE', st, { primary: ok, cost: full ? null : { icon: (uu, ix, iy) => icon(uu, 'shard', ix, iy, PAL.shard), n: c, ok } }); // PROPOSAL
+    // the panel: the chosen node
+    const u = U.find((x) => x.id === this.sel); const py = B.B - panelH;
+    iron(ui, B.L, py, B.R - B.L, panelH, {});
+    if (u) {
+      const lv = this.level(u), full = lv >= u.max, open = this.open_(u), c = u.cost[lv]; const ok = !full && open && c !== undefined && (M.shards ?? 0) >= c; const bc = BRANCH_COL[u.branch] || PAL.gold;
+      const bw = 92; const tx = B.L + 8; const tw = B.R - B.L - bw - 22;
+      alpha(ui, ease.out(clamp(this.selT / 0.2)), () => {
+        ui.text(fit(ui, u.name + '  ' + lv + '/' + u.max, tw), tx, py + 5, { color: bc, shadow: false });
+        let sub = u.desc; if (!open) { const p = U.find((x) => x.id === u.req[0]); sub = 'NEEDS ' + (p ? p.name : u.req[0]) + ' ' + u.req[1] + '. ' + u.desc; }
+        lines(ui, sub, tw, 2).forEach((l, i) => ui.text(l, tx, py + 15 + i * 8, { color: open ? PAL.soft : PAL.dim, shadow: false }));
+      });
+      const st = this.hit('buy', B.R - bw - 6, py + 8, bw, 18, { disabled: !ok });
+      button(ui, { x: B.R - bw - 6, y: py + 8, w: bw, h: 18 }, full ? 'COMPLETE' : (open ? 'RAISE' : 'LOCKED'), st, { primary: ok, cost: full || !open ? null : { icon: (uu, ix, iy) => icon(uu, 'shard', ix, iy, PAL.shard), n: c, ok } }); // PROPOSAL
     }
   }
-  // the tower: one floor per upgrade, its window lit by how far it is raised; the bell at the top glows
-  drawTower(ui, x, y, w, h, U) {
-    const t = this.t; const cx = x + Math.floor(w / 2); const n = Math.max(1, U.length); const fh = Math.floor((h - 34) / n); const tw = Math.min(w - 10, 40);
-    let lit = 0, all = 0; U.forEach((u) => { lit += this.level(u); all += towerMax(u); });
-    const k = all ? lit / all : 0;
-    for (let r = 4; r >= 1; r--) alpha(ui, 0.05 * k, () => ui.circle(cx, y + 14, 8 + r * 6, PAL.gold));
-    // spire and bell chamber
-    ui.rect(cx - 1, y, 2, 6, PAL.iron2); for (let i = 0; i < 6; i++) ui.rect(cx - 2 - i, y + 6 + i, 5 + i * 2, 1, '#20242c');
-    ui.rect(cx - tw / 2 + 4, y + 12, tw - 8, 16, '#14161c'); ui.rect(cx - 7, y + 14, 14, 12, '#06070a');
-    icon(ui, 'bell', cx, y + 20, k > 0 ? mix(PAL.goldLo, PAL.goldHi, k) : PAL.iron3, { center: true });
-    this.towerAt = { x: cx, y: y + 20 };
-    U.forEach((u, i) => {
-      const fy = y + 28 + i * fh; const lv = this.level(u), mx = towerMax(u); const fk = mx ? lv / mx : 0; const ww = tw + Math.round(i * 2);
-      ui.rect(cx - ww / 2, fy, ww, fh, i % 2 ? '#1a1d24' : '#1e2129'); ui.rect(cx - ww / 2, fy, ww, 1, '#2c313b'); ui.rect(cx - ww / 2, fy, 1, fh, '#2c313b');
-      const win = Math.max(3, fh - 6); const lc = fk > 0 ? mix('#5a3a14', '#ffd890', fk) : '#07080a';
-      ui.rect(cx - 3, fy + 3, 6, win, lc); if (fk > 0) { ui.rect(cx - 1, fy + 3, 1, win, '#1a1208'); alpha(ui, 0.25 * fk * (0.8 + 0.2 * Math.sin(t * 3 + i)), () => ui.rect(cx - 6, fy + 1, 12, win + 4, '#ffc870')); }
-      if (this.sel === i) { ui.rect(cx + ww / 2 + 2, fy + fh / 2 - 1, 3, 3, PAL.gold); }
-    });
-    ui.rect(cx - tw / 2 - n - 2, y + 28 + n * fh, tw + n * 2 + 4, 3, '#2c313b');
-  }
 }
+// the tree from run.js (the screens' data layer may hand an older flat list: then every node is a root)
+let TREE = null, BRS = null;
+import('../game/run.js').then((m) => { TREE = m.TOWER || null; BRS = m.BRANCHES || null; }).catch(() => {});
+function towerTree() { const L = TREE || towerList(); return L.map((u, i) => ({ ...u, branch: u.branch || 'vigour', row: u.row ?? i, col: u.col || 0, cost: Array.isArray(u.cost) ? u.cost : [towerCost(u, 0)], max: u.max || towerMax(u) })); }
+function towerBranches() { return BRS || [{ id: 'vigour', name: 'THE TOWER' }]; }
 
 // ------------------------------------------------------------------ challenges
 const TABS = [['all', 'ALL'], ['hero', 'WARDENS'], ['boon', 'BOONS'], ['res', 'TIERS'], ['echo', 'ECHOES'], ['colour', 'COLOURS'], ['event', 'EVENTS']]; // PROPOSAL
