@@ -87,6 +87,9 @@ export class ActorView {
         v.pose = p; rig.apply(p);
       }
       if (rig.onEnt) rig.onEnt(e, dt); // a boss's stage looks (bosses2.js stageLook): parts shown by stage
+      // a boss's later forms (the Ascent): bigger, ringed and haloed in its colour; embers rise in the third
+      if (e.form > 1 && !e.dead && v.formShown !== e.form) { v.formShown = e.form; rig.root.scale.setScalar(1 + 0.08 * (e.form - 1)); this._aura(v, e.formColor || 0xffd070, true); this.fx.emit && this.fx.emit(e.x, 1.2, e.z, { n: 40, speed: 4, up: 0.6, life: 0.8, grav: 0, color: [2.6, 2.2, 1.4], size: 2 }); }
+      if (e.form >= 3 && !e.dead && !e.hidden && Math.random() < dt * 12) { const c = new THREE.Color(e.formColor || 0xffd070); this.fx.emit(e.x + (Math.random() - 0.5) * (e.r || 1) * 2, 0.3 + Math.random() * 2.2 * (e.def?.scale || 1), e.z + (Math.random() - 0.5) * (e.r || 1) * 2, { n: 1, speed: 0.2, up: 1, vy: 1.6, life: 0.7, grav: -1.5, color: [c.r * 2.6, c.g * 2.6, c.b * 2.6], size: 1 }); }
       // the tonic: the flask in the free hand while a hero drinks (dimmer once drunk)
       if (rig.showFlask) rig.showFlask(e.anim === 'heal' && !e.dead && (e.team === 'hero' || !!e.heroId) && e.animT >= FLASK_T[0] && e.animT <= FLASK_T[1], e.animT < 0.5 ? 1 : 0);
       this._glow(e, rig, dt);

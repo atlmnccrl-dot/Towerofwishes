@@ -1119,7 +1119,7 @@ function burrow2(w, e) {
   e.ai.dig = { t: 0, trail: 0.15, lock: null }; w.emit('vanish', { e }); w.emit('shake', { amt: 0.4 });
 }
 // lay a stage spec over a boss's own move set, in place (its object stays the one bosses3.js exported)
-function evolve(B, S) {
+export function evolve(B, S) {
   if (!B || !S || B._stages) return; B._stages = true;
   const own = { moves: B.moves, onPhase: B.onPhase, tick: B.tick, channel: B.channel, hiddenThink: B.hiddenThink };
   B.moves = function (p, e) { return sigFirst(e, S.moves(p, e || {}, own.moves.call(B, p, e))); };

@@ -8,10 +8,11 @@ import { makeBot } from '../js/game/bot.js';
 import { heroStats, newHeroSave, MAX_LEVEL, weaponsOfType, HEROES } from '../js/game/heroes.js';
 import '../js/game/bosses2.js';
 import '../js/game/ai.js';
+import '../js/game/stages_more.js';
 
 const N = +(process.argv[2] || 2);
 const ONLY = process.argv[3] ? process.argv[3].split(',') : null;
-const BOSSES = [['frostgiant', 8, 1], ['sandwyrm', 9, 1], ['lich', 10, 1], ['archon', 11, 2], ['bogmother', 12, 1], ['clockmaster', 13, 1], ['wheel', 14, 2],
+const BOSSES = [['gaoler', 0, 1], ['tallow', 1, 1], ['harbormaster', 2, 1], ['deacon', 3, 1], ['ossuary', 4, 1], ['founder', 5, 1], ['regent', 6, 1], ['silence', 7, 2], ['frostgiant', 8, 1], ['sandwyrm', 9, 1], ['lich', 10, 1], ['archon', 11, 2], ['bogmother', 12, 1], ['clockmaster', 13, 1], ['wheel', 14, 2],
   ['kingcrab', 2, 1], ['hollowmother', 4, 1], ['ronin', 6, 1], ['smiling', 2, 1], ['pyresaint', 5, 1]].filter(([t]) => !ONLY || ONLY.includes(t));
 const ARENA = { bounds: [-12, -11, 12, 11], solids: [{ x: -6, z: -4, r: 0.7, h: 3 }, { x0: 5, z0: 3, x1: 6.4, z1: 4.4, h: 3 }] };
 function prog(heroId, tier) {

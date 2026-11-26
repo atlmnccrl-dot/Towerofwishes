@@ -248,7 +248,7 @@ export class UI {
   ilBar(IL, boss, bx, by, bw) {
     const [n, of] = IL.progress || [0, 1]; const k = of ? n / of : 0;
     const label = IL.kind === 'gauntlet' ? IL.banner + '  ' + Math.max(0, Math.ceil(IL.dur - IL.t)) + 'S' : IL.banner + '  ' + n + '/' + of;
-    this.text(boss.def.name + ' IS GONE', bx, by - 9, { color: COL.dim });
+    const gone = boss.def.name + ' IS GONE'; if (this.measure(gone) + this.measure(label) + 8 <= bw) this.text(gone, bx, by - 9, { color: COL.dim }); // no room on a narrow bar: the objective alone
     this.bar(bx, by, bw, 3, IL.kind === 'gauntlet' ? IL.t / IL.dur : k, '#e8b860', '#18120a');
     this.rect(bx, by + 4, Math.round(bw * Math.max(0, 1 - IL.t / IL.dur)), 1, '#8a7a5a');
     if (IL.kind !== 'gauntlet') for (let i = 1; i < of && of <= 12; i++) this.rect(bx + Math.round(bw * i / of), by - 1, 1, 5, '#0a0806');
