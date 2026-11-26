@@ -21,6 +21,7 @@ import echoes from './echoes.js'; // Act IV, hand-built
 import halo from './halo.js'; // Act IV, hand-built
 import ribs from './ribs.js'; // Act V, hand-built
 import unborn from './unborn.js'; // Act V, hand-built
-import { WAKE as wake, CRADLE as cradle } from './act45.js'; // Acts IV-V, laid out by one generator
+import wake from './wake.js'; // Act V, hand-built
+import { CRADLE as cradle } from './act45.js'; // Acts IV-V, laid out by one generator
 import throne from './throne.js'; // Act VI: the Throne of the Toll
 export default { prologue, gate, market, docks, nave, undercroft, foundry, heights, belfry, frostmarch, ashdunes, catacombs, abyss, marsh, spire, empyrean, choir, orchard, echoes, halo, ribs, unborn, wake, cradle, throne };
