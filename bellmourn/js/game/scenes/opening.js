@@ -1,8 +1,8 @@
-// The opening cinematic (the first run, before the Old Road; it can be replayed from the title): no dialogue,
+// The opening cinematic (the first run, before the Old Road; S.replay: shown again, it ends on the title): no dialogue,
 // only a few words on black. The Great Bell, silent; the city in the rain, the Hushed walking; then every great
 // enemy of the road ahead, one shot each, each from its own angle, each on its own ground: it turns, it roars,
 // its name slams in. It builds: faster cuts, harder flashes, until the last shot, God on His throne, the two bells
-// coming down beside Him, His hands rising. White. The title.
+// coming down beside Him, His hands rising. White. Then the Old Road, where the duel ends on the title.
 // PROPOSAL: the words on the cards and the order of the shots.
 import { cam, spawn, remove, walk, anim, wait, fade, flash, shake, sound, music, call, title, tween, place, par, angle } from '../cutscene.js';
 import { bellP } from './util.js';
@@ -87,8 +87,8 @@ export const opening = {
       angle(30, 26, 5, { wait: false }),
       [wait(0.8), sound('bigBell', { vol: 0.9 }), wait(1.0), anim('god', 'raise')],
       [wait(1.6),
-        spawn('dawn', (SS) => { const p = bossAt(SS); return { foe: 'dawnbell', x: p.x - 7, z: p.z + 7, y: 9, face: 0 }; }),
-        spawn('dusk', (SS) => { const p = bossAt(SS); return { foe: 'duskbell', x: p.x + 7, z: p.z + 7, y: 9, face: 0 }; }),
+        spawn('dawn', (SS) => { const p = bossAt(SS); return { foe: 'dawnbell', x: p.x - 4.6, z: p.z + 4.2, y: 9, face: 0.3, scale: 2.8 }; }),
+        spawn('dusk', (SS) => { const p = bossAt(SS); return { foe: 'duskbell', x: p.x + 4.6, z: p.z + 4.2, y: 9, face: -0.3, scale: 2.8 }; }),
         tween((k, cs) => { for (const id of ['dawn', 'dusk']) { const a = cs.actor(id); if (a) a.leapH = 9 * (1 - k * k); } }, 1.1),
         call((cs) => { for (const id of ['dawn', 'dusk']) { const a = cs.actor(id); if (a) { a.leapH = 0; cs.g.fx.shockRing(a.x, a.z, 6, id === 'dawn' ? [3, 2.2, 0.8] : [1.6, 0.8, 2.8], 0.7); } } cs.g.sound.play('boom'); if (cs.g.settings.shake !== false) cs.g.r.shake(0.9, 0.8); }),
       ],
@@ -97,9 +97,10 @@ export const opening = {
     tween((k, cs) => { cs.g.r.post.flash = Math.min(1, k * 1.4); }, 0.9),
     fade(1, 0.01),
     call((cs) => { cs.g.r.post.flash = 0; }),
-    wait(0.6),
-    title('BELLMOURN', 'RING THE BELL. BRING THE DAWN.', 3.6, { style: 'logo' }),
-    wait(0.4),
+    wait(0.8),
+    // the first run goes straight on to the Old Road: the title drops after the duel there (tutorial.js)
+    S.replay ? title('BELLMOURN', 'RING THE BELL. BRING THE DAWN.', 3.6, { style: 'logo' }) : title('THE OLD ROAD', '', 2.2),
+    wait(0.3),
   ],
 };
 

@@ -28,7 +28,7 @@ const fs = require('fs');
   await p.evaluate(() => BM.game.screenH.choose('warden')); await p.waitForTimeout(1000); await shot('talents');
   check(await p.evaluate(() => BM.game.screenName === 'TalentScreen'), 'the talent screen opens');
   await p.evaluate(() => { const g = BM.game; g.screenH.pick('vigor'); g.screenH.start(); });
-  await until(() => BM.game.tutorial && BM.game.state === 'play'); await botOn();
+  await until(() => BM.game.tutorial && BM.game.state === 'play', 300000); await botOn(); // the opening cinematic plays first (about a minute)
   for (const beat of ['intro', 'strike', 'dash', 'perfect']) { await until((bt) => BM.game.tutorial && BM.game.tutorial.beat === bt, 60000, beat); await p.waitForTimeout(beat === 'intro' ? 2600 : 700); await shot('duel-' + beat); }
   await until(() => BM.game.tutorial && BM.game.tutorial.freeze, 30000); await shot('duel-perfect-frozen');
   await until(() => BM.game.screenName === 'BoonScreen', 60000); await p.waitForTimeout(900); await shot('duel-boon');

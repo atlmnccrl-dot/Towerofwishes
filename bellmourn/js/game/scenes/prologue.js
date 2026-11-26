@@ -1,7 +1,7 @@
 // The prologue on the Old Road (the warden alone, the crow-masked warden at the gate, the three wardens
 // meeting) and Sister Ash at the first visit to the Haven.
 // PROPOSAL: every spoken line here comes from docs/STORY_BIBLE.md (the author may rewrite them).
-import { cam, spawn, remove, walk, face, anim, say, wait, fade, flash, sound, call, flag, fx, par, title, tween } from '../cutscene.js';
+import { cam, spawn, remove, walk, face, anim, say, wait, fade, flash, sound, call, flag, fx, par, title, tween, angle } from '../cutscene.js';
 import { heroP, scr, ahead, wardenSpec, has } from './util.js';
 
 // The Old Road: the lead walks alone toward the dark city; a Bell Warden in a crow's mask blocks the way.
@@ -84,17 +84,22 @@ export const havenAsh = {
       face('lead', D.fire),
       S.lead === 'lamplighter' ? say('lead', 'THE FIRE STILL BURNS. LIT FROM THE BELL\'S OWN FORGE. THE NIGHT CANNOT TOUCH IT.') : null,
       ...(S.lead === 'lamplighter' ? [] : [
-        cam({ mid: ['lead', 'ash'] }, { zoom: 1.9, dur: 1.2, y: 1.1, wait: false }),
+        cam({ mid: ['lead', 'ash'] }, { zoom: 1.9, dur: 1.2, y: 1.1, wait: false }), angle(70, 26, 1.2, { wait: false }),
         face('ash', 'lead'),
-        say('ash', 'COME IN OUT OF THE RAIN, WARDEN. YOU ARE SAFE HERE.'),
-        say('ash', 'THIS FIRE WAS LIT FROM THE GREAT BELL\'S OWN FORGE. THE NIGHT CANNOT TOUCH IT.'),
-        say('lead', 'THE EMBERS THAT FOLLOWED ME HERE. WHAT ARE THEY?'),
-        say('ash', 'VOICES. WHEN YOU STRIKE A HUSHED DOWN, THE VOICE ASLEEP IN IT GOES FREE.'),
-        say('ash', 'BRING THEM TO THE FIRE. IT KEEPS THEM, AND GIVES YOU THEIR STRENGTH.'),
-        ashJoined ? null : say('ash', 'I AM SISTER ASH, THE LAST LAMPLIGHTER. REST. I WILL KEEP WATCH.'),
+        say('ash', 'COME IN OUT OF THE RAIN, WARDEN.'),
+        // shown, not told: the embers that followed the warden pour off them into the fire, and it roars up
+        cam([D.fire.x, 1.0, D.fire.z], { zoom: 2.1, dur: 0.9, wait: false }), angle(30, 18, 0.9, { wait: false }),
+        call((cs) => { const L = cs.actor('lead'); if (L) for (let i = 0; i < 4; i++) cs.g.fx.embers(L.x + (D.fire.x - L.x) * i / 4, 1.0, L.z + (D.fire.z - L.z) * i / 4, 14, [3, 1.6, 0.5]); cs.g.sound.play('lamp'); }),
+        wait(0.6),
+        call((cs) => { const F = cs.g.level && cs.g.level.fire; if (F && F.flare) F.flare(1.4); cs.g.fx.embers(D.fire.x, 1.2, D.fire.z, 60, [3, 1.5, 0.4]); cs.g.fx.shockRing(D.fire.x, D.fire.z, 3, [3, 1.6, 0.5], 0.4); cs.g.sound.play('special', { vol: 0.5 }); }),
+        wait(0.5),
+        cam({ mid: ['lead', 'ash'] }, { zoom: 1.9, dur: 0.8, y: 1.1, wait: false }), angle(60, 28, 0.8, { wait: false }),
+        say('ash', 'THEY ARE VOICES, SET FREE. THE FIRE KEEPS THEM, AND GIVES YOU THEIR STRENGTH.'),
+        ashJoined ? null : say('ash', 'I AM SISTER ASH. REST. I WILL KEEP WATCH.'),
         face('ash', D.fire),
       ]),
       call((cs) => { const F = cs.g.level && cs.g.level.fire; if (F && F.flare) F.flare(1); cs.g.fx.embers(D.fire.x, 1.1, D.fire.z, 40, [3, 1.5, 0.4]); cs.g.sound.play('lamp'); }),
+      angle(45, 40, 0.7, { wait: false }),
       anim('lead', 'kneel', { then: 'rest', after: 0.6 }),
       flag('havenAsh'),
     ];
@@ -109,9 +114,9 @@ export const roadShort = {
     const h = heroP(S); const n = ((S.g.meta && S.g.meta.runs) | 0) + 1;
     return [
       spawn('lead', { use: 'hero', face: h.face, anim: 'idle' }),
-      cam(scr(h, 0, 1.4), { zoom: 1.75, dur: 0 }),
+      cam(scr(h, 0, 1.4), { zoom: 1.75, dur: 0 }), angle(8, 10, 0), // low, behind the warden, the gate ahead
       fade(0, 0.9),
-      walk('lead', ahead(h, 4.5), { wait: false }), cam(scr(ahead(h, 4), 0, 2.0), { zoom: 1.3, dur: 3.0, wait: false }),
+      walk('lead', ahead(h, 4.5), { wait: false }), cam(scr(ahead(h, 4), 0, 2.0), { zoom: 1.3, dur: 3.0, wait: false }), angle(24, 18, 3.0, { wait: false }),
       title('THE OLD ROAD', 'RUN ' + n, 2.6),
       flash(0.7), sound('thunder', { vol: 0.8, big: true }),
       wait(0.5),

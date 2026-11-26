@@ -45,6 +45,16 @@ export const place = (id, o = {}) => ({ k: 'place', id, o });
 export const par = (...steps) => ({ k: 'par', steps: steps.flat().filter(Boolean) });
 // a cinematic angle: the camera swings to look from yaw/pitch (degrees; the game's own view is 45/40) over dur
 // seconds (0: a cut). The game puts its own angle back when the scene ends.
+// a great enemy's name: slammed in on the lower third, a beat bigger at first, a red bar drawn out under it, its
+// ground in gold over it (the opening's boss shots, the crow's arrival on the Old Road)
+export function drawNameCard(ui, text, sub, t, dur) {
+  const W = ui.w, H = ui.h; const fit = Math.max(2, Math.min(4, Math.floor((W - 30) / Math.max(1, ui.measure(text)))));
+  const sc = fit + (t < 0.12 ? 1 : 0); const y = Math.round(H * 0.68) + (t < 0.12 ? -2 : 0); const a = Math.max(0, Math.min(1, t * 8, (dur - t) * 3));
+  if (sub) ui.text(sub, W / 2, y - 12, { align: 'center', color: COL.gold, alpha: a * 0.9 });
+  ui.text(text, W / 2, y, { align: 'center', scale: sc, color: COL.white, alpha: a });
+  const bw = Math.round(ui.measure(text, sc) * Math.min(1, t * 4)); ui.rect(Math.round(W / 2 - bw / 2), y + sc * 7 + 3, bw, 2, '#c02028');
+}
+
 export const angle = (yaw, pitch, dur = 0, o = {}) => ({ k: 'tween', dur: Math.max(0.0001, dur), wait: o.wait ?? (dur > 0), start: (cs) => ({ y0: cs.g.r.view.yaw, p0: cs.g.r.view.pitch }),
   fn: (k, cs, st) => { const e = dur > 0 ? ease(k) : 1; const Y = yaw * Math.PI / 180, P = pitch * Math.PI / 180; cs.g.r.setView(st.y0 + (Y - st.y0) * e, st.p0 + (P - st.p0) * e); } });
 // an effect burst at an actor (or a point): fx(kind, at, n, color, y)
@@ -330,16 +340,11 @@ export class Cutscene {
     // a title card (an act ends, a time passes)
     if (this.titleCard) {
       const T = this.titleCard; const a = Math.min(1, T.t * 1.6, Math.max(0, (T.dur - T.t) * 2));
-      if (T.style === 'name') {
-        // a boss's name: slammed in on the lower third, a beat bigger at first, a red bar under it, its ground over it
-        const fit = Math.max(2, Math.min(4, Math.floor((W - 30) / Math.max(1, ui.measure(T.text)))));
-        const sc = fit + (T.t < 0.12 ? 1 : 0); const y = Math.round(H * 0.68) + (T.t < 0.12 ? -2 : 0); const a2 = Math.min(1, T.t * 8, Math.max(0, (T.dur - T.t) * 3));
-        if (T.sub) ui.text(T.sub, W / 2, y - 12, { align: 'center', color: COL.gold, alpha: a2 * 0.9 });
-        ui.text(T.text, W / 2, y, { align: 'center', scale: sc, color: COL.white, alpha: a2 });
-        const bw = Math.round(ui.measure(T.text, sc) * Math.min(1, T.t * 4)); ui.rect(Math.round(W / 2 - bw / 2), y + sc * 7 + 3, bw, 2, '#c02028');
-      } else if (T.style === 'logo' && ui.logo) {
-        ui.logo(W / 2, Math.round(H * 0.4), a);
-        if (T.sub) ui.text(T.sub, W / 2, Math.round(H * 0.4) + 34, { align: 'center', color: COL.dim, alpha: a });
+      if (T.style === 'name') drawNameCard(ui, T.text, T.sub, T.t, T.dur); else if (T.style === 'logo' && ui.logo) {
+        // the game's title, as big as fits, a beat bigger the instant it lands; the line under it comes after
+        const sc = Math.max(3, Math.min(7, Math.floor((W - 40) / Math.max(1, ui.measure('BELLMOURN'))))); const ly = Math.round(H * 0.42 - sc * 4);
+        ui.logo(W / 2, ly, a, sc + (T.t < 0.1 ? 1 : 0));
+        if (T.sub) ui.text(T.sub, W / 2, ly + sc * 9 + Math.max(10, sc * 3), { align: 'center', color: COL.gold, alpha: Math.max(0, Math.min(1, (T.t - 0.9) * 1.5)) * a });
       } else {
         const sc = ui.measure(T.text, 2) <= W - 24 ? 2 : 1; const y = Math.round(H / 2 - (T.sub ? 14 : 7));
         ui.text(T.text, W / 2, y, { align: 'center', scale: sc, color: COL.white, alpha: a });

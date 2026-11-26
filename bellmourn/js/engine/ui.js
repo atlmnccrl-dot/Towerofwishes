@@ -414,14 +414,14 @@ export class UI {
 
   letterbox(k) { const bh = Math.round(this.h * 0.12 * k); if (bh <= 0) return; this.rect(0, 0, this.w, bh, '#000'); this.rect(0, this.h - bh, this.w, bh, '#000'); }
 
-  logo(cx, cy, alpha = 1) {
-    const g = this.g; const a0 = g.globalAlpha; g.globalAlpha = alpha;
-    this.text('BELLMOURN', cx + 1, cy + 1, { align: 'center', scale: 3, color: '#000000', shadow: false });
-    this.text('BELLMOURN', cx, cy, { align: 'center', scale: 3, color: '#e6dccb', shadow: '#2a0a0c' });
+  logo(cx, cy, alpha = 1, sc = 3) {
+    const g = this.g; const a0 = g.globalAlpha; g.globalAlpha = alpha; const u = Math.max(1, Math.round(sc / 3)); // u: the size of one pixel of the bell
+    this.text('BELLMOURN', cx + u, cy + u, { align: 'center', scale: sc, color: '#000000', shadow: false });
+    this.text('BELLMOURN', cx, cy, { align: 'center', scale: sc, color: '#e6dccb', shadow: '#2a0a0c' });
     // a cracked bell between two lines
-    const y = cy + 27; this.rect(cx - 70, y, 56, 1, '#6a1418'); this.rect(cx + 14, y, 56, 1, '#6a1418');
+    const y = cy + sc * 9; const L = Math.round(sc * 18.7); this.rect(cx - L - 4 * u, y, L, u, '#6a1418'); this.rect(cx + 4 * u, y, L, u, '#6a1418');
     const bell = ['..###..', '.#####.', '.#####.', '.#####.', '#######', '...#...'];
-    bell.forEach((row, r) => [...row].forEach((ch, c) => { if (ch === '#') this.rect(cx - 3 + c, y - 3 + r, 1, 1, r === 4 ? '#c8242a' : '#d8b860'); }));
+    bell.forEach((row, r) => [...row].forEach((ch, c) => { if (ch === '#') this.rect(cx + (c - 3) * u, y + (r - 3) * u, u, u, r === 4 ? '#c8242a' : '#d8b860'); }));
     g.globalAlpha = a0;
   }
 }

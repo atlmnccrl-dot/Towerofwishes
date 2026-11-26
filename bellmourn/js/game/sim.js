@@ -1035,7 +1035,7 @@ export class World {
       case 'stagger': if (e.t >= e.stagT) { e.state = 'idle'; e.anim = 'idle'; e.t = 0; e.ai.cd = 0.5; } return;
       case 'windup': case 'attack': return this._foeAttack(e, h * (e.status.frost ? 0.7 : 1));
     }
-    if (e.ai.passive) { e.anim = 'idle'; return; }
+    if (e.ai.passive) { if (!e.ai.pose) e.anim = 'idle'; return; } // ai.pose: a scripted pose holds (the tutorial's crow landing)
     if (e.elite === 'hasted' && e.ai.cd > 0) e.ai.cd -= h * 0.6;
     if (boss) thinkBoss(this, e, h); else thinkFoe(this, e, h);
   }

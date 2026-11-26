@@ -1,5 +1,7 @@
 // The first run's Old Road: one clean, cinematic duel with the crow-masked oath-sworn warden (RUN_DESIGN.md
-// section 9). It teaches by moments, not walls of text: one word at the right beat. STRIKE (land three blows),
+// section 9). No talk: the warden walks the road toward the gate, low, from behind; the crow falls out of the
+// night sky and lands in a crater of mist; his name slams in; he rises and roars. It teaches by moments, not walls
+// of text: one word at the right beat. STRIKE (land three blows),
 // DASH (slip his thrusts), then a slow-motion perfect dodge (the world all but stops on his great lunge until
 // you dash), a first boon (CHOOSE), and the ULTIMATE to finish him. Then a striking finish and the title over
 // the gate, and the route map. The duel cannot be lost. Later runs walk a short cinematic road instead.
@@ -7,9 +9,10 @@
 import * as THREE from '../../vendor/three.module.min.js';
 import { ATTACKS } from './defs.js';
 import { FALLBACK_LOOKS } from './scenes/cast.js';
-import { drawLineBox } from './cutscene.js';
+import { drawNameCard } from './cutscene.js';
 import { COL } from '../engine/ui.js';
 
+const lerp = (a, b, k) => a + (b - a) * k;
 const ease = (k) => { k = Math.max(0, Math.min(1, k)); return k * k * (3 - 2 * k); };
 // the crow's great lunge: a long windup, a long reach (the perfect-dodge beat)
 const LUNGE = { ...ATTACKS.thrust, name: 'lunge', windup: 0.95, active: 1.1, dur: 1.6, lunge: 7.5, range: 3.2, width: 1.0, teleRange: 4.6, dmg: 10 };
@@ -17,6 +20,7 @@ const HINT = { // PROPOSAL: the small key hint under each word
   STRIKE: { key: 'J / LEFT CLICK', touch: 'ATK', pad: 'X' }, DASH: { key: 'SPACE', touch: 'DASH', pad: 'A' },
   ULTIMATE: { key: 'Q', touch: 'ULT', pad: 'RB' }, CHOOSE: { key: '', touch: '', pad: '' },
 };
+const DROP_AT = 1.3, FALL = 0.55, DROP_H = 18, STRIKE_AT = 5.6; // the intro's beats (seconds)
 export const BEATS = ['intro', 'strike', 'dash', 'perfect', 'boon', 'ult', 'finish', 'title'];
 
 export class Duel {
@@ -37,7 +41,7 @@ export class Duel {
   hideTouch() { return this.beat === 'intro' || this.beat === 'finish' || this.beat === 'title' || this.beat === 'boon'; }
   // no fighting in the opening and the ending shots: the warden walks on alone
   filter(inp) {
-    if (this.beat === 'intro') { const k = this.bt < 2.1 ? 1 : 0; return { ...inp, mx: 0, mz: -k * 0.55, attackPressed: false, dashPressed: false, ultPressed: false, healPressed: false, attack: false }; }
+    if (this.beat === 'intro') { const k = this.bt < DROP_AT + 0.15 ? 1 : 0; return { ...inp, mx: 0, mz: -k * 0.55, attackPressed: false, dashPressed: false, ultPressed: false, healPressed: false, attack: false }; }
     if (this.beat === 'finish' || this.beat === 'title') return { ...inp, mx: 0, mz: 0, attackPressed: false, dashPressed: false, ultPressed: false, healPressed: false, attack: false };
     // the dash lessons teach the plain dash: a movement skill on the dash button waits until they are over
     if ((this.beat === 'dash' || this.beat === 'perfect') && this.g.world && this.g.world.hero) { const h = this.g.world.hero, da = h.dashAbility; if (da && da.slot !== undefined && h.cds) h.cds[da.slot] = Math.max(h.cds[da.slot] || 0, 0.5); }
@@ -52,7 +56,18 @@ export class Duel {
     // PROPOSAL: the name; the crow's mask and mail (cast.js)
     c.def = { ...c.def, look: FALLBACK_LOOKS.crow || c.def.look, name: 'The Crow-Masked Warden', shield: false, flinch: 0 };
     c.maxHp = c.hp = 520; c.face = Math.atan2(h.x - c.x, h.z - c.z); c.flinch = 0; c.poise = c.maxPoise = 9999;
-    g.fx.mist(x, 1, z, 34, [0.3, 0.32, 0.38]); g.atmos.flash(1); g.sound.play('thunder', { vol: 1, big: true }); g.r.shake(0.4, 0.5);
+    // he falls out of the sky: a streak of air, then the ground breaks (land())
+    c.leapH = DROP_H; c.ai.pose = true; c.anim = 'dash'; c.animT = 0; this.dropT = 0;
+    g.atmos.flash(0.6); g.sound.play('dash', { vol: 0.9 }); g.sound.play('thunder', { vol: 0.7, delay: 0.1 });
+  }
+  land() {
+    const g = this.g, h = this.hero, c = this.crow; this.landT = this.bt; c.leapH = 0; c.anim = 'kneel'; c.animT = 0;
+    g.fx.shockRing(c.x, c.z, 9, [2.4, 2.4, 2.8], 0.9); g.fx.shockRing(c.x, c.z, 4, [3, 3, 3], 0.5);
+    g.fx.mist(c.x, 0.6, c.z, 60, [0.32, 0.34, 0.4]); g.fx.embers(c.x, 0.4, c.z, 40, [2.4, 2.2, 2.6]);
+    g.atmos.flash(1); g.r.post.flash = 0.5; g.flashT = 0.1; g.sound.play('boom'); g.sound.play('thunder', { vol: 1, big: true }); if (g.settings.shake !== false) g.r.shake(1.0, 0.9);
+    this.slowFor(0.45, 0.25);
+    // the blast throws the warden back a step
+    if (h) { const dx = h.x - c.x, dz = h.z - c.z, L = Math.hypot(dx, dz) || 1; h.kbx = dx / L * 7; h.kbz = dz / L * 7; h.face = Math.atan2(-dx, -dz); }
   }
 
   update(dt, evs) {
@@ -78,12 +93,18 @@ export class Duel {
     const near = (d) => { if (!c || c.dead || c.state === 'windup' || c.state === 'attack' || c.state === 'stagger') return; const dx = h.x - c.x, dz = h.z - c.z, L = Math.hypot(dx, dz); if (L > d) { const s = Math.min(L - d, 2.6 * dt); c.x += dx / L * s; c.z += dz / L * s; c.anim = 'walk'; } else if (c.anim === 'walk') c.anim = 'idle'; };
     switch (this.beat) {
       case 'intro':
-        if (this.bt > 1.3 && !c) this.spawnCrow();
-        if (this.crow) turnCrow();
-        if (this.bt > 2.3 && !this.line) { const lead = g.run ? g.run.hero : 'warden'; this.line = { text: lead === 'warden' ? 'OATHBREAKER. YOU SWORE NEVER TO COME BACK.' : 'TURN BACK. THE BELL IS SILENT BY OATH.', t: 0 }; } // PROPOSAL (STORY_BIBLE.md)
-        if (this.line) this.line.t += dt;
-        this.bars = 1 - ease((this.bt - 4.6) / 0.6);
-        if (this.bt > 5.0 || (this.bt > 2.8 && g.input && false)) { this.line = null; this.go('strike'); this.say('STRIKE'); g.ui.clearToasts && g.ui.clearToasts(); }
+        if (this.bt > DROP_AT && !c) this.spawnCrow();
+        if (c && this.landT === undefined) { this.dropT += dt; const k = Math.min(1, this.dropT / FALL); c.leapH = DROP_H * (1 - k * k); if (k >= 1) this.land(); }
+        if (c && this.landT !== undefined) {
+          const lt = this.bt - this.landT; turnCrow();
+          if (lt > 0.35 && !this.named) { this.named = true; this.nameT = 0; g.sound.play('toll', { vol: 0.6 }); }
+          if (lt > 1.0 && !this.rose) { this.rose = true; c.anim = 'rise'; c.animT = 0; }
+          if (lt > 1.8 && !this.roared) { this.roared = true; c.anim = 'roar'; c.animT = 0; g.sound.play('roar', { vol: 0.55 }); if (g.settings.shake !== false) g.r.shake(0.35, 0.6); g.fx.shockRing(c.x, c.z, 5, [2.2, 2.2, 2.6], 0.5); }
+          if (lt > 3.0 && c.ai.pose) { c.ai.pose = false; c.anim = 'idle'; }
+        }
+        if (this.nameT !== undefined) this.nameT += dt;
+        this.bars = 1 - ease((this.bt - (STRIKE_AT - 0.4)) / 0.6);
+        if (this.bt > STRIKE_AT) { if (c) c.ai.pose = false; this.go('strike'); this.say('STRIKE'); g.ui.clearToasts && g.ui.clearToasts(); }
         break;
       case 'strike':
         turnCrow(); near(1.9);
@@ -119,7 +140,7 @@ export class Duel {
       case 'finish':
         this.bars = ease(this.bt / 0.8);
         if (this.bt > 1.2) this.slowK = Math.min(1, this.slowK + dt * 0.8);
-        if (this.bt > 2.4) { this.go('title'); g.sound.play('bigBell'); g.sound.setMusic('title'); }
+        if (this.bt > 3.0) { this.go('title'); g.sound.play('bigBell'); g.sound.setMusic('title'); }
         break;
       case 'title':
         this.titleK = ease((this.bt - 1.6) / 1.4);
@@ -147,20 +168,41 @@ export class Duel {
     g.after(0.7, () => { g.leaving = false; g.duelOn = false; g.tutorial = null; g.openMap(); });
   }
 
-  // the camera: close on the two of them in the duel, the gate and the title at the end
+  // the camera: low cinematic angles in the intro, the finish and the title (view: [yaw, pitch] in degrees; snap: a
+  // hard cut); in the duel itself the usual high angle, close on the two of them
   camera() {
-    const g = this.g, h = this.hero, c = this.crow;
-    if (this.beat === 'title') { const k = ease(this.bt / 2.4); return { target: new THREE.Vector3(h.x + (this.gate.x - h.x) * k, 2.2 * k, h.z + (this.gate.z - h.z) * k * 0.85), zoom: 1.6 - 0.45 * k }; }
-    if (!c || c.dead && this.beat !== 'finish') return { target: new THREE.Vector3(h.x, 0.4, h.z - 1.2), zoom: 1.7 };
-    const mid = new THREE.Vector3((h.x + c.x) / 2, 0.6, (h.z + c.z) / 2);
-    const d = Math.hypot(h.x - c.x, h.z - c.z); const z = this.beat === 'finish' ? 2.1 : (this.freeze ? 2.0 : Math.max(1.35, Math.min(1.8, 7 / Math.max(1, d))));
+    const g = this.g, h = this.hero, c = this.crow; const V3 = THREE.Vector3;
+    if (this.beat === 'intro') {
+      const t = this.bt;
+      // the road: low behind the warden, the gate ahead
+      if (!c) { const k = ease(t / DROP_AT); return { target: new V3(h.x, 1.0, h.z - 3.5), zoom: lerp(1.1, 1.35, k), view: [lerp(2, 14, k), lerp(8, 11, k)], snap: t < 0.05 }; }
+      // the fall, low, from in front of him: the camera follows him down
+      if (this.landT === undefined) return { target: new V3(c.x, 1.2 + c.leapH * 0.6, c.z), zoom: 1.6, view: [168, 12], snap: true }; // from the gate's side, down the road: no fence between
+      // the crater: a slow turn round him while he rises; then up into the duel's angle
+      const k = ease((t - this.landT) / 3.2), back = ease((t - (STRIKE_AT - 0.9)) / 0.8);
+      const tgt = new V3(c.x, 1.1, c.z).lerp(new V3((h.x + c.x) / 2, 0.6, (h.z + c.z) / 2), back);
+      return { target: tgt, zoom: lerp(lerp(2.2, 2.6, k), 1.6, back), view: [lerp(lerp(170, 186, k), 45, back), lerp(lerp(11, 20, k), 40, back)], snap: t - this.landT < 0.02 };
+    }
+    if (this.beat === 'title') {
+      // over the warden's shoulder, low, toward the gate; the camera rises as the title comes
+      const k = ease(this.bt / 2.4);
+      return { target: new V3(h.x + (this.gate.x - h.x) * k, 1 + 2.2 * k, h.z + (this.gate.z - h.z) * k * 0.85), zoom: 1.5 - 0.4 * k, view: [lerp(18, 6, k), lerp(16, 10, k)], snap: this.bt < 0.02 };
+    }
+    if (!c || c.dead && this.beat !== 'finish') return { target: new V3(h.x, 0.4, h.z - 1.2), zoom: 1.7 };
+    if (this.beat === 'finish') {
+      // the last blow in slow motion: the camera drops and swings round the crow as he falls
+      const k = ease(this.bt / 2.8); const yaw0 = this.finYaw ?? (this.finYaw = (Math.atan2(h.x - c.x, h.z - c.z) * 180 / Math.PI) + 90);
+      return { target: new V3(c.x, 0.9, c.z), zoom: lerp(2.0, 2.7, k), view: [lerp(yaw0, yaw0 + 75, k), lerp(28, 9, k)], snap: this.bt < 0.02 };
+    }
+    const mid = new V3((h.x + c.x) / 2, 0.6, (h.z + c.z) / 2);
+    const d = Math.hypot(h.x - c.x, h.z - c.z); const z = this.freeze ? 2.0 : Math.max(1.35, Math.min(1.8, 7 / Math.max(1, d)));
     return { target: mid, zoom: z };
   }
 
   draw(ui, dt) {
     const g = this.g, W = ui.w, H = ui.h;
     if (this.bars > 0.01) ui.letterbox(this.bars);
-    if (this.line && this.beat === 'intro') { const a = Math.min(1, this.line.t * 3); drawLineBox(ui, 'THE CROW-MASKED WARDEN', '#b4bac4', this.line.text, a, 'bottom'); } // PROPOSAL
+    if (this.beat === 'intro' && this.nameT !== undefined && this.nameT < 2.8) drawNameCard(ui, 'THE CROW-MASKED WARDEN', 'KEEPER OF THE OLD ROAD', this.nameT, 2.8); // PROPOSAL: the name and the title under it
     const wd = this.word;
     if (wd && this.beat !== 'title') {
       const a = Math.min(1, wd.t * 4) * (wd.okT ? Math.max(0, 1 - (wd.okT += dt) * 1.6) : 1); if (a <= 0.01) { if (wd.okT) this.word = null; }
@@ -174,8 +216,9 @@ export class Duel {
     }
     if (this.beat === 'title' && this.titleK > 0) {
       const a = this.titleK; ui.letterbox(1);
-      ui.logo(W / 2, Math.round(H * 0.26), a);
-      ui.text('RING THE BELL. BRING THE DAWN.', W / 2, Math.round(H * 0.26) + 34, { align: 'center', color: COL.dim, alpha: a });
+      const sc = Math.max(3, Math.min(6, Math.floor((W - 40) / Math.max(1, ui.measure('BELLMOURN'))))); const ly = Math.round(H * 0.24);
+      ui.logo(W / 2, ly, a, sc);
+      ui.text('RING THE BELL. BRING THE DAWN.', W / 2, ly + sc * 9 + Math.max(10, sc * 3), { align: 'center', color: COL.gold, alpha: Math.max(0, Math.min(1, (this.titleK - 0.5) * 2)) });
       if (this.bt > 3.6) ui.text(g.inputMode === 'touch' ? 'TAP TO GO ON' : 'ENTER TO GO ON', W / 2, H - 14, { align: 'center', color: '#6a6252', alpha: 0.5 + 0.3 * Math.sin(this.t * 3) });
     }
   }

@@ -561,7 +561,13 @@ export class Game {
   // The Old Road: the first run's tutorial duel; later runs a short cinematic walk to the gate.
   async oldRoad() {
     const first = !this.meta.story.seen.tutorial;
-    this.run.at = null; this.node = { id: 'road', kind: 'road', area: 'prologue', tier: 0 }; this.duelOn = first;
+    this.run.at = null; this.node = { id: 'road', kind: 'road', area: 'prologue', tier: 0 };
+    // the very first time: the opening cinematic (the bell, the night, every great enemy ahead, God), then the duel
+    if (first && !this.seen('opening') && SCENES.opening && !this.noScenes) {
+      this.duelOn = false; await this.enterArea(this.node, { road: true });
+      this.playScene('opening', { run: this.run }, () => this.oldRoad(), { always: true }); return;
+    }
+    this.duelOn = first;
     await this.enterArea(this.node, { road: true });
     if (!first) this.playScene('road.short', { run: this.run }, () => this.openMap(), { always: true });
   }
@@ -1024,7 +1030,8 @@ export class Game {
   play(dt, inp) {
     const w = this.world; const hero = w.hero; const def = this.level.def;
     if (inp.pausePressed) { this.go('pause'); return; }
-    if (this.debug && this.debug.god) { w.hero.hp = w.hero.maxHp; }
+    if (!hero) return; // a staged set with no warden in it (a debug scene that has ended): nothing to play
+    if (this.debug && this.debug.god && w.hero) { w.hero.hp = w.hero.maxHp; }
     if (this.tutorial && (inp.confirm || inp.taps.length) && this.tutorial.tap) this.tutorial.tap();
     const ts = (this.timeScale || 1) * (this.tutorial && this.tutorial.timeK ? this.tutorial.timeK() : 1);
     w.update(dt * ts, this.tutorial && this.tutorial.filter ? this.tutorial.filter(inp) : inp);
@@ -1401,7 +1408,7 @@ export class Game {
   // ------------------------------------------------------------------ frame
   renderFrame(dt) {
     const r = this.r, w = this.world;
-    let target = null; let zt = 1;
+    let target = null; let zt = 1; let tView = null; // tView: the tutorial's camera angle [yaw, pitch] in degrees, in its cinematic beats
     const titleish = this.state === 'title' || (this.state === 'screen' && !this.run && this.levelId === 'gate') || (this.state === 'controls' || this.state === 'settings') && this.back === 'title' || (this.state === 'credits' && this.back === 'title') || (this.state === 'story' && (this.storyNext === 'prologue' || this.storyNext === 'gate'));
     if (this.state === 'cutscene' && this.cut) {
       // a scene runs the camera; its puppets are drawn with the world (which stands still, breathing)
@@ -1426,14 +1433,15 @@ export class Game {
       // a colossal boss (God): the camera pulls back and frames the two of them, its eye at His height
       if (this.boss && !this.boss.dead && this.boss.def.colossal && (this.state === 'play' || this.state === 'bossIntro')) { target.lerp(new THREE.Vector3(this.boss.x, (this.boss.def.scale || 1) * 1.1 + (this.boss.leapH || 0) * 0.4, this.boss.z), 0.35); zt = Math.min(zt, this.boss.def.colossal); }
       // the tutorial duel runs its own camera (close on the two of them, the gate at the end)
-      const tc = this.tutorial && this.tutorial.camera && (this.state === 'play' || this.state === 'screen') ? this.tutorial.camera() : null; if (tc) { target = tc.target; zt = tc.zoom; }
+      const tc = this.tutorial && this.tutorial.camera && (this.state === 'play' || this.state === 'screen') ? this.tutorial.camera() : null; if (tc) { target = tc.target; zt = tc.zoom; tView = tc.view || null; if (tc.snap) { this.camFocus.copy(target); this.zoom = zt; } }
       this.view.update(w, dt);
     }
     if (target && !this.debugCamHold && this.state !== 'cutscene') this.camFocus.lerp(target, Math.min(1, dt * (this.state === 'play' ? 6 : (this.inHaven ? 2 : 2.5))));
     if (this.zoomPunch) { zt = Math.max(zt, this.zoomPunch); this.zoomPunch = Math.max(1, this.zoomPunch - dt * 0.6); if (this.zoomPunch <= 1.001) this.zoomPunch = 0; }
     if (this.debugZoom) zt = this.debugZoom;
     if (this.state !== 'cutscene') this.zoom += (zt - this.zoom) * Math.min(1, dt * (this.inHaven ? 1.6 : 5)); r.setZoom(Math.abs(this.zoom - 1) < 0.004 ? 1 : this.zoom);
-    if (this.state !== 'cutscene' && r.viewIsDefault && !r.viewIsDefault()) r.setView(); // a cinematic's angle ends with it
+    if (this.state !== 'cutscene' && tView && r.setView) r.setView(tView[0] * Math.PI / 180, tView[1] * Math.PI / 180);
+    else if (this.state !== 'cutscene' && r.viewIsDefault && !r.viewIsDefault()) r.setView(); // a cinematic's angle ends with it
     r.focus.copy(this.camFocus);
     if (this.dashGhosts > 0 && w && w.hero) { this.ghostT -= dt; if (this.ghostT <= 0) { this.dashGhosts--; this.ghostT = 0.05; const rig = this.view.get(w.hero); if (rig) this.fx.ghost(rig); } }
     const P = r.post; P.hurt = Math.max(0, P.hurt - dt * 1.6); if (this.state !== 'dead') P.desat = Math.max(0, P.desat - dt * (this.specialT > 0 ? 0.2 : 1.5)); this.specialT = (this.specialT || 0) - dt;
