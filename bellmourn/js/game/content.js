@@ -4,5 +4,6 @@
 // each; keep the list in act order.
 export const CONTENT = [];
 import './units5.js'; // Act V foes (the God's Dream)
+import './act45.js'; // Acts IV and V: the drowned foes, the Last Seraph, the First Founder
 import './stages_more.js'; // Act I's and the run's five bosses' stages
 import './bosses8.js'; // Act VI: God and His two bells

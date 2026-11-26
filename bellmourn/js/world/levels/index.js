@@ -16,5 +16,6 @@ import marsh from './marsh.js';
 import spire from './spire.js';
 import empyrean from './empyrean.js';
 import choir from './choir.js'; // Act IV: the Drowned Heaven
+import { ORCHARD as orchard, ECHOES as echoes, HALO as halo, RIBS as ribs, UNBORN as unborn, WAKE as wake, CRADLE as cradle } from './act45.js'; // Acts IV-V, laid out by one generator
 import throne from './throne.js'; // Act VI: the Throne of the Toll
-export default { prologue, gate, market, docks, nave, undercroft, foundry, heights, belfry, frostmarch, ashdunes, catacombs, abyss, marsh, spire, empyrean, choir, throne };
+export default { prologue, gate, market, docks, nave, undercroft, foundry, heights, belfry, frostmarch, ashdunes, catacombs, abyss, marsh, spire, empyrean, choir, orchard, echoes, halo, ribs, unborn, wake, cradle, throne };
