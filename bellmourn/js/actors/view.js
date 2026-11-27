@@ -11,6 +11,7 @@ import { Rig } from './rig.js';
 import { poseFor, mix, FLASK_T } from './anims.js';
 import { makeBeast } from './beasts.js';
 import { HEROES, WEAPONS } from '../game/heroes.js';
+import { WEAPON_FX, ARMOR_STYLE } from './arms.js';
 import { AFFIXES } from '../game/heroes.js';
 import * as T from '../engine/textures.js';
 import { installElements } from '../engine/fx_elements.js';
@@ -38,15 +39,16 @@ export class ActorView {
 
   lookFor(e) {
     if (e.team === 'hero') {
-      const H = HEROES[e.heroId] || HEROES.warden; const W = WEAPONS[e.stats && e.stats.weapon];
-      return { ...H.look, ...(W && W.look ? W.look : {}) };
+      // the warden as equipped: the weapon's own model (arms.js) and the armor tier over their clothes
+      const H = HEROES[e.heroId] || HEROES.warden; const wid = e.stats && e.stats.weapon; const W = WEAPONS[wid]; const at = (e.stats && e.stats.armorTier) | 0;
+      return { ...H.look, ...(W && W.look ? W.look : {}), model: wid, armor: at ? { tier: at, style: ARMOR_STYLE[e.heroId] } : null };
     }
     return { ...e.def.look, scale: (e.def.scale || e.def.look.scale || 1) * (e.elite ? 1.15 : 1) };
   }
 
   rigFor(e) {
     let v = this.map.get(e.id);
-    const key = e.team === 'hero' ? e.heroId + ':' + (e.stats && e.stats.weapon) : e.type + (e.elite || '') + (e.element || '');
+    const key = e.team === 'hero' ? e.heroId + ':' + (e.stats && e.stats.weapon) + ':' + ((e.stats && e.stats.armorTier) | 0) : e.type + (e.elite || '') + (e.element || '');
     if (v && v.key === key) return v;
     if (v) { this.scene.remove(v.rig.root); this._dropAura(v); }
     const look = this.lookFor(e);
@@ -127,12 +129,20 @@ export class ActorView {
       // weapon trails
       const sw = SWING[e.anim];
       const swL = SWING_L[e.anim];
+      // a warden's weapon lights its own swing: its trail colour, sparks of its element off the blade (arms.js)
+      const WF = e.heroId && e.stats ? WEAPON_FX[e.stats.weapon] : null;
       if (swL && e.team === 'hero' && rig.tipL && e.animT >= swL[0] && e.animT <= swL[1] && vis) {
-        rig.j.haL.getWorldPosition(this.tmpA); rig.tipL.getWorldPosition(this.tmpB); this.fx.trail(e.id + 0.5, this.tmpA, this.tmpB, [2.8, 0.5, 0.5]);
+        rig.j.haL.getWorldPosition(this.tmpA); rig.tipL.getWorldPosition(this.tmpB); this.fx.trail(e.id + 0.5, this.tmpA, this.tmpB, WF ? WF.trail : [2.8, 0.5, 0.5]);
       }
       if (sw && e.team === 'hero' && e.animT >= sw[0] && e.animT <= sw[1] && rig.tip && vis && !(e.anim === 'kslash2')) {
         rig.handWorld(this.tmpA); rig.tipWorld(this.tmpB);
-        this.fx.trail(e.id, this.tmpA, this.tmpB, TRAIL_COL[e.heroId] || [2.4, 2.3, 2.5]);
+        this.fx.trail(e.id, this.tmpA, this.tmpB, WF ? WF.trail : (TRAIL_COL[e.heroId] || [2.4, 2.3, 2.5]));
+        if (WF && WF.swing && Math.random() < dt * 40) { const k = Math.random(); this.fx.emit(this.tmpA.x + (this.tmpB.x - this.tmpA.x) * k, this.tmpA.y + (this.tmpB.y - this.tmpA.y) * k, this.tmpA.z + (this.tmpB.z - this.tmpA.z) * k, { n: 2, speed: 1.6, life: 0.35, grav: 2, color: WF.swing, size: 1 }); }
+      }
+      // what drifts off the weapon while it is held: embers off a burning blade, frost off a cold one
+      if (WF && WF.aura && vis && !e.dead && rig.tip && Math.random() < dt * WF.aura.rate) {
+        rig.tipWorld(this.tmpB); const a = WF.aura; this.fx.emit(this.tmpB.x + (Math.random() - 0.5) * 0.15, this.tmpB.y + (Math.random() - 0.5) * 0.15, this.tmpB.z + (Math.random() - 0.5) * 0.15, { n: 1, speed: 0.25, life: 0.6, grav: a.grav, color: a.c, size: a.size || 1 });
+        if (rig.tipL && Math.random() < 0.5) { rig.tipL.getWorldPosition(this.tmpA); this.fx.emit(this.tmpA.x, this.tmpA.y, this.tmpA.z, { n: 1, speed: 0.25, life: 0.6, grav: a.grav, color: a.c, size: a.size || 1 }); }
       } else if ((e.state === 'rush' || e.state === 'charging') && rig.tip && vis) {
         rig.handWorld(this.tmpA); rig.tipWorld(this.tmpB); this.fx.trail(e.id, this.tmpA, this.tmpB, [2.6, 0.5, 0.4]);
       } else if (e.team === 'foe' && e.state === 'attack' && rig.tip && vis) {
@@ -173,6 +183,12 @@ export class ActorView {
       else z._dressBurst = true;
     }
     for (const z of world.zones) if (z._dressBurst && z.t >= z.warn) { z._dressBurst = false; this._burst(z, ZONE_TINT[z.kind]); }
+    // a warden's own shots take their weapon's light: an ember repeater's bolts burn, a pale longbow's shine
+    if (fx.projs) for (const p of world.projs) {
+      if (p.team !== 'hero' || !p.basic || !p.src || !p.src.stats) continue; const WF = WEAPON_FX[p.src.stats.weapon]; if (!WF || !WF.swing) continue;
+      const v = fx.projs.get(p.id); if (!v || v.userData.tinted) continue; v.userData.tinted = true; v.userData.trail = WF.swing.map((c) => c * 0.7); v.userData.rich = true;
+      const c = new THREE.Color(...WF.swing); v.traverse((o) => { if (o.material && o.material.color && o.material.isMeshBasicMaterial) { o.material = o.material.clone(); o.material.color.lerp(c, 0.6); } });
+    }
   }
   _burst(z, c) {
     if (z.shape === 'ring' || z.tick || z.visual) return;

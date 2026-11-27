@@ -3,6 +3,7 @@
 // pose, swing and fall is free. Characters face +Z in local space; their right hand is -X.
 import * as THREE from '../../vendor/three.module.min.js';
 import * as T from '../engine/textures.js';
+import { buildWeapon, dressArmor } from './arms.js';
 
 const box = (() => { const c = new Map(); return (w, h, d) => { const k = `${w},${h},${d}`; if (!c.has(k)) c.set(k, new THREE.BoxGeometry(w, h, d)); return c.get(k); }; })();
 const matCache = new Map();
@@ -82,10 +83,12 @@ export class Rig {
       this._part('ft' + side, box(lw, 0.07, lw * 1.6), C.boots || 0x14100e, 0, -0.01, 0.04);
     }
     if (d.skirt) { this.skirt = this._part('hips', box(tw * 1.05, 0.5, td * 1.15), d.skirt, 0, -0.28, 0); }
-    // weapon in the right hand: blade along local +Z of the hand
-    this.weapon = new THREE.Group(); this.j.haR.add(this.weapon); this.weapon.position.set(0, -0.05, 0);
-    this.tip = new THREE.Object3D(); this.weapon.add(this.tip);
-    const w = d.weapon || 'none';
+    // weapon in the right hand: blade along local +Z of the hand. A warden's weapon has its own model (arms.js,
+    // look.model = the weapon's id); everyone else has one of the shapes below.
+    this.weaponL = null;
+    const built = !!(d.model && buildWeapon(this, d));
+    if (!built) { this.weapon = new THREE.Group(); this.j.haR.add(this.weapon); this.weapon.position.set(0, -0.05, 0); this.tip = new THREE.Object3D(); this.weapon.add(this.tip); }
+    const w = built ? 'built' : (d.weapon || 'none');
     if (w === 'sword' || w === 'greatsword' || w === 'saber') {
       const L = w === 'greatsword' ? 1.35 : (w === 'saber' ? 0.95 : 1.05); const bw = w === 'greatsword' ? 0.09 : 0.05;
       this.weapon.add(this._part('haR', box(0.04, 0.04, 0.2), 0x2a1e18, 0, 0, 0.0));
@@ -141,8 +144,7 @@ export class Rig {
       const bell = new THREE.Mesh(bellG, mat(0x6a5a3a, 0x201808)); bell.position.set(0, -0.3, 1.45); this.weapon.add(bell); this.parts.push(bell);
       this.tip.position.set(0, -0.4, 1.45); this.bladeLen = 1.7;
     }
-    this.weaponL = null;
-    if (d.offhand === 'knife') { // the twin knife in the left fist, posed with weaponL
+    if (d.offhand === 'knife' && !this.weaponL) { // the twin knife in the left fist, posed with weaponL
       const g = new THREE.Group(); g.position.set(0, -0.05, 0); this.j.haL.add(g); this.weaponL = g;
       const add = (geom, c, x, y, z, o) => { const m = this._part('haL', geom, c, x, y, z, o); g.add(m); return m; };
       add(box(0.04, 0.04, 0.14), 0x2a1a14, 0, 0, 0.02); add(box(0.12, 0.03, 0.03), d.guard || 0x6a5a48, 0, 0, 0.09);
@@ -166,6 +168,7 @@ export class Rig {
     } else if (d.offhand === 'shield') {
       this._part('elL', box(0.06, 0.55, 0.42), 0x3a3e46, 0.08, -0.15, 0.08);
     }
+    if (d.armor) dressArmor(this, d);
     if (d.extra) d.extra(this, (j, g, c, x, y, z, o) => this._part(j, g, c, x, y, z, o), box);
   }
 

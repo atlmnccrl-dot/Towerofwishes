@@ -10,6 +10,7 @@
 // outside world.ents, drawn by the same ActorView) and may borrow the hero or the boss.
 import * as THREE from '../../vendor/three.module.min.js';
 import { HEROES, WEAPONS } from './heroes.js';
+import { ARMOR_STYLE } from '../actors/arms.js';
 import { FOES, BOSSES } from './defs.js';
 import { UNITS } from './units.js';
 import { BOSSES2 } from './bosses2.js';
@@ -71,7 +72,7 @@ export function puppet(g, id, spec) {
       let look = null, scale = 1, type = 'cut:' + id, heroId;
   if (spec.hero) {
     const H = HEROES[spec.hero]; heroId = spec.hero;
-    if (H) { const P = g.save.heroes && g.save.heroes[spec.hero]; const W = WEAPONS[P && P.weapon]; look = { ...H.look, ...(W && W.look ? W.look : {}) }; type = 'cut:hero:' + spec.hero + ':' + (P && P.weapon); }
+    if (H) { const P = g.save.heroes && g.save.heroes[spec.hero]; const W = WEAPONS[P && P.weapon]; const at = (P && P.armor) | 0; look = { ...H.look, ...(W && W.look ? W.look : {}), model: P && P.weapon, armor: at ? { tier: at, style: ARMOR_STYLE[spec.hero] } : null }; type = 'cut:hero:' + spec.hero + ':' + (P && P.weapon) + ':' + at; } // as equipped (actors/arms.js)
     else look = FALLBACK_LOOKS[spec.hero] || FALLBACK_LOOKS.freed;
   } else if (spec.foe) { const D = FOES[spec.foe] || UNITS[spec.foe]; look = D ? D.look : FALLBACK_LOOKS[spec.foe] || FALLBACK_LOOKS.hushed; scale = D ? (D.scale || 1) : 1; type = 'cut:foe:' + spec.foe; }
   else if (spec.boss) { const D = BOSSES[spec.boss] || BOSSES2[spec.boss]; look = D ? D.look : FALLBACK_LOOKS.boss; scale = D ? (D.scale || 1) : (FALLBACK_LOOKS.boss.scale || 1); type = 'cut:boss:' + spec.boss + (D ? '' : ':fb'); }

@@ -196,6 +196,24 @@ export const upgradeCost = (id, plus) => Math.round(40 * Math.pow((plus || 0) + 
 export const MAX_PLUS = 10;
 export const weaponPrice = (id) => Math.round(160 * Math.pow(1.8, WEAPONS[id]?.tier || 0));
 
+// ------------------------------------------------------------------ armor: four tiers per warden, worn over their
+// own clothes (actors/arms.js draws each tier). Like the weapon, it follows the depth reached (run.js statSave); the
+// merchant sells the next tier early. dr: the share of damage it turns aside.
+// PROPOSAL: the names.
+export const ARMOR_NAMES = {
+  warden: ['GATEWATCH MAIL', "BELL-WARDEN'S CUIRASS", 'CRESTED HARNESS', 'HARNESS OF THE RED BELL'],
+  huntress: ['ROOFRUNNER LEATHERS', "STALKER'S JERKIN", 'THE NIGHTCOWL', 'MOONHUNT LEATHERS'],
+  bellbreaker: ['FOUNDRY PLATE', "SMELTER'S CUIRASS", 'POT-HELM HARNESS', "BELLFOUNDER'S PLATE"],
+  lamplighter: ["WICK-SISTER'S STOLE", 'LANTERN VESTMENTS', 'VEIL OF THE VIGIL', "DAWNKEEPER'S HABIT"],
+  kestrel: ["GAOL-RUNNER'S WRAPS", "TURNKEY'S JERKIN", 'THE GALLOWS MASK', "NOOSE-QUEEN'S LEATHERS"],
+  hollis: ["TIDEMAN'S OILCOAT", "DIVER'S CORSELET", 'THE BRASS HELM', 'THE DROWNED HARNESS'],
+  wren: ['CHOIR STOLE', 'PSALM VESTMENTS', "CANTOR'S MITRE", 'VESTMENTS OF THE LAST HYMN'],
+};
+export const ARMOR_DR = [0, 0.02, 0.04, 0.06, 0.08];
+export const MAX_ARMOR = 4;
+export const armorName = (heroId, tier) => (tier > 0 ? (ARMOR_NAMES[heroId] || ARMOR_NAMES.warden)[tier - 1] : 'TRAVELLING CLOTHES');
+export const ARMOR_DESC = ['', 'SHOULDER GUARDS AND BRACERS.', 'A BREASTPLATE AND GREAVES.', 'A HELM, A GORGET, A BELT OF PLATES.', 'THE FULL HARNESS, ITS TRIM ALIGHT.'];
+
 // ------------------------------------------------------------------ relics (passive; two slots, a third after district IV)
 export const RELICS = {
   coin: { name: "GRAVEDIGGER'S COIN", desc: '+30% EMBERS.', price: 220 },
@@ -276,8 +294,8 @@ export function heroStats(save, heroId) {
     maxTonics: 3 + tonicUp + (save.bossTonics || 0), tonicHeal: 0.45 * (has('pearl') ? 1.3 : 1),
     dashCharges: 1 + (has('moth') ? 1 : 0), crit: (trait.crit || 0) + (has('tooth') ? 0.15 : 0),
     cdMul: (has('clapper') ? 0.82 : 1) * cdEcho, ultRate: (has('glass') ? 1.35 : 1) * ultEcho, speedMul: has('silk') ? 1.12 : 1, echo,
-    dmgTaken: (1 - (H.armor || 0)) * (has('psalter') ? 0.85 : 1), revives: has('bone') ? 1 : 0,
-    relics: [...relics], armor: H.armor || 0,
+    dmgTaken: (1 - (H.armor || 0)) * (has('psalter') ? 0.85 : 1) * (1 - (ARMOR_DR[P.armor || 0] || 0)), revives: has('bone') ? 1 : 0,
+    relics: [...relics], armor: H.armor || 0, armorTier: P.armor || 0,
   };
 }
 

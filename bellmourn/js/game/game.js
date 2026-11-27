@@ -22,7 +22,7 @@ import { BOSS_AI2, BOSSES2 } from './bosses2.js';
 import './content.js'; // add-on content (Acts IV-VI, interludes): self-registering modules
 import { FOES, BOSSES } from './defs.js';
 import { UNITS } from './units.js';
-import { HEROES, heroStats, AFFIX_LIST, RELICS, ECHOES } from './heroes.js';
+import { HEROES, heroStats, AFFIX_LIST, RELICS, ECHOES, WEAPONS, armorName, ARMOR_DESC } from './heroes.js';
 import { noteKill, noteSeen, trueEndingReady } from './progress.js';
 import {
   freshMeta, upgradeMeta, migrateSave, newRun, nextNodes, enterNode, completeNode, advanceAct, actOver, currentNode, endRun, statSave, applyRunStats,
@@ -32,6 +32,7 @@ import {
   boonChoices, tollMods, runToll, DIFF, TOLLS, miniPlan, miniScale,
 } from './run.js';
 import { Duel } from './tutorial.js';
+import { WEAPON_FX } from '../actors/arms.js';
 import { Haven } from './haven.js';
 import { buildHaven } from '../world/haven.js';
 
@@ -259,7 +260,7 @@ export class Game {
     let sx = def.start.x, sz = def.start.z, face = def.start.face ?? Math.PI;
     if (opts.at) { sx = opts.at.x; sz = opts.at.z; face = opts.at.face ?? face; }
     const hero = w.spawnHero(sx, sz, { ...this.heroStats(), face });
-    this.fitRunHero(hero);
+    this.fitRunHero(hero); this.gearCheck(hero);
     const tier = def.tier || 0;
     const loose = []; for (const f of (def.foes || []).filter(knownOrWarn)) { const m = w.spawnFoe(f.t, f.x, f.z, { tier: f.tier ?? tier, rise: false, face: f.face, elite: this.eliteFor(f, tier), element: this.elementFor(f), aggro: !!(f.wander && this.runDepth() >= 3) }); if (f.wander && this.runDepth() >= 3) { m.wander = true; m.ai.aggro = true; } loose.push(m); } // a wandering elite (C) comes looking for the warden
     this.encs = (def.encounters || []).map((e) => ({ ...e, state: prog.encs.includes(e.id) ? 'done' : 'idle', wave: -1, mine: [], delay: 0 }));
@@ -557,6 +558,32 @@ export class Game {
     this.embersShown = this.run.embers; this.persist();
     this.track({ type: 'runStart', hero: heroId });
     this.oldRoad();
+  }
+  // New gear since the last area (the weapon and the armor follow the depth; the merchant sells them early): a moment
+  // to see it, once the area's title has gone: a burst of the weapon's light at the warden, the name.
+  gearCheck(hero) {
+    const run = this.run; if (!run || !hero || !hero.stats || this.levelId === 'prologue' || this.duelOn) return;
+    const st = hero.stats; const at = st.armorTier | 0; const g = run.gear; run.gear = { weapon: st.weapon, armor: at };
+    if (!g) return; const items = [];
+    if (st.weapon !== g.weapon && WEAPONS[st.weapon]) items.push({ kind: 'NEW WEAPON', name: WEAPONS[st.weapon].name, desc: WEAPONS[st.weapon].desc, col: (WEAPON_FX[st.weapon] || {}).trail });
+    if (at > (g.armor | 0)) items.push({ kind: 'NEW ARMOR', name: armorName(run.hero, at), desc: ARMOR_DESC[at], col: [2.6, 2.2, 1.4] });
+    if (items.length) this.gearNews = { items, i: 0, t: this.card ? -3.4 : -0.8, fired: -1 };
+  }
+  gearStep(dt, ui, W, H) {
+    const N = this.gearNews; if (!N) return; N.t += dt * (this.world && this.world.combat ? 3 : 1); if (N.t < 0) return;
+    const it = N.items[N.i]; if (!it) { this.gearNews = null; return; }
+    const hero = this.world && this.world.hero;
+    if (N.fired !== N.i && hero) { // the moment: light bursts off the warden
+      N.fired = N.i; const c = it.col || [2.6, 2.4, 2]; this.fx.shockRing(hero.x, hero.z, 3.2, c, 0.6); this.fx.embers(hero.x, 1, hero.z, 40, c); this.fx.emit(hero.x, 1.2, hero.z, { n: 30, speed: 2.4, life: 0.6, grav: -1, color: c, size: 1 });
+      this.sound.play('special', { vol: 0.5 }); this.sound.play('bigBell', { vol: 0.4, delay: 0.1 }); this.zoomPunch = 1.45;
+    }
+    const D = 3.2, t = N.t; const a = Math.max(0, Math.min(1, t * 4, (D - t) * 2.5));
+    const y = Math.round(H * 0.2); const sc = ui.measure(it.name, 2) <= W - 40 ? 2 : 1;
+    ui.text(it.kind, W / 2, y, { align: 'center', color: COL.gold, alpha: a });
+    ui.text(it.name, W / 2, y + 11, { align: 'center', scale: sc, color: COL.white, alpha: a });
+    const bw = Math.round(ui.measure(it.name, sc) * Math.min(1, t * 3)); ui.rect(Math.round(W / 2 - bw / 2), y + 11 + sc * 7 + 3, bw, 1, '#c8a040');
+    if (it.desc) ui.text(it.desc, W / 2, y + 11 + sc * 7 + 8, { align: 'center', color: COL.dim, alpha: a });
+    if (t > D) { N.i++; N.t = -0.3; }
   }
   // The Old Road: the first run's tutorial duel; later runs a short cinematic walk to the gate.
   async oldRoad() {
@@ -1301,7 +1328,10 @@ export class Game {
         case 'shoot': snd.play(ev.kind === 'hfire' ? 'orb' : 'bolt', { vol: 0.5 }); break;
         case 'hit': {
           const d = ev.dst; const y = 1.0 * (d.def?.scale || 1);
-          fx.sparks(d.x, y, d.z, ev.ang, ev.heavy ? 14 : (ev.crit ? 16 : 8), ev.crit ? [3, 2.6, 0.8] : undefined);
+          // a warden's blows spark in their weapon's colour (arms.js WEAPON_FX): fire, frost, lightning, gold
+          const WF = ev.src && ev.src.heroId && ev.src.stats ? WEAPON_FX[ev.src.stats.weapon] : null; const wc = WF && WF.swing ? WF.hit : null;
+          fx.sparks(d.x, y, d.z, ev.ang, ev.heavy ? 14 : (ev.crit ? 16 : 8), ev.crit ? [3, 2.6, 0.8] : (wc || undefined));
+          if (wc) fx.emit(d.x, y, d.z, { n: ev.heavy || ev.crit ? 12 : 6, speed: 2.2, life: 0.4, grav: WF.aura ? WF.aura.grav * 2 : 1, color: wc, size: 1 });
           fx.blood(d.x, y, d.z, ev.ang, ev.heavy ? 26 : 12);
           if (Math.random() < 0.6) fx.bloodPool(d.x, d.z, ev.heavy ? 1.2 : 0.8);
           if (ev.hero && d === hero) { snd.play('heroHurt'); r.post.hurt = 0.7; if (this.run && d === hero) { this.run.stats.damageTaken += ev.dmg || 0; this.track({ type: 'hit', hero: true, dst: d, dmg: ev.dmg }); } }
@@ -1500,6 +1530,7 @@ export class Game {
       Object.assign(hs, { world: this.world, boss: hb, bossPhases: hb && !hb.mini ? (BOSS_AI[hb.type] || BOSS_AI2[hb.type] || {}).phases : null, toll: run ? runToll(run) : 0, embersShown: this.embersShown, prompt: S === 'play' ? this.prompt : null, padMode: this.inputMode === 'pad', noToasts: S === 'pause', level: lv ? lv.level : 1, xpFrac: 0, points: 0, run, boons: run ? run.boons : [], act: run ? run.act : 0, duel: !!this.duelOn });
       ui.toastY = S === 'play' && this.tutorial && this.tutBottom ? this.tutBottom + 3 : 0;
       if (S !== 'bossIntro' && !(this.tutorial && this.tutorial.hideHud && this.tutorial.hideHud())) ui.hud(hs, dt);
+      if (S === 'play' && this.gearNews) this.gearStep(dt, ui, W, H);
       if (this.card && S === 'play') {
         this.card.t += dt * (this.world.combat ? 4 : 1); const c = this.card; const a = Math.min(1, c.t * 1.5, Math.max(0, (4.5 - c.t) * 1.2));
         const y0 = Math.round(H * 0.62);

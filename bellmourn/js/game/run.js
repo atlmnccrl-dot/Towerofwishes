@@ -6,7 +6,7 @@
 // Other owners' pure modules are optional here: the quest nodes (C, quests.js), the area variants (C,
 // variants.js) and the challenges (D, challenges.js) are imported when present; each use is guarded, so this
 // file runs (and its test passes) without them. setProviders() can also hand them in.
-import { HEROES, HERO_ORDER, START_HEROES, WEAPONS, RELICS, START_WEAPON, weaponsOfType, ECHOES, MAX_LEVEL } from './heroes.js';
+import { HEROES, HERO_ORDER, START_HEROES, WEAPONS, RELICS, START_WEAPON, weaponsOfType, ECHOES, MAX_LEVEL, MAX_ARMOR, armorName, ARMOR_DESC } from './heroes.js';
 
 const P = {}; // optional providers: { quests, variants, challenges }
 async function tryImport(key, path) {
@@ -511,6 +511,8 @@ export function advanceAct(run, meta) {
 export function roadEnd(run, meta) { const next = (run.act | 0) + 1; return next > LAST_ACT ? 'end' : (!actUnlocked(meta, next) ? 'locked' : (!actPlayable(next) ? 'unbuilt' : null)); }
 export const actOver = (run) => { const n = currentNode(run); return !!(n && n.kind === 'boss' && run.cleared.includes(n.id)); };
 
+// the armor tier a warden has earned by this depth: the first pieces in Act I's second area, the full harness deep in
+export const autoArmor = (tier) => Math.max(0, Math.min(MAX_ARMOR, Math.floor((tier + 1) / 3)));
 // How strong the warden is at this depth: the level and the weapon follow the deepest area tier reached (the curve
 // the balance tests use); boons, talents and the Tower come on top. A virtual save for heroes.heroStats().
 export function statSave(run, meta) {
@@ -518,8 +520,9 @@ export function statSave(run, meta) {
   const level = Math.min(MAX_LEVEL, 1 + Math.round(tier * 2.6));
   const ws = weaponsOfType(H.weapon); const auto = ws[Math.min(ws.length - 1, Math.floor(tier / 2))] || START_WEAPON[H.weapon];
   const own = WEAPONS[run.weapon] ? run.weapon : auto; const weapon = (WEAPONS[own].tier >= WEAPONS[auto].tier) ? own : auto;
+  const armor = Math.max(run.armorTier | 0, autoArmor(tier)); // the armor, like the weapon, follows the depth
   const ranks = {}; for (const a of H.abilities) ranks[a] = clamp(1 + Math.floor(tier / 3), 1, 5); ranks[H.ult] = clamp(1 + Math.floor(tier / 4), 1, 5);
-  const heroes = {}; for (const id of HERO_ORDER) heroes[id] = { level, xp: 0, points: 0, weapon: id === run.hero ? weapon : START_WEAPON[HEROES[id].weapon], owned: [weapon], plus: { [weapon]: Math.min(10, Math.round(tier * 0.7)) }, ranks: id === run.hero ? ranks : {}, equipped: HEROES[id].abilities.slice(0, 2) };
+  const heroes = {}; for (const id of HERO_ORDER) heroes[id] = { level, xp: 0, points: 0, weapon: id === run.hero ? weapon : START_WEAPON[HEROES[id].weapon], owned: [weapon], plus: { [weapon]: Math.min(10, Math.round(tier * 0.7)) }, ranks: id === run.hero ? ranks : {}, equipped: HEROES[id].abilities.slice(0, 2), armor: id === run.hero ? armor : autoArmor(tier) };
   const echoes = [...new Set([...(run.echoes || [])])];
   return {
     v: 2, hero: run.hero, heroes, unlocked: [run.hero, ...((meta && meta.friends) || []).filter((h) => h !== run.hero)],
@@ -577,6 +580,8 @@ export function merchantStock(run, seed) {
   for (const id of relics.slice(0, 2)) items.push({ id: 'relic:' + id, kind: 'relic', relic: id, name: RELICS[id].name, desc: RELICS[id].desc, price: Math.round((RELICS[id].price * 0.45) * k) });
   const H = HEROES[run.hero]; const ws = weaponsOfType(H.weapon); const cur = statSave(run).heroes[run.hero].weapon; const next = ws.find((w) => WEAPONS[w].tier === WEAPONS[cur].tier + 1);
   if (next) items.push({ id: 'weapon:' + next, kind: 'weapon', weapon: next, name: WEAPONS[next].name, desc: WEAPONS[next].desc, price: Math.round(150 * (1 + WEAPONS[next].tier * 0.4) * k) });
+  const at = statSave(run).heroes[run.hero].armor | 0;
+  if (at < MAX_ARMOR) items.push({ id: 'armor:' + (at + 1), kind: 'armor', armor: at + 1, name: armorName(run.hero, at + 1), desc: ARMOR_DESC[at + 1] + ' LESS DAMAGE TAKEN.', price: Math.round(130 * (1 + at * 0.45) * k) });
   return items;
 }
 // Pay for an item; the run changes where it can by itself (tonic, relic, weapon). Returns { ok, msg, then }:
@@ -590,6 +595,7 @@ export function buyItem(run, item, maxTonics = 99) {
   if (item.kind === 'tonic') { run.tonics = (run.tonics ?? maxTonics - 1) + 1; return { ok: true, msg: 'A TONIC' }; }
   if (item.kind === 'relic') { run.relics.push(item.relic); return { ok: true, msg: 'RELIC: ' + item.name }; }
   if (item.kind === 'weapon') { run.weapon = item.weapon; return { ok: true, msg: 'WEAPON: ' + item.name }; }
+  if (item.kind === 'armor') { run.armorTier = Math.max(run.armorTier | 0, item.armor); return { ok: true, msg: 'ARMOR: ' + item.name }; }
   return { ok: true, msg: item.name, then: item.kind };
 }
 // heal by a fraction of max health (run.hp null = full)
