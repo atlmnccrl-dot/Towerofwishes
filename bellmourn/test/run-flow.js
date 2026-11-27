@@ -79,7 +79,10 @@ const fs = require('fs');
   await p.waitForTimeout(1500); await shot('dead');
   await until(() => BM.game.screenName === 'SummaryScreen', 60000, null); await p.waitForTimeout(1500); await shot('summary');
   check(await p.evaluate(() => !BM.game.run && !localStorage.getItem('bellmourn.run.v3') && BM.game.meta.runs === 1 && BM.game.meta.shards > 0), 'death ends the run and pays into meta');
-  await p.evaluate(() => BM.game.screenH.done()); await until(() => BM.game.state === 'title', 30000); await p.waitForTimeout(1000); await shot('title-after');
+  await p.evaluate(() => BM.game.screenH.done()); await p.waitForTimeout(800);
+  // shards to spend: the run's end opens the Bell Tower first
+  if (await p.evaluate(() => BM.game.screenName === 'TowerScreen')) { await shot('tower-after'); await p.evaluate(() => BM.game.screenH.back()); }
+  await until(() => BM.game.state === 'title', 30000); await p.waitForTimeout(1000); await shot('title-after');
   console.log('errors:', errs.length ? [...new Set(errs.map((e) => e.split('\n')[0]))].slice(0, 10) : 'none');
   console.log(fail.length ? fail.length + ' checks FAILED' : 'all flow checks pass');
   await b.close(); process.exit(fail.length ? 1 : 0);

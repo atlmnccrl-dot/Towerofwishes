@@ -354,6 +354,8 @@ export function buyTower(meta, id) {
   if ((meta.shards | 0) < c) return 'NOT ENOUGH SHARDS';
   meta.tower = meta.tower || {}; meta.shards -= c; meta.tower[id] = towerLevel(meta, id) + 1; return T.name + ' ' + meta.tower[id] + '/' + T.max;
 }
+// how many of the tower's open floors the shards in hand can raise now (the title and the run's end call to it)
+export const towerAffordable = (meta) => TOWER.filter((t) => towerOpen(meta, t.id) && towerCost(meta, t.id) !== null && towerCost(meta, t.id) <= (meta.shards | 0)).length;
 // what the whole tower costs, and what is built (levels)
 export const towerTotal = () => TOWER.reduce((s, t) => s + t.cost.reduce((a, b) => a + b, 0), 0);
 export const towerBuilt = (meta) => TOWER.reduce((s, t) => s + towerLevel(meta, t.id), 0);

@@ -26,7 +26,7 @@ import { HEROES, heroStats, AFFIX_LIST, RELICS, ECHOES, WEAPONS, armorName, ARMO
 import { noteKill, noteSeen, trueEndingReady } from './progress.js';
 import {
   freshMeta, upgradeMeta, migrateSave, newRun, nextNodes, enterNode, completeNode, advanceAct, actOver, currentNode, endRun, statSave, applyRunStats,
-  merchantStock, buyItem, healRun, upgradeCost, rerollCost, shrineHeal, priceK, towerLevel, buyTower, toggleTalent, availableTalents, masteryOf, matchXp, talentsOf,
+  merchantStock, buyItem, healRun, upgradeCost, rerollCost, shrineHeal, priceK, towerLevel, buyTower, toggleTalent, availableTalents, masteryOf, matchXp, talentsOf, towerAffordable,
   rngOf, hashSeed, AREA_NAMES, AREA_BOSS, AREA_TIER, RUN_VERSION, TOWER, curseMod,
   ACTS, actRoman, setPlayable, roadEnd, actUnlocked, actPlayable, foeScale, bossScale, crowdChance, bossHealFrac, lampHealFrac, arrivalFloor, emberMul, eliteChance,
   boonChoices, tollMods, runToll, DIFF, TOLLS, miniPlan, miniScale,
@@ -500,12 +500,14 @@ export class Game {
   title(dt, inp) {
     this.sound.setMusic('title');
     // PROPOSAL: the title's items
-    this.titleItems = [this.run ? { label: 'CONTINUE RUN', id: 'cont' } : null, { label: 'NEW RUN', id: 'new' }, { label: 'CONTROLS', id: 'controls' }, { label: 'SETTINGS', id: 'settings' }, { label: 'CREDITS', id: 'credits' }].filter(Boolean);
+    const sh = this.meta.shards | 0, can = towerAffordable(this.meta); // the Tower: its shards, and a mark when a floor can be raised
+    this.titleItems = [this.run ? { label: 'CONTINUE RUN', id: 'cont' } : null, { label: 'NEW RUN', id: 'new' }, { label: 'BELL TOWER', id: 'tower', note: (can ? '! ' : '') + sh, noteColor: can ? COL.gold : COL.dim }, { label: 'CONTROLS', id: 'controls' }, { label: 'SETTINGS', id: 'settings' }, { label: 'CREDITS', id: 'credits' }].filter(Boolean);
     const p = this.menuInput(inp, this.titleItems);
     if (p >= 0) {
       const id = this.titleItems[p].id;
       if (id === 'new') { if (this.run) { this.finishRun('quit', () => this.newRunFlow()); return; } this.newRunFlow(); }
       else if (id === 'cont') this.resumeRun();
+      else if (id === 'tower') this.openTower(() => { this.closeScreen(); this.go('title'); });
       else { this.back = 'title'; this.go(id); }
     }
   }
@@ -537,11 +539,17 @@ export class Game {
     this.openScreen('SelectScreen', { meta }, {
       choose: (heroId) => { if (!HEROES[heroId] || !(meta.unlocked || []).includes(heroId)) { this.sound.play('ui'); return; } this.sound.play('uiOk'); meta.lastHero = heroId; this.persistMeta(); this.talentFlow(heroId); },
       preview: (heroId) => { if (HEROES[heroId] && this.world && this.levelId === 'gate' && (!this.world.hero || this.world.hero.heroId !== heroId)) this.titleScene(heroId); },
-      tower: () => this.openScreen('TowerScreen', { meta }, { buy: (id) => { const m = buyTower(meta, id); this.persistMeta(); this.ui.toast(m, { color: m.startsWith('NOT') || m.startsWith('FULLY') ? COL.dim : COL.gold }); this.sound.play(m.startsWith('NOT') ? 'ui' : 'upgrade'); return m; }, back: () => this.newRunFlow() }),
+      tower: () => this.openTower(() => this.newRunFlow()),
       challenges: () => this.openScreen('ChallengesScreen', { meta }, { back: () => this.newRunFlow() }),
       codex: () => this.openScreen('CodexScreen', { meta }, { back: () => this.newRunFlow() }),
       back: () => { this.closeScreen(); this.go('title'); },
     });
+  }
+  // the Bell Tower: what the shards build for every run to come. From the title, the select screen and the end
+  // of a run (when the shards can raise a floor); back() is where it returns.
+  openTower(back) {
+    const meta = this.meta;
+    this.openScreen('TowerScreen', { meta }, { buy: (id) => { const m = buyTower(meta, id); this.persistMeta(); this.ui.toast(m, { color: m.startsWith('NOT') || m.startsWith('FULLY') ? COL.dim : COL.gold }); this.sound.play(m.startsWith('NOT') ? 'ui' : 'upgrade'); return m; }, back });
   }
   talentFlow(heroId) {
     const meta = this.meta;
@@ -878,7 +886,7 @@ export class Game {
     this.autoRunsDone = (this.autoRunsDone | 0) + 1; this.lastSummary = summary;
     if (outcome === 'quit' && then) { then(); return; }
     this.r.post.desat = 0; this.r.post.dawn = 0;
-    this.openScreen('SummaryScreen', { summary, meta: this.meta }, { done: () => { this.closeScreen(); this.toTitle(); } });
+    this.openScreen('SummaryScreen', { summary, meta: this.meta }, { done: () => { this.closeScreen(); if (towerAffordable(this.meta) && !this.auto) { this.openTower(() => { this.closeScreen(); this.toTitle(); }); this.ui.toast('THE BELL TOWER: YOUR SHARDS CAN RAISE ' + towerAffordable(this.meta) + (towerAffordable(this.meta) > 1 ? ' FLOORS' : ' FLOOR'), { color: COL.gold, life: 4 }); } else this.toTitle(); } });
   }
   async toTitle() { this.token++; this.timers = []; this.leaveHaven(); this.go('loading'); await this.loadLevel('gate', { fromStart: true }); this.titleScene(); this.go('title'); }
 
@@ -1619,7 +1627,7 @@ export class Game {
     ui.logo(W / 2, ly, a);
     if (!short) ui.text('RING THE BELL. BRING THE DAWN.', W / 2, ly + 34, { align: 'center', color: COL.dim, alpha: a });
     const items = this.titleItems || []; const gap = 4; const y0 = ly + (short ? 34 : 48); const h = this.menuHeight(items.length, H - 6 - y0, gap);
-    const x = sl + 12, w = 118; const g = ui.g, a0 = g.globalAlpha; g.globalAlpha = a0 * a;
+    const x = sl + 12, w = 140; const g = ui.g, a0 = g.globalAlpha; g.globalAlpha = a0 * a;
     this.menuRects = ui.buttons(items, this.sel, x, y0, w, h, gap, { align: 'left' });
     g.globalAlpha = a0;
     ui.text('V2.1', W - 4 - sr, H - 10, { align: 'right', color: '#4a463e' });
