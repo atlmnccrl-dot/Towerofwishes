@@ -182,7 +182,7 @@ export class TalentScreen extends Screen {
   render(ui) {
     const t = this.t, hero = this.data.hero; const B = this.box(ui); const col = heroColour(hero); const D = HEROES[hero] || { name: hero, title: '' }; const m = this.mastery();
     backdrop(ui, t, { veil: this.data.veil, tint: mix(col, '#000', 0.5), cx: 0.2 });
-    header(ui, B.L, B.T, 'TALENTS', 'CHOOSE UP TO ' + this.slots(), { maxW: B.R - B.L }); // PROPOSAL
+    header(ui, B.L, B.T, 'TRAITS', 'LEARNED BY FIGHTING. CHOOSE UP TO ' + this.slots(), { maxW: B.R - B.L }); // PROPOSAL
     const top = B.T + 22; const pw = Math.round(Math.min((B.R - B.L) * 0.3, (B.B - top - 24) * 0.75));
     // the warden
     glow(ui, B.L, top, pw, B.B - top - 24, col, 0.6, 4); iron(ui, B.L, top, pw, B.B - top - 24, { fill: mix(col, '#07080b', 0.86) });
@@ -191,7 +191,7 @@ export class TalentScreen extends Screen {
     ui.text('MASTERY ' + m.level, B.L + pw / 2, top + ph + 18, { align: 'center', color: col, shadow: false }); // PROPOSAL
     bar(ui, B.L + 6, top + ph + 29, pw - 12, 3, m.frac, col);
     // the talents
-    const T = talentsOf(hero); const x = B.L + pw + 8, w = B.R - x; const viewH = B.B - top - 24; const rh = Math.max(24, Math.min(30, Math.floor(viewH / Math.max(1, T.length)) - 3));
+    const T = talentsOf(hero); const x = B.L + pw + 8, w = B.R - x; const viewH = B.B - top - 24; const rh = 33; // two lines of what it does (the list scrolls when it is longer than the screen)
     const max = Math.max(0, T.length * (rh + 3) - 3 - viewH); this.scroll = clamp(this.scroll || 0, 0, max);
     const g = ui.g; g.save(); g.beginPath(); g.rect(x - 4, top - 3, w + 8, viewH + 4); g.clip();
     T.forEach((tl, i) => {

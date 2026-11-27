@@ -221,29 +221,65 @@ export function migrateSave(v2) {
 export const MASTERY_MAX = 12;
 export const masteryNeed = (L) => 75 * L * (L + 1);
 export function masteryLevel(xp) { let L = 0; while (L < MASTERY_MAX && xp >= masteryNeed(L + 1)) L++; return L; }
-export const talentSlots = (level) => (level >= 8 ? 3 : (level >= 3 ? 2 : 1));
+export const talentSlots = (level) => (level >= 6 ? 3 : (level >= 2 ? 2 : 1));
 export function masteryOf(meta, heroId) { const m = (meta && meta.mastery && meta.mastery[heroId]) || { xp: 0, level: 0, talents: [] }; return { xp: m.xp | 0, level: masteryLevel(m.xp | 0), talents: Array.isArray(m.talents) ? m.talents : [] }; }
 
-// Talents: small permanent passives, picked at the start of a run (PROPOSAL: every name and line).
-// mods multiply or add to the warden's stats (applyRunStats); run: what the run starts with.
-const GENERIC_TALENTS = [
-  { id: 'vigor', name: 'IRON VIGOR', desc: '+12% MAX HEALTH.', level: 0, mods: { hpMul: 1.12 } },
-  { id: 'edge', name: 'WHETTED EDGE', desc: '+8% DAMAGE.', level: 1, mods: { dmgMul: 1.08 } },
-  { id: 'purse', name: 'EMBER PURSE', desc: 'START WITH 60 EMBERS.', level: 2, run: { embers: 60 } },
-  { id: 'swift', name: 'LIGHT STEP', desc: '+8% MOVE SPEED.', level: 5, mods: { speedMul: 1.08 } },
-  { id: 'flask', name: 'DEEP FLASK', desc: 'CARRY ONE MORE TONIC.', level: 7, mods: { tonics: 1 } },
-  { id: 'focus', name: 'BELL FOCUS', desc: 'SKILLS RECHARGE 10% FASTER.', level: 9, mods: { cdMul: 0.9 } },
-];
-const SIGNATURE = {
-  warden: { id: 'oath', name: 'THE REFUSED OATH', desc: 'THE ULTIMATE CHARGES 15% FASTER.', mods: { ultRate: 1.15 } },
-  huntress: { id: 'hawk', name: 'ROOFTOP EYES', desc: '+8% CRITICAL CHANCE.', mods: { crit: 0.08 } },
-  bellbreaker: { id: 'anvil', name: 'ANVIL HIDE', desc: 'TAKE 8% LESS DAMAGE.', mods: { dmgTaken: 0.92 } },
-  lamplighter: { id: 'kindle', name: 'KINDLED CARE', desc: 'TONICS HEAL 25% MORE.', mods: { tonicHeal: 1.25 } },
-  kestrel: { id: 'cutpurse', name: 'GAOL-QUICK', desc: '+6% DAMAGE AND +5% SPEED.', mods: { dmgMul: 1.06, speedMul: 1.05 } },
-  hollis: { id: 'deep', name: 'THE DEEP HOLDS', desc: '+18% MAX HEALTH.', mods: { hpMul: 1.18 } },
-  wren: { id: 'hymn', name: 'OLD HYMNS', desc: 'SKILLS RECHARGE 8% FASTER, ULTIMATE 8% FASTER.', mods: { cdMul: 0.92, ultRate: 1.08 } },
+// Traits: what a warden learns by fighting (the mastery each match earns). Each warden has five, their own, each a
+// new way to fight rather than a bigger number (sim_traits.js makes them real); picked at the start of a run, one
+// slot at first, two at mastery 2, three at mastery 6. level: the mastery that unlocks it. trait: its id in the fight.
+// PROPOSAL: every name and line.
+const TRAIT_LIST = {
+  warden: [
+    { id: 'riposte', name: 'RIPOSTE', desc: 'A PERFECT DODGE READIES A RIPOSTE: YOUR NEXT BLOW HITS 3X AND STAGGERS.', level: 1 },
+    { id: 'thirdbell', name: 'THE THIRD BELL', desc: 'THE LAST CUT OF YOUR COMBO SENDS A CRESCENT OF STEEL FLYING ON.', level: 2 },
+    { id: 'laststand', name: 'THE REFUSED OATH', desc: 'ONCE AN AREA, A BLOW THAT WOULD FELL YOU LEAVES YOU STANDING, UNTOUCHABLE.', level: 4 },
+    { id: 'rushsteel', name: 'RUSH OF STEEL', desc: 'YOUR DASH CUTS EVERY FOE YOU PASS THROUGH, AND THEY BLEED.', level: 6 },
+    { id: 'requiem', name: 'REQUIEM\'S ECHO', desc: 'AFTER YOUR ULTIMATE, EVERY FINISHING CUT STRIKES TWICE FOR 6 SECONDS.', level: 9 },
+  ],
+  huntress: [
+    { id: 'stillhand', name: 'STILL HAND', desc: 'STAND STILL A MOMENT: YOUR NEXT THREE BOLTS PIERCE AND HIT FAR HARDER.', level: 1 },
+    { id: 'ricochet', name: 'RICOCHET', desc: 'A BOLT THAT KILLS FLIES ON TO THE NEXT FOE.', level: 2 },
+    { id: 'caltrops', name: 'CALTROPS', desc: 'DASHING SCATTERS CALTROPS: FOES WHO CROSS THEM ARE PINNED AND BLEED.', level: 4 },
+    { id: 'markedprey', name: 'MARKED PREY', desc: 'EVERY FIFTH BOLT IN THE SAME FOE BURSTS FOR HEAVY DAMAGE.', level: 6 },
+    { id: 'rooftop', name: 'ROOFTOP VOLLEY', desc: 'A PERFECT DODGE LOOSES A FAN OF FIVE BOLTS.', level: 9 },
+  ],
+  bellbreaker: [
+    { id: 'aftershock', name: 'AFTERSHOCK', desc: 'YOUR QUAKING BLOW CRACKS THE GROUND, AND IT ERUPTS AGAIN A MOMENT LATER.', level: 1 },
+    { id: 'revenge', name: 'ANVIL\'S ANSWER', desc: 'WHEN YOU ARE STRUCK, YOUR NEXT BLOW HITS TWICE AS HARD.', level: 2 },
+    { id: 'bellringer', name: 'BELLRINGER', desc: 'EVERY FOURTH HEAVY BLOW TOLLS A BELL THAT STUNS EVERYTHING AROUND YOU.', level: 4 },
+    { id: 'scatter', name: 'SCATTER', desc: 'FOES KILLED BY YOUR HAMMER ARE FLUNG APART, SMASHING THOSE NEAR THEM.', level: 6 },
+    { id: 'lasttoll', name: 'THE LAST TOLL', desc: 'WHEN YOUR ULTIMATE ENDS, ONE LAST GREAT TOLL BREAKS AND STUNS ALL AROUND.', level: 9 },
+  ],
+  lamplighter: [
+    { id: 'kindling', name: 'KINDLING', desc: 'BURNING FOES BURST INTO FLAME WHEN THEY FALL.', level: 1 },
+    { id: 'warmhands', name: 'WARM HANDS', desc: 'EVERY BURNING FOE NEAR YOU HEALS YOU A LITTLE EACH SECOND.', level: 2 },
+    { id: 'wildfire', name: 'WILDFIRE', desc: 'YOUR FLAMES LEAP FROM FOE TO FOE.', level: 4 },
+    { id: 'sunspot', name: 'SUNSPOT', desc: 'EVERY SIXTH FIREBOLT IS A SUNSPOT THAT BURSTS WHERE IT STRIKES.', level: 6 },
+    { id: 'dawnbreak', name: 'DAWNBREAK', desc: 'AFTER YOUR ULTIMATE, FOR FIVE SECONDS EVERY FIREBOLT SPLITS IN THREE.', level: 9 },
+  ],
+  kestrel: [
+    { id: 'backstab', name: 'OPEN VEINS', desc: 'STRIKING A BLEEDING FOE FROM BEHIND DEALS DOUBLE DAMAGE.', level: 1 },
+    { id: 'hemorrhage', name: 'HEMORRHAGE', desc: 'A FOE BLEEDING ITS WORST, STRUCK THREE TIMES MORE, BURSTS.', level: 2 },
+    { id: 'shadowstep', name: 'SHADOWSTEP', desc: 'A PERFECT DODGE PUTS YOU BEHIND YOUR ATTACKER. YOUR NEXT BLOW LANDS HARD.', level: 4 },
+    { id: 'keys', name: 'THE GAOLER\'S KEYS', desc: 'KILLING A BLEEDING FOE TAKES TIME OFF YOUR ABILITIES.', level: 6 },
+    { id: 'gallowsdance', name: 'GALLOWS DANCE', desc: 'YOUR DASHING STAB THROWS A KNIFE TO EITHER SIDE.', level: 9 },
+  ],
+  hollis: [
+    { id: 'colddeep', name: 'THE COLD DEEP', desc: 'FOES YOUR ANCHOR DRAGS IN ARE CHILLED, AND SOON FREEZE.', level: 1 },
+    { id: 'barnaclehide', name: 'BARNACLE HIDE', desc: 'WHEN STRUCK, SHELLS GROW OVER YOU AND TURN ASIDE MUCH OF THE HURT.', level: 2 },
+    { id: 'tidesurge', name: 'TIDE SURGE', desc: 'YOUR SLAM LEAVES A POOL OF COLD WATER THAT GRINDS AND SLOWS.', level: 4 },
+    { id: 'anchordrop', name: 'ANCHOR DROP', desc: 'EVERY DASH ENDS IN A SLAM THAT STUNS THE FOES AROUND YOU.', level: 6 },
+    { id: 'highwater', name: 'HIGH WATER', desc: 'AFTER YOUR ULTIMATE, YOUR BLOWS ARC LIGHTNING FOR 8 SECONDS.', level: 9 },
+  ],
+  wren: [
+    { id: 'chorus', name: 'CHORUS', desc: 'A BLOW ON A RESONATING FOE RINGS THROUGH THE OTHERS NEAR IT.', level: 1 },
+    { id: 'crescendo', name: 'CRESCENDO', desc: 'A FOE AT FULL RESONANCE, STRUCK AGAIN, SHATTERS IN A BURST OF SONG.', level: 2 },
+    { id: 'lullgrace', name: 'LULLABY\'S GRACE', desc: 'A PERFECT DODGE SINGS THE FOES AROUND YOU TO SLEEP.', level: 4 },
+    { id: 'sanctus', name: 'SANCTUS', desc: 'STRIKING A FOE AT FULL RESONANCE HEALS YOU.', level: 6 },
+    { id: 'amen', name: 'AMEN', desc: 'WHEN YOUR ULTIMATE ENDS, EVERY RESONATING FOE TAKES A BLOW PER NOTE.', level: 9 },
+  ],
 };
-export const TALENTS = Object.fromEntries(HERO_ORDER.map((id) => [id, [...GENERIC_TALENTS.slice(0, 3), { ...(SIGNATURE[id] || SIGNATURE.warden), level: 4 }, ...GENERIC_TALENTS.slice(3)]]));
+export const TALENTS = Object.fromEntries(HERO_ORDER.map((id) => [id, (TRAIT_LIST[id] || TRAIT_LIST.warden).map((t) => ({ ...t, trait: t.id }))]));
 export const talentsOf = (heroId) => TALENTS[heroId] || TALENTS.warden;
 // which talents a warden can pick now, and toggle one (keeps within the slots; the oldest falls out)
 export function availableTalents(meta, heroId) { const L = masteryOf(meta, heroId).level; return talentsOf(heroId).map((t) => ({ ...t, locked: t.level > L })); }
@@ -540,6 +576,7 @@ export function applyRunStats(stats, run, meta) {
   s.cdMul = (s.cdMul || 1) * (1 - 0.05 * tl('focus')); s.ultRate = (s.ultRate || 1) * (1 + 0.08 * tl('ult'));
   s.speedMul = (s.speedMul || 1) * (1 + 0.03 * tl('swift')); s.dashCharges = (s.dashCharges || 1) + tl('wind');
   s.dmgTaken = (s.dmgTaken || 1) * (1 - 0.04 * tl('hide')) * (1 - 0.05 * tl('bulwark')); s.tonicHeal = (s.tonicHeal || 0.45) * (1 + 0.1 * tl('draught'));
+  s.traits = (run.talents || []).filter((id) => talentsOf(run.hero).some((t) => t.id === id && t.trait)); // sim_traits.js
   for (const id of run.talents || []) {
     const T = talentsOf(run.hero).find((t) => t.id === id); const m = T && T.mods; if (!m) continue;
     if (m.hpMul) hpMul *= m.hpMul; if (m.dmgMul) s.dmgMul *= m.dmgMul; if (m.speedMul) s.speedMul = (s.speedMul || 1) * m.speedMul;
@@ -584,6 +621,18 @@ export function merchantStock(run, seed) {
   if (at < MAX_ARMOR) items.push({ id: 'armor:' + (at + 1), kind: 'armor', armor: at + 1, name: armorName(run.hero, at + 1), desc: ARMOR_DESC[at + 1] + ' LESS DAMAGE TAKEN.', price: Math.round(130 * (1 + at * 0.45) * k) });
   return items;
 }
+// Mastery earned by one match (an area or a boss won), given at once, so a warden can learn a trait mid-run.
+// Returns { xp, level, levelAfter, frac0, frac1, learned: [traits unlocked], equipped: [of those, put in a free slot] }.
+export function matchXp(meta, run, o = {}) {
+  const amt = Math.round(30 + (o.boss ? 50 : 0) + Math.min(30, (o.kills | 0) * 1.5) + Math.min(15, (o.perfects | 0) * 3));
+  const m = meta.mastery[run.hero] = meta.mastery[run.hero] || { xp: 0, level: 0, talents: [] };
+  const L0 = masteryLevel(m.xp | 0); const frac = (xp, L) => (L >= MASTERY_MAX ? 1 : (xp - masteryNeed(L)) / Math.max(1, masteryNeed(L + 1) - masteryNeed(L)));
+  const f0 = frac(m.xp | 0, L0); m.xp = (m.xp | 0) + amt; const L1 = m.level = masteryLevel(m.xp); run.xpGiven = (run.xpGiven | 0) + amt;
+  const learned = talentsOf(run.hero).filter((t) => t.level > L0 && t.level <= L1); const equipped = [];
+  // a trait learned mid-run goes straight into a free slot, for the rest of this run and the next ones
+  for (const t of learned) { m.talents = m.talents || []; run.talents = run.talents || []; if (run.talents.length < talentSlots(L1)) { run.talents.push(t.id); if (!m.talents.includes(t.id)) m.talents.push(t.id); equipped.push(t.id); } }
+  return { xp: amt, level: L0, levelAfter: L1, frac0: f0, frac1: frac(m.xp, L1), learned, equipped };
+}
 // Pay for an item; the run changes where it can by itself (tonic, relic, weapon). Returns { ok, msg, then }:
 // then = 'heal' | 'boon' | 'upgrade' for what the game finishes (it knows the health and the boon offers).
 export function buyItem(run, item, maxTonics = 99) {
@@ -616,7 +665,7 @@ export function shardsFor(run, meta, outcome) {
 export function endRun(meta, run, outcome = 'death') {
   const S = run.stats; const areas = S.areas.length, bosses = S.bosses.length; const ending = String(outcome).startsWith('ending:') ? outcome.slice(7) : null;
   const shards = shardsFor(run, meta, outcome);
-  const masteryXp = Math.round(S.kills * 1.5 + areas * 30 + bosses * 50 + S.perfects * 3 + (ending ? 250 : 0));
+  const masteryXp = Math.max(0, Math.round(S.kills * 1.5 + areas * 30 + bosses * 50 + S.perfects * 3 + (ending ? 250 : 0)) - (run.xpGiven | 0)); // what each match gave is already in (matchXp)
   const before = { done: (meta.done || []).slice(), unlocked: (meta.unlocked || []).slice(), level: masteryOf(meta, run.hero).level, acts: [4, 5, 6].filter((a) => actUnlocked(meta, a)) };
   meta.shards = (meta.shards | 0) + shards;
   const m = meta.mastery[run.hero] = meta.mastery[run.hero] || { xp: 0, level: 0, talents: [] };

@@ -119,16 +119,16 @@ R.setProviders({ quests: null });
 // talents and the Tower change the stats
 {
   const meta = R.freshMeta(); meta.mastery.warden = { xp: R.masteryNeed(9), talents: [] };
-  ok(R.masteryOf(meta, 'warden').level === 9 && R.talentSlots(9) === 3, 'mastery 9: three talent slots');
-  ok(R.toggleTalent(meta, 'warden', 'vigor') === 'TALENT CHOSEN' && R.toggleTalent(meta, 'warden', 'edge') === 'TALENT CHOSEN', 'pick talents');
-  R.toggleTalent(meta, 'warden', 'oath'); R.toggleTalent(meta, 'warden', 'flask');
-  ok(meta.mastery.warden.talents.length === 3 && !meta.mastery.warden.talents.includes('vigor'), 'the oldest talent falls out past the slots');
-  const low = R.freshMeta(); ok(R.toggleTalent(low, 'warden', 'focus').startsWith('MASTERY'), 'a locked talent cannot be picked');
+  ok(R.masteryOf(meta, 'warden').level === 9 && R.talentSlots(9) === 3, 'mastery 9: three trait slots');
+  ok(R.toggleTalent(meta, 'warden', 'riposte') === 'TALENT CHOSEN' && R.toggleTalent(meta, 'warden', 'thirdbell') === 'TALENT CHOSEN', 'pick traits');
+  R.toggleTalent(meta, 'warden', 'laststand'); R.toggleTalent(meta, 'warden', 'requiem');
+  ok(meta.mastery.warden.talents.length === 3 && !meta.mastery.warden.talents.includes('riposte'), 'the oldest trait falls out past the slots');
+  const low = R.freshMeta(); ok(R.toggleTalent(low, 'warden', 'requiem').startsWith('MASTERY'), 'a locked trait cannot be picked');
   meta.tower.vigor = 2; meta.tower.mercy = 1;
   const run = R.newRun(meta, 'warden', 4);
   const base = heroStats(R.statSave(run, meta), 'warden'); const st = R.applyRunStats(base, run, meta);
-  ok(st.dmgMul > base.dmgMul * 1.07 && st.maxTonics === 3 && st.revives >= 1 && st.maxHp >= Math.round(base.maxHp * 1.09), 'talents (edge, flask) and the Tower (vigor, mercy) apply');
-  for (const id of HERO_ORDER) ok(R.talentsOf(id).length >= 6 && R.talentsOf(id).some((t) => t.level === 0), id + ': talents, one free from the start');
+  ok(st.traits.length === 3 && st.traits.includes('requiem') && st.revives >= 1 && st.maxHp >= Math.round(base.maxHp * 1.09), 'traits reach the fight (stats.traits) and the Tower (vigor, mercy) applies');
+  for (const id of HERO_ORDER) ok(R.talentsOf(id).length === 5 && R.talentsOf(id)[0].level === 1 && R.talentsOf(id).every((t) => t.trait), id + ': five traits, the first at mastery 1');
   const m2 = R.freshMeta(); m2.shards = 100;
   ok(R.buyTower(m2, 'flask').startsWith('NEEDS'), 'a chained node needs its parent');
   ok(R.buyTower(m2, 'vigor') !== 'NOT ENOUGH SHARDS' && m2.shards === 85 && m2.tower.vigor === 1, 'buy a Tower upgrade');

@@ -26,7 +26,7 @@ import { HEROES, heroStats, AFFIX_LIST, RELICS, ECHOES, WEAPONS, armorName, ARMO
 import { noteKill, noteSeen, trueEndingReady } from './progress.js';
 import {
   freshMeta, upgradeMeta, migrateSave, newRun, nextNodes, enterNode, completeNode, advanceAct, actOver, currentNode, endRun, statSave, applyRunStats,
-  merchantStock, buyItem, healRun, upgradeCost, rerollCost, shrineHeal, priceK, towerLevel, buyTower, toggleTalent, availableTalents, masteryOf,
+  merchantStock, buyItem, healRun, upgradeCost, rerollCost, shrineHeal, priceK, towerLevel, buyTower, toggleTalent, availableTalents, masteryOf, matchXp, talentsOf,
   rngOf, hashSeed, AREA_NAMES, AREA_BOSS, AREA_TIER, RUN_VERSION, TOWER, curseMod,
   ACTS, actRoman, setPlayable, roadEnd, actUnlocked, actPlayable, foeScale, bossScale, crowdChance, bossHealFrac, lampHealFrac, arrivalFloor, emberMul, eliteChance,
   boonChoices, tollMods, runToll, DIFF, TOLLS, miniPlan, miniScale,
@@ -84,7 +84,7 @@ const SPECS = {
   SelectScreen: (g, d, h) => ({ title: 'CHOOSE YOUR WARDEN', lines: ['A RUN IS ONE WARDEN, TO THE END.', 'SHARDS: ' + (d.meta.shards | 0) + '   RUNS: ' + (d.meta.runs | 0)],
     items: [...Object.keys(HEROES).map((id) => { const ok = (d.meta.unlocked || []).includes(id); return { label: HEROES[id].name, sub: ok ? 'MASTERY ' + masteryOf(d.meta, id).level : 'LOCKED', disabled: !ok, on: () => h.choose(id), hover: () => h.preview && h.preview(id) }; }),
       { label: 'BELL TOWER', on: () => h.tower() }, { label: 'CHALLENGES', on: () => h.challenges() }, { label: 'CODEX', on: () => h.codex() }, { label: '< BACK', on: () => h.back && h.back() }] }),
-  TalentScreen: (g, d, h) => { const M = masteryOf(d.meta, d.hero); return { title: HEROES[d.hero].name + ': TALENTS', lines: ['MASTERY ' + M.level + '. PICK UP TO ' + (M.level >= 8 ? 3 : (M.level >= 3 ? 2 : 1)) + '.'],
+  TalentScreen: (g, d, h) => { const M = masteryOf(d.meta, d.hero); return { title: HEROES[d.hero].name + ': TRAITS', lines: ['MASTERY ' + M.level + '. PICK UP TO ' + (M.level >= 6 ? 3 : (M.level >= 2 ? 2 : 1)) + '.'],
     items: [...availableTalents(d.meta, d.hero).map((t) => ({ label: (M.talents.includes(t.id) ? '* ' : '') + t.name, sub: t.locked ? 'MASTERY ' + t.level : t.desc, disabled: t.locked, on: () => h.pick(t.id) })), { label: 'BEGIN THE RUN', on: () => h.start() }, { label: '< BACK', on: () => h.back && h.back() }] }; },
   TowerScreen: (g, d, h) => ({ title: 'THE BELL TOWER', lines: ['BELL SHARDS: ' + (d.meta.shards | 0)],
     items: [...TOWER_LIST().map((t) => ({ label: t.name + ' ' + towerLevel(d.meta, t.id) + '/' + t.max, sub: towerLevel(d.meta, t.id) >= t.max ? 'BUILT' : t.desc + ' ' + t.cost[towerLevel(d.meta, t.id)] + ' SHARDS', on: () => h.buy(t.id) })), { label: '< BACK', on: () => h.back() }] }),
@@ -585,6 +585,32 @@ export class Game {
     if (it.desc) ui.text(it.desc, W / 2, y + 11 + sc * 7 + 8, { align: 'center', color: COL.dim, alpha: a });
     if (t > D) { N.i++; N.t = -0.3; }
   }
+  // the mastery a match earned: a strip at the top (the warden's name, the bar filling, +XP), then, for each trait it
+  // taught, the trait's name slammed in with what it does
+  drawXp(ui, dt) {
+    const N = this.xpNews; N.t += dt; if (N.t < 0) return; const W = ui.w, H = ui.h; const col = COL.gold;
+    const L = N.learned || []; const D = 3.0 + L.length * 3.2; if (N.t > D) { this.xpNews = null; return; }
+    const a = Math.max(0, Math.min(1, N.t * 4, (D - N.t) * 3));
+    const bw = Math.min(200, W - 40), bx = Math.round(W / 2 - bw / 2), by = 10;
+    ui.rect(bx - 6, by - 4, bw + 12, 26, 'rgba(6,6,10,' + (0.78 * a).toFixed(2) + ')');
+    const name = (HEROES[N.hero] || {}).name || ''; ui.text(name + '  MASTERY ' + (N.t > 1.2 ? N.levelAfter : N.level), bx, by, { color: COL.white, alpha: a });
+    ui.text('+' + N.xp + ' XP', bx + bw, by, { align: 'right', color: col, alpha: a });
+    const k = Math.min(1, Math.max(0, (N.t - 0.3) / 0.9)); const lvUp = N.levelAfter > N.level;
+    const fill = lvUp ? (k < 0.6 ? N.frac0 + (1 - N.frac0) * (k / 0.6) : N.frac1 * ((k - 0.6) / 0.4)) : N.frac0 + (N.frac1 - N.frac0) * k;
+    ui.rect(bx, by + 11, bw, 4, 'rgba(60,50,30,' + a.toFixed(2) + ')'); ui.rect(bx, by + 11, Math.round(bw * Math.max(0, Math.min(1, fill))), 4, col);
+    if (lvUp && N.t > 1.2 && !N.rang) { N.rang = true; this.sound.play('bigBell', { vol: 0.5 }); }
+    const i = Math.floor((N.t - 3.0) / 3.2); const T = L[i];
+    if (T && N.t > 3.0) {
+      const tt = N.t - 3.0 - i * 3.2; if (N.shown !== i) { N.shown = i; this.sound.play('special', { vol: 0.6 }); this.sound.play('perfect', { delay: 0.15 }); }
+      const b = Math.max(0, Math.min(1, tt * 5, (3.2 - tt) * 3)); ui.veil(0.45 * b);
+      const sc = ui.measure(T.name, 3) <= W - 30 ? 3 : 2; const y = Math.round(H * 0.42) + (tt < 0.1 ? -2 : 0);
+      ui.text('NEW TRAIT', W / 2, y - 14, { align: 'center', color: col, alpha: b });
+      ui.text(T.name, W / 2, y, { align: 'center', scale: sc + (tt < 0.1 ? 1 : 0), color: COL.white, alpha: b });
+      const lw = Math.round(ui.measure(T.name, sc) * Math.min(1, tt * 4)); ui.rect(Math.round(W / 2 - lw / 2), y + sc * 7 + 3, lw, 2, '#c02028');
+      ui.wrap(T.desc || '', W - 60).forEach((l, j) => ui.text(l, W / 2, y + sc * 7 + 10 + j * 10, { align: 'center', color: COL.text, alpha: b }));
+      ui.text((N.equipped || []).includes(T.id) ? 'ACTIVE NOW' : 'CHOOSE IT AT THE START OF A RUN', W / 2, y + sc * 7 + 34, { align: 'center', color: COL.dim, alpha: b });
+    }
+  }
   // The Old Road: the first run's tutorial duel; later runs a short cinematic walk to the gate.
   async oldRoad() {
     const first = !this.meta.story.seen.tutorial;
@@ -647,6 +673,10 @@ export class Game {
   // the node is done: on to the map (an act's boss: the next act's map; the last one ends the run elsewhere)
   nodeDone(extra = {}) {
     const run = this.run; if (!run) return;
+    // a match won: mastery at once (run.js matchXp), shown over the map; a trait learned shows its name
+    const cn = currentNode(run); if (cn && (cn.kind === 'area' || cn.kind === 'boss') && !run.cleared.includes(cn.id) && !this.duelOn) {
+      try { const ws = this.world && this.world.stats; const r = matchXp(this.meta, run, { boss: cn.kind === 'boss', kills: ws ? ws.kills : 0, perfects: ws ? ws.perfects : 0 }); this.xpNews = { ...r, hero: run.hero, t: -0.5 }; } catch (err) { console.error('bellmourn: matchXp', err); }
+    }
     this.keepHero(); completeNode(run, extra); run.prog = null; this.persist();
     this.closeScreen(); this.openMap();
   }
@@ -1326,6 +1356,17 @@ export class Game {
       switch (ev.type) {
         case 'swing': if (ev.e === hero) snd.play(ev.atk.heavy ? 'swingHeavy' : 'swing'); else snd.play('swing', { vol: 0.6 }); break;
         case 'shoot': snd.play(ev.kind === 'hfire' ? 'orb' : 'bolt', { vol: 0.5 }); break;
+        case 'trait': { // a warden's trait at work (sim_traits.js): its light, and its name the first times it fires
+          const c = ev.col || [2.6, 2.6, 2.6];
+          if (ev.r > 0) fx.shockRing(ev.x, ev.z, ev.r, c, 0.45); fx.emit(ev.x, 1.0, ev.z, { n: ev.r > 2 ? 26 : 12, speed: 2, life: 0.45, grav: -0.5, color: c, size: 1 });
+          if (/From$/.test(ev.id)) { fx.mist(ev.x, 0.8, ev.z, 14, [0.2, 0.18, 0.22]); break; }
+          if (['laststand', 'lasttoll', 'bellringer', 'aftershock', 'amen'].includes(ev.id)) { r.shake(ev.id === 'laststand' || ev.id === 'lasttoll' ? 0.7 : 0.35, 0.4); snd.play(ev.id === 'bellringer' || ev.id === 'lasttoll' ? 'bigBell' : 'boom', { vol: 0.6 }); }
+          else if (ev.id === 'riposte' || ev.id === 'shadowstep' || ev.id === 'backstab') snd.play('perfect', { vol: 0.7 });
+          const base = ev.id.replace(/(Ready|On|From)$/, ''); const T = this.run && talentsOf(this.run.hero).find((t) => t.id === base);
+          const seen = this.traitSeen || (this.traitSeen = {}); seen[base] = (seen[base] || 0) + 1;
+          if (T && seen[base] <= 3 && this.ui.floatText) { const p = r.project(new THREE.Vector3(ev.x, 2.4, ev.z)); this.ui.floatText(T.name, p.x, p.y, '#ffd070'); }
+          break;
+        }
         case 'hit': {
           const d = ev.dst; const y = 1.0 * (d.def?.scale || 1);
           // a warden's blows spark in their weapon's colour (arms.js WEAPON_FX): fire, frost, lightning, gold
@@ -1557,6 +1598,7 @@ export class Game {
     }
     if (S === 'cutscene' && this.cut) this.cut.draw(ui);
     if (S === 'screen' && this.screen) { try { this.screen.draw(ui, dt); } catch (err) { console.error('bellmourn: screen draw', err); } }
+    if (this.xpNews) this.drawXp(ui, dt);
     // a boss's last words as it falls
     if (this.bark && S === 'play') { const B = this.bark; B.t += dt; const a = Math.min(1, B.t * 3, Math.max(0, (B.life - B.t) * 2)); if (a > 0) drawLineBox(ui, B.name, B.color, B.text, a, this.input.touchMode ? 'top' : 'bottom'); if (B.t > B.life) this.bark = null; }
     if (S === 'pause') this.drawPause();

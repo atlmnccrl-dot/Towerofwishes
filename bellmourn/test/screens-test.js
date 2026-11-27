@@ -174,7 +174,7 @@ window.SH_READY = true;
       for (const k of ['tower', 'challenges', 'codex']) { await open('select'); await step(0.4); await tap('btn:' + k); await step(0.1); check((await calls()).includes(k), dev.tag + ' select ' + k); }
     }
     if (want('tower')) {
-      await open('tower'); await step(0.8); await tap('up:1'); await step(0.2); await shot('tower-1'); await minTarget('tower');
+      await open('tower'); await step(0.8); await tap('up:vigor'); await step(0.2); await shot('tower-1'); await minTarget('tower');
       await tap('buy'); await step(0.4); await shot('tower-2-bought'); check((await calls()).some((c) => c.startsWith('buy:')), dev.tag + ' tower buy');
     }
     if (want('challenges')) {
