@@ -170,7 +170,6 @@ for (const id of AREAS) for (const v of VARIANTS[id]) if (v.events.includes('hin
   ok(!questNodes({ ...run, act: 1 }, meta).some((n) => n.quest === 'bram') && questNodes({ ...run, act: 2, flags: {} }, meta).some((n) => n.quest === 'bram'), 'a node waits for its act');
   // the in-level events' touches
   const g2 = { run: { act: 2, embers: 0, stats: {} }, meta: {}, level: { marks: {} } }; const s = onHint(g2, 'ev:survivor:docks'); ok(g2.run.embers > 0 && g2.run.stats.freed === 1 && s.lines.length, 'a freed survivor gives embers and counts');
-  ok(onHint(g2, 'ev:cursedlamp:docks').event === 'cursed_lamp', 'a cursed lamp asks for its event card');
 }
 
 console.log(`\n${checks} checks, ${fail} failed`);

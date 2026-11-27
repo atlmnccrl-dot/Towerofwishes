@@ -92,13 +92,6 @@ const DECK = [
       { label: 'SING BACK', do: O('THE SONG STOPS. A SINGLE EMBER FLOATS UP.', { embers: 25, lore: 'lore.hushed' }) },
       { label: 'WALK ON', do: O('THE SONG FOLLOWS YOU FOR A STREET OR TWO.') },
     ] },
-  { id: 'cursed_lamp', title: 'THE CURSED LAMP', acts: [1, 2, 3], weight: 0.6, tags: ['curse', 'boon'], art: art('lamp', 'void'),
-    text: 'A STREET LAMP BURNS WITH A VIOLET FLAME. IT LEANS TOWARD YOU LIKE A FLOWER TO THE SUN.',
-    choices: [
-      { label: 'DRINK THE LIGHT', risk: 'A CURSE', do: O('IT POURS INTO YOU, COLD AND BRIGHT.', { boon: 'offer', curse: 'whispering_lamp' }) },
-      { label: 'SNUFF IT OUT', cost: { hp: 12 }, do: O('IT BURNS YOUR HAND GOING OUT. SOMETHING LOOSENS IN YOU.', { uncurse: true, embers: 20 }) },
-      { label: 'LEAVE IT BURNING', do: O('IT TURNS TO WATCH YOU GO.') },
-    ] },
   { id: 'the_backwards_choir', title: 'THE BACKWARDS CHOIR', acts: [1, 2], near: ['nave', 'undercroft'], tags: ['quest'], quest: 'wren', art: art('choir', 'void'),
     text: 'IN AN EMPTY CHAPEL, THREE MASKED SINGERS SING A HYMN BACKWARDS. THEY DO NOT SEE YOU.',
     choices: [

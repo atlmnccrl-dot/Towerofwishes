@@ -402,9 +402,11 @@ export class Game {
   }
 
   // The title: the courtyard as it was first seen, the warden among the hushed in the rain.
-  titleScene(heroId = (this.run && this.run.hero) || this.meta.lastHero || 'warden') {
+  // alone: the warden by themselves (the select screen's figure: no Hushed round them)
+  titleScene(heroId = (this.run && this.run.hero) || this.meta.lastHero || 'warden', alone = false) {
     const w = this.world; w.ents = []; w.hero = null;
     const hero = w.spawnHero(-0.6, 1.6, { ...this.heroStats(heroId), face: Math.PI * 0.82 });
+    if (alone) { hero.face = Math.PI / 4; if (this.fx) { this.fx.mist(hero.x, 0.6, hero.z, 18, [0.3, 0.32, 0.4]); this.fx.emit(hero.x, 1.0, hero.z, { n: 20, speed: 2, life: 0.5, grav: -1, color: [2.4, 2.2, 2.0], size: 1 }); } this.titleCam = this.titleCam || 0; return; }
     for (const [x, z] of [[1.4, -2.6], [3.6, -0.6], [4.9, -4.6]]) { const f = w.spawnFoe('hushed', x, z, { rise: false }); f.face = angTo(f, hero); }
     this.titleCam = this.titleCam || 0;
   }
@@ -501,14 +503,12 @@ export class Game {
   title(dt, inp) {
     this.sound.setMusic('title');
     // PROPOSAL: the title's items
-    const sh = this.meta.shards | 0, can = towerAffordable(this.meta); // the Tower: its shards, and a mark when a floor can be raised
-    this.titleItems = [this.run ? { label: 'CONTINUE RUN', id: 'cont' } : null, { label: 'NEW RUN', id: 'new' }, { label: 'BELL TOWER', id: 'tower', note: (can ? '! ' : '') + sh, noteColor: can ? COL.gold : COL.dim }, { label: 'CONTROLS', id: 'controls' }, { label: 'SETTINGS', id: 'settings' }, { label: 'CREDITS', id: 'credits' }].filter(Boolean);
+    this.titleItems = [this.run ? { label: 'CONTINUE RUN', id: 'cont' } : null, { label: 'NEW RUN', id: 'new' },  { label: 'CONTROLS', id: 'controls' }, { label: 'SETTINGS', id: 'settings' }, { label: 'CREDITS', id: 'credits' }].filter(Boolean);
     const p = this.menuInput(inp, this.titleItems);
     if (p >= 0) {
       const id = this.titleItems[p].id;
       if (id === 'new') { if (this.run) { this.finishRun('quit', () => this.newRunFlow()); return; } this.newRunFlow(); }
       else if (id === 'cont') this.resumeRun();
-      else if (id === 'tower') this.openTower(() => { this.closeScreen(); this.go('title'); });
       else { this.back = 'title'; this.go(id); }
     }
   }
@@ -539,11 +539,10 @@ export class Game {
     const meta = this.meta;
     this.openScreen('SelectScreen', { meta }, {
       choose: (heroId) => { if (!HEROES[heroId] || !(meta.unlocked || []).includes(heroId)) { this.sound.play('ui'); return; } this.sound.play('uiOk'); meta.lastHero = heroId; this.persistMeta(); this.talentFlow(heroId); },
-      preview: (heroId) => { if (HEROES[heroId] && this.world && this.levelId === 'gate' && (!this.world.hero || this.world.hero.heroId !== heroId)) this.titleScene(heroId); },
-      tower: () => this.openTower(() => this.newRunFlow()),
+      preview: (heroId) => { if (HEROES[heroId] && this.world && this.levelId === 'gate' && (!this.world.hero || this.world.hero.heroId !== heroId || this.world.ents.length > 1)) this.titleScene(heroId, true); },
       challenges: () => this.openScreen('ChallengesScreen', { meta }, { back: () => this.newRunFlow() }),
       codex: () => this.openScreen('CodexScreen', { meta }, { back: () => this.newRunFlow() }),
-      back: () => { this.closeScreen(); this.go('title'); },
+      back: () => { this.closeScreen(); if (this.levelId === 'gate' && this.world) this.titleScene(); this.go('title'); },
     });
   }
   // the Bell Tower: what the shards build for every run to come. From the title, the select screen and the end
@@ -904,7 +903,7 @@ export class Game {
     this.autoRunsDone = (this.autoRunsDone | 0) + 1; this.lastSummary = summary;
     if (outcome === 'quit' && then) { then(); return; }
     this.r.post.desat = 0; this.r.post.dawn = 0;
-    this.openScreen('SummaryScreen', { summary, meta: this.meta }, { done: () => { this.closeScreen(); if (towerAffordable(this.meta) && !this.auto) { this.openTower(() => { this.closeScreen(); this.toTitle(); }); this.ui.toast('THE BELL TOWER: YOUR SHARDS CAN RAISE ' + towerAffordable(this.meta) + (towerAffordable(this.meta) > 1 ? ' FLOORS' : ' FLOOR'), { color: COL.gold, life: 4 }); } else this.toTitle(); } });
+    this.openScreen('SummaryScreen', { summary, meta: this.meta }, { done: () => { this.closeScreen(); this.toTitle(); } });
   }
   async toTitle() { this.token++; this.timers = []; this.leaveHaven(); this.go('loading'); await this.loadLevel('gate', { fromStart: true }); this.titleScene(); this.go('title'); }
 
@@ -1514,6 +1513,8 @@ export class Game {
       this.view.update(cs.viewList(w), dt);
     } else if (titleish) {
       this.titleCam = (this.titleCam || 0) + dt; target = new THREE.Vector3(-0.8 + Math.sin(this.titleCam * 0.12) * 0.8, 0, -1.6 + Math.cos(this.titleCam * 0.1) * 0.5);
+      // the select screen: close and low on the warden standing at the gate, turning slowly round them
+      if (this.screenName === 'SelectScreen' && w && w.hero) { const h = w.hero; target = new THREE.Vector3(h.x, 0.95, h.z); zt = 2.9; tView = [45 + Math.sin(this.titleCam * 0.35) * 14, 16]; }
       if (w) { this.view.update(w, dt); for (const e of w.ents) e.animT += dt; }
     } else if (this.levelId === 'map' && this.mapCam && w) {
       // the route (world/mapscene.js): the map screen directs the camera; the warden's walk is its own

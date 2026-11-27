@@ -220,7 +220,17 @@ export class Rig {
   // view.healGlow) uses the same swap; the white flash wins while both are on.
   flash(amount) { if (amount === this._flash) return; this._flash = amount; this._overlay(); }
   tint(color, amount) { this._tintC = color; this._tint = color ? Math.round(Math.max(0, Math.min(1, amount)) * 8) / 8 : 0; this._overlay(); }
+  // a locked warden on the select screen: the body as a black shape against the light (silhouette(false) restores it)
+  silhouette(on) {
+    if (!!on === !!this._sil) return; this._sil = !!on;
+    for (const m of this.parts) {
+      if (!m.material) continue;
+      if (on) { m.userData.preSil = m.material; m.material = SIL_MAT; }
+      else if (m.userData.preSil) { m.material = m.userData.preSil; m.userData.preSil = null; }
+    }
+  }
   _overlay() {
+    if (this._sil) return;
     const f = this._flash || 0, k = this._tint || 0;
     const key = f > 0 ? 'f' + f : (k > 0 ? 't' + k + ':' + this._tintC : '');
     if (key === this._overlayKey) return; this._overlayKey = key;
@@ -259,6 +269,7 @@ export class Rig {
 }
 
 const overlayCache = new Map();
+const SIL_MAT = new THREE.MeshBasicMaterial({ color: 0x07070a });
 function overlayMat(base, color, intensity) {
   const k = base.uuid + ':' + color + ':' + intensity;
   if (!overlayCache.has(k)) { const m = base.clone(); m.emissive = new THREE.Color(color); m.emissiveIntensity = intensity; overlayCache.set(k, m); }

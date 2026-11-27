@@ -54,7 +54,7 @@ const DATA_FOR = REAL ? {
   shrine: () => [SCR.ShrineScreen, { run: R.run, meta: R.meta }, H(['heal', 'upgrade', 'reroll', 'tonic', 'leave'])],
   merchant: () => [SCR.MerchantScreen, { run: R.run, stock: clone(R.stock) }, H(['buy', 'leave'])],
   summary: () => [SCR.SummaryScreen, { summary: R.summary || clone(SAMPLE.SUMMARY), meta: R.metaEnd }, H(['done'])],
-  select: () => [SCR.SelectScreen, { meta: R.meta }, H(['choose', 'tower', 'challenges', 'codex', 'back'])],
+  select: () => [SCR.SelectScreen, { meta: R.meta }, H(['choose', 'preview', 'challenges', 'codex', 'back'])],
   tower: () => [SCR.TowerScreen, { meta: R.meta }, H(['buy', 'back'])],
   challenges: () => [SCR.ChallengesScreen, { meta: R.meta }, H(['back'])],
   codex: () => [SCR.CodexScreen, { meta: R.meta }, H(['back'])],
@@ -69,7 +69,7 @@ const DATA_FOR = REAL ? {
   shrine: () => [SCR.ShrineScreen, { run: clone(SAMPLE.RUN), meta: clone(SAMPLE.META) }, H(['heal', 'upgrade', 'reroll', 'tonic', 'leave'])],
   merchant: () => [SCR.MerchantScreen, { run: clone(SAMPLE.RUN), stock: clone(SAMPLE.STOCK) }, H(['buy', 'leave'])],
   summary: () => [SCR.SummaryScreen, { summary: clone(SAMPLE.SUMMARY) }, H(['done'])],
-  select: () => [SCR.SelectScreen, { meta: clone(SAMPLE.META) }, H(['choose', 'tower', 'challenges', 'codex', 'back'])],
+  select: () => [SCR.SelectScreen, { meta: clone(SAMPLE.META) }, H(['choose', 'preview', 'challenges', 'codex', 'back'])],
   tower: () => [SCR.TowerScreen, { meta: clone(SAMPLE.META) }, H(['buy', 'back'])],
   challenges: () => [SCR.ChallengesScreen, { meta: clone(SAMPLE.META) }, H(['back'])],
   codex: () => [SCR.CodexScreen, { meta: clone(SAMPLE.META) }, H(['back'])],
@@ -169,9 +169,9 @@ window.SH_READY = true;
     }
     if (want('select')) {
       await open('select'); await step(0.8); await shot('select-1'); await minTarget('select');
-      await tap('hero:kestrel'); await step(0.5); await shot('select-2-locked');
-      await tap('hero:huntress'); await step(0.5); await tap('begin'); await step(0.2); check((await calls()).includes('choose:huntress'), dev.tag + ' select choose: ' + (await calls()).join(' '));
-      for (const k of ['tower', 'challenges', 'codex']) { await open('select'); await step(0.4); await tap('btn:' + k); await step(0.1); check((await calls()).includes(k), dev.tag + ' select ' + k); }
+      await tap('next'); await step(0.5); await shot('select-2-next'); await tap('begin'); await step(0.2); check((await calls()).includes('choose:huntress'), dev.tag + ' select choose: ' + (await calls()).join(' '));
+      await open('select'); await step(0.4); await tap('prev'); await step(0.5); await shot('select-3-prev');
+      for (const k of ['challenges', 'codex']) { await open('select'); await step(0.4); await tap('btn:' + k); await step(0.1); check((await calls()).includes(k), dev.tag + ' select ' + k); }
     }
     if (want('tower')) {
       await open('tower'); await step(0.8); await tap('up:vigor'); await step(0.2); await shot('tower-1'); await minTarget('tower');

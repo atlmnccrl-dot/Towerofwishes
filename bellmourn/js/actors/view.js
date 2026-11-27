@@ -88,6 +88,7 @@ export class ActorView {
         if (v.blend < 1 && v.from) { v.blend = Math.min(1, v.blend + dt / v.fade); p = mix(v.from, p, v.blend); }
         v.pose = p; rig.apply(p);
       }
+      if (rig.silhouette && !!e.silhouette !== !!v.sil) { v.sil = !!e.silhouette; rig.silhouette(v.sil); } // a locked warden on the select screen
       if (rig.onEnt) rig.onEnt(e, dt); // a boss's stage looks (bosses2.js stageLook): parts shown by stage
       // a boss's later forms (the Ascent): bigger, ringed and haloed in its colour; embers rise in the third
       if (e.form > 1 && !e.dead && v.formShown !== e.form) { v.formShown = e.form; rig.root.scale.setScalar(1 + 0.08 * (e.form - 1)); this._aura(v, e.formColor || 0xffd070, true); this.fx.emit && this.fx.emit(e.x, 1.2, e.z, { n: 40, speed: 4, up: 0.6, life: 0.8, grav: 0, color: [2.6, 2.2, 1.4], size: 2 }); }

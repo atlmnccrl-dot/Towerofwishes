@@ -78,7 +78,7 @@ const fs = require('fs');
   await p.evaluate(() => { const g = BM.game; g.world.hero.hp = 0; g.handleEvents([{ type: 'heroDeath', e: g.world.hero }]); });
   await p.waitForTimeout(1500); await shot('dead');
   await until(() => BM.game.screenName === 'SummaryScreen', 60000, null); await p.waitForTimeout(1500); await shot('summary');
-  check(await p.evaluate(() => !BM.game.run && !localStorage.getItem('bellmourn.run.v3') && BM.game.meta.runs === 1 && BM.game.meta.shards > 0), 'death ends the run and pays into meta');
+  check(await p.evaluate(() => !BM.game.run && !localStorage.getItem('bellmourn.run.v3') && BM.game.meta.runs === 1 && Object.values(BM.game.meta.mastery || {}).some((m) => m.xp > 0)), 'death ends the run and pays into meta (mastery; no shards since the Tower went)');
   await p.evaluate(() => BM.game.screenH.done()); await p.waitForTimeout(800);
   // shards to spend: the run's end opens the Bell Tower first
   if (await p.evaluate(() => BM.game.screenName === 'TowerScreen')) { await shot('tower-after'); await p.evaluate(() => BM.game.screenH.back()); }

@@ -75,7 +75,7 @@ R.setProviders({ quests: null });
   const meta = R.freshMeta(); meta.tower.purse = 2; meta.tower.reroll = 1;
   const run = R.newRun(meta, 'huntress', 777);
   ok(run.hero === 'huntress' && run.act === 1 && run.at === null && run.map && run.map.act === 1, 'newRun: hero, act 1, at the start');
-  ok(run.embers === 60 && run.rerolls === 1, 'newRun: the Tower fills the purse and the dice (' + run.embers + ', ' + run.rerolls + ')');
+  ok(run.embers === 0 && run.rerolls === 0, 'newRun: the Bell Tower is gone: an old save\'s floors give nothing (' + run.embers + ', ' + run.rerolls + ')');
   ok(Array.isArray(run.boons) && Array.isArray(run.echoes) && run.stats && run.quest && Array.isArray(run.quest.active), 'newRun: the shapes of the contract');
   ok(JSON.parse(JSON.stringify(run)).map.nodes.length === run.map.nodes.length, 'the run survives JSON');
   ok(R.nextNodes(run).length === 1 && R.nextNodes(run)[0].area === 'gate', 'the first node is Gallows Gate');
@@ -127,24 +127,12 @@ R.setProviders({ quests: null });
   meta.tower.vigor = 2; meta.tower.mercy = 1;
   const run = R.newRun(meta, 'warden', 4);
   const base = heroStats(R.statSave(run, meta), 'warden'); const st = R.applyRunStats(base, run, meta);
-  ok(st.traits.length === 3 && st.traits.includes('requiem') && st.revives >= 1 && st.maxHp >= Math.round(base.maxHp * 1.09), 'traits reach the fight (stats.traits) and the Tower (vigor, mercy) applies');
+  ok(st.traits.length === 3 && st.traits.includes('requiem') && st.maxHp === base.maxHp && !st.revives, 'traits reach the fight (stats.traits); an old save\'s Tower floors do nothing');
   for (const id of HERO_ORDER) ok(R.talentsOf(id).length === 5 && R.talentsOf(id)[0].level === 1 && R.talentsOf(id).every((t) => t.trait), id + ': five traits, the first at mastery 1');
-  const m2 = R.freshMeta(); m2.shards = 100;
-  ok(R.buyTower(m2, 'flask').startsWith('NEEDS'), 'a chained node needs its parent');
-  ok(R.buyTower(m2, 'vigor') !== 'NOT ENOUGH SHARDS' && m2.shards === 85 && m2.tower.vigor === 1, 'buy a Tower upgrade');
-  ok(R.buyTower(m2, 'flask') !== 'NOT ENOUGH SHARDS' && m2.shards === 25 && m2.tower.flask === 1, 'its chain opens');
-  ok(R.buyTower(m2, 'flask') === 'NOT ENOUGH SHARDS', 'not enough shards');
-  m2.shards = 999; R.buyTower(m2, 'flask'); ok(R.buyTower(m2, 'flask') === 'FULLY BUILT', 'an upgrade stops at its max');
-  // the tree: 25+ nodes in five branches, every chain rooted, costs growing along each node
-  ok(R.TOWER.length >= 25 && R.BRANCHES.length === 5 && R.BRANCHES.every((b) => R.TOWER.some((t) => t.branch === b.id)), 'the Bell Tower: 25+ nodes, five branches (' + R.TOWER.length + ')');
-  ok(R.TOWER.every((t) => !t.req || R.TOWER.some((p) => p.id === t.req[0] && p.branch === t.branch && p.row < t.row && t.req[1] <= p.max)), 'every chain hangs from a node above it in its branch');
-  ok(R.TOWER.every((t) => t.cost.every((c, i) => i === 0 || c > t.cost[i - 1])), 'costs grow');
-  ok(R.TOWER.some((t) => t.id === 'mercy' && /40%/.test(t.desc)) && R.TOWER.some((t) => t.id === 'blessing'), 'the Second Toll (40%) and a starting boon');
-  const full = R.freshMeta(); R.towerPreset(full, 1); ok(R.towerBuilt(full) === R.TOWER.reduce((s, t) => s + t.max, 0), 'towerPreset(1) builds it all');
-  const half = R.freshMeta(); const spent = R.towerPreset(half, 0.5); ok(spent <= R.towerTotal() * 0.5 && spent > R.towerTotal() * 0.4, 'towerPreset(0.5) spends about half (' + spent + '/' + R.towerTotal() + ')');
-  const rf = R.newRun(full, 'warden', 5); const sf = R.applyRunStats(heroStats(R.statSave(rf, full), 'warden'), rf, full); const s0 = R.applyRunStats(heroStats(R.statSave(rf, R.freshMeta()), 'warden'), { ...rf, talents: [] }, R.freshMeta());
-  ok(sf.maxHp > s0.maxHp * 1.3 && sf.dmgMul > s0.dmgMul * 1.25 && sf.dashCharges === s0.dashCharges + 1 && sf.maxTonics === s0.maxTonics + 2 && sf.dmgTaken < s0.dmgTaken * 0.8, 'the full tower is a real lift');
-  ok(rf.blessing === 'rare' && rf.mercy === 1 && rf.embers >= 90, 'a full tower: a rare blessing, the Second Toll, a purse');
+  // the Bell Tower was taken out (the author, 2026-11-27): a full tower in an old save changes nothing
+  const full = R.freshMeta(); R.towerPreset(full, 1); ok(!R.TOWER_ON && R.towerLevel(full, 'vigor') === 0 && R.towerAffordable({ ...full, shards: 9999 }) === 0, 'the Bell Tower is off');
+  const rf = R.newRun(full, 'warden', 5); const sf = R.applyRunStats(heroStats(R.statSave(rf, full), 'warden'), { ...rf, talents: [] }, full); const s0 = R.applyRunStats(heroStats(R.statSave(rf, R.freshMeta()), 'warden'), { ...rf, talents: [] }, R.freshMeta());
+  ok(sf.maxHp === s0.maxHp && sf.dmgMul === s0.dmgMul && sf.dashCharges === s0.dashCharges && !rf.blessing && !rf.mercy, 'a full old tower gives no lift');
 }
 
 // the challenge: depth, the Tolls
@@ -203,7 +191,7 @@ R.setProviders({ quests: null });
   const run = R.newRun(meta, 'warden', 31);
   Object.assign(run.stats, { kills: 120, perfects: 4, areas: ['gate', 'market', 'docks'], bosses: ['gaoler', 'tallow'] }); run.boons = [{ id: 'emberDash', rarity: 'rare' }]; run.echoes = ['gaoler'];
   const sum = R.endRun(meta, run, 'death');
-  ok(sum.shards > 0 && meta.shards === sum.shards, 'endRun pays shards (' + sum.shards + ')');
+  ok(sum.shards === 0 && !(meta.shards | 0) && !sum.lines.some((l) => /SHARD/.test(l)), 'endRun pays no shards (the Tower is gone)');
   ok(sum.masteryXp > 0 && meta.mastery.warden.xp === sum.masteryXp, 'endRun pays mastery (' + sum.masteryXp + ')');
   ok(meta.runs === 1 && meta.best.act === 1, 'endRun counts the run and the best');
   ok(meta.codex.bosses.gaoler === 1 && meta.codex.boons.emberDash && meta.codex.echoes.gaoler, 'endRun fills the codex');
@@ -211,7 +199,7 @@ R.setProviders({ quests: null });
   ok(run.over === 'death', 'the run is over');
   const run2 = R.newRun(meta, 'warden', 32); run2.act = 3; run2.stats.areas = new Array(10).fill(0).map((_, i) => 'a' + i); run2.stats.bosses = ['wheel'];
   const s2 = R.endRun(meta, run2, 'ending:song');
-  ok(s2.ending === 'song' && meta.codex.endings.includes('song') && s2.shards > sum.shards, 'an ending pays more and is remembered');
+  ok(s2.ending === 'song' && meta.codex.endings.includes('song'), 'an ending is remembered');
   // challenges from a provider: tracked at the end, their unlocks counted
   R.setProviders({ challenges: { CHALLENGES: [{ id: 'c1', title: 'Test' }], trackChallenges: (m, r, ev) => { if (ev.type === 'runEnd' && !m.done.includes('c1')) m.done.push('c1'); }, challengeUnlocks: (m) => (m.done.includes('c1') ? ['kestrel'] : []) } });
   const s3 = R.endRun(meta, R.newRun(meta, 'warden', 33), 'death');

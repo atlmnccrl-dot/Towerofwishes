@@ -343,7 +343,10 @@ export const TOWER = [
 ];
 export const towerUpgrades = TOWER;
 const towerNode = (id) => TOWER.find((t) => t.id === id) || null;
-export const towerLevel = (meta, id) => { const T = towerNode(id); return Math.max(0, Math.min(T ? T.max : 99, (meta && meta.tower && meta.tower[id]) | 0)); };
+// The Bell Tower was taken out of the game (the author, 2026-11-27): no floor is ever raised, whatever an old save
+// holds, and no shards are paid. The tree stays below as data only.
+export const TOWER_ON = false;
+export const towerLevel = (meta, id) => { if (!TOWER_ON) return 0; const T = towerNode(id); return Math.max(0, Math.min(T ? T.max : 99, (meta && meta.tower && meta.tower[id]) | 0)); };
 // is the node's chain open (its parent built far enough)?
 export function towerOpen(meta, id) { const T = towerNode(id); if (!T) return false; if (!T.req) return true; return towerLevel(meta, T.req[0]) >= T.req[1]; }
 export function towerCost(meta, id) { const T = towerNode(id); const lv = towerLevel(meta, id); return T && lv < T.max ? T.cost[lv] : null; }
@@ -355,7 +358,7 @@ export function buyTower(meta, id) {
   meta.tower = meta.tower || {}; meta.shards -= c; meta.tower[id] = towerLevel(meta, id) + 1; return T.name + ' ' + meta.tower[id] + '/' + T.max;
 }
 // how many of the tower's open floors the shards in hand can raise now (the title and the run's end call to it)
-export const towerAffordable = (meta) => TOWER.filter((t) => towerOpen(meta, t.id) && towerCost(meta, t.id) !== null && towerCost(meta, t.id) <= (meta.shards | 0)).length;
+export const towerAffordable = (meta) => !TOWER_ON ? 0 : TOWER.filter((t) => towerOpen(meta, t.id) && towerCost(meta, t.id) !== null && towerCost(meta, t.id) <= (meta.shards | 0)).length;
 // what the whole tower costs, and what is built (levels)
 export const towerTotal = () => TOWER.reduce((s, t) => s + t.cost.reduce((a, b) => a + b, 0), 0);
 export const towerBuilt = (meta) => TOWER.reduce((s, t) => s + towerLevel(meta, t.id), 0);
@@ -666,7 +669,7 @@ export function shardsFor(run, meta, outcome) {
 // Pays into meta, returns the summary.
 export function endRun(meta, run, outcome = 'death') {
   const S = run.stats; const areas = S.areas.length, bosses = S.bosses.length; const ending = String(outcome).startsWith('ending:') ? outcome.slice(7) : null;
-  const shards = shardsFor(run, meta, outcome);
+  const shards = TOWER_ON ? shardsFor(run, meta, outcome) : 0;
   const masteryXp = Math.max(0, Math.round(S.kills * 1.5 + areas * 30 + bosses * 50 + S.perfects * 3 + (ending ? 250 : 0)) - (run.xpGiven | 0)); // what each match gave is already in (matchXp)
   const before = { done: (meta.done || []).slice(), unlocked: (meta.unlocked || []).slice(), level: masteryOf(meta, run.hero).level, acts: [4, 5, 6].filter((a) => actUnlocked(meta, a)) };
   meta.shards = (meta.shards | 0) + shards;
@@ -699,7 +702,7 @@ export function endRun(meta, run, outcome = 'death') {
     ending ? 'THE RUN ENDS IN ' + ({ dawn: 'DAWN', silence: 'SILENCE', song: 'THE NEW SONG' }[ending] || ending.toUpperCase()) : (outcome === 'quit' ? 'THE RUN WAS ABANDONED' : (outcome === 'victory' ? 'ACT ' + actRoman(run.act) + ' CLEARED. THE ROAD GOES ON' : 'FALLEN IN ACT ' + actRoman(run.act))),
     ...(toll ? ['TOLL ' + toll + ': ' + TOLLS[toll].name] : []),
     'AREAS CLEARED: ' + areas + '   BOSSES: ' + bosses, 'VOICES FREED: ' + S.kills + '   BOONS: ' + (run.boons || []).length,
-    '+' + shards + ' BELL SHARDS', '+' + masteryXp + ' MASTERY' + (lvUp ? '   MASTERY ' + m.level + '!' : ''),
+    ...(TOWER_ON ? ['+' + shards + ' BELL SHARDS'] : []), '+' + masteryXp + ' MASTERY' + (lvUp ? '   MASTERY ' + m.level + '!' : ''),
     ...challengesDone.map((id) => 'CHALLENGE: ' + chTitle(id)), ...unlocks.map((id) => (HEROES[id] ? HEROES[id].name : id) + ' UNLOCKED'),
     ...actsOpened.map((a) => 'ACT ' + actRoman(a) + ' OPENS: ' + ACTS[a].name), ...(tollUp ? ['TOLL ' + tollUp + ' OPENS: ' + TOLLS[tollUp].name] : []),
   ];

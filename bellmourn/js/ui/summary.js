@@ -69,7 +69,7 @@ export class SummaryScreen extends Screen {
     if (t > this.tShards) { y += 3; for (const l of this.lines.flatMap((l) => lines(ui, l, lw - 14, 3))) { if (y > B.B - 10) break; ui.text(l, B.L + 7, y, { color: PAL.dim, shadow: false, alpha: clamp((t - this.tShards) * 2) }); y += 9; } }
     // ---- what it earned
     const rx = B.L + lw + 8, rw = W - lw - 8; let ry = top;
-    if (t > this.tShards - 0.1) {
+    if (S.shards && t > this.tShards - 0.1) { // (no shards since the Bell Tower went: the box only shows for an old summary)
       const k = clamp((t - this.tShards) / 0.8); const n = Math.round((S.shards || 0) * ease.out(k));
       iron(ui, rx, ry, rw, 24, { fill: '#0d1418', rivets: false });
       icon(ui, 'shard', rx + 8, ry + 5, PAL.shard, { scale: 2 }); ui.text('BELL SHARDS', rx + 28, ry + 8, { color: PAL.soft, shadow: false }); // PROPOSAL
@@ -77,7 +77,7 @@ export class SummaryScreen extends Screen {
       if (k > 0 && k < 1 && Math.floor(t * 30) % 2 === 0) { this.sound('ember', { vol: 0.5 }); this.burst(rx + rw - 20, ry + 12, PAL.shard, 2, 40, { up: 30 }); }
       this.once('shards', () => this.ring(rx + 15, ry + 12, PAL.shard, 18, 0.5));
     }
-    ry += 28;
+    if (S.shards) ry += 28;
     if (t > this.tMastery - 0.1 && (S.hero || S.masteryXp)) {
       const gain = S.masteryXp || 0; const k = ease.inOut(clamp((t - this.tMastery) / 0.9)); const ms = this.masteryAt(k); const leveled = ms.leveled;
       iron(ui, rx, ry, rw, 26, { fill: '#100e14', rivets: false });

@@ -7,7 +7,7 @@
 //  - the condition's foes (a substitution pool) and their element mix (B's spawnFoe opts.element);
 //  - a boss pool (D's bossPool(levelId, variant) reads variant.bossPool, the favourite first);
 //  - in-level events: an ambush (the loose foes wait, then rise as a locked-in fight), a wandering elite, a trapped
-//    survivor to free, a cursed lamp, and the side quests' hints (quests.js hintsIn).
+//    survivor to free, and the side quests' hints (quests.js hintsIn). (The cursed lamp was taken out, 2026-11-27.)
 // Shape (run-contract): { id, name, condition, layout: { start?, blocks?, gatesOpen?, short? }, ambience,
 //   pool, elements: { fire: w, ... }, bossPool: [types], events: [ids] }.
 // applyVariant(def, variant, { short, meta, run }) returns the def the level is built from: the same def with the
@@ -130,7 +130,7 @@ const AREAS = {
     variants: [
       { id: 'gate.bloodmoon', name: 'THE GALLOWS MOON', condition: 'bloodmoon', tagline: 'THE GIBBETS SWING THOUGH THERE IS NO WIND.',
         layout: { blocks: [[9.5, -36.5, 1.8, 1.6, 'bones'], [-4.6, -31.2, 2.2, 1.2, 'barricade']] },
-        bossPool: ['gaoler'], events: ['ambush', 'cursedlamp'] },
+        bossPool: ['gaoler'], events: ['ambush'] },
       { id: 'gate.burning', name: 'THE GAOL ON FIRE', condition: 'burning', tagline: 'SOMEONE SET THE CELLS ALIGHT. FROM INSIDE.',
         layout: { blocks: [[-6.6, -4.6, 2.2, 1.4, 'fire'], [7, -22.6, 1.4, 1.6, 'fire']] },
         bossPool: ['gaoler'], events: ['elite', 'survivor'] },
@@ -150,7 +150,7 @@ const AREAS = {
         bossPool: ['smiling', 'tallow'], events: ['elite', 'hint'] },
       { id: 'market.plague', name: 'THE WAX PLAGUE', condition: 'plague', tagline: 'THE CANDLE-SMOKE HAS TURNED GREEN.',
         layout: { start: { x: -5.2, z: 16.4, face: PI }, blocks: [[-6.4, 3.2, 1.4, 1.4, 'barricade']] },
-        bossPool: ['tallow'], events: ['cursedlamp', 'hint'] },
+        bossPool: ['tallow'], events: ['hint'] },
     ],
   },
   docks: {
@@ -164,7 +164,7 @@ const AREAS = {
         bossPool: ['harbormaster', 'kingcrab'], events: ['survivor', 'hint'] },
       { id: 'docks.storm', name: 'THE STORM TIDE', condition: 'storm', tagline: 'LIGHTNING ON THE MASTS. THE NETS ARE BURNING BLUE.',
         layout: { gatesOpen: ['marketGate'], blocks: [[-3.8, -26.2, 1.6, 1.6, 'rubble']] },
-        bossPool: ['harbormaster', 'kingcrab'], events: ['elite', 'cursedlamp'] },
+        bossPool: ['harbormaster', 'kingcrab'], events: ['elite'] },
     ],
   },
   nave: {
@@ -175,7 +175,7 @@ const AREAS = {
         bossPool: ['deacon', 'smiling'], events: ['survivor', 'hint'] },
       { id: 'nave.eclipse', name: 'THE DARK SERMON', condition: 'eclipse', tagline: 'THE CANDLES OF THE DROWNED ARE THE ONLY LIGHT.',
         layout: { start: { x: 18.6, z: 12.6, face: PI }, blocks: [[-2.6, -13.8, 1.6, 1.4, 'rubble']] },
-        bossPool: ['smiling', 'deacon'], events: ['ambush', 'cursedlamp', 'hint'] },
+        bossPool: ['smiling', 'deacon'], events: ['ambush', 'hint'] },
       { id: 'nave.flooded', name: 'HIGH TIDE IN THE NAVE', condition: 'flooded', tagline: 'THE WATER REACHES THE ALTAR STEPS.',
         layout: { blocks: [[19.2, 1.6, 1.4, 1.6, 'flood']] },
         bossPool: ['deacon'], events: ['elite', 'survivor'] },
@@ -189,7 +189,7 @@ const AREAS = {
         bossPool: ['hollowmother', 'ossuary'], events: ['ambush', 'hint'] },
       { id: 'undercroft.flooded', name: 'THE DROWNED CRYPTS', condition: 'flooded', tagline: 'THE TIDE FOUND ITS WAY DOWN THE STAIR.',
         layout: { blocks: [[-15.8, -6.8, 1.4, 1.4, 'flood']] },
-        bossPool: ['ossuary', 'hollowmother'], events: ['survivor', 'cursedlamp'] },
+        bossPool: ['ossuary', 'hollowmother'], events: ['survivor'] },
       { id: 'undercroft.eclipse', name: 'THE LIGHTLESS VAULT', condition: 'eclipse', tagline: 'THE GRATES ABOVE HAVE GONE DARK.',
         layout: { blocks: [[-4.4, -21.6, 1.4, 1.2, 'rubble']] },
         bossPool: ['hollowmother'], events: ['elite', 'hint'] },
@@ -203,7 +203,7 @@ const AREAS = {
         bossPool: ['pyresaint', 'founder'], events: ['ambush', 'hint'] },
       { id: 'foundry.ashfall', name: 'THE ASH OF THE POURING', condition: 'ashfall', tagline: 'THE STACKS ARE COUGHING ASH OVER EVERYTHING.',
         layout: { blocks: [[7.6, 8.6, 1.6, 1.4, 'ash'], [3.6, -21.4, 1.6, 1.4, 'rubble']] },
-        bossPool: ['founder', 'pyresaint'], events: ['survivor', 'cursedlamp'] },
+        bossPool: ['founder', 'pyresaint'], events: ['survivor'] },
       { id: 'foundry.storm', name: 'LIGHTNING ON THE GANTRY', condition: 'storm', tagline: 'THE CRANE DRAWS THE STORM DOWN LIKE A ROD.',
         layout: { start: { x: 9.6, z: 9.6, face: PI }, gatesOpen: ['yardGate'] },
         bossPool: ['founder'], events: ['elite', 'hint'] },
@@ -217,7 +217,7 @@ const AREAS = {
         bossPool: ['ronin', 'regent'], events: ['ambush', 'hint'] },
       { id: 'heights.bloodmoon', name: 'THE RED BALL', condition: 'bloodmoon', tagline: 'THE DANCERS HAVE NOT STOPPED. THEY CANNOT.',
         layout: { blocks: [[-4.6, -15.2, 1.6, 1.4, 'barricade']] },
-        bossPool: ['regent', 'ronin'], events: ['elite', 'cursedlamp'] },
+        bossPool: ['regent', 'ronin'], events: ['elite'] },
       { id: 'heights.frozen', name: 'THE GILDED FROST', condition: 'frozen', tagline: 'ICE ON EVERY GILT RAIL. THE FOUNTAINS STOPPED MID-AIR.',
         layout: { gatesOpen: ['gardenExit'], blocks: [[3.6, 9.6, 1.4, 1.4, 'ice']] },
         bossPool: ['ronin'], events: ['survivor', 'hint'] },
@@ -227,7 +227,7 @@ const AREAS = {
     short: { start: { x: 6, z: -13.2, face: PI }, drop: ['crossing'], cut: [[-16, -11.2, 22, 18]], open: ['bridgeGate'] },
     variants: [
       { id: 'belfry.storm', name: 'THE STORM ON THE LEADS', condition: 'storm', tagline: 'THE WIND WANTS YOU OFF THE ROOF.',
-        layout: {}, bossPool: ['silence'], events: ['ambush', 'cursedlamp'] },
+        layout: {}, bossPool: ['silence'], events: ['ambush'] },
       { id: 'belfry.eclipse', name: 'THE BELL IN THE DARK', condition: 'eclipse', tagline: 'NO MOON. ONLY THE BELL, AND HIM.',
         layout: { blocks: [[7.6, -9.4, 1.2, 1.2, 'rubble']] }, bossPool: ['silence'], events: ['elite', 'hint'] },
       { id: 'belfry.frozen', name: 'THE FROZEN TOWER', condition: 'frozen', tagline: 'ICE ON THE LEADS. THE BELL ROPE IS A ROD OF GLASS.',
@@ -243,7 +243,7 @@ const AREAS = {
         layout: { blocks: [[-3.2, -10.6, 4.6, 1.4, 'ice']] }, bossPool: ['frostgiant'], events: ['ambush', 'hint'] },
       { id: 'frostmarch.fog', name: 'THE FROZEN FOG', condition: 'fog', tagline: 'THE FOG FREEZES ON YOUR CLOAK.',
         ambience: { weather: 'snow', rain: 0 }, layout: { start: { x: 6.2, z: 15.6, face: PI }, blocks: [[6.4, -26.4, 1.6, 1.6, 'ice']] },
-        bossPool: ['frostgiant'], events: ['survivor', 'cursedlamp'] },
+        bossPool: ['frostgiant'], events: ['survivor'] },
       { id: 'frostmarch.bloodmoon', name: 'THE RED SNOW', condition: 'bloodmoon', tagline: 'THE WOLVES HAVE BEEN FEEDING.',
         ambience: { weather: 'snow', rain: 0 }, layout: { blocks: [[-2.6, -24.4, 1.6, 1.4, 'bones'], [8.2, -10, 1.4, 1.4, 'ice']] },
         bossPool: ['frostgiant'], events: ['elite', 'hint'] },
@@ -255,7 +255,7 @@ const AREAS = {
       { id: 'ashdunes.ashfall', name: 'THE GREY STORM', condition: 'ashfall', tagline: 'THE WIND CARRIES THE ASH OF THE OLD CITY.',
         layout: { blocks: [[-2.8, -11.4, 2.4, 1.4, 'ash']] }, bossPool: ['sandwyrm'], events: ['ambush', 'hint'] },
       { id: 'ashdunes.eclipse', name: 'THE BLACK SUN', condition: 'eclipse', tagline: 'THE SUN OF THE OLD CITY ROSE BLACK.',
-        layout: { start: { x: 6.6, z: 13.6, face: PI }, blocks: [[7.2, -26.6, 1.4, 1.4, 'rubble']] }, bossPool: ['sandwyrm'], events: ['cursedlamp', 'survivor'] },
+        layout: { start: { x: 6.6, z: 13.6, face: PI }, blocks: [[7.2, -26.6, 1.4, 1.4, 'rubble']] }, bossPool: ['sandwyrm'], events: ['survivor'] },
       { id: 'ashdunes.plague', name: 'THE PLAGUE OF SCARABS', condition: 'plague', tagline: 'THE SAND IS CRAWLING.',
         layout: { blocks: [[6.4, -12.6, 1.4, 1.4, 'rubble']] }, bossPool: ['sandwyrm'], events: ['elite', 'hint'] },
     ],
@@ -266,7 +266,7 @@ const AREAS = {
       { id: 'catacombs.flooded', name: 'THE BLACK WATER', condition: 'flooded', tagline: 'AN UNDERGROUND RIVER BROKE INTO THE TOMBS.',
         layout: { blocks: [[-14.6, -14.6, 1.4, 1.6, 'flood']] }, bossPool: ['lich'], events: ['ambush', 'hint'] },
       { id: 'catacombs.plague', name: 'THE ROT', condition: 'plague', tagline: 'THE SLIMES HAVE BRED IN THE DARK.',
-        layout: { blocks: [[-9.4, -30.6, 1.4, 1.4, 'bones']] }, bossPool: ['lich'], events: ['elite', 'cursedlamp'] },
+        layout: { blocks: [[-9.4, -30.6, 1.4, 1.4, 'bones']] }, bossPool: ['lich'], events: ['elite'] },
       { id: 'catacombs.hallowed', name: 'THE SAINTS AWAKE', condition: 'hallowed', tagline: 'GOLD LIGHT IN THE LOCULI. THE DEAD ARE PRAYING.',
         layout: { blocks: [[7.6, -1.2, 1.2, 1.2, 'rubble']] }, bossPool: ['lich'], events: ['survivor', 'hint'] },
     ],
@@ -277,7 +277,7 @@ const AREAS = {
       { id: 'abyss.eclipse', name: 'THE LIGHTLESS DEEP', condition: 'eclipse', tagline: 'EVEN THE EMBERS HAVE GONE OUT.',
         layout: { blocks: [[-6.6, -24.6, 1.4, 1.4, 'glass']] }, bossPool: ['archon'], events: ['ambush', 'hint'] },
       { id: 'abyss.frozen', name: 'THE COLD AT THE BOTTOM', condition: 'frozen', tagline: 'THE DEEPEST PLACE IS NOT HOT. IT IS COLD.',
-        layout: { blocks: [[6.6, -4.6, 1.4, 1.4, 'ice']] }, bossPool: ['archon'], events: ['elite', 'cursedlamp'] },
+        layout: { blocks: [[6.6, -4.6, 1.4, 1.4, 'ice']] }, bossPool: ['archon'], events: ['elite'] },
       { id: 'abyss.plague', name: 'THE FESTERING CIRCLE', condition: 'plague', tagline: 'THE CHAINS DRIP SOMETHING GREEN.',
         layout: { start: { x: 5.6, z: 13.6, face: PI }, blocks: [[1.6, -26.6, 1.4, 1.4, 'bones']] }, bossPool: ['archon'], events: ['survivor', 'hint'] },
     ],
@@ -290,7 +290,7 @@ const AREAS = {
       { id: 'marsh.bloodmoon', name: 'THE RED WATER', condition: 'bloodmoon', tagline: 'THE MARSH HAS TURNED THE COLOUR OF THE MOON.',
         layout: { blocks: [[7.6, -26.6, 1.4, 1.4, 'roots']] }, bossPool: ['bogmother'], events: ['elite', 'survivor'] },
       { id: 'marsh.fog', name: 'THE WEEPING FOG', condition: 'fog', tagline: 'YOU HEAR THE BELLS BEFORE YOU SEE THEM.',
-        layout: { start: { x: 6.4, z: 12.6, face: PI }, blocks: [[-3.6, -26.4, 1.4, 1.4, 'roots']] }, bossPool: ['bogmother'], events: ['cursedlamp', 'hint'] },
+        layout: { start: { x: 6.4, z: 12.6, face: PI }, blocks: [[-3.6, -26.4, 1.4, 1.4, 'roots']] }, bossPool: ['bogmother'], events: ['hint'] },
     ],
   },
   spire: {
@@ -299,7 +299,7 @@ const AREAS = {
       { id: 'spire.burning', name: 'THE OVERHEATED WORKS', condition: 'burning', tagline: 'THE BEARINGS GLOW. THE OIL IS ALIGHT.',
         layout: { blocks: [[-4.4, -9.6, 1.6, 1.4, 'fire']] }, bossPool: ['clockmaster'], events: ['ambush', 'hint'] },
       { id: 'spire.storm', name: 'THE LIGHTNING ENGINE', condition: 'storm', tagline: 'THE WHEEL DRINKS THE STORM THROUGH ITS SPOKES.',
-        ambience: { rain: 0, drizzle: 0 }, layout: { blocks: [[7.6, -26.6, 1.4, 1.4, 'rubble']] }, bossPool: ['clockmaster'], events: ['elite', 'cursedlamp'] },
+        ambience: { rain: 0, drizzle: 0 }, layout: { blocks: [[7.6, -26.6, 1.4, 1.4, 'rubble']] }, bossPool: ['clockmaster'], events: ['elite'] },
       { id: 'spire.eclipse', name: 'THE STOPPED HOUR', condition: 'eclipse', tagline: 'EVERY CLOCK IN THE SPIRE STRUCK ZERO.',
         layout: { start: { x: 5.4, z: 12.6, face: PI }, blocks: [[-3.6, -26.4, 1.4, 1.4, 'rubble']] }, bossPool: ['clockmaster'], events: ['survivor', 'hint'] },
     ],
@@ -312,7 +312,7 @@ const AREAS = {
       { id: 'empyrean.ashfall', name: 'HEAVEN BURNING DOWN', condition: 'ashfall', tagline: 'THE FEATHERS FALL AS ASH.',
         layout: { blocks: [[7.6, -26.6, 1.4, 1.4, 'ash']] }, bossPool: ['wheel'], events: ['elite', 'survivor'] },
       { id: 'empyrean.bloodmoon', name: 'THE WOUNDED LIGHT', condition: 'bloodmoon', tagline: 'THE GOD IS BLEEDING INTO THE SKY.',
-        layout: { start: { x: 5.4, z: 12.6, face: PI }, blocks: [[-3.6, -26.4, 1.4, 1.4, 'glass']] }, bossPool: ['wheel'], events: ['cursedlamp', 'hint'] },
+        layout: { start: { x: 5.4, z: 12.6, face: PI }, blocks: [[-3.6, -26.4, 1.4, 1.4, 'glass']] }, bossPool: ['wheel'], events: ['hint'] },
     ],
   },
 };
@@ -435,7 +435,7 @@ export function applyVariant(def, variant, opts = {}) {
     const t = { id, kind, x: p.x, z: p.z, r: 1.1, text, near: near2 }; touches.push(t); return t;
   };
   if (evs.includes('survivor')) take('survivor', 'ev:survivor:' + def.id, 'A HUSHED, CHAINED TO THE STONES. FREE THEM?', 'SOMEONE IS RATTLING A CHAIN NEARBY.');
-  if (evs.includes('cursedlamp')) take('cursedlamp', 'ev:cursedlamp:' + def.id, 'A LAMP BURNS WITH A VIOLET FLAME.', 'A LAMP NEARBY BURNS THE WRONG COLOUR.');
+  if (evs.includes('cursedlamp')) take('ev:cursedlamp:' + def.id, 'A LAMP BURNS WITH A VIOLET FLAME.', 'A LAMP NEARBY BURNS THE WRONG COLOUR.');
   // the side quests' hints placed in this variant (quests.js), filtered by the save when one is given
   if (v && evs.includes('hint')) {
     for (const h of hintsIn(def.id, v, opts.meta || null, opts.run || null)) {
