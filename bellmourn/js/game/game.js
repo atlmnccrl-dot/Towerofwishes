@@ -32,6 +32,7 @@ import {
   boonChoices, tollMods, runToll, DIFF, TOLLS, miniPlan, miniScale,
 } from './run.js';
 import { Duel } from './tutorial.js';
+import { buildMapScene } from '../world/mapscene.js';
 import { WEAPON_FX } from '../actors/arms.js';
 import { Haven } from './haven.js';
 import { buildHaven } from '../world/haven.js';
@@ -645,7 +646,24 @@ export class Game {
     this.persist();
     // A BLESSING (the Bell Tower's FAITH): the run begins with a boon of three
     if (run.blessing && !run.blessed && run.act === 1 && !run.at) { run.blessed = true; this.offerBoon('start', () => this.openMap(), { minRarity: run.blessing === 'rare' ? 'rare' : undefined }); return; }
-    this.openScreen('MapScreen', { run, map: run.map }, { pick: (id) => this.goNode(id) });
+    const show = () => { if (this.run !== run) return; this.openScreen('MapScreen', { run, map: run.map, scene: this.levelId === 'map' ? this.level : null }, { pick: (id) => this.goNode(id) }); };
+    if (this.mapFlat) { show(); return; }
+    // the route as a place: the act's road built as a diorama, the warden standing at their stop (world/mapscene.js)
+    this.stageMap().then(show).catch((err) => { console.error('bellmourn: the map scene failed, the sheet instead', err); this.mapFlat = true; show(); });
+  }
+  async stageMap() {
+    const run = this.run; const key = run.seed + ':' + run.act + ':' + (run.map && run.map.nodes ? run.map.nodes.length : 0);
+    if (!this.mapSet || this.mapSet.key !== key) { this.mapSet = await buildMapScene(run.map, run); this.mapSet.key = key; }
+    const L = this.mapSet;
+    this.leaveHaven(); this.haven = null; this.token++; this.timers = []; if (this.level && this.level !== L) this.r.scene.remove(this.level.group);
+    this.view.clear(); this.fx.clear(); this.clearNotes();
+    if (!L.group.parent) this.r.scene.add(L.group); this.level = L; this.levelId = 'map';
+    this.atmos.setLevel(L.def.ambience, L.lights); L.bind(this.atmos); this.groundAt = () => 0; this.atmos.heroLight.intensity = 1.0;
+    this.sound.setRain(L.def.ambience.rain ? 0.45 : 0); this.r.post.dawn = 0; this.sound.setMusic('haven');
+    this.world = new World({ solids: [], bounds: L.def.bounds, seed: 5 }); this.boss = null; this.encs = []; this.hints = []; this.tutorial = null; this.card = null; this.bossState = 'idle'; this.miniLive = [];
+    const at = run.at && L.nodePos(run.at); const p = at || { x: -L.len / 2 * Math.SQRT1_2 - 4, z: L.len / 2 * Math.SQRT1_2 };
+    const h = this.world.spawnHero(p.x, p.z, { ...this.heroStats(), face: Math.PI * 0.75 }); h.anim = 'idle'; h.state = 'idle';
+    this.camFocus.set(p.x, 0.8, p.z); this.r.focus.copy(this.camFocus); this.mapCam = null;
   }
   // the run stops at the last act this save has opened (or that is built): a card, then a victorious summary
   roadGoesOn() {
@@ -1497,6 +1515,11 @@ export class Game {
     } else if (titleish) {
       this.titleCam = (this.titleCam || 0) + dt; target = new THREE.Vector3(-0.8 + Math.sin(this.titleCam * 0.12) * 0.8, 0, -1.6 + Math.cos(this.titleCam * 0.1) * 0.5);
       if (w) { this.view.update(w, dt); for (const e of w.ents) e.animT += dt; }
+    } else if (this.levelId === 'map' && this.mapCam && w) {
+      // the route (world/mapscene.js): the map screen directs the camera; the warden's walk is its own
+      const c = this.mapCam; target = c.target; zt = c.zoom; tView = c.view || null; if (c.snap) { this.camFocus.copy(target); this.zoom = zt; }
+      this.view.update(w, dt);
+      if (this.level && this.level.update && !(this.screen && this.screen.S3)) this.level.update(dt, { visited: new Set(), walked: new Set(), next: new Set(), at: null, sel: null, t: this.stateT });
     } else if (this.inHaven && this.haven && w && w.hero) {
       // the Haven runs its own camera (and the warden breathes on while the game is paused there)
       const c = this.haven.camera(dt); target = c.target; zt = c.zoom;
@@ -1515,7 +1538,7 @@ export class Game {
       const tc = this.tutorial && this.tutorial.camera && (this.state === 'play' || this.state === 'screen') ? this.tutorial.camera() : null; if (tc) { target = tc.target; zt = tc.zoom; tView = tc.view || null; if (tc.snap) { this.camFocus.copy(target); this.zoom = zt; } }
       this.view.update(w, dt);
     }
-    if (target && !this.debugCamHold && this.state !== 'cutscene') this.camFocus.lerp(target, Math.min(1, dt * (this.state === 'play' ? 6 : (this.inHaven ? 2 : 2.5))));
+    if (target && !this.debugCamHold && this.state !== 'cutscene') this.camFocus.lerp(target, Math.min(1, dt * (this.state === 'play' ? 6 : (this.inHaven ? 2 : (this.levelId === 'map' ? 3.2 : 2.5)))));
     if (this.zoomPunch) { zt = Math.max(zt, this.zoomPunch); this.zoomPunch = Math.max(1, this.zoomPunch - dt * 0.6); if (this.zoomPunch <= 1.001) this.zoomPunch = 0; }
     if (this.debugZoom) zt = this.debugZoom;
     if (this.state !== 'cutscene') this.zoom += (zt - this.zoom) * Math.min(1, dt * (this.inHaven ? 1.6 : 5)); r.setZoom(Math.abs(this.zoom - 1) < 0.004 ? 1 : this.zoom);
@@ -1606,7 +1629,7 @@ export class Game {
     }
     if (S === 'cutscene' && this.cut) this.cut.draw(ui);
     if (S === 'screen' && this.screen) { try { this.screen.draw(ui, dt); } catch (err) { console.error('bellmourn: screen draw', err); } }
-    if (this.xpNews) this.drawXp(ui, dt);
+    if (this.xpNews && this.screenName === 'MapScreen' && !(this.screen && this.screen.intro)) this.drawXp(ui, dt); // over the map only, after its sweep
     // a boss's last words as it falls
     if (this.bark && S === 'play') { const B = this.bark; B.t += dt; const a = Math.min(1, B.t * 3, Math.max(0, (B.life - B.t) * 2)); if (a > 0) drawLineBox(ui, B.name, B.color, B.text, a, this.input.touchMode ? 'top' : 'bottom'); if (B.t > B.life) this.bark = null; }
     if (S === 'pause') this.drawPause();

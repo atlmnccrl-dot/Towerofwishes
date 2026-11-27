@@ -69,8 +69,8 @@ const fs = require('fs');
   // the merchant
   await p.evaluate(() => { const g = BM.game; g.closeScreen(); g.run.embers += 300; g.runNode({ id: 'test-shop', kind: 'merchant', act: 1 }); });
   await until(() => BM.game.screenName === 'MerchantScreen'); await p.waitForTimeout(1000); await shot('merchant');
-  const e0 = await p.evaluate(() => BM.game.run.embers); await p.evaluate(() => { const g = BM.game; const it = g.screenData.stock.find((x) => x.kind === 'relic'); g.screenH.buy(it); });
-  check(await p.evaluate((e) => BM.game.run.embers < e && BM.game.run.relics.length === 1, e0), 'the merchant sells a relic');
+  const e0 = await p.evaluate(() => BM.game.run.embers); const r0 = await p.evaluate(() => BM.game.run.relics.length); await p.evaluate(() => { const g = BM.game; const it = g.screenData.stock.find((x) => x.kind === 'relic'); g.screenH.buy(it); });
+  check(await p.evaluate(([e, r]) => BM.game.run.embers < e && BM.game.run.relics.length === r + 1, [e0, r0]), 'the merchant sells a relic'); // (an event may have given one already)
   await p.evaluate(() => BM.game.screenH.leave()); await until(() => BM.game.screenName === 'MapScreen', 10000);
   // death ends the run: the summary, then the title
   await p.evaluate(() => { const g = BM.game; const r = g.run; const nx = r.map.nodes.filter((x) => x.kind === 'area' && x.act === 1)[1]; g.closeScreen(); g.runNode(nx); });
