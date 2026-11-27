@@ -3,6 +3,7 @@
 const { chromium } = require('playwright');
 const path = require('path');
 const { start } = require('./serve');
+const HL_angDiff = (a, b) => { let d = (b - a) % (Math.PI * 2); if (d > Math.PI) d -= Math.PI * 2; if (d < -Math.PI) d += Math.PI * 2; return d; };
 (async () => {
   const srv = await start(path.resolve(__dirname, '..'));
   const browser = await chromium.launch();
@@ -43,9 +44,10 @@ const { start } = require('./serve');
   const aiming = await page.evaluate(() => HL.G.player.aimA);
   await page.screenshot({ path: '/tmp/hl-aim.png' });
   await page.mouse.up(); await page.waitForTimeout(60);
-  const fa = await page.evaluate(() => ({ st: HL.G.player.state, face: HL.G.player.face }));
-  const want = Math.atan2(-1, -1);
-  check('drag from attack aims; release strikes that way', aiming != null && fa.st === 'attack' && Math.abs(fa.face - want) < 0.3, JSON.stringify({ aiming, ...fa }));
+  const fa = await page.evaluate(() => ({ st: HL.G.player.state, face: HL.G.player.face, yaw: HL.G.thirdPerson() ? HL.G.camYaw : -Math.PI / 2 }));
+  // drag up-left on screen = up-left relative to the camera
+  const fx = Math.cos(fa.yaw), fy = Math.sin(fa.yaw), rx = -fy, ry = fx, sx = -1, sy = -1, want = Math.atan2(ry * sx - fy * sy, rx * sx - fx * sy);
+  check('drag from attack aims; release strikes that way (relative to the camera)', aiming != null && fa.st === 'attack' && Math.abs(HL_angDiff(fa.face, want)) < 0.3, JSON.stringify({ aiming, ...fa, want }));
   await page.waitForTimeout(500);
   await page.touchscreen.tap(at('dodge').x, at('dodge').y); await page.waitForTimeout(60);
   check('dodge button rolls', await page.evaluate(() => HL.G.player.state === 'roll'));

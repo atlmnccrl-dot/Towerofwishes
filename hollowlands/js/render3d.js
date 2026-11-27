@@ -415,13 +415,23 @@ HL.R3 = (() => {
     if (look.hunch) { head.position.set(0, 9.6, 0.9); }
     if (opt.tabard) { const tb = mesh(bx(1.8, 4.6, 0.3), opt.tabard); tb.position.set(0, 6.2, 2.4); rig.add(tb); }
     if (opt.shield) { const sh = mesh(bx(0.8, 5.5, 4.2), P.st2); sh.position.set(-2.9, 6.4, 1); rig.add(sh); const boss = mesh(bx(0.4, 1, 1), P.rust); boss.position.set(-3.4, 6.4, 1); rig.add(boss); }
-    const arm = new T.Group(); arm.position.set(2.2, 7.6, 0.3); rig.add(arm);
-    const hand = mesh(bx(1.1, 1.1, 1.1), look.c1); arm.add(hand);
-    const arm2 = new T.Group(); arm2.position.set(-2.2, 7.6, 0.3); rig.add(arm2);
+    const arm = new T.Group(); arm.position.set(2.3, 8, 0.2); rig.add(arm);
+    const sleeve = mesh(bx(1.3, 1.3, 3.4), look.c1); sleeve.position.set(0, 0, 1.2); arm.add(sleeve);
+    const hand = mesh(bx(1.1, 1.1, 1.1), look.face === P.ink ? '#c9bfae' : look.face); hand.position.set(0, 0, 3); arm.add(hand);
+    const arm2 = new T.Group(); arm2.position.set(-2.3, 8, 0.2); rig.add(arm2);
+    const sleeve2 = mesh(bx(1.3, 1.3, 3.4), look.c1); sleeve2.position.set(0, 0, 1.2); arm2.add(sleeve2);
+    const hand2 = mesh(bx(1.1, 1.1, 1.1), look.face === P.ink ? '#c9bfae' : look.face); hand2.position.set(0, 0, 3); arm2.add(hand2);
+    if (look.face === P.ink && !look.helm) { // the hollow: a bone mask with empty sockets and a red glow deep inside
+      const mask = mesh(bx(2.3, 2.3, 0.4), '#d8cfbe'); mask.position.set(0, -0.1, 1.55); head.add(mask);
+      for (const sd of [-0.55, 0.55]) { const sock = new T.Mesh(bx(0.6, 0.6, 0.2), new T.MeshBasicMaterial({ color: '#7a1a14' })); sock.position.set(sd, 0.2, 1.8); head.add(sock); }
+      const jaw = mesh(bx(1.6, 0.4, 0.3), '#a89c88'); jaw.position.set(0, -0.9, 1.75); head.add(jaw);
+      for (let i = 0; i < 4; i++) { const tat = mesh(bx(1, 2.4 + (i % 2), 0.3), look.c1); tat.position.set(-1.6 + i * 1.05, 2.2, (i % 2 ? 1 : -1) * 2.2); tat.rotation.x = (i % 2 ? 0.2 : -0.2); rig.add(tat); }
+    }
+    if (opt.horns) for (const sd of [-1, 1]) { const hn = mesh(new T.ConeGeometry(0.5, 2.6, 5), '#d8cfbe'); hn.position.set(sd * 1.3, 2, 0); hn.rotation.z = -sd * 0.7; head.add(hn); }
     let cape = null;
     if (opt.cape) { cape = new T.Group(); cape.position.set(0, 9, -1.6); rig.add(cape); const cm = mesh(bx(4.6, 6.5, 0.6), look.c1); cm.position.set(0, -3.4, -0.2); cape.add(cm); const hem = mesh(bx(4.8, 0.8, 0.7), look.c2); hem.position.set(0, -6.6, -0.2); cape.add(hem); }
     g.scale.setScalar(s);
-    return { g, rig, legs, body, head, eyes, arm, arm2, cape, mats, weapon: null, weapon2: null, wkind: null };
+    return { g, rig, legs, body, head, eyes, arm, arm2, cape, mats, weapon: null, weapon2: null, wkind: null, humanoid: true };
   }
   function weaponMesh(kind, mats) {
     const g = new T.Group(), M = (c) => figMat(c, mats), add = (geom, c, x, y, z) => { const m = new T.Mesh(geom, M(c)); m.position.set(x, y, z); m.castShadow = true; g.add(m); return m; };
@@ -439,7 +449,10 @@ HL.R3 = (() => {
     const g = new T.Group(), rig = new T.Group(); g.add(rig);
     const mesh = (geom, c, x, y, z) => { const m = new T.Mesh(geom, figMat(c, mats)); m.position.set(x, y, z); m.castShadow = true; rig.add(m); return m; };
     mesh(bx(3.6, 3, 8), P.red1, 0, 4.6, 0); mesh(bx(3.8, 1, 6), P.red0, 0, 6.4, -0.4);
-    const head = mesh(bx(3, 3, 3.6), P.red2, 0, 6, 5); mesh(bx(1.2, 1.2, 2), P.red2, 0, 5.4, 7.4);
+    const head = mesh(bx(3, 3, 3.6), P.red2, 0, 6, 5); mesh(bx(1.6, 1.4, 2.6), P.red3, 0, 5.2, 7.6); mesh(bx(1.8, 0.4, 2.2), '#d8cfbe', 0, 4.5, 7.4);
+    for (const sd of [-1, 1]) { const ear = mesh(new T.ConeGeometry(0.6, 1.8, 4), P.red3, sd * 1, 8.1, 4.4); ear.rotation.z = -sd * 0.3; }
+    const tail = mesh(bx(0.6, 0.6, 4), P.red1, 0, 6.2, -5.4); tail.rotation.x = 0.6;
+    for (let i = 0; i < 3; i++) mesh(bx(3.7, 0.4, 0.5), P.red3, 0, 5.5, -1.5 + i * 1.5);
     const legs = [[-1.3, 2.8], [1.3, 2.8], [-1.3, -2.8], [1.3, -2.8]].map(([x, z]) => { const p = new T.Group(); p.position.set(x, 3.2, z); const l = new T.Mesh(bx(1, 3.2, 1.1), figMat(P.red3, mats)); l.position.y = -1.6; l.castShadow = true; p.add(l); rig.add(p); return p; });
     const eyes = new T.Mesh(bx(2.6, 0.5, 0.3), new T.MeshBasicMaterial({ color: P.cream })); eyes.position.set(0, 6.6, 6.9); eyes.visible = false; rig.add(eyes);
     void head;
@@ -482,8 +495,8 @@ HL.R3 = (() => {
     let f;
     if (e === 'player') f = humanoid(HL.LOOKS.player, { cape: true });
     else if (e.type === 'wraith') f = wraith(mats);
-    else if (e.type === 'husk') { const pp = new Parts(); pp.add('box', -0.9, 0, 0, 1.2, 3, 1.3, P.red3); pp.add('box', 0.9, 0, 0, 1.2, 3, 1.3, P.red3); pp.add('taper', 0, 2.8, 0, 2.2, 5, 2, P.red1); pp.add('box', 0, 7.6, 0.5, 2.4, 2.4, 2.4, P.red2); pp.add('box', 0, 8.2, 1.75, 1.6, 0.5, 0.2, P.red0); const mat = vcMat.clone(); mats.push(mat); const m = meshOf(pp, mat); const rig = new T.Group(); rig.add(m); const g = new T.Group(); g.add(rig); f = { g, rig, mats, husk: true }; }
-    else if (e.type === 'brute') f = humanoid(HL.LOOKS.brute, { scale: 1.7 });
+    else if (e.type === 'husk') { const pp = new Parts(); pp.add('box', -0.9, 0, 0, 1.2, 3, 1.3, P.red3); pp.add('box', 0.9, 0, 0, 1.2, 3, 1.3, P.red3); pp.add('taper', 0, 2.8, 0, 2.2, 5, 2, P.red1); pp.add('box', 0, 7.6, 0.5, 2.4, 2.4, 2.4, P.red2); pp.add('box', 0, 7.5, 1.75, 2, 2, 0.3, '#d8cfbe'); pp.add('box', -0.5, 8, 1.92, 0.5, 0.5, 0.1, '#7a1a14'); pp.add('box', 0.5, 8, 1.92, 0.5, 0.5, 0.1, '#7a1a14'); pp.add('box', -1.7, 4.4, 1.4, 0.9, 0.9, 3.4, P.red1, 0, -0.5); pp.add('box', 1.7, 4.4, 1.4, 0.9, 0.9, 3.4, P.red1, 0, -0.5); const mat = vcMat.clone(); mats.push(mat); const m = meshOf(pp, mat); const rig = new T.Group(); rig.add(m); const g = new T.Group(); g.add(rig); f = { g, rig, mats, husk: true }; }
+    else if (e.type === 'brute') f = humanoid(HL.LOOKS.brute, { scale: 1.7, horns: true });
     else if (e.type === 'hound') f = hound(mats);
     else if (e.type === 'lurker') f = lurker(mats);
     else if (e.type === 'keeper') f = keeper(mats);
@@ -518,7 +531,9 @@ HL.R3 = (() => {
     if (o.pose === 'roll') { f.rig.rotation.x = 0.55; f.rig.position.y = 0.4; f.legs[0].rotation.x = 0.9; f.legs[1].rotation.x = -0.6; }
     if (o.pose === 'dead') { f.rig.rotation.x = -Math.PI / 2; f.rig.position.y = 1.4; f.rig.position.z = -5; }
     if (o.lean) f.rig.rotation.x = o.lean;
-    if (o.wang != null) { f.arm.rotation.set(o.wtilt != null ? o.wtilt : 0.25, o.face - o.wang, 0); if (f.weapon) f.weapon.position.z = o.thrust || 0; if (f.arm2) f.arm2.rotation.set(o.wtilt != null ? o.wtilt : 0.25, -(o.face - o.wang) * 0.7 + 0.5, 0); }
+    if (o.wang != null) { f.arm.rotation.set(o.wtilt != null ? o.wtilt : 0.25, o.face - o.wang, 0); if (f.weapon) f.weapon.position.z = (o.thrust || 0) + 2; if (f.arm2) f.arm2.rotation.set((o.wtilt != null ? o.wtilt : 0.25) + (f.weapon2 ? 0 : 0.9 - sw * 0.5), f.weapon2 ? -(o.face - o.wang) * 0.7 + 0.5 : 0.25, 0); }
+    else if (f.arm) { f.arm.rotation.set(1.1 + sw * 0.5, 0.2, 0); if (f.arm2) f.arm2.rotation.set(1.1 - sw * 0.5, -0.2, 0); }
+    if (o.reach && f.arm) { f.arm.rotation.x = 0; f.arm2.rotation.set(0, -0.3, 0); }
     if (o.lift) f.g.position.y = o.lift;
     if (f.cape) f.cape.rotation.x = -0.15 - Math.min(1.1, (o.speed || 0) / 60);
     f.eyes.visible = !!o.glint;
@@ -687,9 +702,29 @@ HL.R3 = (() => {
     cam.lookAt(camT.x + sx, 0, camT.y + sz);
     const post = R.post;
     if (G.state === 'cut' && G.cutCam) { const c = G.cutCam; cam.position.set(c.px + sx, c.py, c.pz + sz); cam.lookAt(c.lx, c.ly, c.lz); camT.x = c.lx; camT.y = c.lz; }
-    cam.fov = (G.state === 'cut' && G.cutCam && G.cutCam.fov ? G.cutCam.fov : FOV) * (1 - 0.06 * Math.min(1.6, post.kick));
-    if (scene.fog && !w.dark) { const fd = G.state === 'cut' && G.cutCam ? cam.position.distanceTo(tv.set(G.cutCam.lx, G.cutCam.ly, G.cutCam.lz)) : D; scene.fog.near = fd * 0.95 + 40; scene.fog.far = fd * 2.1 + 200; }
-    cam.far = D * 3 + 400; cam.updateProjectionMatrix();
+    // third person: behind the shoulder, easing toward where you walk; drag the right side to look around
+    const TP = G.settings.cam !== 'top' && p && G.state !== 'cut' && G.state !== 'title';
+    R.tp = TP;
+    if (R.yaw == null) R.yaw = -Math.PI / 2;
+    if (G.camYawDelta) { R.yaw += G.camYawDelta; G.camYawDelta = 0; G.camManualT = 2.5; }
+    if (G.camManualT > 0) G.camManualT -= dt;
+    else if (TP && p.state === 'move' && Math.hypot(p.vx, p.vy) > 20 && Math.abs(HL.angDiff(R.yaw, Math.atan2(p.vy, p.vx))) < 1.9) R.yaw += HL.angDiff(R.yaw, Math.atan2(p.vy, p.vx)) * Math.min(1, dt * 0.9);
+    if (G.camSnapYaw != null) { R.yaw = G.camSnapYaw; G.camSnapYaw = null; }
+    G.camYaw = R.yaw;
+    if (TP) {
+      const fx = Math.cos(R.yaw), fy = Math.sin(R.yaw), want = w.dark ? 30 : 38;
+      let dist = want;
+      for (let d = 6; d <= want; d += 2) if (w.blocked(p.x - fx * d, p.y - fy * d, 2)) { dist = Math.max(8, d - 4); break; }
+      R.camDist = dist < (R.camDist || want) ? dist : HL.lerp(R.camDist || want, dist, Math.min(1, dt * 3));
+      const cd = R.camDist, h = 7 + cd * 0.42 + (p.lift || 0) * 0.5;
+      cam.position.set(p.x - fx * cd + sx, h, p.y - fy * cd + sz);
+      cam.lookAt(p.x + fx * 16, 8 + (p.lift || 0) * 0.5, p.y + fy * 16);
+      camT.x = p.x + fx * 30; camT.y = p.y + fy * 30;
+    }
+    cam.fov = (G.state === 'cut' && G.cutCam && G.cutCam.fov ? G.cutCam.fov : TP ? 54 : FOV) * (1 - 0.06 * Math.min(1.6, post.kick));
+    if (scene.fog && !w.dark) { if (TP) { scene.fog.near = 90; scene.fog.far = 330; } else { const fd = G.state === 'cut' && G.cutCam ? cam.position.distanceTo(tv.set(G.cutCam.lx, G.cutCam.ly, G.cutCam.lz)) : D; scene.fog.near = fd * 0.95 + 40; scene.fog.far = fd * 2.1 + 200; } }
+    if (scene.fog && w.dark) { scene.fog.near = TP ? 60 : 300; scene.fog.far = TP ? 220 : 700; }
+    cam.far = TP ? 420 : D * 3 + 400; cam.updateProjectionMatrix();
     // light
     if (!w.dark) {
       const sxp = Math.round(camT.x / 4) * 4, szp = Math.round(camT.y / 4) * 4;
@@ -817,7 +852,7 @@ HL.R3 = (() => {
         if (e.type === 'brute') wkind = 'maul';
         const wang = e.type === 'guard' || e.type === 'brute' ? (e.state === 'tele' || e.state === 'slamT' ? dir + Math.PI * 0.9 : e.state === 'rec' && e.t < 0.3 ? dir : dir + 0.8) : e.type === 'archer' ? dir : dir + 0.6;
         if (e.type === 'brute' && e.state === 'charge' && Math.random() < 0.5) HL.vfx.ghost(f, P.red0);
-        poseHumanoid(f, { x: e.x, y: e.y, face: e.face, moving: ['chase', 'return', 'walk'].includes(e.state) || (e.state === 'idle' && e.wander && e.wander.go), walkT: e.walkT, pose: e.dead ? 'dead' : null, wang, glint, lean: e.type === 'drifter' && e.state === 'tele' ? 0.35 : e.state === 'atk' ? 0.25 : 0, wtilt: e.type === 'guard' && e.state === 'tele' ? -0.9 : 0.4 });
+        poseHumanoid(f, { x: e.x, y: e.y, face: e.face, moving: ['chase', 'return', 'walk'].includes(e.state) || (e.state === 'idle' && e.wander && e.wander.go), walkT: e.walkT, pose: e.dead ? 'dead' : null, wang: e.type === 'drifter' ? null : wang, reach: e.type === 'drifter' && (e.state === 'tele' || e.state === 'atk'), glint, lean: e.type === 'drifter' && e.state === 'tele' ? 0.35 : e.state === 'atk' ? 0.25 : 0, wtilt: e.type === 'guard' && e.state === 'tele' ? -0.9 : 0.4 });
       }
     });
     for (const [key, f] of figs) if (!alive.has(key)) { scene.remove(f.g); scene.remove(f.shadow); figs.delete(key); }
@@ -836,6 +871,7 @@ HL.R3 = (() => {
     for (const e of G.enemies) if (e.elite && !e.dead && !e.hidden && Math.random() < 0.35) HL.vfx.embers(e.x, e.y, 1, '#7fe8e0');
     // telegraphs
     for (const d of decals) { d.used = false; d.m.visible = false; }
+    for (const e of G.enemies) if (p && HL.Epic.executable(e) && HL.dist(p.x, p.y, e.x, e.y) < 80) { const m = decal('ring'); m.position.set(e.x, 0.55, e.y); m.scale.setScalar(e.r + 6 + Math.sin(t * 8)); m.material.color.set('#ff5050'); m.material.opacity = 0.85; }
     for (const e of G.enemies) { drawTele(e); if (e.teles) { const keep = e.tele; for (const tt of e.teles) { e.tele = tt; drawTele(e); } e.tele = keep; } }
     if (p && p.holdT >= 0 && (p.aimA != null || p.chargeT > 0)) {
       const wd = p.weaponDef(), heavy = p.chargeT > 0.05, arc = Math.max(0.5, heavy ? wd.heavy.arc : wd.arc), reach = heavy ? wd.heavy.reach : wd.reach, a = p.aimA != null ? p.aimA : p.face;
@@ -889,7 +925,7 @@ HL.R3 = (() => {
     post.flash = Math.max(0, post.flash - dt * 2.6); post.chroma = Math.max(0, post.chroma - dt * 2.4); post.kick = Math.max(0, post.kick - dt * 4);
     postMat.uniforms.flash.value = Math.min(0.9, post.flash); postMat.uniforms.flashCol.value.copy(post.flashCol); postMat.uniforms.chroma.value = post.chroma;
     // draw
-    postMat.uniforms.time.value = t; postMat.uniforms.tilt.value = w.dark ? 0.5 : 1;
+    postMat.uniforms.time.value = t; postMat.uniforms.tilt.value = R.tp ? 0 : w.dark ? 0.5 : 1;
     postMat.uniforms.hurt.value = Math.max(G.hurtVig || 0, p && p.hp < 30 ? 0.35 + Math.sin(t * 5) * 0.12 : 0);
     postMat.uniforms.fade.value = G.state === 'fade' ? HL.clamp(G.fadeT < 0.35 ? G.fadeT / 0.35 : 1 - (G.fadeT - 0.35) / 0.35, 0, 1) : G.state === 'cut' ? (G.cutFade || 0) : 0;
     const gr = G.state === 'cut' ? G.cutGrade : G.tide && G.tide.active ? ['#ff7a6a', 0.2] : w.id === 'ashwick' && G.hubStage() >= 5 && p && p.x < 70 * 8 ? ['#ffe0a8', 0.14] : null; postMat.uniforms.tintAmt.value = gr ? gr[1] : 0; if (gr) postMat.uniforms.tint.value.set(gr[0]);
@@ -932,13 +968,13 @@ HL.R3 = (() => {
   };
   R.overlay = function (g) {
     const G = HL.G, p = G.player;
-    for (const f of HL.fx.list) if (f.k === 'text') { const s = R.project(f.x, 10, f.y); HL.text(g, f.s, s.x, s.y - (f.t * 8), f.t / f.life > 0.7 ? P.cream3 : f.col, 0.5, 1, P.ink); }
+    for (const f of HL.fx.list) if (f.k === 'text') { const s = R.project(f.x, 10, f.y); if (s.behind) continue; HL.text(g, f.s, s.x, s.y - (f.t * 8), f.t / f.life > 0.7 ? P.cream3 : f.col, 0.5, 1, P.ink); }
     for (const e of G.enemies) {
       if (e.dead || e.hidden) continue;
-      if (e.state === 'alert') { const s = R.project(e.x, e.type === 'keeper' ? 46 : 18, e.y); HL.text(g, '!', s.x, s.y - 8, P.red0, 0.5, 1, P.ink); }
-      if (e.hp < e.maxhp && e.type !== 'keeper') { const s = R.project(e.x, 0, e.y), w = 10, f = Math.max(0, e.hp / e.maxhp); g.fillStyle = P.ink; g.fillRect(Math.round(s.x - w / 2), Math.round(s.y + 3), w, 2); g.fillStyle = P.red0; g.fillRect(Math.round(s.x - w / 2), Math.round(s.y + 3), Math.ceil(w * f), 2); }
-      if (e.vuln > 0) { const s = R.project(e.x, 14, e.y); HL.text(g, '*', s.x, s.y - 8, P.cream, 0.5, 1, P.ink); }
-      if (p && HL.Epic.executable(e) && HL.dist(p.x, p.y, e.x, e.y) < 70) { const s = R.project(e.x, e.type === 'brute' ? 24 : 16, e.y), x = Math.round(s.x), y = Math.round(s.y) - 6 + Math.round(Math.sin(G.time * 8)); g.fillStyle = P.ink; for (let j = -4; j <= 4; j++) { const w = 4 - Math.abs(j); g.fillRect(x - w - 1, y + j, w * 2 + 3, 1); } g.fillStyle = '#ff6a6a'; for (let j = -3; j <= 3; j++) { const w = 3 - Math.abs(j); g.fillRect(x - w, y + j, w * 2 + 1, 1); } }
+      if (e.state === 'alert' && !R.tp) { const s = R.project(e.x, e.type === 'keeper' ? 46 : 18, e.y); HL.text(g, '!', s.x, s.y - 8, P.red0, 0.5, 1, P.ink); }
+      if (e.hp < e.maxhp && e.type !== 'keeper') { const s = R.project(e.x, R.tp ? (e.type === 'brute' ? 24 : 15) : 0, e.y); if (s.behind) continue; const w = 10, f = Math.max(0, e.hp / e.maxhp); g.fillStyle = P.ink; g.fillRect(Math.round(s.x - w / 2), Math.round(s.y + 3), w, 2); g.fillStyle = P.red0; g.fillRect(Math.round(s.x - w / 2), Math.round(s.y + 3), Math.ceil(w * f), 2); }
+
+
     }
     if (p && R.occluded) {
       const s = R.project(p.x, 6, p.y);

@@ -4,7 +4,7 @@ const G = (HL.G = {
   state: 'boot', W: 400, H: 200, scale: 1, safe: { l: 0, r: 0, t: 0, b: 0 },
   world: null, player: null, enemies: [], shots: [], pshots: [], impacts: [], drops: [], cutActors: [], slowT: 0,
   flags: {}, inv: {}, eq: {}, wlv: {}, journal: [], quick: 'poultice', fire: null, fogs: {}, worlds: {},
-  settings: { shake: true, mute: false, guide: true }, time: 0, playtime: 0, hitstop: 0, shake: 0, hurtVig: 0,
+  settings: { shake: true, mute: false, guide: true, cam: 'third' }, time: 0, playtime: 0, hitstop: 0, shake: 0, hurtVig: 0,
   cam: { x: 0, y: 0 }, prompt: null, dialog: null, waves: null, bossAwake: false, deadT: 0, fade: 0, saved: null,
 });
 const Au = HL.Audio;
@@ -42,6 +42,7 @@ G.boot2 = function () {
   };
   requestAnimationFrame(frame);
 };
+G.thirdPerson = () => G.use3d && G.settings.cam !== 'top';
 G.isPlaying = () => G.player && G.world && ['play', 'menu', 'dialog', 'fire', 'anvil', 'perk', 'ilse'].includes(G.state);
 G.readSafe = () => {
   const d = document.getElementById('safe'); if (!d) return { l: 0, r: 0, t: 0, b: 0 };
@@ -117,9 +118,12 @@ G.bindInput = function () {
       if (HL.dist(p.x, p.y, c.x, c.y) <= c.r + 5) { I.st.btn[c.id] = { held: true, press: true, pid: e.pointerId, cx: c.x, cy: c.y, ax: null, ay: null }; capture(e.pointerId); return; }
     }
     if (p.x < G.W * 0.5) { I.st.joy = { pid: e.pointerId, ox: p.x, oy: p.y, dx: 0, dy: 0, mag: 0 }; capture(e.pointerId); }
+    else if (G.thirdPerson()) { I.st.look = { pid: e.pointerId, x: p.x, y: p.y, moved: 0 }; capture(e.pointerId); } // right side: drag to look, tap to strike
     else { I.st.btn.attack = { held: true, press: true, pid: e.pointerId, cx: p.x, cy: p.y, ax: null, ay: null }; capture(e.pointerId); } // right side: strike
   }, { passive: false });
   cv.addEventListener('pointermove', (e) => {
+    const lk = I.st.look;
+    if (lk && lk.pid === e.pointerId) { const p = G.toBuf(e), dx = p.x - lk.x; lk.moved += Math.abs(dx) + Math.abs(p.y - lk.y); lk.x = p.x; lk.y = p.y; if (lk.moved > 5) G.camYawDelta = (G.camYawDelta || 0) + dx * 0.022; return; }
     const ab = I.st.btn.attack;
     if (ab && ab.held && ab.pid === e.pointerId) { // drag from the attack button to aim
       const p = G.toBuf(e), dx = p.x - ab.cx, dy = p.y - ab.cy, d = Math.hypot(dx, dy);
@@ -134,6 +138,7 @@ G.bindInput = function () {
   });
   const end = (e) => {
     const j = I.st.joy; if (j && j.pid === e.pointerId) I.st.joy = null;
+    const lk = I.st.look; if (lk && lk.pid === e.pointerId) { I.st.look = null; if (lk.moved <= 5) I.st.btn.attack = { held: false, press: true, release: true, pid: -1 }; }
     for (const n in I.st.btn) { const b = I.st.btn[n]; if (b && b.pid === e.pointerId && b.held) { b.held = false; b.release = true; } }
   };
   cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
@@ -759,6 +764,12 @@ G.update = function (dt, inp) {
   if (G.hitstop > 0) { G.hitstop -= dt; G.shake = Math.max(0, G.shake - dt * 10); return; }
   if (G.slowT > 0) { G.slowT -= dt; dt *= G.slowScale || 0.3; }
   G.ultBanner && (G.ultBanner.t += dt);
+  if (G.thirdPerson()) { // stick up = forward, whatever way the camera faces
+    const yw = G.camYaw == null ? -Math.PI / 2 : G.camYaw, fx = Math.cos(yw), fy = Math.sin(yw), rx = -fy, ry = fx;
+    const T2 = (x, y) => [rx * x - fx * y, ry * x - fy * y];
+    [inp.mx, inp.my] = T2(inp.mx, inp.my);
+    if (inp.aimX != null) [inp.aimX, inp.aimY] = T2(inp.aimX, inp.aimY);
+  }
   p.update(dt, inp);
   for (const e of G.enemies) e.update(dt);
   // soft separation
@@ -876,7 +887,7 @@ G.updateRegion = function () {
 };
 
 // ------------------------------------------------------------------ render
-G.snapCam = function () { const c = G.camTarget(); G.cam.x = c.x; G.cam.y = c.y; if (G.use3d) HL.R3.snap(); };
+G.snapCam = function () { const c = G.camTarget(); G.cam.x = c.x; G.cam.y = c.y; if (G.use3d) HL.R3.snap(); if (G.player && G.player.face != null && G.state !== 'title') G.camSnapYaw = G.player.face; };
 G.camTarget = function () {
   const w = G.world, cs = G.state === 'cut' && G.cutShot(), p = cs ? { x: cs.x, y: cs.y, vx: 0, vy: 0 } : G.player || { x: G.titleCam.x, y: G.titleCam.y, vx: 0, vy: 0 };
   let x = p.x + p.vx * 0.3 - G.W / 2, y = p.y - 8 + p.vy * 0.3 - G.H / 2;

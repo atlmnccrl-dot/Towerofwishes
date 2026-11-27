@@ -60,6 +60,14 @@ a roll with invulnerability frames, one stamina bar, hit-stop, white hit flash, 
 small screen shake (can be turned off), synthesised impacts, footsteps that change on ash, stone and wood.
 Every enemy attack has a red ground telegraph (ring, arc or aim line) that stays readable at this distance.
 
+### v0.8: third person
+- **Camera** behind the shoulder (default; overhead stays in System): it eases toward where you walk, pulls in
+  when trees or walls would block it, and turns when you drag any empty spot on the right of the screen
+  (a quick tap there still strikes). The stick, keys and drag-to-aim are relative to the camera.
+- **Enemy models** made for being seen up close: arms that swing, bone masks with red sockets and ragged robes
+  on the hollow, a snout, ears, ribs and tail on the hounds, horns on the Brute. Floating symbols over foes
+  are gone in third person; foes you can execute get a red ring on the ground instead.
+
 ### v0.7: one connected world
 - **The Great Shrine of Ashwick** (hub goal): every shrine (+15 light), tide (+10), shard (+3), Lumen Well (+8),
   rescue (+5), the Champion (+10) and the Keeper (+20) feed it. Five stages, each filmed and each offering a

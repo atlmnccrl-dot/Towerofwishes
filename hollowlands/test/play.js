@@ -10,6 +10,7 @@ const SIM = () => {
   const G = HL.G, T = (t) => t * 8 + 4;
   const blank = () => ({ mx: 0, my: 0, attack: false, attackDown: false, attackUp: false, dodge: false, interact: false, ult: false, item: false, menu: false, map: false, esc: false, swap: false });
   const S = (window.SIM = { log: [] });
+  G.settings.cam = 'top'; // the bot steers in world directions
   const covers = (e, p) => {
     const tl = e.tele; if (!tl || tl.q < 0.45) return null;
     if (tl.k === 'ring') return HL.dist(p.x, p.y, tl.x, tl.y) < tl.r + 6 ? Math.atan2(p.y - tl.y, p.x - tl.x) : null;

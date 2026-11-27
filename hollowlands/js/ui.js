@@ -170,7 +170,7 @@ UI.drawControlsHD = (ctx, G) => {
     switch (c.id) {
       case 'attack': {
         if (G.eq.weapon) icon(G.eq.weapon, X, Y, R * 1.15);
-        else { ctx.fillStyle = P.cream; ctx.font = FONT(9, 900); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('✊', X, Y + S * 0.5); }
+        else { const k = R * 0.3; ctx.fillStyle = P.cream; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(X - k, Y - k * 0.9, k * 2, k * 1.7, k * 0.35); else ctx.rect(X - k, Y - k * 0.9, k * 2, k * 1.7); ctx.fill(); ctx.strokeStyle = '#1a1414'; ctx.lineWidth = Math.max(1.5, S * 0.4); for (let i = 1; i < 4; i++) { ctx.beginPath(); ctx.moveTo(X - k + (k * 2 * i) / 4, Y - k * 0.9); ctx.lineTo(X - k + (k * 2 * i) / 4, Y - k * 0.2); ctx.stroke(); } ctx.fillRect(X - k * 1.25, Y - k * 0.1, k * 0.55, k * 0.8); }
         if (p && p.chargeT > 0) { arc(X, Y, R - ring * 1.6, p.chargeT / 0.6, p.chargeT >= 0.6 ? '#ffe08a' : '#ece4d1', ring * 1.3); }
         if (b && b.held && b.ax != null) { circle(X + b.ax * R * 0.55, Y + b.ay * R * 0.55, R * 0.28); ctx.fillStyle = 'rgba(255,224,138,0.9)'; ctx.fill(); }
         label('ATTACK', X, Y + R + S * 1.2);
@@ -326,6 +326,7 @@ UI.drawGuide = (g, G) => {
   const ob = G.objective(); if (!ob || !ob.tgt) return;
   const o = ob.tgt, h = o.type === 'keeper' ? 48 : o.t === 'exit' && o.id === 'x_tower' ? 26 : 18;
   const s = G.use3d ? HL.R3.project(o.x, h, o.y) : { x: o.x - G.cam.x, y: o.y - h * 0.8 - G.cam.y };
+  if (s.behind) { s.x = G.W - s.x; s.y = G.H * 2; }
   const P = P_, M = 16, bob = Math.round(Math.sin(G.time * 4) * 1.5);
   if (s.x > M && s.x < G.W - M && s.y > M + 20 && s.y < G.H - M && !s.behind) {
     const x = Math.round(s.x), y = Math.round(s.y) - 8 + bob;
@@ -516,6 +517,7 @@ UI.drawSystem = (g, G) => {
   UI.button(g, 'Save now', x, 40, () => { G.save(true); }, { w: 120 });
   UI.button(g, 'Sound: ' + (HL.Audio.muted ? 'off' : 'on'), x, 62, () => { HL.Audio.setMuted(!HL.Audio.muted); G.settings.mute = HL.Audio.muted; }, { w: 120 });
   UI.button(g, 'Screen shake: ' + (G.settings.shake ? 'on' : 'off'), x, 84, () => { G.settings.shake = !G.settings.shake; }, { w: 120 });
+  UI.button(g, 'Camera: ' + (G.settings.cam === 'top' ? 'overhead' : 'third person'), x + 126, 40, () => { G.settings.cam = G.settings.cam === 'top' ? 'third' : 'top'; G.snapCam(); }, { w: 120 });
   UI.button(g, 'Guide arrow: ' + (G.settings.guide ? 'on' : 'off'), x, 106, () => { G.settings.guide = !G.settings.guide; }, { w: 120 });
   UI.button(g, 'Watch the opening', x, 128, () => { G.closeMenu(); G.playCut('intro'); }, { w: 120 });
   UI.button(g, 'Return to title', x, 150, () => { G.save(); G.toTitle(); }, { w: 120 });
